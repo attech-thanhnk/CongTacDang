@@ -20,15 +20,11 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request Interceptor: Tu dong gan Bearer Token neu co trong localStorage/sessionStorage
+// Request Interceptor: Tuan thu ADR-0007 (Mo hinh BFF & HttpOnly Cookie)
+// Token xac thuc duoc trinh duyet tu dong truyen ngam qua Cookie an toan, tuyet doi khong doc tu localStorage
 apiClient.interceptors.request.use(
   (config) => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
+    config.withCredentials = true;
     return config;
   },
   (error) => Promise.reject(error)
