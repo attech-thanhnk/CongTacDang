@@ -15,8 +15,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
-      <body className="bg-slate-50 text-slate-900 min-h-screen flex antialiased">
-        {/* Sidebar Enterprise Cố định bên trái */}
+      <body className="bg-slate-50 text-slate-900 min-h-screen flex antialiased font-serif">
+        {/* Sidebar Cố định bên trái */}
         <AppSidebar />
 
         {/* Khu vực Content chính bên phải */}

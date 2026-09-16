@@ -3,173 +3,132 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  FileSpreadsheet, 
-  FileEdit, 
-  Vote, 
-  CheckCheck, 
-  SlidersHorizontal, 
-  ShieldCheck, 
-  UserCheck, 
-  HelpCircle,
-  ExternalLink,
-  ChevronRight
-} from "lucide-react";
+
+import { userService, UserProfile } from "@/services/userService";
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const [profile, setProfile] = React.useState<UserProfile | null>(null);
 
-  const menuSections = [
+  const [cadreCount, setCadreCount] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    userService.getProfile()
+      .then(data => setProfile(data))
+      .catch(() => {});
+
+    userService.getUsers()
+      .then(data => setCadreCount(data.length))
+      .catch(() => {});
+  }, []);
+
+  const menuItems = [
     {
-      title: "NGHIỆP VỤ ĐÁNH GIÁ (03-HD/TVĐU)",
-      items: [
-        {
-          title: "Bảng điều hành Tổng hợp",
-          href: "/",
-          icon: LayoutDashboard,
-          badge: null
-        },
-        {
-          title: "Trung tâm Biểu mẫu (M01-M16)",
-          href: "/bieu-mau",
-          icon: FileSpreadsheet,
-          badge: "16 Mẫu"
-        },
-        {
-          title: "Đăng ký Giao việc (Mẫu 01)",
-          href: "/mau-01",
-          icon: FileEdit,
-          badge: "Quý III"
-        },
-        {
-          title: "Tự chấm điểm (Mẫu 02)",
-          href: "/mau-02",
-          icon: UserCheck,
-          badge: "Tối đa 100đ"
-        },
-        {
-          title: "Bỏ phiếu kín Chi bộ (Mẫu 11)",
-          href: "/bo-phieu",
-          icon: Vote,
-          badge: "Mẫu 11-13"
-        },
-        {
-          title: "Thẩm định & Phê duyệt",
-          href: "/tham-dinh",
-          icon: CheckCheck,
-          badge: "Trần 20%"
-        }
-      ]
+      index: "1",
+      title: "Bảng điều hành tổng hợp",
+      href: "/",
+      note: ""
     },
     {
-      title: "HỆ THỐNG & QUẢN TRỊ 2 VAI",
-      items: [
-        {
-          title: "Quản trị Nhân sự & Phân quyền",
-          href: "/quan-tri",
-          icon: ShieldCheck,
-          badge: "68 Cán bộ"
-        },
-        {
-          title: "Cấu hình Thang điểm & Trần",
-          href: "/cau-hinh",
-          icon: SlidersHorizontal,
-          badge: "Động 100%"
-        }
-      ]
+      index: "2",
+      title: "Quản trị người dùng & đơn vị",
+      href: "/users",
+      note: cadreCount !== null ? `${cadreCount} cán bộ` : ""
+    },
+    {
+      index: "3",
+      title: "Trung tâm biểu mẫu chuẩn",
+      href: "/forms",
+      note: "Mẫu A4"
+    },
+    {
+      index: "4",
+      title: "Quản lý tệp tin & upload",
+      href: "/attachments",
+      note: "Tệp đính kèm"
+    },
+    {
+      index: "5",
+      title: "Kết xuất dữ liệu & báo cáo",
+      href: "/reports",
+      note: "Excel / In ấn"
     }
   ];
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-100 flex flex-col h-screen sticky top-0 border-r border-slate-800 shrink-0 select-none z-30">
-      {/* Brand Header */}
-      <div className="p-4 border-b border-slate-800/80 bg-slate-950/40">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-dang-crimson flex items-center justify-center text-dang-gold font-serif font-black text-lg shadow-gold-glow border border-dang-gold/40">
-            ★
+    <aside className="w-64 bg-slate-900 text-slate-100 flex flex-col h-screen sticky top-0 border-r border-slate-800 shrink-0 select-none z-30 font-serif">
+      {/* Tiêu ngữ & Đơn vị theo quy chuẩn hành chính */}
+      <div className="p-4 border-b border-slate-800 bg-slate-950/60 text-center">
+        <p className="text-[11px] font-semibold text-slate-300 uppercase tracking-wide leading-tight">
+          Đảng ủy Tổng công ty QLB VN
+        </p>
+        <h1 className="text-xs font-bold text-amber-300 uppercase mt-1 leading-snug">
+          ĐẢNG BỘ CÔNG TY ATTECH
+        </h1>
+        <div className="w-12 h-0.5 bg-amber-400/60 mx-auto my-1.5"></div>
+        <p className="text-[11px] text-slate-400 italic">
+          Hệ thống Quản trị & Đánh giá Cán bộ
+        </p>
+      </div>
+
+      {/* Thông tin Cán bộ công vụ */}
+      <div className="p-3 border-b border-slate-800 bg-slate-900/90 text-xs">
+        <div className="border border-slate-700/80 rounded p-2.5 bg-slate-950/30 space-y-1">
+          <div className="flex justify-between items-center text-[11px] text-slate-400 border-b border-slate-800 pb-1">
+            <span>Tài khoản:</span>
+            <span className="text-amber-300 font-bold">
+              {profile ? profile.fullName : "Đang kiểm tra hồ sơ..."}
+            </span>
           </div>
-          <div className="min-w-0">
-            <h1 className="font-extrabold text-xs tracking-wider text-dang-gold uppercase font-serif">
-              ĐẢNG BỘ ATTECH
-            </h1>
-            <p className="text-[10px] text-slate-400 truncate tracking-tight font-medium">
-              Đánh giá Cán bộ Lãnh đạo
-            </p>
-          </div>
+          <p className="text-[11px] text-slate-300">
+            <span className="text-slate-400">Đảng vụ:</span> {profile ? profile.partyRole : "—"}
+          </p>
+          <p className="text-[11px] text-slate-300">
+            <span className="text-slate-400">Chính quyền:</span> {profile ? profile.adminTitle : "—"}
+          </p>
         </div>
       </div>
 
-      {/* Cadre Dual-Role Profile Card */}
-      <div className="px-3 py-3 border-b border-slate-800 bg-slate-950/20">
-        <div className="p-2.5 rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-900 border border-slate-700/60 shadow-sm">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-dang-crimson/90 border border-dang-gold/30 flex items-center justify-center text-dang-gold font-bold text-xs shrink-0">
-              NA
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-slate-100 truncate">Nguyễn Văn A</p>
-              <p className="text-[10px] text-amber-300 truncate">Bí thư Chi bộ Khối Kỹ thuật</p>
-            </div>
-          </div>
-          <div className="mt-2 pt-2 border-t border-slate-700/50 flex items-center justify-between text-[10px] text-slate-400">
-            <span>Chính quyền:</span>
-            <span className="text-slate-200 font-medium truncate max-w-[130px]">Trưởng phòng KH-KD</span>
-          </div>
-        </div>
+      {/* Danh mục Chức năng chuẩn văn bản */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-1">
+        <p className="px-2 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800 mb-2">
+          Danh mục chức năng
+        </p>
+
+        <nav className="space-y-1">
+          {menuItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center justify-between px-3 py-2 rounded text-xs transition-all ${
+                  isActive
+                    ? "bg-rose-950 text-amber-300 font-bold border-l-4 border-amber-400 shadow-sm"
+                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                }`}
+              >
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <span className="font-mono text-slate-400 text-[11px]">
+                    {item.index}.
+                  </span>
+                  <span className="truncate">{item.title}</span>
+                </div>
+
+                {item.note && (
+                  <span className="text-[10px] text-slate-400 italic shrink-0">
+                    ({item.note})
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
 
-      {/* Navigation Sections */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-5">
-        {menuSections.map((sec, idx) => (
-          <div key={idx} className="space-y-1">
-            <h3 className="px-3 text-[10px] font-bold tracking-wider text-slate-400 uppercase font-sans">
-              {sec.title}
-            </h3>
-            <div className="space-y-0.5">
-              {sec.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all group ${
-                      isActive
-                        ? "bg-dang-crimson text-white shadow-md font-semibold"
-                        : "text-slate-300 hover:bg-slate-800/70 hover:text-white"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <Icon className={`w-4 h-4 shrink-0 transition-colors ${
-                        isActive ? "text-dang-gold" : "text-slate-400 group-hover:text-slate-200"
-                      }`} />
-                      <span className="truncate">{item.title}</span>
-                    </div>
-
-                    {item.badge && (
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-tight shrink-0 ${
-                        isActive
-                          ? "bg-black/30 text-dang-gold border border-dang-gold/30"
-                          : "bg-slate-800 text-slate-400 group-hover:text-slate-300"
-                      }`}>
-                        {item.badge}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Footer Info */}
-      <div className="p-3 border-t border-slate-800 bg-slate-950/40 text-[10px] text-slate-400">
-        <div className="flex items-center justify-between">
-          <span className="text-slate-400 font-mono">LAN On-Premise</span>
-          <span className="text-dang-gold font-bold">03-HD/TVĐU</span>
-        </div>
+      {/* Chân trang thông tin quản lý nội bộ */}
+      <div className="p-3 border-t border-slate-800 bg-slate-950/60 text-[11px] text-slate-400 text-center">
+        <p>Mạng nội bộ LAN • Chuẩn 03-HD/TVĐU</p>
       </div>
     </aside>
   );

@@ -35,7 +35,7 @@ public static class DataSeeder
             await context.SaveChangesAsync();
         }
 
-        // 3. Seed Cán bộ / Đảng viên mẫu
+        // 3. Seed Cán bộ / Đảng viên mẫu (Quản trị người dùng & Phân quyền)
         if (!await context.PartyMemberProfiles.AnyAsync())
         {
             var cellKt = await context.PartyCells.FirstAsync(x => x.Code == "CB-KT");
@@ -101,42 +101,40 @@ public static class DataSeeder
             await context.SaveChangesAsync();
         }
 
-        // 4. Seed Kỳ đánh giá Quý III/2026 và Cấu hình tham số động theo 03-HD/TVĐU
-        if (!await context.EvaluationPeriods.AnyAsync())
+        // 4. Seed Tệp tin văn bản chỉ đạo & tài liệu mẫu (Upload & Quản lý tài liệu)
+        if (!await context.TaskAttachments.AnyAsync())
         {
-            var periodQ3 = new EvaluationPeriod
+            var doc1 = new TaskAttachment
             {
-                Year = 2026,
-                Quarter = EvaluationQuarter.Quy3,
-                Name = "Đánh giá định kỳ Quý III/2026",
-                RegistrationDeadline = new DateTime(2026, 7, 5, 23, 59, 59, DateTimeKind.Utc),
-                SelfEvaluationDeadline = new DateTime(2026, 9, 12, 23, 59, 59, DateTimeKind.Utc),
-                VotingDeadline = new DateTime(2026, 9, 15, 23, 59, 59, DateTimeKind.Utc),
-                ApprovalDeadline = new DateTime(2026, 9, 20, 23, 59, 59, DateTimeKind.Utc),
-                IsActive = true,
-                IsLocked = false
+                FileName = "Huong_dan_03_HD_TVDU_Danh_gia_can_bo.pdf",
+                OriginalFileName = "03-HD-TVDU.pdf",
+                ContentType = "application/pdf",
+                FileSize = 1048576,
+                ObjectKey = "general/202609/Huong_dan_03_HD_TVDU_Danh_gia_can_bo.pdf",
+                Provider = "local",
+                Checksum = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                FormCode = "GENERAL",
+                Description = "Hướng dẫn số 03-HD/TVĐU ngày 10/9/2026 của Ban Thường vụ Đảng ủy",
+                UploadedBy = "Lê Tiến Thịnh",
+                UploadedAt = DateTime.UtcNow
             };
 
-            var setting = new EvaluationSetting
+            var doc2 = new TaskAttachment
             {
-                Period = periodQ3,
-                MaxTotalScore = 100m,
-                GeneralCriteriaMaxScore = 30m,
-                TaskCriteriaMaxScore = 70m,
-                Tc1Score = 18m,
-                Tc2Score = 4m,
-                Tc3Score = 8m,
-                MaxExcellentPercentage = 20m,
-                MaxExcellentSpecialPercentage = 25m,
-                MinTasks = 3,
-                MaxTasks = 7,
-                ExcellentMinScore = 90m,
-                GoodMinScore = 70m,
-                PassMinScore = 50m
+                FileName = "Quyet_dinh_thanh_lap_To_tham_dinh.pdf",
+                OriginalFileName = "QD-To-Tham-Dinh.pdf",
+                ContentType = "application/pdf",
+                FileSize = 524288,
+                ObjectKey = "decision/202609/Quyet_dinh_thanh_lap_To_tham_dinh.pdf",
+                Provider = "local",
+                Checksum = "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+                FormCode = "DECISION",
+                Description = "Quyết định thành lập Tổ Thẩm định hồ sơ đánh giá cán bộ",
+                UploadedBy = "Lê Tiến Thịnh",
+                UploadedAt = DateTime.UtcNow
             };
 
-            periodQ3.Setting = setting;
-            await context.EvaluationPeriods.AddAsync(periodQ3);
+            await context.TaskAttachments.AddRangeAsync(doc1, doc2);
             await context.SaveChangesAsync();
         }
     }

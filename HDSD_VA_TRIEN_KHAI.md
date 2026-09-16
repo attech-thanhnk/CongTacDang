@@ -101,44 +101,37 @@ Theo Hướng dẫn 03-HD/TVĐU, hệ thống phân chia 5 vai trò độc lập
 
 ---
 
-## VII. HƯỚNG DẪN CÀI ĐẶT & TRIỂN KHAI
+## VII. HƯỚNG DẪN CÀI ĐẶT & TRIỂN KHAI BẰNG DOCKER COMPOSE
 
-### TÙY CHỌN 1: Triển khai Containerized Modular Services (Khuyến nghị cho Môi trường Sản xuất)
-Mô hình cô lập tài nguyên: Tách riêng **Export Service (Giới hạn 1GB RAM)**, **MinIO S3 (Lưu trữ tệp)**, **Auth Service**, **Core API**, và **Nginx API Gateway**.
+Hệ thống đã được đóng gói chuẩn hóa trong tệp `docker/docker-compose.yml` bao gồm đầy đủ 5 dịch vụ vận hành độc lập:
 
 ```bash
 cd docker
 
-# Cấp quyền thực thi và chạy kịch bản tự động:
-chmod +x deploy-modular.sh
-./deploy-modular.sh
+# Cấp quyền thực thi và chạy kịch bản tự động trên Linux:
+chmod +x deploy-ubuntu.sh
+./deploy-ubuntu.sh
 
-# Hoặc khởi động trực tiếp bằng Docker Compose:
-docker compose -f docker-compose.modular.yml up -d --build
+# Hoặc khởi động trực tiếp bằng lệnh Docker Compose tiêu chuẩn:
+docker compose up -d --build
 ```
 
-**Các cổng dịch vụ sau khi khởi động:**
-- **Cổng vào duy nhất (Nginx Gateway):** `http://<IP_MAY_CHU>:80`
-  - Giao diện Web: `http://<IP_MAY_CHU>/`
-  - Core API: `http://<IP_MAY_CHU>/api/`
-  - Auth & User API: `http://<IP_MAY_CHU>/api/auth/`
-  - Export Report API: `http://<IP_MAY_CHU>/api/export/`
-- **MinIO S3 Web Console:** `http://<IP_MAY_CHU>:9001` (Tài khoản: `minio_admin` / `MinioAttech2026!Key`)
-- **PostgreSQL Database:** Cổng nội bộ `5432`, Database: `congtacdang_db`.
+**Bảng ánh xạ các cổng dịch vụ sau khi khởi động:**
+
+| Dịch vụ | Công nghệ | Cổng truy cập | Tài khoản mặc định |
+| :--- | :--- | :--- | :--- |
+| **Giao diện Web** | Next.js 14 / TypeScript | `http://<IP_MAY_CHU>:3001` | Truy cập trực tiếp qua trình duyệt |
+| **Backend Web API** | .NET 10 Web API | `http://<IP_MAY_CHU>:5000/swagger` | Tài liệu API Swagger UI |
+| **MinIO Storage** | Object Storage (S3) | `http://<IP_MAY_CHU>:9001` (Console)<br>`http://<IP_MAY_CHU>:9000` (S3 API) | User: `minioadmin`<br>Password: `minioadmin` |
+| **pgAdmin 4** | Quản trị CSDL trực quan | `http://<IP_MAY_CHU>:5050` | Email: `admin@attech.com.vn`<br>Pass: `AttechAdmin2026!` |
+| **PostgreSQL 16** | Database Engine | `localhost:5434` (Port ngoài) | User: `dangbo_admin`<br>Pass: `AttechDang2026!Secret`<br>Database: `congtacdang_db` |
 
 ---
 
-### TÙY CHỌN 2: Triển khai Tiêu chuẩn All-in-One (Gọn nhẹ cho Máy trạm / Thử nghiệm)
-Mô hình gộp: 1 Web Frontend + 1 Backend API + 1 PostgreSQL + pgAdmin:
+### Dữ liệu bền vững (Persistent Volumes)
+Mọi dữ liệu phát sinh trong quá trình vận hành đều được lưu trên Docker Named Volumes, bảo đảm không bị mất khi container khởi động lại hoặc cập nhật bản build mới:
+1. `attech-dangbo-postgres-data`: Dữ liệu cơ sở dữ liệu PostgreSQL.
+2. `attech-dangbo-backend-storage`: Tệp tin đính kèm khi chạy chế độ lưu trữ cục bộ (`local`).
+3. `attech-dangbo-minio-data`: Dữ liệu kho lưu trữ đối tượng MinIO.
+4. `attech-dangbo-pgadmin-data`: Cấu hình phiên làm việc pgAdmin.
 
-```bash
-cd docker
-chmod +x deploy-ubuntu.sh
-./deploy-ubuntu.sh
-```
-
-**Các cổng dịch vụ:**
-- Frontend Web: `http://<IP_MAY_CHU>:3001`
-- Backend Swagger API: `http://<IP_MAY_CHU>:5000/swagger`
-- pgAdmin Web: `http://<IP_MAY_CHU>:5050` (`admin@attech.com.vn` / `AttechAdmin2026!`)
-- PostgreSQL: Cổng `5434`.

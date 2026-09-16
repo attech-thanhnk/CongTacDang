@@ -24,7 +24,37 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 3. Controllers & Swagger
+// 3. Dang ky Repository & Storage Adapter (Infrastructure Layer)
+builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IUserRepository, CongTacDang.Infrastructure.Repositories.UserRepository>();
+builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IAttachmentRepository, CongTacDang.Infrastructure.Repositories.AttachmentRepository>();
+builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IOrganizationRepository, CongTacDang.Infrastructure.Repositories.OrganizationRepository>();
+
+var storageProvider = builder.Configuration["Storage:Provider"] ?? "local";
+if (storageProvider.Equals("minio", StringComparison.OrdinalIgnoreCase))
+{
+    var minioOptions = new CongTacDang.Infrastructure.Services.MinioStorageOptions
+    {
+        Endpoint = builder.Configuration["Storage:Minio:Endpoint"] ?? "localhost:9000",
+        BucketName = builder.Configuration["Storage:Minio:BucketName"] ?? "congtacdang-files",
+        AccessKey = builder.Configuration["Storage:Minio:AccessKey"] ?? "minioadmin",
+        SecretKey = builder.Configuration["Storage:Minio:SecretKey"] ?? "minioadmin",
+        UseSsl = bool.TryParse(builder.Configuration["Storage:Minio:UseSsl"], out var ssl) && ssl
+    };
+    builder.Services.AddSingleton<CongTacDang.Application.Common.Interfaces.IFileStorageService>(new CongTacDang.Infrastructure.Services.MinioFileStorageService(minioOptions));
+}
+else
+{
+    var storagePath = System.IO.Path.Combine(builder.Environment.ContentRootPath, "storage", "attachments");
+    builder.Services.AddSingleton<CongTacDang.Application.Common.Interfaces.IFileStorageService>(new CongTacDang.Infrastructure.Services.LocalFileStorageService(storagePath));
+}
+
+// 4. Dang ky Services (Application Layer)
+builder.Services.AddScoped<CongTacDang.Application.Services.IUserService, CongTacDang.Application.Services.UserService>();
+builder.Services.AddScoped<CongTacDang.Application.Services.IOrganizationService, CongTacDang.Application.Services.OrganizationService>();
+builder.Services.AddScoped<CongTacDang.Application.Services.IAttachmentService, CongTacDang.Application.Services.AttachmentService>();
+builder.Services.AddScoped<CongTacDang.Application.Services.IReportService, CongTacDang.Infrastructure.Services.ReportService>();
+
+// 5. Controllers & Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

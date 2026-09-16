@@ -1,0 +1,89 @@
+# =============================================================================
+# GITIGNORE CHUẨN CHO DỰ ÁN CÔNG TÁC ĐẢNG (FULLSTACK .NET 10 + NEXT.JS 14)
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 1. .NET & C# Build Artifacts
+# -----------------------------------------------------------------------------
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+*.dll
+*.pdb
+*.exe
+*.deps.json
+*.runtimeconfig.json
+*.cache
+*.FileListAbsolute.txt
+*.sourcelink.json
+project.assets.json
+project.nuget.cache
+
+# Visual Studio & IDEs
+.vs/
+.vscode/
+.idea/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.userprefs
+*.launchSettings.json.user
+
+# -----------------------------------------------------------------------------
+# 2. Frontend Node.js & Next.js
+# -----------------------------------------------------------------------------
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+out/
+frontend/out/
+build/
+dist/
+
+# Next.js telemetry & cache
+.vercel
+next-env.d.ts
+*.tsbuildinfo
+
+# NPM / Yarn / PNPM debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables files (bảo mật mật khẩu và key)
+.env
+.env*.local
+!.env.example
+
+# -----------------------------------------------------------------------------
+# 3. Local Storage & Uploads
+# -----------------------------------------------------------------------------
+storage/
+backend/storage/
+backend/src/CongTacDang.Api/storage/
+*.log
+logs/
+
+# -----------------------------------------------------------------------------
+# 4. OS & System generated files
+# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+*.tmp
+*~
+
+# -----------------------------------------------------------------------------
+# 5. Database & Docker volumes
+# -----------------------------------------------------------------------------
+*.db
+*.db-shm
+*.db-wal
+postgres-data/
+pgadmin-data/
+minio-data/

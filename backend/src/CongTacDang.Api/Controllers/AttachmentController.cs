@@ -1,163 +1,140 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using CongTacDang.Domain.Entities;
-using CongTacDang.Infrastructure.Data;
+using CongTacDang.Application.Common.Models;
+using CongTacDang.Application.DTOs;
+using CongTacDang.Application.Services;
 
-namespace CongTacDang.Api.Controllers
+namespace CongTacDang.Api.Controllers;
+
+[ApiController]
+[Route("api/attachments")]
+[Route("api/[controller]")]
+public class AttachmentController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class AttachmentController : ControllerBase
+    private readonly IAttachmentService _attachmentService;
+
+    public AttachmentController(IAttachmentService attachmentService)
     {
-        private readonly CongTacDangDbContext _db;
-        private readonly IWebHostEnvironment _env;
-        private readonly string _uploadFolder;
+        _attachmentService = attachmentService;
+    }
 
-        // Các định dạng tệp minh chứng được phép
-        private static readonly string[] AllowedExtensions = { ".pdf", ".docx", ".xlsx", ".jpg", ".jpeg", ".png" };
-        private const long MaxFileSize = 25 * 1024 * 1024; // 25 MB
+    /// <summary>
+    /// Danh sach toan bo tap tin va tai lieu minh chung
+    /// </summary>
+    [HttpGet("list")]
+    public async Task<IActionResult> GetList()
+    {
+        var files = await _attachmentService.GetAttachmentsAsync();
+        return Ok(ApiResponse<List<AttachmentDto>>.Ok(files, "Lấy danh mục tệp tin thành công."));
+    }
 
-        public AttachmentController(CongTacDangDbContext db, IWebHostEnvironment env)
+    /// <summary>
+    /// Tai len tep minh chung (PDF, DOCX, XLSX, Anh)
+    /// </summary>
+    [HttpPost("upload")]
+    [RequestSizeLimit(30 * 1024 * 1024)]
+    public async Task<IActionResult> UploadFile(
+        [FromForm] IFormFile file,
+        [FromForm] string formCode = "GENERAL",
+        [FromForm] string description = "")
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(ApiResponse.Fail("Tệp đính kèm không được để trống."));
+
+        try
         {
-            _db = db;
-            _env = env;
-            _uploadFolder = Path.Combine(_env.ContentRootPath, "storage", "attachments");
-            if (!Directory.Exists(_uploadFolder))
-            {
-                Directory.CreateDirectory(_uploadFolder);
-            }
+            using var stream = file.OpenReadStream();
+            var result = await _attachmentService.UploadAttachmentAsync(
+                stream,
+                file.FileName,
+                file.ContentType,
+                file.Length,
+                formCode,
+                description,
+                "Cán bộ ATTECH"
+            );
+
+            return Ok(ApiResponse<AttachmentDto>.Ok(result, "Lưu tệp tin thành công vào hệ thống."));
         }
-
-        /// <summary>
-        /// Tải lên tệp minh chứng (PDF, DOCX, XLSX, Ảnh) cho nhiệm vụ hoặc giải trình
-        /// </summary>
-        [HttpPost("upload")]
-        [RequestSizeLimit(30 * 1024 * 1024)]
-        public async Task<IActionResult> UploadFile(
-            [FromForm] IFormFile file,
-            [FromForm] Guid? taskId,
-            [FromForm] Guid? recordId,
-            [FromForm] string formCode = "M01",
-            [FromForm] string description = "")
+        catch (ArgumentException ex)
         {
-            if (file == null || file.Length == 0)
-                return BadRequest("Tệp đính kèm không được để trống.");
-
-            if (file.Length > MaxFileSize)
-                return BadRequest("Dung lượng tệp vượt quá giới hạn tối đa 25MB.");
-
-            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (!AllowedExtensions.Contains(ext))
-                return BadRequest($"Định dạng tệp '{ext}' không được chấp nhận. Chỉ cho phép PDF, DOCX, XLSX, JPG, PNG.");
-
-            // Đặt tên tệp duy nhất để chống ghi đè và path traversal
-            var uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
-            var savePath = Path.Combine(_uploadFolder, uniqueFileName);
-
-            using (var stream = new FileStream(savePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
-
-            var attachment = new TaskAttachment
-            {
-                FileName = uniqueFileName,
-                OriginalFileName = file.FileName,
-                ContentType = file.ContentType,
-                FileSize = file.Length,
-                FilePath = savePath,
-                UploadedAt = DateTime.UtcNow,
-                UploadedBy = "Nguyễn Văn A", // Demo user
-                TaskId = taskId,
-                RecordId = recordId,
-                FormCode = formCode,
-                Description = description
-            };
-
-            _db.TaskAttachments.Add(attachment);
-            await _db.SaveChangesAsync();
-
-            return Ok(new
-            {
-                id = attachment.Id,
-                originalFileName = attachment.OriginalFileName,
-                fileSize = attachment.FileSize,
-                uploadedAt = attachment.UploadedAt,
-                formCode = attachment.FormCode,
-                message = "Tải lên tệp minh chứng thành công!"
-            });
+            return BadRequest(ApiResponse.Fail(ex.Message));
         }
-
-        /// <summary>
-        /// Tải xuống tệp minh chứng theo ID
-        /// </summary>
-        [HttpGet("download/{id}")]
-        public async Task<IActionResult> DownloadFile(Guid id)
+        catch (Exception ex)
         {
-            var attachment = await _db.TaskAttachments.FindAsync(id);
-            if (attachment == null || !System.IO.File.Exists(attachment.FilePath))
-                return NotFound("Không tìm thấy tệp minh chứng yêu cầu.");
-
-            var memory = new MemoryStream();
-            using (var stream = new FileStream(attachment.FilePath, FileMode.Open, FileAccess.Read))
-            {
-                await stream.CopyToAsync(memory);
-            }
-            memory.Position = 0;
-
-            return File(memory, attachment.ContentType, attachment.OriginalFileName);
+            return StatusCode(500, ApiResponse.Fail($"Lỗi trong quá trình xử lý tệp: {ex.Message}"));
         }
+    }
 
-        /// <summary>
-        /// Lấy danh sách tệp minh chứng của một nhiệm vụ
-        /// </summary>
-        [HttpGet("by-task/{taskId}")]
-        public async Task<IActionResult> GetByTaskId(Guid taskId)
+    /// <summary>
+    /// Tai ve tep tin minh chung theo ID
+    /// </summary>
+    [HttpGet("{id}/download")]
+    public async Task<IActionResult> DownloadFile(Guid id)
+    {
+        try
         {
-            var list = await _db.TaskAttachments
-                .Where(a => a.TaskId == taskId)
-                .OrderByDescending(a => a.UploadedAt)
-                .Select(a => new
-                {
-                    a.Id,
-                    a.OriginalFileName,
-                    a.FileSize,
-                    a.ContentType,
-                    a.UploadedAt,
-                    a.UploadedBy,
-                    a.FormCode,
-                    a.Description
-                })
-                .ToListAsync();
-
-            return Ok(list);
+            var result = await _attachmentService.DownloadAttachmentAsync(id);
+            return File(result.Stream, result.ContentType, result.FileName);
         }
-
-        /// <summary>
-        /// Xóa tệp minh chứng
-        /// </summary>
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteFile(Guid id)
+        catch (KeyNotFoundException ex)
         {
-            var attachment = await _db.TaskAttachments.FindAsync(id);
-            if (attachment == null)
-                return NotFound("Không tìm thấy tệp.");
+            return NotFound(ApiResponse.Fail(ex.Message));
+        }
+        catch (FileNotFoundException ex)
+        {
+            return NotFound(ApiResponse.Fail(ex.Message));
+        }
+    }
 
-            if (System.IO.File.Exists(attachment.FilePath))
-            {
-                System.IO.File.Delete(attachment.FilePath);
-            }
+    /// <summary>
+    /// Thong tin chi tiet tep tin
+    /// </summary>
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var file = await _attachmentService.GetAttachmentByIdAsync(id);
+        if (file == null)
+            return NotFound(ApiResponse.Fail("Không tìm thấy tệp tin."));
 
-            _db.TaskAttachments.Remove(attachment);
-            await _db.SaveChangesAsync();
+        return Ok(ApiResponse<AttachmentDto>.Ok(file, "Lấy thông tin tệp tin thành công."));
+    }
 
-            return Ok(new { message = "Đã xóa tệp minh chứng thành công." });
+    /// <summary>
+    /// Chinh sua thong tin trich yeu va phan loai tep tin
+    /// </summary>
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateAttachment(Guid id, [FromBody] UpdateAttachmentDto request)
+    {
+        try
+        {
+            var result = await _attachmentService.UpdateAttachmentAsync(id, request);
+            return Ok(ApiResponse<AttachmentDto>.Ok(result, "Cập nhật thông tin tệp tin thành công."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>
+    /// Xoa tep tin khoi he thong
+    /// </summary>
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteFile(Guid id)
+    {
+        try
+        {
+            await _attachmentService.DeleteAttachmentAsync(id);
+            return Ok(ApiResponse.Ok("Đã xóa tệp tin thành công."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse.Fail(ex.Message));
         }
     }
 }

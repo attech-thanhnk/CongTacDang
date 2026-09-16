@@ -23,7 +23,26 @@ services:
       - dangbo-net
 
   # ---------------------------------------------------------------------------
-  # 2. Backend Web API (.NET 10)
+  # 2. MinIO Object Storage (Kho lưu trữ tệp tin phân tán S3-compatible)
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: attech-dangbo-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "9000:9000"   # API S3 endpoint
+      - "9001:9001"   # Giao diện Web Console quản trị
+    volumes:
+      - minio-data:/data
+    networks:
+      - dangbo-net
+
+  # ---------------------------------------------------------------------------
+  # 3. Backend Web API (.NET 10)
   # ---------------------------------------------------------------------------
   backend:
     build:
@@ -32,19 +51,31 @@ services:
     container_name: attech-dangbo-api
     restart: unless-stopped
     environment:
+      - ConnectionStrings__Default=Host=postgres;Port=5432;Database=congtacdang_db;Username=dangbo_admin;Password=AttechDang2026!Secret
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=congtacdang_db;Username=dangbo_admin;Password=AttechDang2026!Secret
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5000
+      - Storage__Provider=${STORAGE_PROVIDER:-local}
+      - Storage__Minio__Endpoint=minio:9000
+      - Storage__Minio__BucketName=congtacdang-files
+      - Storage__Minio__AccessKey=minioadmin
+      - Storage__Minio__SecretKey=minioadmin
+      - Storage__Minio__UseSsl=false
+      - Storage__Minio__PublicEndpoint=localhost:9000
     ports:
       - "5000:5000"
+    volumes:
+      - backend-storage:/app/storage
     depends_on:
       postgres:
         condition: service_healthy
+      minio:
+        condition: service_started
     networks:
       - dangbo-net
 
   # ---------------------------------------------------------------------------
-  # 3. Frontend Web App (Next.js 14 / TailwindCSS)
+  # 4. Frontend Web App (Next.js 14 / TailwindCSS)
   # ---------------------------------------------------------------------------
   frontend:
     build:
@@ -63,7 +94,7 @@ services:
       - dangbo-net
 
   # ---------------------------------------------------------------------------
-  # 4. pgAdmin (Quản trị CSDL trực quan trên Web - Cổng 5050)
+  # 5. pgAdmin (Quản trị CSDL trực quan trên Web - Cổng 5050)
   # ---------------------------------------------------------------------------
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -86,6 +117,10 @@ services:
 volumes:
   postgres-data:
     name: attech-dangbo-postgres-data
+  backend-storage:
+    name: attech-dangbo-backend-storage
+  minio-data:
+    name: attech-dangbo-minio-data
   pgadmin-data:
     name: attech-dangbo-pgadmin-data
 

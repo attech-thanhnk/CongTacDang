@@ -1,55 +1,92 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using CongTacDang.Infrastructure.Data;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using CongTacDang.Application.Common.Models;
+using CongTacDang.Application.DTOs;
+using CongTacDang.Application.Services;
 
 namespace CongTacDang.Api.Controllers;
 
 [ApiController]
+[Route("api/organizations")]
 [Route("api/[controller]")]
 public class OrganizationController : ControllerBase
 {
-    private readonly CongTacDangDbContext _db;
+    private readonly IOrganizationService _orgService;
 
-    public OrganizationController(CongTacDangDbContext db)
+    public OrganizationController(IOrganizationService orgService)
     {
-        _db = db;
+        _orgService = orgService;
     }
 
-    /// <summary>Lấy danh sách các Chi bộ thuộc Đảng bộ ATTECH</summary>
+    /// <summary>Lay danh sach cac Chi bo thuoc Dang bo ATTECH</summary>
+    [HttpGet("branches")]
     [HttpGet("party-cells")]
     public async Task<IActionResult> GetPartyCells()
     {
-        var cells = await _db.PartyCells
-            .Include(c => c.Members)
-            .OrderBy(c => c.Code)
-            .ToListAsync();
-        return Ok(cells);
+        var branches = await _orgService.GetBranchesAsync();
+        return Ok(ApiResponse<List<BranchDto>>.Ok(branches, "Lấy danh sách Chi bộ thành công."));
     }
 
-    /// <summary>Lấy danh sách các Phòng ban / Xưởng sản xuất chính quyền</summary>
+    /// <summary>Them moi Chi bo Dang</summary>
+    [HttpPost("branches")]
+    public async Task<IActionResult> CreateBranch([FromBody] CreateBranchDto request)
+    {
+        try
+        {
+            var branch = await _orgService.CreateBranchAsync(request);
+            return Ok(ApiResponse<BranchDto>.Ok(branch, "Thêm mới Chi bộ thành công."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>Cap nhat thong tin Chi bo Dang</summary>
+    [HttpPut("branches/{id}")]
+    public async Task<IActionResult> UpdateBranch(Guid id, [FromBody] UpdateBranchDto request)
+    {
+        try
+        {
+            var branch = await _orgService.UpdateBranchAsync(id, request);
+            return Ok(ApiResponse<BranchDto>.Ok(branch, "Cập nhật Chi bộ thành công."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse.Fail(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>Xoa Chi bo Dang</summary>
+    [HttpDelete("branches/{id}")]
+    public async Task<IActionResult> DeleteBranch(Guid id)
+    {
+        try
+        {
+            await _orgService.DeleteBranchAsync(id);
+            return Ok(ApiResponse.Ok("Đã xóa Chi bộ thành công."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>Lay danh sach cac Phong ban / Xuong san xuat chinh quyen</summary>
     [HttpGet("departments")]
     public async Task<IActionResult> GetDepartments()
     {
-        var deps = await _db.AdministrativeDepartments
-            .OrderBy(d => d.Code)
-            .ToListAsync();
-        return Ok(deps);
-    }
-
-    /// <summary>Lấy danh sách cán bộ / đảng viên theo Chi bộ hoặc Đơn vị</summary>
-    [HttpGet("members")]
-    public async Task<IActionResult> GetMembers([FromQuery] System.Guid? cellId, [FromQuery] System.Guid? depId)
-    {
-        var query = _db.PartyMemberProfiles
-            .Include(m => m.PartyCell)
-            .Include(m => m.Department)
-            .AsQueryable();
-
-        if (cellId.HasValue) query = query.Where(m => m.PartyCellId == cellId);
-        if (depId.HasValue) query = query.Where(m => m.DepartmentId == depId);
-
-        var members = await query.ToListAsync();
-        return Ok(members);
+        var depts = await _orgService.GetDepartmentsAsync();
+        return Ok(ApiResponse<List<DepartmentDto>>.Ok(depts, "Lấy danh sách đơn vị chuyên môn thành công."));
     }
 }
