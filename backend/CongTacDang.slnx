@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CongTacDang.Api/CongTacDang.Api.csproj" />
+    <Project Path="src/CongTacDang.Application/CongTacDang.Application.csproj" />
+    <Project Path="src/CongTacDang.Domain/CongTacDang.Domain.csproj" />
+    <Project Path="src/CongTacDang.Infrastructure/CongTacDang.Infrastructure.csproj" />
+  </Folder>
+</Solution>

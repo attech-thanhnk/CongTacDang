@@ -1,0 +1,11 @@
+D:\repos\CongTacDang\backend\src\CongTacDang.Domain\bin\Release\net10.0\CongTacDang.Domain.deps.json
+D:\repos\CongTacDang\backend\src\CongTacDang.Domain\bin\Release\net10.0\CongTacDang.Domain.dll
+D:\repos\CongTacDang\backend\src\CongTacDang.Domain\bin\Release\net10.0\CongTacDang.Domain.pdb
+D:\repos\CongTacDang\backend\src\CongTacDang.Domain\obj\Release\net10.0\CongTacDang.Domain.GeneratedMSBuildEditorConfig.editorconfig
+D:\repos\CongTacDang\backend\src\CongTacDang.Domain\obj\Release\net10.0\CongTacDang.Domain.AssemblyInfoInputs.cache
+D:\repos\CongTacDang\backend\src\CongTacDang.Domain\obj\Release\net10.0\CongTacDang.Domain.AssemblyInfo.cs
+D:\repos\CongTacDang\backend\src\CongTacDang.Domain\obj\Release\net10.0\CongTacDang.Domain.csproj.CoreCompileInputs.cache
+D:\repos\CongTacDang\backend\src\CongTacDang.Domain\obj\Release\net10.0\CongTacDang.Domain.dll
+D:\repos\CongTacDang\backend\src\CongTacDang.Domain\obj\Release\net10.0\refint\CongTacDang.Domain.dll
+D:\repos\CongTacDang\backend\src\CongTacDang.Domain\obj\Release\net10.0\CongTacDang.Domain.pdb
+D:\repos\CongTacDang\backend\src\CongTacDang.Domain\obj\Release\net10.0\ref\CongTacDang.Domain.dll

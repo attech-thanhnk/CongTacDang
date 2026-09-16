@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "CongTacDang.Application/1.0.0": {
+        "dependencies": {
+          "CongTacDang.Domain": "1.0.0"
+        },
+        "runtime": {
+          "CongTacDang.Application.dll": {}
+        }
+      },
+      "CongTacDang.Domain/1.0.0": {
+        "runtime": {
+          "CongTacDang.Domain.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "CongTacDang.Application/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "CongTacDang.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

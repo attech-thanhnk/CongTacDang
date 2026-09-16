@@ -1,0 +1,29 @@
+# ---------------------------------------------------------------------------
+# Dockerfile cho Backend .NET 10 Web API - Phân hệ Công tác Đảng ATTECH
+# ---------------------------------------------------------------------------
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy toàn bộ solution và project files để cache restore layer
+COPY backend/CongTacDang.slnx ./
+COPY backend/src/CongTacDang.Domain/CongTacDang.Domain.csproj src/CongTacDang.Domain/
+COPY backend/src/CongTacDang.Application/CongTacDang.Application.csproj src/CongTacDang.Application/
+COPY backend/src/CongTacDang.Infrastructure/CongTacDang.Infrastructure.csproj src/CongTacDang.Infrastructure/
+COPY backend/src/CongTacDang.Api/CongTacDang.Api.csproj src/CongTacDang.Api/
+
+RUN dotnet restore src/CongTacDang.Api/CongTacDang.Api.csproj
+
+# Copy toàn bộ mã nguồn và build Release
+COPY backend/src/ src/
+WORKDIR /src/src/CongTacDang.Api
+RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
+
+# Runtime Image
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+EXPOSE 5000
+ENV ASPNETCORE_URLS=http://+:5000
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "CongTacDang.Api.dll"]

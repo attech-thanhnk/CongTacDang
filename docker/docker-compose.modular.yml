@@ -1,0 +1,154 @@
+version: '3.8'
+
+# =============================================================================
+# KIẾN TRÚC MODULAR CONTAINERIZED SERVICES - ĐẢNG BỘ ATTECH (03-HD/TVĐU)
+# Tách riêng: Export (RAM limit 1GB) + MinIO S3 + Auth/User + Core API + Nginx
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # 1. Cơ sở dữ liệu PostgreSQL duy nhất (tránh phân tán Saga)
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: attech-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: congtacdang_db
+      POSTGRES_USER: attech_admin
+      POSTGRES_PASSWORD: AttechDang2026!Secret
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U attech_admin -d congtacdang_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - attech-net
+
+  # ---------------------------------------------------------------------------
+  # 2. MinIO S3 Object Storage - Lưu trữ tệp minh chứng & Scan biên bản chi bộ
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: attech-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio_admin
+      MINIO_ROOT_PASSWORD: MinioAttech2026!Key
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9001:9001" # MinIO Web Console
+    networks:
+      - attech-net
+
+  # ---------------------------------------------------------------------------
+  # 3. User & Auth Service (.NET 10) - Quản trị 68 cán bộ 2 vai, JWT, RBAC
+  # ---------------------------------------------------------------------------
+  auth-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: attech-auth-service
+    restart: unless-stopped
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=congtacdang_db;Username=attech_admin;Password=AttechDang2026!Secret
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - attech-net
+
+  # ---------------------------------------------------------------------------
+  # 4. Core Business API (.NET 10) - Mẫu 01, Mẫu 02, Bỏ phiếu kín 11, Thẩm định
+  # ---------------------------------------------------------------------------
+  core-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: attech-core-api
+    restart: unless-stopped
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=congtacdang_db;Username=attech_admin;Password=AttechDang2026!Secret
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - attech-net
+
+  # ---------------------------------------------------------------------------
+  # 5. Export Service (.NET 10 / ClosedXML) - Giới hạn 1GB RAM chống treo hệ thống
+  # ---------------------------------------------------------------------------
+  export-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: attech-export-service
+    restart: unless-stopped
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=congtacdang_db;Username=attech_admin;Password=AttechDang2026!Secret
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+          cpus: '1.5'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - attech-net
+
+  # ---------------------------------------------------------------------------
+  # 6. Web Frontend Next.js 14
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    container_name: attech-frontend
+    restart: unless-stopped
+    environment:
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=/api
+    networks:
+      - attech-net
+
+  # ---------------------------------------------------------------------------
+  # 7. Nginx Reverse Proxy / API Gateway - Cổng vào duy nhất cổng 80
+  # ---------------------------------------------------------------------------
+  nginx-gateway:
+    image: nginx:alpine
+    container_name: attech-gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - core-api
+      - export-service
+      - auth-service
+      - minio
+    networks:
+      - attech-net
+
+volumes:
+  postgres-data:
+    name: attech-modular-postgres-data
+  minio-data:
+    name: attech-modular-minio-data
+
+networks:
+  attech-net:
+    name: attech-modular-network
+    driver: bridge

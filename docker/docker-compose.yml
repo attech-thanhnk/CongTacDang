@@ -1,0 +1,95 @@
+services:
+  # ---------------------------------------------------------------------------
+  # 1. Cơ sở dữ liệu PostgreSQL 16 (Alpine) cho Đảng bộ ATTECH
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: attech-dangbo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-congtacdang_db}
+      POSTGRES_USER: ${POSTGRES_USER:-dangbo_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-AttechDang2026!Secret}
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dangbo_admin} -d ${POSTGRES_DB:-congtacdang_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dangbo-net
+
+  # ---------------------------------------------------------------------------
+  # 2. Backend Web API (.NET 10)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: attech-dangbo-api
+    restart: unless-stopped
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=congtacdang_db;Username=dangbo_admin;Password=AttechDang2026!Secret
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - dangbo-net
+
+  # ---------------------------------------------------------------------------
+  # 3. Frontend Web App (Next.js 14 / TailwindCSS)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    container_name: attech-dangbo-web
+    restart: unless-stopped
+    environment:
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:5000/api
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend
+    networks:
+      - dangbo-net
+
+  # ---------------------------------------------------------------------------
+  # 4. pgAdmin (Quản trị CSDL trực quan trên Web - Cổng 5050)
+  # ---------------------------------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: attech-dangbo-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@attech.com.vn}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-AttechAdmin2026!}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - dangbo-net
+
+volumes:
+  postgres-data:
+    name: attech-dangbo-postgres-data
+  pgadmin-data:
+    name: attech-dangbo-pgadmin-data
+
+networks:
+  dangbo-net:
+    name: attech-dangbo-network
+    driver: bridge
