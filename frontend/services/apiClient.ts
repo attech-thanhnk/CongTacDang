@@ -10,10 +10,11 @@ export interface ApiResponse<T = any> {
   timestamp?: string;
 }
 
-// Khoi tao Axios client chuan cho toan bo du an Next.js
+// Khoi tao Axios client chuan cho toan bo du an Next.js (Ho tro BFF HttpOnly Cookie)
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
