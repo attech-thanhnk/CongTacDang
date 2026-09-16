@@ -1,13 +1,11 @@
-version: '3.8'
-
 # =============================================================================
 # KIẾN TRÚC MODULAR CONTAINERIZED SERVICES - ĐẢNG BỘ ATTECH (03-HD/TVĐU)
-# Tách riêng: Export (RAM limit 1GB) + MinIO S3 + Auth/User + Core API + Nginx
+# Tách riêng: Export (RAM limit 1GB) + Auth/User + Core API + Nginx Gateway
 # =============================================================================
 
 services:
   # ---------------------------------------------------------------------------
-  # 1. Cơ sở dữ liệu PostgreSQL duy nhất (tránh phân tán Saga)
+  # 1. Cơ sở dữ liệu PostgreSQL 16 Alpine duy nhất
   # ---------------------------------------------------------------------------
   postgres:
     image: postgres:16-alpine
@@ -28,25 +26,7 @@ services:
       - attech-net
 
   # ---------------------------------------------------------------------------
-  # 2. MinIO S3 Object Storage - Lưu trữ tệp minh chứng & Scan biên bản chi bộ
-  # ---------------------------------------------------------------------------
-  minio:
-    image: minio/minio:latest
-    container_name: attech-minio
-    restart: unless-stopped
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minio_admin
-      MINIO_ROOT_PASSWORD: MinioAttech2026!Key
-    volumes:
-      - minio-data:/data
-    ports:
-      - "9001:9001" # MinIO Web Console
-    networks:
-      - attech-net
-
-  # ---------------------------------------------------------------------------
-  # 3. User & Auth Service (.NET 10) - Quản trị 68 cán bộ 2 vai, JWT, RBAC
+  # 2. User & Auth Service (.NET 10) - Quản trị 68 cán bộ 2 vai, JWT, RBAC
   # ---------------------------------------------------------------------------
   auth-service:
     build:
@@ -55,6 +35,7 @@ services:
     container_name: attech-auth-service
     restart: unless-stopped
     environment:
+      - ConnectionStrings__Default=Host=postgres;Port=5432;Database=congtacdang_db;Username=attech_admin;Password=AttechDang2026!Secret
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=congtacdang_db;Username=attech_admin;Password=AttechDang2026!Secret
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5000
@@ -65,7 +46,7 @@ services:
       - attech-net
 
   # ---------------------------------------------------------------------------
-  # 4. Core Business API (.NET 10) - Mẫu 01, Mẫu 02, Bỏ phiếu kín 11, Thẩm định
+  # 3. Core Business API (.NET 10) - Mẫu 01, Mẫu 02, Bỏ phiếu 11, Thẩm định, Upload
   # ---------------------------------------------------------------------------
   core-api:
     build:
@@ -74,9 +55,12 @@ services:
     container_name: attech-core-api
     restart: unless-stopped
     environment:
+      - ConnectionStrings__Default=Host=postgres;Port=5432;Database=congtacdang_db;Username=attech_admin;Password=AttechDang2026!Secret
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=congtacdang_db;Username=attech_admin;Password=AttechDang2026!Secret
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5000
+    volumes:
+      - attachments-data:/app/storage/attachments
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,7 +68,7 @@ services:
       - attech-net
 
   # ---------------------------------------------------------------------------
-  # 5. Export Service (.NET 10 / ClosedXML) - Giới hạn 1GB RAM chống treo hệ thống
+  # 4. Export Service (.NET 10 / ClosedXML) - Giới hạn 1GB RAM chống treo hệ thống
   # ---------------------------------------------------------------------------
   export-service:
     build:
@@ -93,6 +77,7 @@ services:
     container_name: attech-export-service
     restart: unless-stopped
     environment:
+      - ConnectionStrings__Default=Host=postgres;Port=5432;Database=congtacdang_db;Username=attech_admin;Password=AttechDang2026!Secret
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=congtacdang_db;Username=attech_admin;Password=AttechDang2026!Secret
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5000
@@ -108,7 +93,7 @@ services:
       - attech-net
 
   # ---------------------------------------------------------------------------
-  # 6. Web Frontend Next.js 14
+  # 5. Web Frontend Next.js 14
   # ---------------------------------------------------------------------------
   frontend:
     build:
@@ -123,7 +108,7 @@ services:
       - attech-net
 
   # ---------------------------------------------------------------------------
-  # 7. Nginx Reverse Proxy / API Gateway - Cổng vào duy nhất cổng 80
+  # 6. Nginx Reverse Proxy / API Gateway - Cổng vào duy nhất cổng 80
   # ---------------------------------------------------------------------------
   nginx-gateway:
     image: nginx:alpine
@@ -138,15 +123,14 @@ services:
       - core-api
       - export-service
       - auth-service
-      - minio
     networks:
       - attech-net
 
 volumes:
   postgres-data:
     name: attech-modular-postgres-data
-  minio-data:
-    name: attech-modular-minio-data
+  attachments-data:
+    name: attech-modular-attachments-data
 
 networks:
   attech-net:
