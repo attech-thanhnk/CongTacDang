@@ -1,7 +1,5 @@
 services:
-  # ---------------------------------------------------------------------------
-  # 1. Cơ sở dữ liệu PostgreSQL 16 (Alpine) cho Đảng bộ ATTECH
-  # ---------------------------------------------------------------------------
+  # Cơ sở dữ liệu quan hệ PostgreSQL 16
   postgres:
     image: postgres:16-alpine
     container_name: attech-dangbo-postgres
@@ -11,7 +9,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-dangbo_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-AttechDang2026!Secret}
     ports:
-      - "${POSTGRES_PORT:-5434}:5432"
+      - "${POSTGRES_PORT:-5434}:5432" # Cổng ngoài 5434 tránh xung đột với PostgreSQL cục bộ
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -22,11 +20,9 @@ services:
     networks:
       - dangbo-net
 
-  # ---------------------------------------------------------------------------
-  # 2. MinIO Object Storage (Kho lưu trữ tệp tin phân tán S3-compatible)
-  # ---------------------------------------------------------------------------
+  # Kho lưu trữ đối tượng MinIO (Cổng 9000: S3 API, Cổng 9001: Web Console)
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
     container_name: attech-dangbo-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -34,16 +30,31 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     ports:
-      - "9000:9000"   # API S3 endpoint
-      - "9001:9001"   # Giao diện Web Console quản trị
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - minio-data:/data
     networks:
       - dangbo-net
 
-  # ---------------------------------------------------------------------------
-  # 3. Backend Web API (.NET 10)
-  # ---------------------------------------------------------------------------
+  # Khởi tạo sẵn bucket 'congtacdang-files' và cấp quyền tải cho MinIO
+  minio-init:
+    image: quay.io/minio/mc:latest
+    container_name: attech-dangbo-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 2;
+      /usr/bin/mc alias set localminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb localminio/congtacdang-files --ignore-existing;
+      /usr/bin/mc anonymous set download localminio/congtacdang-files;
+      exit 0;
+      "
+    networks:
+      - dangbo-net
+
+  # Backend Web API .NET 10 (Kết nối PostgreSQL và MinIO)
   backend:
     build:
       context: ..
@@ -55,7 +66,7 @@ services:
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=congtacdang_db;Username=dangbo_admin;Password=AttechDang2026!Secret
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5000
-      - Storage__Provider=${STORAGE_PROVIDER:-local}
+      - Storage__Provider=minio # minio (Môi trường Production) hoặc local (Lưu cục bộ)
       - Storage__Minio__Endpoint=minio:9000
       - Storage__Minio__BucketName=congtacdang-files
       - Storage__Minio__AccessKey=minioadmin
@@ -65,7 +76,7 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - backend-storage:/app/storage
+      - backend-storage:/app/storage # Lưu trữ bền vững chống mất file khi chạy chế độ local
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,9 +85,7 @@ services:
     networks:
       - dangbo-net
 
-  # ---------------------------------------------------------------------------
-  # 4. Frontend Web App (Next.js 14 / TailwindCSS)
-  # ---------------------------------------------------------------------------
+  # Giao diện người dùng Web Next.js 14
   frontend:
     build:
       context: ..
@@ -93,9 +102,7 @@ services:
     networks:
       - dangbo-net
 
-  # ---------------------------------------------------------------------------
-  # 5. pgAdmin (Quản trị CSDL trực quan trên Web - Cổng 5050)
-  # ---------------------------------------------------------------------------
+  # Giao diện quản trị CSDL pgAdmin 4 (admin@attech.com.vn / AttechAdmin2026!)
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: attech-dangbo-pgadmin

@@ -35,6 +35,8 @@ public class MinioFileStorageService : IFileStorageService
 
     public async Task<string> SaveFileAsync(Stream fileStream, string objectKey, string contentType = "application/octet-stream")
     {
+        await EnsureBucketExistsAsync();
+
         var protocol = _options.UseSsl ? "https" : "http";
         var url = $"{protocol}://{_options.Endpoint}/{_options.BucketName}/{objectKey}";
 
@@ -43,7 +45,6 @@ public class MinioFileStorageService : IFileStorageService
         content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
         request.Content = content;
 
-        // Lưu ý: Đối với môi trường sản xuất có chữ ký AWS SigV4, ta có thể tích hợp Minio SDK hoặc AWS SDK
         var response = await _httpClient.SendAsync(request);
         if (!response.IsSuccessStatusCode)
         {
@@ -51,6 +52,26 @@ public class MinioFileStorageService : IFileStorageService
         }
 
         return objectKey;
+    }
+
+    private async Task EnsureBucketExistsAsync()
+    {
+        try
+        {
+            var protocol = _options.UseSsl ? "https" : "http";
+            var bucketUrl = $"{protocol}://{_options.Endpoint}/{_options.BucketName}";
+            using var checkReq = new HttpRequestMessage(HttpMethod.Head, bucketUrl);
+            var checkRes = await _httpClient.SendAsync(checkReq);
+            if (checkRes.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                using var createReq = new HttpRequestMessage(HttpMethod.Put, bucketUrl);
+                await _httpClient.SendAsync(createReq);
+            }
+        }
+        catch
+        {
+            // Bỏ qua nếu bucket đã tồn tại hoặc đã được tạo bởi init container
+        }
     }
 
     public async Task<Stream?> GetFileStreamAsync(string objectKey)
