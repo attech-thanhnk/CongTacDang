@@ -13,7 +13,7 @@ namespace CongTacDang.Domain.Entities
         public string ContentType { get; set; } = string.Empty;
         public long FileSize { get; set; }
 
-        // Định danh vị trí vật lý trong Storage Adapter (VD: general/202609/abc.pdf)
+        // Đường dẫn định danh tệp trong Storage (VD: general/202609/uuid_name.pdf)
         public string ObjectKey { get; set; } = string.Empty;
         public string FilePath 
         { 
@@ -21,17 +21,14 @@ namespace CongTacDang.Domain.Entities
             set => ObjectKey = value; 
         }
 
-        // Hạ tầng lưu trữ: "local" hoặc "minio"
-        public string Provider { get; set; } = "local";
-
-        // Mã băm SHA-256 để kiểm tra tính toàn vẹn và chống trùng lặp (Deduplication)
+        // Mã băm SHA-256 kiểm tra toàn vẹn dữ liệu
         public string Checksum { get; set; } = string.Empty;
 
         public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
         public string UploadedBy { get; set; } = string.Empty;
 
-        // Dẫn chiếu tới nghiệp vụ (related_type = FormCode, related_id = RelatedId/TaskId)
-        public string FormCode { get; set; } = "GENERAL"; // GENERAL, EVIDENCE, FORM, DECISION
+        // Phân loại tài liệu và liên kết nghiệp vụ
+        public string FormCode { get; set; } = "GENERAL";
         public Guid? RelatedId { get; set; }
         public Guid? TaskId { get => RelatedId; set => RelatedId = value; }
         public Guid? RecordId { get; set; }

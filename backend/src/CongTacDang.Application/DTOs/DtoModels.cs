@@ -95,7 +95,6 @@ public class AttachmentDto
     public string Category { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Checksum { get; set; } = string.Empty;
-    public string Provider { get; set; } = "local";
     public string? DownloadUrl { get; set; }
     public DateTime UploadedAt { get; set; }
     public string UploadedBy { get; set; } = string.Empty;
@@ -105,4 +104,21 @@ public class UpdateAttachmentDto
 {
     public string? Category { get; set; }
     public string? Description { get; set; }
+}
+
+/// <summary>Payload đăng nhập từ client</summary>
+public class LoginRequestDto
+{
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+/// <summary>Kết quả đăng nhập — trả về thông tin cơ bản, JWT set qua HttpOnly Cookie</summary>
+public class LoginResponseDto
+{
+    public Guid Id { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
+    public string[] Roles { get; set; } = Array.Empty<string>();
+    public DateTime ExpiresAt { get; set; }
 }

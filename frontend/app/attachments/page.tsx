@@ -295,11 +295,6 @@ export default function AttachmentsPage() {
                       </td>
                       <td className="border-r border-slate-200 p-2 text-slate-700">
                         <div>{attachmentService.getCategoryName(f.category)}</div>
-                        {f.provider && (
-                          <span className="inline-block mt-0.5 px-1.5 py-0.5 text-[9px] font-mono bg-slate-100 text-slate-600 border border-slate-200 rounded">
-                            {f.provider.toUpperCase()}
-                          </span>
-                        )}
                       </td>
                       <td className="border-r border-slate-200 p-2 text-right font-mono text-slate-600">
                         {attachmentService.formatFileSize(f.fileSize)}

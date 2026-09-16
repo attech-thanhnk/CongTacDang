@@ -8,13 +8,27 @@ using CongTacDang.Domain.Entities;
 
 namespace CongTacDang.Application.Services;
 
+/// <summary>
+/// Giao diện xử lý nghiệp vụ quản lý tổ chức Chi bộ và Phòng ban
+/// </summary>
 public interface IOrganizationService
 {
+    /// <summary>Lấy danh sách tất cả Chi bộ trong hệ thống</summary>
     Task<List<BranchDto>> GetBranchesAsync();
+
+    /// <summary>Lấy chi tiết thông tin Chi bộ theo Id</summary>
     Task<BranchDto?> GetBranchByIdAsync(Guid id);
+
+    /// <summary>Thêm mới Chi bộ</summary>
     Task<BranchDto> CreateBranchAsync(CreateBranchDto input);
+
+    /// <summary>Cập nhật thông tin Chi bộ</summary>
     Task<BranchDto> UpdateBranchAsync(Guid id, UpdateBranchDto input);
+
+    /// <summary>Xóa Chi bộ (yêu cầu không có Đảng viên sinh hoạt)</summary>
     Task DeleteBranchAsync(Guid id);
+
+    /// <summary>Lấy danh sách Phòng ban chuyên môn</summary>
     Task<List<DepartmentDto>> GetDepartmentsAsync();
 }
 
@@ -27,6 +41,7 @@ public class OrganizationService : IOrganizationService
         _orgRepo = orgRepo;
     }
 
+    /// <summary>Lấy danh sách tất cả Chi bộ kèm số lượng Đảng viên</summary>
     public async Task<List<BranchDto>> GetBranchesAsync()
     {
         var cells = await _orgRepo.GetPartyCellsWithMembersAsync();
@@ -40,6 +55,7 @@ public class OrganizationService : IOrganizationService
         }).ToList();
     }
 
+    /// <summary>Lấy chi tiết Chi bộ theo Id kèm danh sách Đảng viên</summary>
     public async Task<BranchDto?> GetBranchByIdAsync(Guid id)
     {
         var c = await _orgRepo.GetPartyCellByIdAsync(id);
@@ -55,6 +71,7 @@ public class OrganizationService : IOrganizationService
         };
     }
 
+    /// <summary>Tạo mới Chi bộ, tự động sinh mã nếu không có</summary>
     public async Task<BranchDto> CreateBranchAsync(CreateBranchDto input)
     {
         if (string.IsNullOrWhiteSpace(input.Name))
@@ -80,6 +97,7 @@ public class OrganizationService : IOrganizationService
         };
     }
 
+    /// <summary>Cập nhật tên và mô tả Chi bộ</summary>
     public async Task<BranchDto> UpdateBranchAsync(Guid id, UpdateBranchDto input)
     {
         var cell = await _orgRepo.GetPartyCellByIdAsync(id);
@@ -104,6 +122,7 @@ public class OrganizationService : IOrganizationService
         };
     }
 
+    /// <summary>Xóa Chi bộ (chặn nếu vẫn còn Đảng viên sinh hoạt)</summary>
     public async Task DeleteBranchAsync(Guid id)
     {
         var cell = await _orgRepo.GetPartyCellByIdAsync(id);
@@ -116,6 +135,7 @@ public class OrganizationService : IOrganizationService
         await _orgRepo.DeletePartyCellAsync(cell);
     }
 
+    /// <summary>Lấy danh sách Phòng ban chuyên môn kèm số lượng cán bộ</summary>
     public async Task<List<DepartmentDto>> GetDepartmentsAsync()
     {
         var deps = await _orgRepo.GetDepartmentsWithMembersAsync();

@@ -1,6 +1,8 @@
 using System;
 using System.IO;
+using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Interfaces;
 
@@ -17,15 +19,12 @@ public class MinioStorageOptions
 }
 
 /// <summary>
-/// Storage Adapter phân tán (MinIO / S3 Object Storage)
-/// Hỗ trợ lưu trữ theo bucket, sinh presigned download URL để client tải trực tiếp không qua RAM backend
+/// Storage adapter cho MinIO / S3 Object Storage
 /// </summary>
 public class MinioFileStorageService : IFileStorageService
 {
     private readonly MinioStorageOptions _options;
     private readonly HttpClient _httpClient;
-
-    public string ProviderName => "minio";
 
     public MinioFileStorageService(MinioStorageOptions options, HttpClient? httpClient = null)
     {
@@ -33,6 +32,9 @@ public class MinioFileStorageService : IFileStorageService
         _httpClient = httpClient ?? new HttpClient();
     }
 
+    /// <summary>
+    /// Lưu luồng dữ liệu tệp lên MinIO bucket theo ObjectKey
+    /// </summary>
     public async Task<string> SaveFileAsync(Stream fileStream, string objectKey, string contentType = "application/octet-stream")
     {
         await EnsureBucketExistsAsync();
@@ -42,7 +44,7 @@ public class MinioFileStorageService : IFileStorageService
 
         using var request = new HttpRequestMessage(HttpMethod.Put, url);
         using var content = new StreamContent(fileStream);
-        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
         request.Content = content;
 
         var response = await _httpClient.SendAsync(request);
@@ -54,6 +56,9 @@ public class MinioFileStorageService : IFileStorageService
         return objectKey;
     }
 
+    /// <summary>
+    /// Kiểm tra và tự động khởi tạo bucket nếu chưa tồn tại
+    /// </summary>
     private async Task EnsureBucketExistsAsync()
     {
         try
@@ -62,7 +67,7 @@ public class MinioFileStorageService : IFileStorageService
             var bucketUrl = $"{protocol}://{_options.Endpoint}/{_options.BucketName}";
             using var checkReq = new HttpRequestMessage(HttpMethod.Head, bucketUrl);
             var checkRes = await _httpClient.SendAsync(checkReq);
-            if (checkRes.StatusCode == System.Net.HttpStatusCode.NotFound)
+            if (checkRes.StatusCode == HttpStatusCode.NotFound)
             {
                 using var createReq = new HttpRequestMessage(HttpMethod.Put, bucketUrl);
                 await _httpClient.SendAsync(createReq);
@@ -70,10 +75,13 @@ public class MinioFileStorageService : IFileStorageService
         }
         catch
         {
-            // Bỏ qua nếu bucket đã tồn tại hoặc đã được tạo bởi init container
+            // Bỏ qua nếu bucket đã tồn tại
         }
     }
 
+    /// <summary>
+    /// Đọc luồng dữ liệu (Stream) của tệp từ MinIO bucket
+    /// </summary>
     public async Task<Stream?> GetFileStreamAsync(string objectKey)
     {
         var protocol = _options.UseSsl ? "https" : "http";
@@ -88,6 +96,9 @@ public class MinioFileStorageService : IFileStorageService
         return await response.Content.ReadAsStreamAsync();
     }
 
+    /// <summary>
+    /// Xóa tệp khỏi MinIO bucket theo ObjectKey
+    /// </summary>
     public async Task DeleteFileAsync(string objectKey)
     {
         var protocol = _options.UseSsl ? "https" : "http";
@@ -97,6 +108,9 @@ public class MinioFileStorageService : IFileStorageService
         await _httpClient.SendAsync(request);
     }
 
+    /// <summary>
+    /// Kiểm tra tệp có tồn tại trên MinIO bucket hay không
+    /// </summary>
     public bool FileExists(string objectKey)
     {
         var protocol = _options.UseSsl ? "https" : "http";
@@ -107,13 +121,13 @@ public class MinioFileStorageService : IFileStorageService
         return response.IsSuccessStatusCode;
     }
 
+    /// <summary>
+    /// Sinh URL tải xuống trực tiếp tệp từ MinIO
+    /// </summary>
     public Task<string?> GetDownloadUrlAsync(string objectKey, string fileName, TimeSpan? expiry = null)
     {
         var protocol = _options.UseSsl ? "https" : "http";
         var host = !string.IsNullOrEmpty(_options.PublicEndpoint) ? _options.PublicEndpoint : _options.Endpoint;
-        var expiryMinutes = expiry?.TotalMinutes ?? 15;
-        
-        // Sinh URL trực tiếp từ MinIO storage (có thể gắn thêm token/chữ ký thời gian thực)
         var downloadUrl = $"{protocol}://{host}/{_options.BucketName}/{objectKey}?response-content-disposition=attachment%3B%20filename%3D%22{Uri.EscapeDataString(fileName)}%22";
         
         return Task.FromResult<string?>(downloadUrl);

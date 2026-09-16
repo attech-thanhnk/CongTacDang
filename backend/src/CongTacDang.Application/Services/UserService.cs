@@ -9,14 +9,30 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Application.Services;
 
+/// <summary>
+/// Giao diện xử lý nghiệp vụ quản lý người dùng và hồ sơ cán bộ
+/// </summary>
 public interface IUserService
 {
+    /// <summary>Lấy thông tin hồ sơ và danh sách quyền của người dùng</summary>
     Task<UserProfileDto> GetProfileAsync(string? username = null);
+
+    /// <summary>Lấy danh sách tất cả cán bộ / Đảng viên trong hệ thống</summary>
     Task<List<CadreDto>> GetCadresAsync();
+
+    /// <summary>Lấy chi tiết thông tin một cán bộ theo Id</summary>
     Task<CadreDto?> GetUserByIdAsync(Guid id);
+
+    /// <summary>Lấy danh mục các vai trò và quyền hạn hệ thống</summary>
     Task<List<RoleDto>> GetRolesAsync();
+
+    /// <summary>Thêm mới cán bộ / Đảng viên</summary>
     Task<CadreDto> CreateUserAsync(CreateUserDto input);
+
+    /// <summary>Cập nhật thông tin cán bộ / Đảng viên</summary>
     Task<CadreDto> UpdateUserAsync(Guid id, UpdateUserDto input);
+
+    /// <summary>Xóa hồ sơ cán bộ khỏi hệ thống</summary>
     Task DeleteUserAsync(Guid id);
 }
 
@@ -29,6 +45,7 @@ public class UserService : IUserService
         _userRepo = userRepo;
     }
 
+    /// <summary>Lấy hồ sơ và vai trò hệ thống của người dùng theo tên đăng nhập</summary>
     public async Task<UserProfileDto> GetProfileAsync(string? username = null)
     {
         PartyMemberProfile? member = null;
@@ -72,6 +89,7 @@ public class UserService : IUserService
         };
     }
 
+    /// <summary>Lấy danh sách tất cả cán bộ kèm thông tin Chi bộ và Phòng ban</summary>
     public async Task<List<CadreDto>> GetCadresAsync()
     {
         var members = await _userRepo.GetAllWithDetailsAsync();
@@ -89,6 +107,7 @@ public class UserService : IUserService
         }).ToList();
     }
 
+    /// <summary>Trả về danh mục tĩnh các vai trò và mô tả quyền hạn</summary>
     public Task<List<RoleDto>> GetRolesAsync()
     {
         var list = new List<RoleDto>
@@ -102,6 +121,7 @@ public class UserService : IUserService
         return Task.FromResult(list);
     }
 
+    /// <summary>Thêm mới hồ sơ cán bộ vào hệ thống</summary>
     public async Task<CadreDto> CreateUserAsync(CreateUserDto input)
     {
         if (string.IsNullOrWhiteSpace(input.FullName))
@@ -134,6 +154,7 @@ public class UserService : IUserService
         };
     }
 
+    /// <summary>Lấy chi tiết thông tin một cán bộ theo Id</summary>
     public async Task<CadreDto?> GetUserByIdAsync(Guid id)
     {
         var m = await _userRepo.GetByIdAsync(id);
@@ -153,6 +174,7 @@ public class UserService : IUserService
         };
     }
 
+    /// <summary>Cập nhật thông tin hồ sơ cán bộ</summary>
     public async Task<CadreDto> UpdateUserAsync(Guid id, UpdateUserDto input)
     {
         var member = await _userRepo.GetByIdAsync(id);
@@ -201,6 +223,7 @@ public class UserService : IUserService
         };
     }
 
+    /// <summary>Xóa hồ sơ cán bộ khỏi hệ thống</summary>
     public async Task DeleteUserAsync(Guid id)
     {
         var member = await _userRepo.GetByIdAsync(id);

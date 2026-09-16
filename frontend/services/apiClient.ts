@@ -10,7 +10,7 @@ export interface ApiResponse<T = any> {
   timestamp?: string;
 }
 
-// Khoi tao Axios client chuan cho toan bo du an Next.js (Ho tro BFF HttpOnly Cookie)
+// Cấu hình Axios client (hỗ trợ BFF qua HttpOnly Cookie)
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
@@ -20,8 +20,7 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request Interceptor: Tuan thu ADR-0007 (Mo hinh BFF & HttpOnly Cookie)
-// Token xac thuc duoc trinh duyet tu dong truyen ngam qua Cookie an toan, tuyet doi khong doc tu localStorage
+// Tự động đính kèm thông tin xác thực (cookie) vào request
 apiClient.interceptors.request.use(
   (config) => {
     config.withCredentials = true;
@@ -30,7 +29,7 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Giai nen ApiResponse<T> va bat loi tap trung
+// Chuẩn hóa ApiResponse<T> và bắt lỗi HTTP tập trung
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     const payload = response.data;
@@ -61,7 +60,7 @@ apiClient.interceptors.response.use(
   }
 );
 
-// Ham request<T> tuong thich 100% cho tat ca services hien tai
+// Wrapper tương thích Fetch API cho các services hiện hữu
 export async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const method = (options?.method || "GET").toLowerCase();
   const headers = options?.headers as Record<string, string> | undefined;

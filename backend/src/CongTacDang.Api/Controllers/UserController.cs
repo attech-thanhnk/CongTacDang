@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CongTacDang.Application.Common.Models;
 using CongTacDang.Application.DTOs;
@@ -8,9 +9,10 @@ using CongTacDang.Application.Services;
 
 namespace CongTacDang.Api.Controllers;
 
+/// <summary>Quản lý hồ sơ cán bộ lãnh đạo, quản lý</summary>
 [ApiController]
 [Route("api/users")]
-[Route("api/[controller]")]
+[Authorize]
 public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
@@ -20,9 +22,7 @@ public class UserController : ControllerBase
         _userService = userService;
     }
 
-    /// <summary>
-    /// Lay ho so 2 vai va quyen han cua can bo dang dang nhap
-    /// </summary>
+    /// <summary>Lấy hồ sơ và vai trò của cán bộ đang đăng nhập</summary>
     [HttpGet("profile")]
     public async Task<IActionResult> GetProfile([FromQuery] string? username = null)
     {
@@ -37,9 +37,7 @@ public class UserController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Danh sach toan bo can bo quan ly ATTECH
-    /// </summary>
+    /// <summary>Danh sách toàn bộ cán bộ quản lý</summary>
     [HttpGet("list")]
     public async Task<IActionResult> GetUserList()
     {
@@ -47,10 +45,28 @@ public class UserController : ControllerBase
         return Ok(ApiResponse<List<CadreDto>>.Ok(cadres, "Lấy danh sách cán bộ thành công."));
     }
 
-    /// <summary>
-    /// Tao moi ho so can bo lanh dao / quan ly
-    /// </summary>
+    /// <summary>Chi tiết hồ sơ cán bộ theo ID</summary>
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetUserById(Guid id)
+    {
+        var cadre = await _userService.GetUserByIdAsync(id);
+        if (cadre == null)
+            return NotFound(ApiResponse.Fail("Không tìm thấy cán bộ."));
+
+        return Ok(ApiResponse<CadreDto>.Ok(cadre, "Lấy thông tin cán bộ thành công."));
+    }
+
+    /// <summary>Danh mục vai trò hệ thống</summary>
+    [HttpGet("roles")]
+    public async Task<IActionResult> GetSystemRoles()
+    {
+        var roles = await _userService.GetRolesAsync();
+        return Ok(ApiResponse<List<RoleDto>>.Ok(roles, "Lấy danh mục vai trò thành công."));
+    }
+
+    /// <summary>Tạo mới hồ sơ cán bộ — chỉ Quản trị hệ thống</summary>
     [HttpPost("create")]
+    [Authorize(Policy = "RequireQuanTriHeTong")]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserDto request)
     {
         try
@@ -64,23 +80,9 @@ public class UserController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Chi tiet ho so can bo theo ID
-    /// </summary>
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetUserById(Guid id)
-    {
-        var cadre = await _userService.GetUserByIdAsync(id);
-        if (cadre == null)
-            return NotFound(ApiResponse.Fail("Không tìm thấy cán bộ."));
-
-        return Ok(ApiResponse<CadreDto>.Ok(cadre, "Lấy thông tin cán bộ thành công."));
-    }
-
-    /// <summary>
-    /// Cap nhat ho so can bo lanh dao / quan ly
-    /// </summary>
+    /// <summary>Cập nhật hồ sơ cán bộ — chỉ Quản trị hệ thống</summary>
     [HttpPut("{id}")]
+    [Authorize(Policy = "RequireQuanTriHeTong")]
     public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserDto request)
     {
         try
@@ -98,10 +100,9 @@ public class UserController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Xoa ho so can bo khoi he thong
-    /// </summary>
+    /// <summary>Xóa hồ sơ cán bộ — chỉ Quản trị hệ thống</summary>
     [HttpDelete("{id}")]
+    [Authorize(Policy = "RequireQuanTriHeTong")]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
         try
@@ -113,15 +114,5 @@ public class UserController : ControllerBase
         {
             return NotFound(ApiResponse.Fail(ex.Message));
         }
-    }
-
-    /// <summary>
-    /// Danh muc 5 Role he thong theo quy trinh 03-HD/TVDU
-    /// </summary>
-    [HttpGet("roles")]
-    public async Task<IActionResult> GetSystemRoles()
-    {
-        var roles = await _userService.GetRolesAsync();
-        return Ok(ApiResponse<List<RoleDto>>.Ok(roles, "Lấy danh mục vai trò thành công."));
     }
 }

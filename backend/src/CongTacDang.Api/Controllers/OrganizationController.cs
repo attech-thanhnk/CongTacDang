@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CongTacDang.Application.Common.Models;
 using CongTacDang.Application.DTOs;
@@ -8,9 +9,10 @@ using CongTacDang.Application.Services;
 
 namespace CongTacDang.Api.Controllers;
 
+/// <summary>Quản lý tổ chức Chi bộ và Phòng ban chuyên môn</summary>
 [ApiController]
 [Route("api/organizations")]
-[Route("api/[controller]")]
+[Authorize] // Tất cả endpoint yêu cầu đăng nhập
 public class OrganizationController : ControllerBase
 {
     private readonly IOrganizationService _orgService;
@@ -20,7 +22,7 @@ public class OrganizationController : ControllerBase
         _orgService = orgService;
     }
 
-    /// <summary>Lay danh sach cac Chi bo thuoc Dang bo ATTECH</summary>
+    /// <summary>Danh sách Chi bộ thuộc Đảng bộ ATTECH</summary>
     [HttpGet("branches")]
     [HttpGet("party-cells")]
     public async Task<IActionResult> GetPartyCells()
@@ -29,8 +31,20 @@ public class OrganizationController : ControllerBase
         return Ok(ApiResponse<List<BranchDto>>.Ok(branches, "Lấy danh sách Chi bộ thành công."));
     }
 
-    /// <summary>Them moi Chi bo Dang</summary>
+    /// <summary>Chi tiết một Chi bộ theo ID</summary>
+    [HttpGet("branches/{id}")]
+    public async Task<IActionResult> GetBranchById(Guid id)
+    {
+        var branch = await _orgService.GetBranchByIdAsync(id);
+        if (branch == null)
+            return NotFound(ApiResponse.Fail("Không tìm thấy Chi bộ."));
+
+        return Ok(ApiResponse<BranchDto>.Ok(branch, "Lấy thông tin Chi bộ thành công."));
+    }
+
+    /// <summary>Thêm mới Chi bộ — chỉ Ban Thường vụ trở lên</summary>
     [HttpPost("branches")]
+    [Authorize(Policy = "RequireBanThuongVu")]
     public async Task<IActionResult> CreateBranch([FromBody] CreateBranchDto request)
     {
         try
@@ -44,8 +58,9 @@ public class OrganizationController : ControllerBase
         }
     }
 
-    /// <summary>Cap nhat thong tin Chi bo Dang</summary>
+    /// <summary>Cập nhật thông tin Chi bộ — chỉ Ban Thường vụ trở lên</summary>
     [HttpPut("branches/{id}")]
+    [Authorize(Policy = "RequireBanThuongVu")]
     public async Task<IActionResult> UpdateBranch(Guid id, [FromBody] UpdateBranchDto request)
     {
         try
@@ -63,8 +78,9 @@ public class OrganizationController : ControllerBase
         }
     }
 
-    /// <summary>Xoa Chi bo Dang</summary>
+    /// <summary>Xóa Chi bộ — chỉ Ban Thường vụ trở lên</summary>
     [HttpDelete("branches/{id}")]
+    [Authorize(Policy = "RequireBanThuongVu")]
     public async Task<IActionResult> DeleteBranch(Guid id)
     {
         try
@@ -82,7 +98,7 @@ public class OrganizationController : ControllerBase
         }
     }
 
-    /// <summary>Lay danh sach cac Phong ban / Xuong san xuat chinh quyen</summary>
+    /// <summary>Danh sách Phòng ban chuyên môn</summary>
     [HttpGet("departments")]
     public async Task<IActionResult> GetDepartments()
     {

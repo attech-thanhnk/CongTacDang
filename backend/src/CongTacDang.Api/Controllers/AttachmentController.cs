@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using CongTacDang.Application.Common.Models;
@@ -10,9 +11,10 @@ using CongTacDang.Application.Services;
 
 namespace CongTacDang.Api.Controllers;
 
+/// <summary>Quản lý tệp đính kèm và tài liệu minh chứng</summary>
 [ApiController]
 [Route("api/attachments")]
-[Route("api/[controller]")]
+[Authorize] // Tất cả endpoint yêu cầu đăng nhập
 public class AttachmentController : ControllerBase
 {
     private readonly IAttachmentService _attachmentService;
@@ -22,9 +24,7 @@ public class AttachmentController : ControllerBase
         _attachmentService = attachmentService;
     }
 
-    /// <summary>
-    /// Danh sach toan bo tap tin va tai lieu minh chung
-    /// </summary>
+    /// <summary>Danh sách toàn bộ tệp tin và tài liệu minh chứng</summary>
     [HttpGet("list")]
     public async Task<IActionResult> GetList()
     {
@@ -32,9 +32,7 @@ public class AttachmentController : ControllerBase
         return Ok(ApiResponse<List<AttachmentDto>>.Ok(files, "Lấy danh mục tệp tin thành công."));
     }
 
-    /// <summary>
-    /// Tai len tep minh chung (PDF, DOCX, XLSX, Anh)
-    /// </summary>
+    /// <summary>Tải lên tệp minh chứng (PDF, DOCX, XLSX, Ảnh)</summary>
     [HttpPost("upload")]
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> UploadFile(
@@ -47,6 +45,9 @@ public class AttachmentController : ControllerBase
 
         try
         {
+            // Lấy tên cán bộ từ JWT claim để ghi log người tải lên
+            var uploaderName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "Cán bộ ATTECH";
+
             using var stream = file.OpenReadStream();
             var result = await _attachmentService.UploadAttachmentAsync(
                 stream,
@@ -55,7 +56,7 @@ public class AttachmentController : ControllerBase
                 file.Length,
                 formCode,
                 description,
-                "Cán bộ ATTECH"
+                uploaderName
             );
 
             return Ok(ApiResponse<AttachmentDto>.Ok(result, "Lưu tệp tin thành công vào hệ thống."));
@@ -70,9 +71,7 @@ public class AttachmentController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Tai ve tep tin minh chung theo ID
-    /// </summary>
+    /// <summary>Tải về tệp tin minh chứng theo ID</summary>
     [HttpGet("{id}/download")]
     public async Task<IActionResult> DownloadFile(Guid id)
     {
@@ -91,9 +90,7 @@ public class AttachmentController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Thong tin chi tiet tep tin
-    /// </summary>
+    /// <summary>Thông tin chi tiết tệp tin</summary>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -104,9 +101,7 @@ public class AttachmentController : ControllerBase
         return Ok(ApiResponse<AttachmentDto>.Ok(file, "Lấy thông tin tệp tin thành công."));
     }
 
-    /// <summary>
-    /// Chinh sua thong tin trich yeu va phan loai tep tin
-    /// </summary>
+    /// <summary>Chỉnh sửa thông tin trích yếu và phân loại tệp tin</summary>
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateAttachment(Guid id, [FromBody] UpdateAttachmentDto request)
     {
@@ -121,10 +116,9 @@ public class AttachmentController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Xoa tep tin khoi he thong
-    /// </summary>
+    /// <summary>Xóa tệp tin khỏi hệ thống — chỉ Ban Thường vụ trở lên</summary>
     [HttpDelete("{id}")]
+    [Authorize(Policy = "RequireBanThuongVu")]
     public async Task<IActionResult> DeleteFile(Guid id)
     {
         try

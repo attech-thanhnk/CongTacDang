@@ -12,7 +12,7 @@ export default function DashboardPage() {
   const [fileCount, setFileCount] = useState<number | null>(null);
 
   useEffect(() => {
-    // Gọi thông qua các Services độc lập đã bóc tách
+    // Tải số liệu thống kê tổng quan
     userService.getUsers()
       .then(data => setCadreCount(data.length))
       .catch(() => {});

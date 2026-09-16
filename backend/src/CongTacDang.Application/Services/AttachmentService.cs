@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.DTOs;
@@ -16,13 +17,27 @@ public class AttachmentDownloadResult
     public string FileName { get; set; } = string.Empty;
 }
 
+/// <summary>
+/// Giao diện xử lý nghiệp vụ tệp đính kèm văn bản và minh chứng
+/// </summary>
 public interface IAttachmentService
 {
+    /// <summary>Lấy danh sách tất cả tệp đính kèm</summary>
     Task<List<AttachmentDto>> GetAttachmentsAsync();
+
+    /// <summary>Lấy chi tiết thông tin tệp đính kèm theo Id</summary>
     Task<AttachmentDto?> GetAttachmentByIdAsync(Guid id);
+
+    /// <summary>Tải luồng tệp vật lý phục vụ download trực tiếp từ backend</summary>
     Task<AttachmentDownloadResult> DownloadAttachmentAsync(Guid id);
+
+    /// <summary>Tải lên tệp mới, tính mã băm SHA-256 và lưu metadata</summary>
     Task<AttachmentDto> UploadAttachmentAsync(Stream stream, string originalFileName, string contentType, long size, string category, string description, string uploadedBy);
+
+    /// <summary>Cập nhật danh mục hoặc mô tả của tệp</summary>
     Task<AttachmentDto> UpdateAttachmentAsync(Guid id, UpdateAttachmentDto input);
+
+    /// <summary>Xóa tệp khỏi storage và cơ sở dữ liệu</summary>
     Task DeleteAttachmentAsync(Guid id);
 }
 
@@ -39,6 +54,9 @@ public class AttachmentService : IAttachmentService
         _fileStorage = fileStorage;
     }
 
+    /// <summary>
+    /// Lấy toàn bộ danh sách tệp đính kèm trong hệ thống
+    /// </summary>
     public async Task<List<AttachmentDto>> GetAttachmentsAsync()
     {
         var list = await _attachmentRepo.GetAllAttachmentsAsync();
@@ -51,12 +69,14 @@ public class AttachmentService : IAttachmentService
             Category = a.FormCode,
             Description = a.Description,
             Checksum = a.Checksum,
-            Provider = a.Provider,
             UploadedAt = a.UploadedAt,
             UploadedBy = string.IsNullOrWhiteSpace(a.UploadedBy) ? "Cán bộ quản trị" : a.UploadedBy
         }).ToList();
     }
 
+    /// <summary>
+    /// Lấy chi tiết thông tin tệp đính kèm kèm link tải (nếu có)
+    /// </summary>
     public async Task<AttachmentDto?> GetAttachmentByIdAsync(Guid id)
     {
         var a = await _attachmentRepo.GetByIdAsync(id);
@@ -73,13 +93,15 @@ public class AttachmentService : IAttachmentService
             Category = a.FormCode,
             Description = a.Description,
             Checksum = a.Checksum,
-            Provider = a.Provider,
             DownloadUrl = downloadUrl,
             UploadedAt = a.UploadedAt,
             UploadedBy = string.IsNullOrWhiteSpace(a.UploadedBy) ? "Cán bộ quản trị" : a.UploadedBy
         };
     }
 
+    /// <summary>
+    /// Đọc luồng dữ liệu tệp phục vụ tải về trực tiếp
+    /// </summary>
     public async Task<AttachmentDownloadResult> DownloadAttachmentAsync(Guid id)
     {
         var attachment = await _attachmentRepo.GetByIdAsync(id);
@@ -98,6 +120,9 @@ public class AttachmentService : IAttachmentService
         };
     }
 
+    /// <summary>
+    /// Tải tệp mới lên MinIO, kiểm tra định dạng/dung lượng, tính SHA-256 và lưu metadata
+    /// </summary>
     public async Task<AttachmentDto> UploadAttachmentAsync(
         Stream stream,
         string originalFileName,
@@ -114,16 +139,16 @@ public class AttachmentService : IAttachmentService
         if (!AllowedExtensions.Contains(ext))
             throw new ArgumentException($"Định dạng tệp '{ext}' không được chấp nhận. Chỉ cho phép PDF, DOCX, XLSX, JPG, PNG.");
 
-        // 1. Đọc stream và tính mã băm SHA-256 Checksum phục vụ kiểm tra toàn vẹn & chống trùng lặp
+        // Tính SHA-256 checksum kiểm tra toàn vẹn
         using var memoryStream = new MemoryStream();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
 
-        var hashBytes = System.Security.Cryptography.SHA256.HashData(memoryStream.ToArray());
+        var hashBytes = SHA256.HashData(memoryStream.ToArray());
         var checksum = Convert.ToHexString(hashBytes).ToLowerInvariant();
         memoryStream.Position = 0;
 
-        // 2. Tạo định danh object_key phân tầng theo danh mục và thời gian: {category}/{yyyyMM}/{file_id}.ext
+        // Sinh ObjectKey phân cấp: {category}/{yyyyMM}/{fileId}_{fileName}.ext
         var fileId = Guid.NewGuid();
         var cleanCategory = string.IsNullOrWhiteSpace(category) ? "general" : category.Trim().ToLowerInvariant();
         var dateFolder = DateTime.UtcNow.ToString("yyyyMM");
@@ -132,17 +157,14 @@ public class AttachmentService : IAttachmentService
 
         var objectKey = $"{cleanCategory}/{dateFolder}/{fileId}_{sanitizedBaseName}{ext}";
 
-        // 3. Tải luồng dữ liệu lên Storage Adapter (Local hoặc MinIO)
         var savedKey = await _fileStorage.SaveFileAsync(memoryStream, objectKey, contentType);
 
-        // 4. Khởi tạo Metadata
         var attachment = new TaskAttachment
         {
             Id = fileId,
             FileName = originalFileName,
             OriginalFileName = originalFileName,
             ObjectKey = savedKey,
-            Provider = _fileStorage.ProviderName,
             Checksum = checksum,
             ContentType = contentType,
             FileSize = memoryStream.Length,
@@ -153,14 +175,13 @@ public class AttachmentService : IAttachmentService
             IsActive = true
         };
 
-        // 5. Lưu Metadata vào Database với cơ chế chống Orphan Object (Rollback storage nếu DB lỗi)
+        // Rollback tệp trên storage nếu lưu database thất bại
         try
         {
             await _attachmentRepo.AddAsync(attachment);
         }
         catch (Exception)
         {
-            // Tự động dọn tệp mồ côi trên Storage nếu không thể lưu Metadata
             await _fileStorage.DeleteFileAsync(savedKey);
             throw;
         }
@@ -174,12 +195,14 @@ public class AttachmentService : IAttachmentService
             Category = attachment.FormCode,
             Description = attachment.Description,
             Checksum = attachment.Checksum,
-            Provider = attachment.Provider,
             UploadedAt = attachment.UploadedAt,
             UploadedBy = attachment.UploadedBy
         };
     }
 
+    /// <summary>
+    /// Cập nhật thông tin danh mục hoặc mô tả tệp
+    /// </summary>
     public async Task<AttachmentDto> UpdateAttachmentAsync(Guid id, UpdateAttachmentDto input)
     {
         var attachment = await _attachmentRepo.GetByIdAsync(id);
@@ -206,22 +229,21 @@ public class AttachmentService : IAttachmentService
             Category = attachment.FormCode,
             Description = attachment.Description,
             Checksum = attachment.Checksum,
-            Provider = attachment.Provider,
             UploadedAt = attachment.UploadedAt,
             UploadedBy = attachment.UploadedBy
         };
     }
 
+    /// <summary>
+    /// Xóa tệp khỏi storage và bản ghi metadata trong cơ sở dữ liệu
+    /// </summary>
     public async Task DeleteAttachmentAsync(Guid id)
     {
         var attachment = await _attachmentRepo.GetByIdAsync(id);
         if (attachment == null)
             throw new KeyNotFoundException("Không tìm thấy tệp đính kèm cần xóa.");
 
-        // Xóa tệp vật lý trên Storage Adapter
         await _fileStorage.DeleteFileAsync(attachment.ObjectKey);
-
-        // Xóa Metadata trong Database
         await _attachmentRepo.DeleteAsync(attachment);
     }
 }

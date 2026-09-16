@@ -10,7 +10,6 @@ export interface AttachmentItem {
   category: string;
   description: string;
   checksum?: string;
-  provider?: string;
 }
 
 export const CATEGORY_MAP: Record<string, string> = {
@@ -21,10 +20,12 @@ export const CATEGORY_MAP: Record<string, string> = {
 };
 
 export const attachmentService = {
+  // Lấy danh sách toàn bộ tệp đính kèm
   async getAttachments(): Promise<AttachmentItem[]> {
     return request<AttachmentItem[]>("/attachments/list");
   },
 
+  // Tải lên tệp đính kèm kèm phân loại và mô tả
   async uploadAttachment(file: File, category: string, description: string): Promise<any> {
     const formData = new FormData();
     formData.append("file", file);
@@ -36,6 +37,7 @@ export const attachmentService = {
     });
   },
 
+  // Cập nhật danh mục hoặc mô tả tệp
   async updateAttachment(id: string, category: string, description: string): Promise<any> {
     return request(`/attachments/${id}`, {
       method: "PUT",
@@ -43,20 +45,24 @@ export const attachmentService = {
     });
   },
 
+  // Xóa tệp đính kèm theo Id
   async deleteAttachment(id: string): Promise<any> {
     return request(`/attachments/${id}`, {
       method: "DELETE",
     });
   },
 
+  // Mở liên kết tải trực tiếp tệp trên tab mới
   downloadAttachment(id: string): void {
     window.open(`${API_BASE_URL}/attachments/${id}/download`, "_blank");
   },
 
+  // Lấy đường dẫn API tải tệp
   getDownloadUrl(id: string): string {
     return `${API_BASE_URL}/attachments/${id}/download`;
   },
 
+  // Định dạng dung lượng tệp sang chuỗi hiển thị (Bytes, KB, MB, GB)
   formatFileSize(bytes: number): string {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -69,6 +75,7 @@ export const attachmentService = {
     return this.formatFileSize(bytes);
   },
 
+  // Chuyển mã phân loại sang tên hiển thị tiếng Việt
   getCategoryName(code: string): string {
     return CATEGORY_MAP[code] || code;
   },
