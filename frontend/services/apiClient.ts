@@ -1,4 +1,6 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+import axios, { AxiosInstance, AxiosResponse } from "axios";
+
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -8,41 +10,84 @@ export interface ApiResponse<T = any> {
   timestamp?: string;
 }
 
+// Khoi tao Axios client chuan cho toan bo du an Next.js
+export const apiClient: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Request Interceptor: Tu dong gan Bearer Token neu co trong localStorage/sessionStorage
+apiClient.interceptors.request.use(
+  (config) => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response Interceptor: Giai nen ApiResponse<T> va bat loi tap trung
+apiClient.interceptors.response.use(
+  (response: AxiosResponse) => {
+    const payload = response.data;
+    if (payload && typeof payload === "object" && "success" in payload && "data" in payload) {
+      if (!payload.success) {
+        return Promise.reject(new Error(payload.message || "Yêu cầu không thành công."));
+      }
+      return payload.data;
+    }
+    return payload;
+  },
+  (error) => {
+    let message = "Không thể kết nối đến máy chủ Web API.";
+    if (error.response) {
+      const status = error.response.status;
+      const resData = error.response.data;
+      if (resData && typeof resData === "object" && resData.message) {
+        message = resData.message;
+      } else if (typeof resData === "string" && resData.length > 0) {
+        message = resData;
+      } else {
+        message = `Lỗi yêu cầu máy chủ (HTTP ${status})`;
+      }
+    } else if (error.message) {
+      message = error.message;
+    }
+    return Promise.reject(new Error(message));
+  }
+);
+
+// Ham request<T> tuong thich 100% cho tat ca services hien tai
 export async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options?.headers || {}),
-    },
+  const method = (options?.method || "GET").toLowerCase();
+  const headers = options?.headers as Record<string, string> | undefined;
+  let data: any = undefined;
+
+  if (options?.body) {
+    if (typeof options.body === "string") {
+      try {
+        data = JSON.parse(options.body);
+      } catch {
+        data = options.body;
+      }
+    } else {
+      data = options.body;
+    }
+  }
+
+  const res = await apiClient.request({
+    url: endpoint,
+    method,
+    headers,
+    data,
   });
 
-  if (!response.ok) {
-    let errorMsg = `Lỗi yêu cầu máy chủ (${response.status})`;
-    try {
-      const errJson = await response.json();
-      if (errJson && errJson.message) {
-        errorMsg = errJson.message;
-      }
-    } catch {
-      const errText = await response.text();
-      if (errText) errorMsg = errText;
-    }
-    throw new Error(errorMsg);
-  }
-
-  const payload = await response.json();
-
-  // Tu dong giai nen neu ket qua tra ve dong goi trong ApiResponse<T>
-  if (payload && typeof payload === "object" && "success" in payload && "data" in payload) {
-    if (!payload.success) {
-      throw new Error(payload.message || "Yêu cầu không thành công.");
-    }
-    return payload.data as T;
-  }
-
-  return payload as T;
+  return res as unknown as T;
 }
-
-export { API_BASE_URL };

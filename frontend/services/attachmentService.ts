@@ -1,4 +1,4 @@
-import { API_BASE_URL, request } from "./apiClient";
+import { API_BASE_URL, apiClient, request } from "./apiClient";
 
 export interface AttachmentItem {
   id: string;
@@ -31,25 +31,9 @@ export const attachmentService = {
     formData.append("formCode", category);
     formData.append("description", description);
 
-    const response = await fetch(`${API_BASE_URL}/attachments/upload`, {
-      method: "POST",
-      body: formData,
+    return apiClient.post("/attachments/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
     });
-
-    if (!response.ok) {
-      let errorMsg = "Lỗi tải tệp tin lên máy chủ.";
-      try {
-        const errJson = await response.json();
-        if (errJson && errJson.message) errorMsg = errJson.message;
-      } catch {
-        const errText = await response.text();
-        if (errText) errorMsg = errText;
-      }
-      throw new Error(errorMsg);
-    }
-
-    const res = await response.json();
-    return res && res.data ? res.data : res;
   },
 
   async updateAttachment(id: string, category: string, description: string): Promise<any> {
