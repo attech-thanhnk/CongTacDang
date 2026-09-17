@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Interfaces;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
@@ -39,40 +40,43 @@ public interface IUserService
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepo;
+    private readonly IRoleRepository _roleRepo;
 
-    public UserService(IUserRepository userRepo)
+    public UserService(IUserRepository userRepo, IRoleRepository roleRepo)
     {
         _userRepo = userRepo;
+        _roleRepo = roleRepo;
     }
 
     /// <summary>Lấy hồ sơ và vai trò hệ thống của người dùng theo tên đăng nhập</summary>
     public async Task<UserProfileDto> GetProfileAsync(string? username = null)
     {
-        PartyMemberProfile? member = null;
-        if (!string.IsNullOrWhiteSpace(username))
+        if (string.IsNullOrWhiteSpace(username))
         {
-            member = await _userRepo.GetByUsernameAsync(username);
+            throw new ArgumentException("Tên đăng nhập không được để trống.");
         }
 
+        var member = await _userRepo.GetWithRolesAndPermissionsAsync(username);
         if (member == null)
         {
-            member = await _userRepo.GetFirstMemberAsync();
+            throw new KeyNotFoundException($"Không tìm thấy hồ sơ cán bộ với tên đăng nhập: {username}");
         }
 
-        if (member == null)
-        {
-            throw new KeyNotFoundException("Chưa có dữ liệu cán bộ trong hệ thống.");
-        }
+        var roles = member.Roles.Select(r => r.Code).Distinct().ToList();
+        var perms = member.Roles.SelectMany(r => r.Permissions).Select(p => p.Code).Distinct().ToList();
 
-        var roles = new List<string> { "CAN_BO" };
-        if (member.PartyRole == PartyRole.BiThuDangUy || member.PartyRole == PartyRole.PhoBiThuDangUy || member.PartyRole == PartyRole.UyVienBanThuongVu)
+        if (!roles.Any())
         {
-            roles.Add("BAN_THUONG_VU");
-            roles.Add("QUAN_TRI_HE_THONG");
-        }
-        if (member.PartyRole == PartyRole.BiThuChiBo || member.PartyRole == PartyRole.PhoBiThuChiBo)
-        {
-            roles.Add("BI_THU_CHI_BO");
+            roles.Add(AppRoles.CAN_BO);
+            if (member.PartyRole == PartyRole.BiThuDangUy || member.PartyRole == PartyRole.PhoBiThuDangUy || member.PartyRole == PartyRole.UyVienBanThuongVu)
+            {
+                roles.Add(AppRoles.BAN_THUONG_VU);
+                roles.Add(AppRoles.QUAN_TRI_HE_THONG);
+            }
+            if (member.PartyRole == PartyRole.BiThuChiBo || member.PartyRole == PartyRole.PhoBiThuChiBo)
+            {
+                roles.Add(AppRoles.BI_THU_CHI_BO);
+            }
         }
 
         return new UserProfileDto
@@ -85,7 +89,8 @@ public class UserService : IUserService
             PartyBranchName = member.PartyCell?.Name ?? string.Empty,
             AdminDeptName = member.Department?.Name ?? string.Empty,
             JobGroup = member.JobGroup.ToString(),
-            Roles = roles.ToArray()
+            Roles = roles.ToArray(),
+            Permissions = perms.ToArray()
         };
     }
 
@@ -107,18 +112,27 @@ public class UserService : IUserService
         }).ToList();
     }
 
-    /// <summary>Trả về danh mục tĩnh các vai trò và mô tả quyền hạn</summary>
-    public Task<List<RoleDto>> GetRolesAsync()
+    /// <summary>Lấy danh mục vai trò và quyền hạn thực tế từ CSDL (Dynamic RBAC)</summary>
+    public async Task<List<RoleDto>> GetRolesAsync()
     {
-        var list = new List<RoleDto>
+        var roles = await _roleRepo.GetAllRolesWithPermissionsAsync();
+        return roles.Select(r => new RoleDto
         {
-            new RoleDto { Code = "QUAN_TRI_HE_THONG", Name = "Quản trị viên Hệ thống", Description = "Toàn quyền quản trị tham số, tài khoản, cơ cấu tổ chức Đảng và phân quyền." },
-            new RoleDto { Code = "BAN_THUONG_VU", Name = "Ban Thường vụ Đảng ủy", Description = "Phê duyệt kết quả đánh giá, quyết định xếp loại hoàn thành xuất sắc và áp trần 20%." },
-            new RoleDto { Code = "TO_THAM_DINH", Name = "Tổ Thẩm định Đảng ủy", Description = "Thẩm định hồ sơ minh chứng, rà soát kết quả tự chấm điểm của cán bộ." },
-            new RoleDto { Code = "BI_THU_CHI_BO", Name = "Bí thư / Cấp ủy Chi bộ", Description = "Nhận xét cấp ủy (Mẫu 10), tổ chức họp chi bộ và đề xuất xếp loại." },
-            new RoleDto { Code = "CAN_BO", Name = "Cán bộ Lãnh đạo, Quản lý", Description = "Đăng ký nhiệm vụ (Mẫu 01), tự chấm điểm (Mẫu 02/09A) và đính kèm minh chứng." }
-        };
-        return Task.FromResult(list);
+            Id = r.Id,
+            Code = r.Code,
+            Name = r.Name,
+            Description = r.Description,
+            IsSystem = r.IsSystem,
+            Permissions = r.Permissions.Select(p => new PermissionDto
+            {
+                Id = p.Id,
+                Code = p.Code,
+                Name = p.Name,
+                Resource = p.Resource,
+                Action = p.Action,
+                Description = p.Description
+            }).ToList()
+        }).ToList();
     }
 
     /// <summary>Thêm mới hồ sơ cán bộ vào hệ thống</summary>
@@ -137,7 +151,8 @@ public class UserService : IUserService
             PartyCellId = input.PartyCellId,
             DepartmentId = input.DepartmentId,
             IsPartyMember = !string.IsNullOrWhiteSpace(input.PartyCardNumber),
-            IsActive = true
+            IsActive = true,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456")
         };
 
         await _userRepo.AddAsync(newMember);

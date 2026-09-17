@@ -7,17 +7,11 @@ export interface AttachmentItem {
   contentType: string;
   uploadedAt: string;
   uploadedBy: string;
-  category: string;
+  category: string; // Tương ứng FormCode trong CSDL
+  formCode?: string;
   description: string;
   checksum?: string;
 }
-
-export const CATEGORY_MAP: Record<string, string> = {
-  GENERAL: "Tài liệu chung",
-  EVIDENCE: "Minh chứng hoàn thành",
-  FORM: "Biểu mẫu đã ký",
-  DECISION: "Nghị quyết & Quyết định",
-};
 
 export const attachmentService = {
   // Lấy danh sách toàn bộ tệp đính kèm
@@ -25,23 +19,15 @@ export const attachmentService = {
     return request<AttachmentItem[]>("/attachments/list");
   },
 
-  // Tải lên tệp đính kèm kèm phân loại và mô tả
-  async uploadAttachment(file: File, category: string, description: string): Promise<any> {
+  // Tải lên tệp đính kèm kèm mã biểu mẫu và trích yếu
+  async uploadAttachment(file: File, formCode: string, description: string): Promise<any> {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("formCode", category);
+    formData.append("formCode", formCode || "GENERAL");
     formData.append("description", description);
 
     return apiClient.post("/attachments/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
-    });
-  },
-
-  // Cập nhật danh mục hoặc mô tả tệp
-  async updateAttachment(id: string, category: string, description: string): Promise<any> {
-    return request(`/attachments/${id}`, {
-      method: "PUT",
-      body: JSON.stringify({ category, description }),
     });
   },
 
@@ -52,35 +38,43 @@ export const attachmentService = {
     });
   },
 
-  // Mở liên kết tải trực tiếp tệp trên tab mới
-  downloadAttachment(id: string): void {
-    window.open(`${API_BASE_URL}/attachments/${id}/download`, "_blank");
+  // Tải trực tiếp tệp an toàn qua API kèm xác thực
+  async downloadAttachment(id: string, fileName?: string): Promise<void> {
+    try {
+      const res: any = await apiClient.get(`/attachments/${id}/download`, { responseType: "blob" });
+      const actualBlob = res instanceof Blob ? res : new Blob([res]);
+      const url = window.URL.createObjectURL(actualBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      if (fileName) link.setAttribute("download", fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error("Lỗi khi tải tệp tin:", err);
+      throw err;
+    }
   },
 
-  // Lấy đường dẫn API tải tệp
-  getDownloadUrl(id: string): string {
-    return `${API_BASE_URL}/attachments/${id}/download`;
+  // Lấy URL xem trực tiếp (inline)
+  getViewUrl(id: string): string {
+    return `${API_BASE_URL}/attachments/${id}/view`;
   },
 
-  // Định dạng dung lượng tệp sang chuỗi hiển thị (Bytes, KB, MB, GB)
+  // Tải nội dung blob để xem an toàn trong iframe / modal
+  async getBlobUrl(id: string): Promise<string> {
+    const res: any = await apiClient.get(`/attachments/${id}/download`, { responseType: "blob" });
+    const actualBlob = res instanceof Blob ? res : new Blob([res], { type: res.type || "application/pdf" });
+    return window.URL.createObjectURL(actualBlob);
+  },
+
+  // Định dạng dung lượng tệp sang chuỗi hiển thị
   formatFileSize(bytes: number): string {
-    if (bytes === 0) return "0 Bytes";
+    if (!bytes || bytes === 0) return "0 Bytes";
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  },
-
-  formatBytes(bytes: number): string {
-    return this.formatFileSize(bytes);
-  },
-
-  // Chuyển mã phân loại sang tên hiển thị tiếng Việt
-  getCategoryName(code: string): string {
-    return CATEGORY_MAP[code] || code;
-  },
-
-  getCategoryLabel(code: string): string {
-    return this.getCategoryName(code);
   },
 };

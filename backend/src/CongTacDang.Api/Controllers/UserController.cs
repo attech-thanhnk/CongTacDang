@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CongTacDang.Application.Common.Models;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Application.Services;
 
@@ -28,8 +29,18 @@ public class UserController : ControllerBase
     {
         try
         {
-            var profile = await _userService.GetProfileAsync(username);
+            var targetUsername = !string.IsNullOrWhiteSpace(username)
+                ? username.Trim()
+                : User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
+                  ?? User.FindFirst("unique_name")?.Value
+                  ?? User.Identity?.Name;
+
+            var profile = await _userService.GetProfileAsync(targetUsername);
             return Ok(ApiResponse<UserProfileDto>.Ok(profile, "Lấy thông tin hồ sơ cán bộ thành công."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.Fail(ex.Message));
         }
         catch (KeyNotFoundException ex)
         {
@@ -39,6 +50,7 @@ public class UserController : ControllerBase
 
     /// <summary>Danh sách toàn bộ cán bộ quản lý</summary>
     [HttpGet("list")]
+    [Authorize(Policy = AppPermissions.UsersRead)]
     public async Task<IActionResult> GetUserList()
     {
         var cadres = await _userService.GetCadresAsync();
@@ -47,6 +59,7 @@ public class UserController : ControllerBase
 
     /// <summary>Chi tiết hồ sơ cán bộ theo ID</summary>
     [HttpGet("{id}")]
+    [Authorize(Policy = AppPermissions.UsersRead)]
     public async Task<IActionResult> GetUserById(Guid id)
     {
         var cadre = await _userService.GetUserByIdAsync(id);
@@ -64,9 +77,9 @@ public class UserController : ControllerBase
         return Ok(ApiResponse<List<RoleDto>>.Ok(roles, "Lấy danh mục vai trò thành công."));
     }
 
-    /// <summary>Tạo mới hồ sơ cán bộ — chỉ Quản trị hệ thống</summary>
+    /// <summary>Tạo mới hồ sơ cán bộ</summary>
     [HttpPost("create")]
-    [Authorize(Policy = "RequireQuanTriHeTong")]
+    [Authorize(Policy = AppPermissions.UsersCreate)]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserDto request)
     {
         try
@@ -80,9 +93,9 @@ public class UserController : ControllerBase
         }
     }
 
-    /// <summary>Cập nhật hồ sơ cán bộ — chỉ Quản trị hệ thống</summary>
+    /// <summary>Cập nhật hồ sơ cán bộ</summary>
     [HttpPut("{id}")]
-    [Authorize(Policy = "RequireQuanTriHeTong")]
+    [Authorize(Policy = AppPermissions.UsersUpdate)]
     public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserDto request)
     {
         try
@@ -100,9 +113,9 @@ public class UserController : ControllerBase
         }
     }
 
-    /// <summary>Xóa hồ sơ cán bộ — chỉ Quản trị hệ thống</summary>
+    /// <summary>Xóa hồ sơ cán bộ</summary>
     [HttpDelete("{id}")]
-    [Authorize(Policy = "RequireQuanTriHeTong")]
+    [Authorize(Policy = AppPermissions.UsersDelete)]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
         try

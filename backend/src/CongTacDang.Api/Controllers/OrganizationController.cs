@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CongTacDang.Application.Common.Models;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Application.Services;
 
@@ -24,7 +25,7 @@ public class OrganizationController : ControllerBase
 
     /// <summary>Danh sách Chi bộ thuộc Đảng bộ ATTECH</summary>
     [HttpGet("branches")]
-    [HttpGet("party-cells")]
+    [Authorize(Policy = AppPermissions.BranchesRead)]
     public async Task<IActionResult> GetPartyCells()
     {
         var branches = await _orgService.GetBranchesAsync();
@@ -33,6 +34,7 @@ public class OrganizationController : ControllerBase
 
     /// <summary>Chi tiết một Chi bộ theo ID</summary>
     [HttpGet("branches/{id}")]
+    [Authorize(Policy = AppPermissions.BranchesRead)]
     public async Task<IActionResult> GetBranchById(Guid id)
     {
         var branch = await _orgService.GetBranchByIdAsync(id);
@@ -42,9 +44,9 @@ public class OrganizationController : ControllerBase
         return Ok(ApiResponse<BranchDto>.Ok(branch, "Lấy thông tin Chi bộ thành công."));
     }
 
-    /// <summary>Thêm mới Chi bộ — chỉ Ban Thường vụ trở lên</summary>
+    /// <summary>Thêm mới Chi bộ</summary>
     [HttpPost("branches")]
-    [Authorize(Policy = "RequireBanThuongVu")]
+    [Authorize(Policy = AppPermissions.BranchesCreate)]
     public async Task<IActionResult> CreateBranch([FromBody] CreateBranchDto request)
     {
         try
@@ -58,9 +60,9 @@ public class OrganizationController : ControllerBase
         }
     }
 
-    /// <summary>Cập nhật thông tin Chi bộ — chỉ Ban Thường vụ trở lên</summary>
+    /// <summary>Cập nhật thông tin Chi bộ</summary>
     [HttpPut("branches/{id}")]
-    [Authorize(Policy = "RequireBanThuongVu")]
+    [Authorize(Policy = AppPermissions.BranchesUpdate)]
     public async Task<IActionResult> UpdateBranch(Guid id, [FromBody] UpdateBranchDto request)
     {
         try
@@ -78,9 +80,9 @@ public class OrganizationController : ControllerBase
         }
     }
 
-    /// <summary>Xóa Chi bộ — chỉ Ban Thường vụ trở lên</summary>
+    /// <summary>Xóa Chi bộ</summary>
     [HttpDelete("branches/{id}")]
-    [Authorize(Policy = "RequireBanThuongVu")]
+    [Authorize(Policy = AppPermissions.BranchesDelete)]
     public async Task<IActionResult> DeleteBranch(Guid id)
     {
         try

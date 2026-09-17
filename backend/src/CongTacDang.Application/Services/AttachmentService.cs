@@ -10,10 +10,18 @@ using CongTacDang.Domain.Entities;
 
 namespace CongTacDang.Application.Services;
 
+/// <summary>
+/// Kết quả luồng dữ liệu tệp tin phục vụ tải về
+/// </summary>
 public class AttachmentDownloadResult
 {
+    /// <summary>Luồng dữ liệu đọc tệp</summary>
     public Stream Stream { get; set; } = Stream.Null;
+
+    /// <summary>Định dạng MIME của tệp</summary>
     public string ContentType { get; set; } = "application/octet-stream";
+
+    /// <summary>Tên tệp tin đính kèm</summary>
     public string FileName { get; set; } = string.Empty;
 }
 
@@ -32,10 +40,7 @@ public interface IAttachmentService
     Task<AttachmentDownloadResult> DownloadAttachmentAsync(Guid id);
 
     /// <summary>Tải lên tệp mới, tính mã băm SHA-256 và lưu metadata</summary>
-    Task<AttachmentDto> UploadAttachmentAsync(Stream stream, string originalFileName, string contentType, long size, string category, string description, string uploadedBy);
-
-    /// <summary>Cập nhật danh mục hoặc mô tả của tệp</summary>
-    Task<AttachmentDto> UpdateAttachmentAsync(Guid id, UpdateAttachmentDto input);
+    Task<AttachmentDto> UploadAttachmentAsync(Stream stream, string originalFileName, string contentType, long size, string formCode, string description, string uploadedBy);
 
     /// <summary>Xóa tệp khỏi storage và cơ sở dữ liệu</summary>
     Task DeleteAttachmentAsync(Guid id);
@@ -66,6 +71,7 @@ public class AttachmentService : IAttachmentService
             FileName = a.FileName,
             ContentType = a.ContentType,
             FileSize = a.FileSize,
+            FormCode = a.FormCode,
             Category = a.FormCode,
             Description = a.Description,
             Checksum = a.Checksum,
@@ -90,6 +96,7 @@ public class AttachmentService : IAttachmentService
             FileName = a.FileName,
             ContentType = a.ContentType,
             FileSize = a.FileSize,
+            FormCode = a.FormCode,
             Category = a.FormCode,
             Description = a.Description,
             Checksum = a.Checksum,
@@ -128,7 +135,7 @@ public class AttachmentService : IAttachmentService
         string originalFileName,
         string contentType,
         long size,
-        string category,
+        string formCode,
         string description,
         string uploadedBy)
     {
@@ -148,14 +155,14 @@ public class AttachmentService : IAttachmentService
         var checksum = Convert.ToHexString(hashBytes).ToLowerInvariant();
         memoryStream.Position = 0;
 
-        // Sinh ObjectKey phân cấp: {category}/{yyyyMM}/{fileId}_{fileName}.ext
+        // Sinh ObjectKey phân cấp: {formCode}/{yyyyMM}/{fileId}_{fileName}.ext
         var fileId = Guid.NewGuid();
-        var cleanCategory = string.IsNullOrWhiteSpace(category) ? "general" : category.Trim().ToLowerInvariant();
+        var cleanCode = string.IsNullOrWhiteSpace(formCode) ? "general" : formCode.Trim().ToLowerInvariant();
         var dateFolder = DateTime.UtcNow.ToString("yyyyMM");
         var sanitizedBaseName = Path.GetFileNameWithoutExtension(originalFileName).Replace(" ", "_");
         if (sanitizedBaseName.Length > 40) sanitizedBaseName = sanitizedBaseName.Substring(0, 40);
 
-        var objectKey = $"{cleanCategory}/{dateFolder}/{fileId}_{sanitizedBaseName}{ext}";
+        var objectKey = $"{cleanCode}/{dateFolder}/{fileId}_{sanitizedBaseName}{ext}";
 
         var savedKey = await _fileStorage.SaveFileAsync(memoryStream, objectKey, contentType);
 
@@ -168,7 +175,7 @@ public class AttachmentService : IAttachmentService
             Checksum = checksum,
             ContentType = contentType,
             FileSize = memoryStream.Length,
-            FormCode = string.IsNullOrWhiteSpace(category) ? "GENERAL" : category.Trim().ToUpperInvariant(),
+            FormCode = string.IsNullOrWhiteSpace(formCode) ? "GENERAL" : formCode.Trim().ToUpperInvariant(),
             Description = description ?? string.Empty,
             UploadedBy = string.IsNullOrWhiteSpace(uploadedBy) ? "Cán bộ quản trị" : uploadedBy,
             UploadedAt = DateTime.UtcNow,
@@ -192,40 +199,7 @@ public class AttachmentService : IAttachmentService
             FileName = attachment.FileName,
             ContentType = attachment.ContentType,
             FileSize = attachment.FileSize,
-            Category = attachment.FormCode,
-            Description = attachment.Description,
-            Checksum = attachment.Checksum,
-            UploadedAt = attachment.UploadedAt,
-            UploadedBy = attachment.UploadedBy
-        };
-    }
-
-    /// <summary>
-    /// Cập nhật thông tin danh mục hoặc mô tả tệp
-    /// </summary>
-    public async Task<AttachmentDto> UpdateAttachmentAsync(Guid id, UpdateAttachmentDto input)
-    {
-        var attachment = await _attachmentRepo.GetByIdAsync(id);
-        if (attachment == null)
-            throw new KeyNotFoundException("Không tìm thấy tệp đính kèm cần chỉnh sửa.");
-
-        if (!string.IsNullOrWhiteSpace(input.Category))
-        {
-            attachment.FormCode = input.Category.Trim().ToUpperInvariant();
-        }
-        if (input.Description != null)
-        {
-            attachment.Description = input.Description.Trim();
-        }
-
-        await _attachmentRepo.UpdateAsync(attachment);
-
-        return new AttachmentDto
-        {
-            Id = attachment.Id,
-            FileName = attachment.FileName,
-            ContentType = attachment.ContentType,
-            FileSize = attachment.FileSize,
+            FormCode = attachment.FormCode,
             Category = attachment.FormCode,
             Description = attachment.Description,
             Checksum = attachment.Checksum,

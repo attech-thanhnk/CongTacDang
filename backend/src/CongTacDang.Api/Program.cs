@@ -9,28 +9,35 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using CongTacDang.Application.Services;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Api.Services;
 using CongTacDang.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Database PostgreSQL
+// 1. Database PostgreSQL với SplitQuery tối ưu truy vấn quan hệ nhiều tầng
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<CongTacDangDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseNpgsql(connectionString, npgsqlOptions =>
+        npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
-// 2. CORS cho Frontend Next.js
+// 2. CORS động cho Frontend Next.js
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? new[] { "http://localhost:3000", "http://localhost:3001" };
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:3001")
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
     });
 });
+
+builder.Services.AddHealthChecks();
 
 // 3. JWT Authentication — đọc token từ HttpOnly Cookie (ưu tiên), fallback sang Authorization header
 var jwtSecret = builder.Configuration["Jwt:Secret"]
@@ -65,47 +72,66 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// 4. Authorization — 4 Policy theo ma trận phân quyền 03-HD/TVĐU
+// 4. Authorization — Policies dựa trên Permission Code và Role
 builder.Services.AddAuthorization(options =>
 {
-    // Bất kỳ cán bộ đã đăng nhập
-    options.AddPolicy("RequireCaNBo", p => p.RequireRole(AppRoles.CAN_BO));
+    // Đăng ký tự động toàn bộ 14 chính sách dựa trên Permission Codes (kiểm tra claim "perm")
+    foreach (var perm in CongTacDang.Application.Common.Security.AppPermissions.All)
+    {
+        options.AddPolicy(perm, p => p.RequireClaim("perm", perm));
+    }
 
-    // Bí thư / Phó Bí thư Chi bộ trở lên
+    // Role-based policies bổ trợ
+    options.AddPolicy("RequireCaNBo", p => p.RequireRole(AppRoles.CAN_BO));
     options.AddPolicy("RequireBiThuChiBo", p =>
         p.RequireRole(AppRoles.BI_THU_CHI_BO, AppRoles.BAN_THUONG_VU, AppRoles.QUAN_TRI_HE_THONG));
-
-    // Ban Thường vụ Đảng ủy trở lên
     options.AddPolicy("RequireBanThuongVu", p =>
         p.RequireRole(AppRoles.BAN_THUONG_VU, AppRoles.QUAN_TRI_HE_THONG));
-
-    // Quản trị hệ thống — toàn quyền
     options.AddPolicy("RequireQuanTriHeTong", p =>
         p.RequireRole(AppRoles.QUAN_TRI_HE_THONG));
+
+    // Composite Policies bảo vệ nghiêm ngặt các endpoint thẩm định, chuẩn y và danh sách hồ sơ
+    options.AddPolicy(AppPermissions.PolicyEvaluationsAppraiseOrApprove, p =>
+        p.RequireAssertion(ctx =>
+            ctx.User.HasClaim("perm", AppPermissions.EvaluationsAppraise) ||
+            ctx.User.HasClaim("perm", AppPermissions.EvaluationsApprove) ||
+            ctx.User.IsInRole(AppRoles.QUAN_TRI_HE_THONG)));
+
+    options.AddPolicy(AppPermissions.PolicyEvaluationsBranchView, p =>
+        p.RequireAssertion(ctx =>
+            ctx.User.HasClaim("perm", AppPermissions.EvaluationsBranchVote) ||
+            ctx.User.HasClaim("perm", AppPermissions.EvaluationsAppraise) ||
+            ctx.User.HasClaim("perm", AppPermissions.EvaluationsApprove) ||
+            ctx.User.IsInRole(AppRoles.QUAN_TRI_HE_THONG)));
+
+    options.AddPolicy(AppPermissions.PolicyManagePeriods, p =>
+        p.RequireAssertion(ctx =>
+            ctx.User.HasClaim("perm", AppPermissions.EvaluationsApprove) ||
+            ctx.User.IsInRole(AppRoles.QUAN_TRI_HE_THONG) ||
+            ctx.User.IsInRole(AppRoles.BAN_THUONG_VU)));
 });
 
 // 5. Đăng ký Repository & Storage Service (MinIO)
 builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IUserRepository, CongTacDang.Infrastructure.Repositories.UserRepository>();
 builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IAttachmentRepository, CongTacDang.Infrastructure.Repositories.AttachmentRepository>();
 builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IOrganizationRepository, CongTacDang.Infrastructure.Repositories.OrganizationRepository>();
+builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IRoleRepository, CongTacDang.Infrastructure.Repositories.RoleRepository>();
+builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IRefreshTokenRepository, CongTacDang.Infrastructure.Repositories.RefreshTokenRepository>();
+builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IEvaluationRepository, CongTacDang.Infrastructure.Repositories.EvaluationRepository>();
 
-var minioOptions = new CongTacDang.Infrastructure.Services.MinioStorageOptions
-{
-    Endpoint = builder.Configuration["Storage:Minio:Endpoint"] ?? "localhost:9000",
-    BucketName = builder.Configuration["Storage:Minio:BucketName"] ?? "congtacdang-files",
-    AccessKey = builder.Configuration["Storage:Minio:AccessKey"] ?? "minioadmin",
-    SecretKey = builder.Configuration["Storage:Minio:SecretKey"] ?? "minioadmin",
-    UseSsl = bool.TryParse(builder.Configuration["Storage:Minio:UseSsl"], out var ssl) && ssl,
-    PublicEndpoint = builder.Configuration["Storage:Minio:PublicEndpoint"]
-};
+var localStoragePath = builder.Configuration["Storage:Local:Path"]
+    ?? Path.Combine(AppContext.BaseDirectory, "uploads");
 builder.Services.AddSingleton<CongTacDang.Application.Common.Interfaces.IFileStorageService>(
-    new CongTacDang.Infrastructure.Services.MinioFileStorageService(minioOptions));
+    new CongTacDang.Infrastructure.Services.LocalFileStorageService(localStoragePath));
 
 // 6. Đăng ký Application Services
-builder.Services.AddSingleton<JwtService>();
+builder.Services.AddSingleton<CongTacDang.Application.Common.Interfaces.IJwtService, JwtService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IAttachmentService, AttachmentService>();
+builder.Services.AddScoped<IEvaluationService, EvaluationService>();
 builder.Services.AddScoped<IReportService, CongTacDang.Infrastructure.Services.ReportService>();
 
 // 7. Controllers & Swagger với hỗ trợ JWT Bearer Authorization
@@ -161,6 +187,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 // 9. Middleware pipeline
+app.UseMiddleware<CongTacDang.Api.Middlewares.GlobalExceptionMiddleware>();
+
 if (app.Environment.IsDevelopment() || true)
 {
     app.UseSwagger();
@@ -174,6 +202,7 @@ if (app.Environment.IsDevelopment() || true)
 app.UseCors("AllowFrontend");
 app.UseAuthentication(); // Phải đứng trước UseAuthorization
 app.UseAuthorization();
+app.MapHealthChecks("/healthz");
 app.MapControllers();
 
 app.Run();

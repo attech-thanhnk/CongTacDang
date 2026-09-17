@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using CongTacDang.Application.Common.Models;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Application.Services;
 
@@ -26,6 +27,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Danh sách toàn bộ tệp tin và tài liệu minh chứng</summary>
     [HttpGet("list")]
+    [Authorize(Policy = AppPermissions.AttachmentsRead)]
     public async Task<IActionResult> GetList()
     {
         var files = await _attachmentService.GetAttachmentsAsync();
@@ -34,6 +36,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Tải lên tệp minh chứng (PDF, DOCX, XLSX, Ảnh)</summary>
     [HttpPost("upload")]
+    [Authorize(Policy = AppPermissions.AttachmentsUpload)]
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> UploadFile(
         [FromForm] IFormFile file,
@@ -73,6 +76,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Tải về tệp tin minh chứng theo ID</summary>
     [HttpGet("{id}/download")]
+    [Authorize(Policy = AppPermissions.AttachmentsRead)]
     public async Task<IActionResult> DownloadFile(Guid id)
     {
         try
@@ -90,8 +94,30 @@ public class AttachmentController : ControllerBase
         }
     }
 
+    /// <summary>Xem trực tiếp tệp tin minh chứng (PDF, ảnh) trong trình duyệt (inline)</summary>
+    [HttpGet("{id}/view")]
+    [Authorize(Policy = AppPermissions.AttachmentsRead)]
+    public async Task<IActionResult> ViewFile(Guid id)
+    {
+        try
+        {
+            var result = await _attachmentService.DownloadAttachmentAsync(id);
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"{Uri.EscapeDataString(result.FileName)}\"";
+            return File(result.Stream, result.ContentType);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse.Fail(ex.Message));
+        }
+        catch (FileNotFoundException ex)
+        {
+            return NotFound(ApiResponse.Fail(ex.Message));
+        }
+    }
+
     /// <summary>Thông tin chi tiết tệp tin</summary>
     [HttpGet("{id}")]
+    [Authorize(Policy = AppPermissions.AttachmentsRead)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var file = await _attachmentService.GetAttachmentByIdAsync(id);
@@ -101,24 +127,10 @@ public class AttachmentController : ControllerBase
         return Ok(ApiResponse<AttachmentDto>.Ok(file, "Lấy thông tin tệp tin thành công."));
     }
 
-    /// <summary>Chỉnh sửa thông tin trích yếu và phân loại tệp tin</summary>
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateAttachment(Guid id, [FromBody] UpdateAttachmentDto request)
-    {
-        try
-        {
-            var result = await _attachmentService.UpdateAttachmentAsync(id, request);
-            return Ok(ApiResponse<AttachmentDto>.Ok(result, "Cập nhật thông tin tệp tin thành công."));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse.Fail(ex.Message));
-        }
-    }
 
-    /// <summary>Xóa tệp tin khỏi hệ thống — chỉ Ban Thường vụ trở lên</summary>
+    /// <summary>Xóa tệp tin khỏi hệ thống</summary>
     [HttpDelete("{id}")]
-    [Authorize(Policy = "RequireBanThuongVu")]
+    [Authorize(Policy = AppPermissions.AttachmentsDelete)]
     public async Task<IActionResult> DeleteFile(Guid id)
     {
         try

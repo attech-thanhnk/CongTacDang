@@ -1,65 +1,247 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { userService, RoleItem, UserProfile } from "@/services/userService";
+import React, { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLayout } from "@/contexts/LayoutContext";
+import { useToast } from "@/contexts/ToastContext";
+import { usePathname } from "next/navigation";
 
 export function AppHeader() {
-  const [currentRole, setCurrentRole] = useState("BI_THU_CHI_BO");
-  const [roles, setRoles] = useState<RoleItem[]>([]);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const { user, logout, loading } = useAuth();
+  const { toggleSidebar } = useLayout();
+  const { toast } = useToast();
+  const pathname = usePathname();
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
-  useEffect(() => {
-    userService.getRoles()
-      .then(data => {
-        setRoles(data);
-        if (data.length > 0) setCurrentRole(data[0].code);
-      })
-      .catch(() => {});
+  const getPageTitle = () => {
+    if (pathname === "/") return "Tổng quan";
+    if (pathname.startsWith("/evaluations")) return "Đánh giá cán bộ";
+    if (pathname.startsWith("/users")) return "Cán bộ & Chi bộ";
+    if (pathname.startsWith("/attachments")) return "Minh chứng";
+    if (pathname.startsWith("/reports")) return "Báo cáo";
+    if (pathname.startsWith("/forms")) return "Biểu mẫu";
+    return "";
+  };
 
-    userService.getProfile()
-      .then(p => setProfile(p))
-      .catch(() => {});
-  }, []);
+  const handleLogoutClick = async () => {
+    setUserDropdownOpen(false);
+    try {
+      await logout();
+    } catch (err: any) {
+      toast.error(err.message || "Đăng xuất thất bại.");
+    }
+  };
+
+  const initials = user?.fullName
+    ? user.fullName
+        .split(" ")
+        .slice(-2)
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+    : "U";
 
   return (
-    <header className="bg-white border-b border-slate-300 sticky top-0 z-20 font-serif">
-      <div className="px-6 py-2.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Tiêu đề Đơn vị & Cơ quan hành chính */}
-        <div className="flex flex-wrap items-center gap-4 text-xs">
-          <div className="border-r border-slate-300 pr-4">
-            <span className="font-bold text-slate-800 uppercase tracking-wide">
-              Công ty TNHH Kỹ thuật Quản lý bay (ATTECH)
-            </span>
-          </div>
+    <header className="app-header">
+      {/* Left */}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          style={{
+            width: "32px",
+            height: "32px",
+            background: "transparent",
+            border: "none",
+            borderRadius: "8px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            color: "var(--text-secondary)",
+            transition: "background var(--transition-fast)",
+            flexShrink: 0,
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-row-hover)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          title="Ẩn/hiện menu"
+          aria-label="Ẩn/hiện menu"
+        >
+          <i className="bi bi-list" style={{ fontSize: "18px" }} />
+        </button>
 
-          <div className="text-slate-700">
-            <span>Kỳ làm việc: </span>
-            <strong className="text-rose-950">Quý III năm 2026</strong>
-          </div>
-
-          <div className="hidden lg:block text-slate-500 italic">
-            (Căn cứ Hướng dẫn số 03-HD/TVĐU ngày 10/9/2026)
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span className="header-title" style={{ fontSize: "13px", fontWeight: 600 }}>Đảng bộ ATTECH</span>
+          {pathname !== "/" && (
+            <>
+              <span className="header-sep">/</span>
+              <span className="header-page">{getPageTitle()}</span>
+            </>
+          )}
         </div>
+      </div>
 
-        {/* Chuyển đổi vai trò công vụ */}
-        <div className="flex items-center gap-2 text-xs">
-          <label htmlFor="roleSelect" className="text-slate-600 font-medium whitespace-nowrap">
-            Vai trò làm việc:
-          </label>
-          <select
-            id="roleSelect"
-            value={currentRole}
-            onChange={(e) => setCurrentRole(e.target.value)}
-            className="border border-slate-300 rounded px-2.5 py-1 text-xs text-slate-800 bg-white font-semibold focus:outline-none focus:border-rose-900 cursor-pointer"
-          >
-            {roles.map(r => (
-              <option key={r.code} value={r.code}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Right */}
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        {loading ? (
+          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Đang nạp...</span>
+        ) : user ? (
+          <div style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "4px 10px 4px 4px",
+                background: "var(--bg-app)",
+                border: "1px solid var(--border-base)",
+                borderRadius: "24px",
+                cursor: "pointer",
+                transition: "all var(--transition-fast)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "var(--border-strong)";
+                e.currentTarget.style.boxShadow = "var(--shadow-xs)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "var(--border-base)";
+                e.currentTarget.style.boxShadow = "none";
+              }}
+            >
+              {/* Mini avatar */}
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, var(--color-cobalt), var(--color-teal))",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: "#fff",
+                  flexShrink: 0,
+                }}
+              >
+                {initials}
+              </div>
+
+              <div
+                className="d-none d-sm-flex flex-column text-start"
+                style={{ lineHeight: 1.15, gap: "2px" }}
+              >
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>
+                  {user.fullName}
+                </span>
+                <span style={{ fontSize: "11.5px", color: "var(--text-secondary)" }}>
+                  {user.roles?.[0] || "Cán bộ"}
+                </span>
+              </div>
+
+              <i
+                className="bi bi-chevron-down"
+                style={{ fontSize: "11px", color: "var(--text-secondary)" }}
+              />
+            </button>
+
+            {/* Dropdown */}
+            {userDropdownOpen && (
+              <>
+                <div
+                  onClick={() => setUserDropdownOpen(false)}
+                  style={{
+                    position: "fixed",
+                    inset: 0,
+                    zIndex: 1040,
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: "calc(100% + 8px)",
+                    width: "220px",
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border-base)",
+                    borderRadius: "var(--radius-lg)",
+                    boxShadow: "var(--shadow-lg)",
+                    zIndex: 1050,
+                    overflow: "hidden",
+                  }}
+                >
+                  {/* User info header */}
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      borderBottom: "1px solid var(--border-subtle)",
+                      background: "var(--bg-app)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        fontSize: "13px",
+                        color: "var(--text-primary)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {user.fullName}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        color: "var(--text-muted)",
+                        marginTop: "2px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {user.userName}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ padding: "6px" }}>
+                    <button
+                      type="button"
+                      onClick={handleLogoutClick}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "8px 10px",
+                        background: "transparent",
+                        border: "none",
+                        borderRadius: "var(--radius-sm)",
+                        cursor: "pointer",
+                        fontSize: "13px",
+                        color: "var(--color-danger)",
+                        fontWeight: 500,
+                        transition: "background var(--transition-fast)",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "var(--color-danger-bg)")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
+                    >
+                      <i className="bi bi-box-arrow-right" />
+                      <span>Đăng xuất</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        ) : null}
       </div>
     </header>
   );

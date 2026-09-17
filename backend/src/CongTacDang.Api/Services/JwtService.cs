@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
+using CongTacDang.Application.Common.Interfaces;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.Services;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
@@ -12,43 +15,60 @@ using Microsoft.IdentityModel.Tokens;
 namespace CongTacDang.Api.Services;
 
 /// <summary>
-/// Sinh JWT Bearer Token với đầy đủ claims vai trò.
+/// Dịch vụ sinh JWT Bearer Token tích hợp Dynamic RBAC (Roles + Permissions claims).
 /// Token được đọc từ HttpOnly Cookie bởi middleware JwtBearer.
 /// </summary>
-public class JwtService
+public class JwtService : IJwtService
 {
     private readonly string _secret;
     private readonly string _issuer;
     private readonly string _audience;
-    private readonly int _expiryDays;
+    private readonly int _accessTokenExpiryMinutes;
+    private readonly int _refreshTokenExpiryDays;
 
     public JwtService(IConfiguration config)
     {
         _secret = config["Jwt:Secret"] ?? throw new InvalidOperationException("Jwt:Secret chưa được cấu hình.");
         _issuer = config["Jwt:Issuer"] ?? "CongTacDang.Api";
         _audience = config["Jwt:Audience"] ?? "CongTacDang.Client";
-        _expiryDays = int.TryParse(config["Jwt:ExpiryDays"], out var d) ? d : 7;
+        _accessTokenExpiryMinutes = int.TryParse(config["Jwt:AccessTokenExpiryMinutes"], out var m) ? m : 15;
+        _refreshTokenExpiryDays = int.TryParse(config["Jwt:RefreshTokenExpiryDays"], out var d) ? d : 7;
     }
 
-    /// <summary>Sinh JWT Token với claims: sub, name, unique_name, party_role, role[]</summary>
-    public (string Token, DateTime ExpiresAt) GenerateToken(PartyMemberProfile member)
+    /// <summary>
+    /// Sinh JWT Access Token ngắn hạn (mặc định 15 phút) với đầy đủ Role claims và Permission claims
+    /// </summary>
+    public (string Token, DateTime ExpiresAt) GenerateToken(
+        PartyMemberProfile member,
+        IEnumerable<string> roles,
+        IEnumerable<string> permissions)
     {
-        var roles = BuildRoles(member);
+        var roleList = roles.Distinct().ToList();
+        var permList = permissions.Distinct().ToList();
+
         var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, member.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.UniqueName, member.Username),
-            new Claim(JwtRegisteredClaimNames.Name, member.FullName),
-            new Claim("party_role", member.PartyRole.ToString()),
+            new(JwtRegisteredClaimNames.Sub, member.Id.ToString()),
+            new(JwtRegisteredClaimNames.UniqueName, member.Username),
+            new(JwtRegisteredClaimNames.Name, member.FullName),
+            new("party_role", member.PartyRole.ToString()),
         };
 
-        // Mỗi role là một claim riêng — ASP.NET Authorization đọc ClaimTypes.Role
-        foreach (var role in roles)
+        // Gắn role claims — ASP.NET Core Authorization đọc ClaimTypes.Role
+        foreach (var role in roleList)
+        {
             claims.Add(new Claim(ClaimTypes.Role, role));
+        }
+
+        // Gắn permission claims — ASP.NET Core Policy kiểm tra claim "perm"
+        foreach (var perm in permList)
+        {
+            claims.Add(new Claim("perm", perm));
+        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expiresAt = DateTime.UtcNow.AddDays(_expiryDays);
+        var expiresAt = DateTime.UtcNow.AddMinutes(_accessTokenExpiryMinutes);
 
         var token = new JwtSecurityToken(
             issuer: _issuer,
@@ -62,27 +82,23 @@ public class JwtService
     }
 
     /// <summary>
-    /// Ma trận vai trò theo quy trình 03-HD/TVĐU:
-    /// - CAN_BO: tất cả cán bộ đã xác thực
-    /// - BI_THU_CHI_BO: Bí thư / Phó Bí thư Chi bộ
-    /// - BAN_THUONG_VU: Bí thư / Phó BT / Ủy viên BTV Đảng ủy
-    /// - QUAN_TRI_HE_THONG: cùng Ban Thường vụ (toàn quyền hệ thống)
+    /// Sinh Refresh Token ngẫu nhiên 64 bytes có độ an toàn mã hóa cao (hạn 7 ngày)
     /// </summary>
-    public static string[] BuildRoles(PartyMemberProfile member)
+    public RefreshToken GenerateRefreshToken(Guid userId, string? ipAddress = null)
     {
-        var roles = new List<string> { AppRoles.CAN_BO };
+        var randomBytes = new byte[64];
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        rng.GetBytes(randomBytes);
 
-        if (member.PartyRole == PartyRole.BiThuChiBo || member.PartyRole == PartyRole.PhoBiThuChiBo)
-            roles.Add(AppRoles.BI_THU_CHI_BO);
-
-        if (member.PartyRole == PartyRole.BiThuDangUy
-            || member.PartyRole == PartyRole.PhoBiThuDangUy
-            || member.PartyRole == PartyRole.UyVienBanThuongVu)
+        return new RefreshToken
         {
-            roles.Add(AppRoles.BAN_THUONG_VU);
-            roles.Add(AppRoles.QUAN_TRI_HE_THONG);
-        }
-
-        return roles.ToArray();
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Token = Convert.ToBase64String(randomBytes),
+            ExpiresAt = DateTime.UtcNow.AddDays(_refreshTokenExpiryDays),
+            CreatedAt = DateTime.UtcNow,
+            CreatedByIp = ipAddress,
+            IsRevoked = false
+        };
     }
 }

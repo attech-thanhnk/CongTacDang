@@ -1,16 +1,22 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { userService, CadreItem, RoleItem } from "@/services/userService";
 import { organizationService, BranchItem } from "@/services/organizationService";
+import { roleService, RoleDetailItem, PermissionItem } from "@/services/roleService";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
+import { PageHeader, Button, StatusBadge } from "@/components/common";
 
 function UsersContent() {
+  const { hasPermission, hasRole } = useAuth();
+  const { toast, confirm } = useToast();
+  const canManageRoles = hasPermission("roles.manage") || hasRole("QUAN_TRI_HE_THONG");
   const searchParams = useSearchParams();
   const paramTab = searchParams.get("tab");
-  const initialTab: "cadres" | "branches" | "roles" = 
-    paramTab === "roles" || paramTab === "phan_quyen" ? "roles" : 
+  const initialTab: "cadres" | "branches" | "roles" =
+    (paramTab === "roles" || paramTab === "phan_quyen") && canManageRoles ? "roles" :
     paramTab === "branches" || paramTab === "to_chuc" ? "branches" : "cadres";
   const [activeTab, setActiveTab] = useState<"cadres" | "branches" | "roles">(initialTab);
   const [searchTerm, setSearchTerm] = useState("");
@@ -19,10 +25,31 @@ function UsersContent() {
   const [cadres, setCadres] = useState<CadreItem[]>([]);
   const [branches, setBranches] = useState<BranchItem[]>([]);
   const [roles, setRoles] = useState<RoleItem[]>([]);
+  const [adminRoles, setAdminRoles] = useState<RoleDetailItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Form thêm mới cán bộ
+  // Bảo vệ activeTab: Nếu không có quyền quản trị vai trò thì không thể vào tab roles
+  useEffect(() => {
+    if (activeTab === "roles" && !canManageRoles) {
+      setActiveTab("cadres");
+    }
+  }, [activeTab, canManageRoles]);
+
+  // Modal Gán vai trò cho cán bộ
+  const [showAssignRoleModal, setShowAssignRoleModal] = useState(false);
+  const [selectedCadreForRoles, setSelectedCadreForRoles] = useState<CadreItem | null>(null);
+  const [selectedRoleCodes, setSelectedRoleCodes] = useState<string[]>([]);
+  const [isAssigningRoles, setIsAssigningRoles] = useState(false);
+
+  // Modal Chỉnh sửa quyền hạn của vai trò
+  const [showEditRolePermsModal, setShowEditRolePermsModal] = useState(false);
+  const [selectedRoleForPerms, setSelectedRoleForPerms] = useState<RoleDetailItem | null>(null);
+  const [allPermissions, setAllPermissions] = useState<PermissionItem[]>([]);
+  const [selectedPermCodes, setSelectedPermCodes] = useState<string[]>([]);
+  const [isUpdatingPerms, setIsUpdatingPerms] = useState(false);
+
+  // Modal cán bộ
   const [showAddModal, setShowAddModal] = useState(false);
   const [newFullName, setNewFullName] = useState("");
   const [newPartyCard, setNewPartyCard] = useState("");
@@ -30,14 +57,14 @@ function UsersContent() {
   const [newBranchId, setNewBranchId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form chỉnh sửa cán bộ
+  // Sửa cán bộ
   const [editingCadre, setEditingCadre] = useState<CadreItem | null>(null);
   const [editFullName, setEditFullName] = useState("");
   const [editPartyCard, setEditPartyCard] = useState("");
   const [editAdminTitle, setEditAdminTitle] = useState("");
   const [editBranchId, setEditBranchId] = useState("");
 
-  // Form thêm / sửa Chi bộ
+  // Modal Chi bộ
   const [showAddBranchModal, setShowAddBranchModal] = useState(false);
   const [editingBranch, setEditingBranch] = useState<BranchItem | null>(null);
   const [branchCode, setBranchCode] = useState("");
@@ -56,8 +83,17 @@ function UsersContent() {
       setCadres(cadresData);
       setBranches(branchesData);
       setRoles(rolesData);
+
+      if (canManageRoles) {
+        try {
+          const adminData = await roleService.getAdminRoles();
+          setAdminRoles(adminData);
+        } catch {
+          // Bỏ qua nếu lỗi
+        }
+      }
     } catch (err: any) {
-      setErrorMsg(err.message || "Không thể tải dữ liệu từ máy chủ nội bộ.");
+      setErrorMsg(err.message || "Không thể tải dữ liệu.");
     } finally {
       setLoading(false);
     }
@@ -69,10 +105,7 @@ function UsersContent() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newFullName.trim()) {
-      alert("Vui lòng nhập họ và tên cán bộ.");
-      return;
-    }
+    if (!newFullName.trim()) return;
 
     setIsSubmitting(true);
     try {
@@ -82,8 +115,7 @@ function UsersContent() {
         adminTitle: newAdminTitle.trim() || null,
         partyCellId: newBranchId || null,
       });
-
-      alert("Đã lưu hồ sơ cán bộ thành công vào cơ sở dữ liệu!");
+      toast.success("Đã thêm mới hồ sơ cán bộ thành công.");
       setShowAddModal(false);
       setNewFullName("");
       setNewPartyCard("");
@@ -91,7 +123,7 @@ function UsersContent() {
       setNewBranchId("");
       loadData();
     } catch (err: any) {
-      alert(err.message || "Lỗi khi tạo mới cán bộ.");
+      toast.error(err.message || "Lỗi lưu hồ sơ cán bộ.");
     } finally {
       setIsSubmitting(false);
     }
@@ -102,17 +134,12 @@ function UsersContent() {
     setEditFullName(c.fullName);
     setEditPartyCard(c.partyCardNumber || "");
     setEditAdminTitle(c.adminTitle || "");
-    const foundBranch = branches.find(b => b.name === c.partyCellName);
-    setEditBranchId(foundBranch ? foundBranch.id : "");
+    setEditBranchId(c.partyCellId || "");
   };
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingCadre) return;
-    if (!editFullName.trim()) {
-      alert("Họ và tên cán bộ không được để trống.");
-      return;
-    }
+    if (!editingCadre || !editFullName.trim()) return;
 
     setIsSubmitting(true);
     try {
@@ -122,35 +149,37 @@ function UsersContent() {
         adminTitle: editAdminTitle.trim() || null,
         partyCellId: editBranchId || null,
       });
-
-      alert("Cập nhật hồ sơ cán bộ thành công!");
+      toast.success("Đã cập nhật hồ sơ cán bộ thành công.");
       setEditingCadre(null);
       loadData();
     } catch (err: any) {
-      alert(err.message || "Không thể cập nhật hồ sơ cán bộ.");
+      toast.error(err.message || "Lỗi cập nhật hồ sơ.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDeleteUser = async (id: string, name: string) => {
-    if (!confirm(`Xác nhận xóa hồ sơ của đồng chí '${name}' khỏi cơ sở dữ liệu?`)) return;
-
-    try {
-      await userService.deleteUser(id);
-      alert("Đã xóa hồ sơ cán bộ thành công.");
-      loadData();
-    } catch (err: any) {
-      alert(err.message || "Không thể xóa cán bộ từ máy chủ.");
-    }
+  const handleDeleteUser = (id: string, name: string) => {
+    confirm({
+      title: "Xác nhận xóa cán bộ",
+      message: `Đồng chí có chắc chắn muốn xóa hồ sơ cán bộ "${name}" khỏi hệ thống?`,
+      confirmText: "Xóa cán bộ",
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          await userService.deleteUser(id);
+          toast.success(`Đã xóa cán bộ "${name}".`);
+          loadData();
+        } catch (err: any) {
+          toast.error(err.message || "Lỗi khi xóa cán bộ.");
+        }
+      },
+    });
   };
 
   const handleCreateBranch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!branchName.trim()) {
-      alert("Vui lòng nhập tên Chi bộ.");
-      return;
-    }
+    if (!branchName.trim()) return;
 
     setIsSubmitting(true);
     try {
@@ -159,15 +188,14 @@ function UsersContent() {
         name: branchName.trim(),
         description: branchDescription.trim() || undefined,
       });
-
-      alert("Đã thêm mới Chi bộ Đảng thành công!");
+      toast.success("Đã thành lập Chi bộ mới thành công.");
       setShowAddBranchModal(false);
       setBranchCode("");
       setBranchName("");
       setBranchDescription("");
       loadData();
     } catch (err: any) {
-      alert(err.message || "Lỗi khi thêm mới Chi bộ.");
+      toast.error(err.message || "Lỗi khi tạo Chi bộ.");
     } finally {
       setIsSubmitting(false);
     }
@@ -181,11 +209,7 @@ function UsersContent() {
 
   const handleUpdateBranch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingBranch) return;
-    if (!branchName.trim()) {
-      alert("Tên Chi bộ không được để trống.");
-      return;
-    }
+    if (!editingBranch || !branchName.trim()) return;
 
     setIsSubmitting(true);
     try {
@@ -193,134 +217,247 @@ function UsersContent() {
         name: branchName.trim(),
         description: branchDescription.trim(),
       });
-
-      alert("Cập nhật Chi bộ thành công!");
+      toast.success("Đã cập nhật thông tin Chi bộ thành công.");
       setEditingBranch(null);
       setBranchName("");
       setBranchDescription("");
       loadData();
     } catch (err: any) {
-      alert(err.message || "Không thể cập nhật Chi bộ.");
+      toast.error(err.message || "Lỗi cập nhật Chi bộ.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDeleteBranch = async (id: string, name: string) => {
-    if (!confirm(`Xác nhận xóa Chi bộ '${name}'?`)) return;
+  const handleDeleteBranch = (id: string, name: string) => {
+    confirm({
+      title: "Xác nhận xóa Chi bộ",
+      message: `Đồng chí có chắc chắn muốn xóa Chi bộ "${name}"?`,
+      confirmText: "Xóa Chi bộ",
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          await organizationService.deleteBranch(id);
+          toast.success(`Đã xóa Chi bộ "${name}".`);
+          loadData();
+        } catch (err: any) {
+          toast.error(err.message || "Lỗi khi xóa Chi bộ.");
+        }
+      },
+    });
+  };
 
+  // Xử lý Phân vai trò cho Cán bộ
+  const handleOpenAssignRoles = (cadre: CadreItem) => {
+    setSelectedCadreForRoles(cadre);
+    setSelectedRoleCodes(["CAN_BO"]);
+    setShowAssignRoleModal(true);
+  };
+
+  const handleSaveUserRoles = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCadreForRoles) return;
+    if (selectedRoleCodes.length === 0) {
+      toast.warning("Vui lòng chọn ít nhất 1 vai trò hệ thống.");
+      return;
+    }
+
+    setIsAssigningRoles(true);
     try {
-      await organizationService.deleteBranch(id);
-      alert("Đã xóa Chi bộ thành công.");
+      await roleService.assignUserRoles(selectedCadreForRoles.id, selectedRoleCodes);
+      toast.success(`Đã gán vai trò cho cán bộ "${selectedCadreForRoles.fullName}" thành công.`);
+      setShowAssignRoleModal(false);
+      setSelectedCadreForRoles(null);
       loadData();
     } catch (err: any) {
-      alert(err.message || "Không thể xóa Chi bộ.");
+      toast.error(err.message || "Lỗi khi gán vai trò.");
+    } finally {
+      setIsAssigningRoles(false);
     }
   };
 
-  const filteredCadres = cadres.filter(c => {
-    const matchSearch = (c.fullName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        (c.adminTitle || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        (c.partyCardNumber || "").toLowerCase().includes(searchTerm.toLowerCase());
-    const matchBranch = selectedBranch === "all" || c.partyCellName === selectedBranch;
+  // Xử lý Chỉnh sửa quyền hạn cho Vai trò
+  const handleOpenEditRolePerms = async (roleItem: RoleDetailItem) => {
+    setSelectedRoleForPerms(roleItem);
+    setSelectedPermCodes(roleItem.permissions?.map((p: any) => p.code || p) || []);
+    setShowEditRolePermsModal(true);
+
+    if (allPermissions.length === 0) {
+      try {
+        const perms = await roleService.getAdminPermissions();
+        setAllPermissions(perms);
+      } catch (err: any) {
+        console.error("Không thể tải danh mục quyền hệ thống:", err);
+      }
+    }
+  };
+
+  const handleSaveRolePerms = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRoleForPerms) return;
+
+    setIsUpdatingPerms(true);
+    try {
+      await roleService.updateRolePermissions(selectedRoleForPerms.id, selectedPermCodes);
+      toast.success(`Đã cập nhật danh sách quyền cho vai trò "${selectedRoleForPerms.name}" thành công.`);
+      setShowEditRolePermsModal(false);
+      setSelectedRoleForPerms(null);
+      const adminData = await roleService.getAdminRoles();
+      setAdminRoles(adminData);
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi cập nhật quyền.");
+    } finally {
+      setIsUpdatingPerms(false);
+    }
+  };
+
+  const filteredCadres = cadres.filter((c) => {
+    const term = searchTerm.toLowerCase();
+    const matchSearch =
+      c.fullName.toLowerCase().includes(term) ||
+      (c.adminTitle && c.adminTitle.toLowerCase().includes(term)) ||
+      (c.partyCardNumber && c.partyCardNumber.toLowerCase().includes(term)) ||
+      (c.partyCellName && c.partyCellName.toLowerCase().includes(term));
+
+    const matchBranch =
+      selectedBranch === "all" ||
+      c.partyCellName === selectedBranch ||
+      c.partyCellId === selectedBranch;
+
     return matchSearch && matchBranch;
   });
 
   return (
-    <div className="space-y-6 font-serif max-w-5xl mx-auto">
-      {/* Tiêu đề & Điều hướng Tab */}
-      <div className="bg-white border border-slate-300 rounded p-5 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-300 pb-3">
-          <div>
-            <h1 className="text-base font-bold text-slate-900 uppercase">
-              QUẢN TRỊ NGƯỜI DÙNG, TỔ CHỨC & PHÂN QUYỀN
-            </h1>
-            <p className="text-xs text-slate-600 mt-0.5">
-              Hệ cơ sở dữ liệu hồ sơ cán bộ lãnh đạo, quản lý 2 vai, chi bộ Đảng và ma trận phân quyền
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            {activeTab === "branches" ? (
-              <button
+    <div className="page-wrapper">
+      {/* Header trang dùng chung */}
+      <PageHeader
+        title="Cán bộ & Chi bộ"
+        actions={
+          <>
+            {activeTab === "cadres" && hasPermission("users.create") && (
+              <Button
+                size="sm"
+                variant="primary"
+                icon="bi-plus-lg"
+                onClick={() => setShowAddModal(true)}
+              >
+                Thêm cán bộ
+              </Button>
+            )}
+            {activeTab === "branches" && hasPermission("branches.create") && (
+              <Button
+                size="sm"
+                variant="primary"
+                icon="bi-plus-lg"
                 onClick={() => {
                   setBranchCode("");
                   setBranchName("");
                   setBranchDescription("");
                   setShowAddBranchModal(true);
                 }}
-                className="px-3.5 py-1.5 bg-slate-900 text-white rounded text-xs font-semibold hover:bg-slate-800 transition"
               >
-                + Thành lập Chi bộ mới
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="px-3.5 py-1.5 bg-slate-900 text-white rounded text-xs font-semibold hover:bg-slate-800 transition"
-              >
-                + Tiếp nhận hồ sơ cán bộ
-              </button>
+                Thêm chi bộ
+              </Button>
             )}
-          </div>
-        </div>
+          </>
+        }
+      />
 
-        {/* Thanh chuyển Tab thuần văn bản */}
-        <div className="flex border-b border-slate-300 mt-4 text-xs font-semibold">
+      <div className="page-body">
+        {/* Tabs Điều hướng */}
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            marginBottom: "16px",
+            borderBottom: "1px solid var(--border-base)",
+            paddingBottom: "12px",
+          }}
+        >
           <button
+            type="button"
             onClick={() => setActiveTab("cadres")}
-            className={`px-4 py-2 border-b-2 transition ${
-              activeTab === "cadres"
-                ? "border-slate-900 text-slate-950 font-bold bg-slate-50"
-                : "border-transparent text-slate-600 hover:text-slate-900"
-            }`}
+            style={{
+              padding: "6px 14px",
+              borderRadius: "var(--radius-sm)",
+              fontSize: "13px",
+              fontWeight: 600,
+              border: activeTab === "cadres" ? "1px solid var(--color-cobalt)" : "1px solid var(--border-base)",
+              background: activeTab === "cadres" ? "var(--color-primary-light)" : "var(--bg-card)",
+              color: activeTab === "cadres" ? "var(--color-cobalt)" : "var(--text-secondary)",
+              cursor: "pointer",
+              transition: "all var(--transition-fast)",
+            }}
           >
-            1. Danh sách Cán bộ 2 vai ({cadres.length})
+            Cán bộ ({cadres.length})
           </button>
-
           <button
+            type="button"
             onClick={() => setActiveTab("branches")}
-            className={`px-4 py-2 border-b-2 transition ${
-              activeTab === "branches"
-                ? "border-slate-900 text-slate-950 font-bold bg-slate-50"
-                : "border-transparent text-slate-600 hover:text-slate-900"
-            }`}
+            style={{
+              padding: "6px 14px",
+              borderRadius: "var(--radius-sm)",
+              fontSize: "13px",
+              fontWeight: 600,
+              border: activeTab === "branches" ? "1px solid var(--color-cobalt)" : "1px solid var(--border-base)",
+              background: activeTab === "branches" ? "var(--color-primary-light)" : "var(--bg-card)",
+              color: activeTab === "branches" ? "var(--color-cobalt)" : "var(--text-secondary)",
+              cursor: "pointer",
+              transition: "all var(--transition-fast)",
+            }}
           >
-            2. Chi bộ & Tổ chức Đảng ({branches.length})
+            Chi bộ ({branches.length})
           </button>
-
-          <button
-            onClick={() => setActiveTab("roles")}
-            className={`px-4 py-2 border-b-2 transition ${
-              activeTab === "roles"
-                ? "border-slate-900 text-slate-950 font-bold bg-slate-50"
-                : "border-transparent text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            3. Ma trận Phân quyền ({roles.length})
-          </button>
+          {canManageRoles && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("roles")}
+              style={{
+                padding: "6px 14px",
+                borderRadius: "var(--radius-sm)",
+                fontSize: "13px",
+                fontWeight: 600,
+                border: activeTab === "roles" ? "1px solid var(--color-cobalt)" : "1px solid var(--border-base)",
+                background: activeTab === "roles" ? "var(--color-primary-light)" : "var(--bg-card)",
+                color: activeTab === "roles" ? "var(--color-cobalt)" : "var(--text-secondary)",
+                cursor: "pointer",
+                transition: "all var(--transition-fast)",
+              }}
+            >
+              Phân quyền ({roles.length})
+            </button>
+          )}
         </div>
 
-        {/* Thông báo lỗi nếu có */}
         {errorMsg && (
-          <div className="my-3 p-3 bg-red-50 border border-red-300 text-red-700 text-xs rounded">
-            <strong>Thông báo:</strong> {errorMsg}
+          <div className="alert alert-danger py-2 px-3 small mb-3">
+            {errorMsg}
           </div>
         )}
 
-        {/* Tab 1: Danh sách Cán bộ (Full CRUD: Create, Read, Update, Delete) */}
+        {/* Tab 1: Cán bộ */}
         {activeTab === "cadres" && (
-          <div className="mt-4 space-y-4">
-            {/* Bộ lọc tìm kiếm */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-600">Đơn vị:</span>
+          <div
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-base)",
+              borderRadius: "var(--radius-lg)",
+              padding: "16px 20px",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
+            {/* Bộ lọc */}
+            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 mb-3">
+              <div className="d-flex align-items-center gap-2 w-100 w-sm-auto">
+                <span className="small text-secondary text-nowrap">Chi bộ:</span>
                 <select
                   value={selectedBranch}
                   onChange={(e) => setSelectedBranch(e.target.value)}
-                  className="border border-slate-300 rounded px-2.5 py-1 text-xs text-slate-800 bg-white"
+                  className="form-select form-select-sm"
+                  style={{ width: "220px" }}
                 >
-                  <option value="all">-- Toàn bộ Chi bộ trực thuộc --</option>
-                  {branches.map(b => (
+                  <option value="all">Tất cả Chi bộ</option>
+                  {branches.map((b) => (
                     <option key={b.id} value={b.name}>{b.name}</option>
                   ))}
                 </select>
@@ -328,64 +465,82 @@ function UsersContent() {
 
               <input
                 type="text"
-                placeholder="Tìm họ tên, chức danh, số thẻ đảng..."
+                placeholder="Tìm kiếm cán bộ..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="border border-slate-300 rounded px-3 py-1 text-xs w-full sm:w-72"
+                className="form-control form-control-sm"
+                style={{ maxWidth: "260px" }}
               />
             </div>
 
             {loading ? (
-              <p className="text-xs text-slate-500 py-6 text-center italic">Đang tải dữ liệu từ cơ sở dữ liệu nội bộ...</p>
+              <div className="text-center py-4 text-muted small">Đang tải...</div>
             ) : filteredCadres.length === 0 ? (
-              <div className="border border-slate-200 rounded p-6 text-center text-xs text-slate-600 bg-slate-50">
-                Không tìm thấy cán bộ nào phù hợp với điều kiện tìm kiếm.
-              </div>
+              <div className="text-center py-4 text-muted small">Không tìm thấy cán bộ nào.</div>
             ) : (
-              <div className="overflow-x-auto border border-slate-300 rounded">
-                <table className="w-full text-xs text-slate-800 border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 font-bold border-b border-slate-300 text-left">
-                      <th className="border-r border-slate-300 p-2.5 text-center w-10">STT</th>
-                      <th className="border-r border-slate-300 p-2.5">Họ và tên cán bộ</th>
-                      <th className="border-r border-slate-300 p-2.5">Số thẻ Đảng</th>
-                      <th className="border-r border-slate-300 p-2.5">Chi bộ sinh hoạt</th>
-                      <th className="border-r border-slate-300 p-2.5">Chức danh công tác</th>
-                      <th className="border-r border-slate-300 p-2.5 text-center w-24">Trạng thái</th>
-                      <th className="p-2.5 text-center w-28">Thao tác</th>
+              <div className="table-responsive">
+                <table className="table table-sm table-hover align-middle mb-0">
+                  <thead className="text-center">
+                    <tr>
+                      <th style={{ width: "40px" }}>STT</th>
+                      <th>Họ và tên</th>
+                      <th style={{ width: "130px" }}>Số thẻ Đảng</th>
+                      <th style={{ width: "180px" }}>Chi bộ</th>
+                      <th>Chức danh</th>
+                      <th style={{ width: "95px" }}>Trạng thái</th>
+                      <th style={{ width: "100px" }}>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredCadres.map((c, idx) => (
-                      <tr key={c.id} className="border-b border-slate-200 hover:bg-slate-50">
-                        <td className="border-r border-slate-200 p-2 text-center">{idx + 1}</td>
-                        <td className="border-r border-slate-200 p-2 font-semibold text-slate-950">
+                      <tr key={c.id}>
+                        <td className="text-center text-muted">{idx + 1}</td>
+                        <td className="fw-semibold text-dark">
                           {c.fullName}
                           {c.isPartyMember && (
-                            <span className="ml-1.5 text-[10px] text-red-700 bg-red-50 border border-red-200 px-1 py-0.2 rounded font-normal">
-                              Đảng viên
-                            </span>
+                            <StatusBadge type="partyMember" className="ms-1.5" />
                           )}
                         </td>
-                        <td className="border-r border-slate-200 p-2 text-slate-600">{c.partyCardNumber || "—"}</td>
-                        <td className="border-r border-slate-200 p-2">{c.partyCellName || "—"}</td>
-                        <td className="border-r border-slate-200 p-2 text-slate-700">{c.adminTitle || c.partyRole || "—"}</td>
-                        <td className="border-r border-slate-200 p-2 text-center">
-                          <span className="text-[11px] text-emerald-800 font-medium">Hoạt động</span>
+                        <td className="text-secondary">{c.partyCardNumber || "—"}</td>
+                        <td>{c.partyCellName || "—"}</td>
+                        <td className="text-secondary">{c.adminTitle || c.partyRole || "—"}</td>
+                        <td className="text-center">
+                          <StatusBadge type="active" value="active" />
                         </td>
-                        <td className="p-2 text-center space-x-2">
-                          <button
-                            onClick={() => handleOpenEditUser(c)}
-                            className="text-[11px] text-blue-700 hover:text-blue-900 underline font-semibold"
-                          >
-                            Sửa
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(c.id, c.fullName)}
-                            className="text-[11px] text-red-600 hover:text-red-800 underline hover:font-bold"
-                          >
-                            Xóa
-                          </button>
+                        <td className="text-center">
+                          <div className="d-flex justify-content-center gap-1.5">
+                            {hasPermission("users.update") && (
+                              <Button
+                                size="sm"
+                                variant="outline-secondary"
+                                onClick={() => handleOpenEditUser(c)}
+                                style={{ fontSize: "11.5px" }}
+                              >
+                                Sửa
+                              </Button>
+                            )}
+                            {hasPermission("roles.manage") && (
+                              <Button
+                                size="sm"
+                                variant="outline-primary"
+                                onClick={() => handleOpenAssignRoles(c)}
+                                style={{ fontSize: "11.5px" }}
+                                title="Phân vai trò hệ thống"
+                              >
+                                Vai trò
+                              </Button>
+                            )}
+                            {hasPermission("users.delete") && (
+                              <Button
+                                size="sm"
+                                variant="outline-danger"
+                                onClick={() => handleDeleteUser(c.id, c.fullName)}
+                                style={{ fontSize: "11.5px" }}
+                              >
+                                Xóa
+                              </Button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -396,42 +551,60 @@ function UsersContent() {
           </div>
         )}
 
-        {/* Tab 2: Danh sách Chi bộ (Full CRUD) */}
+        {/* Tab 2: Chi bộ */}
         {activeTab === "branches" && (
-          <div className="mt-4 space-y-4">
-            <div className="overflow-x-auto border border-slate-300 rounded">
-              <table className="w-full text-xs text-slate-800 border-collapse">
-                <thead>
-                  <tr className="bg-slate-100 font-bold border-b border-slate-300 text-left">
-                    <th className="border-r border-slate-300 p-2.5 text-center w-10">STT</th>
-                    <th className="border-r border-slate-300 p-2.5 w-28">Mã Chi bộ</th>
-                    <th className="border-r border-slate-300 p-2.5">Tên Chi bộ / Đơn vị Đảng</th>
-                    <th className="border-r border-slate-300 p-2.5">Nhiệm vụ trọng tâm</th>
-                    <th className="border-r border-slate-300 p-2.5 text-center w-28">Sĩ số</th>
-                    <th className="p-2.5 text-center w-28">Thao tác</th>
+          <div
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-base)",
+              borderRadius: "var(--radius-lg)",
+              padding: "16px 20px",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0" style={{ fontSize: "13px" }}>
+                <thead style={{ background: "var(--bg-base)" }}>
+                  <tr>
+                    <th style={{ width: "40px", textAlign: "center" }}>STT</th>
+                    <th style={{ width: "110px" }}>Mã Chi bộ</th>
+                    <th>Tên Chi bộ trực thuộc</th>
+                    <th>Mô tả chức năng</th>
+                    <th style={{ width: "100px", textAlign: "center" }}>Số cán bộ</th>
+                    <th style={{ width: "110px", textAlign: "center" }}>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {branches.map((b, idx) => (
-                    <tr key={b.id} className="border-b border-slate-200 hover:bg-slate-50">
-                      <td className="border-r border-slate-200 p-2 text-center">{idx + 1}</td>
-                      <td className="border-r border-slate-200 p-2 font-mono font-bold text-slate-900">{b.code}</td>
-                      <td className="border-r border-slate-200 p-2 font-semibold text-slate-950">{b.name}</td>
-                      <td className="border-r border-slate-200 p-2 text-slate-600">{b.description || "—"}</td>
-                      <td className="border-r border-slate-200 p-2 text-center font-bold text-slate-900">{b.memberCount} đồng chí</td>
-                      <td className="p-2 text-center space-x-2">
-                        <button
-                          onClick={() => handleOpenEditBranch(b)}
-                          className="text-[11px] text-blue-700 hover:text-blue-900 underline font-semibold"
-                        >
-                          Sửa
-                        </button>
-                        <button
-                          onClick={() => handleDeleteBranch(b.id, b.name)}
-                          className="text-[11px] text-red-600 hover:text-red-800 underline hover:font-bold"
-                        >
-                          Xóa
-                        </button>
+                    <tr key={b.id}>
+                      <td style={{ textAlign: "center", color: "var(--text-muted)" }}>{idx + 1}</td>
+                      <td style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--text-primary)" }}>{b.code}</td>
+                      <td style={{ fontWeight: 600, color: "var(--text-primary)" }}>{b.name}</td>
+                      <td style={{ color: "var(--text-secondary)", fontSize: "12.5px" }}>{b.description || "—"}</td>
+                      <td style={{ textAlign: "center", fontWeight: 600 }}>{b.memberCount}</td>
+                      <td style={{ textAlign: "center" }}>
+                        <div style={{ display: "flex", justifyContent: "center", gap: "6px" }}>
+                          {hasPermission("branches.update") && (
+                            <Button
+                              size="sm"
+                              variant="outline-secondary"
+                              onClick={() => handleOpenEditBranch(b)}
+                              style={{ padding: "2px 8px", fontSize: "11.5px" }}
+                            >
+                              Sửa
+                            </Button>
+                          )}
+                          {hasPermission("branches.delete") && (
+                            <Button
+                              size="sm"
+                              variant="outline-danger"
+                              onClick={() => handleDeleteBranch(b.id, b.name)}
+                              style={{ padding: "2px 8px", fontSize: "11.5px" }}
+                            >
+                              Xóa
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -441,30 +614,73 @@ function UsersContent() {
           </div>
         )}
 
-        {/* Tab 3: Ma trận Phân quyền */}
+        {/* Tab 3: Phân quyền */}
         {activeTab === "roles" && (
-          <div className="mt-4 space-y-4">
-            <div className="p-3 bg-slate-50 border border-slate-300 rounded text-xs text-slate-700">
-              <strong>Nguyên tắc phân quyền hệ thống:</strong> Thiết lập kiểm soát theo đúng vai trò công tác, bảo đảm tính độc lập giữa khâu tự đánh giá, thẩm định chuyên môn và quyết định xếp loại của Ban Thường vụ Đảng ủy.
-            </div>
-
-            <div className="overflow-x-auto border border-slate-300 rounded">
-              <table className="w-full text-xs text-slate-800 border-collapse">
-                <thead>
-                  <tr className="bg-slate-100 font-bold border-b border-slate-300 text-left">
-                    <th className="border-r border-slate-300 p-2.5 text-center w-10">STT</th>
-                    <th className="border-r border-slate-300 p-2.5 w-44">Mã định danh vai trò</th>
-                    <th className="border-r border-slate-300 p-2.5 w-52">Tên nhóm quyền hạn</th>
-                    <th className="p-2.5">Phạm vi trách nhiệm và thẩm quyền thực hiện</th>
+          <div
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-base)",
+              borderRadius: "var(--radius-lg)",
+              padding: "16px 20px",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0" style={{ fontSize: "13px" }}>
+                <thead style={{ background: "var(--bg-base)" }}>
+                  <tr>
+                    <th style={{ width: "160px" }}>Mã vai trò</th>
+                    <th style={{ width: "190px" }}>Tên vai trò</th>
+                    <th style={{ width: "220px" }}>Mô tả nhiệm vụ</th>
+                    <th>Danh mục quyền được cấp</th>
+                    <th style={{ width: "110px", textAlign: "center" }}>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {roles.map((r, idx) => (
-                    <tr key={r.code} className="border-b border-slate-200 hover:bg-slate-50">
-                      <td className="border-r border-slate-200 p-2 text-center">{idx + 1}</td>
-                      <td className="border-r border-slate-200 p-2 font-mono font-bold text-slate-900">{r.code}</td>
-                      <td className="border-r border-slate-200 p-2 font-semibold text-slate-950">{r.name}</td>
-                      <td className="p-2 text-slate-700">{r.description}</td>
+                  {(adminRoles.length > 0 ? adminRoles : roles).map((r: any) => (
+                    <tr key={r.id || r.code}>
+                      <td style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--text-primary)" }}>{r.code}</td>
+                      <td style={{ fontWeight: 600, color: "var(--text-primary)" }}>{r.name}</td>
+                      <td style={{ color: "var(--text-secondary)", fontSize: "12.5px" }}>{r.description}</td>
+                      <td>
+                        {r.permissions && r.permissions.length > 0 ? (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                            {r.permissions.map((p: any) => (
+                              <span
+                                key={p.code || p}
+                                style={{
+                                  fontSize: "10.5px",
+                                  fontFamily: "var(--font-mono)",
+                                  padding: "1px 6px",
+                                  borderRadius: "4px",
+                                  background: "var(--bg-base)",
+                                  border: "1px solid var(--border-base)",
+                                  color: "var(--text-secondary)",
+                                }}
+                              >
+                                {p.code || p}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>Kế thừa</span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        {hasPermission("roles.manage") && r.id ? (
+                          <Button
+                            size="sm"
+                            variant="outline-primary"
+                            icon="bi-pencil-square"
+                            onClick={() => handleOpenEditRolePerms(r)}
+                            style={{ padding: "2px 8px", fontSize: "11.5px" }}
+                          >
+                            Sửa quyền
+                          </Button>
+                        ) : (
+                          <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>—</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -472,284 +688,569 @@ function UsersContent() {
             </div>
           </div>
         )}
-      </div>
+      </div>{/* end page-body */}
 
-      {/* Modal 1: Tiếp nhận hồ sơ cán bộ mới */}
+      {/* Modal Thêm cán bộ */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white border border-slate-400 rounded max-w-lg w-full p-5 shadow-lg space-y-4">
-            <div className="border-b border-slate-300 pb-2">
-              <h2 className="text-sm font-bold text-slate-950 uppercase">Tiếp nhận hồ sơ cán bộ mới</h2>
-              <p className="text-xs text-slate-600">Nhập đầy đủ thông tin để ghi nhận vào cơ sở dữ liệu</p>
+        <div className="modal show d-block bg-dark bg-opacity-50" tabIndex={-1}>
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: "440px" }}>
+            <div className="modal-content shadow border-0">
+              <div className="modal-header py-2 px-3">
+                <h6 className="modal-title fw-bold mb-0">Thêm cán bộ</h6>
+                <button type="button" onClick={() => setShowAddModal(false)} className="btn-close"></button>
+              </div>
+              <form onSubmit={handleCreateUser}>
+                <div className="modal-body p-3 space-y-2">
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Họ và tên *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newFullName}
+                      onChange={(e) => setNewFullName(e.target.value)}
+                      className="form-control form-control-sm"
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Số thẻ Đảng</label>
+                    <input
+                      type="text"
+                      value={newPartyCard}
+                      onChange={(e) => setNewPartyCard(e.target.value)}
+                      className="form-control form-control-sm"
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Chức danh</label>
+                    <input
+                      type="text"
+                      value={newAdminTitle}
+                      onChange={(e) => setNewAdminTitle(e.target.value)}
+                      className="form-control form-control-sm"
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Chi bộ</label>
+                    <select
+                      value={newBranchId}
+                      onChange={(e) => setNewBranchId(e.target.value)}
+                      className="form-select form-select-sm"
+                    >
+                      <option value="">Chưa phân công</option>
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="modal-footer py-2 px-3">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline-secondary"
+                    onClick={() => setShowAddModal(false)}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    variant="primary"
+                    loading={isSubmitting}
+                    loadingText="Đang lưu..."
+                  >
+                    Lưu
+                  </Button>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={handleCreateUser} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">
-                  Họ và tên cán bộ <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ví dụ: Nguyễn Văn Bình"
-                  value={newFullName}
-                  onChange={(e) => setNewFullName(e.target.value)}
-                  className="w-full border border-slate-300 rounded p-2"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">Số thẻ Đảng viên (nếu có)</label>
-                <input
-                  type="text"
-                  placeholder="Ví dụ: ATTECH-008"
-                  value={newPartyCard}
-                  onChange={(e) => setNewPartyCard(e.target.value)}
-                  className="w-full border border-slate-300 rounded p-2"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">Chức danh công tác</label>
-                <input
-                  type="text"
-                  placeholder="Ví dụ: Phó Trưởng phòng Kỹ thuật"
-                  value={newAdminTitle}
-                  onChange={(e) => setNewAdminTitle(e.target.value)}
-                  className="w-full border border-slate-300 rounded p-2"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">Chi bộ Đảng trực thuộc</label>
-                <select
-                  value={newBranchId}
-                  onChange={(e) => setNewBranchId(e.target.value)}
-                  className="w-full border border-slate-300 rounded p-2 bg-white"
-                >
-                  <option value="">-- Chưa phân công chi bộ --</option>
-                  {branches.map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-3 py-1.5 border border-slate-300 rounded text-slate-700 hover:bg-slate-100"
-                >
-                  Hủy bỏ
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-1.5 bg-slate-900 text-white rounded font-semibold hover:bg-slate-800 disabled:opacity-50"
-                >
-                  {isSubmitting ? "Đang lưu..." : "Lưu vào cơ sở dữ liệu"}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
 
-      {/* Modal 2: Chỉnh sửa hồ sơ cán bộ */}
+      {/* Modal Sửa cán bộ */}
       {editingCadre && (
-        <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white border border-slate-400 rounded max-w-lg w-full p-5 shadow-lg space-y-4">
-            <div className="border-b border-slate-300 pb-2">
-              <h2 className="text-sm font-bold text-slate-950 uppercase">Chỉnh sửa hồ sơ cán bộ</h2>
-              <p className="text-xs text-slate-600">Cập nhật thông tin cán bộ trong cơ sở dữ liệu</p>
+        <div className="modal show d-block bg-dark bg-opacity-50" tabIndex={-1}>
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: "440px" }}>
+            <div className="modal-content shadow border-0">
+              <div className="modal-header py-2 px-3">
+                <h6 className="modal-title fw-bold mb-0">Sửa thông tin cán bộ</h6>
+                <button type="button" onClick={() => setEditingCadre(null)} className="btn-close"></button>
+              </div>
+              <form onSubmit={handleUpdateUser}>
+                <div className="modal-body p-3 space-y-2">
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Họ và tên *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editFullName}
+                      onChange={(e) => setEditFullName(e.target.value)}
+                      className="form-control form-control-sm"
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Số thẻ Đảng</label>
+                    <input
+                      type="text"
+                      value={editPartyCard}
+                      onChange={(e) => setEditPartyCard(e.target.value)}
+                      className="form-control form-control-sm"
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Chức danh</label>
+                    <input
+                      type="text"
+                      value={editAdminTitle}
+                      onChange={(e) => setEditAdminTitle(e.target.value)}
+                      className="form-control form-control-sm"
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Chi bộ</label>
+                    <select
+                      value={editBranchId}
+                      onChange={(e) => setEditBranchId(e.target.value)}
+                      className="form-select form-select-sm"
+                    >
+                      <option value="">Chưa phân công</option>
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="modal-footer py-2 px-3">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline-secondary"
+                    onClick={() => setEditingCadre(null)}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    variant="primary"
+                    loading={isSubmitting}
+                    loadingText="Đang cập nhật..."
+                  >
+                    Cập nhật
+                  </Button>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={handleUpdateUser} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">
-                  Họ và tên cán bộ <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editFullName}
-                  onChange={(e) => setEditFullName(e.target.value)}
-                  className="w-full border border-slate-300 rounded p-2"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">Số thẻ Đảng viên</label>
-                <input
-                  type="text"
-                  value={editPartyCard}
-                  onChange={(e) => setEditPartyCard(e.target.value)}
-                  className="w-full border border-slate-300 rounded p-2"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">Chức danh công tác</label>
-                <input
-                  type="text"
-                  value={editAdminTitle}
-                  onChange={(e) => setEditAdminTitle(e.target.value)}
-                  className="w-full border border-slate-300 rounded p-2"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">Chi bộ Đảng trực thuộc</label>
-                <select
-                  value={editBranchId}
-                  onChange={(e) => setEditBranchId(e.target.value)}
-                  className="w-full border border-slate-300 rounded p-2 bg-white"
-                >
-                  <option value="">-- Chưa phân công chi bộ --</option>
-                  {branches.map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setEditingCadre(null)}
-                  className="px-3 py-1.5 border border-slate-300 rounded text-slate-700 hover:bg-slate-100"
-                >
-                  Hủy bỏ
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-1.5 bg-slate-900 text-white rounded font-semibold hover:bg-slate-800 disabled:opacity-50"
-                >
-                  {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
 
-      {/* Modal 3: Thêm mới Chi bộ */}
+      {/* Modal Thêm Chi bộ */}
       {showAddBranchModal && (
-        <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white border border-slate-400 rounded max-w-lg w-full p-5 shadow-lg space-y-4">
-            <div className="border-b border-slate-300 pb-2">
-              <h2 className="text-sm font-bold text-slate-950 uppercase">Thành lập Chi bộ Đảng mới</h2>
-              <p className="text-xs text-slate-600">Đăng ký Chi bộ mới trực thuộc Đảng bộ công ty</p>
+        <div className="modal show d-block bg-dark bg-opacity-50" tabIndex={-1}>
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: "440px" }}>
+            <div className="modal-content shadow border-0">
+              <div className="modal-header py-2 px-3">
+                <h6 className="modal-title fw-bold mb-0">Thêm Chi bộ</h6>
+                <button type="button" onClick={() => setShowAddBranchModal(false)} className="btn-close"></button>
+              </div>
+              <form onSubmit={handleCreateBranch}>
+                <div className="modal-body p-3 space-y-2">
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Mã Chi bộ</label>
+                    <input
+                      type="text"
+                      value={branchCode}
+                      onChange={(e) => setBranchCode(e.target.value)}
+                      className="form-control form-control-sm"
+                      placeholder="CB-..."
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Tên Chi bộ *</label>
+                    <input
+                      type="text"
+                      required
+                      value={branchName}
+                      onChange={(e) => setBranchName(e.target.value)}
+                      className="form-control form-control-sm"
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Mô tả</label>
+                    <textarea
+                      rows={2}
+                      value={branchDescription}
+                      onChange={(e) => setBranchDescription(e.target.value)}
+                      className="form-control form-control-sm"
+                    ></textarea>
+                  </div>
+                </div>
+                <div className="modal-footer py-2 px-3">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline-secondary"
+                    onClick={() => setShowAddBranchModal(false)}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    variant="primary"
+                    loading={isSubmitting}
+                    loadingText="Đang lưu..."
+                  >
+                    Lưu
+                  </Button>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={handleCreateBranch} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">Mã định danh Chi bộ</label>
-                <input
-                  type="text"
-                  placeholder="Ví dụ: CB-KT, CB-SX..."
-                  value={branchCode}
-                  onChange={(e) => setBranchCode(e.target.value)}
-                  className="w-full border border-slate-300 rounded p-2 font-mono uppercase"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">
-                  Tên Chi bộ <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ví dụ: Chi bộ Khối Nghiên cứu phát triển"
-                  value={branchName}
-                  onChange={(e) => setBranchName(e.target.value)}
-                  className="w-full border border-slate-300 rounded p-2"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">Nhiệm vụ trọng tâm / Mô tả</label>
-                <textarea
-                  rows={3}
-                  placeholder="Mô tả phạm vi phụ trách của Chi bộ..."
-                  value={branchDescription}
-                  onChange={(e) => setBranchDescription(e.target.value)}
-                  className="w-full border border-slate-300 rounded p-2"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setShowAddBranchModal(false)}
-                  className="px-3 py-1.5 border border-slate-300 rounded text-slate-700 hover:bg-slate-100"
-                >
-                  Hủy bỏ
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-1.5 bg-slate-900 text-white rounded font-semibold hover:bg-slate-800 disabled:opacity-50"
-                >
-                  {isSubmitting ? "Đang lưu..." : "Tạo Chi bộ"}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
 
-      {/* Modal 4: Chỉnh sửa Chi bộ */}
+      {/* Modal Sửa Chi bộ */}
       {editingBranch && (
-        <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white border border-slate-400 rounded max-w-lg w-full p-5 shadow-lg space-y-4">
-            <div className="border-b border-slate-300 pb-2">
-              <h2 className="text-sm font-bold text-slate-950 uppercase">Chỉnh sửa Chi bộ Đảng</h2>
-              <p className="text-xs text-slate-600">Cập nhật thông tin Chi bộ {editingBranch.code}</p>
+        <div className="modal show d-block bg-dark bg-opacity-50" tabIndex={-1}>
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: "440px" }}>
+            <div className="modal-content shadow border-0">
+              <div className="modal-header py-2 px-3">
+                <h6 className="modal-title fw-bold mb-0">Sửa Chi bộ</h6>
+                <button type="button" onClick={() => setEditingBranch(null)} className="btn-close"></button>
+              </div>
+              <form onSubmit={handleUpdateBranch}>
+                <div className="modal-body p-3 space-y-2">
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Tên Chi bộ *</label>
+                    <input
+                      type="text"
+                      required
+                      value={branchName}
+                      onChange={(e) => setBranchName(e.target.value)}
+                      className="form-control form-control-sm"
+                    />
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Mô tả</label>
+                    <textarea
+                      rows={2}
+                      value={branchDescription}
+                      onChange={(e) => setBranchDescription(e.target.value)}
+                      className="form-control form-control-sm"
+                    ></textarea>
+                  </div>
+                </div>
+                <div className="modal-footer py-2 px-3">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline-secondary"
+                    onClick={() => setEditingBranch(null)}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    variant="primary"
+                    loading={isSubmitting}
+                    loadingText="Đang cập nhật..."
+                  >
+                    Cập nhật
+                  </Button>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={handleUpdateBranch} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">
-                  Tên Chi bộ <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={branchName}
-                  onChange={(e) => setBranchName(e.target.value)}
-                  className="w-full border border-slate-300 rounded p-2"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">Nhiệm vụ trọng tâm / Mô tả</label>
-                <textarea
-                  rows={3}
-                  value={branchDescription}
-                  onChange={(e) => setBranchDescription(e.target.value)}
-                  className="w-full border border-slate-300 rounded p-2"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+          </div>
+        </div>
+      )}
+      {/* Modal Phân vai trò cho cán bộ */}
+      {showAssignRoleModal && selectedCadreForRoles && (
+        <div className="modal show d-block bg-dark bg-opacity-50" tabIndex={-1}>
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: "480px" }}>
+            <div className="modal-content shadow border-0" style={{ borderRadius: "12px" }}>
+              <div className="modal-header py-2.5 px-3 border-bottom" style={{ borderColor: "#e2e8f0" }}>
+                <div>
+                  <h6 className="modal-title fw-bold text-dark mb-0" style={{ fontSize: "14px" }}>
+                    Phân vai trò hệ thống
+                  </h6>
+                  <div className="text-secondary" style={{ fontSize: "11.5px" }}>
+                    Cán bộ: <strong className="text-dark">{selectedCadreForRoles.fullName}</strong>
+                  </div>
+                </div>
                 <button
                   type="button"
-                  onClick={() => setEditingBranch(null)}
-                  className="px-3 py-1.5 border border-slate-300 rounded text-slate-700 hover:bg-slate-100"
-                >
-                  Hủy bỏ
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-1.5 bg-slate-900 text-white rounded font-semibold hover:bg-slate-800 disabled:opacity-50"
-                >
-                  {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
-                </button>
+                  onClick={() => setShowAssignRoleModal(false)}
+                  className="btn-close"
+                  aria-label="Đóng"
+                ></button>
               </div>
-            </form>
+
+              <form onSubmit={handleSaveUserRoles}>
+                <div className="modal-body p-3">
+                  <div className="text-secondary mb-2" style={{ fontSize: "12px" }}>
+                    Tích chọn một hoặc nhiều vai trò áp dụng cho tài khoản này:
+                  </div>
+
+                  <div className="d-flex flex-column gap-2">
+                    {[
+                      { code: "CAN_BO", name: "Cán bộ, Đảng viên", desc: "Quyền cơ bản: Đăng ký việc M01, tự chấm điểm M02" },
+                      { code: "BI_THU_CHI_BO", name: "Bí thư Chi bộ", desc: "Đánh giá, nhận xét, chủ trì bỏ phiếu Chi bộ M10, 13" },
+                      { code: "TO_THAM_DINH", name: "Tổ Thẩm định", desc: "Thẩm định đối soát điểm, kiểm soát tỷ lệ trần 20% M03, 15" },
+                      { code: "BAN_THUONG_VU", name: "Ban Thường vụ Đảng ủy", desc: "Chuẩn y mức xếp loại chính thức M14, 16" },
+                      { code: "QUAN_TRI_HE_THONG", name: "Quản trị hệ thống", desc: "Toàn quyền cấu hình hệ thống và phân quyền động" },
+                    ].map((role) => {
+                      const isChecked = selectedRoleCodes.includes(role.code);
+                      return (
+                        <label
+                          key={role.code}
+                          className={`p-2.5 border rounded-2 d-flex align-items-start gap-2.5 cursor-pointer transition ${
+                            isChecked ? "bg-primary-subtle border-primary" : "bg-light border-light-subtle"
+                          }`}
+                          style={{ cursor: "pointer" }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedRoleCodes([...selectedRoleCodes, role.code]);
+                              } else {
+                                setSelectedRoleCodes(selectedRoleCodes.filter((c) => c !== role.code));
+                              }
+                            }}
+                            className="form-check-input mt-0.5 shrink-0"
+                          />
+                          <div className="flex-grow-1">
+                            <div className="d-flex align-items-center justify-content-between">
+                              <span className="fw-semibold text-dark" style={{ fontSize: "12.5px" }}>
+                                {role.name}
+                              </span>
+                              <span className="badge bg-secondary-subtle text-secondary font-monospace" style={{ fontSize: "9.5px" }}>
+                                {role.code}
+                              </span>
+                            </div>
+                            <div className="text-secondary mt-0.5" style={{ fontSize: "11px" }}>
+                              {role.desc}
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="modal-footer py-2 px-3 border-top" style={{ borderColor: "#e2e8f0" }}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline-secondary"
+                    onClick={() => setShowAssignRoleModal(false)}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    variant="primary"
+                    loading={isAssigningRoles}
+                    loadingText="Đang lưu..."
+                  >
+                    Lưu vai trò
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Chỉnh sửa quyền hạn của vai trò */}
+      {showEditRolePermsModal && selectedRoleForPerms && (
+        <div className="modal show d-block bg-dark bg-opacity-50" tabIndex={-1}>
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content shadow border-0" style={{ borderRadius: "12px" }}>
+              <div className="modal-header py-2.5 px-3 border-bottom" style={{ borderColor: "#e2e8f0" }}>
+                <div>
+                  <h6 className="modal-title fw-bold text-dark mb-0" style={{ fontSize: "14px" }}>
+                    Cập nhật quyền hạn vai trò: {selectedRoleForPerms.name}
+                  </h6>
+                  <div className="text-secondary" style={{ fontSize: "11.5px" }}>
+                    Mã: <code className="text-primary">{selectedRoleForPerms.code}</code> — {selectedRoleForPerms.description}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowEditRolePermsModal(false)}
+                  className="btn-close"
+                  aria-label="Đóng"
+                ></button>
+              </div>
+
+              <form onSubmit={handleSaveRolePerms}>
+                <div className="modal-body p-3" style={{ maxHeight: "68vh", overflowY: "auto" }}>
+                  <div className="d-flex justify-content-between align-items-center mb-2.5 pb-2 border-bottom">
+                    <div className="text-secondary" style={{ fontSize: "12px" }}>
+                      Đã chọn: <strong className="text-primary">{selectedPermCodes.length}</strong> quyền
+                    </div>
+                    <div className="d-flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allCodes = allPermissions.length > 0
+                            ? allPermissions.map((p) => p.code)
+                            : [
+                                "users.read", "users.create", "users.update", "users.delete",
+                                "branches.read", "branches.create", "branches.update", "branches.delete",
+                                "attachments.read", "attachments.upload", "attachments.delete",
+                                "evaluations.read", "evaluations.register", "evaluations.self_score",
+                                "evaluations.branch_vote", "evaluations.appraise", "evaluations.approve",
+                                "reports.export", "roles.manage"
+                              ];
+                          setSelectedPermCodes(allCodes);
+                        }}
+                        className="btn btn-sm btn-link p-0 text-decoration-none"
+                        style={{ fontSize: "11.5px" }}
+                      >
+                        Chọn tất cả
+                      </button>
+                      <span className="text-muted">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPermCodes([])}
+                        className="btn btn-sm btn-link p-0 text-danger text-decoration-none"
+                        style={{ fontSize: "11.5px" }}
+                      >
+                        Bỏ chọn tất cả
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Nhóm quyền theo Phân hệ */}
+                  {[
+                    {
+                      groupName: "Hồ sơ Cán bộ",
+                      resource: "users",
+                      items: [
+                        { code: "users.read", name: "Xem hồ sơ cán bộ", desc: "Xem danh sách và chi tiết hồ sơ cán bộ" },
+                        { code: "users.create", name: "Thêm mới cán bộ", desc: "Tạo mới hồ sơ cán bộ vào hệ thống" },
+                        { code: "users.update", name: "Cập nhật cán bộ", desc: "Chỉnh sửa thông tin hồ sơ cán bộ" },
+                        { code: "users.delete", name: "Xóa cán bộ", desc: "Xóa hồ sơ cán bộ khỏi hệ thống" },
+                      ],
+                    },
+                    {
+                      groupName: "Tổ chức Chi bộ",
+                      resource: "branches",
+                      items: [
+                        { code: "branches.read", name: "Xem Chi bộ", desc: "Xem danh sách và cơ cấu Chi bộ" },
+                        { code: "branches.create", name: "Tạo mới Chi bộ", desc: "Thành lập Chi bộ mới" },
+                        { code: "branches.update", name: "Cập nhật Chi bộ", desc: "Chỉnh sửa thông tin Chi bộ" },
+                        { code: "branches.delete", name: "Xóa Chi bộ", desc: "Xóa Chi bộ khỏi hệ thống" },
+                      ],
+                    },
+                    {
+                      groupName: "Tệp tin & Minh chứng",
+                      resource: "attachments",
+                      items: [
+                        { code: "attachments.read", name: "Xem & tải tệp tin", desc: "Xem danh mục và tải tệp đính kèm" },
+                        { code: "attachments.upload", name: "Tải lên tệp tin", desc: "Đính kèm tệp minh chứng đánh giá" },
+                        { code: "attachments.delete", name: "Xóa tệp tin", desc: "Xóa tệp minh chứng khỏi hệ thống" },
+                      ],
+                    },
+                    {
+                      groupName: "Đánh giá & Xếp loại 5 Bước (03-HD/TVĐU)",
+                      resource: "evaluations",
+                      items: [
+                        { code: "evaluations.read", name: "Xem hồ sơ đánh giá", desc: "Xem hồ sơ đánh giá và tiến trình" },
+                        { code: "evaluations.register", name: "Đăng ký nhiệm vụ (Bước 1)", desc: "Đăng ký 3-7 việc chuyên môn Mẫu 01" },
+                        { code: "evaluations.self_score", name: "Tự chấm điểm (Bước 2)", desc: "Tự chấm 30đ chung và 70đ việc Mẫu 02" },
+                        { code: "evaluations.branch_vote", name: "Chi bộ đánh giá (Bước 3)", desc: "Nhận xét và ghi nhận bỏ phiếu kín Mẫu 10, 13" },
+                        { code: "evaluations.appraise", name: "Thẩm định hồ sơ (Bước 4)", desc: "Đối soát điểm và kiểm soát trần 20% M03, 15" },
+                        { code: "evaluations.approve", name: "Chuẩn y xếp loại (Bước 5)", desc: "BTV Đảng ủy chuẩn y chính thức Mẫu 16" },
+                      ],
+                    },
+                    {
+                      groupName: "Báo cáo & Phân quyền",
+                      resource: "admin",
+                      items: [
+                        { code: "reports.export", name: "Xuất báo cáo", desc: "Xuất báo cáo tổng hợp chuẩn 03-HD/TVĐU" },
+                        { code: "roles.manage", name: "Quản trị phân quyền (RBAC)", desc: "Quản trị vai trò, gán quyền và gán vai trò người dùng" },
+                      ],
+                    },
+                  ].map((grp) => (
+                    <div key={grp.groupName} className="mb-3">
+                      <div className="fw-bold text-dark mb-1.5 pb-1 border-bottom" style={{ fontSize: "12px", borderColor: "#f1f5f9" }}>
+                        {grp.groupName}
+                      </div>
+                      <div className="row g-2">
+                        {grp.items.map((item) => {
+                          const isChecked = selectedPermCodes.includes(item.code);
+                          return (
+                            <div key={item.code} className="col-12 col-md-6">
+                              <label
+                                className={`p-2 border rounded-2 d-flex align-items-start gap-2 h-100 transition ${
+                                  isChecked ? "bg-primary-subtle border-primary" : "bg-white border-light-subtle"
+                                }`}
+                                style={{ cursor: "pointer" }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedPermCodes([...selectedPermCodes, item.code]);
+                                    } else {
+                                      setSelectedPermCodes(selectedPermCodes.filter((c) => c !== item.code));
+                                    }
+                                  }}
+                                  className="form-check-input mt-0.5 shrink-0"
+                                />
+                                <div>
+                                  <div className="d-flex align-items-center gap-1.5">
+                                    <span className="fw-semibold text-dark" style={{ fontSize: "12px" }}>
+                                      {item.name}
+                                    </span>
+                                  </div>
+                                  <code className="text-secondary d-block" style={{ fontSize: "10px" }}>
+                                    {item.code}
+                                  </code>
+                                  <div className="text-muted" style={{ fontSize: "10.5px", marginTop: "2px" }}>
+                                    {item.desc}
+                                  </div>
+                                </div>
+                              </label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="modal-footer py-2 px-3 border-top" style={{ borderColor: "#e2e8f0" }}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline-secondary"
+                    onClick={() => setShowEditRolePermsModal(false)}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    variant="primary"
+                    loading={isUpdatingPerms}
+                    loadingText="Đang lưu..."
+                  >
+                    Lưu quyền hạn
+                  </Button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
@@ -759,14 +1260,8 @@ function UsersContent() {
 
 export default function UsersPage() {
   return (
-    <React.Suspense
-      fallback={
-        <div className="p-6 text-center text-xs text-slate-500 font-serif">
-          Đang nạp phân hệ Quản trị người dùng & Tổ chức...
-        </div>
-      }
-    >
+    <Suspense fallback={<div className="text-center py-4 text-muted small">Đang tải...</div>}>
       <UsersContent />
-    </React.Suspense>
+    </Suspense>
   );
 }
