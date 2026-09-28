@@ -145,7 +145,8 @@ public sealed class ClosedXmlImportWorkbook : IImportWorkbook
 
     /// <summary>
     /// Chống formula injection: giá trị bắt đầu bằng <c>= + - @</c>, tab hoặc CR được thêm tiền tố <c>'</c>
-    /// để Excel/LibreOffice không hiểu là công thức.
+    /// để Excel/LibreOffice không hiểu là công thức. Khi ghi vào ô, ClosedXML lưu tiền tố này theo cách chuẩn của Excel:
+    /// ô kiểu văn bản có cờ <c>quotePrefix</c> (giống người dùng gõ <c>'</c> trong Excel) — hiển thị đúng giá trị gốc.
     /// </summary>
     public static string SanitizeCellText(string? value)
     {
