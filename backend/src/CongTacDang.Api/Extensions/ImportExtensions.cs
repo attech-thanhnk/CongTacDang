@@ -22,6 +22,10 @@ public static class ImportExtensions
         services.AddImportDefinition<DepartmentImportDefinition>();
         services.AddImportDefinition<PartyCellImportDefinition>();
         services.AddImportDefinition<UserImportDefinition>();
+
+        // Task 13: gán vai trò.
+        services.TryAddScoped<IRoleAssignmentImportLookup, RoleAssignmentImportLookup>();
+        services.AddImportDefinition<RoleAssignmentImportDefinition>();
         return services;
     }
 
