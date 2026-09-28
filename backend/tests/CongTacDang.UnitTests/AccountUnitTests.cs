@@ -317,6 +317,7 @@ public sealed class AccountUnitTests
         public Task<AccountState?> GetStateAsync(Guid userId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<PagedResult<PartyMemberProfile>> SearchAsync(AccountSearchCriteria criteria, CancellationToken ct = default) => throw new NotSupportedException();
         public Task AddAsync(PartyMemberProfile member, CancellationToken ct = default) => throw new NotSupportedException();
+        public void Stage(PartyMemberProfile member) => throw new NotSupportedException();
         public Task SaveChangesAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task SoftDeleteAsync(PartyMemberProfile member, CancellationToken ct = default) => throw new NotSupportedException();
     }

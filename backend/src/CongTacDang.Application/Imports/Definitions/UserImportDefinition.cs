@@ -1,3 +1,5 @@
+using CongTacDang.Application.Accounts;
+using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.Services;
 using CongTacDang.Domain.Enums;
@@ -81,7 +83,8 @@ public sealed class UserImportDefinition : IImportDefinition<UserImportRow>
     public IReadOnlyList<ImportColumn> TemplateColumns { get; } = new[]
     {
         new ImportColumn(UsernameKey, "Tên đăng nhập", true,
-            $"Không chứa khoảng trắng, tối đa {UserAccountService.MaxUsernameLength} ký tự, không trùng tài khoản đã có (không phân biệt hoa thường). "
+            $"Từ {AccountRules.UsernameMinLength} đến {AccountRules.UsernameMaxLength} ký tự: chữ cái không dấu, chữ số và \". _ -\", "
+            + "không khoảng trắng (lưu chữ thường), không trùng tài khoản đã có (không phân biệt hoa thường). "
             + "Tên đã có → dòng bị báo lỗi, tài khoản cũ không bị thay đổi.", null, "nguyenvana"),
         new ImportColumn(FullNameKey, "Họ và tên", true, $"Tối đa {MaxFullNameLength} ký tự.", null, "Nguyễn Văn A"),
         new ImportColumn(EmailKey, "Email", false, "Địa chỉ thư điện tử (có @).", null, "nguyenvana@attech.com.vn"),
@@ -108,14 +111,23 @@ public sealed class UserImportDefinition : IImportDefinition<UserImportRow>
             PartyCellCode = source.GetOrNull(PartyCellKey) is { } cell ? CatalogRules.NormalizeCode(cell) : null
         };
 
-        if (row.Username.Length > UserAccountService.MaxUsernameLength)
-            errors.Add($"Tên đăng nhập dài quá {UserAccountService.MaxUsernameLength} ký tự. Hãy rút ngắn.");
+        // Cùng quy tắc với IUserAccountService (AccountRules) để dòng qua được bước xem trước không bị từ chối lúc ghi.
         if (row.Username.Any(char.IsWhiteSpace))
             errors.Add("Tên đăng nhập không được chứa khoảng trắng. Hãy bỏ khoảng trắng.");
+        else if (row.Username.Length > 0)
+        {
+            try
+            {
+                AccountRules.NormalizeAndValidateUsername(row.Username);
+            }
+            catch (ValidationException ex)
+            {
+                errors.Add(ex.Message);
+            }
+        }
         if (row.FullName.Length > MaxFullNameLength)
             errors.Add($"Họ và tên dài quá {MaxFullNameLength} ký tự.");
-        if (row.Email != null && (row.Email.Length > MaxEmailLength || row.Email.Any(char.IsWhiteSpace)
-            || row.Email.IndexOf('@') <= 0 || row.Email.IndexOf('@') == row.Email.Length - 1))
+        if (row.Email != null && (row.Email.Length > MaxEmailLength || !AccountRules.IsValidEmail(row.Email)))
             errors.Add($"Email \"{row.Email}\" không hợp lệ. Hãy nhập dạng ten@donvi.vn hoặc để trống.");
 
         if (Enum.TryParse<ApprovalAuthority>(source.Get(ApprovalKey), ignoreCase: true, out var authority)
@@ -164,7 +176,8 @@ public sealed class UserImportDefinition : IImportDefinition<UserImportRow>
         foreach (var row in rows)
         {
             var d = row.Data;
-            var created = await _accounts.CreateAsync(new CreateAccountCommand(
+            // Chỉ đưa vào đơn vị công việc; khung nhập lưu cả lô một lần trong transaction → một dòng lỗi thì không tài khoản nào được ghi.
+            var created = await _accounts.StageCreateAsync(new CreateAccountCommand(
                 d.Username, d.FullName, d.Email, d.PartyCardNumber, d.PositionTitle, d.DepartmentId, d.PartyCellId, d.ApprovalAuthority), ct);
             accounts.Add(new string?[] { (++index).ToString(), created.Username, d.FullName, created.TemporaryPassword });
         }

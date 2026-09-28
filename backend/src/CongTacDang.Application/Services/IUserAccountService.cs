@@ -23,6 +23,15 @@ public interface IUserAccountService
     /// </summary>
     Task<CreatedAccount> CreateAsync(CreateAccountCommand cmd, CancellationToken ct = default);
 
+    /// <summary>
+    /// Như <see cref="CreateAsync"/> (cùng kiểm tra, cùng lỗi) nhưng <b>không lưu</b>: tài khoản chỉ được đưa vào đơn vị công việc
+    /// hiện tại. Người gọi phải gọi <see cref="Common.Interfaces.IUnitOfWork.SaveChangesAsync"/> — thường trong
+    /// <see cref="Common.Interfaces.IUnitOfWork.ExecuteInTransactionAsync"/> — để ghi cả lô một lần (ví dụ nhập dữ liệu):
+    /// một dòng lỗi → không tài khoản nào được ghi. Trùng tên đăng nhập được kiểm tra cả với tài khoản đã đưa vào
+    /// nhưng chưa lưu trong cùng đơn vị công việc.
+    /// </summary>
+    Task<CreatedAccount> StageCreateAsync(CreateAccountCommand cmd, CancellationToken ct = default);
+
     /// <summary>Tra cứu, phân trang tài khoản trong phạm vi người xem được phép.</summary>
     Task<PagedResult<AccountListItemDto>> SearchAsync(AccountSearchQuery query, CancellationToken ct = default);
 

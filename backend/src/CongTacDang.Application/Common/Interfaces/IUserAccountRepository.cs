@@ -42,6 +42,9 @@ public interface IUserAccountRepository
     /// <summary>Thêm tài khoản mới và lưu.</summary>
     Task AddAsync(PartyMemberProfile member, CancellationToken ct = default);
 
+    /// <summary>Đưa tài khoản mới vào đơn vị công việc, <b>chưa lưu</b> (lưu cùng lần <c>SaveChanges</c> của người gọi).</summary>
+    void Stage(PartyMemberProfile member);
+
     /// <summary>Lưu các thay đổi trên tài khoản đang được theo dõi.</summary>
     Task SaveChangesAsync(CancellationToken ct = default);
 

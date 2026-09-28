@@ -68,6 +68,27 @@ public sealed class UserAccountService : IUserAccountService
     /// <inheritdoc />
     public async Task<CreatedAccount> CreateAsync(CreateAccountCommand cmd, CancellationToken ct = default)
     {
+        var (member, temporaryPassword) = await BuildNewAccountAsync(cmd, ct);
+        if (_accounts != null)
+            await _accounts.AddAsync(member, ct);
+        else
+            await _users.AddAsync(member);
+
+        return new CreatedAccount(member.Id, member.Username, temporaryPassword);
+    }
+
+    /// <inheritdoc />
+    public async Task<CreatedAccount> StageCreateAsync(CreateAccountCommand cmd, CancellationToken ct = default)
+    {
+        var (member, temporaryPassword) = await BuildNewAccountAsync(cmd, ct);
+        Accounts.Stage(member);
+        return new CreatedAccount(member.Id, member.Username, temporaryPassword);
+    }
+
+    /// <summary>Kiểm tra dữ liệu, quyền, danh mục, trùng tên và dựng tài khoản mới (chưa đưa vào CSDL).</summary>
+    private async Task<(PartyMemberProfile Member, string TemporaryPassword)> BuildNewAccountAsync(
+        CreateAccountCommand cmd, CancellationToken ct)
+    {
         ArgumentNullException.ThrowIfNull(cmd);
         ct.ThrowIfCancellationRequested();
 
@@ -109,12 +130,7 @@ public sealed class UserAccountService : IUserAccountService
             SecurityStamp = NewSecurityStamp()
         };
 
-        if (_accounts != null)
-            await _accounts.AddAsync(member, ct);
-        else
-            await _users.AddAsync(member);
-
-        return new CreatedAccount(member.Id, member.Username, temporaryPassword);
+        return (member, temporaryPassword);
     }
 
     /// <inheritdoc />

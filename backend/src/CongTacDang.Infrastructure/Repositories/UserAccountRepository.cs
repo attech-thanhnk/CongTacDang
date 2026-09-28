@@ -39,6 +39,10 @@ public sealed class UserAccountRepository : IUserAccountRepository
     public Task<bool> UsernameExistsAsync(string username, CancellationToken ct = default)
     {
         var normalized = AccountRules.NormalizeUsername(username);
+        // Tài khoản đã đưa vào đơn vị công việc nhưng chưa lưu (nhập theo lô) cũng tính là đã dùng.
+        if (_db.ChangeTracker.Entries<PartyMemberProfile>().Any(e =>
+                e.State == EntityState.Added && AccountRules.NormalizeUsername(e.Entity.Username) == normalized))
+            return Task.FromResult(true);
         return _db.PartyMemberProfiles
             .IgnoreQueryFilters()
             .AnyAsync(m => m.Username.ToLower() == normalized, ct);
@@ -126,6 +130,9 @@ public sealed class UserAccountRepository : IUserAccountRepository
         _db.PartyMemberProfiles.Add(member);
         await _db.SaveChangesAsync(ct);
     }
+
+    /// <inheritdoc />
+    public void Stage(PartyMemberProfile member) => _db.PartyMemberProfiles.Add(member);
 
     /// <inheritdoc />
     public Task SaveChangesAsync(CancellationToken ct = default) => _db.SaveChangesAsync(ct);
