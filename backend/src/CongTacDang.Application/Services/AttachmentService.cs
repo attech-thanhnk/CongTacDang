@@ -385,8 +385,8 @@ public class AttachmentService : IAttachmentService
     private sealed record OwnerInfo(string Type, Guid? Id, Guid? RecordId);
 
     /// <summary>
-    /// Kiểm tra đối tượng sở hữu khi tải lên: gắn hồ sơ → <c>evaluation.self</c> trên hồ sơ đó; văn bản chung (GENERAL) →
-    /// <c>attachment.general.manage</c>; tệp chưa gắn hồ sơ (minh chứng tải trước khi đăng ký) → có <c>evaluation.self</c>.
+    /// Kiểm tra đối tượng sở hữu khi tải lên: gắn hồ sơ → <c>evaluation.self</c> trên hồ sơ đó (chỉ chủ hồ sơ);
+    /// không gắn hồ sơ → <c>evaluation.self</c> hoặc <c>attachment.general.manage</c> (xem <see cref="EnsureCanUploadUnlinkedAsync"/>).
     /// </summary>
     private async Task<OwnerInfo> ResolveOwnerAsync(string? ownerType, Guid? ownerId, Guid? uploadedById, string formCode)
     {
@@ -430,9 +430,13 @@ public class AttachmentService : IAttachmentService
         return new OwnerInfo(normalizedType, ownerId.Value, record.Id);
     }
 
-    /// <summary>Tải tệp không gắn hồ sơ: văn bản chung cần quyền quản lý văn bản chung; minh chứng cần quyền tham gia đánh giá.</summary>
+    /// <summary>
+    /// Tải tệp không gắn hồ sơ: người có <c>attachment.general.manage</c> (văn bản chung, mã GENERAL thì công khai cho mọi người)
+    /// hoặc người có <c>evaluation.self</c> (minh chứng riêng — chỉ người tải lên thấy tới khi gắn vào hồ sơ).
+    /// </summary>
     private async Task EnsureCanUploadUnlinkedAsync(string formCode, Guid? uploadedById)
     {
+        _ = formCode;
         // Constructor chỉ dùng kiểm tra hợp lệ tệp (unit test) không có nguồn quyền — giữ hành vi cũ.
         if (_resolver == null)
             return;
@@ -441,16 +445,6 @@ public class AttachmentService : IAttachmentService
 
         var uploader = await _resolver.GetAsync(uploadedById.Value);
         var canManageGeneral = AuthorizationGuard.Evaluate(uploader, PermissionCodes.AttachmentGeneralManage, AccessTarget.None);
-        if (string.Equals(formCode, GeneralFormCode, StringComparison.OrdinalIgnoreCase))
-        {
-            if (!canManageGeneral)
-            {
-                throw new ForbiddenException(
-                    $"Tải lên văn bản chung cần quyền \"{PermissionCodes.DisplayName(PermissionCodes.AttachmentGeneralManage)}\".");
-            }
-            return;
-        }
-
         if (!(uploader.IsActive && uploader.Has(PermissionCodes.EvaluationSelf)) && !canManageGeneral)
         {
             throw new ForbiddenException(
@@ -609,14 +603,15 @@ public class AttachmentService : IAttachmentService
             return effectiveLinks.Any(link => AuthorizationGuard.Evaluate(requester, permission, AccessTarget.ForRecord(link.Record)));
         }
 
-        if (IsGeneralDocument(attachment))
+        // Văn bản chung do người có quyền quản lý văn bản chung tải lên: mọi người xem, người có quyền đó sửa/xóa.
+        if (IsGeneralDocument(attachment) && publishedGeneral)
         {
-            if (operation == FileOperation.Read)
-                return publishedGeneral || attachment.UploadedById == requesterId;
-            return AuthorizationGuard.Evaluate(requester, PermissionCodes.AttachmentGeneralManage, AccessTarget.None);
+            return operation == FileOperation.Read
+                || AuthorizationGuard.Evaluate(requester, PermissionCodes.AttachmentGeneralManage, AccessTarget.None);
         }
 
-        // Tệp chưa gắn hồ sơ (minh chứng tải trước khi đăng ký nhiệm vụ): chỉ người tải lên.
+        // Tệp chưa gắn hồ sơ (minh chứng tải trước khi đăng ký nhiệm vụ, kể cả "tài liệu minh chứng khác" mã GENERAL
+        // do cán bộ tự tải): chỉ người tải lên.
         return attachment.UploadedById.HasValue && attachment.UploadedById == requesterId;
     }
 
