@@ -45,9 +45,13 @@ public sealed class UnitOfWork : IUnitOfWork
         });
     }
 
-    public void SetOriginalVersion(object entity, uint version)
+    public void SetOriginalVersion(object entity, uint? version)
     {
-        _db.Entry(entity).Property("xmin").OriginalValue = version;
+        // Client chưa gửi version (frontend cũ) thì giữ xmin vừa đọc từ DB, không chặn cập nhật.
+        if (version is null)
+            return;
+
+        _db.Entry(entity).Property("xmin").OriginalValue = version.Value;
     }
 
     public uint GetVersion(object entity)

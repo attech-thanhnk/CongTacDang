@@ -336,7 +336,7 @@ public class TaskScoreInputDto
     /// <summary>Mã công việc</summary>
     public Guid TaskId { get; set; }
     /// <summary>Phiên bản xmin đọc được của công việc.</summary>
-    public uint Version { get; set; }
+    public uint? Version { get; set; }
 
     /// <summary>Tỷ lệ hoàn thành Tiêu chí A (0.0 - 1.0)</summary>
     public double CriteriaA_Ratio { get; set; } = 1.0;
@@ -512,7 +512,7 @@ public class RegisterTasksRequestDto
     /// <summary>Mã kỳ đánh giá</summary>
     public Guid PeriodId { get; set; }
     /// <summary>Phiên bản xmin của hồ sơ hiện có; bằng 0 khi tạo mới.</summary>
-    public uint Version { get; set; }
+    public uint? Version { get; set; }
 
     /// <summary>Danh sách 3 đến 7 công việc chuyên môn (Tổng trọng số đúng 70.0 điểm)</summary>
     public List<TaskInputDto> Tasks { get; set; } = new();
@@ -524,7 +524,7 @@ public class SubmitSelfScoreRequestDto
     /// <summary>Mã hồ sơ đánh giá</summary>
     public Guid RecordId { get; set; }
     /// <summary>Phiên bản xmin của hồ sơ cần cập nhật.</summary>
-    public uint Version { get; set; }
+    public uint? Version { get; set; }
 
     /// <summary>Điểm 6 tiêu chí chung T1 đến T6 (mỗi tiêu chí tối đa 5.0đ, tổng tối đa 30.0đ)</summary>
     public double[] GeneralScores { get; set; } = new double[6];
@@ -542,7 +542,7 @@ public class SubmitBranchReviewRequestDto
     /// <summary>Mã hồ sơ đánh giá</summary>
     public Guid RecordId { get; set; }
     /// <summary>Phiên bản xmin của hồ sơ cần cập nhật.</summary>
-    public uint Version { get; set; }
+    public uint? Version { get; set; }
 
     /// <summary>Ý kiến nhận xét của Cấp ủy / Chi bộ (Mẫu 10)</summary>
     public string Comment { get; set; } = string.Empty;
@@ -571,7 +571,7 @@ public class BranchMemberVoteInputDto
 {
     public Guid RecordId { get; set; }
     /// <summary>Phiên bản xmin của hồ sơ cần cập nhật.</summary>
-    public uint Version { get; set; }
+    public uint? Version { get; set; }
     public string Comment { get; set; } = string.Empty;
     public string ProposedGrade { get; set; } = "HoanThanhTot";
     public int VotesExcellent { get; set; }
@@ -595,7 +595,7 @@ public class SubmitAppraisalRequestDto
     /// <summary>Mã hồ sơ đánh giá</summary>
     public Guid RecordId { get; set; }
     /// <summary>Phiên bản xmin của hồ sơ cần cập nhật.</summary>
-    public uint Version { get; set; }
+    public uint? Version { get; set; }
 
     /// <summary>Điểm do Tổ Thẩm định chấm lại (nếu có)</summary>
     public double? AppraisalScore { get; set; }
@@ -613,7 +613,7 @@ public class ApproveFinalGradeRequestDto
     /// <summary>Mã hồ sơ đánh giá</summary>
     public Guid RecordId { get; set; }
     /// <summary>Phiên bản xmin của hồ sơ cần cập nhật.</summary>
-    public uint Version { get; set; }
+    public uint? Version { get; set; }
 
     /// <summary>Điểm số chính thức sau cùng</summary>
     public double FinalScore { get; set; }
@@ -697,7 +697,7 @@ public class CollectiveEvaluationRecordDto
 public class SaveCollectiveEvaluationRequestDto
 {
     /// <summary>Phiên bản xmin khi cập nhật hồ sơ tập thể.</summary>
-    public uint Version { get; set; }
+    public uint? Version { get; set; }
     public Guid PeriodId { get; set; }
     public string Form { get; set; } = "M07";
     public Guid? PartyCellId { get; set; }
@@ -763,7 +763,7 @@ public class EvaluationMeetingVoteSummaryDto
 public class SaveEvaluationMeetingRequestDto
 {
     /// <summary>Phiên bản xmin khi cập nhật biên bản hội nghị.</summary>
-    public uint Version { get; set; }
+    public uint? Version { get; set; }
     public Guid PeriodId { get; set; }
     public Guid? PartyCellId { get; set; }
     public string FormCode { get; set; } = "M12";

@@ -13,8 +13,8 @@ public interface IUnitOfWork
     /// <summary>Thực hiện một nhóm thao tác trong transaction có retry của provider.</summary>
     Task ExecuteInTransactionAsync(Func<Task> operation, CancellationToken cancellationToken = default);
 
-    /// <summary>Đặt phiên bản đọc được làm giá trị OriginalValue cho optimistic concurrency.</summary>
-    void SetOriginalVersion(object entity, uint version);
+    /// <summary>Đặt phiên bản đọc được làm giá trị OriginalValue cho optimistic concurrency; bỏ qua khi client không gửi version.</summary>
+    void SetOriginalVersion(object entity, uint? version);
 
     /// <summary>Đọc giá trị xmin hiện tại của entity.</summary>
     uint GetVersion(object entity);

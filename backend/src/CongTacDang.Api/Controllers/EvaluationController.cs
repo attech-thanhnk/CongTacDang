@@ -69,7 +69,7 @@ public class EvaluationController : ControllerBase
     /// <summary>Kích hoạt kỳ đánh giá làm kỳ hiện hành</summary>
     [HttpPut("periods/{id}/activate")]
     [Authorize(Policy = AppPermissions.PolicyManagePeriods)]
-    public async Task<IActionResult> SetActivePeriod(Guid id, [FromQuery] uint version)
+    public async Task<IActionResult> SetActivePeriod(Guid id, [FromQuery] uint? version)
     {
         var period = await _evaluationService.SetActivePeriodAsync(id, version);
         return Ok(ApiResponse<EvaluationPeriodDto>.Ok(period, "Kích hoạt kỳ đánh giá thành công."));
@@ -78,7 +78,7 @@ public class EvaluationController : ControllerBase
     /// <summary>Cập nhật trạng thái tiến trình của kỳ đánh giá</summary>
     [HttpPut("periods/{id}/status")]
     [Authorize(Policy = AppPermissions.PolicyManagePeriods)]
-    public async Task<IActionResult> UpdatePeriodStatus(Guid id, [FromQuery] PeriodStatus status, [FromQuery] uint version)
+    public async Task<IActionResult> UpdatePeriodStatus(Guid id, [FromQuery] PeriodStatus status, [FromQuery] uint? version)
     {
         var period = await _evaluationService.UpdatePeriodStatusAsync(id, status, version);
         return Ok(ApiResponse<EvaluationPeriodDto>.Ok(period, "Cập nhật trạng thái kỳ đánh giá thành công."));

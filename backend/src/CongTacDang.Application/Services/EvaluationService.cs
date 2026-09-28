@@ -76,7 +76,7 @@ public class EvaluationService : IEvaluationService
     }
 
     /// <summary>Kích hoạt một kỳ đánh giá làm kỳ hiện hành</summary>
-    public async Task<EvaluationPeriodDto> SetActivePeriodAsync(Guid periodId, uint version)
+    public async Task<EvaluationPeriodDto> SetActivePeriodAsync(Guid periodId, uint? version)
     {
         var periods = await _evaluationRepo.GetPeriodsAsync();
         var targetPeriod = periods.FirstOrDefault(p => p.Id == periodId)
@@ -105,7 +105,7 @@ public class EvaluationService : IEvaluationService
     }
 
     /// <summary>Cập nhật trạng thái tiến trình của kỳ đánh giá</summary>
-    public async Task<EvaluationPeriodDto> UpdatePeriodStatusAsync(Guid periodId, PeriodStatus status, uint version)
+    public async Task<EvaluationPeriodDto> UpdatePeriodStatusAsync(Guid periodId, PeriodStatus status, uint? version)
     {
         var period = await _evaluationRepo.GetPeriodByIdAsync(periodId);
         if (period == null)

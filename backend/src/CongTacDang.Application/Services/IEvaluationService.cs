@@ -21,10 +21,10 @@ public interface IEvaluationService
     Task<EvaluationPeriodDto> CreatePeriodAsync(CreatePeriodDto dto);
 
     /// <summary>Thiết lập kỳ đánh giá làm kỳ hiện hành</summary>
-    Task<EvaluationPeriodDto> SetActivePeriodAsync(Guid periodId, uint version);
+    Task<EvaluationPeriodDto> SetActivePeriodAsync(Guid periodId, uint? version);
 
     /// <summary>Cập nhật trạng thái tiến trình của kỳ đánh giá</summary>
-    Task<EvaluationPeriodDto> UpdatePeriodStatusAsync(Guid periodId, PeriodStatus status, uint version);
+    Task<EvaluationPeriodDto> UpdatePeriodStatusAsync(Guid periodId, PeriodStatus status, uint? version);
 
     /// <summary>Lấy hồ sơ đánh giá của cán bộ trong một kỳ đánh giá</summary>
     Task<EvaluationRecordDto?> GetUserEvaluationRecordAsync(Guid periodId, Guid memberId);
