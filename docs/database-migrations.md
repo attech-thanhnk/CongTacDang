@@ -4,6 +4,10 @@ API dùng EF Core Migrations với `Database:AutoMigrate`. Mặc định migrati
 
 Migration là **nguồn schema duy nhất**: không dùng `EnsureCreated`, seeder không chạy DDL. Hệ thống không hỗ trợ nâng cấp CSDL tạo từ phiên bản trước khi có migration — triển khai luôn bắt đầu từ CSDL trống.
 
+Lịch sử migration được gộp thành **một** migration `InitialCreate` sinh từ model hiện tại (chưa có CSDL triển khai thật nên không giữ bước chuyển dữ liệu nào). Ngoài phần EF sinh, `InitialCreate` tạo thêm bằng SQL index unique `IX_party_member_profiles_Username_lower` trên `lower("Username")` (tên đăng nhập duy nhất không phân biệt hoa thường) — index biểu thức không khai báo được trong model nên `has-pending-model-changes` không thấy. Migration mới sau này thêm nối tiếp như bình thường.
+
+Test tích hợp dựng CSDL tạm `ctd_it_*` bằng chính migration (`MigrateAsync`), không dùng `EnsureCreated`.
+
 ## Lệnh `dotnet ef`
 
 `dotnet ef` dùng `DesignTimeDbContextFactory`, đọc chuỗi kết nối từ biến môi trường `ConnectionStrings__Default` (không đọc `user-secrets`). Ví dụ với chuỗi kết nối lưu trong `user-secrets`:

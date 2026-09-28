@@ -78,7 +78,87 @@ Truy cập frontend tại `http://127.0.0.1:3001` hoặc địa chỉ reverse pr
 curl --fail http://127.0.0.1:3001/api/healthz
 ```
 
-Backend `/healthz` được container kiểm tra nội bộ. Kiểm tra kết nối database đầy đủ cần triển khai health check DB riêng sau khi hoàn tất phần migration/persistence.
+Backend `/healthz` được container kiểm tra nội bộ; health check gồm cả kết nối CSDL (DbContext).
+
+## Biến cấu hình tài khoản, bảo mật và dữ liệu khởi tạo
+
+Dấu `__` trong tên biến môi trường tương ứng với `:` trong `appsettings.json`. `docker-compose.yml` truyền vào container các biến `Seed__InitialAdmin__*` và `Security__*` đặt trong `docker/.env`; các biến `Database__*` và `Seed__SamplePassword` không có trong Compose (cấu hình production) — đặt bằng biến môi trường / `user-secrets` khi chạy trực tiếp, hoặc thêm vào mục `environment` của môi trường thử nghiệm.
+
+| Biến môi trường | Mặc định | Ý nghĩa |
+|---|---|---|
+| `Seed__InitialAdmin__Username` | rỗng | Tên đăng nhập quản trị ban đầu (`[a-z0-9._-]`, 3–50 ký tự). |
+| `Seed__InitialAdmin__FullName` | rỗng → "Quản trị hệ thống" | Họ tên hiển thị của quản trị ban đầu. |
+| `Seed__InitialAdmin__Password` | rỗng | Mật khẩu ban đầu (phải đạt chính sách mật khẩu, bắt buộc đổi ở lần đăng nhập đầu). |
+| `Security__Password__MinLength` | `8` | Độ dài tối thiểu mật khẩu (giá trị < 8 bị nâng lên 8; luôn yêu cầu có chữ và số). |
+| `Security__RateLimit__Auth__PermitLimit` | `10` | Số lần gọi `/api/auth/login`, `/api/auth/refresh-token` mỗi cửa sổ trên mỗi địa chỉ IP. |
+| `Security__RateLimit__Auth__WindowSeconds` | `60` | Độ dài cửa sổ giới hạn (giây). |
+| `Database__AutoMigrate` | `true` ở Development, `false` ở Production | Tự áp dụng migration khi khởi động (xem `docs/database-migrations.md`). |
+| `Database__SeedSampleData` | `false` | Tạo dữ liệu mẫu — **chỉ môi trường thử nghiệm**, không bật trên CSDL thật. |
+| `Seed__SamplePassword` | rỗng | Mật khẩu tạm chung của tài khoản mẫu; rỗng → sinh ngẫu nhiên. Chỉ dùng khi bật dữ liệu mẫu. |
+| `Database__ResetRolePermissions` | `false` | Đặt lại quyền của các vai trò mặc định về cấu hình mặc định ở lần khởi động này; tắt lại ngay sau khi dùng. |
+
+**Tài khoản quản trị ban đầu** chỉ được tạo khi hệ thống **chưa có** tài khoản đang hoạt động nào giữ cả hai quyền "Quản lý vai trò" và "Gán vai trò" (phạm vi Toàn công ty). Đã có quản trị → cấu hình bị bỏ qua (không tạo thêm, không đổi mật khẩu). Thiếu cấu hình khi chưa có quản trị → log mức Warning hướng dẫn đặt biến. Mật khẩu không bao giờ được ghi log. Sau khi quản trị đổi mật khẩu, xóa `Seed__InitialAdmin__Password` khỏi `.env`.
+
+**Phân quyền** được tính lại ở mỗi request từ bản gán vai trò trong CSDL (cache trong bộ nhớ, TTL 5 phút, xóa ngay khi vai trò/bản gán/tài khoản thay đổi). JWT chỉ chứa danh tính. Cache, phiên import và tệp mật khẩu tạm nằm trong bộ nhớ của **một** tiến trình API: chạy nhiều instance cần cache phân tán và sticky session (chưa hỗ trợ).
+
+### Dữ liệu mẫu (môi trường thử nghiệm)
+
+Khi `Database__SeedSampleData=true` và CSDL **chưa có** tài khoản, Phòng, Chi bộ, kỳ đánh giá nào, lần khởi động đầu tạo:
+
+- 4 Phòng (`BGD`, `PH-KT`, `PH-KH`, `PH-TCCB`), 2 Chi bộ (`CB-KT`, `CB-VP`).
+- 9 tài khoản, tất cả **bắt buộc đổi mật khẩu** ở lần đăng nhập đầu, kèm bản gán vai trò có phạm vi:
+
+  | Tài khoản | Vai trò (phạm vi) | Hồ sơ trong kỳ mẫu |
+  |---|---|---|
+  | `admin` | Quản trị hệ thống (Toàn công ty) | — |
+  | `giamdoc` | Người được đánh giá, Cấp trực tiếp sử dụng (Toàn công ty) | Đã công bố (cấp trên quyết định) |
+  | `vanphong` | Văn phòng Đảng ủy, Cấp ủy viên Đảng ủy (Toàn công ty) | — |
+  | `thamdinh` | Người được đánh giá, Cơ quan thẩm định (Toàn công ty) | Chờ cấp trực tiếp sử dụng |
+  | `truongphong.kt` | Người được đánh giá (Toàn công ty), Lãnh đạo Phòng (Phòng Kỹ thuật) | Chờ thẩm định |
+  | `bithu.kt` | Người được đánh giá (Toàn công ty), Chi ủy / Bí thư Chi bộ (Chi bộ Khối Kỹ thuật) | Chờ ghi nhận đề xuất tập thể |
+  | `thuky.kt` | Thư ký tập thể lãnh đạo (Phòng Kỹ thuật) | — |
+  | `canbo.kt1` | Người được đánh giá (Toàn công ty) | Chờ tự chấm |
+  | `canbo.kt2` | Người được đánh giá (Toàn công ty) | Chờ Chi bộ xác nhận |
+
+- Kỳ "Đánh giá, xếp loại cán bộ Quý III/2026" theo mẫu "Quý III/2026 — chuyển tiếp" (không có bước đăng ký/duyệt danh mục, tự chấm Mẫu 09B), trạng thái **Đang mở**.
+
+Mật khẩu tạm chung: lấy từ `Seed__SamplePassword` nếu có (phải đạt chính sách mật khẩu, sai → không tạo dữ liệu mẫu, log Error); nếu không, hệ thống sinh ngẫu nhiên 12 ký tự và ghi **một lần** vào log mức Warning ngay khi tạo ("Mật khẩu tạm chung …"). Khởi động lại không tạo lại dữ liệu mẫu và không ghi lại mật khẩu.
+
+## Go-live (CSDL thật)
+
+Thứ tự dưới đây được kiểm tra tự động bởi `GoLiveScenarioTests` (trừ bước 0).
+
+**0. Chuẩn bị**
+- [ ] `docker/.env`: `POSTGRES_PASSWORD`, `Seed__InitialAdmin__Username`, `Seed__InitialAdmin__Password` (mạnh, có chữ và số), các biến `Security__*` nếu khác mặc định. **Không** bật `Database__SeedSampleData`, `Database__ResetRolePermissions`.
+- [ ] CSDL **mới, trống**. Áp dụng migration trước khi khởi động API: `ConnectionStrings__Default="Host=127.0.0.1;Port=5434;..." dotnet ef database update -p backend/src/CongTacDang.Infrastructure -s backend/src/CongTacDang.Api` (Production không tự migrate — xem `docs/database-migrations.md`), rồi khởi động API. Seeder tạo danh mục quyền, 9 vai trò mặc định (có "Quản trị hệ thống" được bảo vệ) và tài khoản quản trị ban đầu; **không** tạo Phòng, Chi bộ, cán bộ nào.
+- [ ] Chuẩn bị 4 tệp Excel từ file mẫu tải trong trang **Nhập dữ liệu**: Phòng, Chi bộ, Cán bộ và tài khoản, Gán vai trò. Tên vai trò chép đúng từ trang **Vai trò**. Tệp ≤ 5 MB, ≤ 2.000 dòng; tệp cán bộ nên ≤ ~150 dòng/lần (tạo mật khẩu chậm).
+
+**1. Quản trị ban đầu**
+- [ ] Đăng nhập bằng `Seed__InitialAdmin__Username`/`Password` → hệ thống chuyển tới **Đổi mật khẩu** (mọi chức năng khác bị chặn) → đổi mật khẩu mạnh.
+- [ ] Xóa `Seed__InitialAdmin__Password` khỏi `docker/.env`.
+- [ ] Khuyến nghị tạo thêm **một quản trị thứ hai** (nhập ở bước 2c, gán ở 2d): hệ thống không cho tự gán/thu hồi vai trò của chính mình và luôn giữ ít nhất một quản trị.
+
+**2. Nhập dữ liệu (trang Nhập dữ liệu, đúng thứ tự)** — mỗi tệp: tải lên → xem trước từng dòng → sửa hết dòng lỗi (còn lỗi thì không xác nhận được, không dòng nào được ghi) → **Xác nhận**.
+- [ ] a. **Phòng/đơn vị**.
+- [ ] b. **Chi bộ**.
+- [ ] c. **Cán bộ và tài khoản** (tham chiếu Mã Phòng / Mã Chi bộ) → xác nhận → **tải ngay tệp "tài khoản mới + mật khẩu tạm"** (tải được một lần, hết hạn sau 30 phút, mất nếu khởi động lại API). Lưu tệp ở nơi an toàn.
+- [ ] d. **Gán vai trò** (tên đăng nhập, tên vai trò, loại phạm vi Toàn công ty/Phòng/Chi bộ, mã Phòng/Chi bộ, thời hạn). Vai trò có quyền quản trị/nhập dữ liệu/quản lý kỳ chỉ gán được phạm vi Toàn công ty. Kiểm tra trang **Tài khoản → Tra cứu quyền** của vài người tiêu biểu (Bí thư Chi bộ, Lãnh đạo Phòng, Cơ quan thẩm định, Văn phòng Đảng ủy).
+- [ ] Mỗi lần xác nhận có một bản ghi "Import" trong **Nhật ký**; từng bản gán cũng được ghi nhật ký.
+
+**3. Giao tài khoản**
+- [ ] Giao riêng từng người tên đăng nhập + mật khẩu tạm (không gửi cả tệp); hủy tệp mật khẩu sau khi giao.
+- [ ] Cán bộ đăng nhập lần đầu → bắt buộc đổi mật khẩu → thấy đúng chức năng theo vai trò được gán.
+- [ ] Quên mật khẩu tạm: quản trị **Đặt lại mật khẩu** trong trang Tài khoản (không nhập lại tệp — tên đăng nhập đã có sẽ bị báo lỗi).
+
+**4. Kiểm tra sau go-live**
+- [ ] Kết thúc/xóa một bản gán thử → người đó bị chặn chức năng tương ứng ngay request kế tiếp (không cần đăng xuất).
+- [ ] Tài khoản quản trị không xem được hồ sơ đánh giá (tách quản trị kỹ thuật và nghiệp vụ).
+
+**5. Mở kỳ đánh giá** (người có vai trò "Cơ quan thẩm định", quyền "Quản lý kỳ đánh giá")
+- [ ] Trang **Kỳ đánh giá** → tạo kỳ từ mẫu ("Đầy đủ theo HD03" hoặc "Quý III/2026 — chuyển tiếp") → kỳ ở trạng thái **Dự thảo**.
+- [ ] Khi còn dự thảo: chỉnh bước bật/tắt, thời hạn, tham số; thêm người được đánh giá (chọn tay, theo Phòng/Chi bộ, hoặc nhập Excel loại "Người được đánh giá của kỳ"). Phòng, Chi bộ, khung chức danh, cấp quyết định được **chụp** vào hồ sơ tại thời điểm thêm.
+- [ ] Bảo đảm mỗi bước bật đều có người được gán quyền tương ứng trong phạm vi (ví dụ Chi ủy cho "Chi bộ xác nhận", Văn phòng Đảng ủy cho "Quyết định"/"Công bố"); bước không có người phụ trách thì tắt khi kỳ còn dự thảo.
+- [ ] **Mở kỳ**. Từ đây mỗi người thấy việc của mình ở trang **Việc cần xử lý**; hồ sơ đi qua các bước bật tới **Đã công bố**.
 
 ## LibreOffice (xuất PDF)
 

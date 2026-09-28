@@ -22,7 +22,7 @@
 | `user_role_assignments` | `Id`, `UserId`, `RoleId`, `ScopeType`, `ScopeId?`, `ValidFrom`, `ValidTo?`, `Note`, audit, xóa mềm | **Thay bảng nhiều-nhiều user↔role hiện tại.** `ScopeType ∈ {Global, Department, PartyCell}`; `ScopeId` bắt buộc khi khác `Global`, null khi `Global`. |
 
 Trường bổ sung (task 07):
-- `PartyMemberProfile.ApprovalAuthority` (enum `ApprovalAuthority { CoSo = 1, CapTren = 2 }`) thay `IsApprovedByAttech` (true → `CoSo`, false → `CapTren`).
+- `PartyMemberProfile.ApprovalAuthority` (enum `ApprovalAuthority { CoSo = 1, CapTren = 2 }`) — cấp có thẩm quyền quyết định xếp loại.
 - `EvaluationRecord.ApprovalAuthority` — ảnh chụp từ hồ sơ khi tạo hồ sơ đánh giá (cùng kiểu với `PartyCellId`, `DepartmentId` đã có).
 - `PartyMemberProfile.SecurityStamp` (string, đổi khi đổi/đặt lại mật khẩu, khóa, xóa) — task 08 dùng.
 
@@ -56,24 +56,6 @@ Trường bổ sung (task 07):
 | `attachment.general.manage` | Quản lý văn bản chung | không | Tài liệu hướng dẫn, biểu mẫu trống (`FormCode = GENERAL`) |
 
 "Áp dụng phạm vi = không": quyền chỉ có nghĩa khi được gán phạm vi `Global`; gán phạm vi khác → API từ chối (400).
-
-### Ánh xạ mã cũ → mã mới (dùng cho task 07/09)
-
-| Cũ | Mới |
-|---|---|
-| `users.read` | `system.users.read` |
-| `users.create`, `users.update`, `users.delete` | `system.users.manage` |
-| `branches.read` | (bỏ — mọi người đã đăng nhập) |
-| `branches.create/update/delete` | `catalog.manage` |
-| `attachments.read` | (bỏ — quyền trên tệp = quyền trên hồ sơ gắn tệp) |
-| `attachments.upload`, `attachments.delete` | `evaluation.self` (tệp của mình) / `attachment.general.manage` (văn bản chung) |
-| `evaluations.read` | `evaluation.read` |
-| `evaluations.register`, `evaluations.self_score` | `evaluation.self` |
-| `evaluations.branch_vote` | `evaluation.cell.confirm` + `collective.manage` + `meeting.read` + `meeting.manage` (phạm vi Chi bộ) |
-| `evaluations.appraise` | `evaluation.appraise` |
-| `evaluations.approve` | `evaluation.decide` + `evaluation.decide.external` |
-| `reports.export` | `report.export` |
-| `roles.manage` | `system.roles.manage` + `system.assignments.manage` + `system.audit.read` |
 
 ## 4. Luật tính quyền (`IAuthorizationGuard`)
 
@@ -132,7 +114,7 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
 | Văn phòng Đảng ủy (ghi nhận quyết định) | `evaluation.read`, `evaluation.decide`, `evaluation.decide.external`, `evaluation.publish`, `evaluation.reopen`, `meeting.read`, `meeting.manage`, `report.export` | Global | IV.4, IV.5 |
 | Quản trị hệ thống (`IsProtected`) | `system.*`, `catalog.manage`, `attachment.general.manage` | Global | Mẫu 18 (đầu mối IT) |
 
-Dữ liệu mẫu (khi `SeedSampleData=true`) gán vai trò cho các tài khoản mẫu theo bảng trên; **chỉ gán khi tài khoản chưa có bản gán nào** (sửa T-46).
+Dữ liệu mẫu (khi `SeedSampleData=true`) chỉ được tạo trên CSDL chưa có tài khoản, Phòng, Chi bộ, kỳ nào; gán vai trò cho tài khoản mẫu theo bảng trên (xem `docs/deployment.md`). Seeder không bao giờ gán lại vai trò cho người đã có (T-46).
 
 ## 7. Hiệu năng và triển khai
 - Một instance API (on-premise). Cache quyền trong bộ nhớ theo `UserId`, TTL 5 phút, **xóa ngay** khi: sửa vai trò/quyền của vai trò (xóa toàn bộ), sửa bản gán của người (xóa người đó), khóa/xóa/đổi mật khẩu (task 08). Chạy nhiều instance cần cache phân tán — ngoài phạm vi, ghi trong `docs/deployment.md`.
