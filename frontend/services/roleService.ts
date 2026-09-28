@@ -1,104 +1,197 @@
 import { request } from "./apiClient";
 
-/** Thông tin quyền hạn nguyên tử */
-export interface PermissionItem {
-  /** Mã định danh quyền (task 09: bằng mã quyền) */
-  id: string;
-  /** Mã quyền (VD: evaluation.read) */
+/** Loại phạm vi của bản gán vai trò. */
+export type ScopeType = "Global" | "Department" | "PartyCell";
+
+export const SCOPE_TYPE_LABELS: Record<ScopeType, string> = {
+  Global: "Toàn công ty",
+  Department: "Phòng / đơn vị",
+  PartyCell: "Chi bộ",
+};
+
+/** Trạng thái bản gán tại thời điểm tra cứu. */
+export type AssignmentStatus = "Active" | "Future" | "Expired";
+
+/** Một mã quyền trong danh mục. */
+export interface PermissionDefinition {
   code: string;
-  /** Tên hiển thị quyền */
   name: string;
-  /** Phân hệ */
-  resource: string;
-  /** Không còn dùng (giữ tương thích giao diện cũ) */
-  action: string;
-  /** Mô tả chi tiết quyền */
+  module: string;
   description: string;
+  /** false: quyền chỉ có nghĩa khi gán phạm vi Toàn công ty. */
+  appliesScope: boolean;
+  sortOrder: number;
 }
 
-/** Thông tin vai trò kèm danh sách quyền hạn */
-export interface RoleDetailItem {
-  /** Mã định danh vai trò */
-  id: string;
-  /** Không còn dùng để phân quyền (task 09); giữ tương thích giao diện cũ */
-  code: string;
-  /** Tên hiển thị vai trò */
-  name: string;
-  /** Mô tả vai trò */
-  description: string;
-  /** Vai trò được bảo vệ (không xóa, không gỡ quyền quản trị) */
-  isSystem: boolean;
-  /** Danh sách quyền hạn được gán */
-  permissions: PermissionItem[];
+/** Nhóm quyền theo phân hệ (`GET /api/admin/permissions`). */
+export interface PermissionModule {
+  module: string;
+  moduleName: string;
+  permissions: PermissionDefinition[];
 }
 
-/** Vai trò theo API quản trị mới (GET /api/admin/roles) */
-interface AdminRoleResponse {
+/** Vai trò (`GET /api/admin/roles`). */
+export interface AdminRole {
   id: string;
   name: string;
   description: string;
+  /** Không xóa được, không gỡ được 2 quyền quản trị. */
   isProtected: boolean;
   isSystem: boolean;
   permissionCodes: string[];
+  /** Số bản gán đang hoặc sắp hiệu lực. */
   assignmentCount: number;
 }
 
-/** Nhóm quyền theo phân hệ (GET /api/admin/permissions) */
-interface PermissionModuleResponse {
-  module: string;
-  moduleName: string;
-  permissions: { code: string; name: string; module: string; description: string; appliesScope: boolean }[];
+export interface SaveRolePayload {
+  name: string;
+  description?: string;
 }
 
-// Lớp chuyển đổi tối thiểu để trang /users cũ không vỡ sau task 09 — task 11 viết lại theo API mới.
+/** Bản gán vai trò. */
+export interface RoleAssignment {
+  id: string;
+  userId: string;
+  username: string;
+  fullName: string;
+  roleId: string;
+  roleName: string;
+  scopeType: ScopeType;
+  scopeId?: string | null;
+  scopeName: string;
+  validFrom: string;
+  /** Không bao gồm; null = không thời hạn. */
+  validTo?: string | null;
+  note?: string | null;
+  status: AssignmentStatus;
+}
+
+export interface AssignmentQuery {
+  userId?: string;
+  roleId?: string;
+  scopeType?: ScopeType;
+  scopeId?: string;
+  /** Có giá trị → chỉ bản gán hiệu lực tại thời điểm này; bỏ trống → gồm cả lịch sử. */
+  activeOn?: string;
+}
+
+export interface CreateAssignmentPayload {
+  userId: string;
+  roleId: string;
+  scopeType: ScopeType;
+  scopeId?: string;
+  validFrom?: string;
+  validTo?: string;
+  note?: string;
+}
+
+export interface UpdateAssignmentPayload {
+  /** Bỏ trống = giữ nguyên. */
+  validFrom?: string;
+  /** Bỏ trống = không thời hạn. */
+  validTo?: string;
+  note?: string;
+}
+
+/** Nguồn cấp một quyền: phạm vi + vai trò + bản gán. */
+export interface EffectiveGrantSource {
+  scopeType: ScopeType;
+  scopeId?: string | null;
+  scopeName: string;
+  roleName: string;
+  assignmentId: string;
+}
+
+export interface EffectivePermissionItem {
+  code: string;
+  name: string;
+  module: string;
+  sources: EffectiveGrantSource[];
+}
+
+/** "Người này làm được gì" (`GET /api/admin/users/{id}/effective-permissions`). */
+export interface UserEffectivePermissions {
+  userId: string;
+  isActive: boolean;
+  permissions: EffectivePermissionItem[];
+  assignments: RoleAssignment[];
+}
+
+function toQuery(params: Record<string, string | undefined>): string {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) search.set(key, value);
+  });
+  const query = search.toString();
+  return query ? `?${query}` : "";
+}
+
+/** Dịch vụ quản trị vai trò, quyền và bản gán (API task 09). */
 export const roleService = {
-  /** Lấy toàn bộ danh sách vai trò kèm quyền hạn */
-  async getAdminRoles(): Promise<RoleDetailItem[]> {
-    const [roles, permissions] = await Promise.all([
-      request<AdminRoleResponse[]>("/admin/roles"),
-      roleService.getAdminPermissions(),
-    ]);
-    const byCode = new Map(permissions.map((p) => [p.code, p]));
-    return roles.map((r) => ({
-      id: r.id,
-      code: "",
-      name: r.name,
-      description: r.description,
-      isSystem: r.isProtected,
-      permissions: r.permissionCodes.map(
-        (code) => byCode.get(code) ?? { id: code, code, name: code, resource: "", action: "", description: "" }
-      ),
-    }));
+  listRoles(): Promise<AdminRole[]> {
+    return request<AdminRole[]>("/admin/roles");
   },
 
-  /** Lấy danh mục quyền (phẳng) */
-  async getAdminPermissions(): Promise<PermissionItem[]> {
-    const modules = await request<PermissionModuleResponse[]>("/admin/permissions");
-    return modules.flatMap((m) =>
-      m.permissions.map((p) => ({
-        id: p.code,
-        code: p.code,
-        name: p.name,
-        resource: m.moduleName,
-        action: "",
-        description: p.description,
-      }))
-    );
+  getRole(id: string): Promise<AdminRole> {
+    return request<AdminRole>(`/admin/roles/${id}`);
   },
 
-  /** Cập nhật danh sách quyền hạn cho một vai trò */
-  async updateRolePermissions(roleId: string, permissionCodes: string[]): Promise<unknown> {
-    return request(`/admin/roles/${roleId}/permissions`, {
+  createRole(payload: SaveRolePayload & { permissionCodes?: string[] }): Promise<AdminRole> {
+    return request<AdminRole>("/admin/roles", { method: "POST", body: JSON.stringify(payload) });
+  },
+
+  updateRole(id: string, payload: SaveRolePayload): Promise<AdminRole> {
+    return request<AdminRole>(`/admin/roles/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+  },
+
+  /** Đặt lại toàn bộ quyền của vai trò. */
+  setRolePermissions(id: string, permissionCodes: string[]): Promise<AdminRole> {
+    return request<AdminRole>(`/admin/roles/${id}/permissions`, {
       method: "PUT",
       body: JSON.stringify({ permissionCodes }),
     });
   },
 
-  /** Đặt các vai trò phạm vi Toàn công ty cho cán bộ (theo Id vai trò) */
-  async assignUserRoles(userId: string, roleIds: string[]): Promise<unknown> {
-    return request(`/admin/users/${userId}/roles`, {
-      method: "POST",
-      body: JSON.stringify({ roleIds }),
-    });
+  /** Xóa vai trò (409 khi vai trò bảo vệ hoặc còn bản gán). */
+  deleteRole(id: string): Promise<void> {
+    return request<void>(`/admin/roles/${id}`, { method: "DELETE" });
+  },
+
+  /** Danh mục quyền nhóm theo phân hệ. */
+  listPermissions(): Promise<PermissionModule[]> {
+    return request<PermissionModule[]>("/admin/permissions");
+  },
+
+  listAssignments(query: AssignmentQuery = {}): Promise<RoleAssignment[]> {
+    return request<RoleAssignment[]>(
+      `/admin/assignments${toQuery({
+        userId: query.userId,
+        roleId: query.roleId,
+        scopeType: query.scopeType,
+        scopeId: query.scopeId,
+        activeOn: query.activeOn,
+      })}`
+    );
+  },
+
+  createAssignment(payload: CreateAssignmentPayload): Promise<RoleAssignment> {
+    return request<RoleAssignment>("/admin/assignments", { method: "POST", body: JSON.stringify(payload) });
+  },
+
+  updateAssignment(id: string, payload: UpdateAssignmentPayload): Promise<RoleAssignment> {
+    return request<RoleAssignment>(`/admin/assignments/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+  },
+
+  /** Kết thúc bản gán ngay (validTo = bây giờ). */
+  endAssignment(id: string): Promise<RoleAssignment> {
+    return request<RoleAssignment>(`/admin/assignments/${id}/end`, { method: "POST" });
+  },
+
+  deleteAssignment(id: string): Promise<void> {
+    return request<void>(`/admin/assignments/${id}`, { method: "DELETE" });
+  },
+
+  getEffectivePermissions(userId: string): Promise<UserEffectivePermissions> {
+    return request<UserEffectivePermissions>(`/admin/users/${userId}/effective-permissions`);
   },
 };

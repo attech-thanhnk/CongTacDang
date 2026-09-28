@@ -5,6 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { auditService, AuditLogDto } from "@/services/auditService";
 import { Card, CardBody, PageHeader } from "@/components/common";
+import { LoginEventsTab } from "@/components/admin/LoginEventsTab";
+import { NoAccess } from "@/components/admin/NoAccess";
+import { errorMessage } from "@/components/admin/adminUtils";
+
+type AuditTab = "actions" | "logins";
 
 const entityOptions = [
   { value: "", label: "Tất cả đối tượng" },
@@ -15,6 +20,8 @@ const entityOptions = [
   { value: "PartyCell", label: "Chi bộ" },
   { value: "TaskAttachment", label: "Tệp minh chứng" },
   { value: "AppRole", label: "Vai trò / phân quyền" },
+  { value: "UserRoleAssignment", label: "Bản gán vai trò" },
+  { value: "AdministrativeDepartment", label: "Phòng / đơn vị" },
 ];
 
 /** Định dạng thời điểm audit theo locale tiếng Việt. */
@@ -57,10 +64,11 @@ function parseSnapshot(value: string) {
   }
 }
 
-/** Nội dung trang tra cứu audit dành cho quản trị viên. */
+/** Nội dung trang nhật ký: tab Nhật ký thao tác + tab Nhật ký đăng nhập. */
 function AuditPageContent() {
   const { hasPermission } = useAuth();
   const { toast } = useToast();
+  const [tab, setTab] = useState<AuditTab>("actions");
   const [logs, setLogs] = useState<AuditLogDto[]>([]);
   const [entityType, setEntityType] = useState("");
   const [entityId, setEntityId] = useState("");
@@ -81,8 +89,8 @@ function AuditPageContent() {
       });
       setLogs(result);
       setSelectedLog((current) => (current && result.some((log) => log.id === current.id) ? current : result[0] || null));
-    } catch (error: any) {
-      toast.error(error?.message || "Không thể tải nhật ký audit.");
+    } catch (error) {
+      toast.error(errorMessage(error, "Không thể tải nhật ký thao tác."));
     } finally {
       setLoading(false);
     }
@@ -117,20 +125,7 @@ function AuditPageContent() {
   };
 
   if (!hasPermission("system.audit.read")) {
-    return (
-      <div className="page-wrapper">
-        <PageHeader title="Nhật ký hệ thống" subTitle="Khu vực này chỉ dành cho quản trị viên hệ thống." />
-        <div className="page-body">
-          <Card>
-            <CardBody className="text-center py-5">
-              <i className="bi bi-shield-lock text-secondary" style={{ fontSize: 34 }} />
-              <h2 className="h6 fw-bold mt-3">Không có quyền truy cập</h2>
-              <p className="text-secondary small mb-0">Bạn không được cấp quyền xem nhật ký thao tác.</p>
-            </CardBody>
-          </Card>
-        </div>
-      </div>
-    );
+    return <NoAccess title="Nhật ký hệ thống" permissionName="Xem nhật ký" />;
   }
 
   return (
@@ -138,6 +133,7 @@ function AuditPageContent() {
       <PageHeader
         title="Nhật ký hệ thống"
         actions={
+          tab === "actions" && (
           <button
             type="button"
             className="btn btn-sm btn-outline-primary"
@@ -147,10 +143,31 @@ function AuditPageContent() {
             <i className={`bi ${loading ? "bi-arrow-repeat" : "bi-arrow-clockwise"} me-1`} />
             Làm mới
           </button>
+          )
         }
       />
 
       <div className="page-body">
+        <ul className="nav nav-tabs mb-3">
+          {(
+            [
+              { key: "actions" as const, label: "Nhật ký thao tác", icon: "bi-activity" },
+              { key: "logins" as const, label: "Nhật ký đăng nhập", icon: "bi-box-arrow-in-right" },
+            ]
+          ).map((t) => (
+            <li className="nav-item" key={t.key}>
+              <button type="button" className={`nav-link ${tab === t.key ? "active fw-semibold" : ""}`} onClick={() => setTab(t.key)}>
+                <i className={`bi ${t.icon} me-1`} />
+                {t.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {tab === "logins" && <LoginEventsTab />}
+
+        {tab === "actions" && (
+        <>
         <div className="row g-3 mb-3">
           {[
             { label: "Tổng thao tác", value: logs.length, icon: "bi-activity", color: "#1d4ed8", background: "#eff6ff" },
@@ -296,6 +313,8 @@ function AuditPageContent() {
             </Card>
           </div>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

@@ -1,119 +1,188 @@
 import { request } from "./apiClient";
 
-/** Thông tin hồ sơ cán bộ đang đăng nhập */
-export interface UserProfile {
-  /** Mã định danh cán bộ */
-  id: string;
-  /** Họ và tên đầy đủ */
-  fullName: string;
-  /** Tên tài khoản */
-  userName: string;
-  /** Chức vụ công tác Đảng */
-  partyRole: string;
-  /** Chức danh quản lý chuyên môn chính quyền */
-  adminTitle: string;
-  /** Tên Chi bộ sinh hoạt */
-  partyBranchName?: string;
-  /** Tên đơn vị / Phòng ban chuyên môn */
-  adminDeptName?: string;
-  /** Nhóm chức danh công tác */
-  jobGroup?: string;
-  /** Danh sách vai trò hệ thống */
-  roles?: string[];
+/** Kết quả phân trang phía máy chủ (`PagedResult<T>`). */
+export interface PagedResult<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
 }
 
-/** Thông tin cán bộ hiển thị trên danh sách quản trị */
-export interface CadreItem {
-  /** Mã định danh cán bộ */
+/** Cấp có thẩm quyền quyết định xếp loại: 1 = Đảng ủy cơ sở, 2 = cấp trên. */
+export type ApprovalAuthority = 1 | 2;
+
+export const APPROVAL_AUTHORITY_LABELS: Record<ApprovalAuthority, string> = {
+  1: "Đảng ủy cơ sở quyết định",
+  2: "Cấp trên quyết định",
+};
+
+/** Một tài khoản trong danh sách quản trị (`GET /api/users`, `GET /api/users/{id}`). */
+export interface AccountListItem {
   id: string;
-  /** Họ và tên đầy đủ */
+  username: string;
   fullName: string;
-  /** Tên tài khoản */
-  userName?: string;
-  /** Số thẻ Đảng viên */
+  email: string;
+  phoneNumber: string;
+  partyCardNumber?: string | null;
+  isPartyMember: boolean;
+  positionTitle: string;
+  departmentId?: string | null;
+  departmentName?: string | null;
+  partyCellId?: string | null;
+  partyCellName?: string | null;
+  approvalAuthority: ApprovalAuthority;
+  /** false: quản trị đã vô hiệu hóa tài khoản. */
+  isActive: boolean;
+  /** Đang bị khóa tạm do nhập sai mật khẩu nhiều lần. */
+  isLockedOut: boolean;
+  lockoutEnd?: string | null;
+  failedLoginCount: number;
+  mustChangePassword: boolean;
+  lastLoginAt?: string | null;
+  createdAt: string;
+}
+
+/** Bộ lọc danh sách tài khoản. */
+export interface AccountSearchParams {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  departmentId?: string;
+  partyCellId?: string;
+  isActive?: boolean;
+}
+
+/** Dữ liệu tạo tài khoản (`POST /api/users`). */
+export interface CreateAccountPayload {
+  username: string;
+  fullName: string;
+  email?: string;
+  phoneNumber?: string;
   partyCardNumber?: string;
-  /** Chức vụ công tác Đảng */
+  positionTitle?: string;
+  departmentId?: string;
+  partyCellId?: string;
+  approvalAuthority?: ApprovalAuthority;
+}
+
+/**
+ * Dữ liệu cập nhật tài khoản (`PUT /api/users/{id}`). Không gửi = giữ nguyên;
+ * chuỗi rỗng = xóa (email/điện thoại/số thẻ); `EMPTY_GUID` = bỏ gán Phòng/Chi bộ.
+ */
+export interface UpdateAccountPayload {
+  fullName?: string;
+  email?: string;
+  phoneNumber?: string;
+  partyCardNumber?: string;
+  positionTitle?: string;
+  departmentId?: string;
+  partyCellId?: string;
+  approvalAuthority?: ApprovalAuthority;
+}
+
+/** Guid rỗng — máy chủ hiểu là bỏ gán Phòng/Chi bộ. */
+export const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
+
+/** Kết quả tạo tài khoản: mật khẩu tạm chỉ trả về đúng lần này. */
+export interface CreatedAccount {
+  userId: string;
+  username: string;
+  temporaryPassword: string;
+}
+
+/** Kết quả đặt lại mật khẩu: mật khẩu tạm chỉ trả về đúng lần này. */
+export interface ResetPasswordResult {
+  userId: string;
+  userName: string;
+  temporaryPassword: string;
+  mustChangePassword: boolean;
+}
+
+/** (Giao diện cũ — trang Tổng quan) Thông tin cán bộ từ `GET /api/users/list`. */
+export interface CadreItem {
+  id: string;
+  fullName: string;
+  userName?: string;
+  partyCardNumber?: string;
   partyRole?: string;
-  /** Chức danh quản lý chuyên môn */
   adminTitle?: string;
-  /** Tên Chi bộ sinh hoạt */
   branchName?: string;
-  /** Tên Chi bộ (bí danh) */
   partyCellName?: string;
-  /** Mã Chi bộ sinh hoạt */
   partyCellId?: string;
   branchId?: string;
-  /** Tên Phòng ban chuyên môn */
   departmentName?: string;
-  /** Đã kết nạp Đảng viên hay chưa */
   isPartyMember?: boolean;
-  /** Trạng thái hồ sơ */
   isActive: boolean;
 }
 
-/** Dữ liệu gửi lên khi tạo mới hồ sơ cán bộ */
-export interface CreateUserPayload {
-  /** Họ và tên cán bộ (bắt buộc) */
-  fullName: string;
-  /** Số thẻ Đảng viên */
-  partyCardNumber?: string | null;
-  /** Chức danh quản lý chính quyền */
-  adminTitle?: string | null;
-  /** Mã Chi bộ sinh hoạt */
-  partyCellId?: string | null;
+function toQuery(params: Record<string, string | number | boolean | undefined>): string {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  });
+  const query = search.toString();
+  return query ? `?${query}` : "";
 }
 
-/** Vai trò người dùng */
-export interface RoleItem {
-  /** Mã định danh vai trò */
-  code: string;
-  /** Tên hiển thị vai trò */
-  name: string;
-  /** Mô tả thẩm quyền của vai trò */
-  description: string;
-}
-
+/** Dịch vụ quản trị tài khoản (API task 08). */
 export const userService = {
-  /** Lấy thông tin hồ sơ của tài khoản đang đăng nhập */
-  async getProfile(): Promise<UserProfile> {
-    return request<UserProfile>("/users/profile");
+  /** Danh sách tài khoản có phân trang, tìm kiếm, lọc (trong phạm vi được xem). */
+  search(params: AccountSearchParams = {}): Promise<PagedResult<AccountListItem>> {
+    return request<PagedResult<AccountListItem>>(
+      `/users${toQuery({
+        page: params.page,
+        pageSize: params.pageSize,
+        q: params.q?.trim() || undefined,
+        departmentId: params.departmentId,
+        partyCellId: params.partyCellId,
+        isActive: params.isActive,
+      })}`
+    );
   },
 
-  /** Danh sách cán bộ trong phạm vi quyền "system.users.read" của người đang đăng nhập (Toàn công ty / Phòng / Chi bộ) */
-  async getUsers(): Promise<CadreItem[]> {
+  /** Chi tiết một tài khoản. */
+  get(id: string): Promise<AccountListItem> {
+    return request<AccountListItem>(`/users/${id}`);
+  },
+
+  /** Tạo tài khoản; trả tên đăng nhập + mật khẩu tạm (chỉ hiển thị một lần). */
+  create(payload: CreateAccountPayload): Promise<CreatedAccount> {
+    return request<CreatedAccount>("/users", { method: "POST", body: JSON.stringify(payload) });
+  },
+
+  /** Cập nhật thông tin tài khoản. */
+  update(id: string, payload: UpdateAccountPayload): Promise<AccountListItem> {
+    return request<AccountListItem>(`/users/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+  },
+
+  /** Mở lại tài khoản đã vô hiệu hóa. */
+  activate(id: string): Promise<void> {
+    return request<void>(`/users/${id}/activate`, { method: "POST" });
+  },
+
+  /** Vô hiệu hóa tài khoản (409 nếu tự khóa mình / quản trị viên cuối cùng). */
+  deactivate(id: string): Promise<void> {
+    return request<void>(`/users/${id}/deactivate`, { method: "POST" });
+  },
+
+  /** Mở khóa đăng nhập tạm thời (không đổi mật khẩu). */
+  unlock(id: string): Promise<void> {
+    return request<void>(`/users/${id}/unlock`, { method: "POST" });
+  },
+
+  /** Đặt lại mật khẩu tạm (chỉ hiển thị một lần). */
+  resetPassword(id: string): Promise<ResetPasswordResult> {
+    return request<ResetPasswordResult>(`/users/${id}/reset-password`, { method: "POST" });
+  },
+
+  /** Xóa (mềm) tài khoản (409 như vô hiệu hóa). */
+  remove(id: string): Promise<void> {
+    return request<void>(`/users/${id}`, { method: "DELETE" });
+  },
+
+  /** Danh sách cán bộ trong phạm vi quyền "system.users.read" của người đang đăng nhập (Toàn công ty / Phòng / Chi bộ). */
+  getUsers(): Promise<CadreItem[]> {
     return request<CadreItem[]>("/users/list");
-  },
-
-  /** Tiếp nhận hồ sơ cán bộ mới vào hệ thống */
-  async createUser(payload: CreateUserPayload): Promise<{ message: string; id: string }> {
-    return request<{ message: string; id: string }>("/users/create", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-  },
-
-  /** Cập nhật thông tin hồ sơ cán bộ */
-  async updateUser(id: string, payload: Partial<CreateUserPayload>): Promise<any> {
-    return request(`/users/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    });
-  },
-
-  /** Xóa hồ sơ cán bộ khỏi hệ thống */
-  async deleteUser(id: string): Promise<{ message: string }> {
-    return request<{ message: string }>(`/users/${id}`, {
-      method: "DELETE",
-    });
-  },
-
-  /** Đặt lại mật khẩu tạm, trả mật khẩu đúng một lần cho quản trị viên */
-  async resetPassword(id: string): Promise<{ userId: string; userName: string; temporaryPassword: string; mustChangePassword: boolean }> {
-    return request(`/users/${id}/reset-password`, { method: "POST" });
-  },
-
-  /** Lấy danh mục các vai trò hệ thống */
-  async getRoles(): Promise<RoleItem[]> {
-    return request<RoleItem[]>("/users/roles");
   },
 };
