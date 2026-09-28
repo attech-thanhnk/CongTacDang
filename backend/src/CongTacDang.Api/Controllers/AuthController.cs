@@ -69,7 +69,7 @@ public class AuthController : ControllerBase
         {
             Response.Cookies.Delete("auth_token");
             if (ex is not CongTacDang.Application.Common.Exceptions.RefreshTokenGracePeriodException)
-                Response.Cookies.Delete("refresh_token", new Microsoft.AspNetCore.Http.CookieOptions { Path = "/api/auth" });
+                DeleteRefreshCookies();
             return Unauthorized(ApiResponse.Fail(ex.Message));
         }
     }
@@ -96,8 +96,17 @@ public class AuthController : ControllerBase
         await _authService.LogoutAsync(tokenValue);
 
         Response.Cookies.Delete("auth_token");
-        Response.Cookies.Delete("refresh_token", new Microsoft.AspNetCore.Http.CookieOptions { Path = "/api/auth" });
+        DeleteRefreshCookies();
         return Ok(ApiResponse.Ok("Đã đăng xuất thành công."));
+    }
+
+    /// <summary>Xóa refresh_token hiện hành (Path=/api/auth) và cookie kiểu cũ (Path=/) còn sót ở trình duyệt.</summary>
+    private void DeleteRefreshCookies()
+    {
+        // Thứ tự quan trọng: Delete loại bỏ header Set-Cookie trước đó có chứa "path=<path>",
+        // nên xóa Path=/ trước để lệnh xóa Path=/api/auth không bị gộp mất.
+        Response.Cookies.Delete("refresh_token");
+        Response.Cookies.Delete("refresh_token", new Microsoft.AspNetCore.Http.CookieOptions { Path = "/api/auth" });
     }
 
     /// <summary>Lấy thông tin user đang đăng nhập từ JWT Claims</summary>

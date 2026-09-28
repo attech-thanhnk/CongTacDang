@@ -28,22 +28,15 @@ export function middleware(request: NextRequest) {
       return NextResponse.next({ request: { headers: requestHeaders } });
     }
 
-    // Nếu cán bộ đã có phiên làm việc mà truy cập lại trang /login -> chuyển hướng thẳng vào hệ thống
-    if (pathname === '/login') {
-      const authToken = request.cookies.get('auth_token')?.value;
-      const refreshToken = request.cookies.get('refresh_token')?.value;
-      if (authToken || refreshToken) {
-        return NextResponse.redirect(new URL('/evaluations', request.url));
-      }
-    }
+    // Không tự chuyển /login -> hệ thống dựa trên cookie: cookie có thể đã hết hiệu lực (gây vòng lặp chuyển hướng).
+    // AuthGuard chỉ chuyển hướng sau khi /api/auth/me xác nhận phiên hợp lệ.
     return NextResponse.next();
   }
 
-  // Kiểm tra phiên xác thực (Chấp nhận auth_token hoặc refresh_token để client tự động refresh ngầm)
+  // Kiểm tra phiên xác thực. auth_token sống theo hạn refresh token; refresh_token (Path=/api/auth) không gửi tới route trang.
   const authToken = request.cookies.get('auth_token')?.value;
-  const refreshToken = request.cookies.get('refresh_token')?.value;
 
-  if (!authToken && !refreshToken) {
+  if (!authToken) {
     // Nếu hoàn toàn không có token nào: Lập tức chuyển hướng tới trang /login kèm returnUrl
     const loginUrl = new URL('/login', request.url);
     if (pathname !== '/') {
