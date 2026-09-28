@@ -32,7 +32,9 @@ public static class PersistenceExtensions
         services.AddHealthChecks()
             .AddDbContextCheck<CongTacDangDbContext>();
 
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<UnitOfWork>();
+        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<UnitOfWork>());
+        services.AddScoped<IAfterCommitActions>(sp => sp.GetRequiredService<UnitOfWork>());
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IAttachmentRepository, AttachmentRepository>();
         services.AddScoped<IAttachmentAccessReader, AttachmentRepository>();

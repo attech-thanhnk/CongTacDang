@@ -22,7 +22,8 @@ public static class AuthorizationExtensions
 
         // Cache quyền dùng chung toàn ứng dụng (một instance API), TTL 5 phút, xóa ngay khi phân quyền thay đổi.
         services.AddSingleton(sp => new PermissionCache(sp.GetService<System.TimeProvider>()));
-        services.AddSingleton<IAccessCacheInvalidator>(sp => sp.GetRequiredService<PermissionCache>());
+        // Xóa cache theo request: trong transaction thì hoãn tới sau commit (DeferredAccessCacheInvalidator).
+        services.AddScoped<IAccessCacheInvalidator, DeferredAccessCacheInvalidator>();
         services.AddScoped<IRoleAssignmentRepository, RoleAssignmentRepository>();
         services.AddScoped<IPermissionResolver, PermissionResolver>();
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Interfaces;
@@ -9,13 +10,25 @@ using Microsoft.EntityFrameworkCore;
 namespace CongTacDang.Infrastructure.Persistence;
 
 /// <summary>Unit of Work dựa trên DbContext và execution strategy của Npgsql.</summary>
-public sealed class UnitOfWork : IUnitOfWork
+public sealed class UnitOfWork : IUnitOfWork, IAfterCommitActions
 {
     private readonly CongTacDangDbContext _db;
+    private readonly List<Action> _afterTransaction = new();
+    private bool _inTransaction;
 
     public UnitOfWork(CongTacDangDbContext db)
     {
         _db = db;
+    }
+
+    /// <inheritdoc />
+    public void Run(Action action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        if (_inTransaction)
+            _afterTransaction.Add(action);
+        else
+            action();
     }
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -30,20 +43,36 @@ public sealed class UnitOfWork : IUnitOfWork
         ArgumentNullException.ThrowIfNull(operation);
 
         var strategy = _db.Database.CreateExecutionStrategy();
-        await strategy.ExecuteAsync(async () =>
+        try
         {
-            await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
-            try
+            await strategy.ExecuteAsync(async () =>
             {
-                await operation();
-                await transaction.CommitAsync(cancellationToken);
-            }
-            catch
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
-            }
-        });
+                await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+                _inTransaction = true;
+                try
+                {
+                    await operation();
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
+                finally
+                {
+                    _inTransaction = false;
+                }
+            });
+        }
+        finally
+        {
+            // Tác vụ hoãn (xóa cache…) chạy sau khi transaction đã commit hoặc rollback — cả hai đều an toàn.
+            var pending = _afterTransaction.ToArray();
+            _afterTransaction.Clear();
+            foreach (var action in pending)
+                action();
+        }
     }
 
     public void SetOriginalVersion(object entity, uint? version)

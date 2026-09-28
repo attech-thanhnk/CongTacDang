@@ -247,6 +247,50 @@ public sealed class Wave4IntegrationTests
         });
     }
 
+    // ===================== Cache quyền xóa sau commit =====================
+
+    [SkippableFact]
+    public async Task PermissionCacheInvalidation_InsideTransaction_HappensAfterCommit()
+    {
+        SkipIfNoDatabase();
+        var role = await _factory.CreateRoleAsync(PermissionCodes.EvaluationRead);
+        var user = await _factory.CreateUserAsync();
+
+        async Task<bool> CanReadAsync()
+        {
+            using var scope = _factory.Services.CreateScope();
+            var resolver = scope.ServiceProvider.GetRequiredService<IPermissionResolver>();
+            return (await resolver.GetAsync(user.Id)).Has(PermissionCodes.EvaluationRead);
+        }
+
+        Assert.False(await CanReadAsync()); // nạp vào cache: chưa có quyền
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            var invalidator = scope.ServiceProvider.GetRequiredService<IAccessCacheInvalidator>();
+            var db = scope.ServiceProvider.GetRequiredService<CongTacDangDbContext>();
+
+            await unitOfWork.ExecuteInTransactionAsync(async () =>
+            {
+                db.Set<UserRoleAssignment>().Add(new UserRoleAssignment
+                {
+                    UserId = user.Id,
+                    RoleId = role.Id,
+                    ScopeType = RoleScopeType.Global,
+                    ValidFrom = DateTime.UtcNow.AddMinutes(-1)
+                });
+                await db.SaveChangesAsync();
+                invalidator.InvalidateUser(user.Id);
+
+                // Request chen giữa (chưa commit): vẫn thấy dữ liệu cũ; không được làm "đóng băng" quyền cũ sau commit.
+                Assert.False(await CanReadAsync());
+            });
+        }
+
+        Assert.True(await CanReadAsync()); // cache đã được xóa sau commit → thấy quyền mới ngay
+    }
+
     // ===================== Hỗ trợ =====================
 
     private static CreateAccountCommand Command(string username) =>

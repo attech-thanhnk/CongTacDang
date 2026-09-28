@@ -246,7 +246,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         };
         db.Set<UserRoleAssignment>().Add(assignment);
         await db.SaveChangesAsync();
-        Services.GetRequiredService<IAccessCacheInvalidator>().InvalidateUser(userId);
+        Services.GetRequiredService<PermissionCache>().InvalidateUser(userId);
         return assignment.Id;
     }
 
