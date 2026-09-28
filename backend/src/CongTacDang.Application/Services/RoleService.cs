@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Interfaces;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 
 namespace CongTacDang.Application.Services;
@@ -13,10 +14,12 @@ namespace CongTacDang.Application.Services;
 public class RoleService : IRoleService
 {
     private readonly IRoleRepository _roleRepo;
+    private readonly IAccessCacheInvalidator _accessCache;
 
-    public RoleService(IRoleRepository roleRepo)
+    public RoleService(IRoleRepository roleRepo, IAccessCacheInvalidator accessCache)
     {
         _roleRepo = roleRepo;
+        _accessCache = accessCache;
     }
 
     /// <summary>Lấy danh sách tất cả các vai trò kèm quyền hạn hiện tại</summary>
@@ -61,11 +64,14 @@ public class RoleService : IRoleService
     public async Task UpdateRolePermissionsAsync(Guid roleId, IEnumerable<string> permissionCodes)
     {
         await _roleRepo.UpdateRolePermissionsAsync(roleId, permissionCodes);
+        // Quyền của vai trò ảnh hưởng mọi người mang vai trò → xóa toàn bộ cache quyền.
+        _accessCache.InvalidateAll();
     }
 
     /// <summary>Gán danh sách vai trò cho một cán bộ / người dùng</summary>
     public async Task AssignRolesToUserAsync(Guid userId, IEnumerable<string> roleCodes)
     {
         await _roleRepo.AssignRolesToUserAsync(userId, roleCodes);
+        _accessCache.InvalidateUser(userId);
     }
 }

@@ -6,6 +6,7 @@
     <Project Path="src/CongTacDang.Infrastructure/CongTacDang.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/CongTacDang.IntegrationTests/CongTacDang.IntegrationTests.csproj" />
     <Project Path="tests/CongTacDang.UnitTests/CongTacDang.UnitTests.csproj" />
   </Folder>
 </Solution>

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Interfaces;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 
 namespace CongTacDang.Application.Services;
@@ -20,15 +21,18 @@ public class AuthService : IAuthService
     private readonly IUserRepository _userRepo;
     private readonly IRefreshTokenRepository _refreshTokenRepo;
     private readonly IJwtService _jwtService;
+    private readonly IPermissionResolver _permissionResolver;
 
     public AuthService(
         IUserRepository userRepo,
         IRefreshTokenRepository refreshTokenRepo,
-        IJwtService jwtService)
+        IJwtService jwtService,
+        IPermissionResolver permissionResolver)
     {
         _userRepo = userRepo;
         _refreshTokenRepo = refreshTokenRepo;
         _jwtService = jwtService;
+        _permissionResolver = permissionResolver;
     }
 
     /// <summary>Xác thực đăng nhập người dùng bằng BCrypt hash và cấp cặp Access/Refresh Token</summary>
@@ -78,8 +82,10 @@ public class AuthService : IAuthService
             await _userRepo.UpdateAsync(member);
         }
 
-        var roles = member.Roles.Select(r => r.Code).Distinct().ToList();
-        var permissions = member.Roles.SelectMany(r => r.Permissions).Select(p => p.Code).Distinct().ToList();
+        // Quyền lấy từ nguồn quyền duy nhất (IPermissionResolver), không tự tính từ member.Roles.
+        var effective = await _permissionResolver.GetAsync(member.Id);
+        var roles = effective.LegacyRoleCodes.ToList();
+        var permissions = effective.Codes.ToList();
 
         // 1. Sinh Access Token ngắn hạn (15 phút)
         var (accessToken, accessExpiresAt) = _jwtService.GenerateToken(member, roles, permissions);
@@ -140,9 +146,10 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Refresh Token đã bị thu hồi. Vui lòng đăng nhập lại.");
         }
 
-        // 3. Trích xuất vai trò & quyền mới nhất từ DB
-        var roles = user.Roles.Select(r => r.Code).Distinct().ToList();
-        var permissions = user.Roles.SelectMany(r => r.Permissions).Select(p => p.Code).Distinct().ToList();
+        // 3. Vai trò & quyền mới nhất từ nguồn quyền duy nhất (IPermissionResolver)
+        var effective = await _permissionResolver.GetAsync(user.Id);
+        var roles = effective.LegacyRoleCodes.ToList();
+        var permissions = effective.Codes.ToList();
 
         var (newAccessToken, accessExpiresAt) = _jwtService.GenerateToken(user, roles, permissions);
 

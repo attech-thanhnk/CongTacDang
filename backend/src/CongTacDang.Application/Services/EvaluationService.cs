@@ -283,6 +283,7 @@ public class EvaluationService : IEvaluationService
                     PartyCellId = member.PartyCellId,
                     DepartmentId = member.DepartmentId,
                     JobGroup = member.JobGroup,
+                    ApprovalAuthority = member.ApprovalAuthority,
                     Status = RecordStatus.TasksSubmitted,
                     UpdatedAt = DateTime.UtcNow
                 };

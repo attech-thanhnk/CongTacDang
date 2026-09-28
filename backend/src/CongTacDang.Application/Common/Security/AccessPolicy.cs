@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CongTacDang.Domain.Entities;
+using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Application.Common.Security;
 
@@ -132,7 +133,7 @@ public sealed class AccessPolicy : IAccessPolicy
                 && user.PartyCellId.HasValue
                 && user.PartyCellId == record.PartyCellId,
             AccessOperation.Approve => user.HasPermission(AppPermissions.EvaluationsApprove)
-                && user.HasRole(record.Member?.IsApprovedByAttech == true
+                && user.HasRole(record.Member?.ApprovalAuthority == ApprovalAuthority.CoSo
                     ? AppRoles.DANG_UY_CO_SO
                     : AppRoles.BAN_THUONG_VU),
             // Hệ thống chưa có chức năng xóa hồ sơ đánh giá.
@@ -151,7 +152,7 @@ public sealed class AccessPolicy : IAccessPolicy
 
         if (user.HasRole(AppRoles.DANG_UY_CO_SO)
             && user.HasPermission(AppPermissions.EvaluationsApprove))
-            return record.Member?.IsApprovedByAttech == true;
+            return record.Member?.ApprovalAuthority == ApprovalAuthority.CoSo;
 
         if (user.HasPermission(AppPermissions.EvaluationsBranchVote))
             return user.PartyCellId.HasValue && user.PartyCellId == record.PartyCellId;

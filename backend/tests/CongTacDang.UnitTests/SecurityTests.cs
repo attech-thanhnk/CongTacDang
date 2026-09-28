@@ -4,6 +4,7 @@ using CongTacDang.Api.Middlewares;
 using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Models;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Application.Services;
 using CongTacDang.Domain.Entities;
@@ -67,7 +68,8 @@ public class SecurityTests
     {
         var user = new PartyMemberProfile { Username = "tester", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password1") };
         var repository = new FakeRefreshTokenRepository(user);
-        var service = new AuthService(new FakeUserRepository(user), repository, new FakeJwtService());
+        var users = new FakeUserRepository(user);
+        var service = new AuthService(users, repository, new FakeJwtService(), new PermissionResolver(users, new PermissionCache()));
         var first = await service.RefreshTokenAsync(repository.Current.Token);
 
         await Assert.ThrowsAsync<RefreshTokenGracePeriodException>(() => service.RefreshTokenAsync(repository.Original.Token));
@@ -81,7 +83,7 @@ public class SecurityTests
     {
         var user = new PartyMemberProfile { Username = "tester", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password1") };
         var repository = new FakeUserRepository(user);
-        var service = new AuthService(repository, new FakeRefreshTokenRepository(user), new FakeJwtService());
+        var service = new AuthService(repository, new FakeRefreshTokenRepository(user), new FakeJwtService(), new PermissionResolver(repository, new PermissionCache()));
 
         for (var i = 0; i < 5; i++)
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.LoginAsync(new LoginRequestDto { Username = "tester", Password = "wrong" }));

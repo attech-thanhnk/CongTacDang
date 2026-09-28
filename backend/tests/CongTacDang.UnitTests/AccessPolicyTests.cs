@@ -1,5 +1,6 @@
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Domain.Entities;
+using CongTacDang.Domain.Enums;
 using Xunit;
 
 namespace CongTacDang.UnitTests;
@@ -65,7 +66,7 @@ public class AccessPolicyTests
 
     private static EvaluationRecord RecordOf(PartyMemberProfile member, bool approvedByAttech = true)
     {
-        member.IsApprovedByAttech = approvedByAttech;
+        member.ApprovalAuthority = approvedByAttech ? ApprovalAuthority.CoSo : ApprovalAuthority.CapTren;
         return new EvaluationRecord
         {
             MemberId = member.Id,
@@ -102,7 +103,7 @@ public class AccessPolicyTests
             return true;
 
         if (HasRole(AppRoles.DANG_UY_CO_SO) && HasPermission(AppPermissions.EvaluationsApprove))
-            return record.Member?.IsApprovedByAttech == true;
+            return record.Member?.ApprovalAuthority == ApprovalAuthority.CoSo;
 
         if (HasPermission(AppPermissions.EvaluationsBranchVote))
             return requester.PartyCellId.HasValue && requester.PartyCellId == record.PartyCellId;

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using CongTacDang.Application.Common.Models;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Application.Services;
 
@@ -17,11 +18,13 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly IUserService _userService;
+    private readonly IPermissionResolver _permissionResolver;
 
-    public AuthController(IAuthService authService, IUserService userService)
+    public AuthController(IAuthService authService, IUserService userService, IPermissionResolver permissionResolver)
     {
         _authService = authService;
         _userService = userService;
+        _permissionResolver = permissionResolver;
     }
 
     /// <summary>Đăng nhập bằng username/password — cấp Access Token (15 phút) và Refresh Token (7 ngày)</summary>
@@ -119,6 +122,8 @@ public class AuthController : ControllerBase
             return Unauthorized(ApiResponse.Fail("Không xác định được tài khoản hiện tại."));
 
         var profile = await _userService.GetProfileAsync(username);
+        // Danh sách quyền lấy từ nguồn quyền duy nhất (IPermissionResolver), cùng nguồn với kiểm tra policy.
+        var effective = await _permissionResolver.GetAsync(profile.Id, HttpContext.RequestAborted);
 
         return Ok(ApiResponse<object>.Ok(new
         {
@@ -126,7 +131,7 @@ public class AuthController : ControllerBase
             profile.FullName,
             profile.UserName,
             profile.Roles,
-            profile.Permissions,
+            Permissions = effective.Codes.ToArray(),
             profile.MustChangePassword
         }, "Lấy thông tin phiên đăng nhập thành công."));
     }
