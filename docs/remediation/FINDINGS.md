@@ -19,6 +19,8 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 - T-35: đã xóa `sign.ps1`; nếu từng chạy script, cần gỡ tay chứng chỉ `CN=CongTacDangLocal` khỏi `CurrentUser\Root` và `CurrentUser\My` (hướng dẫn trong `reports/04-authz.md`).
 - T-39 `partial`: còn warning nullable trong `DocxTemplateEngine` (task 05 viết lại file này).
 
+**Làm sạch (2026-09-28)** — quyết định: không giữ dữ liệu/CSDL cũ nào. Gộp toàn bộ migration thành một `InitialCreate`; bỏ logic baseline CSDL cũ (T-25 → `wontfix`), khối DDL trong seeder (T-26), đoạn nâng cấp mật khẩu plain-text và file đính kèm giả được seed (T-51). CSDL `congtacdang_test` được tạo lại từ đầu.
+
 ## T — Kỹ thuật
 
 | Mã | Mức | Vấn đề | Vị trí chính | Owner | Trạng thái |
@@ -47,8 +49,8 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-22 | ⚪ | Frontend dùng 3 bộ UI (Bootstrap, Tailwind, PrimeReact) + 3 bộ icon; nhiều file > 1000 dòng | `frontend/` | — | deferred |
 | T-23 | ⚪ | Truy vấn chỉ đọc thiếu `AsNoTracking`, thiếu index cho cột lọc thường dùng | `SpecificRepositories.cs`, `CongTacDangDbContext.cs` | 02 | done |
 | T-24 | 🟠 | Frontend chưa gửi `version` khi cập nhật hồ sơ/kỳ đánh giá → kiểm tra concurrency (T-15) chưa có hiệu lực; backend tạm coi `version` là tùy chọn | `frontend/services/evaluationService.ts`, `components/evaluations/Step*.tsx` | 06 | partial |
-| T-25 | 🟠 | Migration chưa chạy thử trên PostgreSQL thật (DB trống + DB cũ baseline); DB cũ baseline sẽ thiếu các index mới nằm trong `InitialCreate` (kể cả unique index kỳ đang hoạt động) | `Infrastructure/Data/Migrations`, `Api/Extensions/PersistenceExtensions.cs` | — | open |
-| T-26 | 🟡 | `DataSeeder` còn khối DDL `ALTER TABLE … ADD COLUMN IF NOT EXISTS` tương thích schema cũ — trùng vai trò với migration | `Infrastructure/Data/DataSeeder.cs` | 06 | open |
+| T-25 | 🟠 | Migration chưa chạy thử trên PostgreSQL thật (DB trống + DB cũ baseline); DB cũ baseline sẽ thiếu các index mới nằm trong `InitialCreate` (kể cả unique index kỳ đang hoạt động) | `Infrastructure/Data/Migrations`, `Api/Extensions/PersistenceExtensions.cs` | — | wontfix |
+| T-26 | 🟡 | `DataSeeder` còn khối DDL `ALTER TABLE … ADD COLUMN IF NOT EXISTS` tương thích schema cũ — trùng vai trò với migration | `Infrastructure/Data/DataSeeder.cs` | 06 | done |
 | T-27 | 🟡 | Docker chưa được kiểm chứng: chưa `docker compose config`, chưa build image, chưa gọi `/healthz` (máy không có Docker) | `docker/`, `.github/workflows/ci.yml` | — | open |
 | T-28 | 🟡 | Vận hành: JWT secret và mật khẩu DB cũ đã nằm trong lịch sử git → phải rotate trước khi triển khai | môi trường triển khai | — | open |
 | T-29 | ⚪ | Chưa có `.gitattributes` — file LF/CRLF lẫn lộn (cảnh báo khi commit trên Windows) | gốc repo | 06 | done |
@@ -74,7 +76,7 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-48 | 🟠 | `SubmitAppraisalAsync` không kiểm tra quyền trên từng hồ sơ (chỉ dựa vào policy của controller) | `EvaluationService.cs` | — | open |
 | T-49 | 🔴 | `xmin` khai báo dạng shadow property → truy vấn `AsNoTracking` (danh sách hồ sơ, kỳ đang hoạt động) trả `version: 0` → bước 3–5 luôn nhận 409 khi frontend gửi version. Phát hiện khi chạy thật lúc tích hợp đợt 2 | `CongTacDangDbContext.cs`, `UnitOfWork.cs` | — | done |
 | T-50 | 🟡 | File logger đăng ký bằng instance nên không được dispose khi tắt ứng dụng → mất các dòng log cuối. Phát hiện nhờ test khi tích hợp | `Api/Logging/RollingFileLoggerProvider.cs` | — | done |
-| T-51 | ⚪ | Tài liệu hướng dẫn seed sẵn (không có người tải lên, không gắn hồ sơ) sau T-31 chỉ quản trị hệ thống xem được — cần quyết định cách phân loại "văn bản chung" | `DataSeeder.cs`, `AccessPolicy.cs` | — | open |
+| T-51 | ⚪ | Tài liệu hướng dẫn seed sẵn (không có người tải lên, không gắn hồ sơ) sau T-31 chỉ quản trị hệ thống xem được — cần quyết định cách phân loại "văn bản chung" | `DataSeeder.cs`, `AccessPolicy.cs` | — | done |
 
 ## B — Nghiệp vụ (để xử lý sau)
 

@@ -61,6 +61,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false),
                     Year = table.Column<int>(type: "integer", nullable: false),
                     Quarter = table.Column<int>(type: "integer", nullable: false),
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
@@ -74,7 +75,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -151,43 +152,11 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "task_attachments",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    FileName = table.Column<string>(type: "text", nullable: false),
-                    OriginalFileName = table.Column<string>(type: "text", nullable: false),
-                    ContentType = table.Column<string>(type: "text", nullable: false),
-                    FileSize = table.Column<long>(type: "bigint", nullable: false),
-                    ObjectKey = table.Column<string>(type: "text", nullable: false),
-                    FilePath = table.Column<string>(type: "text", nullable: false),
-                    Checksum = table.Column<string>(type: "text", nullable: false),
-                    UploadedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UploadedBy = table.Column<string>(type: "text", nullable: false),
-                    FormCode = table.Column<string>(type: "text", nullable: false),
-                    RelatedId = table.Column<Guid>(type: "uuid", nullable: true),
-                    TaskId = table.Column<Guid>(type: "uuid", nullable: true),
-                    RecordId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Description = table.Column<string>(type: "text", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_task_attachments", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "evaluation_meetings",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false),
                     PeriodId = table.Column<Guid>(type: "uuid", nullable: false),
                     PartyCellId = table.Column<Guid>(type: "uuid", nullable: true),
                     FormCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
@@ -212,7 +181,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -254,6 +223,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     JobGroup = table.Column<int>(type: "integer", nullable: false),
                     IsApprovedByAttech = table.Column<bool>(type: "boolean", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    MustChangePassword = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    FailedLoginCount = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    LockoutEnd = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -308,6 +280,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false),
                     PeriodId = table.Column<Guid>(type: "uuid", nullable: false),
                     Form = table.Column<int>(type: "integer", nullable: false),
                     PartyCellId = table.Column<Guid>(type: "uuid", nullable: true),
@@ -332,7 +305,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -368,6 +341,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false),
                     PeriodId = table.Column<Guid>(type: "uuid", nullable: false),
                     MemberId = table.Column<Guid>(type: "uuid", nullable: false),
                     PartyCellId = table.Column<Guid>(type: "uuid", nullable: true),
@@ -402,7 +376,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -439,11 +413,12 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Token = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    TokenHash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsRevoked = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    ReplacedByToken = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    ReplacedByTokenHash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    RevokedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedByIp = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true)
                 },
                 constraints: table =>
@@ -455,6 +430,46 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         principalTable: "party_member_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "task_attachments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    FileName = table.Column<string>(type: "text", nullable: false),
+                    OriginalFileName = table.Column<string>(type: "text", nullable: false),
+                    ContentType = table.Column<string>(type: "text", nullable: false),
+                    FileSize = table.Column<long>(type: "bigint", nullable: false),
+                    ObjectKey = table.Column<string>(type: "text", nullable: false),
+                    FilePath = table.Column<string>(type: "text", nullable: false),
+                    Checksum = table.Column<string>(type: "text", nullable: false),
+                    UploadedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UploadedBy = table.Column<string>(type: "text", nullable: false),
+                    UploadedById = table.Column<Guid>(type: "uuid", nullable: true),
+                    FormCode = table.Column<string>(type: "text", nullable: false),
+                    RelatedId = table.Column<Guid>(type: "uuid", nullable: true),
+                    TaskId = table.Column<Guid>(type: "uuid", nullable: true),
+                    RecordId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_task_attachments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_task_attachments_party_member_profiles_UploadedById",
+                        column: x => x.UploadedById,
+                        principalTable: "party_member_profiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -566,6 +581,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false),
                     RecordId = table.Column<Guid>(type: "uuid", nullable: false),
                     TaskOrder = table.Column<int>(type: "integer", nullable: false),
                     TaskName = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
@@ -586,7 +602,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     DeletedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    AttachmentId = table.Column<Guid>(type: "uuid", nullable: true),
+                    AttachmentId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -765,9 +781,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_refresh_tokens_Token",
+                name: "IX_refresh_tokens_TokenHash",
                 table: "refresh_tokens",
-                column: "Token",
+                column: "TokenHash",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -795,6 +811,11 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 name: "IX_task_attachments_TaskId",
                 table: "task_attachments",
                 column: "TaskId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_task_attachments_UploadedById",
+                table: "task_attachments",
+                column: "UploadedById");
 
             migrationBuilder.CreateIndex(
                 name: "IX_user_roles_user_id",
