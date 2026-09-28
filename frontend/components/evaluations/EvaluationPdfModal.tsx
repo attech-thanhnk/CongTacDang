@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from "react";
 import {
   EvaluationRecordDto,
-  EvaluationPeriodDto,
-  BranchQuotaCheckDto
+  EvaluationPeriodDto
 } from "@/services/evaluationService";
 import { reportService } from "@/services/reportService";
 import { PrintTemplateType } from "./EvaluationPrintTemplate";
@@ -15,10 +14,6 @@ interface Props {
   templateType: PrintTemplateType;
   record?: EvaluationRecordDto | null;
   period?: EvaluationPeriodDto | null;
-  /** Giữ để tương thích: bản PDF do máy chủ sinh từ dữ liệu đã lưu, không dùng dữ liệu phía trình duyệt. */
-  allRecords?: EvaluationRecordDto[];
-  /** Giữ để tương thích: bản PDF do máy chủ sinh từ dữ liệu đã lưu, không dùng dữ liệu phía trình duyệt. */
-  branchQuotas?: BranchQuotaCheckDto[];
 }
 
 interface PdfSource {

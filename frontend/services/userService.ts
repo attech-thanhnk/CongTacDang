@@ -99,23 +99,6 @@ export interface ResetPasswordResult {
   mustChangePassword: boolean;
 }
 
-/** (Giao diện cũ — trang Tổng quan) Thông tin cán bộ từ `GET /api/users/list`. */
-export interface CadreItem {
-  id: string;
-  fullName: string;
-  userName?: string;
-  partyCardNumber?: string;
-  partyRole?: string;
-  adminTitle?: string;
-  branchName?: string;
-  partyCellName?: string;
-  partyCellId?: string;
-  branchId?: string;
-  departmentName?: string;
-  isPartyMember?: boolean;
-  isActive: boolean;
-}
-
 function toQuery(params: Record<string, string | number | boolean | undefined>): string {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -179,10 +162,5 @@ export const userService = {
   /** Xóa (mềm) tài khoản (409 như vô hiệu hóa). */
   remove(id: string): Promise<void> {
     return request<void>(`/users/${id}`, { method: "DELETE" });
-  },
-
-  /** Danh sách cán bộ trong phạm vi quyền "system.users.read" của người đang đăng nhập (Toàn công ty / Phòng / Chi bộ). */
-  getUsers(): Promise<CadreItem[]> {
-    return request<CadreItem[]>("/users/list");
   },
 };

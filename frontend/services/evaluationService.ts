@@ -1,7 +1,7 @@
 import { ApiError, request } from "./apiClient";
 
 // ---------------------------------------------------------------------------
-// Kiểu dữ liệu — luồng đánh giá 9 bước theo cấu hình kỳ (task 12).
+// Kiểu dữ liệu — luồng đánh giá 9 bước theo cấu hình kỳ.
 // Frontend không tự suy luật: bước/nút hiển thị theo API `actions` và `work-queue`,
 // tiến trình theo trường `progress` do máy chủ tính.
 // ---------------------------------------------------------------------------
@@ -46,7 +46,7 @@ export interface CriteriaWeights {
   d: number;
 }
 
-/** Tham số nghiệp vụ của kỳ (mặc định = hằng số code trước task 12). */
+/** Tham số nghiệp vụ của kỳ (mặc định = hằng số nghiệp vụ hiện hành). */
 export interface EvaluationParameters {
   minTasks: number;
   maxTasks: number;
@@ -211,14 +211,6 @@ export interface EvaluationRecordDto {
   partyCellComment: string;
   cellConfirmedByName?: string | null;
   cellConfirmedAt?: string | null;
-
-  /** Dữ liệu cũ (trước task 12) — chỉ hiển thị */
-  partyCellProposedGrade: string;
-  votesExcellent: number;
-  votesGood: number;
-  votesSatisfactory: number;
-  votesUnsatisfactory: number;
-  totalVoters: number;
 
   collectiveProposedGrade: string;
   collectiveComment?: string | null;
