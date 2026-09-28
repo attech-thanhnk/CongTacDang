@@ -6,7 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using ClosedXML.Excel;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Services;
+using CongTacDang.Domain.Entities;
 using CongTacDang.Infrastructure.Data;
+using CongTacDang.Infrastructure.Documents;
+using CongTacDang.Infrastructure.Documents.Forms;
 
 namespace CongTacDang.Infrastructure.Services;
 
@@ -16,17 +19,20 @@ public class ReportService : IReportService
     private readonly IUserRepository _userRepo;
     private readonly IOrganizationRepository _orgRepo;
     private readonly IEvaluationRepository _evalRepo;
+    private readonly IWordTemplateStore _templates;
 
     public ReportService(
         CongTacDangDbContext db,
         IUserRepository userRepo,
         IOrganizationRepository orgRepo,
-        IEvaluationRepository evalRepo)
+        IEvaluationRepository evalRepo,
+        IWordTemplateStore templates)
     {
         _db = db;
         _userRepo = userRepo;
         _orgRepo = orgRepo;
         _evalRepo = evalRepo;
+        _templates = templates;
     }
 
     public async Task<ReportFileResult> ExportCadresReportAsync()
@@ -473,152 +479,131 @@ public class ReportService : IReportService
 
     private const string DocxMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
+    #region Biểu mẫu Word — mỗi mẫu = một template .docx + một lớp dữ liệu trong Documents/Forms
+
     public async Task<ReportFileResult> ExportMau01DocxAsync(Guid recordId)
     {
-        var record = await _db.EvaluationRecords
-            .Include(r => r.Period)
-            .Include(r => r.Member)
-            .Include(r => r.Department)
-            .Include(r => r.PartyCell)
-            .Include(r => r.Tasks)
-            .FirstOrDefaultAsync(r => r.Id == recordId);
-
-        if (record == null)
-            throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
-
-        var bytes = DocxTemplateEngine.FillMau01Template(record);
-        var safeName = record.Member?.FullName?.Replace(" ", "_") ?? "CanBo";
-
-        return new ReportFileResult
-        {
-            FileBytes = bytes,
-            ContentType = DocxMimeType,
-            FileName = $"Mau_01_DangKyNhiemVu_{safeName}.docx"
-        };
+        var record = await LoadRecordAsync(recordId);
+        var bytes = RenderWord(Mau01Data.TemplateFileName, Mau01Data.From(record));
+        return DocxResult(bytes, $"Mau_01_DangKyNhiemVu_{SafeName(record.Member?.FullName, "CanBo")}.docx");
     }
 
     public async Task<ReportFileResult> ExportMau02DocxAsync(Guid recordId)
     {
-        var record = await _db.EvaluationRecords
-            .Include(r => r.Period)
-            .Include(r => r.Member)
-            .Include(r => r.Department)
-            .Include(r => r.PartyCell)
-            .Include(r => r.Tasks)
-                .ThenInclude(t => t.Attachment)
-            .FirstOrDefaultAsync(r => r.Id == recordId);
-
-        if (record == null)
-            throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
-
-        var bytes = DocxTemplateEngine.FillMau02Template(record);
-        var safeName = record.Member?.FullName?.Replace(" ", "_") ?? "CanBo";
-
-        return new ReportFileResult
-        {
-            FileBytes = bytes,
-            ContentType = DocxMimeType,
-            FileName = $"Mau_02_TuDanhGia_{safeName}.docx"
-        };
+        var record = await LoadRecordAsync(recordId);
+        var evidenceNames = await GetEvidenceNamesAsync(record.Tasks);
+        var bytes = RenderWord(Mau02Data.TemplateFileName, Mau02Data.From(record, evidenceNames));
+        return DocxResult(bytes, $"Mau_02_TuDanhGia_{SafeName(record.Member?.FullName, "CanBo")}.docx");
     }
 
     public async Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId)
     {
-        var record = await _db.EvaluationRecords
+        var record = await LoadRecordAsync(recordId);
+        var bytes = RenderWord(Mau10Data.TemplateFileName, Mau10Data.From(record));
+        return DocxResult(bytes, $"Mau_10_PhieuThamDinh_{SafeName(record.Member?.FullName, "CanBo")}.docx");
+    }
+
+    public async Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId)
+    {
+        var (period, records, branch) = await LoadPeriodRecordsAsync(periodId, branchId);
+        var bytes = RenderWord(Mau11Data.TemplateFileName, Mau11Data.From(period, records, branch?.Name));
+        return DocxResult(bytes, $"Mau_11_PhieuBoPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx");
+    }
+
+    public async Task<ReportFileResult> ExportMau13DocxAsync(Guid periodId, Guid? branchId)
+    {
+        var (period, records, branch) = await LoadPeriodRecordsAsync(periodId, branchId);
+
+        // Số người bỏ phiếu: lấy giá trị đã lưu trên hồ sơ; hồ sơ chưa lưu thì dùng sĩ số Chi bộ.
+        int? totalVoters = records.Select(r => r.TotalVoters).FirstOrDefault(v => v > 0);
+        if (totalVoters is null or 0 && branch != null)
+            totalVoters = await _db.PartyMemberProfiles.CountAsync(m => m.PartyCellId == branch.Id);
+
+        var bytes = RenderWord(Mau13Data.TemplateFileName, Mau13Data.From(period, records, branch?.Name, totalVoters));
+        return DocxResult(bytes, $"Mau_13_BienBanKiemPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx");
+    }
+
+    /// <summary>Điền lớp dữ liệu mẫu vào template.</summary>
+    private byte[] RenderWord(string templateFileName, object formData)
+    {
+        var template = _templates.Load(templateFileName);
+        return DocxTemplateEngine.Render(template, TemplateDataBinder.Bind(formData)).Content;
+    }
+
+    private static ReportFileResult DocxResult(byte[] bytes, string fileName) => new()
+    {
+        FileBytes = bytes,
+        ContentType = DocxMimeType,
+        FileName = fileName
+    };
+
+    private static string SafeName(string? name, string fallback) =>
+        string.IsNullOrWhiteSpace(name) ? fallback : name.Trim().Replace(" ", "_");
+
+    private async Task<EvaluationRecord> LoadRecordAsync(Guid recordId)
+    {
+        return await _db.EvaluationRecords
+            .AsNoTracking()
             .Include(r => r.Period)
             .Include(r => r.Member)
             .Include(r => r.Department)
             .Include(r => r.PartyCell)
             .Include(r => r.Tasks)
-            .FirstOrDefaultAsync(r => r.Id == recordId);
-
-        if (record == null)
-            throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
-
-        var bytes = DocxTemplateEngine.FillMau10Template(record);
-        var safeName = record.Member?.FullName?.Replace(" ", "_") ?? "CanBo";
-
-        return new ReportFileResult
-        {
-            FileBytes = bytes,
-            ContentType = DocxMimeType,
-            FileName = $"Mau_10_PhieuThamDinh_{safeName}.docx"
-        };
+            .FirstOrDefaultAsync(r => r.Id == recordId)
+            ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
     }
 
-    public async Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId)
+    private async Task<(EvaluationPeriod Period, List<EvaluationRecord> Records, PartyCell? Branch)> LoadPeriodRecordsAsync(Guid periodId, Guid? branchId)
     {
-        var period = await _db.EvaluationPeriods.FirstOrDefaultAsync(p => p.Id == periodId);
-        if (period == null)
-            throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+        var period = await _db.EvaluationPeriods.AsNoTracking().FirstOrDefaultAsync(p => p.Id == periodId)
+            ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
 
         var query = _db.EvaluationRecords
+            .AsNoTracking()
             .Include(r => r.Period)
             .Include(r => r.Member)
             .Include(r => r.Department)
             .Include(r => r.PartyCell)
             .Where(r => r.PeriodId == periodId);
 
-        string? branchName = null;
+        PartyCell? branch = null;
         if (branchId.HasValue && branchId.Value != Guid.Empty)
         {
             query = query.Where(r => r.PartyCellId == branchId.Value || r.Member.PartyCellId == branchId.Value);
-            var branch = await _db.PartyCells.FirstOrDefaultAsync(b => b.Id == branchId.Value);
-            branchName = branch?.Name;
+            branch = await _db.PartyCells.AsNoTracking().FirstOrDefaultAsync(b => b.Id == branchId.Value);
         }
 
-        var records = await query.ToListAsync();
-        var bytes = DocxTemplateEngine.FillMau11Template(period, records, branchName);
-
-        var safeBranch = !string.IsNullOrEmpty(branchName) ? branchName.Replace(" ", "_") : "ToanDangBo";
-        return new ReportFileResult
-        {
-            FileBytes = bytes,
-            ContentType = DocxMimeType,
-            FileName = $"Mau_11_PhieuBoPhieu_{safeBranch}_Q{period.Quarter}_{period.Year}.docx"
-        };
+        return (period, await query.ToListAsync(), branch);
     }
 
-    public async Task<ReportFileResult> ExportMau13DocxAsync(Guid periodId, Guid? branchId)
+    /// <summary>Tên tệp minh chứng (phiên bản hiện hành) của từng nhiệm vụ.</summary>
+    private async Task<Dictionary<Guid, string>> GetEvidenceNamesAsync(IEnumerable<EvaluationTask> tasks)
     {
-        var period = await _db.EvaluationPeriods.FirstOrDefaultAsync(p => p.Id == periodId);
-        if (period == null)
-            throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+        var linked = tasks.Where(t => t.AttachmentId.HasValue).ToList();
+        var result = new Dictionary<Guid, string>();
+        if (linked.Count == 0)
+            return result;
 
-        var query = _db.EvaluationRecords
-            .Include(r => r.Period)
-            .Include(r => r.Member)
-            .Include(r => r.Department)
-            .Include(r => r.PartyCell)
-            .Where(r => r.PeriodId == periodId);
+        var versionIds = linked.Select(t => t.AttachmentId!.Value).Distinct().ToList();
+        var versions = await _db.TaskAttachments.AsNoTracking()
+            .Where(a => versionIds.Contains(a.Id))
+            .Select(a => new { a.Id, GroupId = a.FileGroupId ?? a.Id })
+            .ToListAsync();
+        var groupIds = versions.Select(v => v.GroupId).Distinct().ToList();
+        var currents = await _db.TaskAttachments.AsNoTracking()
+            .Where(a => !a.IsSuperseded && (groupIds.Contains(a.Id) || (a.FileGroupId.HasValue && groupIds.Contains(a.FileGroupId.Value))))
+            .Select(a => new { GroupId = a.FileGroupId ?? a.Id, a.OriginalFileName })
+            .ToListAsync();
 
-        string? branchName = null;
-        int totalVoters = 12;
-        if (branchId.HasValue && branchId.Value != Guid.Empty)
+        foreach (var task in linked)
         {
-            query = query.Where(r => r.PartyCellId == branchId.Value || r.Member.PartyCellId == branchId.Value);
-            var branch = await _db.PartyCells.Include(b => b.Members).FirstOrDefaultAsync(b => b.Id == branchId.Value);
-            branchName = branch?.Name;
-            if (branch?.Members?.Count > 0)
-            {
-                totalVoters = branch.Members.Count;
-            }
+            var version = versions.FirstOrDefault(v => v.Id == task.AttachmentId);
+            var current = version == null ? null : currents.FirstOrDefault(c => c.GroupId == version.GroupId);
+            if (current != null && !string.IsNullOrWhiteSpace(current.OriginalFileName))
+                result[task.Id] = current.OriginalFileName;
         }
-
-        var records = await query.ToListAsync();
-        if (records.Count > 0 && records[0].TotalVoters > 0)
-        {
-            totalVoters = records[0].TotalVoters;
-        }
-
-        var bytes = DocxTemplateEngine.FillMau13Template(period, records, branchName, totalVoters);
-        var safeBranch = !string.IsNullOrEmpty(branchName) ? branchName.Replace(" ", "_") : "ToanDangBo";
-
-        return new ReportFileResult
-        {
-            FileBytes = bytes,
-            ContentType = DocxMimeType,
-            FileName = $"Mau_13_BienBanKiemPhieu_{safeBranch}_Q{period.Quarter}_{period.Year}.docx"
-        };
+        return result;
     }
+
+    #endregion
 }
