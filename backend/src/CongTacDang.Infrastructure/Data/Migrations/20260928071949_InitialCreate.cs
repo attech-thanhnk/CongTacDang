@@ -439,11 +439,11 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                     Token = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    Token = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
                     ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsRevoked = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                     ReplacedByToken = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    ReplacedByToken = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     CreatedByIp = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true)
                 },
                 constraints: table =>
@@ -765,9 +765,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                 name: "IX_refresh_tokens_Token",
-                 table: "refresh_tokens",
-                 column: "Token",
+                name: "IX_refresh_tokens_Token",
+                table: "refresh_tokens",
+                column: "Token",
                 unique: true);
 
             migrationBuilder.CreateIndex(
