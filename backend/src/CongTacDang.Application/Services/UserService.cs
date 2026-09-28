@@ -53,12 +53,14 @@ public class UserService : IUserService
     private readonly IUserRepository _userRepo;
     private readonly IRoleRepository _roleRepo;
     private readonly IAccessPolicy _accessPolicy;
+    private readonly IAccessCacheInvalidator _accessCache;
 
-    public UserService(IUserRepository userRepo, IRoleRepository roleRepo, IAccessPolicy accessPolicy)
+    public UserService(IUserRepository userRepo, IRoleRepository roleRepo, IAccessPolicy accessPolicy, IAccessCacheInvalidator accessCache)
     {
         _userRepo = userRepo;
         _roleRepo = roleRepo;
         _accessPolicy = accessPolicy;
+        _accessCache = accessCache;
     }
 
     /// <summary>Lấy hồ sơ và vai trò hệ thống của người dùng theo tên đăng nhập</summary>
@@ -272,6 +274,8 @@ public class UserService : IUserService
         }
 
         await _userRepo.UpdateAsync(member);
+        // Quyền hiệu lực phụ thuộc trạng thái kích hoạt → tính lại ở request kế tiếp.
+        _accessCache.InvalidateUser(member.Id);
 
         return new CadreDto
         {
@@ -295,6 +299,7 @@ public class UserService : IUserService
             throw new KeyNotFoundException("Không tìm thấy hồ sơ cán bộ cần xóa.");
 
         await _userRepo.DeleteAsync(member);
+        _accessCache.InvalidateUser(member.Id);
     }
 
     public async Task<ResetPasswordResponseDto> ResetPasswordAsync(Guid id)

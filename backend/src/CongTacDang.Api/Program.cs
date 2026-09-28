@@ -76,44 +76,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// 4. Authorization — Policies dựa trên Permission Code và Role
-builder.Services.AddAuthorization(options =>
-{
-    // Đăng ký tự động toàn bộ 14 chính sách dựa trên Permission Codes (kiểm tra claim "perm")
-    foreach (var perm in CongTacDang.Application.Common.Security.AppPermissions.All)
-    {
-        options.AddPolicy(perm, p => p.RequireClaim("perm", perm));
-    }
-
-    // Role-based policies bổ trợ
-    options.AddPolicy("RequireCaNBo", p => p.RequireRole(AppRoles.CAN_BO));
-    options.AddPolicy("RequireBiThuChiBo", p =>
-        p.RequireRole(AppRoles.BI_THU_CHI_BO, AppRoles.BAN_THUONG_VU, AppRoles.QUAN_TRI_HE_THONG));
-    options.AddPolicy("RequireBanThuongVu", p =>
-        p.RequireRole(AppRoles.BAN_THUONG_VU, AppRoles.QUAN_TRI_HE_THONG));
-    options.AddPolicy("RequireQuanTriHeTong", p =>
-        p.RequireRole(AppRoles.QUAN_TRI_HE_THONG));
-
-    // Composite Policies bảo vệ nghiêm ngặt các endpoint thẩm định, chuẩn y và danh sách hồ sơ
-    options.AddPolicy(AppPermissions.PolicyEvaluationsAppraiseOrApprove, p =>
-        p.RequireAssertion(ctx =>
-            ctx.User.HasClaim("perm", AppPermissions.EvaluationsAppraise) ||
-            ctx.User.HasClaim("perm", AppPermissions.EvaluationsApprove) ||
-            ctx.User.IsInRole(AppRoles.QUAN_TRI_HE_THONG)));
-
-    options.AddPolicy(AppPermissions.PolicyEvaluationsBranchView, p =>
-        p.RequireAssertion(ctx =>
-            ctx.User.HasClaim("perm", AppPermissions.EvaluationsBranchVote) ||
-            ctx.User.HasClaim("perm", AppPermissions.EvaluationsAppraise) ||
-            ctx.User.HasClaim("perm", AppPermissions.EvaluationsApprove) ||
-            ctx.User.IsInRole(AppRoles.QUAN_TRI_HE_THONG)));
-
-    options.AddPolicy(AppPermissions.PolicyManagePeriods, p =>
-        p.RequireAssertion(ctx =>
-            ctx.User.HasClaim("perm", AppPermissions.EvaluationsApprove) ||
-            ctx.User.IsInRole(AppRoles.QUAN_TRI_HE_THONG) ||
-            ctx.User.IsInRole(AppRoles.BAN_THUONG_VU)));
-});
+// 4. Authorization — policy theo mã quyền, đánh giá từ IPermissionResolver (Api/Extensions/AuthorizationExtensions.cs)
+builder.Services.AddPermissionAuthorization();
 
 // 5. Đăng ký Storage Service
 var localStoragePath = builder.Configuration["Storage:Local:Path"]
@@ -203,3 +167,6 @@ app.MapHealthChecks("/healthz");
 app.MapControllers();
 
 app.Run();
+
+/// <summary>Lớp Program công khai để test tích hợp dùng WebApplicationFactory&lt;Program&gt;.</summary>
+public partial class Program { }
