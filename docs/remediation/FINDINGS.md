@@ -21,6 +21,11 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 
 **Làm sạch (2026-09-28)** — quyết định: không giữ dữ liệu/CSDL cũ nào. Gộp toàn bộ migration thành một `InitialCreate`; bỏ logic baseline CSDL cũ (T-25 → `wontfix`), khối DDL trong seeder (T-26), đoạn nâng cấp mật khẩu plain-text và file đính kèm giả được seed (T-51). CSDL `congtacdang_test` được tạo lại từ đầu.
 
+**Task 05 (2026-09-28)** — merge vào `main`, build 0 lỗi 0 warning, 74/75 test (1 test PDF bỏ qua vì máy không có LibreOffice), `tsc` pass. Schema mới gộp vào `InitialCreate` (chưa có CSDL triển khai cần giữ). Chạy thật trên CSDL thử nghiệm: xuất Word Mẫu 01/02/10 hợp lệ, không còn `{{TAG}}`; PDF trả 503 khi thiếu LibreOffice; Excel 14 theo `periodId`; tải phiên bản mới giữ bản cũ, tải được từng phiên bản.
+- T-07 `partial`: agent bị môi trường chặn khi xóa `MinioFileStorageService.cs`; còn file này, khối `Storage:Minio` trong `appsettings.json`, dịch vụ `minio`/`minio-init` trong compose, biến `MINIO_*` trong `.env.example` — chờ xác nhận xóa.
+- T-38 `partial`: chưa chạy chuyển PDF thật (cần máy/Docker có LibreOffice).
+- Bố cục Word thay đổi nhỏ so với bản cũ (số quý, dấu thập phân, các ô trước đây in giá trị bịa/sai nay để trống) — xem `reports/05-files-docs.md`.
+
 ## T — Kỹ thuật
 
 | Mã | Mức | Vấn đề | Vị trí chính | Owner | Trạng thái |
@@ -54,16 +59,16 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-27 | 🟡 | Docker chưa được kiểm chứng: chưa `docker compose config`, chưa build image, chưa gọi `/healthz` (máy không có Docker) | `docker/`, `.github/workflows/ci.yml` | — | open |
 | T-28 | 🟡 | Vận hành: JWT secret và mật khẩu DB cũ đã nằm trong lịch sử git → phải rotate trước khi triển khai | môi trường triển khai | — | open |
 | T-29 | ⚪ | Chưa có `.gitattributes` — file LF/CRLF lẫn lộn (cảnh báo khi commit trên Windows) | gốc repo | 06 | done |
-| T-30 | 🔴 | Xuất Word `/api/reports/docx/*` chỉ yêu cầu đăng nhập, không kiểm tra phạm vi → ai cũng tải được Mẫu 01/02/10 của người khác, Mẫu 11/13 của mọi Chi bộ; Excel 14/15/16 chỉ cần `reports.export` (CAN_BO có sẵn) và xuất toàn Đảng bộ | `Api/Controllers/ExportReportController.cs`, `Infrastructure/Services/ReportService.cs` | 04 | partial |
+| T-30 | 🔴 | Xuất Word `/api/reports/docx/*` chỉ yêu cầu đăng nhập, không kiểm tra phạm vi → ai cũng tải được Mẫu 01/02/10 của người khác, Mẫu 11/13 của mọi Chi bộ; Excel 14/15/16 chỉ cần `reports.export` (CAN_BO có sẵn) và xuất toàn Đảng bộ | `Api/Controllers/ExportReportController.cs`, `Infrastructure/Services/ReportService.cs` | 04 | done |
 | T-31 | 🔴 | File đính kèm không có chủ sở hữu (`UploadedBy` là tên dạng chữ) và không kiểm tra phạm vi khi liệt kê/xem/tải/xóa → ai có `attachments.read` xem được mọi minh chứng | `TaskAttachment.cs`, `AttachmentService.cs`, `AttachmentController.cs` | 04 | done |
 | T-32 | 🟠 | `GET /api/users/profile?username=` trả hồ sơ + roles/permissions của người khác; `GET /api/organizations/departments` không có policy; chưa có cơ chế kiểm tra quyền theo đối tượng dùng chung (mỗi service tự kiểm tra một kiểu) | `UserController.cs`, `OrganizationController.cs`, các Application service | 04 | done |
 | T-33 | 🟠 | Seeder đồng bộ lại quyền của mọi role mỗi lần khởi động (khi `SeedSampleData=true`) → ghi đè thay đổi phân quyền làm qua giao diện | `Infrastructure/Data/DataSeeder.cs` | 04 | done |
 | T-34 | 🟡 | Frontend dùng quyền `evaluations.branch_review` không tồn tại ở backend; hiển thị bước theo quyền không khớp backend | `frontend/app/evaluations/page.tsx`, `EvaluationStepNav.tsx` | 04 | done |
 | T-35 | 🟠 | `backend/sign.ps1` tự tạo chứng chỉ và thêm vào kho **Trusted Root** của Windows để ký file build | `backend/sign.ps1` | 04 | done |
-| T-36 | 🟠 | Mô hình file: mỗi nhiệm vụ chỉ 1 file, không có phiên bản (thay file = mất bản cũ), không gắn đối tượng tổng quát; adapter MinIO không dùng được (phần còn lại của T-07) | `TaskAttachment.cs`, `EvaluationTask.AttachmentId`, `MinioFileStorageService.cs` | 05 | open |
-| T-37 | 🔴 | Bộ sinh Word thay `{{TAG}}` theo từng đoạn chữ (run) → hỏng khi Word tách run; file phôi sinh bằng code; nhiều chữ in cứng (giờ họp, khối, tên đơn vị) | `Infrastructure/Services/DocxTemplateEngine.cs` | 05 | open |
-| T-38 | 🟠 | Không có xuất PDF phía máy chủ (Hướng dẫn yêu cầu nộp PDF kèm Word/Excel); 3 đường hiển thị biểu mẫu độc lập (Word, Excel, HTML in bằng `window.print`) có thể ra số khác nhau (ví dụ Mẫu 02 tính lại điểm theo trọng số Khung 2 cố định) | `DocxTemplateEngine.cs`, `ReportService.cs`, `frontend/components/evaluations/EvaluationPrintTemplate.tsx` | 05 | open |
-| T-39 | ⚪ | Warning build: `KnownNetworks`/`IPNetwork` obsolete, nullable trong `DocxTemplateEngine` | `HostingExtensions.cs`, `DocxTemplateEngine.cs` | 06 | partial |
+| T-36 | 🟠 | Mô hình file: mỗi nhiệm vụ chỉ 1 file, không có phiên bản (thay file = mất bản cũ), không gắn đối tượng tổng quát; adapter MinIO không dùng được (phần còn lại của T-07) | `TaskAttachment.cs`, `EvaluationTask.AttachmentId`, `MinioFileStorageService.cs` | 05 | done |
+| T-37 | 🔴 | Bộ sinh Word thay `{{TAG}}` theo từng đoạn chữ (run) → hỏng khi Word tách run; file phôi sinh bằng code; nhiều chữ in cứng (giờ họp, khối, tên đơn vị) | `Infrastructure/Services/DocxTemplateEngine.cs` | 05 | done |
+| T-38 | 🟠 | Không có xuất PDF phía máy chủ (Hướng dẫn yêu cầu nộp PDF kèm Word/Excel); 3 đường hiển thị biểu mẫu độc lập (Word, Excel, HTML in bằng `window.print`) có thể ra số khác nhau (ví dụ Mẫu 02 tính lại điểm theo trọng số Khung 2 cố định) | `DocxTemplateEngine.cs`, `ReportService.cs`, `frontend/components/evaluations/EvaluationPrintTemplate.tsx` | 05 | partial |
+| T-39 | ⚪ | Warning build: `KnownNetworks`/`IPNetwork` obsolete, nullable trong `DocxTemplateEngine` | `HostingExtensions.cs`, `DocxTemplateEngine.cs` | 06 | done |
 | T-40 | 🟡 | Log chỉ ra console: chưa có log ra file có xoay vòng, chưa có correlation id để lần theo một yêu cầu | `Api/Program.cs` | 06 | done |
 | T-41 | 🟡 | Chưa có script sao lưu/khôi phục (PostgreSQL + thư mục upload) đã được thử nghiệm | `docker/`, `docs/deployment.md` | 06 | done |
 | T-42 | 🟡 | Test mỏng (7 unit test, chỉ phần bảo mật); chưa có integration test cho API | `backend/tests/` | 04/05/06 | partial |
@@ -72,11 +77,14 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-44 | 🟡 | Khôi phục bản sao lưu của phiên bản code cũ trong khi app bật `AutoMigrate` → migrate tự chạy lên schema mới ngay khi khởi động; cần quy trình khôi phục kèm đúng phiên bản code | `docker/restore.sh`, `docs/deployment.md` | — | open |
 | T-45 | 🟡 | Người có `branch_vote` nhưng chưa gán Chi bộ xem được mọi biên bản họp trong kỳ | `Application/Common/Security/AccessPolicy.cs`, `CollectiveEvaluationService.cs` | — | open |
 | T-46 | 🟡 | Seeder vẫn gán lại role cho người dùng mỗi lần khởi động khi `SeedSampleData=true` | `Infrastructure/Data/DataSeeder.cs` | — | open |
-| T-47 | 🟡 | `EvaluationTask.AttachmentId` gửi từ client không được kiểm tra (file có tồn tại, có thuộc quyền người gửi) | `EvaluationService.RegisterTasksAsync` | 05 | open |
+| T-47 | 🟡 | `EvaluationTask.AttachmentId` gửi từ client không được kiểm tra (file có tồn tại, có thuộc quyền người gửi) | `EvaluationService.RegisterTasksAsync` | 05 | done |
 | T-48 | 🟠 | `SubmitAppraisalAsync` không kiểm tra quyền trên từng hồ sơ (chỉ dựa vào policy của controller) | `EvaluationService.cs` | — | open |
 | T-49 | 🔴 | `xmin` khai báo dạng shadow property → truy vấn `AsNoTracking` (danh sách hồ sơ, kỳ đang hoạt động) trả `version: 0` → bước 3–5 luôn nhận 409 khi frontend gửi version. Phát hiện khi chạy thật lúc tích hợp đợt 2 | `CongTacDangDbContext.cs`, `UnitOfWork.cs` | — | done |
 | T-50 | 🟡 | File logger đăng ký bằng instance nên không được dispose khi tắt ứng dụng → mất các dòng log cuối. Phát hiện nhờ test khi tích hợp | `Api/Logging/RollingFileLoggerProvider.cs` | — | done |
 | T-51 | ⚪ | Tài liệu hướng dẫn seed sẵn (không có người tải lên, không gắn hồ sơ) sau T-31 chỉ quản trị hệ thống xem được — cần quyết định cách phân loại "văn bản chung" | `DataSeeder.cs`, `AccessPolicy.cs` | — | done |
+| T-52 | 🟡 | `TaskAttachment.TaskId` và `FilePath` là alias nhưng EF ánh xạ thành cột trùng lặp | `TaskAttachment.cs`, `CongTacDangDbContext.cs` | — | open |
+| T-53 | ⚪ | `MapToRecordDto` hiển thị tên file của phiên bản đầu tiên thay vì phiên bản hiện hành | `EvaluationService.cs` | — | open |
+| T-54 | ⚪ | Chưa có giao diện xem lịch sử phiên bản file (API đã có) | `frontend/components/attachments/` | — | open |
 
 ## B — Nghiệp vụ (để xử lý sau)
 
@@ -87,3 +95,5 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | B-03 | 🟠 | Bỏ phiếu kín "không lưu User ID" cần kiểm chứng — audit log tự ghi `ActorId` cho mọi entity thêm mới | `CongTacDangDbContext.PrepareAuditEntries`, `CollectiveEvaluationService.cs` | — | deferred |
 | B-04 | 🟡 | Quy tắc 70đ, ≥30% minh chứng vượt chuẩn, trần 20% Xuất sắc, chênh lệch ≥5đ cần đối chiếu Hướng dẫn 03 và có unit test | `EvaluationService.cs`, `CollectiveEvaluationService.cs` | — | deferred |
 | B-05 | ⚪ | Chưa có tài liệu hướng dẫn sử dụng (HDSD cũ mô tả sai route đã bị xóa); cần viết lại theo route thực tế | `docs/` | — | deferred |
+| B-06 | 🟡 | Cán bộ không xóa được file của chính mình (role `CAN_BO` không có `attachments.delete`); cơ chế theo đối tượng đã cho phép chủ file — cần quyết định ai được xóa | `DataSeeder.cs` (quyền mặc định) | — | deferred |
+| B-07 | 🟡 | Biểu mẫu có ô để trống vì chưa có dữ liệu lưu: Mẫu 01 mã SP/trục/vai trò, Mẫu 10 điểm thẩm định theo nhóm, Mẫu 13 số phiếu không hợp lệ | `Infrastructure/Documents/`, template Word | — | deferred |
