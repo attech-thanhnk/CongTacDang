@@ -48,6 +48,9 @@ public class ExportReportController : ControllerBase
         };
     }
 
+    // Excel 14/15/15A/15B/16 (T-30): periodId (mặc định kỳ đang hoạt động), branchId (Chi bộ).
+    // Không truyền branchId: cấp cao xuất toàn Đảng bộ, Bí thư Chi bộ (branch_vote) xuất Chi bộ của mình; người khác 403.
+
     #region Báo cáo Excel Quản trị
 
     /// <summary>Xuất danh sách cán bộ ra file Excel</summary>
@@ -59,53 +62,53 @@ public class ExportReportController : ControllerBase
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
-    /// <summary>Xuất Excel Mẫu 14 — Tổng hợp danh sách hồ sơ cán bộ theo Chi bộ và đơn vị (toàn Đảng bộ)</summary>
+    /// <summary>Xuất Excel Mẫu 14 — Tổng hợp danh sách hồ sơ cán bộ theo Chi bộ và đơn vị (toàn Đảng bộ hoặc theo Chi bộ)</summary>
     [HttpGet("form-14")]
     [Authorize(Policy = AppPermissions.ReportsExport)]
-    public async Task<IActionResult> ExportMau14([FromQuery] string? format = null)
+    public async Task<IActionResult> ExportMau14([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
     {
-        await _reportAccess.EnsureCanExportOrganizationReportAsync(GetCurrentUserId());
-        var result = await _reportService.ExportForm14ReportAsync(ParseFormat(format));
+        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
+        var result = await _reportService.ExportForm14ReportAsync(periodId, scope, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
-    /// <summary>Xuất Excel Mẫu 15 — Thống kê cơ cấu tổ chức và sĩ số các Chi bộ (toàn Đảng bộ)</summary>
+    /// <summary>Xuất Excel Mẫu 15 — Thống kê cơ cấu tổ chức và sĩ số các Chi bộ (toàn Đảng bộ hoặc theo Chi bộ)</summary>
     [HttpGet("form-15")]
     [Authorize(Policy = AppPermissions.ReportsExport)]
-    public async Task<IActionResult> ExportMau15([FromQuery] string? format = null)
+    public async Task<IActionResult> ExportMau15([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
     {
-        await _reportAccess.EnsureCanExportOrganizationReportAsync(GetCurrentUserId());
-        var result = await _reportService.ExportForm15ReportAsync(ParseFormat(format));
+        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
+        var result = await _reportService.ExportForm15ReportAsync(periodId, scope, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
     /// <summary>Xuất Excel Mẫu 15A — kiểm soát tỷ lệ trần 20% cấp Đảng ủy Công ty</summary>
     [HttpGet("form-15a")]
     [Authorize(Policy = AppPermissions.ReportsExport)]
-    public async Task<IActionResult> ExportMau15A([FromQuery] string? format = null)
+    public async Task<IActionResult> ExportMau15A([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
     {
-        await _reportAccess.EnsureCanExportOrganizationReportAsync(GetCurrentUserId());
-        var result = await _reportService.ExportForm15AReportAsync(ParseFormat(format));
+        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
+        var result = await _reportService.ExportForm15AReportAsync(periodId, scope, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
-    /// <summary>Xuất Excel Mẫu 15B — kiểm soát tỷ lệ trần 20% theo từng Chi bộ (toàn Đảng bộ)</summary>
+    /// <summary>Xuất Excel Mẫu 15B — kiểm soát tỷ lệ trần 20% theo từng Chi bộ (toàn Đảng bộ hoặc theo Chi bộ)</summary>
     [HttpGet("form-15b")]
     [Authorize(Policy = AppPermissions.ReportsExport)]
-    public async Task<IActionResult> ExportMau15B([FromQuery] string? format = null)
+    public async Task<IActionResult> ExportMau15B([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
     {
-        await _reportAccess.EnsureCanExportOrganizationReportAsync(GetCurrentUserId());
-        var result = await _reportService.ExportForm15BReportAsync(ParseFormat(format));
+        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
+        var result = await _reportService.ExportForm15BReportAsync(periodId, scope, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
-    /// <summary>Xuất Excel Mẫu 16 — tổng hợp kết quả xếp loại theo nhóm chức vụ (toàn Đảng bộ)</summary>
+    /// <summary>Xuất Excel Mẫu 16 — tổng hợp kết quả xếp loại theo nhóm chức vụ (toàn Đảng bộ hoặc theo Chi bộ)</summary>
     [HttpGet("form-16")]
     [Authorize(Policy = AppPermissions.ReportsExport)]
-    public async Task<IActionResult> ExportMau16([FromQuery] string? format = null)
+    public async Task<IActionResult> ExportMau16([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
     {
-        await _reportAccess.EnsureCanExportOrganizationReportAsync(GetCurrentUserId());
-        var result = await _reportService.ExportForm16ReportAsync(ParseFormat(format));
+        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
+        var result = await _reportService.ExportForm16ReportAsync(periodId, scope, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 

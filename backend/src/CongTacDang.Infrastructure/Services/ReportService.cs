@@ -97,13 +97,9 @@ public class ReportService : IReportService
         }
     }
 
-    public async Task<ReportFileResult> ExportForm14ReportAsync(ReportFormat format = ReportFormat.Original)
+    public async Task<ReportFileResult> ExportForm14ReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
     {
-        var activePeriod = await _evalRepo.GetActivePeriodAsync();
-        var periodId = activePeriod?.Id ?? Guid.Empty;
-        var records = periodId != Guid.Empty
-            ? await _evalRepo.GetRecordsByPeriodAsync(periodId)
-            : new List<CongTacDang.Domain.Entities.EvaluationRecord>();
+        var (activePeriod, records, scopeCell) = await LoadExcelScopeAsync(periodId, partyCellId);
 
         using (var workbook = new XLWorkbook())
         {
@@ -118,8 +114,7 @@ public class ReportService : IReportService
             ws.Cell("F1").Style.Font.Bold = true;
             ws.Cell("F2").Value = $"Hà Nội, ngày {DateTime.Now:dd} tháng {DateTime.Now:MM} năm {DateTime.Now:yyyy}";
 
-            string periodTitle = activePeriod != null ? activePeriod.Name : "QUÝ III/2026";
-            ws.Cell("A4").Value = $"BẢNG TỔNG HỢP KẾT QUẢ ĐÁNH GIÁ, XẾP LOẠI CHẤT LƯỢNG CÁN BỘ ({periodTitle.ToUpper()})";
+            ws.Cell("A4").Value = $"BẢNG TỔNG HỢP KẾT QUẢ ĐÁNH GIÁ, XẾP LOẠI CHẤT LƯỢNG CÁN BỘ ({ExcelTitleSuffix(activePeriod, scopeCell)})";
             ws.Range("A4:L4").Merge().Style.Font.SetBold(true).Font.SetFontSize(13).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
 
             ws.Cell("A5").Value = "(Ban hành kèm theo Hướng dẫn số 03-HD/TVĐU ngày 10/9/2026 của Ban Thường vụ Đảng ủy Tổng công ty)";
@@ -171,7 +166,9 @@ public class ReportService : IReportService
             }
             else
             {
-                var members = await _userRepo.GetAllWithDetailsAsync();
+                var members = (await _userRepo.GetAllWithDetailsAsync())
+                    .Where(m => scopeCell == null || m.PartyCellId == scopeCell.Id)
+                    .ToList();
                 foreach (var m in members)
                 {
                     ws.Cell(row, 1).Value = stt++;
@@ -200,20 +197,18 @@ public class ReportService : IReportService
             using (var stream = new MemoryStream())
             {
                 workbook.SaveAs(stream);
-                return await ToResultAsync(stream.ToArray(), XlsxMimeType, "Mau_14_TongHopXepLoaiCanBo_Q3_2026.xlsx", format);
+                return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("Mau_14_TongHopXepLoaiCanBo", activePeriod, scopeCell), format);
             }
         }
     }
 
-    public async Task<ReportFileResult> ExportForm15ReportAsync(ReportFormat format = ReportFormat.Original)
+    public async Task<ReportFileResult> ExportForm15ReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
     {
-        var activePeriod = await _evalRepo.GetActivePeriodAsync();
-        var periodId = activePeriod?.Id ?? Guid.Empty;
-        var records = periodId != Guid.Empty
-            ? await _evalRepo.GetRecordsByPeriodAsync(periodId)
-            : new List<CongTacDang.Domain.Entities.EvaluationRecord>();
+        var (activePeriod, records, scopeCell) = await LoadExcelScopeAsync(periodId, partyCellId);
 
-        var cells = await _orgRepo.GetPartyCellsWithMembersAsync();
+        var cells = (await _orgRepo.GetPartyCellsWithMembersAsync())
+            .Where(c => scopeCell == null || c.Id == scopeCell.Id)
+            .ToList();
 
         using (var workbook = new XLWorkbook())
         {
@@ -228,8 +223,7 @@ public class ReportService : IReportService
             ws.Cell("E1").Style.Font.Bold = true;
             ws.Cell("E2").Value = $"Hà Nội, ngày {DateTime.Now:dd} tháng {DateTime.Now:MM} năm {DateTime.Now:yyyy}";
 
-            string periodTitle = activePeriod != null ? activePeriod.Name : "QUÝ III/2026";
-            ws.Cell("A4").Value = $"BẢNG KIỂM SOÁT TỶ LỆ TRẦN 20% HOÀN THÀNH XUẤT SẮC NHIỆM VỤ THEO CHI BỘ ({periodTitle.ToUpper()})";
+            ws.Cell("A4").Value = $"BẢNG KIỂM SOÁT TỶ LỆ TRẦN 20% HOÀN THÀNH XUẤT SẮC NHIỆM VỤ THEO CHI BỘ ({ExcelTitleSuffix(activePeriod, scopeCell)})";
             ws.Range("A4:H4").Merge().Style.Font.SetBold(true).Font.SetFontSize(13).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
 
             ws.Cell("A5").Value = "(Quy định tại Điều 12 Hướng dẫn 03-HD/TVĐU: Tỷ lệ HTXSNV không vượt quá 20% số cán bộ hoàn thành tốt nhiệm vụ trở lên)";
@@ -301,18 +295,14 @@ public class ReportService : IReportService
             using (var stream = new MemoryStream())
             {
                 workbook.SaveAs(stream);
-                return await ToResultAsync(stream.ToArray(), XlsxMimeType, "Mau_15_KiemSoatTran20_ChiBo_Q3_2026.xlsx", format);
+                return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("Mau_15_KiemSoatTran20_ChiBo", activePeriod, scopeCell), format);
             }
         }
     }
 
-    public async Task<ReportFileResult> ExportForm15AReportAsync(ReportFormat format = ReportFormat.Original)
+    public async Task<ReportFileResult> ExportForm15AReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
     {
-        var activePeriod = await _evalRepo.GetActivePeriodAsync();
-        var periodId = activePeriod?.Id ?? Guid.Empty;
-        var records = periodId != Guid.Empty
-            ? await _evalRepo.GetRecordsByPeriodAsync(periodId)
-            : new List<CongTacDang.Domain.Entities.EvaluationRecord>();
+        var (activePeriod, records, scopeCell) = await LoadExcelScopeAsync(periodId, partyCellId);
 
         var total = records.Count;
         var goodOrBetter = records.Count(IsGoodOrBetter);
@@ -345,7 +335,7 @@ public class ReportService : IReportService
         var actualPercent = goodOrBetter > 0 ? Math.Round((double)proposedExcellent / goodOrBetter * 100, 1) : 0;
         var exceeds = proposedExcellent > maxAllowed;
         ws.Cell(5, 1).Value = 1;
-        ws.Cell(5, 2).Value = "Toàn Đảng bộ Công ty";
+        ws.Cell(5, 2).Value = scopeCell?.Name ?? "Toàn Đảng bộ Công ty";
         ws.Cell(5, 3).Value = total;
         ws.Cell(5, 4).Value = goodOrBetter;
         ws.Cell(5, 5).Value = maxAllowed;
@@ -363,29 +353,26 @@ public class ReportService : IReportService
 
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
-        return await ToResultAsync(stream.ToArray(), XlsxMimeType, "Mau_15A_KiemSoatTran20_ToanDangBo.xlsx", format);
+        return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("Mau_15A_KiemSoatTran20", activePeriod, scopeCell), format);
     }
 
-    public async Task<ReportFileResult> ExportForm15BReportAsync(ReportFormat format = ReportFormat.Original)
+    public async Task<ReportFileResult> ExportForm15BReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
     {
-        var result = await ExportForm15ReportAsync();
-        return await ToResultAsync(result.FileBytes, result.ContentType, "Mau_15B_KiemSoatTran20_TheoChiBo.xlsx", format);
+        var result = await ExportForm15ReportAsync(periodId, partyCellId);
+        var fileName = result.FileName.Replace("Mau_15_KiemSoatTran20_ChiBo", "Mau_15B_KiemSoatTran20_TheoChiBo");
+        return await ToResultAsync(result.FileBytes, result.ContentType, fileName, format);
     }
 
-    public async Task<ReportFileResult> ExportForm16ReportAsync(ReportFormat format = ReportFormat.Original)
+    public async Task<ReportFileResult> ExportForm16ReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
     {
-        var activePeriod = await _evalRepo.GetActivePeriodAsync();
-        var periodId = activePeriod?.Id ?? Guid.Empty;
-        var records = periodId != Guid.Empty
-            ? await _evalRepo.GetRecordsByPeriodAsync(periodId)
-            : new List<CongTacDang.Domain.Entities.EvaluationRecord>();
+        var (activePeriod, records, scopeCell) = await LoadExcelScopeAsync(periodId, partyCellId);
 
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Mẫu 16 - Tổng hợp");
         ws.Cell("A1").Value = "BẢNG TỔNG HỢP KẾT QUẢ XẾP LOẠI CÁN BỘ - MẪU 16";
         ws.Range("A1:H1").Merge().Style.Font.SetBold(true).Font.SetFontSize(13)
             .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-        ws.Cell("A2").Value = activePeriod?.Name ?? "Chưa có kỳ đánh giá";
+        ws.Cell("A2").Value = ExcelTitleSuffix(activePeriod, scopeCell);
         ws.Range("A2:H2").Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
 
         var headers = new[]
@@ -433,7 +420,55 @@ public class ReportService : IReportService
 
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
-        return await ToResultAsync(stream.ToArray(), XlsxMimeType, "Mau_16_TongHopKetQuaXepLoai.xlsx", format);
+        return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("Mau_16_TongHopKetQuaXepLoai", activePeriod, scopeCell), format);
+    }
+
+    /// <summary>
+    /// Phạm vi dữ liệu báo cáo Excel: kỳ được chọn (mặc định kỳ đang hoạt động) và Chi bộ (null = toàn Đảng bộ).
+    /// Phạm vi Chi bộ đã được kiểm tra quyền qua IReportAccessService/IAccessPolicy ở controller.
+    /// </summary>
+    private async Task<(EvaluationPeriod? Period, List<EvaluationRecord> Records, PartyCell? Cell)> LoadExcelScopeAsync(Guid? periodId, Guid? partyCellId)
+    {
+        EvaluationPeriod? period;
+        if (periodId.HasValue && periodId.Value != Guid.Empty)
+        {
+            period = await _evalRepo.GetPeriodByIdAsync(periodId.Value)
+                ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+        }
+        else
+        {
+            period = await _evalRepo.GetActivePeriodAsync();
+        }
+
+        PartyCell? cell = null;
+        if (partyCellId.HasValue && partyCellId.Value != Guid.Empty)
+        {
+            cell = await _orgRepo.GetPartyCellByIdAsync(partyCellId.Value)
+                ?? throw new KeyNotFoundException($"Không tìm thấy Chi bộ với Id: {partyCellId}");
+        }
+
+        var records = period != null
+            ? await _evalRepo.GetRecordsByPeriodAsync(period.Id)
+            : new List<EvaluationRecord>();
+        if (cell != null)
+            records = records.Where(r => r.PartyCellId == cell.Id || r.Member?.PartyCellId == cell.Id).ToList();
+
+        return (period, records, cell);
+    }
+
+    /// <summary>Tiêu đề phạm vi: tên kỳ (chữ hoa) và tên Chi bộ nếu xuất theo Chi bộ.</summary>
+    private static string ExcelTitleSuffix(EvaluationPeriod? period, PartyCell? cell)
+    {
+        var periodTitle = period != null ? period.Name.ToUpper() : "CHƯA CÓ KỲ ĐÁNH GIÁ";
+        return cell != null ? $"{periodTitle} - {cell.Name.ToUpper()}" : periodTitle;
+    }
+
+    /// <summary>Tên tệp Excel theo kỳ và phạm vi, ví dụ Mau_14_..._ChiBo_Ky_Thuat_Q3_2026.xlsx.</summary>
+    private static string ExcelFileName(string baseName, EvaluationPeriod? period, PartyCell? cell)
+    {
+        var scope = cell != null ? "_" + SafeName(cell.Name, "ChiBo") : "_ToanDangBo";
+        var periodPart = period != null ? $"_Q{(int)period.Quarter}_{period.Year}" : string.Empty;
+        return $"{baseName}{scope}{periodPart}.xlsx";
     }
 
     private static bool IsGoodOrBetter(CongTacDang.Domain.Entities.EvaluationRecord record)

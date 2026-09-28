@@ -35,20 +35,23 @@ public interface IReportService
     /// <summary>Xuất báo cáo danh sách trích ngang cán bộ lãnh đạo, quản lý</summary>
     Task<ReportFileResult> ExportCadresReportAsync();
 
+    // Báo cáo Excel 14/15/15A/15B/16: periodId null = kỳ đang hoạt động; partyCellId null = toàn Đảng bộ
+    // (phạm vi đã được kiểm tra quyền trước khi gọi).
+
     /// <summary>Xuất bảng tổng hợp hồ sơ cán bộ theo Chi bộ và đơn vị</summary>
-    Task<ReportFileResult> ExportForm14ReportAsync(ReportFormat format = ReportFormat.Original);
+    Task<ReportFileResult> ExportForm14ReportAsync(System.Guid? periodId = null, System.Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất bảng thống kê cơ cấu tổ chức và sĩ số các Chi bộ</summary>
-    Task<ReportFileResult> ExportForm15ReportAsync(ReportFormat format = ReportFormat.Original);
+    Task<ReportFileResult> ExportForm15ReportAsync(System.Guid? periodId = null, System.Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 15A: tổng hợp kiểm soát tỷ lệ trần 20% cấp Đảng ủy Công ty</summary>
-    Task<ReportFileResult> ExportForm15AReportAsync(ReportFormat format = ReportFormat.Original);
+    Task<ReportFileResult> ExportForm15AReportAsync(System.Guid? periodId = null, System.Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 15B: kiểm soát tỷ lệ trần 20% theo từng Chi bộ</summary>
-    Task<ReportFileResult> ExportForm15BReportAsync(ReportFormat format = ReportFormat.Original);
+    Task<ReportFileResult> ExportForm15BReportAsync(System.Guid? periodId = null, System.Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 16: tổng hợp kết quả xếp loại theo nhóm chức vụ</summary>
-    Task<ReportFileResult> ExportForm16ReportAsync(ReportFormat format = ReportFormat.Original);
+    Task<ReportFileResult> ExportForm16ReportAsync(System.Guid? periodId = null, System.Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 01: Phiếu giao/đăng ký sản phẩm, công việc chuyên môn (.docx)</summary>
     Task<ReportFileResult> ExportMau01DocxAsync(System.Guid recordId, ReportFormat format = ReportFormat.Original);
