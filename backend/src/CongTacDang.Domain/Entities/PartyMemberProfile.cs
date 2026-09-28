@@ -94,6 +94,9 @@ public class PartyMemberProfile : IAuditableEntity, ISoftDeletable
     /// <summary>Thời điểm kết thúc khóa đăng nhập tạm thời</summary>
     public DateTime? LockoutEnd { get; set; }
 
+    /// <summary>Thời điểm đăng nhập thành công gần nhất (UTC)</summary>
+    public DateTime? LastLoginAt { get; set; }
+
     /// <summary>Thời điểm khởi tạo hồ sơ</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
