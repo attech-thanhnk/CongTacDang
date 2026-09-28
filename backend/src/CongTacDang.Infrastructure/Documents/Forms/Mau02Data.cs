@@ -38,13 +38,9 @@ public sealed class Mau02Data
             Position = FormText.OrNull(record.Member?.PositionTitle),
             Tasks = tasks.Select((t, index) =>
             {
-                // Giữ nguyên cách tính của bản cũ (trọng số Khung 2 cố định) — xem T-38.
-                double aPct = Math.Round(t.CriteriaA_Ratio * 100);
-                double bPct = Math.Round(t.CriteriaB_Ratio * 100);
-                double cPct = Math.Round(t.CriteriaC_Ratio * 100);
-                double dPct = Math.Round(t.CriteriaD_Ratio * 100);
-                double resultPct = Math.Round((aPct * 0.15) + (bPct * 0.50) + (cPct * 0.15) + (dPct * 0.20), 1);
-                double score = Math.Round((resultPct * t.Weight) / 100.0, 2);
+                // Một nguồn số liệu (T-38): điểm đạt = SelfScore đã lưu (đã tính theo tỷ trọng Khung chức danh của hồ sơ
+                // khi tự chấm). Kết quả SP (%) chỉ là cách viết khác của cùng giá trị: SelfScore / Trọng số.
+                double? resultPct = t.Weight > 0 ? Math.Round(t.SelfScore / t.Weight * 100, 1) : null;
 
                 string? evidence = null;
                 if (evidenceNames != null && evidenceNames.TryGetValue(t.Id, out var name))
@@ -59,8 +55,8 @@ public sealed class Mau02Data
                     CriteriaB = FormText.Percent(t.CriteriaB_Ratio),
                     CriteriaC = FormText.Percent(t.CriteriaC_Ratio),
                     CriteriaD = FormText.Percent(t.CriteriaD_Ratio),
-                    ResultPercent = FormText.Number(resultPct, 1) + "%",
-                    Score = FormText.Number(score, 2),
+                    ResultPercent = resultPct.HasValue ? FormText.Number(resultPct.Value, 1) + "%" : "-",
+                    Score = FormText.Number(t.SelfScore, 2),
                     IsExceedStandard = t.IsExceedStandard,
                     Evidence = evidence
                 };
