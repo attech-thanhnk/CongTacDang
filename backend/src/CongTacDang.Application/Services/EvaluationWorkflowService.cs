@@ -92,7 +92,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 Id = Guid.NewGuid(),
                 RecordId = ctx.Record.Id,
                 TaskOrder = order++,
-                TaskName = t.TaskName.Trim(),
+                TaskName = t.TaskName!.Trim(),
                 TargetOutput = t.TargetOutput?.Trim() ?? string.Empty,
                 Weight = t.Weight,
                 Deadline = t.Deadline.HasValue ? DateTime.SpecifyKind(t.Deadline.Value, DateTimeKind.Utc) : ctx.Record.Period.EndDate,

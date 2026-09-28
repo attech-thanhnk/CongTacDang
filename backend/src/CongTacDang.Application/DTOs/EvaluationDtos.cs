@@ -201,7 +201,7 @@ public class WorkflowRequestDto
 /// <summary>Trả lại hồ sơ (bắt buộc lý do).</summary>
 public class ReturnRecordRequestDto : WorkflowRequestDto
 {
-    public string Reason { get; set; } = string.Empty;
+    public string? Reason { get; set; }
 }
 
 /// <summary>Hoàn thành bước kèm ý kiến tùy chọn (duyệt danh mục, Chi bộ xác nhận).</summary>
@@ -213,8 +213,8 @@ public class CommentRequestDto : WorkflowRequestDto
 /// <summary>Dữ liệu một nhiệm vụ khi đăng ký (Mẫu 01).</summary>
 public class TaskInputDto
 {
-    public string TaskName { get; set; } = string.Empty;
-    public string TargetOutput { get; set; } = string.Empty;
+    public string? TaskName { get; set; }
+    public string? TargetOutput { get; set; }
     public double Weight { get; set; }
     public DateTime? Deadline { get; set; }
     public Guid? AttachmentId { get; set; }
@@ -265,7 +265,7 @@ public class VoteTallyDto
 /// <summary>B3A_COLLECTIVE: ghi nhận đề xuất của tập thể lãnh đạo.</summary>
 public class CollectiveProposalRequestDto : WorkflowRequestDto
 {
-    public string ProposedGrade { get; set; } = string.Empty;
+    public string? ProposedGrade { get; set; }
     public string? Comment { get; set; }
     /// <summary>Biên bản (Mẫu 12/13) ghi kết quả kiểm phiếu — bắt buộc khi có <see cref="Votes"/>.</summary>
     public Guid? MeetingId { get; set; }
@@ -276,21 +276,21 @@ public class CollectiveProposalRequestDto : WorkflowRequestDto
 public class AppraisalRequestDto : WorkflowRequestDto
 {
     public double? AppraisalScore { get; set; }
-    public string Comment { get; set; } = string.Empty;
-    public string ProposedGrade { get; set; } = string.Empty;
+    public string? Comment { get; set; }
+    public string? ProposedGrade { get; set; }
 }
 
 /// <summary>B3C_DIRECTOR: nhận xét, đề xuất của cấp trực tiếp sử dụng.</summary>
 public class DirectorReviewRequestDto : WorkflowRequestDto
 {
-    public string Comment { get; set; } = string.Empty;
-    public string ProposedGrade { get; set; } = string.Empty;
+    public string? Comment { get; set; }
+    public string? ProposedGrade { get; set; }
 }
 
 /// <summary>B4_DECISION: ghi nhận quyết định mức xếp loại.</summary>
 public class DecisionRequestDto : WorkflowRequestDto
 {
-    public string FinalGrade { get; set; } = string.Empty;
+    public string? FinalGrade { get; set; }
     /// <summary>Điểm chính thức; trống → điểm thẩm định (hoặc điểm tự chấm).</summary>
     public double? FinalScore { get; set; }
     public string? DocumentNumber { get; set; }
@@ -303,9 +303,9 @@ public class DecisionRequestDto : WorkflowRequestDto
 /// <summary>Mở lại hồ sơ đã công bố.</summary>
 public class ReopenRequestDto : WorkflowRequestDto
 {
-    public string Reason { get; set; } = string.Empty;
+    public string? Reason { get; set; }
     /// <summary>Bước quay về (mã bước, không sớm hơn B2_SELF_SCORE).</summary>
-    public string TargetStep { get; set; } = string.Empty;
+    public string? TargetStep { get; set; }
 }
 
 #endregion
@@ -413,7 +413,7 @@ public class CreatePeriodDto
 {
     public int Year { get; set; }
     public int Quarter { get; set; }
-    public string Name { get; set; } = string.Empty;
+    public string? Name { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     /// <summary>Mã mẫu: <c>full</c> (mặc định) hoặc <c>q3-2026-transition</c>.</summary>
@@ -490,7 +490,7 @@ public class UpdateSnapshotDto
     public Guid? PartyCellId { get; set; }
     public string? JobGroup { get; set; }
     public string? ApprovalAuthority { get; set; }
-    public string Reason { get; set; } = string.Empty;
+    public string? Reason { get; set; }
 }
 
 #endregion
