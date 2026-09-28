@@ -27,8 +27,14 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 # Log file xoay vòng theo ngày, nằm ngoài thư mục publish; compose mount volume vào đây
 ENV Logging__File__Path=/var/log/congtacdang
 
+# LibreOffice headless (chuyển DOCX/XLSX → PDF, task 05) kèm font:
+# - fonts-liberation: Liberation Serif/Sans tương thích kích thước với Times New Roman/Arial (template dùng Times New Roman),
+#   có đủ dấu tiếng Việt; fonts-dejavu-core làm font dự phòng.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
+        libreoffice-writer-nogui libreoffice-calc-nogui \
+        fonts-liberation fonts-dejavu-core fontconfig \
+    && fc-cache -f \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 10001 appuser \
     && mkdir -p /app/uploads /var/log/congtacdang \

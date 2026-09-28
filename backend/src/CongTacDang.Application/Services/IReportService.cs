@@ -17,6 +17,16 @@ public class ReportFileResult
     public string FileName { get; set; } = string.Empty;
 }
 
+/// <summary>Định dạng tệp xuất.</summary>
+public enum ReportFormat
+{
+    /// <summary>Định dạng gốc của biểu mẫu: Word (.docx) hoặc Excel (.xlsx).</summary>
+    Original = 0,
+
+    /// <summary>PDF chuyển phía máy chủ từ định dạng gốc.</summary>
+    Pdf = 1
+}
+
 /// <summary>
 /// Giao diện dịch vụ kết xuất báo cáo và dữ liệu bảng tính
 /// </summary>
@@ -26,32 +36,32 @@ public interface IReportService
     Task<ReportFileResult> ExportCadresReportAsync();
 
     /// <summary>Xuất bảng tổng hợp hồ sơ cán bộ theo Chi bộ và đơn vị</summary>
-    Task<ReportFileResult> ExportForm14ReportAsync();
+    Task<ReportFileResult> ExportForm14ReportAsync(ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất bảng thống kê cơ cấu tổ chức và sĩ số các Chi bộ</summary>
-    Task<ReportFileResult> ExportForm15ReportAsync();
+    Task<ReportFileResult> ExportForm15ReportAsync(ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 15A: tổng hợp kiểm soát tỷ lệ trần 20% cấp Đảng ủy Công ty</summary>
-    Task<ReportFileResult> ExportForm15AReportAsync();
+    Task<ReportFileResult> ExportForm15AReportAsync(ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 15B: kiểm soát tỷ lệ trần 20% theo từng Chi bộ</summary>
-    Task<ReportFileResult> ExportForm15BReportAsync();
+    Task<ReportFileResult> ExportForm15BReportAsync(ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 16: tổng hợp kết quả xếp loại theo nhóm chức vụ</summary>
-    Task<ReportFileResult> ExportForm16ReportAsync();
+    Task<ReportFileResult> ExportForm16ReportAsync(ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 01: Phiếu giao/đăng ký sản phẩm, công việc chuyên môn (.docx)</summary>
-    Task<ReportFileResult> ExportMau01DocxAsync(System.Guid recordId);
+    Task<ReportFileResult> ExportMau01DocxAsync(System.Guid recordId, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 02: Phiếu tự đánh giá kết quả thực hiện sản phẩm (.docx)</summary>
-    Task<ReportFileResult> ExportMau02DocxAsync(System.Guid recordId);
+    Task<ReportFileResult> ExportMau02DocxAsync(System.Guid recordId, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 10: Phiếu thẩm định, nhận xét, ghi nhận giải trình (.docx)</summary>
-    Task<ReportFileResult> ExportMau10DocxAsync(System.Guid recordId);
+    Task<ReportFileResult> ExportMau10DocxAsync(System.Guid recordId, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 11: Phiếu đánh giá, xếp loại cán bộ quý bỏ phiếu kín (.docx)</summary>
-    Task<ReportFileResult> ExportMau11DocxAsync(System.Guid periodId, System.Guid? branchId);
+    Task<ReportFileResult> ExportMau11DocxAsync(System.Guid periodId, System.Guid? branchId, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 13: Biên bản kiểm phiếu đánh giá, xếp loại cán bộ quý (.docx)</summary>
-    Task<ReportFileResult> ExportMau13DocxAsync(System.Guid periodId, System.Guid? branchId);
+    Task<ReportFileResult> ExportMau13DocxAsync(System.Guid periodId, System.Guid? branchId, ReportFormat format = ReportFormat.Original);
 }

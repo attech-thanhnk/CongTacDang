@@ -20,19 +20,22 @@ public class ReportService : IReportService
     private readonly IOrganizationRepository _orgRepo;
     private readonly IEvaluationRepository _evalRepo;
     private readonly IWordTemplateStore _templates;
+    private readonly IPdfConverter _pdfConverter;
 
     public ReportService(
         CongTacDangDbContext db,
         IUserRepository userRepo,
         IOrganizationRepository orgRepo,
         IEvaluationRepository evalRepo,
-        IWordTemplateStore templates)
+        IWordTemplateStore templates,
+        IPdfConverter pdfConverter)
     {
         _db = db;
         _userRepo = userRepo;
         _orgRepo = orgRepo;
         _evalRepo = evalRepo;
         _templates = templates;
+        _pdfConverter = pdfConverter;
     }
 
     public async Task<ReportFileResult> ExportCadresReportAsync()
@@ -94,7 +97,7 @@ public class ReportService : IReportService
         }
     }
 
-    public async Task<ReportFileResult> ExportForm14ReportAsync()
+    public async Task<ReportFileResult> ExportForm14ReportAsync(ReportFormat format = ReportFormat.Original)
     {
         var activePeriod = await _evalRepo.GetActivePeriodAsync();
         var periodId = activePeriod?.Id ?? Guid.Empty;
@@ -197,16 +200,12 @@ public class ReportService : IReportService
             using (var stream = new MemoryStream())
             {
                 workbook.SaveAs(stream);
-                return new ReportFileResult
-                {
-                    FileBytes = stream.ToArray(),
-                    FileName = "Mau_14_TongHopXepLoaiCanBo_Q3_2026.xlsx"
-                };
+                return await ToResultAsync(stream.ToArray(), XlsxMimeType, "Mau_14_TongHopXepLoaiCanBo_Q3_2026.xlsx", format);
             }
         }
     }
 
-    public async Task<ReportFileResult> ExportForm15ReportAsync()
+    public async Task<ReportFileResult> ExportForm15ReportAsync(ReportFormat format = ReportFormat.Original)
     {
         var activePeriod = await _evalRepo.GetActivePeriodAsync();
         var periodId = activePeriod?.Id ?? Guid.Empty;
@@ -302,16 +301,12 @@ public class ReportService : IReportService
             using (var stream = new MemoryStream())
             {
                 workbook.SaveAs(stream);
-                return new ReportFileResult
-                {
-                    FileBytes = stream.ToArray(),
-                    FileName = "Mau_15_KiemSoatTran20_ChiBo_Q3_2026.xlsx"
-                };
+                return await ToResultAsync(stream.ToArray(), XlsxMimeType, "Mau_15_KiemSoatTran20_ChiBo_Q3_2026.xlsx", format);
             }
         }
     }
 
-    public async Task<ReportFileResult> ExportForm15AReportAsync()
+    public async Task<ReportFileResult> ExportForm15AReportAsync(ReportFormat format = ReportFormat.Original)
     {
         var activePeriod = await _evalRepo.GetActivePeriodAsync();
         var periodId = activePeriod?.Id ?? Guid.Empty;
@@ -368,21 +363,16 @@ public class ReportService : IReportService
 
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
-        return new ReportFileResult
-        {
-            FileBytes = stream.ToArray(),
-            FileName = "Mau_15A_KiemSoatTran20_ToanDangBo.xlsx"
-        };
+        return await ToResultAsync(stream.ToArray(), XlsxMimeType, "Mau_15A_KiemSoatTran20_ToanDangBo.xlsx", format);
     }
 
-    public async Task<ReportFileResult> ExportForm15BReportAsync()
+    public async Task<ReportFileResult> ExportForm15BReportAsync(ReportFormat format = ReportFormat.Original)
     {
         var result = await ExportForm15ReportAsync();
-        result.FileName = "Mau_15B_KiemSoatTran20_TheoChiBo.xlsx";
-        return result;
+        return await ToResultAsync(result.FileBytes, result.ContentType, "Mau_15B_KiemSoatTran20_TheoChiBo.xlsx", format);
     }
 
-    public async Task<ReportFileResult> ExportForm16ReportAsync()
+    public async Task<ReportFileResult> ExportForm16ReportAsync(ReportFormat format = ReportFormat.Original)
     {
         var activePeriod = await _evalRepo.GetActivePeriodAsync();
         var periodId = activePeriod?.Id ?? Guid.Empty;
@@ -443,11 +433,7 @@ public class ReportService : IReportService
 
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
-        return new ReportFileResult
-        {
-            FileBytes = stream.ToArray(),
-            FileName = "Mau_16_TongHopKetQuaXepLoai.xlsx"
-        };
+        return await ToResultAsync(stream.ToArray(), XlsxMimeType, "Mau_16_TongHopKetQuaXepLoai.xlsx", format);
     }
 
     private static bool IsGoodOrBetter(CongTacDang.Domain.Entities.EvaluationRecord record)
@@ -478,39 +464,41 @@ public class ReportService : IReportService
     }
 
     private const string DocxMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    private const string XlsxMimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    private const string PdfMimeType = "application/pdf";
 
     #region Biểu mẫu Word — mỗi mẫu = một template .docx + một lớp dữ liệu trong Documents/Forms
 
-    public async Task<ReportFileResult> ExportMau01DocxAsync(Guid recordId)
+    public async Task<ReportFileResult> ExportMau01DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
     {
         var record = await LoadRecordAsync(recordId);
         var bytes = RenderWord(Mau01Data.TemplateFileName, Mau01Data.From(record));
-        return DocxResult(bytes, $"Mau_01_DangKyNhiemVu_{SafeName(record.Member?.FullName, "CanBo")}.docx");
+        return await ToResultAsync(bytes, DocxMimeType, $"Mau_01_DangKyNhiemVu_{SafeName(record.Member?.FullName, "CanBo")}.docx", format);
     }
 
-    public async Task<ReportFileResult> ExportMau02DocxAsync(Guid recordId)
+    public async Task<ReportFileResult> ExportMau02DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
     {
         var record = await LoadRecordAsync(recordId);
         var evidenceNames = await GetEvidenceNamesAsync(record.Tasks);
         var bytes = RenderWord(Mau02Data.TemplateFileName, Mau02Data.From(record, evidenceNames));
-        return DocxResult(bytes, $"Mau_02_TuDanhGia_{SafeName(record.Member?.FullName, "CanBo")}.docx");
+        return await ToResultAsync(bytes, DocxMimeType, $"Mau_02_TuDanhGia_{SafeName(record.Member?.FullName, "CanBo")}.docx", format);
     }
 
-    public async Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId)
+    public async Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
     {
         var record = await LoadRecordAsync(recordId);
         var bytes = RenderWord(Mau10Data.TemplateFileName, Mau10Data.From(record));
-        return DocxResult(bytes, $"Mau_10_PhieuThamDinh_{SafeName(record.Member?.FullName, "CanBo")}.docx");
+        return await ToResultAsync(bytes, DocxMimeType, $"Mau_10_PhieuThamDinh_{SafeName(record.Member?.FullName, "CanBo")}.docx", format);
     }
 
-    public async Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId)
+    public async Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original)
     {
         var (period, records, branch) = await LoadPeriodRecordsAsync(periodId, branchId);
         var bytes = RenderWord(Mau11Data.TemplateFileName, Mau11Data.From(period, records, branch?.Name));
-        return DocxResult(bytes, $"Mau_11_PhieuBoPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx");
+        return await ToResultAsync(bytes, DocxMimeType, $"Mau_11_PhieuBoPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx", format);
     }
 
-    public async Task<ReportFileResult> ExportMau13DocxAsync(Guid periodId, Guid? branchId)
+    public async Task<ReportFileResult> ExportMau13DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original)
     {
         var (period, records, branch) = await LoadPeriodRecordsAsync(periodId, branchId);
 
@@ -520,7 +508,7 @@ public class ReportService : IReportService
             totalVoters = await _db.PartyMemberProfiles.CountAsync(m => m.PartyCellId == branch.Id);
 
         var bytes = RenderWord(Mau13Data.TemplateFileName, Mau13Data.From(period, records, branch?.Name, totalVoters));
-        return DocxResult(bytes, $"Mau_13_BienBanKiemPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx");
+        return await ToResultAsync(bytes, DocxMimeType, $"Mau_13_BienBanKiemPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx", format);
     }
 
     /// <summary>Điền lớp dữ liệu mẫu vào template.</summary>
@@ -530,12 +518,20 @@ public class ReportService : IReportService
         return DocxTemplateEngine.Render(template, TemplateDataBinder.Bind(formData)).Content;
     }
 
-    private static ReportFileResult DocxResult(byte[] bytes, string fileName) => new()
+    /// <summary>Trả tệp ở định dạng gốc, hoặc chuyển sang PDF phía máy chủ khi <paramref name="format"/> là PDF.</summary>
+    private async Task<ReportFileResult> ToResultAsync(byte[] bytes, string contentType, string fileName, ReportFormat format)
     {
-        FileBytes = bytes,
-        ContentType = DocxMimeType,
-        FileName = fileName
-    };
+        if (format != ReportFormat.Pdf)
+            return new ReportFileResult { FileBytes = bytes, ContentType = contentType, FileName = fileName };
+
+        var pdf = await _pdfConverter.ConvertToPdfAsync(bytes, Path.GetExtension(fileName));
+        return new ReportFileResult
+        {
+            FileBytes = pdf,
+            ContentType = PdfMimeType,
+            FileName = Path.ChangeExtension(fileName, ".pdf")
+        };
+    }
 
     private static string SafeName(string? name, string fallback) =>
         string.IsNullOrWhiteSpace(name) ? fallback : name.Trim().Replace(" ", "_");
