@@ -16,6 +16,17 @@ public static class DataSeeder
     /// <summary>Định nghĩa một vai trò hệ thống và bộ quyền mặc định.</summary>
     private sealed record RoleDefinition(string Code, string Name, string Description, string[] Permissions);
 
+    /// <summary>
+    /// Mã quyền mới (<see cref="PermissionCodes"/>) cấp cho vai trò quản trị để endpoint dùng mã mới chạy được ngay:
+    /// <c>system.*</c>, <c>catalog.manage</c>, <c>attachment.general.manage</c>.
+    /// Khai báo trước <see cref="DefaultRoles"/> vì trường tĩnh được khởi tạo theo thứ tự khai báo.
+    /// </summary>
+    private static readonly string[] AdministratorNewPermissionCodes = PermissionCodes.All
+        .Where(code => code.StartsWith("system.", StringComparison.Ordinal)
+            || code == PermissionCodes.CatalogManage
+            || code == PermissionCodes.AttachmentGeneralManage)
+        .ToArray();
+
     private static readonly string[] CanBoPermissions =
     {
         AppPermissions.UsersRead,
@@ -67,7 +78,7 @@ public static class DataSeeder
                 AppPermissions.ReportsExport,
                 AppPermissions.RolesManage,
                 AppPermissions.EvaluationsRead
-            })
+            }.Concat(AdministratorNewPermissionCodes).ToArray())
     };
 
     /// <summary>
@@ -115,8 +126,19 @@ public static class DataSeeder
             new() { Code = AppPermissions.RolesManage, Name = "Quản trị vai trò & quyền", Resource = "roles", Action = "manage", Description = "Quản trị động vai trò, gán quyền và gán vai trò người dùng" },
         };
 
-        // Chỉ tạo bản ghi permission còn thiếu; không tự gán permission mới vào role đã tồn tại.
-        var existingPermCodes = await context.Permissions.Select(p => p.Code).ToListAsync();
+        // Mã quyền chuẩn mới (PermissionCodes) — cùng tồn tại với mã cũ trong giai đoạn chuyển tiếp.
+        definedPermissions.AddRange(PermissionCodes.Definitions.Select(d => new Permission
+        {
+            Code = d.Code,
+            Name = d.Name,
+            Resource = d.Module,
+            Action = d.Code.StartsWith(d.Module + ".", StringComparison.Ordinal) ? d.Code[(d.Module.Length + 1)..] : d.Code,
+            Description = d.Description
+        }));
+
+        // Chỉ tạo bản ghi permission còn thiếu (kể cả bản ghi đã xóa mềm được coi là đã có);
+        // không tự gán permission mới vào role đã tồn tại, trừ mã mới của vai trò quản trị (xem bên dưới).
+        var existingPermCodes = await context.Permissions.IgnoreQueryFilters().Select(p => p.Code).ToListAsync();
         var missingPerms = definedPermissions.Where(p => !existingPermCodes.Contains(p.Code)).ToList();
         var rolesExisted = await context.Roles.AnyAsync();
         if (missingPerms.Any())
@@ -124,16 +146,24 @@ public static class DataSeeder
             await context.Permissions.AddRangeAsync(missingPerms);
             await context.SaveChangesAsync();
 
-            if (rolesExisted && !resetRolePermissions)
+            var unassigned = missingPerms.Select(p => p.Code).Except(AdministratorNewPermissionCodes).ToList();
+            if (rolesExisted && !resetRolePermissions && unassigned.Count > 0)
             {
                 logger?.LogWarning(
                     "Đã tạo quyền mới {Permissions} nhưng không tự gán vào vai trò nào. Hãy gán qua màn hình phân quyền hoặc bật Database:ResetRolePermissions để đặt lại về mặc định.",
-                    string.Join(", ", missingPerms.Select(p => p.Code)));
+                    string.Join(", ", unassigned));
             }
         }
 
         // 2. Seed Roles & Role-Permission Mapping: chỉ tạo role còn thiếu kèm quyền mặc định.
         await SeedMissingRolesAsync(context, logger);
+
+        // Mã quyền mới của vai trò quản trị: chỉ gán khi bản ghi permission vừa được tạo ở lần chạy này,
+        // nên cấu hình quản trị đã chỉnh tay (gỡ quyền) không bị ghi đè ở lần khởi động sau (tinh thần T-33).
+        await GrantNewAdministratorPermissionsAsync(
+            context,
+            missingPerms.Select(p => p.Code).Intersect(AdministratorNewPermissionCodes).ToList(),
+            logger);
 
         // Đặt lại quyền của các role hệ thống về mặc định chỉ khi được yêu cầu tường minh.
         if (resetRolePermissions)
@@ -618,6 +648,43 @@ public static class DataSeeder
 
         await context.SaveChangesAsync();
         logger?.LogInformation("Đã tạo vai trò mặc định: {Roles}", string.Join(", ", missingRoles.Select(r => r.Code)));
+    }
+
+    /// <summary>Gán các mã quyền quản trị vừa được tạo cho vai trò Quản trị hệ thống (nếu vai trò còn tồn tại).</summary>
+    private static async Task GrantNewAdministratorPermissionsAsync(
+        CongTacDangDbContext context,
+        IReadOnlyCollection<string> newlyCreatedCodes,
+        ILogger? logger)
+    {
+        if (newlyCreatedCodes.Count == 0)
+            return;
+
+        var adminRole = await context.Roles
+            .Include(r => r.Permissions)
+            .FirstOrDefaultAsync(r => r.Code == AppRoles.QUAN_TRI_HE_THONG);
+        if (adminRole == null)
+            return;
+
+        var toGrant = await context.Permissions
+            .Where(p => newlyCreatedCodes.Contains(p.Code))
+            .ToListAsync();
+        var added = new List<string>();
+        foreach (var permission in toGrant)
+        {
+            if (adminRole.Permissions.Any(p => p.Code == permission.Code))
+                continue;
+            adminRole.Permissions.Add(permission);
+            added.Add(permission.Code);
+        }
+
+        if (added.Count == 0)
+            return;
+
+        await context.SaveChangesAsync();
+        logger?.LogInformation(
+            "Đã gán quyền mới {Permissions} cho vai trò {Role}.",
+            string.Join(", ", added),
+            AppRoles.QUAN_TRI_HE_THONG);
     }
 
     /// <summary>Đặt lại quyền của các role hệ thống về ma trận mặc định (chỉ khi bật Database:ResetRolePermissions).</summary>
