@@ -1,6 +1,6 @@
 # Triển khai CongTacDang
 
-Tài liệu này là tài liệu triển khai duy nhất của hệ thống. Hệ thống chạy trong mạng LAN nội bộ bằng Docker Compose, gồm frontend Next.js, backend ASP.NET Core và PostgreSQL. MinIO và pgAdmin là công cụ tùy chọn, không chạy mặc định.
+Tài liệu này là tài liệu triển khai duy nhất của hệ thống. Hệ thống chạy trong mạng LAN nội bộ bằng Docker Compose, gồm frontend Next.js, backend ASP.NET Core và PostgreSQL. File đính kèm lưu trên đĩa (volume `backend-uploads`). pgAdmin là công cụ tùy chọn, không chạy mặc định.
 
 ## Yêu cầu
 
@@ -21,7 +21,6 @@ chmod 600 .env
 Thay các giá trị `CHANGE_ME_*` trong `docker/.env`, tối thiểu:
 
 - `POSTGRES_PASSWORD`: mật khẩu PostgreSQL.
-- `MINIO_ROOT_USER` và `MINIO_ROOT_PASSWORD`: chỉ cần khi bật profile `tools`.
 - `PGADMIN_DEFAULT_PASSWORD`: chỉ cần khi bật profile `tools`.
 
 Sinh mật khẩu ngẫu nhiên trên Linux:
@@ -110,13 +109,11 @@ Kiểm tra nhanh sau khi triển khai: đăng nhập, mở một hồ sơ đánh
 
 ## Công cụ tùy chọn
 
-MinIO và pgAdmin nằm trong profile `tools`, không được khởi động cùng stack mặc định:
+pgAdmin nằm trong profile `tools`, không được khởi động cùng stack mặc định:
 
 ```bash
-docker compose --env-file docker/.env -f docker/docker-compose.yml --profile tools up -d minio minio-init pgadmin
+docker compose --env-file docker/.env -f docker/docker-compose.yml --profile tools up -d pgadmin
 ```
-
-Bucket MinIO được tạo riêng tư. Không dùng `mc anonymous set download`; quyền truy cập phải đi qua adapter lưu trữ đã được ký/xác thực. Hiện backend đang đăng ký local storage, vì vậy cần xóa hẳn adapter MinIO nếu không dùng hoặc viết lại bằng SDK chính thức trước khi chuyển sang MinIO.
 
 ## Backup và khôi phục
 

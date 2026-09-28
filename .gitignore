@@ -98,7 +98,6 @@ $RECYCLE.BIN/
 *.db-wal
 postgres-data/
 pgadmin-data/
-minio-data/
 
 # Worktree tạm của agent Claude Code
 .claude/worktrees/

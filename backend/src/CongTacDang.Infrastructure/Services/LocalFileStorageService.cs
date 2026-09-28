@@ -7,7 +7,7 @@ namespace CongTacDang.Infrastructure.Services;
 
 /// <summary>
 /// Dịch vụ lưu trữ tệp tin vật lý trên ổ đĩa máy chủ cục bộ
-/// Đảm bảo hoạt động độc lập, không phụ thuộc vào container MinIO ngoài
+/// Lưu tệp trên đĩa cục bộ của máy chủ backend (thư mục cấu hình Storage:Local:Path)
 /// </summary>
 public class LocalFileStorageService : IFileStorageService
 {
