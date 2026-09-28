@@ -1,267 +1,442 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { EvaluationRecordDto } from "@/services/evaluationService";
 import { Button } from "@/components/common";
 
+export interface BranchMeetingVoteState {
+  votesExcellent: number;
+  votesGood: number;
+  votesSatisfactory: number;
+  votesUnsatisfactory: number;
+  proposedGrade: string;
+  comment: string;
+}
+
 interface Step3BranchReviewProps {
   records: EvaluationRecordDto[];
-  selectedRecord: EvaluationRecordDto | null;
-  onSelectRecord: (record: EvaluationRecordDto) => void;
-  comment: string;
-  onChangeComment: (val: string) => void;
-  proposedGrade: string;
-  onChangeProposedGrade: (val: string) => void;
-  votesExcellent: number;
-  onChangeVotesExcellent: (v: number) => void;
-  votesGood: number;
-  onChangeVotesGood: (v: number) => void;
-  votesSatisfactory: number;
-  onChangeVotesSatisfactory: (v: number) => void;
-  votesUnsatisfactory: number;
-  onChangeVotesUnsatisfactory: (v: number) => void;
   totalVoters: number;
   onChangeTotalVoters: (v: number) => void;
-  onSubmit: () => void;
+  meetingVotes: { [recordId: string]: BranchMeetingVoteState };
+  onChangeMemberVote: (recordId: string, field: keyof BranchMeetingVoteState, value: any) => void;
+  onSubmitMeeting: () => void;
   isSubmitting: boolean;
   onOpenDocViewer: (attId: string, fileName?: string | null) => void;
-  onOpenPdf?: (record: EvaluationRecordDto, templateType?: any) => void;
+  onExportMau11Docx?: () => void;
+  onExportMau13Docx?: () => void;
 }
 
 export function Step3BranchReview({
   records,
-  selectedRecord,
-  onSelectRecord,
-  comment,
-  onChangeComment,
-  proposedGrade,
-  onChangeProposedGrade,
-  votesExcellent,
-  onChangeVotesExcellent,
-  votesGood,
-  onChangeVotesGood,
-  votesSatisfactory,
-  onChangeVotesSatisfactory,
-  votesUnsatisfactory,
-  onChangeVotesUnsatisfactory,
   totalVoters,
   onChangeTotalVoters,
-  onSubmit,
+  meetingVotes,
+  onChangeMemberVote,
+  onSubmitMeeting,
   isSubmitting,
   onOpenDocViewer,
-  onOpenPdf,
+  onExportMau11Docx,
+  onExportMau13Docx,
 }: Step3BranchReviewProps) {
-  const [searchTerm, setSearchTerm] = React.useState("");
-  const [filterStatus, setFilterStatus] = React.useState<"all" | "pending" | "reviewed">("all");
-
-  const sumVotes =
-    (votesExcellent || 0) +
-    (votesGood || 0) +
-    (votesSatisfactory || 0) +
-    (votesUnsatisfactory || 0);
-
-  const isVotesValid = sumVotes === totalVoters && totalVoters > 0;
+  const [searchTerm, setSearchTerm] = useState("");
+  const [detailRecord, setDetailRecord] = useState<EvaluationRecordDto | null>(null);
 
   const getGradeLabel = (g?: string | null) => {
     switch (g) {
-      case "HoanThanhXuatSac": return "HT Xuất sắc";
-      case "HoanThanhTot": return "HT Tốt";
-      case "HoanThanh": return "Hoàn thành";
-      case "KhongHoanThanh": return "Không HT";
-      default: return g || "Chưa chọn";
+      case "HoanThanhXuatSac":
+        return "HT Xuất sắc";
+      case "HoanThanhTot":
+        return "HT Tốt";
+      case "HoanThanh":
+        return "Hoàn thành";
+      case "KhongHoanThanh":
+        return "Không HT";
+      default:
+        return g || "Chưa chọn";
     }
   };
 
   const filteredRecords = records.filter((rec) => {
     const term = searchTerm.toLowerCase().trim();
-    const matchTerm =
+    return (
       !term ||
       rec.fullName?.toLowerCase().includes(term) ||
       rec.positionTitle?.toLowerCase().includes(term) ||
-      rec.partyRole?.toLowerCase().includes(term);
-
-    const isReviewed = rec.status === "BranchReviewed" || (rec.votesExcellent ?? 0) > 0;
-    if (filterStatus === "pending") return matchTerm && !isReviewed;
-    if (filterStatus === "reviewed") return matchTerm && isReviewed;
-    return matchTerm;
+      rec.partyRole?.toLowerCase().includes(term)
+    );
   });
 
+  // Đếm số cán bộ có tổng phiếu = totalVoters
+  const validVotesCount = records.filter((rec) => {
+    const v = meetingVotes[rec.id];
+    if (!v) return false;
+    const sum =
+      (v.votesExcellent || 0) +
+      (v.votesGood || 0) +
+      (v.votesSatisfactory || 0) +
+      (v.votesUnsatisfactory || 0);
+    return sum === totalVoters && totalVoters > 0;
+  }).length;
+
+  const branchName = records[0]?.partyCellName || "Chi bộ trực thuộc";
+
   return (
-    <div className="border rounded bg-white" style={{ borderColor: "#e2e8f0" }}>
-      <div className="card-header bg-white border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center" style={{ borderColor: "#e2e8f0" }}>
+    <div className="border rounded bg-white shadow-sm" style={{ borderColor: "#e2e8f0" }}>
+      {/* Header đồng nhất */}
+      <div
+        className="card-header bg-white border-bottom py-2.5 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2"
+        style={{ borderColor: "#e2e8f0" }}
+      >
+        <div>
+          <h2 className="mb-0 text-dark" style={{ fontSize: "14px", fontWeight: 600, lineHeight: 1.4 }}>
+            Đánh giá, bỏ phiếu tín nhiệm Chi bộ — {branchName}
+          </h2>
+        </div>
+
         <div className="d-flex align-items-center gap-2">
-          <span
-            className="badge"
-            style={{ backgroundColor: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe" }}
-          >
-            Mẫu 10, 11, 13
-          </span>
-          <span className="fw-semibold text-dark small">
-            Chi bộ đánh giá & Bỏ phiếu kín
-          </span>
+          {onExportMau11Docx && (
+            <Button
+              size="sm"
+              variant="outline-primary"
+              onClick={onExportMau11Docx}
+              icon="bi-file-earmark-word"
+              title="Tải phiếu bầu bỏ phiếu kín định dạng Word để in cho cuộc họp Chi bộ"
+            >
+              Tải phiếu bầu (.docx)
+            </Button>
+          )}
+          {onExportMau13Docx && (
+            <Button
+              size="sm"
+              variant="outline-primary"
+              onClick={onExportMau13Docx}
+              icon="bi-file-earmark-word"
+              title="Tải biên bản kiểm phiếu định dạng Word đã điền kết quả"
+            >
+              Tải biên bản kiểm phiếu (.docx)
+            </Button>
+          )}
         </div>
       </div>
 
-      <div className="card-body p-3">
-        <div className="row g-3">
-          {/* Cột trái: Danh sách cán bộ */}
-          <div className="col-12 col-lg-4 border-end" style={{ borderColor: "#e2e8f0" }}>
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <span className="small fw-semibold text-secondary">Cán bộ trong Chi bộ</span>
-              <span className="badge bg-secondary-subtle text-secondary">{records.length} hồ sơ</span>
-            </div>
-
-            {/* Ô tìm kiếm & Lọc */}
-            <div className="mb-2 space-y-1.5">
-              <div className="input-group input-group-sm">
-                <span className="input-group-text bg-light text-secondary border-end-0">
-                  <i className="bi bi-search"></i>
-                </span>
-                <input
-                  type="text"
-                  className="form-control border-start-0"
-                  placeholder="Tìm theo họ tên..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                {searchTerm && (
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={() => setSearchTerm("")}
-                    title="Xóa tìm kiếm"
-                  >
-                    <i className="bi bi-x"></i>
-                  </button>
-                )}
-              </div>
-
-              <div className="d-flex gap-1 btn-group btn-group-sm w-100" role="group">
-                <button
-                  type="button"
-                  onClick={() => setFilterStatus("all")}
-                  className={`btn btn-sm py-0.5 px-1.5 ${filterStatus === "all" ? "btn-primary" : "btn-light border"}`}
-                  style={{ fontSize: "11px" }}
-                >
-                  Tất cả ({records.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterStatus("pending")}
-                  className={`btn btn-sm py-0.5 px-1.5 ${filterStatus === "pending" ? "btn-primary" : "btn-light border"}`}
-                  style={{ fontSize: "11px" }}
-                >
-                  Chưa chấm
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterStatus("reviewed")}
-                  className={`btn btn-sm py-0.5 px-1.5 ${filterStatus === "reviewed" ? "btn-primary" : "btn-light border"}`}
-                  style={{ fontSize: "11px" }}
-                >
-                  Đã xong
-                </button>
-              </div>
-            </div>
-
-            {records.length === 0 ? (
-              <div className="text-muted small text-center py-4">
-                Không có hồ sơ nào cần thẩm tra.
-              </div>
-            ) : filteredRecords.length === 0 ? (
-              <div className="text-muted small text-center py-4">
-                Không tìm thấy cán bộ phù hợp.
-              </div>
-            ) : (
-              <div className="list-group list-group-flush border rounded overflow-y-auto" style={{ borderColor: "#e2e8f0", maxHeight: "420px" }}>
-                {filteredRecords.map((rec) => {
-                  const isSelected = selectedRecord?.id === rec.id;
-                  const isReviewed = rec.status === "BranchReviewed" || (rec.votesExcellent ?? 0) > 0;
-
-                  return (
-                    <button
-                      key={rec.id}
-                      type="button"
-                      onClick={() => onSelectRecord(rec)}
-                      className="list-group-item list-group-item-action p-2 text-start small transition"
-                      style={{
-                        backgroundColor: isSelected ? "#eff6ff" : "transparent",
-                        borderColor: "#e2e8f0",
-                        borderLeft: isSelected ? "3px solid #1d4ed8" : "3px solid transparent",
-                      }}
-                    >
-                      <div className="d-flex justify-content-between align-items-center">
-                        <span className={`fw-semibold ${isSelected ? "text-primary" : "text-dark"}`}>
-                          {rec.fullName}
-                        </span>
-                        <span
-                          className="badge"
-                          style={{
-                            fontSize: "10px",
-                            backgroundColor: isReviewed ? "#ecfdf5" : "#f1f5f9",
-                            color: isReviewed ? "#047857" : "#475569",
-                            border: isReviewed ? "1px solid #a7f3d0" : "1px solid #cbd5e1",
-                          }}
-                        >
-                          {isReviewed ? "Đã xong" : "Chưa chấm"}
-                        </span>
-                      </div>
-                      <div className="d-flex justify-content-between text-muted mt-1" style={{ fontSize: "11px" }}>
-                        <span>{rec.positionTitle || "Cán bộ"}</span>
-                        <span>Tự chấm: <strong className="text-dark">{rec.totalSelfScore}đ</strong> ({getGradeLabel(rec.selfProposedGrade)})</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+      {/* Meeting Parameters Bar */}
+      <div
+        className="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3"
+        style={{ backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }}
+      >
+        <div className="d-flex flex-wrap align-items-center gap-3">
+          <div className="d-flex align-items-center gap-2 bg-white px-3 py-1.5 rounded border" style={{ borderColor: "#cbd5e1" }}>
+            <label className="fw-semibold text-secondary small mb-0 text-nowrap">
+              <i className="bi bi-people-fill text-primary me-1"></i>
+              Tổng số đảng viên dự họp (Cử tri):
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={totalVoters || ""}
+              onChange={(e) => onChangeTotalVoters(parseInt(e.target.value) || 0)}
+              className="form-control form-control-sm text-center fw-bold text-primary"
+              style={{ width: "70px", height: "30px", fontSize: "14px" }}
+              placeholder="0"
+            />
           </div>
 
-          {/* Cột phải: Thẩm tra chi bộ */}
-          <div className="col-12 col-lg-8">
-            {!selectedRecord ? (
-              <div className="h-100 d-flex align-items-center justify-content-center p-4 text-muted small fst-italic border rounded bg-light">
-                Chọn cán bộ trong danh sách để thẩm tra và nhập phiếu bầu.
-              </div>
+          <div className="small text-muted d-flex align-items-center gap-2">
+            <span>
+              Tổng số cán bộ: <strong className="text-dark">{records.length}</strong>
+            </span>
+            <span>•</span>
+            <span>
+              Hợp lệ phiếu:{" "}
+              <strong className={validVotesCount === records.length && records.length > 0 ? "text-success" : "text-warning"}>
+                {validVotesCount}/{records.length}
+              </strong>
+            </span>
+          </div>
+        </div>
+
+        <div className="d-flex align-items-center gap-2">
+          {/* Ô tìm kiếm nhanh */}
+          <div className="input-group input-group-sm" style={{ width: "220px" }}>
+            <span className="input-group-text bg-white border-end-0">
+              <i className="bi bi-search text-muted"></i>
+            </span>
+            <input
+              type="text"
+              className="form-control border-start-0"
+              placeholder="Tìm cán bộ..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Table Grid (Biên bản kiểm phiếu Mẫu 13) */}
+      <div className="table-responsive">
+        <table className="table table-bordered table-hover align-middle mb-0 small">
+          <thead className="table-light text-center" style={{ borderColor: "#cbd5e1", verticalAlign: "middle" }}>
+            <tr>
+              <th style={{ width: "40px" }} rowSpan={2}>STT</th>
+              <th style={{ minWidth: "170px" }} rowSpan={2} className="text-start">Họ và tên cán bộ, đảng viên</th>
+              <th style={{ width: "90px" }} rowSpan={2}>Điểm tự chấm</th>
+              <th colSpan={4} className="bg-light-subtle">
+                Kết quả kiểm phiếu (Số phiếu)
+              </th>
+              <th style={{ width: "80px" }} rowSpan={2}>Tổng phiếu</th>
+              <th style={{ minWidth: "185px" }} rowSpan={2}>Chi bộ đề xuất xếp loại</th>
+              <th style={{ minWidth: "220px" }} rowSpan={2}>Ý kiến nhận xét của Chi ủy</th>
+            </tr>
+            <tr>
+              <th style={{ width: "70px" }} className="text-success" title="Hoàn thành xuất sắc nhiệm vụ">Xuất sắc</th>
+              <th style={{ width: "70px" }} className="text-primary" title="Hoàn thành tốt nhiệm vụ">Tốt</th>
+              <th style={{ width: "70px" }} className="text-info" title="Hoàn thành nhiệm vụ">Hoàn thành</th>
+              <th style={{ width: "70px" }} className="text-danger" title="Không hoàn thành nhiệm vụ">Không HT</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRecords.length === 0 ? (
+              <tr>
+                <td colSpan={10} className="text-center py-4 text-muted fst-italic">
+                  Không tìm thấy hồ sơ cán bộ nào trong Chi bộ.
+                </td>
+              </tr>
             ) : (
-              <div className="space-y-3">
-                {/* Thông tin nhanh cán bộ */}
-                <div className="d-flex justify-content-between align-items-center p-2 rounded bg-light border" style={{ borderColor: "#e2e8f0" }}>
+              filteredRecords.map((rec, idx) => {
+                const vote = meetingVotes[rec.id] || {
+                  votesExcellent: rec.votesExcellent || 0,
+                  votesGood: rec.votesGood || 0,
+                  votesSatisfactory: rec.votesSatisfactory || 0,
+                  votesUnsatisfactory: rec.votesUnsatisfactory || 0,
+                  proposedGrade: rec.partyCellProposedGrade || "HoanThanhTot",
+                  comment: rec.partyCellComment || "",
+                };
+
+                const sumVotes =
+                  (vote.votesExcellent || 0) +
+                  (vote.votesGood || 0) +
+                  (vote.votesSatisfactory || 0) +
+                  (vote.votesUnsatisfactory || 0);
+
+                const isValid = totalVoters > 0 && sumVotes === totalVoters;
+
+                return (
+                  <tr key={rec.id} style={{ backgroundColor: isValid ? "transparent" : "#fffbeb" }}>
+                    <td className="text-center text-muted fw-semibold">{idx + 1}</td>
+                    <td>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                          <span
+                            className="fw-bold text-primary text-decoration-none"
+                            style={{ cursor: "pointer" }}
+                            onClick={() => setDetailRecord(rec)}
+                            title="Bấm để xem chi tiết tiêu chuẩn và minh chứng"
+                          >
+                            {rec.fullName}
+                          </span>
+                          <div className="text-muted" style={{ fontSize: "11px" }}>
+                            {rec.positionTitle || "Đảng viên"} {rec.partyRole ? `• ${rec.partyRole}` : ""}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-link btn-sm p-0 text-secondary"
+                          onClick={() => setDetailRecord(rec)}
+                          title="Xem chi tiết nhiệm vụ và tệp minh chứng"
+                        >
+                          <i className="bi bi-info-circle"></i>
+                        </button>
+                      </div>
+                    </td>
+                    <td className="text-center">
+                      <span className="fw-bold text-dark">{rec.totalSelfScore}đ</span>
+                      <div className="text-muted" style={{ fontSize: "10px" }}>
+                        {getGradeLabel(rec.selfProposedGrade)}
+                      </div>
+                    </td>
+                    <td className="p-1">
+                      <input
+                        type="number"
+                        min="0"
+                        className="form-control form-control-sm text-center p-1 fw-bold text-success"
+                        value={vote.votesExcellent}
+                        onChange={(e) =>
+                          onChangeMemberVote(rec.id, "votesExcellent", parseInt(e.target.value) || 0)
+                        }
+                      />
+                    </td>
+                    <td className="p-1">
+                      <input
+                        type="number"
+                        min="0"
+                        className="form-control form-control-sm text-center p-1 fw-bold text-primary"
+                        value={vote.votesGood}
+                        onChange={(e) =>
+                          onChangeMemberVote(rec.id, "votesGood", parseInt(e.target.value) || 0)
+                        }
+                      />
+                    </td>
+                    <td className="p-1">
+                      <input
+                        type="number"
+                        min="0"
+                        className="form-control form-control-sm text-center p-1 fw-bold text-info"
+                        value={vote.votesSatisfactory}
+                        onChange={(e) =>
+                          onChangeMemberVote(rec.id, "votesSatisfactory", parseInt(e.target.value) || 0)
+                        }
+                      />
+                    </td>
+                    <td className="p-1">
+                      <input
+                        type="number"
+                        min="0"
+                        className="form-control form-control-sm text-center p-1 fw-bold text-danger"
+                        value={vote.votesUnsatisfactory}
+                        onChange={(e) =>
+                          onChangeMemberVote(rec.id, "votesUnsatisfactory", parseInt(e.target.value) || 0)
+                        }
+                      />
+                    </td>
+                    <td className="text-center">
+                      <span
+                        className={`badge ${
+                          isValid
+                            ? "bg-success-subtle text-success border border-success-subtle"
+                            : "bg-danger-subtle text-danger border border-danger-subtle"
+                        }`}
+                        style={{ fontSize: "11px" }}
+                        title={isValid ? "Hợp lệ (bằng tổng cử tri)" : `Chưa khớp (${sumVotes}/${totalVoters})`}
+                      >
+                        {sumVotes}/{totalVoters}
+                      </span>
+                    </td>
+                    <td className="p-1">
+                      <select
+                        className="form-select form-select-sm"
+                        style={{ minWidth: "175px" }}
+                        value={vote.proposedGrade}
+                        onChange={(e) =>
+                          onChangeMemberVote(rec.id, "proposedGrade", e.target.value)
+                        }
+                      >
+                        <option value="HoanThanhXuatSac">Hoàn thành xuất sắc</option>
+                        <option value="HoanThanhTot">Hoàn thành tốt</option>
+                        <option value="HoanThanh">Hoàn thành</option>
+                        <option value="KhongHoanThanh">Không hoàn thành</option>
+                      </select>
+                    </td>
+                    <td className="p-1">
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="Nhận xét ưu điểm, hạn chế..."
+                        value={vote.comment}
+                        onChange={(e) =>
+                          onChangeMemberVote(rec.id, "comment", e.target.value)
+                        }
+                      />
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Chân trang thao tác đồng nhất */}
+      <div
+        className="card-footer bg-white border-top py-2.5 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2"
+        style={{ borderColor: "#e2e8f0" }}
+      >
+        <div className="text-secondary small">
+          Đã kiểm phiếu:{" "}
+          <strong className={validVotesCount === records.length && records.length > 0 ? "text-success" : "text-dark"}>
+            {validVotesCount}/{records.length} cán bộ
+          </strong>{" "}
+          (Tổng cử tri dự họp: <strong>{totalVoters}</strong>)
+        </div>
+
+        <div className="d-flex align-items-center gap-2 ms-auto">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={onSubmitMeeting}
+            disabled={isSubmitting || records.length === 0}
+            icon={isSubmitting ? "bi-arrow-repeat spin" : "bi-check2-circle"}
+            loading={isSubmitting}
+            loadingText="Đang lưu..."
+            className="px-3 text-nowrap"
+          >
+            Lưu Biên bản kiểm phiếu Chi bộ
+          </Button>
+        </div>
+      </div>
+
+      {/* Modal Chi tiết Cán bộ (Xem nhiệm vụ & minh chứng) */}
+      {detailRecord && (
+        <div
+          className="modal fade show d-block"
+          tabIndex={-1}
+          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
+        >
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content border-0 shadow">
+              <div className="modal-header py-2.5 px-3 bg-light border-bottom">
+                <h6 className="modal-title fw-bold text-dark mb-0">
+                  <i className="bi bi-person-badge text-primary me-2"></i>
+                  Chi tiết hồ sơ tự chấm: {detailRecord.fullName}
+                </h6>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setDetailRecord(null)}
+                ></button>
+              </div>
+              <div className="modal-body p-3">
+                <div className="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded border">
                   <div>
-                    <strong className="text-dark">{selectedRecord.fullName}</strong>
-                    <span className="text-secondary small ms-2">({selectedRecord.partyCellName} • {selectedRecord.positionTitle})</span>
+                    <span className="text-secondary small">Chức vụ: </span>
+                    <strong className="text-dark">{detailRecord.positionTitle}</strong>
+                    <span className="text-muted ms-2">({detailRecord.partyCellName})</span>
                   </div>
-                  <div className="small">
-                    Tự chấm: <strong className="text-primary">{selectedRecord.totalSelfScore}đ</strong>
+                  <div>
+                    <span className="text-secondary small">Tổng điểm tự chấm: </span>
+                    <strong className="text-success fs-6">{detailRecord.totalSelfScore}đ</strong>
+                    <span className="badge bg-primary-subtle text-primary ms-2">
+                      {getGradeLabel(detailRecord.selfProposedGrade)}
+                    </span>
                   </div>
                 </div>
 
-                {/* Danh sách nhiệm vụ & tệp minh chứng */}
-                <div className="table-responsive border rounded" style={{ borderColor: "#e2e8f0" }}>
+                <h6 className="fw-semibold text-secondary small mb-2">
+                  Danh sách nhiệm vụ chuyên môn và tệp minh chứng:
+                </h6>
+                <div className="table-responsive border rounded">
                   <table className="table table-sm table-hover align-middle mb-0 small">
-                    <thead>
+                    <thead className="table-light">
                       <tr>
                         <th style={{ width: "35px" }} className="text-center">STT</th>
-                        <th>Nhiệm vụ & Tiêu chuẩn</th>
-                        <th style={{ width: "70px" }} className="text-center">Trọng số</th>
-                        <th style={{ width: "70px" }} className="text-center">Điểm</th>
-                        <th style={{ width: "110px" }} className="text-center">Minh chứng</th>
+                        <th>Nhiệm vụ & Tiêu chuẩn giao</th>
+                        <th style={{ width: "75px" }} className="text-center">Trọng số</th>
+                        <th style={{ width: "75px" }} className="text-center">Tự chấm</th>
+                        <th style={{ width: "120px" }} className="text-center">Tài liệu đính kèm</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {(selectedRecord.tasks || []).map((task, idx) => {
-                        const attId = task.attachmentId;
-                        const attName = task.attachmentFileName || task.attachmentOriginalName;
-
+                      {(detailRecord.tasks || []).map((t, i) => {
+                        const attId = t.attachmentId;
+                        const attName = t.attachmentFileName || t.attachmentOriginalName;
                         return (
-                          <tr key={task.id}>
-                            <td className="text-center text-muted">{idx + 1}</td>
+                          <tr key={t.id}>
+                            <td className="text-center text-muted">{i + 1}</td>
                             <td>
-                              <div className="fw-medium text-dark">{task.taskName}</div>
-                              <div className="text-muted" style={{ fontSize: "11px" }}>{task.targetOutput}</div>
+                              <div className="fw-medium text-dark">{t.taskName}</div>
+                              <div className="text-muted" style={{ fontSize: "11px" }}>{t.targetOutput}</div>
                             </td>
-                            <td className="text-center">{task.weight}đ</td>
-                            <td className="text-center fw-semibold text-success">{task.selfScore}đ</td>
+                            <td className="text-center">{t.weight}đ</td>
+                            <td className="text-center fw-bold text-success">{t.selfScore}đ</td>
                             <td className="text-center">
                               {attId ? (
                                 <Button
@@ -270,7 +445,7 @@ export function Step3BranchReview({
                                   icon="bi-file-earmark-pdf"
                                   onClick={() => onOpenDocViewer(attId, attName)}
                                   title={attName || "Xem PDF"}
-                                  style={{ padding: "2px 6px", fontSize: "11px", maxWidth: "105px" }}
+                                  style={{ padding: "2px 6px", fontSize: "11px", maxWidth: "110px" }}
                                   className="text-truncate"
                                 >
                                   {attName || "Xem PDF"}
@@ -285,134 +460,16 @@ export function Step3BranchReview({
                     </tbody>
                   </table>
                 </div>
-
-                {/* Ý kiến nhận xét & đề xuất */}
-                <div className="row g-2">
-                  <div className="col-12 col-md-8">
-                    <label className="form-label small fw-semibold text-secondary mb-1">
-                      Ý kiến nhận xét của Chi ủy:
-                    </label>
-                    <input
-                      type="text"
-                      value={comment}
-                      onChange={(e) => onChangeComment(e.target.value)}
-                      placeholder="Nhận xét ưu điểm, hạn chế..."
-                      className="form-control form-control-sm"
-                    />
-                  </div>
-
-                  <div className="col-12 col-md-4">
-                    <label className="form-label small fw-semibold text-secondary mb-1">
-                      Chi bộ đề xuất:
-                    </label>
-                    <select
-                      value={proposedGrade}
-                      onChange={(e) => onChangeProposedGrade(e.target.value)}
-                      className="form-select form-select-sm"
-                    >
-                      <option value="HoanThanhXuatSac">Hoàn thành xuất sắc</option>
-                      <option value="HoanThanhTot">Hoàn thành tốt</option>
-                      <option value="HoanThanh">Hoàn thành</option>
-                      <option value="KhongHoanThanh">Không hoàn thành</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Khối nhập phiếu bầu kín */}
-                <div className="border rounded p-2.5 bg-light" style={{ borderColor: "#e2e8f0" }}>
-                  <div className="d-flex justify-content-between align-items-center mb-1.5">
-                    <span className="small fw-semibold text-dark">Kết quả bỏ phiếu kín:</span>
-                    <div className="d-flex align-items-center gap-1 small">
-                      <span className="text-secondary">Tổng cử tri:</span>
-                      <input
-                        type="number"
-                        min="1"
-                        value={totalVoters}
-                        onChange={(e) => onChangeTotalVoters(parseInt(e.target.value) || 0)}
-                        className="form-control form-control-sm text-center p-0 fw-bold"
-                        style={{ width: "50px", height: "26px" }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="row g-1 text-center" style={{ fontSize: "11px" }}>
-                    <div className="col-3">
-                      <span className="text-secondary d-block">Xuất sắc</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={votesExcellent}
-                        onChange={(e) => onChangeVotesExcellent(parseInt(e.target.value) || 0)}
-                        className="form-control form-control-sm text-center p-1 fw-bold text-success"
-                      />
-                    </div>
-                    <div className="col-3">
-                      <span className="text-secondary d-block">Tốt</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={votesGood}
-                        onChange={(e) => onChangeVotesGood(parseInt(e.target.value) || 0)}
-                        className="form-control form-control-sm text-center p-1 fw-bold text-primary"
-                      />
-                    </div>
-                    <div className="col-3">
-                      <span className="text-secondary d-block">Hoàn thành</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={votesSatisfactory}
-                        onChange={(e) => onChangeVotesSatisfactory(parseInt(e.target.value) || 0)}
-                        className="form-control form-control-sm text-center p-1 fw-bold text-secondary"
-                      />
-                    </div>
-                    <div className="col-3">
-                      <span className="text-secondary d-block">Không HT</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={votesUnsatisfactory}
-                        onChange={(e) => onChangeVotesUnsatisfactory(parseInt(e.target.value) || 0)}
-                        className="form-control form-control-sm text-center p-1 fw-bold text-danger"
-                      />
-                    </div>
-                  </div>
-
-                  {!isVotesValid && (
-                    <div className="text-danger small mt-1.5" style={{ fontSize: "11px" }}>
-                      * Tổng phiếu ({sumVotes}) chưa khớp với cử tri ({totalVoters}).
-                    </div>
-                  )}
-                </div>
-
-                {/* Nút thao tác */}
-                <div className="d-flex justify-content-end gap-2 pt-1">
-                  {onOpenPdf && (
-                    <Button
-                      variant="outline-secondary"
-                      onClick={() => onOpenPdf(selectedRecord, "mau10")}
-                      icon="bi-file-earmark-pdf"
-                    >
-                      Xuất Mẫu 10 (PDF)
-                    </Button>
-                  )}
-                  <Button
-                    variant="primary"
-                    onClick={onSubmit}
-                    disabled={!isVotesValid}
-                    loading={isSubmitting}
-                    loadingText="Đang lưu..."
-                    icon="bi-check2-circle"
-                    className="px-4"
-                  >
-                    Lưu đánh giá (Mẫu 10)
-                  </Button>
-                </div>
               </div>
-            )}
+              <div className="modal-footer py-2 px-3 bg-light border-top">
+                <Button variant="secondary" size="sm" onClick={() => setDetailRecord(null)}>
+                  Đóng
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

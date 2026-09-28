@@ -211,7 +211,36 @@ public class AttachmentDto
     public string UploadedBy { get; set; } = string.Empty;
 }
 
+/// <summary>Thông tin một bản ghi audit dành cho khu vực quản trị.</summary>
+public class AuditLogDto
+{
+    public Guid Id { get; set; }
+    public Guid? ActorId { get; set; }
+    public string ActorName { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public string EntityType { get; set; } = string.Empty;
+    public string EntityId { get; set; } = string.Empty;
+    public string OldValues { get; set; } = "{}";
+    public string NewValues { get; set; } = "{}";
+    public string? IpAddress { get; set; }
+    public string? RequestPath { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
 #region DTOs Quy trình Đánh giá Cán bộ 5 Bước (03-HD/TVĐU)
+
+/// <summary>Lịch sử chuyển trạng thái hồ sơ đánh giá.</summary>
+public class EvaluationRecordHistoryDto
+{
+    public Guid Id { get; set; }
+    public Guid RecordId { get; set; }
+    public string? FromStatus { get; set; }
+    public string ToStatus { get; set; } = string.Empty;
+    public Guid? ActorId { get; set; }
+    public string ActorName { get; set; } = string.Empty;
+    public string? Comment { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
 
 /// <summary>Thông tin công việc chuyên môn đăng ký và đánh giá (Mẫu 01 & Mẫu 02)</summary>
 public class EvaluationTaskDto
@@ -287,7 +316,7 @@ public class TaskInputDto
     public double Weight { get; set; }
 
     /// <summary>Thời hạn hoàn thành</summary>
-    public DateTime Deadline { get; set; }
+    public DateTime? Deadline { get; set; }
 
     /// <summary>Mã tệp tin minh chứng đính kèm</summary>
     public Guid? AttachmentId { get; set; }
@@ -520,6 +549,27 @@ public class SubmitBranchReviewRequestDto
     public int TotalVoters { get; set; }
 }
 
+/// <summary>Chi tiết phiếu bầu cho từng đảng viên trong cuộc họp Chi bộ</summary>
+public class BranchMemberVoteInputDto
+{
+    public Guid RecordId { get; set; }
+    public string Comment { get; set; } = string.Empty;
+    public string ProposedGrade { get; set; } = "HoanThanhTot";
+    public int VotesExcellent { get; set; }
+    public int VotesGood { get; set; }
+    public int VotesSatisfactory { get; set; }
+    public int VotesUnsatisfactory { get; set; }
+}
+
+/// <summary>Yêu cầu lưu toàn bộ Biên bản kiểm phiếu của Chi bộ trong cuộc họp</summary>
+public class SubmitBranchMeetingRequestDto
+{
+    public Guid PeriodId { get; set; }
+    public Guid PartyCellId { get; set; }
+    public int TotalVoters { get; set; }
+    public List<BranchMemberVoteInputDto> MemberVotes { get; set; } = new();
+}
+
 /// <summary>Bước 4: Tổ Thẩm định đối soát điểm và đề xuất xếp loại (Mẫu 03 & Mẫu 15)</summary>
 public class SubmitAppraisalRequestDto
 {
@@ -575,6 +625,133 @@ public class BranchQuotaCheckDto
 
     /// <summary>Có vi phạm vượt quá trần 20% hay không</summary>
     public bool IsExceedingQuota { get; set; }
+}
+
+/// <summary>Dòng nội dung chi tiết của hồ sơ tập thể Mẫu 06 hoặc Mẫu 08.</summary>
+public class CollectiveEvaluationItemDto
+{
+    public Guid Id { get; set; }
+    public int ItemOrder { get; set; }
+    public string Category { get; set; } = string.Empty;
+    public string TaskName { get; set; } = string.Empty;
+    public string PlanOrDirection { get; set; } = string.Empty;
+    public string Result { get; set; } = string.Empty;
+    public string Limitations { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+}
+
+/// <summary>Hồ sơ đánh giá tập thể Mẫu 06, 07, 08.</summary>
+public class CollectiveEvaluationRecordDto
+{
+    public Guid Id { get; set; }
+    public Guid PeriodId { get; set; }
+    public string Form { get; set; } = string.Empty;
+    public Guid? PartyCellId { get; set; }
+    public string? PartyCellName { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public string? DepartmentName { get; set; }
+    public Guid? HeadId { get; set; }
+    public string? HeadName { get; set; }
+    public string SubjectName { get; set; } = string.Empty;
+    public string Strengths { get; set; } = string.Empty;
+    public string Limitations { get; set; } = string.Empty;
+    public string Causes { get; set; } = string.Empty;
+    public string PreviousRemediation { get; set; } = string.Empty;
+    public string Explanation { get; set; } = string.Empty;
+    public string Responsibilities { get; set; } = string.Empty;
+    public string RemediationPlan { get; set; } = string.Empty;
+    public double GeneralCriteriaScore { get; set; }
+    public double TaskCriteriaScore { get; set; }
+    public double TotalScore { get; set; }
+    public string SelfProposedGrade { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public List<CollectiveEvaluationItemDto> Items { get; set; } = new();
+}
+
+/// <summary>Dữ liệu tạo/cập nhật hồ sơ tập thể.</summary>
+public class SaveCollectiveEvaluationRequestDto
+{
+    public Guid PeriodId { get; set; }
+    public string Form { get; set; } = "M07";
+    public Guid? PartyCellId { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public Guid? HeadId { get; set; }
+    public string SubjectName { get; set; } = string.Empty;
+    public string Strengths { get; set; } = string.Empty;
+    public string Limitations { get; set; } = string.Empty;
+    public string Causes { get; set; } = string.Empty;
+    public string PreviousRemediation { get; set; } = string.Empty;
+    public string Explanation { get; set; } = string.Empty;
+    public string Responsibilities { get; set; } = string.Empty;
+    public string RemediationPlan { get; set; } = string.Empty;
+    public double GeneralCriteriaScore { get; set; }
+    public double TaskCriteriaScore { get; set; }
+    public string SelfProposedGrade { get; set; } = "HoanThanhTot";
+    public List<CollectiveEvaluationItemDto> Items { get; set; } = new();
+}
+
+/// <summary>Thông tin hội nghị và biên bản Mẫu 12, 13.</summary>
+public class EvaluationMeetingDto
+{
+    public Guid Id { get; set; }
+    public Guid PeriodId { get; set; }
+    public Guid? PartyCellId { get; set; }
+    public string? PartyCellName { get; set; }
+    public string FormCode { get; set; } = string.Empty;
+    public string MeetingType { get; set; } = string.Empty;
+    public string Location { get; set; } = string.Empty;
+    public DateTime StartedAt { get; set; }
+    public DateTime? EndedAt { get; set; }
+    public int InvitedCount { get; set; }
+    public int PresentCount { get; set; }
+    public int AbsentCount { get; set; }
+    public string AbsentReasons { get; set; } = string.Empty;
+    public Guid? ChairId { get; set; }
+    public string ChairName { get; set; } = string.Empty;
+    public Guid? SecretaryId { get; set; }
+    public string SecretaryName { get; set; } = string.Empty;
+    public string MinutesContent { get; set; } = string.Empty;
+    public string OutcomeContent { get; set; } = string.Empty;
+    public string VoteCountingContent { get; set; } = string.Empty;
+    public List<EvaluationMeetingVoteSummaryDto> VoteSummaries { get; set; } = new();
+}
+
+/// <summary>Tổng hợp phiếu theo từng hồ sơ, không lưu danh tính người bỏ phiếu.</summary>
+public class EvaluationMeetingVoteSummaryDto
+{
+    public Guid? Id { get; set; }
+    public Guid RecordId { get; set; }
+    public string? FullName { get; set; }
+    public int VotesExcellent { get; set; }
+    public int VotesGood { get; set; }
+    public int VotesSatisfactory { get; set; }
+    public int VotesUnsatisfactory { get; set; }
+    public int InvalidVotes { get; set; }
+    public string Notes { get; set; } = string.Empty;
+}
+
+/// <summary>Dữ liệu tạo/cập nhật biên bản hội nghị và kiểm phiếu.</summary>
+public class SaveEvaluationMeetingRequestDto
+{
+    public Guid PeriodId { get; set; }
+    public Guid? PartyCellId { get; set; }
+    public string FormCode { get; set; } = "M12";
+    public string MeetingType { get; set; } = string.Empty;
+    public string Location { get; set; } = string.Empty;
+    public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? EndedAt { get; set; }
+    public int InvitedCount { get; set; }
+    public int PresentCount { get; set; }
+    public int AbsentCount { get; set; }
+    public string AbsentReasons { get; set; } = string.Empty;
+    public Guid? ChairId { get; set; }
+    public string ChairName { get; set; } = string.Empty;
+    public Guid? SecretaryId { get; set; }
+    public string SecretaryName { get; set; } = string.Empty;
+    public string MinutesContent { get; set; } = string.Empty;
+    public string OutcomeContent { get; set; } = string.Empty;
+    public string VoteCountingContent { get; set; } = string.Empty;
+    public List<EvaluationMeetingVoteSummaryDto> VoteSummaries { get; set; } = new();
 }
 
 #endregion

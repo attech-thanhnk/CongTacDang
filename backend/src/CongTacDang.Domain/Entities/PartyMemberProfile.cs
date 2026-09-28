@@ -7,7 +7,7 @@ namespace CongTacDang.Domain.Entities;
 /// <summary>
 /// Thực thể hồ sơ Cán bộ lãnh đạo, quản lý 2 vai (Đảng vụ và Chính quyền) theo Hướng dẫn 03-HD/TVĐU
 /// </summary>
-public class PartyMemberProfile
+public class PartyMemberProfile : IAuditableEntity, ISoftDeletable
 {
     /// <summary>Mã định danh cán bộ</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -82,6 +82,13 @@ public class PartyMemberProfile
 
     /// <summary>Thời điểm khởi tạo hồ sơ</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public Guid? CreatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? UpdatedBy { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedBy { get; set; }
 
     /// <summary>Danh sách vai trò quyền hạn được gán cho cán bộ (Dynamic RBAC)</summary>
     public ICollection<AppRole> Roles { get; set; } = new List<AppRole>();

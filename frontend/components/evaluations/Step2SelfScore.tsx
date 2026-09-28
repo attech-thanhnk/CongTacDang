@@ -26,6 +26,7 @@ interface Step2SelfScoreProps {
   onOpenUploadModal: (taskId: string, currentAttId?: string | null) => void;
   onOpenDocViewer: (attId: string, fileName?: string | null) => void;
   onOpenPdf?: (record: EvaluationRecordDto) => void;
+  onExportDocx?: () => void;
 }
 
 const GENERAL_CRITERIA = [
@@ -65,6 +66,7 @@ export function Step2SelfScore({
   onOpenUploadModal,
   onOpenDocViewer,
   onOpenPdf,
+  onExportDocx,
 }: Step2SelfScoreProps) {
   const sumGeneral = generalScores.reduce((sum, v) => sum + (Number(v) || 0), 0);
   const weights = getJobGroupWeights(myRecord.jobGroup);
@@ -87,23 +89,40 @@ export function Step2SelfScore({
     onChangeGeneralScores(next);
   };
 
+  const getGradeText = (g?: string | null) => {
+    switch (g) {
+      case "HoanThanhXuatSac":
+        return "Hoàn thành xuất sắc";
+      case "HoanThanhTot":
+        return "Hoàn thành tốt";
+      case "HoanThanh":
+        return "Hoàn thành";
+      case "KhongHoanThanh":
+        return "Không hoàn thành";
+      default:
+        return g || "Chưa chọn";
+    }
+  };
+
   return (
-    <div className="space-y-2.5">
-      {/* Tóm tắt điểm tự chấm & Xếp loại đề xuất (Thanh phẳng) */}
-      <div className="border rounded bg-white p-2.5 d-flex flex-wrap justify-content-between align-items-center gap-2" style={{ borderColor: "#e2e8f0" }}>
+    <div className="border rounded bg-white shadow-sm" style={{ borderColor: "#e2e8f0" }}>
+      {/* Header đồng nhất */}
+      <div
+        className="card-header bg-white border-bottom py-2.5 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2"
+        style={{ borderColor: "#e2e8f0" }}
+      >
+        <div>
+          <h2 className="mb-0 text-dark" style={{ fontSize: "14px", fontWeight: 600, lineHeight: 1.4 }}>
+            Tự đánh giá kết quả thực hiện sản phẩm, công việc hằng quý
+          </h2>
+        </div>
+
         <div className="d-flex align-items-center gap-2.5 flex-wrap">
           <span
             className="badge"
-            style={{ backgroundColor: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe" }}
-          >
-            Mẫu 02
-          </span>
-          <span
-            className="badge"
-            style={{ backgroundColor: "#f0fdf4", color: "#15803d", border: "1px solid #bbf7d0", fontSize: "11px" }}
+            style={{ backgroundColor: "#f0fdf4", color: "#15803d", border: "1px solid #bbf7d0", fontSize: "11.5px" }}
             title="Khung chức danh áp dụng tính điểm 4 tiêu chí chuyên môn"
           >
-            <i className="bi bi-briefcase me-1"></i>
             {weights.name}
           </span>
           <span className="small text-secondary">
@@ -115,69 +134,68 @@ export function Step2SelfScore({
           </span>
           <span className="text-muted opacity-40">|</span>
           <span className="small text-secondary">
-            Tổng tự chấm: <strong className="fs-6 text-dark">{totalSelfScore.toFixed(1)}/100.0đ</strong>
+            Tổng tự chấm:
+          </span>
+          <span
+            className="badge fw-semibold"
+            style={{
+              fontSize: "12px",
+              backgroundColor: "#eff6ff",
+              color: "#1d4ed8",
+              border: "1px solid #bfdbfe",
+            }}
+          >
+            {totalSelfScore.toFixed(1)} / 100.0đ
           </span>
         </div>
+      </div>
 
-        <div className="d-flex align-items-center gap-2 ms-auto flex-wrap">
-          <label className="text-secondary small mb-0 text-nowrap">Đề xuất:</label>
+      {/* Thanh chọn mức xếp loại đề xuất */}
+      <div
+        className="py-2 px-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2"
+        style={{ backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }}
+      >
+        <div className="d-flex align-items-center gap-2">
+          <label className="text-secondary small mb-0 fw-semibold">Đề xuất mức xếp loại:</label>
           <select
             value={selfProposedGrade}
             onChange={(e) => onChangeProposedGrade(e.target.value)}
             className="form-select form-select-sm"
-            style={{ width: "190px" }}
+            style={{ minWidth: "260px", fontSize: "13px" }}
           >
-            <option value="HoanThanhXuatSac">Hoàn thành xuất sắc</option>
-            <option value="HoanThanhTot">Hoàn thành tốt</option>
-            <option value="HoanThanh">Hoàn thành</option>
-            <option value="KhongHoanThanh">Không hoàn thành</option>
+            <option value="HoanThanhXuatSac">Hoàn thành xuất sắc nhiệm vụ</option>
+            <option value="HoanThanhTot">Hoàn thành tốt nhiệm vụ</option>
+            <option value="HoanThanh">Hoàn thành nhiệm vụ</option>
+            <option value="KhongHoanThanh">Không hoàn thành nhiệm vụ</option>
           </select>
-
-          {onOpenPdf && (
-            <Button
-              size="sm"
-              variant="outline-primary"
-              icon="bi-file-earmark-pdf"
-              onClick={() => onOpenPdf(myRecord)}
-              className="text-nowrap"
-              title="Xem và xuất Bản tự đánh giá (Mẫu 02) ra PDF"
-            >
-              Xuất Mẫu 02 (PDF)
-            </Button>
-          )}
-
-          <Button
-            size="sm"
-            variant="primary"
-            icon="bi-check2-circle"
-            loading={isSubmitting}
-            loadingText="Đang lưu..."
-            onClick={onSubmit}
-            className="text-nowrap"
-          >
-            Lưu đánh giá (Mẫu 02)
-          </Button>
         </div>
+
+        {selfProposedGrade === "HoanThanhXuatSac" && (
+          <div className="small text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200" style={{ fontSize: "12px" }}>
+            <i className="bi bi-info-circle me-1"></i>
+            Yêu cầu: Tối thiểu 30% số công việc có minh chứng vượt chuẩn.
+          </div>
+        )}
       </div>
 
-      {/* Khối làm việc phẳng gồm 2 phần chấm điểm liền mạch */}
-      <div className="border rounded bg-white overflow-hidden" style={{ borderColor: "#e2e8f0" }}>
+      {/* Phần chấm điểm */}
+      <div>
         {/* Phần I: Tiêu chí chung (30 điểm) */}
         <div
-          className="bg-light-subtle border-bottom py-2 px-3 d-flex justify-content-between align-items-center"
+          className="bg-light border-bottom py-2 px-3 d-flex justify-content-between align-items-center"
           style={{ borderColor: "#e2e8f0" }}
         >
           <span className="fw-semibold text-dark small">
             I. Tiêu chí chung về chính trị tư tưởng, đạo đức, tác phong (Tối đa 30.0đ)
           </span>
-          <span className="text-secondary small">
+          <span className="text-secondary small fw-medium">
             {sumGeneral.toFixed(1)} / 30.0đ
           </span>
         </div>
 
         <div className="table-responsive">
-          <table className="table table-sm table-hover align-middle mb-0 small">
-            <thead className="text-center table-light">
+          <table className="table table-sm table-hover align-middle mb-0" style={{ fontSize: "13px" }}>
+            <thead className="text-center" style={{ backgroundColor: "#f8fafc" }}>
               <tr>
                 <th style={{ width: "45px" }}>STT</th>
                 <th className="text-start">Nội dung tiêu chí</th>
@@ -209,15 +227,15 @@ export function Step2SelfScore({
           </table>
         </div>
 
-        {/* Phần II: Chấm nhiệm vụ chuyên môn (70 điểm) */}
+        {/* Phần II: Chấm sản phẩm, công việc chuyên môn (70 điểm) */}
         <div
-          className="bg-light-subtle border-top border-bottom py-2 px-3 d-flex justify-content-between align-items-center"
+          className="bg-light border-top border-bottom py-2 px-3 d-flex justify-content-between align-items-center"
           style={{ borderColor: "#e2e8f0" }}
         >
           <span className="fw-semibold text-dark small">
-            II. Kết quả thực hiện nhiệm vụ chuyên môn (Tối đa 70.0đ)
+            II. Kết quả thực hiện sản phẩm, công việc chuyên môn (Tối đa 70.0đ)
           </span>
-          <span className="text-secondary small">
+          <span className="text-secondary small fw-medium">
             {sumTasks.toFixed(1)} / 70.0đ
           </span>
         </div>
@@ -225,23 +243,23 @@ export function Step2SelfScore({
         <div>
           {!myRecord.tasks || myRecord.tasks.length === 0 ? (
             <div className="p-4 text-muted small text-center">
-              Chưa có nhiệm vụ nào được đăng ký ở Bước 1.
+              Chưa có sản phẩm, công việc nào được đăng ký ở Bước 1.
             </div>
           ) : (
             <div className="table-responsive">
-              <table className="table table-sm table-hover align-middle mb-0 small">
-                <thead className="text-center">
-                  <tr>
+              <table className="table table-sm table-hover align-middle mb-0" style={{ fontSize: "13px" }}>
+                <thead className="text-center" style={{ backgroundColor: "#f8fafc" }}>
+                  <tr style={{ fontSize: "12.5px" }} className="text-secondary">
                     <th style={{ width: "40px" }}>STT</th>
-                    <th className="text-start">Nhiệm vụ đăng ký</th>
+                    <th className="text-start">Sản phẩm, công việc chuyên môn</th>
                     <th style={{ width: "75px" }}>Trọng số</th>
-                    <th style={{ width: "85px" }}>A: C.Lượng ({Math.round(weights.wa * 100)}%)</th>
-                    <th style={{ width: "85px" }}>B: T.Độ ({Math.round(weights.wb * 100)}%)</th>
-                    <th style={{ width: "85px" }}>C: C.Động ({Math.round(weights.wc * 100)}%)</th>
-                    <th style={{ width: "85px" }}>D: Kỷ luật ({Math.round(weights.wd * 100)}%)</th>
+                    <th style={{ width: "95px" }} title="Tiêu chí A: Khối lượng công việc hoàn thành">A: Khối lượng ({Math.round(weights.wa * 100)}%)</th>
+                    <th style={{ width: "95px" }} title="Tiêu chí B: Chất lượng sản phẩm, công việc">B: Chất lượng ({Math.round(weights.wb * 100)}%)</th>
+                    <th style={{ width: "95px" }} title="Tiêu chí C: Tiến độ hoàn thành theo cam kết">C: Tiến độ ({Math.round(weights.wc * 100)}%)</th>
+                    <th style={{ width: "95px" }} title="Tiêu chí D: Hiệu quả, sáng tạo, đổi mới">D: Hiệu quả ({Math.round(weights.wd * 100)}%)</th>
                     <th style={{ width: "85px" }}>Vượt mức</th>
                     <th style={{ width: "80px" }}>Điểm đạt</th>
-                    <th style={{ width: "120px" }}>Minh chứng</th>
+                    <th style={{ width: "120px" }}>Tài liệu đính kèm</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -269,7 +287,8 @@ export function Step2SelfScore({
                           <select
                             value={ratio.a}
                             onChange={(e) => onChangeTaskRatio(task.id, "a", parseFloat(e.target.value))}
-                            className="form-select form-select-sm text-center p-1"
+                            className="form-select form-select-sm"
+                            style={{ width: "72px", paddingRight: "22px", paddingLeft: "6px", fontSize: "12px", display: "inline-block" }}
                           >
                             <option value="1.0">1.0</option>
                             <option value="0.9">0.9</option>
@@ -283,7 +302,8 @@ export function Step2SelfScore({
                           <select
                             value={ratio.b}
                             onChange={(e) => onChangeTaskRatio(task.id, "b", parseFloat(e.target.value))}
-                            className="form-select form-select-sm text-center p-1"
+                            className="form-select form-select-sm"
+                            style={{ width: "72px", paddingRight: "22px", paddingLeft: "6px", fontSize: "12px", display: "inline-block" }}
                           >
                             <option value="1.0">1.0</option>
                             <option value="0.9">0.9</option>
@@ -295,7 +315,8 @@ export function Step2SelfScore({
                           <select
                             value={ratio.c}
                             onChange={(e) => onChangeTaskRatio(task.id, "c", parseFloat(e.target.value))}
-                            className="form-select form-select-sm text-center p-1"
+                            className="form-select form-select-sm"
+                            style={{ width: "72px", paddingRight: "22px", paddingLeft: "6px", fontSize: "12px", display: "inline-block" }}
                           >
                             <option value="1.0">1.0</option>
                             <option value="0.9">0.9</option>
@@ -307,7 +328,8 @@ export function Step2SelfScore({
                           <select
                             value={ratio.d}
                             onChange={(e) => onChangeTaskRatio(task.id, "d", parseFloat(e.target.value))}
-                            className="form-select form-select-sm text-center p-1"
+                            className="form-select form-select-sm"
+                            style={{ width: "72px", paddingRight: "22px", paddingLeft: "6px", fontSize: "12px", display: "inline-block" }}
                           >
                             <option value="1.0">1.0</option>
                             <option value="0.9">0.9</option>
@@ -388,6 +410,61 @@ export function Step2SelfScore({
               </table>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Chân trang thao tác đồng nhất */}
+      <div
+        className="card-footer bg-white border-top py-2.5 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2"
+        style={{ borderColor: "#e2e8f0" }}
+      >
+        <div className="text-secondary small">
+          Tổng tự chấm: <strong className="text-dark">{totalSelfScore.toFixed(1)}/100.0đ</strong>
+          <span className="mx-2 text-muted">|</span>
+          Mức đề xuất: <strong className="text-primary">{getGradeText(selfProposedGrade)}</strong>
+        </div>
+
+        <div className="d-flex align-items-center gap-2 ms-auto">
+          {onExportDocx && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline-primary"
+              icon="bi-file-earmark-word"
+              onClick={onExportDocx}
+              className="text-nowrap"
+              title="Tải Phiếu tự đánh giá định dạng Word"
+            >
+              Tải bản Word (.docx)
+            </Button>
+          )}
+
+          {onOpenPdf && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline-primary"
+              icon="bi-file-earmark-pdf"
+              onClick={() => onOpenPdf(myRecord)}
+              className="text-nowrap"
+              title="Xem và in Bản tự đánh giá"
+            >
+              Xem / In (PDF)
+            </Button>
+          )}
+
+          <Button
+            type="button"
+            size="sm"
+            variant="primary"
+            icon="bi-check2-circle"
+            loading={isSubmitting}
+            loadingText="Đang lưu..."
+            onClick={onSubmit}
+            className="px-3 text-nowrap"
+          >
+            Lưu kết quả tự chấm
+          </Button>
         </div>
       </div>
     </div>

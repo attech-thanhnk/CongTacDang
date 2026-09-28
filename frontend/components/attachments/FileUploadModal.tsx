@@ -148,7 +148,7 @@ export function FileUploadModal({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 bg-slate-900 text-white">
           <div>
-            <h3 className="font-bold text-sm">Đính kèm Hồ sơ Minh chứng</h3>
+            <h3 className="font-bold text-sm">Đính kèm tài liệu</h3>
             {effectiveTaskTitle && (
               <p className="text-[11px] text-slate-300 truncate max-w-md mt-0.5" title={effectiveTaskTitle}>
                 Nhiệm vụ: {effectiveTaskTitle}
@@ -250,18 +250,18 @@ export function FileUploadModal({
               {/* Form fields */}
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Mã biểu mẫu áp dụng:</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Phân loại minh chứng:</label>
                   <select
                     value={formCode}
                     onChange={(e) => setFormCode(e.target.value)}
                     className="w-full border border-slate-300 rounded p-2 bg-white focus:outline-none focus:border-rose-900"
                   >
-                    <option value="MAU01">Mẫu 01 (Đăng ký nhiệm vụ)</option>
-                    <option value="MAU02">Mẫu 02 (Tự đánh giá sản phẩm)</option>
-                    <option value="MAU09">Mẫu 09 (Tiêu chí chung)</option>
-                    <option value="MAU10">Mẫu 10 (Họp Chi bộ)</option>
-                    <option value="MAU15">Mẫu 15 (Thẩm định Đảng ủy)</option>
-                    <option value="GENERAL">Tài liệu khác</option>
+                    <option value="MAU01">Đăng ký nhiệm vụ chuyên môn</option>
+                    <option value="MAU02">Minh chứng sản phẩm chuyên môn</option>
+                    <option value="MAU09">Minh chứng tiêu chí chung</option>
+                    <option value="MAU10">Biên bản / Nhận xét Chi bộ</option>
+                    <option value="MAU15">Hồ sơ thẩm định Đảng ủy</option>
+                    <option value="GENERAL">Tài liệu minh chứng khác</option>
                   </select>
                 </div>
                 <div>

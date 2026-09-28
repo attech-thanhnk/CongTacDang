@@ -247,7 +247,7 @@ export default function DashboardPage() {
     <div className="page-wrapper">
       {/* ── PAGE HEADER ── */}
       <div className="page-header-bar">
-        <div>
+        <div className="page-header-content">
           <h1 style={{ fontSize: "20px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
             {isAdmin ? "Tổng quan quản trị" : "Tổng quan"}
           </h1>
@@ -258,7 +258,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div className="page-header-actions dashboard-header-actions">
           {/* Bộ chọn kỳ đánh giá */}
           {periods.length > 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -362,17 +362,12 @@ export default function DashboardPage() {
                 boxShadow: "var(--shadow-sm)",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", marginBottom: "14px" }}>
                 <div>
                   <h2 style={{ fontSize: "15px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
                     Tiến độ quy trình 5 bước
                   </h2>
                 </div>
-                <Link href={`/evaluations?periodId=${selectedPeriodId}`} style={{ textDecoration: "none" }}>
-                  <Button size="sm" variant="outline-primary">
-                    Chi tiết quy trình
-                  </Button>
-                </Link>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
@@ -603,17 +598,12 @@ export default function DashboardPage() {
                 boxShadow: "var(--shadow-sm)",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", marginBottom: "16px" }}>
                 <div>
                   <h2 style={{ fontSize: "15px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
                     Tiến độ đánh giá cá nhân
                   </h2>
                 </div>
-                <Link href={`/evaluations?periodId=${selectedPeriodId}`} style={{ textDecoration: "none" }}>
-                  <Button size="sm" variant="outline-primary">
-                    Vào chi tiết
-                  </Button>
-                </Link>
               </div>
 
               {/* TIMELINE 5 BƯỚC */}

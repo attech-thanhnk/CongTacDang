@@ -19,8 +19,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 }) => {
   return (
     <div className={`page-header-bar ${className}`}>
-      <div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <div className="page-header-content">
+        <div className="page-header-title-row">
           <h1>{title}</h1>
           {badge && <div>{badge}</div>}
         </div>
@@ -30,7 +30,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       </div>
 
       {actions && (
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+        <div className="page-header-actions">
           {actions}
         </div>
       )}

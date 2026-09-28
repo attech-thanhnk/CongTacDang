@@ -25,6 +25,6 @@ public interface IRepository<T> where T : class
     /// <summary>Cập nhật thông tin thực thể</summary>
     Task UpdateAsync(T entity);
 
-    /// <summary>Xóa thực thể khỏi cơ sở dữ liệu</summary>
+    /// <summary>Đánh dấu thực thể xóa mềm nếu entity hỗ trợ, ngược lại xóa vật lý.</summary>
     Task DeleteAsync(T entity);
 }

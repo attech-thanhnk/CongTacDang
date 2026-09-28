@@ -15,6 +15,8 @@ interface Step5ApprovalProps {
   onSubmit: () => void;
   isSubmitting: boolean;
   onOpenPdf: (record: EvaluationRecordDto) => void;
+  onExportMau14Excel?: () => void;
+  onExportMau15Excel?: () => void;
 }
 
 export function Step5Approval({
@@ -28,6 +30,8 @@ export function Step5Approval({
   onSubmit,
   isSubmitting,
   onOpenPdf,
+  onExportMau14Excel,
+  onExportMau15Excel,
 }: Step5ApprovalProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [filterStatus, setFilterStatus] = React.useState<"all" | "pending" | "approved">("all");
@@ -65,18 +69,42 @@ export function Step5Approval({
   };
 
   return (
-    <div className="border rounded bg-white" style={{ borderColor: "#e2e8f0" }}>
-      <div className="card-header bg-white border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center" style={{ borderColor: "#e2e8f0" }}>
+    <div className="border rounded bg-white shadow-sm" style={{ borderColor: "#e2e8f0" }}>
+      <div
+        className="card-header bg-white border-bottom py-2.5 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2"
+        style={{ borderColor: "#e2e8f0" }}
+      >
+        <div>
+          <h2 className="mb-0 text-dark" style={{ fontSize: "14px", fontWeight: 600, lineHeight: 1.4 }}>
+            Ban Thường vụ Đảng ủy Chuẩn y & Phê duyệt kết quả
+          </h2>
+        </div>
+
         <div className="d-flex align-items-center gap-2">
-          <span
-            className="badge"
-            style={{ backgroundColor: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe" }}
-          >
-            Mẫu 07
-          </span>
-          <span className="fw-semibold text-dark small">
-            BTV Đảng ủy chuẩn y xếp loại
-          </span>
+          {onExportMau14Excel && (
+            <Button
+              size="sm"
+              variant="outline-primary"
+              onClick={onExportMau14Excel}
+              icon="bi-file-earmark-excel"
+              className="text-nowrap"
+              title="Tải Bảng tổng hợp xếp loại đề xuất trình BTV phê duyệt"
+            >
+              Xuất bảng tổng hợp (.xlsx)
+            </Button>
+          )}
+          {onExportMau15Excel && (
+            <Button
+              size="sm"
+              variant="outline-primary"
+              onClick={onExportMau15Excel}
+              icon="bi-file-earmark-excel"
+              className="text-nowrap"
+              title="Tải Bảng kiểm soát tỷ lệ trần 20% Hoàn thành xuất sắc nhiệm vụ"
+            >
+              Xuất kiểm soát trần 20% (.xlsx)
+            </Button>
+          )}
         </div>
       </div>
 
@@ -158,7 +186,7 @@ export function Step5Approval({
                       <th style={{ width: "100px" }}>Chi bộ</th>
                       <th style={{ width: "75px" }}>T.Định</th>
                       <th style={{ width: "115px" }}>BTV Chuẩn y</th>
-                      <th style={{ width: "65px" }}>Biểu mẫu</th>
+                      <th style={{ width: "65px" }}>Hồ sơ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -221,7 +249,7 @@ export function Step5Approval({
                                 e.stopPropagation();
                                 onOpenPdf(rec);
                               }}
-                              title="Xem và xuất PDF biểu mẫu"
+                              title="Xem và in hồ sơ cán bộ"
                               style={{ padding: "2px 6px" }}
                             />
                           </td>
@@ -298,14 +326,18 @@ export function Step5Approval({
 
                 <div className="pt-2 d-flex flex-column gap-2">
                   <Button
-                    variant="outline-secondary"
+                    type="button"
+                    size="sm"
+                    variant="outline-primary"
                     onClick={() => onOpenPdf(selectedRecord)}
                     icon="bi-file-earmark-pdf"
                     className="w-100"
                   >
-                    Xuất biểu mẫu hồ sơ (PDF)
+                    Xem & In hồ sơ (PDF)
                   </Button>
                   <Button
+                    type="button"
+                    size="sm"
                     variant="primary"
                     onClick={onSubmit}
                     loading={isSubmitting}
@@ -313,7 +345,7 @@ export function Step5Approval({
                     icon="bi-check2-circle"
                     className="w-100"
                   >
-                    Chuẩn y (Mẫu 07)
+                    Chuẩn y xếp loại
                   </Button>
                 </div>
               </div>

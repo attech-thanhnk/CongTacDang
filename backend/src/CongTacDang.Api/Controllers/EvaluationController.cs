@@ -103,8 +103,17 @@ public class EvaluationController : ControllerBase
     [Authorize(Policy = AppPermissions.EvaluationsRead)]
     public async Task<IActionResult> GetRecordById(Guid id)
     {
-        var record = await _evaluationService.GetRecordByIdAsync(id);
+        var record = await _evaluationService.GetRecordByIdAsync(id, GetCurrentUserId());
         return Ok(ApiResponse<EvaluationRecordDto>.Ok(record, "Lấy chi tiết hồ sơ đánh giá thành công."));
+    }
+
+    /// <summary>Lấy lịch sử chuyển trạng thái và người thực hiện của hồ sơ.</summary>
+    [HttpGet("records/{id}/history")]
+    [Authorize(Policy = AppPermissions.EvaluationsRead)]
+    public async Task<IActionResult> GetRecordHistory(Guid id)
+    {
+        var history = await _evaluationService.GetRecordHistoryAsync(id, GetCurrentUserId());
+        return Ok(ApiResponse<List<EvaluationRecordHistoryDto>>.Ok(history, "Lấy lịch sử hồ sơ đánh giá thành công."));
     }
 
     /// <summary>Lấy toàn bộ danh sách hồ sơ đánh giá của một kỳ (Chỉ dành cho Tổ Thẩm định & BTV)</summary>
@@ -112,7 +121,7 @@ public class EvaluationController : ControllerBase
     [Authorize(Policy = AppPermissions.PolicyEvaluationsAppraiseOrApprove)]
     public async Task<IActionResult> GetRecordsByPeriod([FromQuery] Guid periodId)
     {
-        var records = await _evaluationService.GetRecordsByPeriodAsync(periodId);
+        var records = await _evaluationService.GetRecordsByPeriodAsync(periodId, GetCurrentUserId());
         return Ok(ApiResponse<List<EvaluationRecordDto>>.Ok(records, "Lấy danh sách hồ sơ đánh giá thành công."));
     }
 
@@ -160,6 +169,16 @@ public class EvaluationController : ControllerBase
         return Ok(ApiResponse<EvaluationRecordDto>.Ok(result, "Ghi nhận đánh giá của Chi bộ thành công."));
     }
 
+    /// <summary>Bước 3b: Chi bộ lưu toàn bộ Biên bản kiểm phiếu của Chi bộ trong cuộc họp (Mẫu 13)</summary>
+    [HttpPost("branch-meeting-review")]
+    [Authorize(Policy = AppPermissions.EvaluationsBranchVote)]
+    public async Task<IActionResult> SubmitBranchMeeting([FromBody] SubmitBranchMeetingRequestDto dto)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _evaluationService.SubmitBranchMeetingAsync(userId, dto);
+        return Ok(ApiResponse<List<EvaluationRecordDto>>.Ok(result, "Ghi nhận kết quả kiểm phiếu Chi bộ thành công."));
+    }
+
     /// <summary>Bước 4: Tổ Thẩm định đối soát điểm và đề xuất xếp loại (Mẫu 03)</summary>
     [HttpPost("appraisal")]
     [Authorize(Policy = AppPermissions.EvaluationsAppraise)]
@@ -175,7 +194,7 @@ public class EvaluationController : ControllerBase
     [Authorize(Policy = AppPermissions.PolicyEvaluationsAppraiseOrApprove)]
     public async Task<IActionResult> CheckBranchQuotas([FromQuery] Guid periodId)
     {
-        var quotas = await _evaluationService.CheckBranchQuotasAsync(periodId);
+        var quotas = await _evaluationService.CheckBranchQuotasAsync(periodId, GetCurrentUserId());
         return Ok(ApiResponse<List<BranchQuotaCheckDto>>.Ok(quotas, "Kiểm tra tỷ lệ trần 20% theo Chi bộ thành công."));
     }
 

@@ -7,7 +7,7 @@ namespace CongTacDang.Domain.Entities;
 /// Vai trò người dùng trong hệ thống (Role-Based Access Control)
 /// Hỗ trợ cấu hình động quyền hạn thông qua CSDL
 /// </summary>
-public class AppRole
+public class AppRole : IAuditableEntity, ISoftDeletable
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -22,6 +22,14 @@ public class AppRole
 
     /// <summary>Vai trò hệ thống (không thể xóa nếu là true)</summary>
     public bool IsSystem { get; set; } = false;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid? CreatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? UpdatedBy { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedBy { get; set; }
 
     /// <summary>Danh sách quyền hạn được gán cho vai trò này</summary>
     public ICollection<Permission> Permissions { get; set; } = new List<Permission>();

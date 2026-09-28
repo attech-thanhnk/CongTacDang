@@ -5,7 +5,7 @@ namespace CongTacDang.Domain.Entities;
 /// <summary>
 /// Thực thể lưu trữ tệp đính kèm văn bản và hồ sơ minh chứng đánh giá theo Hướng dẫn 03-HD/TVĐU
 /// </summary>
-public class TaskAttachment
+public class TaskAttachment : IAuditableEntity, ISoftDeletable
 {
     /// <summary>Mã định danh duy nhất của tệp đính kèm</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -58,4 +58,13 @@ public class TaskAttachment
 
     /// <summary>Trạng thái tệp (đang sử dụng / đã ẩn)</summary>
     public bool IsActive { get; set; } = true;
+
+    public Guid? CreatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? UpdatedBy { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedBy { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

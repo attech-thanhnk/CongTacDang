@@ -6,7 +6,7 @@ namespace CongTacDang.Domain.Entities;
 /// <summary>
 /// Thực thể Chi bộ trực thuộc Đảng bộ Công ty ATTECH
 /// </summary>
-public class PartyCell
+public class PartyCell : IAuditableEntity, ISoftDeletable
 {
     /// <summary>Mã định danh Chi bộ</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -32,6 +32,13 @@ public class PartyCell
     /// <summary>Thời điểm tạo Chi bộ trên hệ thống</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    public Guid? CreatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? UpdatedBy { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedBy { get; set; }
+
     /// <summary>Danh sách cán bộ, Đảng viên sinh hoạt tại Chi bộ</summary>
     public ICollection<PartyMemberProfile> Members { get; set; } = new List<PartyMemberProfile>();
 }
@@ -39,7 +46,7 @@ public class PartyCell
 /// <summary>
 /// Thực thể Phòng ban / Phân xưởng chuyên môn thuộc Công ty ATTECH
 /// </summary>
-public class AdministrativeDepartment
+public class AdministrativeDepartment : IAuditableEntity, ISoftDeletable
 {
     /// <summary>Mã định danh đơn vị chuyên môn</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -58,6 +65,14 @@ public class AdministrativeDepartment
 
     /// <summary>Trạng thái hoạt động</summary>
     public bool IsActive { get; set; } = true;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid? CreatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? UpdatedBy { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedBy { get; set; }
 
     /// <summary>Danh sách cán bộ công tác tại đơn vị chuyên môn</summary>
     public ICollection<PartyMemberProfile> Members { get; set; } = new List<PartyMemberProfile>();

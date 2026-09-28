@@ -126,6 +126,23 @@ export interface SubmitBranchReviewRequestDto {
   totalVoters: number;
 }
 
+export interface BranchMemberVoteInputDto {
+  recordId: string;
+  comment: string;
+  proposedGrade: string;
+  votesExcellent: number;
+  votesGood: number;
+  votesSatisfactory: number;
+  votesUnsatisfactory: number;
+}
+
+export interface SubmitBranchMeetingRequestDto {
+  periodId: string;
+  partyCellId: string;
+  totalVoters: number;
+  memberVotes: BranchMemberVoteInputDto[];
+}
+
 /** Bước 4: Tổ Thẩm định đối soát và đề xuất (Mẫu 03) */
 export interface SubmitAppraisalRequestDto {
   recordId: string;
@@ -144,6 +161,121 @@ export interface BranchQuotaCheckDto {
   proposedExcellentCount: number;
   actualExcellentPercentage: number;
   isExceedingQuota: boolean;
+}
+
+export interface CollectiveEvaluationItemDto {
+  id?: string;
+  itemOrder: number;
+  category: string;
+  taskName: string;
+  planOrDirection: string;
+  result: string;
+  limitations: string;
+  notes: string;
+}
+
+export interface CollectiveEvaluationRecordDto {
+  id: string;
+  periodId: string;
+  form: string;
+  partyCellId?: string;
+  partyCellName?: string;
+  departmentId?: string;
+  departmentName?: string;
+  headId?: string;
+  headName?: string;
+  subjectName: string;
+  strengths: string;
+  limitations: string;
+  causes: string;
+  previousRemediation: string;
+  explanation: string;
+  responsibilities: string;
+  remediationPlan: string;
+  generalCriteriaScore: number;
+  taskCriteriaScore: number;
+  totalScore: number;
+  selfProposedGrade: string;
+  status: string;
+  items: CollectiveEvaluationItemDto[];
+}
+
+export interface SaveCollectiveEvaluationRequestDto {
+  periodId: string;
+  form: "M06" | "M07" | "M08";
+  partyCellId?: string;
+  departmentId?: string;
+  headId?: string;
+  subjectName: string;
+  strengths: string;
+  limitations: string;
+  causes: string;
+  previousRemediation: string;
+  explanation: string;
+  responsibilities: string;
+  remediationPlan: string;
+  generalCriteriaScore: number;
+  taskCriteriaScore: number;
+  selfProposedGrade: string;
+  items: CollectiveEvaluationItemDto[];
+}
+
+export interface EvaluationMeetingVoteSummaryDto {
+  id?: string;
+  recordId: string;
+  fullName?: string;
+  votesExcellent: number;
+  votesGood: number;
+  votesSatisfactory: number;
+  votesUnsatisfactory: number;
+  invalidVotes: number;
+  notes: string;
+}
+
+export interface EvaluationMeetingDto {
+  id: string;
+  periodId: string;
+  partyCellId?: string;
+  partyCellName?: string;
+  formCode: string;
+  meetingType: string;
+  location: string;
+  startedAt: string;
+  endedAt?: string;
+  invitedCount: number;
+  presentCount: number;
+  absentCount: number;
+  absentReasons: string;
+  chairId?: string;
+  chairName: string;
+  secretaryId?: string;
+  secretaryName: string;
+  minutesContent: string;
+  outcomeContent: string;
+  voteCountingContent: string;
+  voteSummaries: EvaluationMeetingVoteSummaryDto[];
+}
+
+export interface SaveEvaluationMeetingRequestDto {
+  periodId: string;
+  partyCellId: string;
+  formCode: "M12" | "M13";
+  meetingType: string;
+  location: string;
+  startedAt: string;
+  endedAt?: string;
+  invitedCount: number;
+  presentCount: number;
+  absentCount: number;
+  absentReasons: string;
+  chairId?: string;
+  chairName: string;
+  secretaryId?: string;
+  secretaryName: string;
+  minutesContent: string;
+  outcomeContent: string;
+  voteCountingContent: string;
+  voteSummaries: EvaluationMeetingVoteSummaryDto[];
 }
 
 /** Bước 5: Ban Thường vụ chuẩn y xếp loại chính thức (Mẫu 14 & 16) */
@@ -232,6 +364,14 @@ export const evaluationService = {
     });
   },
 
+  /** Bước 3b: Chi bộ lưu toàn bộ Biên bản kiểm phiếu của Chi bộ trong cuộc họp (Mẫu 13) */
+  async submitBranchMeeting(dto: SubmitBranchMeetingRequestDto): Promise<EvaluationRecordDto[]> {
+    return request<EvaluationRecordDto[]>("/evaluations/branch-meeting-review", {
+      method: "POST",
+      body: JSON.stringify(dto),
+    });
+  },
+
   /** Bước 4: Tổ Thẩm định đối soát điểm và đề xuất xếp loại (Mẫu 03) */
   async submitAppraisal(dto: SubmitAppraisalRequestDto): Promise<EvaluationRecordDto> {
     return request<EvaluationRecordDto>("/evaluations/appraisal", {
@@ -243,6 +383,34 @@ export const evaluationService = {
   /** Bước 4b: Kiểm tra tỷ lệ trần 20% Hoàn thành xuất sắc nhiệm vụ theo Chi bộ (Mẫu 15) */
   async checkBranchQuotas(periodId: string): Promise<BranchQuotaCheckDto[]> {
     return request<BranchQuotaCheckDto[]>(`/evaluations/branch-quotas?periodId=${periodId}`);
+  },
+
+  /** Lấy hồ sơ đánh giá tập thể M06-M08. */
+  async getCollectiveRecords(periodId: string, form?: string): Promise<CollectiveEvaluationRecordDto[]> {
+    const query = form ? `periodId=${periodId}&form=${encodeURIComponent(form)}` : `periodId=${periodId}`;
+    return request<CollectiveEvaluationRecordDto[]>(`/evaluations/collective-records?${query}`);
+  },
+
+  /** Tạo hồ sơ đánh giá tập thể M06-M08. */
+  async createCollectiveRecord(dto: SaveCollectiveEvaluationRequestDto): Promise<CollectiveEvaluationRecordDto> {
+    return request<CollectiveEvaluationRecordDto>("/evaluations/collective-records", {
+      method: "POST",
+      body: JSON.stringify(dto),
+    });
+  },
+
+  /** Lấy biên bản hội nghị M12-M13. */
+  async getMeetings(periodId: string, partyCellId?: string): Promise<EvaluationMeetingDto[]> {
+    const query = partyCellId ? `periodId=${periodId}&partyCellId=${partyCellId}` : `periodId=${periodId}`;
+    return request<EvaluationMeetingDto[]>(`/evaluations/meetings?${query}`);
+  },
+
+  /** Tạo biên bản hội nghị hoặc kiểm phiếu M12-M13. */
+  async createMeeting(dto: SaveEvaluationMeetingRequestDto): Promise<EvaluationMeetingDto> {
+    return request<EvaluationMeetingDto>("/evaluations/meetings", {
+      method: "POST",
+      body: JSON.stringify(dto),
+    });
   },
 
   /** Bước 5: Ban Thường vụ chuẩn y mức xếp loại chính thức (Mẫu 14 & 16) */

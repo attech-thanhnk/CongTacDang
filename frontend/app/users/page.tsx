@@ -1000,6 +1000,7 @@ function UsersContent() {
                       { code: "CAN_BO", name: "Cán bộ, Đảng viên", desc: "Quyền cơ bản: Đăng ký việc M01, tự chấm điểm M02" },
                       { code: "BI_THU_CHI_BO", name: "Bí thư Chi bộ", desc: "Đánh giá, nhận xét, chủ trì bỏ phiếu Chi bộ M10, 13" },
                       { code: "TO_THAM_DINH", name: "Tổ Thẩm định", desc: "Thẩm định đối soát điểm, kiểm soát tỷ lệ trần 20% M03, 15" },
+                      { code: "DANG_UY_CO_SO", name: "Đảng ủy cơ sở", desc: "Quyết định, phê duyệt hồ sơ thuộc thẩm quyền cấp cơ sở" },
                       { code: "BAN_THUONG_VU", name: "Ban Thường vụ Đảng ủy", desc: "Chuẩn y mức xếp loại chính thức M14, 16" },
                       { code: "QUAN_TRI_HE_THONG", name: "Quản trị hệ thống", desc: "Toàn quyền cấu hình hệ thống và phân quyền động" },
                     ].map((role) => {

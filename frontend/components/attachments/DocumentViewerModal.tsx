@@ -71,7 +71,7 @@ export function DocumentViewerModal({
         <div className="flex items-center justify-between px-5 py-3.5 bg-slate-900 text-white">
           <div className="flex items-center gap-3 overflow-hidden">
             <span className="text-xs font-bold uppercase tracking-wider bg-rose-800 text-white px-2 py-0.5 rounded">
-              Minh chứng
+          Tài liệu đính kèm
             </span>
             <span className="font-semibold text-sm truncate max-w-md" title={fileName}>
               {fileName}

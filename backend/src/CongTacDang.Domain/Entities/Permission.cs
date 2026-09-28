@@ -7,7 +7,7 @@ namespace CongTacDang.Domain.Entities;
 /// Quyền hạn nguyên tử (Atomic Permission) trong hệ thống
 /// Ví dụ: users.read, branches.create, attachments.delete
 /// </summary>
-public class Permission
+public class Permission : IAuditableEntity, ISoftDeletable
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -25,6 +25,14 @@ public class Permission
 
     /// <summary>Mô tả chi tiết mục đích của quyền</summary>
     public string Description { get; set; } = string.Empty;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid? CreatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? UpdatedBy { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedBy { get; set; }
 
     /// <summary>Danh sách các vai trò được cấp quyền này</summary>
     public ICollection<AppRole> Roles { get; set; } = new List<AppRole>();

@@ -42,19 +42,19 @@ export const EvaluationPdfModal: React.FC<Props> = ({
   const getTitle = () => {
     switch (currentType) {
       case "mau01":
-        return `Mẫu 01: Bản đăng ký công việc chuyên môn (Đầu quý) — ${record?.fullName || ""}`;
+        return `Bản đăng ký công việc chuyên môn (Đầu quý) — ${record?.fullName || ""}`;
       case "mau02":
-        return `Mẫu 02: Bản tự đánh giá sản phẩm chuyên môn (70đ) — ${record?.fullName || ""}`;
+        return `Bản tự đánh giá sản phẩm chuyên môn (70đ) — ${record?.fullName || ""}`;
       case "mau09":
-        return `Mẫu 09: Phiếu tự đánh giá tiêu chí chung (30đ) — ${record?.fullName || ""}`;
+        return `Phiếu tự đánh giá tiêu chí chung (30đ) — ${record?.fullName || ""}`;
       case "mau10":
-        return `Mẫu 10: Bản nhận xét đánh giá của Cấp ủy Chi bộ — ${record?.fullName || ""}`;
+        return `Bản nhận xét đánh giá của Cấp ủy Chi bộ — ${record?.fullName || ""}`;
       case "mau13":
-        return `Mẫu 13: Biên bản kiểm phiếu bỏ phiếu kín của Chi bộ — ${record?.fullName || ""}`;
+        return `Biên bản kiểm phiếu bỏ phiếu kín của Chi bộ — ${record?.fullName || ""}`;
       case "mau14":
-        return `Mẫu 14: Bảng tổng hợp xếp loại toàn Đảng bộ — ${period?.name || ""}`;
+        return `Bảng tổng hợp xếp loại toàn Đảng bộ — ${period?.name || ""}`;
       case "mau15":
-        return `Mẫu 15: Báo cáo kiểm soát hạn ngạch 20% Xuất sắc — ${period?.name || ""}`;
+        return `Báo cáo kiểm soát trần 20% Hoàn thành xuất sắc — ${period?.name || ""}`;
       case "individual":
       default:
         return `Hồ sơ cá nhân tổng hợp — ${record?.fullName || "Cán bộ"}`;
@@ -113,7 +113,7 @@ export const EvaluationPdfModal: React.FC<Props> = ({
         <div className="no-print bg-slate-900 text-white px-6 py-3.5 flex items-center justify-between border-b border-slate-800">
           <div>
             <h3 className="font-bold text-base text-slate-100">{getTitle()}</h3>
-            <p className="text-xs text-slate-400">Thể thức văn bản chuẩn theo Hướng dẫn số 03-HD/TVĐU Đảng ủy VATM</p>
+            <p className="text-xs text-slate-400">Thể thức văn bản chuẩn Đảng ủy VATM</p>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -122,7 +122,7 @@ export const EvaluationPdfModal: React.FC<Props> = ({
               className="px-3.5 py-1.5 bg-blue-800 hover:bg-blue-900 text-white text-xs font-semibold rounded shadow transition cursor-pointer d-inline-flex align-items-center gap-1.5"
             >
               <i className="bi bi-printer"></i>
-              <span>Lưu PDF / In biểu mẫu</span>
+              <span>Lưu PDF / In tài liệu</span>
             </button>
             <button
               onClick={onClose}
@@ -136,49 +136,49 @@ export const EvaluationPdfModal: React.FC<Props> = ({
         {/* Form Selector Bar for Cadre evaluation */}
         {isCadreForm && (
           <div className="no-print bg-slate-800 px-6 py-2 border-b border-slate-700 flex flex-wrap gap-1.5 text-xs">
-            <span className="text-slate-400 py-1 mr-2 self-center font-semibold">Chọn phôi in:</span>
+            <span className="text-slate-400 py-1 mr-2 self-center font-semibold">Chọn loại văn bản:</span>
             <button
               onClick={() => setCurrentType("mau01")}
               className={`px-2.5 py-1 rounded transition cursor-pointer ${currentType === "mau01" ? "bg-blue-800 text-white font-bold" : "bg-slate-700 text-slate-300 hover:bg-slate-600"}`}
             >
-              Mẫu 01 (Đăng ký việc)
+              Đăng ký nhiệm vụ (Đầu quý)
             </button>
             <button
               onClick={() => setCurrentType("mau02")}
               className={`px-2.5 py-1 rounded transition cursor-pointer ${currentType === "mau02" ? "bg-blue-800 text-white font-bold" : "bg-slate-700 text-slate-300 hover:bg-slate-600"}`}
             >
-              Mẫu 02 (Tự chấm việc 70đ)
+              Tự chấm nhiệm vụ (70đ)
             </button>
             <button
               onClick={() => setCurrentType("mau09")}
               className={`px-2.5 py-1 rounded transition cursor-pointer ${currentType === "mau09" ? "bg-blue-800 text-white font-bold" : "bg-slate-700 text-slate-300 hover:bg-slate-600"}`}
             >
-              Mẫu 09 (Tự chấm chung 30đ)
+              Tự chấm tiêu chí chung (30đ)
             </button>
             <button
               onClick={() => setCurrentType("mau10")}
               className={`px-2.5 py-1 rounded transition cursor-pointer ${currentType === "mau10" ? "bg-blue-800 text-white font-bold" : "bg-slate-700 text-slate-300 hover:bg-slate-600"}`}
             >
-              Mẫu 10 (Nhận xét Chi bộ)
+              Nhận xét Chi bộ
             </button>
             <button
               onClick={() => setCurrentType("mau13")}
               className={`px-2.5 py-1 rounded transition cursor-pointer ${currentType === "mau13" ? "bg-blue-800 text-white font-bold" : "bg-slate-700 text-slate-300 hover:bg-slate-600"}`}
             >
-              Mẫu 13 (Biên bản kiểm phiếu)
+              Biên bản kiểm phiếu
             </button>
             <button
               onClick={() => setCurrentType("individual")}
               className={`px-2.5 py-1 rounded transition cursor-pointer ${currentType === "individual" ? "bg-blue-800 text-white font-bold" : "bg-slate-700 text-slate-300 hover:bg-slate-600"}`}
             >
-              Bản Hồ Sơ Tổng Hợp
+              Hồ sơ tổng hợp cá nhân
             </button>
           </div>
         )}
 
         {/* Action instruction bar */}
         <div className="no-print bg-slate-100 border-b border-slate-300 px-6 py-2 text-xs text-slate-700 flex items-center justify-between">
-          <span><strong>Hướng dẫn:</strong> Bấm nút <strong>"Lưu PDF / In biểu mẫu"</strong>, tại hộp thoại in chọn <strong>"Destination: Save as PDF"</strong> để lưu file PDF.</span>
+          <span><strong>Lưu ý:</strong> Bấm nút <strong>"Lưu PDF / In tài liệu"</strong>, tại hộp thoại in chọn <strong>"Destination: Save as PDF"</strong> để lưu tệp PDF.</span>
           <span className="font-mono text-slate-500">Khổ: A4 ({currentType === "mau14" ? "Ngang" : "Dọc"})</span>
         </div>
 

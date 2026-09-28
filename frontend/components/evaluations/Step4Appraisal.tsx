@@ -19,6 +19,7 @@ interface Step4AppraisalProps {
   isSubmitting: boolean;
   onOpenDocViewer: (attId: string, fileName?: string | null) => void;
   onOpenPdf?: (record: EvaluationRecordDto, templateType?: any) => void;
+  onExportMau10Docx?: (record: EvaluationRecordDto) => void;
 }
 
 export function Step4Appraisal({
@@ -36,6 +37,7 @@ export function Step4Appraisal({
   isSubmitting,
   onOpenDocViewer,
   onOpenPdf,
+  onExportMau10Docx,
 }: Step4AppraisalProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [filterStatus, setFilterStatus] = React.useState<"all" | "pending" | "appraised">("all");
@@ -77,21 +79,15 @@ export function Step4Appraisal({
     <div className="space-y-3">
       {/* Bảng Quota trần 20% với thanh tiến độ trực quan */}
       {quotas.length > 0 && (
-        <div className="border rounded bg-white mb-3" style={{ borderColor: "#e2e8f0" }}>
+        <div className="border rounded bg-white shadow-sm mb-3" style={{ borderColor: "#e2e8f0" }}>
           <div
             className="card-header bg-white border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center"
             style={{ borderColor: "#e2e8f0" }}
           >
-            <div className="d-flex align-items-center gap-2">
-              <span
-                className="badge"
-                style={{ backgroundColor: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", fontSize: "11px" }}
-              >
-                Mẫu 15
-              </span>
-              <span className="fw-semibold text-dark small">
-                Trần 20% Xuất sắc theo Chi bộ
-              </span>
+            <div>
+              <h2 className="mb-0 text-dark" style={{ fontSize: "14px", fontWeight: 600, lineHeight: 1.4 }}>
+                Kiểm soát tỷ lệ trần 20% Hoàn thành xuất sắc theo Chi bộ
+              </h2>
             </div>
           </div>
 
@@ -144,23 +140,17 @@ export function Step4Appraisal({
       )}
 
       {/* Thẩm định hồ sơ */}
-      <div className="border rounded bg-white" style={{ borderColor: "#e2e8f0" }}>
+      <div className="border rounded bg-white shadow-sm" style={{ borderColor: "#e2e8f0" }}>
         <div
           className="card-header bg-white border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center"
           style={{ borderColor: "#e2e8f0" }}
         >
-          <div className="d-flex align-items-center gap-2">
-            <span
-              className="badge"
-              style={{ backgroundColor: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", fontSize: "11px" }}
-            >
-              Mẫu 03
-            </span>
-            <span className="fw-semibold text-dark small">
-              Thẩm định điểm số & Minh chứng
-            </span>
+          <div>
+            <h2 className="mb-0 text-dark" style={{ fontSize: "14px", fontWeight: 600, lineHeight: 1.4 }}>
+              Thẩm định điểm số, đối soát chuyên môn & ghi nhận giải trình
+            </h2>
           </div>
-          <span className="text-secondary small" style={{ fontSize: "11.5px" }}>
+          <span className="text-secondary small" style={{ fontSize: "12px" }}>
             Hồ sơ toàn Đảng bộ: <strong>{records.length}</strong>
           </span>
         </div>
@@ -310,7 +300,7 @@ export function Step4Appraisal({
                           <th>Nhiệm vụ</th>
                           <th style={{ width: "70px" }} className="text-center">Trọng số</th>
                           <th style={{ width: "70px" }} className="text-center">Tự chấm</th>
-                          <th style={{ width: "120px" }} className="text-center">Minh chứng</th>
+                          <th style={{ width: "120px" }} className="text-center">Tài liệu đính kèm</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -387,6 +377,7 @@ export function Step4Appraisal({
                         value={appraisalGrade}
                         onChange={(e) => onChangeAppraisalGrade(e.target.value)}
                         className="form-select form-select-sm"
+                        style={{ minWidth: "175px" }}
                       >
                         <option value="HoanThanhXuatSac">Hoàn thành xuất sắc</option>
                         <option value="HoanThanhTot">Hoàn thành tốt</option>
@@ -409,26 +400,44 @@ export function Step4Appraisal({
                     </div>
                   </div>
 
-                  {/* Nút thao tác */}
-                  <div className="d-flex justify-content-end gap-2 pt-2">
+                  {/* Nút thao tác đồng nhất size sm */}
+                  <div className="d-flex justify-content-end gap-2 pt-2.5 border-top" style={{ borderColor: "#e2e8f0" }}>
+                    {onExportMau10Docx && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline-primary"
+                        onClick={() => onExportMau10Docx(selectedRecord)}
+                        icon="bi-file-earmark-word"
+                        className="text-nowrap"
+                        title="Tải Phiếu thẩm định, nhận xét, giải trình định dạng Word"
+                      >
+                        Tải phiếu thẩm định (.docx)
+                      </Button>
+                    )}
                     {onOpenPdf && (
                       <Button
-                        variant="outline-secondary"
+                        type="button"
+                        size="sm"
+                        variant="outline-primary"
                         onClick={() => onOpenPdf(selectedRecord, "individual")}
                         icon="bi-file-earmark-pdf"
+                        title="Xem và in hồ sơ cán bộ"
                       >
-                        Xuất biểu mẫu thẩm định (PDF)
+                        Xem / In hồ sơ (PDF)
                       </Button>
                     )}
                     <Button
+                      type="button"
+                      size="sm"
                       variant="primary"
                       onClick={onSubmit}
                       loading={isSubmitting}
                       loadingText="Đang lưu..."
                       icon="bi-check2-circle"
-                      className="px-4"
+                      className="px-3"
                     >
-                      Lưu thẩm định (Mẫu 03)
+                      Lưu thẩm định
                     </Button>
                   </div>
                 </div>

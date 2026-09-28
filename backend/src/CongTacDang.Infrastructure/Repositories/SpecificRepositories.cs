@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Domain.Entities;
+using CongTacDang.Domain.Enums;
 using CongTacDang.Infrastructure.Data;
 
 namespace CongTacDang.Infrastructure.Repositories;
@@ -88,6 +90,33 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
     }
 }
 
+/// <summary>Repository chỉ đọc nhật ký audit tập trung.</summary>
+public class AuditRepository : IAuditRepository
+{
+    private readonly CongTacDangDbContext _db;
+
+    /// <summary>Khởi tạo repository audit.</summary>
+    public AuditRepository(CongTacDangDbContext db)
+    {
+        _db = db;
+    }
+
+    /// <summary>Truy vấn audit log mới nhất theo bộ lọc tùy chọn.</summary>
+    public async Task<List<AuditLog>> GetAuditLogsAsync(string? entityType, string? entityId, int limit)
+    {
+        var query = _db.AuditLogs.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(entityType))
+            query = query.Where(x => x.EntityType == entityType);
+        if (!string.IsNullOrWhiteSpace(entityId))
+            query = query.Where(x => x.EntityId == entityId);
+
+        return await query
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(Math.Clamp(limit, 1, 500))
+            .ToListAsync();
+    }
+}
+
 /// <summary>
 /// Repository quản lý tổ chức Chi bộ và Phòng ban
 /// </summary>
@@ -140,7 +169,7 @@ public class OrganizationRepository : IOrganizationRepository
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Xóa Chi bộ khỏi cơ sở dữ liệu</summary>
+    /// <summary>Đánh dấu Chi bộ xóa mềm qua DbContext.</summary>
     public async Task DeletePartyCellAsync(PartyCell cell)
     {
         _db.PartyCells.Remove(cell);
@@ -154,10 +183,13 @@ public class OrganizationRepository : IOrganizationRepository
 public class RoleRepository : IRoleRepository
 {
     private readonly CongTacDangDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public RoleRepository(CongTacDangDbContext db)
+    /// <summary>Khởi tạo repository quản trị role và actor context cho audit.</summary>
+    public RoleRepository(CongTacDangDbContext db, ICurrentUserService currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<List<AppRole>> GetAllRolesWithPermissionsAsync()
@@ -199,6 +231,7 @@ public class RoleRepository : IRoleRepository
         if (role == null)
             throw new KeyNotFoundException($"Không tìm thấy vai trò với Id: {roleId}");
 
+        var previousCodes = role.Permissions.Select(p => p.Code).OrderBy(x => x).ToArray();
         var targetCodes = permissionCodes.Distinct().ToList();
         var permissions = await _db.Permissions
             .Where(p => targetCodes.Contains(p.Code))
@@ -211,6 +244,7 @@ public class RoleRepository : IRoleRepository
         }
 
         await _db.SaveChangesAsync();
+        await WriteRoleAuditAsync(roleId, "UpdatePermissions", previousCodes, permissions.Select(p => p.Code).OrderBy(x => x).ToArray());
     }
 
     public async Task AssignRolesToUserAsync(Guid userId, IEnumerable<string> roleCodes)
@@ -222,6 +256,7 @@ public class RoleRepository : IRoleRepository
         if (member == null)
             throw new KeyNotFoundException($"Không tìm thấy cán bộ với Id: {userId}");
 
+        var previousCodes = member.Roles.Select(r => r.Code).OrderBy(x => x).ToArray();
         var targetCodes = roleCodes.Distinct().ToList();
         var roles = await _db.Roles
             .Where(r => targetCodes.Contains(r.Code))
@@ -232,6 +267,49 @@ public class RoleRepository : IRoleRepository
         {
             member.Roles.Add(r);
         }
+
+        await _db.SaveChangesAsync();
+        await WriteUserRolesAuditAsync(userId, previousCodes, roles.Select(r => r.Code).OrderBy(x => x).ToArray());
+    }
+
+    /// <summary>Ghi audit thay đổi ma trận quyền của một role.</summary>
+    private async Task WriteRoleAuditAsync(Guid roleId, string action, string[] previousCodes, string[] currentCodes)
+    {
+        _db.AuditLogs.Add(new AuditLog
+        {
+            ActorId = _currentUser.UserId,
+            ActorName = string.IsNullOrWhiteSpace(_currentUser.UserName) ? "system" : _currentUser.UserName,
+            Action = action,
+            EntityType = nameof(AppRole),
+            EntityId = roleId.ToString(),
+            OldValues = JsonSerializer.Serialize(new { permissionCodes = previousCodes }),
+            NewValues = JsonSerializer.Serialize(new { permissionCodes = currentCodes }),
+            IpAddress = _currentUser.IpAddress,
+            UserAgent = _currentUser.UserAgent,
+            RequestPath = _currentUser.RequestPath,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>Ghi audit thay đổi danh sách role được gán cho một người dùng.</summary>
+    private async Task WriteUserRolesAuditAsync(Guid userId, string[] previousCodes, string[] currentCodes)
+    {
+        _db.AuditLogs.Add(new AuditLog
+        {
+            ActorId = _currentUser.UserId,
+            ActorName = string.IsNullOrWhiteSpace(_currentUser.UserName) ? "system" : _currentUser.UserName,
+            Action = "AssignRoles",
+            EntityType = nameof(PartyMemberProfile),
+            EntityId = userId.ToString(),
+            OldValues = JsonSerializer.Serialize(new { roleCodes = previousCodes }),
+            NewValues = JsonSerializer.Serialize(new { roleCodes = currentCodes }),
+            IpAddress = _currentUser.IpAddress,
+            UserAgent = _currentUser.UserAgent,
+            RequestPath = _currentUser.RequestPath,
+            CreatedAt = DateTime.UtcNow
+        });
 
         await _db.SaveChangesAsync();
     }
@@ -312,6 +390,16 @@ public class EvaluationRepository : IEvaluationRepository
             .FirstOrDefaultAsync(r => r.Id == id);
     }
 
+    /// <summary>Truy vấn các mốc trạng thái của hồ sơ theo thời gian tăng dần.</summary>
+    public async Task<List<EvaluationRecordHistory>> GetRecordHistoriesAsync(Guid recordId)
+    {
+        return await _db.EvaluationRecordHistories
+            .AsNoTracking()
+            .Where(x => x.RecordId == recordId)
+            .OrderBy(x => x.CreatedAt)
+            .ToListAsync();
+    }
+
     /// <summary>Lấy toàn bộ hồ sơ đánh giá trong một kỳ</summary>
     public async Task<List<EvaluationRecord>> GetRecordsByPeriodAsync(Guid periodId)
     {
@@ -356,6 +444,13 @@ public class EvaluationRepository : IEvaluationRepository
         await _db.SaveChangesAsync();
     }
 
+    /// <summary>Lưu một mốc chuyển trạng thái của hồ sơ đánh giá.</summary>
+    public async Task AddRecordHistoryAsync(EvaluationRecordHistory history)
+    {
+        _db.EvaluationRecordHistories.Add(history);
+        await _db.SaveChangesAsync();
+    }
+
     /// <summary>Lấy danh sách công việc đăng ký</summary>
     public async Task<List<EvaluationTask>> GetTasksByRecordIdAsync(Guid recordId)
     {
@@ -379,4 +474,105 @@ public class EvaluationRepository : IEvaluationRepository
     }
 }
 
+/// <summary>Repository triển khai hồ sơ đánh giá tập thể.</summary>
+public class CollectiveEvaluationRepository : ICollectiveEvaluationRepository
+{
+    private readonly CongTacDangDbContext _db;
 
+    public CollectiveEvaluationRepository(CongTacDangDbContext db)
+    {
+        _db = db;
+    }
+
+    /// <summary>Lấy hồ sơ tập thể kèm các dòng nội dung chi tiết.</summary>
+    public async Task<CollectiveEvaluationRecord?> GetByIdAsync(Guid id)
+    {
+        return await _db.CollectiveEvaluationRecords
+            .Include(x => x.Period)
+            .Include(x => x.PartyCell)
+            .Include(x => x.Department)
+            .Include(x => x.Head)
+            .Include(x => x.Items.OrderBy(i => i.ItemOrder))
+            .FirstOrDefaultAsync(x => x.Id == id);
+    }
+
+    /// <summary>Lấy danh sách hồ sơ tập thể theo kỳ và tùy chọn biểu mẫu.</summary>
+    public async Task<List<CollectiveEvaluationRecord>> GetByPeriodAsync(Guid periodId, CollectiveEvaluationForm? form = null)
+    {
+        var query = _db.CollectiveEvaluationRecords
+            .Include(x => x.PartyCell)
+            .Include(x => x.Department)
+            .Include(x => x.Items.OrderBy(i => i.ItemOrder))
+            .Where(x => x.PeriodId == periodId);
+
+        if (form.HasValue)
+            query = query.Where(x => x.Form == form.Value);
+
+        return await query.OrderBy(x => x.Form).ThenBy(x => x.SubjectName).ToListAsync();
+    }
+
+    /// <summary>Lưu mới hồ sơ tập thể.</summary>
+    public async Task AddAsync(CollectiveEvaluationRecord record)
+    {
+        _db.CollectiveEvaluationRecords.Add(record);
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>Lưu thay đổi hồ sơ tập thể.</summary>
+    public async Task UpdateAsync(CollectiveEvaluationRecord record)
+    {
+        _db.CollectiveEvaluationRecords.Update(record);
+        await _db.SaveChangesAsync();
+    }
+}
+
+/// <summary>Repository triển khai biên bản hội nghị và kiểm phiếu.</summary>
+public class EvaluationMeetingRepository : IEvaluationMeetingRepository
+{
+    private readonly CongTacDangDbContext _db;
+
+    public EvaluationMeetingRepository(CongTacDangDbContext db)
+    {
+        _db = db;
+    }
+
+    /// <summary>Lấy biên bản kèm tổng hợp phiếu.</summary>
+    public async Task<EvaluationMeeting?> GetByIdAsync(Guid id)
+    {
+        return await _db.EvaluationMeetings
+            .Include(x => x.Period)
+            .Include(x => x.PartyCell)
+            .Include(x => x.VoteSummaries)
+                .ThenInclude(x => x.Record)
+                    .ThenInclude(x => x.Member)
+            .FirstOrDefaultAsync(x => x.Id == id);
+    }
+
+    /// <summary>Lấy biên bản theo kỳ và tùy chọn Chi bộ.</summary>
+    public async Task<List<EvaluationMeeting>> GetByPeriodAsync(Guid periodId, Guid? partyCellId = null)
+    {
+        var query = _db.EvaluationMeetings
+            .Include(x => x.PartyCell)
+            .Include(x => x.VoteSummaries)
+            .Where(x => x.PeriodId == periodId);
+
+        if (partyCellId.HasValue)
+            query = query.Where(x => x.PartyCellId == partyCellId);
+
+        return await query.OrderByDescending(x => x.StartedAt).ToListAsync();
+    }
+
+    /// <summary>Lưu mới biên bản hội nghị.</summary>
+    public async Task AddAsync(EvaluationMeeting meeting)
+    {
+        _db.EvaluationMeetings.Add(meeting);
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>Lưu thay đổi biên bản hội nghị.</summary>
+    public async Task UpdateAsync(EvaluationMeeting meeting)
+    {
+        _db.EvaluationMeetings.Update(meeting);
+        await _db.SaveChangesAsync();
+    }
+}

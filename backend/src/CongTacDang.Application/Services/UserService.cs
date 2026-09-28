@@ -71,7 +71,6 @@ public class UserService : IUserService
             if (member.PartyRole == PartyRole.BiThuDangUy || member.PartyRole == PartyRole.PhoBiThuDangUy || member.PartyRole == PartyRole.UyVienBanThuongVu)
             {
                 roles.Add(AppRoles.BAN_THUONG_VU);
-                roles.Add(AppRoles.QUAN_TRI_HE_THONG);
             }
             if (member.PartyRole == PartyRole.BiThuChiBo || member.PartyRole == PartyRole.PhoBiThuChiBo)
             {

@@ -8,12 +8,13 @@ import { Button } from "@/components/common";
 interface Step1RegisterTasksProps {
   tasks: TaskInputDto[];
   onChangeTasks: (tasks: TaskInputDto[]) => void;
-  onSubmit: () => void;
+  onSubmit: (tasks?: TaskInputDto[]) => void;
   isSubmitting: boolean;
   isLocked?: boolean;
   onOpenUploadModal: (taskIndex: number, currentAttId?: string | null) => void;
   onOpenDocViewer: (attId: string, fileName?: string | null) => void;
   onOpenPdf?: () => void;
+  onExportDocx?: () => void;
 }
 
 export function Step1RegisterTasks({
@@ -25,25 +26,30 @@ export function Step1RegisterTasks({
   onOpenUploadModal,
   onOpenDocViewer,
   onOpenPdf,
+  onExportDocx,
 }: Step1RegisterTasksProps) {
   const { toast } = useToast();
   const [newTaskName, setNewTaskName] = useState("");
   const [newTargetOutput, setNewTargetOutput] = useState("");
   const [newWeight, setNewWeight] = useState<number>(10);
   const [newDeadline, setNewDeadline] = useState("");
+  const [isAddFormOpen, setIsAddFormOpen] = useState(false);
 
   const totalWeight = tasks.reduce((sum, t) => sum + (Number(t.weight) || 0), 0);
+  const displayedTaskCount = tasks.length + (isAddFormOpen ? 1 : 0);
+  const displayedTotalWeight = totalWeight + (isAddFormOpen ? (Number(newWeight) || 0) : 0);
+  const isDisplayedWeightValid = Math.abs(displayedTotalWeight - 70) < 0.01;
   const isWeightValid = Math.abs(totalWeight - 70.0) < 0.01;
   const isCountValid = tasks.length >= 3 && tasks.length <= 7;
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskName.trim() || !newTargetOutput.trim()) {
-      toast.warning("Vui lòng nhập tên nhiệm vụ và chỉ tiêu sản phẩm.");
+      toast.warning("Vui lòng nhập tên sản phẩm, công việc và chỉ tiêu đầu ra.");
       return;
     }
     if (tasks.length >= 7) {
-      toast.warning("Đã đạt tối đa 7 nhiệm vụ theo quy định Hướng dẫn 03-HD/TVĐU.");
+      toast.warning("Yêu cầu tối đa không quá 7 sản phẩm, công việc.");
       return;
     }
 
@@ -53,7 +59,7 @@ export function Step1RegisterTasks({
         taskName: newTaskName.trim(),
         targetOutput: newTargetOutput.trim(),
         weight: Number(newWeight) || 10,
-        deadline: newDeadline || "",
+        deadline: newDeadline || new Date().toISOString().split("T")[0],
       },
     ];
     onChangeTasks(updated);
@@ -61,11 +67,51 @@ export function Step1RegisterTasks({
     setNewTargetOutput("");
     setNewWeight(10);
     setNewDeadline("");
+    setIsAddFormOpen(false);
   };
 
   const handleRemoveTask = (index: number) => {
     const updated = tasks.filter((_, idx) => idx !== index);
     onChangeTasks(updated);
+  };
+
+  const handleSaveRegistration = () => {
+    if (isAddFormOpen) {
+      if (!newTaskName.trim() || !newTargetOutput.trim()) {
+        toast.warning("Vui lòng nhập đủ tên công việc và sản phẩm đầu ra.");
+        return;
+      }
+      const newTask = {
+        taskName: newTaskName.trim(),
+        targetOutput: newTargetOutput.trim(),
+        weight: Number(newWeight) || 10,
+        deadline: newDeadline || new Date().toISOString().split("T")[0],
+      };
+      const updatedTasks = [
+        ...tasks,
+        newTask,
+      ];
+      const nextTotalWeight = totalWeight + newTask.weight;
+      if (updatedTasks.length > 7) {
+        toast.warning("Số lượng công việc tối đa là 7.");
+        return;
+      }
+      if (Math.abs(nextTotalWeight - 70) > 0.01) {
+        toast.warning(`Tổng trọng số hiện tại: ${nextTotalWeight.toFixed(1)}/70 điểm.`);
+        return;
+      }
+      onSubmit(updatedTasks);
+      return;
+    }
+    if (tasks.length > 0 && (tasks.length < 3 || tasks.length > 7)) {
+      toast.warning(`Số lượng công việc phải từ 3 đến 7. Hiện tại: ${tasks.length}.`);
+      return;
+    }
+    if (tasks.length > 0 && Math.abs(totalWeight - 70) > 0.01) {
+      toast.warning(`Tổng trọng số hiện tại: ${totalWeight.toFixed(1)}/70 điểm.`);
+      return;
+    }
+    onSubmit(tasks);
   };
 
   const handleUpdateTaskField = (index: number, field: keyof TaskInputDto, value: any) => {
@@ -75,63 +121,47 @@ export function Step1RegisterTasks({
   };
 
   return (
-    <div className="border rounded bg-white" style={{ borderColor: "#e2e8f0" }}>
-      {/* Header thanh lịch */}
-      <div className="card-header bg-white border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center" style={{ borderColor: "#e2e8f0" }}>
-        <div className="d-flex align-items-center gap-2">
-          <span
-            className="badge"
-            style={{ backgroundColor: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe" }}
-          >
-            Mẫu 01
-          </span>
-          <span className="fw-semibold text-dark small">
-            Đăng ký 3 - 7 nhiệm vụ chuyên môn trọng tâm
-          </span>
+    <div className="border rounded bg-white shadow-sm" style={{ borderColor: "#e2e8f0" }}>
+      {/* Header đồng nhất */}
+      <div
+        className="card-header bg-white border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center"
+        style={{ borderColor: "#e2e8f0" }}
+      >
+        <div>
+          <h2 className="mb-0 text-dark" style={{ fontSize: "14px", fontWeight: 600, lineHeight: 1.4 }}>
+            Đăng ký sản phẩm, công việc chuyên môn (Từ 3 đến 7 sản phẩm, công việc)
+          </h2>
         </div>
 
-        <div className="d-flex align-items-center gap-2">
+        <div className="d-flex align-items-center gap-3">
+          <span className="text-secondary small">Công việc: <strong className="text-dark">{displayedTaskCount}</strong></span>
           <span className="text-secondary small">Tổng trọng số:</span>
           <span
             className="badge fw-semibold"
             style={{
-              fontSize: "12.5px",
-              backgroundColor: isWeightValid ? "#ecfdf5" : "#fef2f2",
-              color: isWeightValid ? "#047857" : "#b91c1c",
-              border: isWeightValid ? "1px solid #a7f3d0" : "1px solid #fecaca",
+              fontSize: "12px",
+              backgroundColor: isDisplayedWeightValid ? "#ecfdf5" : "#fef2f2",
+              color: isDisplayedWeightValid ? "#047857" : "#b91c1c",
+              border: isDisplayedWeightValid ? "1px solid #a7f3d0" : "1px solid #fecaca",
             }}
           >
-            {totalWeight.toFixed(1)} / 70.0đ
+              {displayedTotalWeight.toFixed(1)} / 70.0đ
           </span>
-        </div>
+            </div>
       </div>
 
       <div className="card-body p-3">
-        {/* Cảnh báo ngắn khi chưa đạt chuẩn */}
-        {(!isWeightValid || !isCountValid) && (
-          <div
-            className="p-2 px-3 mb-3 rounded d-flex align-items-center gap-2 small"
-            style={{ backgroundColor: "#fffbeb", color: "#92400e", border: "1px solid #fde68a" }}
-          >
-            <i className="bi bi-exclamation-triangle"></i>
-            <span>
-              {!isCountValid && `Số lượng công việc (${tasks.length}) cần từ 3 đến 7 việc. `}
-              {!isWeightValid && `Tổng điểm (${totalWeight.toFixed(1)}đ) cần đạt đúng 70.0đ.`}
-            </span>
-          </div>
-        )}
-
         {/* Bảng danh sách nhiệm vụ */}
         <div className="table-responsive mb-3">
-          <table className="table table-sm table-hover align-middle mb-0">
-            <thead className="text-center">
-              <tr>
+          <table className="table table-sm table-hover align-middle mb-0 task-table" style={{ fontSize: "13px", tableLayout: "fixed" }}>
+            <thead className="text-center" style={{ backgroundColor: "#f8fafc" }}>
+              <tr style={{ fontSize: "12.5px" }} className="text-secondary">
                 <th style={{ width: "40px" }}>STT</th>
-                <th>Tên nhiệm vụ chuyên môn</th>
-                <th style={{ width: "260px" }}>Chỉ tiêu đầu ra</th>
+                <th style={{ width: "340px" }}>Tên sản phẩm, công việc chuyên môn</th>
+                <th style={{ width: "320px" }}>Chỉ tiêu đầu ra</th>
                 <th style={{ width: "85px" }}>Trọng số (đ)</th>
                 <th style={{ width: "125px" }}>Thời hạn</th>
-                <th style={{ width: "120px" }}>Minh chứng</th>
+                <th style={{ width: "120px" }}>Tài liệu đính kèm</th>
                 {!isLocked && <th style={{ width: "45px" }}></th>}
               </tr>
             </thead>
@@ -140,9 +170,8 @@ export function Step1RegisterTasks({
                 <tr>
                   <td colSpan={7} className="text-center py-4 text-muted">
                     <div className="d-flex flex-column align-items-center justify-content-center gap-1.5 py-2">
-                      <i className="bi bi-inbox text-secondary fs-4"></i>
-                      <span className="fw-medium text-secondary">Chưa có nhiệm vụ đăng ký.</span>
-                      <span className="small text-muted">Thêm từ 3 đến 7 nhiệm vụ theo Mẫu 01 phía dưới.</span>
+                      <span className="fw-medium text-secondary">Chưa có sản phẩm, công việc đăng ký.</span>
+                      <span className="small text-muted">Đăng ký từ 3 đến 7 sản phẩm, công việc chuyên môn theo danh mục phía dưới.</span>
                     </div>
                   </td>
                 </tr>
@@ -152,27 +181,27 @@ export function Step1RegisterTasks({
                     <td className="text-center text-muted">{idx + 1}</td>
                     <td>
                       {isLocked ? (
-                        <div className="fw-medium text-dark">{task.taskName}</div>
+                        <div className="fw-medium text-dark task-table-long-text">{task.taskName}</div>
                       ) : (
-                        <input
-                          type="text"
+                        <textarea
                           value={task.taskName}
                           onChange={(e) => handleUpdateTaskField(idx, "taskName", e.target.value)}
                           className="form-control form-control-sm"
                           placeholder="Tên nhiệm vụ..."
+                          rows={2}
                         />
                       )}
                     </td>
                     <td>
                       {isLocked ? (
-                        <div className="text-secondary">{task.targetOutput}</div>
+                        <div className="text-secondary task-table-long-text">{task.targetOutput}</div>
                       ) : (
-                        <input
-                          type="text"
+                        <textarea
                           value={task.targetOutput}
                           onChange={(e) => handleUpdateTaskField(idx, "targetOutput", e.target.value)}
                           className="form-control form-control-sm"
                           placeholder="Chỉ tiêu đầu ra..."
+                          rows={3}
                         />
                       )}
                     </td>
@@ -185,7 +214,7 @@ export function Step1RegisterTasks({
                           step="0.5"
                           min="1"
                           max="70"
-                          value={task.weight}
+                          value={task.weight || ""}
                           onChange={(e) => handleUpdateTaskField(idx, "weight", parseFloat(e.target.value) || 0)}
                           className="form-control form-control-sm text-center fw-bold text-primary"
                         />
@@ -274,63 +303,104 @@ export function Step1RegisterTasks({
                           icon="bi-trash"
                           onClick={() => handleRemoveTask(idx)}
                           title="Xóa nhiệm vụ"
-                          style={{ padding: "2px 6px" }}
+                          className="task-delete-button"
                         />
                       </td>
                     )}
                   </tr>
                 ))
               )}
+              {!isLocked && isAddFormOpen && (
+                <tr className="task-draft-row">
+                  <td className="text-center text-primary fw-semibold">+</td>
+                  <td><textarea autoFocus rows={2} value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} className="form-control form-control-sm" placeholder="Tên công việc..." /></td>
+                  <td><textarea rows={3} value={newTargetOutput} onChange={(e) => setNewTargetOutput(e.target.value)} className="form-control form-control-sm" placeholder="Sản phẩm đầu ra..." /></td>
+                  <td><input type="number" min="1" max="70" step="0.5" value={newWeight || ""} onChange={(e) => setNewWeight(parseFloat(e.target.value) || 0)} className="form-control form-control-sm text-center" /></td>
+                  <td><input type="date" value={newDeadline} onChange={(e) => setNewDeadline(e.target.value)} className="form-control form-control-sm" /></td>
+                  <td className="text-center text-muted task-draft-empty-cell">—</td>
+                  <td className="text-center">
+                    <div className="d-flex flex-column gap-1 align-items-center">
+                      <button type="button" className="task-draft-cancel" onClick={() => setIsAddFormOpen(false)} aria-label="Hủy thêm công việc" title="Hủy">
+                        <i className="bi bi-x-lg"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
         {/* Thêm nhanh nhiệm vụ */}
-        {!isLocked && (
-          <form onSubmit={handleAddTask} className="row g-1.5 p-2 bg-light border rounded align-items-center" style={{ borderColor: "#e2e8f0" }}>
-            <div className="col-12 col-md-4">
+        {!isLocked && !isAddFormOpen && (
+          <div className="task-add-trigger">
+            <Button type="button" size="md" variant="primary" icon="bi-plus-lg" onClick={() => setIsAddFormOpen(true)}>
+              Thêm công việc
+            </Button>
+          </div>
+        )}
+
+        {!isLocked && false && isAddFormOpen && (
+          <form onSubmit={handleAddTask} className="task-add-form">
+            <div className="task-add-heading">
+              <div>
+                <strong>Thêm công việc</strong>
+                <span>Nhập thông tin công việc và sản phẩm đầu ra</span>
+              </div>
+            </div>
+            <div className="task-add-field task-add-name">
+              <label htmlFor="new-task-name">Tên công việc <span>*</span></label>
               <input
+                id="new-task-name"
                 type="text"
                 required
-                placeholder="Tên nhiệm vụ / công tác trọng tâm *"
+                placeholder="Công tác trọng tâm"
                 value={newTaskName}
                 onChange={(e) => setNewTaskName(e.target.value)}
                 className="form-control form-control-sm"
               />
             </div>
 
-            <div className="col-12 col-md-4">
+            <div className="task-add-field task-add-output">
+              <label htmlFor="new-task-output">Sản phẩm đầu ra <span>*</span></label>
               <input
+                id="new-task-output"
                 type="text"
                 required
-                placeholder="Sản phẩm / Tiêu chuẩn đầu ra *"
+                placeholder="Kết quả cần đạt"
                 value={newTargetOutput}
                 onChange={(e) => setNewTargetOutput(e.target.value)}
                 className="form-control form-control-sm"
               />
             </div>
 
-            <div className="col-6 col-md-2">
+            <div className="task-add-field">
+              <label htmlFor="new-task-weight">Trọng số <span>*</span></label>
               <input
+                id="new-task-weight"
                 type="number"
                 required
                 step="0.5"
                 min="0.5"
                 max="100"
-                placeholder="Trọng số (đ) *"
+                placeholder="Điểm"
                 value={newWeight}
                 onChange={(e) => setNewWeight(parseFloat(e.target.value) || 0)}
                 className="form-control form-control-sm text-center"
               />
             </div>
 
-            <div className="col-6 col-md-2 d-flex gap-1">
+            <div className="task-add-field">
+              <label htmlFor="new-task-deadline">Hạn hoàn thành</label>
               <input
+                id="new-task-deadline"
                 type="date"
                 value={newDeadline}
                 onChange={(e) => setNewDeadline(e.target.value)}
                 className="form-control form-control-sm text-center"
               />
+            </div>
+            <div className="task-add-submit">
               <Button
                 type="submit"
                 size="sm"
@@ -338,41 +408,70 @@ export function Step1RegisterTasks({
                 icon="bi-plus-lg"
                 className="text-nowrap"
               >
-                Thêm
+                Thêm công việc
+              </Button>
+              <Button type="button" size="sm" variant="outline-secondary" onClick={() => setIsAddFormOpen(false)}>
+                Hủy
               </Button>
             </div>
           </form>
         )}
 
-        {/* Nút lưu & Xuất PDF */}
-        <div className="d-flex justify-content-end align-items-center gap-2 pt-2.5 border-top" style={{ borderColor: "#e2e8f0" }}>
+      </div>
+
+      {/* Chân trang thao tác đồng nhất */}
+      <div
+        className="card-footer evaluation-action-bar bg-white border-top py-2.5 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2"
+        style={{ borderColor: "#e2e8f0" }}
+      >
+        <div className="text-secondary small">
+          {null}
+        </div>
+
+        <div className="d-flex align-items-center gap-2 ms-auto">
+          {onExportDocx && tasks.length > 0 && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline-primary"
+              onClick={onExportDocx}
+              icon="bi-file-earmark-word"
+              className="text-nowrap"
+              title="Tải Phiếu giao/đăng ký nhiệm vụ định dạng Word"
+            >
+              Tải bản Word (.docx)
+            </Button>
+          )}
+
           {onOpenPdf && tasks.length > 0 && (
             <Button
               type="button"
+              size="sm"
               variant="outline-primary"
               onClick={onOpenPdf}
               icon="bi-file-earmark-pdf"
               className="text-nowrap"
-              title="Xem và xuất Bản đăng ký công việc (Mẫu 01) ra PDF"
+              title="Xem và in Bản đăng ký công việc"
             >
-              Xuất Mẫu 01 (PDF)
+              Xem / In (PDF)
             </Button>
           )}
 
           <Button
             type="button"
+            size="sm"
             variant="primary"
-            onClick={onSubmit}
-            disabled={isSubmitting || !isWeightValid || !isCountValid}
+            onClick={handleSaveRegistration}
+            disabled={isSubmitting}
             loading={isSubmitting}
             loadingText="Đang lưu..."
             icon="bi-check2-circle"
-            className="px-4"
+            className="px-3 text-nowrap"
           >
-            Lưu đăng ký (Mẫu 01)
+            Lưu đăng ký công việc
           </Button>
+            </div>
         </div>
       </div>
-    </div>
   );
 }

@@ -65,14 +65,14 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   // Đã xác thực thành công: Render toàn bộ hệ thống làm việc trong LayoutProvider
   return (
     <LayoutProvider>
-      <div style={{ display: "flex", minHeight: "100vh", position: "relative" }}>
+      <div className="app-shell">
         {/* Sidebar */}
         <AppSidebar />
 
         {/* Content area */}
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, overflow: "hidden" }}>
+        <div className="app-content">
           <AppHeader />
-          <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+          <main className="app-main">
             {children}
           </main>
           <footer

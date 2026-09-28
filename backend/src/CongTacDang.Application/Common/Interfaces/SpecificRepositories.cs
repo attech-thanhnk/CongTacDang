@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using CongTacDang.Domain.Entities;
+using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Application.Common.Interfaces;
 
@@ -59,6 +60,13 @@ public interface IAttachmentRepository : IRepository<TaskAttachment>
     Task<List<TaskAttachment>> GetAllAttachmentsAsync();
 }
 
+/// <summary>Giao diện tra cứu audit log tập trung.</summary>
+public interface IAuditRepository
+{
+    /// <summary>Lấy audit log mới nhất theo entity, có giới hạn số lượng bản ghi.</summary>
+    Task<List<AuditLog>> GetAuditLogsAsync(string? entityType, string? entityId, int limit);
+}
+
 /// <summary>
 /// Giao diện repository quản lý tổ chức Chi bộ và Phòng ban
 /// </summary>
@@ -109,6 +117,9 @@ public interface IEvaluationRepository
     /// <summary>Lấy hồ sơ đánh giá theo Id kèm thông tin Cán bộ và danh sách công việc</summary>
     Task<EvaluationRecord?> GetRecordByIdAsync(Guid id);
 
+    /// <summary>Lấy lịch sử chuyển trạng thái của một hồ sơ đánh giá.</summary>
+    Task<List<EvaluationRecordHistory>> GetRecordHistoriesAsync(Guid recordId);
+
     /// <summary>Lấy toàn bộ danh sách hồ sơ đánh giá của một kỳ kèm thông tin Cán bộ, Chi bộ, Phòng ban</summary>
     Task<List<EvaluationRecord>> GetRecordsByPeriodAsync(Guid periodId);
 
@@ -121,6 +132,9 @@ public interface IEvaluationRepository
     /// <summary>Cập nhật hồ sơ đánh giá</summary>
     Task UpdateRecordAsync(EvaluationRecord record);
 
+    /// <summary>Ghi nhận lịch sử chuyển trạng thái hồ sơ đánh giá</summary>
+    Task AddRecordHistoryAsync(EvaluationRecordHistory history);
+
     /// <summary>Lấy danh sách các công việc đăng ký theo Id hồ sơ đánh giá</summary>
     Task<List<EvaluationTask>> GetTasksByRecordIdAsync(Guid recordId);
 
@@ -128,3 +142,34 @@ public interface IEvaluationRepository
     Task ReplaceTasksAsync(Guid recordId, IEnumerable<EvaluationTask> tasks);
 }
 
+/// <summary>Repository hồ sơ đánh giá tập thể Mẫu 06, 07, 08.</summary>
+public interface ICollectiveEvaluationRepository
+{
+    /// <summary>Lấy hồ sơ tập thể theo mã hồ sơ.</summary>
+    Task<CollectiveEvaluationRecord?> GetByIdAsync(Guid id);
+
+    /// <summary>Lấy các hồ sơ tập thể trong một kỳ đánh giá.</summary>
+    Task<List<CollectiveEvaluationRecord>> GetByPeriodAsync(Guid periodId, CollectiveEvaluationForm? form = null);
+
+    /// <summary>Thêm hồ sơ tập thể.</summary>
+    Task AddAsync(CollectiveEvaluationRecord record);
+
+    /// <summary>Cập nhật hồ sơ tập thể.</summary>
+    Task UpdateAsync(CollectiveEvaluationRecord record);
+}
+
+/// <summary>Repository biên bản hội nghị và kết quả kiểm phiếu Mẫu 12, 13.</summary>
+public interface IEvaluationMeetingRepository
+{
+    /// <summary>Lấy biên bản theo mã.</summary>
+    Task<EvaluationMeeting?> GetByIdAsync(Guid id);
+
+    /// <summary>Lấy các biên bản trong một kỳ đánh giá.</summary>
+    Task<List<EvaluationMeeting>> GetByPeriodAsync(Guid periodId, Guid? partyCellId = null);
+
+    /// <summary>Thêm biên bản hội nghị.</summary>
+    Task AddAsync(EvaluationMeeting meeting);
+
+    /// <summary>Cập nhật biên bản hội nghị.</summary>
+    Task UpdateAsync(EvaluationMeeting meeting);
+}

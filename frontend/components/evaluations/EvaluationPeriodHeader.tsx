@@ -11,6 +11,7 @@ interface EvaluationPeriodHeaderProps {
   activePeriod?: EvaluationPeriodDto;
   myRecord?: EvaluationRecordDto | null;
   onOpenPdf?: (record: EvaluationRecordDto) => void;
+  onOpenHistory?: (record: EvaluationRecordDto) => void;
   onRefresh?: () => void;
   loading: boolean;
   canManagePeriods?: boolean;
@@ -25,6 +26,7 @@ export function EvaluationPeriodHeader({
   activePeriod,
   myRecord,
   onOpenPdf,
+  onOpenHistory,
   onRefresh,
   loading,
   canManagePeriods = false,
@@ -100,37 +102,21 @@ export function EvaluationPeriodHeader({
 
   return (
     <>
-      <div className="page-header-bar">
-        {/* Tiêu đề trang & Trạng thái hồ sơ */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+      <div className="page-header-bar evaluation-page-header">
+        {/* Tiêu đề trang */}
+        <div className="page-header-content">
           <h1>Đánh giá cán bộ</h1>
-
-          {myRecord?.statusDisplayName && (
-            <span
-              style={{
-                padding: "3px 8px",
-                borderRadius: "5px",
-                background: "var(--color-success-bg)",
-                color: "var(--color-success)",
-                border: "1px solid var(--color-success-border)",
-                fontSize: "11.5px",
-                fontWeight: 600,
-              }}
-            >
-              {myRecord.statusDisplayName}
-            </span>
-          )}
         </div>
 
         {/* Thao tác chọn kỳ, Tạo kỳ mới & In ấn */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+        <div className="page-header-actions">
           {/* Dropdown chọn kỳ */}
           <select
             value={selectedPeriodId}
             onChange={(e) => onSelectPeriod(e.target.value)}
             disabled={loading}
             className="form-select form-select-sm fw-medium"
-            style={{ width: "175px" }}
+            style={{ minWidth: "215px" }}
             aria-label="Chọn kỳ đánh giá"
           >
             {periods.map((p) => {
@@ -164,6 +150,17 @@ export function EvaluationPeriodHeader({
               onClick={() => setShowCreateModal(true)}
             >
               Tạo kỳ
+            </Button>
+          )}
+
+          {myRecord && onOpenHistory && (
+            <Button
+              size="sm"
+              variant="outline-secondary"
+              onClick={() => onOpenHistory(myRecord)}
+              title="Xem lịch sử hồ sơ đánh giá"
+            >
+              <i className="bi bi-clock-history me-1" />Lịch sử
             </Button>
           )}
         </div>

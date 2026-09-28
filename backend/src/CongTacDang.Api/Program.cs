@@ -15,6 +15,9 @@ using CongTacDang.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.ICurrentUserService, HttpCurrentUserService>();
+
 // 1. Database PostgreSQL với SplitQuery tối ưu truy vấn quan hệ nhiều tầng
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
@@ -114,10 +117,13 @@ builder.Services.AddAuthorization(options =>
 // 5. Đăng ký Repository & Storage Service (MinIO)
 builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IUserRepository, CongTacDang.Infrastructure.Repositories.UserRepository>();
 builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IAttachmentRepository, CongTacDang.Infrastructure.Repositories.AttachmentRepository>();
+builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IAuditRepository, CongTacDang.Infrastructure.Repositories.AuditRepository>();
 builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IOrganizationRepository, CongTacDang.Infrastructure.Repositories.OrganizationRepository>();
 builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IRoleRepository, CongTacDang.Infrastructure.Repositories.RoleRepository>();
 builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IRefreshTokenRepository, CongTacDang.Infrastructure.Repositories.RefreshTokenRepository>();
 builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IEvaluationRepository, CongTacDang.Infrastructure.Repositories.EvaluationRepository>();
+builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.ICollectiveEvaluationRepository, CongTacDang.Infrastructure.Repositories.CollectiveEvaluationRepository>();
+builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IEvaluationMeetingRepository, CongTacDang.Infrastructure.Repositories.EvaluationMeetingRepository>();
 
 var localStoragePath = builder.Configuration["Storage:Local:Path"]
     ?? Path.Combine(AppContext.BaseDirectory, "uploads");
@@ -131,11 +137,27 @@ builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IAttachmentService, AttachmentService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IEvaluationService, EvaluationService>();
+builder.Services.AddScoped<ICollectiveEvaluationService, CollectiveEvaluationService>();
 builder.Services.AddScoped<IReportService, CongTacDang.Infrastructure.Services.ReportService>();
 
 // 7. Controllers & Swagger với hỗ trợ JWT Bearer Authorization
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value?.Errors.Count > 0)
+                .SelectMany(e => e.Value!.Errors.Select(x => !string.IsNullOrWhiteSpace(x.ErrorMessage) ? x.ErrorMessage : x.Exception?.Message ?? "Dữ liệu không hợp lệ"))
+                .ToList();
+
+            var message = errors.Count > 0 ? string.Join("; ", errors) : "Dữ liệu gửi lên chưa hợp lệ.";
+            var response = CongTacDang.Application.Common.Models.ApiResponse.Fail(message, errors);
+            return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(response);
+        };
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {

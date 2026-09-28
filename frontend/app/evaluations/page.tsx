@@ -16,18 +16,23 @@ import { PrintTemplateType } from "@/components/evaluations/EvaluationPrintTempl
 import { DocumentViewerModal } from "@/components/attachments/DocumentViewerModal";
 import { FileUploadModal } from "@/components/attachments/FileUploadModal";
 import { Button } from "@/components/common";
+import { useToast } from "@/contexts/ToastContext";
+import { reportService } from "@/services/reportService";
+import { auditService, EvaluationRecordHistoryDto } from "@/services/auditService";
 
 // Modular Step Components
 import { EvaluationPeriodHeader } from "@/components/evaluations/EvaluationPeriodHeader";
 import { EvaluationStepNav } from "@/components/evaluations/EvaluationStepNav";
 import { Step1RegisterTasks } from "@/components/evaluations/Step1RegisterTasks";
 import { Step2SelfScore } from "@/components/evaluations/Step2SelfScore";
-import { Step3BranchReview } from "@/components/evaluations/Step3BranchReview";
+import { Step3BranchReview, BranchMeetingVoteState } from "@/components/evaluations/Step3BranchReview";
 import { Step4Appraisal } from "@/components/evaluations/Step4Appraisal";
 import { Step5Approval } from "@/components/evaluations/Step5Approval";
+import { EvaluationHistoryModal } from "@/components/evaluations/EvaluationHistoryModal";
 
 function EvaluationsContent() {
   const { user, hasPermission, hasRole } = useAuth();
+  const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const stepParam = searchParams.get("step");
@@ -44,8 +49,6 @@ function EvaluationsContent() {
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Hồ sơ cá nhân của Cán bộ đang đăng nhập
   const [myRecord, setMyRecord] = useState<EvaluationRecordDto | null>(null);
@@ -60,15 +63,9 @@ function EvaluationsContent() {
   }>({});
   const [selfProposedGrade, setSelfProposedGrade] = useState<string>("HoanThanhTot");
 
-  // State Bước 3: Chi bộ đánh giá (Mẫu 10, 11, 13)
+  // State Bước 3: Chi bộ đánh giá & Biên bản kiểm phiếu (Mẫu 11 & 13)
   const [branchRecords, setBranchRecords] = useState<EvaluationRecordDto[]>([]);
-  const [selectedBranchRecord, setSelectedBranchRecord] = useState<EvaluationRecordDto | null>(null);
-  const [branchComment, setBranchComment] = useState<string>("");
-  const [branchGrade, setBranchGrade] = useState<string>("HoanThanhTot");
-  const [votesExcellent, setVotesExcellent] = useState<number>(0);
-  const [votesGood, setVotesGood] = useState<number>(0);
-  const [votesSatisfactory, setVotesSatisfactory] = useState<number>(0);
-  const [votesUnsatisfactory, setVotesUnsatisfactory] = useState<number>(0);
+  const [meetingVotes, setMeetingVotes] = useState<{ [recordId: string]: BranchMeetingVoteState }>({});
   const [totalVoters, setTotalVoters] = useState<number>(0);
 
   // State Bước 4: Thẩm định & Trần 20% (Mẫu 03 & 15)
@@ -100,6 +97,12 @@ function EvaluationsContent() {
   const [uploadTargetTaskId, setUploadTargetTaskId] = useState<string | null>(null);
   const [uploadCurrentAttId, setUploadCurrentAttId] = useState<string | null>(null);
   const [uploadTaskTitle, setUploadTaskTitle] = useState<string>("");
+
+  // Modal lịch sử chuyển trạng thái hồ sơ đánh giá
+  const [historyModalOpen, setHistoryModalOpen] = useState<boolean>(false);
+  const [historyRecord, setHistoryRecord] = useState<EvaluationRecordDto | null>(null);
+  const [recordHistory, setRecordHistory] = useState<EvaluationRecordHistoryDto[]>([]);
+  const [historyLoading, setHistoryLoading] = useState<boolean>(false);
 
   const openDocumentViewer = (id: string, name?: string | null) => {
     setViewerAttachmentId(id);
@@ -147,6 +150,22 @@ function EvaluationsContent() {
       );
       setMyRecord({ ...myRecord, tasks: updatedTasks });
       setUploadTargetTaskId(null);
+    }
+  };
+
+  /** Mở timeline và tải lịch sử chuyển trạng thái của hồ sơ được chọn. */
+  const openRecordHistory = async (record: EvaluationRecordDto) => {
+    setHistoryRecord(record);
+    setRecordHistory([]);
+    setHistoryModalOpen(true);
+    setHistoryLoading(true);
+    try {
+      const history = await auditService.getRecordHistory(record.id);
+      setRecordHistory(history);
+    } catch (err: any) {
+      toast.error(err?.message || "Không thể tải lịch sử hồ sơ.");
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -249,6 +268,7 @@ function EvaluationsContent() {
 
   // Tải dữ liệu ban đầu
   useEffect(() => {
+    if (!user) return;
     loadInitialData();
   }, [user]);
 
@@ -271,8 +291,11 @@ function EvaluationsContent() {
   }, [activeStep, hasPermission, isAdmin]);
 
   const loadInitialData = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    setErrorMsg(null);
     try {
       const pList = await evaluationService.getPeriods();
       setPeriods(pList);
@@ -285,14 +308,13 @@ function EvaluationsContent() {
         await loadPeriodData(defaultPeriod.id);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Không thể tải danh sách kỳ đánh giá.");
+      toast.error(err.message || "Không thể tải danh sách kỳ đánh giá.");
     } finally {
       setLoading(false);
     }
   };
 
   const loadPeriodData = async (periodId: string) => {
-    setErrorMsg(null);
     try {
       if (user) {
         const myRec = await evaluationService.getMyRecord(periodId);
@@ -334,19 +356,26 @@ function EvaluationsContent() {
         }
       }
 
-      if (hasPermission("evaluations.branch_vote") || hasPermission("evaluations.branch_review")) {
+      if (hasPermission("evaluations.branch_vote") || hasPermission("evaluations.branch_review") || isAdmin) {
         const bRecs = await evaluationService.getBranchRecords(periodId);
         setBranchRecords(bRecs);
-        if (bRecs.length > 0) {
-          setSelectedBranchRecord(bRecs[0]);
-          setBranchComment(bRecs[0].partyCellComment || "");
-          setBranchGrade(bRecs[0].partyCellProposedGrade || "HoanThanhTot");
-          setVotesExcellent(bRecs[0].votesExcellent || 0);
-          setVotesGood(bRecs[0].votesGood || 0);
-          setVotesSatisfactory(bRecs[0].votesSatisfactory || 0);
-          setVotesUnsatisfactory(bRecs[0].votesUnsatisfactory || 0);
-          setTotalVoters(bRecs[0].totalVoters || 0);
-        }
+        const initialVotes: { [recordId: string]: BranchMeetingVoteState } = {};
+        let maxVoters = 0;
+        bRecs.forEach((r) => {
+          initialVotes[r.id] = {
+            votesExcellent: r.votesExcellent || 0,
+            votesGood: r.votesGood || 0,
+            votesSatisfactory: r.votesSatisfactory || 0,
+            votesUnsatisfactory: r.votesUnsatisfactory || 0,
+            proposedGrade: r.partyCellProposedGrade || "HoanThanhTot",
+            comment: r.partyCellComment || "",
+          };
+          if ((r.totalVoters || 0) > maxVoters) {
+            maxVoters = r.totalVoters || 0;
+          }
+        });
+        setMeetingVotes(initialVotes);
+        if (maxVoters > 0) setTotalVoters(maxVoters);
       }
 
       if (hasPermission("evaluations.appraise") || hasPermission("evaluations.approve") || isAdmin) {
@@ -366,18 +395,8 @@ function EvaluationsContent() {
           setFinalGradeInput(aRecs[0].finalGrade || "HoanThanhTot");
         }
       }
-
-      if (hasPermission("evaluations.branch_vote") || hasPermission("evaluations.branch_review") || isAdmin) {
-        const bRecs = await evaluationService.getBranchRecords(periodId);
-        setBranchRecords(bRecs);
-        if (bRecs.length > 0) {
-          setSelectedBranchRecord(bRecs[0]);
-          setBranchComment(bRecs[0].partyCellComment || "");
-          setBranchGrade(bRecs[0].partyCellProposedGrade || "HoanThanhTot");
-        }
-      }
     } catch (err: any) {
-      setErrorMsg(err.message || "Không thể tải dữ liệu của kỳ này.");
+      toast.error(err.message || "Không thể tải dữ liệu của kỳ này.");
     }
   };
 
@@ -388,34 +407,43 @@ function EvaluationsContent() {
     setLoading(false);
   };
 
-  // Nộp Bước 1 (Mẫu 01)
-  const handleSubmitStep1 = async () => {
-    if (!selectedPeriodId) return;
+  // Nộp Bước 1: Đăng ký sản phẩm, công việc chuyên môn
+  const handleSubmitStep1 = async (tasksOverride?: TaskInputDto[]) => {
+    if (!selectedPeriodId) {
+      toast.warning("Vui lòng chọn kỳ đánh giá.");
+      return;
+    }
     setActionLoading(true);
-    setErrorMsg(null);
-    setSuccessMsg(null);
     try {
+      const sourceTasks = tasksOverride ?? registerTasks;
+      const formattedTasks = sourceTasks.map((t, idx) => ({
+        ...t,
+        taskOrder: idx + 1,
+        weight: Number(t.weight) || 0,
+        deadline: t.deadline && !isNaN(Date.parse(t.deadline))
+          ? new Date(t.deadline).toISOString()
+          : new Date().toISOString(),
+      }));
+
       const rec = await evaluationService.registerTasks({
         periodId: selectedPeriodId,
-        tasks: registerTasks,
+        tasks: formattedTasks,
       });
       setMyRecord(rec);
-      setSuccessMsg("Đã đăng ký danh mục nhiệm vụ chuyên môn (Mẫu 01) thành công!");
+      toast.success("Đã đăng ký danh mục sản phẩm, công việc chuyên môn thành công!");
       await loadPeriodData(selectedPeriodId);
       setActiveStep(2);
     } catch (err: any) {
-      setErrorMsg(err.message || "Đăng ký nhiệm vụ thất bại.");
+      toast.error(err.message || "Đăng ký công việc thất bại.");
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Nộp Bước 2 (Mẫu 02)
+  // Nộp Bước 2 (Tự chấm điểm cá nhân)
   const handleSubmitStep2 = async () => {
     if (!myRecord) return;
     setActionLoading(true);
-    setErrorMsg(null);
-    setSuccessMsg(null);
     try {
       const taskScores = (myRecord.tasks || []).map((t) => {
         const ratio = taskScoreRatios[t.id] || { a: 1, b: 1, c: 1, d: 1, exceed: false };
@@ -438,47 +466,86 @@ function EvaluationsContent() {
       });
 
       setMyRecord(updated);
-      setSuccessMsg("Đã lưu kết quả tự kiểm điểm và chấm điểm cá nhân (Mẫu 02) thành công!");
+      toast.success("Đã lưu kết quả tự chấm điểm cá nhân thành công!");
       await loadPeriodData(selectedPeriodId);
     } catch (err: any) {
-      setErrorMsg(err.message || "Lưu tự chấm điểm thất bại.");
+      toast.error(err.message || "Lưu tự chấm điểm thất bại.");
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Nộp Bước 3 (Mẫu 10, 11, 13)
-  const handleSubmitStep3 = async () => {
-    if (!selectedBranchRecord) return;
+  const handleChangeMemberVote = (
+    recordId: string,
+    field: keyof BranchMeetingVoteState,
+    value: any
+  ) => {
+    setMeetingVotes((prev) => ({
+      ...prev,
+      [recordId]: {
+        ...(prev[recordId] || {
+          votesExcellent: 0,
+          votesGood: 0,
+          votesSatisfactory: 0,
+          votesUnsatisfactory: 0,
+          proposedGrade: "HoanThanhTot",
+          comment: "",
+        }),
+        [field]: value,
+      },
+    }));
+  };
+
+  // Nộp Bước 3: Toàn bộ Biên bản kiểm phiếu Chi bộ
+  const handleSubmitStep3Meeting = async () => {
+    if (!branchRecords.length) return;
+    if (!totalVoters || totalVoters <= 0) {
+      toast.warning("Vui lòng nhập Tổng số đảng viên dự họp (Cử tri) hợp lệ lớn hơn 0.");
+      return;
+    }
     setActionLoading(true);
-    setErrorMsg(null);
-    setSuccessMsg(null);
     try {
-      await evaluationService.submitBranchReview({
-        recordId: selectedBranchRecord.id,
-        comment: branchComment,
-        proposedGrade: branchGrade,
-        votesExcellent,
-        votesGood,
-        votesSatisfactory,
-        votesUnsatisfactory,
-        totalVoters,
+      const partyCellId = branchRecords[0]?.partyCellId || "";
+      const memberVotes = branchRecords.map((r) => {
+        const v = meetingVotes[r.id] || {
+          votesExcellent: r.votesExcellent || 0,
+          votesGood: r.votesGood || 0,
+          votesSatisfactory: r.votesSatisfactory || 0,
+          votesUnsatisfactory: r.votesUnsatisfactory || 0,
+          proposedGrade: r.partyCellProposedGrade || "HoanThanhTot",
+          comment: r.partyCellComment || "",
+        };
+        return {
+          recordId: r.id,
+          comment: v.comment,
+          proposedGrade: v.proposedGrade,
+          votesExcellent: v.votesExcellent,
+          votesGood: v.votesGood,
+          votesSatisfactory: v.votesSatisfactory,
+          votesUnsatisfactory: v.votesUnsatisfactory,
+        };
       });
-      setSuccessMsg(`Đã hoàn thành đánh giá và nhập phiếu bầu Chi bộ cho đồng chí ${selectedBranchRecord.fullName}!`);
+
+      await evaluationService.submitBranchMeeting({
+        periodId: selectedPeriodId,
+        partyCellId,
+        totalVoters,
+        memberVotes,
+      });
+
+      toast.success("Đã lưu kết quả Biên bản kiểm phiếu Chi bộ thành công!");
       await loadPeriodData(selectedPeriodId);
     } catch (err: any) {
-      setErrorMsg(err.message || "Lưu kết quả Chi bộ thất bại.");
+      toast.error(err.message || "Lưu kết quả kiểm phiếu Chi bộ thất bại.");
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Nộp Bước 4 (Mẫu 03)
+  // Nộp Bước 4: Thẩm định hồ sơ
   const handleSubmitStep4 = async () => {
     if (!selectedAppraisalRecord) return;
     setActionLoading(true);
-    setErrorMsg(null);
-    setSuccessMsg(null);
     try {
       await evaluationService.submitAppraisal({
         recordId: selectedAppraisalRecord.id,
@@ -486,52 +553,49 @@ function EvaluationsContent() {
         comment: appraisalCommentInput,
         proposedGrade: appraisalGradeInput,
       });
-      setSuccessMsg(`Đã ghi nhận kết quả thẩm định cho đồng chí ${selectedAppraisalRecord.fullName}!`);
+      toast.success(`Đã ghi nhận kết quả thẩm định cho đồng chí ${selectedAppraisalRecord.fullName}!`);
       await loadPeriodData(selectedPeriodId);
     } catch (err: any) {
-      setErrorMsg(err.message || "Thẩm định thất bại.");
+      toast.error(err.message || "Thẩm định thất bại.");
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Nộp Bước 5 (Mẫu 07)
+  // Nộp Bước 5: Chuẩn y & Phê duyệt xếp loại
   const handleSubmitStep5 = async () => {
     if (!selectedApprovalRecord) return;
     setActionLoading(true);
-    setErrorMsg(null);
-    setSuccessMsg(null);
     try {
       await evaluationService.approveEvaluation({
         recordId: selectedApprovalRecord.id,
         finalScore: finalScoreInput,
         finalGrade: finalGradeInput,
       });
-      setSuccessMsg(`Đã chuẩn y xếp loại chính thức cho đồng chí ${selectedApprovalRecord.fullName}!`);
+      toast.success(`Đã chuẩn y xếp loại chính thức cho đồng chí ${selectedApprovalRecord.fullName}!`);
       await loadPeriodData(selectedPeriodId);
     } catch (err: any) {
-      setErrorMsg(err.message || "Chuẩn y xếp loại thất bại.");
+      toast.error(err.message || "Chuẩn y xếp loại thất bại.");
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Khởi tạo kỳ đánh giá mới (Mẫu chuẩn Hướng dẫn 03)
+  // Khởi tạo kỳ đánh giá mới
   const handleCreatePeriod = async (dto: CreatePeriodDto, setAsActive: boolean) => {
     setActionLoading(true);
-    setErrorMsg(null);
     try {
       const created = await evaluationService.createPeriod(dto);
       if (setAsActive && created.id) {
         await evaluationService.setActivePeriod(created.id);
       }
-      setSuccessMsg(`Đã khởi tạo thành công kỳ đánh giá ${created.name}!`);
+      toast.success(`Đã khởi tạo thành công kỳ đánh giá ${created.name}!`);
       const updatedPeriods = await evaluationService.getPeriods();
       setPeriods(updatedPeriods);
       setSelectedPeriodId(created.id);
       await loadPeriodData(created.id);
     } catch (err: any) {
-      setErrorMsg(err.message || "Khởi tạo kỳ đánh giá thất bại.");
+      toast.error(err.message || "Khởi tạo kỳ đánh giá thất bại.");
       throw err;
     } finally {
       setActionLoading(false);
@@ -541,18 +605,111 @@ function EvaluationsContent() {
   // Kích hoạt kỳ đánh giá làm kỳ hiện hành
   const handleSetActivePeriod = async (periodId: string) => {
     setActionLoading(true);
-    setErrorMsg(null);
     try {
       await evaluationService.setActivePeriod(periodId);
-      setSuccessMsg("Đã kích hoạt kỳ đánh giá làm kỳ hiện hành!");
+      toast.success("Đã kích hoạt kỳ đánh giá làm kỳ hiện hành!");
       const updatedPeriods = await evaluationService.getPeriods();
       setPeriods(updatedPeriods);
       setSelectedPeriodId(periodId);
       await loadPeriodData(periodId);
     } catch (err: any) {
-      setErrorMsg(err.message || "Kích hoạt kỳ đánh giá thất bại.");
+      toast.error(err.message || "Kích hoạt kỳ đánh giá thất bại.");
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  // Handlers xuất biểu mẫu chuẩn Đảng (.docx / .xlsx)
+  const handleExportMau01Docx = async () => {
+    if (!myRecord?.id) {
+      toast.warning("Chưa có dữ liệu hồ sơ cá nhân để xuất Mẫu 01.");
+      return;
+    }
+    try {
+      toast.info("Đang tạo tệp Mẫu 01 (.docx) chuẩn thể thức...");
+      await reportService.exportMau01Docx(myRecord.id, myRecord.fullName);
+      toast.success("Tải Mẫu 01 (.docx) thành công.");
+    } catch (err: any) {
+      toast.error("Không thể tải Mẫu 01: " + (err?.message || "Lỗi kết xuất"));
+    }
+  };
+
+  const handleExportMau02Docx = async () => {
+    if (!myRecord?.id) {
+      toast.warning("Chưa có dữ liệu hồ sơ cá nhân để xuất Mẫu 02.");
+      return;
+    }
+    try {
+      toast.info("Đang tạo tệp Mẫu 02 (.docx) chuẩn thể thức...");
+      await reportService.exportMau02Docx(myRecord.id, myRecord.fullName);
+      toast.success("Tải Mẫu 02 (.docx) thành công.");
+    } catch (err: any) {
+      toast.error("Không thể tải Mẫu 02: " + (err?.message || "Lỗi kết xuất"));
+    }
+  };
+
+  const handleExportMau10Docx = async (rec: EvaluationRecordDto) => {
+    if (!rec?.id) return;
+    try {
+      toast.info(`Đang tạo Phiếu thẩm định Mẫu 10 (.docx) cho ${rec.fullName}...`);
+      await reportService.exportMau10Docx(rec.id, rec.fullName);
+      toast.success("Tải Mẫu 10 (.docx) thành công.");
+    } catch (err: any) {
+      toast.error("Không thể tải Mẫu 10: " + (err?.message || "Lỗi kết xuất"));
+    }
+  };
+
+  const handleExportMau11Docx = async () => {
+    const period = periods.find((p) => p.id === selectedPeriodId);
+    if (!period?.id) {
+      toast.warning("Chưa chọn kỳ đánh giá.");
+      return;
+    }
+    const branchId = myRecord?.partyCellId || branchRecords[0]?.partyCellId;
+    const branchName = myRecord?.partyCellName || branchRecords[0]?.partyCellName;
+    try {
+      toast.info("Đang tạo Phiếu bỏ phiếu Chi bộ Mẫu 11 (.docx)...");
+      await reportService.exportMau11Docx(period.id, branchId, branchName);
+      toast.success("Tải Mẫu 11 (.docx) thành công.");
+    } catch (err: any) {
+      toast.error("Không thể tải Mẫu 11: " + (err?.message || "Lỗi kết xuất"));
+    }
+  };
+
+  const handleExportMau13Docx = async () => {
+    const period = periods.find((p) => p.id === selectedPeriodId);
+    if (!period?.id) {
+      toast.warning("Chưa chọn kỳ đánh giá.");
+      return;
+    }
+    const branchId = myRecord?.partyCellId || branchRecords[0]?.partyCellId;
+    const branchName = myRecord?.partyCellName || branchRecords[0]?.partyCellName;
+    try {
+      toast.info("Đang tạo Biên bản kiểm phiếu Chi bộ Mẫu 13 (.docx)...");
+      await reportService.exportMau13Docx(period.id, branchId, branchName);
+      toast.success("Tải Mẫu 13 (.docx) thành công.");
+    } catch (err: any) {
+      toast.error("Không thể tải Mẫu 13: " + (err?.message || "Lỗi kết xuất"));
+    }
+  };
+
+  const handleExportMau14Excel = async () => {
+    try {
+      toast.info("Đang xuất Bảng tổng hợp Mẫu 14 (.xlsx)...");
+      await reportService.exportForm14();
+      toast.success("Tải Mẫu 14 (.xlsx) thành công.");
+    } catch (err: any) {
+      toast.error("Không thể tải Mẫu 14: " + (err?.message || "Lỗi kết xuất"));
+    }
+  };
+
+  const handleExportMau15Excel = async () => {
+    try {
+      toast.info("Đang xuất Bảng kiểm soát trần 20% Mẫu 15A (.xlsx)...");
+      await reportService.exportForm15();
+      toast.success("Tải Mẫu 15A (.xlsx) thành công.");
+    } catch (err: any) {
+      toast.error("Không thể tải Mẫu 15A: " + (err?.message || "Lỗi kết xuất"));
     }
   };
 
@@ -568,6 +725,7 @@ function EvaluationsContent() {
         activePeriod={activePeriod}
         myRecord={myRecord}
         onOpenPdf={openIndividualPdf}
+        onOpenHistory={openRecordHistory}
         onRefresh={() => loadPeriodData(selectedPeriodId)}
         loading={loading}
         canManagePeriods={hasPermission("evaluations.approve") || isAdmin}
@@ -589,19 +747,6 @@ function EvaluationsContent() {
 
       {/* Nội dung trang: padding trên-dưới-trái-phải đồng nhất như mọi trang */}
       <div className="page-body">
-        {errorMsg && (
-          <div className="alert alert-danger alert-dismissible fade show small mb-0" role="alert">
-            <strong>Lỗi:</strong> {errorMsg}
-            <button type="button" className="btn-close" onClick={() => setErrorMsg(null)} />
-          </div>
-        )}
-        {successMsg && (
-          <div className="alert alert-success alert-dismissible fade show small mb-0" role="alert">
-            {successMsg}
-            <button type="button" className="btn-close" onClick={() => setSuccessMsg(null)} />
-          </div>
-        )}
-
         {/* Nội dung trang: Phân định rõ ràng giữa Quản trị viên (Giám sát) và Cán bộ (Quy trình 5 bước) */}
         {loading ? (
           <div className="card border-0 shadow-sm p-5 text-center bg-white">
@@ -697,15 +842,35 @@ function EvaluationsContent() {
                           </span>
                         </td>
                         <td style={{ textAlign: "center" }}>
-                          <Button
-                            size="sm"
-                            variant="outline-secondary"
-                            onClick={() => openIndividualPdf(rec)}
-                            title="Xem bản in hồ sơ đánh giá"
-                            style={{ padding: "2px 8px", fontSize: "11.5px" }}
-                          >
-                            Mẫu 02
-                          </Button>
+                          <div className="d-flex justify-content-center gap-1">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary py-0 px-2"
+                              style={{ fontSize: "11px" }}
+                              onClick={() => reportService.exportMau02Docx(rec.id, rec.fullName)}
+                              title="Tải Mẫu 02 (.docx) của cán bộ này"
+                            >
+                              <i className="bi bi-file-earmark-word me-0.5"></i>Word
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary py-0 px-2"
+                              style={{ fontSize: "11px" }}
+                              onClick={() => openIndividualPdf(rec)}
+                              title="Xem bản in hồ sơ đánh giá (PDF)"
+                            >
+                              <i className="bi bi-file-earmark-pdf me-0.5"></i>PDF
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary py-0 px-2"
+                              style={{ fontSize: "11px" }}
+                              onClick={() => openRecordHistory(rec)}
+                              title="Xem lịch sử thao tác hồ sơ"
+                            >
+                              <i className="bi bi-clock-history"></i>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -730,6 +895,7 @@ function EvaluationsContent() {
                 onOpenUploadModal={handleOpenUploadForStep1}
                 onOpenDocViewer={openDocumentViewer}
                 onOpenPdf={() => openEvaluationPdf(getStep1RecordForPdf(), "mau01")}
+                onExportDocx={handleExportMau01Docx}
               />
             )}
 
@@ -754,46 +920,28 @@ function EvaluationsContent() {
                 onOpenUploadModal={handleOpenUploadForStep2}
                 onOpenDocViewer={openDocumentViewer}
                 onOpenPdf={(rec: EvaluationRecordDto) => openEvaluationPdf(rec || myRecord, "mau02")}
+                onExportDocx={handleExportMau02Docx}
               />
             )}
 
-            {/* Bước 3: Mẫu 10, 11, 13 (Chi bộ đánh giá) */}
-            {activeStep === 3 && (hasPermission("evaluations.branch_vote") || hasPermission("evaluations.branch_review")) && (
+            {/* Bước 3: Mẫu 11, 12, 13 (Chi bộ đánh giá) */}
+            {/* Bước 3: Mẫu 11 & Mẫu 13 (Chi bộ đánh giá & Biên bản kiểm phiếu) */}
+            {activeStep === 3 && (hasPermission("evaluations.branch_vote") || hasPermission("evaluations.branch_review") || isAdmin) && (
               <Step3BranchReview
                 records={branchRecords}
-                selectedRecord={selectedBranchRecord}
-                onSelectRecord={(rec) => {
-                  setSelectedBranchRecord(rec);
-                  setBranchComment(rec.partyCellComment || "");
-                  setBranchGrade(rec.partyCellProposedGrade || "HoanThanhTot");
-                  setVotesExcellent(rec.votesExcellent || 0);
-                  setVotesGood(rec.votesGood || 0);
-                  setVotesSatisfactory(rec.votesSatisfactory || 0);
-                  setVotesUnsatisfactory(rec.votesUnsatisfactory || 0);
-                  setTotalVoters(rec.totalVoters || 10);
-                }}
-                comment={branchComment}
-                onChangeComment={setBranchComment}
-                proposedGrade={branchGrade}
-                onChangeProposedGrade={setBranchGrade}
-                votesExcellent={votesExcellent}
-                onChangeVotesExcellent={setVotesExcellent}
-                votesGood={votesGood}
-                onChangeVotesGood={setVotesGood}
-                votesSatisfactory={votesSatisfactory}
-                onChangeVotesSatisfactory={setVotesSatisfactory}
-                votesUnsatisfactory={votesUnsatisfactory}
-                onChangeVotesUnsatisfactory={setVotesUnsatisfactory}
                 totalVoters={totalVoters}
                 onChangeTotalVoters={setTotalVoters}
-                onSubmit={handleSubmitStep3}
+                meetingVotes={meetingVotes}
+                onChangeMemberVote={handleChangeMemberVote}
+                onSubmitMeeting={handleSubmitStep3Meeting}
                 isSubmitting={actionLoading}
                 onOpenDocViewer={openDocumentViewer}
-                onOpenPdf={(rec, template) => openEvaluationPdf(rec, template || "mau10")}
+                onExportMau11Docx={handleExportMau11Docx}
+                onExportMau13Docx={handleExportMau13Docx}
               />
             )}
 
-            {/* Bước 4: Mẫu 03 & 15 (Tổ Thẩm định) */}
+            {/* Bước 4: Mẫu 10 & 03 (Tổ Thẩm định) */}
             {activeStep === 4 && hasPermission("evaluations.appraise") && (
               <Step4Appraisal
                 records={allRecords}
@@ -815,10 +963,11 @@ function EvaluationsContent() {
                 isSubmitting={actionLoading}
                 onOpenDocViewer={openDocumentViewer}
                 onOpenPdf={(rec, template) => openEvaluationPdf(rec, template || "individual")}
+                onExportMau10Docx={(rec) => handleExportMau10Docx(rec || selectedAppraisalRecord)}
               />
             )}
 
-            {/* Bước 5: Mẫu 07, 08, 14 (Ban Thường vụ Chuẩn y) */}
+            {/* Bước 5: Mẫu 14 & 15A (Ban Thường vụ Chuẩn y) */}
             {activeStep === 5 && hasPermission("evaluations.approve") && (
               <Step5Approval
                 records={allRecords}
@@ -835,6 +984,8 @@ function EvaluationsContent() {
                 onSubmit={handleSubmitStep5}
                 isSubmitting={actionLoading}
                 onOpenPdf={(rec) => openEvaluationPdf(rec, "individual")}
+                onExportMau14Excel={handleExportMau14Excel}
+                onExportMau15Excel={handleExportMau15Excel}
               />
             )}
           </>
@@ -879,6 +1030,18 @@ function EvaluationsContent() {
         targetTitle={uploadTaskTitle}
         currentAttachmentId={uploadCurrentAttId}
         onUploadSuccess={handleUploadSuccess}
+      />
+
+      <EvaluationHistoryModal
+        isOpen={historyModalOpen}
+        record={historyRecord}
+        history={recordHistory}
+        loading={historyLoading}
+        onClose={() => {
+          setHistoryModalOpen(false);
+          setHistoryRecord(null);
+          setRecordHistory([]);
+        }}
       />
     </div>
   );

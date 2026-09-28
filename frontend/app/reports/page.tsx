@@ -118,7 +118,6 @@ export default function ReportsPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Báo cáo"
-        subTitle={`${filteredReports.length} biểu mẫu`}
         actions={
           <Button
             size="sm"

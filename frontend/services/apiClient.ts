@@ -122,6 +122,13 @@ apiClient.interceptors.response.use(
         } else if (parsedData.errors && typeof parsedData.errors === "object") {
           errors = Object.values(parsedData.errors).flat() as string[];
         }
+
+        if (errors && errors.length > 0) {
+          const validErrors = errors.filter((e) => typeof e === "string" && e.trim().length > 0);
+          if (validErrors.length > 0) {
+            message = validErrors.join("; ");
+          }
+        }
       } else if (typeof parsedData === "string" && parsedData.trim().length > 0) {
         message = parsedData;
       }

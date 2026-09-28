@@ -14,8 +14,11 @@ public static class AppRoles
     /// <summary>Tổ Thẩm định Đảng ủy</summary>
     public const string TO_THAM_DINH = "TO_THAM_DINH";
 
-    /// <summary>Ủy viên Ban Thường vụ Đảng ủy</summary>
+    /// <summary>Ban Thường vụ Đảng ủy Tổng công ty có thẩm quyền phê duyệt cấp Tổng công ty</summary>
     public const string BAN_THUONG_VU = "BAN_THUONG_VU";
+
+    /// <summary>Đảng ủy cơ sở có thẩm quyền quyết định, phê duyệt hồ sơ thuộc cấp cơ sở</summary>
+    public const string DANG_UY_CO_SO = "DANG_UY_CO_SO";
 
     /// <summary>Quản trị hệ thống toàn quyền</summary>
     public const string QUAN_TRI_HE_THONG = "QUAN_TRI_HE_THONG";
@@ -27,6 +30,7 @@ public static class AppRoles
         BI_THU_CHI_BO,
         TO_THAM_DINH,
         BAN_THUONG_VU,
+        DANG_UY_CO_SO,
         QUAN_TRI_HE_THONG
     };
 }

@@ -5,7 +5,7 @@ namespace CongTacDang.Domain.Entities;
 /// <summary>
 /// Thực thể Công việc / Sản phẩm chuyên môn đăng ký và đánh giá (Mẫu 01 & Mẫu 02) theo Hướng dẫn 03-HD/TVĐU
 /// </summary>
-public class EvaluationTask
+public class EvaluationTask : IAuditableEntity, ISoftDeletable
 {
     /// <summary>Mã định danh công việc</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -53,6 +53,14 @@ public class EvaluationTask
 
     /// <summary>Có đạt tiêu chuẩn vượt chuẩn tiến độ/chất lượng để xét danh hiệu Xuất sắc hay không</summary>
     public bool IsExceedStandard { get; set; } = false;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid? CreatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? UpdatedBy { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedBy { get; set; }
 
     /// <summary>Mã tệp tin đính kèm làm bằng chứng dẫn chiếu (nếu có)</summary>
     public Guid? AttachmentId { get; set; }

@@ -179,6 +179,7 @@ public class AttachmentService : IAttachmentService
             Description = description ?? string.Empty,
             UploadedBy = string.IsNullOrWhiteSpace(uploadedBy) ? "Cán bộ quản trị" : uploadedBy,
             UploadedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
             IsActive = true
         };
 
@@ -217,7 +218,7 @@ public class AttachmentService : IAttachmentService
         if (attachment == null)
             throw new KeyNotFoundException("Không tìm thấy tệp đính kèm cần xóa.");
 
-        await _fileStorage.DeleteFileAsync(attachment.ObjectKey);
+        // Giữ file vật lý để có thể khôi phục bản ghi sau khi xóa mềm.
         await _attachmentRepo.DeleteAsync(attachment);
     }
 }

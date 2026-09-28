@@ -43,6 +43,190 @@ public static class DataSeeder
                 );
                 CREATE UNIQUE INDEX IF NOT EXISTS ""IX_refresh_tokens_Token"" ON refresh_tokens (""Token"");
                 CREATE INDEX IF NOT EXISTS ""IX_refresh_tokens_UserId"" ON refresh_tokens (""UserId"");
+
+                ALTER TABLE IF EXISTS party_cells
+                    ADD COLUMN IF NOT EXISTS ""CreatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ADD COLUMN IF NOT EXISTS ""DeletedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""DeletedBy"" uuid;
+                ALTER TABLE IF EXISTS administrative_departments
+                    ADD COLUMN IF NOT EXISTS ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT now(),
+                    ADD COLUMN IF NOT EXISTS ""CreatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ADD COLUMN IF NOT EXISTS ""DeletedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""DeletedBy"" uuid;
+                ALTER TABLE IF EXISTS party_member_profiles
+                    ADD COLUMN IF NOT EXISTS ""CreatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ADD COLUMN IF NOT EXISTS ""DeletedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""DeletedBy"" uuid;
+                ALTER TABLE IF EXISTS task_attachments
+                    ADD COLUMN IF NOT EXISTS ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT now(),
+                    ADD COLUMN IF NOT EXISTS ""CreatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ADD COLUMN IF NOT EXISTS ""DeletedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""DeletedBy"" uuid;
+                ALTER TABLE IF EXISTS permissions
+                    ADD COLUMN IF NOT EXISTS ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT now(),
+                    ADD COLUMN IF NOT EXISTS ""CreatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ADD COLUMN IF NOT EXISTS ""DeletedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""DeletedBy"" uuid;
+                ALTER TABLE IF EXISTS roles
+                    ADD COLUMN IF NOT EXISTS ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT now(),
+                    ADD COLUMN IF NOT EXISTS ""CreatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ADD COLUMN IF NOT EXISTS ""DeletedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""DeletedBy"" uuid;
+                ALTER TABLE IF EXISTS evaluation_periods
+                    ADD COLUMN IF NOT EXISTS ""CreatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ADD COLUMN IF NOT EXISTS ""DeletedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""DeletedBy"" uuid;
+                ALTER TABLE IF EXISTS evaluation_records
+                    ADD COLUMN IF NOT EXISTS ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT now(),
+                    ADD COLUMN IF NOT EXISTS ""CreatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ADD COLUMN IF NOT EXISTS ""DeletedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""DeletedBy"" uuid;
+                ALTER TABLE IF EXISTS evaluation_tasks
+                    ADD COLUMN IF NOT EXISTS ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT now(),
+                    ADD COLUMN IF NOT EXISTS ""CreatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""UpdatedBy"" uuid,
+                    ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ADD COLUMN IF NOT EXISTS ""DeletedAt"" timestamp with time zone,
+                    ADD COLUMN IF NOT EXISTS ""DeletedBy"" uuid;
+
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""ActorId"" uuid,
+                    ""ActorName"" character varying(200) NOT NULL,
+                    ""Action"" character varying(100) NOT NULL,
+                    ""EntityType"" character varying(200) NOT NULL,
+                    ""EntityId"" character varying(100) NOT NULL,
+                    ""OldValues"" text NOT NULL,
+                    ""NewValues"" text NOT NULL,
+                    ""IpAddress"" character varying(100),
+                    ""UserAgent"" character varying(1000),
+                    ""RequestPath"" character varying(1000),
+                    ""CreatedAt"" timestamp with time zone NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS ""IX_audit_logs_Entity"" ON audit_logs (""EntityType"", ""EntityId"");
+                CREATE INDEX IF NOT EXISTS ""IX_audit_logs_CreatedAt"" ON audit_logs (""CreatedAt"");
+
+                CREATE TABLE IF NOT EXISTS evaluation_record_histories (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""RecordId"" uuid NOT NULL REFERENCES evaluation_records(""Id"") ON DELETE CASCADE,
+                    ""FromStatus"" integer,
+                    ""ToStatus"" integer NOT NULL,
+                    ""ActorId"" uuid,
+                    ""ActorName"" character varying(200) NOT NULL,
+                    ""Comment"" text,
+                    ""CreatedAt"" timestamp with time zone NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS ""IX_evaluation_record_histories_Record"" ON evaluation_record_histories (""RecordId"", ""CreatedAt"");
+
+                CREATE TABLE IF NOT EXISTS collective_evaluation_records (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""PeriodId"" uuid NOT NULL REFERENCES evaluation_periods(""Id"") ON DELETE CASCADE,
+                    ""Form"" integer NOT NULL,
+                    ""PartyCellId"" uuid REFERENCES party_cells(""Id"") ON DELETE SET NULL,
+                    ""DepartmentId"" uuid REFERENCES administrative_departments(""Id"") ON DELETE SET NULL,
+                    ""HeadId"" uuid REFERENCES party_member_profiles(""Id"") ON DELETE SET NULL,
+                    ""SubjectName"" character varying(300) NOT NULL,
+                    ""Strengths"" text NOT NULL DEFAULT '',
+                    ""Limitations"" text NOT NULL DEFAULT '',
+                    ""Causes"" text NOT NULL DEFAULT '',
+                    ""PreviousRemediation"" text NOT NULL DEFAULT '',
+                    ""Explanation"" text NOT NULL DEFAULT '',
+                    ""Responsibilities"" text NOT NULL DEFAULT '',
+                    ""RemediationPlan"" text NOT NULL DEFAULT '',
+                    ""GeneralCriteriaScore"" double precision NOT NULL DEFAULT 0,
+                    ""TaskCriteriaScore"" double precision NOT NULL DEFAULT 0,
+                    ""TotalScore"" double precision NOT NULL DEFAULT 0,
+                    ""SelfProposedGrade"" integer NOT NULL DEFAULT 0,
+                    ""Status"" integer NOT NULL DEFAULT 0,
+                    ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT now(),
+                    ""CreatedBy"" uuid,
+                    ""UpdatedAt"" timestamp with time zone,
+                    ""UpdatedBy"" uuid,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ""DeletedAt"" timestamp with time zone,
+                    ""DeletedBy"" uuid
+                );
+                CREATE INDEX IF NOT EXISTS ""IX_collective_evaluation_records_Period"" ON collective_evaluation_records (""PeriodId"", ""Form"");
+
+                CREATE TABLE IF NOT EXISTS collective_evaluation_items (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""CollectiveRecordId"" uuid NOT NULL REFERENCES collective_evaluation_records(""Id"") ON DELETE CASCADE,
+                    ""ItemOrder"" integer NOT NULL,
+                    ""Category"" character varying(200) NOT NULL DEFAULT '',
+                    ""TaskName"" character varying(500) NOT NULL DEFAULT '',
+                    ""PlanOrDirection"" text NOT NULL DEFAULT '',
+                    ""Result"" text NOT NULL DEFAULT '',
+                    ""Limitations"" text NOT NULL DEFAULT '',
+                    ""Notes"" text NOT NULL DEFAULT ''
+                );
+                CREATE INDEX IF NOT EXISTS ""IX_collective_evaluation_items_Record"" ON collective_evaluation_items (""CollectiveRecordId"", ""ItemOrder"");
+
+                CREATE TABLE IF NOT EXISTS evaluation_meetings (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""PeriodId"" uuid NOT NULL REFERENCES evaluation_periods(""Id"") ON DELETE CASCADE,
+                    ""PartyCellId"" uuid REFERENCES party_cells(""Id"") ON DELETE SET NULL,
+                    ""FormCode"" character varying(10) NOT NULL DEFAULT 'M12',
+                    ""MeetingType"" character varying(200) NOT NULL DEFAULT '',
+                    ""Location"" character varying(300) NOT NULL DEFAULT '',
+                    ""StartedAt"" timestamp with time zone NOT NULL DEFAULT now(),
+                    ""EndedAt"" timestamp with time zone,
+                    ""InvitedCount"" integer NOT NULL DEFAULT 0,
+                    ""PresentCount"" integer NOT NULL DEFAULT 0,
+                    ""AbsentCount"" integer NOT NULL DEFAULT 0,
+                    ""AbsentReasons"" text NOT NULL DEFAULT '',
+                    ""ChairId"" uuid,
+                    ""ChairName"" character varying(200) NOT NULL DEFAULT '',
+                    ""SecretaryId"" uuid,
+                    ""SecretaryName"" character varying(200) NOT NULL DEFAULT '',
+                    ""MinutesContent"" text NOT NULL DEFAULT '',
+                    ""OutcomeContent"" text NOT NULL DEFAULT '',
+                    ""VoteCountingContent"" text NOT NULL DEFAULT '',
+                    ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT now(),
+                    ""CreatedBy"" uuid,
+                    ""UpdatedAt"" timestamp with time zone,
+                    ""UpdatedBy"" uuid,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ""DeletedAt"" timestamp with time zone,
+                    ""DeletedBy"" uuid
+                );
+                CREATE INDEX IF NOT EXISTS ""IX_evaluation_meetings_Period"" ON evaluation_meetings (""PeriodId"", ""PartyCellId"", ""FormCode"");
+
+                CREATE TABLE IF NOT EXISTS evaluation_meeting_vote_summaries (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""MeetingId"" uuid NOT NULL REFERENCES evaluation_meetings(""Id"") ON DELETE CASCADE,
+                    ""RecordId"" uuid NOT NULL REFERENCES evaluation_records(""Id"") ON DELETE RESTRICT,
+                    ""VotesExcellent"" integer NOT NULL DEFAULT 0,
+                    ""VotesGood"" integer NOT NULL DEFAULT 0,
+                    ""VotesSatisfactory"" integer NOT NULL DEFAULT 0,
+                    ""VotesUnsatisfactory"" integer NOT NULL DEFAULT 0,
+                    ""InvalidVotes"" integer NOT NULL DEFAULT 0,
+                    ""Notes"" text NOT NULL DEFAULT '',
+                    CONSTRAINT ""UX_evaluation_meeting_vote_summaries_Meeting_Record"" UNIQUE (""MeetingId"", ""RecordId"")
+                );
             ");
         }
         catch
@@ -147,12 +331,27 @@ public static class DataSeeder
                 }
             };
 
+            // Role 4b: DANG_UY_CO_SO
+            var roleDangUyCoSo = new AppRole
+            {
+                Code = AppRoles.DANG_UY_CO_SO,
+                Name = "Đảng ủy cơ sở",
+                Description = "Quyết định, phê duyệt hồ sơ thuộc thẩm quyền Đảng ủy cơ sở",
+                IsSystem = true,
+                Permissions = new List<Permission>
+                {
+                    permMap[AppPermissions.EvaluationsRead],
+                    permMap[AppPermissions.EvaluationsApprove],
+                    permMap[AppPermissions.ReportsExport]
+                }
+            };
+
             // Role 4: BAN_THUONG_VU
             var roleBanThuongVu = new AppRole
             {
                 Code = AppRoles.BAN_THUONG_VU,
-                Name = "Ban Thường vụ Đảng ủy",
-                Description = "Ủy viên Ban Thường vụ, Phó Bí thư, Bí thư Đảng ủy",
+                Name = "Ban Thường vụ Đảng ủy Tổng công ty",
+                Description = "Cấp có thẩm quyền phê duyệt các hồ sơ thuộc diện Ban Thường vụ Đảng ủy Tổng công ty",
                 IsSystem = true,
                 Permissions = new List<Permission>(roleCanBo.Permissions)
                 {
@@ -192,7 +391,7 @@ public static class DataSeeder
                 }
             };
 
-            await context.Roles.AddRangeAsync(roleCanBo, roleBiThuChiBo, roleToThamDinh, roleBanThuongVu, roleAdmin);
+            await context.Roles.AddRangeAsync(roleCanBo, roleBiThuChiBo, roleToThamDinh, roleBanThuongVu, roleDangUyCoSo, roleAdmin);
             await context.SaveChangesAsync();
         }
 
@@ -230,6 +429,7 @@ public static class DataSeeder
             var roleCanBo = await context.Roles.FirstAsync(r => r.Code == AppRoles.CAN_BO);
             var roleBiThuCb = await context.Roles.FirstAsync(r => r.Code == AppRoles.BI_THU_CHI_BO);
             var roleBanThuongVu = await context.Roles.FirstAsync(r => r.Code == AppRoles.BAN_THUONG_VU);
+            var roleDangUyCoSo = await context.Roles.FirstAsync(r => r.Code == AppRoles.DANG_UY_CO_SO);
             var roleAdmin = await context.Roles.FirstAsync(r => r.Code == AppRoles.QUAN_TRI_HE_THONG);
             var defaultPasswordHash = BCrypt.Net.BCrypt.HashPassword("123456");
 
@@ -268,7 +468,7 @@ public static class DataSeeder
                 PositionTitle = "Bí thư Đảng ủy, Giám đốc Công ty",
                 JobGroup = JobGroup.Khung1_QuanLyDangDoanThe,
                 IsApprovedByAttech = false,
-                Roles = new List<AppRole> { roleBanThuongVu, roleCanBo }
+                Roles = new List<AppRole> { roleBanThuongVu, roleDangUyCoSo, roleCanBo }
             };
 
             var biThuCbkt = new PartyMemberProfile
@@ -342,6 +542,27 @@ public static class DataSeeder
             var roleAdmin = await context.Roles.FirstOrDefaultAsync(r => r.Code == AppRoles.QUAN_TRI_HE_THONG);
             var roleToThamDinh = await context.Roles.FirstOrDefaultAsync(r => r.Code == AppRoles.TO_THAM_DINH);
             var roleCanBo = await context.Roles.FirstOrDefaultAsync(r => r.Code == AppRoles.CAN_BO);
+            var roleDangUyCoSo = await context.Roles.FirstOrDefaultAsync(r => r.Code == AppRoles.DANG_UY_CO_SO);
+
+            if (roleDangUyCoSo == null)
+            {
+                roleDangUyCoSo = new AppRole
+                {
+                    Code = AppRoles.DANG_UY_CO_SO,
+                    Name = "Đảng ủy cơ sở",
+                    Description = "Quyết định, phê duyệt hồ sơ thuộc thẩm quyền Đảng ủy cơ sở",
+                    IsSystem = true,
+                    Permissions = new List<Permission>()
+                };
+                var approvalPermission = await context.Permissions.FirstOrDefaultAsync(p => p.Code == AppPermissions.EvaluationsApprove);
+                var readPermission = await context.Permissions.FirstOrDefaultAsync(p => p.Code == AppPermissions.EvaluationsRead);
+                var exportPermission = await context.Permissions.FirstOrDefaultAsync(p => p.Code == AppPermissions.ReportsExport);
+                if (approvalPermission != null) roleDangUyCoSo.Permissions.Add(approvalPermission);
+                if (readPermission != null) roleDangUyCoSo.Permissions.Add(readPermission);
+                if (exportPermission != null) roleDangUyCoSo.Permissions.Add(exportPermission);
+                await context.Roles.AddAsync(roleDangUyCoSo);
+                await context.SaveChangesAsync();
+            }
 
             // Đảm bảo tài khoản Quản trị viên hệ thống (admin / 123456) luôn tồn tại
             var adminUser = await context.PartyMemberProfiles
@@ -390,6 +611,11 @@ public static class DataSeeder
                     biThuUser.Roles.Remove(adminRoleInBiThu);
                     await context.SaveChangesAsync();
                 }
+            }
+            if (biThuUser != null && roleDangUyCoSo != null && !biThuUser.Roles.Any(r => r.Code == AppRoles.DANG_UY_CO_SO))
+            {
+                biThuUser.Roles.Add(roleDangUyCoSo);
+                await context.SaveChangesAsync();
             }
 
             // Đảm bảo tài khoản Tổ thẩm định luôn tồn tại
@@ -547,7 +773,7 @@ public static class DataSeeder
             {
                 AddIfMissing(AppPermissions.EvaluationsAppraise);
             }
-            if (role.Code == AppRoles.BAN_THUONG_VU)
+            if (role.Code == AppRoles.BAN_THUONG_VU || role.Code == AppRoles.DANG_UY_CO_SO)
             {
                 AddIfMissing(AppPermissions.EvaluationsApprove);
             }

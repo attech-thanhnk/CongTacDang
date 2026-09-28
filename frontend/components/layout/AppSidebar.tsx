@@ -20,6 +20,15 @@ export function AppSidebar() {
       permission: "evaluations.read",
     },
     {
+      title: "Đánh giá tập thể",
+      href: "/collective-evaluations",
+      icon: "bi-diagram-3-fill",
+      check: () =>
+        hasPermission("evaluations.branch_vote") ||
+        hasPermission("evaluations.appraise") ||
+        hasPermission("evaluations.approve"),
+    },
+    {
       title: "Cán bộ & Tổ chức",
       href: "/users",
       icon: "bi-people-fill",
@@ -29,7 +38,7 @@ export function AppSidebar() {
         hasPermission("roles.manage"),
     },
     {
-      title: "Minh chứng",
+      title: "Tài liệu đính kèm",
       href: "/attachments",
       icon: "bi-folder2-open",
       permission: "attachments.read",
@@ -39,6 +48,12 @@ export function AppSidebar() {
       href: "/reports",
       icon: "bi-bar-chart-line-fill",
       permission: "reports.export",
+    },
+    {
+      title: "Nhật ký hệ thống",
+      href: "/audit",
+      icon: "bi-clock-history",
+      permission: "roles.manage",
     },
     { title: "Biểu mẫu", href: "/forms", icon: "bi-file-earmark-text-fill" },
   ];

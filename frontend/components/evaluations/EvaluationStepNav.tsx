@@ -12,6 +12,16 @@ interface EvaluationStepNavProps {
   allRecordsCount: number;
 }
 
+interface StepItem {
+  id: number;
+  num: string;
+  name: string;
+  role: string;
+  count: string | null;
+  allowed: boolean;
+  isCompleted: boolean;
+}
+
 export function EvaluationStepNav({
   activeStep,
   onSelectStep,
@@ -20,43 +30,48 @@ export function EvaluationStepNav({
   branchRecordsCount,
   allRecordsCount,
 }: EvaluationStepNavProps) {
-  const steps = [
+  const steps: StepItem[] = [
     {
       id: 1,
-      name: "Đăng ký nhiệm vụ",
-      code: "M01",
-      count: myRecord?.tasks?.length ? `${myRecord.tasks.length}` : null,
+      num: "01",
+      name: "Đăng ký công việc",
+      role: "Cá nhân",
+      count: myRecord?.tasks?.length ? `${myRecord.tasks.length} việc` : null,
       allowed: hasPermission("evaluations.register"),
       isCompleted: (myRecord?.tasks?.length || 0) > 0,
     },
     {
       id: 2,
+      num: "02",
       name: "Tự chấm điểm",
-      code: "M02",
+      role: "Cá nhân",
       count: myRecord?.totalSelfScore ? `${myRecord.totalSelfScore}đ` : null,
       allowed: hasPermission("evaluations.self_score"),
       isCompleted: (myRecord?.totalSelfScore || 0) > 0,
     },
     {
       id: 3,
+      num: "03",
       name: "Chi bộ đánh giá",
-      code: "M10",
-      count: branchRecordsCount > 0 ? `${branchRecordsCount}` : null,
+      role: "Chi bộ",
+      count: branchRecordsCount > 0 ? `${branchRecordsCount} cán bộ` : null,
       allowed: hasPermission("evaluations.branch_vote") || hasPermission("evaluations.branch_review"),
       isCompleted: branchRecordsCount > 0,
     },
     {
       id: 4,
-      name: "Thẩm định",
-      code: "M03",
-      count: allRecordsCount > 0 ? `${allRecordsCount}` : null,
+      num: "04",
+      name: "Thẩm định hồ sơ",
+      role: "Tổ Thẩm định",
+      count: allRecordsCount > 0 ? `${allRecordsCount} hồ sơ` : null,
       allowed: hasPermission("evaluations.appraise"),
       isCompleted: allRecordsCount > 0,
     },
     {
       id: 5,
-      name: "Chuẩn y",
-      code: "M07",
+      num: "05",
+      name: "Phê duyệt xếp loại",
+      role: "Ban Thường vụ",
       count: null,
       allowed: hasPermission("evaluations.approve"),
       isCompleted: false,
@@ -66,81 +81,114 @@ export function EvaluationStepNav({
   const visibleSteps = steps.filter((step) => step.allowed);
 
   return (
-    <div className="step-nav">
-      {visibleSteps.map((step) => {
-        const isActive = activeStep === step.id;
-        const isDone = step.isCompleted && !isActive;
+    <nav
+      aria-label="Quy trình đánh giá cán bộ"
+      style={{
+        backgroundColor: "#ffffff",
+        borderBottom: "1px solid #e2e8f0",
+        padding: "10px calc(var(--page-px, 24px) - 6px)",
+      }}
+    >
+      <div className="d-flex align-items-stretch overflow-x-auto no-scrollbar gap-1 py-0.5">
+        {visibleSteps.map((step, idx) => {
+          const isActive = activeStep === step.id;
+          const isCompleted = step.isCompleted;
+          const isFirst = idx === 0;
+          const isLast = idx === visibleSteps.length - 1;
 
-        return (
-          <button
-            key={step.id}
-            type="button"
-            onClick={() => onSelectStep(step.id)}
-            className={`step-nav-item ${isActive ? "active" : isDone ? "done" : ""}`}
-            style={{ border: "none", background: "transparent", cursor: "pointer" }}
-          >
-            {/* Step number circle */}
-            <span className="step-nav-num">
-              {isDone ? (
-                <i className="bi bi-check-lg" style={{ fontSize: "12px" }} />
-              ) : (
-                step.id
-              )}
-            </span>
+          // Tạo hình khối mũi tên Chevron chính xác 100% bằng clip-path
+          const clipPath = isFirst
+            ? "polygon(0% 0%, calc(100% - 14px) 0%, 100% 50%, calc(100% - 14px) 100%, 0% 100%)"
+            : isLast
+            ? "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 14px 50%)"
+            : "polygon(0% 0%, calc(100% - 14px) 0%, 100% 50%, calc(100% - 14px) 100%, 0% 100%, 14px 50%)";
 
-            <span>{step.name}</span>
-
-            {/* Code badge */}
-            <span
+          return (
+            <button
+              key={step.id}
+              type="button"
+              onClick={() => onSelectStep(step.id)}
+              className="flex-fill border-0 text-start transition-all text-nowrap d-flex align-items-center"
               style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "12px",
-                fontWeight: 600,
-                padding: "2px 6px",
-                borderRadius: "4px",
-                background: isActive
-                  ? "var(--color-primary-light)"
-                  : isDone
-                  ? "var(--color-success-bg)"
-                  : "var(--bg-app)",
-                color: isActive
-                  ? "var(--color-cobalt)"
-                  : isDone
-                  ? "var(--color-success)"
-                  : "var(--text-secondary)",
-                border: `1px solid ${
-                  isActive
-                    ? "var(--color-primary-border)"
-                    : isDone
-                    ? "var(--color-success-border)"
-                    : "var(--border-base)"
-                }`,
+                clipPath,
+                backgroundColor: isActive
+                  ? "#1d4ed8"
+                  : isCompleted
+                  ? "#f1f5f9"
+                  : "#f8fafc",
+                color: isActive ? "#ffffff" : "#1e293b",
+                paddingTop: "9px",
+                paddingBottom: "9px",
+                paddingLeft: isFirst ? "14px" : "24px",
+                paddingRight: isLast ? "14px" : "24px",
+                cursor: "pointer",
+                outline: "none",
+                minWidth: "160px",
+                transition: "all 0.15s ease",
               }}
+              title={`Bước ${step.id}: ${step.name} (${step.role})`}
             >
-              {step.code}
-            </span>
-
-            {/* Count */}
-            {step.count && (
+              {/* Số thứ tự tròn thanh lịch, không dùng ô vuông thô ráp */}
               <span
                 style={{
-                  fontSize: "12px",
-                  padding: "2px 6px",
-                  borderRadius: "4px",
-                  background: "var(--bg-app)",
-                  color: "var(--text-secondary)",
-                  border: "1px solid var(--border-base)",
-                  fontWeight: 600,
+                  width: "22px",
+                  height: "22px",
+                  borderRadius: "50%",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  flexShrink: 0,
+                  backgroundColor: isActive
+                    ? "#ffffff"
+                    : isCompleted
+                    ? "#cbd5e1"
+                    : "#e2e8f0",
+                  color: isActive
+                    ? "#1d4ed8"
+                    : isCompleted
+                    ? "#1e293b"
+                    : "#94a3b8",
+                  marginRight: "8px",
                 }}
               >
-                {step.count}
+                {step.id}
               </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
+
+              {/* Tên bước & Phụ đề */}
+              <div className="d-flex flex-column min-w-0" style={{ lineHeight: 1.2 }}>
+                <span
+                  className="text-truncate"
+                  style={{
+                    fontSize: "12.5px",
+                    fontWeight: isActive ? 700 : 600,
+                    color: isActive ? "#ffffff" : isCompleted ? "#0f172a" : "#64748b",
+                  }}
+                >
+                  {step.name}
+                </span>
+                <span
+                  className="text-truncate"
+                  style={{
+                    fontSize: "10.5px",
+                    fontWeight: 500,
+                    color: isActive ? "#bfdbfe" : "#94a3b8",
+                    marginTop: "1px",
+                  }}
+                >
+                  {step.role} {step.count ? `• ${step.count}` : ""}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 
 export default EvaluationStepNav;
+
+
+

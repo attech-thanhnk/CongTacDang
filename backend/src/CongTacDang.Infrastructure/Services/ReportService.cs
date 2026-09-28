@@ -304,5 +304,321 @@ public class ReportService : IReportService
             }
         }
     }
-}
 
+    public async Task<ReportFileResult> ExportForm15AReportAsync()
+    {
+        var activePeriod = await _evalRepo.GetActivePeriodAsync();
+        var periodId = activePeriod?.Id ?? Guid.Empty;
+        var records = periodId != Guid.Empty
+            ? await _evalRepo.GetRecordsByPeriodAsync(periodId)
+            : new List<CongTacDang.Domain.Entities.EvaluationRecord>();
+
+        var total = records.Count;
+        var goodOrBetter = records.Count(IsGoodOrBetter);
+        var proposedExcellent = records.Count(IsProposedExcellent);
+        var maxAllowed = (int)Math.Floor(goodOrBetter * 0.20);
+
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Mẫu 15A - Tổng hợp");
+        ws.Cell("A1").Value = "BẢNG KIỂM SOÁT TỶ LỆ TRẦN 20% - MẪU 15A";
+        ws.Range("A1:H1").Merge().Style.Font.SetBold(true).Font.SetFontSize(13)
+            .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+        ws.Cell("A2").Value = activePeriod?.Name ?? "Chưa có kỳ đánh giá";
+        ws.Range("A2:H2").Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+
+        var headers = new[]
+        {
+            "STT", "Phạm vi", "Tổng số cán bộ", "HT tốt trở lên", "Trần 20% tối đa",
+            "Đề xuất xuất sắc", "Tỷ lệ thực tế (%)", "Kết luận"
+        };
+        for (var i = 0; i < headers.Length; i++)
+        {
+            var cell = ws.Cell(4, i + 1);
+            cell.Value = headers[i];
+            cell.Style.Font.Bold = true;
+            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#FED7AA");
+            cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        }
+
+        var actualPercent = goodOrBetter > 0 ? Math.Round((double)proposedExcellent / goodOrBetter * 100, 1) : 0;
+        var exceeds = proposedExcellent > maxAllowed;
+        ws.Cell(5, 1).Value = 1;
+        ws.Cell(5, 2).Value = "Toàn Đảng bộ Công ty";
+        ws.Cell(5, 3).Value = total;
+        ws.Cell(5, 4).Value = goodOrBetter;
+        ws.Cell(5, 5).Value = maxAllowed;
+        ws.Cell(5, 6).Value = proposedExcellent;
+        ws.Cell(5, 7).Value = $"{actualPercent}%";
+        ws.Cell(5, 8).Value = exceeds ? "VƯỢT TRẦN 20%" : "Đạt chuẩn";
+        if (exceeds)
+        {
+            ws.Cell(5, 8).Style.Font.FontColor = XLColor.Red;
+            ws.Cell(5, 8).Style.Font.Bold = true;
+        }
+        for (var i = 1; i <= 8; i++)
+            ws.Cell(5, i).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        ws.Columns().AdjustToContents();
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        return new ReportFileResult
+        {
+            FileBytes = stream.ToArray(),
+            FileName = "Mau_15A_KiemSoatTran20_ToanDangBo.xlsx"
+        };
+    }
+
+    public async Task<ReportFileResult> ExportForm15BReportAsync()
+    {
+        var result = await ExportForm15ReportAsync();
+        result.FileName = "Mau_15B_KiemSoatTran20_TheoChiBo.xlsx";
+        return result;
+    }
+
+    public async Task<ReportFileResult> ExportForm16ReportAsync()
+    {
+        var activePeriod = await _evalRepo.GetActivePeriodAsync();
+        var periodId = activePeriod?.Id ?? Guid.Empty;
+        var records = periodId != Guid.Empty
+            ? await _evalRepo.GetRecordsByPeriodAsync(periodId)
+            : new List<CongTacDang.Domain.Entities.EvaluationRecord>();
+
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Mẫu 16 - Tổng hợp");
+        ws.Cell("A1").Value = "BẢNG TỔNG HỢP KẾT QUẢ XẾP LOẠI CÁN BỘ - MẪU 16";
+        ws.Range("A1:H1").Merge().Style.Font.SetBold(true).Font.SetFontSize(13)
+            .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+        ws.Cell("A2").Value = activePeriod?.Name ?? "Chưa có kỳ đánh giá";
+        ws.Range("A2:H2").Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+
+        var headers = new[]
+        {
+            "STT", "Nhóm chức vụ", "Tổng số", "Hoàn thành xuất sắc",
+            "Hoàn thành tốt", "Hoàn thành", "Không hoàn thành", "Chưa xếp loại"
+        };
+        for (var i = 0; i < headers.Length; i++)
+        {
+            var cell = ws.Cell(4, i + 1);
+            cell.Value = headers[i];
+            cell.Style.Font.Bold = true;
+            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#E2E8F0");
+            cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        }
+
+        var grouped = records
+            .Where(r => r.Member != null)
+            .GroupBy(r => r.Member!.PartyRole.ToString())
+            .OrderBy(g => g.Key)
+            .ToList();
+        var row = 5;
+        var stt = 1;
+        foreach (var group in grouped)
+        {
+            var grades = group.Select(GetEffectiveGrade).ToList();
+            var values = new object[]
+            {
+                stt++, group.Key, grades.Count,
+                grades.Count(g => g == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac),
+                grades.Count(g => g == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhTot),
+                grades.Count(g => g == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanh),
+                grades.Count(g => g == CongTacDang.Domain.Enums.EvaluationGrade.KhongHoanThanh),
+                grades.Count(g => g == CongTacDang.Domain.Enums.EvaluationGrade.ChuaXepLoai)
+            };
+            for (var i = 0; i < values.Length; i++)
+            {
+                ws.Cell(row, i + 1).Value = values[i]?.ToString() ?? string.Empty;
+                ws.Cell(row, i + 1).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            }
+            row++;
+        }
+        ws.Columns().AdjustToContents();
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        return new ReportFileResult
+        {
+            FileBytes = stream.ToArray(),
+            FileName = "Mau_16_TongHopKetQuaXepLoai.xlsx"
+        };
+    }
+
+    private static bool IsGoodOrBetter(CongTacDang.Domain.Entities.EvaluationRecord record)
+    {
+        return IsGrade(record.AppraisalProposedGrade, CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhTot) ||
+               IsGrade(record.PartyCellProposedGrade, CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhTot);
+    }
+
+    private static bool IsProposedExcellent(CongTacDang.Domain.Entities.EvaluationRecord record)
+    {
+        return record.AppraisalProposedGrade == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac ||
+               (record.AppraisalProposedGrade == CongTacDang.Domain.Enums.EvaluationGrade.ChuaXepLoai &&
+                record.PartyCellProposedGrade == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac);
+    }
+
+    private static bool IsGrade(CongTacDang.Domain.Enums.EvaluationGrade grade, CongTacDang.Domain.Enums.EvaluationGrade minimum)
+    {
+        return grade == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac || grade == minimum;
+    }
+
+    private static CongTacDang.Domain.Enums.EvaluationGrade GetEffectiveGrade(CongTacDang.Domain.Entities.EvaluationRecord record)
+    {
+        if (record.FinalGrade != CongTacDang.Domain.Enums.EvaluationGrade.ChuaXepLoai)
+            return record.FinalGrade;
+        if (record.AppraisalProposedGrade != CongTacDang.Domain.Enums.EvaluationGrade.ChuaXepLoai)
+            return record.AppraisalProposedGrade;
+        return record.PartyCellProposedGrade;
+    }
+
+    private const string DocxMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+    public async Task<ReportFileResult> ExportMau01DocxAsync(Guid recordId)
+    {
+        var record = await _db.EvaluationRecords
+            .Include(r => r.Period)
+            .Include(r => r.Member)
+            .Include(r => r.Department)
+            .Include(r => r.PartyCell)
+            .Include(r => r.Tasks)
+            .FirstOrDefaultAsync(r => r.Id == recordId);
+
+        if (record == null)
+            throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
+
+        var bytes = DocxTemplateEngine.FillMau01Template(record);
+        var safeName = record.Member?.FullName?.Replace(" ", "_") ?? "CanBo";
+
+        return new ReportFileResult
+        {
+            FileBytes = bytes,
+            ContentType = DocxMimeType,
+            FileName = $"Mau_01_DangKyNhiemVu_{safeName}.docx"
+        };
+    }
+
+    public async Task<ReportFileResult> ExportMau02DocxAsync(Guid recordId)
+    {
+        var record = await _db.EvaluationRecords
+            .Include(r => r.Period)
+            .Include(r => r.Member)
+            .Include(r => r.Department)
+            .Include(r => r.PartyCell)
+            .Include(r => r.Tasks)
+                .ThenInclude(t => t.Attachment)
+            .FirstOrDefaultAsync(r => r.Id == recordId);
+
+        if (record == null)
+            throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
+
+        var bytes = DocxTemplateEngine.FillMau02Template(record);
+        var safeName = record.Member?.FullName?.Replace(" ", "_") ?? "CanBo";
+
+        return new ReportFileResult
+        {
+            FileBytes = bytes,
+            ContentType = DocxMimeType,
+            FileName = $"Mau_02_TuDanhGia_{safeName}.docx"
+        };
+    }
+
+    public async Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId)
+    {
+        var record = await _db.EvaluationRecords
+            .Include(r => r.Period)
+            .Include(r => r.Member)
+            .Include(r => r.Department)
+            .Include(r => r.PartyCell)
+            .Include(r => r.Tasks)
+            .FirstOrDefaultAsync(r => r.Id == recordId);
+
+        if (record == null)
+            throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
+
+        var bytes = DocxTemplateEngine.FillMau10Template(record);
+        var safeName = record.Member?.FullName?.Replace(" ", "_") ?? "CanBo";
+
+        return new ReportFileResult
+        {
+            FileBytes = bytes,
+            ContentType = DocxMimeType,
+            FileName = $"Mau_10_PhieuThamDinh_{safeName}.docx"
+        };
+    }
+
+    public async Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId)
+    {
+        var period = await _db.EvaluationPeriods.FirstOrDefaultAsync(p => p.Id == periodId);
+        if (period == null)
+            throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+
+        var query = _db.EvaluationRecords
+            .Include(r => r.Period)
+            .Include(r => r.Member)
+            .Include(r => r.Department)
+            .Include(r => r.PartyCell)
+            .Where(r => r.PeriodId == periodId);
+
+        string? branchName = null;
+        if (branchId.HasValue && branchId.Value != Guid.Empty)
+        {
+            query = query.Where(r => r.PartyCellId == branchId.Value || r.Member.PartyCellId == branchId.Value);
+            var branch = await _db.PartyCells.FirstOrDefaultAsync(b => b.Id == branchId.Value);
+            branchName = branch?.Name;
+        }
+
+        var records = await query.ToListAsync();
+        var bytes = DocxTemplateEngine.FillMau11Template(period, records, branchName);
+
+        var safeBranch = !string.IsNullOrEmpty(branchName) ? branchName.Replace(" ", "_") : "ToanDangBo";
+        return new ReportFileResult
+        {
+            FileBytes = bytes,
+            ContentType = DocxMimeType,
+            FileName = $"Mau_11_PhieuBoPhieu_{safeBranch}_Q{period.Quarter}_{period.Year}.docx"
+        };
+    }
+
+    public async Task<ReportFileResult> ExportMau13DocxAsync(Guid periodId, Guid? branchId)
+    {
+        var period = await _db.EvaluationPeriods.FirstOrDefaultAsync(p => p.Id == periodId);
+        if (period == null)
+            throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+
+        var query = _db.EvaluationRecords
+            .Include(r => r.Period)
+            .Include(r => r.Member)
+            .Include(r => r.Department)
+            .Include(r => r.PartyCell)
+            .Where(r => r.PeriodId == periodId);
+
+        string? branchName = null;
+        int totalVoters = 12;
+        if (branchId.HasValue && branchId.Value != Guid.Empty)
+        {
+            query = query.Where(r => r.PartyCellId == branchId.Value || r.Member.PartyCellId == branchId.Value);
+            var branch = await _db.PartyCells.Include(b => b.Members).FirstOrDefaultAsync(b => b.Id == branchId.Value);
+            branchName = branch?.Name;
+            if (branch?.Members?.Count > 0)
+            {
+                totalVoters = branch.Members.Count;
+            }
+        }
+
+        var records = await query.ToListAsync();
+        if (records.Count > 0 && records[0].TotalVoters > 0)
+        {
+            totalVoters = records[0].TotalVoters;
+        }
+
+        var bytes = DocxTemplateEngine.FillMau13Template(period, records, branchName, totalVoters);
+        var safeBranch = !string.IsNullOrEmpty(branchName) ? branchName.Replace(" ", "_") : "ToanDangBo";
+
+        return new ReportFileResult
+        {
+            FileBytes = bytes,
+            ContentType = DocxMimeType,
+            FileName = $"Mau_13_BienBanKiemPhieu_{safeBranch}_Q{period.Quarter}_{period.Year}.docx"
+        };
+    }
+}

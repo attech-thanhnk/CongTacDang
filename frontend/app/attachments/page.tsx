@@ -151,7 +151,7 @@ export default function AttachmentsPage() {
     <div className="page-wrapper">
       {/* Header dùng chung */}
       <PageHeader
-        title="Minh chứng"
+        title="Tài liệu đính kèm"
         actions={
           <Button
             size="sm"
@@ -181,7 +181,7 @@ export default function AttachmentsPage() {
           <div className="col-12 col-lg-4">
           <div className="border rounded bg-white" style={{ borderColor: "#e2e8f0" }}>
               <div className="card-header bg-white border-bottom py-2 px-3" style={{ borderColor: "#e2e8f0" }}>
-                <span className="fw-semibold text-dark small">Tải lên minh chứng</span>
+                <span className="fw-semibold text-dark small">Tải lên tài liệu</span>
               </div>
 
               <div className="card-body p-3">

@@ -7,7 +7,7 @@ namespace CongTacDang.Domain.Entities;
 /// <summary>
 /// Thực thể Hồ sơ Đánh giá, xếp loại cá nhân của Cán bộ theo Hướng dẫn 03-HD/TVĐU
 /// </summary>
-public class EvaluationRecord
+public class EvaluationRecord : IAuditableEntity, ISoftDeletable
 {
     /// <summary>Mã định danh hồ sơ đánh giá</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -129,7 +129,13 @@ public class EvaluationRecord
     #endregion
 
     /// <summary>Thời điểm cập nhật hồ sơ gần nhất</summary>
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid? CreatedBy { get; set; }
+    public Guid? UpdatedBy { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedBy { get; set; }
 
     /// <summary>Danh sách các công việc / sản phẩm chuyên môn (Mẫu 01 & Mẫu 02)</summary>
     public ICollection<EvaluationTask> Tasks { get; set; } = new List<EvaluationTask>();

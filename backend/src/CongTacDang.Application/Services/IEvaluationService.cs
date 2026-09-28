@@ -29,11 +29,14 @@ public interface IEvaluationService
     /// <summary>Lấy hồ sơ đánh giá của cán bộ trong một kỳ đánh giá</summary>
     Task<EvaluationRecordDto?> GetUserEvaluationRecordAsync(Guid periodId, Guid memberId);
 
-    /// <summary>Lấy chi tiết hồ sơ đánh giá theo Id</summary>
-    Task<EvaluationRecordDto> GetRecordByIdAsync(Guid recordId);
+    /// <summary>Lấy chi tiết hồ sơ đánh giá theo Id trong phạm vi người dùng yêu cầu.</summary>
+    Task<EvaluationRecordDto> GetRecordByIdAsync(Guid recordId, Guid requesterId);
 
-    /// <summary>Lấy toàn bộ hồ sơ đánh giá của một kỳ</summary>
-    Task<List<EvaluationRecordDto>> GetRecordsByPeriodAsync(Guid periodId);
+    /// <summary>Lấy lịch sử chuyển trạng thái của hồ sơ đánh giá trong phạm vi người dùng yêu cầu.</summary>
+    Task<List<EvaluationRecordHistoryDto>> GetRecordHistoryAsync(Guid recordId, Guid requesterId);
+
+    /// <summary>Lấy hồ sơ đánh giá của một kỳ trong phạm vi người dùng yêu cầu.</summary>
+    Task<List<EvaluationRecordDto>> GetRecordsByPeriodAsync(Guid periodId, Guid requesterId);
 
     /// <summary>Lấy danh sách hồ sơ đánh giá của một Chi bộ trong kỳ (hoặc Chi bộ của người dùng)</summary>
     Task<List<EvaluationRecordDto>> GetRecordsByBranchAsync(Guid periodId, Guid? branchId = null, Guid? currentUserId = null);
@@ -47,11 +50,14 @@ public interface IEvaluationService
     /// <summary>Bước 3: Chi bộ nhận xét và bỏ phiếu đánh giá (Mẫu 10, 11, 13)</summary>
     Task<EvaluationRecordDto> SubmitBranchReviewAsync(Guid reviewerId, SubmitBranchReviewRequestDto dto);
 
+    /// <summary>Bước 3b: Chi bộ lưu toàn bộ Biên bản kiểm phiếu của Chi bộ trong cuộc họp (Mẫu 13)</summary>
+    Task<List<EvaluationRecordDto>> SubmitBranchMeetingAsync(Guid reviewerId, SubmitBranchMeetingRequestDto dto);
+
     /// <summary>Bước 4: Tổ thẩm định thẩm tra và chấm điểm (Mẫu 03)</summary>
     Task<EvaluationRecordDto> SubmitAppraisalAsync(Guid appraiserId, SubmitAppraisalRequestDto dto);
 
-    /// <summary>Bước 4b: Kiểm tra tỷ lệ trần 20% Hoàn thành xuất sắc nhiệm vụ của các Chi bộ (Mẫu 15)</summary>
-    Task<List<BranchQuotaCheckDto>> CheckBranchQuotasAsync(Guid periodId);
+    /// <summary>Bước 4b: Kiểm tra tỷ lệ trần 20% trong phạm vi thẩm quyền của người dùng (Mẫu 15).</summary>
+    Task<List<BranchQuotaCheckDto>> CheckBranchQuotasAsync(Guid periodId, Guid requesterId);
 
     /// <summary>Bước 5: Ban Thường vụ phê duyệt và quyết định xếp loại chính thức (Mẫu 14, 16)</summary>
     Task<EvaluationRecordDto> ApproveFinalGradeAsync(Guid approverId, ApproveFinalGradeRequestDto dto);

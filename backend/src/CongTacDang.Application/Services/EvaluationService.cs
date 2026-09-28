@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Interfaces;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
@@ -17,15 +18,21 @@ public class EvaluationService : IEvaluationService
     private readonly IEvaluationRepository _evaluationRepo;
     private readonly IUserRepository _userRepo;
     private readonly IOrganizationRepository _orgRepo;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IEvaluationMeetingRepository _meetingRepo;
 
     public EvaluationService(
         IEvaluationRepository evaluationRepo,
         IUserRepository userRepo,
-        IOrganizationRepository orgRepo)
+        IOrganizationRepository orgRepo,
+        ICurrentUserService currentUser,
+        IEvaluationMeetingRepository meetingRepo)
     {
         _evaluationRepo = evaluationRepo;
         _userRepo = userRepo;
         _orgRepo = orgRepo;
+        _currentUser = currentUser;
+        _meetingRepo = meetingRepo;
     }
 
     #region Quản lý Kỳ đánh giá
@@ -113,48 +120,105 @@ public class EvaluationService : IEvaluationService
         return record == null ? null : MapToRecordDto(record);
     }
 
-    /// <summary>Lấy chi tiết hồ sơ đánh giá theo Id</summary>
-    public async Task<EvaluationRecordDto> GetRecordByIdAsync(Guid recordId)
+    /// <summary>Lấy chi tiết hồ sơ đánh giá theo Id trong phạm vi được cấp cho người yêu cầu.</summary>
+    public async Task<EvaluationRecordDto> GetRecordByIdAsync(Guid recordId, Guid requesterId)
     {
         var record = await _evaluationRepo.GetRecordByIdAsync(recordId);
         if (record == null)
             throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
 
+        var requester = await GetUserWithPermissionsAsync(requesterId);
+        if (!CanReadRecord(requester, record))
+            throw new UnauthorizedAccessException("Bạn không có quyền xem hồ sơ đánh giá này.");
+
         return MapToRecordDto(record);
     }
 
-    /// <summary>Lấy toàn bộ hồ sơ đánh giá trong một kỳ</summary>
-    public async Task<List<EvaluationRecordDto>> GetRecordsByPeriodAsync(Guid periodId)
+    /// <summary>Trả về lịch sử chuyển trạng thái trong phạm vi người dùng được phép xem.</summary>
+    public async Task<List<EvaluationRecordHistoryDto>> GetRecordHistoryAsync(Guid recordId, Guid requesterId)
+    {
+        var record = await _evaluationRepo.GetRecordByIdAsync(recordId);
+        if (record == null)
+            throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
+
+        var requester = await GetUserWithPermissionsAsync(requesterId);
+        if (!CanReadRecord(requester, record))
+            throw new UnauthorizedAccessException("Bạn không có quyền xem lịch sử hồ sơ đánh giá này.");
+
+        var history = await _evaluationRepo.GetRecordHistoriesAsync(recordId);
+        return history.Select(x => new EvaluationRecordHistoryDto
+        {
+            Id = x.Id,
+            RecordId = x.RecordId,
+            FromStatus = x.FromStatus?.ToString(),
+            ToStatus = x.ToStatus.ToString(),
+            ActorId = x.ActorId,
+            ActorName = x.ActorName,
+            Comment = x.Comment,
+            CreatedAt = x.CreatedAt
+        }).ToList();
+    }
+
+    /// <summary>Lấy hồ sơ đánh giá trong một kỳ theo phạm vi thẩm quyền của người dùng.</summary>
+    public async Task<List<EvaluationRecordDto>> GetRecordsByPeriodAsync(Guid periodId, Guid requesterId)
     {
         var records = await _evaluationRepo.GetRecordsByPeriodAsync(periodId);
-        return records.Select(MapToRecordDto).ToList();
+        var requester = await GetUserWithPermissionsAsync(requesterId);
+        if (!HasPermission(requester, AppPermissions.EvaluationsAppraise)
+            && !HasPermission(requester, AppPermissions.EvaluationsApprove)
+            && !HasRole(requester, AppRoles.QUAN_TRI_HE_THONG))
+            throw new UnauthorizedAccessException("Bạn không có quyền xem danh sách hồ sơ của cả kỳ.");
+
+        return records
+            .Where(record => CanReadRecord(requester, record))
+            .Select(MapToRecordDto)
+            .ToList();
     }
 
     /// <summary>Lấy danh sách hồ sơ đánh giá của một Chi bộ trong kỳ (hoặc Chi bộ của người dùng)</summary>
     public async Task<List<EvaluationRecordDto>> GetRecordsByBranchAsync(Guid periodId, Guid? branchId = null, Guid? currentUserId = null)
     {
+        if (!currentUserId.HasValue || currentUserId.Value == Guid.Empty)
+            throw new UnauthorizedAccessException("Không xác định được người dùng để giới hạn phạm vi Chi bộ.");
+
+        var currentUser = await GetUserWithPermissionsAsync(currentUserId.Value);
+        var canViewAllBranches = HasPermission(currentUser, AppPermissions.EvaluationsAppraise)
+            || HasPermission(currentUser, AppPermissions.EvaluationsApprove)
+            || HasRole(currentUser, AppRoles.QUAN_TRI_HE_THONG);
+
         Guid targetBranchId = Guid.Empty;
         if (branchId.HasValue && branchId.Value != Guid.Empty)
         {
+            if (!canViewAllBranches && currentUser.PartyCellId != branchId.Value)
+                throw new UnauthorizedAccessException("Bạn chỉ được xem hồ sơ thuộc Chi bộ của mình.");
+
             targetBranchId = branchId.Value;
         }
-        else if (currentUserId.HasValue)
+        else
         {
-            var user = await _userRepo.GetByIdAsync(currentUserId.Value);
-            if (user?.PartyCellId.HasValue == true)
+            if (!canViewAllBranches && !currentUser.PartyCellId.HasValue)
+                throw new UnauthorizedAccessException("Người dùng chưa được gán Chi bộ để tra cứu hồ sơ.");
+
+            if (!canViewAllBranches && currentUser.PartyCellId.HasValue)
             {
-                targetBranchId = user.PartyCellId.Value;
+                targetBranchId = currentUser.PartyCellId.Value;
             }
         }
 
         if (targetBranchId == Guid.Empty)
         {
             var allRecords = await _evaluationRepo.GetRecordsByPeriodAsync(periodId);
-            return allRecords.Select(MapToRecordDto).ToList();
+            return allRecords
+                .Where(record => CanReadRecord(currentUser, record))
+                .Select(MapToRecordDto)
+                .ToList();
         }
 
         var records = await _evaluationRepo.GetRecordsByBranchAsync(periodId, targetBranchId);
-        return records.Select(MapToRecordDto).ToList();
+        return records
+            .Where(record => CanReadRecord(currentUser, record))
+            .Select(MapToRecordDto)
+            .ToList();
     }
 
     #endregion
@@ -184,6 +248,7 @@ public class EvaluationService : IEvaluationService
             throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {dto.PeriodId}");
 
         var record = await _evaluationRepo.GetRecordAsync(dto.PeriodId, memberId);
+        var previousStatus = record?.Status ?? RecordStatus.Draft;
         if (record == null)
         {
             record = new EvaluationRecord
@@ -216,7 +281,7 @@ public class EvaluationService : IEvaluationService
             TaskName = t.TaskName,
             TargetOutput = t.TargetOutput,
             Weight = t.Weight,
-            Deadline = t.Deadline,
+            Deadline = t.Deadline ?? DateTime.UtcNow,
             AttachmentId = t.AttachmentId,
             CriteriaA_Ratio = 1.0,
             CriteriaB_Ratio = 1.0,
@@ -226,6 +291,7 @@ public class EvaluationService : IEvaluationService
         }).ToList();
 
         await _evaluationRepo.ReplaceTasksAsync(record.Id, newTasks);
+        await AddStatusHistoryAsync(record, previousStatus, memberId, "Đăng ký/cập nhật danh sách nhiệm vụ.");
 
         var updatedRecord = await _evaluationRepo.GetRecordByIdAsync(record.Id);
         return MapToRecordDto(updatedRecord!);
@@ -240,6 +306,8 @@ public class EvaluationService : IEvaluationService
 
         if (record.MemberId != memberId)
             throw new UnauthorizedAccessException("Bạn không có quyền tự chấm điểm cho hồ sơ của cán bộ khác.");
+
+        var previousStatus = record.Status;
 
         if (dto.GeneralScores == null || dto.GeneralScores.Length != 6)
             throw new ArgumentException("Điểm tiêu chí chung phải bao gồm đúng 6 tiêu chí (T1 đến T6).");
@@ -301,6 +369,7 @@ public class EvaluationService : IEvaluationService
         record.UpdatedAt = DateTime.UtcNow;
 
         await _evaluationRepo.UpdateRecordAsync(record);
+        await AddStatusHistoryAsync(record, previousStatus, memberId, "Hoàn tất tự chấm điểm.");
 
         var updatedRecord = await _evaluationRepo.GetRecordByIdAsync(record.Id);
         return MapToRecordDto(updatedRecord!);
@@ -312,6 +381,11 @@ public class EvaluationService : IEvaluationService
         var record = await _evaluationRepo.GetRecordByIdAsync(dto.RecordId);
         if (record == null)
             throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {dto.RecordId}");
+
+        var reviewer = await GetUserWithPermissionsAsync(reviewerId);
+        EnsureCanReviewBranch(reviewer, record);
+
+        var previousStatus = record.Status;
 
         record.PartyCellComment = dto.Comment;
         if (Enum.TryParse<EvaluationGrade>(dto.ProposedGrade, true, out var branchGrade))
@@ -329,9 +403,77 @@ public class EvaluationService : IEvaluationService
         record.UpdatedAt = DateTime.UtcNow;
 
         await _evaluationRepo.UpdateRecordAsync(record);
+        await AddStatusHistoryAsync(record, previousStatus, reviewerId, "Chi bộ nhận xét và bỏ phiếu.");
 
         var updatedRecord = await _evaluationRepo.GetRecordByIdAsync(record.Id);
         return MapToRecordDto(updatedRecord!);
+    }
+
+    /// <summary>Bước 3b: Chi bộ lưu toàn bộ Biên bản kiểm phiếu của Chi bộ trong cuộc họp (Mẫu 13)</summary>
+    public async Task<List<EvaluationRecordDto>> SubmitBranchMeetingAsync(Guid reviewerId, SubmitBranchMeetingRequestDto dto)
+    {
+        var reviewer = await GetUserWithPermissionsAsync(reviewerId);
+        EnsureCanReviewBranch(reviewer, dto.PartyCellId);
+
+        var meeting = new EvaluationMeeting
+        {
+            PeriodId = dto.PeriodId,
+            PartyCellId = dto.PartyCellId,
+            FormCode = "M13",
+            MeetingType = "Biên bản kiểm phiếu đánh giá cán bộ",
+            InvitedCount = dto.TotalVoters,
+            PresentCount = dto.TotalVoters,
+            StartedAt = DateTime.UtcNow,
+            CreatedBy = reviewerId,
+            UpdatedBy = reviewerId,
+            UpdatedAt = DateTime.UtcNow
+        };
+        var resultList = new List<EvaluationRecordDto>();
+        foreach (var vote in dto.MemberVotes)
+        {
+            var record = await _evaluationRepo.GetRecordByIdAsync(vote.RecordId);
+            if (record == null) continue;
+            if (record.PeriodId != dto.PeriodId || record.PartyCellId != dto.PartyCellId)
+                throw new UnauthorizedAccessException("Cuộc họp chỉ được ghi nhận hồ sơ cùng kỳ và cùng Chi bộ.");
+
+            var previousStatus = record.Status;
+
+            record.PartyCellComment = vote.Comment;
+            if (Enum.TryParse<EvaluationGrade>(vote.ProposedGrade, true, out var branchGrade))
+            {
+                record.PartyCellProposedGrade = branchGrade;
+            }
+
+            record.VotesExcellent = vote.VotesExcellent;
+            record.VotesGood = vote.VotesGood;
+            record.VotesSatisfactory = vote.VotesSatisfactory;
+            record.VotesUnsatisfactory = vote.VotesUnsatisfactory;
+            record.TotalVoters = dto.TotalVoters;
+
+            meeting.VoteSummaries.Add(new EvaluationMeetingVoteSummary
+            {
+                RecordId = record.Id,
+                VotesExcellent = vote.VotesExcellent,
+                VotesGood = vote.VotesGood,
+                VotesSatisfactory = vote.VotesSatisfactory,
+                VotesUnsatisfactory = vote.VotesUnsatisfactory
+            });
+
+            record.Status = RecordStatus.Voted;
+            record.UpdatedAt = DateTime.UtcNow;
+
+            await _evaluationRepo.UpdateRecordAsync(record);
+            await AddStatusHistoryAsync(record, previousStatus, reviewerId, "Ghi nhận biên bản kiểm phiếu Chi bộ.");
+            var updated = await _evaluationRepo.GetRecordByIdAsync(record.Id);
+            if (updated != null)
+            {
+                resultList.Add(MapToRecordDto(updated));
+            }
+        }
+        if (meeting.VoteSummaries.Count > 0)
+            await _meetingRepo.AddAsync(meeting);
+
+        return resultList;
     }
 
     /// <summary>Bước 4: Tổ thẩm định thẩm tra và chấm điểm (Mẫu 03)</summary>
@@ -340,6 +482,8 @@ public class EvaluationService : IEvaluationService
         var record = await _evaluationRepo.GetRecordByIdAsync(dto.RecordId);
         if (record == null)
             throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {dto.RecordId}");
+
+        var previousStatus = record.Status;
 
         record.AppraisalScore = dto.AppraisalScore;
         record.AppraisalComment = dto.Comment;
@@ -352,15 +496,24 @@ public class EvaluationService : IEvaluationService
         record.UpdatedAt = DateTime.UtcNow;
 
         await _evaluationRepo.UpdateRecordAsync(record);
+        await AddStatusHistoryAsync(record, previousStatus, appraiserId, "Thẩm định hồ sơ đánh giá.");
 
         var updatedRecord = await _evaluationRepo.GetRecordByIdAsync(record.Id);
         return MapToRecordDto(updatedRecord!);
     }
 
-    /// <summary>Bước 4b: Kiểm tra tỷ lệ trần 20% Hoàn thành xuất sắc nhiệm vụ của các Chi bộ (Mẫu 15)</summary>
-    public async Task<List<BranchQuotaCheckDto>> CheckBranchQuotasAsync(Guid periodId)
+    /// <summary>Bước 4b: Kiểm tra tỷ lệ trần 20% trong phạm vi thẩm quyền của người dùng (Mẫu 15).</summary>
+    public async Task<List<BranchQuotaCheckDto>> CheckBranchQuotasAsync(Guid periodId, Guid requesterId)
     {
-        var records = await _evaluationRepo.GetRecordsByPeriodAsync(periodId);
+        var requester = await GetUserWithPermissionsAsync(requesterId);
+        if (!HasPermission(requester, AppPermissions.EvaluationsAppraise)
+            && !HasPermission(requester, AppPermissions.EvaluationsApprove)
+            && !HasRole(requester, AppRoles.QUAN_TRI_HE_THONG))
+            throw new UnauthorizedAccessException("Bạn không có quyền kiểm tra tỷ lệ xếp loại.");
+
+        var records = (await _evaluationRepo.GetRecordsByPeriodAsync(periodId))
+            .Where(record => CanReadRecord(requester, record))
+            .ToList();
         var cells = await _orgRepo.GetPartyCellsWithMembersAsync();
 
         var result = new List<BranchQuotaCheckDto>();
@@ -419,6 +572,18 @@ public class EvaluationService : IEvaluationService
         if (record == null)
             throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {dto.RecordId}");
 
+        var approver = await GetUserWithPermissionsAsync(approverId);
+        if (!HasPermission(approver, AppPermissions.EvaluationsApprove))
+            throw new UnauthorizedAccessException("Bạn không có quyền phê duyệt hồ sơ đánh giá.");
+
+        var requiredRole = record.Member?.IsApprovedByAttech == true
+            ? AppRoles.DANG_UY_CO_SO
+            : AppRoles.BAN_THUONG_VU;
+        if (!HasRole(approver, requiredRole))
+            throw new UnauthorizedAccessException("Hồ sơ này phải được phê duyệt bởi đúng cấp có thẩm quyền.");
+
+        var previousStatus = record.Status;
+
         record.FinalScore = dto.FinalScore;
         if (Enum.TryParse<EvaluationGrade>(dto.FinalGrade, true, out var finalGrade))
         {
@@ -429,6 +594,7 @@ public class EvaluationService : IEvaluationService
         record.UpdatedAt = DateTime.UtcNow;
 
         await _evaluationRepo.UpdateRecordAsync(record);
+        await AddStatusHistoryAsync(record, previousStatus, approverId, "Phê duyệt xếp loại chính thức.");
 
         var updatedRecord = await _evaluationRepo.GetRecordByIdAsync(record.Id);
         return MapToRecordDto(updatedRecord!);
@@ -437,6 +603,87 @@ public class EvaluationService : IEvaluationService
     #endregion
 
     #region Helper & Mapping Functions
+
+    /// <summary>Lấy hồ sơ người dùng kèm role và permission để kiểm tra phạm vi nghiệp vụ.</summary>
+    private async Task<PartyMemberProfile> GetUserWithPermissionsAsync(Guid userId)
+    {
+        var user = await _userRepo.GetWithRolesAndPermissionsByIdAsync(userId);
+        if (user == null)
+            throw new UnauthorizedAccessException("Không tìm thấy hồ sơ người dùng hiện tại.");
+
+        return user;
+    }
+
+    /// <summary>Kiểm tra người dùng có quyền nguyên tử thông qua các role đang được gán.</summary>
+    private static bool HasPermission(PartyMemberProfile user, string permissionCode)
+    {
+        return user.Roles.SelectMany(role => role.Permissions).Any(permission => permission.Code == permissionCode);
+    }
+
+    /// <summary>Kiểm tra người dùng có role hệ thống cụ thể.</summary>
+    private static bool HasRole(PartyMemberProfile user, string roleCode)
+    {
+        return user.Roles.Any(role => role.Code == roleCode);
+    }
+
+    /// <summary>Giới hạn quyền xem hồ sơ theo cá nhân, Chi bộ hoặc quyền nghiệp vụ cấp cao.</summary>
+    private static bool CanReadRecord(PartyMemberProfile requester, EvaluationRecord record)
+    {
+        if (HasRole(requester, AppRoles.QUAN_TRI_HE_THONG)
+            || HasPermission(requester, AppPermissions.EvaluationsAppraise)
+            || (HasRole(requester, AppRoles.BAN_THUONG_VU)
+                && HasPermission(requester, AppPermissions.EvaluationsApprove)))
+            return true;
+
+        if (HasRole(requester, AppRoles.DANG_UY_CO_SO)
+            && HasPermission(requester, AppPermissions.EvaluationsApprove))
+            return record.Member?.IsApprovedByAttech == true;
+
+        if (HasPermission(requester, AppPermissions.EvaluationsBranchVote))
+            return requester.PartyCellId.HasValue && requester.PartyCellId == record.PartyCellId;
+
+        return requester.Id == record.MemberId;
+    }
+
+    /// <summary>Kiểm tra người ghi nhận đánh giá Chi bộ thuộc đúng Chi bộ của hồ sơ.</summary>
+    private static void EnsureCanReviewBranch(PartyMemberProfile reviewer, EvaluationRecord record)
+    {
+        if (!HasPermission(reviewer, AppPermissions.EvaluationsBranchVote)
+            || !reviewer.PartyCellId.HasValue
+            || reviewer.PartyCellId != record.PartyCellId)
+            throw new UnauthorizedAccessException("Bạn chỉ được ghi nhận đánh giá cho Chi bộ của mình.");
+    }
+
+    /// <summary>Kiểm tra người ghi nhận biên bản thuộc đúng Chi bộ được truyền lên.</summary>
+    private static void EnsureCanReviewBranch(PartyMemberProfile reviewer, Guid partyCellId)
+    {
+        if (!HasPermission(reviewer, AppPermissions.EvaluationsBranchVote)
+            || !reviewer.PartyCellId.HasValue
+            || reviewer.PartyCellId != partyCellId)
+            throw new UnauthorizedAccessException("Bạn chỉ được ghi nhận biên bản cho Chi bộ của mình.");
+    }
+
+    /// <summary>Ghi lại người thực hiện và diễn biến chuyển trạng thái hồ sơ.</summary>
+    private async Task AddStatusHistoryAsync(
+        EvaluationRecord record,
+        RecordStatus previousStatus,
+        Guid actorId,
+        string comment)
+    {
+        if (previousStatus == record.Status)
+            return;
+
+        await _evaluationRepo.AddRecordHistoryAsync(new EvaluationRecordHistory
+        {
+            RecordId = record.Id,
+            FromStatus = previousStatus,
+            ToStatus = record.Status,
+            ActorId = actorId,
+            ActorName = string.IsNullOrWhiteSpace(_currentUser.UserName) ? "system" : _currentUser.UserName,
+            Comment = comment,
+            CreatedAt = DateTime.UtcNow
+        });
+    }
 
     /// <summary>Lấy trọng số 4 nhóm tiêu chí A-B-C-D theo Khung chức danh</summary>
     private static (double wa, double wb, double wc, double wd) GetJobGroupWeights(JobGroup group)

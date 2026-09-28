@@ -123,6 +123,19 @@ public enum EvaluationQuarter
     Quy4 = 4
 }
 
+/// <summary>Nhóm biểu mẫu đánh giá tập thể theo Hướng dẫn 03-HD/TVĐU.</summary>
+public enum CollectiveEvaluationForm
+{
+    /// <summary>Báo cáo kết quả tập thể/lĩnh vực phụ trách liên kết trách nhiệm cán bộ.</summary>
+    M06 = 6,
+
+    /// <summary>Báo cáo tự đánh giá, xếp loại của tập thể Đảng ủy, Chi ủy, Chi bộ.</summary>
+    M07 = 7,
+
+    /// <summary>Báo cáo tổng hợp kết quả thực hiện nhiệm vụ của cơ quan, đơn vị.</summary>
+    M08 = 8
+}
+
 /// <summary>
 /// Mức xếp loại chất lượng cán bộ lãnh đạo, quản lý
 /// </summary>

@@ -17,7 +17,7 @@ export function AppHeader() {
     if (pathname === "/") return "Tổng quan";
     if (pathname.startsWith("/evaluations")) return "Đánh giá cán bộ";
     if (pathname.startsWith("/users")) return "Cán bộ & Chi bộ";
-    if (pathname.startsWith("/attachments")) return "Minh chứng";
+    if (pathname.startsWith("/attachments")) return "Tài liệu đính kèm";
     if (pathname.startsWith("/reports")) return "Báo cáo";
     if (pathname.startsWith("/forms")) return "Biểu mẫu";
     return "";
