@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { PageHeader } from "@/components/common/PageHeader";
-import { organizationService, BranchItem } from "@/services/organizationService";
+import { organizationService, BranchItem, DepartmentItem } from "@/services/organizationService";
 import {
   CollectiveEvaluationRecordDto,
   EvaluationRecordDto,
@@ -45,6 +45,11 @@ export default function CollectiveEvaluationsPage() {
   const [invitedCount, setInvitedCount] = useState(0);
   const [presentCount, setPresentCount] = useState(0);
   const [meetingForm, setMeetingForm] = useState<"M12" | "M13">("M12");
+  // Task 12: biên bản gắn Chi bộ, Phòng (hội nghị tập thể lãnh đạo cấp Phòng) hoặc cấp Công ty; gắn bước B3a/B4.
+  const [departments, setDepartments] = useState<DepartmentItem[]>([]);
+  const [meetingUnit, setMeetingUnit] = useState<"cell" | "department" | "company">("cell");
+  const [meetingDepartmentId, setMeetingDepartmentId] = useState("");
+  const [meetingStage, setMeetingStage] = useState<"" | "B3A_COLLECTIVE" | "B4_DECISION">("B3A_COLLECTIVE");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -59,10 +64,11 @@ export default function CollectiveEvaluationsPage() {
       setLoading(false);
       return;
     }
-    Promise.all([evaluationService.getPeriods(), organizationService.getBranches()])
-      .then(([loadedPeriods, loadedBranches]) => {
+    Promise.all([evaluationService.getPeriods(), organizationService.getBranches(), organizationService.getDepartments().catch(() => [])])
+      .then(([loadedPeriods, loadedBranches, loadedDepartments]) => {
         setPeriods(loadedPeriods);
         setBranches(loadedBranches);
+        setDepartments(loadedDepartments);
         const active = loadedPeriods.find((item) => item.isActive) || loadedPeriods[0];
         if (active) setPeriodId(active.id);
       })
@@ -80,15 +86,26 @@ export default function CollectiveEvaluationsPage() {
       .catch((error: any) => showError(error?.message || "Không thể tải hồ sơ tập thể."));
   }, [periodId, canUseModule, showError]);
 
+  // Hồ sơ của đơn vị tổ chức hội nghị (để ghi tổng hợp phiếu Mẫu 13) — máy chủ lọc theo phạm vi xem.
   useEffect(() => {
-    if (!periodId || !branchId) {
+    if (!periodId) {
       setBranchRecords([]);
       return;
     }
-    evaluationService.getRecordsByBranch(periodId, branchId)
-      .then((loadedRecords) => setBranchRecords(loadedRecords))
-      .catch(() => setBranchRecords([]));
-  }, [periodId, branchId]);
+    if (meetingUnit === "cell" && !branchId) {
+      setBranchRecords([]);
+      return;
+    }
+    if (meetingUnit === "department" && !meetingDepartmentId) {
+      setBranchRecords([]);
+      return;
+    }
+    const load = meetingUnit === "cell"
+      ? evaluationService.getRecordsByBranch(periodId, branchId)
+      : evaluationService.getRecordsByPeriod(periodId).then((list) =>
+          meetingUnit === "department" ? list.filter((r) => r.departmentId === meetingDepartmentId) : list);
+    load.then((loadedRecords) => setBranchRecords(loadedRecords)).catch(() => setBranchRecords([]));
+  }, [periodId, branchId, meetingUnit, meetingDepartmentId]);
 
   const reload = async () => {
     if (!periodId) return;
@@ -138,14 +155,16 @@ export default function CollectiveEvaluationsPage() {
 
   const submitMeeting = async (event: FormEvent) => {
     event.preventDefault();
-    if (!periodId || !branchId) {
-      showError("Cần chọn kỳ đánh giá và Chi bộ cho biên bản.");
+    if (!periodId || (meetingUnit === "cell" && !branchId) || (meetingUnit === "department" && !meetingDepartmentId)) {
+      showError(meetingUnit === "department" ? "Cần chọn kỳ đánh giá và Phòng cho biên bản." : "Cần chọn kỳ đánh giá và Chi bộ cho biên bản.");
       return;
     }
     setSaving(true);
     const payload: SaveEvaluationMeetingRequestDto = {
       periodId,
-      partyCellId: branchId,
+      partyCellId: meetingUnit === "cell" ? branchId : undefined,
+      departmentId: meetingUnit === "department" ? meetingDepartmentId : undefined,
+      stage: meetingStage || undefined,
       formCode: meetingForm,
       meetingType: "Hội nghị đánh giá, xếp loại cán bộ quý",
       location: meeting.location,
@@ -251,6 +270,9 @@ export default function CollectiveEvaluationsPage() {
             <div className="card-header bg-white border-0 pt-4 px-4"><h2 className="h5 mb-1">Biên bản hội nghị</h2><div className="text-secondary small">Mẫu 12 là biên bản họp; Mẫu 13 ghi tổng hợp kiểm phiếu.</div></div>
             <div className="card-body px-4">
               <form onSubmit={submitMeeting} className="row g-3">
+                <div className="col-6"><label className="form-label">Đơn vị tổ chức</label><select className="form-select" value={meetingUnit} onChange={(event) => setMeetingUnit(event.target.value as "cell" | "department" | "company")}><option value="cell">Chi bộ (chọn ở trên)</option><option value="department">Phòng/đơn vị</option><option value="company">Cấp Công ty</option></select></div>
+                {meetingUnit === "department" && <div className="col-6"><label className="form-label">Phòng</label><select className="form-select" value={meetingDepartmentId} onChange={(event) => setMeetingDepartmentId(event.target.value)}><option value="">Chọn Phòng</option>{departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>}
+                <div className="col-6"><label className="form-label">Dùng cho bước</label><select className="form-select" value={meetingStage} onChange={(event) => setMeetingStage(event.target.value as "" | "B3A_COLLECTIVE" | "B4_DECISION")}><option value="B3A_COLLECTIVE">Đề xuất của tập thể lãnh đạo</option><option value="B4_DECISION">Quyết định mức xếp loại</option><option value="">Không xác định</option></select></div>
                 <div className="col-6"><label className="form-label">Biểu mẫu</label><select className="form-select" value={meetingForm} onChange={(event) => setMeetingForm(event.target.value as "M12" | "M13")}><option value="M12">M12 - Hội nghị</option><option value="M13">M13 - Kiểm phiếu</option></select></div>
                 <div className="col-6"><label className="form-label">Địa điểm</label><input className="form-control" value={meeting.location} onChange={(event) => setMeeting({ ...meeting, location: event.target.value })} /></div>
                 <div className="col-4"><label className="form-label">Triệu tập</label><input type="number" min="0" className="form-control" value={invitedCount} onChange={(event) => setInvitedCount(Number(event.target.value))} /></div>
@@ -271,7 +293,7 @@ export default function CollectiveEvaluationsPage() {
               </form>
             </div>
           </section>
-          <section className="card border-0 shadow-sm"><div className="card-body px-4"><h2 className="h6">Biên bản đã lập</h2>{meetings.length === 0 ? <div className="text-secondary small">Chưa có biên bản trong kỳ.</div> : meetings.map((item) => <div key={item.id} className="border-bottom py-2"><strong>{item.formCode}</strong><div className="text-secondary small">{item.partyCellName || "Chi bộ"} · {item.location || "Chưa ghi địa điểm"}</div></div>)}</div></section>
+          <section className="card border-0 shadow-sm"><div className="card-body px-4"><h2 className="h6">Biên bản đã lập</h2>{meetings.length === 0 ? <div className="text-secondary small">Chưa có biên bản trong kỳ.</div> : meetings.map((item) => <div key={item.id} className="border-bottom py-2"><strong>{item.formCode}</strong><div className="text-secondary small">{item.partyCellName || item.departmentName || "Cấp Công ty"} · {item.stage === "B4_DECISION" ? "Quyết định" : item.stage === "B3A_COLLECTIVE" ? "Đề xuất tập thể" : "—"} · {item.location || "Chưa ghi địa điểm"}</div></div>)}</div></section>
        </div>
        </div>
        </div>
