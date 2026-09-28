@@ -124,6 +124,9 @@ public sealed class EvaluationWorkflowRepository : IEvaluationWorkflowRepository
             .ToListAsync(ct);
 
     /// <inheritdoc />
+    public void AddVoteSummary(EvaluationMeetingVoteSummary summary) => _db.EvaluationMeetingVoteSummaries.Add(summary);
+
+    /// <inheritdoc />
     public Task<EvaluationMeeting?> FindMeetingAsync(Guid id, CancellationToken ct = default) =>
         _db.EvaluationMeetings.Include(m => m.VoteSummaries).FirstOrDefaultAsync(m => m.Id == id, ct);
 

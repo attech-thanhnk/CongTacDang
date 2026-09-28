@@ -654,7 +654,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         if (summary == null)
         {
             summary = new EvaluationMeetingVoteSummary { MeetingId = meeting.Id, RecordId = record.Id };
-            meeting.VoteSummaries.Add(summary);
+            _repo.AddVoteSummary(summary);
         }
 
         summary.VotesExcellent = votes.VotesExcellent;

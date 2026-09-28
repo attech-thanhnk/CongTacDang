@@ -84,6 +84,9 @@ public interface IEvaluationWorkflowRepository
     /// <summary>Lịch sử của hồ sơ theo thời gian tăng dần.</summary>
     Task<List<EvaluationRecordHistory>> ListHistoryAsync(Guid recordId, CancellationToken ct = default);
 
+    /// <summary>Đưa dòng kết quả kiểm phiếu mới vào DbContext.</summary>
+    void AddVoteSummary(EvaluationMeetingVoteSummary summary);
+
     /// <summary>Biên bản theo Id kèm tổng hợp phiếu (được theo dõi).</summary>
     Task<EvaluationMeeting?> FindMeetingAsync(Guid id, CancellationToken ct = default);
 
