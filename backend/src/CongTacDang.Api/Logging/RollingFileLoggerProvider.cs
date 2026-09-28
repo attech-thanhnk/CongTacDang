@@ -269,7 +269,7 @@ public static class RollingFileLoggerExtensions
             {
                 options.IncludeScopes = true;
                 options.UseUtcTimestamp = true;
-                options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ ";
+                options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
             });
         }
         else
