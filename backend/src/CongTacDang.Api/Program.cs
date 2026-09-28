@@ -11,9 +11,13 @@ using Microsoft.OpenApi.Models;
 using CongTacDang.Application.Services;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Api.Services;
+using CongTacDang.Api.Extensions;
 using CongTacDang.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.ValidateRequiredConfiguration();
+builder.Services.AddConfiguredForwardedHeaders(builder.Configuration);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.ICurrentUserService, HttpCurrentUserService>();
@@ -209,9 +213,11 @@ using (var scope = app.Services.CreateScope())
 }
 
 // 9. Middleware pipeline
+app.UseForwardedHeaders();
+app.UseConfiguredSecurityHeaders();
 app.UseMiddleware<CongTacDang.Api.Middlewares.GlobalExceptionMiddleware>();
 
-if (app.Environment.IsDevelopment() || true)
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>

@@ -7,54 +7,59 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-congtacdang_db}
       POSTGRES_USER: ${POSTGRES_USER:-dangbo_admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-AttechDang2026!Secret}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD phải được đặt trong docker/.env}
     ports:
-      - "${POSTGRES_PORT:-5434}:5432" # Cổng ngoài 5434 tránh xung đột với PostgreSQL cục bộ
+      - "127.0.0.1:${POSTGRES_PORT:-5434}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dangbo_admin} -d ${POSTGRES_DB:-congtacdang_db}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - dangbo-net
 
-  # Kho lưu trữ đối tượng MinIO (Cổng 9000: S3 API, Cổng 9001: Web Console)
+  # Kho lưu trữ đối tượng MinIO, chỉ bật khi cần công cụ vận hành.
   minio:
     image: quay.io/minio/minio:latest
     container_name: attech-dangbo-minio
     restart: unless-stopped
+    profiles: ["tools"]
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER phải được đặt trong docker/.env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD phải được đặt trong docker/.env}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:${MINIO_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - minio-data:/data
     networks:
       - dangbo-net
 
-  # Khởi tạo sẵn bucket 'congtacdang-files' và cấp quyền tải cho MinIO
+  # Khởi tạo bucket riêng tư; không cấp anonymous/public-read.
   minio-init:
     image: quay.io/minio/mc:latest
     container_name: attech-dangbo-minio-init
+    profiles: ["tools"]
     depends_on:
-      - minio
-    entrypoint: >
+      minio:
+        condition: service_started
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER phải được đặt trong docker/.env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD phải được đặt trong docker/.env}
+      MINIO_BUCKET: ${MINIO_BUCKET:-congtacdang-files}
+    entrypoint: >-
       /bin/sh -c "
-      sleep 2;
-      /usr/bin/mc alias set localminio http://minio:9000 minioadmin minioadmin;
-      /usr/bin/mc mb localminio/congtacdang-files --ignore-existing;
-      /usr/bin/mc anonymous set download localminio/congtacdang-files;
+      until /usr/bin/mc alias set localminio http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}; do sleep 2; done;
+      /usr/bin/mc mb localminio/$${MINIO_BUCKET} --ignore-existing;
       exit 0;
       "
     networks:
       - dangbo-net
 
-  # Backend Web API .NET 10 (Kết nối PostgreSQL và MinIO)
+  # Backend Web API .NET 10. Backend chỉ expose trong mạng Docker mặc định.
   backend:
     build:
       context: ..
@@ -62,23 +67,26 @@ services:
     container_name: attech-dangbo-api
     restart: unless-stopped
     environment:
-      - ConnectionStrings__Default=Host=postgres;Port=5432;Database=congtacdang_db;Username=dangbo_admin;Password=AttechDang2026!Secret
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=congtacdang_db;Username=dangbo_admin;Password=AttechDang2026!Secret
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:5000
-      - Storage__Minio__Endpoint=minio:9000
-      - Storage__Minio__BucketName=congtacdang-files
-      - Storage__Minio__AccessKey=minioadmin
-      - Storage__Minio__SecretKey=minioadmin
-      - Storage__Minio__UseSsl=false
-      - Storage__Minio__PublicEndpoint=localhost:9000
-    ports:
-      - "5000:5000"
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:-congtacdang_db};Username=${POSTGRES_USER:-dangbo_admin};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD phải được đặt trong docker/.env}
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5000
+      Storage__Local__Path: /app/uploads
+      ForwardedHeaders__KnownNetworks__0: 172.16.0.0/12
+      ForwardedHeaders__KnownProxies__0: 127.0.0.1
+    expose:
+      - "5000"
+    ports: ${BACKEND_PORTS:-[]}
     depends_on:
       postgres:
         condition: service_healthy
-      minio:
-        condition: service_started
+    volumes:
+      - backend-uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:5000/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - dangbo-net
 
@@ -90,26 +98,34 @@ services:
     container_name: attech-dangbo-web
     restart: unless-stopped
     environment:
-      - PORT=3000
-      - NEXT_PUBLIC_API_URL=http://localhost:5000/api
+      PORT: 3000
+      BACKEND_INTERNAL_URL: http://backend:5000
     ports:
-      - "3001:3000"
+      - "${FRONTEND_BIND_IP:-127.0.0.1}:${FRONTEND_PORT:-3001}:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider --quiet http://localhost:3000/login || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - dangbo-net
 
-  # Giao diện quản trị CSDL pgAdmin 4 (admin@attech.com.vn / AttechAdmin2026!)
+  # Giao diện quản trị CSDL, chỉ bật khi cần công cụ vận hành.
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: attech-dangbo-pgadmin
     restart: unless-stopped
+    profiles: ["tools"]
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@attech.com.vn}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-AttechAdmin2026!}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.invalid}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?PGADMIN_DEFAULT_PASSWORD phải được đặt trong docker/.env}
       PGADMIN_CONFIG_SERVER_MODE: 'False'
     ports:
-      - "${PGADMIN_PORT:-5050}:80"
+      - "127.0.0.1:${PGADMIN_PORT:-5050}:80"
     volumes:
       - pgadmin-data:/var/lib/pgadmin
     depends_on:
@@ -121,6 +137,8 @@ services:
 volumes:
   postgres-data:
     name: attech-dangbo-postgres-data
+  backend-uploads:
+    name: attech-dangbo-backend-uploads
   minio-data:
     name: attech-dangbo-minio-data
   pgadmin-data:

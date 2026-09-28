@@ -20,6 +20,14 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/api') ||
     PUBLIC_PATHS.includes(pathname)
   ) {
+    if (pathname.startsWith('/api')) {
+      const requestHeaders = new Headers(request.headers);
+      if (request.ip) {
+        requestHeaders.set('x-forwarded-for', request.ip);
+      }
+      return NextResponse.next({ request: { headers: requestHeaders } });
+    }
+
     // Nếu cán bộ đã có phiên làm việc mà truy cập lại trang /login -> chuyển hướng thẳng vào hệ thống
     if (pathname === '/login') {
       const authToken = request.cookies.get('auth_token')?.value;
