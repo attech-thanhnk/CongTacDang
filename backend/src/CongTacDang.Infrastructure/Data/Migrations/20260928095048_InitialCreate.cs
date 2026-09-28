@@ -453,6 +453,13 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     RecordId = table.Column<Guid>(type: "uuid", nullable: true),
                     Description = table.Column<string>(type: "text", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    OwnerType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    OwnerId = table.Column<Guid>(type: "uuid", nullable: true),
+                    FileGroupId = table.Column<Guid>(type: "uuid", nullable: true),
+                    VersionNumber = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
+                    IsSuperseded = table.Column<bool>(type: "boolean", nullable: false),
+                    SupersededAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    SupersededById = table.Column<Guid>(type: "uuid", nullable: true),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
@@ -801,6 +808,16 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 table: "roles",
                 column: "Code",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_task_attachments_FileGroupId",
+                table: "task_attachments",
+                column: "FileGroupId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_task_attachments_OwnerType_OwnerId",
+                table: "task_attachments",
+                columns: new[] { "OwnerType", "OwnerId" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_task_attachments_RecordId",

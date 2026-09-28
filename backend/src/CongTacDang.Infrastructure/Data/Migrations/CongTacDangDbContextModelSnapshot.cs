@@ -1130,6 +1130,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("FileGroupId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1151,6 +1154,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsSuperseded")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("ObjectKey")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1159,10 +1165,23 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OwnerType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<Guid?>("RecordId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("RelatedId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("SupersededAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SupersededById")
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("TaskId")
@@ -1184,13 +1203,22 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid?>("UploadedById")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("VersionNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.HasKey("Id");
+
+                    b.HasIndex("FileGroupId");
 
                     b.HasIndex("RecordId");
 
                     b.HasIndex("TaskId");
 
                     b.HasIndex("UploadedById");
+
+                    b.HasIndex("OwnerType", "OwnerId");
 
                     b.ToTable("task_attachments", (string)null);
                 });
