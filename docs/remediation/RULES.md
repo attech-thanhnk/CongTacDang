@@ -58,3 +58,32 @@ Task file có thể thêm bước kiểm tra riêng. Bước nào không chạy 
 ## 6. Cấu hình
 - Không ghi secret thật vào file nào.
 - Key config mới: dùng giá trị mặc định an toàn trong code, liệt kê ở mục "Key config mới" để task 03 / người điều phối bổ sung vào `appsettings` và `.env.example`.
+
+## 7. Đợt 2 (task 04, 05, 06)
+
+Mục 3 (bảng phân chia file) và mục 5 (migration) ở trên áp dụng cho đợt 1. Đợt 2 dùng quy định sau.
+
+### 7.1 Thứ tự chạy
+- **04 ║ 06** chạy song song. **05** chạy sau khi 04 đã merge vào `main`.
+- Mỗi agent làm trong **worktree riêng** của branch ghi trong task file. Kiểm tra `git branch --show-current` trước khi sửa file đầu tiên; sai branch → dừng và báo.
+
+### 7.2 Phân chia file
+
+| Vùng | Chủ sở hữu |
+|---|---|
+| Cơ chế quyền theo đối tượng (mới), `EvaluationService`/`CollectiveEvaluationService` (chỉ phần kiểm tra quyền) | 04 |
+| `AttachmentService.cs`, `AttachmentController.cs`, `TaskAttachment.cs` | 04 → sau đó 05 |
+| `ExportReportController.cs`, `UserController.cs`, `OrganizationController.cs`, `UserService.cs` | 04 |
+| `DataSeeder.cs` — phần đồng bộ quyền của role | 04 |
+| `DataSeeder.cs` — khối DDL `ExecuteSqlRaw` | 06 |
+| `frontend/app/evaluations/page.tsx`, `EvaluationStepNav.tsx` — chỉ mã quyền | 04 |
+| `frontend/services/evaluationService.ts`, `components/evaluations/Step*.tsx`, `EvaluationPeriodHeader.tsx`, `app/collective-evaluations/page.tsx` — chỉ luồng `version`/409 | 06 |
+| `DocxTemplateEngine.cs`, `ReportService.cs`, `Infrastructure/Templates/**`, `EvaluationPrintTemplate.tsx`, `EvaluationPdfModal.tsx`, file storage | 05 |
+| `HostingExtensions.cs`, `Program.cs` (logging), `docker/**`, `docs/deployment.md`, `.gitattributes` | 06 (05 được thêm LibreOffice vào `Dockerfile.backend` và mục cài đặt vào `deployment.md`) |
+| `backend/tests/**` | mỗi task thêm file test riêng, không sửa file test của task khác |
+
+### 7.3 Môi trường
+- **Không** chạy ứng dụng hay migration vào CSDL dùng chung (`192.168.22.159`). `user-secrets` của máy đang trỏ tới CSDL thử nghiệm của người điều phối — nếu cần chạy app, dùng biến môi trường trỏ tới CSDL khác hoặc không chạy.
+- **Không** dùng cổng 5000 và 3001 (người điều phối đang chạy). Cần chạy thử thì dùng 5100–5199 / 3100–3199.
+- **Không** tạo EF migration; thay đổi schema liệt kê trong báo cáo, người điều phối sinh migration sau khi merge.
+- **Không** tự đặt luật nghiệp vụ mới (xem `docs/nghiep-vu/` — chưa xác nhận, không dùng làm căn cứ).

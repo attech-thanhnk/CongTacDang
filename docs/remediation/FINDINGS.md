@@ -39,19 +39,32 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-21 | 🟡 | Repo theo dõi file build/IDE/log/upload thật; chưa có test, chưa có CI | `.gitignore`, `backend/publish*`, `.vs/`, … | 03 (test project: 01) | done |
 | T-22 | ⚪ | Frontend dùng 3 bộ UI (Bootstrap, Tailwind, PrimeReact) + 3 bộ icon; nhiều file > 1000 dòng | `frontend/` | — | deferred |
 | T-23 | ⚪ | Truy vấn chỉ đọc thiếu `AsNoTracking`, thiếu index cho cột lọc thường dùng | `SpecificRepositories.cs`, `CongTacDangDbContext.cs` | 02 | done |
-| T-24 | 🟠 | Frontend chưa gửi `version` khi cập nhật hồ sơ/kỳ đánh giá → kiểm tra concurrency (T-15) chưa có hiệu lực; backend tạm coi `version` là tùy chọn | `frontend/services/evaluationService.ts`, `components/evaluations/Step*.tsx` | — | open |
+| T-24 | 🟠 | Frontend chưa gửi `version` khi cập nhật hồ sơ/kỳ đánh giá → kiểm tra concurrency (T-15) chưa có hiệu lực; backend tạm coi `version` là tùy chọn | `frontend/services/evaluationService.ts`, `components/evaluations/Step*.tsx` | 06 | open |
 | T-25 | 🟠 | Migration chưa chạy thử trên PostgreSQL thật (DB trống + DB cũ baseline); DB cũ baseline sẽ thiếu các index mới nằm trong `InitialCreate` (kể cả unique index kỳ đang hoạt động) | `Infrastructure/Data/Migrations`, `Api/Extensions/PersistenceExtensions.cs` | — | open |
-| T-26 | 🟡 | `DataSeeder` còn khối DDL `ALTER TABLE … ADD COLUMN IF NOT EXISTS` tương thích schema cũ — trùng vai trò với migration | `Infrastructure/Data/DataSeeder.cs` | — | open |
+| T-26 | 🟡 | `DataSeeder` còn khối DDL `ALTER TABLE … ADD COLUMN IF NOT EXISTS` tương thích schema cũ — trùng vai trò với migration | `Infrastructure/Data/DataSeeder.cs` | 06 | open |
 | T-27 | 🟡 | Docker chưa được kiểm chứng: chưa `docker compose config`, chưa build image, chưa gọi `/healthz` (máy không có Docker) | `docker/`, `.github/workflows/ci.yml` | — | open |
 | T-28 | 🟡 | Vận hành: JWT secret và mật khẩu DB cũ đã nằm trong lịch sử git → phải rotate trước khi triển khai | môi trường triển khai | — | open |
-| T-29 | ⚪ | Chưa có `.gitattributes` — file LF/CRLF lẫn lộn (cảnh báo khi commit trên Windows) | gốc repo | — | open |
+| T-29 | ⚪ | Chưa có `.gitattributes` — file LF/CRLF lẫn lộn (cảnh báo khi commit trên Windows) | gốc repo | 06 | open |
+| T-30 | 🔴 | Xuất Word `/api/reports/docx/*` chỉ yêu cầu đăng nhập, không kiểm tra phạm vi → ai cũng tải được Mẫu 01/02/10 của người khác, Mẫu 11/13 của mọi Chi bộ; Excel 14/15/16 chỉ cần `reports.export` (CAN_BO có sẵn) và xuất toàn Đảng bộ | `Api/Controllers/ExportReportController.cs`, `Infrastructure/Services/ReportService.cs` | 04 | open |
+| T-31 | 🔴 | File đính kèm không có chủ sở hữu (`UploadedBy` là tên dạng chữ) và không kiểm tra phạm vi khi liệt kê/xem/tải/xóa → ai có `attachments.read` xem được mọi minh chứng | `TaskAttachment.cs`, `AttachmentService.cs`, `AttachmentController.cs` | 04 | open |
+| T-32 | 🟠 | `GET /api/users/profile?username=` trả hồ sơ + roles/permissions của người khác; `GET /api/organizations/departments` không có policy; chưa có cơ chế kiểm tra quyền theo đối tượng dùng chung (mỗi service tự kiểm tra một kiểu) | `UserController.cs`, `OrganizationController.cs`, các Application service | 04 | open |
+| T-33 | 🟠 | Seeder đồng bộ lại quyền của mọi role mỗi lần khởi động (khi `SeedSampleData=true`) → ghi đè thay đổi phân quyền làm qua giao diện | `Infrastructure/Data/DataSeeder.cs` | 04 | open |
+| T-34 | 🟡 | Frontend dùng quyền `evaluations.branch_review` không tồn tại ở backend; hiển thị bước theo quyền không khớp backend | `frontend/app/evaluations/page.tsx`, `EvaluationStepNav.tsx` | 04 | open |
+| T-35 | 🟠 | `backend/sign.ps1` tự tạo chứng chỉ và thêm vào kho **Trusted Root** của Windows để ký file build | `backend/sign.ps1` | 04 | open |
+| T-36 | 🟠 | Mô hình file: mỗi nhiệm vụ chỉ 1 file, không có phiên bản (thay file = mất bản cũ), không gắn đối tượng tổng quát; adapter MinIO không dùng được (phần còn lại của T-07) | `TaskAttachment.cs`, `EvaluationTask.AttachmentId`, `MinioFileStorageService.cs` | 05 | open |
+| T-37 | 🔴 | Bộ sinh Word thay `{{TAG}}` theo từng đoạn chữ (run) → hỏng khi Word tách run; file phôi sinh bằng code; nhiều chữ in cứng (giờ họp, khối, tên đơn vị) | `Infrastructure/Services/DocxTemplateEngine.cs` | 05 | open |
+| T-38 | 🟠 | Không có xuất PDF phía máy chủ (Hướng dẫn yêu cầu nộp PDF kèm Word/Excel); 3 đường hiển thị biểu mẫu độc lập (Word, Excel, HTML in bằng `window.print`) có thể ra số khác nhau (ví dụ Mẫu 02 tính lại điểm theo trọng số Khung 2 cố định) | `DocxTemplateEngine.cs`, `ReportService.cs`, `frontend/components/evaluations/EvaluationPrintTemplate.tsx` | 05 | open |
+| T-39 | ⚪ | Warning build: `KnownNetworks`/`IPNetwork` obsolete, nullable trong `DocxTemplateEngine` | `HostingExtensions.cs`, `DocxTemplateEngine.cs` | 06 | open |
+| T-40 | 🟡 | Log chỉ ra console: chưa có log ra file có xoay vòng, chưa có correlation id để lần theo một yêu cầu | `Api/Program.cs` | 06 | open |
+| T-41 | 🟡 | Chưa có script sao lưu/khôi phục (PostgreSQL + thư mục upload) đã được thử nghiệm | `docker/`, `docs/deployment.md` | 06 | open |
+| T-42 | 🟡 | Test mỏng (7 unit test, chỉ phần bảo mật); chưa có integration test cho API | `backend/tests/` | 04/05/06 | open |
 
 ## B — Nghiệp vụ (để xử lý sau)
 
 | Mã | Mức | Vấn đề | Vị trí chính | Owner | Trạng thái |
 |---|---|---|---|---|---|
 | B-01 | 🟠 | `UpdatePeriodStatusAsync` nhận bất kỳ trạng thái nào (lùi bước được); chưa có state machine cho kỳ/hồ sơ | `EvaluationService.cs` | — | deferred |
-| B-02 | 🟠 | File đính kèm không giới hạn phạm vi: ai có `AttachmentsRead` cũng xem được minh chứng của mọi cán bộ | `AttachmentService.cs`, `AttachmentController.cs` | — | deferred |
+| B-02 | 🟠 | File đính kèm không giới hạn phạm vi: ai có `AttachmentsRead` cũng xem được minh chứng của mọi cán bộ | `AttachmentService.cs`, `AttachmentController.cs` | — | deferred (cơ chế kiểm tra phạm vi: T-31) |
 | B-03 | 🟠 | Bỏ phiếu kín "không lưu User ID" cần kiểm chứng — audit log tự ghi `ActorId` cho mọi entity thêm mới | `CongTacDangDbContext.PrepareAuditEntries`, `CollectiveEvaluationService.cs` | — | deferred |
 | B-04 | 🟡 | Quy tắc 70đ, ≥30% minh chứng vượt chuẩn, trần 20% Xuất sắc, chênh lệch ≥5đ cần đối chiếu Hướng dẫn 03 và có unit test | `EvaluationService.cs`, `CollectiveEvaluationService.cs` | — | deferred |
 | B-05 | ⚪ | Chưa có tài liệu hướng dẫn sử dụng (HDSD cũ mô tả sai route đã bị xóa); cần viết lại theo route thực tế | `docs/` | — | deferred |
