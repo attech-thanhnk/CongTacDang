@@ -73,6 +73,12 @@ public interface IAttachmentService
 
     /// <summary>Xóa mềm tệp (mọi phiên bản), giữ file vật lý để khôi phục (kiểm tra quyền xóa)</summary>
     Task DeleteAttachmentAsync(Guid id, Guid requesterId);
+
+    /// <summary>
+    /// Bảo đảm các tệp client gửi kèm (ví dụ <c>EvaluationTask.AttachmentId</c>) tồn tại và người gửi có quyền cập nhật trên tệp
+    /// (người tải lên, chủ hồ sơ đang gắn tệp hoặc quản trị). Báo 400 nếu tệp không tồn tại, 403 nếu không có quyền.
+    /// </summary>
+    Task EnsureCanLinkAttachmentsAsync(IReadOnlyCollection<Guid> attachmentIds, Guid requesterId);
 }
 
 public class AttachmentService : IAttachmentService
@@ -310,6 +316,26 @@ public class AttachmentService : IAttachmentService
             await _versionRepo.SoftDeleteGroupAsync(current.GroupId);
         else
             await _attachmentRepo.DeleteAsync(attachment);
+    }
+
+    /// <summary>Kiểm tra tệp gắn vào dữ liệu nghiệp vụ (T-47)</summary>
+    public async Task EnsureCanLinkAttachmentsAsync(IReadOnlyCollection<Guid> attachmentIds, Guid requesterId)
+    {
+        var ids = attachmentIds.Where(id => id != Guid.Empty).Distinct().ToList();
+        if (ids.Count == 0)
+            return;
+
+        var attachments = new List<TaskAttachment>();
+        foreach (var id in ids)
+        {
+            var attachment = await _attachmentRepo.GetByIdAsync(id)
+                ?? throw new ValidationException("Tệp minh chứng đính kèm không tồn tại hoặc đã bị xóa.");
+            attachments.Add(await GetCurrentOrSelfAsync(attachment));
+        }
+
+        var allowed = await FilterAccessibleAsync(requesterId, attachments, AccessOperation.Update);
+        if (allowed.Count != attachments.Count)
+            throw new ForbiddenException("Bạn không có quyền gắn tệp minh chứng này vào hồ sơ.");
     }
 
     #region Hỗ trợ

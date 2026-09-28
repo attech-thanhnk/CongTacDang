@@ -23,6 +23,7 @@ public class EvaluationService : IEvaluationService
     private readonly IEvaluationMeetingRepository _meetingRepo;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAccessPolicy _accessPolicy;
+    private readonly IAttachmentService _attachmentService;
 
     public EvaluationService(
         IEvaluationRepository evaluationRepo,
@@ -31,7 +32,8 @@ public class EvaluationService : IEvaluationService
         ICurrentUserService currentUser,
         IEvaluationMeetingRepository meetingRepo,
         IUnitOfWork unitOfWork,
-        IAccessPolicy accessPolicy)
+        IAccessPolicy accessPolicy,
+        IAttachmentService attachmentService)
     {
         _evaluationRepo = evaluationRepo;
         _userRepo = userRepo;
@@ -40,6 +42,7 @@ public class EvaluationService : IEvaluationService
         _meetingRepo = meetingRepo;
         _unitOfWork = unitOfWork;
         _accessPolicy = accessPolicy;
+        _attachmentService = attachmentService;
     }
 
     #region Quản lý Kỳ đánh giá
@@ -259,6 +262,15 @@ public class EvaluationService : IEvaluationService
 
         var record = await _evaluationRepo.GetRecordAsync(dto.PeriodId, memberId);
         var previousStatus = record?.Status ?? RecordStatus.Draft;
+
+        // T-47: tệp minh chứng mới gắn vào nhiệm vụ phải tồn tại và thuộc quyền người gửi.
+        var existingAttachmentIds = record == null
+            ? new HashSet<Guid>()
+            : (await _evaluationRepo.GetTasksByRecordIdAsync(record.Id))
+                .Where(t => t.AttachmentId.HasValue)
+                .Select(t => t.AttachmentId!.Value)
+                .ToHashSet();
+        await EnsureNewAttachmentsLinkableAsync(dto.Tasks.Select(t => t.AttachmentId), existingAttachmentIds, memberId);
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             if (record == null)
@@ -311,6 +323,21 @@ public class EvaluationService : IEvaluationService
         return MapToRecordDto(updatedRecord!);
     }
 
+    /// <summary>
+    /// Kiểm tra các AttachmentId client gửi lên (T-47). Id đã gắn sẵn trên hồ sơ được giữ nguyên, không kiểm tra lại
+    /// để dữ liệu cũ (tệp đã xóa, dữ liệu trước khi có kiểm tra) không chặn việc lưu lại.
+    /// </summary>
+    private async Task EnsureNewAttachmentsLinkableAsync(IEnumerable<Guid?> attachmentIds, ISet<Guid> alreadyLinked, Guid requesterId)
+    {
+        var newIds = attachmentIds
+            .Where(id => id.HasValue && id.Value != Guid.Empty && !alreadyLinked.Contains(id.Value))
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+        if (newIds.Count > 0)
+            await _attachmentService.EnsureCanLinkAttachmentsAsync(newIds, requesterId);
+    }
+
     /// <summary>Bước 2: Cán bộ tự chấm điểm Tiêu chí chung (Mẫu 09) và Sản phẩm chuyên môn (Mẫu 02)</summary>
     public async Task<EvaluationRecordDto> SubmitSelfScoreAsync(Guid memberId, SubmitSelfScoreRequestDto dto)
     {
@@ -343,6 +370,13 @@ public class EvaluationService : IEvaluationService
 
         // Chấm điểm từng nhiệm vụ chuyên môn theo tỷ trọng Khung chức danh
         var tasks = await _evaluationRepo.GetTasksByRecordIdAsync(record.Id);
+
+        // T-47: tệp minh chứng mới gắn vào nhiệm vụ phải tồn tại và thuộc quyền người gửi.
+        var changedAttachmentIds = tasks
+            .Select(task => (task, input: dto.TaskScores?.FirstOrDefault(s => s.TaskId == task.Id)))
+            .Where(x => x.input != null && x.input.AttachmentId != x.task.AttachmentId)
+            .Select(x => x.input!.AttachmentId);
+        await EnsureNewAttachmentsLinkableAsync(changedAttachmentIds, new HashSet<Guid>(), memberId);
         var (wA, wB, wC, wD) = GetJobGroupWeights(record.JobGroup);
 
         double totalTaskScore = 0.0;
