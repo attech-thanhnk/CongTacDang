@@ -318,8 +318,7 @@ public class DocumentTemplateTests
             {
                 Period = period, Member = member, PartyCell = cell, Department = dept,
                 GeneralCriteriaScore = 28.5, TasksScore = tasksScore, TotalSelfScore = 28.5 + tasksScore,
-                SelfProposedGrade = EvaluationGrade.HoanThanhTot, PartyCellProposedGrade = EvaluationGrade.HoanThanhTot,
-                VotesExcellent = 2, VotesGood = 8, VotesSatisfactory = 1, TotalVoters = 11,
+                SelfProposedGrade = EvaluationGrade.HoanThanhTot, CollectiveProposedGrade = EvaluationGrade.HoanThanhTot,
                 AppraisalScore = appraisal, AppraisalComment = "Nhất trí", AppraisalProposedGrade = EvaluationGrade.HoanThanhTot
             };
             record.Tasks.Add(new EvaluationTask { TaskOrder = 1, TaskName = "Bảo dưỡng hệ thống radar", TargetOutput = "Radar hoạt động 99%", Weight = 30, Deadline = new DateTime(2026, 9, 30), CriteriaB_Ratio = 0.9, CriteriaD_Ratio = 0.8, SelfScore = 27.3, IsExceedStandard = true });

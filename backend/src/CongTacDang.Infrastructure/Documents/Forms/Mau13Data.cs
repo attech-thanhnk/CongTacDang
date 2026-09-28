@@ -32,9 +32,8 @@ public sealed class Mau13Data
 
     /// <summary>
     /// Dựng dữ liệu mẫu từ kỳ và các hồ sơ đã lưu (nạp kèm Member, Department, PartyCell).
-    /// <paramref name="totalVoters"/>: số người bỏ phiếu (số có mặt trên biên bản, hoặc giá trị cũ lưu trên hồ sơ, hoặc sĩ số Chi bộ);
-    /// null nếu không xác định. <paramref name="tallies"/>: kết quả kiểm phiếu tổng hợp theo hồ sơ (task 12 — lưu trên biên bản);
-    /// hồ sơ không có thì dùng số phiếu cũ lưu trên hồ sơ (dữ liệu trước task 12).
+    /// <paramref name="totalVoters"/>: số người bỏ phiếu (số có mặt trên biên bản hoặc sĩ số Chi bộ); null nếu không xác định.
+    /// <paramref name="tallies"/>: kết quả kiểm phiếu tổng hợp theo hồ sơ (lưu trên biên bản); hồ sơ chưa có kết quả → 0 phiếu.
     /// </summary>
     public static Mau13Data From(
         EvaluationPeriod period,
@@ -58,16 +57,14 @@ public sealed class Mau13Data
             Records = list.Select((r, index) =>
             {
                 var tally = tallies != null && tallies.TryGetValue(r.Id, out var found) ? found : null;
-                var excellent = tally?.VotesExcellent ?? r.VotesExcellent;
-                var good = tally?.VotesGood ?? r.VotesGood;
-                var satisfactory = tally?.VotesSatisfactory ?? r.VotesSatisfactory;
-                var unsatisfactory = tally?.VotesUnsatisfactory ?? r.VotesUnsatisfactory;
-                var recordVoters = tally == null && r.TotalVoters > 0 ? r.TotalVoters : voters ?? 0;
-                // Mức đề xuất của tập thể lãnh đạo (task 12); hồ sơ cũ: mức Chi bộ đề xuất.
-                var grade = FormText.Grade(r.CollectiveProposedGrade != Domain.Enums.EvaluationGrade.ChuaXepLoai
-                    ? r.CollectiveProposedGrade
-                    : r.PartyCellProposedGrade);
-                // Tỷ lệ phiếu (xuất sắc + tốt) trên số người bỏ phiếu đã lưu; không có số người bỏ phiếu thì chỉ ghi mức xếp loại.
+                var excellent = tally?.VotesExcellent ?? 0;
+                var good = tally?.VotesGood ?? 0;
+                var satisfactory = tally?.VotesSatisfactory ?? 0;
+                var unsatisfactory = tally?.VotesUnsatisfactory ?? 0;
+                var recordVoters = voters ?? 0;
+                // Mức đề xuất của tập thể lãnh đạo (B3a).
+                var grade = FormText.Grade(r.CollectiveProposedGrade);
+                // Tỷ lệ phiếu (xuất sắc + tốt) trên số người bỏ phiếu; không có số người bỏ phiếu thì chỉ ghi mức xếp loại.
                 var ratio = recordVoters > 0
                     ? FormText.Number(Math.Round((double)(excellent + good) / recordVoters * 100, 1), 1) + "% (" + grade + ")"
                     : grade;

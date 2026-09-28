@@ -71,10 +71,4 @@ public interface IRoleAssignmentService
     /// quản trị cuối cùng (dùng cho khóa/xóa tài khoản — task 08).
     /// </summary>
     Task EnsureAdministratorsRemainWithoutUserAsync(Guid userId, CancellationToken ct = default);
-
-    /// <summary>
-    /// Tương thích giao diện cũ (<c>POST /api/admin/users/{id}/roles</c>): đặt tập vai trò phạm vi Toàn công ty của người dùng —
-    /// kết thúc bản gán Global đang hiệu lực của vai trò không còn trong danh sách, tạo bản gán cho vai trò mới.
-    /// </summary>
-    Task<List<RoleAssignmentDto>> SetGlobalRolesAsync(Guid userId, IReadOnlyCollection<Guid> roleIds, CancellationToken ct = default);
 }

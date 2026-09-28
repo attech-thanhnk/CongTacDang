@@ -25,7 +25,7 @@ export interface UserSession {
   /** Các mã quyền có ở ít nhất một phạm vi (system.users.read, evaluation.read, ...) */
   permissions: string[];
   /** Quyền kèm phạm vi (Toàn công ty / Phòng / Chi bộ) */
-  grants?: AccessGrant[];
+  grants: AccessGrant[];
   /** Bắt buộc đổi mật khẩu tạm */
   mustChangePassword: boolean;
   /** Thời điểm hết hạn phiên làm việc */

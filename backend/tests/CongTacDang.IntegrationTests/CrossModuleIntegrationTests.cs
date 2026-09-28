@@ -19,15 +19,15 @@ using Xunit;
 namespace CongTacDang.IntegrationTests;
 
 /// <summary>
-/// Test tích hợp các chỗ nối sau khi gộp Đợt 4 (task 08 ║ 09 ║ 10): nhập cán bộ ghi cả lô trong một transaction,
+/// Test tích hợp các chỗ nối giữa tài khoản, phân quyền và nhập dữ liệu: nhập cán bộ ghi cả lô trong một transaction,
 /// thông tin phiên có <c>grants</c>, danh sách tài khoản lọc theo phạm vi <c>system.users.read</c>.
 /// </summary>
 [Collection(ApiCollection.Name)]
-public sealed class Wave4IntegrationTests
+public sealed class CrossModuleIntegrationTests
 {
     private readonly ApiFactory _factory;
 
-    public Wave4IntegrationTests(ApiFactory factory) => _factory = factory;
+    public CrossModuleIntegrationTests(ApiFactory factory) => _factory = factory;
 
     private void SkipIfNoDatabase() => Skip.If(_factory.SkipReason != null, _factory.SkipReason);
 
@@ -178,16 +178,11 @@ public sealed class Wave4IntegrationTests
         await _factory.AssignAsync(reader.Id, readRole.Id, RoleScopeType.Department, deptA);
         using var client = await _factory.LoginAsAsync(reader.Username, reader.Password, distinctClientIp: true);
 
-        var list = await DataAsync(await client.GetAsync("/api/users/list"));
-        var listIds = list.EnumerateArray().Select(c => c.GetProperty("id").GetGuid()).ToList();
-        Assert.Contains(inA.Id, listIds);
-        Assert.DoesNotContain(inB.Id, listIds);
-        Assert.DoesNotContain(reader.Id, listIds); // người xem không thuộc Phòng A
-
         var paged = await DataAsync(await client.GetAsync("/api/users?pageSize=200"));
         var pagedIds = paged.GetProperty("items").EnumerateArray().Select(c => c.GetProperty("id").GetGuid()).ToList();
         Assert.Contains(inA.Id, pagedIds);
         Assert.DoesNotContain(inB.Id, pagedIds);
+        Assert.DoesNotContain(reader.Id, pagedIds); // người xem không thuộc Phòng A
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/users/{inB.Id}")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/users/{inA.Id}")).StatusCode);
 

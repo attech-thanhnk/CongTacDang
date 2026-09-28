@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CongTacDang.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(CongTacDangDbContext))]
-    [Migration("20260928160510_Wave4")]
-    partial class Wave4
+    [Migration("20260928170355_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -112,9 +112,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsProtected")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsSystem")
                         .HasColumnType("boolean");
@@ -392,6 +390,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("EndedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -440,6 +441,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("Stage")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -461,7 +465,11 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DepartmentId");
+
                     b.HasIndex("PartyCellId");
+
+                    b.HasIndex("PeriodId", "DepartmentId");
 
                     b.HasIndex("PeriodId", "PartyCellId", "FormCode");
 
@@ -530,9 +538,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
@@ -544,11 +549,25 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<int>("Quarter")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Settings")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("StatusChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("StatusChangedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("StatusReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -566,10 +585,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IsActive")
-                        .IsUnique()
-                        .HasFilter("\"IsActive\" = TRUE");
 
                     b.HasIndex("Status");
 
@@ -594,14 +609,96 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<double?>("AppraisalScore")
                         .HasColumnType("double precision");
 
+                    b.Property<DateTime?>("AppraisedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AppraisedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AppraisedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<int>("ApprovalAuthority")
                         .HasColumnType("integer");
+
+                    b.Property<double?>("AxisScoreT1")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("AxisScoreT2")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("AxisScoreT3")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("AxisScoreT4")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("AxisScoreT5")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("AxisScoreT6")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTime?>("CellConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CellConfirmedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CellConfirmedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("CollectiveComment")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<Guid?>("CollectiveMeetingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CollectiveProposedGrade")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CollectiveRecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CollectiveRecordedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CollectiveRecordedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("DecisionAuthorityName")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime?>("DecisionDocumentDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DecisionDocumentNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("DecisionMeetingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DecisionRecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DecisionRecordedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DecisionRecordedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
@@ -611,6 +708,23 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
                     b.Property<Guid?>("DepartmentId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("DirectorComment")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<int>("DirectorProposedGrade")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("DirectorReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DirectorReviewedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DirectorReviewedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("FinalGrade")
                         .HasColumnType("integer");
@@ -655,26 +769,55 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid?>("PartyCellId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("PartyCellProposedGrade")
-                        .HasColumnType("integer");
-
                     b.Property<Guid>("PeriodId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PublishedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PublishedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ReturnReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<int>("SelfProposedGrade")
                         .HasColumnType("integer");
 
+                    b.Property<string>("SelfScoreForm")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTime?>("SelfScoredAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
+
+                    b.Property<string>("TasksApprovalComment")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime?>("TasksApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("TasksApprovedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TasksApprovedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<double>("TasksScore")
                         .HasColumnType("double precision");
 
                     b.Property<double>("TotalSelfScore")
                         .HasColumnType("double precision");
-
-                    b.Property<int>("TotalVoters")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -687,18 +830,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
                         .HasColumnName("xmin");
-
-                    b.Property<int>("VotesExcellent")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("VotesGood")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("VotesSatisfactory")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("VotesUnsatisfactory")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -713,6 +844,8 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.HasIndex("PeriodId", "MemberId")
                         .IsUnique();
 
+                    b.HasIndex("PeriodId", "Status");
+
                     b.ToTable("evaluation_records", (string)null);
                 });
 
@@ -721,6 +854,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<int>("Action")
+                        .HasColumnType("integer");
 
                     b.Property<Guid?>("ActorId")
                         .HasColumnType("uuid");
@@ -738,8 +874,27 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<int?>("FromStatus")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("GradeAfter")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("GradeBefore")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<Guid>("RecordId")
                         .HasColumnType("uuid");
+
+                    b.Property<double?>("ScoreAfter")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("ScoreBefore")
+                        .HasColumnType("double precision");
+
+                    b.Property<int?>("Step")
+                        .HasColumnType("integer");
 
                     b.Property<int>("ToStatus")
                         .HasColumnType("integer");
@@ -898,9 +1053,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("DeputySecretaryId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
@@ -915,9 +1067,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
-
-                    b.Property<Guid?>("SecretaryId")
-                        .HasColumnType("uuid");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
@@ -1067,11 +1216,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1098,25 +1242,16 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
                     b.Property<string>("Module")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasDefaultValue("");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<string>("Resource")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<int>("SortOrder")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1213,10 +1348,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<long>("FileSize")
                         .HasColumnType("bigint");
 
@@ -1260,9 +1391,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid?>("SupersededById")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("TaskId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1290,7 +1418,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
                     b.HasIndex("RecordId");
 
-                    b.HasIndex("TaskId");
+                    b.HasIndex("RelatedId");
 
                     b.HasIndex("UploadedById");
 
@@ -1419,6 +1547,11 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("CongTacDang.Domain.Entities.EvaluationMeeting", b =>
                 {
+                    b.HasOne("CongTacDang.Domain.Entities.AdministrativeDepartment", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("CongTacDang.Domain.Entities.PartyCell", "PartyCell")
                         .WithMany()
                         .HasForeignKey("PartyCellId")
@@ -1429,6 +1562,8 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasForeignKey("PeriodId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Department");
 
                     b.Navigation("PartyCell");
 

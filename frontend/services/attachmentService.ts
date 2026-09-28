@@ -7,8 +7,7 @@ export interface AttachmentItem {
   contentType: string;
   uploadedAt: string;
   uploadedBy: string;
-  category: string; // Tương ứng FormCode trong CSDL
-  formCode?: string;
+  formCode: string;
   description: string;
   checksum?: string;
 }

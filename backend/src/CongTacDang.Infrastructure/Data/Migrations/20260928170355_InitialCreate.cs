@@ -19,7 +19,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     Code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Description = table.Column<string>(type: "text", nullable: false),
-                    HeadId = table.Column<Guid>(type: "uuid", nullable: true),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
@@ -68,7 +68,10 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    Settings = table.Column<string>(type: "jsonb", nullable: false),
+                    StatusReason = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    StatusChangedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    StatusChangedBy = table.Column<Guid>(type: "uuid", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -90,8 +93,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     Code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Description = table.Column<string>(type: "text", nullable: false),
-                    SecretaryId = table.Column<Guid>(type: "uuid", nullable: true),
-                    DeputySecretaryId = table.Column<Guid>(type: "uuid", nullable: true),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
@@ -113,9 +115,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Code = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Resource = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    Action = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Description = table.Column<string>(type: "text", nullable: false),
+                    Module = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -136,8 +138,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
                     IsSystem = table.Column<bool>(type: "boolean", nullable: false),
+                    IsProtected = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -159,6 +162,8 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false),
                     PeriodId = table.Column<Guid>(type: "uuid", nullable: false),
                     PartyCellId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DepartmentId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Stage = table.Column<int>(type: "integer", nullable: true),
                     FormCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
                     MeetingType = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Location = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
@@ -186,6 +191,12 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_evaluation_meetings", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_evaluation_meetings_administrative_departments_DepartmentId",
+                        column: x => x.DepartmentId,
+                        principalTable: "administrative_departments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_evaluation_meetings_evaluation_periods_PeriodId",
                         column: x => x.PeriodId,
@@ -221,11 +232,13 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     AdminPosition = table.Column<int>(type: "integer", nullable: false),
                     PositionTitle = table.Column<string>(type: "text", nullable: false),
                     JobGroup = table.Column<int>(type: "integer", nullable: false),
-                    IsApprovedByAttech = table.Column<bool>(type: "boolean", nullable: false),
+                    ApprovalAuthority = table.Column<int>(type: "integer", nullable: false),
+                    SecurityStamp = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     MustChangePassword = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     FailedLoginCount = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     LockoutEnd = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastLoginAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -347,6 +360,13 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     PartyCellId = table.Column<Guid>(type: "uuid", nullable: true),
                     DepartmentId = table.Column<Guid>(type: "uuid", nullable: true),
                     JobGroup = table.Column<int>(type: "integer", nullable: false),
+                    ApprovalAuthority = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    ReturnReason = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    TasksApprovedById = table.Column<Guid>(type: "uuid", nullable: true),
+                    TasksApprovedByName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    TasksApprovedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    TasksApprovalComment = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
                     GeneralScoreT1 = table.Column<double>(type: "double precision", nullable: false),
                     GeneralScoreT2 = table.Column<double>(type: "double precision", nullable: false),
                     GeneralScoreT3 = table.Column<double>(type: "double precision", nullable: false),
@@ -355,21 +375,49 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     GeneralScoreT6 = table.Column<double>(type: "double precision", nullable: false),
                     GeneralCriteriaScore = table.Column<double>(type: "double precision", nullable: false),
                     TasksScore = table.Column<double>(type: "double precision", nullable: false),
+                    AxisScoreT1 = table.Column<double>(type: "double precision", nullable: true),
+                    AxisScoreT2 = table.Column<double>(type: "double precision", nullable: true),
+                    AxisScoreT3 = table.Column<double>(type: "double precision", nullable: true),
+                    AxisScoreT4 = table.Column<double>(type: "double precision", nullable: true),
+                    AxisScoreT5 = table.Column<double>(type: "double precision", nullable: true),
+                    AxisScoreT6 = table.Column<double>(type: "double precision", nullable: true),
+                    SelfScoreForm = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
                     TotalSelfScore = table.Column<double>(type: "double precision", nullable: false),
                     SelfProposedGrade = table.Column<int>(type: "integer", nullable: false),
+                    SelfScoredAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     PartyCellComment = table.Column<string>(type: "text", nullable: false),
-                    PartyCellProposedGrade = table.Column<int>(type: "integer", nullable: false),
-                    VotesExcellent = table.Column<int>(type: "integer", nullable: false),
-                    VotesGood = table.Column<int>(type: "integer", nullable: false),
-                    VotesSatisfactory = table.Column<int>(type: "integer", nullable: false),
-                    VotesUnsatisfactory = table.Column<int>(type: "integer", nullable: false),
-                    TotalVoters = table.Column<int>(type: "integer", nullable: false),
+                    CellConfirmedById = table.Column<Guid>(type: "uuid", nullable: true),
+                    CellConfirmedByName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    CellConfirmedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CollectiveProposedGrade = table.Column<int>(type: "integer", nullable: false),
+                    CollectiveComment = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    CollectiveMeetingId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CollectiveRecordedById = table.Column<Guid>(type: "uuid", nullable: true),
+                    CollectiveRecordedByName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    CollectiveRecordedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     AppraisalScore = table.Column<double>(type: "double precision", nullable: true),
                     AppraisalComment = table.Column<string>(type: "text", nullable: false),
                     AppraisalProposedGrade = table.Column<int>(type: "integer", nullable: false),
+                    AppraisedById = table.Column<Guid>(type: "uuid", nullable: true),
+                    AppraisedByName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    AppraisedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DirectorComment = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    DirectorProposedGrade = table.Column<int>(type: "integer", nullable: false),
+                    DirectorReviewedById = table.Column<Guid>(type: "uuid", nullable: true),
+                    DirectorReviewedByName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    DirectorReviewedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     FinalScore = table.Column<double>(type: "double precision", nullable: false),
                     FinalGrade = table.Column<int>(type: "integer", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
+                    DecisionDocumentNumber = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    DecisionDocumentDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DecisionAuthorityName = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    DecisionMeetingId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DecisionRecordedById = table.Column<Guid>(type: "uuid", nullable: true),
+                    DecisionRecordedByName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    DecisionRecordedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    PublishedById = table.Column<Guid>(type: "uuid", nullable: true),
+                    PublishedByName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    PublishedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
@@ -408,6 +456,29 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "login_events",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: true),
+                    UsernameAttempted = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Result = table.Column<int>(type: "integer", nullable: false),
+                    IpAddress = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    UserAgent = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_login_events", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_login_events_party_member_profiles_UserId",
+                        column: x => x.UserId,
+                        principalTable: "party_member_profiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "refresh_tokens",
                 columns: table => new
                 {
@@ -442,14 +513,12 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     ContentType = table.Column<string>(type: "text", nullable: false),
                     FileSize = table.Column<long>(type: "bigint", nullable: false),
                     ObjectKey = table.Column<string>(type: "text", nullable: false),
-                    FilePath = table.Column<string>(type: "text", nullable: false),
                     Checksum = table.Column<string>(type: "text", nullable: false),
                     UploadedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UploadedBy = table.Column<string>(type: "text", nullable: false),
                     UploadedById = table.Column<Guid>(type: "uuid", nullable: true),
                     FormCode = table.Column<string>(type: "text", nullable: false),
                     RelatedId = table.Column<Guid>(type: "uuid", nullable: true),
-                    TaskId = table.Column<Guid>(type: "uuid", nullable: true),
                     RecordId = table.Column<Guid>(type: "uuid", nullable: true),
                     Description = table.Column<string>(type: "text", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
@@ -480,27 +549,40 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "user_roles",
+                name: "user_role_assignments",
                 columns: table => new
                 {
-                    role_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    user_id = table.Column<Guid>(type: "uuid", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    RoleId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ScopeType = table.Column<int>(type: "integer", nullable: false),
+                    ScopeId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ValidFrom = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ValidTo = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Note = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_user_roles", x => new { x.role_id, x.user_id });
+                    table.PrimaryKey("PK_user_role_assignments", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_user_roles_party_member_profiles_user_id",
-                        column: x => x.user_id,
+                        name: "FK_user_role_assignments_party_member_profiles_UserId",
+                        column: x => x.UserId,
                         principalTable: "party_member_profiles",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_user_roles_roles_role_id",
-                        column: x => x.role_id,
+                        name: "FK_user_role_assignments_roles_RoleId",
+                        column: x => x.RoleId,
                         principalTable: "roles",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -567,6 +649,13 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     RecordId = table.Column<Guid>(type: "uuid", nullable: false),
                     FromStatus = table.Column<int>(type: "integer", nullable: true),
                     ToStatus = table.Column<int>(type: "integer", nullable: false),
+                    Step = table.Column<int>(type: "integer", nullable: true),
+                    Action = table.Column<int>(type: "integer", nullable: false),
+                    Reason = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    ScoreBefore = table.Column<double>(type: "double precision", nullable: true),
+                    ScoreAfter = table.Column<double>(type: "double precision", nullable: true),
+                    GradeBefore = table.Column<int>(type: "integer", nullable: true),
+                    GradeAfter = table.Column<int>(type: "integer", nullable: true),
                     ActorId = table.Column<Guid>(type: "uuid", nullable: true),
                     ActorName = table.Column<string>(type: "text", nullable: false),
                     Comment = table.Column<string>(type: "text", nullable: true),
@@ -687,21 +776,24 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 column: "RecordId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_evaluation_meetings_DepartmentId",
+                table: "evaluation_meetings",
+                column: "DepartmentId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_evaluation_meetings_PartyCellId",
                 table: "evaluation_meetings",
                 column: "PartyCellId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_evaluation_meetings_PeriodId_DepartmentId",
+                table: "evaluation_meetings",
+                columns: new[] { "PeriodId", "DepartmentId" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_evaluation_meetings_PeriodId_PartyCellId_FormCode",
                 table: "evaluation_meetings",
                 columns: new[] { "PeriodId", "PartyCellId", "FormCode" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_evaluation_periods_IsActive",
-                table: "evaluation_periods",
-                column: "IsActive",
-                unique: true,
-                filter: "\"IsActive\" = TRUE");
 
             migrationBuilder.CreateIndex(
                 name: "IX_evaluation_periods_Status",
@@ -740,6 +832,11 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_evaluation_records_PeriodId_Status",
+                table: "evaluation_records",
+                columns: new[] { "PeriodId", "Status" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_evaluation_records_Status",
                 table: "evaluation_records",
                 column: "Status");
@@ -753,6 +850,16 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 name: "IX_evaluation_tasks_RecordId_TaskOrder",
                 table: "evaluation_tasks",
                 columns: new[] { "RecordId", "TaskOrder" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_login_events_CreatedAt",
+                table: "login_events",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_login_events_UserId_CreatedAt",
+                table: "login_events",
+                columns: new[] { "UserId", "CreatedAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_party_cells_Code",
@@ -780,6 +887,11 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 table: "party_member_profiles",
                 column: "Username",
                 unique: true);
+
+            // Tên đăng nhập duy nhất không phân biệt hoa thường (kể cả tài khoản đã xóa mềm); đăng nhập so khớp lower("Username").
+            // Index biểu thức nằm ngoài model EF (Npgsql không khai báo được bằng HasIndex) nên has-pending-model-changes không thấy.
+            migrationBuilder.Sql(
+                "CREATE UNIQUE INDEX \"IX_party_member_profiles_Username_lower\" ON party_member_profiles (lower(\"Username\"));");
 
             migrationBuilder.CreateIndex(
                 name: "IX_permissions_Code",
@@ -810,6 +922,13 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_roles_Name",
+                table: "roles",
+                column: "Name",
+                unique: true,
+                filter: "\"IsDeleted\" = FALSE");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_task_attachments_FileGroupId",
                 table: "task_attachments",
                 column: "FileGroupId");
@@ -825,9 +944,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 column: "RecordId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_task_attachments_TaskId",
+                name: "IX_task_attachments_RelatedId",
                 table: "task_attachments",
-                column: "TaskId");
+                column: "RelatedId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_task_attachments_UploadedById",
@@ -835,9 +954,19 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 column: "UploadedById");
 
             migrationBuilder.CreateIndex(
-                name: "IX_user_roles_user_id",
-                table: "user_roles",
-                column: "user_id");
+                name: "IX_user_role_assignments_RoleId",
+                table: "user_role_assignments",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_user_role_assignments_ScopeType_ScopeId",
+                table: "user_role_assignments",
+                columns: new[] { "ScopeType", "ScopeId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_user_role_assignments_UserId",
+                table: "user_role_assignments",
+                column: "UserId");
         }
 
         /// <inheritdoc />
@@ -859,13 +988,16 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 name: "evaluation_tasks");
 
             migrationBuilder.DropTable(
+                name: "login_events");
+
+            migrationBuilder.DropTable(
                 name: "refresh_tokens");
 
             migrationBuilder.DropTable(
                 name: "role_permissions");
 
             migrationBuilder.DropTable(
-                name: "user_roles");
+                name: "user_role_assignments");
 
             migrationBuilder.DropTable(
                 name: "collective_evaluation_records");

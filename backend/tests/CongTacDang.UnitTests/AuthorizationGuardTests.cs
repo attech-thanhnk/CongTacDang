@@ -54,7 +54,7 @@ public class AuthorizationGuardTests
     {
         var store = new AuthzStore();
         var user = store.AddUser();
-        var role = store.AddRole("Mixed", PermissionCodes.EvaluationRead, PermissionCodes.PeriodManage, "users.read", "ma.la");
+        var role = store.AddRole("Mixed", PermissionCodes.EvaluationRead, PermissionCodes.PeriodManage, "ma.khong.ton.tai", "ma.la");
         store.Assign(user, role, RoleScopeType.Department, DeptA);
         store.Assign(user, store.AddRole("G", PermissionCodes.CatalogManage), RoleScopeType.Global);
 
@@ -63,7 +63,7 @@ public class AuthorizationGuardTests
         Assert.True(result.Has(PermissionCodes.EvaluationRead));
         Assert.True(result.Has(PermissionCodes.CatalogManage));
         Assert.False(result.Has(PermissionCodes.PeriodManage)); // không áp dụng phạm vi + gán theo Phòng → bỏ
-        Assert.False(result.Has("users.read"));
+        Assert.False(result.Has("ma.khong.ton.tai"));
         Assert.False(result.Has("ma.la"));
         var read = Assert.Single(result.GrantsFor(PermissionCodes.EvaluationRead));
         Assert.Equal(ScopeType.Department, read.ScopeType);
@@ -471,7 +471,7 @@ public class AuthorizationGuardTests
 
         // Mã lạ → 400.
         await Assert.ThrowsAsync<ValidationException>(() =>
-            world.Roles.UpdateRolePermissionsAsync(world.ReaderRole.Id, new[] { "users.read" }));
+            world.Roles.UpdateRolePermissionsAsync(world.ReaderRole.Id, new[] { "ma.khong.ton.tai" }));
 
         // Vai trò đang gán theo Phòng không nhận quyền chỉ áp dụng Toàn công ty.
         world.Store.Assign(world.Store.AddUser(), world.ReaderRole, RoleScopeType.Department, DeptA);

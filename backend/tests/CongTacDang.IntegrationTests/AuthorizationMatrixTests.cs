@@ -58,7 +58,7 @@ public sealed class AuthorizationMatrixTests
         Assert.Equal(HttpStatusCode.OK, (await s.Appraiser.PostAsJsonAsync("/api/evaluations/periods", body)).StatusCode);
         foreach (var client in new[] { s.Office, s.Admin, s.OwnerA1, s.Plain })
             Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/evaluations/periods", body)).StatusCode);
-        // Task 12: chuyển trạng thái kỳ qua endpoint theo hành động (thay PUT periods/{id}/status).
+        // Chuyển trạng thái kỳ qua endpoint theo hành động.
         Assert.Equal(HttpStatusCode.Forbidden,
             (await s.CellSecA.PostAsJsonAsync($"/api/evaluations/periods/{s.PeriodId}/lock", new { version = 0 })).StatusCode);
     }
@@ -118,7 +118,7 @@ public sealed class AuthorizationMatrixTests
 
     #region Hồ sơ đánh giá — ghi theo từng bước
 
-    // Task 12: bước ghi đi qua endpoint theo hành động (records/{id}/...) và máy trạng thái; kiểm tra quyền (guard) chạy trước
+    // Bước ghi đi qua endpoint theo hành động (records/{id}/...) và máy trạng thái; kiểm tra quyền (guard) chạy trước
     // kiểm tra trạng thái nên hồ sơ ngoài phạm vi luôn 403. Hồ sơ dùng chung giữa các test → mỗi test tự đặt trạng thái cần có.
 
     [SkippableFact]
@@ -470,7 +470,7 @@ public sealed class AuthorizationMatrixTests
             await factory.AssignAsync(appraiser.Id, await Role("CO_QUAN_THAM_DINH"), RoleScopeType.Global, null);
             await factory.AssignAsync(office.Id, await Role("VAN_PHONG_DANG_UY"), RoleScopeType.Global, null);
             await factory.AssignAsync(committee.Id, await Role("CAP_UY_VIEN"), RoleScopeType.Global, null);
-            await factory.AssignAsync(admin.Id, await Role("QUAN_TRI_HE_THONG"), RoleScopeType.Global, null);
+            await factory.AssignAsync(admin.Id, await factory.GetAdministratorRoleIdAsync(), RoleScopeType.Global, null);
             await factory.AssignAsync(deptSecretaryA.Id, await Role("THU_KY_TAP_THE"), RoleScopeType.Department, s.DeptA);
             await factory.AssignAsync(localDecider.Id, (await factory.CreateRoleAsync("evaluation.decide")).Id, RoleScopeType.Global, null);
             await factory.AssignAsync(cellReporterA.Id, (await factory.CreateRoleAsync("report.export")).Id, RoleScopeType.PartyCell, s.CellA);

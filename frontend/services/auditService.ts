@@ -16,18 +16,6 @@ export interface AuditLogDto {
   createdAt: string;
 }
 
-/** Một mốc chuyển trạng thái của hồ sơ đánh giá. */
-export interface EvaluationRecordHistoryDto {
-  id: string;
-  recordId: string;
-  fromStatus?: string | null;
-  toStatus: string;
-  actorId?: string | null;
-  actorName: string;
-  comment?: string | null;
-  createdAt: string;
-}
-
 /** Bộ lọc tra cứu audit log. */
 export interface AuditLogFilters {
   entityType?: string;
@@ -88,10 +76,5 @@ export const auditService = {
     params.set("page", String(filters.page || 1));
     params.set("pageSize", String(filters.pageSize || 50));
     return request<PagedResult<LoginEventDto>>(`/audit/logins?${params.toString()}`);
-  },
-
-  /** Lấy lịch sử chuyển trạng thái của một hồ sơ đánh giá. */
-  async getRecordHistory(recordId: string): Promise<EvaluationRecordHistoryDto[]> {
-    return request<EvaluationRecordHistoryDto[]>(`/evaluations/records/${recordId}/history`);
   },
 };

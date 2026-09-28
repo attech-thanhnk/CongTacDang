@@ -511,7 +511,6 @@ public class AttachmentService : IAttachmentService
         ContentType = a.ContentType,
         FileSize = a.FileSize,
         FormCode = a.FormCode,
-        Category = a.FormCode,
         Description = a.Description,
         Checksum = a.Checksum,
         DownloadUrl = downloadUrl,

@@ -83,7 +83,7 @@ public enum JobGroup
 
 /// <summary>
 /// Trạng thái kỳ đánh giá (docs/thiet-ke/luong-danh-gia.md mục 3.1): <c>Draft → Open → Locked → Closed</c>,
-/// chỉ tiến, trừ <c>Locked → Open</c> (có lý do). Giá trị số mới (10–12) khác giá trị cũ (1–5) để migration chuyển dữ liệu rõ ràng.
+/// chỉ tiến, trừ <c>Locked → Open</c> (có lý do).
 /// </summary>
 public enum PeriodStatus
 {
@@ -91,13 +91,13 @@ public enum PeriodStatus
     Draft = 0,
 
     /// <summary>Đang mở: các bước chạy theo trạng thái từng hồ sơ.</summary>
-    Open = 10,
+    Open = 1,
 
     /// <summary>Khóa dữ liệu (HD03 II.2): chỉ các bước từ thẩm định trở đi được thao tác; chủ hồ sơ không sửa được.</summary>
-    Locked = 11,
+    Locked = 2,
 
     /// <summary>Đã đóng: toàn bộ hồ sơ đã công bố; chỉ còn mở lại hồ sơ.</summary>
-    Closed = 12
+    Closed = 3
 }
 
 /// <summary>Trạng thái hồ sơ tự đánh giá của tập thể (Mẫu 06–08) — không thuộc luồng 9 bước của hồ sơ cá nhân.</summary>
@@ -106,8 +106,8 @@ public enum CollectiveRecordStatus
     /// <summary>Bản nháp.</summary>
     Draft = 0,
 
-    /// <summary>Đã lập (giữ giá trị 3 = <c>SelfEvaluated</c> cũ để dữ liệu cũ không phải chuyển).</summary>
-    Submitted = 3
+    /// <summary>Đã lập.</summary>
+    Submitted = 1
 }
 
 /// <summary>
@@ -164,39 +164,38 @@ public enum EvaluationGrade
 
 /// <summary>
 /// Trạng thái hồ sơ cá nhân = <b>bước đang chờ</b> (docs/thiet-ke/luong-danh-gia.md mục 2).
-/// Giá trị số mới (10–19) khác giá trị cũ (0–7) để migration chuyển dữ liệu rõ ràng.
 /// </summary>
 public enum RecordStatus
 {
     /// <summary>Chờ cá nhân đăng ký sản phẩm (B1_REGISTER).</summary>
-    AwaitingRegistration = 10,
+    AwaitingRegistration = 1,
 
     /// <summary>Chờ duyệt danh mục (B1_APPROVE).</summary>
-    AwaitingTaskApproval = 11,
+    AwaitingTaskApproval = 2,
 
     /// <summary>Chờ tự chấm (B2_SELF_SCORE).</summary>
-    AwaitingSelfScore = 12,
+    AwaitingSelfScore = 3,
 
     /// <summary>Chờ Chi bộ xác nhận (B2_CELL_CONFIRM).</summary>
-    AwaitingCellConfirm = 13,
+    AwaitingCellConfirm = 4,
 
     /// <summary>Chờ ghi nhận đề xuất tập thể (B3A_COLLECTIVE).</summary>
-    AwaitingCollective = 14,
+    AwaitingCollective = 5,
 
     /// <summary>Chờ thẩm định (B3B_APPRAISAL).</summary>
-    AwaitingAppraisal = 15,
+    AwaitingAppraisal = 6,
 
     /// <summary>Chờ cấp trực tiếp sử dụng (B3C_DIRECTOR).</summary>
-    AwaitingDirectorReview = 16,
+    AwaitingDirectorReview = 7,
 
     /// <summary>Chờ quyết định (B4_DECISION).</summary>
-    AwaitingDecision = 17,
+    AwaitingDecision = 8,
 
     /// <summary>Chờ công bố (B5_PUBLISH).</summary>
-    AwaitingPublish = 18,
+    AwaitingPublish = 9,
 
     /// <summary>Đã công bố — khóa, mọi sửa đổi phải qua mở lại.</summary>
-    Published = 19
+    Published = 10
 }
 
 /// <summary>

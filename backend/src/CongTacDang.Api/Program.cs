@@ -142,7 +142,7 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// 8. Migration, baseline legacy schema và seed dữ liệu theo cấu hình
+// 8. Migration và seed dữ liệu theo cấu hình
 await app.ApplyPersistenceAsync();
 
 // 9. Middleware pipeline

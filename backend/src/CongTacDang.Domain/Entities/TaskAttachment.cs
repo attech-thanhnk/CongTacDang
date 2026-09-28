@@ -25,13 +25,6 @@ public class TaskAttachment : IAuditableEntity, ISoftDeletable
     /// <summary>Khóa định danh đường dẫn tệp trong Storage (VD: general/202609/uuid_name.pdf)</summary>
     public string ObjectKey { get; set; } = string.Empty;
 
-    /// <summary>Bí danh đường dẫn tệp tương thích ngược</summary>
-    public string FilePath 
-    { 
-        get => ObjectKey; 
-        set => ObjectKey = value; 
-    }
-
     /// <summary>Mã băm SHA-256 kiểm tra tính toàn vẹn của tệp</summary>
     public string Checksum { get; set; } = string.Empty;
 
@@ -49,9 +42,6 @@ public class TaskAttachment : IAuditableEntity, ISoftDeletable
 
     /// <summary>Mã định danh đối tượng nghiệp vụ liên quan</summary>
     public Guid? RelatedId { get; set; }
-
-    /// <summary>Bí danh liên kết nhiệm vụ</summary>
-    public Guid? TaskId { get => RelatedId; set => RelatedId = value; }
 
     /// <summary>Mã bản ghi liên kết</summary>
     public Guid? RecordId { get; set; }

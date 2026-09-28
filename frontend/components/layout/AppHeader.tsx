@@ -15,8 +15,15 @@ export function AppHeader() {
 
   const getPageTitle = () => {
     if (pathname === "/") return "Tổng quan";
+    if (pathname.startsWith("/work-queue")) return "Việc cần xử lý";
     if (pathname.startsWith("/evaluations")) return "Đánh giá cán bộ";
-    if (pathname.startsWith("/users")) return "Cán bộ & Chi bộ";
+    if (pathname.startsWith("/collective-evaluations")) return "Đánh giá tập thể";
+    if (pathname.startsWith("/periods")) return "Kỳ đánh giá";
+    if (pathname.startsWith("/admin/users")) return "Tài khoản";
+    if (pathname.startsWith("/admin/roles")) return "Vai trò";
+    if (pathname.startsWith("/catalog")) return "Danh mục";
+    if (pathname.startsWith("/imports")) return "Nhập dữ liệu";
+    if (pathname.startsWith("/audit")) return "Nhật ký";
     if (pathname.startsWith("/attachments")) return "Tài liệu đính kèm";
     if (pathname.startsWith("/reports")) return "Báo cáo";
     if (pathname.startsWith("/forms")) return "Biểu mẫu";

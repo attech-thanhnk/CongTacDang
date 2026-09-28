@@ -99,7 +99,7 @@ public sealed class PeriodSettings
         Presets.FirstOrDefault(p => string.Equals(p.Code, code?.Trim(), StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
-    /// Đọc cấu hình từ JSON. Chuỗi rỗng (kỳ tạo trước task 12) → mẫu "Đầy đủ theo HD03".
+    /// Đọc cấu hình từ JSON. Chuỗi rỗng → mẫu "Đầy đủ theo HD03".
     /// Bước thiếu trong JSON được bổ sung (bật, không thời hạn). JSON sai định dạng → <see cref="FormatException"/>.
     /// </summary>
     public static PeriodSettings Parse(string? json)

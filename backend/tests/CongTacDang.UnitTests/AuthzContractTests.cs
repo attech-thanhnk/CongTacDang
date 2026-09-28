@@ -15,8 +15,7 @@ namespace CongTacDang.UnitTests;
 
 /// <summary>
 /// Kiểm thử khung hợp đồng phân quyền (task 07, T-55): danh mục mã quyền, policy theo mã, cache, tạo tài khoản v0.
-/// Task 09 bỏ các test so khớp với policy cũ theo claim/vai trò (policy cũ đã bị xóa theo task file) — luật mới
-/// được kiểm trong <c>AuthorizationGuardTests</c>.
+/// Luật theo phạm vi/chủ hồ sơ được kiểm trong <c>AuthorizationGuardTests</c>.
 /// </summary>
 public class AuthzContractTests
 {
@@ -48,12 +47,12 @@ public class AuthzContractTests
         Assert.False((await auth.AuthorizeAsync(IdentityOnlyPrincipal(cadre), PermissionCodes.SystemUsersManage)).Succeeded);
         Assert.False((await auth.AuthorizeAsync(new ClaimsPrincipal(new ClaimsIdentity()), PermissionCodes.SystemUsersManage)).Succeeded);
 
-        // Claim perm/role trong token bị bỏ qua: người không có quyền trong CSDL vẫn bị từ chối.
+        // Claim tự thêm vào token (mã quyền, vai trò) bị bỏ qua: người không có quyền trong CSDL vẫn bị từ chối.
         var forged = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
             new Claim(ClaimTypes.NameIdentifier, cadre.ToString()),
             new Claim("perm", PermissionCodes.SystemRolesManage),
-            new Claim(ClaimTypes.Role, "QUAN_TRI_HE_THONG")
+            new Claim(ClaimTypes.Role, "Quản trị hệ thống")
         }, "Test"));
         Assert.False((await auth.AuthorizeAsync(forged, PermissionCodes.SystemRolesManage)).Succeeded);
     }
@@ -76,7 +75,7 @@ public class AuthzContractTests
     }
 
     [Fact]
-    public async Task PolicyProvider_KnowsNewCodes_AnyPolicies_LegacyCodesOnlyAsTransition()
+    public async Task PolicyProvider_KnowsPermissionCodes_AnyPolicies_UnknownNamesAreNotPolicies()
     {
         var provider = new PermissionPolicyProvider(Microsoft.Extensions.Options.Options.Create(new AuthorizationOptions()));
 
@@ -91,12 +90,8 @@ public class AuthzContractTests
         Assert.Contains(any!.Requirements, r => r is PermissionRequirement p && p.Permissions.Count == 2);
         Assert.Null(await provider.GetPolicyAsync("any:khong.ton.tai"));
 
-        // Đợt 4 (tích hợp): mã quyền cũ không còn là policy (đã bỏ ánh xạ chuyển tiếp).
-        Assert.Null(await provider.GetPolicyAsync("users.read"));
-        Assert.Null(await provider.GetPolicyAsync("branches.read"));
-
-        // Policy composite theo vai trò cũ đã bị xóa.
-        Assert.Null(await provider.GetPolicyAsync("RequireQuanTriHeTong"));
+        // Tên không có trong danh mục mã quyền không phải policy.
+        Assert.Null(await provider.GetPolicyAsync("catalog.read"));
         Assert.Null(await provider.GetPolicyAsync("Policy_ManagePeriods"));
         Assert.Null(await provider.GetPolicyAsync("khong.ton.tai"));
     }

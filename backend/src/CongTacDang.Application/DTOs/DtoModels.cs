@@ -40,78 +40,6 @@ public class UserProfileDto
     public bool MustChangePassword { get; set; }
 }
 
-/// <summary>Thông tin tóm tắt hồ sơ cán bộ lãnh đạo, quản lý 2 vai</summary>
-public class CadreDto
-{
-    /// <summary>Mã định danh cán bộ</summary>
-    public Guid Id { get; set; }
-
-    /// <summary>Họ và tên đầy đủ</summary>
-    public string FullName { get; set; } = string.Empty;
-
-    /// <summary>Số thẻ Đảng viên</summary>
-    public string? PartyCardNumber { get; set; }
-
-    /// <summary>Chức vụ công tác Đảng</summary>
-    public string? PartyRole { get; set; }
-
-    /// <summary>Chức danh quản lý chuyên môn</summary>
-    public string? AdminTitle { get; set; }
-
-    /// <summary>Tên Chi bộ sinh hoạt Đảng</summary>
-    public string? PartyCellName { get; set; }
-
-    /// <summary>Tên Phòng ban chuyên môn</summary>
-    public string? DepartmentName { get; set; }
-
-    /// <summary>Đã kết nạp Đảng viên hay chưa</summary>
-    public bool IsPartyMember { get; set; }
-
-    /// <summary>Trạng thái hoạt động</summary>
-    public bool IsActive { get; set; }
-}
-
-/// <summary>Dữ liệu yêu cầu tiếp nhận hồ sơ cán bộ mới</summary>
-public class CreateUserDto
-{
-    /// <summary>Họ và tên cán bộ (bắt buộc)</summary>
-    public string FullName { get; set; } = string.Empty;
-
-    /// <summary>Số thẻ Đảng viên (nếu có)</summary>
-    public string? PartyCardNumber { get; set; }
-
-    /// <summary>Chức danh quản lý chính quyền</summary>
-    public string? AdminTitle { get; set; }
-
-    /// <summary>Mã Chi bộ phân công sinh hoạt</summary>
-    public Guid? PartyCellId { get; set; }
-
-    /// <summary>Mã Phòng ban công tác chuyên môn</summary>
-    public Guid? DepartmentId { get; set; }
-}
-
-/// <summary>Dữ liệu yêu cầu cập nhật thông tin hồ sơ cán bộ</summary>
-public class UpdateUserDto
-{
-    /// <summary>Họ và tên cán bộ</summary>
-    public string FullName { get; set; } = string.Empty;
-
-    /// <summary>Số thẻ Đảng viên</summary>
-    public string? PartyCardNumber { get; set; }
-
-    /// <summary>Chức danh quản lý chính quyền</summary>
-    public string? AdminTitle { get; set; }
-
-    /// <summary>Mã Chi bộ phân công sinh hoạt</summary>
-    public Guid? PartyCellId { get; set; }
-
-    /// <summary>Mã Phòng ban công tác chuyên môn</summary>
-    public Guid? DepartmentId { get; set; }
-
-    /// <summary>Trạng thái kích hoạt hồ sơ</summary>
-    public bool? IsActive { get; set; }
-}
-
 /// <summary>Thông tin tổ chức Chi bộ cơ sở</summary>
 public class BranchDto
 {
@@ -179,13 +107,6 @@ public class AttachmentDto
 
     /// <summary>Mã biểu mẫu hoặc ký hiệu hồ sơ (M01, M02, M10...)</summary>
     public string FormCode { get; set; } = string.Empty;
-
-    /// <summary>Bí danh tương thích ngược cho FormCode</summary>
-    public string Category 
-    { 
-        get => FormCode; 
-        set => FormCode = value; 
-    }
 
     /// <summary>Trích yếu hoặc nội dung tóm tắt văn bản</summary>
     public string Description { get; set; } = string.Empty;
@@ -306,50 +227,6 @@ public class ResetPasswordResponseDto
     public string UserName { get; set; } = string.Empty;
     public string TemporaryPassword { get; set; } = string.Empty;
     public bool MustChangePassword { get; set; }
-}
-
-/// <summary>Thông tin quyền hạn chi tiết trong hệ thống (Atomic Permission)</summary>
-public class PermissionDto
-{
-    /// <summary>Mã định danh quyền hạn</summary>
-    public Guid Id { get; set; }
-
-    /// <summary>Mã quyền hạn chuẩn (ví dụ: users.read, reports.export)</summary>
-    public string Code { get; set; } = string.Empty;
-
-    /// <summary>Tên hiển thị tiếng Việt của quyền</summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>Tài nguyên áp dụng quyền (users, branches, attachments, reports, roles)</summary>
-    public string Resource { get; set; } = string.Empty;
-
-    /// <summary>Hành động cho phép (read, create, update, delete, export, manage)</summary>
-    public string Action { get; set; } = string.Empty;
-
-    /// <summary>Mô tả chi tiết thẩm quyền</summary>
-    public string Description { get; set; } = string.Empty;
-}
-
-/// <summary>Thông tin vai trò kèm danh sách quyền hạn nguyên tử (Dynamic RBAC)</summary>
-public class RoleDto
-{
-    /// <summary>Mã định danh vai trò</summary>
-    public Guid Id { get; set; }
-
-    /// <summary>Mã kỹ thuật của vai trò (không dùng để phân quyền; vai trò tạo qua API có mã sinh tự động)</summary>
-    public string Code { get; set; } = string.Empty;
-
-    /// <summary>Tên hiển thị vai trò</summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>Mô tả thẩm quyền của vai trò</summary>
-    public string Description { get; set; } = string.Empty;
-
-    /// <summary>Vai trò hệ thống mặc định không thể xóa</summary>
-    public bool IsSystem { get; set; }
-
-    /// <summary>Danh sách quyền hạn nguyên tử được cấp cho vai trò</summary>
-    public List<PermissionDto> Permissions { get; set; } = new();
 }
 
 /// <summary>Yêu cầu cập nhật quyền hạn cho vai trò</summary>

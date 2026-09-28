@@ -75,27 +75,27 @@ public sealed class AuthzContractIntegrationTests
     public async Task PermissionChange_TakesEffectOnNextRequest_WithoutRelogin()
     {
         SkipIfNoDatabase();
-        // Task 09: gán qua bản gán vai trò (endpoint tương thích nhận roleIds thay cho roleCodes).
         var admin = await _factory.CreateUserWithPermissionsAsync(PermissionCodes.SystemRolesManage, PermissionCodes.SystemAssignmentsManage);
         var target = await _factory.CreateUserWithPermissionsAsync(PermissionCodes.EvaluationRead);
 
         using var targetClient = await _factory.LoginAsAsync(target);
         Assert.Equal(HttpStatusCode.Forbidden, (await targetClient.GetAsync("/api/admin/roles")).StatusCode);
 
-        // Quản trị gán thêm vai trò có roles.manage qua API → cache của người đó bị xóa.
+        // Quản trị gán thêm vai trò có quyền quản lý vai trò qua API → cache của người đó bị xóa.
         using var adminClient = await _factory.LoginAsAsync(admin);
         var assign = await adminClient.PostAsJsonAsync(
-            $"/api/admin/users/{target.Id}/roles",
-            new { roleIds = new[] { target.RoleId, admin.RoleId } });
+            "/api/admin/assignments",
+            new { userId = target.Id, roleId = admin.RoleId, scopeType = "Global" });
         Assert.Equal(HttpStatusCode.OK, assign.StatusCode);
+        Guid assignmentId;
+        using (var json = JsonDocument.Parse(await assign.Content.ReadAsStringAsync()))
+            assignmentId = json.RootElement.GetProperty("data").GetProperty("id").GetGuid();
 
-        // Cùng access token cũ (JWT không đổi) nhưng quyền đã có hiệu lực.
+        // Cùng access token (JWT không đổi) nhưng quyền đã có hiệu lực.
         Assert.Equal(HttpStatusCode.OK, (await targetClient.GetAsync("/api/admin/roles")).StatusCode);
 
-        // Thu hồi → mất quyền ngay.
-        var revoke = await adminClient.PostAsJsonAsync(
-            $"/api/admin/users/{target.Id}/roles",
-            new { roleIds = new[] { target.RoleId } });
+        // Kết thúc bản gán → mất quyền ngay.
+        var revoke = await adminClient.PostAsync($"/api/admin/assignments/{assignmentId}/end", null);
         Assert.Equal(HttpStatusCode.OK, revoke.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await targetClient.GetAsync("/api/admin/roles")).StatusCode);
     }

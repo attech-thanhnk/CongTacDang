@@ -15,7 +15,7 @@ public class EvaluationRecordHistoryDto
     public string? FromStatusName { get; set; }
     public string ToStatus { get; set; } = string.Empty;
     public string ToStatusName { get; set; } = string.Empty;
-    /// <summary>Mã bước (B1_REGISTER…); null với dữ liệu trước task 12.</summary>
+    /// <summary>Mã bước (B1_REGISTER…); null với thao tác không thuộc bước.</summary>
     public string? Step { get; set; }
     public string? StepName { get; set; }
     /// <summary>Complete / Return / Reopen / Create / EditSnapshot / Recalculate.</summary>
@@ -124,18 +124,10 @@ public class EvaluationRecordDto
     public DateTime? SelfScoredAt { get; set; }
 
     // B2 — Chi bộ xác nhận
-    /// <summary>Ý kiến xác nhận của Chi bộ (đổi nghĩa từ task 12).</summary>
+    /// <summary>Ý kiến xác nhận của Chi bộ trên phiếu tự chấm.</summary>
     public string PartyCellComment { get; set; } = string.Empty;
     public string? CellConfirmedByName { get; set; }
     public DateTime? CellConfirmedAt { get; set; }
-
-    // Dữ liệu cũ (trước task 12) — chỉ hiển thị
-    public string PartyCellProposedGrade { get; set; } = string.Empty;
-    public int VotesExcellent { get; set; }
-    public int VotesGood { get; set; }
-    public int VotesSatisfactory { get; set; }
-    public int VotesUnsatisfactory { get; set; }
-    public int TotalVoters { get; set; }
 
     // B3a
     public string CollectiveProposedGrade { get; set; } = string.Empty;
@@ -572,7 +564,7 @@ public class EvaluationMeetingDto
     public string? PartyCellName { get; set; }
     public Guid? DepartmentId { get; set; }
     public string? DepartmentName { get; set; }
-    /// <summary>B3A_COLLECTIVE / B4_DECISION (null với dữ liệu cũ).</summary>
+    /// <summary>B3A_COLLECTIVE / B4_DECISION (null: không gắn bước cụ thể).</summary>
     public string? Stage { get; set; }
     public string FormCode { get; set; } = string.Empty;
     public string MeetingType { get; set; } = string.Empty;

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CongTacDang.Infrastructure.Data.Configurations;
 
-/// <summary>Kỳ đánh giá (task 12: thêm cấu hình jsonb, bỏ cờ IsActive — kỳ hiện hành = kỳ Open/Locked mới nhất).</summary>
+/// <summary>Kỳ đánh giá: cấu hình jsonb; kỳ hiện hành = kỳ Open/Locked mới nhất.</summary>
 public sealed class EvaluationPeriodConfiguration : IEntityTypeConfiguration<EvaluationPeriod>
 {
     public void Configure(EntityTypeBuilder<EvaluationPeriod> entity)
@@ -113,7 +113,7 @@ public sealed class EvaluationTaskConfiguration : IEntityTypeConfiguration<Evalu
     }
 }
 
-/// <summary>Lịch sử chuyển trạng thái hồ sơ (task 12: thêm Step, Action, Reason, ảnh chụp điểm/mức).</summary>
+/// <summary>Lịch sử chuyển trạng thái hồ sơ : bước, hành động, lý do, ảnh chụp điểm/mức trước–sau.</summary>
 public sealed class EvaluationRecordHistoryConfiguration : IEntityTypeConfiguration<EvaluationRecordHistory>
 {
     public void Configure(EntityTypeBuilder<EvaluationRecordHistory> entity)
@@ -181,7 +181,7 @@ public sealed class CollectiveEvaluationItemConfiguration : IEntityTypeConfigura
     }
 }
 
-/// <summary>Biên bản hội nghị / kiểm phiếu (task 12: thêm DepartmentId, Stage).</summary>
+/// <summary>Biên bản hội nghị / kiểm phiếu — gắn Chi bộ hoặc Phòng (cấp Phòng) và bước B3a/B4.</summary>
 public sealed class EvaluationMeetingConfiguration : IEntityTypeConfiguration<EvaluationMeeting>
 {
     public void Configure(EntityTypeBuilder<EvaluationMeeting> entity)
