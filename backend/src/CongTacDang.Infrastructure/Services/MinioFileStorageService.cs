@@ -124,12 +124,8 @@ public class MinioFileStorageService : IFileStorageService
     /// <summary>
     /// Sinh URL tải xuống trực tiếp tệp từ MinIO
     /// </summary>
-    public Task<string?> GetDownloadUrlAsync(string objectKey, string fileName, TimeSpan? expiry = null)
+    public Task<string?> GetDownloadUrlAsync(Guid attachmentId, TimeSpan? expiry = null)
     {
-        var protocol = _options.UseSsl ? "https" : "http";
-        var host = !string.IsNullOrEmpty(_options.PublicEndpoint) ? _options.PublicEndpoint : _options.Endpoint;
-        var downloadUrl = $"{protocol}://{host}/{_options.BucketName}/{objectKey}?response-content-disposition=attachment%3B%20filename%3D%22{Uri.EscapeDataString(fileName)}%22";
-        
-        return Task.FromResult<string?>(downloadUrl);
+        return Task.FromResult<string?>($"/api/attachments/{attachmentId}/download");
     }
 }
