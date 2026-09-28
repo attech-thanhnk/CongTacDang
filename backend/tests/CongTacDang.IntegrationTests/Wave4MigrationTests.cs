@@ -163,7 +163,25 @@ public sealed class Wave4MigrationTests
         {
             NpgsqlConnection.ClearAllPools();
             TestDatabaseNames.EnsureSafe(name);
-            await ExecuteAsync(admin.ConnectionString, $"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)");
+            await DropWithRetryAsync(admin.ConnectionString, name);
+        }
+    }
+
+    /// <summary>Xóa CSDL tạm; máy chủ dùng chung có thể bận (khóa catalog) → thử lại vài lần, lỗi cuối nêu rõ lý do.</summary>
+    private static async Task DropWithRetryAsync(string adminConnectionString, string name)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await ExecuteAsync(adminConnectionString, $"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)");
+                return;
+            }
+            catch (PostgresException ex) when (attempt < 5)
+            {
+                Console.WriteLine($"Chưa xóa được CSDL tạm {name} (lần {attempt}): {ex.SqlState} {ex.MessageText}");
+                await Task.Delay(TimeSpan.FromSeconds(attempt));
+            }
         }
     }
 
