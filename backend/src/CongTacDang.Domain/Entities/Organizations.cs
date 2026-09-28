@@ -20,10 +20,13 @@ public class PartyCell : IAuditableEntity, ISoftDeletable
     /// <summary>Mô tả nhiệm vụ chính trị trọng tâm</summary>
     public string Description { get; set; } = string.Empty;
 
-    /// <summary>Mã cán bộ giữ chức vụ Bí thư Chi bộ</summary>
+    /// <summary>Thứ tự hiển thị trong danh mục (nhỏ đứng trước)</summary>
+    public int SortOrder { get; set; }
+
+    /// <summary>Mã cán bộ giữ chức vụ Bí thư Chi bộ — chỉ để hiển thị trên biểu mẫu, không dùng để phân quyền</summary>
     public Guid? SecretaryId { get; set; }
 
-    /// <summary>Mã cán bộ giữ chức vụ Phó Bí thư Chi bộ</summary>
+    /// <summary>Mã cán bộ giữ chức vụ Phó Bí thư Chi bộ — chỉ để hiển thị trên biểu mẫu, không dùng để phân quyền</summary>
     public Guid? DeputySecretaryId { get; set; }
 
     /// <summary>Trạng thái hoạt động</summary>
@@ -60,8 +63,11 @@ public class AdministrativeDepartment : IAuditableEntity, ISoftDeletable
     /// <summary>Mô tả chức năng nhiệm vụ chuyên môn</summary>
     public string Description { get; set; } = string.Empty;
 
-    /// <summary>Mã cán bộ giữ chức danh Trưởng phòng / Quản đốc</summary>
-    public Guid? HeadId { get; set; }
+    /// <summary>
+    /// Thứ tự hiển thị trong danh mục (nhỏ đứng trước).
+    /// Người đứng đầu đơn vị không lưu ở đây mà xác định bằng gán vai trò phạm vi Phòng (task 09).
+    /// </summary>
+    public int SortOrder { get; set; }
 
     /// <summary>Trạng thái hoạt động</summary>
     public bool IsActive { get; set; } = true;
