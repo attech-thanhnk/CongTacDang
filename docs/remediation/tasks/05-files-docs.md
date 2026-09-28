@@ -1,7 +1,7 @@
 # Task 05 — Nền tảng file & sinh biểu mẫu
 
 - **Branch:** `feat/files-docs`
-- **Mã lỗi:** T-36, T-37, T-38, phần còn lại của T-07, phần test của T-42
+- **Mã lỗi:** T-36, T-37, T-38, phần còn lại của T-07, T-30 (phần Excel), T-39 (phần `DocxTemplateEngine`), T-47, phần test của T-42
 - **Báo cáo:** `docs/remediation/reports/05-files-docs.md`
 - **Chạy SAU khi task 04 đã merge** (dùng cơ chế quyền của task 04). Tuân thủ `RULES.md` mục 7.
 
@@ -28,6 +28,12 @@ Xây **năng lực nền**, không đổi nội dung nghiệp vụ của biểu 
 - Thêm LibreOffice (kèm font tiếng Việt, ví dụ Times New Roman tương thích) vào `docker/Dockerfile.backend`; ghi yêu cầu cài đặt khi chạy không dùng Docker vào `docs/deployment.md`.
 - API xuất nhận tham số định dạng (`docx` | `pdf`).
 - Frontend: thay bản in HTML (`EvaluationPrintTemplate.tsx`, `EvaluationPdfModal.tsx` dùng `window.print`) bằng xem/tải PDF từ máy chủ. Giữ các nút hiện có, chỉ đổi nguồn.
+
+## Phần chuyển từ đợt 2 (task 04, 06)
+- **Cơ chế quyền có sẵn:** `IAccessPolicy` (`Application/Common/Security/AccessPolicy.cs`) — mọi thao tác file/xuất biểu mẫu dùng nó, không tự kiểm tra quyền riêng. File đính kèm đã có `UploadedById` và kiểm tra quyền theo hồ sơ liên quan (xem `reports/04-authz.md`); mô hình file mới phải giữ nguyên các kiểm tra này.
+- **T-30 (Excel):** Excel 14/15/15A/15B/16 hiện chỉ cho vai trò thẩm định/phê duyệt/quản trị. Thêm tham số `periodId` (thay cho "kỳ đang active") và lọc theo phạm vi của người yêu cầu qua `IAccessPolicy`, để Bí thư Chi bộ xuất được phần Chi bộ mình.
+- **T-39:** hết warning nullable trong `DocxTemplateEngine` (file này được viết lại).
+- **T-47:** `EvaluationTask.AttachmentId` gửi từ client phải được kiểm tra: file tồn tại và người gửi có quyền trên file.
 
 ## Test (T-42)
 - Test điền template: trường đơn, bảng lặp, trường bị Word tách run (tạo tài liệu mẫu có run bị tách).
