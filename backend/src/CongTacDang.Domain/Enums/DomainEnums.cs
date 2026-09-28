@@ -82,27 +82,32 @@ public enum JobGroup
 }
 
 /// <summary>
-/// Trạng thái của kỳ đánh giá theo các mốc thời gian quy trình 5 bước
+/// Trạng thái kỳ đánh giá (docs/thiet-ke/luong-danh-gia.md mục 3.1): <c>Draft → Open → Locked → Closed</c>,
+/// chỉ tiến, trừ <c>Locked → Open</c> (có lý do). Giá trị số mới (10–12) khác giá trị cũ (1–5) để migration chuyển dữ liệu rõ ràng.
 /// </summary>
 public enum PeriodStatus
 {
-    /// <summary>Dự thảo khởi tạo kỳ đánh giá</summary>
+    /// <summary>Dự thảo: cấu hình bước, tham số, danh sách người được đánh giá; chưa ai thao tác hồ sơ.</summary>
     Draft = 0,
 
-    /// <summary>Đang mở cho cán bộ đăng ký nhiệm vụ đầu quý (Mẫu 01)</summary>
-    TaskRegistration = 1,
+    /// <summary>Đang mở: các bước chạy theo trạng thái từng hồ sơ.</summary>
+    Open = 10,
 
-    /// <summary>Đang mở cho cán bộ tự chấm điểm cuối quý (Mẫu 02 & 09)</summary>
-    SelfEvaluation = 2,
+    /// <summary>Khóa dữ liệu (HD03 II.2): chỉ các bước từ thẩm định trở đi được thao tác; chủ hồ sơ không sửa được.</summary>
+    Locked = 11,
 
-    /// <summary>Chi bộ đang tổ chức hội nghị đánh giá và bỏ phiếu kín (Mẫu 11)</summary>
-    BranchReview = 3,
+    /// <summary>Đã đóng: toàn bộ hồ sơ đã công bố; chỉ còn mở lại hồ sơ.</summary>
+    Closed = 12
+}
 
-    /// <summary>Tổ Thẩm định đang đối soát và kiểm tra trần 20% (Mẫu 03 & 15)</summary>
-    Appraisal = 4,
+/// <summary>Trạng thái hồ sơ tự đánh giá của tập thể (Mẫu 06–08) — không thuộc luồng 9 bước của hồ sơ cá nhân.</summary>
+public enum CollectiveRecordStatus
+{
+    /// <summary>Bản nháp.</summary>
+    Draft = 0,
 
-    /// <summary>Ban Thường vụ đã phê duyệt chính thức (Mẫu 14 & 16)</summary>
-    Completed = 5
+    /// <summary>Đã lập (giữ giá trị 3 = <c>SelfEvaluated</c> cũ để dữ liệu cũ không phải chuyển).</summary>
+    Submitted = 3
 }
 
 /// <summary>
@@ -158,33 +163,40 @@ public enum EvaluationGrade
 }
 
 /// <summary>
-/// Trạng thái hồ sơ trong quy trình đánh giá 5 bước theo 03-HD/TVĐU
+/// Trạng thái hồ sơ cá nhân = <b>bước đang chờ</b> (docs/thiet-ke/luong-danh-gia.md mục 2).
+/// Giá trị số mới (10–19) khác giá trị cũ (0–7) để migration chuyển dữ liệu rõ ràng.
 /// </summary>
 public enum RecordStatus
 {
-    /// <summary>Bản nháp đăng ký Mẫu 01</summary>
-    Draft = 0,
+    /// <summary>Chờ cá nhân đăng ký sản phẩm (B1_REGISTER).</summary>
+    AwaitingRegistration = 10,
 
-    /// <summary>Đã gửi đăng ký nhiệm vụ đầu quý</summary>
-    TasksSubmitted = 1,
+    /// <summary>Chờ duyệt danh mục (B1_APPROVE).</summary>
+    AwaitingTaskApproval = 11,
 
-    /// <summary>Cấp ủy / Lãnh đạo đã duyệt nhiệm vụ</summary>
-    TasksApproved = 2,
+    /// <summary>Chờ tự chấm (B2_SELF_SCORE).</summary>
+    AwaitingSelfScore = 12,
 
-    /// <summary>Cá nhân cán bộ đã tự chấm điểm Mẫu 02/09</summary>
-    SelfEvaluated = 3,
+    /// <summary>Chờ Chi bộ xác nhận (B2_CELL_CONFIRM).</summary>
+    AwaitingCellConfirm = 13,
 
-    /// <summary>Tập thể đã họp nhận xét và bỏ phiếu tín nhiệm</summary>
-    Voted = 4,
+    /// <summary>Chờ ghi nhận đề xuất tập thể (B3A_COLLECTIVE).</summary>
+    AwaitingCollective = 14,
 
-    /// <summary>Tổ Thẩm định Đảng ủy đã thẩm định hồ sơ và kiểm tra trần 20%</summary>
-    Reviewed = 5,
+    /// <summary>Chờ thẩm định (B3B_APPRAISAL).</summary>
+    AwaitingAppraisal = 15,
 
-    /// <summary>Ban Thường vụ Đảng ủy đã phê duyệt kết quả chính thức</summary>
-    Approved = 6,
+    /// <summary>Chờ cấp trực tiếp sử dụng (B3C_DIRECTOR).</summary>
+    AwaitingDirectorReview = 16,
 
-    /// <summary>Đã công bố kết quả đánh giá, xếp loại</summary>
-    Published = 7
+    /// <summary>Chờ quyết định (B4_DECISION).</summary>
+    AwaitingDecision = 17,
+
+    /// <summary>Chờ công bố (B5_PUBLISH).</summary>
+    AwaitingPublish = 18,
+
+    /// <summary>Đã công bố — khóa, mọi sửa đổi phải qua mở lại.</summary>
+    Published = 19
 }
 
 /// <summary>

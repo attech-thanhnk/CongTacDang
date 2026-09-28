@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
+using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Domain.Entities;
 
-/// <summary>Hội nghị đánh giá và biên bản Mẫu 12, 13.</summary>
+/// <summary>
+/// Hội nghị đánh giá và biên bản Mẫu 12, 13. Hệ thống không tổ chức bỏ phiếu điện tử và không lưu phiếu của từng người:
+/// chỉ lưu kết quả kiểm phiếu tổng hợp theo hồ sơ (<see cref="EvaluationMeetingVoteSummary"/>) do thư ký nhập (B-03).
+/// </summary>
 public class EvaluationMeeting : IAuditableEntity, ISoftDeletable, IVersioned
 {
     /// <summary>Phiên bản bản ghi (xmin) cho optimistic concurrency.</summary>
@@ -12,8 +16,20 @@ public class EvaluationMeeting : IAuditableEntity, ISoftDeletable, IVersioned
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid PeriodId { get; set; }
     public EvaluationPeriod Period { get; set; } = null!;
+
+    /// <summary>Chi bộ tổ chức hội nghị (null nếu hội nghị cấp Phòng hoặc cấp Công ty).</summary>
     public Guid? PartyCellId { get; set; }
     public PartyCell? PartyCell { get; set; }
+
+    /// <summary>
+    /// Phòng/đơn vị tổ chức hội nghị tập thể lãnh đạo cấp Phòng (task 12) — để thư ký tập thể phạm vi Phòng lập được biên bản.
+    /// Null cùng <see cref="PartyCellId"/> = hội nghị cấp Công ty (chỉ phạm vi Toàn công ty).
+    /// </summary>
+    public Guid? DepartmentId { get; set; }
+    public AdministrativeDepartment? Department { get; set; }
+
+    /// <summary>Bước của luồng mà hội nghị phục vụ: <see cref="WorkflowStep.B3A_COLLECTIVE"/> hoặc <see cref="WorkflowStep.B4_DECISION"/> (null với dữ liệu cũ).</summary>
+    public WorkflowStep? Stage { get; set; }
 
     /// <summary>Mẫu biên bản chính: M12 là biên bản hội nghị, M13 là biên bản kiểm phiếu.</summary>
     public string FormCode { get; set; } = "M12";
@@ -45,7 +61,7 @@ public class EvaluationMeeting : IAuditableEntity, ISoftDeletable, IVersioned
     public Guid? DeletedBy { get; set; }
 }
 
-/// <summary>Tổng hợp phiếu theo từng cán bộ trong biên bản kiểm phiếu Mẫu 13.</summary>
+/// <summary>Tổng hợp phiếu theo từng cán bộ trong biên bản kiểm phiếu Mẫu 13 (không có thông tin người bỏ phiếu).</summary>
 public class EvaluationMeetingVoteSummary
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -59,4 +75,7 @@ public class EvaluationMeetingVoteSummary
     public int VotesUnsatisfactory { get; set; }
     public int InvalidVotes { get; set; }
     public string Notes { get; set; } = string.Empty;
+
+    /// <summary>Tổng số phiếu đã ghi (các mức + không hợp lệ).</summary>
+    public int TotalBallots => VotesExcellent + VotesGood + VotesSatisfactory + VotesUnsatisfactory + InvalidVotes;
 }

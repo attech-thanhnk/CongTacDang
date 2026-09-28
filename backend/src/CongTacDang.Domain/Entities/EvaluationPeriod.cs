@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Domain.Entities;
 
@@ -30,11 +31,23 @@ public class EvaluationPeriod : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Ngày kết thúc kỳ đánh giá</summary>
     public DateTime EndDate { get; set; }
 
-    /// <summary>Trạng thái tiến trình quy trình 5 bước</summary>
+    /// <summary>Trạng thái kỳ: Draft → Open → Locked → Closed.</summary>
     public PeriodStatus Status { get; set; } = PeriodStatus.Draft;
 
-    /// <summary>Kỳ đánh giá có đang hoạt động hay không</summary>
-    public bool IsActive { get; set; } = false;
+    /// <summary>
+    /// Cấu hình kỳ dạng JSON (cột jsonb, có schema version) — đọc/ghi qua <see cref="PeriodSettings"/>.
+    /// Chuỗi rỗng (kỳ tạo trước task 12) được hiểu là mẫu "Đầy đủ theo HD03".
+    /// </summary>
+    public string Settings { get; set; } = PeriodSettings.FullPreset().ToJson();
+
+    /// <summary>Lý do của lần chuyển trạng thái kỳ gần nhất (bắt buộc khi Khóa dữ liệu → Đang mở).</summary>
+    public string? StatusReason { get; set; }
+
+    /// <summary>Thời điểm chuyển trạng thái kỳ gần nhất.</summary>
+    public DateTime? StatusChangedAt { get; set; }
+
+    /// <summary>Người chuyển trạng thái kỳ gần nhất.</summary>
+    public Guid? StatusChangedBy { get; set; }
 
     /// <summary>Thời điểm tạo kỳ đánh giá</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -45,7 +58,7 @@ public class EvaluationPeriod : IAuditableEntity, ISoftDeletable, IVersioned
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedBy { get; set; }
 
-    /// <summary>Danh sách hồ sơ đánh giá của các cán bộ trong kỳ</summary>
+    /// <summary>Danh sách hồ sơ đánh giá của các cán bộ trong kỳ (= danh sách người được đánh giá).</summary>
     public ICollection<EvaluationRecord> Records { get; set; } = new List<EvaluationRecord>();
 
     /// <summary>Danh sách hồ sơ đánh giá tập thể Mẫu 06, 07, 08 trong kỳ</summary>
@@ -53,4 +66,7 @@ public class EvaluationPeriod : IAuditableEntity, ISoftDeletable, IVersioned
 
     /// <summary>Danh sách hội nghị và biên bản Mẫu 12, 13 trong kỳ</summary>
     public ICollection<EvaluationMeeting> Meetings { get; set; } = new List<EvaluationMeeting>();
+
+    /// <summary>Đọc cấu hình kỳ.</summary>
+    public PeriodSettings GetSettings() => PeriodSettings.Parse(Settings);
 }

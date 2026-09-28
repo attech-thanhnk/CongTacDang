@@ -492,12 +492,16 @@ public class EvaluationRepository : IEvaluationRepository
         return await _db.EvaluationPeriods.FirstOrDefaultAsync(p => p.Id == id);
     }
 
-    /// <summary>Lấy kỳ đánh giá đang kích hoạt</summary>
+    /// <summary>Kỳ hiện hành = kỳ Đang mở/Khóa dữ liệu mới nhất (task 12 bỏ cờ IsActive).</summary>
     public async Task<EvaluationPeriod?> GetActivePeriodAsync()
     {
         return await _db.EvaluationPeriods
             .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.IsActive);
+            .Where(p => p.Status == PeriodStatus.Open || p.Status == PeriodStatus.Locked)
+            .OrderByDescending(p => p.Year)
+            .ThenByDescending(p => p.Quarter)
+            .ThenByDescending(p => p.CreatedAt)
+            .FirstOrDefaultAsync();
     }
 
     /// <summary>Thêm mới kỳ đánh giá</summary>
@@ -699,6 +703,7 @@ public class EvaluationMeetingRepository : IEvaluationMeetingRepository
             .AsNoTracking()
             .Include(x => x.Period)
             .Include(x => x.PartyCell)
+            .Include(x => x.Department)
             .Include(x => x.VoteSummaries)
                 .ThenInclude(x => x.Record)
                     .ThenInclude(x => x.Member)
@@ -711,7 +716,10 @@ public class EvaluationMeetingRepository : IEvaluationMeetingRepository
         var query = _db.EvaluationMeetings
             .AsNoTracking()
             .Include(x => x.PartyCell)
+            .Include(x => x.Department)
             .Include(x => x.VoteSummaries)
+                .ThenInclude(x => x.Record)
+                    .ThenInclude(x => x.Member)
             .Where(x => x.PeriodId == periodId);
 
         if (partyCellId.HasValue)

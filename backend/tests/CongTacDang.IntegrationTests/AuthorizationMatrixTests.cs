@@ -6,6 +6,7 @@ using ClosedXML.Excel;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.IntegrationTests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace CongTacDang.IntegrationTests;
@@ -57,8 +58,9 @@ public sealed class AuthorizationMatrixTests
         Assert.Equal(HttpStatusCode.OK, (await s.Appraiser.PostAsJsonAsync("/api/evaluations/periods", body)).StatusCode);
         foreach (var client in new[] { s.Office, s.Admin, s.OwnerA1, s.Plain })
             Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/evaluations/periods", body)).StatusCode);
+        // Task 12: chuyển trạng thái kỳ qua endpoint theo hành động (thay PUT periods/{id}/status).
         Assert.Equal(HttpStatusCode.Forbidden,
-            (await s.CellSecA.PutAsync($"/api/evaluations/periods/{s.PeriodId}/status?status=Appraisal", null)).StatusCode);
+            (await s.CellSecA.PostAsJsonAsync($"/api/evaluations/periods/{s.PeriodId}/lock", new { version = 0 })).StatusCode);
     }
 
     [SkippableFact]
@@ -116,13 +118,17 @@ public sealed class AuthorizationMatrixTests
 
     #region Hồ sơ đánh giá — ghi theo từng bước
 
+    // Task 12: bước ghi đi qua endpoint theo hành động (records/{id}/...) và máy trạng thái; kiểm tra quyền (guard) chạy trước
+    // kiểm tra trạng thái nên hồ sơ ngoài phạm vi luôn 403. Hồ sơ dùng chung giữa các test → mỗi test tự đặt trạng thái cần có.
+
     [SkippableFact]
     public async Task SelfSteps_OnlyOwnerWithEvaluationSelf()
     {
         var s = await GetScenarioAsync();
+        await SetStatusAsync(s.RecordB1, RecordStatus.AwaitingRegistration);
         var register = new
         {
-            periodId = s.PeriodId,
+            version = await VersionAsync(s, s.RecordB1),
             tasks = new[]
             {
                 new { taskName = "Nhiệm vụ 1", targetOutput = "Kết quả 1", weight = 30.0 },
@@ -131,70 +137,99 @@ public sealed class AuthorizationMatrixTests
             }
         };
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await s.Plain.PostAsJsonAsync("/api/evaluations/tasks/register", register)).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await s.Admin.PostAsJsonAsync("/api/evaluations/tasks/register", register)).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await s.OwnerB1.PostAsJsonAsync("/api/evaluations/tasks/register", register)).StatusCode);
+        var url = $"/api/evaluations/records/{s.RecordB1}/tasks/submit";
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.Plain.PostAsJsonAsync(url, register)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.Admin.PostAsJsonAsync(url, register)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await s.OwnerB1.PostAsJsonAsync(url, register)).StatusCode);
 
-        var selfScore = new { recordId = s.RecordA1, generalScores = new[] { 4.0, 4.0, 4.0, 4.0, 4.0, 4.0 }, selfProposedGrade = "HoanThanhTot" };
-        Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerB1.PostAsJsonAsync("/api/evaluations/self-score", selfScore)).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await s.OwnerA1.PostAsJsonAsync("/api/evaluations/self-score", selfScore)).StatusCode);
+        await SetStatusAsync(s.RecordA1, RecordStatus.AwaitingSelfScore, withTasks: true);
+        var selfScoreUrl = $"/api/evaluations/records/{s.RecordA1}/self-score/submit";
+        var selfScore = new { version = await VersionAsync(s, s.RecordA1), generalScores = new[] { 4.0, 4.0, 4.0, 4.0, 4.0, 4.0 }, selfProposedGrade = "HoanThanhTot" };
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerB1.PostAsJsonAsync(selfScoreUrl, selfScore)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await s.OwnerA1.PostAsJsonAsync(selfScoreUrl, selfScore)).StatusCode);
     }
 
     [SkippableFact]
     public async Task CellConfirm_PerRecordScope_AndConflictOfInterest()
     {
         var s = await GetScenarioAsync();
-        object Review(Guid record) => new { recordId = record, comment = "Nhận xét", proposedGrade = "HoanThanhTot", totalVoters = 5, votesGood = 5 };
+        foreach (var record in new[] { s.RecordA1, s.RecordA2, s.RecordB1, s.RecordS })
+            await SetStatusAsync(record, RecordStatus.AwaitingCellConfirm);
+        async Task<object> Confirm(Guid record) => new { version = await VersionAsync(s, record), comment = "Xác nhận" };
+        string Url(Guid record) => $"/api/evaluations/records/{record}/cell/confirm";
 
-        Assert.Equal(HttpStatusCode.OK, (await s.CellSecA.PostAsJsonAsync("/api/evaluations/branch-review", Review(s.RecordA1))).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await s.CellSecA.PostAsJsonAsync("/api/evaluations/branch-review", Review(s.RecordB1))).StatusCode);
-        var own = await s.CellSecA.PostAsJsonAsync("/api/evaluations/branch-review", Review(s.RecordS));
+        Assert.Equal(HttpStatusCode.OK, (await s.CellSecA.PostAsJsonAsync(Url(s.RecordA1), await Confirm(s.RecordA1))).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.CellSecA.PostAsJsonAsync(Url(s.RecordB1), await Confirm(s.RecordB1))).StatusCode);
+        var own = await s.CellSecA.PostAsJsonAsync(Url(s.RecordS), await Confirm(s.RecordS));
         Assert.Equal(HttpStatusCode.Forbidden, own.StatusCode);
         Assert.Contains("xung đột lợi ích", await Message(own), StringComparison.Ordinal);
-        Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerA1.PostAsJsonAsync("/api/evaluations/branch-review", Review(s.RecordA1))).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerA1.PostAsJsonAsync(Url(s.RecordA1), await Confirm(s.RecordA1))).StatusCode);
 
-        object Meeting(params Guid[] records) => new
-        {
-            periodId = s.PeriodId,
-            partyCellId = s.CellA,
-            totalVoters = 5,
-            memberVotes = records.Select(r => new { recordId = r, proposedGrade = "HoanThanhTot", votesGood = 5 }).ToArray()
-        };
-        Assert.Equal(HttpStatusCode.OK, (await s.CellSecA.PostAsJsonAsync("/api/evaluations/branch-meeting-review", Meeting(s.RecordA2))).StatusCode);
-        // Biên bản chứa hồ sơ của chính người ghi → 403, không ghi phần nào (transaction).
-        Assert.Equal(HttpStatusCode.Forbidden,
-            (await s.CellSecA.PostAsJsonAsync("/api/evaluations/branch-meeting-review", Meeting(s.RecordA1, s.RecordS))).StatusCode);
+        // Trả lại: bắt buộc lý do (400), có lý do → về bước tự chấm.
+        var returnUrl = $"/api/evaluations/records/{s.RecordA2}/cell/return";
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await s.CellSecA.PostAsJsonAsync(returnUrl, new { version = await VersionAsync(s, s.RecordA2), reason = " " })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,
+            (await s.CellSecA.PostAsJsonAsync(returnUrl, new { version = await VersionAsync(s, s.RecordA2), reason = "Thiếu minh chứng" })).StatusCode);
     }
 
     [SkippableFact]
     public async Task T48_Appraisal_ChecksEachRecord()
     {
         var s = await GetScenarioAsync();
-        object Appraise(Guid record) => new { recordId = record, appraisalScore = 90.0, comment = "Thẩm định", proposedGrade = "HoanThanhTot" };
+        foreach (var record in new[] { s.RecordA1, s.RecordB1, s.RecordT })
+            await SetStatusAsync(record, RecordStatus.AwaitingAppraisal);
+        async Task<object> Appraise(Guid record) => new { version = await VersionAsync(s, record), appraisalScore = 90.0, comment = "Thẩm định", proposedGrade = "HoanThanhTot" };
+        string Url(Guid record) => $"/api/evaluations/records/{record}/appraisal";
 
-        Assert.Equal(HttpStatusCode.OK, (await s.Appraiser.PostAsJsonAsync("/api/evaluations/appraisal", Appraise(s.RecordB1))).StatusCode);
-        // Có evaluation.appraise nhưng là hồ sơ của chính mình → 403 (trước T-48 chỉ dựa vào policy controller nên lọt).
-        Assert.Equal(HttpStatusCode.Forbidden, (await s.Appraiser.PostAsJsonAsync("/api/evaluations/appraisal", Appraise(s.RecordT))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await s.Appraiser.PostAsJsonAsync(Url(s.RecordB1), await Appraise(s.RecordB1))).StatusCode);
+        // Có evaluation.appraise nhưng là hồ sơ của chính mình → 403 (T-48).
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.Appraiser.PostAsJsonAsync(Url(s.RecordT), await Appraise(s.RecordT))).StatusCode);
         // Thẩm định theo phạm vi Phòng A không thẩm định được hồ sơ Phòng B.
-        Assert.Equal(HttpStatusCode.OK, (await s.DeptAppraiserA.PostAsJsonAsync("/api/evaluations/appraisal", Appraise(s.RecordA1))).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await s.DeptAppraiserA.PostAsJsonAsync("/api/evaluations/appraisal", Appraise(s.RecordB1))).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await s.CellSecA.PostAsJsonAsync("/api/evaluations/appraisal", Appraise(s.RecordA1))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await s.DeptAppraiserA.PostAsJsonAsync(Url(s.RecordA1), await Appraise(s.RecordA1))).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.DeptAppraiserA.PostAsJsonAsync(Url(s.RecordB1), await Appraise(s.RecordB1))).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.CellSecA.PostAsJsonAsync(Url(s.RecordA1), await Appraise(s.RecordA1))).StatusCode);
     }
 
     [SkippableFact]
     public async Task ApproveFinal_FollowsApprovalAuthority()
     {
         var s = await GetScenarioAsync();
-        object Decide(Guid record) => new { recordId = record, finalScore = 90.0, finalGrade = "HoanThanhTot" };
+        foreach (var record in new[] { s.RecordA1, s.RecordA2, s.RecordB1 })
+            await SetStatusAsync(record, RecordStatus.AwaitingDecision);
+        async Task<object> Decide(Guid record) => new { version = await VersionAsync(s, record), finalScore = 90.0, finalGrade = "HoanThanhTot" };
+        string Url(Guid record) => $"/api/evaluations/records/{record}/decision";
 
-        Assert.Equal(HttpStatusCode.OK, (await s.Office.PostAsJsonAsync("/api/evaluations/approve-final", Decide(s.RecordA1))).StatusCode);   // CoSo
-        Assert.Equal(HttpStatusCode.OK, (await s.Office.PostAsJsonAsync("/api/evaluations/approve-final", Decide(s.RecordA2))).StatusCode);   // CapTren
-        Assert.Equal(HttpStatusCode.OK, (await s.LocalDecider.PostAsJsonAsync("/api/evaluations/approve-final", Decide(s.RecordB1))).StatusCode);
-        var external = await s.LocalDecider.PostAsJsonAsync("/api/evaluations/approve-final", Decide(s.RecordA2));
+        Assert.Equal(HttpStatusCode.OK, (await s.Office.PostAsJsonAsync(Url(s.RecordA1), await Decide(s.RecordA1))).StatusCode);   // CoSo
+        Assert.Equal(HttpStatusCode.OK, (await s.Office.PostAsJsonAsync(Url(s.RecordA2), await Decide(s.RecordA2))).StatusCode);   // CapTren
+        Assert.Equal(HttpStatusCode.OK, (await s.LocalDecider.PostAsJsonAsync(Url(s.RecordB1), await Decide(s.RecordB1))).StatusCode);
+        await SetStatusAsync(s.RecordA2, RecordStatus.AwaitingDecision);
+        var external = await s.LocalDecider.PostAsJsonAsync(Url(s.RecordA2), await Decide(s.RecordA2));
         Assert.Equal(HttpStatusCode.Forbidden, external.StatusCode);
         Assert.Contains("cấp trên", await Message(external), StringComparison.Ordinal);
-        Assert.Equal(HttpStatusCode.Forbidden, (await s.Appraiser.PostAsJsonAsync("/api/evaluations/approve-final", Decide(s.RecordA1))).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.Appraiser.PostAsJsonAsync(Url(s.RecordA1), await Decide(s.RecordA1))).StatusCode);
     }
+
+    /// <summary>Đặt trạng thái hồ sơ trực tiếp trong CSDL (dựng dữ liệu test); <paramref name="withTasks"/> tạo danh mục 3 sản phẩm.</summary>
+    private async Task SetStatusAsync(Guid recordId, RecordStatus status, bool withTasks = false)
+    {
+        await _factory.WithDbAsync(async db =>
+        {
+            var record = await db.EvaluationRecords.Include(r => r.Tasks).FirstAsync(r => r.Id == recordId);
+            record.Status = status;
+            if (withTasks && !record.Tasks.Any(t => !t.IsDeleted))
+            {
+                var order = 1;
+                foreach (var weight in new[] { 30.0, 20.0, 20.0 })
+                    db.EvaluationTasks.Add(new EvaluationTask { RecordId = recordId, TaskOrder = order, TaskName = $"Nhiệm vụ {order++}", Weight = weight, SelfScore = weight });
+            }
+            await db.SaveChangesAsync();
+        });
+    }
+
+    /// <summary>Phiên bản hiện tại của hồ sơ (đọc bằng tài khoản thẩm định phạm vi Toàn công ty).</summary>
+    private static async Task<uint> VersionAsync(Scenario s, Guid recordId) =>
+        (await Data(s.Appraiser, $"/api/evaluations/records/{recordId}")).GetProperty("version").GetUInt32();
 
     #endregion
 
@@ -399,7 +434,7 @@ public sealed class AuthorizationMatrixTests
                 {
                     Year = 2030, Quarter = EvaluationQuarter.Quy1, Name = $"Kỳ ma trận {suffix}",
                     StartDate = DateTime.UtcNow.AddDays(-10), EndDate = DateTime.UtcNow.AddDays(80),
-                    Status = PeriodStatus.TaskRegistration, IsActive = false
+                    Status = PeriodStatus.Open
                 };
                 db.AddRange(deptA, deptB, cellA, cellB, period);
                 await db.SaveChangesAsync();
@@ -447,7 +482,7 @@ public sealed class AuthorizationMatrixTests
                 EvaluationRecord Record(TestUser owner, Guid dept, Guid cell, ApprovalAuthority authority) => new()
                 {
                     PeriodId = s.PeriodId, MemberId = owner.Id, DepartmentId = dept, PartyCellId = cell,
-                    ApprovalAuthority = authority, Status = RecordStatus.Draft, UpdatedAt = DateTime.UtcNow
+                    ApprovalAuthority = authority, Status = RecordStatus.AwaitingRegistration, UpdatedAt = DateTime.UtcNow
                 };
                 var a1 = Record(ownerA1, s.DeptA, s.CellA, ApprovalAuthority.CoSo);
                 var a2 = Record(ownerA2, s.DeptA, s.CellA, ApprovalAuthority.CapTren);
