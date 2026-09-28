@@ -79,19 +79,133 @@ public class UserRepository : GenericRepository<PartyMemberProfile>, IUserReposi
 /// <summary>
 /// Repository quản lý tệp đính kèm và minh chứng
 /// </summary>
-public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachmentRepository, IAttachmentAccessReader
+public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachmentRepository, IAttachmentAccessReader, IAttachmentVersionRepository
 {
     public AttachmentRepository(CongTacDangDbContext db) : base(db)
     {
     }
 
-    /// <summary>Lấy toàn bộ danh sách tệp đính kèm theo thời gian mới nhất</summary>
+    /// <summary>Lấy toàn bộ danh sách tệp đính kèm (phiên bản hiện hành) theo thời gian mới nhất</summary>
     public async Task<List<TaskAttachment>> GetAllAttachmentsAsync()
     {
         return await _db.TaskAttachments
             .AsNoTracking()
+            .Where(a => !a.IsSuperseded)
             .OrderByDescending(a => a.UploadedAt)
             .ToListAsync();
+    }
+
+    /// <summary>Lấy các tệp hiện hành của một đối tượng (kể cả dữ liệu cũ chưa có OwnerType).</summary>
+    public async Task<List<TaskAttachment>> GetCurrentByOwnerAsync(string ownerType, Guid ownerId)
+    {
+        var query = _db.TaskAttachments.AsNoTracking().Where(a => !a.IsSuperseded);
+
+        List<TaskAttachment> owned;
+        if (ownerType == AttachmentOwnerTypes.EvaluationRecord)
+        {
+            owned = await query
+                .Where(a => (a.OwnerType == ownerType && a.OwnerId == ownerId)
+                    || (a.OwnerType == null && a.RecordId == ownerId))
+                .ToListAsync();
+        }
+        else if (ownerType == AttachmentOwnerTypes.EvaluationTask)
+        {
+            owned = await query
+                .Where(a => (a.OwnerType == ownerType && a.OwnerId == ownerId)
+                    || (a.OwnerType == null && a.RecordId == null && a.RelatedId == ownerId))
+                .ToListAsync();
+
+            // Dữ liệu cũ: tệp minh chứng gắn qua EvaluationTask.AttachmentId (có thể trỏ tới một phiên bản cũ).
+            var linkedId = await _db.EvaluationTasks
+                .AsNoTracking()
+                .Where(t => t.Id == ownerId && t.AttachmentId.HasValue)
+                .Select(t => t.AttachmentId)
+                .FirstOrDefaultAsync();
+            if (linkedId.HasValue)
+            {
+                var current = await GetCurrentVersionAsync(linkedId.Value);
+                if (current != null && owned.All(a => a.GroupId != current.GroupId))
+                    owned.Add(current);
+            }
+        }
+        else
+        {
+            owned = await query
+                .Where(a => a.OwnerType == ownerType && a.OwnerId == ownerId)
+                .ToListAsync();
+        }
+
+        return owned.OrderByDescending(a => a.UploadedAt).ToList();
+    }
+
+    /// <summary>Lấy phiên bản hiện hành của nhóm chứa phiên bản cho trước.</summary>
+    public async Task<TaskAttachment?> GetCurrentVersionAsync(Guid anyVersionId)
+    {
+        var version = await _db.TaskAttachments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == anyVersionId);
+        if (version == null)
+            return null;
+        if (!version.IsSuperseded)
+            return version;
+
+        var groupId = version.GroupId;
+        return await _db.TaskAttachments
+            .AsNoTracking()
+            .Where(a => (a.Id == groupId || a.FileGroupId == groupId) && !a.IsSuperseded)
+            .OrderByDescending(a => a.VersionNumber)
+            .FirstOrDefaultAsync();
+    }
+
+    /// <summary>Lấy mọi phiên bản chưa xóa của một nhóm.</summary>
+    public async Task<List<TaskAttachment>> GetVersionsAsync(Guid groupId)
+    {
+        return await _db.TaskAttachments
+            .AsNoTracking()
+            .Where(a => a.Id == groupId || a.FileGroupId == groupId)
+            .OrderBy(a => a.VersionNumber)
+            .ThenBy(a => a.UploadedAt)
+            .ToListAsync();
+    }
+
+    /// <summary>Lưu phiên bản mới và đánh dấu phiên bản trước đã bị thay trong một lần SaveChanges.</summary>
+    public async Task AddVersionAsync(TaskAttachment previous, TaskAttachment next)
+    {
+        _db.TaskAttachments.Update(previous);
+        await _db.TaskAttachments.AddAsync(next);
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>Xóa mềm mọi phiên bản của một nhóm (DbContext chuyển Remove thành xóa mềm).</summary>
+    public async Task SoftDeleteGroupAsync(Guid groupId)
+    {
+        var versions = await _db.TaskAttachments
+            .Where(a => a.Id == groupId || a.FileGroupId == groupId)
+            .ToListAsync();
+        _db.TaskAttachments.RemoveRange(versions);
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>Lấy hồ sơ đánh giá của đối tượng sở hữu tệp.</summary>
+    public async Task<EvaluationRecord?> GetOwnerRecordAsync(string ownerType, Guid ownerId)
+    {
+        Guid? recordId = ownerType switch
+        {
+            AttachmentOwnerTypes.EvaluationRecord => ownerId,
+            AttachmentOwnerTypes.EvaluationTask => await _db.EvaluationTasks
+                .AsNoTracking()
+                .Where(t => t.Id == ownerId)
+                .Select(t => (Guid?)t.RecordId)
+                .FirstOrDefaultAsync(),
+            _ => null
+        };
+        if (!recordId.HasValue)
+            return null;
+
+        return await _db.EvaluationRecords
+            .AsNoTracking()
+            .Include(r => r.Member)
+            .FirstOrDefaultAsync(r => r.Id == recordId.Value);
     }
 
     /// <summary>Lọc các người dùng đang có vai trò cho trước.</summary>
@@ -116,13 +230,31 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
         if (attachments.Count == 0)
             return result;
 
-        var attachmentIds = attachments.Select(a => a.Id).Distinct().ToList();
-        var taskLinks = await _db.EvaluationTasks
+        // EvaluationTask.AttachmentId có thể trỏ tới bất kỳ phiên bản nào của nhóm (thường là phiên bản đầu),
+        // nên liên kết qua nhiệm vụ được tính theo nhóm phiên bản.
+        var groupIds = attachments.Select(a => a.GroupId).Distinct().ToList();
+        var versionToGroup = await _db.TaskAttachments
             .AsNoTracking()
-            .Where(t => t.AttachmentId.HasValue && attachmentIds.Contains(t.AttachmentId.Value))
-            .Select(t => new { AttachmentId = t.AttachmentId!.Value, t.RecordId })
+            .Where(a => groupIds.Contains(a.Id) || (a.FileGroupId.HasValue && groupIds.Contains(a.FileGroupId.Value)))
+            .Select(a => new { a.Id, GroupId = a.FileGroupId ?? a.Id })
+            .ToListAsync();
+        var groupOfVersion = versionToGroup.ToDictionary(v => v.Id, v => v.GroupId);
+        foreach (var a in attachments)
+            groupOfVersion[a.Id] = a.GroupId;
+        var versionIds = groupOfVersion.Keys.ToList();
+
+        var taskVersionLinks = await _db.EvaluationTasks
+            .AsNoTracking()
+            .Where(t => t.AttachmentId.HasValue && versionIds.Contains(t.AttachmentId.Value))
+            .Select(t => new { VersionId = t.AttachmentId!.Value, t.RecordId })
             .Distinct()
             .ToListAsync();
+        var taskLinks = attachments
+            .SelectMany(a => taskVersionLinks
+                .Where(l => groupOfVersion[l.VersionId] == a.GroupId)
+                .Select(l => new { AttachmentId = a.Id, l.RecordId }))
+            .Distinct()
+            .ToList();
 
         var explicitLinks = attachments
             .Where(a => a.RecordId.HasValue)

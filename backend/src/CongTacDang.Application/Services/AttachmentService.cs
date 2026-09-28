@@ -30,23 +30,48 @@ public class AttachmentDownloadResult
 }
 
 /// <summary>
-/// Giao diện xử lý nghiệp vụ tệp đính kèm văn bản và minh chứng
+/// Giao diện xử lý nghiệp vụ tệp đính kèm văn bản và minh chứng.
+/// Một tệp gắn với một đối tượng (<see cref="AttachmentOwnerTypes"/>), có nhiều phiên bản; mọi thao tác kiểm tra quyền qua <see cref="IAccessPolicy"/>.
 /// </summary>
 public interface IAttachmentService
 {
-    /// <summary>Lấy danh sách tệp đính kèm mà người yêu cầu được xem</summary>
+    /// <summary>Lấy danh sách tệp (phiên bản hiện hành) mà người yêu cầu được xem</summary>
     Task<List<AttachmentDto>> GetAttachmentsAsync(Guid requesterId);
 
-    /// <summary>Lấy chi tiết thông tin tệp đính kèm theo Id (kiểm tra quyền xem)</summary>
+    /// <summary>Lấy danh sách tệp (phiên bản hiện hành) của một đối tượng mà người yêu cầu được xem</summary>
+    Task<List<AttachmentDto>> GetAttachmentsByOwnerAsync(string ownerType, Guid ownerId, Guid requesterId);
+
+    /// <summary>Lấy chi tiết thông tin một phiên bản tệp theo Id (kiểm tra quyền xem)</summary>
     Task<AttachmentDto?> GetAttachmentByIdAsync(Guid id, Guid requesterId);
 
-    /// <summary>Tải luồng tệp vật lý phục vụ download trực tiếp từ backend (kiểm tra quyền xem)</summary>
+    /// <summary>Lấy lịch sử phiên bản của tệp chứa phiên bản <paramref name="id"/> (kiểm tra quyền xem)</summary>
+    Task<List<AttachmentDto>> GetVersionsAsync(Guid id, Guid requesterId);
+
+    /// <summary>Tải phiên bản hiện hành của tệp chứa phiên bản <paramref name="id"/> (kiểm tra quyền xem)</summary>
     Task<AttachmentDownloadResult> DownloadAttachmentAsync(Guid id, Guid requesterId);
 
-    /// <summary>Tải lên tệp mới, tính mã băm SHA-256 và lưu metadata kèm người tải lên</summary>
-    Task<AttachmentDto> UploadAttachmentAsync(Stream stream, string originalFileName, long size, string formCode, string description, string uploadedBy, Guid? uploadedById = null);
+    /// <summary>Tải một phiên bản cụ thể của tệp chứa phiên bản <paramref name="id"/> (kiểm tra quyền xem)</summary>
+    Task<AttachmentDownloadResult> DownloadVersionAsync(Guid id, int versionNumber, Guid requesterId);
 
-    /// <summary>Xóa tệp khỏi storage và cơ sở dữ liệu (kiểm tra quyền xóa)</summary>
+    /// <summary>
+    /// Tải lên tệp mới, tính mã băm SHA-256 và lưu metadata kèm người tải lên.
+    /// Truyền <paramref name="ownerType"/>/<paramref name="ownerId"/> để gắn tệp vào một đối tượng (cần quyền cập nhật đối tượng).
+    /// </summary>
+    Task<AttachmentDto> UploadAttachmentAsync(
+        Stream stream,
+        string originalFileName,
+        long size,
+        string formCode,
+        string description,
+        string uploadedBy,
+        Guid? uploadedById = null,
+        string? ownerType = null,
+        Guid? ownerId = null);
+
+    /// <summary>Thay tệp bằng phiên bản mới; phiên bản cũ được giữ lại, đánh dấu không hiện hành (kiểm tra quyền cập nhật)</summary>
+    Task<AttachmentDto> ReplaceAttachmentAsync(Guid id, Stream stream, string originalFileName, long size, string uploadedBy, Guid requesterId);
+
+    /// <summary>Xóa mềm tệp (mọi phiên bản), giữ file vật lý để khôi phục (kiểm tra quyền xóa)</summary>
     Task DeleteAttachmentAsync(Guid id, Guid requesterId);
 }
 
@@ -57,8 +82,10 @@ public class AttachmentService : IAttachmentService
     private readonly IAttachmentAccessReader? _accessReader;
     private readonly IUserRepository? _userRepo;
     private readonly IAccessPolicy? _accessPolicy;
+    private readonly IAttachmentVersionRepository? _versionRepo;
     private static readonly string[] AllowedExtensions = { ".pdf", ".docx", ".xlsx", ".jpg", ".jpeg", ".png" };
     private const long MaxFileSize = 25 * 1024 * 1024; // 25 MB
+    private const string DefaultUploaderName = "Cán bộ quản trị";
 
     /// <summary>
     /// Khởi tạo chỉ với repository và storage — chỉ dùng cho kiểm tra hợp lệ khi tải lên (unit test).
@@ -76,75 +103,242 @@ public class AttachmentService : IAttachmentService
         IFileStorageService fileStorage,
         IAttachmentAccessReader accessReader,
         IUserRepository userRepo,
-        IAccessPolicy accessPolicy)
+        IAccessPolicy accessPolicy,
+        IAttachmentVersionRepository versionRepo)
         : this(attachmentRepo, fileStorage)
     {
         _accessReader = accessReader;
         _userRepo = userRepo;
         _accessPolicy = accessPolicy;
+        _versionRepo = versionRepo;
     }
 
     /// <summary>
-    /// Lấy danh sách tệp đính kèm mà người yêu cầu được xem
+    /// Lấy danh sách tệp đính kèm (phiên bản hiện hành) mà người yêu cầu được xem
     /// </summary>
     public async Task<List<AttachmentDto>> GetAttachmentsAsync(Guid requesterId)
     {
         var all = await _attachmentRepo.GetAllAttachmentsAsync();
         var list = await FilterAccessibleAsync(requesterId, all, AccessOperation.Read);
-        return list.Select(a => new AttachmentDto
-        {
-            Id = a.Id,
-            FileName = a.FileName,
-            ContentType = a.ContentType,
-            FileSize = a.FileSize,
-            FormCode = a.FormCode,
-            Category = a.FormCode,
-            Description = a.Description,
-            Checksum = a.Checksum,
-            UploadedAt = a.UploadedAt,
-            UploadedBy = string.IsNullOrWhiteSpace(a.UploadedBy) ? "Cán bộ quản trị" : a.UploadedBy
-        }).ToList();
+        return list.Select(a => ToDto(a)).ToList();
+    }
+
+    /// <summary>Lấy danh sách tệp hiện hành của một đối tượng mà người yêu cầu được xem</summary>
+    public async Task<List<AttachmentDto>> GetAttachmentsByOwnerAsync(string ownerType, Guid ownerId, Guid requesterId)
+    {
+        var normalizedType = AttachmentOwnerTypes.Normalize(ownerType)
+            ?? throw new ValidationException("Loại đối tượng sở hữu tệp không hợp lệ.");
+
+        var files = await VersionRepo.GetCurrentByOwnerAsync(normalizedType, ownerId);
+        var list = await FilterAccessibleAsync(requesterId, files, AccessOperation.Read);
+        return list.Select(a => ToDto(a)).ToList();
     }
 
     /// <summary>
-    /// Lấy chi tiết thông tin tệp đính kèm kèm link tải (nếu có)
+    /// Lấy chi tiết thông tin một phiên bản tệp kèm link tải phiên bản hiện hành
     /// </summary>
     public async Task<AttachmentDto?> GetAttachmentByIdAsync(Guid id, Guid requesterId)
     {
         var a = await _attachmentRepo.GetByIdAsync(id);
         if (a == null) return null;
 
-        await EnsureAccessAsync(requesterId, a, AccessOperation.Read, "Bạn không có quyền xem tệp đính kèm này.");
+        await EnsureAccessAsync(requesterId, await GetCurrentOrSelfAsync(a), AccessOperation.Read, "Bạn không có quyền xem tệp đính kèm này.");
 
-        var downloadUrl = await _fileStorage.GetDownloadUrlAsync(a.Id);
+        return ToDto(a, await _fileStorage.GetDownloadUrlAsync(a.Id));
+    }
 
-        return new AttachmentDto
-        {
-            Id = a.Id,
-            FileName = a.FileName,
-            ContentType = a.ContentType,
-            FileSize = a.FileSize,
-            FormCode = a.FormCode,
-            Category = a.FormCode,
-            Description = a.Description,
-            Checksum = a.Checksum,
-            DownloadUrl = downloadUrl,
-            UploadedAt = a.UploadedAt,
-            UploadedBy = string.IsNullOrWhiteSpace(a.UploadedBy) ? "Cán bộ quản trị" : a.UploadedBy
-        };
+    /// <summary>Lấy lịch sử phiên bản của tệp</summary>
+    public async Task<List<AttachmentDto>> GetVersionsAsync(Guid id, Guid requesterId)
+    {
+        var current = await GetCurrentRequiredAsync(id);
+        await EnsureAccessAsync(requesterId, current, AccessOperation.Read, "Bạn không có quyền xem tệp đính kèm này.");
+
+        var versions = await VersionRepo.GetVersionsAsync(current.GroupId);
+        return versions
+            .OrderByDescending(v => v.VersionNumber)
+            .Select(v => ToDto(v))
+            .ToList();
     }
 
     /// <summary>
-    /// Đọc luồng dữ liệu tệp phục vụ tải về trực tiếp
+    /// Đọc luồng dữ liệu phiên bản hiện hành của tệp phục vụ tải về trực tiếp
     /// </summary>
     public async Task<AttachmentDownloadResult> DownloadAttachmentAsync(Guid id, Guid requesterId)
     {
-        var attachment = await _attachmentRepo.GetByIdAsync(id);
-        if (attachment == null)
-            throw new KeyNotFoundException("Không tìm thấy tệp đính kèm trong hệ thống.");
+        var current = await GetCurrentRequiredAsync(id);
+        await EnsureAccessAsync(requesterId, current, AccessOperation.Read, "Bạn không có quyền xem tệp đính kèm này.");
+        return await OpenAsync(current);
+    }
 
-        await EnsureAccessAsync(requesterId, attachment, AccessOperation.Read, "Bạn không có quyền xem tệp đính kèm này.");
+    /// <summary>Đọc luồng dữ liệu của một phiên bản cụ thể</summary>
+    public async Task<AttachmentDownloadResult> DownloadVersionAsync(Guid id, int versionNumber, Guid requesterId)
+    {
+        var current = await GetCurrentRequiredAsync(id);
+        // Quyền trên mọi phiên bản bằng quyền trên phiên bản hiện hành của tệp.
+        await EnsureAccessAsync(requesterId, current, AccessOperation.Read, "Bạn không có quyền xem tệp đính kèm này.");
 
+        var versions = await VersionRepo.GetVersionsAsync(current.GroupId);
+        var version = versions.FirstOrDefault(v => v.VersionNumber == versionNumber)
+            ?? throw new KeyNotFoundException($"Không tìm thấy phiên bản {versionNumber} của tệp đính kèm.");
+        return await OpenAsync(version);
+    }
+
+    /// <summary>
+    /// Tải tệp mới lên kho lưu trữ, kiểm tra định dạng/dung lượng, tính SHA-256 và lưu metadata
+    /// </summary>
+    public async Task<AttachmentDto> UploadAttachmentAsync(
+        Stream stream,
+        string originalFileName,
+        long size,
+        string formCode,
+        string description,
+        string uploadedBy,
+        Guid? uploadedById = null,
+        string? ownerType = null,
+        Guid? ownerId = null)
+    {
+        var normalizedFormCode = NormalizeFormCode(formCode);
+        var owner = await ResolveOwnerAsync(ownerType, ownerId, uploadedById);
+
+        var stored = await ValidateAndStoreAsync(stream, originalFileName, size, normalizedFormCode);
+
+        var attachment = new TaskAttachment
+        {
+            Id = stored.FileId,
+            FileName = originalFileName,
+            OriginalFileName = originalFileName,
+            ObjectKey = stored.ObjectKey,
+            Checksum = stored.Checksum,
+            ContentType = stored.ContentType,
+            FileSize = stored.Size,
+            FormCode = normalizedFormCode.ToUpperInvariant(),
+            Description = description ?? string.Empty,
+            UploadedBy = string.IsNullOrWhiteSpace(uploadedBy) ? DefaultUploaderName : uploadedBy,
+            UploadedById = uploadedById,
+            UploadedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            OwnerType = owner.Type,
+            OwnerId = owner.Id,
+            // Giữ các cột cũ để các truy vấn/kiểm tra quyền hiện có vẫn nhận ra liên kết hồ sơ.
+            RecordId = owner.RecordId,
+            RelatedId = owner.Type == AttachmentOwnerTypes.EvaluationTask ? owner.Id : null,
+            FileGroupId = stored.FileId,
+            VersionNumber = 1
+        };
+
+        // Rollback tệp trên storage nếu lưu database thất bại
+        try
+        {
+            await _attachmentRepo.AddAsync(attachment);
+        }
+        catch (Exception)
+        {
+            await _fileStorage.DeleteFileAsync(stored.ObjectKey);
+            throw;
+        }
+
+        return ToDto(attachment);
+    }
+
+    /// <summary>Thay tệp bằng phiên bản mới, giữ phiên bản cũ</summary>
+    public async Task<AttachmentDto> ReplaceAttachmentAsync(Guid id, Stream stream, string originalFileName, long size, string uploadedBy, Guid requesterId)
+    {
+        var current = await GetCurrentRequiredAsync(id);
+        await EnsureAccessAsync(requesterId, current, AccessOperation.Update, "Bạn không có quyền thay tệp đính kèm này.");
+
+        var versions = await VersionRepo.GetVersionsAsync(current.GroupId);
+        var nextNumber = versions.Count == 0 ? current.VersionNumber + 1 : versions.Max(v => v.VersionNumber) + 1;
+
+        var stored = await ValidateAndStoreAsync(stream, originalFileName, size, current.FormCode);
+        var now = DateTime.UtcNow;
+
+        var next = new TaskAttachment
+        {
+            Id = stored.FileId,
+            FileName = originalFileName,
+            OriginalFileName = originalFileName,
+            ObjectKey = stored.ObjectKey,
+            Checksum = stored.Checksum,
+            ContentType = stored.ContentType,
+            FileSize = stored.Size,
+            FormCode = current.FormCode,
+            Description = current.Description,
+            UploadedBy = string.IsNullOrWhiteSpace(uploadedBy) ? DefaultUploaderName : uploadedBy,
+            UploadedById = requesterId,
+            UploadedAt = now,
+            CreatedAt = now,
+            IsActive = true,
+            OwnerType = current.OwnerType,
+            OwnerId = current.OwnerId,
+            RecordId = current.RecordId,
+            RelatedId = current.RelatedId,
+            FileGroupId = current.GroupId,
+            VersionNumber = nextNumber
+        };
+
+        current.FileGroupId = current.GroupId;
+        current.IsSuperseded = true;
+        current.SupersededAt = now;
+        current.SupersededById = requesterId;
+
+        try
+        {
+            await VersionRepo.AddVersionAsync(current, next);
+        }
+        catch (Exception)
+        {
+            await _fileStorage.DeleteFileAsync(stored.ObjectKey);
+            throw;
+        }
+
+        return ToDto(next);
+    }
+
+    /// <summary>
+    /// Xóa mềm tệp (mọi phiên bản). Giữ file vật lý để có thể khôi phục.
+    /// </summary>
+    public async Task DeleteAttachmentAsync(Guid id, Guid requesterId)
+    {
+        var attachment = await _attachmentRepo.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException("Không tìm thấy tệp đính kèm cần xóa.");
+        var current = await GetCurrentOrSelfAsync(attachment);
+
+        await EnsureAccessAsync(requesterId, current, AccessOperation.Delete, "Bạn không có quyền xóa tệp đính kèm này.");
+
+        if (_versionRepo != null)
+            await _versionRepo.SoftDeleteGroupAsync(current.GroupId);
+        else
+            await _attachmentRepo.DeleteAsync(attachment);
+    }
+
+    #region Hỗ trợ
+
+    private IAttachmentVersionRepository VersionRepo => _versionRepo
+        ?? throw new InvalidOperationException("AttachmentService chưa được cấu hình kho phiên bản tệp.");
+
+    /// <summary>Phiên bản hiện hành của nhóm chứa <paramref name="id"/>; báo 404 nếu không có.</summary>
+    private async Task<TaskAttachment> GetCurrentRequiredAsync(Guid id)
+    {
+        if (_versionRepo == null)
+        {
+            return await _attachmentRepo.GetByIdAsync(id)
+                ?? throw new KeyNotFoundException("Không tìm thấy tệp đính kèm trong hệ thống.");
+        }
+
+        return await _versionRepo.GetCurrentVersionAsync(id)
+            ?? throw new KeyNotFoundException("Không tìm thấy tệp đính kèm trong hệ thống.");
+    }
+
+    private async Task<TaskAttachment> GetCurrentOrSelfAsync(TaskAttachment attachment)
+    {
+        if (attachment.IsCurrent || _versionRepo == null)
+            return attachment;
+        return await _versionRepo.GetCurrentVersionAsync(attachment.Id) ?? attachment;
+    }
+
+    private async Task<AttachmentDownloadResult> OpenAsync(TaskAttachment attachment)
+    {
         var stream = await _fileStorage.GetFileStreamAsync(attachment.ObjectKey);
         if (stream == null)
             throw new FileNotFoundException("Tệp tin vật lý không tồn tại trên máy chủ lưu trữ.");
@@ -157,17 +351,59 @@ public class AttachmentService : IAttachmentService
         };
     }
 
-    /// <summary>
-    /// Tải tệp mới lên MinIO, kiểm tra định dạng/dung lượng, tính SHA-256 và lưu metadata
-    /// </summary>
-    public async Task<AttachmentDto> UploadAttachmentAsync(
-        Stream stream,
-        string originalFileName,
-        long size,
-        string formCode,
-        string description,
-        string uploadedBy,
-        Guid? uploadedById = null)
+    private sealed record OwnerInfo(string Type, Guid? Id, Guid? RecordId);
+
+    /// <summary>Kiểm tra đối tượng sở hữu khi tải lên: người tải lên phải có quyền cập nhật hồ sơ liên quan.</summary>
+    private async Task<OwnerInfo> ResolveOwnerAsync(string? ownerType, Guid? ownerId, Guid? uploadedById)
+    {
+        if (string.IsNullOrWhiteSpace(ownerType))
+        {
+            if (ownerId.HasValue)
+                throw new ArgumentException("Thiếu loại đối tượng sở hữu tệp.");
+            return new OwnerInfo(AttachmentOwnerTypes.General, null, null);
+        }
+
+        var normalizedType = AttachmentOwnerTypes.Normalize(ownerType)
+            ?? throw new ArgumentException("Loại đối tượng sở hữu tệp không hợp lệ.");
+
+        if (normalizedType == AttachmentOwnerTypes.General)
+        {
+            if (ownerId.HasValue)
+                throw new ArgumentException("Văn bản chung không gắn mã đối tượng.");
+            return new OwnerInfo(AttachmentOwnerTypes.General, null, null);
+        }
+
+        if (!ownerId.HasValue || ownerId.Value == Guid.Empty)
+            throw new ArgumentException("Thiếu mã đối tượng sở hữu tệp.");
+
+        if (_accessReader == null || _userRepo == null || _accessPolicy == null)
+            throw new InvalidOperationException("AttachmentService chưa được cấu hình kiểm tra quyền.");
+        if (!uploadedById.HasValue)
+            throw new ForbiddenException("Không xác định được người tải lên.");
+
+        var record = await _accessReader.GetOwnerRecordAsync(normalizedType, ownerId.Value)
+            ?? throw new KeyNotFoundException("Không tìm thấy đối tượng cần gắn tệp.");
+        var requester = await _userRepo.GetWithRolesAndPermissionsByIdAsync(uploadedById.Value)
+            ?? throw new ForbiddenException("Không tìm thấy hồ sơ người dùng hiện tại.");
+
+        if (!_accessPolicy.CanAccessRecord(requester, record, AccessOperation.Update))
+            throw new ForbiddenException("Bạn không có quyền gắn tệp vào hồ sơ đánh giá này.");
+
+        return new OwnerInfo(normalizedType, ownerId.Value, record.Id);
+    }
+
+    private static string NormalizeFormCode(string? formCode)
+    {
+        var normalized = formCode?.Trim() ?? string.Empty;
+        if (!Regex.IsMatch(normalized, "^[A-Za-z0-9_-]{1,20}$"))
+            throw new ArgumentException("Mã biểu mẫu không hợp lệ.");
+        return normalized;
+    }
+
+    private sealed record StoredFile(Guid FileId, string ObjectKey, string Checksum, string ContentType, long Size);
+
+    /// <summary>Kiểm tra dung lượng, phần mở rộng, magic bytes rồi ghi tệp vào storage (băm SHA-256 khi ghi).</summary>
+    private async Task<StoredFile> ValidateAndStoreAsync(Stream stream, string originalFileName, long size, string formCode)
     {
         if (size > MaxFileSize)
             throw new ArgumentException("Dung lượng tệp vượt quá giới hạn cho phép (25MB).");
@@ -175,10 +411,6 @@ public class AttachmentService : IAttachmentService
         var ext = Path.GetExtension(originalFileName).ToLowerInvariant();
         if (!AllowedExtensions.Contains(ext))
             throw new ArgumentException($"Định dạng tệp '{ext}' không được chấp nhận. Chỉ cho phép PDF, DOCX, XLSX, JPG, PNG.");
-
-        var normalizedFormCode = formCode?.Trim() ?? string.Empty;
-        if (!Regex.IsMatch(normalizedFormCode, "^[A-Za-z0-9_-]{1,20}$"))
-            throw new ArgumentException("Mã biểu mẫu không hợp lệ.");
 
         var header = new byte[8];
         var headerLength = await stream.ReadAsync(header.AsMemory(0, header.Length));
@@ -201,7 +433,7 @@ public class AttachmentService : IAttachmentService
 
         // Sinh ObjectKey phân cấp: {formCode}/{yyyyMM}/{fileId}_{fileName}.ext
         var fileId = Guid.NewGuid();
-        var cleanCode = normalizedFormCode.ToLowerInvariant();
+        var cleanCode = formCode.ToLowerInvariant();
         var dateFolder = DateTime.UtcNow.ToString("yyyyMM");
         var sanitizedBaseName = Path.GetFileNameWithoutExtension(originalFileName).Replace(" ", "_");
         if (sanitizedBaseName.Length > 40) sanitizedBaseName = sanitizedBaseName.Substring(0, 40);
@@ -209,66 +441,31 @@ public class AttachmentService : IAttachmentService
         var objectKey = $"{cleanCode}/{dateFolder}/{fileId}_{sanitizedBaseName}{ext}";
 
         var savedKey = await _fileStorage.SaveFileAsync(hashingStream, objectKey, contentType);
-        var checksum = hashingStream.GetChecksum();
-
-        var attachment = new TaskAttachment
-        {
-            Id = fileId,
-            FileName = originalFileName,
-            OriginalFileName = originalFileName,
-            ObjectKey = savedKey,
-            Checksum = checksum,
-            ContentType = contentType,
-            FileSize = hashingStream.BytesRead,
-            FormCode = normalizedFormCode.ToUpperInvariant(),
-            Description = description ?? string.Empty,
-            UploadedBy = string.IsNullOrWhiteSpace(uploadedBy) ? "Cán bộ quản trị" : uploadedBy,
-            UploadedById = uploadedById,
-            UploadedAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow,
-            IsActive = true
-        };
-
-        // Rollback tệp trên storage nếu lưu database thất bại
-        try
-        {
-            await _attachmentRepo.AddAsync(attachment);
-        }
-        catch (Exception)
-        {
-            await _fileStorage.DeleteFileAsync(savedKey);
-            throw;
-        }
-
-        return new AttachmentDto
-        {
-            Id = attachment.Id,
-            FileName = attachment.FileName,
-            ContentType = attachment.ContentType,
-            FileSize = attachment.FileSize,
-            FormCode = attachment.FormCode,
-            Category = attachment.FormCode,
-            Description = attachment.Description,
-            Checksum = attachment.Checksum,
-            UploadedAt = attachment.UploadedAt,
-            UploadedBy = attachment.UploadedBy
-        };
+        return new StoredFile(fileId, savedKey, hashingStream.GetChecksum(), contentType, hashingStream.BytesRead);
     }
 
-    /// <summary>
-    /// Xóa tệp khỏi storage và bản ghi metadata trong cơ sở dữ liệu
-    /// </summary>
-    public async Task DeleteAttachmentAsync(Guid id, Guid requesterId)
+    private static AttachmentDto ToDto(TaskAttachment a, string? downloadUrl = null) => new()
     {
-        var attachment = await _attachmentRepo.GetByIdAsync(id);
-        if (attachment == null)
-            throw new KeyNotFoundException("Không tìm thấy tệp đính kèm cần xóa.");
-
-        await EnsureAccessAsync(requesterId, attachment, AccessOperation.Delete, "Bạn không có quyền xóa tệp đính kèm này.");
-
-        // Giữ file vật lý để có thể khôi phục bản ghi sau khi xóa mềm.
-        await _attachmentRepo.DeleteAsync(attachment);
-    }
+        Id = a.Id,
+        FileName = a.FileName,
+        ContentType = a.ContentType,
+        FileSize = a.FileSize,
+        FormCode = a.FormCode,
+        Category = a.FormCode,
+        Description = a.Description,
+        Checksum = a.Checksum,
+        DownloadUrl = downloadUrl,
+        UploadedAt = a.UploadedAt,
+        UploadedBy = string.IsNullOrWhiteSpace(a.UploadedBy) ? DefaultUploaderName : a.UploadedBy,
+        UploadedById = a.UploadedById,
+        OwnerType = a.EffectiveOwnerType,
+        OwnerId = a.EffectiveOwnerId,
+        FileGroupId = a.GroupId,
+        VersionNumber = a.VersionNumber,
+        IsCurrent = a.IsCurrent,
+        SupersededAt = a.SupersededAt,
+        SupersededById = a.SupersededById
+    };
 
     /// <summary>Kiểm tra quyền trên một tệp, báo 403 nếu không được phép.</summary>
     private async Task EnsureAccessAsync(Guid requesterId, TaskAttachment attachment, AccessOperation operation, string message)
@@ -334,6 +531,8 @@ public class AttachmentService : IAttachmentService
             _ => false
         };
     }
+
+    #endregion
 }
 
 internal sealed class HashingReadStream : Stream
