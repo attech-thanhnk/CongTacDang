@@ -822,11 +822,14 @@ public class LoginResponseDto
     /// <summary>Tên tài khoản</summary>
     public string UserName { get; set; } = string.Empty;
 
-    /// <summary>Danh sách vai trò hệ thống</summary>
+    /// <summary>Tên các vai trò từ bản gán đang hiệu lực (chỉ để hiển thị, không dùng để phân quyền)</summary>
     public string[] Roles { get; set; } = Array.Empty<string>();
 
-    /// <summary>Danh sách quyền hạn nguyên tử</summary>
+    /// <summary>Các mã quyền có ở ít nhất một phạm vi</summary>
     public string[] Permissions { get; set; } = Array.Empty<string>();
+
+    /// <summary>Quyền kèm phạm vi: <c>{ code, scopeType, scopeId, scopeName }</c></summary>
+    public List<AccessGrantDto> Grants { get; set; } = new();
 
     /// <summary>Người dùng phải đổi mật khẩu tạm trước khi tiếp tục</summary>
     public bool MustChangePassword { get; set; }

@@ -19,12 +19,18 @@ public class AuthController : ControllerBase
     private readonly IAuthService _authService;
     private readonly IUserService _userService;
     private readonly IPermissionResolver _permissionResolver;
+    private readonly IRoleAssignmentService _roleAssignments;
 
-    public AuthController(IAuthService authService, IUserService userService, IPermissionResolver permissionResolver)
+    public AuthController(
+        IAuthService authService,
+        IUserService userService,
+        IPermissionResolver permissionResolver,
+        IRoleAssignmentService roleAssignments)
     {
         _authService = authService;
         _userService = userService;
         _permissionResolver = permissionResolver;
+        _roleAssignments = roleAssignments;
     }
 
     /// <summary>Đăng nhập bằng username/password — cấp Access Token (15 phút) và Refresh Token (7 ngày)</summary>
@@ -128,16 +134,18 @@ public class AuthController : ControllerBase
             return Unauthorized(ApiResponse.Fail("Không xác định được tài khoản hiện tại. Vui lòng đăng nhập lại."));
 
         var profile = await _userService.GetProfileByIdAsync(userId.Value);
-        // Danh sách quyền lấy từ nguồn quyền duy nhất (IPermissionResolver), cùng nguồn với kiểm tra policy.
+        // Vai trò/quyền lấy từ nguồn quyền duy nhất (IPermissionResolver), cùng nguồn với kiểm tra policy.
         var effective = await _permissionResolver.GetAsync(profile.Id, HttpContext.RequestAborted);
+        var grants = await _roleAssignments.GetGrantsAsync(profile.Id, HttpContext.RequestAborted);
 
         return Ok(ApiResponse<object>.Ok(new
         {
             profile.Id,
             profile.FullName,
             profile.UserName,
-            profile.Roles,
+            Roles = effective.RoleNames.ToArray(),
             Permissions = effective.Codes.ToArray(),
+            Grants = grants,
             profile.MustChangePassword
         }, "Lấy thông tin phiên đăng nhập thành công."));
     }

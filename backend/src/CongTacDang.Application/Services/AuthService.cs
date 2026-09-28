@@ -38,6 +38,7 @@ public class AuthService : IAuthService
     private readonly IAccessCacheInvalidator? _accessCache;
     private readonly IAccountStateProvider? _accountState;
     private readonly PasswordPolicy _passwordPolicy;
+    private readonly IRoleAssignmentService? _roleAssignments;
 
     /// <summary>
     /// Khởi tạo dịch vụ. Các phụ thuộc tùy chọn (nhật ký đăng nhập, cache, chính sách mật khẩu) luôn được DI cung cấp;
@@ -52,7 +53,8 @@ public class AuthService : IAuthService
         ILoginEventRepository? loginEvents = null,
         IAccessCacheInvalidator? accessCache = null,
         IAccountStateProvider? accountState = null,
-        PasswordPolicy? passwordPolicy = null)
+        PasswordPolicy? passwordPolicy = null,
+        IRoleAssignmentService? roleAssignments = null)
     {
         _userRepo = userRepo;
         _refreshTokenRepo = refreshTokenRepo;
@@ -63,6 +65,7 @@ public class AuthService : IAuthService
         _accessCache = accessCache;
         _accountState = accountState;
         _passwordPolicy = passwordPolicy ?? new PasswordPolicy();
+        _roleAssignments = roleAssignments;
     }
 
     /// <summary>Xác thực đăng nhập người dùng bằng BCrypt hash, ghi nhật ký và cấp cặp Access/Refresh Token</summary>
@@ -253,6 +256,9 @@ public class AuthService : IAuthService
     {
         // Quyền lấy từ nguồn quyền duy nhất (IPermissionResolver); JWT chỉ chứa danh tính.
         var effective = await _permissionResolver.GetAsync(member.Id);
+        var grants = _roleAssignments != null
+            ? await _roleAssignments.GetGrantsAsync(member.Id)
+            : new List<AccessGrantDto>();
         var (accessToken, accessExpiresAt) = _jwtService.GenerateToken(member);
 
         return new AuthResultDto
@@ -266,8 +272,9 @@ public class AuthService : IAuthService
                 Id = member.Id,
                 FullName = member.FullName,
                 UserName = member.Username,
-                Roles = effective.LegacyRoleCodes.ToArray(),
+                Roles = effective.RoleNames.ToArray(),
                 Permissions = effective.Codes.ToArray(),
+                Grants = grants,
                 MustChangePassword = member.MustChangePassword,
                 ExpiresAt = accessExpiresAt
             }

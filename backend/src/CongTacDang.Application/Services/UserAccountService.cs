@@ -34,7 +34,7 @@ public sealed class UserAccountService : IUserAccountService
     private readonly ICurrentUserService? _currentUser;
     private readonly IAccessCacheInvalidator? _accessCache;
     private readonly IAccountStateProvider? _accountState;
-    private readonly IAdministratorGuard? _adminGuard;
+    private readonly IRoleAssignmentService? _roleAssignments;
     private readonly IAuthorizationGuard? _authz;
 
     /// <summary>
@@ -50,7 +50,7 @@ public sealed class UserAccountService : IUserAccountService
         ICurrentUserService currentUser,
         IAccessCacheInvalidator accessCache,
         IAccountStateProvider accountState,
-        IAdministratorGuard adminGuard,
+        IRoleAssignmentService roleAssignments,
         IAuthorizationGuard authz)
     {
         _users = users;
@@ -59,7 +59,7 @@ public sealed class UserAccountService : IUserAccountService
         _currentUser = currentUser;
         _accessCache = accessCache;
         _accountState = accountState;
-        _adminGuard = adminGuard;
+        _roleAssignments = roleAssignments;
         _authz = authz;
     }
 
@@ -232,7 +232,7 @@ public sealed class UserAccountService : IUserAccountService
 
         if (!isActive)
         {
-            await AdminGuard.EnsureCanDisableAsync(_currentUser?.UserId, member.Id, "khóa", ct);
+            await EnsureCanDisableAsync(member.Id, "khóa", ct);
             member.IsActive = false;
             await RevokeSessionsAsync(member, ct);
             return;
@@ -276,7 +276,7 @@ public sealed class UserAccountService : IUserAccountService
     {
         var member = await LoadAsync(id, ct);
         EnsureCanManage(member.DepartmentId, member.PartyCellId);
-        await AdminGuard.EnsureCanDisableAsync(_currentUser?.UserId, member.Id, "xóa", ct);
+        await EnsureCanDisableAsync(member.Id, "xóa", ct);
 
         member.SecurityStamp = NewSecurityStamp();
         await Accounts.SoftDeleteAsync(member, ct);
@@ -382,7 +382,20 @@ public sealed class UserAccountService : IUserAccountService
     private IAuthorizationGuard Authz => _authz ?? throw NotConfigured();
     private IRefreshTokenRepository RefreshTokens => _refreshTokens ?? throw NotConfigured();
     private IAccessCacheInvalidator AccessCache => _accessCache ?? throw NotConfigured();
-    private IAdministratorGuard AdminGuard => _adminGuard ?? throw NotConfigured();
+    private IRoleAssignmentService RoleAssignments => _roleAssignments ?? throw NotConfigured();
+
+    /// <summary>
+    /// Chốt chặn khi khóa/xóa (thiết kế phân quyền mục 5): không tự khóa/xóa chính mình (409); không làm hệ thống mất
+    /// tài khoản đang hoạt động cuối cùng giữ quyền quản trị — dùng chung một cơ chế với thu hồi bản gán
+    /// (<see cref="IRoleAssignmentService.EnsureAdministratorsRemainWithoutUserAsync"/>: bản gán Global đang hiệu lực).
+    /// </summary>
+    private async Task EnsureCanDisableAsync(Guid targetUserId, string actionName, CancellationToken ct)
+    {
+        if (_currentUser?.UserId == targetUserId)
+            throw new ConflictException(
+                $"Bạn không thể {actionName} tài khoản của chính mình. Hãy nhờ một quản trị viên khác thực hiện nếu thật sự cần.");
+        await RoleAssignments.EnsureAdministratorsRemainWithoutUserAsync(targetUserId, ct);
+    }
 
     private static InvalidOperationException NotConfigured() =>
         new("UserAccountService được khởi tạo ở chế độ tối giản; thao tác này cần đầy đủ phụ thuộc (DI).");

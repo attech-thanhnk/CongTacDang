@@ -115,6 +115,87 @@ public sealed class Wave4IntegrationTests
         });
     }
 
+    // ===================== Phiên: grants + roles =====================
+
+    [SkippableFact]
+    public async Task LoginAndMe_ReturnGrantsWithScope_AndRoleNamesFromEffectiveAssignments()
+    {
+        SkipIfNoDatabase();
+        var (deptId, _) = await CreateDepartmentAsync();
+        var readerRole = await _factory.CreateRoleAsync(PermissionCodes.EvaluationRead);
+        var emptyRole = await _factory.CreateRoleAsync();
+        var user = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(user.Id, readerRole.Id, RoleScopeType.Department, deptId);
+        await _factory.AssignAsync(user.Id, emptyRole.Id, RoleScopeType.Global, null);
+        string readerName = string.Empty, emptyName = string.Empty, deptName = string.Empty;
+        await _factory.WithDbAsync(async db =>
+        {
+            readerName = (await db.Roles.SingleAsync(r => r.Id == readerRole.Id)).Name;
+            emptyName = (await db.Roles.SingleAsync(r => r.Id == emptyRole.Id)).Name;
+            deptName = (await db.AdministrativeDepartments.SingleAsync(d => d.Id == deptId)).Name;
+        });
+
+        using var client = _factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            HandleCookies = true,
+            AllowAutoRedirect = false
+        });
+        client.DefaultRequestHeaders.Add(ApiFactory.TestClientIpHeader, $"10.44.{Random.Shared.Next(0, 255)}.{Random.Shared.Next(1, 255)}");
+        var login = await client.PostAsJsonAsync("/api/auth/login", new { username = user.Username, password = user.Password });
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        var me = await client.GetAsync("/api/auth/me");
+        Assert.Equal(HttpStatusCode.OK, me.StatusCode);
+
+        foreach (var session in new[] { await DataAsync(login), await DataAsync(me) })
+        {
+            var roles = session.GetProperty("roles").EnumerateArray().Select(r => r.GetString()).ToList();
+            Assert.Contains(readerName, roles);
+            Assert.Contains(emptyName, roles); // vai trò chưa có quyền nào vẫn hiện tên
+            Assert.Contains(PermissionCodes.EvaluationRead,
+                session.GetProperty("permissions").EnumerateArray().Select(p => p.GetString()));
+
+            var grant = Assert.Single(session.GetProperty("grants").EnumerateArray());
+            Assert.Equal(PermissionCodes.EvaluationRead, grant.GetProperty("code").GetString());
+            Assert.Equal("Department", grant.GetProperty("scopeType").GetString());
+            Assert.Equal(deptId, grant.GetProperty("scopeId").GetGuid());
+            Assert.Equal(deptName, grant.GetProperty("scopeName").GetString());
+        }
+    }
+
+    // ===================== T-61: danh sách tài khoản theo phạm vi =====================
+
+    [SkippableFact]
+    public async Task UserLists_AreFilteredBySystemUsersReadScope()
+    {
+        SkipIfNoDatabase();
+        var (deptA, _) = await CreateDepartmentAsync();
+        var (deptB, _) = await CreateDepartmentAsync();
+        var inA = await _factory.CreateUserAsync(departmentId: deptA, fullName: "Cán bộ phạm vi A");
+        var inB = await _factory.CreateUserAsync(departmentId: deptB, fullName: "Cán bộ phạm vi B");
+
+        var readRole = await _factory.CreateRoleAsync(PermissionCodes.SystemUsersRead);
+        var reader = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(reader.Id, readRole.Id, RoleScopeType.Department, deptA);
+        using var client = await _factory.LoginAsAsync(reader.Username, reader.Password, distinctClientIp: true);
+
+        var list = await DataAsync(await client.GetAsync("/api/users/list"));
+        var listIds = list.EnumerateArray().Select(c => c.GetProperty("id").GetGuid()).ToList();
+        Assert.Contains(inA.Id, listIds);
+        Assert.DoesNotContain(inB.Id, listIds);
+        Assert.DoesNotContain(reader.Id, listIds); // người xem không thuộc Phòng A
+
+        var paged = await DataAsync(await client.GetAsync("/api/users?pageSize=200"));
+        var pagedIds = paged.GetProperty("items").EnumerateArray().Select(c => c.GetProperty("id").GetGuid()).ToList();
+        Assert.Contains(inA.Id, pagedIds);
+        Assert.DoesNotContain(inB.Id, pagedIds);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/users/{inB.Id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/users/{inA.Id}")).StatusCode);
+
+        // Hồ sơ theo tên đăng nhập: trong phạm vi → được xem; ngoài phạm vi → 403.
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/users/profile?username={inA.Username}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/users/profile?username={inB.Username}")).StatusCode);
+    }
+
     // ===================== Hỗ trợ =====================
 
     private static CreateAccountCommand Command(string username) =>
