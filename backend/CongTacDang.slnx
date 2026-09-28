@@ -5,4 +5,7 @@
     <Project Path="src/CongTacDang.Domain/CongTacDang.Domain.csproj" />
     <Project Path="src/CongTacDang.Infrastructure/CongTacDang.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CongTacDang.UnitTests/CongTacDang.UnitTests.csproj" />
+  </Folder>
 </Solution>

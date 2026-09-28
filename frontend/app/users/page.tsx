@@ -177,6 +177,15 @@ function UsersContent() {
     });
   };
 
+  const handleResetPassword = async (id: string, name: string) => {
+    try {
+      const result = await userService.resetPassword(id);
+      toast.success(`Mật khẩu tạm của ${name} là: ${result.temporaryPassword}. Hãy cung cấp qua kênh an toàn.`);
+    } catch (err: any) {
+      toast.error(err.message || "Không thể đặt lại mật khẩu.");
+    }
+  };
+
   const handleCreateBranch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!branchName.trim()) return;
@@ -517,6 +526,16 @@ function UsersContent() {
                                 style={{ fontSize: "11.5px" }}
                               >
                                 Sửa
+                              </Button>
+                            )}
+                            {hasPermission("users.update") && (
+                              <Button
+                                size="sm"
+                                variant="outline-secondary"
+                                onClick={() => handleResetPassword(c.id, c.fullName)}
+                                style={{ fontSize: "11.5px" }}
+                              >
+                                Đặt lại MK
                               </Button>
                             )}
                             {hasPermission("roles.manage") && (

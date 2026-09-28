@@ -4,8 +4,11 @@ using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Npgsql;
+using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Models;
 
 namespace CongTacDang.Api.Middlewares;
@@ -50,8 +53,10 @@ public class GlobalExceptionMiddleware
 
         var statusCode = exception switch
         {
+            AppException appException => (HttpStatusCode)appException.StatusCode,
+            DbUpdateConcurrencyException => HttpStatusCode.Conflict,
+            DbUpdateException dbException when IsUniqueViolation(dbException) => HttpStatusCode.Conflict,
             ArgumentException => HttpStatusCode.BadRequest,
-            InvalidOperationException => HttpStatusCode.BadRequest,
             UnauthorizedAccessException => HttpStatusCode.Unauthorized,
             KeyNotFoundException => HttpStatusCode.NotFound,
             _ => HttpStatusCode.InternalServerError
@@ -59,8 +64,11 @@ public class GlobalExceptionMiddleware
 
         var message = exception switch
         {
+            AppException appException => appException.Message,
+            DbUpdateConcurrencyException => "Dữ liệu đã được người khác cập nhật, vui lòng tải lại.",
+            DbUpdateException dbException when IsUniqueViolation(dbException) => "Dữ liệu đã tồn tại trong hệ thống.",
             ArgumentException or InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException
-                => exception.Message,
+                when exception is not InvalidOperationException => exception.Message,
             _ => _env.IsDevelopment()
                 ? $"Lỗi máy chủ nội bộ: {exception.Message}"
                 : "Đã xảy ra lỗi xử lý nội bộ tại hệ thống. Vui lòng liên hệ Quản trị viên."
@@ -77,5 +85,10 @@ public class GlobalExceptionMiddleware
         };
 
         await context.Response.WriteAsync(JsonSerializer.Serialize(response, jsonOptions));
+    }
+
+    private static bool IsUniqueViolation(DbUpdateException exception)
+    {
+        return exception.InnerException is PostgresException { SqlState: "23505" };
     }
 }
