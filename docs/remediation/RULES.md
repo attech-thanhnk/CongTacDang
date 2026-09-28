@@ -87,3 +87,48 @@ Mục 3 (bảng phân chia file) và mục 5 (migration) ở trên áp dụng ch
 - **Không** dùng cổng 5000 và 3001 (người điều phối đang chạy). Cần chạy thử thì dùng 5100–5199 / 3100–3199.
 - **Không** tạo EF migration; thay đổi schema liệt kê trong báo cáo, người điều phối sinh migration sau khi merge.
 - **Không** tự đặt luật nghiệp vụ mới (xem `docs/nghiep-vu/` — chưa xác nhận, không dùng làm căn cứ).
+
+## 8. Chương trình nền tảng chuẩn (Đợt 3–5, task 07–13)
+
+Mục 8 thay mục 3, 5, 7.1, 7.2 cho task 07–13. Mục 7.3 (môi trường) vẫn áp dụng.
+
+### 8.1 Căn cứ và thứ tự
+- Căn cứ thiết kế: `docs/thiet-ke/phan-quyen.md`, `docs/thiet-ke/luong-danh-gia.md`. Task file chi tiết hơn thiết kế → theo task file; mâu thuẫn → dừng, ghi "Cần phối hợp".
+- Riêng task 12 **được** hiện thực thứ tự bước và tác nhân theo `docs/thiet-ke/luong-danh-gia.md` (đã được duyệt làm căn cứ kỹ thuật), nhưng **không** đổi công thức điểm/ngưỡng xếp loại.
+
+| Đợt | Task (agent) | Điều kiện bắt đầu |
+|---|---|---|
+| 3 | 07 (B) | `main` hiện tại |
+| 4 | 08 (A) ║ 09 (B) ║ 10 (D) | 07 đã merge |
+| 5 | 11 (C) ║ 12 (E) ║ 13 (D) | 08, 09, 10 đã merge |
+
+Tạo branch từ `main` **tại thời điểm bắt đầu** đợt; kiểm tra `git branch --show-current` trước khi sửa file đầu tiên.
+
+### 8.2 Phân chia file
+Mỗi task file có mục "Phạm vi file" — đó là danh sách chủ sở hữu. Quy tắc chung:
+- **Entity mới** cấu hình trong `Infrastructure/Data/Configurations/<Entity>Configuration.cs` (task 07 bật `ApplyConfigurationsFromAssembly`); không sửa `OnModelCreating` trừ khi gỡ cấu hình cũ của entity mình sở hữu.
+- **DTO mới** trong file riêng `Application/DTOs/<Module>Dtos.cs`; chỉ sửa DTO cũ thuộc module mình.
+- **Repository mới** trong file riêng; `SpecificRepositories.cs` chỉ sửa đúng lớp repository thuộc module mình.
+- **`Program.cs`**: mỗi task đăng ký service trong extension riêng (`AccountExtensions`/`SecurityExtensions` — 08, `AuthorizationExtensions` — 07/09, `ImportExtensions` — 10, `EvaluationExtensions` — 12) và chỉ thêm 1 dòng gọi.
+- **`AppSidebar.tsx`**: Đợt 4 — 09 chỉ đổi mã quyền, 10 chỉ thêm mục cuối danh sách. Đợt 5 — chỉ 11 sửa.
+- **`DataSeeder.cs`**: 07 → 09 (vai trò, quyền, gán). Đợt 5 chỉ 12 sửa phần seed dữ liệu đánh giá.
+- **Test**: mỗi task tạo file test riêng (tên nêu trong task file); không sửa file test của task khác. Được sửa **kỳ vọng** của test cũ chỉ khi task file yêu cầu đổi hành vi đó, ghi rõ trong báo cáo.
+- Cần sửa file ngoài phạm vi → **không sửa**, ghi "Cần phối hợp".
+
+### 8.3 Migration
+- Agent **không** tạo migration. Người điều phối sau mỗi đợt: merge → `dotnet ef migrations add Wave<N>` → `has-pending-model-changes` sạch → cổng kiểm tra.
+- Test tích hợp dùng `EnsureCreated` trên CSDL tạm nên chạy được trước khi có migration.
+
+### 8.4 Cổng kiểm tra (bổ sung mục 4)
+```bash
+dotnet build backend/CongTacDang.slnx
+dotnet test  backend/CongTacDang.slnx          # unit + integration (integration skip nếu thiếu CONGTACDANG_TEST_PG)
+cd frontend && npx tsc --noEmit && npm run build
+```
+- Test tích hợp chạy trên máy chủ PostgreSQL `192.168.22.159`: `CONGTACDANG_TEST_PG` trỏ tới CSDL quản trị `postgres` bằng tài khoản có quyền `CREATEDB` (người điều phối cấp, không ghi vào file nào trong repo). Test chỉ tạo/xóa CSDL tên `ctd_it_*`; **tuyệt đối không** đọc/ghi `congtacdang_test` hay CSDL khác. Mục 7.3 (không chạy app/migration vào CSDL dùng chung) vẫn giữ nguyên.
+- Báo cáo ghi số test tích hợp **đã chạy** và **đã skip** — skip không được tính là pass.
+- Mỗi luồng (L/U/W…) trong task file phải xuất hiện trong báo cáo với trạng thái pass / fail / không chạy + tên test.
+
+### 8.5 Ngôn ngữ và thông báo
+- Thông báo lỗi trả người dùng: tiếng Việt, nói rõ **vì sao** và **cần làm gì** (ví dụ "Không thể xóa Phòng Kỹ thuật vì còn 12 cán bộ. Hãy chuyển cán bộ sang phòng khác trước.").
+- 403 do thiếu quyền nêu tên quyền hiển thị (không nêu mã kỹ thuật).

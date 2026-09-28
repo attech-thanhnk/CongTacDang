@@ -46,3 +46,41 @@ docs/remediation/reports/0X-<tên>.md theo reports/_TEMPLATE.md, rồi commit. K
 5. Chạy cổng kiểm tra trên bản đã merge.
 6. Cập nhật cột Trạng thái trong `FINDINGS.md`.
 7. Dọn worktree: `git worktree remove ../CongTacDang-0X`.
+
+---
+
+# Chương trình nền tảng chuẩn (Đợt 3–5)
+
+Mục tiêu: tài khoản, phân quyền động có phạm vi, danh mục, import và luồng đánh giá 5 bước **chạy đúng từ đầu đến cuối**, có test tích hợp chứng minh. Thiết kế: `docs/thiet-ke/phan-quyen.md`, `docs/thiet-ke/luong-danh-gia.md`. Quy tắc: `RULES.md` mục 8.
+
+## Giao việc cho 5 agent
+
+| Agent | Vai trò | Task |
+|---|---|---|
+| A | Tài khoản & phiên | 08 |
+| B | Phân quyền | 07 → 09 |
+| C | Giao diện quản trị | 11 |
+| D | Danh mục & import | 10 → 13 |
+| E | Luồng đánh giá | 12 |
+
+```
+Đợt 3:  B:07 ──merge──┐
+Đợt 4:                ├─ A:08 ║ B:09 ║ D:10 ──merge 09→08→10──┐
+Đợt 5:                                                      ├─ C:11 ║ E:12 ║ D:13 ──merge 12→11→13
+```
+
+## Mỗi đợt
+1. Tạo worktree/branch từ `main` mới nhất cho từng task của đợt (`git worktree add ../CongTacDang-<task> -b <branch>`), `cd frontend && npm ci`.
+2. Prompt cho agent:
+   ```
+   Bạn là agent <X>, thực hiện task <NN>. Đọc CLAUDE.md, docs/remediation/RULES.md (mục 8),
+   docs/remediation/tasks/<NN>-<tên>.md và các tài liệu mà task file yêu cầu đọc trước.
+   Làm toàn bộ task trên branch hiện tại, qua cổng kiểm tra (RULES 8.4), ghi báo cáo vào
+   docs/remediation/reports/<NN>-<tên>.md theo reports/_TEMPLATE.md (thêm bảng luồng pass/fail), rồi commit. Không push.
+   ```
+3. Tích hợp: đọc báo cáo (mục `partial`, "Cần phối hợp") → merge theo thứ tự trong sơ đồ → sinh migration `Wave<N>` → chạy cổng kiểm tra **có** `CONGTACDANG_TEST_PG` → cập nhật `FINDINGS.md`.
+4. Việc "Cần phối hợp" nhỏ: người điều phối sửa khi tích hợp; lớn: giao lại cho agent chủ sở hữu trước khi mở đợt sau.
+
+## Việc của người điều phối trước Đợt 3
+- Trên máy chủ `192.168.22.159`: tạo tài khoản PostgreSQL có quyền `CREATEDB` cho test tích hợp; đặt biến môi trường `CONGTACDANG_TEST_PG` (chuỗi kết nối tới CSDL `postgres` bằng tài khoản đó) trên máy chạy agent. Không ghi chuỗi này vào repo.
+- Gửi `docs/thiet-ke/phan-quyen.md` mục 6 và `docs/thiet-ke/luong-danh-gia.md` mục 6 cho TCCB-LĐ xác nhận — **không chặn** việc code, kết quả chỉ làm đổi cấu hình mặc định.
