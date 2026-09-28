@@ -283,7 +283,10 @@ public static class RollingFileLoggerExtensions
         {
             try
             {
-                logging.AddProvider(new RollingFileLoggerProvider(fileOptions));
+                var provider = new RollingFileLoggerProvider(fileOptions);
+                // Đăng ký qua factory để DI container dispose provider khi tắt ứng dụng (xả hết hàng đợi log);
+                // AddProvider(instance) đăng ký instance sẵn có, container không dispose → mất các dòng log cuối.
+                logging.Services.AddSingleton<ILoggerProvider>(_ => provider);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {

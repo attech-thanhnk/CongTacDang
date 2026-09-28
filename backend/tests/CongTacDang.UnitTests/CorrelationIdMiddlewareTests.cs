@@ -85,7 +85,8 @@ public class CorrelationIdMiddlewareTests
         }
         finally
         {
-            factory.Dispose(); // flush hàng đợi ghi file
+            factory.Dispose();
+            provider.Dispose(); // provider do test tạo nên test tự dispose để xả hàng đợi và đóng file
         }
 
         var file = Assert.Single(Directory.GetFiles(directory, "test-*.log"));
