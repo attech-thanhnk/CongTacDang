@@ -91,7 +91,7 @@ builder.Services.AddSingleton<CongTacDang.Application.Common.Security.IAccessPol
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IUserAccountService, UserAccountService>();
+builder.Services.AddAccountServices(builder.Configuration); // Tài khoản, phiên, nhật ký đăng nhập (Api/Extensions/AccountExtensions.cs)
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IAttachmentService, AttachmentService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
@@ -163,6 +163,7 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger
 app.UseCors("AllowFrontend");
 app.UseRateLimiter();
 app.UseAuthentication(); // Phải đứng trước UseAuthorization
+app.UsePasswordChangeEnforcement(); // Chặn API khi còn mật khẩu tạm (Api/Extensions/SecurityExtensions.cs)
 app.UseAuthorization();
 app.MapHealthChecks("/healthz");
 app.MapControllers();

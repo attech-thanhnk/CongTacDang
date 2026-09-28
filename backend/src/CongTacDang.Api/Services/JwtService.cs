@@ -1,23 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using CongTacDang.Application.Common.Interfaces;
-using CongTacDang.Application.Common.Security;
-using CongTacDang.Application.Services;
 using CongTacDang.Domain.Entities;
-using CongTacDang.Domain.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 namespace CongTacDang.Api.Services;
 
 /// <summary>
-/// Dịch vụ sinh JWT Bearer Token tích hợp Dynamic RBAC (Roles + Permissions claims).
-/// Token được đọc từ HttpOnly Cookie bởi middleware JwtBearer.
+/// Dịch vụ sinh JWT (chỉ danh tính + dấu bảo mật) và Refresh Token.
+/// Token được đọc từ HttpOnly Cookie bởi middleware JwtBearer; trạng thái tài khoản và dấu bảo mật
+/// được kiểm tra lại ở mỗi request (<c>SecurityExtensions.AddAccountSessionValidation</c>).
 /// </summary>
 public class JwtService : IJwtService
 {
@@ -36,37 +33,18 @@ public class JwtService : IJwtService
         _refreshTokenExpiryDays = int.TryParse(config["Jwt:RefreshTokenExpiryDays"], out var d) ? d : 7;
     }
 
-    /// <summary>
-    /// Sinh JWT Access Token ngắn hạn (mặc định 15 phút) với đầy đủ Role claims và Permission claims
-    /// </summary>
-    public (string Token, DateTime ExpiresAt) GenerateToken(
-        PartyMemberProfile member,
-        IEnumerable<string> roles,
-        IEnumerable<string> permissions)
+    /// <summary>Sinh JWT Access Token ngắn hạn (mặc định 15 phút) chỉ chứa danh tính và dấu bảo mật.</summary>
+    public (string Token, DateTime ExpiresAt) GenerateToken(PartyMemberProfile member)
     {
-        var roleList = roles.Distinct().ToList();
-        var permList = permissions.Distinct().ToList();
-
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, member.Id.ToString()),
             new(JwtRegisteredClaimNames.UniqueName, member.Username),
             new("username", member.Username),
             new(JwtRegisteredClaimNames.Name, member.FullName),
-            new("party_role", member.PartyRole.ToString()),
+            new(IJwtService.SecurityStampClaim, member.SecurityStamp),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
         };
-
-        // Gắn role claims — ASP.NET Core Authorization đọc ClaimTypes.Role
-        foreach (var role in roleList)
-        {
-            claims.Add(new Claim(ClaimTypes.Role, role));
-        }
-
-        // Gắn permission claims — ASP.NET Core Policy kiểm tra claim "perm"
-        foreach (var perm in permList)
-        {
-            claims.Add(new Claim("perm", perm));
-        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -88,10 +66,7 @@ public class JwtService : IJwtService
     /// </summary>
     public RefreshToken GenerateRefreshToken(Guid userId, string? ipAddress = null)
     {
-        var randomBytes = new byte[64];
-        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
-        rng.GetBytes(randomBytes);
-
+        var randomBytes = RandomNumberGenerator.GetBytes(64);
         var token = Convert.ToBase64String(randomBytes);
         return new RefreshToken
         {

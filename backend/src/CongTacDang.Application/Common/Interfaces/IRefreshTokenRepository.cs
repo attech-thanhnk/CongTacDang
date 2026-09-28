@@ -10,7 +10,7 @@ namespace CongTacDang.Application.Common.Interfaces;
 /// </summary>
 public interface IRefreshTokenRepository : IRepository<RefreshToken>
 {
-    /// <summary>Tìm Refresh Token kèm theo thông tin cán bộ, vai trò và quyền hạn</summary>
+    /// <summary>Tìm Refresh Token kèm theo tài khoản sở hữu</summary>
     Task<RefreshToken?> GetByTokenWithUserAsync(string token);
 
     /// <summary>Thu hồi token cũ và thêm token mới trong một lần lưu thay đổi.</summary>
