@@ -8,6 +8,24 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      # PostgreSQL riêng của CI cho test tích hợp (không kết nối tới máy chủ dùng chung trong LAN).
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ctd_ci
+          POSTGRES_PASSWORD: ctd_ci_only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ctd_ci -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Chuỗi kết nối tới CSDL quản trị của service trên; test tự tạo/xóa CSDL ctd_it_*.
+      CONGTACDANG_TEST_PG: Host=localhost;Port=5432;Database=postgres;Username=ctd_ci;Password=ctd_ci_only
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,7 +37,7 @@ jobs:
         run: dotnet restore backend/CongTacDang.slnx
       - name: Build
         run: dotnet build backend/CongTacDang.slnx --no-restore --configuration Release
-      - name: Test
+      - name: Test (unit + integration)
         run: dotnet test backend/CongTacDang.slnx --no-build --configuration Release
 
   frontend:
