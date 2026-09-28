@@ -71,6 +71,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5000
       Storage__Local__Path: /app/uploads
+      Logging__File__Path: /var/log/congtacdang
+      Logging__File__RetainedDays: ${LOG_RETAINED_DAYS:-30}
       ForwardedHeaders__KnownNetworks__0: 172.16.0.0/12
       ForwardedHeaders__KnownProxies__0: 127.0.0.1
     expose:
@@ -81,6 +83,7 @@ services:
         condition: service_healthy
     volumes:
       - backend-uploads:/app/uploads
+      - backend-logs:/var/log/congtacdang
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:5000/healthz"]
       interval: 15s
@@ -139,6 +142,8 @@ volumes:
     name: attech-dangbo-postgres-data
   backend-uploads:
     name: attech-dangbo-backend-uploads
+  backend-logs:
+    name: attech-dangbo-backend-logs
   minio-data:
     name: attech-dangbo-minio-data
   pgadmin-data:
