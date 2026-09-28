@@ -34,7 +34,7 @@
 | Entity đánh giá (`EvaluationRecord/Task/Period`, `CollectiveEvaluationRecord`, `EvaluationMeeting`), `DtoModels.cs` | 02 | |
 | `appsettings*.json`, `docker/**`, `.gitignore`, `.github/**` | 03 | |
 | `frontend/next.config.mjs`, `frontend/middleware.ts` | 03 | |
-| `HDSD_VA_TRIEN_KHAI.md` (phần triển khai), `docs/deployment.md` | 03 | |
+| `docs/deployment.md` | 03 | |
 
 **`Program.cs` là file dùng chung.** Mỗi agent đặt logic vào file extension riêng và chỉ thêm/sửa vài dòng gọi trong `Program.cs`:
 - 01 → `Api/Extensions/SecurityExtensions.cs` (rate limiter, …)

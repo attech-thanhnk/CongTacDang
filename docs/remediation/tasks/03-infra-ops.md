@@ -44,7 +44,7 @@
 
 ## Tài liệu
 - Tạo `docs/deployment.md`: biến môi trường bắt buộc, cách sinh secret, chạy compose (kèm profile `tools`), backup Postgres + thư mục upload, rotate secret.
-- Trong `HDSD_VA_TRIEN_KHAI.md` chỉ sửa phần cài đặt/triển khai (hoặc trỏ sang `docs/deployment.md`); không sửa phần nghiệp vụ/biểu mẫu.
+- `docs/deployment.md` là tài liệu triển khai duy nhất (HDSD cũ đã bị xóa có chủ ý — không tạo lại).
 
 ## Kiểm tra thêm
 - `docker compose -f docker/docker-compose.yml config` hợp lệ (kèm `.env` tạo từ `.env.example`).
