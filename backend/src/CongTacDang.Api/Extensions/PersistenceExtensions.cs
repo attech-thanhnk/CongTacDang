@@ -66,7 +66,11 @@ public static class PersistenceExtensions
                 await db.Database.MigrateAsync();
             }
 
-            await DataSeeder.SeedAsync(db, seedSampleData);
+            await DataSeeder.SeedAsync(
+                db,
+                seedSampleData,
+                app.Configuration.GetValue<bool>("Database:ResetRolePermissions"),
+                app.Logger);
         }
         catch (Exception ex)
         {
