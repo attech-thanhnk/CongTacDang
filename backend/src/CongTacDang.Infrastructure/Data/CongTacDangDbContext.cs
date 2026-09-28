@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Domain.Entities;
 
@@ -418,6 +419,11 @@ namespace CongTacDang.Infrastructure.Data
                 if (entry.State is not (EntityState.Added or EntityState.Modified))
                     continue;
 
+                // Nhật ký đăng nhập đã là bản ghi vết riêng; cập nhật trạng thái đăng nhập (đếm sai, khóa tạm,
+                // lần đăng nhập cuối) do chính luồng đăng nhập ghi không cần nhân đôi vào audit log.
+                if (entry.Entity is LoginEvent || IsLoginBookkeeping(entry))
+                    continue;
+
                 var changedProperties = entry.Properties
                     .Where(p => p.IsModified || entry.State == EntityState.Added)
                     .Where(p => !IsSensitiveProperty(p.Metadata.Name))
@@ -454,10 +460,37 @@ namespace CongTacDang.Infrastructure.Data
                 AuditLogs.AddRange(auditLogs);
         }
 
+        /// <summary>Các trường chỉ luồng đăng nhập cập nhật (cùng dấu thời gian sửa đổi do DbContext tự đặt).</summary>
+        private static readonly HashSet<string> LoginBookkeepingProperties = new(StringComparer.Ordinal)
+        {
+            nameof(PartyMemberProfile.LastLoginAt),
+            nameof(PartyMemberProfile.FailedLoginCount),
+            nameof(PartyMemberProfile.LockoutEnd),
+            nameof(PartyMemberProfile.UpdatedAt),
+            nameof(PartyMemberProfile.UpdatedBy)
+        };
+
+        /// <summary>
+        /// Cập nhật tài khoản chỉ gồm trường theo dõi đăng nhập, không có người dùng đăng nhập (request đăng nhập
+        /// là ẩn danh). Thao tác của quản trị (ví dụ mở khóa đăng nhập) có người thao tác nên vẫn được ghi audit.
+        /// So theo giá trị thực đổi, vì repository có thể đánh dấu mọi cột là đã sửa.
+        /// </summary>
+        private bool IsLoginBookkeeping(EntityEntry entry)
+        {
+            if (entry.Entity is not PartyMemberProfile || entry.State != EntityState.Modified || _currentUser.UserId != null)
+                return false;
+
+            var changed = entry.Properties
+                .Where(p => p.IsModified && !Equals(p.OriginalValue, p.CurrentValue))
+                .Select(p => p.Metadata.Name)
+                .ToList();
+            return changed.Count > 0 && changed.All(LoginBookkeepingProperties.Contains);
+        }
+
         /// <summary>Loại bỏ các trường bí mật khỏi snapshot audit.</summary>
         private static bool IsSensitiveProperty(string propertyName)
         {
-            return propertyName is "PasswordHash" or "Token" or "TokenHash" or "ReplacedByTokenHash";
+            return propertyName is "PasswordHash" or "SecurityStamp" or "Token" or "TokenHash" or "ReplacedByTokenHash";
         }
     }
 }

@@ -75,6 +75,9 @@ services:
       Logging__File__RetainedDays: ${LOG_RETAINED_DAYS:-30}
       ForwardedHeaders__KnownNetworks__0: 172.16.0.0/12
       ForwardedHeaders__KnownProxies__0: 127.0.0.1
+      Security__Password__MinLength: ${Security__Password__MinLength:-8}
+      Security__RateLimit__Auth__PermitLimit: ${Security__RateLimit__Auth__PermitLimit:-10}
+      Security__RateLimit__Auth__WindowSeconds: ${Security__RateLimit__Auth__WindowSeconds:-60}
     expose:
       - "5000"
     ports: ${BACKEND_PORTS:-[]}

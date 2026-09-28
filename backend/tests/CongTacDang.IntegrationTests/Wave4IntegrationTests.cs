@@ -196,6 +196,57 @@ public sealed class Wave4IntegrationTests
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/users/profile?username={inB.Username}")).StatusCode);
     }
 
+    // ===================== Audit =====================
+
+    [SkippableFact]
+    public async Task Login_IsNotDuplicatedInAuditLog_AndSecurityFieldsAreMasked()
+    {
+        SkipIfNoDatabase();
+        var user = await _factory.CreateUserAsync();
+        var userKey = $"Id={user.Id}";
+        var start = DateTime.UtcNow.AddSeconds(-1);
+
+        // Một lần sai mật khẩu (đếm sai) và một lần đúng (lần đăng nhập cuối): chỉ ghi nhật ký đăng nhập.
+        using (var anonymous = _factory.CreateClient())
+        {
+            anonymous.DefaultRequestHeaders.Add(ApiFactory.TestClientIpHeader, $"10.45.{Random.Shared.Next(0, 255)}.{Random.Shared.Next(1, 255)}");
+            Assert.Equal(HttpStatusCode.Unauthorized,
+                (await anonymous.PostAsJsonAsync("/api/auth/login", new { username = user.Username, password = "SaiMatKhau1" })).StatusCode);
+            Assert.Equal(HttpStatusCode.OK,
+                (await anonymous.PostAsJsonAsync("/api/auth/login", new { username = user.Username, password = user.Password })).StatusCode);
+        }
+
+        await _factory.WithDbAsync(async db =>
+        {
+            Assert.Equal(2, await db.Set<LoginEvent>().CountAsync(e => e.UserId == user.Id));
+            Assert.False(await db.AuditLogs.AnyAsync(a => a.CreatedAt >= start && a.EntityType == nameof(LoginEvent)));
+            var userLogs = await db.AuditLogs.Where(a => a.CreatedAt >= start && a.EntityId == userKey && a.Action != "Create")
+                .Select(a => a.Action + " " + a.OldValues + " -> " + a.NewValues).ToListAsync();
+            Assert.True(userLogs.Count == 0, string.Join(" | ", userLogs));
+        });
+
+        // Thao tác quản trị trên tài khoản vẫn được ghi audit, nhưng không lộ mật khẩu băm / dấu bảo mật.
+        var admin = await _factory.CreateUserWithPermissionsAsync(PermissionCodes.SystemUsersManage);
+        using var adminClient = await _factory.LoginAsAsync(admin.Username, admin.Password, distinctClientIp: true);
+        Assert.Equal(HttpStatusCode.OK, (await adminClient.PostAsync($"/api/users/{user.Id}/reset-password", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await adminClient.PostAsync($"/api/users/{user.Id}/unlock", null)).StatusCode);
+
+        await _factory.WithDbAsync(async db =>
+        {
+            var logs = await db.AuditLogs
+                .Where(a => a.CreatedAt >= start && a.EntityId == userKey && a.Action != "Create")
+                .ToListAsync();
+            Assert.NotEmpty(logs);
+            Assert.All(logs, log =>
+            {
+                Assert.Equal(admin.Id, log.ActorId);
+                Assert.DoesNotContain("SecurityStamp", log.NewValues ?? string.Empty);
+                Assert.DoesNotContain("SecurityStamp", log.OldValues ?? string.Empty);
+                Assert.DoesNotContain("PasswordHash", log.NewValues ?? string.Empty);
+            });
+        });
+    }
+
     // ===================== Hỗ trợ =====================
 
     private static CreateAccountCommand Command(string username) =>
