@@ -32,8 +32,11 @@ public enum ReportFormat
 /// </summary>
 public interface IReportService
 {
-    /// <summary>Xuất báo cáo danh sách trích ngang cán bộ lãnh đạo, quản lý</summary>
-    Task<ReportFileResult> ExportCadresReportAsync();
+    /// <summary>
+    /// Xuất báo cáo danh sách trích ngang cán bộ lãnh đạo, quản lý — chỉ cán bộ trong <paramref name="scope"/>
+    /// (phạm vi <c>report.export</c> của người yêu cầu, T-61).
+    /// </summary>
+    Task<ReportFileResult> ExportCadresReportAsync(CongTacDang.Application.Common.Security.ScopeFilter scope);
 
     // Báo cáo Excel 14/15/15A/15B/16: periodId null = kỳ đang hoạt động; partyCellId null = toàn Đảng bộ
     // (phạm vi đã được kiểm tra quyền trước khi gọi).

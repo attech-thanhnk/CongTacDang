@@ -37,7 +37,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Danh sách tệp tin và tài liệu minh chứng mà người dùng được xem</summary>
     [HttpGet("list")]
-    [Authorize(Policy = AppPermissions.AttachmentsRead)]
+    [Authorize] // Quyền trên tệp = quyền trên hồ sơ gắn tệp; văn bản chung: mọi người đã đăng nhập (kiểm tra trong service)
     public async Task<IActionResult> GetList()
     {
         var files = await _attachmentService.GetAttachmentsAsync(GetCurrentUserId());
@@ -46,7 +46,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Danh sách tệp (phiên bản hiện hành) của một đối tượng: <c>ownerType</c> = General | EvaluationRecord | EvaluationTask</summary>
     [HttpGet]
-    [Authorize(Policy = AppPermissions.AttachmentsRead)]
+    [Authorize] // Quyền trên tệp = quyền trên hồ sơ gắn tệp; văn bản chung: mọi người đã đăng nhập (kiểm tra trong service)
     public async Task<IActionResult> GetByOwner([FromQuery] string ownerType, [FromQuery] Guid ownerId)
     {
         var files = await _attachmentService.GetAttachmentsByOwnerAsync(ownerType, ownerId, GetCurrentUserId());
@@ -58,7 +58,7 @@ public class AttachmentController : ControllerBase
     /// (cần quyền cập nhật hồ sơ liên quan); một đối tượng có thể có nhiều tệp.
     /// </summary>
     [HttpPost("upload")]
-    [Authorize(Policy = AppPermissions.AttachmentsUpload)]
+    [Authorize] // Service: evaluation.self (tệp của mình) hoặc attachment.general.manage (văn bản chung)
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> UploadFile(
         [FromForm] IFormFile file,
@@ -88,7 +88,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Thay tệp bằng phiên bản mới (phiên bản cũ được giữ lại trong lịch sử)</summary>
     [HttpPost("{id}/versions")]
-    [Authorize(Policy = AppPermissions.AttachmentsUpload)]
+    [Authorize] // Service: evaluation.self (tệp của mình) hoặc attachment.general.manage (văn bản chung)
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> UploadNewVersion(Guid id, [FromForm] IFormFile file)
     {
@@ -103,7 +103,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Lịch sử phiên bản của tệp (mới nhất trước)</summary>
     [HttpGet("{id}/versions")]
-    [Authorize(Policy = AppPermissions.AttachmentsRead)]
+    [Authorize] // Quyền trên tệp = quyền trên hồ sơ gắn tệp; văn bản chung: mọi người đã đăng nhập (kiểm tra trong service)
     public async Task<IActionResult> GetVersions(Guid id)
     {
         var versions = await _attachmentService.GetVersionsAsync(id, GetCurrentUserId());
@@ -112,7 +112,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Tải một phiên bản cụ thể của tệp</summary>
     [HttpGet("{id}/versions/{versionNumber:int}/download")]
-    [Authorize(Policy = AppPermissions.AttachmentsRead)]
+    [Authorize] // Quyền trên tệp = quyền trên hồ sơ gắn tệp; văn bản chung: mọi người đã đăng nhập (kiểm tra trong service)
     public async Task<IActionResult> DownloadVersion(Guid id, int versionNumber)
     {
         try
@@ -137,7 +137,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Tải về phiên bản hiện hành của tệp tin minh chứng (Id của bất kỳ phiên bản nào trong tệp)</summary>
     [HttpGet("{id}/download")]
-    [Authorize(Policy = AppPermissions.AttachmentsRead)]
+    [Authorize] // Quyền trên tệp = quyền trên hồ sơ gắn tệp; văn bản chung: mọi người đã đăng nhập (kiểm tra trong service)
     public async Task<IActionResult> DownloadFile(Guid id)
     {
         try
@@ -158,7 +158,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Xem trực tiếp tệp tin minh chứng (PDF, ảnh) trong trình duyệt (inline)</summary>
     [HttpGet("{id}/view")]
-    [Authorize(Policy = AppPermissions.AttachmentsRead)]
+    [Authorize] // Quyền trên tệp = quyền trên hồ sơ gắn tệp; văn bản chung: mọi người đã đăng nhập (kiểm tra trong service)
     public async Task<IActionResult> ViewFile(Guid id)
     {
         try
@@ -185,7 +185,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Thông tin chi tiết tệp tin</summary>
     [HttpGet("{id}")]
-    [Authorize(Policy = AppPermissions.AttachmentsRead)]
+    [Authorize] // Quyền trên tệp = quyền trên hồ sơ gắn tệp; văn bản chung: mọi người đã đăng nhập (kiểm tra trong service)
     public async Task<IActionResult> GetById(Guid id)
     {
         var file = await _attachmentService.GetAttachmentByIdAsync(id, GetCurrentUserId());
@@ -198,7 +198,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Xóa mềm tệp tin (mọi phiên bản)</summary>
     [HttpDelete("{id}")]
-    [Authorize(Policy = AppPermissions.AttachmentsDelete)]
+    [Authorize] // Service: evaluation.self trên hồ sơ gắn tệp hoặc attachment.general.manage (văn bản chung)
     public async Task<IActionResult> DeleteFile(Guid id)
     {
         try
