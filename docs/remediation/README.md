@@ -16,8 +16,17 @@ git worktree add ../CongTacDang-02 -b fix/data-layer
 git worktree add ../CongTacDang-03 -b chore/infra-ops
 ```
 
-## 2. Chạy agent
-Mở 3 phiên Claude Code, mỗi phiên trong một thư mục worktree, dán prompt:
+## 2. Chạy agent — 2 đợt
+Task 02 là nền (nâng gói, UoW, migrations) mà task 01 xây lên, nên chạy theo 2 đợt để tránh xung đột:
+
+| Đợt | Task | Ghi chú |
+|---|---|---|
+| 1 | 02 ║ 03 song song | Gần như không đụng file của nhau |
+| — | Tích hợp đợt 1 vào `main` | Người điều phối |
+| 2 | 01 | Trước khi chạy: `cd ../CongTacDang-01 && git merge main` |
+
+Mỗi worktree cần `cd frontend && npm ci` trước khi chạy agent.
+Mở phiên Claude Code trong thư mục worktree tương ứng, dán prompt:
 
 ```
 Bạn là agent thực hiện task 0X. Đọc CLAUDE.md, docs/remediation/RULES.md,
@@ -28,8 +37,8 @@ docs/remediation/reports/0X-<tên>.md theo reports/_TEMPLATE.md, rồi commit. K
 
 ## 3. Tích hợp
 1. Đọc 3 báo cáo; mục `partial`/`skipped`/"Cần phối hợp" → quyết định xử lý.
-2. Merge theo thứ tự **02 → 01 → 03** vào `main` (hoặc branch `integration`).
-3. Sinh migration cho thay đổi schema của task 01:
+2. Đợt 1: merge **02 → 03** vào `main`. Đợt 2: merge **01**.
+3. Sau đợt 2, sinh migration cho thay đổi schema của task 01:
    `dotnet ef migrations add AuthHardening -p backend/src/CongTacDang.Infrastructure -s backend/src/CongTacDang.Api -o Data/Migrations`
 4. Bổ sung key config mới vào `appsettings` / `docker/.env.example`.
 5. Chạy cổng kiểm tra trên bản đã merge.
