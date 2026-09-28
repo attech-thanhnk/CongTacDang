@@ -37,7 +37,7 @@ export function EvaluationStepNav({
       name: "Đăng ký công việc",
       role: "Cá nhân",
       count: myRecord?.tasks?.length ? `${myRecord.tasks.length} việc` : null,
-      allowed: hasPermission("evaluations.register"),
+      allowed: hasPermission("evaluation.self"),
       isCompleted: (myRecord?.tasks?.length || 0) > 0,
     },
     {
@@ -46,7 +46,7 @@ export function EvaluationStepNav({
       name: "Tự chấm điểm",
       role: "Cá nhân",
       count: myRecord?.totalSelfScore ? `${myRecord.totalSelfScore}đ` : null,
-      allowed: hasPermission("evaluations.self_score"),
+      allowed: hasPermission("evaluation.self"),
       isCompleted: (myRecord?.totalSelfScore || 0) > 0,
     },
     {
@@ -55,7 +55,7 @@ export function EvaluationStepNav({
       name: "Chi bộ đánh giá",
       role: "Chi bộ",
       count: branchRecordsCount > 0 ? `${branchRecordsCount} cán bộ` : null,
-      allowed: hasPermission("evaluations.branch_vote"),
+      allowed: hasPermission("evaluation.cell.confirm"),
       isCompleted: branchRecordsCount > 0,
     },
     {
@@ -64,7 +64,7 @@ export function EvaluationStepNav({
       name: "Thẩm định hồ sơ",
       role: "Tổ Thẩm định",
       count: allRecordsCount > 0 ? `${allRecordsCount} hồ sơ` : null,
-      allowed: hasPermission("evaluations.appraise"),
+      allowed: hasPermission("evaluation.appraise"),
       isCompleted: allRecordsCount > 0,
     },
     {
@@ -73,7 +73,7 @@ export function EvaluationStepNav({
       name: "Phê duyệt xếp loại",
       role: "Ban Thường vụ",
       count: null,
-      allowed: hasPermission("evaluations.approve"),
+      allowed: hasPermission("evaluation.decide") || hasPermission("evaluation.decide.external"),
       isCompleted: false,
     },
   ];

@@ -49,9 +49,10 @@ export default function CollectiveEvaluationsPage() {
   const [saving, setSaving] = useState(false);
 
   const canUseModule =
-    hasPermission("evaluations.branch_vote") ||
-    hasPermission("evaluations.appraise") ||
-    hasPermission("evaluations.approve");
+    hasPermission("evaluation.read") ||
+    hasPermission("collective.manage") ||
+    hasPermission("meeting.read") ||
+    hasPermission("meeting.manage");
 
   useEffect(() => {
     if (!canUseModule) {

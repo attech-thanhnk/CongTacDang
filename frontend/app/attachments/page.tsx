@@ -177,7 +177,7 @@ export default function AttachmentsPage() {
 
         <div className="row g-3">
         {/* Cột trái: Tải lên (Chỉ hiển thị khi có quyền upload) */}
-        {hasPermission("attachments.upload") && (
+        {(hasPermission("evaluation.self") || hasPermission("attachment.general.manage")) && (
           <div className="col-12 col-lg-4">
           <div className="border rounded bg-white" style={{ borderColor: "#e2e8f0" }}>
               <div className="card-header bg-white border-bottom py-2 px-3" style={{ borderColor: "#e2e8f0" }}>
@@ -283,7 +283,7 @@ export default function AttachmentsPage() {
         )}
 
         {/* Cột phải: Danh sách tệp (tự động giãn full width nếu không có quyền upload) */}
-        <div className={hasPermission("attachments.upload") ? "col-12 col-lg-8" : "col-12"}>
+        <div className={(hasPermission("evaluation.self") || hasPermission("attachment.general.manage")) ? "col-12 col-lg-8" : "col-12"}>
           <div className="border rounded bg-white" style={{ borderColor: "#e2e8f0" }}>
             <div className="card-header bg-white border-bottom py-2 px-3" style={{ borderColor: "#e2e8f0" }}>
               <div className="d-flex justify-content-between align-items-center gap-2">
@@ -368,7 +368,7 @@ export default function AttachmentsPage() {
                               >
                                 Tải về
                               </Button>
-                              {hasPermission("attachments.delete") && (
+                              {(hasPermission("evaluation.self") || hasPermission("attachment.general.manage")) && (
                                 <Button
                                   size="sm"
                                   variant="outline-danger"
