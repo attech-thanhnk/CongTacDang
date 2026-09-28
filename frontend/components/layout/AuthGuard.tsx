@@ -13,6 +13,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const isLoginPage = pathname === "/login";
+  const isChangePasswordPage = pathname === "/change-password";
 
   // Lắng nghe sự kiện hết hạn phiên làm việc từ apiClient để điều hướng mượt mà
   useEffect(() => {
@@ -32,11 +33,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!loading) {
       if (!user && !isLoginPage) {
         router.replace(`/login?returnUrl=${encodeURIComponent(pathname)}`);
+      } else if (user?.mustChangePassword && !isChangePasswordPage) {
+        router.replace("/change-password");
       } else if (user && isLoginPage) {
         router.replace("/evaluations");
       }
     }
-  }, [user, loading, isLoginPage, pathname, router]);
+  }, [user, loading, isLoginPage, isChangePasswordPage, pathname, router]);
 
   // Nếu là trang đăng nhập: Render trực tiếp ngay lập tức, không để spinner che khuất
   if (isLoginPage) {
