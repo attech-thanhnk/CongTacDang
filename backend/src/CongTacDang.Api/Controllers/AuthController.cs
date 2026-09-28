@@ -1,10 +1,10 @@
 using System;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using CongTacDang.Api.Authorization;
 using CongTacDang.Application.Common.Models;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
@@ -35,7 +35,8 @@ public class AuthController : ControllerBase
         try
         {
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-            var result = await _authService.LoginAsync(request, ipAddress);
+            var userAgent = Request.Headers.UserAgent.ToString();
+            var result = await _authService.LoginAsync(request, ipAddress, string.IsNullOrEmpty(userAgent) ? null : userAgent);
             SetAuthCookies(result);
 
             return Ok(ApiResponse<LoginResponseDto>.Ok(result.UserResponse, "Đăng nhập thành công."));
@@ -57,7 +58,7 @@ public class AuthController : ControllerBase
     {
         if (!Request.Cookies.TryGetValue("refresh_token", out var tokenValue) || string.IsNullOrWhiteSpace(tokenValue))
         {
-            return Unauthorized(ApiResponse.Fail("Không tìm thấy Refresh Token hợp lệ."));
+            return Unauthorized(ApiResponse.Fail("Không tìm thấy phiên đăng nhập. Vui lòng đăng nhập lại."));
         }
 
         try
@@ -77,18 +78,23 @@ public class AuthController : ControllerBase
         }
     }
 
-    /// <summary>Đổi mật khẩu hiện tại và giữ lại refresh token của tab đang dùng.</summary>
+    /// <summary>
+    /// Đổi mật khẩu hiện tại: đổi dấu bảo mật, thu hồi mọi phiên khác, cấp lại cookie cho phiên đang dùng.
+    /// Sai mật khẩu hiện tại / mật khẩu mới không đạt chính sách → 400.
+    /// </summary>
     [Authorize]
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestDto request)
     {
-        var username = User.FindFirst("username")?.Value ?? User.FindFirst("unique_name")?.Value;
-        if (string.IsNullOrWhiteSpace(username))
-            return Unauthorized(ApiResponse.Fail("Không xác định được tài khoản hiện tại."));
+        var userId = User.GetUserId();
+        if (userId == null)
+            return Unauthorized(ApiResponse.Fail("Không xác định được tài khoản hiện tại. Vui lòng đăng nhập lại."));
 
         Request.Cookies.TryGetValue("refresh_token", out var refreshToken);
-        await _authService.ChangePasswordAsync(username, request, refreshToken);
-        return Ok(ApiResponse.Ok("Đổi mật khẩu thành công."));
+        var result = await _authService.ChangePasswordAsync(
+            userId.Value, request, refreshToken, HttpContext.Connection.RemoteIpAddress?.ToString());
+        SetAuthCookies(result);
+        return Ok(ApiResponse<LoginResponseDto>.Ok(result.UserResponse, "Đổi mật khẩu thành công. Các phiên đăng nhập khác đã bị đăng xuất."));
     }
 
     /// <summary>Đăng xuất — thu hồi Refresh Token trong DB và xóa toàn bộ Cookie</summary>
@@ -112,16 +118,16 @@ public class AuthController : ControllerBase
         Response.Cookies.Delete("refresh_token", new Microsoft.AspNetCore.Http.CookieOptions { Path = "/api/auth" });
     }
 
-    /// <summary>Lấy thông tin user đang đăng nhập từ JWT Claims</summary>
+    /// <summary>Thông tin phiên hiện tại: hồ sơ, quyền (từ IPermissionResolver), trạng thái bắt buộc đổi mật khẩu.</summary>
     [Authorize]
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {
-        var username = User.FindFirstValue("username") ?? User.FindFirstValue("unique_name");
-        if (string.IsNullOrWhiteSpace(username))
-            return Unauthorized(ApiResponse.Fail("Không xác định được tài khoản hiện tại."));
+        var userId = User.GetUserId();
+        if (userId == null)
+            return Unauthorized(ApiResponse.Fail("Không xác định được tài khoản hiện tại. Vui lòng đăng nhập lại."));
 
-        var profile = await _userService.GetProfileAsync(username);
+        var profile = await _userService.GetProfileByIdAsync(userId.Value);
         // Danh sách quyền lấy từ nguồn quyền duy nhất (IPermissionResolver), cùng nguồn với kiểm tra policy.
         var effective = await _permissionResolver.GetAsync(profile.Id, HttpContext.RequestAborted);
 
@@ -147,6 +153,11 @@ public class AuthController : ControllerBase
             // Cookie sống theo refresh token để middleware Next.js nhận biết phiên; JWT bên trong vẫn hết hạn theo AccessTokenExpiryMinutes.
             Expires = result.RefreshTokenExpiresAt
         });
+
+        // RefreshToken rỗng: giữ nguyên refresh token hiện tại (đổi mật khẩu trên phiên đang dùng).
+        if (string.IsNullOrEmpty(result.RefreshToken))
+            return;
+
         Response.Cookies.Append("refresh_token", result.RefreshToken, new Microsoft.AspNetCore.Http.CookieOptions
         {
             HttpOnly = true,
