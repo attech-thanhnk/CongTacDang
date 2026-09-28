@@ -1,8 +1,25 @@
+const isDev = process.env.NODE_ENV === 'development';
+
+// Chế độ dev của Next.js cần eval (React Refresh) và WebSocket HMR; production giữ CSP chặt.
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "frame-src 'self' blob:",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+  `connect-src 'self'${isDev ? ' ws: wss:' : ''}`,
+  "form-action 'self'",
+].join('; ');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   // Tách cache dev khỏi production build để tránh mất chunk khi build lúc dev đang chạy.
-  distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
+  distDir: isDev ? '.next-dev' : '.next',
   output: 'standalone',
   async rewrites() {
     const backendUrl =
@@ -23,7 +40,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; frame-src 'self' blob:; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline'; connect-src 'self'; form-action 'self';",
+            value: contentSecurityPolicy,
           },
           {
             key: 'X-Frame-Options',
