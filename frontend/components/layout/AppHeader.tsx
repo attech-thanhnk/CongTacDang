@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { sessionRoleLabel, useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
 import { useToast } from "@/contexts/ToastContext";
 import { usePathname } from "next/navigation";
@@ -137,7 +137,7 @@ export function AppHeader() {
                   {user.fullName}
                 </span>
                 <span style={{ fontSize: "11.5px", color: "var(--text-secondary)" }}>
-                  {user.roles?.[0] || "Cán bộ"}
+                  {sessionRoleLabel(user)}
                 </span>
               </div>
 

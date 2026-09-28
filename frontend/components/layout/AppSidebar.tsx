@@ -3,72 +3,82 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
+import { sessionRoleLabel, useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
+
+interface MenuItem {
+  title: string;
+  href: string;
+  icon: string;
+  /** Mã quyền cần có (ở bất kỳ phạm vi nào). */
+  permission?: string;
+  /** Điều kiện tùy chỉnh (ưu tiên hơn `permission`). */
+  check?: () => boolean;
+}
+
+interface MenuGroup {
+  title?: string;
+  items: MenuItem[];
+}
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, logout, hasPermission } = useAuth();
   const { isSidebarOpen, closeSidebar } = useLayout();
 
-  const allMenuItems = [
-    { title: "Tổng quan", href: "/", icon: "bi-grid-1x2-fill" },
+  // Menu chỉ hiện theo mã quyền — máy chủ luôn kiểm tra lại, kể cả phạm vi.
+  const hasAnyEvaluationAction = () =>
+    (user?.permissions ?? []).some((code) => code.startsWith("evaluation.") && code !== "evaluation.read");
+
+  const menuGroups: MenuGroup[] = [
     {
-      title: "Đánh giá cán bộ",
-      href: "/evaluations",
-      icon: "bi-check2-square",
-      check: () =>
-        hasPermission("evaluation.self") ||
-        hasPermission("evaluation.read"),
+      items: [
+        { title: "Tổng quan", href: "/", icon: "bi-grid-1x2-fill" },
+        { title: "Việc cần xử lý", href: "/work-queue", icon: "bi-inbox-fill", check: hasAnyEvaluationAction },
+        {
+          title: "Đánh giá cán bộ",
+          href: "/evaluations",
+          icon: "bi-check2-square",
+          check: () => hasPermission("evaluation.self") || hasPermission("evaluation.read"),
+        },
+        {
+          title: "Đánh giá tập thể",
+          href: "/collective-evaluations",
+          icon: "bi-diagram-3-fill",
+          check: () =>
+            hasPermission("evaluation.read") ||
+            hasPermission("collective.manage") ||
+            hasPermission("meeting.read") ||
+            hasPermission("meeting.manage"),
+        },
+        { title: "Kỳ đánh giá", href: "/periods", icon: "bi-calendar-range", permission: "period.manage" },
+        // Mọi người đã đăng nhập (quyền trên tệp = quyền trên hồ sơ gắn tệp, máy chủ kiểm tra)
+        { title: "Tài liệu đính kèm", href: "/attachments", icon: "bi-folder2-open" },
+        { title: "Báo cáo", href: "/reports", icon: "bi-bar-chart-line-fill", permission: "report.export" },
+        { title: "Biểu mẫu", href: "/forms", icon: "bi-file-earmark-text-fill" },
+      ],
     },
     {
-      title: "Đánh giá tập thể",
-      href: "/collective-evaluations",
-      icon: "bi-diagram-3-fill",
-      check: () =>
-        hasPermission("evaluation.read") ||
-        hasPermission("collective.manage") ||
-        hasPermission("meeting.read") ||
-        hasPermission("meeting.manage"),
+      title: "Quản trị",
+      items: [
+        { title: "Tài khoản", href: "/admin/users", icon: "bi-people-fill", permission: "system.users.read" },
+        { title: "Vai trò", href: "/admin/roles", icon: "bi-shield-lock-fill", permission: "system.roles.manage" },
+        { title: "Danh mục", href: "/catalog", icon: "bi-building", permission: "catalog.manage" },
+        { title: "Nhập dữ liệu", href: "/imports", icon: "bi-file-earmark-arrow-up-fill", permission: "system.import" },
+        { title: "Nhật ký", href: "/audit", icon: "bi-clock-history", permission: "system.audit.read" },
+      ],
     },
-    {
-      title: "Cán bộ & Tổ chức",
-      href: "/users",
-      icon: "bi-people-fill",
-      check: () =>
-        hasPermission("system.users.read") ||
-        hasPermission("catalog.manage") ||
-        hasPermission("system.assignments.manage") ||
-        hasPermission("system.roles.manage"),
-    },
-    {
-      title: "Tài liệu đính kèm",
-      href: "/attachments",
-      icon: "bi-folder2-open",
-      // Mọi người đã đăng nhập (quyền trên tệp = quyền trên hồ sơ gắn tệp, máy chủ kiểm tra)
-    },
-    {
-      title: "Báo cáo",
-      href: "/reports",
-      icon: "bi-bar-chart-line-fill",
-      permission: "report.export",
-    },
-    {
-      title: "Nhật ký hệ thống",
-      href: "/audit",
-      icon: "bi-clock-history",
-      permission: "system.audit.read",
-    },
-    { title: "Biểu mẫu", href: "/forms", icon: "bi-file-earmark-text-fill" },
-    { title: "Danh mục tổ chức", href: "/catalog", icon: "bi-building", permission: "catalog.manage" },
-    { title: "Nhập dữ liệu", href: "/imports", icon: "bi-file-earmark-arrow-up-fill", permission: "system.import" },
   ];
 
-  const menuItems = allMenuItems.filter((item) => {
+  const isVisible = (item: MenuItem) => {
     if (item.check) return item.check();
     if (item.permission) return hasPermission(item.permission);
     return true;
-  });
+  };
+
+  const visibleGroups = menuGroups
+    .map((group) => ({ ...group, items: group.items.filter(isVisible) }))
+    .filter((group) => group.items.length > 0);
 
   // Lấy chữ cái đầu của tên để làm avatar
   const initials = user?.fullName
@@ -122,29 +132,40 @@ export function AppSidebar() {
 
         {/* Navigation */}
         <nav className="sidebar-nav">
-          <ul className="list-unstyled m-0 p-0">
-            {menuItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/" && pathname.startsWith(item.href));
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={() => {
-                      if (typeof window !== "undefined" && window.innerWidth < 768) {
-                        closeSidebar();
-                      }
-                    }}
-                    className={`nav-link ${isActive ? "active" : ""}`}
-                  >
-                    <i className={`bi ${item.icon}`} />
-                    <span>{item.title}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          {visibleGroups.map((group, groupIndex) => (
+            <React.Fragment key={group.title ?? `group-${groupIndex}`}>
+              {group.title && (
+                <div
+                  className="px-3 pt-3 pb-1 text-uppercase fw-semibold"
+                  style={{ fontSize: "11px", letterSpacing: "0.06em", color: "rgba(255,255,255,0.4)" }}
+                >
+                  {group.title}
+                </div>
+              )}
+              <ul className="list-unstyled m-0 p-0">
+                {group.items.map((item) => {
+                  const isActive =
+                    pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        onClick={() => {
+                          if (typeof window !== "undefined" && window.innerWidth < 768) {
+                            closeSidebar();
+                          }
+                        }}
+                        className={`nav-link ${isActive ? "active" : ""}`}
+                      >
+                        <i className={`bi ${item.icon}`} />
+                        <span>{item.title}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </React.Fragment>
+          ))}
         </nav>
 
         {/* User Footer */}
@@ -154,7 +175,7 @@ export function AppSidebar() {
               <div className="user-avatar">{initials}</div>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div className="user-name text-truncate">{user.fullName}</div>
-                <div className="user-role text-truncate">{user.roles?.[0] || "Cán bộ"}</div>
+                <div className="user-role text-truncate">{sessionRoleLabel(user)}</div>
               </div>
               <button
                 type="button"
