@@ -99,6 +99,7 @@ builder.Services.AddScoped<ICollectiveEvaluationService, CollectiveEvaluationSer
 builder.Services.AddScoped<IReportService, CongTacDang.Infrastructure.Services.ReportService>();
 builder.Services.AddDocumentGeneration(builder.Configuration);
 builder.Services.AddScoped<IReportAccessService, ReportAccessService>();
+builder.Services.AddImports(); // Nhập dữ liệu Excel (Api/Extensions/ImportExtensions.cs)
 
 // 7. Controllers & Swagger với hỗ trợ JWT Bearer Authorization
 builder.Services.AddControllers()

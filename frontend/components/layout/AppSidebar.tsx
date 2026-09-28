@@ -60,6 +60,8 @@ export function AppSidebar() {
       permission: "system.audit.read",
     },
     { title: "Biểu mẫu", href: "/forms", icon: "bi-file-earmark-text-fill" },
+    { title: "Danh mục tổ chức", href: "/catalog", icon: "bi-building", permission: "catalog.manage" },
+    { title: "Nhập dữ liệu", href: "/imports", icon: "bi-file-earmark-arrow-up-fill", permission: "system.import" },
   ];
 
   const menuItems = allMenuItems.filter((item) => {

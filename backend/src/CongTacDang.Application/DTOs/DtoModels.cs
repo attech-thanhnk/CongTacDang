@@ -127,31 +127,14 @@ public class BranchDto
     /// <summary>Nhiệm vụ trọng tâm hoặc mô tả Chi bộ</summary>
     public string Description { get; set; } = string.Empty;
 
+    /// <summary>Thứ tự hiển thị</summary>
+    public int SortOrder { get; set; }
+
+    /// <summary>Đang hoạt động (false = đã ngừng hoạt động)</summary>
+    public bool IsActive { get; set; }
+
     /// <summary>Số lượng cán bộ, Đảng viên sinh hoạt tại Chi bộ</summary>
     public int MemberCount { get; set; }
-}
-
-/// <summary>Dữ liệu yêu cầu thành lập Chi bộ mới</summary>
-public class CreateBranchDto
-{
-    /// <summary>Mã ký hiệu Chi bộ (tự động sinh nếu để trống)</summary>
-    public string Code { get; set; } = string.Empty;
-
-    /// <summary>Tên Chi bộ Đảng</summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>Mô tả nhiệm vụ trọng tâm</summary>
-    public string Description { get; set; } = string.Empty;
-}
-
-/// <summary>Dữ liệu yêu cầu cập nhật Chi bộ</summary>
-public class UpdateBranchDto
-{
-    /// <summary>Tên Chi bộ Đảng</summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>Mô tả nhiệm vụ trọng tâm</summary>
-    public string Description { get; set; } = string.Empty;
 }
 
 /// <summary>Thông tin Phòng ban / Đơn vị chuyên môn</summary>
@@ -168,6 +151,12 @@ public class DepartmentDto
 
     /// <summary>Mô tả chức năng nhiệm vụ</summary>
     public string Description { get; set; } = string.Empty;
+
+    /// <summary>Thứ tự hiển thị</summary>
+    public int SortOrder { get; set; }
+
+    /// <summary>Đang hoạt động (false = đã ngừng hoạt động)</summary>
+    public bool IsActive { get; set; }
 
     /// <summary>Số lượng cán bộ đang công tác</summary>
     public int MemberCount { get; set; }

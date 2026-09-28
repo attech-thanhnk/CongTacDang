@@ -107,6 +107,70 @@ public interface IOrganizationRepository
 
     /// <summary>Xóa Chi bộ</summary>
     Task DeletePartyCellAsync(PartyCell cell);
+
+    // ----- Danh mục (task 10): các thao tác ghi chỉ đưa vào DbContext, lưu qua IUnitOfWork -----
+
+    /// <summary>Danh sách Phòng/đơn vị chưa xóa (không tải cán bộ), sắp theo thứ tự hiển thị rồi mã.</summary>
+    Task<List<AdministrativeDepartment>> ListDepartmentsAsync();
+
+    /// <summary>Danh sách Chi bộ chưa xóa (không tải cán bộ), sắp theo thứ tự hiển thị rồi mã.</summary>
+    Task<List<PartyCell>> ListPartyCellsAsync();
+
+    /// <summary>Số cán bộ (chưa xóa) theo từng Phòng.</summary>
+    Task<Dictionary<Guid, int>> CountMembersByDepartmentAsync();
+
+    /// <summary>Số cán bộ (chưa xóa) theo từng Chi bộ.</summary>
+    Task<Dictionary<Guid, int>> CountMembersByPartyCellAsync();
+
+    /// <summary>Phòng chưa xóa theo Id (được theo dõi để cập nhật).</summary>
+    Task<AdministrativeDepartment?> FindDepartmentAsync(Guid id);
+
+    /// <summary>Chi bộ chưa xóa theo Id (được theo dõi để cập nhật).</summary>
+    Task<PartyCell?> FindPartyCellAsync(Guid id);
+
+    /// <summary>Toàn bộ Phòng kể cả đã xóa mềm (được theo dõi) — dùng kiểm tra mã và import.</summary>
+    Task<List<AdministrativeDepartment>> ListDepartmentsIncludingDeletedAsync();
+
+    /// <summary>Toàn bộ Chi bộ kể cả đã xóa mềm (được theo dõi) — dùng kiểm tra mã và import.</summary>
+    Task<List<PartyCell>> ListPartyCellsIncludingDeletedAsync();
+
+    /// <summary>Mã Phòng đã được dùng (kể cả bản ghi đã xóa mềm, không phân biệt hoa thường).</summary>
+    Task<bool> DepartmentCodeExistsAsync(string code, Guid? excludeId = null);
+
+    /// <summary>Mã Chi bộ đã được dùng (kể cả bản ghi đã xóa mềm, không phân biệt hoa thường).</summary>
+    Task<bool> PartyCellCodeExistsAsync(string code, Guid? excludeId = null);
+
+    /// <summary>Đưa Phòng mới vào DbContext (chưa lưu).</summary>
+    void AddDepartment(AdministrativeDepartment department);
+
+    /// <summary>Đưa Chi bộ mới vào DbContext (chưa lưu).</summary>
+    void AddPartyCell(PartyCell cell);
+
+    /// <summary>Đánh dấu xóa Phòng (DbContext đổi thành xóa mềm khi lưu).</summary>
+    void RemoveDepartment(AdministrativeDepartment department);
+
+    /// <summary>Đánh dấu xóa Chi bộ (DbContext đổi thành xóa mềm khi lưu).</summary>
+    void RemovePartyCell(PartyCell cell);
+
+    /// <summary>Số dữ liệu còn tham chiếu tới Phòng (cán bộ, hồ sơ đánh giá cá nhân, hồ sơ tập thể).</summary>
+    Task<CatalogUsage> GetDepartmentUsageAsync(Guid id);
+
+    /// <summary>Số dữ liệu còn tham chiếu tới Chi bộ (cán bộ, hồ sơ đánh giá cá nhân, hồ sơ tập thể, biên bản hội nghị).</summary>
+    Task<CatalogUsage> GetPartyCellUsageAsync(Guid id);
+}
+
+/// <summary>Số dữ liệu còn tham chiếu tới một mục danh mục (chặn xóa khi khác 0).</summary>
+/// <param name="Members">Cán bộ chưa xóa.</param>
+/// <param name="EvaluationRecords">Hồ sơ đánh giá cá nhân chưa xóa.</param>
+/// <param name="CollectiveRecords">Hồ sơ tự đánh giá tập thể chưa xóa.</param>
+/// <param name="Meetings">Biên bản hội nghị, kiểm phiếu chưa xóa (chỉ Chi bộ).</param>
+public sealed record CatalogUsage(int Members, int EvaluationRecords, int CollectiveRecords, int Meetings)
+{
+    /// <summary>Tổng hồ sơ đánh giá (cá nhân + tập thể + biên bản).</summary>
+    public int Records => EvaluationRecords + CollectiveRecords + Meetings;
+
+    /// <summary>Không còn dữ liệu nào tham chiếu.</summary>
+    public bool IsUnused => Members == 0 && Records == 0;
 }
 
 /// <summary>

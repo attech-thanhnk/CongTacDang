@@ -380,6 +380,89 @@ public class OrganizationRepository : IOrganizationRepository
         _db.PartyCells.Remove(cell);
         await _db.SaveChangesAsync();
     }
+
+    // ----- Danh mục (task 10) -----
+
+    public Task<List<AdministrativeDepartment>> ListDepartmentsAsync()
+        => _db.AdministrativeDepartments.AsNoTracking()
+            .OrderBy(d => d.SortOrder).ThenBy(d => d.Code)
+            .ToListAsync();
+
+    public Task<List<PartyCell>> ListPartyCellsAsync()
+        => _db.PartyCells.AsNoTracking()
+            .OrderBy(c => c.SortOrder).ThenBy(c => c.Code)
+            .ToListAsync();
+
+    public async Task<Dictionary<Guid, int>> CountMembersByDepartmentAsync()
+    {
+        var rows = await _db.PartyMemberProfiles.AsNoTracking()
+            .Where(m => m.DepartmentId != null)
+            .GroupBy(m => m.DepartmentId!.Value)
+            .Select(g => new { Id = g.Key, Count = g.Count() })
+            .ToListAsync();
+        return rows.ToDictionary(r => r.Id, r => r.Count);
+    }
+
+    public async Task<Dictionary<Guid, int>> CountMembersByPartyCellAsync()
+    {
+        var rows = await _db.PartyMemberProfiles.AsNoTracking()
+            .Where(m => m.PartyCellId != null)
+            .GroupBy(m => m.PartyCellId!.Value)
+            .Select(g => new { Id = g.Key, Count = g.Count() })
+            .ToListAsync();
+        return rows.ToDictionary(r => r.Id, r => r.Count);
+    }
+
+    public Task<AdministrativeDepartment?> FindDepartmentAsync(Guid id)
+        => _db.AdministrativeDepartments.FirstOrDefaultAsync(d => d.Id == id);
+
+    public Task<PartyCell?> FindPartyCellAsync(Guid id)
+        => _db.PartyCells.FirstOrDefaultAsync(c => c.Id == id);
+
+    public Task<List<AdministrativeDepartment>> ListDepartmentsIncludingDeletedAsync()
+        => _db.AdministrativeDepartments.IgnoreQueryFilters().ToListAsync();
+
+    public Task<List<PartyCell>> ListPartyCellsIncludingDeletedAsync()
+        => _db.PartyCells.IgnoreQueryFilters().ToListAsync();
+
+    public Task<bool> DepartmentCodeExistsAsync(string code, Guid? excludeId = null)
+    {
+        var normalized = code.Trim().ToUpper();
+        return _db.AdministrativeDepartments.IgnoreQueryFilters()
+            .AnyAsync(d => d.Code.ToUpper() == normalized && (excludeId == null || d.Id != excludeId));
+    }
+
+    public Task<bool> PartyCellCodeExistsAsync(string code, Guid? excludeId = null)
+    {
+        var normalized = code.Trim().ToUpper();
+        return _db.PartyCells.IgnoreQueryFilters()
+            .AnyAsync(c => c.Code.ToUpper() == normalized && (excludeId == null || c.Id != excludeId));
+    }
+
+    public void AddDepartment(AdministrativeDepartment department) => _db.AdministrativeDepartments.Add(department);
+
+    public void AddPartyCell(PartyCell cell) => _db.PartyCells.Add(cell);
+
+    public void RemoveDepartment(AdministrativeDepartment department) => _db.AdministrativeDepartments.Remove(department);
+
+    public void RemovePartyCell(PartyCell cell) => _db.PartyCells.Remove(cell);
+
+    public async Task<CatalogUsage> GetDepartmentUsageAsync(Guid id)
+    {
+        var members = await _db.PartyMemberProfiles.CountAsync(m => m.DepartmentId == id);
+        var records = await _db.EvaluationRecords.CountAsync(r => r.DepartmentId == id);
+        var collective = await _db.CollectiveEvaluationRecords.CountAsync(r => r.DepartmentId == id);
+        return new CatalogUsage(members, records, collective, 0);
+    }
+
+    public async Task<CatalogUsage> GetPartyCellUsageAsync(Guid id)
+    {
+        var members = await _db.PartyMemberProfiles.CountAsync(m => m.PartyCellId == id);
+        var records = await _db.EvaluationRecords.CountAsync(r => r.PartyCellId == id);
+        var collective = await _db.CollectiveEvaluationRecords.CountAsync(r => r.PartyCellId == id);
+        var meetings = await _db.EvaluationMeetings.CountAsync(m => m.PartyCellId == id);
+        return new CatalogUsage(members, records, collective, meetings);
+    }
 }
 
 /// <summary>
