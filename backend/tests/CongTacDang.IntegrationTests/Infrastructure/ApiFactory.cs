@@ -1,8 +1,12 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using CongTacDang.Application.Common.Interfaces;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Domain.Entities;
+using CongTacDang.Domain.Enums;
 using CongTacDang.Infrastructure.Data;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -121,12 +125,31 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Logging:File:Enabled", "false");
         builder.UseSetting("Logging:Console:Json", "false");
         builder.UseSetting("Logging:LogLevel:Default", "Warning");
+
+        // Tùy chọn cho test (không đổi hành vi mặc định): request có header X-Test-Client-Ip được gán địa chỉ IP đó,
+        // để test nhiều người dùng không cùng rơi vào một phân vùng giới hạn đăng nhập (10 lần/phút/IP).
+        builder.ConfigureServices(services => services.AddSingleton<IStartupFilter, TestClientIpStartupFilter>());
     }
 
+    /// <summary>Header dùng để giả lập địa chỉ IP client trong test (xem <see cref="LoginAsAsync(string, string, bool)"/>).</summary>
+    public const string TestClientIpHeader = "X-Test-Client-Ip";
+
     /// <summary>Đăng nhập và trả về HttpClient giữ cookie phiên (auth_token, refresh_token).</summary>
-    public async Task<HttpClient> LoginAsAsync(string username, string password)
+    public Task<HttpClient> LoginAsAsync(string username, string password) => LoginAsAsync(username, password, distinctClientIp: false);
+
+    /// <summary>
+    /// Đăng nhập; <paramref name="distinctClientIp"/> = true → client dùng một địa chỉ IP giả riêng (header
+    /// <see cref="TestClientIpHeader"/>) nên không chia chung giới hạn 10 lần đăng nhập/phút với test khác.
+    /// </summary>
+    public async Task<HttpClient> LoginAsAsync(string username, string password, bool distinctClientIp)
     {
         var client = CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true, AllowAutoRedirect = false });
+        if (distinctClientIp)
+        {
+            var bytes = RandomNumberGenerator.GetBytes(3);
+            client.DefaultRequestHeaders.Add(TestClientIpHeader, $"10.{bytes[0]}.{bytes[1]}.{bytes[2]}");
+        }
+
         var response = await client.PostAsJsonAsync("/api/auth/login", new { username, password });
         if (!response.IsSuccessStatusCode)
         {
@@ -142,10 +165,20 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     public Task<HttpClient> LoginAsAsync(TestUser user) => LoginAsAsync(user.Username, user.Password);
 
     /// <summary>
-    /// Tạo người dùng đang hoạt động (không bắt buộc đổi mật khẩu) với một vai trò riêng chứa đúng các mã quyền cho trước.
-    /// Mã quyền chưa có trong CSDL được tạo thêm.
+    /// Tạo người dùng đang hoạt động (không bắt buộc đổi mật khẩu) với một vai trò riêng chứa đúng các mã quyền cho trước,
+    /// gán phạm vi Toàn công ty (task 09: bản gán <see cref="UserRoleAssignment"/>). Mã quyền chưa có trong CSDL được tạo thêm
+    /// (mã không thuộc danh mục <c>PermissionCodes</c> không có hiệu lực).
     /// </summary>
     public async Task<TestUser> CreateUserWithPermissionsAsync(params string[] codes)
+    {
+        var role = await CreateRoleAsync(codes);
+        var user = await CreateUserAsync();
+        await AssignAsync(user.Id, role.Id, RoleScopeType.Global, null);
+        return user with { RoleId = role.Id, RoleCode = role.Code };
+    }
+
+    /// <summary>Tạo vai trò test chứa đúng các mã quyền cho trước.</summary>
+    public async Task<(Guid Id, string Code)> CreateRoleAsync(params string[] codes)
     {
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CongTacDangDbContext>();
@@ -167,21 +200,70 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             Description = "Tạo bởi test tích hợp",
             Permissions = permissions
         };
+        db.Roles.Add(role);
+        await db.SaveChangesAsync();
+        return (role.Id, role.Code);
+    }
+
+    /// <summary>Tạo người dùng đang hoạt động, chưa có bản gán vai trò nào.</summary>
+    public async Task<TestUser> CreateUserAsync(
+        Guid? departmentId = null,
+        Guid? partyCellId = null,
+        ApprovalAuthority approvalAuthority = ApprovalAuthority.CoSo,
+        string? fullName = null)
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CongTacDangDbContext>();
+        var suffix = Guid.NewGuid().ToString("N")[..8];
         var user = new PartyMemberProfile
         {
             Username = $"it_{suffix}",
-            FullName = $"Người dùng test {suffix}",
+            FullName = fullName ?? $"Người dùng test {suffix}",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(DefaultPassword),
             MustChangePassword = false,
             IsActive = true,
-            Roles = new List<AppRole> { role }
+            DepartmentId = departmentId,
+            PartyCellId = partyCellId,
+            ApprovalAuthority = approvalAuthority
         };
-
-        db.Roles.Add(role);
         db.PartyMemberProfiles.Add(user);
         await db.SaveChangesAsync();
+        return new TestUser(user.Id, user.Username, DefaultPassword, Guid.Empty, string.Empty);
+    }
 
-        return new TestUser(user.Id, user.Username, DefaultPassword, role.Id, role.Code);
+    /// <summary>Gán vai trò trực tiếp trong CSDL (bỏ qua API/chốt chặn — dùng để dựng dữ liệu test) và xóa cache quyền.</summary>
+    public async Task<Guid> AssignAsync(Guid userId, Guid roleId, RoleScopeType scopeType, Guid? scopeId)
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CongTacDangDbContext>();
+        var assignment = new UserRoleAssignment
+        {
+            UserId = userId,
+            RoleId = roleId,
+            ScopeType = scopeType,
+            ScopeId = scopeId,
+            ValidFrom = DateTime.UtcNow.AddMinutes(-1)
+        };
+        db.Set<UserRoleAssignment>().Add(assignment);
+        await db.SaveChangesAsync();
+        Services.GetRequiredService<IAccessCacheInvalidator>().InvalidateUser(userId);
+        return assignment.Id;
+    }
+
+    /// <summary>Id vai trò theo mã (vai trò mặc định do seeder tạo).</summary>
+    public async Task<Guid> GetRoleIdAsync(string roleCode)
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CongTacDangDbContext>();
+        return await db.Roles.Where(r => r.Code == roleCode).Select(r => r.Id).SingleAsync();
+    }
+
+    /// <summary>Thao tác trực tiếp trên CSDL test (dựng dữ liệu).</summary>
+    public async Task WithDbAsync(Func<CongTacDangDbContext, Task> action)
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CongTacDangDbContext>();
+        await action(db);
     }
 
     private async Task DropStaleDatabasesAsync()
@@ -238,6 +320,28 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         public string? UserAgent => null;
         public string? RequestPath => null;
     }
+}
+
+/// <summary>
+/// Middleware đầu pipeline (chỉ trong test): request có header <see cref="ApiFactory.TestClientIpHeader"/> được gán
+/// <c>RemoteIpAddress</c> theo header — để giới hạn đăng nhập theo IP phân vùng theo từng client test. Không có header → không đổi gì.
+/// </summary>
+internal sealed class TestClientIpStartupFilter : IStartupFilter
+{
+    public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>
+    {
+        app.Use(async (context, nextMiddleware) =>
+        {
+            if (context.Request.Headers.TryGetValue(ApiFactory.TestClientIpHeader, out var value)
+                && IPAddress.TryParse(value.ToString(), out var ip))
+            {
+                context.Connection.RemoteIpAddress = ip;
+            }
+
+            await nextMiddleware();
+        });
+        next(app);
+    };
 }
 
 /// <summary>Collection dùng chung một <see cref="ApiFactory"/> (một CSDL tạm) cho mọi lớp test tích hợp.</summary>
