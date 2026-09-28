@@ -1,7 +1,9 @@
 using ClosedXML.Excel;
 using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Interfaces;
+using CongTacDang.Application.Common.Models;
 using CongTacDang.Application.Common.Security;
+using CongTacDang.Application.DTOs;
 using CongTacDang.Application.Imports;
 using CongTacDang.Application.Imports.Definitions;
 using CongTacDang.Application.Services;
@@ -416,6 +418,17 @@ public class ImportFrameworkTests
             Commands.Add(cmd);
             return Task.FromResult(new CreatedAccount(Guid.NewGuid(), cmd.Username, $"Pw-{cmd.Username}"));
         }
+
+        // Các thao tác còn lại không được import dùng tới.
+        public Task<PagedResult<AccountListItemDto>> SearchAsync(AccountSearchQuery query, CancellationToken ct = default)
+            => throw new NotSupportedException();
+        public Task<AccountListItemDto> GetAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<AccountListItemDto> UpdateAsync(Guid id, UpdateAccountCommand cmd, CancellationToken ct = default)
+            => throw new NotSupportedException();
+        public Task SetActiveAsync(Guid id, bool isActive, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task UnlockAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<CreatedAccount> ResetPasswordAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task DeleteAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
     }
 
     private sealed class FakeAudit : IImportAuditLog
