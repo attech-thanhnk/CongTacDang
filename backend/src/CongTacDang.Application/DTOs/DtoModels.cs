@@ -35,6 +35,9 @@ public class UserProfileDto
 
     /// <summary>Danh sách mã quyền hạn nguyên tử được cấp</summary>
     public string[] Permissions { get; set; } = Array.Empty<string>();
+
+    /// <summary>Người dùng phải đổi mật khẩu tạm trước khi tiếp tục</summary>
+    public bool MustChangePassword { get; set; }
 }
 
 /// <summary>Thông tin tóm tắt hồ sơ cán bộ lãnh đạo, quản lý 2 vai</summary>
@@ -784,6 +787,9 @@ public class LoginResponseDto
     /// <summary>Danh sách quyền hạn nguyên tử</summary>
     public string[] Permissions { get; set; } = Array.Empty<string>();
 
+    /// <summary>Người dùng phải đổi mật khẩu tạm trước khi tiếp tục</summary>
+    public bool MustChangePassword { get; set; }
+
     /// <summary>Thời điểm hết hạn của phiên làm việc</summary>
     public DateTime ExpiresAt { get; set; }
 }
@@ -796,6 +802,22 @@ public class AuthResultDto
     public string RefreshToken { get; set; } = string.Empty;
     public DateTime RefreshTokenExpiresAt { get; set; }
     public LoginResponseDto UserResponse { get; set; } = null!;
+}
+
+/// <summary>Payload đổi mật khẩu của người dùng đang đăng nhập.</summary>
+public class ChangePasswordRequestDto
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+}
+
+/// <summary>Kết quả đặt lại mật khẩu tạm cho cán bộ.</summary>
+public class ResetPasswordResponseDto
+{
+    public Guid UserId { get; set; }
+    public string UserName { get; set; } = string.Empty;
+    public string TemporaryPassword { get; set; } = string.Empty;
+    public bool MustChangePassword { get; set; }
 }
 
 /// <summary>Thông tin quyền hạn chi tiết trong hệ thống (Atomic Permission)</summary>
