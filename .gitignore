@@ -65,8 +65,19 @@ pnpm-debug.log*
 storage/
 backend/storage/
 backend/src/CongTacDang.Api/storage/
+uploads/
 *.log
 logs/
+
+# Kết quả publish .NET và cache dev Next.js
+backend/publish/
+backend/publish-*/
+publish/
+.next-dev/
+frontend/.next-dev/
+
+# Công cụ thử nghiệm cục bộ
+scratch/
 
 # -----------------------------------------------------------------------------
 # 4. OS & System generated files
