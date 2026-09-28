@@ -161,9 +161,9 @@ namespace CongTacDang.Infrastructure.Data
                 entity.HasIndex(e => e.IsActive)
                     .IsUnique()
                     .HasFilter("\"IsActive\" = TRUE");
-                entity.Property<uint>("xmin")
-                    .ValueGeneratedOnAddOrUpdate()
-                    .IsConcurrencyToken();
+                entity.Property(e => e.Version)
+                    .HasColumnName("xmin")
+                    .IsRowVersion();
 
                 entity.HasMany(p => p.Records)
                     .WithOne(r => r.Period)
@@ -182,9 +182,9 @@ namespace CongTacDang.Infrastructure.Data
                 entity.HasIndex(e => e.PartyCellId);
                 entity.HasIndex(e => e.DepartmentId);
                 entity.HasIndex(e => e.Status);
-                entity.Property<uint>("xmin")
-                    .ValueGeneratedOnAddOrUpdate()
-                    .IsConcurrencyToken();
+                entity.Property(e => e.Version)
+                    .HasColumnName("xmin")
+                    .IsRowVersion();
 
                 entity.HasOne(r => r.Member)
                     .WithMany()
@@ -217,9 +217,9 @@ namespace CongTacDang.Infrastructure.Data
                 entity.HasIndex(e => e.DepartmentId);
                 entity.Property(e => e.SubjectName).HasMaxLength(300).IsRequired();
                 entity.Property(e => e.Form).HasConversion<int>();
-                entity.Property<uint>("xmin")
-                    .ValueGeneratedOnAddOrUpdate()
-                    .IsConcurrencyToken();
+                entity.Property(e => e.Version)
+                    .HasColumnName("xmin")
+                    .IsRowVersion();
                 entity.HasOne(e => e.Period)
                     .WithMany(p => p.CollectiveRecords)
                     .HasForeignKey(e => e.PeriodId)
@@ -255,9 +255,9 @@ namespace CongTacDang.Infrastructure.Data
                 entity.ToTable("evaluation_meetings");
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => new { e.PeriodId, e.PartyCellId, e.FormCode });
-                entity.Property<uint>("xmin")
-                    .ValueGeneratedOnAddOrUpdate()
-                    .IsConcurrencyToken();
+                entity.Property(e => e.Version)
+                    .HasColumnName("xmin")
+                    .IsRowVersion();
                 entity.Property(e => e.FormCode).HasMaxLength(10).IsRequired();
                 entity.Property(e => e.MeetingType).HasMaxLength(200);
                 entity.Property(e => e.Location).HasMaxLength(300);
@@ -344,9 +344,9 @@ namespace CongTacDang.Infrastructure.Data
                 entity.HasIndex(e => new { e.RecordId, e.TaskOrder });
                 entity.HasIndex(e => e.AttachmentId);
                 entity.Property(e => e.TaskName).HasMaxLength(500).IsRequired();
-                entity.Property<uint>("xmin")
-                    .ValueGeneratedOnAddOrUpdate()
-                    .IsConcurrencyToken();
+                entity.Property(e => e.Version)
+                    .HasColumnName("xmin")
+                    .IsRowVersion();
 
                 entity.HasOne(t => t.Attachment)
                     .WithMany()

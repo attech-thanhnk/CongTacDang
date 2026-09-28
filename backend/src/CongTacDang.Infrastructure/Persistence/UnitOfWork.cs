@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Interfaces;
+using CongTacDang.Domain.Entities;
 using CongTacDang.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -51,12 +52,12 @@ public sealed class UnitOfWork : IUnitOfWork
         if (version is null)
             return;
 
-        _db.Entry(entity).Property("xmin").OriginalValue = version.Value;
+        _db.Entry(entity).Property(nameof(IVersioned.Version)).OriginalValue = version.Value;
     }
 
     public uint GetVersion(object entity)
     {
-        var value = _db.Entry(entity).Property("xmin").CurrentValue;
-        return value is uint version ? version : Convert.ToUInt32(value ?? 0u);
+        // Đọc từ thuộc tính thật: có giá trị cả khi entity được truy vấn bằng AsNoTracking.
+        return entity is IVersioned versioned ? versioned.Version : 0u;
     }
 }

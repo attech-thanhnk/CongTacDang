@@ -5,8 +5,11 @@ namespace CongTacDang.Domain.Entities;
 /// <summary>
 /// Thực thể Công việc / Sản phẩm chuyên môn đăng ký và đánh giá (Mẫu 01 & Mẫu 02) theo Hướng dẫn 03-HD/TVĐU
 /// </summary>
-public class EvaluationTask : IAuditableEntity, ISoftDeletable
+public class EvaluationTask : IAuditableEntity, ISoftDeletable, IVersioned
 {
+    /// <summary>Phiên bản bản ghi (xmin) cho optimistic concurrency.</summary>
+    public uint Version { get; set; }
+
     /// <summary>Mã định danh công việc</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 

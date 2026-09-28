@@ -7,8 +7,11 @@ namespace CongTacDang.Domain.Entities;
 /// <summary>
 /// Thực thể Hồ sơ Đánh giá, xếp loại cá nhân của Cán bộ theo Hướng dẫn 03-HD/TVĐU
 /// </summary>
-public class EvaluationRecord : IAuditableEntity, ISoftDeletable
+public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 {
+    /// <summary>Phiên bản bản ghi (xmin) cho optimistic concurrency.</summary>
+    public uint Version { get; set; }
+
     /// <summary>Mã định danh hồ sơ đánh giá</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 

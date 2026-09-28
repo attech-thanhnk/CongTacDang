@@ -22,3 +22,12 @@ public interface ISoftDeletable
     DateTime? DeletedAt { get; set; }
     Guid? DeletedBy { get; set; }
 }
+
+/// <summary>
+/// Phiên bản bản ghi cho optimistic concurrency (ánh xạ cột hệ thống xmin của PostgreSQL).
+/// Là thuộc tính thật nên đọc được cả với truy vấn AsNoTracking.
+/// </summary>
+public interface IVersioned
+{
+    uint Version { get; set; }
+}

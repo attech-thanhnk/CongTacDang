@@ -7,8 +7,11 @@ namespace CongTacDang.Domain.Entities;
 /// <summary>
 /// Thực thể Kỳ đánh giá định kỳ hằng quý theo Hướng dẫn 03-HD/TVĐU
 /// </summary>
-public class EvaluationPeriod : IAuditableEntity, ISoftDeletable
+public class EvaluationPeriod : IAuditableEntity, ISoftDeletable, IVersioned
 {
+    /// <summary>Phiên bản bản ghi (xmin) cho optimistic concurrency.</summary>
+    public uint Version { get; set; }
+
     /// <summary>Mã định danh kỳ đánh giá</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 

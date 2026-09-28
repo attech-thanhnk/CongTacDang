@@ -4,8 +4,11 @@ using System.Collections.Generic;
 namespace CongTacDang.Domain.Entities;
 
 /// <summary>Hội nghị đánh giá và biên bản Mẫu 12, 13.</summary>
-public class EvaluationMeeting : IAuditableEntity, ISoftDeletable
+public class EvaluationMeeting : IAuditableEntity, ISoftDeletable, IVersioned
 {
+    /// <summary>Phiên bản bản ghi (xmin) cho optimistic concurrency.</summary>
+    public uint Version { get; set; }
+
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid PeriodId { get; set; }
     public EvaluationPeriod Period { get; set; } = null!;

@@ -7,8 +7,11 @@ namespace CongTacDang.Domain.Entities;
 /// <summary>
 /// Hồ sơ đánh giá tập thể cho Mẫu 06, 07 và 08. Nội dung chi tiết được lưu theo nhóm trường của từng mẫu.
 /// </summary>
-public class CollectiveEvaluationRecord : IAuditableEntity, ISoftDeletable
+public class CollectiveEvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 {
+    /// <summary>Phiên bản bản ghi (xmin) cho optimistic concurrency.</summary>
+    public uint Version { get; set; }
+
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid PeriodId { get; set; }
     public EvaluationPeriod Period { get; set; } = null!;
