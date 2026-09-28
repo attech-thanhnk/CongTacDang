@@ -39,6 +39,15 @@ public class SecurityTests
     }
 
     [Fact]
+    public async Task Attachment_RejectsPathTraversalFormCode()
+    {
+        var service = new AttachmentService(new FakeAttachmentRepository(), new FakeStorage());
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.UploadAttachmentAsync(
+            new MemoryStream(Encoding.ASCII.GetBytes("%PDF-1.7")), "evidence.pdf", 8, "../../x", "", "tester"));
+    }
+
+    [Fact]
     public async Task ExceptionMiddleware_MapsForbiddenTo403()
     {
         var middleware = new GlobalExceptionMiddleware(
