@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using CongTacDang.Application.Accounts;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Infrastructure.Data;
 using CongTacDang.Infrastructure.Persistence;
@@ -67,7 +68,12 @@ public static class PersistenceExtensions
                 db,
                 seedSampleData,
                 app.Configuration.GetValue<bool>("Database:ResetRolePermissions"),
-                app.Logger);
+                app.Logger,
+                new DataSeeder.InitialAdminOptions(
+                    app.Configuration["Seed:InitialAdmin:Username"],
+                    app.Configuration["Seed:InitialAdmin:FullName"],
+                    app.Configuration["Seed:InitialAdmin:Password"],
+                    app.Configuration.GetValue("Security:Password:MinLength", PasswordPolicy.DefaultMinLength)));
         }
         catch (Exception ex)
         {

@@ -6,7 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Application.Accounts;
+using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Security;
+using CongTacDang.Infrastructure.Repositories;
 
 namespace CongTacDang.Infrastructure.Data;
 
@@ -21,6 +24,21 @@ namespace CongTacDang.Infrastructure.Data;
 /// </summary>
 public static class DataSeeder
 {
+    /// <summary>Cấu hình tài khoản quản trị ban đầu (<c>Seed:InitialAdmin:*</c>).</summary>
+    /// <param name="Username">Tên đăng nhập.</param>
+    /// <param name="FullName">Họ tên hiển thị (trống → "Quản trị hệ thống").</param>
+    /// <param name="Password">Mật khẩu ban đầu (phải đổi ở lần đăng nhập đầu).</param>
+    /// <param name="PasswordMinLength">Độ dài tối thiểu mật khẩu (<c>Security:Password:MinLength</c>).</param>
+    public sealed record InitialAdminOptions(string? Username, string? FullName, string? Password,
+        int PasswordMinLength = PasswordPolicy.DefaultMinLength)
+    {
+        /// <summary>Đã đặt đủ tên đăng nhập và mật khẩu.</summary>
+        public bool IsConfigured => !string.IsNullOrWhiteSpace(Username) && !string.IsNullOrEmpty(Password);
+
+        /// <summary>Không in mật khẩu khi ghi log/đối tượng.</summary>
+        public override string ToString() => $"InitialAdminOptions {{ Username = {Username}, FullName = {FullName} }}";
+    }
+
     /// <summary>Định nghĩa một vai trò mặc định và bộ quyền của nó.</summary>
     private sealed record RoleDefinition(string Code, string Name, string Description, string[] Permissions, bool IsProtected = false);
 
@@ -99,7 +117,8 @@ public static class DataSeeder
         CongTacDangDbContext context,
         bool seedSampleData = true,
         bool resetRolePermissions = false,
-        ILogger? logger = null)
+        ILogger? logger = null,
+        InitialAdminOptions? initialAdmin = null)
     {
         // 1. Danh mục quyền: đồng bộ từ PermissionCodes (tạo mới, cập nhật tên/mô tả/phân hệ/thứ tự).
         await SyncPermissionCatalogAsync(context, logger);
@@ -109,9 +128,17 @@ public static class DataSeeder
         if (resetRolePermissions)
             await ResetRolePermissionsAsync(context, logger);
 
-        if (!seedSampleData)
-            return;
+        // 3. Dữ liệu mẫu (chỉ môi trường thử nghiệm).
+        if (seedSampleData)
+            await SeedSampleDataAsync(context, logger);
 
+        // 4. Tài khoản quản trị ban đầu (độc lập với dữ liệu mẫu) — chỉ khi hệ thống chưa có quản trị nào.
+        await SeedInitialAdministratorAsync(context, initialAdmin, logger);
+    }
+
+    /// <summary>Danh mục, tài khoản, bản gán, kỳ và hồ sơ đánh giá mẫu (<c>Database:SeedSampleData</c>).</summary>
+    private static async Task SeedSampleDataAsync(CongTacDangDbContext context, ILogger? logger)
+    {
         // 4. Seed Chi bộ Đảng tại ATTECH
         if (!await context.PartyCells.AnyAsync())
         {
@@ -301,6 +328,101 @@ public static class DataSeeder
             }
         }
     }
+
+    #region Quản trị ban đầu
+
+    /// <summary>
+    /// Tạo tài khoản quản trị ban đầu (cấu hình <c>Seed:InitialAdmin:*</c>) khi chưa có tài khoản đang hoạt động nào giữ
+    /// <c>system.roles.manage</c> và <c>system.assignments.manage</c> phạm vi Toàn công ty: bắt buộc đổi mật khẩu ở lần
+    /// đăng nhập đầu, gán vai trò quản trị hệ thống (được bảo vệ) phạm vi Toàn công ty. Đã có quản trị → bỏ qua (không đổi
+    /// mật khẩu). Thiếu cấu hình / cấu hình sai → ghi log, không dừng ứng dụng. Mật khẩu không bao giờ được ghi log.
+    /// </summary>
+    private static async Task SeedInitialAdministratorAsync(CongTacDangDbContext context, InitialAdminOptions? options, ILogger? logger)
+    {
+        var now = DateTime.UtcNow;
+        var grants = await new RoleAssignmentRepository(context).GetAdministratorGrantsAsync(now);
+        if (AdministratorInvariant.Holds(grants))
+        {
+            if (options?.IsConfigured == true)
+                logger?.LogInformation(
+                    "Đã có tài khoản quản trị đang hoạt động; bỏ qua cấu hình Seed:InitialAdmin (không tạo mới, không đổi mật khẩu).");
+            return;
+        }
+
+        if (options?.IsConfigured != true)
+        {
+            logger?.LogWarning(
+                "Hệ thống chưa có tài khoản quản trị nào đang hoạt động nên không ai quản trị được. Hãy đặt Seed:InitialAdmin:Username "
+                + "và Seed:InitialAdmin:Password (biến môi trường Seed__InitialAdmin__Username, Seed__InitialAdmin__Password; tùy chọn "
+                + "Seed__InitialAdmin__FullName) rồi khởi động lại để tạo tài khoản quản trị ban đầu.");
+            return;
+        }
+
+        string username;
+        try
+        {
+            username = AccountRules.NormalizeAndValidateUsername(options.Username);
+            new PasswordPolicy(options.PasswordMinLength).Validate(options.Password);
+        }
+        catch (ValidationException ex)
+        {
+            logger?.LogError("Không tạo được tài khoản quản trị ban đầu từ cấu hình Seed:InitialAdmin: {Reason}", ex.Message);
+            return;
+        }
+
+        if (await context.PartyMemberProfiles.IgnoreQueryFilters().AnyAsync(m => m.Username.ToLower() == username))
+        {
+            logger?.LogError(
+                "Không tạo được tài khoản quản trị ban đầu: tên đăng nhập {Username} đã được dùng (kể cả tài khoản đã xóa/khóa). "
+                + "Hãy đặt Seed:InitialAdmin:Username khác.", username);
+            return;
+        }
+
+        var role = await context.Roles
+            .Include(r => r.Permissions)
+            .Where(r => r.IsProtected)
+            .OrderBy(r => r.Code == RoleCodes.Administrator ? 0 : 1)
+            .ThenBy(r => r.CreatedAt)
+            .ToListAsync();
+        var adminRole = role.FirstOrDefault(r =>
+            AdministratorInvariant.Codes.All(code => r.Permissions.Any(p => p.Code == code && !p.IsDeleted)));
+        if (adminRole == null)
+        {
+            logger?.LogError(
+                "Không tạo được tài khoản quản trị ban đầu: không có vai trò được bảo vệ nào chứa đủ quyền quản trị "
+                + "(system.roles.manage, system.assignments.manage).");
+            return;
+        }
+
+        var fullName = string.IsNullOrWhiteSpace(options.FullName) ? "Quản trị hệ thống" : options.FullName.Trim();
+        var admin = new PartyMemberProfile
+        {
+            Username = username,
+            FullName = fullName,
+            PositionTitle = "Quản trị hệ thống",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(options.Password),
+            MustChangePassword = true,
+            IsActive = true,
+            IsPartyMember = false,
+            SecurityStamp = Guid.NewGuid().ToString("N"),
+            ApprovalAuthority = ApprovalAuthority.CoSo
+        };
+        context.PartyMemberProfiles.Add(admin);
+        context.Set<UserRoleAssignment>().Add(new UserRoleAssignment
+        {
+            UserId = admin.Id,
+            RoleId = adminRole.Id,
+            ScopeType = RoleScopeType.Global,
+            ValidFrom = now,
+            Note = "Tài khoản quản trị ban đầu (cấu hình Seed:InitialAdmin)."
+        });
+        await context.SaveChangesAsync();
+        logger?.LogInformation(
+            "Đã tạo tài khoản quản trị ban đầu {Username} với vai trò {Role} (Toàn công ty); phải đổi mật khẩu ở lần đăng nhập đầu.",
+            username, adminRole.Name);
+    }
+
+    #endregion
 
     #region Danh mục quyền, vai trò
 
