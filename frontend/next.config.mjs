@@ -26,11 +26,10 @@ const nextConfig = {
     // nhập nhiều cán bộ (băm BCrypt mật khẩu tạm ~0,1–0,2 giây/tài khoản) → nâng lên 5 phút.
     proxyTimeout: 300000,
   },
+  // rewrites được tính LÚC BUILD và ghi cố định vào bản build: BACKEND_INTERNAL_URL phải có khi chạy
+  // `npm run build` (Docker: build arg trong Dockerfile.frontend), đặt lúc chạy `next start` không có tác dụng.
   async rewrites() {
-    const backendUrl =
-      process.env.BACKEND_INTERNAL_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'http://localhost:5000';
+    const backendUrl = process.env.BACKEND_INTERNAL_URL || 'http://localhost:5000';
     return [
       {
         source: '/api/:path*',

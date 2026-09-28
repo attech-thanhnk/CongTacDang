@@ -68,11 +68,13 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.frontend
+      args:
+        # Proxy /api/* được ghi cố định lúc build; đổi địa chỉ backend phải build lại image.
+        BACKEND_INTERNAL_URL: http://backend:5000
     container_name: attech-dangbo-web
     restart: unless-stopped
     environment:
       PORT: 3000
-      BACKEND_INTERNAL_URL: http://backend:5000
     ports:
       - "${FRONTEND_BIND_IP:-127.0.0.1}:${FRONTEND_PORT:-3001}:3000"
     depends_on:

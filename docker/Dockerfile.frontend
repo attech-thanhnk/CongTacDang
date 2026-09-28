@@ -15,6 +15,10 @@ COPY frontend/ ./
 RUN mkdir -p /app/public
 
 ENV NEXT_TELEMETRY_DISABLED=1
+# Địa chỉ backend cho proxy /api/* được Next.js ghi cố định vào bản build (rewrites tính lúc build),
+# đặt biến lúc chạy container không có tác dụng — phải truyền qua build arg.
+ARG BACKEND_INTERNAL_URL=http://backend:5000
+ENV BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL}
 RUN npm run build
 
 FROM node:20-alpine AS runner

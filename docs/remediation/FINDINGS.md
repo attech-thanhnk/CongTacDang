@@ -33,7 +33,8 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 **Đợt 4–5 + dọn sạch (2026-09-28)** — task 08, 09, 10, tích hợp Đợt 4, task 11, 12, 13 và đợt dọn sạch cuối đã merge vào `main`. Người điều phối kiểm lại trên bản gộp: build 0 lỗi 0 warning, unit 193/194 (1 skip PDF thiếu LibreOffice), integration 72/72 trên PostgreSQL `192.168.22.159` (0 skip), `tsc` + `npm run build` pass, grep không còn tên vai trò/mã quyền cũ/MinIO (trừ hằng số nội bộ vai trò quản trị mặc định trong `DataSeeder`). Migration gộp lại thành một `InitialCreate` (không giữ dữ liệu/CSDL cũ theo quyết định chủ dự án); `has-pending-model-changes` sạch.
 - T-65 `partial`: giao diện quản trị mới chỉ kiểm bằng `tsc`/build, chưa thao tác trên trình duyệt.
 - B-07 `partial`: đã điền thêm Mẫu 10 (nhận xét cấp trực tiếp sử dụng), Mẫu 13 (phiếu không hợp lệ, số có mặt); ô còn trống liệt kê trong `reports/12-evaluation-workflow.md`.
-- T-27 vẫn `open`: chưa build image / chạy compose (máy không có Docker). T-38: chưa chạy PDF thật.
+- T-27 vẫn `open`: chưa build image / chạy compose (máy không có Docker). T-38: chưa chạy PDF thật. Khi chạy thử app đã phát hiện và sửa T-69 (proxy Docker trỏ sai backend).
+- Chạy thử app thật (backend + `next start` qua proxy, CSDL tạm trên 159, dữ liệu mẫu): 25/26 kịch bản API đạt ngay, kịch bản còn lại do script thiếu `periodId`, chạy lại đạt. Đã kiểm: bắt đổi mật khẩu phía máy chủ, `grants`, tạo tài khoản → đăng nhập, gán vai trò có hiệu lực ngay, chống tự khóa, khóa → 401 ngay, cán bộ thường bị chặn danh sách tài khoản, import, và work-queue của 8 tài khoản mẫu đúng vai (kể cả chặn tự duyệt hồ sơ của mình).
 - Sau khi triển khai bản này mọi người phải đăng nhập lại (JWT mới có `sstamp`).
 
 ## T — Kỹ thuật
@@ -109,6 +110,8 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-66 | 🟠 | Luồng đánh giá lệch HD03: thiếu duyệt danh mục (B1), Chi bộ xác nhận tách khỏi đề xuất tập thể lãnh đạo Phòng (B3a), cấp trực tiếp sử dụng (B3c), ghi nhận quyết định cấp trên, công bố/khóa (B5), trả lại/mở lại có lý do; bước không cấu hình theo kỳ | `EvaluationService`, `DomainEnums.cs`, `components/evaluations/*` | 12 | done |
 | T-67 | 🟡 | Hằng số nghiệp vụ (số sản phẩm, tổng trọng số, ngưỡng, trần %, chênh lệch) rải rác trong code, không cấu hình theo kỳ | `EvaluationService`, `CollectiveEvaluationService` | 12 | done |
 | T-68 | 🟡 | Chưa có kịch bản go-live kiểm thử đầu-cuối (CSDL trống → import → đăng nhập → phân quyền → đánh giá) | `backend/tests/` | 13 | done |
+| T-69 | 🔴 | Proxy `/api/*` của Next.js được ghi cố định lúc build, nhưng `Dockerfile.frontend` build không có `BACKEND_INTERNAL_URL` (biến chỉ đặt lúc chạy container) → frontend trong Docker gọi `localhost:5000` của chính nó, mọi API lỗi 500. Đã sửa: build arg trong Dockerfile + compose, bỏ biến runtime vô tác dụng, chú thích trong `next.config.mjs` | `docker/Dockerfile.frontend`, `docker/docker-compose.yml`, `frontend/next.config.mjs` | — | done |
+| T-70 | ⚪ | EF cảnh báo 10622 khi khởi động: `CollectiveEvaluationRecord`, `EvaluationMeeting` có query filter xóa mềm nhưng là đầu bắt buộc của quan hệ với bảng con (item, vote summary) — cần filter tương ứng cho bảng con hoặc quan hệ tùy chọn | `CongTacDangDbContext`, `Data/Configurations/` | — | open |
 
 ## B — Nghiệp vụ (để xử lý sau)
 
