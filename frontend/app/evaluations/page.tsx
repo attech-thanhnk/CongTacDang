@@ -281,7 +281,7 @@ function EvaluationsContent() {
       }
       return;
     }
-    if (activeStep === 3 && !(hasPermission("evaluations.branch_vote") || hasPermission("evaluations.branch_review"))) {
+    if (activeStep === 3 && !hasPermission("evaluations.branch_vote")) {
       handleSelectStep(1);
     } else if (activeStep === 4 && !hasPermission("evaluations.appraise")) {
       handleSelectStep(1);
@@ -356,7 +356,7 @@ function EvaluationsContent() {
         }
       }
 
-      if (hasPermission("evaluations.branch_vote") || hasPermission("evaluations.branch_review") || isAdmin) {
+      if (hasPermission("evaluations.branch_vote") || isAdmin) {
         const bRecs = await evaluationService.getBranchRecords(periodId);
         setBranchRecords(bRecs);
         const initialVotes: { [recordId: string]: BranchMeetingVoteState } = {};
@@ -926,7 +926,7 @@ function EvaluationsContent() {
 
             {/* Bước 3: Mẫu 11, 12, 13 (Chi bộ đánh giá) */}
             {/* Bước 3: Mẫu 11 & Mẫu 13 (Chi bộ đánh giá & Biên bản kiểm phiếu) */}
-            {activeStep === 3 && (hasPermission("evaluations.branch_vote") || hasPermission("evaluations.branch_review") || isAdmin) && (
+            {activeStep === 3 && (hasPermission("evaluations.branch_vote") || isAdmin) && (
               <Step3BranchReview
                 records={branchRecords}
                 totalVoters={totalVoters}

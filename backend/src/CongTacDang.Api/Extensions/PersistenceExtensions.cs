@@ -37,6 +37,7 @@ public static class PersistenceExtensions
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IAttachmentRepository, AttachmentRepository>();
+        services.AddScoped<IAttachmentAccessReader, AttachmentRepository>();
         services.AddScoped<IAuditRepository, AuditRepository>();
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
@@ -65,7 +66,11 @@ public static class PersistenceExtensions
                 await db.Database.MigrateAsync();
             }
 
-            await DataSeeder.SeedAsync(db, seedSampleData);
+            await DataSeeder.SeedAsync(
+                db,
+                seedSampleData,
+                app.Configuration.GetValue<bool>("Database:ResetRolePermissions"),
+                app.Logger);
         }
         catch (Exception ex)
         {

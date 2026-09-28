@@ -101,6 +101,11 @@ namespace CongTacDang.Infrastructure.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.TaskId);
                 entity.HasIndex(e => e.RecordId);
+                entity.HasIndex(e => e.UploadedById);
+                entity.HasOne<PartyMemberProfile>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UploadedById)
+                    .OnDelete(DeleteBehavior.SetNull);
                 entity.HasQueryFilter(e => !e.IsDeleted);
             });
 

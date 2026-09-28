@@ -23,19 +23,20 @@ public class UserController : ControllerBase
         _userService = userService;
     }
 
-    /// <summary>Lấy hồ sơ và vai trò của cán bộ đang đăng nhập</summary>
+    /// <summary>
+    /// Lấy hồ sơ và vai trò của cán bộ đang đăng nhập. Tham số <paramref name="username"/> chỉ dùng được
+    /// cho hồ sơ của chính mình hoặc khi người yêu cầu có quyền xem hồ sơ người khác ở phạm vi quản trị.
+    /// </summary>
     [HttpGet("profile")]
     public async Task<IActionResult> GetProfile([FromQuery] string? username = null)
     {
         try
         {
-            var targetUsername = !string.IsNullOrWhiteSpace(username)
-                ? username.Trim()
-                : User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
-                  ?? User.FindFirst("unique_name")?.Value
-                  ?? User.Identity?.Name;
+            var subject = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(subject, out var requesterId))
+                throw new UnauthorizedAccessException("Không xác thực được danh tính người dùng hiện tại.");
 
-            var profile = await _userService.GetProfileAsync(targetUsername);
+            var profile = await _userService.GetProfileForRequesterAsync(requesterId, username);
             return Ok(ApiResponse<UserProfileDto>.Ok(profile, "Lấy thông tin hồ sơ cán bộ thành công."));
         }
         catch (ArgumentException ex)

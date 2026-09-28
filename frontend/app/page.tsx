@@ -47,7 +47,7 @@ export default function DashboardPage() {
   const canAppraise = hasPermission("evaluations.appraise");
   const canApprove = hasPermission("evaluations.approve");
   const canBranchReview =
-    hasPermission("evaluations.branch_vote") || hasPermission("evaluations.branch_review");
+    hasPermission("evaluations.branch_vote");
 
   // 1. Tải danh sách kỳ đánh giá ban đầu
   useEffect(() => {

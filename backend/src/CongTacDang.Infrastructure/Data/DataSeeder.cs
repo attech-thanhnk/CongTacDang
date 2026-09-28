@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.Application.Common.Security;
@@ -12,7 +13,72 @@ namespace CongTacDang.Infrastructure.Data;
 
 public static class DataSeeder
 {
-    public static async Task SeedAsync(CongTacDangDbContext context, bool seedSampleData = true)
+    /// <summary>Định nghĩa một vai trò hệ thống và bộ quyền mặc định.</summary>
+    private sealed record RoleDefinition(string Code, string Name, string Description, string[] Permissions);
+
+    private static readonly string[] CanBoPermissions =
+    {
+        AppPermissions.UsersRead,
+        AppPermissions.BranchesRead,
+        AppPermissions.AttachmentsRead,
+        AppPermissions.AttachmentsUpload,
+        AppPermissions.ReportsExport,
+        AppPermissions.EvaluationsRead,
+        AppPermissions.EvaluationsRegister,
+        AppPermissions.EvaluationsSelfScore
+    };
+
+    /// <summary>Ma trận vai trò - quyền mặc định, dùng khi tạo role lần đầu và khi đặt lại có chủ đích.</summary>
+    private static readonly RoleDefinition[] DefaultRoles =
+    {
+        new(AppRoles.CAN_BO, "Cán bộ, Đảng viên", "Quyền cơ bản của mọi Đảng viên, cán bộ trong hệ thống", CanBoPermissions),
+        new(AppRoles.BI_THU_CHI_BO, "Bí thư Chi bộ", "Bí thư / Phó Bí thư Chi bộ cơ sở trực thuộc Đảng bộ",
+            CanBoPermissions.Concat(new[] { AppPermissions.BranchesUpdate, AppPermissions.EvaluationsBranchVote }).ToArray()),
+        new(AppRoles.TO_THAM_DINH, "Tổ Thẩm định", "Tổ thẩm định đánh giá cán bộ và rà soát minh chứng",
+            CanBoPermissions.Concat(new[] { AppPermissions.AttachmentsDelete, AppPermissions.EvaluationsAppraise }).ToArray()),
+        new(AppRoles.BAN_THUONG_VU, "Ban Thường vụ Đảng ủy Tổng công ty", "Cấp có thẩm quyền phê duyệt các hồ sơ thuộc diện Ban Thường vụ Đảng ủy Tổng công ty",
+            CanBoPermissions.Concat(new[]
+            {
+                AppPermissions.BranchesCreate,
+                AppPermissions.BranchesUpdate,
+                AppPermissions.BranchesDelete,
+                AppPermissions.AttachmentsDelete,
+                AppPermissions.EvaluationsBranchVote,
+                AppPermissions.EvaluationsAppraise,
+                AppPermissions.EvaluationsApprove
+            }).ToArray()),
+        new(AppRoles.DANG_UY_CO_SO, "Đảng ủy cơ sở", "Quyết định, phê duyệt hồ sơ thuộc thẩm quyền Đảng ủy cơ sở",
+            new[] { AppPermissions.EvaluationsRead, AppPermissions.EvaluationsApprove, AppPermissions.ReportsExport }),
+        // Quản trị viên kỹ thuật & phân quyền - Không tham gia đánh giá cá nhân
+        new(AppRoles.QUAN_TRI_HE_THONG, "Quản trị hệ thống", "Toàn quyền quản trị kỹ thuật hệ thống, danh mục Chi bộ/Phòng ban và phân quyền",
+            new[]
+            {
+                AppPermissions.UsersRead,
+                AppPermissions.UsersCreate,
+                AppPermissions.UsersUpdate,
+                AppPermissions.UsersDelete,
+                AppPermissions.BranchesRead,
+                AppPermissions.BranchesCreate,
+                AppPermissions.BranchesUpdate,
+                AppPermissions.BranchesDelete,
+                AppPermissions.AttachmentsRead,
+                AppPermissions.AttachmentsUpload,
+                AppPermissions.AttachmentsDelete,
+                AppPermissions.ReportsExport,
+                AppPermissions.RolesManage,
+                AppPermissions.EvaluationsRead
+            })
+    };
+
+    /// <summary>
+    /// Khởi tạo dữ liệu nền. Role/permission chỉ được tạo khi chưa có; quyền của role đã tồn tại
+    /// không bị ghi đè trừ khi <paramref name="resetRolePermissions"/> = true (Database:ResetRolePermissions).
+    /// </summary>
+    public static async Task SeedAsync(
+        CongTacDangDbContext context,
+        bool seedSampleData = true,
+        bool resetRolePermissions = false,
+        ILogger? logger = null)
     {
         // 0. Chuẩn hóa tên bảng CSDL sang snake_case đồng nhất (Đổi tên an toàn nếu tồn tại bảng cũ PascalCase)
         try
@@ -274,131 +340,29 @@ public static class DataSeeder
             new() { Code = AppPermissions.RolesManage, Name = "Quản trị vai trò & quyền", Resource = "roles", Action = "manage", Description = "Quản trị động vai trò, gán quyền và gán vai trò người dùng" },
         };
 
+        // Chỉ tạo bản ghi permission còn thiếu; không tự gán permission mới vào role đã tồn tại.
         var existingPermCodes = await context.Permissions.Select(p => p.Code).ToListAsync();
         var missingPerms = definedPermissions.Where(p => !existingPermCodes.Contains(p.Code)).ToList();
+        var rolesExisted = await context.Roles.AnyAsync();
         if (missingPerms.Any())
         {
             await context.Permissions.AddRangeAsync(missingPerms);
             await context.SaveChangesAsync();
+
+            if (rolesExisted && !resetRolePermissions)
+            {
+                logger?.LogWarning(
+                    "Đã tạo quyền mới {Permissions} nhưng không tự gán vào vai trò nào. Hãy gán qua màn hình phân quyền hoặc bật Database:ResetRolePermissions để đặt lại về mặc định.",
+                    string.Join(", ", missingPerms.Select(p => p.Code)));
+            }
         }
 
-        // 2. Seed Roles & Role-Permission Mapping
-        if (!await context.Roles.AnyAsync())
-        {
-            var allPerms = await context.Permissions.ToListAsync();
-            var permMap = allPerms.ToDictionary(p => p.Code);
+        // 2. Seed Roles & Role-Permission Mapping: chỉ tạo role còn thiếu kèm quyền mặc định.
+        await SeedMissingRolesAsync(context, logger);
 
-            // Role 1: CAN_BO
-            var roleCanBo = new AppRole
-            {
-                Code = AppRoles.CAN_BO,
-                Name = "Cán bộ, Đảng viên",
-                Description = "Quyền cơ bản của mọi Đảng viên, cán bộ trong hệ thống",
-                IsSystem = true,
-                Permissions = new List<Permission>
-                {
-                    permMap[AppPermissions.UsersRead],
-                    permMap[AppPermissions.BranchesRead],
-                    permMap[AppPermissions.AttachmentsRead],
-                    permMap[AppPermissions.AttachmentsUpload],
-                    permMap[AppPermissions.ReportsExport],
-                    permMap[AppPermissions.EvaluationsRead],
-                    permMap[AppPermissions.EvaluationsRegister],
-                    permMap[AppPermissions.EvaluationsSelfScore]
-                }
-            };
-
-            // Role 2: BI_THU_CHI_BO
-            var roleBiThuChiBo = new AppRole
-            {
-                Code = AppRoles.BI_THU_CHI_BO,
-                Name = "Bí thư Chi bộ",
-                Description = "Bí thư / Phó Bí thư Chi bộ cơ sở trực thuộc Đảng bộ",
-                IsSystem = true,
-                Permissions = new List<Permission>(roleCanBo.Permissions)
-                {
-                    permMap[AppPermissions.BranchesUpdate],
-                    permMap[AppPermissions.EvaluationsBranchVote]
-                }
-            };
-
-            // Role 3: TO_THAM_DINH
-            var roleToThamDinh = new AppRole
-            {
-                Code = AppRoles.TO_THAM_DINH,
-                Name = "Tổ Thẩm định",
-                Description = "Tổ thẩm định đánh giá cán bộ và rà soát minh chứng",
-                IsSystem = true,
-                Permissions = new List<Permission>(roleCanBo.Permissions)
-                {
-                    permMap[AppPermissions.AttachmentsDelete],
-                    permMap[AppPermissions.EvaluationsAppraise]
-                }
-            };
-
-            // Role 4b: DANG_UY_CO_SO
-            var roleDangUyCoSo = new AppRole
-            {
-                Code = AppRoles.DANG_UY_CO_SO,
-                Name = "Đảng ủy cơ sở",
-                Description = "Quyết định, phê duyệt hồ sơ thuộc thẩm quyền Đảng ủy cơ sở",
-                IsSystem = true,
-                Permissions = new List<Permission>
-                {
-                    permMap[AppPermissions.EvaluationsRead],
-                    permMap[AppPermissions.EvaluationsApprove],
-                    permMap[AppPermissions.ReportsExport]
-                }
-            };
-
-            // Role 4: BAN_THUONG_VU
-            var roleBanThuongVu = new AppRole
-            {
-                Code = AppRoles.BAN_THUONG_VU,
-                Name = "Ban Thường vụ Đảng ủy Tổng công ty",
-                Description = "Cấp có thẩm quyền phê duyệt các hồ sơ thuộc diện Ban Thường vụ Đảng ủy Tổng công ty",
-                IsSystem = true,
-                Permissions = new List<Permission>(roleCanBo.Permissions)
-                {
-                    permMap[AppPermissions.BranchesCreate],
-                    permMap[AppPermissions.BranchesUpdate],
-                    permMap[AppPermissions.BranchesDelete],
-                    permMap[AppPermissions.AttachmentsDelete],
-                    permMap[AppPermissions.EvaluationsBranchVote],
-                    permMap[AppPermissions.EvaluationsAppraise],
-                    permMap[AppPermissions.EvaluationsApprove]
-                }
-            };
-
-            // Role 5: QUAN_TRI_HE_THONG (Quản trị viên kỹ thuật & phân quyền - Không tham gia đánh giá cá nhân)
-            var roleAdmin = new AppRole
-            {
-                Code = AppRoles.QUAN_TRI_HE_THONG,
-                Name = "Quản trị hệ thống",
-                Description = "Toàn quyền quản trị kỹ thuật hệ thống, danh mục Chi bộ/Phòng ban và phân quyền",
-                IsSystem = true,
-                Permissions = new List<Permission>
-                {
-                    permMap[AppPermissions.UsersRead],
-                    permMap[AppPermissions.UsersCreate],
-                    permMap[AppPermissions.UsersUpdate],
-                    permMap[AppPermissions.UsersDelete],
-                    permMap[AppPermissions.BranchesRead],
-                    permMap[AppPermissions.BranchesCreate],
-                    permMap[AppPermissions.BranchesUpdate],
-                    permMap[AppPermissions.BranchesDelete],
-                    permMap[AppPermissions.AttachmentsRead],
-                    permMap[AppPermissions.AttachmentsUpload],
-                    permMap[AppPermissions.AttachmentsDelete],
-                    permMap[AppPermissions.ReportsExport],
-                    permMap[AppPermissions.RolesManage],
-                    permMap[AppPermissions.EvaluationsRead]
-                }
-            };
-
-            await context.Roles.AddRangeAsync(roleCanBo, roleBiThuChiBo, roleToThamDinh, roleBanThuongVu, roleDangUyCoSo, roleAdmin);
-            await context.SaveChangesAsync();
-        }
+        // Đặt lại quyền của các role hệ thống về mặc định chỉ khi được yêu cầu tường minh.
+        if (resetRolePermissions)
+            await ResetRolePermissionsAsync(context, logger);
 
         if (!seedSampleData)
             return;
@@ -741,61 +705,6 @@ public static class DataSeeder
             await context.SaveChangesAsync();
         }
 
-        // 7. Đồng bộ quyền hạn đánh giá mới vào các Vai trò đã tồn tại
-        var rolesWithPerms = await context.Roles.Include(r => r.Permissions).ToListAsync();
-        var allDbPerms = await context.Permissions.ToListAsync();
-        var permLookup = allDbPerms.ToDictionary(p => p.Code);
-
-        foreach (var role in rolesWithPerms)
-        {
-            var existingCodes = role.Permissions.Select(p => p.Code).ToHashSet();
-            void AddIfMissing(string code)
-            {
-                if (!existingCodes.Contains(code) && permLookup.TryGetValue(code, out var p))
-                {
-                    role.Permissions.Add(p);
-                }
-            }
-
-            if (role.Code == AppRoles.QUAN_TRI_HE_THONG)
-            {
-                // Tách biệt vai trò Admin: gỡ bỏ các quyền tham gia đánh giá cá nhân và biểu quyết
-                var evalPermsToRemove = role.Permissions
-                    .Where(p => p.Code == AppPermissions.EvaluationsRegister ||
-                                p.Code == AppPermissions.EvaluationsSelfScore ||
-                                p.Code == AppPermissions.EvaluationsBranchVote ||
-                                p.Code == AppPermissions.EvaluationsAppraise ||
-                                p.Code == AppPermissions.EvaluationsApprove)
-                    .ToList();
-                foreach (var p in evalPermsToRemove)
-                {
-                    role.Permissions.Remove(p);
-                }
-
-                AddIfMissing(AppPermissions.EvaluationsRead);
-                AddIfMissing(AppPermissions.RolesManage);
-                continue;
-            }
-
-            AddIfMissing(AppPermissions.EvaluationsRead);
-            AddIfMissing(AppPermissions.EvaluationsRegister);
-            AddIfMissing(AppPermissions.EvaluationsSelfScore);
-
-            if (role.Code == AppRoles.BI_THU_CHI_BO || role.Code == AppRoles.BAN_THUONG_VU)
-            {
-                AddIfMissing(AppPermissions.EvaluationsBranchVote);
-            }
-            if (role.Code == AppRoles.TO_THAM_DINH || role.Code == AppRoles.BAN_THUONG_VU)
-            {
-                AddIfMissing(AppPermissions.EvaluationsAppraise);
-            }
-            if (role.Code == AppRoles.BAN_THUONG_VU || role.Code == AppRoles.DANG_UY_CO_SO)
-            {
-                AddIfMissing(AppPermissions.EvaluationsApprove);
-            }
-        }
-        await context.SaveChangesAsync();
-
         // 8. Seed Kỳ đánh giá hiện hành (Quý III/2026) theo Hướng dẫn 03-HD/TVĐU
         if (!await context.EvaluationPeriods.AnyAsync())
         {
@@ -955,5 +864,60 @@ public static class DataSeeder
                 await context.SaveChangesAsync();
             }
         }
+    }
+
+    /// <summary>Tạo các role hệ thống còn thiếu kèm quyền mặc định; không đụng tới role đã có (kể cả đã xóa mềm).</summary>
+    private static async Task SeedMissingRolesAsync(CongTacDangDbContext context, ILogger? logger)
+    {
+        var existingRoleCodes = await context.Roles
+            .IgnoreQueryFilters()
+            .Select(r => r.Code)
+            .ToListAsync();
+        var missingRoles = DefaultRoles.Where(r => !existingRoleCodes.Contains(r.Code)).ToList();
+        if (missingRoles.Count == 0)
+            return;
+
+        var permMap = await context.Permissions.ToDictionaryAsync(p => p.Code);
+        foreach (var definition in missingRoles)
+        {
+            await context.Roles.AddAsync(new AppRole
+            {
+                Code = definition.Code,
+                Name = definition.Name,
+                Description = definition.Description,
+                IsSystem = true,
+                Permissions = definition.Permissions
+                    .Where(permMap.ContainsKey)
+                    .Select(code => permMap[code])
+                    .ToList()
+            });
+        }
+
+        await context.SaveChangesAsync();
+        logger?.LogInformation("Đã tạo vai trò mặc định: {Roles}", string.Join(", ", missingRoles.Select(r => r.Code)));
+    }
+
+    /// <summary>Đặt lại quyền của các role hệ thống về ma trận mặc định (chỉ khi bật Database:ResetRolePermissions).</summary>
+    private static async Task ResetRolePermissionsAsync(CongTacDangDbContext context, ILogger? logger)
+    {
+        var permMap = await context.Permissions.ToDictionaryAsync(p => p.Code);
+        var defaultCodes = DefaultRoles.Select(r => r.Code).ToList();
+        var roles = await context.Roles
+            .Include(r => r.Permissions)
+            .Where(r => defaultCodes.Contains(r.Code))
+            .ToListAsync();
+
+        foreach (var role in roles)
+        {
+            var definition = DefaultRoles.First(r => r.Code == role.Code);
+            role.Permissions.Clear();
+            foreach (var code in definition.Permissions.Where(permMap.ContainsKey))
+                role.Permissions.Add(permMap[code]);
+        }
+
+        await context.SaveChangesAsync();
+        logger?.LogWarning(
+            "Database:ResetRolePermissions đang bật: đã đặt lại quyền của các vai trò {Roles} về mặc định. Hãy tắt cờ này sau khi dùng.",
+            string.Join(", ", roles.Select(r => r.Code)));
     }
 }

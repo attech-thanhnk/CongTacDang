@@ -119,6 +119,7 @@ builder.Services.AddSingleton<CongTacDang.Application.Common.Interfaces.IFileSto
 
 // 6. Đăng ký Application Services
 builder.Services.AddSingleton<CongTacDang.Application.Common.Interfaces.IJwtService, JwtService>();
+builder.Services.AddSingleton<CongTacDang.Application.Common.Security.IAccessPolicy, CongTacDang.Application.Common.Security.AccessPolicy>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -128,6 +129,7 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IEvaluationService, EvaluationService>();
 builder.Services.AddScoped<ICollectiveEvaluationService, CollectiveEvaluationService>();
 builder.Services.AddScoped<IReportService, CongTacDang.Infrastructure.Services.ReportService>();
+builder.Services.AddScoped<IReportAccessService, ReportAccessService>();
 
 // 7. Controllers & Swagger với hỗ trợ JWT Bearer Authorization
 builder.Services.AddControllers()

@@ -102,6 +102,7 @@ public class OrganizationController : ControllerBase
 
     /// <summary>Danh sách Phòng ban chuyên môn</summary>
     [HttpGet("departments")]
+    [Authorize(Policy = AppPermissions.BranchesRead)]
     public async Task<IActionResult> GetDepartments()
     {
         var depts = await _orgService.GetDepartmentsAsync();
