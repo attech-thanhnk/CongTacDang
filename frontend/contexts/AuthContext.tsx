@@ -9,7 +9,6 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<UserSession>;
   logout: () => Promise<void>;
   hasPermission: (permissionCode: string) => boolean;
-  hasRole: (roleCode: string) => boolean;
   refreshUser: () => Promise<void>;
 }
 
@@ -52,16 +51,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  // Task 09: chỉ kiểm tra mã quyền (danh mục PermissionCodes) — không có ngoại lệ theo tên vai trò.
+  // Phạm vi (Phòng/Chi bộ) được máy chủ kiểm tra; ở đây chỉ để ẩn/hiện menu, nút.
   const hasPermission = (permissionCode: string): boolean => {
     if (!user || !user.permissions) return false;
-    if (user.roles?.includes("QUAN_TRI_HE_THONG")) return true;
     return user.permissions.includes(permissionCode);
-  };
-
-  const hasRole = (roleCode: string): boolean => {
-    if (!user || !user.roles) return false;
-    if (user.roles.includes("QUAN_TRI_HE_THONG")) return true;
-    return user.roles.includes(roleCode);
   };
 
   return (
@@ -72,7 +66,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         hasPermission,
-        hasRole,
         refreshUser,
       }}
     >

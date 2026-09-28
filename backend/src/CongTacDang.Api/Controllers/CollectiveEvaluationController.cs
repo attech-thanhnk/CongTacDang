@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using CongTacDang.Api.Authorization;
 using CongTacDang.Application.Common.Models;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
@@ -26,7 +27,7 @@ public class CollectiveEvaluationController : ControllerBase
 
     /// <summary>Lấy hồ sơ đánh giá tập thể trong một kỳ.</summary>
     [HttpGet("collective-records")]
-    [Authorize(Policy = AppPermissions.PolicyEvaluationsBranchView)]
+    [RequireAnyPermission(PermissionCodes.EvaluationRead, PermissionCodes.CollectiveManage)]
     public async Task<IActionResult> GetCollectiveRecords([FromQuery] Guid periodId, [FromQuery] string? form)
     {
         var records = await _service.GetCollectiveRecordsAsync(periodId, GetCurrentUserId(), form);
@@ -35,7 +36,7 @@ public class CollectiveEvaluationController : ControllerBase
 
     /// <summary>Lấy chi tiết một hồ sơ tập thể.</summary>
     [HttpGet("collective-records/{id}")]
-    [Authorize(Policy = AppPermissions.PolicyEvaluationsBranchView)]
+    [RequireAnyPermission(PermissionCodes.EvaluationRead, PermissionCodes.CollectiveManage)]
     public async Task<IActionResult> GetCollectiveRecord(Guid id)
     {
         var record = await _service.GetCollectiveRecordAsync(id, GetCurrentUserId());
@@ -44,7 +45,7 @@ public class CollectiveEvaluationController : ControllerBase
 
     /// <summary>Tạo hồ sơ Mẫu 06, 07 hoặc 08.</summary>
     [HttpPost("collective-records")]
-    [Authorize(Policy = AppPermissions.PolicyEvaluationsBranchView)]
+    [RequirePermission(PermissionCodes.CollectiveManage)]
     public async Task<IActionResult> CreateCollectiveRecord([FromBody] SaveCollectiveEvaluationRequestDto dto)
     {
         var record = await _service.CreateCollectiveRecordAsync(GetCurrentUserId(), dto);
@@ -53,7 +54,7 @@ public class CollectiveEvaluationController : ControllerBase
 
     /// <summary>Lấy biên bản hội nghị trong một kỳ.</summary>
     [HttpGet("meetings")]
-    [Authorize(Policy = AppPermissions.PolicyEvaluationsBranchView)]
+    [RequireAnyPermission(PermissionCodes.MeetingRead, PermissionCodes.MeetingManage)]
     public async Task<IActionResult> GetMeetings([FromQuery] Guid periodId, [FromQuery] Guid? partyCellId)
     {
         var meetings = await _service.GetMeetingsAsync(periodId, GetCurrentUserId(), partyCellId);
@@ -62,7 +63,7 @@ public class CollectiveEvaluationController : ControllerBase
 
     /// <summary>Lấy chi tiết biên bản hội nghị.</summary>
     [HttpGet("meetings/{id}")]
-    [Authorize(Policy = AppPermissions.PolicyEvaluationsBranchView)]
+    [RequireAnyPermission(PermissionCodes.MeetingRead, PermissionCodes.MeetingManage)]
     public async Task<IActionResult> GetMeeting(Guid id)
     {
         var meeting = await _service.GetMeetingAsync(id, GetCurrentUserId());
@@ -71,7 +72,7 @@ public class CollectiveEvaluationController : ControllerBase
 
     /// <summary>Tạo biên bản Mẫu 12 hoặc Mẫu 13.</summary>
     [HttpPost("meetings")]
-    [Authorize(Policy = AppPermissions.PolicyEvaluationsBranchView)]
+    [RequirePermission(PermissionCodes.MeetingManage)]
     public async Task<IActionResult> CreateMeeting([FromBody] SaveEvaluationMeetingRequestDto dto)
     {
         var meeting = await _service.CreateMeetingAsync(GetCurrentUserId(), dto);

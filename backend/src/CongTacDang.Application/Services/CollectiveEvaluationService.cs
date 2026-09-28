@@ -41,7 +41,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     private readonly IEvaluationRepository _evaluationRepo;
     private readonly IUserRepository _userRepo;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IAccessPolicy _accessPolicy;
+    private readonly IAuthorizationGuard _guard;
 
     public CollectiveEvaluationService(
         ICollectiveEvaluationRepository collectiveRepo,
@@ -49,25 +49,24 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         IEvaluationRepository evaluationRepo,
         IUserRepository userRepo,
         IUnitOfWork unitOfWork,
-        IAccessPolicy accessPolicy)
+        IAuthorizationGuard guard)
     {
         _collectiveRepo = collectiveRepo;
         _meetingRepo = meetingRepo;
         _evaluationRepo = evaluationRepo;
         _userRepo = userRepo;
         _unitOfWork = unitOfWork;
-        _accessPolicy = accessPolicy;
+        _guard = guard;
     }
 
     /// <summary>Lấy hồ sơ tập thể theo kỳ, biểu mẫu và phạm vi người dùng.</summary>
     public async Task<List<CollectiveEvaluationRecordDto>> GetCollectiveRecordsAsync(Guid periodId, Guid requesterId, string? form = null)
     {
-        var requester = await GetUserAsync(requesterId);
-        EnsureCanReadCollective(requester);
+        var scope = CollectiveReadScope();
         var parsedForm = ParseCollectiveForm(form);
         var records = await _collectiveRepo.GetByPeriodAsync(periodId, parsedForm);
         return records
-            .Where(record => _accessPolicy.CanAccessCollective(requester, record.PartyCellId, record.DepartmentId, AccessOperation.Read))
+            .Where(record => scope.Matches(null, record.DepartmentId, record.PartyCellId))
             .Select(MapCollective)
             .ToList();
     }
@@ -75,26 +74,24 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     /// <summary>Lấy một hồ sơ tập thể và kiểm tra phạm vi tổ chức.</summary>
     public async Task<CollectiveEvaluationRecordDto> GetCollectiveRecordAsync(Guid id, Guid requesterId)
     {
-        var requester = await GetUserAsync(requesterId);
-        EnsureCanReadCollective(requester);
         var record = await _collectiveRepo.GetByIdAsync(id)
             ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ tập thể với Id: {id}");
 
-        EnsureCanAccessCollective(requester, record.PartyCellId, record.DepartmentId, AccessOperation.Read);
+        var target = new AccessTarget(DepartmentId: record.DepartmentId, PartyCellId: record.PartyCellId);
+        if (!_guard.Can(PermissionCodes.EvaluationRead, target) && !_guard.Can(PermissionCodes.CollectiveManage, target))
+            throw new ForbiddenException("Bạn không có quyền xem hồ sơ tập thể của tổ chức này (ngoài phạm vi được gán).");
         return MapCollective(record);
     }
 
     /// <summary>Tạo hồ sơ Mẫu 06, 07 hoặc 08 sau khi kiểm tra phạm vi tổ chức.</summary>
     public async Task<CollectiveEvaluationRecordDto> CreateCollectiveRecordAsync(Guid requesterId, SaveCollectiveEvaluationRequestDto dto)
     {
-        var requester = await GetUserAsync(requesterId);
-        EnsureCanWriteCollective(requester);
         var form = ParseCollectiveForm(dto.Form)
             ?? throw new ArgumentException("Hồ sơ tập thể phải có mã M06, M07 hoặc M08.");
         if (string.IsNullOrWhiteSpace(dto.SubjectName))
             throw new ArgumentException("Tên tập thể hoặc lĩnh vực đánh giá không được để trống.");
 
-        EnsureCanAccessCollective(requester, dto.PartyCellId, dto.DepartmentId, AccessOperation.Update);
+        _guard.Ensure(PermissionCodes.CollectiveManage, new AccessTarget(DepartmentId: dto.DepartmentId, PartyCellId: dto.PartyCellId));
         ValidateScore(dto.GeneralCriteriaScore, 30.0, "Điểm nhóm tiêu chí chung");
         ValidateScore(dto.TaskCriteriaScore, 70.0, "Điểm nhóm kết quả thực hiện nhiệm vụ");
 
@@ -141,25 +138,27 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     /// <summary>Lấy danh sách biên bản hội nghị theo kỳ và Chi bộ.</summary>
     public async Task<List<EvaluationMeetingDto>> GetMeetingsAsync(Guid periodId, Guid requesterId, Guid? partyCellId = null)
     {
-        var requester = await GetUserAsync(requesterId);
-        EnsureCanReadMeeting(requester);
-        if (!_accessPolicy.HasElevatedEvaluationScope(requester))
-            partyCellId = requester.PartyCellId;
+        // T-45: chỉ thấy biên bản thuộc phạm vi meeting.read/meeting.manage được gán; không có phạm vi phù hợp → danh sách rỗng.
+        var scope = _guard.GetScope(PermissionCodes.MeetingRead).Union(_guard.GetScope(PermissionCodes.MeetingManage));
+        if (scope.IsEmpty)
+            return new List<EvaluationMeetingDto>();
 
         var meetings = await _meetingRepo.GetByPeriodAsync(periodId, partyCellId);
-        return meetings.Select(MapMeeting).ToList();
+        return meetings
+            .Where(meeting => scope.Matches(null, null, meeting.PartyCellId))
+            .Select(MapMeeting)
+            .ToList();
     }
 
     /// <summary>Lấy biên bản hội nghị và kiểm tra phạm vi Chi bộ.</summary>
     public async Task<EvaluationMeetingDto> GetMeetingAsync(Guid id, Guid requesterId)
     {
-        var requester = await GetUserAsync(requesterId);
-        EnsureCanReadMeeting(requester);
         var meeting = await _meetingRepo.GetByIdAsync(id)
             ?? throw new KeyNotFoundException($"Không tìm thấy biên bản hội nghị với Id: {id}");
 
-        if (!_accessPolicy.CanAccessMeeting(requester, meeting.PartyCellId, AccessOperation.Read))
-            throw new ForbiddenException("Bạn không có quyền xem biên bản của Chi bộ khác.");
+        var target = new AccessTarget(PartyCellId: meeting.PartyCellId);
+        if (!_guard.Can(PermissionCodes.MeetingRead, target) && !_guard.Can(PermissionCodes.MeetingManage, target))
+            throw new ForbiddenException("Bạn không có quyền xem biên bản của Chi bộ này (ngoài phạm vi được gán).");
 
         return MapMeeting(meeting);
     }
@@ -167,12 +166,9 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     /// <summary>Tạo biên bản Mẫu 12 hoặc Mẫu 13, chỉ lưu tổng hợp phiếu không định danh.</summary>
     public async Task<EvaluationMeetingDto> CreateMeetingAsync(Guid requesterId, SaveEvaluationMeetingRequestDto dto)
     {
-        var requester = await GetUserAsync(requesterId);
-        EnsureCanWriteMeeting(requester);
         if (dto.PartyCellId == null || dto.PartyCellId == Guid.Empty)
             throw new ArgumentException("Biên bản hội nghị phải gắn với một Chi bộ.");
-        if (!_accessPolicy.CanAccessMeeting(requester, dto.PartyCellId, AccessOperation.Update))
-            throw new ForbiddenException("Bạn chỉ được lập biên bản cho Chi bộ của mình.");
+        _guard.Ensure(PermissionCodes.MeetingManage, new AccessTarget(PartyCellId: dto.PartyCellId));
         if (dto.FormCode is not ("M12" or "M13"))
             throw new ArgumentException("Biên bản chỉ hỗ trợ M12 hoặc M13.");
         if (dto.FormCode == "M13" && dto.VoteSummaries.Count == 0)
@@ -235,46 +231,13 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return MapMeeting(saved);
     }
 
-    /// <summary>Lấy người dùng kèm role và permission.</summary>
-    private async Task<PartyMemberProfile> GetUserAsync(Guid userId)
+    /// <summary>
+    /// Phạm vi đọc hồ sơ tập thể: hợp phạm vi <c>evaluation.read</c> (không tính luật chủ hồ sơ) và <c>collective.manage</c>.
+    /// </summary>
+    private ScopeFilter CollectiveReadScope()
     {
-        return await _userRepo.GetWithRolesAndPermissionsByIdAsync(userId)
-            ?? throw new ForbiddenException("Không tìm thấy hồ sơ người dùng hiện tại.");
-    }
-
-    /// <summary>Kiểm tra quyền xem hồ sơ tập thể.</summary>
-    private void EnsureCanReadCollective(PartyMemberProfile user)
-    {
-        if (!_accessPolicy.CanReadEvaluationDocuments(user))
-            throw new ForbiddenException("Bạn không có quyền xem hồ sơ tập thể.");
-    }
-
-    /// <summary>Kiểm tra quyền tạo hồ sơ tập thể.</summary>
-    private void EnsureCanWriteCollective(PartyMemberProfile user)
-    {
-        if (!_accessPolicy.CanWriteEvaluationDocuments(user))
-            throw new ForbiddenException("Quản trị hệ thống chỉ được quản lý kỹ thuật, không được lập hồ sơ đánh giá.");
-    }
-
-    /// <summary>Kiểm tra quyền xem biên bản hội nghị.</summary>
-    private void EnsureCanReadMeeting(PartyMemberProfile user)
-    {
-        if (!_accessPolicy.CanReadEvaluationDocuments(user))
-            throw new ForbiddenException("Bạn không có quyền xem biên bản hội nghị.");
-    }
-
-    /// <summary>Kiểm tra quyền tạo biên bản hội nghị.</summary>
-    private void EnsureCanWriteMeeting(PartyMemberProfile user)
-    {
-        if (!_accessPolicy.CanWriteEvaluationDocuments(user))
-            throw new ForbiddenException("Quản trị hệ thống chỉ được quản lý kỹ thuật, không được lập biên bản đánh giá.");
-    }
-
-    /// <summary>Kiểm tra và báo lỗi nếu hồ sơ tập thể nằm ngoài phạm vi tổ chức của người dùng.</summary>
-    private void EnsureCanAccessCollective(PartyMemberProfile user, Guid? partyCellId, Guid? departmentId, AccessOperation operation)
-    {
-        if (!_accessPolicy.CanAccessCollective(user, partyCellId, departmentId, operation))
-            throw new ForbiddenException("Bạn không có quyền thao tác hồ sơ của tổ chức khác.");
+        var read = _guard.GetScope(PermissionCodes.EvaluationRead) with { OwnerId = null };
+        return read.Union(_guard.GetScope(PermissionCodes.CollectiveManage));
     }
 
     /// <summary>Chuyển mã Mẫu 06-08 sang enum nghiệp vụ.</summary>

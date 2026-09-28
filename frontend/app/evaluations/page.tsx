@@ -31,13 +31,15 @@ import { Step5Approval } from "@/components/evaluations/Step5Approval";
 import { EvaluationHistoryModal } from "@/components/evaluations/EvaluationHistoryModal";
 
 function EvaluationsContent() {
-  const { user, hasPermission, hasRole } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const stepParam = searchParams.get("step");
   const periodParam = searchParams.get("periodId");
-  const isAdmin = hasRole("QUAN_TRI_HE_THONG") || hasPermission("roles.manage");
+  // Task 09: "quản trị" = quản trị kỹ thuật (quản lý vai trò) không tham gia/xem nội dung đánh giá.
+  const isAdmin = hasPermission("system.roles.manage") && !hasPermission("evaluation.read") && !hasPermission("evaluation.self");
+  const canDecide = hasPermission("evaluation.decide") || hasPermission("evaluation.decide.external");
 
   // State Chung & Kỳ đánh giá
   const [periods, setPeriods] = useState<EvaluationPeriodDto[]>([]);
@@ -281,14 +283,14 @@ function EvaluationsContent() {
       }
       return;
     }
-    if (activeStep === 3 && !hasPermission("evaluations.branch_vote")) {
+    if (activeStep === 3 && !hasPermission("evaluation.cell.confirm")) {
       handleSelectStep(1);
-    } else if (activeStep === 4 && !hasPermission("evaluations.appraise")) {
+    } else if (activeStep === 4 && !hasPermission("evaluation.appraise")) {
       handleSelectStep(1);
-    } else if (activeStep === 5 && !hasPermission("evaluations.approve")) {
+    } else if (activeStep === 5 && !canDecide) {
       handleSelectStep(1);
     }
-  }, [activeStep, hasPermission, isAdmin]);
+  }, [activeStep, hasPermission, isAdmin, canDecide]);
 
   const loadInitialData = async () => {
     if (!user) {
@@ -356,7 +358,7 @@ function EvaluationsContent() {
         }
       }
 
-      if (hasPermission("evaluations.branch_vote") || isAdmin) {
+      if (hasPermission("evaluation.cell.confirm")) {
         const bRecs = await evaluationService.getBranchRecords(periodId);
         setBranchRecords(bRecs);
         const initialVotes: { [recordId: string]: BranchMeetingVoteState } = {};
@@ -378,7 +380,7 @@ function EvaluationsContent() {
         if (maxVoters > 0) setTotalVoters(maxVoters);
       }
 
-      if (hasPermission("evaluations.appraise") || hasPermission("evaluations.approve") || isAdmin) {
+      if (hasPermission("evaluation.appraise") || canDecide) {
         const aRecs = await evaluationService.getAllRecords(periodId);
         setAllRecords(aRecs);
         const qList = await evaluationService.checkBranchQuotas(periodId);
@@ -728,7 +730,7 @@ function EvaluationsContent() {
         onOpenHistory={openRecordHistory}
         onRefresh={() => loadPeriodData(selectedPeriodId)}
         loading={loading}
-        canManagePeriods={hasPermission("evaluations.approve") || isAdmin}
+        canManagePeriods={hasPermission("period.manage")}
         onCreatePeriod={handleCreatePeriod}
         onSetActivePeriod={handleSetActivePeriod}
       />
@@ -885,7 +887,7 @@ function EvaluationsContent() {
           /* ================================================================ */
           <>
             {/* Bước 1: Mẫu 01 */}
-            {activeStep === 1 && hasPermission("evaluations.register") && (
+            {activeStep === 1 && hasPermission("evaluation.self") && (
               <Step1RegisterTasks
                 tasks={registerTasks}
                 onChangeTasks={setRegisterTasks}
@@ -900,7 +902,7 @@ function EvaluationsContent() {
             )}
 
             {/* Bước 2: Mẫu 02 & 09 */}
-            {activeStep === 2 && hasPermission("evaluations.self_score") && myRecord && (
+            {activeStep === 2 && hasPermission("evaluation.self") && myRecord && (
               <Step2SelfScore
                 myRecord={myRecord}
                 generalScores={generalScores}
@@ -926,7 +928,7 @@ function EvaluationsContent() {
 
             {/* Bước 3: Mẫu 11, 12, 13 (Chi bộ đánh giá) */}
             {/* Bước 3: Mẫu 11 & Mẫu 13 (Chi bộ đánh giá & Biên bản kiểm phiếu) */}
-            {activeStep === 3 && (hasPermission("evaluations.branch_vote") || isAdmin) && (
+            {activeStep === 3 && hasPermission("evaluation.cell.confirm") && (
               <Step3BranchReview
                 records={branchRecords}
                 totalVoters={totalVoters}
@@ -942,7 +944,7 @@ function EvaluationsContent() {
             )}
 
             {/* Bước 4: Mẫu 10 & 03 (Tổ Thẩm định) */}
-            {activeStep === 4 && hasPermission("evaluations.appraise") && (
+            {activeStep === 4 && hasPermission("evaluation.appraise") && (
               <Step4Appraisal
                 records={allRecords}
                 quotas={branchQuotas}
@@ -968,7 +970,7 @@ function EvaluationsContent() {
             )}
 
             {/* Bước 5: Mẫu 14 & 15A (Ban Thường vụ Chuẩn y) */}
-            {activeStep === 5 && hasPermission("evaluations.approve") && (
+            {activeStep === 5 && canDecide && (
               <Step5Approval
                 records={allRecords}
                 selectedRecord={selectedApprovalRecord}

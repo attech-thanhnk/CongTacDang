@@ -123,46 +123,7 @@ namespace CongTacDang.Infrastructure.Data
                 entity.HasQueryFilter(e => !e.IsDeleted);
             });
 
-            // Dynamic RBAC Configuration
-            modelBuilder.Entity<Permission>(entity =>
-            {
-                entity.ToTable("permissions");
-                entity.HasKey(e => e.Id);
-                entity.HasIndex(e => e.Code).IsUnique();
-                entity.Property(e => e.Code).HasMaxLength(100).IsRequired();
-                entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
-                entity.Property(e => e.Resource).HasMaxLength(50).IsRequired();
-                entity.Property(e => e.Action).HasMaxLength(50).IsRequired();
-                entity.HasQueryFilter(e => !e.IsDeleted);
-            });
-
-            modelBuilder.Entity<AppRole>(entity =>
-            {
-                entity.ToTable("roles");
-                entity.HasKey(e => e.Id);
-                entity.HasIndex(e => e.Code).IsUnique();
-                entity.Property(e => e.Code).HasMaxLength(50).IsRequired();
-                entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
-                entity.HasQueryFilter(e => !e.IsDeleted);
-
-                // Many-to-Many: Role <-> Permission via role_permissions
-                entity.HasMany(r => r.Permissions)
-                    .WithMany(p => p.Roles)
-                    .UsingEntity(
-                        "role_permissions",
-                        l => l.HasOne(typeof(Permission)).WithMany().HasForeignKey("permission_id"),
-                        r => r.HasOne(typeof(AppRole)).WithMany().HasForeignKey("role_id")
-                    );
-
-                // Many-to-Many: Role <-> PartyMemberProfile via user_roles
-                entity.HasMany(r => r.Members)
-                    .WithMany(m => m.Roles)
-                    .UsingEntity(
-                        "user_roles",
-                        l => l.HasOne(typeof(PartyMemberProfile)).WithMany().HasForeignKey("user_id"),
-                        r => r.HasOne(typeof(AppRole)).WithMany().HasForeignKey("role_id")
-                    );
-            });
+            // Phân quyền động (Permission, AppRole, UserRoleAssignment): cấu hình trong Data/Configurations/.
 
             // Quy trình Đánh giá cán bộ 03-HD/TVĐU
             modelBuilder.Entity<EvaluationPeriod>(entity =>

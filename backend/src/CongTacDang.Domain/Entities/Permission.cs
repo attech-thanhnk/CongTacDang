@@ -26,6 +26,12 @@ public class Permission : IAuditableEntity, ISoftDeletable
     /// <summary>Mô tả chi tiết mục đích của quyền</summary>
     public string Description { get; set; } = string.Empty;
 
+    /// <summary>Phân hệ (system, catalog, period, evaluation, collective, meeting, report, attachment) — đồng bộ từ PermissionCodes.</summary>
+    public string Module { get; set; } = string.Empty;
+
+    /// <summary>Thứ tự hiển thị — đồng bộ từ PermissionCodes.</summary>
+    public int SortOrder { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Guid? CreatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }

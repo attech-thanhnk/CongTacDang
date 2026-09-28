@@ -24,7 +24,7 @@ public sealed class AuthzContractIntegrationTests
     public async Task Login_WithCorrectPassword_ReturnsPermissionsFromDatabase()
     {
         SkipIfNoDatabase();
-        var user = await _factory.CreateUserWithPermissionsAsync(AppPermissions.EvaluationsRead, PermissionCodes.CatalogManage);
+        var user = await _factory.CreateUserWithPermissionsAsync(PermissionCodes.EvaluationRead, PermissionCodes.CatalogManage);
 
         using var client = await _factory.LoginAsAsync(user);
         var me = await client.GetAsync("/api/auth/me");
@@ -33,7 +33,7 @@ public sealed class AuthzContractIntegrationTests
         using var json = JsonDocument.Parse(await me.Content.ReadAsStringAsync());
         var permissions = json.RootElement.GetProperty("data").GetProperty("permissions")
             .EnumerateArray().Select(p => p.GetString()).ToList();
-        Assert.Contains(AppPermissions.EvaluationsRead, permissions);
+        Assert.Contains(PermissionCodes.EvaluationRead, permissions);
         Assert.Contains(PermissionCodes.CatalogManage, permissions);
     }
 
@@ -41,7 +41,7 @@ public sealed class AuthzContractIntegrationTests
     public async Task Login_WithWrongPassword_Returns401()
     {
         SkipIfNoDatabase();
-        var user = await _factory.CreateUserWithPermissionsAsync(AppPermissions.EvaluationsRead);
+        var user = await _factory.CreateUserWithPermissionsAsync(PermissionCodes.EvaluationRead);
         using var client = _factory.CreateClient();
 
         var response = await client.PostAsJsonAsync("/api/auth/login", new { username = user.Username, password = "SaiMatKhau123" });
@@ -53,8 +53,8 @@ public sealed class AuthzContractIntegrationTests
     public async Task PermissionEndpoint_Returns403WithoutPermission_200WithPermission()
     {
         SkipIfNoDatabase();
-        var withoutPermission = await _factory.CreateUserWithPermissionsAsync(AppPermissions.EvaluationsRead);
-        var withPermission = await _factory.CreateUserWithPermissionsAsync(AppPermissions.RolesManage);
+        var withoutPermission = await _factory.CreateUserWithPermissionsAsync(PermissionCodes.EvaluationRead);
+        var withPermission = await _factory.CreateUserWithPermissionsAsync(PermissionCodes.SystemRolesManage);
 
         using var denied = await _factory.LoginAsAsync(withoutPermission);
         var forbidden = await denied.GetAsync("/api/admin/roles");
@@ -63,7 +63,7 @@ public sealed class AuthzContractIntegrationTests
         {
             var message = json.RootElement.GetProperty("message").GetString();
             Assert.Contains("Quản lý vai trò", message); // tên hiển thị của quyền, không nêu mã kỹ thuật
-            Assert.DoesNotContain(AppPermissions.RolesManage, message);
+            Assert.DoesNotContain(PermissionCodes.SystemRolesManage, message);
         }
 
         using var allowed = await _factory.LoginAsAsync(withPermission);
@@ -75,8 +75,9 @@ public sealed class AuthzContractIntegrationTests
     public async Task PermissionChange_TakesEffectOnNextRequest_WithoutRelogin()
     {
         SkipIfNoDatabase();
-        var admin = await _factory.CreateUserWithPermissionsAsync(AppPermissions.RolesManage);
-        var target = await _factory.CreateUserWithPermissionsAsync(AppPermissions.EvaluationsRead);
+        // Task 09: gán qua bản gán vai trò (endpoint tương thích nhận roleIds thay cho roleCodes).
+        var admin = await _factory.CreateUserWithPermissionsAsync(PermissionCodes.SystemRolesManage, PermissionCodes.SystemAssignmentsManage);
+        var target = await _factory.CreateUserWithPermissionsAsync(PermissionCodes.EvaluationRead);
 
         using var targetClient = await _factory.LoginAsAsync(target);
         Assert.Equal(HttpStatusCode.Forbidden, (await targetClient.GetAsync("/api/admin/roles")).StatusCode);
@@ -85,7 +86,7 @@ public sealed class AuthzContractIntegrationTests
         using var adminClient = await _factory.LoginAsAsync(admin);
         var assign = await adminClient.PostAsJsonAsync(
             $"/api/admin/users/{target.Id}/roles",
-            new { roleCodes = new[] { target.RoleCode, admin.RoleCode } });
+            new { roleIds = new[] { target.RoleId, admin.RoleId } });
         Assert.Equal(HttpStatusCode.OK, assign.StatusCode);
 
         // Cùng access token cũ (JWT không đổi) nhưng quyền đã có hiệu lực.
@@ -94,7 +95,7 @@ public sealed class AuthzContractIntegrationTests
         // Thu hồi → mất quyền ngay.
         var revoke = await adminClient.PostAsJsonAsync(
             $"/api/admin/users/{target.Id}/roles",
-            new { roleCodes = new[] { target.RoleCode } });
+            new { roleIds = new[] { target.RoleId } });
         Assert.Equal(HttpStatusCode.OK, revoke.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await targetClient.GetAsync("/api/admin/roles")).StatusCode);
     }

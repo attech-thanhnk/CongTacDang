@@ -38,9 +38,13 @@ public class ReportService : IReportService
         _pdfConverter = pdfConverter;
     }
 
-    public async Task<ReportFileResult> ExportCadresReportAsync()
+    public async Task<ReportFileResult> ExportCadresReportAsync(CongTacDang.Application.Common.Security.ScopeFilter scope)
     {
-        var members = await _userRepo.GetAllWithDetailsAsync();
+        ArgumentNullException.ThrowIfNull(scope);
+        // T-61: chỉ cán bộ thuộc phạm vi report.export của người yêu cầu (Toàn công ty / Phòng / Chi bộ).
+        var members = (await _userRepo.GetAllWithDetailsAsync())
+            .Where(m => scope.Matches(null, m.DepartmentId, m.PartyCellId))
+            .ToList();
 
         using (var workbook = new XLWorkbook())
         {

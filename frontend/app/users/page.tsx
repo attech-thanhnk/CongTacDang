@@ -10,9 +10,9 @@ import { useToast } from "@/contexts/ToastContext";
 import { PageHeader, Button, StatusBadge } from "@/components/common";
 
 function UsersContent() {
-  const { hasPermission, hasRole } = useAuth();
+  const { hasPermission } = useAuth();
   const { toast, confirm } = useToast();
-  const canManageRoles = hasPermission("roles.manage") || hasRole("QUAN_TRI_HE_THONG");
+  const canManageRoles = hasPermission("system.roles.manage");
   const searchParams = useSearchParams();
   const paramTab = searchParams.get("tab");
   const initialTab: "cadres" | "branches" | "roles" =
@@ -259,7 +259,7 @@ function UsersContent() {
   // Xử lý Phân vai trò cho Cán bộ
   const handleOpenAssignRoles = (cadre: CadreItem) => {
     setSelectedCadreForRoles(cadre);
-    setSelectedRoleCodes(["CAN_BO"]);
+    setSelectedRoleCodes([]);
     setShowAssignRoleModal(true);
   };
 
@@ -343,7 +343,7 @@ function UsersContent() {
         title="Cán bộ & Chi bộ"
         actions={
           <>
-            {activeTab === "cadres" && hasPermission("users.create") && (
+            {activeTab === "cadres" && hasPermission("system.users.manage") && (
               <Button
                 size="sm"
                 variant="primary"
@@ -353,7 +353,7 @@ function UsersContent() {
                 Thêm cán bộ
               </Button>
             )}
-            {activeTab === "branches" && hasPermission("branches.create") && (
+            {activeTab === "branches" && hasPermission("catalog.manage") && (
               <Button
                 size="sm"
                 variant="primary"
@@ -518,7 +518,7 @@ function UsersContent() {
                         </td>
                         <td className="text-center">
                           <div className="d-flex justify-content-center gap-1.5">
-                            {hasPermission("users.update") && (
+                            {hasPermission("system.users.manage") && (
                               <Button
                                 size="sm"
                                 variant="outline-secondary"
@@ -528,7 +528,7 @@ function UsersContent() {
                                 Sửa
                               </Button>
                             )}
-                            {hasPermission("users.update") && (
+                            {hasPermission("system.users.manage") && (
                               <Button
                                 size="sm"
                                 variant="outline-secondary"
@@ -538,7 +538,7 @@ function UsersContent() {
                                 Đặt lại MK
                               </Button>
                             )}
-                            {hasPermission("roles.manage") && (
+                            {canManageRoles && hasPermission("system.assignments.manage") && (
                               <Button
                                 size="sm"
                                 variant="outline-primary"
@@ -549,7 +549,7 @@ function UsersContent() {
                                 Vai trò
                               </Button>
                             )}
-                            {hasPermission("users.delete") && (
+                            {hasPermission("system.users.manage") && (
                               <Button
                                 size="sm"
                                 variant="outline-danger"
@@ -603,7 +603,7 @@ function UsersContent() {
                       <td style={{ textAlign: "center", fontWeight: 600 }}>{b.memberCount}</td>
                       <td style={{ textAlign: "center" }}>
                         <div style={{ display: "flex", justifyContent: "center", gap: "6px" }}>
-                          {hasPermission("branches.update") && (
+                          {hasPermission("catalog.manage") && (
                             <Button
                               size="sm"
                               variant="outline-secondary"
@@ -613,7 +613,7 @@ function UsersContent() {
                               Sửa
                             </Button>
                           )}
-                          {hasPermission("branches.delete") && (
+                          {hasPermission("catalog.manage") && (
                             <Button
                               size="sm"
                               variant="outline-danger"
@@ -686,7 +686,7 @@ function UsersContent() {
                         )}
                       </td>
                       <td style={{ textAlign: "center" }}>
-                        {hasPermission("roles.manage") && r.id ? (
+                        {hasPermission("system.roles.manage") && r.id ? (
                           <Button
                             size="sm"
                             variant="outline-primary"
@@ -1015,14 +1015,9 @@ function UsersContent() {
                   </div>
 
                   <div className="d-flex flex-column gap-2">
-                    {[
-                      { code: "CAN_BO", name: "Cán bộ, Đảng viên", desc: "Quyền cơ bản: Đăng ký việc M01, tự chấm điểm M02" },
-                      { code: "BI_THU_CHI_BO", name: "Bí thư Chi bộ", desc: "Đánh giá, nhận xét, chủ trì bỏ phiếu Chi bộ M10, 13" },
-                      { code: "TO_THAM_DINH", name: "Tổ Thẩm định", desc: "Thẩm định đối soát điểm, kiểm soát tỷ lệ trần 20% M03, 15" },
-                      { code: "DANG_UY_CO_SO", name: "Đảng ủy cơ sở", desc: "Quyết định, phê duyệt hồ sơ thuộc thẩm quyền cấp cơ sở" },
-                      { code: "BAN_THUONG_VU", name: "Ban Thường vụ Đảng ủy", desc: "Chuẩn y mức xếp loại chính thức M14, 16" },
-                      { code: "QUAN_TRI_HE_THONG", name: "Quản trị hệ thống", desc: "Toàn quyền cấu hình hệ thống và phân quyền động" },
-                    ].map((role) => {
+                    {/* Task 09: danh sách vai trò lấy từ máy chủ; chọn theo Id vai trò, gán phạm vi Toàn công ty
+                        (gán theo Phòng/Chi bộ, thời hạn: giao diện quản trị mới — task 11). */}
+                    {adminRoles.map((r) => ({ code: r.id, name: r.name, desc: r.description })).map((role) => {
                       const isChecked = selectedRoleCodes.includes(role.code);
                       return (
                         <label
@@ -1048,9 +1043,6 @@ function UsersContent() {
                             <div className="d-flex align-items-center justify-content-between">
                               <span className="fw-semibold text-dark" style={{ fontSize: "12.5px" }}>
                                 {role.name}
-                              </span>
-                              <span className="badge bg-secondary-subtle text-secondary font-monospace" style={{ fontSize: "9.5px" }}>
-                                {role.code}
                               </span>
                             </div>
                             <div className="text-secondary mt-0.5" style={{ fontSize: "11px" }}>
@@ -1120,16 +1112,7 @@ function UsersContent() {
                       <button
                         type="button"
                         onClick={() => {
-                          const allCodes = allPermissions.length > 0
-                            ? allPermissions.map((p) => p.code)
-                            : [
-                                "users.read", "users.create", "users.update", "users.delete",
-                                "branches.read", "branches.create", "branches.update", "branches.delete",
-                                "attachments.read", "attachments.upload", "attachments.delete",
-                                "evaluations.read", "evaluations.register", "evaluations.self_score",
-                                "evaluations.branch_vote", "evaluations.appraise", "evaluations.approve",
-                                "reports.export", "roles.manage"
-                              ];
+                          const allCodes = allPermissions.map((p) => p.code);
                           setSelectedPermCodes(allCodes);
                         }}
                         className="btn btn-sm btn-link p-0 text-decoration-none"
@@ -1149,58 +1132,18 @@ function UsersContent() {
                     </div>
                   </div>
 
-                  {/* Nhóm quyền theo Phân hệ */}
-                  {[
-                    {
-                      groupName: "Hồ sơ Cán bộ",
-                      resource: "users",
-                      items: [
-                        { code: "users.read", name: "Xem hồ sơ cán bộ", desc: "Xem danh sách và chi tiết hồ sơ cán bộ" },
-                        { code: "users.create", name: "Thêm mới cán bộ", desc: "Tạo mới hồ sơ cán bộ vào hệ thống" },
-                        { code: "users.update", name: "Cập nhật cán bộ", desc: "Chỉnh sửa thông tin hồ sơ cán bộ" },
-                        { code: "users.delete", name: "Xóa cán bộ", desc: "Xóa hồ sơ cán bộ khỏi hệ thống" },
-                      ],
-                    },
-                    {
-                      groupName: "Tổ chức Chi bộ",
-                      resource: "branches",
-                      items: [
-                        { code: "branches.read", name: "Xem Chi bộ", desc: "Xem danh sách và cơ cấu Chi bộ" },
-                        { code: "branches.create", name: "Tạo mới Chi bộ", desc: "Thành lập Chi bộ mới" },
-                        { code: "branches.update", name: "Cập nhật Chi bộ", desc: "Chỉnh sửa thông tin Chi bộ" },
-                        { code: "branches.delete", name: "Xóa Chi bộ", desc: "Xóa Chi bộ khỏi hệ thống" },
-                      ],
-                    },
-                    {
-                      groupName: "Tệp tin & Minh chứng",
-                      resource: "attachments",
-                      items: [
-                        { code: "attachments.read", name: "Xem & tải tệp tin", desc: "Xem danh mục và tải tệp đính kèm" },
-                        { code: "attachments.upload", name: "Tải lên tệp tin", desc: "Đính kèm tệp minh chứng đánh giá" },
-                        { code: "attachments.delete", name: "Xóa tệp tin", desc: "Xóa tệp minh chứng khỏi hệ thống" },
-                      ],
-                    },
-                    {
-                      groupName: "Đánh giá & Xếp loại 5 Bước (03-HD/TVĐU)",
-                      resource: "evaluations",
-                      items: [
-                        { code: "evaluations.read", name: "Xem hồ sơ đánh giá", desc: "Xem hồ sơ đánh giá và tiến trình" },
-                        { code: "evaluations.register", name: "Đăng ký nhiệm vụ (Bước 1)", desc: "Đăng ký 3-7 việc chuyên môn Mẫu 01" },
-                        { code: "evaluations.self_score", name: "Tự chấm điểm (Bước 2)", desc: "Tự chấm 30đ chung và 70đ việc Mẫu 02" },
-                        { code: "evaluations.branch_vote", name: "Chi bộ đánh giá (Bước 3)", desc: "Nhận xét và ghi nhận bỏ phiếu kín Mẫu 10, 13" },
-                        { code: "evaluations.appraise", name: "Thẩm định hồ sơ (Bước 4)", desc: "Đối soát điểm và kiểm soát trần 20% M03, 15" },
-                        { code: "evaluations.approve", name: "Chuẩn y xếp loại (Bước 5)", desc: "BTV Đảng ủy chuẩn y chính thức Mẫu 16" },
-                      ],
-                    },
-                    {
-                      groupName: "Báo cáo & Phân quyền",
-                      resource: "admin",
-                      items: [
-                        { code: "reports.export", name: "Xuất báo cáo", desc: "Xuất báo cáo tổng hợp chuẩn 03-HD/TVĐU" },
-                        { code: "roles.manage", name: "Quản trị phân quyền (RBAC)", desc: "Quản trị vai trò, gán quyền và gán vai trò người dùng" },
-                      ],
-                    },
-                  ].map((grp) => (
+                  {/* Nhóm quyền theo Phân hệ — task 09: danh mục lấy từ máy chủ (GET /api/admin/permissions) */}
+                  {Object.values(
+                    allPermissions.reduce<Record<string, { groupName: string; resource: string; items: { code: string; name: string; desc: string }[] }>>(
+                      (acc, p) => {
+                        const group = acc[p.resource] ?? { groupName: p.resource, resource: p.resource, items: [] };
+                        group.items.push({ code: p.code, name: p.name, desc: p.description });
+                        acc[p.resource] = group;
+                        return acc;
+                      },
+                      {}
+                    )
+                  ).map((grp) => (
                     <div key={grp.groupName} className="mb-3">
                       <div className="fw-bold text-dark mb-1.5 pb-1 border-bottom" style={{ fontSize: "12px", borderColor: "#f1f5f9" }}>
                         {grp.groupName}

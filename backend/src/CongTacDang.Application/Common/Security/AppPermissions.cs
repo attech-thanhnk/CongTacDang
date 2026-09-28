@@ -3,6 +3,7 @@ namespace CongTacDang.Application.Common.Security;
 /// <summary>
 /// Định nghĩa danh mục Quyền hạn nguyên tử (Atomic Permissions) chuẩn hóa toàn hệ thống theo 03-HD/TVĐU
 /// </summary>
+[System.Obsolete("Mã quyền cũ — dùng PermissionCodes. Chỉ còn cho file ngoài phạm vi task 09 (UserController, OrganizationController, AuditController); sẽ xóa khi tích hợp.")]
 public static class AppPermissions
 {
     #region Phân hệ Hồ sơ Cán bộ (Users)

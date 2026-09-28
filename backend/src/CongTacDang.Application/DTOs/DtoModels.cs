@@ -900,7 +900,7 @@ public class RoleDto
     /// <summary>Mã định danh vai trò</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Mã định danh vai trò (CAN_BO, BI_THU_CHI_BO, TO_THAM_DINH, BAN_THUONG_VU, QUAN_TRI_HE_THONG)</summary>
+    /// <summary>Mã kỹ thuật của vai trò (không dùng để phân quyền; vai trò tạo qua API có mã sinh tự động)</summary>
     public string Code { get; set; } = string.Empty;
 
     /// <summary>Tên hiển thị vai trò</summary>
@@ -923,9 +923,3 @@ public class UpdateRolePermissionsDto
     public List<string> PermissionCodes { get; set; } = new();
 }
 
-/// <summary>Yêu cầu gán vai trò cho người dùng</summary>
-public class AssignUserRolesDto
-{
-    /// <summary>Danh sách mã vai trò cần gán cho cán bộ</summary>
-    public List<string> RoleCodes { get; set; } = new();
-}

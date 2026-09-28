@@ -179,27 +179,33 @@ public class AttachmentVersioningTests
         public Dictionary<Guid, PartyMemberProfile> Users { get; } = new();
         public Dictionary<Guid, EvaluationRecord> Records { get; } = new();
         public Dictionary<Guid, EvaluationTask> Tasks { get; } = new();
+        public Dictionary<Guid, List<PermissionGrant>> Grants { get; } = new();
         public AttachmentService Service { get; }
 
         public World()
         {
             var reader = new AccessReader(this);
-            Service = new AttachmentService(Files, Storage, reader, new Users(this), new AccessPolicy(), Files);
+            // Task 09: quyền lấy từ bản gán có phạm vi (IPermissionResolver) thay cho vai trò/quyền cũ.
+            Service = new AttachmentService(Files, Storage, reader, new Resolver(this), Files);
         }
 
-        private PartyMemberProfile User(Guid? cellId, string roleCode, params string[] permissions)
+        private PartyMemberProfile User(Guid? cellId, params PermissionGrant[] grants)
         {
             var user = new PartyMemberProfile { Id = Guid.NewGuid(), PartyCellId = cellId };
-            user.Roles.Add(new AppRole { Code = roleCode, Permissions = permissions.Select(p => new Permission { Code = p }).ToList() });
             Users[user.Id] = user;
+            Grants[user.Id] = grants.ToList();
             return user;
         }
 
+        /// <summary>Cán bộ: "Người được đánh giá" (evaluation.self, Toàn công ty).</summary>
         public PartyMemberProfile Cadre(Guid? cellId) =>
-            User(cellId, AppRoles.CAN_BO, AppPermissions.AttachmentsRead, AppPermissions.AttachmentsUpload);
+            User(cellId, new PermissionGrant(PermissionCodes.EvaluationSelf, ScopeType.Global, null, Guid.NewGuid(), "Người được đánh giá"));
 
+        /// <summary>Bí thư Chi bộ: evaluation.self + evaluation.read phạm vi Chi bộ của mình.</summary>
         public PartyMemberProfile Secretary(Guid? cellId) =>
-            User(cellId, AppRoles.BI_THU_CHI_BO, AppPermissions.AttachmentsRead, AppPermissions.AttachmentsUpload, AppPermissions.EvaluationsBranchVote);
+            User(cellId,
+                new PermissionGrant(PermissionCodes.EvaluationSelf, ScopeType.Global, null, Guid.NewGuid(), "Người được đánh giá"),
+                new PermissionGrant(PermissionCodes.EvaluationRead, ScopeType.PartyCell, cellId, Guid.NewGuid(), "Chi ủy / Bí thư Chi bộ"));
 
         public (EvaluationRecord Record, EvaluationTask Task) RecordWithTask(PartyMemberProfile owner)
         {
@@ -218,7 +224,7 @@ public class AttachmentVersioningTests
         public AccessReader(World world) => _world = world;
 
         public Task<HashSet<Guid>> GetUserIdsInRoleAsync(IReadOnlyCollection<Guid> userIds, string roleCode) =>
-            Task.FromResult(userIds.Where(id => _world.Users.TryGetValue(id, out var u) && u.HasRole(roleCode)).ToHashSet());
+            Task.FromResult(new HashSet<Guid>()); // không còn dùng từ task 09
 
         public Task<Dictionary<Guid, List<AttachmentRecordLink>>> GetRecordLinksAsync(IReadOnlyCollection<TaskAttachment> attachments)
         {
@@ -249,6 +255,17 @@ public class AttachmentVersioningTests
             };
             return Task.FromResult(record);
         }
+    }
+
+    private sealed class Resolver : IPermissionResolver
+    {
+        private readonly World _world;
+        public Resolver(World world) => _world = world;
+
+        public Task<EffectivePermissions> GetAsync(Guid userId, CancellationToken ct = default) =>
+            Task.FromResult(_world.Grants.TryGetValue(userId, out var grants)
+                ? new EffectivePermissions(userId, grants)
+                : EffectivePermissions.Empty(userId));
     }
 
     private sealed class Users : IUserRepository

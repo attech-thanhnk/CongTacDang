@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 
@@ -51,6 +52,32 @@ public sealed record ScopeFilter(
 
     /// <summary>Bộ lọc không cho thấy đối tượng nào.</summary>
     public bool IsEmpty => !IsGlobal && DepartmentIds.Count == 0 && PartyCellIds.Count == 0 && OwnerId == null;
+
+    /// <summary>
+    /// Đối tượng có chủ <paramref name="ownerId"/>, thuộc Phòng <paramref name="departmentId"/>, Chi bộ <paramref name="partyCellId"/>
+    /// nằm trong bộ lọc hay không (dùng khi lọc danh sách trong bộ nhớ).
+    /// </summary>
+    public bool Matches(Guid? ownerId, Guid? departmentId, Guid? partyCellId)
+    {
+        if (IsGlobal)
+            return true;
+        if (OwnerId.HasValue && ownerId == OwnerId)
+            return true;
+        if (departmentId.HasValue && DepartmentIds.Contains(departmentId.Value))
+            return true;
+        return partyCellId.HasValue && PartyCellIds.Contains(partyCellId.Value);
+    }
+
+    /// <summary>Hợp của hai bộ lọc (thấy đối tượng thuộc ít nhất một bộ lọc). Chủ hồ sơ lấy theo bộ lọc đầu nếu có.</summary>
+    public ScopeFilter Union(ScopeFilter other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        return new ScopeFilter(
+            IsGlobal || other.IsGlobal,
+            DepartmentIds.Concat(other.DepartmentIds).Distinct().ToList(),
+            PartyCellIds.Concat(other.PartyCellIds).Distinct().ToList(),
+            OwnerId ?? other.OwnerId);
+    }
 }
 
 /// <summary>

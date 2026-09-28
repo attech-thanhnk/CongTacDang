@@ -8,7 +8,7 @@ import { useLayout } from "@/contexts/LayoutContext";
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { user, logout, hasPermission, hasRole } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const { isSidebarOpen, closeSidebar } = useLayout();
 
   const allMenuItems = [
@@ -17,43 +17,47 @@ export function AppSidebar() {
       title: "Đánh giá cán bộ",
       href: "/evaluations",
       icon: "bi-check2-square",
-      permission: "evaluations.read",
+      check: () =>
+        hasPermission("evaluation.self") ||
+        hasPermission("evaluation.read"),
     },
     {
       title: "Đánh giá tập thể",
       href: "/collective-evaluations",
       icon: "bi-diagram-3-fill",
       check: () =>
-        hasPermission("evaluations.branch_vote") ||
-        hasPermission("evaluations.appraise") ||
-        hasPermission("evaluations.approve"),
+        hasPermission("evaluation.read") ||
+        hasPermission("collective.manage") ||
+        hasPermission("meeting.read") ||
+        hasPermission("meeting.manage"),
     },
     {
       title: "Cán bộ & Tổ chức",
       href: "/users",
       icon: "bi-people-fill",
       check: () =>
-        hasPermission("users.read") ||
-        hasPermission("branches.read") ||
-        hasPermission("roles.manage"),
+        hasPermission("system.users.read") ||
+        hasPermission("catalog.manage") ||
+        hasPermission("system.assignments.manage") ||
+        hasPermission("system.roles.manage"),
     },
     {
       title: "Tài liệu đính kèm",
       href: "/attachments",
       icon: "bi-folder2-open",
-      permission: "attachments.read",
+      // Mọi người đã đăng nhập (quyền trên tệp = quyền trên hồ sơ gắn tệp, máy chủ kiểm tra)
     },
     {
       title: "Báo cáo",
       href: "/reports",
       icon: "bi-bar-chart-line-fill",
-      permission: "reports.export",
+      permission: "report.export",
     },
     {
       title: "Nhật ký hệ thống",
       href: "/audit",
       icon: "bi-clock-history",
-      permission: "roles.manage",
+      permission: "system.audit.read",
     },
     { title: "Biểu mẫu", href: "/forms", icon: "bi-file-earmark-text-fill" },
   ];

@@ -93,7 +93,7 @@ export default function ReportsPage() {
     },
   ];
 
-  if (hasPermission("reports.export")) {
+  if (hasPermission("report.export")) {
     columns.push({
       header: "Thao tác",
       width: "120px",

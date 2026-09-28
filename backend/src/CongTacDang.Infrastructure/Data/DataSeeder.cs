@@ -7,83 +7,92 @@ using Microsoft.Extensions.Logging;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.Application.Common.Security;
-using CongTacDang.Application.Services;
 
 namespace CongTacDang.Infrastructure.Data;
 
+/// <summary>
+/// Khởi tạo dữ liệu nền: danh mục quyền (từ <see cref="PermissionCodes"/>), vai trò mặc định
+/// (docs/thiet-ke/phan-quyen.md mục 6 — ĐỀ XUẤT, chờ nghiệp vụ xác nhận), chuyển gán vai trò cũ sang bản gán,
+/// và dữ liệu mẫu khi bật <c>Database:SeedSampleData</c>.
+/// <para>
+/// Đây là nơi <b>duy nhất</b> biết mã vai trò (<see cref="AppRole.Code"/>) — chỉ để tìm vai trò mặc định; logic phân quyền
+/// chỉ dùng mã quyền.
+/// </para>
+/// </summary>
 public static class DataSeeder
 {
-    /// <summary>Định nghĩa một vai trò hệ thống và bộ quyền mặc định.</summary>
-    private sealed record RoleDefinition(string Code, string Name, string Description, string[] Permissions);
+    /// <summary>Định nghĩa một vai trò mặc định và bộ quyền của nó.</summary>
+    private sealed record RoleDefinition(string Code, string Name, string Description, string[] Permissions, bool IsProtected = false);
 
-    /// <summary>
-    /// Mã quyền mới (<see cref="PermissionCodes"/>) cấp cho vai trò quản trị để endpoint dùng mã mới chạy được ngay:
-    /// <c>system.*</c>, <c>catalog.manage</c>, <c>attachment.general.manage</c>.
-    /// Khai báo trước <see cref="DefaultRoles"/> vì trường tĩnh được khởi tạo theo thứ tự khai báo.
-    /// </summary>
-    private static readonly string[] AdministratorNewPermissionCodes = PermissionCodes.All
+    /// <summary>Mã vai trò mặc định (chỉ seeder dùng).</summary>
+    private static class RoleCodes
+    {
+        public const string Evaluatee = "NGUOI_DUOC_DANH_GIA";
+        public const string DepartmentLeader = "LANH_DAO_PHONG";
+        public const string CollectiveSecretary = "THU_KY_TAP_THE";
+        public const string CellCommittee = "CHI_UY_CHI_BO";
+        public const string Appraisal = "CO_QUAN_THAM_DINH";
+        public const string DirectSupervisor = "CAP_TRUC_TIEP_SU_DUNG";
+        public const string PartyCommitteeMember = "CAP_UY_VIEN";
+        public const string PartyOffice = "VAN_PHONG_DANG_UY";
+        public const string Administrator = "QUAN_TRI_HE_THONG";
+
+        // Vai trò cũ (trước task 09) — chỉ dùng để chuyển gán vai trò cũ sang vai trò mặc định mới.
+        public const string LegacyCadre = "CAN_BO";
+        public const string LegacyCellSecretary = "BI_THU_CHI_BO";
+        public const string LegacyAppraisal = "TO_THAM_DINH";
+        public const string LegacyStandingCommittee = "BAN_THUONG_VU";
+        public const string LegacyBaseCommittee = "DANG_UY_CO_SO";
+
+        public static readonly string[] Legacy =
+        {
+            LegacyCadre, LegacyCellSecretary, LegacyAppraisal, LegacyStandingCommittee, LegacyBaseCommittee, Administrator
+        };
+    }
+
+    /// <summary>Quyền của vai trò quản trị hệ thống: <c>system.*</c>, <c>catalog.manage</c>, <c>attachment.general.manage</c>.</summary>
+    private static readonly string[] AdministratorPermissionCodes = PermissionCodes.All
         .Where(code => code.StartsWith("system.", StringComparison.Ordinal)
             || code == PermissionCodes.CatalogManage
             || code == PermissionCodes.AttachmentGeneralManage)
         .ToArray();
 
-    private static readonly string[] CanBoPermissions =
-    {
-        AppPermissions.UsersRead,
-        AppPermissions.BranchesRead,
-        AppPermissions.AttachmentsRead,
-        AppPermissions.AttachmentsUpload,
-        AppPermissions.ReportsExport,
-        AppPermissions.EvaluationsRead,
-        AppPermissions.EvaluationsRegister,
-        AppPermissions.EvaluationsSelfScore
-    };
-
-    /// <summary>Ma trận vai trò - quyền mặc định, dùng khi tạo role lần đầu và khi đặt lại có chủ đích.</summary>
+    /// <summary>Cấu hình mặc định (docs/thiet-ke/phan-quyen.md mục 6).</summary>
     private static readonly RoleDefinition[] DefaultRoles =
     {
-        new(AppRoles.CAN_BO, "Cán bộ, Đảng viên", "Quyền cơ bản của mọi Đảng viên, cán bộ trong hệ thống", CanBoPermissions),
-        new(AppRoles.BI_THU_CHI_BO, "Bí thư Chi bộ", "Bí thư / Phó Bí thư Chi bộ cơ sở trực thuộc Đảng bộ",
-            CanBoPermissions.Concat(new[] { AppPermissions.BranchesUpdate, AppPermissions.EvaluationsBranchVote }).ToArray()),
-        new(AppRoles.TO_THAM_DINH, "Tổ Thẩm định", "Tổ thẩm định đánh giá cán bộ và rà soát minh chứng",
-            CanBoPermissions.Concat(new[] { AppPermissions.AttachmentsDelete, AppPermissions.EvaluationsAppraise }).ToArray()),
-        new(AppRoles.BAN_THUONG_VU, "Ban Thường vụ Đảng ủy Tổng công ty", "Cấp có thẩm quyền phê duyệt các hồ sơ thuộc diện Ban Thường vụ Đảng ủy Tổng công ty",
-            CanBoPermissions.Concat(new[]
-            {
-                AppPermissions.BranchesCreate,
-                AppPermissions.BranchesUpdate,
-                AppPermissions.BranchesDelete,
-                AppPermissions.AttachmentsDelete,
-                AppPermissions.EvaluationsBranchVote,
-                AppPermissions.EvaluationsAppraise,
-                AppPermissions.EvaluationsApprove
-            }).ToArray()),
-        new(AppRoles.DANG_UY_CO_SO, "Đảng ủy cơ sở", "Quyết định, phê duyệt hồ sơ thuộc thẩm quyền Đảng ủy cơ sở",
-            new[] { AppPermissions.EvaluationsRead, AppPermissions.EvaluationsApprove, AppPermissions.ReportsExport }),
-        // Quản trị viên kỹ thuật & phân quyền - Không tham gia đánh giá cá nhân
-        new(AppRoles.QUAN_TRI_HE_THONG, "Quản trị hệ thống", "Toàn quyền quản trị kỹ thuật hệ thống, danh mục Chi bộ/Phòng ban và phân quyền",
+        new(RoleCodes.Evaluatee, "Người được đánh giá", "Tham gia đánh giá bản thân (HD03 IV.1, IV.2). Phạm vi gán điển hình: Toàn công ty.",
+            new[] { PermissionCodes.EvaluationSelf }),
+        new(RoleCodes.DepartmentLeader, "Lãnh đạo Phòng", "Xem hồ sơ và duyệt danh mục sản phẩm của Phòng (HD03 IV.1; PL II mục II). Phạm vi gán điển hình: Phòng.",
+            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksApprove }),
+        new(RoleCodes.CollectiveSecretary, "Thư ký tập thể lãnh đạo", "Ghi nhận đề xuất của tập thể lãnh đạo, lập biên bản (HD03 IV.3a; Mẫu 11–13). Phạm vi gán điển hình: Phòng hoặc Toàn công ty.",
+            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.MeetingRead, PermissionCodes.MeetingManage }),
+        new(RoleCodes.CellCommittee, "Chi ủy / Bí thư Chi bộ", "Chi bộ xác nhận phiếu tự chấm, lập hồ sơ tập thể (Mẫu 09A–9D, Mẫu 07). Phạm vi gán điển hình: Chi bộ.",
+            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCellConfirm, PermissionCodes.CollectiveManage, PermissionCodes.MeetingRead }),
+        new(RoleCodes.Appraisal, "Cơ quan thẩm định (Phòng TCCB-LĐ)", "Rà soát, thẩm định; quản lý kỳ đánh giá (HD03 IV.1, IV.3b). Phạm vi gán: Toàn công ty.",
             new[]
             {
-                AppPermissions.UsersRead,
-                AppPermissions.UsersCreate,
-                AppPermissions.UsersUpdate,
-                AppPermissions.UsersDelete,
-                AppPermissions.BranchesRead,
-                AppPermissions.BranchesCreate,
-                AppPermissions.BranchesUpdate,
-                AppPermissions.BranchesDelete,
-                AppPermissions.AttachmentsRead,
-                AppPermissions.AttachmentsUpload,
-                AppPermissions.AttachmentsDelete,
-                AppPermissions.ReportsExport,
-                AppPermissions.RolesManage,
-                AppPermissions.EvaluationsRead
-            }.Concat(AdministratorNewPermissionCodes).ToArray())
+                PermissionCodes.EvaluationRead, PermissionCodes.EvaluationAppraise, PermissionCodes.PeriodManage,
+                PermissionCodes.ReportExport, PermissionCodes.SystemImport, PermissionCodes.SystemUsersRead
+            }),
+        new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Nhận xét, đề xuất của cấp trực tiếp sử dụng cán bộ (HD03 IV.3c). Phạm vi gán: Toàn công ty.",
+            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport }),
+        new(RoleCodes.PartyCommitteeMember, "Cấp ủy viên Đảng ủy", "Xem hồ sơ, biên bản, báo cáo (HD03 IV.4; Mẫu 18). Phạm vi gán: Toàn công ty.",
+            new[] { PermissionCodes.EvaluationRead, PermissionCodes.MeetingRead, PermissionCodes.ReportExport }),
+        new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy (ghi nhận quyết định)", "Ghi nhận quyết định, công bố, mở lại hồ sơ (HD03 IV.4, IV.5). Phạm vi gán: Toàn công ty.",
+            new[]
+            {
+                PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationDecideExternal,
+                PermissionCodes.EvaluationPublish, PermissionCodes.EvaluationReopen, PermissionCodes.MeetingRead,
+                PermissionCodes.MeetingManage, PermissionCodes.ReportExport
+            }),
+        new(RoleCodes.Administrator, "Quản trị hệ thống", "Quản trị kỹ thuật: tài khoản, vai trò, gán vai trò, nhật ký, danh mục, văn bản chung. Không xem nội dung đánh giá (Mẫu 18).",
+            AdministratorPermissionCodes, IsProtected: true)
     };
 
     /// <summary>
-    /// Khởi tạo dữ liệu nền. Role/permission chỉ được tạo khi chưa có; quyền của role đã tồn tại
-    /// không bị ghi đè trừ khi <paramref name="resetRolePermissions"/> = true (Database:ResetRolePermissions).
+    /// Khởi tạo dữ liệu nền. Vai trò mặc định chỉ được tạo khi CSDL chưa có vai trò nào ngoài các vai trò cũ;
+    /// quyền của vai trò đã tồn tại không bị ghi đè trừ khi <paramref name="resetRolePermissions"/> = true (Database:ResetRolePermissions).
+    /// Không bao giờ gán lại vai trò cho người đã có bản gán (T-46).
     /// </summary>
     public static async Task SeedAsync(
         CongTacDangDbContext context,
@@ -91,88 +100,21 @@ public static class DataSeeder
         bool resetRolePermissions = false,
         ILogger? logger = null)
     {
-        // 1. Seed Permissions (Danh mục quyền hạn chuẩn hóa toàn hệ thống theo 03-HD/TVĐU)
-        var definedPermissions = new List<Permission>
-        {
-            // Users
-            new() { Code = AppPermissions.UsersRead, Name = "Xem hồ sơ cán bộ", Resource = "users", Action = "read", Description = "Xem danh sách và chi tiết hồ sơ cán bộ, đảng viên" },
-            new() { Code = AppPermissions.UsersCreate, Name = "Tạo mới cán bộ", Resource = "users", Action = "create", Description = "Thêm mới hồ sơ cán bộ, đảng viên vào hệ thống" },
-            new() { Code = AppPermissions.UsersUpdate, Name = "Cập nhật cán bộ", Resource = "users", Action = "update", Description = "Chỉnh sửa thông tin hồ sơ cán bộ, đảng viên" },
-            new() { Code = AppPermissions.UsersDelete, Name = "Xóa cán bộ", Resource = "users", Action = "delete", Description = "Xóa hồ sơ cán bộ, đảng viên" },
+        // 1. Danh mục quyền: đồng bộ từ PermissionCodes (tạo mới, cập nhật tên/mô tả/phân hệ/thứ tự).
+        await SyncPermissionCatalogAsync(context, logger);
 
-            // Branches
-            new() { Code = AppPermissions.BranchesRead, Name = "Xem tổ chức Chi bộ", Resource = "branches", Action = "read", Description = "Xem danh sách Chi bộ và cơ cấu tổ chức" },
-            new() { Code = AppPermissions.BranchesCreate, Name = "Tạo mới Chi bộ", Resource = "branches", Action = "create", Description = "Thành lập Chi bộ mới" },
-            new() { Code = AppPermissions.BranchesUpdate, Name = "Cập nhật Chi bộ", Resource = "branches", Action = "update", Description = "Chỉnh sửa thông tin Chi bộ" },
-            new() { Code = AppPermissions.BranchesDelete, Name = "Xóa Chi bộ", Resource = "branches", Action = "delete", Description = "Xóa Chi bộ" },
-
-            // Attachments
-            new() { Code = AppPermissions.AttachmentsRead, Name = "Xem & tải tài liệu", Resource = "attachments", Action = "read", Description = "Xem danh sách và tải tệp minh chứng, tài liệu" },
-            new() { Code = AppPermissions.AttachmentsUpload, Name = "Tải lên tài liệu", Resource = "attachments", Action = "upload", Description = "Tải lên văn bản, minh chứng đánh giá" },
-            new() { Code = AppPermissions.AttachmentsDelete, Name = "Xóa tài liệu", Resource = "attachments", Action = "delete", Description = "Xóa tệp minh chứng khỏi hệ thống" },
-
-            // Evaluations (03-HD/TVĐU Quy trình 5 bước)
-            new() { Code = AppPermissions.EvaluationsRead, Name = "Xem hồ sơ đánh giá", Resource = "evaluations", Action = "read", Description = "Xem hồ sơ đánh giá và tiến trình 5 bước" },
-            new() { Code = AppPermissions.EvaluationsRegister, Name = "Đăng ký nhiệm vụ", Resource = "evaluations", Action = "register", Description = "Đăng ký 3-7 nhiệm vụ trọng tâm đầu quý (Mẫu 01 - 70 điểm)" },
-            new() { Code = AppPermissions.EvaluationsSelfScore, Name = "Tự chấm điểm", Resource = "evaluations", Action = "self_score", Description = "Tự chấm 30đ tiêu chí chung và 70đ chuyên môn (Mẫu 02 & 09)" },
-            new() { Code = AppPermissions.EvaluationsBranchVote, Name = "Chi bộ đánh giá & bỏ phiếu", Resource = "evaluations", Action = "branch_vote", Description = "Chi bộ nhận xét và bỏ phiếu kín (Mẫu 10 & 13)" },
-            new() { Code = AppPermissions.EvaluationsAppraise, Name = "Thẩm định hồ sơ", Resource = "evaluations", Action = "appraise", Description = "Tổ Thẩm định đối soát điểm và kiểm tra trần 20% (Mẫu 03 & 15)" },
-            new() { Code = AppPermissions.EvaluationsApprove, Name = "Chuẩn y xếp loại", Resource = "evaluations", Action = "approve", Description = "Ban Thường vụ chuẩn y mức xếp loại chính thức (Mẫu 14 & 16)" },
-
-            // Reports
-            new() { Code = AppPermissions.ReportsExport, Name = "Xuất báo cáo", Resource = "reports", Action = "export", Description = "Xuất báo cáo tổng hợp đánh giá theo chuẩn 03-HD/TVĐU" },
-
-            // Roles Management
-            new() { Code = AppPermissions.RolesManage, Name = "Quản trị vai trò & quyền", Resource = "roles", Action = "manage", Description = "Quản trị động vai trò, gán quyền và gán vai trò người dùng" },
-        };
-
-        // Mã quyền chuẩn mới (PermissionCodes) — cùng tồn tại với mã cũ trong giai đoạn chuyển tiếp.
-        definedPermissions.AddRange(PermissionCodes.Definitions.Select(d => new Permission
-        {
-            Code = d.Code,
-            Name = d.Name,
-            Resource = d.Module,
-            Action = d.Code.StartsWith(d.Module + ".", StringComparison.Ordinal) ? d.Code[(d.Module.Length + 1)..] : d.Code,
-            Description = d.Description
-        }));
-
-        // Chỉ tạo bản ghi permission còn thiếu (kể cả bản ghi đã xóa mềm được coi là đã có);
-        // không tự gán permission mới vào role đã tồn tại, trừ mã mới của vai trò quản trị (xem bên dưới).
-        var existingPermCodes = await context.Permissions.IgnoreQueryFilters().Select(p => p.Code).ToListAsync();
-        var missingPerms = definedPermissions.Where(p => !existingPermCodes.Contains(p.Code)).ToList();
-        var rolesExisted = await context.Roles.AnyAsync();
-        if (missingPerms.Any())
-        {
-            await context.Permissions.AddRangeAsync(missingPerms);
-            await context.SaveChangesAsync();
-
-            var unassigned = missingPerms.Select(p => p.Code).Except(AdministratorNewPermissionCodes).ToList();
-            if (rolesExisted && !resetRolePermissions && unassigned.Count > 0)
-            {
-                logger?.LogWarning(
-                    "Đã tạo quyền mới {Permissions} nhưng không tự gán vào vai trò nào. Hãy gán qua màn hình phân quyền hoặc bật Database:ResetRolePermissions để đặt lại về mặc định.",
-                    string.Join(", ", unassigned));
-            }
-        }
-
-        // 2. Seed Roles & Role-Permission Mapping: chỉ tạo role còn thiếu kèm quyền mặc định.
-        await SeedMissingRolesAsync(context, logger);
-
-        // Mã quyền mới của vai trò quản trị: chỉ gán khi bản ghi permission vừa được tạo ở lần chạy này,
-        // nên cấu hình quản trị đã chỉnh tay (gỡ quyền) không bị ghi đè ở lần khởi động sau (tinh thần T-33).
-        await GrantNewAdministratorPermissionsAsync(
-            context,
-            missingPerms.Select(p => p.Code).Intersect(AdministratorNewPermissionCodes).ToList(),
-            logger);
-
-        // Đặt lại quyền của các role hệ thống về mặc định chỉ khi được yêu cầu tường minh.
+        // 2. Vai trò mặc định (chỉ khi chưa có vai trò nào ngoài vai trò cũ), vai trò quản trị được bảo vệ.
+        await SeedDefaultRolesAsync(context, logger);
         if (resetRolePermissions)
             await ResetRolePermissionsAsync(context, logger);
+
+        // 3. Chuyển gán vai trò cũ (bảng user_roles) sang bản gán có phạm vi — chỉ khi bảng gán còn trống.
+        await MigrateLegacyUserRolesAsync(context, logger);
 
         if (!seedSampleData)
             return;
 
-        // 3. Seed Chi bộ Đảng tại ATTECH
+        // 4. Seed Chi bộ Đảng tại ATTECH
         if (!await context.PartyCells.AnyAsync())
         {
             var cellKt = new PartyCell { Code = "CB-KT", Name = "Chi bộ Khối Kỹ thuật", Description = "Chi bộ phụ trách an toàn, điều hành kỹ thuật CNS, ATM" };
@@ -184,7 +126,7 @@ public static class DataSeeder
             await context.SaveChangesAsync();
         }
 
-        // 4. Seed Phòng ban Chính quyền tại ATTECH
+        // 5. Seed Phòng ban Chính quyền tại ATTECH
         if (!await context.AdministrativeDepartments.AnyAsync())
         {
             var depKh = new AdministrativeDepartment { Code = "PH-KH", Name = "Phòng Kế hoạch", Description = "Phòng Kế hoạch đầu tư, dự án" };
@@ -196,268 +138,11 @@ public static class DataSeeder
             await context.SaveChangesAsync();
         }
 
-        // 5. Seed Cán bộ / Đảng viên mẫu kèm gán vai trò ban đầu
-        if (!await context.PartyMemberProfiles.AnyAsync())
-        {
-            var cellKt = await context.PartyCells.FirstAsync(x => x.Code == "CB-KT");
-            var cellVp = await context.PartyCells.FirstAsync(x => x.Code == "CB-VP");
-            var depKh = await context.AdministrativeDepartments.FirstAsync(x => x.Code == "PH-KH");
+        // 6. Seed Cán bộ / Đảng viên mẫu (vai trò gán ở bước 7 qua bản gán có phạm vi)
+        await SeedSampleUsersAsync(context);
 
-            var roleCanBo = await context.Roles.FirstAsync(r => r.Code == AppRoles.CAN_BO);
-            var roleBiThuCb = await context.Roles.FirstAsync(r => r.Code == AppRoles.BI_THU_CHI_BO);
-            var roleBanThuongVu = await context.Roles.FirstAsync(r => r.Code == AppRoles.BAN_THUONG_VU);
-            var roleDangUyCoSo = await context.Roles.FirstAsync(r => r.Code == AppRoles.DANG_UY_CO_SO);
-            var roleAdmin = await context.Roles.FirstAsync(r => r.Code == AppRoles.QUAN_TRI_HE_THONG);
-            var defaultPasswordHash = BCrypt.Net.BCrypt.HashPassword("123456");
-
-            var adminUser = new PartyMemberProfile
-            {
-                Username = "admin",
-                PasswordHash = defaultPasswordHash,
-                MustChangePassword = true,
-                FullName = "Quản trị viên Hệ thống",
-                Email = "admin@attech.com.vn",
-                PhoneNumber = "0900000000",
-                IsPartyMember = true,
-                PartyCardNumber = "ADMIN-001",
-                PartyCellId = cellVp.Id,
-                PartyRole = PartyRole.DangVien,
-                DepartmentId = depKh.Id,
-                AdminPosition = AdministrativePosition.ChuyenVien,
-                PositionTitle = "Quản trị viên Hệ thống CNTT",
-                JobGroup = JobGroup.Khung4_KhcnChuyenDoiSo,
-                ApprovalAuthority = ApprovalAuthority.CoSo,
-                Roles = new List<AppRole> { roleAdmin }
-            };
-
-            var biThuAttech = new PartyMemberProfile
-            {
-                Username = "bithu_attech",
-                PasswordHash = defaultPasswordHash,
-                MustChangePassword = true,
-                FullName = "Lê Tiến Thịnh",
-                Email = "thinhlt@attech.com.vn",
-                PhoneNumber = "0912345678",
-                IsPartyMember = true,
-                PartyCardNumber = "ATTECH-001",
-                PartyCellId = cellVp.Id,
-                PartyRole = PartyRole.BiThuDangUy,
-                DepartmentId = depKh.Id,
-                AdminPosition = AdministrativePosition.GiamDoc,
-                PositionTitle = "Bí thư Đảng ủy, Giám đốc Công ty",
-                JobGroup = JobGroup.Khung1_QuanLyDangDoanThe,
-                ApprovalAuthority = ApprovalAuthority.CapTren,
-                Roles = new List<AppRole> { roleBanThuongVu, roleDangUyCoSo, roleCanBo }
-            };
-
-            var biThuCbkt = new PartyMemberProfile
-            {
-                Username = "bithu_cbkt",
-                PasswordHash = defaultPasswordHash,
-                MustChangePassword = true,
-                FullName = "Nguyễn Văn Hùng",
-                Email = "hungnv@attech.com.vn",
-                PhoneNumber = "0987654321",
-                IsPartyMember = true,
-                PartyCardNumber = "ATTECH-002",
-                PartyCellId = cellKt.Id,
-                PartyRole = PartyRole.BiThuChiBo,
-                DepartmentId = depKh.Id,
-                AdminPosition = AdministrativePosition.TruongPhong,
-                PositionTitle = "Bí thư Chi bộ, Trưởng phòng Kỹ thuật",
-                JobGroup = JobGroup.Khung2_AnToanKyThuat,
-                ApprovalAuthority = ApprovalAuthority.CoSo,
-                Roles = new List<AppRole> { roleBiThuCb, roleCanBo }
-            };
-
-            var roleToThamDinh = await context.Roles.FirstAsync(r => r.Code == AppRoles.TO_THAM_DINH);
-            var depTccb = await context.AdministrativeDepartments.FirstAsync(x => x.Code == "PH-TCCB");
-
-            var canBoKt = new PartyMemberProfile
-            {
-                Username = "canbo_kt",
-                PasswordHash = defaultPasswordHash,
-                MustChangePassword = true,
-                FullName = "Trần Quốc Tuấn",
-                Email = "tuantq@attech.com.vn",
-                PhoneNumber = "0901234567",
-                IsPartyMember = true,
-                PartyCardNumber = "ATTECH-003",
-                PartyCellId = cellKt.Id,
-                PartyRole = PartyRole.DangVien,
-                DepartmentId = depKh.Id,
-                AdminPosition = AdministrativePosition.PhoTruongPhong,
-                PositionTitle = "Phó Trưởng phòng Kỹ thuật",
-                JobGroup = JobGroup.Khung2_AnToanKyThuat,
-                ApprovalAuthority = ApprovalAuthority.CoSo,
-                Roles = new List<AppRole> { roleCanBo }
-            };
-
-            var thamDinhDu = new PartyMemberProfile
-            {
-                Username = "thamdinh_du",
-                PasswordHash = defaultPasswordHash,
-                MustChangePassword = true,
-                FullName = "Vũ Đình Hùng",
-                Email = "hungvd@attech.com.vn",
-                PhoneNumber = "0934567890",
-                IsPartyMember = true,
-                PartyCardNumber = "ATTECH-004",
-                PartyCellId = cellVp.Id,
-                PartyRole = PartyRole.DangUyVien,
-                DepartmentId = depTccb.Id,
-                AdminPosition = AdministrativePosition.TruongPhong,
-                PositionTitle = "Trưởng Ban TCCB, Tổ trưởng Tổ Thẩm định",
-                JobGroup = JobGroup.Khung1_QuanLyDangDoanThe,
-                ApprovalAuthority = ApprovalAuthority.CoSo,
-                Roles = new List<AppRole> { roleToThamDinh, roleCanBo }
-            };
-
-            await context.PartyMemberProfiles.AddRangeAsync(adminUser, biThuAttech, biThuCbkt, canBoKt, thamDinhDu);
-            await context.SaveChangesAsync();
-        }
-        else
-        {
-            var cellVp = await context.PartyCells.FirstAsync(x => x.Code == "CB-VP");
-            var depKh = await context.AdministrativeDepartments.FirstAsync(x => x.Code == "PH-KH");
-            var depTccb = await context.AdministrativeDepartments.FirstAsync(x => x.Code == "PH-TCCB");
-            var roleAdmin = await context.Roles.FirstOrDefaultAsync(r => r.Code == AppRoles.QUAN_TRI_HE_THONG);
-            var roleToThamDinh = await context.Roles.FirstOrDefaultAsync(r => r.Code == AppRoles.TO_THAM_DINH);
-            var roleCanBo = await context.Roles.FirstOrDefaultAsync(r => r.Code == AppRoles.CAN_BO);
-            var roleDangUyCoSo = await context.Roles.FirstOrDefaultAsync(r => r.Code == AppRoles.DANG_UY_CO_SO);
-
-            if (roleDangUyCoSo == null)
-            {
-                roleDangUyCoSo = new AppRole
-                {
-                    Code = AppRoles.DANG_UY_CO_SO,
-                    Name = "Đảng ủy cơ sở",
-                    Description = "Quyết định, phê duyệt hồ sơ thuộc thẩm quyền Đảng ủy cơ sở",
-                    IsSystem = true,
-                    Permissions = new List<Permission>()
-                };
-                var approvalPermission = await context.Permissions.FirstOrDefaultAsync(p => p.Code == AppPermissions.EvaluationsApprove);
-                var readPermission = await context.Permissions.FirstOrDefaultAsync(p => p.Code == AppPermissions.EvaluationsRead);
-                var exportPermission = await context.Permissions.FirstOrDefaultAsync(p => p.Code == AppPermissions.ReportsExport);
-                if (approvalPermission != null) roleDangUyCoSo.Permissions.Add(approvalPermission);
-                if (readPermission != null) roleDangUyCoSo.Permissions.Add(readPermission);
-                if (exportPermission != null) roleDangUyCoSo.Permissions.Add(exportPermission);
-                await context.Roles.AddAsync(roleDangUyCoSo);
-                await context.SaveChangesAsync();
-            }
-
-            // Đảm bảo tài khoản Quản trị viên hệ thống (admin / 123456) luôn tồn tại
-            var adminUser = await context.PartyMemberProfiles
-                .Include(u => u.Roles)
-                .FirstOrDefaultAsync(u => u.Username == "admin");
-
-            if (adminUser == null)
-            {
-                adminUser = new PartyMemberProfile
-                {
-                    Username = "admin",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
-                    MustChangePassword = true,
-                    FullName = "Quản trị viên Hệ thống",
-                    Email = "admin@attech.com.vn",
-                    PhoneNumber = "0900000000",
-                    IsPartyMember = true,
-                    PartyCardNumber = "ADMIN-001",
-                    PartyCellId = cellVp.Id,
-                    PartyRole = PartyRole.DangVien,
-                    DepartmentId = depKh.Id,
-                    AdminPosition = AdministrativePosition.ChuyenVien,
-                    PositionTitle = "Quản trị viên Hệ thống CNTT",
-                    JobGroup = JobGroup.Khung4_KhcnChuyenDoiSo,
-                    ApprovalAuthority = ApprovalAuthority.CoSo,
-                    Roles = new List<AppRole>()
-                };
-                if (roleAdmin != null) adminUser.Roles.Add(roleAdmin);
-                await context.PartyMemberProfiles.AddAsync(adminUser);
-                await context.SaveChangesAsync();
-            }
-            else if (roleAdmin != null && !adminUser.Roles.Any(r => r.Code == AppRoles.QUAN_TRI_HE_THONG))
-            {
-                adminUser.Roles.Add(roleAdmin);
-                await context.SaveChangesAsync();
-            }
-
-            // Tách vai trò admin ra khỏi bithu_attech (Bí thư Đảng ủy là Ban Thường vụ, không phải Admin IT)
-            var biThuUser = await context.PartyMemberProfiles
-                .Include(u => u.Roles)
-                .FirstOrDefaultAsync(u => u.Username == "bithu_attech");
-            if (biThuUser != null && roleAdmin != null)
-            {
-                var adminRoleInBiThu = biThuUser.Roles.FirstOrDefault(r => r.Code == AppRoles.QUAN_TRI_HE_THONG);
-                if (adminRoleInBiThu != null)
-                {
-                    biThuUser.Roles.Remove(adminRoleInBiThu);
-                    await context.SaveChangesAsync();
-                }
-            }
-            if (biThuUser != null && roleDangUyCoSo != null && !biThuUser.Roles.Any(r => r.Code == AppRoles.DANG_UY_CO_SO))
-            {
-                biThuUser.Roles.Add(roleDangUyCoSo);
-                await context.SaveChangesAsync();
-            }
-
-            // Đảm bảo tài khoản Tổ thẩm định luôn tồn tại
-            if (!await context.PartyMemberProfiles.AnyAsync(u => u.Username == "thamdinh_du"))
-            {
-
-                var thamDinh = new PartyMemberProfile
-                {
-                    Username = "thamdinh_du",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
-                    MustChangePassword = true,
-                    FullName = "Vũ Đình Hùng",
-                    Email = "hungvd@attech.com.vn",
-                    PhoneNumber = "0934567890",
-                    IsPartyMember = true,
-                    PartyCardNumber = "ATTECH-004",
-                    PartyCellId = cellVp.Id,
-                    PartyRole = PartyRole.DangUyVien,
-                    DepartmentId = depTccb.Id,
-                    AdminPosition = AdministrativePosition.TruongPhong,
-                    PositionTitle = "Trưởng Ban TCCB, Tổ trưởng Tổ Thẩm định",
-                    JobGroup = JobGroup.Khung1_QuanLyDangDoanThe,
-                    ApprovalAuthority = ApprovalAuthority.CoSo,
-                    Roles = new List<AppRole>()
-                };
-                if (roleToThamDinh != null) thamDinh.Roles.Add(roleToThamDinh);
-                if (roleCanBo != null) thamDinh.Roles.Add(roleCanBo);
-
-                await context.PartyMemberProfiles.AddAsync(thamDinh);
-                await context.SaveChangesAsync();
-            }
-
-            // Nếu users đã tồn tại nhưng chưa có roles, đồng bộ roles theo PartyRole
-            var usersWithoutRoles = await context.PartyMemberProfiles
-                .Include(u => u.Roles)
-                .Where(u => !u.Roles.Any())
-                .ToListAsync();
-
-            if (usersWithoutRoles.Any())
-            {
-                var roleBiThuCb = await context.Roles.FirstOrDefaultAsync(r => r.Code == AppRoles.BI_THU_CHI_BO);
-                var roleBanThuongVu = await context.Roles.FirstOrDefaultAsync(r => r.Code == AppRoles.BAN_THUONG_VU);
-
-                foreach (var user in usersWithoutRoles)
-                {
-                    if (roleCanBo != null) user.Roles.Add(roleCanBo);
-
-                    if (user.PartyRole == PartyRole.BiThuChiBo || user.PartyRole == PartyRole.PhoBiThuChiBo)
-                    {
-                        if (roleBiThuCb != null) user.Roles.Add(roleBiThuCb);
-                    }
-                    else if (user.PartyRole == PartyRole.BiThuDangUy || user.PartyRole == PartyRole.PhoBiThuDangUy || user.PartyRole == PartyRole.UyVienBanThuongVu)
-                    {
-                        if (roleBanThuongVu != null) user.Roles.Add(roleBanThuongVu);
-                    }
-                }
-                await context.SaveChangesAsync();
-            }
-        }
+        // 7. Gán vai trò mẫu kèm phạm vi — chỉ cho tài khoản mẫu chưa có bản gán nào (T-46)
+        await SeedSampleAssignmentsAsync(context, logger);
 
         // 8. Seed Kỳ đánh giá hiện hành (Quý III/2026) theo Hướng dẫn 03-HD/TVĐU
         if (!await context.EvaluationPeriods.AnyAsync())
@@ -619,95 +304,379 @@ public static class DataSeeder
         }
     }
 
-    /// <summary>Tạo các role hệ thống còn thiếu kèm quyền mặc định; không đụng tới role đã có (kể cả đã xóa mềm).</summary>
-    private static async Task SeedMissingRolesAsync(CongTacDangDbContext context, ILogger? logger)
-    {
-        var existingRoleCodes = await context.Roles
-            .IgnoreQueryFilters()
-            .Select(r => r.Code)
-            .ToListAsync();
-        var missingRoles = DefaultRoles.Where(r => !existingRoleCodes.Contains(r.Code)).ToList();
-        if (missingRoles.Count == 0)
-            return;
+    #region Danh mục quyền, vai trò
 
-        var permMap = await context.Permissions.ToDictionaryAsync(p => p.Code);
-        foreach (var definition in missingRoles)
+    /// <summary>
+    /// Đồng bộ bảng <c>permissions</c> từ <see cref="PermissionCodes.Definitions"/>: tạo mã còn thiếu, cập nhật tên/mô tả/phân hệ/thứ tự,
+    /// khôi phục mã bị xóa mềm. Mã trong CSDL không còn trong code được giữ nguyên (resolver bỏ qua và ghi cảnh báo).
+    /// </summary>
+    private static async Task SyncPermissionCatalogAsync(CongTacDangDbContext context, ILogger? logger)
+    {
+        var existing = await context.Permissions.IgnoreQueryFilters().ToListAsync();
+        var created = new List<string>();
+        for (var index = 0; index < PermissionCodes.Definitions.Count; index++)
         {
-            await context.Roles.AddAsync(new AppRole
+            var definition = PermissionCodes.Definitions[index];
+            var action = definition.Code.StartsWith(definition.Module + ".", StringComparison.Ordinal)
+                ? definition.Code[(definition.Module.Length + 1)..]
+                : definition.Code;
+            var permission = existing.FirstOrDefault(p => p.Code == definition.Code);
+            if (permission == null)
             {
-                Code = definition.Code,
-                Name = definition.Name,
-                Description = definition.Description,
-                IsSystem = true,
-                Permissions = definition.Permissions
-                    .Where(permMap.ContainsKey)
-                    .Select(code => permMap[code])
-                    .ToList()
-            });
-        }
-
-        await context.SaveChangesAsync();
-        logger?.LogInformation("Đã tạo vai trò mặc định: {Roles}", string.Join(", ", missingRoles.Select(r => r.Code)));
-    }
-
-    /// <summary>Gán các mã quyền quản trị vừa được tạo cho vai trò Quản trị hệ thống (nếu vai trò còn tồn tại).</summary>
-    private static async Task GrantNewAdministratorPermissionsAsync(
-        CongTacDangDbContext context,
-        IReadOnlyCollection<string> newlyCreatedCodes,
-        ILogger? logger)
-    {
-        if (newlyCreatedCodes.Count == 0)
-            return;
-
-        var adminRole = await context.Roles
-            .Include(r => r.Permissions)
-            .FirstOrDefaultAsync(r => r.Code == AppRoles.QUAN_TRI_HE_THONG);
-        if (adminRole == null)
-            return;
-
-        var toGrant = await context.Permissions
-            .Where(p => newlyCreatedCodes.Contains(p.Code))
-            .ToListAsync();
-        var added = new List<string>();
-        foreach (var permission in toGrant)
-        {
-            if (adminRole.Permissions.Any(p => p.Code == permission.Code))
+                context.Permissions.Add(new Permission
+                {
+                    Code = definition.Code,
+                    Name = definition.Name,
+                    Resource = definition.Module,
+                    Action = action,
+                    Description = definition.Description,
+                    Module = definition.Module,
+                    SortOrder = index
+                });
+                created.Add(definition.Code);
                 continue;
-            adminRole.Permissions.Add(permission);
-            added.Add(permission.Code);
+            }
+
+            if (permission.Name != definition.Name) permission.Name = definition.Name;
+            if (permission.Description != definition.Description) permission.Description = definition.Description;
+            if (permission.Module != definition.Module) permission.Module = definition.Module;
+            if (permission.Resource != definition.Module) permission.Resource = definition.Module;
+            if (permission.Action != action) permission.Action = action;
+            if (permission.SortOrder != index) permission.SortOrder = index;
+            if (permission.IsDeleted)
+            {
+                permission.IsDeleted = false;
+                permission.DeletedAt = null;
+                permission.DeletedBy = null;
+            }
         }
 
-        if (added.Count == 0)
-            return;
-
-        await context.SaveChangesAsync();
-        logger?.LogInformation(
-            "Đã gán quyền mới {Permissions} cho vai trò {Role}.",
-            string.Join(", ", added),
-            AppRoles.QUAN_TRI_HE_THONG);
+        if (context.ChangeTracker.HasChanges())
+            await context.SaveChangesAsync();
+        if (created.Count > 0)
+            logger?.LogInformation("Đã tạo mã quyền: {Permissions}", string.Join(", ", created));
     }
 
-    /// <summary>Đặt lại quyền của các role hệ thống về ma trận mặc định (chỉ khi bật Database:ResetRolePermissions).</summary>
+    /// <summary>
+    /// Tạo vai trò mặc định (mục 6 thiết kế) chỉ khi CSDL chưa có vai trò nào ngoài các vai trò cũ (trước task 09).
+    /// Vai trò quản trị (<c>QUAN_TRI_HE_THONG</c>) luôn được đánh dấu bảo vệ; lần đầu đánh dấu thì bổ sung 2 quyền quản trị bắt buộc.
+    /// Không bao giờ ghi đè quyền của vai trò đã tồn tại.
+    /// </summary>
+    private static async Task SeedDefaultRolesAsync(CongTacDangDbContext context, ILogger? logger)
+    {
+        var roles = await context.Roles.IgnoreQueryFilters().Include(r => r.Permissions).ToListAsync();
+        var permissions = await context.Permissions.ToDictionaryAsync(p => p.Code);
+
+        var hasConfiguredRoles = roles.Any(r => !RoleCodes.Legacy.Contains(r.Code));
+        if (!hasConfiguredRoles)
+        {
+            var existingCodes = roles.Select(r => r.Code).ToHashSet(StringComparer.Ordinal);
+            var createdNames = new List<string>();
+            foreach (var definition in DefaultRoles.Where(d => !existingCodes.Contains(d.Code)))
+            {
+                var role = new AppRole
+                {
+                    Code = definition.Code,
+                    Name = UniqueName(definition.Name, roles),
+                    Description = definition.Description,
+                    IsSystem = true,
+                    IsProtected = definition.IsProtected,
+                    Permissions = definition.Permissions.Where(permissions.ContainsKey).Select(code => permissions[code]).ToList()
+                };
+                context.Roles.Add(role);
+                roles.Add(role);
+                createdNames.Add(role.Name);
+            }
+
+            if (createdNames.Count > 0)
+            {
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Đã tạo vai trò mặc định: {Roles}", string.Join(", ", createdNames));
+            }
+        }
+
+        // Vai trò quản trị luôn được bảo vệ (chốt "vai trò bảo vệ").
+        var administrator = roles.FirstOrDefault(r => r.Code == RoleCodes.Administrator && !r.IsDeleted);
+        if (administrator != null && !administrator.IsProtected)
+        {
+            administrator.IsProtected = true;
+            foreach (var code in AdministratorInvariant.Codes.Concat(AdministratorPermissionCodes).Distinct())
+            {
+                if (permissions.TryGetValue(code, out var permission) && administrator.Permissions.All(p => p.Code != code))
+                    administrator.Permissions.Add(permission);
+            }
+
+            await context.SaveChangesAsync();
+            logger?.LogInformation("Đã đánh dấu vai trò {Role} là vai trò được bảo vệ.", administrator.Name);
+        }
+    }
+
+    /// <summary>Tên vai trò chưa trùng với vai trò chưa xóa (tên phải duy nhất).</summary>
+    private static string UniqueName(string name, IEnumerable<AppRole> roles)
+    {
+        var used = roles.Where(r => !r.IsDeleted).Select(r => r.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (!used.Contains(name))
+            return name;
+        for (var i = 2; ; i++)
+        {
+            var candidate = $"{name} ({i})";
+            if (!used.Contains(candidate))
+                return candidate;
+        }
+    }
+
+    /// <summary>Đặt lại quyền của các vai trò mặc định về cấu hình mặc định (chỉ khi bật Database:ResetRolePermissions).</summary>
     private static async Task ResetRolePermissionsAsync(CongTacDangDbContext context, ILogger? logger)
     {
-        var permMap = await context.Permissions.ToDictionaryAsync(p => p.Code);
-        var defaultCodes = DefaultRoles.Select(r => r.Code).ToList();
+        var permissions = await context.Permissions.ToDictionaryAsync(p => p.Code);
+        var codes = DefaultRoles.Select(r => r.Code).ToList();
         var roles = await context.Roles
             .Include(r => r.Permissions)
-            .Where(r => defaultCodes.Contains(r.Code))
+            .Where(r => codes.Contains(r.Code))
             .ToListAsync();
 
         foreach (var role in roles)
         {
             var definition = DefaultRoles.First(r => r.Code == role.Code);
             role.Permissions.Clear();
-            foreach (var code in definition.Permissions.Where(permMap.ContainsKey))
-                role.Permissions.Add(permMap[code]);
+            foreach (var code in definition.Permissions.Where(permissions.ContainsKey))
+                role.Permissions.Add(permissions[code]);
+            role.IsProtected = definition.IsProtected;
         }
 
         await context.SaveChangesAsync();
         logger?.LogWarning(
             "Database:ResetRolePermissions đang bật: đã đặt lại quyền của các vai trò {Roles} về mặc định. Hãy tắt cờ này sau khi dùng.",
-            string.Join(", ", roles.Select(r => r.Code)));
+            string.Join(", ", roles.Select(r => r.Name)));
     }
+
+    #endregion
+
+    #region Bản gán vai trò
+
+    /// <summary>Một cặp user–role cũ trong bảng <c>user_roles</c>.</summary>
+    private sealed class LegacyUserRoleRow
+    {
+        public Guid UserId { get; set; }
+        public Guid RoleId { get; set; }
+        public string RoleCode { get; set; } = string.Empty;
+        public Guid? PartyCellId { get; set; }
+    }
+
+    /// <summary>
+    /// Chuyển mỗi cặp user–role cũ (bảng <c>user_roles</c>) thành bản gán có phạm vi — chỉ chạy khi bảng
+    /// <c>user_role_assignments</c> còn trống, để CSDL thử nghiệm không mất phân quyền. Vai trò cũ được ánh xạ sang vai trò mặc định
+    /// tương ứng nếu có (<c>BI_THU_CHI_BO</c> → Chi ủy phạm vi Chi bộ của người đó), ngược lại gán chính vai trò cũ phạm vi Toàn công ty.
+    /// Đọc bằng SQL thô để vẫn chạy được sau khi quan hệ user_roles bị gỡ khỏi model.
+    /// </summary>
+    private static async Task MigrateLegacyUserRolesAsync(CongTacDangDbContext context, ILogger? logger)
+    {
+        if (!context.Database.IsRelational())
+            return;
+        if (await context.Set<UserRoleAssignment>().IgnoreQueryFilters().AnyAsync())
+            return;
+
+        var tableExists = await context.Database
+            .SqlQueryRaw<bool>("SELECT to_regclass('user_roles') IS NOT NULL AS \"Value\"")
+            .SingleAsync();
+        if (!tableExists)
+            return;
+
+        var rows = await context.Database.SqlQueryRaw<LegacyUserRoleRow>(
+                "SELECT ur.user_id AS \"UserId\", r.\"Id\" AS \"RoleId\", r.\"Code\" AS \"RoleCode\", u.\"PartyCellId\" AS \"PartyCellId\" "
+                + "FROM user_roles ur "
+                + "JOIN roles r ON r.\"Id\" = ur.role_id "
+                + "JOIN party_member_profiles u ON u.\"Id\" = ur.user_id "
+                + "WHERE NOT r.\"IsDeleted\" AND NOT u.\"IsDeleted\"")
+            .ToListAsync();
+        if (rows.Count == 0)
+            return;
+
+        var rolesByCode = await context.Roles.ToDictionaryAsync(r => r.Code, r => r.Id);
+        Guid? Target(string code) => rolesByCode.TryGetValue(code, out var id) ? id : null;
+
+        var created = new HashSet<(Guid UserId, Guid RoleId, RoleScopeType Scope, Guid? ScopeId)>();
+        foreach (var row in rows)
+        {
+            (Guid RoleId, RoleScopeType Scope, Guid? ScopeId)? mapped = row.RoleCode switch
+            {
+                RoleCodes.LegacyCadre when Target(RoleCodes.Evaluatee) is Guid id => (id, RoleScopeType.Global, null),
+                RoleCodes.LegacyCellSecretary when Target(RoleCodes.CellCommittee) is Guid id && row.PartyCellId.HasValue
+                    => (id, RoleScopeType.PartyCell, row.PartyCellId),
+                RoleCodes.LegacyCellSecretary when Target(RoleCodes.CellCommittee) is not null => null, // chưa có Chi bộ → bỏ qua
+                RoleCodes.LegacyAppraisal when Target(RoleCodes.Appraisal) is Guid id => (id, RoleScopeType.Global, null),
+                RoleCodes.LegacyStandingCommittee or RoleCodes.LegacyBaseCommittee when Target(RoleCodes.PartyOffice) is Guid id
+                    => (id, RoleScopeType.Global, null),
+                _ => (row.RoleId, RoleScopeType.Global, null)
+            };
+            if (mapped == null)
+            {
+                logger?.LogWarning("Bỏ qua gán vai trò cũ {Role} cho người dùng {UserId}: người này chưa thuộc Chi bộ nào.", row.RoleCode, row.UserId);
+                continue;
+            }
+
+            var key = (row.UserId, mapped.Value.RoleId, mapped.Value.Scope, mapped.Value.ScopeId);
+            if (!created.Add(key))
+                continue;
+
+            context.Set<UserRoleAssignment>().Add(new UserRoleAssignment
+            {
+                UserId = row.UserId,
+                RoleId = mapped.Value.RoleId,
+                ScopeType = mapped.Value.Scope,
+                ScopeId = mapped.Value.ScopeId,
+                ValidFrom = DateTime.UtcNow,
+                Note = $"Chuyển từ gán vai trò cũ ({row.RoleCode}) khi nâng cấp phân quyền."
+            });
+        }
+
+        await context.SaveChangesAsync();
+        logger?.LogInformation("Đã chuyển {Count} gán vai trò cũ sang bản gán có phạm vi.", created.Count);
+    }
+
+    /// <summary>Tạo tài khoản mẫu (không gán vai trò — xem <see cref="SeedSampleAssignmentsAsync"/>).</summary>
+    private static async Task SeedSampleUsersAsync(CongTacDangDbContext context)
+    {
+        var cellKt = await context.PartyCells.FirstAsync(x => x.Code == "CB-KT");
+        var cellVp = await context.PartyCells.FirstAsync(x => x.Code == "CB-VP");
+        var depKh = await context.AdministrativeDepartments.FirstAsync(x => x.Code == "PH-KH");
+        var depTccb = await context.AdministrativeDepartments.FirstAsync(x => x.Code == "PH-TCCB");
+        var existing = await context.PartyMemberProfiles.IgnoreQueryFilters().Select(u => u.Username).ToListAsync();
+        var isEmpty = existing.Count == 0;
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword("123456");
+
+        var samples = new List<PartyMemberProfile>
+        {
+            new()
+            {
+                Username = "admin", PasswordHash = passwordHash, MustChangePassword = true,
+                FullName = "Quản trị viên Hệ thống", Email = "admin@attech.com.vn", PhoneNumber = "0900000000",
+                IsPartyMember = true, PartyCardNumber = "ADMIN-001", PartyCellId = cellVp.Id, PartyRole = PartyRole.DangVien,
+                DepartmentId = depKh.Id, AdminPosition = AdministrativePosition.ChuyenVien, PositionTitle = "Quản trị viên Hệ thống CNTT",
+                JobGroup = JobGroup.Khung4_KhcnChuyenDoiSo, ApprovalAuthority = ApprovalAuthority.CoSo
+            },
+            new()
+            {
+                Username = "bithu_attech", PasswordHash = passwordHash, MustChangePassword = true,
+                FullName = "Lê Tiến Thịnh", Email = "thinhlt@attech.com.vn", PhoneNumber = "0912345678",
+                IsPartyMember = true, PartyCardNumber = "ATTECH-001", PartyCellId = cellVp.Id, PartyRole = PartyRole.BiThuDangUy,
+                DepartmentId = depKh.Id, AdminPosition = AdministrativePosition.GiamDoc, PositionTitle = "Bí thư Đảng ủy, Giám đốc Công ty",
+                JobGroup = JobGroup.Khung1_QuanLyDangDoanThe, ApprovalAuthority = ApprovalAuthority.CapTren
+            },
+            new()
+            {
+                Username = "bithu_cbkt", PasswordHash = passwordHash, MustChangePassword = true,
+                FullName = "Nguyễn Văn Hùng", Email = "hungnv@attech.com.vn", PhoneNumber = "0987654321",
+                IsPartyMember = true, PartyCardNumber = "ATTECH-002", PartyCellId = cellKt.Id, PartyRole = PartyRole.BiThuChiBo,
+                DepartmentId = depKh.Id, AdminPosition = AdministrativePosition.TruongPhong, PositionTitle = "Bí thư Chi bộ, Trưởng phòng Kỹ thuật",
+                JobGroup = JobGroup.Khung2_AnToanKyThuat, ApprovalAuthority = ApprovalAuthority.CoSo
+            },
+            new()
+            {
+                Username = "canbo_kt", PasswordHash = passwordHash, MustChangePassword = true,
+                FullName = "Trần Quốc Tuấn", Email = "tuantq@attech.com.vn", PhoneNumber = "0901234567",
+                IsPartyMember = true, PartyCardNumber = "ATTECH-003", PartyCellId = cellKt.Id, PartyRole = PartyRole.DangVien,
+                DepartmentId = depKh.Id, AdminPosition = AdministrativePosition.PhoTruongPhong, PositionTitle = "Phó Trưởng phòng Kỹ thuật",
+                JobGroup = JobGroup.Khung2_AnToanKyThuat, ApprovalAuthority = ApprovalAuthority.CoSo
+            },
+            new()
+            {
+                Username = "thamdinh_du", PasswordHash = passwordHash, MustChangePassword = true,
+                FullName = "Vũ Đình Hùng", Email = "hungvd@attech.com.vn", PhoneNumber = "0934567890",
+                IsPartyMember = true, PartyCardNumber = "ATTECH-004", PartyCellId = cellVp.Id, PartyRole = PartyRole.DangUyVien,
+                DepartmentId = depTccb.Id, AdminPosition = AdministrativePosition.TruongPhong, PositionTitle = "Trưởng Ban TCCB, Tổ trưởng Tổ Thẩm định",
+                JobGroup = JobGroup.Khung1_QuanLyDangDoanThe, ApprovalAuthority = ApprovalAuthority.CoSo
+            }
+        };
+
+        // CSDL trống: tạo đủ tài khoản mẫu. CSDL đã có dữ liệu: chỉ bảo đảm tài khoản quản trị và thẩm định mẫu tồn tại
+        // (kể cả đã xóa mềm thì không tạo lại — tên đăng nhập không tái sử dụng).
+        var toCreate = isEmpty
+            ? samples
+            : samples.Where(u => (u.Username == "admin" || u.Username == "thamdinh_du") && !existing.Contains(u.Username)).ToList();
+        if (toCreate.Count == 0)
+            return;
+
+        await context.PartyMemberProfiles.AddRangeAsync(toCreate);
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Gán vai trò mẫu kèm phạm vi hợp lý cho tài khoản mẫu — <b>chỉ</b> tài khoản chưa từng có bản gán nào
+    /// (kể cả đã xóa/hết hạn), để không gán lại vai trò quản trị đã thu hồi (T-46).
+    /// </summary>
+    private static async Task SeedSampleAssignmentsAsync(CongTacDangDbContext context, ILogger? logger)
+    {
+        var cellKt = await context.PartyCells.FirstOrDefaultAsync(x => x.Code == "CB-KT");
+        var depKh = await context.AdministrativeDepartments.FirstOrDefaultAsync(x => x.Code == "PH-KH");
+        var roles = await context.Roles.ToDictionaryAsync(r => r.Code, r => r.Id);
+
+        var plan = new Dictionary<string, (string Role, RoleScopeType Scope, Guid? ScopeId)[]>(StringComparer.Ordinal)
+        {
+            ["admin"] = new[] { (RoleCodes.Administrator, RoleScopeType.Global, (Guid?)null) },
+            ["bithu_attech"] = new[]
+            {
+                (RoleCodes.Evaluatee, RoleScopeType.Global, (Guid?)null),
+                (RoleCodes.DirectSupervisor, RoleScopeType.Global, null),
+                (RoleCodes.PartyCommitteeMember, RoleScopeType.Global, null),
+                (RoleCodes.PartyOffice, RoleScopeType.Global, null)
+            },
+            ["bithu_cbkt"] = new[]
+            {
+                (RoleCodes.Evaluatee, RoleScopeType.Global, (Guid?)null),
+                (RoleCodes.CellCommittee, RoleScopeType.PartyCell, cellKt?.Id),
+                (RoleCodes.DepartmentLeader, RoleScopeType.Department, depKh?.Id)
+            },
+            ["canbo_kt"] = new[] { (RoleCodes.Evaluatee, RoleScopeType.Global, (Guid?)null) },
+            ["thamdinh_du"] = new[]
+            {
+                (RoleCodes.Evaluatee, RoleScopeType.Global, (Guid?)null),
+                (RoleCodes.Appraisal, RoleScopeType.Global, null)
+            }
+        };
+
+        var usernames = plan.Keys.ToList();
+        var users = await context.PartyMemberProfiles
+            .Where(u => usernames.Contains(u.Username))
+            .Select(u => new { u.Id, u.Username })
+            .ToListAsync();
+        var userIds = users.Select(u => u.Id).ToList();
+        var alreadyAssigned = await context.Set<UserRoleAssignment>()
+            .IgnoreQueryFilters()
+            .Where(a => userIds.Contains(a.UserId))
+            .Select(a => a.UserId)
+            .Distinct()
+            .ToListAsync();
+
+        var count = 0;
+        foreach (var user in users.Where(u => !alreadyAssigned.Contains(u.Id)))
+        {
+            foreach (var (roleCode, scope, scopeId) in plan[user.Username])
+            {
+                if (!roles.TryGetValue(roleCode, out var roleId))
+                    continue;
+                if (scope != RoleScopeType.Global && scopeId == null)
+                    continue;
+
+                context.Set<UserRoleAssignment>().Add(new UserRoleAssignment
+                {
+                    UserId = user.Id,
+                    RoleId = roleId,
+                    ScopeType = scope,
+                    ScopeId = scope == RoleScopeType.Global ? null : scopeId,
+                    ValidFrom = DateTime.UtcNow,
+                    Note = "Gán mẫu (Database:SeedSampleData)."
+                });
+                count++;
+            }
+        }
+
+        if (count == 0)
+            return;
+
+        await context.SaveChangesAsync();
+        logger?.LogInformation("Đã gán {Count} vai trò mẫu cho tài khoản mẫu chưa có bản gán.", count);
+    }
+
+    #endregion
 }

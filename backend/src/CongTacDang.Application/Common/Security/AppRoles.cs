@@ -3,6 +3,7 @@ namespace CongTacDang.Application.Common.Security;
 /// <summary>
 /// Hằng số Mã vai trò chuẩn của hệ thống Công tác Đảng ATTECH
 /// </summary>
+[System.Obsolete("Code không được biết tên vai trò (docs/thiet-ke/phan-quyen.md mục 1). Chỉ còn cho UserService (task 08); sẽ xóa khi tích hợp.")]
 public static class AppRoles
 {
     /// <summary>Cán bộ, Đảng viên cơ sở</summary>

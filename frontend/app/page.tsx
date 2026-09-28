@@ -30,7 +30,7 @@ function getPeriodShortName(period?: EvaluationPeriodDto | null) {
 }
 
 export default function DashboardPage() {
-  const { user, hasPermission, hasRole } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [periods, setPeriods] = useState<EvaluationPeriodDto[]>([]);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
@@ -43,11 +43,12 @@ export default function DashboardPage() {
   const [branches, setBranches] = useState<BranchItem[]>([]);
   const [cadres, setCadres] = useState<CadreItem[]>([]);
 
-  const isAdmin = hasRole("QUAN_TRI_HE_THONG") || hasPermission("roles.manage");
-  const canAppraise = hasPermission("evaluations.appraise");
-  const canApprove = hasPermission("evaluations.approve");
+  // Task 09: "quản trị" = quản trị kỹ thuật (quản lý vai trò) không tham gia/xem nội dung đánh giá.
+  const isAdmin = hasPermission("system.roles.manage") && !hasPermission("evaluation.read") && !hasPermission("evaluation.self");
+  const canAppraise = hasPermission("evaluation.appraise");
+  const canApprove = hasPermission("evaluation.decide") || hasPermission("evaluation.decide.external");
   const canBranchReview =
-    hasPermission("evaluations.branch_vote");
+    hasPermission("evaluation.cell.confirm");
 
   // 1. Tải danh sách kỳ đánh giá ban đầu
   useEffect(() => {

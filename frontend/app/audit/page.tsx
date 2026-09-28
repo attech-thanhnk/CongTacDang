@@ -89,7 +89,7 @@ function AuditPageContent() {
   };
 
   useEffect(() => {
-    if (hasPermission("roles.manage")) {
+    if (hasPermission("system.audit.read")) {
       loadLogs();
     }
   }, [hasPermission]);
@@ -116,7 +116,7 @@ function AuditPageContent() {
     await loadLogs({ entityType: "", entityId: "" });
   };
 
-  if (!hasPermission("roles.manage")) {
+  if (!hasPermission("system.audit.read")) {
     return (
       <div className="page-wrapper">
         <PageHeader title="Nhật ký hệ thống" subTitle="Khu vực này chỉ dành cho quản trị viên hệ thống." />

@@ -26,8 +26,11 @@ public sealed class PermissionCache : IAccessCacheInvalidator
         _ttl = ttl ?? DefaultTtl;
     }
 
-    /// <summary>Thế hệ hiện tại — đọc trước khi nạp dữ liệu và truyền vào <see cref="Set"/>.</summary>
+    /// <summary>Thế hệ hiện tại — đọc trước khi nạp dữ liệu và truyền vào <see cref="Set(Guid, EffectivePermissions, long)"/>.</summary>
     public long Generation => Interlocked.Read(ref _generation);
+
+    /// <summary>Thời điểm hiện tại theo đồng hồ của cache (resolver dùng chung để tính hiệu lực bản gán).</summary>
+    public DateTimeOffset UtcNow => _timeProvider.GetUtcNow();
 
     /// <summary>Lấy mục còn hạn của người dùng.</summary>
     public bool TryGet(Guid userId, out EffectivePermissions permissions)
@@ -44,11 +47,22 @@ public sealed class PermissionCache : IAccessCacheInvalidator
 
     /// <summary>Ghi mục cache nếu không có lệnh xóa nào xảy ra kể từ thế hệ <paramref name="generationAtLoad"/>.</summary>
     public void Set(Guid userId, EffectivePermissions permissions, long generationAtLoad)
+        => Set(userId, permissions, generationAtLoad, notAfter: null);
+
+    /// <summary>
+    /// Như <see cref="Set(Guid, EffectivePermissions, long)"/> nhưng mục cache hết hạn sớm hơn TTL nếu <paramref name="notAfter"/>
+    /// đến trước (ví dụ bản gán vai trò bắt đầu/hết hiệu lực) — để quyền thay đổi đúng thời điểm mà không cần xóa cache.
+    /// </summary>
+    public void Set(Guid userId, EffectivePermissions permissions, long generationAtLoad, DateTimeOffset? notAfter)
     {
         if (Generation != generationAtLoad)
             return;
 
-        _entries[userId] = new Entry(permissions, _timeProvider.GetUtcNow().Add(_ttl));
+        var expiresAt = _timeProvider.GetUtcNow().Add(_ttl);
+        if (notAfter.HasValue && notAfter.Value < expiresAt)
+            expiresAt = notAfter.Value;
+
+        _entries[userId] = new Entry(permissions, expiresAt);
 
         // Lệnh xóa chen vào giữa lúc kiểm tra và ghi → bỏ mục vừa ghi.
         if (Generation != generationAtLoad)

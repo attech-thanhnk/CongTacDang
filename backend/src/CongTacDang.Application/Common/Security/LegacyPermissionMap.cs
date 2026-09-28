@@ -9,6 +9,7 @@ namespace CongTacDang.Application.Common.Security;
 /// theo docs/thiet-ke/phan-quyen.md mục 3. Chỉ dùng trong giai đoạn chuyển tiếp (adapter v0, chuyển dữ liệu);
 /// task 09 xóa cùng với <see cref="AppPermissions"/>.
 /// </summary>
+[Obsolete("Chỉ dùng cho policy chuyển tiếp của endpoint còn khai báo mã cũ (ngoài phạm vi task 09).")]
 public static class LegacyPermissionMap
 {
     /// <summary>

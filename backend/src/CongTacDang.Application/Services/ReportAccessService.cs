@@ -1,81 +1,92 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
-using CongTacDang.Domain.Entities;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Kiểm tra phạm vi dữ liệu trước khi kết xuất biểu mẫu/báo cáo.</summary>
+/// <summary>Kiểm tra phạm vi dữ liệu trước khi kết xuất biểu mẫu/báo cáo (qua <see cref="IAuthorizationGuard"/>).</summary>
 public interface IReportAccessService
 {
-    /// <summary>Bảo đảm người yêu cầu được xuất biểu mẫu của một hồ sơ đánh giá cá nhân (Mẫu 01, 02, 10).</summary>
+    /// <summary>Bảo đảm người yêu cầu được xuất biểu mẫu của một hồ sơ đánh giá cá nhân (Mẫu 01, 02, 10): quyền xem hồ sơ.</summary>
     Task EnsureCanExportRecordAsync(Guid requesterId, Guid recordId);
 
     /// <summary>
-    /// Xác định Chi bộ được xuất biểu mẫu theo Chi bộ (Mẫu 11, 13).
-    /// Trả về null khi người yêu cầu được xuất toàn Đảng bộ và không chọn Chi bộ.
+    /// Xác định Chi bộ được xuất biểu mẫu/báo cáo theo Chi bộ (Mẫu 11, 13, 14–16) theo phạm vi của một trong các quyền
+    /// <paramref name="permissions"/> (mặc định <c>report.export</c>). Trả về null khi được xuất toàn Đảng bộ và không chọn Chi bộ.
     /// </summary>
-    Task<Guid?> ResolveBranchExportScopeAsync(Guid requesterId, Guid? branchId);
+    Task<Guid?> ResolveBranchExportScopeAsync(Guid requesterId, Guid? branchId, params string[] permissions);
 
-    /// <summary>Bảo đảm người yêu cầu được xuất báo cáo tổng hợp toàn Đảng bộ (Excel Mẫu 14, 15, 15A, 15B, 16).</summary>
+    /// <summary>Bảo đảm người yêu cầu được xuất báo cáo tổng hợp toàn Đảng bộ (<c>report.export</c> phạm vi Toàn công ty).</summary>
     Task EnsureCanExportOrganizationReportAsync(Guid requesterId);
+
+    /// <summary>Phạm vi danh sách cán bộ được xuất (T-61): theo phạm vi <c>report.export</c> (Toàn công ty / Phòng / Chi bộ).</summary>
+    ScopeFilter GetCadreExportScope();
 }
 
-/// <summary>Triển khai kiểm tra phạm vi kết xuất dựa trên <see cref="IAccessPolicy"/>.</summary>
+/// <summary>Triển khai kiểm tra phạm vi kết xuất dựa trên <see cref="IAuthorizationGuard"/>.</summary>
 public class ReportAccessService : IReportAccessService
 {
-    private readonly IUserRepository _userRepo;
     private readonly IEvaluationRepository _evaluationRepo;
-    private readonly IAccessPolicy _accessPolicy;
+    private readonly IAuthorizationGuard _guard;
 
-    public ReportAccessService(IUserRepository userRepo, IEvaluationRepository evaluationRepo, IAccessPolicy accessPolicy)
+    public ReportAccessService(IEvaluationRepository evaluationRepo, IAuthorizationGuard guard)
     {
-        _userRepo = userRepo;
         _evaluationRepo = evaluationRepo;
-        _accessPolicy = accessPolicy;
+        _guard = guard;
     }
 
     /// <inheritdoc />
     public async Task EnsureCanExportRecordAsync(Guid requesterId, Guid recordId)
     {
-        var requester = await GetRequesterAsync(requesterId);
         var record = await _evaluationRepo.GetRecordByIdAsync(recordId)
             ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
 
-        if (!_accessPolicy.CanAccessRecord(requester, record, AccessOperation.Export))
-            throw new ForbiddenException("Bạn không có quyền xuất biểu mẫu của hồ sơ đánh giá này.");
+        _guard.Ensure(PermissionCodes.EvaluationRead, AccessTarget.ForRecord(record));
     }
 
     /// <inheritdoc />
-    public async Task<Guid?> ResolveBranchExportScopeAsync(Guid requesterId, Guid? branchId)
+    public Task<Guid?> ResolveBranchExportScopeAsync(Guid requesterId, Guid? branchId, params string[] permissions)
     {
-        var requester = await GetRequesterAsync(requesterId);
+        var codes = permissions is { Length: > 0 } ? permissions : new[] { PermissionCodes.ReportExport };
+        var scope = codes.Select(_guard.GetScope).Aggregate((a, b) => a.Union(b)) with { OwnerId = null };
+        var names = string.Join(" hoặc ", codes.Select(c => $"\"{PermissionCodes.DisplayName(c)}\""));
+
         var requestedBranch = branchId.HasValue && branchId.Value != Guid.Empty ? branchId : null;
+        if (requestedBranch.HasValue)
+        {
+            if (!scope.Matches(null, null, requestedBranch))
+                throw new ForbiddenException($"Bạn không có quyền {names} đối với Chi bộ được chọn (ngoài phạm vi được gán).");
+            return Task.FromResult(requestedBranch);
+        }
 
-        // Không chọn Chi bộ: cấp cao được xuất toàn Đảng bộ, Chi bộ mặc định xuất Chi bộ của mình.
-        if (requestedBranch == null && !_accessPolicy.CanAccessBranch(requester, null, AccessOperation.Export))
-            requestedBranch = requester.PartyCellId;
+        // Không chọn Chi bộ: toàn Đảng bộ nếu có phạm vi Toàn công ty; một Chi bộ duy nhất → Chi bộ đó.
+        if (scope.IsGlobal)
+            return Task.FromResult<Guid?>(null);
+        if (scope.PartyCellIds.Count == 1)
+            return Task.FromResult<Guid?>(scope.PartyCellIds[0]);
+        if (scope.PartyCellIds.Count > 1)
+            throw new ValidationException("Bạn được phân quyền trên nhiều Chi bộ. Hãy chọn Chi bộ cần xuất.");
 
-        if (!_accessPolicy.CanAccessBranch(requester, requestedBranch, AccessOperation.Export))
-            throw new ForbiddenException("Bạn chỉ được xuất biểu mẫu của Chi bộ mình.");
-
-        return requestedBranch;
+        throw new ForbiddenException(
+            $"Biểu mẫu theo Chi bộ cần quyền {names} ở phạm vi Chi bộ hoặc Toàn công ty. Hãy liên hệ quản trị hệ thống.");
     }
 
     /// <inheritdoc />
-    public async Task EnsureCanExportOrganizationReportAsync(Guid requesterId)
+    public Task EnsureCanExportOrganizationReportAsync(Guid requesterId)
     {
-        var requester = await GetRequesterAsync(requesterId);
-        if (!_accessPolicy.CanAccessBranch(requester, null, AccessOperation.Export))
-            throw new ForbiddenException("Báo cáo tổng hợp toàn Đảng bộ chỉ dành cho cấp thẩm định, phê duyệt hoặc quản trị.");
+        if (!_guard.GetScope(PermissionCodes.ReportExport).IsGlobal)
+        {
+            throw new ForbiddenException(
+                $"Báo cáo tổng hợp toàn Đảng bộ cần quyền \"{PermissionCodes.DisplayName(PermissionCodes.ReportExport)}\" phạm vi Toàn công ty.");
+        }
+
+        return Task.CompletedTask;
     }
 
-    private async Task<PartyMemberProfile> GetRequesterAsync(Guid requesterId)
-    {
-        return await _userRepo.GetWithRolesAndPermissionsByIdAsync(requesterId)
-            ?? throw new ForbiddenException("Không tìm thấy hồ sơ người dùng hiện tại.");
-    }
+    /// <inheritdoc />
+    public ScopeFilter GetCadreExportScope() => _guard.GetScope(PermissionCodes.ReportExport) with { OwnerId = null };
 }

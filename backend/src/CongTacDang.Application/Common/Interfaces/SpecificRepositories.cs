@@ -29,30 +29,6 @@ public interface IUserRepository : IRepository<PartyMemberProfile>
 }
 
 /// <summary>
-/// Giao diện repository quản trị Vai trò và Quyền hạn (Dynamic RBAC)
-/// </summary>
-public interface IRoleRepository
-{
-    /// <summary>Lấy danh sách tất cả các vai trò kèm quyền hạn</summary>
-    Task<List<AppRole>> GetAllRolesWithPermissionsAsync();
-
-    /// <summary>Lấy danh sách tất cả các quyền hạn trong hệ thống</summary>
-    Task<List<Permission>> GetAllPermissionsAsync();
-
-    /// <summary>Lấy thông tin vai trò theo Id kèm quyền hạn</summary>
-    Task<AppRole?> GetRoleByIdWithPermissionsAsync(Guid roleId);
-
-    /// <summary>Lấy thông tin vai trò theo mã code</summary>
-    Task<AppRole?> GetRoleByCodeAsync(string roleCode);
-
-    /// <summary>Cập nhật danh sách quyền hạn cho một vai trò</summary>
-    Task UpdateRolePermissionsAsync(Guid roleId, IEnumerable<string> permissionCodes);
-
-    /// <summary>Gán danh sách vai trò cho một cán bộ / người dùng</summary>
-    Task AssignRolesToUserAsync(Guid userId, IEnumerable<string> roleCodes);
-}
-
-/// <summary>
 /// Giao diện repository quản lý tệp đính kèm và minh chứng
 /// </summary>
 public interface IAttachmentRepository : IRepository<TaskAttachment>

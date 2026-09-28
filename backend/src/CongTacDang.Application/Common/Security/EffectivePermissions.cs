@@ -35,23 +35,35 @@ public sealed class EffectivePermissions
     private readonly HashSet<string> _codes;
     private readonly HashSet<string> _legacyRoleCodes;
 
-    /// <summary>Khởi tạo tập quyền hiệu lực.</summary>
+    /// <summary>Khởi tạo tập quyền hiệu lực của một tài khoản đang hoạt động.</summary>
     /// <param name="userId">Người dùng.</param>
     /// <param name="grants">Các quyền kèm phạm vi.</param>
-    /// <param name="legacyRoleCodes">Mã vai trò theo mô hình cũ (chỉ dùng cho policy chuyển tiếp, xem <see cref="LegacyRoleCodes"/>).</param>
+    /// <param name="legacyRoleCodes">Tên vai trò đang hiệu lực (chỉ để hiển thị, xem <see cref="LegacyRoleCodes"/>).</param>
     public EffectivePermissions(Guid userId, IEnumerable<PermissionGrant> grants, IEnumerable<string>? legacyRoleCodes = null)
+        : this(userId, grants, legacyRoleCodes, isActive: true)
+    {
+    }
+
+    private EffectivePermissions(Guid userId, IEnumerable<PermissionGrant> grants, IEnumerable<string>? legacyRoleCodes, bool isActive)
     {
         UserId = userId;
+        IsActive = isActive;
         Grants = grants.ToList().AsReadOnly();
         _codes = new HashSet<string>(Grants.Select(g => g.Code), StringComparer.Ordinal);
         _legacyRoleCodes = new HashSet<string>(legacyRoleCodes ?? Array.Empty<string>(), StringComparer.Ordinal);
     }
 
-    /// <summary>Tập rỗng — người dùng không tồn tại, đã xóa hoặc bị vô hiệu hóa.</summary>
-    public static EffectivePermissions Empty(Guid userId) => new(userId, Array.Empty<PermissionGrant>());
+    /// <summary>Tập rỗng — người dùng không tồn tại, đã xóa hoặc bị vô hiệu hóa (<see cref="IsActive"/> = false).</summary>
+    public static EffectivePermissions Empty(Guid userId) => new(userId, Array.Empty<PermissionGrant>(), null, isActive: false);
 
     /// <summary>Người dùng sở hữu tập quyền.</summary>
     public Guid UserId { get; }
+
+    /// <summary>
+    /// Tài khoản tồn tại, chưa xóa và đang hoạt động. false → không được thực hiện gì, kể cả quyền của chủ hồ sơ
+    /// (docs/thiet-ke/phan-quyen.md mục 4, điều kiện 1).
+    /// </summary>
+    public bool IsActive { get; }
 
     /// <summary>Danh sách quyền kèm phạm vi và nguồn cấp.</summary>
     public IReadOnlyList<PermissionGrant> Grants { get; }
@@ -60,9 +72,10 @@ public sealed class EffectivePermissions
     public IReadOnlyCollection<string> Codes => _codes;
 
     /// <summary>
-    /// Mã vai trò theo mô hình cũ. <b>Chỉ</b> dùng để giữ nguyên kết quả các policy composite/role cũ trong giai đoạn chuyển tiếp;
-    /// sẽ bị bỏ ở task 09 (code không được biết tên vai trò).
+    /// Tên các vai trò đang hiệu lực (từ task 09 là <b>tên hiển thị</b>, không còn là mã vai trò). Chỉ để hiển thị /
+    /// tương thích trường <c>roles</c> cũ của phản hồi đăng nhập; <b>không được dùng để phân quyền</b>.
     /// </summary>
+    [Obsolete("Không dùng để phân quyền. Dùng Grants/Has; tên vai trò nguồn có trong PermissionGrant.SourceRoleName.")]
     public IReadOnlyCollection<string> LegacyRoleCodes => _legacyRoleCodes;
 
     /// <summary>Có quyền <paramref name="code"/> ở phạm vi bất kỳ.</summary>
@@ -74,6 +87,7 @@ public sealed class EffectivePermissions
     /// <summary>Các bản cấp của một quyền (để dựng bộ lọc phạm vi).</summary>
     public IEnumerable<PermissionGrant> GrantsFor(string code) => Grants.Where(g => g.Code == code);
 
-    /// <summary>Có vai trò theo mã cũ (chỉ dùng cho policy chuyển tiếp — xem <see cref="LegacyRoleCodes"/>).</summary>
+    /// <summary>Không còn dùng (task 09 bỏ policy theo vai trò). Luôn so theo tên vai trò hiển thị.</summary>
+    [Obsolete("Không dùng để phân quyền — code không được biết tên vai trò.")]
     public bool HasLegacyRole(string roleCode) => _legacyRoleCodes.Contains(roleCode);
 }

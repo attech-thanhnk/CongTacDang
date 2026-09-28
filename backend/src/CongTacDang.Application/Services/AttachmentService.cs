@@ -31,7 +31,9 @@ public class AttachmentDownloadResult
 
 /// <summary>
 /// Giao diện xử lý nghiệp vụ tệp đính kèm văn bản và minh chứng.
-/// Một tệp gắn với một đối tượng (<see cref="AttachmentOwnerTypes"/>), có nhiều phiên bản; mọi thao tác kiểm tra quyền qua <see cref="IAccessPolicy"/>.
+/// Một tệp gắn với một đối tượng (<see cref="AttachmentOwnerTypes"/>), có nhiều phiên bản; mọi thao tác kiểm tra quyền qua
+/// <see cref="IAuthorizationGuard"/>: quyền trên tệp = quyền trên hồ sơ gắn tệp (<c>evaluation.read</c> / <c>evaluation.self</c>);
+/// văn bản chung (<c>GENERAL</c>): mọi người đã đăng nhập được xem, ghi cần <c>attachment.general.manage</c>.
 /// </summary>
 public interface IAttachmentService
 {
@@ -86,8 +88,7 @@ public class AttachmentService : IAttachmentService
     private readonly IAttachmentRepository _attachmentRepo;
     private readonly IFileStorageService _fileStorage;
     private readonly IAttachmentAccessReader? _accessReader;
-    private readonly IUserRepository? _userRepo;
-    private readonly IAccessPolicy? _accessPolicy;
+    private readonly IPermissionResolver? _resolver;
     private readonly IAttachmentVersionRepository? _versionRepo;
     private static readonly string[] AllowedExtensions = { ".pdf", ".docx", ".xlsx", ".jpg", ".jpeg", ".png" };
     private const long MaxFileSize = 25 * 1024 * 1024; // 25 MB
@@ -103,21 +104,25 @@ public class AttachmentService : IAttachmentService
         _fileStorage = fileStorage;
     }
 
-    /// <summary>Khởi tạo đầy đủ, dùng khi chạy ứng dụng.</summary>
+    /// <summary>
+    /// Khởi tạo đầy đủ, dùng khi chạy ứng dụng. Quyền được đánh giá cho người yêu cầu truyền vào mỗi thao tác
+    /// bằng luật duy nhất của guard (<see cref="AuthorizationGuard.Evaluate"/>) trên tập quyền từ <see cref="IPermissionResolver"/>.
+    /// </summary>
     public AttachmentService(
         IAttachmentRepository attachmentRepo,
         IFileStorageService fileStorage,
         IAttachmentAccessReader accessReader,
-        IUserRepository userRepo,
-        IAccessPolicy accessPolicy,
+        IPermissionResolver resolver,
         IAttachmentVersionRepository versionRepo)
         : this(attachmentRepo, fileStorage)
     {
         _accessReader = accessReader;
-        _userRepo = userRepo;
-        _accessPolicy = accessPolicy;
+        _resolver = resolver;
         _versionRepo = versionRepo;
     }
+
+    /// <summary>Mã biểu mẫu của văn bản chung (không gắn hồ sơ).</summary>
+    public const string GeneralFormCode = "GENERAL";
 
     /// <summary>
     /// Lấy danh sách tệp đính kèm (phiên bản hiện hành) mà người yêu cầu được xem
@@ -125,7 +130,7 @@ public class AttachmentService : IAttachmentService
     public async Task<List<AttachmentDto>> GetAttachmentsAsync(Guid requesterId)
     {
         var all = await _attachmentRepo.GetAllAttachmentsAsync();
-        var list = await FilterAccessibleAsync(requesterId, all, AccessOperation.Read);
+        var list = await FilterAccessibleAsync(requesterId, all, FileOperation.Read);
         return list.Select(a => ToDto(a)).ToList();
     }
 
@@ -136,7 +141,7 @@ public class AttachmentService : IAttachmentService
             ?? throw new ValidationException("Loại đối tượng sở hữu tệp không hợp lệ.");
 
         var files = await VersionRepo.GetCurrentByOwnerAsync(normalizedType, ownerId);
-        var list = await FilterAccessibleAsync(requesterId, files, AccessOperation.Read);
+        var list = await FilterAccessibleAsync(requesterId, files, FileOperation.Read);
         return list.Select(a => ToDto(a)).ToList();
     }
 
@@ -148,7 +153,7 @@ public class AttachmentService : IAttachmentService
         var a = await _attachmentRepo.GetByIdAsync(id);
         if (a == null) return null;
 
-        await EnsureAccessAsync(requesterId, await GetCurrentOrSelfAsync(a), AccessOperation.Read, "Bạn không có quyền xem tệp đính kèm này.");
+        await EnsureAccessAsync(requesterId, await GetCurrentOrSelfAsync(a), FileOperation.Read, "Bạn không có quyền xem tệp đính kèm này.");
 
         return ToDto(a, await _fileStorage.GetDownloadUrlAsync(a.Id));
     }
@@ -157,7 +162,7 @@ public class AttachmentService : IAttachmentService
     public async Task<List<AttachmentDto>> GetVersionsAsync(Guid id, Guid requesterId)
     {
         var current = await GetCurrentRequiredAsync(id);
-        await EnsureAccessAsync(requesterId, current, AccessOperation.Read, "Bạn không có quyền xem tệp đính kèm này.");
+        await EnsureAccessAsync(requesterId, current, FileOperation.Read, "Bạn không có quyền xem tệp đính kèm này.");
 
         var versions = await VersionRepo.GetVersionsAsync(current.GroupId);
         return versions
@@ -172,7 +177,7 @@ public class AttachmentService : IAttachmentService
     public async Task<AttachmentDownloadResult> DownloadAttachmentAsync(Guid id, Guid requesterId)
     {
         var current = await GetCurrentRequiredAsync(id);
-        await EnsureAccessAsync(requesterId, current, AccessOperation.Read, "Bạn không có quyền xem tệp đính kèm này.");
+        await EnsureAccessAsync(requesterId, current, FileOperation.Read, "Bạn không có quyền xem tệp đính kèm này.");
         return await OpenAsync(current);
     }
 
@@ -181,7 +186,7 @@ public class AttachmentService : IAttachmentService
     {
         var current = await GetCurrentRequiredAsync(id);
         // Quyền trên mọi phiên bản bằng quyền trên phiên bản hiện hành của tệp.
-        await EnsureAccessAsync(requesterId, current, AccessOperation.Read, "Bạn không có quyền xem tệp đính kèm này.");
+        await EnsureAccessAsync(requesterId, current, FileOperation.Read, "Bạn không có quyền xem tệp đính kèm này.");
 
         var versions = await VersionRepo.GetVersionsAsync(current.GroupId);
         var version = versions.FirstOrDefault(v => v.VersionNumber == versionNumber)
@@ -204,7 +209,7 @@ public class AttachmentService : IAttachmentService
         Guid? ownerId = null)
     {
         var normalizedFormCode = NormalizeFormCode(formCode);
-        var owner = await ResolveOwnerAsync(ownerType, ownerId, uploadedById);
+        var owner = await ResolveOwnerAsync(ownerType, ownerId, uploadedById, normalizedFormCode);
 
         var stored = await ValidateAndStoreAsync(stream, originalFileName, size, normalizedFormCode);
 
@@ -251,7 +256,7 @@ public class AttachmentService : IAttachmentService
     public async Task<AttachmentDto> ReplaceAttachmentAsync(Guid id, Stream stream, string originalFileName, long size, string uploadedBy, Guid requesterId)
     {
         var current = await GetCurrentRequiredAsync(id);
-        await EnsureAccessAsync(requesterId, current, AccessOperation.Update, "Bạn không có quyền thay tệp đính kèm này.");
+        await EnsureAccessAsync(requesterId, current, FileOperation.Update, "Bạn không có quyền thay tệp đính kèm này.");
 
         var versions = await VersionRepo.GetVersionsAsync(current.GroupId);
         var nextNumber = versions.Count == 0 ? current.VersionNumber + 1 : versions.Max(v => v.VersionNumber) + 1;
@@ -310,7 +315,7 @@ public class AttachmentService : IAttachmentService
             ?? throw new KeyNotFoundException("Không tìm thấy tệp đính kèm cần xóa.");
         var current = await GetCurrentOrSelfAsync(attachment);
 
-        await EnsureAccessAsync(requesterId, current, AccessOperation.Delete, "Bạn không có quyền xóa tệp đính kèm này.");
+        await EnsureAccessAsync(requesterId, current, FileOperation.Delete, "Bạn không có quyền xóa tệp đính kèm này.");
 
         if (_versionRepo != null)
             await _versionRepo.SoftDeleteGroupAsync(current.GroupId);
@@ -333,7 +338,7 @@ public class AttachmentService : IAttachmentService
             attachments.Add(await GetCurrentOrSelfAsync(attachment));
         }
 
-        var allowed = await FilterAccessibleAsync(requesterId, attachments, AccessOperation.Update);
+        var allowed = await FilterAccessibleAsync(requesterId, attachments, FileOperation.Update);
         if (allowed.Count != attachments.Count)
             throw new ForbiddenException("Bạn không có quyền gắn tệp minh chứng này vào hồ sơ.");
     }
@@ -379,13 +384,17 @@ public class AttachmentService : IAttachmentService
 
     private sealed record OwnerInfo(string Type, Guid? Id, Guid? RecordId);
 
-    /// <summary>Kiểm tra đối tượng sở hữu khi tải lên: người tải lên phải có quyền cập nhật hồ sơ liên quan.</summary>
-    private async Task<OwnerInfo> ResolveOwnerAsync(string? ownerType, Guid? ownerId, Guid? uploadedById)
+    /// <summary>
+    /// Kiểm tra đối tượng sở hữu khi tải lên: gắn hồ sơ → <c>evaluation.self</c> trên hồ sơ đó (chỉ chủ hồ sơ);
+    /// không gắn hồ sơ → <c>evaluation.self</c> hoặc <c>attachment.general.manage</c> (xem <see cref="EnsureCanUploadUnlinkedAsync"/>).
+    /// </summary>
+    private async Task<OwnerInfo> ResolveOwnerAsync(string? ownerType, Guid? ownerId, Guid? uploadedById, string formCode)
     {
         if (string.IsNullOrWhiteSpace(ownerType))
         {
             if (ownerId.HasValue)
                 throw new ArgumentException("Thiếu loại đối tượng sở hữu tệp.");
+            await EnsureCanUploadUnlinkedAsync(formCode, uploadedById);
             return new OwnerInfo(AttachmentOwnerTypes.General, null, null);
         }
 
@@ -396,26 +405,51 @@ public class AttachmentService : IAttachmentService
         {
             if (ownerId.HasValue)
                 throw new ArgumentException("Văn bản chung không gắn mã đối tượng.");
+            await EnsureCanUploadUnlinkedAsync(formCode, uploadedById);
             return new OwnerInfo(AttachmentOwnerTypes.General, null, null);
         }
 
         if (!ownerId.HasValue || ownerId.Value == Guid.Empty)
             throw new ArgumentException("Thiếu mã đối tượng sở hữu tệp.");
 
-        if (_accessReader == null || _userRepo == null || _accessPolicy == null)
+        if (_accessReader == null || _resolver == null)
             throw new InvalidOperationException("AttachmentService chưa được cấu hình kiểm tra quyền.");
         if (!uploadedById.HasValue)
             throw new ForbiddenException("Không xác định được người tải lên.");
 
         var record = await _accessReader.GetOwnerRecordAsync(normalizedType, ownerId.Value)
             ?? throw new KeyNotFoundException("Không tìm thấy đối tượng cần gắn tệp.");
-        var requester = await _userRepo.GetWithRolesAndPermissionsByIdAsync(uploadedById.Value)
-            ?? throw new ForbiddenException("Không tìm thấy hồ sơ người dùng hiện tại.");
 
-        if (!_accessPolicy.CanAccessRecord(requester, record, AccessOperation.Update))
-            throw new ForbiddenException("Bạn không có quyền gắn tệp vào hồ sơ đánh giá này.");
+        var uploader = await _resolver.GetAsync(uploadedById.Value);
+        if (!AuthorizationGuard.Evaluate(uploader, PermissionCodes.EvaluationSelf, AccessTarget.ForRecord(record)))
+        {
+            throw new ForbiddenException(
+                $"Chỉ chủ hồ sơ có quyền \"{PermissionCodes.DisplayName(PermissionCodes.EvaluationSelf)}\" mới được gắn tệp vào hồ sơ đánh giá này.");
+        }
 
         return new OwnerInfo(normalizedType, ownerId.Value, record.Id);
+    }
+
+    /// <summary>
+    /// Tải tệp không gắn hồ sơ: người có <c>attachment.general.manage</c> (văn bản chung, mã GENERAL thì công khai cho mọi người)
+    /// hoặc người có <c>evaluation.self</c> (minh chứng riêng — chỉ người tải lên thấy tới khi gắn vào hồ sơ).
+    /// </summary>
+    private async Task EnsureCanUploadUnlinkedAsync(string formCode, Guid? uploadedById)
+    {
+        _ = formCode;
+        // Constructor chỉ dùng kiểm tra hợp lệ tệp (unit test) không có nguồn quyền — giữ hành vi cũ.
+        if (_resolver == null)
+            return;
+        if (!uploadedById.HasValue)
+            throw new ForbiddenException("Không xác định được người tải lên.");
+
+        var uploader = await _resolver.GetAsync(uploadedById.Value);
+        var canManageGeneral = AuthorizationGuard.Evaluate(uploader, PermissionCodes.AttachmentGeneralManage, AccessTarget.None);
+        if (!(uploader.IsActive && uploader.Has(PermissionCodes.EvaluationSelf)) && !canManageGeneral)
+        {
+            throw new ForbiddenException(
+                $"Bạn cần quyền \"{PermissionCodes.DisplayName(PermissionCodes.EvaluationSelf)}\" để tải lên minh chứng đánh giá.");
+        }
     }
 
     private static string NormalizeFormCode(string? formCode)
@@ -494,43 +528,99 @@ public class AttachmentService : IAttachmentService
     };
 
     /// <summary>Kiểm tra quyền trên một tệp, báo 403 nếu không được phép.</summary>
-    private async Task EnsureAccessAsync(Guid requesterId, TaskAttachment attachment, AccessOperation operation, string message)
+    private async Task EnsureAccessAsync(Guid requesterId, TaskAttachment attachment, FileOperation operation, string message)
     {
         var allowed = await FilterAccessibleAsync(requesterId, new List<TaskAttachment> { attachment }, operation);
         if (allowed.Count == 0)
             throw new ForbiddenException(message);
     }
 
-    /// <summary>Lọc các tệp người yêu cầu được thao tác theo <see cref="IAccessPolicy"/>.</summary>
-    private async Task<List<TaskAttachment>> FilterAccessibleAsync(Guid requesterId, List<TaskAttachment> attachments, AccessOperation operation)
+    /// <summary>Lọc các tệp người yêu cầu được thao tác (luật của <see cref="AuthorizationGuard.Evaluate"/>).</summary>
+    private async Task<List<TaskAttachment>> FilterAccessibleAsync(Guid requesterId, List<TaskAttachment> attachments, FileOperation operation)
     {
-        if (_accessReader == null || _userRepo == null || _accessPolicy == null)
+        if (_accessReader == null || _resolver == null)
             throw new InvalidOperationException("AttachmentService chưa được cấu hình kiểm tra quyền.");
 
-        var requester = await _userRepo.GetWithRolesAndPermissionsByIdAsync(requesterId)
-            ?? throw new ForbiddenException("Không tìm thấy hồ sơ người dùng hiện tại.");
+        var requester = await _resolver.GetAsync(requesterId);
+        if (!requester.IsActive)
+            throw new ForbiddenException("Tài khoản hiện tại không còn hoạt động.");
         if (attachments.Count == 0)
             return attachments;
 
         var links = await _accessReader.GetRecordLinksAsync(attachments);
 
-        // Chỉ cần biết người tải lên có phải quản trị hay không đối với văn bản chung.
-        var generalUploaderIds = attachments
-            .Where(a => a.UploadedById.HasValue
-                && string.Equals(a.FormCode, AccessPolicy.GeneralFormCode, StringComparison.OrdinalIgnoreCase))
-            .Select(a => a.UploadedById!.Value)
-            .Distinct()
-            .ToList();
-        var administratorUploaders = await _accessReader.GetUserIdsInRoleAsync(generalUploaderIds, AppRoles.QUAN_TRI_HE_THONG);
+        // Văn bản chung chỉ công khai khi người tải lên đang có quyền quản lý văn bản chung
+        // (tránh văn bản do người khác gắn mã GENERAL trước đây bị lộ).
+        var publicUploaders = new HashSet<Guid>();
+        foreach (var uploaderId in attachments
+                     .Where(a => a.UploadedById.HasValue && IsGeneralDocument(a))
+                     .Select(a => a.UploadedById!.Value)
+                     .Distinct())
+        {
+            var uploader = await _resolver.GetAsync(uploaderId);
+            if (AuthorizationGuard.Evaluate(uploader, PermissionCodes.AttachmentGeneralManage, AccessTarget.None))
+                publicUploaders.Add(uploaderId);
+        }
 
         return attachments
-            .Where(a => _accessPolicy.CanAccessAttachment(
+            .Where(a => CanAccessAttachment(
                 requester,
                 a,
                 links.TryGetValue(a.Id, out var attachmentLinks) ? attachmentLinks : new List<AttachmentRecordLink>(),
-                a.UploadedById.HasValue && administratorUploaders.Contains(a.UploadedById.Value),
+                a.UploadedById.HasValue && publicUploaders.Contains(a.UploadedById.Value),
                 operation))
             .ToList();
+    }
+
+    private static bool IsGeneralDocument(TaskAttachment attachment) =>
+        string.Equals(attachment.FormCode, GeneralFormCode, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Quyền trên một tệp: tệp gắn hồ sơ → quyền trên hồ sơ (<c>evaluation.read</c> để xem, <c>evaluation.self</c> để sửa/xóa);
+    /// văn bản chung → xem: mọi người (nếu người tải lên có quyền quản lý văn bản chung), sửa/xóa: <c>attachment.general.manage</c>;
+    /// tệp chưa gắn hồ sơ → chỉ người tải lên.
+    /// </summary>
+    private bool CanAccessAttachment(
+        EffectivePermissions requester,
+        TaskAttachment attachment,
+        IReadOnlyCollection<AttachmentRecordLink> links,
+        bool publishedGeneral,
+        FileOperation operation)
+    {
+        var requesterId = requester.UserId;
+
+        // Liên kết qua nhiệm vụ do người dùng tự khai báo AttachmentId, nên chỉ được tính khi tệp là của
+        // chính chủ hồ sơ (hoặc dữ liệu cũ chưa có người tải lên) — tránh gắn tệp của người khác vào hồ sơ mình để đọc.
+        var effectiveLinks = links
+            .Where(link => !link.ViaTask
+                || !attachment.UploadedById.HasValue
+                || attachment.UploadedById == link.Record.MemberId)
+            .ToList();
+
+        if (effectiveLinks.Count > 0)
+        {
+            var permission = operation == FileOperation.Read ? PermissionCodes.EvaluationRead : PermissionCodes.EvaluationSelf;
+            return effectiveLinks.Any(link => AuthorizationGuard.Evaluate(requester, permission, AccessTarget.ForRecord(link.Record)));
+        }
+
+        // Văn bản chung do người có quyền quản lý văn bản chung tải lên: mọi người xem, người có quyền đó sửa/xóa.
+        if (IsGeneralDocument(attachment) && publishedGeneral)
+        {
+            return operation == FileOperation.Read
+                || AuthorizationGuard.Evaluate(requester, PermissionCodes.AttachmentGeneralManage, AccessTarget.None);
+        }
+
+        // Tệp chưa gắn hồ sơ (minh chứng tải trước khi đăng ký nhiệm vụ, kể cả "tài liệu minh chứng khác" mã GENERAL
+        // do cán bộ tự tải): chỉ người tải lên.
+        return attachment.UploadedById.HasValue && attachment.UploadedById == requesterId;
+    }
+
+    /// <summary>Thao tác trên tệp.</summary>
+    private enum FileOperation
+    {
+        Read,
+        Update,
+        Delete
     }
 
     private static string GetContentType(string extension) => extension switch

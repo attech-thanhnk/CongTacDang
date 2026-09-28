@@ -17,7 +17,7 @@ namespace CongTacDang.Api.Authorization;
 
 /// <summary>
 /// Yêu cầu endpoint theo mã quyền: [RequirePermission(PermissionCodes.X)] = "có X ở phạm vi nào đó".
-/// Đặt policy bằng mã quyền (thay cho [Authorize(Policy = "...")] với tên policy tự đặt).
+/// Service vẫn phải gọi <see cref="IAuthorizationGuard"/> trên đối tượng cụ thể.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
 public sealed class RequirePermissionAttribute : AuthorizeAttribute
@@ -36,73 +36,62 @@ public sealed class RequirePermissionAttribute : AuthorizeAttribute
     public string Permission { get; }
 }
 
-/// <summary>Yêu cầu có mã quyền (ở phạm vi bất kỳ) theo <see cref="IPermissionResolver"/>.</summary>
-public sealed class PermissionRequirement : IAuthorizationRequirement
-{
-    /// <summary>Khởi tạo yêu cầu theo mã quyền.</summary>
-    public PermissionRequirement(string permission) => Permission = permission;
-
-    /// <summary>Mã quyền yêu cầu.</summary>
-    public string Permission { get; }
-}
-
 /// <summary>
-/// Yêu cầu của policy composite/role cũ (<c>Policy_*</c>, <c>Require*</c>): giữ nguyên kết quả như trước
-/// nhưng đánh giá từ <see cref="IPermissionResolver"/> thay vì claim/role trong JWT. Task 09 thay bằng mã quyền mới.
+/// Yêu cầu endpoint có <b>ít nhất một</b> trong các mã quyền (ở phạm vi bất kỳ) — dùng khi nhiều quyền cùng dẫn tới một chức năng
+/// (vd. ghi nhận quyết định của cơ sở hoặc của cấp trên). Tên policy: <c>any:</c> + các mã nối bằng <c>|</c>.
 /// </summary>
-public sealed class LegacyPolicyRequirement : IAuthorizationRequirement
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
+public sealed class RequireAnyPermissionAttribute : AuthorizeAttribute
 {
-    /// <summary>Khởi tạo yêu cầu theo tên policy cũ.</summary>
-    public LegacyPolicyRequirement(string policyName, string displayName, Func<EffectivePermissions, bool> evaluate)
+    /// <summary>Tiền tố tên policy.</summary>
+    public const string PolicyPrefix = "any:";
+
+    /// <summary>Khai báo endpoint yêu cầu một trong các mã quyền.</summary>
+    public RequireAnyPermissionAttribute(params string[] permissions)
     {
-        PolicyName = policyName;
-        DisplayName = displayName;
-        Evaluate = evaluate;
+        if (permissions == null || permissions.Length == 0 || permissions.Any(string.IsNullOrWhiteSpace))
+            throw new ArgumentException("Phải khai báo ít nhất một mã quyền hợp lệ.", nameof(permissions));
+
+        Permissions = permissions;
+        Policy = PolicyPrefix + string.Join("|", permissions);
     }
 
-    /// <summary>Tên policy cũ.</summary>
-    public string PolicyName { get; }
-
-    /// <summary>Tên hiển thị dùng trong thông báo 403.</summary>
-    public string DisplayName { get; }
-
-    /// <summary>Luật đánh giá trên tập quyền hiệu lực.</summary>
-    public Func<EffectivePermissions, bool> Evaluate { get; }
+    /// <summary>Các mã quyền (chỉ cần một).</summary>
+    public IReadOnlyList<string> Permissions { get; }
 }
 
-/// <summary>Danh mục policy composite/role cũ, định nghĩa lại trên <see cref="EffectivePermissions"/>.</summary>
-public static class LegacyPolicies
+/// <summary>Yêu cầu có một trong các mã quyền (ở phạm vi bất kỳ) theo <see cref="IPermissionResolver"/>.</summary>
+public sealed class PermissionRequirement : IAuthorizationRequirement
 {
-    /// <summary>Tên policy cũ → yêu cầu tương ứng (kết quả giống khối AddAuthorization cũ trong Program.cs).</summary>
-    public static readonly IReadOnlyDictionary<string, LegacyPolicyRequirement> All = new[]
+    /// <summary>Khởi tạo yêu cầu theo một mã quyền.</summary>
+    public PermissionRequirement(string permission) : this(new[] { permission })
     {
-        new LegacyPolicyRequirement("RequireCaNBo", "Cán bộ, Đảng viên",
-            p => p.HasLegacyRole(AppRoles.CAN_BO)),
-        new LegacyPolicyRequirement("RequireBiThuChiBo", "Bí thư Chi bộ",
-            p => p.HasLegacyRole(AppRoles.BI_THU_CHI_BO) || p.HasLegacyRole(AppRoles.BAN_THUONG_VU) || p.HasLegacyRole(AppRoles.QUAN_TRI_HE_THONG)),
-        new LegacyPolicyRequirement("RequireBanThuongVu", "Ban Thường vụ",
-            p => p.HasLegacyRole(AppRoles.BAN_THUONG_VU) || p.HasLegacyRole(AppRoles.QUAN_TRI_HE_THONG)),
-        new LegacyPolicyRequirement("RequireQuanTriHeTong", "Quản trị hệ thống",
-            p => p.HasLegacyRole(AppRoles.QUAN_TRI_HE_THONG)),
-        new LegacyPolicyRequirement(AppPermissions.PolicyEvaluationsAppraiseOrApprove, "Thẩm định hoặc chuẩn y hồ sơ đánh giá",
-            p => p.Has(AppPermissions.EvaluationsAppraise)
-                || p.Has(AppPermissions.EvaluationsApprove)
-                || p.HasLegacyRole(AppRoles.QUAN_TRI_HE_THONG)),
-        new LegacyPolicyRequirement(AppPermissions.PolicyEvaluationsBranchView, "Xem hồ sơ đánh giá theo Chi bộ",
-            p => p.Has(AppPermissions.EvaluationsBranchVote)
-                || p.Has(AppPermissions.EvaluationsAppraise)
-                || p.Has(AppPermissions.EvaluationsApprove)
-                || p.HasLegacyRole(AppRoles.QUAN_TRI_HE_THONG)),
-        new LegacyPolicyRequirement(AppPermissions.PolicyManagePeriods, "Quản lý kỳ đánh giá",
-            p => p.Has(AppPermissions.EvaluationsApprove)
-                || p.HasLegacyRole(AppRoles.QUAN_TRI_HE_THONG)
-                || p.HasLegacyRole(AppRoles.BAN_THUONG_VU)),
-    }.ToDictionary(r => r.PolicyName, StringComparer.Ordinal);
+    }
+
+    /// <summary>Khởi tạo yêu cầu "một trong các mã quyền".</summary>
+    public PermissionRequirement(IReadOnlyList<string> permissions)
+    {
+        Permissions = permissions;
+        Permission = permissions.Count > 0 ? permissions[0] : string.Empty;
+    }
+
+    /// <summary>Mã quyền đầu tiên (tương thích task 07).</summary>
+    public string Permission { get; }
+
+    /// <summary>Các mã quyền được chấp nhận.</summary>
+    public IReadOnlyList<string> Permissions { get; }
+
+    /// <summary>
+    /// Chỉ yêu cầu đã đăng nhập (mã cũ không còn tương đương, vd. <c>branches.read</c>: mọi người đã đăng nhập).
+    /// </summary>
+    public bool AuthenticatedOnly => Permissions.Count == 0;
 }
 
 /// <summary>
-/// Cung cấp policy động: tên policy là mã quyền (cũ trong <see cref="AppPermissions"/> hoặc mới trong
-/// <see cref="PermissionCodes"/>) hoặc tên policy composite cũ; tên khác chuyển cho provider mặc định.
+/// Cung cấp policy động: tên policy là mã quyền trong <see cref="PermissionCodes"/>, hoặc <c>any:a|b</c>.
+/// Chuyển tiếp: mã quyền cũ (trước task 09) còn khai báo ở các controller ngoài phạm vi task 09
+/// (UserController, OrganizationController, AuditController) được đánh giá bằng mã mới tương đương (<see cref="LegacyPermissionMap"/>).
+/// Tên khác chuyển cho provider mặc định.
 /// </summary>
 public sealed class PermissionPolicyProvider : IAuthorizationPolicyProvider
 {
@@ -115,9 +104,34 @@ public sealed class PermissionPolicyProvider : IAuthorizationPolicyProvider
         _fallback = new DefaultAuthorizationPolicyProvider(options);
     }
 
-    /// <summary>Mã quyền được nhận làm tên policy.</summary>
+    /// <summary>Mã quyền được nhận làm tên policy (mã mới, hoặc mã cũ còn dùng ở file ngoài phạm vi).</summary>
     public static bool IsKnownPermission(string code) =>
-        PermissionCodes.IsDefined(code) || AppPermissions.All.Contains(code, StringComparer.Ordinal);
+        PermissionCodes.IsDefined(code) || IsLegacyCode(code);
+
+#pragma warning disable CS0618 // Chuyển tiếp có chủ đích cho mã quyền cũ.
+    private static bool IsLegacyCode(string code) => LegacyPermissionMap.OldToNew.ContainsKey(code);
+
+    /// <summary>Dựng yêu cầu cho tên policy; null nếu không phải policy theo mã quyền.</summary>
+    public static PermissionRequirement? CreateRequirement(string policyName)
+    {
+        if (PermissionCodes.IsDefined(policyName))
+            return new PermissionRequirement(policyName);
+
+        if (policyName.StartsWith(RequireAnyPermissionAttribute.PolicyPrefix, StringComparison.Ordinal))
+        {
+            var codes = policyName[RequireAnyPermissionAttribute.PolicyPrefix.Length..]
+                .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (codes.Length > 0 && codes.All(PermissionCodes.IsDefined))
+                return new PermissionRequirement(codes);
+            return null;
+        }
+
+        if (LegacyPermissionMap.OldToNew.TryGetValue(policyName, out var mapped))
+            return new PermissionRequirement(mapped);
+
+        return null;
+    }
+#pragma warning restore CS0618
 
     /// <inheritdoc />
     public Task<AuthorizationPolicy> GetDefaultPolicyAsync() => _fallback.GetDefaultPolicyAsync();
@@ -131,24 +145,19 @@ public sealed class PermissionPolicyProvider : IAuthorizationPolicyProvider
         if (_policies.TryGetValue(policyName, out var cached))
             return Task.FromResult<AuthorizationPolicy?>(cached);
 
-        IAuthorizationRequirement? requirement = null;
-        if (IsKnownPermission(policyName))
-            requirement = new PermissionRequirement(policyName);
-        else if (LegacyPolicies.All.TryGetValue(policyName, out var legacy))
-            requirement = legacy;
-
+        var requirement = CreateRequirement(policyName);
         if (requirement == null)
             return _fallback.GetPolicyAsync(policyName);
 
-        var policy = new AuthorizationPolicyBuilder()
-            .RequireAuthenticatedUser()
-            .AddRequirements(requirement)
-            .Build();
+        var builder = new AuthorizationPolicyBuilder().RequireAuthenticatedUser();
+        if (!requirement.AuthenticatedOnly)
+            builder.AddRequirements(requirement);
+        var policy = builder.Build();
         return Task.FromResult<AuthorizationPolicy?>(_policies.GetOrAdd(policyName, policy));
     }
 }
 
-/// <summary>Đánh giá <see cref="PermissionRequirement"/> và <see cref="LegacyPolicyRequirement"/> từ <see cref="IPermissionResolver"/>.</summary>
+/// <summary>Đánh giá <see cref="PermissionRequirement"/> từ <see cref="IPermissionResolver"/> (không đọc claim quyền/vai trò trong JWT).</summary>
 public sealed class PermissionAuthorizationHandler : IAuthorizationHandler
 {
     private readonly IPermissionResolver _resolver;
@@ -159,9 +168,7 @@ public sealed class PermissionAuthorizationHandler : IAuthorizationHandler
     /// <inheritdoc />
     public async Task HandleAsync(AuthorizationHandlerContext context)
     {
-        var pending = context.PendingRequirements
-            .Where(r => r is PermissionRequirement or LegacyPolicyRequirement)
-            .ToList();
+        var pending = context.PendingRequirements.OfType<PermissionRequirement>().ToList();
         if (pending.Count == 0)
             return;
 
@@ -170,15 +177,12 @@ public sealed class PermissionAuthorizationHandler : IAuthorizationHandler
             return;
 
         var permissions = await _resolver.GetAsync(userId.Value);
+        if (!permissions.IsActive)
+            return;
+
         foreach (var requirement in pending)
         {
-            var satisfied = requirement switch
-            {
-                PermissionRequirement p => permissions.Has(p.Permission),
-                LegacyPolicyRequirement l => l.Evaluate(permissions),
-                _ => false
-            };
-            if (satisfied)
+            if (requirement.AuthenticatedOnly || requirement.Permissions.Any(permissions.Has))
                 context.Succeed(requirement);
         }
     }
@@ -199,13 +203,9 @@ public sealed class PermissionAuthorizationResultHandler : IAuthorizationMiddlew
         if (authorizeResult.Forbidden && authorizeResult.AuthorizationFailure != null)
         {
             var names = authorizeResult.AuthorizationFailure.FailedRequirements
-                .Select(r => r switch
-                {
-                    PermissionRequirement p => DisplayNameOf(p.Permission),
-                    LegacyPolicyRequirement l => l.DisplayName,
-                    _ => null
-                })
-                .Where(name => name != null)
+                .OfType<PermissionRequirement>()
+                .Select(r => string.Join(" hoặc ", r.Permissions.Select(DisplayNameOf).Distinct().Select(n => $"\"{n}\"")))
+                .Where(name => name.Length > 0)
                 .Distinct()
                 .ToList();
 
@@ -225,7 +225,7 @@ public sealed class PermissionAuthorizationResultHandler : IAuthorizationMiddlew
                 {
                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
                     context.Response.ContentType = "application/json";
-                    var message = $"Bạn không có quyền \"{string.Join("\", \"", names)}\" để thực hiện thao tác này. "
+                    var message = $"Bạn không có quyền {string.Join(", ", names)} để thực hiện thao tác này. "
                         + "Hãy liên hệ quản trị hệ thống nếu cần được cấp quyền.";
                     await context.Response.WriteAsync(JsonSerializer.Serialize(ApiResponse.Fail(message), JsonOptions));
                 }
@@ -236,24 +236,8 @@ public sealed class PermissionAuthorizationResultHandler : IAuthorizationMiddlew
         await _default.HandleAsync(next, context, policy, authorizeResult);
     }
 
-    /// <summary>Tên hiển thị của mã quyền (mới hoặc cũ).</summary>
-    private static string DisplayNameOf(string code)
-    {
-        var definition = PermissionCodes.Find(code);
-        if (definition != null)
-            return definition.Name;
-
-        // Mã cũ: dùng tên của mã mới tương đương nếu có, tránh lộ mã kỹ thuật.
-        if (LegacyPermissionMap.OldToNew.TryGetValue(code, out var mapped) && mapped.Length > 0)
-            return string.Join(" / ", mapped.Select(PermissionCodes.DisplayName));
-
-        return code switch
-        {
-            AppPermissions.BranchesRead => "Xem tổ chức Chi bộ",
-            AppPermissions.AttachmentsRead => "Xem & tải tài liệu",
-            _ => "Quyền được yêu cầu"
-        };
-    }
+    /// <summary>Tên hiển thị của mã quyền (không lộ mã kỹ thuật).</summary>
+    private static string DisplayNameOf(string code) => PermissionCodes.Find(code)?.Name ?? "Quyền được yêu cầu";
 }
 
 /// <summary>Tiện ích đọc danh tính từ <see cref="ClaimsPrincipal"/> (chỉ danh tính, không đọc vai trò/quyền).</summary>
