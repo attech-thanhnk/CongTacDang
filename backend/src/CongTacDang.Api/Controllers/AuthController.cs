@@ -130,7 +130,8 @@ public class AuthController : ControllerBase
             HttpOnly = true,
             Secure = isSecure,
             SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
-            Expires = result.AccessTokenExpiresAt
+            // Cookie sống theo refresh token để middleware Next.js nhận biết phiên; JWT bên trong vẫn hết hạn theo AccessTokenExpiryMinutes.
+            Expires = result.RefreshTokenExpiresAt
         });
         Response.Cookies.Append("refresh_token", result.RefreshToken, new Microsoft.AspNetCore.Http.CookieOptions
         {
