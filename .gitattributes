@@ -1,0 +1,32 @@
+# Chuẩn hóa xuống dòng: lưu LF trong repo, checkout theo quy định bên dưới.
+* text=auto eol=lf
+
+# Script Windows cần CRLF
+*.ps1 text eol=crlf
+*.psm1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Script shell luôn LF (chạy trong container / Linux)
+*.sh text eol=lf
+
+# File nhị phân — không chuyển đổi, không diff dạng văn bản
+*.docx binary
+*.doc binary
+*.xlsx binary
+*.xls binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.bmp binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.zip binary
+*.gz binary
+*.dump binary
