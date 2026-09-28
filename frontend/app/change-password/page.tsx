@@ -26,7 +26,7 @@ export default function ChangePasswordPage() {
     try {
       await authService.changePassword(currentPassword, newPassword);
       await refreshUser();
-      toast.success("Đổi mật khẩu thành công.");
+      toast.success("Đổi mật khẩu thành công. Các phiên đăng nhập khác của bạn đã bị đăng xuất.");
       router.replace("/evaluations");
     } catch (error: any) {
       toast.error(error.message || "Không thể đổi mật khẩu.");
@@ -41,7 +41,9 @@ export default function ChangePasswordPage() {
         <div className="card-body p-4 p-md-5">
           <h1 className="h4 fw-bold mb-2">Đổi mật khẩu</h1>
           <p className="text-secondary small mb-4">
-            Tài khoản đang sử dụng mật khẩu tạm. Mật khẩu mới phải có tối thiểu 8 ký tự, gồm chữ và số.
+            Nếu bạn đang dùng mật khẩu tạm do quản trị cấp, hãy đổi mật khẩu để tiếp tục sử dụng hệ thống.
+            Mật khẩu mới phải có tối thiểu 8 ký tự (hoặc theo chính sách của đơn vị), gồm cả chữ và số.
+            Sau khi đổi, các phiên đăng nhập khác của bạn sẽ bị đăng xuất.
           </p>
           <form onSubmit={handleSubmit} className="d-grid gap-3">
             <label className="small fw-semibold">
