@@ -30,6 +30,12 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 - T-55 `in-progress`: phần nền xong; resolver/guard thật, bỏ `AppRoles`/`AppPermissions` là task 09.
 - Ghi nhận cho đợt sau: `/api/auth/login` giới hạn 10 lần/phút/IP — test tích hợp phải tái sử dụng client đã đăng nhập; username chưa chuẩn hóa hoa/thường (task 08); JSON trả tiếng Việt dạng `\uXXXX`.
 
+**Đợt 4–5 + dọn sạch (2026-09-28)** — task 08, 09, 10, tích hợp Đợt 4, task 11, 12, 13 và đợt dọn sạch cuối đã merge vào `main`. Người điều phối kiểm lại trên bản gộp: build 0 lỗi 0 warning, unit 193/194 (1 skip PDF thiếu LibreOffice), integration 72/72 trên PostgreSQL `192.168.22.159` (0 skip), `tsc` + `npm run build` pass, grep không còn tên vai trò/mã quyền cũ/MinIO (trừ hằng số nội bộ vai trò quản trị mặc định trong `DataSeeder`). Migration gộp lại thành một `InitialCreate` (không giữ dữ liệu/CSDL cũ theo quyết định chủ dự án); `has-pending-model-changes` sạch.
+- T-65 `partial`: giao diện quản trị mới chỉ kiểm bằng `tsc`/build, chưa thao tác trên trình duyệt.
+- B-07 `partial`: đã điền thêm Mẫu 10 (nhận xét cấp trực tiếp sử dụng), Mẫu 13 (phiếu không hợp lệ, số có mặt); ô còn trống liệt kê trong `reports/12-evaluation-workflow.md`.
+- T-27 vẫn `open`: chưa build image / chạy compose (máy không có Docker). T-38: chưa chạy PDF thật.
+- Sau khi triển khai bản này mọi người phải đăng nhập lại (JWT mới có `sstamp`).
+
 ## T — Kỹ thuật
 
 | Mã | Mức | Vấn đề | Vị trí chính | Owner | Trạng thái |
@@ -40,7 +46,7 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-04 | 🔴 | Đăng nhập không có rate limit / khóa tài khoản; lệch thời gian phản hồi khi username không tồn tại | `AuthService.cs`, `Program.cs` | 01 | done |
 | T-05 | 🔴 | Secret trong repo (JWT secret, mật khẩu DB, IP nội bộ, mật khẩu compose) | `Api/appsettings.json`, `docker/docker-compose.yml` | 03 | done |
 | T-06 | 🟠 | Swagger luôn bật ở production (`IsDevelopment() \|\| true`) | `Program.cs` | 03 | done |
-| T-07 | 🟠 | MinIO: bucket public-read, adapter gửi request không ký SigV4, không được đăng ký dùng | `docker-compose.yml`, `MinioFileStorageService.cs` | 03 | partial |
+| T-07 | 🟠 | MinIO: bucket public-read, adapter gửi request không ký SigV4, không được đăng ký dùng | `docker-compose.yml`, `MinioFileStorageService.cs` | 03 | done |
 | T-08 | 🟠 | Thiếu quyền trả 401 thay vì 403 → apiClient refresh + retry → người dùng bị đăng xuất | `Api/Middlewares/GlobalExceptionMiddleware.cs`, các Application service, `frontend/services/apiClient.ts` | 01 | done |
 | T-09 | 🟠 | Refresh token lưu nguyên văn; rotation không atomic; nhiều tab refresh cùng lúc bị coi là tái sử dụng → thu hồi toàn bộ phiên | `AuthService.cs`, `RefreshTokenRepository.cs`, `AuthController.cs` | 01 | done |
 | T-10 | 🟠 | `InvalidOperationException` map thành 400 và lộ message nội bộ (EF/LINQ) | `GlobalExceptionMiddleware.cs` | 01 | done |
@@ -57,7 +63,7 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-21 | 🟡 | Repo theo dõi file build/IDE/log/upload thật; chưa có test, chưa có CI | `.gitignore`, `backend/publish*`, `.vs/`, … | 03 (test project: 01) | done |
 | T-22 | ⚪ | Frontend dùng 3 bộ UI (Bootstrap, Tailwind, PrimeReact) + 3 bộ icon; nhiều file > 1000 dòng | `frontend/` | — | deferred |
 | T-23 | ⚪ | Truy vấn chỉ đọc thiếu `AsNoTracking`, thiếu index cho cột lọc thường dùng | `SpecificRepositories.cs`, `CongTacDangDbContext.cs` | 02 | done |
-| T-24 | 🟠 | Frontend chưa gửi `version` khi cập nhật hồ sơ/kỳ đánh giá → kiểm tra concurrency (T-15) chưa có hiệu lực; backend tạm coi `version` là tùy chọn | `frontend/services/evaluationService.ts`, `components/evaluations/Step*.tsx` | 06 → 12 | partial |
+| T-24 | 🟠 | Frontend chưa gửi `version` khi cập nhật hồ sơ/kỳ đánh giá → kiểm tra concurrency (T-15) chưa có hiệu lực; backend tạm coi `version` là tùy chọn | `frontend/services/evaluationService.ts`, `components/evaluations/Step*.tsx` | 06 → 12 | done |
 | T-25 | 🟠 | Migration chưa chạy thử trên PostgreSQL thật (DB trống + DB cũ baseline); DB cũ baseline sẽ thiếu các index mới nằm trong `InitialCreate` (kể cả unique index kỳ đang hoạt động) | `Infrastructure/Data/Migrations`, `Api/Extensions/PersistenceExtensions.cs` | — | wontfix |
 | T-26 | 🟡 | `DataSeeder` còn khối DDL `ALTER TABLE … ADD COLUMN IF NOT EXISTS` tương thích schema cũ — trùng vai trò với migration | `Infrastructure/Data/DataSeeder.cs` | 06 | done |
 | T-27 | 🟡 | Docker chưa được kiểm chứng: chưa `docker compose config`, chưa build image, chưa gọi `/healthz` (máy không có Docker) | `docker/`, `.github/workflows/ci.yml` | — | open |
@@ -79,39 +85,42 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 
 | T-43 | 🟡 | `frontend/next-env.d.ts` nằm trong `.gitignore` → checkout mới / CI chạy `tsc --noEmit` trước `next build` báo lỗi `<style jsx>` | `.gitignore`, `frontend/` | — | open |
 | T-44 | 🟡 | Khôi phục bản sao lưu của phiên bản code cũ trong khi app bật `AutoMigrate` → migrate tự chạy lên schema mới ngay khi khởi động; cần quy trình khôi phục kèm đúng phiên bản code | `docker/restore.sh`, `docs/deployment.md` | — | open |
-| T-45 | 🟡 | Người có `branch_vote` nhưng chưa gán Chi bộ xem được mọi biên bản họp trong kỳ | `Application/Common/Security/AccessPolicy.cs`, `CollectiveEvaluationService.cs` | 09 | open |
-| T-46 | 🟡 | Seeder vẫn gán lại role cho người dùng mỗi lần khởi động khi `SeedSampleData=true` | `Infrastructure/Data/DataSeeder.cs` | 09 | open |
+| T-45 | 🟡 | Người có `branch_vote` nhưng chưa gán Chi bộ xem được mọi biên bản họp trong kỳ | `Application/Common/Security/AccessPolicy.cs`, `CollectiveEvaluationService.cs` | 09 | done |
+| T-46 | 🟡 | Seeder vẫn gán lại role cho người dùng mỗi lần khởi động khi `SeedSampleData=true` | `Infrastructure/Data/DataSeeder.cs` | 09 | done |
 | T-47 | 🟡 | `EvaluationTask.AttachmentId` gửi từ client không được kiểm tra (file có tồn tại, có thuộc quyền người gửi) | `EvaluationService.RegisterTasksAsync` | 05 | done |
-| T-48 | 🟠 | `SubmitAppraisalAsync` không kiểm tra quyền trên từng hồ sơ (chỉ dựa vào policy của controller) | `EvaluationService.cs` | 09 | open |
+| T-48 | 🟠 | `SubmitAppraisalAsync` không kiểm tra quyền trên từng hồ sơ (chỉ dựa vào policy của controller) | `EvaluationService.cs` | 09 | done |
 | T-49 | 🔴 | `xmin` khai báo dạng shadow property → truy vấn `AsNoTracking` (danh sách hồ sơ, kỳ đang hoạt động) trả `version: 0` → bước 3–5 luôn nhận 409 khi frontend gửi version. Phát hiện khi chạy thật lúc tích hợp đợt 2 | `CongTacDangDbContext.cs`, `UnitOfWork.cs` | — | done |
 | T-50 | 🟡 | File logger đăng ký bằng instance nên không được dispose khi tắt ứng dụng → mất các dòng log cuối. Phát hiện nhờ test khi tích hợp | `Api/Logging/RollingFileLoggerProvider.cs` | — | done |
 | T-51 | ⚪ | Tài liệu hướng dẫn seed sẵn (không có người tải lên, không gắn hồ sơ) sau T-31 chỉ quản trị hệ thống xem được — cần quyết định cách phân loại "văn bản chung" | `DataSeeder.cs`, `AccessPolicy.cs` | — | done |
-| T-52 | 🟡 | `TaskAttachment.TaskId` và `FilePath` là alias nhưng EF ánh xạ thành cột trùng lặp | `TaskAttachment.cs`, `CongTacDangDbContext.cs` | — | open |
-| T-53 | ⚪ | `MapToRecordDto` hiển thị tên file của phiên bản đầu tiên thay vì phiên bản hiện hành | `EvaluationService.cs` | 12 | open |
+| T-52 | 🟡 | `TaskAttachment.TaskId` và `FilePath` là alias nhưng EF ánh xạ thành cột trùng lặp | `TaskAttachment.cs`, `CongTacDangDbContext.cs` | — | done |
+| T-53 | ⚪ | `MapToRecordDto` hiển thị tên file của phiên bản đầu tiên thay vì phiên bản hiện hành | `EvaluationService.cs` | 12 | done |
 | T-54 | ⚪ | Chưa có giao diện xem lịch sử phiên bản file (API đã có) | `frontend/components/attachments/` | — | open |
-| T-55 | 🔴 | Phân quyền gắn tên vai trò cứng trong code (`AppRoles`, `IsInRole`), không có phạm vi khi gán, không tạo/xóa được vai trò; quyền nằm trong JWT → đổi quyền chậm tới 15 phút. Vai trò không khớp tác nhân HD03 (Chi bộ làm việc của tập thể lãnh đạo Phòng; thiếu lãnh đạo trực tiếp, cấp trực tiếp sử dụng; BTV ĐUTCT là cấp ngoài) | `AppRoles.cs`, `AccessPolicy.cs`, `Program.cs`, `DataSeeder.cs` | 07, 09 | in-progress |
-| T-56 | 🟠 | Tạo tài khoản sinh username ngẫu nhiên `cb_xxxxxxxx`, mật khẩu tạm bị bỏ đi, không gán quyền → tài khoản mới không dùng được | `UserService.CreateUserAsync` | 08 | open |
-| T-57 | 🟠 | Khóa / xóa / đặt lại mật khẩu không vô hiệu access token đang dùng (còn hiệu lực ≤ 15 phút) | `AuthService`, `JwtService`, `Program.cs` | 08 | open |
-| T-58 | 🟠 | `MustChangePassword` chỉ chặn ở frontend; backend vẫn cho gọi mọi API bằng mật khẩu tạm | `AuthGuard.tsx`, backend không có | 08 | open |
-| T-59 | 🟡 | Không có nhật ký đăng nhập, không mở khóa đăng nhập, danh sách người dùng không phân trang; không chặn tự khóa/xóa mình và quản trị viên cuối cùng | `UserService`, `UserController`, `AuthService` | 08, 09 | open |
-| T-60 | 🟡 | Hồ sơ người dùng trả vai trò suy từ `PartyRole` khi chưa gán vai trò → giao diện hiện chức năng mà backend từ chối | `UserService.MapToProfileDto` | 08 | open |
-| T-61 | 🔴 | Vai trò Cán bộ có `users.read` + `reports.export` → mọi cán bộ gọi `/api/users/list` và `/api/reports/cadres` lấy danh sách toàn bộ cán bộ kèm số thẻ Đảng | `DataSeeder.cs:21-25`, `UserController`, `ExportReportController.ExportCadres` | 09 (08: `/users`) | open |
-| T-62 | 🟡 | Phòng ban chỉ có API đọc; xóa danh mục không kiểm tra còn cán bộ/hồ sơ | `OrganizationController`, `OrganizationService` | 10 | open |
+| T-55 | 🔴 | Phân quyền gắn tên vai trò cứng trong code (`AppRoles`, `IsInRole`), không có phạm vi khi gán, không tạo/xóa được vai trò; quyền nằm trong JWT → đổi quyền chậm tới 15 phút. Vai trò không khớp tác nhân HD03 (Chi bộ làm việc của tập thể lãnh đạo Phòng; thiếu lãnh đạo trực tiếp, cấp trực tiếp sử dụng; BTV ĐUTCT là cấp ngoài) | `AppRoles.cs`, `AccessPolicy.cs`, `Program.cs`, `DataSeeder.cs` | 07, 09 | done |
+| T-56 | 🟠 | Tạo tài khoản sinh username ngẫu nhiên `cb_xxxxxxxx`, mật khẩu tạm bị bỏ đi, không gán quyền → tài khoản mới không dùng được | `UserService.CreateUserAsync` | 08 | done |
+| T-57 | 🟠 | Khóa / xóa / đặt lại mật khẩu không vô hiệu access token đang dùng (còn hiệu lực ≤ 15 phút) | `AuthService`, `JwtService`, `Program.cs` | 08 | done |
+| T-58 | 🟠 | `MustChangePassword` chỉ chặn ở frontend; backend vẫn cho gọi mọi API bằng mật khẩu tạm | `AuthGuard.tsx`, backend không có | 08 | done |
+| T-59 | 🟡 | Không có nhật ký đăng nhập, không mở khóa đăng nhập, danh sách người dùng không phân trang; không chặn tự khóa/xóa mình và quản trị viên cuối cùng | `UserService`, `UserController`, `AuthService` | 08, 09 | done |
+| T-60 | 🟡 | Hồ sơ người dùng trả vai trò suy từ `PartyRole` khi chưa gán vai trò → giao diện hiện chức năng mà backend từ chối | `UserService.MapToProfileDto` | 08 | done |
+| T-61 | 🔴 | Vai trò Cán bộ có `users.read` + `reports.export` → mọi cán bộ gọi `/api/users/list` và `/api/reports/cadres` lấy danh sách toàn bộ cán bộ kèm số thẻ Đảng | `DataSeeder.cs:21-25`, `UserController`, `ExportReportController.ExportCadres` | 09 (08: `/users`) | done |
+| T-62 | 🟡 | Phòng ban chỉ có API đọc; xóa danh mục không kiểm tra còn cán bộ/hồ sơ | `OrganizationController`, `OrganizationService` | 10 | done |
 | T-63 | 🟡 | Không có test tích hợp API trên PostgreSQL thật (một phần T-42) | `backend/tests/` | 07 | done |
-| T-64 | 🟠 | Không có chức năng import dữ liệu (Phòng, Chi bộ, cán bộ, gán vai trò, người được đánh giá) → go-live phải nhập tay từng người | — | 10, 13, 12 | open |
-| T-65 | 🟡 | `app/users/page.tsx` > 1.000 dòng gộp tài khoản/Chi bộ/vai trò; không có giao diện gán phạm vi, tra cứu quyền, nhật ký đăng nhập | `frontend/app/users/page.tsx` | 11 | open |
-| T-66 | 🟠 | Luồng đánh giá lệch HD03: thiếu duyệt danh mục (B1), Chi bộ xác nhận tách khỏi đề xuất tập thể lãnh đạo Phòng (B3a), cấp trực tiếp sử dụng (B3c), ghi nhận quyết định cấp trên, công bố/khóa (B5), trả lại/mở lại có lý do; bước không cấu hình theo kỳ | `EvaluationService`, `DomainEnums.cs`, `components/evaluations/*` | 12 | open |
-| T-67 | 🟡 | Hằng số nghiệp vụ (số sản phẩm, tổng trọng số, ngưỡng, trần %, chênh lệch) rải rác trong code, không cấu hình theo kỳ | `EvaluationService`, `CollectiveEvaluationService` | 12 | open |
-| T-68 | 🟡 | Chưa có kịch bản go-live kiểm thử đầu-cuối (CSDL trống → import → đăng nhập → phân quyền → đánh giá) | `backend/tests/` | 13 | open |
+| T-64 | 🟠 | Không có chức năng import dữ liệu (Phòng, Chi bộ, cán bộ, gán vai trò, người được đánh giá) → go-live phải nhập tay từng người | — | 10, 13, 12 | done |
+| T-65 | 🟡 | `app/users/page.tsx` > 1.000 dòng gộp tài khoản/Chi bộ/vai trò; không có giao diện gán phạm vi, tra cứu quyền, nhật ký đăng nhập | `frontend/app/users/page.tsx` | 11 | partial |
+| T-66 | 🟠 | Luồng đánh giá lệch HD03: thiếu duyệt danh mục (B1), Chi bộ xác nhận tách khỏi đề xuất tập thể lãnh đạo Phòng (B3a), cấp trực tiếp sử dụng (B3c), ghi nhận quyết định cấp trên, công bố/khóa (B5), trả lại/mở lại có lý do; bước không cấu hình theo kỳ | `EvaluationService`, `DomainEnums.cs`, `components/evaluations/*` | 12 | done |
+| T-67 | 🟡 | Hằng số nghiệp vụ (số sản phẩm, tổng trọng số, ngưỡng, trần %, chênh lệch) rải rác trong code, không cấu hình theo kỳ | `EvaluationService`, `CollectiveEvaluationService` | 12 | done |
+| T-68 | 🟡 | Chưa có kịch bản go-live kiểm thử đầu-cuối (CSDL trống → import → đăng nhập → phân quyền → đánh giá) | `backend/tests/` | 13 | done |
 
 ## B — Nghiệp vụ (để xử lý sau)
 
 | Mã | Mức | Vấn đề | Vị trí chính | Owner | Trạng thái |
 |---|---|---|---|---|---|
-| B-01 | 🟠 | `UpdatePeriodStatusAsync` nhận bất kỳ trạng thái nào (lùi bước được); chưa có state machine cho kỳ/hồ sơ | `EvaluationService.cs` | 12 | open |
+| B-01 | 🟠 | `UpdatePeriodStatusAsync` nhận bất kỳ trạng thái nào (lùi bước được); chưa có state machine cho kỳ/hồ sơ | `EvaluationService.cs` | 12 | done |
 | B-02 | 🟠 | File đính kèm không giới hạn phạm vi: ai có `AttachmentsRead` cũng xem được minh chứng của mọi cán bộ | `AttachmentService.cs`, `AttachmentController.cs` | — | deferred (cơ chế kiểm tra phạm vi: T-31) |
-| B-03 | 🟠 | Bỏ phiếu kín "không lưu User ID" cần kiểm chứng — audit log tự ghi `ActorId` cho mọi entity thêm mới | `CongTacDangDbContext.PrepareAuditEntries`, `CollectiveEvaluationService.cs` | 12 | open |
+| B-03 | 🟠 | Bỏ phiếu kín "không lưu User ID" cần kiểm chứng — audit log tự ghi `ActorId` cho mọi entity thêm mới | `CongTacDangDbContext.PrepareAuditEntries`, `CollectiveEvaluationService.cs` | 12 | done |
 | B-04 | 🟡 | Quy tắc 70đ, ≥30% minh chứng vượt chuẩn, trần 20% Xuất sắc, chênh lệch ≥5đ cần đối chiếu Hướng dẫn 03 và có unit test | `EvaluationService.cs`, `CollectiveEvaluationService.cs` | — | deferred |
 | B-05 | ⚪ | Chưa có tài liệu hướng dẫn sử dụng (HDSD cũ mô tả sai route đã bị xóa); cần viết lại theo route thực tế | `docs/` | — | deferred |
 | B-06 | 🟡 | Cán bộ không xóa được file của chính mình (role `CAN_BO` không có `attachments.delete`); cơ chế theo đối tượng đã cho phép chủ file — cần quyết định ai được xóa | `DataSeeder.cs` (quyền mặc định) | — | deferred |
-| B-07 | 🟡 | Biểu mẫu có ô để trống vì chưa có dữ liệu lưu: Mẫu 01 mã SP/trục/vai trò, Mẫu 10 điểm thẩm định theo nhóm, Mẫu 13 số phiếu không hợp lệ | `Infrastructure/Documents/`, template Word | — | deferred |
+| B-07 | 🟡 | Biểu mẫu có ô để trống vì chưa có dữ liệu lưu: Mẫu 01 mã SP/trục/vai trò, Mẫu 10 điểm thẩm định theo nhóm, Mẫu 13 số phiếu không hợp lệ | `Infrastructure/Documents/`, template Word | 12 | partial |
+| B-08 | 🟠 | Cần nghiệp vụ xác nhận công thức (code giữ nguyên, tham số hóa trong `EvaluationParameters`): ví dụ TC-1 văn bản ra 67,6 điểm, code ra ≈ 67,47 (cách làm tròn); mẫu số và làm tròn của trần tỷ lệ Xuất sắc (TC-3); điểm tối đa từng trục 09B | `Domain/Evaluation/EvaluationParameters.cs`, `EvaluationScoring` | — | open |
+| B-09 | 🟡 | Chưa bắt giải trình khi chênh lệch tự chấm – thẩm định ≥ 5 điểm; mở lại hồ sơ trong kỳ đã đóng tự đưa kỳ về "Khóa dữ liệu" — cần nghiệp vụ xác nhận | `EvaluationWorkflowService` | — | open |
+| B-10 | 🟡 | Cần TCCB-LĐ xác nhận cấu hình mặc định: vai trò/phạm vi (`docs/thiet-ke/phan-quyen.md` mục 6) và 5 câu hỏi luồng (`docs/thiet-ke/luong-danh-gia.md` mục 6); quy ước ngày import gán vai trò (giờ Việt Nam, "Đến ngày" tính trọn ngày) | `docs/thiet-ke/` | — | open |

@@ -82,7 +82,7 @@ Backend `/healthz` được container kiểm tra nội bộ; health check gồm 
 
 ## Biến cấu hình tài khoản, bảo mật và dữ liệu khởi tạo
 
-Dấu `__` trong tên biến môi trường tương ứng với `:` trong `appsettings.json`. `docker-compose.yml` truyền vào container các biến `Seed__InitialAdmin__*` và `Security__*` đặt trong `docker/.env`; các biến `Database__*` và `Seed__SamplePassword` không có trong Compose (cấu hình production) — đặt bằng biến môi trường / `user-secrets` khi chạy trực tiếp, hoặc thêm vào mục `environment` của môi trường thử nghiệm.
+Dấu `__` trong tên biến môi trường tương ứng với `:` trong `appsettings.json`. `docker-compose.yml` truyền vào container các biến `Database__AutoMigrate` (mặc định `true` trong Compose), `Database__SeedSampleData`, `Seed__*` và `Security__*` đặt trong `docker/.env`. Khi chạy trực tiếp ngoài Docker, đặt bằng biến môi trường hoặc `user-secrets`.
 
 | Biến môi trường | Mặc định | Ý nghĩa |
 |---|---|---|
@@ -130,7 +130,7 @@ Thứ tự dưới đây được kiểm tra tự động bởi `GoLiveScenarioT
 
 **0. Chuẩn bị**
 - [ ] `docker/.env`: `POSTGRES_PASSWORD`, `Seed__InitialAdmin__Username`, `Seed__InitialAdmin__Password` (mạnh, có chữ và số), các biến `Security__*` nếu khác mặc định. **Không** bật `Database__SeedSampleData`, `Database__ResetRolePermissions`.
-- [ ] CSDL **mới, trống**. Áp dụng migration trước khi khởi động API: `ConnectionStrings__Default="Host=127.0.0.1;Port=5434;..." dotnet ef database update -p backend/src/CongTacDang.Infrastructure -s backend/src/CongTacDang.Api` (Production không tự migrate — xem `docs/database-migrations.md`), rồi khởi động API. Seeder tạo danh mục quyền, 9 vai trò mặc định (có "Quản trị hệ thống" được bảo vệ) và tài khoản quản trị ban đầu; **không** tạo Phòng, Chi bộ, cán bộ nào.
+- [ ] CSDL **mới, trống**. Khởi động stack (`Database__AutoMigrate=true` mặc định trong `docker/.env`) — backend tự áp dụng migration khi khởi động; lỗi migrate làm backend dừng và ghi log Critical. Chạy ngoài Docker: dùng `dotnet ef database update` (xem `docs/database-migrations.md`). Seeder tạo danh mục quyền, 9 vai trò mặc định (có "Quản trị hệ thống" được bảo vệ) và tài khoản quản trị ban đầu; **không** tạo Phòng, Chi bộ, cán bộ nào.
 - [ ] Chuẩn bị 4 tệp Excel từ file mẫu tải trong trang **Nhập dữ liệu**: Phòng, Chi bộ, Cán bộ và tài khoản, Gán vai trò. Tên vai trò chép đúng từ trang **Vai trò**. Tệp ≤ 5 MB, ≤ 2.000 dòng; tệp cán bộ nên ≤ ~150 dòng/lần (tạo mật khẩu chậm).
 
 **1. Quản trị ban đầu**
