@@ -1,22 +1,57 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using CongTacDang.Application.Common.Models;
+using CongTacDang.Application.DTOs;
 using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Application.Services;
 
 /// <summary>
-/// Tạo tài khoản đăng nhập cho cán bộ (dùng chung cho giao diện quản trị và chức năng nhập dữ liệu).
-/// Task 07 cung cấp bản v0 tối thiểu; task 08 triển khai lại đầy đủ (kiểm tra danh mục, gán vai trò, nhật ký…).
+/// Vòng đời tài khoản đăng nhập của cán bộ (dùng chung cho giao diện quản trị và chức năng nhập dữ liệu):
+/// tạo, sửa, khóa/mở, mở khóa đăng nhập, đặt lại mật khẩu, xóa, tra cứu.
+/// Mọi thao tác làm mất hiệu lực phiên (khóa, xóa, đặt lại mật khẩu) đổi dấu bảo mật, thu hồi refresh token
+/// và xóa cache quyền/trạng thái → có hiệu lực ngay ở request kế tiếp.
 /// </summary>
 public interface IUserAccountService
 {
     /// <summary>
     /// Tạo tài khoản với mật khẩu tạm ngẫu nhiên, bắt buộc đổi mật khẩu ở lần đăng nhập đầu.
-    /// Ném <see cref="Common.Exceptions.ValidationException"/> (400) khi dữ liệu thiếu,
-    /// <see cref="Common.Exceptions.ConflictException"/> (409) khi tên đăng nhập đã tồn tại.
+    /// Ném <see cref="Common.Exceptions.ValidationException"/> (400) khi dữ liệu thiếu/sai
+    /// (tên đăng nhập sai mẫu, email sai định dạng, Phòng/Chi bộ không tồn tại hoặc ngừng hoạt động),
+    /// <see cref="Common.Exceptions.ConflictException"/> (409) khi tên đăng nhập đã được dùng (kể cả tài khoản đã xóa).
     /// </summary>
     Task<CreatedAccount> CreateAsync(CreateAccountCommand cmd, CancellationToken ct = default);
+
+    /// <summary>Tra cứu, phân trang tài khoản trong phạm vi người xem được phép.</summary>
+    Task<PagedResult<AccountListItemDto>> SearchAsync(AccountSearchQuery query, CancellationToken ct = default);
+
+    /// <summary>Chi tiết một tài khoản; <see cref="Common.Exceptions.NotFoundException"/> nếu không có.</summary>
+    Task<AccountListItemDto> GetAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>Cập nhật thông tin tài khoản (trường null giữ nguyên).</summary>
+    Task<AccountListItemDto> UpdateAsync(Guid id, UpdateAccountCommand cmd, CancellationToken ct = default);
+
+    /// <summary>
+    /// Mở (<paramref name="isActive"/> = true) hoặc khóa tài khoản. Khóa: đổi dấu bảo mật, thu hồi mọi phiên;
+    /// chốt chặn: không tự khóa mình, không khóa quản trị viên cuối cùng (409).
+    /// </summary>
+    Task SetActiveAsync(Guid id, bool isActive, CancellationToken ct = default);
+
+    /// <summary>Mở khóa đăng nhập tạm thời (do nhập sai mật khẩu nhiều lần), không đổi mật khẩu.</summary>
+    Task UnlockAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Đặt lại mật khẩu tạm (trả về đúng một lần), bắt buộc đổi mật khẩu, mở khóa đăng nhập tạm thời,
+    /// đổi dấu bảo mật và thu hồi mọi phiên.
+    /// </summary>
+    Task<CreatedAccount> ResetPasswordAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Xóa mềm tài khoản: thu hồi mọi phiên, tên đăng nhập không được tái sử dụng;
+    /// chốt chặn như <see cref="SetActiveAsync"/>.
+    /// </summary>
+    Task DeleteAsync(Guid id, CancellationToken ct = default);
 }
 
 /// <summary>Dữ liệu tạo tài khoản.</summary>
@@ -36,10 +71,40 @@ public sealed record CreateAccountCommand(
     string? PositionTitle,
     Guid? DepartmentId,
     Guid? PartyCellId,
-    ApprovalAuthority ApprovalAuthority);
+    ApprovalAuthority ApprovalAuthority)
+{
+    /// <summary>Số điện thoại (tùy chọn).</summary>
+    public string? PhoneNumber { get; init; }
+}
 
 /// <summary>Kết quả tạo tài khoản; <see cref="TemporaryPassword"/> chỉ trả về một lần để giao cho người dùng.</summary>
 /// <param name="UserId">Id tài khoản mới.</param>
 /// <param name="Username">Tên đăng nhập đã chuẩn hóa.</param>
 /// <param name="TemporaryPassword">Mật khẩu tạm (không lưu dạng rõ).</param>
 public sealed record CreatedAccount(Guid UserId, string Username, string TemporaryPassword);
+
+/// <summary>Dữ liệu cập nhật tài khoản; null → giữ nguyên; <c>Guid.Empty</c> ở Phòng/Chi bộ → bỏ gán; chuỗi rỗng → xóa.</summary>
+public sealed record UpdateAccountCommand(
+    string? FullName = null,
+    string? Email = null,
+    string? PhoneNumber = null,
+    string? PartyCardNumber = null,
+    string? PositionTitle = null,
+    Guid? DepartmentId = null,
+    Guid? PartyCellId = null,
+    ApprovalAuthority? ApprovalAuthority = null);
+
+/// <summary>Tham số tra cứu tài khoản.</summary>
+/// <param name="Page">Trang (mặc định 1).</param>
+/// <param name="PageSize">Kích thước trang (mặc định 20, tối đa 200).</param>
+/// <param name="Query">Từ khóa.</param>
+/// <param name="DepartmentId">Lọc theo Phòng.</param>
+/// <param name="PartyCellId">Lọc theo Chi bộ.</param>
+/// <param name="IsActive">Lọc theo trạng thái.</param>
+public sealed record AccountSearchQuery(
+    int? Page = null,
+    int? PageSize = null,
+    string? Query = null,
+    Guid? DepartmentId = null,
+    Guid? PartyCellId = null,
+    bool? IsActive = null);

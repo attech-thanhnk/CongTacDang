@@ -127,7 +127,7 @@ public class SecurityTests
     private sealed class FakeJwtService : IJwtService
     {
         private int _counter;
-        public (string Token, DateTime ExpiresAt) GenerateToken(PartyMemberProfile member, IEnumerable<string> roles, IEnumerable<string> permissions) => ("access", DateTime.UtcNow.AddMinutes(15));
+        public (string Token, DateTime ExpiresAt) GenerateToken(PartyMemberProfile member) => ("access", DateTime.UtcNow.AddMinutes(15));
         public RefreshToken GenerateRefreshToken(Guid userId, string? ipAddress = null)
         {
             var raw = "refresh-" + Interlocked.Increment(ref _counter);

@@ -13,6 +13,19 @@ export interface ApiResponse<T = any> {
   data?: T;
   errors?: string[];
   timestamp?: string;
+  /** Mã lỗi máy đọc được (ví dụ PASSWORD_CHANGE_REQUIRED) */
+  code?: string;
+}
+
+/** Mã lỗi backend trả khi tài khoản còn dùng mật khẩu tạm (403). */
+export const PASSWORD_CHANGE_REQUIRED = "PASSWORD_CHANGE_REQUIRED";
+
+/** Chuyển tới trang đổi mật khẩu (không refresh, không đăng xuất). */
+function redirectToChangePassword() {
+  if (typeof window === "undefined") return;
+  if (window.location.pathname !== "/change-password") {
+    window.location.assign("/change-password");
+  }
 }
 
 /**
@@ -183,6 +196,13 @@ apiClient.interceptors.response.use(
             });
         });
       } else if (status === 403) {
+        if (parsedData && typeof parsedData === "object" && parsedData.code === PASSWORD_CHANGE_REQUIRED) {
+          // Máy chủ chặn vì còn mật khẩu tạm: chuyển tới trang đổi mật khẩu, không làm mới phiên, không đăng xuất.
+          redirectToChangePassword();
+          return Promise.reject(
+            new ApiError(message || "Bạn cần đổi mật khẩu tạm trước khi tiếp tục.", status, errors, parsedData)
+          );
+        }
         message = message || "Cán bộ không có thẩm quyền thực hiện thao tác này.";
       } else if (status === 404) {
         message = message || "Không tìm thấy dữ liệu yêu cầu trên hệ thống.";

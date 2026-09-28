@@ -20,14 +20,16 @@ public class RefreshTokenRepository : GenericRepository<RefreshToken>, IRefreshT
     {
     }
 
-    /// <summary>Truy vấn Refresh Token cùng với dữ liệu người dùng, vai trò và quyền hạn liên quan</summary>
+    /// <summary>
+    /// Truy vấn Refresh Token cùng tài khoản sở hữu (không nạp vai trò — quyền lấy qua IPermissionResolver).
+    /// Token của tài khoản đã xóa mềm không được trả về (bộ lọc xóa mềm của tài khoản).
+    /// </summary>
     public async Task<RefreshToken?> GetByTokenWithUserAsync(string token)
     {
+        var hash = HashToken(token);
         return await _db.RefreshTokens
             .Include(t => t.User)
-                .ThenInclude(u => u.Roles)
-                    .ThenInclude(r => r.Permissions)
-            .FirstOrDefaultAsync(t => t.TokenHash == HashToken(token));
+            .FirstOrDefaultAsync(t => t.TokenHash == hash);
     }
 
     /// <summary>Thu hồi token cũ và thêm token mới bằng một lần SaveChanges.</summary>

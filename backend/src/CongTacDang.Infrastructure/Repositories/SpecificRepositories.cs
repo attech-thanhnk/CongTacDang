@@ -21,13 +21,14 @@ public class UserRepository : GenericRepository<PartyMemberProfile>, IUserReposi
     {
     }
 
-    /// <summary>Tìm kiếm cán bộ theo tên đăng nhập</summary>
+    /// <summary>Tìm kiếm cán bộ theo tên đăng nhập (không phân biệt chữ hoa/thường)</summary>
     public async Task<PartyMemberProfile?> GetByUsernameAsync(string username)
     {
+        var normalized = CongTacDang.Application.Accounts.AccountRules.NormalizeUsername(username);
         return await _db.PartyMemberProfiles
             .Include(m => m.PartyCell)
             .Include(m => m.Department)
-            .FirstOrDefaultAsync(m => m.Username == username);
+            .FirstOrDefaultAsync(m => m.Username.ToLower() == normalized);
     }
 
     /// <summary>Lấy thông tin cán bộ đầu tiên trong hệ thống</summary>

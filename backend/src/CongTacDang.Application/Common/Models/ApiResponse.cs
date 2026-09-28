@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace CongTacDang.Application.Common.Models;
 
@@ -20,6 +21,13 @@ public class ApiResponse<T>
 
     /// <summary>Danh sách lỗi chi tiết (nếu có)</summary>
     public List<string>? Errors { get; set; }
+
+    /// <summary>
+    /// Mã lỗi máy đọc được để giao diện xử lý riêng (ví dụ <c>PASSWORD_CHANGE_REQUIRED</c>).
+    /// Không có mã → không xuất hiện trong JSON.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Code { get; set; }
 
     /// <summary>Thời điểm phản hồi theo chuẩn UTC</summary>
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
@@ -59,5 +67,13 @@ public class ApiResponse : ApiResponse<object>
         Success = false,
         Message = message,
         Errors = errors
+    };
+
+    /// <summary>Khởi tạo phản hồi thất bại kèm mã lỗi máy đọc được.</summary>
+    public static ApiResponse FailWithCode(string code, string message) => new()
+    {
+        Success = false,
+        Message = message,
+        Code = code
     };
 }

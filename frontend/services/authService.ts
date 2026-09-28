@@ -46,9 +46,12 @@ export const authService = {
     });
   },
 
-  /** Đổi mật khẩu của tài khoản hiện tại */
-  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    return request<void>("/auth/change-password", {
+  /**
+   * Đổi mật khẩu của tài khoản hiện tại. Máy chủ cấp lại cookie cho phiên này và đăng xuất mọi phiên khác;
+   * trả về thông tin phiên mới (mustChangePassword = false).
+   */
+  async changePassword(currentPassword: string, newPassword: string): Promise<UserSession> {
+    return request<UserSession>("/auth/change-password", {
       method: "POST",
       body: JSON.stringify({ currentPassword, newPassword }),
     });
