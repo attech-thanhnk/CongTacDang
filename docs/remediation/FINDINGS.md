@@ -26,6 +26,10 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 - T-38 `partial`: chưa chạy chuyển PDF thật (cần máy/Docker có LibreOffice).
 - Bố cục Word thay đổi nhỏ so với bản cũ (số quý, dấu thập phân, các ô trước đây in giá trị bịa/sai nay để trống) — xem `reports/05-files-docs.md`.
 
+**Đợt 3 (2026-09-28)** — task 07 merge vào `main` (`6b42ba1`), build 0 lỗi 0 warning, unit 95/96 (1 skip PDF), integration 13/13 trên PostgreSQL `192.168.22.159` (CSDL tạm `ctd_it_*`, đã dọn), `tsc` pass. Migration `Wave3` có chuyển dữ liệu `IsApprovedByAttech → ApprovalAuthority`, `SecurityStamp` ngẫu nhiên từng dòng; đã áp dụng thử toàn bộ migration trên CSDL trống ở 159, `has-pending-model-changes` sạch. Phân quyền đọc từ CSDL mỗi request (bỏ đọc claim), 26 policy cũ khớp trên mọi tổ hợp vai trò.
+- T-55 `in-progress`: phần nền xong; resolver/guard thật, bỏ `AppRoles`/`AppPermissions` là task 09.
+- Ghi nhận cho đợt sau: `/api/auth/login` giới hạn 10 lần/phút/IP — test tích hợp phải tái sử dụng client đã đăng nhập; username chưa chuẩn hóa hoa/thường (task 08); JSON trả tiếng Việt dạng `\uXXXX`.
+
 ## T — Kỹ thuật
 
 | Mã | Mức | Vấn đề | Vị trí chính | Owner | Trạng thái |
@@ -85,7 +89,7 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-52 | 🟡 | `TaskAttachment.TaskId` và `FilePath` là alias nhưng EF ánh xạ thành cột trùng lặp | `TaskAttachment.cs`, `CongTacDangDbContext.cs` | — | open |
 | T-53 | ⚪ | `MapToRecordDto` hiển thị tên file của phiên bản đầu tiên thay vì phiên bản hiện hành | `EvaluationService.cs` | 12 | open |
 | T-54 | ⚪ | Chưa có giao diện xem lịch sử phiên bản file (API đã có) | `frontend/components/attachments/` | — | open |
-| T-55 | 🔴 | Phân quyền gắn tên vai trò cứng trong code (`AppRoles`, `IsInRole`), không có phạm vi khi gán, không tạo/xóa được vai trò; quyền nằm trong JWT → đổi quyền chậm tới 15 phút. Vai trò không khớp tác nhân HD03 (Chi bộ làm việc của tập thể lãnh đạo Phòng; thiếu lãnh đạo trực tiếp, cấp trực tiếp sử dụng; BTV ĐUTCT là cấp ngoài) | `AppRoles.cs`, `AccessPolicy.cs`, `Program.cs`, `DataSeeder.cs` | 07, 09 | open |
+| T-55 | 🔴 | Phân quyền gắn tên vai trò cứng trong code (`AppRoles`, `IsInRole`), không có phạm vi khi gán, không tạo/xóa được vai trò; quyền nằm trong JWT → đổi quyền chậm tới 15 phút. Vai trò không khớp tác nhân HD03 (Chi bộ làm việc của tập thể lãnh đạo Phòng; thiếu lãnh đạo trực tiếp, cấp trực tiếp sử dụng; BTV ĐUTCT là cấp ngoài) | `AppRoles.cs`, `AccessPolicy.cs`, `Program.cs`, `DataSeeder.cs` | 07, 09 | in-progress |
 | T-56 | 🟠 | Tạo tài khoản sinh username ngẫu nhiên `cb_xxxxxxxx`, mật khẩu tạm bị bỏ đi, không gán quyền → tài khoản mới không dùng được | `UserService.CreateUserAsync` | 08 | open |
 | T-57 | 🟠 | Khóa / xóa / đặt lại mật khẩu không vô hiệu access token đang dùng (còn hiệu lực ≤ 15 phút) | `AuthService`, `JwtService`, `Program.cs` | 08 | open |
 | T-58 | 🟠 | `MustChangePassword` chỉ chặn ở frontend; backend vẫn cho gọi mọi API bằng mật khẩu tạm | `AuthGuard.tsx`, backend không có | 08 | open |
@@ -93,7 +97,7 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-60 | 🟡 | Hồ sơ người dùng trả vai trò suy từ `PartyRole` khi chưa gán vai trò → giao diện hiện chức năng mà backend từ chối | `UserService.MapToProfileDto` | 08 | open |
 | T-61 | 🔴 | Vai trò Cán bộ có `users.read` + `reports.export` → mọi cán bộ gọi `/api/users/list` và `/api/reports/cadres` lấy danh sách toàn bộ cán bộ kèm số thẻ Đảng | `DataSeeder.cs:21-25`, `UserController`, `ExportReportController.ExportCadres` | 09 (08: `/users`) | open |
 | T-62 | 🟡 | Phòng ban chỉ có API đọc; xóa danh mục không kiểm tra còn cán bộ/hồ sơ | `OrganizationController`, `OrganizationService` | 10 | open |
-| T-63 | 🟡 | Không có test tích hợp API trên PostgreSQL thật (một phần T-42) | `backend/tests/` | 07 | open |
+| T-63 | 🟡 | Không có test tích hợp API trên PostgreSQL thật (một phần T-42) | `backend/tests/` | 07 | done |
 | T-64 | 🟠 | Không có chức năng import dữ liệu (Phòng, Chi bộ, cán bộ, gán vai trò, người được đánh giá) → go-live phải nhập tay từng người | — | 10, 13, 12 | open |
 | T-65 | 🟡 | `app/users/page.tsx` > 1.000 dòng gộp tài khoản/Chi bộ/vai trò; không có giao diện gán phạm vi, tra cứu quyền, nhật ký đăng nhập | `frontend/app/users/page.tsx` | 11 | open |
 | T-66 | 🟠 | Luồng đánh giá lệch HD03: thiếu duyệt danh mục (B1), Chi bộ xác nhận tách khỏi đề xuất tập thể lãnh đạo Phòng (B3a), cấp trực tiếp sử dụng (B3c), ghi nhận quyết định cấp trên, công bố/khóa (B5), trả lại/mở lại có lý do; bước không cấu hình theo kỳ | `EvaluationService`, `DomainEnums.cs`, `components/evaluations/*` | 12 | open |
