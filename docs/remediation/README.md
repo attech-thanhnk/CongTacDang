@@ -25,6 +25,8 @@ Task 02 là nền (nâng gói, UoW, migrations) mà task 01 xây lên, nên ch�
 | — | Tích hợp đợt 1 vào `main` | Người điều phối |
 | 2 | 01 | Trước khi chạy: `cd ../CongTacDang-01 && git merge main` |
 
+Có thể chạy cả 3 song song để nhanh hơn; khi đó merge theo thứ tự **02 → 01 → 03** và chấp nhận sửa lỗi compile/conflict giữa 01 và 02 lúc tích hợp.
+
 Mỗi worktree cần `cd frontend && npm ci` trước khi chạy agent.
 Mở phiên Claude Code trong thư mục worktree tương ứng, dán prompt:
 
