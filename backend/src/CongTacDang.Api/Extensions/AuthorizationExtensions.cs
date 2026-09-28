@@ -24,7 +24,11 @@ public static class AuthorizationExtensions
         services.AddSingleton(sp => new PermissionCache(sp.GetService<System.TimeProvider>()));
         services.AddSingleton<IAccessCacheInvalidator>(sp => sp.GetRequiredService<PermissionCache>());
         services.AddScoped<IRoleAssignmentRepository, RoleAssignmentRepository>();
-        services.AddScoped<IPermissionResolver, PermissionResolver>();
+        // Factory tường minh: PermissionResolver còn constructor tương thích task 07 (IUserRepository) nên DI không tự chọn được.
+        services.AddScoped<IPermissionResolver>(sp => new PermissionResolver(
+            sp.GetRequiredService<IRoleAssignmentRepository>(),
+            sp.GetRequiredService<PermissionCache>(),
+            sp.GetService<Microsoft.Extensions.Logging.ILogger<PermissionResolver>>()));
 
         // Điểm kiểm tra quyền theo đối tượng duy nhất.
         services.AddScoped<IAuthorizationGuard, AuthorizationGuard>();
