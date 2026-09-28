@@ -91,13 +91,9 @@ public class AuthzContractTests
         Assert.Contains(any!.Requirements, r => r is PermissionRequirement p && p.Permissions.Count == 2);
         Assert.Null(await provider.GetPolicyAsync("any:khong.ton.tai"));
 
-        // Mã cũ (còn ở controller ngoài phạm vi task 09) được đánh giá bằng mã mới tương đương.
-#pragma warning disable CS0618
-        var legacy = await provider.GetPolicyAsync(AppPermissions.UsersRead);
-        Assert.Contains(legacy!.Requirements, r => r is PermissionRequirement p && p.Permissions.SequenceEqual(new[] { PermissionCodes.SystemUsersRead }));
-        var branchesRead = await provider.GetPolicyAsync(AppPermissions.BranchesRead);
-        Assert.DoesNotContain(branchesRead!.Requirements, r => r is PermissionRequirement); // chỉ cần đăng nhập
-#pragma warning restore CS0618
+        // Đợt 4 (tích hợp): mã quyền cũ không còn là policy (đã bỏ ánh xạ chuyển tiếp).
+        Assert.Null(await provider.GetPolicyAsync("users.read"));
+        Assert.Null(await provider.GetPolicyAsync("branches.read"));
 
         // Policy composite theo vai trò cũ đã bị xóa.
         Assert.Null(await provider.GetPolicyAsync("RequireQuanTriHeTong"));
@@ -141,12 +137,6 @@ public class AuthzContractTests
             "system.roles.manage", "system.assignments.manage", "system.audit.read", "system.import",
             "catalog.manage", "period.manage", "attachment.general.manage"
         }, globalOnly);
-
-#pragma warning disable CS0618
-        // Mọi mã cũ đều có mặt trong bảng ánh xạ chuyển tiếp, và mọi mã đích đều thuộc danh mục mới.
-        Assert.All(AppPermissions.All, old => Assert.True(LegacyPermissionMap.OldToNew.ContainsKey(old), old));
-        Assert.All(LegacyPermissionMap.OldToNew.Values.SelectMany(v => v), code => Assert.True(PermissionCodes.IsDefined(code), code));
-#pragma warning restore CS0618
     }
 
     [Fact]
@@ -252,8 +242,7 @@ public class AuthzContractTests
         public Task<PartyMemberProfile?> GetByUsernameAsync(string username) => Task.FromResult(_users.FirstOrDefault(u => u.Username == username));
         public Task<PartyMemberProfile?> GetFirstMemberAsync() => Task.FromResult(_users.FirstOrDefault());
         public Task<List<PartyMemberProfile>> GetAllWithDetailsAsync() => Task.FromResult(_users.ToList());
-        public Task<PartyMemberProfile?> GetWithRolesAndPermissionsAsync(string username) => GetByUsernameAsync(username);
-        public Task<PartyMemberProfile?> GetWithRolesAndPermissionsByIdAsync(Guid id) => GetByIdAsync(id);
+        public Task<PartyMemberProfile?> GetWithOrganizationByIdAsync(Guid id) => GetByIdAsync(id);
     }
 
     #endregion

@@ -24,21 +24,13 @@ public static class AuthorizationExtensions
         services.AddSingleton(sp => new PermissionCache(sp.GetService<System.TimeProvider>()));
         services.AddSingleton<IAccessCacheInvalidator>(sp => sp.GetRequiredService<PermissionCache>());
         services.AddScoped<IRoleAssignmentRepository, RoleAssignmentRepository>();
-        // Factory tường minh: PermissionResolver còn constructor tương thích task 07 (IUserRepository) nên DI không tự chọn được.
-        services.AddScoped<IPermissionResolver>(sp => new PermissionResolver(
-            sp.GetRequiredService<IRoleAssignmentRepository>(),
-            sp.GetRequiredService<PermissionCache>(),
-            sp.GetService<Microsoft.Extensions.Logging.ILogger<PermissionResolver>>()));
+        services.AddScoped<IPermissionResolver, PermissionResolver>();
 
         // Điểm kiểm tra quyền theo đối tượng duy nhất.
         services.AddScoped<IAuthorizationGuard, AuthorizationGuard>();
 
         // Quản trị bản gán vai trò (dùng cả cho import — task 13).
         services.AddScoped<IRoleAssignmentService, RoleAssignmentService>();
-
-#pragma warning disable CS0618 // Tương thích cho UserService (task 08) — xóa khi task 08 bỏ IAccessPolicy.
-        services.AddScoped<IAccessPolicy, ProfileAccessPolicyAdapter>();
-#pragma warning restore CS0618
 
         // Policy tên = mã quyền (và any:a|b), đánh giá từ IPermissionResolver.
         services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();

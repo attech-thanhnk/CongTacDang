@@ -429,7 +429,7 @@ public class ReportService : IReportService
 
     /// <summary>
     /// Phạm vi dữ liệu báo cáo Excel: kỳ được chọn (mặc định kỳ đang hoạt động) và Chi bộ (null = toàn Đảng bộ).
-    /// Phạm vi Chi bộ đã được kiểm tra quyền qua IReportAccessService/IAccessPolicy ở controller.
+    /// Phạm vi Chi bộ đã được kiểm tra quyền qua IReportAccessService ở controller.
     /// </summary>
     private async Task<(EvaluationPeriod? Period, List<EvaluationRecord> Records, PartyCell? Cell)> LoadExcelScopeAsync(Guid? periodId, Guid? partyCellId)
     {

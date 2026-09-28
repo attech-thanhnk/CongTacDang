@@ -12,7 +12,7 @@ namespace CongTacDang.Infrastructure.Data;
 
 /// <summary>
 /// Khởi tạo dữ liệu nền: danh mục quyền (từ <see cref="PermissionCodes"/>), vai trò mặc định
-/// (docs/thiet-ke/phan-quyen.md mục 6 — ĐỀ XUẤT, chờ nghiệp vụ xác nhận), chuyển gán vai trò cũ sang bản gán,
+/// (docs/thiet-ke/phan-quyen.md mục 6 — ĐỀ XUẤT, chờ nghiệp vụ xác nhận)
 /// và dữ liệu mẫu khi bật <c>Database:SeedSampleData</c>.
 /// <para>
 /// Đây là nơi <b>duy nhất</b> biết mã vai trò (<see cref="AppRole.Code"/>) — chỉ để tìm vai trò mặc định; logic phân quyền
@@ -37,7 +37,8 @@ public static class DataSeeder
         public const string PartyOffice = "VAN_PHONG_DANG_UY";
         public const string Administrator = "QUAN_TRI_HE_THONG";
 
-        // Vai trò cũ (trước task 09) — chỉ dùng để chuyển gán vai trò cũ sang vai trò mặc định mới.
+        // Vai trò cũ (trước task 09) — chỉ dùng để nhận biết CSDL chưa có vai trò cấu hình mới. Gán vai trò cũ
+        // (bảng user_roles) được migration Wave4 chuyển thành bản gán Global của chính vai trò đó.
         public const string LegacyCadre = "CAN_BO";
         public const string LegacyCellSecretary = "BI_THU_CHI_BO";
         public const string LegacyAppraisal = "TO_THAM_DINH";
@@ -107,9 +108,6 @@ public static class DataSeeder
         await SeedDefaultRolesAsync(context, logger);
         if (resetRolePermissions)
             await ResetRolePermissionsAsync(context, logger);
-
-        // 3. Chuyển gán vai trò cũ (bảng user_roles) sang bản gán có phạm vi — chỉ khi bảng gán còn trống.
-        await MigrateLegacyUserRolesAsync(context, logger);
 
         if (!seedSampleData)
             return;
@@ -453,86 +451,6 @@ public static class DataSeeder
     #endregion
 
     #region Bản gán vai trò
-
-    /// <summary>Một cặp user–role cũ trong bảng <c>user_roles</c>.</summary>
-    private sealed class LegacyUserRoleRow
-    {
-        public Guid UserId { get; set; }
-        public Guid RoleId { get; set; }
-        public string RoleCode { get; set; } = string.Empty;
-        public Guid? PartyCellId { get; set; }
-    }
-
-    /// <summary>
-    /// Chuyển mỗi cặp user–role cũ (bảng <c>user_roles</c>) thành bản gán có phạm vi — chỉ chạy khi bảng
-    /// <c>user_role_assignments</c> còn trống, để CSDL thử nghiệm không mất phân quyền. Vai trò cũ được ánh xạ sang vai trò mặc định
-    /// tương ứng nếu có (<c>BI_THU_CHI_BO</c> → Chi ủy phạm vi Chi bộ của người đó), ngược lại gán chính vai trò cũ phạm vi Toàn công ty.
-    /// Đọc bằng SQL thô để vẫn chạy được sau khi quan hệ user_roles bị gỡ khỏi model.
-    /// </summary>
-    private static async Task MigrateLegacyUserRolesAsync(CongTacDangDbContext context, ILogger? logger)
-    {
-        if (!context.Database.IsRelational())
-            return;
-        if (await context.Set<UserRoleAssignment>().IgnoreQueryFilters().AnyAsync())
-            return;
-
-        var tableExists = await context.Database
-            .SqlQueryRaw<bool>("SELECT to_regclass('user_roles') IS NOT NULL AS \"Value\"")
-            .SingleAsync();
-        if (!tableExists)
-            return;
-
-        var rows = await context.Database.SqlQueryRaw<LegacyUserRoleRow>(
-                "SELECT ur.user_id AS \"UserId\", r.\"Id\" AS \"RoleId\", r.\"Code\" AS \"RoleCode\", u.\"PartyCellId\" AS \"PartyCellId\" "
-                + "FROM user_roles ur "
-                + "JOIN roles r ON r.\"Id\" = ur.role_id "
-                + "JOIN party_member_profiles u ON u.\"Id\" = ur.user_id "
-                + "WHERE NOT r.\"IsDeleted\" AND NOT u.\"IsDeleted\"")
-            .ToListAsync();
-        if (rows.Count == 0)
-            return;
-
-        var rolesByCode = await context.Roles.ToDictionaryAsync(r => r.Code, r => r.Id);
-        Guid? Target(string code) => rolesByCode.TryGetValue(code, out var id) ? id : null;
-
-        var created = new HashSet<(Guid UserId, Guid RoleId, RoleScopeType Scope, Guid? ScopeId)>();
-        foreach (var row in rows)
-        {
-            (Guid RoleId, RoleScopeType Scope, Guid? ScopeId)? mapped = row.RoleCode switch
-            {
-                RoleCodes.LegacyCadre when Target(RoleCodes.Evaluatee) is Guid id => (id, RoleScopeType.Global, null),
-                RoleCodes.LegacyCellSecretary when Target(RoleCodes.CellCommittee) is Guid id && row.PartyCellId.HasValue
-                    => (id, RoleScopeType.PartyCell, row.PartyCellId),
-                RoleCodes.LegacyCellSecretary when Target(RoleCodes.CellCommittee) is not null => null, // chưa có Chi bộ → bỏ qua
-                RoleCodes.LegacyAppraisal when Target(RoleCodes.Appraisal) is Guid id => (id, RoleScopeType.Global, null),
-                RoleCodes.LegacyStandingCommittee or RoleCodes.LegacyBaseCommittee when Target(RoleCodes.PartyOffice) is Guid id
-                    => (id, RoleScopeType.Global, null),
-                _ => (row.RoleId, RoleScopeType.Global, null)
-            };
-            if (mapped == null)
-            {
-                logger?.LogWarning("Bỏ qua gán vai trò cũ {Role} cho người dùng {UserId}: người này chưa thuộc Chi bộ nào.", row.RoleCode, row.UserId);
-                continue;
-            }
-
-            var key = (row.UserId, mapped.Value.RoleId, mapped.Value.Scope, mapped.Value.ScopeId);
-            if (!created.Add(key))
-                continue;
-
-            context.Set<UserRoleAssignment>().Add(new UserRoleAssignment
-            {
-                UserId = row.UserId,
-                RoleId = mapped.Value.RoleId,
-                ScopeType = mapped.Value.Scope,
-                ScopeId = mapped.Value.ScopeId,
-                ValidFrom = DateTime.UtcNow,
-                Note = $"Chuyển từ gán vai trò cũ ({row.RoleCode}) khi nâng cấp phân quyền."
-            });
-        }
-
-        await context.SaveChangesAsync();
-        logger?.LogInformation("Đã chuyển {Count} gán vai trò cũ sang bản gán có phạm vi.", created.Count);
-    }
 
     /// <summary>Tạo tài khoản mẫu (không gán vai trò — xem <see cref="SeedSampleAssignmentsAsync"/>).</summary>
     private static async Task SeedSampleUsersAsync(CongTacDangDbContext context)

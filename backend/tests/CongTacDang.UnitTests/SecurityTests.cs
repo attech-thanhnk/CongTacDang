@@ -69,7 +69,7 @@ public class SecurityTests
         var user = new PartyMemberProfile { Username = "tester", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password1") };
         var repository = new FakeRefreshTokenRepository(user);
         var users = new FakeUserRepository(user);
-        var service = new AuthService(users, repository, new FakeJwtService(), new PermissionResolver(users, new PermissionCache()));
+        var service = new AuthService(users, repository, new FakeJwtService(), new NoGrantsResolver());
         var first = await service.RefreshTokenAsync(repository.Current.Token);
 
         await Assert.ThrowsAsync<RefreshTokenGracePeriodException>(() => service.RefreshTokenAsync(repository.Original.Token));
@@ -83,7 +83,7 @@ public class SecurityTests
     {
         var user = new PartyMemberProfile { Username = "tester", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password1") };
         var repository = new FakeUserRepository(user);
-        var service = new AuthService(repository, new FakeRefreshTokenRepository(user), new FakeJwtService(), new PermissionResolver(repository, new PermissionCache()));
+        var service = new AuthService(repository, new FakeRefreshTokenRepository(user), new FakeJwtService(), new NoGrantsResolver());
 
         for (var i = 0; i < 5; i++)
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.LoginAsync(new LoginRequestDto { Username = "tester", Password = "wrong" }));
@@ -124,6 +124,13 @@ public class SecurityTests
         public Task<List<TaskAttachment>> GetAllAttachmentsAsync() => Task.FromResult(new List<TaskAttachment>());
     }
 
+    /// <summary>Tài khoản hoạt động, chưa có bản gán nào (thay constructor tương thích cũ của PermissionResolver).</summary>
+    private sealed class NoGrantsResolver : IPermissionResolver
+    {
+        public Task<EffectivePermissions> GetAsync(Guid userId, CancellationToken ct = default) =>
+            Task.FromResult(new EffectivePermissions(userId, Array.Empty<PermissionGrant>()));
+    }
+
     private sealed class FakeJwtService : IJwtService
     {
         private int _counter;
@@ -148,8 +155,7 @@ public class SecurityTests
         public Task<PartyMemberProfile?> GetByUsernameAsync(string username) => Task.FromResult<PartyMemberProfile?>(_user.Username == username ? _user : null);
         public Task<PartyMemberProfile?> GetFirstMemberAsync() => Task.FromResult<PartyMemberProfile?>(_user);
         public Task<List<PartyMemberProfile>> GetAllWithDetailsAsync() => Task.FromResult(new List<PartyMemberProfile> { _user });
-        public Task<PartyMemberProfile?> GetWithRolesAndPermissionsAsync(string username) => GetByUsernameAsync(username);
-        public Task<PartyMemberProfile?> GetWithRolesAndPermissionsByIdAsync(Guid id) => GetByIdAsync(id);
+        public Task<PartyMemberProfile?> GetWithOrganizationByIdAsync(Guid id) => GetByIdAsync(id);
     }
 
     private sealed class FakeRefreshTokenRepository : IRefreshTokenRepository

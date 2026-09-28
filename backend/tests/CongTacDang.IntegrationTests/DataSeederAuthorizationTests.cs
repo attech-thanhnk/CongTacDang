@@ -12,7 +12,7 @@ namespace CongTacDang.IntegrationTests;
 
 /// <summary>
 /// Task 09 (T-46, T-55): seeder trên CSDL PostgreSQL riêng (<c>ctd_it_*</c>, tạo/xóa trong test) — vai trò mặc định,
-/// gán mẫu chỉ một lần, không ghi đè quyền đã sửa, chuyển gán vai trò cũ (user_roles) sang bản gán có phạm vi.
+/// gán mẫu chỉ một lần, không ghi đè quyền đã sửa. (Chuyển gán vai trò cũ user_roles: xem Wave4MigrationTests.)
 /// </summary>
 public sealed class DataSeederAuthorizationTests
 {
@@ -69,55 +69,6 @@ public sealed class DataSeederAuthorizationTests
                 var evaluatee = await db.Roles.Include(r => r.Permissions).SingleAsync(r => r.Code == "NGUOI_DUOC_DANH_GIA");
                 Assert.Equal(new[] { PermissionCodes.MeetingRead }, evaluatee.Permissions.Select(p => p.Code).ToArray());
                 Assert.Equal(9, await db.Roles.CountAsync());
-            }
-        });
-    }
-
-    [SkippableFact]
-    public async Task LegacyUserRoles_MigratedToScopedAssignments_Once()
-    {
-        await WithDatabaseAsync(async options =>
-        {
-            Guid cadreId, secretaryId, adminId, cellId;
-            await using (var db = NewContext(options))
-            {
-                // CSDL "cũ": vai trò theo mã cũ, gán qua bảng user_roles.
-                var cell = new PartyCell { Code = "CB-OLD", Name = "Chi bộ cũ" };
-                var canBo = new AppRole { Code = "CAN_BO", Name = "Cán bộ, Đảng viên" };
-                var biThu = new AppRole { Code = "BI_THU_CHI_BO", Name = "Bí thư Chi bộ" };
-                var quanTri = new AppRole { Code = "QUAN_TRI_HE_THONG", Name = "Quản trị hệ thống" };
-                db.AddRange(cell, canBo, biThu, quanTri);
-                await db.SaveChangesAsync();
-#pragma warning disable CS0618
-                var cadre = new PartyMemberProfile { Username = "old_cadre", FullName = "Cán bộ cũ", PartyCellId = cell.Id, Roles = { canBo } };
-                var secretary = new PartyMemberProfile { Username = "old_secretary", FullName = "Bí thư cũ", PartyCellId = cell.Id, Roles = { canBo, biThu } };
-                var admin = new PartyMemberProfile { Username = "old_admin", FullName = "Quản trị cũ", Roles = { quanTri } };
-#pragma warning restore CS0618
-                db.AddRange(cadre, secretary, admin);
-                await db.SaveChangesAsync();
-                (cadreId, secretaryId, adminId, cellId) = (cadre.Id, secretary.Id, admin.Id, cell.Id);
-            }
-
-            await using (var db = NewContext(options))
-                await DataSeeder.SeedAsync(db, seedSampleData: false);
-            await using (var db = NewContext(options))
-                await DataSeeder.SeedAsync(db, seedSampleData: false); // chạy lại không nhân đôi
-
-            await using (var db = NewContext(options))
-            {
-                var assignments = await db.Set<UserRoleAssignment>().Include(a => a.Role).ToListAsync();
-                Assert.Equal(4, assignments.Count);
-                Assert.Contains(assignments, a => a.UserId == cadreId && a.Role!.Code == "NGUOI_DUOC_DANH_GIA" && a.ScopeType == RoleScopeType.Global);
-                Assert.Contains(assignments, a => a.UserId == secretaryId && a.Role!.Code == "NGUOI_DUOC_DANH_GIA");
-                Assert.Contains(assignments, a => a.UserId == secretaryId && a.Role!.Code == "CHI_UY_CHI_BO"
-                    && a.ScopeType == RoleScopeType.PartyCell && a.ScopeId == cellId);
-                Assert.Contains(assignments, a => a.UserId == adminId && a.Role!.Code == "QUAN_TRI_HE_THONG" && a.ScopeType == RoleScopeType.Global);
-
-                var adminRole = await db.Roles.Include(r => r.Permissions).SingleAsync(r => r.Code == "QUAN_TRI_HE_THONG");
-                Assert.True(adminRole.IsProtected);
-                Assert.Contains(adminRole.Permissions, p => p.Code == PermissionCodes.SystemAssignmentsManage);
-                // Vai trò mặc định mới được tạo cạnh vai trò cũ.
-                Assert.True(await db.Roles.AnyAsync(r => r.Code == "VAN_PHONG_DANG_UY"));
             }
         });
     }

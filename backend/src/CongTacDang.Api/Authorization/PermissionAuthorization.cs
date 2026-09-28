@@ -80,17 +80,10 @@ public sealed class PermissionRequirement : IAuthorizationRequirement
 
     /// <summary>Các mã quyền được chấp nhận.</summary>
     public IReadOnlyList<string> Permissions { get; }
-
-    /// <summary>
-    /// Chỉ yêu cầu đã đăng nhập (mã cũ không còn tương đương, vd. <c>branches.read</c>: mọi người đã đăng nhập).
-    /// </summary>
-    public bool AuthenticatedOnly => Permissions.Count == 0;
 }
 
 /// <summary>
 /// Cung cấp policy động: tên policy là mã quyền trong <see cref="PermissionCodes"/>, hoặc <c>any:a|b</c>.
-/// Chuyển tiếp: mã quyền cũ (trước task 09) còn khai báo ở các controller ngoài phạm vi task 09
-/// (UserController, OrganizationController, AuditController) được đánh giá bằng mã mới tương đương (<see cref="LegacyPermissionMap"/>).
 /// Tên khác chuyển cho provider mặc định.
 /// </summary>
 public sealed class PermissionPolicyProvider : IAuthorizationPolicyProvider
@@ -104,12 +97,8 @@ public sealed class PermissionPolicyProvider : IAuthorizationPolicyProvider
         _fallback = new DefaultAuthorizationPolicyProvider(options);
     }
 
-    /// <summary>Mã quyền được nhận làm tên policy (mã mới, hoặc mã cũ còn dùng ở file ngoài phạm vi).</summary>
-    public static bool IsKnownPermission(string code) =>
-        PermissionCodes.IsDefined(code) || IsLegacyCode(code);
-
-#pragma warning disable CS0618 // Chuyển tiếp có chủ đích cho mã quyền cũ.
-    private static bool IsLegacyCode(string code) => LegacyPermissionMap.OldToNew.ContainsKey(code);
+    /// <summary>Mã quyền được nhận làm tên policy.</summary>
+    public static bool IsKnownPermission(string code) => PermissionCodes.IsDefined(code);
 
     /// <summary>Dựng yêu cầu cho tên policy; null nếu không phải policy theo mã quyền.</summary>
     public static PermissionRequirement? CreateRequirement(string policyName)
@@ -126,12 +115,8 @@ public sealed class PermissionPolicyProvider : IAuthorizationPolicyProvider
             return null;
         }
 
-        if (LegacyPermissionMap.OldToNew.TryGetValue(policyName, out var mapped))
-            return new PermissionRequirement(mapped);
-
         return null;
     }
-#pragma warning restore CS0618
 
     /// <inheritdoc />
     public Task<AuthorizationPolicy> GetDefaultPolicyAsync() => _fallback.GetDefaultPolicyAsync();
@@ -149,10 +134,10 @@ public sealed class PermissionPolicyProvider : IAuthorizationPolicyProvider
         if (requirement == null)
             return _fallback.GetPolicyAsync(policyName);
 
-        var builder = new AuthorizationPolicyBuilder().RequireAuthenticatedUser();
-        if (!requirement.AuthenticatedOnly)
-            builder.AddRequirements(requirement);
-        var policy = builder.Build();
+        var policy = new AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .AddRequirements(requirement)
+            .Build();
         return Task.FromResult<AuthorizationPolicy?>(_policies.GetOrAdd(policyName, policy));
     }
 }
@@ -182,7 +167,7 @@ public sealed class PermissionAuthorizationHandler : IAuthorizationHandler
 
         foreach (var requirement in pending)
         {
-            if (requirement.AuthenticatedOnly || requirement.Permissions.Any(permissions.Has))
+            if (requirement.Permissions.Any(permissions.Has))
                 context.Succeed(requirement);
         }
     }

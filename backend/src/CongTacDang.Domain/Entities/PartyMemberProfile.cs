@@ -106,7 +106,4 @@ public class PartyMemberProfile : IAuditableEntity, ISoftDeletable
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedBy { get; set; }
-
-    /// <summary>Danh sách vai trò quyền hạn được gán cho cán bộ (Dynamic RBAC)</summary>
-    public ICollection<AppRole> Roles { get; set; } = new List<AppRole>();
 }

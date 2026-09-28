@@ -38,24 +38,6 @@ public sealed class PermissionResolver : IPermissionResolver
         _logger = logger ?? NullLogger<PermissionResolver>.Instance;
     }
 
-    /// <summary>
-    /// Chữ ký của task 07 (giữ để code/test đang viết song song vẫn biên dịch): chỉ xét trạng thái tài khoản,
-    /// <b>không có bản gán nào</b> → mọi người dùng hoạt động có tập quyền rỗng. Ứng dụng dùng constructor nhận
-    /// <see cref="IRoleAssignmentRepository"/>.
-    /// </summary>
-    [Obsolete("Không tính bản gán vai trò. Dùng PermissionResolver(IRoleAssignmentRepository, PermissionCache, ILogger).")]
-    public PermissionResolver(IUserRepository users, PermissionCache cache)
-    {
-        ArgumentNullException.ThrowIfNull(users);
-        _load = async (userId, _, _) =>
-        {
-            var user = await users.GetByIdAsync(userId);
-            return user == null || user.IsDeleted ? null : new UserAccessSnapshot(user.IsActive, Array.Empty<AssignmentGrantSource>());
-        };
-        _cache = cache;
-        _logger = NullLogger<PermissionResolver>.Instance;
-    }
-
     /// <inheritdoc />
     public async Task<EffectivePermissions> GetAsync(Guid userId, CancellationToken ct = default)
     {

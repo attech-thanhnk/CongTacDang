@@ -728,8 +728,7 @@ public class AuthorizationGuardTests
         public Task<PartyMemberProfile?> GetByUsernameAsync(string username) => Task.FromResult(Users.FirstOrDefault(u => u.Username == username));
         public Task<PartyMemberProfile?> GetFirstMemberAsync() => Task.FromResult(Users.FirstOrDefault());
         public Task<List<PartyMemberProfile>> GetAllWithDetailsAsync() => Task.FromResult(Users.ToList());
-        public Task<PartyMemberProfile?> GetWithRolesAndPermissionsAsync(string username) => GetByUsernameAsync(username);
-        public Task<PartyMemberProfile?> GetWithRolesAndPermissionsByIdAsync(Guid id) => GetByIdAsync(id);
+        public Task<PartyMemberProfile?> GetWithOrganizationByIdAsync(Guid id) => GetByIdAsync(id);
     }
 
     private sealed class FixedCurrentUser : ICurrentUserService

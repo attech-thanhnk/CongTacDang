@@ -42,11 +42,4 @@ public class AppRole : IAuditableEntity, ISoftDeletable
 
     /// <summary>Danh sách quyền hạn được gán cho vai trò này</summary>
     public ICollection<Permission> Permissions { get; set; } = new List<Permission>();
-
-    /// <summary>
-    /// Quan hệ nhiều-nhiều user ↔ role cũ (bảng <c>user_roles</c>). <b>Không còn dùng để phân quyền</b> — thay bằng
-    /// <see cref="UserRoleAssignment"/>; chỉ giữ tới khi các chỗ dùng ngoài phạm vi task 09 được gỡ.
-    /// </summary>
-    [Obsolete("Dùng UserRoleAssignment (bản gán có phạm vi, thời hạn). Quan hệ user_roles sẽ bị xóa.")]
-    public ICollection<PartyMemberProfile> Members { get; set; } = new List<PartyMemberProfile>();
 }

@@ -223,9 +223,6 @@ public class AttachmentVersioningTests
         private readonly World _world;
         public AccessReader(World world) => _world = world;
 
-        public Task<HashSet<Guid>> GetUserIdsInRoleAsync(IReadOnlyCollection<Guid> userIds, string roleCode) =>
-            Task.FromResult(new HashSet<Guid>()); // không còn dùng từ task 09
-
         public Task<Dictionary<Guid, List<AttachmentRecordLink>>> GetRecordLinksAsync(IReadOnlyCollection<TaskAttachment> attachments)
         {
             var result = new Dictionary<Guid, List<AttachmentRecordLink>>();
@@ -273,12 +270,11 @@ public class AttachmentVersioningTests
         private readonly World _world;
         public Users(World world) => _world = world;
 
-        public Task<PartyMemberProfile?> GetWithRolesAndPermissionsByIdAsync(Guid id) => Task.FromResult(_world.Users.GetValueOrDefault(id));
+        public Task<PartyMemberProfile?> GetWithOrganizationByIdAsync(Guid id) => Task.FromResult(_world.Users.GetValueOrDefault(id));
         public Task<PartyMemberProfile?> GetByIdAsync(Guid id) => Task.FromResult(_world.Users.GetValueOrDefault(id));
         public Task<PartyMemberProfile?> GetByUsernameAsync(string username) => throw new NotSupportedException();
         public Task<PartyMemberProfile?> GetFirstMemberAsync() => throw new NotSupportedException();
         public Task<List<PartyMemberProfile>> GetAllWithDetailsAsync() => throw new NotSupportedException();
-        public Task<PartyMemberProfile?> GetWithRolesAndPermissionsAsync(string username) => throw new NotSupportedException();
         public Task<List<PartyMemberProfile>> ListAsync() => throw new NotSupportedException();
         public Task<List<PartyMemberProfile>> FindAsync(Expression<Func<PartyMemberProfile, bool>> predicate) => throw new NotSupportedException();
         public Task AddAsync(PartyMemberProfile entity) => throw new NotSupportedException();
