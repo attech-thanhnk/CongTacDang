@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using CongTacDang.Application.Common.Interfaces;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.Infrastructure.Data;
@@ -78,7 +79,7 @@ public class UserRepository : GenericRepository<PartyMemberProfile>, IUserReposi
 /// <summary>
 /// Repository quản lý tệp đính kèm và minh chứng
 /// </summary>
-public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachmentRepository
+public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachmentRepository, IAttachmentAccessReader
 {
     public AttachmentRepository(CongTacDangDbContext db) : base(db)
     {
@@ -91,6 +92,71 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
             .AsNoTracking()
             .OrderByDescending(a => a.UploadedAt)
             .ToListAsync();
+    }
+
+    /// <summary>Lọc các người dùng đang có vai trò cho trước.</summary>
+    public async Task<HashSet<Guid>> GetUserIdsInRoleAsync(IReadOnlyCollection<Guid> userIds, string roleCode)
+    {
+        if (userIds.Count == 0)
+            return new HashSet<Guid>();
+
+        var ids = userIds.Distinct().ToList();
+        var matched = await _db.PartyMemberProfiles
+            .AsNoTracking()
+            .Where(u => ids.Contains(u.Id) && u.Roles.Any(r => r.Code == roleCode))
+            .Select(u => u.Id)
+            .ToListAsync();
+        return matched.ToHashSet();
+    }
+
+    /// <summary>Lấy các hồ sơ đánh giá mà mỗi tệp đang gắn vào (qua RecordId hoặc qua nhiệm vụ).</summary>
+    public async Task<Dictionary<Guid, List<AttachmentRecordLink>>> GetRecordLinksAsync(IReadOnlyCollection<TaskAttachment> attachments)
+    {
+        var result = new Dictionary<Guid, List<AttachmentRecordLink>>();
+        if (attachments.Count == 0)
+            return result;
+
+        var attachmentIds = attachments.Select(a => a.Id).Distinct().ToList();
+        var taskLinks = await _db.EvaluationTasks
+            .AsNoTracking()
+            .Where(t => t.AttachmentId.HasValue && attachmentIds.Contains(t.AttachmentId.Value))
+            .Select(t => new { AttachmentId = t.AttachmentId!.Value, t.RecordId })
+            .Distinct()
+            .ToListAsync();
+
+        var explicitLinks = attachments
+            .Where(a => a.RecordId.HasValue)
+            .Select(a => new { AttachmentId = a.Id, RecordId = a.RecordId!.Value })
+            .ToList();
+
+        var recordIds = taskLinks.Select(x => x.RecordId)
+            .Concat(explicitLinks.Select(x => x.RecordId))
+            .Distinct()
+            .ToList();
+        if (recordIds.Count == 0)
+            return result;
+
+        var records = await _db.EvaluationRecords
+            .AsNoTracking()
+            .Include(r => r.Member)
+            .Where(r => recordIds.Contains(r.Id))
+            .ToDictionaryAsync(r => r.Id);
+
+        void Add(Guid attachmentId, Guid recordId, bool viaTask)
+        {
+            if (!records.TryGetValue(recordId, out var record))
+                return;
+            if (!result.TryGetValue(attachmentId, out var list))
+                result[attachmentId] = list = new List<AttachmentRecordLink>();
+            list.Add(new AttachmentRecordLink(record, viaTask));
+        }
+
+        foreach (var link in explicitLinks)
+            Add(link.AttachmentId, link.RecordId, viaTask: false);
+        foreach (var link in taskLinks)
+            Add(link.AttachmentId, link.RecordId, viaTask: true);
+
+        return result;
     }
 }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 
@@ -58,6 +59,19 @@ public interface IAttachmentRepository : IRepository<TaskAttachment>
 {
     /// <summary>Lấy toàn bộ danh sách tệp đính kèm theo thời gian mới nhất</summary>
     Task<List<TaskAttachment>> GetAllAttachmentsAsync();
+}
+
+/// <summary>Tra cứu dữ liệu phục vụ kiểm tra quyền trên tệp đính kèm.</summary>
+public interface IAttachmentAccessReader
+{
+    /// <summary>Trả về tập Id (trong <paramref name="userIds"/>) của người dùng đang có vai trò <paramref name="roleCode"/>.</summary>
+    Task<HashSet<Guid>> GetUserIdsInRoleAsync(IReadOnlyCollection<Guid> userIds, string roleCode);
+
+    /// <summary>
+    /// Lấy các hồ sơ đánh giá (kèm Member) mà mỗi tệp đang gắn vào, qua TaskAttachment.RecordId
+    /// hoặc qua EvaluationTask.AttachmentId. Khóa là Id tệp; tệp không gắn hồ sơ không có trong kết quả.
+    /// </summary>
+    Task<Dictionary<Guid, List<AttachmentRecordLink>>> GetRecordLinksAsync(IReadOnlyCollection<TaskAttachment> attachments);
 }
 
 /// <summary>Giao diện tra cứu audit log tập trung.</summary>

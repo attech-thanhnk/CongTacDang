@@ -58,9 +58,34 @@ public interface IAccessPolicy
     /// <summary>Kiểm tra quyền trên biên bản hội nghị (Mẫu 12-13) của một Chi bộ.</summary>
     bool CanAccessMeeting(PartyMemberProfile user, Guid? partyCellId, AccessOperation operation);
 
+    /// <summary>
+    /// Kiểm tra quyền trên tệp đính kèm. Quyền trên tệp bằng quyền trên các hồ sơ liên quan;
+    /// tệp không gắn hồ sơ chỉ thuộc người tải lên và cấp quản trị, riêng văn bản chung (GENERAL)
+    /// do quản trị tải lên thì mọi người đã đăng nhập được xem.
+    /// </summary>
+    /// <param name="user">Người yêu cầu.</param>
+    /// <param name="attachment">Tệp cần kiểm tra.</param>
+    /// <param name="links">Các hồ sơ đánh giá mà tệp đang gắn vào.</param>
+    /// <param name="uploadedByAdministrator">Người tải lên thuộc vai trò Quản trị hệ thống.</param>
+    /// <param name="operation">Thao tác.</param>
+    bool CanAccessAttachment(
+        PartyMemberProfile user,
+        TaskAttachment attachment,
+        IReadOnlyCollection<AttachmentRecordLink> links,
+        bool uploadedByAdministrator,
+        AccessOperation operation);
+
     /// <summary>Kiểm tra quyền trên hồ sơ người dùng (PartyMemberProfile) của người khác hoặc của chính mình.</summary>
     bool CanAccessProfile(PartyMemberProfile user, PartyMemberProfile target, AccessOperation operation);
 }
+
+/// <summary>Liên kết giữa tệp đính kèm và một hồ sơ đánh giá.</summary>
+/// <param name="Record">Hồ sơ đánh giá (nạp kèm Member).</param>
+/// <param name="ViaTask">
+/// true nếu liên kết qua nhiệm vụ (EvaluationTask.AttachmentId, do người dùng tự chọn khi đăng ký/tự chấm);
+/// false nếu qua TaskAttachment.RecordId.
+/// </param>
+public sealed record AttachmentRecordLink(EvaluationRecord Record, bool ViaTask);
 
 /// <summary>Tiện ích tra cứu role/permission trên người dùng đã nạp kèm Roles và Permissions.</summary>
 public static class UserAccessExtensions
@@ -196,6 +221,43 @@ public sealed class AccessPolicy : IAccessPolicy
         return user.HasPermission(AppPermissions.EvaluationsBranchVote)
             || user.HasPermission(AppPermissions.EvaluationsAppraise)
             || user.HasPermission(AppPermissions.EvaluationsApprove);
+    }
+
+    /// <inheritdoc />
+    public bool CanAccessAttachment(
+        PartyMemberProfile user,
+        TaskAttachment attachment,
+        IReadOnlyCollection<AttachmentRecordLink> links,
+        bool uploadedByAdministrator,
+        AccessOperation operation)
+    {
+        if (IsAdministrator(user))
+            return true;
+
+        if (attachment.UploadedById.HasValue && attachment.UploadedById == user.Id)
+            return true;
+
+        // Liên kết qua nhiệm vụ do người dùng tự khai báo AttachmentId, nên chỉ được tính khi tệp là của
+        // chính chủ hồ sơ (hoặc dữ liệu cũ chưa có người tải lên) — tránh gắn tệp của người khác vào hồ sơ mình để đọc.
+        var effectiveLinks = links
+            .Where(link => !link.ViaTask
+                || !attachment.UploadedById.HasValue
+                || attachment.UploadedById == link.Record.MemberId)
+            .ToList();
+
+        if (effectiveLinks.Count > 0)
+        {
+            // Xem/tải tệp theo quyền xem hồ sơ; sửa/xóa tệp theo quyền cập nhật hồ sơ.
+            var recordOperation = operation is AccessOperation.Read or AccessOperation.Export
+                ? AccessOperation.Read
+                : AccessOperation.Update;
+            return effectiveLinks.Any(link => CanAccessRecord(user, link.Record, recordOperation));
+        }
+
+        // Văn bản chung do quản trị tải lên: mọi người đã đăng nhập được xem.
+        return operation is AccessOperation.Read or AccessOperation.Export
+            && uploadedByAdministrator
+            && string.Equals(attachment.FormCode, GeneralFormCode, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <inheritdoc />

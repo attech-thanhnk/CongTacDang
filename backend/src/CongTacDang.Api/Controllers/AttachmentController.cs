@@ -26,12 +26,21 @@ public class AttachmentController : ControllerBase
         _attachmentService = attachmentService;
     }
 
-    /// <summary>Danh sách toàn bộ tệp tin và tài liệu minh chứng</summary>
+    /// <summary>Lấy Id người dùng hiện tại từ JWT.</summary>
+    private Guid GetCurrentUserId()
+    {
+        var sub = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var userId))
+            throw new UnauthorizedAccessException("Không xác thực được danh tính người dùng hiện tại.");
+        return userId;
+    }
+
+    /// <summary>Danh sách tệp tin và tài liệu minh chứng mà người dùng được xem</summary>
     [HttpGet("list")]
     [Authorize(Policy = AppPermissions.AttachmentsRead)]
     public async Task<IActionResult> GetList()
     {
-        var files = await _attachmentService.GetAttachmentsAsync();
+        var files = await _attachmentService.GetAttachmentsAsync(GetCurrentUserId());
         return Ok(ApiResponse<List<AttachmentDto>>.Ok(files, "Lấy danh mục tệp tin thành công."));
     }
 
@@ -57,7 +66,8 @@ public class AttachmentController : ControllerBase
             file.Length,
             formCode,
             description,
-            uploaderName
+            uploaderName,
+            GetCurrentUserId()
         );
 
         return Ok(ApiResponse<AttachmentDto>.Ok(result, "Lưu tệp tin thành công vào hệ thống."));
@@ -70,7 +80,7 @@ public class AttachmentController : ControllerBase
     {
         try
         {
-            var result = await _attachmentService.DownloadAttachmentAsync(id);
+            var result = await _attachmentService.DownloadAttachmentAsync(id, GetCurrentUserId());
             Response.Headers["X-Content-Type-Options"] = "nosniff";
             return File(result.Stream, result.ContentType, result.FileName);
         }
@@ -91,7 +101,7 @@ public class AttachmentController : ControllerBase
     {
         try
         {
-            var result = await _attachmentService.DownloadAttachmentAsync(id);
+            var result = await _attachmentService.DownloadAttachmentAsync(id, GetCurrentUserId());
             Response.Headers["X-Content-Type-Options"] = "nosniff";
             var isInline = result.ContentType is "application/pdf" or "image/png" or "image/jpeg";
             var disposition = new ContentDispositionHeaderValue(isInline ? "inline" : "attachment")
@@ -116,7 +126,7 @@ public class AttachmentController : ControllerBase
     [Authorize(Policy = AppPermissions.AttachmentsRead)]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var file = await _attachmentService.GetAttachmentByIdAsync(id);
+        var file = await _attachmentService.GetAttachmentByIdAsync(id, GetCurrentUserId());
         if (file == null)
             return NotFound(ApiResponse.Fail("Không tìm thấy tệp tin."));
 
@@ -131,7 +141,7 @@ public class AttachmentController : ControllerBase
     {
         try
         {
-            await _attachmentService.DeleteAttachmentAsync(id);
+            await _attachmentService.DeleteAttachmentAsync(id, GetCurrentUserId());
             return Ok(ApiResponse.Ok("Đã xóa tệp tin thành công."));
         }
         catch (KeyNotFoundException ex)

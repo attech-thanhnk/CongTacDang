@@ -38,8 +38,11 @@ public class TaskAttachment : IAuditableEntity, ISoftDeletable
     /// <summary>Thời điểm tải tệp lên máy chủ</summary>
     public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
 
-    /// <summary>Họ tên hoặc tài khoản người tải tệp lên</summary>
+    /// <summary>Họ tên hoặc tài khoản người tải tệp lên (chỉ dùng để hiển thị)</summary>
     public string UploadedBy { get; set; } = string.Empty;
+
+    /// <summary>Mã người dùng đã tải tệp lên, dùng để kiểm tra quyền sở hữu. Dữ liệu cũ để null.</summary>
+    public Guid? UploadedById { get; set; }
 
     /// <summary>Mã biểu mẫu hoặc ký hiệu hồ sơ (FormCode: M01, M02, M10... hoặc GENERAL)</summary>
     public string FormCode { get; set; } = "GENERAL";
