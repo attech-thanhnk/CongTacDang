@@ -129,6 +129,7 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IEvaluationService, EvaluationService>();
 builder.Services.AddScoped<ICollectiveEvaluationService, CollectiveEvaluationService>();
 builder.Services.AddScoped<IReportService, CongTacDang.Infrastructure.Services.ReportService>();
+builder.Services.AddScoped<IReportAccessService, ReportAccessService>();
 
 // 7. Controllers & Swagger với hỗ trợ JWT Bearer Authorization
 builder.Services.AddControllers()
