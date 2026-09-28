@@ -74,8 +74,13 @@ public class PartyMemberProfile : IAuditableEntity, ISoftDeletable
 
     #endregion
 
-    /// <summary>Cấp thẩm quyền duyệt (True: Đảng ủy ATTECH duyệt; False: Trình BTV Đảng ủy Tổng công ty duyệt)</summary>
-    public bool IsApprovedByAttech { get; set; } = true;
+    /// <summary>Cấp có thẩm quyền quyết định xếp loại (CoSo: Đảng ủy ATTECH; CapTren: BTV Đảng ủy Tổng công ty)</summary>
+    public ApprovalAuthority ApprovalAuthority { get; set; } = ApprovalAuthority.CoSo;
+
+    /// <summary>
+    /// Dấu bảo mật của tài khoản: đổi khi đổi/đặt lại mật khẩu, khóa hoặc xóa để vô hiệu phiên đang dùng (task 08 sử dụng).
+    /// </summary>
+    public string SecurityStamp { get; set; } = Guid.NewGuid().ToString("N");
 
     /// <summary>Trạng thái tài khoản (kích hoạt/vô hiệu hóa)</summary>
     public bool IsActive { get; set; } = true;

@@ -42,6 +42,9 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Khung chức danh công tác (1 đến 4) để áp tỷ trọng điểm tiêu chí</summary>
     public JobGroup JobGroup { get; set; } = JobGroup.Khung2_AnToanKyThuat;
 
+    /// <summary>Cấp có thẩm quyền quyết định xếp loại — ảnh chụp từ hồ sơ cán bộ tại thời điểm tạo hồ sơ đánh giá</summary>
+    public ApprovalAuthority ApprovalAuthority { get; set; } = ApprovalAuthority.CoSo;
+
     #region Bước 2: Điểm Tiêu chí Chung (Mẫu 09 - Tối đa 30.0 điểm)
 
     /// <summary>T1: Tư tưởng chính trị (tối đa 5.0đ)</summary>

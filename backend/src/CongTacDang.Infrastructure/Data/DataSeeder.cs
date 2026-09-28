@@ -196,7 +196,7 @@ public static class DataSeeder
                 AdminPosition = AdministrativePosition.ChuyenVien,
                 PositionTitle = "Quản trị viên Hệ thống CNTT",
                 JobGroup = JobGroup.Khung4_KhcnChuyenDoiSo,
-                IsApprovedByAttech = true,
+                ApprovalAuthority = ApprovalAuthority.CoSo,
                 Roles = new List<AppRole> { roleAdmin }
             };
 
@@ -216,7 +216,7 @@ public static class DataSeeder
                 AdminPosition = AdministrativePosition.GiamDoc,
                 PositionTitle = "Bí thư Đảng ủy, Giám đốc Công ty",
                 JobGroup = JobGroup.Khung1_QuanLyDangDoanThe,
-                IsApprovedByAttech = false,
+                ApprovalAuthority = ApprovalAuthority.CapTren,
                 Roles = new List<AppRole> { roleBanThuongVu, roleDangUyCoSo, roleCanBo }
             };
 
@@ -236,7 +236,7 @@ public static class DataSeeder
                 AdminPosition = AdministrativePosition.TruongPhong,
                 PositionTitle = "Bí thư Chi bộ, Trưởng phòng Kỹ thuật",
                 JobGroup = JobGroup.Khung2_AnToanKyThuat,
-                IsApprovedByAttech = true,
+                ApprovalAuthority = ApprovalAuthority.CoSo,
                 Roles = new List<AppRole> { roleBiThuCb, roleCanBo }
             };
 
@@ -259,7 +259,7 @@ public static class DataSeeder
                 AdminPosition = AdministrativePosition.PhoTruongPhong,
                 PositionTitle = "Phó Trưởng phòng Kỹ thuật",
                 JobGroup = JobGroup.Khung2_AnToanKyThuat,
-                IsApprovedByAttech = true,
+                ApprovalAuthority = ApprovalAuthority.CoSo,
                 Roles = new List<AppRole> { roleCanBo }
             };
 
@@ -279,7 +279,7 @@ public static class DataSeeder
                 AdminPosition = AdministrativePosition.TruongPhong,
                 PositionTitle = "Trưởng Ban TCCB, Tổ trưởng Tổ Thẩm định",
                 JobGroup = JobGroup.Khung1_QuanLyDangDoanThe,
-                IsApprovedByAttech = true,
+                ApprovalAuthority = ApprovalAuthority.CoSo,
                 Roles = new List<AppRole> { roleToThamDinh, roleCanBo }
             };
 
@@ -339,7 +339,7 @@ public static class DataSeeder
                     AdminPosition = AdministrativePosition.ChuyenVien,
                     PositionTitle = "Quản trị viên Hệ thống CNTT",
                     JobGroup = JobGroup.Khung4_KhcnChuyenDoiSo,
-                    IsApprovedByAttech = true,
+                    ApprovalAuthority = ApprovalAuthority.CoSo,
                     Roles = new List<AppRole>()
                 };
                 if (roleAdmin != null) adminUser.Roles.Add(roleAdmin);
@@ -391,7 +391,7 @@ public static class DataSeeder
                     AdminPosition = AdministrativePosition.TruongPhong,
                     PositionTitle = "Trưởng Ban TCCB, Tổ trưởng Tổ Thẩm định",
                     JobGroup = JobGroup.Khung1_QuanLyDangDoanThe,
-                    IsApprovedByAttech = true,
+                    ApprovalAuthority = ApprovalAuthority.CoSo,
                     Roles = new List<AppRole>()
                 };
                 if (roleToThamDinh != null) thamDinh.Roles.Add(roleToThamDinh);
@@ -467,6 +467,7 @@ public static class DataSeeder
                     PartyCellId = member.PartyCellId,
                     DepartmentId = member.DepartmentId,
                     JobGroup = member.JobGroup,
+                    ApprovalAuthority = member.ApprovalAuthority,
                     GeneralScoreT1 = 4.8,
                     GeneralScoreT2 = 4.9,
                     GeneralScoreT3 = 4.8,

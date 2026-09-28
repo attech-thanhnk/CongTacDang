@@ -46,6 +46,10 @@ namespace CongTacDang.Infrastructure.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // Cấu hình entity mới đặt trong Infrastructure/Data/Configurations/*.cs (IEntityTypeConfiguration<T>),
+            // được nạp tự động để các task sau không phải sửa DbContext.
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(CongTacDangDbContext).Assembly);
+
             // 1. Tổ chức Chi bộ Đảng & Phòng ban Chuyên môn
             modelBuilder.Entity<PartyCell>(entity =>
             {
@@ -81,6 +85,7 @@ namespace CongTacDang.Infrastructure.Data
                 entity.Property(e => e.Email).HasMaxLength(200);
                 entity.Property(e => e.MustChangePassword).HasDefaultValue(false);
                 entity.Property(e => e.FailedLoginCount).HasDefaultValue(0);
+                entity.Property(e => e.SecurityStamp).HasMaxLength(64).IsRequired();
                 entity.HasQueryFilter(e => !e.IsDeleted);
 
                 entity.HasOne(m => m.PartyCell)
