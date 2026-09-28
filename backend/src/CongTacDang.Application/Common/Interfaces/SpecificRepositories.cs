@@ -57,8 +57,30 @@ public interface IRoleRepository
 /// </summary>
 public interface IAttachmentRepository : IRepository<TaskAttachment>
 {
-    /// <summary>Lấy toàn bộ danh sách tệp đính kèm theo thời gian mới nhất</summary>
+    /// <summary>Lấy toàn bộ danh sách tệp đính kèm (chỉ phiên bản hiện hành) theo thời gian mới nhất</summary>
     Task<List<TaskAttachment>> GetAllAttachmentsAsync();
+}
+
+/// <summary>
+/// Truy vấn/ghi tệp theo đối tượng sở hữu và phiên bản (T-36).
+/// Tách khỏi <see cref="IAttachmentRepository"/> để không đổi hợp đồng repository sẵn có.
+/// </summary>
+public interface IAttachmentVersionRepository
+{
+    /// <summary>Lấy các tệp (phiên bản hiện hành) của một đối tượng, gồm cả dữ liệu cũ gắn qua RecordId/TaskId/EvaluationTask.AttachmentId.</summary>
+    Task<List<TaskAttachment>> GetCurrentByOwnerAsync(string ownerType, Guid ownerId);
+
+    /// <summary>Lấy phiên bản hiện hành của nhóm chứa phiên bản <paramref name="anyVersionId"/> (null nếu không tồn tại hoặc đã xóa).</summary>
+    Task<TaskAttachment?> GetCurrentVersionAsync(Guid anyVersionId);
+
+    /// <summary>Lấy mọi phiên bản (chưa xóa) của một nhóm, sắp theo số phiên bản tăng dần.</summary>
+    Task<List<TaskAttachment>> GetVersionsAsync(Guid groupId);
+
+    /// <summary>Lưu phiên bản mới và đánh dấu phiên bản trước không còn hiện hành trong cùng một lần lưu.</summary>
+    Task AddVersionAsync(TaskAttachment previous, TaskAttachment next);
+
+    /// <summary>Xóa mềm mọi phiên bản của một nhóm.</summary>
+    Task SoftDeleteGroupAsync(Guid groupId);
 }
 
 /// <summary>Tra cứu dữ liệu phục vụ kiểm tra quyền trên tệp đính kèm.</summary>
@@ -72,6 +94,12 @@ public interface IAttachmentAccessReader
     /// hoặc qua EvaluationTask.AttachmentId. Khóa là Id tệp; tệp không gắn hồ sơ không có trong kết quả.
     /// </summary>
     Task<Dictionary<Guid, List<AttachmentRecordLink>>> GetRecordLinksAsync(IReadOnlyCollection<TaskAttachment> attachments);
+
+    /// <summary>
+    /// Lấy hồ sơ đánh giá (kèm Member) của đối tượng sở hữu tệp: chính hồ sơ với <see cref="AttachmentOwnerTypes.EvaluationRecord"/>,
+    /// hồ sơ chứa nhiệm vụ với <see cref="AttachmentOwnerTypes.EvaluationTask"/>. Null nếu không tìm thấy.
+    /// </summary>
+    Task<EvaluationRecord?> GetOwnerRecordAsync(string ownerType, Guid ownerId);
 }
 
 /// <summary>Giao diện tra cứu audit log tập trung.</summary>

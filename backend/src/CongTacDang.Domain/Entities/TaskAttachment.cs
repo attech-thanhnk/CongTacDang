@@ -62,6 +62,55 @@ public class TaskAttachment : IAuditableEntity, ISoftDeletable
     /// <summary>Trạng thái tệp (đang sử dụng / đã ẩn)</summary>
     public bool IsActive { get; set; } = true;
 
+    #region Đối tượng sở hữu và phiên bản (T-36)
+
+    /// <summary>
+    /// Loại đối tượng sở hữu tệp (xem <see cref="AttachmentOwnerTypes"/>). Null với dữ liệu cũ —
+    /// khi đó đối tượng được suy ra từ <see cref="RecordId"/> / <see cref="RelatedId"/>.
+    /// </summary>
+    public string? OwnerType { get; set; }
+
+    /// <summary>Mã đối tượng sở hữu tệp (null với tệp chung hoặc dữ liệu cũ).</summary>
+    public Guid? OwnerId { get; set; }
+
+    /// <summary>
+    /// Mã nhóm phiên bản: mọi phiên bản của cùng một tệp có chung giá trị này (bằng Id của phiên bản đầu tiên).
+    /// Null với dữ liệu cũ — khi đó tệp tự là nhóm của chính nó (<see cref="GroupId"/> = <see cref="Id"/>).
+    /// </summary>
+    public Guid? FileGroupId { get; set; }
+
+    /// <summary>Số thứ tự phiên bản trong nhóm, bắt đầu từ 1.</summary>
+    public int VersionNumber { get; set; } = 1;
+
+    /// <summary>
+    /// Phiên bản đã bị thay bằng phiên bản mới hơn. Mỗi nhóm có đúng một phiên bản chưa bị thay (hiện hành).
+    /// Mặc định false để dữ liệu cũ tự là phiên bản hiện hành.
+    /// </summary>
+    public bool IsSuperseded { get; set; }
+
+    /// <summary>Phiên bản hiện hành của nhóm.</summary>
+    public bool IsCurrent => !IsSuperseded;
+
+    /// <summary>Thời điểm phiên bản này bị thay bằng phiên bản mới.</summary>
+    public DateTime? SupersededAt { get; set; }
+
+    /// <summary>Người đã thay phiên bản này bằng phiên bản mới.</summary>
+    public Guid? SupersededById { get; set; }
+
+    /// <summary>Mã nhóm phiên bản thực tế (xử lý cả dữ liệu cũ chưa có <see cref="FileGroupId"/>).</summary>
+    public Guid GroupId => FileGroupId ?? Id;
+
+    /// <summary>Loại đối tượng sở hữu thực tế, suy ra từ cột cũ khi chưa có <see cref="OwnerType"/>.</summary>
+    public string EffectiveOwnerType => OwnerType
+        ?? (RecordId.HasValue ? AttachmentOwnerTypes.EvaluationRecord
+            : RelatedId.HasValue ? AttachmentOwnerTypes.EvaluationTask
+            : AttachmentOwnerTypes.General);
+
+    /// <summary>Mã đối tượng sở hữu thực tế, suy ra từ cột cũ khi chưa có <see cref="OwnerType"/>.</summary>
+    public Guid? EffectiveOwnerId => OwnerType != null ? OwnerId : RecordId ?? RelatedId;
+
+    #endregion
+
     public Guid? CreatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public Guid? UpdatedBy { get; set; }

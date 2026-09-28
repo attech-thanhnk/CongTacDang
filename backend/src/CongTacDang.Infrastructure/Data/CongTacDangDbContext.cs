@@ -106,6 +106,15 @@ namespace CongTacDang.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(e => e.UploadedById)
                     .OnDelete(DeleteBehavior.SetNull);
+                // Mô hình file theo đối tượng + phiên bản (T-36)
+                entity.Property(e => e.OwnerType).HasMaxLength(50);
+                entity.HasIndex(e => new { e.OwnerType, e.OwnerId });
+                entity.HasIndex(e => e.FileGroupId);
+                entity.Property(e => e.VersionNumber).HasDefaultValue(1);
+                entity.Ignore(e => e.IsCurrent);
+                entity.Ignore(e => e.GroupId);
+                entity.Ignore(e => e.EffectiveOwnerType);
+                entity.Ignore(e => e.EffectiveOwnerId);
                 entity.HasQueryFilter(e => !e.IsDeleted);
             });
 

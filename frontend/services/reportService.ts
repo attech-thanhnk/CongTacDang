@@ -95,47 +95,74 @@ export const REPORT_LIST: ReportItem[] = [
   },
 ];
 
+/** Định dạng tệp xuất: gốc (Word/Excel) hoặc PDF do máy chủ chuyển. */
+export type ReportFileFormat = "original" | "pdf";
+
+const withQuery = (endpoint: string, params: Record<string, string | undefined>): string => {
+  const query = Object.entries(params)
+    .filter(([, value]) => !!value)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value as string)}`)
+    .join("&");
+  if (!query) return endpoint;
+  return endpoint.includes("?") ? `${endpoint}&${query}` : `${endpoint}?${query}`;
+};
+
 export const reportService = {
+  /** Lấy nội dung tệp xuất từ máy chủ (kèm HttpOnly Cookie). `format = "pdf"` để máy chủ chuyển sang PDF. */
+  async fetchReportBlob(endpoint: string, format: ReportFileFormat = "original"): Promise<Blob> {
+    const url = format === "pdf" ? withQuery(endpoint, { format: "pdf" }) : endpoint;
+    // Chuyển PDF bằng LibreOffice có thể mất vài chục giây.
+    const res: any = await apiClient.get(url, { responseType: "blob", timeout: format === "pdf" ? 120000 : undefined });
+    return res instanceof Blob ? res : new Blob([res]);
+  },
+
+  /** Lưu Blob thành tệp tải về trên trình duyệt. */
+  saveBlob(blob: Blob, fileName: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
+
   // Tải báo cáo kèm HttpOnly Cookie xác thực qua apiClient
-  async downloadReport(endpoint: string, fileName: string): Promise<void> {
+  async downloadReport(endpoint: string, fileName: string, format: ReportFileFormat = "original"): Promise<void> {
     if (!endpoint) return;
     try {
-      const res: any = await apiClient.get(endpoint, { responseType: "blob" });
-      const actualBlob = res instanceof Blob ? res : new Blob([res]);
-      const url = window.URL.createObjectURL(actualBlob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", fileName);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const blob = await this.fetchReportBlob(endpoint, format);
+      this.saveBlob(blob, fileName);
     } catch (err: any) {
       console.error("Lỗi khi tải báo cáo:", err);
       throw err;
     }
   },
 
-  /** Xuất bảng tổng hợp kết quả đánh giá xếp loại cán bộ (Mẫu 14) */
-  async exportForm14(): Promise<void> {
-    return this.downloadReport("/reports/form-14", "Mau_14_TongHopXepLoaiCanBo_Q3_2026.xlsx");
+  /**
+   * Xuất bảng tổng hợp kết quả đánh giá xếp loại cán bộ (Mẫu 14).
+   * Không truyền `periodId`: kỳ đang hoạt động. Không truyền `branchId`: cấp cao nhận toàn Đảng bộ, Bí thư Chi bộ nhận Chi bộ mình.
+   */
+  async exportForm14(periodId?: string, branchId?: string): Promise<void> {
+    return this.downloadReport(withQuery("/reports/form-14", { periodId, branchId }), "Mau_14_TongHopXepLoaiCanBo.xlsx");
   },
 
   /** Xuất bảng kiểm soát tỷ lệ trần 20% Hoàn thành xuất sắc nhiệm vụ (Mẫu 15) */
-  async exportForm15(): Promise<void> {
-    return this.downloadReport("/reports/form-15", "Mau_15_KiemSoatTran20_ChiBo_Q3_2026.xlsx");
+  async exportForm15(periodId?: string, branchId?: string): Promise<void> {
+    return this.downloadReport(withQuery("/reports/form-15", { periodId, branchId }), "Mau_15_KiemSoatTran20_ChiBo.xlsx");
   },
 
-  async exportForm15A(): Promise<void> {
-    return this.downloadReport("/reports/form-15a", "Mau_15A_KiemSoatTran20_ToanDangBo.xlsx");
+  async exportForm15A(periodId?: string, branchId?: string): Promise<void> {
+    return this.downloadReport(withQuery("/reports/form-15a", { periodId, branchId }), "Mau_15A_KiemSoatTran20.xlsx");
   },
 
-  async exportForm15B(): Promise<void> {
-    return this.downloadReport("/reports/form-15b", "Mau_15B_KiemSoatTran20_TheoChiBo.xlsx");
+  async exportForm15B(periodId?: string, branchId?: string): Promise<void> {
+    return this.downloadReport(withQuery("/reports/form-15b", { periodId, branchId }), "Mau_15B_KiemSoatTran20_TheoChiBo.xlsx");
   },
 
-  async exportForm16(): Promise<void> {
-    return this.downloadReport("/reports/form-16", "Mau_16_TongHopKetQuaXepLoai.xlsx");
+  async exportForm16(periodId?: string, branchId?: string): Promise<void> {
+    return this.downloadReport(withQuery("/reports/form-16", { periodId, branchId }), "Mau_16_TongHopKetQuaXepLoai.xlsx");
   },
 
   /** Xuất Mẫu 01: Phiếu giao / đăng ký sản phẩm chuyên môn hàng quý (.docx) */

@@ -6,7 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using ClosedXML.Excel;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Services;
+using CongTacDang.Domain.Entities;
 using CongTacDang.Infrastructure.Data;
+using CongTacDang.Infrastructure.Documents;
+using CongTacDang.Infrastructure.Documents.Forms;
 
 namespace CongTacDang.Infrastructure.Services;
 
@@ -16,17 +19,23 @@ public class ReportService : IReportService
     private readonly IUserRepository _userRepo;
     private readonly IOrganizationRepository _orgRepo;
     private readonly IEvaluationRepository _evalRepo;
+    private readonly IWordTemplateStore _templates;
+    private readonly IPdfConverter _pdfConverter;
 
     public ReportService(
         CongTacDangDbContext db,
         IUserRepository userRepo,
         IOrganizationRepository orgRepo,
-        IEvaluationRepository evalRepo)
+        IEvaluationRepository evalRepo,
+        IWordTemplateStore templates,
+        IPdfConverter pdfConverter)
     {
         _db = db;
         _userRepo = userRepo;
         _orgRepo = orgRepo;
         _evalRepo = evalRepo;
+        _templates = templates;
+        _pdfConverter = pdfConverter;
     }
 
     public async Task<ReportFileResult> ExportCadresReportAsync()
@@ -88,13 +97,9 @@ public class ReportService : IReportService
         }
     }
 
-    public async Task<ReportFileResult> ExportForm14ReportAsync()
+    public async Task<ReportFileResult> ExportForm14ReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
     {
-        var activePeriod = await _evalRepo.GetActivePeriodAsync();
-        var periodId = activePeriod?.Id ?? Guid.Empty;
-        var records = periodId != Guid.Empty
-            ? await _evalRepo.GetRecordsByPeriodAsync(periodId)
-            : new List<CongTacDang.Domain.Entities.EvaluationRecord>();
+        var (activePeriod, records, scopeCell) = await LoadExcelScopeAsync(periodId, partyCellId);
 
         using (var workbook = new XLWorkbook())
         {
@@ -109,8 +114,7 @@ public class ReportService : IReportService
             ws.Cell("F1").Style.Font.Bold = true;
             ws.Cell("F2").Value = $"Hà Nội, ngày {DateTime.Now:dd} tháng {DateTime.Now:MM} năm {DateTime.Now:yyyy}";
 
-            string periodTitle = activePeriod != null ? activePeriod.Name : "QUÝ III/2026";
-            ws.Cell("A4").Value = $"BẢNG TỔNG HỢP KẾT QUẢ ĐÁNH GIÁ, XẾP LOẠI CHẤT LƯỢNG CÁN BỘ ({periodTitle.ToUpper()})";
+            ws.Cell("A4").Value = $"BẢNG TỔNG HỢP KẾT QUẢ ĐÁNH GIÁ, XẾP LOẠI CHẤT LƯỢNG CÁN BỘ ({ExcelTitleSuffix(activePeriod, scopeCell)})";
             ws.Range("A4:L4").Merge().Style.Font.SetBold(true).Font.SetFontSize(13).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
 
             ws.Cell("A5").Value = "(Ban hành kèm theo Hướng dẫn số 03-HD/TVĐU ngày 10/9/2026 của Ban Thường vụ Đảng ủy Tổng công ty)";
@@ -162,7 +166,9 @@ public class ReportService : IReportService
             }
             else
             {
-                var members = await _userRepo.GetAllWithDetailsAsync();
+                var members = (await _userRepo.GetAllWithDetailsAsync())
+                    .Where(m => scopeCell == null || m.PartyCellId == scopeCell.Id)
+                    .ToList();
                 foreach (var m in members)
                 {
                     ws.Cell(row, 1).Value = stt++;
@@ -191,24 +197,18 @@ public class ReportService : IReportService
             using (var stream = new MemoryStream())
             {
                 workbook.SaveAs(stream);
-                return new ReportFileResult
-                {
-                    FileBytes = stream.ToArray(),
-                    FileName = "Mau_14_TongHopXepLoaiCanBo_Q3_2026.xlsx"
-                };
+                return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("Mau_14_TongHopXepLoaiCanBo", activePeriod, scopeCell), format);
             }
         }
     }
 
-    public async Task<ReportFileResult> ExportForm15ReportAsync()
+    public async Task<ReportFileResult> ExportForm15ReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
     {
-        var activePeriod = await _evalRepo.GetActivePeriodAsync();
-        var periodId = activePeriod?.Id ?? Guid.Empty;
-        var records = periodId != Guid.Empty
-            ? await _evalRepo.GetRecordsByPeriodAsync(periodId)
-            : new List<CongTacDang.Domain.Entities.EvaluationRecord>();
+        var (activePeriod, records, scopeCell) = await LoadExcelScopeAsync(periodId, partyCellId);
 
-        var cells = await _orgRepo.GetPartyCellsWithMembersAsync();
+        var cells = (await _orgRepo.GetPartyCellsWithMembersAsync())
+            .Where(c => scopeCell == null || c.Id == scopeCell.Id)
+            .ToList();
 
         using (var workbook = new XLWorkbook())
         {
@@ -223,8 +223,7 @@ public class ReportService : IReportService
             ws.Cell("E1").Style.Font.Bold = true;
             ws.Cell("E2").Value = $"Hà Nội, ngày {DateTime.Now:dd} tháng {DateTime.Now:MM} năm {DateTime.Now:yyyy}";
 
-            string periodTitle = activePeriod != null ? activePeriod.Name : "QUÝ III/2026";
-            ws.Cell("A4").Value = $"BẢNG KIỂM SOÁT TỶ LỆ TRẦN 20% HOÀN THÀNH XUẤT SẮC NHIỆM VỤ THEO CHI BỘ ({periodTitle.ToUpper()})";
+            ws.Cell("A4").Value = $"BẢNG KIỂM SOÁT TỶ LỆ TRẦN 20% HOÀN THÀNH XUẤT SẮC NHIỆM VỤ THEO CHI BỘ ({ExcelTitleSuffix(activePeriod, scopeCell)})";
             ws.Range("A4:H4").Merge().Style.Font.SetBold(true).Font.SetFontSize(13).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
 
             ws.Cell("A5").Value = "(Quy định tại Điều 12 Hướng dẫn 03-HD/TVĐU: Tỷ lệ HTXSNV không vượt quá 20% số cán bộ hoàn thành tốt nhiệm vụ trở lên)";
@@ -296,22 +295,14 @@ public class ReportService : IReportService
             using (var stream = new MemoryStream())
             {
                 workbook.SaveAs(stream);
-                return new ReportFileResult
-                {
-                    FileBytes = stream.ToArray(),
-                    FileName = "Mau_15_KiemSoatTran20_ChiBo_Q3_2026.xlsx"
-                };
+                return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("Mau_15_KiemSoatTran20_ChiBo", activePeriod, scopeCell), format);
             }
         }
     }
 
-    public async Task<ReportFileResult> ExportForm15AReportAsync()
+    public async Task<ReportFileResult> ExportForm15AReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
     {
-        var activePeriod = await _evalRepo.GetActivePeriodAsync();
-        var periodId = activePeriod?.Id ?? Guid.Empty;
-        var records = periodId != Guid.Empty
-            ? await _evalRepo.GetRecordsByPeriodAsync(periodId)
-            : new List<CongTacDang.Domain.Entities.EvaluationRecord>();
+        var (activePeriod, records, scopeCell) = await LoadExcelScopeAsync(periodId, partyCellId);
 
         var total = records.Count;
         var goodOrBetter = records.Count(IsGoodOrBetter);
@@ -344,7 +335,7 @@ public class ReportService : IReportService
         var actualPercent = goodOrBetter > 0 ? Math.Round((double)proposedExcellent / goodOrBetter * 100, 1) : 0;
         var exceeds = proposedExcellent > maxAllowed;
         ws.Cell(5, 1).Value = 1;
-        ws.Cell(5, 2).Value = "Toàn Đảng bộ Công ty";
+        ws.Cell(5, 2).Value = scopeCell?.Name ?? "Toàn Đảng bộ Công ty";
         ws.Cell(5, 3).Value = total;
         ws.Cell(5, 4).Value = goodOrBetter;
         ws.Cell(5, 5).Value = maxAllowed;
@@ -362,34 +353,26 @@ public class ReportService : IReportService
 
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
-        return new ReportFileResult
-        {
-            FileBytes = stream.ToArray(),
-            FileName = "Mau_15A_KiemSoatTran20_ToanDangBo.xlsx"
-        };
+        return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("Mau_15A_KiemSoatTran20", activePeriod, scopeCell), format);
     }
 
-    public async Task<ReportFileResult> ExportForm15BReportAsync()
+    public async Task<ReportFileResult> ExportForm15BReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
     {
-        var result = await ExportForm15ReportAsync();
-        result.FileName = "Mau_15B_KiemSoatTran20_TheoChiBo.xlsx";
-        return result;
+        var result = await ExportForm15ReportAsync(periodId, partyCellId);
+        var fileName = result.FileName.Replace("Mau_15_KiemSoatTran20_ChiBo", "Mau_15B_KiemSoatTran20_TheoChiBo");
+        return await ToResultAsync(result.FileBytes, result.ContentType, fileName, format);
     }
 
-    public async Task<ReportFileResult> ExportForm16ReportAsync()
+    public async Task<ReportFileResult> ExportForm16ReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
     {
-        var activePeriod = await _evalRepo.GetActivePeriodAsync();
-        var periodId = activePeriod?.Id ?? Guid.Empty;
-        var records = periodId != Guid.Empty
-            ? await _evalRepo.GetRecordsByPeriodAsync(periodId)
-            : new List<CongTacDang.Domain.Entities.EvaluationRecord>();
+        var (activePeriod, records, scopeCell) = await LoadExcelScopeAsync(periodId, partyCellId);
 
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Mẫu 16 - Tổng hợp");
         ws.Cell("A1").Value = "BẢNG TỔNG HỢP KẾT QUẢ XẾP LOẠI CÁN BỘ - MẪU 16";
         ws.Range("A1:H1").Merge().Style.Font.SetBold(true).Font.SetFontSize(13)
             .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-        ws.Cell("A2").Value = activePeriod?.Name ?? "Chưa có kỳ đánh giá";
+        ws.Cell("A2").Value = ExcelTitleSuffix(activePeriod, scopeCell);
         ws.Range("A2:H2").Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
 
         var headers = new[]
@@ -437,11 +420,55 @@ public class ReportService : IReportService
 
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
-        return new ReportFileResult
+        return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("Mau_16_TongHopKetQuaXepLoai", activePeriod, scopeCell), format);
+    }
+
+    /// <summary>
+    /// Phạm vi dữ liệu báo cáo Excel: kỳ được chọn (mặc định kỳ đang hoạt động) và Chi bộ (null = toàn Đảng bộ).
+    /// Phạm vi Chi bộ đã được kiểm tra quyền qua IReportAccessService/IAccessPolicy ở controller.
+    /// </summary>
+    private async Task<(EvaluationPeriod? Period, List<EvaluationRecord> Records, PartyCell? Cell)> LoadExcelScopeAsync(Guid? periodId, Guid? partyCellId)
+    {
+        EvaluationPeriod? period;
+        if (periodId.HasValue && periodId.Value != Guid.Empty)
         {
-            FileBytes = stream.ToArray(),
-            FileName = "Mau_16_TongHopKetQuaXepLoai.xlsx"
-        };
+            period = await _evalRepo.GetPeriodByIdAsync(periodId.Value)
+                ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+        }
+        else
+        {
+            period = await _evalRepo.GetActivePeriodAsync();
+        }
+
+        PartyCell? cell = null;
+        if (partyCellId.HasValue && partyCellId.Value != Guid.Empty)
+        {
+            cell = await _orgRepo.GetPartyCellByIdAsync(partyCellId.Value)
+                ?? throw new KeyNotFoundException($"Không tìm thấy Chi bộ với Id: {partyCellId}");
+        }
+
+        var records = period != null
+            ? await _evalRepo.GetRecordsByPeriodAsync(period.Id)
+            : new List<EvaluationRecord>();
+        if (cell != null)
+            records = records.Where(r => r.PartyCellId == cell.Id || r.Member?.PartyCellId == cell.Id).ToList();
+
+        return (period, records, cell);
+    }
+
+    /// <summary>Tiêu đề phạm vi: tên kỳ (chữ hoa) và tên Chi bộ nếu xuất theo Chi bộ.</summary>
+    private static string ExcelTitleSuffix(EvaluationPeriod? period, PartyCell? cell)
+    {
+        var periodTitle = period != null ? period.Name.ToUpper() : "CHƯA CÓ KỲ ĐÁNH GIÁ";
+        return cell != null ? $"{periodTitle} - {cell.Name.ToUpper()}" : periodTitle;
+    }
+
+    /// <summary>Tên tệp Excel theo kỳ và phạm vi, ví dụ Mau_14_..._ChiBo_Ky_Thuat_Q3_2026.xlsx.</summary>
+    private static string ExcelFileName(string baseName, EvaluationPeriod? period, PartyCell? cell)
+    {
+        var scope = cell != null ? "_" + SafeName(cell.Name, "ChiBo") : "_ToanDangBo";
+        var periodPart = period != null ? $"_Q{(int)period.Quarter}_{period.Year}" : string.Empty;
+        return $"{baseName}{scope}{periodPart}.xlsx";
     }
 
     private static bool IsGoodOrBetter(CongTacDang.Domain.Entities.EvaluationRecord record)
@@ -472,153 +499,142 @@ public class ReportService : IReportService
     }
 
     private const string DocxMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    private const string XlsxMimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    private const string PdfMimeType = "application/pdf";
 
-    public async Task<ReportFileResult> ExportMau01DocxAsync(Guid recordId)
+    #region Biểu mẫu Word — mỗi mẫu = một template .docx + một lớp dữ liệu trong Documents/Forms
+
+    public async Task<ReportFileResult> ExportMau01DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
     {
-        var record = await _db.EvaluationRecords
+        var record = await LoadRecordAsync(recordId);
+        var bytes = RenderWord(Mau01Data.TemplateFileName, Mau01Data.From(record));
+        return await ToResultAsync(bytes, DocxMimeType, $"Mau_01_DangKyNhiemVu_{SafeName(record.Member?.FullName, "CanBo")}.docx", format);
+    }
+
+    public async Task<ReportFileResult> ExportMau02DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
+    {
+        var record = await LoadRecordAsync(recordId);
+        var evidenceNames = await GetEvidenceNamesAsync(record.Tasks);
+        var bytes = RenderWord(Mau02Data.TemplateFileName, Mau02Data.From(record, evidenceNames));
+        return await ToResultAsync(bytes, DocxMimeType, $"Mau_02_TuDanhGia_{SafeName(record.Member?.FullName, "CanBo")}.docx", format);
+    }
+
+    public async Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
+    {
+        var record = await LoadRecordAsync(recordId);
+        var bytes = RenderWord(Mau10Data.TemplateFileName, Mau10Data.From(record));
+        return await ToResultAsync(bytes, DocxMimeType, $"Mau_10_PhieuThamDinh_{SafeName(record.Member?.FullName, "CanBo")}.docx", format);
+    }
+
+    public async Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original)
+    {
+        var (period, records, branch) = await LoadPeriodRecordsAsync(periodId, branchId);
+        var bytes = RenderWord(Mau11Data.TemplateFileName, Mau11Data.From(period, records, branch?.Name));
+        return await ToResultAsync(bytes, DocxMimeType, $"Mau_11_PhieuBoPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx", format);
+    }
+
+    public async Task<ReportFileResult> ExportMau13DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original)
+    {
+        var (period, records, branch) = await LoadPeriodRecordsAsync(periodId, branchId);
+
+        // Số người bỏ phiếu: lấy giá trị đã lưu trên hồ sơ; hồ sơ chưa lưu thì dùng sĩ số Chi bộ.
+        int? totalVoters = records.Select(r => r.TotalVoters).FirstOrDefault(v => v > 0);
+        if (totalVoters is null or 0 && branch != null)
+            totalVoters = await _db.PartyMemberProfiles.CountAsync(m => m.PartyCellId == branch.Id);
+
+        var bytes = RenderWord(Mau13Data.TemplateFileName, Mau13Data.From(period, records, branch?.Name, totalVoters));
+        return await ToResultAsync(bytes, DocxMimeType, $"Mau_13_BienBanKiemPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx", format);
+    }
+
+    /// <summary>Điền lớp dữ liệu mẫu vào template.</summary>
+    private byte[] RenderWord(string templateFileName, object formData)
+    {
+        var template = _templates.Load(templateFileName);
+        return DocxTemplateEngine.Render(template, TemplateDataBinder.Bind(formData)).Content;
+    }
+
+    /// <summary>Trả tệp ở định dạng gốc, hoặc chuyển sang PDF phía máy chủ khi <paramref name="format"/> là PDF.</summary>
+    private async Task<ReportFileResult> ToResultAsync(byte[] bytes, string contentType, string fileName, ReportFormat format)
+    {
+        if (format != ReportFormat.Pdf)
+            return new ReportFileResult { FileBytes = bytes, ContentType = contentType, FileName = fileName };
+
+        var pdf = await _pdfConverter.ConvertToPdfAsync(bytes, Path.GetExtension(fileName));
+        return new ReportFileResult
+        {
+            FileBytes = pdf,
+            ContentType = PdfMimeType,
+            FileName = Path.ChangeExtension(fileName, ".pdf")
+        };
+    }
+
+    private static string SafeName(string? name, string fallback) =>
+        string.IsNullOrWhiteSpace(name) ? fallback : name.Trim().Replace(" ", "_");
+
+    private async Task<EvaluationRecord> LoadRecordAsync(Guid recordId)
+    {
+        return await _db.EvaluationRecords
+            .AsNoTracking()
             .Include(r => r.Period)
             .Include(r => r.Member)
             .Include(r => r.Department)
             .Include(r => r.PartyCell)
             .Include(r => r.Tasks)
-            .FirstOrDefaultAsync(r => r.Id == recordId);
-
-        if (record == null)
-            throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
-
-        var bytes = DocxTemplateEngine.FillMau01Template(record);
-        var safeName = record.Member?.FullName?.Replace(" ", "_") ?? "CanBo";
-
-        return new ReportFileResult
-        {
-            FileBytes = bytes,
-            ContentType = DocxMimeType,
-            FileName = $"Mau_01_DangKyNhiemVu_{safeName}.docx"
-        };
+            .FirstOrDefaultAsync(r => r.Id == recordId)
+            ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
     }
 
-    public async Task<ReportFileResult> ExportMau02DocxAsync(Guid recordId)
+    private async Task<(EvaluationPeriod Period, List<EvaluationRecord> Records, PartyCell? Branch)> LoadPeriodRecordsAsync(Guid periodId, Guid? branchId)
     {
-        var record = await _db.EvaluationRecords
-            .Include(r => r.Period)
-            .Include(r => r.Member)
-            .Include(r => r.Department)
-            .Include(r => r.PartyCell)
-            .Include(r => r.Tasks)
-                .ThenInclude(t => t.Attachment)
-            .FirstOrDefaultAsync(r => r.Id == recordId);
-
-        if (record == null)
-            throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
-
-        var bytes = DocxTemplateEngine.FillMau02Template(record);
-        var safeName = record.Member?.FullName?.Replace(" ", "_") ?? "CanBo";
-
-        return new ReportFileResult
-        {
-            FileBytes = bytes,
-            ContentType = DocxMimeType,
-            FileName = $"Mau_02_TuDanhGia_{safeName}.docx"
-        };
-    }
-
-    public async Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId)
-    {
-        var record = await _db.EvaluationRecords
-            .Include(r => r.Period)
-            .Include(r => r.Member)
-            .Include(r => r.Department)
-            .Include(r => r.PartyCell)
-            .Include(r => r.Tasks)
-            .FirstOrDefaultAsync(r => r.Id == recordId);
-
-        if (record == null)
-            throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
-
-        var bytes = DocxTemplateEngine.FillMau10Template(record);
-        var safeName = record.Member?.FullName?.Replace(" ", "_") ?? "CanBo";
-
-        return new ReportFileResult
-        {
-            FileBytes = bytes,
-            ContentType = DocxMimeType,
-            FileName = $"Mau_10_PhieuThamDinh_{safeName}.docx"
-        };
-    }
-
-    public async Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId)
-    {
-        var period = await _db.EvaluationPeriods.FirstOrDefaultAsync(p => p.Id == periodId);
-        if (period == null)
-            throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+        var period = await _db.EvaluationPeriods.AsNoTracking().FirstOrDefaultAsync(p => p.Id == periodId)
+            ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
 
         var query = _db.EvaluationRecords
+            .AsNoTracking()
             .Include(r => r.Period)
             .Include(r => r.Member)
             .Include(r => r.Department)
             .Include(r => r.PartyCell)
             .Where(r => r.PeriodId == periodId);
 
-        string? branchName = null;
+        PartyCell? branch = null;
         if (branchId.HasValue && branchId.Value != Guid.Empty)
         {
             query = query.Where(r => r.PartyCellId == branchId.Value || r.Member.PartyCellId == branchId.Value);
-            var branch = await _db.PartyCells.FirstOrDefaultAsync(b => b.Id == branchId.Value);
-            branchName = branch?.Name;
+            branch = await _db.PartyCells.AsNoTracking().FirstOrDefaultAsync(b => b.Id == branchId.Value);
         }
 
-        var records = await query.ToListAsync();
-        var bytes = DocxTemplateEngine.FillMau11Template(period, records, branchName);
-
-        var safeBranch = !string.IsNullOrEmpty(branchName) ? branchName.Replace(" ", "_") : "ToanDangBo";
-        return new ReportFileResult
-        {
-            FileBytes = bytes,
-            ContentType = DocxMimeType,
-            FileName = $"Mau_11_PhieuBoPhieu_{safeBranch}_Q{period.Quarter}_{period.Year}.docx"
-        };
+        return (period, await query.ToListAsync(), branch);
     }
 
-    public async Task<ReportFileResult> ExportMau13DocxAsync(Guid periodId, Guid? branchId)
+    /// <summary>Tên tệp minh chứng (phiên bản hiện hành) của từng nhiệm vụ.</summary>
+    private async Task<Dictionary<Guid, string>> GetEvidenceNamesAsync(IEnumerable<EvaluationTask> tasks)
     {
-        var period = await _db.EvaluationPeriods.FirstOrDefaultAsync(p => p.Id == periodId);
-        if (period == null)
-            throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+        var linked = tasks.Where(t => t.AttachmentId.HasValue).ToList();
+        var result = new Dictionary<Guid, string>();
+        if (linked.Count == 0)
+            return result;
 
-        var query = _db.EvaluationRecords
-            .Include(r => r.Period)
-            .Include(r => r.Member)
-            .Include(r => r.Department)
-            .Include(r => r.PartyCell)
-            .Where(r => r.PeriodId == periodId);
+        var versionIds = linked.Select(t => t.AttachmentId!.Value).Distinct().ToList();
+        var versions = await _db.TaskAttachments.AsNoTracking()
+            .Where(a => versionIds.Contains(a.Id))
+            .Select(a => new { a.Id, GroupId = a.FileGroupId ?? a.Id })
+            .ToListAsync();
+        var groupIds = versions.Select(v => v.GroupId).Distinct().ToList();
+        var currents = await _db.TaskAttachments.AsNoTracking()
+            .Where(a => !a.IsSuperseded && (groupIds.Contains(a.Id) || (a.FileGroupId.HasValue && groupIds.Contains(a.FileGroupId.Value))))
+            .Select(a => new { GroupId = a.FileGroupId ?? a.Id, a.OriginalFileName })
+            .ToListAsync();
 
-        string? branchName = null;
-        int totalVoters = 12;
-        if (branchId.HasValue && branchId.Value != Guid.Empty)
+        foreach (var task in linked)
         {
-            query = query.Where(r => r.PartyCellId == branchId.Value || r.Member.PartyCellId == branchId.Value);
-            var branch = await _db.PartyCells.Include(b => b.Members).FirstOrDefaultAsync(b => b.Id == branchId.Value);
-            branchName = branch?.Name;
-            if (branch?.Members?.Count > 0)
-            {
-                totalVoters = branch.Members.Count;
-            }
+            var version = versions.FirstOrDefault(v => v.Id == task.AttachmentId);
+            var current = version == null ? null : currents.FirstOrDefault(c => c.GroupId == version.GroupId);
+            if (current != null && !string.IsNullOrWhiteSpace(current.OriginalFileName))
+                result[task.Id] = current.OriginalFileName;
         }
-
-        var records = await query.ToListAsync();
-        if (records.Count > 0 && records[0].TotalVoters > 0)
-        {
-            totalVoters = records[0].TotalVoters;
-        }
-
-        var bytes = DocxTemplateEngine.FillMau13Template(period, records, branchName, totalVoters);
-        var safeBranch = !string.IsNullOrEmpty(branchName) ? branchName.Replace(" ", "_") : "ToanDangBo";
-
-        return new ReportFileResult
-        {
-            FileBytes = bytes,
-            ContentType = DocxMimeType,
-            FileName = $"Mau_13_BienBanKiemPhieu_{safeBranch}_Q{period.Quarter}_{period.Year}.docx"
-        };
+        return result;
     }
+
+    #endregion
 }

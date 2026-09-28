@@ -44,20 +44,31 @@ public class AttachmentController : ControllerBase
         return Ok(ApiResponse<List<AttachmentDto>>.Ok(files, "Lấy danh mục tệp tin thành công."));
     }
 
-    /// <summary>Tải lên tệp minh chứng (PDF, DOCX, XLSX, Ảnh)</summary>
+    /// <summary>Danh sách tệp (phiên bản hiện hành) của một đối tượng: <c>ownerType</c> = General | EvaluationRecord | EvaluationTask</summary>
+    [HttpGet]
+    [Authorize(Policy = AppPermissions.AttachmentsRead)]
+    public async Task<IActionResult> GetByOwner([FromQuery] string ownerType, [FromQuery] Guid ownerId)
+    {
+        var files = await _attachmentService.GetAttachmentsByOwnerAsync(ownerType, ownerId, GetCurrentUserId());
+        return Ok(ApiResponse<List<AttachmentDto>>.Ok(files, "Lấy danh sách tệp của đối tượng thành công."));
+    }
+
+    /// <summary>
+    /// Tải lên tệp minh chứng (PDF, DOCX, XLSX, Ảnh). Truyền <c>ownerType</c>/<c>ownerId</c> để gắn tệp vào đối tượng
+    /// (cần quyền cập nhật hồ sơ liên quan); một đối tượng có thể có nhiều tệp.
+    /// </summary>
     [HttpPost("upload")]
     [Authorize(Policy = AppPermissions.AttachmentsUpload)]
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> UploadFile(
         [FromForm] IFormFile file,
         [FromForm] string formCode = "GENERAL",
-        [FromForm] string description = "")
+        [FromForm] string description = "",
+        [FromForm] string? ownerType = null,
+        [FromForm] Guid? ownerId = null)
     {
         if (file == null || file.Length == 0)
             return BadRequest(ApiResponse.Fail("Tệp đính kèm không được để trống."));
-
-        // Lấy tên cán bộ từ JWT claim để ghi log người tải lên
-        var uploaderName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "Cán bộ ATTECH";
 
         using var stream = file.OpenReadStream();
         var result = await _attachmentService.UploadAttachmentAsync(
@@ -66,14 +77,65 @@ public class AttachmentController : ControllerBase
             file.Length,
             formCode,
             description,
-            uploaderName,
-            GetCurrentUserId()
+            GetUploaderName(),
+            GetCurrentUserId(),
+            ownerType,
+            ownerId
         );
 
         return Ok(ApiResponse<AttachmentDto>.Ok(result, "Lưu tệp tin thành công vào hệ thống."));
     }
 
-    /// <summary>Tải về tệp tin minh chứng theo ID</summary>
+    /// <summary>Thay tệp bằng phiên bản mới (phiên bản cũ được giữ lại trong lịch sử)</summary>
+    [HttpPost("{id}/versions")]
+    [Authorize(Policy = AppPermissions.AttachmentsUpload)]
+    [RequestSizeLimit(30 * 1024 * 1024)]
+    public async Task<IActionResult> UploadNewVersion(Guid id, [FromForm] IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(ApiResponse.Fail("Tệp đính kèm không được để trống."));
+
+        using var stream = file.OpenReadStream();
+        var result = await _attachmentService.ReplaceAttachmentAsync(
+            id, stream, file.FileName, file.Length, GetUploaderName(), GetCurrentUserId());
+        return Ok(ApiResponse<AttachmentDto>.Ok(result, $"Đã lưu phiên bản {result.VersionNumber} của tệp."));
+    }
+
+    /// <summary>Lịch sử phiên bản của tệp (mới nhất trước)</summary>
+    [HttpGet("{id}/versions")]
+    [Authorize(Policy = AppPermissions.AttachmentsRead)]
+    public async Task<IActionResult> GetVersions(Guid id)
+    {
+        var versions = await _attachmentService.GetVersionsAsync(id, GetCurrentUserId());
+        return Ok(ApiResponse<List<AttachmentDto>>.Ok(versions, "Lấy lịch sử phiên bản thành công."));
+    }
+
+    /// <summary>Tải một phiên bản cụ thể của tệp</summary>
+    [HttpGet("{id}/versions/{versionNumber:int}/download")]
+    [Authorize(Policy = AppPermissions.AttachmentsRead)]
+    public async Task<IActionResult> DownloadVersion(Guid id, int versionNumber)
+    {
+        try
+        {
+            var result = await _attachmentService.DownloadVersionAsync(id, versionNumber, GetCurrentUserId());
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            return File(result.Stream, result.ContentType, result.FileName);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse.Fail(ex.Message));
+        }
+        catch (FileNotFoundException ex)
+        {
+            return NotFound(ApiResponse.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>Tên hiển thị người tải lên lấy từ JWT claim.</summary>
+    private string GetUploaderName() =>
+        User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "Cán bộ ATTECH";
+
+    /// <summary>Tải về phiên bản hiện hành của tệp tin minh chứng (Id của bất kỳ phiên bản nào trong tệp)</summary>
     [HttpGet("{id}/download")]
     [Authorize(Policy = AppPermissions.AttachmentsRead)]
     public async Task<IActionResult> DownloadFile(Guid id)
@@ -134,7 +196,7 @@ public class AttachmentController : ControllerBase
     }
 
 
-    /// <summary>Xóa tệp tin khỏi hệ thống</summary>
+    /// <summary>Xóa mềm tệp tin (mọi phiên bản)</summary>
     [HttpDelete("{id}")]
     [Authorize(Policy = AppPermissions.AttachmentsDelete)]
     public async Task<IActionResult> DeleteFile(Guid id)

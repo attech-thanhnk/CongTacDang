@@ -212,6 +212,30 @@ public class AttachmentDto
 
     /// <summary>Họ tên hoặc tài khoản người tải lên</summary>
     public string UploadedBy { get; set; } = string.Empty;
+
+    /// <summary>Mã người tải lên phiên bản này (null với dữ liệu cũ)</summary>
+    public Guid? UploadedById { get; set; }
+
+    /// <summary>Loại đối tượng sở hữu tệp (General, EvaluationRecord, EvaluationTask)</summary>
+    public string OwnerType { get; set; } = string.Empty;
+
+    /// <summary>Mã đối tượng sở hữu tệp</summary>
+    public Guid? OwnerId { get; set; }
+
+    /// <summary>Mã nhóm phiên bản (dùng để xem lịch sử, tải phiên bản cụ thể)</summary>
+    public Guid FileGroupId { get; set; }
+
+    /// <summary>Số thứ tự phiên bản</summary>
+    public int VersionNumber { get; set; }
+
+    /// <summary>Là phiên bản hiện hành</summary>
+    public bool IsCurrent { get; set; }
+
+    /// <summary>Thời điểm phiên bản bị thay (null nếu đang hiện hành)</summary>
+    public DateTime? SupersededAt { get; set; }
+
+    /// <summary>Người đã thay phiên bản này</summary>
+    public Guid? SupersededById { get; set; }
 }
 
 /// <summary>Thông tin một bản ghi audit dành cho khu vực quản trị.</summary>

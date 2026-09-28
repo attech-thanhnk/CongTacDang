@@ -8,7 +8,7 @@ using CongTacDang.Application.Services;
 
 namespace CongTacDang.Api.Controllers;
 
-/// <summary>Xuất báo cáo tổng hợp và biểu mẫu chuẩn Đảng (.docx / .xlsx)</summary>
+/// <summary>Xuất báo cáo tổng hợp và biểu mẫu chuẩn Đảng (.docx / .xlsx, hoặc PDF với <c>?format=pdf</c>)</summary>
 [ApiController]
 [Route("api/reports")]
 [Authorize]
@@ -32,6 +32,25 @@ public class ExportReportController : ControllerBase
         return userId;
     }
 
+    /// <summary>
+    /// Đọc tham số định dạng: <c>docx</c>/<c>xlsx</c> (hoặc bỏ trống) = định dạng gốc, <c>pdf</c> = PDF chuyển phía máy chủ.
+    /// </summary>
+    private static ReportFormat ParseFormat(string? format)
+    {
+        if (string.IsNullOrWhiteSpace(format))
+            return ReportFormat.Original;
+
+        return format.Trim().ToLowerInvariant() switch
+        {
+            "docx" or "xlsx" or "original" => ReportFormat.Original,
+            "pdf" => ReportFormat.Pdf,
+            _ => throw new ArgumentException("Tham số format chỉ nhận docx, xlsx hoặc pdf.")
+        };
+    }
+
+    // Excel 14/15/15A/15B/16 (T-30): periodId (mặc định kỳ đang hoạt động), branchId (Chi bộ).
+    // Không truyền branchId: cấp cao xuất toàn Đảng bộ, Bí thư Chi bộ (branch_vote) xuất Chi bộ của mình; người khác 403.
+
     #region Báo cáo Excel Quản trị
 
     /// <summary>Xuất danh sách cán bộ ra file Excel</summary>
@@ -43,53 +62,53 @@ public class ExportReportController : ControllerBase
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
-    /// <summary>Xuất Excel Mẫu 14 — Tổng hợp danh sách hồ sơ cán bộ theo Chi bộ và đơn vị (toàn Đảng bộ)</summary>
+    /// <summary>Xuất Excel Mẫu 14 — Tổng hợp danh sách hồ sơ cán bộ theo Chi bộ và đơn vị (toàn Đảng bộ hoặc theo Chi bộ)</summary>
     [HttpGet("form-14")]
     [Authorize(Policy = AppPermissions.ReportsExport)]
-    public async Task<IActionResult> ExportMau14()
+    public async Task<IActionResult> ExportMau14([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
     {
-        await _reportAccess.EnsureCanExportOrganizationReportAsync(GetCurrentUserId());
-        var result = await _reportService.ExportForm14ReportAsync();
+        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
+        var result = await _reportService.ExportForm14ReportAsync(periodId, scope, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
-    /// <summary>Xuất Excel Mẫu 15 — Thống kê cơ cấu tổ chức và sĩ số các Chi bộ (toàn Đảng bộ)</summary>
+    /// <summary>Xuất Excel Mẫu 15 — Thống kê cơ cấu tổ chức và sĩ số các Chi bộ (toàn Đảng bộ hoặc theo Chi bộ)</summary>
     [HttpGet("form-15")]
     [Authorize(Policy = AppPermissions.ReportsExport)]
-    public async Task<IActionResult> ExportMau15()
+    public async Task<IActionResult> ExportMau15([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
     {
-        await _reportAccess.EnsureCanExportOrganizationReportAsync(GetCurrentUserId());
-        var result = await _reportService.ExportForm15ReportAsync();
+        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
+        var result = await _reportService.ExportForm15ReportAsync(periodId, scope, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
     /// <summary>Xuất Excel Mẫu 15A — kiểm soát tỷ lệ trần 20% cấp Đảng ủy Công ty</summary>
     [HttpGet("form-15a")]
     [Authorize(Policy = AppPermissions.ReportsExport)]
-    public async Task<IActionResult> ExportMau15A()
+    public async Task<IActionResult> ExportMau15A([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
     {
-        await _reportAccess.EnsureCanExportOrganizationReportAsync(GetCurrentUserId());
-        var result = await _reportService.ExportForm15AReportAsync();
+        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
+        var result = await _reportService.ExportForm15AReportAsync(periodId, scope, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
-    /// <summary>Xuất Excel Mẫu 15B — kiểm soát tỷ lệ trần 20% theo từng Chi bộ (toàn Đảng bộ)</summary>
+    /// <summary>Xuất Excel Mẫu 15B — kiểm soát tỷ lệ trần 20% theo từng Chi bộ (toàn Đảng bộ hoặc theo Chi bộ)</summary>
     [HttpGet("form-15b")]
     [Authorize(Policy = AppPermissions.ReportsExport)]
-    public async Task<IActionResult> ExportMau15B()
+    public async Task<IActionResult> ExportMau15B([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
     {
-        await _reportAccess.EnsureCanExportOrganizationReportAsync(GetCurrentUserId());
-        var result = await _reportService.ExportForm15BReportAsync();
+        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
+        var result = await _reportService.ExportForm15BReportAsync(periodId, scope, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
-    /// <summary>Xuất Excel Mẫu 16 — tổng hợp kết quả xếp loại theo nhóm chức vụ (toàn Đảng bộ)</summary>
+    /// <summary>Xuất Excel Mẫu 16 — tổng hợp kết quả xếp loại theo nhóm chức vụ (toàn Đảng bộ hoặc theo Chi bộ)</summary>
     [HttpGet("form-16")]
     [Authorize(Policy = AppPermissions.ReportsExport)]
-    public async Task<IActionResult> ExportMau16()
+    public async Task<IActionResult> ExportMau16([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
     {
-        await _reportAccess.EnsureCanExportOrganizationReportAsync(GetCurrentUserId());
-        var result = await _reportService.ExportForm16ReportAsync();
+        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
+        var result = await _reportService.ExportForm16ReportAsync(periodId, scope, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
@@ -99,28 +118,28 @@ public class ExportReportController : ControllerBase
 
     /// <summary>Xuất Word Mẫu 01 — Phiếu giao/đăng ký sản phẩm chuyên môn hàng quý</summary>
     [HttpGet("docx/mau-01/{recordId}")]
-    public async Task<IActionResult> ExportMau01Docx(Guid recordId)
+    public async Task<IActionResult> ExportMau01Docx(Guid recordId, [FromQuery] string? format = null)
     {
         await _reportAccess.EnsureCanExportRecordAsync(GetCurrentUserId(), recordId);
-        var result = await _reportService.ExportMau01DocxAsync(recordId);
+        var result = await _reportService.ExportMau01DocxAsync(recordId, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
     /// <summary>Xuất Word Mẫu 02 — Phiếu tự đánh giá kết quả thực hiện sản phẩm hàng quý</summary>
     [HttpGet("docx/mau-02/{recordId}")]
-    public async Task<IActionResult> ExportMau02Docx(Guid recordId)
+    public async Task<IActionResult> ExportMau02Docx(Guid recordId, [FromQuery] string? format = null)
     {
         await _reportAccess.EnsureCanExportRecordAsync(GetCurrentUserId(), recordId);
-        var result = await _reportService.ExportMau02DocxAsync(recordId);
+        var result = await _reportService.ExportMau02DocxAsync(recordId, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
     /// <summary>Xuất Word Mẫu 10 — Phiếu thẩm định, nhận xét và ghi nhận giải trình</summary>
     [HttpGet("docx/mau-10/{recordId}")]
-    public async Task<IActionResult> ExportMau10Docx(Guid recordId)
+    public async Task<IActionResult> ExportMau10Docx(Guid recordId, [FromQuery] string? format = null)
     {
         await _reportAccess.EnsureCanExportRecordAsync(GetCurrentUserId(), recordId);
-        var result = await _reportService.ExportMau10DocxAsync(recordId);
+        var result = await _reportService.ExportMau10DocxAsync(recordId, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
@@ -129,10 +148,10 @@ public class ExportReportController : ControllerBase
     /// Không truyền <paramref name="branchId"/>: cấp cao xuất toàn Đảng bộ, Chi bộ xuất Chi bộ của mình.
     /// </summary>
     [HttpGet("docx/mau-11")]
-    public async Task<IActionResult> ExportMau11Docx([FromQuery] Guid periodId, [FromQuery] Guid? branchId)
+    public async Task<IActionResult> ExportMau11Docx([FromQuery] Guid periodId, [FromQuery] Guid? branchId, [FromQuery] string? format = null)
     {
         var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
-        var result = await _reportService.ExportMau11DocxAsync(periodId, scope);
+        var result = await _reportService.ExportMau11DocxAsync(periodId, scope, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
@@ -141,10 +160,10 @@ public class ExportReportController : ControllerBase
     /// Không truyền <paramref name="branchId"/>: cấp cao xuất toàn Đảng bộ, Chi bộ xuất Chi bộ của mình.
     /// </summary>
     [HttpGet("docx/mau-13")]
-    public async Task<IActionResult> ExportMau13Docx([FromQuery] Guid periodId, [FromQuery] Guid? branchId)
+    public async Task<IActionResult> ExportMau13Docx([FromQuery] Guid periodId, [FromQuery] Guid? branchId, [FromQuery] string? format = null)
     {
         var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
-        var result = await _reportService.ExportMau13DocxAsync(periodId, scope);
+        var result = await _reportService.ExportMau13DocxAsync(periodId, scope, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 

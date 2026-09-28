@@ -1,0 +1,28 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using CongTacDang.Infrastructure.Documents;
+
+namespace CongTacDang.Api.Extensions;
+
+/// <summary>Đăng ký bộ sinh biểu mẫu (template Word) và chuyển PDF — task 05.</summary>
+public static class DocumentExtensions
+{
+    /// <summary>
+    /// Cấu hình:
+    /// <list type="bullet">
+    /// <item><c>Documents:TemplatePath</c> — thư mục template Word (mặc định <c>Templates/Word</c> trong thư mục chạy ứng dụng).</item>
+    /// <item><c>Documents:Pdf:SofficePath</c> — đường dẫn <c>soffice</c> (mặc định tự tìm).</item>
+    /// <item><c>Documents:Pdf:TimeoutSeconds</c> (60), <c>Documents:Pdf:MaxConcurrency</c> (2), <c>Documents:Pdf:WorkDirectory</c> (thư mục tạm).</item>
+    /// </list>
+    /// </summary>
+    public static IServiceCollection AddDocumentGeneration(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddSingleton<IWordTemplateStore>(
+            new FileWordTemplateStore(configuration["Documents:TemplatePath"]));
+
+        var pdfOptions = configuration.GetSection("Documents:Pdf").Get<PdfConversionOptions>() ?? new PdfConversionOptions();
+        services.AddSingleton(pdfOptions);
+        services.AddSingleton<IPdfConverter, LibreOfficePdfConverter>();
+        return services;
+    }
+}
