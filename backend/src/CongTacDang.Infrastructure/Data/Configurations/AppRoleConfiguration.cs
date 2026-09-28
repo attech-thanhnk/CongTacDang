@@ -18,7 +18,6 @@ public sealed class AppRoleConfiguration : IEntityTypeConfiguration<AppRole>
         entity.Property(e => e.Code).HasMaxLength(50).IsRequired();
         entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
         entity.Property(e => e.Description).HasMaxLength(1000);
-        entity.Property(e => e.IsProtected).HasDefaultValue(false);
         entity.HasQueryFilter(e => !e.IsDeleted);
 
         // Nhiều-nhiều: Role <-> Permission qua role_permissions
@@ -30,6 +29,5 @@ public sealed class AppRoleConfiguration : IEntityTypeConfiguration<AppRole>
                 r => r.HasOne(typeof(AppRole)).WithMany().HasForeignKey("role_id"));
 
         // Gán vai trò cho người dùng: bảng user_role_assignments (UserRoleAssignment, có phạm vi và thời hạn).
-        // Bảng nhiều-nhiều cũ user_roles đã được chuyển dữ liệu và xóa trong migration Wave4.
     }
 }

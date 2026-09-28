@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CongTacDang.Infrastructure.Data.Configurations;
 
-/// <summary>Kỳ đánh giá (task 12: thêm cấu hình jsonb, bỏ cờ IsActive — kỳ hiện hành = kỳ Open/Locked mới nhất).</summary>
+/// <summary>Kỳ đánh giá: cấu hình jsonb; kỳ hiện hành = kỳ Open/Locked mới nhất.</summary>
 public sealed class EvaluationPeriodConfiguration : IEntityTypeConfiguration<EvaluationPeriod>
 {
     public void Configure(EntityTypeBuilder<EvaluationPeriod> entity)

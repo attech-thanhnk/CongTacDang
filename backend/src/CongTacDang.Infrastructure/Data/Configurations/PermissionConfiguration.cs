@@ -15,10 +15,7 @@ public sealed class PermissionConfiguration : IEntityTypeConfiguration<Permissio
         entity.HasIndex(e => e.Code).IsUnique();
         entity.Property(e => e.Code).HasMaxLength(100).IsRequired();
         entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
-        entity.Property(e => e.Resource).HasMaxLength(50).IsRequired();
-        entity.Property(e => e.Action).HasMaxLength(50).IsRequired();
-        entity.Property(e => e.Module).HasMaxLength(50).IsRequired().HasDefaultValue(string.Empty);
-        entity.Property(e => e.SortOrder).HasDefaultValue(0);
+        entity.Property(e => e.Module).HasMaxLength(50).IsRequired();
         entity.HasQueryFilter(e => !e.IsDeleted);
     }
 }

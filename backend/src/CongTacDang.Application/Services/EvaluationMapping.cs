@@ -116,13 +116,6 @@ public static class EvaluationMapping
             CellConfirmedByName = r.CellConfirmedByName,
             CellConfirmedAt = r.CellConfirmedAt,
 
-            PartyCellProposedGrade = GradeCode(r.PartyCellProposedGrade),
-            VotesExcellent = r.VotesExcellent,
-            VotesGood = r.VotesGood,
-            VotesSatisfactory = r.VotesSatisfactory,
-            VotesUnsatisfactory = r.VotesUnsatisfactory,
-            TotalVoters = r.TotalVoters,
-
             CollectiveProposedGrade = GradeCode(r.CollectiveProposedGrade),
             CollectiveComment = r.CollectiveComment,
             CollectiveMeetingId = r.CollectiveMeetingId,

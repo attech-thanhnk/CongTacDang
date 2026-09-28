@@ -27,7 +27,7 @@ public sealed class RoleAssignmentApiTests
     private async Task<(TestUser User, HttpClient Client)> AdministratorAsync()
     {
         var user = await _factory.CreateUserAsync();
-        await _factory.AssignAsync(user.Id, await _factory.GetRoleIdAsync("QUAN_TRI_HE_THONG"), RoleScopeType.Global, null);
+        await _factory.AssignAsync(user.Id, await _factory.GetAdministratorRoleIdAsync(), RoleScopeType.Global, null);
         return (user, await _factory.LoginAsAsync(user.Username, user.Password, distinctClientIp: true));
     }
 
@@ -60,7 +60,7 @@ public sealed class RoleAssignmentApiTests
             new { permissionCodes = new[] { PermissionCodes.EvaluationRead, PermissionCodes.MeetingRead } }));
         Assert.Equal(2, updated.GetProperty("permissionCodes").GetArrayLength());
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/admin/roles/{roleId}/permissions",
-            new { permissionCodes = new[] { "users.read" } })).StatusCode);
+            new { permissionCodes = new[] { "ma.khong.ton.tai" } })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync($"/api/admin/roles/{roleId}", new { name = name + " (sửa)", description = "Mới" })).StatusCode);
 
         // Gán theo Phòng; tra cứu; "người này làm được gì".
@@ -107,7 +107,7 @@ public sealed class RoleAssignmentApiTests
         Assert.Equal(HttpStatusCode.Forbidden, self.StatusCode);
         Assert.Contains("chính mình", await Message(self), StringComparison.Ordinal);
 
-        var protectedRole = await _factory.GetRoleIdAsync("QUAN_TRI_HE_THONG");
+        var protectedRole = await _factory.GetAdministratorRoleIdAsync();
         var delete = await admin.DeleteAsync($"/api/admin/roles/{protectedRole}");
         Assert.Equal(HttpStatusCode.Conflict, delete.StatusCode);
         Assert.Contains("bảo vệ", await Message(delete), StringComparison.Ordinal);

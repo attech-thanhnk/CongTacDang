@@ -318,7 +318,7 @@ export function FileUploadModal({
                       <div className="min-w-0 pr-3">
                         <p className="font-bold text-slate-900 truncate">{file.fileName}</p>
                         <p className="text-[11px] text-slate-500 truncate">
-                          {file.category} • {attachmentService.formatFileSize(file.fileSize)} • Người tải: {file.uploadedBy}
+                          {file.formCode} • {attachmentService.formatFileSize(file.fileSize)} • Người tải: {file.uploadedBy}
                         </p>
                       </div>
                       <button

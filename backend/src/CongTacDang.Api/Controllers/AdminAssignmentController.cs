@@ -92,18 +92,6 @@ public class AdminAssignmentController : ControllerBase
         return Ok(ApiResponse<UserEffectivePermissionsDto>.Ok(result, "Lấy quyền hiệu lực thành công."));
     }
 
-    /// <summary>
-    /// Tương thích giao diện cũ (trang <c>/users</c> — task 11 thay): đặt tập vai trò phạm vi Toàn công ty của người dùng
-    /// theo <c>roleIds</c>.
-    /// </summary>
-    [HttpPost("users/{id:guid}/roles")]
-    [RequirePermission(PermissionCodes.SystemAssignmentsManage)]
-    public async Task<IActionResult> SetGlobalRoles(Guid id, [FromBody] SetUserGlobalRolesRequestDto request)
-    {
-        var rows = await _assignments.SetGlobalRolesAsync(id, request.RoleIds, HttpContext.RequestAborted);
-        return Ok(ApiResponse<List<RoleAssignmentDto>>.Ok(rows, "Gán vai trò cho cán bộ thành công."));
-    }
-
     /// <summary>Đọc loại phạm vi: <c>Global</c> | <c>Department</c> | <c>PartyCell</c> (không phân biệt hoa thường) hoặc số 0/1/2.</summary>
     private static ScopeType? ParseScopeType(string? value, bool allowNull)
     {

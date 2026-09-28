@@ -23,12 +23,6 @@ public class PartyCell : IAuditableEntity, ISoftDeletable
     /// <summary>Thứ tự hiển thị trong danh mục (nhỏ đứng trước)</summary>
     public int SortOrder { get; set; }
 
-    /// <summary>Mã cán bộ giữ chức vụ Bí thư Chi bộ — chỉ để hiển thị trên biểu mẫu, không dùng để phân quyền</summary>
-    public Guid? SecretaryId { get; set; }
-
-    /// <summary>Mã cán bộ giữ chức vụ Phó Bí thư Chi bộ — chỉ để hiển thị trên biểu mẫu, không dùng để phân quyền</summary>
-    public Guid? DeputySecretaryId { get; set; }
-
     /// <summary>Trạng thái hoạt động</summary>
     public bool IsActive { get; set; } = true;
 

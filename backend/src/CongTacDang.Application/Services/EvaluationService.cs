@@ -102,7 +102,7 @@ public class EvaluationService : IEvaluationService
         {
             var cellRecords = records.Where(r => r.Member?.PartyCellId == cell.Id || r.PartyCellId == cell.Id).ToList();
 
-            // Mức đề xuất trước quyết định: thẩm định → tập thể lãnh đạo → (dữ liệu cũ) Chi bộ.
+            // Mức đề xuất trước quyết định: thẩm định → tập thể lãnh đạo.
             int goodOrBetter = cellRecords.Count(r => ProposedGrade(r) is EvaluationGrade.HoanThanhXuatSac or EvaluationGrade.HoanThanhTot);
             int maxAllowed = EvaluationScoring.ExcellentQuota(goodOrBetter, parameters);
             int proposedExcellent = cellRecords.Count(r => ProposedGrade(r) == EvaluationGrade.HoanThanhXuatSac);
@@ -126,18 +126,9 @@ public class EvaluationService : IEvaluationService
         return result;
     }
 
-    /// <summary>
-    /// Mức đề xuất dùng kiểm soát trần (giữ thứ tự ưu tiên cũ: thẩm định trước; sau đó đề xuất tập thể lãnh đạo — trường mới
-    /// thay chỗ mức Chi bộ đề xuất cũ; hồ sơ cũ chưa có thì dùng mức Chi bộ cũ).
-    /// </summary>
-    public static EvaluationGrade ProposedGrade(EvaluationRecord r)
-    {
-        if (r.AppraisalProposedGrade != EvaluationGrade.ChuaXepLoai)
-            return r.AppraisalProposedGrade;
-        if (r.CollectiveProposedGrade != EvaluationGrade.ChuaXepLoai)
-            return r.CollectiveProposedGrade;
-        return r.PartyCellProposedGrade;
-    }
+    /// <summary>Mức đề xuất dùng kiểm soát trần: mức thẩm định; chưa thẩm định thì mức đề xuất của tập thể lãnh đạo.</summary>
+    public static EvaluationGrade ProposedGrade(EvaluationRecord r) =>
+        r.AppraisalProposedGrade != EvaluationGrade.ChuaXepLoai ? r.AppraisalProposedGrade : r.CollectiveProposedGrade;
 
     private async Task<EvaluationRecordDto> MapAsync(EvaluationRecord record, CancellationToken ct)
     {

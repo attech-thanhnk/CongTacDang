@@ -6,20 +6,22 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 using CongTacDang.Application.Accounts;
 using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Security;
+using CongTacDang.Application.Services;
 using CongTacDang.Infrastructure.Repositories;
 
 namespace CongTacDang.Infrastructure.Data;
 
 /// <summary>
 /// Khởi tạo dữ liệu nền: danh mục quyền (từ <see cref="PermissionCodes"/>), vai trò mặc định
-/// (docs/thiet-ke/phan-quyen.md mục 6 — ĐỀ XUẤT, chờ nghiệp vụ xác nhận)
+/// (docs/thiet-ke/phan-quyen.md mục 6 — ĐỀ XUẤT, chờ nghiệp vụ xác nhận), tài khoản quản trị ban đầu
 /// và dữ liệu mẫu khi bật <c>Database:SeedSampleData</c>.
 /// <para>
-/// Đây là nơi <b>duy nhất</b> biết mã vai trò (<see cref="AppRole.Code"/>) — chỉ để tìm vai trò mặc định; logic phân quyền
-/// chỉ dùng mã quyền.
+/// Đây là nơi <b>duy nhất</b> biết mã vai trò (<see cref="AppRole.Code"/>): mã chỉ dùng để seeder nhận ra vai trò mặc định
+/// (đặt lại quyền, gán mẫu, chọn vai trò quản trị ban đầu); logic phân quyền chỉ dùng mã quyền.
 /// </para>
 /// </summary>
 public static class DataSeeder
@@ -39,10 +41,23 @@ public static class DataSeeder
         public override string ToString() => $"InitialAdminOptions {{ Username = {Username}, FullName = {FullName} }}";
     }
 
+    /// <summary>Cấu hình dữ liệu mẫu (<c>Database:SeedSampleData</c>, <c>Seed:SamplePassword</c>).</summary>
+    /// <param name="Enabled">Tạo dữ liệu mẫu (chỉ môi trường thử nghiệm).</param>
+    /// <param name="Password">
+    /// Mật khẩu tạm chung của tài khoản mẫu. Trống → sinh ngẫu nhiên và ghi log mức Warning đúng một lần khi tạo.
+    /// </param>
+    /// <param name="PasswordMinLength">Độ dài tối thiểu mật khẩu (<c>Security:Password:MinLength</c>).</param>
+    public sealed record SampleDataOptions(bool Enabled, string? Password = null,
+        int PasswordMinLength = PasswordPolicy.DefaultMinLength)
+    {
+        /// <summary>Không in mật khẩu khi ghi log/đối tượng.</summary>
+        public override string ToString() => $"SampleDataOptions {{ Enabled = {Enabled} }}";
+    }
+
     /// <summary>Định nghĩa một vai trò mặc định và bộ quyền của nó.</summary>
     private sealed record RoleDefinition(string Code, string Name, string Description, string[] Permissions, bool IsProtected = false);
 
-    /// <summary>Mã vai trò mặc định (chỉ seeder dùng).</summary>
+    /// <summary>Mã nội bộ của vai trò mặc định (chỉ seeder dùng, không dùng để phân quyền).</summary>
     private static class RoleCodes
     {
         public const string Evaluatee = "NGUOI_DUOC_DANH_GIA";
@@ -54,19 +69,6 @@ public static class DataSeeder
         public const string PartyCommitteeMember = "CAP_UY_VIEN";
         public const string PartyOffice = "VAN_PHONG_DANG_UY";
         public const string Administrator = "QUAN_TRI_HE_THONG";
-
-        // Vai trò cũ (trước task 09) — chỉ dùng để nhận biết CSDL chưa có vai trò cấu hình mới. Gán vai trò cũ
-        // (bảng user_roles) được migration Wave4 chuyển thành bản gán Global của chính vai trò đó.
-        public const string LegacyCadre = "CAN_BO";
-        public const string LegacyCellSecretary = "BI_THU_CHI_BO";
-        public const string LegacyAppraisal = "TO_THAM_DINH";
-        public const string LegacyStandingCommittee = "BAN_THUONG_VU";
-        public const string LegacyBaseCommittee = "DANG_UY_CO_SO";
-
-        public static readonly string[] Legacy =
-        {
-            LegacyCadre, LegacyCellSecretary, LegacyAppraisal, LegacyStandingCommittee, LegacyBaseCommittee, Administrator
-        };
     }
 
     /// <summary>Quyền của vai trò quản trị hệ thống: <c>system.*</c>, <c>catalog.manage</c>, <c>attachment.general.manage</c>.</summary>
@@ -109,13 +111,13 @@ public static class DataSeeder
     };
 
     /// <summary>
-    /// Khởi tạo dữ liệu nền. Vai trò mặc định chỉ được tạo khi CSDL chưa có vai trò nào ngoài các vai trò cũ;
-    /// quyền của vai trò đã tồn tại không bị ghi đè trừ khi <paramref name="resetRolePermissions"/> = true (Database:ResetRolePermissions).
-    /// Không bao giờ gán lại vai trò cho người đã có bản gán (T-46).
+    /// Khởi tạo dữ liệu nền. Vai trò mặc định chỉ được tạo khi CSDL chưa có vai trò nào; quyền của vai trò đã tồn tại
+    /// không bị ghi đè trừ khi <paramref name="resetRolePermissions"/> = true (<c>Database:ResetRolePermissions</c>).
+    /// Dữ liệu mẫu chỉ được tạo trên CSDL chưa có tài khoản, Phòng, Chi bộ, kỳ đánh giá nào (không bao giờ gán lại vai trò).
     /// </summary>
     public static async Task SeedAsync(
         CongTacDangDbContext context,
-        bool seedSampleData = true,
+        SampleDataOptions? sampleData = null,
         bool resetRolePermissions = false,
         ILogger? logger = null,
         InitialAdminOptions? initialAdmin = null)
@@ -123,215 +125,17 @@ public static class DataSeeder
         // 1. Danh mục quyền: đồng bộ từ PermissionCodes (tạo mới, cập nhật tên/mô tả/phân hệ/thứ tự).
         await SyncPermissionCatalogAsync(context, logger);
 
-        // 2. Vai trò mặc định (chỉ khi chưa có vai trò nào ngoài vai trò cũ), vai trò quản trị được bảo vệ.
+        // 2. Vai trò mặc định (chỉ khi chưa có vai trò nào).
         await SeedDefaultRolesAsync(context, logger);
         if (resetRolePermissions)
             await ResetRolePermissionsAsync(context, logger);
 
         // 3. Dữ liệu mẫu (chỉ môi trường thử nghiệm).
-        if (seedSampleData)
-            await SeedSampleDataAsync(context, logger);
+        if (sampleData?.Enabled == true)
+            await SeedSampleDataAsync(context, sampleData, logger);
 
         // 4. Tài khoản quản trị ban đầu (độc lập với dữ liệu mẫu) — chỉ khi hệ thống chưa có quản trị nào.
         await SeedInitialAdministratorAsync(context, initialAdmin, logger);
-    }
-
-    /// <summary>Danh mục, tài khoản, bản gán, kỳ và hồ sơ đánh giá mẫu (<c>Database:SeedSampleData</c>).</summary>
-    private static async Task SeedSampleDataAsync(CongTacDangDbContext context, ILogger? logger)
-    {
-        // 4. Seed Chi bộ Đảng tại ATTECH
-        if (!await context.PartyCells.AnyAsync())
-        {
-            var cellKt = new PartyCell { Code = "CB-KT", Name = "Chi bộ Khối Kỹ thuật", Description = "Chi bộ phụ trách an toàn, điều hành kỹ thuật CNS, ATM" };
-            var cellSx = new PartyCell { Code = "CB-SX", Name = "Chi bộ Sản xuất công nghiệp", Description = "Chi bộ phụ trách Xưởng sản xuất thiết bị hàng không" };
-            var cellDv = new PartyCell { Code = "CB-DV", Name = "Chi bộ Dịch vụ kỹ thuật", Description = "Chi bộ phụ trách dịch vụ lắp đặt, bảo dưỡng" };
-            var cellVp = new PartyCell { Code = "CB-VP", Name = "Chi bộ Khối Văn phòng", Description = "Chi bộ phụ trách Kế hoạch, Tài chính, TCCB-LĐ" };
-
-            await context.PartyCells.AddRangeAsync(cellKt, cellSx, cellDv, cellVp);
-            await context.SaveChangesAsync();
-        }
-
-        // 5. Seed Phòng ban Chính quyền tại ATTECH
-        if (!await context.AdministrativeDepartments.AnyAsync())
-        {
-            var depKh = new AdministrativeDepartment { Code = "PH-KH", Name = "Phòng Kế hoạch", Description = "Phòng Kế hoạch đầu tư, dự án" };
-            var depTc = new AdministrativeDepartment { Code = "PH-TC", Name = "Phòng Tài chính - Kế toán", Description = "Phòng Tài chính kế toán công ty" };
-            var depTccb = new AdministrativeDepartment { Code = "PH-TCCB", Name = "Phòng Tổ chức cán bộ - Lao động", Description = "Phòng tham mưu tổ chức nhân sự, lao động tiền lương" };
-            var depXs = new AdministrativeDepartment { Code = "XUONG-SX", Name = "Xưởng Sản xuất thiết bị", Description = "Xưởng sản xuất công nghiệp cơ khí, điện tử" };
-
-            await context.AdministrativeDepartments.AddRangeAsync(depKh, depTc, depTccb, depXs);
-            await context.SaveChangesAsync();
-        }
-
-        // 6. Seed Cán bộ / Đảng viên mẫu (vai trò gán ở bước 7 qua bản gán có phạm vi)
-        await SeedSampleUsersAsync(context);
-
-        // 7. Gán vai trò mẫu kèm phạm vi — chỉ cho tài khoản mẫu chưa có bản gán nào (T-46)
-        await SeedSampleAssignmentsAsync(context, logger);
-
-        // 8. Seed Kỳ đánh giá hiện hành (Quý III/2026) theo Hướng dẫn 03-HD/TVĐU
-        if (!await context.EvaluationPeriods.AnyAsync())
-        {
-            var periodQ3 = new EvaluationPeriod
-            {
-                Id = Guid.NewGuid(),
-                Year = 2026,
-                Quarter = EvaluationQuarter.Quy3,
-                Name = "Đánh giá, xếp loại cán bộ Quý III/2026",
-                StartDate = new DateTime(2026, 7, 1, 0, 0, 0, DateTimeKind.Utc),
-                EndDate = new DateTime(2026, 9, 30, 23, 59, 59, DateTimeKind.Utc),
-                // Task 12: kỳ mẫu "Đang mở", cấu hình "Đầy đủ theo HD03" (hồ sơ mẫu có danh mục Mẫu 01/02).
-                Status = PeriodStatus.Open,
-                Settings = CongTacDang.Domain.Evaluation.PeriodSettings.FullPreset().ToJson(),
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await context.EvaluationPeriods.AddAsync(periodQ3);
-            await context.SaveChangesAsync();
-
-            // 9. Seed Bảng đánh giá mẫu cho các cán bộ trong quý III/2026 (Loại trừ tài khoản admin kỹ thuật)
-            var members = await context.PartyMemberProfiles
-                .Where(m => m.Username != "admin")
-                .ToListAsync();
-
-            var records = new List<EvaluationRecord>();
-            int memberIndex = 0;
-            foreach (var member in members)
-            {
-                memberIndex++;
-                bool isKeyLeader = memberIndex <= 3; // Lãnh đạo chủ chốt
-                var record = new EvaluationRecord
-                {
-                    Id = Guid.NewGuid(),
-                    PeriodId = periodQ3.Id,
-                    MemberId = member.Id,
-                    PartyCellId = member.PartyCellId,
-                    DepartmentId = member.DepartmentId,
-                    JobGroup = member.JobGroup,
-                    ApprovalAuthority = member.ApprovalAuthority,
-                    GeneralScoreT1 = 4.8,
-                    GeneralScoreT2 = 4.9,
-                    GeneralScoreT3 = 4.8,
-                    GeneralScoreT4 = 4.8,
-                    GeneralScoreT5 = 4.7,
-                    GeneralScoreT6 = 4.9,
-                    GeneralCriteriaScore = 28.9,
-                    TasksScore = isKeyLeader ? 68.5 : 64.0,
-                    TotalSelfScore = isKeyLeader ? 97.4 : 92.9,
-                    SelfProposedGrade = EvaluationGrade.HoanThanhXuatSac,
-                    SelfScoreForm = CongTacDang.Domain.Evaluation.PeriodSettings.Form09A,
-                    SelfScoredAt = new DateTime(2026, 9, 10, 2, 0, 0, DateTimeKind.Utc),
-                    // Task 12: Chi bộ xác nhận phiếu tự chấm; đề xuất của tập thể lãnh đạo (trước là mức Chi bộ đề xuất tại hội nghị).
-                    PartyCellComment = "Đồng chí luôn gương mẫu trong công tác lãnh đạo, hoàn thành tốt nhiệm vụ chính trị và chuyên môn được giao.",
-                    CellConfirmedByName = "Chi ủy Chi bộ (dữ liệu mẫu)",
-                    CellConfirmedAt = new DateTime(2026, 9, 11, 2, 0, 0, DateTimeKind.Utc),
-                    CollectiveProposedGrade = isKeyLeader ? EvaluationGrade.HoanThanhXuatSac : EvaluationGrade.HoanThanhTot,
-                    CollectiveComment = "Tập thể lãnh đạo thống nhất đề xuất (kết quả kiểm phiếu mẫu).",
-                    CollectiveRecordedByName = "Thư ký tập thể (dữ liệu mẫu)",
-                    CollectiveRecordedAt = new DateTime(2026, 9, 11, 8, 0, 0, DateTimeKind.Utc),
-                    AppraisalScore = isKeyLeader ? 97.0 : 92.5,
-                    AppraisalComment = "Hồ sơ đầy đủ minh chứng hợp lệ theo Hướng dẫn 03-HD/TVĐU.",
-                    AppraisalProposedGrade = isKeyLeader ? EvaluationGrade.HoanThanhXuatSac : EvaluationGrade.HoanThanhTot,
-                    AppraisedByName = "Phòng TCCB-LĐ (dữ liệu mẫu)",
-                    AppraisedAt = new DateTime(2026, 9, 13, 2, 0, 0, DateTimeKind.Utc),
-                    // Đã thẩm định → chờ cấp trực tiếp sử dụng nhận xét (trước task 12: "Reviewed").
-                    Status = RecordStatus.AwaitingDirectorReview,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                // 4 nhiệm vụ với tổng trọng số đúng bằng 70.0
-                record.Tasks = new List<EvaluationTask>
-                {
-                    new()
-                    {
-                        Id = Guid.NewGuid(),
-                        RecordId = record.Id,
-                        TaskOrder = 1,
-                        TaskName = "Chỉ đạo, điều hành thực hiện nhiệm vụ chuyên môn và kế hoạch sản xuất kinh doanh quý III/2026",
-                        TargetOutput = "Hoàn thành 100% chỉ tiêu kế hoạch quý, không để xảy ra sai sót kỹ thuật",
-                        Weight = 20.0,
-                        Deadline = new DateTime(2026, 9, 30, 0, 0, 0, DateTimeKind.Utc),
-                        CriteriaA_Ratio = 1.0,
-                        CriteriaB_Ratio = 1.0,
-                        CriteriaC_Ratio = 1.0,
-                        CriteriaD_Ratio = 1.0,
-                        SelfScore = 20.0,
-                        SupervisorScore = 20.0,
-                        IsExceedStandard = isKeyLeader
-                    },
-                    new()
-                    {
-                        Id = Guid.NewGuid(),
-                        RecordId = record.Id,
-                        TaskOrder = 2,
-                        TaskName = "Tổ chức kiểm tra, giám sát chất lượng và an toàn kỹ thuật CNS/ATM",
-                        TargetOutput = "100% trang thiết bị hoạt động ổn định, đạt tiêu chuẩn ICAO và VATM",
-                        Weight = 20.0,
-                        Deadline = new DateTime(2026, 9, 25, 0, 0, 0, DateTimeKind.Utc),
-                        CriteriaA_Ratio = 1.0,
-                        CriteriaB_Ratio = 1.0,
-                        CriteriaC_Ratio = 1.0,
-                        CriteriaD_Ratio = 0.95,
-                        SelfScore = 19.8,
-                        SupervisorScore = 19.8,
-                        IsExceedStandard = false
-                    },
-                    new()
-                    {
-                        Id = Guid.NewGuid(),
-                        RecordId = record.Id,
-                        TaskOrder = 3,
-                        TaskName = "Đẩy mạnh ứng dụng chuyển đổi số và chuẩn hóa quy trình công tác Đảng",
-                        TargetOutput = "Vận hành hệ thống số hóa đánh giá cán bộ theo Hướng dẫn 03-HD/TVĐU",
-                        Weight = 15.0,
-                        Deadline = new DateTime(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc),
-                        CriteriaA_Ratio = 1.0,
-                        CriteriaB_Ratio = 1.0,
-                        CriteriaC_Ratio = 1.0,
-                        CriteriaD_Ratio = 1.0,
-                        SelfScore = 15.0,
-                        SupervisorScore = 15.0,
-                        IsExceedStandard = isKeyLeader
-                    },
-                    new()
-                    {
-                        Id = Guid.NewGuid(),
-                        RecordId = record.Id,
-                        TaskOrder = 4,
-                        TaskName = "Công tác xây dựng Đảng, duy trì nền nếp sinh hoạt Chi bộ và nêu gương cán bộ",
-                        TargetOutput = "Sinh hoạt Chi bộ định kỳ đầy đủ, 100% đảng viên hoàn thành chức trách",
-                        Weight = 15.0,
-                        Deadline = new DateTime(2026, 9, 30, 0, 0, 0, DateTimeKind.Utc),
-                        CriteriaA_Ratio = 1.0,
-                        CriteriaB_Ratio = 0.95,
-                        CriteriaC_Ratio = 1.0,
-                        CriteriaD_Ratio = 0.95,
-                        SelfScore = 14.5,
-                        SupervisorScore = 14.5,
-                        IsExceedStandard = false
-                    }
-                };
-
-                records.Add(record);
-            }
-
-            await context.EvaluationRecords.AddRangeAsync(records);
-            await context.SaveChangesAsync();
-        }
-
-        // 10. Đảm bảo dọn sạch hồ sơ đánh giá của admin nếu đã từng tồn tại trong CSDL trước đây
-        var adminProfile = await context.PartyMemberProfiles.FirstOrDefaultAsync(u => u.Username == "admin");
-        if (adminProfile != null)
-        {
-            var adminEvaluationRecords = await context.EvaluationRecords
-                .Where(r => r.MemberId == adminProfile.Id)
-                .ToListAsync();
-            if (adminEvaluationRecords.Any())
-            {
-                context.EvaluationRecords.RemoveRange(adminEvaluationRecords);
-                await context.SaveChangesAsync();
-            }
-        }
     }
 
     #region Quản trị ban đầu
@@ -383,13 +187,13 @@ public static class DataSeeder
             return;
         }
 
-        var role = await context.Roles
+        var candidates = await context.Roles
             .Include(r => r.Permissions)
             .Where(r => r.IsProtected)
             .OrderBy(r => r.Code == RoleCodes.Administrator ? 0 : 1)
             .ThenBy(r => r.CreatedAt)
             .ToListAsync();
-        var adminRole = role.FirstOrDefault(r =>
+        var adminRole = candidates.FirstOrDefault(r =>
             AdministratorInvariant.Codes.All(code => r.Permissions.Any(p => p.Code == code && !p.IsDeleted)));
         if (adminRole == null)
         {
@@ -409,7 +213,7 @@ public static class DataSeeder
             MustChangePassword = true,
             IsActive = true,
             IsPartyMember = false,
-            SecurityStamp = Guid.NewGuid().ToString("N"),
+            SecurityStamp = UserAccountService.NewSecurityStamp(),
             ApprovalAuthority = ApprovalAuthority.CoSo
         };
         context.PartyMemberProfiles.Add(admin);
@@ -442,9 +246,6 @@ public static class DataSeeder
         for (var index = 0; index < PermissionCodes.Definitions.Count; index++)
         {
             var definition = PermissionCodes.Definitions[index];
-            var action = definition.Code.StartsWith(definition.Module + ".", StringComparison.Ordinal)
-                ? definition.Code[(definition.Module.Length + 1)..]
-                : definition.Code;
             var permission = existing.FirstOrDefault(p => p.Code == definition.Code);
             if (permission == null)
             {
@@ -452,8 +253,6 @@ public static class DataSeeder
                 {
                     Code = definition.Code,
                     Name = definition.Name,
-                    Resource = definition.Module,
-                    Action = action,
                     Description = definition.Description,
                     Module = definition.Module,
                     SortOrder = index
@@ -465,8 +264,6 @@ public static class DataSeeder
             if (permission.Name != definition.Name) permission.Name = definition.Name;
             if (permission.Description != definition.Description) permission.Description = definition.Description;
             if (permission.Module != definition.Module) permission.Module = definition.Module;
-            if (permission.Resource != definition.Module) permission.Resource = definition.Module;
-            if (permission.Action != action) permission.Action = action;
             if (permission.SortOrder != index) permission.SortOrder = index;
             if (permission.IsDeleted)
             {
@@ -483,71 +280,30 @@ public static class DataSeeder
     }
 
     /// <summary>
-    /// Tạo vai trò mặc định (mục 6 thiết kế) chỉ khi CSDL chưa có vai trò nào ngoài các vai trò cũ (trước task 09).
-    /// Vai trò quản trị (<c>QUAN_TRI_HE_THONG</c>) luôn được đánh dấu bảo vệ; lần đầu đánh dấu thì bổ sung 2 quyền quản trị bắt buộc.
-    /// Không bao giờ ghi đè quyền của vai trò đã tồn tại.
+    /// Tạo vai trò mặc định (mục 6 thiết kế) khi CSDL chưa có vai trò nào (kể cả đã xóa). Vai trò quản trị được bảo vệ.
+    /// Không bao giờ ghi đè vai trò đã tồn tại.
     /// </summary>
     private static async Task SeedDefaultRolesAsync(CongTacDangDbContext context, ILogger? logger)
     {
-        var roles = await context.Roles.IgnoreQueryFilters().Include(r => r.Permissions).ToListAsync();
+        if (await context.Roles.IgnoreQueryFilters().AnyAsync())
+            return;
+
         var permissions = await context.Permissions.ToDictionaryAsync(p => p.Code);
-
-        var hasConfiguredRoles = roles.Any(r => !RoleCodes.Legacy.Contains(r.Code));
-        if (!hasConfiguredRoles)
+        foreach (var definition in DefaultRoles)
         {
-            var existingCodes = roles.Select(r => r.Code).ToHashSet(StringComparer.Ordinal);
-            var createdNames = new List<string>();
-            foreach (var definition in DefaultRoles.Where(d => !existingCodes.Contains(d.Code)))
+            context.Roles.Add(new AppRole
             {
-                var role = new AppRole
-                {
-                    Code = definition.Code,
-                    Name = UniqueName(definition.Name, roles),
-                    Description = definition.Description,
-                    IsSystem = true,
-                    IsProtected = definition.IsProtected,
-                    Permissions = definition.Permissions.Where(permissions.ContainsKey).Select(code => permissions[code]).ToList()
-                };
-                context.Roles.Add(role);
-                roles.Add(role);
-                createdNames.Add(role.Name);
-            }
-
-            if (createdNames.Count > 0)
-            {
-                await context.SaveChangesAsync();
-                logger?.LogInformation("Đã tạo vai trò mặc định: {Roles}", string.Join(", ", createdNames));
-            }
+                Code = definition.Code,
+                Name = definition.Name,
+                Description = definition.Description,
+                IsSystem = true,
+                IsProtected = definition.IsProtected,
+                Permissions = definition.Permissions.Where(permissions.ContainsKey).Select(code => permissions[code]).ToList()
+            });
         }
 
-        // Vai trò quản trị luôn được bảo vệ (chốt "vai trò bảo vệ").
-        var administrator = roles.FirstOrDefault(r => r.Code == RoleCodes.Administrator && !r.IsDeleted);
-        if (administrator != null && !administrator.IsProtected)
-        {
-            administrator.IsProtected = true;
-            foreach (var code in AdministratorInvariant.Codes.Concat(AdministratorPermissionCodes).Distinct())
-            {
-                if (permissions.TryGetValue(code, out var permission) && administrator.Permissions.All(p => p.Code != code))
-                    administrator.Permissions.Add(permission);
-            }
-
-            await context.SaveChangesAsync();
-            logger?.LogInformation("Đã đánh dấu vai trò {Role} là vai trò được bảo vệ.", administrator.Name);
-        }
-    }
-
-    /// <summary>Tên vai trò chưa trùng với vai trò chưa xóa (tên phải duy nhất).</summary>
-    private static string UniqueName(string name, IEnumerable<AppRole> roles)
-    {
-        var used = roles.Where(r => !r.IsDeleted).Select(r => r.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (!used.Contains(name))
-            return name;
-        for (var i = 2; ; i++)
-        {
-            var candidate = $"{name} ({i})";
-            if (!used.Contains(candidate))
-                return candidate;
-        }
+        await context.SaveChangesAsync();
+        logger?.LogInformation("Đã tạo vai trò mặc định: {Roles}", string.Join(", ", DefaultRoles.Select(r => r.Name)));
     }
 
     /// <summary>Đặt lại quyền của các vai trò mặc định về cấu hình mặc định (chỉ khi bật Database:ResetRolePermissions).</summary>
@@ -577,150 +333,302 @@ public static class DataSeeder
 
     #endregion
 
-    #region Bản gán vai trò
+    #region Dữ liệu mẫu
 
-    /// <summary>Tạo tài khoản mẫu (không gán vai trò — xem <see cref="SeedSampleAssignmentsAsync"/>).</summary>
-    private static async Task SeedSampleUsersAsync(CongTacDangDbContext context)
+    /// <summary>Một tài khoản mẫu kèm bản gán vai trò và trạng thái hồ sơ trong kỳ mẫu (null = không được đánh giá).</summary>
+    private sealed record SampleAccount(
+        string Username, string FullName, string Department, string? PartyCell, PartyRole PartyRole,
+        AdministrativePosition Position, string Title, JobGroup JobGroup, ApprovalAuthority Authority,
+        (string Role, RoleScopeType Scope)[] Roles, RecordStatus? RecordStatus);
+
+    /// <summary>Phòng/đơn vị mẫu (mã, tên, mô tả).</summary>
+    private static readonly (string Code, string Name, string Description)[] SampleDepartments =
     {
-        var cellKt = await context.PartyCells.FirstAsync(x => x.Code == "CB-KT");
-        var cellVp = await context.PartyCells.FirstAsync(x => x.Code == "CB-VP");
-        var depKh = await context.AdministrativeDepartments.FirstAsync(x => x.Code == "PH-KH");
-        var depTccb = await context.AdministrativeDepartments.FirstAsync(x => x.Code == "PH-TCCB");
-        var existing = await context.PartyMemberProfiles.IgnoreQueryFilters().Select(u => u.Username).ToListAsync();
-        var isEmpty = existing.Count == 0;
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword("123456");
+        ("BGD", "Ban Giám đốc", "Lãnh đạo Công ty"),
+        ("PH-KT", "Phòng Kỹ thuật", "Quản lý kỹ thuật CNS/ATM"),
+        ("PH-KH", "Phòng Kế hoạch - Kinh doanh", "Kế hoạch, đầu tư, kinh doanh"),
+        ("PH-TCCB", "Phòng Tổ chức cán bộ - Lao động", "Tham mưu tổ chức, nhân sự, lao động tiền lương")
+    };
 
-        var samples = new List<PartyMemberProfile>
-        {
-            new()
-            {
-                Username = "admin", PasswordHash = passwordHash, MustChangePassword = true,
-                FullName = "Quản trị viên Hệ thống", Email = "admin@attech.com.vn", PhoneNumber = "0900000000",
-                IsPartyMember = true, PartyCardNumber = "ADMIN-001", PartyCellId = cellVp.Id, PartyRole = PartyRole.DangVien,
-                DepartmentId = depKh.Id, AdminPosition = AdministrativePosition.ChuyenVien, PositionTitle = "Quản trị viên Hệ thống CNTT",
-                JobGroup = JobGroup.Khung4_KhcnChuyenDoiSo, ApprovalAuthority = ApprovalAuthority.CoSo
-            },
-            new()
-            {
-                Username = "bithu_attech", PasswordHash = passwordHash, MustChangePassword = true,
-                FullName = "Lê Tiến Thịnh", Email = "thinhlt@attech.com.vn", PhoneNumber = "0912345678",
-                IsPartyMember = true, PartyCardNumber = "ATTECH-001", PartyCellId = cellVp.Id, PartyRole = PartyRole.BiThuDangUy,
-                DepartmentId = depKh.Id, AdminPosition = AdministrativePosition.GiamDoc, PositionTitle = "Bí thư Đảng ủy, Giám đốc Công ty",
-                JobGroup = JobGroup.Khung1_QuanLyDangDoanThe, ApprovalAuthority = ApprovalAuthority.CapTren
-            },
-            new()
-            {
-                Username = "bithu_cbkt", PasswordHash = passwordHash, MustChangePassword = true,
-                FullName = "Nguyễn Văn Hùng", Email = "hungnv@attech.com.vn", PhoneNumber = "0987654321",
-                IsPartyMember = true, PartyCardNumber = "ATTECH-002", PartyCellId = cellKt.Id, PartyRole = PartyRole.BiThuChiBo,
-                DepartmentId = depKh.Id, AdminPosition = AdministrativePosition.TruongPhong, PositionTitle = "Bí thư Chi bộ, Trưởng phòng Kỹ thuật",
-                JobGroup = JobGroup.Khung2_AnToanKyThuat, ApprovalAuthority = ApprovalAuthority.CoSo
-            },
-            new()
-            {
-                Username = "canbo_kt", PasswordHash = passwordHash, MustChangePassword = true,
-                FullName = "Trần Quốc Tuấn", Email = "tuantq@attech.com.vn", PhoneNumber = "0901234567",
-                IsPartyMember = true, PartyCardNumber = "ATTECH-003", PartyCellId = cellKt.Id, PartyRole = PartyRole.DangVien,
-                DepartmentId = depKh.Id, AdminPosition = AdministrativePosition.PhoTruongPhong, PositionTitle = "Phó Trưởng phòng Kỹ thuật",
-                JobGroup = JobGroup.Khung2_AnToanKyThuat, ApprovalAuthority = ApprovalAuthority.CoSo
-            },
-            new()
-            {
-                Username = "thamdinh_du", PasswordHash = passwordHash, MustChangePassword = true,
-                FullName = "Vũ Đình Hùng", Email = "hungvd@attech.com.vn", PhoneNumber = "0934567890",
-                IsPartyMember = true, PartyCardNumber = "ATTECH-004", PartyCellId = cellVp.Id, PartyRole = PartyRole.DangUyVien,
-                DepartmentId = depTccb.Id, AdminPosition = AdministrativePosition.TruongPhong, PositionTitle = "Trưởng Ban TCCB, Tổ trưởng Tổ Thẩm định",
-                JobGroup = JobGroup.Khung1_QuanLyDangDoanThe, ApprovalAuthority = ApprovalAuthority.CoSo
-            }
-        };
-
-        // CSDL trống: tạo đủ tài khoản mẫu. CSDL đã có dữ liệu: chỉ bảo đảm tài khoản quản trị và thẩm định mẫu tồn tại
-        // (kể cả đã xóa mềm thì không tạo lại — tên đăng nhập không tái sử dụng).
-        var toCreate = isEmpty
-            ? samples
-            : samples.Where(u => (u.Username == "admin" || u.Username == "thamdinh_du") && !existing.Contains(u.Username)).ToList();
-        if (toCreate.Count == 0)
-            return;
-
-        await context.PartyMemberProfiles.AddRangeAsync(toCreate);
-        await context.SaveChangesAsync();
-    }
+    /// <summary>Chi bộ mẫu (mã, tên, mô tả).</summary>
+    private static readonly (string Code, string Name, string Description)[] SampleCells =
+    {
+        ("CB-KT", "Chi bộ Khối Kỹ thuật", "Chi bộ các phòng kỹ thuật"),
+        ("CB-VP", "Chi bộ Khối Văn phòng", "Chi bộ Ban Giám đốc và các phòng tham mưu")
+    };
 
     /// <summary>
-    /// Gán vai trò mẫu kèm phạm vi hợp lý cho tài khoản mẫu — <b>chỉ</b> tài khoản chưa từng có bản gán nào
-    /// (kể cả đã xóa/hết hạn), để không gán lại vai trò quản trị đã thu hồi (T-46).
+    /// Tài khoản mẫu. Phạm vi <see cref="RoleScopeType.Department"/>/<see cref="RoleScopeType.PartyCell"/> lấy theo Phòng/Chi bộ
+    /// của chính tài khoản. Trạng thái hồ sơ theo mẫu kỳ "Quý III/2026 — chuyển tiếp" (không có bước B1).
     /// </summary>
-    private static async Task SeedSampleAssignmentsAsync(CongTacDangDbContext context, ILogger? logger)
+    private static readonly SampleAccount[] SampleAccounts =
     {
-        var cellKt = await context.PartyCells.FirstOrDefaultAsync(x => x.Code == "CB-KT");
-        var depKh = await context.AdministrativeDepartments.FirstOrDefaultAsync(x => x.Code == "PH-KH");
+        new("admin", "Quản trị hệ thống (mẫu)", "PH-KH", null, PartyRole.DangVien, AdministrativePosition.ChuyenVien,
+            "Chuyên viên CNTT", JobGroup.Khung4_KhcnChuyenDoiSo, ApprovalAuthority.CoSo,
+            new[] { (RoleCodes.Administrator, RoleScopeType.Global) }, null),
+        new("giamdoc", "Lê Tiến Thịnh", "BGD", "CB-VP", PartyRole.BiThuDangUy, AdministrativePosition.GiamDoc,
+            "Bí thư Đảng ủy, Giám đốc Công ty", JobGroup.Khung1_QuanLyDangDoanThe, ApprovalAuthority.CapTren,
+            new[] { (RoleCodes.Evaluatee, RoleScopeType.Global), (RoleCodes.DirectSupervisor, RoleScopeType.Global) },
+            RecordStatus.Published),
+        new("vanphong", "Phạm Thu Hà", "PH-KH", "CB-VP", PartyRole.DangVien, AdministrativePosition.ChuyenVien,
+            "Chuyên viên Văn phòng Đảng ủy", JobGroup.Khung1_QuanLyDangDoanThe, ApprovalAuthority.CoSo,
+            new[] { (RoleCodes.PartyOffice, RoleScopeType.Global), (RoleCodes.PartyCommitteeMember, RoleScopeType.Global) }, null),
+        new("thamdinh", "Vũ Đình Hùng", "PH-TCCB", "CB-VP", PartyRole.DangUyVien, AdministrativePosition.TruongPhong,
+            "Trưởng phòng Tổ chức cán bộ - Lao động", JobGroup.Khung1_QuanLyDangDoanThe, ApprovalAuthority.CoSo,
+            new[] { (RoleCodes.Evaluatee, RoleScopeType.Global), (RoleCodes.Appraisal, RoleScopeType.Global) },
+            RecordStatus.AwaitingDirectorReview),
+        new("truongphong.kt", "Nguyễn Văn Hùng", "PH-KT", "CB-KT", PartyRole.ChiUyVien, AdministrativePosition.TruongPhong,
+            "Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat, ApprovalAuthority.CoSo,
+            new[] { (RoleCodes.Evaluatee, RoleScopeType.Global), (RoleCodes.DepartmentLeader, RoleScopeType.Department) },
+            RecordStatus.AwaitingAppraisal),
+        new("bithu.kt", "Trần Minh Đức", "PH-KT", "CB-KT", PartyRole.BiThuChiBo, AdministrativePosition.PhoTruongPhong,
+            "Bí thư Chi bộ, Phó Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat, ApprovalAuthority.CoSo,
+            new[] { (RoleCodes.Evaluatee, RoleScopeType.Global), (RoleCodes.CellCommittee, RoleScopeType.PartyCell) },
+            RecordStatus.AwaitingCollective),
+        new("thuky.kt", "Đỗ Thị Lan", "PH-KT", "CB-KT", PartyRole.DangVien, AdministrativePosition.ChuyenVien,
+            "Chuyên viên, Thư ký tập thể lãnh đạo Phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat, ApprovalAuthority.CoSo,
+            new[] { (RoleCodes.CollectiveSecretary, RoleScopeType.Department) }, null),
+        new("canbo.kt1", "Trần Quốc Tuấn", "PH-KT", "CB-KT", PartyRole.DangVien, AdministrativePosition.PhoTruongPhong,
+            "Phó Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat, ApprovalAuthority.CoSo,
+            new[] { (RoleCodes.Evaluatee, RoleScopeType.Global) }, RecordStatus.AwaitingSelfScore),
+        new("canbo.kt2", "Hoàng Văn Nam", "PH-KT", "CB-KT", PartyRole.DangVien, AdministrativePosition.PhoTruongPhong,
+            "Phó Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat, ApprovalAuthority.CoSo,
+            new[] { (RoleCodes.Evaluatee, RoleScopeType.Global) }, RecordStatus.AwaitingCellConfirm)
+    };
+
+    /// <summary>
+    /// Dữ liệu mẫu dùng thử ngay theo mô hình hiện hành: Phòng, Chi bộ, tài khoản (bắt buộc đổi mật khẩu) kèm bản gán vai trò
+    /// có phạm vi, kỳ "Quý III/2026" (mẫu chuyển tiếp, đang mở) và hồ sơ ở nhiều bước khác nhau. Chỉ chạy trên CSDL chưa có
+    /// tài khoản, Phòng, Chi bộ, kỳ nào — không bao giờ gán lại vai trò cho người đã có.
+    /// </summary>
+    private static async Task SeedSampleDataAsync(CongTacDangDbContext context, SampleDataOptions options, ILogger? logger)
+    {
+        var hasData = await context.PartyMemberProfiles.IgnoreQueryFilters().AnyAsync()
+            || await context.PartyCells.IgnoreQueryFilters().AnyAsync()
+            || await context.AdministrativeDepartments.IgnoreQueryFilters().AnyAsync()
+            || await context.EvaluationPeriods.IgnoreQueryFilters().AnyAsync();
+        if (hasData)
+        {
+            logger?.LogInformation("Database:SeedSampleData: CSDL đã có dữ liệu nên không tạo dữ liệu mẫu.");
+            return;
+        }
+
+        var generated = string.IsNullOrEmpty(options.Password);
+        var password = generated ? UserAccountService.GenerateTemporaryPassword() : options.Password!;
+        try
+        {
+            new PasswordPolicy(options.PasswordMinLength).Validate(password);
+        }
+        catch (ValidationException ex)
+        {
+            logger?.LogError("Không tạo dữ liệu mẫu: Seed:SamplePassword không đạt chính sách mật khẩu ({Reason}).", ex.Message);
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        var departments = SampleDepartments
+            .Select((d, i) => new AdministrativeDepartment { Code = d.Code, Name = d.Name, Description = d.Description, SortOrder = i })
+            .ToDictionary(d => d.Code);
+        var cells = SampleCells
+            .Select((c, i) => new PartyCell { Code = c.Code, Name = c.Name, Description = c.Description, SortOrder = i })
+            .ToDictionary(c => c.Code);
+        context.AdministrativeDepartments.AddRange(departments.Values);
+        context.PartyCells.AddRange(cells.Values);
+
         var roles = await context.Roles.ToDictionaryAsync(r => r.Code, r => r.Id);
-
-        var plan = new Dictionary<string, (string Role, RoleScopeType Scope, Guid? ScopeId)[]>(StringComparer.Ordinal)
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
+        var members = new Dictionary<string, PartyMemberProfile>(StringComparer.Ordinal);
+        foreach (var sample in SampleAccounts)
         {
-            ["admin"] = new[] { (RoleCodes.Administrator, RoleScopeType.Global, (Guid?)null) },
-            ["bithu_attech"] = new[]
+            var department = departments[sample.Department];
+            var cell = sample.PartyCell == null ? null : cells[sample.PartyCell];
+            var member = new PartyMemberProfile
             {
-                (RoleCodes.Evaluatee, RoleScopeType.Global, (Guid?)null),
-                (RoleCodes.DirectSupervisor, RoleScopeType.Global, null),
-                (RoleCodes.PartyCommitteeMember, RoleScopeType.Global, null),
-                (RoleCodes.PartyOffice, RoleScopeType.Global, null)
-            },
-            ["bithu_cbkt"] = new[]
-            {
-                (RoleCodes.Evaluatee, RoleScopeType.Global, (Guid?)null),
-                (RoleCodes.CellCommittee, RoleScopeType.PartyCell, cellKt?.Id),
-                (RoleCodes.DepartmentLeader, RoleScopeType.Department, depKh?.Id)
-            },
-            ["canbo_kt"] = new[] { (RoleCodes.Evaluatee, RoleScopeType.Global, (Guid?)null) },
-            ["thamdinh_du"] = new[]
-            {
-                (RoleCodes.Evaluatee, RoleScopeType.Global, (Guid?)null),
-                (RoleCodes.Appraisal, RoleScopeType.Global, null)
-            }
-        };
+                Username = sample.Username,
+                FullName = sample.FullName,
+                Email = sample.Username.Replace('.', '_') + "@example.invalid",
+                PasswordHash = passwordHash,
+                MustChangePassword = true,
+                SecurityStamp = UserAccountService.NewSecurityStamp(),
+                IsPartyMember = cell != null,
+                PartyCardNumber = cell != null ? $"MAU-{members.Count + 1:000}" : null,
+                PartyCellId = cell?.Id,
+                PartyRole = sample.PartyRole,
+                DepartmentId = department.Id,
+                AdminPosition = sample.Position,
+                PositionTitle = sample.Title,
+                JobGroup = sample.JobGroup,
+                ApprovalAuthority = sample.Authority
+            };
+            members[sample.Username] = member;
+            context.PartyMemberProfiles.Add(member);
 
-        var usernames = plan.Keys.ToList();
-        var users = await context.PartyMemberProfiles
-            .Where(u => usernames.Contains(u.Username))
-            .Select(u => new { u.Id, u.Username })
-            .ToListAsync();
-        var userIds = users.Select(u => u.Id).ToList();
-        var alreadyAssigned = await context.Set<UserRoleAssignment>()
-            .IgnoreQueryFilters()
-            .Where(a => userIds.Contains(a.UserId))
-            .Select(a => a.UserId)
-            .Distinct()
-            .ToListAsync();
-
-        var count = 0;
-        foreach (var user in users.Where(u => !alreadyAssigned.Contains(u.Id)))
-        {
-            foreach (var (roleCode, scope, scopeId) in plan[user.Username])
+            foreach (var (roleCode, scope) in sample.Roles)
             {
                 if (!roles.TryGetValue(roleCode, out var roleId))
                     continue;
+                var scopeId = scope switch
+                {
+                    RoleScopeType.Department => department.Id,
+                    RoleScopeType.PartyCell => cell?.Id,
+                    _ => null
+                };
                 if (scope != RoleScopeType.Global && scopeId == null)
                     continue;
 
                 context.Set<UserRoleAssignment>().Add(new UserRoleAssignment
                 {
-                    UserId = user.Id,
+                    UserId = member.Id,
                     RoleId = roleId,
                     ScopeType = scope,
-                    ScopeId = scope == RoleScopeType.Global ? null : scopeId,
-                    ValidFrom = DateTime.UtcNow,
+                    ScopeId = scopeId,
+                    ValidFrom = now,
                     Note = "Gán mẫu (Database:SeedSampleData)."
                 });
-                count++;
             }
         }
 
-        if (count == 0)
-            return;
+        var settings = PeriodSettings.TransitionQ3Preset();
+        var period = new EvaluationPeriod
+        {
+            Year = 2026,
+            Quarter = EvaluationQuarter.Quy3,
+            Name = "Đánh giá, xếp loại cán bộ Quý III/2026",
+            StartDate = new DateTime(2026, 7, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 9, 30, 0, 0, 0, DateTimeKind.Utc),
+            Status = PeriodStatus.Open,
+            Settings = settings.ToJson(),
+            StatusChangedAt = now
+        };
+        context.EvaluationPeriods.Add(period);
+
+        foreach (var sample in SampleAccounts.Where(s => s.RecordStatus.HasValue))
+            AddSampleRecord(context, period, settings, members[sample.Username], sample.RecordStatus!.Value, now);
 
         await context.SaveChangesAsync();
-        logger?.LogInformation("Đã gán {Count} vai trò mẫu cho tài khoản mẫu chưa có bản gán.", count);
+
+        var usernames = string.Join(", ", SampleAccounts.Select(s => s.Username));
+        if (generated)
+        {
+            // Ghi đúng một lần, khi tạo: không lưu ở đâu khác; tài khoản bắt buộc đổi mật khẩu ở lần đăng nhập đầu.
+            logger?.LogWarning(
+                "Đã tạo dữ liệu mẫu (Database:SeedSampleData). Tài khoản mẫu: {Usernames}. Mật khẩu tạm chung (chỉ hiển thị lần này, "
+                + "phải đổi ở lần đăng nhập đầu): {SamplePassword}. Không bật dữ liệu mẫu trên CSDL thật.",
+                usernames, password);
+        }
+        else
+        {
+            logger?.LogWarning(
+                "Đã tạo dữ liệu mẫu (Database:SeedSampleData). Tài khoản mẫu: {Usernames}; mật khẩu tạm theo cấu hình Seed:SamplePassword, "
+                + "phải đổi ở lần đăng nhập đầu. Không bật dữ liệu mẫu trên CSDL thật.", usernames);
+        }
+    }
+
+    /// <summary>
+    /// Thêm hồ sơ mẫu đang chờ <paramref name="status"/>: ảnh chụp Phòng/Chi bộ/khung/cấp quyết định như khi thêm người vào kỳ,
+    /// điền dữ liệu của các bước đã qua và ghi lịch sử từng bước.
+    /// </summary>
+    private static void AddSampleRecord(
+        CongTacDangDbContext context, EvaluationPeriod period, PeriodSettings settings, PartyMemberProfile member,
+        RecordStatus status, DateTime now)
+    {
+        var record = new EvaluationRecord
+        {
+            PeriodId = period.Id,
+            MemberId = member.Id,
+            DepartmentId = member.DepartmentId,
+            PartyCellId = member.PartyCellId,
+            JobGroup = member.JobGroup,
+            ApprovalAuthority = member.ApprovalAuthority,
+            UpdatedAt = now
+        };
+
+        var enabled = settings.EnabledSteps();
+        var current = RecordStateMachine.Initial(enabled);
+        var at = new DateTime(2026, 9, 1, 2, 0, 0, DateTimeKind.Utc);
+        context.EvaluationRecordHistories.Add(new EvaluationRecordHistory
+        {
+            RecordId = record.Id, ToStatus = current, Action = WorkflowAction.Create,
+            ActorName = "Dữ liệu mẫu", Comment = "Thêm vào danh sách được đánh giá (dữ liệu mẫu).", CreatedAt = at
+        });
+
+        while (current != status)
+        {
+            var step = WorkflowSteps.StepOf(current)
+                ?? throw new InvalidOperationException($"Trạng thái mẫu {status} không đạt được theo cấu hình kỳ.");
+            at = at.AddDays(1);
+            FillStep(record, step, at);
+            var next = RecordStateMachine.NextAfter(step, enabled);
+            context.EvaluationRecordHistories.Add(new EvaluationRecordHistory
+            {
+                RecordId = record.Id, FromStatus = current, ToStatus = next, Step = step, Action = WorkflowAction.Complete,
+                ScoreAfter = record.EffectiveScore(), GradeAfter = record.EffectiveGrade(),
+                ActorName = "Dữ liệu mẫu", Comment = WorkflowSteps.DisplayName(step), CreatedAt = at
+            });
+            current = next;
+        }
+
+        record.Status = current;
+        context.EvaluationRecords.Add(record);
+    }
+
+    /// <summary>Điền dữ liệu hợp lệ của một bước đã hoàn thành (mẫu tự chấm 09B: 6 trục).</summary>
+    private static void FillStep(EvaluationRecord record, WorkflowStep step, DateTime at)
+    {
+        switch (step)
+        {
+            case WorkflowStep.B2_SELF_SCORE:
+                (record.GeneralScoreT1, record.GeneralScoreT2, record.GeneralScoreT3) = (4.5, 4.5, 4.5);
+                (record.GeneralScoreT4, record.GeneralScoreT5, record.GeneralScoreT6) = (4.5, 4.5, 4.5);
+                record.GeneralCriteriaScore = 27.0;
+                (record.AxisScoreT1, record.AxisScoreT2, record.AxisScoreT3) = (13.0, 9.0, 9.0);
+                (record.AxisScoreT4, record.AxisScoreT5, record.AxisScoreT6) = (13.0, 9.0, 9.0);
+                record.TasksScore = 62.0;
+                record.TotalSelfScore = 89.0;
+                record.SelfProposedGrade = EvaluationGrade.HoanThanhTot;
+                record.SelfScoreForm = PeriodSettings.Form09B;
+                record.SelfScoredAt = at;
+                break;
+            case WorkflowStep.B2_CELL_CONFIRM:
+                record.PartyCellComment = "Chi bộ xác nhận phiếu tự chấm đúng thực tế (dữ liệu mẫu).";
+                record.CellConfirmedByName = "Chi ủy Chi bộ (dữ liệu mẫu)";
+                record.CellConfirmedAt = at;
+                break;
+            case WorkflowStep.B3A_COLLECTIVE:
+                record.CollectiveProposedGrade = EvaluationGrade.HoanThanhTot;
+                record.CollectiveComment = "Tập thể lãnh đạo thống nhất đề xuất (dữ liệu mẫu).";
+                record.CollectiveRecordedByName = "Thư ký tập thể (dữ liệu mẫu)";
+                record.CollectiveRecordedAt = at;
+                break;
+            case WorkflowStep.B3B_APPRAISAL:
+                record.AppraisalScore = 88.5;
+                record.AppraisalComment = "Hồ sơ đầy đủ minh chứng theo Hướng dẫn 03-HD/TVĐU (dữ liệu mẫu).";
+                record.AppraisalProposedGrade = EvaluationGrade.HoanThanhTot;
+                record.AppraisedByName = "Cơ quan thẩm định (dữ liệu mẫu)";
+                record.AppraisedAt = at;
+                break;
+            case WorkflowStep.B3C_DIRECTOR:
+                record.DirectorComment = "Nhất trí với kết quả thẩm định (dữ liệu mẫu).";
+                record.DirectorProposedGrade = EvaluationGrade.HoanThanhTot;
+                record.DirectorReviewedByName = "Cấp trực tiếp sử dụng (dữ liệu mẫu)";
+                record.DirectorReviewedAt = at;
+                break;
+            case WorkflowStep.B4_DECISION:
+                record.FinalGrade = EvaluationGrade.HoanThanhTot;
+                record.FinalScore = record.AppraisalScore ?? record.TotalSelfScore;
+                record.DecisionDocumentNumber = "01-QĐ/MẪU";
+                record.DecisionDocumentDate = at;
+                record.DecisionAuthorityName = record.ApprovalAuthority == ApprovalAuthority.CapTren
+                    ? "Ban Thường vụ Đảng ủy Tổng công ty (dữ liệu mẫu)"
+                    : "Đảng ủy cơ sở (dữ liệu mẫu)";
+                record.DecisionRecordedByName = "Văn phòng Đảng ủy (dữ liệu mẫu)";
+                record.DecisionRecordedAt = at;
+                break;
+            case WorkflowStep.B5_PUBLISH:
+                record.PublishedByName = "Văn phòng Đảng ủy (dữ liệu mẫu)";
+                record.PublishedAt = at;
+                break;
+        }
     }
 
     #endregion

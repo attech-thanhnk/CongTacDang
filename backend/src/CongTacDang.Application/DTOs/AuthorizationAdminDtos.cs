@@ -167,13 +167,6 @@ public class UpdateRoleAssignmentRequestDto
     public string? Note { get; set; }
 }
 
-/// <summary>Yêu cầu (tương thích giao diện cũ) đặt tập vai trò Toàn công ty của người dùng.</summary>
-public class SetUserGlobalRolesRequestDto
-{
-    /// <summary>Id các vai trò cần có (phạm vi Toàn công ty).</summary>
-    public List<Guid> RoleIds { get; set; } = new();
-}
-
 /// <summary>Một quyền kèm phạm vi (dùng cho <c>/api/auth/me</c> — trường <c>grants</c>).</summary>
 public class AccessGrantDto
 {

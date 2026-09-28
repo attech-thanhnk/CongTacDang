@@ -78,6 +78,7 @@ namespace CongTacDang.Infrastructure.Data
                 entity.ToTable("party_member_profiles");
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Username).IsUnique();
+                // Thêm index unique lower("Username") — tạo bằng SQL trong migration InitialCreate (index biểu thức).
                 entity.HasIndex(e => e.PartyCellId);
                 entity.HasIndex(e => e.DepartmentId);
                 entity.HasIndex(e => e.IsActive);
@@ -105,7 +106,7 @@ namespace CongTacDang.Infrastructure.Data
             {
                 entity.ToTable("task_attachments");
                 entity.HasKey(e => e.Id);
-                entity.HasIndex(e => e.TaskId);
+                entity.HasIndex(e => e.RelatedId);
                 entity.HasIndex(e => e.RecordId);
                 entity.HasIndex(e => e.UploadedById);
                 entity.HasOne<PartyMemberProfile>()

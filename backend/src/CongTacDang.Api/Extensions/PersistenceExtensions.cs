@@ -57,7 +57,7 @@ public static class PersistenceExtensions
         var db = scope.ServiceProvider.GetRequiredService<CongTacDangDbContext>();
         var autoMigrate = app.Configuration.GetValue<bool?>("Database:AutoMigrate")
             ?? app.Environment.IsDevelopment();
-        var seedSampleData = app.Configuration.GetValue<bool>("Database:SeedSampleData");
+        var passwordMinLength = app.Configuration.GetValue("Security:Password:MinLength", PasswordPolicy.DefaultMinLength);
 
         try
         {
@@ -68,14 +68,17 @@ public static class PersistenceExtensions
 
             await DataSeeder.SeedAsync(
                 db,
-                seedSampleData,
+                new DataSeeder.SampleDataOptions(
+                    app.Configuration.GetValue<bool>("Database:SeedSampleData"),
+                    app.Configuration["Seed:SamplePassword"],
+                    passwordMinLength),
                 app.Configuration.GetValue<bool>("Database:ResetRolePermissions"),
                 app.Logger,
                 new DataSeeder.InitialAdminOptions(
                     app.Configuration["Seed:InitialAdmin:Username"],
                     app.Configuration["Seed:InitialAdmin:FullName"],
                     app.Configuration["Seed:InitialAdmin:Password"],
-                    app.Configuration.GetValue("Security:Password:MinLength", PasswordPolicy.DefaultMinLength)));
+                    passwordMinLength));
         }
         catch (Exception ex)
         {

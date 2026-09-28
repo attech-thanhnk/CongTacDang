@@ -59,9 +59,9 @@ public sealed class AccountFlowTests
         Assert.Equal(HttpStatusCode.BadRequest, badDepartment.StatusCode);
         Assert.Contains("Phòng", (await AccountTestFixture.ReadJsonAsync(badDepartment)).GetProperty("message").GetString());
 
-        // Route cũ /create là bí danh (bắt buộc có username).
-        var legacy = await admin.PostAsJsonAsync("/api/users/create", new { fullName = "Không có tên đăng nhập" });
-        Assert.Equal(HttpStatusCode.BadRequest, legacy.StatusCode);
+        // Thiếu tên đăng nhập → 400.
+        var noUsername = await admin.PostAsJsonAsync("/api/users", new { fullName = "Không có tên đăng nhập" });
+        Assert.Equal(HttpStatusCode.BadRequest, noUsername.StatusCode);
     }
 
     [SkippableFact]

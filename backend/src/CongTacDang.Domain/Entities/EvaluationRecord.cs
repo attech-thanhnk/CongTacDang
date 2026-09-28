@@ -133,9 +133,7 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 
     #region B2: Chi bộ xác nhận phiếu tự chấm
 
-    /// <summary>
-    /// Ý kiến xác nhận của Chi bộ trên phiếu tự chấm (task 12: <b>đổi nghĩa</b> — trước là nhận xét của Chi bộ tại hội nghị bỏ phiếu).
-    /// </summary>
+    /// <summary>Ý kiến xác nhận của Chi bộ trên phiếu tự chấm.</summary>
     public string PartyCellComment { get; set; } = string.Empty;
 
     /// <summary>Người xác nhận thay mặt Chi bộ.</summary>
@@ -146,28 +144,6 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 
     /// <summary>Thời điểm Chi bộ xác nhận ("Xác lập thời điểm" trên Mẫu 09x).</summary>
     public DateTime? CellConfirmedAt { get; set; }
-
-    #endregion
-
-    #region Dữ liệu cũ (trước task 12) — hội nghị Chi bộ bỏ phiếu; luồng mới không ghi, chỉ đọc để hiển thị dữ liệu cũ
-
-    /// <summary>[Dữ liệu cũ] Mức xếp loại do Chi bộ đề xuất tại hội nghị bỏ phiếu.</summary>
-    public EvaluationGrade PartyCellProposedGrade { get; set; } = EvaluationGrade.ChuaXepLoai;
-
-    /// <summary>[Dữ liệu cũ] Số phiếu Hoàn thành xuất sắc (Mẫu 13).</summary>
-    public int VotesExcellent { get; set; }
-
-    /// <summary>[Dữ liệu cũ] Số phiếu Hoàn thành tốt.</summary>
-    public int VotesGood { get; set; }
-
-    /// <summary>[Dữ liệu cũ] Số phiếu Hoàn thành.</summary>
-    public int VotesSatisfactory { get; set; }
-
-    /// <summary>[Dữ liệu cũ] Số phiếu Không hoàn thành.</summary>
-    public int VotesUnsatisfactory { get; set; }
-
-    /// <summary>[Dữ liệu cũ] Tổng số đảng viên tham gia bỏ phiếu.</summary>
-    public int TotalVoters { get; set; }
 
     #endregion
 
@@ -294,10 +270,10 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     public double EffectiveScore() =>
         FinalGrade != EvaluationGrade.ChuaXepLoai && FinalScore > 0 ? FinalScore : AppraisalScore ?? TotalSelfScore;
 
-    /// <summary>Mức hiệu lực: quyết định → cấp trực tiếp sử dụng → thẩm định → tập thể → (dữ liệu cũ) Chi bộ → tự đề xuất.</summary>
+    /// <summary>Mức hiệu lực: quyết định → cấp trực tiếp sử dụng → thẩm định → tập thể → tự đề xuất.</summary>
     public EvaluationGrade EffectiveGrade()
     {
-        foreach (var grade in new[] { FinalGrade, DirectorProposedGrade, AppraisalProposedGrade, CollectiveProposedGrade, PartyCellProposedGrade, SelfProposedGrade })
+        foreach (var grade in new[] { FinalGrade, DirectorProposedGrade, AppraisalProposedGrade, CollectiveProposedGrade, SelfProposedGrade })
         {
             if (grade != EvaluationGrade.ChuaXepLoai)
                 return grade;

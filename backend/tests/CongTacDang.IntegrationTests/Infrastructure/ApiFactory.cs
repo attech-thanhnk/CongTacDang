@@ -24,7 +24,7 @@ public sealed record TestUser(Guid Id, string Username, string Password, Guid Ro
 /// <list type="bullet">
 /// <item>Chuỗi kết nối quản trị đọc từ biến môi trường <c>CONGTACDANG_TEST_PG</c> (CSDL quản trị, tài khoản có CREATEDB).
 /// Thiếu biến → mọi test <b>skip</b> kèm lý do.</item>
-/// <item>Mỗi lần chạy tạo CSDL <c>ctd_it_&lt;yyyyMMddHHmmss&gt;_&lt;guid8&gt;</c>, <c>EnsureCreated</c>, seed tối thiểu
+/// <item>Mỗi lần chạy tạo CSDL <c>ctd_it_&lt;yyyyMMddHHmmss&gt;_&lt;guid8&gt;</c>, áp dụng migration, seed tối thiểu
 /// (vai trò + quyền qua DataSeeder), xóa CSDL khi xong; dọn CSDL <c>ctd_it_*</c> sót lại quá 24 giờ.</item>
 /// <item>Chỉ tạo/xóa CSDL đúng định dạng <c>ctd_it_*</c>; từ chối chuỗi kết nối trỏ tới <c>congtacdang_test</c>.</item>
 /// </list>
@@ -74,11 +74,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         var target = new NpgsqlConnectionStringBuilder(connectionString) { Database = DatabaseName };
         _targetConnectionString = target.ConnectionString;
 
-        // Tạo schema trực tiếp từ model (chưa cần migration), rồi khởi động host → DataSeeder tạo quyền + vai trò.
+        // Tạo schema bằng migration (như triển khai thật), rồi khởi động host → DataSeeder tạo quyền + vai trò.
         var options = new DbContextOptionsBuilder<CongTacDangDbContext>().UseNpgsql(_targetConnectionString).Options;
         await using (var db = new CongTacDangDbContext(options, new SystemCurrentUser()))
         {
-            await db.Database.EnsureCreatedAsync();
+            await db.Database.MigrateAsync();
         }
 
         _ = Server;
@@ -188,7 +188,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         var permissions = await db.Permissions.Where(p => distinct.Contains(p.Code)).ToListAsync();
         foreach (var missing in distinct.Except(permissions.Select(p => p.Code)))
         {
-            var permission = new Permission { Code = missing, Name = missing, Resource = "test", Action = "test" };
+            var permission = new Permission { Code = missing, Name = missing, Module = "test" };
             db.Permissions.Add(permission);
             permissions.Add(permission);
         }
@@ -256,6 +256,14 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CongTacDangDbContext>();
         return await db.Roles.Where(r => r.Code == roleCode).Select(r => r.Id).SingleAsync();
+    }
+
+    /// <summary>Id vai trò quản trị hệ thống mặc định (vai trò được bảo vệ duy nhất do seeder tạo).</summary>
+    public async Task<Guid> GetAdministratorRoleIdAsync()
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CongTacDangDbContext>();
+        return await db.Roles.Where(r => r.IsProtected && r.IsSystem).OrderBy(r => r.CreatedAt).Select(r => r.Id).FirstAsync();
     }
 
     /// <summary>Thao tác trực tiếp trên CSDL test (dựng dữ liệu).</summary>

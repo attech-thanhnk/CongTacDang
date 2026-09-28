@@ -470,7 +470,7 @@ public sealed class AuthorizationMatrixTests
             await factory.AssignAsync(appraiser.Id, await Role("CO_QUAN_THAM_DINH"), RoleScopeType.Global, null);
             await factory.AssignAsync(office.Id, await Role("VAN_PHONG_DANG_UY"), RoleScopeType.Global, null);
             await factory.AssignAsync(committee.Id, await Role("CAP_UY_VIEN"), RoleScopeType.Global, null);
-            await factory.AssignAsync(admin.Id, await Role("QUAN_TRI_HE_THONG"), RoleScopeType.Global, null);
+            await factory.AssignAsync(admin.Id, await factory.GetAdministratorRoleIdAsync(), RoleScopeType.Global, null);
             await factory.AssignAsync(deptSecretaryA.Id, await Role("THU_KY_TAP_THE"), RoleScopeType.Department, s.DeptA);
             await factory.AssignAsync(localDecider.Id, (await factory.CreateRoleAsync("evaluation.decide")).Id, RoleScopeType.Global, null);
             await factory.AssignAsync(cellReporterA.Id, (await factory.CreateRoleAsync("report.export")).Id, RoleScopeType.PartyCell, s.CellA);

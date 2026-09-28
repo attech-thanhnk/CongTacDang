@@ -285,6 +285,5 @@ public class RoleAssignmentImportTests
         public Task<UserEffectivePermissionsDto> GetEffectivePermissionsAsync(Guid userId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<List<AccessGrantDto>> GetGrantsAsync(Guid userId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task EnsureAdministratorsRemainWithoutUserAsync(Guid userId, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<List<RoleAssignmentDto>> SetGlobalRolesAsync(Guid userId, IReadOnlyCollection<Guid> roleIds, CancellationToken ct = default) => throw new NotSupportedException();
     }
 }

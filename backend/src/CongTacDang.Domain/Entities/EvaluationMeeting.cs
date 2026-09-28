@@ -28,7 +28,7 @@ public class EvaluationMeeting : IAuditableEntity, ISoftDeletable, IVersioned
     public Guid? DepartmentId { get; set; }
     public AdministrativeDepartment? Department { get; set; }
 
-    /// <summary>Bước của luồng mà hội nghị phục vụ: <see cref="WorkflowStep.B3A_COLLECTIVE"/> hoặc <see cref="WorkflowStep.B4_DECISION"/> (null với dữ liệu cũ).</summary>
+    /// <summary>Bước của luồng mà hội nghị phục vụ: <see cref="WorkflowStep.B3A_COLLECTIVE"/> hoặc <see cref="WorkflowStep.B4_DECISION"/> (null: biên bản không gắn bước cụ thể).</summary>
     public WorkflowStep? Stage { get; set; }
 
     /// <summary>Mẫu biên bản chính: M12 là biên bản hội nghị, M13 là biên bản kiểm phiếu.</summary>

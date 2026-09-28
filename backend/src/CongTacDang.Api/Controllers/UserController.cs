@@ -72,18 +72,6 @@ public class UserController : ControllerBase
         return Ok(ApiResponse<PagedResult<AccountListItemDto>>.Ok(result, "Lấy danh sách tài khoản thành công."));
     }
 
-    /// <summary>
-    /// (Tạm giữ cho giao diện cũ) Danh sách cán bộ trong phạm vi <c>system.users.read</c>, không phân trang.
-    /// Dùng <c>GET /api/users</c>.
-    /// </summary>
-    [HttpGet("list")]
-    [RequirePermission(PermissionCodes.SystemUsersRead)]
-    public async Task<IActionResult> GetUserList()
-    {
-        var cadres = await _userService.GetCadresAsync();
-        return Ok(ApiResponse<List<CadreDto>>.Ok(cadres, "Lấy danh sách cán bộ thành công."));
-    }
-
     /// <summary>Chi tiết tài khoản theo Id.</summary>
     [HttpGet("{id:guid}")]
     [RequirePermission(PermissionCodes.SystemUsersRead)]
@@ -93,20 +81,10 @@ public class UserController : ControllerBase
         return Ok(ApiResponse<AccountListItemDto>.Ok(account, "Lấy thông tin tài khoản thành công."));
     }
 
-    /// <summary>Danh mục vai trò hệ thống</summary>
-    [HttpGet("roles")]
-    public async Task<IActionResult> GetSystemRoles()
-    {
-        var roles = await _userService.GetRolesAsync();
-        return Ok(ApiResponse<List<RoleDto>>.Ok(roles, "Lấy danh mục vai trò thành công."));
-    }
-
     /// <summary>
     /// Tạo tài khoản: trả tên đăng nhập và mật khẩu tạm (chỉ hiển thị một lần). Người dùng phải đổi mật khẩu ở lần đăng nhập đầu.
-    /// Route cũ <c>POST /api/users/create</c> là bí danh tạm thời (bắt buộc có <c>username</c>).
     /// </summary>
     [HttpPost]
-    [HttpPost("create")]
     [RequirePermission(PermissionCodes.SystemUsersManage)]
     public async Task<IActionResult> CreateUser([FromBody] CreateAccountRequestDto request, CancellationToken ct)
     {
@@ -115,7 +93,7 @@ public class UserController : ControllerBase
             request.FullName ?? string.Empty,
             request.Email,
             request.PartyCardNumber,
-            request.PositionTitle ?? request.AdminTitle,
+            request.PositionTitle,
             request.DepartmentId,
             request.PartyCellId,
             request.ApprovalAuthority ?? ApprovalAuthority.CoSo)
@@ -132,15 +110,12 @@ public class UserController : ControllerBase
     [RequirePermission(PermissionCodes.SystemUsersManage)]
     public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateAccountRequestDto request, CancellationToken ct)
     {
-        if (request.IsActive.HasValue)
-            await _accounts.SetActiveAsync(id, request.IsActive.Value, ct);
-
         var result = await _accounts.UpdateAsync(id, new UpdateAccountCommand(
             request.FullName,
             request.Email,
             request.PhoneNumber,
             request.PartyCardNumber,
-            request.PositionTitle ?? request.AdminTitle,
+            request.PositionTitle,
             request.DepartmentId,
             request.PartyCellId,
             request.ApprovalAuthority), ct);

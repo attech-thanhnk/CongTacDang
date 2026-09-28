@@ -24,9 +24,6 @@ public class CreateAccountRequestDto
     /// <summary>Chức danh hiển thị trên văn bản.</summary>
     public string? PositionTitle { get; set; }
 
-    /// <summary>Tên cũ của <see cref="PositionTitle"/> (giữ tương thích giao diện cũ).</summary>
-    public string? AdminTitle { get; set; }
-
     /// <summary>Phòng/đơn vị (phải tồn tại, đang hoạt động).</summary>
     public Guid? DepartmentId { get; set; }
 
@@ -55,9 +52,6 @@ public class UpdateAccountRequestDto
     /// <summary>Chức danh hiển thị.</summary>
     public string? PositionTitle { get; set; }
 
-    /// <summary>Tên cũ của <see cref="PositionTitle"/> (giữ tương thích giao diện cũ).</summary>
-    public string? AdminTitle { get; set; }
-
     /// <summary>Phòng; <c>Guid.Empty</c> → bỏ gán.</summary>
     public Guid? DepartmentId { get; set; }
 
@@ -66,11 +60,6 @@ public class UpdateAccountRequestDto
 
     /// <summary>Cấp có thẩm quyền quyết định xếp loại.</summary>
     public ApprovalAuthority? ApprovalAuthority { get; set; }
-
-    /// <summary>
-    /// (Giữ tương thích) Đổi trạng thái hoạt động — tương đương gọi activate/deactivate, áp dụng cùng chốt chặn.
-    /// </summary>
-    public bool? IsActive { get; set; }
 }
 
 /// <summary>Một tài khoản trong danh sách quản trị (<c>GET /api/users</c>, <c>GET /api/users/{id}</c>).</summary>

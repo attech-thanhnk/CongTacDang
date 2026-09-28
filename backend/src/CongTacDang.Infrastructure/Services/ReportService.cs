@@ -476,16 +476,10 @@ public class ReportService : IReportService
         return $"{baseName}{scope}{periodPart}.xlsx";
     }
 
-    /// <summary>
-    /// Mức đề xuất của tập thể lãnh đạo (B3a, task 12) — thay chỗ "mức Chi bộ đề xuất" cũ; hồ sơ trước task 12 chưa có
-    /// thì dùng mức Chi bộ đề xuất đã lưu.
-    /// </summary>
-    private static CongTacDang.Domain.Enums.EvaluationGrade LeaderProposal(EvaluationRecord record) =>
-        record.CollectiveProposedGrade != CongTacDang.Domain.Enums.EvaluationGrade.ChuaXepLoai
-            ? record.CollectiveProposedGrade
-            : record.PartyCellProposedGrade;
+    /// <summary>Mức đề xuất của tập thể lãnh đạo (B3a).</summary>
+    private static CongTacDang.Domain.Enums.EvaluationGrade LeaderProposal(EvaluationRecord record) => record.CollectiveProposedGrade;
 
-    /// <summary>Tham số trần tỷ lệ của kỳ (mặc định 20 %, làm tròn xuống — như trước task 12).</summary>
+    /// <summary>Tham số trần tỷ lệ của kỳ (mặc định 20 %, làm tròn xuống).</summary>
     private static EvaluationParameters QuotaParameters(EvaluationPeriod? period)
     {
         if (period == null)
@@ -577,11 +571,10 @@ public class ReportService : IReportService
             .ToDictionary(g => g.Key, g => g.OrderByDescending(v => v.Meeting.StartedAt).First());
         var meetings = tallies.Values.Select(v => v.Meeting).DistinctBy(m => m.Id).ToList();
 
-        // Số người bỏ phiếu: số có mặt của biên bản (khi mọi dòng thuộc một biên bản); không có thì giá trị cũ trên hồ sơ,
-        // cuối cùng là sĩ số Chi bộ.
+        // Số người bỏ phiếu: số có mặt của biên bản (khi mọi dòng thuộc một biên bản); không có thì sĩ số Chi bộ.
         int? totalVoters = meetings.Count == 1 && meetings[0].PresentCount > 0
             ? meetings[0].PresentCount
-            : records.Select(r => r.TotalVoters).FirstOrDefault(v => v > 0);
+            : null;
         if (totalVoters is null or 0 && branch != null)
             totalVoters = await _db.PartyMemberProfiles.CountAsync(m => m.PartyCellId == branch.Id);
 

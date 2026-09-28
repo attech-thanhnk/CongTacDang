@@ -141,7 +141,7 @@ export default function AttachmentsPage() {
     const term = searchTerm.toLowerCase();
     return (
       f.fileName.toLowerCase().includes(term) ||
-      (f.category || "").toLowerCase().includes(term) ||
+      (f.formCode || "").toLowerCase().includes(term) ||
       (f.description || "").toLowerCase().includes(term) ||
       f.uploadedBy.toLowerCase().includes(term)
     );

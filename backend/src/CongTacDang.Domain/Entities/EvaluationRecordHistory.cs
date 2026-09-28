@@ -16,7 +16,7 @@ public class EvaluationRecordHistory
     public RecordStatus? FromStatus { get; set; }
     public RecordStatus ToStatus { get; set; }
 
-    /// <summary>Bước thực hiện (null với dữ liệu trước task 12 và các thao tác không thuộc bước).</summary>
+    /// <summary>Bước thực hiện (null với thao tác không thuộc bước, ví dụ sửa ảnh chụp).</summary>
     public WorkflowStep? Step { get; set; }
 
     /// <summary>Hành động: hoàn thành / trả lại / mở lại / thêm vào danh sách / sửa ảnh chụp.</summary>

@@ -285,28 +285,6 @@ public sealed class RoleAssignmentService : IRoleAssignmentService
     public Task EnsureAdministratorsRemainWithoutUserAsync(Guid userId, CancellationToken ct = default)
         => EnsureAdministratorsRemainAsync(rows => rows.Where(r => r.UserId != userId), ct);
 
-    /// <inheritdoc />
-    public async Task<List<RoleAssignmentDto>> SetGlobalRolesAsync(Guid userId, IReadOnlyCollection<Guid> roleIds, CancellationToken ct = default)
-    {
-        EnsureCanManageAssignments();
-        EnsureNotSelf(userId, "gán vai trò cho");
-
-        var now = Now;
-        var wanted = roleIds.Where(id => id != Guid.Empty).Distinct().ToHashSet();
-        var current = (await _assignments.GetCurrentOrFutureForUserAsync(userId, now, ct))
-            .Where(a => a.ScopeType == RoleScopeType.Global && a.IsEffectiveAt(now))
-            .ToList();
-
-        foreach (var assignment in current.Where(a => !wanted.Contains(a.RoleId)))
-            await EndAsync(assignment.Id, ct);
-
-        var have = current.Select(a => a.RoleId).ToHashSet();
-        foreach (var roleId in wanted.Where(id => !have.Contains(id)))
-            await AssignAsync(userId, roleId, ScopeType.Global, null, null, null, "Gán từ màn hình quản lý cán bộ (tương thích giao diện cũ).", ct);
-
-        return await QueryAsync(new RoleAssignmentQuery(UserId: userId, ActiveOn: Now), ct);
-    }
-
     #region Kiểm tra
 
     private void EnsureCanManageAssignments()

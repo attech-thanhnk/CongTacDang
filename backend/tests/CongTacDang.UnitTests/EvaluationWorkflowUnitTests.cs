@@ -72,7 +72,7 @@ public sealed class EvaluationWorkflowUnitTests
     /// <summary>Luật thiết kế mục 2 viết lại theo cách khác (theo số thứ tự) để đối chiếu.</summary>
     private static RecordStatus? Oracle(RecordStatus status, List<WorkflowStep> order, WorkflowCommand command)
     {
-        static RecordStatus Waiting(WorkflowStep s) => (RecordStatus)(9 + (int)s); // B1_REGISTER=1 → 10 … B5_PUBLISH=9 → 18
+        static RecordStatus Waiting(WorkflowStep s) => (RecordStatus)(int)s; // B1_REGISTER=1 → 1 … B5_PUBLISH=9 → 9
         switch (command.Action)
         {
             case WorkflowAction.Complete:

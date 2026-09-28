@@ -72,11 +72,7 @@ public sealed class PermissionRequirement : IAuthorizationRequirement
     public PermissionRequirement(IReadOnlyList<string> permissions)
     {
         Permissions = permissions;
-        Permission = permissions.Count > 0 ? permissions[0] : string.Empty;
     }
-
-    /// <summary>Mã quyền đầu tiên (tương thích task 07).</summary>
-    public string Permission { get; }
 
     /// <summary>Các mã quyền được chấp nhận.</summary>
     public IReadOnlyList<string> Permissions { get; }
