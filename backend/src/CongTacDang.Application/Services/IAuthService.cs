@@ -14,6 +14,9 @@ public interface IAuthService
     /// <summary>Làm mới phiên làm việc qua Refresh Token (Token Rotation)</summary>
     Task<AuthResultDto> RefreshTokenAsync(string refreshTokenValue, string? ipAddress = null);
 
+    /// <summary>Đổi mật khẩu của người dùng đang đăng nhập.</summary>
+    Task ChangePasswordAsync(string username, ChangePasswordRequestDto request, string? currentRefreshToken);
+
     /// <summary>Đăng xuất và thu hồi Refresh Token</summary>
     Task LogoutAsync(string? refreshTokenValue);
 }

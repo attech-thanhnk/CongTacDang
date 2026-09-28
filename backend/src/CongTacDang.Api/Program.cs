@@ -2,28 +2,26 @@ using System;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using CongTacDang.Application.Services;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Api.Services;
-using CongTacDang.Infrastructure.Data;
+using CongTacDang.Api.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.ValidateRequiredConfiguration();
+builder.Services.AddConfiguredForwardedHeaders(builder.Configuration);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.ICurrentUserService, HttpCurrentUserService>();
 
-// 1. Database PostgreSQL với SplitQuery tối ưu truy vấn quan hệ nhiều tầng
-var connectionString = builder.Configuration.GetConnectionString("Default")
-    ?? builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<CongTacDangDbContext>(options =>
-    options.UseNpgsql(connectionString, npgsqlOptions =>
-        npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+// 1. Database PostgreSQL, repository, Unit of Work và DB health check
+builder.Services.AddPersistence(builder.Configuration);
 
 // 2. CORS động cho Frontend Next.js
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -39,8 +37,7 @@ builder.Services.AddCors(options =>
               .AllowCredentials();
     });
 });
-
-builder.Services.AddHealthChecks();
+builder.Services.AddSecurityRateLimiting();
 
 // 3. JWT Authentication — đọc token từ HttpOnly Cookie (ưu tiên), fallback sang Authorization header
 var jwtSecret = builder.Configuration["Jwt:Secret"]
@@ -114,17 +111,7 @@ builder.Services.AddAuthorization(options =>
             ctx.User.IsInRole(AppRoles.BAN_THUONG_VU)));
 });
 
-// 5. Đăng ký Repository & Storage Service (MinIO)
-builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IUserRepository, CongTacDang.Infrastructure.Repositories.UserRepository>();
-builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IAttachmentRepository, CongTacDang.Infrastructure.Repositories.AttachmentRepository>();
-builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IAuditRepository, CongTacDang.Infrastructure.Repositories.AuditRepository>();
-builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IOrganizationRepository, CongTacDang.Infrastructure.Repositories.OrganizationRepository>();
-builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IRoleRepository, CongTacDang.Infrastructure.Repositories.RoleRepository>();
-builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IRefreshTokenRepository, CongTacDang.Infrastructure.Repositories.RefreshTokenRepository>();
-builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IEvaluationRepository, CongTacDang.Infrastructure.Repositories.EvaluationRepository>();
-builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.ICollectiveEvaluationRepository, CongTacDang.Infrastructure.Repositories.CollectiveEvaluationRepository>();
-builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IEvaluationMeetingRepository, CongTacDang.Infrastructure.Repositories.EvaluationMeetingRepository>();
-
+// 5. Đăng ký Storage Service
 var localStoragePath = builder.Configuration["Storage:Local:Path"]
     ?? Path.Combine(AppContext.BaseDirectory, "uploads");
 builder.Services.AddSingleton<CongTacDang.Application.Common.Interfaces.IFileStorageService>(
@@ -178,40 +165,19 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Nhập JWT token (không cần tiền tố 'Bearer ')"
     };
     c.AddSecurityDefinition("Bearer", securityScheme);
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            Array.Empty<string>()
-        }
-    });
 });
 
 var app = builder.Build();
 
-// 8. Khởi tạo CSDL và Seed dữ liệu mẫu khi khởi động
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<CongTacDangDbContext>();
-    try
-    {
-        await db.Database.EnsureCreatedAsync();
-        await DataSeeder.SeedAsync(db);
-    }
-    catch (Exception ex)
-    {
-        var logger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Program>>();
-        logger.LogError(ex, "Chưa kết nối được tới PostgreSQL để khởi tạo dữ liệu.");
-    }
-}
+// 8. Migration, baseline legacy schema và seed dữ liệu theo cấu hình
+await app.ApplyPersistenceAsync();
 
 // 9. Middleware pipeline
+app.UseForwardedHeaders();
+app.UseConfiguredSecurityHeaders();
 app.UseMiddleware<CongTacDang.Api.Middlewares.GlobalExceptionMiddleware>();
 
-if (app.Environment.IsDevelopment() || true)
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
@@ -222,6 +188,7 @@ if (app.Environment.IsDevelopment() || true)
 }
 
 app.UseCors("AllowFrontend");
+app.UseRateLimiter();
 app.UseAuthentication(); // Phải đứng trước UseAuthorization
 app.UseAuthorization();
 app.MapHealthChecks("/healthz");

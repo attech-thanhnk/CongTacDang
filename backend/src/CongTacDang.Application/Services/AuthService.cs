@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.DTOs;
 
@@ -12,6 +13,10 @@ namespace CongTacDang.Application.Services;
 /// </summary>
 public class AuthService : IAuthService
 {
+    private const string DummyPasswordHash = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
+    private const int MaxFailedLogins = 5;
+    private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan RefreshGracePeriod = TimeSpan.FromSeconds(30);
     private readonly IUserRepository _userRepo;
     private readonly IRefreshTokenRepository _refreshTokenRepo;
     private readonly IJwtService _jwtService;
@@ -34,17 +39,44 @@ public class AuthService : IAuthService
 
         var member = await _userRepo.GetWithRolesAndPermissionsAsync(request.Username.Trim());
 
-        if (member == null)
-            throw new UnauthorizedAccessException("Tên đăng nhập hoặc mật khẩu không đúng.");
+        // Luôn chạy BCrypt kể cả khi username không tồn tại để tránh lộ thời gian phản hồi.
+        var passwordHash = member?.PasswordHash;
+        var passwordValid = BCrypt.Net.BCrypt.Verify(
+            request.Password,
+            string.IsNullOrWhiteSpace(passwordHash) ? DummyPasswordHash : passwordHash);
 
-        // Xác thực mật khẩu theo chuẩn mã hóa an toàn BCrypt
-        if (string.IsNullOrWhiteSpace(member.PasswordHash) || !BCrypt.Net.BCrypt.Verify(request.Password, member.PasswordHash))
+        if (member == null || !passwordValid)
         {
+            if (member != null)
+            {
+                if (member.LockoutEnd <= DateTime.UtcNow)
+                {
+                    member.FailedLoginCount = 0;
+                    member.LockoutEnd = null;
+                }
+
+                member.FailedLoginCount++;
+                if (member.FailedLoginCount >= MaxFailedLogins)
+                    member.LockoutEnd = DateTime.UtcNow.Add(LockoutDuration);
+
+                await _userRepo.UpdateAsync(member);
+            }
+
             throw new UnauthorizedAccessException("Tên đăng nhập hoặc mật khẩu không đúng.");
         }
 
+        if (member.LockoutEnd.HasValue && member.LockoutEnd.Value > DateTime.UtcNow)
+            throw new UnauthorizedAccessException("Tài khoản đang bị khóa tạm thời. Vui lòng thử lại sau.");
+
         if (!member.IsActive)
             throw new UnauthorizedAccessException("Tài khoản đã bị vô hiệu hóa.");
+
+        if (member.FailedLoginCount != 0 || member.LockoutEnd.HasValue)
+        {
+            member.FailedLoginCount = 0;
+            member.LockoutEnd = null;
+            await _userRepo.UpdateAsync(member);
+        }
 
         var roles = member.Roles.Select(r => r.Code).Distinct().ToList();
         var permissions = member.Roles.SelectMany(r => r.Permissions).Select(p => p.Code).Distinct().ToList();
@@ -56,22 +88,7 @@ public class AuthService : IAuthService
         var refreshToken = _jwtService.GenerateRefreshToken(member.Id, ipAddress);
         await _refreshTokenRepo.AddAsync(refreshToken);
 
-        return new AuthResultDto
-        {
-            AccessToken = accessToken,
-            AccessTokenExpiresAt = accessExpiresAt,
-            RefreshToken = refreshToken.Token,
-            RefreshTokenExpiresAt = refreshToken.ExpiresAt,
-            UserResponse = new LoginResponseDto
-            {
-                Id = member.Id,
-                FullName = member.FullName,
-                UserName = member.Username,
-                Roles = roles.ToArray(),
-                Permissions = permissions.ToArray(),
-                ExpiresAt = accessExpiresAt
-            }
-        };
+        return BuildAuthResult(member, accessToken, accessExpiresAt, refreshToken, roles, permissions);
     }
 
     /// <summary>Làm mới phiên làm việc qua Refresh Token (áp dụng kỹ thuật xoay vòng Token Rotation và phát hiện gian lận)</summary>
@@ -88,11 +105,13 @@ public class AuthService : IAuthService
         // Kiểm tra phát hiện tái sử dụng token (Token Reuse Detection)
         if (tokenRecord.IsRevoked)
         {
-            if (!string.IsNullOrEmpty(tokenRecord.ReplacedByToken))
-            {
-                // Token đã bị thu hồi trước đó nhưng bị gửi lại -> Nguy cơ bị lộ -> Thu hồi toàn bộ token của user
+            if (!string.IsNullOrEmpty(tokenRecord.ReplacedByTokenHash) &&
+                tokenRecord.RevokedAt.HasValue &&
+                DateTime.UtcNow - tokenRecord.RevokedAt.Value <= RefreshGracePeriod)
+                throw new RefreshTokenGracePeriodException("Refresh Token đã được thay thế do một yêu cầu khác đang làm mới phiên.");
+
+            if (!string.IsNullOrEmpty(tokenRecord.ReplacedByTokenHash))
                 await _refreshTokenRepo.RevokeAllUserTokensAsync(tokenRecord.UserId);
-            }
 
             throw new UnauthorizedAccessException("Refresh Token đã bị thu hồi. Vui lòng đăng nhập lại.");
         }
@@ -107,12 +126,19 @@ public class AuthService : IAuthService
         // 1. Sinh Refresh Token mới (Token Rotation)
         var newRefreshToken = _jwtService.GenerateRefreshToken(user.Id, ipAddress);
 
-        // 2. Thu hồi token cũ và liên kết tới token mới
-        tokenRecord.IsRevoked = true;
-        tokenRecord.ReplacedByToken = newRefreshToken.Token;
+        // 2. Thu hồi token cũ và thêm token mới trong một lần SaveChanges.
+        if (!await _refreshTokenRepo.RotateAsync(refreshTokenValue, newRefreshToken))
+        {
+            var latestRecord = await _refreshTokenRepo.GetByTokenWithUserAsync(refreshTokenValue);
+            if (latestRecord?.RevokedAt.HasValue == true &&
+                DateTime.UtcNow - latestRecord.RevokedAt.Value <= RefreshGracePeriod)
+                throw new RefreshTokenGracePeriodException("Refresh Token đã được thay thế do một yêu cầu khác đang làm mới phiên.");
 
-        await _refreshTokenRepo.UpdateAsync(tokenRecord);
-        await _refreshTokenRepo.AddAsync(newRefreshToken);
+            if (latestRecord?.ReplacedByTokenHash != null)
+                await _refreshTokenRepo.RevokeAllUserTokensAsync(tokenRecord.UserId);
+
+            throw new UnauthorizedAccessException("Refresh Token đã bị thu hồi. Vui lòng đăng nhập lại.");
+        }
 
         // 3. Trích xuất vai trò & quyền mới nhất từ DB
         var roles = user.Roles.Select(r => r.Code).Distinct().ToList();
@@ -120,22 +146,27 @@ public class AuthService : IAuthService
 
         var (newAccessToken, accessExpiresAt) = _jwtService.GenerateToken(user, roles, permissions);
 
-        return new AuthResultDto
-        {
-            AccessToken = newAccessToken,
-            AccessTokenExpiresAt = accessExpiresAt,
-            RefreshToken = newRefreshToken.Token,
-            RefreshTokenExpiresAt = newRefreshToken.ExpiresAt,
-            UserResponse = new LoginResponseDto
-            {
-                Id = user.Id,
-                FullName = user.FullName,
-                UserName = user.Username,
-                Roles = roles.ToArray(),
-                Permissions = permissions.ToArray(),
-                ExpiresAt = accessExpiresAt
-            }
-        };
+        return BuildAuthResult(user, newAccessToken, accessExpiresAt, newRefreshToken, roles, permissions);
+    }
+
+    public async Task ChangePasswordAsync(string username, ChangePasswordRequestDto request, string? currentRefreshToken)
+    {
+        ValidatePassword(request.NewPassword);
+
+        var member = await _userRepo.GetByUsernameAsync(username);
+        if (member == null || string.IsNullOrWhiteSpace(member.PasswordHash) ||
+            !BCrypt.Net.BCrypt.Verify(request.CurrentPassword, member.PasswordHash))
+            throw new UnauthorizedAccessException("Mật khẩu hiện tại không đúng.");
+
+        if (BCrypt.Net.BCrypt.Verify(request.NewPassword, member.PasswordHash))
+            throw new ValidationException("Mật khẩu mới phải khác mật khẩu hiện tại.");
+
+        member.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        member.MustChangePassword = false;
+        member.FailedLoginCount = 0;
+        member.LockoutEnd = null;
+        await _userRepo.UpdateAsync(member);
+        await _refreshTokenRepo.RevokeOtherUserTokensAsync(member.Id, currentRefreshToken);
     }
 
     /// <summary>Đăng xuất phiên làm việc và thu hồi Refresh Token</summary>
@@ -147,8 +178,43 @@ public class AuthService : IAuthService
             if (tokenRecord != null)
             {
                 tokenRecord.IsRevoked = true;
+                tokenRecord.RevokedAt = DateTime.UtcNow;
                 await _refreshTokenRepo.UpdateAsync(tokenRecord);
             }
         }
+    }
+
+    private static void ValidatePassword(string password)
+    {
+        if (string.IsNullOrWhiteSpace(password) || password.Length < 8 ||
+            !password.Any(char.IsLetter) || !password.Any(char.IsDigit))
+            throw new ValidationException("Mật khẩu mới phải có tối thiểu 8 ký tự, bao gồm cả chữ và số.");
+    }
+
+    private static AuthResultDto BuildAuthResult(
+        Domain.Entities.PartyMemberProfile member,
+        string accessToken,
+        DateTime accessExpiresAt,
+        Domain.Entities.RefreshToken refreshToken,
+        IEnumerable<string> roles,
+        IEnumerable<string> permissions)
+    {
+        return new AuthResultDto
+        {
+            AccessToken = accessToken,
+            AccessTokenExpiresAt = accessExpiresAt,
+            RefreshToken = refreshToken.Token,
+            RefreshTokenExpiresAt = refreshToken.ExpiresAt,
+            UserResponse = new LoginResponseDto
+            {
+                Id = member.Id,
+                FullName = member.FullName,
+                UserName = member.Username,
+                Roles = roles.ToArray(),
+                Permissions = permissions.ToArray(),
+                MustChangePassword = member.MustChangePassword,
+                ExpiresAt = accessExpiresAt
+            }
+        };
     }
 }

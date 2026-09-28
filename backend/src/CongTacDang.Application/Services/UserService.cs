@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
@@ -35,6 +36,9 @@ public interface IUserService
 
     /// <summary>Xóa hồ sơ cán bộ khỏi hệ thống</summary>
     Task DeleteUserAsync(Guid id);
+
+    /// <summary>Đặt lại mật khẩu tạm cho cán bộ.</summary>
+    Task<ResetPasswordResponseDto> ResetPasswordAsync(Guid id);
 }
 
 public class UserService : IUserService
@@ -89,7 +93,8 @@ public class UserService : IUserService
             AdminDeptName = member.Department?.Name ?? string.Empty,
             JobGroup = member.JobGroup.ToString(),
             Roles = roles.ToArray(),
-            Permissions = perms.ToArray()
+            Permissions = perms.ToArray(),
+            MustChangePassword = member.MustChangePassword
         };
     }
 
@@ -151,7 +156,8 @@ public class UserService : IUserService
             DepartmentId = input.DepartmentId,
             IsPartyMember = !string.IsNullOrWhiteSpace(input.PartyCardNumber),
             IsActive = true,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456")
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(GenerateTemporaryPassword()),
+            MustChangePassword = true
         };
 
         await _userRepo.AddAsync(newMember);
@@ -245,5 +251,39 @@ public class UserService : IUserService
             throw new KeyNotFoundException("Không tìm thấy hồ sơ cán bộ cần xóa.");
 
         await _userRepo.DeleteAsync(member);
+    }
+
+    public async Task<ResetPasswordResponseDto> ResetPasswordAsync(Guid id)
+    {
+        var member = await _userRepo.GetByIdAsync(id);
+        if (member == null)
+            throw new KeyNotFoundException("Không tìm thấy hồ sơ cán bộ cần đặt lại mật khẩu.");
+
+        var temporaryPassword = GenerateTemporaryPassword();
+        member.PasswordHash = BCrypt.Net.BCrypt.HashPassword(temporaryPassword);
+        member.MustChangePassword = true;
+        member.FailedLoginCount = 0;
+        member.LockoutEnd = null;
+        await _userRepo.UpdateAsync(member);
+
+        return new ResetPasswordResponseDto
+        {
+            UserId = member.Id,
+            UserName = member.Username,
+            TemporaryPassword = temporaryPassword,
+            MustChangePassword = true
+        };
+    }
+
+    private static string GenerateTemporaryPassword()
+    {
+        const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+        Span<char> password = stackalloc char[12];
+        Span<byte> random = stackalloc byte[12];
+        RandomNumberGenerator.Fill(random);
+        for (var i = 0; i < password.Length; i++)
+            password[i] = alphabet[random[i] % alphabet.Length];
+
+        return new string(password);
     }
 }

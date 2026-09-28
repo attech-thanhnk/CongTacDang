@@ -73,9 +73,14 @@ namespace CongTacDang.Infrastructure.Data
                 entity.ToTable("party_member_profiles");
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Username).IsUnique();
+                entity.HasIndex(e => e.PartyCellId);
+                entity.HasIndex(e => e.DepartmentId);
+                entity.HasIndex(e => e.IsActive);
                 entity.Property(e => e.Username).HasMaxLength(100).IsRequired();
                 entity.Property(e => e.FullName).HasMaxLength(200).IsRequired();
                 entity.Property(e => e.Email).HasMaxLength(200);
+                entity.Property(e => e.MustChangePassword).HasDefaultValue(false);
+                entity.Property(e => e.FailedLoginCount).HasDefaultValue(0);
                 entity.HasQueryFilter(e => !e.IsDeleted);
 
                 entity.HasOne(m => m.PartyCell)
@@ -146,6 +151,14 @@ namespace CongTacDang.Infrastructure.Data
                 entity.ToTable("evaluation_periods");
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+                entity.HasIndex(e => new { e.Year, e.Quarter });
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.IsActive)
+                    .IsUnique()
+                    .HasFilter("\"IsActive\" = TRUE");
+                entity.Property<uint>("xmin")
+                    .ValueGeneratedOnAddOrUpdate()
+                    .IsConcurrencyToken();
 
                 entity.HasMany(p => p.Records)
                     .WithOne(r => r.Period)
@@ -160,6 +173,13 @@ namespace CongTacDang.Infrastructure.Data
 
                 // 1 Cán bộ chỉ có 1 hồ sơ trong 1 kỳ đánh giá
                 entity.HasIndex(e => new { e.PeriodId, e.MemberId }).IsUnique();
+                entity.HasIndex(e => e.MemberId);
+                entity.HasIndex(e => e.PartyCellId);
+                entity.HasIndex(e => e.DepartmentId);
+                entity.HasIndex(e => e.Status);
+                entity.Property<uint>("xmin")
+                    .ValueGeneratedOnAddOrUpdate()
+                    .IsConcurrencyToken();
 
                 entity.HasOne(r => r.Member)
                     .WithMany()
@@ -187,8 +207,14 @@ namespace CongTacDang.Infrastructure.Data
                 entity.ToTable("collective_evaluation_records");
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => new { e.PeriodId, e.Form, e.PartyCellId, e.DepartmentId }).IsUnique();
+                entity.HasIndex(e => new { e.PeriodId, e.Status });
+                entity.HasIndex(e => e.PartyCellId);
+                entity.HasIndex(e => e.DepartmentId);
                 entity.Property(e => e.SubjectName).HasMaxLength(300).IsRequired();
                 entity.Property(e => e.Form).HasConversion<int>();
+                entity.Property<uint>("xmin")
+                    .ValueGeneratedOnAddOrUpdate()
+                    .IsConcurrencyToken();
                 entity.HasOne(e => e.Period)
                     .WithMany(p => p.CollectiveRecords)
                     .HasForeignKey(e => e.PeriodId)
@@ -224,6 +250,9 @@ namespace CongTacDang.Infrastructure.Data
                 entity.ToTable("evaluation_meetings");
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => new { e.PeriodId, e.PartyCellId, e.FormCode });
+                entity.Property<uint>("xmin")
+                    .ValueGeneratedOnAddOrUpdate()
+                    .IsConcurrencyToken();
                 entity.Property(e => e.FormCode).HasMaxLength(10).IsRequired();
                 entity.Property(e => e.MeetingType).HasMaxLength(200);
                 entity.Property(e => e.Location).HasMaxLength(300);
@@ -307,7 +336,12 @@ namespace CongTacDang.Infrastructure.Data
             {
                 entity.ToTable("evaluation_tasks");
                 entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.RecordId, e.TaskOrder });
+                entity.HasIndex(e => e.AttachmentId);
                 entity.Property(e => e.TaskName).HasMaxLength(500).IsRequired();
+                entity.Property<uint>("xmin")
+                    .ValueGeneratedOnAddOrUpdate()
+                    .IsConcurrencyToken();
 
                 entity.HasOne(t => t.Attachment)
                     .WithMany()
@@ -320,11 +354,12 @@ namespace CongTacDang.Infrastructure.Data
             {
                 entity.ToTable("refresh_tokens");
                 entity.HasKey(e => e.Id);
-                entity.HasIndex(e => e.Token).IsUnique();
+                entity.HasIndex(e => e.TokenHash).IsUnique();
                 entity.HasIndex(e => e.UserId);
-                entity.Property(e => e.Token).HasMaxLength(256).IsRequired();
+                entity.Ignore(e => e.Token);
+                entity.Property(e => e.TokenHash).HasMaxLength(64).IsRequired();
                 entity.Property(e => e.CreatedByIp).HasMaxLength(100);
-                entity.Property(e => e.ReplacedByToken).HasMaxLength(256);
+                entity.Property(e => e.ReplacedByTokenHash).HasMaxLength(64);
 
                 entity.HasOne(e => e.User)
                     .WithMany()
@@ -442,7 +477,7 @@ namespace CongTacDang.Infrastructure.Data
         /// <summary>Loại bỏ các trường bí mật khỏi snapshot audit.</summary>
         private static bool IsSensitiveProperty(string propertyName)
         {
-            return propertyName is "PasswordHash" or "Token" or "ReplacedByToken";
+            return propertyName is "PasswordHash" or "Token" or "TokenHash" or "ReplacedByTokenHash";
         }
     }
 }

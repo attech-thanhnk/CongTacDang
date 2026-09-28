@@ -22,5 +22,5 @@ public interface IFileStorageService
     bool FileExists(string objectKey);
 
     /// <summary>Sinh liên kết tải xuống trực tiếp cho người dùng</summary>
-    Task<string?> GetDownloadUrlAsync(string objectKey, string fileName, TimeSpan? expiry = null);
+    Task<string?> GetDownloadUrlAsync(Guid attachmentId, TimeSpan? expiry = null);
 }

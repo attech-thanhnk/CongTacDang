@@ -35,6 +35,9 @@ public class UserProfileDto
 
     /// <summary>Danh sách mã quyền hạn nguyên tử được cấp</summary>
     public string[] Permissions { get; set; } = Array.Empty<string>();
+
+    /// <summary>Người dùng phải đổi mật khẩu tạm trước khi tiếp tục</summary>
+    public bool MustChangePassword { get; set; }
 }
 
 /// <summary>Thông tin tóm tắt hồ sơ cán bộ lãnh đạo, quản lý 2 vai</summary>
@@ -247,6 +250,8 @@ public class EvaluationTaskDto
 {
     /// <summary>Mã định danh công việc</summary>
     public Guid Id { get; set; }
+    /// <summary>Phiên bản xmin dùng khi cập nhật công việc.</summary>
+    public uint Version { get; set; }
 
     /// <summary>Mã hồ sơ đánh giá sở hữu</summary>
     public Guid RecordId { get; set; }
@@ -330,6 +335,8 @@ public class TaskScoreInputDto
 {
     /// <summary>Mã công việc</summary>
     public Guid TaskId { get; set; }
+    /// <summary>Phiên bản xmin đọc được của công việc.</summary>
+    public uint? Version { get; set; }
 
     /// <summary>Tỷ lệ hoàn thành Tiêu chí A (0.0 - 1.0)</summary>
     public double CriteriaA_Ratio { get; set; } = 1.0;
@@ -355,6 +362,8 @@ public class EvaluationPeriodDto
 {
     /// <summary>Mã định danh kỳ đánh giá</summary>
     public Guid Id { get; set; }
+    /// <summary>Phiên bản xmin dùng cho thao tác cập nhật kỳ.</summary>
+    public uint Version { get; set; }
 
     /// <summary>Năm đánh giá</summary>
     public int Year { get; set; }
@@ -408,6 +417,8 @@ public class EvaluationRecordDto
 {
     /// <summary>Mã định danh hồ sơ đánh giá</summary>
     public Guid Id { get; set; }
+    /// <summary>Phiên bản xmin dùng cho thao tác cập nhật hồ sơ.</summary>
+    public uint Version { get; set; }
 
     /// <summary>Mã kỳ đánh giá</summary>
     public Guid PeriodId { get; set; }
@@ -500,6 +511,8 @@ public class RegisterTasksRequestDto
 {
     /// <summary>Mã kỳ đánh giá</summary>
     public Guid PeriodId { get; set; }
+    /// <summary>Phiên bản xmin của hồ sơ hiện có; bằng 0 khi tạo mới.</summary>
+    public uint? Version { get; set; }
 
     /// <summary>Danh sách 3 đến 7 công việc chuyên môn (Tổng trọng số đúng 70.0 điểm)</summary>
     public List<TaskInputDto> Tasks { get; set; } = new();
@@ -510,6 +523,8 @@ public class SubmitSelfScoreRequestDto
 {
     /// <summary>Mã hồ sơ đánh giá</summary>
     public Guid RecordId { get; set; }
+    /// <summary>Phiên bản xmin của hồ sơ cần cập nhật.</summary>
+    public uint? Version { get; set; }
 
     /// <summary>Điểm 6 tiêu chí chung T1 đến T6 (mỗi tiêu chí tối đa 5.0đ, tổng tối đa 30.0đ)</summary>
     public double[] GeneralScores { get; set; } = new double[6];
@@ -526,6 +541,8 @@ public class SubmitBranchReviewRequestDto
 {
     /// <summary>Mã hồ sơ đánh giá</summary>
     public Guid RecordId { get; set; }
+    /// <summary>Phiên bản xmin của hồ sơ cần cập nhật.</summary>
+    public uint? Version { get; set; }
 
     /// <summary>Ý kiến nhận xét của Cấp ủy / Chi bộ (Mẫu 10)</summary>
     public string Comment { get; set; } = string.Empty;
@@ -553,6 +570,8 @@ public class SubmitBranchReviewRequestDto
 public class BranchMemberVoteInputDto
 {
     public Guid RecordId { get; set; }
+    /// <summary>Phiên bản xmin của hồ sơ cần cập nhật.</summary>
+    public uint? Version { get; set; }
     public string Comment { get; set; } = string.Empty;
     public string ProposedGrade { get; set; } = "HoanThanhTot";
     public int VotesExcellent { get; set; }
@@ -575,6 +594,8 @@ public class SubmitAppraisalRequestDto
 {
     /// <summary>Mã hồ sơ đánh giá</summary>
     public Guid RecordId { get; set; }
+    /// <summary>Phiên bản xmin của hồ sơ cần cập nhật.</summary>
+    public uint? Version { get; set; }
 
     /// <summary>Điểm do Tổ Thẩm định chấm lại (nếu có)</summary>
     public double? AppraisalScore { get; set; }
@@ -591,6 +612,8 @@ public class ApproveFinalGradeRequestDto
 {
     /// <summary>Mã hồ sơ đánh giá</summary>
     public Guid RecordId { get; set; }
+    /// <summary>Phiên bản xmin của hồ sơ cần cập nhật.</summary>
+    public uint? Version { get; set; }
 
     /// <summary>Điểm số chính thức sau cùng</summary>
     public double FinalScore { get; set; }
@@ -644,6 +667,8 @@ public class CollectiveEvaluationItemDto
 public class CollectiveEvaluationRecordDto
 {
     public Guid Id { get; set; }
+    /// <summary>Phiên bản xmin của hồ sơ tập thể.</summary>
+    public uint Version { get; set; }
     public Guid PeriodId { get; set; }
     public string Form { get; set; } = string.Empty;
     public Guid? PartyCellId { get; set; }
@@ -671,6 +696,8 @@ public class CollectiveEvaluationRecordDto
 /// <summary>Dữ liệu tạo/cập nhật hồ sơ tập thể.</summary>
 public class SaveCollectiveEvaluationRequestDto
 {
+    /// <summary>Phiên bản xmin khi cập nhật hồ sơ tập thể.</summary>
+    public uint? Version { get; set; }
     public Guid PeriodId { get; set; }
     public string Form { get; set; } = "M07";
     public Guid? PartyCellId { get; set; }
@@ -694,6 +721,8 @@ public class SaveCollectiveEvaluationRequestDto
 public class EvaluationMeetingDto
 {
     public Guid Id { get; set; }
+    /// <summary>Phiên bản xmin của biên bản hội nghị.</summary>
+    public uint Version { get; set; }
     public Guid PeriodId { get; set; }
     public Guid? PartyCellId { get; set; }
     public string? PartyCellName { get; set; }
@@ -733,6 +762,8 @@ public class EvaluationMeetingVoteSummaryDto
 /// <summary>Dữ liệu tạo/cập nhật biên bản hội nghị và kiểm phiếu.</summary>
 public class SaveEvaluationMeetingRequestDto
 {
+    /// <summary>Phiên bản xmin khi cập nhật biên bản hội nghị.</summary>
+    public uint? Version { get; set; }
     public Guid PeriodId { get; set; }
     public Guid? PartyCellId { get; set; }
     public string FormCode { get; set; } = "M12";
@@ -784,6 +815,9 @@ public class LoginResponseDto
     /// <summary>Danh sách quyền hạn nguyên tử</summary>
     public string[] Permissions { get; set; } = Array.Empty<string>();
 
+    /// <summary>Người dùng phải đổi mật khẩu tạm trước khi tiếp tục</summary>
+    public bool MustChangePassword { get; set; }
+
     /// <summary>Thời điểm hết hạn của phiên làm việc</summary>
     public DateTime ExpiresAt { get; set; }
 }
@@ -796,6 +830,22 @@ public class AuthResultDto
     public string RefreshToken { get; set; } = string.Empty;
     public DateTime RefreshTokenExpiresAt { get; set; }
     public LoginResponseDto UserResponse { get; set; } = null!;
+}
+
+/// <summary>Payload đổi mật khẩu của người dùng đang đăng nhập.</summary>
+public class ChangePasswordRequestDto
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+}
+
+/// <summary>Kết quả đặt lại mật khẩu tạm cho cán bộ.</summary>
+public class ResetPasswordResponseDto
+{
+    public Guid UserId { get; set; }
+    public string UserName { get; set; } = string.Empty;
+    public string TemporaryPassword { get; set; } = string.Empty;
+    public bool MustChangePassword { get; set; }
 }
 
 /// <summary>Thông tin quyền hạn chi tiết trong hệ thống (Atomic Permission)</summary>

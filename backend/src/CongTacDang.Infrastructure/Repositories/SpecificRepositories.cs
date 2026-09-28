@@ -33,6 +33,7 @@ public class UserRepository : GenericRepository<PartyMemberProfile>, IUserReposi
     public async Task<PartyMemberProfile?> GetFirstMemberAsync()
     {
         return await _db.PartyMemberProfiles
+            .AsNoTracking()
             .Include(m => m.PartyCell)
             .Include(m => m.Department)
             .OrderBy(m => m.CreatedAt)
@@ -43,6 +44,7 @@ public class UserRepository : GenericRepository<PartyMemberProfile>, IUserReposi
     public async Task<List<PartyMemberProfile>> GetAllWithDetailsAsync()
     {
         return await _db.PartyMemberProfiles
+            .AsNoTracking()
             .Include(m => m.PartyCell)
             .Include(m => m.Department)
             .OrderBy(m => m.FullName)
@@ -64,6 +66,7 @@ public class UserRepository : GenericRepository<PartyMemberProfile>, IUserReposi
     public async Task<PartyMemberProfile?> GetWithRolesAndPermissionsByIdAsync(Guid id)
     {
         return await _db.PartyMemberProfiles
+            .AsNoTracking()
             .Include(m => m.PartyCell)
             .Include(m => m.Department)
             .Include(m => m.Roles)
@@ -85,6 +88,7 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
     public async Task<List<TaskAttachment>> GetAllAttachmentsAsync()
     {
         return await _db.TaskAttachments
+            .AsNoTracking()
             .OrderByDescending(a => a.UploadedAt)
             .ToListAsync();
     }
@@ -133,6 +137,7 @@ public class OrganizationRepository : IOrganizationRepository
     public async Task<List<PartyCell>> GetPartyCellsWithMembersAsync()
     {
         return await _db.PartyCells
+            .AsNoTracking()
             .Include(c => c.Members)
             .OrderBy(c => c.Code)
             .ToListAsync();
@@ -142,6 +147,7 @@ public class OrganizationRepository : IOrganizationRepository
     public async Task<List<AdministrativeDepartment>> GetDepartmentsWithMembersAsync()
     {
         return await _db.AdministrativeDepartments
+            .AsNoTracking()
             .Include(d => d.Members)
             .OrderBy(d => d.Code)
             .ToListAsync();
@@ -184,17 +190,20 @@ public class RoleRepository : IRoleRepository
 {
     private readonly CongTacDangDbContext _db;
     private readonly ICurrentUserService _currentUser;
+    private readonly IUnitOfWork _unitOfWork;
 
     /// <summary>Khởi tạo repository quản trị role và actor context cho audit.</summary>
-    public RoleRepository(CongTacDangDbContext db, ICurrentUserService currentUser)
+    public RoleRepository(CongTacDangDbContext db, ICurrentUserService currentUser, IUnitOfWork unitOfWork)
     {
         _db = db;
         _currentUser = currentUser;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<List<AppRole>> GetAllRolesWithPermissionsAsync()
     {
         return await _db.Roles
+            .AsNoTracking()
             .Include(r => r.Permissions)
             .OrderBy(r => r.Code)
             .ToListAsync();
@@ -203,6 +212,7 @@ public class RoleRepository : IRoleRepository
     public async Task<List<Permission>> GetAllPermissionsAsync()
     {
         return await _db.Permissions
+            .AsNoTracking()
             .OrderBy(p => p.Resource)
             .ThenBy(p => p.Action)
             .ToListAsync();
@@ -211,6 +221,7 @@ public class RoleRepository : IRoleRepository
     public async Task<AppRole?> GetRoleByIdWithPermissionsAsync(Guid roleId)
     {
         return await _db.Roles
+            .AsNoTracking()
             .Include(r => r.Permissions)
             .FirstOrDefaultAsync(r => r.Id == roleId);
     }
@@ -218,6 +229,7 @@ public class RoleRepository : IRoleRepository
     public async Task<AppRole?> GetRoleByCodeAsync(string roleCode)
     {
         return await _db.Roles
+            .AsNoTracking()
             .Include(r => r.Permissions)
             .FirstOrDefaultAsync(r => r.Code == roleCode);
     }
@@ -243,8 +255,11 @@ public class RoleRepository : IRoleRepository
             role.Permissions.Add(p);
         }
 
-        await _db.SaveChangesAsync();
-        await WriteRoleAuditAsync(roleId, "UpdatePermissions", previousCodes, permissions.Select(p => p.Code).OrderBy(x => x).ToArray());
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            await _db.SaveChangesAsync();
+            await WriteRoleAuditAsync(roleId, "UpdatePermissions", previousCodes, permissions.Select(p => p.Code).OrderBy(x => x).ToArray());
+        });
     }
 
     public async Task AssignRolesToUserAsync(Guid userId, IEnumerable<string> roleCodes)
@@ -268,8 +283,11 @@ public class RoleRepository : IRoleRepository
             member.Roles.Add(r);
         }
 
-        await _db.SaveChangesAsync();
-        await WriteUserRolesAuditAsync(userId, previousCodes, roles.Select(r => r.Code).OrderBy(x => x).ToArray());
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            await _db.SaveChangesAsync();
+            await WriteUserRolesAuditAsync(userId, previousCodes, roles.Select(r => r.Code).OrderBy(x => x).ToArray());
+        });
     }
 
     /// <summary>Ghi audit thay đổi ma trận quyền của một role.</summary>
@@ -345,7 +363,9 @@ public class EvaluationRepository : IEvaluationRepository
     /// <summary>Lấy kỳ đánh giá đang kích hoạt</summary>
     public async Task<EvaluationPeriod?> GetActivePeriodAsync()
     {
-        return await _db.EvaluationPeriods.FirstOrDefaultAsync(p => p.IsActive);
+        return await _db.EvaluationPeriods
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.IsActive);
     }
 
     /// <summary>Thêm mới kỳ đánh giá</summary>
@@ -404,6 +424,7 @@ public class EvaluationRepository : IEvaluationRepository
     public async Task<List<EvaluationRecord>> GetRecordsByPeriodAsync(Guid periodId)
     {
         return await _db.EvaluationRecords
+            .AsNoTracking()
             .Include(r => r.Member)
                 .ThenInclude(m => m.PartyCell)
             .Include(r => r.Member)
@@ -419,6 +440,7 @@ public class EvaluationRepository : IEvaluationRepository
     public async Task<List<EvaluationRecord>> GetRecordsByBranchAsync(Guid periodId, Guid branchId)
     {
         return await _db.EvaluationRecords
+            .AsNoTracking()
             .Include(r => r.Member)
                 .ThenInclude(m => m.PartyCell)
             .Include(r => r.Member)
@@ -488,6 +510,7 @@ public class CollectiveEvaluationRepository : ICollectiveEvaluationRepository
     public async Task<CollectiveEvaluationRecord?> GetByIdAsync(Guid id)
     {
         return await _db.CollectiveEvaluationRecords
+            .AsNoTracking()
             .Include(x => x.Period)
             .Include(x => x.PartyCell)
             .Include(x => x.Department)
@@ -500,6 +523,7 @@ public class CollectiveEvaluationRepository : ICollectiveEvaluationRepository
     public async Task<List<CollectiveEvaluationRecord>> GetByPeriodAsync(Guid periodId, CollectiveEvaluationForm? form = null)
     {
         var query = _db.CollectiveEvaluationRecords
+            .AsNoTracking()
             .Include(x => x.PartyCell)
             .Include(x => x.Department)
             .Include(x => x.Items.OrderBy(i => i.ItemOrder))
@@ -540,6 +564,7 @@ public class EvaluationMeetingRepository : IEvaluationMeetingRepository
     public async Task<EvaluationMeeting?> GetByIdAsync(Guid id)
     {
         return await _db.EvaluationMeetings
+            .AsNoTracking()
             .Include(x => x.Period)
             .Include(x => x.PartyCell)
             .Include(x => x.VoteSummaries)
@@ -552,6 +577,7 @@ public class EvaluationMeetingRepository : IEvaluationMeetingRepository
     public async Task<List<EvaluationMeeting>> GetByPeriodAsync(Guid periodId, Guid? partyCellId = null)
     {
         var query = _db.EvaluationMeetings
+            .AsNoTracking()
             .Include(x => x.PartyCell)
             .Include(x => x.VoteSummaries)
             .Where(x => x.PeriodId == periodId);

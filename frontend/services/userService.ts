@@ -107,6 +107,11 @@ export const userService = {
     });
   },
 
+  /** Đặt lại mật khẩu tạm, trả mật khẩu đúng một lần cho quản trị viên */
+  async resetPassword(id: string): Promise<{ userId: string; userName: string; temporaryPassword: string; mustChangePassword: boolean }> {
+    return request(`/users/${id}/reset-password`, { method: "POST" });
+  },
+
   /** Lấy danh mục các vai trò hệ thống */
   async getRoles(): Promise<RoleItem[]> {
     return request<RoleItem[]>("/users/roles");

@@ -25,5 +25,14 @@ EXPOSE 5000
 ENV ASPNETCORE_URLS=http://+:5000
 ENV ASPNETCORE_ENVIRONMENT=Production
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 10001 appuser \
+    && mkdir -p /app/uploads \
+    && chown -R appuser:appuser /app
+
 COPY --from=build /app/publish .
+USER appuser
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 CMD curl --fail --silent http://localhost:5000/healthz || exit 1
 ENTRYPOINT ["dotnet", "CongTacDang.Api.dll"]

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Interfaces;
+using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Domain.Entities;
@@ -20,19 +21,22 @@ public class EvaluationService : IEvaluationService
     private readonly IOrganizationRepository _orgRepo;
     private readonly ICurrentUserService _currentUser;
     private readonly IEvaluationMeetingRepository _meetingRepo;
+    private readonly IUnitOfWork _unitOfWork;
 
     public EvaluationService(
         IEvaluationRepository evaluationRepo,
         IUserRepository userRepo,
         IOrganizationRepository orgRepo,
         ICurrentUserService currentUser,
-        IEvaluationMeetingRepository meetingRepo)
+        IEvaluationMeetingRepository meetingRepo,
+        IUnitOfWork unitOfWork)
     {
         _evaluationRepo = evaluationRepo;
         _userRepo = userRepo;
         _orgRepo = orgRepo;
         _currentUser = currentUser;
         _meetingRepo = meetingRepo;
+        _unitOfWork = unitOfWork;
     }
 
     #region Quản lý Kỳ đánh giá
@@ -72,40 +76,47 @@ public class EvaluationService : IEvaluationService
     }
 
     /// <summary>Kích hoạt một kỳ đánh giá làm kỳ hiện hành</summary>
-    public async Task<EvaluationPeriodDto> SetActivePeriodAsync(Guid periodId)
+    public async Task<EvaluationPeriodDto> SetActivePeriodAsync(Guid periodId, uint? version)
     {
         var periods = await _evaluationRepo.GetPeriodsAsync();
-        EvaluationPeriod? targetPeriod = null;
+        var targetPeriod = periods.FirstOrDefault(p => p.Id == periodId)
+            ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
 
-        foreach (var p in periods)
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            if (p.Id == periodId)
+            foreach (var p in periods)
             {
-                p.IsActive = true;
-                targetPeriod = p;
+                if (p.Id != periodId && p.IsActive)
+                {
+                    p.IsActive = false;
+                    await _evaluationRepo.UpdatePeriodAsync(p);
+                }
             }
-            else
-            {
-                p.IsActive = false;
-            }
-            await _evaluationRepo.UpdatePeriodAsync(p);
-        }
 
-        if (targetPeriod == null)
-            throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+            if (!targetPeriod.IsActive)
+            {
+                _unitOfWork.SetOriginalVersion(targetPeriod, version);
+                targetPeriod.IsActive = true;
+                await _evaluationRepo.UpdatePeriodAsync(targetPeriod);
+            }
+        });
 
         return MapToPeriodDto(targetPeriod);
     }
 
     /// <summary>Cập nhật trạng thái tiến trình của kỳ đánh giá</summary>
-    public async Task<EvaluationPeriodDto> UpdatePeriodStatusAsync(Guid periodId, PeriodStatus status)
+    public async Task<EvaluationPeriodDto> UpdatePeriodStatusAsync(Guid periodId, PeriodStatus status, uint? version)
     {
         var period = await _evaluationRepo.GetPeriodByIdAsync(periodId);
         if (period == null)
             throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
 
-        period.Status = status;
-        await _evaluationRepo.UpdatePeriodAsync(period);
+        _unitOfWork.SetOriginalVersion(period, version);
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            period.Status = status;
+            await _evaluationRepo.UpdatePeriodAsync(period);
+        });
         return MapToPeriodDto(period);
     }
 
@@ -129,7 +140,7 @@ public class EvaluationService : IEvaluationService
 
         var requester = await GetUserWithPermissionsAsync(requesterId);
         if (!CanReadRecord(requester, record))
-            throw new UnauthorizedAccessException("Bạn không có quyền xem hồ sơ đánh giá này.");
+            throw new ForbiddenException("Bạn không có quyền xem hồ sơ đánh giá này.");
 
         return MapToRecordDto(record);
     }
@@ -143,7 +154,7 @@ public class EvaluationService : IEvaluationService
 
         var requester = await GetUserWithPermissionsAsync(requesterId);
         if (!CanReadRecord(requester, record))
-            throw new UnauthorizedAccessException("Bạn không có quyền xem lịch sử hồ sơ đánh giá này.");
+            throw new ForbiddenException("Bạn không có quyền xem lịch sử hồ sơ đánh giá này.");
 
         var history = await _evaluationRepo.GetRecordHistoriesAsync(recordId);
         return history.Select(x => new EvaluationRecordHistoryDto
@@ -167,7 +178,7 @@ public class EvaluationService : IEvaluationService
         if (!HasPermission(requester, AppPermissions.EvaluationsAppraise)
             && !HasPermission(requester, AppPermissions.EvaluationsApprove)
             && !HasRole(requester, AppRoles.QUAN_TRI_HE_THONG))
-            throw new UnauthorizedAccessException("Bạn không có quyền xem danh sách hồ sơ của cả kỳ.");
+            throw new ForbiddenException("Bạn không có quyền xem danh sách hồ sơ của cả kỳ.");
 
         return records
             .Where(record => CanReadRecord(requester, record))
@@ -179,7 +190,7 @@ public class EvaluationService : IEvaluationService
     public async Task<List<EvaluationRecordDto>> GetRecordsByBranchAsync(Guid periodId, Guid? branchId = null, Guid? currentUserId = null)
     {
         if (!currentUserId.HasValue || currentUserId.Value == Guid.Empty)
-            throw new UnauthorizedAccessException("Không xác định được người dùng để giới hạn phạm vi Chi bộ.");
+            throw new ForbiddenException("Không xác định được người dùng để giới hạn phạm vi Chi bộ.");
 
         var currentUser = await GetUserWithPermissionsAsync(currentUserId.Value);
         var canViewAllBranches = HasPermission(currentUser, AppPermissions.EvaluationsAppraise)
@@ -190,14 +201,14 @@ public class EvaluationService : IEvaluationService
         if (branchId.HasValue && branchId.Value != Guid.Empty)
         {
             if (!canViewAllBranches && currentUser.PartyCellId != branchId.Value)
-                throw new UnauthorizedAccessException("Bạn chỉ được xem hồ sơ thuộc Chi bộ của mình.");
+                throw new ForbiddenException("Bạn chỉ được xem hồ sơ thuộc Chi bộ của mình.");
 
             targetBranchId = branchId.Value;
         }
         else
         {
             if (!canViewAllBranches && !currentUser.PartyCellId.HasValue)
-                throw new UnauthorizedAccessException("Người dùng chưa được gán Chi bộ để tra cứu hồ sơ.");
+                throw new ForbiddenException("Người dùng chưa được gán Chi bộ để tra cứu hồ sơ.");
 
             if (!canViewAllBranches && currentUser.PartyCellId.HasValue)
             {
@@ -249,51 +260,55 @@ public class EvaluationService : IEvaluationService
 
         var record = await _evaluationRepo.GetRecordAsync(dto.PeriodId, memberId);
         var previousStatus = record?.Status ?? RecordStatus.Draft;
-        if (record == null)
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            record = new EvaluationRecord
+            if (record == null)
+            {
+                record = new EvaluationRecord
+                {
+                    Id = Guid.NewGuid(),
+                    PeriodId = dto.PeriodId,
+                    MemberId = memberId,
+                    PartyCellId = member.PartyCellId,
+                    DepartmentId = member.DepartmentId,
+                    JobGroup = member.JobGroup,
+                    Status = RecordStatus.TasksSubmitted,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                await _evaluationRepo.AddRecordAsync(record);
+            }
+            else
+            {
+                _unitOfWork.SetOriginalVersion(record, dto.Version);
+                record.Status = RecordStatus.TasksSubmitted;
+                record.UpdatedAt = DateTime.UtcNow;
+                await _evaluationRepo.UpdateRecordAsync(record);
+            }
+
+            // Tạo danh sách nhiệm vụ
+            int order = 1;
+            var newTasks = dto.Tasks.Select(t => new EvaluationTask
             {
                 Id = Guid.NewGuid(),
-                PeriodId = dto.PeriodId,
-                MemberId = memberId,
-                PartyCellId = member.PartyCellId,
-                DepartmentId = member.DepartmentId,
-                JobGroup = member.JobGroup,
-                Status = RecordStatus.TasksSubmitted,
-                UpdatedAt = DateTime.UtcNow
-            };
-            await _evaluationRepo.AddRecordAsync(record);
-        }
-        else
-        {
-            record.Status = RecordStatus.TasksSubmitted;
-            record.UpdatedAt = DateTime.UtcNow;
-            await _evaluationRepo.UpdateRecordAsync(record);
-        }
+                RecordId = record.Id,
+                TaskOrder = order++,
+                TaskName = t.TaskName,
+                TargetOutput = t.TargetOutput,
+                Weight = t.Weight,
+                Deadline = t.Deadline ?? DateTime.UtcNow,
+                AttachmentId = t.AttachmentId,
+                CriteriaA_Ratio = 1.0,
+                CriteriaB_Ratio = 1.0,
+                CriteriaC_Ratio = 1.0,
+                CriteriaD_Ratio = 1.0,
+                SelfScore = t.Weight // Khởi tạo điểm trần bằng trọng số
+            }).ToList();
 
-        // Tạo danh sách nhiệm vụ
-        int order = 1;
-        var newTasks = dto.Tasks.Select(t => new EvaluationTask
-        {
-            Id = Guid.NewGuid(),
-            RecordId = record.Id,
-            TaskOrder = order++,
-            TaskName = t.TaskName,
-            TargetOutput = t.TargetOutput,
-            Weight = t.Weight,
-            Deadline = t.Deadline ?? DateTime.UtcNow,
-            AttachmentId = t.AttachmentId,
-            CriteriaA_Ratio = 1.0,
-            CriteriaB_Ratio = 1.0,
-            CriteriaC_Ratio = 1.0,
-            CriteriaD_Ratio = 1.0,
-            SelfScore = t.Weight // Khởi tạo điểm trần bằng trọng số
-        }).ToList();
+            await _evaluationRepo.ReplaceTasksAsync(record.Id, newTasks);
+            await AddStatusHistoryAsync(record, previousStatus, memberId, "Đăng ký/cập nhật danh sách nhiệm vụ.");
+        });
 
-        await _evaluationRepo.ReplaceTasksAsync(record.Id, newTasks);
-        await AddStatusHistoryAsync(record, previousStatus, memberId, "Đăng ký/cập nhật danh sách nhiệm vụ.");
-
-        var updatedRecord = await _evaluationRepo.GetRecordByIdAsync(record.Id);
+        var updatedRecord = await _evaluationRepo.GetRecordByIdAsync(record!.Id);
         return MapToRecordDto(updatedRecord!);
     }
 
@@ -305,7 +320,7 @@ public class EvaluationService : IEvaluationService
             throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {dto.RecordId}");
 
         if (record.MemberId != memberId)
-            throw new UnauthorizedAccessException("Bạn không có quyền tự chấm điểm cho hồ sơ của cán bộ khác.");
+            throw new ForbiddenException("Bạn không có quyền tự chấm điểm cho hồ sơ của cán bộ khác.");
 
         var previousStatus = record.Status;
 
@@ -336,6 +351,7 @@ public class EvaluationService : IEvaluationService
             var inputScore = dto.TaskScores?.FirstOrDefault(s => s.TaskId == task.Id);
             if (inputScore != null)
             {
+                _unitOfWork.SetOriginalVersion(task, inputScore.Version);
                 task.CriteriaA_Ratio = Math.Clamp(inputScore.CriteriaA_Ratio, 0.0, 1.0);
                 task.CriteriaB_Ratio = Math.Clamp(inputScore.CriteriaB_Ratio, 0.0, 1.0);
                 task.CriteriaC_Ratio = Math.Clamp(inputScore.CriteriaC_Ratio, 0.0, 1.0);
@@ -368,8 +384,12 @@ public class EvaluationService : IEvaluationService
         record.Status = RecordStatus.SelfEvaluated;
         record.UpdatedAt = DateTime.UtcNow;
 
-        await _evaluationRepo.UpdateRecordAsync(record);
-        await AddStatusHistoryAsync(record, previousStatus, memberId, "Hoàn tất tự chấm điểm.");
+        _unitOfWork.SetOriginalVersion(record, dto.Version);
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            await _evaluationRepo.UpdateRecordAsync(record);
+            await AddStatusHistoryAsync(record, previousStatus, memberId, "Hoàn tất tự chấm điểm.");
+        });
 
         var updatedRecord = await _evaluationRepo.GetRecordByIdAsync(record.Id);
         return MapToRecordDto(updatedRecord!);
@@ -402,8 +422,12 @@ public class EvaluationService : IEvaluationService
         record.Status = RecordStatus.Voted;
         record.UpdatedAt = DateTime.UtcNow;
 
-        await _evaluationRepo.UpdateRecordAsync(record);
-        await AddStatusHistoryAsync(record, previousStatus, reviewerId, "Chi bộ nhận xét và bỏ phiếu.");
+        _unitOfWork.SetOriginalVersion(record, dto.Version);
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            await _evaluationRepo.UpdateRecordAsync(record);
+            await AddStatusHistoryAsync(record, previousStatus, reviewerId, "Chi bộ nhận xét và bỏ phiếu.");
+        });
 
         var updatedRecord = await _evaluationRepo.GetRecordByIdAsync(record.Id);
         return MapToRecordDto(updatedRecord!);
@@ -429,49 +453,53 @@ public class EvaluationService : IEvaluationService
             UpdatedAt = DateTime.UtcNow
         };
         var resultList = new List<EvaluationRecordDto>();
-        foreach (var vote in dto.MemberVotes)
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            var record = await _evaluationRepo.GetRecordByIdAsync(vote.RecordId);
-            if (record == null) continue;
-            if (record.PeriodId != dto.PeriodId || record.PartyCellId != dto.PartyCellId)
-                throw new UnauthorizedAccessException("Cuộc họp chỉ được ghi nhận hồ sơ cùng kỳ và cùng Chi bộ.");
-
-            var previousStatus = record.Status;
-
-            record.PartyCellComment = vote.Comment;
-            if (Enum.TryParse<EvaluationGrade>(vote.ProposedGrade, true, out var branchGrade))
+            foreach (var vote in dto.MemberVotes)
             {
-                record.PartyCellProposedGrade = branchGrade;
+                var record = await _evaluationRepo.GetRecordByIdAsync(vote.RecordId);
+                if (record == null) continue;
+                if (record.PeriodId != dto.PeriodId || record.PartyCellId != dto.PartyCellId)
+                    throw new ForbiddenException("Cuộc họp chỉ được ghi nhận hồ sơ cùng kỳ và cùng Chi bộ.");
+
+                var previousStatus = record.Status;
+                _unitOfWork.SetOriginalVersion(record, vote.Version);
+
+                record.PartyCellComment = vote.Comment;
+                if (Enum.TryParse<EvaluationGrade>(vote.ProposedGrade, true, out var branchGrade))
+                {
+                    record.PartyCellProposedGrade = branchGrade;
+                }
+
+                record.VotesExcellent = vote.VotesExcellent;
+                record.VotesGood = vote.VotesGood;
+                record.VotesSatisfactory = vote.VotesSatisfactory;
+                record.VotesUnsatisfactory = vote.VotesUnsatisfactory;
+                record.TotalVoters = dto.TotalVoters;
+
+                meeting.VoteSummaries.Add(new EvaluationMeetingVoteSummary
+                {
+                    RecordId = record.Id,
+                    VotesExcellent = vote.VotesExcellent,
+                    VotesGood = vote.VotesGood,
+                    VotesSatisfactory = vote.VotesSatisfactory,
+                    VotesUnsatisfactory = vote.VotesUnsatisfactory
+                });
+
+                record.Status = RecordStatus.Voted;
+                record.UpdatedAt = DateTime.UtcNow;
+
+                await _evaluationRepo.UpdateRecordAsync(record);
+                await AddStatusHistoryAsync(record, previousStatus, reviewerId, "Ghi nhận biên bản kiểm phiếu Chi bộ.");
+                var updated = await _evaluationRepo.GetRecordByIdAsync(record.Id);
+                if (updated != null)
+                {
+                    resultList.Add(MapToRecordDto(updated));
+                }
             }
-
-            record.VotesExcellent = vote.VotesExcellent;
-            record.VotesGood = vote.VotesGood;
-            record.VotesSatisfactory = vote.VotesSatisfactory;
-            record.VotesUnsatisfactory = vote.VotesUnsatisfactory;
-            record.TotalVoters = dto.TotalVoters;
-
-            meeting.VoteSummaries.Add(new EvaluationMeetingVoteSummary
-            {
-                RecordId = record.Id,
-                VotesExcellent = vote.VotesExcellent,
-                VotesGood = vote.VotesGood,
-                VotesSatisfactory = vote.VotesSatisfactory,
-                VotesUnsatisfactory = vote.VotesUnsatisfactory
-            });
-
-            record.Status = RecordStatus.Voted;
-            record.UpdatedAt = DateTime.UtcNow;
-
-            await _evaluationRepo.UpdateRecordAsync(record);
-            await AddStatusHistoryAsync(record, previousStatus, reviewerId, "Ghi nhận biên bản kiểm phiếu Chi bộ.");
-            var updated = await _evaluationRepo.GetRecordByIdAsync(record.Id);
-            if (updated != null)
-            {
-                resultList.Add(MapToRecordDto(updated));
-            }
-        }
-        if (meeting.VoteSummaries.Count > 0)
-            await _meetingRepo.AddAsync(meeting);
+            if (meeting.VoteSummaries.Count > 0)
+                await _meetingRepo.AddAsync(meeting);
+        });
 
         return resultList;
     }
@@ -495,8 +523,12 @@ public class EvaluationService : IEvaluationService
         record.Status = RecordStatus.Reviewed;
         record.UpdatedAt = DateTime.UtcNow;
 
-        await _evaluationRepo.UpdateRecordAsync(record);
-        await AddStatusHistoryAsync(record, previousStatus, appraiserId, "Thẩm định hồ sơ đánh giá.");
+        _unitOfWork.SetOriginalVersion(record, dto.Version);
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            await _evaluationRepo.UpdateRecordAsync(record);
+            await AddStatusHistoryAsync(record, previousStatus, appraiserId, "Thẩm định hồ sơ đánh giá.");
+        });
 
         var updatedRecord = await _evaluationRepo.GetRecordByIdAsync(record.Id);
         return MapToRecordDto(updatedRecord!);
@@ -509,7 +541,7 @@ public class EvaluationService : IEvaluationService
         if (!HasPermission(requester, AppPermissions.EvaluationsAppraise)
             && !HasPermission(requester, AppPermissions.EvaluationsApprove)
             && !HasRole(requester, AppRoles.QUAN_TRI_HE_THONG))
-            throw new UnauthorizedAccessException("Bạn không có quyền kiểm tra tỷ lệ xếp loại.");
+            throw new ForbiddenException("Bạn không có quyền kiểm tra tỷ lệ xếp loại.");
 
         var records = (await _evaluationRepo.GetRecordsByPeriodAsync(periodId))
             .Where(record => CanReadRecord(requester, record))
@@ -574,13 +606,13 @@ public class EvaluationService : IEvaluationService
 
         var approver = await GetUserWithPermissionsAsync(approverId);
         if (!HasPermission(approver, AppPermissions.EvaluationsApprove))
-            throw new UnauthorizedAccessException("Bạn không có quyền phê duyệt hồ sơ đánh giá.");
+            throw new ForbiddenException("Bạn không có quyền phê duyệt hồ sơ đánh giá.");
 
         var requiredRole = record.Member?.IsApprovedByAttech == true
             ? AppRoles.DANG_UY_CO_SO
             : AppRoles.BAN_THUONG_VU;
         if (!HasRole(approver, requiredRole))
-            throw new UnauthorizedAccessException("Hồ sơ này phải được phê duyệt bởi đúng cấp có thẩm quyền.");
+            throw new ForbiddenException("Hồ sơ này phải được phê duyệt bởi đúng cấp có thẩm quyền.");
 
         var previousStatus = record.Status;
 
@@ -593,8 +625,12 @@ public class EvaluationService : IEvaluationService
         record.Status = RecordStatus.Approved;
         record.UpdatedAt = DateTime.UtcNow;
 
-        await _evaluationRepo.UpdateRecordAsync(record);
-        await AddStatusHistoryAsync(record, previousStatus, approverId, "Phê duyệt xếp loại chính thức.");
+        _unitOfWork.SetOriginalVersion(record, dto.Version);
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            await _evaluationRepo.UpdateRecordAsync(record);
+            await AddStatusHistoryAsync(record, previousStatus, approverId, "Phê duyệt xếp loại chính thức.");
+        });
 
         var updatedRecord = await _evaluationRepo.GetRecordByIdAsync(record.Id);
         return MapToRecordDto(updatedRecord!);
@@ -609,7 +645,7 @@ public class EvaluationService : IEvaluationService
     {
         var user = await _userRepo.GetWithRolesAndPermissionsByIdAsync(userId);
         if (user == null)
-            throw new UnauthorizedAccessException("Không tìm thấy hồ sơ người dùng hiện tại.");
+            throw new ForbiddenException("Không tìm thấy hồ sơ người dùng hiện tại.");
 
         return user;
     }
@@ -651,7 +687,7 @@ public class EvaluationService : IEvaluationService
         if (!HasPermission(reviewer, AppPermissions.EvaluationsBranchVote)
             || !reviewer.PartyCellId.HasValue
             || reviewer.PartyCellId != record.PartyCellId)
-            throw new UnauthorizedAccessException("Bạn chỉ được ghi nhận đánh giá cho Chi bộ của mình.");
+            throw new ForbiddenException("Bạn chỉ được ghi nhận đánh giá cho Chi bộ của mình.");
     }
 
     /// <summary>Kiểm tra người ghi nhận biên bản thuộc đúng Chi bộ được truyền lên.</summary>
@@ -660,7 +696,7 @@ public class EvaluationService : IEvaluationService
         if (!HasPermission(reviewer, AppPermissions.EvaluationsBranchVote)
             || !reviewer.PartyCellId.HasValue
             || reviewer.PartyCellId != partyCellId)
-            throw new UnauthorizedAccessException("Bạn chỉ được ghi nhận biên bản cho Chi bộ của mình.");
+            throw new ForbiddenException("Bạn chỉ được ghi nhận biên bản cho Chi bộ của mình.");
     }
 
     /// <summary>Ghi lại người thực hiện và diễn biến chuyển trạng thái hồ sơ.</summary>
@@ -707,11 +743,12 @@ public class EvaluationService : IEvaluationService
         return EvaluationGrade.KhongHoanThanh;
     }
 
-    private static EvaluationPeriodDto MapToPeriodDto(EvaluationPeriod p)
+    private EvaluationPeriodDto MapToPeriodDto(EvaluationPeriod p)
     {
         return new EvaluationPeriodDto
         {
             Id = p.Id,
+            Version = _unitOfWork.GetVersion(p),
             Year = p.Year,
             Quarter = (int)p.Quarter,
             Name = p.Name,
@@ -723,11 +760,12 @@ public class EvaluationService : IEvaluationService
         };
     }
 
-    private static EvaluationRecordDto MapToRecordDto(EvaluationRecord r)
+    private EvaluationRecordDto MapToRecordDto(EvaluationRecord r)
     {
         return new EvaluationRecordDto
         {
             Id = r.Id,
+            Version = _unitOfWork.GetVersion(r),
             PeriodId = r.PeriodId,
             PeriodName = r.Period?.Name ?? string.Empty,
             MemberId = r.MemberId,
@@ -770,11 +808,12 @@ public class EvaluationService : IEvaluationService
         };
     }
 
-    private static EvaluationTaskDto MapToTaskDto(EvaluationTask t)
+    private EvaluationTaskDto MapToTaskDto(EvaluationTask t)
     {
         return new EvaluationTaskDto
         {
             Id = t.Id,
+            Version = _unitOfWork.GetVersion(t),
             RecordId = t.RecordId,
             TaskOrder = t.TaskOrder,
             TaskName = t.TaskName,

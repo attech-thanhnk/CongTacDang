@@ -128,4 +128,13 @@ public class UserController : ControllerBase
             return NotFound(ApiResponse.Fail(ex.Message));
         }
     }
+
+    /// <summary>Đặt lại mật khẩu tạm cho cán bộ; mật khẩu chỉ hiển thị một lần.</summary>
+    [HttpPost("{id}/reset-password")]
+    [Authorize(Policy = AppPermissions.UsersUpdate)]
+    public async Task<IActionResult> ResetPassword(Guid id)
+    {
+        var result = await _userService.ResetPasswordAsync(id);
+        return Ok(ApiResponse<ResetPasswordResponseDto>.Ok(result, "Đã đặt lại mật khẩu tạm. Hãy cung cấp mật khẩu này cho cán bộ qua kênh an toàn."));
+    }
 }

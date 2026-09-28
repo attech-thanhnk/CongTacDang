@@ -12,6 +12,8 @@ export interface UserSession {
   roles: string[];
   /** Danh sách quyền hạn nguyên tử (users.read, ...) */
   permissions: string[];
+  /** Bắt buộc đổi mật khẩu tạm */
+  mustChangePassword: boolean;
   /** Thời điểm hết hạn phiên làm việc */
   expiresAt?: string;
 }
@@ -41,6 +43,14 @@ export const authService = {
   async refreshToken(): Promise<UserSession> {
     return request<UserSession>("/auth/refresh-token", {
       method: "POST",
+    });
+  },
+
+  /** Đổi mật khẩu của tài khoản hiện tại */
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    return request<void>("/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
     });
   },
 };

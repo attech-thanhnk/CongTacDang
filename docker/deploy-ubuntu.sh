@@ -16,11 +16,17 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-echo "[1/3] Đang xây dựng và khởi động các container..."
 cd "$(dirname "$0")"
-docker compose down --remove-orphans || true
-docker compose build --no-cache
-docker compose up -d
+
+if [ ! -f .env ]; then
+    echo "[LỖI] Chưa có docker/.env. Hãy sao chép docker/.env.example thành docker/.env và đặt secret thật!"
+    exit 1
+fi
+
+echo "[1/3] Đang xây dựng và khởi động các container..."
+docker compose --env-file .env down --remove-orphans || true
+docker compose --env-file .env build --no-cache
+docker compose --env-file .env up -d
 
 echo "[2/3] Đang kiểm tra trạng thái sức khỏe container..."
 sleep 6
@@ -29,8 +35,7 @@ docker compose ps
 echo "[3/3] Triển khai thành công!"
 echo "------------------------------------------------------------------"
 echo " Giao diện Web (Next.js):     http://<IP_MAY_CHU>:3001"
-echo " Backend Web API (Swagger):   http://<IP_MAY_CHU>:5000/swagger"
-echo " MinIO Web Console (Storage): http://<IP_MAY_CHU>:9001 (minioadmin / minioadmin)"
-echo " pgAdmin Quản trị CSDL:       http://<IP_MAY_CHU>:5050 (admin@attech.com.vn / AttechAdmin2026!)"
-echo " PostgreSQL Cổng nội bộ:      5434 (Host=localhost;Database=congtacdang_db)"
+echo " Backend chỉ truy cập nội bộ qua mạng Docker (healthcheck /healthz)"
+echo " Công cụ MinIO/pgAdmin:       docker compose --profile tools up -d"
+echo " PostgreSQL chỉ bind localhost:5434 (cấu hình trong docker/.env)"
 echo "------------------------------------------------------------------"

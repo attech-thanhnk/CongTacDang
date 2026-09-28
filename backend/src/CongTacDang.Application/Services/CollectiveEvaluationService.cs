@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Interfaces;
+using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Domain.Entities;
@@ -39,17 +40,20 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     private readonly IEvaluationMeetingRepository _meetingRepo;
     private readonly IEvaluationRepository _evaluationRepo;
     private readonly IUserRepository _userRepo;
+    private readonly IUnitOfWork _unitOfWork;
 
     public CollectiveEvaluationService(
         ICollectiveEvaluationRepository collectiveRepo,
         IEvaluationMeetingRepository meetingRepo,
         IEvaluationRepository evaluationRepo,
-        IUserRepository userRepo)
+        IUserRepository userRepo,
+        IUnitOfWork unitOfWork)
     {
         _collectiveRepo = collectiveRepo;
         _meetingRepo = meetingRepo;
         _evaluationRepo = evaluationRepo;
         _userRepo = userRepo;
+        _unitOfWork = unitOfWork;
     }
 
     /// <summary>Lấy hồ sơ tập thể theo kỳ, biểu mẫu và phạm vi người dùng.</summary>
@@ -152,7 +156,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             ?? throw new KeyNotFoundException($"Không tìm thấy biên bản hội nghị với Id: {id}");
 
         if (!IsElevated(requester) && meeting.PartyCellId != requester.PartyCellId)
-            throw new UnauthorizedAccessException("Bạn không có quyền xem biên bản của Chi bộ khác.");
+            throw new ForbiddenException("Bạn không có quyền xem biên bản của Chi bộ khác.");
 
         return MapMeeting(meeting);
     }
@@ -165,7 +169,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         if (dto.PartyCellId == null || dto.PartyCellId == Guid.Empty)
             throw new ArgumentException("Biên bản hội nghị phải gắn với một Chi bộ.");
         if (!IsElevated(requester) && requester.PartyCellId != dto.PartyCellId)
-            throw new UnauthorizedAccessException("Bạn chỉ được lập biên bản cho Chi bộ của mình.");
+            throw new ForbiddenException("Bạn chỉ được lập biên bản cho Chi bộ của mình.");
         if (dto.FormCode is not ("M12" or "M13"))
             throw new ArgumentException("Biên bản chỉ hỗ trợ M12 hoặc M13.");
         if (dto.FormCode == "M13" && dto.VoteSummaries.Count == 0)
@@ -208,7 +212,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
                 var record = await _evaluationRepo.GetRecordByIdAsync(vote.RecordId)
                     ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {vote.RecordId}");
                 if (record.PeriodId != dto.PeriodId || record.PartyCellId != dto.PartyCellId)
-                    throw new UnauthorizedAccessException("Biên bản chỉ được chứa hồ sơ cùng kỳ và cùng Chi bộ.");
+                    throw new ForbiddenException("Biên bản chỉ được chứa hồ sơ cùng kỳ và cùng Chi bộ.");
 
                 meeting.VoteSummaries.Add(new EvaluationMeetingVoteSummary
                 {
@@ -232,7 +236,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     private async Task<PartyMemberProfile> GetUserAsync(Guid userId)
     {
         return await _userRepo.GetWithRolesAndPermissionsByIdAsync(userId)
-            ?? throw new UnauthorizedAccessException("Không tìm thấy hồ sơ người dùng hiện tại.");
+            ?? throw new ForbiddenException("Không tìm thấy hồ sơ người dùng hiện tại.");
     }
 
     /// <summary>Kiểm tra người dùng có quyền nghiệp vụ cấp cao.</summary>
@@ -253,7 +257,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     private static void EnsureCanReadCollective(PartyMemberProfile user)
     {
         if (!IsElevated(user) && !HasPermission(user, AppPermissions.EvaluationsBranchVote))
-            throw new UnauthorizedAccessException("Bạn không có quyền xem hồ sơ tập thể.");
+            throw new ForbiddenException("Bạn không có quyền xem hồ sơ tập thể.");
     }
 
     /// <summary>Kiểm tra quyền tạo hồ sơ tập thể.</summary>
@@ -262,14 +266,14 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         if (!HasPermission(user, AppPermissions.EvaluationsBranchVote)
             && !HasPermission(user, AppPermissions.EvaluationsAppraise)
             && !HasPermission(user, AppPermissions.EvaluationsApprove))
-            throw new UnauthorizedAccessException("Quản trị hệ thống chỉ được quản lý kỹ thuật, không được lập hồ sơ đánh giá.");
+            throw new ForbiddenException("Quản trị hệ thống chỉ được quản lý kỹ thuật, không được lập hồ sơ đánh giá.");
     }
 
     /// <summary>Kiểm tra quyền xem biên bản hội nghị.</summary>
     private static void EnsureCanReadMeeting(PartyMemberProfile user)
     {
         if (!IsElevated(user) && !HasPermission(user, AppPermissions.EvaluationsBranchVote))
-            throw new UnauthorizedAccessException("Bạn không có quyền xem biên bản hội nghị.");
+            throw new ForbiddenException("Bạn không có quyền xem biên bản hội nghị.");
     }
 
     /// <summary>Kiểm tra quyền tạo biên bản hội nghị.</summary>
@@ -278,7 +282,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         if (!HasPermission(user, AppPermissions.EvaluationsBranchVote)
             && !HasPermission(user, AppPermissions.EvaluationsAppraise)
             && !HasPermission(user, AppPermissions.EvaluationsApprove))
-            throw new UnauthorizedAccessException("Quản trị hệ thống chỉ được quản lý kỹ thuật, không được lập biên bản đánh giá.");
+            throw new ForbiddenException("Quản trị hệ thống chỉ được quản lý kỹ thuật, không được lập biên bản đánh giá.");
     }
 
     /// <summary>Giới hạn hồ sơ theo Chi bộ hoặc phòng ban của người dùng không đặc quyền.</summary>
@@ -294,7 +298,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     private static void EnsureCanAccessOrganization(PartyMemberProfile user, Guid? partyCellId, Guid? departmentId)
     {
         if (!CanAccessOrganization(user, partyCellId, departmentId))
-            throw new UnauthorizedAccessException("Bạn không có quyền thao tác hồ sơ của tổ chức khác.");
+            throw new ForbiddenException("Bạn không có quyền thao tác hồ sơ của tổ chức khác.");
     }
 
     /// <summary>Chuyển mã Mẫu 06-08 sang enum nghiệp vụ.</summary>
@@ -323,11 +327,12 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     }
 
     /// <summary>Ánh xạ hồ sơ tập thể sang DTO.</summary>
-    private static CollectiveEvaluationRecordDto MapCollective(CollectiveEvaluationRecord record)
+    private CollectiveEvaluationRecordDto MapCollective(CollectiveEvaluationRecord record)
     {
         return new CollectiveEvaluationRecordDto
         {
             Id = record.Id,
+            Version = _unitOfWork.GetVersion(record),
             PeriodId = record.PeriodId,
             Form = record.Form.ToString(),
             PartyCellId = record.PartyCellId,
@@ -364,11 +369,12 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     }
 
     /// <summary>Ánh xạ biên bản hội nghị sang DTO.</summary>
-    private static EvaluationMeetingDto MapMeeting(EvaluationMeeting meeting)
+    private EvaluationMeetingDto MapMeeting(EvaluationMeeting meeting)
     {
         return new EvaluationMeetingDto
         {
             Id = meeting.Id,
+            Version = _unitOfWork.GetVersion(meeting),
             PeriodId = meeting.PeriodId,
             PartyCellId = meeting.PartyCellId,
             PartyCellName = meeting.PartyCell?.Name,

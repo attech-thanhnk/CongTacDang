@@ -16,8 +16,11 @@ public class RefreshToken
     /// <summary>Đối tượng cán bộ sở hữu</summary>
     public PartyMemberProfile User { get; set; } = null!;
 
-    /// <summary>Chuỗi giá trị token ngẫu nhiên bảo mật cao</summary>
+    /// <summary>Chuỗi token tạm thời, chỉ tồn tại trong bộ nhớ để trả về cookie</summary>
     public string Token { get; set; } = string.Empty;
+
+    /// <summary>SHA-256 dạng hexadecimal của token</summary>
+    public string TokenHash { get; set; } = string.Empty;
 
     /// <summary>Thời điểm hết hạn của Refresh Token</summary>
     public DateTime ExpiresAt { get; set; }
@@ -28,8 +31,11 @@ public class RefreshToken
     /// <summary>Thời điểm khởi tạo token</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    /// <summary>Token mới thay thế (dùng để phát hiện tấn công tái sử dụng token - Token Reuse Detection)</summary>
-    public string? ReplacedByToken { get; set; }
+    /// <summary>SHA-256 của token mới thay thế</summary>
+    public string? ReplacedByTokenHash { get; set; }
+
+    /// <summary>Thời điểm token bị thu hồi</summary>
+    public DateTime? RevokedAt { get; set; }
 
     /// <summary>Địa chỉ IP của thiết bị khi yêu cầu cấp token</summary>
     public string? CreatedByIp { get; set; }

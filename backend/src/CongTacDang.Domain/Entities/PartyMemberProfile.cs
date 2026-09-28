@@ -80,6 +80,15 @@ public class PartyMemberProfile : IAuditableEntity, ISoftDeletable
     /// <summary>Trạng thái tài khoản (kích hoạt/vô hiệu hóa)</summary>
     public bool IsActive { get; set; } = true;
 
+    /// <summary>Buộc người dùng đổi mật khẩu tạm ở lần đăng nhập kế tiếp</summary>
+    public bool MustChangePassword { get; set; }
+
+    /// <summary>Số lần đăng nhập sai liên tiếp</summary>
+    public int FailedLoginCount { get; set; }
+
+    /// <summary>Thời điểm kết thúc khóa đăng nhập tạm thời</summary>
+    public DateTime? LockoutEnd { get; set; }
+
     /// <summary>Thời điểm khởi tạo hồ sơ</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

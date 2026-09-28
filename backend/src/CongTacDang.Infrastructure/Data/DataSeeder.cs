@@ -12,7 +12,7 @@ namespace CongTacDang.Infrastructure.Data;
 
 public static class DataSeeder
 {
-    public static async Task SeedAsync(CongTacDangDbContext context)
+    public static async Task SeedAsync(CongTacDangDbContext context, bool seedSampleData = true)
     {
         // 0. Chuẩn hóa tên bảng CSDL sang snake_case đồng nhất (Đổi tên an toàn nếu tồn tại bảng cũ PascalCase)
         try
@@ -34,14 +34,15 @@ public static class DataSeeder
                 CREATE TABLE IF NOT EXISTS refresh_tokens (
                     ""Id"" uuid NOT NULL PRIMARY KEY,
                     ""UserId"" uuid NOT NULL REFERENCES party_member_profiles(""Id"") ON DELETE CASCADE,
-                    ""Token"" character varying(256) NOT NULL,
+                     ""TokenHash"" character varying(64) NOT NULL,
                     ""ExpiresAt"" timestamp with time zone NOT NULL,
                     ""IsRevoked"" boolean NOT NULL,
                     ""CreatedAt"" timestamp with time zone NOT NULL,
-                    ""ReplacedByToken"" character varying(256),
+                     ""ReplacedByTokenHash"" character varying(64),
+                     ""RevokedAt"" timestamp with time zone,
                     ""CreatedByIp"" character varying(100)
                 );
-                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_refresh_tokens_Token"" ON refresh_tokens (""Token"");
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_refresh_tokens_TokenHash"" ON refresh_tokens (""TokenHash"");
                 CREATE INDEX IF NOT EXISTS ""IX_refresh_tokens_UserId"" ON refresh_tokens (""UserId"");
 
                 ALTER TABLE IF EXISTS party_cells
@@ -50,7 +51,11 @@ public static class DataSeeder
                     ADD COLUMN IF NOT EXISTS ""UpdatedBy"" uuid,
                     ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT false,
                     ADD COLUMN IF NOT EXISTS ""DeletedAt"" timestamp with time zone,
-                    ADD COLUMN IF NOT EXISTS ""DeletedBy"" uuid;
+                 ADD COLUMN IF NOT EXISTS ""DeletedBy"" uuid;
+                 ALTER TABLE IF EXISTS party_member_profiles
+                     ADD COLUMN IF NOT EXISTS ""MustChangePassword"" boolean NOT NULL DEFAULT false,
+                     ADD COLUMN IF NOT EXISTS ""FailedLoginCount"" integer NOT NULL DEFAULT 0,
+                     ADD COLUMN IF NOT EXISTS ""LockoutEnd"" timestamp with time zone;
                 ALTER TABLE IF EXISTS administrative_departments
                     ADD COLUMN IF NOT EXISTS ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT now(),
                     ADD COLUMN IF NOT EXISTS ""CreatedBy"" uuid,
@@ -395,6 +400,9 @@ public static class DataSeeder
             await context.SaveChangesAsync();
         }
 
+        if (!seedSampleData)
+            return;
+
         // 3. Seed Chi bộ Đảng tại ATTECH
         if (!await context.PartyCells.AnyAsync())
         {
@@ -437,6 +445,7 @@ public static class DataSeeder
             {
                 Username = "admin",
                 PasswordHash = defaultPasswordHash,
+                MustChangePassword = true,
                 FullName = "Quản trị viên Hệ thống",
                 Email = "admin@attech.com.vn",
                 PhoneNumber = "0900000000",
@@ -456,6 +465,7 @@ public static class DataSeeder
             {
                 Username = "bithu_attech",
                 PasswordHash = defaultPasswordHash,
+                MustChangePassword = true,
                 FullName = "Lê Tiến Thịnh",
                 Email = "thinhlt@attech.com.vn",
                 PhoneNumber = "0912345678",
@@ -475,6 +485,7 @@ public static class DataSeeder
             {
                 Username = "bithu_cbkt",
                 PasswordHash = defaultPasswordHash,
+                MustChangePassword = true,
                 FullName = "Nguyễn Văn Hùng",
                 Email = "hungnv@attech.com.vn",
                 PhoneNumber = "0987654321",
@@ -497,6 +508,7 @@ public static class DataSeeder
             {
                 Username = "canbo_kt",
                 PasswordHash = defaultPasswordHash,
+                MustChangePassword = true,
                 FullName = "Trần Quốc Tuấn",
                 Email = "tuantq@attech.com.vn",
                 PhoneNumber = "0901234567",
@@ -516,6 +528,7 @@ public static class DataSeeder
             {
                 Username = "thamdinh_du",
                 PasswordHash = defaultPasswordHash,
+                MustChangePassword = true,
                 FullName = "Vũ Đình Hùng",
                 Email = "hungvd@attech.com.vn",
                 PhoneNumber = "0934567890",
@@ -575,6 +588,7 @@ public static class DataSeeder
                 {
                     Username = "admin",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
+                    MustChangePassword = true,
                     FullName = "Quản trị viên Hệ thống",
                     Email = "admin@attech.com.vn",
                     PhoneNumber = "0900000000",
@@ -626,6 +640,7 @@ public static class DataSeeder
                 {
                     Username = "thamdinh_du",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
+                    MustChangePassword = true,
                     FullName = "Vũ Đình Hùng",
                     Email = "hungvd@attech.com.vn",
                     PhoneNumber = "0934567890",
@@ -686,6 +701,7 @@ public static class DataSeeder
             {
                 var rawPass = string.IsNullOrWhiteSpace(u.PasswordHash) ? "123456" : u.PasswordHash;
                 u.PasswordHash = BCrypt.Net.BCrypt.HashPassword(rawPass);
+                u.MustChangePassword = true;
             }
             await context.SaveChangesAsync();
         }

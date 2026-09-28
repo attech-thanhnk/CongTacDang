@@ -17,11 +17,11 @@ public class LocalFileStorageService : IFileStorageService
     {
         if (!string.IsNullOrWhiteSpace(storagePath))
         {
-            _storageRoot = storagePath;
+            _storageRoot = Path.GetFullPath(storagePath);
         }
         else
         {
-            _storageRoot = Path.Combine(AppContext.BaseDirectory, "uploads");
+            _storageRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "uploads"));
         }
 
         if (!Directory.Exists(_storageRoot))
@@ -35,8 +35,7 @@ public class LocalFileStorageService : IFileStorageService
     /// </summary>
     public async Task<string> SaveFileAsync(Stream fileStream, string objectKey, string contentType = "application/octet-stream")
     {
-        var sanitizedKey = objectKey.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
-        var fullPath = Path.Combine(_storageRoot, sanitizedKey);
+        var fullPath = GetSafePath(objectKey);
 
         var dir = Path.GetDirectoryName(fullPath);
         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
@@ -57,8 +56,7 @@ public class LocalFileStorageService : IFileStorageService
     /// </summary>
     public Task<Stream?> GetFileStreamAsync(string objectKey)
     {
-        var sanitizedKey = objectKey.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
-        var fullPath = Path.Combine(_storageRoot, sanitizedKey);
+        var fullPath = GetSafePath(objectKey);
 
         if (!File.Exists(fullPath))
         {
@@ -74,8 +72,7 @@ public class LocalFileStorageService : IFileStorageService
     /// </summary>
     public Task DeleteFileAsync(string objectKey)
     {
-        var sanitizedKey = objectKey.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
-        var fullPath = Path.Combine(_storageRoot, sanitizedKey);
+        var fullPath = GetSafePath(objectKey);
 
         if (File.Exists(fullPath))
         {
@@ -90,16 +87,31 @@ public class LocalFileStorageService : IFileStorageService
     /// </summary>
     public bool FileExists(string objectKey)
     {
-        var sanitizedKey = objectKey.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
-        var fullPath = Path.Combine(_storageRoot, sanitizedKey);
+        var fullPath = GetSafePath(objectKey);
         return File.Exists(fullPath);
     }
 
     /// <summary>
     /// Sinh liên kết tương đối tải tệp tin qua API
     /// </summary>
-    public Task<string?> GetDownloadUrlAsync(string objectKey, string fileName, TimeSpan? expiry = null)
+    public Task<string?> GetDownloadUrlAsync(Guid attachmentId, TimeSpan? expiry = null)
     {
-        return Task.FromResult<string?>($"/api/attachments/download-by-key?key={Uri.EscapeDataString(objectKey)}");
+        return Task.FromResult<string?>($"/api/attachments/{attachmentId}/download");
+    }
+
+    private string GetSafePath(string objectKey)
+    {
+        if (string.IsNullOrWhiteSpace(objectKey))
+            throw new ArgumentException("Khóa tệp không được để trống.", nameof(objectKey));
+
+        var normalizedKey = objectKey.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+        var fullPath = Path.GetFullPath(Path.Combine(_storageRoot, normalizedKey));
+        var rootWithSeparator = _storageRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+
+        if (!fullPath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Đường dẫn tệp nằm ngoài thư mục lưu trữ cho phép.");
+
+        return fullPath;
     }
 }
