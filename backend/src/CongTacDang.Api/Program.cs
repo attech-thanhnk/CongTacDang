@@ -11,8 +11,12 @@ using CongTacDang.Application.Services;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Api.Services;
 using CongTacDang.Api.Extensions;
+using CongTacDang.Api.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Log có cấu trúc ra console và file xoay vòng theo ngày (cấu hình Logging:Console:Json, Logging:File:*)
+builder.Logging.AddConfiguredLogging(builder.Configuration, builder.Environment);
 
 builder.Configuration.ValidateRequiredConfiguration();
 builder.Services.AddConfiguredForwardedHeaders(builder.Configuration);
@@ -175,6 +179,7 @@ var app = builder.Build();
 await app.ApplyPersistenceAsync();
 
 // 9. Middleware pipeline
+app.UseMiddleware<CongTacDang.Api.Middlewares.CorrelationIdMiddleware>();
 app.UseForwardedHeaders();
 app.UseConfiguredSecurityHeaders();
 app.UseMiddleware<CongTacDang.Api.Middlewares.GlobalExceptionMiddleware>();

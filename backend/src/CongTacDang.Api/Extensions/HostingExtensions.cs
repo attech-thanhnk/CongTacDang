@@ -47,7 +47,7 @@ public static class HostingExtensions
             options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
             options.ForwardLimit = 2;
             options.KnownProxies.Clear();
-            options.KnownNetworks.Clear();
+            options.KnownIPNetworks.Clear();
 
             foreach (var proxy in configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? Array.Empty<string>())
             {
@@ -63,17 +63,14 @@ public static class HostingExtensions
 
             foreach (var network in configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>() ?? Array.Empty<string>())
             {
-                var parts = network.Split('/', 2, StringSplitOptions.TrimEntries);
-                if (parts.Length != 2 ||
-                    !IPAddress.TryParse(parts[0], out var prefix) ||
-                    !int.TryParse(parts[1], out var prefixLength) ||
-                    prefixLength < 0 ||
-                    prefixLength > prefix.GetAddressBytes().Length * 8)
+                // System.Net.IPNetwork.TryParse kiểm tra cả định dạng CIDR lẫn độ dài prefix
+                if (!network.Contains('/') ||
+                    !System.Net.IPNetwork.TryParse(network.Trim(), out var ipNetwork))
                 {
                     throw new InvalidOperationException($"ForwardedHeaders:KnownNetworks chứa mạng không hợp lệ: '{network}'.");
                 }
 
-                options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(prefix, prefixLength));
+                options.KnownIPNetworks.Add(ipNetwork);
             }
         });
 

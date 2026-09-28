@@ -93,21 +93,87 @@ Bucket MinIO được tạo riêng tư. Không dùng `mc anonymous set download`
 
 ## Backup và khôi phục
 
-Backup PostgreSQL, ví dụ:
+Dùng hai script trong `docker/` (chạy trên máy chủ Docker, bằng user có quyền dùng `docker`):
+
+| Script | Việc làm |
+|---|---|
+| `docker/backup.sh` | `pg_dump --format=custom` CSDL + nén volume `attech-dangbo-backend-uploads`, ghi `SHA256SUMS` và `manifest.txt`, giữ `N` bản gần nhất |
+| `docker/restore.sh` | Kiểm tra checksum, yêu cầu gõ `KHOI PHUC` để xác nhận, dừng frontend/backend, `pg_restore --clean --if-exists --single-transaction`, thay nội dung volume upload, khởi động lại |
+
+Mật khẩu CSDL không đi qua dòng lệnh: `pg_dump`/`pg_restore` chạy bên trong container `postgres` bằng biến môi trường của container.
+
+### Sao lưu
 
 ```bash
-docker compose --env-file docker/.env -f docker/docker-compose.yml exec -T postgres pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom > "backup-$(date +%Y%m%d-%H%M%S).dump"
+# Mặc định lưu vào /var/backups/congtacdang, giữ 14 bản
+sudo mkdir -p /var/backups/congtacdang && sudo chown "$USER" /var/backups/congtacdang
+docker/backup.sh
+docker/backup.sh --backup-dir /mnt/nas/congtacdang --keep 30
+docker/backup.sh --dry-run          # chỉ in các lệnh sẽ chạy
 ```
 
-Khi lệnh chạy từ máy host, đọc giá trị tương ứng trong `docker/.env` hoặc truyền trực tiếp giá trị cho `-U` và `-d`; không đưa mật khẩu vào command history.
+Mỗi bản là một thư mục `congtacdang-YYYYMMDD-HHMMSS/` gồm `db.dump`, `uploads.tar.gz`, `SHA256SUMS`, `manifest.txt`. Bản đang chạy dở có hậu tố `.partial` và bị xóa nếu lỗi; chỉ thư mục đúng mẫu tên mới được tính khi xoay vòng.
 
-Sao lưu volume upload cùng lịch backup database:
+Biến môi trường tùy chọn: `BACKUP_DIR`, `BACKUP_KEEP`, `ENV_FILE` (mặc định `docker/.env`), `COMPOSE_FILE`, `UPLOAD_VOLUME`, `HELPER_IMAGE` (mặc định `alpine:3.20`).
+
+### Lịch sao lưu khuyến nghị
+
+- Hằng ngày lúc 02:00, giữ 14 bản; trước mỗi lần nâng cấp/triển khai chạy thêm một bản thủ công.
+- Sao chép thư mục sao lưu sang máy/ổ khác (NAS, ổ ngoài) — bản sao lưu nằm cùng máy chủ không bảo vệ được khi hỏng đĩa.
+- Trong kỳ đánh giá cao điểm (cuối quý) có thể tăng lên 2 lần/ngày.
+
+Ví dụ crontab (`crontab -e` của user vận hành):
+
+```cron
+0 2 * * * /opt/congtacdang/docker/backup.sh >> /var/log/congtacdang-backup.log 2>&1
+```
+
+### Kiểm tra bản sao lưu
+
+`backup.sh` đã tự kiểm tra `pg_restore --list` và `tar tzf` ngay sau khi tạo. Định kỳ (ít nhất mỗi tháng) kiểm tra thêm:
 
 ```bash
-docker run --rm -v attech-dangbo-backend-uploads:/data -v "$PWD":/backup alpine tar czf /backup/uploads-$(date +%Y%m%d-%H%M%S).tar.gz -C /data .
+cd /var/backups/congtacdang/congtacdang-YYYYMMDD-HHMMSS
+sha256sum -c SHA256SUMS                    # toàn vẹn file
+cat manifest.txt                           # thời điểm, kích thước
+tar tzf uploads.tar.gz | head              # danh sách file upload
 ```
 
-Khôi phục database bằng `pg_restore` sau khi dừng hoặc cô lập ứng dụng. Khôi phục upload vào volume `attech-dangbo-backend-uploads`, sau đó kiểm tra quyền đọc/ghi của backend.
+Và **khôi phục thử** vào một môi trường riêng (máy thử nghiệm hoặc compose project khác, không phải CSDL đang dùng): chạy `restore.sh`, đăng nhập, mở một hồ sơ có minh chứng, xuất một biểu mẫu.
+
+### Khôi phục
+
+```bash
+docker/backup.sh                                                        # sao lưu hiện trạng trước
+docker/restore.sh --dry-run /var/backups/congtacdang/congtacdang-20260928-020000
+docker/restore.sh /var/backups/congtacdang/congtacdang-20260928-020000  # gõ KHOI PHUC để xác nhận
+docker/restore.sh --skip-uploads <thư-mục>                              # chỉ khôi phục CSDL
+```
+
+`--yes` bỏ bước xác nhận (chỉ dùng trong kịch bản tự động đã kiểm soát). `pg_restore` chạy trong một transaction: lỗi giữa chừng thì CSDL giữ nguyên. Sau khi khôi phục, script khởi động lại backend/frontend; kiểm tra `/api/healthz`, đăng nhập và mở file minh chứng.
+
+## Log
+
+Backend ghi log có cấu trúc (JSON) ra console và ra file xoay vòng theo ngày `congtacdang-YYYYMMDD.log`. Trong Docker, thư mục log là `/var/log/congtacdang`, mount volume `attech-dangbo-backend-logs`; số ngày giữ đặt bằng `LOG_RETAINED_DAYS` trong `docker/.env` (mặc định 30).
+
+Mỗi request có correlation id: backend nhận header `X-Request-Id` nếu hợp lệ (tối đa 64 ký tự chữ/số/`-_.:`), không thì sinh mới; id được trả lại trong response header `X-Request-Id` và gắn vào trường `CorrelationId` của mọi dòng log của request đó.
+
+```bash
+# Tìm toàn bộ log của một request
+docker run --rm -v attech-dangbo-backend-logs:/logs:ro alpine grep -h '"CorrelationId":"<id>"' /logs/congtacdang-*.log
+docker compose --env-file docker/.env -f docker/docker-compose.yml logs backend | grep '<id>'
+```
+
+Cấu hình (biến môi trường dạng `Logging__File__Path`):
+
+| Key | Mặc định | Ý nghĩa |
+|---|---|---|
+| `Logging:File:Enabled` | `true` | Bật/tắt log ra file |
+| `Logging:File:Path` | thư mục `logs` cạnh thư mục publish (Docker: `/var/log/congtacdang`) | Thư mục log |
+| `Logging:File:RetainedDays` | `30` | Số ngày giữ file log |
+| `Logging:Console:Json` | `true` ngoài Development | Log console dạng JSON |
+
+Log không ghi body request, header, cookie hay token.
 
 ## Rotate secret
 

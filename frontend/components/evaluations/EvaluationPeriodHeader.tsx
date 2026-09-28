@@ -1,7 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
-import { EvaluationPeriodDto, EvaluationRecordDto, CreatePeriodDto } from "@/services/evaluationService";
+import React, { useEffect, useState } from "react";
+import {
+  EvaluationPeriodDto,
+  EvaluationRecordDto,
+  CreatePeriodDto,
+  CONCURRENCY_CONFLICT_MESSAGE,
+  EVALUATION_CONFLICT_EVENT,
+  EvaluationConflictDetail,
+} from "@/services/evaluationService";
 import { Button } from "@/components/common";
 
 interface EvaluationPeriodHeaderProps {
@@ -44,6 +51,22 @@ export function EvaluationPeriodHeader({
   const [setAsActive, setSetAsActive] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [conflictMessage, setConflictMessage] = useState<string | null>(null);
+
+  // Lắng nghe xung đột phiên bản do evaluationService phát ra khi backend trả 409
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<EvaluationConflictDetail>).detail;
+      setConflictMessage(detail?.message || CONCURRENCY_CONFLICT_MESSAGE);
+    };
+    window.addEventListener(EVALUATION_CONFLICT_EVENT, handler);
+    return () => window.removeEventListener(EVALUATION_CONFLICT_EVENT, handler);
+  }, []);
+
+  // Đổi kỳ → ẩn thông báo xung đột của kỳ cũ
+  useEffect(() => {
+    setConflictMessage(null);
+  }, [selectedPeriodId]);
 
   // Tự động cập nhật tên kỳ khi đổi Quý hoặc Năm
   const handleQuarterChange = (q: number) => {
@@ -165,6 +188,30 @@ export function EvaluationPeriodHeader({
           )}
         </div>
       </div>
+
+      {/* Xung đột phiên bản (409): giữ nguyên nội dung đang nhập, để người dùng chủ động tải lại */}
+      {conflictMessage && (
+        <div className="alert alert-warning d-flex align-items-center gap-2 py-2 px-3 small mb-3" role="alert">
+          <i className="bi bi-exclamation-triangle-fill"></i>
+          <span className="flex-grow-1">
+            {conflictMessage} Tải lại sẽ thay nội dung đang nhập bằng dữ liệu mới nhất.
+          </span>
+          {onRefresh && (
+            <Button
+              size="sm"
+              variant="outline-secondary"
+              disabled={loading}
+              onClick={() => {
+                setConflictMessage(null);
+                onRefresh();
+              }}
+            >
+              Tải lại
+            </Button>
+          )}
+          <button type="button" className="btn-close" aria-label="Đóng" onClick={() => setConflictMessage(null)}></button>
+        </div>
+      )}
 
       {/* Modal Khởi tạo Kỳ Đánh giá Mới chuẩn nghiệp vụ */}
       {showCreateModal && (
