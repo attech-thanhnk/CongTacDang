@@ -108,8 +108,8 @@ public class UserController : ControllerBase
     public async Task<IActionResult> CreateUser([FromBody] CreateAccountRequestDto request, CancellationToken ct)
     {
         var created = await _accounts.CreateAsync(new CreateAccountCommand(
-            request.Username,
-            request.FullName,
+            request.Username ?? string.Empty,
+            request.FullName ?? string.Empty,
             request.Email,
             request.PartyCardNumber,
             request.PositionTitle ?? request.AdminTitle,

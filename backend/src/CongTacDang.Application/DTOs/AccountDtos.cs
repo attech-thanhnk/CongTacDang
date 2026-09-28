@@ -7,10 +7,10 @@ namespace CongTacDang.Application.DTOs;
 public class CreateAccountRequestDto
 {
     /// <summary>Tên đăng nhập (bắt buộc; chuẩn hóa chữ thường; <c>^[a-z0-9._-]{3,50}$</c>; không trùng kể cả tài khoản đã xóa).</summary>
-    public string Username { get; set; } = string.Empty;
+    public string? Username { get; set; }
 
     /// <summary>Họ và tên (bắt buộc).</summary>
-    public string FullName { get; set; } = string.Empty;
+    public string? FullName { get; set; }
 
     /// <summary>Email (tùy chọn, đúng định dạng nếu có).</summary>
     public string? Email { get; set; }
