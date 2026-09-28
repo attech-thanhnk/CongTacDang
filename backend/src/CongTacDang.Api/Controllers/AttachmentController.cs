@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 using CongTacDang.Application.Common.Models;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
@@ -46,32 +47,20 @@ public class AttachmentController : ControllerBase
         if (file == null || file.Length == 0)
             return BadRequest(ApiResponse.Fail("Tệp đính kèm không được để trống."));
 
-        try
-        {
-            // Lấy tên cán bộ từ JWT claim để ghi log người tải lên
-            var uploaderName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "Cán bộ ATTECH";
+        // Lấy tên cán bộ từ JWT claim để ghi log người tải lên
+        var uploaderName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "Cán bộ ATTECH";
 
-            using var stream = file.OpenReadStream();
-            var result = await _attachmentService.UploadAttachmentAsync(
-                stream,
-                file.FileName,
-                file.ContentType,
-                file.Length,
-                formCode,
-                description,
-                uploaderName
-            );
+        using var stream = file.OpenReadStream();
+        var result = await _attachmentService.UploadAttachmentAsync(
+            stream,
+            file.FileName,
+            file.Length,
+            formCode,
+            description,
+            uploaderName
+        );
 
-            return Ok(ApiResponse<AttachmentDto>.Ok(result, "Lưu tệp tin thành công vào hệ thống."));
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ApiResponse.Fail(ex.Message));
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ApiResponse.Fail($"Lỗi trong quá trình xử lý tệp: {ex.Message}"));
-        }
+        return Ok(ApiResponse<AttachmentDto>.Ok(result, "Lưu tệp tin thành công vào hệ thống."));
     }
 
     /// <summary>Tải về tệp tin minh chứng theo ID</summary>
@@ -82,6 +71,7 @@ public class AttachmentController : ControllerBase
         try
         {
             var result = await _attachmentService.DownloadAttachmentAsync(id);
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
             return File(result.Stream, result.ContentType, result.FileName);
         }
         catch (KeyNotFoundException ex)
@@ -102,7 +92,13 @@ public class AttachmentController : ControllerBase
         try
         {
             var result = await _attachmentService.DownloadAttachmentAsync(id);
-            Response.Headers["Content-Disposition"] = $"inline; filename=\"{Uri.EscapeDataString(result.FileName)}\"";
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            var isInline = result.ContentType is "application/pdf" or "image/png" or "image/jpeg";
+            var disposition = new ContentDispositionHeaderValue(isInline ? "inline" : "attachment")
+            {
+                FileNameStar = result.FileName
+            };
+            Response.Headers["Content-Disposition"] = disposition.ToString();
             return File(result.Stream, result.ContentType);
         }
         catch (KeyNotFoundException ex)

@@ -63,10 +63,10 @@ export const attachmentService = {
   },
 
   // Tải nội dung blob để xem an toàn trong iframe / modal
-  async getBlobUrl(id: string): Promise<string> {
+  async getBlobUrl(id: string): Promise<{ url: string; mimeType: string }> {
     const res: any = await apiClient.get(`/attachments/${id}/download`, { responseType: "blob" });
     const actualBlob = res instanceof Blob ? res : new Blob([res], { type: res.type || "application/pdf" });
-    return window.URL.createObjectURL(actualBlob);
+    return { url: window.URL.createObjectURL(actualBlob), mimeType: actualBlob.type.toLowerCase() };
   },
 
   // Định dạng dung lượng tệp sang chuỗi hiển thị

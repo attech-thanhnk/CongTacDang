@@ -19,6 +19,7 @@ export function DocumentViewerModal({
   fileName: propFileName,
 }: DocumentViewerModalProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [mimeType, setMimeType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [attachmentInfo, setAttachmentInfo] = useState<AttachmentItem | null>(null);
@@ -28,6 +29,7 @@ export function DocumentViewerModal({
       if (blobUrl) {
         window.URL.revokeObjectURL(blobUrl);
         setBlobUrl(null);
+        setMimeType(null);
       }
       setAttachmentInfo(null);
       setError(null);
@@ -41,7 +43,8 @@ export function DocumentViewerModal({
     attachmentService.getBlobUrl(attachmentId)
       .then((url) => {
         if (isMounted) {
-          setBlobUrl(url);
+          setBlobUrl(url.url);
+          setMimeType(url.mimeType);
         }
       })
       .catch((err) => {
@@ -61,8 +64,9 @@ export function DocumentViewerModal({
   if (!isOpen || !attachmentId) return null;
 
   const fileName = propFileName || attachmentFileName || attachmentInfo?.fileName || "Tệp minh chứng";
-  const isPdf = fileName.toLowerCase().endsWith(".pdf");
-  const isImage = /\.(jpg|jpeg|png|webp)$/i.test(fileName);
+  const isPdf = mimeType === "application/pdf";
+  const isImage = mimeType === "image/png" || mimeType === "image/jpeg";
+  const isPreviewable = isPdf || isImage;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/75 backdrop-blur-sm p-4 animate-in fade-in duration-150">
@@ -80,13 +84,15 @@ export function DocumentViewerModal({
           <div className="flex items-center gap-2">
             {blobUrl && (
               <>
-                <button
-                  type="button"
-                  onClick={() => window.open(blobUrl, "_blank")}
-                  className="px-3 py-1 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded transition border border-slate-700"
-                >
-                  Mở tab mới
-                </button>
+                {isPreviewable && (
+                  <button
+                    type="button"
+                    onClick={() => window.open(blobUrl, "_blank", "noopener,noreferrer")}
+                    className="px-3 py-1 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded transition border border-slate-700"
+                  >
+                    Mở tab mới
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => attachmentService.downloadAttachment(attachmentId, fileName)}
@@ -174,10 +180,10 @@ export function DocumentViewerModal({
                       <i className="bi bi-download"></i>
                       <span>Tải về máy để xem</span>
                     </button>
-                    {blobUrl && (
+                    {isPreviewable && blobUrl && (
                       <button
                         type="button"
-                        onClick={() => window.open(blobUrl, "_blank")}
+                        onClick={() => window.open(blobUrl, "_blank", "noopener,noreferrer")}
                         className="px-3 py-2 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg hover:bg-slate-200 transition border border-slate-300"
                       >
                         Mở tab mới
