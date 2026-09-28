@@ -72,9 +72,12 @@ public class UserController : ControllerBase
         return Ok(ApiResponse<PagedResult<AccountListItemDto>>.Ok(result, "Lấy danh sách tài khoản thành công."));
     }
 
-    /// <summary>(Tạm giữ cho giao diện cũ) Danh sách toàn bộ cán bộ, không phân trang. Dùng <c>GET /api/users</c>.</summary>
+    /// <summary>
+    /// (Tạm giữ cho giao diện cũ) Danh sách cán bộ trong phạm vi <c>system.users.read</c>, không phân trang.
+    /// Dùng <c>GET /api/users</c>.
+    /// </summary>
     [HttpGet("list")]
-    [Authorize(Policy = AppPermissions.UsersRead)]
+    [RequirePermission(PermissionCodes.SystemUsersRead)]
     public async Task<IActionResult> GetUserList()
     {
         var cadres = await _userService.GetCadresAsync();

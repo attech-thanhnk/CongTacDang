@@ -21,11 +21,8 @@ public interface IUserRepository : IRepository<PartyMemberProfile>
     /// <summary>Lấy toàn bộ danh sách cán bộ kèm thông tin Chi bộ và Phòng ban</summary>
     Task<List<PartyMemberProfile>> GetAllWithDetailsAsync();
 
-    /// <summary>Tìm kiếm cán bộ theo tên đăng nhập kèm thông tin Vai trò và Quyền hạn</summary>
-    Task<PartyMemberProfile?> GetWithRolesAndPermissionsAsync(string username);
-
-    /// <summary>Tìm kiếm cán bộ theo Id kèm thông tin Vai trò và Quyền hạn</summary>
-    Task<PartyMemberProfile?> GetWithRolesAndPermissionsByIdAsync(Guid id);
+    /// <summary>Tìm cán bộ theo Id kèm Chi bộ, Phòng (không theo dõi thay đổi). Vai trò/quyền lấy từ <c>IPermissionResolver</c>.</summary>
+    Task<PartyMemberProfile?> GetWithOrganizationByIdAsync(Guid id);
 }
 
 /// <summary>
@@ -62,9 +59,6 @@ public interface IAttachmentVersionRepository
 /// <summary>Tra cứu dữ liệu phục vụ kiểm tra quyền trên tệp đính kèm.</summary>
 public interface IAttachmentAccessReader
 {
-    /// <summary>Trả về tập Id (trong <paramref name="userIds"/>) của người dùng đang có vai trò <paramref name="roleCode"/>.</summary>
-    Task<HashSet<Guid>> GetUserIdsInRoleAsync(IReadOnlyCollection<Guid> userIds, string roleCode);
-
     /// <summary>
     /// Lấy các hồ sơ đánh giá (kèm Member) mà mỗi tệp đang gắn vào, qua TaskAttachment.RecordId
     /// hoặc qua EvaluationTask.AttachmentId. Khóa là Id tệp; tệp không gắn hồ sơ không có trong kết quả.

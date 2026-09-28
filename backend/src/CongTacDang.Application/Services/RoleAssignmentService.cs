@@ -338,7 +338,7 @@ public sealed class RoleAssignmentService : IRoleAssignmentService
         if (AdministratorInvariant.IsBrokenBy(before, apply(before)))
         {
             throw new ConflictException(
-                "Không thể thực hiện vì hệ thống sẽ không còn tài khoản đang hoạt động nào giữ quyền "
+                "Không thể thực hiện vì thao tác này làm mất quản trị viên cuối cùng: hệ thống sẽ không còn tài khoản đang hoạt động nào giữ quyền "
                 + $"\"{PermissionCodes.DisplayName(PermissionCodes.SystemRolesManage)}\" hoặc "
                 + $"\"{PermissionCodes.DisplayName(PermissionCodes.SystemAssignmentsManage)}\" (phạm vi Toàn công ty). "
                 + "Hãy gán vai trò quản trị cho người khác trước.");

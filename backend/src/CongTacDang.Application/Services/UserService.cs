@@ -24,11 +24,11 @@ public interface IUserService
 
     /// <summary>
     /// Lấy hồ sơ theo yêu cầu của một người dùng: mặc định là hồ sơ của chính người yêu cầu;
-    /// hồ sơ người khác chỉ trả về khi người yêu cầu có quyền xem theo <see cref="IAccessPolicy"/>.
+    /// hồ sơ người khác chỉ trả về khi người yêu cầu có quyền <c>system.users.read</c> bao trùm Phòng/Chi bộ của hồ sơ đó.
     /// </summary>
     Task<UserProfileDto> GetProfileForRequesterAsync(Guid requesterId, string? username = null);
 
-    /// <summary>Lấy danh sách tất cả cán bộ / Đảng viên trong hệ thống</summary>
+    /// <summary>Danh sách cán bộ / Đảng viên trong phạm vi <c>system.users.read</c> của người dùng hiện tại.</summary>
     Task<List<CadreDto>> GetCadresAsync();
 
     /// <summary>Lấy chi tiết thông tin một cán bộ theo Id</summary>
@@ -42,14 +42,18 @@ public class UserService : IUserService
 {
     private readonly IUserRepository _userRepo;
     private readonly IRoleRepository _roleRepo;
-    private readonly IAccessPolicy _accessPolicy;
+    private readonly IAuthorizationGuard _guard;
     private readonly IPermissionResolver _permissions;
 
-    public UserService(IUserRepository userRepo, IRoleRepository roleRepo, IAccessPolicy accessPolicy, IPermissionResolver permissions)
+    private static readonly string ProfileForbiddenMessage =
+        $"Bạn chỉ được xem hồ sơ của chính mình hoặc hồ sơ trong phạm vi quyền \"{PermissionCodes.DisplayName(PermissionCodes.SystemUsersRead)}\" được giao. "
+        + "Hãy liên hệ quản trị hệ thống nếu cần được cấp quyền.";
+
+    public UserService(IUserRepository userRepo, IRoleRepository roleRepo, IAuthorizationGuard guard, IPermissionResolver permissions)
     {
         _userRepo = userRepo;
         _roleRepo = roleRepo;
-        _accessPolicy = accessPolicy;
+        _guard = guard;
         _permissions = permissions;
     }
 
@@ -73,7 +77,7 @@ public class UserService : IUserService
     /// <inheritdoc />
     public async Task<UserProfileDto> GetProfileByIdAsync(Guid userId)
     {
-        var member = await _userRepo.GetWithRolesAndPermissionsByIdAsync(userId)
+        var member = await _userRepo.GetWithOrganizationByIdAsync(userId)
             ?? throw new NotFoundException("Không tìm thấy hồ sơ của tài khoản đang đăng nhập (có thể đã bị xóa). Vui lòng đăng nhập lại.");
         return await MapToProfileDtoAsync(member);
     }
@@ -81,7 +85,7 @@ public class UserService : IUserService
     /// <summary>Lấy hồ sơ của chính người yêu cầu, hoặc hồ sơ người khác nếu được phép xem.</summary>
     public async Task<UserProfileDto> GetProfileForRequesterAsync(Guid requesterId, string? username = null)
     {
-        var requester = await _userRepo.GetWithRolesAndPermissionsByIdAsync(requesterId)
+        var requester = await _userRepo.GetWithOrganizationByIdAsync(requesterId)
             ?? throw new ForbiddenException("Không tìm thấy hồ sơ người dùng hiện tại.");
 
         var targetUsername = username?.Trim();
@@ -94,15 +98,14 @@ public class UserService : IUserService
         var target = await _userRepo.GetByUsernameAsync(targetUsername);
         if (target == null)
         {
-            // Không tiết lộ tài khoản có tồn tại hay không với người không có quyền xem hồ sơ người khác.
-            var probe = new PartyMemberProfile { Id = Guid.NewGuid() };
-            if (!_accessPolicy.CanAccessProfile(requester, probe, AccessOperation.Read))
-                throw new ForbiddenException("Bạn chỉ được xem hồ sơ của chính mình.");
+            // Không tiết lộ tài khoản có tồn tại hay không: chỉ người xem được mọi hồ sơ (phạm vi Toàn công ty) nhận 404.
+            if (!_guard.Can(PermissionCodes.SystemUsersRead, AccessTarget.None))
+                throw new ForbiddenException(ProfileForbiddenMessage);
             throw new KeyNotFoundException($"Không tìm thấy hồ sơ cán bộ với tên đăng nhập: {targetUsername}");
         }
 
-        if (!_accessPolicy.CanAccessProfile(requester, target, AccessOperation.Read))
-            throw new ForbiddenException("Bạn chỉ được xem hồ sơ của chính mình.");
+        if (!_guard.Can(PermissionCodes.SystemUsersRead, new AccessTarget(target.Id, target.DepartmentId, target.PartyCellId)))
+            throw new ForbiddenException(ProfileForbiddenMessage);
 
         return await MapToProfileDtoAsync(target);
     }
@@ -125,17 +128,24 @@ public class UserService : IUserService
             PartyBranchName = member.PartyCell?.Name ?? string.Empty,
             AdminDeptName = member.Department?.Name ?? string.Empty,
             JobGroup = member.JobGroup.ToString(),
-            Roles = effective.LegacyRoleCodes.ToArray(),
+            Roles = effective.RoleNames.ToArray(),
             Permissions = effective.Codes.ToArray(),
             MustChangePassword = member.MustChangePassword
         };
     }
 
-    /// <summary>Lấy danh sách tất cả cán bộ kèm thông tin Chi bộ và Phòng ban</summary>
+    /// <summary>
+    /// Danh sách cán bộ kèm Chi bộ, Phòng — chỉ cán bộ thuộc Phòng/Chi bộ trong phạm vi <c>system.users.read</c>
+    /// của người dùng hiện tại (T-61); không có phạm vi nào → danh sách rỗng.
+    /// </summary>
     public async Task<List<CadreDto>> GetCadresAsync()
     {
+        var scope = _guard.GetScope(PermissionCodes.SystemUsersRead);
+        if (scope.IsEmpty)
+            return new List<CadreDto>();
+
         var members = await _userRepo.GetAllWithDetailsAsync();
-        return members.Select(m => new CadreDto
+        return members.Where(m => scope.Matches(null, m.DepartmentId, m.PartyCellId)).Select(m => new CadreDto
         {
             Id = m.Id,
             FullName = m.FullName,

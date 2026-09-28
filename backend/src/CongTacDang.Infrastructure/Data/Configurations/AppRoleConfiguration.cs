@@ -29,16 +29,7 @@ public sealed class AppRoleConfiguration : IEntityTypeConfiguration<AppRole>
                 l => l.HasOne(typeof(Permission)).WithMany().HasForeignKey("permission_id"),
                 r => r.HasOne(typeof(AppRole)).WithMany().HasForeignKey("role_id"));
 
-        // Quan hệ nhiều-nhiều user ↔ role cũ (user_roles): KHÔNG còn dùng để phân quyền (xem UserRoleAssignment).
-        // Giữ ánh xạ tới khi các chỗ còn đọc PartyMemberProfile.Roles (ngoài phạm vi task 09) được gỡ; sau đó xóa khối này
-        // cùng AppRole.Members / PartyMemberProfile.Roles và bảng user_roles (xem báo cáo task 09).
-#pragma warning disable CS0618
-        entity.HasMany(r => r.Members)
-            .WithMany(m => m.Roles)
-            .UsingEntity(
-                "user_roles",
-                l => l.HasOne(typeof(PartyMemberProfile)).WithMany().HasForeignKey("user_id"),
-                r => r.HasOne(typeof(AppRole)).WithMany().HasForeignKey("role_id"));
-#pragma warning restore CS0618
+        // Gán vai trò cho người dùng: bảng user_role_assignments (UserRoleAssignment, có phạm vi và thời hạn).
+        // Bảng nhiều-nhiều cũ user_roles đã được chuyển dữ liệu và xóa trong migration Wave4.
     }
 }

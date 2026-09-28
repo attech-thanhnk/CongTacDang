@@ -79,7 +79,7 @@ export const userService = {
     return request<UserProfile>("/users/profile");
   },
 
-  /** Lấy danh sách toàn bộ cán bộ lãnh đạo, quản lý */
+  /** Danh sách cán bộ trong phạm vi quyền "system.users.read" của người đang đăng nhập (Toàn công ty / Phòng / Chi bộ) */
   async getUsers(): Promise<CadreItem[]> {
     return request<CadreItem[]>("/users/list");
   },

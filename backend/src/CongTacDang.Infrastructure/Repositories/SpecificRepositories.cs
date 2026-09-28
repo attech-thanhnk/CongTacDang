@@ -53,26 +53,13 @@ public class UserRepository : GenericRepository<PartyMemberProfile>, IUserReposi
             .ToListAsync();
     }
 
-    /// <summary>Tìm kiếm cán bộ theo tên đăng nhập kèm thông tin Vai trò và Quyền hạn</summary>
-    public async Task<PartyMemberProfile?> GetWithRolesAndPermissionsAsync(string username)
-    {
-        return await _db.PartyMemberProfiles
-            .Include(m => m.PartyCell)
-            .Include(m => m.Department)
-            .Include(m => m.Roles)
-                .ThenInclude(r => r.Permissions)
-            .FirstOrDefaultAsync(m => m.Username == username);
-    }
-
-    /// <summary>Tìm kiếm cán bộ theo Id kèm thông tin Vai trò và Quyền hạn</summary>
-    public async Task<PartyMemberProfile?> GetWithRolesAndPermissionsByIdAsync(Guid id)
+    /// <summary>Tìm cán bộ theo Id kèm Chi bộ, Phòng.</summary>
+    public async Task<PartyMemberProfile?> GetWithOrganizationByIdAsync(Guid id)
     {
         return await _db.PartyMemberProfiles
             .AsNoTracking()
             .Include(m => m.PartyCell)
             .Include(m => m.Department)
-            .Include(m => m.Roles)
-                .ThenInclude(r => r.Permissions)
             .FirstOrDefaultAsync(m => m.Id == id);
     }
 }
@@ -209,20 +196,6 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
             .FirstOrDefaultAsync(r => r.Id == recordId.Value);
     }
 
-    /// <summary>Lọc các người dùng đang có vai trò cho trước.</summary>
-    public async Task<HashSet<Guid>> GetUserIdsInRoleAsync(IReadOnlyCollection<Guid> userIds, string roleCode)
-    {
-        if (userIds.Count == 0)
-            return new HashSet<Guid>();
-
-        var ids = userIds.Distinct().ToList();
-        var matched = await _db.PartyMemberProfiles
-            .AsNoTracking()
-            .Where(u => ids.Contains(u.Id) && u.Roles.Any(r => r.Code == roleCode))
-            .Select(u => u.Id)
-            .ToListAsync();
-        return matched.ToHashSet();
-    }
 
     /// <summary>Lấy các hồ sơ đánh giá mà mỗi tệp đang gắn vào (qua RecordId hoặc qua nhiệm vụ).</summary>
     public async Task<Dictionary<Guid, List<AttachmentRecordLink>>> GetRecordLinksAsync(IReadOnlyCollection<TaskAttachment> attachments)

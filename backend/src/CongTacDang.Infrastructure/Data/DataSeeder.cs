@@ -6,13 +6,16 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Application.Accounts;
+using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Security;
+using CongTacDang.Infrastructure.Repositories;
 
 namespace CongTacDang.Infrastructure.Data;
 
 /// <summary>
 /// Khởi tạo dữ liệu nền: danh mục quyền (từ <see cref="PermissionCodes"/>), vai trò mặc định
-/// (docs/thiet-ke/phan-quyen.md mục 6 — ĐỀ XUẤT, chờ nghiệp vụ xác nhận), chuyển gán vai trò cũ sang bản gán,
+/// (docs/thiet-ke/phan-quyen.md mục 6 — ĐỀ XUẤT, chờ nghiệp vụ xác nhận)
 /// và dữ liệu mẫu khi bật <c>Database:SeedSampleData</c>.
 /// <para>
 /// Đây là nơi <b>duy nhất</b> biết mã vai trò (<see cref="AppRole.Code"/>) — chỉ để tìm vai trò mặc định; logic phân quyền
@@ -21,6 +24,21 @@ namespace CongTacDang.Infrastructure.Data;
 /// </summary>
 public static class DataSeeder
 {
+    /// <summary>Cấu hình tài khoản quản trị ban đầu (<c>Seed:InitialAdmin:*</c>).</summary>
+    /// <param name="Username">Tên đăng nhập.</param>
+    /// <param name="FullName">Họ tên hiển thị (trống → "Quản trị hệ thống").</param>
+    /// <param name="Password">Mật khẩu ban đầu (phải đổi ở lần đăng nhập đầu).</param>
+    /// <param name="PasswordMinLength">Độ dài tối thiểu mật khẩu (<c>Security:Password:MinLength</c>).</param>
+    public sealed record InitialAdminOptions(string? Username, string? FullName, string? Password,
+        int PasswordMinLength = PasswordPolicy.DefaultMinLength)
+    {
+        /// <summary>Đã đặt đủ tên đăng nhập và mật khẩu.</summary>
+        public bool IsConfigured => !string.IsNullOrWhiteSpace(Username) && !string.IsNullOrEmpty(Password);
+
+        /// <summary>Không in mật khẩu khi ghi log/đối tượng.</summary>
+        public override string ToString() => $"InitialAdminOptions {{ Username = {Username}, FullName = {FullName} }}";
+    }
+
     /// <summary>Định nghĩa một vai trò mặc định và bộ quyền của nó.</summary>
     private sealed record RoleDefinition(string Code, string Name, string Description, string[] Permissions, bool IsProtected = false);
 
@@ -37,7 +55,8 @@ public static class DataSeeder
         public const string PartyOffice = "VAN_PHONG_DANG_UY";
         public const string Administrator = "QUAN_TRI_HE_THONG";
 
-        // Vai trò cũ (trước task 09) — chỉ dùng để chuyển gán vai trò cũ sang vai trò mặc định mới.
+        // Vai trò cũ (trước task 09) — chỉ dùng để nhận biết CSDL chưa có vai trò cấu hình mới. Gán vai trò cũ
+        // (bảng user_roles) được migration Wave4 chuyển thành bản gán Global của chính vai trò đó.
         public const string LegacyCadre = "CAN_BO";
         public const string LegacyCellSecretary = "BI_THU_CHI_BO";
         public const string LegacyAppraisal = "TO_THAM_DINH";
@@ -98,7 +117,8 @@ public static class DataSeeder
         CongTacDangDbContext context,
         bool seedSampleData = true,
         bool resetRolePermissions = false,
-        ILogger? logger = null)
+        ILogger? logger = null,
+        InitialAdminOptions? initialAdmin = null)
     {
         // 1. Danh mục quyền: đồng bộ từ PermissionCodes (tạo mới, cập nhật tên/mô tả/phân hệ/thứ tự).
         await SyncPermissionCatalogAsync(context, logger);
@@ -108,12 +128,17 @@ public static class DataSeeder
         if (resetRolePermissions)
             await ResetRolePermissionsAsync(context, logger);
 
-        // 3. Chuyển gán vai trò cũ (bảng user_roles) sang bản gán có phạm vi — chỉ khi bảng gán còn trống.
-        await MigrateLegacyUserRolesAsync(context, logger);
+        // 3. Dữ liệu mẫu (chỉ môi trường thử nghiệm).
+        if (seedSampleData)
+            await SeedSampleDataAsync(context, logger);
 
-        if (!seedSampleData)
-            return;
+        // 4. Tài khoản quản trị ban đầu (độc lập với dữ liệu mẫu) — chỉ khi hệ thống chưa có quản trị nào.
+        await SeedInitialAdministratorAsync(context, initialAdmin, logger);
+    }
 
+    /// <summary>Danh mục, tài khoản, bản gán, kỳ và hồ sơ đánh giá mẫu (<c>Database:SeedSampleData</c>).</summary>
+    private static async Task SeedSampleDataAsync(CongTacDangDbContext context, ILogger? logger)
+    {
         // 4. Seed Chi bộ Đảng tại ATTECH
         if (!await context.PartyCells.AnyAsync())
         {
@@ -304,6 +329,101 @@ public static class DataSeeder
         }
     }
 
+    #region Quản trị ban đầu
+
+    /// <summary>
+    /// Tạo tài khoản quản trị ban đầu (cấu hình <c>Seed:InitialAdmin:*</c>) khi chưa có tài khoản đang hoạt động nào giữ
+    /// <c>system.roles.manage</c> và <c>system.assignments.manage</c> phạm vi Toàn công ty: bắt buộc đổi mật khẩu ở lần
+    /// đăng nhập đầu, gán vai trò quản trị hệ thống (được bảo vệ) phạm vi Toàn công ty. Đã có quản trị → bỏ qua (không đổi
+    /// mật khẩu). Thiếu cấu hình / cấu hình sai → ghi log, không dừng ứng dụng. Mật khẩu không bao giờ được ghi log.
+    /// </summary>
+    private static async Task SeedInitialAdministratorAsync(CongTacDangDbContext context, InitialAdminOptions? options, ILogger? logger)
+    {
+        var now = DateTime.UtcNow;
+        var grants = await new RoleAssignmentRepository(context).GetAdministratorGrantsAsync(now);
+        if (AdministratorInvariant.Holds(grants))
+        {
+            if (options?.IsConfigured == true)
+                logger?.LogInformation(
+                    "Đã có tài khoản quản trị đang hoạt động; bỏ qua cấu hình Seed:InitialAdmin (không tạo mới, không đổi mật khẩu).");
+            return;
+        }
+
+        if (options?.IsConfigured != true)
+        {
+            logger?.LogWarning(
+                "Hệ thống chưa có tài khoản quản trị nào đang hoạt động nên không ai quản trị được. Hãy đặt Seed:InitialAdmin:Username "
+                + "và Seed:InitialAdmin:Password (biến môi trường Seed__InitialAdmin__Username, Seed__InitialAdmin__Password; tùy chọn "
+                + "Seed__InitialAdmin__FullName) rồi khởi động lại để tạo tài khoản quản trị ban đầu.");
+            return;
+        }
+
+        string username;
+        try
+        {
+            username = AccountRules.NormalizeAndValidateUsername(options.Username);
+            new PasswordPolicy(options.PasswordMinLength).Validate(options.Password);
+        }
+        catch (ValidationException ex)
+        {
+            logger?.LogError("Không tạo được tài khoản quản trị ban đầu từ cấu hình Seed:InitialAdmin: {Reason}", ex.Message);
+            return;
+        }
+
+        if (await context.PartyMemberProfiles.IgnoreQueryFilters().AnyAsync(m => m.Username.ToLower() == username))
+        {
+            logger?.LogError(
+                "Không tạo được tài khoản quản trị ban đầu: tên đăng nhập {Username} đã được dùng (kể cả tài khoản đã xóa/khóa). "
+                + "Hãy đặt Seed:InitialAdmin:Username khác.", username);
+            return;
+        }
+
+        var role = await context.Roles
+            .Include(r => r.Permissions)
+            .Where(r => r.IsProtected)
+            .OrderBy(r => r.Code == RoleCodes.Administrator ? 0 : 1)
+            .ThenBy(r => r.CreatedAt)
+            .ToListAsync();
+        var adminRole = role.FirstOrDefault(r =>
+            AdministratorInvariant.Codes.All(code => r.Permissions.Any(p => p.Code == code && !p.IsDeleted)));
+        if (adminRole == null)
+        {
+            logger?.LogError(
+                "Không tạo được tài khoản quản trị ban đầu: không có vai trò được bảo vệ nào chứa đủ quyền quản trị "
+                + "(system.roles.manage, system.assignments.manage).");
+            return;
+        }
+
+        var fullName = string.IsNullOrWhiteSpace(options.FullName) ? "Quản trị hệ thống" : options.FullName.Trim();
+        var admin = new PartyMemberProfile
+        {
+            Username = username,
+            FullName = fullName,
+            PositionTitle = "Quản trị hệ thống",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(options.Password),
+            MustChangePassword = true,
+            IsActive = true,
+            IsPartyMember = false,
+            SecurityStamp = Guid.NewGuid().ToString("N"),
+            ApprovalAuthority = ApprovalAuthority.CoSo
+        };
+        context.PartyMemberProfiles.Add(admin);
+        context.Set<UserRoleAssignment>().Add(new UserRoleAssignment
+        {
+            UserId = admin.Id,
+            RoleId = adminRole.Id,
+            ScopeType = RoleScopeType.Global,
+            ValidFrom = now,
+            Note = "Tài khoản quản trị ban đầu (cấu hình Seed:InitialAdmin)."
+        });
+        await context.SaveChangesAsync();
+        logger?.LogInformation(
+            "Đã tạo tài khoản quản trị ban đầu {Username} với vai trò {Role} (Toàn công ty); phải đổi mật khẩu ở lần đăng nhập đầu.",
+            username, adminRole.Name);
+    }
+
+    #endregion
+
     #region Danh mục quyền, vai trò
 
     /// <summary>
@@ -453,86 +573,6 @@ public static class DataSeeder
     #endregion
 
     #region Bản gán vai trò
-
-    /// <summary>Một cặp user–role cũ trong bảng <c>user_roles</c>.</summary>
-    private sealed class LegacyUserRoleRow
-    {
-        public Guid UserId { get; set; }
-        public Guid RoleId { get; set; }
-        public string RoleCode { get; set; } = string.Empty;
-        public Guid? PartyCellId { get; set; }
-    }
-
-    /// <summary>
-    /// Chuyển mỗi cặp user–role cũ (bảng <c>user_roles</c>) thành bản gán có phạm vi — chỉ chạy khi bảng
-    /// <c>user_role_assignments</c> còn trống, để CSDL thử nghiệm không mất phân quyền. Vai trò cũ được ánh xạ sang vai trò mặc định
-    /// tương ứng nếu có (<c>BI_THU_CHI_BO</c> → Chi ủy phạm vi Chi bộ của người đó), ngược lại gán chính vai trò cũ phạm vi Toàn công ty.
-    /// Đọc bằng SQL thô để vẫn chạy được sau khi quan hệ user_roles bị gỡ khỏi model.
-    /// </summary>
-    private static async Task MigrateLegacyUserRolesAsync(CongTacDangDbContext context, ILogger? logger)
-    {
-        if (!context.Database.IsRelational())
-            return;
-        if (await context.Set<UserRoleAssignment>().IgnoreQueryFilters().AnyAsync())
-            return;
-
-        var tableExists = await context.Database
-            .SqlQueryRaw<bool>("SELECT to_regclass('user_roles') IS NOT NULL AS \"Value\"")
-            .SingleAsync();
-        if (!tableExists)
-            return;
-
-        var rows = await context.Database.SqlQueryRaw<LegacyUserRoleRow>(
-                "SELECT ur.user_id AS \"UserId\", r.\"Id\" AS \"RoleId\", r.\"Code\" AS \"RoleCode\", u.\"PartyCellId\" AS \"PartyCellId\" "
-                + "FROM user_roles ur "
-                + "JOIN roles r ON r.\"Id\" = ur.role_id "
-                + "JOIN party_member_profiles u ON u.\"Id\" = ur.user_id "
-                + "WHERE NOT r.\"IsDeleted\" AND NOT u.\"IsDeleted\"")
-            .ToListAsync();
-        if (rows.Count == 0)
-            return;
-
-        var rolesByCode = await context.Roles.ToDictionaryAsync(r => r.Code, r => r.Id);
-        Guid? Target(string code) => rolesByCode.TryGetValue(code, out var id) ? id : null;
-
-        var created = new HashSet<(Guid UserId, Guid RoleId, RoleScopeType Scope, Guid? ScopeId)>();
-        foreach (var row in rows)
-        {
-            (Guid RoleId, RoleScopeType Scope, Guid? ScopeId)? mapped = row.RoleCode switch
-            {
-                RoleCodes.LegacyCadre when Target(RoleCodes.Evaluatee) is Guid id => (id, RoleScopeType.Global, null),
-                RoleCodes.LegacyCellSecretary when Target(RoleCodes.CellCommittee) is Guid id && row.PartyCellId.HasValue
-                    => (id, RoleScopeType.PartyCell, row.PartyCellId),
-                RoleCodes.LegacyCellSecretary when Target(RoleCodes.CellCommittee) is not null => null, // chưa có Chi bộ → bỏ qua
-                RoleCodes.LegacyAppraisal when Target(RoleCodes.Appraisal) is Guid id => (id, RoleScopeType.Global, null),
-                RoleCodes.LegacyStandingCommittee or RoleCodes.LegacyBaseCommittee when Target(RoleCodes.PartyOffice) is Guid id
-                    => (id, RoleScopeType.Global, null),
-                _ => (row.RoleId, RoleScopeType.Global, null)
-            };
-            if (mapped == null)
-            {
-                logger?.LogWarning("Bỏ qua gán vai trò cũ {Role} cho người dùng {UserId}: người này chưa thuộc Chi bộ nào.", row.RoleCode, row.UserId);
-                continue;
-            }
-
-            var key = (row.UserId, mapped.Value.RoleId, mapped.Value.Scope, mapped.Value.ScopeId);
-            if (!created.Add(key))
-                continue;
-
-            context.Set<UserRoleAssignment>().Add(new UserRoleAssignment
-            {
-                UserId = row.UserId,
-                RoleId = mapped.Value.RoleId,
-                ScopeType = mapped.Value.Scope,
-                ScopeId = mapped.Value.ScopeId,
-                ValidFrom = DateTime.UtcNow,
-                Note = $"Chuyển từ gán vai trò cũ ({row.RoleCode}) khi nâng cấp phân quyền."
-            });
-        }
-
-        await context.SaveChangesAsync();
-        logger?.LogInformation("Đã chuyển {Count} gán vai trò cũ sang bản gán có phạm vi.", created.Count);
-    }
 
     /// <summary>Tạo tài khoản mẫu (không gán vai trò — xem <see cref="SeedSampleAssignmentsAsync"/>).</summary>
     private static async Task SeedSampleUsersAsync(CongTacDangDbContext context)

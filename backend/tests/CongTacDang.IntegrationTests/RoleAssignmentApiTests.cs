@@ -141,7 +141,7 @@ public sealed class RoleAssignmentApiTests
             }
             await db.SaveChangesAsync();
         });
-        _factory.Services.GetRequiredService<IAccessCacheInvalidator>().InvalidateAll();
+        _factory.Services.GetRequiredService<PermissionCache>().InvalidateAll();
 
         try
         {
@@ -168,7 +168,7 @@ public sealed class RoleAssignmentApiTests
                     assignment.ValidTo = null;
                 await db.SaveChangesAsync();
             });
-            _factory.Services.GetRequiredService<IAccessCacheInvalidator>().InvalidateAll();
+            _factory.Services.GetRequiredService<PermissionCache>().InvalidateAll();
         }
     }
 

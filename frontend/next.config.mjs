@@ -21,6 +21,11 @@ const nextConfig = {
   // Tách cache dev khỏi production build để tránh mất chunk khi build lúc dev đang chạy.
   distDir: isDev ? '.next-dev' : '.next',
   output: 'standalone',
+  experimental: {
+    // Thời gian chờ tối đa (ms) của proxy /api/* tới backend. Mặc định 30 giây không đủ cho bước xác nhận
+    // nhập nhiều cán bộ (băm BCrypt mật khẩu tạm ~0,1–0,2 giây/tài khoản) → nâng lên 5 phút.
+    proxyTimeout: 300000,
+  },
   async rewrites() {
     const backendUrl =
       process.env.BACKEND_INTERNAL_URL ||

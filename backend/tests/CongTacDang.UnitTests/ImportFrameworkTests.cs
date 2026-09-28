@@ -2,8 +2,8 @@ using ClosedXML.Excel;
 using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Models;
-using CongTacDang.Application.DTOs;
 using CongTacDang.Application.Common.Security;
+using CongTacDang.Application.DTOs;
 using CongTacDang.Application.Imports;
 using CongTacDang.Application.Imports.Definitions;
 using CongTacDang.Application.Services;
@@ -202,16 +202,16 @@ public class ImportFrameworkTests
     {
         var definition = new UserImportDefinition(new FakeLookup("DaCo"), new FakeAccounts());
         var rows = await AnalyzeAsync(definition,
-            UserRow(2, "a1", departmentCode: "PH-KHONGCO"),
-            UserRow(3, "a2", partyCellCode: "CB-DONG"),
-            UserRow(4, "a3", departmentCode: "PH-OLD"),
-            UserRow(5, "b1"),
-            UserRow(6, "B1"),
+            UserRow(2, "aa1", departmentCode: "PH-KHONGCO"),
+            UserRow(3, "aa2", partyCellCode: "CB-DONG"),
+            UserRow(4, "aa3", departmentCode: "PH-OLD"),
+            UserRow(5, "bb1"),
+            UserRow(6, "BB1"),
             UserRow(7, "daco"),
             UserRow(8, "c 1"),
-            UserRow(9, "c2", email: "khong-hop-le"),
-            UserRow(10, "c3", approval: "Khac"),
-            UserRow(11, "c4", approval: ""));
+            UserRow(9, "cc2", email: "khong-hop-le"),
+            UserRow(10, "cc3", approval: "Khac"),
+            UserRow(11, "cc4", approval: ""));
 
         Assert.Contains("không có trong danh mục", Errors(rows, 2));
         Assert.Contains("ngừng hoạt động", Errors(rows, 3));
@@ -232,15 +232,15 @@ public class ImportFrameworkTests
         var accounts = new FakeAccounts();
         var definition = new UserImportDefinition(new FakeLookup(), accounts);
         var processor = new ImportProcessor<UserImportRow>(definition);
-        var analysis = await processor.AnalyzeAsync(new[] { UserRow(2, "u1", departmentCode: "PH-KH"), UserRow(3, "u2") }, default);
+        var analysis = await processor.AnalyzeAsync(new[] { UserRow(2, "user1", departmentCode: "PH-KH"), UserRow(3, "user2") }, default);
 
         var result = await processor.CommitAsync(analysis, default);
 
         Assert.Equal(2, result.Created);
-        Assert.Equal(new[] { "u1", "u2" }, accounts.Commands.Select(c => c.Username));
+        Assert.Equal(new[] { "user1", "user2" }, accounts.Commands.Select(c => c.Username));
         Assert.Equal(DeptKh, accounts.Commands[0].DepartmentId);
         Assert.NotNull(result.ResultFile);
-        Assert.Equal(new[] { "1", "u1", "Họ tên u1", "Pw-u1" }, result.ResultFile!.Rows[0]);
+        Assert.Equal(new[] { "1", "user1", "Họ tên user1", "Pw-user1" }, result.ResultFile!.Rows[0]);
     }
 
     // ===================== Khung: quyền, phiên, tệp kết quả =====================
@@ -419,10 +419,14 @@ public class ImportFrameworkTests
             return Task.FromResult(new CreatedAccount(Guid.NewGuid(), cmd.Username, $"Pw-{cmd.Username}"));
         }
 
-        // Import chỉ dùng CreateAsync; các thao tác khác không được gọi trong test này.
-        public Task<PagedResult<AccountListItemDto>> SearchAsync(AccountSearchQuery query, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<CreatedAccount> StageCreateAsync(CreateAccountCommand cmd, CancellationToken ct = default) => CreateAsync(cmd, ct);
+
+        // Các thao tác còn lại không được import dùng tới.
+        public Task<PagedResult<AccountListItemDto>> SearchAsync(AccountSearchQuery query, CancellationToken ct = default)
+            => throw new NotSupportedException();
         public Task<AccountListItemDto> GetAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<AccountListItemDto> UpdateAsync(Guid id, UpdateAccountCommand cmd, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<AccountListItemDto> UpdateAsync(Guid id, UpdateAccountCommand cmd, CancellationToken ct = default)
+            => throw new NotSupportedException();
         public Task SetActiveAsync(Guid id, bool isActive, CancellationToken ct = default) => throw new NotSupportedException();
         public Task UnlockAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<CreatedAccount> ResetPasswordAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();

@@ -58,7 +58,7 @@ public sealed class RoleService : IRoleService
     /// <inheritdoc />
     public async Task<List<AdminRoleDto>> GetRolesAsync(CancellationToken ct = default)
     {
-        EnsureCanManageRoles();
+        EnsureCanReadRoles();
         var roles = await _roles.GetAllRolesWithPermissionsAsync();
         var result = new List<AdminRoleDto>(roles.Count);
         foreach (var role in roles)
@@ -69,7 +69,7 @@ public sealed class RoleService : IRoleService
     /// <inheritdoc />
     public async Task<AdminRoleDto> GetRoleAsync(Guid roleId, CancellationToken ct = default)
     {
-        EnsureCanManageRoles();
+        EnsureCanReadRoles();
         var role = await _roles.GetRoleByIdWithPermissionsAsync(roleId) ?? throw RoleNotFound();
         return Map(role, await _assignments.CountCurrentOrFutureByRoleAsync(role.Id, Now, ct));
     }
@@ -77,7 +77,7 @@ public sealed class RoleService : IRoleService
     /// <inheritdoc />
     public Task<List<PermissionModuleDto>> GetPermissionCatalogAsync(CancellationToken ct = default)
     {
-        EnsureCanManageRoles();
+        EnsureCanReadRoles();
         var result = PermissionCodes.Definitions
             .Select((d, index) => new PermissionDefinitionDto
             {
@@ -246,6 +246,19 @@ public sealed class RoleService : IRoleService
     }
 
     #region Hỗ trợ
+
+    /// <summary>Đọc vai trò / danh mục quyền: người quản lý vai trò hoặc người gán vai trò (cần chọn vai trò khi gán).</summary>
+    private void EnsureCanReadRoles()
+    {
+        if (!_guard.Can(PermissionCodes.SystemRolesManage, AccessTarget.None)
+            && !_guard.Can(PermissionCodes.SystemAssignmentsManage, AccessTarget.None))
+        {
+            throw new ForbiddenException(
+                $"Bạn cần quyền \"{PermissionCodes.DisplayName(PermissionCodes.SystemRolesManage)}\" hoặc "
+                + $"\"{PermissionCodes.DisplayName(PermissionCodes.SystemAssignmentsManage)}\" (phạm vi Toàn công ty) để xem danh sách vai trò. "
+                + "Hãy liên hệ quản trị hệ thống nếu cần được cấp quyền.");
+        }
+    }
 
     private void EnsureCanManageRoles()
     {

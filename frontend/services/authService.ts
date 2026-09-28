@@ -1,5 +1,17 @@
 import { request } from "./apiClient";
 
+/** Một quyền kèm phạm vi áp dụng */
+export interface AccessGrant {
+  /** Mã quyền */
+  code: string;
+  /** Loại phạm vi */
+  scopeType: "Global" | "Department" | "PartyCell";
+  /** Id Phòng/Chi bộ (null khi Toàn công ty) */
+  scopeId: string | null;
+  /** Tên phạm vi hiển thị */
+  scopeName: string;
+}
+
 /** Thông tin phiên làm việc của người dùng đang đăng nhập */
 export interface UserSession {
   /** Mã định danh cán bộ */
@@ -8,10 +20,12 @@ export interface UserSession {
   fullName: string;
   /** Tên tài khoản */
   userName: string;
-  /** Danh sách vai trò hệ thống (CAN_BO, BI_THU_CHI_BO, ...) */
+  /** Tên các vai trò đang hiệu lực — chỉ để hiển thị, không dùng để phân quyền */
   roles: string[];
-  /** Danh sách quyền hạn nguyên tử (users.read, ...) */
+  /** Các mã quyền có ở ít nhất một phạm vi (system.users.read, evaluation.read, ...) */
   permissions: string[];
+  /** Quyền kèm phạm vi (Toàn công ty / Phòng / Chi bộ) */
+  grants?: AccessGrant[];
   /** Bắt buộc đổi mật khẩu tạm */
   mustChangePassword: boolean;
   /** Thời điểm hết hạn phiên làm việc */

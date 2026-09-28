@@ -12,7 +12,7 @@ public static class AccountExtensions
 {
     /// <summary>
     /// Repository tài khoản/nhật ký đăng nhập, cache trạng thái tài khoản, chính sách mật khẩu
-    /// (<c>Security:Password:MinLength</c>, mặc định 8), chốt chặn quản trị, dịch vụ tài khoản và kiểm tra phiên mỗi request.
+    /// (<c>Security:Password:MinLength</c>, mặc định 8), dịch vụ tài khoản và kiểm tra phiên mỗi request.
     /// </summary>
     public static IServiceCollection AddAccountServices(this IServiceCollection services, IConfiguration configuration)
     {
@@ -23,7 +23,6 @@ public static class AccountExtensions
         services.AddScoped<IAccountStateProvider, AccountStateProvider>();
         services.AddSingleton(new PasswordPolicy(
             configuration.GetValue("Security:Password:MinLength", PasswordPolicy.DefaultMinLength)));
-        services.AddScoped<IAdministratorGuard, AdministratorGuard>();
         services.AddScoped<IUserAccountService, UserAccountService>();
 
         services.AddAccountSessionValidation();

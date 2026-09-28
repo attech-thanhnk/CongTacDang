@@ -5,6 +5,7 @@ using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Models;
 using CongTacDang.Application.Common.Security;
+using CongTacDang.Application.Services;
 using CongTacDang.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
@@ -115,85 +116,77 @@ public sealed class AccountUnitTests
 
     #region Chốt chặn L9
 
+    // Đợt 4 (tích hợp): khóa/xóa tài khoản dùng chung chốt "luôn còn quản trị" với thu hồi bản gán
+    // (AdministratorInvariant trên bản gán Global đang hiệu lực của tài khoản đang hoạt động — lọc ở repository,
+    // kiểm chứng bằng AccountFlowTests.L9_*).
+
     [Fact]
     public async Task AdminGuard_RejectsSelf()
     {
         var self = Guid.NewGuid();
-        var guard = new AdministratorGuard(new FakeAccounts(self), new FakeResolver());
+        var service = new UserAccountService(
+            null!, new FakeAccounts(new PartyMemberProfile { Id = self, Username = "self", IsActive = true }),
+            null!, new FakeCurrentUser(self), null!, null!, null!, new AllowAllGuard());
 
-        var ex = await Assert.ThrowsAsync<ConflictException>(() => guard.EnsureCanDisableAsync(self, self, "khóa"));
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => service.SetActiveAsync(self, false));
+        Assert.Contains("chính mình", ex.Message);
+        ex = await Assert.ThrowsAsync<ConflictException>(() => service.DeleteAsync(self));
         Assert.Contains("chính mình", ex.Message);
     }
 
     [Fact]
-    public async Task AdminGuard_RejectsLastHolderOfAdministrationPermissions()
+    public void AdminGuard_RejectsLastHolderOfAdministrationPermissions()
     {
-        var actor = Guid.NewGuid();
         var lastAdmin = Guid.NewGuid();
-        var resolver = new FakeResolver()
-            .With(lastAdmin, PermissionCodes.SystemRolesManage, PermissionCodes.SystemAssignmentsManage)
-            .With(actor, PermissionCodes.SystemUsersManage);
-        var guard = new AdministratorGuard(new FakeAccounts(actor, lastAdmin), resolver);
+        var before = new[] { Row(lastAdmin, PermissionCodes.SystemRolesManage, PermissionCodes.SystemAssignmentsManage) };
 
-        var ex = await Assert.ThrowsAsync<ConflictException>(() => guard.EnsureCanDisableAsync(actor, lastAdmin, "xóa"));
-        Assert.Contains("cuối cùng", ex.Message);
-        Assert.Contains("Quản lý vai trò", ex.Message);
-        Assert.DoesNotContain(PermissionCodes.SystemRolesManage, ex.Message);
+        Assert.True(AdministratorInvariant.IsBrokenBy(before, Without(before, lastAdmin)));
     }
 
     [Fact]
-    public async Task AdminGuard_RequiresBothPermissionsToRemainHeld()
+    public void AdminGuard_RequiresBothPermissionsToRemainHeld()
     {
         var actor = Guid.NewGuid();
         var target = Guid.NewGuid();
         // Còn người khác có system.roles.manage nhưng không ai khác có system.assignments.manage → vẫn chặn.
-        var resolver = new FakeResolver()
-            .With(target, PermissionCodes.SystemRolesManage, PermissionCodes.SystemAssignmentsManage)
-            .With(actor, PermissionCodes.SystemRolesManage);
-        var guard = new AdministratorGuard(new FakeAccounts(actor, target), resolver);
+        var before = new[]
+        {
+            Row(target, PermissionCodes.SystemRolesManage, PermissionCodes.SystemAssignmentsManage),
+            Row(actor, PermissionCodes.SystemRolesManage)
+        };
 
-        var ex = await Assert.ThrowsAsync<ConflictException>(() => guard.EnsureCanDisableAsync(actor, target, "khóa"));
-        Assert.Contains("Gán vai trò", ex.Message);
+        Assert.True(AdministratorInvariant.IsBrokenBy(before, Without(before, target)));
     }
 
     [Fact]
-    public async Task AdminGuard_AllowsWhenAnotherActiveAdministratorRemains()
+    public void AdminGuard_AllowsWhenAnotherActiveAdministratorRemains()
     {
         var actor = Guid.NewGuid();
         var target = Guid.NewGuid();
-        var resolver = new FakeResolver()
-            .With(target, PermissionCodes.SystemRolesManage, PermissionCodes.SystemAssignmentsManage)
-            .With(actor, PermissionCodes.SystemRolesManage, PermissionCodes.SystemAssignmentsManage);
-        var guard = new AdministratorGuard(new FakeAccounts(actor, target), resolver);
+        var before = new[]
+        {
+            Row(target, PermissionCodes.SystemRolesManage, PermissionCodes.SystemAssignmentsManage),
+            Row(actor, PermissionCodes.SystemRolesManage),
+            Row(actor, PermissionCodes.SystemAssignmentsManage)
+        };
 
-        await guard.EnsureCanDisableAsync(actor, target, "khóa");
+        Assert.False(AdministratorInvariant.IsBrokenBy(before, Without(before, target)));
     }
 
     [Fact]
-    public async Task AdminGuard_IgnoresNonGlobalGrantsAndInactiveUsers()
+    public void AdminGuard_AllowsDisablingNonAdministratorEvenWithoutAnyAdministrator()
     {
-        var actor = Guid.NewGuid();
         var target = Guid.NewGuid();
-        var inactiveAdmin = Guid.NewGuid();
-        var resolver = new FakeResolver()
-            .With(target, PermissionCodes.SystemRolesManage)
-            .WithScoped(actor, PermissionCodes.SystemRolesManage, ScopeType.Department)
-            .With(inactiveAdmin, PermissionCodes.SystemRolesManage);
-        // inactiveAdmin không nằm trong danh sách đang hoạt động.
-        var guard = new AdministratorGuard(new FakeAccounts(actor, target), resolver);
+        var before = Array.Empty<AdministratorGrantRow>();
 
-        await Assert.ThrowsAsync<ConflictException>(() => guard.EnsureCanDisableAsync(actor, target, "khóa"));
+        Assert.False(AdministratorInvariant.IsBrokenBy(before, Without(before, target)));
     }
 
-    [Fact]
-    public async Task AdminGuard_AllowsDisablingNonAdministratorEvenWithoutAnyAdministrator()
-    {
-        var actor = Guid.NewGuid();
-        var target = Guid.NewGuid();
-        var guard = new AdministratorGuard(new FakeAccounts(actor, target), new FakeResolver().With(target, PermissionCodes.EvaluationSelf));
+    private static AdministratorGrantRow Row(Guid userId, params string[] codes) =>
+        new(Guid.NewGuid(), userId, Guid.NewGuid(), codes);
 
-        await guard.EnsureCanDisableAsync(actor, target, "xóa");
-    }
+    private static IEnumerable<AdministratorGrantRow> Without(IEnumerable<AdministratorGrantRow> rows, Guid userId) =>
+        rows.Where(r => r.UserId != userId);
 
     #endregion
 
@@ -271,52 +264,41 @@ public sealed class AccountUnitTests
 
     #region Fakes
 
-    private sealed class FakeResolver : IPermissionResolver
+    private sealed class FakeCurrentUser : ICurrentUserService
     {
-        private readonly Dictionary<Guid, List<PermissionGrant>> _grants = new();
+        public FakeCurrentUser(Guid id) => UserId = id;
+        public Guid? UserId { get; }
+        public string UserName => "test";
+        public string? IpAddress => null;
+        public string? UserAgent => null;
+        public string? RequestPath => null;
+    }
 
-        public FakeResolver With(Guid userId, params string[] codes)
-        {
-            foreach (var code in codes)
-                Add(userId, new PermissionGrant(code, ScopeType.Global, null, Guid.Empty, "test"));
-            return this;
-        }
-
-        public FakeResolver WithScoped(Guid userId, string code, ScopeType scope)
-        {
-            Add(userId, new PermissionGrant(code, scope, Guid.NewGuid(), Guid.Empty, "test"));
-            return this;
-        }
-
-        private void Add(Guid userId, PermissionGrant grant)
-        {
-            if (!_grants.TryGetValue(userId, out var list))
-                _grants[userId] = list = new List<PermissionGrant>();
-            list.Add(grant);
-        }
-
-        public Task<EffectivePermissions> GetAsync(Guid userId, CancellationToken ct = default) =>
-            Task.FromResult(_grants.TryGetValue(userId, out var list)
-                ? new EffectivePermissions(userId, list)
-                : EffectivePermissions.Empty(userId));
+    private sealed class AllowAllGuard : IAuthorizationGuard
+    {
+        public bool Can(string permission, AccessTarget target) => true;
+        public void Ensure(string permission, AccessTarget target) { }
+        public bool HasAny(string permission) => true;
+        public ScopeFilter GetScope(string permission) => ScopeFilter.Global;
     }
 
     private sealed class FakeAccounts : IUserAccountRepository
     {
-        private readonly List<Guid> _active;
-        public FakeAccounts(params Guid[] active) => _active = active.ToList();
+        private readonly Dictionary<Guid, PartyMemberProfile> _members;
+        public FakeAccounts(params PartyMemberProfile[] members) => _members = members.ToDictionary(m => m.Id);
 
-        public Task<IReadOnlyList<Guid>> GetActiveUserIdsAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<Guid>>(_active);
+        public Task<PartyMemberProfile?> FindByIdAsync(Guid id, CancellationToken ct = default) =>
+            Task.FromResult(_members.GetValueOrDefault(id));
 
+        public Task<IReadOnlyList<Guid>> GetActiveUserIdsAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task<PartyMemberProfile?> FindByUsernameAsync(string username, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<PartyMemberProfile?> FindByIdAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> UsernameExistsAsync(string username, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> DepartmentIsActiveAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> PartyCellIsActiveAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<AccountState?> GetStateAsync(Guid userId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<PagedResult<PartyMemberProfile>> SearchAsync(AccountSearchCriteria criteria, CancellationToken ct = default) => throw new NotSupportedException();
         public Task AddAsync(PartyMemberProfile member, CancellationToken ct = default) => throw new NotSupportedException();
+        public void Stage(PartyMemberProfile member) => throw new NotSupportedException();
         public Task SaveChangesAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task SoftDeleteAsync(PartyMemberProfile member, CancellationToken ct = default) => throw new NotSupportedException();
     }
