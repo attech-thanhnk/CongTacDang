@@ -2,31 +2,34 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using ClosedXML.Excel;
 using CongTacDang.Application.Imports;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.IntegrationTests.Infrastructure;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
 /// <summary>
-/// Kịch bản go-live đầu-cuối (task 13, T-68) trên PostgreSQL thật, từ <b>CSDL trống</b> (collection riêng, CSDL tạm riêng),
-/// đúng thứ tự triển khai thật:
+/// Kịch bản go-live đầu-cuối (T-68) trên PostgreSQL thật, từ <b>CSDL trống</b> (collection riêng, CSDL tạm riêng),
+/// đúng thứ tự triển khai thật (docs/deployment.md mục go-live):
 /// <list type="number">
-/// <item>Khởi tạo tài khoản quản trị ban đầu → đăng nhập → bị buộc đổi mật khẩu → đổi.</item>
+/// <item>Khởi động với cấu hình <c>Seed:InitialAdmin:*</c> → tài khoản quản trị ban đầu → đăng nhập → bị buộc đổi mật khẩu → đổi.</item>
 /// <item>Import Phòng → Chi bộ → cán bộ (nhận tệp mật khẩu tạm) → gán vai trò.</item>
 /// <item>Một cán bộ đăng nhập bằng mật khẩu tạm → đổi mật khẩu → quyền + phạm vi đúng theo tệp gán.</item>
 /// <item>Quản trị gỡ một bản gán → request kế tiếp của người đó bị 403 ở chức năng tương ứng.</item>
-/// <item>Quản trị không xem được hồ sơ đánh giá (tách quản trị kỹ thuật).</item>
+/// <item>Cơ quan thẩm định tạo kỳ, thêm người được đánh giá, mở kỳ; quản trị không xem được hồ sơ (tách quản trị kỹ thuật).</item>
+/// <item>Hồ sơ đi hết các bước bật của kỳ tới <c>Published</c>, mỗi bước do đúng người có quyền.</item>
 /// </list>
 /// </summary>
 [Collection(GoLiveCollection.Name)]
 public sealed class GoLiveScenarioTests
 {
-    /// <summary>Tên đăng nhập / mật khẩu ban đầu của quản trị (giả lập cấu hình seed — xem <see cref="BootstrapInitialAdministratorAsync"/>).</summary>
+    /// <summary>Tên đăng nhập / mật khẩu ban đầu của quản trị (cấu hình <c>Seed:InitialAdmin:*</c> của host).</summary>
     private const string InitialAdminUsername = "quantri";
     private const string InitialAdminPassword = "KhoiTao2026";
     private const string AdminNewPassword = "QuanTri2026Moi";
@@ -50,6 +53,7 @@ public sealed class GoLiveScenarioTests
             Assert.True(await db.Roles.AnyAsync(r => r.IsProtected), "Seeder phải tạo vai trò quản trị được bảo vệ.");
         });
         var adminId = await BootstrapInitialAdministratorAsync();
+        Assert.NotEqual(Guid.Empty, adminId);
 
         var admin = await _factory.LoginAsAsync(InitialAdminUsername, InitialAdminPassword, distinctClientIp: true);
         var me = await GoLiveHttp.DataAsync(await admin.GetAsync("/api/auth/me"));
@@ -145,7 +149,10 @@ public sealed class GoLiveScenarioTests
                 "meeting.read", "report.export"
             },
             cadreCodes.OrderBy(c => c, StringComparer.Ordinal));
-        // Trường grants của /api/auth/me: kiểm ở GoLiveGrantsTests (chờ tích hợp Đợt 4).
+        var cadreGrants = cadreMe.GetProperty("grants").EnumerateArray()
+            .Select(g => $"{g.GetProperty("code").GetString()}@{g.GetProperty("scopeType").GetString()}:{g.GetProperty("scopeName").GetString()}").ToList();
+        Assert.Contains("evaluation.cell.confirm@PartyCell:Chi bộ Kỹ thuật", cadreGrants);
+        Assert.Contains("evaluation.tasks.approve@Department:Phòng Kỹ thuật", cadreGrants);
 
         var cadreId = await GetUserIdAsync("nguyen.van.a");
         var effective = await GoLiveHttp.DataAsync(await admin.GetAsync($"/api/admin/users/{cadreId}/effective-permissions"));
@@ -179,46 +186,102 @@ public sealed class GoLiveScenarioTests
         Assert.DoesNotContain("report.export", codesAfter);
         Assert.Contains("evaluation.cell.confirm", codesAfter); // bản gán khác giữ nguyên
 
-        // ============ Bước 5: quản trị không xem được hồ sơ đánh giá ============
-        var (periodId, recordId) = await SeedRecordAsync(cadreId);
-        Assert.Equal(HttpStatusCode.OK, (await cadre.GetAsync($"/api/evaluations/records/{recordId}")).StatusCode); // chủ hồ sơ xem được
+        // ============ Bước 5: cơ quan thẩm định tạo kỳ, thêm người được đánh giá, mở kỳ ============
+        var appraiser = await _factory.LoginAsAsync("tran.thi.b", passwords["tran.thi.b"], distinctClientIp: true);
+        await GoLiveHttp.ChangePasswordAsync(appraiser, passwords["tran.thi.b"], CadreNewPassword);
+        var period = await GoLiveHttp.DataAsync(await appraiser.PostAsJsonAsync("/api/evaluations/periods", new
+        {
+            year = todayVn.Year, quarter = (todayVn.Month - 1) / 3 + 1, name = "Kỳ đánh giá go-live", preset = "q3-2026-transition",
+            startDate = DateTime.UtcNow.AddDays(-1), endDate = DateTime.UtcNow.AddDays(60)
+        }));
+        var periodId = period.GetProperty("id").GetGuid();
+        Assert.Equal("Draft", period.GetProperty("status").GetString());
+
+        // Cấu hình kỳ (khi còn dự thảo): đơn vị chưa phân công thư ký tập thể và cấp trực tiếp sử dụng → tắt B3a, B3c.
+        var settings = JsonNode.Parse(period.GetProperty("settings").GetRawText())!.AsObject();
+        settings["steps"]!["B3A_COLLECTIVE"]!["enabled"] = false;
+        settings["steps"]!["B3C_DIRECTOR"]!["enabled"] = false;
+        await GoLiveHttp.DataAsync(await appraiser.PutAsJsonAsync($"/api/evaluations/periods/{periodId}",
+            new { version = period.GetProperty("version").GetUInt32(), settings }));
+
+        var leVanCId = await GetUserIdAsync("le.van.c");
+        var added = await GoLiveHttp.DataAsync(await appraiser.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
+            new { memberIds = new[] { leVanCId } }));
+        Assert.Equal(1, added.GetProperty("added").GetInt32());
+        var draft = await GoLiveHttp.DataAsync(await appraiser.GetAsync($"/api/evaluations/periods/{periodId}"));
+        await GoLiveHttp.DataAsync(await appraiser.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open",
+            new { version = draft.GetProperty("version").GetUInt32() }));
+        var recordId = (await GoLiveHttp.DataAsync(await appraiser.GetAsync($"/api/evaluations/periods/{periodId}/participants")))
+            .EnumerateArray().Single().GetProperty("recordId").GetGuid();
+
+        // Quản trị kỹ thuật không xem được hồ sơ đánh giá.
         Assert.Equal(HttpStatusCode.Forbidden, (await admin.GetAsync($"/api/evaluations/records/{recordId}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await admin.GetAsync($"/api/evaluations/records?periodId={periodId}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await admin.GetAsync($"/api/evaluations/records/{recordId}/history")).StatusCode);
         var adminCodes = GoLiveHttp.Strings((await GoLiveHttp.DataAsync(await admin.GetAsync("/api/auth/me"))).GetProperty("permissions"));
         Assert.DoesNotContain(adminCodes, c => c.StartsWith("evaluation.", StringComparison.Ordinal));
-        Assert.NotEqual(Guid.Empty, adminId);
 
-        // Nối tiếp với kỳ đánh giá (tạo kỳ → thêm người được đánh giá → hồ sơ tới Published): chờ task 12 — xem báo cáo task 13.
+        // ============ Bước 6: hồ sơ đi hết các bước bật tới Published ============
+        // Quản trị giao thêm vai trò ghi nhận quyết định/công bố cho nguyen.van.a qua API gán vai trò.
+        var officeRoleId = await RoleIdByNameAsync("Văn phòng Đảng ủy (ghi nhận quyết định)");
+        await GoLiveHttp.DataAsync(await admin.PostAsJsonAsync("/api/admin/assignments",
+            new { userId = cadreId, roleId = officeRoleId, scopeType = "Global", note = "Phân công ghi nhận quyết định kỳ go-live" }));
+
+        var owner = await _factory.LoginAsAsync("le.van.c", passwords["le.van.c"], distinctClientIp: true);
+        await GoLiveHttp.ChangePasswordAsync(owner, passwords["le.van.c"], CadreNewPassword);
+        var mine = await GoLiveHttp.DataAsync(await owner.GetAsync($"/api/evaluations/my-record?periodId={periodId}"));
+        Assert.Equal(recordId, mine.GetProperty("id").GetGuid());
+        Assert.Equal("AwaitingSelfScore", mine.GetProperty("status").GetString());
+        var ownerQueue = await GoLiveHttp.DataAsync(await owner.GetAsync($"/api/evaluations/work-queue?periodId={periodId}"));
+        Assert.Equal("B2_SELF_SCORE", ownerQueue.GetProperty("groups").EnumerateArray().Single().GetProperty("step").GetString());
+
+        await GoLiveHttp.StepAsync(owner, recordId, "self-score/submit",
+            new { generalScores = new[] { 4.5, 4.5, 4.5, 4.5, 4.5, 4.5 }, axisScores = new[] { 13.0, 9, 9, 13, 9, 9 } }, "AwaitingCellConfirm");
+        var cellQueue = await GoLiveHttp.DataAsync(await cadre.GetAsync($"/api/evaluations/work-queue?periodId={periodId}"));
+        Assert.Contains(cellQueue.GetProperty("groups").EnumerateArray(), g => g.GetProperty("step").GetString() == "B2_CELL_CONFIRM");
+        await GoLiveHttp.StepAsync(cadre, recordId, "cell/confirm", new { comment = "Chi bộ xác nhận" }, "AwaitingAppraisal");
+        await GoLiveHttp.StepAsync(appraiser, recordId, "appraisal",
+            new { appraisalScore = 88.5, comment = "Đủ minh chứng", proposedGrade = "HoanThanhTot" }, "AwaitingDecision");
+        await GoLiveHttp.StepAsync(cadre, recordId, "decision", new { finalGrade = "HoanThanhTot", documentNumber = "01-QĐ/ĐU" }, "AwaitingPublish");
+        await GoLiveHttp.StepAsync(cadre, recordId, "publish", new { }, "Published");
+
+        var published = await GoLiveHttp.DataAsync(await owner.GetAsync($"/api/evaluations/records/{recordId}"));
+        Assert.Equal("Published", published.GetProperty("status").GetString());
+        Assert.Equal("HoanThanhTot", published.GetProperty("finalGrade").GetString());
+        var history = await GoLiveHttp.DataAsync(await owner.GetAsync($"/api/evaluations/records/{recordId}/history"));
+        var steps = history.EnumerateArray().Where(h => h.GetProperty("step").ValueKind == JsonValueKind.String)
+            .Select(h => h.GetProperty("step").GetString()).OrderBy(StepOrder).ToList();
+        Assert.Equal(new[] { "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3B_APPRAISAL", "B4_DECISION", "B5_PUBLISH" }, steps);
     }
 
     /// <summary>
-    /// Giả lập bước "hệ thống khởi tạo tài khoản quản trị ban đầu theo cấu hình seed": một tài khoản đang hoạt động,
-    /// <c>MustChangePassword = true</c>, gán vai trò quản trị được bảo vệ phạm vi Toàn công ty.
-    /// <para><b>Cần phối hợp:</b> hiện <c>DataSeeder</c> chỉ tạo tài khoản quản trị khi bật <c>Database:SeedSampleData</c>
-    /// (kèm toàn bộ dữ liệu mẫu, mật khẩu chung) — chưa có cơ chế khởi tạo riêng quản trị ban đầu cho CSDL thật.
-    /// Khi có, thay hàm này bằng cấu hình tương ứng của host test.</para>
+    /// Khởi động host với cấu hình <c>Seed:InitialAdmin:*</c> (như biến môi trường <c>Seed__InitialAdmin__*</c> khi triển khai):
+    /// seeder tạo tài khoản quản trị ban đầu (bắt buộc đổi mật khẩu, vai trò quản trị được bảo vệ, phạm vi Toàn công ty).
     /// </summary>
     private async Task<Guid> BootstrapInitialAdministratorAsync()
     {
-        var profile = new PartyMemberProfile
+        await using (var host = _factory.WithWebHostBuilder(builder =>
         {
-            Username = InitialAdminUsername,
-            FullName = "Quản trị hệ thống",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(InitialAdminPassword),
-            MustChangePassword = true,
-            IsActive = true,
-            ApprovalAuthority = ApprovalAuthority.CoSo
-        };
-        Guid roleId = Guid.Empty;
-        await _factory.WithDbAsync(async db =>
+            builder.UseSetting("Seed:InitialAdmin:Username", InitialAdminUsername);
+            builder.UseSetting("Seed:InitialAdmin:FullName", "Quản trị hệ thống");
+            builder.UseSetting("Seed:InitialAdmin:Password", InitialAdminPassword);
+        }))
         {
-            db.PartyMemberProfiles.Add(profile);
-            await db.SaveChangesAsync();
-            roleId = await db.Roles.Where(r => r.IsProtected && !r.IsDeleted).Select(r => r.Id).SingleAsync();
-        });
-        await _factory.AssignAsync(profile.Id, roleId, RoleScopeType.Global, null);
-        return profile.Id;
+            _ = host.Server;
+        }
+
+        return await GetUserIdAsync(InitialAdminUsername);
+    }
+
+    private static int StepOrder(string? step) => Array.IndexOf(
+        new[] { "B1_REGISTER", "B1_APPROVE", "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3A_COLLECTIVE", "B3B_APPRAISAL", "B3C_DIRECTOR", "B4_DECISION", "B5_PUBLISH" },
+        step);
+
+    private async Task<Guid> RoleIdByNameAsync(string name)
+    {
+        var id = Guid.Empty;
+        await _factory.WithDbAsync(async db => id = await db.Roles.Where(r => r.Name == name).Select(r => r.Id).SingleAsync());
+        return id;
     }
 
     private async Task<Guid> GetUserIdAsync(string username)
@@ -227,28 +290,6 @@ public sealed class GoLiveScenarioTests
         await _factory.WithDbAsync(async db =>
             id = await db.PartyMemberProfiles.Where(m => m.Username == username).Select(m => m.Id).SingleAsync());
         return id;
-    }
-
-    /// <summary>Tạo kỳ + hồ sơ đánh giá của cán bộ trực tiếp trong CSDL (luồng tạo kỳ thuộc task 12).</summary>
-    private async Task<(Guid PeriodId, Guid RecordId)> SeedRecordAsync(Guid memberId)
-    {
-        var period = new EvaluationPeriod
-        {
-            Year = 2026,
-            Quarter = EvaluationQuarter.Quy4,
-            Name = "Kỳ go-live",
-            StartDate = DateTime.UtcNow.AddDays(-1),
-            EndDate = DateTime.UtcNow.AddDays(60)
-        };
-        EvaluationRecord? record = null;
-        await _factory.WithDbAsync(async db =>
-        {
-            var member = await db.PartyMemberProfiles.SingleAsync(m => m.Id == memberId);
-            record = new EvaluationRecord { Period = period, MemberId = memberId, DepartmentId = member.DepartmentId, PartyCellId = member.PartyCellId };
-            db.EvaluationRecords.Add(record);
-            await db.SaveChangesAsync();
-        });
-        return (period.Id, record!.Id);
     }
 }
 
@@ -260,7 +301,7 @@ public sealed class GoLiveCollection : ICollectionFixture<ApiFactory>
     public const string Name = "golive";
 }
 
-/// <summary>Hỗ trợ HTTP/Excel cho test task 13.</summary>
+/// <summary>Hỗ trợ HTTP/Excel cho kịch bản go-live và test import.</summary>
 internal static class GoLiveHttp
 {
     public static byte[] BuildFile(string[] headers, params string[][] rows)
@@ -297,6 +338,17 @@ internal static class GoLiveHttp
         Assert.True(commit.StatusCode == HttpStatusCode.OK, await commit.Content.ReadAsStringAsync());
         var result = await DataAsync(commit);
         Assert.Equal(expectedCreated, result.GetProperty("created").GetInt32());
+        return result;
+    }
+
+    /// <summary>Thực hiện một hành động của luồng với phiên bản hiện tại của hồ sơ; kiểm tra trạng thái sau.</summary>
+    public static async Task<JsonElement> StepAsync(HttpClient client, Guid recordId, string action, object body, string expectedStatus)
+    {
+        var current = await DataAsync(await client.GetAsync($"/api/evaluations/records/{recordId}"));
+        var json = JsonSerializer.SerializeToNode(body)!.AsObject();
+        json["version"] = current.GetProperty("version").GetUInt32();
+        var result = await DataAsync(await client.PostAsJsonAsync($"/api/evaluations/records/{recordId}/{action}", json));
+        Assert.Equal(expectedStatus, result.GetProperty("status").GetString());
         return result;
     }
 

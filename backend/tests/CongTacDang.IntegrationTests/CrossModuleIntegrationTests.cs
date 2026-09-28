@@ -19,15 +19,15 @@ using Xunit;
 namespace CongTacDang.IntegrationTests;
 
 /// <summary>
-/// Test tích hợp các chỗ nối sau khi gộp Đợt 4 (task 08 ║ 09 ║ 10): nhập cán bộ ghi cả lô trong một transaction,
+/// Test tích hợp các chỗ nối giữa tài khoản, phân quyền và nhập dữ liệu: nhập cán bộ ghi cả lô trong một transaction,
 /// thông tin phiên có <c>grants</c>, danh sách tài khoản lọc theo phạm vi <c>system.users.read</c>.
 /// </summary>
 [Collection(ApiCollection.Name)]
-public sealed class Wave4IntegrationTests
+public sealed class CrossModuleIntegrationTests
 {
     private readonly ApiFactory _factory;
 
-    public Wave4IntegrationTests(ApiFactory factory) => _factory = factory;
+    public CrossModuleIntegrationTests(ApiFactory factory) => _factory = factory;
 
     private void SkipIfNoDatabase() => Skip.If(_factory.SkipReason != null, _factory.SkipReason);
 

@@ -465,7 +465,7 @@ public class EvaluationRepository : IEvaluationRepository
         return await _db.EvaluationPeriods.FirstOrDefaultAsync(p => p.Id == id);
     }
 
-    /// <summary>Kỳ hiện hành = kỳ Đang mở/Khóa dữ liệu mới nhất (task 12 bỏ cờ IsActive).</summary>
+    /// <summary>Kỳ hiện hành = kỳ Đang mở/Khóa dữ liệu mới nhất .</summary>
     public async Task<EvaluationPeriod?> GetActivePeriodAsync()
     {
         return await _db.EvaluationPeriods

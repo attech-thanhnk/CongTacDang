@@ -94,11 +94,7 @@ public sealed class RoleAssignmentImportIntegrationTests
         });
     }
 
-    /// <summary>
-    /// Bước 3 kịch bản go-live, phần <c>grants</c>: <c>/api/auth/me</c> trả quyền kèm phạm vi theo bản gán.
-    /// <b>Cần phối hợp:</b> trường <c>grants</c> do tích hợp Đợt 4 thêm vào <c>AuthController.Me</c>; trên nền chưa có trường này
-    /// test tự skip kèm lý do và sẽ tự chạy khi trường xuất hiện.
-    /// </summary>
+    /// <summary>Bước 3 kịch bản go-live, phần <c>grants</c>: <c>/api/auth/me</c> trả quyền kèm phạm vi theo bản gán.</summary>
     [SkippableFact]
     public async Task GoLive_Step3_AuthMe_ReturnsGrantsWithScope()
     {
@@ -117,13 +113,11 @@ public sealed class RoleAssignmentImportIntegrationTests
 
         using var client = await _factory.LoginAsAsync(user.Username, user.Password, distinctClientIp: true);
         var me = await GoLiveHttp.DataAsync(await client.GetAsync("/api/auth/me"));
-        Skip.IfNot(me.TryGetProperty("grants", out var grants),
-            "Chờ tích hợp Đợt 4: /api/auth/me chưa có trường grants (IRoleAssignmentService.GetGrantsAsync). "
-            + "Test tự chạy khi trường này có mặt.");
+        Assert.True(me.TryGetProperty("grants", out var grants), "/api/auth/me phải trả trường grants.");
 
         var items = grants.EnumerateArray()
             .Select(g => (Code: g.GetProperty("code").GetString(), Scope: g.GetProperty("scopeType").GetString(),
-                ScopeId: g.TryGetProperty("scopeId", out var id) && id.ValueKind == System.Text.Json.JsonValueKind.String ? id.GetGuid() : (Guid?)null,
+                ScopeId: g.GetProperty("scopeId").ValueKind == System.Text.Json.JsonValueKind.String ? g.GetProperty("scopeId").GetGuid() : (Guid?)null,
                 Name: g.GetProperty("scopeName").GetString()))
             .ToList();
         Assert.Contains(items, g => g.Code == PermissionCodes.EvaluationCellConfirm && g.Scope == "PartyCell" && g.ScopeId == cell.Id && g.Name == cell.Name);

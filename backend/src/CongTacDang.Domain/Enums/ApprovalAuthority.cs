@@ -1,7 +1,7 @@
 namespace CongTacDang.Domain.Enums;
 
 /// <summary>
-/// Cấp có thẩm quyền quyết định kết quả đánh giá, xếp loại của cán bộ (thay cờ <c>IsApprovedByAttech</c> cũ).
+/// Cấp có thẩm quyền quyết định kết quả đánh giá, xếp loại của cán bộ.
 /// </summary>
 public enum ApprovalAuthority
 {

@@ -15,8 +15,7 @@ namespace CongTacDang.UnitTests;
 
 /// <summary>
 /// Kiểm thử khung hợp đồng phân quyền (task 07, T-55): danh mục mã quyền, policy theo mã, cache, tạo tài khoản v0.
-/// Task 09 bỏ các test so khớp với policy cũ theo claim/vai trò (policy cũ đã bị xóa theo task file) — luật mới
-/// được kiểm trong <c>AuthorizationGuardTests</c>.
+/// Luật theo phạm vi/chủ hồ sơ được kiểm trong <c>AuthorizationGuardTests</c>.
 /// </summary>
 public class AuthzContractTests
 {

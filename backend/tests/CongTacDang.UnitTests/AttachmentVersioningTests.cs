@@ -185,7 +185,7 @@ public class AttachmentVersioningTests
         public World()
         {
             var reader = new AccessReader(this);
-            // Task 09: quyền lấy từ bản gán có phạm vi (IPermissionResolver) thay cho vai trò/quyền cũ.
+            // Quyền lấy từ bản gán có phạm vi (IPermissionResolver).
             Service = new AttachmentService(Files, Storage, reader, new Resolver(this), Files);
         }
 

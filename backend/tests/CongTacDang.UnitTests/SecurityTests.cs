@@ -124,7 +124,7 @@ public class SecurityTests
         public Task<List<TaskAttachment>> GetAllAttachmentsAsync() => Task.FromResult(new List<TaskAttachment>());
     }
 
-    /// <summary>Tài khoản hoạt động, chưa có bản gán nào (thay constructor tương thích cũ của PermissionResolver).</summary>
+    /// <summary>Tài khoản hoạt động, chưa có bản gán nào .</summary>
     private sealed class NoGrantsResolver : IPermissionResolver
     {
         public Task<EffectivePermissions> GetAsync(Guid userId, CancellationToken ct = default) =>

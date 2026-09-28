@@ -16,7 +16,7 @@ namespace CongTacDang.IntegrationTests;
 /// <see cref="WebApplicationFactory{TEntryPoint}.WithWebHostBuilder"/> là một lần khởi động ứng dụng (seeder chạy lại).
 /// Dùng <see cref="ApiFactory"/> riêng để bảo đảm CSDL chưa có quản trị nào.
 /// </summary>
-public sealed class Wave4InitialAdminTests
+public sealed class InitialAdminSeedTests
 {
     private const string Username = "quantri.bandau";
     private const string InitialPassword = "BanDau2026x";

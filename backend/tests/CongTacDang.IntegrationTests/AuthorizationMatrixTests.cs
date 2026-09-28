@@ -58,7 +58,7 @@ public sealed class AuthorizationMatrixTests
         Assert.Equal(HttpStatusCode.OK, (await s.Appraiser.PostAsJsonAsync("/api/evaluations/periods", body)).StatusCode);
         foreach (var client in new[] { s.Office, s.Admin, s.OwnerA1, s.Plain })
             Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/evaluations/periods", body)).StatusCode);
-        // Task 12: chuyển trạng thái kỳ qua endpoint theo hành động (thay PUT periods/{id}/status).
+        // Chuyển trạng thái kỳ qua endpoint theo hành động.
         Assert.Equal(HttpStatusCode.Forbidden,
             (await s.CellSecA.PostAsJsonAsync($"/api/evaluations/periods/{s.PeriodId}/lock", new { version = 0 })).StatusCode);
     }
@@ -118,7 +118,7 @@ public sealed class AuthorizationMatrixTests
 
     #region Hồ sơ đánh giá — ghi theo từng bước
 
-    // Task 12: bước ghi đi qua endpoint theo hành động (records/{id}/...) và máy trạng thái; kiểm tra quyền (guard) chạy trước
+    // Bước ghi đi qua endpoint theo hành động (records/{id}/...) và máy trạng thái; kiểm tra quyền (guard) chạy trước
     // kiểm tra trạng thái nên hồ sơ ngoài phạm vi luôn 403. Hồ sơ dùng chung giữa các test → mỗi test tự đặt trạng thái cần có.
 
     [SkippableFact]
