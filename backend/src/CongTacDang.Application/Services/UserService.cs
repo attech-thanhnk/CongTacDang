@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
@@ -18,6 +19,12 @@ public interface IUserService
 {
     /// <summary>Lấy thông tin hồ sơ và danh sách quyền của người dùng</summary>
     Task<UserProfileDto> GetProfileAsync(string? username = null);
+
+    /// <summary>
+    /// Lấy hồ sơ theo yêu cầu của một người dùng: mặc định là hồ sơ của chính người yêu cầu;
+    /// hồ sơ người khác chỉ trả về khi người yêu cầu có quyền xem theo <see cref="IAccessPolicy"/>.
+    /// </summary>
+    Task<UserProfileDto> GetProfileForRequesterAsync(Guid requesterId, string? username = null);
 
     /// <summary>Lấy danh sách tất cả cán bộ / Đảng viên trong hệ thống</summary>
     Task<List<CadreDto>> GetCadresAsync();
@@ -45,11 +52,13 @@ public class UserService : IUserService
 {
     private readonly IUserRepository _userRepo;
     private readonly IRoleRepository _roleRepo;
+    private readonly IAccessPolicy _accessPolicy;
 
-    public UserService(IUserRepository userRepo, IRoleRepository roleRepo)
+    public UserService(IUserRepository userRepo, IRoleRepository roleRepo, IAccessPolicy accessPolicy)
     {
         _userRepo = userRepo;
         _roleRepo = roleRepo;
+        _accessPolicy = accessPolicy;
     }
 
     /// <summary>Lấy hồ sơ và vai trò hệ thống của người dùng theo tên đăng nhập</summary>
@@ -66,6 +75,41 @@ public class UserService : IUserService
             throw new KeyNotFoundException($"Không tìm thấy hồ sơ cán bộ với tên đăng nhập: {username}");
         }
 
+        return MapToProfileDto(member);
+    }
+
+    /// <summary>Lấy hồ sơ của chính người yêu cầu, hoặc hồ sơ người khác nếu được phép xem.</summary>
+    public async Task<UserProfileDto> GetProfileForRequesterAsync(Guid requesterId, string? username = null)
+    {
+        var requester = await _userRepo.GetWithRolesAndPermissionsByIdAsync(requesterId)
+            ?? throw new ForbiddenException("Không tìm thấy hồ sơ người dùng hiện tại.");
+
+        var targetUsername = username?.Trim();
+        if (string.IsNullOrEmpty(targetUsername)
+            || string.Equals(targetUsername, requester.Username, StringComparison.OrdinalIgnoreCase))
+        {
+            return MapToProfileDto(requester);
+        }
+
+        var target = await _userRepo.GetWithRolesAndPermissionsAsync(targetUsername);
+        if (target == null)
+        {
+            // Không tiết lộ tài khoản có tồn tại hay không với người không có quyền xem hồ sơ người khác.
+            var probe = new PartyMemberProfile { Id = Guid.NewGuid() };
+            if (!_accessPolicy.CanAccessProfile(requester, probe, AccessOperation.Read))
+                throw new ForbiddenException("Bạn chỉ được xem hồ sơ của chính mình.");
+            throw new KeyNotFoundException($"Không tìm thấy hồ sơ cán bộ với tên đăng nhập: {targetUsername}");
+        }
+
+        if (!_accessPolicy.CanAccessProfile(requester, target, AccessOperation.Read))
+            throw new ForbiddenException("Bạn chỉ được xem hồ sơ của chính mình.");
+
+        return MapToProfileDto(target);
+    }
+
+    /// <summary>Ánh xạ hồ sơ người dùng kèm vai trò và quyền sang DTO.</summary>
+    private static UserProfileDto MapToProfileDto(PartyMemberProfile member)
+    {
         var roles = member.Roles.Select(r => r.Code).Distinct().ToList();
         var perms = member.Roles.SelectMany(r => r.Permissions).Select(p => p.Code).Distinct().ToList();
 
