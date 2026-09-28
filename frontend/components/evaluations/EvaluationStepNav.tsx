@@ -55,7 +55,7 @@ export function EvaluationStepNav({
       name: "Chi bộ đánh giá",
       role: "Chi bộ",
       count: branchRecordsCount > 0 ? `${branchRecordsCount} cán bộ` : null,
-      allowed: hasPermission("evaluations.branch_vote") || hasPermission("evaluations.branch_review"),
+      allowed: hasPermission("evaluations.branch_vote"),
       isCompleted: branchRecordsCount > 0,
     },
     {
