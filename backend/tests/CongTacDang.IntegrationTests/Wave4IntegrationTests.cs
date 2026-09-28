@@ -291,6 +291,31 @@ public sealed class Wave4IntegrationTests
         Assert.True(await CanReadAsync()); // cache đã được xóa sau commit → thấy quyền mới ngay
     }
 
+    // ===================== Đọc vai trò khi chỉ có quyền gán vai trò =====================
+
+    [SkippableFact]
+    public async Task AssignmentsManager_CanReadRolesAndCatalog_ButCannotChangeRoles()
+    {
+        SkipIfNoDatabase();
+        var assigner = await _factory.CreateUserWithPermissionsAsync(PermissionCodes.SystemAssignmentsManage);
+        var nobody = await _factory.CreateUserWithPermissionsAsync(PermissionCodes.EvaluationSelf);
+        using var client = await _factory.LoginAsAsync(assigner.Username, assigner.Password, distinctClientIp: true);
+        using var other = await _factory.LoginAsAsync(nobody.Username, nobody.Password, distinctClientIp: true);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/admin/roles")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/admin/roles/{assigner.RoleId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/admin/permissions")).StatusCode);
+
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await client.PostAsJsonAsync("/api/admin/roles", new { name = $"Không được tạo {Guid.NewGuid():N}" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await client.PutAsJsonAsync($"/api/admin/roles/{assigner.RoleId}/permissions", new { permissionCodes = Array.Empty<string>() })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.DeleteAsync($"/api/admin/roles/{nobody.RoleId}")).StatusCode);
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await other.GetAsync("/api/admin/roles")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await other.GetAsync("/api/admin/permissions")).StatusCode);
+    }
+
     // ===================== Hỗ trợ =====================
 
     private static CreateAccountCommand Command(string username) =>
