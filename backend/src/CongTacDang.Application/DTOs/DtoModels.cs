@@ -923,9 +923,3 @@ public class UpdateRolePermissionsDto
     public List<string> PermissionCodes { get; set; } = new();
 }
 
-/// <summary>Yêu cầu gán vai trò cho người dùng</summary>
-public class AssignUserRolesDto
-{
-    /// <summary>Danh sách mã vai trò cần gán cho cán bộ</summary>
-    public List<string> RoleCodes { get; set; } = new();
-}
