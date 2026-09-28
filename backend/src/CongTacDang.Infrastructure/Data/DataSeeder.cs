@@ -180,8 +180,9 @@ public static class DataSeeder
                 Name = "Đánh giá, xếp loại cán bộ Quý III/2026",
                 StartDate = new DateTime(2026, 7, 1, 0, 0, 0, DateTimeKind.Utc),
                 EndDate = new DateTime(2026, 9, 30, 23, 59, 59, DateTimeKind.Utc),
-                Status = PeriodStatus.Appraisal,
-                IsActive = true,
+                // Task 12: kỳ mẫu "Đang mở", cấu hình "Đầy đủ theo HD03" (hồ sơ mẫu có danh mục Mẫu 01/02).
+                Status = PeriodStatus.Open,
+                Settings = CongTacDang.Domain.Evaluation.PeriodSettings.FullPreset().ToJson(),
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -218,19 +219,23 @@ public static class DataSeeder
                     TasksScore = isKeyLeader ? 68.5 : 64.0,
                     TotalSelfScore = isKeyLeader ? 97.4 : 92.9,
                     SelfProposedGrade = EvaluationGrade.HoanThanhXuatSac,
+                    SelfScoreForm = CongTacDang.Domain.Evaluation.PeriodSettings.Form09A,
+                    SelfScoredAt = new DateTime(2026, 9, 10, 2, 0, 0, DateTimeKind.Utc),
+                    // Task 12: Chi bộ xác nhận phiếu tự chấm; đề xuất của tập thể lãnh đạo (trước là mức Chi bộ đề xuất tại hội nghị).
                     PartyCellComment = "Đồng chí luôn gương mẫu trong công tác lãnh đạo, hoàn thành tốt nhiệm vụ chính trị và chuyên môn được giao.",
-                    PartyCellProposedGrade = isKeyLeader ? EvaluationGrade.HoanThanhXuatSac : EvaluationGrade.HoanThanhTot,
-                    VotesExcellent = isKeyLeader ? 9 : 3,
-                    VotesGood = isKeyLeader ? 1 : 7,
-                    VotesSatisfactory = 0,
-                    VotesUnsatisfactory = 0,
-                    TotalVoters = 10,
+                    CellConfirmedByName = "Chi ủy Chi bộ (dữ liệu mẫu)",
+                    CellConfirmedAt = new DateTime(2026, 9, 11, 2, 0, 0, DateTimeKind.Utc),
+                    CollectiveProposedGrade = isKeyLeader ? EvaluationGrade.HoanThanhXuatSac : EvaluationGrade.HoanThanhTot,
+                    CollectiveComment = "Tập thể lãnh đạo thống nhất đề xuất (kết quả kiểm phiếu mẫu).",
+                    CollectiveRecordedByName = "Thư ký tập thể (dữ liệu mẫu)",
+                    CollectiveRecordedAt = new DateTime(2026, 9, 11, 8, 0, 0, DateTimeKind.Utc),
                     AppraisalScore = isKeyLeader ? 97.0 : 92.5,
                     AppraisalComment = "Hồ sơ đầy đủ minh chứng hợp lệ theo Hướng dẫn 03-HD/TVĐU.",
                     AppraisalProposedGrade = isKeyLeader ? EvaluationGrade.HoanThanhXuatSac : EvaluationGrade.HoanThanhTot,
-                    FinalScore = isKeyLeader ? 97.0 : 92.5,
-                    FinalGrade = isKeyLeader ? EvaluationGrade.HoanThanhXuatSac : EvaluationGrade.HoanThanhTot,
-                    Status = RecordStatus.Reviewed,
+                    AppraisedByName = "Phòng TCCB-LĐ (dữ liệu mẫu)",
+                    AppraisedAt = new DateTime(2026, 9, 13, 2, 0, 0, DateTimeKind.Utc),
+                    // Đã thẩm định → chờ cấp trực tiếp sử dụng nhận xét (trước task 12: "Reviewed").
+                    Status = RecordStatus.AwaitingDirectorReview,
                     UpdatedAt = DateTime.UtcNow
                 };
 

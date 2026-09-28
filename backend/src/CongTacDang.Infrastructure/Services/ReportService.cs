@@ -7,6 +7,7 @@ using ClosedXML.Excel;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Services;
 using CongTacDang.Domain.Entities;
+using CongTacDang.Domain.Evaluation;
 using CongTacDang.Infrastructure.Data;
 using CongTacDang.Infrastructure.Documents;
 using CongTacDang.Infrastructure.Documents.Forms;
@@ -127,7 +128,7 @@ public class ReportService : IReportService
             var headers = new[]
             {
                 "STT", "Họ và tên cán bộ", "Chức vụ Đảng", "Chức danh chính quyền", "Chi bộ", "Đơn vị chuyên môn",
-                "Điểm chung (30đ)", "Điểm chuyên môn (70đ)", "Tổng điểm tự chấm (100đ)", "Chi bộ đề xuất",
+                "Điểm chung (30đ)", "Điểm chuyên môn (70đ)", "Tổng điểm tự chấm (100đ)", "Tập thể lãnh đạo đề xuất",
                 "Điểm thẩm định", "Mức xếp loại chính thức"
             };
 
@@ -157,7 +158,7 @@ public class ReportService : IReportService
                     ws.Cell(row, 7).Value = r.GeneralCriteriaScore;
                     ws.Cell(row, 8).Value = r.TasksScore;
                     ws.Cell(row, 9).Value = r.TotalSelfScore;
-                    ws.Cell(row, 10).Value = r.PartyCellProposedGrade != CongTacDang.Domain.Enums.EvaluationGrade.ChuaXepLoai ? r.PartyCellProposedGrade.ToString() : "-";
+                    ws.Cell(row, 10).Value = LeaderProposal(r) != CongTacDang.Domain.Enums.EvaluationGrade.ChuaXepLoai ? LeaderProposal(r).ToString() : "-";
                     ws.Cell(row, 11).Value = r.AppraisalScore.HasValue ? r.AppraisalScore.Value.ToString("F1") : "-";
                     ws.Cell(row, 12).Value = r.FinalGrade != CongTacDang.Domain.Enums.EvaluationGrade.ChuaXepLoai ? r.FinalGrade.ToString() : "Chờ chuẩn y";
 
@@ -259,15 +260,15 @@ public class ReportService : IReportService
                 int goodOrBetter = cellRecords.Count(r =>
                     r.AppraisalProposedGrade == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac ||
                     r.AppraisalProposedGrade == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhTot ||
-                    r.PartyCellProposedGrade == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac ||
-                    r.PartyCellProposedGrade == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhTot);
+                    LeaderProposal(r) == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac ||
+                    LeaderProposal(r) == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhTot);
 
-                int maxAllowed = (int)Math.Floor(goodOrBetter * 0.20);
+                int maxAllowed = EvaluationScoring.ExcellentQuota(goodOrBetter, QuotaParameters(activePeriod));
 
                 int proposedExcellent = cellRecords.Count(r =>
                     r.AppraisalProposedGrade == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac ||
                     (r.AppraisalProposedGrade == CongTacDang.Domain.Enums.EvaluationGrade.ChuaXepLoai &&
-                     r.PartyCellProposedGrade == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac));
+                     LeaderProposal(r) == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac));
 
                 double actualPercent = goodOrBetter > 0 ? Math.Round(((double)proposedExcellent / goodOrBetter) * 100.0, 1) : 0.0;
                 bool isExceeding = proposedExcellent > maxAllowed;
@@ -311,7 +312,7 @@ public class ReportService : IReportService
         var total = records.Count;
         var goodOrBetter = records.Count(IsGoodOrBetter);
         var proposedExcellent = records.Count(IsProposedExcellent);
-        var maxAllowed = (int)Math.Floor(goodOrBetter * 0.20);
+        var maxAllowed = EvaluationScoring.ExcellentQuota(goodOrBetter, QuotaParameters(activePeriod));
 
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Mẫu 15A - Tổng hợp");
@@ -475,17 +476,41 @@ public class ReportService : IReportService
         return $"{baseName}{scope}{periodPart}.xlsx";
     }
 
+    /// <summary>
+    /// Mức đề xuất của tập thể lãnh đạo (B3a, task 12) — thay chỗ "mức Chi bộ đề xuất" cũ; hồ sơ trước task 12 chưa có
+    /// thì dùng mức Chi bộ đề xuất đã lưu.
+    /// </summary>
+    private static CongTacDang.Domain.Enums.EvaluationGrade LeaderProposal(EvaluationRecord record) =>
+        record.CollectiveProposedGrade != CongTacDang.Domain.Enums.EvaluationGrade.ChuaXepLoai
+            ? record.CollectiveProposedGrade
+            : record.PartyCellProposedGrade;
+
+    /// <summary>Tham số trần tỷ lệ của kỳ (mặc định 20 %, làm tròn xuống — như trước task 12).</summary>
+    private static EvaluationParameters QuotaParameters(EvaluationPeriod? period)
+    {
+        if (period == null)
+            return new EvaluationParameters();
+        try
+        {
+            return period.GetSettings().Parameters;
+        }
+        catch (FormatException)
+        {
+            return new EvaluationParameters();
+        }
+    }
+
     private static bool IsGoodOrBetter(CongTacDang.Domain.Entities.EvaluationRecord record)
     {
         return IsGrade(record.AppraisalProposedGrade, CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhTot) ||
-               IsGrade(record.PartyCellProposedGrade, CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhTot);
+               IsGrade(LeaderProposal(record), CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhTot);
     }
 
     private static bool IsProposedExcellent(CongTacDang.Domain.Entities.EvaluationRecord record)
     {
         return record.AppraisalProposedGrade == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac ||
                (record.AppraisalProposedGrade == CongTacDang.Domain.Enums.EvaluationGrade.ChuaXepLoai &&
-                record.PartyCellProposedGrade == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac);
+                LeaderProposal(record) == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac);
     }
 
     private static bool IsGrade(CongTacDang.Domain.Enums.EvaluationGrade grade, CongTacDang.Domain.Enums.EvaluationGrade minimum)
@@ -499,7 +524,7 @@ public class ReportService : IReportService
             return record.FinalGrade;
         if (record.AppraisalProposedGrade != CongTacDang.Domain.Enums.EvaluationGrade.ChuaXepLoai)
             return record.AppraisalProposedGrade;
-        return record.PartyCellProposedGrade;
+        return LeaderProposal(record);
     }
 
     private const string DocxMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -541,12 +566,26 @@ public class ReportService : IReportService
     {
         var (period, records, branch) = await LoadPeriodRecordsAsync(periodId, branchId);
 
-        // Số người bỏ phiếu: lấy giá trị đã lưu trên hồ sơ; hồ sơ chưa lưu thì dùng sĩ số Chi bộ.
-        int? totalVoters = records.Select(r => r.TotalVoters).FirstOrDefault(v => v > 0);
+        // Task 12: kết quả kiểm phiếu tổng hợp lưu trên biên bản (Mẫu 12/13) — lấy biên bản mới nhất có dòng của từng hồ sơ.
+        var recordIds = records.Select(r => r.Id).ToList();
+        var summaries = await _db.EvaluationMeetingVoteSummaries.AsNoTracking()
+            .Include(v => v.Meeting)
+            .Where(v => recordIds.Contains(v.RecordId) && !v.Meeting.IsDeleted)
+            .ToListAsync();
+        var tallies = summaries
+            .GroupBy(v => v.RecordId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(v => v.Meeting.StartedAt).First());
+        var meetings = tallies.Values.Select(v => v.Meeting).DistinctBy(m => m.Id).ToList();
+
+        // Số người bỏ phiếu: số có mặt của biên bản (khi mọi dòng thuộc một biên bản); không có thì giá trị cũ trên hồ sơ,
+        // cuối cùng là sĩ số Chi bộ.
+        int? totalVoters = meetings.Count == 1 && meetings[0].PresentCount > 0
+            ? meetings[0].PresentCount
+            : records.Select(r => r.TotalVoters).FirstOrDefault(v => v > 0);
         if (totalVoters is null or 0 && branch != null)
             totalVoters = await _db.PartyMemberProfiles.CountAsync(m => m.PartyCellId == branch.Id);
 
-        var bytes = RenderWord(Mau13Data.TemplateFileName, Mau13Data.From(period, records, branch?.Name, totalVoters));
+        var bytes = RenderWord(Mau13Data.TemplateFileName, Mau13Data.From(period, records, branch?.Name, totalVoters, tallies));
         return await ToResultAsync(bytes, DocxMimeType, $"Mau_13_BienBanKiemPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx", format);
     }
 

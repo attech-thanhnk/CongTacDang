@@ -45,7 +45,7 @@ public sealed class Mau10Data
     /// <summary>Chênh lệch = điểm thẩm định − tổng điểm tự chấm (hai giá trị đã lưu).</summary>
     [TemplateField("TOTAL_DIFF")] public string? TotalDiff { get; init; }
 
-    /// <summary>Chưa có dữ liệu lưu — giữ chữ mặc định trong template.</summary>
+    /// <summary>Nhận xét của cấp trực tiếp sử dụng (B3c, task 12); chưa có thì giữ chữ mặc định trong template.</summary>
     [TemplateField("SUPERVISOR_COMMENT")] public string? SupervisorComment { get; init; }
 
     /// <summary>Ý kiến của Tổ thẩm định (đã lưu).</summary>
@@ -71,6 +71,7 @@ public sealed class Mau10Data
             TotalDiff = record.AppraisalScore.HasValue
                 ? FormText.Number(record.AppraisalScore.Value - record.TotalSelfScore, 1)
                 : null,
+            SupervisorComment = FormText.OrNull(record.DirectorComment),
             AppraisalComment = FormText.OrNull(record.AppraisalComment),
             ProposedGrade = FormText.Grade(record.AppraisalProposedGrade)
         };

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,204 +9,182 @@ using CongTacDang.Application.Common.Models;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Application.Services;
-using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Api.Controllers;
 
 /// <summary>
-/// Quản lý quy trình Đánh giá, xếp loại cán bộ 5 bước theo Hướng dẫn 03-HD/TVĐU
+/// Hồ sơ đánh giá cá nhân và luồng 9 bước theo cấu hình kỳ (task 12). Controller chỉ kiểm tra "có quyền ở phạm vi nào đó";
+/// service kiểm tra quyền trên từng hồ sơ, trạng thái kỳ, máy trạng thái và phiên bản (xmin).
 /// </summary>
 [ApiController]
 [Route("api/evaluations")]
 [Authorize]
 public class EvaluationController : ControllerBase
 {
-    private readonly IEvaluationService _evaluationService;
+    private readonly IEvaluationService _evaluations;
+    private readonly IEvaluationWorkflowService _workflow;
 
-    public EvaluationController(IEvaluationService evaluationService)
+    public EvaluationController(IEvaluationService evaluations, IEvaluationWorkflowService workflow)
     {
-        _evaluationService = evaluationService;
+        _evaluations = evaluations;
+        _workflow = workflow;
     }
 
-    private Guid GetCurrentUserId()
-    {
-        var sub = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var userId))
-        {
-            throw new UnauthorizedAccessException("Không xác thực được danh tính người dùng hiện tại.");
-        }
-        return userId;
-    }
+    #region Đọc
 
-    #region Kỳ đánh giá (Evaluation Periods)
-
-    /// <summary>Lấy danh sách tất cả các kỳ đánh giá</summary>
-    [HttpGet("periods")]
-    [Authorize] // Danh sách kỳ: mọi người đã đăng nhập
-    public async Task<IActionResult> GetPeriods()
-    {
-        var periods = await _evaluationService.GetPeriodsAsync();
-        return Ok(ApiResponse<List<EvaluationPeriodDto>>.Ok(periods, "Lấy danh sách kỳ đánh giá thành công."));
-    }
-
-    /// <summary>Lấy thông tin kỳ đánh giá đang hoạt động</summary>
-    [HttpGet("periods/active")]
-    [Authorize] // Kỳ hiện hành: mọi người đã đăng nhập
-    public async Task<IActionResult> GetActivePeriod()
-    {
-        var period = await _evaluationService.GetActivePeriodAsync();
-        return Ok(ApiResponse<EvaluationPeriodDto?>.Ok(period, "Lấy kỳ đánh giá hiện hành thành công."));
-    }
-
-    /// <summary>Tạo mới kỳ đánh giá</summary>
-    [HttpPost("periods")]
-    [RequirePermission(PermissionCodes.PeriodManage)]
-    public async Task<IActionResult> CreatePeriod([FromBody] CreatePeriodDto dto)
-    {
-        var period = await _evaluationService.CreatePeriodAsync(dto);
-        return Ok(ApiResponse<EvaluationPeriodDto>.Ok(period, "Khởi tạo kỳ đánh giá mới thành công."));
-    }
-
-    /// <summary>Kích hoạt kỳ đánh giá làm kỳ hiện hành</summary>
-    [HttpPut("periods/{id}/activate")]
-    [RequirePermission(PermissionCodes.PeriodManage)]
-    public async Task<IActionResult> SetActivePeriod(Guid id, [FromQuery] uint? version)
-    {
-        var period = await _evaluationService.SetActivePeriodAsync(id, version);
-        return Ok(ApiResponse<EvaluationPeriodDto>.Ok(period, "Kích hoạt kỳ đánh giá thành công."));
-    }
-
-    /// <summary>Cập nhật trạng thái tiến trình của kỳ đánh giá</summary>
-    [HttpPut("periods/{id}/status")]
-    [RequirePermission(PermissionCodes.PeriodManage)]
-    public async Task<IActionResult> UpdatePeriodStatus(Guid id, [FromQuery] PeriodStatus status, [FromQuery] uint? version)
-    {
-        var period = await _evaluationService.UpdatePeriodStatusAsync(id, status, version);
-        return Ok(ApiResponse<EvaluationPeriodDto>.Ok(period, "Cập nhật trạng thái kỳ đánh giá thành công."));
-    }
-
-    #endregion
-
-    #region Hồ sơ đánh giá (Evaluation Records)
-
-    /// <summary>Lấy hồ sơ đánh giá của cá nhân cán bộ đăng nhập trong kỳ</summary>
+    /// <summary>Hồ sơ của chính người dùng trong kỳ (null nếu không có trong danh sách được đánh giá).</summary>
     [HttpGet("my-record")]
-    [Authorize] // Hồ sơ của chính mình: chủ hồ sơ luôn xem được
-    public async Task<IActionResult> GetMyRecord([FromQuery] Guid periodId)
+    public async Task<IActionResult> GetMyRecord([FromQuery] Guid periodId, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        var record = await _evaluationService.GetUserEvaluationRecordAsync(periodId, userId);
+        var record = await _evaluations.GetMyRecordAsync(periodId, ct);
         return Ok(ApiResponse<EvaluationRecordDto?>.Ok(record, "Lấy hồ sơ cá nhân thành công."));
     }
 
-    /// <summary>Lấy chi tiết hồ sơ đánh giá theo Id</summary>
-    [HttpGet("records/{id}")]
-    [Authorize] // Service kiểm tra evaluation.read trên hồ sơ (chủ hồ sơ luôn xem được)
-    public async Task<IActionResult> GetRecordById(Guid id)
+    /// <summary>Chi tiết hồ sơ (service kiểm tra evaluation.read; chủ hồ sơ luôn xem được).</summary>
+    [HttpGet("records/{id:guid}")]
+    public async Task<IActionResult> GetRecordById(Guid id, CancellationToken ct)
     {
-        var record = await _evaluationService.GetRecordByIdAsync(id, GetCurrentUserId());
+        var record = await _evaluations.GetRecordByIdAsync(id, ct);
         return Ok(ApiResponse<EvaluationRecordDto>.Ok(record, "Lấy chi tiết hồ sơ đánh giá thành công."));
     }
 
-    /// <summary>Lấy lịch sử chuyển trạng thái và người thực hiện của hồ sơ.</summary>
-    [HttpGet("records/{id}/history")]
-    [Authorize] // Service kiểm tra evaluation.read trên hồ sơ (chủ hồ sơ luôn xem được)
-    public async Task<IActionResult> GetRecordHistory(Guid id)
+    /// <summary>Lịch sử của hồ sơ.</summary>
+    [HttpGet("records/{id:guid}/history")]
+    public async Task<IActionResult> GetRecordHistory(Guid id, CancellationToken ct)
     {
-        var history = await _evaluationService.GetRecordHistoryAsync(id, GetCurrentUserId());
+        var history = await _evaluations.GetRecordHistoryAsync(id, ct);
         return Ok(ApiResponse<List<EvaluationRecordHistoryDto>>.Ok(history, "Lấy lịch sử hồ sơ đánh giá thành công."));
     }
 
-    /// <summary>Lấy toàn bộ danh sách hồ sơ đánh giá của một kỳ (Chỉ dành cho Tổ Thẩm định & BTV)</summary>
+    /// <summary>Hành động người hiện tại được làm trên hồ sơ (frontend hiển thị nút theo danh sách này).</summary>
+    [HttpGet("records/{id:guid}/actions")]
+    public async Task<IActionResult> GetActions(Guid id, CancellationToken ct)
+    {
+        var actions = await _workflow.GetActionsAsync(id, ct);
+        return Ok(ApiResponse<RecordActionsDto>.Ok(actions, "Lấy danh sách hành động thành công."));
+    }
+
+    /// <summary>Hồ sơ đang chờ người hiện tại xử lý, nhóm theo bước.</summary>
+    [HttpGet("work-queue")]
+    public async Task<IActionResult> GetWorkQueue([FromQuery] Guid? periodId, CancellationToken ct)
+    {
+        var queue = await _workflow.GetWorkQueueAsync(periodId, ct);
+        return Ok(ApiResponse<WorkQueueDto>.Ok(queue, "Lấy danh sách việc cần xử lý thành công."));
+    }
+
+    /// <summary>Hồ sơ trong kỳ theo phạm vi evaluation.read.</summary>
     [HttpGet("records")]
     [RequirePermission(PermissionCodes.EvaluationRead)]
-    public async Task<IActionResult> GetRecordsByPeriod([FromQuery] Guid periodId)
+    public async Task<IActionResult> GetRecordsByPeriod([FromQuery] Guid periodId, CancellationToken ct)
     {
-        var records = await _evaluationService.GetRecordsByPeriodAsync(periodId, GetCurrentUserId());
+        var records = await _evaluations.GetRecordsByPeriodAsync(periodId, ct);
         return Ok(ApiResponse<List<EvaluationRecordDto>>.Ok(records, "Lấy danh sách hồ sơ đánh giá thành công."));
     }
 
-    /// <summary>Lấy danh sách hồ sơ đánh giá thuộc một Chi bộ (Chỉ dành cho Chi ủy, Tổ thẩm định, hoặc BTV)</summary>
+    /// <summary>Hồ sơ của một Chi bộ trong kỳ, lọc theo phạm vi evaluation.read.</summary>
     [HttpGet("branch-records")]
     [RequirePermission(PermissionCodes.EvaluationRead)]
-    public async Task<IActionResult> GetRecordsByBranch([FromQuery] Guid periodId, [FromQuery] Guid? branchId)
+    public async Task<IActionResult> GetRecordsByBranch([FromQuery] Guid periodId, [FromQuery] Guid? branchId, CancellationToken ct)
     {
-        var currentUserId = GetCurrentUserId();
-        var records = await _evaluationService.GetRecordsByBranchAsync(periodId, branchId, currentUserId);
+        var records = await _evaluations.GetRecordsByBranchAsync(periodId, branchId, ct);
         return Ok(ApiResponse<List<EvaluationRecordDto>>.Ok(records, "Lấy danh sách hồ sơ Chi bộ thành công."));
+    }
+
+    /// <summary>Kiểm tra trần tỷ lệ Hoàn thành xuất sắc theo Chi bộ (Mẫu 15).</summary>
+    [HttpGet("branch-quotas")]
+    [RequirePermission(PermissionCodes.EvaluationRead)]
+    public async Task<IActionResult> CheckBranchQuotas([FromQuery] Guid periodId, CancellationToken ct)
+    {
+        var quotas = await _evaluations.CheckBranchQuotasAsync(periodId, ct);
+        return Ok(ApiResponse<List<BranchQuotaCheckDto>>.Ok(quotas, "Kiểm tra trần tỷ lệ theo Chi bộ thành công."));
     }
 
     #endregion
 
-    #region Quy trình 5 bước
+    #region Hành động theo bước
 
-    /// <summary>Bước 1: Cán bộ đăng ký 3-7 nhiệm vụ chuyên môn đầu quý (Mẫu 01 - Tổng trọng số đúng 70.0đ)</summary>
-    [HttpPost("tasks/register")]
+    /// <summary>B1_REGISTER — chủ hồ sơ nộp danh mục sản phẩm (Mẫu 01).</summary>
+    [HttpPost("records/{id:guid}/tasks/submit")]
     [RequirePermission(PermissionCodes.EvaluationSelf)]
-    public async Task<IActionResult> RegisterTasks([FromBody] RegisterTasksRequestDto dto)
-    {
-        var userId = GetCurrentUserId();
-        var result = await _evaluationService.RegisterTasksAsync(userId, dto);
-        return Ok(ApiResponse<EvaluationRecordDto>.Ok(result, "Đăng ký danh mục nhiệm vụ trọng tâm thành công."));
-    }
+    public Task<IActionResult> SubmitTasks(Guid id, [FromBody] SubmitTasksRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.SubmitTasksAsync(id, dto, ct), "Đã nộp danh mục sản phẩm.");
 
-    /// <summary>Bước 2: Cán bộ tự chấm điểm Tiêu chí chung (Mẫu 09) và Sản phẩm chuyên môn (Mẫu 02)</summary>
-    [HttpPost("self-score")]
+    /// <summary>B1_APPROVE — duyệt danh mục.</summary>
+    [HttpPost("records/{id:guid}/tasks/approve")]
+    [RequirePermission(PermissionCodes.EvaluationTasksApprove)]
+    public Task<IActionResult> ApproveTasks(Guid id, [FromBody] CommentRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.ApproveTasksAsync(id, dto, ct), "Đã duyệt danh mục sản phẩm.");
+
+    /// <summary>B1_APPROVE — trả lại danh mục (bắt buộc lý do).</summary>
+    [HttpPost("records/{id:guid}/tasks/return")]
+    [RequirePermission(PermissionCodes.EvaluationTasksApprove)]
+    public Task<IActionResult> ReturnTasks(Guid id, [FromBody] ReturnRecordRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.ReturnTasksAsync(id, dto, ct), "Đã trả lại danh mục sản phẩm.");
+
+    /// <summary>B2_SELF_SCORE — chủ hồ sơ nộp phiếu tự chấm.</summary>
+    [HttpPost("records/{id:guid}/self-score/submit")]
     [RequirePermission(PermissionCodes.EvaluationSelf)]
-    public async Task<IActionResult> SubmitSelfScore([FromBody] SubmitSelfScoreRequestDto dto)
-    {
-        var userId = GetCurrentUserId();
-        var result = await _evaluationService.SubmitSelfScoreAsync(userId, dto);
-        return Ok(ApiResponse<EvaluationRecordDto>.Ok(result, "Hoàn tất tự chấm điểm cá nhân thành công."));
-    }
+    public Task<IActionResult> SubmitSelfScore(Guid id, [FromBody] SubmitSelfScoreRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.SubmitSelfScoreAsync(id, dto, ct), "Đã nộp phiếu tự chấm.");
 
-    /// <summary>Bước 3: Chi bộ nhận xét và ghi nhận kết quả bỏ phiếu kín (Mẫu 10, 11, 13)</summary>
-    [HttpPost("branch-review")]
+    /// <summary>B2_CELL_CONFIRM — Chi bộ xác nhận phiếu tự chấm.</summary>
+    [HttpPost("records/{id:guid}/cell/confirm")]
     [RequirePermission(PermissionCodes.EvaluationCellConfirm)]
-    public async Task<IActionResult> SubmitBranchReview([FromBody] SubmitBranchReviewRequestDto dto)
-    {
-        var userId = GetCurrentUserId();
-        var result = await _evaluationService.SubmitBranchReviewAsync(userId, dto);
-        return Ok(ApiResponse<EvaluationRecordDto>.Ok(result, "Ghi nhận đánh giá của Chi bộ thành công."));
-    }
+    public Task<IActionResult> ConfirmByCell(Guid id, [FromBody] CommentRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.ConfirmByCellAsync(id, dto, ct), "Chi bộ đã xác nhận phiếu tự chấm.");
 
-    /// <summary>Bước 3b: Chi bộ lưu toàn bộ Biên bản kiểm phiếu của Chi bộ trong cuộc họp (Mẫu 13)</summary>
-    [HttpPost("branch-meeting-review")]
+    /// <summary>B2_CELL_CONFIRM — Chi bộ trả lại phiếu tự chấm (bắt buộc lý do).</summary>
+    [HttpPost("records/{id:guid}/cell/return")]
     [RequirePermission(PermissionCodes.EvaluationCellConfirm)]
-    public async Task<IActionResult> SubmitBranchMeeting([FromBody] SubmitBranchMeetingRequestDto dto)
-    {
-        var userId = GetCurrentUserId();
-        var result = await _evaluationService.SubmitBranchMeetingAsync(userId, dto);
-        return Ok(ApiResponse<List<EvaluationRecordDto>>.Ok(result, "Ghi nhận kết quả kiểm phiếu Chi bộ thành công."));
-    }
+    public Task<IActionResult> ReturnByCell(Guid id, [FromBody] ReturnRecordRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.ReturnByCellAsync(id, dto, ct), "Chi bộ đã trả lại phiếu tự chấm.");
 
-    /// <summary>Bước 4: Tổ Thẩm định đối soát điểm và đề xuất xếp loại (Mẫu 03)</summary>
-    [HttpPost("appraisal")]
+    /// <summary>B3A_COLLECTIVE — ghi nhận đề xuất của tập thể lãnh đạo (kết quả kiểm phiếu tổng hợp).</summary>
+    [HttpPost("records/{id:guid}/collective")]
+    [RequirePermission(PermissionCodes.EvaluationCollectiveRecord)]
+    public Task<IActionResult> RecordCollectiveProposal(Guid id, [FromBody] CollectiveProposalRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.RecordCollectiveProposalAsync(id, dto, ct), "Đã ghi nhận đề xuất của tập thể lãnh đạo.");
+
+    /// <summary>B3B_APPRAISAL — thẩm định.</summary>
+    [HttpPost("records/{id:guid}/appraisal")]
     [RequirePermission(PermissionCodes.EvaluationAppraise)]
-    public async Task<IActionResult> SubmitAppraisal([FromBody] SubmitAppraisalRequestDto dto)
-    {
-        var userId = GetCurrentUserId();
-        var result = await _evaluationService.SubmitAppraisalAsync(userId, dto);
-        return Ok(ApiResponse<EvaluationRecordDto>.Ok(result, "Ghi nhận kết quả thẩm định thành công."));
-    }
+    public Task<IActionResult> Appraise(Guid id, [FromBody] AppraisalRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.AppraiseAsync(id, dto, ct), "Đã ghi nhận kết quả thẩm định.");
 
-    /// <summary>Bước 4b: Kiểm tra tỷ lệ trần 20% Hoàn thành xuất sắc nhiệm vụ theo Chi bộ (Mẫu 15 - Chỉ dành cho Thẩm định & BTV)</summary>
-    [HttpGet("branch-quotas")]
-    [RequirePermission(PermissionCodes.EvaluationRead)]
-    public async Task<IActionResult> CheckBranchQuotas([FromQuery] Guid periodId)
-    {
-        var quotas = await _evaluationService.CheckBranchQuotasAsync(periodId, GetCurrentUserId());
-        return Ok(ApiResponse<List<BranchQuotaCheckDto>>.Ok(quotas, "Kiểm tra tỷ lệ trần 20% theo Chi bộ thành công."));
-    }
+    /// <summary>B3B_APPRAISAL — trả lại để chủ hồ sơ sửa (bắt buộc lý do).</summary>
+    [HttpPost("records/{id:guid}/appraisal/return")]
+    [RequirePermission(PermissionCodes.EvaluationAppraise)]
+    public Task<IActionResult> ReturnByAppraiser(Guid id, [FromBody] ReturnRecordRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.ReturnByAppraiserAsync(id, dto, ct), "Đã trả lại hồ sơ.");
 
-    /// <summary>Bước 5: Ban Thường vụ chuẩn y mức xếp loại chính thức (Mẫu 14 & 16)</summary>
-    [HttpPost("approve-final")]
+    /// <summary>B3C_DIRECTOR — nhận xét, đề xuất của cấp trực tiếp sử dụng.</summary>
+    [HttpPost("records/{id:guid}/director-review")]
+    [RequirePermission(PermissionCodes.EvaluationDirectorReview)]
+    public Task<IActionResult> DirectorReview(Guid id, [FromBody] DirectorReviewRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.DirectorReviewAsync(id, dto, ct), "Đã ghi nhận nhận xét của cấp trực tiếp sử dụng.");
+
+    /// <summary>B4_DECISION — ghi nhận quyết định (decide cho hồ sơ cơ sở, decide.external cho hồ sơ cấp trên).</summary>
+    [HttpPost("records/{id:guid}/decision")]
     [RequireAnyPermission(PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationDecideExternal)]
-    public async Task<IActionResult> ApproveFinalGrade([FromBody] ApproveFinalGradeRequestDto dto)
+    public Task<IActionResult> RecordDecision(Guid id, [FromBody] DecisionRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.RecordDecisionAsync(id, dto, ct), "Đã ghi nhận quyết định mức xếp loại.");
+
+    /// <summary>B5_PUBLISH — công bố, khóa hồ sơ.</summary>
+    [HttpPost("records/{id:guid}/publish")]
+    [RequirePermission(PermissionCodes.EvaluationPublish)]
+    public Task<IActionResult> Publish(Guid id, [FromBody] WorkflowRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.PublishAsync(id, dto, ct), "Đã công bố kết quả.");
+
+    /// <summary>Mở lại hồ sơ đã công bố (bắt buộc lý do, chọn bước quay về).</summary>
+    [HttpPost("records/{id:guid}/reopen")]
+    [RequirePermission(PermissionCodes.EvaluationReopen)]
+    public Task<IActionResult> Reopen(Guid id, [FromBody] ReopenRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.ReopenAsync(id, dto, ct), "Đã mở lại hồ sơ.");
+
+    private async Task<IActionResult> Run(Func<Task<EvaluationRecordDto>> action, string message)
     {
-        var userId = GetCurrentUserId();
-        var result = await _evaluationService.ApproveFinalGradeAsync(userId, dto);
-        return Ok(ApiResponse<EvaluationRecordDto>.Ok(result, "Chuẩn y xếp loại chất lượng cán bộ thành công."));
+        var record = await action();
+        return Ok(ApiResponse<EvaluationRecordDto>.Ok(record, message));
     }
 
     #endregion

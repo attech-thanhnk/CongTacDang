@@ -44,7 +44,7 @@ public class CollectiveEvaluationRecord : IAuditableEntity, ISoftDeletable, IVer
     public double TaskCriteriaScore { get; set; }
     public double TotalScore { get; set; }
     public EvaluationGrade SelfProposedGrade { get; set; } = EvaluationGrade.ChuaXepLoai;
-    public RecordStatus Status { get; set; } = RecordStatus.Draft;
+    public CollectiveRecordStatus Status { get; set; } = CollectiveRecordStatus.Draft;
 
     public ICollection<CollectiveEvaluationItem> Items { get; set; } = new List<CollectiveEvaluationItem>();
 
