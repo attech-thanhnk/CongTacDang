@@ -89,7 +89,7 @@ public sealed class PermissionRequirement : IAuthorizationRequirement
 
 /// <summary>
 /// Cung cấp policy động: tên policy là mã quyền trong <see cref="PermissionCodes"/>, hoặc <c>any:a|b</c>.
-/// Chuyển tiếp: mã quyền cũ (<see cref="AppPermissions"/>) còn khai báo ở các controller ngoài phạm vi task 09
+/// Chuyển tiếp: mã quyền cũ (trước task 09) còn khai báo ở các controller ngoài phạm vi task 09
 /// (UserController, OrganizationController, AuditController) được đánh giá bằng mã mới tương đương (<see cref="LegacyPermissionMap"/>).
 /// Tên khác chuyển cho provider mặc định.
 /// </summary>
