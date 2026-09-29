@@ -82,7 +82,7 @@ Backend `/healthz` được container kiểm tra nội bộ; health check gồm 
 
 ## Biến cấu hình tài khoản, bảo mật và dữ liệu khởi tạo
 
-Dấu `__` trong tên biến môi trường tương ứng với `:` trong `appsettings.json`. `docker-compose.yml` truyền vào container các biến `Database__AutoMigrate` (mặc định `true` trong Compose), `Database__SeedSampleData`, `Seed__*`, `Security__*` và `Organization__*` đặt trong `docker/.env`. Khi chạy trực tiếp ngoài Docker, đặt bằng biến môi trường hoặc `user-secrets`.
+Dấu `__` trong tên biến môi trường tương ứng với `:` trong `appsettings.json`. `docker-compose.yml` truyền vào container các biến `Database__AutoMigrate` (mặc định `true` trong Compose), `Database__SeedSampleData`, `Seed__*`, `Security__*`, `Organization__*` và `Notifications__*` đặt trong `docker/.env`. Khi chạy trực tiếp ngoài Docker, đặt bằng biến môi trường hoặc `user-secrets`.
 
 | Biến môi trường | Mặc định | Ý nghĩa |
 |---|---|---|
@@ -96,6 +96,7 @@ Dấu `__` trong tên biến môi trường tương ứng với `:` trong `appse
 | `Database__SeedSampleData` | `false` | Tạo dữ liệu mẫu — **chỉ môi trường thử nghiệm**, không bật trên CSDL thật. |
 | `Seed__SamplePassword` | rỗng | Mật khẩu tạm chung của tài khoản mẫu; rỗng → sinh ngẫu nhiên. Chỉ dùng khi bật dữ liệu mẫu. |
 | `Database__ResetRolePermissions` | `false` | Đặt lại quyền của các vai trò mặc định về cấu hình mặc định ở lần khởi động này; tắt lại ngay sau khi dùng. |
+| `Notifications__DueSoonDays` | `2` | Chuông nhắc việc: bước của hồ sơ còn từ 0 tới số ngày này tới hạn (theo thời hạn bước trong hồ sơ luồng) được báo "sắp tới hạn". |
 | `Organization__ApprovalAuthorityRefreshMinutes` | `60` | Chu kỳ (phút) tác vụ nền tính lại thẩm quyền phê duyệt suy ra từ chức vụ cho cán bộ không đặt tay (chức vụ có thời hạn tự bắt đầu/hết hạn mà không có thao tác sửa). `0` = tắt (thẩm quyền vẫn được tính lại ngay khi thêm/sửa/kết thúc chức vụ). |
 
 **Tài khoản quản trị ban đầu** chỉ được tạo khi hệ thống **chưa có** tài khoản đang hoạt động nào giữ cả hai quyền "Quản lý vai trò" và "Gán vai trò" (phạm vi Toàn công ty). Đã có quản trị → cấu hình bị bỏ qua (không tạo thêm, không đổi mật khẩu). Thiếu cấu hình khi chưa có quản trị → log mức Warning hướng dẫn đặt biến. Mật khẩu không bao giờ được ghi log. Sau khi quản trị đổi mật khẩu, xóa `Seed__InitialAdmin__Password` khỏi `.env`.
@@ -107,7 +108,7 @@ Dấu `__` trong tên biến môi trường tương ứng với `:` trong `appse
 Khi `Database__SeedSampleData=true` và CSDL **chưa có** tài khoản, đơn vị, kỳ đánh giá nào, lần khởi động đầu tạo:
 
 - Cây đơn vị chính quyền: `ATTECH` (loại Công ty) → `BGD` (Ban Giám đốc, loại Đơn vị), `PH-KT`, `PH-KH`, `PH-TCCB` (loại Phòng). Cây tổ chức Đảng: `DU-ATTECH` (loại Đảng ủy) → `CB-KT`, `CB-VP` (loại Chi bộ). Loại đơn vị và chức vụ lấy từ danh mục mặc định (tạo khi danh mục còn trống).
-- 9 tài khoản, tất cả **bắt buộc đổi mật khẩu** ở lần đăng nhập đầu, kèm chức vụ (có kiêm nhiệm) và bản gán vai trò có phạm vi (phạm vi đơn vị gồm cả đơn vị cấp dưới). Thẩm quyền phê duyệt **suy ra từ chức vụ**: `giamdoc` (Giám đốc, kiêm Bí thư Đảng ủy) → cấp trên quyết định; các tài khoản khác → Đảng ủy cơ sở.
+- 10 tài khoản, tất cả **bắt buộc đổi mật khẩu** ở lần đăng nhập đầu, kèm chức vụ (có kiêm nhiệm) và bản gán vai trò có phạm vi (phạm vi đơn vị gồm cả đơn vị cấp dưới). Thẩm quyền phê duyệt **suy ra từ chức vụ**: `giamdoc` (Giám đốc, kiêm Bí thư Đảng ủy) → cấp trên quyết định; các tài khoản khác → Đảng ủy cơ sở.
 
   | Tài khoản | Chức vụ | Vai trò (phạm vi) | Hồ sơ trong kỳ mẫu |
   |---|---|---|---|
@@ -120,9 +121,12 @@ Khi `Database__SeedSampleData=true` và CSDL **chưa có** tài khoản, đơn v
   | `thuky.kt` | Chuyên viên (PH-KT) | Thư ký tập thể lãnh đạo (Phòng Kỹ thuật) | — |
   | `canbo.kt1` | Phó Trưởng phòng (PH-KT) | Người được đánh giá (Toàn công ty) | Chờ tự chấm |
   | `canbo.kt2` | Phó Trưởng phòng (PH-KT) | Người được đánh giá (Toàn công ty) | Chờ Chi bộ xác nhận |
+  | `canbo.kh` | Phó Trưởng phòng (PH-KH) | Người được đánh giá (Toàn công ty) | Đã công bố **Mức C** (Hoàn thành nhiệm vụ) — có kế hoạch 30-60-90 ngày (Mẫu 17) đang lập và một kiến nghị chờ xử lý |
 
 - Kỳ "Đánh giá, xếp loại cán bộ Quý III/2026" theo kiểu kỳ "Quý III/2026 — chuyển tiếp" (không có bước đăng ký/duyệt danh mục) gắn bộ tiêu chí **"Mẫu 09B — Quý III/2026"** đã chụp vào kỳ, với đủ 3 hồ sơ luồng dựng sẵn, trạng thái **Đang mở**; hồ sơ luồng của từng hồ sơ chọn theo cấp quyết định; kiểm tra kẹt luồng của kỳ **không có cảnh báo**.
-- Mỗi cán bộ mẫu có khung tỷ trọng mặc định (K1/K2/K4), hồ sơ chụp lại khung khi thêm vào kỳ; hồ sơ đã qua bước tự chấm có điểm theo đủ 17 tiêu chí con (hai tiêu chí "Không đảm bảo" có căn cứ) và 6 trục của bộ.
+- Mỗi cán bộ mẫu có khung tỷ trọng mặc định (K1/K2/K4), hồ sơ chụp lại khung khi thêm vào kỳ; hồ sơ đã qua bước tự chấm có điểm theo đủ 17 tiêu chí con (hai tiêu chí "Không đảm bảo" có căn cứ) và 6 trục của bộ, nội dung Mẫu 09C, 9D và phần tự luận theo trục của Mẫu 09B (xuất được ở "Biểu mẫu của hồ sơ").
+- Trang **Đánh giá tập thể & Hội nghị**: hồ sơ tập thể Mẫu 07 (đủ mục I.1–I.4, II–VI) và Mẫu 08 (một số nhóm nội dung) của Chi bộ Khối Kỹ thuật; biên bản Mẫu 12 hội nghị tập thể lãnh đạo Phòng Kỹ thuật (B3a, có mục 3.2, chức vụ chủ trì/thư ký, kết quả kiểm phiếu của hồ sơ Trưởng phòng Kỹ thuật); biên bản kiểm phiếu hội nghị Đảng ủy (B4) có Tổ kiểm phiếu, số phiếu, cán bộ mục I (Giám đốc — cấp trên quyết định) và mục II (`canbo.kh`) — xuất Mẫu 13.
+- Trang **Báo cáo**: bản nháp Mẫu 16 toàn Đảng bộ (số văn bản, nơi gửi, quy chế, đề xuất III.1, người ký).
 - Thông tin đơn vị và 2 bộ tiêu chí mặc định được tạo như trên CSDL thật (xem Go-live bước 0).
 
 Mật khẩu tạm chung: lấy từ `Seed__SamplePassword` nếu có (phải đạt chính sách mật khẩu, sai → không tạo dữ liệu mẫu, log Error); nếu không, hệ thống sinh ngẫu nhiên 12 ký tự và ghi **một lần** vào log mức Warning ngay khi tạo ("Mật khẩu tạm chung …"). Khởi động lại không tạo lại dữ liệu mẫu và không ghi lại mật khẩu.
@@ -145,7 +149,7 @@ Mọi dữ liệu nền được khai báo trực tiếp trên giao diện (khô
 
 **1b. Thông tin đơn vị và biểu mẫu Word** (quản trị hệ thống — quyền "Quản lý thông tin đơn vị", "Quản lý file mẫu biểu mẫu")
 - [ ] Trang **Quản trị → Thông tin đơn vị**: kiểm tra/sửa tên Đảng bộ, tổ chức Đảng cấp trên, tên công ty, đơn vị chủ quản, tên viết tắt (dùng trong tên tệp, chỉ `A-Z a-z 0-9 _ -`), địa danh, tên hệ thống. Giá trị này in lên biểu mẫu Word/Excel, tên tệp tải xuống, thanh bên, đầu trang, trang đăng nhập.
-- [ ] Trang **Quản trị → Biểu mẫu Word**: mỗi mẫu (01, 02, 10, 11, 13) đang dùng file gốc hoặc phiên bản đã tải lên; tải *File đang dùng* về mở thử. Cần sửa bố cục → sửa trong Word theo `docs/bieu-mau.md` mục 7 → *Kiểm tra* (tag lạ = lỗi, thiếu tag = cảnh báo) → *Tải lên*. Tệp mẫu tải lên nằm trong kho tệp (`Storage:Local:Path`, thư mục `word-templates/`) — cùng phạm vi sao lưu với tệp đính kèm.
+- [ ] Trang **Quản trị → Biểu mẫu Word**: mỗi mẫu (01, 02, 07, 08, 09A, 09B, 09C, 9D, 10, 11, 12, 13, 16, 17) đang dùng file gốc hoặc phiên bản đã tải lên; tải *File đang dùng* về mở thử. Cần sửa bố cục → sửa trong Word theo `docs/bieu-mau.md` mục 7 → *Kiểm tra* (tag lạ = lỗi, thiếu tag = cảnh báo) → *Tải lên*. Tệp mẫu tải lên nằm trong kho tệp (`Storage:Local:Path`, thư mục `word-templates/`) — cùng phạm vi sao lưu với tệp đính kèm.
 
 **2. Khai báo tổ chức, tài khoản, vai trò (đúng thứ tự)** — trên giao diện: **Danh mục** → **Tài khoản** → **Vai trò** (gán ở trang chi tiết tài khoản) → **Kỳ đánh giá** (bước 5). Mọi thao tác được ghi **Nhật ký**.
 - [ ] a. **Loại đơn vị** (trang **Quản trị → Danh mục**, tab **Loại đơn vị**): rà danh mục mặc định (Đảng ủy, Đảng bộ bộ phận, Chi bộ; Công ty, Đơn vị, Phòng, Trung tâm, Xưởng, Đội), thêm/sửa cho đúng cơ cấu thực tế.
@@ -164,10 +168,11 @@ Mọi dữ liệu nền được khai báo trực tiếp trên giao diện (khô
 **4. Kiểm tra sau go-live**
 - [ ] Kết thúc/xóa một bản gán thử → người đó bị chặn chức năng tương ứng ngay request kế tiếp (không cần đăng xuất).
 - [ ] Tài khoản quản trị không xem được hồ sơ đánh giá (tách quản trị kỹ thuật và nghiệp vụ).
-- [ ] Xuất thử Mẫu 14 và danh sách cán bộ (Excel, trang **Báo cáo**) và một phiếu Word của hồ sơ (Mẫu 02/10, trang hồ sơ đánh giá): tên Đảng bộ, tổ chức Đảng cấp trên, tên công ty, địa danh, tên tệp đúng Thông tin đơn vị.
+- [ ] Xuất thử Mẫu 14 và danh sách cán bộ (Excel, trang **Báo cáo**) và một biểu mẫu của hồ sơ (Mẫu 09B/09C/9D, trang hồ sơ đánh giá → "Biểu mẫu của hồ sơ"): tên Đảng bộ, tổ chức Đảng cấp trên, tên công ty, địa danh, tên tệp đúng Thông tin đơn vị.
+- [ ] Vai trò đã có từ trước khi nâng cấp **không** tự nhận 4 quyền sau công bố (`evaluation.results.view`, `evaluation.appeal.submit`, `evaluation.appeal.resolve`, `evaluation.improvement.manage`): gán trên trang **Vai trò** (hoặc khởi động một lần với `Database__ResetRolePermissions=true` rồi tắt). Phạm vi bản gán `evaluation.results.view` = phạm vi công khai kết quả (mặc định vai trò "Người được đánh giá" — gán Toàn công ty nếu công khai toàn công ty).
 
 **5. Mở kỳ đánh giá** (người có vai trò "Cơ quan thẩm định", quyền "Quản lý kỳ đánh giá" và "Quản lý bộ tiêu chí")
-- [ ] Trang **Bộ tiêu chí**: rà bộ sẽ dùng cho kỳ (tiêu chí chung và tiêu chí con, trục, khung tỷ trọng, thang quy đổi, ngưỡng mức, tham số: số sản phẩm, ngưỡng giải trình chênh lệch, trần Xuất sắc, làm tròn). Bộ đã xuất bản không sửa được: cần điều chỉnh → **Nhân bản** → sửa bản nháp (kiểm tra tổng điểm tức thì) → **Xuất bản**; lưu trữ bộ không dùng nữa. Nghiệp vụ xác nhận nội dung bộ trước khi mở kỳ.
+- [ ] Trang **Bộ tiêu chí**: rà bộ sẽ dùng cho kỳ (tiêu chí chung và tiêu chí con, trục, khung tỷ trọng, thang quy đổi, ngưỡng mức, tham số: số sản phẩm, ngưỡng giải trình chênh lệch, trần Xuất sắc, làm tròn). Rà thêm: **biểu mẫu cá nhân áp dụng** (Q3/2026: 09B, 09C, 9D, 10 — Mẫu 10 chờ nghiệp vụ xác nhận), **mục Mẫu 09C** (tiêu đề, câu dẫn, lưu ý, số ký tự tối đa, bắt buộc khi nộp), **tiêu đề/nội dung gợi ý trục** in trên Mẫu 09B, và **tham số sau công bố**: công khai kèm điểm (mặc định chỉ công khai mức), mức bắt buộc lập kế hoạch 30-60-90 ngày (mặc định Mức C, D), số ngày sau khi đóng kỳ còn cảnh báo kế hoạch cần lập (mặc định 90). Bộ đã xuất bản không sửa được: cần điều chỉnh → **Nhân bản** → sửa bản nháp (kiểm tra tổng điểm tức thì) → **Xuất bản**; lưu trữ bộ không dùng nữa. Nghiệp vụ xác nhận nội dung bộ trước khi mở kỳ.
 - [ ] Trang **Kỳ đánh giá** → tạo kỳ từ kiểu kỳ dựng sẵn ("Đầy đủ" hoặc "Quý III/2026 — chuyển tiếp"; mỗi kiểu sinh sẵn 3 hồ sơ luồng: Diện Đảng ủy cơ sở, Diện BTV Đảng ủy Tổng công ty, Bí thư/Phó bí thư Chi bộ là nhân viên — cấu hình mặc định chờ nghiệp vụ xác nhận) → kỳ ở trạng thái **Dự thảo**.
 - [ ] Khi còn dự thảo: **chọn/xác nhận bộ tiêu chí** của kỳ (chỉ bộ đã xuất bản; tạo kỳ không chọn → bộ mới nhất có mẫu gợi ý của kiểu kỳ; bộ được chụp vào kỳ và chụp lại khi mở kỳ — sau đó sửa bộ gốc không ảnh hưởng kỳ); sửa hồ sơ luồng (mỗi bước: Nội bộ / Cấp trên thực hiện / Không áp dụng, quyền thực hiện, thời hạn); thêm người được đánh giá ở trang chi tiết kỳ (chọn tay hoặc theo đơn vị, có thể chỉ định hồ sơ luồng; bỏ trống = theo cấp quyết định). Đơn vị, tổ chức Đảng, khung tỷ trọng, cấp quyết định được **chụp** vào hồ sơ tại thời điểm thêm; hồ sơ luồng chọn theo cấp quyết định (đổi được từng người/hàng loạt, có lý do).
 - [ ] Xem bảng **Kiểm tra kẹt luồng**: mỗi bước Nội bộ/Cấp trên còn phía trước của mỗi hồ sơ phải có ít nhất một tài khoản đang hoạt động (không phải chủ hồ sơ) có quyền thực hiện bước trong phạm vi bao trùm hồ sơ (ví dụ Chi ủy cho "Chi bộ xác nhận", Văn phòng Đảng ủy cho "Quyết định", "Ghi nhận kết quả của cấp trên", "Công bố"). Sửa bằng cách gán vai trò hoặc sửa hồ sơ luồng. Bộ mẫu 09A: khung tỷ trọng của hồ sơ không có trong bộ cũng là cảnh báo (sửa ảnh chụp khung của người đó).

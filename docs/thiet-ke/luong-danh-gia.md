@@ -11,11 +11,14 @@
 | `B1_APPROVE` | Duyệt / trả lại danh mục sản phẩm | `evaluation.tasks.approve` | 01 | mọi chế độ (cần B1_REGISTER áp dụng) |
 | `B2_SELF_SCORE` | Tự chấm điểm, đề xuất mức | chủ hồ sơ (`evaluation.self`, cố định) | 02, 09A/09B, 09C, 9D | **chỉ Nội bộ** |
 | `B2_CELL_CONFIRM` | Chi bộ xác nhận / trả lại phiếu tự chấm | `evaluation.cell.confirm` | 09x "Xác nhận của Chi bộ" | mọi chế độ |
-| `B3A_COLLECTIVE` | Ghi nhận đề xuất của tập thể lãnh đạo (kết quả phiếu kín) | `evaluation.collective.record` | 11, 12, 13 | mọi chế độ |
+| `B3A_COLLECTIVE` | Ghi nhận đề xuất của tập thể lãnh đạo (kết quả phiếu kín) | `evaluation.collective.record` | 11, 12, 13, 07, 08 | mọi chế độ |
 | `B3B_APPRAISAL` | Thẩm định, đề xuất mức | `evaluation.appraise` | 10, 03, 19, 20 | mọi chế độ |
 | `B3C_DIRECTOR` | Nhận xét, đề xuất của cấp trực tiếp sử dụng (hoặc lãnh đạo đơn vị — ví dụ 3) | `evaluation.director.review` | 10 | mọi chế độ |
-| `B4_DECISION` | Ghi nhận quyết định mức xếp loại | `evaluation.decide` | 12, 13, 14, 15A/15B | Nội bộ / Cấp trên (**không** "Không áp dụng") |
+| `B4_DECISION` | Ghi nhận quyết định mức xếp loại (kèm đề xuất về công tác cán bộ — cột 13 Mẫu 14, tùy chọn) | `evaluation.decide` | 12, 13, 14, 15A/15B | Nội bộ / Cấp trên (**không** "Không áp dụng") |
 | `B5_PUBLISH` | Công bố, khóa hồ sơ | `evaluation.publish` | 16 | **chỉ Nội bộ** |
+
+Mẫu cá nhân áp dụng cho hồ sơ (nút xuất trên trang hồ sơ, phần nhập 09C/9D ở `B2_SELF_SCORE`) theo **bộ tiêu chí của kỳ**
+(`requiredForms`, mục 3.5) — không cố định theo bước.
 
 Thứ tự cố định: `B1_REGISTER → B1_APPROVE → B2_SELF_SCORE → B2_CELL_CONFIRM → B3A_COLLECTIVE → B3B_APPRAISAL → B3C_DIRECTOR → B4_DECISION → B5_PUBLISH`.
 
@@ -134,17 +137,43 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 - Kỳ `Draft` chọn một bộ `Published` (`period.manage`); bộ được **chụp nguyên** vào `EvaluationPeriod.CriteriaSnapshot` khi chọn và chụp lại khi mở kỳ. Kỳ đã mở không đổi được bộ (409); sửa/lưu trữ bộ gốc sau đó không ảnh hưởng kỳ. Mở kỳ khi chưa có bộ → 400.
 - Hồ sơ lưu điểm theo mã: `GeneralScores` `{ mã tiêu chí con: { score, notApplicable, reason } }`, `AxisScores` `{ mã trục: điểm }` (09B); nhiệm vụ có `AxisCode` thuộc bộ của kỳ. Tính điểm (`EvaluationScoring`) theo ảnh chụp của kỳ.
 - **Giải trình chênh lệch** (B-09): ở `B3B_APPRAISAL`, nếu |tự chấm − thẩm định| ≥ ngưỡng của bộ (hoặc làm đổi mức, nếu bộ bật) → bắt buộc nhập nội dung giải trình/căn cứ (thiếu → 400); lưu `AppraisalExplanation`, in ở Mẫu 10 (tag `APPRAISAL_EXPLANATION`). Kết quả thẩm định do cấp trên ghi nhận (External) chưa bắt buộc giải trình — chờ nghiệp vụ.
-- Trần tỷ lệ Xuất sắc (`branch-quotas`, Mẫu 15/15A/15B/16) theo tham số của bộ (tỷ lệ, mẫu số, làm tròn).
+- Trần tỷ lệ Xuất sắc (`branch-quotas`, báo cáo nội bộ kiểm soát tỷ lệ, số liệu Mẫu 15A/15B/16) theo tham số của bộ (tỷ lệ, mẫu số, làm tròn).
+- **Biểu mẫu cá nhân áp dụng** (task 18, đợt 8): `requiredForms` (mã `01`, `02`, `09C`, `9D`, `10`; mẫu tự chấm 09A/09B luôn theo mẫu
+  tự chấm của bộ), mục Mẫu 09C (`selfAssessmentSections`: mã, tiêu đề, câu dẫn, lưu ý, số ký tự tối đa 100–20.000, bắt buộc khi nộp),
+  tiêu đề/nội dung gợi ý của trục trên Mẫu 09B (`axes[].formTitle`, `formGuidance`) — sửa trên trang Bộ tiêu chí. Bộ mặc định 09B:
+  `09B, 09C, 9D, 10`; 09A: `01, 02, 09A, 09C, 9D, 10`.
+- **Tham số sau công bố** (task 20, đợt 8): `publishScores` (công khai kèm điểm, mặc định không), `improvementPlanRequiredGrades`
+  (mức bắt buộc lập Mẫu 17, mặc định Mức C, D), `improvementPlanAlertDays` (cảnh báo "kế hoạch cần lập" còn xét kỳ đã đóng trong số
+  ngày này, 1–3650, mặc định 90) — mục 6.
 
 ## 4. Bỏ phiếu kín (B3a, B4)
-- Hệ thống **không** tổ chức bỏ phiếu điện tử và **không lưu phiếu của từng người**. Chỉ ghi **kết quả kiểm phiếu** (số phiếu mỗi mức, phiếu không hợp lệ, số triệu tập/có mặt) do thư ký nhập, gắn với biên bản hội nghị (Mẫu 12/13).
-- Kiểm tra: tổng phiếu các mức + không hợp lệ ≤ số có mặt; không âm.
+- Hệ thống **không** tổ chức bỏ phiếu điện tử và **không lưu phiếu của từng người**. Chỉ ghi **kết quả kiểm phiếu** (số phiếu mỗi mức, "Chưa đánh giá, xếp loại", phiếu không hợp lệ, số triệu tập/có mặt) do thư ký nhập, gắn với biên bản hội nghị (Mẫu 12/13).
+- Kiểm tra: tổng phiếu các mức + chưa đánh giá + không hợp lệ ≤ số có mặt; không âm.
+- Biên bản lưu thêm (jsonb `Details`, đợt 8) Tổ kiểm phiếu (người đầu là Tổ trưởng) và số phiếu phát ra / thu về / hợp lệ / không
+  hợp lệ (phát ra ≤ có mặt; thu về ≤ phát ra; hợp lệ + không hợp lệ = thu về). Mẫu 13 xuất **theo từng biên bản** có kết quả kiểm
+  phiếu: cán bộ tách mục I (thẩm quyền BTVĐUTCT) / mục II (Đảng ủy/Chi ủy cơ sở) theo thẩm quyền ảnh chụp trên hồ sơ.
 - Audit log của các bảng kết quả kiểm phiếu chỉ ghi người nhập (thư ký) — không có thông tin người bỏ phiếu → đóng B-03 theo thiết kế.
 
 
+## 4a. Sau công bố (task 20, đợt 8)
+- **Công khai kết quả** (`GET /api/results`, trang Kết quả đánh giá, quyền `evaluation.results.view`): chỉ họ tên, chức danh, đơn vị,
+  mức chính thức (điểm khi bộ tiêu chí bật `publishScores`), ghi chú "đang xem xét kiến nghị"; phạm vi = phạm vi bản gán, chủ hồ sơ
+  luôn thấy kết quả của mình. Không lộ chi tiết hồ sơ, minh chứng, ý kiến các cấp (HD03 II.2).
+- **Kiến nghị** (`EvaluationAppeal`, `Submitted → UnderReview → Accepted | Rejected`): chủ hồ sơ gửi sau công bố (`evaluation.appeal.submit`,
+  không trùng khi đang xử lý, tệp gắn `EvaluationAppeal`); người có `evaluation.appeal.resolve` trong phạm vi nhận xem xét, trả lời
+  bắt buộc căn cứ. Chặn xung đột lợi ích: chủ hồ sơ/người gửi và người đã thực hiện bước mà kiến nghị liên quan tới. Chấp nhận →
+  "Mở lại hồ sơ theo kiến nghị" dùng `Reopen` hiện có (quyền `evaluation.reopen`), lý do dẫn chiếu kiến nghị trong lịch sử.
+- **Kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17)** (`ImprovementPlan`, một kế hoạch/hồ sơ, `Draft → Approved → Acknowledged → Closed`):
+  bắt buộc khi mức chính thức thuộc `improvementPlanRequiredGrades` của bộ tiêu chí; người có `evaluation.improvement.manage` (không
+  trên hồ sơ của mình) lập, sửa khi đang lập, duyệt, ghi kết quả từng mốc; chủ hồ sơ xác nhận cam kết; mốc 90 ngày ghi kết quả → đóng.
+  Xuất Word/PDF Mẫu 17 từ file mẫu dựng theo biểu mẫu gốc.
+- **Việc cần xử lý / chuông nhắc việc**: nhóm "Kiến nghị chờ xử lý", "Kế hoạch 30-60-90 ngày cần lập / duyệt" (chỉ hồ sơ của kỳ đang
+  mở/khóa dữ liệu và kỳ đã đóng trong `improvementPlanAlertDays` ngày gần nhất, tính từ lúc đóng kỳ), "Kế hoạch chờ bạn xác nhận";
+  `GET /api/notifications/summary` đếm tổng việc, bước quá hạn, sắp tới hạn (`Notifications:DueSoonDays`, mặc định 2).
+
 ## 5. API hành động (để frontend không tự suy luật)
 - `GET /api/evaluations/records/{id}/actions` → danh sách hành động người hiện tại được làm trên hồ sơ, mỗi mục: `{ action, step, label, requiresReason, reasonOptional, overdue, targetSteps? }`. Tính từ: trạng thái hồ sơ + **hồ sơ luồng của hồ sơ** (chế độ + quyền thực hiện của bước) + trạng thái kỳ + xung đột lợi ích + `IAuthorizationGuard`. Bước cấp trên thực hiện → hành động `RecordExternal` (bước ở trường `step`).
-- `POST /api/evaluations/records/{id}/external/{step}` (`evaluation.external.record`) → ghi nhận kết quả của bước do cấp trên thực hiện: `{ version, authorityName, documentNumber?, documentDate?, comment?, grade?, score?, attachmentId? }`.
+- `POST /api/evaluations/records/{id}/external/{step}` (`evaluation.external.record`) → ghi nhận kết quả của bước do cấp trên thực hiện: `{ version, authorityName, documentNumber?, documentDate?, comment?, grade?, score?, attachmentId?, cadreWorkProposal? }` (`cadreWorkProposal` — cột 13 Mẫu 14 — chỉ nhận ở `B4_DECISION`, bước khác → 400). Quyết định nội bộ (`decision`) nhận cùng trường.
 - Các API bước nội bộ (`tasks/approve`, `cell/confirm`, `collective`, `appraisal`, `director-review`, `decision`, `publish`, …) chỉ yêu cầu đăng nhập ở controller (quyền thực hiện cấu hình theo hồ sơ luồng); service kiểm tra chế độ bước, xung đột lợi ích và `IAuthorizationGuard.Ensure` với đúng mã quyền của bước (403 nêu tên quyền).
 - `GET /api/evaluations/work-queue?periodId=` → hồ sơ đang chờ **người hiện tại** xử lý, nhóm theo bước (theo hồ sơ luồng của từng hồ sơ; mục có `mode`, `workflowProfileName`).
 - Frontend hiển thị bước/nút **chỉ** theo các API trên; tiến trình hồ sơ (`progress[].mode`) hiện "Do cấp trên thực hiện — ghi nhận kết quả" / "Không áp dụng cho nhóm này".
@@ -154,6 +183,6 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 2. ~~B3c có áp dụng cho mọi đối tượng không?~~ → cấu hình theo hồ sơ luồng (task 15). Còn chờ xác nhận: ví dụ 3 "Trưởng Phòng đề xuất" là bước riêng thay B3c (như cấu hình mặc định) hay gộp vào B3a?
 3. ~~Ai nhập kết quả quyết định của BTV Đảng ủy Tổng công ty?~~ → người có `evaluation.external.record` (mặc định vai trò Văn phòng Đảng ủy). Còn chờ xác nhận: ai ghi nhận kết quả thẩm định (Ban TCĐU) và nhận xét (HĐTV) của cấp trên — cùng Văn phòng Đảng ủy hay đơn vị khác?
 4. Có chặn cứng theo thời hạn không (`enforceDeadlines`)?
-5. Kiến nghị/khiếu nại sau công bố: chỉ cần `Reopen` có lý do, hay cần luồng riêng?
+5. ~~Kiến nghị/khiếu nại sau công bố: chỉ cần `Reopen` có lý do, hay cần luồng riêng?~~ → luồng kiến nghị riêng + `Reopen` (mục 4a, task 20). Còn chờ xác nhận: hạn gửi/trả lời kiến nghị (HD03 không quy định), ai xử lý (mặc định Văn phòng Đảng ủy).
 6. Ba hồ sơ luồng dựng sẵn (mục 3.2) có đúng và đủ nhóm đối tượng của ATTECH không (ví dụ Phó Giám đốc — IV.3c dòng 4b; Kiểm soát viên — dòng 5; kiêm nhiệm hai cấp — mục 1.5)?
 7. Diện BTV ĐUTCT: B2 "Chi bộ xác nhận" và B3a "tập thể lãnh đạo Công ty" có làm trong hệ thống như cấu hình mặc định không?

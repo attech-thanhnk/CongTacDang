@@ -90,9 +90,10 @@ public sealed class Mau99Row
 3. `ExportReportController`: thêm route, **kiểm tra quyền qua `IReportAccessService`/`IAccessPolicy`** trước khi xuất, nhận `format` (`docx` | `pdf`).
 4. `WordFormCatalog`: thêm một dòng (mã `MAU_XX`, tên, `TemplateFileName`, `typeof(MauXXData)`) để biểu mẫu xuất hiện trên trang
    quản lý file mẫu và được kiểm tra tag khi tải lên.
-5. Kiểm thử: thêm mẫu vào `DocumentTemplateTests.AllForms` — test kiểm tra mọi Tag trong template đều có trong lớp dữ liệu hoặc là
-   tag thông tin đơn vị `ORG_*` (không thiếu, không thừa) và tài liệu xuất ra hợp lệ theo OpenXML; `OrgSettingsTemplateTests`
-   kiểm tra file gốc qua được bộ kiểm tra khi tải lên (không lỗi, không cảnh báo).
+5. Kiểm thử: thêm mẫu vào `DocumentTemplateTests.AllForms` (mẫu có đủ hai nhánh `if:`/`ifnot:` của mọi điều kiện) hoặc
+   `CollectiveFormsTemplateTests.Forms` (điều kiện chỉ cần một nhánh — Mẫu 07, 08, 12, 13, 16) — test kiểm tra mọi Tag trong
+   template đều có trong lớp dữ liệu hoặc là tag thông tin đơn vị `ORG_*` (không thiếu, không thừa) và tài liệu xuất ra hợp lệ theo
+   OpenXML; `OrgSettingsTemplateTests` kiểm tra file gốc qua được bộ kiểm tra khi tải lên (không lỗi, không cảnh báo).
 
 ## 5. Xuất PDF
 
@@ -108,8 +109,8 @@ buộc**: mẫu nào cần thì đặt Content Control tương ứng. Cài đặ
 
 | Tag | Giá trị | Đang dùng ở file gốc |
 |---|---|---|
-| `ORG_PARTY_NAME` | Tên Đảng bộ (ghi đúng như in) | Mẫu 09A, 09B, 09C, 9D — dòng "ĐẢNG BỘ …" tiêu đề trái (Mẫu 11, 13 dùng tên Đảng bộ làm dòng tổ chức lập phiếu khi xuất toàn Đảng bộ, qua `PARTY_CELL`) |
-| `ORG_SUPERIOR_PARTY_NAME` | Tên tổ chức Đảng cấp trên (ghi đúng như in) | Mẫu 11, 13 — dòng trên cùng tiêu đề trái |
+| `ORG_PARTY_NAME` | Tên Đảng bộ (ghi đúng như in) | Mẫu 09A, 09B, 09C, 9D — dòng "ĐẢNG BỘ …" tiêu đề trái (Mẫu 11 dùng tên Đảng bộ làm dòng tổ chức lập phiếu khi xuất toàn Đảng bộ, qua `PARTY_CELL`) |
+| `ORG_SUPERIOR_PARTY_NAME` | Tên tổ chức Đảng cấp trên (ghi đúng như in) | Mẫu 11 — dòng trên cùng tiêu đề trái (Mẫu 07, 08, 12, 13, 16 dùng `PARTY_PARENT`/`PARTY_ORG` dựng từ cây tổ chức Đảng và cài đặt đơn vị) |
 | `ORG_COMPANY_NAME` / `ORG_COMPANY_NAME_UPPER` | Tên công ty / chữ in hoa | Mẫu 01, 02 — dòng cơ quan quản lý (`_UPPER`) |
 | `ORG_PARENT_COMPANY_NAME` / `ORG_PARENT_COMPANY_NAME_UPPER` | Tên đơn vị chủ quản / chữ in hoa | Mẫu 10 — dòng cơ quan cấp trên (`_UPPER`) |
 | `ORG_SHORT_NAME` | Tên viết tắt | — |
@@ -132,7 +133,7 @@ dưới đây là **bắt buộc** (thiếu → cảnh báo khi tải lên); kh�
 | `MAU_02` Phiếu tự đánh giá | `DEPARTMENT`, `QUARTER`, `YEAR`, `FULL_NAME`, `POSITION` | `repeat:TASKS`: `T_STT`, `T_NAME`, `T_WEIGHT`, `T_A`, `T_B`, `T_C`, `T_D`, `T_RESULT_PCT`, `T_SCORE`, `T_EVIDENCE`, `if:T_IS_EXCEED` / `ifnot:T_IS_EXCEED` — `T_A`…`T_D` là tỷ lệ đạt từng tiêu chí (%), `T_RESULT_PCT` là kết quả theo **khung tỷ trọng của hồ sơ**; `T_SCORE` in theo số chữ số làm tròn "điểm sản phẩm" của bộ tiêu chí. Dòng lấy từ nhiệm vụ đã đăng ký (mẫu 09A); kỳ dùng mẫu 09B không đăng ký nhiệm vụ nên bảng trống |
 | `MAU_10` Phiếu thẩm định | `QUARTER`, `YEAR`, `FULL_NAME`, `POSITION`, `DEPARTMENT`, `GENERAL_SELF_SCORE`, `GENERAL_APPRAISAL_SCORE`, `GENERAL_DIFF`, `TASKS_SELF_SCORE`, `TASKS_APPRAISAL_SCORE`, `TASKS_DIFF`, `TOTAL_SELF_SCORE`, `TOTAL_APPRAISAL_SCORE`, `TOTAL_DIFF`, `SUPERVISOR_COMMENT`, `APPRAISAL_COMMENT`, `APPRAISAL_EXPLANATION`, `PROPOSED_GRADE` — `GENERAL_SELF_SCORE` là tổng tiêu chí chung theo bộ (tính cả K/AD theo quy tắc của bộ), `TASKS_SELF_SCORE` là tổng nhiệm vụ (09A) hoặc tổng điểm trục (09B); `APPRAISAL_EXPLANATION` là nội dung giải trình/căn cứ bắt buộc khi chênh lệch tự chấm – thẩm định đạt ngưỡng của bộ; `GENERAL_/TASKS_APPRAISAL_SCORE`, `GENERAL_/TASKS_DIFF` chưa có dữ liệu (hồ sơ chỉ lưu tổng điểm thẩm định) → giữ chữ mặc định | — |
 | `MAU_11` Phiếu đánh giá, xếp loại (bỏ phiếu) | `PARTY_CELL`, `PERIOD_QUARTER_YEAR` | `repeat:RECORDS`: `R_STT`, `R_NAME`, `R_POSITION_DEPT`, `R_GENERAL_SCORE`, `R_TASKS_SCORE`, `R_SELF_GRADE` |
-| `MAU_13` Biên bản kiểm phiếu | `PARTY_CELL`, `PERIOD_QUARTER_YEAR`, `TOTAL_VOTERS`, `INVALID_BALLOTS` | `repeat:RECORDS`: `V_STT`, `V_NAME`, `V_POSITION_DEPT`, `V_EXC`, `V_GOOD`, `V_SAT`, `V_UNSAT`, `V_PCT` |
+| `MAU_13` Biên bản kiểm phiếu (theo một biên bản hội nghị) | `PARTY_PARENT`, `PARTY_ORG`, `MEETING_NAME`, `QUARTER_YEAR` (dòng tiêu đề "quý ……../….."), `PERIOD_TEXT`, `WORKING_RULES`, `ORGANIZER`, `PURPOSE`, `VOTE_PURPOSE`, `START_TIME`, `START_DATE`, `END_TIME`, `LOCATION`, `INVITED`, `PRESENT`, `ABSENT`, `CHAIR_NAME`, `CHAIR_TITLE`, `SECRETARY_NAME`, `SECRETARY_TITLE`, `REPORTING_UNIT`, `BALLOTS_ISSUED`, `BALLOTS_COLLECTED`, `BALLOTS_VALID`, `BALLOTS_INVALID`, `ARCHIVE_UNIT`, `COUNTER_HEAD_SIGN`, `CHAIR_SIGN`, `ifnot:HAS_ATTENDEES`, `ifnot:HAS_COUNTERS` (giữ 3 dòng Tổ kiểm phiếu của biểu mẫu), `ifnot:HAS_SUPERIOR_ROWS` / `ifnot:HAS_BASE_ROWS` (giữ dòng trống của mục I/II) — phần chung với Mẫu 12 cùng quy tắc; số phiếu không hợp lệ chưa ghi trên biên bản → số chung của các dòng kiểm phiếu | `repeat:ATTENDEES` (mục I.3.2): `A_STT`, `A_NAME`, `A_TITLE`; `repeat:COUNTERS` (Tổ kiểm phiếu, người đầu là Tổ trưởng): `C_STT`, `C_NAME`, `C_TITLE`, `C_ROLE`; `repeat:SUPERIOR_ROWS` (mục I — thẩm quyền BTVĐUTCT) và `repeat:BASE_ROWS` (mục II — thẩm quyền Đảng ủy/Chi ủy cơ sở), cùng tag: `R_STT`, `R_NAME`, `R_POSITION`, `R_EXC`, `R_GOOD`, `R_SAT`, `R_UNSAT`, `R_NONE` (cột 8 "Chưa đánh giá, xếp loại"), `R_NOTE` — mục theo thẩm quyền ảnh chụp trên hồ sơ, thứ tự theo mã chức danh rồi họ tên |
 | `MAU_09A` Phiếu tự chấm (theo sản phẩm Mẫu 01/02) | `PARTY_CELL`, `QUARTER`, `YEAR`, `FULL_NAME`, `PARTY_POSITION`, `ADMIN_POSITION`, `MASS_POSITION`, `DEPARTMENT`, `GENERAL_SCORE`, `TASKS_SCORE`, `TOTAL_SCORE`, `EXCEED_COUNT`, `TASK_COUNT`, `EXCEED_PERCENT`, `CHECK_EXCELLENT`, `CHECK_GOOD`, `CHECK_DONE`, `CHECK_FAILED` — `CHECK_*` là ô ☒/☐ của mức tự đề xuất; `EXCEED_PERCENT` là số nguyên (ký hiệu % in sẵn) | `repeat:GROUPS` (dòng nhóm): `G_NO`, `G_NAME`, `G_MAX`, lồng `repeat:ITEMS` (dòng tiêu chí con): `I_CODE`, `I_TEXT`, `I_MET`, `I_NOT_MET`, `I_MAX`, `I_SCORE`, `I_NOTE` |
 | `MAU_09B` Phiếu tự chấm (theo trục, Quý III/2026) | `PARTY_CELL`, `QUARTER`, `YEAR`, `FULL_NAME`, `POSITIONS`, `DEPARTMENT`, `CELL_NAME`, `GENERAL_SCORE`, `TASKS_SCORE`, `TOTAL_SCORE`, `SELF_GRADE` | `repeat:GROUPS` / `repeat:ITEMS` như Mẫu 09A; `repeat:AXES`: `A_NO`, `A_TITLE`, `A_GUIDANCE`, `A_TARGET`, `A_MAX`, `A_SCORE`, `A_RESULT`, `A_NOTE` — `A_TITLE`/`A_GUIDANCE` lấy từ `formTitle`/`formGuidance` của trục trong bộ tiêu chí; `A_TARGET`/`A_RESULT`/`A_NOTE` là phần tự luận theo trục chủ hồ sơ nhập khi tự chấm |
 | `MAU_09C` Bản tự đánh giá, xếp loại của cá nhân | `PARTY_CELL`, `QUARTER`, `YEAR`, `FULL_NAME`, `PARTY_POSITION`, `ADMIN_POSITION`, `MASS_POSITION`, `DEPARTMENT`, `GENERAL_SCORE`, `TASKS_SCORE`, `TOTAL_SCORE`, `SELF_GRADE` | `repeat:SECTIONS` (khối đoạn văn, mỗi mục khai báo trong bộ tiêu chí): `S_TITLE`, `S_INTRO`, `S_CONTENT`, `S_NOTE` — mục chưa nhập nội dung giữ dòng chấm của template |
@@ -147,30 +148,46 @@ Mẫu 09A/09B/09C/9D: tiêu đề trái "ĐẢNG BỘ …" dùng `ORG_PARTY_NAME
 hoa); điểm để trống (giữ dòng chấm) khi hồ sơ chưa nộp phiếu tự chấm. Template dựng từ file biểu mẫu gốc
 `docs/2.03-HD.TVDU (HD DGXL CAN BO QUY III-2026) (Bieu mau).docx` (cắt đúng phần của mẫu, giữ nguyên bố cục, chỉ thêm Content Control).
 
-Template Mẫu 07, 08, 12, 16 được dựng **từ đúng biểu mẫu gốc** `docs/2.03-HD.TVDU (HD DGXL CAN BO QUY III-2026) (Bieu mau).docx`:
+Template Mẫu 07, 08, 12, 13, 16 được dựng **từ đúng biểu mẫu gốc** `docs/2.03-HD.TVDU (HD DGXL CAN BO QUY III-2026) (Bieu mau).docx`:
 cắt nguyên phần thân của mẫu (bảng tiêu đề, đoạn văn, bảng, chữ ký, khổ giấy của section), gắn Content Control bao đúng đoạn chữ
-mặc định ("…", "……") trong đoạn gốc (giữ định dạng), bỏ màu đỏ đánh dấu soạn thảo. Mẫu 14, 15A, 15B là bảng tính (HD03 V.1:
-"lập trên file excel (trừ các Mẫu: 07, 09C, 12, 13, 16)") dựng bằng ClosedXML theo đúng cột/tiêu đề biểu mẫu (PDF tr.72–76).
+mặc định ("…", "……") trong đoạn gốc (giữ định dạng), bỏ màu đỏ đánh dấu soạn thảo. Mẫu 13 (đợt 8) dựng bằng script
+`build_mau13.py` (ghi trong `docs/remediation/reports/wave8-integration.md`): so khớp nguyên văn, sai là dừng; chạy lại cho ra cùng
+template. Mẫu 08 (bản Excel), 14, 15A, 15B là bảng tính (HD03 V.1: "lập trên file excel (trừ các Mẫu: 07, 09C, 12, 13, 16)") dựng
+bằng ClosedXML theo đúng cột/tiêu đề biểu mẫu (PDF tr.48–49, 72–76).
 
-### Mẫu nào xuất ở đâu (task 19)
+### Toàn bộ biểu mẫu HD03: nơi nhập → nơi xuất → định dạng
 
-| Mẫu HD03 | Định dạng | Endpoint | Trang | Quyền / phạm vi |
-|---|---|---|---|---|
-| 07 — Báo cáo tự đánh giá của tập thể | Word/PDF | `GET /api/reports/docx/mau-07/{collectiveRecordId}` | Tập thể & Hội nghị (từng hồ sơ M07) | `evaluation.read` hoặc `collective.manage` trên tổ chức của hồ sơ |
-| 08 — Tổng hợp kết quả nhiệm vụ của cơ quan, đơn vị | Word/PDF | `GET /api/reports/docx/mau-08/{collectiveRecordId}` | Tập thể & Hội nghị (từng hồ sơ M08) | như Mẫu 07 |
-| 11 — Phiếu đánh giá, xếp loại (chưa áp dụng Q3/2026) | Word/PDF | `GET /api/reports/docx/mau-11?periodId&branchId` | Báo cáo | `meeting.read` hoặc `report.export` (phạm vi tổ chức Đảng) |
-| 12 — Biên bản hội nghị (B3a, B4) | Word/PDF | `GET /api/reports/docx/mau-12/{meetingId}` | Tập thể & Hội nghị (từng biên bản M12) | `meeting.read`/`meeting.manage` trên đơn vị của biên bản |
-| 13 — Biên bản kiểm phiếu | Word/PDF | `GET /api/reports/docx/mau-13?periodId&branchId` | Báo cáo | như Mẫu 11 |
-| 14 — Danh sách đánh giá và đề xuất xếp loại | Excel/PDF | `GET /api/reports/form-14?periodId&branchId` | Báo cáo | `report.export` (phạm vi tổ chức Đảng) |
-| 15A — Tổng hợp (đối tượng BTVĐUTCT quyết định, M1–M16) | Excel/PDF | `GET /api/reports/form-15a?periodId&branchId` | Báo cáo | `report.export` |
-| 15B — Tổng hợp (đối tượng Đảng ủy/Chi ủy cơ sở quyết định, M17–M26) | Excel/PDF | `GET /api/reports/form-15b?periodId&branchId` | Báo cáo | `report.export` |
-| 16 — Báo cáo kết quả đánh giá, xếp loại | Word/PDF | `GET /api/reports/docx/mau-16?periodId&branchId`; bản nháp `GET/PUT /api/reports/mau-16/draft?periodId&branchId` | Báo cáo ("Soạn báo cáo") | `report.export` |
-| Báo cáo nội bộ — Danh sách cán bộ | Excel | `GET /api/reports/cadres` | Báo cáo (nhóm nội bộ) | `report.export` (lọc theo phạm vi) |
-| Báo cáo nội bộ — Kiểm soát tỷ lệ Hoàn thành xuất sắc | Excel/PDF | `GET /api/reports/internal/excellent-quota?periodId&branchId` | Báo cáo (nhóm nội bộ) | `report.export` |
+Cột "Q3/2026" theo `docs/nghiep-vu/hd03-trich-xuat.md` mục 7–8. Mẫu cá nhân áp dụng cho hồ sơ do **bộ tiêu chí của kỳ** quyết định
+(`requiredForms`, sửa ở trang Bộ tiêu chí). PDF: thêm `?format=pdf` vào endpoint (máy chủ chuyển bằng LibreOffice).
 
-Đã bỏ: `GET /api/reports/form-15` (thống kê/kiểm soát trần — không có trong HD03, nay là báo cáo nội bộ ở trên) và
-`GET /api/reports/form-16` (Excel — Mẫu 16 HD03 là báo cáo Word) → 404. Không truyền `branchId`: phạm vi Toàn công ty → toàn
-Đảng bộ; phạm vi đúng một tổ chức Đảng → tổ chức đó; nhiều tổ chức → 400 yêu cầu chọn.
+| Mẫu | Q3/2026 | Nơi nhập dữ liệu | Nơi xuất (trang → endpoint) | Định dạng | Quyền / phạm vi |
+|---|---|---|---|---|---|
+| 01 — Phiếu giao / đăng ký sản phẩm | Chưa áp dụng (bộ 09A từ 2027) | Hồ sơ cá nhân — bước B1 (đăng ký nhiệm vụ) | Hồ sơ → "Biểu mẫu của hồ sơ": `GET /api/reports/docx/record/{recordId}/01` | Word/PDF | xem hồ sơ (`evaluation.read` trong phạm vi, chủ hồ sơ) |
+| 02 — Phiếu tự đánh giá sản phẩm | Chưa áp dụng (bộ 09A) | Hồ sơ cá nhân — bước B2 (tự chấm nhiệm vụ) | Hồ sơ: `…/record/{recordId}/02` | Word/PDF | như Mẫu 01 |
+| 03, 04, 05, 06 | Chưa áp dụng | — (chưa số hóa) | — | — | — |
+| 07 — Báo cáo tự đánh giá của tập thể | Áp dụng | Tập thể & Hội nghị → hồ sơ tập thể M07 (mục I.1–I.4, II–VI, điểm B) | Tập thể & Hội nghị (từng hồ sơ): `GET /api/reports/docx/mau-07/{collectiveRecordId}` | Word/PDF | `evaluation.read` hoặc `collective.manage` trên tổ chức của hồ sơ |
+| 08 — Tổng hợp kết quả nhiệm vụ của cơ quan, đơn vị | Áp dụng | Tập thể & Hội nghị → hồ sơ tập thể M08 (dòng nhiệm vụ theo nhóm nội dung 1–13) | Tập thể & Hội nghị: **Excel** `GET /api/reports/form-08/{collectiveRecordId}` (HD03 V.1); Word `GET /api/reports/docx/mau-08/{collectiveRecordId}` | Excel/Word/PDF | như Mẫu 07 |
+| 09A — Phiếu tự chấm (theo sản phẩm) | Chưa áp dụng (thay bằng 09B) | Hồ sơ — bước B2 (phiếu tự chấm, bộ 09A) | Hồ sơ: `…/record/{recordId}/09A` | Word/PDF | như Mẫu 01 |
+| 09B — Phiếu tự chấm (theo trục) | **Áp dụng** | Hồ sơ — bước B2 (điểm 17 tiêu chí con, 6 trục, tự luận theo trục) | Hồ sơ: `…/record/{recordId}/09B` | Word/PDF | như Mẫu 01 |
+| 09C — Bản tự đánh giá của cá nhân | Áp dụng | Hồ sơ — bước B2 (mục khai báo trong bộ tiêu chí) | Hồ sơ: `…/record/{recordId}/09C` | Word/PDF | như Mẫu 01 |
+| 9D — Phụ lục kết quả nhiệm vụ | Áp dụng | Hồ sơ — bước B2 (dòng theo trục) | Hồ sơ: `…/record/{recordId}/9D` | Word/PDF | như Mẫu 01 |
+| 10 — Phiếu thẩm định | Không nêu (bộ mặc định có — chờ xác nhận) | Hồ sơ — bước B3b (thẩm định, giải trình chênh lệch) | Hồ sơ: `…/record/{recordId}/10` | Word/PDF | như Mẫu 01 |
+| 11 — Phiếu đánh giá, xếp loại (phiếu kín) | Chưa áp dụng | — (phiếu trắng theo danh sách hồ sơ) | Báo cáo: `GET /api/reports/docx/mau-11?periodId&branchId` | Word/PDF | `meeting.read` hoặc `report.export` (phạm vi tổ chức Đảng) |
+| 12 — Biên bản hội nghị | Áp dụng | Tập thể & Hội nghị → biên bản M12 (thời gian, thành phần, mục 3.2, chủ trì/thư ký, nội dung) | Tập thể & Hội nghị (từng biên bản M12): `GET /api/reports/docx/mau-12/{meetingId}` | Word/PDF | `meeting.read`/`meeting.manage` trên đơn vị của biên bản |
+| 13 — Biên bản kiểm phiếu | Áp dụng | Tập thể & Hội nghị → biên bản (Tổ kiểm phiếu, số phiếu phát ra/thu về/hợp lệ/không hợp lệ) + kết quả kiểm phiếu từng hồ sơ (lập biên bản M13 hoặc ghi khi ghi nhận B3a/B4, gồm cột "Chưa đánh giá, xếp loại") | Tập thể & Hội nghị (biên bản đã có kết quả kiểm phiếu): `GET /api/reports/docx/mau-13/{meetingId}` — chưa có kết quả → 400 | Word/PDF | như Mẫu 12 |
+| 14 — Danh sách đánh giá và đề xuất xếp loại | Áp dụng | Dữ liệu các bước của hồ sơ; cột 13 "Đề xuất nội dung liên quan về công tác cán bộ" nhập ở bước B4 (quyết định nội bộ hoặc ghi nhận cấp trên) | Báo cáo: `GET /api/reports/form-14?periodId&branchId` (mỗi cấp quyết định một trang tính) | Excel/PDF | `report.export` (phạm vi tổ chức Đảng) |
+| 15A, 15B — Tổng hợp theo mã chức danh | Áp dụng | Tự động từ mức của hồ sơ và mã chức danh | Báo cáo: `GET /api/reports/form-15a`, `form-15b` `?periodId&branchId` | Excel/PDF | `report.export` |
+| 16 — Báo cáo kết quả đánh giá, xếp loại | Áp dụng | Số liệu tự động; phần nhập tay lưu nháp theo kỳ + tổ chức Đảng (`GET/PUT /api/reports/mau-16/draft`) | Báo cáo ("Soạn báo cáo"): `GET /api/reports/docx/mau-16?periodId&branchId` | Word/PDF | `report.export` |
+| 17 — Kế hoạch hỗ trợ, khắc phục 30-60-90 ngày | Không nêu (bắt buộc theo mức trong bộ tiêu chí, mặc định C, D) | Hồ sơ đã công bố → khối "Kế hoạch 30-60-90 ngày" (lập, duyệt, xác nhận, kết quả mốc) | Hồ sơ: `GET /api/improvement-plans/{id}/mau-17` | Word/PDF | `evaluation.improvement.manage` hoặc xem hồ sơ |
+| 18, 19, 20 | Không nêu | — (chưa số hóa) | — | — | — |
+| Hồ sơ kiến nghị (V.1 "hồ sơ giải quyết khiếu nại, kiến nghị") | — | Hồ sơ đã công bố → khối "Kiến nghị" (gửi, xem xét, trả lời có căn cứ, tệp gắn) | Trên trang hồ sơ (không có biểu mẫu HD03 riêng) | — | chủ hồ sơ / `evaluation.appeal.resolve` |
+| Báo cáo nội bộ — Danh sách cán bộ | — | Danh mục cán bộ | Báo cáo (nhóm nội bộ): `GET /api/reports/cadres` | Excel | `report.export` (lọc theo phạm vi) |
+| Báo cáo nội bộ — Kiểm soát tỷ lệ Hoàn thành xuất sắc | — | Tự động | Báo cáo (nhóm nội bộ): `GET /api/reports/internal/excellent-quota?periodId&branchId` | Excel/PDF | `report.export` |
+
+Đã bỏ: `GET /api/reports/form-15` (thống kê/kiểm soát trần — không có trong HD03, nay là báo cáo nội bộ ở trên),
+`GET /api/reports/form-16` (Excel — Mẫu 16 HD03 là báo cáo Word) và `GET /api/reports/docx/mau-13?periodId&branchId` (Mẫu 13 nay
+xuất theo từng biên bản) → 404. Báo cáo theo kỳ không truyền `branchId`: phạm vi Toàn công ty → toàn Đảng bộ; phạm vi đúng một tổ
+chức Đảng → tổ chức đó; nhiều tổ chức → 400 yêu cầu chọn.
 
 Số liệu Mẫu 15A/15B/16: mỗi cán bộ thống kê một lần theo mã chức danh nhỏ nhất đang giữ (HD03 tr.74); mức dùng để đếm là mức
 quyết định, chưa có thì mức đề xuất gần nhất (cấp trực tiếp sử dụng → thẩm định → tập thể lãnh đạo), không tính mức tự đề
@@ -220,9 +237,12 @@ ghi log lỗi và xuất theo file gốc.
 
 ## 8. Biểu mẫu cá nhân theo bộ tiêu chí của kỳ (Mẫu 09A, 09B, 09C, 9D — task 18)
 
-- **Mẫu áp dụng** khai báo trong nội dung bộ tiêu chí: `requiredForms` (mã `01`, `02`, `09A`, `09B`, `09C`, `9D`, `10`). Mẫu tự chấm
-  (09A/09B) luôn theo `selfScoreForm` của bộ; mã 09A/09B ghi trong `requiredForms` được bỏ qua. Bộ mặc định: 09B (Quý III/2026) →
-  `09B, 09C, 9D, 10`; 09A (từ 2027) → `01, 02, 09A, 09C, 9D, 10`.
+- **Mẫu áp dụng** khai báo trong nội dung bộ tiêu chí: `requiredForms` (mã `01`, `02`, `09A`, `09B`, `09C`, `9D`, `10`) — sửa trên
+  trang **Bộ tiêu chí** (bản nháp) ở khối "Biểu mẫu cá nhân áp dụng". Mẫu tự chấm (09A/09B) luôn theo `selfScoreForm` của bộ; mã
+  09A/09B ghi trong `requiredForms` được bỏ qua. Bộ mặc định: 09B (Quý III/2026) → `09B, 09C, 9D, 10`; 09A (từ 2027) →
+  `01, 02, 09A, 09C, 9D, 10` (Mẫu 10 giữ theo quyết định task 18 — văn bản không nói rõ, chờ nghiệp vụ xác nhận).
+- **Tiêu đề và nội dung gợi ý trục** trên Mẫu 09B (`axes[].formTitle`, `axes[].formGuidance`) và **mục Mẫu 09C** sửa cùng trang Bộ
+  tiêu chí.
 - **Mục Mẫu 09C** khai báo trong `selfAssessmentSections` (mã, tiêu đề, câu dẫn, lưu ý, số ký tự tối đa, bắt buộc); nội dung hồ sơ
   lưu jsonb theo mã mục (`evaluation_records.SelfAssessment`). **Mẫu 9D** lưu các dòng theo mã trục (`TaskResults`); phần tự luận
   theo trục của 09B lưu ở `AxisNotes`. Cả ba nhập cùng phiếu tự chấm (bước `B2_SELF_SCORE`); trường không gửi = giữ nội dung đã lưu.
