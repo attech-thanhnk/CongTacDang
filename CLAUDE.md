@@ -23,7 +23,7 @@ backend/tests/
   CongTacDang.UnitTests/
   CongTacDang.IntegrationTests/  API thật trên PostgreSQL (CSDL tạm ctd_it_*)
 frontend/
-  app/          Trang: work-queue, evaluations, periods, collective-evaluations, attachments, reports, forms,
+  app/          Trang: work-queue, evaluations, periods, collective-evaluations, results, reports,
                 catalog, criteria, admin (users, roles, settings, templates), audit, login, change-password
   components/   admin, evaluations, attachments, layout, common
   services/     apiClient.ts + service theo module
@@ -59,6 +59,7 @@ docker compose -f docker/docker-compose.yml config
 - **Tổ chức:** đơn vị chính quyền (`AdministrativeDepartment`) và tổ chức Đảng (`PartyCell`) là hai cây nhiều cấp (`ParentId`, `Path`, loại đơn vị trong `org_unit_types`); chức vụ là danh mục `positions` (mã thống kê M1–M26), cán bộ giữ nhiều chức vụ qua `member_positions` (kiêm nhiệm); thẩm quyền phê duyệt (CoSo/CapTren) suy ra từ chức vụ, ghi đè được có lý do. Không dùng enum chức vụ.
 - **Luồng đánh giá:** bước và trạng thái theo `docs/thiet-ke/luong-danh-gia.md`. Cấu hình kỳ (`EvaluationPeriod.Settings`) gồm các **hồ sơ luồng** theo nhóm đối tượng: mỗi bước `Internal` (kèm mã quyền thực hiện) / `External` (cấp trên thực hiện, ghi nhận kết quả) / `Off`; mỗi hồ sơ đánh giá gắn một hồ sơ luồng. Kiểm tra kẹt luồng (`readiness`) trước khi mở kỳ.
 - **Chấm điểm:** nội dung chấm (nhóm/tiêu chí con, trục, khung tỷ trọng, ngưỡng mức xếp loại, làm tròn, trần Xuất sắc, ngưỡng giải trình) nằm trong **bộ tiêu chí** (`criteria_sets`, có phiên bản, bản Published bất biến); kỳ chọn một bộ và chụp lại khi mở kỳ. Điểm hồ sơ lưu theo mã tiêu chí/trục (jsonb). Chỉ **cấu trúc** công thức A/B/C/D nằm trong code (`EvaluationScoring`) — không đổi khi chưa được nghiệp vụ xác nhận.
+- **Biểu mẫu:** mẫu áp dụng cho hồ sơ do bộ tiêu chí quyết định (`requiredForms`); template Word dựng từ biểu mẫu gốc `docs/2.03-HD.TVDU … (Bieu mau).docx`, danh mục tag trong `docs/bieu-mau.md` (bảng Mẫu HD03 → nơi nhập → nơi xuất). Sau công bố: công khai kết quả (chỉ mức, theo phạm vi), kiến nghị, kế hoạch Mẫu 17.
 - **Thông tin đơn vị** (tên Đảng bộ, công ty, tên viết tắt, địa danh) lấy từ cài đặt đơn vị; **file mẫu Word** quản lý phiên bản qua giao diện (kiểm tra tag khi tải lên). Không ghi cứng tên đơn vị trong code.
 - **CSDL:** migration là nguồn schema duy nhất; entity mới cấu hình trong `Infrastructure/Data/Configurations/`.
 - Entity hỗ trợ xóa mềm (`ISoftDeletable`) và audit (`IAuditableEntity`); audit log được ghi tự động trong `CongTacDangDbContext.SaveChangesAsync`.

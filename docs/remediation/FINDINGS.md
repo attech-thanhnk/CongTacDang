@@ -37,6 +37,10 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 - Chạy thử app thật (backend + `next start` qua proxy, CSDL tạm trên 159, dữ liệu mẫu): 25/26 kịch bản API đạt ngay, kịch bản còn lại do script thiếu `periodId`, chạy lại đạt. Đã kiểm: bắt đổi mật khẩu phía máy chủ, `grants`, tạo tài khoản → đăng nhập, gán vai trò có hiệu lực ngay, chống tự khóa, khóa → 401 ngay, cán bộ thường bị chặn danh sách tài khoản, import, và work-queue của 8 tài khoản mẫu đúng vai (kể cả chặn tự duyệt hồ sơ của mình).
 - Sau khi triển khai bản này mọi người phải đăng nhập lại (JWT mới có `sstamp`).
 
+**Đợt 8 (2026-09-29)** — task 18 (09B/09C/9D), task 19 (07/08/12/14/15A/15B/16, trang Báo cáo), task 20 (công khai kết quả, kiến nghị, Mẫu 17, nhắc việc) và tích hợp đã merge (`a0c8a71`); bỏ trang `/forms` và `/attachments`. Người điều phối kiểm lại: build 0 lỗi 0 warning, unit 306/307 (1 skip PDF), integration 100/100 trên `192.168.22.159`, `tsc` pass; khôi phục 2 kiểm tra 404 báo cáo cũ mà agent tích hợp đã bỏ để khớp grep. Migration gộp lại `InitialCreate` mới → **CSDL cũ phải tạo lại**. Template mới dựng từ biểu mẫu gốc; Mẫu 13 làm lại đúng mẫu (mục I/II, cột "Chưa đánh giá"); Mẫu 08 thêm bản Excel.
+- Cần nghiệp vụ xác nhận: 09A/09B/9D có phải nộp bản Excel (HD03 V.1) không; Mẫu 10 có áp dụng Q3/2026; 09C bắt buộc nhập, giới hạn ~6.000 ký tự ≈ 02 trang A4; cách đếm 15A/15B/16 khi kỳ chưa kết thúc; hạn và người xử lý kiến nghị; người lập/duyệt Mẫu 17, mức bắt buộc, cửa sổ 90 ngày; công khai điểm hay chỉ mức (xem `reports/wave8-integration.md`).
+- Chưa làm (⚪): ngày sinh cán bộ trên 09A/09B/09C; tự điền "Căn cứ Hướng dẫn số …"; Mẫu 03–06, 18–20 (chờ nghiệp vụ có áp dụng không).
+
 **Gỡ import (2026-09-29)** — theo quyết định chủ dự án, **bỏ hẳn chức năng nhập từ Excel** (trang `/imports`, API `/api/imports`, khung import, 7 loại import, quyền `system.import`, `proxyTimeout` 5 phút). Go-live khai báo qua giao diện: Danh mục → Tài khoản → Vai trò & phạm vi → Kỳ đánh giá (`docs/deployment.md`). Kịch bản go-live, cây đơn vị, W10, G4 viết lại dựng dữ liệu bằng API thường. Kiểm lại: build 0 warning, unit 244/245 (1 skip PDF), integration 88/88, `tsc` pass, grep sạch. T-64, T-73 (phần import): đóng theo quyết định bỏ chức năng. Code cũ còn trong lịch sử git nếu cần làm lại.
 
 **Đợt 7 (2026-09-29)** — task 16 (bộ tiêu chí theo phiên bản), task 17 (cài đặt đơn vị, quản lý file mẫu Word) và tích hợp đã merge (`f62a116`). Người điều phối kiểm lại: build 0 lỗi 0 warning, unit 273/274 (1 skip PDF), integration 98/98 trên `192.168.22.159`, `tsc` pass, grep không còn điểm/trục/khung cứng, frontend không còn tên đơn vị cứng. Migration gộp lại `InitialCreate` mới → **CSDL cũ phải tạo lại**. Tiêu chí chung nay theo HD03 (3 nhóm, 17 tiêu chí con, Đảm bảo/Không đảm bảo/K/AD); ví dụ TC-1 ra đúng 67,6 / 97,6 như văn bản (trước ra 67,47 do làm tròn cứng).
@@ -131,14 +135,14 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-79 | 🟡 | Form tự chấm/thẩm định dựng cứng 6 ô tiêu chí, 6 trục | `components/evaluations/RecordActionPanel.tsx` | 16 | done |
 | T-80 | 🟡 | Tên đơn vị ghi cứng trong code xuất biểu mẫu và tên file ("ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", "ATTECH") | `ReportService`, `Documents/**` | 17 | done |
 | T-81 | 🟡 | Không thay được file mẫu Word qua giao diện, không có phiên bản, không kiểm tra tag khi thay | `WordTemplateStore`, `Templates/Word` | 17 | done |
-| T-82 | 🔴 | Hồ sơ không có chỗ nhập Mẫu 09C (bản tự đánh giá tự luận) và 9D (phụ lục kết quả theo trục) — bắt buộc Quý III/2026 | `EvaluationRecord`, form tự chấm | 18 | open |
-| T-83 | 🔴 | Không xuất được Mẫu 09B, 09C, 9D (bắt buộc nộp Quý III/2026); hồ sơ chỉ xuất 01/02/10 (Q3/2026 chưa áp dụng) | `Documents`, trang hồ sơ | 18 | open |
-| T-84 | 🔴 | Không xuất được Mẫu 07, 08 (tập thể) và 12 (biên bản hội nghị) — bắt buộc Quý III/2026 | `CollectiveEvaluationService`, `Documents` | 19 | open |
-| T-85 | 🟠 | Trang Báo cáo lệch HD03: tên Mẫu 14 sai, "Mẫu 15" là thống kê cơ cấu tổ chức (không có trong HD03), "Mẫu 16" là Excel trong khi HD03 là báo cáo Word | `ReportService`, `app/reports` | 19 | open |
-| T-86 | 🟠 | Không có công khai kết quả sau công bố (Bước 5 HD03) | — | 20 | open |
-| T-87 | 🟠 | Không có kiến nghị/giải trình sau công bố (PL II mục III.2) — chỉ có mở lại hồ sơ | — | 20 | open |
-| T-88 | 🟠 | Không có kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17, bắt buộc với mức C/D) | — | 20 | open |
-| T-89 | 🟡 | Không có nhắc việc/sắp tới hạn trong ứng dụng | — | 20 | open |
+| T-82 | 🔴 | Hồ sơ không có chỗ nhập Mẫu 09C (bản tự đánh giá tự luận) và 9D (phụ lục kết quả theo trục) — bắt buộc Quý III/2026 | `EvaluationRecord`, form tự chấm | 18 | done |
+| T-83 | 🔴 | Không xuất được Mẫu 09B, 09C, 9D (bắt buộc nộp Quý III/2026); hồ sơ chỉ xuất 01/02/10 (Q3/2026 chưa áp dụng) | `Documents`, trang hồ sơ | 18 | done |
+| T-84 | 🔴 | Không xuất được Mẫu 07, 08 (tập thể) và 12 (biên bản hội nghị) — bắt buộc Quý III/2026 | `CollectiveEvaluationService`, `Documents` | 19 | done |
+| T-85 | 🟠 | Trang Báo cáo lệch HD03: tên Mẫu 14 sai, "Mẫu 15" là thống kê cơ cấu tổ chức (không có trong HD03), "Mẫu 16" là Excel trong khi HD03 là báo cáo Word | `ReportService`, `app/reports` | 19 | done |
+| T-86 | 🟠 | Không có công khai kết quả sau công bố (Bước 5 HD03) | — | 20 | done |
+| T-87 | 🟠 | Không có kiến nghị/giải trình sau công bố (PL II mục III.2) — chỉ có mở lại hồ sơ | — | 20 | done |
+| T-88 | 🟠 | Không có kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17, bắt buộc với mức C/D) | — | 20 | done |
+| T-89 | 🟡 | Không có nhắc việc/sắp tới hạn trong ứng dụng | — | 20 | done |
 | T-70 | ⚪ | EF cảnh báo 10622 khi khởi động: `CollectiveEvaluationRecord`, `EvaluationMeeting` có query filter xóa mềm nhưng là đầu bắt buộc của quan hệ với bảng con (item, vote summary) — cần filter tương ứng cho bảng con hoặc quan hệ tùy chọn | `CongTacDangDbContext`, `Data/Configurations/` | — | open |
 
 ## B — Nghiệp vụ (để xử lý sau)
