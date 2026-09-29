@@ -110,10 +110,10 @@ public class RoleAssignmentDto
     /// <summary>Loại phạm vi: <c>Global</c> | <c>Department</c> | <c>PartyCell</c>.</summary>
     public string ScopeType { get; set; } = "Global";
 
-    /// <summary>Id Phòng/Chi bộ (null khi Global).</summary>
+    /// <summary>Id đơn vị chính quyền / tổ chức Đảng (null khi Global).</summary>
     public Guid? ScopeId { get; set; }
 
-    /// <summary>Tên phạm vi ("Toàn công ty", tên Phòng hoặc Chi bộ).</summary>
+    /// <summary>Tên phạm vi ("Toàn công ty", tên đơn vị chính quyền hoặc tổ chức Đảng).</summary>
     public string ScopeName { get; set; } = string.Empty;
 
     /// <summary>Hiệu lực từ (UTC).</summary>
@@ -141,7 +141,7 @@ public class CreateRoleAssignmentRequestDto
     /// <summary>Loại phạm vi: <c>Global</c> | <c>Department</c> | <c>PartyCell</c> (mặc định Global).</summary>
     public string? ScopeType { get; set; }
 
-    /// <summary>Id Phòng/Chi bộ (bắt buộc khi khác Global, bỏ trống khi Global).</summary>
+    /// <summary>Id đơn vị chính quyền / tổ chức Đảng (bắt buộc khi khác Global, bỏ trống khi Global); phạm vi gồm cả đơn vị cấp dưới.</summary>
     public Guid? ScopeId { get; set; }
 
     /// <summary>Hiệu lực từ (mặc định: ngay bây giờ).</summary>
@@ -176,7 +176,7 @@ public class AccessGrantDto
     /// <summary>Loại phạm vi: <c>Global</c> | <c>Department</c> | <c>PartyCell</c>.</summary>
     public string ScopeType { get; set; } = "Global";
 
-    /// <summary>Id Phòng/Chi bộ (null khi Global).</summary>
+    /// <summary>Id đơn vị chính quyền / tổ chức Đảng (null khi Global).</summary>
     public Guid? ScopeId { get; set; }
 
     /// <summary>Tên phạm vi.</summary>
@@ -189,7 +189,7 @@ public class EffectiveGrantSourceDto
     /// <summary>Loại phạm vi.</summary>
     public string ScopeType { get; set; } = "Global";
 
-    /// <summary>Id Phòng/Chi bộ.</summary>
+    /// <summary>Id đơn vị chính quyền / tổ chức Đảng.</summary>
     public Guid? ScopeId { get; set; }
 
     /// <summary>Tên phạm vi.</summary>

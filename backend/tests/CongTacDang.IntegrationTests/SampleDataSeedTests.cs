@@ -4,6 +4,10 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using CongTacDang.Domain.Entities;
+using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
+using CongTacDang.Infrastructure.Data;
 using CongTacDang.IntegrationTests.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -70,6 +74,18 @@ public sealed class SampleDataSeedTests
             var active = await DataAsync(await owner.GetAsync("/api/evaluations/periods/active"));
             Assert.Equal("Open", active.GetProperty("status").GetString());
             Assert.Equal("09B", active.GetProperty("settings").GetProperty("selfScoreForm").GetString());
+
+            // Kỳ mẫu theo kiểu kỳ dựng sẵn đủ hồ sơ luồng; kiểm tra kẹt luồng sạch (mọi bước còn lại đều có người thực hiện).
+            var profiles = active.GetProperty("settings").GetProperty("profiles").EnumerateArray()
+                .Select(p => p.GetProperty("code").GetString()).ToList();
+            Assert.Equal(new[] { "co-so", "cap-tren", "bi-thu-nhan-vien" }, profiles);
+            var periodId = active.GetProperty("id").GetGuid();
+            var readiness = await DataAsync(await appraiser.GetAsync($"/api/evaluations/periods/{periodId}/readiness"));
+            Assert.True(readiness.GetProperty("ready").GetBoolean(), readiness.ToString());
+            Assert.Empty(readiness.GetProperty("issues").EnumerateArray());
+            Assert.Equal(5, readiness.GetProperty("checkedRecords").GetInt32()); // 6 hồ sơ, trừ hồ sơ Giám đốc đã công bố
+
+            await factory.WithDbAsync(async db => await AssertSampleOrganizationAsync(db, periodId));
         }
         finally
         {
@@ -125,6 +141,51 @@ public sealed class SampleDataSeedTests
         {
             await ((IAsyncLifetime)factory).DisposeAsync();
         }
+    }
+
+    /// <summary>
+    /// Mô hình tổ chức mẫu (task 14) khớp luồng mẫu (task 15): cây đơn vị hai cấp mỗi bên có loại đơn vị, mọi tài khoản có chức vụ
+    /// (một ca kiêm nhiệm), thẩm quyền suy ra từ chức vụ (Giám đốc → cấp trên), hồ sơ Giám đốc đi hồ sơ luồng cấp trên với
+    /// kết quả của cấp trên ở B3b/B3c/B4.
+    /// </summary>
+    private static async Task AssertSampleOrganizationAsync(CongTacDangDbContext db, Guid periodId)
+    {
+        var departments = await db.AdministrativeDepartments.Include(d => d.UnitType).ToListAsync();
+        var company = Assert.Single(departments, d => d.ParentId == null);
+        Assert.Equal("ATTECH", company.Code);
+        Assert.Equal("Công ty", company.UnitType?.Name);
+        var units = departments.Where(d => d.ParentId == company.Id).ToList();
+        Assert.Contains(units, d => d.Code == "BGD");
+        Assert.True(units.Count(d => d.UnitType?.Name == "Phòng") >= 2);
+        Assert.All(departments, d => Assert.NotNull(d.UnitTypeId));
+        Assert.All(units, d => Assert.StartsWith(company.Path, d.Path));
+
+        var cells = await db.PartyCells.Include(c => c.UnitType).ToListAsync();
+        var committee = Assert.Single(cells, c => c.ParentId == null);
+        Assert.Equal("Đảng ủy", committee.UnitType?.Name);
+        Assert.Equal(2, cells.Count(c => c.ParentId == committee.Id && c.UnitType?.Name == "Chi bộ"));
+
+        var members = await db.PartyMemberProfiles.ToListAsync();
+        var held = await db.MemberPositions.Include(p => p.Position).ToListAsync();
+        Assert.All(members, m => Assert.Contains(held, p => p.UserId == m.Id && p.IsPrimary));
+        Assert.Contains(members, m => held.Count(p => p.UserId == m.Id) >= 2);
+
+        var director = Assert.Single(members, m => m.Username == "giamdoc");
+        Assert.Equal(ApprovalAuthority.CapTren, director.ApprovalAuthority);
+        Assert.Null(director.ApprovalAuthorityOverride);
+        Assert.Contains(held, p => p.UserId == director.Id && p.Position!.Name == "Giám đốc" && p.DepartmentId == company.Id);
+        Assert.Contains(held, p => p.UserId == director.Id && p.Position!.Name == "Bí thư Đảng ủy" && p.PartyCellId == committee.Id);
+        Assert.All(members.Where(m => m.Id != director.Id), m => Assert.Equal(ApprovalAuthority.CoSo, m.ApprovalAuthority));
+
+        var records = await db.EvaluationRecords.Where(r => r.PeriodId == periodId).ToListAsync();
+        var directorRecord = Assert.Single(records, r => r.MemberId == director.Id);
+        Assert.Equal("cap-tren", directorRecord.WorkflowProfileCode);
+        Assert.Equal(ApprovalAuthority.CapTren, directorRecord.ApprovalAuthority);
+        Assert.Equal(RecordStatus.Published, directorRecord.Status);
+        var external = await db.Set<EvaluationExternalResult>().Where(x => x.RecordId == directorRecord.Id)
+            .OrderBy(x => x.Step).Select(x => x.Step).ToListAsync();
+        Assert.Equal(new[] { WorkflowStep.B3B_APPRAISAL, WorkflowStep.B3C_DIRECTOR, WorkflowStep.B4_DECISION }, external);
+        Assert.All(records.Where(r => r.Id != directorRecord.Id), r => Assert.Equal("co-so", r.WorkflowProfileCode));
     }
 
     private static async Task<HttpClient> LoginAndChangePasswordAsync(WebApplicationFactory<Program> host, string username)

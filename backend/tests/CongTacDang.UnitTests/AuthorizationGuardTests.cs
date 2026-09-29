@@ -11,7 +11,7 @@ using Xunit;
 namespace CongTacDang.UnitTests;
 
 /// <summary>
-/// Task 09 (T-55): resolver theo bản gán có phạm vi/thời hạn, guard (ma trận phạm vi × mã × chủ hồ sơ × ApprovalAuthority
+/// Task 09 (T-55): resolver theo bản gán có phạm vi/thời hạn, guard (ma trận phạm vi × mã × chủ hồ sơ
 /// × hiệu lực thời gian, xung đột lợi ích) và các chốt chặn quản trị (docs/thiet-ke/phan-quyen.md mục 4, 5).
 /// </summary>
 public class AuthorizationGuardTests
@@ -149,7 +149,7 @@ public class AuthorizationGuardTests
     public void Guard_ScopeMatrix_ForScopedCodes(ScopeType type, Guid? scopeId, Guid? dept, Guid? cell, bool expected)
     {
         var userId = Guid.NewGuid();
-        var target = new AccessTarget(Guid.NewGuid(), dept, cell, ApprovalAuthority.CoSo);
+        var target = new AccessTarget(Guid.NewGuid(), dept, cell);
         foreach (var code in new[]
                  {
                      PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksApprove, PermissionCodes.EvaluationCellConfirm,
@@ -162,7 +162,7 @@ public class AuthorizationGuardTests
             var permissions = Perms(userId, (code, type, scopeId));
             Assert.True(expected == AuthorizationGuard.Evaluate(permissions, code, target), $"{code} {type}");
             // Có quyền khác mã → không được.
-            Assert.False(AuthorizationGuard.Evaluate(permissions, PermissionCodes.EvaluationDecideExternal, target));
+            Assert.False(AuthorizationGuard.Evaluate(permissions, PermissionCodes.EvaluationExternalRecord, target));
         }
     }
 
@@ -213,20 +213,25 @@ public class AuthorizationGuardTests
         Assert.Equal(userId, AuthorizationGuard.BuildScope(none, PermissionCodes.EvaluationRead).OwnerId);
     }
 
-    [Theory]
-    [InlineData(ApprovalAuthority.CoSo, true, false)]
-    [InlineData(ApprovalAuthority.CapTren, false, true)]
-    public void Guard_Decide_FollowsApprovalAuthority(ApprovalAuthority authority, bool local, bool external)
+    /// <summary>
+    /// Guard không xét cấp quyết định: quyết định trong hệ thống (<c>evaluation.decide</c>) và ghi nhận kết quả của cấp trên
+    /// (<c>evaluation.external.record</c>) chỉ theo phạm vi gán + xung đột lợi ích; bước nào dùng quyền nào là cấu hình
+    /// hồ sơ luồng (service luồng kiểm tra chế độ bước trước guard).
+    /// </summary>
+    [Fact]
+    public void Guard_DecideAndExternalRecord_ScopeOnly_NotBoundToApprovalAuthority()
     {
         var userId = Guid.NewGuid();
-        var both = Perms(userId,
-            (PermissionCodes.EvaluationDecide, ScopeType.Global, null),
-            (PermissionCodes.EvaluationDecideExternal, ScopeType.Global, null));
-        var target = new AccessTarget(Guid.NewGuid(), DeptA, CellA, authority);
+        var inCell = Perms(userId,
+            (PermissionCodes.EvaluationDecide, ScopeType.PartyCell, CellA),
+            (PermissionCodes.EvaluationExternalRecord, ScopeType.PartyCell, CellA));
 
-        Assert.Equal(local, AuthorizationGuard.Evaluate(both, PermissionCodes.EvaluationDecide, target));
-        Assert.Equal(external, AuthorizationGuard.Evaluate(both, PermissionCodes.EvaluationDecideExternal, target));
-        Assert.False(AuthorizationGuard.Evaluate(both, PermissionCodes.EvaluationDecide, new AccessTarget(Guid.NewGuid())));
+        foreach (var code in new[] { PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationExternalRecord })
+        {
+            Assert.True(AuthorizationGuard.Evaluate(inCell, code, new AccessTarget(Guid.NewGuid(), DeptA, CellA)), code);
+            Assert.False(AuthorizationGuard.Evaluate(inCell, code, new AccessTarget(Guid.NewGuid(), DeptA, CellB)), code);
+            Assert.False(AuthorizationGuard.Evaluate(inCell, code, new AccessTarget(userId, DeptA, CellA)), code);
+        }
     }
 
     [Fact]
@@ -234,28 +239,22 @@ public class AuthorizationGuardTests
     {
         var userId = Guid.NewGuid();
         var codes = AuthorizationGuard.ConflictOfInterestCodes.ToList();
-        Assert.Equal(9, codes.Count);
+        Assert.Equal(10, codes.Count);
+        Assert.Contains(PermissionCodes.EvaluationUnitReview, codes);
+        Assert.Contains(PermissionCodes.EvaluationExternalRecord, codes);
+        Assert.All(codes, c => Assert.True(PermissionCodes.IsDefined(c), c));
         var permissions = Perms(userId, codes.Select(c => (c, ScopeType.Global, (Guid?)null))
             .Append((PermissionCodes.EvaluationRead, ScopeType.Global, null)).ToArray());
 
-        foreach (var authority in new[] { ApprovalAuthority.CoSo, ApprovalAuthority.CapTren })
+        var own = new AccessTarget(userId, DeptA, CellA);
+        var other = new AccessTarget(Guid.NewGuid(), DeptA, CellA);
+        foreach (var code in codes)
         {
-            var own = new AccessTarget(userId, DeptA, CellA, authority);
-            var other = new AccessTarget(Guid.NewGuid(), DeptA, CellA, authority);
-            foreach (var code in codes)
-            {
-                Assert.False(AuthorizationGuard.Evaluate(permissions, code, own), code);
-                var expectedOnOther = code switch
-                {
-                    PermissionCodes.EvaluationDecide => authority == ApprovalAuthority.CoSo,
-                    PermissionCodes.EvaluationDecideExternal => authority == ApprovalAuthority.CapTren,
-                    _ => true
-                };
-                Assert.Equal(expectedOnOther, AuthorizationGuard.Evaluate(permissions, code, other));
-            }
-
-            Assert.True(AuthorizationGuard.Evaluate(permissions, PermissionCodes.EvaluationRead, own));
+            Assert.False(AuthorizationGuard.Evaluate(permissions, code, own), code);
+            Assert.True(AuthorizationGuard.Evaluate(permissions, code, other), code);
         }
+
+        Assert.True(AuthorizationGuard.Evaluate(permissions, PermissionCodes.EvaluationRead, own));
     }
 
     [Fact]
@@ -354,8 +353,8 @@ public class AuthorizationGuardTests
     }
 
     [Theory]
-    [InlineData(ScopeType.Department, false, "Phòng")]
-    [InlineData(ScopeType.PartyCell, false, "Chi bộ")]
+    [InlineData(ScopeType.Department, false, "đơn vị chính quyền")]
+    [InlineData(ScopeType.PartyCell, false, "tổ chức Đảng")]
     [InlineData(ScopeType.Global, true, "Toàn công ty")]
     public async Task Assign_InvalidScope_IsRejected(ScopeType type, bool withScopeId, string expected)
     {

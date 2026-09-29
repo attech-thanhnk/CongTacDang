@@ -88,7 +88,7 @@ public sealed class PermissionResolver : IPermissionResolver
             var scopeType = (ScopeType)(int)assignment.ScopeType;
             var scopeId = assignment.ScopeType == RoleScopeType.Global ? null : assignment.ScopeId;
             if (scopeType != ScopeType.Global && scopeId == null)
-                continue; // dữ liệu hỏng: phạm vi Phòng/Chi bộ thiếu Id → bỏ qua, không mở rộng thành Global
+                continue; // dữ liệu hỏng: phạm vi đơn vị chính quyền/tổ chức Đảng thiếu Id → bỏ qua, không mở rộng thành Global
 
             foreach (var code in assignment.PermissionCodes.Distinct(StringComparer.Ordinal))
             {

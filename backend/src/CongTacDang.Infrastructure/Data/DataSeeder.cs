@@ -510,9 +510,11 @@ public static class DataSeeder
     };
 
     /// <summary>
-    /// Dữ liệu mẫu dùng thử ngay theo mô hình hiện hành: Phòng, Chi bộ, tài khoản (bắt buộc đổi mật khẩu) kèm bản gán vai trò
-    /// có phạm vi, kỳ "Quý III/2026" (mẫu chuyển tiếp, đang mở) và hồ sơ ở nhiều bước khác nhau. Chỉ chạy trên CSDL chưa có
-    /// tài khoản, Phòng, Chi bộ, kỳ nào — không bao giờ gán lại vai trò cho người đã có.
+    /// Dữ liệu mẫu dùng thử ngay theo mô hình hiện hành: cây đơn vị chính quyền (Công ty → Ban Giám đốc, các Phòng) và cây
+    /// tổ chức Đảng (Đảng ủy → 2 Chi bộ) có loại đơn vị, tài khoản (bắt buộc đổi mật khẩu) kèm chức vụ (có kiêm nhiệm; thẩm quyền
+    /// phê duyệt suy ra từ chức vụ) và bản gán vai trò có phạm vi, kỳ "Quý III/2026" (kiểu kỳ chuyển tiếp, đủ 3 hồ sơ luồng,
+    /// đang mở, kiểm tra kẹt luồng sạch) và hồ sơ ở nhiều bước — hồ sơ Giám đốc theo hồ sơ luồng cấp trên. Chỉ chạy trên CSDL
+    /// chưa có tài khoản, đơn vị, kỳ nào — không bao giờ gán lại vai trò cho người đã có.
     /// </summary>
     private static async Task SeedSampleDataAsync(CongTacDangDbContext context, SampleDataOptions options, ILogger? logger)
     {
@@ -674,7 +676,7 @@ public static class DataSeeder
     }
 
     /// <summary>
-    /// Thêm hồ sơ mẫu đang chờ <paramref name="status"/>: ảnh chụp Phòng/Chi bộ/khung/cấp quyết định như khi thêm người vào kỳ,
+    /// Thêm hồ sơ mẫu đang chờ <paramref name="status"/>: ảnh chụp đơn vị/tổ chức Đảng/khung/cấp quyết định như khi thêm người vào kỳ,
     /// điền dữ liệu của các bước đã qua và ghi lịch sử từng bước.
     /// </summary>
     private static void AddSampleRecord(

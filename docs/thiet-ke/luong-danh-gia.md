@@ -26,7 +26,7 @@ Mỗi bước trong một **hồ sơ luồng** (nhóm đối tượng) có một
 | Chế độ | Ý nghĩa | Ai thao tác |
 |---|---|---|
 | `Internal` (Nội bộ) | Bước làm trong hệ thống | người có **quyền thực hiện** cấu hình cho bước (mã trong `PermissionCodes`, module `evaluation`, trừ `self`/`read`/`reopen`); bước của chủ hồ sơ luôn là `evaluation.self` |
-| `External` (Cấp trên thực hiện) | Bước do cấp trên / cơ quan ngoài hệ thống làm | người có `evaluation.external.record` **ghi nhận kết quả**: cơ quan, số/ngày văn bản, nhận xét, mức đề xuất/quyết định (bắt buộc với B3a/B3b/B3c/B4), điểm, tệp đính kèm (tùy chọn). Không trả lại được |
+| `External` (Cấp trên thực hiện) | Bước do cấp trên / cơ quan ngoài hệ thống làm | người có `evaluation.external.record` **ghi nhận kết quả**: cơ quan, số/ngày văn bản, nhận xét, mức đề xuất/quyết định (bắt buộc với B3a/B3b/B3c/B4), điểm, văn bản đính kèm (tùy chọn — người ghi nhận tải lên rồi gắn vào kết quả; ai xem được hồ sơ thì xem được văn bản, chỉ người có `evaluation.external.record` trên hồ sơ sửa/thay được). Không trả lại được |
 | `Off` (Không áp dụng) | Bước không áp dụng cho nhóm này | — (bỏ qua khi tính bước kế tiếp) |
 
 - Bước bắt buộc (không `Off`): `B2_SELF_SCORE`, `B4_DECISION`, `B5_PUBLISH`. Không `External`: `B1_REGISTER`, `B2_SELF_SCORE`, `B5_PUBLISH`.

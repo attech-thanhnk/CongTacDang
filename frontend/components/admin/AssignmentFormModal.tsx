@@ -95,7 +95,7 @@ export function AssignmentFormModal({
     }
     const effectiveScope: ScopeType = mustBeGlobal ? "Global" : scopeType;
     if (effectiveScope !== "Global" && !scopeId) {
-      setLocalError(`Hãy chọn ${effectiveScope === "Department" ? "Phòng / đơn vị" : "Chi bộ"} áp dụng.`);
+      setLocalError(`Hãy chọn ${effectiveScope === "Department" ? "đơn vị chính quyền" : "tổ chức Đảng"} áp dụng (gồm cả các đơn vị cấp dưới).`);
       return;
     }
     onCreate?.({

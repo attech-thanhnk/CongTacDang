@@ -18,7 +18,7 @@ public sealed class RoleAssignmentImportRow
     /// <summary>Loại phạm vi (null nếu giá trị sai).</summary>
     public ScopeType? ScopeType { get; set; }
 
-    /// <summary>Mã Phòng/Chi bộ (chữ hoa), null khi Toàn công ty.</summary>
+    /// <summary>Mã đơn vị chính quyền / tổ chức Đảng (chữ hoa), null khi Toàn công ty.</summary>
     public string? ScopeCode { get; set; }
 
     /// <summary>Hiệu lực từ (UTC, đầu ngày giờ Việt Nam); null = ngay khi nhập.</summary>
@@ -36,7 +36,7 @@ public sealed class RoleAssignmentImportRow
     /// <summary>Id vai trò đã phân giải khi kiểm tra.</summary>
     public Guid RoleId { get; set; }
 
-    /// <summary>Id Phòng/Chi bộ đã phân giải khi kiểm tra (null khi Toàn công ty).</summary>
+    /// <summary>Id đơn vị chính quyền / tổ chức Đảng đã phân giải khi kiểm tra (null khi Toàn công ty).</summary>
     public Guid? ScopeId { get; set; }
 }
 
@@ -53,7 +53,7 @@ public sealed class RoleAssignmentImportDefinition : IImportDefinition<RoleAssig
         ValidFromKey = "validFrom", ValidToKey = "validTo", NoteKey = "note";
 
     /// <summary>Giá trị cột "Loại phạm vi".</summary>
-    public const string ScopeGlobal = "Toàn công ty", ScopeDepartment = "Phòng", ScopePartyCell = "Chi bộ";
+    public const string ScopeGlobal = "Toàn công ty", ScopeDepartment = "Đơn vị chính quyền", ScopePartyCell = "Tổ chức Đảng";
 
     /// <summary>Múi giờ dùng để hiểu "Từ ngày"/"Đến ngày" (Việt Nam, UTC+7, không có giờ mùa hè).</summary>
     public static readonly TimeSpan VietnamOffset = TimeSpan.FromHours(7);
@@ -90,7 +90,7 @@ public sealed class RoleAssignmentImportDefinition : IImportDefinition<RoleAssig
     public string DisplayName => "Gán vai trò";
 
     /// <inheritdoc />
-    public string Description => "Gán vai trò cho tài khoản đã có, kèm phạm vi (Toàn công ty / Phòng / Chi bộ) và thời hạn. "
+    public string Description => "Gán vai trò cho tài khoản đã có, kèm phạm vi (Toàn công ty / Đơn vị chính quyền / Tổ chức Đảng — gồm cả các đơn vị cấp dưới) và thời hạn. "
         + "Mỗi dòng là một bản gán mới; không sửa hay thu hồi bản gán đã có (làm việc đó ở màn hình Gán vai trò).";
 
     /// <inheritdoc />
@@ -105,11 +105,11 @@ public sealed class RoleAssignmentImportDefinition : IImportDefinition<RoleAssig
         new ImportColumn(RoleNameKey, "Tên vai trò", true,
             "Tên vai trò đúng như trong màn hình Quản lý vai trò (không phân biệt hoa thường).", null, "Chi ủy / Bí thư Chi bộ"),
         new ImportColumn(ScopeTypeKey, "Loại phạm vi", true,
-            "Toàn công ty: có hiệu lực với mọi đơn vị. Phòng / Chi bộ: chỉ trong đơn vị ghi ở cột Mã Phòng/Chi bộ. "
+            "Toàn công ty: có hiệu lực với mọi đơn vị. Đơn vị chính quyền / Tổ chức Đảng: trong đơn vị ghi ở cột Mã đơn vị và mọi đơn vị cấp dưới của nó. "
             + "Vai trò có quyền quản trị hệ thống, nhập dữ liệu, quản lý kỳ đánh giá… chỉ gán được Toàn công ty.",
             new[] { ScopeGlobal, ScopeDepartment, ScopePartyCell }, ScopePartyCell),
-        new ImportColumn(ScopeCodeKey, "Mã Phòng/Chi bộ", false,
-            "Bắt buộc khi Loại phạm vi là Phòng hoặc Chi bộ (mã đang hoạt động trong danh mục); để trống khi Toàn công ty.",
+        new ImportColumn(ScopeCodeKey, "Mã đơn vị", false,
+            "Bắt buộc khi Loại phạm vi là Đơn vị chính quyền hoặc Tổ chức Đảng (mã đang hoạt động trong danh mục tương ứng); để trống khi Toàn công ty.",
             null, "CB-KT"),
         new ImportColumn(ValidFromKey, "Từ ngày", false,
             "Ngày bắt đầu hiệu lực, dạng dd/mm/yyyy. Để trống = có hiệu lực ngay khi nhập.", null, "01/10/2026"),
@@ -139,9 +139,9 @@ public sealed class RoleAssignmentImportDefinition : IImportDefinition<RoleAssig
         };
 
         if (row.ScopeType == ScopeType.Global && row.ScopeCode != null)
-            errors.Add($"Phạm vi \"{ScopeGlobal}\" không kèm mã Phòng/Chi bộ. Hãy để trống cột \"Mã Phòng/Chi bộ\" hoặc đổi Loại phạm vi.");
+            errors.Add($"Phạm vi \"{ScopeGlobal}\" không kèm mã đơn vị. Hãy để trống cột \"Mã đơn vị\" hoặc đổi Loại phạm vi.");
         if (row.ScopeType is (ScopeType.Department or ScopeType.PartyCell) && row.ScopeCode == null)
-            errors.Add($"Thiếu \"Mã Phòng/Chi bộ\" cho phạm vi \"{scopeText}\". Hãy nhập mã {scopeText} trong danh mục.");
+            errors.Add($"Thiếu \"Mã đơn vị\" cho phạm vi \"{scopeText}\". Hãy nhập mã trong danh mục {scopeText}.");
 
         var fromDate = ParseDate(source.GetOrNull(ValidFromKey), "Từ ngày", errors);
         var toDate = ParseDate(source.GetOrNull(ValidToKey), "Đến ngày", errors);
@@ -299,7 +299,7 @@ public sealed class RoleAssignmentImportDefinition : IImportDefinition<RoleAssig
         if (data.ScopeType is not (ScopeType.Department or ScopeType.PartyCell) || data.ScopeCode == null)
             return;
 
-        var (catalog, label) = data.ScopeType == ScopeType.Department ? (departments, "Phòng") : (partyCells, "Chi bộ");
+        var (catalog, label) = data.ScopeType == ScopeType.Department ? (departments, "đơn vị chính quyền") : (partyCells, "tổ chức Đảng");
         if (!catalog.TryGetValue(data.ScopeCode, out var entry) || entry.IsDeleted)
         {
             row.AddError($"Mã {label} \"{data.ScopeCode}\" không có trong danh mục. Hãy kiểm tra lại mã hoặc Loại phạm vi.");
@@ -307,7 +307,7 @@ public sealed class RoleAssignmentImportDefinition : IImportDefinition<RoleAssig
         }
         if (!entry.IsActive)
         {
-            row.AddError($"{label} \"{entry.Name}\" (mã {data.ScopeCode}) đã ngừng hoạt động nên không gán phạm vi được. Hãy chọn {label} khác.");
+            row.AddError($"Không gán phạm vi được vì {label} \"{entry.Name}\" (mã {data.ScopeCode}) đã ngừng hoạt động. Hãy chọn {label} khác.");
             return;
         }
 

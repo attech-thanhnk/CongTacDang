@@ -18,6 +18,17 @@ export const attachmentService = {
     return request<AttachmentItem[]>("/attachments/list");
   },
 
+  // Thông tin một tệp (kiểm tra quyền xem ở máy chủ)
+  async getAttachment(id: string): Promise<AttachmentItem> {
+    return request<AttachmentItem>(`/attachments/${id}`);
+  },
+
+  // Tải về tệp khi chỉ biết Id (lấy tên tệp từ máy chủ)
+  async downloadById(id: string): Promise<void> {
+    const info = await attachmentService.getAttachment(id);
+    await attachmentService.downloadAttachment(id, info.fileName);
+  },
+
   // Tải lên tệp đính kèm kèm mã biểu mẫu và trích yếu
   async uploadAttachment(file: File, formCode: string, description: string): Promise<any> {
     const formData = new FormData();

@@ -16,9 +16,11 @@ namespace CongTacDang.Application.Common.Security;
 /// T.DepartmentId là d hoặc đơn vị con cháu của d; tổ chức Đảng c → T.PartyCellId là c hoặc con cháu của c);
 /// quyền "không áp dụng phạm vi" chỉ tính bản gán Global;</item>
 /// <item>luật riêng theo mã: <c>evaluation.self</c> chỉ trên hồ sơ của mình; <c>evaluation.read</c> luôn đúng với chủ hồ sơ;
-/// <c>evaluation.decide</c>/<c>.external</c> theo <see cref="ApprovalAuthority"/>; các quyền duyệt/xác nhận/quyết định
-/// không áp dụng trên hồ sơ của chính mình (xung đột lợi ích).</item>
+/// các quyền duyệt/xác nhận/đề xuất/ghi nhận/quyết định không áp dụng trên hồ sơ của chính mình (xung đột lợi ích).</item>
 /// </list>
+/// Guard không xét cấp quyết định (<c>ApprovalAuthority</c>): bước nào làm trong hệ thống, bước nào do cấp trên thực hiện
+/// và quyền thực hiện từng bước là cấu hình hồ sơ luồng của hồ sơ (<c>PeriodSettings.profiles</c>), service luồng kiểm tra
+/// chế độ bước trước khi gọi guard.
 /// Đăng ký scoped: tập quyền của người dùng hiện tại được nạp một lần mỗi request (qua <see cref="IPermissionResolver"/>, có cache).
 /// </summary>
 public sealed class AuthorizationGuard : IAuthorizationGuard
@@ -33,8 +35,9 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         PermissionCodes.EvaluationCollectiveRecord,
         PermissionCodes.EvaluationAppraise,
         PermissionCodes.EvaluationDirectorReview,
+        PermissionCodes.EvaluationUnitReview,
         PermissionCodes.EvaluationDecide,
-        PermissionCodes.EvaluationDecideExternal,
+        PermissionCodes.EvaluationExternalRecord,
         PermissionCodes.EvaluationPublish,
         PermissionCodes.EvaluationReopen
     };
@@ -73,11 +76,6 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         }
 
         if (isOwner && ConflictOfInterestCodes.Contains(permission))
-            return false;
-
-        if (permission == PermissionCodes.EvaluationDecide && target.ApprovalAuthority != ApprovalAuthority.CoSo)
-            return false;
-        if (permission == PermissionCodes.EvaluationDecideExternal && target.ApprovalAuthority != ApprovalAuthority.CapTren)
             return false;
 
         var appliesScope = PermissionCodes.Find(permission)?.AppliesScope ?? true;
@@ -171,18 +169,6 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         {
             return new ForbiddenException(
                 $"Chỉ chủ hồ sơ mới được thực hiện \"{name}\". Bạn không thể thao tác trên hồ sơ của người khác.");
-        }
-
-        if (permission == PermissionCodes.EvaluationDecide && target.ApprovalAuthority == ApprovalAuthority.CapTren)
-        {
-            return new ForbiddenException(
-                "Hồ sơ này thuộc thẩm quyền quyết định của cấp trên. Cần quyền \"" + PermissionCodes.DisplayName(PermissionCodes.EvaluationDecideExternal) + "\".");
-        }
-
-        if (permission == PermissionCodes.EvaluationDecideExternal && target.ApprovalAuthority == ApprovalAuthority.CoSo)
-        {
-            return new ForbiddenException(
-                "Hồ sơ này thuộc thẩm quyền quyết định của Đảng ủy cơ sở. Cần quyền \"" + PermissionCodes.DisplayName(PermissionCodes.EvaluationDecide) + "\".");
         }
 
         return new ForbiddenException(

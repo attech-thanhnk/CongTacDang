@@ -12,7 +12,7 @@ namespace CongTacDang.Application.Common.Security;
 /// <param name="Module">Phân hệ (system, catalog, period, evaluation, collective, meeting, report, attachment).</param>
 /// <param name="Description">Mô tả chi tiết.</param>
 /// <param name="AppliesScope">
-/// true: quyền có nghĩa theo phạm vi gán (Phòng / Chi bộ / toàn công ty);
+/// true: quyền có nghĩa theo phạm vi gán (đơn vị chính quyền / tổ chức Đảng — gồm cả cấp dưới — hoặc toàn công ty);
 /// false: chỉ có nghĩa khi gán phạm vi Global (gán phạm vi khác sẽ bị API từ chối).
 /// </param>
 public sealed record PermissionDefinition(string Code, string Name, string Module, string Description, bool AppliesScope);
@@ -47,7 +47,7 @@ public static class PermissionCodes
 
     #region Danh mục, kỳ đánh giá
 
-    /// <summary>Quản lý danh mục Phòng/đơn vị, Chi bộ. Xem danh mục: mọi người đã đăng nhập.</summary>
+    /// <summary>Quản lý danh mục đơn vị chính quyền, tổ chức Đảng, loại đơn vị, chức vụ. Xem danh mục: mọi người đã đăng nhập.</summary>
     public const string CatalogManage = "catalog.manage";
 
     /// <summary>Quản lý kỳ đánh giá: tạo kỳ, cấu hình bước/thời hạn/tham số, danh sách người được đánh giá, mở/khóa kỳ.</summary>
@@ -84,21 +84,14 @@ public static class PermissionCodes
     /// </summary>
     public const string EvaluationUnitReview = "evaluation.unit.review";
 
-    /// <summary>Ghi nhận quyết định của Đảng ủy cơ sở (B4) — chỉ hồ sơ ApprovalAuthority = CoSo.</summary>
+    /// <summary>Ghi nhận quyết định của Đảng ủy cơ sở (B4) — quyền mặc định của B4 khi hồ sơ luồng đặt bước này làm trong hệ thống.</summary>
     public const string EvaluationDecide = "evaluation.decide";
 
     /// <summary>
     /// Ghi nhận kết quả của bước do cấp trên / cơ quan ngoài hệ thống thực hiện (chế độ "Cấp trên thực hiện" trong hồ sơ luồng):
-    /// cơ quan, số/ngày văn bản, nhận xét, mức đề xuất/quyết định, tệp đính kèm. Thay <c>evaluation.decide.external</c>.
+    /// cơ quan, số/ngày văn bản, nhận xét, mức đề xuất/quyết định, tệp đính kèm.
     /// </summary>
     public const string EvaluationExternalRecord = "evaluation.external.record";
-
-    /// <summary>
-    /// ĐÃ GỠ khỏi danh mục quyền (task 15 — gộp vào <see cref="EvaluationExternalRecord"/>): không seed, resolver bỏ qua,
-    /// không dùng ở đâu. Hằng số chỉ còn để <c>AuthorizationGuard</c> (ngoài phạm vi task 15) biên dịch —
-    /// xóa cùng các nhánh tương ứng trong guard khi hợp nhất (xem báo cáo task 15, mục "Cần phối hợp").
-    /// </summary>
-    public const string EvaluationDecideExternal = "evaluation.decide.external";
 
     /// <summary>Công bố, khóa kết quả (B5).</summary>
     public const string EvaluationPublish = "evaluation.publish";
@@ -136,7 +129,7 @@ public static class PermissionCodes
         new(SystemAssignmentsManage, "Gán vai trò", "system", "Gán/thu hồi vai trò cho người dùng kèm phạm vi và thời hạn.", false),
         new(SystemAuditRead, "Xem nhật ký", "system", "Xem nhật ký thao tác và nhật ký đăng nhập.", false),
         new(SystemImport, "Nhập dữ liệu", "system", "Nhập dữ liệu từ tệp; cần thêm quyền quản lý loại dữ liệu được nhập.", false),
-        new(CatalogManage, "Quản lý danh mục", "catalog", "Quản lý danh mục Phòng/đơn vị, Chi bộ. Xem danh mục: mọi người đã đăng nhập.", false),
+        new(CatalogManage, "Quản lý danh mục", "catalog", "Quản lý danh mục đơn vị chính quyền, tổ chức Đảng, loại đơn vị, chức vụ. Xem danh mục: mọi người đã đăng nhập.", false),
         new(PeriodManage, "Quản lý kỳ đánh giá", "period", "Tạo kỳ, cấu hình bước/thời hạn/tham số, danh sách người được đánh giá, mở/khóa kỳ.", false),
         new(EvaluationSelf, "Tham gia đánh giá (bản thân)", "evaluation", "Đăng ký sản phẩm, tự chấm, giải trình, nộp minh chứng — chỉ trên hồ sơ của mình (phạm vi gán được bỏ qua).", true),
         new(EvaluationRead, "Xem hồ sơ đánh giá", "evaluation", "Xem hồ sơ đánh giá trong phạm vi được gán; chủ hồ sơ luôn xem được hồ sơ của mình.", true),
@@ -146,7 +139,7 @@ public static class PermissionCodes
         new(EvaluationAppraise, "Thẩm định", "evaluation", "Thẩm định hồ sơ đánh giá (bước 3b).", true),
         new(EvaluationDirectorReview, "Nhận xét của cấp trực tiếp sử dụng", "evaluation", "Nhận xét, đề xuất của cấp trực tiếp sử dụng cán bộ (bước 3c).", true),
         new(EvaluationUnitReview, "Lãnh đạo đơn vị đề xuất", "evaluation", "Trưởng phòng (lãnh đạo đơn vị) đề xuất mức xếp loại thay cấp trực tiếp sử dụng — dùng làm quyền thực hiện bước 3c trong hồ sơ luồng được cấu hình (HD03 PL III ví dụ 3).", true),
-        new(EvaluationDecide, "Ghi nhận quyết định của Đảng ủy cơ sở", "evaluation", "Ghi nhận quyết định xếp loại của Đảng ủy cơ sở (bước 4) — chỉ hồ sơ thuộc thẩm quyền cơ sở.", true),
+        new(EvaluationDecide, "Ghi nhận quyết định của Đảng ủy cơ sở", "evaluation", "Ghi nhận quyết định xếp loại của Đảng ủy cơ sở (bước 4) khi hồ sơ luồng đặt bước này làm trong hệ thống; bước do cấp trên quyết định dùng quyền Ghi nhận kết quả của cấp trên.", true),
         new(EvaluationExternalRecord, "Ghi nhận kết quả của cấp trên", "evaluation", "Ghi nhận kết quả của bước do cấp trên / cơ quan ngoài hệ thống thực hiện (thẩm định, nhận xét, quyết định…): cơ quan, số/ngày văn bản, nhận xét, mức, tệp đính kèm.", true),
         new(EvaluationPublish, "Công bố, khóa kết quả", "evaluation", "Công bố và khóa kết quả đánh giá (bước 5).", true),
         new(EvaluationReopen, "Mở lại hồ sơ đã khóa", "evaluation", "Mở lại hồ sơ đã khóa để đính chính; bắt buộc ghi lý do.", true),

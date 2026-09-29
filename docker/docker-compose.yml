@@ -45,6 +45,7 @@ services:
       Security__Password__MinLength: ${Security__Password__MinLength:-8}
       Security__RateLimit__Auth__PermitLimit: ${Security__RateLimit__Auth__PermitLimit:-10}
       Security__RateLimit__Auth__WindowSeconds: ${Security__RateLimit__Auth__WindowSeconds:-60}
+      Organization__ApprovalAuthorityRefreshMinutes: ${Organization__ApprovalAuthorityRefreshMinutes:-60}
     expose:
       - "5000"
     ports: ${BACKEND_PORTS:-[]}

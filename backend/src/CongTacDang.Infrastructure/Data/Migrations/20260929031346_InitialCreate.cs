@@ -12,29 +12,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "administrative_departments",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "text", nullable: false),
-                    SortOrder = table.Column<int>(type: "integer", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_administrative_departments", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "audit_logs",
                 columns: table => new
                 {
@@ -86,13 +63,12 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "party_cells",
+                name: "org_unit_types",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Side = table.Column<int>(type: "integer", nullable: false),
                     SortOrder = table.Column<int>(type: "integer", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -105,7 +81,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_party_cells", x => x.Id);
+                    table.PrimaryKey("PK_org_unit_types", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -132,6 +108,31 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "positions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Side = table.Column<int>(type: "integer", nullable: false),
+                    StatCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    DefaultApprovalAuthority = table.Column<int>(type: "integer", nullable: true),
+                    IsLeadership = table.Column<bool>(type: "boolean", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_positions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "roles",
                 columns: table => new
                 {
@@ -152,6 +153,106 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_roles", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "administrative_departments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    ParentId = table.Column<Guid>(type: "uuid", nullable: true),
+                    UnitTypeId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Path = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_administrative_departments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_administrative_departments_administrative_departments_Paren~",
+                        column: x => x.ParentId,
+                        principalTable: "administrative_departments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_administrative_departments_org_unit_types_UnitTypeId",
+                        column: x => x.UnitTypeId,
+                        principalTable: "org_unit_types",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "party_cells",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    ParentId = table.Column<Guid>(type: "uuid", nullable: true),
+                    UnitTypeId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Path = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_party_cells", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_party_cells_org_unit_types_UnitTypeId",
+                        column: x => x.UnitTypeId,
+                        principalTable: "org_unit_types",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_party_cells_party_cells_ParentId",
+                        column: x => x.ParentId,
+                        principalTable: "party_cells",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "role_permissions",
+                columns: table => new
+                {
+                    permission_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    role_id = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_role_permissions", x => new { x.permission_id, x.role_id });
+                    table.ForeignKey(
+                        name: "FK_role_permissions_permissions_permission_id",
+                        column: x => x.permission_id,
+                        principalTable: "permissions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_role_permissions_roles_role_id",
+                        column: x => x.role_id,
+                        principalTable: "roles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -227,12 +328,12 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     JoinPartyDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     OfficialPartyDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     PartyCellId = table.Column<Guid>(type: "uuid", nullable: true),
-                    PartyRole = table.Column<int>(type: "integer", nullable: false),
                     DepartmentId = table.Column<Guid>(type: "uuid", nullable: true),
-                    AdminPosition = table.Column<int>(type: "integer", nullable: false),
                     PositionTitle = table.Column<string>(type: "text", nullable: false),
                     JobGroup = table.Column<int>(type: "integer", nullable: false),
                     ApprovalAuthority = table.Column<int>(type: "integer", nullable: false),
+                    ApprovalAuthorityOverride = table.Column<int>(type: "integer", nullable: true),
+                    ApprovalAuthorityOverrideReason = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
                     SecurityStamp = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     MustChangePassword = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
@@ -262,30 +363,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         principalTable: "party_cells",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "role_permissions",
-                columns: table => new
-                {
-                    permission_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    role_id = table.Column<Guid>(type: "uuid", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_role_permissions", x => new { x.permission_id, x.role_id });
-                    table.ForeignKey(
-                        name: "FK_role_permissions_permissions_permission_id",
-                        column: x => x.permission_id,
-                        principalTable: "permissions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_role_permissions_roles_role_id",
-                        column: x => x.role_id,
-                        principalTable: "roles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -361,6 +438,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     DepartmentId = table.Column<Guid>(type: "uuid", nullable: true),
                     JobGroup = table.Column<int>(type: "integer", nullable: false),
                     ApprovalAuthority = table.Column<int>(type: "integer", nullable: false),
+                    WorkflowProfileCode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     ReturnReason = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
                     TasksApprovedById = table.Column<Guid>(type: "uuid", nullable: true),
@@ -476,6 +554,56 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         principalTable: "party_member_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "member_positions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    PositionId = table.Column<Guid>(type: "uuid", nullable: false),
+                    PartyCellId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DepartmentId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsPrimary = table.Column<bool>(type: "boolean", nullable: false),
+                    ValidFrom = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ValidTo = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Note = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_member_positions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_member_positions_administrative_departments_DepartmentId",
+                        column: x => x.DepartmentId,
+                        principalTable: "administrative_departments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_member_positions_party_cells_PartyCellId",
+                        column: x => x.PartyCellId,
+                        principalTable: "party_cells",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_member_positions_party_member_profiles_UserId",
+                        column: x => x.UserId,
+                        principalTable: "party_member_profiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_member_positions_positions_PositionId",
+                        column: x => x.PositionId,
+                        principalTable: "positions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -611,6 +739,39 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "evaluation_external_results",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    RecordId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Step = table.Column<int>(type: "integer", nullable: false),
+                    AuthorityName = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    DocumentNumber = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    DocumentDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Comment = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    Grade = table.Column<int>(type: "integer", nullable: false),
+                    Score = table.Column<double>(type: "double precision", nullable: true),
+                    AttachmentId = table.Column<Guid>(type: "uuid", nullable: true),
+                    RecordedById = table.Column<Guid>(type: "uuid", nullable: true),
+                    RecordedByName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    RecordedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_evaluation_external_results", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_evaluation_external_results_evaluation_records_RecordId",
+                        column: x => x.RecordId,
+                        principalTable: "evaluation_records",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "evaluation_meeting_vote_summaries",
                 columns: table => new
                 {
@@ -724,6 +885,21 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_administrative_departments_ParentId",
+                table: "administrative_departments",
+                column: "ParentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_administrative_departments_Path",
+                table: "administrative_departments",
+                column: "Path");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_administrative_departments_UnitTypeId",
+                table: "administrative_departments",
+                column: "UnitTypeId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_audit_logs_CreatedAt",
                 table: "audit_logs",
                 column: "CreatedAt");
@@ -763,6 +939,12 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 name: "IX_collective_evaluation_records_PeriodId_Status",
                 table: "collective_evaluation_records",
                 columns: new[] { "PeriodId", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_evaluation_external_results_RecordId_Step",
+                table: "evaluation_external_results",
+                columns: new[] { "RecordId", "Step" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_evaluation_meeting_vote_summaries_MeetingId_RecordId",
@@ -862,10 +1044,52 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 columns: new[] { "UserId", "CreatedAt" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_member_positions_DepartmentId",
+                table: "member_positions",
+                column: "DepartmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_member_positions_PartyCellId",
+                table: "member_positions",
+                column: "PartyCellId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_member_positions_PositionId",
+                table: "member_positions",
+                column: "PositionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_member_positions_UserId",
+                table: "member_positions",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_org_unit_types_Side_Name",
+                table: "org_unit_types",
+                columns: new[] { "Side", "Name" },
+                unique: true,
+                filter: "\"IsDeleted\" = FALSE");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_party_cells_Code",
                 table: "party_cells",
                 column: "Code",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_party_cells_ParentId",
+                table: "party_cells",
+                column: "ParentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_party_cells_Path",
+                table: "party_cells",
+                column: "Path");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_party_cells_UnitTypeId",
+                table: "party_cells",
+                column: "UnitTypeId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_party_member_profiles_DepartmentId",
@@ -898,6 +1122,13 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 table: "permissions",
                 column: "Code",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_positions_Name",
+                table: "positions",
+                column: "Name",
+                unique: true,
+                filter: "\"IsDeleted\" = FALSE");
 
             migrationBuilder.CreateIndex(
                 name: "IX_refresh_tokens_TokenHash",
@@ -979,6 +1210,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 name: "collective_evaluation_items");
 
             migrationBuilder.DropTable(
+                name: "evaluation_external_results");
+
+            migrationBuilder.DropTable(
                 name: "evaluation_meeting_vote_summaries");
 
             migrationBuilder.DropTable(
@@ -989,6 +1223,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "login_events");
+
+            migrationBuilder.DropTable(
+                name: "member_positions");
 
             migrationBuilder.DropTable(
                 name: "refresh_tokens");
@@ -1012,6 +1249,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 name: "task_attachments");
 
             migrationBuilder.DropTable(
+                name: "positions");
+
+            migrationBuilder.DropTable(
                 name: "permissions");
 
             migrationBuilder.DropTable(
@@ -1028,6 +1268,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "party_cells");
+
+            migrationBuilder.DropTable(
+                name: "org_unit_types");
         }
     }
 }

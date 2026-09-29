@@ -454,12 +454,15 @@ public sealed class PeriodService : IPeriodService
 
     private static string ScopeText(EvaluationRecord record)
     {
+        // Phạm vi gán bao trùm cây con: bản gán ở đơn vị của hồ sơ, ở đơn vị cấp trên của nó hoặc Toàn công ty đều đủ.
         var parts = new List<string>();
         if (record.Department != null)
-            parts.Add($"Phòng \"{record.Department.Name}\"");
+            parts.Add($"đơn vị chính quyền \"{record.Department.Name}\"");
         if (record.PartyCell != null)
-            parts.Add($"Chi bộ \"{record.PartyCell.Name}\"");
-        return parts.Count == 0 ? "Toàn công ty" : string.Join(" hoặc ", parts) + " (hoặc Toàn công ty)";
+            parts.Add($"tổ chức Đảng \"{record.PartyCell.Name}\"");
+        return parts.Count == 0
+            ? "Toàn công ty"
+            : string.Join(" hoặc ", parts) + " (gán tại đơn vị đó, đơn vị cấp trên của nó hoặc Toàn công ty)";
     }
 
     #endregion

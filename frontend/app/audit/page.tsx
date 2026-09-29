@@ -17,11 +17,11 @@ const entityOptions = [
   { value: "EvaluationTask", label: "Nhiệm vụ đánh giá" },
   { value: "EvaluationPeriod", label: "Kỳ đánh giá" },
   { value: "PartyMemberProfile", label: "Hồ sơ cán bộ" },
-  { value: "PartyCell", label: "Chi bộ" },
+  { value: "PartyCell", label: "Tổ chức Đảng" },
   { value: "TaskAttachment", label: "Tệp minh chứng" },
   { value: "AppRole", label: "Vai trò / phân quyền" },
   { value: "UserRoleAssignment", label: "Bản gán vai trò" },
-  { value: "AdministrativeDepartment", label: "Phòng / đơn vị" },
+  { value: "AdministrativeDepartment", label: "Đơn vị chính quyền" },
 ];
 
 /** Định dạng thời điểm audit theo locale tiếng Việt. */

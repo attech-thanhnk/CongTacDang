@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { catalogService, CatalogItem } from "@/services/catalogService";
 
-/** Danh mục Phòng/đơn vị và Chi bộ (mọi người đã đăng nhập đều xem được) cho các ô chọn. */
+/** Danh mục đơn vị chính quyền và tổ chức Đảng (mọi người đã đăng nhập đều xem được) cho các ô chọn. */
 export function useCatalogOptions() {
   const [departments, setDepartments] = useState<CatalogItem[]>([]);
   const [partyCells, setPartyCells] = useState<CatalogItem[]>([]);

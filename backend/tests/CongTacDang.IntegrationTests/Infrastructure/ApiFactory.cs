@@ -61,18 +61,13 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             return;
         }
 
-        var admin = new NpgsqlConnectionStringBuilder(connectionString);
-        TestDatabaseNames.EnsureNotForbidden(admin.Database);
-        _adminConnectionString = admin.ConnectionString;
+        _adminConnectionString = TestDatabaseAdmin.AdminConnectionString(connectionString);
 
         await DropStaleDatabasesAsync();
 
-        TestDatabaseNames.EnsureSafe(DatabaseName);
-        await ExecuteAdminAsync($"CREATE DATABASE \"{DatabaseName}\"");
+        await TestDatabaseAdmin.CreateAsync(_adminConnectionString, DatabaseName);
         _databaseCreated = true;
-
-        var target = new NpgsqlConnectionStringBuilder(connectionString) { Database = DatabaseName };
-        _targetConnectionString = target.ConnectionString;
+        _targetConnectionString = TestDatabaseAdmin.TargetConnectionString(_adminConnectionString, DatabaseName);
 
         // Tạo schema bằng migration (như triển khai thật), rồi khởi động host → DataSeeder tạo quyền + vai trò.
         var options = new DbContextOptionsBuilder<CongTacDangDbContext>().UseNpgsql(_targetConnectionString).Options;
@@ -87,13 +82,20 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     /// <inheritdoc />
     async Task IAsyncLifetime.DisposeAsync()
     {
-        await base.DisposeAsync();
-
-        if (_databaseCreated)
+        try
         {
-            NpgsqlConnection.ClearAllPools();
-            await DropDatabaseAsync(DatabaseName);
+            await base.DisposeAsync();
         }
+        catch (NpgsqlException ex)
+        {
+            // Lỗi CSDL khi dừng host sau khi mọi test đã xong (vd. kết nối bị máy chủ dùng chung ngắt): ghi rõ, vẫn dọn CSDL.
+            Console.WriteLine($"Lỗi CSDL khi dừng host test ({DatabaseName}): {TestDatabaseAdmin.Describe(ex)}");
+        }
+
+        // Dọn CSDL là việc phụ: đã thử lại mà vẫn lỗi thì ghi rõ lỗi và để lượt dọn CSDL sót lại (quá 24 giờ) xóa sau,
+        // không làm hỏng kết quả của các test đã chạy xong.
+        if (_databaseCreated)
+            await TestDatabaseAdmin.TryDropAsync(_adminConnectionString!, DatabaseName);
 
         try
         {
@@ -274,49 +276,25 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await action(db);
     }
 
+    /// <summary>Dọn CSDL test sót lại quá hạn (lần chạy bị ngắt); lỗi khi dọn không làm hỏng lần chạy hiện tại.</summary>
     private async Task DropStaleDatabasesAsync()
     {
-        var stale = new List<string>();
-        await using (var connection = new NpgsqlConnection(_adminConnectionString))
-        {
-            await connection.OpenAsync();
-            await using var command = new NpgsqlCommand(
-                "SELECT datname FROM pg_database WHERE datname LIKE 'ctd\\_it\\_%'", connection);
-            await using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                var name = reader.GetString(0);
-                if (TestDatabaseNames.IsStale(name, DateTime.UtcNow))
-                    stale.Add(name);
-            }
-        }
+        var stale = (await TestDatabaseAdmin.ListAsync(_adminConnectionString!))
+            .Where(name => TestDatabaseNames.IsStale(name, DateTime.UtcNow))
+            .ToList();
 
         foreach (var name in stale)
         {
             try
             {
-                await DropDatabaseAsync(name);
+                await TestDatabaseAdmin.DropAsync(_adminConnectionString!, name);
                 Console.WriteLine($"Đã dọn CSDL test sót lại: {name}");
             }
-            catch (PostgresException ex)
+            catch (NpgsqlException ex)
             {
-                Console.WriteLine($"Không dọn được CSDL test sót lại {name}: {ex.MessageText}");
+                Console.WriteLine($"Không dọn được CSDL test sót lại {name}: {ex.Message}");
             }
         }
-    }
-
-    private Task DropDatabaseAsync(string name)
-    {
-        TestDatabaseNames.EnsureSafe(name);
-        return ExecuteAdminAsync($"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)");
-    }
-
-    private async Task ExecuteAdminAsync(string sql)
-    {
-        await using var connection = new NpgsqlConnection(_adminConnectionString);
-        await connection.OpenAsync();
-        await using var command = new NpgsqlCommand(sql, connection);
-        await command.ExecuteNonQueryAsync();
     }
 
     /// <summary>Actor hệ thống khi tạo schema ngoài request.</summary>

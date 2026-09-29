@@ -58,7 +58,7 @@ public class AttachmentController : ControllerBase
     /// (cần quyền cập nhật hồ sơ liên quan); một đối tượng có thể có nhiều tệp.
     /// </summary>
     [HttpPost("upload")]
-    [Authorize] // Service: evaluation.self (tệp của mình) hoặc attachment.general.manage (văn bản chung)
+    [Authorize] // Service: evaluation.self (tệp của mình), evaluation.external.record (văn bản của cấp trên) hoặc attachment.general.manage (văn bản chung)
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> UploadFile(
         [FromForm] IFormFile file,
@@ -88,7 +88,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Thay tệp bằng phiên bản mới (phiên bản cũ được giữ lại trong lịch sử)</summary>
     [HttpPost("{id}/versions")]
-    [Authorize] // Service: evaluation.self (tệp của mình) hoặc attachment.general.manage (văn bản chung)
+    [Authorize] // Service: evaluation.self (tệp của mình), evaluation.external.record (văn bản của cấp trên) hoặc attachment.general.manage (văn bản chung)
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> UploadNewVersion(Guid id, [FromForm] IFormFile file)
     {
@@ -198,7 +198,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Xóa mềm tệp tin (mọi phiên bản)</summary>
     [HttpDelete("{id}")]
-    [Authorize] // Service: evaluation.self trên hồ sơ gắn tệp hoặc attachment.general.manage (văn bản chung)
+    [Authorize] // Service: evaluation.self trên hồ sơ gắn tệp, evaluation.external.record (văn bản của cấp trên) hoặc attachment.general.manage (văn bản chung)
     public async Task<IActionResult> DeleteFile(Guid id)
     {
         try

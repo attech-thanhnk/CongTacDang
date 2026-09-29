@@ -97,7 +97,7 @@ public sealed class GoLiveScenarioTests
         var passwords = GoLiveHttp.ReadPasswords(await download.Content.ReadAsByteArrayAsync());
         Assert.Equal(3, passwords.Count);
 
-        var assignmentHeaders = new[] { "Tên đăng nhập", "Tên vai trò", "Loại phạm vi", "Mã Phòng/Chi bộ", "Từ ngày", "Đến ngày", "Ghi chú" };
+        var assignmentHeaders = new[] { "Tên đăng nhập", "Tên vai trò", "Loại phạm vi", "Mã đơn vị", "Từ ngày", "Đến ngày", "Ghi chú" };
         var todayVn = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7));
         var today = todayVn.ToString("dd/MM/yyyy");
         var endOfNextYear = $"31/12/{todayVn.Year + 1}";
@@ -105,7 +105,7 @@ public sealed class GoLiveScenarioTests
         // Tệp sai: tự gán cho mình, vai trò quản trị gán theo Phòng, trùng trong tệp → không cho xác nhận, không ghi gì.
         var bad = await GoLiveHttp.PreviewAsync(admin, "role-assignments", GoLiveHttp.BuildFile(assignmentHeaders,
             new[] { InitialAdminUsername, "Người được đánh giá", "Toàn công ty", "", "", "", "" },
-            new[] { "le.van.c", "Quản trị hệ thống", "Phòng", "PH-KT", "", "", "" },
+            new[] { "le.van.c", "Quản trị hệ thống", "Đơn vị chính quyền", "PH-KT", "", "", "" },
             new[] { "le.van.c", "Người được đánh giá", "Toàn công ty", "", "", "", "" },
             new[] { "LE.VAN.C", "người được đánh giá", "toàn công ty", "", "", "", "" }));
         Assert.False(bad.GetProperty("canCommit").GetBoolean());
@@ -119,8 +119,8 @@ public sealed class GoLiveScenarioTests
 
         await GoLiveHttp.ImportAsync(admin, "role-assignments", GoLiveHttp.BuildFile(assignmentHeaders,
                 new[] { "nguyen.van.a", "Người được đánh giá", "Toàn công ty", "", "", "", "" },
-                new[] { "nguyen.van.a", "Chi ủy / Bí thư Chi bộ", "Chi bộ", "CB-KT", today, endOfNextYear, "Nghị quyết Chi bộ số 01" },
-                new[] { "nguyen.van.a", "Lãnh đạo Phòng", "Phòng", "PH-KT", "", "", "" },
+                new[] { "nguyen.van.a", "Chi ủy / Bí thư Chi bộ", "Tổ chức Đảng", "CB-KT", today, endOfNextYear, "Nghị quyết Chi bộ số 01" },
+                new[] { "nguyen.van.a", "Lãnh đạo Phòng", "Đơn vị chính quyền", "PH-KT", "", "", "" },
                 new[] { "nguyen.van.a", "Cấp ủy viên Đảng ủy", "Toàn công ty", "", "", "", "" },
                 new[] { "tran.thi.b", "Người được đánh giá", "Toàn công ty", "", "", "", "" },
                 new[] { "tran.thi.b", "Cơ quan thẩm định (Phòng TCCB-LĐ)", "Toàn công ty", "", "", "", "" },

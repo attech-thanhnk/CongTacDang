@@ -286,7 +286,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
             )}
             {addedGlobalOnly.length > 0 && scopedAssignments > 0 && (
               <div className="alert alert-warning small py-2">
-                Vai trò đang được gán theo Phòng/Chi bộ ({scopedAssignments} bản gán) nên không thêm được quyền &quot;Chỉ Toàn công ty&quot;. Máy chủ sẽ từ chối
+                Vai trò đang được gán theo đơn vị chính quyền / tổ chức Đảng ({scopedAssignments} bản gán) nên không thêm được quyền &quot;Chỉ Toàn công ty&quot;. Máy chủ sẽ từ chối
                 khi lưu.
               </div>
             )}

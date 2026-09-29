@@ -95,6 +95,19 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
                 .Where(a => (a.OwnerType == ownerType && a.OwnerId == ownerId)
                     || (a.OwnerType == null && a.RecordId == ownerId))
                 .ToListAsync();
+
+            // Văn bản của cấp trên gắn vào kết quả các bước do cấp trên thực hiện của hồ sơ.
+            var externalIds = await _db.Set<EvaluationExternalResult>()
+                .AsNoTracking()
+                .Where(x => x.RecordId == ownerId && x.AttachmentId.HasValue)
+                .Select(x => x.AttachmentId!.Value)
+                .ToListAsync();
+            foreach (var externalId in externalIds)
+            {
+                var current = await GetCurrentVersionAsync(externalId);
+                if (current != null && owned.All(a => a.GroupId != current.GroupId))
+                    owned.Add(current);
+            }
         }
         else if (ownerType == AttachmentOwnerTypes.EvaluationTask)
         {
@@ -230,6 +243,20 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
             .Distinct()
             .ToList();
 
+        // Văn bản của cấp trên gắn vào kết quả bước do cấp trên thực hiện (theo nhóm phiên bản như nhiệm vụ).
+        var externalVersionLinks = await _db.Set<EvaluationExternalResult>()
+            .AsNoTracking()
+            .Where(x => x.AttachmentId.HasValue && versionIds.Contains(x.AttachmentId.Value))
+            .Select(x => new { VersionId = x.AttachmentId!.Value, x.RecordId })
+            .Distinct()
+            .ToListAsync();
+        var externalLinks = attachments
+            .SelectMany(a => externalVersionLinks
+                .Where(l => groupOfVersion[l.VersionId] == a.GroupId)
+                .Select(l => new { AttachmentId = a.Id, l.RecordId }))
+            .Distinct()
+            .ToList();
+
         var explicitLinks = attachments
             .Where(a => a.RecordId.HasValue)
             .Select(a => new { AttachmentId = a.Id, RecordId = a.RecordId!.Value })
@@ -237,6 +264,7 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
 
         var recordIds = taskLinks.Select(x => x.RecordId)
             .Concat(explicitLinks.Select(x => x.RecordId))
+            .Concat(externalLinks.Select(x => x.RecordId))
             .Distinct()
             .ToList();
         if (recordIds.Count == 0)
@@ -248,19 +276,21 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
             .Where(r => recordIds.Contains(r.Id))
             .ToDictionaryAsync(r => r.Id);
 
-        void Add(Guid attachmentId, Guid recordId, bool viaTask)
+        void Add(Guid attachmentId, Guid recordId, AttachmentLinkKind kind)
         {
             if (!records.TryGetValue(recordId, out var record))
                 return;
             if (!result.TryGetValue(attachmentId, out var list))
                 result[attachmentId] = list = new List<AttachmentRecordLink>();
-            list.Add(new AttachmentRecordLink(record, viaTask));
+            list.Add(new AttachmentRecordLink(record, kind));
         }
 
         foreach (var link in explicitLinks)
-            Add(link.AttachmentId, link.RecordId, viaTask: false);
+            Add(link.AttachmentId, link.RecordId, AttachmentLinkKind.Record);
         foreach (var link in taskLinks)
-            Add(link.AttachmentId, link.RecordId, viaTask: true);
+            Add(link.AttachmentId, link.RecordId, AttachmentLinkKind.Task);
+        foreach (var link in externalLinks)
+            Add(link.AttachmentId, link.RecordId, AttachmentLinkKind.ExternalResult);
 
         return result;
     }

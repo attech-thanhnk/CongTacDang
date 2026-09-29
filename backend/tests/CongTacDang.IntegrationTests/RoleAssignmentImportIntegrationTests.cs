@@ -18,7 +18,7 @@ namespace CongTacDang.IntegrationTests;
 public sealed class RoleAssignmentImportIntegrationTests
 {
     private static readonly string[] Headers =
-        { "Tên đăng nhập", "Tên vai trò", "Loại phạm vi", "Mã Phòng/Chi bộ", "Từ ngày", "Đến ngày", "Ghi chú" };
+        { "Tên đăng nhập", "Tên vai trò", "Loại phạm vi", "Mã đơn vị", "Từ ngày", "Đến ngày", "Ghi chú" };
 
     private readonly ApiFactory _factory;
 

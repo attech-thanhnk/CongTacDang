@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Chỉ kiểm tra mã quyền (danh mục PermissionCodes) — không có ngoại lệ theo tên vai trò.
-  // Phạm vi (Phòng/Chi bộ) được máy chủ kiểm tra; ở đây chỉ để ẩn/hiện menu, nút.
+  // Phạm vi (đơn vị chính quyền / tổ chức Đảng, gồm cả cấp dưới) được máy chủ kiểm tra; ở đây chỉ để ẩn/hiện menu, nút.
   const hasPermission = useCallback(
     (permissionCode: string): boolean => !!user && user.permissions.includes(permissionCode),
     [user]
