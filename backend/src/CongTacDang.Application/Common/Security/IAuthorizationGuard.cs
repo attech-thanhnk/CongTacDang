@@ -10,21 +10,19 @@ namespace CongTacDang.Application.Common.Security;
 /// Đối tượng cần kiểm tra quyền (docs/thiet-ke/phan-quyen.md mục 4).
 /// </summary>
 /// <param name="OwnerId">Chủ hồ sơ (người được đánh giá / người tải tệp / chủ tài khoản).</param>
-/// <param name="DepartmentId">Phòng của hồ sơ (ảnh chụp trên EvaluationRecord).</param>
-/// <param name="PartyCellId">Chi bộ của hồ sơ.</param>
-/// <param name="ApprovalAuthority">Cấp có thẩm quyền quyết định (CoSo / CapTren).</param>
+/// <param name="DepartmentId">Đơn vị chính quyền của đối tượng (với hồ sơ: ảnh chụp trên EvaluationRecord).</param>
+/// <param name="PartyCellId">Tổ chức Đảng của đối tượng.</param>
 public sealed record AccessTarget(
     Guid? OwnerId = null,
     Guid? DepartmentId = null,
-    Guid? PartyCellId = null,
-    ApprovalAuthority? ApprovalAuthority = null)
+    Guid? PartyCellId = null)
 {
     /// <summary>Không gắn đối tượng cụ thể (chỉ xét phạm vi Global).</summary>
     public static AccessTarget None { get; } = new();
 
     /// <summary>Dựng đối tượng kiểm tra từ hồ sơ đánh giá (dùng các trường ảnh chụp trên hồ sơ).</summary>
     public static AccessTarget ForRecord(EvaluationRecord record) =>
-        new(record.MemberId, record.DepartmentId, record.PartyCellId, record.ApprovalAuthority);
+        new(record.MemberId, record.DepartmentId, record.PartyCellId);
 }
 
 /// <summary>

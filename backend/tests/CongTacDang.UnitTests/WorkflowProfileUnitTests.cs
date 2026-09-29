@@ -80,8 +80,6 @@ public sealed class WorkflowProfileUnitTests
         Assert.All(literals, code => Assert.True(PermissionCodes.IsDefined(code), code));
         Assert.All(WorkflowSteps.Ordered, step => Assert.True(PermissionCodes.IsDefined(WorkflowPermissions.DefaultFor(step))));
 
-        // Mã cũ đã gỡ khỏi danh mục (gộp vào evaluation.external.record).
-        Assert.False(PermissionCodes.IsDefined("evaluation.decide.external"));
         Assert.Contains("evaluation.external.record", PermissionCodes.All);
         Assert.Contains("evaluation.unit.review", PermissionCodes.All);
     }
@@ -189,7 +187,7 @@ public sealed class WorkflowProfileUnitTests
     [InlineData("system.roles.manage")]
     [InlineData("evaluation.self")]
     [InlineData("evaluation.read")]
-    [InlineData("evaluation.decide.external")]
+    [InlineData("evaluation.khong.ton.tai")]
     [InlineData("khong.ton.tai")]
     public void Validate_InternalStepPermission_MustBeAssignableEvaluationCode(string permission)
     {

@@ -84,21 +84,14 @@ public static class PermissionCodes
     /// </summary>
     public const string EvaluationUnitReview = "evaluation.unit.review";
 
-    /// <summary>Ghi nhận quyết định của Đảng ủy cơ sở (B4) — chỉ hồ sơ ApprovalAuthority = CoSo.</summary>
+    /// <summary>Ghi nhận quyết định của Đảng ủy cơ sở (B4) — quyền mặc định của B4 khi hồ sơ luồng đặt bước này làm trong hệ thống.</summary>
     public const string EvaluationDecide = "evaluation.decide";
 
     /// <summary>
     /// Ghi nhận kết quả của bước do cấp trên / cơ quan ngoài hệ thống thực hiện (chế độ "Cấp trên thực hiện" trong hồ sơ luồng):
-    /// cơ quan, số/ngày văn bản, nhận xét, mức đề xuất/quyết định, tệp đính kèm. Thay <c>evaluation.decide.external</c>.
+    /// cơ quan, số/ngày văn bản, nhận xét, mức đề xuất/quyết định, tệp đính kèm.
     /// </summary>
     public const string EvaluationExternalRecord = "evaluation.external.record";
-
-    /// <summary>
-    /// ĐÃ GỠ khỏi danh mục quyền (task 15 — gộp vào <see cref="EvaluationExternalRecord"/>): không seed, resolver bỏ qua,
-    /// không dùng ở đâu. Hằng số chỉ còn để <c>AuthorizationGuard</c> (ngoài phạm vi task 15) biên dịch —
-    /// xóa cùng các nhánh tương ứng trong guard khi hợp nhất (xem báo cáo task 15, mục "Cần phối hợp").
-    /// </summary>
-    public const string EvaluationDecideExternal = "evaluation.decide.external";
 
     /// <summary>Công bố, khóa kết quả (B5).</summary>
     public const string EvaluationPublish = "evaluation.publish";
@@ -146,7 +139,7 @@ public static class PermissionCodes
         new(EvaluationAppraise, "Thẩm định", "evaluation", "Thẩm định hồ sơ đánh giá (bước 3b).", true),
         new(EvaluationDirectorReview, "Nhận xét của cấp trực tiếp sử dụng", "evaluation", "Nhận xét, đề xuất của cấp trực tiếp sử dụng cán bộ (bước 3c).", true),
         new(EvaluationUnitReview, "Lãnh đạo đơn vị đề xuất", "evaluation", "Trưởng phòng (lãnh đạo đơn vị) đề xuất mức xếp loại thay cấp trực tiếp sử dụng — dùng làm quyền thực hiện bước 3c trong hồ sơ luồng được cấu hình (HD03 PL III ví dụ 3).", true),
-        new(EvaluationDecide, "Ghi nhận quyết định của Đảng ủy cơ sở", "evaluation", "Ghi nhận quyết định xếp loại của Đảng ủy cơ sở (bước 4) — chỉ hồ sơ thuộc thẩm quyền cơ sở.", true),
+        new(EvaluationDecide, "Ghi nhận quyết định của Đảng ủy cơ sở", "evaluation", "Ghi nhận quyết định xếp loại của Đảng ủy cơ sở (bước 4) khi hồ sơ luồng đặt bước này làm trong hệ thống; bước do cấp trên quyết định dùng quyền Ghi nhận kết quả của cấp trên.", true),
         new(EvaluationExternalRecord, "Ghi nhận kết quả của cấp trên", "evaluation", "Ghi nhận kết quả của bước do cấp trên / cơ quan ngoài hệ thống thực hiện (thẩm định, nhận xét, quyết định…): cơ quan, số/ngày văn bản, nhận xét, mức, tệp đính kèm.", true),
         new(EvaluationPublish, "Công bố, khóa kết quả", "evaluation", "Công bố và khóa kết quả đánh giá (bước 5).", true),
         new(EvaluationReopen, "Mở lại hồ sơ đã khóa", "evaluation", "Mở lại hồ sơ đã khóa để đính chính; bắt buộc ghi lý do.", true),
