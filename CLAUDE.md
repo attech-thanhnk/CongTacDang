@@ -14,17 +14,17 @@ Triển khai on-premise trong mạng LAN nội bộ. Tài liệu gốc trong `do
 backend/CongTacDang.slnx
 backend/src/
   CongTacDang.Domain/          Entities, Enums, máy trạng thái đánh giá — không phụ thuộc project nào
-  CongTacDang.Application/     Services nghiệp vụ, Accounts, Imports (khung import), DTOs, interfaces,
+  CongTacDang.Application/     Services nghiệp vụ, Accounts, DTOs, interfaces,
                                Common/Security (PermissionCodes, IPermissionResolver, IAuthorizationGuard)
   CongTacDang.Infrastructure/  DbContext, Data/Configurations, Data/Migrations, Repositories, DataSeeder,
-                               file storage, Imports (Excel), Documents/report/docx
+                               file storage, Documents/report/docx
   CongTacDang.Api/             Controllers, Authorization (RequirePermission), Middlewares, Extensions, Program.cs
 backend/tests/
   CongTacDang.UnitTests/
   CongTacDang.IntegrationTests/  API thật trên PostgreSQL (CSDL tạm ctd_it_*)
 frontend/
   app/          Trang: work-queue, evaluations, periods, collective-evaluations, attachments, reports, forms,
-                catalog, imports, admin (users, roles), audit, login, change-password
+                catalog, criteria, admin (users, roles, settings, templates), audit, login, change-password
   components/   admin, evaluations, attachments, layout, common
   services/     apiClient.ts + service theo module
   contexts/     AuthContext (permissions + grants), LayoutContext, ToastContext
