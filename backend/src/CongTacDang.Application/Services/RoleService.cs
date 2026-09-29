@@ -26,8 +26,7 @@ public sealed class RoleService : IRoleService
         ["evaluation"] = "Đánh giá cá nhân",
         ["collective"] = "Đánh giá tập thể",
         ["meeting"] = "Hội nghị, kiểm phiếu",
-        ["report"] = "Báo cáo",
-        ["attachment"] = "Văn bản, tài liệu"
+        ["report"] = "Báo cáo"
     };
 
     private readonly IRoleRepository _roles;

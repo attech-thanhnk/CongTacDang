@@ -25,7 +25,6 @@ export function AppHeader() {
     if (pathname.startsWith("/admin/roles")) return "Vai trò";
     if (pathname.startsWith("/catalog")) return "Danh mục";
     if (pathname.startsWith("/audit")) return "Nhật ký";
-    if (pathname.startsWith("/attachments")) return "Tài liệu đính kèm";
     if (pathname.startsWith("/reports")) return "Báo cáo";
     if (pathname.startsWith("/forms")) return "Biểu mẫu";
     return "";

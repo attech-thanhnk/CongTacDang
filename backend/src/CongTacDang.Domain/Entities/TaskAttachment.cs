@@ -22,7 +22,7 @@ public class TaskAttachment : IAuditableEntity, ISoftDeletable
     /// <summary>Dung lượng tệp tính bằng byte</summary>
     public long FileSize { get; set; }
 
-    /// <summary>Khóa định danh đường dẫn tệp trong Storage (VD: general/202609/uuid_name.pdf)</summary>
+    /// <summary>Khóa định danh đường dẫn tệp trong Storage (VD: mau02/202609/uuid_name.pdf)</summary>
     public string ObjectKey { get; set; } = string.Empty;
 
     /// <summary>Mã băm SHA-256 kiểm tra tính toàn vẹn của tệp</summary>
@@ -37,8 +37,8 @@ public class TaskAttachment : IAuditableEntity, ISoftDeletable
     /// <summary>Mã người dùng đã tải tệp lên, dùng để kiểm tra quyền sở hữu. Dữ liệu cũ để null.</summary>
     public Guid? UploadedById { get; set; }
 
-    /// <summary>Mã biểu mẫu hoặc ký hiệu hồ sơ (FormCode: M01, M02, M10... hoặc GENERAL)</summary>
-    public string FormCode { get; set; } = "GENERAL";
+    /// <summary>Mã biểu mẫu hoặc ký hiệu hồ sơ dùng để phân loại tệp (FormCode: MAU01, MAU02, CAPTREN...)</summary>
+    public string FormCode { get; set; } = string.Empty;
 
     /// <summary>Mã định danh đối tượng nghiệp vụ liên quan</summary>
     public Guid? RelatedId { get; set; }
@@ -60,7 +60,7 @@ public class TaskAttachment : IAuditableEntity, ISoftDeletable
     /// </summary>
     public string? OwnerType { get; set; }
 
-    /// <summary>Mã đối tượng sở hữu tệp (null với tệp chung hoặc dữ liệu cũ).</summary>
+    /// <summary>Mã đối tượng sở hữu tệp (null với tệp chưa gắn đối tượng hoặc dữ liệu cũ).</summary>
     public Guid? OwnerId { get; set; }
 
     /// <summary>
@@ -94,7 +94,7 @@ public class TaskAttachment : IAuditableEntity, ISoftDeletable
     public string EffectiveOwnerType => OwnerType
         ?? (RecordId.HasValue ? AttachmentOwnerTypes.EvaluationRecord
             : RelatedId.HasValue ? AttachmentOwnerTypes.EvaluationTask
-            : AttachmentOwnerTypes.General);
+            : AttachmentOwnerTypes.Unlinked);
 
     /// <summary>Mã đối tượng sở hữu thực tế, suy ra từ cột cũ khi chưa có <see cref="OwnerType"/>.</summary>
     public Guid? EffectiveOwnerId => OwnerType != null ? OwnerId : RecordId ?? RelatedId;

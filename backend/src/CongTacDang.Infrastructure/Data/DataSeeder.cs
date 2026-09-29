@@ -72,11 +72,10 @@ public static class DataSeeder
         public const string Administrator = "QUAN_TRI_HE_THONG";
     }
 
-    /// <summary>Quyền của vai trò quản trị hệ thống: <c>system.*</c>, <c>catalog.manage</c>, <c>attachment.general.manage</c>.</summary>
+    /// <summary>Quyền của vai trò quản trị hệ thống: <c>system.*</c>, <c>catalog.manage</c>.</summary>
     private static readonly string[] AdministratorPermissionCodes = PermissionCodes.All
         .Where(code => code.StartsWith("system.", StringComparison.Ordinal)
-            || code == PermissionCodes.CatalogManage
-            || code == PermissionCodes.AttachmentGeneralManage)
+            || code == PermissionCodes.CatalogManage)
         .ToArray();
 
     /// <summary>Cấu hình mặc định (docs/thiet-ke/phan-quyen.md mục 6).</summary>
@@ -109,7 +108,7 @@ public static class DataSeeder
                 PermissionCodes.EvaluationPublish, PermissionCodes.EvaluationReopen, PermissionCodes.MeetingRead,
                 PermissionCodes.MeetingManage, PermissionCodes.ReportExport
             }),
-        new(RoleCodes.Administrator, "Quản trị hệ thống", "Quản trị kỹ thuật: tài khoản, vai trò, gán vai trò, nhật ký, danh mục, văn bản chung, thông tin đơn vị, file mẫu biểu mẫu Word. "
+        new(RoleCodes.Administrator, "Quản trị hệ thống", "Quản trị kỹ thuật: tài khoản, vai trò, gán vai trò, nhật ký, danh mục, thông tin đơn vị, file mẫu biểu mẫu Word. "
             + "Không xem nội dung đánh giá (Mẫu 18).",
             AdministratorPermissionCodes, IsProtected: true)
     };

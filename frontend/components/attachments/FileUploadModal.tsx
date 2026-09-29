@@ -261,7 +261,7 @@ export function FileUploadModal({
                     <option value="MAU09">Minh chứng tiêu chí chung</option>
                     <option value="MAU10">Biên bản / Nhận xét Chi bộ</option>
                     <option value="MAU15">Hồ sơ thẩm định Đảng ủy</option>
-                    <option value="GENERAL">Tài liệu minh chứng khác</option>
+                    <option value="KHAC">Tài liệu minh chứng khác</option>
                   </select>
                 </div>
                 <div>

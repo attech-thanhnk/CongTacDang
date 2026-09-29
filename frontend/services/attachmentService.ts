@@ -1,4 +1,4 @@
-import { API_BASE_URL, apiClient, request } from "./apiClient";
+import { apiClient, request } from "./apiClient";
 
 export interface AttachmentItem {
   id: string;
@@ -12,8 +12,9 @@ export interface AttachmentItem {
   checksum?: string;
 }
 
+// Tệp luôn gắn với một đối tượng (nhiệm vụ / hồ sơ đánh giá, kết quả của cấp trên); quyền xem tệp = quyền trên đối tượng.
 export const attachmentService = {
-  // Lấy danh sách toàn bộ tệp đính kèm
+  // Danh sách tệp người dùng được xem (tệp gắn hồ sơ trong phạm vi + tệp mình tải lên chưa gắn) — dùng khi chọn lại minh chứng
   async getAttachments(): Promise<AttachmentItem[]> {
     return request<AttachmentItem[]>("/attachments/list");
   },
@@ -29,22 +30,15 @@ export const attachmentService = {
     await attachmentService.downloadAttachment(id, info.fileName);
   },
 
-  // Tải lên tệp đính kèm kèm mã biểu mẫu và trích yếu
+  // Tải lên tệp minh chứng (chưa gắn): chỉ người tải lên thấy tới khi tệp được gắn vào nhiệm vụ / kết quả của cấp trên
   async uploadAttachment(file: File, formCode: string, description: string): Promise<any> {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("formCode", formCode || "GENERAL");
+    formData.append("formCode", formCode);
     formData.append("description", description);
 
     return apiClient.post("/attachments/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
-    });
-  },
-
-  // Xóa tệp đính kèm theo Id
-  async deleteAttachment(id: string): Promise<any> {
-    return request(`/attachments/${id}`, {
-      method: "DELETE",
     });
   },
 
@@ -65,11 +59,6 @@ export const attachmentService = {
       console.error("Lỗi khi tải tệp tin:", err);
       throw err;
     }
-  },
-
-  // Lấy URL xem trực tiếp (inline)
-  getViewUrl(id: string): string {
-    return `${API_BASE_URL}/attachments/${id}/view`;
   },
 
   // Tải nội dung blob để xem an toàn trong iframe / modal

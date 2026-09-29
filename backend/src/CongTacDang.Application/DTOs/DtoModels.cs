@@ -129,7 +129,7 @@ public class AttachmentDto
     /// <summary>Mã người tải lên phiên bản này (null với dữ liệu cũ)</summary>
     public Guid? UploadedById { get; set; }
 
-    /// <summary>Loại đối tượng sở hữu tệp (General, EvaluationRecord, EvaluationTask)</summary>
+    /// <summary>Loại đối tượng sở hữu tệp (EvaluationRecord, EvaluationTask; Unlinked = chưa gắn, chỉ người tải lên thấy)</summary>
     public string OwnerType { get; set; } = string.Empty;
 
     /// <summary>Mã đối tượng sở hữu tệp</summary>

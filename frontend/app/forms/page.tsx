@@ -12,7 +12,7 @@ interface StandardForm {
   group: string;
   targetUser: string;
   purpose: string;
-  actionType: "report" | "attachment";
+  actionType: "report" | "evaluation";
 }
 
 const STANDARD_FORMS: StandardForm[] = [
@@ -23,7 +23,7 @@ const STANDARD_FORMS: StandardForm[] = [
     group: "Giao việc & Đăng ký",
     targetUser: "Cán bộ lãnh đạo, quản lý",
     purpose: "Đăng ký 3 - 7 nhiệm vụ đầu quý (tổng 70 điểm)",
-    actionType: "attachment",
+    actionType: "evaluation",
   },
   {
     id: "form-02",
@@ -32,7 +32,7 @@ const STANDARD_FORMS: StandardForm[] = [
     group: "Tự chấm điểm",
     targetUser: "Cá nhân cán bộ",
     purpose: "Tự chấm điểm sản phẩm chuyên môn theo 4 tiêu chí A-B-C-D",
-    actionType: "attachment",
+    actionType: "evaluation",
   },
   {
     id: "form-09",
@@ -41,7 +41,7 @@ const STANDARD_FORMS: StandardForm[] = [
     group: "Tự chấm điểm",
     targetUser: "Cán bộ lãnh đạo, quản lý",
     purpose: "Tự chấm tiêu chí chung và kết quả nhiệm vụ theo bộ tiêu chí của kỳ",
-    actionType: "attachment",
+    actionType: "evaluation",
   },
   {
     id: "form-10",
@@ -50,7 +50,7 @@ const STANDARD_FORMS: StandardForm[] = [
     group: "Chi bộ đánh giá",
     targetUser: "Chi ủy, Bí thư Chi bộ",
     purpose: "Nhận xét phẩm chất và kết quả công tác của cán bộ",
-    actionType: "attachment",
+    actionType: "evaluation",
   },
   {
     id: "form-13",
@@ -59,7 +59,7 @@ const STANDARD_FORMS: StandardForm[] = [
     group: "Chi bộ đánh giá",
     targetUser: "Tổ kiểm phiếu Chi bộ",
     purpose: "Ghi nhận kết quả bỏ phiếu kín của Hội nghị Chi bộ",
-    actionType: "attachment",
+    actionType: "evaluation",
   },
   {
     id: "form-03",
@@ -145,7 +145,7 @@ export default function FormsPage() {
       align: "center",
       render: (f) => (
         <Link
-          href={f.actionType === "report" ? "/reports" : "/attachments"}
+          href={f.actionType === "report" ? "/reports" : "/evaluations"}
           className="btn btn-sm btn-outline-primary py-0.5 px-2.5 d-inline-flex align-items-center gap-1"
           style={{ fontSize: "11.5px" }}
         >

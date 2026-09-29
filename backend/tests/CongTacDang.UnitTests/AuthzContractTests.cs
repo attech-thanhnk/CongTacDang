@@ -117,7 +117,7 @@ public class AuthzContractTests
             "evaluation.read", "evaluation.tasks.approve", "evaluation.cell.confirm", "evaluation.collective.record",
             "evaluation.appraise", "evaluation.director.review", "evaluation.unit.review", "evaluation.decide", "evaluation.external.record",
             "evaluation.publish", "evaluation.reopen", "collective.manage", "meeting.read", "meeting.manage",
-            "report.export", "attachment.general.manage"
+            "report.export"
         };
         Assert.Equal(expected, PermissionCodes.All);
         Assert.Equal(PermissionCodes.All.Length, PermissionCodes.All.Distinct().Count());
@@ -131,8 +131,7 @@ public class AuthzContractTests
         Assert.Equal(new HashSet<string>
         {
             "system.roles.manage", "system.assignments.manage", "system.audit.read",
-            "system.settings.manage", "system.templates.manage", "catalog.manage", "period.manage", "criteria.manage",
-            "attachment.general.manage"
+            "system.settings.manage", "system.templates.manage", "catalog.manage", "period.manage", "criteria.manage"
         }, globalOnly);
     }
 
