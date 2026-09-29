@@ -65,7 +65,7 @@ public sealed class PeriodParticipantImportDefinition : IImportDefinition<Period
 
     /// <inheritdoc />
     public string Description =>
-        "Thêm cán bộ vào danh sách được đánh giá của một kỳ (đang dự thảo hoặc đang mở). Phòng, Chi bộ, khung chức danh, "
+        "Thêm cán bộ vào danh sách được đánh giá của một kỳ (đang dự thảo hoặc đang mở). Phòng, Chi bộ, khung tỷ trọng, "
         + "cấp quyết định được chụp từ hồ sơ cán bộ tại thời điểm nhập. Hồ sơ luồng: ghi mã hoặc tên hồ sơ luồng của kỳ; "
         + "bỏ trống thì dùng hồ sơ luồng mặc định theo cấp quyết định.";
 

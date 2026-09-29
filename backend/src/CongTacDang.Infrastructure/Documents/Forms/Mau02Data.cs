@@ -41,7 +41,7 @@ public sealed class Mau02Data
             Position = FormText.OrNull(record.Member?.PositionTitle),
             Tasks = tasks.Select((t, index) =>
             {
-                // Một nguồn số liệu (T-38): điểm đạt = SelfScore đã lưu (đã tính theo tỷ trọng Khung chức danh của hồ sơ
+                // Một nguồn số liệu (T-38): điểm đạt = SelfScore đã lưu (đã tính theo khung tỷ trọng của hồ sơ
                 // khi tự chấm). Kết quả SP (%) chỉ là cách viết khác của cùng giá trị: SelfScore / Trọng số.
                 double? resultPct = t.Weight > 0 ? Math.Round(t.SelfScore / t.Weight * 100, 1) : null;
 

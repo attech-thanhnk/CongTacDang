@@ -145,7 +145,7 @@ public class PeriodController : ControllerBase
         return Ok(ApiResponse.Ok("Đã bỏ người khỏi danh sách được đánh giá."));
     }
 
-    /// <summary>Sửa ảnh chụp Phòng/Chi bộ/khung chức danh/cấp quyết định (bắt buộc lý do, ghi lịch sử).</summary>
+    /// <summary>Sửa ảnh chụp Phòng/Chi bộ/khung tỷ trọng/cấp quyết định (bắt buộc lý do, ghi lịch sử).</summary>
     [HttpPut("{id:guid}/participants/{recordId:guid}/snapshot")]
     [RequirePermission(PermissionCodes.PeriodManage)]
     public async Task<IActionResult> UpdateSnapshot(Guid id, Guid recordId, [FromBody] UpdateSnapshotDto dto, CancellationToken ct) =>

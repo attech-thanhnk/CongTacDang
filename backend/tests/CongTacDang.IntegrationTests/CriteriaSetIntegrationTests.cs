@@ -131,6 +131,8 @@ public sealed class CriteriaSetIntegrationTests
 
         // 6. Mẫu 10 xuất được từ hồ sơ đã công bố.
         await AssertDocxAsync(w.Manager, $"/api/reports/docx/mau-10/{recordId}", "84");
+        // Nội dung giải trình chênh lệch in vào ô APPRAISAL_EXPLANATION (tích hợp đợt 7).
+        await AssertDocxAsync(w.Manager, $"/api/reports/docx/mau-10/{recordId}", "Trừ điểm trục 1 do chậm tiến độ dự án");
     }
 
     [SkippableFact]

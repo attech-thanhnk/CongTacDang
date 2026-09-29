@@ -7,7 +7,7 @@ namespace CongTacDang.Domain.Entities;
 /// <summary>
 /// Thực thể Hồ sơ Đánh giá, xếp loại cá nhân của Cán bộ theo Hướng dẫn 03-HD/TVĐU.
 /// Hồ sơ được tạo khi <c>period.manage</c> thêm người vào danh sách được đánh giá của kỳ (task 12);
-/// Phòng, Chi bộ, khung chức danh, cấp quyết định là <b>ảnh chụp</b> tại thời điểm thêm.
+/// Phòng, Chi bộ, khung tỷ trọng, cấp quyết định là <b>ảnh chụp</b> tại thời điểm thêm.
 /// </summary>
 public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 {

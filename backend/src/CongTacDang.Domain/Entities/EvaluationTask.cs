@@ -37,7 +37,7 @@ public class EvaluationTask : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Mã trục kết quả (Mẫu 01 cột "Trục KQ") — thuộc bộ tiêu chí của kỳ; null nếu chưa chọn.</summary>
     public string? AxisCode { get; set; }
 
-    #region Tự chấm điểm 4 Tiêu chí A-B-C-D theo Khung chức danh (0.0 đến 1.0)
+    #region Tự chấm điểm 4 Tiêu chí A-B-C-D theo khung tỷ trọng (0.0 đến 1.0)
 
     /// <summary>Tỷ lệ hoàn thành Tiêu chí A - Khối lượng công việc (0.0 đến 1.0 tương ứng 0% đến 100%)</summary>
     public double CriteriaA_Ratio { get; set; } = 1.0;
@@ -51,7 +51,7 @@ public class EvaluationTask : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Tỷ lệ hoàn thành Tiêu chí D - Hiệu quả, sáng kiến đổi mới (0.0 đến 1.0 tương ứng 0% đến 100%)</summary>
     public double CriteriaD_Ratio { get; set; } = 1.0;
 
-    /// <summary>Điểm tự chấm của công việc (bằng Trọng số nhân tổng tỷ trọng đạt được theo Khung chức danh)</summary>
+    /// <summary>Điểm tự chấm của công việc (bằng Trọng số nhân tổng tỷ trọng đạt được theo khung tỷ trọng)</summary>
     public double SelfScore { get; set; }
 
     /// <summary>Điểm do cấp ủy / lãnh đạo thẩm định chấm</summary>
