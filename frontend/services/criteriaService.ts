@@ -1,4 +1,7 @@
 import { request } from "./apiClient";
+import type { SelfAssessmentSection } from "./evaluationService";
+
+export type { SelfAssessmentSection };
 
 // ---------------------------------------------------------------------------
 // Bộ tiêu chí và thang điểm theo phiên bản (task 16). Nội dung bộ khai báo được; cấu trúc công thức tính điểm cố định ở
@@ -30,6 +33,10 @@ export interface ResultAxis {
   name: string;
   description?: string | null;
   maxScore: number;
+  /** Tiêu đề trục in ở cột "Nội dung tiêu chí" của Mẫu 09B (trống → dựng từ tên trục). */
+  formTitle?: string | null;
+  /** Nội dung gợi ý in dưới tiêu đề trục trên Mẫu 09B, mỗi dòng một gạch đầu dòng (trống → nội dung áp dụng). */
+  formGuidance?: string | null;
 }
 
 export interface WeightFrame {
@@ -79,6 +86,8 @@ export interface CriteriaParameters {
   publishScores?: boolean;
   /** Task 20: mức chính thức bắt buộc lập kế hoạch 30-60-90 ngày (Mẫu 17); mặc định HoanThanh, KhongHoanThanh. */
   improvementPlanRequiredGrades?: string[];
+  /** Cảnh báo "kế hoạch cần lập" còn xét kỳ đã đóng trong số ngày này (1–3650, mặc định 90). */
+  improvementPlanAlertDays?: number;
 }
 
 /** Nội dung bộ tiêu chí (jsonb, schemaVersion 1). */
@@ -90,7 +99,25 @@ export interface CriteriaSetContent {
   conversionScale: ConversionBand[];
   grades: GradeRule[];
   parameters: CriteriaParameters;
+  /** Biểu mẫu cá nhân áp dụng (mã theo `RECORD_FORMS`); mẫu tự chấm 09A/09B luôn theo mẫu tự chấm của bộ. */
+  requiredForms: string[];
+  /** Các mục tự luận của Mẫu 09C. */
+  selfAssessmentSections: SelfAssessmentSection[];
 }
+
+/** Danh mục biểu mẫu cá nhân (HD03 mục 7) — khớp `RecordFormCodes` phía máy chủ. */
+export const RECORD_FORMS: { code: string; name: string }[] = [
+  { code: "01", name: "Mẫu 01 — Phiếu giao / đăng ký sản phẩm, công việc chuyên môn" },
+  { code: "02", name: "Mẫu 02 — Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc" },
+  { code: "09A", name: "Mẫu 09A — Phiếu tự chấm điểm (theo sản phẩm Mẫu 01/02)" },
+  { code: "09B", name: "Mẫu 09B — Phiếu tự chấm điểm (theo trục)" },
+  { code: "09C", name: "Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân" },
+  { code: "9D", name: "Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ trong quý" },
+  { code: "10", name: "Mẫu 10 — Phiếu thẩm định, nhận xét, đề xuất xếp loại" },
+];
+
+/** Giới hạn cấu hình biểu mẫu (khớp kiểm tra phía máy chủ). */
+export const FORM_CONFIG_LIMITS = { sectionMin: 100, sectionMax: 20000, title: 500, guidance: 8000, alertDaysMax: 3650 } as const;
 
 /** Ảnh chụp bộ tiêu chí trong kỳ. */
 export interface CriteriaSnapshot {
@@ -225,6 +252,22 @@ export function quickChecks(content: CriteriaSetContent, form: string): string[]
     const sum = frame.a + frame.b + frame.c + frame.d;
     if (Math.abs(sum - 1) > 1e-6) messages.push(`Khung ${frame.code}: tổng tỷ trọng ${fmt(sum * 100)}% ≠ 100%.`);
   }
+  const sections = content.selfAssessmentSections ?? [];
+  if ((content.requiredForms ?? []).includes("09C") && sections.length === 0)
+    messages.push("Áp dụng Mẫu 09C phải khai báo ít nhất một mục tự đánh giá.");
+  const codes = new Set<string>();
+  for (const section of sections) {
+    const code = section.code.trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,19}$/.test(code)) messages.push(`Mã mục Mẫu 09C "${section.code}" không hợp lệ (chữ không dấu, số, . - _; tối đa 20 ký tự).`);
+    else if (codes.has(code.toUpperCase())) messages.push(`Mã mục Mẫu 09C "${code}" bị trùng.`);
+    codes.add(code.toUpperCase());
+    if (!section.title.trim()) messages.push(`Mục Mẫu 09C "${code}" chưa có tiêu đề.`);
+    if (!(section.maxLength >= FORM_CONFIG_LIMITS.sectionMin && section.maxLength <= FORM_CONFIG_LIMITS.sectionMax))
+      messages.push(`Số ký tự tối đa của mục Mẫu 09C "${code}" phải từ ${FORM_CONFIG_LIMITS.sectionMin} đến ${FORM_CONFIG_LIMITS.sectionMax}.`);
+  }
+  const alertDays = content.parameters.improvementPlanAlertDays ?? 90;
+  if (!(Number.isInteger(alertDays) && alertDays >= 1 && alertDays <= FORM_CONFIG_LIMITS.alertDaysMax))
+    messages.push(`Số ngày cảnh báo lập kế hoạch 30-60-90 ngày sau khi đóng kỳ phải là số nguyên từ 1 đến ${FORM_CONFIG_LIMITS.alertDaysMax}.`);
   return messages;
 }
 

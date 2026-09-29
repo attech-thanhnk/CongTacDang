@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CriteriaSetContent, GRADE_LABELS, ROUNDING_LABELS, fmt } from "@/services/criteriaService";
+import { CriteriaSetContent, GRADE_LABELS, RECORD_FORMS, ROUNDING_LABELS, fmt } from "@/services/criteriaService";
 
 /** Xem nội dung bộ tiêu chí (chỉ đọc): tiêu chí chung, trục, khung tỷ trọng, thang quy đổi, mức xếp loại, tham số. */
 export function CriteriaSummary({ content, form }: { content: CriteriaSetContent; form: string }) {
@@ -33,10 +33,30 @@ export function CriteriaSummary({ content, form }: { content: CriteriaSetContent
           <thead><tr className="text-secondary"><th style={{ width: 60 }}>Mã</th><th>Trục</th>{form === "09B" && <th style={{ width: 80 }}>Tối đa</th>}</tr></thead>
           <tbody>
             {content.axes.map((a) => (
-              <tr key={a.code}><td>{a.code}</td><td>{a.name}{a.description && <div className="text-secondary">{a.description}</div>}</td>{form === "09B" && <td>{fmt(a.maxScore)}</td>}</tr>
+              <tr key={a.code}>
+                <td>{a.code}</td>
+                <td>
+                  {a.name}{a.description && <div className="text-secondary">{a.description}</div>}
+                  {form === "09B" && a.formTitle && <div className="mt-1"><span className="text-secondary">Tiêu đề Mẫu 09B:</span> {a.formTitle}</div>}
+                  {form === "09B" && a.formGuidance && <div className="text-secondary" style={{ whiteSpace: "pre-line" }}>{a.formGuidance}</div>}
+                </td>
+                {form === "09B" && <td>{fmt(a.maxScore)}</td>}
+              </tr>
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div>
+        <h3 className="h6 small fw-bold text-secondary">Biểu mẫu cá nhân áp dụng</h3>
+        <ul className="mb-1 ps-3">
+          {RECORD_FORMS.filter((f) => ((f.code === "09A" || f.code === "09B") ? f.code === form : (content.requiredForms ?? []).includes(f.code))).map((f) => <li key={f.code}>{f.name}</li>)}
+        </ul>
+        {(content.requiredForms ?? []).includes("09C") && (content.selfAssessmentSections ?? []).map((s) => (
+          <div key={s.code} className="ms-3">
+            Mục 09C <strong>{s.code}</strong>: {s.title} — tối đa {fmt(s.maxLength, 0)} ký tự{s.required ? ", bắt buộc khi nộp" : ""}
+          </div>
+        ))}
       </div>
 
       <div className="row g-3">
@@ -83,6 +103,11 @@ export function CriteriaSummary({ content, form }: { content: CriteriaSetContent
             tiêu chí chung: {p.rounding.generalTotal.decimals}, {ROUNDING_LABELS[p.rounding.generalTotal.mode]}; tổng điểm: {p.rounding.total.decimals}, {ROUNDING_LABELS[p.rounding.total.mode]}.
           </li>
           <li>Hồ sơ tập thể: tối đa {fmt(p.collectiveGeneralMaxScore)} / {fmt(p.collectiveTaskMaxScore)} điểm.</li>
+          <li>
+            Sau công bố: công khai {p.publishScores ? "mức xếp loại kèm điểm chính thức" : "chỉ mức xếp loại"}; bắt buộc lập kế hoạch 30-60-90 ngày (Mẫu 17) với mức{" "}
+            {(p.improvementPlanRequiredGrades ?? ["HoanThanh", "KhongHoanThanh"]).map((g) => GRADE_LABELS[g as keyof typeof GRADE_LABELS] ?? g).join(", ") || "— (không bắt buộc)"};
+            cảnh báo kế hoạch cần lập với kỳ đang mở/khóa và kỳ đã đóng trong {p.improvementPlanAlertDays ?? 90} ngày.
+          </li>
         </ul>
       </div>
     </div>
