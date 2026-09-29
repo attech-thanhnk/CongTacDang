@@ -136,6 +136,9 @@ public static class DataSeeder
         // 2b. Danh mục loại đơn vị và danh mục chức vụ mặc định (chỉ khi danh mục trống — task 14, chờ nghiệp vụ xác nhận).
         await SeedOrganizationCatalogsAsync(context, logger);
 
+        // 2c. Thông tin đơn vị mặc định (chỉ khi chưa có — task 17).
+        await SeedOrganizationSettingsAsync(context, logger);
+
         // 3. Dữ liệu mẫu (chỉ môi trường thử nghiệm).
         if (sampleData?.Enabled == true)
             await SeedSampleDataAsync(context, sampleData, logger);
@@ -335,6 +338,37 @@ public static class DataSeeder
         logger?.LogWarning(
             "Database:ResetRolePermissions đang bật: đã đặt lại quyền của các vai trò {Roles} về mặc định. Hãy tắt cờ này sau khi dùng.",
             string.Join(", ", roles.Select(r => r.Name)));
+    }
+
+    #endregion
+
+    #region Thông tin đơn vị mặc định (task 17)
+
+    /// <summary>
+    /// Thông tin đơn vị mặc định — đúng các chuỗi trước đây ghi cứng trong code xuất biểu mẫu/báo cáo và giao diện, để biểu mẫu
+    /// không đổi khi chưa sửa. Đây là nơi duy nhất trong code chứa tên đơn vị; quản trị sửa trên giao diện (Quản trị → Thông tin đơn vị).
+    /// </summary>
+    public static OrganizationSettings DefaultOrganizationSettings() => new()
+    {
+        Id = OrganizationSettings.SingletonId,
+        PartyCommitteeName = "ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY",
+        SuperiorPartyName = "ĐẢNG BỘ TỔNG CÔNG TY QUẢN LÝ BAY VIỆT NAM",
+        CompanyName = "Công ty TNHH Kỹ thuật Quản lý bay",
+        ParentCompanyName = "Tổng công ty Quản lý bay Việt Nam",
+        ShortName = "ATTECH",
+        Location = "Hà Nội",
+        SystemName = "Đảng bộ ATTECH"
+    };
+
+    /// <summary>Tạo bản ghi thông tin đơn vị mặc định khi chưa có — không bao giờ ghi đè giá trị quản trị đã sửa.</summary>
+    private static async Task SeedOrganizationSettingsAsync(CongTacDangDbContext context, ILogger? logger)
+    {
+        if (await context.Set<OrganizationSettings>().AnyAsync())
+            return;
+
+        context.Set<OrganizationSettings>().Add(DefaultOrganizationSettings());
+        await context.SaveChangesAsync();
+        logger?.LogInformation("Đã tạo thông tin đơn vị mặc định.");
     }
 
     #endregion

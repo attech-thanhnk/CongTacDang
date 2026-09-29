@@ -43,6 +43,12 @@ public static class PermissionCodes
     /// <summary>Nhập dữ liệu (phải có thêm quyền quản lý loại dữ liệu được nhập).</summary>
     public const string SystemImport = "system.import";
 
+    /// <summary>Sửa thông tin đơn vị dùng trên biểu mẫu, báo cáo, giao diện (task 17). Xem: mọi người đã đăng nhập.</summary>
+    public const string SystemSettingsManage = "system.settings.manage";
+
+    /// <summary>Quản lý file mẫu Word của biểu mẫu: tải lên phiên bản mới, kích hoạt, xem lịch sử (task 17).</summary>
+    public const string SystemTemplatesManage = "system.templates.manage";
+
     #endregion
 
     #region Danh mục, kỳ đánh giá
@@ -129,6 +135,8 @@ public static class PermissionCodes
         new(SystemAssignmentsManage, "Gán vai trò", "system", "Gán/thu hồi vai trò cho người dùng kèm phạm vi và thời hạn.", false),
         new(SystemAuditRead, "Xem nhật ký", "system", "Xem nhật ký thao tác và nhật ký đăng nhập.", false),
         new(SystemImport, "Nhập dữ liệu", "system", "Nhập dữ liệu từ tệp; cần thêm quyền quản lý loại dữ liệu được nhập.", false),
+        new(SystemSettingsManage, "Quản lý thông tin đơn vị", "system", "Sửa tên Đảng bộ, tên công ty, tên viết tắt, địa danh… dùng trên biểu mẫu, báo cáo và giao diện.", false),
+        new(SystemTemplatesManage, "Quản lý file mẫu biểu mẫu", "system", "Tải lên phiên bản file mẫu Word mới (kiểm tra tag), kích hoạt lại phiên bản cũ, xem lịch sử.", false),
         new(CatalogManage, "Quản lý danh mục", "catalog", "Quản lý danh mục đơn vị chính quyền, tổ chức Đảng, loại đơn vị, chức vụ. Xem danh mục: mọi người đã đăng nhập.", false),
         new(PeriodManage, "Quản lý kỳ đánh giá", "period", "Tạo kỳ, cấu hình bước/thời hạn/tham số, danh sách người được đánh giá, mở/khóa kỳ.", false),
         new(EvaluationSelf, "Tham gia đánh giá (bản thân)", "evaluation", "Đăng ký sản phẩm, tự chấm, giải trình, nộp minh chứng — chỉ trên hồ sơ của mình (phạm vi gán được bỏ qua).", true),

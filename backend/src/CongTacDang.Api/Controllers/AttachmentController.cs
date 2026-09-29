@@ -133,7 +133,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Tên hiển thị người tải lên lấy từ JWT claim.</summary>
     private string GetUploaderName() =>
-        User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "Cán bộ ATTECH";
+        User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "Cán bộ";
 
     /// <summary>Tải về phiên bản hiện hành của tệp tin minh chứng (Id của bất kỳ phiên bản nào trong tệp)</summary>
     [HttpGet("{id}/download")]

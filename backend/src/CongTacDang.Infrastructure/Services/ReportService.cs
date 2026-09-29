@@ -23,6 +23,7 @@ public class ReportService : IReportService
     private readonly IEvaluationRepository _evalRepo;
     private readonly IWordTemplateStore _templates;
     private readonly IPdfConverter _pdfConverter;
+    private readonly IOrganizationSettingsService _orgSettings;
 
     public ReportService(
         CongTacDangDbContext db,
@@ -30,7 +31,8 @@ public class ReportService : IReportService
         IOrganizationRepository orgRepo,
         IEvaluationRepository evalRepo,
         IWordTemplateStore templates,
-        IPdfConverter pdfConverter)
+        IPdfConverter pdfConverter,
+        IOrganizationSettingsService orgSettings)
     {
         _db = db;
         _userRepo = userRepo;
@@ -38,6 +40,7 @@ public class ReportService : IReportService
         _evalRepo = evalRepo;
         _templates = templates;
         _pdfConverter = pdfConverter;
+        _orgSettings = orgSettings;
     }
 
     public async Task<ReportFileResult> ExportCadresReportAsync(CongTacDang.Application.Common.Security.ScopeFilter scope)
@@ -48,15 +51,16 @@ public class ReportService : IReportService
             .Where(m => scope.Matches(null, m.DepartmentId, m.PartyCellId))
             .ToList();
         var partyPositions = await PartyPositionNamesAsync(members.Select(m => m.Id), DateTime.UtcNow);
+        var org = await _orgSettings.GetAsync();
 
         using (var workbook = new XLWorkbook())
         {
             var ws = workbook.Worksheets.Add("Danh sách cán bộ");
 
-            ws.Cell("A1").Value = "ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY";
+            ws.Cell("A1").Value = org.PartyCommitteeName;
             ws.Cell("A1").Style.Font.Bold = true;
 
-            ws.Cell("A3").Value = "DANH SÁCH CÁN BỘ LÃNH ĐẠO, QUẢN LÝ ATTECH";
+            ws.Cell("A3").Value = $"DANH SÁCH CÁN BỘ LÃNH ĐẠO, QUẢN LÝ {org.ShortName.ToUpperInvariant()}";
             ws.Range("A3:H3").Merge().Style.Font.SetBold(true).Font.SetFontSize(13).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
 
             var headers = new[] { "STT", "Họ và tên", "Số thẻ Đảng", "Chi bộ", "Chức vụ Đảng", "Đơn vị chuyên môn", "Chức danh chính quyền", "Trạng thái" };
@@ -98,7 +102,7 @@ public class ReportService : IReportService
                 return new ReportFileResult
                 {
                     FileBytes = stream.ToArray(),
-                    FileName = "DanhSach_CanBo_ATTECH.xlsx"
+                    FileName = $"DanhSach_CanBo_{SafeName(org.ShortName, "DonVi")}.xlsx"
                 };
             }
         }
@@ -108,19 +112,20 @@ public class ReportService : IReportService
     {
         var (activePeriod, records, scopeCell) = await LoadExcelScopeAsync(periodId, partyCellId);
         var at = PositionDate(activePeriod);
+        var org = await _orgSettings.GetAsync();
 
         using (var workbook = new XLWorkbook())
         {
             var ws = workbook.Worksheets.Add("Mẫu 14 - Xếp loại cán bộ");
 
-            ws.Cell("A1").Value = "ĐẢNG BỘ TỔNG CÔNG TY QUẢN LÝ BAY VIỆT NAM";
-            ws.Cell("A2").Value = "ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY";
+            ws.Cell("A1").Value = org.SuperiorPartyName;
+            ws.Cell("A2").Value = org.PartyCommitteeName;
             ws.Cell("A1").Style.Font.Bold = true;
             ws.Cell("A2").Style.Font.Bold = true;
 
             ws.Cell("F1").Value = "ĐẢNG CỘNG SẢN VIỆT NAM";
             ws.Cell("F1").Style.Font.Bold = true;
-            ws.Cell("F2").Value = $"Hà Nội, ngày {DateTime.Now:dd} tháng {DateTime.Now:MM} năm {DateTime.Now:yyyy}";
+            ws.Cell("F2").Value = DateLine(org.Location);
 
             ws.Cell("A4").Value = $"BẢNG TỔNG HỢP KẾT QUẢ ĐÁNH GIÁ, XẾP LOẠI CHẤT LƯỢNG CÁN BỘ ({ExcelTitleSuffix(activePeriod, scopeCell)})";
             ws.Range("A4:L4").Merge().Style.Font.SetBold(true).Font.SetFontSize(13).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
@@ -220,19 +225,20 @@ public class ReportService : IReportService
         var cells = (await _orgRepo.GetPartyCellsWithMembersAsync())
             .Where(c => scopeCell == null || c.Id == scopeCell.Id)
             .ToList();
+        var org = await _orgSettings.GetAsync();
 
         using (var workbook = new XLWorkbook())
         {
             var ws = workbook.Worksheets.Add("Mẫu 15 - Kiểm soát trần 20%");
 
-            ws.Cell("A1").Value = "ĐẢNG BỘ TỔNG CÔNG TY QUẢN LÝ BAY VIỆT NAM";
-            ws.Cell("A2").Value = "ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY";
+            ws.Cell("A1").Value = org.SuperiorPartyName;
+            ws.Cell("A2").Value = org.PartyCommitteeName;
             ws.Cell("A1").Style.Font.Bold = true;
             ws.Cell("A2").Style.Font.Bold = true;
 
             ws.Cell("E1").Value = "ĐẢNG CỘNG SẢN VIỆT NAM";
             ws.Cell("E1").Style.Font.Bold = true;
-            ws.Cell("E2").Value = $"Hà Nội, ngày {DateTime.Now:dd} tháng {DateTime.Now:MM} năm {DateTime.Now:yyyy}";
+            ws.Cell("E2").Value = DateLine(org.Location);
 
             ws.Cell("A4").Value = $"BẢNG KIỂM SOÁT TỶ LỆ TRẦN 20% HOÀN THÀNH XUẤT SẮC NHIỆM VỤ THEO CHI BỘ ({ExcelTitleSuffix(activePeriod, scopeCell)})";
             ws.Range("A4:H4").Merge().Style.Font.SetBold(true).Font.SetFontSize(13).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
@@ -603,6 +609,10 @@ public class ReportService : IReportService
         return (period, records, cell);
     }
 
+    /// <summary>Dòng "Địa danh, ngày … tháng … năm …" theo ngày hiện tại.</summary>
+    private static string DateLine(string location) =>
+        $"{location}, ngày {DateTime.Now:dd} tháng {DateTime.Now:MM} năm {DateTime.Now:yyyy}";
+
     /// <summary>Tiêu đề phạm vi: tên kỳ (chữ hoa) và tên Chi bộ nếu xuất theo Chi bộ.</summary>
     private static string ExcelTitleSuffix(EvaluationPeriod? period, PartyCell? cell)
     {
@@ -672,7 +682,7 @@ public class ReportService : IReportService
     public async Task<ReportFileResult> ExportMau01DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
     {
         var record = await LoadRecordAsync(recordId);
-        var bytes = RenderWord(Mau01Data.TemplateFileName, Mau01Data.From(record));
+        var bytes = await RenderWordAsync(Mau01Data.TemplateFileName, Mau01Data.From(record));
         return await ToResultAsync(bytes, DocxMimeType, $"Mau_01_DangKyNhiemVu_{SafeName(record.Member?.FullName, "CanBo")}.docx", format);
     }
 
@@ -680,21 +690,23 @@ public class ReportService : IReportService
     {
         var record = await LoadRecordAsync(recordId);
         var evidenceNames = await GetEvidenceNamesAsync(record.Tasks);
-        var bytes = RenderWord(Mau02Data.TemplateFileName, Mau02Data.From(record, evidenceNames));
+        var bytes = await RenderWordAsync(Mau02Data.TemplateFileName, Mau02Data.From(record, evidenceNames));
         return await ToResultAsync(bytes, DocxMimeType, $"Mau_02_TuDanhGia_{SafeName(record.Member?.FullName, "CanBo")}.docx", format);
     }
 
     public async Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
     {
         var record = await LoadRecordAsync(recordId);
-        var bytes = RenderWord(Mau10Data.TemplateFileName, Mau10Data.From(record));
+        var bytes = await RenderWordAsync(Mau10Data.TemplateFileName, Mau10Data.From(record));
         return await ToResultAsync(bytes, DocxMimeType, $"Mau_10_PhieuThamDinh_{SafeName(record.Member?.FullName, "CanBo")}.docx", format);
     }
 
     public async Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original)
     {
         var (period, records, branch) = await LoadPeriodRecordsAsync(periodId, branchId);
-        var bytes = RenderWord(Mau11Data.TemplateFileName, Mau11Data.From(period, records, branch?.Name));
+        // Xuất toàn Đảng bộ: dòng tổ chức Đảng lập phiếu là tên Đảng bộ (cài đặt đơn vị).
+        var issuer = branch?.Name ?? (await _orgSettings.GetAsync()).PartyCommitteeName;
+        var bytes = await RenderWordAsync(Mau11Data.TemplateFileName, Mau11Data.From(period, records, issuer));
         return await ToResultAsync(bytes, DocxMimeType, $"Mau_11_PhieuBoPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx", format);
     }
 
@@ -720,15 +732,21 @@ public class ReportService : IReportService
         if (totalVoters is null or 0 && branch != null)
             totalVoters = await _db.PartyMemberProfiles.CountAsync(m => m.PartyCellId == branch.Id);
 
-        var bytes = RenderWord(Mau13Data.TemplateFileName, Mau13Data.From(period, records, branch?.Name, totalVoters, tallies));
+        var issuer = branch?.Name ?? (await _orgSettings.GetAsync()).PartyCommitteeName;
+        var bytes = await RenderWordAsync(Mau13Data.TemplateFileName, Mau13Data.From(period, records, issuer, totalVoters, tallies));
         return await ToResultAsync(bytes, DocxMimeType, $"Mau_13_BienBanKiemPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx", format);
     }
 
-    /// <summary>Điền lớp dữ liệu mẫu vào template.</summary>
-    private byte[] RenderWord(string templateFileName, object formData)
+    /// <summary>
+    /// Điền lớp dữ liệu mẫu vào template (phiên bản đang kích hoạt hoặc file mẫu gốc), kèm tag thông tin đơn vị dùng chung
+    /// (<see cref="OrganizationTemplateFields"/>, lấy từ cài đặt đơn vị).
+    /// </summary>
+    private async Task<byte[]> RenderWordAsync(string templateFileName, object formData)
     {
-        var template = _templates.Load(templateFileName);
-        return DocxTemplateEngine.Render(template, TemplateDataBinder.Bind(formData)).Content;
+        var template = await _templates.LoadAsync(templateFileName);
+        var org = OrganizationSettingsService.ToTemplateFields(await _orgSettings.GetAsync());
+        var data = TemplateDataBinder.Bind(formData).WithShared(TemplateDataBinder.Bind(org));
+        return DocxTemplateEngine.Render(template, data).Content;
     }
 
     /// <summary>Trả tệp ở định dạng gốc, hoặc chuyển sang PDF phía máy chủ khi <paramref name="format"/> là PDF.</summary>
