@@ -58,7 +58,8 @@ Trường bổ sung (task 07, sửa ở task 14):
 | `meeting.read` | Xem biên bản hội nghị, kiểm phiếu (Mẫu 12–13) | có | |
 | `meeting.manage` | Lập biên bản hội nghị, kiểm phiếu | có | |
 | `report.export` | Xuất báo cáo tổng hợp | có | Mẫu 14–16, danh sách cán bộ — lọc theo phạm vi |
-| `attachment.general.manage` | Quản lý văn bản chung | không | Tài liệu hướng dẫn, biểu mẫu trống (`FormCode = GENERAL`) |
+
+Không có mã quyền riêng cho tệp: hệ thống không lưu văn bản dùng chung (văn bản hướng dẫn phát qua văn phòng điện tử); mọi tệp gắn với một đối tượng và quyền trên tệp suy ra từ quyền trên đối tượng (mục 4).
 
 "Áp dụng phạm vi = không": quyền chỉ có nghĩa khi được gán phạm vi `Global`; gán phạm vi khác → API từ chối (400).
 
@@ -85,7 +86,10 @@ Người dùng **được** thực hiện quyền `P` trên đối tượng `T` 
    - `evaluation.read`: luôn đúng khi `T.OwnerId == user.Id`.
    - **Xung đột lợi ích** (HD03 tr.4): các quyền duyệt/xác nhận/ghi nhận/thẩm định/nhận xét/đề xuất/quyết định/công bố/mở lại (`evaluation.tasks.approve`, `cell.confirm`, `collective.record`, `appraise`, `director.review`, `unit.review`, `decide`, `external.record`, `publish`, `reopen`) **không** áp dụng khi `T.OwnerId == user.Id`.
    - Guard **không** xét cấp quyết định (`ApprovalAuthority`). Bước nào làm trong hệ thống ("Nội bộ", với quyền thực hiện cấu hình được), bước nào do cấp trên thực hiện (ghi nhận bằng `evaluation.external.record`) hay không áp dụng là cấu hình **hồ sơ luồng** của hồ sơ (`docs/thiet-ke/luong-danh-gia.md`); service luồng kiểm tra chế độ bước (sai → 409) rồi mới gọi guard với quyền thực hiện của bước. Cấp quyết định chỉ dùng để chọn hồ sơ luồng mặc định khi thêm người vào kỳ.
-   - Tệp đính kèm: xem theo `evaluation.read` trên hồ sơ gắn tệp; sửa/xóa tệp của chủ hồ sơ theo `evaluation.self`, văn bản của cấp trên (gắn vào kết quả bước do cấp trên thực hiện) theo `evaluation.external.record`.
+   - Tệp đính kèm: mọi tệp gắn với một đối tượng (hồ sơ đánh giá, nhiệm vụ, kết quả bước do cấp trên thực hiện); không có tệp dùng chung, không có trang danh sách tệp riêng — tệp được nộp/xem ngay trong hồ sơ.
+     - Xem/tải: `evaluation.read` trên hồ sơ gắn tệp (chủ hồ sơ luôn xem được).
+     - Tải phiên bản mới: tệp của chủ hồ sơ theo `evaluation.self`; văn bản của cấp trên theo `evaluation.external.record`. Không có API xóa tệp.
+     - Tải lên: gắn đối tượng ngay (`ownerType` = `EvaluationRecord` | `EvaluationTask`) cần `evaluation.self` trên hồ sơ; hoặc tải lên trước rồi gắn qua `AttachmentId` của nhiệm vụ / kết quả của cấp trên — cần `evaluation.self` hoặc `evaluation.external.record`, tệp **chưa gắn** chỉ người tải lên thấy tới khi được gắn; khi gắn, service kiểm tra người gắn có quyền sửa tệp.
 
 Guard cung cấp:
 - `bool Can(string permission, AccessTarget target)` và `void Ensure(...)` (ném `ForbiddenException` → 403);
@@ -133,7 +137,7 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
 | Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch) | `evaluation.read`, `evaluation.director.review`, `report.export` | Global | IV.3c |
 | Cấp ủy viên Đảng ủy | `evaluation.read`, `meeting.read`, `report.export` | Global | IV.4; Mẫu 18 |
 | Văn phòng Đảng ủy (ghi nhận quyết định) | `evaluation.read`, `evaluation.decide`, `evaluation.external.record`, `evaluation.publish`, `evaluation.reopen`, `meeting.read`, `meeting.manage`, `report.export` | Global | IV.4, IV.5 |
-| Quản trị hệ thống (`IsProtected`) | `system.*` (gồm `system.settings.manage`, `system.templates.manage`), `catalog.manage`, `attachment.general.manage` | Global | Mẫu 18 (đầu mối IT) |
+| Quản trị hệ thống (`IsProtected`) | `system.*` (gồm `system.settings.manage`, `system.templates.manage`), `catalog.manage` | Global | Mẫu 18 (đầu mối IT) |
 
 Phạm vi `Department`/`PartyCell` trong bảng hiển thị là "Đơn vị chính quyền"/"Tổ chức Đảng" và bao trùm mọi đơn vị cấp dưới của nút được gán (mục 4.1).
 
