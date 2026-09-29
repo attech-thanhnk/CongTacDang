@@ -109,7 +109,8 @@ public static class DataSeeder
                 PermissionCodes.EvaluationPublish, PermissionCodes.EvaluationReopen, PermissionCodes.MeetingRead,
                 PermissionCodes.MeetingManage, PermissionCodes.ReportExport
             }),
-        new(RoleCodes.Administrator, "Quản trị hệ thống", "Quản trị kỹ thuật: tài khoản, vai trò, gán vai trò, nhật ký, danh mục, văn bản chung. Không xem nội dung đánh giá (Mẫu 18).",
+        new(RoleCodes.Administrator, "Quản trị hệ thống", "Quản trị kỹ thuật: tài khoản, vai trò, gán vai trò, nhật ký, danh mục, văn bản chung, thông tin đơn vị, file mẫu biểu mẫu Word. "
+            + "Không xem nội dung đánh giá (Mẫu 18).",
             AdministratorPermissionCodes, IsProtected: true)
     };
 

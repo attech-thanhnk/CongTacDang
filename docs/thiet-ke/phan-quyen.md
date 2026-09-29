@@ -38,8 +38,11 @@ Trường bổ sung (task 07, sửa ở task 14):
 | `system.assignments.manage` | Gán vai trò | không | Gán/thu hồi vai trò kèm phạm vi, thời hạn |
 | `system.audit.read` | Xem nhật ký | không | Nhật ký thao tác + nhật ký đăng nhập |
 | `system.import` | Nhập dữ liệu | không | Phải có thêm quyền quản lý loại dữ liệu được nhập |
+| `system.settings.manage` | Quản lý thông tin đơn vị | không | Sửa tên Đảng bộ, tổ chức Đảng cấp trên, tên công ty, tên viết tắt, địa danh, tên hệ thống dùng trên biểu mẫu/báo cáo/giao diện. **Xem**: mọi người đã đăng nhập; phần tên hiển thị công khai trước đăng nhập |
+| `system.templates.manage` | Quản lý file mẫu biểu mẫu | không | Tải lên phiên bản file mẫu Word mới (kiểm tra tag), kích hoạt lại phiên bản cũ, về file gốc, tải file, xem lịch sử |
 | `catalog.manage` | Quản lý danh mục | không | Đơn vị chính quyền, tổ chức Đảng (cây), loại đơn vị, chức vụ. **Xem** danh mục: mọi người đã đăng nhập |
-| `period.manage` | Quản lý kỳ đánh giá | không | Tạo kỳ, cấu hình hồ sơ luồng (chế độ bước, quyền thực hiện, thời hạn)/tham số, danh sách người được đánh giá và hồ sơ luồng của từng người, kiểm tra kẹt luồng, mở/khóa kỳ |
+| `period.manage` | Quản lý kỳ đánh giá | không | Tạo kỳ, cấu hình hồ sơ luồng (chế độ bước, quyền thực hiện, thời hạn)/tham số, danh sách người được đánh giá và hồ sơ luồng của từng người, kiểm tra kẹt luồng, mở/khóa kỳ; **chọn bộ tiêu chí đã xuất bản** cho kỳ (khi Dự thảo) và xem danh sách bộ tiêu chí |
+| `criteria.manage` | Quản lý bộ tiêu chí | không | Tạo, nhân bản, sửa bản nháp, xuất bản, lưu trữ, xóa bản nháp bộ tiêu chí và thang điểm (tiêu chí chung, trục, khung tỷ trọng, thang quy đổi, mức xếp loại, tham số). Danh sách khung tỷ trọng (chọn khung mặc định cho cán bộ): mọi người đã đăng nhập |
 | `evaluation.self` | Tham gia đánh giá (bản thân) | chủ hồ sơ | Đăng ký sản phẩm, tự chấm, giải trình, nộp minh chứng — **chỉ trên hồ sơ của mình** |
 | `evaluation.read` | Xem hồ sơ đánh giá | có | Chủ hồ sơ **luôn** xem được hồ sơ của mình (HD03: quyền được biết) |
 | `evaluation.tasks.approve` | Duyệt danh mục sản phẩm (B1) | có | |
@@ -127,11 +130,11 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
 | Lãnh đạo Phòng | `evaluation.read`, `evaluation.tasks.approve`, `evaluation.unit.review` | Department | IV.1; PL II mục II; PL III ví dụ 3 |
 | Thư ký tập thể lãnh đạo | `evaluation.read`, `evaluation.collective.record`, `meeting.read`, `meeting.manage` | Department hoặc Global (cấp Công ty) | IV.3a; Mẫu 11–13 |
 | Chi ủy / Bí thư Chi bộ | `evaluation.read`, `evaluation.cell.confirm`, `collective.manage`, `meeting.read` | PartyCell | Mẫu 09A–9D "xác nhận của Chi bộ"; Mẫu 07 |
-| Cơ quan thẩm định (Phòng TCCB-LĐ) | `evaluation.read`, `evaluation.appraise`, `period.manage`, `report.export`, `system.import`, `system.users.read` | Global | IV.1 (rà soát), IV.3b |
+| Cơ quan thẩm định (Phòng TCCB-LĐ) | `evaluation.read`, `evaluation.appraise`, `period.manage`, `criteria.manage`, `report.export`, `system.import`, `system.users.read` | Global | IV.1 (rà soát), IV.3b |
 | Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch) | `evaluation.read`, `evaluation.director.review`, `report.export` | Global | IV.3c |
 | Cấp ủy viên Đảng ủy | `evaluation.read`, `meeting.read`, `report.export` | Global | IV.4; Mẫu 18 |
 | Văn phòng Đảng ủy (ghi nhận quyết định) | `evaluation.read`, `evaluation.decide`, `evaluation.external.record`, `evaluation.publish`, `evaluation.reopen`, `meeting.read`, `meeting.manage`, `report.export` | Global | IV.4, IV.5 |
-| Quản trị hệ thống (`IsProtected`) | `system.*`, `catalog.manage`, `attachment.general.manage` | Global | Mẫu 18 (đầu mối IT) |
+| Quản trị hệ thống (`IsProtected`) | `system.*` (gồm `system.settings.manage`, `system.templates.manage`), `catalog.manage`, `attachment.general.manage` | Global | Mẫu 18 (đầu mối IT) |
 
 Phạm vi `Department`/`PartyCell` trong bảng hiển thị là "Đơn vị chính quyền"/"Tổ chức Đảng" và bao trùm mọi đơn vị cấp dưới của nút được gán (mục 4.1).
 
