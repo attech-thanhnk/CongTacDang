@@ -49,6 +49,13 @@ public class EvaluationMeeting : IAuditableEntity, ISoftDeletable, IVersioned
     public string OutcomeContent { get; set; } = string.Empty;
     public string VoteCountingContent { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Các mục của biên bản Mẫu 12 chưa có cột riêng (jsonb theo mã mục): <c>workingRules</c> (Quy chế làm việc của … nhiệm kỳ …),
+    /// <c>reportingUnit</c> (cơ quan, đơn vị báo cáo nhiệm vụ trọng tâm), <c>chairTitle</c>, <c>secretaryTitle</c> (chức vụ Đảng,
+    /// chính quyền), <c>attendees</c> (mục 3.2: <c>[{ "name", "title" }]</c>).
+    /// </summary>
+    public string Details { get; set; } = "{}";
+
     /// <summary>Không lưu UserId của người bỏ phiếu; chỉ lưu tổng hợp kiểm phiếu theo hồ sơ.</summary>
     public ICollection<EvaluationMeetingVoteSummary> VoteSummaries { get; set; } = new List<EvaluationMeetingVoteSummary>();
 

@@ -744,6 +744,25 @@ public class CollectiveEvaluationRepository : ICollectiveEvaluationRepository
         _db.CollectiveEvaluationRecords.Update(record);
         await _db.SaveChangesAsync();
     }
+
+    /// <summary>Lấy hồ sơ tập thể để sửa (được theo dõi thay đổi, kèm các dòng nội dung).</summary>
+    public Task<CollectiveEvaluationRecord?> GetForUpdateAsync(Guid id) =>
+        _db.CollectiveEvaluationRecords
+            .Include(x => x.Period)
+            .Include(x => x.Items)
+            .FirstOrDefaultAsync(x => x.Id == id);
+
+    /// <summary>Thay toàn bộ dòng nội dung: dòng cũ bị xóa, dòng mới được thêm (trạng thái Added tường minh).</summary>
+    public void ReplaceItems(CollectiveEvaluationRecord record, IEnumerable<CollectiveEvaluationItem> items)
+    {
+        _db.CollectiveEvaluationItems.RemoveRange(record.Items);
+        record.Items.Clear();
+        foreach (var item in items)
+        {
+            item.CollectiveRecordId = record.Id;
+            _db.CollectiveEvaluationItems.Add(item);
+        }
+    }
 }
 
 /// <summary>Repository triển khai biên bản hội nghị và kiểm phiếu.</summary>
@@ -801,4 +820,11 @@ public class EvaluationMeetingRepository : IEvaluationMeetingRepository
         _db.EvaluationMeetings.Update(meeting);
         await _db.SaveChangesAsync();
     }
+
+    /// <summary>Lấy biên bản để sửa (được theo dõi thay đổi).</summary>
+    public Task<EvaluationMeeting?> GetForUpdateAsync(Guid id) =>
+        _db.EvaluationMeetings
+            .Include(x => x.Period)
+            .Include(x => x.VoteSummaries)
+            .FirstOrDefaultAsync(x => x.Id == id);
 }

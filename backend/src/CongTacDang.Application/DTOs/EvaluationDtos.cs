@@ -570,6 +570,8 @@ public class CollectiveEvaluationRecordDto
     public double TotalScore { get; set; }
     public string SelfProposedGrade { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    /// <summary>Nội dung các mục con theo mã mục của biểu mẫu (Mẫu 07: I.1–I.4).</summary>
+    public Dictionary<string, string> Sections { get; set; } = new();
     public List<CollectiveEvaluationItemDto> Items { get; set; } = new();
 }
 
@@ -593,6 +595,9 @@ public class SaveCollectiveEvaluationRequestDto
     public double GeneralCriteriaScore { get; set; }
     public double TaskCriteriaScore { get; set; }
     public string SelfProposedGrade { get; set; } = "HoanThanhTot";
+    /// <summary>Nội dung các mục con theo mã mục của biểu mẫu (Mẫu 07: I.1–I.4; mã khác bị từ chối).</summary>
+    public Dictionary<string, string> Sections { get; set; } = new();
+    /// <summary>Mẫu 08: mỗi dòng một nhiệm vụ, <see cref="CollectiveEvaluationItemDto.Category"/> là mã nhóm nội dung 1–13.</summary>
     public List<CollectiveEvaluationItemDto> Items { get; set; } = new();
 }
 
@@ -624,6 +629,8 @@ public class EvaluationMeetingDto
     public string MinutesContent { get; set; } = string.Empty;
     public string OutcomeContent { get; set; } = string.Empty;
     public string VoteCountingContent { get; set; } = string.Empty;
+    /// <summary>Các mục của biên bản Mẫu 12 chưa có cột riêng.</summary>
+    public MeetingDetailsDto Details { get; set; } = new();
     public List<EvaluationMeetingVoteSummaryDto> VoteSummaries { get; set; } = new();
 }
 
@@ -668,6 +675,8 @@ public class SaveEvaluationMeetingRequestDto
     public string MinutesContent { get; set; } = string.Empty;
     public string OutcomeContent { get; set; } = string.Empty;
     public string VoteCountingContent { get; set; } = string.Empty;
+    /// <summary>Các mục của biên bản Mẫu 12 chưa có cột riêng (null = để trống).</summary>
+    public MeetingDetailsDto? Details { get; set; }
     public List<EvaluationMeetingVoteSummaryDto> VoteSummaries { get; set; } = new();
 }
 

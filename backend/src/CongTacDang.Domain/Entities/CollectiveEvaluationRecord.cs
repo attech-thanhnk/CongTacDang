@@ -39,6 +39,13 @@ public class CollectiveEvaluationRecord : IAuditableEntity, ISoftDeletable, IVer
     public string Responsibilities { get; set; } = string.Empty;
     public string RemediationPlan { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Nội dung các mục con của biểu mẫu chưa có cột riêng (jsonb, khóa là mã mục theo biểu mẫu gốc) — Mẫu 07:
+    /// <c>{ "I.1": "…", "I.2": "…", "I.3": "…", "I.4": "…" }</c> (4 nội dung của mục I "Ưu điểm, kết quả đạt được").
+    /// Đổi mẫu thêm mục không cần đổi schema.
+    /// </summary>
+    public string Sections { get; set; } = "{}";
+
     /// <summary>Điểm nhóm tiêu chí chung, nhóm kết quả và tổng điểm.</summary>
     public double GeneralCriteriaScore { get; set; }
     public double TaskCriteriaScore { get; set; }
