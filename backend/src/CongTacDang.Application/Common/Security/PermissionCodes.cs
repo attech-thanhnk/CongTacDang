@@ -107,7 +107,7 @@ public static class PermissionCodes
 
     #endregion
 
-    #region Tập thể, hội nghị, báo cáo, văn bản
+    #region Tập thể, hội nghị, báo cáo
 
     /// <summary>Lập hồ sơ tự đánh giá tập thể (Mẫu 06–08).</summary>
     public const string CollectiveManage = "collective.manage";
@@ -120,9 +120,6 @@ public static class PermissionCodes
 
     /// <summary>Xuất báo cáo tổng hợp (Mẫu 14–16, danh sách cán bộ) — lọc theo phạm vi.</summary>
     public const string ReportExport = "report.export";
-
-    /// <summary>Quản lý văn bản chung (tài liệu hướng dẫn, biểu mẫu trống; FormCode = GENERAL).</summary>
-    public const string AttachmentGeneralManage = "attachment.general.manage";
 
     #endregion
 
@@ -155,7 +152,6 @@ public static class PermissionCodes
         new(MeetingRead, "Xem biên bản hội nghị", "meeting", "Xem biên bản hội nghị, biên bản kiểm phiếu (Mẫu 12–13).", true),
         new(MeetingManage, "Lập biên bản hội nghị", "meeting", "Lập biên bản hội nghị, biên bản kiểm phiếu.", true),
         new(ReportExport, "Xuất báo cáo tổng hợp", "report", "Xuất báo cáo tổng hợp (Mẫu 14–16, danh sách cán bộ), lọc theo phạm vi.", true),
-        new(AttachmentGeneralManage, "Quản lý văn bản chung", "attachment", "Quản lý tài liệu hướng dẫn, biểu mẫu trống dùng chung (FormCode = GENERAL).", false),
     };
 
     /// <summary>Tất cả mã quyền chuẩn.</summary>

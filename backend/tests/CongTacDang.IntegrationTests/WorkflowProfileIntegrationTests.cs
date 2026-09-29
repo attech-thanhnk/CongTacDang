@@ -317,7 +317,7 @@ public sealed class WorkflowProfileIntegrationTests
     /// <summary>
     /// Đợt 6 (tích hợp): văn bản của cấp trên gắn vào kết quả bước do cấp trên thực hiện — người ghi nhận (không có
     /// evaluation.self) tải lên được; chưa gắn thì chỉ người tải lên thấy; gắn rồi thì ai xem được hồ sơ cũng xem/tải được,
-    /// ngoài phạm vi hồ sơ → 403; chủ hồ sơ/người chỉ xem không sửa/xóa được, người ghi nhận thay phiên bản được;
+    /// ngoài phạm vi hồ sơ → 403; chủ hồ sơ/người chỉ xem không sửa được, người ghi nhận thay phiên bản được;
     /// không gắn được tệp riêng của người khác.
     /// </summary>
     [SkippableFact]
@@ -349,10 +349,9 @@ public sealed class WorkflowProfileIntegrationTests
         var files = await Data(w.Lead1C, $"/api/attachments?ownerType=EvaluationRecord&ownerId={id}");
         Assert.Contains(files.EnumerateArray(), f => f.GetProperty("id").GetGuid() == fileId);
 
-        // Chủ hồ sơ và người chỉ xem không sửa/xóa được văn bản của cấp trên; người ghi nhận thay phiên bản được.
-        Assert.Equal(HttpStatusCode.Forbidden, (await w.OwnerDirectorC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await w.Lead1C.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        // Chủ hồ sơ và người chỉ xem không sửa được văn bản của cấp trên; người ghi nhận thay phiên bản được.
         Assert.Equal(HttpStatusCode.Forbidden, (await UploadAsync(w.OwnerDirectorC, $"/api/attachments/{fileId}/versions")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await UploadAsync(w.Lead1C, $"/api/attachments/{fileId}/versions")).StatusCode);
         var v2 = await Data(await UploadAsync(w.OfficeC, $"/api/attachments/{fileId}/versions"));
         Assert.Equal(2, v2.GetProperty("versionNumber").GetInt32());
         Assert.Equal(HttpStatusCode.OK, (await w.Lead1C.GetAsync($"/api/attachments/{v2.GetProperty("id").GetGuid()}/download")).StatusCode);

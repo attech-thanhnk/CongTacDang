@@ -289,32 +289,52 @@ public sealed class AuthorizationMatrixTests
     #region Tệp đính kèm
 
     [SkippableFact]
-    public async Task Attachments_FollowRecordPermissions_GeneralDocsPublic()
+    public async Task Attachments_FollowRecordPermissions_NoSharedFiles()
     {
         var s = await GetScenarioAsync();
 
-        Assert.Equal(HttpStatusCode.OK, (await Upload(s.OwnerA1, "MAU02", "EvaluationRecord", s.RecordA1)).StatusCode);
+        var linked = await Upload(s.OwnerA1, "MAU02", "EvaluationRecord", s.RecordA1);
+        Assert.Equal(HttpStatusCode.OK, linked.StatusCode);
+        var linkedId = (await ReadData(linked)).GetProperty("id").GetGuid();
         Assert.Equal(HttpStatusCode.Forbidden, (await Upload(s.OwnerB1, "MAU02", "EvaluationRecord", s.RecordA1)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await Upload(s.CellSecA, "MAU02", "EvaluationRecord", s.RecordA1)).StatusCode);
 
+        // Tệp gắn hồ sơ: ai xem được hồ sơ thì xem/tải được; ngoài phạm vi và quản trị kỹ thuật → không.
         var byOwner = $"/api/attachments?ownerType=EvaluationRecord&ownerId={s.RecordA1}";
         Assert.Single(await Ids(s.OwnerA1, byOwner));
         Assert.Single(await Ids(s.CellSecA, byOwner));
         Assert.Empty(await Ids(s.OwnerB1, byOwner));
         Assert.Empty(await Ids(s.Admin, byOwner));
+        Assert.Contains(linkedId, await Ids(s.CellSecA, "/api/attachments/list"));
+        Assert.DoesNotContain(linkedId, await Ids(s.OwnerB1, "/api/attachments/list"));
+        Assert.Equal(HttpStatusCode.OK, (await s.CellSecA.GetAsync($"/api/attachments/{linkedId}/download")).StatusCode);
+        foreach (var client in new[] { s.OwnerB1, s.Admin, s.Plain })
+        {
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/attachments/{linkedId}")).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/attachments/{linkedId}/download")).StatusCode);
+        }
 
-        // Văn bản chung: quản trị tải lên → mọi người xem; cán bộ tải "GENERAL" → chỉ mình thấy.
-        var general = await Upload(s.Admin, "GENERAL", null, null);
-        Assert.Equal(HttpStatusCode.OK, general.StatusCode);
-        var generalId = (await ReadData(general)).GetProperty("id").GetGuid();
-        Assert.Contains(generalId, await Ids(s.Plain, "/api/attachments/list"));
-        Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerA1.DeleteAsync($"/api/attachments/{generalId}")).StatusCode);
+        // Không có tệp dùng chung: tệp chưa gắn đối tượng chỉ người tải lên thấy (kể cả Bí thư cùng Chi bộ không thấy).
+        var unlinked = await Upload(s.OwnerA1, "MAU02", null, null);
+        Assert.Equal(HttpStatusCode.OK, unlinked.StatusCode);
+        var unlinkedId = (await ReadData(unlinked)).GetProperty("id").GetGuid();
+        Assert.Contains(unlinkedId, await Ids(s.OwnerA1, "/api/attachments/list"));
+        foreach (var client in new[] { s.CellSecA, s.Plain, s.Admin })
+        {
+            Assert.DoesNotContain(unlinkedId, await Ids(client, "/api/attachments/list"));
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/attachments/{unlinkedId}/download")).StatusCode);
+        }
 
-        var privateGeneral = await Upload(s.OwnerA1, "GENERAL", null, null);
-        Assert.Equal(HttpStatusCode.OK, privateGeneral.StatusCode);
-        var privateId = (await ReadData(privateGeneral)).GetProperty("id").GetGuid();
-        Assert.DoesNotContain(privateId, await Ids(s.Plain, "/api/attachments/list"));
+        // Không còn đường tải tệp tự do: quản trị kỹ thuật / người không có quyền nộp minh chứng → 403;
+        // loại đối tượng "văn bản chung" không còn → 400; thiếu mã phân loại → 400.
+        Assert.Equal(HttpStatusCode.Forbidden, (await Upload(s.Admin, "MAU02", null, null)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await Upload(s.Plain, "MAU02", null, null)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Upload(s.OwnerA1, "MAU02", "General", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Upload(s.OwnerA1, null, null, null)).StatusCode);
+
+        // Endpoint của trang tài liệu cũ đã bỏ: xóa tệp, xem inline.
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, (await s.OwnerA1.DeleteAsync($"/api/attachments/{unlinkedId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await s.OwnerA1.GetAsync($"/api/attachments/{unlinkedId}/view")).StatusCode);
     }
 
     #endregion
@@ -388,13 +408,14 @@ public sealed class AuthorizationMatrixTests
         return json.RootElement.GetProperty("message").GetString() ?? string.Empty;
     }
 
-    private static async Task<HttpResponseMessage> Upload(HttpClient client, string formCode, string? ownerType, Guid? ownerId)
+    private static async Task<HttpResponseMessage> Upload(HttpClient client, string? formCode, string? ownerType, Guid? ownerId)
     {
         using var content = new MultipartFormDataContent();
         var file = new ByteArrayContent("%PDF-1.4 test"u8.ToArray());
         file.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
         content.Add(file, "file", "minh-chung.pdf");
-        content.Add(new StringContent(formCode), "formCode");
+        if (formCode != null)
+            content.Add(new StringContent(formCode), "formCode");
         if (ownerType != null)
             content.Add(new StringContent(ownerType), "ownerType");
         if (ownerId != null)

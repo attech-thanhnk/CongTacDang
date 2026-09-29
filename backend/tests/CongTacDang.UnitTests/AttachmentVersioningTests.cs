@@ -9,7 +9,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>Kiểm thử mô hình tệp theo đối tượng, phiên bản, xóa mềm và kiểm tra quyền (T-36, T-47, T-42).</summary>
+/// <summary>Kiểm thử mô hình tệp theo đối tượng, phiên bản, tệp chưa gắn và kiểm tra quyền (T-36, T-47, T-42).</summary>
 public class AttachmentVersioningTests
 {
     private static readonly Guid CellA = Guid.NewGuid();
@@ -121,30 +121,60 @@ public class AttachmentVersioningTests
     }
 
     [Fact]
-    public async Task Delete_SoftDeletesAllVersions()
-    {
-        var owner = _world.Cadre(CellA);
-        var (_, task) = _world.RecordWithTask(owner);
-        var v1 = await _world.Service.UploadAttachmentAsync(Pdf("v1"), "a.pdf", 10, "MAU02", "", "A", owner.Id,
-            AttachmentOwnerTypes.EvaluationTask, task.Id);
-        await _world.Service.ReplaceAttachmentAsync(v1.Id, Pdf("v2"), "b.pdf", 10, "A", owner.Id);
-
-        await _world.Service.DeleteAttachmentAsync(v1.Id, owner.Id);
-
-        Assert.All(_world.Files.Items, a => Assert.True(a.IsDeleted));
-        Assert.Equal(2, _world.Storage.Objects.Count); // File vật lý được giữ để khôi phục.
-        await Assert.ThrowsAsync<KeyNotFoundException>(() => _world.Service.DownloadAttachmentAsync(v1.Id, owner.Id));
-        Assert.Empty(await _world.Service.GetAttachmentsByOwnerAsync(AttachmentOwnerTypes.EvaluationTask, task.Id, owner.Id));
-    }
-
-    [Fact]
-    public async Task Delete_BySomeoneElse_IsForbidden()
+    public async Task Unlinked_VisibleOnlyToUploader_UntilLinked()
     {
         var owner = _world.Cadre(CellA);
         var v1 = await _world.Service.UploadAttachmentAsync(Pdf("v1"), "a.pdf", 10, "MAU02", "", "A", owner.Id);
+        Assert.Equal(AttachmentOwnerTypes.Unlinked, _world.Files.Items.Single().OwnerType);
 
-        await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.DeleteAttachmentAsync(v1.Id, _world.Cadre(CellA).Id));
-        Assert.False(_world.Files.Items.Single().IsDeleted);
+        // Không có tệp dùng chung: người khác (kể cả Bí thư cùng Chi bộ) không thấy, không tải, không thay.
+        var other = _world.Cadre(CellA);
+        var secretary = _world.Secretary(CellA);
+        Assert.Contains(await _world.Service.GetAttachmentsAsync(owner.Id), a => a.Id == v1.Id);
+        Assert.Empty(await _world.Service.GetAttachmentsAsync(other.Id));
+        Assert.Empty(await _world.Service.GetAttachmentsAsync(secretary.Id));
+        await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.DownloadAttachmentAsync(v1.Id, secretary.Id));
+        await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.GetAttachmentByIdAsync(v1.Id, other.Id));
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            _world.Service.ReplaceAttachmentAsync(v1.Id, Pdf("v2"), "b.pdf", 10, "B", other.Id));
+
+        // Gắn vào nhiệm vụ của chủ hồ sơ → Bí thư cùng Chi bộ xem được theo quyền trên hồ sơ.
+        var (_, task) = _world.RecordWithTask(owner);
+        task.AttachmentId = v1.Id;
+        Assert.Contains(await _world.Service.GetAttachmentsAsync(secretary.Id), a => a.Id == v1.Id);
+        Assert.Empty(await _world.Service.GetAttachmentsAsync(other.Id));
+    }
+
+    [Fact]
+    public async Task Upload_Unlinked_RequiresEvidencePermission()
+    {
+        // Người không có evaluation.self / evaluation.external.record (VD: chỉ quản trị hệ thống) không tải tệp tự do được.
+        var admin = _world.UserWith(PermissionCodes.SystemUsersManage, PermissionCodes.CatalogManage);
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            _world.Service.UploadAttachmentAsync(Pdf("x"), "x.pdf", 1, "MAU02", "", "Q", admin.Id));
+        Assert.Empty(_world.Files.Items);
+        Assert.Empty(_world.Storage.Objects);
+
+        // Văn bản của cấp trên: evaluation.external.record được tải tệp chưa gắn (gắn khi ghi nhận kết quả).
+        var office = _world.UserWith(PermissionCodes.EvaluationExternalRecord);
+        await _world.Service.UploadAttachmentAsync(Pdf("x"), "x.pdf", 1, "CAPTREN", "", "VP", office.Id);
+        Assert.Single(_world.Files.Items);
+    }
+
+    [Fact]
+    public async Task Upload_WithoutValidOwner_IsRejected()
+    {
+        var owner = _world.Cadre(CellA);
+        // Không còn loại đối tượng "văn bản chung"; loại chưa gắn không nhận từ client.
+        await Assert.ThrowsAsync<ArgumentException>(() => _world.Service.UploadAttachmentAsync(
+            Pdf("x"), "x.pdf", 1, "MAU02", "", "A", owner.Id, "General", null));
+        await Assert.ThrowsAsync<ArgumentException>(() => _world.Service.UploadAttachmentAsync(
+            Pdf("x"), "x.pdf", 1, "MAU02", "", "A", owner.Id, AttachmentOwnerTypes.Unlinked, null));
+        await Assert.ThrowsAsync<ArgumentException>(() => _world.Service.UploadAttachmentAsync(
+            Pdf("x"), "x.pdf", 1, "MAU02", "", "A", owner.Id, AttachmentOwnerTypes.EvaluationTask, null));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => _world.Service.UploadAttachmentAsync(
+            Pdf("x"), "x.pdf", 1, "MAU02", "", "A", owner.Id, AttachmentOwnerTypes.EvaluationTask, Guid.NewGuid()));
+        Assert.Empty(_world.Files.Items);
     }
 
     [Fact]
@@ -206,6 +236,10 @@ public class AttachmentVersioningTests
             User(cellId,
                 new PermissionGrant(PermissionCodes.EvaluationSelf, ScopeType.Global, null, Guid.NewGuid(), "Người được đánh giá"),
                 new PermissionGrant(PermissionCodes.EvaluationRead, ScopeType.PartyCell, cellId, Guid.NewGuid(), "Chi ủy / Bí thư Chi bộ"));
+
+        /// <summary>Người dùng có các quyền cho trước, phạm vi Toàn công ty.</summary>
+        public PartyMemberProfile UserWith(params string[] codes) =>
+            User(null, codes.Select(code => new PermissionGrant(code, ScopeType.Global, null, Guid.NewGuid(), "Vai trò thử")).ToArray());
 
         public (EvaluationRecord Record, EvaluationTask Task) RecordWithTask(PartyMemberProfile owner)
         {
@@ -318,13 +352,6 @@ public class AttachmentVersioningTests
             stored.SupersededById = previous.SupersededById;
             stored.FileGroupId = previous.FileGroupId;
             Items.Add(next);
-            return Task.CompletedTask;
-        }
-
-        public Task SoftDeleteGroupAsync(Guid groupId)
-        {
-            foreach (var a in Items.Where(a => a.GroupId == groupId))
-                a.IsDeleted = true;
             return Task.CompletedTask;
         }
     }
