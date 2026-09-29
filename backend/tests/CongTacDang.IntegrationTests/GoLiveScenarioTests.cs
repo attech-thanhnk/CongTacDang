@@ -131,7 +131,9 @@ public sealed class GoLiveScenarioTests
         Assert.Equal(
             new[]
             {
-                "collective.manage", "evaluation.cell.confirm", "evaluation.read", "evaluation.self", "evaluation.tasks.approve",
+                // Task 20: "Người được đánh giá" có thêm xem kết quả, gửi kiến nghị; "Lãnh đạo Phòng" có thêm lập kế hoạch 30-60-90 ngày.
+                "collective.manage", "evaluation.appeal.submit", "evaluation.cell.confirm", "evaluation.improvement.manage",
+                "evaluation.read", "evaluation.results.view", "evaluation.self", "evaluation.tasks.approve",
                 "evaluation.unit.review", // task 15: vai trò mặc định Lãnh đạo Phòng có thêm "Lãnh đạo đơn vị đề xuất"
                 "meeting.read", "report.export"
             },

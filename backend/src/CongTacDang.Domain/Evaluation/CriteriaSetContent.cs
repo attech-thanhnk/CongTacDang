@@ -263,6 +263,19 @@ public sealed class CriteriaParameters
 
     /// <summary>Điểm tối đa nhóm kết quả thực hiện nhiệm vụ của hồ sơ tập thể.</summary>
     public double CollectiveTaskMaxScore { get; set; } = 70.0;
+
+    /// <summary>
+    /// Công khai kết quả (task 20 — T-86) có kèm điểm chính thức hay không; mặc định chỉ công khai mức xếp loại
+    /// (HD03 II.2: "công khai kết quả" không đồng nghĩa công bố toàn bộ hồ sơ). Chờ nghiệp vụ xác nhận.
+    /// </summary>
+    public bool PublishScores { get; set; }
+
+    /// <summary>
+    /// Mức xếp loại chính thức bắt buộc lập kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17, task 20 — T-88). Mặc định theo
+    /// chữ in trên Mẫu 17: "Hoàn thành nhiệm vụ - Mức C" và "Không hoàn thành nhiệm vụ - Mức D". Chờ nghiệp vụ xác nhận.
+    /// </summary>
+    [JsonConverter(typeof(GradeListJsonConverter))]
+    public List<EvaluationGrade> ImprovementPlanRequiredGrades { get; set; } = new() { EvaluationGrade.HoanThanh, EvaluationGrade.KhongHoanThanh };
 }
 
 /// <summary>
@@ -418,6 +431,10 @@ public sealed class CriteriaSetContent
         Parameters.Rounding.TasksTotal ??= new RoundingRule();
         Parameters.Rounding.GeneralTotal ??= new RoundingRule();
         Parameters.Rounding.Total ??= new RoundingRule();
+        Parameters.ImprovementPlanRequiredGrades = (Parameters.ImprovementPlanRequiredGrades
+                ?? new List<EvaluationGrade> { EvaluationGrade.HoanThanh, EvaluationGrade.KhongHoanThanh })
+            .Distinct()
+            .ToList();
         return this;
     }
 
@@ -622,6 +639,8 @@ public sealed class CriteriaSetContent
         }
         if (!(p.CollectiveGeneralMaxScore > 0) || !(p.CollectiveTaskMaxScore > 0))
             errors.Add("Điểm tối đa của hồ sơ tập thể phải lớn hơn 0.");
+        if ((p.ImprovementPlanRequiredGrades ?? new List<EvaluationGrade>()).Any(g => !RankedGrades.Contains(g)))
+            errors.Add("Mức bắt buộc lập kế hoạch 30-60-90 ngày chỉ chọn trong bốn mức xếp loại.");
     }
 
     /// <summary>Tên hiển thị của mức xếp loại.</summary>
@@ -688,4 +707,39 @@ public sealed class CriteriaSnapshot
 
     /// <summary>Ghi ra JSON.</summary>
     public string ToJson() => JsonSerializer.Serialize(this, CriteriaSetContent.JsonOptions);
+}
+
+/// <summary>Danh sách mức xếp loại dạng chuỗi mã (<c>["HoanThanh","KhongHoanThanh"]</c>); đọc được cả số (task 20).</summary>
+public sealed class GradeListJsonConverter : JsonConverter<List<EvaluationGrade>>
+{
+    /// <inheritdoc />
+    public override List<EvaluationGrade>? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+            return null;
+        if (reader.TokenType != JsonTokenType.StartArray)
+            throw new JsonException("Danh sách mức xếp loại phải là mảng.");
+
+        var result = new List<EvaluationGrade>();
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+        {
+            if (reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var number) && Enum.IsDefined(typeof(EvaluationGrade), number))
+                result.Add((EvaluationGrade)number);
+            else if (reader.TokenType == JsonTokenType.String
+                     && Enum.TryParse<EvaluationGrade>(reader.GetString(), true, out var grade) && Enum.IsDefined(grade))
+                result.Add(grade);
+            else
+                throw new JsonException("Mức xếp loại không hợp lệ.");
+        }
+        return result;
+    }
+
+    /// <inheritdoc />
+    public override void Write(Utf8JsonWriter writer, List<EvaluationGrade> value, JsonSerializerOptions options)
+    {
+        writer.WriteStartArray();
+        foreach (var grade in value)
+            writer.WriteStringValue(grade.ToString());
+        writer.WriteEndArray();
+    }
 }
