@@ -29,7 +29,8 @@ public static class WordFormCatalog
         new WordFormDefinition("MAU_02", "Mẫu 02 — Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc", Mau02Data.TemplateFileName, typeof(Mau02Data)),
         new WordFormDefinition("MAU_10", "Mẫu 10 — Phiếu thẩm định, nhận xét, đề xuất xếp loại", Mau10Data.TemplateFileName, typeof(Mau10Data)),
         new WordFormDefinition("MAU_11", "Mẫu 11 — Phiếu đánh giá, xếp loại cán bộ (bỏ phiếu)", Mau11Data.TemplateFileName, typeof(Mau11Data)),
-        new WordFormDefinition("MAU_13", "Mẫu 13 — Biên bản kiểm phiếu", Mau13Data.TemplateFileName, typeof(Mau13Data))
+        new WordFormDefinition("MAU_13", "Mẫu 13 — Biên bản kiểm phiếu", Mau13Data.TemplateFileName, typeof(Mau13Data)),
+        new WordFormDefinition("MAU_17", "Mẫu 17 — Kế hoạch hỗ trợ, khắc phục và phát triển 30-60-90 ngày", Mau17Data.TemplateFileName, typeof(Mau17Data))
     };
 
     /// <summary>Tìm theo mã (không phân biệt hoa thường); null nếu không có.</summary>
