@@ -31,12 +31,12 @@ public static class CriteriaSetDefaults
         + "\"không mặc nhiên chấm điểm tối đa\"); trần xuất sắc 20% số \"Hoàn thành tốt\" (câu chữ III.6), làm tròn 0,5 lên 1.";
 
     /// <summary>Nội dung bộ Mẫu 09B (Quý III/2026): 6 trục có điểm tối đa 15/10/10/15/10/10.</summary>
-    public static CriteriaSetContent Build09B() => Build(axisMaxScores: new[] { 15.0, 10, 10, 15, 10, 10 });
+    public static CriteriaSetContent Build09B() => Build(axisMax: new[] { 15.0, 10, 10, 15, 10, 10 });
 
     /// <summary>Nội dung bộ Mẫu 09A (từ 2027): chấm theo nhiệm vụ Mẫu 01/02, công thức A-B-C-D; trục không có điểm tối đa riêng.</summary>
-    public static CriteriaSetContent Build09A() => Build(axisMaxScores: new[] { 0.0, 0, 0, 0, 0, 0 });
+    public static CriteriaSetContent Build09A() => Build(axisMax: new[] { 0.0, 0, 0, 0, 0, 0 });
 
-    private static CriteriaSetContent Build(double[] axisMaxScores)
+    private static CriteriaSetContent Build(double[] axisMax)
     {
         var axes = new List<ResultAxis>
         {
@@ -54,7 +54,7 @@ public static class CriteriaSetDefaults
                 Description = "Hiệp đồng quân sự - dân dụng, an ninh vùng trời/hàng không, phòng chống thiên tai, SAR; hợp tác ICAO, CANSO và đối tác quốc tế." }
         };
         for (var i = 0; i < axes.Count; i++)
-            axes[i].MaxScore = axisMaxScores[i];
+            axes[i].MaxScore = axisMax[i];
 
         return new CriteriaSetContent
         {

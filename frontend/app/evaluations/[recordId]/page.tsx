@@ -318,7 +318,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
             <Field label="Tổng tự chấm" value={record.totalSelfScore} />
             <Field label="Mức tự đề xuất" value={gradeLabel(record.selfProposedGrade)} />
             <Field label="Nộp lúc" value={record.selfScoredAt ? formatDateTime(record.selfScoredAt) : null} />
-            {record.axisScores && <Field label="Điểm 6 trục" value={record.axisScores.join(" · ")} />}
+            {record.axisScores && <Field label="Điểm theo trục" value={Object.entries(record.axisScores).map(([code, score]) => `${code}: ${score}`).join(" · ")} />}
           </div>
         </div>
 

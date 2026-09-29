@@ -12,7 +12,6 @@ import { ReadinessPanel } from "@/components/evaluations/ReadinessPanel";
 import { organizationService, BranchItem, DepartmentItem } from "@/services/organizationService";
 import { ApiError } from "@/services/apiClient";
 import {
-  EvaluationParameters,
   EvaluationPeriodDto,
   ParticipantCandidateDto,
   PeriodParticipantDto,
@@ -22,30 +21,14 @@ import {
   WorkflowProfile,
   evaluationService,
 } from "@/services/evaluationService";
-
-const JOB_GROUPS: { value: string; label: string }[] = [
-  { value: "Khung1_QuanLyDangDoanThe", label: "Khung 1 — Quản lý, Đảng, đoàn thể" },
-  { value: "Khung2_AnToanKyThuat", label: "Khung 2 — An toàn, kỹ thuật" },
-  { value: "Khung3_DuAnDauTu", label: "Khung 3 — Dự án, đầu tư, tài chính" },
-  { value: "Khung4_KhcnChuyenDoiSo", label: "Khung 4 — KHCN, chuyển đổi số" },
-];
-
-const PARAMETER_FIELDS: { key: keyof EvaluationParameters; label: string; step?: number }[] = [
-  { key: "minTasks", label: "Số sản phẩm tối thiểu" },
-  { key: "maxTasks", label: "Số sản phẩm tối đa" },
-  { key: "totalTaskWeight", label: "Tổng trọng số sản phẩm", step: 0.5 },
-  { key: "generalCriterionMaxScore", label: "Điểm tối đa mỗi tiêu chí chung", step: 0.5 },
-  { key: "excellentMinScore", label: "Ngưỡng gợi ý Xuất sắc", step: 0.5 },
-  { key: "goodMinScore", label: "Ngưỡng gợi ý Hoàn thành tốt", step: 0.5 },
-  { key: "satisfactoryMinScore", label: "Ngưỡng gợi ý Hoàn thành", step: 0.5 },
-  { key: "excellentQuotaRatio", label: "Trần tỷ lệ Xuất sắc (0–1)", step: 0.01 },
-];
+import { CriteriaSummary } from "@/components/evaluations/CriteriaSummary";
+import { CriteriaSetListItem, WeightFrame, criteriaService } from "@/services/criteriaService";
 
 type Transition = "open" | "lock" | "unlock" | "close";
 
 /**
- * Cấu hình kỳ: trạng thái kỳ, hồ sơ luồng (bước × chế độ × quyền thực hiện × thời hạn), tham số, kiểm tra kẹt luồng,
- * danh sách người được đánh giá và hồ sơ luồng của từng người.
+ * Cấu hình kỳ: trạng thái kỳ, hồ sơ luồng (bước × chế độ × quyền thực hiện × thời hạn), bộ tiêu chí (chọn khi dự thảo, xem
+ * ảnh chụp), kiểm tra kẹt luồng, danh sách người được đánh giá, hồ sơ luồng và khung tỷ trọng của từng người.
  */
 export default function PeriodDetailPage() {
   const params = useParams<{ periodId: string }>();
@@ -153,8 +136,8 @@ export default function PeriodDetailPage() {
   const saveSettings = () =>
     run(() => evaluationService.updatePeriod(period.id, period.version, { settings }), "Đã lưu cấu hình kỳ.");
 
-  const setParameter = (key: keyof EvaluationParameters, value: number) =>
-    setSettings({ ...settings, parameters: { ...settings.parameters, [key]: value } });
+  const chooseCriteria = (criteriaSetId: string) =>
+    run(() => evaluationService.updatePeriod(period.id, period.version, { criteriaSetId }), "Đã chọn bộ tiêu chí cho kỳ.");
 
   return (
     <div className="page-wrapper">
@@ -167,7 +150,7 @@ export default function PeriodDetailPage() {
             <Link href="/periods" className="btn btn-outline-secondary btn-sm"><i className="bi bi-arrow-left me-1" />Danh sách kỳ</Link>
             {canManage && period.status === "Draft" && (
               <button type="button" className="btn btn-success btn-sm" disabled={busy}
-                onClick={() => confirm({ title: "Mở kỳ đánh giá", message: "Hệ thống kiểm tra kẹt luồng trước khi mở. Sau khi mở, chỉ sửa được thời hạn các bước; hồ sơ luồng, chế độ và quyền thực hiện bước, mẫu tự chấm và tham số sẽ bị khóa.", confirmText: "Mở kỳ", onConfirm: () => openPeriod() })}>
+                onClick={() => confirm({ title: "Mở kỳ đánh giá", message: "Hệ thống kiểm tra kẹt luồng trước khi mở. Sau khi mở, chỉ sửa được thời hạn các bước; hồ sơ luồng, chế độ và quyền thực hiện bước bị khóa; bộ tiêu chí được chụp nguyên vào kỳ và không đổi được nữa.", confirmText: "Mở kỳ", onConfirm: () => openPeriod() })}>
                 Mở kỳ
               </button>
             )}
@@ -213,45 +196,15 @@ export default function PeriodDetailPage() {
               savedCodes={period.settings.profiles.map((p) => p.code)}
             />
 
-            <div className="row g-3 mt-1">
-              <div className="col-md-6">
-                <div className="small fw-semibold mb-1">Mẫu tự chấm</div>
-                {[
-                  { value: "09A", label: "09A — có Mẫu 01/02 (chấm A-B-C-D theo sản phẩm)" },
-                  { value: "09B", label: "09B — chấm trực tiếp 6 trục (Quý III/2026)" },
-                ].map((option) => (
-                  <div className="form-check" key={option.value}>
-                    <input className="form-check-input" type="radio" name="selfScoreForm" id={`form-${option.value}`} checked={settings.selfScoreForm === option.value}
-                      disabled={!editable} onChange={() => setSettings({ ...settings, selfScoreForm: option.value })} />
-                    <label className="form-check-label small" htmlFor={`form-${option.value}`}>{option.label}</label>
-                  </div>
-                ))}
-              </div>
-              <div className="col-md-6">
-                <div className="form-check">
-                  <input className="form-check-input" type="checkbox" id="enforce" checked={settings.enforceDeadlines} disabled={!editable}
-                    onChange={(e) => setSettings({ ...settings, enforceDeadlines: e.target.checked })} />
-                  <label className="form-check-label small" htmlFor="enforce">Chặn hoàn thành bước khi đã quá thời hạn (mặc định chỉ cảnh báo)</label>
-                </div>
-              </div>
-            </div>
-            <h3 className="h6 mt-3">Tham số</h3>
-            <div className="row g-2">
-              {PARAMETER_FIELDS.map((field) => (
-                <div className="col-6 col-md-3" key={field.key}>
-                  <label className="form-label small mb-0">{field.label}</label>
-                  <input type="number" step={field.step ?? 1} className="form-control form-control-sm" value={settings.parameters[field.key] as number}
-                    disabled={!editable} onChange={(e) => setParameter(field.key, Number(e.target.value))} />
-                </div>
-              ))}
-            </div>
-            <div className="small text-secondary mt-2">
-              Tỷ trọng A-B-C-D theo khung:{" "}
-              {Object.entries(settings.parameters.jobGroupWeights).map(([group, w]) => `${group.split("_")[0]} ${w.a}/${w.b}/${w.c}/${w.d}`).join(" · ")}
-              {" · "}Điểm tối đa 6 trục (09B): {settings.parameters.axisMaxScores.join("/")}
+            <div className="form-check mt-2">
+              <input className="form-check-input" type="checkbox" id="enforce" checked={settings.enforceDeadlines} disabled={!editable}
+                onChange={(e) => setSettings({ ...settings, enforceDeadlines: e.target.checked })} />
+              <label className="form-check-label small" htmlFor="enforce">Chặn hoàn thành bước khi đã quá thời hạn (mặc định chỉ cảnh báo)</label>
             </div>
           </div>
         </section>
+
+        <CriteriaSection period={period} editable={editable} busy={busy} onChoose={chooseCriteria} />
 
         {canManage && period.status !== "Closed" && (
           <ReadinessPanel readiness={readiness} loading={checking} onCheck={checkReadiness} />
@@ -418,7 +371,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                       onChange={(e) => setChecked(e.target.checked ? participants.map((p) => p.recordId) : [])} />
                   </th>
                 )}
-                <th>Cán bộ</th><th>Phòng</th><th>Chi bộ</th><th>Khung</th><th>Cấp quyết định</th><th>Hồ sơ luồng</th><th>Trạng thái</th><th />
+                <th>Cán bộ</th><th>Phòng</th><th>Chi bộ</th><th>Khung tỷ trọng</th><th>Cấp quyết định</th><th>Hồ sơ luồng</th><th>Trạng thái</th><th />
               </tr>
             </thead>
             <tbody>
@@ -433,7 +386,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                   <td><Link href={`/evaluations/${p.recordId}`}>{p.fullName}</Link><div className="text-secondary">{p.username}</div></td>
                   <td>{p.departmentName || "—"}</td>
                   <td>{p.partyCellName || "—"}</td>
-                  <td>{p.jobGroup.split("_")[0]}</td>
+                  <td title={p.weightFrameName || undefined}>{p.weightFrameCode || "—"}{p.weightFrameCode && !p.weightFrameName && period.criteria?.selfScoreForm === "09A" && <i className="bi bi-exclamation-triangle text-danger ms-1" title="Khung không có trong bộ tiêu chí của kỳ" />}</td>
                   <td>{p.approvalAuthority === "CapTren" ? "Cấp trên" : "Cơ sở"}</td>
                   <td>{p.workflowProfileName || p.workflowProfileCode}</td>
                   <td>{p.statusDisplayName}</td>
@@ -457,6 +410,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
       {editing && (
         <SnapshotDialog
           participant={editing}
+          frames={period.criteria?.content.weightFrames ?? []}
           departments={departments}
           cells={cells}
           busy={busy}
@@ -556,13 +510,14 @@ interface SnapshotProps {
   cells: BranchItem[];
   busy: boolean;
   onCancel: () => void;
-  onSave: (payload: { departmentId: string | null; partyCellId: string | null; jobGroup: string; approvalAuthority: string; reason: string }) => void;
+  frames: WeightFrame[];
+  onSave: (payload: { departmentId: string | null; partyCellId: string | null; weightFrameCode: string; approvalAuthority: string; reason: string }) => void;
 }
 
-function SnapshotDialog({ participant, departments, cells, busy, onCancel, onSave }: SnapshotProps) {
+function SnapshotDialog({ participant, frames, departments, cells, busy, onCancel, onSave }: SnapshotProps) {
   const [departmentId, setDepartmentId] = useState(participant.departmentId || "");
   const [cellId, setCellId] = useState(participant.partyCellId || "");
-  const [jobGroup, setJobGroup] = useState(participant.jobGroup);
+  const [weightFrameCode, setWeightFrameCode] = useState(participant.weightFrameCode);
   const [authority, setAuthority] = useState(participant.approvalAuthority);
   const [reason, setReason] = useState("");
   return (
@@ -570,7 +525,7 @@ function SnapshotDialog({ participant, departments, cells, busy, onCancel, onSav
       <div className="modal-dialog modal-dialog-centered">
         <div className="modal-content border-0 shadow-lg">
           <div className="modal-header"><h2 className="modal-title fs-6 fw-bold">Sửa ảnh chụp — {participant.fullName}</h2><button type="button" className="btn-close" aria-label="Đóng" onClick={onCancel} /></div>
-          <form onSubmit={(e) => { e.preventDefault(); onSave({ departmentId: departmentId || null, partyCellId: cellId || null, jobGroup, approvalAuthority: authority, reason }); }}>
+          <form onSubmit={(e) => { e.preventDefault(); onSave({ departmentId: departmentId || null, partyCellId: cellId || null, weightFrameCode, approvalAuthority: authority, reason }); }}>
             <div className="modal-body row g-2">
               <div className="col-6"><label className="form-label small">Phòng</label>
                 <select className="form-select form-select-sm" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
@@ -584,10 +539,12 @@ function SnapshotDialog({ participant, departments, cells, busy, onCancel, onSav
                   {cells.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <div className="col-6"><label className="form-label small">Khung chức danh</label>
-                <select className="form-select form-select-sm" value={jobGroup} onChange={(e) => setJobGroup(e.target.value)}>
-                  {JOB_GROUPS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+              <div className="col-6"><label className="form-label small">Khung tỷ trọng A-B-C-D</label>
+                <select className="form-select form-select-sm" value={weightFrameCode} onChange={(e) => setWeightFrameCode(e.target.value)}>
+                  {!frames.some((f) => f.code === weightFrameCode) && <option value={weightFrameCode}>{weightFrameCode || "— Chưa có —"} (không có trong bộ)</option>}
+                  {frames.map((f) => <option key={f.code} value={f.code}>{f.code} — {f.name}</option>)}
                 </select>
+                <div className="form-text">Danh sách khung theo bộ tiêu chí của kỳ.</div>
               </div>
               <div className="col-6"><label className="form-label small">Cấp quyết định</label>
                 <select className="form-select form-select-sm" value={authority} onChange={(e) => setAuthority(e.target.value)}>
@@ -606,5 +563,62 @@ function SnapshotDialog({ participant, departments, cells, busy, onCancel, onSav
         </div>
       </div>
     </div>
+  );
+}
+
+interface CriteriaSectionProps {
+  period: EvaluationPeriodDto;
+  editable: boolean;
+  busy: boolean;
+  onChoose: (criteriaSetId: string) => void;
+}
+
+/** Bộ tiêu chí của kỳ: chọn bộ đã xuất bản khi kỳ còn dự thảo; xem ảnh chụp (bất biến sau khi mở kỳ). */
+function CriteriaSection({ period, editable, busy, onChoose }: CriteriaSectionProps) {
+  const [sets, setSets] = useState<CriteriaSetListItem[]>([]);
+  const [choice, setChoice] = useState(period.criteriaSetId || "");
+  const [expanded, setExpanded] = useState(false);
+  const criteria = period.criteria;
+
+  useEffect(() => {
+    if (editable) criteriaService.list().then((list) => setSets(list.filter((s) => s.status === "Published"))).catch(() => setSets([]));
+  }, [editable]);
+
+  useEffect(() => setChoice(period.criteriaSetId || ""), [period.criteriaSetId]);
+
+  return (
+    <section className="card border-0 shadow-sm">
+      <div className="card-body">
+        <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+          <h2 className="h6 mb-0">Bộ tiêu chí và thang điểm</h2>
+          <Link href="/criteria" className="btn btn-link btn-sm p-0">Quản lý bộ tiêu chí</Link>
+        </div>
+        {criteria ? (
+          <div className="small mb-2">
+            <strong>{criteria.name}</strong> ({criteria.code}) · Mẫu tự chấm {criteria.selfScoreForm} ·{" "}
+            {period.status === "Draft" ? "chọn lúc" : "chụp vào kỳ lúc"} {new Date(criteria.takenAt).toLocaleString("vi-VN")}
+            <button type="button" className="btn btn-link btn-sm p-0 ms-2" onClick={() => setExpanded(!expanded)}>{expanded ? "Ẩn nội dung" : "Xem nội dung"}</button>
+          </div>
+        ) : (
+          <div className="alert alert-warning small py-2">Kỳ chưa chọn bộ tiêu chí — chưa mở được kỳ.</div>
+        )}
+        {editable && (
+          <div className="d-flex gap-2 align-items-end flex-wrap mb-2">
+            <div style={{ minWidth: 320 }}>
+              <label className="form-label small mb-0" htmlFor="period-criteria-set">Chọn bộ đã xuất bản</label>
+              <select id="period-criteria-set" className="form-select form-select-sm" value={choice} onChange={(e) => setChoice(e.target.value)}>
+                <option value="">— Chọn —</option>
+                {sets.map((s) => <option key={s.id} value={s.id}>{s.name} — Mẫu {s.selfScoreForm} ({s.code})</option>)}
+              </select>
+            </div>
+            <button type="button" className="btn btn-outline-primary btn-sm" disabled={busy || !choice || choice === period.criteriaSetId} onClick={() => onChoose(choice)}>
+              Dùng bộ này
+            </button>
+            <div className="small text-secondary">Bộ 09A cần bước đăng ký sản phẩm ở mọi hồ sơ luồng.</div>
+          </div>
+        )}
+        {criteria && expanded && <CriteriaSummary content={criteria.content} form={criteria.selfScoreForm} />}
+      </div>
+    </section>
   );
 }
