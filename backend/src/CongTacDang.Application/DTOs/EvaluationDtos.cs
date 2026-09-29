@@ -64,8 +64,10 @@ public class RecordStepProgressDto
 {
     public string Step { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    /// <summary>Bước có áp dụng trong kỳ.</summary>
+    /// <summary>Bước có áp dụng cho hồ sơ (chế độ khác "Không áp dụng" trong hồ sơ luồng).</summary>
     public bool Enabled { get; set; }
+    /// <summary>Chế độ của bước trong hồ sơ luồng: Internal | External | Off.</summary>
+    public string Mode { get; set; } = nameof(StepMode.Internal);
     /// <summary>done | current | pending | skipped.</summary>
     public string State { get; set; } = string.Empty;
     public DateOnly? Deadline { get; set; }
@@ -97,6 +99,9 @@ public class EvaluationRecordDto
     public string? DepartmentName { get; set; }
     public string JobGroup { get; set; } = string.Empty;
     public string ApprovalAuthority { get; set; } = string.Empty;
+    /// <summary>Hồ sơ luồng (nhóm đối tượng) của hồ sơ.</summary>
+    public string WorkflowProfileCode { get; set; } = string.Empty;
+    public string WorkflowProfileName { get; set; } = string.Empty;
 
     /// <summary>Trạng thái = bước đang chờ (AwaitingRegistration … Published).</summary>
     public string Status { get; set; } = string.Empty;
@@ -162,6 +167,9 @@ public class EvaluationRecordDto
     // B5
     public string? PublishedByName { get; set; }
     public DateTime? PublishedAt { get; set; }
+
+    /// <summary>Kết quả ghi nhận của các bước do cấp trên thực hiện.</summary>
+    public List<ExternalResultDto> ExternalResults { get; set; } = new();
 
     public List<EvaluationTaskDto> Tasks { get; set; } = new();
 }
@@ -341,8 +349,11 @@ public class WorkQueueItemDto
     public string? DepartmentName { get; set; }
     public string? PartyCellName { get; set; }
     public string ApprovalAuthority { get; set; } = string.Empty;
+    public string WorkflowProfileName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string StatusDisplayName { get; set; } = string.Empty;
+    /// <summary>Chế độ của bước đang chờ: Internal | External.</summary>
+    public string Mode { get; set; } = nameof(StepMode.Internal);
     public bool IsOwnRecord { get; set; }
     public string? ReturnReason { get; set; }
     public DateOnly? Deadline { get; set; }
@@ -426,8 +437,10 @@ public class UpdatePeriodDto
 public class PeriodTransitionDto
 {
     public uint? Version { get; set; }
-    /// <summary>Bắt buộc khi Khóa dữ liệu → Đang mở.</summary>
+    /// <summary>Bắt buộc khi Khóa dữ liệu → Đang mở, và khi mở kỳ bắt buộc (<see cref="Force"/>) còn cảnh báo kẹt luồng.</summary>
     public string? Reason { get; set; }
+    /// <summary>Mở kỳ dù kiểm tra kẹt luồng còn lỗi (bắt buộc lý do, ghi vào kỳ).</summary>
+    public bool Force { get; set; }
 }
 
 /// <summary>Thêm người được đánh giá: chọn tay và/hoặc theo Phòng/Chi bộ.</summary>
@@ -436,6 +449,8 @@ public class AddParticipantsDto
     public List<Guid> MemberIds { get; set; } = new();
     public Guid? DepartmentId { get; set; }
     public Guid? PartyCellId { get; set; }
+    /// <summary>Hồ sơ luồng gán cho người được thêm; bỏ trống → mặc định theo cấp quyết định của từng người.</summary>
+    public string? WorkflowProfileCode { get; set; }
 }
 
 /// <summary>Kết quả thêm người được đánh giá.</summary>
@@ -459,6 +474,8 @@ public class PeriodParticipantDto
     public string? PartyCellName { get; set; }
     public string JobGroup { get; set; } = string.Empty;
     public string ApprovalAuthority { get; set; } = string.Empty;
+    public string WorkflowProfileCode { get; set; } = string.Empty;
+    public string WorkflowProfileName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string StatusDisplayName { get; set; } = string.Empty;
 }

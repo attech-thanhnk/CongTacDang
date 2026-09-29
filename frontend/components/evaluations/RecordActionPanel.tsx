@@ -4,11 +4,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   EvaluationMeetingDto,
   EvaluationRecordDto,
+  GRADED_STEPS,
   GRADE_OPTIONS,
   RecordActionDto,
+  STEP_NAMES,
   TaskInputDto,
   VoteTallyDto,
   WorkflowActionCode,
+  WorkflowStepCode,
   evaluationService,
 } from "@/services/evaluationService";
 import { FileUploadModal } from "@/components/attachments/FileUploadModal";
@@ -17,8 +20,8 @@ interface Props {
   record: EvaluationRecordDto;
   actions: RecordActionDto[];
   busy: boolean;
-  /** Gửi hành động hoàn thành bước kèm dữ liệu. */
-  onSubmit: (action: WorkflowActionCode, payload: Record<string, unknown>) => void;
+  /** Gửi hành động hoàn thành bước kèm dữ liệu (`step`: bước của hành động — cần cho ghi nhận kết quả của cấp trên). */
+  onSubmit: (action: WorkflowActionCode, payload: Record<string, unknown>, step?: WorkflowStepCode) => void;
   /** Mở hộp nhập lý do (trả lại / mở lại). */
   onReason: (action: RecordActionDto) => void;
 }
@@ -50,7 +53,7 @@ export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }:
             <h3 className="h6 mb-0">{action.label}</h3>
             {action.overdue && <span className="badge text-bg-warning">Đã quá thời hạn của bước</span>}
           </div>
-          <ActionForm record={record} action={action.action} busy={busy} onSubmit={onSubmit} />
+          <ActionForm record={record} action={action.action} step={action.step} busy={busy} onSubmit={onSubmit} />
         </div>
       ))}
       {withReason.length > 0 && (
@@ -70,12 +73,15 @@ export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }:
 interface FormProps {
   record: EvaluationRecordDto;
   action: WorkflowActionCode;
+  step: WorkflowStepCode;
   busy: boolean;
-  onSubmit: (action: WorkflowActionCode, payload: Record<string, unknown>) => void;
+  onSubmit: (action: WorkflowActionCode, payload: Record<string, unknown>, step?: WorkflowStepCode) => void;
 }
 
-function ActionForm({ record, action, busy, onSubmit }: FormProps) {
+function ActionForm({ record, action, step, busy, onSubmit }: FormProps) {
   switch (action) {
+    case "RecordExternal":
+      return <ExternalResultForm record={record} step={step} busy={busy} onSubmit={(payload) => onSubmit(action, payload, step)} />;
     case "SubmitTasks":
       return <TasksForm record={record} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "SubmitSelfScore":
@@ -252,6 +258,100 @@ function ProposalForm({ record, busy, stage, submitText, onSubmit }: { record: E
         </div>
       )}
       <div className="col-12"><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !grade}>{submitText}</button></div>
+    </form>
+  );
+}
+
+/** Cơ quan cấp trên gợi ý theo bước (PL III ví dụ 2) — người ghi nhận sửa được. */
+const DEFAULT_AUTHORITY: Partial<Record<WorkflowStepCode, string>> = {
+  B3A_COLLECTIVE: "Tập thể lãnh đạo, quản lý cấp trên",
+  B3B_APPRAISAL: "Ban Tổ chức Đảng ủy Tổng công ty",
+  B3C_DIRECTOR: "Hội đồng thành viên Tổng công ty",
+  B4_DECISION: "Ban Thường vụ Đảng ủy Tổng công ty",
+};
+
+/**
+ * Ghi nhận kết quả của bước do cấp trên / cơ quan ngoài hệ thống thực hiện: cơ quan, số/ngày văn bản, nhận xét,
+ * mức đề xuất/quyết định (bước có mức), điểm (tùy chọn), tệp đính kèm (tùy chọn).
+ */
+function ExternalResultForm({ record, step, busy, onSubmit }: { record: EvaluationRecordDto; step: WorkflowStepCode; busy: boolean; onSubmit: (p: Record<string, unknown>) => void }) {
+  const graded = GRADED_STEPS.includes(step);
+  const withScore = step === "B3B_APPRAISAL" || step === "B4_DECISION";
+  const previous = record.externalResults?.find((r) => r.step === step);
+  const [authorityName, setAuthorityName] = useState(previous?.authorityName || DEFAULT_AUTHORITY[step] || "");
+  const [documentNumber, setDocumentNumber] = useState(previous?.documentNumber || "");
+  const [documentDate, setDocumentDate] = useState(previous?.documentDate?.substring(0, 10) || "");
+  const [comment, setComment] = useState(previous?.comment || "");
+  const [grade, setGrade] = useState(
+    initialGrade(previous?.grade) || initialGrade(record.directorProposedGrade) || initialGrade(record.appraisalProposedGrade)
+      || initialGrade(record.collectiveProposedGrade) || initialGrade(record.selfProposedGrade)
+  );
+  const [score, setScore] = useState(previous?.score != null ? String(previous.score) : "");
+  const [attachment, setAttachment] = useState<{ id: string; name: string } | null>(
+    previous?.attachmentId ? { id: previous.attachmentId, name: "Tệp đã đính kèm" } : null
+  );
+  const [uploading, setUploading] = useState(false);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({
+      authorityName,
+      documentNumber: documentNumber || null,
+      documentDate: documentDate || null,
+      comment: comment || null,
+      grade: graded ? grade : null,
+      score: withScore && score !== "" ? Number(score) : null,
+      attachmentId: attachment?.id ?? null,
+    });
+  };
+
+  return (
+    <form onSubmit={submit} className="row g-2">
+      <div className="col-12 small text-secondary">
+        <i className="bi bi-info-circle me-1" />
+        Bước "{STEP_NAMES[step]}" do cấp trên thực hiện đối với nhóm đối tượng của hồ sơ này — ghi nhận kết quả theo văn bản của cấp trên.
+      </div>
+      <div className="col-md-6"><label className="form-label small" htmlFor={`ext-${step}-authority`}>Cơ quan / cấp thực hiện (bắt buộc)</label>
+        <input id={`ext-${step}-authority`} className="form-control form-control-sm" required maxLength={300} value={authorityName} onChange={(e) => setAuthorityName(e.target.value)} />
+      </div>
+      <div className="col-md-3"><label className="form-label small">Số văn bản</label><input className="form-control form-control-sm" maxLength={100} value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} /></div>
+      <div className="col-md-3"><label className="form-label small">Ngày văn bản</label><input type="date" className="form-control form-control-sm" value={documentDate} onChange={(e) => setDocumentDate(e.target.value)} /></div>
+      {graded && (
+        <div className="col-md-6"><label className="form-label small" htmlFor={`ext-${step}-grade`}>{step === "B4_DECISION" ? "Mức xếp loại được quyết định" : "Mức đề xuất"}</label>
+          <GradeSelect id={`ext-${step}-grade`} value={grade} onChange={setGrade} />
+        </div>
+      )}
+      {withScore && (
+        <div className="col-md-3"><label className="form-label small">Điểm (tùy chọn)</label>
+          <input type="number" min={0} max={100} step={0.1} className="form-control form-control-sm" value={score} onChange={(e) => setScore(e.target.value)} />
+        </div>
+      )}
+      <div className="col-12"><label className="form-label small">Nhận xét / nội dung kết luận</label><textarea className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
+      <div className="col-12 small">
+        {attachment ? (
+          <span><i className="bi bi-paperclip me-1" />{attachment.name}
+            <button type="button" className="btn btn-link btn-sm p-0 ms-2 text-danger" onClick={() => setAttachment(null)}>Bỏ tệp</button>
+          </span>
+        ) : (
+          <span className="text-secondary">Chưa đính kèm văn bản.</span>
+        )}
+        <button type="button" className="btn btn-link btn-sm p-0 ms-2" onClick={() => setUploading(true)}>Đính kèm văn bản (tùy chọn)</button>
+      </div>
+      <div className="col-12"><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !authorityName.trim() || (graded && !grade)}>Ghi nhận kết quả của cấp trên</button></div>
+      {uploading && (
+        <FileUploadModal
+          isOpen
+          onClose={() => setUploading(false)}
+          formCode="CAPTREN"
+          targetTitle={`${STEP_NAMES[step]} — ${record.fullName}`}
+          defaultDescription={`Văn bản của cấp trên: ${STEP_NAMES[step]} — ${record.fullName}`}
+          currentAttachmentId={attachment?.id}
+          onUploadSuccess={(file) => {
+            setAttachment({ id: file.id, name: file.fileName });
+            setUploading(false);
+          }}
+        />
+      )}
     </form>
   );
 }

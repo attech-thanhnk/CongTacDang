@@ -78,11 +78,11 @@ export default function EvaluationRecordPage() {
     return () => window.removeEventListener(EVALUATION_CONFLICT_EVENT, handler);
   }, []);
 
-  const perform = async (action: WorkflowActionCode, payload: Record<string, unknown>) => {
+  const perform = async (action: WorkflowActionCode, payload: Record<string, unknown>, step?: WorkflowStepCode) => {
     if (!record) return;
     setBusy(true);
     try {
-      await evaluationService.performAction(record.id, action, record.version ?? 0, payload);
+      await evaluationService.performAction(record.id, action, record.version ?? 0, payload, step);
       toast.success("Đã lưu thao tác trên hồ sơ.");
       setReasonAction(null);
       await load();
@@ -113,7 +113,7 @@ export default function EvaluationRecordPage() {
     <div className="page-wrapper">
       <PageHeader
         title={record.fullName}
-        subTitle={`${record.periodName} · ${record.departmentName || "Chưa gắn Phòng"} · ${record.partyCellName || "Chưa gắn Chi bộ"} · ${record.approvalAuthority === "CapTren" ? "Cấp trên quyết định" : "Đảng ủy cơ sở quyết định"}`}
+        subTitle={`${record.periodName} · ${record.departmentName || "Chưa gắn Phòng"} · ${record.partyCellName || "Chưa gắn Chi bộ"} · ${record.approvalAuthority === "CapTren" ? "Cấp trên quyết định" : "Đảng ủy cơ sở quyết định"} · Hồ sơ luồng: ${record.workflowProfileName || record.workflowProfileCode}`}
         badge={<span className="badge text-bg-primary">{record.statusDisplayName}</span>}
         actions={
           <div className="d-flex gap-2">
@@ -222,13 +222,51 @@ function Field({ label, value }: { label: string; value?: React.ReactNode }) {
   );
 }
 
+/** Nhãn chế độ bước cạnh tiêu đề mục dữ liệu: cấp trên thực hiện / không áp dụng cho nhóm này. */
+function ModeNote({ record, step }: { record: EvaluationRecordDto; step: WorkflowStepCode }) {
+  const mode = record.progress.find((p) => p.step === step)?.mode;
+  if (mode === "External") return <span className="badge text-bg-light border ms-2 fw-normal">Do cấp trên thực hiện — ghi nhận kết quả</span>;
+  if (mode === "Off") return <span className="badge text-bg-light border ms-2 fw-normal">Không áp dụng cho nhóm này</span>;
+  return null;
+}
+
 /** Dữ liệu đã lưu của các bước (chỉ đọc). */
 function RecordData({ record }: { record: EvaluationRecordDto }) {
   const enabled = (step: WorkflowStepCode) => record.progress.find((p) => p.step === step)?.enabled ?? true;
+  const offSteps = record.progress.filter((p) => p.mode === "Off");
   return (
     <section className="card border-0 shadow-sm">
       <div className="card-body d-flex flex-column gap-3">
         <h2 className="h6 mb-0">Dữ liệu hồ sơ</h2>
+        {offSteps.length > 0 && (
+          <div className="small text-secondary">
+            <i className="bi bi-slash-circle me-1" />
+            Không áp dụng cho nhóm này ({record.workflowProfileName}): {offSteps.map((p) => p.name).join(", ")}.
+          </div>
+        )}
+
+        {record.externalResults?.length > 0 && (
+          <div>
+            <h3 className="small fw-bold text-secondary">Kết quả do cấp trên thực hiện (đã ghi nhận)</h3>
+            <table className="table table-sm small mb-0">
+              <thead><tr><th>Bước</th><th>Cơ quan</th><th>Văn bản</th><th>Mức / điểm</th><th>Ghi nhận</th></tr></thead>
+              <tbody>
+                {record.externalResults.map((r) => (
+                  <tr key={r.step}>
+                    <td>{r.stepName}</td>
+                    <td>{r.authorityName}{r.comment && <div className="text-secondary">{r.comment}</div>}</td>
+                    <td>
+                      {r.documentNumber || "—"}{r.documentDate ? ` (${formatDate(r.documentDate)})` : ""}
+                      {r.attachmentId && <div><i className="bi bi-paperclip me-1" />Có tệp đính kèm</div>}
+                    </td>
+                    <td>{gradeLabel(r.grade)}{r.score != null ? ` · ${r.score}` : ""}</td>
+                    <td>{r.recordedByName || "—"}<div className="text-secondary">{formatDateTime(r.recordedAt)}</div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {enabled("B1_REGISTER") && (
           <div>
@@ -271,7 +309,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
 
         {enabled("B2_CELL_CONFIRM") && (
           <div>
-            <h3 className="small fw-bold text-secondary">Xác nhận của Chi bộ</h3>
+            <h3 className="small fw-bold text-secondary">Xác nhận của Chi bộ<ModeNote record={record} step="B2_CELL_CONFIRM" /></h3>
             <div className="row g-2">
               <Field label="Người xác nhận" value={record.cellConfirmedByName} />
               <Field label="Thời điểm" value={record.cellConfirmedAt ? formatDateTime(record.cellConfirmedAt) : null} />
@@ -282,7 +320,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
 
         {enabled("B3A_COLLECTIVE") && (
           <div>
-            <h3 className="small fw-bold text-secondary">Đề xuất của tập thể lãnh đạo</h3>
+            <h3 className="small fw-bold text-secondary">Đề xuất của tập thể lãnh đạo<ModeNote record={record} step="B3A_COLLECTIVE" /></h3>
             <div className="row g-2">
               <Field label="Mức đề xuất" value={gradeLabel(record.collectiveProposedGrade)} />
               <Field label="Ghi nhận bởi" value={record.collectiveRecordedByName} />
@@ -291,29 +329,31 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
           </div>
         )}
 
-        <div>
-          <h3 className="small fw-bold text-secondary">Thẩm định</h3>
-          <div className="row g-2">
-            <Field label="Điểm thẩm định" value={record.appraisalScore} />
-            <Field label="Mức đề xuất" value={gradeLabel(record.appraisalProposedGrade)} />
-            <Field label="Người thẩm định" value={record.appraisedByName} />
-            <Field label="Ý kiến" value={record.appraisalComment} />
+        {enabled("B3B_APPRAISAL") && (
+          <div>
+            <h3 className="small fw-bold text-secondary">Thẩm định<ModeNote record={record} step="B3B_APPRAISAL" /></h3>
+            <div className="row g-2">
+              <Field label="Điểm thẩm định" value={record.appraisalScore} />
+              <Field label="Mức đề xuất" value={gradeLabel(record.appraisalProposedGrade)} />
+              <Field label="Người / cơ quan thẩm định" value={record.appraisedByName} />
+              <Field label="Ý kiến" value={record.appraisalComment} />
+            </div>
           </div>
-        </div>
+        )}
 
         {enabled("B3C_DIRECTOR") && (
           <div>
-            <h3 className="small fw-bold text-secondary">Cấp trực tiếp sử dụng</h3>
+            <h3 className="small fw-bold text-secondary">Cấp trực tiếp sử dụng / lãnh đạo đơn vị đề xuất<ModeNote record={record} step="B3C_DIRECTOR" /></h3>
             <div className="row g-2">
               <Field label="Mức đề xuất" value={gradeLabel(record.directorProposedGrade)} />
-              <Field label="Người nhận xét" value={record.directorReviewedByName} />
+              <Field label="Người / cơ quan nhận xét" value={record.directorReviewedByName} />
               <Field label="Nhận xét" value={record.directorComment} />
             </div>
           </div>
         )}
 
         <div>
-          <h3 className="small fw-bold text-secondary">Quyết định và công bố</h3>
+          <h3 className="small fw-bold text-secondary">Quyết định và công bố<ModeNote record={record} step="B4_DECISION" /></h3>
           <div className="row g-2">
             <Field label="Mức xếp loại" value={gradeLabel(record.finalGrade)} />
             <Field label="Điểm chính thức" value={record.finalGrade && record.finalGrade !== "ChuaXepLoai" ? record.finalScore : null} />

@@ -28,10 +28,14 @@ public static class EvaluationMapping
         return Enum.TryParse<EvaluationGrade>(value.Trim(), true, out var grade) && Enum.IsDefined(grade) ? grade : null;
     }
 
-    /// <summary>Tiến trình 9 bước của hồ sơ.</summary>
-    public static List<RecordStepProgressDto> Progress(RecordStatus status, PeriodSettings settings, DateOnly today)
+    /// <summary>Hồ sơ luồng áp dụng cho hồ sơ (theo mã đã lưu; không có → mặc định theo cấp quyết định).</summary>
+    public static WorkflowProfile ProfileOf(PeriodSettings settings, EvaluationRecord record) =>
+        settings.ResolveProfile(record.WorkflowProfileCode, record.ApprovalAuthority);
+
+    /// <summary>Tiến trình 9 bước của hồ sơ theo hồ sơ luồng của hồ sơ.</summary>
+    public static List<RecordStepProgressDto> Progress(RecordStatus status, WorkflowProfile profile, DateOnly today)
     {
-        var enabled = settings.EnabledSteps();
+        var enabled = profile.ActiveSteps();
         var current = WorkflowSteps.StepOf(status);
         var currentIndex = current.HasValue ? WorkflowSteps.IndexOf(current.Value) : int.MaxValue;
         var result = new List<RecordStepProgressDto>();
@@ -49,12 +53,13 @@ public static class EvaluationMapping
             else
                 state = "pending";
 
-            var deadline = settings.Deadline(step);
+            var deadline = profile.Deadline(step);
             result.Add(new RecordStepProgressDto
             {
                 Step = WorkflowSteps.Code(step),
                 Name = WorkflowSteps.DisplayName(step),
                 Enabled = enabled.Contains(step),
+                Mode = profile.Mode(step).ToString(),
                 State = state,
                 Deadline = deadline,
                 Overdue = deadline.HasValue && state is "current" or "pending" && today > deadline.Value
@@ -73,6 +78,7 @@ public static class EvaluationMapping
     {
         var axis = new[] { r.AxisScoreT1, r.AxisScoreT2, r.AxisScoreT3, r.AxisScoreT4, r.AxisScoreT5, r.AxisScoreT6 };
         var currentStep = WorkflowSteps.StepOf(r.Status);
+        var profile = ProfileOf(settings, r);
 
         return new EvaluationRecordDto
         {
@@ -93,12 +99,14 @@ public static class EvaluationMapping
             DepartmentName = r.Department?.Name,
             JobGroup = r.JobGroup.ToString(),
             ApprovalAuthority = r.ApprovalAuthority.ToString(),
+            WorkflowProfileCode = profile.Code,
+            WorkflowProfileName = profile.Name,
 
             Status = r.Status.ToString(),
             StatusDisplayName = WorkflowSteps.StatusDisplayName(r.Status),
             CurrentStep = currentStep.HasValue ? WorkflowSteps.Code(currentStep.Value) : null,
             ReturnReason = r.ReturnReason,
-            Progress = Progress(r.Status, settings, today),
+            Progress = Progress(r.Status, profile, today),
 
             TasksApprovedByName = r.TasksApprovedByName,
             TasksApprovedAt = r.TasksApprovedAt,
@@ -145,6 +153,11 @@ public static class EvaluationMapping
             PublishedByName = r.PublishedByName,
             PublishedAt = r.PublishedAt,
 
+            ExternalResults = (r.ExternalResults ?? new List<EvaluationExternalResult>())
+                .OrderBy(x => WorkflowSteps.IndexOf(x.Step))
+                .Select(ToExternalResultDto)
+                .ToList(),
+
             Tasks = (r.Tasks ?? new List<EvaluationTask>())
                 .Where(t => !t.IsDeleted)
                 .OrderBy(t => t.TaskOrder)
@@ -179,6 +192,22 @@ public static class EvaluationMapping
             AttachmentOriginalName = current?.FileName ?? t.Attachment?.OriginalFileName ?? t.Attachment?.FileName
         };
     }
+
+    /// <summary>Ánh xạ kết quả ghi nhận của bước do cấp trên thực hiện.</summary>
+    public static ExternalResultDto ToExternalResultDto(EvaluationExternalResult x) => new()
+    {
+        Step = WorkflowSteps.Code(x.Step),
+        StepName = WorkflowSteps.DisplayName(x.Step),
+        AuthorityName = x.AuthorityName,
+        DocumentNumber = x.DocumentNumber,
+        DocumentDate = x.DocumentDate,
+        Comment = x.Comment,
+        Grade = GradeCode(x.Grade),
+        Score = x.Score,
+        AttachmentId = x.AttachmentId,
+        RecordedByName = x.RecordedByName,
+        RecordedAt = x.RecordedAt
+    };
 
     /// <summary>Ánh xạ lịch sử.</summary>
     public static EvaluationRecordHistoryDto ToHistoryDto(EvaluationRecordHistory x) => new()

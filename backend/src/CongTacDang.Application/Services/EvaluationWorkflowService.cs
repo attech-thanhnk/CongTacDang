@@ -35,6 +35,12 @@ public interface IEvaluationWorkflowService
     Task<EvaluationRecordDto> PublishAsync(Guid recordId, WorkflowRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> ReopenAsync(Guid recordId, ReopenRequestDto request, CancellationToken ct = default);
 
+    /// <summary>
+    /// Ghi nhận kết quả của bước do cấp trên thực hiện (chế độ "Cấp trên thực hiện" trong hồ sơ luồng của hồ sơ) —
+    /// quyền <c>evaluation.external.record</c>; hồ sơ chuyển sang bước áp dụng kế tiếp.
+    /// </summary>
+    Task<EvaluationRecordDto> RecordExternalResultAsync(Guid recordId, string step, ExternalResultRequestDto request, CancellationToken ct = default);
+
     /// <summary>Hành động người hiện tại được làm trên hồ sơ (thiết kế mục 5).</summary>
     Task<RecordActionsDto> GetActionsAsync(Guid recordId, CancellationToken ct = default);
 
@@ -343,6 +349,119 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         }, ct, target);
     }
 
+    /// <inheritdoc />
+    public Task<EvaluationRecordDto> RecordExternalResultAsync(Guid recordId, string step, ExternalResultRequestDto request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var parsed = WorkflowSteps.Parse(step)
+            ?? throw new ValidationException($"Mã bước \"{step}\" không tồn tại.");
+        if (WorkflowSteps.NeverExternal.Contains(parsed))
+            throw new ValidationException($"Bước \"{WorkflowSteps.DisplayName(parsed)}\" không do cấp trên thực hiện được.");
+
+        return ExecuteAsync(recordId, request, WorkflowActions.ExternalOf(parsed), null, async ctx =>
+        {
+            var authority = Trim(request.AuthorityName, 300, "Cơ quan / cấp thực hiện")
+                ?? throw new ValidationException("Hãy nhập cơ quan / cấp đã thực hiện bước này (ví dụ \"BTV Đảng ủy Tổng công ty\").");
+            var documentNumber = Trim(request.DocumentNumber, 100, "Số văn bản");
+            var comment = Trim(request.Comment, MaxCommentLength, "Nhận xét");
+            if (request.Score is < 0 or > 100)
+                throw new ValidationException("Điểm phải từ 0 đến 100.");
+
+            var grade = EvaluationGrade.ChuaXepLoai;
+            if (WorkflowSteps.GradedSteps.Contains(parsed))
+            {
+                grade = EvaluationMapping.ParseGrade(request.Grade) is { } g && g != EvaluationGrade.ChuaXepLoai
+                    ? g
+                    : throw new ValidationException(parsed == WorkflowStep.B4_DECISION
+                        ? "Hãy chọn mức xếp loại được cấp trên quyết định."
+                        : "Hãy chọn mức xếp loại do cấp trên đề xuất.");
+            }
+
+            var record = ctx.Record;
+            var result = record.ExternalResults.FirstOrDefault(x => x.Step == parsed);
+            var linked = result?.AttachmentId is { } oldAttachment ? new HashSet<Guid> { oldAttachment } : new HashSet<Guid>();
+            await EnsureNewAttachmentsLinkableAsync(new[] { request.AttachmentId }, linked);
+
+            if (result == null)
+            {
+                result = new EvaluationExternalResult { RecordId = record.Id, Step = parsed, CreatedAt = ctx.Now };
+                record.ExternalResults.Add(result);
+                _repo.AddExternalResult(result);
+            }
+            result.AuthorityName = authority;
+            result.DocumentNumber = documentNumber;
+            result.DocumentDate = request.DocumentDate.HasValue ? DateTime.SpecifyKind(request.DocumentDate.Value, DateTimeKind.Utc) : null;
+            result.Comment = comment;
+            result.Grade = grade;
+            result.Score = request.Score;
+            result.AttachmentId = request.AttachmentId is { } id && id != Guid.Empty ? id : null;
+            result.RecordedById = ctx.ActorId;
+            result.RecordedByName = ctx.ActorName;
+            result.RecordedAt = ctx.Now;
+            result.UpdatedAt = ctx.Now;
+
+            ApplyExternalResultToRecord(record, result, ctx);
+            return $"Ghi nhận kết quả của cấp trên ({authority}).";
+        }, ct);
+    }
+
+    /// <summary>
+    /// Chép kết quả của cấp trên vào các trường của bước trên hồ sơ để báo cáo, biểu mẫu, mức hiệu lực dùng chung
+    /// một nguồn với bước làm trong hệ thống. Người/đơn vị thực hiện = cơ quan cấp trên; người ghi nhận lưu ở bản ghi kết quả.
+    /// </summary>
+    private static void ApplyExternalResultToRecord(EvaluationRecord record, EvaluationExternalResult result, ActionContext ctx)
+    {
+        switch (result.Step)
+        {
+            case WorkflowStep.B1_APPROVE:
+                record.TasksApprovedById = null;
+                record.TasksApprovedByName = result.AuthorityName;
+                record.TasksApprovedAt = ctx.Now;
+                record.TasksApprovalComment = result.Comment;
+                break;
+            case WorkflowStep.B2_CELL_CONFIRM:
+                record.PartyCellComment = result.Comment ?? string.Empty;
+                record.CellConfirmedById = null;
+                record.CellConfirmedByName = result.AuthorityName;
+                record.CellConfirmedAt = ctx.Now;
+                break;
+            case WorkflowStep.B3A_COLLECTIVE:
+                record.CollectiveProposedGrade = result.Grade;
+                record.CollectiveComment = result.Comment;
+                record.CollectiveMeetingId = null;
+                record.CollectiveRecordedById = null;
+                record.CollectiveRecordedByName = result.AuthorityName;
+                record.CollectiveRecordedAt = ctx.Now;
+                break;
+            case WorkflowStep.B3B_APPRAISAL:
+                record.AppraisalScore = result.Score;
+                record.AppraisalComment = result.Comment ?? string.Empty;
+                record.AppraisalProposedGrade = result.Grade;
+                record.AppraisedById = null;
+                record.AppraisedByName = result.AuthorityName;
+                record.AppraisedAt = ctx.Now;
+                break;
+            case WorkflowStep.B3C_DIRECTOR:
+                record.DirectorComment = result.Comment;
+                record.DirectorProposedGrade = result.Grade;
+                record.DirectorReviewedById = null;
+                record.DirectorReviewedByName = result.AuthorityName;
+                record.DirectorReviewedAt = ctx.Now;
+                break;
+            case WorkflowStep.B4_DECISION:
+                record.FinalGrade = result.Grade;
+                record.FinalScore = result.Score ?? record.AppraisalScore ?? record.TotalSelfScore;
+                record.DecisionDocumentNumber = result.DocumentNumber;
+                record.DecisionDocumentDate = result.DocumentDate;
+                record.DecisionAuthorityName = result.AuthorityName;
+                record.DecisionMeetingId = null;
+                record.DecisionRecordedById = ctx.ActorId;
+                record.DecisionRecordedByName = ctx.ActorName;
+                record.DecisionRecordedAt = ctx.Now;
+                break;
+        }
+    }
+
     #endregion
 
     #region Hành động được phép, việc cần xử lý
@@ -376,16 +495,25 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         if (targetPeriods.Count == 0)
             return new WorkQueueDto();
 
-        // Chỉ các bước người dùng có quyền ở phạm vi nào đó; lọc sơ bộ theo phạm vi guard rồi kiểm tra chính xác từng hồ sơ.
-        var steps = WorkflowSteps.Ordered
-            .Where(step => StepPermissions(step).Any(code => code == PermissionCodes.EvaluationSelf || _guard.HasAny(code)))
+        var settingsByPeriod = targetPeriods.ToDictionary(p => p.Id, ReadSettings);
+
+        // Lọc sơ bộ: chỉ các bước mà ở hồ sơ luồng nào đó quyền thực hiện là quyền người dùng có ở phạm vi nào đó;
+        // sau đó kiểm tra chính xác từng hồ sơ theo hồ sơ luồng của hồ sơ.
+        var steps = settingsByPeriod.Values
+            .SelectMany(s => s.Profiles)
+            .SelectMany(profile => WorkflowSteps.Ordered
+                .Select(step => (step, action: WorkflowActions.AdvanceOf(step, profile), profile)))
+            .Where(x => x.action != null)
+            .Where(x => WorkflowActions.PermissionFor(x.action!, x.profile) is var code
+                && (code == PermissionCodes.EvaluationSelf || _guard.HasAny(code)))
+            .Select(x => x.step)
+            .Distinct()
             .ToList();
         if (steps.Count == 0)
             return new WorkQueueDto();
 
         var statuses = steps.Select(WorkflowSteps.StatusOf).ToList();
         var records = await _repo.ListRecordsByStatusAsync(targetPeriods.Select(p => p.Id).ToList(), statuses, ct);
-        var settingsByPeriod = targetPeriods.ToDictionary(p => p.Id, ReadSettings);
         var periodById = targetPeriods.ToDictionary(p => p.Id);
         var today = EvaluationMapping.Today(DateTime.UtcNow);
         var userId = _currentUser.UserId;
@@ -396,18 +524,18 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             var step = WorkflowSteps.StepOf(record.Status);
             if (step == null)
                 continue;
-            var settings = settingsByPeriod[record.PeriodId];
-            if (!settings.IsEnabled(step.Value))
+            var profile = EvaluationMapping.ProfileOf(settingsByPeriod[record.PeriodId], record);
+            var advance = WorkflowActions.AdvanceOf(step.Value, profile);
+            if (advance == null)
                 continue;
 
-            var complete = WorkflowActions.CompleteOf(step.Value);
             var period = periodById[record.PeriodId];
-            if (WorkflowActions.PeriodBlockReason(period.Status, complete) != null)
+            if (WorkflowActions.PeriodBlockReason(period.Status, advance) != null)
                 continue;
-            if (!_guard.Can(WorkflowActions.PermissionFor(complete, record.ApprovalAuthority), AccessTarget.ForRecord(record)))
+            if (!CanPerform(advance, profile, record))
                 continue;
 
-            var deadline = settings.Deadline(step.Value);
+            var deadline = profile.Deadline(step.Value);
             items.Add((step.Value, new WorkQueueItemDto
             {
                 RecordId = record.Id,
@@ -419,8 +547,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 DepartmentName = record.Department?.Name,
                 PartyCellName = record.PartyCell?.Name,
                 ApprovalAuthority = record.ApprovalAuthority.ToString(),
+                WorkflowProfileName = profile.Name,
                 Status = record.Status.ToString(),
                 StatusDisplayName = WorkflowSteps.StatusDisplayName(record.Status),
+                Mode = profile.Mode(step.Value).ToString(),
                 IsOwnRecord = userId.HasValue && record.MemberId == userId.Value,
                 ReturnReason = record.ReturnReason,
                 Deadline = deadline,
@@ -443,30 +573,38 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         return new WorkQueueDto { Total = items.Count, Groups = groups };
     }
 
-    /// <summary>Các mã quyền có thể thực hiện bước (B4 gồm cả hai cấp quyết định).</summary>
-    private static IEnumerable<string> StepPermissions(WorkflowStep step)
-    {
-        var complete = WorkflowActions.CompleteOf(step);
-        if (step == WorkflowStep.B4_DECISION)
-            return new[] { PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationDecideExternal };
-        return new[] { WorkflowActions.PermissionFor(complete, ApprovalAuthority.CoSo) };
-    }
+    /// <summary>
+    /// Người dùng hiện tại thực hiện được hành động trên hồ sơ: không xung đột lợi ích (bước không phải của chủ hồ sơ thì chủ hồ sơ
+    /// không làm được) và guard cho phép quyền thực hiện của bước theo hồ sơ luồng.
+    /// </summary>
+    private bool CanPerform(WorkflowActionDefinition action, WorkflowProfile profile, EvaluationRecord record) =>
+        !IsConflictOfInterest(action, record)
+        && _guard.Can(WorkflowActions.PermissionFor(action, profile), AccessTarget.ForRecord(record));
 
-    /// <summary>Tính các hành động được phép trên hồ sơ.</summary>
+    /// <summary>
+    /// Xung đột lợi ích (HD03 tr.4): mọi bước không phải của chủ hồ sơ (duyệt, xác nhận, ghi nhận, thẩm định, nhận xét, đề xuất,
+    /// quyết định, công bố, mở lại) không áp dụng trên hồ sơ của chính mình — kể cả khi quyền thực hiện bước được cấu hình
+    /// bằng mã quyền khác mặc định.
+    /// </summary>
+    private bool IsConflictOfInterest(WorkflowActionDefinition action, EvaluationRecord record) =>
+        (action.Kind == WorkflowAction.Reopen || !WorkflowSteps.OwnerSteps.Contains(action.Step))
+        && _currentUser.UserId is { } userId && record.MemberId == userId;
+
+    /// <summary>Tính các hành động được phép trên hồ sơ (theo hồ sơ luồng của hồ sơ).</summary>
     private IEnumerable<RecordActionDto> AvailableActions(EvaluationRecord record, PeriodSettings settings, DateOnly today)
     {
-        var enabled = settings.EnabledSteps();
-        var target = AccessTarget.ForRecord(record);
+        var profile = EvaluationMapping.ProfileOf(settings, record);
+        var active = profile.ActiveSteps();
         var candidates = new List<WorkflowActionDefinition>();
 
         if (record.Status == RecordStatus.Published)
         {
             candidates.Add(WorkflowActions.Get(WorkflowActions.Reopen));
         }
-        else if (WorkflowSteps.StepOf(record.Status) is { } step && enabled.Contains(step))
+        else if (WorkflowSteps.StepOf(record.Status) is { } step && WorkflowActions.AdvanceOf(step, profile) is { } advance)
         {
-            candidates.Add(WorkflowActions.CompleteOf(step));
-            if (WorkflowActions.ReturnOf(step) is { } returnAction)
+            candidates.Add(advance);
+            if (profile.Mode(step) == StepMode.Internal && WorkflowActions.ReturnOf(step) is { } returnAction)
                 candidates.Add(returnAction);
         }
 
@@ -474,7 +612,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         {
             if (WorkflowActions.PeriodBlockReason(record.Period.Status, action) != null)
                 continue;
-            if (!_guard.Can(WorkflowActions.PermissionFor(action, record.ApprovalAuthority), target))
+            if (!CanPerform(action, profile, record))
                 continue;
 
             var command = action.Kind switch
@@ -483,11 +621,11 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 WorkflowAction.Reopen => null,
                 _ => WorkflowCommand.Complete(action.Step)
             };
-            if (command != null && !RecordStateMachine.Apply(record.Status, enabled, command).Succeeded)
+            if (command != null && !RecordStateMachine.Apply(record.Status, active, command).Succeeded)
                 continue;
 
-            var deadline = settings.Deadline(action.Step);
-            var overdue = action.Kind == WorkflowAction.Complete && deadline.HasValue && today > deadline.Value;
+            var deadline = profile.Deadline(action.Step);
+            var overdue = action.Advances && deadline.HasValue && today > deadline.Value;
             if (overdue && settings.EnforceDeadlines)
                 continue;
 
@@ -500,7 +638,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 ReasonOptional = false,
                 Overdue = overdue,
                 TargetSteps = action.Kind == WorkflowAction.Reopen
-                    ? RecordStateMachine.ReopenTargets(enabled).Select(WorkflowSteps.Code).ToList()
+                    ? RecordStateMachine.ReopenTargets(active).Select(WorkflowSteps.Code).ToList()
                     : null
             };
         }
@@ -511,23 +649,33 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     #region Khung thực thi chung
 
     /// <summary>Ngữ cảnh của một hành động đang thực hiện.</summary>
-    private sealed record ActionContext(EvaluationRecord Record, PeriodSettings Settings, Guid? ActorId, string ActorName, DateTime Now);
+    private sealed record ActionContext(
+        EvaluationRecord Record, PeriodSettings Settings, WorkflowProfile Profile, Guid? ActorId, string ActorName, DateTime Now);
 
-    /// <summary>
-    /// Trình tự chung: phiên bản bắt buộc → nạp hồ sơ → guard → so phiên bản → luật kỳ + thời hạn → lý do → máy trạng thái →
-    /// áp dữ liệu → lịch sử → lưu (xmin).
-    /// </summary>
-    private async Task<EvaluationRecordDto> ExecuteAsync(
+    private Task<EvaluationRecordDto> ExecuteAsync(
         Guid recordId,
         WorkflowRequestDto request,
         string actionCode,
         string? reason,
         Func<ActionContext, Task<string?>> apply,
         CancellationToken ct,
+        WorkflowStep? reopenTarget = null) =>
+        ExecuteAsync(recordId, request, WorkflowActions.Get(actionCode), reason, apply, ct, reopenTarget);
+
+    /// <summary>
+    /// Trình tự chung: phiên bản bắt buộc → nạp hồ sơ → chế độ bước theo hồ sơ luồng → xung đột lợi ích → guard (quyền thực hiện
+    /// của bước theo hồ sơ luồng) → so phiên bản → luật kỳ + thời hạn → lý do → máy trạng thái → áp dữ liệu → lịch sử → lưu (xmin).
+    /// </summary>
+    private async Task<EvaluationRecordDto> ExecuteAsync(
+        Guid recordId,
+        WorkflowRequestDto request,
+        WorkflowActionDefinition action,
+        string? reason,
+        Func<ActionContext, Task<string?>> apply,
+        CancellationToken ct,
         WorkflowStep? reopenTarget = null)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var action = WorkflowActions.Get(actionCode);
 
         // T-24: mọi hành động ghi phải gửi phiên bản đã đọc.
         if (request.Version is null)
@@ -536,20 +684,33 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         var record = await _repo.FindRecordAsync(recordId, ct)
             ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
 
-        _guard.Ensure(WorkflowActions.PermissionFor(action, record.ApprovalAuthority), AccessTarget.ForRecord(record));
+        var period = record.Period;
+        var settings = ReadSettings(period);
+        var profile = EvaluationMapping.ProfileOf(settings, record);
+
+        // Bước không áp dụng / do cấp trên thực hiện cho nhóm đối tượng này → hành động không khớp chế độ bước (409).
+        var modeBlock = WorkflowActions.ModeBlockReason(action, profile);
+        if (modeBlock != null)
+            throw new ConflictException(modeBlock);
+
+        var permission = WorkflowActions.PermissionFor(action, profile);
+        if (IsConflictOfInterest(action, record))
+        {
+            throw new ForbiddenException(
+                $"Bạn không được thực hiện \"{PermissionCodes.DisplayName(permission)}\" trên hồ sơ của chính mình (xung đột lợi ích theo Hướng dẫn 03-HD/TVĐU).");
+        }
+        _guard.Ensure(permission, AccessTarget.ForRecord(record));
 
         if (record.Version != request.Version.Value)
             throw new ConflictException("Hồ sơ đã được người khác cập nhật sau khi bạn mở. Hãy tải lại hồ sơ để xem dữ liệu mới nhất rồi thực hiện lại.");
 
-        var period = record.Period;
-        var settings = ReadSettings(period);
         var periodBlock = WorkflowActions.PeriodBlockReason(period.Status, action);
         if (periodBlock != null)
             throw new ConflictException(periodBlock);
 
         var now = DateTime.UtcNow;
-        if (action.Kind == WorkflowAction.Complete && settings.EnforceDeadlines
-            && settings.Deadline(action.Step) is { } deadline && EvaluationMapping.Today(now) > deadline)
+        if (action.Advances && settings.EnforceDeadlines
+            && profile.Deadline(action.Step) is { } deadline && EvaluationMapping.Today(now) > deadline)
         {
             throw new ConflictException(
                 $"Đã quá thời hạn của bước \"{WorkflowSteps.DisplayName(action.Step)}\" ({deadline.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)}). "
@@ -571,7 +732,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             WorkflowAction.Reopen => WorkflowCommand.Reopen(reopenTarget ?? WorkflowSteps.EarliestReopenStep),
             _ => WorkflowCommand.Complete(action.Step)
         };
-        var transition = RecordStateMachine.Apply(record.Status, settings.EnabledSteps(), command);
+        var transition = RecordStateMachine.Apply(record.Status, profile.ActiveSteps(), command);
         if (!transition.Succeeded)
             throw new ConflictException(transition.Error!);
 
@@ -583,7 +744,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         var gradeBefore = record.EffectiveGrade();
         var fromStatus = record.Status;
 
-        var comment = await apply(new ActionContext(record, settings, actorId, actorName, now));
+        var comment = await apply(new ActionContext(record, settings, profile, actorId, actorName, now));
 
         if (action.Kind == WorkflowAction.Return)
             record.ReturnReason = cleanReason;

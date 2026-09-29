@@ -78,10 +78,26 @@ public static class PermissionCodes
     /// <summary>Nhận xét, đề xuất của cấp trực tiếp sử dụng (B3c).</summary>
     public const string EvaluationDirectorReview = "evaluation.director.review";
 
+    /// <summary>
+    /// Lãnh đạo đơn vị (Trưởng phòng) đề xuất mức — dùng làm quyền thực hiện B3c trong hồ sơ luồng
+    /// "Bí thư/Phó bí thư Chi bộ là nhân viên" (HD03 PL III ví dụ 3).
+    /// </summary>
+    public const string EvaluationUnitReview = "evaluation.unit.review";
+
     /// <summary>Ghi nhận quyết định của Đảng ủy cơ sở (B4) — chỉ hồ sơ ApprovalAuthority = CoSo.</summary>
     public const string EvaluationDecide = "evaluation.decide";
 
-    /// <summary>Ghi nhận quyết định của cấp trên (B4) — chỉ hồ sơ ApprovalAuthority = CapTren.</summary>
+    /// <summary>
+    /// Ghi nhận kết quả của bước do cấp trên / cơ quan ngoài hệ thống thực hiện (chế độ "Cấp trên thực hiện" trong hồ sơ luồng):
+    /// cơ quan, số/ngày văn bản, nhận xét, mức đề xuất/quyết định, tệp đính kèm. Thay <c>evaluation.decide.external</c>.
+    /// </summary>
+    public const string EvaluationExternalRecord = "evaluation.external.record";
+
+    /// <summary>
+    /// ĐÃ GỠ khỏi danh mục quyền (task 15 — gộp vào <see cref="EvaluationExternalRecord"/>): không seed, resolver bỏ qua,
+    /// không dùng ở đâu. Hằng số chỉ còn để <c>AuthorizationGuard</c> (ngoài phạm vi task 15) biên dịch —
+    /// xóa cùng các nhánh tương ứng trong guard khi hợp nhất (xem báo cáo task 15, mục "Cần phối hợp").
+    /// </summary>
     public const string EvaluationDecideExternal = "evaluation.decide.external";
 
     /// <summary>Công bố, khóa kết quả (B5).</summary>
@@ -129,8 +145,9 @@ public static class PermissionCodes
         new(EvaluationCollectiveRecord, "Ghi nhận đề xuất của tập thể lãnh đạo", "evaluation", "Ghi kết quả kiểm phiếu đề xuất của tập thể lãnh đạo (bước 3a), không ghi phiếu từng người.", true),
         new(EvaluationAppraise, "Thẩm định", "evaluation", "Thẩm định hồ sơ đánh giá (bước 3b).", true),
         new(EvaluationDirectorReview, "Nhận xét của cấp trực tiếp sử dụng", "evaluation", "Nhận xét, đề xuất của cấp trực tiếp sử dụng cán bộ (bước 3c).", true),
+        new(EvaluationUnitReview, "Lãnh đạo đơn vị đề xuất", "evaluation", "Trưởng phòng (lãnh đạo đơn vị) đề xuất mức xếp loại thay cấp trực tiếp sử dụng — dùng làm quyền thực hiện bước 3c trong hồ sơ luồng được cấu hình (HD03 PL III ví dụ 3).", true),
         new(EvaluationDecide, "Ghi nhận quyết định của Đảng ủy cơ sở", "evaluation", "Ghi nhận quyết định xếp loại của Đảng ủy cơ sở (bước 4) — chỉ hồ sơ thuộc thẩm quyền cơ sở.", true),
-        new(EvaluationDecideExternal, "Ghi nhận quyết định của cấp trên", "evaluation", "Ghi nhận quyết định xếp loại của cấp trên (bước 4) — chỉ hồ sơ thuộc thẩm quyền cấp trên.", true),
+        new(EvaluationExternalRecord, "Ghi nhận kết quả của cấp trên", "evaluation", "Ghi nhận kết quả của bước do cấp trên / cơ quan ngoài hệ thống thực hiện (thẩm định, nhận xét, quyết định…): cơ quan, số/ngày văn bản, nhận xét, mức, tệp đính kèm.", true),
         new(EvaluationPublish, "Công bố, khóa kết quả", "evaluation", "Công bố và khóa kết quả đánh giá (bước 5).", true),
         new(EvaluationReopen, "Mở lại hồ sơ đã khóa", "evaluation", "Mở lại hồ sơ đã khóa để đính chính; bắt buộc ghi lý do.", true),
         new(CollectiveManage, "Lập hồ sơ tự đánh giá tập thể", "collective", "Lập hồ sơ tự đánh giá của tập thể (Mẫu 06–08).", true),

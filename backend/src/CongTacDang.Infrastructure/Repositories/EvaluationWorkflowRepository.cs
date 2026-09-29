@@ -49,7 +49,8 @@ public sealed class EvaluationWorkflowRepository : IEvaluationWorkflowRepository
         .Include(r => r.PartyCell)
         .Include(r => r.Department)
         .Include(r => r.Tasks)
-            .ThenInclude(t => t.Attachment);
+            .ThenInclude(t => t.Attachment)
+        .Include(r => r.ExternalResults);
 
     /// <inheritdoc />
     public Task<EvaluationRecord?> FindRecordAsync(Guid id, CancellationToken ct = default) =>
@@ -122,6 +123,22 @@ public sealed class EvaluationWorkflowRepository : IEvaluationWorkflowRepository
             .Where(x => x.RecordId == recordId)
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(ct);
+
+    /// <inheritdoc />
+    public void AddExternalResult(EvaluationExternalResult result) => _db.Set<EvaluationExternalResult>().Add(result);
+
+    /// <inheritdoc />
+    public Task<List<Guid>> ListActiveUserIdsWithAnyPermissionAsync(IReadOnlyCollection<string> permissionCodes, DateTime now, CancellationToken ct = default)
+    {
+        var codes = permissionCodes.Distinct().ToList();
+        return _db.Set<UserRoleAssignment>().AsNoTracking()
+            .Where(a => !a.IsDeleted && a.ValidFrom <= now && (a.ValidTo == null || now < a.ValidTo))
+            .Where(a => a.User != null && a.User.IsActive && !a.User.IsDeleted)
+            .Where(a => a.Role != null && !a.Role.IsDeleted && a.Role.Permissions.Any(p => codes.Contains(p.Code)))
+            .Select(a => a.UserId)
+            .Distinct()
+            .ToListAsync(ct);
+    }
 
     /// <inheritdoc />
     public void AddVoteSummary(EvaluationMeetingVoteSummary summary) => _db.EvaluationMeetingVoteSummaries.Add(summary);

@@ -11,7 +11,7 @@ import { EvaluationPeriodDto, PeriodPresetDto, evaluationService } from "@/servi
 
 const today = () => new Date().toISOString().substring(0, 10);
 
-/** Kỳ đánh giá: danh sách (mọi người đã đăng nhập) và tạo kỳ từ mẫu cấu hình (period.manage). */
+/** Kỳ đánh giá: danh sách (mọi người đã đăng nhập) và tạo kỳ từ kiểu kỳ dựng sẵn (period.manage). */
 export default function PeriodsPage() {
   const { hasPermission } = useAuth();
   const canManage = hasPermission("period.manage");
@@ -59,7 +59,7 @@ export default function PeriodsPage() {
 
   return (
     <div className="page-wrapper">
-      <PageHeader title="Kỳ đánh giá" subTitle="Cấu hình bước, thời hạn, tham số và danh sách người được đánh giá theo từng kỳ." />
+      <PageHeader title="Kỳ đánh giá" subTitle="Cấu hình hồ sơ luồng theo nhóm đối tượng, thời hạn, tham số và danh sách người được đánh giá theo từng kỳ." />
       <div className="page-body">
         <div className="row g-3">
           <div className={canManage ? "col-12 col-xl-8" : "col-12"}>
@@ -72,7 +72,7 @@ export default function PeriodsPage() {
                 ) : (
                   <table className="table table-hover table-sm align-middle mb-0">
                     <thead>
-                      <tr className="small text-secondary"><th className="ps-3">Kỳ</th><th>Trạng thái</th><th>Mẫu tự chấm</th><th>Người được đánh giá</th><th /></tr>
+                      <tr className="small text-secondary"><th className="ps-3">Kỳ</th><th>Trạng thái</th><th>Mẫu tự chấm</th><th>Hồ sơ luồng</th><th>Người được đánh giá</th><th /></tr>
                     </thead>
                     <tbody>
                       {periods.map((p) => (
@@ -84,6 +84,7 @@ export default function PeriodsPage() {
                           </td>
                           <td className="small">{p.statusDisplayName}</td>
                           <td className="small">{p.settings?.selfScoreForm}</td>
+                          <td className="small">{p.settings?.profiles?.map((profile) => profile.name).join(", ") || "—"}</td>
                           <td className="small">{p.totalRecords}</td>
                           <td className="text-end pe-3"><Link className="btn btn-outline-primary btn-sm" href={`/periods/${p.id}`}>{canManage ? "Cấu hình" : "Xem"}</Link></td>
                         </tr>
@@ -111,7 +112,7 @@ export default function PeriodsPage() {
                     <div className="col-6"><label className="form-label small">Từ ngày</label><input type="date" className="form-control form-control-sm" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
                     <div className="col-6"><label className="form-label small">Đến ngày</label><input type="date" className="form-control form-control-sm" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} /></div>
                     <div className="col-12">
-                      <label className="form-label small">Mẫu cấu hình</label>
+                      <label className="form-label small">Kiểu kỳ (sinh sẵn các hồ sơ luồng — sửa được sau khi tạo)</label>
                       {presets.map((preset) => (
                         <div className="form-check" key={preset.code}>
                           <input className="form-check-input" type="radio" name="preset" id={`preset-${preset.code}`} checked={form.preset === preset.code} onChange={() => setForm({ ...form, preset: preset.code })} />

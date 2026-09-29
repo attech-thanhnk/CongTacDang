@@ -47,6 +47,12 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Cấp có thẩm quyền quyết định xếp loại — ảnh chụp từ hồ sơ cán bộ tại thời điểm thêm vào kỳ</summary>
     public ApprovalAuthority ApprovalAuthority { get; set; } = ApprovalAuthority.CoSo;
 
+    /// <summary>
+    /// Mã hồ sơ luồng (nhóm đối tượng) trong cấu hình kỳ — ảnh chụp khi thêm vào kỳ (mặc định theo cấp quyết định);
+    /// <c>period.manage</c> đổi được (có lý do). Máy trạng thái, hành động, quyền dùng cấu hình bước của hồ sơ luồng này.
+    /// </summary>
+    public string WorkflowProfileCode { get; set; } = string.Empty;
+
     /// <summary>Trạng thái = bước đang chờ.</summary>
     public RecordStatus Status { get; set; } = RecordStatus.AwaitingRegistration;
 
@@ -265,6 +271,9 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 
     /// <summary>Danh sách các công việc / sản phẩm chuyên môn (Mẫu 01 & Mẫu 02)</summary>
     public ICollection<EvaluationTask> Tasks { get; set; } = new List<EvaluationTask>();
+
+    /// <summary>Kết quả ghi nhận của các bước do cấp trên / cơ quan ngoài hệ thống thực hiện (mỗi bước một bản ghi).</summary>
+    public ICollection<EvaluationExternalResult> ExternalResults { get; set; } = new List<EvaluationExternalResult>();
 
     /// <summary>Điểm hiệu lực: quyết định → thẩm định → tự chấm.</summary>
     public double EffectiveScore() =>

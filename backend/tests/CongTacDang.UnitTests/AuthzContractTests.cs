@@ -65,9 +65,9 @@ public class AuthzContractTests
         var nobody = Guid.NewGuid();
         var auth = AuthorizationFor(
             (decideLocal, new[] { PermissionCodes.EvaluationDecide }),
-            (decideExternal, new[] { PermissionCodes.EvaluationDecideExternal }),
+            (decideExternal, new[] { PermissionCodes.EvaluationExternalRecord }),
             (nobody, new[] { PermissionCodes.EvaluationRead }));
-        var policy = new RequireAnyPermissionAttribute(PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationDecideExternal).Policy!;
+        var policy = new RequireAnyPermissionAttribute(PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationExternalRecord).Policy!;
 
         Assert.True((await auth.AuthorizeAsync(IdentityOnlyPrincipal(decideLocal), policy)).Succeeded);
         Assert.True((await auth.AuthorizeAsync(IdentityOnlyPrincipal(decideExternal), policy)).Succeeded);
@@ -114,7 +114,7 @@ public class AuthzContractTests
             "system.users.read", "system.users.manage", "system.roles.manage", "system.assignments.manage",
             "system.audit.read", "system.import", "catalog.manage", "period.manage", "evaluation.self",
             "evaluation.read", "evaluation.tasks.approve", "evaluation.cell.confirm", "evaluation.collective.record",
-            "evaluation.appraise", "evaluation.director.review", "evaluation.decide", "evaluation.decide.external",
+            "evaluation.appraise", "evaluation.director.review", "evaluation.unit.review", "evaluation.decide", "evaluation.external.record",
             "evaluation.publish", "evaluation.reopen", "collective.manage", "meeting.read", "meeting.manage",
             "report.export", "attachment.general.manage"
         };

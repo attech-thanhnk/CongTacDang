@@ -96,6 +96,10 @@ export default function WorkQueuePage() {
                               {item.fullName}
                               {item.isOwnRecord && <span className="badge text-bg-info ms-2">Hồ sơ của tôi</span>}
                             </div>
+                            <div className="small text-secondary">
+                              {item.workflowProfileName}
+                              {item.mode === "External" && <span className="badge text-bg-light border ms-2">Do cấp trên thực hiện — ghi nhận kết quả</span>}
+                            </div>
                             {item.returnReason && <div className="small text-danger">Bị trả lại: {item.returnReason}</div>}
                           </td>
                           <td className="small">{item.departmentName || "—"} · {item.partyCellName || "—"}</td>
@@ -104,7 +108,7 @@ export default function WorkQueuePage() {
                             {formatDate(item.deadline) || "—"}{item.overdue ? " (quá hạn)" : ""}
                           </td>
                           <td className="text-end pe-3">
-                            <Link href={`/evaluations/${item.recordId}`} className="btn btn-primary btn-sm">Xử lý</Link>
+                            <Link href={`/evaluations/${item.recordId}`} className="btn btn-primary btn-sm">{item.mode === "External" ? "Ghi nhận" : "Xử lý"}</Link>
                           </td>
                         </tr>
                       ))}

@@ -6,8 +6,9 @@ using CongTacDang.Domain.Enums;
 namespace CongTacDang.Domain.Evaluation;
 
 /// <summary>
-/// Mã bước của luồng đánh giá (docs/thiet-ke/luong-danh-gia.md mục 1). Mã cố định trong code; bước nào bật/tắt,
-/// ai làm, thời hạn là cấu hình của kỳ (<see cref="PeriodSettings"/>).
+/// Mã bước của luồng đánh giá (docs/thiet-ke/luong-danh-gia.md mục 1). Mã cố định trong code; bước nào áp dụng
+/// (nội bộ / do cấp trên thực hiện / không áp dụng), ai làm, thời hạn là cấu hình theo hồ sơ luồng của kỳ
+/// (<see cref="WorkflowProfile"/> trong <see cref="PeriodSettings"/>).
 /// </summary>
 public enum WorkflowStep
 {
@@ -26,7 +27,7 @@ public enum WorkflowStep
     /// <summary>Ghi nhận đề xuất của tập thể lãnh đạo (kết quả phiếu kín, Mẫu 11–13).</summary>
     B3A_COLLECTIVE = 5,
 
-    /// <summary>Thẩm định, đề xuất mức (Mẫu 10, 03, 19, 20) — luôn bật.</summary>
+    /// <summary>Thẩm định, đề xuất mức (Mẫu 10, 03, 19, 20).</summary>
     B3B_APPRAISAL = 6,
 
     /// <summary>Nhận xét, đề xuất của cấp trực tiếp sử dụng (Mẫu 10).</summary>
@@ -58,7 +59,13 @@ public enum WorkflowAction
     EditSnapshot = 5,
 
     /// <summary>Cấu hình kỳ đổi khi kỳ còn dự thảo → trạng thái đầu của hồ sơ được tính lại.</summary>
-    Recalculate = 6
+    Recalculate = 6,
+
+    /// <summary>Đổi hồ sơ luồng (nhóm đối tượng) của hồ sơ (bắt buộc lý do).</summary>
+    ChangeProfile = 7,
+
+    /// <summary>Ghi nhận kết quả của bước do cấp trên / cơ quan ngoài hệ thống thực hiện.</summary>
+    RecordExternal = 8
 }
 
 /// <summary>Thông tin tĩnh về các bước: thứ tự, trạng thái chờ tương ứng, bước bắt buộc, bước được trả lại.</summary>
@@ -78,13 +85,29 @@ public static class WorkflowSteps
         WorkflowStep.B5_PUBLISH
     };
 
-    /// <summary>Các bước luôn bật (không tắt được trong cấu hình kỳ).</summary>
+    /// <summary>Các bước bắt buộc: không đặt được chế độ "Không áp dụng" trong hồ sơ luồng.</summary>
     public static readonly IReadOnlySet<WorkflowStep> Mandatory = new HashSet<WorkflowStep>
     {
         WorkflowStep.B2_SELF_SCORE,
-        WorkflowStep.B3B_APPRAISAL,
         WorkflowStep.B4_DECISION,
         WorkflowStep.B5_PUBLISH
+    };
+
+    /// <summary>Các bước không giao được cho cấp trên / cơ quan ngoài hệ thống: bước của chủ hồ sơ và bước công bố.</summary>
+    public static readonly IReadOnlySet<WorkflowStep> NeverExternal = new HashSet<WorkflowStep>
+    {
+        WorkflowStep.B1_REGISTER,
+        WorkflowStep.B2_SELF_SCORE,
+        WorkflowStep.B5_PUBLISH
+    };
+
+    /// <summary>Các bước có mức xếp loại đề xuất/quyết định (ghi nhận kết quả của cấp trên bắt buộc chọn mức).</summary>
+    public static readonly IReadOnlySet<WorkflowStep> GradedSteps = new HashSet<WorkflowStep>
+    {
+        WorkflowStep.B3A_COLLECTIVE,
+        WorkflowStep.B3B_APPRAISAL,
+        WorkflowStep.B3C_DIRECTOR,
+        WorkflowStep.B4_DECISION
     };
 
     /// <summary>Các bước do chủ hồ sơ thực hiện.</summary>
@@ -204,6 +227,8 @@ public static class WorkflowSteps
         WorkflowAction.Create => "Thêm vào danh sách",
         WorkflowAction.EditSnapshot => "Sửa thông tin ảnh chụp",
         WorkflowAction.Recalculate => "Tính lại theo cấu hình kỳ",
+        WorkflowAction.ChangeProfile => "Đổi hồ sơ luồng",
+        WorkflowAction.RecordExternal => "Ghi nhận kết quả của cấp trên",
         _ => action.ToString()
     };
 }

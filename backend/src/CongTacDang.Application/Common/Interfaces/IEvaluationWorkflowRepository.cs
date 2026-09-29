@@ -84,6 +84,15 @@ public interface IEvaluationWorkflowRepository
     /// <summary>Lịch sử của hồ sơ theo thời gian tăng dần.</summary>
     Task<List<EvaluationRecordHistory>> ListHistoryAsync(Guid recordId, CancellationToken ct = default);
 
+    /// <summary>Đưa kết quả ghi nhận của bước do cấp trên thực hiện vào DbContext.</summary>
+    void AddExternalResult(EvaluationExternalResult result);
+
+    /// <summary>
+    /// Id các tài khoản đang hoạt động (chưa xóa) có bản gán đang hiệu lực tại <paramref name="now"/> của vai trò chứa ít nhất một
+    /// mã quyền trong <paramref name="permissionCodes"/> — ứng viên để kiểm tra kẹt luồng (quyền chính xác tính qua resolver/guard).
+    /// </summary>
+    Task<List<Guid>> ListActiveUserIdsWithAnyPermissionAsync(IReadOnlyCollection<string> permissionCodes, DateTime now, CancellationToken ct = default);
+
     /// <summary>Đưa dòng kết quả kiểm phiếu mới vào DbContext.</summary>
     void AddVoteSummary(EvaluationMeetingVoteSummary summary);
 
