@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { EvaluationRecordDto, GRADE_OPTIONS } from "@/services/evaluationService";
+import {
+  AxisNote,
+  EvaluationRecordDto,
+  GRADE_OPTIONS,
+  TaskResultRow,
+  criteriaAppliesForm,
+  selfAssessmentSections,
+} from "@/services/evaluationService";
 import {
   CriteriaSnapshot,
   GRADE_LABELS,
@@ -12,6 +19,7 @@ import {
   roundScore,
 } from "@/services/criteriaService";
 import { FileUploadModal } from "@/components/attachments/FileUploadModal";
+import { AxisNoteFields, SelfAssessmentInput, TaskResultsInput } from "@/components/evaluations/IndividualFormInputs";
 
 interface TaskRatio {
   a: number;
@@ -33,6 +41,8 @@ interface Props {
 /**
  * Phiếu tự chấm dựng động từ bộ tiêu chí của kỳ: tiêu chí con "Đảm bảo / Không đảm bảo / K/AD (lý do)" hoặc ô điểm (theo cách chấm
  * của nhóm), trục theo mã (Mẫu 09B) hoặc A-B-C-D theo khung tỷ trọng của hồ sơ (Mẫu 09A); tổng tạm tính — máy chủ tính lại.
+ * Task 18: nhập kèm Mẫu 09C (mục tự luận theo bộ tiêu chí), 9D (nhiệm vụ theo trục) khi kỳ áp dụng và phần tự luận theo trục của
+ * Mẫu 09B; nội dung đã lưu được nạp lại để sửa tiếp khi hồ sơ bị trả lại.
  */
 export function SelfScoreForm({ record, criteria, busy, onSubmit }: Props) {
   if (!criteria) {
@@ -80,6 +90,16 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   );
   const [uploadFor, setUploadFor] = useState<string | null>(null);
 
+  // Task 18: biểu mẫu cá nhân nhập cùng phiếu tự chấm.
+  const uses09C = criteriaAppliesForm(criteria, "09C");
+  const uses9D = criteriaAppliesForm(criteria, "9D");
+  const sections = selfAssessmentSections(criteria);
+  const [selfAssessment, setSelfAssessment] = useState<Record<string, string>>(() => ({ ...(record.selfAssessment ?? {}) }));
+  const [taskResults, setTaskResults] = useState<TaskResultRow[]>(() => (record.taskResults ?? []).map((r) => ({ ...r })));
+  const [axisNotes, setAxisNotes] = useState<Record<string, AxisNote>>(() =>
+    Object.fromEntries(content.axes.map((a) => [a.code, { ...(record.axisNotes?.[a.code] ?? {}) }]))
+  );
+
   const setItem = (code: string, change: Partial<GeneralItemScore>) => setGeneral({ ...general, [code]: { ...general[code], ...change } });
   const setRatio = (taskId: string, key: keyof TaskRatio, value: number | boolean | string | null) =>
     setRatios({ ...ratios, [taskId]: { ...ratios[taskId], [key]: value } });
@@ -107,8 +127,11 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       Object.entries(general).map(([code, s]) => [code, { score: s.notApplicable ? 0 : Number(s.score) || 0, notApplicable: !!s.notApplicable, reason: s.reason?.trim() || null }])
     );
     const payload: Record<string, unknown> = { generalScores, selfProposedGrade: grade || null };
+    if (uses09C) payload.selfAssessment = selfAssessment;
+    if (uses9D) payload.taskResults = taskResults;
     if (uses09B) {
       payload.axisScores = Object.fromEntries(Object.entries(axis).map(([k, v]) => [k, Number(v) || 0]));
+      payload.axisNotes = axisNotes;
     } else {
       payload.taskScores = record.tasks.map((t) => ({
         taskId: t.id,
@@ -208,15 +231,25 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       {uses09B ? (
         <>
           <h4 className="h6 small fw-bold text-secondary">II. Kết quả thực hiện nhiệm vụ — chấm trực tiếp theo trục (Mẫu 09B, tối đa {fmt(p.totalTaskWeight)} điểm)</h4>
-          <div className="row g-2 mb-3">
+          <div className="d-flex flex-column gap-2 mb-3">
             {content.axes.map((a) => (
-              <div className="col-12 col-md-6" key={a.code}>
-                <label className="form-label small mb-0" title={a.description || undefined}>{a.code} — {a.name} (tối đa {fmt(a.maxScore)})</label>
-                <input type="number" min={0} max={a.maxScore} step={0.5} className="form-control form-control-sm" value={axis[a.code]}
-                  onChange={(e) => setAxis({ ...axis, [a.code]: Number(e.target.value) })} />
+              <div className="border rounded p-2" key={a.code}>
+                <div className="row g-2 align-items-end mb-1">
+                  <div className="col-12 col-md-9">
+                    <label className="form-label small fw-semibold mb-0" htmlFor={`axis-${a.code}`} title={a.description || undefined}>{a.code} — {a.name}</label>
+                  </div>
+                  <div className="col-12 col-md-3">
+                    <div className="input-group input-group-sm">
+                      <input id={`axis-${a.code}`} type="number" min={0} max={a.maxScore} step={0.5} className="form-control form-control-sm" value={axis[a.code]}
+                        onChange={(e) => setAxis({ ...axis, [a.code]: Number(e.target.value) })} />
+                      <span className="input-group-text">/ {fmt(a.maxScore)}</span>
+                    </div>
+                  </div>
+                </div>
+                <AxisNoteFields axisCode={a.code} value={axisNotes[a.code] ?? {}} onChange={(note) => setAxisNotes({ ...axisNotes, [a.code]: note })} />
               </div>
             ))}
-            <div className="col-12 small text-secondary">Cộng các trục (tạm tính): <strong>{fmt(tasksScore)}</strong> / {fmt(p.totalTaskWeight)}</div>
+            <div className="small text-secondary">Cộng các trục (tạm tính): <strong>{fmt(tasksScore)}</strong> / {fmt(p.totalTaskWeight)}</div>
           </div>
         </>
       ) : (
@@ -267,6 +300,28 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
             </ul>
           </details>
           <div className="small text-secondary mb-3">Cộng điểm sản phẩm (tạm tính): <strong>{fmt(tasksScore)}</strong> / {fmt(p.totalTaskWeight)}</div>
+        </>
+      )}
+
+      {uses9D && (
+        <>
+          <h4 className="h6 small fw-bold text-secondary">Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ, công việc được giao trong quý</h4>
+          <div className="small text-secondary mb-1">Nhập theo từng trục (bấm <i className="bi bi-plus-lg" /> để thêm dòng). Không bắt buộc có nhiệm vụ ở cả sáu trục.</div>
+          <div className="mb-3">
+            <TaskResultsInput axes={content.axes} rows={taskResults} onChange={setTaskResults} />
+          </div>
+        </>
+      )}
+
+      {uses09C && sections.length > 0 && (
+        <>
+          <h4 className="h6 small fw-bold text-secondary">Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân</h4>
+          <div className="small text-secondary mb-2">
+            Phần "Tự đề xuất xếp loại" của Mẫu 09C lấy từ tổng điểm và mức tự đề xuất của phiếu này. Nội dung trình bày không quá 02 trang A4.
+          </div>
+          <div className="mb-3">
+            <SelfAssessmentInput sections={sections} value={selfAssessment} onChange={setSelfAssessment} />
+          </div>
         </>
       )}
 

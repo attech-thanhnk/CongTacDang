@@ -14,7 +14,7 @@ Tài liệu dành cho người phát triển. Bộ sinh biểu mẫu nằm ở:
 | Tag thông tin đơn vị dùng chung (`ORG_*`) | `OrganizationTemplateFields` trong `Documents/TemplateData.cs` |
 | Chuyển DOCX/XLSX → PDF | `backend/src/CongTacDang.Infrastructure/Documents/LibreOfficePdfConverter.cs` |
 | Gọi xuất (dựng dữ liệu, điền, chuyển PDF) | `backend/src/CongTacDang.Infrastructure/Services/ReportService.cs` |
-| Endpoint | `backend/src/CongTacDang.Api/Controllers/ExportReportController.cs` |
+| Endpoint | `backend/src/CongTacDang.Api/Controllers/ExportReportController.cs`; biểu mẫu cá nhân của hồ sơ (09A/09B/09C/9D, mục 8): `RecordFormsController.cs` + `Infrastructure/Services/RecordFormService.cs` |
 
 Nguyên tắc:
 
@@ -108,12 +108,12 @@ buộc**: mẫu nào cần thì đặt Content Control tương ứng. Cài đặ
 
 | Tag | Giá trị | Đang dùng ở file gốc |
 |---|---|---|
-| `ORG_PARTY_NAME` | Tên Đảng bộ (ghi đúng như in) | — (Mẫu 11, 13 dùng tên Đảng bộ làm dòng tổ chức lập phiếu khi xuất toàn Đảng bộ, qua `PARTY_CELL`) |
+| `ORG_PARTY_NAME` | Tên Đảng bộ (ghi đúng như in) | Mẫu 09A, 09B, 09C, 9D — dòng "ĐẢNG BỘ …" tiêu đề trái (Mẫu 11, 13 dùng tên Đảng bộ làm dòng tổ chức lập phiếu khi xuất toàn Đảng bộ, qua `PARTY_CELL`) |
 | `ORG_SUPERIOR_PARTY_NAME` | Tên tổ chức Đảng cấp trên (ghi đúng như in) | Mẫu 11, 13 — dòng trên cùng tiêu đề trái |
 | `ORG_COMPANY_NAME` / `ORG_COMPANY_NAME_UPPER` | Tên công ty / chữ in hoa | Mẫu 01, 02 — dòng cơ quan quản lý (`_UPPER`) |
 | `ORG_PARENT_COMPANY_NAME` / `ORG_PARENT_COMPANY_NAME_UPPER` | Tên đơn vị chủ quản / chữ in hoa | Mẫu 10 — dòng cơ quan cấp trên (`_UPPER`) |
 | `ORG_SHORT_NAME` | Tên viết tắt | — |
-| `ORG_LOCATION` | Địa danh | Mẫu 01, 02, 10, 11 — phần `……` của dòng "……, ngày … tháng … năm …" |
+| `ORG_LOCATION` | Địa danh | Mẫu 01, 02, 09A, 09B, 09C, 9D, 10, 11 — phần `……` của dòng "……, ngày … tháng … năm …" |
 
 Excel (Mẫu 14, 15, danh sách cán bộ) dùng cùng cài đặt: dòng tiêu đề trái (tổ chức Đảng cấp trên, tên Đảng bộ), dòng
 "Địa danh, ngày … tháng … năm …", tiêu đề và tên tệp danh sách cán bộ (`DanhSach_CanBo_<tên viết tắt>.xlsx`).
@@ -131,6 +131,14 @@ dưới đây là **bắt buộc** (thiếu → cảnh báo khi tải lên); kh�
 | `MAU_10` Phiếu thẩm định | `QUARTER`, `YEAR`, `FULL_NAME`, `POSITION`, `DEPARTMENT`, `GENERAL_SELF_SCORE`, `GENERAL_APPRAISAL_SCORE`, `GENERAL_DIFF`, `TASKS_SELF_SCORE`, `TASKS_APPRAISAL_SCORE`, `TASKS_DIFF`, `TOTAL_SELF_SCORE`, `TOTAL_APPRAISAL_SCORE`, `TOTAL_DIFF`, `SUPERVISOR_COMMENT`, `APPRAISAL_COMMENT`, `APPRAISAL_EXPLANATION`, `PROPOSED_GRADE` — `GENERAL_SELF_SCORE` là tổng tiêu chí chung theo bộ (tính cả K/AD theo quy tắc của bộ), `TASKS_SELF_SCORE` là tổng nhiệm vụ (09A) hoặc tổng điểm trục (09B); `APPRAISAL_EXPLANATION` là nội dung giải trình/căn cứ bắt buộc khi chênh lệch tự chấm – thẩm định đạt ngưỡng của bộ; `GENERAL_/TASKS_APPRAISAL_SCORE`, `GENERAL_/TASKS_DIFF` chưa có dữ liệu (hồ sơ chỉ lưu tổng điểm thẩm định) → giữ chữ mặc định | — |
 | `MAU_11` Phiếu đánh giá, xếp loại (bỏ phiếu) | `PARTY_CELL`, `PERIOD_QUARTER_YEAR` | `repeat:RECORDS`: `R_STT`, `R_NAME`, `R_POSITION_DEPT`, `R_GENERAL_SCORE`, `R_TASKS_SCORE`, `R_SELF_GRADE` |
 | `MAU_13` Biên bản kiểm phiếu | `PARTY_CELL`, `PERIOD_QUARTER_YEAR`, `TOTAL_VOTERS`, `INVALID_BALLOTS` | `repeat:RECORDS`: `V_STT`, `V_NAME`, `V_POSITION_DEPT`, `V_EXC`, `V_GOOD`, `V_SAT`, `V_UNSAT`, `V_PCT` |
+| `MAU_09A` Phiếu tự chấm (theo sản phẩm Mẫu 01/02) | `PARTY_CELL`, `QUARTER`, `YEAR`, `FULL_NAME`, `PARTY_POSITION`, `ADMIN_POSITION`, `MASS_POSITION`, `DEPARTMENT`, `GENERAL_SCORE`, `TASKS_SCORE`, `TOTAL_SCORE`, `EXCEED_COUNT`, `TASK_COUNT`, `EXCEED_PERCENT`, `CHECK_EXCELLENT`, `CHECK_GOOD`, `CHECK_DONE`, `CHECK_FAILED` — `CHECK_*` là ô ☒/☐ của mức tự đề xuất; `EXCEED_PERCENT` là số nguyên (ký hiệu % in sẵn) | `repeat:GROUPS` (dòng nhóm): `G_NO`, `G_NAME`, `G_MAX`, lồng `repeat:ITEMS` (dòng tiêu chí con): `I_CODE`, `I_TEXT`, `I_MET`, `I_NOT_MET`, `I_MAX`, `I_SCORE`, `I_NOTE` |
+| `MAU_09B` Phiếu tự chấm (theo trục, Quý III/2026) | `PARTY_CELL`, `QUARTER`, `YEAR`, `FULL_NAME`, `POSITIONS`, `DEPARTMENT`, `CELL_NAME`, `GENERAL_SCORE`, `TASKS_SCORE`, `TOTAL_SCORE`, `SELF_GRADE` | `repeat:GROUPS` / `repeat:ITEMS` như Mẫu 09A; `repeat:AXES`: `A_NO`, `A_TITLE`, `A_GUIDANCE`, `A_TARGET`, `A_MAX`, `A_SCORE`, `A_RESULT`, `A_NOTE` — `A_TITLE`/`A_GUIDANCE` lấy từ `formTitle`/`formGuidance` của trục trong bộ tiêu chí; `A_TARGET`/`A_RESULT`/`A_NOTE` là phần tự luận theo trục chủ hồ sơ nhập khi tự chấm |
+| `MAU_09C` Bản tự đánh giá, xếp loại của cá nhân | `PARTY_CELL`, `QUARTER`, `YEAR`, `FULL_NAME`, `PARTY_POSITION`, `ADMIN_POSITION`, `MASS_POSITION`, `DEPARTMENT`, `GENERAL_SCORE`, `TASKS_SCORE`, `TOTAL_SCORE`, `SELF_GRADE` | `repeat:SECTIONS` (khối đoạn văn, mỗi mục khai báo trong bộ tiêu chí): `S_TITLE`, `S_INTRO`, `S_CONTENT`, `S_NOTE` — mục chưa nhập nội dung giữ dòng chấm của template |
+| `MAU_9D` Phụ lục kết quả thực hiện nhiệm vụ trong quý | `PARTY_CELL`, `QUARTER`, `YEAR`, `FULL_NAME`, `POSITIONS`, `DEPARTMENT`, `CELL_NAME` | `repeat:AXES` (dòng "Trục n", mỗi trục của bộ tiêu chí): `A_LABEL`, `A_NAME`, lồng `repeat:ROWS` (dòng nhiệm vụ của trục): `R_STT`, `R_CONTENT`, `R_DEADLINE`, `R_STATUS`, `R_PRODUCT`, `R_PROGRESS`, `R_NOTE` |
+
+Mẫu 09A/09B/09C/9D: tiêu đề trái "ĐẢNG BỘ …" dùng `ORG_PARTY_NAME`, "CHI BỘ …" là `PARTY_CELL` (tên Chi bộ ảnh chụp trên hồ sơ, in
+hoa); điểm để trống (giữ dòng chấm) khi hồ sơ chưa nộp phiếu tự chấm. Template dựng từ file biểu mẫu gốc
+`docs/2.03-HD.TVDU (HD DGXL CAN BO QUY III-2026) (Bieu mau).docx` (cắt đúng phần của mẫu, giữ nguyên bố cục, chỉ thêm Content Control).
 
 ## 7. Thay file mẫu trên giao diện (quyền `system.templates.manage`)
 
@@ -170,3 +178,17 @@ ghi log lỗi và xuất theo file gốc.
    vào trong. Tag của dòng lặp chỉ đặt bên trong control lặp.
 5. Xóa control thừa bằng chuột phải → *Remove Content Control* (giữ chữ) hoặc xóa cả khung; không dán control từ mẫu khác vào.
 6. Lưu dạng **Word Document (*.docx)** (không lưu `.doc`, `.dotx`, `.docm`), rồi *Kiểm tra* trên trang trước khi tải lên.
+
+## 8. Biểu mẫu cá nhân theo bộ tiêu chí của kỳ (Mẫu 09A, 09B, 09C, 9D — task 18)
+
+- **Mẫu áp dụng** khai báo trong nội dung bộ tiêu chí: `requiredForms` (mã `01`, `02`, `09A`, `09B`, `09C`, `9D`, `10`). Mẫu tự chấm
+  (09A/09B) luôn theo `selfScoreForm` của bộ; mã 09A/09B ghi trong `requiredForms` được bỏ qua. Bộ mặc định: 09B (Quý III/2026) →
+  `09B, 09C, 9D, 10`; 09A (từ 2027) → `01, 02, 09A, 09C, 9D, 10`.
+- **Mục Mẫu 09C** khai báo trong `selfAssessmentSections` (mã, tiêu đề, câu dẫn, lưu ý, số ký tự tối đa, bắt buộc); nội dung hồ sơ
+  lưu jsonb theo mã mục (`evaluation_records.SelfAssessment`). **Mẫu 9D** lưu các dòng theo mã trục (`TaskResults`); phần tự luận
+  theo trục của 09B lưu ở `AxisNotes`. Cả ba nhập cùng phiếu tự chấm (bước `B2_SELF_SCORE`); trường không gửi = giữ nội dung đã lưu.
+- **API** (quyền xem hồ sơ — `evaluation.read` trong phạm vi, chủ hồ sơ luôn xem được; kiểm tra bằng guard trên hồ sơ):
+  - `GET /api/reports/docx/record/{recordId}` — danh sách mẫu áp dụng (mã, tên).
+  - `GET /api/reports/docx/record/{recordId}/{formCode}?format=docx|pdf` — xuất một mẫu; 01/02/10 dùng lại bộ xuất hiện có. Mẫu
+    không áp dụng cho kỳ → 409; mã không có → 400. Tên tệp không dấu `Mau_<mã>_<Họ_tên>_Q<quý>-<năm>.docx`.
+- Thay file mẫu qua **Quản trị → Biểu mẫu Word** như các mẫu khác (mã `MAU_09A`, `MAU_09B`, `MAU_09C`, `MAU_9D`).

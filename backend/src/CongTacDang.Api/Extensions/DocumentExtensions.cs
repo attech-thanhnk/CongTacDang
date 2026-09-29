@@ -32,6 +32,7 @@ public static class DocumentExtensions
         var pdfOptions = configuration.GetSection("Documents:Pdf").Get<PdfConversionOptions>() ?? new PdfConversionOptions();
         services.AddSingleton(pdfOptions);
         services.AddSingleton<IPdfConverter, LibreOfficePdfConverter>();
+        services.AddScoped<IRecordFormService, RecordFormService>();
         return services;
     }
 }
