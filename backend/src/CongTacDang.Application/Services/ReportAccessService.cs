@@ -25,18 +25,58 @@ public interface IReportAccessService
 
     /// <summary>Phạm vi danh sách cán bộ được xuất (T-61): theo phạm vi <c>report.export</c> (Toàn công ty / Phòng / Chi bộ).</summary>
     ScopeFilter GetCadreExportScope();
+
+    /// <summary>
+    /// Bảo đảm người yêu cầu được xuất Mẫu 07/08 của một hồ sơ tập thể: như quyền xem hồ sơ tập thể
+    /// (<c>evaluation.read</c> hoặc <c>collective.manage</c> trên tổ chức của hồ sơ).
+    /// </summary>
+    Task EnsureCanExportCollectiveAsync(Guid collectiveRecordId);
+
+    /// <summary>Bảo đảm người yêu cầu được xuất Mẫu 12 của một biên bản: <c>meeting.read</c> hoặc <c>meeting.manage</c> trên đơn vị của biên bản.</summary>
+    Task EnsureCanExportMeetingAsync(Guid meetingId);
 }
 
 /// <summary>Triển khai kiểm tra phạm vi kết xuất dựa trên <see cref="IAuthorizationGuard"/>.</summary>
 public class ReportAccessService : IReportAccessService
 {
     private readonly IEvaluationRepository _evaluationRepo;
+    private readonly ICollectiveEvaluationRepository _collectiveRepo;
+    private readonly IEvaluationMeetingRepository _meetingRepo;
     private readonly IAuthorizationGuard _guard;
 
-    public ReportAccessService(IEvaluationRepository evaluationRepo, IAuthorizationGuard guard)
+    public ReportAccessService(
+        IEvaluationRepository evaluationRepo,
+        ICollectiveEvaluationRepository collectiveRepo,
+        IEvaluationMeetingRepository meetingRepo,
+        IAuthorizationGuard guard)
     {
         _evaluationRepo = evaluationRepo;
+        _collectiveRepo = collectiveRepo;
+        _meetingRepo = meetingRepo;
         _guard = guard;
+    }
+
+    /// <inheritdoc />
+    public async Task EnsureCanExportCollectiveAsync(Guid collectiveRecordId)
+    {
+        var record = await _collectiveRepo.GetByIdAsync(collectiveRecordId)
+            ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ tập thể với Id: {collectiveRecordId}");
+        var target = new AccessTarget(DepartmentId: record.DepartmentId, PartyCellId: record.PartyCellId);
+        if (!_guard.Can(PermissionCodes.EvaluationRead, target) && !_guard.Can(PermissionCodes.CollectiveManage, target))
+            throw new ForbiddenException(
+                $"Bạn không có quyền \"{PermissionCodes.DisplayName(PermissionCodes.EvaluationRead)}\" hoặc \"{PermissionCodes.DisplayName(PermissionCodes.CollectiveManage)}\" "
+                + "đối với tổ chức của hồ sơ tập thể này (ngoài phạm vi được gán).");
+    }
+
+    /// <inheritdoc />
+    public async Task EnsureCanExportMeetingAsync(Guid meetingId)
+    {
+        var meeting = await _meetingRepo.GetByIdAsync(meetingId)
+            ?? throw new KeyNotFoundException($"Không tìm thấy biên bản hội nghị với Id: {meetingId}");
+        var target = new AccessTarget(DepartmentId: meeting.DepartmentId, PartyCellId: meeting.PartyCellId);
+        if (!_guard.Can(PermissionCodes.MeetingRead, target) && !_guard.Can(PermissionCodes.MeetingManage, target))
+            throw new ForbiddenException(
+                $"Bạn không có quyền \"{PermissionCodes.DisplayName(PermissionCodes.MeetingRead)}\" đối với đơn vị của biên bản này (ngoài phạm vi được gán).");
     }
 
     /// <inheritdoc />
