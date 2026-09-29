@@ -99,6 +99,7 @@ builder.Services.AddScoped<ICollectiveEvaluationService, CollectiveEvaluationSer
 builder.Services.AddScoped<IReportService, CongTacDang.Infrastructure.Services.ReportService>();
 builder.Services.AddDocumentGeneration(builder.Configuration);
 builder.Services.AddScoped<IReportAccessService, ReportAccessService>();
+builder.Services.AddOrganizationModel(builder.Configuration); // Chức vụ, kiêm nhiệm, thẩm quyền suy ra (Api/Extensions/OrganizationExtensions.cs)
 builder.Services.AddImports(); // Nhập dữ liệu Excel (Api/Extensions/ImportExtensions.cs)
 builder.Services.AddEvaluationWorkflow(); // Luồng đánh giá theo cấu hình kỳ (Api/Extensions/EvaluationExtensions.cs)
 

@@ -358,11 +358,13 @@ public class OrganizationRepository : IOrganizationRepository
 
     public Task<List<AdministrativeDepartment>> ListDepartmentsAsync()
         => _db.AdministrativeDepartments.AsNoTracking()
+            .Include(d => d.UnitType)
             .OrderBy(d => d.SortOrder).ThenBy(d => d.Code)
             .ToListAsync();
 
     public Task<List<PartyCell>> ListPartyCellsAsync()
         => _db.PartyCells.AsNoTracking()
+            .Include(c => c.UnitType)
             .OrderBy(c => c.SortOrder).ThenBy(c => c.Code)
             .ToListAsync();
 
@@ -420,22 +422,87 @@ public class OrganizationRepository : IOrganizationRepository
 
     public void RemovePartyCell(PartyCell cell) => _db.PartyCells.Remove(cell);
 
-    public async Task<CatalogUsage> GetDepartmentUsageAsync(Guid id)
+    public async Task<CatalogUsage> GetDepartmentUsageAsync(Guid id, DateTime now)
     {
         var members = await _db.PartyMemberProfiles.CountAsync(m => m.DepartmentId == id);
         var records = await _db.EvaluationRecords.CountAsync(r => r.DepartmentId == id);
         var collective = await _db.CollectiveEvaluationRecords.CountAsync(r => r.DepartmentId == id);
-        return new CatalogUsage(members, records, collective, 0);
+        var children = await _db.AdministrativeDepartments.CountAsync(d => d.ParentId == id);
+        var assignments = await _db.Set<UserRoleAssignment>().CountAsync(a =>
+            a.ScopeType == RoleScopeType.Department && a.ScopeId == id && (a.ValidTo == null || a.ValidTo > now));
+        var positions = await _db.MemberPositions.CountAsync(p => p.DepartmentId == id && (p.ValidTo == null || p.ValidTo > now));
+        return new CatalogUsage(members, records, collective, 0, children, assignments, positions);
     }
 
-    public async Task<CatalogUsage> GetPartyCellUsageAsync(Guid id)
+    public async Task<CatalogUsage> GetPartyCellUsageAsync(Guid id, DateTime now)
     {
         var members = await _db.PartyMemberProfiles.CountAsync(m => m.PartyCellId == id);
         var records = await _db.EvaluationRecords.CountAsync(r => r.PartyCellId == id);
         var collective = await _db.CollectiveEvaluationRecords.CountAsync(r => r.PartyCellId == id);
         var meetings = await _db.EvaluationMeetings.CountAsync(m => m.PartyCellId == id);
-        return new CatalogUsage(members, records, collective, meetings);
+        var children = await _db.PartyCells.CountAsync(c => c.ParentId == id);
+        var assignments = await _db.Set<UserRoleAssignment>().CountAsync(a =>
+            a.ScopeType == RoleScopeType.PartyCell && a.ScopeId == id && (a.ValidTo == null || a.ValidTo > now));
+        var positions = await _db.MemberPositions.CountAsync(p => p.PartyCellId == id && (p.ValidTo == null || p.ValidTo > now));
+        return new CatalogUsage(members, records, collective, meetings, children, assignments, positions);
     }
+
+    // ----- Cây đơn vị, loại đơn vị (task 14) -----
+
+    public async Task<Dictionary<Guid, int>> CountChildDepartmentsAsync()
+    {
+        var rows = await _db.AdministrativeDepartments.AsNoTracking()
+            .Where(d => d.ParentId != null)
+            .GroupBy(d => d.ParentId!.Value)
+            .Select(g => new { Id = g.Key, Count = g.Count() })
+            .ToListAsync();
+        return rows.ToDictionary(r => r.Id, r => r.Count);
+    }
+
+    public async Task<Dictionary<Guid, int>> CountChildPartyCellsAsync()
+    {
+        var rows = await _db.PartyCells.AsNoTracking()
+            .Where(c => c.ParentId != null)
+            .GroupBy(c => c.ParentId!.Value)
+            .Select(g => new { Id = g.Key, Count = g.Count() })
+            .ToListAsync();
+        return rows.ToDictionary(r => r.Id, r => r.Count);
+    }
+
+    public Task<List<OrgUnitType>> ListUnitTypesAsync()
+        => _db.OrgUnitTypes.AsNoTracking()
+            .OrderBy(t => t.Side).ThenBy(t => t.SortOrder).ThenBy(t => t.Name)
+            .ToListAsync();
+
+    public Task<OrgUnitType?> FindUnitTypeAsync(Guid id)
+        => _db.OrgUnitTypes.FirstOrDefaultAsync(t => t.Id == id);
+
+    public Task<bool> UnitTypeNameExistsAsync(OrgSide side, string name, Guid? excludeId = null)
+    {
+        var normalized = name.Trim().ToLower();
+        return _db.OrgUnitTypes.AnyAsync(t => t.Side == side && t.Name.ToLower() == normalized && (excludeId == null || t.Id != excludeId));
+    }
+
+    public async Task<Dictionary<Guid, int>> CountUnitsByTypeAsync()
+    {
+        var departments = await _db.AdministrativeDepartments.AsNoTracking()
+            .Where(d => d.UnitTypeId != null)
+            .GroupBy(d => d.UnitTypeId!.Value)
+            .Select(g => new { Id = g.Key, Count = g.Count() })
+            .ToListAsync();
+        var cells = await _db.PartyCells.AsNoTracking()
+            .Where(c => c.UnitTypeId != null)
+            .GroupBy(c => c.UnitTypeId!.Value)
+            .Select(g => new { Id = g.Key, Count = g.Count() })
+            .ToListAsync();
+        return departments.Concat(cells)
+            .GroupBy(r => r.Id)
+            .ToDictionary(g => g.Key, g => g.Sum(r => r.Count));
+    }
+
+    public void AddUnitType(OrgUnitType type) => _db.OrgUnitTypes.Add(type);
+
+    public void RemoveUnitType(OrgUnitType type) => _db.OrgUnitTypes.Remove(type);
 }
 
 /// <summary>

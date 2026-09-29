@@ -21,4 +21,13 @@ public class SaveCatalogItemDto
 
     /// <summary>Đang hoạt động; false = ngừng hoạt động.</summary>
     public bool? IsActive { get; set; }
+
+    /// <summary>
+    /// Đơn vị cha (cùng bên). Thêm mới: null = đơn vị gốc. Cập nhật: null = giữ nguyên, <c>Guid.Empty</c> = chuyển thành gốc.
+    /// Không được chọn chính đơn vị hoặc đơn vị con cháu của nó (tạo vòng).
+    /// </summary>
+    public Guid? ParentId { get; set; }
+
+    /// <summary>Loại đơn vị (danh mục <c>org_unit_types</c>, đúng bên). Cập nhật: null = giữ nguyên, <c>Guid.Empty</c> = bỏ loại.</summary>
+    public Guid? UnitTypeId { get; set; }
 }

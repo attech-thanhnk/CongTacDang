@@ -32,8 +32,8 @@ public sealed record AccessTarget(
 /// <c>IsGlobal</c> OR <c>DepartmentId IN DepartmentIds</c> OR <c>PartyCellId IN PartyCellIds</c> OR <c>OwnerId = OwnerId</c>.
 /// </summary>
 /// <param name="IsGlobal">Được thấy mọi đối tượng.</param>
-/// <param name="DepartmentIds">Các Phòng được thấy.</param>
-/// <param name="PartyCellIds">Các Chi bộ được thấy.</param>
+/// <param name="DepartmentIds">Các đơn vị chính quyền được thấy (đã mở rộng xuống mọi đơn vị con cháu của nút được gán).</param>
+/// <param name="PartyCellIds">Các tổ chức Đảng được thấy (đã mở rộng xuống mọi tổ chức con cháu của nút được gán).</param>
 /// <param name="OwnerId">Luôn thấy đối tượng của chủ này (vd. <c>evaluation.read</c>: chủ hồ sơ luôn xem được hồ sơ của mình).</param>
 public sealed record ScopeFilter(
     bool IsGlobal,

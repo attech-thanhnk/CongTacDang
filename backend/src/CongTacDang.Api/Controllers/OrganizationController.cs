@@ -115,12 +115,49 @@ public class OrganizationController : ControllerBase
         return Ok(ApiResponse<DepartmentDto>.Ok(department, "Cập nhật Phòng/đơn vị thành công."));
     }
 
-    /// <summary>Xóa Phòng/đơn vị (409 khi còn cán bộ hoặc hồ sơ đánh giá)</summary>
+    /// <summary>Xóa đơn vị (409 khi còn đơn vị con, cán bộ, hồ sơ, bản gán hoặc chức vụ đang hiệu lực)</summary>
     [HttpDelete("departments/{id:guid}")]
     [RequirePermission(PermissionCodes.CatalogManage)]
     public async Task<IActionResult> DeleteDepartment(Guid id)
     {
         await _orgService.DeleteDepartmentAsync(id);
-        return Ok(ApiResponse.Ok("Đã xóa Phòng/đơn vị thành công."));
+        return Ok(ApiResponse.Ok("Đã xóa đơn vị thành công."));
+    }
+
+    // ===================== Loại đơn vị =====================
+
+    /// <summary>Danh mục loại đơn vị (cả hai bên).</summary>
+    [HttpGet("unit-types")]
+    public async Task<IActionResult> GetUnitTypes()
+    {
+        var types = await _orgService.GetUnitTypesAsync();
+        return Ok(ApiResponse<List<OrgUnitTypeDto>>.Ok(types, "Lấy danh mục loại đơn vị thành công."));
+    }
+
+    /// <summary>Thêm loại đơn vị.</summary>
+    [HttpPost("unit-types")]
+    [RequirePermission(PermissionCodes.CatalogManage)]
+    public async Task<IActionResult> CreateUnitType([FromBody] SaveOrgUnitTypeDto request)
+    {
+        var type = await _orgService.CreateUnitTypeAsync(request);
+        return Ok(ApiResponse<OrgUnitTypeDto>.Ok(type, "Đã thêm loại đơn vị."));
+    }
+
+    /// <summary>Sửa loại đơn vị.</summary>
+    [HttpPut("unit-types/{id:guid}")]
+    [RequirePermission(PermissionCodes.CatalogManage)]
+    public async Task<IActionResult> UpdateUnitType(Guid id, [FromBody] SaveOrgUnitTypeDto request)
+    {
+        var type = await _orgService.UpdateUnitTypeAsync(id, request);
+        return Ok(ApiResponse<OrgUnitTypeDto>.Ok(type, "Đã cập nhật loại đơn vị."));
+    }
+
+    /// <summary>Xóa loại đơn vị (409 khi còn đơn vị thuộc loại này).</summary>
+    [HttpDelete("unit-types/{id:guid}")]
+    [RequirePermission(PermissionCodes.CatalogManage)]
+    public async Task<IActionResult> DeleteUnitType(Guid id)
+    {
+        await _orgService.DeleteUnitTypeAsync(id);
+        return Ok(ApiResponse.Ok("Đã xóa loại đơn vị."));
     }
 }

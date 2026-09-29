@@ -69,9 +69,11 @@ public interface IUserAccountService
 /// <param name="Email">Thư điện tử.</param>
 /// <param name="PartyCardNumber">Số thẻ Đảng viên; có giá trị → là Đảng viên.</param>
 /// <param name="PositionTitle">Chức danh hiển thị trên văn bản.</param>
-/// <param name="DepartmentId">Phòng / đơn vị.</param>
-/// <param name="PartyCellId">Chi bộ sinh hoạt.</param>
-/// <param name="ApprovalAuthority">Cấp có thẩm quyền quyết định xếp loại.</param>
+/// <param name="DepartmentId">Đơn vị công tác chính (đơn vị chính quyền).</param>
+/// <param name="PartyCellId">Nơi sinh hoạt Đảng (tổ chức Đảng).</param>
+/// <param name="ApprovalAuthority">
+/// Thẩm quyền phê duyệt <b>đặt tay</b> (ghi đè); null → suy ra từ chức vụ (tài khoản mới chưa có chức vụ → CoSo).
+/// </param>
 public sealed record CreateAccountCommand(
     string Username,
     string FullName,
@@ -80,10 +82,13 @@ public sealed record CreateAccountCommand(
     string? PositionTitle,
     Guid? DepartmentId,
     Guid? PartyCellId,
-    ApprovalAuthority ApprovalAuthority)
+    ApprovalAuthority? ApprovalAuthority = null)
 {
     /// <summary>Số điện thoại (tùy chọn).</summary>
     public string? PhoneNumber { get; init; }
+
+    /// <summary>Lý do đặt tay thẩm quyền (khi <see cref="ApprovalAuthority"/> có giá trị; trống → "Đặt khi tạo tài khoản").</summary>
+    public string? ApprovalAuthorityReason { get; init; }
 }
 
 /// <summary>Kết quả tạo tài khoản; <see cref="TemporaryPassword"/> chỉ trả về một lần để giao cho người dùng.</summary>
@@ -92,7 +97,10 @@ public sealed record CreateAccountCommand(
 /// <param name="TemporaryPassword">Mật khẩu tạm (không lưu dạng rõ).</param>
 public sealed record CreatedAccount(Guid UserId, string Username, string TemporaryPassword);
 
-/// <summary>Dữ liệu cập nhật tài khoản; null → giữ nguyên; <c>Guid.Empty</c> ở Phòng/Chi bộ → bỏ gán; chuỗi rỗng → xóa.</summary>
+/// <summary>
+/// Dữ liệu cập nhật tài khoản; null → giữ nguyên; <c>Guid.Empty</c> ở đơn vị/tổ chức Đảng → bỏ gán; chuỗi rỗng → xóa.
+/// Thẩm quyền phê duyệt không sửa ở đây — suy ra từ chức vụ, đặt tay qua <see cref="IPositionService.SetApprovalAuthorityOverrideAsync"/>.
+/// </summary>
 public sealed record UpdateAccountCommand(
     string? FullName = null,
     string? Email = null,
@@ -100,8 +108,7 @@ public sealed record UpdateAccountCommand(
     string? PartyCardNumber = null,
     string? PositionTitle = null,
     Guid? DepartmentId = null,
-    Guid? PartyCellId = null,
-    ApprovalAuthority? ApprovalAuthority = null);
+    Guid? PartyCellId = null);
 
 /// <summary>Tham số tra cứu tài khoản.</summary>
 /// <param name="Page">Trang (mặc định 1).</param>

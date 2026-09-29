@@ -44,29 +44,26 @@ public class PartyMemberProfile : IAuditableEntity, ISoftDeletable
     /// <summary>Ngày công nhận chính thức</summary>
     public DateTime? OfficialPartyDate { get; set; }
 
-    /// <summary>Mã Chi bộ Đảng đang sinh hoạt</summary>
+    /// <summary>Tổ chức Đảng nơi sinh hoạt Đảng (thường là Chi bộ)</summary>
     public Guid? PartyCellId { get; set; }
 
-    /// <summary>Đối tượng Chi bộ Đảng sinh hoạt</summary>
+    /// <summary>Tổ chức Đảng nơi sinh hoạt Đảng</summary>
     public PartyCell? PartyCell { get; set; }
-
-    /// <summary>Chức vụ công tác Đảng (Bí thư, Phó Bí thư, Chi ủy viên, Đảng viên)</summary>
-    public PartyRole PartyRole { get; set; } = PartyRole.DangVien;
 
     #endregion
 
     #region Vai 2: Chính quyền & Chuyên môn
 
-    /// <summary>Mã Phòng ban / Đơn vị chuyên môn</summary>
+    /// <summary>Đơn vị công tác chính (đơn vị chính quyền)</summary>
     public Guid? DepartmentId { get; set; }
 
-    /// <summary>Đối tượng Phòng ban chuyên môn</summary>
+    /// <summary>Đơn vị công tác chính</summary>
     public AdministrativeDepartment? Department { get; set; }
 
-    /// <summary>Chức vụ chính quyền</summary>
-    public AdministrativePosition AdminPosition { get; set; } = AdministrativePosition.ChuyenVien;
-
-    /// <summary>Chức danh quản lý hiển thị trên văn bản</summary>
+    /// <summary>
+    /// Chức danh hiển thị trên văn bản. Mặc định = tên chức vụ chính (<see cref="MemberPosition.IsPrimary"/>);
+    /// sửa tay được. Chức vụ (kể cả kiêm nhiệm) lưu ở bảng <c>member_positions</c>.
+    /// </summary>
     public string PositionTitle { get; set; } = string.Empty;
 
     /// <summary>Khối chức danh công tác theo 03-HD/TVĐU</summary>
@@ -74,8 +71,19 @@ public class PartyMemberProfile : IAuditableEntity, ISoftDeletable
 
     #endregion
 
-    /// <summary>Cấp có thẩm quyền quyết định xếp loại (CoSo: Đảng ủy ATTECH; CapTren: BTV Đảng ủy Tổng công ty)</summary>
+    /// <summary>
+    /// Cấp có thẩm quyền quyết định xếp loại <b>đang áp dụng</b> (CoSo: Đảng ủy cơ sở; CapTren: cấp ủy cấp trên).
+    /// = <see cref="ApprovalAuthorityOverride"/> nếu có, ngược lại suy ra từ chức vụ đang hiệu lực
+    /// (CapTren khi ít nhất một chức vụ có <see cref="Position.DefaultApprovalAuthority"/> = CapTren — HD03 tr.6).
+    /// Được tính lại khi chức vụ hoặc giá trị ghi đè thay đổi.
+    /// </summary>
     public ApprovalAuthority ApprovalAuthority { get; set; } = ApprovalAuthority.CoSo;
+
+    /// <summary>Thẩm quyền đặt tay (ghi đè giá trị suy ra từ chức vụ); null = suy ra.</summary>
+    public ApprovalAuthority? ApprovalAuthorityOverride { get; set; }
+
+    /// <summary>Lý do đặt tay thẩm quyền (bắt buộc khi <see cref="ApprovalAuthorityOverride"/> có giá trị).</summary>
+    public string? ApprovalAuthorityOverrideReason { get; set; }
 
     /// <summary>
     /// Dấu bảo mật của tài khoản: đổi khi đổi/đặt lại mật khẩu, khóa hoặc xóa để vô hiệu phiên đang dùng (task 08 sử dụng).

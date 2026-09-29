@@ -96,9 +96,10 @@ public class UserController : ControllerBase
             request.PositionTitle,
             request.DepartmentId,
             request.PartyCellId,
-            request.ApprovalAuthority ?? ApprovalAuthority.CoSo)
+            request.ApprovalAuthority)
         {
-            PhoneNumber = request.PhoneNumber
+            PhoneNumber = request.PhoneNumber,
+            ApprovalAuthorityReason = request.ApprovalAuthorityReason
         }, ct);
 
         return Ok(ApiResponse<CreatedAccount>.Ok(created,
@@ -117,8 +118,7 @@ public class UserController : ControllerBase
             request.PartyCardNumber,
             request.PositionTitle,
             request.DepartmentId,
-            request.PartyCellId,
-            request.ApprovalAuthority), ct);
+            request.PartyCellId), ct);
         return Ok(ApiResponse<AccountListItemDto>.Ok(result, "Cập nhật tài khoản thành công."));
     }
 

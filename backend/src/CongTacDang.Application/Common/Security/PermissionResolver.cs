@@ -17,7 +17,9 @@ namespace CongTacDang.Application.Common.Security;
 /// <item>chỉ bản gán đang hiệu lực (<c>ValidFrom ≤ now &lt; ValidTo</c>), chưa xóa, vai trò chưa xóa;</item>
 /// <item>mã quyền không có trong <see cref="PermissionCodes.All"/> bị bỏ qua (ghi cảnh báo một lần cho mỗi mã);</item>
 /// <item>quyền "không áp dụng phạm vi" chỉ có hiệu lực khi được gán phạm vi Global;</item>
-/// <item>người dùng không tồn tại / đã xóa / vô hiệu hóa → <see cref="EffectivePermissions.Empty"/>.</item>
+/// <item>người dùng không tồn tại / đã xóa / vô hiệu hóa → <see cref="EffectivePermissions.Empty"/>;</item>
+/// <item>phạm vi đơn vị (Department/PartyCell) được mở rộng xuống mọi đơn vị con cháu theo cây đơn vị (repository tính sẵn
+/// <see cref="AssignmentGrantSource.CoveredScopeIds"/>); đổi cấu trúc cây → xóa toàn bộ cache.</item>
 /// </list>
 /// Kết quả được cache theo người dùng (TTL 5 phút, hết hạn sớm hơn khi có bản gán bắt đầu/kết thúc hiệu lực).
 /// </summary>
@@ -105,7 +107,8 @@ public sealed class PermissionResolver : IPermissionResolver
                 if (!definition.AppliesScope && scopeType != ScopeType.Global)
                     continue; // quyền không áp dụng phạm vi chỉ có nghĩa khi gán Global
 
-                grants.Add(new PermissionGrant(code, scopeType, scopeId, assignment.AssignmentId, assignment.RoleName));
+                grants.Add(new PermissionGrant(code, scopeType, scopeId, assignment.AssignmentId, assignment.RoleName,
+                    scopeType == ScopeType.Global ? null : assignment.CoveredScopeIds));
             }
         }
 

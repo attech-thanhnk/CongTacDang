@@ -31,7 +31,13 @@ export interface AccountListItem {
   departmentName?: string | null;
   partyCellId?: string | null;
   partyCellName?: string | null;
+  /** Thẩm quyền đang áp dụng (đặt tay hoặc suy ra từ chức vụ). */
   approvalAuthority: ApprovalAuthority;
+  /** Thẩm quyền đặt tay (null = suy ra từ chức vụ). */
+  approvalAuthorityOverride?: ApprovalAuthority | null;
+  approvalAuthorityOverrideReason?: string | null;
+  /** Người xem quản lý được tài khoản này (phạm vi bao trùm cây đơn vị — máy chủ tính; chỉ có ở chi tiết). */
+  canManage?: boolean;
   /** false: quản trị đã vô hiệu hóa tài khoản. */
   isActive: boolean;
   /** Đang bị khóa tạm do nhập sai mật khẩu nhiều lần. */
@@ -63,12 +69,15 @@ export interface CreateAccountPayload {
   positionTitle?: string;
   departmentId?: string;
   partyCellId?: string;
+  /** Đặt tay thẩm quyền; không gửi = suy ra từ chức vụ. */
   approvalAuthority?: ApprovalAuthority;
+  approvalAuthorityReason?: string;
 }
 
 /**
  * Dữ liệu cập nhật tài khoản (`PUT /api/users/{id}`). Không gửi = giữ nguyên;
- * chuỗi rỗng = xóa (email/điện thoại/số thẻ); `EMPTY_GUID` = bỏ gán Phòng/Chi bộ.
+ * chuỗi rỗng = xóa (email/điện thoại/số thẻ); `EMPTY_GUID` = bỏ gán đơn vị / tổ chức Đảng.
+ * Thẩm quyền phê duyệt sửa qua `setApprovalAuthority`.
  */
 export interface UpdateAccountPayload {
   fullName?: string;
@@ -78,7 +87,49 @@ export interface UpdateAccountPayload {
   positionTitle?: string;
   departmentId?: string;
   partyCellId?: string;
-  approvalAuthority?: ApprovalAuthority;
+}
+
+/** Một chức vụ của cán bộ (`GET /api/users/{id}/positions`). */
+export interface MemberPosition {
+  id: string;
+  userId: string;
+  positionId: string;
+  positionName: string;
+  side: string;
+  statCode?: string | null;
+  defaultApprovalAuthority?: string | null;
+  partyCellId?: string | null;
+  partyCellName?: string | null;
+  departmentId?: string | null;
+  departmentName?: string | null;
+  isPrimary: boolean;
+  validFrom: string;
+  /** Mốc hết hiệu lực (không bao gồm). */
+  validTo?: string | null;
+  isEffective: boolean;
+  note?: string | null;
+}
+
+/** Thêm/sửa chức vụ của cán bộ. */
+export interface SaveMemberPositionPayload {
+  positionId?: string;
+  partyCellId?: string;
+  departmentId?: string;
+  isPrimary?: boolean;
+  validFrom?: string;
+  validTo?: string;
+  clearValidTo?: boolean;
+  note?: string;
+}
+
+/** Thẩm quyền phê duyệt của cán bộ. */
+export interface ApprovalAuthorityInfo {
+  effective: "CoSo" | "CapTren";
+  derived: "CoSo" | "CapTren";
+  override?: "CoSo" | "CapTren" | null;
+  overrideReason?: string | null;
+  capTrenPositions: string[];
+  statCode?: string | null;
 }
 
 /** Guid rỗng — máy chủ hiểu là bỏ gán Phòng/Chi bộ. */
@@ -162,5 +213,43 @@ export const userService = {
   /** Xóa (mềm) tài khoản (409 như vô hiệu hóa). */
   remove(id: string): Promise<void> {
     return request<void>(`/users/${id}`, { method: "DELETE" });
+  },
+
+  /** Chức vụ (đang và đã giữ) của cán bộ. */
+  listPositions(userId: string): Promise<MemberPosition[]> {
+    return request<MemberPosition[]>(`/users/${userId}/positions`);
+  },
+
+  /** Thêm chức vụ (chính hoặc kiêm nhiệm). */
+  addPosition(userId: string, payload: SaveMemberPositionPayload): Promise<MemberPosition> {
+    return request<MemberPosition>(`/users/${userId}/positions`, { method: "POST", body: JSON.stringify(payload) });
+  },
+
+  /** Sửa chức vụ. */
+  updatePosition(userId: string, id: string, payload: SaveMemberPositionPayload): Promise<MemberPosition> {
+    return request<MemberPosition>(`/users/${userId}/positions/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+  },
+
+  /** Kết thúc chức vụ ngay bây giờ. */
+  endPosition(userId: string, id: string): Promise<MemberPosition> {
+    return request<MemberPosition>(`/users/${userId}/positions/${id}/end`, { method: "POST" });
+  },
+
+  /** Xóa bản ghi chức vụ nhập nhầm. */
+  removePosition(userId: string, id: string): Promise<void> {
+    return request<void>(`/users/${userId}/positions/${id}`, { method: "DELETE" });
+  },
+
+  /** Thẩm quyền phê duyệt: đang áp dụng, suy ra, đặt tay. */
+  getApprovalAuthority(userId: string): Promise<ApprovalAuthorityInfo> {
+    return request<ApprovalAuthorityInfo>(`/users/${userId}/approval-authority`);
+  },
+
+  /** Đặt tay (kèm lý do) hoặc bỏ đặt tay (`override` rỗng). */
+  setApprovalAuthority(userId: string, override: "CoSo" | "CapTren" | "", reason?: string): Promise<ApprovalAuthorityInfo> {
+    return request<ApprovalAuthorityInfo>(`/users/${userId}/approval-authority`, {
+      method: "PUT",
+      body: JSON.stringify({ override: override || null, reason }),
+    });
   },
 };

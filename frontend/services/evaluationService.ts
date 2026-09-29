@@ -203,7 +203,6 @@ export interface EvaluationRecordDto {
   memberId: string;
   fullName: string;
   partyCardNumber?: string;
-  partyRole: string;
   positionTitle: string;
   partyCellName?: string;
   partyCellId?: string;

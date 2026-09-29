@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import type { CatalogItem } from "@/services/catalogService";
+import { CatalogItem, treeLabel } from "@/services/catalogService";
 import {
   AdminRole,
   CreateAssignmentPayload,
@@ -178,14 +178,17 @@ export function AssignmentFormModal({
                 {mustBeGlobal || scopeType === "Global" ? (
                   <div className="form-control form-control-sm bg-light text-secondary">Toàn công ty</div>
                 ) : (
-                  <select className="form-select form-select-sm" value={scopeId} required onChange={(e) => setScopeId(e.target.value)}>
-                    <option value="">— Chọn {scopeType === "Department" ? "Phòng / đơn vị" : "Chi bộ"} —</option>
-                    {scopeOptions.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name} ({item.code})
-                      </option>
-                    ))}
-                  </select>
+                  <>
+                    <select className="form-select form-select-sm" value={scopeId} required onChange={(e) => setScopeId(e.target.value)}>
+                      <option value="">— Chọn {scopeType === "Department" ? "đơn vị chính quyền" : "tổ chức Đảng"} —</option>
+                      {scopeOptions.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {treeLabel(item)} ({item.code})
+                        </option>
+                      ))}
+                    </select>
+                    <div className="form-text">Phạm vi gồm đơn vị được chọn và mọi đơn vị cấp dưới của nó.</div>
+                  </>
                 )}
               </div>
               {mustBeGlobal && (

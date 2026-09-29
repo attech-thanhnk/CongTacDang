@@ -18,13 +18,13 @@ public sealed class ImportLookup : IImportLookup
     /// <inheritdoc />
     public async Task<IReadOnlyList<CatalogLookupEntry>> GetDepartmentsAsync(CancellationToken ct)
         => await _db.AdministrativeDepartments.IgnoreQueryFilters().AsNoTracking()
-            .Select(d => new CatalogLookupEntry(d.Id, d.Code, d.Name, d.IsActive, d.IsDeleted))
+            .Select(d => new CatalogLookupEntry(d.Id, d.Code, d.Name, d.IsActive, d.IsDeleted, d.ParentId))
             .ToListAsync(ct);
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<CatalogLookupEntry>> GetPartyCellsAsync(CancellationToken ct)
         => await _db.PartyCells.IgnoreQueryFilters().AsNoTracking()
-            .Select(c => new CatalogLookupEntry(c.Id, c.Code, c.Name, c.IsActive, c.IsDeleted))
+            .Select(c => new CatalogLookupEntry(c.Id, c.Code, c.Name, c.IsActive, c.IsDeleted, c.ParentId))
             .ToListAsync(ct);
 
     /// <inheritdoc />

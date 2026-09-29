@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ClosedXML.Excel;
 using CongTacDang.Application.Common.Interfaces;
+using CongTacDang.Application.Organization;
 using CongTacDang.Application.Services;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Evaluation;
@@ -46,6 +47,7 @@ public class ReportService : IReportService
         var members = (await _userRepo.GetAllWithDetailsAsync())
             .Where(m => scope.Matches(null, m.DepartmentId, m.PartyCellId))
             .ToList();
+        var partyPositions = await PartyPositionNamesAsync(members.Select(m => m.Id), DateTime.UtcNow);
 
         using (var workbook = new XLWorkbook())
         {
@@ -76,7 +78,7 @@ public class ReportService : IReportService
                 ws.Cell(row, 2).Value = m.FullName;
                 ws.Cell(row, 3).Value = m.PartyCardNumber ?? "";
                 ws.Cell(row, 4).Value = m.PartyCell?.Name ?? "";
-                ws.Cell(row, 5).Value = m.PartyRole.ToString();
+                ws.Cell(row, 5).Value = partyPositions.GetValueOrDefault(m.Id) ?? "";
                 ws.Cell(row, 6).Value = m.Department?.Name ?? "";
                 ws.Cell(row, 7).Value = m.PositionTitle ?? "";
                 ws.Cell(row, 8).Value = m.IsActive ? "Đang hoạt động" : "Đã khóa";
@@ -105,6 +107,7 @@ public class ReportService : IReportService
     public async Task<ReportFileResult> ExportForm14ReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
     {
         var (activePeriod, records, scopeCell) = await LoadExcelScopeAsync(periodId, partyCellId);
+        var at = PositionDate(activePeriod);
 
         using (var workbook = new XLWorkbook())
         {
@@ -147,11 +150,12 @@ public class ReportService : IReportService
 
             if (records.Count > 0)
             {
+                var partyPositions = await PartyPositionNamesAsync(records.Select(r => r.MemberId), at);
                 foreach (var r in records)
                 {
                     ws.Cell(row, 1).Value = stt++;
                     ws.Cell(row, 2).Value = r.Member?.FullName ?? "";
-                    ws.Cell(row, 3).Value = r.Member?.PartyRole.ToString() ?? "";
+                    ws.Cell(row, 3).Value = partyPositions.GetValueOrDefault(r.MemberId) ?? "";
                     ws.Cell(row, 4).Value = r.Member?.PositionTitle ?? "";
                     ws.Cell(row, 5).Value = r.Member?.PartyCell?.Name ?? r.PartyCell?.Name ?? "";
                     ws.Cell(row, 6).Value = r.Member?.Department?.Name ?? r.Department?.Name ?? "";
@@ -171,14 +175,16 @@ public class ReportService : IReportService
             }
             else
             {
+                var cellIds = await SubtreeCellIdsAsync(scopeCell);
                 var members = (await _userRepo.GetAllWithDetailsAsync())
-                    .Where(m => scopeCell == null || m.PartyCellId == scopeCell.Id)
+                    .Where(m => cellIds == null || (m.PartyCellId.HasValue && cellIds.Contains(m.PartyCellId.Value)))
                     .ToList();
+                var partyPositions = await PartyPositionNamesAsync(members.Select(m => m.Id), at);
                 foreach (var m in members)
                 {
                     ws.Cell(row, 1).Value = stt++;
                     ws.Cell(row, 2).Value = m.FullName;
-                    ws.Cell(row, 3).Value = m.PartyRole.ToString();
+                    ws.Cell(row, 3).Value = partyPositions.GetValueOrDefault(m.Id) ?? "";
                     ws.Cell(row, 4).Value = m.PositionTitle ?? "";
                     ws.Cell(row, 5).Value = m.PartyCell?.Name ?? "";
                     ws.Cell(row, 6).Value = m.Department?.Name ?? "";
@@ -305,67 +311,195 @@ public class ReportService : IReportService
         }
     }
 
-    public async Task<ReportFileResult> ExportForm15AReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
+    /// <summary>
+    /// Mẫu 15A (HD03 tr.73–74): tổng hợp kết quả xếp loại theo mã chức danh M1–M16 (đối tượng đề nghị BTV Đảng ủy Tổng công ty
+    /// quyết định). Mỗi cán bộ được thống kê một lần theo mã chức danh của người (mã nhỏ nhất trong các chức vụ đang hiệu lực).
+    /// </summary>
+    public Task<ReportFileResult> ExportForm15AReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
+        => ExportStatCodeFormAsync(periodId, partyCellId, format, Form15AFirstCode, Form15ALastCode, "15A",
+            "(Đối tượng đề nghị Ban Thường vụ Đảng ủy Tổng công ty quyết định, phê duyệt mức xếp loại)", "Mau_15A_TongHopTheoChucDanh");
+
+    /// <summary>
+    /// Mẫu 15B (HD03 tr.75–76): tổng hợp kết quả xếp loại theo mã chức danh M17–M26 (đối tượng thuộc diện Đảng ủy/Chi ủy cơ sở
+    /// quyết định). Mỗi cán bộ được thống kê một lần theo mã chức danh của người.
+    /// </summary>
+    public Task<ReportFileResult> ExportForm15BReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
+        => ExportStatCodeFormAsync(periodId, partyCellId, format, Form15BFirstCode, Form15BLastCode, "15B",
+            "(Đối tượng thuộc diện Đảng ủy/Chi ủy cơ sở quyết định, phê duyệt mức xếp loại)", "Mau_15B_TongHopTheoChucDanh");
+
+    /// <summary>Khoảng mã chức danh của Mẫu 15A/15B (bố cục biểu mẫu HD03).</summary>
+    private const int Form15AFirstCode = 1, Form15ALastCode = 16, Form15BFirstCode = 17, Form15BLastCode = 26;
+
+    /// <summary>Tên nhóm chức danh theo mã (HD03 tr.73–76, bản trích xuất mục 7).</summary>
+    private static readonly IReadOnlyDictionary<string, string> StatCodeNames = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["M1"] = "Bí thư Đảng ủy Tổng công ty",
+        ["M2"] = "Phó Bí thư Đảng ủy Tổng công ty",
+        ["M3"] = "Thành viên Hội đồng thành viên",
+        ["M4"] = "Phó Tổng giám đốc",
+        ["M5"] = "Ủy viên Ban Thường vụ Đảng ủy Tổng công ty",
+        ["M6"] = "Ủy viên Ban Chấp hành Đảng bộ Tổng công ty",
+        ["M7"] = "Ủy viên Ủy ban Kiểm tra Đảng ủy Tổng công ty",
+        ["M8"] = "Bí thư các đảng bộ, chi bộ trực thuộc Đảng ủy Tổng công ty",
+        ["M9"] = "Phó Bí thư các đảng bộ, chi bộ trực thuộc Đảng ủy Tổng công ty",
+        ["M10"] = "Bí thư các chi bộ trực thuộc Đảng ủy bộ phận Văn phòng Tổng công ty",
+        ["M11"] = "Phó Bí thư các chi bộ trực thuộc Đảng ủy bộ phận Văn phòng Tổng công ty",
+        ["M12"] = "Trưởng, phó chuyên trách các cơ quan tham mưu, giúp việc Đảng ủy Tổng công ty",
+        ["M13"] = "Kế toán trưởng",
+        ["M14"] = "Phó Trưởng Ban, Phó Giám đốc",
+        ["M15"] = "Kiểm soát viên của Tổng công ty tại Công ty con",
+        ["M16"] = "Bí thư Đoàn Thanh niên Tổng công ty",
+        ["M17"] = "Ủy viên Ban Thường vụ đảng ủy cơ sở",
+        ["M18"] = "Ủy viên Ban Chấp hành đảng bộ cơ sở",
+        ["M19"] = "Ủy viên Ủy ban Kiểm tra đảng ủy cơ sở",
+        ["M20"] = "Bí thư các đảng bộ bộ phận trực thuộc đảng ủy cơ sở",
+        ["M21"] = "Phó Bí thư các đảng bộ bộ phận trực thuộc đảng ủy cơ sở",
+        ["M22"] = "Bí thư các chi bộ trực thuộc đảng ủy cơ sở",
+        ["M23"] = "Phó Bí thư các chi bộ trực thuộc đảng ủy cơ sở",
+        ["M24"] = "Bí thư các chi bộ trực thuộc các đảng ủy bộ phận",
+        ["M25"] = "Phó Bí thư các chi bộ trực thuộc các đảng ủy bộ phận",
+        ["M26"] = "Trưởng phòng, Phó Trưởng phòng (và tương đương)"
+    };
+
+    /// <summary>Dựng Mẫu 15A/15B: một dòng cho mỗi mã chức danh trong khoảng, cột số lượng theo mức xếp loại, dòng tổng, kiểm soát trần.</summary>
+    private async Task<ReportFileResult> ExportStatCodeFormAsync(Guid? periodId, Guid? partyCellId, ReportFormat format,
+        int firstCode, int lastCode, string formName, string subject, string fileBase)
     {
         var (activePeriod, records, scopeCell) = await LoadExcelScopeAsync(periodId, partyCellId);
+        var statCodes = await PersonStatCodesAsync(records.Select(r => r.MemberId), PositionDate(activePeriod));
 
-        var total = records.Count;
-        var goodOrBetter = records.Count(IsGoodOrBetter);
-        var proposedExcellent = records.Count(IsProposedExcellent);
-        var maxAllowed = EvaluationScoring.ExcellentQuota(goodOrBetter, QuotaParameters(activePeriod));
+        var byCode = records
+            .Select(r => (Record: r, Order: PositionRules.StatCodeOrder(statCodes.GetValueOrDefault(r.MemberId))))
+            .ToList();
+        var inForm = byCode.Where(x => x.Order >= firstCode && x.Order <= lastCode).ToList();
+        var withoutCode = byCode.Count(x => x.Order == null);
 
         using var workbook = new XLWorkbook();
-        var ws = workbook.Worksheets.Add("Mẫu 15A - Tổng hợp");
-        ws.Cell("A1").Value = "BẢNG KIỂM SOÁT TỶ LỆ TRẦN 20% - MẪU 15A";
-        ws.Range("A1:H1").Merge().Style.Font.SetBold(true).Font.SetFontSize(13)
+        var ws = workbook.Worksheets.Add($"Mẫu {formName}");
+        ws.Cell("A1").Value = $"TỔNG HỢP KẾT QUẢ ĐÁNH GIÁ, XẾP LOẠI CÁN BỘ ({ExcelTitleSuffix(activePeriod, scopeCell)}) - MẪU {formName}";
+        ws.Range("A1:I1").Merge().Style.Font.SetBold(true).Font.SetFontSize(13)
             .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-        ws.Cell("A2").Value = activePeriod?.Name ?? "Chưa có kỳ đánh giá";
-        ws.Range("A2:H2").Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+        ws.Cell("A2").Value = subject;
+        ws.Range("A2:I2").Merge().Style.Font.SetItalic(true).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+        ws.Cell("A3").Value = "Mỗi cán bộ thống kê một lần theo nhóm chức danh có thứ tự đứng trước (HD03 tr.74).";
+        ws.Range("A3:I3").Merge().Style.Font.SetFontSize(10).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
 
         var headers = new[]
         {
-            "STT", "Phạm vi", "Tổng số cán bộ", "HT tốt trở lên", "Trần 20% tối đa",
-            "Đề xuất xuất sắc", "Tỷ lệ thực tế (%)", "Kết luận"
+            "Mã", "Chức danh", "Tổng số", "Hoàn thành xuất sắc", "Hoàn thành tốt", "Hoàn thành", "Không hoàn thành", "Chưa xếp loại", "Ghi chú"
         };
         for (var i = 0; i < headers.Length; i++)
         {
-            var cell = ws.Cell(4, i + 1);
+            var cell = ws.Cell(5, i + 1);
             cell.Value = headers[i];
             cell.Style.Font.Bold = true;
-            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#FED7AA");
+            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#E2E8F0");
             cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
         }
 
-        var actualPercent = goodOrBetter > 0 ? Math.Round((double)proposedExcellent / goodOrBetter * 100, 1) : 0;
-        var exceeds = proposedExcellent > maxAllowed;
-        ws.Cell(5, 1).Value = 1;
-        ws.Cell(5, 2).Value = scopeCell?.Name ?? "Toàn Đảng bộ Công ty";
-        ws.Cell(5, 3).Value = total;
-        ws.Cell(5, 4).Value = goodOrBetter;
-        ws.Cell(5, 5).Value = maxAllowed;
-        ws.Cell(5, 6).Value = proposedExcellent;
-        ws.Cell(5, 7).Value = $"{actualPercent}%";
-        ws.Cell(5, 8).Value = exceeds ? "VƯỢT TRẦN 20%" : "Đạt chuẩn";
-        if (exceeds)
+        var row = 6;
+        void WriteRow(string code, string name, IReadOnlyCollection<EvaluationRecord> group, string note, bool bold)
         {
-            ws.Cell(5, 8).Style.Font.FontColor = XLColor.Red;
-            ws.Cell(5, 8).Style.Font.Bold = true;
+            var grades = group.Select(GetEffectiveGrade).ToList();
+            var values = new object[]
+            {
+                code, name, grades.Count,
+                grades.Count(g => g == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac),
+                grades.Count(g => g == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhTot),
+                grades.Count(g => g == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanh),
+                grades.Count(g => g == CongTacDang.Domain.Enums.EvaluationGrade.KhongHoanThanh),
+                grades.Count(g => g == CongTacDang.Domain.Enums.EvaluationGrade.ChuaXepLoai),
+                note
+            };
+            for (var i = 0; i < values.Length; i++)
+            {
+                var cell = ws.Cell(row, i + 1);
+                cell.Value = values[i] is int n ? n : values[i]?.ToString() ?? string.Empty;
+                cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                cell.Style.Font.Bold = bold;
+            }
+            row++;
         }
-        for (var i = 1; i <= 8; i++)
-            ws.Cell(5, i).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-        ws.Columns().AdjustToContents();
 
+        for (var order = firstCode; order <= lastCode; order++)
+        {
+            var code = "M" + order;
+            var group = inForm.Where(x => x.Order == order).Select(x => x.Record).ToList();
+            WriteRow(code, StatCodeNames.GetValueOrDefault(code) ?? code, group, string.Empty, bold: false);
+        }
+        WriteRow(string.Empty, "Tổng cộng", inForm.Select(x => x.Record).ToList(), string.Empty, bold: true);
+
+        // Kiểm soát trần tỷ lệ Hoàn thành xuất sắc trên nhóm của mẫu.
+        var formRecords = inForm.Select(x => x.Record).ToList();
+        var goodOrBetter = formRecords.Count(IsGoodOrBetter);
+        var proposedExcellent = formRecords.Count(IsProposedExcellent);
+        var maxAllowed = EvaluationScoring.ExcellentQuota(goodOrBetter, QuotaParameters(activePeriod));
+        row++;
+        ws.Cell(row, 1).Value = $"Kiểm soát trần: đề xuất xuất sắc {proposedExcellent}/{goodOrBetter} hoàn thành tốt trở lên; tối đa {maxAllowed}"
+            + (proposedExcellent > maxAllowed ? " — VƯỢT TRẦN." : " — đạt chuẩn.");
+        ws.Range(row, 1, row, 9).Merge();
+        if (withoutCode > 0)
+        {
+            row++;
+            ws.Cell(row, 1).Value = $"Có {withoutCode} cán bộ chưa có chức vụ mang mã chức danh thống kê nên không được đưa vào Mẫu 15A/15B. "
+                + "Hãy cập nhật chức vụ của cán bộ hoặc mã thống kê trong danh mục chức vụ.";
+            ws.Range(row, 1, row, 9).Merge().Style.Font.SetFontColor(XLColor.Red);
+        }
+
+        ws.Columns().AdjustToContents();
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
-        return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("Mau_15A_KiemSoatTran20", activePeriod, scopeCell), format);
+        return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName(fileBase, activePeriod, scopeCell), format);
     }
 
-    public async Task<ReportFileResult> ExportForm15BReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
+    /// <summary>
+    /// Thời điểm xét chức vụ đang hiệu lực cho báo cáo của kỳ: cuối kỳ nếu kỳ đã kết thúc, ngược lại hiện tại.
+    /// </summary>
+    private static DateTime PositionDate(EvaluationPeriod? period)
     {
-        var result = await ExportForm15ReportAsync(periodId, partyCellId);
-        var fileName = result.FileName.Replace("Mau_15_KiemSoatTran20_ChiBo", "Mau_15B_KiemSoatTran20_TheoChiBo");
-        return await ToResultAsync(result.FileBytes, result.ContentType, fileName, format);
+        var now = DateTime.UtcNow;
+        if (period == null || period.EndDate == default)
+            return now;
+        var end = DateTime.SpecifyKind(period.EndDate, DateTimeKind.Utc);
+        return end < now ? end : now;
+    }
+
+    /// <summary>Chức vụ đang hiệu lực của các cán bộ (kèm chức vụ trong danh mục).</summary>
+    private async Task<Dictionary<Guid, List<Position>>> HeldPositionsAsync(IEnumerable<Guid> memberIds, DateTime at)
+    {
+        var ids = memberIds.Distinct().ToList();
+        if (ids.Count == 0)
+            return new Dictionary<Guid, List<Position>>();
+        var rows = await _db.MemberPositions.AsNoTracking()
+            .Include(mp => mp.Position)
+            .Where(mp => ids.Contains(mp.UserId) && mp.ValidFrom <= at && (mp.ValidTo == null || mp.ValidTo > at) && mp.Position != null)
+            .ToListAsync();
+        return rows.GroupBy(mp => mp.UserId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(mp => mp.Position!.SortOrder).Select(mp => mp.Position!).ToList());
+    }
+
+    /// <summary>Mã chức danh thống kê của từng cán bộ (mã nhỏ nhất trong các chức vụ đang hiệu lực).</summary>
+    private async Task<Dictionary<Guid, string?>> PersonStatCodesAsync(IEnumerable<Guid> memberIds, DateTime at)
+        => (await HeldPositionsAsync(memberIds, at)).ToDictionary(
+            kv => kv.Key,
+            kv => PositionRules.PersonStatCode(kv.Value.Select(p => new HeldPosition(p.Name, p.StatCode, p.DefaultApprovalAuthority))));
+
+    /// <summary>Tên các chức vụ Đảng đang giữ của từng cán bộ (ngăn cách bằng dấu phẩy).</summary>
+    private async Task<Dictionary<Guid, string>> PartyPositionNamesAsync(IEnumerable<Guid> memberIds, DateTime at)
+        => (await HeldPositionsAsync(memberIds, at)).ToDictionary(
+            kv => kv.Key,
+            kv => string.Join(", ", kv.Value.Where(p => p.Side == CongTacDang.Domain.Enums.PositionSide.Party).Select(p => p.Name)));
+
+    /// <summary>Id tổ chức Đảng được chọn và mọi tổ chức con cháu (cây); null = toàn Đảng bộ.</summary>
+    private async Task<HashSet<Guid>?> SubtreeCellIdsAsync(PartyCell? cell)
+    {
+        if (cell == null)
+            return null;
+        var nodes = await _db.PartyCells.AsNoTracking().Select(c => new { c.Id, c.Path }).ToListAsync();
+        var ids = OrgTree.SelfAndDescendants(nodes.Select(n => (n.Id, n.Path)), cell.Id).ToHashSet();
+        ids.Add(cell.Id);
+        return ids;
     }
 
     public async Task<ReportFileResult> ExportForm16ReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
@@ -395,16 +529,19 @@ public class ReportService : IReportService
             cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
         }
 
+        // Nhóm chức vụ = mã chức danh thống kê của người (M1…M26); cán bộ chưa có mã → "Khác".
+        var statCodes = await PersonStatCodesAsync(records.Select(r => r.MemberId), PositionDate(activePeriod));
         var grouped = records
             .Where(r => r.Member != null)
-            .GroupBy(r => r.Member!.PartyRole.ToString())
-            .OrderBy(g => g.Key)
+            .GroupBy(r => statCodes.GetValueOrDefault(r.MemberId))
+            .OrderBy(g => PositionRules.StatCodeOrder(g.Key) ?? int.MaxValue)
+            .Select(g => new { Key = g.Key == null ? "Khác (chưa có mã chức danh)" : $"{g.Key} — {StatCodeNames.GetValueOrDefault(g.Key) ?? g.Key}", Items = g.ToList() })
             .ToList();
         var row = 5;
         var stt = 1;
         foreach (var group in grouped)
         {
-            var grades = group.Select(GetEffectiveGrade).ToList();
+            var grades = group.Items.Select(GetEffectiveGrade).ToList();
             var values = new object[]
             {
                 stt++, group.Key, grades.Count,
@@ -456,7 +593,12 @@ public class ReportService : IReportService
             ? await _evalRepo.GetRecordsByPeriodAsync(period.Id)
             : new List<EvaluationRecord>();
         if (cell != null)
-            records = records.Where(r => r.PartyCellId == cell.Id || r.Member?.PartyCellId == cell.Id).ToList();
+        {
+            // Tổ chức Đảng được chọn bao gồm mọi tổ chức con cháu (cây tổ chức, task 14).
+            var cellIds = (await SubtreeCellIdsAsync(cell))!;
+            records = records.Where(r => (r.PartyCellId.HasValue && cellIds.Contains(r.PartyCellId.Value))
+                || (r.Member?.PartyCellId is { } memberCell && cellIds.Contains(memberCell))).ToList();
+        }
 
         return (period, records, cell);
     }

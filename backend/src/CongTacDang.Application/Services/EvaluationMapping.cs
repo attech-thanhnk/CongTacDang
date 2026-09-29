@@ -91,7 +91,6 @@ public static class EvaluationMapping
             MemberId = r.MemberId,
             FullName = r.Member?.FullName ?? string.Empty,
             PartyCardNumber = r.Member?.PartyCardNumber,
-            PartyRole = r.Member?.PartyRole.ToString() ?? string.Empty,
             PositionTitle = r.Member?.PositionTitle ?? string.Empty,
             PartyCellId = r.PartyCellId,
             PartyCellName = r.PartyCell?.Name,

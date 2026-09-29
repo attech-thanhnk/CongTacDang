@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import type { CatalogItem } from "@/services/catalogService";
+import { CatalogItem, treeLabel } from "@/services/catalogService";
 import {
   AccountListItem,
   APPROVAL_AUTHORITY_LABELS,
@@ -21,7 +21,9 @@ interface FormState {
   positionTitle: string;
   departmentId: string;
   partyCellId: string;
-  approvalAuthority: ApprovalAuthority;
+  /** Chỉ khi tạo: "" = suy ra từ chức vụ; 1/2 = đặt tay. */
+  approvalAuthority: "" | ApprovalAuthority;
+  approvalAuthorityReason: string;
 }
 
 function initialState(account?: AccountListItem): FormState {
@@ -34,7 +36,8 @@ function initialState(account?: AccountListItem): FormState {
     positionTitle: account?.positionTitle ?? "",
     departmentId: account?.departmentId ?? "",
     partyCellId: account?.partyCellId ?? "",
-    approvalAuthority: account?.approvalAuthority ?? 1,
+    approvalAuthority: "",
+    approvalAuthorityReason: "",
   };
 }
 
@@ -71,7 +74,6 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
         positionTitle: form.positionTitle.trim(),
         departmentId: form.departmentId || EMPTY_GUID,
         partyCellId: form.partyCellId || EMPTY_GUID,
-        approvalAuthority: form.approvalAuthority,
       });
     } else {
       onCreate?.({
@@ -83,7 +85,8 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
         positionTitle: form.positionTitle.trim() || undefined,
         departmentId: form.departmentId || undefined,
         partyCellId: form.partyCellId || undefined,
-        approvalAuthority: form.approvalAuthority,
+        approvalAuthority: form.approvalAuthority || undefined,
+        approvalAuthorityReason: form.approvalAuthority ? form.approvalAuthorityReason.trim() || undefined : undefined,
       });
     }
   };
@@ -137,43 +140,65 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
             <div className="form-text">Có số thẻ → là Đảng viên; để trống → không phải Đảng viên.</div>
           </div>
           <div className="col-12 col-md-6">
-            <label className="form-label small fw-semibold mb-1">Phòng / đơn vị</label>
+            <label className="form-label small fw-semibold mb-1">Đơn vị công tác chính</label>
             <select className="form-select form-select-sm" value={form.departmentId} onChange={(e) => set("departmentId", e.target.value)}>
               <option value="">— Chưa gán —</option>
               {selectable(departments, form.departmentId).map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.name}
+                  {treeLabel(item)}
                   {item.isActive ? "" : " (ngừng hoạt động)"}
                 </option>
               ))}
             </select>
           </div>
           <div className="col-12 col-md-6">
-            <label className="form-label small fw-semibold mb-1">Chi bộ sinh hoạt</label>
+            <label className="form-label small fw-semibold mb-1">Nơi sinh hoạt Đảng</label>
             <select className="form-select form-select-sm" value={form.partyCellId} onChange={(e) => set("partyCellId", e.target.value)}>
               <option value="">— Chưa gán —</option>
               {selectable(partyCells, form.partyCellId).map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.name}
+                  {treeLabel(item)}
                   {item.isActive ? "" : " (ngừng hoạt động)"}
                 </option>
               ))}
             </select>
           </div>
-          <div className="col-12">
-            <label className="form-label small fw-semibold mb-1">Cấp quyết định xếp loại</label>
-            <select
-              className="form-select form-select-sm"
-              value={form.approvalAuthority}
-              onChange={(e) => set("approvalAuthority", Number(e.target.value) === 2 ? 2 : 1)}
-            >
-              {([1, 2] as ApprovalAuthority[]).map((value) => (
-                <option key={value} value={value}>
-                  {APPROVAL_AUTHORITY_LABELS[value]}
-                </option>
-              ))}
-            </select>
-          </div>
+          {isEdit ? (
+            <div className="col-12 form-text mt-1">
+              Chức vụ (kể cả kiêm nhiệm) và cấp quyết định xếp loại quản lý ở thẻ &quot;Chức vụ&quot; của tài khoản.
+            </div>
+          ) : (
+            <>
+              <div className="col-12 col-md-6">
+                <label className="form-label small fw-semibold mb-1">Cấp quyết định xếp loại</label>
+                <select
+                  className="form-select form-select-sm"
+                  value={form.approvalAuthority}
+                  onChange={(e) => set("approvalAuthority", e.target.value === "" ? "" : Number(e.target.value) === 2 ? 2 : 1)}
+                >
+                  <option value="">Suy ra từ chức vụ (khuyến nghị)</option>
+                  {([1, 2] as ApprovalAuthority[]).map((value) => (
+                    <option key={value} value={value}>
+                      Đặt tay: {APPROVAL_AUTHORITY_LABELS[value]}
+                    </option>
+                  ))}
+                </select>
+                <div className="form-text">Chức vụ thêm sau khi tạo tài khoản, ở thẻ &quot;Chức vụ&quot;.</div>
+              </div>
+              {form.approvalAuthority !== "" && (
+                <div className="col-12 col-md-6">
+                  <label className="form-label small fw-semibold mb-1">Lý do đặt tay</label>
+                  <input
+                    className="form-control form-control-sm"
+                    value={form.approvalAuthorityReason}
+                    maxLength={1000}
+                    placeholder="Căn cứ văn bản phân cấp…"
+                    onChange={(e) => set("approvalAuthorityReason", e.target.value)}
+                  />
+                </div>
+              )}
+            </>
+          )}
         </div>
         <div className="d-flex justify-content-end gap-2 mt-3">
           <button type="button" className="btn btn-sm btn-light" onClick={onClose} disabled={saving}>

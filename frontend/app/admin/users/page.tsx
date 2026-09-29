@@ -13,6 +13,7 @@ import { TemporaryCredential, TemporaryPasswordModal } from "@/components/admin/
 import { errorMessage, errorTitle, formatDateTime } from "@/components/admin/adminUtils";
 import { useCatalogOptions } from "@/components/admin/useCatalogOptions";
 import { AccountListItem, CreateAccountPayload, PagedResult, userService } from "@/services/userService";
+import { treeLabel } from "@/services/catalogService";
 
 const PAGE_SIZE = 20;
 
@@ -131,23 +132,23 @@ export default function AdminUsersPage() {
               />
             </div>
             <div className="col-6 col-md-2">
-              <label className="form-label small fw-semibold text-secondary mb-1">Phòng / đơn vị</label>
+              <label className="form-label small fw-semibold text-secondary mb-1">Đơn vị</label>
               <select className="form-select form-select-sm" value={draft.departmentId} onChange={(e) => setDraft({ ...draft, departmentId: e.target.value })}>
                 <option value="">Tất cả</option>
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.name}
+                    {treeLabel(d)}
                   </option>
                 ))}
               </select>
             </div>
             <div className="col-6 col-md-2">
-              <label className="form-label small fw-semibold text-secondary mb-1">Chi bộ</label>
+              <label className="form-label small fw-semibold text-secondary mb-1">Tổ chức Đảng</label>
               <select className="form-select form-select-sm" value={draft.partyCellId} onChange={(e) => setDraft({ ...draft, partyCellId: e.target.value })}>
                 <option value="">Tất cả</option>
                 {partyCells.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {treeLabel(c)}
                   </option>
                 ))}
               </select>
@@ -183,8 +184,8 @@ export default function AdminUsersPage() {
                 <tr>
                   <th className="ps-3">Cán bộ</th>
                   <th>Chức danh</th>
-                  <th>Phòng / đơn vị</th>
-                  <th>Chi bộ</th>
+                  <th>Đơn vị</th>
+                  <th>Tổ chức Đảng</th>
                   <th>Trạng thái</th>
                   <th>Đăng nhập cuối</th>
                   <th className="pe-3 text-end" />

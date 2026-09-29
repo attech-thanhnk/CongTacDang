@@ -71,10 +71,10 @@ public class ImportFrameworkTests
     public void ReadRows_MissingRequiredColumn_Throws400WithColumnName()
     {
         var definition = new UserImportDefinition(new FakeLookup(), new FakeAccounts());
-        var bytes = BuildWorkbook(new[] { "Tên đăng nhập", "Họ và tên" }, new[] { "a", "A" });
+        var bytes = BuildWorkbook(new[] { "Tên đăng nhập" }, new[] { "a" });
 
         var ex = Assert.Throws<ValidationException>(() => new ClosedXmlImportWorkbook().ReadRows(new MemoryStream(bytes), definition));
-        Assert.Contains("Thẩm quyền phê duyệt", ex.Message);
+        Assert.Contains("Họ và tên", ex.Message); // task 14: "Thẩm quyền phê duyệt" không còn bắt buộc (suy ra từ chức vụ)
     }
 
     [Fact]
@@ -222,7 +222,10 @@ public class ImportFrameworkTests
         Assert.Contains("khoảng trắng", Errors(rows, 8));
         Assert.Contains("Email", Errors(rows, 9));
         Assert.Contains("Chỉ nhận", Errors(rows, 10));
-        Assert.Contains("Thiếu \"Thẩm quyền phê duyệt\"", Errors(rows, 11));
+        // Task 14: để trống "Thẩm quyền phê duyệt" → suy ra từ chức vụ (không còn là lỗi).
+        var blankAuthority = rows.Rows.Single(r => r.RowNumber == 11);
+        Assert.Empty(blankAuthority.Errors);
+        Assert.Equal(ImportRowAction.Create, blankAuthority.Action);
         Assert.All(rows.Rows.Where(r => r.Errors.Count > 0), r => Assert.Equal(ImportRowAction.Error, r.Action));
     }
 

@@ -12,8 +12,9 @@ namespace CongTacDang.Application.Common.Security;
 /// trên đối tượng T khi:
 /// <list type="number">
 /// <item>tài khoản đang hoạt động (<see cref="EffectivePermissions.IsActive"/>);</item>
-/// <item>có bản gán đang hiệu lực mà vai trò có P và phạm vi bao trùm T (Global → mọi đối tượng; Phòng d → T.DepartmentId = d;
-/// Chi bộ c → T.PartyCellId = c); quyền "không áp dụng phạm vi" chỉ tính bản gán Global;</item>
+/// <item>có bản gán đang hiệu lực mà vai trò có P và phạm vi bao trùm T (Global → mọi đối tượng; đơn vị chính quyền d →
+/// T.DepartmentId là d hoặc đơn vị con cháu của d; tổ chức Đảng c → T.PartyCellId là c hoặc con cháu của c);
+/// quyền "không áp dụng phạm vi" chỉ tính bản gán Global;</item>
 /// <item>luật riêng theo mã: <c>evaluation.self</c> chỉ trên hồ sơ của mình; <c>evaluation.read</c> luôn đúng với chủ hồ sơ;
 /// <c>evaluation.decide</c>/<c>.external</c> theo <see cref="ApprovalAuthority"/>; các quyền duyệt/xác nhận/quyết định
 /// không áp dụng trên hồ sơ của chính mình (xung đột lợi ích).</item>
@@ -86,9 +87,10 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
             {
                 case ScopeType.Global:
                     return true;
-                case ScopeType.Department when appliesScope && grant.ScopeId.HasValue && target.DepartmentId == grant.ScopeId:
+                // Phạm vi đơn vị bao trùm cả cây con (task 14): gán ở cha → có quyền ở mọi đơn vị con cháu.
+                case ScopeType.Department when appliesScope && grant.ScopeId.HasValue && grant.Covers(target.DepartmentId):
                     return true;
-                case ScopeType.PartyCell when appliesScope && grant.ScopeId.HasValue && target.PartyCellId == grant.ScopeId:
+                case ScopeType.PartyCell when appliesScope && grant.ScopeId.HasValue && grant.Covers(target.PartyCellId):
                     return true;
             }
         }
@@ -110,11 +112,12 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         var appliesScope = PermissionCodes.Find(permission)?.AppliesScope ?? true;
         var grants = permissions.GrantsFor(permission).ToList();
         var isGlobal = grants.Any(g => g.ScopeType == ScopeType.Global);
+        // Danh sách Id đã mở rộng xuống cây con (resolver tính sẵn) → service dựng WHERE ... IN (...) như cũ.
         var departments = appliesScope && !isGlobal
-            ? grants.Where(g => g.ScopeType == ScopeType.Department && g.ScopeId.HasValue).Select(g => g.ScopeId!.Value).Distinct().ToList()
+            ? grants.Where(g => g.ScopeType == ScopeType.Department && g.ScopeId.HasValue).SelectMany(g => g.CoveredIds).Distinct().ToList()
             : new List<Guid>();
         var cells = appliesScope && !isGlobal
-            ? grants.Where(g => g.ScopeType == ScopeType.PartyCell && g.ScopeId.HasValue).Select(g => g.ScopeId!.Value).Distinct().ToList()
+            ? grants.Where(g => g.ScopeType == ScopeType.PartyCell && g.ScopeId.HasValue).SelectMany(g => g.CoveredIds).Distinct().ToList()
             : new List<Guid>();
 
         // Chủ hồ sơ luôn xem được hồ sơ của mình (HD03: quyền được biết).

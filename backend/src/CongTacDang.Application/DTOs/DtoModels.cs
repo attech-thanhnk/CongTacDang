@@ -15,10 +15,7 @@ public class UserProfileDto
     /// <summary>Tên tài khoản đăng nhập</summary>
     public string UserName { get; set; } = string.Empty;
 
-    /// <summary>Chức vụ công tác Đảng</summary>
-    public string PartyRole { get; set; } = string.Empty;
-
-    /// <summary>Chức danh quản lý chuyên môn chính quyền</summary>
+    /// <summary>Chức danh hiển thị trên văn bản (mặc định = chức vụ chính)</summary>
     public string AdminTitle { get; set; } = string.Empty;
 
     /// <summary>Tên Chi bộ Đảng sinh hoạt</summary>
@@ -40,54 +37,60 @@ public class UserProfileDto
     public bool MustChangePassword { get; set; }
 }
 
-/// <summary>Thông tin tổ chức Chi bộ cơ sở</summary>
-public class BranchDto
+/// <summary>Một nút cây đơn vị (tổ chức Đảng hoặc đơn vị chính quyền) trong danh sách phẳng sắp theo cây.</summary>
+public abstract class OrgUnitDto
 {
-    /// <summary>Mã định danh Chi bộ</summary>
+    /// <summary>Mã định danh đơn vị</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Ký hiệu / Mã quản lý Chi bộ</summary>
+    /// <summary>Mã ký hiệu</summary>
     public string Code { get; set; } = string.Empty;
 
-    /// <summary>Tên Chi bộ Đảng</summary>
+    /// <summary>Tên đơn vị</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Nhiệm vụ trọng tâm hoặc mô tả Chi bộ</summary>
+    /// <summary>Mô tả</summary>
     public string Description { get; set; } = string.Empty;
 
-    /// <summary>Thứ tự hiển thị</summary>
+    /// <summary>Thứ tự hiển thị trong cùng cấp</summary>
     public int SortOrder { get; set; }
 
     /// <summary>Đang hoạt động (false = đã ngừng hoạt động)</summary>
     public bool IsActive { get; set; }
 
-    /// <summary>Số lượng cán bộ, Đảng viên sinh hoạt tại Chi bộ</summary>
+    /// <summary>Số cán bộ có đơn vị này là nơi sinh hoạt Đảng / đơn vị công tác chính</summary>
     public int MemberCount { get; set; }
+
+    /// <summary>Đơn vị cha (null = gốc)</summary>
+    public Guid? ParentId { get; set; }
+
+    /// <summary>Tên đơn vị cha</summary>
+    public string? ParentName { get; set; }
+
+    /// <summary>Loại đơn vị</summary>
+    public Guid? UnitTypeId { get; set; }
+
+    /// <summary>Tên loại đơn vị</summary>
+    public string? UnitTypeName { get; set; }
+
+    /// <summary>Độ sâu trong cây (gốc = 0)</summary>
+    public int Depth { get; set; }
+
+    /// <summary>Đường dẫn vật hóa <c>/id gốc/…/id/</c></summary>
+    public string Path { get; set; } = string.Empty;
+
+    /// <summary>Số đơn vị con trực tiếp (chưa xóa)</summary>
+    public int ChildCount { get; set; }
 }
 
-/// <summary>Thông tin Phòng ban / Đơn vị chuyên môn</summary>
-public class DepartmentDto
+/// <summary>Tổ chức Đảng (Đảng ủy, Đảng bộ bộ phận, Chi bộ…) — API giữ tên "branches".</summary>
+public class BranchDto : OrgUnitDto
 {
-    /// <summary>Mã định danh phòng ban</summary>
-    public Guid Id { get; set; }
+}
 
-    /// <summary>Mã ký hiệu phòng ban</summary>
-    public string Code { get; set; } = string.Empty;
-
-    /// <summary>Tên phòng ban chuyên môn</summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>Mô tả chức năng nhiệm vụ</summary>
-    public string Description { get; set; } = string.Empty;
-
-    /// <summary>Thứ tự hiển thị</summary>
-    public int SortOrder { get; set; }
-
-    /// <summary>Đang hoạt động (false = đã ngừng hoạt động)</summary>
-    public bool IsActive { get; set; }
-
-    /// <summary>Số lượng cán bộ đang công tác</summary>
-    public int MemberCount { get; set; }
+/// <summary>Đơn vị chính quyền (Công ty, Phòng, Trung tâm…) — API giữ tên "departments".</summary>
+public class DepartmentDto : OrgUnitDto
+{
 }
 
 /// <summary>Thông tin tệp tin đính kèm và văn bản minh chứng</summary>

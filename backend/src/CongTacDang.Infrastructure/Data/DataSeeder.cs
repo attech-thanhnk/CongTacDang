@@ -10,6 +10,7 @@ using CongTacDang.Domain.Evaluation;
 using CongTacDang.Application.Accounts;
 using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Security;
+using CongTacDang.Application.Organization;
 using CongTacDang.Application.Services;
 using CongTacDang.Infrastructure.Repositories;
 
@@ -131,6 +132,9 @@ public static class DataSeeder
         await SeedDefaultRolesAsync(context, logger);
         if (resetRolePermissions)
             await ResetRolePermissionsAsync(context, logger);
+
+        // 2b. Danh mục loại đơn vị và danh mục chức vụ mặc định (chỉ khi danh mục trống — task 14, chờ nghiệp vụ xác nhận).
+        await SeedOrganizationCatalogsAsync(context, logger);
 
         // 3. Dữ liệu mẫu (chỉ môi trường thử nghiệm).
         if (sampleData?.Enabled == true)
@@ -335,66 +339,173 @@ public static class DataSeeder
 
     #endregion
 
-    #region Dữ liệu mẫu
+    #region Danh mục tổ chức mặc định (task 14)
 
-    /// <summary>Một tài khoản mẫu kèm bản gán vai trò và trạng thái hồ sơ trong kỳ mẫu (null = không được đánh giá).</summary>
-    private sealed record SampleAccount(
-        string Username, string FullName, string Department, string? PartyCell, PartyRole PartyRole,
-        AdministrativePosition Position, string Title, JobGroup JobGroup, ApprovalAuthority Authority,
-        (string Role, RoleScopeType Scope)[] Roles, RecordStatus? RecordStatus);
-
-    /// <summary>Phòng/đơn vị mẫu (mã, tên, mô tả).</summary>
-    private static readonly (string Code, string Name, string Description)[] SampleDepartments =
+    /// <summary>Loại đơn vị mặc định (tên, bên) — ĐỀ XUẤT, chờ nghiệp vụ xác nhận; quản trị sửa được.</summary>
+    private static readonly (string Name, OrgSide Side)[] DefaultUnitTypes =
     {
-        ("BGD", "Ban Giám đốc", "Lãnh đạo Công ty"),
-        ("PH-KT", "Phòng Kỹ thuật", "Quản lý kỹ thuật CNS/ATM"),
-        ("PH-KH", "Phòng Kế hoạch - Kinh doanh", "Kế hoạch, đầu tư, kinh doanh"),
-        ("PH-TCCB", "Phòng Tổ chức cán bộ - Lao động", "Tham mưu tổ chức, nhân sự, lao động tiền lương")
+        ("Đảng ủy", OrgSide.Party),
+        ("Đảng bộ bộ phận", OrgSide.Party),
+        ("Chi bộ", OrgSide.Party),
+        ("Công ty", OrgSide.Administrative),
+        ("Đơn vị", OrgSide.Administrative),
+        ("Phòng", OrgSide.Administrative),
+        ("Trung tâm", OrgSide.Administrative),
+        ("Xưởng", OrgSide.Administrative),
+        ("Đội", OrgSide.Administrative)
     };
 
-    /// <summary>Chi bộ mẫu (mã, tên, mô tả).</summary>
-    private static readonly (string Code, string Name, string Description)[] SampleCells =
+    /// <summary>Một chức vụ mặc định.</summary>
+    private sealed record DefaultPosition(string Name, PositionSide Side, string? StatCode, ApprovalAuthority? Authority, bool IsLeadership);
+
+    /// <summary>
+    /// Danh mục chức vụ mặc định — ĐỀ XUẤT theo bản trích xuất HD03 (mục 1.4 bảng thẩm quyền, mục 7 mã M1–M26), CHỜ XÁC NHẬN.
+    /// Mã M1–M16 (Mẫu 15A) → cấp trên quyết định; M17–M26 (Mẫu 15B) → Đảng ủy cơ sở quyết định.
+    /// </summary>
+    private static readonly DefaultPosition[] DefaultPositions =
     {
-        ("CB-KT", "Chi bộ Khối Kỹ thuật", "Chi bộ các phòng kỹ thuật"),
-        ("CB-VP", "Chi bộ Khối Văn phòng", "Chi bộ Ban Giám đốc và các phòng tham mưu")
+        // Mẫu 15A — cấp ủy cấp trên quyết định (M1–M16).
+        new("Bí thư Đảng ủy Tổng công ty", PositionSide.Party, "M1", ApprovalAuthority.CapTren, true),
+        new("Phó Bí thư Đảng ủy Tổng công ty", PositionSide.Party, "M2", ApprovalAuthority.CapTren, true),
+        new("Thành viên Hội đồng thành viên Tổng công ty", PositionSide.Administrative, "M3", ApprovalAuthority.CapTren, true),
+        new("Phó Tổng giám đốc Tổng công ty", PositionSide.Administrative, "M4", ApprovalAuthority.CapTren, true),
+        new("Ủy viên Ban Thường vụ Đảng ủy Tổng công ty", PositionSide.Party, "M5", ApprovalAuthority.CapTren, true),
+        new("Ủy viên Ban Chấp hành Đảng bộ Tổng công ty", PositionSide.Party, "M6", ApprovalAuthority.CapTren, true),
+        new("Ủy viên Ủy ban Kiểm tra Đảng ủy Tổng công ty", PositionSide.Party, "M7", ApprovalAuthority.CapTren, true),
+        new("Bí thư Đảng ủy", PositionSide.Party, "M8", ApprovalAuthority.CapTren, true),
+        new("Phó Bí thư Đảng ủy", PositionSide.Party, "M9", ApprovalAuthority.CapTren, true),
+        new("Bí thư Chi bộ trực thuộc Đảng ủy bộ phận Văn phòng Tổng công ty", PositionSide.Party, "M10", ApprovalAuthority.CapTren, true),
+        new("Phó Bí thư Chi bộ trực thuộc Đảng ủy bộ phận Văn phòng Tổng công ty", PositionSide.Party, "M11", ApprovalAuthority.CapTren, true),
+        new("Trưởng, phó cơ quan tham mưu, giúp việc Đảng ủy Tổng công ty", PositionSide.Party, "M12", ApprovalAuthority.CapTren, true),
+        new("Kế toán trưởng Tổng công ty", PositionSide.Administrative, "M13", ApprovalAuthority.CapTren, true),
+        new("Chủ tịch Công ty", PositionSide.Administrative, "M14", ApprovalAuthority.CapTren, true),
+        new("Giám đốc", PositionSide.Administrative, "M14", ApprovalAuthority.CapTren, true),
+        new("Phó Giám đốc", PositionSide.Administrative, "M14", ApprovalAuthority.CapTren, true),
+        new("Kiểm soát viên", PositionSide.Administrative, "M15", ApprovalAuthority.CapTren, true),
+        new("Bí thư Đoàn Thanh niên Tổng công ty", PositionSide.MassOrganization, "M16", ApprovalAuthority.CapTren, true),
+        // Mẫu 15B — Đảng ủy cơ sở quyết định (M17–M26).
+        new("Ủy viên Ban Thường vụ Đảng ủy", PositionSide.Party, "M17", ApprovalAuthority.CoSo, true),
+        new("Đảng ủy viên", PositionSide.Party, "M18", ApprovalAuthority.CoSo, true),
+        new("Ủy viên Ủy ban Kiểm tra Đảng ủy", PositionSide.Party, "M19", ApprovalAuthority.CoSo, true),
+        new("Bí thư Đảng bộ bộ phận", PositionSide.Party, "M20", ApprovalAuthority.CoSo, true),
+        new("Phó Bí thư Đảng bộ bộ phận", PositionSide.Party, "M21", ApprovalAuthority.CoSo, true),
+        new("Bí thư Chi bộ", PositionSide.Party, "M22", ApprovalAuthority.CoSo, true),
+        new("Phó Bí thư Chi bộ", PositionSide.Party, "M23", ApprovalAuthority.CoSo, true),
+        new("Bí thư Chi bộ trực thuộc Đảng bộ bộ phận", PositionSide.Party, "M24", ApprovalAuthority.CoSo, true),
+        new("Phó Bí thư Chi bộ trực thuộc Đảng bộ bộ phận", PositionSide.Party, "M25", ApprovalAuthority.CoSo, true),
+        new("Trưởng phòng", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        new("Phó Trưởng phòng", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        new("Trưởng trung tâm", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        new("Phó Trưởng trung tâm", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        new("Quản đốc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        new("Phó Quản đốc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        // Chức vụ thường gặp chưa xác định mã thống kê/thẩm quyền (chờ xác nhận).
+        new("Kế toán trưởng", PositionSide.Administrative, null, null, true),
+        new("Chi ủy viên", PositionSide.Party, null, null, true),
+        new("Đảng viên", PositionSide.Party, null, null, false),
+        new("Chuyên viên", PositionSide.Administrative, null, null, false),
+        new("Nhân viên", PositionSide.Administrative, null, null, false)
     };
 
     /// <summary>
-    /// Tài khoản mẫu. Phạm vi <see cref="RoleScopeType.Department"/>/<see cref="RoleScopeType.PartyCell"/> lấy theo Phòng/Chi bộ
-    /// của chính tài khoản. Trạng thái hồ sơ theo mẫu kỳ "Quý III/2026 — chuyển tiếp" (không có bước B1).
+    /// Tạo loại đơn vị và danh mục chức vụ mặc định, mỗi danh mục chỉ khi đang trống (kể cả bản ghi đã xóa) —
+    /// không bao giờ ghi đè cấu hình quản trị đã sửa.
+    /// </summary>
+    private static async Task SeedOrganizationCatalogsAsync(CongTacDangDbContext context, ILogger? logger)
+    {
+        if (!await context.OrgUnitTypes.IgnoreQueryFilters().AnyAsync())
+        {
+            context.OrgUnitTypes.AddRange(DefaultUnitTypes.Select((t, i) => new OrgUnitType { Name = t.Name, Side = t.Side, SortOrder = i }));
+            await context.SaveChangesAsync();
+            logger?.LogInformation("Đã tạo {Count} loại đơn vị mặc định (chờ nghiệp vụ xác nhận).", DefaultUnitTypes.Length);
+        }
+
+        if (!await context.Positions.IgnoreQueryFilters().AnyAsync())
+        {
+            context.Positions.AddRange(DefaultPositions.Select((p, i) => new Position
+            {
+                Name = p.Name,
+                Side = p.Side,
+                StatCode = p.StatCode,
+                DefaultApprovalAuthority = p.Authority,
+                IsLeadership = p.IsLeadership,
+                SortOrder = (i + 1) * 10
+            }));
+            await context.SaveChangesAsync();
+            logger?.LogInformation("Đã tạo {Count} chức vụ mặc định theo HD03 (chờ nghiệp vụ xác nhận).", DefaultPositions.Length);
+        }
+    }
+
+    #endregion
+
+    #region Dữ liệu mẫu
+
+    /// <summary>Một chức vụ của tài khoản mẫu: tên chức vụ (danh mục mặc định), mã đơn vị, chức vụ chính.</summary>
+    private sealed record SamplePosition(string Position, string UnitCode, bool IsPrimary);
+
+    /// <summary>Một tài khoản mẫu kèm chức vụ, bản gán vai trò và trạng thái hồ sơ trong kỳ mẫu (null = không được đánh giá).</summary>
+    private sealed record SampleAccount(
+        string Username, string FullName, string Department, string? PartyCell, SamplePosition[] Positions,
+        string Title, JobGroup JobGroup, (string Role, RoleScopeType Scope)[] Roles, RecordStatus? RecordStatus);
+
+    /// <summary>Cây đơn vị chính quyền mẫu (mã, tên, mô tả, mã cha, loại).</summary>
+    private static readonly (string Code, string Name, string Description, string? Parent, string Type)[] SampleDepartments =
+    {
+        ("ATTECH", "Công ty TNHH Kỹ thuật Quản lý bay", "Đơn vị gốc", null, "Công ty"),
+        ("BGD", "Ban Giám đốc", "Lãnh đạo Công ty", "ATTECH", "Đơn vị"),
+        ("PH-KT", "Phòng Kỹ thuật", "Quản lý kỹ thuật CNS/ATM", "ATTECH", "Phòng"),
+        ("PH-KH", "Phòng Kế hoạch - Kinh doanh", "Kế hoạch, đầu tư, kinh doanh", "ATTECH", "Phòng"),
+        ("PH-TCCB", "Phòng Tổ chức cán bộ - Lao động", "Tham mưu tổ chức, nhân sự, lao động tiền lương", "ATTECH", "Phòng")
+    };
+
+    /// <summary>Cây tổ chức Đảng mẫu (mã, tên, mô tả, mã cha, loại).</summary>
+    private static readonly (string Code, string Name, string Description, string? Parent, string Type)[] SampleCells =
+    {
+        ("DU-ATTECH", "Đảng ủy Công ty", "Đảng bộ cơ sở trực thuộc Đảng ủy Tổng công ty", null, "Đảng ủy"),
+        ("CB-KT", "Chi bộ Khối Kỹ thuật", "Chi bộ các phòng kỹ thuật", "DU-ATTECH", "Chi bộ"),
+        ("CB-VP", "Chi bộ Khối Văn phòng", "Chi bộ Ban Giám đốc và các phòng tham mưu", "DU-ATTECH", "Chi bộ")
+    };
+
+    /// <summary>
+    /// Tài khoản mẫu. Phạm vi <see cref="RoleScopeType.Department"/>/<see cref="RoleScopeType.PartyCell"/> lấy theo đơn vị/tổ chức Đảng
+    /// của chính tài khoản. Thẩm quyền phê duyệt suy ra từ chức vụ. Trạng thái hồ sơ theo mẫu kỳ "Quý III/2026 — chuyển tiếp".
     /// </summary>
     private static readonly SampleAccount[] SampleAccounts =
     {
-        new("admin", "Quản trị hệ thống (mẫu)", "PH-KH", null, PartyRole.DangVien, AdministrativePosition.ChuyenVien,
-            "Chuyên viên CNTT", JobGroup.Khung4_KhcnChuyenDoiSo, ApprovalAuthority.CoSo,
+        new("admin", "Quản trị hệ thống (mẫu)", "PH-KH", null, new[] { new SamplePosition("Chuyên viên", "PH-KH", true) },
+            "Chuyên viên CNTT", JobGroup.Khung4_KhcnChuyenDoiSo,
             new[] { (RoleCodes.Administrator, RoleScopeType.Global) }, null),
-        new("giamdoc", "Lê Tiến Thịnh", "BGD", "CB-VP", PartyRole.BiThuDangUy, AdministrativePosition.GiamDoc,
-            "Bí thư Đảng ủy, Giám đốc Công ty", JobGroup.Khung1_QuanLyDangDoanThe, ApprovalAuthority.CapTren,
+        new("giamdoc", "Lê Tiến Thịnh", "BGD", "CB-VP",
+            new[] { new SamplePosition("Giám đốc", "ATTECH", true), new SamplePosition("Bí thư Đảng ủy", "DU-ATTECH", false) },
+            "Bí thư Đảng ủy, Giám đốc Công ty", JobGroup.Khung1_QuanLyDangDoanThe,
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global), (RoleCodes.DirectSupervisor, RoleScopeType.Global) },
             RecordStatus.Published),
-        new("vanphong", "Phạm Thu Hà", "PH-KH", "CB-VP", PartyRole.DangVien, AdministrativePosition.ChuyenVien,
-            "Chuyên viên Văn phòng Đảng ủy", JobGroup.Khung1_QuanLyDangDoanThe, ApprovalAuthority.CoSo,
+        new("vanphong", "Phạm Thu Hà", "PH-KH", "CB-VP", new[] { new SamplePosition("Chuyên viên", "PH-KH", true) },
+            "Chuyên viên Văn phòng Đảng ủy", JobGroup.Khung1_QuanLyDangDoanThe,
             new[] { (RoleCodes.PartyOffice, RoleScopeType.Global), (RoleCodes.PartyCommitteeMember, RoleScopeType.Global) }, null),
-        new("thamdinh", "Vũ Đình Hùng", "PH-TCCB", "CB-VP", PartyRole.DangUyVien, AdministrativePosition.TruongPhong,
-            "Trưởng phòng Tổ chức cán bộ - Lao động", JobGroup.Khung1_QuanLyDangDoanThe, ApprovalAuthority.CoSo,
+        new("thamdinh", "Vũ Đình Hùng", "PH-TCCB", "CB-VP",
+            new[] { new SamplePosition("Trưởng phòng", "PH-TCCB", true), new SamplePosition("Đảng ủy viên", "DU-ATTECH", false) },
+            "Trưởng phòng Tổ chức cán bộ - Lao động", JobGroup.Khung1_QuanLyDangDoanThe,
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global), (RoleCodes.Appraisal, RoleScopeType.Global) },
             RecordStatus.AwaitingDirectorReview),
-        new("truongphong.kt", "Nguyễn Văn Hùng", "PH-KT", "CB-KT", PartyRole.ChiUyVien, AdministrativePosition.TruongPhong,
-            "Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat, ApprovalAuthority.CoSo,
+        new("truongphong.kt", "Nguyễn Văn Hùng", "PH-KT", "CB-KT",
+            new[] { new SamplePosition("Trưởng phòng", "PH-KT", true), new SamplePosition("Chi ủy viên", "CB-KT", false) },
+            "Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat,
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global), (RoleCodes.DepartmentLeader, RoleScopeType.Department) },
             RecordStatus.AwaitingAppraisal),
-        new("bithu.kt", "Trần Minh Đức", "PH-KT", "CB-KT", PartyRole.BiThuChiBo, AdministrativePosition.PhoTruongPhong,
-            "Bí thư Chi bộ, Phó Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat, ApprovalAuthority.CoSo,
+        new("bithu.kt", "Trần Minh Đức", "PH-KT", "CB-KT",
+            new[] { new SamplePosition("Phó Trưởng phòng", "PH-KT", true), new SamplePosition("Bí thư Chi bộ", "CB-KT", false) },
+            "Bí thư Chi bộ, Phó Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat,
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global), (RoleCodes.CellCommittee, RoleScopeType.PartyCell) },
             RecordStatus.AwaitingCollective),
-        new("thuky.kt", "Đỗ Thị Lan", "PH-KT", "CB-KT", PartyRole.DangVien, AdministrativePosition.ChuyenVien,
-            "Chuyên viên, Thư ký tập thể lãnh đạo Phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat, ApprovalAuthority.CoSo,
+        new("thuky.kt", "Đỗ Thị Lan", "PH-KT", "CB-KT", new[] { new SamplePosition("Chuyên viên", "PH-KT", true) },
+            "Chuyên viên, Thư ký tập thể lãnh đạo Phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat,
             new[] { (RoleCodes.CollectiveSecretary, RoleScopeType.Department) }, null),
-        new("canbo.kt1", "Trần Quốc Tuấn", "PH-KT", "CB-KT", PartyRole.DangVien, AdministrativePosition.PhoTruongPhong,
-            "Phó Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat, ApprovalAuthority.CoSo,
+        new("canbo.kt1", "Trần Quốc Tuấn", "PH-KT", "CB-KT", new[] { new SamplePosition("Phó Trưởng phòng", "PH-KT", true) },
+            "Phó Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat,
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global) }, RecordStatus.AwaitingSelfScore),
-        new("canbo.kt2", "Hoàng Văn Nam", "PH-KT", "CB-KT", PartyRole.DangVien, AdministrativePosition.PhoTruongPhong,
-            "Phó Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat, ApprovalAuthority.CoSo,
+        new("canbo.kt2", "Hoàng Văn Nam", "PH-KT", "CB-KT", new[] { new SamplePosition("Phó Trưởng phòng", "PH-KT", true) },
+            "Phó Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat,
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global) }, RecordStatus.AwaitingCellConfirm)
     };
 
@@ -428,15 +539,33 @@ public static class DataSeeder
         }
 
         var now = DateTime.UtcNow;
+        var unitTypes = await context.OrgUnitTypes.ToListAsync();
+        Guid? TypeId(OrgSide side, string name) => unitTypes.FirstOrDefault(t => t.Side == side && t.Name == name)?.Id;
+
         var departments = SampleDepartments
-            .Select((d, i) => new AdministrativeDepartment { Code = d.Code, Name = d.Name, Description = d.Description, SortOrder = i })
+            .Select((d, i) => new AdministrativeDepartment
+            {
+                Code = d.Code, Name = d.Name, Description = d.Description, SortOrder = i, UnitTypeId = TypeId(OrgSide.Administrative, d.Type)
+            })
             .ToDictionary(d => d.Code);
+        foreach (var d in SampleDepartments.Where(d => d.Parent != null))
+            departments[d.Code].ParentId = departments[d.Parent!].Id;
+        OrganizationService.RecomputePaths(departments.Values.ToList(), "đơn vị");
+
         var cells = SampleCells
-            .Select((c, i) => new PartyCell { Code = c.Code, Name = c.Name, Description = c.Description, SortOrder = i })
+            .Select((c, i) => new PartyCell
+            {
+                Code = c.Code, Name = c.Name, Description = c.Description, SortOrder = i, UnitTypeId = TypeId(OrgSide.Party, c.Type)
+            })
             .ToDictionary(c => c.Code);
+        foreach (var c in SampleCells.Where(c => c.Parent != null))
+            cells[c.Code].ParentId = cells[c.Parent!].Id;
+        OrganizationService.RecomputePaths(cells.Values.ToList(), "tổ chức Đảng");
+
         context.AdministrativeDepartments.AddRange(departments.Values);
         context.PartyCells.AddRange(cells.Values);
 
+        var positions = await context.Positions.ToDictionaryAsync(p => p.Name);
         var roles = await context.Roles.ToDictionaryAsync(r => r.Code, r => r.Id);
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
         var members = new Dictionary<string, PartyMemberProfile>(StringComparer.Ordinal);
@@ -455,15 +584,33 @@ public static class DataSeeder
                 IsPartyMember = cell != null,
                 PartyCardNumber = cell != null ? $"MAU-{members.Count + 1:000}" : null,
                 PartyCellId = cell?.Id,
-                PartyRole = sample.PartyRole,
                 DepartmentId = department.Id,
-                AdminPosition = sample.Position,
                 PositionTitle = sample.Title,
-                JobGroup = sample.JobGroup,
-                ApprovalAuthority = sample.Authority
+                JobGroup = sample.JobGroup
             };
             members[sample.Username] = member;
             context.PartyMemberProfiles.Add(member);
+
+            // Chức vụ (kể cả kiêm nhiệm) theo danh mục mặc định; thẩm quyền phê duyệt suy ra từ chức vụ.
+            var held = new List<HeldPosition>();
+            foreach (var sp in sample.Positions)
+            {
+                if (!positions.TryGetValue(sp.Position, out var position))
+                    continue; // danh mục chức vụ đã được quản trị sửa — bỏ qua chức vụ mẫu không còn
+                var isCell = cells.TryGetValue(sp.UnitCode, out var unitCell);
+                context.MemberPositions.Add(new MemberPosition
+                {
+                    UserId = member.Id,
+                    PositionId = position.Id,
+                    PartyCellId = isCell ? unitCell!.Id : null,
+                    DepartmentId = isCell ? null : departments[sp.UnitCode].Id,
+                    IsPrimary = sp.IsPrimary,
+                    ValidFrom = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    Note = "Chức vụ mẫu (Database:SeedSampleData)."
+                });
+                held.Add(new HeldPosition(position.Name, position.StatCode, position.DefaultApprovalAuthority));
+            }
+            member.ApprovalAuthority = PositionRules.DeriveApprovalAuthority(held);
 
             foreach (var (roleCode, scope) in sample.Roles)
             {
