@@ -93,7 +93,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             throw new ArgumentException("Tên tập thể hoặc lĩnh vực đánh giá không được để trống.");
 
         _guard.Ensure(PermissionCodes.CollectiveManage, new AccessTarget(DepartmentId: dto.DepartmentId, PartyCellId: dto.PartyCellId));
-        // Điểm tối đa lấy từ tham số kỳ (mặc định 30 / 70 như trước task 12).
+        // Điểm tối đa lấy từ tham số bộ tiêu chí của kỳ (mặc định 30 / 70).
         var period = await _evaluationRepo.GetPeriodByIdAsync(dto.PeriodId)
             ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {dto.PeriodId}");
         var parameters = SafeParameters(period);
@@ -267,18 +267,9 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return read.Union(_guard.GetScope(PermissionCodes.CollectiveManage));
     }
 
-    /// <summary>Tham số của kỳ (mặc định nếu cấu hình lỗi).</summary>
-    private static EvaluationParameters SafeParameters(EvaluationPeriod period)
-    {
-        try
-        {
-            return period.GetSettings().Parameters;
-        }
-        catch (FormatException)
-        {
-            return new EvaluationParameters();
-        }
-    }
+    /// <summary>Tham số của bộ tiêu chí của kỳ (mặc định 30/70 nếu kỳ chưa chọn bộ hoặc ảnh chụp lỗi).</summary>
+    private static CriteriaParameters SafeParameters(EvaluationPeriod period) =>
+        EvaluationMapping.SafeCriteria(period)?.Content.Parameters ?? new CriteriaParameters();
 
     /// <summary>Chuyển mã Mẫu 06-08 sang enum nghiệp vụ.</summary>
     private static CollectiveEvaluationForm? ParseCollectiveForm(string? form)

@@ -44,6 +44,8 @@ public class EvaluationTaskDto
     public string TargetOutput { get; set; } = string.Empty;
     public double Weight { get; set; }
     public DateTime Deadline { get; set; }
+    /// <summary>Mã trục kết quả (Mẫu 01).</summary>
+    public string? AxisCode { get; set; }
     public double CriteriaA_Ratio { get; set; }
     public double CriteriaB_Ratio { get; set; }
     public double CriteriaC_Ratio { get; set; }
@@ -84,8 +86,8 @@ public class EvaluationRecordDto
     public Guid PeriodId { get; set; }
     public string PeriodName { get; set; } = string.Empty;
     public string PeriodStatus { get; set; } = string.Empty;
-    /// <summary>Mẫu tự chấm của kỳ (09A/09B).</summary>
-    public string SelfScoreForm { get; set; } = PeriodSettings.Form09A;
+    /// <summary>Mẫu tự chấm theo bộ tiêu chí của kỳ (09A/09B); rỗng nếu kỳ chưa chọn bộ.</summary>
+    public string SelfScoreForm { get; set; } = string.Empty;
     public Guid MemberId { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string? PartyCardNumber { get; set; }
@@ -96,7 +98,8 @@ public class EvaluationRecordDto
     /// <summary>Phòng ảnh chụp trên hồ sơ.</summary>
     public Guid? DepartmentId { get; set; }
     public string? DepartmentName { get; set; }
-    public string JobGroup { get; set; } = string.Empty;
+    /// <summary>Mã khung tỷ trọng A-B-C-D (ảnh chụp).</summary>
+    public string WeightFrameCode { get; set; } = string.Empty;
     public string ApprovalAuthority { get; set; } = string.Empty;
     /// <summary>Hồ sơ luồng (nhóm đối tượng) của hồ sơ.</summary>
     public string WorkflowProfileCode { get; set; } = string.Empty;
@@ -118,11 +121,12 @@ public class EvaluationRecordDto
     public string? TasksApprovalComment { get; set; }
 
     // B2 — tự chấm
-    public double[] GeneralScores { get; set; } = Array.Empty<double>();
+    /// <summary>Điểm từng tiêu chí con (khóa = mã tiêu chí con của bộ tiêu chí của kỳ).</summary>
+    public Dictionary<string, GeneralItemScore> GeneralScores { get; set; } = new();
     public double GeneralCriteriaScore { get; set; }
     public double TasksScore { get; set; }
-    /// <summary>Điểm 6 trục (Mẫu 09B); null nếu chưa chấm theo 09B.</summary>
-    public double[]? AxisScores { get; set; }
+    /// <summary>Điểm theo trục (Mẫu 09B, khóa = mã trục); null nếu chưa chấm theo trục.</summary>
+    public Dictionary<string, double>? AxisScores { get; set; }
     public double TotalSelfScore { get; set; }
     public string SelfProposedGrade { get; set; } = string.Empty;
     public DateTime? SelfScoredAt { get; set; }
@@ -143,6 +147,8 @@ public class EvaluationRecordDto
     // B3b
     public double? AppraisalScore { get; set; }
     public string AppraisalComment { get; set; } = string.Empty;
+    /// <summary>Nội dung giải trình/căn cứ khi chênh lệch tự chấm – thẩm định (B-09).</summary>
+    public string? AppraisalExplanation { get; set; }
     public string AppraisalProposedGrade { get; set; } = string.Empty;
     public string? AppraisedByName { get; set; }
     public DateTime? AppraisedAt { get; set; }
@@ -217,6 +223,8 @@ public class TaskInputDto
     public double Weight { get; set; }
     public DateTime? Deadline { get; set; }
     public Guid? AttachmentId { get; set; }
+    /// <summary>Mã trục kết quả (thuộc bộ tiêu chí của kỳ); không bắt buộc.</summary>
+    public string? AxisCode { get; set; }
 }
 
 /// <summary>B1_REGISTER: nộp danh mục sản phẩm (Mẫu 01).</summary>
@@ -237,15 +245,15 @@ public class TaskScoreInputDto
     public Guid? AttachmentId { get; set; }
 }
 
-/// <summary>B2_SELF_SCORE: nộp phiếu tự chấm (09A: theo nhiệm vụ; 09B: 6 trục).</summary>
+/// <summary>B2_SELF_SCORE: nộp phiếu tự chấm theo bộ tiêu chí của kỳ (09A: theo nhiệm vụ; 09B: theo trục).</summary>
 public class SubmitSelfScoreRequestDto : WorkflowRequestDto
 {
-    /// <summary>Điểm 6 tiêu chí chung T1..T6.</summary>
-    public double[] GeneralScores { get; set; } = Array.Empty<double>();
+    /// <summary>Điểm từng tiêu chí con của nhóm tiêu chí chung (khóa = mã tiêu chí con), có "K/AD" kèm lý do.</summary>
+    public Dictionary<string, GeneralItemScore> GeneralScores { get; set; } = new();
     /// <summary>Mẫu 09A: tự chấm A-B-C-D từng nhiệm vụ.</summary>
     public List<TaskScoreInputDto> TaskScores { get; set; } = new();
-    /// <summary>Mẫu 09B: điểm 6 trục.</summary>
-    public double[]? AxisScores { get; set; }
+    /// <summary>Mẫu 09B: điểm theo trục (khóa = mã trục).</summary>
+    public Dictionary<string, double>? AxisScores { get; set; }
     /// <summary>Mức tự đề xuất; trống → gợi ý theo tổng điểm.</summary>
     public string? SelfProposedGrade { get; set; }
 }
@@ -277,6 +285,10 @@ public class AppraisalRequestDto : WorkflowRequestDto
     public double? AppraisalScore { get; set; }
     public string? Comment { get; set; }
     public string? ProposedGrade { get; set; }
+    /// <summary>
+    /// Nội dung giải trình/căn cứ — bắt buộc khi |tự chấm − thẩm định| ≥ ngưỡng của bộ tiêu chí (hoặc chênh lệch làm đổi mức).
+    /// </summary>
+    public string? Explanation { get; set; }
 }
 
 /// <summary>B3C_DIRECTOR: nhận xét, đề xuất của cấp trực tiếp sử dụng.</summary>
@@ -399,6 +411,10 @@ public class EvaluationPeriodDto
     /// <summary>Là kỳ hiện hành (kỳ Open/Locked mới nhất).</summary>
     public bool IsActive { get; set; }
     public PeriodSettings Settings { get; set; } = new();
+    /// <summary>Bộ tiêu chí đã chọn.</summary>
+    public Guid? CriteriaSetId { get; set; }
+    /// <summary>Ảnh chụp bộ tiêu chí của kỳ (null nếu chưa chọn) — form tự chấm/thẩm định dựng từ đây.</summary>
+    public CriteriaSnapshot? Criteria { get; set; }
 }
 
 /// <summary>Mẫu cấu hình dựng sẵn.</summary>
@@ -407,6 +423,8 @@ public class PeriodPresetDto
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    /// <summary>Mẫu tự chấm gợi ý (09A/09B) — chọn sẵn bộ tiêu chí đã xuất bản mới nhất có mẫu này.</summary>
+    public string SuggestedForm { get; set; } = string.Empty;
     public PeriodSettings Settings { get; set; } = new();
 }
 
@@ -420,6 +438,8 @@ public class CreatePeriodDto
     public DateTime EndDate { get; set; }
     /// <summary>Mã mẫu: <c>full</c> (mặc định) hoặc <c>q3-2026-transition</c>.</summary>
     public string? Preset { get; set; }
+    /// <summary>Bộ tiêu chí (đã xuất bản); trống → bộ đã xuất bản mới nhất có mẫu tự chấm gợi ý của kiểu kỳ (nếu có).</summary>
+    public Guid? CriteriaSetId { get; set; }
 }
 
 /// <summary>Sửa kỳ: Draft sửa mọi thứ; Open/Locked chỉ sửa thời hạn.</summary>
@@ -430,6 +450,8 @@ public class UpdatePeriodDto
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public PeriodSettings? Settings { get; set; }
+    /// <summary>Đổi bộ tiêu chí (chỉ khi kỳ dự thảo; chỉ bộ đã xuất bản); trống = giữ nguyên.</summary>
+    public Guid? CriteriaSetId { get; set; }
 }
 
 /// <summary>Chuyển trạng thái kỳ.</summary>
@@ -471,7 +493,10 @@ public class PeriodParticipantDto
     public string? DepartmentName { get; set; }
     public Guid? PartyCellId { get; set; }
     public string? PartyCellName { get; set; }
-    public string JobGroup { get; set; } = string.Empty;
+    /// <summary>Mã khung tỷ trọng A-B-C-D (ảnh chụp).</summary>
+    public string WeightFrameCode { get; set; } = string.Empty;
+    /// <summary>Tên khung theo bộ tiêu chí của kỳ; null nếu khung không có trong bộ.</summary>
+    public string? WeightFrameName { get; set; }
     public string ApprovalAuthority { get; set; } = string.Empty;
     public string WorkflowProfileCode { get; set; } = string.Empty;
     public string WorkflowProfileName { get; set; } = string.Empty;
@@ -496,7 +521,8 @@ public class UpdateSnapshotDto
     public uint? Version { get; set; }
     public Guid? DepartmentId { get; set; }
     public Guid? PartyCellId { get; set; }
-    public string? JobGroup { get; set; }
+    /// <summary>Mã khung tỷ trọng (phải có trong bộ tiêu chí của kỳ); trống = giữ nguyên.</summary>
+    public string? WeightFrameCode { get; set; }
     public string? ApprovalAuthority { get; set; }
     public string? Reason { get; set; }
 }

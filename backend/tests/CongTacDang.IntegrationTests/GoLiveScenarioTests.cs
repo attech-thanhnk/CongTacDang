@@ -243,12 +243,12 @@ public sealed class GoLiveScenarioTests
         Assert.Equal("B2_SELF_SCORE", ownerQueue.GetProperty("groups").EnumerateArray().Single().GetProperty("step").GetString());
 
         await GoLiveHttp.StepAsync(owner, recordId, "self-score/submit",
-            new { generalScores = new[] { 4.5, 4.5, 4.5, 4.5, 4.5, 4.5 }, axisScores = new[] { 13.0, 9, 9, 13, 9, 9 } }, "AwaitingCellConfirm");
+            new { generalScores = CriteriaTestData.General("2.1", "2.2", "2.3"), axisScores = CriteriaTestData.Axis(13, 9, 9, 13, 9, 9) }, "AwaitingCellConfirm");
         var cellQueue = await GoLiveHttp.DataAsync(await cadre.GetAsync($"/api/evaluations/work-queue?periodId={periodId}"));
         Assert.Contains(cellQueue.GetProperty("groups").EnumerateArray(), g => g.GetProperty("step").GetString() == "B2_CELL_CONFIRM");
         await GoLiveHttp.StepAsync(cadre, recordId, "cell/confirm", new { comment = "Chi bộ xác nhận" }, "AwaitingAppraisal");
         await GoLiveHttp.StepAsync(appraiser, recordId, "appraisal",
-            new { appraisalScore = 88.5, comment = "Đủ minh chứng", proposedGrade = "HoanThanhTot" }, "AwaitingDecision");
+            new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 88.5, comment = "Đủ minh chứng", proposedGrade = "HoanThanhTot" }, "AwaitingDecision");
         await GoLiveHttp.StepAsync(cadre, recordId, "decision", new { finalGrade = "HoanThanhTot", documentNumber = "01-QĐ/ĐU" }, "AwaitingPublish");
         await GoLiveHttp.StepAsync(cadre, recordId, "publish", new { }, "Published");
 

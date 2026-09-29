@@ -15,6 +15,9 @@ public static class EvaluationExtensions
         services.AddScoped<IEvaluationWorkflowRepository, EvaluationWorkflowRepository>();
         services.AddScoped<IEvaluationWorkflowService, EvaluationWorkflowService>();
         services.AddScoped<IPeriodService, PeriodService>();
+        // Task 16: bộ tiêu chí và thang điểm theo phiên bản.
+        services.AddScoped<ICriteriaSetRepository, CriteriaSetRepository>();
+        services.AddScoped<ICriteriaSetService, CriteriaSetService>();
         services.AddImportDefinition<PeriodParticipantImportDefinition>();
         return services;
     }

@@ -34,6 +34,9 @@ public class EvaluationTask : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Mốc thời gian / hạn chót hoàn thành trong quý</summary>
     public DateTime Deadline { get; set; }
 
+    /// <summary>Mã trục kết quả (Mẫu 01 cột "Trục KQ") — thuộc bộ tiêu chí của kỳ; null nếu chưa chọn.</summary>
+    public string? AxisCode { get; set; }
+
     #region Tự chấm điểm 4 Tiêu chí A-B-C-D theo Khung chức danh (0.0 đến 1.0)
 
     /// <summary>Tỷ lệ hoàn thành Tiêu chí A - Khối lượng công việc (0.0 đến 1.0 tương ứng 0% đến 100%)</summary>

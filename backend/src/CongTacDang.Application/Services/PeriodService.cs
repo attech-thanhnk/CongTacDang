@@ -79,19 +79,22 @@ public sealed class PeriodService : IPeriodService
     private readonly IAuthorizationGuard _guard;
     private readonly ICurrentUserService _currentUser;
     private readonly IPermissionResolver _permissions;
+    private readonly ICriteriaSetRepository _criteriaSets;
 
     public PeriodService(
         IEvaluationWorkflowRepository repo,
         IUnitOfWork unitOfWork,
         IAuthorizationGuard guard,
         ICurrentUserService currentUser,
-        IPermissionResolver permissions)
+        IPermissionResolver permissions,
+        ICriteriaSetRepository criteriaSets)
     {
         _repo = repo;
         _unitOfWork = unitOfWork;
         _guard = guard;
         _currentUser = currentUser;
         _permissions = permissions;
+        _criteriaSets = criteriaSets;
     }
 
     #region Đọc
@@ -133,6 +136,7 @@ public sealed class PeriodService : IPeriodService
             Code = p.Code,
             Name = p.Name,
             Description = p.Description,
+            SuggestedForm = p.SuggestedForm,
             Settings = p.Build()
         }).ToList();
 
@@ -169,6 +173,7 @@ public sealed class PeriodService : IPeriodService
               ?? throw new ValidationException($"Kiểu kỳ \"{dto.Preset}\" không tồn tại. Hãy chọn một trong: "
                   + string.Join(", ", PeriodSettings.Presets.Select(p => p.Name)) + ".");
 
+        var now = DateTime.UtcNow;
         var period = new EvaluationPeriod
         {
             Id = Guid.NewGuid(),
@@ -179,8 +184,21 @@ public sealed class PeriodService : IPeriodService
             EndDate = DateTime.SpecifyKind(dto.EndDate, DateTimeKind.Utc),
             Status = PeriodStatus.Draft,
             Settings = preset.Build().ToJson(),
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = now
         };
+
+        // Bộ tiêu chí: chỉ định → phải đã xuất bản; không chỉ định → bộ đã xuất bản mới nhất có mẫu tự chấm gợi ý của kiểu kỳ.
+        var set = dto.CriteriaSetId.HasValue
+            ? await LoadPublishedSetAsync(dto.CriteriaSetId.Value, ct)
+            : await _criteriaSets.LatestPublishedAsync(preset.SuggestedForm, ct);
+        if (set != null)
+        {
+            var errors = ValidateSettings(preset.Build(), set.SelfScoreForm);
+            if (errors.Count > 0)
+                throw new ValidationException($"Kiểu kỳ \"{preset.Name}\" không dùng được với bộ tiêu chí \"{set.Name}\": " + string.Join(" ", errors));
+            AttachCriteria(period, set, now);
+        }
+
         _repo.AddPeriod(period);
         await _unitOfWork.SaveChangesAsync(ct);
         return await GetPeriodAsync(period.Id, ct);
@@ -196,17 +214,33 @@ public sealed class PeriodService : IPeriodService
             throw new ConflictException("Kỳ đánh giá đã đóng, không sửa được cấu hình.");
 
         var current = ReadSettings(period);
+        var form = ReadCriteria(period)?.SelfScoreForm;
+        if (dto.CriteriaSetId.HasValue && dto.CriteriaSetId.Value != period.CriteriaSetId)
+        {
+            if (period.Status != PeriodStatus.Draft)
+                throw new ConflictException("Kỳ đã mở: không đổi được bộ tiêu chí (bộ tiêu chí đã được chụp vào kỳ khi mở).");
+            var set = await LoadPublishedSetAsync(dto.CriteriaSetId.Value, ct);
+            AttachCriteria(period, set, DateTime.UtcNow);
+            form = set.SelfScoreForm;
+            if (dto.Settings == null)
+            {
+                var errors = ValidateSettings(current, form);
+                if (errors.Count > 0)
+                    throw new ValidationException($"Cấu hình kỳ không dùng được với bộ tiêu chí \"{set.Name}\": " + string.Join(" ", errors));
+            }
+        }
+
         var settingsChanged = false;
         if (dto.Settings != null)
         {
             var next = dto.Settings.Normalize();
-            var errors = ValidateSettings(next);
+            var errors = ValidateSettings(next, form);
             if (errors.Count > 0)
                 throw new ValidationException("Cấu hình kỳ chưa hợp lệ: " + string.Join(" ", errors));
 
             if (period.Status != PeriodStatus.Draft && !next.DiffersOnlyInDeadlines(current))
-                throw new ConflictException("Kỳ đã mở: chỉ được sửa thời hạn các bước. Hồ sơ luồng, chế độ và quyền thực hiện bước, "
-                    + "mẫu tự chấm, tham số chỉ sửa được khi kỳ còn dự thảo.");
+                throw new ConflictException("Kỳ đã mở: chỉ được sửa thời hạn các bước. Hồ sơ luồng, chế độ và quyền thực hiện bước "
+                    + "chỉ sửa được khi kỳ còn dự thảo.");
 
             settingsChanged = next.ToJson() != current.ToJson();
             if (settingsChanged && period.Status == PeriodStatus.Draft)
@@ -266,9 +300,20 @@ public sealed class PeriodService : IPeriodService
             throw new ConflictException($"Kỳ đang ở trạng thái \"{WorkflowSteps.PeriodStatusDisplayName(period.Status)}\", chỉ mở được kỳ dự thảo.");
 
         var settings = ReadSettings(period);
-        var errors = ValidateSettings(settings);
+        if (period.CriteriaSetId is not { } setId)
+            throw new ValidationException("Kỳ chưa chọn bộ tiêu chí nên chưa mở được. Hãy chọn một bộ tiêu chí đã xuất bản trong cấu hình kỳ.");
+        var set = await _criteriaSets.FindAsync(setId, ct);
+        if (set == null || set.Status != CriteriaSetStatus.Published)
+            throw new ConflictException("Bộ tiêu chí đã chọn không còn ở trạng thái \"Đã xuất bản\" (đã lưu trữ hoặc bị xóa). Hãy chọn bộ tiêu chí khác cho kỳ.");
+        var criteriaErrors = set.GetContent().Validate(set.SelfScoreForm);
+        if (criteriaErrors.Count > 0)
+            throw new ValidationException($"Bộ tiêu chí \"{set.Name}\" chưa hợp lệ: " + string.Join(" ", criteriaErrors));
+        var errors = ValidateSettings(settings, set.SelfScoreForm);
         if (errors.Count > 0)
             throw new ValidationException("Cấu hình kỳ chưa hợp lệ, chưa mở được kỳ: " + string.Join(" ", errors));
+
+        // Chụp nguyên bộ vào kỳ (bất biến cho kỳ này).
+        AttachCriteria(period, set, DateTime.UtcNow);
 
         var readiness = await BuildReadinessAsync(period, ct);
         var reason = dto?.Reason?.Trim();
@@ -448,9 +493,42 @@ public sealed class PeriodService : IPeriodService
             });
         }
 
+        // Khung tỷ trọng của hồ sơ phải có trong bộ tiêu chí của kỳ (Mẫu 09A tính A-B-C-D theo khung).
+        var criteria = ReadCriteria(period);
+        if (criteria is { UsesAxisScoring: false })
+        {
+            foreach (var record in records.Where(r => criteria.Content.FindFrame(r.WeightFrameCode) == null))
+            {
+                var profile = EvaluationMapping.ProfileOf(settings, record);
+                var fullName = record.Member?.FullName ?? string.Empty;
+                result.Issues.Add(new ReadinessIssueDto
+                {
+                    RecordId = record.Id,
+                    MemberId = record.MemberId,
+                    FullName = fullName,
+                    WorkflowProfileCode = profile.Code,
+                    WorkflowProfileName = profile.Name,
+                    Step = WorkflowSteps.Code(WorkflowStep.B2_SELF_SCORE),
+                    StepName = WorkflowSteps.DisplayName(WorkflowStep.B2_SELF_SCORE),
+                    Mode = profile.Mode(WorkflowStep.B2_SELF_SCORE).ToString(),
+                    Permission = string.Empty,
+                    PermissionName = string.Empty,
+                    Scope = string.Empty,
+                    Message = string.IsNullOrEmpty(record.WeightFrameCode)
+                        ? $"Hồ sơ của {fullName} chưa có khung tỷ trọng A-B-C-D nên không tự chấm được theo Mẫu 09A. "
+                          + $"Hãy chọn khung trong danh sách người được đánh giá (bộ \"{criteria.Name}\" có: {FrameList(criteria)})."
+                        : $"Khung tỷ trọng \"{record.WeightFrameCode}\" của hồ sơ {fullName} không có trong bộ tiêu chí \"{criteria.Name}\" "
+                          + $"của kỳ (có: {FrameList(criteria)}). Hãy sửa khung của hồ sơ trong danh sách người được đánh giá."
+                });
+            }
+        }
+
         result.Ready = result.Issues.Count == 0;
         return result;
     }
+
+    private static string FrameList(CriteriaSnapshot criteria) =>
+        criteria.Content.WeightFrames.Count == 0 ? "không có khung nào" : string.Join(", ", criteria.Content.WeightFrames.Select(f => f.Code));
 
     private static string ScopeText(EvaluationRecord record)
     {
@@ -475,8 +553,9 @@ public sealed class PeriodService : IPeriodService
         EnsureManage();
         var period = await _repo.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
         var settings = ReadSettings(period);
+        var criteria = ReadCriteria(period);
         var records = await _repo.ListRecordsAsync(periodId, ct);
-        return records.Select(r => ToParticipant(r, settings)).ToList();
+        return records.Select(r => ToParticipant(r, settings, criteria)).ToList();
     }
 
     /// <inheritdoc />
@@ -546,6 +625,8 @@ public sealed class PeriodService : IPeriodService
                     + string.Join(", ", settings.Profiles.Select(p => $"{p.Code} ({p.Name})")) + ".");
         }
 
+        // Khung tỷ trọng: khung mặc định của cán bộ; cán bộ chưa có → khung mặc định của bộ tiêu chí của kỳ (nếu có).
+        var defaultFrame = ReadCriteria(period)?.Content.Parameters.DefaultWeightFrameCode;
         var existing = await _repo.GetParticipantIdsAsync(periodId, ct);
         var members = (await _repo.GetMembersAsync(memberIds, ct)).ToDictionary(m => m.Id);
         var result = new AddParticipantsResultDto();
@@ -583,7 +664,7 @@ public sealed class PeriodService : IPeriodService
             record.DeletedBy = null;
             record.DepartmentId = member.DepartmentId;
             record.PartyCellId = member.PartyCellId;
-            record.JobGroup = member.JobGroup;
+            record.WeightFrameCode = member.WeightFrameCode ?? defaultFrame ?? string.Empty;
             record.ApprovalAuthority = member.ApprovalAuthority;
             record.WorkflowProfileCode = profile.Code;
             var from = isNew ? (RecordStatus?)null : record.Status;
@@ -638,7 +719,7 @@ public sealed class PeriodService : IPeriodService
         if (record.Version != dto.Version)
             throw new ConflictException("Hồ sơ đã được cập nhật sau khi bạn mở danh sách. Hãy tải lại.");
         if (record.Period.Status is not (PeriodStatus.Draft or PeriodStatus.Open))
-            throw new ConflictException("Chỉ sửa ảnh chụp Phòng/Chi bộ/khung/cấp quyết định khi kỳ còn dự thảo hoặc đang mở.");
+            throw new ConflictException("Chỉ sửa ảnh chụp Phòng/Chi bộ/khung tỷ trọng/cấp quyết định khi kỳ còn dự thảo hoặc đang mở.");
         var reason = dto.Reason?.Trim();
         if (string.IsNullOrWhiteSpace(reason))
             throw new ValidationException("Hãy nhập lý do sửa thông tin ảnh chụp của hồ sơ.");
@@ -658,14 +739,18 @@ public sealed class PeriodService : IPeriodService
             changes.Add("Chi bộ");
             record.PartyCellId = dto.PartyCellId;
         }
-        if (!string.IsNullOrWhiteSpace(dto.JobGroup))
+        if (!string.IsNullOrWhiteSpace(dto.WeightFrameCode))
         {
-            if (!Enum.TryParse<JobGroup>(dto.JobGroup, true, out var group) || !Enum.IsDefined(group))
-                throw new ValidationException("Khung chức danh không hợp lệ.");
-            if (group != record.JobGroup)
+            var criteria = ReadCriteria(record.Period);
+            var frame = criteria?.Content.FindFrame(dto.WeightFrameCode);
+            if (criteria != null && frame == null)
+                throw new ValidationException($"Khung tỷ trọng \"{dto.WeightFrameCode.Trim()}\" không có trong bộ tiêu chí \"{criteria.Name}\" của kỳ "
+                    + $"(có: {FrameList(criteria)}).");
+            var code = frame?.Code ?? UserAccountService.NormalizeWeightFrameCode(dto.WeightFrameCode)!;
+            if (!string.Equals(code, record.WeightFrameCode, StringComparison.Ordinal))
             {
-                changes.Add("khung chức danh");
-                record.JobGroup = group;
+                changes.Add("khung tỷ trọng");
+                record.WeightFrameCode = code;
             }
         }
         if (!string.IsNullOrWhiteSpace(dto.ApprovalAuthority))
@@ -807,7 +892,7 @@ public sealed class PeriodService : IPeriodService
     {
         var period = await _repo.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
         var saved = (await _repo.ListRecordsAsync(periodId, ct)).First(r => r.Id == recordId);
-        return ToParticipant(saved, ReadSettings(period));
+        return ToParticipant(saved, ReadSettings(period), ReadCriteria(period));
     }
 
     #endregion
@@ -816,9 +901,43 @@ public sealed class PeriodService : IPeriodService
 
     private void EnsureManage() => _guard.Ensure(PermissionCodes.PeriodManage, AccessTarget.None);
 
-    /// <summary>Kiểm tra cấu hình kỳ, kể cả quyền thực hiện bước nội bộ phải là quyền đánh giá trong danh mục.</summary>
-    private static List<string> ValidateSettings(PeriodSettings settings) =>
-        settings.Validate(WorkflowActions.IsAssignableStepPermission);
+    /// <summary>
+    /// Kiểm tra cấu hình kỳ, kể cả quyền thực hiện bước nội bộ phải là quyền đánh giá trong danh mục; bộ tiêu chí 09A cần bước
+    /// đăng ký sản phẩm ở mọi hồ sơ luồng.
+    /// </summary>
+    private static List<string> ValidateSettings(PeriodSettings settings, string? selfScoreForm) =>
+        settings.Validate(WorkflowActions.IsAssignableStepPermission, selfScoreForm);
+
+    /// <summary>Bộ tiêu chí theo Id — phải đã xuất bản (bản nháp/lưu trữ không chọn được cho kỳ).</summary>
+    private async Task<CriteriaSet> LoadPublishedSetAsync(Guid id, CancellationToken ct)
+    {
+        var set = await _criteriaSets.FindAsync(id, ct)
+            ?? throw new ValidationException("Không tìm thấy bộ tiêu chí đã chọn.");
+        if (set.Status != CriteriaSetStatus.Published)
+            throw new ValidationException($"Bộ tiêu chí \"{set.Name}\" đang ở trạng thái \"{CriteriaSetService.StatusName(set.Status)}\"; "
+                + "kỳ chỉ chọn được bộ đã xuất bản.");
+        return set;
+    }
+
+    /// <summary>Gắn bộ tiêu chí vào kỳ và chụp nguyên bộ.</summary>
+    private static void AttachCriteria(EvaluationPeriod period, CriteriaSet set, DateTime now)
+    {
+        period.CriteriaSetId = set.Id;
+        period.CriteriaSnapshot = set.TakeSnapshot(now).ToJson();
+    }
+
+    /// <summary>Ảnh chụp bộ tiêu chí của kỳ (null nếu chưa chọn).</summary>
+    private static CriteriaSnapshot? ReadCriteria(EvaluationPeriod period)
+    {
+        try
+        {
+            return period.GetCriteria();
+        }
+        catch (FormatException)
+        {
+            throw new ConflictException("Ảnh chụp bộ tiêu chí của kỳ bị lỗi định dạng. Hãy chọn lại bộ tiêu chí cho kỳ (khi kỳ còn dự thảo).");
+        }
+    }
 
     private async Task<EvaluationPeriod> LoadForWriteAsync(Guid id, uint? version, CancellationToken ct)
     {
@@ -860,7 +979,7 @@ public sealed class PeriodService : IPeriodService
         CreatedAt = DateTime.UtcNow
     };
 
-    private static PeriodParticipantDto ToParticipant(EvaluationRecord r, PeriodSettings settings)
+    private static PeriodParticipantDto ToParticipant(EvaluationRecord r, PeriodSettings settings, CriteriaSnapshot? criteria)
     {
         var profile = EvaluationMapping.ProfileOf(settings, r);
         return new PeriodParticipantDto
@@ -874,7 +993,8 @@ public sealed class PeriodService : IPeriodService
             DepartmentName = r.Department?.Name,
             PartyCellId = r.PartyCellId,
             PartyCellName = r.PartyCell?.Name,
-            JobGroup = r.JobGroup.ToString(),
+            WeightFrameCode = r.WeightFrameCode,
+            WeightFrameName = criteria?.Content.FindFrame(r.WeightFrameCode)?.Name,
             ApprovalAuthority = r.ApprovalAuthority.ToString(),
             WorkflowProfileCode = profile.Code,
             WorkflowProfileName = profile.Name,

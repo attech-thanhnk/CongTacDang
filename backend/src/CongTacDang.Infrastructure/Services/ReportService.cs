@@ -269,12 +269,12 @@ public class ReportService : IReportService
                     LeaderProposal(r) == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac ||
                     LeaderProposal(r) == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhTot);
 
-                int maxAllowed = EvaluationScoring.ExcellentQuota(goodOrBetter, QuotaParameters(activePeriod));
-
                 int proposedExcellent = cellRecords.Count(r =>
                     r.AppraisalProposedGrade == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac ||
                     (r.AppraisalProposedGrade == CongTacDang.Domain.Enums.EvaluationGrade.ChuaXepLoai &&
                      LeaderProposal(r) == CongTacDang.Domain.Enums.EvaluationGrade.HoanThanhXuatSac));
+
+                int maxAllowed = EvaluationScoring.ExcellentQuota(goodOrBetter, proposedExcellent, QuotaRule(activePeriod));
 
                 double actualPercent = goodOrBetter > 0 ? Math.Round(((double)proposedExcellent / goodOrBetter) * 100.0, 1) : 0.0;
                 bool isExceeding = proposedExcellent > maxAllowed;
@@ -434,7 +434,7 @@ public class ReportService : IReportService
         var formRecords = inForm.Select(x => x.Record).ToList();
         var goodOrBetter = formRecords.Count(IsGoodOrBetter);
         var proposedExcellent = formRecords.Count(IsProposedExcellent);
-        var maxAllowed = EvaluationScoring.ExcellentQuota(goodOrBetter, QuotaParameters(activePeriod));
+        var maxAllowed = EvaluationScoring.ExcellentQuota(goodOrBetter, proposedExcellent, QuotaRule(activePeriod));
         row++;
         ws.Cell(row, 1).Value = $"Kiểm soát trần: đề xuất xuất sắc {proposedExcellent}/{goodOrBetter} hoàn thành tốt trở lên; tối đa {maxAllowed}"
             + (proposedExcellent > maxAllowed ? " — VƯỢT TRẦN." : " — đạt chuẩn.");
@@ -621,20 +621,9 @@ public class ReportService : IReportService
     /// <summary>Mức đề xuất của tập thể lãnh đạo (B3a).</summary>
     private static CongTacDang.Domain.Enums.EvaluationGrade LeaderProposal(EvaluationRecord record) => record.CollectiveProposedGrade;
 
-    /// <summary>Tham số trần tỷ lệ của kỳ (mặc định 20 %, làm tròn xuống).</summary>
-    private static EvaluationParameters QuotaParameters(EvaluationPeriod? period)
-    {
-        if (period == null)
-            return new EvaluationParameters();
-        try
-        {
-            return period.GetSettings().Parameters;
-        }
-        catch (FormatException)
-        {
-            return new EvaluationParameters();
-        }
-    }
+    /// <summary>Quy tắc trần tỷ lệ Hoàn thành xuất sắc theo bộ tiêu chí của kỳ (kỳ chưa chọn bộ → mặc định của bộ tiêu chí).</summary>
+    private static ExcellentQuotaRule QuotaRule(EvaluationPeriod? period) =>
+        (EvaluationMapping.SafeCriteria(period)?.Content.Parameters ?? new CriteriaParameters()).ExcellentQuota;
 
     private static bool IsGoodOrBetter(CongTacDang.Domain.Entities.EvaluationRecord record)
     {

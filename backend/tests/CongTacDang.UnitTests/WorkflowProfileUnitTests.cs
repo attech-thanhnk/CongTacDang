@@ -28,7 +28,8 @@ public sealed class WorkflowProfileUnitTests
         Assert.Null(PeriodSettings.FindPreset("khac"));
 
         var full = PeriodSettings.FullPreset();
-        Assert.Equal("09A", full.SelfScoreForm);
+        // Task 16: mẫu tự chấm thuộc bộ tiêu chí; kiểu kỳ chỉ gợi ý mẫu để chọn sẵn bộ.
+        Assert.Equal("09A", PeriodSettings.FindPreset("full")!.SuggestedForm);
         Assert.Equal(new[] { "co-so", "cap-tren", "bi-thu-nhan-vien" }, full.Profiles.Select(p => p.Code));
         Assert.Equal("co-so", full.DefaultProfileCode(ApprovalAuthority.CoSo));
         Assert.Equal("cap-tren", full.DefaultProfileCode(ApprovalAuthority.CapTren));
@@ -56,8 +57,7 @@ public sealed class WorkflowProfileUnitTests
 
         // Quý III/2026: B1 không áp dụng ở mọi hồ sơ luồng, 09B.
         var transition = PeriodSettings.TransitionQ3Preset();
-        Assert.Equal("09B", transition.SelfScoreForm);
-        Assert.True(transition.UsesAxisScoring);
+        Assert.Equal("09B", PeriodSettings.FindPreset("q3-2026-transition")!.SuggestedForm);
         Assert.Equal(3, transition.Profiles.Count);
         Assert.All(transition.Profiles, p =>
         {
@@ -138,17 +138,14 @@ public sealed class WorkflowProfileUnitTests
     public void Validate_RejectsInconsistentConfigurations()
     {
         var approveWithoutRegister = PeriodSettings.FullPreset();
-        approveWithoutRegister.SelfScoreForm = "09B";
         Profile(approveWithoutRegister, "co-so").Step(WorkflowStep.B1_REGISTER).Mode = StepMode.Off;
         Assert.Contains(Validate(approveWithoutRegister.Normalize()), e => e.Contains("duyệt danh mục", StringComparison.Ordinal));
 
+        // Task 16: bộ tiêu chí 09A cần bước đăng ký sản phẩm ở mọi hồ sơ luồng; 09B / chưa chọn bộ thì không.
         var aWithoutRegister = PeriodSettings.TransitionQ3Preset();
-        aWithoutRegister.SelfScoreForm = "09A";
-        Assert.Contains(Validate(aWithoutRegister.Normalize()), e => e.Contains("09A", StringComparison.Ordinal));
-
-        var badForm = PeriodSettings.FullPreset();
-        badForm.SelfScoreForm = "09C";
-        Assert.Contains(Validate(badForm.Normalize()), e => e.Contains("Mẫu tự chấm", StringComparison.Ordinal));
+        Assert.Contains(aWithoutRegister.Validate(WorkflowActions.IsAssignableStepPermission, "09A"), e => e.Contains("09A", StringComparison.Ordinal));
+        Assert.Empty(aWithoutRegister.Validate(WorkflowActions.IsAssignableStepPermission, "09B"));
+        Assert.Empty(Validate(aWithoutRegister));
 
         var oldVersion = PeriodSettings.Parse("{\"schemaVersion\":1,\"steps\":{\"B1_REGISTER\":{\"enabled\":true}}}");
         Assert.Contains(Validate(oldVersion), e => e.Contains("Phiên bản cấu hình 1", StringComparison.Ordinal));
@@ -242,7 +239,7 @@ public sealed class WorkflowProfileUnitTests
         Assert.Equal(9, a.Steps.Count);
         Assert.False(a.IsActive(WorkflowStep.B1_REGISTER));
         Assert.Equal(new DateOnly(2026, 10, 5), a.Deadline(WorkflowStep.B1_REGISTER));
-        Assert.Equal("09B", partial.SelfScoreForm);
+        Assert.DoesNotContain("selfScoreForm", partial.ToJson(), StringComparison.Ordinal); // task 16: thuộc bộ tiêu chí
         Assert.Empty(Validate(partial));
         Assert.Equal("a", partial.DefaultProfileCode(ApprovalAuthority.CapTren));
 

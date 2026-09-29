@@ -61,7 +61,7 @@ public sealed class DataSeederAuthorizationTests
                 // Kỳ mẫu Quý III/2026 (chuyển tiếp, đang mở) với hồ sơ ở nhiều bước.
                 var period = await db.EvaluationPeriods.SingleAsync();
                 Assert.Equal(PeriodStatus.Open, period.Status);
-                Assert.Equal("09B", period.GetSettings().SelfScoreForm);
+                Assert.Equal("09B", period.GetCriteria()!.SelfScoreForm);
                 var statuses = await db.EvaluationRecords.Select(r => r.Status).ToListAsync();
                 Assert.Equal(6, statuses.Count);
                 Assert.Equal(6, statuses.Distinct().Count());
@@ -96,9 +96,9 @@ public sealed class DataSeederAuthorizationTests
             {
                 var ex = await Assert.ThrowsAsync<PostgresException>(() => db.Database.ExecuteSqlRawAsync(
                     "INSERT INTO party_member_profiles (\"Id\", \"Username\", \"PasswordHash\", \"FullName\", \"Email\", \"PhoneNumber\", "
-                    + "\"IsPartyMember\", \"PositionTitle\", \"JobGroup\", \"ApprovalAuthority\", "
+                    + "\"IsPartyMember\", \"PositionTitle\", \"ApprovalAuthority\", "
                     + "\"SecurityStamp\", \"IsActive\", \"MustChangePassword\", \"FailedLoginCount\", \"CreatedAt\", \"IsDeleted\") "
-                    + "VALUES (gen_random_uuid(), 'ADMIN', 'x', 'Trùng', '', '', FALSE, '', 1, 1, 'x', TRUE, FALSE, 0, now(), FALSE)"));
+                    + "VALUES (gen_random_uuid(), 'ADMIN', 'x', 'Trùng', '', '', FALSE, '', 1, 'x', TRUE, FALSE, 0, now(), FALSE)"));
                 Assert.Equal(PostgresErrorCodes.UniqueViolation, ex.SqlState);
             }
         });

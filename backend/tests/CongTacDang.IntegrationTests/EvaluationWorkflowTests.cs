@@ -41,7 +41,7 @@ public sealed class EvaluationWorkflowTests
         // Tạo kỳ từ mẫu "Đầy đủ theo HD03" → dự thảo.
         var period = await CreatePeriodAsync(w, "full");
         Assert.Equal("Draft", period.GetProperty("status").GetString());
-        Assert.Equal("09A", period.GetProperty("settings").GetProperty("selfScoreForm").GetString());
+        Assert.Equal("09A", period.GetProperty("criteria").GetProperty("selfScoreForm").GetString()); // task 16: bộ 09A chọn sẵn theo kiểu kỳ
         var periodId = period.GetProperty("id").GetGuid();
 
         // Thêm người được đánh giá: chọn tay, rồi theo Phòng (người đã có bị bỏ qua).
@@ -81,7 +81,7 @@ public sealed class EvaluationWorkflowTests
             .Select(t => new { taskId = t.GetProperty("id").GetGuid(), criteriaA_Ratio = 1.0, criteriaB_Ratio = 0.9, criteriaC_Ratio = 1.0, criteriaD_Ratio = 1.0, isExceedStandard = false })
             .ToArray();
         var scored = await StepAsync(w.Owner1C, recordId, "self-score/submit",
-            new { generalScores = new[] { 5.0, 5.0, 5.0, 4.5, 4.5, 5.0 }, taskScores, selfProposedGrade = "HoanThanhTot" }, "AwaitingCellConfirm");
+            new { generalScores = CriteriaTestData.General("2.1"), taskScores, selfProposedGrade = "HoanThanhTot" }, "AwaitingCellConfirm");
         Assert.Equal(29.0, scored.GetProperty("generalCriteriaScore").GetDouble(), 6);
         Assert.True(scored.GetProperty("totalSelfScore").GetDouble() > 90);
         // 4. B2_CELL_CONFIRM — Chi ủy Chi bộ 1
@@ -107,7 +107,7 @@ public sealed class EvaluationWorkflowTests
         // Thư ký phạm vi Phòng thấy biên bản của Phòng mình (task 09 "Cần phối hợp").
         Assert.Contains(await Ids(w.SecretaryC, $"/api/evaluations/meetings?periodId={periodId}"), id => id == meetingId);
         // 6. B3B_APPRAISAL
-        await StepAsync(w.AppraiserC, recordId, "appraisal", new { appraisalScore = 92.5, comment = "Đạt", proposedGrade = "HoanThanhTot" }, "AwaitingDirectorReview");
+        await StepAsync(w.AppraiserC, recordId, "appraisal", new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 92.5, comment = "Đạt", proposedGrade = "HoanThanhTot" }, "AwaitingDirectorReview");
         // 7. B3C_DIRECTOR
         await StepAsync(w.DirectorC, recordId, "director-review", new { comment = "Nhận xét của Giám đốc", proposedGrade = "HoanThanhTot" }, "AwaitingDecision");
         // 8. B4_DECISION (hồ sơ CoSo)
@@ -155,20 +155,20 @@ public sealed class EvaluationWorkflowTests
         Assert.Equal(HttpStatusCode.Conflict, (await PostAsync(w.Owner1C, recordId, "tasks/submit", Tasks(), await VersionAsync(w, recordId))).StatusCode);
         // 09B: thiếu điểm trục → 400; trục vượt tối đa → 400.
         Assert.Equal(HttpStatusCode.BadRequest, (await PostAsync(w.Owner1C, recordId, "self-score/submit",
-            new { generalScores = new[] { 5.0, 5, 5, 5, 5, 5 } }, await VersionAsync(w, recordId))).StatusCode);
+            new { generalScores = CriteriaTestData.General() }, await VersionAsync(w, recordId))).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await PostAsync(w.Owner1C, recordId, "self-score/submit",
-            new { generalScores = new[] { 5.0, 5, 5, 5, 5, 5 }, axisScores = new[] { 16.0, 10, 10, 15, 10, 10 } }, await VersionAsync(w, recordId))).StatusCode);
+            new { generalScores = CriteriaTestData.General(), axisScores = CriteriaTestData.Axis(16, 10, 10, 15, 10, 10) }, await VersionAsync(w, recordId))).StatusCode);
 
         var scored = await StepAsync(w.Owner1C, recordId, "self-score/submit",
-            new { generalScores = new[] { 5.0, 5, 5, 5, 4, 5 }, axisScores = new[] { 14.0, 9, 9, 15, 8, 10 } }, "AwaitingCellConfirm");
+            new { generalScores = CriteriaTestData.General("2.1"), axisScores = CriteriaTestData.Axis(14, 9, 9, 15, 8, 10) }, "AwaitingCellConfirm");
         Assert.Equal(65.0, scored.GetProperty("tasksScore").GetDouble(), 6);
         Assert.Equal(94.0, scored.GetProperty("totalSelfScore").GetDouble(), 6);
         Assert.Equal("HoanThanhXuatSac", scored.GetProperty("selfProposedGrade").GetString()); // gợi ý theo ngưỡng 90
-        Assert.Equal(6, scored.GetProperty("axisScores").GetArrayLength());
+        Assert.Equal(6, scored.GetProperty("axisScores").EnumerateObject().Count());
 
         await StepAsync(w.CellSecC, recordId, "cell/confirm", new { }, "AwaitingCollective");
         await StepAsync(w.SecretaryC, recordId, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
-        await StepAsync(w.AppraiserC, recordId, "appraisal", new { appraisalScore = 90.0, comment = "Đạt", proposedGrade = "HoanThanhTot" }, "AwaitingDirectorReview");
+        await StepAsync(w.AppraiserC, recordId, "appraisal", new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 90.0, comment = "Đạt", proposedGrade = "HoanThanhTot" }, "AwaitingDirectorReview");
         await StepAsync(w.DirectorC, recordId, "director-review", new { comment = "Đồng ý", proposedGrade = "HoanThanhTot" }, "AwaitingDecision");
         await StepAsync(w.OfficeC, recordId, "decision", new { finalGrade = "HoanThanhTot" }, "AwaitingPublish");
         await StepAsync(w.OfficeC, recordId, "publish", new { }, "Published");
@@ -201,7 +201,7 @@ public sealed class EvaluationWorkflowTests
         Assert.Equal(HttpStatusCode.Forbidden, ownApprove.StatusCode);
         Assert.Contains("xung đột lợi ích", await MessageAsync(ownApprove));
         var ownAppraise = await PostAsync(w.AppraiserC, rAppraiser, "appraisal",
-            new { appraisalScore = 90.0, comment = "x", proposedGrade = "HoanThanhTot" }, await VersionAsync(w, rAppraiser));
+            new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 90.0, comment = "x", proposedGrade = "HoanThanhTot" }, await VersionAsync(w, rAppraiser));
         Assert.Equal(HttpStatusCode.Forbidden, ownAppraise.StatusCode);
         Assert.Contains("xung đột lợi ích", await MessageAsync(ownAppraise));
         // actions: chủ hồ sơ không thấy hành động thẩm định trên hồ sơ của mình.
@@ -244,7 +244,7 @@ public sealed class EvaluationWorkflowTests
         Assert.Null(resubmitted.GetProperty("returnReason").GetString());
         await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
         await StepAsync(w.SecretaryC, id, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
-        await StepAsync(w.AppraiserC, id, "appraisal", new { appraisalScore = 88.0, comment = "Đạt", proposedGrade = "HoanThanhTot" }, "AwaitingDirectorReview");
+        await StepAsync(w.AppraiserC, id, "appraisal", new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 88.0, comment = "Đạt", proposedGrade = "HoanThanhTot" }, "AwaitingDirectorReview");
 
         var history = await Data(w.Owner2C, $"/api/evaluations/records/{id}/history");
         var returns = history.EnumerateArray().Where(h => h.GetProperty("action").GetString() == "Return").ToList();
@@ -268,7 +268,7 @@ public sealed class EvaluationWorkflowTests
         var id = await RecordOfAsync(w, periodId, w.Owner1.Id);
 
         // Gọi thẳng API bước sau khi hồ sơ còn ở bước đăng ký → 409.
-        var early = await PostAsync(w.AppraiserC, id, "appraisal", new { appraisalScore = 90.0, comment = "x", proposedGrade = "HoanThanhTot" }, await VersionAsync(w, id));
+        var early = await PostAsync(w.AppraiserC, id, "appraisal", new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 90.0, comment = "x", proposedGrade = "HoanThanhTot" }, await VersionAsync(w, id));
         Assert.Equal(HttpStatusCode.Conflict, early.StatusCode);
         Assert.Contains("Hồ sơ đang ở bước", await MessageAsync(early));
         Assert.Equal(HttpStatusCode.Conflict, (await PostAsync(w.OfficeC, id, "publish", new { }, await VersionAsync(w, id))).StatusCode);
@@ -281,11 +281,11 @@ public sealed class EvaluationWorkflowTests
         await SetStatusAsync(id, RecordStatus.AwaitingSelfScore, withTasks: true);
         await SetStatusAsync(other, RecordStatus.AwaitingAppraisal);
         await TransitionAsync(w.Appraiser, periodId, "lock");
-        var locked = await PostAsync(w.Owner1C, id, "self-score/submit", new { generalScores = new[] { 5.0, 5, 5, 5, 5, 5 } }, await VersionAsync(w, id));
+        var locked = await PostAsync(w.Owner1C, id, "self-score/submit", new { generalScores = CriteriaTestData.General() }, await VersionAsync(w, id));
         Assert.Equal(HttpStatusCode.Conflict, locked.StatusCode);
         Assert.Contains("khóa dữ liệu", await MessageAsync(locked));
         await AssertActionsAsync(w.Owner1C, id);
-        await StepAsync(w.AppraiserC, other, "appraisal", new { appraisalScore = 85.0, comment = "Đạt", proposedGrade = "HoanThanhTot" }, "AwaitingDirectorReview");
+        await StepAsync(w.AppraiserC, other, "appraisal", new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 85.0, comment = "Đạt", proposedGrade = "HoanThanhTot" }, "AwaitingDirectorReview");
 
         // Khóa dữ liệu → Đang mở cần lý do; chỉ tiến (không mở lại kỳ đang mở).
         Assert.Equal(HttpStatusCode.BadRequest, (await TransitionRawAsync(w.Appraiser, periodId, "unlock", null)).StatusCode);
@@ -294,12 +294,13 @@ public sealed class EvaluationWorkflowTests
         // Đóng kỳ khi còn hồ sơ chưa công bố → 409.
         Assert.Equal(HttpStatusCode.Conflict, (await TransitionRawAsync(w.Appraiser, periodId, "close", null)).StatusCode);
         await SelfScoreAsync(w, w.Owner1C, id);
-        // Kỳ đã mở: không bật/tắt bước được nữa (chỉ thời hạn).
+        // Kỳ đã mở: không đổi được mẫu tự chấm — task 16: mẫu tự chấm thuộc bộ tiêu chí, không đổi được bộ tiêu chí đã chụp.
         var period = await Data(w.Appraiser, $"/api/evaluations/periods/{periodId}");
-        var settings = JsonSerializer.Deserialize<Dictionary<string, object>>(period.GetProperty("settings").GetRawText())!;
-        settings["selfScoreForm"] = "09B";
+        var otherSet = (await Data(w.Appraiser, "/api/criteria-sets")).EnumerateArray()
+            .First(s => s.GetProperty("status").GetString() == "Published" && s.GetProperty("id").GetGuid() != period.GetProperty("criteriaSetId").GetGuid())
+            .GetProperty("id").GetGuid();
         var changeForm = await w.Appraiser.PutAsJsonAsync($"/api/evaluations/periods/{periodId}",
-            new { version = period.GetProperty("version").GetUInt32(), settings });
+            new { version = period.GetProperty("version").GetUInt32(), criteriaSetId = otherSet });
         Assert.Equal(HttpStatusCode.Conflict, changeForm.StatusCode);
     }
 
@@ -345,7 +346,7 @@ public sealed class EvaluationWorkflowTests
 
         // Đã công bố → sửa bị chặn.
         Assert.Equal(HttpStatusCode.Conflict, (await PostAsync(w.AppraiserC, id, "appraisal",
-            new { appraisalScore = 80.0, comment = "x", proposedGrade = "HoanThanh" }, await VersionAsync(w, id))).StatusCode);
+            new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 80.0, comment = "x", proposedGrade = "HoanThanh" }, await VersionAsync(w, id))).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await PostAsync(w.OfficeC, id, "publish", new { }, await VersionAsync(w, id))).StatusCode);
         await AssertActionsAsync(w.OfficeC, id, "Reopen");
         await AssertActionsAsync(w.Owner3C, id);
@@ -355,7 +356,7 @@ public sealed class EvaluationWorkflowTests
         Assert.Equal(HttpStatusCode.Conflict, (await PostAsync(w.OfficeC, id, "reopen", new { targetStep = "B1_REGISTER", reason = "Đính chính" }, await VersionAsync(w, id))).StatusCode);
         await StepAsync(w.OfficeC, id, "reopen", new { targetStep = "B3B_APPRAISAL", reason = "Kiến nghị của cá nhân được chấp nhận" }, "AwaitingAppraisal");
 
-        await StepAsync(w.AppraiserC, id, "appraisal", new { appraisalScore = 91.0, comment = "Thẩm định lại", proposedGrade = "HoanThanhXuatSac" }, "AwaitingDirectorReview");
+        await StepAsync(w.AppraiserC, id, "appraisal", new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 91.0, comment = "Thẩm định lại", proposedGrade = "HoanThanhXuatSac" }, "AwaitingDirectorReview");
         await StepAsync(w.DirectorC, id, "director-review", new { comment = "Đồng ý", proposedGrade = "HoanThanhXuatSac" }, "AwaitingDecision");
         await StepAsync(w.OfficeC, id, "decision", new { finalGrade = "HoanThanhXuatSac" }, "AwaitingPublish");
         var republished = await StepAsync(w.OfficeC, id, "publish", new { }, "Published");
@@ -385,16 +386,16 @@ public sealed class EvaluationWorkflowTests
         var snapshot = await w.Appraiser.PutAsJsonAsync($"/api/evaluations/periods/{periodId}/participants/{id}/snapshot", new
         {
             version = participant.GetProperty("version").GetUInt32(),
-            departmentId = w.Dept1, partyCellId = w.Cell1, jobGroup = "Khung1_QuanLyDangDoanThe", reason = "Điều chỉnh khung chức danh"
+            departmentId = w.Dept1, partyCellId = w.Cell1, weightFrameCode = "K1", reason = "Điều chỉnh khung tỷ trọng"
         });
         Assert.Equal(HttpStatusCode.OK, snapshot.StatusCode);
-        var conflict = await PostAsync(w.Appraiser2C, id, "appraisal", new { appraisalScore = 90.0, comment = "x", proposedGrade = "HoanThanhTot" }, stale);
+        var conflict = await PostAsync(w.Appraiser2C, id, "appraisal", new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 90.0, comment = "x", proposedGrade = "HoanThanhTot" }, stale);
         Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);
         Assert.Contains("tải lại", await MessageAsync(conflict));
 
         // (b) Hai người thẩm định gửi cùng lúc với cùng phiên bản → đúng một người thành công, người còn lại 409.
         var version = await VersionAsync(w, id);
-        var body = new { appraisalScore = 90.0, comment = "Đồng thời", proposedGrade = "HoanThanhTot" };
+        var body = new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 90.0, comment = "Đồng thời", proposedGrade = "HoanThanhTot" };
         var results = await Task.WhenAll(
             PostAsync(w.AppraiserC, id, "appraisal", body, version),
             PostAsync(w.Appraiser2C, id, "appraisal", body, version));
@@ -590,7 +591,7 @@ public sealed class EvaluationWorkflowTests
             .Select(t => new { taskId = t.GetProperty("id").GetGuid(), criteriaA_Ratio = 1.0, criteriaB_Ratio = 1.0, criteriaC_Ratio = 0.9, criteriaD_Ratio = 1.0 })
             .ToArray();
         return await StepAsync(owner, recordId, "self-score/submit",
-            new { generalScores = new[] { 4.5, 4.5, 4.5, 4.5, 4.5, 4.5 }, taskScores }, "AwaitingCellConfirm");
+            new { generalScores = CriteriaTestData.General("2.1", "2.2", "2.3"), taskScores }, "AwaitingCellConfirm");
     }
 
     private static async Task AssertActionsAsync(HttpClient client, Guid recordId, params string[] expected)

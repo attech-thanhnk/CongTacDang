@@ -73,7 +73,7 @@ public sealed class SampleDataSeedTests
             // Kỳ mẫu đang mở, là kỳ hiện hành.
             var active = await DataAsync(await owner.GetAsync("/api/evaluations/periods/active"));
             Assert.Equal("Open", active.GetProperty("status").GetString());
-            Assert.Equal("09B", active.GetProperty("settings").GetProperty("selfScoreForm").GetString());
+            Assert.Equal("09B", active.GetProperty("criteria").GetProperty("selfScoreForm").GetString());
 
             // Kỳ mẫu theo kiểu kỳ dựng sẵn đủ hồ sơ luồng; kiểm tra kẹt luồng sạch (mọi bước còn lại đều có người thực hiện).
             var profiles = active.GetProperty("settings").GetProperty("profiles").EnumerateArray()

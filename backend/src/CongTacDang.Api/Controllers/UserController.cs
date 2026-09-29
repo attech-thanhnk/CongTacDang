@@ -99,7 +99,8 @@ public class UserController : ControllerBase
             request.ApprovalAuthority)
         {
             PhoneNumber = request.PhoneNumber,
-            ApprovalAuthorityReason = request.ApprovalAuthorityReason
+            ApprovalAuthorityReason = request.ApprovalAuthorityReason,
+            WeightFrameCode = request.WeightFrameCode
         }, ct);
 
         return Ok(ApiResponse<CreatedAccount>.Ok(created,
@@ -118,7 +119,7 @@ public class UserController : ControllerBase
             request.PartyCardNumber,
             request.PositionTitle,
             request.DepartmentId,
-            request.PartyCellId), ct);
+            request.PartyCellId) { WeightFrameCode = request.WeightFrameCode }, ct);
         return Ok(ApiResponse<AccountListItemDto>.Ok(result, "Cập nhật tài khoản thành công."));
     }
 

@@ -74,9 +74,10 @@ public static class EvaluationMapping
         EvaluationRecord r,
         PeriodSettings settings,
         DateOnly today,
-        IReadOnlyDictionary<Guid, (Guid AttachmentId, string FileName)>? evidence = null)
+        IReadOnlyDictionary<Guid, (Guid AttachmentId, string FileName)>? evidence = null,
+        CriteriaSnapshot? criteria = null)
     {
-        var axis = new[] { r.AxisScoreT1, r.AxisScoreT2, r.AxisScoreT3, r.AxisScoreT4, r.AxisScoreT5, r.AxisScoreT6 };
+        criteria ??= SafeCriteria(r.Period);
         var currentStep = WorkflowSteps.StepOf(r.Status);
         var profile = ProfileOf(settings, r);
 
@@ -87,7 +88,7 @@ public static class EvaluationMapping
             PeriodId = r.PeriodId,
             PeriodName = r.Period?.Name ?? string.Empty,
             PeriodStatus = r.Period?.Status.ToString() ?? string.Empty,
-            SelfScoreForm = settings.SelfScoreForm,
+            SelfScoreForm = criteria?.SelfScoreForm ?? string.Empty,
             MemberId = r.MemberId,
             FullName = r.Member?.FullName ?? string.Empty,
             PartyCardNumber = r.Member?.PartyCardNumber,
@@ -96,7 +97,7 @@ public static class EvaluationMapping
             PartyCellName = r.PartyCell?.Name,
             DepartmentId = r.DepartmentId,
             DepartmentName = r.Department?.Name,
-            JobGroup = r.JobGroup.ToString(),
+            WeightFrameCode = r.WeightFrameCode,
             ApprovalAuthority = r.ApprovalAuthority.ToString(),
             WorkflowProfileCode = profile.Code,
             WorkflowProfileName = profile.Name,
@@ -111,10 +112,10 @@ public static class EvaluationMapping
             TasksApprovedAt = r.TasksApprovedAt,
             TasksApprovalComment = r.TasksApprovalComment,
 
-            GeneralScores = new[] { r.GeneralScoreT1, r.GeneralScoreT2, r.GeneralScoreT3, r.GeneralScoreT4, r.GeneralScoreT5, r.GeneralScoreT6 },
+            GeneralScores = SafeGeneralScores(r.GeneralScores),
             GeneralCriteriaScore = r.GeneralCriteriaScore,
             TasksScore = r.TasksScore,
-            AxisScores = axis.All(x => x.HasValue) ? axis.Select(x => x!.Value).ToArray() : null,
+            AxisScores = SafeAxisScores(r.AxisScores),
             TotalSelfScore = r.TotalSelfScore,
             SelfProposedGrade = GradeCode(r.SelfProposedGrade),
             SelfScoredAt = r.SelfScoredAt,
@@ -131,6 +132,7 @@ public static class EvaluationMapping
 
             AppraisalScore = r.AppraisalScore,
             AppraisalComment = r.AppraisalComment,
+            AppraisalExplanation = r.AppraisalExplanation,
             AppraisalProposedGrade = GradeCode(r.AppraisalProposedGrade),
             AppraisedByName = r.AppraisedByName,
             AppraisedAt = r.AppraisedAt,
@@ -179,6 +181,7 @@ public static class EvaluationMapping
             TargetOutput = t.TargetOutput,
             Weight = t.Weight,
             Deadline = t.Deadline,
+            AxisCode = t.AxisCode,
             CriteriaA_Ratio = t.CriteriaA_Ratio,
             CriteriaB_Ratio = t.CriteriaB_Ratio,
             CriteriaC_Ratio = t.CriteriaC_Ratio,
@@ -232,6 +235,45 @@ public static class EvaluationMapping
         CreatedAt = x.CreatedAt
     };
 
+    /// <summary>Ảnh chụp bộ tiêu chí của kỳ; null nếu chưa chọn hoặc lỗi định dạng (hiển thị không làm hỏng trang).</summary>
+    public static CriteriaSnapshot? SafeCriteria(EvaluationPeriod? period)
+    {
+        if (period == null)
+            return null;
+        try
+        {
+            return period.GetCriteria();
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+    }
+
+    private static Dictionary<string, GeneralItemScore> SafeGeneralScores(string? json)
+    {
+        try
+        {
+            return EvaluationScoring.ParseGeneralScores(json);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return new Dictionary<string, GeneralItemScore>();
+        }
+    }
+
+    private static Dictionary<string, double>? SafeAxisScores(string? json)
+    {
+        try
+        {
+            return EvaluationScoring.ParseAxisScores(json);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+
     private static string SafeStatusName(RecordStatus status) =>
         Enum.IsDefined(status) ? WorkflowSteps.StatusDisplayName(status) : $"Trạng thái cũ ({(int)status})";
 
@@ -262,7 +304,9 @@ public static class EvaluationMapping
             StatusReason = p.StatusReason,
             TotalRecords = totalRecords,
             IsActive = activePeriodId.HasValue && activePeriodId.Value == p.Id,
-            Settings = settings
+            Settings = settings,
+            CriteriaSetId = p.CriteriaSetId,
+            Criteria = SafeCriteria(p)
         };
     }
 

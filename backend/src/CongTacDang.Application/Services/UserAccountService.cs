@@ -102,6 +102,7 @@ public sealed class UserAccountService : IUserAccountService
             throw new ValidationException("Cấp có thẩm quyền quyết định xếp loại không hợp lệ. Hãy chọn Đảng ủy cơ sở hoặc cấp trên, hoặc để trống để suy ra từ chức vụ.");
         var departmentId = cmd.DepartmentId == Guid.Empty ? null : cmd.DepartmentId;
         var partyCellId = cmd.PartyCellId == Guid.Empty ? null : cmd.PartyCellId;
+        var weightFrameCode = NormalizeWeightFrameCode(cmd.WeightFrameCode);
 
         if (_accounts != null)
         {
@@ -126,6 +127,7 @@ public sealed class UserAccountService : IUserAccountService
             PositionTitle = string.IsNullOrWhiteSpace(cmd.PositionTitle) ? "Cán bộ" : cmd.PositionTitle.Trim(),
             DepartmentId = departmentId,
             PartyCellId = partyCellId,
+            WeightFrameCode = weightFrameCode,
             // Tài khoản mới chưa có chức vụ → thẩm quyền suy ra = CoSo; giá trị truyền vào được lưu là đặt tay (ghi đè).
             ApprovalAuthority = cmd.ApprovalAuthority ?? ApprovalAuthority.CoSo,
             ApprovalAuthorityOverride = cmd.ApprovalAuthority,
@@ -201,6 +203,8 @@ public sealed class UserAccountService : IUserAccountService
         }
         if (cmd.PositionTitle != null && !string.IsNullOrWhiteSpace(cmd.PositionTitle))
             member.PositionTitle = cmd.PositionTitle.Trim();
+        if (cmd.WeightFrameCode != null)
+            member.WeightFrameCode = NormalizeWeightFrameCode(cmd.WeightFrameCode);
 
         var newDepartment = cmd.DepartmentId.HasValue
             ? (cmd.DepartmentId.Value == Guid.Empty ? null : cmd.DepartmentId)
@@ -308,6 +312,20 @@ public sealed class UserAccountService : IUserAccountService
     /// <summary>Dấu bảo mật mới (32 ký tự hex).</summary>
     public static string NewSecurityStamp() => Guid.NewGuid().ToString("N");
 
+    /// <summary>
+    /// Chuẩn hóa mã khung tỷ trọng mặc định: trống → null; sai định dạng → lỗi. Khung có trong bộ tiêu chí của kỳ hay không
+    /// được kiểm tra khi thêm vào kỳ / kiểm tra kẹt luồng (bộ tiêu chí thay đổi theo kỳ).
+    /// </summary>
+    public static string? NormalizeWeightFrameCode(string? code)
+    {
+        var trimmed = code?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return null;
+        if (!Domain.Evaluation.CriteriaSetContent.IsValidCode(trimmed))
+            throw new ValidationException($"Mã khung tỷ trọng \"{trimmed}\" không hợp lệ: chỉ gồm chữ không dấu, số, dấu chấm, gạch nối (tối đa 20 ký tự), ví dụ \"K2\".");
+        return trimmed;
+    }
+
     /// <summary>Ánh xạ tài khoản sang DTO danh sách.</summary>
     public static AccountListItemDto ToDto(PartyMemberProfile m) => new()
     {
@@ -319,6 +337,7 @@ public sealed class UserAccountService : IUserAccountService
         PartyCardNumber = m.PartyCardNumber,
         IsPartyMember = m.IsPartyMember,
         PositionTitle = m.PositionTitle,
+        WeightFrameCode = m.WeightFrameCode,
         DepartmentId = m.DepartmentId,
         DepartmentName = m.Department?.Name,
         PartyCellId = m.PartyCellId,
