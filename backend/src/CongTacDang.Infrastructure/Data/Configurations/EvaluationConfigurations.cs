@@ -48,6 +48,7 @@ public sealed class EvaluationRecordConfiguration : IEntityTypeConfiguration<Eva
             .HasColumnName("xmin")
             .IsRowVersion();
 
+        entity.Property(e => e.WorkflowProfileCode).HasMaxLength(50).IsRequired();
         entity.Property(e => e.ReturnReason).HasMaxLength(2000);
         entity.Property(e => e.SelfScoreForm).HasMaxLength(10);
         entity.Property(e => e.TasksApprovedByName).HasMaxLength(200);

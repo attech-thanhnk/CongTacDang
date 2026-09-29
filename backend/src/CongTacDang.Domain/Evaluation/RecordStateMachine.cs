@@ -33,11 +33,11 @@ public sealed record TransitionResult(bool Succeeded, RecordStatus Status, strin
 
 /// <summary>
 /// Máy trạng thái thuần của hồ sơ đánh giá cá nhân (docs/thiet-ke/luong-danh-gia.md mục 2):
-/// input (trạng thái, các bước bật trong kỳ, hành động) → trạng thái mới hoặc lỗi. Không đọc CSDL, không kiểm tra quyền.
+/// input (trạng thái, các bước áp dụng theo hồ sơ luồng của hồ sơ, hành động) → trạng thái mới hoặc lỗi. Không đọc CSDL, không kiểm tra quyền.
 /// </summary>
 public static class RecordStateMachine
 {
-    /// <summary>Trạng thái đầu của hồ sơ mới theo cấu hình bước của kỳ.</summary>
+    /// <summary>Trạng thái đầu của hồ sơ mới theo các bước áp dụng (khác "Không áp dụng") của hồ sơ luồng.</summary>
     public static RecordStatus Initial(IReadOnlySet<WorkflowStep> enabledSteps)
     {
         ArgumentNullException.ThrowIfNull(enabledSteps);
@@ -57,6 +57,18 @@ public static class RecordStateMachine
                 return WorkflowSteps.StatusOf(next);
         }
         return RecordStatus.Published;
+    }
+
+    /// <summary>
+    /// Căn lại trạng thái khi tập bước áp dụng thay đổi (đổi hồ sơ luồng): bước đang chờ vẫn áp dụng → giữ nguyên;
+    /// không còn áp dụng → chuyển tới bước áp dụng kế tiếp (không lùi về bước đã qua). Đã công bố → giữ nguyên.
+    /// </summary>
+    public static RecordStatus Realign(RecordStatus current, IReadOnlySet<WorkflowStep> activeSteps)
+    {
+        ArgumentNullException.ThrowIfNull(activeSteps);
+        if (WorkflowSteps.StepOf(current) is not { } step || activeSteps.Contains(step))
+            return current;
+        return NextAfter(step, activeSteps);
     }
 
     /// <summary>Các bước được chọn khi mở lại hồ sơ đã công bố (bước bật, không sớm hơn tự chấm).</summary>
@@ -81,7 +93,7 @@ public static class RecordStateMachine
                 var step = command.Step;
                 var name = WorkflowSteps.DisplayName(step);
                 if (!enabledSteps.Contains(step))
-                    return TransitionResult.Fail(current, $"Bước \"{name}\" không áp dụng trong kỳ này.");
+                    return TransitionResult.Fail(current, $"Bước \"{name}\" không áp dụng cho nhóm đối tượng của hồ sơ này.");
                 if (current != WorkflowSteps.StatusOf(step))
                     return TransitionResult.Fail(current, $"Hồ sơ đang ở bước \"{where}\", không thể thực hiện \"{name}\".");
                 return TransitionResult.Ok(NextAfter(step, enabledSteps));
@@ -93,11 +105,11 @@ public static class RecordStateMachine
                 if (!WorkflowSteps.ReturnTargets.TryGetValue(step, out var target))
                     return TransitionResult.Fail(current, $"Không thể trả lại hồ sơ ở bước \"{name}\".");
                 if (!enabledSteps.Contains(step))
-                    return TransitionResult.Fail(current, $"Bước \"{name}\" không áp dụng trong kỳ này.");
+                    return TransitionResult.Fail(current, $"Bước \"{name}\" không áp dụng cho nhóm đối tượng của hồ sơ này.");
                 if (current != WorkflowSteps.StatusOf(step))
                     return TransitionResult.Fail(current, $"Hồ sơ đang ở bước \"{where}\", không thể trả lại tại bước \"{name}\".");
                 if (!enabledSteps.Contains(target))
-                    return TransitionResult.Fail(current, $"Bước \"{WorkflowSteps.DisplayName(target)}\" không áp dụng trong kỳ này nên không thể trả lại.");
+                    return TransitionResult.Fail(current, $"Bước \"{WorkflowSteps.DisplayName(target)}\" không áp dụng cho nhóm đối tượng của hồ sơ này nên không thể trả lại.");
                 return TransitionResult.Ok(WorkflowSteps.StatusOf(target));
             }
             case WorkflowAction.Reopen:
@@ -109,7 +121,7 @@ public static class RecordStateMachine
                 if (!ReopenTargets(enabledSteps).Contains(target))
                 {
                     return TransitionResult.Fail(current,
-                        $"Không thể mở lại về bước \"{WorkflowSteps.DisplayName(target)}\": chỉ chọn bước đang áp dụng trong kỳ, "
+                        $"Không thể mở lại về bước \"{WorkflowSteps.DisplayName(target)}\": chỉ chọn bước đang áp dụng cho hồ sơ, "
                         + $"không sớm hơn \"{WorkflowSteps.DisplayName(WorkflowSteps.EarliestReopenStep)}\".");
                 }
                 return TransitionResult.Ok(WorkflowSteps.StatusOf(target));

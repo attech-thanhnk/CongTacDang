@@ -83,8 +83,9 @@ public static class DataSeeder
     {
         new(RoleCodes.Evaluatee, "Người được đánh giá", "Tham gia đánh giá bản thân (HD03 IV.1, IV.2). Phạm vi gán điển hình: Toàn công ty.",
             new[] { PermissionCodes.EvaluationSelf }),
-        new(RoleCodes.DepartmentLeader, "Lãnh đạo Phòng", "Xem hồ sơ và duyệt danh mục sản phẩm của Phòng (HD03 IV.1; PL II mục II). Phạm vi gán điển hình: Phòng.",
-            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksApprove }),
+        new(RoleCodes.DepartmentLeader, "Lãnh đạo Phòng", "Xem hồ sơ, duyệt danh mục sản phẩm của Phòng (HD03 IV.1; PL II mục II); đề xuất mức thay cấp trực tiếp sử dụng "
+            + "ở hồ sơ luồng được cấu hình (PL III ví dụ 3). Phạm vi gán điển hình: Phòng.",
+            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksApprove, PermissionCodes.EvaluationUnitReview }),
         new(RoleCodes.CollectiveSecretary, "Thư ký tập thể lãnh đạo", "Ghi nhận đề xuất của tập thể lãnh đạo, lập biên bản (HD03 IV.3a; Mẫu 11–13). Phạm vi gán điển hình: Phòng hoặc Toàn công ty.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.MeetingRead, PermissionCodes.MeetingManage }),
         new(RoleCodes.CellCommittee, "Chi ủy / Bí thư Chi bộ", "Chi bộ xác nhận phiếu tự chấm, lập hồ sơ tập thể (Mẫu 09A–9D, Mẫu 07). Phạm vi gán điển hình: Chi bộ.",
@@ -99,10 +100,11 @@ public static class DataSeeder
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport }),
         new(RoleCodes.PartyCommitteeMember, "Cấp ủy viên Đảng ủy", "Xem hồ sơ, biên bản, báo cáo (HD03 IV.4; Mẫu 18). Phạm vi gán: Toàn công ty.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.MeetingRead, PermissionCodes.ReportExport }),
-        new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy (ghi nhận quyết định)", "Ghi nhận quyết định, công bố, mở lại hồ sơ (HD03 IV.4, IV.5). Phạm vi gán: Toàn công ty.",
+        new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy (ghi nhận quyết định)", "Ghi nhận quyết định của Đảng ủy cơ sở, ghi nhận kết quả của cấp trên "
+            + "(thẩm định, nhận xét, quyết định do cấp trên thực hiện), công bố, mở lại hồ sơ (HD03 IV.4, IV.5). Phạm vi gán: Toàn công ty.",
             new[]
             {
-                PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationDecideExternal,
+                PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationExternalRecord,
                 PermissionCodes.EvaluationPublish, PermissionCodes.EvaluationReopen, PermissionCodes.MeetingRead,
                 PermissionCodes.MeetingManage, PermissionCodes.ReportExport
             }),
@@ -543,7 +545,10 @@ public static class DataSeeder
             UpdatedAt = now
         };
 
-        var enabled = settings.EnabledSteps();
+        // Hồ sơ luồng mặc định theo cấp quyết định (như khi thêm người vào kỳ): cấp trên → B3b/B3c/B4 do cấp trên thực hiện.
+        var profile = settings.ResolveProfile(null, member.ApprovalAuthority);
+        record.WorkflowProfileCode = profile.Code;
+        var enabled = profile.ActiveSteps();
         var current = RecordStateMachine.Initial(enabled);
         var at = new DateTime(2026, 9, 1, 2, 0, 0, DateTimeKind.Utc);
         context.EvaluationRecordHistories.Add(new EvaluationRecordHistory
@@ -558,10 +563,14 @@ public static class DataSeeder
                 ?? throw new InvalidOperationException($"Trạng thái mẫu {status} không đạt được theo cấu hình kỳ.");
             at = at.AddDays(1);
             FillStep(record, step, at);
+            var external = profile.Mode(step) == StepMode.External;
+            if (external)
+                AddSampleExternalResult(context, record, step, at);
             var next = RecordStateMachine.NextAfter(step, enabled);
             context.EvaluationRecordHistories.Add(new EvaluationRecordHistory
             {
-                RecordId = record.Id, FromStatus = current, ToStatus = next, Step = step, Action = WorkflowAction.Complete,
+                RecordId = record.Id, FromStatus = current, ToStatus = next, Step = step,
+                Action = external ? WorkflowAction.RecordExternal : WorkflowAction.Complete,
                 ScoreAfter = record.EffectiveScore(), GradeAfter = record.EffectiveGrade(),
                 ActorName = "Dữ liệu mẫu", Comment = WorkflowSteps.DisplayName(step), CreatedAt = at
             });
@@ -570,6 +579,44 @@ public static class DataSeeder
 
         record.Status = current;
         context.EvaluationRecords.Add(record);
+    }
+
+    /// <summary>Kết quả mẫu của bước do cấp trên thực hiện (khớp dữ liệu đã điền vào hồ sơ ở <see cref="FillStep"/>).</summary>
+    private static void AddSampleExternalResult(CongTacDangDbContext context, EvaluationRecord record, WorkflowStep step, DateTime at)
+    {
+        var (authority, grade, score, comment) = step switch
+        {
+            WorkflowStep.B3B_APPRAISAL => ("Ban Tổ chức Đảng ủy Tổng công ty (dữ liệu mẫu)", record.AppraisalProposedGrade, record.AppraisalScore, record.AppraisalComment),
+            WorkflowStep.B3C_DIRECTOR => ("Hội đồng thành viên Tổng công ty (dữ liệu mẫu)", record.DirectorProposedGrade, (double?)null, record.DirectorComment),
+            WorkflowStep.B4_DECISION => ("Ban Thường vụ Đảng ủy Tổng công ty (dữ liệu mẫu)", record.FinalGrade, (double?)record.FinalScore, "Quyết định mức xếp loại (dữ liệu mẫu)."),
+            _ => ("Cấp trên (dữ liệu mẫu)", EvaluationGrade.ChuaXepLoai, (double?)null, (string?)null)
+        };
+        switch (step)
+        {
+            case WorkflowStep.B3B_APPRAISAL:
+                record.AppraisedByName = authority;
+                break;
+            case WorkflowStep.B3C_DIRECTOR:
+                record.DirectorReviewedByName = authority;
+                break;
+            case WorkflowStep.B4_DECISION:
+                record.DecisionAuthorityName = authority;
+                break;
+        }
+        context.Set<EvaluationExternalResult>().Add(new EvaluationExternalResult
+        {
+            RecordId = record.Id,
+            Step = step,
+            AuthorityName = authority,
+            DocumentNumber = step == WorkflowStep.B4_DECISION ? record.DecisionDocumentNumber : null,
+            DocumentDate = step == WorkflowStep.B4_DECISION ? record.DecisionDocumentDate : null,
+            Comment = comment,
+            Grade = grade,
+            Score = score,
+            RecordedByName = "Văn phòng Đảng ủy (dữ liệu mẫu)",
+            RecordedAt = at,
+            CreatedAt = at
+        });
     }
 
     /// <summary>Điền dữ liệu hợp lệ của một bước đã hoàn thành (mẫu tự chấm 09B: 6 trục).</summary>

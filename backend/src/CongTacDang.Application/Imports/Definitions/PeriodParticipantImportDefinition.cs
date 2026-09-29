@@ -9,6 +9,7 @@ using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.Services;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Imports.Definitions;
 
@@ -19,6 +20,12 @@ public sealed class PeriodParticipantImportRow
     public int Quarter { get; set; }
     public string? PeriodName { get; set; }
     public string Username { get; set; } = string.Empty;
+
+    /// <summary>Hồ sơ luồng (mã hoặc tên) — bỏ trống: mặc định theo cấp quyết định của cán bộ.</summary>
+    public string? Profile { get; set; }
+
+    /// <summary>Mã hồ sơ luồng đã phân giải khi kiểm tra (null = mặc định).</summary>
+    public string? ProfileCode { get; set; }
 
     /// <summary>Kỳ đã phân giải khi kiểm tra.</summary>
     public Guid PeriodId { get; set; }
@@ -38,6 +45,7 @@ public sealed class PeriodParticipantImportDefinition : IImportDefinition<Period
     private const string QuarterKey = "quarter";
     private const string PeriodNameKey = "periodName";
     private const string UsernameKey = "username";
+    private const string ProfileKey = "workflowProfile";
     private const string NoteKey = "note";
 
     private readonly IEvaluationWorkflowRepository _repo;
@@ -58,7 +66,8 @@ public sealed class PeriodParticipantImportDefinition : IImportDefinition<Period
     /// <inheritdoc />
     public string Description =>
         "Thêm cán bộ vào danh sách được đánh giá của một kỳ (đang dự thảo hoặc đang mở). Phòng, Chi bộ, khung chức danh, "
-        + "cấp quyết định được chụp từ hồ sơ cán bộ tại thời điểm nhập.";
+        + "cấp quyết định được chụp từ hồ sơ cán bộ tại thời điểm nhập. Hồ sơ luồng: ghi mã hoặc tên hồ sơ luồng của kỳ; "
+        + "bỏ trống thì dùng hồ sơ luồng mặc định theo cấp quyết định.";
 
     /// <inheritdoc />
     public IReadOnlyList<ImportColumn> TemplateColumns { get; } = new[]
@@ -68,6 +77,9 @@ public sealed class PeriodParticipantImportDefinition : IImportDefinition<Period
         new ImportColumn(PeriodNameKey, "Tên kỳ", false, "Chỉ cần ghi khi có nhiều kỳ trong cùng một quý (ghi đúng tên kỳ).", null,
             "Đánh giá, xếp loại cán bộ Quý III/2026"),
         new ImportColumn(UsernameKey, "Tên đăng nhập", true, "Tên đăng nhập của cán bộ được đánh giá (tài khoản đang hoạt động).", null, "nguyenvana"),
+        new ImportColumn(ProfileKey, "Hồ sơ luồng", false,
+            "Mã hoặc tên hồ sơ luồng (nhóm đối tượng) trong cấu hình kỳ, ví dụ co-so, cap-tren, bi-thu-nhan-vien. "
+            + "Bỏ trống: mặc định theo cấp quyết định của cán bộ.", null, "co-so"),
         new ImportColumn(NoteKey, "Ghi chú", false, "Không bắt buộc, không được lưu.", null, null)
     };
 
@@ -80,7 +92,8 @@ public sealed class PeriodParticipantImportDefinition : IImportDefinition<Period
         var row = new PeriodParticipantImportRow
         {
             PeriodName = source.GetOrNull(PeriodNameKey),
-            Username = source.Get(UsernameKey)
+            Username = source.Get(UsernameKey),
+            Profile = source.GetOrNull(ProfileKey)
         };
 
         if (int.TryParse(source.Get(YearKey), NumberStyles.Integer, CultureInfo.InvariantCulture, out var year) && year is >= 2000 and <= 2100)
@@ -163,6 +176,29 @@ public sealed class PeriodParticipantImportDefinition : IImportDefinition<Period
                 continue;
             }
 
+            if (data.Profile != null)
+            {
+                PeriodSettings settings;
+                try
+                {
+                    settings = period.GetSettings();
+                }
+                catch (FormatException)
+                {
+                    row.AddError($"Cấu hình của kỳ \"{period.Name}\" bị lỗi định dạng. Hãy lưu lại cấu hình kỳ trước khi nhập.");
+                    continue;
+                }
+                var profile = settings.FindProfile(data.Profile)
+                    ?? settings.Profiles.FirstOrDefault(p => string.Equals(p.Name.Trim(), data.Profile.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (profile == null)
+                {
+                    row.AddError($"Hồ sơ luồng \"{data.Profile}\" không có trong kỳ \"{period.Name}\". Hãy ghi một trong: "
+                        + string.Join(", ", settings.Profiles.Select(p => $"{p.Code} ({p.Name})")) + ", hoặc bỏ trống để dùng mặc định.");
+                    continue;
+                }
+                data.ProfileCode = profile.Code;
+            }
+
             data.PeriodId = period.Id;
             data.MemberId = member.Id;
             row.Action = ImportRowAction.Create;
@@ -175,7 +211,9 @@ public sealed class PeriodParticipantImportDefinition : IImportDefinition<Period
         var created = 0;
         foreach (var group in rows.GroupBy(r => r.Data.PeriodId))
         {
-            var result = await _periods.StageParticipantsAsync(group.Key, group.Select(r => r.Data.MemberId).ToList(), "nhập từ Excel", ct);
+            var profiles = group.Where(r => r.Data.ProfileCode != null).ToDictionary(r => r.Data.MemberId, r => r.Data.ProfileCode!);
+            var result = await _periods.StageParticipantsAsync(group.Key, group.Select(r => r.Data.MemberId).ToList(), "nhập từ Excel", ct,
+                profiles.Count > 0 ? profiles : null);
             if (result.Skipped.Count > 0)
                 throw new ValidationException("Không thêm được: " + string.Join(" ", result.Skipped));
             created += result.Added;

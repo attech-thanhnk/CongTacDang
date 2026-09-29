@@ -10,11 +10,17 @@ namespace CongTacDang.Application.Services;
 /// <summary>Định nghĩa một hành động của luồng đánh giá.</summary>
 /// <param name="Code">Mã hành động (trả về trong API actions).</param>
 /// <param name="Step">Bước thực hiện.</param>
-/// <param name="Kind">Hoàn thành / trả lại / mở lại.</param>
+/// <param name="Kind">Hoàn thành / trả lại / mở lại / ghi nhận kết quả của cấp trên.</param>
 /// <param name="Label">Nhãn nút.</param>
-public sealed record WorkflowActionDefinition(string Code, WorkflowStep Step, WorkflowAction Kind, string Label);
+public sealed record WorkflowActionDefinition(string Code, WorkflowStep Step, WorkflowAction Kind, string Label)
+{
+    /// <summary>Hành động làm bước tiến lên (hoàn thành trong hệ thống hoặc ghi nhận kết quả của cấp trên).</summary>
+    public bool Advances => Kind is WorkflowAction.Complete or WorkflowAction.RecordExternal;
+}
 
-/// <summary>Danh mục hành động và luật cố định (quyền theo bước, luật trạng thái kỳ).</summary>
+/// <summary>
+/// Danh mục hành động và luật cố định (quyền theo bước của hồ sơ luồng, luật trạng thái kỳ, chế độ bước).
+/// </summary>
 public static class WorkflowActions
 {
     public const string SubmitTasks = "SubmitTasks";
@@ -31,7 +37,10 @@ public static class WorkflowActions
     public const string Publish = "Publish";
     public const string Reopen = "Reopen";
 
-    /// <summary>Toàn bộ hành động theo thứ tự bước.</summary>
+    /// <summary>Ghi nhận kết quả của bước do cấp trên thực hiện (một mã cho mọi bước; bước nằm ở trường <c>step</c>).</summary>
+    public const string RecordExternal = "RecordExternal";
+
+    /// <summary>Hành động trong hệ thống theo thứ tự bước.</summary>
     public static readonly IReadOnlyList<WorkflowActionDefinition> All = new[]
     {
         new WorkflowActionDefinition(SubmitTasks, WorkflowStep.B1_REGISTER, WorkflowAction.Complete, "Nộp danh mục sản phẩm"),
@@ -49,11 +58,11 @@ public static class WorkflowActions
         new WorkflowActionDefinition(Reopen, WorkflowStep.B5_PUBLISH, WorkflowAction.Reopen, "Mở lại hồ sơ")
     };
 
-    /// <summary>Tra định nghĩa theo mã.</summary>
+    /// <summary>Tra định nghĩa hành động trong hệ thống theo mã.</summary>
     public static WorkflowActionDefinition Get(string code) =>
         All.FirstOrDefault(a => a.Code == code) ?? throw new ArgumentOutOfRangeException(nameof(code), code, null);
 
-    /// <summary>Hành động hoàn thành của một bước.</summary>
+    /// <summary>Hành động hoàn thành (trong hệ thống) của một bước.</summary>
     public static WorkflowActionDefinition CompleteOf(WorkflowStep step) =>
         All.First(a => a.Step == step && a.Kind == WorkflowAction.Complete);
 
@@ -61,25 +70,57 @@ public static class WorkflowActions
     public static WorkflowActionDefinition? ReturnOf(WorkflowStep step) =>
         All.FirstOrDefault(a => a.Step == step && a.Kind == WorkflowAction.Return);
 
-    /// <summary>Mã quyền cần có để thực hiện hành động trên hồ sơ có cấp quyết định <paramref name="authority"/>.</summary>
-    public static string PermissionFor(WorkflowActionDefinition action, ApprovalAuthority authority)
+    /// <summary>Hành động ghi nhận kết quả của cấp trên cho một bước.</summary>
+    public static WorkflowActionDefinition ExternalOf(WorkflowStep step) =>
+        new(RecordExternal, step, WorkflowAction.RecordExternal, "Ghi nhận kết quả của cấp trên");
+
+    /// <summary>Hành động làm bước tiến lên theo chế độ của bước trong hồ sơ luồng (null khi bước không áp dụng).</summary>
+    public static WorkflowActionDefinition? AdvanceOf(WorkflowStep step, WorkflowProfile profile) => profile.Mode(step) switch
     {
+        StepMode.Internal => CompleteOf(step),
+        StepMode.External => ExternalOf(step),
+        _ => null
+    };
+
+    /// <summary>
+    /// Mã quyền cần có để thực hiện hành động trên hồ sơ dùng hồ sơ luồng <paramref name="profile"/>: mở lại →
+    /// <c>evaluation.reopen</c>; ghi nhận kết quả của cấp trên → <c>evaluation.external.record</c>; bước của chủ hồ sơ →
+    /// <c>evaluation.self</c>; bước nội bộ → quyền thực hiện cấu hình trong hồ sơ luồng.
+    /// </summary>
+    public static string PermissionFor(WorkflowActionDefinition action, WorkflowProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
         if (action.Kind == WorkflowAction.Reopen)
             return PermissionCodes.EvaluationReopen;
+        if (action.Kind == WorkflowAction.RecordExternal)
+            return PermissionCodes.EvaluationExternalRecord;
+        if (WorkflowSteps.OwnerSteps.Contains(action.Step))
+            return PermissionCodes.EvaluationSelf;
+        var setting = profile.Step(action.Step);
+        return string.IsNullOrWhiteSpace(setting.Permission) ? WorkflowPermissions.DefaultFor(action.Step) : setting.Permission;
+    }
 
-        return action.Step switch
+    /// <summary>
+    /// Hành động có khớp chế độ của bước trong hồ sơ luồng không. Trả thông báo lỗi (409) hoặc null nếu khớp:
+    /// bước nội bộ chỉ nhận hành động trong hệ thống; bước cấp trên thực hiện chỉ nhận ghi nhận kết quả; bước không áp dụng
+    /// không nhận hành động nào.
+    /// </summary>
+    public static string? ModeBlockReason(WorkflowActionDefinition action, WorkflowProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        if (action.Kind == WorkflowAction.Reopen)
+            return null;
+
+        var name = WorkflowSteps.DisplayName(action.Step);
+        return (profile.Mode(action.Step), action.Kind) switch
         {
-            WorkflowStep.B1_REGISTER or WorkflowStep.B2_SELF_SCORE => PermissionCodes.EvaluationSelf,
-            WorkflowStep.B1_APPROVE => PermissionCodes.EvaluationTasksApprove,
-            WorkflowStep.B2_CELL_CONFIRM => PermissionCodes.EvaluationCellConfirm,
-            WorkflowStep.B3A_COLLECTIVE => PermissionCodes.EvaluationCollectiveRecord,
-            WorkflowStep.B3B_APPRAISAL => PermissionCodes.EvaluationAppraise,
-            WorkflowStep.B3C_DIRECTOR => PermissionCodes.EvaluationDirectorReview,
-            WorkflowStep.B4_DECISION => authority == ApprovalAuthority.CapTren
-                ? PermissionCodes.EvaluationDecideExternal
-                : PermissionCodes.EvaluationDecide,
-            WorkflowStep.B5_PUBLISH => PermissionCodes.EvaluationPublish,
-            _ => throw new ArgumentOutOfRangeException(nameof(action))
+            (StepMode.Off, _) =>
+                $"Bước \"{name}\" không áp dụng cho nhóm đối tượng của hồ sơ này (hồ sơ luồng \"{profile.Name}\").",
+            (StepMode.External, not WorkflowAction.RecordExternal) =>
+                $"Bước \"{name}\" do cấp trên thực hiện đối với hồ sơ luồng \"{profile.Name}\": hãy dùng chức năng \"Ghi nhận kết quả của cấp trên\".",
+            (StepMode.Internal, WorkflowAction.RecordExternal) =>
+                $"Bước \"{name}\" được thực hiện trong hệ thống đối với hồ sơ luồng \"{profile.Name}\", không ghi nhận kết quả của cấp trên được.",
+            _ => null
         };
     }
 
@@ -110,4 +151,13 @@ public static class WorkflowActions
                 return "Trạng thái kỳ không hợp lệ.";
         }
     }
+
+    /// <summary>Mã quyền được chọn làm quyền thực hiện bước nội bộ (không phải bước của chủ hồ sơ).</summary>
+    public static bool IsAssignableStepPermission(string code) =>
+        PermissionCodes.Find(code) is { Module: "evaluation" } definition
+        && definition.Code is not (PermissionCodes.EvaluationSelf or PermissionCodes.EvaluationRead or PermissionCodes.EvaluationReopen);
+
+    /// <summary>Danh sách mã quyền được chọn làm quyền thực hiện bước (theo thứ tự danh mục).</summary>
+    public static IReadOnlyList<PermissionDefinition> AssignableStepPermissions() =>
+        PermissionCodes.Definitions.Where(d => IsAssignableStepPermission(d.Code)).ToList();
 }

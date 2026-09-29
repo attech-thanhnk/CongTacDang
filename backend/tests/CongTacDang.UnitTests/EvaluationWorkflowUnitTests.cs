@@ -13,10 +13,10 @@ public sealed class EvaluationWorkflowUnitTests
 {
     private static readonly WorkflowStep[] Optional =
     {
-        WorkflowStep.B1_REGISTER, WorkflowStep.B1_APPROVE, WorkflowStep.B2_CELL_CONFIRM, WorkflowStep.B3A_COLLECTIVE, WorkflowStep.B3C_DIRECTOR
+        WorkflowStep.B1_REGISTER, WorkflowStep.B1_APPROVE, WorkflowStep.B2_CELL_CONFIRM, WorkflowStep.B3A_COLLECTIVE, WorkflowStep.B3B_APPRAISAL, WorkflowStep.B3C_DIRECTOR
     };
 
-    /// <summary>Mọi tổ hợp bật/tắt của 5 bước tùy chọn (32 cấu hình), bước bắt buộc luôn bật.</summary>
+    /// <summary>Mọi tổ hợp bật/tắt của 6 bước tùy chọn (64 cấu hình), bước bắt buộc luôn bật (task 15: thẩm định tùy chọn).</summary>
     public static IEnumerable<IReadOnlySet<WorkflowStep>> AllConfigurations()
     {
         for (var mask = 0; mask < 1 << Optional.Length; mask++)
@@ -66,7 +66,7 @@ public sealed class EvaluationWorkflowUnitTests
             }
         }
 
-        Assert.Equal(32 * 10 * 27, checkedCases);
+        Assert.Equal(64 * 10 * 27, checkedCases);
     }
 
     /// <summary>Luật thiết kế mục 2 viết lại theo cách khác (theo số thứ tự) để đối chiếu.</summary>
@@ -103,7 +103,7 @@ public sealed class EvaluationWorkflowUnitTests
     [Fact]
     public void StateMachine_FullPreset_WalksNineSteps_InOrder()
     {
-        var enabled = PeriodSettings.FullPreset().EnabledSteps();
+        var enabled = Profile(PeriodSettings.FullPreset(), PeriodSettings.ProfileBase).ActiveSteps();
         var status = RecordStateMachine.Initial(enabled);
         Assert.Equal(RecordStatus.AwaitingRegistration, status);
         foreach (var step in WorkflowSteps.Ordered)
@@ -118,7 +118,7 @@ public sealed class EvaluationWorkflowUnitTests
     [Fact]
     public void StateMachine_TransitionPreset_StartsAtSelfScore_AndRejectsB1()
     {
-        var enabled = PeriodSettings.TransitionQ3Preset().EnabledSteps();
+        var enabled = Profile(PeriodSettings.TransitionQ3Preset(), PeriodSettings.ProfileBase).ActiveSteps();
         Assert.Equal(RecordStatus.AwaitingSelfScore, RecordStateMachine.Initial(enabled));
         var b1 = RecordStateMachine.Apply(RecordStatus.AwaitingRegistration, enabled, WorkflowCommand.Complete(WorkflowStep.B1_REGISTER));
         Assert.False(b1.Succeeded);
@@ -128,7 +128,7 @@ public sealed class EvaluationWorkflowUnitTests
     [Fact]
     public void StateMachine_OutOfOrder_MessageNamesCurrentStep()
     {
-        var result = RecordStateMachine.Apply(RecordStatus.AwaitingRegistration, PeriodSettings.FullPreset().EnabledSteps(),
+        var result = RecordStateMachine.Apply(RecordStatus.AwaitingRegistration, Profile(PeriodSettings.FullPreset(), PeriodSettings.ProfileBase).ActiveSteps(),
             WorkflowCommand.Complete(WorkflowStep.B3B_APPRAISAL));
         Assert.False(result.Succeeded);
         Assert.Equal("Hồ sơ đang ở bước \"Chờ đăng ký sản phẩm\", không thể thực hiện \"Thẩm định\".", result.Error);
@@ -137,7 +137,8 @@ public sealed class EvaluationWorkflowUnitTests
     [Fact]
     public void StateMachine_DisabledSteps_AreSkippedWhenComputingNext()
     {
-        var enabled = new HashSet<WorkflowStep>(WorkflowSteps.Mandatory);
+        // Task 15: thẩm định không còn là bước bắt buộc (bắt buộc: tự chấm, quyết định, công bố).
+        var enabled = new HashSet<WorkflowStep>(WorkflowSteps.Mandatory) { WorkflowStep.B3B_APPRAISAL };
         Assert.Equal(RecordStatus.AwaitingAppraisal, RecordStateMachine.NextAfter(WorkflowStep.B2_SELF_SCORE, enabled));
         Assert.Equal(RecordStatus.AwaitingDecision, RecordStateMachine.NextAfter(WorkflowStep.B3B_APPRAISAL, enabled));
         Assert.Equal(RecordStatus.Published, RecordStateMachine.NextAfter(WorkflowStep.B5_PUBLISH, enabled));
@@ -145,124 +146,12 @@ public sealed class EvaluationWorkflowUnitTests
             RecordStateMachine.ReopenTargets(enabled));
     }
 
-    #endregion
-
-    #region PeriodSettings
-
-    [Fact]
-    public void Presets_AreValid_AndMatchDesign()
-    {
-        var full = PeriodSettings.FullPreset();
-        Assert.Empty(full.Validate());
-        Assert.Equal(9, full.EnabledSteps().Count);
-        Assert.Equal("09A", full.SelfScoreForm);
-
-        var transition = PeriodSettings.TransitionQ3Preset();
-        Assert.Empty(transition.Validate());
-        Assert.False(transition.IsEnabled(WorkflowStep.B1_REGISTER));
-        Assert.False(transition.IsEnabled(WorkflowStep.B1_APPROVE));
-        Assert.Equal(7, transition.EnabledSteps().Count);
-        Assert.Equal("09B", transition.SelfScoreForm);
-        Assert.True(transition.UsesAxisScoring);
-
-        Assert.Equal(new[] { "full", "q3-2026-transition" }, PeriodSettings.Presets.Select(p => p.Code));
-        Assert.NotNull(PeriodSettings.FindPreset("FULL"));
-        Assert.Null(PeriodSettings.FindPreset("khac"));
-    }
-
-    [Theory]
-    [InlineData(WorkflowStep.B2_SELF_SCORE)]
-    [InlineData(WorkflowStep.B3B_APPRAISAL)]
-    [InlineData(WorkflowStep.B4_DECISION)]
-    [InlineData(WorkflowStep.B5_PUBLISH)]
-    public void Validate_MandatoryStepsCannotBeDisabled(WorkflowStep step)
-    {
-        var settings = PeriodSettings.FullPreset();
-        settings.Steps[step.ToString()].Enabled = false;
-        Assert.Contains(settings.Validate(), e => e.Contains("bước bắt buộc", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Validate_RejectsInconsistentConfigurations()
-    {
-        var approveWithoutRegister = PeriodSettings.FullPreset();
-        approveWithoutRegister.Steps["B1_REGISTER"].Enabled = false;
-        approveWithoutRegister.SelfScoreForm = "09B";
-        Assert.Contains(approveWithoutRegister.Validate(), e => e.Contains("duyệt danh mục", StringComparison.Ordinal));
-
-        var aWithoutRegister = PeriodSettings.TransitionQ3Preset();
-        aWithoutRegister.SelfScoreForm = "09A";
-        Assert.Contains(aWithoutRegister.Validate(), e => e.Contains("09A", StringComparison.Ordinal));
-
-        var badForm = PeriodSettings.FullPreset();
-        badForm.SelfScoreForm = "09C";
-        Assert.Contains(badForm.Validate(), e => e.Contains("Mẫu tự chấm", StringComparison.Ordinal));
-
-        var version = PeriodSettings.FullPreset();
-        version.SchemaVersion = 2;
-        Assert.Contains(version.Validate(), e => e.Contains("Phiên bản cấu hình", StringComparison.Ordinal));
-
-        var unknown = PeriodSettings.Parse("{\"steps\":{\"B9_UNKNOWN\":{\"enabled\":true}}}");
-        Assert.Contains(unknown.Validate(), e => e.Contains("B9_UNKNOWN", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Validate_Parameters()
-    {
-        var settings = PeriodSettings.FullPreset();
-        settings.Parameters.MaxTasks = 2;
-        settings.Parameters.GoodMinScore = 95;
-        settings.Parameters.ExcellentQuotaRatio = 1.5;
-        settings.Parameters.JobGroupWeights["Khung1_QuanLyDangDoanThe"] = new CriteriaWeights(0.5, 0.5, 0.5, 0.5);
-        settings.Parameters.AxisMaxScores = new[] { 10.0 };
-        var errors = settings.Validate();
-        Assert.Contains(errors, e => e.Contains("tối đa phải lớn hơn", StringComparison.Ordinal));
-        Assert.Contains(errors, e => e.Contains("giảm dần", StringComparison.Ordinal));
-        Assert.Contains(errors, e => e.Contains("Trần tỷ lệ", StringComparison.Ordinal));
-        Assert.Contains(errors, e => e.Contains("Khung1_QuanLyDangDoanThe", StringComparison.Ordinal));
-        Assert.Contains(errors, e => e.Contains("6 trục", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Json_RoundTrip_Normalizes_AndEmptyMeansFullPreset()
-    {
-        var json = PeriodSettings.TransitionQ3Preset().ToJson();
-        Assert.Contains("\"schemaVersion\":1", json);
-        Assert.Contains("\"B1_REGISTER\":{\"enabled\":false", json);
-        var parsed = PeriodSettings.Parse(json);
-        Assert.Equal(json, parsed.ToJson());
-
-        Assert.Equal(PeriodSettings.FullPreset().ToJson(), PeriodSettings.Parse(null).ToJson());
-        Assert.Equal(PeriodSettings.FullPreset().ToJson(), PeriodSettings.Parse("  ").ToJson());
-
-        // Bước thiếu được bổ sung (bật), khóa không phân biệt hoa thường.
-        var partial = PeriodSettings.Parse("{\"schemaVersion\":1,\"steps\":{\"b1_register\":{\"enabled\":false,\"deadline\":\"2026-10-05\"}},\"selfScoreForm\":\"09b\"}");
-        Assert.Equal(9, partial.Steps.Count);
-        Assert.False(partial.IsEnabled(WorkflowStep.B1_REGISTER));
-        Assert.Equal(new DateOnly(2026, 10, 5), partial.Deadline(WorkflowStep.B1_REGISTER));
-        Assert.Equal("09B", partial.SelfScoreForm);
-
-        Assert.Throws<FormatException>(() => PeriodSettings.Parse("{không phải json"));
-    }
-
-    [Fact]
-    public void DiffersOnlyInDeadlines()
-    {
-        var current = PeriodSettings.FullPreset();
-        var deadlines = current.Clone();
-        deadlines.Steps["B2_SELF_SCORE"].Deadline = new DateOnly(2026, 12, 11);
-        Assert.True(deadlines.DiffersOnlyInDeadlines(current));
-
-        var toggled = current.Clone();
-        toggled.Steps["B3C_DIRECTOR"].Enabled = false;
-        Assert.False(toggled.DiffersOnlyInDeadlines(current));
-
-        var parameters = current.Clone();
-        parameters.Parameters.MinTasks = 2;
-        Assert.False(parameters.DiffersOnlyInDeadlines(current));
-    }
+    private static WorkflowProfile Profile(PeriodSettings settings, string code) => settings.FindProfile(code)!;
 
     #endregion
+
+    // Task 15: kiểm thử PeriodSettings (hồ sơ luồng, kiểu kỳ, kiểm tra cấu hình, JSON, thời hạn) chuyển sang WorkflowProfileUnitTests.
+
 
     #region EvaluationScoring = code cũ
 

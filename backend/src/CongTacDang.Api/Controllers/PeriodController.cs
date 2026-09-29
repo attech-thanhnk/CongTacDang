@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -59,11 +60,42 @@ public class PeriodController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePeriodDto dto, CancellationToken ct) =>
         Ok(ApiResponse<EvaluationPeriodDto>.Ok(await _periods.UpdatePeriodAsync(id, dto, ct), "Đã lưu cấu hình kỳ đánh giá."));
 
-    /// <summary>Dự thảo → Đang mở.</summary>
+    /// <summary>
+    /// Dự thảo → Đang mở. Còn cảnh báo kẹt luồng → 409 kèm danh sách cảnh báo (<c>data</c> = kết quả kiểm tra, mã
+    /// <c>PERIOD_NOT_READY</c>); mở bắt buộc: <c>force = true</c> + lý do.
+    /// </summary>
     [HttpPost("{id:guid}/open")]
     [RequirePermission(PermissionCodes.PeriodManage)]
-    public async Task<IActionResult> Open(Guid id, [FromBody] PeriodTransitionDto dto, CancellationToken ct) =>
-        Ok(ApiResponse<EvaluationPeriodDto>.Ok(await _periods.OpenAsync(id, dto, ct), "Đã mở kỳ đánh giá."));
+    public async Task<IActionResult> Open(Guid id, [FromBody] PeriodTransitionDto dto, CancellationToken ct)
+    {
+        var outcome = await _periods.OpenAsync(id, dto, ct);
+        if (outcome.Blocked)
+        {
+            var readiness = outcome.Readiness!;
+            return Conflict(new ApiResponse<PeriodReadinessDto>
+            {
+                Success = false,
+                Code = "PERIOD_NOT_READY",
+                Message = $"Chưa mở được kỳ: có {readiness.Issues.Count} cảnh báo kẹt luồng (hồ sơ sẽ không có ai thực hiện được bước). "
+                    + "Hãy gán vai trò hoặc sửa cấu hình hồ sơ luồng, hoặc mở bắt buộc kèm lý do.",
+                Data = readiness,
+                Errors = readiness.Issues.Select(i => i.Message).ToList()
+            });
+        }
+        return Ok(ApiResponse<EvaluationPeriodDto>.Ok(outcome.Period!, "Đã mở kỳ đánh giá."));
+    }
+
+    /// <summary>Kiểm tra kẹt luồng của kỳ (mỗi hồ sơ × mỗi bước còn phía trước có người thực hiện được trong phạm vi).</summary>
+    [HttpGet("{id:guid}/readiness")]
+    [RequirePermission(PermissionCodes.PeriodManage)]
+    public async Task<IActionResult> GetReadiness(Guid id, CancellationToken ct) =>
+        Ok(ApiResponse<PeriodReadinessDto>.Ok(await _periods.GetReadinessAsync(id, ct), "Đã kiểm tra kẹt luồng của kỳ."));
+
+    /// <summary>Mã quyền chọn được làm quyền thực hiện bước trong hồ sơ luồng.</summary>
+    [HttpGet("step-permissions")]
+    [RequirePermission(PermissionCodes.PeriodManage)]
+    public IActionResult GetStepPermissions() =>
+        Ok(ApiResponse<IReadOnlyList<StepPermissionOptionDto>>.Ok(_periods.GetStepPermissions(), "Lấy danh sách quyền thực hiện bước thành công."));
 
     /// <summary>Đang mở → Khóa dữ liệu.</summary>
     [HttpPost("{id:guid}/lock")]
@@ -118,4 +150,19 @@ public class PeriodController : ControllerBase
     [RequirePermission(PermissionCodes.PeriodManage)]
     public async Task<IActionResult> UpdateSnapshot(Guid id, Guid recordId, [FromBody] UpdateSnapshotDto dto, CancellationToken ct) =>
         Ok(ApiResponse<PeriodParticipantDto>.Ok(await _periods.UpdateSnapshotAsync(id, recordId, dto, ct), "Đã sửa thông tin ảnh chụp của hồ sơ."));
+
+    /// <summary>Đổi hồ sơ luồng của một người được đánh giá (bắt buộc lý do; hồ sơ chưa qua bước bị ảnh hưởng).</summary>
+    [HttpPut("{id:guid}/participants/{recordId:guid}/profile")]
+    [RequirePermission(PermissionCodes.PeriodManage)]
+    public async Task<IActionResult> ChangeProfile(Guid id, Guid recordId, [FromBody] ChangeProfileDto dto, CancellationToken ct) =>
+        Ok(ApiResponse<PeriodParticipantDto>.Ok(await _periods.ChangeProfileAsync(id, recordId, dto, ct), "Đã đổi hồ sơ luồng của hồ sơ."));
+
+    /// <summary>Đổi hồ sơ luồng hàng loạt (hồ sơ không đổi được trả về kèm lý do).</summary>
+    [HttpPut("{id:guid}/participants/profile")]
+    [RequirePermission(PermissionCodes.PeriodManage)]
+    public async Task<IActionResult> BulkChangeProfile(Guid id, [FromBody] BulkChangeProfileDto dto, CancellationToken ct)
+    {
+        var result = await _periods.BulkChangeProfileAsync(id, dto, ct);
+        return Ok(ApiResponse<BulkChangeProfileResultDto>.Ok(result, $"Đã đổi hồ sơ luồng cho {result.Updated} hồ sơ."));
+    }
 }
