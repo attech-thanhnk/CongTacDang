@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { sessionRoleLabel, useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
+import { useOrganizationInfo } from "@/services/organizationSettingsService";
 
 interface MenuItem {
   title: string;
@@ -25,6 +26,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { user, logout, hasPermission } = useAuth();
   const { isSidebarOpen, closeSidebar } = useLayout();
+  const org = useOrganizationInfo();
 
   // Menu chỉ hiện theo mã quyền — máy chủ luôn kiểm tra lại, kể cả phạm vi.
   const hasAnyEvaluationAction = () =>
@@ -52,6 +54,7 @@ export function AppSidebar() {
             hasPermission("meeting.manage"),
         },
         { title: "Kỳ đánh giá", href: "/periods", icon: "bi-calendar-range", permission: "period.manage" },
+        { title: "Bộ tiêu chí", href: "/criteria", icon: "bi-list-check", permission: "criteria.manage" },
         // Mọi người đã đăng nhập (quyền trên tệp = quyền trên hồ sơ gắn tệp, máy chủ kiểm tra)
         { title: "Tài liệu đính kèm", href: "/attachments", icon: "bi-folder2-open" },
         { title: "Báo cáo", href: "/reports", icon: "bi-bar-chart-line-fill", permission: "report.export" },
@@ -109,7 +112,7 @@ export function AppSidebar() {
         {/* Brand */}
         <div className="sidebar-brand">
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="sidebar-brand-text">Đảng bộ ATTECH</div>
+            <div className="sidebar-brand-text">{org?.systemName ?? "Đánh giá cán bộ"}</div>
             <div className="sidebar-brand-sub">Hệ thống đánh giá cán bộ</div>
           </div>
 

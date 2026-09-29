@@ -6,6 +6,7 @@ import {
   EvaluationPeriodDto
 } from "@/services/evaluationService";
 import { reportService } from "@/services/reportService";
+import { organizationSettingsService, OrganizationSettings } from "@/services/organizationSettingsService";
 import { PrintTemplateType } from "./EvaluationPrintTemplate";
 
 interface Props {
@@ -77,6 +78,24 @@ export const EvaluationPdfModal: React.FC<Props> = ({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [org, setOrg] = useState<OrganizationSettings | null>(null);
+
+  // Dòng chân trang lấy từ Thông tin đơn vị (không ghi cứng tên đơn vị).
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    organizationSettingsService
+      .get()
+      .then((value) => {
+        if (active) setOrg(value);
+      })
+      .catch(() => {
+        // Không chặn xem bản PDF khi chưa tải được thông tin đơn vị.
+      });
+    return () => {
+      active = false;
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     setCurrentType(templateType);
@@ -239,7 +258,7 @@ export const EvaluationPdfModal: React.FC<Props> = ({
 
         {/* Modal Footer */}
         <div className="bg-slate-100 px-6 py-3 border-t border-slate-200 flex justify-between items-center text-xs text-slate-500">
-          <span>Đảng ủy Tổng công ty Quản lý bay Việt Nam — Đảng bộ Công ty TNHH Kỹ thuật Quản lý bay</span>
+          <span>{org ? [org.superiorPartyName, org.partyCommitteeName].filter(Boolean).join(" — ") : ""}</span>
           <button
             onClick={onClose}
             className="px-4 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded text-sm cursor-pointer"
