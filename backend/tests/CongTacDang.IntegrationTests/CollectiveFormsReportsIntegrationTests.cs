@@ -333,14 +333,16 @@ public sealed class CollectiveFormsReportsIntegrationTests
         Assert.Equal(HttpStatusCode.BadRequest, (await s.CellLeaderA.PostAsJsonAsync("/api/evaluations/meetings", badBallots)).StatusCode);
     }
 
-    // ===================== R5: báo cáo nội bộ; tên tệp theo quy cách HD03 =====================
+    // ===================== R5: báo cáo cũ đã bỏ; báo cáo nội bộ =====================
 
     [SkippableFact]
-    public async Task R5_InternalReports_And_Hd03FileNames()
+    public async Task R5_RemovedReports_Return404_InternalReportsRemain()
     {
         SkipIfNoDatabase();
         var s = await GetScenarioAsync();
 
+        Assert.Equal(HttpStatusCode.NotFound, (await s.Committee.GetAsync($"/api/reports/form-15?periodId={s.PeriodId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await s.Committee.GetAsync($"/api/reports/form-16?periodId={s.PeriodId}")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await s.Committee.GetAsync($"/api/reports/internal/excellent-quota?periodId={s.PeriodId}")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await s.Committee.GetAsync("/api/reports/cadres")).StatusCode);
         var file = await s.Committee.GetAsync($"/api/reports/form-15a?periodId={s.PeriodId}");
