@@ -51,14 +51,6 @@ public interface IPeriodService
     Task<List<ParticipantCandidateDto>> GetCandidatesAsync(Guid periodId, Guid? departmentId, Guid? partyCellId, string? query, CancellationToken ct = default);
     Task<AddParticipantsResultDto> AddParticipantsAsync(Guid periodId, AddParticipantsDto dto, CancellationToken ct = default);
 
-    /// <summary>
-    /// Thêm người vào kỳ nhưng <b>không lưu</b> (dùng trong transaction của khung import). Trả số hồ sơ tạo mới và
-    /// danh sách lý do bỏ qua. <paramref name="profileByMember"/>: hồ sơ luồng chỉ định cho từng người (không có → mặc định theo
-    /// cấp quyết định).
-    /// </summary>
-    Task<AddParticipantsResultDto> StageParticipantsAsync(Guid periodId, IReadOnlyCollection<Guid> memberIds, string source,
-        CancellationToken ct = default, IReadOnlyDictionary<Guid, string>? profileByMember = null);
-
     Task RemoveParticipantAsync(Guid periodId, Guid recordId, uint? version, CancellationToken ct = default);
     Task<PeriodParticipantDto> UpdateSnapshotAsync(Guid periodId, Guid recordId, UpdateSnapshotDto dto, CancellationToken ct = default);
 
@@ -607,11 +599,13 @@ public sealed class PeriodService : IPeriodService
         return result;
     }
 
-    /// <inheritdoc />
-    public async Task<AddParticipantsResultDto> StageParticipantsAsync(Guid periodId, IReadOnlyCollection<Guid> memberIds, string source,
-        CancellationToken ct = default, IReadOnlyDictionary<Guid, string>? profileByMember = null)
+    /// <summary>
+    /// Thêm người vào kỳ nhưng <b>không lưu</b> (người gọi lưu). Trả số hồ sơ tạo mới và danh sách lý do bỏ qua.
+    /// <paramref name="profileByMember"/>: hồ sơ luồng chỉ định cho từng người (không có → mặc định theo cấp quyết định).
+    /// </summary>
+    private async Task<AddParticipantsResultDto> StageParticipantsAsync(Guid periodId, IReadOnlyCollection<Guid> memberIds, string source,
+        CancellationToken ct, IReadOnlyDictionary<Guid, string>? profileByMember)
     {
-        EnsureManage();
         var period = await _repo.FindPeriodAsync(periodId, ct)
             ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
         if (period.Status is not (PeriodStatus.Draft or PeriodStatus.Open))

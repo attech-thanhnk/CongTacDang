@@ -36,7 +36,7 @@ public interface IRoleAssignmentService
     /// <summary>
     /// Gán vai trò <paramref name="roleId"/> cho <paramref name="userId"/> ở phạm vi cho trước.
     /// <paramref name="validFrom"/> null = ngay bây giờ; <paramref name="validTo"/> null = không thời hạn (không bao gồm mốc này).
-    /// Thời gian không có múi giờ được hiểu là UTC. Dùng được trong transaction của <c>IUnitOfWork</c> (task 13 — import).
+    /// Thời gian không có múi giờ được hiểu là UTC. Dùng được trong transaction của <c>IUnitOfWork</c>.
     /// </summary>
     Task<RoleAssignmentDto> AssignAsync(
         Guid userId,

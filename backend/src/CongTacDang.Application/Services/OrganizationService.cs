@@ -62,7 +62,7 @@ public interface IOrganizationService
     Task DeleteUnitTypeAsync(Guid id);
 }
 
-/// <summary>Quy tắc chung của mã/tên danh mục — dùng cho màn hình quản lý và chức năng nhập dữ liệu.</summary>
+/// <summary>Quy tắc chung của mã/tên danh mục — dùng cho màn hình quản lý danh mục.</summary>
 public static class CatalogRules
 {
     /// <summary>Độ dài tối đa của mã (khớp cấu hình cột).</summary>

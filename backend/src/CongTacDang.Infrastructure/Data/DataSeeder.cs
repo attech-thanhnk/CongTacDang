@@ -95,7 +95,7 @@ public static class DataSeeder
             new[]
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationAppraise, PermissionCodes.PeriodManage,
-                PermissionCodes.CriteriaManage, PermissionCodes.ReportExport, PermissionCodes.SystemImport, PermissionCodes.SystemUsersRead
+                PermissionCodes.CriteriaManage, PermissionCodes.ReportExport, PermissionCodes.SystemUsersRead
             }),
         new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Nhận xét, đề xuất của cấp trực tiếp sử dụng cán bộ (HD03 IV.3c). Phạm vi gán: Toàn công ty.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport }),

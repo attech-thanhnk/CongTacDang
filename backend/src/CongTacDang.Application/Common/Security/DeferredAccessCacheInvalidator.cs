@@ -4,7 +4,7 @@ using CongTacDang.Application.Common.Interfaces;
 namespace CongTacDang.Application.Common.Security;
 
 /// <summary>
-/// Xóa cache quyền theo đơn vị công việc của request: nếu đang trong transaction (ví dụ nhập dữ liệu gán vai trò theo lô)
+/// Xóa cache quyền theo đơn vị công việc của request: nếu đang trong transaction (<c>IUnitOfWork.ExecuteInTransactionAsync</c>)
 /// thì chỉ xóa <b>sau</b> khi transaction kết thúc — nếu xóa trước commit, request chen giữa sẽ nạp lại quyền cũ và giữ
 /// trong cache tới 5 phút. Đăng ký scoped; cache dùng chung vẫn là <see cref="PermissionCache"/> (singleton).
 /// </summary>

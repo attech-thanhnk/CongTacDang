@@ -78,14 +78,6 @@ public sealed class UserAccountService : IUserAccountService
         return new CreatedAccount(member.Id, member.Username, temporaryPassword);
     }
 
-    /// <inheritdoc />
-    public async Task<CreatedAccount> StageCreateAsync(CreateAccountCommand cmd, CancellationToken ct = default)
-    {
-        var (member, temporaryPassword) = await BuildNewAccountAsync(cmd, ct);
-        Accounts.Stage(member);
-        return new CreatedAccount(member.Id, member.Username, temporaryPassword);
-    }
-
     /// <summary>Kiểm tra dữ liệu, quyền, danh mục, trùng tên và dựng tài khoản mới (chưa đưa vào CSDL).</summary>
     private async Task<(PartyMemberProfile Member, string TemporaryPassword)> BuildNewAccountAsync(
         CreateAccountCommand cmd, CancellationToken ct)

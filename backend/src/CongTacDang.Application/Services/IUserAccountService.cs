@@ -8,7 +8,7 @@ using CongTacDang.Domain.Enums;
 namespace CongTacDang.Application.Services;
 
 /// <summary>
-/// Vòng đời tài khoản đăng nhập của cán bộ (dùng chung cho giao diện quản trị và chức năng nhập dữ liệu):
+/// Vòng đời tài khoản đăng nhập của cán bộ (giao diện quản trị):
 /// tạo, sửa, khóa/mở, mở khóa đăng nhập, đặt lại mật khẩu, xóa, tra cứu.
 /// Mọi thao tác làm mất hiệu lực phiên (khóa, xóa, đặt lại mật khẩu) đổi dấu bảo mật, thu hồi refresh token
 /// và xóa cache quyền/trạng thái → có hiệu lực ngay ở request kế tiếp.
@@ -22,15 +22,6 @@ public interface IUserAccountService
     /// <see cref="Common.Exceptions.ConflictException"/> (409) khi tên đăng nhập đã được dùng (kể cả tài khoản đã xóa).
     /// </summary>
     Task<CreatedAccount> CreateAsync(CreateAccountCommand cmd, CancellationToken ct = default);
-
-    /// <summary>
-    /// Như <see cref="CreateAsync"/> (cùng kiểm tra, cùng lỗi) nhưng <b>không lưu</b>: tài khoản chỉ được đưa vào đơn vị công việc
-    /// hiện tại. Người gọi phải gọi <see cref="Common.Interfaces.IUnitOfWork.SaveChangesAsync"/> — thường trong
-    /// <see cref="Common.Interfaces.IUnitOfWork.ExecuteInTransactionAsync"/> — để ghi cả lô một lần (ví dụ nhập dữ liệu):
-    /// một dòng lỗi → không tài khoản nào được ghi. Trùng tên đăng nhập được kiểm tra cả với tài khoản đã đưa vào
-    /// nhưng chưa lưu trong cùng đơn vị công việc.
-    /// </summary>
-    Task<CreatedAccount> StageCreateAsync(CreateAccountCommand cmd, CancellationToken ct = default);
 
     /// <summary>Tra cứu, phân trang tài khoản trong phạm vi người xem được phép.</summary>
     Task<PagedResult<AccountListItemDto>> SearchAsync(AccountSearchQuery query, CancellationToken ct = default);

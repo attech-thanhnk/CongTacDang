@@ -1,9 +1,7 @@
 using System;
 using CongTacDang.Api.Services;
 using CongTacDang.Application.Common.Interfaces;
-using CongTacDang.Application.Imports.Definitions;
 using CongTacDang.Application.Services;
-using CongTacDang.Infrastructure.Imports;
 using CongTacDang.Infrastructure.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,11 +20,6 @@ public static class OrganizationExtensions
     {
         services.AddScoped<IPositionRepository, PositionRepository>();
         services.AddScoped<IPositionService, PositionService>();
-
-        // Import danh mục chức vụ và chức vụ của cán bộ (khung import tự nhận loại mới).
-        services.AddScoped<IOrgImportLookup, OrgImportLookup>();
-        services.AddImportDefinition<PositionImportDefinition>();
-        services.AddImportDefinition<MemberPositionImportDefinition>();
 
         var minutes = configuration.GetValue("Organization:ApprovalAuthorityRefreshMinutes", 60);
         services.AddHostedService(sp => new ApprovalAuthorityRefreshService(

@@ -182,13 +182,6 @@ public sealed class EvaluationWorkflowRepository : IEvaluationWorkflowRepository
     }
 
     /// <inheritdoc />
-    public Task<List<MemberSnapshotSource>> FindMembersByUsernamesAsync(IReadOnlyCollection<string> usernames, CancellationToken ct = default)
-    {
-        var lowered = usernames.Select(u => u.Trim().ToLowerInvariant()).Distinct().ToList();
-        return MemberSources(_db.PartyMemberProfiles.AsNoTracking().Where(m => lowered.Contains(m.Username.ToLower()))).ToListAsync(ct);
-    }
-
-    /// <inheritdoc />
     public Task<string?> GetMemberNameAsync(Guid memberId, CancellationToken ct = default) =>
         _db.PartyMemberProfiles.AsNoTracking()
             .Where(m => m.Id == memberId)

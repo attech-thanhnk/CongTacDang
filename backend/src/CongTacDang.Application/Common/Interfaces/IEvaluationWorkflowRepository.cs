@@ -105,9 +105,6 @@ public interface IEvaluationWorkflowRepository
     /// <summary>Cán bộ đang hoạt động theo Phòng/Chi bộ (null = mọi cán bộ), có lọc theo tên/tài khoản.</summary>
     Task<List<MemberSnapshotSource>> SearchMembersAsync(Guid? departmentId, Guid? partyCellId, string? query, CancellationToken ct = default);
 
-    /// <summary>Cán bộ (chưa xóa) theo tên đăng nhập, không phân biệt hoa thường — dùng cho import.</summary>
-    Task<List<MemberSnapshotSource>> FindMembersByUsernamesAsync(IReadOnlyCollection<string> usernames, CancellationToken ct = default);
-
     /// <summary>Tên đầy đủ của cán bộ (để ghi người thực hiện).</summary>
     Task<string?> GetMemberNameAsync(Guid memberId, CancellationToken ct = default);
 

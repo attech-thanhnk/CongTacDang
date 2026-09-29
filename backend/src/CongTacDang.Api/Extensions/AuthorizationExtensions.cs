@@ -30,7 +30,7 @@ public static class AuthorizationExtensions
         // Điểm kiểm tra quyền theo đối tượng duy nhất.
         services.AddScoped<IAuthorizationGuard, AuthorizationGuard>();
 
-        // Quản trị bản gán vai trò (dùng cả cho import — task 13).
+        // Quản trị bản gán vai trò (task 13).
         services.AddScoped<IRoleAssignmentService, RoleAssignmentService>();
 
         // Policy tên = mã quyền (và any:a|b), đánh giá từ IPermissionResolver.

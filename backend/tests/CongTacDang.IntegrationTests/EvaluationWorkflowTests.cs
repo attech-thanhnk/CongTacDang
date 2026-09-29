@@ -1,9 +1,6 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using ClosedXML.Excel;
-using CongTacDang.Application.Imports;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.IntegrationTests.Infrastructure;
@@ -405,7 +402,7 @@ public sealed class EvaluationWorkflowTests
 
     #endregion
 
-    #region W9, W10 — việc cần xử lý, import
+    #region W9, W10 — việc cần xử lý, thêm người được đánh giá
 
     [SkippableFact]
     public async Task W9_WorkQueue_ContainsOnlyRecordsWaitingForCurrentUser_InScope()
@@ -441,46 +438,36 @@ public sealed class EvaluationWorkflowTests
     }
 
     [SkippableFact]
-    public async Task W10_ImportParticipantsFromExcel()
+    public async Task W10_AddParticipants_SnapshotAndGuards()
     {
         var w = await WorldAsync();
         var period = await CreatePeriodAsync(w, "full");
         var periodId = period.GetProperty("id").GetGuid();
-        var year = period.GetProperty("year").GetInt32().ToString();
-        var quarter = period.GetProperty("quarter").GetInt32().ToString();
-        var name = period.GetProperty("name").GetString()!;
 
-        var kinds = await Data(w.Appraiser, "/api/imports/kinds");
-        Assert.Contains(kinds.EnumerateArray(), k => k.GetProperty("kind").GetString() == "period-participants");
-        Assert.Equal(HttpStatusCode.OK, (await w.Appraiser.GetAsync("/api/imports/period-participants/template")).StatusCode);
-        // Không có system.import / period.manage → không thấy loại, không tải được mẫu.
-        Assert.Equal(HttpStatusCode.Forbidden, (await w.OfficeC.GetAsync("/api/imports/period-participants/template")).StatusCode);
+        // Không có period.manage → không thêm được người được đánh giá.
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await w.OfficeC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { w.Owner1.Id } })).StatusCode);
 
-        string[] headers = { "Năm", "Quý", "Tên kỳ", "Tên đăng nhập" };
-        var bad = await PreviewAsync(w.Appraiser, BuildFile(headers,
-            new[] { year, quarter, name, w.Owner1.Username },
-            new[] { year, quarter, name, "khong_ton_tai_" + Guid.NewGuid().ToString("N")[..6] },
-            new[] { year, quarter, name, w.Owner1.Username }));
-        Assert.False(bad.GetProperty("canCommit").GetBoolean());
-        Assert.Equal(2, bad.GetProperty("summary").GetProperty("error").GetInt32());
-
-        var good = await PreviewAsync(w.Appraiser, BuildFile(headers,
-            new[] { year, quarter, name, w.Owner1.Username },
-            new[] { year, quarter, name, w.Owner3.Username.ToUpperInvariant() }));
-        Assert.True(good.GetProperty("canCommit").GetBoolean(), good.GetRawText());
-        var commit = await w.Appraiser.PostAsync($"/api/imports/{good.GetProperty("sessionId").GetGuid()}/commit", null);
-        Assert.Equal(HttpStatusCode.OK, commit.StatusCode);
-        Assert.Equal(2, (await Data(commit)).GetProperty("created").GetInt32());
+        // Cán bộ không tồn tại → bỏ qua kèm lý do; người hợp lệ vẫn được thêm.
+        var first = await Data(await w.Appraiser.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
+            new { memberIds = new[] { w.Owner1.Id, Guid.NewGuid() } }));
+        Assert.Equal(1, first.GetProperty("added").GetInt32());
+        Assert.Contains(first.GetProperty("skipped").EnumerateArray(), s => s.GetString()!.Contains("Không tìm thấy cán bộ"));
+        var second = await Data(await w.Appraiser.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
+            new { memberIds = new[] { w.Owner3.Id } }));
+        Assert.Equal(1, second.GetProperty("added").GetInt32());
 
         var participants = await Data(w.Appraiser, $"/api/evaluations/periods/{periodId}/participants");
         Assert.Equal(new[] { w.Owner1.Id, w.Owner3.Id }.OrderBy(x => x),
             participants.EnumerateArray().Select(p => p.GetProperty("memberId").GetGuid()).OrderBy(x => x));
         var owner3 = participants.EnumerateArray().First(p => p.GetProperty("memberId").GetGuid() == w.Owner3.Id);
-        Assert.Equal(w.Dept2, owner3.GetProperty("departmentId").GetGuid()); // ảnh chụp Phòng tại thời điểm nhập
+        Assert.Equal(w.Dept2, owner3.GetProperty("departmentId").GetGuid()); // ảnh chụp Phòng tại thời điểm thêm
 
-        // Nhập lại cùng tệp → lỗi dòng "đã có", không ghi.
-        var again = await PreviewAsync(w.Appraiser, BuildFile(headers, new[] { year, quarter, name, w.Owner1.Username }));
-        Assert.False(again.GetProperty("canCommit").GetBoolean());
+        // Thêm lại người đã có → bỏ qua "đã có", không tạo thêm hồ sơ.
+        var again = await Data(await w.Appraiser.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
+            new { memberIds = new[] { w.Owner1.Id } }));
+        Assert.Equal(0, again.GetProperty("added").GetInt32());
+        Assert.Contains(again.GetProperty("skipped").EnumerateArray(), s => s.GetString()!.Contains("đã có trong danh sách"));
     }
 
     #endregion
@@ -636,29 +623,6 @@ public sealed class EvaluationWorkflowTests
         return json.RootElement.GetProperty("message").GetString() ?? string.Empty;
     }
 
-    private static byte[] BuildFile(string[] headers, params string[][] rows)
-    {
-        using var workbook = new XLWorkbook();
-        var sheet = workbook.AddWorksheet(ImportLimits.DataSheetName);
-        for (var c = 0; c < headers.Length; c++)
-            sheet.Cell(1, c + 1).Value = headers[c];
-        for (var r = 0; r < rows.Length; r++)
-            for (var c = 0; c < rows[r].Length; c++)
-                sheet.Cell(r + 2, c + 1).Value = rows[r][c];
-        using var stream = new MemoryStream();
-        workbook.SaveAs(stream);
-        return stream.ToArray();
-    }
-
-    private static async Task<JsonElement> PreviewAsync(HttpClient client, byte[] file)
-    {
-        var content = new MultipartFormDataContent();
-        var fileContent = new ByteArrayContent(file);
-        fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        content.Add(fileContent, "file", "nguoi-duoc-danh-gia.xlsx");
-        return await Data(await client.PostAsync("/api/imports/period-participants/preview", content));
-    }
-
     /// <summary>Người dùng và vai trò dùng chung: 2 Phòng, 2 Chi bộ, người được đánh giá và các vai trò theo từng bước.</summary>
     private sealed class World
     {
@@ -668,7 +632,7 @@ public sealed class EvaluationWorkflowTests
         public HttpClient Owner1C = null!, Owner2C = null!, Owner3C = null!, DeptLeadC = null!, CellSecC = null!, SecretaryC = null!;
         public HttpClient AppraiserC = null!, Appraiser2C = null!, DirectorC = null!, OfficeC = null!, LocalDeciderC = null!, ExternalDeciderC = null!, PlainC = null!;
 
-        /// <summary>Người quản lý kỳ (vai trò "Cơ quan thẩm định" có period.manage, system.import).</summary>
+        /// <summary>Người quản lý kỳ (vai trò "Cơ quan thẩm định" có period.manage).</summary>
         public HttpClient Appraiser => AppraiserC;
 
         public static async Task<World> CreateAsync(ApiFactory factory)
