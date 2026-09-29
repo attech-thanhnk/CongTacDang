@@ -131,6 +131,14 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-79 | 🟡 | Form tự chấm/thẩm định dựng cứng 6 ô tiêu chí, 6 trục | `components/evaluations/RecordActionPanel.tsx` | 16 | done |
 | T-80 | 🟡 | Tên đơn vị ghi cứng trong code xuất biểu mẫu và tên file ("ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", "ATTECH") | `ReportService`, `Documents/**` | 17 | done |
 | T-81 | 🟡 | Không thay được file mẫu Word qua giao diện, không có phiên bản, không kiểm tra tag khi thay | `WordTemplateStore`, `Templates/Word` | 17 | done |
+| T-82 | 🔴 | Hồ sơ không có chỗ nhập Mẫu 09C (bản tự đánh giá tự luận) và 9D (phụ lục kết quả theo trục) — bắt buộc Quý III/2026 | `EvaluationRecord`, form tự chấm | 18 | open |
+| T-83 | 🔴 | Không xuất được Mẫu 09B, 09C, 9D (bắt buộc nộp Quý III/2026); hồ sơ chỉ xuất 01/02/10 (Q3/2026 chưa áp dụng) | `Documents`, trang hồ sơ | 18 | open |
+| T-84 | 🔴 | Không xuất được Mẫu 07, 08 (tập thể) và 12 (biên bản hội nghị) — bắt buộc Quý III/2026 | `CollectiveEvaluationService`, `Documents` | 19 | open |
+| T-85 | 🟠 | Trang Báo cáo lệch HD03: tên Mẫu 14 sai, "Mẫu 15" là thống kê cơ cấu tổ chức (không có trong HD03), "Mẫu 16" là Excel trong khi HD03 là báo cáo Word | `ReportService`, `app/reports` | 19 | open |
+| T-86 | 🟠 | Không có công khai kết quả sau công bố (Bước 5 HD03) | — | 20 | open |
+| T-87 | 🟠 | Không có kiến nghị/giải trình sau công bố (PL II mục III.2) — chỉ có mở lại hồ sơ | — | 20 | open |
+| T-88 | 🟠 | Không có kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17, bắt buộc với mức C/D) | — | 20 | open |
+| T-89 | 🟡 | Không có nhắc việc/sắp tới hạn trong ứng dụng | — | 20 | open |
 | T-70 | ⚪ | EF cảnh báo 10622 khi khởi động: `CollectiveEvaluationRecord`, `EvaluationMeeting` có query filter xóa mềm nhưng là đầu bắt buộc của quan hệ với bảng con (item, vote summary) — cần filter tương ứng cho bảng con hoặc quan hệ tùy chọn | `CongTacDangDbContext`, `Data/Configurations/` | — | open |
 
 ## B — Nghiệp vụ (để xử lý sau)

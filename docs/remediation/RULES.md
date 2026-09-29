@@ -101,6 +101,7 @@ Mục 8 thay mục 3, 5, 7.1, 7.2 cho task 07–13. Mục 7.3 (môi trường) v
 | 3 | 07 (B) | `main` hiện tại |
 | 4 | 08 (A) ║ 09 (B) ║ 10 (D) | 07 đã merge |
 | 5 | 11 (C) ║ 12 (E) ║ 13 (D) | 08, 09, 10 đã merge |
+| 8 | 18 (J) ║ 19 (K) ║ 20 (L) | Đợt 7 + gỡ import + gỡ trang attachments/forms đã merge. Không tạo migration |
 | 7 | 16 (H) ║ 17 (I) | Đợt 6 đã merge. Không tạo migration; người điều phối gộp lại một `InitialCreate` |
 | 6 | 14 (F) ║ 15 (G) | Đợt 5 + dọn sạch đã merge. Không tạo migration; người điều phối gộp lại một `InitialCreate` (chưa có CSDL cần giữ) |
 
