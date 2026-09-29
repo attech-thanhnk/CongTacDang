@@ -75,6 +75,10 @@ export interface CriteriaParameters {
   rounding: { taskScore: RoundingRule; tasksTotal: RoundingRule; generalTotal: RoundingRule; total: RoundingRule };
   collectiveGeneralMaxScore: number;
   collectiveTaskMaxScore: number;
+  /** Task 20: công khai kèm điểm chính thức (mặc định chỉ công khai mức). */
+  publishScores?: boolean;
+  /** Task 20: mức chính thức bắt buộc lập kế hoạch 30-60-90 ngày (Mẫu 17); mặc định HoanThanh, KhongHoanThanh. */
+  improvementPlanRequiredGrades?: string[];
 }
 
 /** Nội dung bộ tiêu chí (jsonb, schemaVersion 1). */
