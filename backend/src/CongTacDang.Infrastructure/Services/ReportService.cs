@@ -274,7 +274,7 @@ public class ReportService : IReportService
                     GradeOrBlank(r.DirectorProposedGrade),
                     GradeOrBlank(r.FinalGrade),
                     Rationale(r),
-                    null
+                    r.CadreWorkProposal
                 };
                 for (var c = 1; c <= last; c++)
                 {

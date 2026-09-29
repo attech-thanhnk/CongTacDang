@@ -252,6 +252,8 @@ export interface EvaluationRecordDto {
   decisionDocumentNumber?: string | null;
   decisionDocumentDate?: string | null;
   decisionAuthorityName?: string | null;
+  /** Đề xuất nội dung liên quan về công tác cán bộ (cột 13 Mẫu 14). */
+  cadreWorkProposal?: string | null;
   decisionMeetingId?: string | null;
   decisionRecordedByName?: string | null;
   decisionRecordedAt?: string | null;

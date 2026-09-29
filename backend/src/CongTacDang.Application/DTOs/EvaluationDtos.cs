@@ -171,6 +171,8 @@ public class EvaluationRecordDto
     public string? DecisionDocumentNumber { get; set; }
     public DateTime? DecisionDocumentDate { get; set; }
     public string? DecisionAuthorityName { get; set; }
+    /// <summary>Đề xuất nội dung liên quan về công tác cán bộ (cột 13 Mẫu 14).</summary>
+    public string? CadreWorkProposal { get; set; }
     public Guid? DecisionMeetingId { get; set; }
     public string? DecisionRecordedByName { get; set; }
     public DateTime? DecisionRecordedAt { get; set; }
@@ -319,6 +321,8 @@ public class DecisionRequestDto : WorkflowRequestDto
     public string? DocumentNumber { get; set; }
     public DateTime? DocumentDate { get; set; }
     public string? AuthorityName { get; set; }
+    /// <summary>Đề xuất nội dung liên quan về công tác cán bộ (tùy chọn, cột 13 Mẫu 14).</summary>
+    public string? CadreWorkProposal { get; set; }
     public Guid? MeetingId { get; set; }
     public VoteTallyDto? Votes { get; set; }
 }

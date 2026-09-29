@@ -198,6 +198,7 @@ function ProposalForm({ record, busy, stage, submitText, onSubmit }: { record: E
   const [documentNumber, setDocumentNumber] = useState("");
   const [documentDate, setDocumentDate] = useState("");
   const [authorityName, setAuthorityName] = useState(record.approvalAuthority === "CapTren" ? "Ban Thường vụ Đảng ủy Tổng công ty" : "Đảng ủy Công ty");
+  const [cadreWorkProposal, setCadreWorkProposal] = useState(record.cadreWorkProposal || "");
   const [meetings, setMeetings] = useState<EvaluationMeetingDto[]>([]);
   const [meetingId, setMeetingId] = useState("");
   const [withVotes, setWithVotes] = useState(false);
@@ -223,6 +224,7 @@ function ProposalForm({ record, busy, stage, submitText, onSubmit }: { record: E
         documentNumber,
         documentDate: documentDate || null,
         authorityName,
+        cadreWorkProposal: cadreWorkProposal.trim() || null,
       });
     } else {
       Object.assign(payload, { proposedGrade: grade, comment });
@@ -242,6 +244,7 @@ function ProposalForm({ record, busy, stage, submitText, onSubmit }: { record: E
           <div className="col-md-4"><label className="form-label small">Cơ quan quyết định</label><input className="form-control form-control-sm" value={authorityName} maxLength={300} onChange={(e) => setAuthorityName(e.target.value)} /></div>
           <div className="col-md-4"><label className="form-label small">Số văn bản</label><input className="form-control form-control-sm" value={documentNumber} maxLength={100} onChange={(e) => setDocumentNumber(e.target.value)} /></div>
           <div className="col-md-4"><label className="form-label small">Ngày văn bản</label><input type="date" className="form-control form-control-sm" value={documentDate} onChange={(e) => setDocumentDate(e.target.value)} /></div>
+          <CadreProposalInput id={`${stage}-cadre`} value={cadreWorkProposal} onChange={setCadreWorkProposal} />
         </>
       ) : (
         <div className="col-12"><label className="form-label small">Nhận xét của tập thể</label><textarea className="form-control form-control-sm" rows={2} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
@@ -315,6 +318,7 @@ function ExternalResultForm({ record, step, busy, onSubmit }: { record: Evaluati
       || initialGrade(record.collectiveProposedGrade) || initialGrade(record.selfProposedGrade)
   );
   const [score, setScore] = useState(previous?.score != null ? String(previous.score) : "");
+  const [cadreWorkProposal, setCadreWorkProposal] = useState(record.cadreWorkProposal || "");
   const [attachment, setAttachment] = useState<{ id: string; name: string } | null>(
     previous?.attachmentId ? { id: previous.attachmentId, name: "Tệp đã đính kèm" } : null
   );
@@ -330,6 +334,7 @@ function ExternalResultForm({ record, step, busy, onSubmit }: { record: Evaluati
       grade: graded ? grade : null,
       score: withScore && score !== "" ? Number(score) : null,
       attachmentId: attachment?.id ?? null,
+      cadreWorkProposal: step === "B4_DECISION" ? cadreWorkProposal.trim() || null : null,
     });
   };
 
@@ -355,6 +360,7 @@ function ExternalResultForm({ record, step, busy, onSubmit }: { record: Evaluati
         </div>
       )}
       <div className="col-12"><label className="form-label small">Nhận xét / nội dung kết luận</label><textarea className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
+      {step === "B4_DECISION" && <CadreProposalInput id={`ext-${step}-cadre`} value={cadreWorkProposal} onChange={setCadreWorkProposal} />}
       <div className="col-12 small">
         {attachment ? (
           <span><i className="bi bi-paperclip me-1" />{attachment.name}
@@ -462,3 +468,14 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
 }
 
 export default RecordActionPanel;
+
+/** Cột 13 Mẫu 14 — "Đề xuất nội dung liên quan về công tác cán bộ (nếu có)" (tùy chọn, ghi ở bước quyết định). */
+function CadreProposalInput({ id, value, onChange }: { id: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <div className="col-12">
+      <label className="form-label small" htmlFor={id}>Đề xuất nội dung liên quan về công tác cán bộ (nếu có)</label>
+      <textarea id={id} className="form-control form-control-sm" rows={2} maxLength={2000} value={value} onChange={(e) => onChange(e.target.value)} />
+      <div className="form-text">In ở cột 13 Mẫu 14.</div>
+    </div>
+  );
+}

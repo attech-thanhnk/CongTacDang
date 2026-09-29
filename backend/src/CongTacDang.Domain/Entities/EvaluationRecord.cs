@@ -237,6 +237,12 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Cơ quan quyết định (Đảng ủy cơ sở / BTV Đảng ủy Tổng công ty…).</summary>
     public string? DecisionAuthorityName { get; set; }
 
+    /// <summary>
+    /// Đề xuất nội dung liên quan về công tác cán bộ (nếu có) — cột 13 Mẫu 14, ghi ở bước quyết định (nội bộ hoặc ghi nhận
+    /// kết quả của cấp trên).
+    /// </summary>
+    public string? CadreWorkProposal { get; set; }
+
     /// <summary>Biên bản hội nghị/kiểm phiếu quyết định (nếu có).</summary>
     public Guid? DecisionMeetingId { get; set; }
 

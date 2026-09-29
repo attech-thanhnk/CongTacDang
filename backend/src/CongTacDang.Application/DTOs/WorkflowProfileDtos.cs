@@ -35,6 +35,8 @@ public class ExternalResultRequestDto : WorkflowRequestDto
     public double? Score { get; set; }
     /// <summary>Tệp đính kèm đã tải lên (tùy chọn).</summary>
     public Guid? AttachmentId { get; set; }
+    /// <summary>Chỉ bước B4: đề xuất nội dung liên quan về công tác cán bộ (tùy chọn, cột 13 Mẫu 14).</summary>
+    public string? CadreWorkProposal { get; set; }
 }
 
 /// <summary>Đổi hồ sơ luồng của một hồ sơ.</summary>

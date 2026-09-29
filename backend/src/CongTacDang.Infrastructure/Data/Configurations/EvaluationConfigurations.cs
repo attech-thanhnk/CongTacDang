@@ -74,6 +74,7 @@ public sealed class EvaluationRecordConfiguration : IEntityTypeConfiguration<Eva
         entity.Property(e => e.DirectorReviewedByName).HasMaxLength(200);
         entity.Property(e => e.DecisionDocumentNumber).HasMaxLength(100);
         entity.Property(e => e.DecisionAuthorityName).HasMaxLength(300);
+        entity.Property(e => e.CadreWorkProposal).HasMaxLength(2000);
         entity.Property(e => e.DecisionRecordedByName).HasMaxLength(200);
         entity.Property(e => e.PublishedByName).HasMaxLength(200);
 

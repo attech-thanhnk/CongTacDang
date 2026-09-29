@@ -425,6 +425,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
             <Field label="Điểm chính thức" value={record.finalGrade && record.finalGrade !== "ChuaXepLoai" ? record.finalScore : null} />
             <Field label="Văn bản" value={record.decisionDocumentNumber ? `${record.decisionDocumentNumber} (${formatDate(record.decisionDocumentDate)})` : null} />
             <Field label="Cơ quan quyết định" value={record.decisionAuthorityName} />
+            <Field label="Đề xuất về công tác cán bộ" value={record.cadreWorkProposal} />
             <Field label="Công bố" value={record.publishedAt ? `${record.publishedByName} · ${formatDateTime(record.publishedAt)}` : null} />
           </div>
         </div>

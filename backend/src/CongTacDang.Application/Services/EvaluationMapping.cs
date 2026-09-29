@@ -150,6 +150,7 @@ public static class EvaluationMapping
             DecisionDocumentNumber = r.DecisionDocumentNumber,
             DecisionDocumentDate = r.DecisionDocumentDate,
             DecisionAuthorityName = r.DecisionAuthorityName,
+            CadreWorkProposal = r.CadreWorkProposal,
             DecisionMeetingId = r.DecisionMeetingId,
             DecisionRecordedByName = r.DecisionRecordedByName,
             DecisionRecordedAt = r.DecisionRecordedAt,

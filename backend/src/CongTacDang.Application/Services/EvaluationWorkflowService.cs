@@ -53,6 +53,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 {
     private const int MaxReasonLength = 2000;
     private const int MaxCommentLength = 4000;
+    private const int MaxCadreProposalLength = 2000;
 
     private readonly IEvaluationWorkflowRepository _repo;
     private readonly IUnitOfWork _unitOfWork;
@@ -390,6 +391,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 ? DateTime.SpecifyKind(request.DocumentDate.Value, DateTimeKind.Utc)
                 : null;
             ctx.Record.DecisionAuthorityName = Trim(request.AuthorityName, 300, "Cơ quan quyết định");
+            ctx.Record.CadreWorkProposal = Trim(request.CadreWorkProposal, MaxCadreProposalLength, "Đề xuất nội dung về công tác cán bộ");
             ctx.Record.DecisionMeetingId = request.MeetingId;
             ctx.Record.DecisionRecordedById = ctx.ActorId;
             ctx.Record.DecisionRecordedByName = ctx.ActorName;
@@ -451,6 +453,9 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 ?? throw new ValidationException("Hãy nhập cơ quan / cấp đã thực hiện bước này (ví dụ \"BTV Đảng ủy Tổng công ty\").");
             var documentNumber = Trim(request.DocumentNumber, 100, "Số văn bản");
             var comment = Trim(request.Comment, MaxCommentLength, "Nhận xét");
+            var cadreProposal = Trim(request.CadreWorkProposal, MaxCadreProposalLength, "Đề xuất nội dung về công tác cán bộ");
+            if (cadreProposal != null && parsed != WorkflowStep.B4_DECISION)
+                throw new ValidationException("Đề xuất nội dung về công tác cán bộ (cột 13 Mẫu 14) chỉ ghi ở bước quyết định mức xếp loại.");
             if (request.Score is < 0 or > 100)
                 throw new ValidationException("Điểm phải từ 0 đến 100.");
 
@@ -488,6 +493,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             result.UpdatedAt = ctx.Now;
 
             ApplyExternalResultToRecord(record, result, ctx);
+            if (parsed == WorkflowStep.B4_DECISION)
+                record.CadreWorkProposal = cadreProposal;
             return $"Ghi nhận kết quả của cấp trên ({authority}).";
         }, ct);
     }
