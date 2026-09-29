@@ -98,6 +98,7 @@ public sealed class SampleDataSeedTests
 
             await factory.WithDbAsync(async db => await AssertSampleOrganizationAsync(db, periodId));
             await factory.WithDbAsync(async db => await AssertSampleCriteriaScoresAsync(db, periodId));
+            await AssertWave8SampleAsync(host, factory, periodId);
         }
         finally
         {
@@ -147,7 +148,7 @@ public sealed class SampleDataSeedTests
                 Assert.DoesNotContain(again.Messages, m => m.Text.Contains("Mật khẩu tạm chung"));
             }
 
-            await factory.WithDbAsync(async db => Assert.Equal(9, await db.PartyMemberProfiles.CountAsync()));
+            await factory.WithDbAsync(async db => Assert.Equal(10, await db.PartyMemberProfiles.CountAsync()));
         }
         finally
         {
@@ -234,6 +235,77 @@ public sealed class SampleDataSeedTests
             Assert.Equal(axisCodes, axes.RootElement.EnumerateObject().Select(p => p.Name).OrderBy(c => c, StringComparer.Ordinal).ToList());
             Assert.Equal(record.GeneralCriteriaScore + record.TasksScore, record.TotalSelfScore, 6);
         }
+    }
+
+    /// <summary>
+    /// Dữ liệu mẫu đủ thử chức năng đợt 8: hồ sơ cá nhân có 09C/9D (xuất được), hồ sơ tập thể Mẫu 07/08 có mục, biên bản Mẫu 12
+    /// có mục 3.2/chức vụ, biên bản kiểm phiếu Mẫu 13 (Tổ kiểm phiếu, số phiếu, mục I/II), hồ sơ công bố mức C có kế hoạch Mẫu 17
+    /// đang lập, một kiến nghị chờ xử lý, bản nháp Mẫu 16.
+    /// </summary>
+    private static async Task AssertWave8SampleAsync(WebApplicationFactory<Program> host, ApiFactory factory, Guid periodId)
+    {
+        // Hồ sơ đã tự chấm có Mẫu 09C (mục I), 9D (một dòng mỗi trục), phần tự luận theo trục 09B; xuất được 09C/9D.
+        using var officer = await LoginAndChangePasswordAsync(host, "vanphong");
+        var records = await DataAsync(await officer.GetAsync($"/api/evaluations/records?periodId={periodId}"));
+        var hung = records.EnumerateArray().Single(r => r.GetProperty("fullName").GetString() == "Nguyễn Văn Hùng");
+        var hungId = hung.GetProperty("id").GetGuid();
+        var hungRecord = await DataAsync(await officer.GetAsync($"/api/evaluations/records/{hungId}"));
+        Assert.Contains("Mức 1", hungRecord.GetProperty("selfAssessment").GetProperty("I").GetString());
+        Assert.Equal(6, hungRecord.GetProperty("taskResults").GetArrayLength());
+        Assert.Equal(6, hungRecord.GetProperty("axisNotes").EnumerateObject().Count());
+        foreach (var code in new[] { "09B", "09C", "9D" })
+            Assert.Equal(HttpStatusCode.OK, (await officer.GetAsync($"/api/reports/docx/record/{hungId}/{code}")).StatusCode);
+
+        // Hồ sơ tập thể Mẫu 07 (đủ mục I.1–I.4) và Mẫu 08 (có dòng nhiệm vụ theo nhóm) xuất được Word/Excel.
+        var collective = (await DataAsync(await officer.GetAsync($"/api/evaluations/collective-records?periodId={periodId}"))).EnumerateArray().ToList();
+        var m07 = Assert.Single(collective, c => c.GetProperty("form").GetString() == "M07");
+        Assert.Equal(4, m07.GetProperty("sections").EnumerateObject().Count());
+        var m08 = Assert.Single(collective, c => c.GetProperty("form").GetString() == "M08");
+        Assert.True(m08.GetProperty("items").GetArrayLength() >= 4);
+        Assert.Equal(HttpStatusCode.OK, (await officer.GetAsync($"/api/reports/docx/mau-07/{m07.GetProperty("id").GetGuid()}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await officer.GetAsync($"/api/reports/form-08/{m08.GetProperty("id").GetGuid()}")).StatusCode);
+
+        // Biên bản Mẫu 12 (B3a) có mục 3.2, chức vụ chủ trì; biên bản kiểm phiếu B4 xuất Mẫu 13.
+        var meetings = (await DataAsync(await officer.GetAsync($"/api/evaluations/meetings?periodId={periodId}"))).EnumerateArray().ToList();
+        var m12 = Assert.Single(meetings, m => m.GetProperty("formCode").GetString() == "M12");
+        Assert.Single(m12.GetProperty("details").GetProperty("attendees").EnumerateArray());
+        Assert.False(string.IsNullOrEmpty(m12.GetProperty("details").GetProperty("chairTitle").GetString()));
+        Assert.Equal(HttpStatusCode.OK, (await officer.GetAsync($"/api/reports/docx/mau-12/{m12.GetProperty("id").GetGuid()}")).StatusCode);
+        var m13 = Assert.Single(meetings, m => m.GetProperty("formCode").GetString() == "M13");
+        Assert.Equal(2, m13.GetProperty("details").GetProperty("countingCommittee").GetArrayLength());
+        Assert.Equal(7, m13.GetProperty("details").GetProperty("ballotsIssued").GetInt32());
+        Assert.Equal(2, m13.GetProperty("voteSummaries").GetArrayLength());
+        Assert.Equal(HttpStatusCode.OK, (await officer.GetAsync($"/api/reports/docx/mau-13/{m13.GetProperty("id").GetGuid()}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await officer.GetAsync($"/api/reports/docx/mau-13/{m12.GetProperty("id").GetGuid()}")).StatusCode);
+
+        // Hồ sơ công bố mức C: kế hoạch 30-60-90 ngày đang lập (bắt buộc), kiến nghị chờ xử lý.
+        var mai = records.EnumerateArray().Single(r => r.GetProperty("fullName").GetString() == "Nguyễn Thị Mai");
+        var maiId = mai.GetProperty("id").GetGuid();
+        Assert.Equal("HoanThanh", mai.GetProperty("finalGrade").GetString());
+        var plan = await DataAsync(await officer.GetAsync($"/api/evaluations/records/{maiId}/improvement-plan"));
+        Assert.True(plan.GetProperty("required").GetBoolean());
+        Assert.Equal("Draft", plan.GetProperty("plan").GetProperty("status").GetString());
+        var appeals = await DataAsync(await officer.GetAsync($"/api/evaluations/records/{maiId}/appeals"));
+        Assert.True(appeals.GetProperty("underReview").GetBoolean());
+        Assert.Contains(appeals.GetProperty("appeals").EnumerateArray(), a => a.GetProperty("status").GetString() == "Submitted");
+
+        // Văn phòng Đảng ủy (xử lý kiến nghị) thấy nhóm "Kiến nghị chờ xử lý"; Giám đốc (lập kế hoạch) thấy nhóm kế hoạch cần lập/duyệt.
+        var officeQueue = await DataAsync(await officer.GetAsync("/api/evaluations/work-queue"));
+        Assert.Contains(officeQueue.GetProperty("groups").EnumerateArray(), g => g.GetProperty("step").GetString() == "APPEALS");
+        using var director = await LoginAndChangePasswordAsync(host, "giamdoc");
+        var directorQueue = await DataAsync(await director.GetAsync("/api/evaluations/work-queue"));
+        Assert.Contains(directorQueue.GetProperty("groups").EnumerateArray(), g => g.GetProperty("step").GetString() == "IMPROVEMENT_PLANS");
+
+        // Bản nháp Mẫu 16 toàn Đảng bộ đã lưu.
+        var draft = await DataAsync(await officer.GetAsync($"/api/reports/mau-16/draft?periodId={periodId}"));
+        Assert.Equal("Số 15-BC/ĐU", draft.GetProperty("content").GetProperty("documentNumber").GetString());
+        Assert.NotEqual(JsonValueKind.Null, draft.GetProperty("version").ValueKind);
+
+        await factory.WithDbAsync(async db =>
+        {
+            Assert.Equal(1, await db.Set<ImprovementPlan>().CountAsync());
+            Assert.Equal(1, await db.Set<EvaluationAppeal>().CountAsync(a => a.Status == AppealStatus.Submitted));
+        });
     }
 
     private static async Task<HttpClient> LoginAndChangePasswordAsync(WebApplicationFactory<Program> host, string username)

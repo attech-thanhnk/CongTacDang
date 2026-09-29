@@ -119,6 +119,9 @@ public static class EvaluationMapping
             TotalSelfScore = r.TotalSelfScore,
             SelfProposedGrade = GradeCode(r.SelfProposedGrade),
             SelfScoredAt = r.SelfScoredAt,
+            SelfAssessment = SafeParse(() => RecordFormContent.ParseSelfAssessment(r.SelfAssessment), new Dictionary<string, string>()),
+            TaskResults = SafeParse(() => RecordFormContent.ParseTaskResults(r.TaskResults), new List<TaskResultRow>()),
+            AxisNotes = SafeParse(() => RecordFormContent.ParseAxisNotes(r.AxisNotes), new Dictionary<string, AxisNote>()),
 
             PartyCellComment = r.PartyCellComment,
             CellConfirmedByName = r.CellConfirmedByName,
@@ -147,6 +150,7 @@ public static class EvaluationMapping
             DecisionDocumentNumber = r.DecisionDocumentNumber,
             DecisionDocumentDate = r.DecisionDocumentDate,
             DecisionAuthorityName = r.DecisionAuthorityName,
+            CadreWorkProposal = r.CadreWorkProposal,
             DecisionMeetingId = r.DecisionMeetingId,
             DecisionRecordedByName = r.DecisionRecordedByName,
             DecisionRecordedAt = r.DecisionRecordedAt,
@@ -271,6 +275,19 @@ public static class EvaluationMapping
         catch (System.Text.Json.JsonException)
         {
             return null;
+        }
+    }
+
+    /// <summary>Đọc nội dung biểu mẫu (jsonb) trên hồ sơ; lỗi định dạng → giá trị rỗng (hiển thị không làm hỏng trang).</summary>
+    private static T SafeParse<T>(Func<T> parse, T fallback)
+    {
+        try
+        {
+            return parse();
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return fallback;
         }
     }
 

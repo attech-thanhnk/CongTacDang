@@ -107,6 +107,25 @@ public static class PermissionCodes
 
     #endregion
 
+    #region Sau công bố (task 20)
+
+    /// <summary>
+    /// Xem danh sách kết quả đánh giá đã công bố (họ tên, chức danh, đơn vị, mức chính thức; điểm khi bộ tiêu chí cho phép) trong
+    /// phạm vi gán — không gồm chi tiết hồ sơ, minh chứng, ý kiến (HD03 II.2). Phạm vi công khai = phạm vi của bản gán.
+    /// </summary>
+    public const string EvaluationResultsView = "evaluation.results.view";
+
+    /// <summary>Gửi kiến nghị về kết quả đã công bố — chỉ trên hồ sơ của chính mình (như <see cref="EvaluationSelf"/>).</summary>
+    public const string EvaluationAppealSubmit = "evaluation.appeal.submit";
+
+    /// <summary>Xem xét, trả lời kiến nghị sau công bố (HD03 PL II III.2) — không xử lý kiến nghị của mình hay kiến nghị liên quan tới mình.</summary>
+    public const string EvaluationAppealResolve = "evaluation.appeal.resolve";
+
+    /// <summary>Lập, duyệt, ghi kết quả kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17) — thủ trưởng đơn vị.</summary>
+    public const string EvaluationImprovementManage = "evaluation.improvement.manage";
+
+    #endregion
+
     #region Tập thể, hội nghị, báo cáo
 
     /// <summary>Lập hồ sơ tự đánh giá tập thể (Mẫu 06–08).</summary>
@@ -148,6 +167,10 @@ public static class PermissionCodes
         new(EvaluationExternalRecord, "Ghi nhận kết quả của cấp trên", "evaluation", "Ghi nhận kết quả của bước do cấp trên / cơ quan ngoài hệ thống thực hiện (thẩm định, nhận xét, quyết định…): cơ quan, số/ngày văn bản, nhận xét, mức, tệp đính kèm.", true),
         new(EvaluationPublish, "Công bố, khóa kết quả", "evaluation", "Công bố và khóa kết quả đánh giá (bước 5).", true),
         new(EvaluationReopen, "Mở lại hồ sơ đã khóa", "evaluation", "Mở lại hồ sơ đã khóa để đính chính; bắt buộc ghi lý do.", true),
+        new(EvaluationResultsView, "Xem kết quả đánh giá đã công bố", "evaluation", "Xem danh sách kết quả đã công bố (họ tên, chức danh, đơn vị, mức xếp loại chính thức; điểm nếu bộ tiêu chí cho phép) trong phạm vi được gán — không xem chi tiết hồ sơ, minh chứng, ý kiến.", true),
+        new(EvaluationAppealSubmit, "Gửi kiến nghị về kết quả", "evaluation", "Gửi kiến nghị xem xét lại kết quả đã công bố, kèm tệp minh chứng — chỉ trên hồ sơ của mình (phạm vi gán được bỏ qua).", true),
+        new(EvaluationAppealResolve, "Xử lý kiến nghị về kết quả", "evaluation", "Xem xét, trả lời (bắt buộc nêu căn cứ) kiến nghị sau công bố trong phạm vi được gán; không xử lý kiến nghị của mình hoặc kiến nghị liên quan tới bước mình đã thực hiện.", true),
+        new(EvaluationImprovementManage, "Lập kế hoạch khắc phục 30-60-90 ngày", "evaluation", "Lập, duyệt và ghi kết quả từng mốc của kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17) cho cán bộ trong phạm vi được gán; không áp dụng trên hồ sơ của mình.", true),
         new(CollectiveManage, "Lập hồ sơ tự đánh giá tập thể", "collective", "Lập hồ sơ tự đánh giá của tập thể (Mẫu 06–08).", true),
         new(MeetingRead, "Xem biên bản hội nghị", "meeting", "Xem biên bản hội nghị, biên bản kiểm phiếu (Mẫu 12–13).", true),
         new(MeetingManage, "Lập biên bản hội nghị", "meeting", "Lập biên bản hội nghị, biên bản kiểm phiếu.", true),

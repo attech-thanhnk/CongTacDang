@@ -4,7 +4,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CongTacDang.Api.Authorization;
+using CongTacDang.Application.Common.Models;
 using CongTacDang.Application.Common.Security;
+using CongTacDang.Application.DTOs;
 using CongTacDang.Application.Services;
 
 namespace CongTacDang.Api.Controllers;
@@ -49,13 +51,14 @@ public class ExportReportController : ControllerBase
         };
     }
 
-    // Excel 14/15/15A/15B/16 (T-30): periodId (mặc định kỳ đang hoạt động), branchId (Chi bộ).
-    // Không truyền branchId: phạm vi report.export Toàn công ty → toàn Đảng bộ; phạm vi đúng 1 Chi bộ → Chi bộ đó;
-    // nhiều Chi bộ → 400 yêu cầu chọn; không có phạm vi Chi bộ/Toàn công ty → 403 (task 09).
+    // Bảng tính Mẫu 14/15A/15B, Word Mẫu 16: periodId (mặc định kỳ đang hoạt động), branchId (tổ chức Đảng).
+    // Không truyền branchId: phạm vi report.export Toàn công ty → toàn Đảng bộ; phạm vi đúng 1 tổ chức Đảng → tổ chức đó;
+    // nhiều tổ chức → 400 yêu cầu chọn; không có phạm vi tổ chức Đảng/Toàn công ty → 403 (task 09).
+    // Thống kê/kiểm soát trần Hoàn thành xuất sắc không phải biểu mẫu HD03 → báo cáo nội bộ; Mẫu 16 HD03 là báo cáo Word.
 
-    #region Báo cáo Excel Quản trị
+    #region Báo cáo nội bộ (không mang số mẫu HD03)
 
-    /// <summary>Xuất danh sách cán bộ ra file Excel</summary>
+    /// <summary>Danh sách cán bộ (nội bộ) — Excel theo phạm vi report.export.</summary>
     [HttpGet("cadres")]
     [RequirePermission(PermissionCodes.ReportExport)]
     public async Task<IActionResult> ExportCadres()
@@ -64,7 +67,21 @@ public class ExportReportController : ControllerBase
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
-    /// <summary>Xuất Excel Mẫu 14 — Tổng hợp danh sách hồ sơ cán bộ theo Chi bộ và đơn vị (toàn Đảng bộ hoặc theo Chi bộ)</summary>
+    /// <summary>Báo cáo nội bộ — kiểm soát tỷ lệ Hoàn thành xuất sắc theo tổ chức Đảng (Excel).</summary>
+    [HttpGet("internal/excellent-quota")]
+    [RequirePermission(PermissionCodes.ReportExport)]
+    public async Task<IActionResult> ExportExcellentQuota([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
+    {
+        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
+        var result = await _reportService.ExportExcellentQuotaReportAsync(periodId, scope, ParseFormat(format));
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
+    #endregion
+
+    #region Hồ sơ nộp theo HD03 — bảng tính
+
+    /// <summary>Mẫu 14 — Danh sách đánh giá và đề xuất xếp loại (Excel, mỗi cấp quyết định một trang tính).</summary>
     [HttpGet("form-14")]
     [RequirePermission(PermissionCodes.ReportExport)]
     public async Task<IActionResult> ExportMau14([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
@@ -74,17 +91,7 @@ public class ExportReportController : ControllerBase
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
-    /// <summary>Xuất Excel Mẫu 15 — Thống kê cơ cấu tổ chức và sĩ số các Chi bộ (toàn Đảng bộ hoặc theo Chi bộ)</summary>
-    [HttpGet("form-15")]
-    [RequirePermission(PermissionCodes.ReportExport)]
-    public async Task<IActionResult> ExportMau15([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
-    {
-        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
-        var result = await _reportService.ExportForm15ReportAsync(periodId, scope, ParseFormat(format));
-        return File(result.FileBytes, result.ContentType, result.FileName);
-    }
-
-    /// <summary>Xuất Excel Mẫu 15A — kiểm soát tỷ lệ trần 20% cấp Đảng ủy Công ty</summary>
+    /// <summary>Mẫu 15A — Tổng hợp kết quả đánh giá, xếp loại (đối tượng đề nghị BTVĐUTCT quyết định, M1–M16).</summary>
     [HttpGet("form-15a")]
     [RequirePermission(PermissionCodes.ReportExport)]
     public async Task<IActionResult> ExportMau15A([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
@@ -94,7 +101,7 @@ public class ExportReportController : ControllerBase
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
-    /// <summary>Xuất Excel Mẫu 15B — kiểm soát tỷ lệ trần 20% theo từng Chi bộ (toàn Đảng bộ hoặc theo Chi bộ)</summary>
+    /// <summary>Mẫu 15B — Tổng hợp kết quả đánh giá, xếp loại (đối tượng thuộc diện Đảng ủy/Chi ủy cơ sở quyết định, M17–M26).</summary>
     [HttpGet("form-15b")]
     [RequirePermission(PermissionCodes.ReportExport)]
     public async Task<IActionResult> ExportMau15B([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
@@ -104,18 +111,101 @@ public class ExportReportController : ControllerBase
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
-    /// <summary>Xuất Excel Mẫu 16 — tổng hợp kết quả xếp loại theo nhóm chức vụ (toàn Đảng bộ hoặc theo Chi bộ)</summary>
-    [HttpGet("form-16")]
+    #endregion
+
+    #region Mẫu 16 — báo cáo Word của cấp ủy (số liệu tự động + phần nhập tay lưu nháp theo kỳ và tổ chức Đảng)
+
+    /// <summary>Bản nháp phần nhập tay Mẫu 16 kèm số liệu tổng hợp tự động của kỳ và tổ chức Đảng.</summary>
+    [HttpGet("mau-16/draft")]
     [RequirePermission(PermissionCodes.ReportExport)]
-    public async Task<IActionResult> ExportMau16([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
+    public async Task<IActionResult> GetMau16Draft([FromQuery] Guid periodId, [FromQuery] Guid? branchId = null)
     {
         var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
-        var result = await _reportService.ExportForm16ReportAsync(periodId, scope, ParseFormat(format));
+        var draft = await _reportService.GetForm16DraftAsync(periodId, scope);
+        return Ok(ApiResponse<Form16DraftDto>.Ok(draft, "Lấy bản nháp Mẫu 16 thành công."));
+    }
+
+    /// <summary>Lưu bản nháp phần nhập tay Mẫu 16 (kiểm tra phiên bản).</summary>
+    [HttpPut("mau-16/draft")]
+    [RequirePermission(PermissionCodes.ReportExport)]
+    public async Task<IActionResult> SaveMau16Draft([FromQuery] Guid periodId, [FromQuery] Guid? branchId, [FromBody] SaveForm16DraftDto dto)
+    {
+        var userId = GetCurrentUserId();
+        var scope = await _reportAccess.ResolveBranchExportScopeAsync(userId, branchId);
+        var draft = await _reportService.SaveForm16DraftAsync(periodId, scope, userId, dto);
+        return Ok(ApiResponse<Form16DraftDto>.Ok(draft, "Đã lưu bản nháp Mẫu 16."));
+    }
+
+    /// <summary>Xuất Word Mẫu 16 — Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý.</summary>
+    [HttpGet("docx/mau-16")]
+    [RequirePermission(PermissionCodes.ReportExport)]
+    public async Task<IActionResult> ExportMau16Docx([FromQuery] Guid periodId, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
+    {
+        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
+        var result = await _reportService.ExportMau16DocxAsync(periodId, scope, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
     #endregion
 
+    #region Mẫu 07, 08 (hồ sơ tập thể), Mẫu 12 (biên bản hội nghị)
+
+    /// <summary>Xuất Word Mẫu 07 — Báo cáo tự đánh giá, xếp loại chất lượng của tập thể (hồ sơ tập thể M07).</summary>
+    [HttpGet("docx/mau-07/{collectiveRecordId}")]
+    [RequireAnyPermission(PermissionCodes.EvaluationRead, PermissionCodes.CollectiveManage)]
+    public async Task<IActionResult> ExportMau07Docx(Guid collectiveRecordId, [FromQuery] string? format = null)
+    {
+        await _reportAccess.EnsureCanExportCollectiveAsync(collectiveRecordId);
+        var result = await _reportService.ExportMau07DocxAsync(collectiveRecordId, ParseFormat(format));
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
+    /// <summary>Xuất Word Mẫu 08 — Báo cáo tổng hợp kết quả thực hiện các nhiệm vụ của cơ quan, đơn vị (hồ sơ tập thể M08).</summary>
+    [HttpGet("docx/mau-08/{collectiveRecordId}")]
+    [RequireAnyPermission(PermissionCodes.EvaluationRead, PermissionCodes.CollectiveManage)]
+    public async Task<IActionResult> ExportMau08Docx(Guid collectiveRecordId, [FromQuery] string? format = null)
+    {
+        await _reportAccess.EnsureCanExportCollectiveAsync(collectiveRecordId);
+        var result = await _reportService.ExportMau08DocxAsync(collectiveRecordId, ParseFormat(format));
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
+    /// <summary>
+    /// Xuất Excel Mẫu 08 (HD03 V.1: lập trên file Excel) — cùng dữ liệu bản Word; <c>?format=pdf</c> chuyển sang PDF.
+    /// </summary>
+    [HttpGet("form-08/{collectiveRecordId}")]
+    [RequireAnyPermission(PermissionCodes.EvaluationRead, PermissionCodes.CollectiveManage)]
+    public async Task<IActionResult> ExportForm08Excel(Guid collectiveRecordId, [FromQuery] string? format = null)
+    {
+        await _reportAccess.EnsureCanExportCollectiveAsync(collectiveRecordId);
+        var result = await _reportService.ExportForm08ExcelAsync(collectiveRecordId, ParseFormat(format));
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
+    /// <summary>Xuất Word Mẫu 12 — Biên bản hội nghị (hội nghị tập thể lãnh đạo B3a hoặc hội nghị cấp ủy B4).</summary>
+    [HttpGet("docx/mau-12/{meetingId}")]
+    [RequireAnyPermission(PermissionCodes.MeetingRead, PermissionCodes.MeetingManage)]
+    public async Task<IActionResult> ExportMau12Docx(Guid meetingId, [FromQuery] string? format = null)
+    {
+        await _reportAccess.EnsureCanExportMeetingAsync(meetingId);
+        var result = await _reportService.ExportMau12DocxAsync(meetingId, ParseFormat(format));
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
+    /// <summary>
+    /// Xuất Word Mẫu 13 — Biên bản kiểm phiếu của một hội nghị (B3a/B4): cán bộ tách mục I (BTVĐUTCT quyết định) / mục II
+    /// (Đảng ủy/Chi ủy cơ sở quyết định) theo thẩm quyền trên hồ sơ; biên bản chưa có kết quả kiểm phiếu → 400.
+    /// </summary>
+    [HttpGet("docx/mau-13/{meetingId}")]
+    [RequireAnyPermission(PermissionCodes.MeetingRead, PermissionCodes.MeetingManage)]
+    public async Task<IActionResult> ExportMau13Docx(Guid meetingId, [FromQuery] string? format = null)
+    {
+        await _reportAccess.EnsureCanExportMeetingAsync(meetingId);
+        var result = await _reportService.ExportMau13DocxAsync(meetingId, ParseFormat(format));
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
+    #endregion
     #region Biểu mẫu Word (.docx) Chuẩn Hướng dẫn 03-HD/TVĐU
 
     /// <summary>Xuất Word Mẫu 01 — Phiếu giao/đăng ký sản phẩm chuyên môn hàng quý</summary>
@@ -159,19 +249,6 @@ public class ExportReportController : ControllerBase
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
-    /// <summary>
-    /// Xuất Word Mẫu 13 — Biên bản kiểm phiếu đánh giá, xếp loại cán bộ quý.
-    /// Không truyền <paramref name="branchId"/>: cấp cao xuất toàn Đảng bộ, Chi bộ xuất Chi bộ của mình.
-    /// </summary>
-    [HttpGet("docx/mau-13")]
-    [RequireAnyPermission(PermissionCodes.MeetingRead, PermissionCodes.ReportExport)]
-    public async Task<IActionResult> ExportMau13Docx([FromQuery] Guid periodId, [FromQuery] Guid? branchId, [FromQuery] string? format = null)
-    {
-        var scope = await _reportAccess.ResolveBranchExportScopeAsync(
-            GetCurrentUserId(), branchId, PermissionCodes.MeetingRead, PermissionCodes.ReportExport);
-        var result = await _reportService.ExportMau13DocxAsync(periodId, scope, ParseFormat(format));
-        return File(result.FileBytes, result.ContentType, result.FileName);
-    }
 
     #endregion
 }

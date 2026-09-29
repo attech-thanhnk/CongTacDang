@@ -68,7 +68,8 @@ public interface IAttachmentAccessReader
 
     /// <summary>
     /// Lấy hồ sơ đánh giá (kèm Member) của đối tượng sở hữu tệp: chính hồ sơ với <see cref="AttachmentOwnerTypes.EvaluationRecord"/>,
-    /// hồ sơ chứa nhiệm vụ với <see cref="AttachmentOwnerTypes.EvaluationTask"/>. Null nếu không tìm thấy.
+    /// hồ sơ chứa nhiệm vụ với <see cref="AttachmentOwnerTypes.EvaluationTask"/>, hồ sơ của kiến nghị với
+    /// <see cref="AttachmentOwnerTypes.EvaluationAppeal"/>. Null nếu không tìm thấy.
     /// </summary>
     Task<EvaluationRecord?> GetOwnerRecordAsync(string ownerType, Guid ownerId);
 }
@@ -269,6 +270,12 @@ public interface ICollectiveEvaluationRepository
 
     /// <summary>Cập nhật hồ sơ tập thể.</summary>
     Task UpdateAsync(CollectiveEvaluationRecord record);
+
+    /// <summary>Lấy hồ sơ tập thể để sửa (được theo dõi thay đổi, kèm các dòng nội dung); lưu bằng <c>IUnitOfWork</c>.</summary>
+    Task<CollectiveEvaluationRecord?> GetForUpdateAsync(Guid id);
+
+    /// <summary>Thay toàn bộ dòng nội dung của hồ sơ đang được theo dõi (xóa dòng cũ, thêm dòng mới); lưu bằng <c>IUnitOfWork</c>.</summary>
+    void ReplaceItems(CollectiveEvaluationRecord record, IEnumerable<CollectiveEvaluationItem> items);
 }
 
 /// <summary>Repository biên bản hội nghị và kết quả kiểm phiếu Mẫu 12, 13.</summary>
@@ -285,4 +292,7 @@ public interface IEvaluationMeetingRepository
 
     /// <summary>Cập nhật biên bản hội nghị.</summary>
     Task UpdateAsync(EvaluationMeeting meeting);
+
+    /// <summary>Lấy biên bản để sửa (được theo dõi thay đổi); lưu bằng <c>IUnitOfWork</c>.</summary>
+    Task<EvaluationMeeting?> GetForUpdateAsync(Guid id);
 }

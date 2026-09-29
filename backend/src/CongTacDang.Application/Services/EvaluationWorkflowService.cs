@@ -53,25 +53,29 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 {
     private const int MaxReasonLength = 2000;
     private const int MaxCommentLength = 4000;
+    private const int MaxCadreProposalLength = 2000;
 
     private readonly IEvaluationWorkflowRepository _repo;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthorizationGuard _guard;
     private readonly ICurrentUserService _currentUser;
     private readonly IAttachmentService _attachments;
+    private readonly IPostPublishWorkQueue? _postPublish;
 
     public EvaluationWorkflowService(
         IEvaluationWorkflowRepository repo,
         IUnitOfWork unitOfWork,
         IAuthorizationGuard guard,
         ICurrentUserService currentUser,
-        IAttachmentService attachments)
+        IAttachmentService attachments,
+        IPostPublishWorkQueue? postPublish = null)
     {
         _repo = repo;
         _unitOfWork = unitOfWork;
         _guard = guard;
         _currentUser = currentUser;
         _attachments = attachments;
+        _postPublish = postPublish;
     }
 
     #region Hành động theo bước
@@ -226,10 +230,68 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                     ?? throw new ValidationException("Mức tự đề xuất không hợp lệ.");
             }
 
+            var formChanges = ApplyIndividualForms(record, criteria, request);
+
             record.SelfScoredAt = ctx.Now;
             record.ReturnReason = null;
-            return "Nộp phiếu tự chấm.";
+            return formChanges.Count == 0
+                ? "Nộp phiếu tự chấm."
+                : $"Nộp phiếu tự chấm; cập nhật {string.Join(", ", formChanges)}.";
         }, ct);
+
+    /// <summary>
+    /// Task 18 (T-82): lưu nội dung Mẫu 09C, 9D (khi kỳ áp dụng theo bộ tiêu chí) và phần tự luận theo trục của Mẫu 09B, nhập
+    /// cùng phiếu tự chấm. Trường null trong yêu cầu = giữ nội dung đã lưu. Trả danh sách biểu mẫu có nội dung thay đổi (ghi lịch sử).
+    /// </summary>
+    private static List<string> ApplyIndividualForms(EvaluationRecord record, CriteriaSnapshot criteria, SubmitSelfScoreRequestDto request)
+    {
+        var content = criteria.Content;
+        var changed = new List<string>();
+
+        if (request.SelfAssessment != null && criteria.AppliesForm(RecordFormCodes.Form09C))
+        {
+            var error = RecordFormContent.ValidateSelfAssessment(content, request.SelfAssessment);
+            if (error != null)
+                throw new ValidationException(error);
+            var json = RecordFormContent.SelfAssessmentToJson(content, request.SelfAssessment);
+            if (json != record.SelfAssessment)
+                changed.Add("Mẫu 09C");
+            record.SelfAssessment = json;
+        }
+        else if (criteria.AppliesForm(RecordFormCodes.Form09C))
+        {
+            // Không gửi nội dung 09C: vẫn kiểm tra mục bắt buộc trên nội dung đang lưu.
+            var stored = RecordFormContent.ParseSelfAssessment(record.SelfAssessment)
+                .ToDictionary(kv => kv.Key, kv => (string?)kv.Value);
+            var error = RecordFormContent.ValidateSelfAssessment(content, stored);
+            if (error != null)
+                throw new ValidationException(error);
+        }
+
+        if (request.TaskResults != null && criteria.AppliesForm(RecordFormCodes.Form9D))
+        {
+            var error = RecordFormContent.ValidateTaskResults(content, request.TaskResults);
+            if (error != null)
+                throw new ValidationException(error);
+            var json = RecordFormContent.TaskResultsToJson(content, request.TaskResults);
+            if (json != record.TaskResults)
+                changed.Add("Mẫu 9D");
+            record.TaskResults = json;
+        }
+
+        if (request.AxisNotes != null && criteria.UsesAxisScoring)
+        {
+            var error = RecordFormContent.ValidateAxisNotes(content, request.AxisNotes);
+            if (error != null)
+                throw new ValidationException(error);
+            var json = RecordFormContent.AxisNotesToJson(content, request.AxisNotes);
+            if (json != record.AxisNotes)
+                changed.Add("nội dung theo trục Mẫu 09B");
+            record.AxisNotes = json;
+        }
+
+        return changed;
+    }
 
     /// <inheritdoc />
     public Task<EvaluationRecordDto> ConfirmByCellAsync(Guid recordId, CommentRequestDto request, CancellationToken ct = default) =>
@@ -329,6 +391,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 ? DateTime.SpecifyKind(request.DocumentDate.Value, DateTimeKind.Utc)
                 : null;
             ctx.Record.DecisionAuthorityName = Trim(request.AuthorityName, 300, "Cơ quan quyết định");
+            ctx.Record.CadreWorkProposal = Trim(request.CadreWorkProposal, MaxCadreProposalLength, "Đề xuất nội dung về công tác cán bộ");
             ctx.Record.DecisionMeetingId = request.MeetingId;
             ctx.Record.DecisionRecordedById = ctx.ActorId;
             ctx.Record.DecisionRecordedByName = ctx.ActorName;
@@ -390,6 +453,9 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 ?? throw new ValidationException("Hãy nhập cơ quan / cấp đã thực hiện bước này (ví dụ \"BTV Đảng ủy Tổng công ty\").");
             var documentNumber = Trim(request.DocumentNumber, 100, "Số văn bản");
             var comment = Trim(request.Comment, MaxCommentLength, "Nhận xét");
+            var cadreProposal = Trim(request.CadreWorkProposal, MaxCadreProposalLength, "Đề xuất nội dung về công tác cán bộ");
+            if (cadreProposal != null && parsed != WorkflowStep.B4_DECISION)
+                throw new ValidationException("Đề xuất nội dung về công tác cán bộ (cột 13 Mẫu 14) chỉ ghi ở bước quyết định mức xếp loại.");
             if (request.Score is < 0 or > 100)
                 throw new ValidationException("Điểm phải từ 0 đến 100.");
 
@@ -427,6 +493,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             result.UpdatedAt = ctx.Now;
 
             ApplyExternalResultToRecord(record, result, ctx);
+            if (parsed == WorkflowStep.B4_DECISION)
+                record.CadreWorkProposal = cadreProposal;
             return $"Ghi nhận kết quả của cấp trên ({authority}).";
         }, ct);
     }
@@ -513,6 +581,20 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
     /// <inheritdoc />
     public async Task<WorkQueueDto> GetWorkQueueAsync(Guid? periodId, CancellationToken ct = default)
+    {
+        var queue = await GetStepQueueAsync(periodId, ct);
+        // Task 20: nhóm việc sau công bố (kiến nghị chờ xử lý, kế hoạch 30-60-90 ngày) — cả với kỳ đã đóng.
+        if (_postPublish != null)
+        {
+            var extra = await _postPublish.GetGroupsAsync(periodId, ct);
+            queue.Groups.AddRange(extra);
+            queue.Total += extra.Sum(g => g.Count);
+        }
+        return queue;
+    }
+
+    /// <summary>Hồ sơ đang chờ người dùng hiện tại ở các bước của luồng đánh giá.</summary>
+    private async Task<WorkQueueDto> GetStepQueueAsync(Guid? periodId, CancellationToken ct)
     {
         var periods = await _repo.ListPeriodsAsync(ct);
         var targetPeriods = periodId.HasValue && periodId.Value != Guid.Empty
@@ -830,7 +912,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         if (votes == null)
             return;
 
-        var counts = new[] { votes.VotesExcellent, votes.VotesGood, votes.VotesSatisfactory, votes.VotesUnsatisfactory, votes.InvalidVotes };
+        var counts = new[] { votes.VotesExcellent, votes.VotesGood, votes.VotesSatisfactory, votes.VotesUnsatisfactory, votes.VotesNotRated, votes.InvalidVotes };
         if (counts.Any(c => c < 0))
             throw new ValidationException("Số phiếu không được âm.");
         var total = counts.Sum();
@@ -849,6 +931,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         summary.VotesGood = votes.VotesGood;
         summary.VotesSatisfactory = votes.VotesSatisfactory;
         summary.VotesUnsatisfactory = votes.VotesUnsatisfactory;
+        summary.VotesNotRated = votes.VotesNotRated;
         summary.InvalidVotes = votes.InvalidVotes;
         summary.Notes = votes.Notes?.Trim() ?? string.Empty;
         meeting.UpdatedAt = DateTime.UtcNow;

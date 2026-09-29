@@ -6,6 +6,7 @@ import { useLayout } from "@/contexts/LayoutContext";
 import { useToast } from "@/contexts/ToastContext";
 import { usePathname } from "next/navigation";
 import { useOrganizationInfo } from "@/services/organizationSettingsService";
+import { NotificationBell } from "./NotificationBell";
 
 export function AppHeader() {
   const { user, logout, loading } = useAuth();
@@ -19,14 +20,18 @@ export function AppHeader() {
     if (pathname === "/") return "Tổng quan";
     if (pathname.startsWith("/work-queue")) return "Việc cần xử lý";
     if (pathname.startsWith("/evaluations")) return "Đánh giá cán bộ";
+    if (pathname.startsWith("/results")) return "Kết quả đánh giá";
     if (pathname.startsWith("/collective-evaluations")) return "Đánh giá tập thể";
     if (pathname.startsWith("/periods")) return "Kỳ đánh giá";
     if (pathname.startsWith("/admin/users")) return "Tài khoản";
     if (pathname.startsWith("/admin/roles")) return "Vai trò";
     if (pathname.startsWith("/catalog")) return "Danh mục";
     if (pathname.startsWith("/audit")) return "Nhật ký";
+    if (pathname.startsWith("/criteria")) return "Bộ tiêu chí";
     if (pathname.startsWith("/reports")) return "Báo cáo";
-    if (pathname.startsWith("/forms")) return "Biểu mẫu";
+    if (pathname.startsWith("/admin/settings")) return "Thông tin đơn vị";
+    if (pathname.startsWith("/admin/templates")) return "Biểu mẫu Word";
+    if (pathname.startsWith("/change-password")) return "Đổi mật khẩu";
     return "";
   };
 
@@ -93,6 +98,8 @@ export function AppHeader() {
         {loading ? (
           <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Đang nạp...</span>
         ) : user ? (
+          <>
+          <NotificationBell />
           <div style={{ position: "relative" }}>
             <button
               type="button"
@@ -248,6 +255,7 @@ export function AppHeader() {
               </>
             )}
           </div>
+          </>
         ) : null}
       </div>
     </header>

@@ -39,7 +39,10 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         PermissionCodes.EvaluationDecide,
         PermissionCodes.EvaluationExternalRecord,
         PermissionCodes.EvaluationPublish,
-        PermissionCodes.EvaluationReopen
+        PermissionCodes.EvaluationReopen,
+        // Task 20: không xử lý kiến nghị của chính mình, không tự lập/duyệt kế hoạch khắc phục cho mình.
+        PermissionCodes.EvaluationAppealResolve,
+        PermissionCodes.EvaluationImprovementManage
     };
 
     private readonly ICurrentUserService _currentUser;
@@ -68,8 +71,9 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         switch (permission)
         {
             case PermissionCodes.EvaluationSelf:
-                // Chỉ trên hồ sơ của chính mình; phạm vi gán được bỏ qua.
-                return isOwner && permissions.Has(PermissionCodes.EvaluationSelf);
+            case PermissionCodes.EvaluationAppealSubmit:
+                // Chỉ trên hồ sơ của chính mình; phạm vi gán được bỏ qua (task 20: gửi kiến nghị cũng vậy).
+                return isOwner && permissions.Has(permission);
             case PermissionCodes.EvaluationRead when isOwner:
                 // HD03: quyền được biết — chủ hồ sơ luôn xem được hồ sơ của mình.
                 return true;
@@ -104,7 +108,7 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
             return ScopeFilter.None;
 
         var userId = permissions.UserId;
-        if (permission == PermissionCodes.EvaluationSelf)
+        if (permission is PermissionCodes.EvaluationSelf or PermissionCodes.EvaluationAppealSubmit)
             return permissions.Has(permission) ? ScopeFilter.OwnerOnly(userId) : ScopeFilter.None;
 
         var appliesScope = PermissionCodes.Find(permission)?.AppliesScope ?? true;
@@ -165,7 +169,7 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
                 $"Bạn không được thực hiện \"{name}\" trên hồ sơ của chính mình (xung đột lợi ích theo Hướng dẫn 03-HD/TVĐU).");
         }
 
-        if (permission == PermissionCodes.EvaluationSelf && !isOwner)
+        if ((permission is PermissionCodes.EvaluationSelf or PermissionCodes.EvaluationAppealSubmit) && !isOwner)
         {
             return new ForbiddenException(
                 $"Chỉ chủ hồ sơ mới được thực hiện \"{name}\". Bạn không thể thao tác trên hồ sơ của người khác.");

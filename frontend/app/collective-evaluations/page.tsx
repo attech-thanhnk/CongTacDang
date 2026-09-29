@@ -1,29 +1,22 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { PageHeader } from "@/components/common/PageHeader";
+import { CollectiveRecordEditor } from "@/components/collective/CollectiveRecordEditor";
+import { MeetingEditor } from "@/components/collective/MeetingEditor";
 import { organizationService, BranchItem, DepartmentItem } from "@/services/organizationService";
-import {
-  CollectiveEvaluationRecordDto,
-  EvaluationRecordDto,
-  EvaluationMeetingDto,
-  EvaluationMeetingVoteSummaryDto,
-  EvaluationPeriodDto,
-  SaveCollectiveEvaluationRequestDto,
-  SaveEvaluationMeetingRequestDto,
-  evaluationService,
-} from "@/services/evaluationService";
+import { EvaluationPeriodDto, evaluationService } from "@/services/evaluationService";
+import { CollectiveFormCatalog, CollectiveRecord, MeetingRecord, collectiveService } from "@/services/collectiveService";
+import { ReportFileFormat, hd03FileName, reportService } from "@/services/reportService";
+import { organizationSettingsService } from "@/services/organizationSettingsService";
 
-const emptyCollectiveForm = {
-  subjectName: "",
-  strengths: "",
-  limitations: "",
-  causes: "",
-  remediationPlan: "",
-  generalCriteriaScore: 0,
-  taskCriteriaScore: 0,
+const ROMAN = ["", "I", "II", "III", "IV"];
+const FORM_NAMES: Record<string, string> = {
+  M06: "Mẫu 06",
+  M07: "Mẫu 07",
+  M08: "Mẫu 08",
 };
 
 export default function CollectiveEvaluationsPage() {
@@ -34,173 +27,110 @@ export default function CollectiveEvaluationsPage() {
   const [periods, setPeriods] = useState<EvaluationPeriodDto[]>([]);
   const [periodId, setPeriodId] = useState("");
   const [branches, setBranches] = useState<BranchItem[]>([]);
-  const [branchId, setBranchId] = useState("");
-  const [form, setForm] = useState<"M06" | "M07" | "M08">("M07");
-  const [records, setRecords] = useState<CollectiveEvaluationRecordDto[]>([]);
-  const [meetings, setMeetings] = useState<EvaluationMeetingDto[]>([]);
-  const [branchRecords, setBranchRecords] = useState<EvaluationRecordDto[]>([]);
-  const [voteInputs, setVoteInputs] = useState<Record<string, Omit<EvaluationMeetingVoteSummaryDto, "recordId">>>({});
-  const [collective, setCollective] = useState(emptyCollectiveForm);
-  const [meeting, setMeeting] = useState({ location: "", chairName: "", secretaryName: "", minutesContent: "", outcomeContent: "" });
-  const [invitedCount, setInvitedCount] = useState(0);
-  const [presentCount, setPresentCount] = useState(0);
-  const [meetingForm, setMeetingForm] = useState<"M12" | "M13">("M12");
-  // Task 12: biên bản gắn Chi bộ, Phòng (hội nghị tập thể lãnh đạo cấp Phòng) hoặc cấp Công ty; gắn bước B3a/B4.
   const [departments, setDepartments] = useState<DepartmentItem[]>([]);
-  const [meetingUnit, setMeetingUnit] = useState<"cell" | "department" | "company">("cell");
-  const [meetingDepartmentId, setMeetingDepartmentId] = useState("");
-  const [meetingStage, setMeetingStage] = useState<"" | "B3A_COLLECTIVE" | "B4_DECISION">("B3A_COLLECTIVE");
+  const [catalog, setCatalog] = useState<CollectiveFormCatalog | null>(null);
+  const [records, setRecords] = useState<CollectiveRecord[]>([]);
+  const [meetings, setMeetings] = useState<MeetingRecord[]>([]);
+  const [editingRecord, setEditingRecord] = useState<CollectiveRecord | null>(null);
+  const [editingMeeting, setEditingMeeting] = useState<MeetingRecord | null>(null);
+  const [shortName, setShortName] = useState("");
+  const [exporting, setExporting] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   const canUseModule =
     hasPermission("evaluation.read") ||
     hasPermission("collective.manage") ||
     hasPermission("meeting.read") ||
     hasPermission("meeting.manage");
+  const canManageCollective = hasPermission("collective.manage");
+  const canManageMeeting = hasPermission("meeting.manage");
 
   useEffect(() => {
     if (!canUseModule) {
       setLoading(false);
       return;
     }
-    Promise.all([evaluationService.getPeriods(), organizationService.getBranches(), organizationService.getDepartments().catch(() => [])])
-      .then(([loadedPeriods, loadedBranches, loadedDepartments]) => {
+    Promise.all([
+      evaluationService.getPeriods(),
+      organizationService.getBranches(),
+      organizationService.getDepartments().catch(() => [] as DepartmentItem[]),
+      collectiveService.getCatalog().catch(() => null),
+    ])
+      .then(([loadedPeriods, loadedBranches, loadedDepartments, loadedCatalog]) => {
         setPeriods(loadedPeriods);
         setBranches(loadedBranches);
         setDepartments(loadedDepartments);
+        setCatalog(loadedCatalog);
         const active = loadedPeriods.find((item) => item.isActive) || loadedPeriods[0];
         if (active) setPeriodId(active.id);
       })
       .catch((error: any) => showError(error?.message || "Không thể tải dữ liệu đánh giá tập thể."))
       .finally(() => setLoading(false));
+    organizationSettingsService.getPublic().then((info) => setShortName(info.shortName)).catch(() => setShortName(""));
   }, [canUseModule, showError]);
 
-  useEffect(() => {
-    if (!periodId || !canUseModule) return;
-    Promise.all([evaluationService.getCollectiveRecords(periodId), evaluationService.getMeetings(periodId)])
-      .then(([loadedRecords, loadedMeetings]) => {
-        setRecords(loadedRecords);
-        setMeetings(loadedMeetings);
-      })
-      .catch((error: any) => showError(error?.message || "Không thể tải hồ sơ tập thể."));
-  }, [periodId, canUseModule, showError]);
-
-  // Hồ sơ của đơn vị tổ chức hội nghị (để ghi tổng hợp phiếu Mẫu 13) — máy chủ lọc theo phạm vi xem.
-  useEffect(() => {
-    if (!periodId) {
-      setBranchRecords([]);
-      return;
-    }
-    if (meetingUnit === "cell" && !branchId) {
-      setBranchRecords([]);
-      return;
-    }
-    if (meetingUnit === "department" && !meetingDepartmentId) {
-      setBranchRecords([]);
-      return;
-    }
-    const load = meetingUnit === "cell"
-      ? evaluationService.getRecordsByBranch(periodId, branchId)
-      : evaluationService.getRecordsByPeriod(periodId).then((list) =>
-          meetingUnit === "department" ? list.filter((r) => r.departmentId === meetingDepartmentId) : list);
-    load.then((loadedRecords) => setBranchRecords(loadedRecords)).catch(() => setBranchRecords([]));
-  }, [periodId, branchId, meetingUnit, meetingDepartmentId]);
-
-  const reload = async () => {
+  const reload = useCallback(async () => {
     if (!periodId) return;
     const [loadedRecords, loadedMeetings] = await Promise.all([
-      evaluationService.getCollectiveRecords(periodId),
-      evaluationService.getMeetings(periodId),
+      collectiveService.getRecords(periodId).catch(() => [] as CollectiveRecord[]),
+      collectiveService.getMeetings(periodId).catch(() => [] as MeetingRecord[]),
     ]);
     setRecords(loadedRecords);
     setMeetings(loadedMeetings);
-  };
+  }, [periodId]);
 
-  const submitCollective = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!periodId || !collective.subjectName.trim()) {
-      showError("Cần chọn kỳ đánh giá và nhập tên tập thể/lĩnh vực.");
-      return;
-    }
-    setSaving(true);
-    const payload: SaveCollectiveEvaluationRequestDto = {
-      periodId,
-      form,
-      partyCellId: branchId || undefined,
-      subjectName: collective.subjectName,
-      strengths: collective.strengths,
-      limitations: collective.limitations,
-      causes: collective.causes,
-      previousRemediation: "",
-      explanation: "",
-      responsibilities: "",
-      remediationPlan: collective.remediationPlan,
-      generalCriteriaScore: Number(collective.generalCriteriaScore),
-      taskCriteriaScore: Number(collective.taskCriteriaScore),
-      selfProposedGrade: "HoanThanhTot",
-      items: [],
-    };
+  useEffect(() => {
+    if (!periodId || !canUseModule) return;
+    setEditingRecord(null);
+    setEditingMeeting(null);
+    reload().catch((error: any) => showError(error?.message || "Không thể tải hồ sơ tập thể."));
+  }, [periodId, canUseModule, reload, showError]);
+
+  const period = periods.find((p) => p.id === periodId);
+  const periodLabel = period ? `Quy ${ROMAN[period.quarter] ?? period.quarter}-${period.year}` : "Ky bao cao";
+
+  const run = async (key: string, work: () => Promise<void>, failure: string) => {
+    setExporting(key);
     try {
-      await evaluationService.createCollectiveRecord(payload);
-      setCollective(emptyCollectiveForm);
-      await reload();
-      showSuccess(`Đã lưu hồ sơ ${form}.`);
+      await work();
     } catch (error: any) {
-      showError(error?.message || "Không thể lưu hồ sơ tập thể.");
+      showError(error?.message || failure);
     } finally {
-      setSaving(false);
+      setExporting(null);
     }
   };
 
-  const submitMeeting = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!periodId || (meetingUnit === "cell" && !branchId) || (meetingUnit === "department" && !meetingDepartmentId)) {
-      showError(meetingUnit === "department" ? "Cần chọn kỳ đánh giá và Phòng cho biên bản." : "Cần chọn kỳ đánh giá và Chi bộ cho biên bản.");
-      return;
-    }
-    setSaving(true);
-    const payload: SaveEvaluationMeetingRequestDto = {
-      periodId,
-      partyCellId: meetingUnit === "cell" ? branchId : undefined,
-      departmentId: meetingUnit === "department" ? meetingDepartmentId : undefined,
-      stage: meetingStage || undefined,
-      formCode: meetingForm,
-      meetingType: "Hội nghị đánh giá, xếp loại cán bộ quý",
-      location: meeting.location,
-      startedAt: new Date().toISOString(),
-      invitedCount,
-      presentCount,
-      absentCount: Math.max(invitedCount - presentCount, 0),
-      absentReasons: "",
-      chairName: meeting.chairName,
-      secretaryName: meeting.secretaryName,
-      minutesContent: meeting.minutesContent,
-      outcomeContent: meeting.outcomeContent,
-      voteCountingContent: "",
-      voteSummaries: meetingForm === "M13"
-        ? branchRecords.map((record) => ({
-            recordId: record.id,
-            votesExcellent: voteInputs[record.id]?.votesExcellent || 0,
-            votesGood: voteInputs[record.id]?.votesGood || 0,
-            votesSatisfactory: voteInputs[record.id]?.votesSatisfactory || 0,
-            votesUnsatisfactory: voteInputs[record.id]?.votesUnsatisfactory || 0,
-            invalidVotes: voteInputs[record.id]?.invalidVotes || 0,
-            notes: voteInputs[record.id]?.notes || "",
-          }))
-        : [],
-    };
-    try {
-      await evaluationService.createMeeting(payload);
-      setMeeting({ location: "", chairName: "", secretaryName: "", minutesContent: "", outcomeContent: "" });
-      await reload();
-      showSuccess(`Đã lưu biên bản ${meetingForm}.`);
-    } catch (error: any) {
-      showError(error?.message || "Không thể lưu biên bản.");
-    } finally {
-      setSaving(false);
-    }
+  const exportRecord = (record: CollectiveRecord, format: ReportFileFormat) => {
+    if (record.form !== "M07" && record.form !== "M08") return;
+    const code = record.form === "M07" ? "07" : "08";
+    return run(`${record.id}-${format}`, () => reportService.exportCollective(record.form as "M07" | "M08", record.id,
+      hd03FileName(code, record.partyCellName || record.departmentName || shortName, periodLabel, ".docx"), format), "Không xuất được biểu mẫu.");
   };
+
+  /** Mẫu 08 bản Excel — HD03 V.1: hồ sơ lập trên file Excel (trừ Mẫu 07, 09C, 12, 13, 16). */
+  const exportRecordExcel = (record: CollectiveRecord) =>
+    run(`${record.id}-xlsx`, () => reportService.exportForm08Excel(record.id,
+      hd03FileName("08", record.partyCellName || record.departmentName || shortName, periodLabel, ".xlsx")), "Không xuất được Mẫu 08 (Excel).");
+
+  const exportMeeting = (meeting: MeetingRecord, form: "12" | "13", format: ReportFileFormat) =>
+    run(`${meeting.id}-${form}-${format}`, () => reportService.exportMeeting(meeting.id, form,
+      hd03FileName(form, meeting.partyCellName || meeting.departmentName || shortName, periodLabel, ".docx"), format), `Không xuất được Mẫu ${form}.`);
+
+  const exportButtons = (key: string, onExport: (format: ReportFileFormat) => void, label = "Word", onExcel?: () => void) => (
+    <div className="btn-group btn-group-sm">
+      <button type="button" className="btn btn-outline-primary" disabled={exporting !== null} onClick={() => onExport("original")}>
+        <i className="bi bi-file-earmark-word me-1" />{exporting === `${key}-original` ? "Đang xuất…" : label}
+      </button>
+      {onExcel && (
+        <button type="button" className="btn btn-outline-success" disabled={exporting !== null} onClick={onExcel}>
+          <i className="bi bi-file-earmark-excel me-1" />{exporting === `${key}-xlsx` ? "Đang xuất…" : "Excel"}
+        </button>
+      )}
+      <button type="button" className="btn btn-outline-secondary" disabled={exporting !== null} onClick={() => onExport("pdf")}>
+        <i className="bi bi-file-earmark-pdf me-1" />{exporting === `${key}-pdf` ? "Đang xuất…" : "PDF"}
+      </button>
+    </div>
+  );
 
   if (!canUseModule) {
     return <div className="page-wrapper collective-page"><div className="alert alert-warning">Tài khoản chưa được cấp quyền xem hồ sơ tập thể.</div></div>;
@@ -214,15 +144,11 @@ export default function CollectiveEvaluationsPage() {
     <div className="page-wrapper collective-page">
       <PageHeader
         title="Đánh giá tập thể & Hội nghị"
-        subTitle="Quản lý hồ sơ M06-M08 và biên bản M12-M13 theo kỳ đánh giá."
+        subTitle="Hồ sơ tự đánh giá của tập thể (Mẫu 07, 08) và biên bản hội nghị (Mẫu 12, 13) theo kỳ; xuất Word/PDF đúng biểu mẫu HD03."
         actions={
           <div className="collective-toolbar-controls">
             <select className="form-select form-select-sm" aria-label="Kỳ đánh giá" value={periodId} onChange={(event) => setPeriodId(event.target.value)}>
               {periods.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-            <select className="form-select form-select-sm" aria-label="Chi bộ" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
-              <option value="">Chọn Chi bộ</option>
-              {branches.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
           </div>
         }
@@ -230,73 +156,115 @@ export default function CollectiveEvaluationsPage() {
 
       <div className="page-body">
         <div className="row g-3">
-        <div className="col-12 col-xl-7">
-          <section className="card border-0 shadow-sm h-100">
-            <div className="card-header bg-white border-0 pt-4 px-4">
-              <div className="d-flex justify-content-between align-items-center gap-2">
-                <div><h2 className="h5 mb-1">Hồ sơ tập thể</h2><div className="text-secondary small">Tạo báo cáo tự đánh giá M06, M07 hoặc M08.</div></div>
-                <select className="form-select form-select-sm w-auto" value={form} onChange={(event) => setForm(event.target.value as "M06" | "M07" | "M08")}>
-                  <option value="M06">M06 - Tập thể/lĩnh vực</option>
-                  <option value="M07">M07 - Đảng ủy/Chi bộ</option>
-                  <option value="M08">M08 - Tổng hợp nhiệm vụ</option>
-                </select>
-                </div>
+          <div className="col-12 col-xl-7">
+            <section className="card border-0 shadow-sm mb-3">
+              <div className="card-header bg-white border-0 pt-4 px-4">
+                <h2 className="h5 mb-1">Hồ sơ tập thể</h2>
+                <div className="text-secondary small">Mẫu 07, 08 bắt buộc Quý III/2026 (Mẫu 06 chưa áp dụng). Xuất Word/PDF ngay trên từng hồ sơ.</div>
               </div>
-            <div className="card-body px-4">
-              <form onSubmit={submitCollective} className="row g-3">
-                <div className="col-12"><label className="form-label">Tên tập thể/lĩnh vực</label><input className="form-control" value={collective.subjectName} onChange={(event) => setCollective({ ...collective, subjectName: event.target.value })} /></div>
-                <div className="col-md-6"><label className="form-label">Điểm chung / 30</label><input type="number" min="0" max="30" step="0.5" className="form-control" value={collective.generalCriteriaScore} onChange={(event) => setCollective({ ...collective, generalCriteriaScore: Number(event.target.value) })} /></div>
-                <div className="col-md-6"><label className="form-label">Điểm nhiệm vụ / 70</label><input type="number" min="0" max="70" step="0.5" className="form-control" value={collective.taskCriteriaScore} onChange={(event) => setCollective({ ...collective, taskCriteriaScore: Number(event.target.value) })} /></div>
-                <div className="col-12"><label className="form-label">Ưu điểm, kết quả đạt được</label><textarea className="form-control" rows={3} value={collective.strengths} onChange={(event) => setCollective({ ...collective, strengths: event.target.value })} /></div>
-                <div className="col-md-6"><label className="form-label">Hạn chế, khuyết điểm</label><textarea className="form-control" rows={3} value={collective.limitations} onChange={(event) => setCollective({ ...collective, limitations: event.target.value })} /></div>
-                <div className="col-md-6"><label className="form-label">Nguyên nhân</label><textarea className="form-control" rows={3} value={collective.causes} onChange={(event) => setCollective({ ...collective, causes: event.target.value })} /></div>
-                <div className="col-12"><label className="form-label">Phương hướng khắc phục</label><textarea className="form-control" rows={3} value={collective.remediationPlan} onChange={(event) => setCollective({ ...collective, remediationPlan: event.target.value })} /></div>
-                <div className="col-12"><button className="btn btn-primary" disabled={saving}>{saving ? "Đang lưu..." : "Lưu hồ sơ tập thể"}</button></div>
-              </form>
-              <div className="mt-4 border-top pt-3">
+              <div className="card-body px-4">
                 {records.length === 0 ? <div className="text-secondary small">Chưa có hồ sơ tập thể trong kỳ.</div> : records.map((record) => (
-                  <div key={record.id} className="d-flex justify-content-between align-items-center border-bottom py-2 gap-3">
-                    <div><strong>{record.subjectName}</strong><div className="text-secondary small">{record.form} · {record.partyCellName || record.departmentName || "Chưa gắn tổ chức"}</div></div>
-                    <span className="badge text-bg-light">{record.totalScore.toFixed(1)} / 100</span>
+                  <div key={record.id} className="d-flex flex-wrap justify-content-between align-items-center border-bottom py-2 gap-2">
+                    <div>
+                      <strong>{record.subjectName}</strong>
+                      <div className="text-secondary small">
+                        {FORM_NAMES[record.form] || record.form} · {record.partyCellName || record.departmentName || "Chưa gắn tổ chức"}
+                        {record.form !== "M08" && ` · ${record.totalScore.toFixed(1)} / 100`}
+                        {record.form === "M08" && ` · ${record.items.length} nhiệm vụ`}
+                      </div>
+                    </div>
+                    <div className="d-flex gap-2">
+                      {canManageCollective && (
+                        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setEditingRecord(record)}>
+                          <i className="bi bi-pencil me-1" />Sửa
+                        </button>
+                      )}
+                      {record.form === "M07" && exportButtons(record.id, (format) => exportRecord(record, format))}
+                      {record.form === "M08" && exportButtons(record.id, (format) => exportRecord(record, format), "Word", () => exportRecordExcel(record))}
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-          </section>
-        </div>
+            </section>
 
-        <div className="col-12 col-xl-5">
-          <section className="card border-0 shadow-sm mb-4">
-            <div className="card-header bg-white border-0 pt-4 px-4"><h2 className="h5 mb-1">Biên bản hội nghị</h2><div className="text-secondary small">Mẫu 12 là biên bản họp; Mẫu 13 ghi tổng hợp kiểm phiếu.</div></div>
-            <div className="card-body px-4">
-              <form onSubmit={submitMeeting} className="row g-3">
-                <div className="col-6"><label className="form-label">Đơn vị tổ chức</label><select className="form-select" value={meetingUnit} onChange={(event) => setMeetingUnit(event.target.value as "cell" | "department" | "company")}><option value="cell">Chi bộ (chọn ở trên)</option><option value="department">Phòng/đơn vị</option><option value="company">Cấp Công ty</option></select></div>
-                {meetingUnit === "department" && <div className="col-6"><label className="form-label">Phòng</label><select className="form-select" value={meetingDepartmentId} onChange={(event) => setMeetingDepartmentId(event.target.value)}><option value="">Chọn Phòng</option>{departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>}
-                <div className="col-6"><label className="form-label">Dùng cho bước</label><select className="form-select" value={meetingStage} onChange={(event) => setMeetingStage(event.target.value as "" | "B3A_COLLECTIVE" | "B4_DECISION")}><option value="B3A_COLLECTIVE">Đề xuất của tập thể lãnh đạo</option><option value="B4_DECISION">Quyết định mức xếp loại</option><option value="">Không xác định</option></select></div>
-                <div className="col-6"><label className="form-label">Biểu mẫu</label><select className="form-select" value={meetingForm} onChange={(event) => setMeetingForm(event.target.value as "M12" | "M13")}><option value="M12">M12 - Hội nghị</option><option value="M13">M13 - Kiểm phiếu</option></select></div>
-                <div className="col-6"><label className="form-label">Địa điểm</label><input className="form-control" value={meeting.location} onChange={(event) => setMeeting({ ...meeting, location: event.target.value })} /></div>
-                <div className="col-4"><label className="form-label">Triệu tập</label><input type="number" min="0" className="form-control" value={invitedCount} onChange={(event) => setInvitedCount(Number(event.target.value))} /></div>
-                <div className="col-4"><label className="form-label">Có mặt</label><input type="number" min="0" className="form-control" value={presentCount} onChange={(event) => setPresentCount(Number(event.target.value))} /></div>
-                <div className="col-4"><label className="form-label">Vắng</label><input className="form-control" value={Math.max(invitedCount - presentCount, 0)} readOnly /></div>
-                <div className="col-md-6"><label className="form-label">Chủ trì</label><input className="form-control" value={meeting.chairName} onChange={(event) => setMeeting({ ...meeting, chairName: event.target.value })} /></div>
-                <div className="col-md-6"><label className="form-label">Thư ký</label><input className="form-control" value={meeting.secretaryName} onChange={(event) => setMeeting({ ...meeting, secretaryName: event.target.value })} /></div>
-                <div className="col-12"><label className="form-label">Nội dung biên bản</label><textarea className="form-control" rows={4} value={meeting.minutesContent} onChange={(event) => setMeeting({ ...meeting, minutesContent: event.target.value })} /></div>
-                <div className="col-12"><label className="form-label">Kết quả hội nghị</label><textarea className="form-control" rows={3} value={meeting.outcomeContent} onChange={(event) => setMeeting({ ...meeting, outcomeContent: event.target.value })} /></div>
-                {meetingForm === "M13" && <div className="col-12"><label className="form-label">Tổng hợp phiếu theo hồ sơ</label><div className="border rounded p-2" style={{ maxHeight: 220, overflowY: "auto" }}>
-                  {branchRecords.length === 0 ? <div className="text-secondary small">Chưa tải được hồ sơ của Chi bộ đã chọn.</div> : branchRecords.map((record) => {
-                    const vote = voteInputs[record.id] || { votesExcellent: 0, votesGood: 0, votesSatisfactory: 0, votesUnsatisfactory: 0, invalidVotes: 0, notes: "" };
-                    const updateVote = (key: keyof Omit<EvaluationMeetingVoteSummaryDto, "recordId">, value: number | string) => setVoteInputs({ ...voteInputs, [record.id]: { ...vote, [key]: value } });
-                    return <div key={record.id} className="border-bottom py-2"><div className="small fw-semibold mb-1">{record.fullName}</div><div className="row g-1"><div className="col"><input aria-label="Xuất sắc" type="number" min="0" className="form-control form-control-sm" placeholder="XS" value={vote.votesExcellent} onChange={(event) => updateVote("votesExcellent", Number(event.target.value))} /></div><div className="col"><input aria-label="Tốt" type="number" min="0" className="form-control form-control-sm" placeholder="Tốt" value={vote.votesGood} onChange={(event) => updateVote("votesGood", Number(event.target.value))} /></div><div className="col"><input aria-label="Đạt" type="number" min="0" className="form-control form-control-sm" placeholder="Đạt" value={vote.votesSatisfactory} onChange={(event) => updateVote("votesSatisfactory", Number(event.target.value))} /></div><div className="col"><input aria-label="Không đạt" type="number" min="0" className="form-control form-control-sm" placeholder="KĐ" value={vote.votesUnsatisfactory} onChange={(event) => updateVote("votesUnsatisfactory", Number(event.target.value))} /></div></div></div>;
-                  })}
-                </div></div>}
-                <div className="col-12"><button className="btn btn-outline-primary" disabled={saving}>{saving ? "Đang lưu..." : "Lưu biên bản"}</button></div>
-              </form>
-            </div>
-          </section>
-          <section className="card border-0 shadow-sm"><div className="card-body px-4"><h2 className="h6">Biên bản đã lập</h2>{meetings.length === 0 ? <div className="text-secondary small">Chưa có biên bản trong kỳ.</div> : meetings.map((item) => <div key={item.id} className="border-bottom py-2"><strong>{item.formCode}</strong><div className="text-secondary small">{item.partyCellName || item.departmentName || "Cấp Công ty"} · {item.stage === "B4_DECISION" ? "Quyết định" : item.stage === "B3A_COLLECTIVE" ? "Đề xuất tập thể" : "—"} · {item.location || "Chưa ghi địa điểm"}</div></div>)}</div></section>
-       </div>
-       </div>
-       </div>
-     </div>
+            {canManageCollective && periodId && (
+              <section className="card border-0 shadow-sm">
+                <div className="card-header bg-white border-0 pt-4 px-4">
+                  <h2 className="h6 mb-1">{editingRecord ? `Sửa hồ sơ: ${editingRecord.subjectName}` : "Lập hồ sơ tập thể"}</h2>
+                  <div className="text-secondary small">Các mục nhập theo đúng biểu mẫu gốc; mục để trống giữ dòng chấm trên bản xuất.</div>
+                </div>
+                <div className="card-body px-4">
+                  <CollectiveRecordEditor
+                    periodId={periodId}
+                    catalog={catalog}
+                    branches={branches}
+                    departments={departments}
+                    editing={editingRecord}
+                    showError={showError}
+                    onCancel={() => setEditingRecord(null)}
+                    onSaved={async (saved) => {
+                      setEditingRecord(null);
+                      await reload();
+                      showSuccess(`Đã lưu hồ sơ ${FORM_NAMES[saved.form] || saved.form}.`);
+                    }}
+                  />
+                </div>
+              </section>
+            )}
+          </div>
+
+          <div className="col-12 col-xl-5">
+            <section className="card border-0 shadow-sm mb-3">
+              <div className="card-body px-4">
+                <h2 className="h6">Biên bản đã lập</h2>
+                {meetings.length === 0 ? <div className="text-secondary small">Chưa có biên bản trong kỳ.</div> : meetings.map((item) => (
+                  <div key={item.id} className="border-bottom py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                      <strong>{item.formCode === "M13" ? "Mẫu 13 — Kiểm phiếu" : "Mẫu 12 — Hội nghị"}</strong>
+                      <div className="text-secondary small">
+                        {item.partyCellName || item.departmentName || "Cấp Công ty"} · {item.stage === "B4_DECISION" ? "Quyết định" : item.stage === "B3A_COLLECTIVE" ? "Đề xuất tập thể" : "—"} · {new Date(item.startedAt).toLocaleDateString("vi-VN")}
+                      </div>
+                    </div>
+                    <div className="d-flex gap-2">
+                      {canManageMeeting && (
+                        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setEditingMeeting(item)}>
+                          <i className="bi bi-pencil me-1" />Sửa
+                        </button>
+                      )}
+                      {item.formCode === "M12" && exportButtons(`${item.id}-12`, (format) => exportMeeting(item, "12", format), "Mẫu 12")}
+                      {item.voteSummaries.length > 0 && exportButtons(`${item.id}-13`, (format) => exportMeeting(item, "13", format), "Mẫu 13")}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {canManageMeeting && periodId && (
+              <section className="card border-0 shadow-sm">
+                <div className="card-header bg-white border-0 pt-4 px-4">
+                  <h2 className="h6 mb-1">{editingMeeting ? "Sửa biên bản" : "Lập biên bản hội nghị"}</h2>
+                  <div className="text-secondary small">Mẫu 12 là biên bản hội nghị; Mẫu 13 (biên bản kiểm phiếu) xuất từ biên bản đã có kết quả kiểm phiếu — Tổ kiểm phiếu và số phiếu nhập ở đây.</div>
+                </div>
+                <div className="card-body px-4">
+                  <MeetingEditor
+                    periodId={periodId}
+                    branches={branches}
+                    departments={departments}
+                    editing={editingMeeting}
+                    showError={showError}
+                    onCancel={() => setEditingMeeting(null)}
+                    onSaved={async (saved) => {
+                      setEditingMeeting(null);
+                      await reload();
+                      showSuccess(`Đã lưu biên bản ${saved.formCode === "M13" ? "Mẫu 13" : "Mẫu 12"}.`);
+                    }}
+                  />
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

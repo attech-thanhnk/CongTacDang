@@ -63,7 +63,8 @@ public sealed class DataSeederAuthorizationTests
                 Assert.Equal(PeriodStatus.Open, period.Status);
                 Assert.Equal("09B", period.GetCriteria()!.SelfScoreForm);
                 var statuses = await db.EvaluationRecords.Select(r => r.Status).ToListAsync();
-                Assert.Equal(6, statuses.Count);
+                // 7 hồ sơ ở 6 trạng thái: hai hồ sơ đã công bố (Giám đốc — cấp trên; cán bộ mức C có kế hoạch Mẫu 17 — đợt 8).
+                Assert.Equal(7, statuses.Count);
                 Assert.Equal(6, statuses.Distinct().Count());
                 Assert.Contains(RecordStatus.Published, statuses);
 
@@ -88,7 +89,7 @@ public sealed class DataSeederAuthorizationTests
                 Assert.Equal(new[] { PermissionCodes.MeetingRead }, evaluatee.Permissions.Select(p => p.Code).ToArray());
                 Assert.Equal(9, await db.Roles.CountAsync());
                 Assert.Equal(1, await db.EvaluationPeriods.CountAsync());
-                Assert.Equal(9, await db.PartyMemberProfiles.CountAsync());
+                Assert.Equal(10, await db.PartyMemberProfiles.CountAsync());
             }
 
             // Tên đăng nhập duy nhất không phân biệt hoa thường (index lower("Username") trong migration).

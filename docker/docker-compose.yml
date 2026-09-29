@@ -46,6 +46,7 @@ services:
       Security__RateLimit__Auth__PermitLimit: ${Security__RateLimit__Auth__PermitLimit:-10}
       Security__RateLimit__Auth__WindowSeconds: ${Security__RateLimit__Auth__WindowSeconds:-60}
       Organization__ApprovalAuthorityRefreshMinutes: ${Organization__ApprovalAuthorityRefreshMinutes:-60}
+      Notifications__DueSoonDays: ${Notifications__DueSoonDays:-2}
     expose:
       - "5000"
     ports: ${BACKEND_PORTS:-[]}

@@ -54,10 +54,14 @@ Trường bổ sung (task 07, sửa ở task 14):
 | `evaluation.external.record` | Ghi nhận kết quả của cấp trên | có | Ghi nhận kết quả mọi bước hồ sơ luồng đặt "Cấp trên thực hiện" (thẩm định, nhận xét, quyết định…): cơ quan, số/ngày văn bản, nhận xét, mức, điểm, văn bản đính kèm; sửa/thay văn bản đính kèm đó |
 | `evaluation.publish` | Công bố, khóa kết quả (B5) | có | |
 | `evaluation.reopen` | Mở lại hồ sơ đã khóa để đính chính | có | Bắt buộc lý do |
-| `collective.manage` | Lập hồ sơ tự đánh giá tập thể (Mẫu 06–08) | có | |
-| `meeting.read` | Xem biên bản hội nghị, kiểm phiếu (Mẫu 12–13) | có | |
+| `evaluation.results.view` | Xem kết quả đánh giá đã công bố | có | Task 20: danh sách họ tên, chức danh, đơn vị, mức chính thức (điểm khi bộ tiêu chí bật `publishScores`) — không chi tiết hồ sơ, minh chứng, ý kiến (HD03 II.2). Phạm vi công khai = phạm vi bản gán; chủ hồ sơ luôn thấy kết quả của mình |
+| `evaluation.appeal.submit` | Gửi kiến nghị về kết quả | chủ hồ sơ | Task 20: chỉ trên hồ sơ của mình, sau công bố, không trùng khi đang xử lý (PL II III.2) |
+| `evaluation.appeal.resolve` | Xử lý kiến nghị về kết quả | có | Task 20: nhận xem xét, trả lời bắt buộc căn cứ; không xử lý kiến nghị của mình hoặc kiến nghị liên quan tới bước mình đã thực hiện trên hồ sơ |
+| `evaluation.improvement.manage` | Lập kế hoạch khắc phục 30-60-90 ngày | có | Task 20: lập, duyệt, ghi kết quả mốc Mẫu 17 (thủ trưởng đơn vị); không trên hồ sơ của mình |
+| `collective.manage` | Lập hồ sơ tự đánh giá tập thể (Mẫu 06–08) | có | Xuất Mẫu 07, 08 (Word, Excel) của hồ sơ trong phạm vi (hoặc `evaluation.read`) |
+| `meeting.read` | Xem biên bản hội nghị, kiểm phiếu (Mẫu 12–13) | có | Xuất Mẫu 12, 13 theo từng biên bản trên đơn vị của biên bản (hoặc `meeting.manage`) |
 | `meeting.manage` | Lập biên bản hội nghị, kiểm phiếu | có | |
-| `report.export` | Xuất báo cáo tổng hợp | có | Mẫu 14–16, danh sách cán bộ — lọc theo phạm vi |
+| `report.export` | Xuất báo cáo tổng hợp | có | Mẫu 14, 15A, 15B, 16 (kèm bản nháp), báo cáo nội bộ, danh sách cán bộ — lọc theo phạm vi tổ chức Đảng |
 
 Không có mã quyền riêng cho tệp: hệ thống không lưu văn bản dùng chung (văn bản hướng dẫn phát qua văn phòng điện tử); mọi tệp gắn với một đối tượng và quyền trên tệp suy ra từ quyền trên đối tượng (mục 4).
 
@@ -82,9 +86,9 @@ Người dùng **được** thực hiện quyền `P` trên đối tượng `T` 
    
    **và**
 3. Luật riêng theo mã (cố định trong code, lấy từ HD03):
-   - `evaluation.self`: chỉ khi `T.OwnerId == user.Id` (phạm vi bỏ qua).
+   - `evaluation.self`, `evaluation.appeal.submit`: chỉ khi `T.OwnerId == user.Id` (phạm vi bỏ qua).
    - `evaluation.read`: luôn đúng khi `T.OwnerId == user.Id`.
-   - **Xung đột lợi ích** (HD03 tr.4): các quyền duyệt/xác nhận/ghi nhận/thẩm định/nhận xét/đề xuất/quyết định/công bố/mở lại (`evaluation.tasks.approve`, `cell.confirm`, `collective.record`, `appraise`, `director.review`, `unit.review`, `decide`, `external.record`, `publish`, `reopen`) **không** áp dụng khi `T.OwnerId == user.Id`.
+   - **Xung đột lợi ích** (HD03 tr.4): các quyền duyệt/xác nhận/ghi nhận/thẩm định/nhận xét/đề xuất/quyết định/công bố/mở lại (`evaluation.tasks.approve`, `cell.confirm`, `collective.record`, `appraise`, `director.review`, `unit.review`, `decide`, `external.record`, `publish`, `reopen`, `appeal.resolve`, `improvement.manage`) **không** áp dụng khi `T.OwnerId == user.Id`. Riêng kiến nghị: người đã thực hiện bước mà kiến nghị liên quan tới (chủ hồ sơ chọn khi gửi) cũng không xử lý được (service kiến nghị kiểm tra).
    - Guard **không** xét cấp quyết định (`ApprovalAuthority`). Bước nào làm trong hệ thống ("Nội bộ", với quyền thực hiện cấu hình được), bước nào do cấp trên thực hiện (ghi nhận bằng `evaluation.external.record`) hay không áp dụng là cấu hình **hồ sơ luồng** của hồ sơ (`docs/thiet-ke/luong-danh-gia.md`); service luồng kiểm tra chế độ bước (sai → 409) rồi mới gọi guard với quyền thực hiện của bước. Cấp quyết định chỉ dùng để chọn hồ sơ luồng mặc định khi thêm người vào kỳ.
    - Tệp đính kèm: mọi tệp gắn với một đối tượng (hồ sơ đánh giá, nhiệm vụ, kết quả bước do cấp trên thực hiện); không có tệp dùng chung, không có trang danh sách tệp riêng — tệp được nộp/xem ngay trong hồ sơ.
      - Xem/tải: `evaluation.read` trên hồ sơ gắn tệp (chủ hồ sơ luôn xem được).
@@ -129,14 +133,14 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
 
 | Vai trò | Quyền | Phạm vi gán điển hình | Căn cứ HD03 (bản trích xuất) |
 |---|---|---|---|
-| Người được đánh giá | `evaluation.self` | Global | IV.1, IV.2 |
-| Lãnh đạo Phòng | `evaluation.read`, `evaluation.tasks.approve`, `evaluation.unit.review` | Department | IV.1; PL II mục II; PL III ví dụ 3 |
+| Người được đánh giá | `evaluation.self`, `evaluation.results.view`, `evaluation.appeal.submit` | Global (phạm vi của bản gán = phạm vi công khai kết quả) | IV.1, IV.2; Bước 5; PL II III.2 |
+| Lãnh đạo Phòng | `evaluation.read`, `evaluation.tasks.approve`, `evaluation.unit.review`, `evaluation.improvement.manage` | Department | IV.1; PL II mục II; PL III ví dụ 3; Mẫu 17 |
 | Thư ký tập thể lãnh đạo | `evaluation.read`, `evaluation.collective.record`, `meeting.read`, `meeting.manage` | Department hoặc Global (cấp Công ty) | IV.3a; Mẫu 11–13 |
 | Chi ủy / Bí thư Chi bộ | `evaluation.read`, `evaluation.cell.confirm`, `collective.manage`, `meeting.read` | PartyCell | Mẫu 09A–9D "xác nhận của Chi bộ"; Mẫu 07 |
 | Cơ quan thẩm định (Phòng TCCB-LĐ) | `evaluation.read`, `evaluation.appraise`, `period.manage`, `criteria.manage`, `report.export`, `system.users.read` | Global | IV.1 (rà soát), IV.3b |
-| Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch) | `evaluation.read`, `evaluation.director.review`, `report.export` | Global | IV.3c |
+| Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch) | `evaluation.read`, `evaluation.director.review`, `report.export`, `evaluation.improvement.manage` | Global | IV.3c; Mẫu 17 |
 | Cấp ủy viên Đảng ủy | `evaluation.read`, `meeting.read`, `report.export` | Global | IV.4; Mẫu 18 |
-| Văn phòng Đảng ủy (ghi nhận quyết định) | `evaluation.read`, `evaluation.decide`, `evaluation.external.record`, `evaluation.publish`, `evaluation.reopen`, `meeting.read`, `meeting.manage`, `report.export` | Global | IV.4, IV.5 |
+| Văn phòng Đảng ủy (ghi nhận quyết định) | `evaluation.read`, `evaluation.decide`, `evaluation.external.record`, `evaluation.publish`, `evaluation.reopen`, `meeting.read`, `meeting.manage`, `report.export`, `evaluation.appeal.resolve` | Global | IV.4, IV.5; PL II III.2 |
 | Quản trị hệ thống (`IsProtected`) | `system.*` (gồm `system.settings.manage`, `system.templates.manage`), `catalog.manage` | Global | Mẫu 18 (đầu mối IT) |
 
 Phạm vi `Department`/`PartyCell` trong bảng hiển thị là "Đơn vị chính quyền"/"Tổ chức Đảng" và bao trùm mọi đơn vị cấp dưới của nút được gán (mục 4.1).

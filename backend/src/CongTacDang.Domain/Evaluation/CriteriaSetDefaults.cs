@@ -9,7 +9,7 @@ namespace CongTacDang.Domain.Evaluation;
 /// (làm tròn), 4.1 (mức xếp loại), 4.3 (trần xuất sắc). Chờ Phòng TCCB-LĐ / Ban Tổ chức Đảng ủy xác nhận; sửa được qua giao
 /// diện bằng cách nhân bản thành bản nháp. Lựa chọn khi văn bản mâu thuẫn ghi trong báo cáo task 16.
 /// </summary>
-public static class CriteriaSetDefaults
+public static partial class CriteriaSetDefaults
 {
     /// <summary>Mã bộ mặc định Mẫu 09B (Quý III/2026).</summary>
     public const string Code09B = "HD03-09B-Q3-2026";
@@ -31,12 +31,12 @@ public static class CriteriaSetDefaults
         + "\"không mặc nhiên chấm điểm tối đa\"); trần xuất sắc 20% số \"Hoàn thành tốt\" (câu chữ III.6), làm tròn 0,5 lên 1.";
 
     /// <summary>Nội dung bộ Mẫu 09B (Quý III/2026): 6 trục có điểm tối đa 15/10/10/15/10/10.</summary>
-    public static CriteriaSetContent Build09B() => Build(axisMax: new[] { 15.0, 10, 10, 15, 10, 10 });
+    public static CriteriaSetContent Build09B() => Build(axisMax: new[] { 15.0, 10, 10, 15, 10, 10 }, RequiredForms09B);
 
     /// <summary>Nội dung bộ Mẫu 09A (từ 2027): chấm theo nhiệm vụ Mẫu 01/02, công thức A-B-C-D; trục không có điểm tối đa riêng.</summary>
-    public static CriteriaSetContent Build09A() => Build(axisMax: new[] { 0.0, 0, 0, 0, 0, 0 });
+    public static CriteriaSetContent Build09A() => Build(axisMax: new[] { 0.0, 0, 0, 0, 0, 0 }, RequiredForms09A);
 
-    private static CriteriaSetContent Build(double[] axisMax)
+    private static CriteriaSetContent Build(double[] axisMax, IReadOnlyList<string> requiredForms)
     {
         var axes = new List<ResultAxis>
         {
@@ -55,6 +55,7 @@ public static class CriteriaSetDefaults
         };
         for (var i = 0; i < axes.Count; i++)
             axes[i].MaxScore = axisMax[i];
+        ApplyAxisFormTexts(axes);
 
         return new CriteriaSetContent
         {
@@ -100,6 +101,8 @@ public static class CriteriaSetDefaults
                 }
             },
             Axes = axes,
+            RequiredForms = new List<string>(requiredForms),
+            SelfAssessmentSections = SelfAssessmentSections(),
             WeightFrames = new List<WeightFrame>
             {
                 new() { Code = "K1", Name = "Khung 1 - Quản lý, tham mưu, công tác Đảng, Đoàn thể", A = 0.25, B = 0.35, C = 0.20, D = 0.20 },

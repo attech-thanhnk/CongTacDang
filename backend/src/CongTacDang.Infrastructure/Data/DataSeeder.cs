@@ -11,6 +11,7 @@ using CongTacDang.Application.Accounts;
 using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.Organization;
+using CongTacDang.Application.Reports;
 using CongTacDang.Application.Services;
 using CongTacDang.Infrastructure.Repositories;
 
@@ -81,11 +82,13 @@ public static class DataSeeder
     /// <summary>Cấu hình mặc định (docs/thiet-ke/phan-quyen.md mục 6).</summary>
     private static readonly RoleDefinition[] DefaultRoles =
     {
-        new(RoleCodes.Evaluatee, "Người được đánh giá", "Tham gia đánh giá bản thân (HD03 IV.1, IV.2). Phạm vi gán điển hình: Toàn công ty.",
-            new[] { PermissionCodes.EvaluationSelf }),
+        // Task 20 (ĐỀ XUẤT, chờ nghiệp vụ xác nhận): xem kết quả công khai theo phạm vi bản gán (mẫu gán Toàn công ty), gửi kiến nghị.
+        new(RoleCodes.Evaluatee, "Người được đánh giá", "Tham gia đánh giá bản thân (HD03 IV.1, IV.2); xem kết quả đã công bố trong phạm vi được gán, "
+            + "gửi kiến nghị về kết quả của mình (Bước 5; PL II III.2). Phạm vi gán điển hình: Toàn công ty.",
+            new[] { PermissionCodes.EvaluationSelf, PermissionCodes.EvaluationResultsView, PermissionCodes.EvaluationAppealSubmit }),
         new(RoleCodes.DepartmentLeader, "Lãnh đạo Phòng", "Xem hồ sơ, duyệt danh mục sản phẩm của Phòng (HD03 IV.1; PL II mục II); đề xuất mức thay cấp trực tiếp sử dụng "
-            + "ở hồ sơ luồng được cấu hình (PL III ví dụ 3). Phạm vi gán điển hình: Phòng.",
-            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksApprove, PermissionCodes.EvaluationUnitReview }),
+            + "ở hồ sơ luồng được cấu hình (PL III ví dụ 3); lập kế hoạch khắc phục 30-60-90 ngày (Mẫu 17). Phạm vi gán điển hình: Phòng.",
+            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksApprove, PermissionCodes.EvaluationUnitReview, PermissionCodes.EvaluationImprovementManage }),
         new(RoleCodes.CollectiveSecretary, "Thư ký tập thể lãnh đạo", "Ghi nhận đề xuất của tập thể lãnh đạo, lập biên bản (HD03 IV.3a; Mẫu 11–13). Phạm vi gán điển hình: Phòng hoặc Toàn công ty.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.MeetingRead, PermissionCodes.MeetingManage }),
         new(RoleCodes.CellCommittee, "Chi ủy / Bí thư Chi bộ", "Chi bộ xác nhận phiếu tự chấm, lập hồ sơ tập thể (Mẫu 09A–9D, Mẫu 07). Phạm vi gán điển hình: Chi bộ.",
@@ -96,17 +99,17 @@ public static class DataSeeder
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationAppraise, PermissionCodes.PeriodManage,
                 PermissionCodes.CriteriaManage, PermissionCodes.ReportExport, PermissionCodes.SystemUsersRead
             }),
-        new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Nhận xét, đề xuất của cấp trực tiếp sử dụng cán bộ (HD03 IV.3c). Phạm vi gán: Toàn công ty.",
-            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport }),
+        new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Nhận xét, đề xuất của cấp trực tiếp sử dụng cán bộ (HD03 IV.3c); lập kế hoạch khắc phục 30-60-90 ngày (Mẫu 17). Phạm vi gán: Toàn công ty.",
+            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport, PermissionCodes.EvaluationImprovementManage }),
         new(RoleCodes.PartyCommitteeMember, "Cấp ủy viên Đảng ủy", "Xem hồ sơ, biên bản, báo cáo (HD03 IV.4; Mẫu 18). Phạm vi gán: Toàn công ty.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.MeetingRead, PermissionCodes.ReportExport }),
         new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy (ghi nhận quyết định)", "Ghi nhận quyết định của Đảng ủy cơ sở, ghi nhận kết quả của cấp trên "
-            + "(thẩm định, nhận xét, quyết định do cấp trên thực hiện), công bố, mở lại hồ sơ (HD03 IV.4, IV.5). Phạm vi gán: Toàn công ty.",
+            + "(thẩm định, nhận xét, quyết định do cấp trên thực hiện), công bố, mở lại hồ sơ, xử lý kiến nghị sau công bố (HD03 IV.4, IV.5; PL II III.2). Phạm vi gán: Toàn công ty.",
             new[]
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationExternalRecord,
                 PermissionCodes.EvaluationPublish, PermissionCodes.EvaluationReopen, PermissionCodes.MeetingRead,
-                PermissionCodes.MeetingManage, PermissionCodes.ReportExport
+                PermissionCodes.MeetingManage, PermissionCodes.ReportExport, PermissionCodes.EvaluationAppealResolve
             }),
         new(RoleCodes.Administrator, "Quản trị hệ thống", "Quản trị kỹ thuật: tài khoản, vai trò, gán vai trò, nhật ký, danh mục, thông tin đơn vị, file mẫu biểu mẫu Word. "
             + "Không xem nội dung đánh giá (Mẫu 18).",
@@ -514,10 +517,14 @@ public static class DataSeeder
     /// <summary>Một chức vụ của tài khoản mẫu: tên chức vụ (danh mục mặc định), mã đơn vị, chức vụ chính.</summary>
     private sealed record SamplePosition(string Position, string UnitCode, bool IsPrimary);
 
-    /// <summary>Một tài khoản mẫu kèm chức vụ, bản gán vai trò và trạng thái hồ sơ trong kỳ mẫu (null = không được đánh giá).</summary>
+    /// <summary>
+    /// Một tài khoản mẫu kèm chức vụ, bản gán vai trò và trạng thái hồ sơ trong kỳ mẫu (null = không được đánh giá);
+    /// <paramref name="Grade"/>: mức đề xuất/quyết định của các bước sau tự chấm (mặc định Hoàn thành tốt).
+    /// </summary>
     private sealed record SampleAccount(
         string Username, string FullName, string Department, string? PartyCell, SamplePosition[] Positions,
-        string Title, string WeightFrameCode, (string Role, RoleScopeType Scope)[] Roles, RecordStatus? RecordStatus);
+        string Title, string WeightFrameCode, (string Role, RoleScopeType Scope)[] Roles, RecordStatus? RecordStatus,
+        EvaluationGrade Grade = EvaluationGrade.HoanThanhTot);
 
     /// <summary>Cây đơn vị chính quyền mẫu (mã, tên, mô tả, mã cha, loại).</summary>
     private static readonly (string Code, string Name, string Description, string? Parent, string Type)[] SampleDepartments =
@@ -577,7 +584,11 @@ public static class DataSeeder
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global) }, RecordStatus.AwaitingSelfScore),
         new("canbo.kt2", "Hoàng Văn Nam", "PH-KT", "CB-KT", new[] { new SamplePosition("Phó Trưởng phòng", "PH-KT", true) },
             "Phó Trưởng phòng Kỹ thuật", "K2",
-            new[] { (RoleCodes.Evaluatee, RoleScopeType.Global) }, RecordStatus.AwaitingCellConfirm)
+            new[] { (RoleCodes.Evaluatee, RoleScopeType.Global) }, RecordStatus.AwaitingCellConfirm),
+        // Đã công bố mức C: có kế hoạch 30-60-90 ngày (Mẫu 17) đang lập và một kiến nghị chờ xử lý (thử chức năng sau công bố).
+        new("canbo.kh", "Nguyễn Thị Mai", "PH-KH", "CB-VP", new[] { new SamplePosition("Phó Trưởng phòng", "PH-KH", true) },
+            "Phó Trưởng phòng Kế hoạch - Kinh doanh", "K2",
+            new[] { (RoleCodes.Evaluatee, RoleScopeType.Global) }, RecordStatus.Published, EvaluationGrade.HoanThanh)
     };
 
     /// <summary>
@@ -736,8 +747,12 @@ public static class DataSeeder
         var criteria = sampleSet?.GetContent() ?? CriteriaSetDefaults.Build09B();
         context.EvaluationPeriods.Add(period);
 
+        var records = new Dictionary<string, EvaluationRecord>(StringComparer.Ordinal);
         foreach (var sample in SampleAccounts.Where(s => s.RecordStatus.HasValue))
-            AddSampleRecord(context, period, settings, criteria, members[sample.Username], sample.RecordStatus!.Value, now);
+            records[sample.Username] = AddSampleRecord(context, period, settings, criteria, members[sample.Username], sample.RecordStatus!.Value, sample.Grade, now);
+
+        AddSampleCollectiveAndMeetings(context, period, departments, cells, members, records);
+        AddSamplePostPublish(context, period, members, records);
 
         await context.SaveChangesAsync();
 
@@ -762,9 +777,9 @@ public static class DataSeeder
     /// Thêm hồ sơ mẫu đang chờ <paramref name="status"/>: ảnh chụp đơn vị/tổ chức Đảng/khung/cấp quyết định như khi thêm người vào kỳ,
     /// điền dữ liệu của các bước đã qua và ghi lịch sử từng bước.
     /// </summary>
-    private static void AddSampleRecord(
+    private static EvaluationRecord AddSampleRecord(
         CongTacDangDbContext context, EvaluationPeriod period, PeriodSettings settings, CriteriaSetContent criteria, PartyMemberProfile member,
-        RecordStatus status, DateTime now)
+        RecordStatus status, EvaluationGrade grade, DateTime now)
     {
         var record = new EvaluationRecord
         {
@@ -794,7 +809,7 @@ public static class DataSeeder
             var step = WorkflowSteps.StepOf(current)
                 ?? throw new InvalidOperationException($"Trạng thái mẫu {status} không đạt được theo cấu hình kỳ.");
             at = at.AddDays(1);
-            FillStep(record, criteria, step, at);
+            FillStep(record, criteria, step, grade, at);
             var external = profile.Mode(step) == StepMode.External;
             if (external)
                 AddSampleExternalResult(context, record, step, at);
@@ -811,6 +826,201 @@ public static class DataSeeder
 
         record.Status = current;
         context.EvaluationRecords.Add(record);
+        return record;
+    }
+
+    /// <summary>
+    /// Hồ sơ tập thể và biên bản mẫu (đợt 8): Mẫu 07 (đủ mục I.1–I.4, II–VI) và Mẫu 08 (một số nhóm nội dung) của Chi bộ Khối
+    /// Kỹ thuật; biên bản Mẫu 12 hội nghị tập thể lãnh đạo Phòng Kỹ thuật (B3a, đủ mục 3.2, chức vụ chủ trì/thư ký) có kết quả
+    /// kiểm phiếu của hồ sơ đã qua B3a; biên bản kiểm phiếu hội nghị Đảng ủy (B4, Mẫu 13: Tổ kiểm phiếu, số phiếu, mục I/II).
+    /// </summary>
+    private static void AddSampleCollectiveAndMeetings(
+        CongTacDangDbContext context, EvaluationPeriod period, IReadOnlyDictionary<string, AdministrativeDepartment> departments,
+        IReadOnlyDictionary<string, PartyCell> cells, IReadOnlyDictionary<string, PartyMemberProfile> members,
+        IReadOnlyDictionary<string, EvaluationRecord> records)
+    {
+        var cell = cells["CB-KT"];
+        var sections = Hd03FormCatalog.Form07Strengths.ToDictionary(
+            s => s.Code, s => $"Chi ủy thực hiện tốt nội dung \"{s.Title.TrimEnd('.')}\" trong quý (dữ liệu mẫu).");
+        context.CollectiveEvaluationRecords.Add(new CollectiveEvaluationRecord
+        {
+            PeriodId = period.Id,
+            Form = CollectiveEvaluationForm.M07,
+            PartyCellId = cell.Id,
+            HeadId = members["bithu.kt"].Id,
+            SubjectName = "Chi ủy " + cell.Name,
+            Sections = System.Text.Json.JsonSerializer.Serialize(sections),
+            Limitations = "Một số báo cáo định kỳ còn chậm so với yêu cầu (dữ liệu mẫu).",
+            Causes = "Khối lượng công việc chuyên môn lớn; phân công theo dõi chưa sát (dữ liệu mẫu).",
+            PreviousRemediation = "Đã khắc phục hạn chế về sinh hoạt chuyên đề nêu ở kỳ trước (dữ liệu mẫu).",
+            Explanation = "Không có nội dung cần giải trình thêm (dữ liệu mẫu).",
+            Responsibilities = "Bí thư Chi bộ chịu trách nhiệm chính về hạn chế nêu trên (dữ liệu mẫu).",
+            RemediationPlan = "Quý IV: phân công đầu mối theo dõi báo cáo, kiểm tra hằng tháng (dữ liệu mẫu).",
+            GeneralCriteriaScore = 27,
+            TaskCriteriaScore = 63,
+            TotalScore = 90,
+            SelfProposedGrade = EvaluationGrade.HoanThanhTot,
+            Status = CollectiveRecordStatus.Submitted
+        });
+        var report08 = new CollectiveEvaluationRecord
+        {
+            PeriodId = period.Id,
+            Form = CollectiveEvaluationForm.M08,
+            PartyCellId = cell.Id,
+            HeadId = members["bithu.kt"].Id,
+            SubjectName = "Phòng Kỹ thuật",
+            Status = CollectiveRecordStatus.Submitted
+        };
+        foreach (var (order, category, task, plan, result, issues) in new[]
+                 {
+                     (1, "1", "Bảo dưỡng định kỳ hệ thống CNS/ATM", "Kế hoạch bảo dưỡng năm 2026", "Hoàn thành 100% hạng mục quý III", "Không có"),
+                     (2, "2", "Sinh hoạt chuyên đề về chuyển đổi số", "Chương trình công tác năm của Chi bộ", "Tổ chức 01 chuyên đề, 100% đảng viên tham dự", "Không có"),
+                     (3, "8", "Đảm bảo an toàn kỹ thuật cho điều hành bay", "Chỉ tiêu an toàn của Tổng công ty", "Không để xảy ra sự cố do chủ quan", "Không có"),
+                     (4, "13", "Xử lý sự cố thiết bị đột xuất tại trạm radar", "Chỉ đạo của lãnh đạo Công ty", "Khắc phục trong 4 giờ", "Được Công ty biểu dương")
+                 })
+        {
+            report08.Items.Add(new CollectiveEvaluationItem
+            {
+                ItemOrder = order, Category = category, TaskName = task + " (dữ liệu mẫu)", PlanOrDirection = plan, Result = result,
+                Limitations = issues, Notes = string.Empty
+            });
+        }
+        context.CollectiveEvaluationRecords.Add(report08);
+
+        static string Details(object value) => System.Text.Json.JsonSerializer.Serialize(value, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+
+        // B3a — hội nghị tập thể lãnh đạo Phòng Kỹ thuật (Mẫu 12), kiểm phiếu hồ sơ đã qua bước đề xuất.
+        var department = departments["PH-KT"];
+        var collective = new EvaluationMeeting
+        {
+            PeriodId = period.Id,
+            DepartmentId = department.Id,
+            Stage = WorkflowStep.B3A_COLLECTIVE,
+            FormCode = "M12",
+            MeetingType = "Hội nghị tập thể lãnh đạo, quản lý",
+            Location = "Phòng họp Phòng Kỹ thuật",
+            StartedAt = new DateTime(2026, 9, 9, 1, 30, 0, DateTimeKind.Utc),
+            EndedAt = new DateTime(2026, 9, 9, 3, 30, 0, DateTimeKind.Utc),
+            InvitedCount = 4,
+            PresentCount = 4,
+            ChairName = members["truongphong.kt"].FullName,
+            SecretaryName = members["thuky.kt"].FullName,
+            MinutesContent = "Hội nghị nghe báo cáo kết quả thực hiện nhiệm vụ trọng tâm quý III/2026, thảo luận, nhận xét từng cán bộ (dữ liệu mẫu).",
+            OutcomeContent = "Hội nghị thống nhất đề xuất mức xếp loại theo kết quả kiểm phiếu (dữ liệu mẫu).",
+            Details = Details(new
+            {
+                workingRules = "tập thể lãnh đạo Phòng Kỹ thuật nhiệm kỳ 2025-2030",
+                reportingUnit = "Phòng Kỹ thuật",
+                chairTitle = "Chi ủy viên, Trưởng phòng Kỹ thuật",
+                secretaryTitle = "Chuyên viên, Thư ký tập thể lãnh đạo",
+                attendees = new[] { new { name = members["thuky.kt"].FullName, title = "Chuyên viên, ghi chép" } },
+                countingCommittee = new[] { new { name = members["canbo.kt1"].FullName, title = "Phó Trưởng phòng Kỹ thuật" } },
+                ballotsIssued = 4, ballotsCollected = 4, ballotsValid = 4, ballotsInvalid = 0
+            })
+        };
+        var proposed = records["truongphong.kt"];
+        collective.VoteSummaries.Add(new EvaluationMeetingVoteSummary { RecordId = proposed.Id, VotesGood = 4 });
+        proposed.CollectiveMeetingId = collective.Id;
+        context.EvaluationMeetings.Add(collective);
+
+        // B4 — hội nghị Đảng ủy Công ty bỏ phiếu quyết định / đề nghị (Mẫu 13): mục I (cấp trên quyết định), mục II (cơ sở).
+        var decision = new EvaluationMeeting
+        {
+            PeriodId = period.Id,
+            Stage = WorkflowStep.B4_DECISION,
+            FormCode = "M13",
+            MeetingType = "Hội nghị đánh giá, xếp loại chất lượng cán bộ quý",
+            Location = "Hội trường Công ty",
+            StartedAt = new DateTime(2026, 9, 15, 1, 0, 0, DateTimeKind.Utc),
+            EndedAt = new DateTime(2026, 9, 15, 4, 0, 0, DateTimeKind.Utc),
+            InvitedCount = 7,
+            PresentCount = 7,
+            ChairName = members["giamdoc"].FullName,
+            SecretaryName = members["vanphong"].FullName,
+            Details = Details(new
+            {
+                workingRules = "Đảng ủy Công ty nhiệm kỳ 2025-2030",
+                chairTitle = "Bí thư Đảng ủy, Giám đốc Công ty",
+                secretaryTitle = "Chuyên viên Văn phòng Đảng ủy",
+                attendees = Array.Empty<object>(),
+                countingCommittee = new[]
+                {
+                    new { name = members["thamdinh"].FullName, title = "Đảng ủy viên, Trưởng phòng Tổ chức cán bộ - Lao động" },
+                    new { name = members["vanphong"].FullName, title = "Chuyên viên Văn phòng Đảng ủy" }
+                },
+                ballotsIssued = 7, ballotsCollected = 7, ballotsValid = 7, ballotsInvalid = 0
+            })
+        };
+        decision.VoteSummaries.Add(new EvaluationMeetingVoteSummary { RecordId = records["giamdoc"].Id, VotesExcellent = 2, VotesGood = 5, Notes = "Đề nghị Ban Thường vụ Đảng ủy Tổng công ty quyết định" });
+        decision.VoteSummaries.Add(new EvaluationMeetingVoteSummary { RecordId = records["canbo.kh"].Id, VotesGood = 1, VotesSatisfactory = 5, VotesNotRated = 1 });
+        records["canbo.kh"].DecisionMeetingId = decision.Id;
+        context.EvaluationMeetings.Add(decision);
+    }
+
+    /// <summary>
+    /// Sau công bố (đợt 8): hồ sơ mức C có kế hoạch 30-60-90 ngày (Mẫu 17) đang lập và một kiến nghị chờ xử lý; bản nháp Mẫu 16
+    /// toàn Đảng bộ.
+    /// </summary>
+    private static void AddSamplePostPublish(
+        CongTacDangDbContext context, EvaluationPeriod period, IReadOnlyDictionary<string, PartyMemberProfile> members,
+        IReadOnlyDictionary<string, EvaluationRecord> records)
+    {
+        var record = records["canbo.kh"];
+        var owner = members["canbo.kh"];
+        var director = members["giamdoc"];
+        var at = new DateTime(2026, 9, 20, 2, 0, 0, DateTimeKind.Utc);
+
+        var plan = new ImprovementPlanContent
+        {
+            SupporterName = members["vanphong"].FullName,
+            SupporterTitle = "Chuyên viên Văn phòng Đảng ủy"
+        };
+        var m30 = plan.Stage(ImprovementPlanContent.M30);
+        m30.Limitation = "Tiến độ các báo cáo kế hoạch quý còn chậm (dữ liệu mẫu).";
+        m30.Target = "Nộp đúng hạn 100% báo cáo trong tháng đầu (dữ liệu mẫu).";
+        m30.Measures = "Lập lịch theo dõi hằng tuần; kèm cặp bởi Trưởng phòng (dữ liệu mẫu).";
+        m30.Coordination = "Phòng Kế hoạch - Kinh doanh, Văn phòng Đảng ủy (dữ liệu mẫu).";
+        context.Set<ImprovementPlan>().Add(new ImprovementPlan
+        {
+            RecordId = record.Id,
+            Content = plan.ToJson(),
+            StartDate = new DateOnly(2026, 10, 1),
+            Status = ImprovementPlanStatus.Draft,
+            PreparedById = director.Id,
+            PreparedByName = director.FullName,
+            CreatedAt = at,
+            CreatedBy = director.Id
+        });
+
+        context.Set<EvaluationAppeal>().Add(new EvaluationAppeal
+        {
+            RecordId = record.Id,
+            SubmittedById = owner.Id,
+            SubmittedByName = owner.FullName,
+            SubmittedAt = at.AddDays(1),
+            Content = "Đề nghị xem xét lại mức xếp loại: kết quả thẩm định chưa tính đầy đủ sản phẩm đã hoàn thành của trục 1 (dữ liệu mẫu).",
+            ConcernedSteps = new List<string> { WorkflowSteps.Code(WorkflowStep.B3B_APPRAISAL) },
+            Status = AppealStatus.Submitted,
+            CreatedAt = at.AddDays(1),
+            CreatedBy = owner.Id
+        });
+
+        context.Set<ReportDraft>().Add(new ReportDraft
+        {
+            PeriodId = period.Id,
+            PartyCellId = null,
+            FormCode = "M16",
+            Content = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                documentNumber = "Số 15-BC/ĐU",
+                recipient = "Ban Thường vụ Đảng ủy Tổng công ty",
+                workingRules = "Đảng ủy Công ty nhiệm kỳ 2025-2030",
+                proposal1 = "Đề nghị Ban Thường vụ Đảng ủy Tổng công ty xem xét, quyết định mức xếp loại đối với cán bộ thuộc diện quản lý (dữ liệu mẫu).",
+                signerName = director.FullName
+            }, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)),
+            CreatedAt = at,
+            CreatedBy = members["vanphong"].Id
+        });
     }
 
     /// <summary>Kết quả mẫu của bước do cấp trên thực hiện (khớp dữ liệu đã điền vào hồ sơ ở <see cref="FillStep"/>).</summary>
@@ -855,7 +1065,7 @@ public static class DataSeeder
     /// Điền dữ liệu hợp lệ của một bước đã hoàn thành (tự chấm theo bộ Mẫu 09B của kỳ: tiêu chí con "Đảm bảo" trừ hai tiêu chí
     /// cuối "Không đảm bảo" có căn cứ; mỗi trục thấp hơn điểm tối đa 1–2 điểm).
     /// </summary>
-    private static void FillStep(EvaluationRecord record, CriteriaSetContent criteria, WorkflowStep step, DateTime at)
+    private static void FillStep(EvaluationRecord record, CriteriaSetContent criteria, WorkflowStep step, EvaluationGrade grade, DateTime at)
     {
         switch (step)
         {
@@ -876,6 +1086,7 @@ public static class DataSeeder
                 record.SelfProposedGrade = EvaluationScoring.SuggestGrade(criteria, record.TotalSelfScore, null);
                 record.SelfScoreForm = CriteriaSetContent.Form09B;
                 record.SelfScoredAt = at;
+                FillIndividualForms(record, criteria);
                 break;
             case WorkflowStep.B2_CELL_CONFIRM:
                 record.PartyCellComment = "Chi bộ xác nhận phiếu tự chấm đúng thực tế (dữ liệu mẫu).";
@@ -883,29 +1094,29 @@ public static class DataSeeder
                 record.CellConfirmedAt = at;
                 break;
             case WorkflowStep.B3A_COLLECTIVE:
-                record.CollectiveProposedGrade = EvaluationGrade.HoanThanhTot;
+                record.CollectiveProposedGrade = grade;
                 record.CollectiveComment = "Tập thể lãnh đạo thống nhất đề xuất (dữ liệu mẫu).";
                 record.CollectiveRecordedByName = "Thư ký tập thể (dữ liệu mẫu)";
                 record.CollectiveRecordedAt = at;
                 break;
             case WorkflowStep.B3B_APPRAISAL:
-                record.AppraisalScore = 88.5;
+                record.AppraisalScore = grade == EvaluationGrade.HoanThanh ? 65 : 88.5;
                 record.AppraisalExplanation = EvaluationScoring.RequiresExplanation(criteria, record.TotalSelfScore, record.AppraisalScore)
                     ? "Điều chỉnh theo minh chứng bổ sung (dữ liệu mẫu)."
                     : null;
                 record.AppraisalComment = "Hồ sơ đầy đủ minh chứng theo Hướng dẫn 03-HD/TVĐU (dữ liệu mẫu).";
-                record.AppraisalProposedGrade = EvaluationGrade.HoanThanhTot;
+                record.AppraisalProposedGrade = grade;
                 record.AppraisedByName = "Cơ quan thẩm định (dữ liệu mẫu)";
                 record.AppraisedAt = at;
                 break;
             case WorkflowStep.B3C_DIRECTOR:
                 record.DirectorComment = "Nhất trí với kết quả thẩm định (dữ liệu mẫu).";
-                record.DirectorProposedGrade = EvaluationGrade.HoanThanhTot;
+                record.DirectorProposedGrade = grade;
                 record.DirectorReviewedByName = "Cấp trực tiếp sử dụng (dữ liệu mẫu)";
                 record.DirectorReviewedAt = at;
                 break;
             case WorkflowStep.B4_DECISION:
-                record.FinalGrade = EvaluationGrade.HoanThanhTot;
+                record.FinalGrade = grade;
                 record.FinalScore = record.AppraisalScore ?? record.TotalSelfScore;
                 record.DecisionDocumentNumber = "01-QĐ/MẪU";
                 record.DecisionDocumentDate = at;
@@ -920,6 +1131,30 @@ public static class DataSeeder
                 record.PublishedAt = at;
                 break;
         }
+    }
+
+    /// <summary>Nội dung Mẫu 09C (mỗi mục của bộ), Mẫu 9D (một dòng mỗi trục) và phần tự luận theo trục của Mẫu 09B.</summary>
+    private static void FillIndividualForms(EvaluationRecord record, CriteriaSetContent criteria)
+    {
+        if (criteria.RequiredForms.Contains(RecordFormCodes.Form09C))
+            record.SelfAssessment = RecordFormContent.SelfAssessmentToJson(criteria, criteria.SelfAssessmentSections.ToDictionary<SelfAssessmentSection, string, string?>(
+                s => s.Code,
+                s => "Trong quý, tôi hoàn thành các nhiệm vụ trọng tâm theo 6 trục; nhiệm vụ an toàn, chất lượng đạt Mức 1 - Hoàn thành "
+                    + "đúng hạn, đạt yêu cầu. Còn hạn chế về tiến độ báo cáo, sẽ khắc phục trong quý IV (dữ liệu mẫu)."));
+        if (criteria.RequiredForms.Contains(RecordFormCodes.Form9D))
+            record.TaskResults = RecordFormContent.TaskResultsToJson(criteria, criteria.Axes.Select(a => (TaskResultRow?)new TaskResultRow
+            {
+                AxisCode = a.Code,
+                Content = $"Nhiệm vụ trọng tâm thuộc {a.Name.ToLowerInvariant()} (dữ liệu mẫu)",
+                Deadline = "30/9/2026",
+                Status = "Đã thực hiện theo kế hoạch",
+                Product = "Báo cáo kết quả, hồ sơ minh chứng",
+                Progress = "Đúng tiến độ"
+            }).ToList());
+        if (criteria.Axes.All(a => a.MaxScore > 0))
+            record.AxisNotes = RecordFormContent.AxisNotesToJson(criteria, criteria.Axes.ToDictionary(
+                a => a.Code,
+                a => (AxisNote?)new AxisNote { Target = "Hoàn thành chỉ tiêu được giao trong quý (dữ liệu mẫu)", Result = "Đạt; minh chứng: báo cáo quý III (dữ liệu mẫu)" }));
     }
 
     #endregion

@@ -59,6 +59,10 @@ public sealed class EvaluationRecordConfiguration : IEntityTypeConfiguration<Eva
         entity.Property(e => e.WeightFrameCode).HasMaxLength(20).IsRequired();
         entity.Property(e => e.GeneralScores).HasColumnType("jsonb").IsRequired();
         entity.Property(e => e.AxisScores).HasColumnType("jsonb");
+        // Task 18: nội dung Mẫu 09C (theo mã mục), 9D (dòng theo trục), phần tự luận theo trục của Mẫu 09B.
+        entity.Property(e => e.SelfAssessment).HasColumnType("jsonb").IsRequired();
+        entity.Property(e => e.TaskResults).HasColumnType("jsonb").IsRequired();
+        entity.Property(e => e.AxisNotes).HasColumnType("jsonb");
         entity.Property(e => e.AppraisalExplanation).HasMaxLength(4000);
         entity.Property(e => e.TasksApprovedByName).HasMaxLength(200);
         entity.Property(e => e.TasksApprovalComment).HasMaxLength(4000);
@@ -70,6 +74,7 @@ public sealed class EvaluationRecordConfiguration : IEntityTypeConfiguration<Eva
         entity.Property(e => e.DirectorReviewedByName).HasMaxLength(200);
         entity.Property(e => e.DecisionDocumentNumber).HasMaxLength(100);
         entity.Property(e => e.DecisionAuthorityName).HasMaxLength(300);
+        entity.Property(e => e.CadreWorkProposal).HasMaxLength(2000);
         entity.Property(e => e.DecisionRecordedByName).HasMaxLength(200);
         entity.Property(e => e.PublishedByName).HasMaxLength(200);
 
@@ -152,6 +157,7 @@ public sealed class CollectiveEvaluationRecordConfiguration : IEntityTypeConfigu
         entity.HasIndex(e => e.PartyCellId);
         entity.HasIndex(e => e.DepartmentId);
         entity.Property(e => e.SubjectName).HasMaxLength(300).IsRequired();
+        entity.Property(e => e.Sections).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb").IsRequired();
         entity.Property(e => e.Form).HasConversion<int>();
         entity.Property(e => e.Version)
             .HasColumnName("xmin")
@@ -207,6 +213,7 @@ public sealed class EvaluationMeetingConfiguration : IEntityTypeConfiguration<Ev
         entity.Property(e => e.FormCode).HasMaxLength(10).IsRequired();
         entity.Property(e => e.MeetingType).HasMaxLength(200);
         entity.Property(e => e.Location).HasMaxLength(300);
+        entity.Property(e => e.Details).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb").IsRequired();
         entity.HasOne(e => e.Period)
             .WithMany(p => p.Meetings)
             .HasForeignKey(e => e.PeriodId)

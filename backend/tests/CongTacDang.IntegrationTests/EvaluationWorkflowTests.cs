@@ -313,7 +313,7 @@ public sealed class EvaluationWorkflowTests
         await SetStatusAsync(coSo, RecordStatus.AwaitingDecision);
         await SetStatusAsync(capTren, RecordStatus.AwaitingDecision);
         var decision = new { finalGrade = "HoanThanhTot" };
-        var external = new { authorityName = "BTV Đảng ủy Tổng công ty", documentNumber = "15-QĐ/ĐU", grade = "HoanThanhTot" };
+        var external = new { authorityName = "BTV Đảng ủy Tổng công ty", documentNumber = "15-QĐ/ĐU", grade = "HoanThanhTot", cadreWorkProposal = "Đề xuất đưa vào quy hoạch (test)" };
 
         var internalOnExternal = await PostAsync(w.LocalDeciderC, capTren, "decision", decision, await VersionAsync(w, capTren));
         Assert.Equal(HttpStatusCode.Conflict, internalOnExternal.StatusCode);
@@ -328,7 +328,11 @@ public sealed class EvaluationWorkflowTests
         var recorded = await StepAsync(w.ExternalDeciderC, capTren, "external/B4_DECISION", external, "AwaitingPublish");
         Assert.Equal("HoanThanhTot", recorded.GetProperty("finalGrade").GetString());
         Assert.Equal("BTV Đảng ủy Tổng công ty", recorded.GetProperty("decisionAuthorityName").GetString());
-        await StepAsync(w.LocalDeciderC, coSo, "decision", decision, "AwaitingPublish");
+        // Đợt 8: cột 13 Mẫu 14 — đề xuất về công tác cán bộ ghi ở bước quyết định (ghi nhận cấp trên và nội bộ).
+        Assert.Equal("Đề xuất đưa vào quy hoạch (test)", recorded.GetProperty("cadreWorkProposal").GetString());
+        var decided = await StepAsync(w.LocalDeciderC, coSo, "decision",
+            new { finalGrade = "HoanThanhTot", cadreWorkProposal = "Đề xuất luân chuyển (test)" }, "AwaitingPublish");
+        Assert.Equal("Đề xuất luân chuyển (test)", decided.GetProperty("cadreWorkProposal").GetString());
     }
 
     [SkippableFact]

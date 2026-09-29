@@ -49,6 +49,14 @@ public class EvaluationMeeting : IAuditableEntity, ISoftDeletable, IVersioned
     public string OutcomeContent { get; set; } = string.Empty;
     public string VoteCountingContent { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Các mục của biên bản Mẫu 12 chưa có cột riêng (jsonb theo mã mục): <c>workingRules</c> (Quy chế làm việc của … nhiệm kỳ …),
+    /// <c>reportingUnit</c> (cơ quan, đơn vị báo cáo nhiệm vụ trọng tâm), <c>chairTitle</c>, <c>secretaryTitle</c> (chức vụ Đảng,
+    /// chính quyền), <c>attendees</c> (mục 3.2: <c>[{ "name", "title" }]</c>); Mẫu 13: <c>countingCommittee</c> (Tổ kiểm phiếu,
+    /// người đầu là Tổ trưởng), <c>ballotsIssued</c>, <c>ballotsCollected</c>, <c>ballotsValid</c>, <c>ballotsInvalid</c>.
+    /// </summary>
+    public string Details { get; set; } = "{}";
+
     /// <summary>Không lưu UserId của người bỏ phiếu; chỉ lưu tổng hợp kiểm phiếu theo hồ sơ.</summary>
     public ICollection<EvaluationMeetingVoteSummary> VoteSummaries { get; set; } = new List<EvaluationMeetingVoteSummary>();
 
@@ -73,9 +81,12 @@ public class EvaluationMeetingVoteSummary
     public int VotesGood { get; set; }
     public int VotesSatisfactory { get; set; }
     public int VotesUnsatisfactory { get; set; }
+
+    /// <summary>Số phiếu "Chưa đánh giá, xếp loại" (cột 8 Mẫu 13).</summary>
+    public int VotesNotRated { get; set; }
     public int InvalidVotes { get; set; }
     public string Notes { get; set; } = string.Empty;
 
     /// <summary>Tổng số phiếu đã ghi (các mức + không hợp lệ).</summary>
-    public int TotalBallots => VotesExcellent + VotesGood + VotesSatisfactory + VotesUnsatisfactory + InvalidVotes;
+    public int TotalBallots => VotesExcellent + VotesGood + VotesSatisfactory + VotesUnsatisfactory + VotesNotRated + InvalidVotes;
 }

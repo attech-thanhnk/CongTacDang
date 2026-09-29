@@ -11,10 +11,13 @@ import {
   CriteriaGroup,
   CriteriaSetContent,
   CriteriaSetDto,
+  FORM_CONFIG_LIMITS,
   GRADE_LABELS,
+  RECORD_FORMS,
   ROUNDING_LABELS,
   RoundingRule,
   ScoreRoundingMode,
+  SelfAssessmentSection,
   criteriaService,
   fmt,
   quickChecks,
@@ -41,7 +44,10 @@ export default function CriteriaSetPage() {
     try {
       const loaded = await criteriaService.get(id);
       setSet(loaded);
-      setContent(JSON.parse(JSON.stringify(loaded.content)));
+      const copy: CriteriaSetContent = JSON.parse(JSON.stringify(loaded.content));
+      copy.requiredForms = copy.requiredForms ?? [];
+      copy.selfAssessmentSections = copy.selfAssessmentSections ?? [];
+      setContent(copy);
       setInfo({ code: loaded.code, name: loaded.name, selfScoreForm: loaded.selfScoreForm, notes: loaded.notes || "" });
     } catch (err: any) {
       setError(err?.message || "Không tải được bộ tiêu chí.");
@@ -97,6 +103,10 @@ export default function CriteriaSetPage() {
   const setGroup = (index: number, change: Partial<CriteriaGroup>) =>
     update({ generalGroups: content.generalGroups.map((g, i) => (i === index ? { ...g, ...change } : g)) });
   const num = (value: string) => (value === "" ? 0 : Number(value));
+  const toggleForm = (code: string, on: boolean) =>
+    update({ requiredForms: on ? [...content.requiredForms.filter((c) => c !== code), code] : content.requiredForms.filter((c) => c !== code) });
+  const setSection = (index: number, change: Partial<SelfAssessmentSection>) =>
+    update({ selfAssessmentSections: content.selfAssessmentSections.map((s, i) => (i === index ? { ...s, ...change } : s)) });
 
   const generalTotal = content.generalGroups.reduce((s, g) => s + g.items.reduce((t, i) => t + (Number(i.maxScore) || 0), 0), 0);
   const axisTotal = content.axes.reduce((s, a) => s + (Number(a.maxScore) || 0), 0);
@@ -208,17 +218,74 @@ export default function CriteriaSetPage() {
                     {content.axes.map((a, ai) => {
                       const setAxis = (change: Partial<typeof a>) => update({ axes: content.axes.map((x, i) => (i === ai ? { ...x, ...change } : x)) });
                       return (
-                        <tr key={ai}>
-                          <td><input className="form-control form-control-sm" value={a.code} onChange={(e) => setAxis({ code: e.target.value })} /></td>
-                          <td><input className="form-control form-control-sm" value={a.name} onChange={(e) => setAxis({ name: e.target.value })} /></td>
-                          <td><textarea className="form-control form-control-sm" rows={1} value={a.description || ""} onChange={(e) => setAxis({ description: e.target.value })} /></td>
-                          <td><input type="number" min={0} step={0.5} className="form-control form-control-sm" value={a.maxScore} onChange={(e) => setAxis({ maxScore: num(e.target.value) })} /></td>
-                          <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa trục" onClick={() => update({ axes: content.axes.filter((_, i) => i !== ai) })}><i className="bi bi-x-lg" /></button></td>
-                        </tr>
+                        <React.Fragment key={ai}>
+                          <tr>
+                            <td><input className="form-control form-control-sm" value={a.code} onChange={(e) => setAxis({ code: e.target.value })} /></td>
+                            <td><input className="form-control form-control-sm" value={a.name} onChange={(e) => setAxis({ name: e.target.value })} /></td>
+                            <td><textarea className="form-control form-control-sm" rows={1} value={a.description || ""} onChange={(e) => setAxis({ description: e.target.value })} /></td>
+                            <td><input type="number" min={0} step={0.5} className="form-control form-control-sm" value={a.maxScore} onChange={(e) => setAxis({ maxScore: num(e.target.value) })} /></td>
+                            <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa trục" onClick={() => update({ axes: content.axes.filter((_, i) => i !== ai) })}><i className="bi bi-x-lg" /></button></td>
+                          </tr>
+                          <tr className="border-bottom">
+                            <td className="small text-secondary">Mẫu 09B</td>
+                            <td colSpan={3}>
+                              <input className="form-control form-control-sm mb-1" maxLength={FORM_CONFIG_LIMITS.title} placeholder="Tiêu đề in trên Mẫu 09B (trống: dựng từ tên trục)"
+                                aria-label={`Tiêu đề Mẫu 09B trục ${a.code}`} value={a.formTitle || ""} onChange={(e) => setAxis({ formTitle: e.target.value || null })} />
+                              <textarea className="form-control form-control-sm" rows={2} maxLength={FORM_CONFIG_LIMITS.guidance} placeholder="Nội dung gợi ý in dưới tiêu đề — mỗi dòng một gạch đầu dòng (trống: dùng nội dung áp dụng)"
+                                aria-label={`Nội dung gợi ý Mẫu 09B trục ${a.code}`} value={a.formGuidance || ""} onChange={(e) => setAxis({ formGuidance: e.target.value || null })} />
+                            </td>
+                            <td />
+                          </tr>
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
                 </table>
+              </div>
+            </section>
+
+            <section className="card border-0 shadow-sm">
+              <div className="card-body">
+                <h2 className="h6">Biểu mẫu cá nhân áp dụng cho hồ sơ (HD03 mục 7)</h2>
+                <div className="small text-secondary mb-2">Quyết định nút xuất trên trang hồ sơ và phần nhập Mẫu 09C, 9D khi tự chấm. Mẫu tự chấm (09A/09B) luôn theo "Mẫu tự chấm" của bộ.</div>
+                <div className="d-flex flex-column gap-1 mb-3">
+                  {RECORD_FORMS.map((form) => {
+                    const isSelfScore = form.code === "09A" || form.code === "09B";
+                    const checked = isSelfScore ? info.selfScoreForm === form.code : content.requiredForms.includes(form.code);
+                    return (
+                      <label key={form.code} className="form-check small mb-0">
+                        <input type="checkbox" className="form-check-input" checked={checked} disabled={isSelfScore}
+                          onChange={(e) => toggleForm(form.code, e.target.checked)} />{" "}
+                        <span className="form-check-label">{form.name}{isSelfScore && " (theo mẫu tự chấm)"}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h3 className="h6 small fw-bold text-secondary mb-0">Mục tự đánh giá của Mẫu 09C {!content.requiredForms.includes("09C") && <span className="fw-normal">(chỉ dùng khi áp dụng Mẫu 09C)</span>}</h3>
+                  <button type="button" className="btn btn-outline-secondary btn-sm"
+                    onClick={() => update({ selfAssessmentSections: [...content.selfAssessmentSections, { code: `M${content.selfAssessmentSections.length + 1}`, title: "", guidance: null, note: null, maxLength: 6000, required: false }] })}>
+                    Thêm mục
+                  </button>
+                </div>
+                {content.selfAssessmentSections.length === 0 && <div className="small text-secondary">Chưa khai báo mục nào.</div>}
+                {content.selfAssessmentSections.map((section, si) => (
+                  <div className="border rounded-3 p-2 mb-2" key={si}>
+                    <div className="row g-2 align-items-end">
+                      <div className="col-md-2"><label className="form-label small mb-0">Mã</label><input className="form-control form-control-sm" maxLength={20} value={section.code} onChange={(e) => setSection(si, { code: e.target.value })} /></div>
+                      <div className="col-md-6"><label className="form-label small mb-0">Tiêu đề in trên biểu mẫu</label><input className="form-control form-control-sm" maxLength={FORM_CONFIG_LIMITS.title} value={section.title} onChange={(e) => setSection(si, { title: e.target.value })} /></div>
+                      <div className="col-md-2"><label className="form-label small mb-0">Tối đa (ký tự)</label>
+                        <input type="number" min={FORM_CONFIG_LIMITS.sectionMin} max={FORM_CONFIG_LIMITS.sectionMax} step={100} className="form-control form-control-sm" value={section.maxLength} onChange={(e) => setSection(si, { maxLength: num(e.target.value) })} />
+                      </div>
+                      <div className="col-md-2 d-flex flex-column">
+                        <label className="form-check small mb-0"><input type="checkbox" className="form-check-input" checked={section.required} onChange={(e) => setSection(si, { required: e.target.checked })} /> <span className="form-check-label">Bắt buộc khi nộp</span></label>
+                        <button type="button" className="btn btn-link btn-sm text-danger p-0 text-start" onClick={() => update({ selfAssessmentSections: content.selfAssessmentSections.filter((_, i) => i !== si) })}>Xóa mục</button>
+                      </div>
+                      <div className="col-md-6"><label className="form-label small mb-0">Câu dẫn (in dưới tiêu đề)</label><textarea className="form-control form-control-sm" rows={2} maxLength={FORM_CONFIG_LIMITS.guidance} value={section.guidance || ""} onChange={(e) => setSection(si, { guidance: e.target.value || null })} /></div>
+                      <div className="col-md-6"><label className="form-label small mb-0">Lưu ý (in sau nội dung)</label><textarea className="form-control form-control-sm" rows={2} maxLength={FORM_CONFIG_LIMITS.guidance} value={section.note || ""} onChange={(e) => setSection(si, { note: e.target.value || null })} /></div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </section>
 
@@ -336,6 +403,23 @@ export default function CriteriaSetPage() {
                   <div className="col-6 col-md-3 d-flex flex-column justify-content-end">
                     <label className="form-check small mb-0"><input type="checkbox" className="form-check-input" checked={p.allowNotApplicable} onChange={(e) => setParam("allowNotApplicable", e.target.checked)} /> <span className="form-check-label">Cho phép K/AD (có lý do)</span></label>
                     <label className="form-check small mb-0"><input type="checkbox" className="form-check-input" checked={p.explanationOnGradeChange} onChange={(e) => setParam("explanationOnGradeChange", e.target.checked)} /> <span className="form-check-label">Giải trình cả khi đổi mức</span></label>
+                  </div>
+                  {/* Task 20 — sau công bố (mặc định chờ nghiệp vụ xác nhận). */}
+                  <div className="col-12 col-md-6">
+                    <label className="form-check small mb-1"><input type="checkbox" className="form-check-input" checked={!!p.publishScores} onChange={(e) => setParam("publishScores", e.target.checked)} /> <span className="form-check-label">Công khai kết quả kèm điểm chính thức (mặc định chỉ công khai mức)</span></label>
+                    <div className="small mb-0">Bắt buộc lập kế hoạch 30-60-90 ngày (Mẫu 17) với mức:</div>
+                    <div className="d-flex flex-wrap gap-2">
+                      {([["HoanThanhXuatSac", "Hoàn thành xuất sắc"], ["HoanThanhTot", "Hoàn thành tốt"], ["HoanThanh", "Hoàn thành (Mức C)"], ["KhongHoanThanh", "Không hoàn thành (Mức D)"]] as [string, string][]).map(([grade, label]) => {
+                        const required = p.improvementPlanRequiredGrades ?? ["HoanThanh", "KhongHoanThanh"];
+                        return (
+                          <label key={grade} className="form-check small mb-0"><input type="checkbox" className="form-check-input" checked={required.includes(grade)}
+                            onChange={(e) => setParam("improvementPlanRequiredGrades", e.target.checked ? [...required, grade] : required.filter((g) => g !== grade))} /> <span className="form-check-label">{label}</span></label>
+                        );
+                      })}
+                    </div>
+                    <label className="form-label small mb-0 mt-1" htmlFor="cs-alert-days">Cảnh báo "kế hoạch cần lập" còn xét kỳ đã đóng trong (ngày)</label>
+                    <input id="cs-alert-days" type="number" min={1} max={FORM_CONFIG_LIMITS.alertDaysMax} step={1} className="form-control form-control-sm" style={{ maxWidth: 140 }}
+                      value={p.improvementPlanAlertDays ?? 90} onChange={(e) => setParam("improvementPlanAlertDays", Math.trunc(num(e.target.value)))} />
                   </div>
                   <div className="col-6 col-md-3">
                     <label className="form-label small mb-0">Xử lý điểm khi K/AD</label>

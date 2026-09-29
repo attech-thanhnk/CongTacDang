@@ -130,6 +130,12 @@ public class EvaluationRecordDto
     public double TotalSelfScore { get; set; }
     public string SelfProposedGrade { get; set; } = string.Empty;
     public DateTime? SelfScoredAt { get; set; }
+    /// <summary>Mẫu 09C — nội dung tự đánh giá theo mã mục của bộ tiêu chí (task 18).</summary>
+    public Dictionary<string, string> SelfAssessment { get; set; } = new();
+    /// <summary>Mẫu 9D — kết quả thực hiện nhiệm vụ theo trục (task 18).</summary>
+    public List<TaskResultRow> TaskResults { get; set; } = new();
+    /// <summary>Mẫu 09B — nội dung tự luận theo trục (khóa = mã trục; task 18).</summary>
+    public Dictionary<string, AxisNote> AxisNotes { get; set; } = new();
 
     // B2 — Chi bộ xác nhận
     /// <summary>Ý kiến xác nhận của Chi bộ trên phiếu tự chấm.</summary>
@@ -165,6 +171,8 @@ public class EvaluationRecordDto
     public string? DecisionDocumentNumber { get; set; }
     public DateTime? DecisionDocumentDate { get; set; }
     public string? DecisionAuthorityName { get; set; }
+    /// <summary>Đề xuất nội dung liên quan về công tác cán bộ (cột 13 Mẫu 14).</summary>
+    public string? CadreWorkProposal { get; set; }
     public Guid? DecisionMeetingId { get; set; }
     public string? DecisionRecordedByName { get; set; }
     public DateTime? DecisionRecordedAt { get; set; }
@@ -256,6 +264,12 @@ public class SubmitSelfScoreRequestDto : WorkflowRequestDto
     public Dictionary<string, double>? AxisScores { get; set; }
     /// <summary>Mức tự đề xuất; trống → gợi ý theo tổng điểm.</summary>
     public string? SelfProposedGrade { get; set; }
+    /// <summary>Mẫu 09C (khi kỳ áp dụng): nội dung theo mã mục; null = giữ nội dung đã lưu (task 18).</summary>
+    public Dictionary<string, string?>? SelfAssessment { get; set; }
+    /// <summary>Mẫu 9D (khi kỳ áp dụng): các dòng kết quả nhiệm vụ theo trục; null = giữ nội dung đã lưu (task 18).</summary>
+    public List<TaskResultRow?>? TaskResults { get; set; }
+    /// <summary>Mẫu 09B: nội dung tự luận theo trục (khóa = mã trục); null = giữ nội dung đã lưu (task 18).</summary>
+    public Dictionary<string, AxisNote?>? AxisNotes { get; set; }
 }
 
 /// <summary>Kết quả kiểm phiếu tổng hợp của một hồ sơ (không có thông tin người bỏ phiếu).</summary>
@@ -265,6 +279,8 @@ public class VoteTallyDto
     public int VotesGood { get; set; }
     public int VotesSatisfactory { get; set; }
     public int VotesUnsatisfactory { get; set; }
+    /// <summary>Số phiếu "Chưa đánh giá, xếp loại" (cột 8 Mẫu 13).</summary>
+    public int VotesNotRated { get; set; }
     public int InvalidVotes { get; set; }
     public string? Notes { get; set; }
 }
@@ -307,6 +323,8 @@ public class DecisionRequestDto : WorkflowRequestDto
     public string? DocumentNumber { get; set; }
     public DateTime? DocumentDate { get; set; }
     public string? AuthorityName { get; set; }
+    /// <summary>Đề xuất nội dung liên quan về công tác cán bộ (tùy chọn, cột 13 Mẫu 14).</summary>
+    public string? CadreWorkProposal { get; set; }
     public Guid? MeetingId { get; set; }
     public VoteTallyDto? Votes { get; set; }
 }
@@ -570,6 +588,8 @@ public class CollectiveEvaluationRecordDto
     public double TotalScore { get; set; }
     public string SelfProposedGrade { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    /// <summary>Nội dung các mục con theo mã mục của biểu mẫu (Mẫu 07: I.1–I.4).</summary>
+    public Dictionary<string, string> Sections { get; set; } = new();
     public List<CollectiveEvaluationItemDto> Items { get; set; } = new();
 }
 
@@ -593,6 +613,9 @@ public class SaveCollectiveEvaluationRequestDto
     public double GeneralCriteriaScore { get; set; }
     public double TaskCriteriaScore { get; set; }
     public string SelfProposedGrade { get; set; } = "HoanThanhTot";
+    /// <summary>Nội dung các mục con theo mã mục của biểu mẫu (Mẫu 07: I.1–I.4; mã khác bị từ chối).</summary>
+    public Dictionary<string, string> Sections { get; set; } = new();
+    /// <summary>Mẫu 08: mỗi dòng một nhiệm vụ, <see cref="CollectiveEvaluationItemDto.Category"/> là mã nhóm nội dung 1–13.</summary>
     public List<CollectiveEvaluationItemDto> Items { get; set; } = new();
 }
 
@@ -624,6 +647,8 @@ public class EvaluationMeetingDto
     public string MinutesContent { get; set; } = string.Empty;
     public string OutcomeContent { get; set; } = string.Empty;
     public string VoteCountingContent { get; set; } = string.Empty;
+    /// <summary>Các mục của biên bản Mẫu 12 chưa có cột riêng.</summary>
+    public MeetingDetailsDto Details { get; set; } = new();
     public List<EvaluationMeetingVoteSummaryDto> VoteSummaries { get; set; } = new();
 }
 
@@ -637,6 +662,8 @@ public class EvaluationMeetingVoteSummaryDto
     public int VotesGood { get; set; }
     public int VotesSatisfactory { get; set; }
     public int VotesUnsatisfactory { get; set; }
+    /// <summary>Số phiếu "Chưa đánh giá, xếp loại" (cột 8 Mẫu 13).</summary>
+    public int VotesNotRated { get; set; }
     public int InvalidVotes { get; set; }
     public string Notes { get; set; } = string.Empty;
 }
@@ -668,6 +695,8 @@ public class SaveEvaluationMeetingRequestDto
     public string MinutesContent { get; set; } = string.Empty;
     public string OutcomeContent { get; set; } = string.Empty;
     public string VoteCountingContent { get; set; } = string.Empty;
+    /// <summary>Các mục của biên bản Mẫu 12 chưa có cột riêng (null = để trống).</summary>
+    public MeetingDetailsDto? Details { get; set; }
     public List<EvaluationMeetingVoteSummaryDto> VoteSummaries { get; set; } = new();
 }
 

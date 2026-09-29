@@ -252,6 +252,8 @@ export interface EvaluationRecordDto {
   decisionDocumentNumber?: string | null;
   decisionDocumentDate?: string | null;
   decisionAuthorityName?: string | null;
+  /** Đề xuất nội dung liên quan về công tác cán bộ (cột 13 Mẫu 14). */
+  cadreWorkProposal?: string | null;
   decisionMeetingId?: string | null;
   decisionRecordedByName?: string | null;
   decisionRecordedAt?: string | null;
@@ -263,6 +265,73 @@ export interface EvaluationRecordDto {
   externalResults: ExternalResultDto[];
 
   tasks: EvaluationTaskDto[];
+
+  /** Mẫu 09C — nội dung tự đánh giá theo mã mục của bộ tiêu chí (task 18). */
+  selfAssessment?: Record<string, string>;
+  /** Mẫu 9D — kết quả thực hiện nhiệm vụ theo trục (task 18). */
+  taskResults?: TaskResultRow[];
+  /** Mẫu 09B — nội dung tự luận theo trục, khóa = mã trục (task 18). */
+  axisNotes?: Record<string, AxisNote>;
+}
+
+// ---------------------------------------------------------------------------
+// Biểu mẫu cá nhân (task 18): 09C, 9D nhập cùng phiếu tự chấm; xuất 01/02/09A/09B/09C/9D/10 theo bộ tiêu chí của kỳ.
+// ---------------------------------------------------------------------------
+
+/** Một dòng Mẫu 9D (cột (2)–(7) của biểu mẫu gốc), mã trục theo bộ tiêu chí của kỳ. */
+export interface TaskResultRow {
+  axisCode: string;
+  content: string;
+  deadline?: string | null;
+  status?: string | null;
+  product?: string | null;
+  progress?: string | null;
+  note?: string | null;
+}
+
+/** Nội dung tự luận của một trục trên Mẫu 09B. */
+export interface AxisNote {
+  target?: string | null;
+  result?: string | null;
+  note?: string | null;
+}
+
+/** Một mục tự luận của Mẫu 09C (khai báo trong bộ tiêu chí). */
+export interface SelfAssessmentSection {
+  code: string;
+  title: string;
+  guidance?: string | null;
+  note?: string | null;
+  maxLength: number;
+  required: boolean;
+}
+
+/** Phần cấu hình biểu mẫu cá nhân trong nội dung bộ tiêu chí (`requiredForms`, mục 09C). */
+export interface IndividualFormConfig {
+  requiredForms?: string[];
+  selfAssessmentSections?: SelfAssessmentSection[];
+}
+
+/** Biểu mẫu xuất được cho hồ sơ (`GET /reports/docx/record/{recordId}`). */
+export interface RecordFormDto {
+  code: string;
+  name: string;
+}
+
+/** Giới hạn độ dài ô Mẫu 9D / 09B (khớp kiểm tra phía máy chủ). */
+export const TASK_RESULT_LIMITS = { rows: 100, long: 2000, short: 500, axisNote: 4000 } as const;
+
+/** Bộ tiêu chí áp dụng biểu mẫu `code` (mẫu tự chấm theo `selfScoreForm` của bộ). */
+export function criteriaAppliesForm(criteria: { selfScoreForm: string; content: unknown } | null | undefined, code: string): boolean {
+  if (!criteria) return false;
+  if (code === "09A" || code === "09B") return criteria.selfScoreForm === code;
+  const forms = (criteria.content as IndividualFormConfig).requiredForms ?? [];
+  return forms.includes(code);
+}
+
+/** Mục Mẫu 09C của bộ tiêu chí (rỗng nếu bộ không khai báo). */
+export function selfAssessmentSections(criteria: { content: unknown } | null | undefined): SelfAssessmentSection[] {
+  return (criteria?.content as IndividualFormConfig | undefined)?.selfAssessmentSections ?? [];
 }
 
 /** Kết quả của một bước do cấp trên thực hiện (đã ghi nhận). */
@@ -414,6 +483,8 @@ export interface VoteTallyDto {
   votesGood: number;
   votesSatisfactory: number;
   votesUnsatisfactory: number;
+  /** Phiếu "Chưa đánh giá, xếp loại" (cột 8 Mẫu 13). */
+  votesNotRated: number;
   invalidVotes: number;
   notes?: string;
 }
@@ -497,6 +568,8 @@ export interface EvaluationMeetingVoteSummaryDto {
   votesGood: number;
   votesSatisfactory: number;
   votesUnsatisfactory: number;
+  /** Phiếu "Chưa đánh giá, xếp loại" (cột 8 Mẫu 13). */
+  votesNotRated: number;
   invalidVotes: number;
   notes: string;
 }
@@ -885,6 +958,17 @@ export const evaluationService = {
     return withConflictHandling(action, () =>
       post<EvaluationRecordDto>(`/evaluations/records/${recordId}/${path}`, { ...payload, version })
     );
+  },
+
+  // ----- Biểu mẫu cá nhân của hồ sơ (task 18) -----
+  /** Biểu mẫu áp dụng cho hồ sơ theo bộ tiêu chí của kỳ. */
+  async getRecordForms(recordId: string): Promise<RecordFormDto[]> {
+    return request<RecordFormDto[]>(`/reports/docx/record/${recordId}`);
+  },
+
+  /** Đường dẫn API xuất một biểu mẫu của hồ sơ (dùng với `reportService.downloadReport`, định dạng docx/pdf). */
+  recordFormEndpoint(recordId: string, code: string): string {
+    return `/reports/docx/record/${recordId}/${encodeURIComponent(code)}`;
   },
 
   // ----- Hồ sơ tập thể, biên bản -----
