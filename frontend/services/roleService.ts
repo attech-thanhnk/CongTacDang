@@ -5,8 +5,8 @@ export type ScopeType = "Global" | "Department" | "PartyCell";
 
 export const SCOPE_TYPE_LABELS: Record<ScopeType, string> = {
   Global: "Toàn công ty",
-  Department: "Phòng / đơn vị",
-  PartyCell: "Chi bộ",
+  Department: "Đơn vị chính quyền",
+  PartyCell: "Tổ chức Đảng",
 };
 
 /** Trạng thái bản gán tại thời điểm tra cứu. */

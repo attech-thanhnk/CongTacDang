@@ -11,6 +11,7 @@ import { AccountStatusBadge } from "@/components/admin/AccountStatusBadge";
 import { AssignmentFormModal } from "@/components/admin/AssignmentFormModal";
 import { AssignmentTable } from "@/components/admin/AssignmentTable";
 import { EffectivePermissionsPanel } from "@/components/admin/EffectivePermissionsPanel";
+import { MemberPositionsPanel } from "@/components/admin/MemberPositionsPanel";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { TemporaryCredential, TemporaryPasswordModal } from "@/components/admin/TemporaryPasswordModal";
 import { errorMessage, errorTitle, formatDateTime } from "@/components/admin/adminUtils";
@@ -26,7 +27,7 @@ import {
   UserEffectivePermissions,
 } from "@/services/roleService";
 
-type Tab = "info" | "assignments" | "effective";
+type Tab = "info" | "positions" | "assignments" | "effective";
 
 /** Chi tiết tài khoản: thông tin + thao tác quản trị, bản gán vai trò, quyền hiệu lực. */
 export default function AdminUserDetailPage({ params }: { params: { id: string } }) {
@@ -58,9 +59,11 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
   const [effectiveLoading, setEffectiveLoading] = useState(false);
   const [effectiveError, setEffectiveError] = useState<string | null>(null);
 
-  // Quyền quản lý tài khoản xét theo phạm vi Phòng / Chi bộ của chính tài khoản này.
+  // Quyền quản lý tài khoản xét theo phạm vi đơn vị / tổ chức Đảng của chính tài khoản này. Phạm vi gán bao trùm cả
+  // cây con nên máy chủ tính sẵn (`canManage`); chỉ dự phòng tự xét khi máy chủ chưa trả trường này.
   const canManage = useMemo(() => {
     if (!account) return false;
+    if (typeof account.canManage === "boolean") return account.canManage;
     const code = "system.users.manage";
     return (
       hasPermissionIn(code, "Global") ||
@@ -321,10 +324,13 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     ["Chức danh", account.positionTitle || "—"],
     ["Email", account.email || "—"],
     ["Số điện thoại", account.phoneNumber || "—"],
-    ["Phòng / đơn vị", account.departmentName || "—"],
-    ["Chi bộ", account.partyCellName || "—"],
+    ["Đơn vị công tác chính", account.departmentName || "—"],
+    ["Nơi sinh hoạt Đảng", account.partyCellName || "—"],
     ["Đảng viên", account.isPartyMember ? `Có (số thẻ ${account.partyCardNumber || "—"})` : "Không"],
-    ["Cấp quyết định xếp loại", APPROVAL_AUTHORITY_LABELS[account.approvalAuthority] ?? "—"],
+    [
+      "Cấp quyết định xếp loại",
+      `${APPROVAL_AUTHORITY_LABELS[account.approvalAuthority] ?? "—"} (${account.approvalAuthorityOverride ? "đặt tay" : "suy ra từ chức vụ"})`,
+    ],
     ["Trạng thái", <AccountStatusBadge key="s" account={account} />],
     ["Khóa tạm đến", account.isLockedOut ? formatDateTime(account.lockoutEnd) : "—"],
     ["Số lần nhập sai liên tiếp", account.failedLoginCount],
@@ -390,6 +396,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
           {(
             [
               { key: "info" as const, label: "Thông tin", icon: "bi-person-vcard", show: true },
+              { key: "positions" as const, label: "Chức vụ", icon: "bi-diagram-3", show: true },
               { key: "assignments" as const, label: "Vai trò & phạm vi", icon: "bi-person-badge", show: canAssign },
               { key: "effective" as const, label: "Người này làm được gì", icon: "bi-shield-check", show: true },
             ]
@@ -420,6 +427,16 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
               </tbody>
             </table>
           </Card>
+        )}
+
+        {tab === "positions" && (
+          <MemberPositionsPanel
+            userId={account.id}
+            canManage={canManage}
+            departments={departments}
+            partyCells={partyCells}
+            onChanged={loadAccount}
+          />
         )}
 
         {tab === "assignments" && canAssign && (
