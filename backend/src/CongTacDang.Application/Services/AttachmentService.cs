@@ -32,7 +32,8 @@ public class AttachmentDownloadResult
 /// <summary>
 /// Giao diện xử lý nghiệp vụ tệp đính kèm văn bản và minh chứng.
 /// Một tệp gắn với một đối tượng (<see cref="AttachmentOwnerTypes"/>), có nhiều phiên bản; mọi thao tác kiểm tra quyền qua
-/// <see cref="IAuthorizationGuard"/>: quyền trên tệp = quyền trên hồ sơ gắn tệp (<c>evaluation.read</c> / <c>evaluation.self</c>);
+/// <see cref="IAuthorizationGuard"/>: quyền trên tệp = quyền trên hồ sơ gắn tệp (<c>evaluation.read</c> / <c>evaluation.self</c>;
+/// văn bản của cấp trên: <c>evaluation.external.record</c>);
 /// văn bản chung (<c>GENERAL</c>): mọi người đã đăng nhập được xem, ghi cần <c>attachment.general.manage</c>.
 /// </summary>
 public interface IAttachmentService
@@ -431,8 +432,9 @@ public class AttachmentService : IAttachmentService
     }
 
     /// <summary>
-    /// Tải tệp không gắn hồ sơ: người có <c>attachment.general.manage</c> (văn bản chung, mã GENERAL thì công khai cho mọi người)
-    /// hoặc người có <c>evaluation.self</c> (minh chứng riêng — chỉ người tải lên thấy tới khi gắn vào hồ sơ).
+    /// Tải tệp không gắn hồ sơ: người có <c>attachment.general.manage</c> (văn bản chung, mã GENERAL thì công khai cho mọi người),
+    /// người có <c>evaluation.self</c> (minh chứng riêng) hoặc <c>evaluation.external.record</c> (văn bản của cấp trên) —
+    /// chỉ người tải lên thấy tới khi gắn vào hồ sơ (nhiệm vụ / kết quả của cấp trên).
     /// </summary>
     private async Task EnsureCanUploadUnlinkedAsync(string formCode, Guid? uploadedById)
     {
@@ -445,10 +447,13 @@ public class AttachmentService : IAttachmentService
 
         var uploader = await _resolver.GetAsync(uploadedById.Value);
         var canManageGeneral = AuthorizationGuard.Evaluate(uploader, PermissionCodes.AttachmentGeneralManage, AccessTarget.None);
-        if (!(uploader.IsActive && uploader.Has(PermissionCodes.EvaluationSelf)) && !canManageGeneral)
+        var canUploadEvidence = uploader.IsActive
+            && (uploader.Has(PermissionCodes.EvaluationSelf) || uploader.Has(PermissionCodes.EvaluationExternalRecord));
+        if (!canUploadEvidence && !canManageGeneral)
         {
             throw new ForbiddenException(
-                $"Bạn cần quyền \"{PermissionCodes.DisplayName(PermissionCodes.EvaluationSelf)}\" để tải lên minh chứng đánh giá.");
+                $"Bạn cần quyền \"{PermissionCodes.DisplayName(PermissionCodes.EvaluationSelf)}\" (minh chứng của mình) hoặc "
+                + $"\"{PermissionCodes.DisplayName(PermissionCodes.EvaluationExternalRecord)}\" (văn bản của cấp trên) để tải lên tệp này.");
         }
     }
 
@@ -575,7 +580,8 @@ public class AttachmentService : IAttachmentService
         string.Equals(attachment.FormCode, GeneralFormCode, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Quyền trên một tệp: tệp gắn hồ sơ → quyền trên hồ sơ (<c>evaluation.read</c> để xem, <c>evaluation.self</c> để sửa/xóa);
+    /// Quyền trên một tệp: tệp gắn hồ sơ → quyền trên hồ sơ (<c>evaluation.read</c> để xem, <c>evaluation.self</c> để sửa/xóa;
+    /// văn bản của cấp trên gắn vào kết quả bước do cấp trên thực hiện: <c>evaluation.external.record</c> để sửa/xóa);
     /// văn bản chung → xem: mọi người (nếu người tải lên có quyền quản lý văn bản chung), sửa/xóa: <c>attachment.general.manage</c>;
     /// tệp chưa gắn hồ sơ → chỉ người tải lên.
     /// </summary>
@@ -591,15 +597,21 @@ public class AttachmentService : IAttachmentService
         // Liên kết qua nhiệm vụ do người dùng tự khai báo AttachmentId, nên chỉ được tính khi tệp là của
         // chính chủ hồ sơ (hoặc dữ liệu cũ chưa có người tải lên) — tránh gắn tệp của người khác vào hồ sơ mình để đọc.
         var effectiveLinks = links
-            .Where(link => !link.ViaTask
+            .Where(link => link.Kind != AttachmentLinkKind.Task
                 || !attachment.UploadedById.HasValue
                 || attachment.UploadedById == link.Record.MemberId)
             .ToList();
 
         if (effectiveLinks.Count > 0)
         {
-            var permission = operation == FileOperation.Read ? PermissionCodes.EvaluationRead : PermissionCodes.EvaluationSelf;
-            return effectiveLinks.Any(link => AuthorizationGuard.Evaluate(requester, permission, AccessTarget.ForRecord(link.Record)));
+            // Xem: ai xem được hồ sơ. Sửa/xóa: tệp của chủ hồ sơ → evaluation.self; văn bản của cấp trên → người có quyền
+            // ghi nhận kết quả của cấp trên trên hồ sơ (chủ hồ sơ không sửa được — xung đột lợi ích trong guard).
+            return effectiveLinks.Any(link => AuthorizationGuard.Evaluate(
+                requester,
+                operation == FileOperation.Read ? PermissionCodes.EvaluationRead
+                    : link.Kind == AttachmentLinkKind.ExternalResult ? PermissionCodes.EvaluationExternalRecord
+                    : PermissionCodes.EvaluationSelf,
+                AccessTarget.ForRecord(link.Record)));
         }
 
         // Văn bản chung do người có quyền quản lý văn bản chung tải lên: mọi người xem, người có quyền đó sửa/xóa.

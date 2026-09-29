@@ -40,7 +40,10 @@ public interface IAttachmentRepository : IRepository<TaskAttachment>
 /// </summary>
 public interface IAttachmentVersionRepository
 {
-    /// <summary>Lấy các tệp (phiên bản hiện hành) của một đối tượng, gồm cả dữ liệu cũ gắn qua RecordId/TaskId/EvaluationTask.AttachmentId.</summary>
+    /// <summary>
+    /// Lấy các tệp (phiên bản hiện hành) của một đối tượng, gồm cả tệp gắn qua RecordId/TaskId/EvaluationTask.AttachmentId;
+    /// với hồ sơ đánh giá gồm cả văn bản của cấp trên (EvaluationExternalResult.AttachmentId).
+    /// </summary>
     Task<List<TaskAttachment>> GetCurrentByOwnerAsync(string ownerType, Guid ownerId);
 
     /// <summary>Lấy phiên bản hiện hành của nhóm chứa phiên bản <paramref name="anyVersionId"/> (null nếu không tồn tại hoặc đã xóa).</summary>
@@ -60,8 +63,9 @@ public interface IAttachmentVersionRepository
 public interface IAttachmentAccessReader
 {
     /// <summary>
-    /// Lấy các hồ sơ đánh giá (kèm Member) mà mỗi tệp đang gắn vào, qua TaskAttachment.RecordId
-    /// hoặc qua EvaluationTask.AttachmentId. Khóa là Id tệp; tệp không gắn hồ sơ không có trong kết quả.
+    /// Lấy các hồ sơ đánh giá (kèm Member) mà mỗi tệp đang gắn vào, qua TaskAttachment.RecordId,
+    /// EvaluationTask.AttachmentId hoặc EvaluationExternalResult.AttachmentId (văn bản của cấp trên).
+    /// Khóa là Id tệp; tệp không gắn hồ sơ không có trong kết quả.
     /// </summary>
     Task<Dictionary<Guid, List<AttachmentRecordLink>>> GetRecordLinksAsync(IReadOnlyCollection<TaskAttachment> attachments);
 

@@ -319,7 +319,61 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Equal("2026-12-20", deadline);
     }
 
+    /// <summary>
+    /// Đợt 6 (tích hợp): văn bản của cấp trên gắn vào kết quả bước do cấp trên thực hiện — người ghi nhận (không có
+    /// evaluation.self) tải lên được; chưa gắn thì chỉ người tải lên thấy; gắn rồi thì ai xem được hồ sơ cũng xem/tải được,
+    /// ngoài phạm vi hồ sơ → 403; chủ hồ sơ/người chỉ xem không sửa/xóa được, người ghi nhận thay phiên bản được;
+    /// không gắn được tệp riêng của người khác.
+    /// </summary>
+    [SkippableFact]
+    public async Task G5_ExternalResultAttachment_VisibleToRecordReaders_ManagedByRecorder()
+    {
+        var w = await WorldAsync();
+        var periodId = await OpenPeriodAsync(w, "q3-2026-transition", w.Director.Id);
+        var id = await RecordOfAsync(w, periodId, w.Director.Id);
+        await StepAsync(w.OwnerDirectorC, id, "self-score/submit", new { generalScores = General, axisScores = Axis }, "AwaitingCellConfirm");
+        await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
+        await StepAsync(w.SecretaryC, id, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
+
+        var fileId = (await Data(await UploadAsync(w.OfficeC))).GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.Lead1C.GetAsync($"/api/attachments/{fileId}")).StatusCode);
+
+        // Không gắn được tệp riêng (chưa gắn hồ sơ) của người khác vào kết quả của cấp trên.
+        var ownerFile = (await Data(await UploadAsync(w.OwnerDirectorC))).GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.Forbidden, (await PostAsync(w.OfficeC, id, "external/B3B_APPRAISAL",
+            new { authorityName = "Ban TCĐU", grade = "HoanThanhTot", attachmentId = ownerFile }, await VersionAsync(w, id))).StatusCode);
+
+        var recorded = await StepAsync(w.OfficeC, id, "external/B3B_APPRAISAL",
+            new { authorityName = "Ban Tổ chức Đảng ủy Tổng công ty", grade = "HoanThanhTot", attachmentId = fileId }, "AwaitingDirectorReview");
+        Assert.Equal(fileId, recorded.GetProperty("externalResults")[0].GetProperty("attachmentId").GetGuid());
+
+        // Ai xem được hồ sơ thì xem/tải được: Lãnh đạo Phòng của hồ sơ, chủ hồ sơ, người ghi nhận; ngoài phạm vi → 403.
+        foreach (var client in new[] { w.Lead1C, w.OwnerDirectorC, w.OfficeC })
+            Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/attachments/{fileId}/download")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.Lead2C.GetAsync($"/api/attachments/{fileId}/download")).StatusCode);
+        var files = await Data(w.Lead1C, $"/api/attachments?ownerType=EvaluationRecord&ownerId={id}");
+        Assert.Contains(files.EnumerateArray(), f => f.GetProperty("id").GetGuid() == fileId);
+
+        // Chủ hồ sơ và người chỉ xem không sửa/xóa được văn bản của cấp trên; người ghi nhận thay phiên bản được.
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.OwnerDirectorC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.Lead1C.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await UploadAsync(w.OwnerDirectorC, $"/api/attachments/{fileId}/versions")).StatusCode);
+        var v2 = await Data(await UploadAsync(w.OfficeC, $"/api/attachments/{fileId}/versions"));
+        Assert.Equal(2, v2.GetProperty("versionNumber").GetInt32());
+        Assert.Equal(HttpStatusCode.OK, (await w.Lead1C.GetAsync($"/api/attachments/{v2.GetProperty("id").GetGuid()}/download")).StatusCode);
+    }
+
     #region Hỗ trợ
+
+    private static async Task<HttpResponseMessage> UploadAsync(HttpClient client, string url = "/api/attachments/upload")
+    {
+        using var content = new MultipartFormDataContent();
+        var file = new ByteArrayContent("%PDF-1.4 van ban cap tren"u8.ToArray());
+        file.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        content.Add(file, "file", "van-ban-cap-tren.pdf");
+        content.Add(new StringContent("CAPTREN"), "formCode");
+        return await client.PostAsync(url, content);
+    }
 
     private async Task<World> WorldAsync()
     {

@@ -230,11 +230,11 @@ public class AttachmentVersioningTests
             {
                 var links = new List<AttachmentRecordLink>();
                 if (a.RecordId.HasValue && _world.Records.TryGetValue(a.RecordId.Value, out var record))
-                    links.Add(new AttachmentRecordLink(record, ViaTask: false));
+                    links.Add(new AttachmentRecordLink(record, AttachmentLinkKind.Record));
                 foreach (var task in _world.Tasks.Values.Where(t => t.AttachmentId.HasValue
                     && _world.Files.Items.Any(f => f.Id == t.AttachmentId && f.GroupId == a.GroupId)))
                 {
-                    links.Add(new AttachmentRecordLink(_world.Records[task.RecordId], ViaTask: true));
+                    links.Add(new AttachmentRecordLink(_world.Records[task.RecordId], AttachmentLinkKind.Task));
                 }
                 if (links.Count > 0)
                     result[a.Id] = links;

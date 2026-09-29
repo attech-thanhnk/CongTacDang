@@ -10,6 +10,7 @@ import { RecordActionPanel } from "@/components/evaluations/RecordActionPanel";
 import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
 import { EvaluationPdfModal } from "@/components/evaluations/EvaluationPdfModal";
 import { PrintTemplateType } from "@/components/evaluations/EvaluationPrintTemplate";
+import { attachmentService } from "@/services/attachmentService";
 import {
   EVALUATION_CONFLICT_EVENT,
   EvaluationConflictDetail,
@@ -232,6 +233,7 @@ function ModeNote({ record, step }: { record: EvaluationRecordDto; step: Workflo
 
 /** Dữ liệu đã lưu của các bước (chỉ đọc). */
 function RecordData({ record }: { record: EvaluationRecordDto }) {
+  const { toast } = useToast();
   const enabled = (step: WorkflowStepCode) => record.progress.find((p) => p.step === step)?.enabled ?? true;
   const offSteps = record.progress.filter((p) => p.mode === "Off");
   return (
@@ -257,7 +259,20 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
                     <td>{r.authorityName}{r.comment && <div className="text-secondary">{r.comment}</div>}</td>
                     <td>
                       {r.documentNumber || "—"}{r.documentDate ? ` (${formatDate(r.documentDate)})` : ""}
-                      {r.attachmentId && <div><i className="bi bi-paperclip me-1" />Có tệp đính kèm</div>}
+                      {r.attachmentId && (
+                        <div>
+                          <button
+                            type="button"
+                            className="btn btn-link btn-sm p-0 small"
+                            onClick={() => {
+                              attachmentService.downloadById(r.attachmentId as string)
+                                .catch((error: any) => toast.error(error?.message || "Không tải được văn bản đính kèm."));
+                            }}
+                          >
+                            <i className="bi bi-paperclip me-1" />Tải văn bản đính kèm
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td>{gradeLabel(r.grade)}{r.score != null ? ` · ${r.score}` : ""}</td>
                     <td>{r.recordedByName || "—"}<div className="text-secondary">{formatDateTime(r.recordedAt)}</div></td>
