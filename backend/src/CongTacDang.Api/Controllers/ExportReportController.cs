@@ -54,8 +54,7 @@ public class ExportReportController : ControllerBase
     // Bảng tính Mẫu 14/15A/15B, Word Mẫu 16: periodId (mặc định kỳ đang hoạt động), branchId (tổ chức Đảng).
     // Không truyền branchId: phạm vi report.export Toàn công ty → toàn Đảng bộ; phạm vi đúng 1 tổ chức Đảng → tổ chức đó;
     // nhiều tổ chức → 400 yêu cầu chọn; không có phạm vi tổ chức Đảng/Toàn công ty → 403 (task 09).
-    // Task 19 (T-85): bỏ "form-15" (thống kê/kiểm soát trần — không phải biểu mẫu HD03, chuyển thành báo cáo nội bộ) và
-    // "form-16" Excel (Mẫu 16 HD03 là báo cáo Word: docx/mau-16).
+    // Thống kê/kiểm soát trần Hoàn thành xuất sắc không phải biểu mẫu HD03 → báo cáo nội bộ; Mẫu 16 HD03 là báo cáo Word.
 
     #region Báo cáo nội bộ (không mang số mẫu HD03)
 
