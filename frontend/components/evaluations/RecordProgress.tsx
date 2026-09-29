@@ -11,8 +11,8 @@ const formatDate = (value?: string | null) =>
   value ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "short" }).format(new Date(value)) : null;
 
 /**
- * Tiến trình 9 bước của hồ sơ. Trạng thái từng bước (xong / đang chờ / chưa tới / không áp dụng) do máy chủ tính;
- * bước bị tắt trong kỳ hiện mờ với chú thích "Không áp dụng trong kỳ".
+ * Tiến trình 9 bước của hồ sơ theo hồ sơ luồng của hồ sơ. Trạng thái từng bước (xong / đang chờ / chưa tới / không áp dụng)
+ * và chế độ bước (nội bộ / cấp trên thực hiện / không áp dụng) do máy chủ tính.
  */
 export function RecordProgress({ progress }: Props) {
   return (
@@ -21,6 +21,7 @@ export function RecordProgress({ progress }: Props) {
         const skipped = item.state === "skipped";
         const current = item.state === "current";
         const done = item.state === "done";
+        const external = item.mode === "External";
         const color = skipped ? "#94a3b8" : done ? "#047857" : current ? "#1d4ed8" : "#475569";
         const background = skipped ? "#f8fafc" : done ? "#ecfdf5" : current ? "#eff6ff" : "#ffffff";
         const icon = skipped ? "bi-slash-circle" : done ? "bi-check-circle-fill" : current ? "bi-arrow-right-circle-fill" : "bi-circle";
@@ -42,15 +43,16 @@ export function RecordProgress({ progress }: Props) {
               <span>
                 {index + 1}. {item.name}
               </span>
+              {external && !skipped && <i className="bi bi-box-arrow-up-right ms-auto" title="Do cấp trên thực hiện — hệ thống ghi nhận kết quả" aria-hidden="true" />}
             </div>
             <div className="small mt-1" style={{ color: skipped ? "#94a3b8" : "#64748b", fontSize: 11 }}>
               {skipped
-                ? "Không áp dụng trong kỳ"
+                ? "Không áp dụng cho nhóm này"
                 : done
-                  ? "Đã hoàn thành"
+                  ? external ? "Đã ghi nhận kết quả của cấp trên" : "Đã hoàn thành"
                   : current
-                    ? "Đang chờ xử lý"
-                    : "Chưa tới"}
+                    ? external ? "Do cấp trên thực hiện — chờ ghi nhận kết quả" : "Đang chờ xử lý"
+                    : external ? "Do cấp trên thực hiện" : "Chưa tới"}
               {!skipped && item.deadline && (
                 <span className={item.overdue ? "text-danger fw-semibold" : ""}>
                   {" · Hạn "}

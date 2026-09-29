@@ -7,16 +7,19 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
+import { WorkflowProfilesEditor } from "@/components/evaluations/WorkflowProfilesEditor";
+import { ReadinessPanel } from "@/components/evaluations/ReadinessPanel";
 import { organizationService, BranchItem, DepartmentItem } from "@/services/organizationService";
+import { ApiError } from "@/services/apiClient";
 import {
   EvaluationParameters,
   EvaluationPeriodDto,
-  MANDATORY_STEPS,
   ParticipantCandidateDto,
   PeriodParticipantDto,
+  PeriodReadinessDto,
   PeriodSettings,
-  STEP_NAMES,
-  STEP_ORDER,
+  StepPermissionOptionDto,
+  WorkflowProfile,
   evaluationService,
 } from "@/services/evaluationService";
 
@@ -40,7 +43,10 @@ const PARAMETER_FIELDS: { key: keyof EvaluationParameters; label: string; step?:
 
 type Transition = "open" | "lock" | "unlock" | "close";
 
-/** Cấu hình kỳ: trạng thái kỳ, bước/thời hạn/tham số, danh sách người được đánh giá. */
+/**
+ * Cấu hình kỳ: trạng thái kỳ, hồ sơ luồng (bước × chế độ × quyền thực hiện × thời hạn), tham số, kiểm tra kẹt luồng,
+ * danh sách người được đánh giá và hồ sơ luồng của từng người.
+ */
 export default function PeriodDetailPage() {
   const params = useParams<{ periodId: string }>();
   const periodId = params?.periodId;
@@ -52,9 +58,25 @@ export default function PeriodDetailPage() {
   const [participants, setParticipants] = useState<PeriodParticipantDto[]>([]);
   const [departments, setDepartments] = useState<DepartmentItem[]>([]);
   const [cells, setCells] = useState<BranchItem[]>([]);
+  const [permissionOptions, setPermissionOptions] = useState<StepPermissionOptionDto[]>([]);
+  const [readiness, setReadiness] = useState<PeriodReadinessDto | null>(null);
+  const [checking, setChecking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [unlockOpen, setUnlockOpen] = useState(false);
+  const [forceOpen, setForceOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const checkReadiness = useCallback(async () => {
+    if (!periodId || !canManage) return;
+    setChecking(true);
+    try {
+      setReadiness(await evaluationService.getReadiness(periodId));
+    } catch {
+      setReadiness(null);
+    } finally {
+      setChecking(false);
+    }
+  }, [periodId, canManage]);
 
   const load = useCallback(async () => {
     if (!periodId) return;
@@ -62,11 +84,14 @@ export default function PeriodDetailPage() {
       const loaded = await evaluationService.getPeriod(periodId);
       setPeriod(loaded);
       setSettings(JSON.parse(JSON.stringify(loaded.settings)));
-      if (canManage) setParticipants(await evaluationService.getParticipants(periodId));
+      if (canManage) {
+        setParticipants(await evaluationService.getParticipants(periodId));
+        if (loaded.status === "Draft" || loaded.status === "Open" || loaded.status === "Locked") await checkReadiness();
+      }
     } catch (err: any) {
       setError(err?.message || "Không tải được kỳ đánh giá.");
     }
-  }, [periodId, canManage]);
+  }, [periodId, canManage, checkReadiness]);
 
   useEffect(() => {
     load();
@@ -74,10 +99,15 @@ export default function PeriodDetailPage() {
     organizationService.getBranches().then(setCells).catch(() => setCells([]));
   }, [load]);
 
+  useEffect(() => {
+    if (canManage) evaluationService.getStepPermissions().then(setPermissionOptions).catch(() => setPermissionOptions([]));
+  }, [canManage]);
+
   if (error) return <div className="page-wrapper"><div className="alert alert-danger m-4">{error}</div></div>;
   if (!period || !settings) return <div className="page-wrapper"><div className="text-secondary p-4"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div></div>;
 
   const isDraft = period.status === "Draft";
+  const editable = canManage && isDraft;
   const deadlinesEditable = canManage && period.status !== "Closed";
 
   const run = async (work: () => Promise<unknown>, success: string) => {
@@ -97,11 +127,31 @@ export default function PeriodDetailPage() {
   const transition = (action: Transition, reason?: string) =>
     run(() => evaluationService.transitionPeriod(period.id, action, period.version, reason), "Đã cập nhật trạng thái kỳ.");
 
+  /** Mở kỳ: còn cảnh báo kẹt luồng → máy chủ trả 409 kèm danh sách; hiện bảng và đề nghị mở bắt buộc (có lý do). */
+  const openPeriod = async (force = false, reason?: string) => {
+    setBusy(true);
+    try {
+      await evaluationService.transitionPeriod(period.id, "open", period.version, reason, force);
+      toast.success("Đã mở kỳ đánh giá.");
+      setForceOpen(false);
+      await load();
+    } catch (err: any) {
+      const body = err instanceof ApiError ? err.data : null;
+      if (err?.status === 409 && body?.code === "PERIOD_NOT_READY") {
+        setReadiness(body.data as PeriodReadinessDto);
+        toast.error(body.message || "Chưa mở được kỳ: còn cảnh báo kẹt luồng.");
+        setForceOpen(true);
+      } else {
+        toast.error(err?.message || "Không mở được kỳ.");
+        if (err?.status === 409) await load();
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const saveSettings = () =>
     run(() => evaluationService.updatePeriod(period.id, period.version, { settings }), "Đã lưu cấu hình kỳ.");
-
-  const setStep = (step: string, changes: Partial<{ enabled: boolean; deadline: string | null }>) =>
-    setSettings({ ...settings, steps: { ...settings.steps, [step]: { ...settings.steps[step], ...changes } } });
 
   const setParameter = (key: keyof EvaluationParameters, value: number) =>
     setSettings({ ...settings, parameters: { ...settings.parameters, [key]: value } });
@@ -117,7 +167,7 @@ export default function PeriodDetailPage() {
             <Link href="/periods" className="btn btn-outline-secondary btn-sm"><i className="bi bi-arrow-left me-1" />Danh sách kỳ</Link>
             {canManage && period.status === "Draft" && (
               <button type="button" className="btn btn-success btn-sm" disabled={busy}
-                onClick={() => confirm({ title: "Mở kỳ đánh giá", message: "Sau khi mở, chỉ sửa được thời hạn các bước. Bật/tắt bước, mẫu tự chấm và tham số sẽ bị khóa.", confirmText: "Mở kỳ", onConfirm: () => transition("open") })}>
+                onClick={() => confirm({ title: "Mở kỳ đánh giá", message: "Hệ thống kiểm tra kẹt luồng trước khi mở. Sau khi mở, chỉ sửa được thời hạn các bước; hồ sơ luồng, chế độ và quyền thực hiện bước, mẫu tự chấm và tham số sẽ bị khóa.", confirmText: "Mở kỳ", onConfirm: () => openPeriod() })}>
                 Mở kỳ
               </button>
             )}
@@ -144,36 +194,26 @@ export default function PeriodDetailPage() {
         <section className="card border-0 shadow-sm">
           <div className="card-body">
             <div className="d-flex justify-content-between align-items-center mb-2">
-              <h2 className="h6 mb-0">Các bước và thời hạn</h2>
+              <h2 className="h6 mb-0">Hồ sơ luồng — các bước theo nhóm đối tượng</h2>
               {canManage && period.status !== "Closed" && (
                 <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={saveSettings}>Lưu cấu hình</button>
               )}
             </div>
-            {!isDraft && <div className="small text-secondary mb-2">Kỳ đã mở: chỉ sửa được thời hạn các bước.</div>}
-            <table className="table table-sm align-middle">
-              <thead><tr className="small text-secondary"><th>#</th><th>Bước</th><th>Áp dụng</th><th>Thời hạn</th></tr></thead>
-              <tbody>
-                {STEP_ORDER.map((step, index) => {
-                  const setting = settings.steps[step] || { enabled: true };
-                  const mandatory = MANDATORY_STEPS.includes(step);
-                  return (
-                    <tr key={step} className="small" style={{ opacity: setting.enabled ? 1 : 0.6 }}>
-                      <td>{index + 1}</td>
-                      <td>{STEP_NAMES[step]}{mandatory && <span className="text-secondary"> (bắt buộc)</span>}</td>
-                      <td>
-                        <input type="checkbox" className="form-check-input" checked={setting.enabled} disabled={!canManage || !isDraft || mandatory}
-                          onChange={(e) => setStep(step, { enabled: e.target.checked })} aria-label={`Áp dụng ${STEP_NAMES[step]}`} />
-                      </td>
-                      <td style={{ maxWidth: 180 }}>
-                        <input type="date" className="form-control form-control-sm" value={setting.deadline || ""} disabled={!deadlinesEditable || !setting.enabled}
-                          onChange={(e) => setStep(step, { deadline: e.target.value || null })} />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <div className="row g-3">
+            <div className="small text-secondary mb-2">
+              Mỗi người được đánh giá đi theo một hồ sơ luồng (mặc định theo cấp quyết định, đổi được từng người).
+              Cấu hình dựng sẵn theo Phụ lục III Hướng dẫn 03 là <strong>đề xuất chờ nghiệp vụ xác nhận</strong>.
+              {!isDraft && " Kỳ đã mở: chỉ sửa được thời hạn các bước."}
+            </div>
+            <WorkflowProfilesEditor
+              settings={settings}
+              onChange={setSettings}
+              editable={editable}
+              deadlinesEditable={deadlinesEditable}
+              permissionOptions={permissionOptions}
+              savedCodes={period.settings.profiles.map((p) => p.code)}
+            />
+
+            <div className="row g-3 mt-1">
               <div className="col-md-6">
                 <div className="small fw-semibold mb-1">Mẫu tự chấm</div>
                 {[
@@ -182,14 +222,14 @@ export default function PeriodDetailPage() {
                 ].map((option) => (
                   <div className="form-check" key={option.value}>
                     <input className="form-check-input" type="radio" name="selfScoreForm" id={`form-${option.value}`} checked={settings.selfScoreForm === option.value}
-                      disabled={!canManage || !isDraft} onChange={() => setSettings({ ...settings, selfScoreForm: option.value })} />
+                      disabled={!editable} onChange={() => setSettings({ ...settings, selfScoreForm: option.value })} />
                     <label className="form-check-label small" htmlFor={`form-${option.value}`}>{option.label}</label>
                   </div>
                 ))}
               </div>
               <div className="col-md-6">
                 <div className="form-check">
-                  <input className="form-check-input" type="checkbox" id="enforce" checked={settings.enforceDeadlines} disabled={!canManage || !isDraft}
+                  <input className="form-check-input" type="checkbox" id="enforce" checked={settings.enforceDeadlines} disabled={!editable}
                     onChange={(e) => setSettings({ ...settings, enforceDeadlines: e.target.checked })} />
                   <label className="form-check-label small" htmlFor="enforce">Chặn hoàn thành bước khi đã quá thời hạn (mặc định chỉ cảnh báo)</label>
                 </div>
@@ -201,7 +241,7 @@ export default function PeriodDetailPage() {
                 <div className="col-6 col-md-3" key={field.key}>
                   <label className="form-label small mb-0">{field.label}</label>
                   <input type="number" step={field.step ?? 1} className="form-control form-control-sm" value={settings.parameters[field.key] as number}
-                    disabled={!canManage || !isDraft} onChange={(e) => setParameter(field.key, Number(e.target.value))} />
+                    disabled={!editable} onChange={(e) => setParameter(field.key, Number(e.target.value))} />
                 </div>
               ))}
             </div>
@@ -213,9 +253,14 @@ export default function PeriodDetailPage() {
           </div>
         </section>
 
+        {canManage && period.status !== "Closed" && (
+          <ReadinessPanel readiness={readiness} loading={checking} onCheck={checkReadiness} />
+        )}
+
         {canManage && (
           <ParticipantsSection
             period={period}
+            profiles={period.settings.profiles}
             participants={participants}
             departments={departments}
             cells={cells}
@@ -237,12 +282,23 @@ export default function PeriodDetailPage() {
           await transition("unlock", reason);
         }}
       />
+
+      <ReasonDialog
+        isOpen={forceOpen}
+        title="Mở kỳ bắt buộc"
+        description={`Còn ${readiness?.issues.length ?? 0} cảnh báo kẹt luồng (xem bảng "Kiểm tra kẹt luồng"). Chỉ mở bắt buộc khi chắc chắn sẽ bổ sung người thực hiện kịp thời; lý do được lưu cùng kỳ.`}
+        confirmText="Mở kỳ bắt buộc"
+        busy={busy}
+        onCancel={() => setForceOpen(false)}
+        onConfirm={(reason) => openPeriod(true, reason)}
+      />
     </div>
   );
 }
 
 interface ParticipantsProps {
   period: EvaluationPeriodDto;
+  profiles: WorkflowProfile[];
   participants: PeriodParticipantDto[];
   departments: DepartmentItem[];
   cells: BranchItem[];
@@ -250,14 +306,18 @@ interface ParticipantsProps {
   run: (work: () => Promise<unknown>, success: string) => Promise<void>;
 }
 
-function ParticipantsSection({ period, participants, departments, cells, busy, run }: ParticipantsProps) {
+function ParticipantsSection({ period, profiles, participants, departments, cells, busy, run }: ParticipantsProps) {
   const canAdd = period.status === "Draft" || period.status === "Open";
+  const canChangeProfile = period.status !== "Closed";
   const [departmentId, setDepartmentId] = useState("");
   const [cellId, setCellId] = useState("");
   const [query, setQuery] = useState("");
+  const [addProfile, setAddProfile] = useState("");
   const [candidates, setCandidates] = useState<ParticipantCandidateDto[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [editing, setEditing] = useState<PeriodParticipantDto | null>(null);
+  const [profileTargets, setProfileTargets] = useState<PeriodParticipantDto[] | null>(null);
+  const [checked, setChecked] = useState<string[]>([]);
 
   const search = async () => {
     try {
@@ -270,24 +330,26 @@ function ParticipantsSection({ period, participants, departments, cells, busy, r
 
   const addByUnit = () =>
     run(async () => {
-      const result = await evaluationService.addParticipants(period.id, { departmentId, partyCellId: cellId });
+      const result = await evaluationService.addParticipants(period.id, { departmentId, partyCellId: cellId, workflowProfileCode: addProfile });
       if (result.skipped.length > 0) alertSkipped(result.skipped);
     }, "Đã thêm người được đánh giá theo đơn vị.");
 
   const addSelected = () =>
     run(async () => {
-      const result = await evaluationService.addParticipants(period.id, { memberIds: selected });
+      const result = await evaluationService.addParticipants(period.id, { memberIds: selected, workflowProfileCode: addProfile });
       if (result.skipped.length > 0) alertSkipped(result.skipped);
       setSelected([]);
       await search();
     }, `Đã thêm ${selected.length} người được đánh giá.`);
+
+  const allChecked = participants.length > 0 && checked.length === participants.length;
 
   return (
     <section className="card border-0 shadow-sm">
       <div className="card-body">
         <div className="d-flex justify-content-between align-items-center mb-2">
           <h2 className="h6 mb-0">Người được đánh giá ({participants.length})</h2>
-          <Link href="/imports" className="btn btn-outline-secondary btn-sm"><i className="bi bi-file-earmark-excel me-1" />Nhập từ Excel (loại "Người được đánh giá của kỳ")</Link>
+          <Link href="/imports" className="btn btn-outline-secondary btn-sm"><i className="bi bi-file-earmark-excel me-1" />Nhập từ Excel (loại "Người được đánh giá của kỳ", có cột Hồ sơ luồng)</Link>
         </div>
 
         {canAdd && (
@@ -306,7 +368,13 @@ function ParticipantsSection({ period, participants, departments, cells, busy, r
                 </select>
               </div>
               <div className="col-md-3"><label className="form-label small mb-0">Tên / tài khoản</label><input className="form-control form-control-sm" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
-              <div className="col-md-3 d-flex gap-2">
+              <div className="col-md-3"><label className="form-label small mb-0">Hồ sơ luồng khi thêm</label>
+                <select className="form-select form-select-sm" value={addProfile} onChange={(e) => setAddProfile(e.target.value)}>
+                  <option value="">Mặc định theo cấp quyết định</option>
+                  {profiles.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
+                </select>
+              </div>
+              <div className="col-12 d-flex gap-2">
                 <button type="button" className="btn btn-outline-primary btn-sm" onClick={search}>Tìm cán bộ</button>
                 <button type="button" className="btn btn-outline-success btn-sm" disabled={busy || (!departmentId && !cellId)} onClick={addByUnit}>Thêm cả đơn vị</button>
               </div>
@@ -330,19 +398,47 @@ function ParticipantsSection({ period, participants, departments, cells, busy, r
           </div>
         )}
 
+        {canChangeProfile && checked.length > 0 && (
+          <div className="alert alert-light border d-flex justify-content-between align-items-center py-2 small">
+            <span>Đã chọn {checked.length} người.</span>
+            <button type="button" className="btn btn-outline-primary btn-sm" disabled={busy}
+              onClick={() => setProfileTargets(participants.filter((p) => checked.includes(p.recordId)))}>
+              Đổi hồ sơ luồng hàng loạt
+            </button>
+          </div>
+        )}
+
         <div className="table-responsive">
           <table className="table table-sm align-middle mb-0">
-            <thead><tr className="small text-secondary"><th>Cán bộ</th><th>Phòng</th><th>Chi bộ</th><th>Khung</th><th>Cấp quyết định</th><th>Trạng thái</th><th /></tr></thead>
+            <thead>
+              <tr className="small text-secondary">
+                {canChangeProfile && (
+                  <th style={{ width: 28 }}>
+                    <input type="checkbox" className="form-check-input" aria-label="Chọn tất cả" checked={allChecked}
+                      onChange={(e) => setChecked(e.target.checked ? participants.map((p) => p.recordId) : [])} />
+                  </th>
+                )}
+                <th>Cán bộ</th><th>Phòng</th><th>Chi bộ</th><th>Khung</th><th>Cấp quyết định</th><th>Hồ sơ luồng</th><th>Trạng thái</th><th />
+              </tr>
+            </thead>
             <tbody>
               {participants.map((p) => (
                 <tr key={p.recordId} className="small">
+                  {canChangeProfile && (
+                    <td>
+                      <input type="checkbox" className="form-check-input" aria-label={`Chọn ${p.fullName}`} checked={checked.includes(p.recordId)}
+                        onChange={(e) => setChecked(e.target.checked ? [...checked, p.recordId] : checked.filter((id) => id !== p.recordId))} />
+                    </td>
+                  )}
                   <td><Link href={`/evaluations/${p.recordId}`}>{p.fullName}</Link><div className="text-secondary">{p.username}</div></td>
                   <td>{p.departmentName || "—"}</td>
                   <td>{p.partyCellName || "—"}</td>
                   <td>{p.jobGroup.split("_")[0]}</td>
                   <td>{p.approvalAuthority === "CapTren" ? "Cấp trên" : "Cơ sở"}</td>
+                  <td>{p.workflowProfileName || p.workflowProfileCode}</td>
                   <td>{p.statusDisplayName}</td>
                   <td className="text-end text-nowrap">
+                    {canChangeProfile && <button type="button" className="btn btn-link btn-sm p-0 me-2" onClick={() => setProfileTargets([p])}>Đổi hồ sơ luồng</button>}
                     {canAdd && <button type="button" className="btn btn-link btn-sm p-0 me-2" onClick={() => setEditing(p)}>Sửa ảnh chụp</button>}
                     {canAdd && (
                       <button type="button" className="btn btn-link btn-sm p-0 text-danger" disabled={busy}
@@ -373,12 +469,85 @@ function ParticipantsSection({ period, participants, departments, cells, busy, r
           }
         />
       )}
+
+      {profileTargets && (
+        <ProfileDialog
+          targets={profileTargets}
+          profiles={profiles}
+          busy={busy}
+          onCancel={() => setProfileTargets(null)}
+          onSave={(workflowProfileCode, reason) =>
+            run(async () => {
+              if (profileTargets.length === 1) {
+                const target = profileTargets[0];
+                await evaluationService.changeProfile(period.id, target.recordId, { version: target.version, workflowProfileCode, reason });
+              } else {
+                const result = await evaluationService.bulkChangeProfile(period.id, {
+                  items: profileTargets.map((t) => ({ recordId: t.recordId, version: t.version })),
+                  workflowProfileCode,
+                  reason,
+                });
+                if (result.skipped.length > 0) alertSkipped(result.skipped, `Đã đổi ${result.updated} hồ sơ. Một số hồ sơ không đổi được:`);
+              }
+              setProfileTargets(null);
+              setChecked([]);
+            }, "Đã đổi hồ sơ luồng.")
+          }
+        />
+      )}
     </section>
   );
 }
 
-function alertSkipped(skipped: string[]) {
-  if (typeof window !== "undefined") window.alert("Một số người không được thêm:\n" + skipped.join("\n"));
+function alertSkipped(skipped: string[], title = "Một số người không được thêm:") {
+  if (typeof window !== "undefined") window.alert(title + "\n" + skipped.join("\n"));
+}
+
+interface ProfileDialogProps {
+  targets: PeriodParticipantDto[];
+  profiles: WorkflowProfile[];
+  busy: boolean;
+  onCancel: () => void;
+  onSave: (workflowProfileCode: string, reason: string) => void;
+}
+
+/** Đổi hồ sơ luồng (một hoặc nhiều người): bắt buộc lý do; máy chủ chỉ đổi hồ sơ chưa qua bước bị ảnh hưởng. */
+function ProfileDialog({ targets, profiles, busy, onCancel, onSave }: ProfileDialogProps) {
+  const [code, setCode] = useState(targets.length === 1 ? targets[0].workflowProfileCode : "");
+  const [reason, setReason] = useState("");
+  return (
+    <div className="modal fade show d-block" tabIndex={-1} role="dialog" aria-modal="true" style={{ backgroundColor: "rgba(15, 23, 42, 0.55)", zIndex: 1080 }}>
+      <div className="modal-dialog modal-dialog-centered">
+        <div className="modal-content border-0 shadow-lg">
+          <div className="modal-header">
+            <h2 className="modal-title fs-6 fw-bold">Đổi hồ sơ luồng — {targets.length === 1 ? targets[0].fullName : `${targets.length} người`}</h2>
+            <button type="button" className="btn-close" aria-label="Đóng" onClick={onCancel} />
+          </div>
+          <form onSubmit={(e) => { e.preventDefault(); onSave(code, reason.trim()); }}>
+            <div className="modal-body d-flex flex-column gap-2">
+              <div className="small text-secondary">
+                Chỉ đổi được khi hồ sơ chưa qua bước mà hai hồ sơ luồng cấu hình khác nhau; bước đang chờ không còn áp dụng thì hồ sơ
+                chuyển sang bước áp dụng kế tiếp. Mọi lần đổi được ghi lịch sử hồ sơ.
+              </div>
+              <div><label className="form-label small" htmlFor="profile-target">Hồ sơ luồng mới</label>
+                <select id="profile-target" className="form-select form-select-sm" required value={code} onChange={(e) => setCode(e.target.value)}>
+                  <option value="">— Chọn —</option>
+                  {profiles.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
+                </select>
+              </div>
+              <div><label className="form-label small" htmlFor="profile-reason">Lý do (bắt buộc)</label>
+                <textarea id="profile-reason" className="form-control form-control-sm" rows={3} maxLength={2000} required value={reason} onChange={(e) => setReason(e.target.value)} />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onCancel}>Hủy</button>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={busy || !code || !reason.trim()}>Đổi hồ sơ luồng</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 interface SnapshotProps {
@@ -425,6 +594,7 @@ function SnapshotDialog({ participant, departments, cells, busy, onCancel, onSav
                   <option value="CoSo">Đảng ủy cơ sở</option>
                   <option value="CapTren">Cấp trên</option>
                 </select>
+                <div className="form-text">Không tự đổi hồ sơ luồng — dùng "Đổi hồ sơ luồng" nếu cần.</div>
               </div>
               <div className="col-12"><label className="form-label small">Lý do (bắt buộc)</label><textarea className="form-control form-control-sm" rows={3} required value={reason} onChange={(e) => setReason(e.target.value)} /></div>
             </div>

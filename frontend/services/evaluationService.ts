@@ -32,11 +32,27 @@ export type WorkflowActionCode =
   | "DirectorReview"
   | "RecordDecision"
   | "Publish"
-  | "Reopen";
+  | "Reopen"
+  /** Ghi nhận kết quả của bước do cấp trên thực hiện (bước ở trường `step`). */
+  | "RecordExternal";
 
-export interface StepSetting {
-  enabled: boolean;
+/** Chế độ thực hiện một bước trong hồ sơ luồng. */
+export type StepMode = "Internal" | "External" | "Off";
+
+/** Cấu hình một bước trong hồ sơ luồng. */
+export interface ProfileStepSetting {
+  mode: StepMode;
+  /** Mã quyền thực hiện khi `Internal` (bước của chủ hồ sơ luôn là evaluation.self; chế độ khác: null). */
+  permission?: string | null;
   deadline?: string | null;
+}
+
+/** Hồ sơ luồng: cấu hình bước cho một nhóm đối tượng (ví dụ Diện Đảng ủy cơ sở). */
+export interface WorkflowProfile {
+  code: string;
+  name: string;
+  description?: string | null;
+  steps: Record<string, ProfileStepSetting>;
 }
 
 export interface CriteriaWeights {
@@ -64,10 +80,12 @@ export interface EvaluationParameters {
   axisMaxScores: number[];
 }
 
-/** Cấu hình kỳ (cột jsonb). */
+/** Cấu hình kỳ (cột jsonb, schema 2): các hồ sơ luồng + hồ sơ luồng mặc định theo cấp quyết định. */
 export interface PeriodSettings {
   schemaVersion: number;
-  steps: Record<string, StepSetting>;
+  profiles: WorkflowProfile[];
+  /** Khóa: "CoSo" | "CapTren" → mã hồ sơ luồng. */
+  defaultProfiles: Record<string, string>;
   enforceDeadlines: boolean;
   selfScoreForm: "09A" | "09B" | string;
   parameters: EvaluationParameters;
@@ -119,6 +137,8 @@ export interface PeriodParticipantDto {
   partyCellName?: string | null;
   jobGroup: string;
   approvalAuthority: string;
+  workflowProfileCode: string;
+  workflowProfileName: string;
   status: string;
   statusDisplayName: string;
 }
@@ -164,6 +184,8 @@ export interface RecordStepProgressDto {
   step: WorkflowStepCode;
   name: string;
   enabled: boolean;
+  /** Chế độ của bước trong hồ sơ luồng của hồ sơ. */
+  mode: StepMode;
   /** done | current | pending | skipped */
   state: "done" | "current" | "pending" | "skipped";
   deadline?: string | null;
@@ -189,6 +211,8 @@ export interface EvaluationRecordDto {
   departmentName?: string;
   jobGroup: string;
   approvalAuthority: string;
+  workflowProfileCode: string;
+  workflowProfileName: string;
   status: string;
   statusDisplayName: string;
   currentStep?: WorkflowStepCode | null;
@@ -241,7 +265,61 @@ export interface EvaluationRecordDto {
   publishedByName?: string | null;
   publishedAt?: string | null;
 
+  /** Kết quả ghi nhận của các bước do cấp trên thực hiện. */
+  externalResults: ExternalResultDto[];
+
   tasks: EvaluationTaskDto[];
+}
+
+/** Kết quả của một bước do cấp trên thực hiện (đã ghi nhận). */
+export interface ExternalResultDto {
+  step: WorkflowStepCode;
+  stepName: string;
+  authorityName: string;
+  documentNumber?: string | null;
+  documentDate?: string | null;
+  comment?: string | null;
+  grade: string;
+  score?: number | null;
+  attachmentId?: string | null;
+  recordedByName?: string | null;
+  recordedAt: string;
+}
+
+/** Cảnh báo kẹt luồng. */
+export interface ReadinessIssueDto {
+  recordId: string;
+  memberId: string;
+  fullName: string;
+  workflowProfileCode: string;
+  workflowProfileName: string;
+  step: WorkflowStepCode;
+  stepName: string;
+  mode: StepMode;
+  permission: string;
+  permissionName: string;
+  scope: string;
+  message: string;
+}
+
+/** Kết quả kiểm tra kẹt luồng của kỳ. */
+export interface PeriodReadinessDto {
+  periodId: string;
+  ready: boolean;
+  checkedRecords: number;
+  issues: ReadinessIssueDto[];
+}
+
+/** Mã quyền chọn được làm quyền thực hiện bước. */
+export interface StepPermissionOptionDto {
+  code: string;
+  name: string;
+  description: string;
+}
+
+export interface BulkChangeProfileResultDto {
+  updated: number;
+  skipped: string[];
 }
 
 export interface EvaluationRecordHistoryDto {
@@ -293,8 +371,11 @@ export interface WorkQueueItemDto {
   departmentName?: string | null;
   partyCellName?: string | null;
   approvalAuthority: string;
+  workflowProfileName: string;
   status: string;
   statusDisplayName: string;
+  /** Chế độ của bước đang chờ: Internal | External. */
+  mode: StepMode;
   isOwnRecord: boolean;
   returnReason?: string | null;
   deadline?: string | null;
@@ -507,8 +588,36 @@ export const STEP_NAMES: Record<WorkflowStepCode, string> = {
   B5_PUBLISH: "Công bố, khóa kết quả",
 };
 
-/** Bước luôn bật (không tắt được trong cấu hình kỳ) — chỉ để khóa ô chọn; máy chủ kiểm tra lại. */
-export const MANDATORY_STEPS: WorkflowStepCode[] = ["B2_SELF_SCORE", "B3B_APPRAISAL", "B4_DECISION", "B5_PUBLISH"];
+/** Bước bắt buộc (không đặt "Không áp dụng") — chỉ để khóa ô chọn; máy chủ kiểm tra lại. */
+export const MANDATORY_STEPS: WorkflowStepCode[] = ["B2_SELF_SCORE", "B4_DECISION", "B5_PUBLISH"];
+
+/** Bước không giao cho cấp trên thực hiện (bước của chủ hồ sơ, công bố) — chỉ để khóa ô chọn. */
+export const NEVER_EXTERNAL_STEPS: WorkflowStepCode[] = ["B1_REGISTER", "B2_SELF_SCORE", "B5_PUBLISH"];
+
+/** Bước của chủ hồ sơ (quyền thực hiện luôn là "Tham gia đánh giá (bản thân)"). */
+export const OWNER_STEPS: WorkflowStepCode[] = ["B1_REGISTER", "B2_SELF_SCORE"];
+
+/** Bước có mức xếp loại (ghi nhận kết quả của cấp trên bắt buộc chọn mức). */
+export const GRADED_STEPS: WorkflowStepCode[] = ["B3A_COLLECTIVE", "B3B_APPRAISAL", "B3C_DIRECTOR", "B4_DECISION"];
+
+/** Quyền thực hiện mặc định của bước nội bộ (giống máy chủ) — dùng khi chuyển chế độ về "Nội bộ" trên giao diện. */
+export const DEFAULT_STEP_PERMISSIONS: Record<WorkflowStepCode, string> = {
+  B1_REGISTER: "evaluation.self",
+  B1_APPROVE: "evaluation.tasks.approve",
+  B2_SELF_SCORE: "evaluation.self",
+  B2_CELL_CONFIRM: "evaluation.cell.confirm",
+  B3A_COLLECTIVE: "evaluation.collective.record",
+  B3B_APPRAISAL: "evaluation.appraise",
+  B3C_DIRECTOR: "evaluation.director.review",
+  B4_DECISION: "evaluation.decide",
+  B5_PUBLISH: "evaluation.publish",
+};
+
+export const STEP_MODE_LABELS: Record<StepMode, string> = {
+  Internal: "Nội bộ",
+  External: "Cấp trên thực hiện",
+  Off: "Không áp dụng",
+};
 
 export const STEP_ORDER: WorkflowStepCode[] = [
   "B1_REGISTER",
@@ -580,6 +689,7 @@ const ACTION_PATH: Record<WorkflowActionCode, string> = {
   RecordDecision: "decision",
   Publish: "publish",
   Reopen: "reopen",
+  RecordExternal: "external",
 };
 
 // ---------------------------------------------------------------------------
@@ -621,16 +731,58 @@ export const evaluationService = {
     );
   },
 
-  /** Chuyển trạng thái kỳ: open | lock | unlock | close. */
+  /**
+   * Chuyển trạng thái kỳ: open | lock | unlock | close. Mở kỳ còn cảnh báo kẹt luồng → 409 (`ApiError.data` = kết quả
+   * kiểm tra kẹt luồng); mở bắt buộc: `force = true` kèm lý do.
+   */
   async transitionPeriod(
     id: string,
     action: "open" | "lock" | "unlock" | "close",
     version: number | undefined,
-    reason?: string
+    reason?: string,
+    force?: boolean
   ): Promise<EvaluationPeriodDto> {
+    // Mở kỳ không qua withConflictHandling: 409 do kẹt luồng không phải xung đột phiên bản.
+    if (action === "open")
+      return post<EvaluationPeriodDto>(`/evaluations/periods/${id}/open`, { version, reason, force: !!force });
     return withConflictHandling(`period:${action}`, () =>
       post<EvaluationPeriodDto>(`/evaluations/periods/${id}/${action}`, { version, reason })
     );
+  },
+
+  /** Kiểm tra kẹt luồng: hồ sơ nào sẽ kẹt ở bước nào vì không ai có quyền trong phạm vi. */
+  async getReadiness(periodId: string): Promise<PeriodReadinessDto> {
+    return request<PeriodReadinessDto>(`/evaluations/periods/${periodId}/readiness`);
+  },
+
+  /** Mã quyền chọn được làm quyền thực hiện bước nội bộ. */
+  async getStepPermissions(): Promise<StepPermissionOptionDto[]> {
+    return request<StepPermissionOptionDto[]>("/evaluations/periods/step-permissions");
+  },
+
+  /** Đổi hồ sơ luồng của một người được đánh giá (bắt buộc lý do). */
+  async changeProfile(
+    periodId: string,
+    recordId: string,
+    payload: { version: number; workflowProfileCode: string; reason: string }
+  ): Promise<PeriodParticipantDto> {
+    return withConflictHandling("changeProfile", () =>
+      request<PeriodParticipantDto>(`/evaluations/periods/${periodId}/participants/${recordId}/profile`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      })
+    );
+  },
+
+  /** Đổi hồ sơ luồng hàng loạt; hồ sơ không đổi được trả về trong `skipped` kèm lý do. */
+  async bulkChangeProfile(
+    periodId: string,
+    payload: { items: { recordId: string; version: number }[]; workflowProfileCode: string; reason: string }
+  ): Promise<BulkChangeProfileResultDto> {
+    return request<BulkChangeProfileResultDto>(`/evaluations/periods/${periodId}/participants/profile`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
   },
 
   async getParticipants(periodId: string): Promise<PeriodParticipantDto[]> {
@@ -651,12 +803,13 @@ export const evaluationService = {
 
   async addParticipants(
     periodId: string,
-    payload: { memberIds?: string[]; departmentId?: string; partyCellId?: string }
+    payload: { memberIds?: string[]; departmentId?: string; partyCellId?: string; workflowProfileCode?: string }
   ): Promise<AddParticipantsResultDto> {
     return post<AddParticipantsResultDto>(`/evaluations/periods/${periodId}/participants`, {
       memberIds: payload.memberIds ?? [],
       departmentId: payload.departmentId || undefined,
       partyCellId: payload.partyCellId || undefined,
+      workflowProfileCode: payload.workflowProfileCode || undefined,
     });
   },
 
@@ -723,15 +876,18 @@ export const evaluationService = {
   /**
    * Thực hiện một hành động theo bước. `version` là phiên bản hồ sơ đã đọc — bắt buộc (máy chủ trả 400 nếu thiếu).
    * 409 (người khác đã cập nhật / hồ sơ đã sang bước khác) → phát sự kiện EVALUATION_CONFLICT_EVENT.
+   * `RecordExternal` cần `step` (bước do cấp trên thực hiện được ghi nhận).
    */
   async performAction(
     recordId: string,
     action: WorkflowActionCode,
     version: number,
-    payload: Record<string, unknown> = {}
+    payload: Record<string, unknown> = {},
+    step?: WorkflowStepCode
   ): Promise<EvaluationRecordDto> {
+    const path = action === "RecordExternal" ? `${ACTION_PATH[action]}/${step}` : ACTION_PATH[action];
     return withConflictHandling(action, () =>
-      post<EvaluationRecordDto>(`/evaluations/records/${recordId}/${ACTION_PATH[action]}`, { ...payload, version })
+      post<EvaluationRecordDto>(`/evaluations/records/${recordId}/${path}`, { ...payload, version })
     );
   },
 
