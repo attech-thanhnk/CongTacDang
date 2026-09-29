@@ -124,7 +124,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "Hệ thống Đánh giá Cán bộ Đảng bộ ATTECH",
+        Title = "Hệ thống đánh giá cán bộ Đảng bộ",
         Version = "v1",
         Description = "API phục vụ quy trình đánh giá định kỳ hằng quý theo Hướng dẫn 03-HD/TVĐU"
     });
@@ -157,7 +157,7 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Đảng bộ ATTECH API v1");
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "CongTacDang API v1");
         c.RoutePrefix = "swagger";
     });
 }

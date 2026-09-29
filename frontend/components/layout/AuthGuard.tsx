@@ -6,12 +6,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LayoutProvider } from "@/contexts/LayoutContext";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { useOrganizationInfo } from "@/services/organizationSettingsService";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
+  const org = useOrganizationInfo();
   const isLoginPage = pathname === "/login";
   const isChangePasswordPage = pathname === "/change-password";
 
@@ -88,7 +90,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
               color: "var(--text-muted)",
             }}
           >
-            © 2026 Đảng bộ ATTECH — Hệ thống quản trị đánh giá cán bộ định kỳ
+            © {new Date().getFullYear()} {org?.systemName ? `${org.systemName} — ` : ""}Hệ thống quản trị đánh giá cán bộ định kỳ
           </footer>
         </div>
       </div>
