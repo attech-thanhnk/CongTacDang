@@ -128,34 +128,22 @@ public sealed class DataSeederAuthorizationTests
     private static async Task WithDatabaseAsync(Func<DbContextOptions<CongTacDangDbContext>, Task> test)
     {
         Skip.If(string.IsNullOrWhiteSpace(AdminConnection), $"Bỏ qua: chưa đặt biến môi trường {ApiFactory.ConnectionEnvVar}.");
-        var admin = new NpgsqlConnectionStringBuilder(AdminConnection);
-        TestDatabaseNames.EnsureNotForbidden(admin.Database);
+        var admin = TestDatabaseAdmin.AdminConnectionString(AdminConnection!);
         var name = TestDatabaseNames.NewName(DateTime.UtcNow);
-        TestDatabaseNames.EnsureSafe(name);
 
-        await ExecuteAsync(admin.ConnectionString, $"CREATE DATABASE \"{name}\"");
+        await TestDatabaseAdmin.CreateAsync(admin, name);
         try
         {
-            var target = new NpgsqlConnectionStringBuilder(AdminConnection) { Database = name };
-            var options = new DbContextOptionsBuilder<CongTacDangDbContext>().UseNpgsql(target.ConnectionString).Options;
+            var options = new DbContextOptionsBuilder<CongTacDangDbContext>()
+                .UseNpgsql(TestDatabaseAdmin.TargetConnectionString(admin, name)).Options;
             await using (var db = new CongTacDangDbContext(options, new SeederUser()))
                 await db.Database.MigrateAsync();
             await test(options);
         }
         finally
         {
-            NpgsqlConnection.ClearAllPools();
-            TestDatabaseNames.EnsureSafe(name);
-            await ExecuteAsync(admin.ConnectionString, $"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)");
+            await TestDatabaseAdmin.DropAsync(admin, name);
         }
-    }
-
-    private static async Task ExecuteAsync(string connectionString, string sql)
-    {
-        await using var connection = new NpgsqlConnection(connectionString);
-        await connection.OpenAsync();
-        await using var command = new NpgsqlCommand(sql, connection);
-        await command.ExecuteNonQueryAsync();
     }
 
     private sealed class SeederUser : ICurrentUserService
