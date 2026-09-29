@@ -82,10 +82,20 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     /// <inheritdoc />
     async Task IAsyncLifetime.DisposeAsync()
     {
-        await base.DisposeAsync();
+        try
+        {
+            await base.DisposeAsync();
+        }
+        catch (NpgsqlException ex)
+        {
+            // Lỗi CSDL khi dừng host sau khi mọi test đã xong (vd. kết nối bị máy chủ dùng chung ngắt): ghi rõ, vẫn dọn CSDL.
+            Console.WriteLine($"Lỗi CSDL khi dừng host test ({DatabaseName}): {TestDatabaseAdmin.Describe(ex)}");
+        }
 
+        // Dọn CSDL là việc phụ: đã thử lại mà vẫn lỗi thì ghi rõ lỗi và để lượt dọn CSDL sót lại (quá 24 giờ) xóa sau,
+        // không làm hỏng kết quả của các test đã chạy xong.
         if (_databaseCreated)
-            await TestDatabaseAdmin.DropAsync(_adminConnectionString!, DatabaseName);
+            await TestDatabaseAdmin.TryDropAsync(_adminConnectionString!, DatabaseName);
 
         try
         {

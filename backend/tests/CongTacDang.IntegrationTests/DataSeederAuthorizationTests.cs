@@ -142,7 +142,7 @@ public sealed class DataSeederAuthorizationTests
         }
         finally
         {
-            await TestDatabaseAdmin.DropAsync(admin, name);
+            await TestDatabaseAdmin.TryDropAsync(admin, name);
         }
     }
 

@@ -80,6 +80,22 @@ public static class TestDatabaseAdmin
         }
     }
 
+    /// <summary>
+    /// Xóa CSDL tạm khi dọn sau test: đã thử lại mà vẫn lỗi thì ghi rõ lỗi (SQLSTATE, chi tiết) và để lượt dọn CSDL sót lại
+    /// (quá 24 giờ) xóa sau — không làm hỏng kết quả của các test đã chạy xong.
+    /// </summary>
+    public static async Task TryDropAsync(string adminConnectionString, string name)
+    {
+        try
+        {
+            await DropAsync(adminConnectionString, name);
+        }
+        catch (Exception ex) when (ex is NpgsqlException or TimeoutException)
+        {
+            Console.WriteLine($"Không xóa được CSDL test {name} (sẽ được dọn sau 24 giờ): {Describe(ex)}");
+        }
+    }
+
     /// <summary>Tên các CSDL <c>ctd_it_*</c> hiện có trên máy chủ.</summary>
     public static async Task<List<string>> ListAsync(string adminConnectionString)
     {
@@ -93,19 +109,26 @@ public static class TestDatabaseAdmin
         return names;
     }
 
-    /// <summary>Lỗi tạm thời của máy chủ dùng chung — thử lại được.</summary>
+    /// <summary>
+    /// Lỗi thử lại được khi tạo/xóa CSDL tạm của chính test (tên duy nhất) trên máy chủ dùng chung: mọi lỗi phía máy chủ
+    /// (đối tượng đang dùng, quá tải kết nối, khóa/deadlock, "tuple concurrently updated" khi phiên khác cùng sửa catalog dùng
+    /// chung <c>pg_database</c>…) và lỗi mạng/hết thời hạn — trừ lỗi cố định: cú pháp/quyền (lớp 42), xác thực (lớp 28),
+    /// CSDL không tồn tại (lớp 3D).
+    /// </summary>
     public static bool IsTransient(Exception ex) => ex switch
     {
-        PostgresException pg => pg.SqlState is PostgresErrorCodes.ObjectInUse
-            or PostgresErrorCodes.TooManyConnections
-            or PostgresErrorCodes.CannotConnectNow
-            or PostgresErrorCodes.InsufficientResources
-            or PostgresErrorCodes.DeadlockDetected
-            or PostgresErrorCodes.LockNotAvailable,
+        PostgresException pg => !(pg.SqlState.StartsWith("42", StringComparison.Ordinal)
+            || pg.SqlState.StartsWith("28", StringComparison.Ordinal)
+            || pg.SqlState.StartsWith("3D", StringComparison.Ordinal)),
         NpgsqlException npgsql => npgsql.IsTransient,
         TimeoutException => true,
         _ => false
     };
+
+    /// <summary>Mô tả đầy đủ lỗi (mã SQLSTATE, thông báo, chi tiết) để chẩn đoán lỗi trên máy chủ dùng chung.</summary>
+    public static string Describe(Exception ex) => ex is PostgresException pg
+        ? $"{pg.SqlState}: {pg.MessageText}{(string.IsNullOrEmpty(pg.Detail) ? string.Empty : " — " + pg.Detail)}"
+        : $"{ex.GetType().Name}: {ex.Message}";
 
     private static async Task RetryAsync(string operation, Func<int, Task> action)
     {
@@ -118,7 +141,7 @@ public static class TestDatabaseAdmin
             }
             catch (Exception ex) when (attempt < MaxAttempts && IsTransient(ex))
             {
-                Console.WriteLine($"Lỗi tạm thời khi {operation} (lần {attempt}/{MaxAttempts}), thử lại: {ex.Message}");
+                Console.WriteLine($"Lỗi tạm thời khi {operation} (lần {attempt}/{MaxAttempts}), thử lại: {Describe(ex)}");
                 await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt - 1)));
             }
         }

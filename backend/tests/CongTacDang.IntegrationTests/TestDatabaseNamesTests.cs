@@ -50,8 +50,11 @@ public sealed class TestDatabaseNamesTests
     [InlineData(PostgresErrorCodes.ObjectInUse, true)]          // "source database template1 is being accessed by other users"
     [InlineData(PostgresErrorCodes.TooManyConnections, true)]
     [InlineData(PostgresErrorCodes.CannotConnectNow, true)]
+    [InlineData(PostgresErrorCodes.InternalError, true)]         // "tuple concurrently updated" (phiên khác sửa pg_database)
     [InlineData(PostgresErrorCodes.DuplicateDatabase, false)]
     [InlineData(PostgresErrorCodes.InsufficientPrivilege, false)]
+    [InlineData(PostgresErrorCodes.InvalidPassword, false)]
+    [InlineData(PostgresErrorCodes.InvalidCatalogName, false)]
     public void TestDatabaseAdmin_RetriesOnlyTransientServerErrors(string sqlState, bool transient)
     {
         Assert.Equal(transient, TestDatabaseAdmin.IsTransient(new PostgresException("x", "ERROR", "ERROR", sqlState)));
