@@ -120,6 +120,11 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-74 | 🔴 | Một luồng cho cả kỳ: hồ sơ diện BTV Đảng ủy Tổng công ty (Ban Giám đốc) đi luồng nội bộ và kẹt ở bước cấp trực tiếp sử dụng; không có bước do cấp trên thực hiện; không có biến thể theo đối tượng (HD03 Phụ lục III ví dụ 2, 3) | `EvaluationWorkflowService`, `PeriodSettings` | 15 | done |
 | T-75 | 🟠 | Không kiểm tra trước được hồ sơ nào sẽ kẹt vì không ai đủ quyền thực hiện bước | `PeriodService` | 15 | done |
 | T-76 | 🟡 | Giao diện kỳ chưa cấu hình được luồng theo nhóm, người thực hiện từng bước | `app/periods` | 15 | done |
+| T-77 | 🔴 | Tiêu chí chung chấm thành 6 ô × 5 điểm (`GeneralScoreT1..T6`) — lệch HD03 (3 nhóm 18/4/8, 17 tiêu chí con, "đảm bảo/không đảm bảo", K/AD); trục, khung tỷ trọng là enum; nội dung chấm điểm không khai báo được theo văn bản từng thời kỳ | `EvaluationRecord`, `DomainEnums.cs`, `EvaluationScoring` | 16 | open |
+| T-78 | 🟠 | Tham số tính điểm của kỳ chỉ xem, không sửa được; làm tròn, trần Xuất sắc, ngưỡng giải trình chênh lệch không cấu hình được (B-08, B-09) | `PeriodSettings`, `EvaluationParameters` | 16 | open |
+| T-79 | 🟡 | Form tự chấm/thẩm định dựng cứng 6 ô tiêu chí, 6 trục | `components/evaluations/RecordActionPanel.tsx` | 16 | open |
+| T-80 | 🟡 | Tên đơn vị ghi cứng trong code xuất biểu mẫu và tên file ("ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", "ATTECH") | `ReportService`, `Documents/**` | 17 | open |
+| T-81 | 🟡 | Không thay được file mẫu Word qua giao diện, không có phiên bản, không kiểm tra tag khi thay | `WordTemplateStore`, `Templates/Word` | 17 | open |
 | T-70 | ⚪ | EF cảnh báo 10622 khi khởi động: `CollectiveEvaluationRecord`, `EvaluationMeeting` có query filter xóa mềm nhưng là đầu bắt buộc của quan hệ với bảng con (item, vote summary) — cần filter tương ứng cho bảng con hoặc quan hệ tùy chọn | `CongTacDangDbContext`, `Data/Configurations/` | — | open |
 
 ## B — Nghiệp vụ (để xử lý sau)
