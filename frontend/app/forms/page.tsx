@@ -40,7 +40,7 @@ const STANDARD_FORMS: StandardForm[] = [
     title: "Phiếu tự chấm điểm tiêu chí chung",
     group: "Tự chấm điểm",
     targetUser: "Cán bộ lãnh đạo, quản lý",
-    purpose: "Chấm điểm 6 tiêu chí chính trị, đạo đức, tác phong (30 điểm)",
+    purpose: "Tự chấm tiêu chí chung và kết quả nhiệm vụ theo bộ tiêu chí của kỳ",
     actionType: "attachment",
   },
   {
