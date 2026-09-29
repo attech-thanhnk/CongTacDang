@@ -58,10 +58,10 @@ Trường bổ sung (task 07, sửa ở task 14):
 | `evaluation.appeal.submit` | Gửi kiến nghị về kết quả | chủ hồ sơ | Task 20: chỉ trên hồ sơ của mình, sau công bố, không trùng khi đang xử lý (PL II III.2) |
 | `evaluation.appeal.resolve` | Xử lý kiến nghị về kết quả | có | Task 20: nhận xem xét, trả lời bắt buộc căn cứ; không xử lý kiến nghị của mình hoặc kiến nghị liên quan tới bước mình đã thực hiện trên hồ sơ |
 | `evaluation.improvement.manage` | Lập kế hoạch khắc phục 30-60-90 ngày | có | Task 20: lập, duyệt, ghi kết quả mốc Mẫu 17 (thủ trưởng đơn vị); không trên hồ sơ của mình |
-| `collective.manage` | Lập hồ sơ tự đánh giá tập thể (Mẫu 06–08) | có | |
-| `meeting.read` | Xem biên bản hội nghị, kiểm phiếu (Mẫu 12–13) | có | |
+| `collective.manage` | Lập hồ sơ tự đánh giá tập thể (Mẫu 06–08) | có | Xuất Mẫu 07, 08 (Word, Excel) của hồ sơ trong phạm vi (hoặc `evaluation.read`) |
+| `meeting.read` | Xem biên bản hội nghị, kiểm phiếu (Mẫu 12–13) | có | Xuất Mẫu 12, 13 theo từng biên bản trên đơn vị của biên bản (hoặc `meeting.manage`) |
 | `meeting.manage` | Lập biên bản hội nghị, kiểm phiếu | có | |
-| `report.export` | Xuất báo cáo tổng hợp | có | Mẫu 14–16, danh sách cán bộ — lọc theo phạm vi |
+| `report.export` | Xuất báo cáo tổng hợp | có | Mẫu 14, 15A, 15B, 16 (kèm bản nháp), báo cáo nội bộ, danh sách cán bộ — lọc theo phạm vi tổ chức Đảng |
 
 Không có mã quyền riêng cho tệp: hệ thống không lưu văn bản dùng chung (văn bản hướng dẫn phát qua văn phòng điện tử); mọi tệp gắn với một đối tượng và quyền trên tệp suy ra từ quyền trên đối tượng (mục 4).
 
