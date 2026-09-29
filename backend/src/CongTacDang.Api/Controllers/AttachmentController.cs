@@ -17,7 +17,7 @@ namespace CongTacDang.Api.Controllers;
 /// quyền trên tệp = quyền trên đối tượng. Tiền tố đường dẫn: <c>api/attachments</c>.
 /// </summary>
 [ApiController]
-[Route("api/[controller]s")]
+[Route("api/attachments")]
 [Authorize] // Tất cả endpoint yêu cầu đăng nhập
 public class AttachmentController : ControllerBase
 {
