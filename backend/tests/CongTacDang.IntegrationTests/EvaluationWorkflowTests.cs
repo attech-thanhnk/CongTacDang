@@ -250,6 +250,14 @@ public sealed class EvaluationWorkflowTests
         var returns = history.EnumerateArray().Where(h => h.GetProperty("action").GetString() == "Return").ToList();
         Assert.Equal(new[] { "B1_APPROVE", "B2_CELL_CONFIRM", "B3B_APPRAISAL" }, returns.Select(h => h.GetProperty("step").GetString()));
         Assert.All(returns, h => Assert.False(string.IsNullOrWhiteSpace(h.GetProperty("reason").GetString())));
+
+        // Đợt 6: guard không còn ràng buộc evaluation.decide theo cấp quyết định — hồ sơ CapTren đã chuyển sang hồ sơ luồng
+        // cơ sở (B4 Nội bộ) được quyết định trong hệ thống; ghi nhận kết quả cấp trên ở bước Nội bộ → 409.
+        await StepAsync(w.DirectorC, id, "director-review", new { comment = "Đồng ý", proposedGrade = "HoanThanhTot" }, "AwaitingDecision");
+        Assert.Equal(HttpStatusCode.Conflict, (await PostAsync(w.OfficeC, id, "external/B4_DECISION",
+            new { authorityName = "BTV Đảng ủy Tổng công ty", grade = "HoanThanhTot" }, await VersionAsync(w, id))).StatusCode);
+        var decided = await StepAsync(w.OfficeC, id, "decision", new { finalGrade = "HoanThanhTot" }, "AwaitingPublish");
+        Assert.Equal("CapTren", decided.GetProperty("approvalAuthority").GetString());
     }
 
     [SkippableFact]
