@@ -18,8 +18,14 @@ public static class AttachmentOwnerTypes
     /// <summary>Nhiệm vụ/sản phẩm chuyên môn trong hồ sơ đánh giá (<see cref="Entities.EvaluationTask"/>).</summary>
     public const string EvaluationTask = "EvaluationTask";
 
+    /// <summary>
+    /// Kiến nghị sau công bố (<see cref="Entities.EvaluationAppeal"/>, task 20): tệp thuộc hồ sơ của kiến nghị — chủ hồ sơ tải lên,
+    /// người xem được hồ sơ xem được tệp.
+    /// </summary>
+    public const string EvaluationAppeal = "EvaluationAppeal";
+
     /// <summary>Danh sách loại đối tượng được gắn tệp (client truyền khi tải lên / tra cứu tệp của đối tượng).</summary>
-    public static readonly string[] All = { EvaluationRecord, EvaluationTask };
+    public static readonly string[] All = { EvaluationRecord, EvaluationTask, EvaluationAppeal };
 
     /// <summary>Chuẩn hóa tên loại đối tượng (không phân biệt hoa thường); trả về null nếu không hỗ trợ.</summary>
     public static string? Normalize(string? ownerType)
