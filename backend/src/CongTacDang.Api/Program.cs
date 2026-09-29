@@ -101,6 +101,7 @@ builder.Services.AddDocumentGeneration(builder.Configuration);
 builder.Services.AddScoped<IReportAccessService, ReportAccessService>();
 builder.Services.AddOrganizationModel(builder.Configuration); // Chức vụ, kiêm nhiệm, thẩm quyền suy ra (Api/Extensions/OrganizationExtensions.cs)
 builder.Services.AddEvaluationWorkflow(); // Luồng đánh giá theo cấu hình kỳ (Api/Extensions/EvaluationExtensions.cs)
+builder.Services.AddPostPublish(builder.Configuration); // Sau công bố: kết quả, kiến nghị, Mẫu 17, nhắc việc (Api/Extensions/PostPublishExtensions.cs)
 
 // 7. Controllers & Swagger với hỗ trợ JWT Bearer Authorization
 builder.Services.AddControllers()

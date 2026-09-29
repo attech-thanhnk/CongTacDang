@@ -101,6 +101,7 @@ export default function WorkQueuePage() {
                               {item.mode === "External" && <span className="badge text-bg-light border ms-2">Do cấp trên thực hiện — ghi nhận kết quả</span>}
                             </div>
                             {item.returnReason && <div className="small text-danger">Bị trả lại: {item.returnReason}</div>}
+                            {!item.workflowProfileName && item.statusDisplayName && <div className="small text-secondary">{item.statusDisplayName}</div>}
                           </td>
                           <td className="small">{item.departmentName || "—"} · {item.partyCellName || "—"}</td>
                           <td className="small">{item.periodName}</td>

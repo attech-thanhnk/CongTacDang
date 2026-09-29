@@ -337,6 +337,20 @@ export default function CriteriaSetPage() {
                     <label className="form-check small mb-0"><input type="checkbox" className="form-check-input" checked={p.allowNotApplicable} onChange={(e) => setParam("allowNotApplicable", e.target.checked)} /> <span className="form-check-label">Cho phép K/AD (có lý do)</span></label>
                     <label className="form-check small mb-0"><input type="checkbox" className="form-check-input" checked={p.explanationOnGradeChange} onChange={(e) => setParam("explanationOnGradeChange", e.target.checked)} /> <span className="form-check-label">Giải trình cả khi đổi mức</span></label>
                   </div>
+                  {/* Task 20 — sau công bố (mặc định chờ nghiệp vụ xác nhận). */}
+                  <div className="col-12 col-md-6">
+                    <label className="form-check small mb-1"><input type="checkbox" className="form-check-input" checked={!!p.publishScores} onChange={(e) => setParam("publishScores", e.target.checked)} /> <span className="form-check-label">Công khai kết quả kèm điểm chính thức (mặc định chỉ công khai mức)</span></label>
+                    <div className="small mb-0">Bắt buộc lập kế hoạch 30-60-90 ngày (Mẫu 17) với mức:</div>
+                    <div className="d-flex flex-wrap gap-2">
+                      {([["HoanThanhXuatSac", "Hoàn thành xuất sắc"], ["HoanThanhTot", "Hoàn thành tốt"], ["HoanThanh", "Hoàn thành (Mức C)"], ["KhongHoanThanh", "Không hoàn thành (Mức D)"]] as [string, string][]).map(([grade, label]) => {
+                        const required = p.improvementPlanRequiredGrades ?? ["HoanThanh", "KhongHoanThanh"];
+                        return (
+                          <label key={grade} className="form-check small mb-0"><input type="checkbox" className="form-check-input" checked={required.includes(grade)}
+                            onChange={(e) => setParam("improvementPlanRequiredGrades", e.target.checked ? [...required, grade] : required.filter((g) => g !== grade))} /> <span className="form-check-label">{label}</span></label>
+                        );
+                      })}
+                    </div>
+                  </div>
                   <div className="col-6 col-md-3">
                     <label className="form-label small mb-0">Xử lý điểm khi K/AD</label>
                     <select className="form-select form-select-sm" value={p.notApplicableRule} onChange={(e) => setParam("notApplicableRule", e.target.value as typeof p.notApplicableRule)}>

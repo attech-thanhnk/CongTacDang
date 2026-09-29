@@ -8,6 +8,8 @@ import { useToast } from "@/contexts/ToastContext";
 import { RecordProgress } from "@/components/evaluations/RecordProgress";
 import { RecordActionPanel } from "@/components/evaluations/RecordActionPanel";
 import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
+import { AppealPanel } from "@/components/evaluations/AppealPanel";
+import { ImprovementPlanPanel } from "@/components/evaluations/ImprovementPlanPanel";
 import { EvaluationPdfModal } from "@/components/evaluations/EvaluationPdfModal";
 import { PrintTemplateType } from "@/components/evaluations/EvaluationPrintTemplate";
 import { RecordFormsPanel } from "@/components/evaluations/RecordFormsPanel";
@@ -176,6 +178,8 @@ export default function EvaluationRecordPage() {
               </div>
             </section>
             <RecordData record={record} />
+            <AppealPanel record={record} onRecordChanged={load} />
+            <ImprovementPlanPanel record={record} />
           </div>
           <div className="col-12 col-xl-5 d-flex flex-column gap-3">
             <RecordFormsPanel recordId={record.id} fullName={record.fullName} forms={forms} />

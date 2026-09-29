@@ -68,7 +68,8 @@ public interface IAttachmentAccessReader
 
     /// <summary>
     /// Lấy hồ sơ đánh giá (kèm Member) của đối tượng sở hữu tệp: chính hồ sơ với <see cref="AttachmentOwnerTypes.EvaluationRecord"/>,
-    /// hồ sơ chứa nhiệm vụ với <see cref="AttachmentOwnerTypes.EvaluationTask"/>. Null nếu không tìm thấy.
+    /// hồ sơ chứa nhiệm vụ với <see cref="AttachmentOwnerTypes.EvaluationTask"/>, hồ sơ của kiến nghị với
+    /// <see cref="AttachmentOwnerTypes.EvaluationAppeal"/>. Null nếu không tìm thấy.
     /// </summary>
     Task<EvaluationRecord?> GetOwnerRecordAsync(string ownerType, Guid ownerId);
 }

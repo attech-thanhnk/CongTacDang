@@ -81,11 +81,13 @@ public static class DataSeeder
     /// <summary>Cấu hình mặc định (docs/thiet-ke/phan-quyen.md mục 6).</summary>
     private static readonly RoleDefinition[] DefaultRoles =
     {
-        new(RoleCodes.Evaluatee, "Người được đánh giá", "Tham gia đánh giá bản thân (HD03 IV.1, IV.2). Phạm vi gán điển hình: Toàn công ty.",
-            new[] { PermissionCodes.EvaluationSelf }),
+        // Task 20 (ĐỀ XUẤT, chờ nghiệp vụ xác nhận): xem kết quả công khai theo phạm vi bản gán (mẫu gán Toàn công ty), gửi kiến nghị.
+        new(RoleCodes.Evaluatee, "Người được đánh giá", "Tham gia đánh giá bản thân (HD03 IV.1, IV.2); xem kết quả đã công bố trong phạm vi được gán, "
+            + "gửi kiến nghị về kết quả của mình (Bước 5; PL II III.2). Phạm vi gán điển hình: Toàn công ty.",
+            new[] { PermissionCodes.EvaluationSelf, PermissionCodes.EvaluationResultsView, PermissionCodes.EvaluationAppealSubmit }),
         new(RoleCodes.DepartmentLeader, "Lãnh đạo Phòng", "Xem hồ sơ, duyệt danh mục sản phẩm của Phòng (HD03 IV.1; PL II mục II); đề xuất mức thay cấp trực tiếp sử dụng "
-            + "ở hồ sơ luồng được cấu hình (PL III ví dụ 3). Phạm vi gán điển hình: Phòng.",
-            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksApprove, PermissionCodes.EvaluationUnitReview }),
+            + "ở hồ sơ luồng được cấu hình (PL III ví dụ 3); lập kế hoạch khắc phục 30-60-90 ngày (Mẫu 17). Phạm vi gán điển hình: Phòng.",
+            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksApprove, PermissionCodes.EvaluationUnitReview, PermissionCodes.EvaluationImprovementManage }),
         new(RoleCodes.CollectiveSecretary, "Thư ký tập thể lãnh đạo", "Ghi nhận đề xuất của tập thể lãnh đạo, lập biên bản (HD03 IV.3a; Mẫu 11–13). Phạm vi gán điển hình: Phòng hoặc Toàn công ty.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.MeetingRead, PermissionCodes.MeetingManage }),
         new(RoleCodes.CellCommittee, "Chi ủy / Bí thư Chi bộ", "Chi bộ xác nhận phiếu tự chấm, lập hồ sơ tập thể (Mẫu 09A–9D, Mẫu 07). Phạm vi gán điển hình: Chi bộ.",
@@ -96,17 +98,17 @@ public static class DataSeeder
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationAppraise, PermissionCodes.PeriodManage,
                 PermissionCodes.CriteriaManage, PermissionCodes.ReportExport, PermissionCodes.SystemUsersRead
             }),
-        new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Nhận xét, đề xuất của cấp trực tiếp sử dụng cán bộ (HD03 IV.3c). Phạm vi gán: Toàn công ty.",
-            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport }),
+        new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Nhận xét, đề xuất của cấp trực tiếp sử dụng cán bộ (HD03 IV.3c); lập kế hoạch khắc phục 30-60-90 ngày (Mẫu 17). Phạm vi gán: Toàn công ty.",
+            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport, PermissionCodes.EvaluationImprovementManage }),
         new(RoleCodes.PartyCommitteeMember, "Cấp ủy viên Đảng ủy", "Xem hồ sơ, biên bản, báo cáo (HD03 IV.4; Mẫu 18). Phạm vi gán: Toàn công ty.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.MeetingRead, PermissionCodes.ReportExport }),
         new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy (ghi nhận quyết định)", "Ghi nhận quyết định của Đảng ủy cơ sở, ghi nhận kết quả của cấp trên "
-            + "(thẩm định, nhận xét, quyết định do cấp trên thực hiện), công bố, mở lại hồ sơ (HD03 IV.4, IV.5). Phạm vi gán: Toàn công ty.",
+            + "(thẩm định, nhận xét, quyết định do cấp trên thực hiện), công bố, mở lại hồ sơ, xử lý kiến nghị sau công bố (HD03 IV.4, IV.5; PL II III.2). Phạm vi gán: Toàn công ty.",
             new[]
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationExternalRecord,
                 PermissionCodes.EvaluationPublish, PermissionCodes.EvaluationReopen, PermissionCodes.MeetingRead,
-                PermissionCodes.MeetingManage, PermissionCodes.ReportExport
+                PermissionCodes.MeetingManage, PermissionCodes.ReportExport, PermissionCodes.EvaluationAppealResolve
             }),
         new(RoleCodes.Administrator, "Quản trị hệ thống", "Quản trị kỹ thuật: tài khoản, vai trò, gán vai trò, nhật ký, danh mục, thông tin đơn vị, file mẫu biểu mẫu Word. "
             + "Không xem nội dung đánh giá (Mẫu 18).",

@@ -116,7 +116,10 @@ public class AuthzContractTests
             "catalog.manage", "period.manage", "criteria.manage", "evaluation.self",
             "evaluation.read", "evaluation.tasks.approve", "evaluation.cell.confirm", "evaluation.collective.record",
             "evaluation.appraise", "evaluation.director.review", "evaluation.unit.review", "evaluation.decide", "evaluation.external.record",
-            "evaluation.publish", "evaluation.reopen", "collective.manage", "meeting.read", "meeting.manage",
+            "evaluation.publish", "evaluation.reopen",
+            // Task 20: sau công bố.
+            "evaluation.results.view", "evaluation.appeal.submit", "evaluation.appeal.resolve", "evaluation.improvement.manage",
+            "collective.manage", "meeting.read", "meeting.manage",
             "report.export"
         };
         Assert.Equal(expected, PermissionCodes.All);

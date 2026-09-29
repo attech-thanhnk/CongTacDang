@@ -37,7 +37,8 @@ public static class WordFormCatalog
         new WordFormDefinition("MAU_07", "Mẫu 07 — Báo cáo tự đánh giá, xếp loại chất lượng của tập thể Đảng ủy (Chi ủy, Chi bộ)", Mau07Data.TemplateFileName, typeof(Mau07Data)),
         new WordFormDefinition("MAU_08", "Mẫu 08 — Báo cáo tổng hợp kết quả thực hiện các nhiệm vụ của cơ quan, đơn vị", Mau08Data.TemplateFileName, typeof(Mau08Data)),
         new WordFormDefinition("MAU_12", "Mẫu 12 — Biên bản hội nghị đánh giá, xếp loại chất lượng cán bộ quý", Mau12Data.TemplateFileName, typeof(Mau12Data)),
-        new WordFormDefinition("MAU_16", "Mẫu 16 — Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý", Mau16Data.TemplateFileName, typeof(Mau16Data))
+        new WordFormDefinition("MAU_16", "Mẫu 16 — Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý", Mau16Data.TemplateFileName, typeof(Mau16Data)),
+        new WordFormDefinition("MAU_17", "Mẫu 17 — Kế hoạch hỗ trợ, khắc phục và phát triển 30-60-90 ngày", Mau17Data.TemplateFileName, typeof(Mau17Data))
     };
 
     /// <summary>Tìm theo mã (không phân biệt hoa thường); null nếu không có.</summary>

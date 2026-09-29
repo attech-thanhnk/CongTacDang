@@ -59,19 +59,22 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     private readonly IAuthorizationGuard _guard;
     private readonly ICurrentUserService _currentUser;
     private readonly IAttachmentService _attachments;
+    private readonly IPostPublishWorkQueue? _postPublish;
 
     public EvaluationWorkflowService(
         IEvaluationWorkflowRepository repo,
         IUnitOfWork unitOfWork,
         IAuthorizationGuard guard,
         ICurrentUserService currentUser,
-        IAttachmentService attachments)
+        IAttachmentService attachments,
+        IPostPublishWorkQueue? postPublish = null)
     {
         _repo = repo;
         _unitOfWork = unitOfWork;
         _guard = guard;
         _currentUser = currentUser;
         _attachments = attachments;
+        _postPublish = postPublish;
     }
 
     #region Hành động theo bước
@@ -571,6 +574,20 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
     /// <inheritdoc />
     public async Task<WorkQueueDto> GetWorkQueueAsync(Guid? periodId, CancellationToken ct = default)
+    {
+        var queue = await GetStepQueueAsync(periodId, ct);
+        // Task 20: nhóm việc sau công bố (kiến nghị chờ xử lý, kế hoạch 30-60-90 ngày) — cả với kỳ đã đóng.
+        if (_postPublish != null)
+        {
+            var extra = await _postPublish.GetGroupsAsync(periodId, ct);
+            queue.Groups.AddRange(extra);
+            queue.Total += extra.Sum(g => g.Count);
+        }
+        return queue;
+    }
+
+    /// <summary>Hồ sơ đang chờ người dùng hiện tại ở các bước của luồng đánh giá.</summary>
+    private async Task<WorkQueueDto> GetStepQueueAsync(Guid? periodId, CancellationToken ct)
     {
         var periods = await _repo.ListPeriodsAsync(ct);
         var targetPeriods = periodId.HasValue && periodId.Value != Guid.Empty

@@ -188,6 +188,12 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
                 .Where(t => t.Id == ownerId)
                 .Select(t => (Guid?)t.RecordId)
                 .FirstOrDefaultAsync(),
+            // Task 20: tệp của kiến nghị thuộc hồ sơ của kiến nghị.
+            AttachmentOwnerTypes.EvaluationAppeal => await _db.Set<EvaluationAppeal>()
+                .AsNoTracking()
+                .Where(a => a.Id == ownerId)
+                .Select(a => (Guid?)a.RecordId)
+                .FirstOrDefaultAsync(),
             _ => null
         };
         if (!recordId.HasValue)

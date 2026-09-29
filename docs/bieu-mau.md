@@ -141,6 +141,7 @@ dưới đây là **bắt buộc** (thiếu → cảnh báo khi tải lên); kh�
 | `MAU_08` Báo cáo tổng hợp kết quả thực hiện các nhiệm vụ của cơ quan, đơn vị | `PARTY_PARENT`, `PARTY_ORG`, `QUARTER`, `YEAR` | `repeat:ROWS` (luôn 13 dòng theo nhóm nội dung 1–13 của biểu mẫu, tên nhóm nguyên văn trong `Hd03FormCatalog`): `R_STT`, `R_TITLE`, `R_TASKS` (các dòng "- nhiệm vụ" dưới tên nhóm; nhóm 1–7 chưa nhập giữ "- Nhiệm vụ 1: …"), `R_PLAN`, `R_RESULT`, `R_ISSUES`, `R_NOTES` |
 | `MAU_12` Biên bản hội nghị | `PARTY_PARENT`, `PARTY_ORG`, `MEETING_NAME`, `PERIOD_TEXT`, `WORKING_RULES`, `ORGANIZER`, `PURPOSE`, `VOTE_PURPOSE`, `START_TIME`, `START_DATE`, `END_TIME`, `LOCATION`, `INVITED`, `PRESENT`, `ABSENT`, `CHAIR_NAME`, `CHAIR_TITLE`, `SECRETARY_NAME`, `SECRETARY_TITLE`, `REPORTING_UNIT`, `ARCHIVE_UNIT`, `SECRETARY_SIGN`, `CHAIR_SIGN`, `ifnot:HAS_ATTENDEES` (dòng "…" của mục 3.2), `if:HAS_CONTENT` + `CONTENT` (diễn biến, kết quả hội nghị) — `MEETING_NAME`/`ORGANIZER`/`PURPOSE` theo bước: B3a "Hội nghị tập thể lãnh đạo, quản lý …" (đề xuất), B4 "Hội nghị &lt;Đảng ủy/Chi ủy&gt;" (quyết định, phê duyệt); giờ theo giờ Việt Nam | `repeat:ATTENDEES` (đoạn văn mục 3.2): `A_STT`, `A_NAME`, `A_TITLE` |
 | `MAU_16` Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý | `PARTY_PARENT`, `PARTY_ORG`, `DOC_NUMBER`, `QUARTER`, `YEAR`, `RECIPIENT`, `WORKING_RULES`, `MEETING_DATE`, `ORGANIZER`, `PROPOSER`, `PROPOSAL_1` (khối 3 đoạn mẫu của mục III.1), `PROPOSAL_2`, `PROPOSAL_3`, `SIGNER_NAME` — phần nhập tay lấy từ bản nháp (kỳ + tổ chức Đảng); trường trống giữ chữ mẫu | `repeat:BASE_ROWS` (mục I, thẩm quyền đảng ủy/chi ủy cơ sở): `B_STT`, `B_SUBJECT`, `B_TOTAL`, `B_EXC`, `B_GOOD`, `B_SAT`, `B_UNSAT`, `B_NONE`, `B_PCT`, `B_NOTE`; `repeat:SUPERIOR_ROWS` (mục II, thẩm quyền BTV Đảng ủy Tổng công ty): `S_…` cùng cột — mỗi dòng một nhóm chức danh (mã M1–M26), dòng cuối "Tổng cộng" |
+| `MAU_17` Kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (task 20; file mẫu dựng từ đúng phần Mẫu 17 của biểu mẫu gốc; ORG: `ORG_PARENT_COMPANY_NAME_UPPER`, `ORG_COMPANY_NAME_UPPER`, `ORG_LOCATION`) | `FULL_NAME`, `POSITION`, `DEPARTMENT`, `GRADE_LEVEL`, `SUPPORTER_NAME`, `SUPPORTER_TITLE`, `M30_/M60_/M90_` + `LIMITATION`, `TARGET`, `MEASURES`, `COORDINATION`, `ACHIEVED_BOX`, `NOT_ACHIEVED_BOX` (ô ☐ in sẵn → ☒ khi chọn), `APPROVER_NAME`, `SUPPORTER_SIGN_NAME`, `MEMBER_SIGN_NAME` (chỉ khi cá nhân đã xác nhận) | — |
 
 Mẫu 09A/09B/09C/9D: tiêu đề trái "ĐẢNG BỘ …" dùng `ORG_PARTY_NAME`, "CHI BỘ …" là `PARTY_CELL` (tên Chi bộ ảnh chụp trên hồ sơ, in
 hoa); điểm để trống (giữ dòng chấm) khi hồ sơ chưa nộp phiếu tự chấm. Template dựng từ file biểu mẫu gốc
@@ -176,6 +177,7 @@ quyết định, chưa có thì mức đề xuất gần nhất (cấp trực ti
 xuất; chưa có mức nào → "Chưa xếp loại". Mẫu 16 chia mục I/II theo thẩm quyền (ảnh chụp trên hồ sơ), Mẫu 15A/15B chia theo
 khoảng mã chức danh (bố cục biểu mẫu); cán bộ chưa có mã: Mẫu 15A/15B liệt kê ở trang tính "Kiểm tra dữ liệu", Mẫu 16 ghi
 dòng "Cán bộ chưa có mã chức danh thống kê".
+
 
 ## 7. Thay file mẫu trên giao diện (quyền `system.templates.manage`)
 
