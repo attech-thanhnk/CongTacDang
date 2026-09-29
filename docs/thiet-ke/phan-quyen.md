@@ -37,7 +37,6 @@ Trường bổ sung (task 07, sửa ở task 14):
 | `system.roles.manage` | Quản lý vai trò | không | Tạo/sửa/xóa vai trò, chọn quyền cho vai trò |
 | `system.assignments.manage` | Gán vai trò | không | Gán/thu hồi vai trò kèm phạm vi, thời hạn |
 | `system.audit.read` | Xem nhật ký | không | Nhật ký thao tác + nhật ký đăng nhập |
-| `system.import` | Nhập dữ liệu | không | Phải có thêm quyền quản lý loại dữ liệu được nhập |
 | `system.settings.manage` | Quản lý thông tin đơn vị | không | Sửa tên Đảng bộ, tổ chức Đảng cấp trên, tên công ty, tên viết tắt, địa danh, tên hệ thống dùng trên biểu mẫu/báo cáo/giao diện. **Xem**: mọi người đã đăng nhập; phần tên hiển thị công khai trước đăng nhập |
 | `system.templates.manage` | Quản lý file mẫu biểu mẫu | không | Tải lên phiên bản file mẫu Word mới (kiểm tra tag), kích hoạt lại phiên bản cũ, về file gốc, tải file, xem lịch sử |
 | `catalog.manage` | Quản lý danh mục | không | Đơn vị chính quyền, tổ chức Đảng (cây), loại đơn vị, chức vụ. **Xem** danh mục: mọi người đã đăng nhập |
@@ -98,7 +97,7 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
 ### 4.1 Phạm vi bao trùm cây con (task 14)
 
 - Mỗi bên (đơn vị chính quyền `administrative_departments`, tổ chức Đảng `party_cells`) là một cây: `ParentId` (null = gốc) và
-  đường dẫn vật hóa `Path = /<id gốc>/…/<id nút>/`, tính lại cho cả cây mỗi khi đổi cấu trúc (tạo, đổi cha, xóa, import); tạo vòng → 400.
+  đường dẫn vật hóa `Path = /<id gốc>/…/<id nút>/`, tính lại cho cả cây mỗi khi đổi cấu trúc (tạo, đổi cha, xóa); tạo vòng → 400.
 - **Cách tính:** resolver (`PermissionResolver`, qua `RoleAssignmentRepository.GetAccessSnapshotAsync`) mở rộng mỗi bản gán
   `Department(d)`/`PartyCell(c)` thành danh sách Id = nút được gán + mọi nút có `Path` chứa `/<id>/`
   (`PermissionGrant.CoveredScopeIds`). `Can` kiểm tra `T.DepartmentId`/`T.PartyCellId` thuộc danh sách; `GetScope` trả danh sách đã mở rộng
@@ -106,7 +105,7 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
 - **Lý do chọn mở rộng danh sách Id thay vì điều kiện `LIKE` theo `Path`:** hồ sơ đánh giá, hồ sơ tập thể, biên bản, tài khoản chỉ lưu Id
   đơn vị (ảnh chụp), nên mọi truy vấn danh sách hiện có giữ nguyên dạng `WHERE DepartmentId IN (...)` — không phải join bảng đơn vị ở từng
   service. Cây nhỏ (vài chục – vài trăm nút), danh sách được tính một lần khi nạp quyền và nằm trong cache quyền theo người dùng (TTL 5 phút).
-- **Làm mới:** mọi thay đổi cấu trúc cây (thêm/đổi cha/xóa đơn vị, import danh mục) xóa **toàn bộ** cache quyền (sau commit) → phạm vi mới
+- **Làm mới:** mọi thay đổi cấu trúc cây (thêm/đổi cha/xóa đơn vị) xóa **toàn bộ** cache quyền (sau commit) → phạm vi mới
   có hiệu lực ở request kế tiếp.
 - Tra cứu "người X làm được gì" và danh sách `grants` của phiên hiển thị nút được gán (không liệt kê từng nút con).
 
@@ -130,7 +129,7 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
 | Lãnh đạo Phòng | `evaluation.read`, `evaluation.tasks.approve`, `evaluation.unit.review` | Department | IV.1; PL II mục II; PL III ví dụ 3 |
 | Thư ký tập thể lãnh đạo | `evaluation.read`, `evaluation.collective.record`, `meeting.read`, `meeting.manage` | Department hoặc Global (cấp Công ty) | IV.3a; Mẫu 11–13 |
 | Chi ủy / Bí thư Chi bộ | `evaluation.read`, `evaluation.cell.confirm`, `collective.manage`, `meeting.read` | PartyCell | Mẫu 09A–9D "xác nhận của Chi bộ"; Mẫu 07 |
-| Cơ quan thẩm định (Phòng TCCB-LĐ) | `evaluation.read`, `evaluation.appraise`, `period.manage`, `criteria.manage`, `report.export`, `system.import`, `system.users.read` | Global | IV.1 (rà soát), IV.3b |
+| Cơ quan thẩm định (Phòng TCCB-LĐ) | `evaluation.read`, `evaluation.appraise`, `period.manage`, `criteria.manage`, `report.export`, `system.users.read` | Global | IV.1 (rà soát), IV.3b |
 | Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch) | `evaluation.read`, `evaluation.director.review`, `report.export` | Global | IV.3c |
 | Cấp ủy viên Đảng ủy | `evaluation.read`, `meeting.read`, `report.export` | Global | IV.4; Mẫu 18 |
 | Văn phòng Đảng ủy (ghi nhận quyết định) | `evaluation.read`, `evaluation.decide`, `evaluation.external.record`, `evaluation.publish`, `evaluation.reopen`, `meeting.read`, `meeting.manage`, `report.export` | Global | IV.4, IV.5 |

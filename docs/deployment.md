@@ -100,7 +100,7 @@ Dấu `__` trong tên biến môi trường tương ứng với `:` trong `appse
 
 **Tài khoản quản trị ban đầu** chỉ được tạo khi hệ thống **chưa có** tài khoản đang hoạt động nào giữ cả hai quyền "Quản lý vai trò" và "Gán vai trò" (phạm vi Toàn công ty). Đã có quản trị → cấu hình bị bỏ qua (không tạo thêm, không đổi mật khẩu). Thiếu cấu hình khi chưa có quản trị → log mức Warning hướng dẫn đặt biến. Mật khẩu không bao giờ được ghi log. Sau khi quản trị đổi mật khẩu, xóa `Seed__InitialAdmin__Password` khỏi `.env`.
 
-**Phân quyền** được tính lại ở mỗi request từ bản gán vai trò trong CSDL (cache trong bộ nhớ, TTL 5 phút, xóa ngay khi vai trò/bản gán/tài khoản thay đổi). JWT chỉ chứa danh tính. Cache, phiên import và tệp mật khẩu tạm nằm trong bộ nhớ của **một** tiến trình API: chạy nhiều instance cần cache phân tán và sticky session (chưa hỗ trợ).
+**Phân quyền** được tính lại ở mỗi request từ bản gán vai trò trong CSDL (cache trong bộ nhớ, TTL 5 phút, xóa ngay khi vai trò/bản gán/tài khoản thay đổi). JWT chỉ chứa danh tính. Cache quyền nằm trong bộ nhớ của **một** tiến trình API: chạy nhiều instance cần cache phân tán và sticky session (chưa hỗ trợ).
 
 ### Dữ liệu mẫu (môi trường thử nghiệm)
 
@@ -129,36 +129,37 @@ Mật khẩu tạm chung: lấy từ `Seed__SamplePassword` nếu có (phải đ
 
 ## Go-live (CSDL thật)
 
-Các bước 1–5 được kiểm tra tự động bởi `GoLiveScenarioTests` (nhập đơn vị, tổ chức Đảng, cán bộ, gán vai trò, mở kỳ); nhập cây đơn vị nhiều cấp, danh mục chức vụ và chức vụ của cán bộ được kiểm bởi `DynamicOrgIntegrationTests`, cột "Hồ sơ luồng" của tệp người được đánh giá bởi `WorkflowProfileIntegrationTests`.
+Các bước 1–5 được kiểm tra tự động bởi `GoLiveScenarioTests` (khai báo đơn vị, tổ chức Đảng, tài khoản, gán vai trò qua API của các trang quản trị, mở kỳ); cây đơn vị nhiều cấp, danh mục chức vụ và chức vụ của cán bộ được kiểm bởi `DynamicOrgIntegrationTests`, thêm người được đánh giá kèm hồ sơ luồng chỉ định bởi `WorkflowProfileIntegrationTests`.
+
+Mọi dữ liệu nền được khai báo trực tiếp trên giao diện (không có chức năng nhập từ tệp).
 
 **0. Chuẩn bị**
 - [ ] `docker/.env`: `POSTGRES_PASSWORD`, `Seed__InitialAdmin__Username`, `Seed__InitialAdmin__Password` (mạnh, có chữ và số), các biến `Security__*` nếu khác mặc định. **Không** bật `Database__SeedSampleData`, `Database__ResetRolePermissions`.
 - [ ] CSDL **mới, trống**. Khởi động stack (`Database__AutoMigrate=true` mặc định trong `docker/.env`) — backend tự áp dụng migration khi khởi động; lỗi migrate làm backend dừng và ghi log Critical. Chạy ngoài Docker: dùng `dotnet ef database update` (xem `docs/database-migrations.md`). Seeder tạo danh mục quyền, 9 vai trò mặc định (có "Quản trị hệ thống" được bảo vệ), danh mục loại đơn vị và danh mục chức vụ mặc định (M1–M26 theo HD03 — chờ nghiệp vụ xác nhận), **2 bộ tiêu chí đã xuất bản** theo bản trích xuất HD03 ("Mẫu 09B — Quý III/2026", "Mẫu 09A — từ 2027" — chờ nghiệp vụ xác nhận), **thông tin đơn vị mặc định** và tài khoản quản trị ban đầu; **không** tạo đơn vị, tổ chức Đảng, cán bộ nào.
-- [ ] Chuẩn bị các tệp Excel từ file mẫu tải trong trang **Nhập dữ liệu**: Danh mục đơn vị chính quyền, Danh mục tổ chức Đảng, Danh mục chức vụ (nếu cần sửa danh mục mặc định), Cán bộ và tài khoản, Chức vụ của cán bộ, Gán vai trò, Người được đánh giá của kỳ. Tên vai trò chép đúng từ trang **Vai trò**, tên chức vụ đúng từ **Danh mục → Chức vụ**, tên loại đơn vị đúng từ **Danh mục → Loại đơn vị**. Tệp ≤ 5 MB, ≤ 2.000 dòng; tệp cán bộ nên ≤ ~150 dòng/lần (tạo mật khẩu chậm).
+- [ ] Chuẩn bị danh sách (giấy hoặc bảng tính nội bộ) để khai báo: cây đơn vị chính quyền và cây tổ chức Đảng (mã, tên, đơn vị cấp trên, loại đơn vị), cán bộ (tên đăng nhập, họ tên, đơn vị, tổ chức Đảng), chức vụ của từng cán bộ (kể cả kiêm nhiệm), vai trò và phạm vi của từng người, danh sách người được đánh giá của kỳ.
 
 **1. Quản trị ban đầu**
 - [ ] Đăng nhập bằng `Seed__InitialAdmin__Username`/`Password` → hệ thống chuyển tới **Đổi mật khẩu** (mọi chức năng khác bị chặn) → đổi mật khẩu mạnh.
 - [ ] Xóa `Seed__InitialAdmin__Password` khỏi `docker/.env`.
-- [ ] Khuyến nghị tạo thêm **một quản trị thứ hai** (nhập ở bước 2d, gán ở 2f): hệ thống không cho tự gán/thu hồi vai trò của chính mình và luôn giữ ít nhất một quản trị.
+- [ ] Khuyến nghị tạo thêm **một quản trị thứ hai** (tạo ở bước 2d, gán ở 2f): hệ thống không cho tự gán/thu hồi vai trò của chính mình và luôn giữ ít nhất một quản trị.
 
 **1b. Thông tin đơn vị và biểu mẫu Word** (quản trị hệ thống — quyền "Quản lý thông tin đơn vị", "Quản lý file mẫu biểu mẫu")
 - [ ] Trang **Quản trị → Thông tin đơn vị**: kiểm tra/sửa tên Đảng bộ, tổ chức Đảng cấp trên, tên công ty, đơn vị chủ quản, tên viết tắt (dùng trong tên tệp, chỉ `A-Z a-z 0-9 _ -`), địa danh, tên hệ thống. Giá trị này in lên biểu mẫu Word/Excel, tên tệp tải xuống, thanh bên, đầu trang, trang đăng nhập.
 - [ ] Trang **Quản trị → Biểu mẫu Word**: mỗi mẫu (01, 02, 10, 11, 13) đang dùng file gốc hoặc phiên bản đã tải lên; tải *File đang dùng* về mở thử. Cần sửa bố cục → sửa trong Word theo `docs/bieu-mau.md` mục 7 → *Kiểm tra* (tag lạ = lỗi, thiếu tag = cảnh báo) → *Tải lên*. Tệp mẫu tải lên nằm trong kho tệp (`Storage:Local:Path`, thư mục `word-templates/`) — cùng phạm vi sao lưu với tệp đính kèm.
 
-**2. Khai báo tổ chức và nhập dữ liệu (đúng thứ tự)** — mỗi tệp ở trang **Nhập dữ liệu**: tải lên → xem trước từng dòng → sửa hết dòng lỗi (còn lỗi thì không xác nhận được, không dòng nào được ghi) → **Xác nhận**.
-- [ ] a. **Loại đơn vị** (trang **Danh mục → Loại đơn vị**, không có tệp nhập): rà danh mục mặc định (Đảng ủy, Đảng bộ bộ phận, Chi bộ; Công ty, Đơn vị, Phòng, Trung tâm, Xưởng, Đội), thêm/sửa cho đúng cơ cấu thực tế.
-- [ ] b. **Đơn vị có cấp trên**: tệp **Danh mục đơn vị chính quyền** rồi **Danh mục tổ chức Đảng** — cột "Mã đơn vị cha" (trống = đơn vị gốc) và "Loại đơn vị"; thứ tự dòng tùy ý (cha trong cùng tệp được tạo trước), thiếu cha/tạo vòng/sai loại → lỗi dòng. Kiểm tra cây ở trang **Danh mục**.
-- [ ] c. **Danh mục chức vụ** (nếu cần): tệp **Danh mục chức vụ** (tên, bên, mã thống kê M1–M26, thẩm quyền mặc định CoSo/CapTren…) hoặc sửa ở **Danh mục → Chức vụ**. Thẩm quyền mặc định của chức vụ quyết định thẩm quyền phê duyệt suy ra của cán bộ.
-- [ ] d. **Cán bộ và tài khoản** (tham chiếu mã đơn vị chính quyền / mã tổ chức Đảng; cột "Thẩm quyền phê duyệt" để trống = suy ra từ chức vụ; cột "Mã khung tỷ trọng" (ví dụ `K2`, theo bộ tiêu chí) để trống = dùng khung mặc định của bộ tiêu chí của kỳ; sửa từng người ở **Tài khoản → Sửa**) → xác nhận → **tải ngay tệp "tài khoản mới + mật khẩu tạm"** (tải được một lần, hết hạn sau 30 phút, mất nếu khởi động lại API). Lưu tệp ở nơi an toàn.
-- [ ] e. **Chức vụ của cán bộ** (tên đăng nhập, chức vụ, mã đơn vị giữ chức vụ, chính/kiêm nhiệm, từ ngày, đến ngày). Một người nhiều dòng = kiêm nhiệm. Kiểm tra ở trang chi tiết tài khoản: thẩm quyền suy ra (Giám đốc/Bí thư Đảng ủy… → cấp trên quyết định) và mã thống kê.
-- [ ] f. **Gán vai trò** (tên đăng nhập, tên vai trò, loại phạm vi Toàn công ty / Đơn vị chính quyền / Tổ chức Đảng, cột "Mã đơn vị", thời hạn). Phạm vi đơn vị **gồm cả mọi đơn vị cấp dưới** của đơn vị được gán. Vai trò có quyền quản trị/nhập dữ liệu/quản lý kỳ chỉ gán được phạm vi Toàn công ty. Kiểm tra trang **Tài khoản → Tra cứu quyền** của vài người tiêu biểu (Bí thư Chi bộ, Lãnh đạo Phòng, Cơ quan thẩm định, Văn phòng Đảng ủy).
-- [ ] g. **Người được đánh giá của kỳ** — làm ở bước 5 sau khi đã tạo kỳ (cột "Hồ sơ luồng" tùy chọn; trống = theo cấp quyết định).
-- [ ] Mỗi lần xác nhận có một bản ghi "Import" trong **Nhật ký**; từng bản gán cũng được ghi nhật ký.
+**2. Khai báo tổ chức, tài khoản, vai trò (đúng thứ tự)** — trên giao diện: **Danh mục** → **Tài khoản** → **Vai trò** (gán ở trang chi tiết tài khoản) → **Kỳ đánh giá** (bước 5). Mọi thao tác được ghi **Nhật ký**.
+- [ ] a. **Loại đơn vị** (trang **Quản trị → Danh mục**, tab **Loại đơn vị**): rà danh mục mặc định (Đảng ủy, Đảng bộ bộ phận, Chi bộ; Công ty, Đơn vị, Phòng, Trung tâm, Xưởng, Đội), thêm/sửa cho đúng cơ cấu thực tế.
+- [ ] b. **Đơn vị có cấp trên** (trang **Danh mục**, tab **Đơn vị chính quyền** rồi tab **Tổ chức Đảng**): thêm đơn vị gốc trước, sau đó các đơn vị cấp dưới (chọn đơn vị cấp trên và loại đơn vị). Hệ thống chặn tạo vòng và loại đơn vị sai bên. Kiểm tra cây hiển thị ở từng tab.
+- [ ] c. **Danh mục chức vụ** (nếu cần; trang **Danh mục**, tab **Chức vụ**): tên, bên, mã thống kê M1–M26, thẩm quyền mặc định CoSo/CapTren, lãnh đạo/quản lý. Thẩm quyền mặc định của chức vụ quyết định thẩm quyền phê duyệt suy ra của cán bộ.
+- [ ] d. **Cán bộ và tài khoản** (trang **Quản trị → Tài khoản** → **Tạo tài khoản**): tên đăng nhập, họ tên, đơn vị chính quyền, tổ chức Đảng; thẩm quyền phê duyệt để trống = suy ra từ chức vụ; khung tỷ trọng (ví dụ `K2`, theo bộ tiêu chí) để trống = dùng khung mặc định của bộ tiêu chí của kỳ. Sau khi tạo, hệ thống hiển thị **mật khẩu tạm một lần** — ghi lại ngay để giao cho người đó.
+- [ ] e. **Chức vụ của cán bộ** (trang chi tiết tài khoản, tab **Chức vụ** → **Thêm chức vụ**): chức vụ, đơn vị giữ chức vụ, chính/kiêm nhiệm, từ ngày, đến ngày. Nhiều chức vụ = kiêm nhiệm. Kiểm tra thẩm quyền suy ra (Giám đốc/Bí thư Đảng ủy… → cấp trên quyết định) và mã thống kê ở cùng tab.
+- [ ] f. **Gán vai trò** (trang chi tiết tài khoản, tab **Vai trò & phạm vi** → **Gán vai trò**): vai trò (danh sách ở trang **Quản trị → Vai trò**), loại phạm vi Toàn công ty / Đơn vị chính quyền / Tổ chức Đảng, đơn vị, thời hạn, ghi chú. Phạm vi đơn vị **gồm cả mọi đơn vị cấp dưới** của đơn vị được gán. Vai trò có quyền quản trị/quản lý kỳ chỉ gán được phạm vi Toàn công ty; không tự gán cho chính mình. Kiểm tra tab **Người này làm được gì** của vài người tiêu biểu (Bí thư Chi bộ, Lãnh đạo Phòng, Cơ quan thẩm định, Văn phòng Đảng ủy).
+- [ ] g. **Người được đánh giá của kỳ** — làm ở bước 5 sau khi đã tạo kỳ (trang **Kỳ đánh giá** → chi tiết kỳ).
 
 **3. Giao tài khoản**
-- [ ] Giao riêng từng người tên đăng nhập + mật khẩu tạm (không gửi cả tệp); hủy tệp mật khẩu sau khi giao.
+- [ ] Giao riêng từng người tên đăng nhập + mật khẩu tạm; không lưu mật khẩu tạm sau khi giao.
 - [ ] Cán bộ đăng nhập lần đầu → bắt buộc đổi mật khẩu → thấy đúng chức năng theo vai trò được gán.
-- [ ] Quên mật khẩu tạm: quản trị **Đặt lại mật khẩu** trong trang Tài khoản (không nhập lại tệp — tên đăng nhập đã có sẽ bị báo lỗi).
+- [ ] Quên mật khẩu tạm: quản trị **Đặt lại mật khẩu** trong trang Tài khoản.
 
 **4. Kiểm tra sau go-live**
 - [ ] Kết thúc/xóa một bản gán thử → người đó bị chặn chức năng tương ứng ngay request kế tiếp (không cần đăng xuất).
@@ -168,7 +169,7 @@ Các bước 1–5 được kiểm tra tự động bởi `GoLiveScenarioTests` 
 **5. Mở kỳ đánh giá** (người có vai trò "Cơ quan thẩm định", quyền "Quản lý kỳ đánh giá" và "Quản lý bộ tiêu chí")
 - [ ] Trang **Bộ tiêu chí**: rà bộ sẽ dùng cho kỳ (tiêu chí chung và tiêu chí con, trục, khung tỷ trọng, thang quy đổi, ngưỡng mức, tham số: số sản phẩm, ngưỡng giải trình chênh lệch, trần Xuất sắc, làm tròn). Bộ đã xuất bản không sửa được: cần điều chỉnh → **Nhân bản** → sửa bản nháp (kiểm tra tổng điểm tức thì) → **Xuất bản**; lưu trữ bộ không dùng nữa. Nghiệp vụ xác nhận nội dung bộ trước khi mở kỳ.
 - [ ] Trang **Kỳ đánh giá** → tạo kỳ từ kiểu kỳ dựng sẵn ("Đầy đủ" hoặc "Quý III/2026 — chuyển tiếp"; mỗi kiểu sinh sẵn 3 hồ sơ luồng: Diện Đảng ủy cơ sở, Diện BTV Đảng ủy Tổng công ty, Bí thư/Phó bí thư Chi bộ là nhân viên — cấu hình mặc định chờ nghiệp vụ xác nhận) → kỳ ở trạng thái **Dự thảo**.
-- [ ] Khi còn dự thảo: **chọn/xác nhận bộ tiêu chí** của kỳ (chỉ bộ đã xuất bản; tạo kỳ không chọn → bộ mới nhất có mẫu gợi ý của kiểu kỳ; bộ được chụp vào kỳ và chụp lại khi mở kỳ — sau đó sửa bộ gốc không ảnh hưởng kỳ); sửa hồ sơ luồng (mỗi bước: Nội bộ / Cấp trên thực hiện / Không áp dụng, quyền thực hiện, thời hạn); thêm người được đánh giá (chọn tay, theo đơn vị, hoặc nhập Excel loại "Người được đánh giá của kỳ"). Đơn vị, tổ chức Đảng, khung tỷ trọng, cấp quyết định được **chụp** vào hồ sơ tại thời điểm thêm; hồ sơ luồng chọn theo cấp quyết định (đổi được từng người/hàng loạt, có lý do).
+- [ ] Khi còn dự thảo: **chọn/xác nhận bộ tiêu chí** của kỳ (chỉ bộ đã xuất bản; tạo kỳ không chọn → bộ mới nhất có mẫu gợi ý của kiểu kỳ; bộ được chụp vào kỳ và chụp lại khi mở kỳ — sau đó sửa bộ gốc không ảnh hưởng kỳ); sửa hồ sơ luồng (mỗi bước: Nội bộ / Cấp trên thực hiện / Không áp dụng, quyền thực hiện, thời hạn); thêm người được đánh giá ở trang chi tiết kỳ (chọn tay hoặc theo đơn vị, có thể chỉ định hồ sơ luồng; bỏ trống = theo cấp quyết định). Đơn vị, tổ chức Đảng, khung tỷ trọng, cấp quyết định được **chụp** vào hồ sơ tại thời điểm thêm; hồ sơ luồng chọn theo cấp quyết định (đổi được từng người/hàng loạt, có lý do).
 - [ ] Xem bảng **Kiểm tra kẹt luồng**: mỗi bước Nội bộ/Cấp trên còn phía trước của mỗi hồ sơ phải có ít nhất một tài khoản đang hoạt động (không phải chủ hồ sơ) có quyền thực hiện bước trong phạm vi bao trùm hồ sơ (ví dụ Chi ủy cho "Chi bộ xác nhận", Văn phòng Đảng ủy cho "Quyết định", "Ghi nhận kết quả của cấp trên", "Công bố"). Sửa bằng cách gán vai trò hoặc sửa hồ sơ luồng. Bộ mẫu 09A: khung tỷ trọng của hồ sơ không có trong bộ cũng là cảnh báo (sửa ảnh chụp khung của người đó).
 - [ ] **Mở kỳ** (kỳ chưa có bộ tiêu chí → 400; bộ không còn ở trạng thái đã xuất bản → 409). Còn cảnh báo kẹt luồng → hệ thống từ chối (409) và liệt kê cảnh báo; chỉ "mở bắt buộc" khi có lý do (ghi vào lịch sử kỳ). Từ đây mỗi người thấy việc của mình ở trang **Việc cần xử lý**; hồ sơ đi qua các bước áp dụng tới **Đã công bố**; bước do cấp trên thực hiện được Văn phòng Đảng ủy ghi nhận kèm văn bản của cấp trên (người xem được hồ sơ xem được văn bản).
 

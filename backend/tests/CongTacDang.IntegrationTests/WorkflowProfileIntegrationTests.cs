@@ -3,8 +3,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using ClosedXML.Excel;
-using CongTacDang.Application.Imports;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.IntegrationTests.Infrastructure;
@@ -15,7 +13,7 @@ namespace CongTacDang.IntegrationTests;
 /// <summary>
 /// Task 15: luồng theo hồ sơ luồng (nhóm đối tượng) trên PostgreSQL thật — (a) hồ sơ Giám đốc (CapTren) tới Đã công bố với
 /// B3b/B3c/B4 ghi nhận kết quả của cấp trên; (b) hồ sơ "Bí thư/Phó bí thư Chi bộ là nhân viên": Trưởng phòng đề xuất thay
-/// Giám đốc; (c) kiểm tra kẹt luồng + mở kỳ 409; đổi hồ sơ luồng, import cột hồ sơ luồng, kiểm tra cấu hình qua API.
+/// Giám đốc; (c) kiểm tra kẹt luồng + mở kỳ 409; đổi hồ sơ luồng, thêm người kèm hồ sơ luồng chỉ định, kiểm tra cấu hình qua API.
 /// (d) hồ sơ cơ sở đi như cũ: <c>EvaluationWorkflowTests.W1</c>.
 /// </summary>
 [Collection(ApiCollection.Name)]
@@ -205,7 +203,7 @@ public sealed class WorkflowProfileIntegrationTests
     }
 
     [SkippableFact]
-    public async Task G4_ProfileConfiguration_ChangeProfile_Bulk_Import_AndValidation()
+    public async Task G4_ProfileConfiguration_ChangeProfile_Bulk_AddWithProfile_AndValidation()
     {
         var w = await WorldAsync();
         var period = await CreatePeriodAsync(w, "full");
@@ -291,22 +289,19 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Contains(history.EnumerateArray(), h => h.GetProperty("action").GetString() == "ChangeProfile"
             && h.GetProperty("reason").GetString() == "Nhóm không qua thẩm định");
 
-        // Import cột "Hồ sơ luồng" (mã hoặc tên); sai → lỗi dòng.
-        var year = period.GetProperty("year").GetInt32().ToString();
-        var quarter = period.GetProperty("quarter").GetInt32().ToString();
-        var name = period.GetProperty("name").GetString()!;
-        string[] headers = { "Năm", "Quý", "Tên kỳ", "Tên đăng nhập", "Hồ sơ luồng" };
-        var bad = await PreviewAsync(w.ManagerC, BuildFile(headers, new[] { year, quarter, name, w.Staff3.Username, "khong-co" }));
-        Assert.False(bad.GetProperty("canCommit").GetBoolean());
-        var good = await PreviewAsync(w.ManagerC, BuildFile(headers,
-            new[] { year, quarter, name, w.Staff3.Username, "Bí thư/Phó bí thư Chi bộ là nhân viên" },
-            new[] { year, quarter, name, w.Other.Username, "" }));
-        Assert.True(good.GetProperty("canCommit").GetBoolean(), good.GetRawText());
-        Assert.Equal(HttpStatusCode.OK, (await w.ManagerC.PostAsync($"/api/imports/{good.GetProperty("sessionId").GetGuid()}/commit", null)).StatusCode);
-        var imported = (await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}/participants")).EnumerateArray()
+        // Thêm người được đánh giá kèm hồ sơ luồng chỉ định; mã không có trong kỳ → 400, không thêm ai.
+        var bad = await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
+            new { memberIds = new[] { w.Staff3.Id }, workflowProfileCode = "khong-co" });
+        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+        Assert.Contains("khong-co", await MessageAsync(bad));
+        await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
+            new { memberIds = new[] { w.Staff3.Id }, workflowProfileCode = "bi-thu-nhan-vien" }));
+        await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
+            new { memberIds = new[] { w.Other.Id } }));
+        var added = (await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}/participants")).EnumerateArray()
             .ToDictionary(p => p.GetProperty("memberId").GetGuid(), p => p.GetProperty("workflowProfileCode").GetString());
-        Assert.Equal("bi-thu-nhan-vien", imported[w.Staff3.Id]);
-        Assert.Equal("co-so", imported[w.Other.Id]);
+        Assert.Equal("bi-thu-nhan-vien", added[w.Staff3.Id]);
+        Assert.Equal("co-so", added[w.Other.Id]);
 
         // Kỳ đã mở: chỉ sửa được thời hạn (kể cả thời hạn theo hồ sơ luồng); đổi chế độ bước → 409.
         await OpenAsync(w, periodId);
@@ -470,28 +465,6 @@ public sealed class WorkflowProfileIntegrationTests
         return json.RootElement.GetProperty("message").GetString() ?? string.Empty;
     }
 
-    private static byte[] BuildFile(string[] headers, params string[][] rows)
-    {
-        using var workbook = new XLWorkbook();
-        var sheet = workbook.AddWorksheet(ImportLimits.DataSheetName);
-        for (var c = 0; c < headers.Length; c++)
-            sheet.Cell(1, c + 1).Value = headers[c];
-        for (var r = 0; r < rows.Length; r++)
-            for (var c = 0; c < rows[r].Length; c++)
-                sheet.Cell(r + 2, c + 1).Value = rows[r][c];
-        using var stream = new MemoryStream();
-        workbook.SaveAs(stream);
-        return stream.ToArray();
-    }
-
-    private static async Task<JsonElement> PreviewAsync(HttpClient client, byte[] file)
-    {
-        var content = new MultipartFormDataContent();
-        var fileContent = new ByteArrayContent(file);
-        fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        content.Add(fileContent, "file", "nguoi-duoc-danh-gia.xlsx");
-        return await Data(await client.PostAsync("/api/imports/period-participants/preview", content));
-    }
 
     /// <summary>
     /// Phòng 1–3, Chi bộ 1 và 3; Giám đốc (diện cấp trên), Bí thư Chi bộ là nhân viên (Phòng 1, Phòng 3); người thực hiện các bước

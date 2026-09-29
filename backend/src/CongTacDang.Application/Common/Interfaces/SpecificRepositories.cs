@@ -126,10 +126,10 @@ public interface IOrganizationRepository
     /// <summary>Chi bộ chưa xóa theo Id (được theo dõi để cập nhật).</summary>
     Task<PartyCell?> FindPartyCellAsync(Guid id);
 
-    /// <summary>Toàn bộ Phòng kể cả đã xóa mềm (được theo dõi) — dùng kiểm tra mã và import.</summary>
+    /// <summary>Toàn bộ Phòng kể cả đã xóa mềm (được theo dõi) — dùng kiểm tra mã và cây đơn vị.</summary>
     Task<List<AdministrativeDepartment>> ListDepartmentsIncludingDeletedAsync();
 
-    /// <summary>Toàn bộ Chi bộ kể cả đã xóa mềm (được theo dõi) — dùng kiểm tra mã và import.</summary>
+    /// <summary>Toàn bộ Chi bộ kể cả đã xóa mềm (được theo dõi) — dùng kiểm tra mã và cây đơn vị.</summary>
     Task<List<PartyCell>> ListPartyCellsIncludingDeletedAsync();
 
     /// <summary>Mã Phòng đã được dùng (kể cả bản ghi đã xóa mềm, không phân biệt hoa thường).</summary>

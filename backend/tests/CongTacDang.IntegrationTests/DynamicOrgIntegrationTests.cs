@@ -1,10 +1,8 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using ClosedXML.Excel;
 using CongTacDang.Application.Common.Security;
-using CongTacDang.Application.Imports;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.IntegrationTests.Infrastructure;
@@ -14,7 +12,7 @@ using Xunit;
 namespace CongTacDang.IntegrationTests;
 
 /// <summary>
-/// Test tích hợp task 14 (T-71, T-72, T-73): cây đơn vị dựng bằng import, phạm vi gán vai trò bao trùm cây con,
+/// Test tích hợp task 14 (T-71, T-72, T-73): cây đơn vị dựng qua API danh mục, phạm vi gán vai trò bao trùm cây con,
 /// chức vụ kiêm nhiệm → thẩm quyền suy ra → ảnh chụp trên hồ sơ mới, Mẫu 15A/15B theo mã chức danh.
 /// </summary>
 [Collection(ApiCollection.Name)]
@@ -29,30 +27,29 @@ public sealed class DynamicOrgIntegrationTests
     private async Task<HttpClient> AdminAsync()
     {
         var admin = await _factory.CreateUserWithPermissionsAsync(
-            PermissionCodes.SystemImport, PermissionCodes.CatalogManage, PermissionCodes.SystemUsersManage,
+            PermissionCodes.CatalogManage, PermissionCodes.SystemUsersManage,
             PermissionCodes.SystemUsersRead, PermissionCodes.PeriodManage, PermissionCodes.ReportExport);
         return await _factory.LoginAsAsync(admin.Username, admin.Password, distinctClientIp: true);
     }
 
-    // ===================== O1: cây 3 cấp bằng import + phạm vi bao trùm cây con =====================
+    // ===================== O1: cây 3 cấp + phạm vi bao trùm cây con =====================
 
     [SkippableFact]
-    public async Task O1_ImportThreeLevelTree_AssignmentAtMiddleNode_CoversDescendantsOnly()
+    public async Task O1_ThreeLevelTree_AssignmentAtMiddleNode_CoversDescendantsOnly()
     {
         SkipIfNoDatabase();
         var admin = await AdminAsync();
         var s = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
         string R = $"R-{s}", M = $"M-{s}", L = $"L-{s}", S = $"S-{s}";
 
-        // Con đứng trước cha trong tệp; loại đơn vị theo danh mục mặc định.
-        var headers = new[] { "Mã đơn vị", "Tên đơn vị", "Mã đơn vị cha", "Loại đơn vị" };
-        var preview = await PreviewAsync(admin, "departments", BuildFile(headers,
-            new[] { L, "Đội L", M, "Đội" },
-            new[] { M, "Phòng M", R, "Phòng" },
-            new[] { R, "Công ty R", "", "Công ty" },
-            new[] { S, "Phòng S", R, "Phòng" }));
-        Assert.True(preview.GetProperty("canCommit").GetBoolean(), preview.ToString());
-        await CommitAsync(admin, preview);
+        // Dựng cây qua trang Danh mục; loại đơn vị theo danh mục mặc định.
+        var unitTypes = (await DataAsync(await admin.GetAsync("/api/organizations/unit-types"))).EnumerateArray()
+            .Where(t => t.GetProperty("side").GetString() == "Administrative")
+            .ToDictionary(t => t.GetProperty("name").GetString()!, t => t.GetProperty("id").GetGuid());
+        var rootId = await CreateUnitAsync(admin, "departments", new { code = R, name = "Công ty R", unitTypeId = unitTypes["Công ty"] });
+        var middleId = await CreateUnitAsync(admin, "departments", new { code = M, name = "Phòng M", parentId = rootId, unitTypeId = unitTypes["Phòng"] });
+        await CreateUnitAsync(admin, "departments", new { code = L, name = "Đội L", parentId = middleId, unitTypeId = unitTypes["Đội"] });
+        await CreateUnitAsync(admin, "departments", new { code = S, name = "Phòng S", parentId = rootId, unitTypeId = unitTypes["Phòng"] });
 
         var departments = (await DataAsync(await admin.GetAsync("/api/organizations/departments"))).EnumerateArray().ToList();
         JsonElement Dept(string code) => departments.Single(d => d.GetProperty("code").GetString() == code);
@@ -65,14 +62,11 @@ public sealed class DynamicOrgIntegrationTests
         var order = departments.Select(d => d.GetProperty("code").GetString()).ToList();
         Assert.True(order.IndexOf(R) < order.IndexOf(M) && order.IndexOf(M) < order.IndexOf(L));
 
-        // Import tạo vòng (R nhận L làm cha) và thiếu cha → lỗi dòng, không cho xác nhận.
-        var bad = await PreviewAsync(admin, "departments", BuildFile(headers,
-            new[] { R, "Công ty R", L, "" },
-            new[] { $"X-{s}", "Đơn vị X", "KHONG-CO", "" }));
-        Assert.False(bad.GetProperty("canCommit").GetBoolean());
-        var badRows = bad.GetProperty("rows").EnumerateArray().ToList();
-        Assert.Contains("vòng", badRows[0].GetProperty("errors")[0].GetString());
-        Assert.Contains("Không tìm thấy đơn vị cha", badRows[1].GetProperty("errors")[0].GetString());
+        // Đơn vị cha không tồn tại → 400, không tạo.
+        var missingParent = await admin.PostAsJsonAsync("/api/organizations/departments",
+            new { code = $"X-{s}", name = "Đơn vị X", parentId = Guid.NewGuid() });
+        Assert.Equal(HttpStatusCode.BadRequest, missingParent.StatusCode);
+        Assert.Contains("Không tìm thấy đơn vị cha", await MessageAsync(missingParent));
 
         // Cán bộ ở từng nút; người được gán vai trò ở nút giữa M.
         var userM = await _factory.CreateUserAsync(Id(M));
@@ -139,20 +133,20 @@ public sealed class DynamicOrgIntegrationTests
         var y = await _factory.CreateUserAsync(deptId, cellId, fullName: $"Bí thư chi bộ {s}");
         var z = await _factory.CreateUserAsync(deptId, cellId, fullName: $"Phó phòng {s}");
 
-        // Chức vụ nhập bằng file (danh mục chức vụ mặc định theo HD03).
-        var headers = new[] { "Tên đăng nhập", "Chức vụ", "Mã đơn vị", "Chính/kiêm nhiệm", "Từ ngày" };
-        var preview = await PreviewAsync(admin, "member-positions", BuildFile(headers,
-            new[] { x.Username, "Trưởng phòng", $"PH-{s}", "Chính", "01/01/2026" },
-            new[] { x.Username, "Bí thư Đảng ủy", $"DU-{s}", "Kiêm nhiệm", "01/01/2026" },
-            new[] { y.Username, "Bí thư Chi bộ", $"CB-{s}", "Chính", "01/01/2026" },
-            new[] { z.Username, "Phó Trưởng phòng", $"PH-{s}", "", "01/01/2026" }));
-        Assert.True(preview.GetProperty("canCommit").GetBoolean(), preview.ToString());
-        await CommitAsync(admin, preview);
+        // Chức vụ của cán bộ khai báo qua trang Tài khoản (danh mục chức vụ mặc định theo HD03).
+        var catalog = (await DataAsync(await admin.GetAsync("/api/positions"))).EnumerateArray()
+            .ToDictionary(p => p.GetProperty("name").GetString()!, p => p.GetProperty("id").GetGuid());
+        var from = new DateTime(2025, 12, 31, 17, 0, 0, DateTimeKind.Utc); // 01/01/2026 giờ Việt Nam
+        await AddPositionAsync(admin, x.Id, new { positionId = catalog["Trưởng phòng"], departmentId = deptId, isPrimary = true, validFrom = from });
+        await AddPositionAsync(admin, x.Id, new { positionId = catalog["Bí thư Đảng ủy"], partyCellId = partyId, isPrimary = false, validFrom = from });
+        await AddPositionAsync(admin, y.Id, new { positionId = catalog["Bí thư Chi bộ"], partyCellId = cellId, isPrimary = true, validFrom = from });
+        await AddPositionAsync(admin, z.Id, new { positionId = catalog["Phó Trưởng phòng"], departmentId = deptId, isPrimary = true, validFrom = from });
 
-        // Sai đơn vị theo bên chức vụ (chức vụ Đảng + mã đơn vị chính quyền) → lỗi dòng.
-        var wrong = await PreviewAsync(admin, "member-positions", BuildFile(headers,
-            new[] { y.Username, "Phó Bí thư Chi bộ", $"PH-{s}", "", "" }));
-        Assert.False(wrong.GetProperty("canCommit").GetBoolean());
+        // Sai đơn vị theo bên chức vụ (chức vụ Đảng + đơn vị chính quyền) → 400.
+        var wrong = await admin.PostAsJsonAsync($"/api/users/{y.Id}/positions",
+            new { positionId = catalog["Phó Bí thư Chi bộ"], departmentId = deptId });
+        Assert.Equal(HttpStatusCode.BadRequest, wrong.StatusCode);
+        Assert.Contains("chức vụ Đảng", await MessageAsync(wrong));
 
         var authority = await DataAsync(await admin.GetAsync($"/api/users/{x.Id}/approval-authority"));
         Assert.Equal("CapTren", authority.GetProperty("effective").GetString());
@@ -208,20 +202,17 @@ public sealed class DynamicOrgIntegrationTests
     // ===================== O3: danh mục chức vụ, loại đơn vị =====================
 
     [SkippableFact]
-    public async Task O3_PositionAndUnitTypeCatalogs_ImportAndCrud()
+    public async Task O3_PositionAndUnitTypeCatalogs_Crud()
     {
         SkipIfNoDatabase();
         var admin = await AdminAsync();
         var s = Guid.NewGuid().ToString("N")[..6];
 
-        var headers = new[] { "Tên chức vụ", "Bên", "Mã thống kê", "Thẩm quyền mặc định", "Lãnh đạo, quản lý" };
-        var preview = await PreviewAsync(admin, "positions", BuildFile(headers,
-            new[] { $"Tổ trưởng {s}", "Chính quyền", "m26", "CoSo", "Có" },
-            new[] { $"Sai mã {s}", "Chính quyền", "X9", "", "" }));
-        Assert.False(preview.GetProperty("canCommit").GetBoolean());
-        preview = await PreviewAsync(admin, "positions", BuildFile(headers, new[] { $"Tổ trưởng {s}", "Chính quyền", "m26", "CoSo", "Có" }));
-        Assert.True(preview.GetProperty("canCommit").GetBoolean(), preview.ToString());
-        await CommitAsync(admin, preview);
+        // Mã thống kê sai → 400; mã viết thường được chuẩn hóa.
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync("/api/positions",
+            new { name = $"Sai mã {s}", side = "Administrative", statCode = "X9" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await admin.PostAsJsonAsync("/api/positions",
+            new { name = $"Tổ trưởng {s}", side = "Administrative", statCode = "m26", defaultApprovalAuthority = "CoSo", isLeadership = true })).StatusCode);
 
         var positions = (await DataAsync(await admin.GetAsync("/api/positions"))).EnumerateArray().ToList();
         var created = positions.Single(p => p.GetProperty("name").GetString() == $"Tổ trưởng {s}");
@@ -300,34 +291,9 @@ public sealed class DynamicOrgIntegrationTests
         return counts;
     }
 
-    private static byte[] BuildFile(string[] headers, params string[][] rows)
+    private static async Task AddPositionAsync(HttpClient client, Guid userId, object body)
     {
-        using var workbook = new XLWorkbook();
-        var sheet = workbook.AddWorksheet(ImportLimits.DataSheetName);
-        for (var c = 0; c < headers.Length; c++)
-            sheet.Cell(1, c + 1).Value = headers[c];
-        for (var r = 0; r < rows.Length; r++)
-            for (var c = 0; c < rows[r].Length; c++)
-                sheet.Cell(r + 2, c + 1).Value = rows[r][c];
-        using var stream = new MemoryStream();
-        workbook.SaveAs(stream);
-        return stream.ToArray();
-    }
-
-    private static async Task<JsonElement> PreviewAsync(HttpClient client, string kind, byte[] file)
-    {
-        var content = new MultipartFormDataContent();
-        var fileContent = new ByteArrayContent(file);
-        fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        content.Add(fileContent, "file", "du-lieu.xlsx");
-        var response = await client.PostAsync($"/api/imports/{kind}/preview", content);
-        Assert.True(response.StatusCode == HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
-        return await DataAsync(response);
-    }
-
-    private static async Task CommitAsync(HttpClient client, JsonElement preview)
-    {
-        var response = await client.PostAsync($"/api/imports/{preview.GetProperty("sessionId").GetGuid()}/commit", null);
+        var response = await client.PostAsJsonAsync($"/api/users/{userId}/positions", body);
         Assert.True(response.StatusCode == HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
     }
 

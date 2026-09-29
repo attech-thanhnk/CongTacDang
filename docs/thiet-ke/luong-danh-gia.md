@@ -121,7 +121,7 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 - Tạo `EvaluationRecord` ngay khi thêm người: kỳ + người. Thêm người = tạo hồ sơ ở bước áp dụng đầu tiên của hồ sơ luồng, **ảnh chụp** `DepartmentId`, `PartyCellId`, `WeightFrameCode` (khung tỷ trọng mặc định của cán bộ; cán bộ chưa chọn → khung mặc định của bộ tiêu chí của kỳ), `ApprovalAuthority` từ hồ sơ cán bộ và `WorkflowProfileCode` (chọn khi thêm, hoặc mặc định theo `ApprovalAuthority`); `period.manage` sửa được ảnh chụp khi kỳ còn `Draft`/`Open` (có lý do, ghi lịch sử — sửa cấp quyết định **không** tự đổi hồ sơ luồng).
 - Đổi hồ sơ luồng từng người / hàng loạt: mục 2.
 - Chỉ người trong danh sách mới có hồ sơ; `evaluation.self` không tự tạo hồ sơ.
-- Thêm theo: chọn tay, theo Phòng/Chi bộ, hoặc **import Excel** (loại `period-participants`, cột tùy chọn "Hồ sơ luồng" = mã hoặc tên; bỏ trống = mặc định).
+- Thêm theo: chọn tay hoặc theo Phòng/Chi bộ, có thể chỉ định hồ sơ luồng (mã; bỏ trống = mặc định theo cấp quyết định).
 
 ### 3.4 Kiểm tra kẹt luồng (task 15)
 - `GET /api/evaluations/periods/{id}/readiness` (`period.manage`): với mỗi hồ sơ chưa công bố và mỗi bước **còn phía trước** (kể cả bước đang chờ) có chế độ Nội bộ hoặc Cấp trên, cần **ít nhất một** tài khoản đang hoạt động — không phải chủ hồ sơ — có quyền thực hiện bước (Cấp trên: `evaluation.external.record`) với phạm vi bao trùm hồ sơ. Bước của chủ hồ sơ: chính chủ hồ sơ phải còn hoạt động và có `evaluation.self`. Quyền tính bằng `IPermissionResolver` + `AuthorizationGuard.Evaluate` (không tự suy luật).

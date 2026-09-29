@@ -1,10 +1,7 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using ClosedXML.Excel;
-using CongTacDang.Application.Imports;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.IntegrationTests.Infrastructure;
@@ -19,8 +16,9 @@ namespace CongTacDang.IntegrationTests;
 /// đúng thứ tự triển khai thật (docs/deployment.md mục go-live):
 /// <list type="number">
 /// <item>Khởi động với cấu hình <c>Seed:InitialAdmin:*</c> → tài khoản quản trị ban đầu → đăng nhập → bị buộc đổi mật khẩu → đổi.</item>
-/// <item>Import Phòng → Chi bộ → cán bộ (nhận tệp mật khẩu tạm) → gán vai trò.</item>
-/// <item>Một cán bộ đăng nhập bằng mật khẩu tạm → đổi mật khẩu → quyền + phạm vi đúng theo tệp gán.</item>
+/// <item>Khai báo qua API của các trang quản trị: Danh mục (Phòng → Chi bộ) → Tài khoản (nhận mật khẩu tạm) → gán vai trò
+/// (kể cả các trường hợp bị từ chối: tự gán, vai trò toàn công ty gán theo đơn vị, gán trùng).</item>
+/// <item>Một cán bộ đăng nhập bằng mật khẩu tạm → đổi mật khẩu → quyền + phạm vi đúng theo bản gán.</item>
 /// <item>Quản trị gỡ một bản gán → request kế tiếp của người đó bị 403 ở chức năng tương ứng.</item>
 /// <item>Cơ quan thẩm định tạo kỳ, thêm người được đánh giá, mở kỳ; quản trị không xem được hồ sơ (tách quản trị kỹ thuật).</item>
 /// <item>Hồ sơ đi hết các bước bật của kỳ tới <c>Published</c>, mỗi bước do đúng người có quyền.</item>
@@ -40,7 +38,7 @@ public sealed class GoLiveScenarioTests
     public GoLiveScenarioTests(ApiFactory factory) => _factory = factory;
 
     [SkippableFact]
-    public async Task GoLive_FromEmptyDatabase_ImportCatalogCadresAssignments_ThenPermissionsFollowAssignments()
+    public async Task GoLive_FromEmptyDatabase_DeclareCatalogCadresAssignments_ThenPermissionsFollowAssignments()
     {
         Skip.If(_factory.SkipReason != null, _factory.SkipReason);
 
@@ -59,81 +57,69 @@ public sealed class GoLiveScenarioTests
         var me = await GoLiveHttp.DataAsync(await admin.GetAsync("/api/auth/me"));
         Assert.True(me.GetProperty("mustChangePassword").GetBoolean());
 
-        var blocked = await admin.GetAsync("/api/imports/kinds");
+        var blocked = await admin.GetAsync("/api/users");
         Assert.Equal(HttpStatusCode.Forbidden, blocked.StatusCode);
         Assert.Equal("PASSWORD_CHANGE_REQUIRED", (await GoLiveHttp.JsonAsync(blocked)).GetProperty("code").GetString());
 
         await GoLiveHttp.ChangePasswordAsync(admin, InitialAdminPassword, AdminNewPassword);
+        Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/api/users")).StatusCode);
 
-        var kinds = (await GoLiveHttp.DataAsync(await admin.GetAsync("/api/imports/kinds"))).EnumerateArray()
-            .Select(k => k.GetProperty("kind").GetString()).ToList();
-        Assert.Contains("departments", kinds);
-        Assert.Contains("party-cells", kinds);
-        Assert.Contains("users", kinds);
-        Assert.Contains("role-assignments", kinds);
-
-        // ============ Bước 2: import Phòng → Chi bộ → cán bộ → gán vai trò ============
-        await GoLiveHttp.ImportAsync(admin, "departments",
-            GoLiveHttp.BuildFile(new[] { "Mã đơn vị", "Tên đơn vị", "Thứ tự hiển thị" },
-                new[] { "PH-KT", "Phòng Kỹ thuật", "1" },
-                new[] { "PH-TCCB", "Phòng Tổ chức cán bộ - Lao động", "2" }),
-            expectedCreated: 2);
-        await GoLiveHttp.ImportAsync(admin, "party-cells",
-            GoLiveHttp.BuildFile(new[] { "Mã tổ chức Đảng", "Tên tổ chức Đảng" },
-                new[] { "CB-KT", "Chi bộ Kỹ thuật" },
-                new[] { "CB-VP", "Chi bộ Văn phòng" }),
-            expectedCreated: 2);
-
-        var userCommit = await GoLiveHttp.ImportAsync(admin, "users",
-            GoLiveHttp.BuildFile(
-                new[] { "Tên đăng nhập", "Họ và tên", "Email", "Số thẻ Đảng", "Chức danh", "Mã đơn vị công tác", "Mã tổ chức Đảng", "Thẩm quyền phê duyệt" },
-                new[] { "nguyen.van.a", "Nguyễn Văn A", "a@attech.vn", "0100001", "Trưởng phòng Kỹ thuật", "PH-KT", "CB-KT", "CoSo" },
-                new[] { "tran.thi.b", "Trần Thị B", "", "0100002", "Trưởng phòng TCCB-LĐ", "PH-TCCB", "CB-VP", "CoSo" },
-                new[] { "le.van.c", "Lê Văn C", "", "", "Kỹ sư", "PH-KT", "CB-KT", "CoSo" }),
-            expectedCreated: 3);
-        var token = userCommit.GetProperty("resultFileToken").GetString();
-        var download = await admin.GetAsync($"/api/imports/results/{token}");
-        Assert.Equal(HttpStatusCode.OK, download.StatusCode);
-        var passwords = GoLiveHttp.ReadPasswords(await download.Content.ReadAsByteArrayAsync());
-        Assert.Equal(3, passwords.Count);
-
-        var assignmentHeaders = new[] { "Tên đăng nhập", "Tên vai trò", "Loại phạm vi", "Mã đơn vị", "Từ ngày", "Đến ngày", "Ghi chú" };
-        var todayVn = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7));
-        var today = todayVn.ToString("dd/MM/yyyy");
-        var endOfNextYear = $"31/12/{todayVn.Year + 1}";
-
-        // Tệp sai: tự gán cho mình, vai trò quản trị gán theo Phòng, trùng trong tệp → không cho xác nhận, không ghi gì.
-        var bad = await GoLiveHttp.PreviewAsync(admin, "role-assignments", GoLiveHttp.BuildFile(assignmentHeaders,
-            new[] { InitialAdminUsername, "Người được đánh giá", "Toàn công ty", "", "", "", "" },
-            new[] { "le.van.c", "Quản trị hệ thống", "Đơn vị chính quyền", "PH-KT", "", "", "" },
-            new[] { "le.van.c", "Người được đánh giá", "Toàn công ty", "", "", "", "" },
-            new[] { "LE.VAN.C", "người được đánh giá", "toàn công ty", "", "", "", "" }));
-        Assert.False(bad.GetProperty("canCommit").GetBoolean());
-        var badRows = bad.GetProperty("rows").EnumerateArray().ToList();
-        Assert.Contains("chính mình", GoLiveHttp.Errors(badRows[0]));
-        Assert.Contains("chỉ gán được với Loại phạm vi \"Toàn công ty\"", GoLiveHttp.Errors(badRows[1]));
-        Assert.Equal("create", badRows[2].GetProperty("action").GetString());
-        Assert.Contains("Trùng với dòng 4", GoLiveHttp.Errors(badRows[3]));
-        await _factory.WithDbAsync(async db =>
-            Assert.Equal(1, await db.Set<UserRoleAssignment>().CountAsync())); // chỉ bản gán của quản trị ban đầu
-
-        await GoLiveHttp.ImportAsync(admin, "role-assignments", GoLiveHttp.BuildFile(assignmentHeaders,
-                new[] { "nguyen.van.a", "Người được đánh giá", "Toàn công ty", "", "", "", "" },
-                new[] { "nguyen.van.a", "Chi ủy / Bí thư Chi bộ", "Tổ chức Đảng", "CB-KT", today, endOfNextYear, "Nghị quyết Chi bộ số 01" },
-                new[] { "nguyen.van.a", "Lãnh đạo Phòng", "Đơn vị chính quyền", "PH-KT", "", "", "" },
-                new[] { "nguyen.van.a", "Cấp ủy viên Đảng ủy", "Toàn công ty", "", "", "", "" },
-                new[] { "tran.thi.b", "Người được đánh giá", "Toàn công ty", "", "", "", "" },
-                new[] { "tran.thi.b", "Cơ quan thẩm định (Phòng TCCB-LĐ)", "Toàn công ty", "", "", "", "" },
-                new[] { "le.van.c", "Người được đánh giá", "Toàn công ty", "", "", "", "" }),
-            expectedCreated: 7);
-
+        // ============ Bước 2: trang Danh mục (đơn vị, tổ chức Đảng) → trang Tài khoản → gán vai trò ============
+        var deptKt = await GoLiveHttp.CreateCatalogItemAsync(admin, "departments", "PH-KT", "Phòng Kỹ thuật", 1);
+        var deptTccb = await GoLiveHttp.CreateCatalogItemAsync(admin, "departments", "PH-TCCB", "Phòng Tổ chức cán bộ - Lao động", 2);
+        var cellKt = await GoLiveHttp.CreateCatalogItemAsync(admin, "branches", "CB-KT", "Chi bộ Kỹ thuật", 1);
+        var cellVp = await GoLiveHttp.CreateCatalogItemAsync(admin, "branches", "CB-VP", "Chi bộ Văn phòng", 2);
         await _factory.WithDbAsync(async db =>
         {
-            Assert.Equal(8, await db.Set<UserRoleAssignment>().CountAsync());
-            Assert.Equal(1, await db.AuditLogs.CountAsync(a => a.EntityType == "Import" && a.EntityId == "role-assignments"));
+            Assert.Equal(2, await db.AdministrativeDepartments.CountAsync());
+            Assert.Equal(2, await db.PartyCells.CountAsync());
         });
 
-        // ============ Bước 3: cán bộ đăng nhập bằng mật khẩu tạm → đổi → quyền + phạm vi theo tệp ============
+        // Mỗi tài khoản tạo mới trả mật khẩu tạm (hiển thị một lần).
+        var passwords = new Dictionary<string, string>
+        {
+            ["nguyen.van.a"] = await GoLiveHttp.CreateAccountAsync(admin, "nguyen.van.a", "Nguyễn Văn A", "a@attech.vn", "0100001", "Trưởng phòng Kỹ thuật", deptKt, cellKt),
+            ["tran.thi.b"] = await GoLiveHttp.CreateAccountAsync(admin, "tran.thi.b", "Trần Thị B", null, "0100002", "Trưởng phòng TCCB-LĐ", deptTccb, cellVp),
+            ["le.van.c"] = await GoLiveHttp.CreateAccountAsync(admin, "le.van.c", "Lê Văn C", null, null, "Kỹ sư", deptKt, cellKt)
+        };
+        Assert.All(passwords.Values, p => Assert.False(string.IsNullOrWhiteSpace(p)));
+        var cadreId = await GetUserIdAsync("nguyen.van.a");
+        var appraiserId = await GetUserIdAsync("tran.thi.b");
+        var leVanCId = await GetUserIdAsync("le.van.c");
+
+        var todayVn = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7));
+        // Hết hiệu lực hết ngày 31/12 năm sau (giờ Việt Nam) = 00:00 ngày 01/01 năm kế tiếp, lưu theo UTC.
+        var endOfNextYearUtc = new DateTime(todayVn.Year + 2, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7);
+        var evaluatedRole = await RoleIdByNameAsync("Người được đánh giá");
+        var adminRole = await RoleIdByNameAsync("Quản trị hệ thống");
+
+        // Gán sai: tự gán cho mình (403), vai trò quản trị gán theo đơn vị (400), gán trùng (400) → không ghi gì thêm.
+        var self = await admin.PostAsJsonAsync("/api/admin/assignments", new { userId = adminId, roleId = evaluatedRole, scopeType = "Global" });
+        Assert.Equal(HttpStatusCode.Forbidden, self.StatusCode);
+        Assert.Contains("chính mình", (await GoLiveHttp.JsonAsync(self)).GetProperty("message").GetString());
+        var adminByDept = await admin.PostAsJsonAsync("/api/admin/assignments",
+            new { userId = leVanCId, roleId = adminRole, scopeType = "Department", scopeId = deptKt });
+        Assert.Equal(HttpStatusCode.BadRequest, adminByDept.StatusCode);
+        Assert.Contains("chỉ được gán với phạm vi Toàn công ty", (await GoLiveHttp.JsonAsync(adminByDept)).GetProperty("message").GetString());
+        await GoLiveHttp.AssignAsync(admin, leVanCId, evaluatedRole, "Global", null);
+        var duplicate = await admin.PostAsJsonAsync("/api/admin/assignments", new { userId = leVanCId, roleId = evaluatedRole, scopeType = "Global" });
+        Assert.Equal(HttpStatusCode.BadRequest, duplicate.StatusCode);
+        Assert.Contains("trùng lặp", (await GoLiveHttp.JsonAsync(duplicate)).GetProperty("message").GetString());
+        await _factory.WithDbAsync(async db =>
+            Assert.Equal(2, await db.Set<UserRoleAssignment>().CountAsync())); // quản trị ban đầu + le.van.c
+
+        await GoLiveHttp.AssignAsync(admin, cadreId, evaluatedRole, "Global", null);
+        await GoLiveHttp.AssignAsync(admin, cadreId, await RoleIdByNameAsync("Chi ủy / Bí thư Chi bộ"), "PartyCell", cellKt,
+            validTo: endOfNextYearUtc, note: "Nghị quyết Chi bộ số 01");
+        await GoLiveHttp.AssignAsync(admin, cadreId, await RoleIdByNameAsync("Lãnh đạo Phòng"), "Department", deptKt);
+        await GoLiveHttp.AssignAsync(admin, cadreId, await RoleIdByNameAsync("Cấp ủy viên Đảng ủy"), "Global", null);
+        await GoLiveHttp.AssignAsync(admin, appraiserId, evaluatedRole, "Global", null);
+        await GoLiveHttp.AssignAsync(admin, appraiserId, await RoleIdByNameAsync("Cơ quan thẩm định (Phòng TCCB-LĐ)"), "Global", null);
+
+        await _factory.WithDbAsync(async db =>
+            Assert.Equal(8, await db.Set<UserRoleAssignment>().CountAsync()));
+
+        // ============ Bước 3: cán bộ đăng nhập bằng mật khẩu tạm → đổi → quyền + phạm vi theo bản gán ============
         var cadre = await _factory.LoginAsAsync("nguyen.van.a", passwords["nguyen.van.a"], distinctClientIp: true);
         Assert.True((await GoLiveHttp.DataAsync(await cadre.GetAsync("/api/auth/me"))).GetProperty("mustChangePassword").GetBoolean());
         Assert.Equal(HttpStatusCode.Forbidden, (await cadre.GetAsync("/api/evaluations/my-record")).StatusCode);
@@ -155,7 +141,6 @@ public sealed class GoLiveScenarioTests
         Assert.Contains("evaluation.cell.confirm@PartyCell:Chi bộ Kỹ thuật", cadreGrants);
         Assert.Contains("evaluation.tasks.approve@Department:Phòng Kỹ thuật", cadreGrants);
 
-        var cadreId = await GetUserIdAsync("nguyen.van.a");
         var effective = await GoLiveHttp.DataAsync(await admin.GetAsync($"/api/admin/users/{cadreId}/effective-permissions"));
         var sources = effective.GetProperty("permissions").EnumerateArray()
             .ToDictionary(p => p.GetProperty("code").GetString()!,
@@ -169,8 +154,7 @@ public sealed class GoLiveScenarioTests
         var cellAssignment = effective.GetProperty("assignments").EnumerateArray()
             .Single(a => a.GetProperty("roleName").GetString() == "Chi ủy / Bí thư Chi bộ");
         Assert.Equal("Nghị quyết Chi bộ số 01", cellAssignment.GetProperty("note").GetString());
-        Assert.Equal(new DateTime(todayVn.Year + 2, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7),
-            cellAssignment.GetProperty("validTo").GetDateTime().ToUniversalTime());
+        Assert.Equal(endOfNextYearUtc, cellAssignment.GetProperty("validTo").GetDateTime().ToUniversalTime());
 
         // ============ Bước 4: gỡ một bản gán → request kế tiếp bị 403 ============
         Assert.Equal(HttpStatusCode.OK, (await cadre.GetAsync("/api/reports/cadres")).StatusCode);
@@ -209,7 +193,6 @@ public sealed class GoLiveScenarioTests
         await GoLiveHttp.DataAsync(await appraiser.PutAsJsonAsync($"/api/evaluations/periods/{periodId}",
             new { version = period.GetProperty("version").GetUInt32(), settings }));
 
-        var leVanCId = await GetUserIdAsync("le.van.c");
         var added = await GoLiveHttp.DataAsync(await appraiser.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
             new { memberIds = new[] { leVanCId } }));
         Assert.Equal(1, added.GetProperty("added").GetInt32());
@@ -308,44 +291,34 @@ public sealed class GoLiveCollection : ICollectionFixture<ApiFactory>
     public const string Name = "golive";
 }
 
-/// <summary>Hỗ trợ HTTP/Excel cho kịch bản go-live và test import.</summary>
+/// <summary>Hỗ trợ HTTP cho kịch bản go-live (dựng dữ liệu bằng API của các trang quản trị).</summary>
 internal static class GoLiveHttp
 {
-    public static byte[] BuildFile(string[] headers, params string[][] rows)
+    /// <summary>Thêm đơn vị (<c>departments</c>) hoặc tổ chức Đảng (<c>branches</c>) như trang Danh mục; trả Id.</summary>
+    public static async Task<Guid> CreateCatalogItemAsync(HttpClient client, string kind, string code, string name, int sortOrder, Guid? parentId = null)
     {
-        using var workbook = new XLWorkbook();
-        var sheet = workbook.AddWorksheet(ImportLimits.DataSheetName);
-        for (var c = 0; c < headers.Length; c++)
-            sheet.Cell(1, c + 1).Value = headers[c];
-        for (var r = 0; r < rows.Length; r++)
-            for (var c = 0; c < rows[r].Length; c++)
-                sheet.Cell(r + 2, c + 1).Value = rows[r][c];
-        using var stream = new MemoryStream();
-        workbook.SaveAs(stream);
-        return stream.ToArray();
+        var data = await DataAsync(await client.PostAsJsonAsync($"/api/organizations/{kind}",
+            new { code, name, sortOrder, parentId }));
+        return data.GetProperty("id").GetGuid();
     }
 
-    public static async Task<JsonElement> PreviewAsync(HttpClient client, string kind, byte[] file)
+    /// <summary>Tạo tài khoản như trang Tài khoản; trả mật khẩu tạm (chỉ hiển thị một lần).</summary>
+    public static async Task<string> CreateAccountAsync(HttpClient client, string username, string fullName, string? email,
+        string? partyCardNumber, string positionTitle, Guid departmentId, Guid partyCellId)
     {
-        var content = new MultipartFormDataContent();
-        var fileContent = new ByteArrayContent(file);
-        fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        content.Add(fileContent, "file", $"{kind}.xlsx");
-        var response = await client.PostAsync($"/api/imports/{kind}/preview", content);
-        Assert.True(response.StatusCode == HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
-        return await DataAsync(response);
+        var data = await DataAsync(await client.PostAsJsonAsync("/api/users",
+            new { username, fullName, email, partyCardNumber, positionTitle, departmentId, partyCellId }));
+        Assert.Equal(username, data.GetProperty("username").GetString());
+        return data.GetProperty("temporaryPassword").GetString()!;
     }
 
-    /// <summary>Xem trước (phải không có lỗi) rồi xác nhận; trả dữ liệu kết quả xác nhận.</summary>
-    public static async Task<JsonElement> ImportAsync(HttpClient client, string kind, byte[] file, int expectedCreated)
+    /// <summary>Gán vai trò như trang Gán vai trò; trả Id bản gán.</summary>
+    public static async Task<Guid> AssignAsync(HttpClient client, Guid userId, Guid roleId, string scopeType, Guid? scopeId,
+        DateTime? validTo = null, string? note = null)
     {
-        var preview = await PreviewAsync(client, kind, file);
-        Assert.True(preview.GetProperty("canCommit").GetBoolean(), preview.ToString());
-        var commit = await client.PostAsync($"/api/imports/{preview.GetProperty("sessionId").GetGuid()}/commit", null);
-        Assert.True(commit.StatusCode == HttpStatusCode.OK, await commit.Content.ReadAsStringAsync());
-        var result = await DataAsync(commit);
-        Assert.Equal(expectedCreated, result.GetProperty("created").GetInt32());
-        return result;
+        var data = await DataAsync(await client.PostAsJsonAsync("/api/admin/assignments",
+            new { userId, roleId, scopeType, scopeId, validTo, note }));
+        return data.GetProperty("id").GetGuid();
     }
 
     /// <summary>Thực hiện một hành động của luồng với phiên bản hiện tại của hồ sơ; kiểm tra trạng thái sau.</summary>
@@ -364,20 +337,6 @@ internal static class GoLiveHttp
         var response = await client.PostAsJsonAsync("/api/auth/change-password", new { currentPassword = current, newPassword = next });
         Assert.True(response.StatusCode == HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
     }
-
-    public static Dictionary<string, string> ReadPasswords(byte[] xlsx)
-    {
-        using var workbook = new XLWorkbook(new MemoryStream(xlsx));
-        var sheet = workbook.Worksheets.First();
-        var header = sheet.CellsUsed().First(c => c.GetString() == "Tên đăng nhập");
-        var passwordColumn = sheet.Row(header.Address.RowNumber).CellsUsed().First(c => c.GetString() == "Mật khẩu tạm").Address.ColumnNumber;
-        var passwords = new Dictionary<string, string>();
-        for (var row = header.Address.RowNumber + 1; row <= sheet.LastRowUsed()!.RowNumber(); row++)
-            passwords[sheet.Cell(row, header.Address.ColumnNumber).GetString()] = sheet.Cell(row, passwordColumn).GetString();
-        return passwords;
-    }
-
-    public static string Errors(JsonElement row) => string.Join(" | ", Strings(row.GetProperty("errors")));
 
     public static List<string> Strings(JsonElement array) => array.EnumerateArray().Select(e => e.GetString()!).ToList();
 

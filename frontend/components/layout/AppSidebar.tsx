@@ -67,7 +67,6 @@ export function AppSidebar() {
         { title: "Tài khoản", href: "/admin/users", icon: "bi-people-fill", permission: "system.users.read" },
         { title: "Vai trò", href: "/admin/roles", icon: "bi-shield-lock-fill", permission: "system.roles.manage" },
         { title: "Danh mục", href: "/catalog", icon: "bi-building", permission: "catalog.manage" },
-        { title: "Nhập dữ liệu", href: "/imports", icon: "bi-file-earmark-arrow-up-fill", permission: "system.import" },
         { title: "Nhật ký", href: "/audit", icon: "bi-clock-history", permission: "system.audit.read" },
         { title: "Thông tin đơn vị", href: "/admin/settings", icon: "bi-gear-fill", permission: "system.settings.manage" },
         { title: "Biểu mẫu Word", href: "/admin/templates", icon: "bi-file-earmark-word-fill", permission: "system.templates.manage" },

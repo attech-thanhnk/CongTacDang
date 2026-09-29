@@ -40,9 +40,6 @@ public static class PermissionCodes
     /// <summary>Xem nhật ký thao tác và nhật ký đăng nhập.</summary>
     public const string SystemAuditRead = "system.audit.read";
 
-    /// <summary>Nhập dữ liệu (phải có thêm quyền quản lý loại dữ liệu được nhập).</summary>
-    public const string SystemImport = "system.import";
-
     /// <summary>Sửa thông tin đơn vị dùng trên biểu mẫu, báo cáo, giao diện (task 17). Xem: mọi người đã đăng nhập.</summary>
     public const string SystemSettingsManage = "system.settings.manage";
 
@@ -137,7 +134,6 @@ public static class PermissionCodes
         new(SystemRolesManage, "Quản lý vai trò", "system", "Tạo/sửa/xóa vai trò, chọn quyền cho vai trò.", false),
         new(SystemAssignmentsManage, "Gán vai trò", "system", "Gán/thu hồi vai trò cho người dùng kèm phạm vi và thời hạn.", false),
         new(SystemAuditRead, "Xem nhật ký", "system", "Xem nhật ký thao tác và nhật ký đăng nhập.", false),
-        new(SystemImport, "Nhập dữ liệu", "system", "Nhập dữ liệu từ tệp; cần thêm quyền quản lý loại dữ liệu được nhập.", false),
         new(SystemSettingsManage, "Quản lý thông tin đơn vị", "system", "Sửa tên Đảng bộ, tên công ty, tên viết tắt, địa danh… dùng trên biểu mẫu, báo cáo và giao diện.", false),
         new(SystemTemplatesManage, "Quản lý file mẫu biểu mẫu", "system", "Tải lên phiên bản file mẫu Word mới (kiểm tra tag), kích hoạt lại phiên bản cũ, xem lịch sử.", false),
         new(CatalogManage, "Quản lý danh mục", "catalog", "Quản lý danh mục đơn vị chính quyền, tổ chức Đảng, loại đơn vị, chức vụ. Xem danh mục: mọi người đã đăng nhập.", false),
