@@ -52,7 +52,7 @@ public sealed record ScopeFilter(
     public bool IsEmpty => !IsGlobal && DepartmentIds.Count == 0 && PartyCellIds.Count == 0 && OwnerId == null;
 
     /// <summary>
-    /// Đối tượng có chủ <paramref name="ownerId"/>, thuộc Phòng <paramref name="departmentId"/>, Chi bộ <paramref name="partyCellId"/>
+    /// Đối tượng có chủ <paramref name="ownerId"/>, thuộc đơn vị chính quyền <paramref name="departmentId"/>, tổ chức Đảng <paramref name="partyCellId"/>
     /// nằm trong bộ lọc hay không (dùng khi lọc danh sách trong bộ nhớ).
     /// </summary>
     public bool Matches(Guid? ownerId, Guid? departmentId, Guid? partyCellId)

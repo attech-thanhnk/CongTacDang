@@ -46,7 +46,7 @@ public interface IRoleRepository
 /// <param name="RoleId">Vai trò.</param>
 /// <param name="RoleName">Tên vai trò.</param>
 /// <param name="ScopeType">Loại phạm vi.</param>
-/// <param name="ScopeId">Id Phòng/Chi bộ (null khi Global).</param>
+/// <param name="ScopeId">Id đơn vị chính quyền / tổ chức Đảng (null khi Global).</param>
 /// <param name="ValidFrom">Hiệu lực từ.</param>
 /// <param name="ValidTo">Hiệu lực đến (không bao gồm).</param>
 /// <param name="PermissionCodes">Mã quyền (chưa xóa) của vai trò.</param>
@@ -80,7 +80,7 @@ public sealed record AdministratorGrantRow(Guid AssignmentId, Guid UserId, Guid 
 /// <param name="UserId">Lọc theo người.</param>
 /// <param name="RoleId">Lọc theo vai trò.</param>
 /// <param name="ScopeType">Lọc theo loại phạm vi.</param>
-/// <param name="ScopeId">Lọc theo Phòng/Chi bộ.</param>
+/// <param name="ScopeId">Lọc theo đơn vị chính quyền / tổ chức Đảng được gán.</param>
 /// <param name="ActiveOn">Chỉ lấy bản gán hiệu lực tại thời điểm này.</param>
 /// <param name="Id">Lọc theo Id bản gán.</param>
 public sealed record RoleAssignmentFilter(
@@ -121,10 +121,10 @@ public interface IRoleAssignmentRepository
     /// <summary>Người dùng tồn tại và chưa xóa.</summary>
     Task<bool> UserExistsAsync(Guid userId, CancellationToken ct = default);
 
-    /// <summary>Phòng/Chi bộ tồn tại, chưa xóa và đang hoạt động.</summary>
+    /// <summary>Đơn vị chính quyền / tổ chức Đảng tồn tại, chưa xóa và đang hoạt động.</summary>
     Task<bool> ScopeExistsAsync(RoleScopeType scopeType, Guid scopeId, CancellationToken ct = default);
 
-    /// <summary>Tên Phòng/Chi bộ theo Id (kể cả đã ngừng hoạt động).</summary>
+    /// <summary>Tên đơn vị chính quyền / tổ chức Đảng theo Id (kể cả đã ngừng hoạt động).</summary>
     Task<Dictionary<Guid, string>> GetScopeNamesAsync(IReadOnlyCollection<Guid> departmentIds, IReadOnlyCollection<Guid> partyCellIds, CancellationToken ct = default);
 
     /// <summary>Thêm bản gán (chưa lưu).</summary>

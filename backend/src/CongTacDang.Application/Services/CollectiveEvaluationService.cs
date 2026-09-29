@@ -163,7 +163,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
 
         var target = new AccessTarget(DepartmentId: meeting.DepartmentId, PartyCellId: meeting.PartyCellId);
         if (!_guard.Can(PermissionCodes.MeetingRead, target) && !_guard.Can(PermissionCodes.MeetingManage, target))
-            throw new ForbiddenException("Bạn không có quyền xem biên bản của Phòng/Chi bộ này (ngoài phạm vi được gán).");
+            throw new ForbiddenException("Bạn không có quyền xem biên bản của đơn vị này (ngoài phạm vi được gán). Hãy liên hệ quản trị hệ thống nếu cần được cấp quyền.");
 
         return MapMeeting(meeting);
     }

@@ -35,10 +35,10 @@ public class RoleAssignmentImportTests
         Assert.Equal("role-assignments", definition.Kind);
         Assert.Equal(new[] { PermissionCodes.SystemAssignmentsManage }, definition.RequiredPermissions);
         Assert.Equal(
-            new[] { "Tên đăng nhập", "Tên vai trò", "Loại phạm vi", "Mã Phòng/Chi bộ", "Từ ngày", "Đến ngày", "Ghi chú" },
+            new[] { "Tên đăng nhập", "Tên vai trò", "Loại phạm vi", "Mã đơn vị", "Từ ngày", "Đến ngày", "Ghi chú" },
             definition.TemplateColumns.Select(c => c.Header));
         var scope = definition.TemplateColumns.Single(c => c.Key == RoleAssignmentImportDefinition.ScopeTypeKey);
-        Assert.Equal(new[] { "Toàn công ty", "Phòng", "Chi bộ" }, scope.AllowedValues);
+        Assert.Equal(new[] { "Toàn công ty", "Đơn vị chính quyền", "Tổ chức Đảng" }, scope.AllowedValues);
     }
 
     [Fact]
@@ -47,8 +47,8 @@ public class RoleAssignmentImportTests
         var (definition, service, _) = Create();
         var analysis = await AnalyzeAsync(definition,
             Row(2, "CB.A", "người ĐƯỢC  đánh giá", "toàn công ty", "", "", "", ""),
-            Row(3, "cb.a", "Chi ủy / Bí thư Chi bộ", "Chi bộ", "cb-kt", "01/10/2026", "31/12/2026", "QĐ 12"),
-            Row(4, "cb.b", "Chi ủy / Bí thư Chi bộ", "Phòng", "PH-KT", "2026-10-01", "", ""));
+            Row(3, "cb.a", "Chi ủy / Bí thư Chi bộ", "Tổ chức Đảng", "cb-kt", "01/10/2026", "31/12/2026", "QĐ 12"),
+            Row(4, "cb.b", "Chi ủy / Bí thư Chi bộ", "Đơn vị chính quyền", "PH-KT", "2026-10-01", "", ""));
 
         Assert.All(analysis.Rows, r => Assert.True(r.Action == ImportRowAction.Create, string.Join(" ", r.Errors)));
 
@@ -82,12 +82,12 @@ public class RoleAssignmentImportTests
             Row(3, "cb.xoa", "Người được đánh giá", "Toàn công ty", "", "", "", ""),
             Row(4, "quantri", "Người được đánh giá", "Toàn công ty", "", "", "", ""),
             Row(5, "cb.a", "Vai trò không có", "Toàn công ty", "", "", "", ""),
-            Row(6, "cb.a", "Quản trị hệ thống", "Chi bộ", "CB-KT", "", "", ""),
-            Row(7, "cb.a", "Chi ủy / Bí thư Chi bộ", "Chi bộ", "CB-KHONG", "", "", ""),
-            Row(8, "cb.a", "Chi ủy / Bí thư Chi bộ", "Chi bộ", "CB-DONG", "", "", ""),
-            Row(9, "cb.a", "Chi ủy / Bí thư Chi bộ", "Phòng", "CB-KT", "", "", ""),
+            Row(6, "cb.a", "Quản trị hệ thống", "Tổ chức Đảng", "CB-KT", "", "", ""),
+            Row(7, "cb.a", "Chi ủy / Bí thư Chi bộ", "Tổ chức Đảng", "CB-KHONG", "", "", ""),
+            Row(8, "cb.a", "Chi ủy / Bí thư Chi bộ", "Tổ chức Đảng", "CB-DONG", "", "", ""),
+            Row(9, "cb.a", "Chi ủy / Bí thư Chi bộ", "Đơn vị chính quyền", "CB-KT", "", "", ""),
             Row(10, "cb.a", "Người được đánh giá", "Toàn công ty", "PH-KT", "", "", ""),
-            Row(11, "cb.a", "Chi ủy / Bí thư Chi bộ", "Chi bộ", "", "", "", ""),
+            Row(11, "cb.a", "Chi ủy / Bí thư Chi bộ", "Tổ chức Đảng", "", "", "", ""),
             Row(12, "cb.a", "Người được đánh giá", "Tổ", "", "", "", ""),
             Row(13, "cb.a", "Người được đánh giá", "Toàn công ty", "", "32/13/2026", "", ""),
             Row(14, "cb.a", "Người được đánh giá", "Toàn công ty", "", "10/10/2026", "09/10/2026", ""),
@@ -105,12 +105,12 @@ public class RoleAssignmentImportTests
         Assert.Contains("chỉ gán được với Loại phạm vi \"Toàn công ty\"", Errors(6));
         Assert.Contains("Quản lý vai trò", Errors(6)); // nêu tên quyền, không nêu mã
         Assert.DoesNotContain("system.", Errors(6));
-        Assert.Contains("Mã Chi bộ \"CB-KHONG\" không có trong danh mục", Errors(7));
+        Assert.Contains("Mã tổ chức Đảng \"CB-KHONG\" không có trong danh mục", Errors(7));
         Assert.Contains("đã ngừng hoạt động", Errors(8));
-        Assert.Contains("Mã Phòng \"CB-KT\" không có trong danh mục", Errors(9));
-        Assert.Contains("không kèm mã Phòng/Chi bộ", Errors(10));
-        Assert.Contains("Thiếu \"Mã Phòng/Chi bộ\"", Errors(11));
-        Assert.Contains("Chỉ nhận: Toàn công ty, Phòng, Chi bộ", Errors(12));
+        Assert.Contains("Mã đơn vị chính quyền \"CB-KT\" không có trong danh mục", Errors(9));
+        Assert.Contains("không kèm mã đơn vị", Errors(10));
+        Assert.Contains("Thiếu \"Mã đơn vị\"", Errors(11));
+        Assert.Contains("Chỉ nhận: Toàn công ty, Đơn vị chính quyền, Tổ chức Đảng", Errors(12));
         Assert.Contains("không phải ngày hợp lệ", Errors(13));
         Assert.Contains("phải bằng hoặc sau \"Từ ngày\"", Errors(14));
         Assert.Contains("đã qua", Errors(15));
@@ -134,11 +134,11 @@ public class RoleAssignmentImportTests
 
         var analysis = await AnalyzeAsync(definition,
             Row(2, "cb.a", "Người được đánh giá", "Toàn công ty", "", "", "", ""),               // trùng bản gán đang hiệu lực
-            Row(3, "cb.b", "Chi ủy / Bí thư Chi bộ", "Chi bộ", "CB-KT", "", "", ""),             // chồng lấn (hiện tại → không hạn)
-            Row(4, "cb.b", "Chi ủy / Bí thư Chi bộ", "Chi bộ", "CB-KT", "01/11/2026", "", ""),   // nối tiếp sau khi hết hạn → hợp lệ
-            Row(5, "cb.b", "Chi ủy / Bí thư Chi bộ", "Chi bộ", "CB-KT", "15/11/2026", "", ""),   // trùng dòng 4 trong tệp
-            Row(6, "cb.b", "Chi ủy / Bí thư Chi bộ", "Phòng", "PH-KT", "", "", ""),              // khác phạm vi → hợp lệ
-            Row(7, "cb.a", "Chi ủy / Bí thư Chi bộ", "Chi bộ", "CB-KT", "", "", ""));            // khác vai trò → hợp lệ
+            Row(3, "cb.b", "Chi ủy / Bí thư Chi bộ", "Tổ chức Đảng", "CB-KT", "", "", ""),             // chồng lấn (hiện tại → không hạn)
+            Row(4, "cb.b", "Chi ủy / Bí thư Chi bộ", "Tổ chức Đảng", "CB-KT", "01/11/2026", "", ""),   // nối tiếp sau khi hết hạn → hợp lệ
+            Row(5, "cb.b", "Chi ủy / Bí thư Chi bộ", "Tổ chức Đảng", "CB-KT", "15/11/2026", "", ""),   // trùng dòng 4 trong tệp
+            Row(6, "cb.b", "Chi ủy / Bí thư Chi bộ", "Đơn vị chính quyền", "PH-KT", "", "", ""),              // khác phạm vi → hợp lệ
+            Row(7, "cb.a", "Chi ủy / Bí thư Chi bộ", "Tổ chức Đảng", "CB-KT", "", "", ""));            // khác vai trò → hợp lệ
 
         var byRow = analysis.Rows.ToDictionary(r => r.RowNumber);
         Assert.Contains("đã có vai trò \"Người được đánh giá\" ở phạm vi này", string.Join(" ", byRow[2].Errors));
@@ -158,7 +158,7 @@ public class RoleAssignmentImportTests
         var analysis = await AnalyzeAsync(definition,
             Row(2, "cb.a", "Người được đánh giá", "Toàn công ty", "", "", "", ""),
             Row(3, "cb.b", "Người được đánh giá", "Toàn công ty", "", "", "", ""),
-            Row(4, "cb.b", "Chi ủy / Bí thư Chi bộ", "Chi bộ", "CB-KT", "", "", ""));
+            Row(4, "cb.b", "Chi ủy / Bí thư Chi bộ", "Tổ chức Đảng", "CB-KT", "", "", ""));
         Assert.False(analysis.HasErrors);
 
         var processor = new ImportProcessor<RoleAssignmentImportRow>(definition);

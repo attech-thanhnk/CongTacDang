@@ -353,8 +353,8 @@ public class AuthorizationGuardTests
     }
 
     [Theory]
-    [InlineData(ScopeType.Department, false, "Phòng")]
-    [InlineData(ScopeType.PartyCell, false, "Chi bộ")]
+    [InlineData(ScopeType.Department, false, "đơn vị chính quyền")]
+    [InlineData(ScopeType.PartyCell, false, "tổ chức Đảng")]
     [InlineData(ScopeType.Global, true, "Toàn công ty")]
     public async Task Assign_InvalidScope_IsRejected(ScopeType type, bool withScopeId, string expected)
     {

@@ -6,7 +6,7 @@ export interface AccessGrant {
   code: string;
   /** Loại phạm vi */
   scopeType: "Global" | "Department" | "PartyCell";
-  /** Id Phòng/Chi bộ (null khi Toàn công ty) */
+  /** Id đơn vị chính quyền / tổ chức Đảng được gán (null khi Toàn công ty) */
   scopeId: string | null;
   /** Tên phạm vi hiển thị */
   scopeName: string;
@@ -24,7 +24,7 @@ export interface UserSession {
   roles: string[];
   /** Các mã quyền có ở ít nhất một phạm vi (system.users.read, evaluation.read, ...) */
   permissions: string[];
-  /** Quyền kèm phạm vi (Toàn công ty / Phòng / Chi bộ) */
+  /** Quyền kèm phạm vi (Toàn công ty / Đơn vị chính quyền / Tổ chức Đảng — gồm cả đơn vị cấp dưới) */
   grants: AccessGrant[];
   /** Bắt buộc đổi mật khẩu tạm */
   mustChangePassword: boolean;

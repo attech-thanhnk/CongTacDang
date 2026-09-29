@@ -75,7 +75,7 @@ public class EvaluationService : IEvaluationService
     /// <inheritdoc />
     public async Task<List<EvaluationRecordDto>> GetRecordsByBranchAsync(Guid periodId, Guid? branchId, CancellationToken ct = default)
     {
-        // Danh sách lọc theo phạm vi evaluation.read (Global / Phòng / Chi bộ + hồ sơ của chính mình).
+        // Danh sách lọc theo phạm vi evaluation.read (Global / đơn vị chính quyền / tổ chức Đảng gồm cấp dưới + hồ sơ của chính mình).
         // Chọn Chi bộ ngoài phạm vi → chỉ còn hồ sơ của chính mình (nếu có), không lộ hồ sơ khác.
         var scope = _guard.GetScope(PermissionCodes.EvaluationRead);
         var records = (await _repo.ListRecordsAsync(periodId, ct))

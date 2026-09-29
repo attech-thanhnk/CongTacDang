@@ -12,7 +12,7 @@ namespace CongTacDang.Application.Common.Security;
 /// <param name="Module">Phân hệ (system, catalog, period, evaluation, collective, meeting, report, attachment).</param>
 /// <param name="Description">Mô tả chi tiết.</param>
 /// <param name="AppliesScope">
-/// true: quyền có nghĩa theo phạm vi gán (Phòng / Chi bộ / toàn công ty);
+/// true: quyền có nghĩa theo phạm vi gán (đơn vị chính quyền / tổ chức Đảng — gồm cả cấp dưới — hoặc toàn công ty);
 /// false: chỉ có nghĩa khi gán phạm vi Global (gán phạm vi khác sẽ bị API từ chối).
 /// </param>
 public sealed record PermissionDefinition(string Code, string Name, string Module, string Description, bool AppliesScope);
@@ -47,7 +47,7 @@ public static class PermissionCodes
 
     #region Danh mục, kỳ đánh giá
 
-    /// <summary>Quản lý danh mục Phòng/đơn vị, Chi bộ. Xem danh mục: mọi người đã đăng nhập.</summary>
+    /// <summary>Quản lý danh mục đơn vị chính quyền, tổ chức Đảng, loại đơn vị, chức vụ. Xem danh mục: mọi người đã đăng nhập.</summary>
     public const string CatalogManage = "catalog.manage";
 
     /// <summary>Quản lý kỳ đánh giá: tạo kỳ, cấu hình bước/thời hạn/tham số, danh sách người được đánh giá, mở/khóa kỳ.</summary>
@@ -129,7 +129,7 @@ public static class PermissionCodes
         new(SystemAssignmentsManage, "Gán vai trò", "system", "Gán/thu hồi vai trò cho người dùng kèm phạm vi và thời hạn.", false),
         new(SystemAuditRead, "Xem nhật ký", "system", "Xem nhật ký thao tác và nhật ký đăng nhập.", false),
         new(SystemImport, "Nhập dữ liệu", "system", "Nhập dữ liệu từ tệp; cần thêm quyền quản lý loại dữ liệu được nhập.", false),
-        new(CatalogManage, "Quản lý danh mục", "catalog", "Quản lý danh mục Phòng/đơn vị, Chi bộ. Xem danh mục: mọi người đã đăng nhập.", false),
+        new(CatalogManage, "Quản lý danh mục", "catalog", "Quản lý danh mục đơn vị chính quyền, tổ chức Đảng, loại đơn vị, chức vụ. Xem danh mục: mọi người đã đăng nhập.", false),
         new(PeriodManage, "Quản lý kỳ đánh giá", "period", "Tạo kỳ, cấu hình bước/thời hạn/tham số, danh sách người được đánh giá, mở/khóa kỳ.", false),
         new(EvaluationSelf, "Tham gia đánh giá (bản thân)", "evaluation", "Đăng ký sản phẩm, tự chấm, giải trình, nộp minh chứng — chỉ trên hồ sơ của mình (phạm vi gán được bỏ qua).", true),
         new(EvaluationRead, "Xem hồ sơ đánh giá", "evaluation", "Xem hồ sơ đánh giá trong phạm vi được gán; chủ hồ sơ luôn xem được hồ sơ của mình.", true),

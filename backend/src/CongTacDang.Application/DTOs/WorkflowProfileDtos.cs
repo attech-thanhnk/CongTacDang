@@ -82,7 +82,7 @@ public class ReadinessIssueDto
     public string Mode { get; set; } = string.Empty;
     public string Permission { get; set; } = string.Empty;
     public string PermissionName { get; set; } = string.Empty;
-    /// <summary>Phạm vi của hồ sơ (Phòng / Chi bộ) cần được bao trùm.</summary>
+    /// <summary>Phạm vi của hồ sơ (đơn vị chính quyền / tổ chức Đảng) mà bản gán cần bao trùm.</summary>
     public string Scope { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
 }

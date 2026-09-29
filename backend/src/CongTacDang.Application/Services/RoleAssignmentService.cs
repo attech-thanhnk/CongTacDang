@@ -73,7 +73,7 @@ public sealed class RoleAssignmentService : IRoleAssignmentService
         var trimmedNote = NormalizeNote(note);
 
         if (!Enum.IsDefined(scopeType))
-            throw new ValidationException("Loại phạm vi không hợp lệ. Chọn Toàn công ty, Phòng hoặc Chi bộ.");
+            throw new ValidationException("Loại phạm vi không hợp lệ. Chọn Toàn công ty, Đơn vị chính quyền hoặc Tổ chức Đảng.");
         var domainScope = (RoleScopeType)(int)scopeType;
 
         if (!await _assignments.UserExistsAsync(userId, ct))
@@ -328,15 +328,15 @@ public sealed class RoleAssignmentService : IRoleAssignmentService
         if (scopeType == RoleScopeType.Global)
         {
             if (scopeId.HasValue && scopeId.Value != Guid.Empty)
-                throw new ValidationException("Phạm vi Toàn công ty không kèm Phòng/Chi bộ. Hãy bỏ trống đối tượng phạm vi.");
+                throw new ValidationException("Phạm vi Toàn công ty không kèm đơn vị chính quyền hay tổ chức Đảng. Hãy bỏ trống đối tượng phạm vi.");
             return null;
         }
 
-        var label = scopeType == RoleScopeType.Department ? "Phòng/đơn vị" : "Chi bộ";
+        var label = scopeType == RoleScopeType.Department ? "đơn vị chính quyền" : "tổ chức Đảng";
         if (!scopeId.HasValue || scopeId.Value == Guid.Empty)
-            throw new ValidationException($"Hãy chọn {label} cho phạm vi gán.");
+            throw new ValidationException($"Hãy chọn {label} cho phạm vi gán (phạm vi gồm cả các đơn vị cấp dưới của {label} được chọn).");
         if (!await _assignments.ScopeExistsAsync(scopeType, scopeId.Value, ct))
-            throw new ValidationException($"{label} được chọn không tồn tại hoặc đã ngừng hoạt động.");
+            throw new ValidationException($"Không tìm thấy {label} được chọn làm phạm vi (không tồn tại hoặc đã ngừng hoạt động). Hãy chọn {label} khác.");
         return scopeId;
     }
 

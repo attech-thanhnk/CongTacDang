@@ -4,7 +4,7 @@ namespace CongTacDang.Application.Imports.Definitions;
 
 /// <summary>
 /// Tra cứu chỉ đọc phục vụ kiểm tra chéo khi nhập bản gán vai trò (<c>role-assignments</c>).
-/// Phòng/Chi bộ tra qua <see cref="IImportLookup"/> của khung import.
+/// Đơn vị chính quyền / tổ chức Đảng tra qua <see cref="IImportLookup"/> của khung import.
 /// </summary>
 public interface IRoleAssignmentImportLookup
 {
