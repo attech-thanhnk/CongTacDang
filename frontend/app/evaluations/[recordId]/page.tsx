@@ -10,6 +10,9 @@ import { RecordActionPanel } from "@/components/evaluations/RecordActionPanel";
 import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
 import { EvaluationPdfModal } from "@/components/evaluations/EvaluationPdfModal";
 import { PrintTemplateType } from "@/components/evaluations/EvaluationPrintTemplate";
+import { RecordFormsPanel } from "@/components/evaluations/RecordFormsPanel";
+import { SelfAssessmentView, TaskResultsView } from "@/components/evaluations/IndividualFormInputs";
+import { useCriteria } from "@/components/evaluations/useCriteria";
 import { attachmentService } from "@/services/attachmentService";
 import {
   EVALUATION_CONFLICT_EVENT,
@@ -17,12 +20,22 @@ import {
   EvaluationRecordDto,
   EvaluationRecordHistoryDto,
   RecordActionDto,
+  RecordFormDto,
   WorkflowActionCode,
   WorkflowStepCode,
+  criteriaAppliesForm,
   evaluationService,
   gradeLabel,
   isConcurrencyConflict,
+  selfAssessmentSections,
 } from "@/services/evaluationService";
+
+/** Mẫu có bản xem/in nhanh trên trình duyệt (EvaluationPdfModal) — chỉ hiện khi kỳ áp dụng mẫu đó (task 18). */
+const PRINT_FORMS: { code: string; template: PrintTemplateType; label: string }[] = [
+  { code: "01", template: "mau01", label: "Mẫu 01" },
+  { code: "02", template: "mau02", label: "Mẫu 02" },
+  { code: "10", template: "mau10", label: "Mẫu 10" },
+];
 
 const formatDateTime = (value?: string | null) =>
   value ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(new Date(value)) : "—";
@@ -44,19 +57,22 @@ export default function EvaluationRecordPage() {
   const [conflict, setConflict] = useState<string | null>(null);
   const [reasonAction, setReasonAction] = useState<RecordActionDto | null>(null);
   const [pdf, setPdf] = useState<PrintTemplateType | null>(null);
+  const [forms, setForms] = useState<RecordFormDto[]>([]);
 
   const load = useCallback(async () => {
     if (!recordId) return;
     setLoadError(null);
     try {
-      const [loadedRecord, loadedActions, loadedHistory] = await Promise.all([
+      const [loadedRecord, loadedActions, loadedHistory, loadedForms] = await Promise.all([
         evaluationService.getRecordById(recordId),
         evaluationService.getRecordActions(recordId),
         evaluationService.getRecordHistory(recordId),
+        evaluationService.getRecordForms(recordId).catch(() => [] as RecordFormDto[]),
       ]);
       setRecord(loadedRecord);
       setActions(loadedActions.actions);
       setHistory(loadedHistory);
+      setForms(loadedForms);
       setConflict(null);
     } catch (error: any) {
       setLoadError(error?.message || "Không tải được hồ sơ.");
@@ -109,6 +125,7 @@ export default function EvaluationRecordPage() {
   }
 
   const isReturned = !!record.returnReason;
+  const printForms = PRINT_FORMS.filter((f) => forms.some((x) => x.code === f.code));
 
   return (
     <div className="page-wrapper">
@@ -119,11 +136,13 @@ export default function EvaluationRecordPage() {
         actions={
           <div className="d-flex gap-2">
             <Link href="/work-queue" className="btn btn-outline-secondary btn-sm"><i className="bi bi-arrow-left me-1" />Việc cần xử lý</Link>
-            <div className="btn-group btn-group-sm">
-              <button type="button" className="btn btn-outline-primary" onClick={() => setPdf("mau01")}>Mẫu 01</button>
-              <button type="button" className="btn btn-outline-primary" onClick={() => setPdf("mau02")}>Mẫu 02</button>
-              <button type="button" className="btn btn-outline-primary" onClick={() => setPdf("mau10")}>Mẫu 10</button>
-            </div>
+            {printForms.length > 0 && (
+              <div className="btn-group btn-group-sm">
+                {printForms.map((f) => (
+                  <button key={f.code} type="button" className="btn btn-outline-primary" onClick={() => setPdf(f.template)}>{f.label}</button>
+                ))}
+              </div>
+            )}
           </div>
         }
       />
@@ -158,7 +177,8 @@ export default function EvaluationRecordPage() {
             </section>
             <RecordData record={record} />
           </div>
-          <div className="col-12 col-xl-5">
+          <div className="col-12 col-xl-5 d-flex flex-column gap-3">
+            <RecordFormsPanel recordId={record.id} fullName={record.fullName} forms={forms} />
             <section className="card border-0 shadow-sm">
               <div className="card-body">
                 <h2 className="h6 mb-3">Lịch sử hồ sơ</h2>
@@ -234,6 +254,7 @@ function ModeNote({ record, step }: { record: EvaluationRecordDto; step: Workflo
 /** Dữ liệu đã lưu của các bước (chỉ đọc). */
 function RecordData({ record }: { record: EvaluationRecordDto }) {
   const { toast } = useToast();
+  const { criteria } = useCriteria(record.periodId);
   const enabled = (step: WorkflowStepCode) => record.progress.find((p) => p.step === step)?.enabled ?? true;
   const offSteps = record.progress.filter((p) => p.mode === "Off");
   return (
@@ -320,7 +341,33 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
             <Field label="Nộp lúc" value={record.selfScoredAt ? formatDateTime(record.selfScoredAt) : null} />
             {record.axisScores && <Field label="Điểm theo trục" value={Object.entries(record.axisScores).map(([code, score]) => `${code}: ${score}`).join(" · ")} />}
           </div>
+          {record.axisNotes && Object.keys(record.axisNotes).length > 0 && (
+            <ul className="small mb-0 mt-2 ps-3">
+              {Object.entries(record.axisNotes).map(([code, note]) => (
+                <li key={code}>
+                  <strong>{code}</strong>
+                  {note.target ? ` — Mục tiêu: ${note.target}` : ""}
+                  {note.result ? ` — Kết quả: ${note.result}` : ""}
+                  {note.note ? ` — Ghi chú: ${note.note}` : ""}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
+
+        {criteriaAppliesForm(criteria, "9D") && (
+          <div>
+            <h3 className="small fw-bold text-secondary">Kết quả thực hiện nhiệm vụ theo trục (Mẫu 9D)</h3>
+            <TaskResultsView axes={criteria?.content.axes ?? []} rows={record.taskResults} />
+          </div>
+        )}
+
+        {criteriaAppliesForm(criteria, "09C") && (
+          <div>
+            <h3 className="small fw-bold text-secondary">Bản tự đánh giá (Mẫu 09C)</h3>
+            <SelfAssessmentView sections={selfAssessmentSections(criteria)} value={record.selfAssessment} />
+          </div>
+        )}
 
         {enabled("B2_CELL_CONFIRM") && (
           <div>
