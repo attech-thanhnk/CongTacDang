@@ -57,7 +57,6 @@ export function AppSidebar() {
         { title: "Kỳ đánh giá", href: "/periods", icon: "bi-calendar-range", permission: "period.manage" },
         { title: "Bộ tiêu chí", href: "/criteria", icon: "bi-list-check", permission: "criteria.manage" },
         { title: "Báo cáo", href: "/reports", icon: "bi-bar-chart-line-fill", permission: "report.export" },
-        { title: "Biểu mẫu", href: "/forms", icon: "bi-file-earmark-text-fill" },
       ],
     },
     {

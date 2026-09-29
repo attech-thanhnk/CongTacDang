@@ -11,7 +11,6 @@ import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
 import { AppealPanel } from "@/components/evaluations/AppealPanel";
 import { ImprovementPlanPanel } from "@/components/evaluations/ImprovementPlanPanel";
 import { EvaluationPdfModal } from "@/components/evaluations/EvaluationPdfModal";
-import { PrintTemplateType } from "@/components/evaluations/EvaluationPrintTemplate";
 import { RecordFormsPanel } from "@/components/evaluations/RecordFormsPanel";
 import { SelfAssessmentView, TaskResultsView } from "@/components/evaluations/IndividualFormInputs";
 import { useCriteria } from "@/components/evaluations/useCriteria";
@@ -32,13 +31,6 @@ import {
   selfAssessmentSections,
 } from "@/services/evaluationService";
 
-/** Mẫu có bản xem/in nhanh trên trình duyệt (EvaluationPdfModal) — chỉ hiện khi kỳ áp dụng mẫu đó (task 18). */
-const PRINT_FORMS: { code: string; template: PrintTemplateType; label: string }[] = [
-  { code: "01", template: "mau01", label: "Mẫu 01" },
-  { code: "02", template: "mau02", label: "Mẫu 02" },
-  { code: "10", template: "mau10", label: "Mẫu 10" },
-];
-
 const formatDateTime = (value?: string | null) =>
   value ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(new Date(value)) : "—";
 
@@ -58,7 +50,7 @@ export default function EvaluationRecordPage() {
   const [busy, setBusy] = useState(false);
   const [conflict, setConflict] = useState<string | null>(null);
   const [reasonAction, setReasonAction] = useState<RecordActionDto | null>(null);
-  const [pdf, setPdf] = useState<PrintTemplateType | null>(null);
+  const [pdf, setPdf] = useState<string | null>(null);
   const [forms, setForms] = useState<RecordFormDto[]>([]);
 
   const load = useCallback(async () => {
@@ -127,7 +119,6 @@ export default function EvaluationRecordPage() {
   }
 
   const isReturned = !!record.returnReason;
-  const printForms = PRINT_FORMS.filter((f) => forms.some((x) => x.code === f.code));
 
   return (
     <div className="page-wrapper">
@@ -138,12 +129,10 @@ export default function EvaluationRecordPage() {
         actions={
           <div className="d-flex gap-2">
             <Link href="/work-queue" className="btn btn-outline-secondary btn-sm"><i className="bi bi-arrow-left me-1" />Việc cần xử lý</Link>
-            {printForms.length > 0 && (
-              <div className="btn-group btn-group-sm">
-                {printForms.map((f) => (
-                  <button key={f.code} type="button" className="btn btn-outline-primary" onClick={() => setPdf(f.template)}>{f.label}</button>
-                ))}
-              </div>
+            {forms.length > 0 && (
+              <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setPdf(forms[0].code)}>
+                <i className="bi bi-file-earmark-pdf me-1" />Xem bản in (PDF)
+              </button>
             )}
           </div>
         }
@@ -233,7 +222,7 @@ export default function EvaluationRecordPage() {
         }
       />
 
-      {pdf && <EvaluationPdfModal isOpen onClose={() => setPdf(null)} templateType={pdf} record={record} />}
+      {pdf && <EvaluationPdfModal isOpen onClose={() => setPdf(null)} record={record} forms={forms} initialCode={pdf} />}
     </div>
   );
 }

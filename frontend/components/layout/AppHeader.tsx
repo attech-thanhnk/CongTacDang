@@ -27,8 +27,11 @@ export function AppHeader() {
     if (pathname.startsWith("/admin/roles")) return "Vai trò";
     if (pathname.startsWith("/catalog")) return "Danh mục";
     if (pathname.startsWith("/audit")) return "Nhật ký";
+    if (pathname.startsWith("/criteria")) return "Bộ tiêu chí";
     if (pathname.startsWith("/reports")) return "Báo cáo";
-    if (pathname.startsWith("/forms")) return "Biểu mẫu";
+    if (pathname.startsWith("/admin/settings")) return "Thông tin đơn vị";
+    if (pathname.startsWith("/admin/templates")) return "Biểu mẫu Word";
+    if (pathname.startsWith("/change-password")) return "Đổi mật khẩu";
     return "";
   };
 
