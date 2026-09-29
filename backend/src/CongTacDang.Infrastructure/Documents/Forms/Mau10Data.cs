@@ -51,6 +51,12 @@ public sealed class Mau10Data
     /// <summary>Ý kiến của Tổ thẩm định (đã lưu).</summary>
     [TemplateField("APPRAISAL_COMMENT")] public string? AppraisalComment { get; init; }
 
+    /// <summary>
+    /// Nội dung giải trình/căn cứ khi chênh lệch tự chấm – thẩm định vượt ngưỡng của bộ tiêu chí (B-09, đã lưu);
+    /// không có thì giữ chữ mặc định trong template.
+    /// </summary>
+    [TemplateField("APPRAISAL_EXPLANATION")] public string? AppraisalExplanation { get; init; }
+
     /// <summary>Mức xếp loại Tổ thẩm định đề xuất (đã lưu).</summary>
     [TemplateField("PROPOSED_GRADE")] public string? ProposedGrade { get; init; }
 
@@ -73,6 +79,7 @@ public sealed class Mau10Data
                 : null,
             SupervisorComment = FormText.OrNull(record.DirectorComment),
             AppraisalComment = FormText.OrNull(record.AppraisalComment),
+            AppraisalExplanation = FormText.OrNull(record.AppraisalExplanation),
             ProposedGrade = FormText.Grade(record.AppraisalProposedGrade)
         };
     }

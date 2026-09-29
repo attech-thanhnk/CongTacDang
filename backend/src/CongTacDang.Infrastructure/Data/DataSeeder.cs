@@ -95,7 +95,7 @@ public static class DataSeeder
             new[]
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationAppraise, PermissionCodes.PeriodManage,
-                PermissionCodes.ReportExport, PermissionCodes.SystemImport, PermissionCodes.SystemUsersRead
+                PermissionCodes.CriteriaManage, PermissionCodes.ReportExport, PermissionCodes.SystemImport, PermissionCodes.SystemUsersRead
             }),
         new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Nhận xét, đề xuất của cấp trực tiếp sử dụng cán bộ (HD03 IV.3c). Phạm vi gán: Toàn công ty.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport }),
@@ -109,7 +109,8 @@ public static class DataSeeder
                 PermissionCodes.EvaluationPublish, PermissionCodes.EvaluationReopen, PermissionCodes.MeetingRead,
                 PermissionCodes.MeetingManage, PermissionCodes.ReportExport
             }),
-        new(RoleCodes.Administrator, "Quản trị hệ thống", "Quản trị kỹ thuật: tài khoản, vai trò, gán vai trò, nhật ký, danh mục, văn bản chung. Không xem nội dung đánh giá (Mẫu 18).",
+        new(RoleCodes.Administrator, "Quản trị hệ thống", "Quản trị kỹ thuật: tài khoản, vai trò, gán vai trò, nhật ký, danh mục, văn bản chung, thông tin đơn vị, file mẫu biểu mẫu Word. "
+            + "Không xem nội dung đánh giá (Mẫu 18).",
             AdministratorPermissionCodes, IsProtected: true)
     };
 
@@ -136,6 +137,12 @@ public static class DataSeeder
         // 2b. Danh mục loại đơn vị và danh mục chức vụ mặc định (chỉ khi danh mục trống — task 14, chờ nghiệp vụ xác nhận).
         await SeedOrganizationCatalogsAsync(context, logger);
 
+        // 2c. Hai bộ tiêu chí mặc định theo bản trích xuất HD03 (chỉ khi chưa có bộ nào — task 16, chờ nghiệp vụ xác nhận).
+        await SeedCriteriaSetsAsync(context, logger);
+
+        // 2d. Thông tin đơn vị mặc định (chỉ khi chưa có — task 17).
+        await SeedOrganizationSettingsAsync(context, logger);
+
         // 3. Dữ liệu mẫu (chỉ môi trường thử nghiệm).
         if (sampleData?.Enabled == true)
             await SeedSampleDataAsync(context, sampleData, logger);
@@ -143,6 +150,40 @@ public static class DataSeeder
         // 4. Tài khoản quản trị ban đầu (độc lập với dữ liệu mẫu) — chỉ khi hệ thống chưa có quản trị nào.
         await SeedInitialAdministratorAsync(context, initialAdmin, logger);
     }
+
+    #region Bộ tiêu chí mặc định
+
+    /// <summary>
+    /// Tạo hai bộ tiêu chí đã xuất bản theo bản trích xuất HD03 (<see cref="CriteriaSetDefaults"/>): "Mẫu 09B — Quý III/2026" và
+    /// "Mẫu 09A — từ 2027" — chỉ khi CSDL chưa có bộ tiêu chí nào (không ghi đè bộ đã sửa).
+    /// </summary>
+    private static async Task SeedCriteriaSetsAsync(CongTacDangDbContext context, ILogger? logger)
+    {
+        if (await context.Set<CriteriaSet>().AnyAsync())
+            return;
+
+        var now = DateTime.UtcNow;
+        context.Set<CriteriaSet>().AddRange(
+            DefaultCriteriaSet(CriteriaSetDefaults.Code09B, CriteriaSetDefaults.Name09B, CriteriaSetContent.Form09B, CriteriaSetDefaults.Build09B(), now),
+            DefaultCriteriaSet(CriteriaSetDefaults.Code09A, CriteriaSetDefaults.Name09A, CriteriaSetContent.Form09A, CriteriaSetDefaults.Build09A(), now.AddSeconds(-1)));
+        await context.SaveChangesAsync();
+        logger?.LogInformation("Đã tạo 2 bộ tiêu chí mặc định theo bản trích xuất HD03 (chờ nghiệp vụ xác nhận).");
+    }
+
+    private static CriteriaSet DefaultCriteriaSet(string code, string name, string form, CriteriaSetContent content, DateTime publishedAt) => new()
+    {
+        Code = code,
+        Name = name,
+        SelfScoreForm = form,
+        Notes = CriteriaSetDefaults.Notes,
+        Status = CriteriaSetStatus.Published,
+        Content = content.ToJson(),
+        PublishedAt = publishedAt,
+        CreatedAt = publishedAt,
+        UpdatedAt = publishedAt
+    };
+
+    #endregion
 
     #region Quản trị ban đầu
 
@@ -339,6 +380,37 @@ public static class DataSeeder
 
     #endregion
 
+    #region Thông tin đơn vị mặc định (task 17)
+
+    /// <summary>
+    /// Thông tin đơn vị mặc định — đúng các chuỗi trước đây ghi cứng trong code xuất biểu mẫu/báo cáo và giao diện, để biểu mẫu
+    /// không đổi khi chưa sửa. Đây là nơi duy nhất trong code chứa tên đơn vị; quản trị sửa trên giao diện (Quản trị → Thông tin đơn vị).
+    /// </summary>
+    public static OrganizationSettings DefaultOrganizationSettings() => new()
+    {
+        Id = OrganizationSettings.SingletonId,
+        PartyCommitteeName = "ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY",
+        SuperiorPartyName = "ĐẢNG BỘ TỔNG CÔNG TY QUẢN LÝ BAY VIỆT NAM",
+        CompanyName = "Công ty TNHH Kỹ thuật Quản lý bay",
+        ParentCompanyName = "Tổng công ty Quản lý bay Việt Nam",
+        ShortName = "ATTECH",
+        Location = "Hà Nội",
+        SystemName = "Đảng bộ ATTECH"
+    };
+
+    /// <summary>Tạo bản ghi thông tin đơn vị mặc định khi chưa có — không bao giờ ghi đè giá trị quản trị đã sửa.</summary>
+    private static async Task SeedOrganizationSettingsAsync(CongTacDangDbContext context, ILogger? logger)
+    {
+        if (await context.Set<OrganizationSettings>().AnyAsync())
+            return;
+
+        context.Set<OrganizationSettings>().Add(DefaultOrganizationSettings());
+        await context.SaveChangesAsync();
+        logger?.LogInformation("Đã tạo thông tin đơn vị mặc định.");
+    }
+
+    #endregion
+
     #region Danh mục tổ chức mặc định (task 14)
 
     /// <summary>Loại đơn vị mặc định (tên, bên) — ĐỀ XUẤT, chờ nghiệp vụ xác nhận; quản trị sửa được.</summary>
@@ -446,7 +518,7 @@ public static class DataSeeder
     /// <summary>Một tài khoản mẫu kèm chức vụ, bản gán vai trò và trạng thái hồ sơ trong kỳ mẫu (null = không được đánh giá).</summary>
     private sealed record SampleAccount(
         string Username, string FullName, string Department, string? PartyCell, SamplePosition[] Positions,
-        string Title, JobGroup JobGroup, (string Role, RoleScopeType Scope)[] Roles, RecordStatus? RecordStatus);
+        string Title, string WeightFrameCode, (string Role, RoleScopeType Scope)[] Roles, RecordStatus? RecordStatus);
 
     /// <summary>Cây đơn vị chính quyền mẫu (mã, tên, mô tả, mã cha, loại).</summary>
     private static readonly (string Code, string Name, string Description, string? Parent, string Type)[] SampleDepartments =
@@ -473,39 +545,39 @@ public static class DataSeeder
     private static readonly SampleAccount[] SampleAccounts =
     {
         new("admin", "Quản trị hệ thống (mẫu)", "PH-KH", null, new[] { new SamplePosition("Chuyên viên", "PH-KH", true) },
-            "Chuyên viên CNTT", JobGroup.Khung4_KhcnChuyenDoiSo,
+            "Chuyên viên CNTT", "K4",
             new[] { (RoleCodes.Administrator, RoleScopeType.Global) }, null),
         new("giamdoc", "Lê Tiến Thịnh", "BGD", "CB-VP",
             new[] { new SamplePosition("Giám đốc", "ATTECH", true), new SamplePosition("Bí thư Đảng ủy", "DU-ATTECH", false) },
-            "Bí thư Đảng ủy, Giám đốc Công ty", JobGroup.Khung1_QuanLyDangDoanThe,
+            "Bí thư Đảng ủy, Giám đốc Công ty", "K1",
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global), (RoleCodes.DirectSupervisor, RoleScopeType.Global) },
             RecordStatus.Published),
         new("vanphong", "Phạm Thu Hà", "PH-KH", "CB-VP", new[] { new SamplePosition("Chuyên viên", "PH-KH", true) },
-            "Chuyên viên Văn phòng Đảng ủy", JobGroup.Khung1_QuanLyDangDoanThe,
+            "Chuyên viên Văn phòng Đảng ủy", "K1",
             new[] { (RoleCodes.PartyOffice, RoleScopeType.Global), (RoleCodes.PartyCommitteeMember, RoleScopeType.Global) }, null),
         new("thamdinh", "Vũ Đình Hùng", "PH-TCCB", "CB-VP",
             new[] { new SamplePosition("Trưởng phòng", "PH-TCCB", true), new SamplePosition("Đảng ủy viên", "DU-ATTECH", false) },
-            "Trưởng phòng Tổ chức cán bộ - Lao động", JobGroup.Khung1_QuanLyDangDoanThe,
+            "Trưởng phòng Tổ chức cán bộ - Lao động", "K1",
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global), (RoleCodes.Appraisal, RoleScopeType.Global) },
             RecordStatus.AwaitingDirectorReview),
         new("truongphong.kt", "Nguyễn Văn Hùng", "PH-KT", "CB-KT",
             new[] { new SamplePosition("Trưởng phòng", "PH-KT", true), new SamplePosition("Chi ủy viên", "CB-KT", false) },
-            "Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat,
+            "Trưởng phòng Kỹ thuật", "K2",
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global), (RoleCodes.DepartmentLeader, RoleScopeType.Department) },
             RecordStatus.AwaitingAppraisal),
         new("bithu.kt", "Trần Minh Đức", "PH-KT", "CB-KT",
             new[] { new SamplePosition("Phó Trưởng phòng", "PH-KT", true), new SamplePosition("Bí thư Chi bộ", "CB-KT", false) },
-            "Bí thư Chi bộ, Phó Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat,
+            "Bí thư Chi bộ, Phó Trưởng phòng Kỹ thuật", "K2",
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global), (RoleCodes.CellCommittee, RoleScopeType.PartyCell) },
             RecordStatus.AwaitingCollective),
         new("thuky.kt", "Đỗ Thị Lan", "PH-KT", "CB-KT", new[] { new SamplePosition("Chuyên viên", "PH-KT", true) },
-            "Chuyên viên, Thư ký tập thể lãnh đạo Phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat,
+            "Chuyên viên, Thư ký tập thể lãnh đạo Phòng Kỹ thuật", "K2",
             new[] { (RoleCodes.CollectiveSecretary, RoleScopeType.Department) }, null),
         new("canbo.kt1", "Trần Quốc Tuấn", "PH-KT", "CB-KT", new[] { new SamplePosition("Phó Trưởng phòng", "PH-KT", true) },
-            "Phó Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat,
+            "Phó Trưởng phòng Kỹ thuật", "K2",
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global) }, RecordStatus.AwaitingSelfScore),
         new("canbo.kt2", "Hoàng Văn Nam", "PH-KT", "CB-KT", new[] { new SamplePosition("Phó Trưởng phòng", "PH-KT", true) },
-            "Phó Trưởng phòng Kỹ thuật", JobGroup.Khung2_AnToanKyThuat,
+            "Phó Trưởng phòng Kỹ thuật", "K2",
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global) }, RecordStatus.AwaitingCellConfirm)
     };
 
@@ -588,7 +660,7 @@ public static class DataSeeder
                 PartyCellId = cell?.Id,
                 DepartmentId = department.Id,
                 PositionTitle = sample.Title,
-                JobGroup = sample.JobGroup
+                WeightFrameCode = sample.WeightFrameCode
             };
             members[sample.Username] = member;
             context.PartyMemberProfiles.Add(member);
@@ -651,10 +723,22 @@ public static class DataSeeder
             Settings = settings.ToJson(),
             StatusChangedAt = now
         };
+
+        // Bộ tiêu chí Mẫu 09B đã xuất bản mới nhất (bộ mặc định vừa seed) — chụp vào kỳ mẫu như khi mở kỳ.
+        var sampleSet = await context.Set<CriteriaSet>()
+            .Where(s => s.Status == CriteriaSetStatus.Published && s.SelfScoreForm == CriteriaSetContent.Form09B)
+            .OrderByDescending(s => s.PublishedAt)
+            .FirstOrDefaultAsync();
+        if (sampleSet != null)
+        {
+            period.CriteriaSetId = sampleSet.Id;
+            period.CriteriaSnapshot = sampleSet.TakeSnapshot(now).ToJson();
+        }
+        var criteria = sampleSet?.GetContent() ?? CriteriaSetDefaults.Build09B();
         context.EvaluationPeriods.Add(period);
 
         foreach (var sample in SampleAccounts.Where(s => s.RecordStatus.HasValue))
-            AddSampleRecord(context, period, settings, members[sample.Username], sample.RecordStatus!.Value, now);
+            AddSampleRecord(context, period, settings, criteria, members[sample.Username], sample.RecordStatus!.Value, now);
 
         await context.SaveChangesAsync();
 
@@ -680,7 +764,7 @@ public static class DataSeeder
     /// điền dữ liệu của các bước đã qua và ghi lịch sử từng bước.
     /// </summary>
     private static void AddSampleRecord(
-        CongTacDangDbContext context, EvaluationPeriod period, PeriodSettings settings, PartyMemberProfile member,
+        CongTacDangDbContext context, EvaluationPeriod period, PeriodSettings settings, CriteriaSetContent criteria, PartyMemberProfile member,
         RecordStatus status, DateTime now)
     {
         var record = new EvaluationRecord
@@ -689,7 +773,7 @@ public static class DataSeeder
             MemberId = member.Id,
             DepartmentId = member.DepartmentId,
             PartyCellId = member.PartyCellId,
-            JobGroup = member.JobGroup,
+            WeightFrameCode = member.WeightFrameCode ?? string.Empty,
             ApprovalAuthority = member.ApprovalAuthority,
             UpdatedAt = now
         };
@@ -711,7 +795,7 @@ public static class DataSeeder
             var step = WorkflowSteps.StepOf(current)
                 ?? throw new InvalidOperationException($"Trạng thái mẫu {status} không đạt được theo cấu hình kỳ.");
             at = at.AddDays(1);
-            FillStep(record, step, at);
+            FillStep(record, criteria, step, at);
             var external = profile.Mode(step) == StepMode.External;
             if (external)
                 AddSampleExternalResult(context, record, step, at);
@@ -768,21 +852,30 @@ public static class DataSeeder
         });
     }
 
-    /// <summary>Điền dữ liệu hợp lệ của một bước đã hoàn thành (mẫu tự chấm 09B: 6 trục).</summary>
-    private static void FillStep(EvaluationRecord record, WorkflowStep step, DateTime at)
+    /// <summary>
+    /// Điền dữ liệu hợp lệ của một bước đã hoàn thành (tự chấm theo bộ Mẫu 09B của kỳ: tiêu chí con "Đảm bảo" trừ hai tiêu chí
+    /// cuối "Không đảm bảo" có căn cứ; mỗi trục thấp hơn điểm tối đa 1–2 điểm).
+    /// </summary>
+    private static void FillStep(EvaluationRecord record, CriteriaSetContent criteria, WorkflowStep step, DateTime at)
     {
         switch (step)
         {
             case WorkflowStep.B2_SELF_SCORE:
-                (record.GeneralScoreT1, record.GeneralScoreT2, record.GeneralScoreT3) = (4.5, 4.5, 4.5);
-                (record.GeneralScoreT4, record.GeneralScoreT5, record.GeneralScoreT6) = (4.5, 4.5, 4.5);
-                record.GeneralCriteriaScore = 27.0;
-                (record.AxisScoreT1, record.AxisScoreT2, record.AxisScoreT3) = (13.0, 9.0, 9.0);
-                (record.AxisScoreT4, record.AxisScoreT5, record.AxisScoreT6) = (13.0, 9.0, 9.0);
-                record.TasksScore = 62.0;
-                record.TotalSelfScore = 89.0;
-                record.SelfProposedGrade = EvaluationGrade.HoanThanhTot;
-                record.SelfScoreForm = PeriodSettings.Form09B;
+                var items = criteria.AllItems.Select(x => x.Item).ToList();
+                var general = items.ToDictionary(
+                    i => i.Code,
+                    i => items.IndexOf(i) >= items.Count - 2
+                        ? new GeneralItemScore { Score = 0, Reason = "Còn hạn chế cần khắc phục trong quý (dữ liệu mẫu)." }
+                        : new GeneralItemScore { Score = i.MaxScore });
+                var axes = criteria.Axes.ToDictionary(a => a.Code, a => Math.Max(0, a.MaxScore - (a.MaxScore >= 15 ? 2 : 1)));
+                var rounding = criteria.Parameters.Rounding;
+                record.GeneralScores = EvaluationScoring.GeneralScoresToJson(criteria, general);
+                record.GeneralCriteriaScore = EvaluationScoring.GeneralCriteriaScore(criteria, general);
+                record.AxisScores = EvaluationScoring.AxisScoresToJson(criteria, axes);
+                record.TasksScore = EvaluationScoring.AxisTasksScore(criteria, axes);
+                record.TotalSelfScore = EvaluationScoring.TotalScore(record.GeneralCriteriaScore, record.TasksScore, rounding.Total);
+                record.SelfProposedGrade = EvaluationScoring.SuggestGrade(criteria, record.TotalSelfScore, null);
+                record.SelfScoreForm = CriteriaSetContent.Form09B;
                 record.SelfScoredAt = at;
                 break;
             case WorkflowStep.B2_CELL_CONFIRM:
@@ -798,6 +891,9 @@ public static class DataSeeder
                 break;
             case WorkflowStep.B3B_APPRAISAL:
                 record.AppraisalScore = 88.5;
+                record.AppraisalExplanation = EvaluationScoring.RequiresExplanation(criteria, record.TotalSelfScore, record.AppraisalScore)
+                    ? "Điều chỉnh theo minh chứng bổ sung (dữ liệu mẫu)."
+                    : null;
                 record.AppraisalComment = "Hồ sơ đầy đủ minh chứng theo Hướng dẫn 03-HD/TVĐU (dữ liệu mẫu).";
                 record.AppraisalProposedGrade = EvaluationGrade.HoanThanhTot;
                 record.AppraisedByName = "Cơ quan thẩm định (dữ liệu mẫu)";

@@ -89,6 +89,9 @@ public sealed record CreateAccountCommand(
 
     /// <summary>Lý do đặt tay thẩm quyền (khi <see cref="ApprovalAuthority"/> có giá trị; trống → "Đặt khi tạo tài khoản").</summary>
     public string? ApprovalAuthorityReason { get; init; }
+
+    /// <summary>Mã khung tỷ trọng A-B-C-D mặc định (theo bộ tiêu chí, ví dụ "K2"); trống → chưa chọn.</summary>
+    public string? WeightFrameCode { get; init; }
 }
 
 /// <summary>Kết quả tạo tài khoản; <see cref="TemporaryPassword"/> chỉ trả về một lần để giao cho người dùng.</summary>
@@ -108,7 +111,11 @@ public sealed record UpdateAccountCommand(
     string? PartyCardNumber = null,
     string? PositionTitle = null,
     Guid? DepartmentId = null,
-    Guid? PartyCellId = null);
+    Guid? PartyCellId = null)
+{
+    /// <summary>Mã khung tỷ trọng A-B-C-D mặc định; null → giữ nguyên, chuỗi rỗng → bỏ chọn.</summary>
+    public string? WeightFrameCode { get; init; }
+}
 
 /// <summary>Tham số tra cứu tài khoản.</summary>
 /// <param name="Page">Trang (mặc định 1).</param>

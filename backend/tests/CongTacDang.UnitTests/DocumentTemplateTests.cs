@@ -216,9 +216,11 @@ public class DocumentTemplateTests
         var template = new FileWordTemplateStore().Load(templateFileName);
         var templateTags = DocxTemplateEngine.GetTags(template).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var dataTags = TagsOf(TemplateDataBinder.Bind(formData));
+        // Task 17: tag thông tin đơn vị (ORG_*) dùng chung, tùy chọn — không khai báo trên lớp dữ liệu của mẫu.
+        var commonTags = OrganizationTemplateFields.Tags.Select(t => t.Tag);
 
         // Không thiếu (template có Tag mà lớp dữ liệu không khai báo) và không thừa (khai báo nhưng template không dùng).
-        Assert.Empty(templateTags.Except(dataTags, StringComparer.OrdinalIgnoreCase).OrderBy(t => t));
+        Assert.Empty(templateTags.Except(dataTags.Concat(commonTags), StringComparer.OrdinalIgnoreCase).OrderBy(t => t));
         Assert.Empty(dataTags.Except(templateTags, StringComparer.OrdinalIgnoreCase).OrderBy(t => t));
     }
 
@@ -227,8 +229,9 @@ public class DocumentTemplateTests
     public void Template_RendersValidDocument_WithoutPlaceholders(string templateFileName, object formData)
     {
         var template = new FileWordTemplateStore().Load(templateFileName);
+        var org = OrganizationTemplateFields.From("ĐẢNG BỘ A", "ĐẢNG BỘ CẤP TRÊN", "Công ty A", "Tổng công ty B", "A", "Hà Nội");
 
-        var result = DocxTemplateEngine.Render(template, TemplateDataBinder.Bind(formData));
+        var result = DocxTemplateEngine.Render(template, TemplateDataBinder.Bind(formData).WithShared(TemplateDataBinder.Bind(org)));
 
         Assert.Empty(result.MissingTags);
         Assert.Empty(Validate(result.Content));
@@ -261,7 +264,7 @@ public class DocumentTemplateTests
         // Hồ sơ Khung 1 (tỷ trọng khác Khung 2): điểm hiển thị phải đúng SelfScore đã lưu.
         var (_, records) = SampleData();
         var record = records[0];
-        record.JobGroup = JobGroup.Khung1_QuanLyDangDoanThe;
+        record.WeightFrameCode = "K1";
         var task = record.Tasks.First();
         task.Weight = 20;
         task.CriteriaA_Ratio = 0.5;

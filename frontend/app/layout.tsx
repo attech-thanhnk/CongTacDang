@@ -15,7 +15,8 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "Đảng bộ ATTECH - Đánh giá cán bộ",
+  // Tên đơn vị lấy từ cài đặt (Quản trị → Thông tin đơn vị) và hiển thị trong trang; tiêu đề tĩnh không ghi tên riêng.
+  title: "Đánh giá cán bộ",
   description: "Hệ thống đánh giá, xếp loại cán bộ định kỳ",
 };
 

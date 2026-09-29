@@ -322,6 +322,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     ["Tên đăng nhập", <code key="u">{account.username}</code>],
     ["Họ và tên", account.fullName],
     ["Chức danh", account.positionTitle || "—"],
+    ["Khung tỷ trọng mặc định", account.weightFrameCode || "Chưa chọn (dùng khung mặc định của bộ tiêu chí)"],
     ["Email", account.email || "—"],
     ["Số điện thoại", account.phoneNumber || "—"],
     ["Đơn vị công tác chính", account.departmentName || "—"],

@@ -55,7 +55,7 @@ public enum WorkflowAction
     /// <summary>Thêm người vào danh sách được đánh giá (tạo hồ sơ).</summary>
     Create = 4,
 
-    /// <summary>Sửa ảnh chụp Phòng/Chi bộ/khung chức danh/cấp quyết định (bắt buộc lý do).</summary>
+    /// <summary>Sửa ảnh chụp Phòng/Chi bộ/khung tỷ trọng/cấp quyết định (bắt buộc lý do).</summary>
     EditSnapshot = 5,
 
     /// <summary>Cấu hình kỳ đổi khi kỳ còn dự thảo → trạng thái đầu của hồ sơ được tính lại.</summary>

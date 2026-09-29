@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CongTacDang.Domain.Entities;
+using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
@@ -29,6 +30,8 @@ public sealed class Mau02Data
     public static Mau02Data From(EvaluationRecord record, IReadOnlyDictionary<Guid, string>? evidenceNames = null)
     {
         var tasks = record.Tasks.OrderBy(t => t.TaskOrder).ToList();
+        // Số chữ số thập phân của điểm sản phẩm theo bộ tiêu chí của kỳ (mặc định 2 nếu kỳ chưa có bộ).
+        var scoreDecimals = FormCriteria.Read(record.Period)?.Content.Parameters.Rounding.TaskScore.Decimals ?? 2;
         return new Mau02Data
         {
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
@@ -38,7 +41,7 @@ public sealed class Mau02Data
             Position = FormText.OrNull(record.Member?.PositionTitle),
             Tasks = tasks.Select((t, index) =>
             {
-                // Một nguồn số liệu (T-38): điểm đạt = SelfScore đã lưu (đã tính theo tỷ trọng Khung chức danh của hồ sơ
+                // Một nguồn số liệu (T-38): điểm đạt = SelfScore đã lưu (đã tính theo khung tỷ trọng của hồ sơ
                 // khi tự chấm). Kết quả SP (%) chỉ là cách viết khác của cùng giá trị: SelfScore / Trọng số.
                 double? resultPct = t.Weight > 0 ? Math.Round(t.SelfScore / t.Weight * 100, 1) : null;
 
@@ -56,12 +59,30 @@ public sealed class Mau02Data
                     CriteriaC = FormText.Percent(t.CriteriaC_Ratio),
                     CriteriaD = FormText.Percent(t.CriteriaD_Ratio),
                     ResultPercent = resultPct.HasValue ? FormText.Number(resultPct.Value, 1) + "%" : "-",
-                    Score = FormText.Number(t.SelfScore, 2),
+                    Score = FormText.Number(t.SelfScore, scoreDecimals),
                     IsExceedStandard = t.IsExceedStandard,
                     Evidence = evidence
                 };
             }).ToList()
         };
+    }
+}
+
+/// <summary>Đọc ảnh chụp bộ tiêu chí của kỳ cho biểu mẫu (lỗi/không có → null).</summary>
+internal static class FormCriteria
+{
+    public static CriteriaSnapshot? Read(EvaluationPeriod? period)
+    {
+        if (period == null)
+            return null;
+        try
+        {
+            return period.GetCriteria();
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
     }
 }
 

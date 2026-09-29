@@ -4,9 +4,11 @@ import React, { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/common";
+import { useOrganizationInfo } from "@/services/organizationSettingsService";
 
 function LoginForm() {
   const { login } = useAuth();
+  const org = useOrganizationInfo();
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get("returnUrl") || "/evaluations";
@@ -38,7 +40,7 @@ function LoginForm() {
     >
       <div className="p-4 pb-3 border-bottom text-center bg-white" style={{ borderColor: "#e2e8f0" }}>
         <h1 className="fw-bold text-primary text-uppercase mb-0" style={{ fontSize: "17px", letterSpacing: "0.5px" }}>
-          Đảng bộ ATTECH
+          {org?.systemName ?? "Đánh giá cán bộ"}
         </h1>
       </div>
 
@@ -115,7 +117,7 @@ function LoginForm() {
         </form>
 
         <div className="text-center mt-4 pt-2 border-top text-muted" style={{ fontSize: "11px", borderColor: "#f1f5f9" }}>
-          Công ty TNHH Kỹ thuật Quản lý bay • Tổng công ty Quản lý bay Việt Nam
+          {org ? [org.companyName, org.parentCompanyName].filter(Boolean).join(" • ") : " "}
         </div>
       </div>
     </div>

@@ -27,6 +27,8 @@ export interface AccountListItem {
   partyCardNumber?: string | null;
   isPartyMember: boolean;
   positionTitle: string;
+  /** Mã khung tỷ trọng A-B-C-D mặc định (theo bộ tiêu chí); null = chưa chọn (dùng khung mặc định của bộ). */
+  weightFrameCode?: string | null;
   departmentId?: string | null;
   departmentName?: string | null;
   partyCellId?: string | null;
@@ -72,6 +74,8 @@ export interface CreateAccountPayload {
   /** Đặt tay thẩm quyền; không gửi = suy ra từ chức vụ. */
   approvalAuthority?: ApprovalAuthority;
   approvalAuthorityReason?: string;
+  /** Mã khung tỷ trọng mặc định (danh sách từ `GET /api/criteria-sets/weight-frames`). */
+  weightFrameCode?: string;
 }
 
 /**
@@ -87,6 +91,8 @@ export interface UpdateAccountPayload {
   positionTitle?: string;
   departmentId?: string;
   partyCellId?: string;
+  /** Mã khung tỷ trọng mặc định; chuỗi rỗng = bỏ chọn. */
+  weightFrameCode?: string;
 }
 
 /** Một chức vụ của cán bộ (`GET /api/users/{id}/positions`). */

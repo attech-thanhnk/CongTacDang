@@ -24,8 +24,8 @@ public class UserProfileDto
     /// <summary>Tên đơn vị / Phòng ban chuyên môn</summary>
     public string AdminDeptName { get; set; } = string.Empty;
 
-    /// <summary>Nhóm chức danh công tác</summary>
-    public string JobGroup { get; set; } = string.Empty;
+    /// <summary>Mã khung tỷ trọng A-B-C-D mặc định (theo bộ tiêu chí); null nếu chưa chọn.</summary>
+    public string? WeightFrameCode { get; set; }
 
     /// <summary>Danh sách mã vai trò hệ thống</summary>
     public string[] Roles { get; set; } = Array.Empty<string>();

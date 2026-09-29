@@ -34,32 +34,29 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "evaluation_periods",
+                name: "criteria_sets",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false),
-                    Year = table.Column<int>(type: "integer", nullable: false),
-                    Quarter = table.Column<int>(type: "integer", nullable: false),
+                    Code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
-                    Settings = table.Column<string>(type: "jsonb", nullable: false),
-                    StatusReason = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
-                    StatusChangedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    StatusChangedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    SelfScoreForm = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    Notes = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    Content = table.Column<string>(type: "jsonb", nullable: false),
+                    SourceSetId = table.Column<Guid>(type: "uuid", nullable: true),
+                    PublishedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    PublishedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    ArchivedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_evaluation_periods", x => x.Id);
+                    table.PrimaryKey("PK_criteria_sets", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -82,6 +79,28 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_org_unit_types", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "organization_settings",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    PartyCommitteeName = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    SuperiorPartyName = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    CompanyName = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    ParentCompanyName = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    ShortName = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    Location = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    SystemName = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_organization_settings", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -153,6 +172,74 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_roles", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "word_template_versions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    TemplateCode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    VersionNumber = table.Column<int>(type: "integer", nullable: false),
+                    OriginalFileName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    ObjectKey = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    FileSize = table.Column<long>(type: "bigint", nullable: false),
+                    Checksum = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    Note = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    TagsJson = table.Column<string>(type: "text", nullable: false),
+                    WarningsJson = table.Column<string>(type: "text", nullable: false),
+                    UploadedById = table.Column<Guid>(type: "uuid", nullable: true),
+                    UploadedByName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    UploadedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ActivatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ActivatedById = table.Column<Guid>(type: "uuid", nullable: true),
+                    ActivatedByName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_word_template_versions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "evaluation_periods",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false),
+                    Year = table.Column<int>(type: "integer", nullable: false),
+                    Quarter = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    Settings = table.Column<string>(type: "jsonb", nullable: false),
+                    CriteriaSetId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CriteriaSnapshot = table.Column<string>(type: "jsonb", nullable: true),
+                    StatusReason = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    StatusChangedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    StatusChangedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_evaluation_periods", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_evaluation_periods_criteria_sets_CriteriaSetId",
+                        column: x => x.CriteriaSetId,
+                        principalTable: "criteria_sets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -330,7 +417,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     PartyCellId = table.Column<Guid>(type: "uuid", nullable: true),
                     DepartmentId = table.Column<Guid>(type: "uuid", nullable: true),
                     PositionTitle = table.Column<string>(type: "text", nullable: false),
-                    JobGroup = table.Column<int>(type: "integer", nullable: false),
+                    WeightFrameCode = table.Column<string>(type: "text", nullable: true),
                     ApprovalAuthority = table.Column<int>(type: "integer", nullable: false),
                     ApprovalAuthorityOverride = table.Column<int>(type: "integer", nullable: true),
                     ApprovalAuthorityOverrideReason = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
@@ -436,7 +523,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     MemberId = table.Column<Guid>(type: "uuid", nullable: false),
                     PartyCellId = table.Column<Guid>(type: "uuid", nullable: true),
                     DepartmentId = table.Column<Guid>(type: "uuid", nullable: true),
-                    JobGroup = table.Column<int>(type: "integer", nullable: false),
+                    WeightFrameCode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     ApprovalAuthority = table.Column<int>(type: "integer", nullable: false),
                     WorkflowProfileCode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
@@ -445,20 +532,10 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     TasksApprovedByName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
                     TasksApprovedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     TasksApprovalComment = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
-                    GeneralScoreT1 = table.Column<double>(type: "double precision", nullable: false),
-                    GeneralScoreT2 = table.Column<double>(type: "double precision", nullable: false),
-                    GeneralScoreT3 = table.Column<double>(type: "double precision", nullable: false),
-                    GeneralScoreT4 = table.Column<double>(type: "double precision", nullable: false),
-                    GeneralScoreT5 = table.Column<double>(type: "double precision", nullable: false),
-                    GeneralScoreT6 = table.Column<double>(type: "double precision", nullable: false),
+                    GeneralScores = table.Column<string>(type: "jsonb", nullable: false),
                     GeneralCriteriaScore = table.Column<double>(type: "double precision", nullable: false),
                     TasksScore = table.Column<double>(type: "double precision", nullable: false),
-                    AxisScoreT1 = table.Column<double>(type: "double precision", nullable: true),
-                    AxisScoreT2 = table.Column<double>(type: "double precision", nullable: true),
-                    AxisScoreT3 = table.Column<double>(type: "double precision", nullable: true),
-                    AxisScoreT4 = table.Column<double>(type: "double precision", nullable: true),
-                    AxisScoreT5 = table.Column<double>(type: "double precision", nullable: true),
-                    AxisScoreT6 = table.Column<double>(type: "double precision", nullable: true),
+                    AxisScores = table.Column<string>(type: "jsonb", nullable: true),
                     SelfScoreForm = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
                     TotalSelfScore = table.Column<double>(type: "double precision", nullable: false),
                     SelfProposedGrade = table.Column<int>(type: "integer", nullable: false),
@@ -475,6 +552,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     CollectiveRecordedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     AppraisalScore = table.Column<double>(type: "double precision", nullable: true),
                     AppraisalComment = table.Column<string>(type: "text", nullable: false),
+                    AppraisalExplanation = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
                     AppraisalProposedGrade = table.Column<int>(type: "integer", nullable: false),
                     AppraisedById = table.Column<Guid>(type: "uuid", nullable: true),
                     AppraisedByName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
@@ -845,6 +923,7 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     TargetOutput = table.Column<string>(type: "text", nullable: false),
                     Weight = table.Column<double>(type: "double precision", nullable: false),
                     Deadline = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    AxisCode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
                     CriteriaA_Ratio = table.Column<double>(type: "double precision", nullable: false),
                     CriteriaB_Ratio = table.Column<double>(type: "double precision", nullable: false),
                     CriteriaC_Ratio = table.Column<double>(type: "double precision", nullable: false),
@@ -941,6 +1020,17 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 columns: new[] { "PeriodId", "Status" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_criteria_sets_Code",
+                table: "criteria_sets",
+                column: "Code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_criteria_sets_Status",
+                table: "criteria_sets",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_evaluation_external_results_RecordId_Step",
                 table: "evaluation_external_results",
                 columns: new[] { "RecordId", "Step" },
@@ -976,6 +1066,11 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 name: "IX_evaluation_meetings_PeriodId_PartyCellId_FormCode",
                 table: "evaluation_meetings",
                 columns: new[] { "PeriodId", "PartyCellId", "FormCode" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_evaluation_periods_CriteriaSetId",
+                table: "evaluation_periods",
+                column: "CriteriaSetId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_evaluation_periods_Status",
@@ -1198,6 +1293,19 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 name: "IX_user_role_assignments_UserId",
                 table: "user_role_assignments",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_word_template_versions_TemplateCode",
+                table: "word_template_versions",
+                column: "TemplateCode",
+                unique: true,
+                filter: "\"IsActive\" = TRUE");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_word_template_versions_TemplateCode_VersionNumber",
+                table: "word_template_versions",
+                columns: new[] { "TemplateCode", "VersionNumber" },
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -1228,6 +1336,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                 name: "member_positions");
 
             migrationBuilder.DropTable(
+                name: "organization_settings");
+
+            migrationBuilder.DropTable(
                 name: "refresh_tokens");
 
             migrationBuilder.DropTable(
@@ -1235,6 +1346,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "user_role_assignments");
+
+            migrationBuilder.DropTable(
+                name: "word_template_versions");
 
             migrationBuilder.DropTable(
                 name: "collective_evaluation_records");
@@ -1262,6 +1376,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "party_member_profiles");
+
+            migrationBuilder.DropTable(
+                name: "criteria_sets");
 
             migrationBuilder.DropTable(
                 name: "administrative_departments");

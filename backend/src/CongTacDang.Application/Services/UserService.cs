@@ -95,7 +95,7 @@ public class UserService : IUserService
             AdminTitle = member.PositionTitle,
             PartyBranchName = member.PartyCell?.Name ?? string.Empty,
             AdminDeptName = member.Department?.Name ?? string.Empty,
-            JobGroup = member.JobGroup.ToString(),
+            WeightFrameCode = member.WeightFrameCode,
             Roles = effective.RoleNames.ToArray(),
             Permissions = effective.Codes.ToArray(),
             MustChangePassword = member.MustChangePassword

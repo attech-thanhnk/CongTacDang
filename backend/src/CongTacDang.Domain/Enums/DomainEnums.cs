@@ -31,24 +31,6 @@ public enum PositionSide
 }
 
 /// <summary>
-/// Khung chức danh và cơ cấu trọng số tiêu chí (A-B-C-D) theo Hướng dẫn 03-HD/TVĐU
-/// </summary>
-public enum JobGroup
-{
-    /// <summary>Khung 1: Quản lý, tham mưu, công tác Đảng, đoàn thể (Trọng số 25% - 35% - 20% - 20%)</summary>
-    Khung1_QuanLyDangDoanThe = 1,
-
-    /// <summary>Khung 2: An toàn, tuân thủ, khai thác, kỹ thuật (Trọng số 15% - 50% - 15% - 20%)</summary>
-    Khung2_AnToanKyThuat = 2,
-
-    /// <summary>Khung 3: Dự án, đầu tư, tài chính (Trọng số 20% - 30% - 35% - 15%)</summary>
-    Khung3_DuAnDauTu = 3,
-
-    /// <summary>Khung 4: KHCN, đổi mới sáng tạo, chuyển đổi số (Trọng số 15% - 30% - 20% - 35%)</summary>
-    Khung4_KhcnChuyenDoiSo = 4
-}
-
-/// <summary>
 /// Trạng thái kỳ đánh giá (docs/thiet-ke/luong-danh-gia.md mục 3.1): <c>Draft → Open → Locked → Closed</c>,
 /// chỉ tiến, trừ <c>Locked → Open</c> (có lý do).
 /// </summary>
@@ -165,26 +147,15 @@ public enum RecordStatus
     Published = 10
 }
 
-/// <summary>
-/// 6 Trục nhiệm vụ chiến lược (T1 - T6) theo Hướng dẫn 03-HD/TVĐU
-/// </summary>
-public enum TaskResultAxis
+/// <summary>Trạng thái bộ tiêu chí: Nháp (sửa được) → Đã xuất bản (bất biến, kỳ chọn được) → Lưu trữ (không chọn cho kỳ mới).</summary>
+public enum CriteriaSetStatus
 {
-    /// <summary>T1: Nhiệm vụ chính trị, SXKD và dịch vụ bảo đảm hoạt động bay</summary>
-    T1 = 1,
+    /// <summary>Bản nháp — sửa, xóa được; kỳ chưa chọn được.</summary>
+    Draft = 0,
 
-    /// <summary>T2: Thể chế, phân cấp, kiểm tra, kiểm soát và giám sát</summary>
-    T2 = 2,
+    /// <summary>Đã xuất bản — không sửa được (chỉ nhân bản thành bản nháp mới); kỳ dự thảo chọn được.</summary>
+    Published = 1,
 
-    /// <summary>T3: KHCN, đổi mới sáng tạo và chuyển đổi số</summary>
-    T3 = 3,
-
-    /// <summary>T4: Xây dựng Đảng và hệ thống chính trị</summary>
-    T4 = 4,
-
-    /// <summary>T5: Văn hóa doanh nghiệp, con người và an sinh người lao động</summary>
-    T5 = 5,
-
-    /// <summary>T6: Quốc phòng, an ninh, đối ngoại và hợp tác quốc tế</summary>
-    T6 = 6
+    /// <summary>Lưu trữ — kỳ đã dùng vẫn giữ ảnh chụp; không chọn được cho kỳ mới.</summary>
+    Archived = 2
 }

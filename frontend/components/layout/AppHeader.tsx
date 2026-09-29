@@ -5,12 +5,14 @@ import { sessionRoleLabel, useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
 import { useToast } from "@/contexts/ToastContext";
 import { usePathname } from "next/navigation";
+import { useOrganizationInfo } from "@/services/organizationSettingsService";
 
 export function AppHeader() {
   const { user, logout, loading } = useAuth();
   const { toggleSidebar } = useLayout();
   const { toast } = useToast();
   const pathname = usePathname();
+  const org = useOrganizationInfo();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   const getPageTitle = () => {
@@ -78,7 +80,7 @@ export function AppHeader() {
         </button>
 
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span className="header-title" style={{ fontSize: "13px", fontWeight: 600 }}>Đảng bộ ATTECH</span>
+          <span className="header-title" style={{ fontSize: "13px", fontWeight: 600 }}>{org?.systemName ?? "Đánh giá cán bộ"}</span>
           {pathname !== "/" && (
             <>
               <span className="header-sep">/</span>

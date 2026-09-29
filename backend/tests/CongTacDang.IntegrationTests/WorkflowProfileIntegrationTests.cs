@@ -23,8 +23,8 @@ public sealed class WorkflowProfileIntegrationTests
 {
     private static readonly SemaphoreSlim Gate = new(1, 1);
     private static readonly Dictionary<string, World> Worlds = new();
-    private static readonly double[] General = { 4.5, 4.5, 4.5, 4.5, 4.5, 4.5 };
-    private static readonly double[] Axis = { 13, 9, 9, 13, 9, 9 };
+    private static readonly Dictionary<string, CongTacDang.Domain.Evaluation.GeneralItemScore> General = CriteriaTestData.General("2.1", "2.2", "2.3");
+    private static readonly Dictionary<string, double> Axis = CriteriaTestData.Axis(13, 9, 9, 13, 9, 9);
 
     private readonly ApiFactory _factory;
 
@@ -53,7 +53,7 @@ public sealed class WorkflowProfileIntegrationTests
 
         // B3b do cấp trên thực hiện: cơ quan thẩm định trong hệ thống không có thao tác, gọi API thẩm định → 409; không trả lại được.
         await AssertActionsAsync(w.ManagerC, id);
-        var internalAppraisal = await PostAsync(w.ManagerC, id, "appraisal", new { appraisalScore = 90.0, comment = "x", proposedGrade = "HoanThanhTot" }, await VersionAsync(w, id));
+        var internalAppraisal = await PostAsync(w.ManagerC, id, "appraisal", new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 90.0, comment = "x", proposedGrade = "HoanThanhTot" }, await VersionAsync(w, id));
         Assert.Equal(HttpStatusCode.Conflict, internalAppraisal.StatusCode);
         Assert.Contains("cấp trên", await MessageAsync(internalAppraisal));
         Assert.Equal(HttpStatusCode.Conflict,
@@ -132,7 +132,7 @@ public sealed class WorkflowProfileIntegrationTests
         await StepAsync(w.StaffC, id, "self-score/submit", new { generalScores = General, axisScores = Axis }, "AwaitingCellConfirm");
         await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
         await StepAsync(w.SecretaryC, id, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
-        await StepAsync(w.ManagerC, id, "appraisal", new { appraisalScore = 87.0, comment = "Đạt", proposedGrade = "HoanThanhTot" }, "AwaitingDirectorReview");
+        await StepAsync(w.ManagerC, id, "appraisal", new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 87.0, comment = "Đạt", proposedGrade = "HoanThanhTot" }, "AwaitingDirectorReview");
 
         // B3c của nhóm này do Lãnh đạo đơn vị (evaluation.unit.review) thực hiện, không phải Giám đốc.
         await AssertActionsAsync(w.DirectorC, id);

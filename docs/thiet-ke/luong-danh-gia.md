@@ -1,7 +1,7 @@
 # Thiết kế luồng đánh giá 5 bước và cấu hình kỳ
 
 > **Trạng thái:** thiết kế kỹ thuật để triển khai (task 12; luồng theo nhóm đối tượng — task 15). Thứ tự bước và tác nhân theo bản trích xuất HD03 (`docs/nghiep-vu/hd03-trich-xuat.md`, mục 1.4, 1.6, 6, Phụ lục III) — **chưa xác nhận**; vì vậy bước nào áp dụng cho nhóm đối tượng nào, do ai (trong hệ thống hay cấp trên) thực hiện, tham số bao nhiêu đều là **cấu hình**, không cứng trong code.
-> **Không thay đổi công thức tính điểm và quy tắc xếp loại hiện có** (B-04 vẫn `deferred`).
+> **Cấu trúc công thức tính điểm giữ nguyên** (B-04 vẫn `deferred`); nội dung chấm (tiêu chí, trục, khung tỷ trọng, thang quy đổi, ngưỡng mức, tham số, làm tròn) lấy từ **bộ tiêu chí** của kỳ (mục 3.5, task 16).
 
 ## 1. Danh mục bước (mã cố định trong code)
 
@@ -65,7 +65,7 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 
 ### 3.1 Trạng thái kỳ (thay `PeriodStatus` hiện tại)
 `Draft → Open → Locked → Closed`
-- `Draft`: cấu hình bước, tham số, danh sách người được đánh giá. Chưa ai thao tác hồ sơ.
+- `Draft`: cấu hình bước, chọn bộ tiêu chí, danh sách người được đánh giá. Chưa ai thao tác hồ sơ.
 - `Open`: các bước chạy theo trạng thái từng hồ sơ.
 - `Locked` ("điểm chốt dữ liệu", HD03 II.2): chỉ các bước từ `B3B_APPRAISAL` trở đi được thao tác; chủ hồ sơ không sửa được.
 - `Closed`: toàn bộ hồ sơ đã `Published`; chỉ `Reopen`.
@@ -96,16 +96,13 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
     { "code": "cap-tren", "name": "Diện BTV Đảng ủy Tổng công ty", "steps": { "B3B_APPRAISAL": { "mode": "External" }, "…": "…" } }
   ],
   "defaultProfiles": { "CoSo": "co-so", "CapTren": "cap-tren" },
-  "enforceDeadlines": false,
-  "selfScoreForm": "09B",
-  "parameters": { }
+  "enforceDeadlines": false
 }
 ```
 - `profiles[].steps[].mode`: `Internal` | `External` | `Off` (mục 1.1). `permission` chỉ có nghĩa khi `Internal` và bước không phải của chủ hồ sơ; bỏ trống → quyền mặc định của bước. Máy chủ kiểm tra mã quyền thuộc danh mục (module `evaluation`, trừ `self`, `read`, `reopen`).
 - `defaultProfiles`: hồ sơ luồng gán khi thêm người vào kỳ, theo `ApprovalAuthority` ảnh chụp (`CoSo`, `CapTren` — cả hai bắt buộc).
 - `deadline` theo từng bước **của từng hồ sơ luồng**: hiển thị và cảnh báo; chỉ chặn khi `enforceDeadlines = true`.
-- `selfScoreForm`: `09A` (có Mẫu 01/02 — mọi hồ sơ luồng phải áp dụng `B1_REGISTER`) hoặc `09B` (chấm trực tiếp 6 trục, Q3/2026).
-- `parameters`: hằng số nghiệp vụ (giá trị mặc định = đúng giá trị code cũ — xem báo cáo task 12).
+- Cấu hình kỳ **không còn** `selfScoreForm` và `parameters` (task 16): mẫu tự chấm và mọi hằng số nghiệp vụ thuộc **bộ tiêu chí** của kỳ (mục 3.5). Khóa cũ trong JSON bị bỏ qua khi đọc. Bộ của kỳ là mẫu `09A` (chấm theo nhiệm vụ, có Mẫu 01/02) → mọi hồ sơ luồng phải áp dụng `B1_REGISTER` (kiểm tra khi lưu cấu hình, chọn bộ, mở kỳ).
 - Cấu hình **cũ** (schema 1, bước cấp kỳ) không còn được hỗ trợ (chưa có CSDL cần giữ — người điều phối sinh lại `InitialCreate`).
 - Kỳ `Draft`: sửa mọi thứ (thêm/sửa/xóa hồ sơ luồng — không xóa được hồ sơ luồng đang được hồ sơ đánh giá dùng, 409). Kỳ `Open`/`Locked`: chỉ sửa thời hạn.
 
@@ -117,11 +114,11 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 | Diện BTV Đảng ủy Tổng công ty (`cap-tren`) — mặc định `CapTren` | PL III ví dụ 2 | Nội bộ | Nội bộ | Nội bộ | Nội bộ (tập thể lãnh đạo Công ty) | **Cấp trên** (Ban TCĐU) | **Cấp trên** (HĐTV) | **Cấp trên** (BTV ĐUTCT) | Nội bộ |
 | Bí thư/Phó bí thư Chi bộ là nhân viên (`bi-thu-nhan-vien`) | PL III ví dụ 3 | Nội bộ | Nội bộ | Nội bộ | Nội bộ | Nội bộ | Nội bộ — **`evaluation.unit.review`** (Trưởng phòng đề xuất thay Giám đốc) | Nội bộ — `evaluation.decide` | Nội bộ |
 
-- **"Đầy đủ"** (`full`): như bảng, `09A`.
-- **"Quý III/2026 — chuyển tiếp"** (`q3-2026-transition`): như bảng nhưng `B1_REGISTER`, `B1_APPROVE` = **Không áp dụng** ở mọi hồ sơ luồng; `09B`.
+- **"Đầy đủ"** (`full`): như bảng; bộ tiêu chí gợi ý mẫu `09A` (tạo kỳ không chỉ định bộ → bộ `09A` đã xuất bản mới nhất).
+- **"Quý III/2026 — chuyển tiếp"** (`q3-2026-transition`): như bảng nhưng `B1_REGISTER`, `B1_APPROVE` = **Không áp dụng** ở mọi hồ sơ luồng; bộ tiêu chí gợi ý mẫu `09B`.
 
 ### 3.3 Danh sách người được đánh giá
-- Tạo `EvaluationRecord` ngay khi thêm người: kỳ + người. Thêm người = tạo hồ sơ ở bước áp dụng đầu tiên của hồ sơ luồng, **ảnh chụp** `DepartmentId`, `PartyCellId`, `JobGroup`, `ApprovalAuthority` từ hồ sơ cán bộ và `WorkflowProfileCode` (chọn khi thêm, hoặc mặc định theo `ApprovalAuthority`); `period.manage` sửa được ảnh chụp khi kỳ còn `Draft`/`Open` (có lý do, ghi lịch sử — sửa cấp quyết định **không** tự đổi hồ sơ luồng).
+- Tạo `EvaluationRecord` ngay khi thêm người: kỳ + người. Thêm người = tạo hồ sơ ở bước áp dụng đầu tiên của hồ sơ luồng, **ảnh chụp** `DepartmentId`, `PartyCellId`, `WeightFrameCode` (khung tỷ trọng mặc định của cán bộ; cán bộ chưa chọn → khung mặc định của bộ tiêu chí của kỳ), `ApprovalAuthority` từ hồ sơ cán bộ và `WorkflowProfileCode` (chọn khi thêm, hoặc mặc định theo `ApprovalAuthority`); `period.manage` sửa được ảnh chụp khi kỳ còn `Draft`/`Open` (có lý do, ghi lịch sử — sửa cấp quyết định **không** tự đổi hồ sơ luồng).
 - Đổi hồ sơ luồng từng người / hàng loạt: mục 2.
 - Chỉ người trong danh sách mới có hồ sơ; `evaluation.self` không tự tạo hồ sơ.
 - Thêm theo: chọn tay, theo Phòng/Chi bộ, hoặc **import Excel** (loại `period-participants`, cột tùy chọn "Hồ sơ luồng" = mã hoặc tên; bỏ trống = mặc định).
@@ -129,7 +126,16 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 ### 3.4 Kiểm tra kẹt luồng (task 15)
 - `GET /api/evaluations/periods/{id}/readiness` (`period.manage`): với mỗi hồ sơ chưa công bố và mỗi bước **còn phía trước** (kể cả bước đang chờ) có chế độ Nội bộ hoặc Cấp trên, cần **ít nhất một** tài khoản đang hoạt động — không phải chủ hồ sơ — có quyền thực hiện bước (Cấp trên: `evaluation.external.record`) với phạm vi bao trùm hồ sơ. Bước của chủ hồ sơ: chính chủ hồ sơ phải còn hoạt động và có `evaluation.self`. Quyền tính bằng `IPermissionResolver` + `AuthorizationGuard.Evaluate` (không tự suy luật).
 - Kết quả: `{ ready, checkedRecords, issues: [{ recordId, fullName, workflowProfileName, step, stepName, mode, permission, permissionName, scope, message }] }`.
+- Bộ tiêu chí của kỳ có khung tỷ trọng (mẫu `09A`): hồ sơ có khung không thuộc bộ → cảnh báo ở bước `B2_SELF_SCORE` (sửa ảnh chụp khung hoặc khung mặc định của cán bộ).
 - Mở kỳ (`Draft → Open`) khi còn cảnh báo → **409**, `code = PERIOD_NOT_READY`, `data` = kết quả kiểm tra, `errors` = danh sách thông báo. Mở bắt buộc: `{ version, force: true, reason }` (lý do bắt buộc) → lý do được ghi vào `StatusReason` của kỳ (có audit).
+### 3.5 Bộ tiêu chí và thang điểm (task 16)
+- Bảng `criteria_sets`: mã, tên, trạng thái `Draft | Published | Archived`, mẫu tự chấm (`09A` chấm theo nhiệm vụ A-B-C-D + Mẫu 01/02; `09B` chấm trực tiếp theo trục), nội dung `jsonb` có `schemaVersion`: nhóm tiêu chí chung + tiêu chí con (`Binary` "Đảm bảo/Không đảm bảo" hoặc `Range`), K/AD có lý do và quy tắc xử lý, trục kết quả (điểm tối đa cho `09B`), khung tỷ trọng A/B/C/D, thang quy đổi, 4 mức xếp loại (ngưỡng + điều kiện), tham số (số sản phẩm, tổng trọng số, ngưỡng giải trình, trần Xuất sắc, làm tròn từng loại điểm…). Quản lý qua `/criteria`, quyền `criteria.manage`.
+- Bộ `Published` bất biến (muốn sửa → nhân bản thành bản nháp). Seed 2 bộ mặc định đã xuất bản theo bản trích xuất HD03 — **chờ xác nhận**: "Mẫu 09B — Quý III/2026", "Mẫu 09A — từ 2027".
+- Kỳ `Draft` chọn một bộ `Published` (`period.manage`); bộ được **chụp nguyên** vào `EvaluationPeriod.CriteriaSnapshot` khi chọn và chụp lại khi mở kỳ. Kỳ đã mở không đổi được bộ (409); sửa/lưu trữ bộ gốc sau đó không ảnh hưởng kỳ. Mở kỳ khi chưa có bộ → 400.
+- Hồ sơ lưu điểm theo mã: `GeneralScores` `{ mã tiêu chí con: { score, notApplicable, reason } }`, `AxisScores` `{ mã trục: điểm }` (09B); nhiệm vụ có `AxisCode` thuộc bộ của kỳ. Tính điểm (`EvaluationScoring`) theo ảnh chụp của kỳ.
+- **Giải trình chênh lệch** (B-09): ở `B3B_APPRAISAL`, nếu |tự chấm − thẩm định| ≥ ngưỡng của bộ (hoặc làm đổi mức, nếu bộ bật) → bắt buộc nhập nội dung giải trình/căn cứ (thiếu → 400); lưu `AppraisalExplanation`, in ở Mẫu 10 (tag `APPRAISAL_EXPLANATION`). Kết quả thẩm định do cấp trên ghi nhận (External) chưa bắt buộc giải trình — chờ nghiệp vụ.
+- Trần tỷ lệ Xuất sắc (`branch-quotas`, Mẫu 15/15A/15B/16) theo tham số của bộ (tỷ lệ, mẫu số, làm tròn).
+
 ## 4. Bỏ phiếu kín (B3a, B4)
 - Hệ thống **không** tổ chức bỏ phiếu điện tử và **không lưu phiếu của từng người**. Chỉ ghi **kết quả kiểm phiếu** (số phiếu mỗi mức, phiếu không hợp lệ, số triệu tập/có mặt) do thư ký nhập, gắn với biên bản hội nghị (Mẫu 12/13).
 - Kiểm tra: tổng phiếu các mức + không hợp lệ ≤ số có mặt; không âm.

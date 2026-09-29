@@ -30,7 +30,7 @@ public class OrganizationController : ControllerBase
 
     // ===================== Chi bộ =====================
 
-    /// <summary>Danh sách Chi bộ thuộc Đảng bộ ATTECH</summary>
+    /// <summary>Danh sách Chi bộ thuộc Đảng bộ</summary>
     [HttpGet("branches")]
     public async Task<IActionResult> GetPartyCells()
     {

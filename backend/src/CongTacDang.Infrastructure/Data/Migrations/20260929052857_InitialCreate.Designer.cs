@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CongTacDang.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(CongTacDangDbContext))]
-    [Migration("20260929031346_InitialCreate")]
+    [Migration("20260929052857_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -375,6 +375,78 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.ToTable("collective_evaluation_records", (string)null);
                 });
 
+            modelBuilder.Entity("CongTacDang.Domain.Entities.CriteriaSet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PublishedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SelfScoreForm")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<Guid?>("SourceSetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("criteria_sets", (string)null);
+                });
+
             modelBuilder.Entity("CongTacDang.Domain.Entities.EvaluationExternalResult", b =>
                 {
                     b.Property<Guid>("Id")
@@ -613,6 +685,12 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("CriteriaSetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CriteriaSnapshot")
+                        .HasColumnType("jsonb");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -670,6 +748,8 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CriteriaSetId");
+
                     b.HasIndex("Status");
 
                     b.HasIndex("Year", "Quarter");
@@ -686,6 +766,10 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<string>("AppraisalComment")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("AppraisalExplanation")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<int>("AppraisalProposedGrade")
                         .HasColumnType("integer");
@@ -706,23 +790,8 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<int>("ApprovalAuthority")
                         .HasColumnType("integer");
 
-                    b.Property<double?>("AxisScoreT1")
-                        .HasColumnType("double precision");
-
-                    b.Property<double?>("AxisScoreT2")
-                        .HasColumnType("double precision");
-
-                    b.Property<double?>("AxisScoreT3")
-                        .HasColumnType("double precision");
-
-                    b.Property<double?>("AxisScoreT4")
-                        .HasColumnType("double precision");
-
-                    b.Property<double?>("AxisScoreT5")
-                        .HasColumnType("double precision");
-
-                    b.Property<double?>("AxisScoreT6")
-                        .HasColumnType("double precision");
+                    b.Property<string>("AxisScores")
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTime?>("CellConfirmedAt")
                         .HasColumnType("timestamp with time zone");
@@ -819,29 +888,12 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<double>("GeneralCriteriaScore")
                         .HasColumnType("double precision");
 
-                    b.Property<double>("GeneralScoreT1")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("GeneralScoreT2")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("GeneralScoreT3")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("GeneralScoreT4")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("GeneralScoreT5")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("GeneralScoreT6")
-                        .HasColumnType("double precision");
+                    b.Property<string>("GeneralScores")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
-
-                    b.Property<int>("JobGroup")
-                        .HasColumnType("integer");
 
                     b.Property<Guid>("MemberId")
                         .HasColumnType("uuid");
@@ -914,6 +966,11 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
                         .HasColumnName("xmin");
+
+                    b.Property<string>("WeightFrameCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("WorkflowProfileCode")
                         .IsRequired()
@@ -1003,6 +1060,10 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
                     b.Property<Guid?>("AttachmentId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("AxisCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1234,6 +1295,63 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.ToTable("org_unit_types", (string)null);
                 });
 
+            modelBuilder.Entity("CongTacDang.Domain.Entities.OrganizationSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ParentCompanyName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("PartyCommitteeName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("ShortName")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("SuperiorPartyName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("SystemName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("organization_settings", (string)null);
+                });
+
             modelBuilder.Entity("CongTacDang.Domain.Entities.PartyCell", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1364,9 +1482,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<bool>("IsPartyMember")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("JobGroup")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime?>("JoinPartyDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -1417,6 +1532,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("WeightFrameCode")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -1769,6 +1887,97 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.ToTable("user_role_assignments", (string)null);
                 });
 
+            modelBuilder.Entity("CongTacDang.Domain.Entities.WordTemplateVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ActivatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ActivatedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActivatedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Checksum")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ObjectKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("TagsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TemplateCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UploadedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UploadedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("WarningsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TemplateCode")
+                        .IsUnique()
+                        .HasFilter("\"IsActive\" = TRUE");
+
+                    b.HasIndex("TemplateCode", "VersionNumber")
+                        .IsUnique();
+
+                    b.ToTable("word_template_versions", (string)null);
+                });
+
             modelBuilder.Entity("role_permissions", b =>
                 {
                     b.Property<Guid>("permission_id")
@@ -1895,6 +2104,14 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Navigation("Meeting");
 
                     b.Navigation("Record");
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.EvaluationPeriod", b =>
+                {
+                    b.HasOne("CongTacDang.Domain.Entities.CriteriaSet", null)
+                        .WithMany()
+                        .HasForeignKey("CriteriaSetId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("CongTacDang.Domain.Entities.EvaluationRecord", b =>
