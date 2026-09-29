@@ -52,7 +52,7 @@ export default function ReportsPage() {
   const branch = useMemo(() => branches.find((b) => b.id === branchId), [branches, branchId]);
 
   const canRun = (report: ReportDefinition) =>
-    report.id === "mau-11" || report.id === "mau-13" ? canExport || canMeeting : canExport;
+    report.id === "mau-11" ? canExport || canMeeting : canExport;
 
   const download = async (report: ReportDefinition, format: ReportFileFormat) => {
     if (!report.endpoint) return;

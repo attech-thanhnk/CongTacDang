@@ -1,99 +1,194 @@
-using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using CongTacDang.Application.DTOs;
 using CongTacDang.Domain.Entities;
+using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
 /// <summary>
-/// Dữ liệu Mẫu 13 — Biên bản kiểm phiếu đánh giá, xếp loại cán bộ quý.
-/// Template: <c>Mau_13_BienBanKiemPhieu.docx</c>.
+/// Dữ liệu Mẫu 13 — Biên bản kiểm phiếu hội nghị tập thể lãnh đạo, quản lý (B3a) hoặc hội nghị Đảng ủy/Chi ủy cơ sở (B4) về
+/// việc đánh giá, xếp loại chất lượng cán bộ quý. Template: <c>Mau_13_BienBanKiemPhieu.docx</c>, dựng từ đúng phần Mẫu 13 của
+/// biểu mẫu gốc HD03 (PDF tr.70–71). Dữ liệu lấy từ một biên bản hội nghị đã lưu và kết quả kiểm phiếu tổng hợp theo hồ sơ.
 /// </summary>
 public sealed class Mau13Data
 {
     /// <summary>Tên tệp template.</summary>
     public const string TemplateFileName = "Mau_13_BienBanKiemPhieu.docx";
 
-    /// <summary>Tên Chi bộ (chữ hoa); xuất toàn Đảng bộ thì giữ chữ mặc định trong template.</summary>
-    [TemplateField("PARTY_CELL")] public string? PartyCell { get; init; }
+    [TemplateField("PARTY_PARENT")] public string? PartyParent { get; init; }
+    [TemplateField("PARTY_ORG")] public string? PartyOrganization { get; init; }
 
-    [TemplateField("PERIOD_QUARTER_YEAR")] public string? PeriodQuarterYear { get; init; }
+    /// <summary>"Hội nghị tập thể lãnh đạo, quản lý &lt;đơn vị&gt;" (B3a) hoặc "Hội nghị &lt;Đảng ủy/Chi ủy&gt;" (B4).</summary>
+    [TemplateField("MEETING_NAME")] public string? MeetingName { get; init; }
 
-    /// <summary>Số đảng viên bỏ phiếu đã lưu (dùng cho số phiếu phát ra / thu về / hợp lệ như bản cũ); không có thì giữ chữ mặc định.</summary>
-    [TemplateField("TOTAL_VOTERS")] public string? TotalVoters { get; init; }
+    /// <summary>"III/2026" — chỗ điền "……../….." của dòng tiêu đề.</summary>
+    [TemplateField("QUARTER_YEAR")] public string? QuarterYear { get; init; }
+
+    /// <summary>" III/2026" — chỗ điền ngay sau chữ "quý" trong đoạn văn.</summary>
+    [TemplateField("PERIOD_TEXT")] public string? PeriodText { get; init; }
+
+    [TemplateField("WORKING_RULES")] public string? WorkingRules { get; init; }
+    [TemplateField("ORGANIZER")] public string? Organizer { get; init; }
+    [TemplateField("PURPOSE")] public string? Purpose { get; init; }
+    [TemplateField("VOTE_PURPOSE")] public string? VotePurpose { get; init; }
+    [TemplateField("START_TIME")] public string? StartTime { get; init; }
+    [TemplateField("START_DATE")] public string? StartDate { get; init; }
+    [TemplateField("END_TIME")] public string? EndTime { get; init; }
+    [TemplateField("LOCATION")] public string? Location { get; init; }
+    [TemplateField("INVITED")] public string? Invited { get; init; }
+    [TemplateField("PRESENT")] public string? Present { get; init; }
+    [TemplateField("ABSENT")] public string? Absent { get; init; }
+
+    /// <summary>Mục I.3.2 — cán bộ, đảng viên được cử tham dự ghi chép, báo cáo, phục vụ hội nghị.</summary>
+    [TemplateCollection("ATTENDEES")] public List<Mau12Attendee> Attendees { get; init; } = new();
+    [TemplateCondition("HAS_ATTENDEES")] public bool HasAttendees { get; init; }
+
+    [TemplateField("CHAIR_NAME")] public string? ChairName { get; init; }
+    [TemplateField("CHAIR_TITLE")] public string? ChairTitle { get; init; }
+    [TemplateField("SECRETARY_NAME")] public string? SecretaryName { get; init; }
+    [TemplateField("SECRETARY_TITLE")] public string? SecretaryTitle { get; init; }
+    [TemplateField("REPORTING_UNIT")] public string? ReportingUnit { get; init; }
+
+    /// <summary>Tổ kiểm phiếu (mục II): người đầu là Tổ trưởng, còn lại là Thành viên; không có → giữ các dòng của biểu mẫu.</summary>
+    [TemplateCollection("COUNTERS")] public List<Mau13Counter> Counters { get; init; } = new();
+    [TemplateCondition("HAS_COUNTERS")] public bool HasCounters { get; init; }
+
+    [TemplateField("BALLOTS_ISSUED")] public string? BallotsIssued { get; init; }
+    [TemplateField("BALLOTS_COLLECTED")] public string? BallotsCollected { get; init; }
+    [TemplateField("BALLOTS_VALID")] public string? BallotsValid { get; init; }
+    [TemplateField("BALLOTS_INVALID")] public string? BallotsInvalid { get; init; }
+
+    /// <summary>Mục I của bảng: cán bộ thuộc thẩm quyền quyết định, phê duyệt mức xếp loại của BTVĐUTCT.</summary>
+    [TemplateCollection("SUPERIOR_ROWS")] public List<Mau13Row> SuperiorRows { get; init; } = new();
+    [TemplateCondition("HAS_SUPERIOR_ROWS")] public bool HasSuperiorRows { get; init; }
+
+    /// <summary>Mục II của bảng: cán bộ thuộc thẩm quyền quyết định, phê duyệt mức xếp loại của Đảng ủy/Chi ủy cơ sở.</summary>
+    [TemplateCollection("BASE_ROWS")] public List<Mau13Row> BaseRows { get; init; } = new();
+    [TemplateCondition("HAS_BASE_ROWS")] public bool HasBaseRows { get; init; }
+
+    [TemplateField("ARCHIVE_UNIT")] public string? ArchiveUnit { get; init; }
+
+    /// <summary>Họ tên dưới chữ ký Tổ trưởng Tổ kiểm phiếu / chủ trì hội nghị.</summary>
+    [TemplateField("COUNTER_HEAD_SIGN")] public string? CounterHeadSign { get; init; }
+    [TemplateField("CHAIR_SIGN")] public string? ChairSign { get; init; }
 
     /// <summary>
-    /// Số phiếu không hợp lệ (task 12, B-07): lấy từ kết quả kiểm phiếu tổng hợp khi mọi hồ sơ trên biên bản có cùng số phiếu
-    /// không hợp lệ; không xác định được thì giữ chữ mặc định trong template.
-    /// </summary>
-    [TemplateField("INVALID_BALLOTS")] public string? InvalidBallots { get; init; }
-
-    [TemplateCollection("RECORDS")] public List<Mau13Row> Records { get; init; } = new();
-
-    /// <summary>
-    /// Dựng dữ liệu mẫu từ kỳ và các hồ sơ đã lưu (nạp kèm Member, Department, PartyCell).
-    /// <paramref name="totalVoters"/>: số người bỏ phiếu (số có mặt trên biên bản hoặc sĩ số Chi bộ); null nếu không xác định.
-    /// <paramref name="tallies"/>: kết quả kiểm phiếu tổng hợp theo hồ sơ (lưu trên biên bản); hồ sơ chưa có kết quả → 0 phiếu.
+    /// Dựng từ biên bản đã lưu (nạp kèm kỳ) và các dòng kết quả kiểm phiếu. Phần chung với Mẫu 12 (tiêu đề, thời gian, thành phần,
+    /// chủ trì, thư ký) dùng cùng quy tắc với <see cref="Mau12Data"/>.
     /// </summary>
     public static Mau13Data From(
-        EvaluationPeriod period,
-        IEnumerable<EvaluationRecord> records,
-        string? branchName,
-        int? totalVoters,
-        IReadOnlyDictionary<Guid, EvaluationMeetingVoteSummary>? tallies = null)
+        EvaluationMeeting meeting, PartyHeader header, string? unitName, string? archiveUnit, MeetingDetailsDto details,
+        IReadOnlyList<Mau13Line> lines)
     {
-        var voters = totalVoters is > 0 ? totalVoters : null;
-        var list = records.ToList();
-        var invalidValues = tallies == null
-            ? new List<int>()
-            : list.Where(r => tallies.ContainsKey(r.Id)).Select(r => tallies[r.Id].InvalidVotes).Distinct().ToList();
+        var common = Mau12Data.From(meeting, header, unitName, archiveUnit, details);
+        var period = meeting.Period;
+        var committee = details.CountingCommittee.Where(c => !string.IsNullOrWhiteSpace(c.Name)).ToList();
+
+        List<Mau13Row> Rows(ApprovalAuthority authority) => lines
+            .Where(l => l.Authority == authority)
+            .Select((l, i) => new Mau13Row
+            {
+                Order = (i + 1).ToString(CultureInfo.InvariantCulture),
+                Name = FormText.OrNull(l.FullName),
+                PositionAndUnit = FormText.OrNull(l.PositionAndUnit),
+                VotesExcellent = Count(l.Summary.VotesExcellent),
+                VotesGood = Count(l.Summary.VotesGood),
+                VotesSatisfactory = Count(l.Summary.VotesSatisfactory),
+                VotesUnsatisfactory = Count(l.Summary.VotesUnsatisfactory),
+                VotesNotRated = Count(l.Summary.VotesNotRated),
+                Note = FormText.OrNull(l.Summary.Notes?.Trim())
+            })
+            .ToList();
+
+        var superior = Rows(ApprovalAuthority.CapTren);
+        var baseRows = Rows(ApprovalAuthority.CoSo);
+
+        // Số phiếu không hợp lệ: ưu tiên số ghi trên biên bản; chưa ghi thì dùng số chung của các dòng kiểm phiếu (khi mọi dòng
+        // cùng một số).
+        var invalid = details.BallotsInvalid;
+        if (invalid == null)
+        {
+            var values = lines.Select(l => l.Summary.InvalidVotes).Distinct().ToList();
+            if (values.Count == 1)
+                invalid = values[0];
+        }
 
         return new Mau13Data
         {
-            PartyCell = FormText.OrNull(branchName)?.ToUpperInvariant(),
-            PeriodQuarterYear = $"QUÝ {FormText.Quarter(period.Quarter)} NĂM {FormText.Year(period.Year)}",
-            TotalVoters = voters?.ToString(),
-            InvalidBallots = invalidValues.Count == 1 ? invalidValues[0].ToString() : null,
-            Records = list.Select((r, index) =>
+            PartyParent = common.PartyParent,
+            PartyOrganization = common.PartyOrganization,
+            MeetingName = common.MeetingName,
+            QuarterYear = period == null ? null : CollectiveFormText.RomanQuarter(period.Quarter) + "/" + FormText.Year(period.Year),
+            PeriodText = common.PeriodText,
+            WorkingRules = common.WorkingRules,
+            Organizer = common.Organizer,
+            Purpose = common.Purpose,
+            VotePurpose = common.VotePurpose,
+            StartTime = common.StartTime,
+            StartDate = common.StartDate,
+            EndTime = common.EndTime,
+            Location = common.Location,
+            Invited = common.Invited,
+            Present = common.Present,
+            Absent = common.Absent,
+            Attendees = common.Attendees,
+            HasAttendees = common.HasAttendees,
+            ChairName = common.ChairName,
+            ChairTitle = common.ChairTitle,
+            SecretaryName = common.SecretaryName,
+            SecretaryTitle = common.SecretaryTitle,
+            ReportingUnit = common.ReportingUnit,
+            Counters = committee.Select((c, i) => new Mau13Counter
             {
-                var tally = tallies != null && tallies.TryGetValue(r.Id, out var found) ? found : null;
-                var excellent = tally?.VotesExcellent ?? 0;
-                var good = tally?.VotesGood ?? 0;
-                var satisfactory = tally?.VotesSatisfactory ?? 0;
-                var unsatisfactory = tally?.VotesUnsatisfactory ?? 0;
-                var recordVoters = voters ?? 0;
-                // Mức đề xuất của tập thể lãnh đạo (B3a).
-                var grade = FormText.Grade(r.CollectiveProposedGrade);
-                // Tỷ lệ phiếu (xuất sắc + tốt) trên số người bỏ phiếu; không có số người bỏ phiếu thì chỉ ghi mức xếp loại.
-                var ratio = recordVoters > 0
-                    ? FormText.Number(Math.Round((double)(excellent + good) / recordVoters * 100, 1), 1) + "% (" + grade + ")"
-                    : grade;
-
-                return new Mau13Row
-                {
-                    Order = (index + 1).ToString(),
-                    Name = FormText.OrNull(r.Member?.FullName),
-                    PositionAndDepartment = $"{r.Member?.PositionTitle} • {r.Department?.Name ?? r.PartyCell?.Name}",
-                    VotesExcellent = $"{excellent} phiếu",
-                    VotesGood = $"{good} phiếu",
-                    VotesSatisfactory = $"{satisfactory} phiếu",
-                    VotesUnsatisfactory = $"{unsatisfactory} phiếu",
-                    Result = ratio
-                };
-            }).ToList()
+                Order = (i + 1).ToString(CultureInfo.InvariantCulture),
+                Name = c.Name.Trim(),
+                Title = CollectiveFormText.Spaced(c.Title),
+                Role = i == 0 ? "Tổ trưởng" : "Thành viên"
+            }).ToList(),
+            HasCounters = committee.Count > 0,
+            BallotsIssued = Number(details.BallotsIssued),
+            BallotsCollected = Number(details.BallotsCollected),
+            BallotsValid = Number(details.BallotsValid),
+            BallotsInvalid = Number(invalid),
+            SuperiorRows = superior,
+            HasSuperiorRows = superior.Count > 0,
+            BaseRows = baseRows,
+            HasBaseRows = baseRows.Count > 0,
+            ArchiveUnit = common.ArchiveUnit,
+            CounterHeadSign = committee.Count > 0 ? committee[0].Name.Trim() : null,
+            ChairSign = common.ChairSign
         };
     }
+
+    private static string Count(int value) => value.ToString(CultureInfo.InvariantCulture);
+
+    private static string? Number(int? value) => value?.ToString(CultureInfo.InvariantCulture);
 }
 
-/// <summary>Một dòng cán bộ của Mẫu 13.</summary>
+/// <summary>Một dòng kết quả kiểm phiếu của biên bản kèm thông tin cán bộ để in Mẫu 13.</summary>
+public sealed record Mau13Line(EvaluationMeetingVoteSummary Summary, string? FullName, string? PositionAndUnit, ApprovalAuthority Authority);
+
+/// <summary>Một thành viên Tổ kiểm phiếu.</summary>
+public sealed class Mau13Counter
+{
+    [TemplateField("C_STT")] public string? Order { get; init; }
+    [TemplateField("C_NAME")] public string? Name { get; init; }
+    [TemplateField("C_TITLE")] public string? Title { get; init; }
+    [TemplateField("C_ROLE")] public string? Role { get; init; }
+}
+
+/// <summary>Một dòng cán bộ của bảng kết quả Mẫu 13 (cùng tag cho khối lặp mục I và mục II).</summary>
 public sealed class Mau13Row
 {
-    [TemplateField("V_STT")] public string? Order { get; init; }
-    [TemplateField("V_NAME")] public string? Name { get; init; }
-    [TemplateField("V_POSITION_DEPT")] public string? PositionAndDepartment { get; init; }
-    [TemplateField("V_EXC")] public string? VotesExcellent { get; init; }
-    [TemplateField("V_GOOD")] public string? VotesGood { get; init; }
-    [TemplateField("V_SAT")] public string? VotesSatisfactory { get; init; }
-    [TemplateField("V_UNSAT")] public string? VotesUnsatisfactory { get; init; }
-    [TemplateField("V_PCT")] public string? Result { get; init; }
+    [TemplateField("R_STT")] public string? Order { get; init; }
+    [TemplateField("R_NAME")] public string? Name { get; init; }
+    [TemplateField("R_POSITION")] public string? PositionAndUnit { get; init; }
+    [TemplateField("R_EXC")] public string? VotesExcellent { get; init; }
+    [TemplateField("R_GOOD")] public string? VotesGood { get; init; }
+    [TemplateField("R_SAT")] public string? VotesSatisfactory { get; init; }
+    [TemplateField("R_UNSAT")] public string? VotesUnsatisfactory { get; init; }
+    [TemplateField("R_NONE")] public string? VotesNotRated { get; init; }
+    [TemplateField("R_NOTE")] public string? Note { get; init; }
 }

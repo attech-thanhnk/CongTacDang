@@ -279,6 +279,8 @@ public class VoteTallyDto
     public int VotesGood { get; set; }
     public int VotesSatisfactory { get; set; }
     public int VotesUnsatisfactory { get; set; }
+    /// <summary>Số phiếu "Chưa đánh giá, xếp loại" (cột 8 Mẫu 13).</summary>
+    public int VotesNotRated { get; set; }
     public int InvalidVotes { get; set; }
     public string? Notes { get; set; }
 }
@@ -660,6 +662,8 @@ public class EvaluationMeetingVoteSummaryDto
     public int VotesGood { get; set; }
     public int VotesSatisfactory { get; set; }
     public int VotesUnsatisfactory { get; set; }
+    /// <summary>Số phiếu "Chưa đánh giá, xếp loại" (cột 8 Mẫu 13).</summary>
+    public int VotesNotRated { get; set; }
     public int InvalidVotes { get; set; }
     public string Notes { get; set; } = string.Empty;
 }

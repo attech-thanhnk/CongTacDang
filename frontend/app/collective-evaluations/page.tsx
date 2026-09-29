@@ -89,37 +89,43 @@ export default function CollectiveEvaluationsPage() {
   const period = periods.find((p) => p.id === periodId);
   const periodLabel = period ? `Quy ${ROMAN[period.quarter] ?? period.quarter}-${period.year}` : "Ky bao cao";
 
-  const exportRecord = async (record: CollectiveRecord, format: ReportFileFormat) => {
+  const run = async (key: string, work: () => Promise<void>, failure: string) => {
+    setExporting(key);
+    try {
+      await work();
+    } catch (error: any) {
+      showError(error?.message || failure);
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const exportRecord = (record: CollectiveRecord, format: ReportFileFormat) => {
     if (record.form !== "M07" && record.form !== "M08") return;
-    setExporting(`${record.id}-${format}`);
-    try {
-      const code = record.form === "M07" ? "07" : "08";
-      await reportService.exportCollective(record.form, record.id,
-        hd03FileName(code, record.partyCellName || record.departmentName || shortName, periodLabel, ".docx"), format);
-    } catch (error: any) {
-      showError(error?.message || "Không xuất được biểu mẫu.");
-    } finally {
-      setExporting(null);
-    }
+    const code = record.form === "M07" ? "07" : "08";
+    return run(`${record.id}-${format}`, () => reportService.exportCollective(record.form as "M07" | "M08", record.id,
+      hd03FileName(code, record.partyCellName || record.departmentName || shortName, periodLabel, ".docx"), format), "Không xuất được biểu mẫu.");
   };
 
-  const exportMeeting = async (meeting: MeetingRecord, format: ReportFileFormat) => {
-    setExporting(`${meeting.id}-${format}`);
-    try {
-      await reportService.exportMeeting(meeting.id,
-        hd03FileName("12", meeting.partyCellName || meeting.departmentName || shortName, periodLabel, ".docx"), format);
-    } catch (error: any) {
-      showError(error?.message || "Không xuất được Mẫu 12.");
-    } finally {
-      setExporting(null);
-    }
-  };
+  /** Mẫu 08 bản Excel — HD03 V.1: hồ sơ lập trên file Excel (trừ Mẫu 07, 09C, 12, 13, 16). */
+  const exportRecordExcel = (record: CollectiveRecord) =>
+    run(`${record.id}-xlsx`, () => reportService.exportForm08Excel(record.id,
+      hd03FileName("08", record.partyCellName || record.departmentName || shortName, periodLabel, ".xlsx")), "Không xuất được Mẫu 08 (Excel).");
 
-  const exportButtons = (key: string, onExport: (format: ReportFileFormat) => void) => (
+  const exportMeeting = (meeting: MeetingRecord, form: "12" | "13", format: ReportFileFormat) =>
+    run(`${meeting.id}-${form}-${format}`, () => reportService.exportMeeting(meeting.id, form,
+      hd03FileName(form, meeting.partyCellName || meeting.departmentName || shortName, periodLabel, ".docx"), format), `Không xuất được Mẫu ${form}.`);
+
+  const exportButtons = (key: string, onExport: (format: ReportFileFormat) => void, label = "Word", onExcel?: () => void) => (
     <div className="btn-group btn-group-sm">
       <button type="button" className="btn btn-outline-primary" disabled={exporting !== null} onClick={() => onExport("original")}>
-        <i className="bi bi-file-earmark-word me-1" />{exporting === `${key}-original` ? "Đang xuất…" : "Word"}
+        <i className="bi bi-file-earmark-word me-1" />{exporting === `${key}-original` ? "Đang xuất…" : label}
       </button>
+      {onExcel && (
+        <button type="button" className="btn btn-outline-success" disabled={exporting !== null} onClick={onExcel}>
+          <i className="bi bi-file-earmark-excel me-1" />{exporting === `${key}-xlsx` ? "Đang xuất…" : "Excel"}
+        </button>
+      )}
       <button type="button" className="btn btn-outline-secondary" disabled={exporting !== null} onClick={() => onExport("pdf")}>
         <i className="bi bi-file-earmark-pdf me-1" />{exporting === `${key}-pdf` ? "Đang xuất…" : "PDF"}
       </button>
@@ -173,7 +179,8 @@ export default function CollectiveEvaluationsPage() {
                           <i className="bi bi-pencil me-1" />Sửa
                         </button>
                       )}
-                      {(record.form === "M07" || record.form === "M08") && exportButtons(record.id, (format) => exportRecord(record, format))}
+                      {record.form === "M07" && exportButtons(record.id, (format) => exportRecord(record, format))}
+                      {record.form === "M08" && exportButtons(record.id, (format) => exportRecord(record, format), "Word", () => exportRecordExcel(record))}
                     </div>
                   </div>
                 ))}
@@ -224,7 +231,8 @@ export default function CollectiveEvaluationsPage() {
                           <i className="bi bi-pencil me-1" />Sửa
                         </button>
                       )}
-                      {item.formCode === "M12" && exportButtons(item.id, (format) => exportMeeting(item, format))}
+                      {item.formCode === "M12" && exportButtons(`${item.id}-12`, (format) => exportMeeting(item, "12", format), "Mẫu 12")}
+                      {item.voteSummaries.length > 0 && exportButtons(`${item.id}-13`, (format) => exportMeeting(item, "13", format), "Mẫu 13")}
                     </div>
                   </div>
                 ))}
@@ -235,7 +243,7 @@ export default function CollectiveEvaluationsPage() {
               <section className="card border-0 shadow-sm">
                 <div className="card-header bg-white border-0 pt-4 px-4">
                   <h2 className="h6 mb-1">{editingMeeting ? "Sửa biên bản" : "Lập biên bản hội nghị"}</h2>
-                  <div className="text-secondary small">Mẫu 12 là biên bản hội nghị; Mẫu 13 ghi tổng hợp kiểm phiếu (xuất ở trang Báo cáo).</div>
+                  <div className="text-secondary small">Mẫu 12 là biên bản hội nghị; Mẫu 13 (biên bản kiểm phiếu) xuất từ biên bản đã có kết quả kiểm phiếu — Tổ kiểm phiếu và số phiếu nhập ở đây.</div>
                 </div>
                 <div className="card-body px-4">
                   <MeetingEditor

@@ -332,7 +332,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             MinutesContent = dto.MinutesContent,
             OutcomeContent = dto.OutcomeContent,
             VoteCountingContent = dto.VoteCountingContent,
-            Details = SerializeDetails(dto.Details),
+            Details = SerializeDetails(dto.Details, dto.PresentCount),
             CreatedBy = requesterId,
             UpdatedBy = requesterId,
             UpdatedAt = DateTime.UtcNow
@@ -342,9 +342,10 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         {
             foreach (var vote in dto.VoteSummaries)
             {
-                if (vote.VotesExcellent < 0 || vote.VotesGood < 0 || vote.VotesSatisfactory < 0 || vote.VotesUnsatisfactory < 0 || vote.InvalidVotes < 0)
+                if (vote.VotesExcellent < 0 || vote.VotesGood < 0 || vote.VotesSatisfactory < 0 || vote.VotesUnsatisfactory < 0
+                    || vote.VotesNotRated < 0 || vote.InvalidVotes < 0)
                     throw new ArgumentException("Số phiếu không được âm.");
-                var total = vote.VotesExcellent + vote.VotesGood + vote.VotesSatisfactory + vote.VotesUnsatisfactory + vote.InvalidVotes;
+                var total = vote.VotesExcellent + vote.VotesGood + vote.VotesSatisfactory + vote.VotesUnsatisfactory + vote.VotesNotRated + vote.InvalidVotes;
                 if (total > dto.PresentCount)
                     throw new ArgumentException(
                         $"Tổng số phiếu các mức và phiếu không hợp lệ ({total}) vượt số người có mặt ({dto.PresentCount}). Hãy kiểm tra lại kết quả kiểm phiếu.");
@@ -365,6 +366,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
                     VotesGood = vote.VotesGood,
                     VotesSatisfactory = vote.VotesSatisfactory,
                     VotesUnsatisfactory = vote.VotesUnsatisfactory,
+                    VotesNotRated = vote.VotesNotRated,
                     InvalidVotes = vote.InvalidVotes,
                     Notes = vote.Notes
                 });
@@ -409,7 +411,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         meeting.MinutesContent = Limit(dto.MinutesContent, MaxTextLength, "Nội dung biên bản");
         meeting.OutcomeContent = Limit(dto.OutcomeContent, MaxTextLength, "Kết quả hội nghị");
         meeting.VoteCountingContent = Limit(dto.VoteCountingContent, MaxTextLength, "Nội dung kiểm phiếu");
-        meeting.Details = SerializeDetails(dto.Details);
+        meeting.Details = SerializeDetails(dto.Details, dto.PresentCount);
         meeting.UpdatedBy = requesterId;
         meeting.UpdatedAt = DateTime.UtcNow;
         _unitOfWork.SetOriginalVersion(meeting, dto.Version);
@@ -425,30 +427,55 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
 
     private static readonly JsonSerializerOptions DetailsJson = new(JsonSerializerDefaults.Web);
 
-    /// <summary>Kiểm tra và lưu các mục của Mẫu 12 (jsonb theo mã mục).</summary>
-    private static string SerializeDetails(MeetingDetailsDto? details)
+    /// <summary>Kiểm tra và lưu các mục của Mẫu 12, 13 (jsonb theo mã mục).</summary>
+    private static string SerializeDetails(MeetingDetailsDto? details, int presentCount)
     {
         var value = details ?? new MeetingDetailsDto();
-        var attendees = (value.Attendees ?? new List<MeetingAttendeeDto>())
-            .Where(a => !string.IsNullOrWhiteSpace(a.Name))
-            .Select(a => new MeetingAttendeeDto
-            {
-                Name = Limit(a.Name.Trim(), 200, "Họ tên người dự hội nghị"),
-                Title = Limit(a.Title?.Trim(), 300, "Chức vụ người dự hội nghị")
-            })
-            .ToList();
+        var attendees = CleanPeople(value.Attendees, "người dự hội nghị");
         if (attendees.Count > 50)
             throw new ArgumentException($"Mục 3.2 có {attendees.Count} người, vượt giới hạn 50 người.");
+        var committee = CleanPeople(value.CountingCommittee, "thành viên Tổ kiểm phiếu");
+        if (committee.Count > 15)
+            throw new ArgumentException($"Tổ kiểm phiếu có {committee.Count} người, vượt giới hạn 15 người.");
+
+        var ballots = new[] { value.BallotsIssued, value.BallotsCollected, value.BallotsValid, value.BallotsInvalid };
+        if (ballots.Any(b => b < 0))
+            throw new ArgumentException("Số phiếu phát ra, thu về, hợp lệ, không hợp lệ không được âm.");
+        if (value.BallotsIssued > presentCount)
+            throw new ArgumentException($"Số phiếu phát ra ({value.BallotsIssued}) vượt số đại biểu có mặt ({presentCount}). Hãy kiểm tra lại.");
+        if (value.BallotsCollected > value.BallotsIssued)
+            throw new ArgumentException($"Số phiếu thu về ({value.BallotsCollected}) vượt số phiếu phát ra ({value.BallotsIssued}). Hãy kiểm tra lại.");
+        if (value.BallotsCollected.HasValue && value.BallotsValid.HasValue && value.BallotsInvalid.HasValue
+            && value.BallotsValid + value.BallotsInvalid != value.BallotsCollected)
+            throw new ArgumentException(
+                $"Số phiếu hợp lệ ({value.BallotsValid}) cộng số phiếu không hợp lệ ({value.BallotsInvalid}) phải bằng số phiếu thu về ({value.BallotsCollected}).");
+
         var clean = new MeetingDetailsDto
         {
             WorkingRules = TrimOrNull(Limit(value.WorkingRules, 500, "Quy chế làm việc")),
             ReportingUnit = TrimOrNull(Limit(value.ReportingUnit, 300, "Cơ quan, đơn vị báo cáo")),
             ChairTitle = TrimOrNull(Limit(value.ChairTitle, 300, "Chức vụ của chủ trì")),
             SecretaryTitle = TrimOrNull(Limit(value.SecretaryTitle, 300, "Chức vụ của thư ký")),
-            Attendees = attendees
+            Attendees = attendees,
+            CountingCommittee = committee,
+            BallotsIssued = value.BallotsIssued,
+            BallotsCollected = value.BallotsCollected,
+            BallotsValid = value.BallotsValid,
+            BallotsInvalid = value.BallotsInvalid
         };
         return JsonSerializer.Serialize(clean, DetailsJson);
     }
+
+    /// <summary>Danh sách người (họ tên + chức vụ) đã bỏ dòng trống và kiểm tra độ dài.</summary>
+    private static List<MeetingAttendeeDto> CleanPeople(IEnumerable<MeetingAttendeeDto>? people, string label) =>
+        (people ?? Enumerable.Empty<MeetingAttendeeDto>())
+            .Where(a => a != null && !string.IsNullOrWhiteSpace(a.Name))
+            .Select(a => new MeetingAttendeeDto
+            {
+                Name = Limit(a.Name.Trim(), 200, "Họ tên " + label),
+                Title = Limit(a.Title?.Trim(), 300, "Chức vụ " + label)
+            })
+            .ToList();
 
     /// <summary>Đọc các mục của Mẫu 12 đã lưu (dữ liệu hỏng → rỗng).</summary>
     public static MeetingDetailsDto DeserializeDetails(string? json)
@@ -587,6 +614,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
                 VotesGood = vote.VotesGood,
                 VotesSatisfactory = vote.VotesSatisfactory,
                 VotesUnsatisfactory = vote.VotesUnsatisfactory,
+                VotesNotRated = vote.VotesNotRated,
                 InvalidVotes = vote.InvalidVotes,
                 Notes = vote.Notes
             }).ToList()

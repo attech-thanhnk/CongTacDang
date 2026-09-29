@@ -29,7 +29,13 @@ const toLocalInput = (iso?: string | null) => {
 
 const toIso = (local: string) => (local ? new Date(local).toISOString() : undefined);
 
-const emptyVote: Vote = { votesExcellent: 0, votesGood: 0, votesSatisfactory: 0, votesUnsatisfactory: 0, invalidVotes: 0, notes: "" };
+const emptyVote: Vote = { votesExcellent: 0, votesGood: 0, votesSatisfactory: 0, votesUnsatisfactory: 0, votesNotRated: 0, invalidVotes: 0, notes: "" };
+
+const totalOf = (vote: Vote) =>
+  vote.votesExcellent + vote.votesGood + vote.votesSatisfactory + vote.votesUnsatisfactory + vote.votesNotRated + vote.invalidVotes;
+
+/** Ô số phiếu: trống = chưa ghi (null). */
+const toCount = (value: string): number | null => (value === "" ? null : Math.max(0, Number(value) || 0));
 
 /** Lập/sửa biên bản hội nghị (Mẫu 12) hoặc biên bản kiểm phiếu (Mẫu 13) với đủ các mục của biểu mẫu gốc. */
 export function MeetingEditor({ periodId, branches, departments, editing, onSaved, onCancel, showError }: Props) {
@@ -51,6 +57,9 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
   const [workingRules, setWorkingRules] = useState("");
   const [reportingUnit, setReportingUnit] = useState("");
   const [attendees, setAttendees] = useState<MeetingAttendee[]>([]);
+  const [committee, setCommittee] = useState<MeetingAttendee[]>([]);
+  const [ballots, setBallots] = useState<{ issued: number | null; collected: number | null; valid: number | null; invalid: number | null }>(
+    { issued: null, collected: null, valid: null, invalid: null });
   const [minutes, setMinutes] = useState("");
   const [outcome, setOutcome] = useState("");
   const [records, setRecords] = useState<EvaluationRecordDto[]>([]);
@@ -74,12 +83,19 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
     setSecretaryName(editing.secretaryName || "");
     setMinutes(editing.minutesContent || "");
     setOutcome(editing.outcomeContent || "");
-    const details = editing.details || { attendees: [] };
+    const details = editing.details || { attendees: [], countingCommittee: [] };
     setChairTitle(details.chairTitle || "");
     setSecretaryTitle(details.secretaryTitle || "");
     setWorkingRules(details.workingRules || "");
     setReportingUnit(details.reportingUnit || "");
     setAttendees(details.attendees || []);
+    setCommittee(details.countingCommittee || []);
+    setBallots({
+      issued: details.ballotsIssued ?? null,
+      collected: details.ballotsCollected ?? null,
+      valid: details.ballotsValid ?? null,
+      invalid: details.ballotsInvalid ?? null,
+    });
   }, [editing]);
 
   // Mẫu 13 lập mới: tải hồ sơ của đơn vị tổ chức hội nghị để ghi tổng hợp phiếu (máy chủ lọc theo phạm vi xem).
@@ -109,6 +125,10 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
       showError("Số có mặt không được vượt số triệu tập.");
       return;
     }
+    if (ballots.collected != null && ballots.valid != null && ballots.invalid != null && ballots.valid + ballots.invalid !== ballots.collected) {
+      showError("Số phiếu hợp lệ cộng số phiếu không hợp lệ phải bằng số phiếu thu về.");
+      return;
+    }
     setSaving(true);
     const payload: SaveMeetingRecord = {
       version: editing?.version,
@@ -136,9 +156,16 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
         chairTitle: chairTitle || null,
         secretaryTitle: secretaryTitle || null,
         attendees: attendees.filter((a) => a.name.trim()),
+        countingCommittee: committee.filter((a) => a.name.trim()),
+        ballotsIssued: ballots.issued,
+        ballotsCollected: ballots.collected,
+        ballotsValid: ballots.valid,
+        ballotsInvalid: ballots.invalid,
       },
+      // Chỉ gửi hồ sơ đã nhập số phiếu (hồ sơ để trống không vào biên bản kiểm phiếu).
       voteSummaries: !editing && formCode === "M13"
-        ? records.map((record) => ({ recordId: record.id, ...(votes[record.id] || emptyVote) }))
+        ? records.filter((record) => votes[record.id] && totalOf(votes[record.id]) > 0)
+            .map((record) => ({ recordId: record.id, ...votes[record.id] }))
         : [],
     };
     try {
@@ -153,6 +180,8 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
 
   const setAttendee = (index: number, patch: Partial<MeetingAttendee>) =>
     setAttendees(attendees.map((a, i) => (i === index ? { ...a, ...patch } : a)));
+  const setMember = (index: number, patch: Partial<MeetingAttendee>) =>
+    setCommittee(committee.map((a, i) => (i === index ? { ...a, ...patch } : a)));
 
   return (
     <form onSubmit={submit} className="row g-2">
@@ -261,6 +290,34 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
         <input className="form-control form-control-sm" placeholder="Để trống: tên đơn vị tổ chức hội nghị" value={reportingUnit} onChange={(e) => setReportingUnit(e.target.value)} />
       </div>
       <div className="col-12">
+        <label className="form-label small mb-1">Mẫu 13 — Tổ kiểm phiếu do hội nghị bầu (người đầu tiên là Tổ trưởng)</label>
+        {committee.map((member, index) => (
+          <div key={index} className="d-flex gap-1 mb-1 align-items-center">
+            <span className="small text-secondary" style={{ minWidth: 80 }}>{index === 0 ? "Tổ trưởng" : "Thành viên"}</span>
+            <input className="form-control form-control-sm" placeholder="Họ và tên" value={member.name} onChange={(e) => setMember(index, { name: e.target.value })} />
+            <input className="form-control form-control-sm" placeholder="Chức vụ Đảng, chính quyền" value={member.title} onChange={(e) => setMember(index, { title: e.target.value })} />
+            <button type="button" className="btn btn-sm btn-outline-danger" aria-label="Bỏ thành viên Tổ kiểm phiếu" onClick={() => setCommittee(committee.filter((_, i) => i !== index))}>
+              <i className="bi bi-x" />
+            </button>
+          </div>
+        ))}
+        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setCommittee([...committee, { name: "", title: "" }])}>
+          <i className="bi bi-plus me-1" />Thêm thành viên Tổ kiểm phiếu
+        </button>
+      </div>
+      {([
+        ["issued", "Phiếu phát ra"],
+        ["collected", "Phiếu thu về"],
+        ["valid", "Phiếu hợp lệ"],
+        ["invalid", "Phiếu không hợp lệ"],
+      ] as [keyof typeof ballots, string][]).map(([key, label]) => (
+        <div className="col-6 col-md-3" key={key}>
+          <label className="form-label small mb-1">{label}</label>
+          <input type="number" min={0} className="form-control form-control-sm" placeholder="Chưa ghi" value={ballots[key] ?? ""}
+            onChange={(e) => setBallots({ ...ballots, [key]: toCount(e.target.value) })} />
+        </div>
+      ))}
+      <div className="col-12">
         <label className="form-label small mb-1">Diễn biến hội nghị</label>
         <textarea className="form-control form-control-sm" rows={3} value={minutes} onChange={(e) => setMinutes(e.target.value)} />
       </div>
@@ -287,6 +344,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
                       ["votesGood", "Tốt"],
                       ["votesSatisfactory", "Hoàn thành"],
                       ["votesUnsatisfactory", "Không HT"],
+                      ["votesNotRated", "Chưa đánh giá"],
                       ["invalidVotes", "Không hợp lệ"],
                     ] as [keyof Vote, string][]).map(([key, label]) => (
                       <div key={key} className="col">

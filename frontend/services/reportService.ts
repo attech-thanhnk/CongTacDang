@@ -35,9 +35,9 @@ export const REPORTS: ReportDefinition[] = [
     note: "Xuất từ hồ sơ tập thể Mẫu 07 trên trang Đánh giá tập thể & Hội nghị.",
   },
   {
-    id: "mau-08", code: "Mẫu 08", group: "hd03", scope: "collective", fileType: "DOCX", fileCode: "08",
+    id: "mau-08", code: "Mẫu 08", group: "hd03", scope: "collective", fileType: "XLSX", fileCode: "08",
     title: "Báo cáo tổng hợp kết quả thực hiện các nhiệm vụ của cơ quan, đơn vị",
-    note: "Xuất từ hồ sơ tập thể Mẫu 08 trên trang Đánh giá tập thể & Hội nghị.",
+    note: "Xuất từ hồ sơ tập thể Mẫu 08 trên trang Đánh giá tập thể & Hội nghị (Excel theo HD03 V.1; có thêm bản Word).",
   },
   {
     id: "mau-11", code: "Mẫu 11", group: "hd03", scope: "period", fileType: "DOCX", fileCode: "11",
@@ -50,8 +50,9 @@ export const REPORTS: ReportDefinition[] = [
     note: "Xuất từ từng biên bản hội nghị (M12) trên trang Đánh giá tập thể & Hội nghị.",
   },
   {
-    id: "mau-13", code: "Mẫu 13", group: "hd03", scope: "period", fileType: "DOCX", fileCode: "13",
-    title: "Biên bản kiểm phiếu", endpoint: "/reports/docx/mau-13",
+    id: "mau-13", code: "Mẫu 13", group: "hd03", scope: "meeting", fileType: "DOCX", fileCode: "13",
+    title: "Biên bản kiểm phiếu Hội nghị tập thể lãnh đạo, quản lý hoặc Hội nghị Đảng ủy/Chi ủy cơ sở về việc đánh giá, xếp loại chất lượng cán bộ quý",
+    note: "Xuất từ từng biên bản đã có kết quả kiểm phiếu trên trang Đánh giá tập thể & Hội nghị.",
   },
   {
     id: "mau-14", code: "Mẫu 14", group: "hd03", scope: "period", fileType: "XLSX", fileCode: "14",
@@ -211,15 +212,20 @@ export const reportService = {
     });
   },
 
-  /** Xuất Mẫu 07 / 08 từ hồ sơ tập thể. */
+  /** Xuất Mẫu 07 / 08 (Word) từ hồ sơ tập thể. */
   async exportCollective(form: "M07" | "M08", recordId: string, fileName: string, format: ReportFileFormat = "original"): Promise<void> {
     const code = form === "M07" ? "mau-07" : "mau-08";
     return this.downloadReport(`/reports/docx/${code}/${recordId}`, fileName, format);
   },
 
-  /** Xuất Mẫu 12 từ biên bản hội nghị. */
-  async exportMeeting(meetingId: string, fileName: string, format: ReportFileFormat = "original"): Promise<void> {
-    return this.downloadReport(`/reports/docx/mau-12/${meetingId}`, fileName, format);
+  /** Xuất Mẫu 08 bản Excel (HD03 V.1) từ hồ sơ tập thể. */
+  async exportForm08Excel(recordId: string, fileName: string, format: ReportFileFormat = "original"): Promise<void> {
+    return this.downloadReport(`/reports/form-08/${recordId}`, fileName, format);
+  },
+
+  /** Xuất Mẫu 12 (biên bản hội nghị) hoặc Mẫu 13 (biên bản kiểm phiếu) từ biên bản. */
+  async exportMeeting(meetingId: string, form: "12" | "13", fileName: string, format: ReportFileFormat = "original"): Promise<void> {
+    return this.downloadReport(`/reports/docx/mau-${form}/${meetingId}`, fileName, format);
   },
 
   /** Xuất Mẫu 01: Phiếu giao / đăng ký sản phẩm chuyên môn hàng quý (.docx) */

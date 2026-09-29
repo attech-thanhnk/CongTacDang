@@ -83,6 +83,8 @@ public sealed class CollectiveFormsReportsIntegrationTests
             Assert.Equal("M22", a1.Cell(4).GetString());
             Assert.Equal("Hoàn thành xuất sắc nhiệm vụ", a1.Cell(11).GetString());
             Assert.Contains("Căn cứ xuất sắc", a1.Cell(12).GetString());
+            // Cột 13 (đợt 8): đề xuất nội dung liên quan về công tác cán bộ nhập ở bước quyết định.
+            Assert.Equal("Đề xuất đưa vào quy hoạch cấp trên", a1.Cell(13).GetString());
             var capTren = book.Worksheet(2);
             Assert.Contains("BAN THƯỜNG VỤ ĐẢNG ỦY TỔNG CÔNG TY", capTren.Cell(6, 1).GetString());
             Assert.Single(capTren.RowsUsed(), r => r.Cell(2).GetString() == s.NameC1);
@@ -200,6 +202,28 @@ public sealed class CollectiveFormsReportsIntegrationTests
         Assert.Contains("Đảm bảo an toàn bay", text08);
         Assert.Contains("Nhiệm vụ phát sinh, đột xuất theo Chỉ đạo, điều hành của cấp có thẩm quyền.", text08);
 
+        // Mẫu 08 bản Excel (đợt 8, HD03 V.1): đúng cột, 13 nhóm nội dung, dữ liệu như bản Word; tên tệp theo quy cách HD03.
+        using (var book08 = await WorkbookAsync(s.CellLeaderA, $"/api/reports/form-08/{id08}"))
+        {
+            var sheet = book08.Worksheet(1);
+            Assert.Equal("Mẫu số 08", sheet.Cell(1, 6).GetString());
+            Assert.StartsWith("BÁO CÁO TỔNG HỢP KẾT QUẢ THỰC HIỆN CÁC NHIỆM VỤ CỦA CƠ QUAN, ĐƠN VỊ QUÝ III/NĂM", sheet.Cell(5, 1).GetString());
+            Assert.Equal("Nội dung công việc", sheet.Cell(8, 2).GetString());
+            Assert.Equal("Tồn tại, hạn chế hoặc thành tích đã được ghi nhận, biểu dương", sheet.Cell(8, 5).GetString());
+            Assert.Equal(6, sheet.Cell(9, 6).GetValue<int>());
+            Assert.StartsWith("Thực hiện nhiệm vụ sản xuất, kinh doanh.", sheet.Cell(10, 2).GetString());
+            Assert.Contains("- Bảo dưỡng hệ thống radar", sheet.Cell(10, 2).GetString());
+            Assert.Equal("Hoàn thành 100% kế hoạch", sheet.Cell(10, 4).GetString());
+            Assert.Contains("- Nhiệm vụ 1: …", sheet.Cell(11, 2).GetString());
+            Assert.Equal(13, sheet.Cell(22, 1).GetValue<int>());
+            Assert.StartsWith("Nhiệm vụ phát sinh, đột xuất", sheet.Cell(22, 2).GetString());
+        }
+        var file08 = await s.CellLeaderA.GetAsync($"/api/reports/form-08/{id08}");
+        Assert.StartsWith("Mau 08_", file08.Content.Headers.ContentDisposition?.FileName?.Trim('"'));
+        Assert.EndsWith(".xlsx", file08.Content.Headers.ContentDisposition?.FileName?.Trim('"'));
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.CellLeaderB.GetAsync($"/api/reports/form-08/{id08}")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await s.CellLeaderA.GetAsync($"/api/reports/form-08/{id07}")).StatusCode);
+
         // PDF cùng endpoint: không có LibreOffice → 503 kèm thông báo; có → PDF.
         var pdf = await s.CellLeaderA.GetAsync($"/api/reports/docx/mau-08/{id08}?format=pdf");
         Assert.True(pdf.StatusCode is HttpStatusCode.OK or HttpStatusCode.ServiceUnavailable, pdf.StatusCode.ToString());
@@ -254,10 +278,57 @@ public sealed class CollectiveFormsReportsIntegrationTests
         Assert.Equal(HttpStatusCode.Forbidden, (await s.CellLeaderB.PutAsJsonAsync($"/api/evaluations/meetings/{meetingId}", request)).StatusCode);
 
         // Biên bản kiểm phiếu (M13) không xuất theo Mẫu 12.
-        var m13 = new Dictionary<string, object?>(request) { ["formCode"] = "M13", ["version"] = null, ["details"] = null };
-        m13["voteSummaries"] = new[] { new { recordId = s.RecordA1, votesExcellent = 5, votesGood = 1, votesSatisfactory = 0, votesUnsatisfactory = 0, invalidVotes = 0, notes = "" } };
-        var m13Id = (await DataAsync(await s.CellLeaderA.PostAsJsonAsync("/api/evaluations/meetings", m13))).GetProperty("id").GetGuid();
+        var m13 = new Dictionary<string, object?>(request) { ["formCode"] = "M13", ["version"] = null };
+        m13["details"] = new
+        {
+            workingRules = "Chi bộ A nhiệm kỳ 2025–2030", chairTitle = "Bí thư Chi bộ",
+            countingCommittee = new[] { new { name = "Phan Tổ Trưởng", title = "Chi ủy viên" }, new { name = "Đỗ Thành Viên", title = "Đảng viên" } },
+            ballotsIssued = 6, ballotsCollected = 6, ballotsValid = 5, ballotsInvalid = 1
+        };
+        m13["voteSummaries"] = new object[]
+        {
+            new { recordId = s.RecordA1, votesExcellent = 5, votesGood = 0, votesSatisfactory = 0, votesUnsatisfactory = 0, votesNotRated = 0, invalidVotes = 1, notes = "" },
+            new { recordId = s.RecordC1, votesExcellent = 0, votesGood = 3, votesSatisfactory = 1, votesUnsatisfactory = 0, votesNotRated = 1, invalidVotes = 1, notes = "Trình BTV" }
+        };
+        var m13Created = await DataAsync(await s.CellLeaderA.PostAsJsonAsync("/api/evaluations/meetings", m13));
+        var m13Id = m13Created.GetProperty("id").GetGuid();
+        Assert.Equal(2, m13Created.GetProperty("details").GetProperty("countingCommittee").GetArrayLength());
+        Assert.Contains(m13Created.GetProperty("voteSummaries").EnumerateArray(), v => v.GetProperty("votesNotRated").GetInt32() == 1);
         Assert.Equal(HttpStatusCode.BadRequest, (await s.CellLeaderA.GetAsync($"/api/reports/docx/mau-12/{m13Id}")).StatusCode);
+
+        // Mẫu 13 (đợt 8): đúng biểu mẫu gốc — mục I (BTVĐUTCT) / mục II (Đảng ủy/Chi ủy cơ sở), cột "Chưa đánh giá, xếp loại",
+        // Tổ kiểm phiếu, số phiếu phát ra/thu về/hợp lệ/không hợp lệ.
+        var text13 = await DocxTextAsync(s.CellLeaderA, $"/api/reports/docx/mau-13/{m13Id}");
+        Assert.Contains("BIÊN BẢN KIỂM PHIẾU", text13);
+        Assert.Contains($"Hội nghị {s.CellAName} về việc đánh giá, xếp loại chất lượng cán bộ quý III/", text13);
+        Assert.Contains("(1) Đồng chí Phan Tổ Trưởng - Chi ủy viên: Tổ trưởng.", text13);
+        Assert.Contains("(2) Đồng chí Đỗ Thành Viên - Đảng viên: Thành viên.", text13);
+        Assert.Contains("- Tổng số phiếu phát ra:\t6 Phiếu.", text13);
+        Assert.Contains("+ Số phiếu không hợp lệ:\t1 Phiếu.", text13);
+        Assert.Contains("Chưa đánh giá, xếp loại", text13);
+        var superiorAt = text13.IndexOf("CỦA BTVĐUTCT", StringComparison.Ordinal);
+        var baseAt = text13.IndexOf("CỦA ĐẢNG ỦY/CHI ỦY CƠ SỞ", StringComparison.Ordinal);
+        Assert.True(superiorAt > 0 && baseAt > superiorAt);
+        var c1At = text13.IndexOf(s.NameC1, StringComparison.Ordinal);
+        var a1At = text13.IndexOf(s.NameA1, StringComparison.Ordinal);
+        Assert.True(c1At > superiorAt && c1At < baseAt, "Cán bộ thẩm quyền cấp trên phải ở mục I");
+        Assert.True(a1At > baseAt, "Cán bộ thẩm quyền cơ sở phải ở mục II");
+        Assert.Contains("Trình BTV", text13);
+        Assert.Contains("Phan Tổ Trưởng", text13[text13.LastIndexOf("T/M TỔ KIỂM PHIẾU", StringComparison.Ordinal)..]);
+        var file13 = await s.CellLeaderA.GetAsync($"/api/reports/docx/mau-13/{m13Id}");
+        Assert.StartsWith("Mau 13_", file13.Content.Headers.ContentDisposition?.FileName?.Trim('"'));
+        // Biên bản chưa có kết quả kiểm phiếu → 400; Chi bộ khác → 403; endpoint cũ theo kỳ đã bỏ.
+        Assert.Equal(HttpStatusCode.BadRequest, (await s.CellLeaderA.GetAsync($"/api/reports/docx/mau-13/{meetingId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.CellLeaderB.GetAsync($"/api/reports/docx/mau-13/{m13Id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await s.Committee.GetAsync($"/api/reports/docx/mau-13?periodId={s.PeriodId}")).StatusCode);
+
+        // Số phiếu hợp lệ + không hợp lệ ≠ thu về → 400.
+        var badBallots = new Dictionary<string, object?>(m13)
+        {
+            ["details"] = new { ballotsIssued = 6, ballotsCollected = 6, ballotsValid = 4, ballotsInvalid = 1 },
+            ["voteSummaries"] = new[] { new { recordId = s.RecordA1, votesExcellent = 1, votesGood = 0, votesSatisfactory = 0, votesUnsatisfactory = 0, votesNotRated = 0, invalidVotes = 0, notes = "" } }
+        };
+        Assert.Equal(HttpStatusCode.BadRequest, (await s.CellLeaderA.PostAsJsonAsync("/api/evaluations/meetings", badBallots)).StatusCode);
     }
 
     // ===================== R5: báo cáo cũ đã bỏ; báo cáo nội bộ =====================
@@ -296,7 +367,7 @@ public sealed class CollectiveFormsReportsIntegrationTests
 
     private sealed class Scenario
     {
-        public Guid PeriodId, CellA, CellB, RecordA1;
+        public Guid PeriodId, CellA, CellB, RecordA1, RecordC1;
         public string CellAName = string.Empty, RootName = string.Empty;
         public string NameA1 = string.Empty, NameC1 = string.Empty, NoCodeName = string.Empty;
         public HttpClient Committee = null!, CellLeaderA = null!, CellLeaderB = null!;
@@ -385,6 +456,7 @@ public sealed class CollectiveFormsReportsIntegrationTests
             };
             var ra1 = Record(a1, s.CellA, ApprovalAuthority.CoSo, EvaluationGrade.HoanThanhXuatSac);
             ra1.AppraisalExplanation = "Căn cứ xuất sắc: vượt 3 sản phẩm";
+            ra1.CadreWorkProposal = "Đề xuất đưa vào quy hoạch cấp trên";
             var rc1 = Record(c1, s.CellA, ApprovalAuthority.CapTren, EvaluationGrade.ChuaXepLoai);
             rc1.AppraisalProposedGrade = EvaluationGrade.HoanThanhTot;
             db.AddRange(
@@ -396,6 +468,7 @@ public sealed class CollectiveFormsReportsIntegrationTests
                 Record(b1, s.CellB, ApprovalAuthority.CoSo, EvaluationGrade.KhongHoanThanh));
             await db.SaveChangesAsync();
             s.RecordA1 = ra1.Id;
+            s.RecordC1 = rc1.Id;
         });
 
         var perms = new[]

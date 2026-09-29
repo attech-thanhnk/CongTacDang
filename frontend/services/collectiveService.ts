@@ -34,13 +34,20 @@ export interface MeetingAttendee {
   title: string;
 }
 
-/** Các mục của biên bản Mẫu 12 chưa có cột riêng. */
+/** Các mục của biên bản Mẫu 12, 13 chưa có cột riêng. */
 export interface MeetingDetails {
   workingRules?: string | null;
   reportingUnit?: string | null;
   chairTitle?: string | null;
   secretaryTitle?: string | null;
   attendees: MeetingAttendee[];
+  /** Mẫu 13: Tổ kiểm phiếu — người đầu là Tổ trưởng, những người sau là Thành viên. */
+  countingCommittee: MeetingAttendee[];
+  /** Mẫu 13: số phiếu phát ra, thu về, hợp lệ, không hợp lệ (null = chưa ghi). */
+  ballotsIssued?: number | null;
+  ballotsCollected?: number | null;
+  ballotsValid?: number | null;
+  ballotsInvalid?: number | null;
 }
 
 /** Biên bản hội nghị kèm các mục Mẫu 12. */

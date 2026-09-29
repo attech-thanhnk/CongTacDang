@@ -171,6 +171,18 @@ public class ExportReportController : ControllerBase
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
+    /// <summary>
+    /// Xuất Excel Mẫu 08 (HD03 V.1: lập trên file Excel) — cùng dữ liệu bản Word; <c>?format=pdf</c> chuyển sang PDF.
+    /// </summary>
+    [HttpGet("form-08/{collectiveRecordId}")]
+    [RequireAnyPermission(PermissionCodes.EvaluationRead, PermissionCodes.CollectiveManage)]
+    public async Task<IActionResult> ExportForm08Excel(Guid collectiveRecordId, [FromQuery] string? format = null)
+    {
+        await _reportAccess.EnsureCanExportCollectiveAsync(collectiveRecordId);
+        var result = await _reportService.ExportForm08ExcelAsync(collectiveRecordId, ParseFormat(format));
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
     /// <summary>Xuất Word Mẫu 12 — Biên bản hội nghị (hội nghị tập thể lãnh đạo B3a hoặc hội nghị cấp ủy B4).</summary>
     [HttpGet("docx/mau-12/{meetingId}")]
     [RequireAnyPermission(PermissionCodes.MeetingRead, PermissionCodes.MeetingManage)]
@@ -178,6 +190,19 @@ public class ExportReportController : ControllerBase
     {
         await _reportAccess.EnsureCanExportMeetingAsync(meetingId);
         var result = await _reportService.ExportMau12DocxAsync(meetingId, ParseFormat(format));
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
+    /// <summary>
+    /// Xuất Word Mẫu 13 — Biên bản kiểm phiếu của một hội nghị (B3a/B4): cán bộ tách mục I (BTVĐUTCT quyết định) / mục II
+    /// (Đảng ủy/Chi ủy cơ sở quyết định) theo thẩm quyền trên hồ sơ; biên bản chưa có kết quả kiểm phiếu → 400.
+    /// </summary>
+    [HttpGet("docx/mau-13/{meetingId}")]
+    [RequireAnyPermission(PermissionCodes.MeetingRead, PermissionCodes.MeetingManage)]
+    public async Task<IActionResult> ExportMau13Docx(Guid meetingId, [FromQuery] string? format = null)
+    {
+        await _reportAccess.EnsureCanExportMeetingAsync(meetingId);
+        var result = await _reportService.ExportMau13DocxAsync(meetingId, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
@@ -225,19 +250,6 @@ public class ExportReportController : ControllerBase
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
-    /// <summary>
-    /// Xuất Word Mẫu 13 — Biên bản kiểm phiếu đánh giá, xếp loại cán bộ quý.
-    /// Không truyền <paramref name="branchId"/>: cấp cao xuất toàn Đảng bộ, Chi bộ xuất Chi bộ của mình.
-    /// </summary>
-    [HttpGet("docx/mau-13")]
-    [RequireAnyPermission(PermissionCodes.MeetingRead, PermissionCodes.ReportExport)]
-    public async Task<IActionResult> ExportMau13Docx([FromQuery] Guid periodId, [FromQuery] Guid? branchId, [FromQuery] string? format = null)
-    {
-        var scope = await _reportAccess.ResolveBranchExportScopeAsync(
-            GetCurrentUserId(), branchId, PermissionCodes.MeetingRead, PermissionCodes.ReportExport);
-        var result = await _reportService.ExportMau13DocxAsync(periodId, scope, ParseFormat(format));
-        return File(result.FileBytes, result.ContentType, result.FileName);
-    }
 
     #endregion
 }

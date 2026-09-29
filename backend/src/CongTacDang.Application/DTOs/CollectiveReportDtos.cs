@@ -29,6 +29,21 @@ public class MeetingDetailsDto
 
     /// <summary>Mục 3.2: cán bộ, đảng viên khác được cử tham dự để ghi chép, báo cáo, phục vụ hội nghị.</summary>
     public List<MeetingAttendeeDto> Attendees { get; set; } = new();
+
+    /// <summary>Mẫu 13 mục II: Tổ kiểm phiếu do hội nghị bầu — người đầu tiên là Tổ trưởng, những người sau là Thành viên.</summary>
+    public List<MeetingAttendeeDto> CountingCommittee { get; set; } = new();
+
+    /// <summary>Mẫu 13: tổng số phiếu phát ra (null = chưa ghi).</summary>
+    public int? BallotsIssued { get; set; }
+
+    /// <summary>Mẫu 13: tổng số phiếu thu về.</summary>
+    public int? BallotsCollected { get; set; }
+
+    /// <summary>Mẫu 13: số phiếu hợp lệ.</summary>
+    public int? BallotsValid { get; set; }
+
+    /// <summary>Mẫu 13: số phiếu không hợp lệ.</summary>
+    public int? BallotsInvalid { get; set; }
 }
 
 /// <summary>Một mục/nhóm nội dung của biểu mẫu tập thể (đúng nguyên văn biểu mẫu gốc HD03).</summary>

@@ -25,6 +25,8 @@ public class CollectiveFormsTemplateTests
         yield return new object[] { Mau07Data.TemplateFileName, Mau07Sample() };
         yield return new object[] { Mau08Data.TemplateFileName, Mau08Sample() };
         yield return new object[] { Mau12Data.TemplateFileName, Mau12Sample(withAttendees: true) };
+        var (period, records) = DocumentTemplateTests.SampleData();
+        yield return new object[] { Mau13Data.TemplateFileName, Wave8FormsTests.Mau13Sample(period, records) };
         yield return new object[] { Mau16Data.TemplateFileName, Mau16Sample() };
     }
 

@@ -483,6 +483,8 @@ export interface VoteTallyDto {
   votesGood: number;
   votesSatisfactory: number;
   votesUnsatisfactory: number;
+  /** Phiếu "Chưa đánh giá, xếp loại" (cột 8 Mẫu 13). */
+  votesNotRated: number;
   invalidVotes: number;
   notes?: string;
 }
@@ -566,6 +568,8 @@ export interface EvaluationMeetingVoteSummaryDto {
   votesGood: number;
   votesSatisfactory: number;
   votesUnsatisfactory: number;
+  /** Phiếu "Chưa đánh giá, xếp loại" (cột 8 Mẫu 13). */
+  votesNotRated: number;
   invalidVotes: number;
   notes: string;
 }

@@ -29,7 +29,7 @@ interface Props {
   onReason: (action: RecordActionDto) => void;
 }
 
-const EMPTY_VOTES: VoteTallyDto = { votesExcellent: 0, votesGood: 0, votesSatisfactory: 0, votesUnsatisfactory: 0, invalidVotes: 0, notes: "" };
+const EMPTY_VOTES: VoteTallyDto = { votesExcellent: 0, votesGood: 0, votesSatisfactory: 0, votesUnsatisfactory: 0, votesNotRated: 0, invalidVotes: 0, notes: "" };
 
 /**
  * Khu vực thao tác của hồ sơ: chỉ hiển thị biểu mẫu/nút cho các hành động mà máy chủ trả về trong `actions`
@@ -212,7 +212,7 @@ function ProposalForm({ record, busy, stage, submitText, onSubmit }: { record: E
   }, [record.periodId, stage]);
 
   const selectedMeeting = meetings.find((m) => m.id === meetingId);
-  const totalVotes = votes.votesExcellent + votes.votesGood + votes.votesSatisfactory + votes.votesUnsatisfactory + votes.invalidVotes;
+  const totalVotes = votes.votesExcellent + votes.votesGood + votes.votesSatisfactory + votes.votesUnsatisfactory + votes.votesNotRated + votes.invalidVotes;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -274,6 +274,7 @@ function ProposalForm({ record, busy, stage, submitText, onSubmit }: { record: E
                 ["votesGood", "Tốt"],
                 ["votesSatisfactory", "Hoàn thành"],
                 ["votesUnsatisfactory", "Không HT"],
+                ["votesNotRated", "Chưa đánh giá"],
                 ["invalidVotes", "Không hợp lệ"],
               ] as [keyof VoteTallyDto, string][]).map(([key, label]) => (
                 <div className="col" key={key}>

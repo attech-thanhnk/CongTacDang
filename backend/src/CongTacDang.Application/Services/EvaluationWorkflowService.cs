@@ -912,7 +912,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         if (votes == null)
             return;
 
-        var counts = new[] { votes.VotesExcellent, votes.VotesGood, votes.VotesSatisfactory, votes.VotesUnsatisfactory, votes.InvalidVotes };
+        var counts = new[] { votes.VotesExcellent, votes.VotesGood, votes.VotesSatisfactory, votes.VotesUnsatisfactory, votes.VotesNotRated, votes.InvalidVotes };
         if (counts.Any(c => c < 0))
             throw new ValidationException("Số phiếu không được âm.");
         var total = counts.Sum();
@@ -931,6 +931,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         summary.VotesGood = votes.VotesGood;
         summary.VotesSatisfactory = votes.VotesSatisfactory;
         summary.VotesUnsatisfactory = votes.VotesUnsatisfactory;
+        summary.VotesNotRated = votes.VotesNotRated;
         summary.InvalidVotes = votes.InvalidVotes;
         summary.Notes = votes.Notes?.Trim() ?? string.Empty;
         meeting.UpdatedAt = DateTime.UtcNow;

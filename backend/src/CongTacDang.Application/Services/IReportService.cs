@@ -77,6 +77,12 @@ public interface IReportService
     /// <summary>Mẫu 08 — Báo cáo tổng hợp kết quả thực hiện các nhiệm vụ của cơ quan, đơn vị (từ hồ sơ tập thể M08).</summary>
     Task<ReportFileResult> ExportMau08DocxAsync(Guid collectiveRecordId, ReportFormat format = ReportFormat.Original);
 
+    /// <summary>
+    /// Mẫu 08 bản Excel (HD03 V.1: hồ sơ, biểu mẫu lập trên file Excel trừ Mẫu 07, 09C, 12, 13, 16) — cùng dữ liệu bản Word,
+    /// đúng cột và 13 nhóm nội dung của biểu mẫu gốc.
+    /// </summary>
+    Task<ReportFileResult> ExportForm08ExcelAsync(Guid collectiveRecordId, ReportFormat format = ReportFormat.Original);
+
     /// <summary>Mẫu 12 — Biên bản hội nghị (từ biên bản đã lập).</summary>
     Task<ReportFileResult> ExportMau12DocxAsync(Guid meetingId, ReportFormat format = ReportFormat.Original);
 
@@ -93,7 +99,7 @@ public interface IReportService
     Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 13: Biên bản kiểm phiếu đánh giá, xếp loại cán bộ quý (.docx)</summary>
-    Task<ReportFileResult> ExportMau13DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original);
+    Task<ReportFileResult> ExportMau13DocxAsync(Guid meetingId, ReportFormat format = ReportFormat.Original);
 
     #endregion
 }

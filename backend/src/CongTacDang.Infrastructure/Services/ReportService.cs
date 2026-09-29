@@ -919,31 +919,61 @@ public class ReportService : IReportService
         return await ToResultAsync(bytes, DocxMimeType, $"Mau_11_PhieuBoPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx", format);
     }
 
-    public async Task<ReportFileResult> ExportMau13DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original)
+    /// <inheritdoc />
+    public async Task<ReportFileResult> ExportMau13DocxAsync(Guid meetingId, ReportFormat format = ReportFormat.Original)
     {
-        var (period, records, branch) = await LoadPeriodRecordsAsync(periodId, branchId);
+        var meeting = await _db.EvaluationMeetings.AsNoTracking()
+            .Include(m => m.Period)
+            .Include(m => m.PartyCell)
+            .Include(m => m.Department)
+            .Include(m => m.VoteSummaries).ThenInclude(v => v.Record).ThenInclude(r => r.Member).ThenInclude(u => u!.Department)
+            .Include(m => m.VoteSummaries).ThenInclude(v => v.Record).ThenInclude(r => r.Department)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(m => m.Id == meetingId)
+            ?? throw new KeyNotFoundException($"Không tìm thấy biên bản hội nghị với Id: {meetingId}");
+        if (meeting.VoteSummaries.Count == 0)
+            throw new ArgumentException(
+                "Biên bản chưa có kết quả kiểm phiếu của hồ sơ nào nên chưa lập được Mẫu 13. Hãy ghi kết quả kiểm phiếu khi ghi nhận đề xuất (B3a) hoặc quyết định (B4), hoặc nhập khi lập biên bản kiểm phiếu.");
 
-        // Task 12: kết quả kiểm phiếu tổng hợp lưu trên biên bản (Mẫu 12/13) — lấy biên bản mới nhất có dòng của từng hồ sơ.
-        var recordIds = records.Select(r => r.Id).ToList();
-        var summaries = await _db.EvaluationMeetingVoteSummaries.AsNoTracking()
-            .Include(v => v.Meeting)
-            .Where(v => recordIds.Contains(v.RecordId) && !v.Meeting.IsDeleted)
-            .ToListAsync();
-        var tallies = summaries
-            .GroupBy(v => v.RecordId)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(v => v.Meeting.StartedAt).First());
-        var meetings = tallies.Values.Select(v => v.Meeting).DistinctBy(m => m.Id).ToList();
+        var org = await _orgSettings.GetAsync();
+        var (header, unit, archive, unitForFile) = await MeetingUnitAsync(meeting, org);
 
-        // Số người bỏ phiếu: số có mặt của biên bản (khi mọi dòng thuộc một biên bản); không có thì sĩ số Chi bộ.
-        int? totalVoters = meetings.Count == 1 && meetings[0].PresentCount > 0
-            ? meetings[0].PresentCount
-            : null;
-        if (totalVoters is null or 0 && branch != null)
-            totalVoters = await _db.PartyMemberProfiles.CountAsync(m => m.PartyCellId == branch.Id);
+        // Chức vụ, đơn vị công tác của từng cán bộ tại thời điểm của kỳ; thứ tự theo mã chức danh (M1…M26) rồi họ tên.
+        var at = PositionDate(meeting.Period);
+        var held = await HeldPositionsAsync(meeting.VoteSummaries.Select(v => v.Record.MemberId), at);
+        var lines = meeting.VoteSummaries
+            .Select(v =>
+            {
+                var positions = held.GetValueOrDefault(v.Record.MemberId) ?? new List<Position>();
+                var code = PositionRules.PersonStatCode(positions.Select(p => new HeldPosition(p.Name, p.StatCode, p.DefaultApprovalAuthority)));
+                return (Line: new Mau13Line(v, v.Record.Member?.FullName, PositionAndUnit(v.Record, positions), v.Record.ApprovalAuthority), Code: code);
+            })
+            .OrderBy(x => StatCodeOrder(x.Code))
+            .ThenBy(x => x.Line.FullName, StringComparer.Create(new CultureInfo("vi-VN"), true))
+            .Select(x => x.Line)
+            .ToList();
 
-        var issuer = branch?.Name ?? (await _orgSettings.GetAsync()).PartyCommitteeName;
-        var bytes = await RenderWordAsync(Mau13Data.TemplateFileName, Mau13Data.From(period, records, issuer, totalVoters, tallies));
-        return await ToResultAsync(bytes, DocxMimeType, $"Mau_13_BienBanKiemPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx", format);
+        var details = CollectiveEvaluationService.DeserializeDetails(meeting.Details);
+        var bytes = await RenderWordAsync(Mau13Data.TemplateFileName, Mau13Data.From(meeting, header, unit, archive, details, lines));
+        return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("13", org.ShortName, unitForFile, meeting.Period, ".docx"), format);
+    }
+
+    /// <summary>Thứ tự mã chức danh M1…M26 (không có mã → cuối).</summary>
+    private static int StatCodeOrder(string? code) =>
+        code != null && code.StartsWith('M') && int.TryParse(code[1..], NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : int.MaxValue;
+
+    /// <summary>
+    /// Tiêu đề trái, đơn vị tổ chức hội nghị, nơi lưu biên bản và đơn vị đặt tên tệp của một biên bản: hội nghị của tổ chức Đảng
+    /// → tổ chức đó; hội nghị cấp Phòng / cấp Công ty → Đảng bộ (cài đặt đơn vị).
+    /// </summary>
+    private async Task<(PartyHeader Header, string? Unit, string? Archive, PartyCell? UnitForFile)> MeetingUnitAsync(
+        EvaluationMeeting meeting, OrganizationSettingsDto org)
+    {
+        if (meeting.PartyCell != null)
+            return (await CollectiveHeaderAsync(meeting.PartyCell), meeting.PartyCell.Name, meeting.PartyCell.Name, meeting.PartyCell);
+        var unitForFile = meeting.Department != null ? new PartyCell { Name = meeting.Department.Name } : null;
+        return (PartyHeader.Of(org.SuperiorPartyName, org.PartyCommitteeName), meeting.Department?.Name ?? org.PartyCommitteeName,
+            org.PartyCommitteeName, unitForFile);
     }
 
     /// <inheritdoc />
@@ -967,6 +997,82 @@ public class ReportService : IReportService
         return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("08", org.ShortName, record.PartyCell, record.Period, ".docx"), format);
     }
 
+    /// <summary>Tiêu đề cột Mẫu 08 đúng nguyên văn biểu mẫu gốc (PDF tr.48–49).</summary>
+    private static readonly string[] Form08Columns =
+    {
+        "TT", "Nội dung công việc", "Kế hoạch hoặc sự chỉ đạo, yêu cầu của lãnh đạo Tổng công ty",
+        "Kết quả thực hiện trong kỳ đánh giá (đối chiếu với kế hoạch hoặc sự chỉ đạo, yêu cầu của lãnh đạo TCT để phân tích, đánh giá)",
+        "Tồn tại, hạn chế hoặc thành tích đã được ghi nhận, biểu dương", "Ghi chú"
+    };
+
+    /// <inheritdoc />
+    public async Task<ReportFileResult> ExportForm08ExcelAsync(Guid collectiveRecordId, ReportFormat format = ReportFormat.Original)
+    {
+        // HD03 V.1: hồ sơ, biểu mẫu báo cáo lập trên file Excel (trừ Mẫu 07, 09C, 12, 13, 16) — Mẫu 08 bản Excel cùng dữ liệu bản Word.
+        var record = await LoadCollectiveAsync(collectiveRecordId, CollectiveEvaluationForm.M08);
+        var header = await CollectiveHeaderAsync(record.PartyCell);
+        var org = await _orgSettings.GetAsync();
+        var data = Mau08Data.From(record, header);
+        var last = Form08Columns.Length;
+
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Mẫu 08");
+        WriteFormHeader(ws, last, "Mẫu số 08", header, org.Location, leftColumns: 2);
+        TitleRow(ws, 5, last, $"BÁO CÁO TỔNG HỢP KẾT QUẢ THỰC HIỆN CÁC NHIỆM VỤ CỦA CƠ QUAN, ĐƠN VỊ QUÝ {QuarterYear(record.Period, "/NĂM ")}", bold: true);
+        TitleRow(ws, 6, last, "-----", bold: false);
+
+        const int head = 8, numbers = 9;
+        for (var c = 1; c <= last; c++)
+        {
+            ws.Cell(head, c).Value = Form08Columns[c - 1];
+            ws.Cell(numbers, c).Value = c;
+        }
+        StyleHeader(ws.Range(head, 1, numbers, last));
+
+        var row = numbers + 1;
+        foreach (var item in data.Rows)
+        {
+            // Cột 2: tên nhóm nội dung + các dòng "- nhiệm vụ"; nhóm 1–7 chưa nhập giữ dòng mẫu "- Nhiệm vụ 1: …" như biểu mẫu.
+            var category = Hd03FormCatalog.Form08Categories.First(x => x.Code == item.Order);
+            var tasks = item.Tasks ?? (category.HasTaskLines ? "\n- Nhiệm vụ 1: …\n- …" : string.Empty);
+            var values = new object?[] { int.Parse(item.Order!, CultureInfo.InvariantCulture), item.Title + tasks, item.Plan, item.Result, item.Issues, item.Notes };
+            for (var c = 1; c <= last; c++)
+            {
+                var cell = ws.Cell(row, c);
+                switch (values[c - 1])
+                {
+                    case int n: cell.Value = n; break;
+                    case string s: cell.Value = s; break;
+                }
+                cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                cell.Style.Alignment.WrapText = true;
+                cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Top;
+            }
+            ws.Cell(row, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            row++;
+        }
+
+        row++;
+        ws.Cell(row, 2).Value = "Ghi chú: - Các nội dung nêu trên được phân tích, đánh giá trên các khía cạnh sau: (1) Việc xây dựng, thực hiện kế hoạch, chương trình công tác; (2) Việc lãnh đạo, chỉ đạo, phân công, phối hợp thực hiện công việc; (3) Việc đánh giá, xếp loại kết quả thực hiện công việc; (4) Việc khen thưởng, động viên hoặc phê bình, nhắc nhở, kỷ luật tập thể, cá nhân có liên quan.\n- Đồng chí Bí thư - Trưởng các cơ quan/đơn vị trực tiếp chỉ đạo lập, rà soát, ký báo cáo (không ủy quyền cho cấp Phó).";
+        ws.Range(row, 2, row, last).Merge().Style.Alignment.SetWrapText(true).Alignment.SetVertical(XLAlignmentVerticalValues.Top).Font.SetItalic(true);
+        ws.Row(row).Height = 75;
+        row += 2;
+        SignatureRow(ws, row, last, "NGƯỜI LẬP", "(ký, ghi rõ họ tên)", "T/M ĐẢNG ỦY (CHI BỘ)", "(ký, ghi rõ họ tên và đóng dấu)");
+
+        ws.Column(1).Width = 5;
+        ws.Column(2).Width = 45;
+        ws.Column(3).Width = 28;
+        ws.Column(4).Width = 34;
+        ws.Column(5).Width = 28;
+        ws.Column(6).Width = 14;
+        ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+        ws.PageSetup.FitToPages(1, 0);
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        return await ToResultAsync(stream.ToArray(), XlsxMimeType, Hd03FileName("08", org.ShortName, record.PartyCell, record.Period, ".xlsx"), format);
+    }
+
     /// <inheritdoc />
     public async Task<ReportFileResult> ExportMau12DocxAsync(Guid meetingId, ReportFormat format = ReportFormat.Original)
     {
@@ -980,25 +1086,9 @@ public class ReportService : IReportService
             throw new ArgumentException("Biên bản này là biên bản kiểm phiếu (Mẫu 13). Mẫu 12 chỉ xuất từ biên bản hội nghị (M12).");
 
         var org = await _orgSettings.GetAsync();
-        PartyHeader header;
-        string? unit;
-        string? archive;
-        if (meeting.PartyCell != null)
-        {
-            header = await CollectiveHeaderAsync(meeting.PartyCell);
-            unit = meeting.PartyCell.Name;
-            archive = meeting.PartyCell.Name;
-        }
-        else
-        {
-            header = PartyHeader.Of(org.SuperiorPartyName, org.PartyCommitteeName);
-            unit = meeting.Department?.Name ?? org.PartyCommitteeName;
-            archive = org.PartyCommitteeName;
-        }
-
+        var (header, unit, archive, unitForFile) = await MeetingUnitAsync(meeting, org);
         var details = CollectiveEvaluationService.DeserializeDetails(meeting.Details);
         var bytes = await RenderWordAsync(Mau12Data.TemplateFileName, Mau12Data.From(meeting, header, unit, archive, details));
-        var unitForFile = meeting.PartyCell ?? (meeting.Department != null ? new PartyCell { Name = meeting.Department.Name } : null);
         return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("12", org.ShortName, unitForFile, meeting.Period, ".docx"), format);
     }
 
