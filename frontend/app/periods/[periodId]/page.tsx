@@ -302,7 +302,6 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
       <div className="card-body">
         <div className="d-flex justify-content-between align-items-center mb-2">
           <h2 className="h6 mb-0">Người được đánh giá ({participants.length})</h2>
-          <Link href="/imports" className="btn btn-outline-secondary btn-sm"><i className="bi bi-file-earmark-excel me-1" />Nhập từ Excel (loại "Người được đánh giá của kỳ", có cột Hồ sơ luồng)</Link>
         </div>
 
         {canAdd && (

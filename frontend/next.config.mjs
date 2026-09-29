@@ -21,11 +21,6 @@ const nextConfig = {
   // Tách cache dev khỏi production build để tránh mất chunk khi build lúc dev đang chạy.
   distDir: isDev ? '.next-dev' : '.next',
   output: 'standalone',
-  experimental: {
-    // Thời gian chờ tối đa (ms) của proxy /api/* tới backend. Mặc định 30 giây không đủ cho bước xác nhận
-    // nhập nhiều cán bộ (băm BCrypt mật khẩu tạm ~0,1–0,2 giây/tài khoản) → nâng lên 5 phút.
-    proxyTimeout: 300000,
-  },
   // rewrites được tính LÚC BUILD và ghi cố định vào bản build: BACKEND_INTERNAL_URL phải có khi chạy
   // `npm run build` (Docker: build arg trong Dockerfile.frontend), đặt lúc chạy `next start` không có tác dụng.
   async rewrites() {
