@@ -37,6 +37,10 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 - Chạy thử app thật (backend + `next start` qua proxy, CSDL tạm trên 159, dữ liệu mẫu): 25/26 kịch bản API đạt ngay, kịch bản còn lại do script thiếu `periodId`, chạy lại đạt. Đã kiểm: bắt đổi mật khẩu phía máy chủ, `grants`, tạo tài khoản → đăng nhập, gán vai trò có hiệu lực ngay, chống tự khóa, khóa → 401 ngay, cán bộ thường bị chặn danh sách tài khoản, import, và work-queue của 8 tài khoản mẫu đúng vai (kể cả chặn tự duyệt hồ sơ của mình).
 - Sau khi triển khai bản này mọi người phải đăng nhập lại (JWT mới có `sstamp`).
 
+**Đợt 7 (2026-09-29)** — task 16 (bộ tiêu chí theo phiên bản), task 17 (cài đặt đơn vị, quản lý file mẫu Word) và tích hợp đã merge (`f62a116`). Người điều phối kiểm lại: build 0 lỗi 0 warning, unit 273/274 (1 skip PDF), integration 98/98 trên `192.168.22.159`, `tsc` pass, grep không còn điểm/trục/khung cứng, frontend không còn tên đơn vị cứng. Migration gộp lại `InitialCreate` mới → **CSDL cũ phải tạo lại**. Tiêu chí chung nay theo HD03 (3 nhóm, 17 tiêu chí con, Đảm bảo/Không đảm bảo/K/AD); ví dụ TC-1 ra đúng 67,6 / 97,6 như văn bản (trước ra 67,47 do làm tròn cứng).
+- Cần nghiệp vụ xác nhận: 2 bộ tiêu chí mặc định (09B, 09A) và 8 câu hỏi trong `reports/16-criteria-sets.md`; nội dung cài đặt đơn vị mặc định.
+- Còn mở (⚪): điểm thẩm định theo nhóm trên Mẫu 10; giải trình cho kết quả thẩm định cấp trên; làm tròn bước 0,5; đổi khung tỷ trọng sau khi đã tự chấm không tự tính lại; tên tệp tải xuống chưa lấy từ `Content-Disposition` (xem `reports/wave7-integration.md`).
+
 **Đợt 6 (2026-09-29)** — task 14 (tổ chức động), task 15 (luồng theo nhóm đối tượng) và tích hợp đã merge (`07106a7`). Người điều phối kiểm lại: build 0 lỗi 0 warning, unit 228/229 (1 skip PDF), integration 89/89 trên `192.168.22.159`, `tsc` pass, grep không còn enum chức vụ / mã quyền cũ. Migration gộp lại một `InitialCreate` mới → **CSDL cũ phải tạo lại**. Đổi tiêu đề cột import sang "Mã/Tên đơn vị", "Mã/Tên tổ chức Đảng", "Mã đơn vị công tác" (file mẫu cũ không dùng được). Loại đơn vị khai báo trên giao diện (chưa có import).
 - Cần nghiệp vụ xác nhận thêm: danh mục chức vụ mặc định và mã M1–M26 (Chủ tịch/Giám đốc có xếp M14, Kế toán trưởng, Chi ủy viên), 3 hồ sơ luồng mặc định và 6 câu hỏi trong `reports/15-workflow-profiles.md`.
 
@@ -120,11 +124,11 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-74 | 🔴 | Một luồng cho cả kỳ: hồ sơ diện BTV Đảng ủy Tổng công ty (Ban Giám đốc) đi luồng nội bộ và kẹt ở bước cấp trực tiếp sử dụng; không có bước do cấp trên thực hiện; không có biến thể theo đối tượng (HD03 Phụ lục III ví dụ 2, 3) | `EvaluationWorkflowService`, `PeriodSettings` | 15 | done |
 | T-75 | 🟠 | Không kiểm tra trước được hồ sơ nào sẽ kẹt vì không ai đủ quyền thực hiện bước | `PeriodService` | 15 | done |
 | T-76 | 🟡 | Giao diện kỳ chưa cấu hình được luồng theo nhóm, người thực hiện từng bước | `app/periods` | 15 | done |
-| T-77 | 🔴 | Tiêu chí chung chấm thành 6 ô × 5 điểm (`GeneralScoreT1..T6`) — lệch HD03 (3 nhóm 18/4/8, 17 tiêu chí con, "đảm bảo/không đảm bảo", K/AD); trục, khung tỷ trọng là enum; nội dung chấm điểm không khai báo được theo văn bản từng thời kỳ | `EvaluationRecord`, `DomainEnums.cs`, `EvaluationScoring` | 16 | open |
-| T-78 | 🟠 | Tham số tính điểm của kỳ chỉ xem, không sửa được; làm tròn, trần Xuất sắc, ngưỡng giải trình chênh lệch không cấu hình được (B-08, B-09) | `PeriodSettings`, `EvaluationParameters` | 16 | open |
-| T-79 | 🟡 | Form tự chấm/thẩm định dựng cứng 6 ô tiêu chí, 6 trục | `components/evaluations/RecordActionPanel.tsx` | 16 | open |
-| T-80 | 🟡 | Tên đơn vị ghi cứng trong code xuất biểu mẫu và tên file ("ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", "ATTECH") | `ReportService`, `Documents/**` | 17 | open |
-| T-81 | 🟡 | Không thay được file mẫu Word qua giao diện, không có phiên bản, không kiểm tra tag khi thay | `WordTemplateStore`, `Templates/Word` | 17 | open |
+| T-77 | 🔴 | Tiêu chí chung chấm thành 6 ô × 5 điểm (`GeneralScoreT1..T6`) — lệch HD03 (3 nhóm 18/4/8, 17 tiêu chí con, "đảm bảo/không đảm bảo", K/AD); trục, khung tỷ trọng là enum; nội dung chấm điểm không khai báo được theo văn bản từng thời kỳ | `EvaluationRecord`, `DomainEnums.cs`, `EvaluationScoring` | 16 | done |
+| T-78 | 🟠 | Tham số tính điểm của kỳ chỉ xem, không sửa được; làm tròn, trần Xuất sắc, ngưỡng giải trình chênh lệch không cấu hình được (B-08, B-09) | `PeriodSettings`, `EvaluationParameters` | 16 | done |
+| T-79 | 🟡 | Form tự chấm/thẩm định dựng cứng 6 ô tiêu chí, 6 trục | `components/evaluations/RecordActionPanel.tsx` | 16 | done |
+| T-80 | 🟡 | Tên đơn vị ghi cứng trong code xuất biểu mẫu và tên file ("ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", "ATTECH") | `ReportService`, `Documents/**` | 17 | done |
+| T-81 | 🟡 | Không thay được file mẫu Word qua giao diện, không có phiên bản, không kiểm tra tag khi thay | `WordTemplateStore`, `Templates/Word` | 17 | done |
 | T-70 | ⚪ | EF cảnh báo 10622 khi khởi động: `CollectiveEvaluationRecord`, `EvaluationMeeting` có query filter xóa mềm nhưng là đầu bắt buộc của quan hệ với bảng con (item, vote summary) — cần filter tương ứng cho bảng con hoặc quan hệ tùy chọn | `CongTacDangDbContext`, `Data/Configurations/` | — | open |
 
 ## B — Nghiệp vụ (để xử lý sau)
