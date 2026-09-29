@@ -179,7 +179,7 @@ public sealed class CatalogImportIntegrationTests
         var existing = await client.PostAsJsonAsync("/api/organizations/departments", new { code = existingCode, name = "Tên cũ", description = "Mô tả cũ" });
         var existingId = (await DataAsync(existing)).GetProperty("id").GetGuid();
 
-        var file = BuildFile(new[] { "Mã Phòng", "Tên Phòng", "Mô tả", "Thứ tự hiển thị", "Trạng thái" },
+        var file = BuildFile(new[] { "Mã đơn vị", "Tên đơn vị", "Mô tả", "Thứ tự hiển thị", "Trạng thái" },
             new[] { existingCode.ToLowerInvariant(), "Tên mới", "", "3", "Ngừng hoạt động" },
             new[] { newCode, "Phòng nhập từ Excel", "Mô tả mới", "", "" });
         var preview = await PreviewAsync(client, "departments", file);
@@ -220,7 +220,7 @@ public sealed class CatalogImportIntegrationTests
         // Chi bộ: cùng khung, loại khác.
         var cellCode = UniqueCode("CB");
         var cellPreview = await PreviewAsync(client, "party-cells",
-            BuildFile(new[] { "Mã Chi bộ", "Tên Chi bộ" }, new[] { cellCode, "Chi bộ nhập từ Excel" }));
+            BuildFile(new[] { "Mã tổ chức Đảng", "Tên tổ chức Đảng" }, new[] { cellCode, "Chi bộ nhập từ Excel" }));
         Assert.Equal("create", cellPreview.GetProperty("rows")[0].GetProperty("action").GetString());
         var cellCommit = await client.PostAsync($"/api/imports/{cellPreview.GetProperty("sessionId").GetGuid()}/commit", null);
         Assert.Equal(1, (await DataAsync(cellCommit)).GetProperty("created").GetInt32());
@@ -236,7 +236,7 @@ public sealed class CatalogImportIntegrationTests
         var a = UniqueCode("PH");
         var b = UniqueCode("PH");
 
-        var file = BuildFile(new[] { "Mã Phòng", "Tên Phòng", "Thứ tự hiển thị" },
+        var file = BuildFile(new[] { "Mã đơn vị", "Tên đơn vị", "Thứ tự hiển thị" },
             new[] { a, "Phòng A", "1" },
             new[] { b, "Phòng B", "không phải số" },
             new[] { UniqueCode("PH"), "Phòng C", "2" });
@@ -257,9 +257,9 @@ public sealed class CatalogImportIntegrationTests
         // Tệp sai định dạng / thiếu cột → 400 rõ lý do.
         var wrongType = await PostFileAsync(client, "departments", file, "data.csv");
         Assert.Equal(HttpStatusCode.BadRequest, wrongType.StatusCode);
-        var missingColumn = await PostFileAsync(client, "departments", BuildFile(new[] { "Mã Phòng" }, new[] { a }), "a.xlsx");
+        var missingColumn = await PostFileAsync(client, "departments", BuildFile(new[] { "Mã đơn vị" }, new[] { a }), "a.xlsx");
         Assert.Equal(HttpStatusCode.BadRequest, missingColumn.StatusCode);
-        Assert.Contains("Tên Phòng", await MessageAsync(missingColumn));
+        Assert.Contains("Tên đơn vị", await MessageAsync(missingColumn));
     }
 
     // ===================== L5, L6: import cán bộ =====================
@@ -279,7 +279,7 @@ public sealed class CatalogImportIntegrationTests
         var suffix = Guid.NewGuid().ToString("N")[..6];
         var user1 = $"imp_{suffix}_1";
         var user2 = $"imp_{suffix}_2";
-        var headers = new[] { "Tên đăng nhập", "Họ và tên", "Email", "Số thẻ Đảng", "Chức danh", "Mã Phòng", "Mã Chi bộ", "Thẩm quyền phê duyệt" };
+        var headers = new[] { "Tên đăng nhập", "Họ và tên", "Email", "Số thẻ Đảng", "Chức danh", "Mã đơn vị công tác", "Mã tổ chức Đảng", "Thẩm quyền phê duyệt" };
         var file = BuildFile(headers,
             new[] { user1, "Nguyễn Văn Nhập", "nhap@example.vn", "0123456", "Trưởng phòng", deptCode.ToLowerInvariant(), cellCode, "CapTren" },
             new[] { user2, "Trần Thị Nhập", "", "", "", "", "", "CoSo" });

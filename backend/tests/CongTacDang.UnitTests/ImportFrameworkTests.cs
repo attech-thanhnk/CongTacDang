@@ -50,7 +50,7 @@ public class ImportFrameworkTests
     public void ReadRows_TrimsValues_SkipsEmptyRows_AndKeepsExcelRowNumbers()
     {
         var definition = new DepartmentImportDefinition(new FakeLookup(), null!);
-        var bytes = BuildWorkbook(new[] { "Mã Phòng", "Tên Phòng" },
+        var bytes = BuildWorkbook(new[] { "Mã đơn vị", "Tên đơn vị" },
             new[] { "  ph-a ", " Phòng A  " },
             new[] { "", "" },
             new[] { "PH-B", "Phòng B" },
@@ -81,7 +81,7 @@ public class ImportFrameworkTests
     public void ReadRows_HeaderMatchIgnoresCaseAndRequiredMarker()
     {
         var definition = new DepartmentImportDefinition(new FakeLookup(), null!);
-        var bytes = BuildWorkbook(new[] { "mã phòng *", "TÊN PHÒNG" }, new[] { "X", "Y" });
+        var bytes = BuildWorkbook(new[] { "mã đơn vị *", "TÊN ĐƠN VỊ" }, new[] { "X", "Y" });
 
         var rows = new ClosedXmlImportWorkbook().ReadRows(new MemoryStream(bytes), definition);
         Assert.Equal("X", Assert.Single(rows).Get(CatalogImportDefinition.CodeKey));
@@ -92,7 +92,7 @@ public class ImportFrameworkTests
     {
         var definition = new DepartmentImportDefinition(new FakeLookup(), null!);
         var data = Enumerable.Range(1, ImportLimits.MaxRows + 1).Select(i => new[] { $"C{i}", $"N{i}" }).ToArray();
-        var bytes = BuildWorkbook(new[] { "Mã Phòng", "Tên Phòng" }, data);
+        var bytes = BuildWorkbook(new[] { "Mã đơn vị", "Tên đơn vị" }, data);
 
         var ex = Assert.Throws<ValidationException>(() => new ClosedXmlImportWorkbook().ReadRows(new MemoryStream(bytes), definition));
         Assert.Contains("2.000", ex.Message.Replace(",", "."));
@@ -172,7 +172,7 @@ public class ImportFrameworkTests
         Assert.Contains("khoảng trắng", Errors(analysis, 5));
         Assert.Contains("số nguyên không âm", Errors(analysis, 6));
         Assert.Contains("Chỉ nhận", Errors(analysis, 7));
-        Assert.Contains("Thiếu \"Tên Phòng\"", Errors(analysis, 8));
+        Assert.Contains("Thiếu \"Tên đơn vị\"", Errors(analysis, 8));
         Assert.Equal(ImportRowAction.Create, analysis.Rows[7].Action); // giá trị hợp lệ không phân biệt hoa thường
         Assert.Equal(CatalogImportDefinition.StatusInactive, analysis.Rows[7].Data["status"]);
     }
@@ -280,7 +280,7 @@ public class ImportFrameworkTests
         var owner = CreateService(userId, sessions, PermissionCodes.SystemImport, PermissionCodes.CatalogManage);
         var other = CreateService(Guid.NewGuid(), sessions, PermissionCodes.SystemImport, PermissionCodes.CatalogManage);
 
-        var okFile = BuildWorkbook(new[] { "Mã Phòng", "Tên Phòng" }, new[] { "PH-NEW", "Phòng mới" });
+        var okFile = BuildWorkbook(new[] { "Mã đơn vị", "Tên đơn vị" }, new[] { "PH-NEW", "Phòng mới" });
         var preview = await owner.Service.PreviewAsync("departments", "a.xlsx", okFile.Length, new MemoryStream(okFile));
         Assert.True(preview.CanCommit);
 
@@ -291,7 +291,7 @@ public class ImportFrameworkTests
         Assert.Equal(0, owner.Audit.Count);
         await Assert.ThrowsAsync<NotFoundException>(() => owner.Service.CommitAsync(preview.SessionId)); // chỉ một lần
 
-        var badFile = BuildWorkbook(new[] { "Mã Phòng", "Tên Phòng" }, new[] { "PH-X", "X" }, new[] { "PH-X", "X trùng" });
+        var badFile = BuildWorkbook(new[] { "Mã đơn vị", "Tên đơn vị" }, new[] { "PH-X", "X" }, new[] { "PH-X", "X trùng" });
         var bad = await owner.Service.PreviewAsync("departments", "b.xlsx", badFile.Length, new MemoryStream(badFile));
         Assert.False(bad.CanCommit);
         Assert.Equal(1, bad.Summary.Error);

@@ -52,11 +52,12 @@ docker compose -f docker/docker-compose.yml config
 - API trả về `ApiResponse` / `ApiResponse<T>` (`Application/Common/Models`).
 - **Phân quyền** (chi tiết: `docs/thiet-ke/phan-quyen.md`):
   - Chỉ dùng mã quyền trong `PermissionCodes`. **Không** kiểm tra theo tên vai trò (không `IsInRole`, không mã vai trò trong code/frontend).
-  - Vai trò, quyền của vai trò và bản gán (người + vai trò + phạm vi Global/Department/PartyCell + thời hạn) lưu trong CSDL, quản trị qua giao diện.
+  - Vai trò, quyền của vai trò và bản gán (người + vai trò + phạm vi Global / đơn vị chính quyền / tổ chức Đảng + thời hạn) lưu trong CSDL, quản trị qua giao diện. Phạm vi đơn vị **bao trùm mọi đơn vị con** trong cây.
   - Quyền được tính lại mỗi request qua `IPermissionResolver` (cache, xóa sau commit) — JWT chỉ chứa danh tính + `sstamp`.
   - Controller: `[RequirePermission]` / `[RequireAnyPermission]` (có quyền ở phạm vi nào đó). Service **bắt buộc** kiểm tra trên đối tượng bằng `IAuthorizationGuard.Ensure`, lọc danh sách bằng `GetScope`.
   - Frontend: `hasPermission` / `hasPermissionIn` từ `AuthContext`; nút thao tác hồ sơ đánh giá hiển thị theo API `actions`, không tự suy luật.
-- **Luồng đánh giá:** bước và trạng thái theo `docs/thiet-ke/luong-danh-gia.md`; bật/tắt bước và tham số nằm trong cấu hình kỳ (`EvaluationPeriod.Settings`). Không đổi công thức điểm khi chưa được nghiệp vụ xác nhận.
+- **Tổ chức:** đơn vị chính quyền (`AdministrativeDepartment`) và tổ chức Đảng (`PartyCell`) là hai cây nhiều cấp (`ParentId`, `Path`, loại đơn vị trong `org_unit_types`); chức vụ là danh mục `positions` (mã thống kê M1–M26), cán bộ giữ nhiều chức vụ qua `member_positions` (kiêm nhiệm); thẩm quyền phê duyệt (CoSo/CapTren) suy ra từ chức vụ, ghi đè được có lý do. Không dùng enum chức vụ.
+- **Luồng đánh giá:** bước và trạng thái theo `docs/thiet-ke/luong-danh-gia.md`. Cấu hình kỳ (`EvaluationPeriod.Settings`) gồm các **hồ sơ luồng** theo nhóm đối tượng: mỗi bước `Internal` (kèm mã quyền thực hiện) / `External` (cấp trên thực hiện, ghi nhận kết quả) / `Off`; mỗi hồ sơ đánh giá gắn một hồ sơ luồng. Kiểm tra kẹt luồng (`readiness`) trước khi mở kỳ. Không đổi công thức điểm khi chưa được nghiệp vụ xác nhận.
 - **CSDL:** migration là nguồn schema duy nhất; entity mới cấu hình trong `Infrastructure/Data/Configurations/`.
 - Entity hỗ trợ xóa mềm (`ISoftDeletable`) và audit (`IAuditableEntity`); audit log được ghi tự động trong `CongTacDangDbContext.SaveChangesAsync`.
 - Máy chủ PostgreSQL `192.168.22.159` dùng chung: test chỉ tạo/xóa CSDL `ctd_it_*`, không đụng CSDL khác.

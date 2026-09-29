@@ -89,7 +89,7 @@ public abstract class CatalogImportDefinition : IImportDefinition<CatalogImportR
     /// <summary>Repository danh mục (dùng khi ghi).</summary>
     protected IOrganizationRepository Organizations { get; }
 
-    /// <summary>Nhãn tiếng Việt dùng trong tiêu đề cột: "Phòng" / "Chi bộ" (giữ tiêu đề cột cũ của file mẫu).</summary>
+    /// <summary>Nhãn tiếng Việt dùng trong tiêu đề cột: "đơn vị" (chính quyền) / "tổ chức Đảng".</summary>
     protected abstract string Label { get; }
 
     /// <summary>Bên của loại đơn vị hợp lệ.</summary>
@@ -359,7 +359,7 @@ public sealed class DepartmentImportDefinition : CatalogImportDefinition
     public override string Description => "Thêm mới hoặc cập nhật đơn vị chính quyền (Công ty, Phòng, Trung tâm…) theo mã, kèm đơn vị cha và loại đơn vị.";
 
     /// <inheritdoc />
-    protected override string Label => "Phòng";
+    protected override string Label => "đơn vị";
 
     /// <inheritdoc />
     protected override OrgSide Side => OrgSide.Administrative;
@@ -416,7 +416,7 @@ public sealed class PartyCellImportDefinition : CatalogImportDefinition
     public override string Description => "Thêm mới hoặc cập nhật tổ chức Đảng (Đảng ủy, Đảng bộ bộ phận, Chi bộ…) theo mã, kèm tổ chức cấp trên và loại.";
 
     /// <inheritdoc />
-    protected override string Label => "Chi bộ";
+    protected override string Label => "tổ chức Đảng";
 
     /// <inheritdoc />
     protected override OrgSide Side => OrgSide.Party;

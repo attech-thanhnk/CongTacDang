@@ -45,7 +45,7 @@ public sealed class DynamicOrgIntegrationTests
         string R = $"R-{s}", M = $"M-{s}", L = $"L-{s}", S = $"S-{s}";
 
         // Con đứng trước cha trong tệp; loại đơn vị theo danh mục mặc định.
-        var headers = new[] { "Mã Phòng", "Tên Phòng", "Mã đơn vị cha", "Loại đơn vị" };
+        var headers = new[] { "Mã đơn vị", "Tên đơn vị", "Mã đơn vị cha", "Loại đơn vị" };
         var preview = await PreviewAsync(admin, "departments", BuildFile(headers,
             new[] { L, "Đội L", M, "Đội" },
             new[] { M, "Phòng M", R, "Phòng" },

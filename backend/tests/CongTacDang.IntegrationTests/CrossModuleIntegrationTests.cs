@@ -94,7 +94,7 @@ public sealed class CrossModuleIntegrationTests
         var suffix = Guid.NewGuid().ToString("N")[..6];
         var inScope = $"imp_{suffix}_a";
         var outOfScope = $"imp_{suffix}_b";
-        var headers = new[] { "Tên đăng nhập", "Họ và tên", "Mã Phòng", "Thẩm quyền phê duyệt" };
+        var headers = new[] { "Tên đăng nhập", "Họ và tên", "Mã đơn vị công tác", "Thẩm quyền phê duyệt" };
         var file = BuildFile(headers,
             new[] { inScope, "Cán bộ Phòng A", codeA, "CoSo" },
             new[] { outOfScope, "Cán bộ Phòng B", codeB, "CoSo" });

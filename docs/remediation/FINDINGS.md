@@ -37,6 +37,9 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 - Chạy thử app thật (backend + `next start` qua proxy, CSDL tạm trên 159, dữ liệu mẫu): 25/26 kịch bản API đạt ngay, kịch bản còn lại do script thiếu `periodId`, chạy lại đạt. Đã kiểm: bắt đổi mật khẩu phía máy chủ, `grants`, tạo tài khoản → đăng nhập, gán vai trò có hiệu lực ngay, chống tự khóa, khóa → 401 ngay, cán bộ thường bị chặn danh sách tài khoản, import, và work-queue của 8 tài khoản mẫu đúng vai (kể cả chặn tự duyệt hồ sơ của mình).
 - Sau khi triển khai bản này mọi người phải đăng nhập lại (JWT mới có `sstamp`).
 
+**Đợt 6 (2026-09-29)** — task 14 (tổ chức động), task 15 (luồng theo nhóm đối tượng) và tích hợp đã merge (`07106a7`). Người điều phối kiểm lại: build 0 lỗi 0 warning, unit 228/229 (1 skip PDF), integration 89/89 trên `192.168.22.159`, `tsc` pass, grep không còn enum chức vụ / mã quyền cũ. Migration gộp lại một `InitialCreate` mới → **CSDL cũ phải tạo lại**. Đổi tiêu đề cột import sang "Mã/Tên đơn vị", "Mã/Tên tổ chức Đảng", "Mã đơn vị công tác" (file mẫu cũ không dùng được). Loại đơn vị khai báo trên giao diện (chưa có import).
+- Cần nghiệp vụ xác nhận thêm: danh mục chức vụ mặc định và mã M1–M26 (Chủ tịch/Giám đốc có xếp M14, Kế toán trưởng, Chi ủy viên), 3 hồ sơ luồng mặc định và 6 câu hỏi trong `reports/15-workflow-profiles.md`.
+
 ## T — Kỹ thuật
 
 | Mã | Mức | Vấn đề | Vị trí chính | Owner | Trạng thái |
@@ -111,12 +114,12 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-67 | 🟡 | Hằng số nghiệp vụ (số sản phẩm, tổng trọng số, ngưỡng, trần %, chênh lệch) rải rác trong code, không cấu hình theo kỳ | `EvaluationService`, `CollectiveEvaluationService` | 12 | done |
 | T-68 | 🟡 | Chưa có kịch bản go-live kiểm thử đầu-cuối (CSDL trống → import → đăng nhập → phân quyền → đánh giá) | `backend/tests/` | 13 | done |
 | T-69 | 🔴 | Proxy `/api/*` của Next.js được ghi cố định lúc build, nhưng `Dockerfile.frontend` build không có `BACKEND_INTERNAL_URL` (biến chỉ đặt lúc chạy container) → frontend trong Docker gọi `localhost:5000` của chính nó, mọi API lỗi 500. Đã sửa: build arg trong Dockerfile + compose, bỏ biến runtime vô tác dụng, chú thích trong `next.config.mjs` | `docker/Dockerfile.frontend`, `docker/docker-compose.yml`, `frontend/next.config.mjs` | — | done |
-| T-71 | 🟠 | Phòng và Chi bộ là danh sách phẳng — không khai báo được Đảng bộ bộ phận, đơn vị nhiều cấp; phạm vi gán vai trò không bao trùm đơn vị con | `PartyCell`, `AdministrativeDepartment`, `AuthorizationGuard` | 14 | open |
-| T-72 | 🟠 | Chức vụ Đảng/chính quyền là enum cứng (thiếu UV UBKT, Trưởng trung tâm, Kế toán trưởng…), không có mã chức danh M1–M26 cho Mẫu 15A/15B, không ghi được kiêm nhiệm | `DomainEnums.cs`, `PartyMemberProfile`, `ReportService` | 14 | open |
-| T-73 | 🟡 | Import và giao diện danh mục chưa hỗ trợ cây đơn vị, loại đơn vị, danh mục chức vụ, chức vụ của cán bộ | `Application/Imports`, `app/catalog` | 14 | open |
-| T-74 | 🔴 | Một luồng cho cả kỳ: hồ sơ diện BTV Đảng ủy Tổng công ty (Ban Giám đốc) đi luồng nội bộ và kẹt ở bước cấp trực tiếp sử dụng; không có bước do cấp trên thực hiện; không có biến thể theo đối tượng (HD03 Phụ lục III ví dụ 2, 3) | `EvaluationWorkflowService`, `PeriodSettings` | 15 | open |
-| T-75 | 🟠 | Không kiểm tra trước được hồ sơ nào sẽ kẹt vì không ai đủ quyền thực hiện bước | `PeriodService` | 15 | open |
-| T-76 | 🟡 | Giao diện kỳ chưa cấu hình được luồng theo nhóm, người thực hiện từng bước | `app/periods` | 15 | open |
+| T-71 | 🟠 | Phòng và Chi bộ là danh sách phẳng — không khai báo được Đảng bộ bộ phận, đơn vị nhiều cấp; phạm vi gán vai trò không bao trùm đơn vị con | `PartyCell`, `AdministrativeDepartment`, `AuthorizationGuard` | 14 | done |
+| T-72 | 🟠 | Chức vụ Đảng/chính quyền là enum cứng (thiếu UV UBKT, Trưởng trung tâm, Kế toán trưởng…), không có mã chức danh M1–M26 cho Mẫu 15A/15B, không ghi được kiêm nhiệm | `DomainEnums.cs`, `PartyMemberProfile`, `ReportService` | 14 | done |
+| T-73 | 🟡 | Import và giao diện danh mục chưa hỗ trợ cây đơn vị, loại đơn vị, danh mục chức vụ, chức vụ của cán bộ | `Application/Imports`, `app/catalog` | 14 | done |
+| T-74 | 🔴 | Một luồng cho cả kỳ: hồ sơ diện BTV Đảng ủy Tổng công ty (Ban Giám đốc) đi luồng nội bộ và kẹt ở bước cấp trực tiếp sử dụng; không có bước do cấp trên thực hiện; không có biến thể theo đối tượng (HD03 Phụ lục III ví dụ 2, 3) | `EvaluationWorkflowService`, `PeriodSettings` | 15 | done |
+| T-75 | 🟠 | Không kiểm tra trước được hồ sơ nào sẽ kẹt vì không ai đủ quyền thực hiện bước | `PeriodService` | 15 | done |
+| T-76 | 🟡 | Giao diện kỳ chưa cấu hình được luồng theo nhóm, người thực hiện từng bước | `app/periods` | 15 | done |
 | T-70 | ⚪ | EF cảnh báo 10622 khi khởi động: `CollectiveEvaluationRecord`, `EvaluationMeeting` có query filter xóa mềm nhưng là đầu bắt buộc của quan hệ với bảng con (item, vote summary) — cần filter tương ứng cho bảng con hoặc quan hệ tùy chọn | `CongTacDangDbContext`, `Data/Configurations/` | — | open |
 
 ## B — Nghiệp vụ (để xử lý sau)

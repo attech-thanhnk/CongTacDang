@@ -92,8 +92,8 @@ public sealed class UserImportDefinition : IImportDefinition<UserImportRow>
         new ImportColumn(PositionKey, "Chức danh", false,
             "Chức danh hiển thị trên biểu mẫu; để trống → \"Cán bộ\" (tự lấy theo chức vụ chính khi nhập chức vụ). "
             + "Chức vụ (kể cả kiêm nhiệm) nhập riêng bằng loại \"Chức vụ của cán bộ\".", null, "Trưởng phòng"),
-        new ImportColumn(DepartmentKey, "Mã Phòng", false, "Mã đơn vị công tác chính (đơn vị chính quyền) đang hoạt động trong danh mục.", null, "PH-KH"),
-        new ImportColumn(PartyCellKey, "Mã Chi bộ", false, "Mã tổ chức Đảng nơi sinh hoạt Đảng (thường là Chi bộ) đang hoạt động trong danh mục.", null, "CB-VP"),
+        new ImportColumn(DepartmentKey, "Mã đơn vị công tác", false, "Mã đơn vị công tác chính (đơn vị chính quyền) đang hoạt động trong danh mục.", null, "PH-KH"),
+        new ImportColumn(PartyCellKey, "Mã tổ chức Đảng", false, "Mã tổ chức Đảng nơi sinh hoạt Đảng (thường là Chi bộ) đang hoạt động trong danh mục.", null, "CB-VP"),
         new ImportColumn(ApprovalKey, "Thẩm quyền phê duyệt", false,
             "Để trống (khuyến nghị) → suy ra từ chức vụ: CapTren khi có chức vụ mà cấp trên quyết định, ngược lại CoSo. "
             + "Nhập CoSo/CapTren → đặt tay (ghi đè giá trị suy ra).",

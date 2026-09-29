@@ -74,19 +74,19 @@ public sealed class GoLiveScenarioTests
 
         // ============ Bước 2: import Phòng → Chi bộ → cán bộ → gán vai trò ============
         await GoLiveHttp.ImportAsync(admin, "departments",
-            GoLiveHttp.BuildFile(new[] { "Mã Phòng", "Tên Phòng", "Thứ tự hiển thị" },
+            GoLiveHttp.BuildFile(new[] { "Mã đơn vị", "Tên đơn vị", "Thứ tự hiển thị" },
                 new[] { "PH-KT", "Phòng Kỹ thuật", "1" },
                 new[] { "PH-TCCB", "Phòng Tổ chức cán bộ - Lao động", "2" }),
             expectedCreated: 2);
         await GoLiveHttp.ImportAsync(admin, "party-cells",
-            GoLiveHttp.BuildFile(new[] { "Mã Chi bộ", "Tên Chi bộ" },
+            GoLiveHttp.BuildFile(new[] { "Mã tổ chức Đảng", "Tên tổ chức Đảng" },
                 new[] { "CB-KT", "Chi bộ Kỹ thuật" },
                 new[] { "CB-VP", "Chi bộ Văn phòng" }),
             expectedCreated: 2);
 
         var userCommit = await GoLiveHttp.ImportAsync(admin, "users",
             GoLiveHttp.BuildFile(
-                new[] { "Tên đăng nhập", "Họ và tên", "Email", "Số thẻ Đảng", "Chức danh", "Mã Phòng", "Mã Chi bộ", "Thẩm quyền phê duyệt" },
+                new[] { "Tên đăng nhập", "Họ và tên", "Email", "Số thẻ Đảng", "Chức danh", "Mã đơn vị công tác", "Mã tổ chức Đảng", "Thẩm quyền phê duyệt" },
                 new[] { "nguyen.van.a", "Nguyễn Văn A", "a@attech.vn", "0100001", "Trưởng phòng Kỹ thuật", "PH-KT", "CB-KT", "CoSo" },
                 new[] { "tran.thi.b", "Trần Thị B", "", "0100002", "Trưởng phòng TCCB-LĐ", "PH-TCCB", "CB-VP", "CoSo" },
                 new[] { "le.van.c", "Lê Văn C", "", "", "Kỹ sư", "PH-KT", "CB-KT", "CoSo" }),
