@@ -799,7 +799,7 @@ header.app-header .header-page {
   .task-table tbody td:nth-child(3)::before { content: "Sản phẩm đầu ra"; }
   .task-table tbody td:nth-child(4)::before { content: "Trọng số"; }
   .task-table tbody td:nth-child(5)::before { content: "Hạn hoàn thành"; }
-  .task-table tbody td:nth-child(6)::before { content: "Tài liệu đính kèm"; }
+  .task-table tbody td:nth-child(6)::before { content: "Tệp đính kèm"; }
   .task-table tbody td:nth-child(7)::before { content: "Thao tác"; }
 
   .task-table tbody td > * {
