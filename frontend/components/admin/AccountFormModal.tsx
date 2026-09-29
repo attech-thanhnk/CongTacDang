@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { CatalogItem, treeLabel } from "@/services/catalogService";
+import { criteriaService, WeightFrameOptions } from "@/services/criteriaService";
 import {
   AccountListItem,
   APPROVAL_AUTHORITY_LABELS,
@@ -21,6 +22,8 @@ interface FormState {
   positionTitle: string;
   departmentId: string;
   partyCellId: string;
+  /** Mã khung tỷ trọng mặc định; "" = chưa chọn. */
+  weightFrameCode: string;
   /** Chỉ khi tạo: "" = suy ra từ chức vụ; 1/2 = đặt tay. */
   approvalAuthority: "" | ApprovalAuthority;
   approvalAuthorityReason: string;
@@ -36,6 +39,7 @@ function initialState(account?: AccountListItem): FormState {
     positionTitle: account?.positionTitle ?? "",
     departmentId: account?.departmentId ?? "",
     partyCellId: account?.partyCellId ?? "",
+    weightFrameCode: account?.weightFrameCode ?? "",
     approvalAuthority: "",
     approvalAuthorityReason: "",
   };
@@ -61,6 +65,27 @@ export interface AccountFormModalProps {
 export function AccountFormModal({ account, departments, partyCells, saving, onClose, onCreate, onUpdate }: AccountFormModalProps) {
   const [form, setForm] = useState<FormState>(() => initialState(account));
   const isEdit = !!account;
+  const [frames, setFrames] = useState<WeightFrameOptions | null>(null);
+  const [framesError, setFramesError] = useState(false);
+
+  // Danh sách khung tỷ trọng lấy từ bộ tiêu chí đang dùng gần nhất.
+  useEffect(() => {
+    let active = true;
+    criteriaService
+      .weightFrames()
+      .then((value) => {
+        if (active) setFrames(value);
+      })
+      .catch(() => {
+        if (active) setFramesError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const frameOptions = frames?.frames ?? [];
+  const currentFrameMissing = !!form.weightFrameCode && !frameOptions.some((f) => f.code === form.weightFrameCode);
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -74,6 +99,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
         positionTitle: form.positionTitle.trim(),
         departmentId: form.departmentId || EMPTY_GUID,
         partyCellId: form.partyCellId || EMPTY_GUID,
+        weightFrameCode: form.weightFrameCode,
       });
     } else {
       onCreate?.({
@@ -85,6 +111,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
         positionTitle: form.positionTitle.trim() || undefined,
         departmentId: form.departmentId || undefined,
         partyCellId: form.partyCellId || undefined,
+        weightFrameCode: form.weightFrameCode || undefined,
         approvalAuthority: form.approvalAuthority || undefined,
         approvalAuthorityReason: form.approvalAuthority ? form.approvalAuthorityReason.trim() || undefined : undefined,
       });
@@ -162,6 +189,27 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
                 </option>
               ))}
             </select>
+          </div>
+          <div className="col-12 col-md-6">
+            <label className="form-label small fw-semibold mb-1">Khung tỷ trọng mặc định</label>
+            <select className="form-select form-select-sm" value={form.weightFrameCode} onChange={(e) => set("weightFrameCode", e.target.value)}>
+              <option value="">— Chưa chọn (dùng khung mặc định của bộ tiêu chí) —</option>
+              {frameOptions.map((frame) => (
+                <option key={frame.code} value={frame.code}>
+                  {frame.code} — {frame.name}
+                </option>
+              ))}
+              {currentFrameMissing && (
+                <option value={form.weightFrameCode}>{form.weightFrameCode} (không có trong bộ tiêu chí hiện hành)</option>
+              )}
+            </select>
+            <div className="form-text">
+              {framesError
+                ? "Không tải được danh sách khung tỷ trọng."
+                : frames?.sourceName
+                  ? `Theo bộ tiêu chí "${frames.sourceName}". Hồ sơ đánh giá chụp lại khung khi thêm vào kỳ.`
+                  : "Hồ sơ đánh giá chụp lại khung khi thêm vào kỳ."}
+            </div>
           </div>
           {isEdit ? (
             <div className="col-12 form-text mt-1">
