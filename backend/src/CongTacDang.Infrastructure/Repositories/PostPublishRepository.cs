@@ -121,12 +121,23 @@ public sealed class PostPublishRepository : IPostPublishRepository
     public void AddPlan(ImprovementPlan plan) => Plans.Add(plan);
 
     /// <inheritdoc />
-    public async Task<List<(EvaluationRecord Record, ImprovementPlan? Plan)>> ListRecordsNeedingPlanAsync(Guid? periodId, CancellationToken ct = default)
+    public Task<List<EvaluationPeriod>> ListPlanAlertPeriodsAsync(Guid? periodId, CancellationToken ct = default)
     {
-        var records = RecordsWithHeader().AsNoTracking()
-            .Where(r => r.Status == RecordStatus.Published && r.FinalGrade != EvaluationGrade.ChuaXepLoai);
+        var periods = _db.EvaluationPeriods.AsNoTracking()
+            .Where(p => p.Status == PeriodStatus.Open || p.Status == PeriodStatus.Locked || p.Status == PeriodStatus.Closed);
         if (periodId.HasValue)
-            records = records.Where(r => r.PeriodId == periodId.Value);
+            periods = periods.Where(p => p.Id == periodId.Value);
+        return periods.ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<(EvaluationRecord Record, ImprovementPlan? Plan)>> ListRecordsNeedingPlanAsync(IReadOnlyCollection<Guid> periodIds, CancellationToken ct = default)
+    {
+        if (periodIds.Count == 0)
+            return new List<(EvaluationRecord Record, ImprovementPlan? Plan)>();
+        var ids = periodIds.ToList();
+        var records = RecordsWithHeader().AsNoTracking()
+            .Where(r => ids.Contains(r.PeriodId) && r.Status == RecordStatus.Published && r.FinalGrade != EvaluationGrade.ChuaXepLoai);
 
         var rows = await records
             .Select(r => new { Record = r, Plan = Plans.FirstOrDefault(p => p.RecordId == r.Id) })

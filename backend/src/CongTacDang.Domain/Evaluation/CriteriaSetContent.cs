@@ -282,6 +282,12 @@ public sealed class CriteriaParameters
     /// </summary>
     [JsonConverter(typeof(GradeListJsonConverter))]
     public List<EvaluationGrade> ImprovementPlanRequiredGrades { get; set; } = new() { EvaluationGrade.HoanThanh, EvaluationGrade.KhongHoanThanh };
+
+    /// <summary>
+    /// Cảnh báo "Kế hoạch 30-60-90 ngày cần lập" chỉ xét hồ sơ của kỳ đang mở/khóa dữ liệu và kỳ đã đóng trong số ngày này gần nhất
+    /// (tính từ ngày đóng kỳ) — không quét mọi kỳ cũ. Mặc định 90 ngày.
+    /// </summary>
+    public int ImprovementPlanAlertDays { get; set; } = 90;
 }
 
 /// <summary>
@@ -503,6 +509,9 @@ public sealed class CriteriaSetContent
     /// <summary>Độ dài tối đa nội dung gợi ý của trục, câu dẫn và lưu ý của mục 09C.</summary>
     public const int MaxFormGuidanceLength = 8000;
 
+    /// <summary>Số ngày tối đa sau khi đóng kỳ còn cảnh báo lập kế hoạch 30-60-90 ngày.</summary>
+    public const int MaxImprovementPlanAlertDays = 3650;
+
     /// <summary>Giới hạn số ký tự tối đa được khai báo cho một mục 09C.</summary>
     public const int MaxSectionLengthLimit = 20000;
 
@@ -712,6 +721,8 @@ public sealed class CriteriaSetContent
             errors.Add("Điểm tối đa của hồ sơ tập thể phải lớn hơn 0.");
         if ((p.ImprovementPlanRequiredGrades ?? new List<EvaluationGrade>()).Any(g => !RankedGrades.Contains(g)))
             errors.Add("Mức bắt buộc lập kế hoạch 30-60-90 ngày chỉ chọn trong bốn mức xếp loại.");
+        if (p.ImprovementPlanAlertDays < 1 || p.ImprovementPlanAlertDays > MaxImprovementPlanAlertDays)
+            errors.Add($"Số ngày sau khi đóng kỳ còn cảnh báo lập kế hoạch 30-60-90 ngày phải từ 1 đến {MaxImprovementPlanAlertDays}.");
     }
 
     /// <summary>Tên hiển thị của mức xếp loại.</summary>

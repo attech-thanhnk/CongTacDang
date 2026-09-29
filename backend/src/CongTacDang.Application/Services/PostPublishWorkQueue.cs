@@ -66,7 +66,13 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
 
         if (_guard.HasAny(PermissionCodes.EvaluationImprovementManage))
         {
-            var needing = (await _repo.ListRecordsNeedingPlanAsync(period, ct))
+            // Chỉ kỳ đang mở/khóa dữ liệu và kỳ đã đóng trong số ngày cảnh báo của bộ tiêu chí (không quét mọi kỳ cũ).
+            var now = DateTime.UtcNow;
+            var alertPeriods = (await _repo.ListPlanAlertPeriodsAsync(period, ct))
+                .Where(p => ImprovementPlanService.InAlertWindow(p, now))
+                .Select(p => p.Id)
+                .ToList();
+            var needing = (await _repo.ListRecordsNeedingPlanAsync(alertPeriods, ct))
                 .Where(x => ImprovementPlanService.IsRequired(x.Record))
                 .Where(x => _guard.Can(PermissionCodes.EvaluationImprovementManage, AccessTarget.ForRecord(x.Record)))
                 .ToList();

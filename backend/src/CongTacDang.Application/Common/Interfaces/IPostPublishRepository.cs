@@ -47,10 +47,17 @@ public interface IPostPublishRepository
     void AddPlan(ImprovementPlan plan);
 
     /// <summary>
-    /// Hồ sơ đã công bố có mức chính thức (khác "Chưa xếp loại") mà chưa có kế hoạch hoặc kế hoạch đang lập — ứng viên nhóm
-    /// "kế hoạch cần lập" (service lọc tiếp theo mức bắt buộc của bộ tiêu chí và quyền). Kèm kỳ, cán bộ, đơn vị; không theo dõi.
+    /// Kỳ có thể còn hồ sơ cần lập kế hoạch 30-60-90 ngày: đang mở, khóa dữ liệu hoặc đã đóng (không theo dõi, không kèm hồ sơ) —
+    /// service lọc theo cửa sổ cảnh báo của bộ tiêu chí từng kỳ.
     /// </summary>
-    Task<List<(EvaluationRecord Record, ImprovementPlan? Plan)>> ListRecordsNeedingPlanAsync(Guid? periodId, CancellationToken ct = default);
+    Task<List<EvaluationPeriod>> ListPlanAlertPeriodsAsync(Guid? periodId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Hồ sơ đã công bố của các kỳ <paramref name="periodIds"/> có mức chính thức (khác "Chưa xếp loại") mà chưa có kế hoạch hoặc
+    /// kế hoạch đang lập — ứng viên nhóm "kế hoạch cần lập" (service lọc tiếp theo mức bắt buộc của bộ tiêu chí và quyền). Kèm kỳ,
+    /// cán bộ, đơn vị; không theo dõi.
+    /// </summary>
+    Task<List<(EvaluationRecord Record, ImprovementPlan? Plan)>> ListRecordsNeedingPlanAsync(IReadOnlyCollection<Guid> periodIds, CancellationToken ct = default);
 
     /// <summary>Kế hoạch đã duyệt đang chờ chủ hồ sơ <paramref name="memberId"/> xác nhận (kèm hồ sơ; không theo dõi).</summary>
     Task<List<ImprovementPlan>> ListPlansAwaitingAcknowledgementAsync(Guid memberId, Guid? periodId, CancellationToken ct = default);

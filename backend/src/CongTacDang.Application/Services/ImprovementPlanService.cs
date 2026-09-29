@@ -89,6 +89,29 @@ public sealed class ImprovementPlanService : IImprovementPlanService
         return new CriteriaParameters().ImprovementPlanRequiredGrades;
     }
 
+    /// <summary>
+    /// Kỳ còn trong cửa sổ cảnh báo "kế hoạch cần lập": đang mở hoặc khóa dữ liệu; đã đóng chưa quá
+    /// <see cref="CriteriaParameters.ImprovementPlanAlertDays"/> ngày (tham số bộ tiêu chí của kỳ, mặc định 90) tính từ lúc đóng.
+    /// </summary>
+    public static bool InAlertWindow(EvaluationPeriod period, DateTime utcNow)
+    {
+        if (period.Status is PeriodStatus.Open or PeriodStatus.Locked)
+            return true;
+        if (period.Status != PeriodStatus.Closed)
+            return false;
+        int days;
+        try
+        {
+            days = period.GetCriteria()?.Content.Parameters.ImprovementPlanAlertDays ?? new CriteriaParameters().ImprovementPlanAlertDays;
+        }
+        catch (FormatException)
+        {
+            days = new CriteriaParameters().ImprovementPlanAlertDays;
+        }
+        var closedAt = period.StatusChangedAt ?? period.UpdatedAt ?? period.CreatedAt;
+        return closedAt >= utcNow.AddDays(-days);
+    }
+
     /// <summary>Hồ sơ đã công bố có mức chính thức thuộc nhóm bắt buộc lập kế hoạch.</summary>
     public static bool IsRequired(EvaluationRecord record) =>
         record.Status == RecordStatus.Published
