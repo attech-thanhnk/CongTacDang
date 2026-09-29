@@ -21,8 +21,10 @@
 | `role_permissions` | `RoleId`, `PermissionId` | Nhiều-nhiều. |
 | `user_role_assignments` | `Id`, `UserId`, `RoleId`, `ScopeType`, `ScopeId?`, `ValidFrom`, `ValidTo?`, `Note`, audit, xóa mềm | **Thay bảng nhiều-nhiều user↔role hiện tại.** `ScopeType ∈ {Global, Department, PartyCell}`; `ScopeId` bắt buộc khi khác `Global`, null khi `Global`. |
 
-Trường bổ sung (task 07):
-- `PartyMemberProfile.ApprovalAuthority` (enum `ApprovalAuthority { CoSo = 1, CapTren = 2 }`) — cấp có thẩm quyền quyết định xếp loại.
+Trường bổ sung (task 07, sửa ở task 14):
+- `PartyMemberProfile.ApprovalAuthority` (enum `ApprovalAuthority { CoSo = 1, CapTren = 2 }`) — cấp có thẩm quyền quyết định xếp loại
+  **đang áp dụng** = `ApprovalAuthorityOverride` (đặt tay, bắt buộc `ApprovalAuthorityOverrideReason`) nếu có, ngược lại suy ra từ chức vụ
+  đang hiệu lực (`member_positions` → `positions.DefaultApprovalAuthority`): `CapTren` khi có ít nhất một chức vụ `CapTren` (HD03 tr.6).
 - `EvaluationRecord.ApprovalAuthority` — ảnh chụp từ hồ sơ khi tạo hồ sơ đánh giá (cùng kiểu với `PartyCellId`, `DepartmentId` đã có).
 - `PartyMemberProfile.SecurityStamp` (string, đổi khi đổi/đặt lại mật khẩu, khóa, xóa) — task 08 dùng.
 
@@ -71,8 +73,9 @@ Người dùng **được** thực hiện quyền `P` trên đối tượng `T` 
 1. Tài khoản đang hoạt động, chưa xóa, không trong trạng thái bắt buộc đổi mật khẩu (task 08 chặn trước ở middleware); **và**
 2. Có ít nhất một bản gán vai trò **đang hiệu lực** (`ValidFrom ≤ now < ValidTo` hoặc `ValidTo` null, vai trò chưa xóa) mà vai trò đó có `P`, và phạm vi bao trùm `T`:
    - `Global` → mọi đối tượng;
-   - `Department(d)` → `T.DepartmentId == d`;
-   - `PartyCell(c)` → `T.PartyCellId == c`;
+   - `Department(d)` (tên hiển thị "Đơn vị chính quyền") → `T.DepartmentId` là `d` **hoặc một đơn vị con cháu của `d`** trong cây đơn vị chính quyền;
+   - `PartyCell(c)` (tên hiển thị "Tổ chức Đảng") → `T.PartyCellId` là `c` **hoặc một tổ chức con cháu của `c`** trong cây tổ chức Đảng;
+   - không lan sang nhánh anh em hay lên cấp trên (gán ở Phòng → không có quyền ở Công ty).
    
    **và**
 3. Luật riêng theo mã (cố định trong code, lấy từ HD03):
@@ -87,6 +90,21 @@ Guard cung cấp:
 - `ScopeFilter GetScope(string permission)` — trả `{ IsGlobal, DepartmentIds[], PartyCellIds[] }` để service dựng điều kiện `WHERE` cho truy vấn danh sách (kèm điều kiện chủ hồ sơ khi mã là `evaluation.read`).
 
 Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi nào đó"; service **bắt buộc** gọi `Ensure`/`GetScope` trên đối tượng cụ thể.
+
+### 4.1 Phạm vi bao trùm cây con (task 14)
+
+- Mỗi bên (đơn vị chính quyền `administrative_departments`, tổ chức Đảng `party_cells`) là một cây: `ParentId` (null = gốc) và
+  đường dẫn vật hóa `Path = /<id gốc>/…/<id nút>/`, tính lại cho cả cây mỗi khi đổi cấu trúc (tạo, đổi cha, xóa, import); tạo vòng → 400.
+- **Cách tính:** resolver (`PermissionResolver`, qua `RoleAssignmentRepository.GetAccessSnapshotAsync`) mở rộng mỗi bản gán
+  `Department(d)`/`PartyCell(c)` thành danh sách Id = nút được gán + mọi nút có `Path` chứa `/<id>/`
+  (`PermissionGrant.CoveredScopeIds`). `Can` kiểm tra `T.DepartmentId`/`T.PartyCellId` thuộc danh sách; `GetScope` trả danh sách đã mở rộng
+  (`ScopeFilter.DepartmentIds`/`PartyCellIds`).
+- **Lý do chọn mở rộng danh sách Id thay vì điều kiện `LIKE` theo `Path`:** hồ sơ đánh giá, hồ sơ tập thể, biên bản, tài khoản chỉ lưu Id
+  đơn vị (ảnh chụp), nên mọi truy vấn danh sách hiện có giữ nguyên dạng `WHERE DepartmentId IN (...)` — không phải join bảng đơn vị ở từng
+  service. Cây nhỏ (vài chục – vài trăm nút), danh sách được tính một lần khi nạp quyền và nằm trong cache quyền theo người dùng (TTL 5 phút).
+- **Làm mới:** mọi thay đổi cấu trúc cây (thêm/đổi cha/xóa đơn vị, import danh mục) xóa **toàn bộ** cache quyền (sau commit) → phạm vi mới
+  có hiệu lực ở request kế tiếp.
+- Tra cứu "người X làm được gì" và danh sách `grants` của phiên hiển thị nút được gán (không liệt kê từng nút con).
 
 ## 5. Chốt chặn quản trị
 
