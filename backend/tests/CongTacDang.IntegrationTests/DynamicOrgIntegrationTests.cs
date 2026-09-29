@@ -284,8 +284,9 @@ public sealed class DynamicOrgIntegrationTests
         var counts = new Dictionary<string, int>();
         foreach (var row in sheet.RowsUsed())
         {
-            var code = row.Cell(1).GetString();
-            if (code.StartsWith('M') && int.TryParse(row.Cell(3).GetString(), out var total))
+            // Task 19: bố cục Mẫu 15A/15B theo HD03 — cột 3 mã chức danh, cột 4 tổng số.
+            var code = row.Cell(3).GetString();
+            if (code.StartsWith('M') && int.TryParse(row.Cell(4).GetString(), out var total))
                 counts[code] = total;
         }
         return counts;

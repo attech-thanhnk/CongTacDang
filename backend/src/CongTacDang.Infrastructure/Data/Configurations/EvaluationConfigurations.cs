@@ -156,6 +156,7 @@ public sealed class CollectiveEvaluationRecordConfiguration : IEntityTypeConfigu
         entity.HasIndex(e => e.PartyCellId);
         entity.HasIndex(e => e.DepartmentId);
         entity.Property(e => e.SubjectName).HasMaxLength(300).IsRequired();
+        entity.Property(e => e.Sections).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb").IsRequired();
         entity.Property(e => e.Form).HasConversion<int>();
         entity.Property(e => e.Version)
             .HasColumnName("xmin")
@@ -211,6 +212,7 @@ public sealed class EvaluationMeetingConfiguration : IEntityTypeConfiguration<Ev
         entity.Property(e => e.FormCode).HasMaxLength(10).IsRequired();
         entity.Property(e => e.MeetingType).HasMaxLength(200);
         entity.Property(e => e.Location).HasMaxLength(300);
+        entity.Property(e => e.Details).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb").IsRequired();
         entity.HasOne(e => e.Period)
             .WithMany(p => p.Meetings)
             .HasForeignKey(e => e.PeriodId)

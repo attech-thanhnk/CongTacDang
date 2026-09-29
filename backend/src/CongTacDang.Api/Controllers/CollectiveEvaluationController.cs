@@ -52,6 +52,30 @@ public class CollectiveEvaluationController : ControllerBase
         return Ok(ApiResponse<CollectiveEvaluationRecordDto>.Ok(record, "Tạo hồ sơ tập thể thành công."));
     }
 
+    /// <summary>Sửa nội dung hồ sơ tập thể (Mẫu 07: các mục I.1–I.4 trong <c>sections</c>; Mẫu 08: các dòng nhiệm vụ theo nhóm 1–13).</summary>
+    [HttpPut("collective-records/{id}")]
+    [RequirePermission(PermissionCodes.CollectiveManage)]
+    public async Task<IActionResult> UpdateCollectiveRecord(Guid id, [FromBody] SaveCollectiveEvaluationRequestDto dto)
+    {
+        var record = await _service.UpdateCollectiveRecordAsync(id, GetCurrentUserId(), dto);
+        return Ok(ApiResponse<CollectiveEvaluationRecordDto>.Ok(record, "Đã lưu hồ sơ tập thể."));
+    }
+
+    /// <summary>Danh mục mục nhập Mẫu 07 và nhóm nội dung Mẫu 08 (nguyên văn biểu mẫu HD03).</summary>
+    [HttpGet("collective-forms/catalog")]
+    [RequireAnyPermission(PermissionCodes.EvaluationRead, PermissionCodes.CollectiveManage)]
+    public IActionResult GetCollectiveFormCatalog()
+        => Ok(ApiResponse<CollectiveFormCatalogDto>.Ok(_service.GetFormCatalog(), "Lấy danh mục biểu mẫu tập thể thành công."));
+
+    /// <summary>Sửa thông tin biên bản hội nghị (các mục Mẫu 12 trong <c>details</c>); kết quả kiểm phiếu không đổi.</summary>
+    [HttpPut("meetings/{id}")]
+    [RequirePermission(PermissionCodes.MeetingManage)]
+    public async Task<IActionResult> UpdateMeeting(Guid id, [FromBody] SaveEvaluationMeetingRequestDto dto)
+    {
+        var meeting = await _service.UpdateMeetingAsync(id, GetCurrentUserId(), dto);
+        return Ok(ApiResponse<EvaluationMeetingDto>.Ok(meeting, "Đã lưu biên bản hội nghị."));
+    }
+
     /// <summary>Lấy biên bản hội nghị trong một kỳ.</summary>
     [HttpGet("meetings")]
     [RequireAnyPermission(PermissionCodes.MeetingRead, PermissionCodes.MeetingManage)]

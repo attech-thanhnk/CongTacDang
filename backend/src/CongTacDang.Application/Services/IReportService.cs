@@ -1,4 +1,6 @@
+using System;
 using System.Threading.Tasks;
+using CongTacDang.Application.DTOs;
 
 namespace CongTacDang.Application.Services;
 
@@ -28,46 +30,70 @@ public enum ReportFormat
 }
 
 /// <summary>
-/// Giao diện dịch vụ kết xuất báo cáo và dữ liệu bảng tính
+/// Giao diện dịch vụ kết xuất biểu mẫu HD03 và báo cáo nội bộ. Phạm vi dữ liệu đã được kiểm tra quyền
+/// (<see cref="IReportAccessService"/>) trước khi gọi.
 /// </summary>
 public interface IReportService
 {
+    #region Báo cáo nội bộ (không mang số mẫu HD03)
+
     /// <summary>
-    /// Xuất báo cáo danh sách trích ngang cán bộ lãnh đạo, quản lý — chỉ cán bộ trong <paramref name="scope"/>
-    /// (phạm vi <c>report.export</c> của người yêu cầu, T-61).
+    /// Danh sách cán bộ (nội bộ) — chỉ cán bộ trong <paramref name="scope"/> (phạm vi <c>report.export</c> của người yêu cầu, T-61).
     /// </summary>
     Task<ReportFileResult> ExportCadresReportAsync(CongTacDang.Application.Common.Security.ScopeFilter scope);
 
-    // Báo cáo Excel 14/15/15A/15B/16: periodId null = kỳ đang hoạt động; partyCellId null = toàn Đảng bộ
-    // (phạm vi đã được kiểm tra quyền trước khi gọi).
+    /// <summary>Báo cáo nội bộ — kiểm soát tỷ lệ Hoàn thành xuất sắc theo tổ chức Đảng (trần của bộ tiêu chí của kỳ).</summary>
+    Task<ReportFileResult> ExportExcellentQuotaReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
 
-    /// <summary>Xuất bảng tổng hợp hồ sơ cán bộ theo Chi bộ và đơn vị</summary>
-    Task<ReportFileResult> ExportForm14ReportAsync(System.Guid? periodId = null, System.Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
+    #endregion
 
-    /// <summary>Xuất bảng thống kê cơ cấu tổ chức và sĩ số các Chi bộ</summary>
-    Task<ReportFileResult> ExportForm15ReportAsync(System.Guid? periodId = null, System.Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
+    #region Hồ sơ nộp theo HD03 — bảng tính (periodId null = kỳ đang hoạt động; partyCellId null = toàn Đảng bộ)
 
-    /// <summary>Xuất Mẫu 15A: tổng hợp kiểm soát tỷ lệ trần 20% cấp Đảng ủy Công ty</summary>
-    Task<ReportFileResult> ExportForm15AReportAsync(System.Guid? periodId = null, System.Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
+    /// <summary>Mẫu 14 — Danh sách đánh giá và đề xuất xếp loại (mỗi cấp quyết định một trang tính).</summary>
+    Task<ReportFileResult> ExportForm14ReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
 
-    /// <summary>Xuất Mẫu 15B: kiểm soát tỷ lệ trần 20% theo từng Chi bộ</summary>
-    Task<ReportFileResult> ExportForm15BReportAsync(System.Guid? periodId = null, System.Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
+    /// <summary>Mẫu 15A — Tổng hợp kết quả đánh giá, xếp loại (đối tượng đề nghị BTV Đảng ủy Tổng công ty quyết định, mã M1–M16).</summary>
+    Task<ReportFileResult> ExportForm15AReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
 
-    /// <summary>Xuất Mẫu 16: tổng hợp kết quả xếp loại theo nhóm chức vụ</summary>
-    Task<ReportFileResult> ExportForm16ReportAsync(System.Guid? periodId = null, System.Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
+    /// <summary>Mẫu 15B — Tổng hợp kết quả đánh giá, xếp loại (đối tượng thuộc diện Đảng ủy/Chi ủy cơ sở quyết định, mã M17–M26).</summary>
+    Task<ReportFileResult> ExportForm15BReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
+
+    #endregion
+
+    #region Hồ sơ nộp theo HD03 — văn bản Word
+
+    /// <summary>Mẫu 16 — Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý (Word).</summary>
+    Task<ReportFileResult> ExportMau16DocxAsync(Guid periodId, Guid? partyCellId, ReportFormat format = ReportFormat.Original);
+
+    /// <summary>Bản nháp phần nhập tay Mẫu 16 kèm số liệu tổng hợp tự động.</summary>
+    Task<Form16DraftDto> GetForm16DraftAsync(Guid periodId, Guid? partyCellId);
+
+    /// <summary>Lưu bản nháp phần nhập tay Mẫu 16 (kiểm tra phiên bản).</summary>
+    Task<Form16DraftDto> SaveForm16DraftAsync(Guid periodId, Guid? partyCellId, Guid requesterId, SaveForm16DraftDto dto);
+
+    /// <summary>Mẫu 07 — Báo cáo tự đánh giá, xếp loại chất lượng của tập thể (từ hồ sơ tập thể M07).</summary>
+    Task<ReportFileResult> ExportMau07DocxAsync(Guid collectiveRecordId, ReportFormat format = ReportFormat.Original);
+
+    /// <summary>Mẫu 08 — Báo cáo tổng hợp kết quả thực hiện các nhiệm vụ của cơ quan, đơn vị (từ hồ sơ tập thể M08).</summary>
+    Task<ReportFileResult> ExportMau08DocxAsync(Guid collectiveRecordId, ReportFormat format = ReportFormat.Original);
+
+    /// <summary>Mẫu 12 — Biên bản hội nghị (từ biên bản đã lập).</summary>
+    Task<ReportFileResult> ExportMau12DocxAsync(Guid meetingId, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 01: Phiếu giao/đăng ký sản phẩm, công việc chuyên môn (.docx)</summary>
-    Task<ReportFileResult> ExportMau01DocxAsync(System.Guid recordId, ReportFormat format = ReportFormat.Original);
+    Task<ReportFileResult> ExportMau01DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 02: Phiếu tự đánh giá kết quả thực hiện sản phẩm (.docx)</summary>
-    Task<ReportFileResult> ExportMau02DocxAsync(System.Guid recordId, ReportFormat format = ReportFormat.Original);
+    Task<ReportFileResult> ExportMau02DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 10: Phiếu thẩm định, nhận xét, ghi nhận giải trình (.docx)</summary>
-    Task<ReportFileResult> ExportMau10DocxAsync(System.Guid recordId, ReportFormat format = ReportFormat.Original);
+    Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 11: Phiếu đánh giá, xếp loại cán bộ quý bỏ phiếu kín (.docx)</summary>
-    Task<ReportFileResult> ExportMau11DocxAsync(System.Guid periodId, System.Guid? branchId, ReportFormat format = ReportFormat.Original);
+    Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Xuất Mẫu 13: Biên bản kiểm phiếu đánh giá, xếp loại cán bộ quý (.docx)</summary>
-    Task<ReportFileResult> ExportMau13DocxAsync(System.Guid periodId, System.Guid? branchId, ReportFormat format = ReportFormat.Original);
+    Task<ReportFileResult> ExportMau13DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original);
+
+    #endregion
 }
