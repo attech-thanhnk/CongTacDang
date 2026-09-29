@@ -60,8 +60,19 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
+
+                    b.Property<Guid?>("UnitTypeId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -73,6 +84,12 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
                     b.HasIndex("Code")
                         .IsUnique();
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("Path");
+
+                    b.HasIndex("UnitTypeId");
 
                     b.ToTable("administrative_departments", (string)null);
                 });
@@ -353,6 +370,73 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("collective_evaluation_records", (string)null);
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.EvaluationExternalResult", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AttachmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorityName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DocumentDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DocumentNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Grade")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("RecordId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RecordedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RecordedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<double?>("Score")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("Step")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecordId", "Step")
+                        .IsUnique();
+
+                    b.ToTable("evaluation_external_results", (string)null);
                 });
 
             modelBuilder.Entity("CongTacDang.Domain.Entities.EvaluationMeeting", b =>
@@ -828,6 +912,11 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasColumnType("xid")
                         .HasColumnName("xmin");
 
+                    b.Property<string>("WorkflowProfileCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DepartmentId");
@@ -1027,6 +1116,121 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.ToTable("login_events", (string)null);
                 });
 
+            modelBuilder.Entity("CongTacDang.Domain.Entities.MemberPosition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("PartyCellId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PositionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ValidTo")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("PartyCellId");
+
+                    b.HasIndex("PositionId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("member_positions", (string)null);
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.OrgUnitType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Side")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Side", "Name")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = FALSE");
+
+                    b.ToTable("org_unit_types", (string)null);
+                });
+
             modelBuilder.Entity("CongTacDang.Domain.Entities.PartyCell", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1065,8 +1269,19 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
+
+                    b.Property<Guid?>("UnitTypeId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1079,6 +1294,12 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("Path");
+
+                    b.HasIndex("UnitTypeId");
+
                     b.ToTable("party_cells", (string)null);
                 });
 
@@ -1088,11 +1309,15 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int>("AdminPosition")
-                        .HasColumnType("integer");
-
                     b.Property<int>("ApprovalAuthority")
                         .HasColumnType("integer");
+
+                    b.Property<int?>("ApprovalAuthorityOverride")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ApprovalAuthorityOverrideReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("AvatarUrl")
                         .HasColumnType("text");
@@ -1161,9 +1386,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
                     b.Property<Guid?>("PartyCellId")
                         .HasColumnType("uuid");
-
-                    b.Property<int>("PartyRole")
-                        .HasColumnType("integer");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -1262,6 +1484,66 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("permissions", (string)null);
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.Position", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("DefaultApprovalAuthority")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsLeadership")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Side")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StatCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = FALSE");
+
+                    b.ToTable("positions", (string)null);
                 });
 
             modelBuilder.Entity("CongTacDang.Domain.Entities.RefreshToken", b =>
@@ -1499,6 +1781,21 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.ToTable("role_permissions");
                 });
 
+            modelBuilder.Entity("CongTacDang.Domain.Entities.AdministrativeDepartment", b =>
+                {
+                    b.HasOne("CongTacDang.Domain.Entities.AdministrativeDepartment", null)
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CongTacDang.Domain.Entities.OrgUnitType", "UnitType")
+                        .WithMany()
+                        .HasForeignKey("UnitTypeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("UnitType");
+                });
+
             modelBuilder.Entity("CongTacDang.Domain.Entities.CollectiveEvaluationItem", b =>
                 {
                     b.HasOne("CongTacDang.Domain.Entities.CollectiveEvaluationRecord", "CollectiveRecord")
@@ -1540,6 +1837,17 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Navigation("PartyCell");
 
                     b.Navigation("Period");
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.EvaluationExternalResult", b =>
+                {
+                    b.HasOne("CongTacDang.Domain.Entities.EvaluationRecord", "Record")
+                        .WithMany("ExternalResults")
+                        .HasForeignKey("RecordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Record");
                 });
 
             modelBuilder.Entity("CongTacDang.Domain.Entities.EvaluationMeeting", b =>
@@ -1656,6 +1964,54 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
                 });
 
+            modelBuilder.Entity("CongTacDang.Domain.Entities.MemberPosition", b =>
+                {
+                    b.HasOne("CongTacDang.Domain.Entities.AdministrativeDepartment", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CongTacDang.Domain.Entities.PartyCell", "PartyCell")
+                        .WithMany()
+                        .HasForeignKey("PartyCellId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CongTacDang.Domain.Entities.Position", "Position")
+                        .WithMany()
+                        .HasForeignKey("PositionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CongTacDang.Domain.Entities.PartyMemberProfile", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Department");
+
+                    b.Navigation("PartyCell");
+
+                    b.Navigation("Position");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.PartyCell", b =>
+                {
+                    b.HasOne("CongTacDang.Domain.Entities.PartyCell", null)
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CongTacDang.Domain.Entities.OrgUnitType", "UnitType")
+                        .WithMany()
+                        .HasForeignKey("UnitTypeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("UnitType");
+                });
+
             modelBuilder.Entity("CongTacDang.Domain.Entities.PartyMemberProfile", b =>
                 {
                     b.HasOne("CongTacDang.Domain.Entities.AdministrativeDepartment", "Department")
@@ -1752,6 +2108,8 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("CongTacDang.Domain.Entities.EvaluationRecord", b =>
                 {
+                    b.Navigation("ExternalResults");
+
                     b.Navigation("Tasks");
                 });
 
