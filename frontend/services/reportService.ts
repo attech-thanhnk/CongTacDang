@@ -1,4 +1,5 @@
 import { apiClient, API_BASE_URL } from "./apiClient";
+import { organizationSettingsService } from "./organizationSettingsService";
 
 export interface ReportItem {
   id: string;
@@ -24,7 +25,8 @@ export const REPORT_LIST: ReportItem[] = [
     format: "Bảng tính Excel (.xlsx)",
     fileType: "XLSX",
     endpoint: "/reports/cadres",
-    fileName: "DanhSach_CanBo_ATTECH.xlsx",
+    // {SHORT_NAME}: tên viết tắt của đơn vị (Quản trị → Thông tin đơn vị).
+    fileName: "DanhSach_CanBo_{SHORT_NAME}.xlsx",
     previewRoute: "/users",
     lastUpdated: "16/09/2026",
   },
@@ -46,7 +48,7 @@ export const REPORT_LIST: ReportItem[] = [
     code: "BC-TK-15",
     title: "Bảng Thống kê Cơ cấu Tổ chức & Sĩ số các Chi bộ",
     category: "Tổ chức Cơ sở Đảng",
-    description: "Báo cáo thống kê số lượng cán bộ, đảng viên đang sinh hoạt tại các Chi bộ trực thuộc Đảng bộ Công ty ATTECH.",
+    description: "Báo cáo thống kê số lượng cán bộ, đảng viên đang sinh hoạt tại các Chi bộ trực thuộc Đảng bộ.",
     format: "Bảng tính Excel (.xlsx)",
     fileType: "XLSX",
     endpoint: "/reports/form-15",
@@ -107,6 +109,18 @@ const withQuery = (endpoint: string, params: Record<string, string | undefined>)
   return endpoint.includes("?") ? `${endpoint}&${query}` : `${endpoint}?${query}`;
 };
 
+/** Thay `{SHORT_NAME}` trong tên tệp bằng tên viết tắt của đơn vị (không tải được → bỏ phần này). */
+async function resolveFileName(fileName: string): Promise<string> {
+  if (!fileName.includes(SHORT_NAME_TOKEN)) return fileName;
+  const shortName = await organizationSettingsService
+    .getPublic()
+    .then((info) => info.shortName)
+    .catch(() => "");
+  return shortName ? fileName.replace(SHORT_NAME_TOKEN, shortName) : fileName.replace(`_${SHORT_NAME_TOKEN}`, "");
+}
+
+const SHORT_NAME_TOKEN = "{SHORT_NAME}";
+
 export const reportService = {
   /** Lấy nội dung tệp xuất từ máy chủ (kèm HttpOnly Cookie). `format = "pdf"` để máy chủ chuyển sang PDF. */
   async fetchReportBlob(endpoint: string, format: ReportFileFormat = "original"): Promise<Blob> {
@@ -133,7 +147,7 @@ export const reportService = {
     if (!endpoint) return;
     try {
       const blob = await this.fetchReportBlob(endpoint, format);
-      this.saveBlob(blob, fileName);
+      this.saveBlob(blob, await resolveFileName(fileName));
     } catch (err: any) {
       console.error("Lỗi khi tải báo cáo:", err);
       throw err;

@@ -198,7 +198,7 @@ export function DocumentViewerModal({
 
         {/* Footer info */}
         <div className="px-5 py-2.5 bg-white border-t border-slate-200 flex justify-between items-center text-[11px] text-slate-500">
-          <span>Hệ thống số hóa Đảng bộ ATTECH • Lưu trữ tài liệu minh chứng</span>
+          <span>Lưu trữ tài liệu minh chứng</span>
           <span>Mã tệp: {attachmentId}</span>
         </div>
       </div>
