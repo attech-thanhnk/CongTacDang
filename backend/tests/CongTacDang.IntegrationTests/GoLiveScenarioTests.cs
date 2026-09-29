@@ -146,6 +146,7 @@ public sealed class GoLiveScenarioTests
             new[]
             {
                 "collective.manage", "evaluation.cell.confirm", "evaluation.read", "evaluation.self", "evaluation.tasks.approve",
+                "evaluation.unit.review", // task 15: vai trò mặc định Lãnh đạo Phòng có thêm "Lãnh đạo đơn vị đề xuất"
                 "meeting.read", "report.export"
             },
             cadreCodes.OrderBy(c => c, StringComparer.Ordinal));
@@ -198,9 +199,13 @@ public sealed class GoLiveScenarioTests
         Assert.Equal("Draft", period.GetProperty("status").GetString());
 
         // Cấu hình kỳ (khi còn dự thảo): đơn vị chưa phân công thư ký tập thể và cấp trực tiếp sử dụng → tắt B3a, B3c.
+        // Task 15: cấu hình bước theo hồ sơ luồng — đặt "Không áp dụng" cho B3a, B3c ở mọi hồ sơ luồng.
         var settings = JsonNode.Parse(period.GetProperty("settings").GetRawText())!.AsObject();
-        settings["steps"]!["B3A_COLLECTIVE"]!["enabled"] = false;
-        settings["steps"]!["B3C_DIRECTOR"]!["enabled"] = false;
+        foreach (var profile in settings["profiles"]!.AsArray())
+        {
+            profile!["steps"]!["B3A_COLLECTIVE"]!["mode"] = "Off";
+            profile["steps"]!["B3C_DIRECTOR"]!["mode"] = "Off";
+        }
         await GoLiveHttp.DataAsync(await appraiser.PutAsJsonAsync($"/api/evaluations/periods/{periodId}",
             new { version = period.GetProperty("version").GetUInt32(), settings }));
 
@@ -209,8 +214,10 @@ public sealed class GoLiveScenarioTests
             new { memberIds = new[] { leVanCId } }));
         Assert.Equal(1, added.GetProperty("added").GetInt32());
         var draft = await GoLiveHttp.DataAsync(await appraiser.GetAsync($"/api/evaluations/periods/{periodId}"));
+        // Task 15: người ghi nhận quyết định/công bố được phân công ở bước 6 (sau khi mở kỳ) → kiểm tra kẹt luồng còn cảnh báo,
+        // mở bắt buộc kèm lý do.
         await GoLiveHttp.DataAsync(await appraiser.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open",
-            new { version = draft.GetProperty("version").GetUInt32() }));
+            new { version = draft.GetProperty("version").GetUInt32(), force = true, reason = "Phân công ghi nhận quyết định ngay sau khi mở kỳ" }));
         var recordId = (await GoLiveHttp.DataAsync(await appraiser.GetAsync($"/api/evaluations/periods/{periodId}/participants")))
             .EnumerateArray().Single().GetProperty("recordId").GetGuid();
 

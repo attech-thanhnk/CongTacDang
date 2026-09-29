@@ -200,11 +200,16 @@ public sealed class AuthorizationMatrixTests
         async Task<object> Decide(Guid record) => new { version = await VersionAsync(s, record), finalScore = 90.0, finalGrade = "HoanThanhTot" };
         string Url(Guid record) => $"/api/evaluations/records/{record}/decision";
 
+        // Task 15: hồ sơ CapTren dùng hồ sơ luồng "cap-tren" — B4 do cấp trên thực hiện, chỉ ghi nhận kết quả (evaluation.external.record).
+        async Task<object> External(Guid record) => new { version = await VersionAsync(s, record), authorityName = "BTV Đảng ủy Tổng công ty", grade = "HoanThanhTot" };
+        string ExternalUrl(Guid record) => $"/api/evaluations/records/{record}/external/B4_DECISION";
+
         Assert.Equal(HttpStatusCode.OK, (await s.Office.PostAsJsonAsync(Url(s.RecordA1), await Decide(s.RecordA1))).StatusCode);   // CoSo
-        Assert.Equal(HttpStatusCode.OK, (await s.Office.PostAsJsonAsync(Url(s.RecordA2), await Decide(s.RecordA2))).StatusCode);   // CapTren
+        Assert.Equal(HttpStatusCode.Conflict, (await s.Office.PostAsJsonAsync(Url(s.RecordA2), await Decide(s.RecordA2))).StatusCode);   // CapTren: bước cấp trên
+        Assert.Equal(HttpStatusCode.OK, (await s.Office.PostAsJsonAsync(ExternalUrl(s.RecordA2), await External(s.RecordA2))).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await s.LocalDecider.PostAsJsonAsync(Url(s.RecordB1), await Decide(s.RecordB1))).StatusCode);
         await SetStatusAsync(s.RecordA2, RecordStatus.AwaitingDecision);
-        var external = await s.LocalDecider.PostAsJsonAsync(Url(s.RecordA2), await Decide(s.RecordA2));
+        var external = await s.LocalDecider.PostAsJsonAsync(ExternalUrl(s.RecordA2), await External(s.RecordA2));
         Assert.Equal(HttpStatusCode.Forbidden, external.StatusCode);
         Assert.Contains("cấp trên", await Message(external), StringComparison.Ordinal);
         Assert.Equal(HttpStatusCode.Forbidden, (await s.Appraiser.PostAsJsonAsync(Url(s.RecordA1), await Decide(s.RecordA1))).StatusCode);

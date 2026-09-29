@@ -218,6 +218,12 @@ public sealed class EvaluationWorkflowTests
         var w = await WorldAsync();
         var periodId = await OpenPeriodAsync(w, "full", w.Owner2.Id);
         var id = await RecordOfAsync(w, periodId, w.Owner2.Id);
+        // Task 15: người diện cấp trên mặc định đi hồ sơ luồng "cap-tren" (thẩm định do cấp trên thực hiện, không trả lại
+        // trong hệ thống) → chuyển sang hồ sơ luồng cơ sở để kiểm tra trả lại ở cả 3 bước.
+        var participant = (await Data(w.Appraiser, $"/api/evaluations/periods/{periodId}/participants")).EnumerateArray()
+            .First(p => p.GetProperty("recordId").GetGuid() == id);
+        await Data(await w.Appraiser.PutAsJsonAsync($"/api/evaluations/periods/{periodId}/participants/{id}/profile",
+            new { version = participant.GetProperty("version").GetUInt32(), workflowProfileCode = "co-so", reason = "Kiểm thử trả lại ở bước thẩm định" }));
 
         await StepAsync(w.Owner2C, id, "tasks/submit", Tasks(), "AwaitingTaskApproval");
         // Trả lại bắt buộc lý do.
@@ -290,8 +296,10 @@ public sealed class EvaluationWorkflowTests
     }
 
     [SkippableFact]
-    public async Task W6_CapTrenDecidedOnlyByExternal_CoSoOnlyByLocal()
+    public async Task W6_CapTrenDecisionRecordedAsExternal_CoSoDecidedInternally()
     {
+        // Task 15: hồ sơ diện cấp trên (hồ sơ luồng "cap-tren") có B4 do cấp trên thực hiện — chỉ ghi nhận kết quả
+        // (evaluation.external.record); hồ sơ cơ sở ghi nhận quyết định trong hệ thống (evaluation.decide).
         var w = await WorldAsync();
         var periodId = await OpenPeriodAsync(w, "full", w.Owner1.Id, w.Owner2.Id);
         var coSo = await RecordOfAsync(w, periodId, w.Owner1.Id);
@@ -299,15 +307,21 @@ public sealed class EvaluationWorkflowTests
         await SetStatusAsync(coSo, RecordStatus.AwaitingDecision);
         await SetStatusAsync(capTren, RecordStatus.AwaitingDecision);
         var decision = new { finalGrade = "HoanThanhTot" };
+        var external = new { authorityName = "BTV Đảng ủy Tổng công ty", documentNumber = "15-QĐ/ĐU", grade = "HoanThanhTot" };
 
-        var wrongLevel = await PostAsync(w.LocalDeciderC, capTren, "decision", decision, await VersionAsync(w, capTren));
-        Assert.Equal(HttpStatusCode.Forbidden, wrongLevel.StatusCode);
-        Assert.Contains("cấp trên", await MessageAsync(wrongLevel));
+        var internalOnExternal = await PostAsync(w.LocalDeciderC, capTren, "decision", decision, await VersionAsync(w, capTren));
+        Assert.Equal(HttpStatusCode.Conflict, internalOnExternal.StatusCode);
+        Assert.Contains("cấp trên", await MessageAsync(internalOnExternal));
+        Assert.Equal(HttpStatusCode.Forbidden, (await PostAsync(w.LocalDeciderC, capTren, "external/B4_DECISION", external, await VersionAsync(w, capTren))).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await PostAsync(w.ExternalDeciderC, coSo, "external/B4_DECISION", external, await VersionAsync(w, coSo))).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await PostAsync(w.ExternalDeciderC, coSo, "decision", decision, await VersionAsync(w, coSo))).StatusCode);
         await AssertActionsAsync(w.LocalDeciderC, capTren);
-        await AssertActionsAsync(w.ExternalDeciderC, capTren, "RecordDecision");
+        await AssertActionsAsync(w.ExternalDeciderC, capTren, "RecordExternal");
+        await AssertActionsAsync(w.ExternalDeciderC, coSo);
 
-        await StepAsync(w.ExternalDeciderC, capTren, "decision", new { finalGrade = "HoanThanhTot", authorityName = "BTV Đảng ủy Tổng công ty" }, "AwaitingPublish");
+        var recorded = await StepAsync(w.ExternalDeciderC, capTren, "external/B4_DECISION", external, "AwaitingPublish");
+        Assert.Equal("HoanThanhTot", recorded.GetProperty("finalGrade").GetString());
+        Assert.Equal("BTV Đảng ủy Tổng công ty", recorded.GetProperty("decisionAuthorityName").GetString());
         await StepAsync(w.LocalDeciderC, coSo, "decision", decision, "AwaitingPublish");
     }
 
@@ -526,6 +540,11 @@ public sealed class EvaluationWorkflowTests
     private static async Task<HttpResponseMessage> TransitionRawAsync(HttpClient client, Guid periodId, string action, string? reason)
     {
         var period = await Data(client, $"/api/evaluations/periods/{periodId}");
+        // Task 15: mở kỳ kiểm tra kẹt luồng; thế giới W có người thực hiện theo phạm vi riêng từng Phòng (ví dụ thư ký tập thể
+        // chỉ Phòng 1) nên mở bắt buộc kèm lý do — kiểm tra kẹt luồng có test riêng (WorkflowProfileIntegrationTests).
+        if (action == "open")
+            return await client.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/{action}",
+                new { version = period.GetProperty("version").GetUInt32(), reason = reason ?? "Kiểm thử luồng", force = true });
         return await client.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/{action}",
             new { version = period.GetProperty("version").GetUInt32(), reason });
     }
@@ -685,7 +704,7 @@ public sealed class EvaluationWorkflowTests
             await factory.AssignAsync(director.Id, await Role("CAP_TRUC_TIEP_SU_DUNG"), RoleScopeType.Global, null);
             await factory.AssignAsync(office.Id, await Role("VAN_PHONG_DANG_UY"), RoleScopeType.Global, null);
             await factory.AssignAsync(localDecider.Id, (await factory.CreateRoleAsync("evaluation.read", "evaluation.decide")).Id, RoleScopeType.Global, null);
-            await factory.AssignAsync(externalDecider.Id, (await factory.CreateRoleAsync("evaluation.read", "evaluation.decide.external")).Id, RoleScopeType.Global, null);
+            await factory.AssignAsync(externalDecider.Id, (await factory.CreateRoleAsync("evaluation.read", "evaluation.external.record")).Id, RoleScopeType.Global, null);
 
             Task<HttpClient> Login(TestUser user) => factory.LoginAsAsync(user.Username, user.Password, distinctClientIp: true);
             w.Owner1C = await Login(w.Owner1);
