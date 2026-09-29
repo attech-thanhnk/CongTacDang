@@ -151,8 +151,9 @@ hoa); điểm để trống (giữ dòng chấm) khi hồ sơ chưa nộp phiế
 Template Mẫu 07, 08, 12, 13, 16 được dựng **từ đúng biểu mẫu gốc** `docs/2.03-HD.TVDU (HD DGXL CAN BO QUY III-2026) (Bieu mau).docx`:
 cắt nguyên phần thân của mẫu (bảng tiêu đề, đoạn văn, bảng, chữ ký, khổ giấy của section), gắn Content Control bao đúng đoạn chữ
 mặc định ("…", "……") trong đoạn gốc (giữ định dạng), bỏ màu đỏ đánh dấu soạn thảo. Mẫu 13 (đợt 8) dựng bằng script
-`build_mau13.py` (ghi trong `docs/remediation/reports/wave8-integration.md`): so khớp nguyên văn, sai là dừng; chạy lại cho ra cùng
-template. Mẫu 08 (bản Excel), 14, 15A, 15B là bảng tính (HD03 V.1: "lập trên file excel (trừ các Mẫu: 07, 09C, 12, 13, 16)") dựng
+`tools/templates/build_mau13.py` (`py -3 tools/templates/build_mau13.py <file biểu mẫu gốc> <template đích>`, cần `lxml`): so khớp
+nguyên văn, sai là dừng; chạy lại cho ra cùng template. `tools/templates/fix_mau12_period.py` tách dấu chấm câu khỏi chỗ điền quý
+của Mẫu 12 (chạy lại an toàn). Mẫu 08 (bản Excel), 14, 15A, 15B là bảng tính (HD03 V.1: "lập trên file excel (trừ các Mẫu: 07, 09C, 12, 13, 16)") dựng
 bằng ClosedXML theo đúng cột/tiêu đề biểu mẫu (PDF tr.48–49, 72–76).
 
 ### Toàn bộ biểu mẫu HD03: nơi nhập → nơi xuất → định dạng
