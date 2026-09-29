@@ -197,7 +197,10 @@ public sealed class WorkflowProfile
 /// <param name="Code">Mã (dùng trong API).</param>
 /// <param name="Name">Tên hiển thị.</param>
 /// <param name="Description">Mô tả.</param>
-public sealed record PeriodPreset(string Code, string Name, string Description)
+/// <param name="SuggestedForm">
+/// Mẫu tự chấm gợi ý (09A/09B): khi tạo kỳ không chỉ định bộ tiêu chí, chọn sẵn bộ đã xuất bản mới nhất có mẫu này.
+/// </param>
+public sealed record PeriodPreset(string Code, string Name, string Description, string SuggestedForm)
 {
     /// <summary>Cấu hình của kiểu kỳ.</summary>
     public PeriodSettings Build() => Code switch
@@ -211,7 +214,8 @@ public sealed record PeriodPreset(string Code, string Name, string Description)
 /// <summary>
 /// Cấu hình theo kỳ (<c>EvaluationPeriod.Settings</c>, cột jsonb) — docs/thiet-ke/luong-danh-gia.md mục 3.2.
 /// Luồng theo <b>hồ sơ luồng</b> (nhóm đối tượng): mỗi hồ sơ luồng đặt chế độ, quyền thực hiện, thời hạn của từng bước;
-/// hồ sơ đánh giá dùng cấu hình bước của hồ sơ luồng của mình. Mẫu tự chấm và tham số nghiệp vụ chung cho cả kỳ.
+/// hồ sơ đánh giá dùng cấu hình bước của hồ sơ luồng của mình. Mẫu tự chấm, tiêu chí và tham số chấm điểm thuộc bộ tiêu
+/// chí của kỳ (<see cref="CriteriaSnapshot"/>).
 /// </summary>
 public sealed class PeriodSettings
 {
@@ -220,12 +224,6 @@ public sealed class PeriodSettings
 
     /// <summary>Số hồ sơ luồng tối đa trong một kỳ.</summary>
     public const int MaxProfiles = 20;
-
-    /// <summary>Mẫu tự chấm có Mẫu 01/02 (tính điểm A-B-C-D theo nhiệm vụ).</summary>
-    public const string Form09A = "09A";
-
-    /// <summary>Mẫu tự chấm trực tiếp 6 trục (Q3/2026).</summary>
-    public const string Form09B = "09B";
 
     /// <summary>Mã kiểu kỳ "Đầy đủ".</summary>
     public const string PresetFull = "full";
@@ -248,10 +246,11 @@ public sealed class PeriodSettings
     public static readonly IReadOnlyList<PeriodPreset> Presets = new[]
     {
         new PeriodPreset(PresetFull, "Đầy đủ",
-            "Đủ các bước; tự chấm theo Mẫu 09A (có Mẫu 01/02). Sinh sẵn 3 hồ sơ luồng: Diện Đảng ủy cơ sở, "
-            + "Diện BTV Đảng ủy Tổng công ty, Bí thư/Phó bí thư Chi bộ là nhân viên."),
+            "Đủ các bước (có đăng ký, duyệt danh mục sản phẩm Mẫu 01 — dùng với bộ tiêu chí Mẫu 09A). Sinh sẵn 3 hồ sơ luồng: "
+            + "Diện Đảng ủy cơ sở, Diện BTV Đảng ủy Tổng công ty, Bí thư/Phó bí thư Chi bộ là nhân viên.", CriteriaSetContent.Form09A),
         new PeriodPreset(PresetTransitionQ3, "Quý III/2026 — chuyển tiếp",
-            "Như kiểu \"Đầy đủ\" nhưng không áp dụng đăng ký và duyệt sản phẩm (B1) ở mọi hồ sơ luồng; tự chấm trực tiếp 6 trục theo Mẫu 09B.")
+            "Như kiểu \"Đầy đủ\" nhưng không áp dụng đăng ký và duyệt sản phẩm (B1) ở mọi hồ sơ luồng; dùng với bộ tiêu chí Mẫu 09B "
+            + "(chấm trực tiếp theo trục).", CriteriaSetContent.Form09B)
     };
 
     /// <summary>Tùy chọn JSON: camelCase, không phân biệt hoa thường; khóa bước và khóa cấp quyết định giữ nguyên mã.</summary>
@@ -275,12 +274,6 @@ public sealed class PeriodSettings
 
     /// <summary>Chặn hoàn thành bước khi đã quá thời hạn.</summary>
     public bool EnforceDeadlines { get; set; }
-
-    /// <summary>Mẫu tự chấm: <see cref="Form09A"/> hoặc <see cref="Form09B"/>.</summary>
-    public string SelfScoreForm { get; set; } = Form09A;
-
-    /// <summary>Tham số nghiệp vụ (mặc định = giá trị code đang dùng).</summary>
-    public EvaluationParameters Parameters { get; set; } = new();
 
     #region Kiểu kỳ dựng sẵn
 
@@ -324,11 +317,10 @@ public sealed class PeriodSettings
         return settings;
     }
 
-    /// <summary>Kiểu kỳ "Quý III/2026 — chuyển tiếp": như "Đầy đủ" nhưng B1 không áp dụng ở mọi hồ sơ luồng; tự chấm 09B.</summary>
+    /// <summary>Kiểu kỳ "Quý III/2026 — chuyển tiếp": như "Đầy đủ" nhưng B1 không áp dụng ở mọi hồ sơ luồng (dùng với bộ 09B).</summary>
     public static PeriodSettings TransitionQ3Preset()
     {
         var settings = FullPreset();
-        settings.SelfScoreForm = Form09B;
         foreach (var profile in settings.Profiles)
         {
             profile.Step(WorkflowStep.B1_REGISTER).Mode = StepMode.Off;
@@ -367,7 +359,7 @@ public sealed class PeriodSettings
         return (settings ?? FullPreset()).Normalize();
     }
 
-    /// <summary>Chuẩn hóa: hồ sơ luồng đủ 9 bước, khóa cấp quyết định đúng tên, mẫu tự chấm viết hoa, tham số không null.</summary>
+    /// <summary>Chuẩn hóa: hồ sơ luồng đủ 9 bước, khóa cấp quyết định đúng tên.</summary>
     public PeriodSettings Normalize()
     {
         Profiles = (Profiles ?? new List<WorkflowProfile>()).Where(p => p != null).Select(p => p.Normalize()).ToList();
@@ -381,9 +373,6 @@ public sealed class PeriodSettings
             defaults[name] = value?.Trim().ToLowerInvariant() ?? string.Empty;
         }
         DefaultProfiles = defaults;
-
-        Parameters ??= new EvaluationParameters();
-        SelfScoreForm = string.IsNullOrWhiteSpace(SelfScoreForm) ? Form09A : SelfScoreForm.Trim().ToUpperInvariant();
         return this;
     }
 
@@ -417,19 +406,16 @@ public sealed class PeriodSettings
         ?? Profiles.FirstOrDefault()
         ?? WorkflowProfile.Create("mac-dinh", "Mặc định", null);
 
-    /// <summary>Tự chấm theo Mẫu 09B (chấm trực tiếp 6 trục).</summary>
-    [JsonIgnore]
-    public bool UsesAxisScoring => string.Equals(SelfScoreForm, Form09B, StringComparison.OrdinalIgnoreCase);
-
     #endregion
 
     #region Kiểm tra
 
     /// <summary>
     /// Kiểm tra cấu trúc cấu hình; trả danh sách lỗi (rỗng = hợp lệ). Mã quyền của bước nội bộ phải thuộc danh mục quyền
-    /// — kiểm tra ở tầng Application (<paramref name="isAllowedPermission"/>).
+    /// — kiểm tra ở tầng Application (<paramref name="isAllowedPermission"/>). <paramref name="selfScoreForm"/>: mẫu tự chấm của
+    /// bộ tiêu chí kỳ đã chọn (09A cần bước đăng ký sản phẩm ở mọi hồ sơ luồng); null = chưa chọn bộ.
     /// </summary>
-    public List<string> Validate(Func<string, bool>? isAllowedPermission = null)
+    public List<string> Validate(Func<string, bool>? isAllowedPermission = null, string? selfScoreForm = null)
     {
         var errors = new List<string>();
         if (SchemaVersion != CurrentSchemaVersion)
@@ -458,17 +444,13 @@ public sealed class PeriodSettings
         foreach (var key in DefaultProfiles.Keys.Where(k => !Enum.TryParse<ApprovalAuthority>(k, false, out _)))
             errors.Add($"Cấp quyết định \"{key}\" không hợp lệ (chỉ CoSo hoặc CapTren).");
 
-        if (SelfScoreForm is not (Form09A or Form09B))
-        {
-            errors.Add($"Mẫu tự chấm phải là {Form09A} hoặc {Form09B}.");
-        }
-        else if (SelfScoreForm == Form09A)
+        if (string.Equals(selfScoreForm, CriteriaSetContent.Form09A, StringComparison.OrdinalIgnoreCase))
         {
             foreach (var profile in profiles.Where(p => !p.IsActive(WorkflowStep.B1_REGISTER)))
-                errors.Add($"Hồ sơ luồng \"{profile.Name}\": tự chấm theo Mẫu 09A cần danh mục sản phẩm (Mẫu 01) — hãy áp dụng bước đăng ký sản phẩm hoặc chọn Mẫu 09B.");
+                errors.Add($"Hồ sơ luồng \"{profile.Name}\": bộ tiêu chí của kỳ tự chấm theo Mẫu 09A, cần danh mục sản phẩm (Mẫu 01) — "
+                    + "hãy áp dụng bước đăng ký sản phẩm hoặc chọn bộ tiêu chí Mẫu 09B.");
         }
 
-        errors.AddRange((Parameters ?? new EvaluationParameters()).Validate());
         return errors;
     }
 

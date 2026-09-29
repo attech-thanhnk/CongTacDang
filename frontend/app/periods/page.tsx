@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { EvaluationPeriodDto, PeriodPresetDto, evaluationService } from "@/services/evaluationService";
+import { CriteriaSetListItem, criteriaService } from "@/services/criteriaService";
 
 const today = () => new Date().toISOString().substring(0, 10);
 
@@ -28,7 +29,10 @@ export default function PeriodsPage() {
     startDate: today(),
     endDate: today(),
     preset: "full",
+    criteriaSetId: "",
   });
+  const [criteriaSets, setCriteriaSets] = useState<CriteriaSetListItem[]>([]);
+  const canSeeCriteria = canManage || hasPermission("criteria.manage");
 
   useEffect(() => {
     Promise.all([evaluationService.getPeriods(), evaluationService.getPresets()])
@@ -40,12 +44,19 @@ export default function PeriodsPage() {
       .finally(() => setLoading(false));
   }, [toast]);
 
+  useEffect(() => {
+    if (canManage) criteriaService.list().then((list) => setCriteriaSets(list.filter((s) => s.status === "Published"))).catch(() => setCriteriaSets([]));
+  }, [canManage]);
+
+  const suggestedForm = presets.find((p) => p.code === form.preset)?.suggestedForm;
+
   const create = async (event: React.FormEvent) => {
     event.preventDefault();
     setSaving(true);
     try {
       const period = await evaluationService.createPeriod({
         ...form,
+        criteriaSetId: form.criteriaSetId || null,
         name: form.name.trim() || `Đánh giá, xếp loại cán bộ Quý ${["I", "II", "III", "IV"][form.quarter - 1]}/${form.year}`,
       });
       toast.success("Đã tạo kỳ đánh giá (dự thảo). Hãy cấu hình và thêm người được đánh giá trước khi mở kỳ.");
@@ -59,7 +70,11 @@ export default function PeriodsPage() {
 
   return (
     <div className="page-wrapper">
-      <PageHeader title="Kỳ đánh giá" subTitle="Cấu hình hồ sơ luồng theo nhóm đối tượng, thời hạn, tham số và danh sách người được đánh giá theo từng kỳ." />
+      <PageHeader
+        title="Kỳ đánh giá"
+        subTitle="Cấu hình hồ sơ luồng theo nhóm đối tượng, thời hạn, bộ tiêu chí và danh sách người được đánh giá theo từng kỳ."
+        actions={canSeeCriteria ? <Link href="/criteria" className="btn btn-outline-primary btn-sm"><i className="bi bi-list-check me-1" />Bộ tiêu chí</Link> : undefined}
+      />
       <div className="page-body">
         <div className="row g-3">
           <div className={canManage ? "col-12 col-xl-8" : "col-12"}>
@@ -72,7 +87,7 @@ export default function PeriodsPage() {
                 ) : (
                   <table className="table table-hover table-sm align-middle mb-0">
                     <thead>
-                      <tr className="small text-secondary"><th className="ps-3">Kỳ</th><th>Trạng thái</th><th>Mẫu tự chấm</th><th>Hồ sơ luồng</th><th>Người được đánh giá</th><th /></tr>
+                      <tr className="small text-secondary"><th className="ps-3">Kỳ</th><th>Trạng thái</th><th>Bộ tiêu chí</th><th>Hồ sơ luồng</th><th>Người được đánh giá</th><th /></tr>
                     </thead>
                     <tbody>
                       {periods.map((p) => (
@@ -83,7 +98,7 @@ export default function PeriodsPage() {
                             <div className="text-secondary fw-normal">Quý {p.quarter}/{p.year}</div>
                           </td>
                           <td className="small">{p.statusDisplayName}</td>
-                          <td className="small">{p.settings?.selfScoreForm}</td>
+                          <td className="small">{p.criteria ? <>{p.criteria.name}<div className="text-secondary">Mẫu {p.criteria.selfScoreForm}</div></> : <span className="text-danger">Chưa chọn</span>}</td>
                           <td className="small">{p.settings?.profiles?.map((profile) => profile.name).join(", ") || "—"}</td>
                           <td className="small">{p.totalRecords}</td>
                           <td className="text-end pe-3"><Link className="btn btn-outline-primary btn-sm" href={`/periods/${p.id}`}>{canManage ? "Cấu hình" : "Xem"}</Link></td>
@@ -122,6 +137,14 @@ export default function PeriodsPage() {
                           </label>
                         </div>
                       ))}
+                    </div>
+                    <div className="col-12">
+                      <label className="form-label small" htmlFor="period-criteria">Bộ tiêu chí (đã xuất bản)</label>
+                      <select id="period-criteria" className="form-select form-select-sm" value={form.criteriaSetId} onChange={(e) => setForm({ ...form, criteriaSetId: e.target.value })}>
+                        <option value="">Tự chọn bộ mới nhất theo kiểu kỳ{suggestedForm ? ` (Mẫu ${suggestedForm})` : ""}</option>
+                        {criteriaSets.map((s) => <option key={s.id} value={s.id}>{s.name} — Mẫu {s.selfScoreForm}</option>)}
+                      </select>
+                      <div className="form-text">Đổi được khi kỳ còn dự thảo; khi mở kỳ, bộ tiêu chí được chụp vào kỳ và không đổi nữa.</div>
                     </div>
                     <div className="col-12"><button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? "Đang tạo..." : "Tạo kỳ (dự thảo)"}</button></div>
                   </form>

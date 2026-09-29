@@ -261,7 +261,7 @@ public class DocumentTemplateTests
         // Hồ sơ Khung 1 (tỷ trọng khác Khung 2): điểm hiển thị phải đúng SelfScore đã lưu.
         var (_, records) = SampleData();
         var record = records[0];
-        record.JobGroup = JobGroup.Khung1_QuanLyDangDoanThe;
+        record.WeightFrameCode = "K1";
         var task = record.Tasks.First();
         task.Weight = 20;
         task.CriteriaA_Ratio = 0.5;

@@ -40,6 +40,15 @@ public class EvaluationPeriod : IAuditableEntity, ISoftDeletable, IVersioned
     /// </summary>
     public string Settings { get; set; } = PeriodSettings.FullPreset().ToJson();
 
+    /// <summary>Bộ tiêu chí đã chọn (chỉ chọn/đổi khi kỳ còn dự thảo; chỉ bộ đã xuất bản).</summary>
+    public Guid? CriteriaSetId { get; set; }
+
+    /// <summary>
+    /// Ảnh chụp nguyên bộ tiêu chí (jsonb, <see cref="Evaluation.CriteriaSnapshot"/>): chụp khi chọn bộ và chụp lại khi mở kỳ;
+    /// mọi tính điểm, kiểm tra, biểu mẫu của kỳ dùng ảnh chụp này.
+    /// </summary>
+    public string? CriteriaSnapshot { get; set; }
+
     /// <summary>Lý do của lần chuyển trạng thái kỳ gần nhất (bắt buộc khi Khóa dữ liệu → Đang mở).</summary>
     public string? StatusReason { get; set; }
 
@@ -69,4 +78,7 @@ public class EvaluationPeriod : IAuditableEntity, ISoftDeletable, IVersioned
 
     /// <summary>Đọc cấu hình kỳ.</summary>
     public PeriodSettings GetSettings() => PeriodSettings.Parse(Settings);
+
+    /// <summary>Đọc ảnh chụp bộ tiêu chí; null nếu kỳ chưa chọn bộ. JSON sai → <see cref="FormatException"/>.</summary>
+    public CriteriaSnapshot? GetCriteria() => Evaluation.CriteriaSnapshot.Parse(CriteriaSnapshot);
 }

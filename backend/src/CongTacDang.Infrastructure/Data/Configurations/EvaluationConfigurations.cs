@@ -13,6 +13,11 @@ public sealed class EvaluationPeriodConfiguration : IEntityTypeConfiguration<Eva
         entity.HasKey(e => e.Id);
         entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
         entity.Property(e => e.Settings).HasColumnType("jsonb").IsRequired();
+        entity.Property(e => e.CriteriaSnapshot).HasColumnType("jsonb");
+        entity.HasOne<CriteriaSet>()
+            .WithMany()
+            .HasForeignKey(e => e.CriteriaSetId)
+            .OnDelete(DeleteBehavior.Restrict);
         entity.Property(e => e.StatusReason).HasMaxLength(1000);
         entity.HasIndex(e => new { e.Year, e.Quarter });
         entity.HasIndex(e => e.Status);
@@ -51,6 +56,10 @@ public sealed class EvaluationRecordConfiguration : IEntityTypeConfiguration<Eva
         entity.Property(e => e.WorkflowProfileCode).HasMaxLength(50).IsRequired();
         entity.Property(e => e.ReturnReason).HasMaxLength(2000);
         entity.Property(e => e.SelfScoreForm).HasMaxLength(10);
+        entity.Property(e => e.WeightFrameCode).HasMaxLength(20).IsRequired();
+        entity.Property(e => e.GeneralScores).HasColumnType("jsonb").IsRequired();
+        entity.Property(e => e.AxisScores).HasColumnType("jsonb");
+        entity.Property(e => e.AppraisalExplanation).HasMaxLength(4000);
         entity.Property(e => e.TasksApprovedByName).HasMaxLength(200);
         entity.Property(e => e.TasksApprovalComment).HasMaxLength(4000);
         entity.Property(e => e.CellConfirmedByName).HasMaxLength(200);
@@ -101,6 +110,7 @@ public sealed class EvaluationTaskConfiguration : IEntityTypeConfiguration<Evalu
         entity.HasIndex(e => new { e.RecordId, e.TaskOrder });
         entity.HasIndex(e => e.AttachmentId);
         entity.Property(e => e.TaskName).HasMaxLength(500).IsRequired();
+        entity.Property(e => e.AxisCode).HasMaxLength(20);
         entity.Property(e => e.Version)
             .HasColumnName("xmin")
             .IsRowVersion();

@@ -66,8 +66,10 @@ public class PartyMemberProfile : IAuditableEntity, ISoftDeletable
     /// </summary>
     public string PositionTitle { get; set; } = string.Empty;
 
-    /// <summary>Khối chức danh công tác theo 03-HD/TVĐU</summary>
-    public JobGroup JobGroup { get; set; } = JobGroup.Khung2_AnToanKyThuat;
+    /// <summary>
+    /// Mã khung tỷ trọng A-B-C-D mặc định (theo bộ tiêu chí, ví dụ "K2") — hồ sơ đánh giá chụp lại khi thêm vào kỳ; null = chưa chọn.
+    /// </summary>
+    public string? WeightFrameCode { get; set; }
 
     #endregion
 

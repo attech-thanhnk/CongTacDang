@@ -39,6 +39,7 @@ public sealed class Mau01Data
             {
                 Order = (index + 1).ToString(),
                 Name = t.TaskName,
+                Axis = FormText.OrNull(t.AxisCode),
                 Weight = FormText.Number(t.Weight, 1),
                 Deadline = FormText.Date(t.Deadline),
                 Standard = FormText.OrNull(t.TargetOutput)
@@ -56,7 +57,7 @@ public sealed class Mau01TaskRow
     /// <summary>Chưa có dữ liệu lưu (mã sản phẩm) — giữ chữ mặc định trong template.</summary>
     [TemplateField("T_CODE")] public string? Code { get; init; }
 
-    /// <summary>Chưa có dữ liệu lưu (trục kết quả T1-T6) — giữ chữ mặc định trong template.</summary>
+    /// <summary>Mã trục kết quả theo bộ tiêu chí của kỳ; nhiệm vụ chưa chọn trục → giữ chữ mặc định trong template.</summary>
     [TemplateField("T_AXIS")] public string? Axis { get; init; }
 
     /// <summary>Chưa có dữ liệu lưu (vai trò chủ trì/phối hợp) — giữ chữ mặc định trong template.</summary>

@@ -1,4 +1,5 @@
 import { ApiError, request } from "./apiClient";
+import type { CriteriaSnapshot, GeneralItemScore } from "./criteriaService";
 
 // ---------------------------------------------------------------------------
 // Kiểu dữ liệu — luồng đánh giá 9 bước theo cấu hình kỳ.
@@ -55,40 +56,16 @@ export interface WorkflowProfile {
   steps: Record<string, ProfileStepSetting>;
 }
 
-export interface CriteriaWeights {
-  a: number;
-  b: number;
-  c: number;
-  d: number;
-}
-
-/** Tham số nghiệp vụ của kỳ (mặc định = hằng số nghiệp vụ hiện hành). */
-export interface EvaluationParameters {
-  minTasks: number;
-  maxTasks: number;
-  totalTaskWeight: number;
-  taskWeightTolerance: number;
-  generalCriterionMaxScore: number;
-  jobGroupWeights: Record<string, CriteriaWeights>;
-  fallbackWeights: CriteriaWeights;
-  excellentMinScore: number;
-  goodMinScore: number;
-  satisfactoryMinScore: number;
-  excellentQuotaRatio: number;
-  collectiveGeneralMaxScore: number;
-  collectiveTaskMaxScore: number;
-  axisMaxScores: number[];
-}
-
-/** Cấu hình kỳ (cột jsonb, schema 2): các hồ sơ luồng + hồ sơ luồng mặc định theo cấp quyết định. */
+/**
+ * Cấu hình kỳ (cột jsonb, schema 2): các hồ sơ luồng + hồ sơ luồng mặc định theo cấp quyết định. Mẫu tự chấm, tiêu chí và
+ * tham số chấm điểm thuộc bộ tiêu chí của kỳ (`EvaluationPeriodDto.criteria`, task 16).
+ */
 export interface PeriodSettings {
   schemaVersion: number;
   profiles: WorkflowProfile[];
   /** Khóa: "CoSo" | "CapTren" → mã hồ sơ luồng. */
   defaultProfiles: Record<string, string>;
   enforceDeadlines: boolean;
-  selfScoreForm: "09A" | "09B" | string;
-  parameters: EvaluationParameters;
 }
 
 /** Thông tin kỳ đánh giá */
@@ -107,12 +84,18 @@ export interface EvaluationPeriodDto {
   totalRecords: number;
   isActive: boolean;
   settings: PeriodSettings;
+  /** Bộ tiêu chí đã chọn. */
+  criteriaSetId?: string | null;
+  /** Ảnh chụp bộ tiêu chí của kỳ (null nếu chưa chọn) — form tự chấm/thẩm định dựng từ đây. */
+  criteria?: CriteriaSnapshot | null;
 }
 
 export interface PeriodPresetDto {
   code: string;
   name: string;
   description: string;
+  /** Mẫu tự chấm gợi ý (09A/09B) — chọn sẵn bộ tiêu chí đã xuất bản mới nhất có mẫu này. */
+  suggestedForm: string;
   settings: PeriodSettings;
 }
 
@@ -123,6 +106,8 @@ export interface CreatePeriodDto {
   startDate: string;
   endDate: string;
   preset: string;
+  /** Bộ tiêu chí đã xuất bản; bỏ trống → bộ mới nhất theo mẫu gợi ý của kiểu kỳ. */
+  criteriaSetId?: string | null;
 }
 
 export interface PeriodParticipantDto {
@@ -135,7 +120,10 @@ export interface PeriodParticipantDto {
   departmentName?: string | null;
   partyCellId?: string | null;
   partyCellName?: string | null;
-  jobGroup: string;
+  /** Mã khung tỷ trọng A-B-C-D (ảnh chụp). */
+  weightFrameCode: string;
+  /** Tên khung theo bộ tiêu chí của kỳ; null nếu khung không có trong bộ. */
+  weightFrameName?: string | null;
   approvalAuthority: string;
   workflowProfileCode: string;
   workflowProfileName: string;
@@ -167,6 +155,8 @@ export interface EvaluationTaskDto {
   targetOutput: string;
   weight: number;
   deadline: string;
+  /** Mã trục kết quả (Mẫu 01). */
+  axisCode?: string | null;
   criteriaA_Ratio: number;
   criteriaB_Ratio: number;
   criteriaC_Ratio: number;
@@ -208,7 +198,8 @@ export interface EvaluationRecordDto {
   partyCellId?: string;
   departmentId?: string;
   departmentName?: string;
-  jobGroup: string;
+  /** Mã khung tỷ trọng A-B-C-D (ảnh chụp). */
+  weightFrameCode: string;
   approvalAuthority: string;
   workflowProfileCode: string;
   workflowProfileName: string;
@@ -222,10 +213,12 @@ export interface EvaluationRecordDto {
   tasksApprovedAt?: string | null;
   tasksApprovalComment?: string | null;
 
-  generalScores: number[];
+  /** Điểm từng tiêu chí con (khóa = mã tiêu chí con của bộ tiêu chí của kỳ). */
+  generalScores: Record<string, GeneralItemScore>;
   generalCriteriaScore: number;
   tasksScore: number;
-  axisScores?: number[] | null;
+  /** Điểm theo trục (Mẫu 09B, khóa = mã trục). */
+  axisScores?: Record<string, number> | null;
   totalSelfScore: number;
   selfProposedGrade: string;
   selfScoredAt?: string | null;
@@ -243,6 +236,8 @@ export interface EvaluationRecordDto {
 
   appraisalScore?: number;
   appraisalComment: string;
+  /** Nội dung giải trình/căn cứ khi chênh lệch tự chấm – thẩm định (B-09). */
+  appraisalExplanation?: string | null;
   appraisalProposedGrade: string;
   appraisedByName?: string | null;
   appraisedAt?: string | null;
@@ -400,6 +395,8 @@ export interface TaskInputDto {
   weight: number;
   deadline?: string | null;
   attachmentId?: string | null;
+  /** Mã trục kết quả thuộc bộ tiêu chí của kỳ (không bắt buộc). */
+  axisCode?: string | null;
 }
 
 export interface TaskScoreInputDto {
@@ -720,7 +717,7 @@ export const evaluationService = {
   async updatePeriod(
     id: string,
     version: number | undefined,
-    changes: { name?: string; startDate?: string; endDate?: string; settings?: PeriodSettings }
+    changes: { name?: string; startDate?: string; endDate?: string; settings?: PeriodSettings; criteriaSetId?: string }
   ): Promise<EvaluationPeriodDto> {
     return withConflictHandling("updatePeriod", () =>
       request<EvaluationPeriodDto>(`/evaluations/periods/${id}`, {
@@ -825,7 +822,7 @@ export const evaluationService = {
       version: number;
       departmentId?: string | null;
       partyCellId?: string | null;
-      jobGroup?: string;
+      weightFrameCode?: string;
       approvalAuthority?: string;
       reason: string;
     }

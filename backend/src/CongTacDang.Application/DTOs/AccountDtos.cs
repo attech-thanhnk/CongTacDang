@@ -37,6 +37,9 @@ public class CreateAccountRequestDto
 
     /// <summary>Lý do đặt tay thẩm quyền (khi có <see cref="ApprovalAuthority"/>).</summary>
     public string? ApprovalAuthorityReason { get; set; }
+
+    /// <summary>Mã khung tỷ trọng A-B-C-D mặc định (theo bộ tiêu chí, ví dụ "K2"); trống → chưa chọn.</summary>
+    public string? WeightFrameCode { get; set; }
 }
 
 /// <summary>Yêu cầu cập nhật tài khoản (<c>PUT /api/users/{id}</c>). Trường null → giữ nguyên.</summary>
@@ -62,6 +65,9 @@ public class UpdateAccountRequestDto
 
     /// <summary>Chi bộ; <c>Guid.Empty</c> → bỏ gán.</summary>
     public Guid? PartyCellId { get; set; }
+
+    /// <summary>Mã khung tỷ trọng A-B-C-D mặc định; chuỗi rỗng → bỏ chọn.</summary>
+    public string? WeightFrameCode { get; set; }
 }
 
 /// <summary>Một tài khoản trong danh sách quản trị (<c>GET /api/users</c>, <c>GET /api/users/{id}</c>).</summary>
@@ -90,6 +96,9 @@ public class AccountListItemDto
 
     /// <summary>Chức danh.</summary>
     public string PositionTitle { get; set; } = string.Empty;
+
+    /// <summary>Mã khung tỷ trọng A-B-C-D mặc định.</summary>
+    public string? WeightFrameCode { get; set; }
 
     /// <summary>Id Phòng.</summary>
     public Guid? DepartmentId { get; set; }

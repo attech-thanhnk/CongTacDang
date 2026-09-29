@@ -41,8 +41,11 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Đối tượng Đơn vị chuyên môn</summary>
     public AdministrativeDepartment? Department { get; set; }
 
-    /// <summary>Khung chức danh công tác (1 đến 4) để áp tỷ trọng điểm tiêu chí (ảnh chụp)</summary>
-    public JobGroup JobGroup { get; set; } = JobGroup.Khung2_AnToanKyThuat;
+    /// <summary>
+    /// Mã khung tỷ trọng A-B-C-D (ảnh chụp từ khung mặc định của cán bộ khi thêm vào kỳ; phải có trong bộ tiêu chí của kỳ —
+    /// kiểm tra kẹt luồng báo lỗi nếu không).
+    /// </summary>
+    public string WeightFrameCode { get; set; } = string.Empty;
 
     /// <summary>Cấp có thẩm quyền quyết định xếp loại — ảnh chụp từ hồ sơ cán bộ tại thời điểm thêm vào kỳ</summary>
     public ApprovalAuthority ApprovalAuthority { get; set; } = ApprovalAuthority.CoSo;
@@ -75,58 +78,31 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 
     #endregion
 
-    #region B2: Điểm Tiêu chí Chung (Mẫu 09 - Tối đa 30.0 điểm)
+    #region B2: Điểm nhóm tiêu chí chung (theo bộ tiêu chí của kỳ)
 
-    /// <summary>T1: Tư tưởng chính trị (tối đa 5.0đ)</summary>
-    public double GeneralScoreT1 { get; set; }
+    /// <summary>
+    /// Điểm từng tiêu chí con (jsonb): <c>{ "1.1": { "score": 2, "notApplicable": false, "reason": null }, … }</c> — khóa là mã
+    /// tiêu chí con trong bộ tiêu chí của kỳ (<see cref="Evaluation.GeneralItemScore"/>).
+    /// </summary>
+    public string GeneralScores { get; set; } = "{}";
 
-    /// <summary>T2: Đạo đức, lối sống (tối đa 5.0đ)</summary>
-    public double GeneralScoreT2 { get; set; }
-
-    /// <summary>T3: Tác phong, lề lối làm việc (tối đa 5.0đ)</summary>
-    public double GeneralScoreT3 { get; set; }
-
-    /// <summary>T4: Ý thức tổ chức kỷ luật (tối đa 5.0đ)</summary>
-    public double GeneralScoreT4 { get; set; }
-
-    /// <summary>T5: Tinh thần đổi mới sáng tạo, dám nghĩ dám làm (tối đa 5.0đ)</summary>
-    public double GeneralScoreT5 { get; set; }
-
-    /// <summary>T6: Trách nhiệm nêu gương (tối đa 5.0đ)</summary>
-    public double GeneralScoreT6 { get; set; }
-
-    /// <summary>Tổng điểm Nhóm tiêu chí chung (T1 + ... + T6, tối đa 30.0đ)</summary>
+    /// <summary>Tổng điểm nhóm tiêu chí chung (theo bộ tiêu chí; có xử lý "K/AD").</summary>
     public double GeneralCriteriaScore { get; set; }
 
     #endregion
 
-    #region B2: Điểm kết quả thực hiện nhiệm vụ (Mẫu 02 hoặc 6 trục Mẫu 09B — tối đa 70.0 điểm)
+    #region B2: Điểm kết quả thực hiện nhiệm vụ (Mẫu 02 hoặc theo trục Mẫu 09B)
 
-    /// <summary>Tổng điểm nhóm kết quả: từ 3-7 công việc (09A) hoặc tổng 6 trục (09B), tối đa 70.0đ</summary>
+    /// <summary>Tổng điểm nhóm kết quả: tổng điểm nhiệm vụ (09A) hoặc tổng điểm các trục (09B).</summary>
     public double TasksScore { get; set; }
 
-    /// <summary>Mẫu 09B — Trục 1 (điểm tự chấm).</summary>
-    public double? AxisScoreT1 { get; set; }
+    /// <summary>Điểm tự chấm theo trục (jsonb, Mẫu 09B): <c>{ "T1": 14, … }</c>; null khi không chấm theo trục.</summary>
+    public string? AxisScores { get; set; }
 
-    /// <summary>Mẫu 09B — Trục 2.</summary>
-    public double? AxisScoreT2 { get; set; }
-
-    /// <summary>Mẫu 09B — Trục 3.</summary>
-    public double? AxisScoreT3 { get; set; }
-
-    /// <summary>Mẫu 09B — Trục 4.</summary>
-    public double? AxisScoreT4 { get; set; }
-
-    /// <summary>Mẫu 09B — Trục 5.</summary>
-    public double? AxisScoreT5 { get; set; }
-
-    /// <summary>Mẫu 09B — Trục 6.</summary>
-    public double? AxisScoreT6 { get; set; }
-
-    /// <summary>Mẫu tự chấm đã dùng (09A/09B) — theo cấu hình kỳ lúc nộp.</summary>
+    /// <summary>Mẫu tự chấm đã dùng (09A/09B) — theo bộ tiêu chí của kỳ lúc nộp.</summary>
     public string? SelfScoreForm { get; set; }
 
-    /// <summary>Tổng điểm tự chấm toàn diện (Chung 30đ + Chuyên môn 70đ, tối đa 100.0đ)</summary>
+    /// <summary>Tổng điểm tự chấm (chung + nhiệm vụ, làm tròn theo bộ tiêu chí).</summary>
     public double TotalSelfScore { get; set; }
 
     /// <summary>Mức xếp loại cá nhân cán bộ tự đề xuất</summary>
@@ -182,6 +158,12 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 
     /// <summary>Ý kiến thẩm định</summary>
     public string AppraisalComment { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Nội dung giải trình/căn cứ khi điểm thẩm định chênh lệch với tự chấm từ ngưỡng của bộ tiêu chí trở lên (hoặc làm đổi mức) —
+    /// bắt buộc khi đó (B-09, Mẫu 10).
+    /// </summary>
+    public string? AppraisalExplanation { get; set; }
 
     /// <summary>Mức xếp loại cơ quan thẩm định đề xuất</summary>
     public EvaluationGrade AppraisalProposedGrade { get; set; } = EvaluationGrade.ChuaXepLoai;

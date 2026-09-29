@@ -156,7 +156,7 @@ public sealed class EvaluationWorkflowRepository : IEvaluationWorkflowRepository
             m.Department != null ? m.Department.Name : null,
             m.PartyCellId,
             m.PartyCell != null ? m.PartyCell.Name : null,
-            m.JobGroup,
+            m.WeightFrameCode,
             m.ApprovalAuthority,
             m.IsActive));
 

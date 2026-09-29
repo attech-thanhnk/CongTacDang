@@ -15,6 +15,9 @@ import {
   evaluationService,
 } from "@/services/evaluationService";
 import { FileUploadModal } from "@/components/attachments/FileUploadModal";
+import { useCriteria } from "@/components/evaluations/useCriteria";
+import { SelfScoreForm } from "@/components/evaluations/SelfScoreForm";
+import { CriteriaSnapshot, fmt, requiresExplanation } from "@/services/criteriaService";
 
 interface Props {
   record: EvaluationRecordDto;
@@ -33,6 +36,7 @@ const EMPTY_VOTES: VoteTallyDto = { votesExcellent: 0, votesGood: 0, votesSatisf
  * (frontend không tự suy luật quyền hay thứ tự bước).
  */
 export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }: Props) {
+  const { criteria } = useCriteria(record.periodId);
   const complete = actions.filter((a) => !a.requiresReason);
   const withReason = actions.filter((a) => a.requiresReason);
 
@@ -53,7 +57,7 @@ export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }:
             <h3 className="h6 mb-0">{action.label}</h3>
             {action.overdue && <span className="badge text-bg-warning">Đã quá thời hạn của bước</span>}
           </div>
-          <ActionForm record={record} action={action.action} step={action.step} busy={busy} onSubmit={onSubmit} />
+          <ActionForm record={record} criteria={criteria} action={action.action} step={action.step} busy={busy} onSubmit={onSubmit} />
         </div>
       ))}
       {withReason.length > 0 && (
@@ -72,27 +76,28 @@ export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }:
 
 interface FormProps {
   record: EvaluationRecordDto;
+  criteria: CriteriaSnapshot | null;
   action: WorkflowActionCode;
   step: WorkflowStepCode;
   busy: boolean;
   onSubmit: (action: WorkflowActionCode, payload: Record<string, unknown>, step?: WorkflowStepCode) => void;
 }
 
-function ActionForm({ record, action, step, busy, onSubmit }: FormProps) {
+function ActionForm({ record, criteria, action, step, busy, onSubmit }: FormProps) {
   switch (action) {
     case "RecordExternal":
       return <ExternalResultForm record={record} step={step} busy={busy} onSubmit={(payload) => onSubmit(action, payload, step)} />;
     case "SubmitTasks":
-      return <TasksForm record={record} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
+      return <TasksForm record={record} criteria={criteria} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "SubmitSelfScore":
-      return <SelfScoreForm record={record} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
+      return <SelfScoreForm record={record} criteria={criteria} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "ApproveTasks":
     case "ConfirmByCell":
       return <CommentForm busy={busy} label="Ý kiến (không bắt buộc)" submitText={action === "ApproveTasks" ? "Duyệt danh mục" : "Xác nhận phiếu tự chấm"} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "RecordCollectiveProposal":
       return <ProposalForm record={record} busy={busy} stage="B3A_COLLECTIVE" submitText="Ghi nhận đề xuất" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "Appraise":
-      return <AppraisalForm record={record} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
+      return <AppraisalForm record={record} criteria={criteria} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "DirectorReview":
       return <GradeCommentForm busy={busy} defaultGrade={record.appraisalProposedGrade} submitText="Ghi nhận nhận xét" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "RecordDecision":
@@ -143,16 +148,39 @@ function GradeCommentForm({ busy, defaultGrade, submitText, onSubmit }: { busy: 
   );
 }
 
-function AppraisalForm({ record, busy, onSubmit }: { record: EvaluationRecordDto; busy: boolean; onSubmit: (p: Record<string, unknown>) => void }) {
+/**
+ * Thẩm định: chênh lệch |tự chấm − thẩm định| từ ngưỡng của bộ tiêu chí (hoặc làm đổi mức, nếu bộ bật) → bắt buộc nội dung
+ * giải trình/căn cứ (máy chủ kiểm tra lại).
+ */
+function AppraisalForm({ record, criteria, busy, onSubmit }: { record: EvaluationRecordDto; criteria: CriteriaSnapshot | null; busy: boolean; onSubmit: (p: Record<string, unknown>) => void }) {
   const [score, setScore] = useState<string>(record.appraisalScore != null ? String(record.appraisalScore) : String(record.totalSelfScore ?? ""));
   const [grade, setGrade] = useState(initialGrade(record.appraisalProposedGrade) || initialGrade(record.collectiveProposedGrade) || initialGrade(record.selfProposedGrade));
   const [comment, setComment] = useState(record.appraisalComment || "");
+  const [explanation, setExplanation] = useState(record.appraisalExplanation || "");
+  const appraisal = score === "" ? null : Number(score);
+  const needsExplanation = !!criteria && requiresExplanation(criteria.content, record.totalSelfScore, appraisal);
+  const diff = appraisal == null ? null : appraisal - record.totalSelfScore;
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ appraisalScore: score === "" ? null : Number(score), proposedGrade: grade, comment }); }} className="row g-2">
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ appraisalScore: appraisal, proposedGrade: grade, comment, explanation: explanation.trim() || null }); }} className="row g-2">
       <div className="col-md-3"><label className="form-label small">Điểm thẩm định</label><input type="number" min={0} max={100} step={0.1} className="form-control form-control-sm" value={score} onChange={(e) => setScore(e.target.value)} /></div>
       <div className="col-md-5"><label className="form-label small" htmlFor="ap-grade">Mức đề xuất</label><GradeSelect id="ap-grade" value={grade} onChange={setGrade} /></div>
+      <div className="col-md-4 small text-secondary align-self-end">
+        Tự chấm: <strong>{fmt(record.totalSelfScore)}</strong>{diff != null && <> · Chênh lệch: <strong className={needsExplanation ? "text-danger" : ""}>{fmt(diff)}</strong></>}
+      </div>
       <div className="col-12"><label className="form-label small">Ý kiến thẩm định</label><textarea className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
-      <div className="col-12"><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !grade}>Ghi nhận thẩm định</button></div>
+      <div className="col-12">
+        <label className="form-label small" htmlFor="ap-explanation">
+          Nội dung giải trình, căn cứ {needsExplanation ? <span className="text-danger">(bắt buộc)</span> : "(khi chênh lệch)"}
+        </label>
+        <textarea id="ap-explanation" className="form-control form-control-sm" rows={2} maxLength={4000} required={needsExplanation} value={explanation} onChange={(e) => setExplanation(e.target.value)} />
+        {criteria && (
+          <div className="form-text">
+            Bắt buộc khi chênh lệch từ {fmt(criteria.content.parameters.explanationThreshold)} điểm trở lên
+            {criteria.content.parameters.explanationOnGradeChange ? " hoặc làm đổi mức xếp loại theo ngưỡng điểm" : ""} (bộ tiêu chí "{criteria.name}").
+          </div>
+        )}
+      </div>
+      <div className="col-12"><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !grade || (needsExplanation && !explanation.trim())}>Ghi nhận thẩm định</button></div>
     </form>
   );
 }
@@ -356,10 +384,12 @@ function ExternalResultForm({ record, step, busy, onSubmit }: { record: Evaluati
   );
 }
 
-function TasksForm({ record, busy, onSubmit }: { record: EvaluationRecordDto; busy: boolean; onSubmit: (p: Record<string, unknown>) => void }) {
+function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRecordDto; criteria: CriteriaSnapshot | null; busy: boolean; onSubmit: (p: Record<string, unknown>) => void }) {
+  const axes = criteria?.content.axes ?? [];
+  const p = criteria?.content.parameters;
   const initial: TaskInputDto[] = record.tasks.length > 0
-    ? record.tasks.map((t) => ({ taskName: t.taskName, targetOutput: t.targetOutput, weight: t.weight, deadline: t.deadline?.substring(0, 10), attachmentId: t.attachmentId }))
-    : [0, 1, 2].map(() => ({ taskName: "", targetOutput: "", weight: 0, deadline: "" }));
+    ? record.tasks.map((t) => ({ taskName: t.taskName, targetOutput: t.targetOutput, weight: t.weight, deadline: t.deadline?.substring(0, 10), attachmentId: t.attachmentId, axisCode: t.axisCode ?? "" }))
+    : Array.from({ length: p?.minTasks ?? 3 }, () => ({ taskName: "", targetOutput: "", weight: 0, deadline: "", axisCode: "" }));
   const [tasks, setTasks] = useState<TaskInputDto[]>(initial);
   const total = useMemo(() => Math.round(tasks.reduce((sum, t) => sum + (Number(t.weight) || 0), 0) * 100) / 100, [tasks]);
 
@@ -370,7 +400,7 @@ function TasksForm({ record, busy, onSubmit }: { record: EvaluationRecordDto; bu
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ tasks: tasks.map((t) => ({ ...t, deadline: t.deadline || null })) });
+        onSubmit({ tasks: tasks.map((t) => ({ ...t, deadline: t.deadline || null, axisCode: t.axisCode || null })) });
       }}
     >
       <div className="table-responsive">
@@ -380,6 +410,7 @@ function TasksForm({ record, busy, onSubmit }: { record: EvaluationRecordDto; bu
               <th style={{ width: 32 }}>#</th>
               <th>Sản phẩm / nhiệm vụ</th>
               <th>Kết quả cần đạt</th>
+              <th style={{ width: 150 }}>Trục kết quả</th>
               <th style={{ width: 100 }}>Trọng số</th>
               <th style={{ width: 150 }}>Thời hạn</th>
               <th style={{ width: 40 }} />
@@ -391,6 +422,12 @@ function TasksForm({ record, busy, onSubmit }: { record: EvaluationRecordDto; bu
                 <td className="small text-secondary">{i + 1}</td>
                 <td><input className="form-control form-control-sm" value={t.taskName} maxLength={500} required onChange={(e) => update(i, "taskName", e.target.value)} /></td>
                 <td><input className="form-control form-control-sm" value={t.targetOutput} onChange={(e) => update(i, "targetOutput", e.target.value)} /></td>
+                <td>
+                  <select className="form-select form-select-sm" value={t.axisCode || ""} onChange={(e) => update(i, "axisCode", e.target.value)} aria-label={`Trục kết quả dòng ${i + 1}`}>
+                    <option value="">— Chưa chọn —</option>
+                    {axes.map((a) => <option key={a.code} value={a.code} title={a.description || undefined}>{a.code} — {a.name}</option>)}
+                  </select>
+                </td>
                 <td><input type="number" min={0} step={0.5} className="form-control form-control-sm" value={t.weight} onChange={(e) => update(i, "weight", e.target.value)} /></td>
                 <td><input type="date" className="form-control form-control-sm" value={t.deadline || ""} onChange={(e) => update(i, "deadline", e.target.value)} /></td>
                 <td>
@@ -405,175 +442,21 @@ function TasksForm({ record, busy, onSubmit }: { record: EvaluationRecordDto; bu
       </div>
       <div className="d-flex justify-content-between align-items-center">
         <div className="d-flex gap-2 align-items-center">
-          <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setTasks([...tasks, { taskName: "", targetOutput: "", weight: 0, deadline: "" }])}>
+          <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setTasks([...tasks, { taskName: "", targetOutput: "", weight: 0, deadline: "", axisCode: "" }])}>
             <i className="bi bi-plus-lg me-1" />Thêm dòng
           </button>
-          <span className="small text-secondary">Tổng trọng số: <strong>{total}</strong></span>
+          <span className="small text-secondary">
+            Tổng trọng số: <strong className={p && Math.abs(total - p.totalTaskWeight) > p.taskWeightTolerance ? "text-danger" : ""}>{total}</strong>
+            {p && <> / {fmt(p.totalTaskWeight)}</>}
+          </span>
         </div>
         <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>Nộp danh mục</button>
       </div>
-      <div className="form-text">Số lượng sản phẩm và tổng trọng số theo tham số của kỳ; máy chủ kiểm tra khi nộp.</div>
-    </form>
-  );
-}
-
-interface TaskRatio {
-  a: number;
-  b: number;
-  c: number;
-  d: number;
-  exceed: boolean;
-  attachmentId?: string | null;
-  attachmentName?: string | null;
-}
-
-const AXIS_NAMES = [
-  "Trục 1 — Nhiệm vụ chính trị, SXKD, cung cấp dịch vụ",
-  "Trục 2 — Thể chế, phân cấp, kiểm tra, giám sát",
-  "Trục 3 — KHCN, đổi mới sáng tạo, chuyển đổi số",
-  "Trục 4 — Xây dựng Đảng, hệ thống chính trị",
-  "Trục 5 — Văn hóa, đời sống người lao động",
-  "Trục 6 — Quốc phòng, an ninh, đối ngoại",
-];
-
-const GENERAL_NAMES = ["T1 Tư tưởng chính trị", "T2 Đạo đức, lối sống", "T3 Tác phong, lề lối", "T4 Ý thức tổ chức kỷ luật", "T5 Đổi mới sáng tạo", "T6 Trách nhiệm nêu gương"];
-
-function SelfScoreForm({ record, busy, onSubmit }: { record: EvaluationRecordDto; busy: boolean; onSubmit: (p: Record<string, unknown>) => void }) {
-  const uses09B = record.selfScoreForm === "09B";
-  const [general, setGeneral] = useState<number[]>(record.generalScores?.length === 6 ? record.generalScores : [5, 5, 5, 5, 5, 5]);
-  const [axis, setAxis] = useState<number[]>(record.axisScores?.length === 6 ? record.axisScores : [0, 0, 0, 0, 0, 0]);
-  const [grade, setGrade] = useState(initialGrade(record.selfProposedGrade));
-  const [ratios, setRatios] = useState<Record<string, TaskRatio>>(() =>
-    Object.fromEntries(
-      record.tasks.map((t) => [
-        t.id,
-        {
-          a: t.criteriaA_Ratio ?? 1,
-          b: t.criteriaB_Ratio ?? 1,
-          c: t.criteriaC_Ratio ?? 1,
-          d: t.criteriaD_Ratio ?? 1,
-          exceed: t.isExceedStandard,
-          attachmentId: t.attachmentId,
-          attachmentName: t.attachmentOriginalName || t.attachmentFileName,
-        },
-      ])
-    )
-  );
-  const [uploadFor, setUploadFor] = useState<string | null>(null);
-
-  const setRatio = (taskId: string, key: keyof TaskRatio, value: number | boolean | string | null) =>
-    setRatios({ ...ratios, [taskId]: { ...ratios[taskId], [key]: value } });
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const payload: Record<string, unknown> = { generalScores: general, selfProposedGrade: grade || null };
-    if (uses09B) {
-      payload.axisScores = axis;
-    } else {
-      payload.taskScores = record.tasks.map((t) => ({
-        taskId: t.id,
-        criteriaA_Ratio: ratios[t.id].a,
-        criteriaB_Ratio: ratios[t.id].b,
-        criteriaC_Ratio: ratios[t.id].c,
-        criteriaD_Ratio: ratios[t.id].d,
-        isExceedStandard: ratios[t.id].exceed,
-        attachmentId: ratios[t.id].attachmentId || null,
-      }));
-    }
-    onSubmit(payload);
-  };
-
-  const sum = (values: number[]) => Math.round(values.reduce((s, v) => s + (Number(v) || 0), 0) * 100) / 100;
-
-  return (
-    <form onSubmit={submit}>
-      <h4 className="h6 small fw-bold text-secondary">I. Tiêu chí chung (Mẫu 09{uses09B ? "B" : "A"})</h4>
-      <div className="row g-2 mb-3">
-        {GENERAL_NAMES.map((name, i) => (
-          <div className="col-6 col-md-4" key={name}>
-            <label className="form-label small mb-0">{name}</label>
-            <input type="number" min={0} step={0.1} className="form-control form-control-sm" value={general[i]}
-              onChange={(e) => setGeneral(general.map((v, idx) => (idx === i ? Number(e.target.value) : v)))} />
-          </div>
-        ))}
-        <div className="col-12 small text-secondary">Cộng tiêu chí chung: <strong>{sum(general)}</strong></div>
+      <div className="form-text">
+        {p
+          ? `Theo bộ tiêu chí "${criteria!.name}": ${p.minTasks}–${p.maxTasks} sản phẩm, tổng trọng số ${fmt(p.totalTaskWeight)}; máy chủ kiểm tra khi nộp.`
+          : "Số lượng sản phẩm và tổng trọng số theo bộ tiêu chí của kỳ; máy chủ kiểm tra khi nộp."}
       </div>
-
-      {uses09B ? (
-        <>
-          <h4 className="h6 small fw-bold text-secondary">II. Kết quả thực hiện nhiệm vụ — chấm trực tiếp 6 trục (Mẫu 09B)</h4>
-          <div className="row g-2 mb-3">
-            {AXIS_NAMES.map((name, i) => (
-              <div className="col-12 col-md-6" key={name}>
-                <label className="form-label small mb-0">{name}</label>
-                <input type="number" min={0} step={0.1} className="form-control form-control-sm" value={axis[i]}
-                  onChange={(e) => setAxis(axis.map((v, idx) => (idx === i ? Number(e.target.value) : v)))} />
-              </div>
-            ))}
-            <div className="col-12 small text-secondary">Cộng 6 trục: <strong>{sum(axis)}</strong> (điểm tối đa từng trục theo tham số của kỳ)</div>
-          </div>
-        </>
-      ) : (
-        <>
-          <h4 className="h6 small fw-bold text-secondary">II. Kết quả thực hiện sản phẩm (Mẫu 02) — tỷ lệ đạt từng tiêu chí A-B-C-D (0–1)</h4>
-          <div className="table-responsive mb-3">
-            <table className="table table-sm align-middle">
-              <thead>
-                <tr className="small text-secondary">
-                  <th>Sản phẩm</th><th style={{ width: 70 }}>Trọng số</th><th style={{ width: 80 }}>A</th><th style={{ width: 80 }}>B</th><th style={{ width: 80 }}>C</th><th style={{ width: 80 }}>D</th><th style={{ width: 70 }}>Vượt</th><th style={{ width: 170 }}>Minh chứng</th>
-                </tr>
-              </thead>
-              <tbody>
-                {record.tasks.map((t) => {
-                  const r = ratios[t.id];
-                  return (
-                    <tr key={t.id}>
-                      <td><div className="small fw-semibold">{t.taskName}</div><div className="small text-secondary">{t.targetOutput}</div></td>
-                      <td className="small">{t.weight}</td>
-                      {(["a", "b", "c", "d"] as const).map((k) => (
-                        <td key={k}>
-                          <input type="number" min={0} max={1} step={0.05} className="form-control form-control-sm" value={r[k]}
-                            onChange={(e) => setRatio(t.id, k, Number(e.target.value))} aria-label={`Tiêu chí ${k.toUpperCase()} — ${t.taskName}`} />
-                        </td>
-                      ))}
-                      <td className="text-center"><input type="checkbox" className="form-check-input" checked={r.exceed} onChange={(e) => setRatio(t.id, "exceed", e.target.checked)} aria-label="Vượt chuẩn" /></td>
-                      <td className="small">
-                        {r.attachmentName ? <span className="d-block text-truncate" style={{ maxWidth: 160 }} title={r.attachmentName}><i className="bi bi-paperclip me-1" />{r.attachmentName}</span> : <span className="text-secondary">Chưa có</span>}
-                        <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setUploadFor(t.id)}>Đính kèm</button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-
-      <div className="row g-2 align-items-end">
-        <div className="col-md-5">
-          <label className="form-label small" htmlFor="self-grade">Mức tự đề xuất</label>
-          <select id="self-grade" className="form-select form-select-sm" value={grade} onChange={(e) => setGrade(e.target.value)}>
-            <option value="">— Để hệ thống gợi ý theo tổng điểm —</option>
-            {GRADE_OPTIONS.filter((g) => g.value !== "ChuaXepLoai").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-          </select>
-        </div>
-        <div className="col-md-7 text-end"><button type="submit" className="btn btn-primary btn-sm" disabled={busy}>Nộp phiếu tự chấm</button></div>
-      </div>
-
-      {uploadFor && (
-        <FileUploadModal
-          isOpen
-          onClose={() => setUploadFor(null)}
-          formCode="MAU02"
-          taskTitle={record.tasks.find((t) => t.id === uploadFor)?.taskName}
-          currentAttachmentId={ratios[uploadFor]?.attachmentId}
-          onUploadSuccess={(attachment) => {
-            setRatios({ ...ratios, [uploadFor]: { ...ratios[uploadFor], attachmentId: attachment.id, attachmentName: attachment.fileName } });
-            setUploadFor(null);
-          }}
-        />
-      )}
     </form>
   );
 }

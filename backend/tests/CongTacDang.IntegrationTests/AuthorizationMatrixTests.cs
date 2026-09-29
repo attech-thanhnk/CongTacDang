@@ -144,7 +144,7 @@ public sealed class AuthorizationMatrixTests
 
         await SetStatusAsync(s.RecordA1, RecordStatus.AwaitingSelfScore, withTasks: true);
         var selfScoreUrl = $"/api/evaluations/records/{s.RecordA1}/self-score/submit";
-        var selfScore = new { version = await VersionAsync(s, s.RecordA1), generalScores = new[] { 4.0, 4.0, 4.0, 4.0, 4.0, 4.0 }, selfProposedGrade = "HoanThanhTot" };
+        var selfScore = new { version = await VersionAsync(s, s.RecordA1), generalScores = CriteriaTestData.General(), selfProposedGrade = "HoanThanhTot" };
         Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerB1.PostAsJsonAsync(selfScoreUrl, selfScore)).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await s.OwnerA1.PostAsJsonAsync(selfScoreUrl, selfScore)).StatusCode);
     }
@@ -179,7 +179,7 @@ public sealed class AuthorizationMatrixTests
         var s = await GetScenarioAsync();
         foreach (var record in new[] { s.RecordA1, s.RecordB1, s.RecordT })
             await SetStatusAsync(record, RecordStatus.AwaitingAppraisal);
-        async Task<object> Appraise(Guid record) => new { version = await VersionAsync(s, record), appraisalScore = 90.0, comment = "Thẩm định", proposedGrade = "HoanThanhTot" };
+        async Task<object> Appraise(Guid record) => new { version = await VersionAsync(s, record), appraisalScore = 90.0, explanation = "Căn cứ thẩm định (test)", comment = "Thẩm định", proposedGrade = "HoanThanhTot" };
         string Url(Guid record) => $"/api/evaluations/records/{record}/appraisal";
 
         Assert.Equal(HttpStatusCode.OK, (await s.Appraiser.PostAsJsonAsync(Url(s.RecordB1), await Appraise(s.RecordB1))).StatusCode);
@@ -439,7 +439,9 @@ public sealed class AuthorizationMatrixTests
                 {
                     Year = 2030, Quarter = EvaluationQuarter.Quy1, Name = $"Kỳ ma trận {suffix}",
                     StartDate = DateTime.UtcNow.AddDays(-10), EndDate = DateTime.UtcNow.AddDays(80),
-                    Status = PeriodStatus.Open
+                    Status = PeriodStatus.Open,
+                    // Task 16: kỳ mở phải có ảnh chụp bộ tiêu chí (kiểu kỳ "Đầy đủ" → Mẫu 09A).
+                    CriteriaSnapshot = CriteriaTestData.Snapshot("09A")
                 };
                 db.AddRange(deptA, deptB, cellA, cellB, period);
                 await db.SaveChangesAsync();
@@ -487,7 +489,8 @@ public sealed class AuthorizationMatrixTests
                 EvaluationRecord Record(TestUser owner, Guid dept, Guid cell, ApprovalAuthority authority) => new()
                 {
                     PeriodId = s.PeriodId, MemberId = owner.Id, DepartmentId = dept, PartyCellId = cell,
-                    ApprovalAuthority = authority, Status = RecordStatus.AwaitingRegistration, UpdatedAt = DateTime.UtcNow
+                    ApprovalAuthority = authority, Status = RecordStatus.AwaitingRegistration, UpdatedAt = DateTime.UtcNow,
+                    WeightFrameCode = "K2"
                 };
                 var a1 = Record(ownerA1, s.DeptA, s.CellA, ApprovalAuthority.CoSo);
                 var a2 = Record(ownerA2, s.DeptA, s.CellA, ApprovalAuthority.CapTren);

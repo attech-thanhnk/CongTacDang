@@ -8,6 +8,7 @@ const FALLBACK_MODULE_NAMES: Record<string, string> = {
   system: "Quản trị hệ thống",
   catalog: "Danh mục",
   period: "Kỳ đánh giá",
+  criteria: "Bộ tiêu chí",
   evaluation: "Đánh giá cá nhân",
   collective: "Đánh giá tập thể",
   meeting: "Hội nghị, kiểm phiếu",

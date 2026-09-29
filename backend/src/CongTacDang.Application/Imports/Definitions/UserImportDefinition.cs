@@ -33,6 +33,9 @@ public sealed class UserImportRow
     /// <summary>Thẩm quyền phê duyệt đặt tay; null = suy ra từ chức vụ (nhập qua <c>member-positions</c>).</summary>
     public ApprovalAuthority? ApprovalAuthority { get; set; }
 
+    /// <summary>Mã khung tỷ trọng A-B-C-D mặc định (theo bộ tiêu chí).</summary>
+    public string? WeightFrameCode { get; set; }
+
     /// <summary>Id Phòng đã phân giải khi kiểm tra.</summary>
     public Guid? DepartmentId { get; set; }
 
@@ -49,7 +52,8 @@ public sealed class UserImportDefinition : IImportDefinition<UserImportRow>
 {
     /// <summary>Khóa cột.</summary>
     public const string UsernameKey = "username", FullNameKey = "fullName", EmailKey = "email", PartyCardKey = "partyCardNumber",
-        PositionKey = "positionTitle", DepartmentKey = "departmentCode", PartyCellKey = "partyCellCode", ApprovalKey = "approvalAuthority";
+        PositionKey = "positionTitle", DepartmentKey = "departmentCode", PartyCellKey = "partyCellCode", ApprovalKey = "approvalAuthority",
+        WeightFrameKey = "weightFrameCode";
 
     private const int MaxFullNameLength = 200;
     private const int MaxEmailLength = 200;
@@ -97,7 +101,10 @@ public sealed class UserImportDefinition : IImportDefinition<UserImportRow>
         new ImportColumn(ApprovalKey, "Thẩm quyền phê duyệt", false,
             "Để trống (khuyến nghị) → suy ra từ chức vụ: CapTren khi có chức vụ mà cấp trên quyết định, ngược lại CoSo. "
             + "Nhập CoSo/CapTren → đặt tay (ghi đè giá trị suy ra).",
-            new[] { nameof(ApprovalAuthority.CoSo), nameof(ApprovalAuthority.CapTren) }, "")
+            new[] { nameof(ApprovalAuthority.CoSo), nameof(ApprovalAuthority.CapTren) }, ""),
+        new ImportColumn(WeightFrameKey, "Mã khung tỷ trọng", false,
+            "Mã khung tỷ trọng A-B-C-D mặc định theo bộ tiêu chí đang dùng (xem trang Bộ tiêu chí, ví dụ K1–K4). "
+            + "Hồ sơ đánh giá chụp lại khi thêm vào kỳ; khung phải có trong bộ tiêu chí của kỳ.", null, "K2")
     };
 
     /// <inheritdoc />
@@ -111,8 +118,17 @@ public sealed class UserImportDefinition : IImportDefinition<UserImportRow>
             PartyCardNumber = source.GetOrNull(PartyCardKey),
             PositionTitle = source.GetOrNull(PositionKey),
             DepartmentCode = source.GetOrNull(DepartmentKey) is { } dept ? CatalogRules.NormalizeCode(dept) : null,
-            PartyCellCode = source.GetOrNull(PartyCellKey) is { } cell ? CatalogRules.NormalizeCode(cell) : null
+            PartyCellCode = source.GetOrNull(PartyCellKey) is { } cell ? CatalogRules.NormalizeCode(cell) : null,
+            WeightFrameCode = source.GetOrNull(WeightFrameKey)
         };
+        try
+        {
+            row.WeightFrameCode = UserAccountService.NormalizeWeightFrameCode(row.WeightFrameCode);
+        }
+        catch (ValidationException ex)
+        {
+            errors.Add(ex.Message);
+        }
 
         // Cùng quy tắc với IUserAccountService (AccountRules) để dòng qua được bước xem trước không bị từ chối lúc ghi.
         if (row.Username.Any(char.IsWhiteSpace))
@@ -183,7 +199,8 @@ public sealed class UserImportDefinition : IImportDefinition<UserImportRow>
             var created = await _accounts.StageCreateAsync(new CreateAccountCommand(
                 d.Username, d.FullName, d.Email, d.PartyCardNumber, d.PositionTitle, d.DepartmentId, d.PartyCellId, d.ApprovalAuthority)
             {
-                ApprovalAuthorityReason = d.ApprovalAuthority.HasValue ? "Đặt khi nhập danh sách cán bộ từ tệp." : null
+                ApprovalAuthorityReason = d.ApprovalAuthority.HasValue ? "Đặt khi nhập danh sách cán bộ từ tệp." : null,
+                WeightFrameCode = d.WeightFrameCode
             }, ct);
             accounts.Add(new string?[] { (++index).ToString(), created.Username, d.FullName, created.TemporaryPassword });
         }

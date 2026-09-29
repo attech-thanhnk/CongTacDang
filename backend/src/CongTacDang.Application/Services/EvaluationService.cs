@@ -91,7 +91,7 @@ public class EvaluationService : IEvaluationService
         var scope = _guard.GetScope(PermissionCodes.EvaluationRead);
         var period = await _repo.FindPeriodAsync(periodId, ct)
             ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
-        var parameters = SafeSettings(period).Parameters;
+        var quota = (EvaluationMapping.SafeCriteria(period)?.Content.Parameters ?? new CriteriaParameters()).ExcellentQuota;
         var records = (await _repo.ListRecordsAsync(periodId, ct))
             .Where(record => scope.Matches(record.MemberId, record.DepartmentId, record.PartyCellId))
             .ToList();
@@ -104,8 +104,8 @@ public class EvaluationService : IEvaluationService
 
             // Mức đề xuất trước quyết định: thẩm định → tập thể lãnh đạo.
             int goodOrBetter = cellRecords.Count(r => ProposedGrade(r) is EvaluationGrade.HoanThanhXuatSac or EvaluationGrade.HoanThanhTot);
-            int maxAllowed = EvaluationScoring.ExcellentQuota(goodOrBetter, parameters);
             int proposedExcellent = cellRecords.Count(r => ProposedGrade(r) == EvaluationGrade.HoanThanhXuatSac);
+            int maxAllowed = EvaluationScoring.ExcellentQuota(goodOrBetter, proposedExcellent, quota);
             double actualPercent = goodOrBetter > 0
                 ? Math.Round(((double)proposedExcellent / goodOrBetter) * 100.0, 1)
                 : 0.0;
@@ -140,12 +140,12 @@ public class EvaluationService : IEvaluationService
     {
         var evidence = await _repo.GetCurrentEvidenceAsync(records.SelectMany(r => r.Tasks).ToList(), ct);
         var today = EvaluationMapping.Today(DateTime.UtcNow);
-        var settingsCache = new Dictionary<Guid, PeriodSettings>();
+        var settingsCache = new Dictionary<Guid, (PeriodSettings Settings, CriteriaSnapshot? Criteria)>();
         return records.Select(r =>
         {
-            if (!settingsCache.TryGetValue(r.PeriodId, out var settings))
-                settingsCache[r.PeriodId] = settings = SafeSettings(r.Period);
-            return EvaluationMapping.ToDto(r, settings, today, evidence);
+            if (!settingsCache.TryGetValue(r.PeriodId, out var cached))
+                settingsCache[r.PeriodId] = cached = (SafeSettings(r.Period), EvaluationMapping.SafeCriteria(r.Period));
+            return EvaluationMapping.ToDto(r, cached.Settings, today, evidence, cached.Criteria);
         }).ToList();
     }
 

@@ -15,7 +15,7 @@ namespace CongTacDang.Application.Common.Interfaces;
 /// <param name="DepartmentName">Tên Phòng.</param>
 /// <param name="PartyCellId">Chi bộ hiện tại.</param>
 /// <param name="PartyCellName">Tên Chi bộ.</param>
-/// <param name="JobGroup">Khung chức danh.</param>
+/// <param name="WeightFrameCode">Mã khung tỷ trọng mặc định của cán bộ.</param>
 /// <param name="ApprovalAuthority">Cấp quyết định.</param>
 /// <param name="IsActive">Tài khoản đang hoạt động.</param>
 public sealed record MemberSnapshotSource(
@@ -26,7 +26,7 @@ public sealed record MemberSnapshotSource(
     string? DepartmentName,
     Guid? PartyCellId,
     string? PartyCellName,
-    JobGroup JobGroup,
+    string? WeightFrameCode,
     ApprovalAuthority ApprovalAuthority,
     bool IsActive);
 
