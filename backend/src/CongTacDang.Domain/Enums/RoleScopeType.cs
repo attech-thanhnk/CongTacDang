@@ -9,9 +9,9 @@ public enum RoleScopeType
     /// <summary>Toàn công ty (ScopeId = null).</summary>
     Global = 0,
 
-    /// <summary>Một Phòng / đơn vị chuyên môn (ScopeId = Id Phòng).</summary>
+    /// <summary>Một đơn vị chính quyền và mọi đơn vị con (ScopeId = Id đơn vị).</summary>
     Department = 1,
 
-    /// <summary>Một Chi bộ (ScopeId = Id Chi bộ).</summary>
+    /// <summary>Một tổ chức Đảng và mọi tổ chức con (ScopeId = Id tổ chức Đảng).</summary>
     PartyCell = 2
 }

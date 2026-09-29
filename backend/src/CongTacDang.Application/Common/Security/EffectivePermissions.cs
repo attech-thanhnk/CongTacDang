@@ -10,10 +10,10 @@ public enum ScopeType
     /// <summary>Toàn công ty.</summary>
     Global = 0,
 
-    /// <summary>Một Phòng / đơn vị chuyên môn (ScopeId = Id Phòng).</summary>
+    /// <summary>Một đơn vị chính quyền và mọi đơn vị con (ScopeId = Id đơn vị). Tên hiển thị: "Đơn vị chính quyền".</summary>
     Department = 1,
 
-    /// <summary>Một Chi bộ (ScopeId = Id Chi bộ).</summary>
+    /// <summary>Một tổ chức Đảng và mọi tổ chức con (ScopeId = Id tổ chức Đảng). Tên hiển thị: "Tổ chức Đảng".</summary>
     PartyCell = 2
 }
 
@@ -22,10 +22,35 @@ public enum ScopeType
 /// </summary>
 /// <param name="Code">Mã quyền.</param>
 /// <param name="ScopeType">Loại phạm vi.</param>
-/// <param name="ScopeId">Id Phòng/Chi bộ; null khi <see cref="ScopeType.Global"/>.</param>
-/// <param name="SourceAssignmentId">Id bản gán vai trò nguồn; <see cref="Guid.Empty"/> ở mô hình cũ (user ↔ role nhiều-nhiều).</param>
+/// <param name="ScopeId">Id đơn vị được gán (nút gốc của phạm vi); null khi <see cref="ScopeType.Global"/>.</param>
+/// <param name="SourceAssignmentId">Id bản gán vai trò nguồn.</param>
 /// <param name="SourceRoleName">Tên vai trò cấp quyền (để tra cứu "người X làm được gì").</param>
-public sealed record PermissionGrant(string Code, ScopeType ScopeType, Guid? ScopeId, Guid SourceAssignmentId, string SourceRoleName);
+/// <param name="CoveredScopeIds">
+/// Id mọi đơn vị thuộc phạm vi: <see cref="ScopeId"/> và toàn bộ đơn vị con cháu (cây đơn vị, task 14).
+/// null → chỉ <see cref="ScopeId"/>.
+/// </param>
+public sealed record PermissionGrant(
+    string Code,
+    ScopeType ScopeType,
+    Guid? ScopeId,
+    Guid SourceAssignmentId,
+    string SourceRoleName,
+    IReadOnlyCollection<Guid>? CoveredScopeIds = null)
+{
+    /// <summary>Các đơn vị thuộc phạm vi (gồm nút được gán); rỗng khi Global.</summary>
+    public IEnumerable<Guid> CoveredIds => CoveredScopeIds
+        ?? (ScopeId.HasValue ? new[] { ScopeId.Value } : Array.Empty<Guid>());
+
+    /// <summary>Đơn vị <paramref name="unitId"/> thuộc phạm vi của bản cấp (nút được gán hoặc con cháu).</summary>
+    public bool Covers(Guid? unitId)
+    {
+        if (!unitId.HasValue)
+            return false;
+        if (ScopeId == unitId)
+            return true;
+        return CoveredScopeIds != null && CoveredScopeIds.Contains(unitId.Value);
+    }
+}
 
 /// <summary>
 /// Tập quyền hiệu lực của một người dùng tại thời điểm tính (bất biến, an toàn khi dùng chung giữa các request).

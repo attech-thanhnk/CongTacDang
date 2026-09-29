@@ -24,6 +24,9 @@ namespace CongTacDang.Infrastructure.Data
 
         public DbSet<PartyCell> PartyCells => Set<PartyCell>();
         public DbSet<AdministrativeDepartment> AdministrativeDepartments => Set<AdministrativeDepartment>();
+        public DbSet<OrgUnitType> OrgUnitTypes => Set<OrgUnitType>();
+        public DbSet<Position> Positions => Set<Position>();
+        public DbSet<MemberPosition> MemberPositions => Set<MemberPosition>();
         public DbSet<PartyMemberProfile> PartyMemberProfiles => Set<PartyMemberProfile>();
         public DbSet<TaskAttachment> TaskAttachments => Set<TaskAttachment>();
 
@@ -51,26 +54,8 @@ namespace CongTacDang.Infrastructure.Data
             // được nạp tự động để các task sau không phải sửa DbContext.
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(CongTacDangDbContext).Assembly);
 
-            // 1. Tổ chức Chi bộ Đảng & Phòng ban Chuyên môn
-            modelBuilder.Entity<PartyCell>(entity =>
-            {
-                entity.ToTable("party_cells");
-                entity.HasKey(e => e.Id);
-                entity.HasIndex(e => e.Code).IsUnique();
-                entity.Property(e => e.Code).HasMaxLength(50).IsRequired();
-                entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
-                entity.HasQueryFilter(e => !e.IsDeleted);
-            });
-
-            modelBuilder.Entity<AdministrativeDepartment>(entity =>
-            {
-                entity.ToTable("administrative_departments");
-                entity.HasKey(e => e.Id);
-                entity.HasIndex(e => e.Code).IsUnique();
-                entity.Property(e => e.Code).HasMaxLength(50).IsRequired();
-                entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
-                entity.HasQueryFilter(e => !e.IsDeleted);
-            });
+            // 1. Cây tổ chức Đảng, cây đơn vị chính quyền, loại đơn vị, chức vụ, kiêm nhiệm:
+            //    Data/Configurations/OrganizationConfigurations.cs.
 
             // 2. Hồ sơ Cán bộ, Đảng viên
             modelBuilder.Entity<PartyMemberProfile>(entity =>
@@ -88,6 +73,7 @@ namespace CongTacDang.Infrastructure.Data
                 entity.Property(e => e.MustChangePassword).HasDefaultValue(false);
                 entity.Property(e => e.FailedLoginCount).HasDefaultValue(0);
                 entity.Property(e => e.SecurityStamp).HasMaxLength(64).IsRequired();
+                entity.Property(e => e.ApprovalAuthorityOverrideReason).HasMaxLength(1000);
                 entity.HasQueryFilter(e => !e.IsDeleted);
 
                 entity.HasOne(m => m.PartyCell)

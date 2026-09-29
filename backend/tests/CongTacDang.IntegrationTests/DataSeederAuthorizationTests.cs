@@ -96,9 +96,9 @@ public sealed class DataSeederAuthorizationTests
             {
                 var ex = await Assert.ThrowsAsync<PostgresException>(() => db.Database.ExecuteSqlRawAsync(
                     "INSERT INTO party_member_profiles (\"Id\", \"Username\", \"PasswordHash\", \"FullName\", \"Email\", \"PhoneNumber\", "
-                    + "\"IsPartyMember\", \"PartyRole\", \"AdminPosition\", \"PositionTitle\", \"JobGroup\", \"ApprovalAuthority\", "
+                    + "\"IsPartyMember\", \"PositionTitle\", \"JobGroup\", \"ApprovalAuthority\", "
                     + "\"SecurityStamp\", \"IsActive\", \"MustChangePassword\", \"FailedLoginCount\", \"CreatedAt\", \"IsDeleted\") "
-                    + "VALUES (gen_random_uuid(), 'ADMIN', 'x', 'Trùng', '', '', FALSE, 1, 1, '', 1, 1, 'x', TRUE, FALSE, 0, now(), FALSE)"));
+                    + "VALUES (gen_random_uuid(), 'ADMIN', 'x', 'Trùng', '', '', FALSE, '', 1, 1, 'x', TRUE, FALSE, 0, now(), FALSE)"));
                 Assert.Equal(PostgresErrorCodes.UniqueViolation, ex.SqlState);
             }
         });

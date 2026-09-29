@@ -30,8 +30,8 @@ public sealed class UserImportRow
     /// <summary>Mã Chi bộ (chữ hoa).</summary>
     public string? PartyCellCode { get; set; }
 
-    /// <summary>Thẩm quyền phê duyệt.</summary>
-    public ApprovalAuthority ApprovalAuthority { get; set; } = ApprovalAuthority.CoSo;
+    /// <summary>Thẩm quyền phê duyệt đặt tay; null = suy ra từ chức vụ (nhập qua <c>member-positions</c>).</summary>
+    public ApprovalAuthority? ApprovalAuthority { get; set; }
 
     /// <summary>Id Phòng đã phân giải khi kiểm tra.</summary>
     public Guid? DepartmentId { get; set; }
@@ -89,12 +89,15 @@ public sealed class UserImportDefinition : IImportDefinition<UserImportRow>
         new ImportColumn(FullNameKey, "Họ và tên", true, $"Tối đa {MaxFullNameLength} ký tự.", null, "Nguyễn Văn A"),
         new ImportColumn(EmailKey, "Email", false, "Địa chỉ thư điện tử (có @).", null, "nguyenvana@attech.com.vn"),
         new ImportColumn(PartyCardKey, "Số thẻ Đảng", false, "Để trống nếu không phải Đảng viên.", null, "12345678"),
-        new ImportColumn(PositionKey, "Chức danh", false, "Chức danh hiển thị trên biểu mẫu; để trống → \"Cán bộ\".", null, "Trưởng phòng"),
-        new ImportColumn(DepartmentKey, "Mã Phòng", false, "Mã Phòng/đơn vị đang hoạt động trong danh mục.", null, "PH-KH"),
-        new ImportColumn(PartyCellKey, "Mã Chi bộ", false, "Mã Chi bộ đang hoạt động trong danh mục.", null, "CB-VP"),
-        new ImportColumn(ApprovalKey, "Thẩm quyền phê duyệt", true,
-            "CoSo = Đảng ủy cơ sở quyết định xếp loại; CapTren = cấp trên quyết định.",
-            new[] { nameof(ApprovalAuthority.CoSo), nameof(ApprovalAuthority.CapTren) }, nameof(ApprovalAuthority.CoSo))
+        new ImportColumn(PositionKey, "Chức danh", false,
+            "Chức danh hiển thị trên biểu mẫu; để trống → \"Cán bộ\" (tự lấy theo chức vụ chính khi nhập chức vụ). "
+            + "Chức vụ (kể cả kiêm nhiệm) nhập riêng bằng loại \"Chức vụ của cán bộ\".", null, "Trưởng phòng"),
+        new ImportColumn(DepartmentKey, "Mã Phòng", false, "Mã đơn vị công tác chính (đơn vị chính quyền) đang hoạt động trong danh mục.", null, "PH-KH"),
+        new ImportColumn(PartyCellKey, "Mã Chi bộ", false, "Mã tổ chức Đảng nơi sinh hoạt Đảng (thường là Chi bộ) đang hoạt động trong danh mục.", null, "CB-VP"),
+        new ImportColumn(ApprovalKey, "Thẩm quyền phê duyệt", false,
+            "Để trống (khuyến nghị) → suy ra từ chức vụ: CapTren khi có chức vụ mà cấp trên quyết định, ngược lại CoSo. "
+            + "Nhập CoSo/CapTren → đặt tay (ghi đè giá trị suy ra).",
+            new[] { nameof(ApprovalAuthority.CoSo), nameof(ApprovalAuthority.CapTren) }, "")
     };
 
     /// <inheritdoc />
@@ -178,7 +181,10 @@ public sealed class UserImportDefinition : IImportDefinition<UserImportRow>
             var d = row.Data;
             // Chỉ đưa vào đơn vị công việc; khung nhập lưu cả lô một lần trong transaction → một dòng lỗi thì không tài khoản nào được ghi.
             var created = await _accounts.StageCreateAsync(new CreateAccountCommand(
-                d.Username, d.FullName, d.Email, d.PartyCardNumber, d.PositionTitle, d.DepartmentId, d.PartyCellId, d.ApprovalAuthority), ct);
+                d.Username, d.FullName, d.Email, d.PartyCardNumber, d.PositionTitle, d.DepartmentId, d.PartyCellId, d.ApprovalAuthority)
+            {
+                ApprovalAuthorityReason = d.ApprovalAuthority.HasValue ? "Đặt khi nhập danh sách cán bộ từ tệp." : null
+            }, ct);
             accounts.Add(new string?[] { (++index).ToString(), created.Username, d.FullName, created.TemporaryPassword });
         }
 

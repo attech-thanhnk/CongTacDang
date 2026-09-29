@@ -92,7 +92,6 @@ public class UserService : IUserService
             Id = member.Id,
             FullName = member.FullName,
             UserName = member.Username,
-            PartyRole = member.PartyRole.ToString(),
             AdminTitle = member.PositionTitle,
             PartyBranchName = member.PartyCell?.Name ?? string.Empty,
             AdminDeptName = member.Department?.Name ?? string.Empty,

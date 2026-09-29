@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
+using CongTacDang.Application.Organization;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.Infrastructure.Data;
@@ -56,10 +57,34 @@ public class RoleAssignmentRepository : IRoleAssignmentRepository
             })
             .ToListAsync(ct);
 
+        // Phạm vi đơn vị bao trùm cả cây con (task 14): mở rộng Id nút được gán thành nút đó + mọi con cháu theo Path.
+        // Nạp (Id, Path) của cả cây một lần cho mỗi bên cần dùng — cây nhỏ, kết quả được cache theo người dùng.
+        var departmentTree = rows.Any(r => r.ScopeType == RoleScopeType.Department && r.ScopeId.HasValue)
+            ? await _db.AdministrativeDepartments.AsNoTracking().Select(d => new TreeNode(d.Id, d.Path)).ToListAsync(ct)
+            : new List<TreeNode>();
+        var cellTree = rows.Any(r => r.ScopeType == RoleScopeType.PartyCell && r.ScopeId.HasValue)
+            ? await _db.PartyCells.AsNoTracking().Select(c => new TreeNode(c.Id, c.Path)).ToListAsync(ct)
+            : new List<TreeNode>();
+
         return new UserAccessSnapshot(
             user.IsActive,
-            rows.Select(r => new AssignmentGrantSource(r.Id, r.RoleId, r.RoleName, r.ScopeType, r.ScopeId, r.ValidFrom, r.ValidTo, r.Codes))
+            rows.Select(r => new AssignmentGrantSource(r.Id, r.RoleId, r.RoleName, r.ScopeType, r.ScopeId, r.ValidFrom, r.ValidTo, r.Codes,
+                    Covered(r.ScopeType, r.ScopeId, departmentTree, cellTree)))
                 .ToList());
+    }
+
+    private sealed record TreeNode(Guid Id, string Path);
+
+    /// <summary>Nút được gán và mọi nút con cháu (theo đường dẫn vật hóa); null với phạm vi Global.</summary>
+    private static IReadOnlyList<Guid>? Covered(RoleScopeType type, Guid? scopeId, List<TreeNode> departments, List<TreeNode> cells)
+    {
+        if (type == RoleScopeType.Global || !scopeId.HasValue)
+            return null;
+        var tree = type == RoleScopeType.Department ? departments : cells;
+        var covered = OrgTree.SelfAndDescendants(tree.Select(n => (n.Id, n.Path)), scopeId.Value).ToList();
+        if (!covered.Contains(scopeId.Value))
+            covered.Add(scopeId.Value); // đơn vị đã xóa/không còn trong cây: vẫn giữ đúng nút được gán
+        return covered;
     }
 
     /// <inheritdoc />

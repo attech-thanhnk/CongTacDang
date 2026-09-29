@@ -87,7 +87,6 @@ public class EvaluationRecordDto
     public Guid MemberId { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string? PartyCardNumber { get; set; }
-    public string PartyRole { get; set; } = string.Empty;
     public string PositionTitle { get; set; } = string.Empty;
     /// <summary>Chi bộ ảnh chụp trên hồ sơ.</summary>
     public string? PartyCellName { get; set; }

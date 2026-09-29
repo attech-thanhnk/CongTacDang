@@ -210,7 +210,13 @@ public interface IImportLookup
 }
 
 /// <summary>Một mục danh mục phục vụ tra cứu.</summary>
-public sealed record CatalogLookupEntry(Guid Id, string Code, string Name, bool IsActive, bool IsDeleted);
+/// <param name="Id">Id đơn vị.</param>
+/// <param name="Code">Mã.</param>
+/// <param name="Name">Tên.</param>
+/// <param name="IsActive">Đang hoạt động.</param>
+/// <param name="IsDeleted">Đã xóa mềm.</param>
+/// <param name="ParentId">Đơn vị cha (cây đơn vị, task 14).</param>
+public sealed record CatalogLookupEntry(Guid Id, string Code, string Name, bool IsActive, bool IsDeleted, Guid? ParentId = null);
 
 /// <summary>Ghi bản ghi audit tóm tắt cho mỗi lần xác nhận import (cùng transaction).</summary>
 public interface IImportAuditLog

@@ -146,25 +146,61 @@ public interface IOrganizationRepository
     /// <summary>Đánh dấu xóa Chi bộ (DbContext đổi thành xóa mềm khi lưu).</summary>
     void RemovePartyCell(PartyCell cell);
 
-    /// <summary>Số dữ liệu còn tham chiếu tới Phòng (cán bộ, hồ sơ đánh giá cá nhân, hồ sơ tập thể).</summary>
-    Task<CatalogUsage> GetDepartmentUsageAsync(Guid id);
+    /// <summary>
+    /// Số dữ liệu còn tham chiếu tới đơn vị chính quyền (đơn vị con, cán bộ, hồ sơ đánh giá cá nhân, hồ sơ tập thể,
+    /// bản gán vai trò và chức vụ chưa hết hạn tại <paramref name="now"/>).
+    /// </summary>
+    Task<CatalogUsage> GetDepartmentUsageAsync(Guid id, DateTime now);
 
-    /// <summary>Số dữ liệu còn tham chiếu tới Chi bộ (cán bộ, hồ sơ đánh giá cá nhân, hồ sơ tập thể, biên bản hội nghị).</summary>
-    Task<CatalogUsage> GetPartyCellUsageAsync(Guid id);
+    /// <summary>
+    /// Số dữ liệu còn tham chiếu tới tổ chức Đảng (tổ chức con, cán bộ, hồ sơ đánh giá cá nhân, hồ sơ tập thể, biên bản hội nghị,
+    /// bản gán vai trò và chức vụ chưa hết hạn tại <paramref name="now"/>).
+    /// </summary>
+    Task<CatalogUsage> GetPartyCellUsageAsync(Guid id, DateTime now);
+
+    // ----- Cây đơn vị, loại đơn vị (task 14) -----
+
+    /// <summary>Số đơn vị con trực tiếp (chưa xóa) theo từng đơn vị chính quyền.</summary>
+    Task<Dictionary<Guid, int>> CountChildDepartmentsAsync();
+
+    /// <summary>Số tổ chức con trực tiếp (chưa xóa) theo từng tổ chức Đảng.</summary>
+    Task<Dictionary<Guid, int>> CountChildPartyCellsAsync();
+
+    /// <summary>Loại đơn vị chưa xóa (không theo dõi), sắp theo bên, thứ tự, tên.</summary>
+    Task<List<OrgUnitType>> ListUnitTypesAsync();
+
+    /// <summary>Loại đơn vị chưa xóa theo Id (được theo dõi).</summary>
+    Task<OrgUnitType?> FindUnitTypeAsync(Guid id);
+
+    /// <summary>Đã có loại đơn vị chưa xóa cùng bên và cùng tên (không phân biệt hoa thường), trừ <paramref name="excludeId"/>.</summary>
+    Task<bool> UnitTypeNameExistsAsync(OrgSide side, string name, Guid? excludeId = null);
+
+    /// <summary>Số đơn vị (chưa xóa, cả hai bên) theo từng loại.</summary>
+    Task<Dictionary<Guid, int>> CountUnitsByTypeAsync();
+
+    /// <summary>Đưa loại đơn vị mới vào DbContext (chưa lưu).</summary>
+    void AddUnitType(OrgUnitType type);
+
+    /// <summary>Đánh dấu xóa loại đơn vị (xóa mềm khi lưu).</summary>
+    void RemoveUnitType(OrgUnitType type);
 }
 
-/// <summary>Số dữ liệu còn tham chiếu tới một mục danh mục (chặn xóa khi khác 0).</summary>
+/// <summary>Số dữ liệu còn tham chiếu tới một đơn vị (chặn xóa khi khác 0).</summary>
 /// <param name="Members">Cán bộ chưa xóa.</param>
 /// <param name="EvaluationRecords">Hồ sơ đánh giá cá nhân chưa xóa.</param>
 /// <param name="CollectiveRecords">Hồ sơ tự đánh giá tập thể chưa xóa.</param>
-/// <param name="Meetings">Biên bản hội nghị, kiểm phiếu chưa xóa (chỉ Chi bộ).</param>
-public sealed record CatalogUsage(int Members, int EvaluationRecords, int CollectiveRecords, int Meetings)
+/// <param name="Meetings">Biên bản hội nghị, kiểm phiếu chưa xóa (chỉ tổ chức Đảng).</param>
+/// <param name="Children">Đơn vị con trực tiếp chưa xóa.</param>
+/// <param name="Assignments">Bản gán vai trò chưa hết hạn có phạm vi là đơn vị này.</param>
+/// <param name="Positions">Chức vụ của cán bộ chưa hết hạn giữ tại đơn vị này.</param>
+public sealed record CatalogUsage(int Members, int EvaluationRecords, int CollectiveRecords, int Meetings,
+    int Children = 0, int Assignments = 0, int Positions = 0)
 {
     /// <summary>Tổng hồ sơ đánh giá (cá nhân + tập thể + biên bản).</summary>
     public int Records => EvaluationRecords + CollectiveRecords + Meetings;
 
     /// <summary>Không còn dữ liệu nào tham chiếu.</summary>
-    public bool IsUnused => Members == 0 && Records == 0;
+    public bool IsUnused => Members == 0 && Records == 0 && Children == 0 && Assignments == 0 && Positions == 0;
 }
 
 /// <summary>

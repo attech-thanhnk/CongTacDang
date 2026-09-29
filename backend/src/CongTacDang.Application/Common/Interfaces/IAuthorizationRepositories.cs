@@ -50,6 +50,9 @@ public interface IRoleRepository
 /// <param name="ValidFrom">Hiệu lực từ.</param>
 /// <param name="ValidTo">Hiệu lực đến (không bao gồm).</param>
 /// <param name="PermissionCodes">Mã quyền (chưa xóa) của vai trò.</param>
+/// <param name="CoveredScopeIds">
+/// Id đơn vị thuộc phạm vi: nút được gán và mọi nút con cháu trong cây đơn vị (task 14). null → chỉ <paramref name="ScopeId"/>.
+/// </param>
 public sealed record AssignmentGrantSource(
     Guid AssignmentId,
     Guid RoleId,
@@ -58,7 +61,8 @@ public sealed record AssignmentGrantSource(
     Guid? ScopeId,
     DateTime ValidFrom,
     DateTime? ValidTo,
-    IReadOnlyList<string> PermissionCodes);
+    IReadOnlyList<string> PermissionCodes,
+    IReadOnlyList<Guid>? CoveredScopeIds = null);
 
 /// <summary>Trạng thái tài khoản và các bản gán chưa hết hạn của một người dùng.</summary>
 /// <param name="IsActive">Tài khoản đang hoạt động.</param>

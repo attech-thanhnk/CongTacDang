@@ -1,66 +1,33 @@
 namespace CongTacDang.Domain.Enums;
 
 /// <summary>
-/// Chức vụ công tác Đảng trong hệ thống tổ chức Đảng bộ
+/// Bên của một loại đơn vị tổ chức (<c>OrgUnitType</c>): tổ chức Đảng hay đơn vị chính quyền.
 /// </summary>
-public enum PartyRole
+public enum OrgSide
 {
-    /// <summary>Đảng viên</summary>
-    DangVien = 1,
+    /// <summary>Tổ chức Đảng (Đảng ủy, Đảng bộ bộ phận, Chi bộ…) — bảng <c>party_cells</c>.</summary>
+    Party = 1,
 
-    /// <summary>Chi ủy viên</summary>
-    ChiUyVien = 2,
-
-    /// <summary>Phó Bí thư Chi bộ</summary>
-    PhoBiThuChiBo = 3,
-
-    /// <summary>Bí thư Chi bộ</summary>
-    BiThuChiBo = 4,
-
-    /// <summary>Đảng ủy viên</summary>
-    DangUyVien = 5,
-
-    /// <summary>Ủy viên Ban Thường vụ Đảng ủy</summary>
-    UyVienBanThuongVu = 6,
-
-    /// <summary>Phó Bí thư Đảng ủy</summary>
-    PhoBiThuDangUy = 7,
-
-    /// <summary>Bí thư Đảng ủy</summary>
-    BiThuDangUy = 8
+    /// <summary>Đơn vị chính quyền (Công ty, Phòng, Trung tâm, Xưởng, Đội…) — bảng <c>administrative_departments</c>.</summary>
+    Administrative = 2
 }
 
 /// <summary>
-/// Chức danh quản lý, chuyên môn trong chính quyền Công ty ATTECH
+/// Bên của một chức vụ trong danh mục chức vụ (<c>Position</c>).
 /// </summary>
-public enum AdministrativePosition
+public enum PositionSide
 {
-    /// <summary>Chuyên viên / Kỹ sư</summary>
-    ChuyenVien = 1,
+    /// <summary>Chức vụ Đảng.</summary>
+    Party = 1,
 
-    /// <summary>Phó Trưởng phòng</summary>
-    PhoTruongPhong = 2,
+    /// <summary>Chức vụ chính quyền.</summary>
+    Administrative = 2,
 
-    /// <summary>Trưởng phòng</summary>
-    TruongPhong = 3,
+    /// <summary>Chức vụ đoàn thể (Công đoàn, Đoàn Thanh niên, Hội…).</summary>
+    MassOrganization = 3,
 
-    /// <summary>Phó Quản đốc phân xưởng</summary>
-    PhoQuanDoc = 4,
-
-    /// <summary>Quản đốc phân xưởng</summary>
-    QuanDoc = 5,
-
-    /// <summary>Phó Giám đốc công ty</summary>
-    PhoGiamDoc = 6,
-
-    /// <summary>Giám đốc công ty</summary>
-    GiamDoc = 7,
-
-    /// <summary>Chủ tịch công ty</summary>
-    ChuTichCongTy = 8,
-
-    /// <summary>Kiểm soát viên</summary>
-    KiemSoatVien = 9
+    /// <summary>Khác.</summary>
+    Other = 4
 }
 
 /// <summary>

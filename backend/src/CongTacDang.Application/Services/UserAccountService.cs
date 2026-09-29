@@ -10,6 +10,7 @@ using CongTacDang.Application.Common.Models;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Domain.Entities;
+using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Application.Services;
 
@@ -97,6 +98,8 @@ public sealed class UserAccountService : IUserAccountService
         if (fullName.Length == 0)
             throw new ValidationException("Họ và tên không được để trống. Hãy nhập họ và tên cán bộ.");
         var email = AccountRules.NormalizeOptionalEmail(cmd.Email);
+        if (cmd.ApprovalAuthority.HasValue && !Enum.IsDefined(cmd.ApprovalAuthority.Value))
+            throw new ValidationException("Cấp có thẩm quyền quyết định xếp loại không hợp lệ. Hãy chọn Đảng ủy cơ sở hoặc cấp trên, hoặc để trống để suy ra từ chức vụ.");
         var departmentId = cmd.DepartmentId == Guid.Empty ? null : cmd.DepartmentId;
         var partyCellId = cmd.PartyCellId == Guid.Empty ? null : cmd.PartyCellId;
 
@@ -123,7 +126,12 @@ public sealed class UserAccountService : IUserAccountService
             PositionTitle = string.IsNullOrWhiteSpace(cmd.PositionTitle) ? "Cán bộ" : cmd.PositionTitle.Trim(),
             DepartmentId = departmentId,
             PartyCellId = partyCellId,
-            ApprovalAuthority = cmd.ApprovalAuthority,
+            // Tài khoản mới chưa có chức vụ → thẩm quyền suy ra = CoSo; giá trị truyền vào được lưu là đặt tay (ghi đè).
+            ApprovalAuthority = cmd.ApprovalAuthority ?? ApprovalAuthority.CoSo,
+            ApprovalAuthorityOverride = cmd.ApprovalAuthority,
+            ApprovalAuthorityOverrideReason = cmd.ApprovalAuthority.HasValue
+                ? (string.IsNullOrWhiteSpace(cmd.ApprovalAuthorityReason) ? "Đặt khi tạo tài khoản." : cmd.ApprovalAuthorityReason.Trim())
+                : null,
             IsActive = true,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(temporaryPassword),
             MustChangePassword = true,
@@ -161,7 +169,10 @@ public sealed class UserAccountService : IUserAccountService
     {
         var member = await LoadAsync(id, ct);
         Authz.Ensure(PermissionCodes.SystemUsersRead, TargetOf(member.DepartmentId, member.PartyCellId));
-        return ToDto(member);
+        var dto = ToDto(member);
+        // Phạm vi bao trùm cây con chỉ máy chủ biết đầy đủ → trả sẵn cho giao diện hiển thị nút thao tác.
+        dto.CanManage = Authz.Can(PermissionCodes.SystemUsersManage, TargetOf(member.DepartmentId, member.PartyCellId));
+        return dto;
     }
 
     /// <inheritdoc />
@@ -190,12 +201,6 @@ public sealed class UserAccountService : IUserAccountService
         }
         if (cmd.PositionTitle != null && !string.IsNullOrWhiteSpace(cmd.PositionTitle))
             member.PositionTitle = cmd.PositionTitle.Trim();
-        if (cmd.ApprovalAuthority.HasValue)
-        {
-            if (!Enum.IsDefined(cmd.ApprovalAuthority.Value))
-                throw new ValidationException("Cấp có thẩm quyền quyết định xếp loại không hợp lệ. Hãy chọn Đảng ủy cơ sở hoặc cấp trên.");
-            member.ApprovalAuthority = cmd.ApprovalAuthority.Value;
-        }
 
         var newDepartment = cmd.DepartmentId.HasValue
             ? (cmd.DepartmentId.Value == Guid.Empty ? null : cmd.DepartmentId)
@@ -319,6 +324,8 @@ public sealed class UserAccountService : IUserAccountService
         PartyCellId = m.PartyCellId,
         PartyCellName = m.PartyCell?.Name,
         ApprovalAuthority = m.ApprovalAuthority,
+        ApprovalAuthorityOverride = m.ApprovalAuthorityOverride,
+        ApprovalAuthorityOverrideReason = m.ApprovalAuthorityOverrideReason,
         IsActive = m.IsActive,
         IsLockedOut = m.LockoutEnd.HasValue && m.LockoutEnd.Value > DateTime.UtcNow,
         LockoutEnd = m.LockoutEnd,

@@ -30,8 +30,13 @@ public class CreateAccountRequestDto
     /// <summary>Chi bộ sinh hoạt (phải tồn tại, đang hoạt động).</summary>
     public Guid? PartyCellId { get; set; }
 
-    /// <summary>Cấp có thẩm quyền quyết định xếp loại (mặc định <c>CoSo</c>).</summary>
+    /// <summary>
+    /// Đặt tay cấp có thẩm quyền quyết định xếp loại; null (mặc định) → suy ra từ chức vụ (<c>/api/users/{id}/positions</c>).
+    /// </summary>
     public ApprovalAuthority? ApprovalAuthority { get; set; }
+
+    /// <summary>Lý do đặt tay thẩm quyền (khi có <see cref="ApprovalAuthority"/>).</summary>
+    public string? ApprovalAuthorityReason { get; set; }
 }
 
 /// <summary>Yêu cầu cập nhật tài khoản (<c>PUT /api/users/{id}</c>). Trường null → giữ nguyên.</summary>
@@ -57,9 +62,6 @@ public class UpdateAccountRequestDto
 
     /// <summary>Chi bộ; <c>Guid.Empty</c> → bỏ gán.</summary>
     public Guid? PartyCellId { get; set; }
-
-    /// <summary>Cấp có thẩm quyền quyết định xếp loại.</summary>
-    public ApprovalAuthority? ApprovalAuthority { get; set; }
 }
 
 /// <summary>Một tài khoản trong danh sách quản trị (<c>GET /api/users</c>, <c>GET /api/users/{id}</c>).</summary>
@@ -101,8 +103,17 @@ public class AccountListItemDto
     /// <summary>Tên Chi bộ.</summary>
     public string? PartyCellName { get; set; }
 
-    /// <summary>Cấp có thẩm quyền quyết định xếp loại.</summary>
+    /// <summary>Cấp có thẩm quyền quyết định xếp loại đang áp dụng (đặt tay hoặc suy ra từ chức vụ).</summary>
     public ApprovalAuthority ApprovalAuthority { get; set; }
+
+    /// <summary>Thẩm quyền đặt tay (null = suy ra từ chức vụ).</summary>
+    public ApprovalAuthority? ApprovalAuthorityOverride { get; set; }
+
+    /// <summary>Lý do đặt tay thẩm quyền.</summary>
+    public string? ApprovalAuthorityOverrideReason { get; set; }
+
+    /// <summary>Người xem được quản lý tài khoản này (<c>system.users.manage</c> bao trùm đơn vị của tài khoản; chỉ trả ở chi tiết).</summary>
+    public bool CanManage { get; set; }
 
     /// <summary>Đang hoạt động (false: quản trị đã khóa).</summary>
     public bool IsActive { get; set; }
