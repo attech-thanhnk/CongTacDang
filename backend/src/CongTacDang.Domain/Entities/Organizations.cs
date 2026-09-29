@@ -37,7 +37,7 @@ public class PartyCell : IAuditableEntity, ISoftDeletable, IOrgUnit
     /// <summary>Mã định danh tổ chức Đảng</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    /// <summary>Mã ký hiệu (ví dụ: DU-ATTECH, CB-KT)</summary>
+    /// <summary>Mã ký hiệu (ví dụ: DU-CT, CB-KT)</summary>
     public string Code { get; set; } = string.Empty;
 
     /// <summary>Tên đầy đủ của tổ chức Đảng</summary>
@@ -87,7 +87,7 @@ public class AdministrativeDepartment : IAuditableEntity, ISoftDeletable, IOrgUn
     /// <summary>Mã định danh đơn vị</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    /// <summary>Mã ký hiệu (ví dụ: ATTECH, PH-KT)</summary>
+    /// <summary>Mã ký hiệu (ví dụ: CT, PH-KT)</summary>
     public string Code { get; set; } = string.Empty;
 
     /// <summary>Tên đơn vị</summary>

@@ -45,6 +45,9 @@ public sealed class PublicOrganizationInfoDto
 
     /// <summary>Tên đơn vị chủ quản cấp trên.</summary>
     public string ParentCompanyName { get; set; } = string.Empty;
+
+    /// <summary>Tên viết tắt (đặt tên tệp tải xuống phía giao diện).</summary>
+    public string ShortName { get; set; } = string.Empty;
 }
 
 /// <summary>Dữ liệu sửa thông tin đơn vị.</summary>

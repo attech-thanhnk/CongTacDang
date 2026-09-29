@@ -79,7 +79,8 @@ public sealed class OrganizationSettingsService : IOrganizationSettingsService
         {
             SystemName = settings.SystemName,
             CompanyName = settings.CompanyName,
-            ParentCompanyName = settings.ParentCompanyName
+            ParentCompanyName = settings.ParentCompanyName,
+            ShortName = settings.ShortName
         };
     }
 
