@@ -364,7 +364,7 @@ public sealed class AuthorizationMatrixTests
 
         Assert.Equal(HttpStatusCode.OK, (await s.CellReporterA.GetAsync($"/api/reports/form-14?periodId={s.PeriodId}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await s.CellReporterA.GetAsync($"/api/reports/form-14?periodId={s.PeriodId}&branchId={s.CellB}")).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await s.Committee.GetAsync($"/api/reports/form-15?periodId={s.PeriodId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await s.Committee.GetAsync($"/api/reports/form-15a?periodId={s.PeriodId}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerA1.GetAsync($"/api/reports/form-14?periodId={s.PeriodId}")).StatusCode);
         // Mẫu 13 theo Chi bộ: meeting.read (Chi ủy) trong phạm vi Chi bộ.
         Assert.Equal(HttpStatusCode.OK, (await s.CellSecA.GetAsync($"/api/reports/docx/mau-13?periodId={s.PeriodId}")).StatusCode);

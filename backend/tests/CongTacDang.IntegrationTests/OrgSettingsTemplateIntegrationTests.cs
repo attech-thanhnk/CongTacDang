@@ -72,9 +72,10 @@ public sealed class OrgSettingsTemplateIntegrationTests
             using (var workbook = new XLWorkbook(new MemoryStream(await form14.Content.ReadAsByteArrayAsync())))
             {
                 var sheet = workbook.Worksheets.First();
-                Assert.Equal($"ĐẢNG BỘ CẤP TRÊN {s}", sheet.Cell("A1").GetString());
-                Assert.Equal($"ĐẢNG BỘ THỬ NGHIỆM {s}", sheet.Cell("A2").GetString());
-                Assert.StartsWith("Đà Nẵng, ngày", sheet.Cell("F2").GetString());
+                // Task 19: Mẫu 14 theo bố cục HD03 — dòng 1 là "Mẫu 14", tiêu đề trái ở dòng 2–3, dòng địa danh ở khối phải.
+                Assert.Equal($"ĐẢNG BỘ CẤP TRÊN {s}", sheet.Cell("A2").GetString());
+                Assert.Equal($"ĐẢNG BỘ THỬ NGHIỆM {s}", sheet.Cell("A3").GetString());
+                Assert.StartsWith("Đà Nẵng, ngày", sheet.Cell("I3").GetString());
             }
 
             // Danh sách cán bộ: tên tệp theo tên viết tắt.
@@ -100,7 +101,7 @@ public sealed class OrgSettingsTemplateIntegrationTests
 
         // Mặc định: biểu mẫu giữ đúng chuỗi trước đây.
         using var defaults = new XLWorkbook(new MemoryStream(await (await manager.GetAsync($"/api/reports/form-14?periodId={periodId}")).Content.ReadAsByteArrayAsync()));
-        Assert.Equal("ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", defaults.Worksheets.First().Cell("A2").GetString());
+        Assert.Equal("ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", defaults.Worksheets.First().Cell("A3").GetString());
     }
 
     [SkippableFact]
