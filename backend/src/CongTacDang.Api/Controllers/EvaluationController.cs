@@ -90,7 +90,7 @@ public class EvaluationController : ControllerBase
         return Ok(ApiResponse<List<EvaluationRecordDto>>.Ok(records, "Lấy danh sách hồ sơ Chi bộ thành công."));
     }
 
-    /// <summary>Kiểm tra trần tỷ lệ Hoàn thành xuất sắc theo Chi bộ (Mẫu 15).</summary>
+    /// <summary>Kiểm tra trần tỷ lệ Hoàn thành xuất sắc theo Chi bộ (hiển thị trên trang Đánh giá; không phải biểu mẫu HD03).</summary>
     [HttpGet("branch-quotas")]
     [RequirePermission(PermissionCodes.EvaluationRead)]
     public async Task<IActionResult> CheckBranchQuotas([FromQuery] Guid periodId, CancellationToken ct)

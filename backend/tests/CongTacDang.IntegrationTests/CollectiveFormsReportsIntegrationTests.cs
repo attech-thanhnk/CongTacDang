@@ -264,6 +264,7 @@ public sealed class CollectiveFormsReportsIntegrationTests
         Assert.Contains("bỏ phiếu quyết định, phê duyệt mức xếp loại", text);
         Assert.Contains("Hội nghị kết thúc vào hồi 10h30", text);
         Assert.Contains("Hội nghị thống nhất 100% kết quả", text);
+        Assert.Matches(@"chất lượng cán bộ quý III/\d{4}\. Cụ thể như sau:", text);
 
         // Sửa mục của Mẫu 12 (phiên bản) → xuất theo nội dung mới.
         request["version"] = created.GetProperty("version").GetUInt32();
@@ -300,6 +301,7 @@ public sealed class CollectiveFormsReportsIntegrationTests
         // Tổ kiểm phiếu, số phiếu phát ra/thu về/hợp lệ/không hợp lệ.
         var text13 = await DocxTextAsync(s.CellLeaderA, $"/api/reports/docx/mau-13/{m13Id}");
         Assert.Contains("BIÊN BẢN KIỂM PHIẾU", text13);
+        Assert.Matches(@"chất lượng cán bộ quý III/\d{4}\. Cụ thể như sau:", text13);
         Assert.Contains($"Hội nghị {s.CellAName} về việc đánh giá, xếp loại chất lượng cán bộ quý III/", text13);
         Assert.Contains("(1) Đồng chí Phan Tổ Trưởng - Chi ủy viên: Tổ trưởng.", text13);
         Assert.Contains("(2) Đồng chí Đỗ Thành Viên - Đảng viên: Thành viên.", text13);
