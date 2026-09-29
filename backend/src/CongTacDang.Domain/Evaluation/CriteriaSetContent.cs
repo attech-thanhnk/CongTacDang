@@ -103,6 +103,12 @@ public sealed class ResultAxis
 
     /// <summary>Điểm tối đa khi tự chấm trực tiếp theo trục (Mẫu 09B); bộ 09A không dùng (được để 0).</summary>
     public double MaxScore { get; set; }
+
+    /// <summary>Tiêu đề trục in ở cột "Nội dung tiêu chí" của Mẫu 09B (ví dụ "TRỤC (1) – …"); trống → dựng từ tên trục.</summary>
+    public string? FormTitle { get; set; }
+
+    /// <summary>Các nội dung gợi ý in dưới tiêu đề trục trên Mẫu 09B (mỗi dòng một gạch đầu dòng); trống → dùng nội dung áp dụng.</summary>
+    public string? FormGuidance { get; set; }
 }
 
 /// <summary>Khung tỷ trọng A-B-C-D (tỷ lệ 0..1, tổng = 1).</summary>
@@ -325,6 +331,16 @@ public sealed class CriteriaSetContent
     /// <summary>Tham số.</summary>
     public CriteriaParameters Parameters { get; set; } = new();
 
+    /// <summary>
+    /// Biểu mẫu cá nhân áp dụng cho hồ sơ của kỳ dùng bộ này (mã theo <see cref="RecordFormCodes"/>). Mẫu tự chấm (09A/09B) luôn
+    /// theo <c>SelfScoreForm</c> của bộ — mã 09A/09B ghi ở đây bị bỏ qua khi xác định mẫu áp dụng
+    /// (<see cref="CriteriaSnapshot.ApplicableForms"/>). Quyết định nút xuất trên hồ sơ và phần nhập 09C/9D khi tự chấm (task 18).
+    /// </summary>
+    public List<string> RequiredForms { get; set; } = new();
+
+    /// <summary>Các mục tự luận của Mẫu 09C (khi <see cref="RequiredForms"/> có 09C).</summary>
+    public List<SelfAssessmentSection> SelfAssessmentSections { get; set; } = new();
+
     #region Tra cứu
 
     /// <summary>Mọi tiêu chí con theo thứ tự nhóm.</summary>
@@ -394,6 +410,17 @@ public sealed class CriteriaSetContent
             axis.Code = axis.Code?.Trim() ?? string.Empty;
             axis.Name = axis.Name?.Trim() ?? string.Empty;
             axis.Description = string.IsNullOrWhiteSpace(axis.Description) ? null : axis.Description.Trim();
+            axis.FormTitle = string.IsNullOrWhiteSpace(axis.FormTitle) ? null : axis.FormTitle.Trim();
+            axis.FormGuidance = string.IsNullOrWhiteSpace(axis.FormGuidance) ? null : axis.FormGuidance.Trim();
+        }
+        RequiredForms = (RequiredForms ?? new()).Where(c => !string.IsNullOrWhiteSpace(c)).Select(RecordFormCodes.Normalize).ToList();
+        SelfAssessmentSections = (SelfAssessmentSections ?? new()).Where(s => s != null).ToList();
+        foreach (var section in SelfAssessmentSections)
+        {
+            section.Code = section.Code?.Trim() ?? string.Empty;
+            section.Title = section.Title?.Trim() ?? string.Empty;
+            section.Guidance = string.IsNullOrWhiteSpace(section.Guidance) ? null : section.Guidance.Trim();
+            section.Note = string.IsNullOrWhiteSpace(section.Note) ? null : section.Note.Trim();
         }
         WeightFrames = (WeightFrames ?? new()).Where(f => f != null).ToList();
         foreach (var frame in WeightFrames)
@@ -449,7 +476,51 @@ public sealed class CriteriaSetContent
         ValidateScale(errors);
         ValidateGrades(errors, p);
         ValidateParameters(errors, p);
+        ValidateForms(errors);
         return errors;
+    }
+
+    /// <summary>Độ dài tối đa tiêu đề trục / tiêu đề mục 09C.</summary>
+    public const int MaxFormTitleLength = 500;
+
+    /// <summary>Độ dài tối đa nội dung gợi ý của trục, câu dẫn và lưu ý của mục 09C.</summary>
+    public const int MaxFormGuidanceLength = 8000;
+
+    /// <summary>Giới hạn số ký tự tối đa được khai báo cho một mục 09C.</summary>
+    public const int MaxSectionLengthLimit = 20000;
+
+    private void ValidateForms(List<string> errors)
+    {
+        foreach (var code in RequiredForms.Where(c => !RecordFormCodes.IsKnown(c)))
+            errors.Add($"Biểu mẫu \"{code}\" không có trong danh mục biểu mẫu cá nhân ({string.Join(", ", RecordFormCodes.All)}).");
+        foreach (var dup in RequiredForms.GroupBy(c => c).Where(g => g.Count() > 1))
+            errors.Add($"Biểu mẫu \"{dup.Key}\" được khai báo nhiều lần trong danh sách biểu mẫu áp dụng.");
+
+        foreach (var axis in Axes)
+        {
+            if (axis.FormTitle is { Length: > MaxFormTitleLength })
+                errors.Add($"Tiêu đề in trên Mẫu 09B của trục \"{axis.Code}\" không được dài quá {MaxFormTitleLength} ký tự.");
+            if (axis.FormGuidance is { Length: > MaxFormGuidanceLength })
+                errors.Add($"Nội dung gợi ý trên Mẫu 09B của trục \"{axis.Code}\" không được dài quá {MaxFormGuidanceLength} ký tự.");
+        }
+
+        if (RequiredForms.Contains(RecordFormCodes.Form09C) && SelfAssessmentSections.Count == 0)
+            errors.Add("Bộ tiêu chí áp dụng Mẫu 09C phải khai báo ít nhất một mục tự đánh giá.");
+        foreach (var section in SelfAssessmentSections)
+        {
+            if (!IsValidCode(section.Code))
+                errors.Add($"Mã mục Mẫu 09C \"{section.Code}\" không hợp lệ: chỉ gồm chữ không dấu, số, dấu chấm, gạch nối, gạch dưới (tối đa 20 ký tự).");
+            if (string.IsNullOrWhiteSpace(section.Title))
+                errors.Add($"Mục Mẫu 09C \"{section.Code}\" chưa có tiêu đề.");
+            else if (section.Title.Length > MaxFormTitleLength)
+                errors.Add($"Tiêu đề mục Mẫu 09C \"{section.Code}\" không được dài quá {MaxFormTitleLength} ký tự.");
+            if ((section.Guidance?.Length ?? 0) > MaxFormGuidanceLength || (section.Note?.Length ?? 0) > MaxFormGuidanceLength)
+                errors.Add($"Câu dẫn/lưu ý của mục Mẫu 09C \"{section.Code}\" không được dài quá {MaxFormGuidanceLength} ký tự.");
+            if (section.MaxLength < 100 || section.MaxLength > MaxSectionLengthLimit)
+                errors.Add($"Số ký tự tối đa của mục Mẫu 09C \"{section.Code}\" phải từ 100 đến {MaxSectionLengthLimit}.");
+        }
+        foreach (var dup in SelfAssessmentSections.GroupBy(s => s.Code, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
+            errors.Add($"Mã mục Mẫu 09C \"{dup.Key}\" bị trùng.");
     }
 
     private void ValidateCodes(List<string> errors)
@@ -666,6 +737,23 @@ public sealed class CriteriaSnapshot
     /// <summary>Tự chấm trực tiếp theo trục (Mẫu 09B).</summary>
     [JsonIgnore]
     public bool UsesAxisScoring => string.Equals(SelfScoreForm, CriteriaSetContent.Form09B, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Biểu mẫu cá nhân áp dụng cho hồ sơ của kỳ (task 18): mẫu tự chấm của bộ + các mẫu khác trong
+    /// <see cref="CriteriaSetContent.RequiredForms"/>, theo thứ tự danh mục.
+    /// </summary>
+    public IReadOnlyList<string> ApplicableForms()
+    {
+        var self = RecordFormCodes.Normalize(SelfScoreForm);
+        var others = (Content?.RequiredForms ?? new List<string>())
+            .Select(RecordFormCodes.Normalize)
+            .Where(c => c != RecordFormCodes.Form09A && c != RecordFormCodes.Form09B);
+        var set = others.Append(self).ToHashSet();
+        return RecordFormCodes.All.Where(set.Contains).ToList();
+    }
+
+    /// <summary>Kỳ áp dụng biểu mẫu <paramref name="formCode"/>.</summary>
+    public bool AppliesForm(string formCode) => ApplicableForms().Contains(RecordFormCodes.Normalize(formCode));
 
     /// <summary>Đọc ảnh chụp; chuỗi rỗng → null; JSON sai → <see cref="FormatException"/>.</summary>
     public static CriteriaSnapshot? Parse(string? json)

@@ -113,6 +113,28 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 
     #endregion
 
+    #region B2: Nội dung biểu mẫu cá nhân nhập cùng phiếu tự chấm (task 18)
+
+    /// <summary>
+    /// Mẫu 09C — bản tự đánh giá theo mục (jsonb): <c>{ "I": "…" }</c>, khóa là mã mục khai báo trong bộ tiêu chí của kỳ
+    /// (<see cref="Evaluation.SelfAssessmentSection"/>).
+    /// </summary>
+    public string SelfAssessment { get; set; } = "{}";
+
+    /// <summary>
+    /// Mẫu 9D — kết quả thực hiện nhiệm vụ theo trục (jsonb): danh sách <see cref="Evaluation.TaskResultRow"/>, mã trục theo bộ
+    /// tiêu chí của kỳ.
+    /// </summary>
+    public string TaskResults { get; set; } = "[]";
+
+    /// <summary>
+    /// Mẫu 09B — nội dung tự luận theo trục (jsonb): <c>{ "T1": { "target": …, "result": …, "note": … } }</c>
+    /// (<see cref="Evaluation.AxisNote"/>); null khi chưa nhập.
+    /// </summary>
+    public string? AxisNotes { get; set; }
+
+    #endregion
+
     #region B2: Chi bộ xác nhận phiếu tự chấm
 
     /// <summary>Ý kiến xác nhận của Chi bộ trên phiếu tự chấm.</summary>

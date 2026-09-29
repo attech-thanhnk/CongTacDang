@@ -59,6 +59,10 @@ public sealed class EvaluationRecordConfiguration : IEntityTypeConfiguration<Eva
         entity.Property(e => e.WeightFrameCode).HasMaxLength(20).IsRequired();
         entity.Property(e => e.GeneralScores).HasColumnType("jsonb").IsRequired();
         entity.Property(e => e.AxisScores).HasColumnType("jsonb");
+        // Task 18: nội dung Mẫu 09C (theo mã mục), 9D (dòng theo trục), phần tự luận theo trục của Mẫu 09B.
+        entity.Property(e => e.SelfAssessment).HasColumnType("jsonb").IsRequired();
+        entity.Property(e => e.TaskResults).HasColumnType("jsonb").IsRequired();
+        entity.Property(e => e.AxisNotes).HasColumnType("jsonb");
         entity.Property(e => e.AppraisalExplanation).HasMaxLength(4000);
         entity.Property(e => e.TasksApprovedByName).HasMaxLength(200);
         entity.Property(e => e.TasksApprovalComment).HasMaxLength(4000);

@@ -226,10 +226,68 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                     ?? throw new ValidationException("Mức tự đề xuất không hợp lệ.");
             }
 
+            var formChanges = ApplyIndividualForms(record, criteria, request);
+
             record.SelfScoredAt = ctx.Now;
             record.ReturnReason = null;
-            return "Nộp phiếu tự chấm.";
+            return formChanges.Count == 0
+                ? "Nộp phiếu tự chấm."
+                : $"Nộp phiếu tự chấm; cập nhật {string.Join(", ", formChanges)}.";
         }, ct);
+
+    /// <summary>
+    /// Task 18 (T-82): lưu nội dung Mẫu 09C, 9D (khi kỳ áp dụng theo bộ tiêu chí) và phần tự luận theo trục của Mẫu 09B, nhập
+    /// cùng phiếu tự chấm. Trường null trong yêu cầu = giữ nội dung đã lưu. Trả danh sách biểu mẫu có nội dung thay đổi (ghi lịch sử).
+    /// </summary>
+    private static List<string> ApplyIndividualForms(EvaluationRecord record, CriteriaSnapshot criteria, SubmitSelfScoreRequestDto request)
+    {
+        var content = criteria.Content;
+        var changed = new List<string>();
+
+        if (request.SelfAssessment != null && criteria.AppliesForm(RecordFormCodes.Form09C))
+        {
+            var error = RecordFormContent.ValidateSelfAssessment(content, request.SelfAssessment);
+            if (error != null)
+                throw new ValidationException(error);
+            var json = RecordFormContent.SelfAssessmentToJson(content, request.SelfAssessment);
+            if (json != record.SelfAssessment)
+                changed.Add("Mẫu 09C");
+            record.SelfAssessment = json;
+        }
+        else if (criteria.AppliesForm(RecordFormCodes.Form09C))
+        {
+            // Không gửi nội dung 09C: vẫn kiểm tra mục bắt buộc trên nội dung đang lưu.
+            var stored = RecordFormContent.ParseSelfAssessment(record.SelfAssessment)
+                .ToDictionary(kv => kv.Key, kv => (string?)kv.Value);
+            var error = RecordFormContent.ValidateSelfAssessment(content, stored);
+            if (error != null)
+                throw new ValidationException(error);
+        }
+
+        if (request.TaskResults != null && criteria.AppliesForm(RecordFormCodes.Form9D))
+        {
+            var error = RecordFormContent.ValidateTaskResults(content, request.TaskResults);
+            if (error != null)
+                throw new ValidationException(error);
+            var json = RecordFormContent.TaskResultsToJson(content, request.TaskResults);
+            if (json != record.TaskResults)
+                changed.Add("Mẫu 9D");
+            record.TaskResults = json;
+        }
+
+        if (request.AxisNotes != null && criteria.UsesAxisScoring)
+        {
+            var error = RecordFormContent.ValidateAxisNotes(content, request.AxisNotes);
+            if (error != null)
+                throw new ValidationException(error);
+            var json = RecordFormContent.AxisNotesToJson(content, request.AxisNotes);
+            if (json != record.AxisNotes)
+                changed.Add("nội dung theo trục Mẫu 09B");
+            record.AxisNotes = json;
+        }
+
+        return changed;
+    }
 
     /// <inheritdoc />
     public Task<EvaluationRecordDto> ConfirmByCellAsync(Guid recordId, CommentRequestDto request, CancellationToken ct = default) =>
