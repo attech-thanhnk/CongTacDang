@@ -25,7 +25,7 @@ Trường bổ sung (task 07, sửa ở task 14):
 - `PartyMemberProfile.ApprovalAuthority` (enum `ApprovalAuthority { CoSo = 1, CapTren = 2 }`) — cấp có thẩm quyền quyết định xếp loại
   **đang áp dụng** = `ApprovalAuthorityOverride` (đặt tay, bắt buộc `ApprovalAuthorityOverrideReason`) nếu có, ngược lại suy ra từ chức vụ
   đang hiệu lực (`member_positions` → `positions.DefaultApprovalAuthority`): `CapTren` khi có ít nhất một chức vụ `CapTren` (HD03 tr.6).
-- `EvaluationRecord.ApprovalAuthority` — ảnh chụp từ hồ sơ khi tạo hồ sơ đánh giá (cùng kiểu với `PartyCellId`, `DepartmentId` đã có).
+- `EvaluationRecord.ApprovalAuthority` — ảnh chụp từ hồ sơ khi tạo hồ sơ đánh giá (cùng kiểu với `PartyCellId`, `DepartmentId` đã có); dùng để chọn hồ sơ luồng mặc định (`WorkflowProfileCode`), không dùng trong guard.
 - `PartyMemberProfile.SecurityStamp` (string, đổi khi đổi/đặt lại mật khẩu, khóa, xóa) — task 08 dùng.
 
 ## 3. Danh mục mã quyền (`Application/Common/Security/PermissionCodes.cs`)
@@ -38,17 +38,18 @@ Trường bổ sung (task 07, sửa ở task 14):
 | `system.assignments.manage` | Gán vai trò | không | Gán/thu hồi vai trò kèm phạm vi, thời hạn |
 | `system.audit.read` | Xem nhật ký | không | Nhật ký thao tác + nhật ký đăng nhập |
 | `system.import` | Nhập dữ liệu | không | Phải có thêm quyền quản lý loại dữ liệu được nhập |
-| `catalog.manage` | Quản lý danh mục | không | Phòng/đơn vị, Chi bộ. **Xem** danh mục: mọi người đã đăng nhập |
-| `period.manage` | Quản lý kỳ đánh giá | không | Tạo kỳ, cấu hình bước/thời hạn/tham số, danh sách người được đánh giá, mở/khóa kỳ |
+| `catalog.manage` | Quản lý danh mục | không | Đơn vị chính quyền, tổ chức Đảng (cây), loại đơn vị, chức vụ. **Xem** danh mục: mọi người đã đăng nhập |
+| `period.manage` | Quản lý kỳ đánh giá | không | Tạo kỳ, cấu hình hồ sơ luồng (chế độ bước, quyền thực hiện, thời hạn)/tham số, danh sách người được đánh giá và hồ sơ luồng của từng người, kiểm tra kẹt luồng, mở/khóa kỳ |
 | `evaluation.self` | Tham gia đánh giá (bản thân) | chủ hồ sơ | Đăng ký sản phẩm, tự chấm, giải trình, nộp minh chứng — **chỉ trên hồ sơ của mình** |
 | `evaluation.read` | Xem hồ sơ đánh giá | có | Chủ hồ sơ **luôn** xem được hồ sơ của mình (HD03: quyền được biết) |
 | `evaluation.tasks.approve` | Duyệt danh mục sản phẩm (B1) | có | |
 | `evaluation.cell.confirm` | Chi bộ xác nhận phiếu tự chấm (B2) | có | |
 | `evaluation.collective.record` | Ghi nhận đề xuất của tập thể lãnh đạo (B3a) | có | Ghi kết quả kiểm phiếu, không ghi phiếu từng người |
 | `evaluation.appraise` | Thẩm định (B3b) | có | |
-| `evaluation.director.review` | Nhận xét, đề xuất của cấp trực tiếp sử dụng (B3c) | có | |
-| `evaluation.decide` | Ghi nhận quyết định của Đảng ủy cơ sở (B4) | có | Chỉ hồ sơ `ApprovalAuthority = CoSo` |
-| `evaluation.decide.external` | Ghi nhận quyết định của cấp trên (B4) | có | Chỉ hồ sơ `ApprovalAuthority = CapTren` |
+| `evaluation.director.review` | Nhận xét, đề xuất của cấp trực tiếp sử dụng (B3c) | có | Quyền mặc định của B3c |
+| `evaluation.unit.review` | Lãnh đạo đơn vị đề xuất | có | Trưởng phòng đề xuất mức thay cấp trực tiếp sử dụng — đặt làm quyền thực hiện B3c trong hồ sơ luồng được cấu hình (PL III ví dụ 3) |
+| `evaluation.decide` | Ghi nhận quyết định của Đảng ủy cơ sở (B4) | có | Quyền mặc định của B4 khi hồ sơ luồng đặt B4 "Nội bộ" |
+| `evaluation.external.record` | Ghi nhận kết quả của cấp trên | có | Ghi nhận kết quả mọi bước hồ sơ luồng đặt "Cấp trên thực hiện" (thẩm định, nhận xét, quyết định…): cơ quan, số/ngày văn bản, nhận xét, mức, điểm, văn bản đính kèm; sửa/thay văn bản đính kèm đó |
 | `evaluation.publish` | Công bố, khóa kết quả (B5) | có | |
 | `evaluation.reopen` | Mở lại hồ sơ đã khóa để đính chính | có | Bắt buộc lý do |
 | `collective.manage` | Lập hồ sơ tự đánh giá tập thể (Mẫu 06–08) | có | |
@@ -64,9 +65,8 @@ Trường bổ sung (task 07, sửa ở task 14):
 Đối tượng cần kiểm tra được mô tả bằng `AccessTarget`:
 ```
 OwnerId?          // chủ hồ sơ (người được đánh giá / người tải tệp)
-DepartmentId?     // Phòng của hồ sơ (ảnh chụp trên EvaluationRecord)
-PartyCellId?      // Chi bộ của hồ sơ
-ApprovalAuthority? // CoSo / CapTren
+DepartmentId?     // đơn vị chính quyền của hồ sơ (ảnh chụp trên EvaluationRecord)
+PartyCellId?      // tổ chức Đảng của hồ sơ
 ```
 
 Người dùng **được** thực hiện quyền `P` trên đối tượng `T` khi:
@@ -81,8 +81,9 @@ Người dùng **được** thực hiện quyền `P` trên đối tượng `T` 
 3. Luật riêng theo mã (cố định trong code, lấy từ HD03):
    - `evaluation.self`: chỉ khi `T.OwnerId == user.Id` (phạm vi bỏ qua).
    - `evaluation.read`: luôn đúng khi `T.OwnerId == user.Id`.
-   - `evaluation.decide`: thêm điều kiện `T.ApprovalAuthority == CoSo`; `evaluation.decide.external`: `== CapTren`.
-   - **Xung đột lợi ích** (HD03 tr.4): các quyền duyệt/xác nhận/ghi nhận/thẩm định/nhận xét/quyết định/công bố/mở lại (`evaluation.tasks.approve`, `cell.confirm`, `collective.record`, `appraise`, `director.review`, `decide`, `decide.external`, `publish`, `reopen`) **không** áp dụng khi `T.OwnerId == user.Id`.
+   - **Xung đột lợi ích** (HD03 tr.4): các quyền duyệt/xác nhận/ghi nhận/thẩm định/nhận xét/đề xuất/quyết định/công bố/mở lại (`evaluation.tasks.approve`, `cell.confirm`, `collective.record`, `appraise`, `director.review`, `unit.review`, `decide`, `external.record`, `publish`, `reopen`) **không** áp dụng khi `T.OwnerId == user.Id`.
+   - Guard **không** xét cấp quyết định (`ApprovalAuthority`). Bước nào làm trong hệ thống ("Nội bộ", với quyền thực hiện cấu hình được), bước nào do cấp trên thực hiện (ghi nhận bằng `evaluation.external.record`) hay không áp dụng là cấu hình **hồ sơ luồng** của hồ sơ (`docs/thiet-ke/luong-danh-gia.md`); service luồng kiểm tra chế độ bước (sai → 409) rồi mới gọi guard với quyền thực hiện của bước. Cấp quyết định chỉ dùng để chọn hồ sơ luồng mặc định khi thêm người vào kỳ.
+   - Tệp đính kèm: xem theo `evaluation.read` trên hồ sơ gắn tệp; sửa/xóa tệp của chủ hồ sơ theo `evaluation.self`, văn bản của cấp trên (gắn vào kết quả bước do cấp trên thực hiện) theo `evaluation.external.record`.
 
 Guard cung cấp:
 - `bool Can(string permission, AccessTarget target)` và `void Ensure(...)` (ném `ForbiddenException` → 403);
@@ -123,16 +124,18 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
 | Vai trò | Quyền | Phạm vi gán điển hình | Căn cứ HD03 (bản trích xuất) |
 |---|---|---|---|
 | Người được đánh giá | `evaluation.self` | Global | IV.1, IV.2 |
-| Lãnh đạo Phòng | `evaluation.read`, `evaluation.tasks.approve` | Department | IV.1; PL II mục II |
+| Lãnh đạo Phòng | `evaluation.read`, `evaluation.tasks.approve`, `evaluation.unit.review` | Department | IV.1; PL II mục II; PL III ví dụ 3 |
 | Thư ký tập thể lãnh đạo | `evaluation.read`, `evaluation.collective.record`, `meeting.read`, `meeting.manage` | Department hoặc Global (cấp Công ty) | IV.3a; Mẫu 11–13 |
 | Chi ủy / Bí thư Chi bộ | `evaluation.read`, `evaluation.cell.confirm`, `collective.manage`, `meeting.read` | PartyCell | Mẫu 09A–9D "xác nhận của Chi bộ"; Mẫu 07 |
 | Cơ quan thẩm định (Phòng TCCB-LĐ) | `evaluation.read`, `evaluation.appraise`, `period.manage`, `report.export`, `system.import`, `system.users.read` | Global | IV.1 (rà soát), IV.3b |
 | Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch) | `evaluation.read`, `evaluation.director.review`, `report.export` | Global | IV.3c |
 | Cấp ủy viên Đảng ủy | `evaluation.read`, `meeting.read`, `report.export` | Global | IV.4; Mẫu 18 |
-| Văn phòng Đảng ủy (ghi nhận quyết định) | `evaluation.read`, `evaluation.decide`, `evaluation.decide.external`, `evaluation.publish`, `evaluation.reopen`, `meeting.read`, `meeting.manage`, `report.export` | Global | IV.4, IV.5 |
+| Văn phòng Đảng ủy (ghi nhận quyết định) | `evaluation.read`, `evaluation.decide`, `evaluation.external.record`, `evaluation.publish`, `evaluation.reopen`, `meeting.read`, `meeting.manage`, `report.export` | Global | IV.4, IV.5 |
 | Quản trị hệ thống (`IsProtected`) | `system.*`, `catalog.manage`, `attachment.general.manage` | Global | Mẫu 18 (đầu mối IT) |
 
-Dữ liệu mẫu (khi `SeedSampleData=true`) chỉ được tạo trên CSDL chưa có tài khoản, Phòng, Chi bộ, kỳ nào; gán vai trò cho tài khoản mẫu theo bảng trên (xem `docs/deployment.md`). Seeder không bao giờ gán lại vai trò cho người đã có (T-46).
+Phạm vi `Department`/`PartyCell` trong bảng hiển thị là "Đơn vị chính quyền"/"Tổ chức Đảng" và bao trùm mọi đơn vị cấp dưới của nút được gán (mục 4.1).
+
+Dữ liệu mẫu (khi `SeedSampleData=true`) chỉ được tạo trên CSDL chưa có tài khoản, đơn vị, kỳ nào; gán vai trò cho tài khoản mẫu theo bảng trên (xem `docs/deployment.md`). Seeder không bao giờ gán lại vai trò cho người đã có (T-46).
 
 ## 7. Hiệu năng và triển khai
 - Một instance API (on-premise). Cache quyền trong bộ nhớ theo `UserId`, TTL 5 phút, **xóa ngay** khi: sửa vai trò/quyền của vai trò (xóa toàn bộ), sửa bản gán của người (xóa người đó), khóa/xóa/đổi mật khẩu (task 08). Chạy nhiều instance cần cache phân tán — ngoài phạm vi, ghi trong `docs/deployment.md`.
