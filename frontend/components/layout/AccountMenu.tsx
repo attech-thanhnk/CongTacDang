@@ -17,7 +17,7 @@ export function initialsOf(fullName?: string): string {
     .toUpperCase();
 }
 
-/** Khu tài khoản cuối thanh bên: bấm mở menu (thông tin tài khoản, đổi mật khẩu, đăng xuất). */
+/** Khu tài khoản cuối thanh bên: bấm mở menu (Tài khoản, Đăng xuất). */
 export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
   const { toast } = useToast();
@@ -65,12 +65,8 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
             <small className="text-truncate">{user.userName}</small>
           </div>
           <Link href="/account" role="menuitem" className={styles.item} onClick={go}>
-            <i className="bi bi-person" />
-            Thông tin tài khoản
-          </Link>
-          <Link href="/change-password" role="menuitem" className={styles.item} onClick={go}>
-            <i className="bi bi-key" />
-            Đổi mật khẩu
+            <i className="bi bi-person-gear" />
+            Tài khoản
           </Link>
           <div className={styles.sep} />
           <button type="button" role="menuitem" className={`${styles.item} ${styles.danger}`} onClick={handleLogout}>
