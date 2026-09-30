@@ -4,16 +4,15 @@ import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { LayoutProvider } from "@/contexts/LayoutContext";
+import { PeriodProvider } from "@/contexts/PeriodContext";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { useOrganizationInfo } from "@/services/organizationSettingsService";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
-  const org = useOrganizationInfo();
   const isLoginPage = pathname === "/login";
   const isChangePasswordPage = pathname === "/change-password";
 
@@ -74,33 +73,21 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  // Đã xác thực thành công: Render toàn bộ hệ thống làm việc trong LayoutProvider
+  // Đã xác thực: khung làm việc (thanh bên, thanh trên mảnh, vùng nội dung căn giữa).
+  // Kỳ chung chỉ nạp khi không phải đổi mật khẩu (tài khoản đó chỉ được gọi API đổi mật khẩu).
   return (
     <LayoutProvider>
-      <div className="app-shell">
-        {/* Sidebar */}
-        <AppSidebar />
-
-        {/* Content area */}
-        <div className="app-content">
-          <AppHeader />
-          <main className="app-main">
-            {children}
-          </main>
-          <footer
-            style={{
-              padding: "8px 20px",
-              background: "var(--bg-card)",
-              borderTop: "1px solid var(--border-base)",
-              textAlign: "center",
-              fontSize: "13px",
-              color: "var(--text-muted)",
-            }}
-          >
-            © {new Date().getFullYear()} {org?.systemName ? `${org.systemName} — ` : ""}Hệ thống quản trị đánh giá cán bộ định kỳ
-          </footer>
+      <PeriodProvider enabled={!user.mustChangePassword && !isChangePasswordPage}>
+        <div className="app-shell">
+          <AppSidebar />
+          <div className="app-content">
+            <AppHeader />
+            <main className="app-main">
+              <div className="app-main-inner">{children}</div>
+            </main>
+          </div>
         </div>
-      </div>
+      </PeriodProvider>
     </LayoutProvider>
   );
 }

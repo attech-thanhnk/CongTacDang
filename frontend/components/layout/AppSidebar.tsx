@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { sessionRoleLabel, useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
+import { usePeriod } from "@/contexts/PeriodContext";
+import { useToast } from "@/contexts/ToastContext";
 import { useOrganizationInfo } from "@/services/organizationSettingsService";
 
 interface MenuItem {
@@ -22,11 +24,48 @@ interface MenuGroup {
   items: MenuItem[];
 }
 
+/** Chữ cái đầu của hai từ cuối trong họ tên. */
+function initialsOf(fullName?: string): string {
+  if (!fullName) return "?";
+  return fullName
+    .split(" ")
+    .filter(Boolean)
+    .slice(-2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+}
+
+/** Biểu tượng Đảng bộ: ngôi sao trong vòng tròn đỏ son. */
+function Emblem() {
+  return (
+    <div className="side-emblem" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 2.5l2.7 6.1 6.6.5-5 4.4 1.5 6.5L12 16.6 6.2 20l1.5-6.5-5-4.4 6.6-.5z" />
+      </svg>
+    </div>
+  );
+}
+
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, logout, hasPermission } = useAuth();
   const { isSidebarOpen, closeSidebar } = useLayout();
+  const { periods, periodId, setPeriodId } = usePeriod();
+  const { toast } = useToast();
   const org = useOrganizationInfo();
+
+  // Tên hiển thị lấy từ cài đặt đơn vị: dòng lớn là tên viết tắt, dòng nhỏ là phần còn lại của tên hệ thống.
+  const brandMain = org?.shortName || org?.systemName || "";
+  const brandSub = org
+    ? (org.shortName && org.systemName.includes(org.shortName)
+        ? org.systemName.replace(org.shortName, "").trim()
+        : org.systemName !== brandMain
+          ? org.systemName
+          : "")
+    : "";
+
+  const showPeriodPicker = !!user && !user.mustChangePassword && pathname !== "/change-password";
 
   // Menu chỉ hiện theo mã quyền — máy chủ luôn kiểm tra lại, kể cả phạm vi.
   const hasAnyEvaluationAction = () =>
@@ -35,39 +74,39 @@ export function AppSidebar() {
   const menuGroups: MenuGroup[] = [
     {
       items: [
-        { title: "Tổng quan", href: "/", icon: "bi-grid-1x2-fill" },
-        { title: "Việc cần xử lý", href: "/work-queue", icon: "bi-inbox-fill", check: hasAnyEvaluationAction },
+        { title: "Tổng quan", href: "/", icon: "bi-house" },
+        { title: "Việc cần xử lý", href: "/work-queue", icon: "bi-inbox", check: hasAnyEvaluationAction },
         {
           title: "Đánh giá cán bộ",
           href: "/evaluations",
-          icon: "bi-check2-square",
+          icon: "bi-file-earmark-text",
           check: () => hasPermission("evaluation.self") || hasPermission("evaluation.read"),
         },
         {
           title: "Đánh giá tập thể",
           href: "/collective-evaluations",
-          icon: "bi-diagram-3-fill",
+          icon: "bi-people",
           check: () =>
             hasPermission("evaluation.read") ||
             hasPermission("collective.manage") ||
             hasPermission("meeting.read") ||
             hasPermission("meeting.manage"),
         },
-        { title: "Kết quả đánh giá", href: "/results", icon: "bi-award-fill", permission: "evaluation.results.view" },
-        { title: "Kỳ đánh giá", href: "/periods", icon: "bi-calendar-range", permission: "period.manage" },
-        { title: "Bộ tiêu chí", href: "/criteria", icon: "bi-list-check", permission: "criteria.manage" },
-        { title: "Báo cáo", href: "/reports", icon: "bi-bar-chart-line-fill", permission: "report.export" },
+        { title: "Kết quả đánh giá", href: "/results", icon: "bi-trophy", permission: "evaluation.results.view" },
+        { title: "Báo cáo", href: "/reports", icon: "bi-bar-chart-line", permission: "report.export" },
       ],
     },
     {
-      title: "Quản trị",
+      title: "Quản lý",
       items: [
-        { title: "Tài khoản", href: "/admin/users", icon: "bi-people-fill", permission: "system.users.read" },
-        { title: "Vai trò", href: "/admin/roles", icon: "bi-shield-lock-fill", permission: "system.roles.manage" },
+        { title: "Kỳ đánh giá", href: "/periods", icon: "bi-calendar3", permission: "period.manage" },
+        { title: "Bộ tiêu chí", href: "/criteria", icon: "bi-list-check", permission: "criteria.manage" },
+        { title: "Tài khoản", href: "/admin/users", icon: "bi-person", permission: "system.users.read" },
+        { title: "Vai trò", href: "/admin/roles", icon: "bi-shield-lock", permission: "system.roles.manage" },
         { title: "Danh mục", href: "/catalog", icon: "bi-building", permission: "catalog.manage" },
         { title: "Nhật ký", href: "/audit", icon: "bi-clock-history", permission: "system.audit.read" },
-        { title: "Thông tin đơn vị", href: "/admin/settings", icon: "bi-gear-fill", permission: "system.settings.manage" },
-        { title: "Biểu mẫu Word", href: "/admin/templates", icon: "bi-file-earmark-word-fill", permission: "system.templates.manage" },
+        { title: "Thông tin đơn vị", href: "/admin/settings", icon: "bi-gear", permission: "system.settings.manage" },
+        { title: "Biểu mẫu Word", href: "/admin/templates", icon: "bi-file-earmark-word", permission: "system.templates.manage" },
       ],
     },
   ];
@@ -82,131 +121,89 @@ export function AppSidebar() {
     .map((group) => ({ ...group, items: group.items.filter(isVisible) }))
     .filter((group) => group.items.length > 0);
 
-  // Lấy chữ cái đầu của tên để làm avatar
-  const initials = user?.fullName
-    ? user.fullName
-        .split(" ")
-        .slice(-2)
-        .map((w) => w[0])
-        .join("")
-        .toUpperCase()
-    : "U";
+  const closeOnMobile = () => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) closeSidebar();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (err: any) {
+      toast.error(err?.message || "Đăng xuất thất bại.");
+    }
+  };
 
   return (
     <>
-      {/* Backdrop Mobile */}
-      {isSidebarOpen && (
-        <div
-          onClick={closeSidebar}
-          className="d-md-none position-fixed top-0 start-0 w-100 h-100"
-          style={{ zIndex: 1040, backgroundColor: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)" }}
-        />
-      )}
+      {isSidebarOpen && <div onClick={closeSidebar} className="side-backdrop d-md-none" />}
 
-      <aside
-        className={`app-sidebar ${isSidebarOpen ? "sidebar-visible" : "sidebar-hidden"}`}
-      >
-        {/* Brand */}
-        <div className="sidebar-brand">
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="sidebar-brand-text">{org?.systemName ?? "Đánh giá cán bộ"}</div>
-            <div className="sidebar-brand-sub">Hệ thống đánh giá cán bộ</div>
+      <aside className={`app-sidebar ${isSidebarOpen ? "sidebar-visible" : "sidebar-hidden"}`}>
+        <div className="side-brand">
+          <Emblem />
+          <div className="side-brand-text">
+            {brandSub && <div className="t1">{brandSub}</div>}
+            <div className="t2">{brandMain}</div>
           </div>
-
-          {/* Close trên mobile */}
-          <button
-            type="button"
-            onClick={closeSidebar}
-            className="d-md-none btn p-0"
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "rgba(255,255,255,0.5)",
-              fontSize: "18px",
-              lineHeight: 1,
-              cursor: "pointer",
-            }}
-            aria-label="Đóng menu"
-          >
+          <button type="button" onClick={closeSidebar} className="side-close d-md-none" aria-label="Đóng menu">
             <i className="bi bi-x-lg" />
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="sidebar-nav">
+        {showPeriodPicker && (
+          <div className="side-period">
+            <label htmlFor="global-period">Kỳ đánh giá</label>
+            <select
+              id="global-period"
+              value={periodId}
+              onChange={(e) => setPeriodId(e.target.value)}
+              disabled={periods.length === 0}
+            >
+              {periods.length === 0 && <option value="">Chưa có kỳ</option>}
+              {periods.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <nav className="side-nav">
           {visibleGroups.map((group, groupIndex) => (
             <React.Fragment key={group.title ?? `group-${groupIndex}`}>
-              {group.title && (
-                <div
-                  className="px-3 pt-3 pb-1 text-uppercase fw-semibold"
-                  style={{ fontSize: "12px", letterSpacing: "0.06em", color: "rgba(255,255,255,0.55)" }}
-                >
-                  {group.title}
-                </div>
-              )}
-              <ul className="list-unstyled m-0 p-0">
-                {group.items.map((item) => {
-                  const isActive =
-                    pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        onClick={() => {
-                          if (typeof window !== "undefined" && window.innerWidth < 768) {
-                            closeSidebar();
-                          }
-                        }}
-                        className={`nav-link ${isActive ? "active" : ""}`}
-                      >
-                        <i className={`bi ${item.icon}`} />
-                        <span>{item.title}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+              {group.title && <div className="side-grp">{group.title}</div>}
+              {group.items.map((item) => {
+                const isActive =
+                  pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={closeOnMobile}
+                    className={isActive ? "on" : undefined}
+                    aria-current={isActive ? "page" : undefined}
+                  >
+                    <i className={`bi ${item.icon}`} />
+                    <span>{item.title}</span>
+                  </Link>
+                );
+              })}
             </React.Fragment>
           ))}
         </nav>
 
-        {/* User Footer */}
-        <div className="sidebar-footer">
-          {user ? (
-            <>
-              <div className="user-avatar">{initials}</div>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div className="user-name text-truncate">{user.fullName}</div>
-                <div className="user-role text-truncate">{sessionRoleLabel(user)}</div>
-              </div>
-              <button
-                type="button"
-                onClick={() => logout()}
-                title="Đăng xuất"
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "rgba(255,255,255,0.45)",
-                  cursor: "pointer",
-                  fontSize: "16px",
-                  padding: "4px",
-                  borderRadius: "4px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "color var(--transition-fast)",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#ff4d4f")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.45)")}
-                aria-label="Đăng xuất"
-              >
-                <i className="bi bi-box-arrow-right" />
-              </button>
-            </>
-          ) : (
-            <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px" }}>Chưa đăng nhập</div>
-          )}
-        </div>
+        {user && (
+          <div className="side-me">
+            <div className="initials">{initialsOf(user.fullName)}</div>
+            <div className="side-me-text">
+              <b className="text-truncate">{user.fullName}</b>
+              <small className="text-truncate">{sessionRoleLabel(user)}</small>
+            </div>
+            <button type="button" onClick={handleLogout} className="side-logout" title="Đăng xuất" aria-label="Đăng xuất">
+              <i className="bi bi-box-arrow-right" />
+            </button>
+          </div>
+        )}
       </aside>
     </>
   );
