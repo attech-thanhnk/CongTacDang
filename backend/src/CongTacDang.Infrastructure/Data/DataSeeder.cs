@@ -83,28 +83,25 @@ public static class DataSeeder
     private static readonly RoleDefinition[] DefaultRoles =
     {
         // Task 20 (ĐỀ XUẤT, chờ nghiệp vụ xác nhận): xem kết quả công khai theo phạm vi bản gán (mẫu gán Toàn công ty), gửi kiến nghị.
-        new(RoleCodes.Evaluatee, "Người được đánh giá", "Tham gia đánh giá bản thân (HD03 IV.1, IV.2); xem kết quả đã công bố trong phạm vi được gán, "
-            + "gửi kiến nghị về kết quả của mình (Bước 5; PL II III.2). Phạm vi gán điển hình: Toàn công ty.",
+        new(RoleCodes.Evaluatee, "Người được đánh giá", "Tự chấm, xem kết quả đã công bố, gửi kiến nghị về kết quả của mình.",
             new[] { PermissionCodes.EvaluationSelf, PermissionCodes.EvaluationResultsView, PermissionCodes.EvaluationAppealSubmit }),
-        new(RoleCodes.DepartmentLeader, "Lãnh đạo Phòng", "Xem hồ sơ, duyệt danh mục sản phẩm của Phòng (HD03 IV.1; PL II mục II); đề xuất mức thay cấp trực tiếp sử dụng "
-            + "ở hồ sơ luồng được cấu hình (PL III ví dụ 3); lập kế hoạch khắc phục 30-60-90 ngày (Mẫu 17). Phạm vi gán điển hình: Phòng.",
+        new(RoleCodes.DepartmentLeader, "Lãnh đạo Phòng", "Duyệt danh mục sản phẩm, đề xuất mức, lập kế hoạch 30-60-90 ngày (Mẫu 17) cho cán bộ của Phòng.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksApprove, PermissionCodes.EvaluationUnitReview, PermissionCodes.EvaluationImprovementManage }),
-        new(RoleCodes.CollectiveSecretary, "Thư ký tập thể lãnh đạo", "Ghi nhận đề xuất của tập thể lãnh đạo, lập biên bản (HD03 IV.3a; Mẫu 11–13). Phạm vi gán điển hình: Phòng hoặc Toàn công ty.",
+        new(RoleCodes.CollectiveSecretary, "Thư ký tập thể lãnh đạo", "Ghi nhận đề xuất của tập thể lãnh đạo, lập biên bản hội nghị.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.MeetingRead, PermissionCodes.MeetingManage }),
-        new(RoleCodes.CellCommittee, "Chi ủy / Bí thư Chi bộ", "Chi bộ xác nhận phiếu tự chấm, lập hồ sơ tập thể (Mẫu 09A–9D, Mẫu 07). Phạm vi gán điển hình: Chi bộ.",
+        new(RoleCodes.CellCommittee, "Chi ủy / Bí thư Chi bộ", "Xác nhận phiếu tự chấm, lập hồ sơ tập thể của Chi bộ.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCellConfirm, PermissionCodes.CollectiveManage, PermissionCodes.MeetingRead }),
-        new(RoleCodes.Appraisal, "Cơ quan thẩm định (Phòng TCCB-LĐ)", "Rà soát, thẩm định; quản lý kỳ đánh giá (HD03 IV.1, IV.3b). Phạm vi gán: Toàn công ty.",
+        new(RoleCodes.Appraisal, "Cơ quan thẩm định (Phòng TCCB-LĐ)", "Thẩm định hồ sơ, quản lý kỳ đánh giá và bộ tiêu chí.",
             new[]
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationAppraise, PermissionCodes.PeriodManage,
                 PermissionCodes.CriteriaManage, PermissionCodes.ReportExport, PermissionCodes.SystemUsersRead
             }),
-        new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Nhận xét, đề xuất của cấp trực tiếp sử dụng cán bộ (HD03 IV.3c); lập kế hoạch khắc phục 30-60-90 ngày (Mẫu 17). Phạm vi gán: Toàn công ty.",
+        new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Nhận xét, đề xuất mức; lập kế hoạch 30-60-90 ngày (Mẫu 17).",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport, PermissionCodes.EvaluationImprovementManage }),
-        new(RoleCodes.PartyCommitteeMember, "Cấp ủy viên Đảng ủy", "Xem hồ sơ, biên bản, báo cáo (HD03 IV.4; Mẫu 18). Phạm vi gán: Toàn công ty.",
+        new(RoleCodes.PartyCommitteeMember, "Cấp ủy viên Đảng ủy", "Xem hồ sơ, biên bản, báo cáo.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.MeetingRead, PermissionCodes.ReportExport }),
-        new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy (ghi nhận quyết định)", "Ghi nhận quyết định của Đảng ủy cơ sở, ghi nhận kết quả của cấp trên "
-            + "(thẩm định, nhận xét, quyết định do cấp trên thực hiện), công bố, mở lại hồ sơ, xử lý kiến nghị sau công bố (HD03 IV.4, IV.5; PL II III.2). Phạm vi gán: Toàn công ty.",
+        new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy (ghi nhận quyết định)", "Ghi nhận quyết định và kết quả của cấp trên, công bố, mở lại hồ sơ, xử lý kiến nghị.",
             new[]
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationExternalRecord,
@@ -169,7 +166,7 @@ public static class DataSeeder
             DefaultCriteriaSet(CriteriaSetDefaults.Code09B, CriteriaSetDefaults.Name09B, CriteriaSetContent.Form09B, CriteriaSetDefaults.Build09B(), now),
             DefaultCriteriaSet(CriteriaSetDefaults.Code09A, CriteriaSetDefaults.Name09A, CriteriaSetContent.Form09A, CriteriaSetDefaults.Build09A(), now.AddSeconds(-1)));
         await context.SaveChangesAsync();
-        logger?.LogInformation("Đã tạo 2 bộ tiêu chí mặc định theo bản trích xuất HD03 (chờ nghiệp vụ xác nhận).");
+        logger?.LogInformation("Đã tạo 2 bộ tiêu chí mặc định.");
     }
 
     private static CriteriaSet DefaultCriteriaSet(string code, string name, string form, CriteriaSetContent content, DateTime publishedAt) => new()
@@ -491,7 +488,7 @@ public static class DataSeeder
         {
             context.OrgUnitTypes.AddRange(DefaultUnitTypes.Select((t, i) => new OrgUnitType { Name = t.Name, Side = t.Side, SortOrder = i }));
             await context.SaveChangesAsync();
-            logger?.LogInformation("Đã tạo {Count} loại đơn vị mặc định (chờ nghiệp vụ xác nhận).", DefaultUnitTypes.Length);
+            logger?.LogInformation("Đã tạo {Count} loại đơn vị mặc định.", DefaultUnitTypes.Length);
         }
 
         if (!await context.Positions.IgnoreQueryFilters().AnyAsync())
@@ -506,7 +503,7 @@ public static class DataSeeder
                 SortOrder = (i + 1) * 10
             }));
             await context.SaveChangesAsync();
-            logger?.LogInformation("Đã tạo {Count} chức vụ mặc định theo HD03 (chờ nghiệp vụ xác nhận).", DefaultPositions.Length);
+            logger?.LogInformation("Đã tạo {Count} chức vụ mặc định.", DefaultPositions.Length);
         }
     }
 
@@ -1104,7 +1101,7 @@ public static class DataSeeder
                 record.AppraisalExplanation = EvaluationScoring.RequiresExplanation(criteria, record.TotalSelfScore, record.AppraisalScore)
                     ? "Điều chỉnh theo minh chứng bổ sung (dữ liệu mẫu)."
                     : null;
-                record.AppraisalComment = "Hồ sơ đầy đủ minh chứng theo Hướng dẫn 03-HD/TVĐU (dữ liệu mẫu).";
+                record.AppraisalComment = "Hồ sơ đầy đủ minh chứng (dữ liệu mẫu).";
                 record.AppraisalProposedGrade = grade;
                 record.AppraisedByName = "Cơ quan thẩm định (dữ liệu mẫu)";
                 record.AppraisedAt = at;

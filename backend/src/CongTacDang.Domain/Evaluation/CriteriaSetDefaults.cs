@@ -12,10 +12,10 @@ namespace CongTacDang.Domain.Evaluation;
 public static partial class CriteriaSetDefaults
 {
     /// <summary>Mã bộ mặc định Mẫu 09B (Quý III/2026).</summary>
-    public const string Code09B = "HD03-09B-Q3-2026";
+    public const string Code09B = "09B-Q3-2026";
 
     /// <summary>Mã bộ mặc định Mẫu 09A (từ 2027).</summary>
-    public const string Code09A = "HD03-09A-2027";
+    public const string Code09A = "09A-2027";
 
     /// <summary>Tên bộ mặc định Mẫu 09B.</summary>
     public const string Name09B = "Mẫu 09B — Quý III/2026";
@@ -24,11 +24,7 @@ public static partial class CriteriaSetDefaults
     public const string Name09A = "Mẫu 09A — từ 2027";
 
     /// <summary>Ghi chú chung của hai bộ mặc định.</summary>
-    public const string Notes =
-        "Khởi tạo theo bản trích xuất HD 03-HD/TVĐU (docs/nghiep-vu/hd03-trich-xuat.md) — CHỜ NGHIỆP VỤ XÁC NHẬN. "
-        + "Chỗ văn bản mâu thuẫn: làm tròn 1 chữ số, nửa lên (theo ví dụ PL II, không dùng bước 0,5); tiêu chí chung chấm "
-        + "\"Đảm bảo/Không đảm bảo\" (theo Mẫu 09A/09B); K/AD bỏ khỏi mẫu số rồi quy đổi (HD03 tr.9 \"xử lý trọng số\", "
-        + "\"không mặc nhiên chấm điểm tối đa\"); trần xuất sắc 20% số \"Hoàn thành tốt\" (câu chữ III.6), làm tròn 0,5 lên 1.";
+    public const string Notes = "";
 
     /// <summary>Nội dung bộ Mẫu 09B (Quý III/2026): 6 trục có điểm tối đa 15/10/10/15/10/10.</summary>
     public static CriteriaSetContent Build09B() => Build(axisMax: new[] { 15.0, 10, 10, 15, 10, 10 }, RequiredForms09B);
