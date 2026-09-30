@@ -116,8 +116,8 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
 
   const textArea = (label: string, value: string, onChange: (value: string) => void, rows = 3, hint?: string) => (
     <div className="col-12">
-      <label className="form-label small mb-1 fw-semibold">{label}</label>
-      {hint && <div className="text-secondary mb-1" style={{ fontSize: "13px" }}>{hint}</div>}
+      <label className="form-label">{label}</label>
+      {hint && <div className="form-text mt-0 mb-1">{hint}</div>}
       <textarea className="form-control form-control-sm" rows={rows} value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
@@ -128,7 +128,7 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
   return (
     <form onSubmit={submit} className="row g-2">
       <div className="col-md-4">
-        <label className="form-label small mb-1">Biểu mẫu</label>
+        <label className="form-label">Biểu mẫu</label>
         <select className="form-select form-select-sm" value={form} disabled={!!editing} onChange={(e) => setForm(e.target.value as CollectiveForm)}>
           <option value="M07">Mẫu 07 — Tự đánh giá của tập thể Đảng ủy (Chi ủy, Chi bộ)</option>
           <option value="M08">Mẫu 08 — Tổng hợp kết quả nhiệm vụ của cơ quan, đơn vị</option>
@@ -136,14 +136,14 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
         </select>
       </div>
       <div className="col-md-3">
-        <label className="form-label small mb-1">Thuộc</label>
+        <label className="form-label">Thuộc</label>
         <select className="form-select form-select-sm" value={unit} disabled={!!editing} onChange={(e) => setUnit(e.target.value as "cell" | "department")}>
           <option value="cell">Tổ chức Đảng</option>
           <option value="department">Phòng / đơn vị</option>
         </select>
       </div>
       <div className="col-md-5">
-        <label className="form-label small mb-1">{unit === "cell" ? "Chi bộ / tổ chức Đảng" : "Phòng / đơn vị"}</label>
+        <label className="form-label">{unit === "cell" ? "Chi bộ / tổ chức Đảng" : "Phòng / đơn vị"}</label>
         {unit === "cell" ? (
           <select className="form-select form-select-sm" value={partyCellId} disabled={!!editing} onChange={(e) => setPartyCellId(e.target.value)}>
             <option value="">Chọn tổ chức Đảng</option>
@@ -157,7 +157,7 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
         )}
       </div>
       <div className="col-12">
-        <label className="form-label small mb-1">{form === "M08" ? "Tên cơ quan, đơn vị" : "Tên tập thể (Đảng ủy, Chi ủy, Chi bộ)"}</label>
+        <label className="form-label">{form === "M08" ? "Tên cơ quan, đơn vị" : "Tên tập thể (Đảng ủy, Chi ủy, Chi bộ)"}</label>
         <input className="form-control form-control-sm" value={subjectName} onChange={(e) => setSubjectName(e.target.value)} />
       </div>
 
@@ -194,20 +194,20 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
         <>
           <div className="col-12 mt-2 fw-semibold small text-uppercase text-secondary">B. Kết quả chấm điểm các tiêu chí đánh giá</div>
           <div className="col-md-4">
-            <label className="form-label small mb-1">1. Nhóm tiêu chí chung (/30)</label>
+            <label className="form-label">1. Nhóm tiêu chí chung (/30)</label>
             <input type="number" min={0} max={30} step={0.5} className="form-control form-control-sm" value={general} onChange={(e) => setGeneral(Number(e.target.value))} />
           </div>
           <div className="col-md-4">
-            <label className="form-label small mb-1">2. Nhóm kết quả thực hiện nhiệm vụ (/70)</label>
+            <label className="form-label">2. Nhóm kết quả thực hiện nhiệm vụ (/70)</label>
             <input type="number" min={0} max={70} step={0.5} className="form-control form-control-sm" value={task} onChange={(e) => setTask(Number(e.target.value))} />
           </div>
           <div className="col-md-4">
-            <label className="form-label small mb-1">Tổng điểm (/100)</label>
+            <label className="form-label">Tổng điểm (/100)</label>
             <input className="form-control form-control-sm" readOnly value={(Number(general) + Number(task)).toFixed(1)} />
           </div>
           {form === "M06" && (
             <div className="col-md-6">
-              <label className="form-label small mb-1">Mức tự xếp loại của tập thể</label>
+              <label className="form-label">Mức tự xếp loại của tập thể</label>
               <select className="form-select form-select-sm" value={grade} onChange={(e) => setGrade(e.target.value)}>
                 <option value="HoanThanhXuatSac">Hoàn thành xuất sắc nhiệm vụ</option>
                 <option value="HoanThanhTot">Hoàn thành tốt nhiệm vụ</option>

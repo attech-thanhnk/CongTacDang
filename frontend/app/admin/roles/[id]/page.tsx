@@ -225,72 +225,67 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
     <div className="page-wrapper">
       <PageHeader
         title={role.name}
-        subTitle={role.description || "Chưa có mô tả."}
         badge={
           role.isProtected ? (
-            <span className="badge bg-secondary-subtle text-secondary border">
+            <span className="status-badge tone-neutral">
               <i className="bi bi-lock-fill me-1" />
               Vai trò bảo vệ
             </span>
           ) : undefined
         }
         actions={
-          <div className="d-flex flex-wrap gap-2">
-            <Link href="/admin/roles" className="btn btn-sm btn-outline-secondary">
+          <>
+            <Link href="/admin/roles" className="btn btn-outline-secondary">
               <i className="bi bi-arrow-left me-1" />
               Danh sách
             </Link>
-            <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => setEditing(true)}>
+            <button type="button" className="btn btn-outline-secondary" onClick={() => setEditing(true)}>
               <i className="bi bi-pencil-square me-1" />
               Đổi tên, mô tả
             </button>
             {!role.isProtected && (
-              <button type="button" className="btn btn-sm btn-outline-danger" onClick={handleDelete}>
+              <button type="button" className="btn btn-outline-danger" onClick={handleDelete}>
                 <i className="bi bi-trash me-1" />
                 Xóa
               </button>
             )}
-          </div>
+          </>
         }
       />
 
       <div className="page-body">
-        <ul className="nav nav-tabs mb-3">
+        <div className="d-flex flex-column gap-3">
+        <ul className="nav nav-tabs">
           <li className="nav-item">
-            <button type="button" className={`nav-link ${tab === "permissions" ? "active fw-semibold" : ""}`} onClick={() => setTab("permissions")}>
+            <button type="button" className={`nav-link ${tab === "permissions" ? "active" : ""}`} onClick={() => setTab("permissions")}>
               <i className="bi bi-shield-check me-1" />
-              Ma trận quyền ({role.permissionCodes.length})
+              Ma trận quyền <span className="text-secondary fw-medium ms-1 num">{role.permissionCodes.length}</span>
             </button>
           </li>
           {canAssign && (
             <li className="nav-item">
-              <button type="button" className={`nav-link ${tab === "assignments" ? "active fw-semibold" : ""}`} onClick={() => setTab("assignments")}>
+              <button type="button" className={`nav-link ${tab === "assignments" ? "active" : ""}`} onClick={() => setTab("assignments")}>
                 <i className="bi bi-people me-1" />
-                Người được gán ({role.assignmentCount})
+                Người được gán <span className="text-secondary fw-medium ms-1 num">{role.assignmentCount}</span>
               </button>
             </li>
           )}
         </ul>
 
         {tab === "permissions" && (
-          <>
+          <div>
             {heldBySelf && (
-              <div className="alert alert-info small py-2">
-                Bạn đang giữ vai trò này nên không tự sửa quyền được — nhờ quản trị viên khác thực hiện.
-              </div>
-            )}
-            {role.isProtected && (
-              <div className="alert alert-secondary small py-2">
-                Vai trò bảo vệ luôn giữ hai quyền &quot;Quản lý vai trò&quot; và &quot;Gán vai trò&quot;.
+              <div className="alert alert-info py-2">
+                Bạn đang giữ vai trò này nên không tự sửa quyền được.
               </div>
             )}
             {addedGlobalOnly.length > 0 && scopedAssignments > 0 && (
-              <div className="alert alert-warning small py-2">
+              <div className="alert alert-warning py-2">
                 Vai trò đang được gán theo đơn vị chính quyền / tổ chức Đảng ({scopedAssignments} bản gán) nên không thêm được quyền &quot;Chỉ Toàn công ty&quot;.
               </div>
             )}
             <div className="d-flex justify-content-end gap-2 mb-2 position-sticky" style={{ top: 0, zIndex: 2 }}>
-              <button type="button" className="btn btn-sm btn-light border" disabled={!dirty || saving} onClick={() => setSelected(new Set(role.permissionCodes))}>
+              <button type="button" className="btn btn-sm btn-outline-secondary" disabled={!dirty || saving} onClick={() => setSelected(new Set(role.permissionCodes))}>
                 Hoàn tác
               </button>
               <button type="button" className="btn btn-sm btn-primary" disabled={!dirty || saving || heldBySelf} onClick={savePermissions}>
@@ -299,24 +294,23 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
               </button>
             </div>
             <PermissionMatrix modules={modules} selected={selected} onChange={setSelected} readOnly={heldBySelf} lockedCodes={lockedCodes} />
-          </>
+          </div>
         )}
 
         {tab === "assignments" && canAssign && (
-          <>
-            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-              <div className="form-check mb-0">
-                <input id="show-history" type="checkbox" className="form-check-input" checked={showHistory} onChange={(e) => setShowHistory(e.target.checked)} />
-                <label htmlFor="show-history" className="form-check-label small">
-                  Hiện cả bản gán đã hết hạn (lịch sử)
-                </label>
-              </div>
-              <button type="button" className="btn btn-sm btn-primary" onClick={() => setAssignmentForm({})}>
-                <i className="bi bi-person-plus me-1" />
-                Gán cho người
-              </button>
-            </div>
             <Card>
+              <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div className="form-check mb-0">
+                  <input id="show-history" type="checkbox" className="form-check-input" checked={showHistory} onChange={(e) => setShowHistory(e.target.checked)} />
+                  <label htmlFor="show-history" className="form-check-label">
+                    Hiện cả bản gán đã hết hạn
+                  </label>
+                </div>
+                <button type="button" className="btn btn-sm btn-primary" onClick={() => setAssignmentForm({})}>
+                  <i className="bi bi-person-plus me-1" />
+                  Gán cho người
+                </button>
+              </div>
               <AssignmentTable
                 assignments={visibleAssignments}
                 showUser
@@ -343,8 +337,8 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
                 }
               />
             </Card>
-          </>
         )}
+        </div>
       </div>
 
       {editing && <RoleFormModal role={role} saving={saving} onClose={() => setEditing(false)} onSubmit={handleRename} />}

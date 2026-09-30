@@ -4,7 +4,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { auditService, AuditLogDto } from "@/services/auditService";
-import { Card, CardBody, PageHeader } from "@/components/common";
+import { PageHeader } from "@/components/common";
+import styles from "./audit.module.css";
 import { LoginEventsTab } from "@/components/admin/LoginEventsTab";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { AdminModal } from "@/components/admin/AdminModal";
@@ -34,17 +35,17 @@ function formatDate(value: string) {
 function actionMeta(action: string) {
   switch (action) {
     case "Create":
-      return { label: "Tạo mới", icon: "bi-plus-lg", color: "#047857", background: "#ecfdf5" };
+      return { label: "Tạo mới", icon: "bi-plus-lg", tone: "t-ok" };
     case "Delete":
-      return { label: "Xóa mềm", icon: "bi-archive", color: "#b91c1c", background: "#fef2f2" };
+      return { label: "Xóa mềm", icon: "bi-archive", tone: "t-bad" };
     case "Approve":
-      return { label: "Phê duyệt", icon: "bi-check2-circle", color: "#6d28d9", background: "#f5f3ff" };
+      return { label: "Phê duyệt", icon: "bi-check2-circle", tone: "t-ok" };
     case "AssignRoles":
-      return { label: "Gán vai trò", icon: "bi-person-badge", color: "#0369a1", background: "#f0f9ff" };
+      return { label: "Gán vai trò", icon: "bi-person-badge", tone: "t-wait" };
     case "UpdatePermissions":
-      return { label: "Cập nhật quyền", icon: "bi-shield-check", color: "#0369a1", background: "#f0f9ff" };
+      return { label: "Cập nhật quyền", icon: "bi-shield-check", tone: "t-wait" };
     default:
-      return { label: "Cập nhật", icon: "bi-pencil-square", color: "#1d4ed8", background: "#eff6ff" };
+      return { label: "Cập nhật", icon: "bi-pencil-square", tone: "t-info" };
   }
 }
 
@@ -134,7 +135,7 @@ function AuditPageContent() {
           tab === "actions" && (
           <button
             type="button"
-            className="btn btn-sm btn-outline-primary"
+            className="btn btn-outline-secondary"
             onClick={() => loadLogs()}
             disabled={loading}
           >
@@ -146,7 +147,8 @@ function AuditPageContent() {
       />
 
       <div className="page-body">
-        <ul className="nav nav-tabs mb-3">
+        <div className="d-flex flex-column gap-3">
+        <ul className="nav nav-tabs">
           {(
             [
               { key: "actions" as const, label: "Nhật ký thao tác", icon: "bi-activity" },
@@ -154,7 +156,7 @@ function AuditPageContent() {
             ]
           ).map((t) => (
             <li className="nav-item" key={t.key}>
-              <button type="button" className={`nav-link ${tab === t.key ? "active fw-semibold" : ""}`} onClick={() => setTab(t.key)}>
+              <button type="button" className={`nav-link ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>
                 <i className={`bi ${t.icon} me-1`} />
                 {t.label}
               </button>
@@ -165,66 +167,51 @@ function AuditPageContent() {
         {tab === "logins" && <LoginEventsTab />}
 
         {tab === "actions" && (
-        <>
-        <div className="row g-3 mb-3">
-          {[
-            { label: "Tổng thao tác", value: logs.length, icon: "bi-activity", color: "#1d4ed8", background: "#eff6ff" },
-            { label: "Lượt cập nhật", value: stats.updateCount, icon: "bi-pencil-square", color: "#0369a1", background: "#f0f9ff" },
-            { label: "Xóa mềm", value: stats.deleteCount, icon: "bi-archive", color: "#b91c1c", background: "#fef2f2" },
-            { label: "Người thao tác", value: stats.actorCount, icon: "bi-people", color: "#047857", background: "#ecfdf5" },
-          ].map((stat) => (
-            <div className="col-6 col-xl-3" key={stat.label}>
-              <Card>
-                <CardBody className="d-flex align-items-center gap-3 py-3">
-                  <div
-                    className="d-flex align-items-center justify-content-center rounded-3"
-                    style={{ width: 40, height: 40, color: stat.color, background: stat.background, flexShrink: 0 }}
-                  >
-                    <i className={`bi ${stat.icon} fs-5`} />
-                  </div>
-                  <div>
-                    <div className="small text-secondary">{stat.label}</div>
-                    <div className="fs-5 fw-bold text-dark">{stat.value}</div>
-                  </div>
-                </CardBody>
-              </Card>
-            </div>
-          ))}
-        </div>
+        <div className="d-flex flex-column gap-4">
+        <section className="card">
+          <div className={styles.stats}>
+            {[
+              { label: "Tổng thao tác", value: logs.length, tone: "var(--info)" },
+              { label: "Lượt cập nhật", value: stats.updateCount, tone: "var(--wait)" },
+              { label: "Xóa mềm", value: stats.deleteCount, tone: "var(--bad)" },
+              { label: "Người thao tác", value: stats.actorCount, tone: "var(--ok)" },
+            ].map((stat) => (
+              <div className={styles.stat} key={stat.label} style={{ "--c": stat.tone } as React.CSSProperties}>
+                <div className={styles.value}>{stat.value}</div>
+                <div className={styles.label}>{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
 
-        <Card className="mb-3">
-          <CardBody>
-            <form className="row g-2 align-items-end" onSubmit={handleApplyFilters}>
-              <div className="col-12 col-md-4 col-xl-3">
-                <label className="form-label small fw-semibold text-secondary mb-1">Đối tượng</label>
-                <select className="form-select form-select-sm" value={entityType} onChange={(event) => setEntityType(event.target.value)}>
-                  {entityOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
+            <section className="card">
+              <div className="card-header">
+                <form className="row g-2 align-items-end" onSubmit={handleApplyFilters}>
+                  <div className="col-12 col-md-4 col-xl-3">
+                    <label className="form-label" htmlFor="audit-entity-type">Đối tượng</label>
+                    <select id="audit-entity-type" className="form-select form-select-sm" value={entityType} onChange={(event) => setEntityType(event.target.value)}>
+                      {entityOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-12 col-md-5 col-xl-5">
+                    <label className="form-label" htmlFor="audit-entity-id">Id đối tượng</label>
+                    <input
+                      id="audit-entity-id"
+                      className="form-control form-control-sm"
+                      value={entityId}
+                      onChange={(event) => setEntityId(event.target.value)}
+                    />
+                  </div>
+                  <div className="col-12 col-md-auto d-flex gap-2">
+                    <button type="submit" className="btn btn-sm btn-primary" disabled={loading}>
+                      <i className="bi bi-search me-1" />Tra cứu
+                    </button>
+                    <button type="button" className="btn btn-sm btn-outline-secondary" onClick={clearFilters}>
+                      Xóa bộ lọc
+                    </button>
+                  </div>
+                </form>
               </div>
-              <div className="col-12 col-md-5 col-xl-5">
-                <label className="form-label small fw-semibold text-secondary mb-1">Id đối tượng</label>
-                <input
-                  className="form-control form-control-sm"
-                  value={entityId}
-                  onChange={(event) => setEntityId(event.target.value)}
-                  placeholder="Dán Id hồ sơ, kỳ đánh giá hoặc bản ghi cần tra cứu"
-                />
-              </div>
-              <div className="col-12 col-md-auto">
-                <button type="submit" className="btn btn-sm btn-primary" disabled={loading}>
-                  <i className="bi bi-search me-1" />Tra cứu
-                </button>
-              </div>
-              <div className="col-12 col-md-auto">
-                <button type="button" className="btn btn-sm btn-link text-secondary text-decoration-none" onClick={clearFilters}>
-                  Xóa bộ lọc
-                </button>
-              </div>
-            </form>
-          </CardBody>
-        </Card>
-
-            <Card>
               <div className="table-responsive">
                 <table className="table table-hover align-middle mb-0">
                   <thead>
@@ -251,7 +238,7 @@ function AuditPageContent() {
                             <div className="small text-secondary">{formatDate(log.createdAt).split(",").slice(1).join(",").trim()}</div>
                           </td>
                           <td className="text-nowrap">
-                            <span className="badge border" style={{ color: meta.color, background: meta.background, borderColor: `${meta.color}33` }}>
+                            <span className={`tag ${meta.tone}`}>
                               <i className={`bi ${meta.icon} me-1`} />{meta.label}
                             </span>
                           </td>
@@ -270,10 +257,11 @@ function AuditPageContent() {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </section>
 
-        </>
+        </div>
         )}
+        </div>
 
         {tab === "actions" && selectedLog && (
           <AdminModal title="Chi tiết thay đổi" onClose={() => setSelectedLog(null)} maxWidth={900}>

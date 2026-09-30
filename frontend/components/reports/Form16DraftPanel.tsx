@@ -170,7 +170,7 @@ export function Form16DraftPanel({ periodId, branchId, periodLabel, shortName }:
       <div className="row g-2">
         {FIELDS.map((field) => (
           <div key={field.key} className={field.multiline ? "col-12" : "col-md-6"}>
-            <label className="form-label small mb-1">{field.label}</label>
+            <label className="form-label">{field.label}</label>
             {field.multiline ? (
               <textarea
                 className="form-control form-control-sm"

@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Badge, BadgeTone } from "@/components/common/StatusBadge";
 import { AdminModal } from "@/components/admin/AdminModal";
+import { NoAccess } from "@/components/admin/NoAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { CriteriaSetListItem, criteriaService } from "@/services/criteriaService";
@@ -69,7 +70,7 @@ export default function CriteriaSetsPage() {
     setBusy(true);
     try {
       const created = await criteriaService.create({ ...form, code: form.code.trim(), name: form.name.trim() });
-      toast.success("Đã tạo bản nháp. Hãy sửa rồi xuất bản.");
+      toast.success("Đã tạo bản nháp.");
       router.push(`/criteria/${created.id}`);
     } catch (err: any) {
       toast.error(err?.message || "Không tạo được bộ tiêu chí.");
@@ -85,7 +86,7 @@ export default function CriteriaSetsPage() {
     }, "Đã nhân bản thành bản nháp mới.");
 
   if (!canView) {
-    return <div className="page-wrapper"><div className="alert alert-warning m-4">Bạn cần quyền "Quản lý bộ tiêu chí" hoặc "Quản lý kỳ đánh giá" để xem trang này.</div></div>;
+    return <NoAccess title="Bộ tiêu chí và thang điểm" permissionName="Quản lý bộ tiêu chí" />;
   }
 
   return (
@@ -94,9 +95,9 @@ export default function CriteriaSetsPage() {
         title="Bộ tiêu chí và thang điểm"
         actions={
           <>
-            <Link href="/periods" className="btn btn-outline-secondary btn-sm"><i className="bi bi-calendar3 me-1" />Kỳ đánh giá</Link>
+            <Link href="/periods" className="btn btn-outline-secondary"><i className="bi bi-calendar3 me-1" />Kỳ đánh giá</Link>
             {canManage && (
-              <button type="button" className="btn btn-primary btn-sm" onClick={() => { setForm(EMPTY_FORM); setShowCreate(true); }}>
+              <button type="button" className="btn btn-primary" onClick={() => { setForm(EMPTY_FORM); setShowCreate(true); }}>
                 <i className="bi bi-plus-lg me-1" />Tạo bộ tiêu chí
               </button>
             )}
@@ -126,8 +127,8 @@ export default function CriteriaSetsPage() {
                           <div className="small text-secondary">{s.code}</div>
                         </td>
                         <td className="text-nowrap"><Badge tone={STATUS_TONE[s.status] ?? "neutral"}>{s.statusDisplayName}</Badge></td>
-                        <td className="text-nowrap">{s.selfScoreForm}</td>
-                        <td>{s.generalItemCount} tiêu chí con · {s.axisCount} trục · {s.weightFrameCount} khung</td>
+                        <td className="text-nowrap"><span className="tag t-info">{s.selfScoreForm}</span></td>
+                        <td className="num">{s.generalItemCount} tiêu chí con · {s.axisCount} trục · {s.weightFrameCount} khung</td>
                         <td>{s.usedByPeriods.length > 0 ? s.usedByPeriods.join(", ") : "—"}</td>
                         <td className="text-end text-nowrap">
                           <Link href={`/criteria/${s.id}`} className="btn btn-link btn-sm p-0 me-3">{canManage && s.status === "Draft" ? "Sửa" : "Xem"}</Link>

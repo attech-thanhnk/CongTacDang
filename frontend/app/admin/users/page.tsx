@@ -119,10 +119,11 @@ export default function AdminUsersPage() {
       />
 
       <div className="page-body">
-        <Card className="mb-3">
-          <form className="row g-2 align-items-end p-3" onSubmit={applyFilters}>
+        <Card>
+          <div className="card-header">
+          <form className="row g-2 align-items-end" onSubmit={applyFilters}>
             <div className="col-12 col-md-6 col-xl-4">
-              <label className="form-label small fw-semibold text-secondary mb-1">Tìm kiếm</label>
+              <label className="form-label">Tìm kiếm</label>
               <input
                 className="form-control form-control-sm"
                 placeholder="Tên đăng nhập, họ tên, email, số thẻ Đảng…"
@@ -131,7 +132,7 @@ export default function AdminUsersPage() {
               />
             </div>
             <div className="col-6 col-md-3 col-xl-2">
-              <label className="form-label small fw-semibold text-secondary mb-1">Đơn vị</label>
+              <label className="form-label">Đơn vị</label>
               <select className="form-select form-select-sm" value={draft.departmentId} onChange={(e) => setDraft({ ...draft, departmentId: e.target.value })}>
                 <option value="">Tất cả</option>
                 {departments.map((d) => (
@@ -142,7 +143,7 @@ export default function AdminUsersPage() {
               </select>
             </div>
             <div className="col-6 col-md-3 col-xl-2">
-              <label className="form-label small fw-semibold text-secondary mb-1">Tổ chức Đảng</label>
+              <label className="form-label">Tổ chức Đảng</label>
               <select className="form-select form-select-sm" value={draft.partyCellId} onChange={(e) => setDraft({ ...draft, partyCellId: e.target.value })}>
                 <option value="">Tất cả</option>
                 {partyCells.map((c) => (
@@ -153,7 +154,7 @@ export default function AdminUsersPage() {
               </select>
             </div>
             <div className="col-6 col-md-3 col-xl-2">
-              <label className="form-label small fw-semibold text-secondary mb-1">Trạng thái</label>
+              <label className="form-label">Trạng thái</label>
               <select
                 className="form-select form-select-sm"
                 value={draft.status}
@@ -174,9 +175,7 @@ export default function AdminUsersPage() {
               </button>
             </div>
           </form>
-        </Card>
-
-        <Card>
+          </div>
           <div className="table-responsive">
             <table className="table table-hover align-middle mb-0">
               <thead>

@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePeriod } from "@/contexts/PeriodContext";
 import { formatDate } from "@/lib/dateFormat";
 import { useToast } from "@/contexts/ToastContext";
 import { PageHeader } from "@/components/common/PageHeader";
+import { EmptyState } from "@/components/common/EmptyState";
+import { NoAccess } from "@/components/admin/NoAccess";
 import { CollectiveRecordEditor } from "@/components/collective/CollectiveRecordEditor";
 import { MeetingEditor } from "@/components/collective/MeetingEditor";
 import { organizationService, BranchItem, DepartmentItem } from "@/services/organizationService";
-import { EvaluationPeriodDto, evaluationService } from "@/services/evaluationService";
 import { CollectiveFormCatalog, CollectiveRecord, MeetingRecord, collectiveService } from "@/services/collectiveService";
 import { ReportFileFormat, hd03FileName, reportService } from "@/services/reportService";
 import { organizationSettingsService } from "@/services/organizationSettingsService";
@@ -20,13 +22,13 @@ const FORM_NAMES: Record<string, string> = {
   M08: "Mẫu 08",
 };
 
+/** Hồ sơ tập thể (Mẫu 06/07/08) và biên bản hội nghị (Mẫu 12/13) của kỳ đang chọn ở thanh bên. */
 export default function CollectiveEvaluationsPage() {
-  const { hasPermission } = useAuth();
+  const { hasPermission, loading: authLoading } = useAuth();
+  const { periodId, period, loading: periodLoading } = usePeriod();
   const { toast } = useToast();
   const showError = toast.error;
   const showSuccess = toast.success;
-  const [periods, setPeriods] = useState<EvaluationPeriodDto[]>([]);
-  const [periodId, setPeriodId] = useState("");
   const [branches, setBranches] = useState<BranchItem[]>([]);
   const [departments, setDepartments] = useState<DepartmentItem[]>([]);
   const [catalog, setCatalog] = useState<CollectiveFormCatalog | null>(null);
@@ -52,18 +54,14 @@ export default function CollectiveEvaluationsPage() {
       return;
     }
     Promise.all([
-      evaluationService.getPeriods(),
       organizationService.getBranches(),
       organizationService.getDepartments().catch(() => [] as DepartmentItem[]),
       collectiveService.getCatalog().catch(() => null),
     ])
-      .then(([loadedPeriods, loadedBranches, loadedDepartments, loadedCatalog]) => {
-        setPeriods(loadedPeriods);
+      .then(([loadedBranches, loadedDepartments, loadedCatalog]) => {
         setBranches(loadedBranches);
         setDepartments(loadedDepartments);
         setCatalog(loadedCatalog);
-        const active = loadedPeriods.find((item) => item.isActive) || loadedPeriods[0];
-        if (active) setPeriodId(active.id);
       })
       .catch((error: any) => showError(error?.message || "Không thể tải dữ liệu đánh giá tập thể."))
       .finally(() => setLoading(false));
@@ -81,13 +79,16 @@ export default function CollectiveEvaluationsPage() {
   }, [periodId]);
 
   useEffect(() => {
-    if (!periodId || !canUseModule) return;
     setEditingRecord(null);
     setEditingMeeting(null);
+    if (!periodId || !canUseModule) {
+      setRecords([]);
+      setMeetings([]);
+      return;
+    }
     reload().catch((error: any) => showError(error?.message || "Không thể tải hồ sơ tập thể."));
   }, [periodId, canUseModule, reload, showError]);
 
-  const period = periods.find((p) => p.id === periodId);
   const periodLabel = period ? `Quy ${ROMAN[period.quarter] ?? period.quarter}-${period.year}` : "Ky bao cao";
 
   const run = async (key: string, work: () => Promise<void>, failure: string) => {
@@ -133,65 +134,82 @@ export default function CollectiveEvaluationsPage() {
     </div>
   );
 
+  if (authLoading) return null;
   if (!canUseModule) {
-    return <div className="page-wrapper collective-page"><div className="alert alert-warning">Tài khoản chưa được cấp quyền xem hồ sơ tập thể.</div></div>;
+    return <NoAccess title="Đánh giá tập thể & Hội nghị" permissionName="Xem hồ sơ tập thể / biên bản hội nghị" />;
   }
 
-  if (loading) {
-    return <div className="page-wrapper collective-page"><div className="text-secondary">Đang tải hồ sơ tập thể...</div></div>;
+  const title = <PageHeader title="Đánh giá tập thể & Hội nghị" />;
+
+  if (loading || periodLoading) {
+    return (
+      <div className="page-wrapper">
+        {title}
+        <div className="page-body">
+          <div className="text-secondary"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!periodId) {
+    return (
+      <div className="page-wrapper">
+        {title}
+        <div className="page-body">
+          <section className="card"><EmptyState icon="bi-calendar-x" title="Chưa có kỳ đánh giá" /></section>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="page-wrapper collective-page">
-      <PageHeader
-        title="Đánh giá tập thể & Hội nghị"
-        actions={
-          <div className="collective-toolbar-controls">
-            <select className="form-select form-select-sm" aria-label="Kỳ đánh giá" value={periodId} onChange={(event) => setPeriodId(event.target.value)}>
-              {periods.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </div>
-        }
-      />
+    <div className="page-wrapper">
+      {title}
 
       <div className="page-body">
-        <div className="row g-3">
-          <div className="col-12 col-xl-7">
-            <section className="card border-0 shadow-sm mb-3">
-              <div className="card-header bg-white border-0 pt-4 px-4">
-                <h2 className="h5 mb-0">Hồ sơ tập thể</h2>
+        <div className="row g-4">
+          <div className="col-12 col-xl-7 d-flex flex-column gap-4">
+            <section className="card">
+              <div className="card-header">
+                <h2 className="mb-0">Hồ sơ tập thể <span className="text-secondary fw-medium num">{records.length}</span></h2>
               </div>
-              <div className="card-body px-4">
-                {records.length === 0 ? <div className="text-secondary small">Chưa có hồ sơ tập thể trong kỳ.</div> : records.map((record) => (
-                  <div key={record.id} className="d-flex flex-wrap justify-content-between align-items-center border-bottom py-2 gap-2">
-                    <div>
-                      <strong>{record.subjectName}</strong>
-                      <div className="text-secondary small">
-                        {FORM_NAMES[record.form] || record.form} · {record.partyCellName || record.departmentName || "Chưa gắn tổ chức"}
-                        {record.form !== "M08" && ` · ${record.totalScore.toFixed(1)} / 100`}
-                        {record.form === "M08" && ` · ${record.items.length} nhiệm vụ`}
+              {records.length === 0 ? (
+                <div className="card-body text-secondary">Chưa có hồ sơ tập thể trong kỳ.</div>
+              ) : (
+                <ul className="list-group list-group-flush">
+                  {records.map((record) => (
+                    <li key={record.id} className="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2 px-4 py-3">
+                      <div className="min-w-0">
+                        <div className="fw-semibold">{record.subjectName}</div>
+                        <div className="text-secondary small">
+                          <span className="tag t-info me-2">{FORM_NAMES[record.form] || record.form}</span>
+                          {record.partyCellName || record.departmentName || "Chưa gắn tổ chức"}
+                          {record.form !== "M08" && <> · <span className="num">{record.totalScore.toFixed(1)} / 100</span></>}
+                          {record.form === "M08" && <> · <span className="num">{record.items.length}</span> nhiệm vụ</>}
+                        </div>
                       </div>
-                    </div>
-                    <div className="d-flex gap-2">
-                      {canManageCollective && (
-                        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setEditingRecord(record)}>
-                          <i className="bi bi-pencil me-1" />Sửa
-                        </button>
-                      )}
-                      {record.form === "M07" && exportButtons(record.id, (format) => exportRecord(record, format))}
-                      {record.form === "M08" && exportButtons(record.id, (format) => exportRecord(record, format), "Word", () => exportRecordExcel(record))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      <div className="d-flex flex-wrap gap-2">
+                        {canManageCollective && (
+                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setEditingRecord(record)}>
+                            <i className="bi bi-pencil me-1" />Sửa
+                          </button>
+                        )}
+                        {record.form === "M07" && exportButtons(record.id, (format) => exportRecord(record, format))}
+                        {record.form === "M08" && exportButtons(record.id, (format) => exportRecord(record, format), "Word", () => exportRecordExcel(record))}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
 
-            {canManageCollective && periodId && (
-              <section className="card border-0 shadow-sm">
-                <div className="card-header bg-white border-0 pt-4 px-4">
-                  <h2 className="h6 mb-0">{editingRecord ? `Sửa hồ sơ: ${editingRecord.subjectName}` : "Lập hồ sơ tập thể"}</h2>
+            {canManageCollective && (
+              <section className="card">
+                <div className="card-header">
+                  <h2 className="mb-0">{editingRecord ? `Sửa hồ sơ: ${editingRecord.subjectName}` : "Lập hồ sơ tập thể"}</h2>
                 </div>
-                <div className="card-body px-4">
+                <div className="card-body">
                   <CollectiveRecordEditor
                     periodId={periodId}
                     catalog={catalog}
@@ -211,38 +229,44 @@ export default function CollectiveEvaluationsPage() {
             )}
           </div>
 
-          <div className="col-12 col-xl-5">
-            <section className="card border-0 shadow-sm mb-3">
-              <div className="card-body px-4">
-                <h2 className="h6">Biên bản đã lập</h2>
-                {meetings.length === 0 ? <div className="text-secondary small">Chưa có biên bản trong kỳ.</div> : meetings.map((item) => (
-                  <div key={item.id} className="border-bottom py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <div>
-                      <strong>{item.formCode === "M13" ? "Mẫu 13 — Kiểm phiếu" : "Mẫu 12 — Hội nghị"}</strong>
-                      <div className="text-secondary small">
-                        {item.partyCellName || item.departmentName || "Cấp Công ty"} · {item.stage === "B4_DECISION" ? "Quyết định" : item.stage === "B3A_COLLECTIVE" ? "Đề xuất tập thể" : "—"} · {formatDate(item.startedAt)}
-                      </div>
-                    </div>
-                    <div className="d-flex gap-2">
-                      {canManageMeeting && (
-                        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setEditingMeeting(item)}>
-                          <i className="bi bi-pencil me-1" />Sửa
-                        </button>
-                      )}
-                      {item.formCode === "M12" && exportButtons(`${item.id}-12`, (format) => exportMeeting(item, "12", format), "Mẫu 12")}
-                      {item.voteSummaries.length > 0 && exportButtons(`${item.id}-13`, (format) => exportMeeting(item, "13", format), "Mẫu 13")}
-                    </div>
-                  </div>
-                ))}
+          <div className="col-12 col-xl-5 d-flex flex-column gap-4">
+            <section className="card">
+              <div className="card-header">
+                <h2 className="mb-0">Biên bản đã lập <span className="text-secondary fw-medium num">{meetings.length}</span></h2>
               </div>
+              {meetings.length === 0 ? (
+                <div className="card-body text-secondary">Chưa có biên bản trong kỳ.</div>
+              ) : (
+                <ul className="list-group list-group-flush">
+                  {meetings.map((item) => (
+                    <li key={item.id} className="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2 px-4 py-3">
+                      <div className="min-w-0">
+                        <div className="fw-semibold">{item.formCode === "M13" ? "Mẫu 13 — Kiểm phiếu" : "Mẫu 12 — Hội nghị"}</div>
+                        <div className="text-secondary small">
+                          {item.partyCellName || item.departmentName || "Cấp Công ty"} · {item.stage === "B4_DECISION" ? "Quyết định" : item.stage === "B3A_COLLECTIVE" ? "Đề xuất tập thể" : "—"} · <span className="num">{formatDate(item.startedAt)}</span>
+                        </div>
+                      </div>
+                      <div className="d-flex flex-wrap gap-2">
+                        {canManageMeeting && (
+                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setEditingMeeting(item)}>
+                            <i className="bi bi-pencil me-1" />Sửa
+                          </button>
+                        )}
+                        {item.formCode === "M12" && exportButtons(`${item.id}-12`, (format) => exportMeeting(item, "12", format), "Mẫu 12")}
+                        {item.voteSummaries.length > 0 && exportButtons(`${item.id}-13`, (format) => exportMeeting(item, "13", format), "Mẫu 13")}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
 
-            {canManageMeeting && periodId && (
-              <section className="card border-0 shadow-sm">
-                <div className="card-header bg-white border-0 pt-4 px-4">
-                  <h2 className="h6 mb-0">{editingMeeting ? "Sửa biên bản" : "Lập biên bản hội nghị"}</h2>
+            {canManageMeeting && (
+              <section className="card">
+                <div className="card-header">
+                  <h2 className="mb-0">{editingMeeting ? "Sửa biên bản" : "Lập biên bản hội nghị"}</h2>
                 </div>
-                <div className="card-body px-4">
+                <div className="card-body">
                   <MeetingEditor
                     periodId={periodId}
                     branches={branches}

@@ -4,9 +4,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
+import { usePeriod } from "@/contexts/PeriodContext";
 import { PageHeader, Button } from "@/components/common";
 import { Form16DraftPanel } from "@/components/reports/Form16DraftPanel";
-import { EvaluationPeriodDto, evaluationService } from "@/services/evaluationService";
+import { EvaluationPeriodDto } from "@/services/evaluationService";
 import { BranchItem, organizationService } from "@/services/organizationService";
 import { organizationSettingsService } from "@/services/organizationSettingsService";
 import { REPORTS, ReportDefinition, ReportFileFormat, hd03FileName, reportService, withQuery } from "@/services/reportService";
@@ -14,16 +15,14 @@ import { REPORTS, ReportDefinition, ReportFileFormat, hd03FileName, reportServic
 const ROMAN = ["", "I", "II", "III", "IV"];
 
 /** Nhãn kỳ trong tên tệp theo quy cách HD03 ("Quy III-2026"). */
-const periodLabel = (period?: EvaluationPeriodDto) =>
+const periodLabel = (period?: EvaluationPeriodDto | null) =>
   period ? `Quy ${ROMAN[period.quarter] ?? period.quarter}-${period.year}` : "Ky bao cao";
 
 export default function ReportsPage() {
   const { hasPermission } = useAuth();
   const { toast } = useToast();
-  const showError = toast.error;
-  const [periods, setPeriods] = useState<EvaluationPeriodDto[]>([]);
+  const { periodId, period } = usePeriod();
   const [branches, setBranches] = useState<BranchItem[]>([]);
-  const [periodId, setPeriodId] = useState("");
   const [branchId, setBranchId] = useState("");
   const [shortName, setShortName] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -33,22 +32,13 @@ export default function ReportsPage() {
   const canMeeting = hasPermission("meeting.read") || hasPermission("meeting.manage");
 
   useEffect(() => {
-    evaluationService
-      .getPeriods()
-      .then((list) => {
-        setPeriods(list);
-        const active = list.find((p) => p.isActive) || list[0];
-        if (active) setPeriodId(active.id);
-      })
-      .catch((err: any) => showError(err?.message || "Không tải được danh sách kỳ đánh giá."));
     organizationService.getBranches().then(setBranches).catch(() => setBranches([]));
     organizationSettingsService
       .getPublic()
       .then((info) => setShortName(info.shortName))
       .catch(() => setShortName(""));
-  }, [showError]);
+  }, []);
 
-  const period = useMemo(() => periods.find((p) => p.id === periodId), [periods, periodId]);
   const branch = useMemo(() => branches.find((b) => b.id === branchId), [branches, branchId]);
 
   const canRun = (report: ReportDefinition) =>
@@ -122,18 +112,18 @@ export default function ReportsPage() {
   };
 
   const renderGroup = (title: string, reports: ReportDefinition[]) => (
-    <section className="card border-0 shadow-sm mb-4">
-      <div className="card-header bg-white border-0 pt-3 px-3">
-        <h2 className="h6 mb-0">{title}</h2>
+    <section className="card">
+      <div className="card-header">
+        <h2 className="mb-0">{title}</h2>
       </div>
       <div className="table-responsive">
-        <table className="table align-middle mb-0">
-          <thead className="table-light">
+        <table className="table table-hover align-middle mb-0">
+          <thead>
             <tr>
-              <th style={{ width: 90 }}>Mẫu</th>
+              <th style={{ width: 110 }}>Mẫu</th>
               <th>Tên biểu mẫu</th>
-              <th style={{ width: 80 }} className="text-center">Định dạng</th>
-              <th style={{ width: 280 }} className="text-end">Thao tác</th>
+              <th style={{ width: 90 }} className="text-center">Định dạng</th>
+              <th style={{ width: 280 }}></th>
             </tr>
           </thead>
           <tbody>
@@ -141,17 +131,15 @@ export default function ReportsPage() {
               <React.Fragment key={report.id}>
                 <tr>
                   <td>
-                    <span className="badge text-bg-light border">{report.code}</span>
+                    <span className="tag t-info">{report.code}</span>
                   </td>
-                  <td>
-                    <div className="fw-semibold">{report.title}</div>
-                  </td>
-                  <td className="text-center small text-secondary">{report.fileType}</td>
+                  <td className="fw-semibold">{report.title}</td>
+                  <td className="text-center text-secondary">{report.fileType}</td>
                   <td className="text-end">{renderActions(report)}</td>
                 </tr>
                 {report.id === "mau-16" && showForm16 && periodId && canExport && (
                   <tr>
-                    <td colSpan={4} className="bg-light p-0">
+                    <td colSpan={4} className="p-0" style={{ background: "var(--tint)" }}>
                       <Form16DraftPanel periodId={periodId} branchId={branchId || undefined} periodLabel={periodLabel(period)} shortName={shortName} />
                     </td>
                   </tr>
@@ -169,20 +157,12 @@ export default function ReportsPage() {
       <PageHeader
         title="Báo cáo"
         actions={
-          <div className="d-flex flex-wrap gap-2">
-            <select className="form-select form-select-sm w-auto" style={{ minWidth: 200 }} aria-label="Kỳ đánh giá" value={periodId} onChange={(e) => setPeriodId(e.target.value)}>
-              {periods.length === 0 && <option value="">Chưa có kỳ đánh giá</option>}
-              {periods.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-            <select className="form-select form-select-sm w-auto" style={{ minWidth: 240 }} aria-label="Phạm vi tổ chức Đảng" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-              <option value="">Toàn Đảng bộ / theo phạm vi được giao</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
-          </div>
+          <select className="form-select w-auto" style={{ minWidth: 240 }} aria-label="Phạm vi tổ chức Đảng" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+            <option value="">Toàn Đảng bộ / theo phạm vi được giao</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
         }
       />
 

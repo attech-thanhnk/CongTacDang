@@ -14,11 +14,11 @@ import { endOfDayExclusiveIso, errorMessage, errorTitle, formatDateTime, startOf
 const PAGE_SIZE = 50;
 
 const RESULT_CLASS: Record<LoginResult, string> = {
-  Success: "bg-success-subtle text-success border border-success-subtle",
-  InvalidPassword: "bg-danger-subtle text-danger border border-danger-subtle",
-  UnknownUser: "bg-warning-subtle text-warning-emphasis border border-warning-subtle",
-  LockedOut: "bg-warning-subtle text-warning-emphasis border border-warning-subtle",
-  Disabled: "bg-secondary-subtle text-secondary border",
+  Success: "tag t-ok",
+  InvalidPassword: "tag t-bad",
+  UnknownUser: "tag t-wait",
+  LockedOut: "tag t-wait",
+  Disabled: "status-badge tone-neutral",
 };
 
 interface Filters {
@@ -79,17 +79,17 @@ export function LoginEventsTab() {
   const items = data?.items ?? [];
 
   return (
-    <>
-      <Card className="mb-3">
-        <form className="row g-2 align-items-end p-3" onSubmit={apply}>
+    <Card>
+      <div className="card-header">
+        <form className="row g-2 align-items-end" onSubmit={apply}>
           {canPickUser && (
             <div className="col-12 col-md-4">
-              <label className="form-label small fw-semibold text-secondary mb-1">Tài khoản</label>
+              <label className="form-label">Tài khoản</label>
               <UserPicker value={draft.user} activeOnly={false} onChange={(user) => setDraft({ ...draft, user })} />
             </div>
           )}
           <div className="col-6 col-md-2">
-            <label className="form-label small fw-semibold text-secondary mb-1">Kết quả</label>
+            <label className="form-label">Kết quả</label>
             <select
               className="form-select form-select-sm"
               value={draft.result}
@@ -104,11 +104,11 @@ export function LoginEventsTab() {
             </select>
           </div>
           <div className="col-6 col-md-2">
-            <label className="form-label small fw-semibold text-secondary mb-1">Từ ngày</label>
+            <label className="form-label">Từ ngày</label>
             <input type="date" className="form-control form-control-sm" value={draft.from} onChange={(e) => setDraft({ ...draft, from: e.target.value })} />
           </div>
           <div className="col-6 col-md-2">
-            <label className="form-label small fw-semibold text-secondary mb-1">Đến hết ngày</label>
+            <label className="form-label">Đến hết ngày</label>
             <input type="date" className="form-control form-control-sm" value={draft.to} onChange={(e) => setDraft({ ...draft, to: e.target.value })} />
           </div>
           <div className="col-6 col-md-2 d-flex gap-1">
@@ -130,12 +130,10 @@ export function LoginEventsTab() {
             </button>
           </div>
         </form>
-      </Card>
-
-      <Card>
+      </div>
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
-            <thead style={{ background: "var(--bg-base)" }}>
+            <thead>
               <tr>
                 <th className="ps-3">Thời điểm</th>
                 <th>Tên đăng nhập</th>
@@ -173,7 +171,7 @@ export function LoginEventsTab() {
                       )}
                     </td>
                     <td>
-                      <span className={`badge ${RESULT_CLASS[event.result] ?? "bg-light text-dark border"}`}>
+                      <span className={RESULT_CLASS[event.result] ?? "status-badge tone-neutral"}>
                         {LOGIN_RESULT_LABELS[event.result] ?? event.result}
                       </span>
                     </td>
@@ -197,8 +195,7 @@ export function LoginEventsTab() {
             onPageChange={setPage}
           />
         )}
-      </Card>
-    </>
+    </Card>
   );
 }
 

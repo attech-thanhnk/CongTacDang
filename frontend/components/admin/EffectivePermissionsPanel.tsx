@@ -48,7 +48,7 @@ export function EffectivePermissionsPanel({ data, loading, error, moduleNames }:
   if (!data) return null;
 
   return (
-    <div>
+    <>
       {!data.isActive && (
         <div className="alert alert-warning small m-3">
           Tài khoản đang bị vô hiệu hóa nên hiện <strong>không có quyền nào</strong>, dù vẫn còn bản gán vai trò.
@@ -61,7 +61,7 @@ export function EffectivePermissionsPanel({ data, loading, error, moduleNames }:
       ) : (
         <div className="table-responsive">
           <table className="table align-middle mb-0">
-            <thead style={{ background: "var(--bg-base)" }}>
+            <thead>
               <tr>
                 <th className="ps-3" style={{ width: "36%" }}>Quyền</th>
                 <th>Phạm vi</th>
@@ -105,7 +105,7 @@ export function EffectivePermissionsPanel({ data, loading, error, moduleNames }:
           </table>
         </div>
       )}
-    </div>
+    </>
   );
 }
 

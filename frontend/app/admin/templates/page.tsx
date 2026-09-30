@@ -167,14 +167,11 @@ function UploadModal({
         </>
       }
     >
-      <p className="small text-secondary">
-        Sửa file mẫu trong Word (bật tab Developer), giữ nguyên các Content Control có Tag. Nên tải file đang dùng về để sửa.
-      </p>
       <div className="mb-3">
         <input ref={input} type="file" accept=".docx" className="form-control form-control-sm" onChange={handleFile} disabled={busy !== ""} />
       </div>
       <div className="mb-3">
-        <label className="form-label small fw-semibold mb-1" htmlFor="template-note">
+        <label className="form-label" htmlFor="template-note">
           Ghi chú
         </label>
         <input
@@ -288,7 +285,7 @@ function HistoryModal({
                 <tr key={v.id} className={v.isActive ? "table-success" : ""}>
                   <td className="text-nowrap">
                     v{v.versionNumber}
-                    {v.isActive && <span className="badge bg-success ms-2">Đang dùng</span>}
+                    {v.isActive && <span className="tag t-ok ms-2">Đang dùng</span>}
                   </td>
                   <td>
                     <div className="text-break">{v.originalFileName}</div>
@@ -348,9 +345,6 @@ function HistoryModal({
 function TagsModal({ template, onClose }: { template: TemplateSummary; onClose: () => void }) {
   return (
     <AdminModal title={`Danh mục tag — ${template.name}`} onClose={onClose} maxWidth={760}>
-      <p className="small text-secondary">
-        Thiếu tag bắt buộc sẽ bị cảnh báo; tag không có trong danh mục bị từ chối.
-      </p>
       <div className="table-responsive">
         <table className="table table-sm small align-middle mb-0">
           <thead>
@@ -447,8 +441,8 @@ export default function TemplatesPage() {
       <div className="page-body">
         <Card>
           <div className="table-responsive">
-            <table className="table table-hover align-middle small mb-0">
-              <thead className="table-light">
+            <table className="table table-hover align-middle mb-0">
+              <thead>
                 <tr>
                   <th>Mã</th>
                   <th>Biểu mẫu</th>
@@ -478,11 +472,11 @@ export default function TemplatesPage() {
                         </td>
                         <td className="text-nowrap">
                           {active ? (
-                            <span className="badge bg-primary-subtle text-primary border border-primary-subtle">
+                            <span className="tag t-info">
                               Phiên bản {active.versionNumber}
                             </span>
                           ) : (
-                            <span className="badge bg-secondary-subtle text-secondary border">File gốc</span>
+                            <span className="status-badge tone-neutral">File gốc</span>
                           )}
                           <div className="text-secondary mt-1">{t.versionCount} phiên bản đã tải lên</div>
                         </td>

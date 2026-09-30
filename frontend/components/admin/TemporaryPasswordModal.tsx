@@ -63,7 +63,7 @@ export function TemporaryPasswordModal({ credential, onClose }: { credential: Te
         ]
       ).map((field) => (
         <div className="mb-2" key={field.kind}>
-          <label className="form-label small fw-semibold mb-1">{field.label}</label>
+          <label className="form-label">{field.label}</label>
           <div className="input-group input-group-sm">
             <input
               className="form-control font-monospace"

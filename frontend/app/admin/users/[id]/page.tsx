@@ -332,7 +332,6 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       "Cấp quyết định xếp loại",
       `${APPROVAL_AUTHORITY_LABELS[account.approvalAuthority] ?? "—"} (${account.approvalAuthorityOverride ? "đặt tay" : "suy ra từ chức vụ"})`,
     ],
-    ["Trạng thái", <AccountStatusBadge key="s" account={account} />],
     ["Khóa tạm đến", account.isLockedOut ? formatDateTime(account.lockoutEnd) : "—"],
     ["Số lần nhập sai liên tiếp", account.failedLoginCount],
     ["Đăng nhập cuối", account.lastLoginAt ? formatDateTime(account.lastLoginAt) : "Chưa đăng nhập"],
@@ -343,26 +342,22 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     <div className="page-wrapper">
       <PageHeader
         title={account.fullName}
-        subTitle={`Tài khoản ${account.username}`}
         badge={<AccountStatusBadge account={account} />}
         actions={
-          <Link href="/admin/users" className="btn btn-sm btn-outline-secondary">
+          <>
+          <Link href="/admin/users" className="btn btn-outline-secondary">
             <i className="bi bi-arrow-left me-1" />
             Danh sách
           </Link>
-        }
-      />
-
-      <div className="page-body">
         {canManage && (
-          <div className="d-flex flex-wrap gap-2 mb-3">
-            <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => setEditing(true)}>
+          <>
+            <button type="button" className="btn btn-outline-secondary" onClick={() => setEditing(true)}>
               <i className="bi bi-pencil-square me-1" />
               Sửa thông tin
             </button>
             <button
               type="button"
-              className={`btn btn-sm ${account.isActive ? "btn-outline-warning" : "btn-outline-success"}`}
+              className="btn btn-outline-secondary"
               onClick={toggleActive}
               disabled={isSelf && account.isActive}
               title={isSelf && account.isActive ? "Không thể tự vô hiệu hóa tài khoản của mình." : undefined}
@@ -371,18 +366,18 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
               {account.isActive ? "Vô hiệu hóa" : "Mở lại tài khoản"}
             </button>
             {(account.isLockedOut || account.failedLoginCount > 0) && (
-              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={handleUnlock}>
+              <button type="button" className="btn btn-outline-secondary" onClick={handleUnlock}>
                 <i className="bi bi-unlock me-1" />
                 Mở khóa đăng nhập
               </button>
             )}
-            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={handleResetPassword}>
+            <button type="button" className="btn btn-outline-secondary" onClick={handleResetPassword}>
               <i className="bi bi-key me-1" />
               Đặt lại mật khẩu
             </button>
             <button
               type="button"
-              className="btn btn-sm btn-outline-danger"
+              className="btn btn-outline-danger"
               onClick={handleDelete}
               disabled={isSelf}
               title={isSelf ? "Không thể tự xóa tài khoản của mình." : undefined}
@@ -390,10 +385,15 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
               <i className="bi bi-trash me-1" />
               Xóa
             </button>
-          </div>
+          </>
         )}
+          </>
+        }
+      />
 
-        <ul className="nav nav-tabs mb-3">
+      <div className="page-body">
+        <div className="d-flex flex-column gap-3">
+        <ul className="nav nav-tabs">
           {(
             [
               { key: "info" as const, label: "Thông tin", icon: "bi-person-vcard", show: true },
@@ -405,7 +405,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
             .filter((t) => t.show)
             .map((t) => (
               <li className="nav-item" key={t.key}>
-                <button type="button" className={`nav-link ${tab === t.key ? "active fw-semibold" : ""}`} onClick={() => setTab(t.key)}>
+                <button type="button" className={`nav-link ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>
                   <i className={`bi ${t.icon} me-1`} />
                   {t.label}
                 </button>
@@ -419,7 +419,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
               <tbody>
                 {infoRows.map(([label, value]) => (
                   <tr key={label}>
-                    <th className="ps-3 text-secondary fw-semibold" style={{ width: 240 }}>
+                    <th className="text-secondary fw-normal" style={{ width: 240 }}>
                       {label}
                     </th>
                     <td>{value}</td>
@@ -441,23 +441,25 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
         )}
 
         {tab === "assignments" && canAssign && (
-          <>
-            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-              <h2 className="h6 fw-bold mb-0">Bản gán đang và sắp hiệu lực</h2>
-              <button
-                type="button"
-                className="btn btn-sm btn-primary"
-                onClick={() => setAssignmentForm({})}
-                disabled={isSelf || roles.length === 0}
-                title={isSelf ? "Không thể tự gán vai trò cho chính mình." : undefined}
-              >
-                <i className="bi bi-plus-lg me-1" />
-                Gán vai trò
-              </button>
-            </div>
-            {isSelf && <div className="small text-secondary mb-2">Đây là tài khoản của bạn: không thể tự gán, sửa hay thu hồi vai trò của chính mình.</div>}
-            {rolesError && <div className="alert alert-warning small py-2">{rolesError}</div>}
-            <Card className="mb-3">
+          <div className="d-flex flex-column gap-4">
+            {rolesError && <div className="alert alert-warning py-2 mb-0">{rolesError}</div>}
+            <Card>
+              <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h2 className="mb-0">Bản gán đang và sắp hiệu lực</h2>
+                <div className="d-flex align-items-center gap-2">
+                  {isSelf && <span className="small text-secondary">Không tự gán, sửa hay thu hồi vai trò của chính mình</span>}
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    onClick={() => setAssignmentForm({})}
+                    disabled={isSelf || roles.length === 0}
+                    title={isSelf ? "Không thể tự gán vai trò cho chính mình." : undefined}
+                  >
+                    <i className="bi bi-plus-lg me-1" />
+                    Gán vai trò
+                  </button>
+                </div>
+              </div>
               {assignmentsLoading && assignments.length === 0 ? (
                 <div className="text-center py-4 text-secondary small">
                   <span className="spinner-border spinner-border-sm me-2" />
@@ -475,8 +477,10 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                 />
               )}
             </Card>
-            <h2 className="h6 fw-bold mb-2">Lịch sử (đã hết hạn)</h2>
             <Card>
+              <div className="card-header">
+                <h2 className="mb-0">Lịch sử (đã hết hạn)</h2>
+              </div>
               <AssignmentTable
                 assignments={history}
                 showRole
@@ -485,22 +489,21 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                 onDelete={handleDeleteAssignment}
               />
             </Card>
-          </>
+          </div>
         )}
 
         {tab === "effective" && (
           <Card>
-            <div className="d-flex justify-content-between align-items-center gap-2 px-3 py-2 border-bottom">
-              <span className="small text-secondary">
-                Quyền tính từ các bản gán đang hiệu lực. Chủ hồ sơ luôn xem được hồ sơ đánh giá của mình; không duyệt được hồ sơ của chính mình.
-              </span>
-              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={loadEffective} disabled={effectiveLoading}>
+            <div className="card-header d-flex justify-content-between align-items-center gap-2">
+              <h2 className="mb-0">Quyền đang có hiệu lực</h2>
+              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={loadEffective} disabled={effectiveLoading} aria-label="Tải lại" title="Tải lại">
                 <i className="bi bi-arrow-clockwise" />
               </button>
             </div>
             <EffectivePermissionsPanel data={effective} loading={effectiveLoading} error={effectiveError} moduleNames={moduleNames} />
           </Card>
         )}
+        </div>
       </div>
 
       {editing && (
