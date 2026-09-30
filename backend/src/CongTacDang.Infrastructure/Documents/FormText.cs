@@ -40,6 +40,9 @@ public static class FormText
     /// <summary>Chuỗi rỗng/khoảng trắng thành null (giữ chữ mặc định của template).</summary>
     public static string? OrNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 
+    /// <summary>Thêm một khoảng trắng phía trước khi template đặt chỗ điền liền sau nhãn ("Quý", "Chi bộ:"); null giữ nguyên.</summary>
+    public static string? Spaced(string? value) => OrNull(value) is { } text ? " " + text : null;
+
     /// <summary>Tên mức xếp loại.</summary>
     public static string Grade(EvaluationGrade grade) => grade switch
     {

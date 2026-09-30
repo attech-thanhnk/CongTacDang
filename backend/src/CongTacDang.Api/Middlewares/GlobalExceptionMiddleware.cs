@@ -48,9 +48,6 @@ public class GlobalExceptionMiddleware
     /// <summary>Chuẩn hóa thông điệp lỗi và mã trạng thái HTTP theo chuẩn ApiResponse</summary>
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        _logger.LogError(exception, "Lỗi hệ thống tại HTTP {Method} {Path}: {Message}",
-            context.Request.Method, context.Request.Path, exception.Message);
-
         var statusCode = exception switch
         {
             AppException appException => (HttpStatusCode)appException.StatusCode,
@@ -73,6 +70,15 @@ public class GlobalExceptionMiddleware
                 ? $"Lỗi máy chủ nội bộ: {exception.Message}"
                 : "Đã xảy ra lỗi xử lý nội bộ tại hệ thống. Vui lòng liên hệ Quản trị viên."
         };
+
+        // Lỗi nghiệp vụ (4xx: dữ liệu sai, không có quyền, xung đột) là hành vi bình thường → Warning, không kèm stack trace;
+        // chỉ lỗi máy chủ (5xx) mới ghi Error để không làm chìm lỗi thật.
+        if ((int)statusCode >= 500)
+            _logger.LogError(exception, "Lỗi hệ thống tại HTTP {Method} {Path}: {Message}",
+                context.Request.Method, context.Request.Path, exception.Message);
+        else
+            _logger.LogWarning("Từ chối yêu cầu HTTP {Method} {Path} ({StatusCode}, {ExceptionType}): {Message}",
+                context.Request.Method, context.Request.Path, (int)statusCode, exception.GetType().Name, exception.Message);
 
         var response = ApiResponse.Fail(message);
 

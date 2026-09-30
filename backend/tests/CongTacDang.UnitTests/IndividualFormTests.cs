@@ -214,6 +214,10 @@ public class IndividualFormTests
         Assert.Contains("Kết quả trục 1 (test)", text);
         Assert.Contains("Hoàn thành tốt nhiệm vụ", text);
         Assert.Contains("Bí thư Chi bộ; Chủ tịch Công đoàn; Trưởng phòng", text);
+        // Chỗ điền đặt liền sau nhãn trong template gốc: phải có khoảng trắng, không dính chữ.
+        Assert.Matches(@"Quý\s+\d", text);
+        Assert.Matches(@"Chính quyền\)\s+Bí thư Chi bộ", text);
+        Assert.Matches(@"Chi bộ:\s+\S", text);
 
         using var doc = WordprocessingDocument.Open(new MemoryStream(content), false);
         var tables = doc.MainDocumentPart!.Document!.Body!.Elements<Table>().ToList();
@@ -237,6 +241,7 @@ public class IndividualFormTests
         Assert.Contains("BẢN TỰ ĐÁNH GIÁ, XẾP LOẠI CỦA CÁ NHÂN", text);
         Assert.Contains("I. Tự đánh giá kết quả thực hiện chức trách, nhiệm vụ được giao", text);
         Assert.Contains("Tự đánh giá mục I (test)", text);
+        Assert.Matches(@"Họ và tên:\s+Nguyễn Văn A", text);
         // Mẫu gốc dùng khoảng trắng không ngắt (U+00A0) sau dấu hai chấm.
         Assert.Matches(@"Chức vụ Đảng:\s+Bí thư Chi bộ", text);
         Assert.Matches(@"Chức vụ chính quyền:\s+Trưởng phòng", text);

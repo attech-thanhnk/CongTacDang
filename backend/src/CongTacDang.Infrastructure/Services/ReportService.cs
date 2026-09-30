@@ -272,7 +272,7 @@ public class ReportService : IReportService
                     GradeOrBlank(r.CollectiveProposedGrade),
                     GradeOrBlank(r.AppraisalProposedGrade),
                     GradeOrBlank(r.DirectorProposedGrade),
-                    GradeOrBlank(r.FinalGrade),
+                    r.DecisionRecordedAt != null ? FormText.Grade(r.FinalGrade) : GradeOrBlank(r.FinalGrade),
                     Rationale(r),
                     r.CadreWorkProposal
                 };
@@ -702,9 +702,12 @@ public class ReportService : IReportService
     /// <summary>
     /// Mức dùng cho báo cáo tổng hợp: mức quyết định; chưa có thì mức đề xuất gần nhất (cấp trực tiếp sử dụng → thẩm định →
     /// tập thể lãnh đạo). Không tính mức cá nhân tự đề xuất; chưa có mức nào → "Chưa xếp loại".
+    /// Đã ghi quyết định thì luôn dùng mức quyết định — kể cả khi cấp có thẩm quyền quyết định "Chưa xếp loại".
     /// </summary>
     private static EvaluationGrade ReportGrade(EvaluationRecord record)
     {
+        if (record.DecisionRecordedAt != null)
+            return record.FinalGrade;
         foreach (var grade in new[] { record.FinalGrade, record.DirectorProposedGrade, record.AppraisalProposedGrade, record.CollectiveProposedGrade })
         {
             if (grade != EvaluationGrade.ChuaXepLoai)

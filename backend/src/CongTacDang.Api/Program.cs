@@ -109,9 +109,24 @@ builder.Services.AddControllers()
     {
         options.InvalidModelStateResponseFactory = context =>
         {
+            // Lỗi đọc JSON (sai kiểu, sai cú pháp) có khóa dạng "$.truong" và thông báo tiếng Anh của System.Text.Json
+            // → đổi sang câu tiếng Việt nêu tên trường; thông báo validate tự viết giữ nguyên.
+            static bool IsJsonError(string key, string message) =>
+                key.StartsWith('$') || message.StartsWith("The JSON value", StringComparison.Ordinal)
+                || message.Contains("is an invalid", StringComparison.Ordinal) || message.EndsWith("field is required.", StringComparison.Ordinal);
             var errors = context.ModelState
                 .Where(e => e.Value?.Errors.Count > 0)
-                .SelectMany(e => e.Value!.Errors.Select(x => !string.IsNullOrWhiteSpace(x.ErrorMessage) ? x.ErrorMessage : x.Exception?.Message ?? "Dữ liệu không hợp lệ"))
+                .SelectMany(e => e.Value!.Errors.Select(x =>
+                {
+                    var raw = !string.IsNullOrWhiteSpace(x.ErrorMessage) ? x.ErrorMessage : x.Exception?.Message ?? string.Empty;
+                    if (!IsJsonError(e.Key, raw))
+                        return raw;
+                    var field = e.Key.TrimStart('$', '.');
+                    return string.IsNullOrEmpty(field) || field.Equals("dto", StringComparison.OrdinalIgnoreCase) || field.Equals("request", StringComparison.OrdinalIgnoreCase)
+                        ? "Dữ liệu gửi lên không đúng định dạng JSON hoặc bị thiếu."
+                        : $"Trường \"{field}\" có giá trị không đúng kiểu dữ liệu.";
+                }))
+                .Distinct()
                 .ToList();
 
             var message = errors.Count > 0 ? string.Join("; ", errors) : "Dữ liệu gửi lên chưa hợp lệ.";

@@ -167,7 +167,7 @@ public sealed class IndividualFormsIntegrationTests
     {
         var body = new
         {
-            year = 2100 - Random.Shared.Next(1, 90), quarter = Random.Shared.Next(1, 5), preset = "q3-2026-transition",
+            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, preset = "q3-2026-transition",
             name = $"Kỳ J18 {Guid.NewGuid().ToString("N")[..8]}",
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         };

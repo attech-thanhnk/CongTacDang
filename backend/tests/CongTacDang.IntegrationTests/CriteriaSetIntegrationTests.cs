@@ -321,7 +321,7 @@ public sealed class CriteriaSetIntegrationTests
     private static Task<HttpResponseMessage> PostPeriodAsync(World w, string preset, Guid? criteriaSetId) =>
         w.Manager.PostAsJsonAsync("/api/evaluations/periods", new
         {
-            year = 2100 - Random.Shared.Next(1, 90), quarter = Random.Shared.Next(1, 5), preset, criteriaSetId,
+            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, preset, criteriaSetId,
             name = $"Kỳ tiêu chí {Guid.NewGuid().ToString("N")[..8]}",
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         });

@@ -133,6 +133,35 @@ public sealed class EvaluationWorkflowTests
     }
 
     [SkippableFact]
+    public async Task W1b_Period_DuplicateQuarterRejected_EmptyPeriodCannotOpen_JsonTypeErrorInVietnamese()
+    {
+        var w = await WorldAsync();
+        var period = await CreatePeriodAsync(w, "q3-2026-transition");
+        var periodId = period.GetProperty("id").GetGuid();
+
+        // Hai kỳ cùng năm, quý → 409.
+        var duplicate = await w.Appraiser.PostAsJsonAsync("/api/evaluations/periods", new
+        {
+            year = period.GetProperty("year").GetInt32(), quarter = TestPeriodSlots.Quarter, preset = "q3-2026-transition",
+            name = "Kỳ trùng quý", startDate = DateTime.UtcNow, endDate = DateTime.UtcNow.AddDays(30)
+        });
+        Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
+        Assert.Contains("Mỗi quý chỉ có một kỳ", await MessageAsync(duplicate));
+
+        // Kỳ chưa có người được đánh giá → không mở được (kể cả mở bắt buộc).
+        var open = await TransitionRawAsync(w.Appraiser, periodId, "open", "Thử mở kỳ rỗng");
+        Assert.Equal(HttpStatusCode.BadRequest, open.StatusCode);
+        Assert.Contains("chưa có người được đánh giá", await MessageAsync(open));
+
+        // JSON sai kiểu → thông báo tiếng Việt nêu tên trường, không lộ thông báo kỹ thuật tiếng Anh.
+        var badJson = await w.Appraiser.PostAsJsonAsync("/api/evaluations/periods", new { year = "abc", quarter = 1, name = "x" });
+        var badText = await MessageAsync(badJson);
+        Assert.Equal(HttpStatusCode.BadRequest, badJson.StatusCode);
+        Assert.Contains("không đúng kiểu dữ liệu", badText);
+        Assert.DoesNotContain("The JSON value", badText);
+    }
+
+    [SkippableFact]
     public async Task W2_TransitionPreset_SkipsB1_SelfScores09B_ToPublished()
     {
         var w = await WorldAsync();
@@ -509,10 +538,10 @@ public sealed class EvaluationWorkflowTests
 
     private static async Task<JsonElement> CreatePeriodAsync(World w, string preset)
     {
-        var year = 2100 - Random.Shared.Next(1, 90);
+        var year = TestPeriodSlots.NextYear();
         var body = new
         {
-            year, quarter = Random.Shared.Next(1, 5), preset,
+            year, quarter = TestPeriodSlots.Quarter, preset,
             name = $"Kỳ W {Guid.NewGuid().ToString("N")[..8]}",
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         };

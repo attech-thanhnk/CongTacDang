@@ -57,7 +57,7 @@ public sealed class Mau09CData
             PartyCell = Mau09Shared.PartyCellUpper(record),
             Quarter = Mau09Shared.Quarter(record),
             Year = Mau09Shared.Year(record),
-            FullName = FormText.OrNull(record.Member?.FullName),
+            FullName = FormText.Spaced(record.Member?.FullName),
             PartyPosition = positions.Party,
             AdministrativePosition = noPositions ? FormText.OrNull(record.Member?.PositionTitle) : positions.Administrative,
             MassPosition = positions.MassOrganization,

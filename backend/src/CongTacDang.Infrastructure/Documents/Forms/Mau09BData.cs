@@ -69,12 +69,12 @@ public sealed class Mau09BData
         return new Mau09BData
         {
             PartyCell = Mau09Shared.PartyCellUpper(record),
-            Quarter = Mau09Shared.Quarter(record),
+            Quarter = FormText.Spaced(Mau09Shared.Quarter(record)),
             Year = Mau09Shared.Year(record),
             FullName = FormText.OrNull(record.Member?.FullName),
-            Positions = source.Positions.All() ?? FormText.OrNull(record.Member?.PositionTitle),
+            Positions = FormText.Spaced(source.Positions.All() ?? record.Member?.PositionTitle),
             Department = FormText.OrNull(record.Department?.Name),
-            CellName = FormText.OrNull(record.PartyCell?.Name),
+            CellName = FormText.Spaced(record.PartyCell?.Name),
             Groups = Mau09Shared.GeneralGroups(source),
             Axes = source.Criteria.Axes.Select((axis, index) =>
             {

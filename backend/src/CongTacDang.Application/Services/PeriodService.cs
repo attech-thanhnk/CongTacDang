@@ -158,6 +158,10 @@ public sealed class PeriodService : IPeriodService
             throw new ValidationException("Năm đánh giá không hợp lệ.");
         if (dto.EndDate < dto.StartDate)
             throw new ValidationException("Ngày kết thúc phải sau ngày bắt đầu.");
+        var duplicate = (await _repo.ListPeriodsAsync(ct)).FirstOrDefault(p => p.Year == dto.Year && (int)p.Quarter == dto.Quarter);
+        if (duplicate != null)
+            throw new ConflictException($"Đã có kỳ \"{duplicate.Name}\" cho quý {dto.Quarter}/{dto.Year}. Mỗi quý chỉ có một kỳ đánh giá; "
+                + "hãy bổ sung người được đánh giá vào kỳ đó thay vì tạo kỳ mới.");
 
         var preset = string.IsNullOrWhiteSpace(dto.Preset)
             ? PeriodSettings.FindPreset(PeriodSettings.PresetFull)!
@@ -303,6 +307,9 @@ public sealed class PeriodService : IPeriodService
         var errors = ValidateSettings(settings, set.SelfScoreForm);
         if (errors.Count > 0)
             throw new ValidationException("Cấu hình kỳ chưa hợp lệ, chưa mở được kỳ: " + string.Join(" ", errors));
+
+        if ((await _repo.ListRecordsAsync(period.Id, ct)).Count == 0)
+            throw new ValidationException("Kỳ chưa có người được đánh giá nên chưa mở được. Hãy thêm danh sách người được đánh giá trước khi mở kỳ.");
 
         // Chụp nguyên bộ vào kỳ (bất biến cho kỳ này).
         AttachCriteria(period, set, DateTime.UtcNow);

@@ -160,7 +160,7 @@ public sealed class DynamicOrgIntegrationTests
         // Kỳ mới + thêm người → ảnh chụp thẩm quyền trên hồ sơ mới tạo.
         var period = await DataAsync(await admin.PostAsJsonAsync("/api/evaluations/periods", new
         {
-            year = 2040 + Random.Shared.Next(0, 59), quarter = 1 + Random.Shared.Next(0, 4), name = $"Kỳ tổ chức động {s}",
+            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, name = $"Kỳ tổ chức động {s}",
             startDate = DateTime.UtcNow.AddDays(-10), endDate = DateTime.UtcNow.AddDays(30)
         }));
         var periodId = period.GetProperty("id").GetGuid();
