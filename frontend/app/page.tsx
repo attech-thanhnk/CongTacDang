@@ -35,7 +35,7 @@ export default function DashboardPage() {
 
   const canSelf = hasPermission("evaluation.self");
   const canReadRecords = hasPermission("evaluation.read");
-  const canManageUsers = hasPermission("system.users.manage");
+  const canManageUsers = hasPermission("system.users.manage") || hasPermission("catalog.manage");
   const canReadUsers = hasPermission("system.users.read");
 
   useEffect(() => {

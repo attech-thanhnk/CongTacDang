@@ -3,19 +3,8 @@
 import React, { useMemo } from "react";
 import Link from "next/link";
 import type { EvaluationRecordDto } from "@/services/evaluationService";
-import type { BadgeTone } from "@/components/common/StatusBadge";
+import { recordTone as toneOf } from "@/components/common/StatusBadge";
 import styles from "./dashboard.module.css";
-
-/** Tông theo trạng thái, cùng quy ước với RecordStatusBadge. */
-const STATUS_TONES: Record<string, BadgeTone> = {
-  AwaitingRegistration: "info",
-  AwaitingSelfScore: "info",
-  Published: "success",
-};
-
-function toneOf(status: string): BadgeTone {
-  return STATUS_TONES[status] ?? (status.startsWith("Awaiting") ? "warning" : "neutral");
-}
 
 /** Tiến độ hồ sơ trong phạm vi được xem: số theo trạng thái và bảng theo Chi bộ. */
 export function ScopeProgressSection({ records, loading }: { records: EvaluationRecordDto[]; loading: boolean }) {

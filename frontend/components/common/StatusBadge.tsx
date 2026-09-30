@@ -19,6 +19,11 @@ const RECORD_TONES: Record<string, BadgeTone> = {
   Published: "success",
 };
 
+/** Tông màu của một trạng thái hồ sơ (dùng chung cho nhãn và ô số liệu). */
+export function recordTone(status: string): BadgeTone {
+  return RECORD_TONES[status] ?? "neutral";
+}
+
 export function Badge({ tone = "neutral", children, title }: { tone?: BadgeTone; children: React.ReactNode; title?: string }) {
   return (
     <span className={`status-badge tone-${tone}`} title={title}>
@@ -39,7 +44,7 @@ export function RecordStatusBadge({
   returned?: boolean;
   overdue?: boolean;
 }) {
-  const tone: BadgeTone = returned || overdue ? "danger" : RECORD_TONES[status] ?? "neutral";
+  const tone: BadgeTone = returned || overdue ? "danger" : recordTone(status);
   return (
     <Badge tone={tone} title={returned ? "Bị trả lại" : overdue ? "Quá hạn" : undefined}>
       {label}
