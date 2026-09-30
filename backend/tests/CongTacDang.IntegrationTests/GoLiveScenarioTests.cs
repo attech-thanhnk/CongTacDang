@@ -181,6 +181,10 @@ public sealed class GoLiveScenarioTests
         // ============ Bước 5: cơ quan thẩm định tạo kỳ, thêm người được đánh giá, mở kỳ ============
         var appraiser = await _factory.LoginAsAsync("tran.thi.b", passwords["tran.thi.b"], distinctClientIp: true);
         await GoLiveHttp.ChangePasswordAsync(appraiser, passwords["tran.thi.b"], CadreNewPassword);
+        // Chưa có kỳ đang hoạt động: hồ sơ của tôi không truyền kỳ → 404 tiếng Việt rõ ràng (không phải "kỳ 0000…").
+        var noActive = await appraiser.GetAsync("/api/evaluations/my-record");
+        Assert.Equal(HttpStatusCode.NotFound, noActive.StatusCode);
+        Assert.Contains("không có kỳ đánh giá đang mở", (await GoLiveHttp.JsonAsync(noActive)).GetProperty("message").GetString());
         var period = await GoLiveHttp.DataAsync(await appraiser.PostAsJsonAsync("/api/evaluations/periods", new
         {
             year = todayVn.Year, quarter = (todayVn.Month - 1) / 3 + 1, name = "Kỳ đánh giá go-live", preset = "q3-2026-transition",
@@ -229,6 +233,8 @@ public sealed class GoLiveScenarioTests
         var mine = await GoLiveHttp.DataAsync(await owner.GetAsync($"/api/evaluations/my-record?periodId={periodId}"));
         Assert.Equal(recordId, mine.GetProperty("id").GetGuid());
         Assert.Equal("AwaitingSelfScore", mine.GetProperty("status").GetString());
+        // Không truyền kỳ → kỳ đang hoạt động.
+        Assert.Equal(recordId, (await GoLiveHttp.DataAsync(await owner.GetAsync("/api/evaluations/my-record"))).GetProperty("id").GetGuid());
         var ownerQueue = await GoLiveHttp.DataAsync(await owner.GetAsync($"/api/evaluations/work-queue?periodId={periodId}"));
         Assert.Equal("B2_SELF_SCORE", ownerQueue.GetProperty("groups").EnumerateArray().Single().GetProperty("step").GetString());
 

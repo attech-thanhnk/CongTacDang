@@ -39,6 +39,12 @@ public class EvaluationService : IEvaluationService
     public async Task<EvaluationRecordDto?> GetMyRecordAsync(Guid periodId, CancellationToken ct = default)
     {
         var userId = _currentUser.UserId ?? throw new ForbiddenException("Không xác định được người dùng hiện tại.");
+        if (periodId == Guid.Empty)
+        {
+            // Không truyền kỳ → kỳ đang hoạt động (Đang mở/Khóa dữ liệu mới nhất).
+            periodId = EvaluationMapping.ActivePeriod(await _repo.ListPeriodsAsync(ct))?.Id
+                ?? throw new NotFoundException("Hiện không có kỳ đánh giá đang mở hoặc đang khóa dữ liệu. Hãy chọn kỳ đánh giá cần xem (tham số periodId).");
+        }
         var record = (await _repo.ListRecordsAsync(periodId, ct)).FirstOrDefault(r => r.MemberId == userId);
         return record == null ? null : await MapAsync(record, ct);
     }
@@ -65,6 +71,8 @@ public class EvaluationService : IEvaluationService
     /// <inheritdoc />
     public async Task<List<EvaluationRecordDto>> GetRecordsByPeriodAsync(Guid periodId, CancellationToken ct = default)
     {
+        if (periodId == Guid.Empty)
+            throw new ValidationException("Hãy chọn kỳ đánh giá (tham số periodId) để xem danh sách hồ sơ.");
         var scope = _guard.GetScope(PermissionCodes.EvaluationRead);
         var records = (await _repo.ListRecordsAsync(periodId, ct))
             .Where(record => scope.Matches(record.MemberId, record.DepartmentId, record.PartyCellId))
