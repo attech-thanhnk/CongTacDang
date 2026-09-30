@@ -106,6 +106,11 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
     return items.filter((i) => !excluded.has(i.id));
   }, [items, form?.id]);
 
+  // Mỗi cây chỉ một gốc (máy chủ kiểm tra lại): cây đã có gốc khác thì bắt buộc chọn cấp trên.
+  const hasOtherRoot = useMemo(() => items.some((i) => !i.parentId && i.id !== form?.id), [items, form?.id]);
+  // Loại bắt buộc khi tạo mới; đơn vị cũ chưa phân loại vẫn sửa được (không gửi loại thì máy chủ giữ nguyên).
+  const typeRequired = !form?.id || !!items.find((i) => i.id === form?.id)?.unitTypeId;
+
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form) return;
@@ -121,7 +126,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
       sortOrder,
       isActive: form.isActive,
       parentId: form.parentId || (form.id ? EMPTY_GUID : undefined),
-      unitTypeId: form.unitTypeId || (form.id ? EMPTY_GUID : undefined),
+      unitTypeId: form.unitTypeId || undefined,
     };
     setSaving(true);
     try {
@@ -327,8 +332,8 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
               </div>
               <div className="col-12 col-md-7">
                 <label className="form-label small fw-semibold mb-1">Cấp trên trực tiếp</label>
-                <select className="form-select form-select-sm" value={form.parentId} onChange={(e) => setForm({ ...form, parentId: e.target.value })}>
-                  <option value="">— Không có (đơn vị gốc) —</option>
+                <select className="form-select form-select-sm" value={form.parentId} required={hasOtherRoot} onChange={(e) => setForm({ ...form, parentId: e.target.value })}>
+                  <option value="">{hasOtherRoot ? "— Chọn cấp trên —" : "— Không có (đơn vị gốc) —"}</option>
                   {parentOptions.map((item) => (
                     <option key={item.id} value={item.id}>
                       {treeLabel(item)}
@@ -340,8 +345,8 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
               </div>
               <div className="col-12 col-md-5">
                 <label className="form-label small fw-semibold mb-1">Loại</label>
-                <select className="form-select form-select-sm" value={form.unitTypeId} onChange={(e) => setForm({ ...form, unitTypeId: e.target.value })}>
-                  <option value="">— Chưa phân loại —</option>
+                <select className="form-select form-select-sm" value={form.unitTypeId} required={typeRequired} onChange={(e) => setForm({ ...form, unitTypeId: e.target.value })}>
+                  <option value="">{typeRequired ? "— Chọn loại —" : "— Chưa phân loại —"}</option>
                   {selectableTypes.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.name}

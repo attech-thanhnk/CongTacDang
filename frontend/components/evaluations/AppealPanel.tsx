@@ -76,10 +76,13 @@ export function AppealPanel({ record, onRecordChanged }: Props) {
       toast.error("Hãy nhập nội dung kiến nghị.");
       return;
     }
+    let resolverWarning: string | null | undefined;
     const ok = await run(async () => {
       const appeal = await postPublishService.submitAppeal(record.id, content.trim(), steps);
+      resolverWarning = appeal.resolverWarning;
       for (const file of files) await postPublishService.uploadAppealFile(appeal.id, file);
     }, "Đã gửi kiến nghị. Kết quả được ghi chú \"đang xem xét\" tới khi có trả lời.");
+    if (ok && resolverWarning) toast.warning(resolverWarning, "Kiến nghị chưa có người xử lý", 12000);
     if (ok) {
       setShowForm(false);
       setContent("");

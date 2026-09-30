@@ -80,6 +80,8 @@ export interface AppealDto {
   reopenedAt?: string | null;
   canResolve: boolean;
   resolveBlockedReason?: string | null;
+  /** Cảnh báo khi gửi: không còn ai (ngoài người bị xung đột lợi ích) có quyền xử lý kiến nghị trong phạm vi. */
+  resolverWarning?: string | null;
   canReopen: boolean;
   canAttach: boolean;
 }

@@ -239,6 +239,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
                   <input
                     className="form-control form-control-sm"
                     value={form.approvalAuthorityReason}
+                    required
                     maxLength={1000}
                     placeholder="Căn cứ văn bản phân cấp…"
                     onChange={(e) => set("approvalAuthorityReason", e.target.value)}
