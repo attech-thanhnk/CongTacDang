@@ -1,11 +1,17 @@
 "use client";
 
 import { formatDate } from "@/lib/dateFormat";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
+import { RecordStatusBadge } from "@/components/common/StatusBadge";
 import { EvaluationPeriodDto, WorkQueueDto, evaluationService } from "@/services/evaluationService";
+import { deadlineState, normalizeText } from "@/components/dashboard/taskUtils";
+import styles from "@/components/dashboard/dashboard.module.css";
+
+/** Hiện ô tìm khi danh sách dài hơn số này. */
+const SEARCH_THRESHOLD = 10;
 
 /**
  * Việc cần xử lý: hồ sơ đang chờ chính người dùng ở bước họ có quyền, trong phạm vi được gán (máy chủ lọc).
@@ -17,6 +23,7 @@ export default function WorkQueuePage() {
   const [queue, setQueue] = useState<WorkQueueDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [keyword, setKeyword] = useState("");
 
   useEffect(() => {
     evaluationService.getPeriods().then(setPeriods).catch(() => setPeriods([]));
@@ -39,6 +46,19 @@ export default function WorkQueuePage() {
   }, [load]);
 
   const selectablePeriods = periods.filter((p) => p.status !== "Draft");
+  const showSearch = (queue?.total ?? 0) > SEARCH_THRESHOLD;
+  const showPeriod = !periodId;
+
+  const groups = useMemo(() => {
+    if (!queue) return [];
+    const term = showSearch ? normalizeText(keyword) : "";
+    return queue.groups
+      .map((g) => ({
+        ...g,
+        items: term ? g.items.filter((item) => normalizeText(item.fullName).includes(term)) : g.items,
+      }))
+      .filter((g) => g.items.length > 0);
+  }, [queue, keyword, showSearch]);
 
   return (
     <div className="page-wrapper">
@@ -47,6 +67,16 @@ export default function WorkQueuePage() {
         badge={queue ? <span className="badge text-bg-primary">{queue.total}</span> : undefined}
         actions={
           <div className="d-flex flex-wrap gap-2">
+            {showSearch && (
+              <input
+                type="search"
+                className={`form-control form-control-sm ${styles.search}`}
+                placeholder="Tìm theo tên cán bộ"
+                aria-label="Tìm theo tên cán bộ"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+              />
+            )}
             <select className="form-select form-select-sm w-auto" aria-label="Kỳ đánh giá" value={periodId} onChange={(e) => setPeriodId(e.target.value)}>
               <option value="">Tất cả kỳ đang mở</option>
               {selectablePeriods.map((p) => (
@@ -65,54 +95,65 @@ export default function WorkQueuePage() {
         {loading ? (
           <div className="text-secondary"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
         ) : !queue || queue.total === 0 ? (
-          <EmptyState icon="bi-check2-circle" title="Không có việc nào đang chờ bạn" description="Khi có hồ sơ cần bạn xử lý, hồ sơ sẽ xuất hiện ở đây." />
+          <EmptyState icon="bi-check2-circle" title="Không có việc nào đang chờ bạn" />
+        ) : groups.length === 0 ? (
+          <div className={styles.muted}>Không tìm thấy cán bộ phù hợp.</div>
         ) : (
-          queue.groups.map((group) => (
-            <section key={group.step} className="card border-0 shadow-sm">
-              <div className="card-header bg-white d-flex justify-content-between align-items-center">
-                <h2 className="h6 mb-0">{group.stepName}</h2>
-                <span className="badge text-bg-light">{group.count} hồ sơ</span>
+          groups.map((group) => (
+            <section key={group.step} className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>
+                  {group.stepName}
+                  <span className={styles.groupCount}>{group.items.length}</span>
+                </h2>
               </div>
-              <div className="card-body p-0">
-                <div className="table-responsive">
-                  <table className="table table-hover table-sm align-middle mb-0">
-                    <thead>
-                      <tr className="small text-secondary">
-                        <th className="ps-3">Cán bộ</th>
-                        <th>Phòng / Chi bộ</th>
-                        <th>Kỳ</th>
-                        <th>Thời hạn</th>
-                        <th />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {group.items.map((item) => (
-                        <tr key={item.recordId}>
+              <div className="table-responsive">
+                <table className={`table table-hover align-middle mb-0 ${styles.table}`}>
+                  <thead>
+                    <tr className={styles.muted}>
+                      <th className="ps-3">Cán bộ</th>
+                      <th>Trạng thái</th>
+                      <th>Hạn</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.items.map((item) => {
+                      const state = deadlineState(item.deadline, item.overdue);
+                      return (
+                        <tr key={item.recordId} className={state === "overdue" ? "table-danger" : undefined}>
                           <td className="ps-3">
-                            <div className="fw-semibold small">
+                            <div className="fw-semibold">
                               {item.fullName}
                               {item.isOwnRecord && <span className="badge text-bg-info ms-2">Hồ sơ của tôi</span>}
                             </div>
-                            <div className="small text-secondary">
-                              {item.workflowProfileName}
-                              {item.mode === "External" && <span className="badge text-bg-light border ms-2">Do cấp trên thực hiện — ghi nhận kết quả</span>}
+                            <div className={styles.muted}>
+                              {[item.departmentName, item.partyCellName, showPeriod ? item.periodName : null].filter(Boolean).join(" · ") || "—"}
                             </div>
-                            {item.returnReason && <div className="small text-danger">Bị trả lại: {item.returnReason}</div>}
-                            {!item.workflowProfileName && item.statusDisplayName && <div className="small text-secondary">{item.statusDisplayName}</div>}
+                            {item.returnReason && <div className={styles.reason}>Bị trả lại: {item.returnReason}</div>}
                           </td>
-                          <td className="small">{item.departmentName || "—"} · {item.partyCellName || "—"}</td>
-                          <td className="small">{item.periodName}</td>
-                          <td className={`small ${item.overdue ? "text-danger fw-semibold" : ""}`}>
-                            {formatDate(item.deadline) || "—"}{item.overdue ? " (quá hạn)" : ""}
+                          <td>
+                            <RecordStatusBadge status={item.status} label={item.statusDisplayName} returned={!!item.returnReason} />
+                          </td>
+                          <td
+                            className={
+                              state === "overdue" ? "text-danger fw-semibold" : state === "soon" ? "text-warning-emphasis fw-semibold" : undefined
+                            }
+                          >
+                            {formatDate(item.deadline)}
+                            {state === "overdue" && <div>Quá hạn</div>}
+                            {state === "soon" && <div>Sắp hạn</div>}
                           </td>
                           <td className="text-end pe-3">
-                            <Link href={`/evaluations/${item.recordId}`} className="btn btn-primary btn-sm">{item.mode === "External" ? "Ghi nhận" : "Xử lý"}</Link>
+                            <Link href={`/evaluations/${item.recordId}`} className="btn btn-primary">
+                              {item.mode === "External" ? "Ghi nhận" : "Xử lý"}
+                            </Link>
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </section>
           ))
