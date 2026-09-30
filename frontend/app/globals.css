@@ -1623,3 +1623,20 @@ header.app-header .header-page {
   animation: shimmer 1.4s ease-in-out infinite;
   border-radius: var(--radius-sm);
 }
+
+/* ── Nhãn trạng thái / mức xếp loại (components/common/StatusBadge.tsx) ── */
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.status-badge.tone-success { color: var(--color-success); background: var(--color-success-bg); border-color: var(--color-success-border); }
+.status-badge.tone-info    { color: var(--color-info);    background: var(--color-info-bg);    border-color: var(--color-info-border); }
+.status-badge.tone-warning { color: var(--color-warning); background: var(--color-warning-bg); border-color: var(--color-warning-border); }
+.status-badge.tone-danger  { color: var(--color-danger);  background: var(--color-danger-bg);  border-color: var(--color-danger-border); }
+.status-badge.tone-neutral { color: #475569; background: #f1f5f9; border-color: #e2e8f0; }
