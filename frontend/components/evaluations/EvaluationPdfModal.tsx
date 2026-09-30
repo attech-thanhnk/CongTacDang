@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { EvaluationRecordDto, RecordFormDto, evaluationService } from "@/services/evaluationService";
 import { reportService } from "@/services/reportService";
 import styles from "./pdfViewer.module.css";
@@ -27,6 +27,7 @@ export const EvaluationPdfModal: React.FC<Props> = ({ isOpen, onClose, record, f
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const frameRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     setCode(initialCode);
@@ -94,6 +95,14 @@ export const EvaluationPdfModal: React.FC<Props> = ({ isOpen, onClose, record, f
     if (pdfBlob && form) reportService.saveBlob(pdfBlob, `Mau_${form.code}_${safeName(record.fullName)}.pdf`);
   };
 
+  const handlePrint = () => {
+    try {
+      frameRef.current?.contentWindow?.print();
+    } catch {
+      handleDownload();
+    }
+  };
+
   return (
     <div className={styles.backdrop} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className={styles.dialog} role="dialog" aria-modal="true" aria-label={form?.name || "Biểu mẫu"}>
@@ -120,6 +129,10 @@ export const EvaluationPdfModal: React.FC<Props> = ({ isOpen, onClose, record, f
             </div>
           )}
           <div className={styles.actions}>
+            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={handlePrint} disabled={!pdfUrl}>
+              <i className="bi bi-printer me-1" />
+              In
+            </button>
             <button type="button" className="btn btn-primary btn-sm" onClick={handleDownload} disabled={!pdfBlob}>
               <i className="bi bi-download me-1" />
               Tải PDF
@@ -140,7 +153,7 @@ export const EvaluationPdfModal: React.FC<Props> = ({ isOpen, onClose, record, f
           )}
           {form && !loading && error && <div className={`${styles.state} text-danger`}>{error}</div>}
           {form && !loading && !error && pdfUrl && (
-            <iframe title={form.name} src={`${pdfUrl}#navpanes=0&view=FitH`} className={styles.frame} />
+            <iframe title={form.name} ref={frameRef} src={`${pdfUrl}#toolbar=0&navpanes=0&view=FitH`} className={styles.frame} />
           )}
         </div>
       </div>
