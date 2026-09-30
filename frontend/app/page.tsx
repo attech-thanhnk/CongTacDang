@@ -2,32 +2,28 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  evaluationService,
-  EvaluationPeriodDto,
-  EvaluationRecordDto,
-  WorkQueueDto,
-} from "@/services/evaluationService";
+import { evaluationService, EvaluationRecordDto, WorkQueueDto } from "@/services/evaluationService";
 import { organizationService } from "@/services/organizationService";
 import { userService } from "@/services/userService";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePeriod } from "@/contexts/PeriodContext";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
 import { MyTasksSection } from "@/components/dashboard/MyTasksSection";
 import { MyRecordSection } from "@/components/dashboard/MyRecordSection";
-import { ScopeProgressSection } from "@/components/dashboard/ScopeProgressSection";
+import { ScopeProgressSection, ScopeStats } from "@/components/dashboard/ScopeProgressSection";
 import { AdminSection, AdminStats } from "@/components/dashboard/AdminSection";
+import styles from "@/components/dashboard/dashboard.module.css";
 
 /**
- * Tổng quan theo quyền, ưu tiên từ trên xuống: việc đang chờ tôi → hồ sơ của tôi (evaluation.self)
- * → tiến độ trong phạm vi (evaluation.read) → quản trị (system.users.manage).
+ * Tổng quan theo quyền: số liệu trong phạm vi (evaluation.read) → việc đang chờ tôi (mọi kỳ đang mở)
+ * → tiến độ theo Chi bộ và hồ sơ của tôi (kỳ đang chọn) → quản trị.
  */
 export default function DashboardPage() {
   const { user, hasPermission } = useAuth();
-  const [periods, setPeriods] = useState<EvaluationPeriodDto[]>([]);
-  const [periodsLoaded, setPeriodsLoaded] = useState(false);
-  const [periodId, setPeriodId] = useState("");
+  const { periods, periodId, loading: periodsLoading } = usePeriod();
   const [queue, setQueue] = useState<WorkQueueDto | null>(null);
+  const [queueLoading, setQueueLoading] = useState(true);
   const [myRecord, setMyRecord] = useState<EvaluationRecordDto | null>(null);
   const [records, setRecords] = useState<EvaluationRecordDto[]>([]);
   const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
@@ -37,19 +33,6 @@ export default function DashboardPage() {
   const canReadRecords = hasPermission("evaluation.read");
   const canManageUsers = hasPermission("system.users.manage") || hasPermission("catalog.manage");
   const canReadUsers = hasPermission("system.users.read");
-
-  useEffect(() => {
-    evaluationService
-      .getPeriods()
-      .then((list) => {
-        setPeriods(list);
-        const active = list.find((p) => p.isActive) || list[0];
-        if (active) setPeriodId(active.id);
-        else setLoading(false);
-      })
-      .catch(() => setLoading(false))
-      .finally(() => setPeriodsLoaded(true));
-  }, []);
 
   useEffect(() => {
     if (!user || !canManageUsers) {
@@ -69,18 +52,37 @@ export default function DashboardPage() {
     };
   }, [user, canManageUsers, canReadUsers]);
 
+  // Việc cần xử lý: mọi kỳ đang mở (không lọc theo kỳ đang chọn để không giấu việc).
   useEffect(() => {
-    if (!periodId || !user) return;
+    if (!user) return;
+    let mounted = true;
+    setQueueLoading(true);
+    evaluationService
+      .getWorkQueue()
+      .catch(() => null)
+      .then((q) => mounted && setQueue(q))
+      .finally(() => mounted && setQueueLoading(false));
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (!periodId) {
+      setMyRecord(null);
+      setRecords([]);
+      setLoading(periodsLoading);
+      return;
+    }
     let mounted = true;
     setLoading(true);
     Promise.all([
-      evaluationService.getWorkQueue(periodId).catch(() => null),
       canSelf ? evaluationService.getMyRecord(periodId).catch(() => null) : Promise.resolve(null),
       canReadRecords ? evaluationService.getRecordsByPeriod(periodId).catch(() => []) : Promise.resolve([]),
     ])
-      .then(([q, mine, list]) => {
+      .then(([mine, list]) => {
         if (!mounted) return;
-        setQueue(q);
         setMyRecord(mine);
         setRecords(list);
       })
@@ -88,35 +90,17 @@ export default function DashboardPage() {
     return () => {
       mounted = false;
     };
-  }, [periodId, user, canSelf, canReadRecords]);
+  }, [periodId, periodsLoading, user, canSelf, canReadRecords]);
 
-  const period = periods.find((p) => p.id === periodId) || null;
+  const noPeriod = !periodsLoading && periods.length === 0;
+  const showMine = canSelf && !loading && !!myRecord;
 
   return (
     <div className="page-wrapper">
-      <PageHeader
-        title="Tổng quan"
-        subTitle={period ? `${period.name} · ${period.statusDisplayName}` : undefined}
-        actions={
-          periods.length > 0 ? (
-            <select
-              className="form-select form-select-sm w-auto"
-              aria-label="Kỳ đánh giá"
-              value={periodId}
-              onChange={(e) => setPeriodId(e.target.value)}
-            >
-              {periods.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.statusDisplayName})
-                </option>
-              ))}
-            </select>
-          ) : undefined
-        }
-      />
+      <PageHeader title="Tổng quan" />
 
-      <div className="page-body d-flex flex-column gap-3">
-        {periodsLoaded && periods.length === 0 ? (
+      <div className="page-body">
+        {noPeriod ? (
           <EmptyState
             icon="bi-calendar-x"
             title="Chưa có kỳ đánh giá"
@@ -130,9 +114,19 @@ export default function DashboardPage() {
           />
         ) : (
           <>
-            <MyTasksSection queue={queue} loading={loading} />
-            {canSelf && !loading && myRecord && <MyRecordSection record={myRecord} />}
-            {canReadRecords && <ScopeProgressSection records={records} loading={loading} />}
+            {canReadRecords && <ScopeStats records={records} loading={loading} />}
+            <MyTasksSection queue={queue} loading={queueLoading} periodId={periodId} />
+            {canReadRecords && showMine ? (
+              <div className={styles.cols}>
+                <ScopeProgressSection records={records} loading={loading} />
+                <MyRecordSection record={myRecord!} />
+              </div>
+            ) : (
+              <>
+                {canReadRecords && <ScopeProgressSection records={records} loading={loading} />}
+                {showMine && <MyRecordSection record={myRecord!} />}
+              </>
+            )}
           </>
         )}
         {adminStats && <AdminSection stats={adminStats} />}

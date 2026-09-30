@@ -9,10 +9,10 @@ import { AppealDto, AppealFileDto, RecordAppealsDto, postPublishService } from "
 import { ReasonDialog } from "./ReasonDialog";
 
 const STATUS_CLASS: Record<string, string> = {
-  Submitted: "text-bg-warning",
-  UnderReview: "text-bg-info",
-  Accepted: "text-bg-success",
-  Rejected: "text-bg-secondary",
+  Submitted: "t-wait",
+  UnderReview: "t-info",
+  Accepted: "t-ok",
+  Rejected: "t-bad",
 };
 
 interface Props {
@@ -107,19 +107,19 @@ export function AppealPanel({ record, onRecordChanged }: Props) {
   };
 
   return (
-    <section className="card border-0 shadow-sm">
+    <section className="card">
+      <div className="card-header d-flex justify-content-between align-items-center gap-2">
+        <h2 className="mb-0 d-flex align-items-center gap-2">
+          Kiến nghị
+          {data?.underReview && <span className="tag t-wait">Đang xem xét</span>}
+        </h2>
+        {data?.canSubmit && !showForm && (
+          <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setShowForm(true)}>
+            Gửi kiến nghị
+          </button>
+        )}
+      </div>
       <div className="card-body d-flex flex-column gap-3">
-        <div className="d-flex justify-content-between align-items-center gap-2">
-          <h2 className="h6 mb-0">
-            Kiến nghị về kết quả
-            {data?.underReview && <span className="badge text-bg-warning ms-2">Đang xem xét kiến nghị</span>}
-          </h2>
-          {data?.canSubmit && !showForm && (
-            <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setShowForm(true)}>
-              <i className="bi bi-chat-square-text me-1" />Gửi kiến nghị
-            </button>
-          )}
-        </div>
         {error && <div className="alert alert-warning mb-0 small">{error}</div>}
         {data?.submitBlockedReason && !data.canSubmit && record.status === "Published" && (
           <div className="small text-secondary">{data.submitBlockedReason}</div>
@@ -226,7 +226,7 @@ function AppealItem({
           <span className="fw-semibold">{appeal.submittedByName}</span>
           <span className="text-secondary"> · gửi {formatDateTime(appeal.submittedAt)}</span>
         </div>
-        <span className={`badge ${STATUS_CLASS[appeal.status] ?? "text-bg-light"}`}>{appeal.statusName}</span>
+        <span className={`tag ${STATUS_CLASS[appeal.status] ?? "t-info"}`}>{appeal.statusName}</span>
       </div>
       <div className="small" style={{ whiteSpace: "pre-wrap" }}>{appeal.content}</div>
       {appeal.concernedStepNames.length > 0 && (
@@ -258,11 +258,6 @@ function AppealItem({
         <div className="small border-start border-3 ps-2">
           <div className="fw-semibold">Trả lời của {appeal.resolvedByName} ({formatDateTime(appeal.resolvedAt)})</div>
           <div style={{ whiteSpace: "pre-wrap" }}>{appeal.response}</div>
-        </div>
-      )}
-      {appeal.status === "Accepted" && !appeal.reopenedAt && (
-        <div className="small text-success">
-          Kiến nghị được chấp nhận — nếu cần đính chính kết quả, người có quyền mở lại hồ sơ bằng thao tác &quot;Mở lại hồ sơ&quot;.
         </div>
       )}
       {appeal.reopenedAt && <div className="small text-secondary">Hồ sơ đã được mở lại theo kiến nghị lúc {formatDateTime(appeal.reopenedAt)}.</div>}

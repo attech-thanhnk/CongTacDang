@@ -1,0 +1,610 @@
+/* Trang hồ sơ đánh giá theo bản mẫu: đầu trang có chữ cái đầu, tiến trình vòng tròn, khu thao tác viền primary,
+   khối dữ liệu thu gọn được, cột phải biểu mẫu + lịch sử dạng dòng thời gian. */
+
+/* Đầu trang */
+.head {
+  padding-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.bigInitials {
+  width: 52px !important;
+  height: 52px !important;
+  font-size: 16px !important;
+}
+
+.head h1 {
+  font-weight: 700;
+  font-size: var(--fs-title);
+  line-height: 1.25;
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+.lede {
+  color: var(--ink-2);
+  margin: 4px 0 0;
+}
+
+.headTools {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+/* Khối */
+.block {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  min-width: 0;
+}
+
+.blockH {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.blockH h2 {
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+.blockH .end {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.body {
+  padding: 16px 20px;
+}
+
+.muted {
+  color: var(--ink-2);
+}
+
+.small {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+/* Khối thu gọn được: tiêu đề là nút */
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: 14px 20px;
+  text-align: left;
+  color: var(--ink);
+  border-radius: 14px;
+}
+
+.toggle:hover {
+  background: var(--tint);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.toggleH {
+  font-size: 15.5px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.toggle {
+  font: inherit;
+}
+
+.toggle .chev {
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+.toggle .end {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.open .toggle {
+  border-bottom: 1px solid var(--rule);
+  border-radius: 14px 14px 0 0;
+}
+
+.tNeutral {
+  color: var(--ink-2);
+  background: var(--tint);
+}
+
+/* Tiến trình */
+.steps {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 22px 12px 18px;
+  overflow-x: auto;
+}
+
+.step {
+  flex: 1 1 0;
+  min-width: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  position: relative;
+}
+
+.step::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: 50%;
+  width: 100%;
+  height: 1px;
+  background: var(--rule-strong);
+}
+
+.step:first-child::before {
+  display: none;
+}
+
+.done::before,
+.now::before {
+  background: var(--primary);
+  height: 2px;
+  top: 11.5px;
+}
+
+.c {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--paper);
+  border: 1.5px solid var(--rule-strong);
+  color: var(--ink-3);
+  position: relative;
+}
+
+.done .c {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.now .c {
+  border: 2px solid var(--primary);
+  color: var(--primary-ink);
+  background: var(--primary-tint);
+}
+
+.stepName {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.35;
+  max-width: 116px;
+}
+
+.now .stepName {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.stepDue {
+  font-style: normal;
+  display: block;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.late {
+  color: var(--bad) !important;
+  font-weight: 500;
+}
+
+/* Hai cột */
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1040px) {
+  .cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* Khu thao tác */
+.task {
+  border: 1.5px solid var(--primary);
+  border-radius: 14px;
+  background: var(--paper);
+}
+
+.task .blockH {
+  background: var(--primary-tint);
+  border-radius: 13px 13px 0 0;
+}
+
+.task .blockH h2 {
+  color: var(--primary-ink);
+}
+
+.cmp {
+  margin-left: auto;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+
+.cmp b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cmp b.bad {
+  color: var(--bad);
+}
+
+.bad {
+  color: var(--bad);
+}
+
+.taskBody {
+  padding: 20px;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  border-top: 1px solid var(--rule);
+}
+
+/* Chân form nằm trong thân khu thao tác: tràn tới mép khối */
+.formFoot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px -20px -20px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--rule);
+}
+
+/* Thao tác chỉ có nút (không có trường nhập) */
+.formFootOnly {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: -8px;
+}
+
+/* Trong lưới .row.g-2: hàng lùi 0.25rem mỗi bên nên chỉ cần tràn phần còn lại */
+.formFootRow {
+  composes: formFoot;
+  margin: 12px calc(-20px + 0.25rem) -20px !important;
+  padding: 12px 20px !important;
+  width: auto !important;
+  flex: 1 1 100% !important;
+}
+
+.pushRight {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Phiếu tự chấm: tổng điểm và điểm theo trục */
+.totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.totals > div {
+  padding: 14px 20px;
+  border-left: 1px solid var(--rule);
+}
+
+.totals > div:first-child {
+  border-left: 0;
+}
+
+.totals small {
+  display: block;
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+
+.totals b {
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.axes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  border-top: 1px solid var(--rule);
+}
+
+.axes > div {
+  padding: 12px 8px;
+  text-align: center;
+  border-left: 1px solid var(--rule);
+}
+
+.axes > div:first-child {
+  border-left: 0;
+}
+
+.axes small {
+  display: block;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.axes b {
+  font-size: 19px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.axes i {
+  font-style: normal;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.subline {
+  padding: 12px 20px;
+  border-top: 1px solid var(--rule);
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+
+.subline ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+/* Trường chỉ đọc */
+.dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 10px 20px;
+  margin: 0;
+}
+
+.dl dt {
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 400;
+}
+
+.dl dd {
+  margin: 0;
+  font-weight: 500;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 560px) {
+  .dl {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .dl dd {
+    margin-bottom: 8px;
+  }
+}
+
+/* Bảng trong khối */
+.tw {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table th:first-child,
+.table td:first-child {
+  padding-left: 20px;
+}
+
+.table th:last-child,
+.table td:last-child {
+  padding-right: 20px;
+}
+
+.sub {
+  display: block;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+/* Biểu mẫu */
+.files {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.files li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 14px;
+}
+
+.files li:last-child {
+  border-bottom: 0;
+}
+
+.files li:hover {
+  background: var(--tint);
+}
+
+.fmt {
+  margin-left: auto;
+  display: flex;
+  gap: 12px;
+  flex: none;
+}
+
+.fmt button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--primary-ink);
+  cursor: pointer;
+}
+
+.fmt button:hover {
+  text-decoration: underline;
+}
+
+.fmt button:disabled {
+  color: var(--ink-3);
+  cursor: default;
+  text-decoration: none;
+}
+
+/* Lịch sử: dòng thời gian có đường nối */
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline li {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 12px;
+  position: relative;
+  padding-bottom: 16px;
+}
+
+.timeline li:last-child {
+  padding-bottom: 0;
+}
+
+.timeline li::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  background: var(--paper);
+  margin-top: 6px;
+}
+
+.timeline li.negative::before {
+  border-color: var(--bad);
+}
+
+.timeline li::after {
+  content: "";
+  position: absolute;
+  left: 5.5px;
+  top: 20px;
+  bottom: 0;
+  width: 1px;
+  background: var(--rule-strong);
+}
+
+.timeline li:last-child::after {
+  display: none;
+}
+
+.timeline b {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.timeline small {
+  display: block;
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+
+.timelineMore {
+  padding: 0 20px 14px;
+}
+
+.linkBtn {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--primary-ink);
+  font-weight: 500;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.linkBtn:hover {
+  text-decoration: underline;
+}

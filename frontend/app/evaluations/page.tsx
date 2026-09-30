@@ -5,14 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
-import { GradeBadge, RecordStatusBadge } from "@/components/common/StatusBadge";
+import { GradeBadge } from "@/components/common/StatusBadge";
+import { RecordTag } from "@/components/dashboard/RecordTag";
+import { initialsOf } from "@/components/dashboard/taskUtils";
+import styles from "@/components/dashboard/dashboard.module.css";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  BranchQuotaCheckDto,
-  EvaluationPeriodDto,
-  EvaluationRecordDto,
-  evaluationService,
-} from "@/services/evaluationService";
+import { usePeriod } from "@/contexts/PeriodContext";
+import { BranchQuotaCheckDto, EvaluationRecordDto, evaluationService } from "@/services/evaluationService";
 
 /** Thứ tự trạng thái theo luồng (để sắp xếp và xếp nút lọc). */
 const STATUS_ORDER = [
@@ -41,15 +40,14 @@ const RETURNED = "__returned";
 const OVERDUE = "__overdue";
 
 /**
- * Danh sách hồ sơ đánh giá: hồ sơ của tôi (nếu có trong danh sách được đánh giá của kỳ) và các hồ sơ trong phạm vi
- * được xem (máy chủ lọc theo phạm vi). Thao tác trên hồ sơ thực hiện ở trang hồ sơ theo `actions`.
+ * Danh sách hồ sơ đánh giá của kỳ đang chọn: hồ sơ của tôi (nếu có) và các hồ sơ trong phạm vi được xem
+ * (máy chủ lọc theo phạm vi). Thao tác trên hồ sơ thực hiện ở trang hồ sơ theo `actions`.
  */
 export default function EvaluationsPage() {
   const { hasPermission } = useAuth();
   const router = useRouter();
   const canRead = hasPermission("evaluation.read");
-  const [periods, setPeriods] = useState<EvaluationPeriodDto[]>([]);
-  const [periodId, setPeriodId] = useState("");
+  const { periods, periodId, loading: periodsLoading } = usePeriod();
   const [myRecord, setMyRecord] = useState<EvaluationRecordDto | null>(null);
   const [records, setRecords] = useState<EvaluationRecordDto[]>([]);
   const [quotas, setQuotas] = useState<BranchQuotaCheckDto[]>([]);
@@ -62,23 +60,14 @@ export default function EvaluationsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    evaluationService
-      .getPeriods()
-      .then((list) => {
-        const visible = list.filter((p) => p.status !== "Draft");
-        setPeriods(visible);
-        const active = visible.find((p) => p.isActive) || visible[0];
-        if (active) setPeriodId(active.id);
-        else setLoading(false);
-      })
-      .catch((err: any) => {
-        setError(err?.message || "Không tải được danh sách kỳ đánh giá.");
-        setLoading(false);
-      });
-  }, []);
-
-  useEffect(() => {
-    if (!periodId) return;
+    if (!periodId) {
+      setMyRecord(null);
+      setRecords([]);
+      setQuotas([]);
+      setLoading(periodsLoading);
+      return;
+    }
+    let mounted = true;
     setLoading(true);
     setError(null);
     setStatusFilter("");
@@ -90,13 +79,17 @@ export default function EvaluationsPage() {
       canRead ? evaluationService.checkBranchQuotas(periodId).catch(() => []) : Promise.resolve([] as BranchQuotaCheckDto[]),
     ])
       .then(([mine, list, quota]) => {
+        if (!mounted) return;
         setMyRecord(mine);
         setRecords(list);
         setQuotas(quota.filter((q) => q.totalCadres > 0));
       })
-      .catch((err: any) => setError(err?.message || "Không tải được hồ sơ đánh giá."))
-      .finally(() => setLoading(false));
-  }, [periodId, canRead]);
+      .catch((err: any) => mounted && setError(err?.message || "Không tải được hồ sơ đánh giá."))
+      .finally(() => mounted && setLoading(false));
+    return () => {
+      mounted = false;
+    };
+  }, [periodId, periodsLoading, canRead]);
 
   const departments = useMemo(
     () => Array.from(new Set(records.map((r) => r.departmentName).filter((v): v is string => !!v))).sort((a, b) => a.localeCompare(b, "vi")),
@@ -155,148 +148,155 @@ export default function EvaluationsPage() {
       <button
         key={value || "all"}
         type="button"
-        className={`btn btn-sm rounded-pill ${active ? (danger ? "btn-danger" : "btn-primary") : danger ? "btn-outline-danger" : "btn-outline-secondary"}`}
+        className={`btn btn-sm ${active ? (danger ? "btn-danger" : "btn-primary") : danger ? "btn-outline-danger" : "btn-outline-secondary"}`}
         aria-pressed={active}
         onClick={() => setStatusFilter(active ? "" : value)}
       >
-        {label} <span className="fw-semibold">({count})</span>
+        {label} <span className="num">{count}</span>
       </button>
     );
   };
 
+  const open = (id: string) => router.push(`/evaluations/${id}`);
+
   return (
     <div className="page-wrapper">
-      <PageHeader
-        title="Hồ sơ đánh giá"
-        actions={
-          <div className="d-flex flex-wrap gap-2">
-            <select className="form-select form-select-sm w-auto" aria-label="Kỳ đánh giá" value={periodId} onChange={(e) => setPeriodId(e.target.value)}>
-              {periods.map((p) => (
-                <option key={p.id} value={p.id}>{p.name} ({p.statusDisplayName})</option>
-              ))}
-            </select>
-            <Link href="/work-queue" className="btn btn-primary btn-sm text-nowrap"><i className="bi bi-list-check me-1" />Việc cần xử lý</Link>
-          </div>
-        }
-      />
+      <PageHeader title="Hồ sơ đánh giá" />
 
-      <div className="page-body d-flex flex-column gap-3">
+      <div className="page-body">
         {error && <div className="alert alert-danger mb-0">{error}</div>}
-        {!loading && periods.length === 0 && <EmptyState title="Chưa có kỳ đánh giá đang diễn ra" />}
+        {!periodsLoading && periods.length === 0 && <EmptyState title="Chưa có kỳ đánh giá đang diễn ra" />}
 
         {myRecord && (
-          <section className="card" style={{ boxShadow: "inset 4px 0 0 #3b82f6" }}>
-            <div className="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
-              <div className="d-flex flex-column gap-1">
-                <div className="fw-semibold" style={{ fontSize: 16 }}>
-                  <i className="bi bi-person-badge me-2 text-primary" />Hồ sơ của tôi
-                </div>
+          <section className={styles.block}>
+            <div className={styles.blockH}>
+              <div className={styles.person}>
+                <div className="initials">{initialsOf(myRecord.fullName)}</div>
                 <div>
-                  <RecordStatusBadge status={myRecord.status} label={myRecord.statusDisplayName} returned={!!myRecord.returnReason} overdue={isOverdue(myRecord)} />
+                  <Link href={`/evaluations/${myRecord.id}`} className={styles.name}>Hồ sơ của tôi</Link>
+                  <span className={styles.sub}>{[myRecord.positionTitle, myRecord.partyCellName].filter(Boolean).join(" · ")}</span>
+                  {myRecord.returnReason && <span className={styles.reason}>{myRecord.returnReason}</span>}
                 </div>
-                {myRecord.returnReason && <div className="text-danger" style={{ fontSize: 14 }}>Lý do trả lại: {myRecord.returnReason}</div>}
               </div>
-              <Link href={`/evaluations/${myRecord.id}`} className="btn btn-primary">
-                <i className="bi bi-box-arrow-in-right me-1" />Mở hồ sơ của tôi
-              </Link>
+              <div className={styles.tools}>
+                <RecordTag status={myRecord.status} label={myRecord.statusDisplayName} returned={!!myRecord.returnReason} overdue={isOverdue(myRecord)} />
+                <Link href={`/evaluations/${myRecord.id}`} className="btn btn-primary btn-sm">Mở hồ sơ</Link>
+              </div>
             </div>
           </section>
         )}
 
         {canRead && (
-          <section className="card border-0 shadow-sm">
-            <div className="card-header bg-white d-flex flex-column gap-2">
-              <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
-                <h2 className="h6 mb-0">Hồ sơ trong phạm vi ({filtered.length})</h2>
-                <div className="d-flex flex-wrap gap-2">
-                  <select className="form-select form-select-sm w-auto" aria-label="Lọc theo Phòng" value={department} onChange={(e) => setDepartment(e.target.value)}>
-                    <option value="">Tất cả Phòng</option>
-                    {departments.map((d) => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                  <select className="form-select form-select-sm w-auto" aria-label="Lọc theo Chi bộ" value={partyCell} onChange={(e) => setPartyCell(e.target.value)}>
-                    <option value="">Tất cả Chi bộ</option>
-                    {partyCells.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <input className="form-control form-control-sm" style={{ maxWidth: 260 }} placeholder="Tìm theo tên, Phòng, Chi bộ, trạng thái" value={search} onChange={(e) => setSearch(e.target.value)} />
-                </div>
+          <section className={styles.block}>
+            <div className={styles.blockH}>
+              <h2>
+                Hồ sơ trong phạm vi <span className={styles.count}>{filtered.length}</span>
+              </h2>
+              <div className={styles.tools}>
+                <select className="form-select form-select-sm" aria-label="Lọc theo Phòng" value={department} onChange={(e) => setDepartment(e.target.value)}>
+                  <option value="">Tất cả Phòng</option>
+                  {departments.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+                <select className="form-select form-select-sm" aria-label="Lọc theo Chi bộ" value={partyCell} onChange={(e) => setPartyCell(e.target.value)}>
+                  <option value="">Tất cả Chi bộ</option>
+                  {partyCells.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <input
+                  type="search"
+                  className="form-control form-control-sm"
+                  placeholder="Tìm tên, Phòng, Chi bộ, trạng thái"
+                  aria-label="Tìm hồ sơ"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
               </div>
-              {records.length > 0 && (
-                <div className="d-flex flex-wrap gap-2" role="group" aria-label="Lọc theo trạng thái">
-                  {chip("", "Tất cả", baseFiltered.length)}
-                  {statusChips.map((s) => chip(s.status, s.label, s.count))}
-                  {returnedCount > 0 && chip(RETURNED, "Bị trả lại", returnedCount, true)}
-                  {overdueCount > 0 && chip(OVERDUE, "Quá hạn", overdueCount, true)}
-                </div>
-              )}
             </div>
-            <div className="card-body p-0">
-              {loading ? (
-                <div className="text-secondary p-3"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
-              ) : filtered.length === 0 ? (
-                <EmptyState title="Không có hồ sơ" />
-              ) : (
-                <div className="table-responsive">
-                  <table className="table table-hover align-middle mb-0" style={{ fontSize: 14 }}>
-                    <thead>
-                      <tr className="text-secondary" style={{ fontSize: 13 }}>
-                        <th className="ps-3" aria-sort={ariaSort("name")}>
-                          <button type="button" className="btn btn-link btn-sm p-0 text-reset text-decoration-none fw-semibold" onClick={() => toggleSort("name")}>
-                            Cán bộ{sortIcon("name")}
-                          </button>
-                        </th>
-                        <th>Phòng</th>
-                        <th>Chi bộ</th>
-                        <th aria-sort={ariaSort("status")}>
-                          <button type="button" className="btn btn-link btn-sm p-0 text-reset text-decoration-none fw-semibold" onClick={() => toggleSort("status")}>
-                            Trạng thái{sortIcon("status")}
-                          </button>
-                        </th>
-                        <th>Tự chấm</th>
-                        <th>Mức</th>
-                        <th />
+            {records.length > 0 && (
+              <div className={styles.chips} role="group" aria-label="Lọc theo trạng thái">
+                {chip("", "Tất cả", baseFiltered.length)}
+                {statusChips.map((s) => chip(s.status, s.label, s.count))}
+                {returnedCount > 0 && chip(RETURNED, "Bị trả lại", returnedCount, true)}
+                {overdueCount > 0 && chip(OVERDUE, "Quá hạn", overdueCount, true)}
+              </div>
+            )}
+            {loading ? (
+              <div className={styles.empty}><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
+            ) : filtered.length === 0 ? (
+              <EmptyState title="Không có hồ sơ" />
+            ) : (
+              <div className={styles.tw}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th aria-sort={ariaSort("name")}>
+                        <button type="button" className={styles.sortBtn} onClick={() => toggleSort("name")}>Cán bộ{sortIcon("name")}</button>
+                      </th>
+                      <th>Phòng / Chi bộ</th>
+                      <th aria-sort={ariaSort("status")}>
+                        <button type="button" className={styles.sortBtn} onClick={() => toggleSort("status")}>Trạng thái{sortIcon("status")}</button>
+                      </th>
+                      <th className={styles.right}>Tự chấm</th>
+                      <th>Mức</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((r) => (
+                      <tr key={r.id} className={styles.rowLink} onClick={() => open(r.id)}>
+                        <td>
+                          <div className={styles.person}>
+                            <div className="initials">{initialsOf(r.fullName)}</div>
+                            <div>
+                              <Link href={`/evaluations/${r.id}`} className={styles.name} onClick={(e) => e.stopPropagation()}>{r.fullName}</Link>
+                              {r.positionTitle && <span className={styles.sub}>{r.positionTitle}</span>}
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          {r.departmentName || "—"}
+                          {r.partyCellName && <span className={styles.sub}>{r.partyCellName}</span>}
+                        </td>
+                        <td><RecordTag status={r.status} label={r.statusDisplayName} returned={!!r.returnReason} overdue={isOverdue(r)} /></td>
+                        <td className={`${styles.right} num`}>{r.totalSelfScore || "—"}</td>
+                        <td><GradeBadge grade={displayGrade(r)} /></td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {filtered.map((r) => (
-                        <tr key={r.id} role="link" style={{ cursor: "pointer" }} onClick={() => router.push(`/evaluations/${r.id}`)}>
-                          <td className="ps-3 fw-semibold">{r.fullName}</td>
-                          <td>{r.departmentName || "—"}</td>
-                          <td>{r.partyCellName || "—"}</td>
-                          <td><RecordStatusBadge status={r.status} label={r.statusDisplayName} returned={!!r.returnReason} overdue={isOverdue(r)} /></td>
-                          <td>{r.totalSelfScore || "—"}</td>
-                          <td><GradeBadge grade={displayGrade(r)} /></td>
-                          <td className="text-end pe-3">
-                            <Link href={`/evaluations/${r.id}`} className="btn btn-outline-primary btn-sm" onClick={(e) => e.stopPropagation()}>Xem</Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
         )}
 
         {canRead && quotas.length > 0 && (
-          <section className="card border-0 shadow-sm">
-            <div className="card-header bg-white"><h2 className="h6 mb-0">Kiểm soát trần Hoàn thành xuất sắc theo Chi bộ (Mẫu 15)</h2></div>
-            <div className="card-body p-0">
-              <div className="table-responsive"><table className="table table-sm mb-0" style={{ fontSize: 14 }}>
-                <thead><tr className="text-secondary" style={{ fontSize: 13 }}><th className="ps-3">Chi bộ</th><th>Số hồ sơ</th><th>HT tốt trở lên</th><th>Tối đa XS</th><th>Đề xuất XS</th><th /></tr></thead>
+          <section className={styles.block}>
+            <div className={styles.blockH}><h2>Trần Hoàn thành xuất sắc theo Chi bộ (Mẫu 15)</h2></div>
+            <div className={styles.tw}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Chi bộ</th>
+                    <th className={styles.right}>Số hồ sơ</th>
+                    <th className={styles.right}>HT tốt trở lên</th>
+                    <th className={styles.right}>Tối đa XS</th>
+                    <th className={styles.right}>Đề xuất XS</th>
+                    <th />
+                  </tr>
+                </thead>
                 <tbody>
                   {quotas.map((q) => (
                     <tr key={q.branchId}>
-                      <td className="ps-3">{q.branchName}</td>
-                      <td>{q.totalCadres}</td>
-                      <td>{q.goodOrBetterCount}</td>
-                      <td>{q.maxExcellentAllowed}</td>
-                      <td>{q.proposedExcellentCount}</td>
-                      <td>{q.isExceedingQuota ? <span className="badge text-bg-danger">Vượt trần</span> : <span className="badge text-bg-success">Đạt</span>}</td>
+                      <td>{q.branchName}</td>
+                      <td className={`${styles.right} num`}>{q.totalCadres}</td>
+                      <td className={`${styles.right} num`}>{q.goodOrBetterCount}</td>
+                      <td className={`${styles.right} num`}>{q.maxExcellentAllowed}</td>
+                      <td className={`${styles.right} num`}>{q.proposedExcellentCount}</td>
+                      <td className={styles.right}>
+                        {q.isExceedingQuota ? <span className="tag t-bad">Vượt trần</span> : <span className="tag t-ok">Đạt</span>}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
-              </table></div>
+              </table>
             </div>
           </section>
         )}

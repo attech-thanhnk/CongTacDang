@@ -8,6 +8,7 @@ import { useLayout } from "@/contexts/LayoutContext";
 import { usePeriod } from "@/contexts/PeriodContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useOrganizationInfo } from "@/services/organizationSettingsService";
+import accountStyles from "./SidebarAccount.module.css";
 
 interface MenuItem {
   title: string;
@@ -199,6 +200,16 @@ export function AppSidebar() {
               <b className="text-truncate">{user.fullName}</b>
               <small className="text-truncate">{sessionRoleLabel(user)}</small>
             </div>
+            <Link
+              href="/change-password"
+              onClick={closeOnMobile}
+              className={accountStyles.iconBtn}
+              title="Đổi mật khẩu"
+              aria-label="Đổi mật khẩu"
+              aria-current={pathname === "/change-password" ? "page" : undefined}
+            >
+              <i className="bi bi-key" />
+            </Link>
             <button type="button" onClick={handleLogout} className="side-logout" title="Đăng xuất" aria-label="Đăng xuất">
               <i className="bi bi-box-arrow-right" />
             </button>
