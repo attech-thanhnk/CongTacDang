@@ -20,8 +20,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   // Lắng nghe sự kiện hết hạn phiên làm việc từ apiClient để điều hướng mượt mà
   useEffect(() => {
     const handleSessionExpired = () => {
+      // Trang đăng nhập: chưa có phiên để kết thúc; đăng xuất/chuyển trang lúc này sẽ xóa form hoặc hủy lần đăng nhập vừa xong.
+      if (isLoginPage) return;
       logout().finally(() => {
-        router.replace(isLoginPage ? "/login" : `/login?returnUrl=${encodeURIComponent(pathname)}`);
+        router.replace(`/login?returnUrl=${encodeURIComponent(pathname)}`);
       });
     };
 

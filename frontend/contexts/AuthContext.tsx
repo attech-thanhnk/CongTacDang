@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AccessGrant, authService, UserSession } from "@/services/authService";
 
 /** Loại phạm vi của một quyền được cấp. */
@@ -38,17 +38,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Tăng mỗi lần đăng nhập: kết quả kiểm tra phiên ban đầu về muộn (sau khi người dùng đã đăng nhập) không được ghi đè phiên mới.
+  const sessionGeneration = useRef(0);
+
   useEffect(() => {
     // Chỉ kiểm tra phiên đăng nhập thực tế từ máy chủ qua HttpOnly Cookie
+    const generation = sessionGeneration.current;
     authService
       .getMe()
-      .then(setUser)
-      .catch(() => setUser(null))
+      .then((me) => {
+        if (sessionGeneration.current === generation) setUser(me);
+      })
+      .catch(() => {
+        if (sessionGeneration.current === generation) setUser(null);
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const login = useCallback(async (username: string, password: string): Promise<AuthUser> => {
     const session = await authService.login(username, password);
+    sessionGeneration.current += 1;
     setUser(session);
     return session;
   }, []);
