@@ -336,12 +336,24 @@ public sealed class PostPublishIntegrationTests
         Assert.Equal(HttpStatusCode.BadRequest, incomplete.StatusCode);
         Assert.Contains("Mốc 60 ngày", await MessageAsync(incomplete));
 
+        // Ngày bắt đầu: không sớm hơn 30 ngày trước và không muộn hơn 180 ngày sau ngày công bố (hồ sơ công bố hôm nay).
+        var published = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        foreach (var badStart in new[] { published.AddDays(-31), published.AddDays(181) })
+        {
+            var refused = await w.ManagerC.PutAsJsonAsync($"/api/improvement-plans/{planId}", new
+            {
+                version = plan.GetProperty("version").GetUInt32(), supporterName = "Người hỗ trợ thử nghiệm", startDate = badStart.ToString("yyyy-MM-dd")
+            });
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+            Assert.Contains("Ngày bắt đầu kế hoạch", await MessageAsync(refused));
+        }
+        var startDate = published.AddDays(1);
         plan = await Data(await w.ManagerC.PutAsJsonAsync($"/api/improvement-plans/{planId}", new
         {
             version = plan.GetProperty("version").GetUInt32(),
             supporterName = "Người hỗ trợ thử nghiệm",
             supporterTitle = "Phó Trưởng phòng",
-            startDate = "2026-10-01",
+            startDate = startDate.ToString("yyyy-MM-dd"),
             milestones = new[] { "M30", "M60", "M90" }.Select(code => new
             {
                 code, limitation = $"Hạn chế {code}", target = $"Mục tiêu {code}", measures = $"Biện pháp {code}", coordination = $"Phối hợp {code}"
@@ -349,7 +361,7 @@ public sealed class PostPublishIntegrationTests
         }));
         plan = await Data(await w.ManagerC.PostAsJsonAsync($"/api/improvement-plans/{planId}/approve", new { version = plan.GetProperty("version").GetUInt32() }));
         Assert.Equal("Approved", plan.GetProperty("status").GetString());
-        Assert.Equal("2026-12-30", plan.GetProperty("milestones")[2].GetProperty("dueDate").GetString());
+        Assert.Equal(startDate.AddDays(90).ToString("yyyy-MM-dd"), plan.GetProperty("milestones")[2].GetProperty("dueDate").GetString());
         Assert.DoesNotContain(await QueueRecordsAsync(w.ManagerC, "IMPROVEMENT_PLANS"), id => id == recordId);
         Assert.Equal(HttpStatusCode.Conflict, (await w.ManagerC.PutAsJsonAsync($"/api/improvement-plans/{planId}", new
         {
@@ -372,6 +384,14 @@ public sealed class PostPublishIntegrationTests
         Assert.Equal("Đạt yêu cầu", plan.GetProperty("milestones")[0].GetProperty("resultName").GetString());
         Assert.Equal(HttpStatusCode.BadRequest, (await w.ManagerC.PostAsJsonAsync($"/api/improvement-plans/{planId}/milestone-result",
             new { version = plan.GetProperty("version").GetUInt32(), milestone = "M45", result = "Achieved" })).StatusCode);
+        // Theo thứ tự mốc: chưa ghi mốc 60 ngày → chưa ghi mốc 90 ngày được (không chặn theo ngày đến hạn).
+        var outOfOrder = await w.ManagerC.PostAsJsonAsync($"/api/improvement-plans/{planId}/milestone-result",
+            new { version = plan.GetProperty("version").GetUInt32(), milestone = "M90", result = "NotAchieved" });
+        Assert.Equal(HttpStatusCode.BadRequest, outOfOrder.StatusCode);
+        Assert.Contains("Mốc 60 ngày", await MessageAsync(outOfOrder));
+        plan = await Data(await w.ManagerC.PostAsJsonAsync($"/api/improvement-plans/{planId}/milestone-result",
+            new { version = plan.GetProperty("version").GetUInt32(), milestone = "M60", result = "Achieved" }));
+        Assert.Equal("Acknowledged", plan.GetProperty("status").GetString());
         plan = await Data(await w.ManagerC.PostAsJsonAsync($"/api/improvement-plans/{planId}/milestone-result",
             new { version = plan.GetProperty("version").GetUInt32(), milestone = "M90", result = "NotAchieved" }));
         Assert.Equal("Closed", plan.GetProperty("status").GetString());
@@ -389,7 +409,7 @@ public sealed class PostPublishIntegrationTests
             Assert.Contains("Người hỗ trợ thử nghiệm", text);
             Assert.Contains("Hạn chế M60", text);
             Assert.Contains("Hoàn thành nhiệm vụ - Mức C", text);
-            Assert.Equal(2, text.Count(c => c == '☒'));
+            Assert.Equal(3, text.Count(c => c == '☒')); // kết quả 3 mốc
         }
         Assert.Equal(HttpStatusCode.Forbidden, (await w.DeptViewerC.GetAsync($"/api/improvement-plans/{planId}/mau-17")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await w.OwnerAC.GetAsync($"/api/improvement-plans/{planId}/mau-17?format=xls")).StatusCode);

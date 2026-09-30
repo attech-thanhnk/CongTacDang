@@ -60,6 +60,18 @@ public sealed class ImprovementPlanService : IImprovementPlanService
 {
     private const int MaxCommentLength = 2000;
 
+    /// <summary>
+    /// Ngày bắt đầu kế hoạch sớm nhất: ngày công bố kết quả trừ số ngày này (cho phép ghi nhận kế hoạch đã bắt đầu ngay sau hội nghị,
+    /// trước khi công bố trên hệ thống). Giá trị tạm — chờ nghiệp vụ xác nhận.
+    /// </summary>
+    public const int MaxStartDaysBeforePublish = 30;
+
+    /// <summary>
+    /// Ngày bắt đầu kế hoạch muộn nhất: ngày công bố kết quả cộng số ngày này (khoảng hai quý — kế hoạch khắc phục phải bắt đầu trong
+    /// thời gian còn ý nghĩa với kết quả được công bố). Giá trị tạm — chờ nghiệp vụ xác nhận.
+    /// </summary>
+    public const int MaxStartDaysAfterPublish = 180;
+
     private readonly IPostPublishRepository _repo;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthorizationGuard _guard;
@@ -152,6 +164,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
             throw new ConflictException("Hồ sơ đã có kế hoạch 30-60-90 ngày. Hãy tải lại trang để xem và sửa kế hoạch hiện có.");
 
         var content = BuildContent(new ImprovementPlanContent(), request);
+        EnsureStartDate(record, request.StartDate);
         var now = DateTime.UtcNow;
         var plan = new ImprovementPlan
         {
@@ -175,6 +188,8 @@ public sealed class ImprovementPlanService : IImprovementPlanService
             if (plan.Status != ImprovementPlanStatus.Draft)
                 throw new ConflictException("Kế hoạch đã được duyệt nên không sửa nội dung được nữa; chỉ ghi kết quả từng mốc.");
             plan.Content = BuildContent(ImprovementPlanContent.Parse(plan.Content), request).ToJson();
+            if (request.StartDate != plan.StartDate)
+                EnsureStartDate(plan.Record, request.StartDate);
             plan.StartDate = request.StartDate;
             return Task.CompletedTask;
         }, ct);
@@ -232,6 +247,18 @@ public sealed class ImprovementPlanService : IImprovementPlanService
                 throw new ValidationException($"Ghi chú kết quả dài tối đa {ImprovementPlanContent.MaxTextLength} ký tự.");
 
             var content = ImprovementPlanContent.Parse(plan.Content);
+            // Ghi kết quả theo thứ tự mốc (không ghi mốc sau khi mốc trước chưa có kết quả). Không chặn theo ngày đến hạn —
+            // việc ghi sớm/muộn so với hạn mốc do nghiệp vụ quyết định.
+            var missingEarlier = ImprovementPlanContent.Milestones
+                .TakeWhile(m => m.Code != code)
+                .Where(m => content.Stage(m.Code).Result == null)
+                .Select(m => m.Name)
+                .ToList();
+            if (missingEarlier.Count > 0)
+            {
+                throw new ValidationException($"Chưa ghi được kết quả {ImprovementPlanContent.Milestones.First(m => m.Code == code).Name}: "
+                    + $"hãy ghi kết quả theo thứ tự mốc, còn thiếu {string.Join(", ", missingEarlier)}.");
+            }
             var stage = content.Stage(code!);
             stage.Result = request.Result;
             stage.ResultNote = string.IsNullOrEmpty(note) ? null : note;
@@ -290,6 +317,27 @@ public sealed class ImprovementPlanService : IImprovementPlanService
         var saved = await _repo.FindPlanAsync(planId, ct) ?? plan;
         return ToDto(saved);
     }
+
+    /// <summary>
+    /// Ngày bắt đầu (nếu có) nằm trong khoảng [ngày công bố − <see cref="MaxStartDaysBeforePublish"/>, ngày công bố +
+    /// <see cref="MaxStartDaysAfterPublish"/>]; hồ sơ không có ngày công bố → không kiểm tra.
+    /// </summary>
+    private static void EnsureStartDate(EvaluationRecord record, DateOnly? startDate)
+    {
+        if (startDate is not { } start || record.PublishedAt is not { } publishedAt)
+            return;
+        var published = EvaluationMapping.Today(publishedAt);
+        var earliest = published.AddDays(-MaxStartDaysBeforePublish);
+        var latest = published.AddDays(MaxStartDaysAfterPublish);
+        if (start < earliest || start > latest)
+        {
+            throw new ValidationException($"Ngày bắt đầu kế hoạch phải từ {Vn(earliest)} đến {Vn(latest)} "
+                + $"(không sớm hơn {MaxStartDaysBeforePublish} ngày trước và không muộn hơn {MaxStartDaysAfterPublish} ngày sau ngày công bố "
+                + $"kết quả {Vn(published)}).");
+        }
+    }
+
+    private static string Vn(DateOnly date) => date.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
 
     private async Task<EvaluationRecord> RequireRecordAsync(Guid recordId, CancellationToken ct) =>
         await _repo.FindRecordAsync(recordId, ct)
