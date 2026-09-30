@@ -773,7 +773,7 @@ public class ReportService : IReportService
     {
         var org = await _orgSettings.GetAsync();
         if (cell == null)
-            return PartyHeader.Of(org.SuperiorPartyName, org.PartyCommitteeName);
+            return PartyHeader.Of(org.SuperiorPartyName, org.PartyCommitteeName, CollectiveFormText.PartyCommitteeInSentence(org));
         var parentName = cell.ParentId.HasValue
             ? await _db.PartyCells.AsNoTracking().Where(c => c.Id == cell.ParentId.Value).Select(c => c.Name).FirstOrDefaultAsync()
             : null;
@@ -975,8 +975,10 @@ public class ReportService : IReportService
         if (meeting.PartyCell != null)
             return (await CollectiveHeaderAsync(meeting.PartyCell), meeting.PartyCell.Name, meeting.PartyCell.Name, meeting.PartyCell);
         var unitForFile = meeting.Department != null ? new PartyCell { Name = meeting.Department.Name } : null;
-        return (PartyHeader.Of(org.SuperiorPartyName, org.PartyCommitteeName), meeting.Department?.Name ?? org.PartyCommitteeName,
-            org.PartyCommitteeName, unitForFile);
+        // Tên Đảng bộ trong cài đặt viết HOA (dòng tiêu đề) — giữa câu dùng dạng thường.
+        var partyName = CollectiveFormText.PartyCommitteeInSentence(org);
+        return (PartyHeader.Of(org.SuperiorPartyName, org.PartyCommitteeName, partyName), meeting.Department?.Name ?? partyName,
+            partyName, unitForFile);
     }
 
     /// <inheritdoc />

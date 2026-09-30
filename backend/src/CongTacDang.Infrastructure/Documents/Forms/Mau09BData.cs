@@ -21,6 +21,10 @@ public sealed class Mau09BData
 
     /// <summary>Tên Chi bộ (in hoa) ở tiêu đề trái.</summary>
     [TemplateField("PARTY_CELL")] public string? PartyCell { get; init; }
+
+    /// <summary>"ngày … tháng … năm …" sau địa danh: ngày nộp phiếu tự chấm (chưa nộp → giữ dòng chấm).</summary>
+    [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
+
     [TemplateField("QUARTER")] public string? Quarter { get; init; }
     [TemplateField("YEAR")] public string? Year { get; init; }
     [TemplateField("FULL_NAME")] public string? FullName { get; init; }
@@ -69,6 +73,7 @@ public sealed class Mau09BData
         return new Mau09BData
         {
             PartyCell = Mau09Shared.PartyCellUpper(record),
+            DateLine = Mau09Shared.DateLine(source),
             Quarter = FormText.Spaced(Mau09Shared.Quarter(record)),
             Year = Mau09Shared.Year(record),
             FullName = FormText.OrNull(record.Member?.FullName),

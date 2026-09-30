@@ -74,6 +74,15 @@ public sealed class Mau13Data
     [TemplateField("COUNTER_HEAD_SIGN")] public string? CounterHeadSign { get; init; }
     [TemplateField("CHAIR_SIGN")] public string? ChairSign { get; init; }
 
+    /// <summary>Chức danh, ghi chú dưới "CHỦ TRÌ HỘI NGHỊ" — cùng quy tắc với <see cref="Mau12Data.ChairSignTitle"/>.</summary>
+    [TemplateField("CHAIR_SIGN_TITLE")] public string? ChairSignTitle { get; init; }
+    [TemplateField("CHAIR_SIGN_NOTE")] public string? ChairSignNote { get; init; }
+
+    /// <summary>
+    /// Cấp ủy cơ sở ở tiêu đề mục II của bảng ("… CỦA ĐẢNG ỦY/CHI ỦY CƠ SỞ…"): cấp ủy của tổ chức Đảng lưu biên bản, chữ in hoa.
+    /// </summary>
+    [TemplateField("BASE_AUTHORITY")] public string? BaseAuthority { get; init; }
+
     /// <summary>
     /// Dựng từ biên bản đã lưu (nạp kèm kỳ) và các dòng kết quả kiểm phiếu. Phần chung với Mẫu 12 (tiêu đề, thời gian, thành phần,
     /// chủ trì, thư ký) dùng cùng quy tắc với <see cref="Mau12Data"/>.
@@ -158,7 +167,10 @@ public sealed class Mau13Data
             HasBaseRows = baseRows.Count > 0,
             ArchiveUnit = common.ArchiveUnit,
             CounterHeadSign = committee.Count > 0 ? committee[0].Name.Trim() : null,
-            ChairSign = common.ChairSign
+            ChairSign = common.ChairSign,
+            ChairSignTitle = common.ChairSignTitle,
+            ChairSignNote = common.ChairSignNote,
+            BaseAuthority = CollectiveFormText.CommitteeUpper(archiveUnit)
         };
     }
 

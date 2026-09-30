@@ -6,6 +6,7 @@ using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.Organization;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Infrastructure.Documents.Forms;
 using CongTacDang.IntegrationTests.Infrastructure;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
@@ -309,7 +310,9 @@ public sealed class CollectiveFormsReportsIntegrationTests
         Assert.Contains("+ Số phiếu không hợp lệ:\t1 Phiếu.", text13);
         Assert.Contains("Chưa đánh giá, xếp loại", text13);
         var superiorAt = text13.IndexOf("CỦA BTVĐUTCT", StringComparison.Ordinal);
-        var baseAt = text13.IndexOf("CỦA ĐẢNG ỦY/CHI ỦY CƠ SỞ", StringComparison.Ordinal);
+        // Tiêu đề mục II ghi cấp ủy cơ sở thực tế (tổ chức Đảng của biên bản), không còn "ĐẢNG ỦY/CHI ỦY CƠ SỞ…".
+        Assert.DoesNotContain("ĐẢNG ỦY/CHI ỦY CƠ SỞ", text13);
+        var baseAt = text13.IndexOf("CỦA " + CollectiveFormText.CommitteeUpper(s.CellAName), StringComparison.Ordinal);
         Assert.True(superiorAt > 0 && baseAt > superiorAt);
         var c1At = text13.IndexOf(s.NameC1, StringComparison.Ordinal);
         var a1At = text13.IndexOf(s.NameA1, StringComparison.Ordinal);

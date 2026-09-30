@@ -101,6 +101,10 @@ public class Wave8FormsTests
         Assert.Contains("Thành viên", text);
         Assert.Contains("Đảng ủy viên: Tổ trưởng", text);
         Assert.Contains("Hoàng Văn Ghi", text);
+        // Tiêu đề mục II: cấp ủy cơ sở thực tế (không còn "ĐẢNG ỦY/CHI ỦY CƠ SỞ…"); chữ ký chủ trì theo chức vụ đã lưu.
+        Assert.Contains("PHÊ DUYỆT MỨC XẾP LOẠI CỦA ĐẢNG ỦY CÔNG TY A", text);
+        Assert.DoesNotContain("ĐẢNG ỦY/CHI ỦY CƠ SỞ", text);
+        Assert.Contains("CHỦ TRÌ HỘI NGHỊBÍ THƯ ĐẢNG ỦY(ký, ghi rõ họ tên, đóng dấu)", text);
 
         // Bảng kết quả: tiêu đề mục I, dòng của hồ sơ thẩm quyền cấp trên, tiêu đề mục II, dòng của hồ sơ đảng ủy cơ sở.
         var table = body.Descendants<Table>().Single(t => t.InnerText.Contains("Số phiếu bầu"));
@@ -137,6 +141,25 @@ public class Wave8FormsTests
         Assert.Equal(7, rows.Count);
         Assert.All(rows[4].Elements<TableCell>(), c => Assert.Equal(string.Empty, c.InnerText));
         Assert.Equal("Nguyễn Văn A", rows[6].Elements<TableCell>().ElementAt(1).InnerText);
+    }
+
+    [Fact]
+    public void Mau13_ProposalMeetingOfDepartment_BaseAuthorityIsPartyCommittee_ChairSignNotParty()
+    {
+        var meeting = new EvaluationMeeting
+        {
+            Period = new EvaluationPeriod { Year = 2026, Quarter = EvaluationQuarter.Quy3 }, Stage = WorkflowStep.B3A_COLLECTIVE,
+            ChairName = "Phạm Văn Trưởng", StartedAt = new DateTime(2026, 9, 20, 1, 30, 0, DateTimeKind.Utc)
+        };
+        var details = new MeetingDetailsDto { ChairTitle = "Trưởng phòng Kỹ thuật" };
+
+        var data = Mau13Data.From(meeting, PartyHeader.Of("ĐẢNG BỘ TỔNG CÔNG TY", "ĐẢNG BỘ CÔNG TY TNHH A", "Đảng bộ Công ty TNHH A"),
+            "Phòng Kỹ thuật", "Đảng bộ Công ty TNHH A", details, Array.Empty<Mau13Line>());
+
+        Assert.Equal("ĐẢNG ỦY CÔNG TY TNHH A", data.BaseAuthority);
+        Assert.Equal("TRƯỞNG PHÒNG KỸ THUẬT", data.ChairSignTitle);
+        Assert.Equal(Mau12Data.ProposalChairSignNote, data.ChairSignNote);
+        Assert.Equal("Tập thể lãnh đạo, quản lý Phòng Kỹ thuật", data.Organizer);
     }
 
     [Fact]

@@ -82,6 +82,19 @@ public class CollectiveFormsTemplateTests
         Assert.Contains("A. NỘI DUNG TỰ ĐÁNH GIÁ", text);
         Assert.Contains("B. KẾT QUẢ CHẤM ĐIỂM CÁC TIÊU CHÍ ĐÁNH GIÁ", text);
         Assert.Contains("T/M ĐẢNG ỦY (CHI BỘ)", text);
+        // Dòng địa danh – ngày: địa danh từ cài đặt đơn vị, ngày lập = lần cập nhật hồ sơ (giờ Việt Nam).
+        Assert.Contains("Hà Nội, ngày 21 tháng 09 năm 2026", text);
+    }
+
+    [Fact]
+    public void Mau07_08_NeverSaved_UsesCreatedDate()
+    {
+        var record = new CollectiveEvaluationRecord
+        {
+            Period = Period, Form = CollectiveEvaluationForm.M08, CreatedAt = new DateTime(2026, 9, 1, 3, 0, 0, DateTimeKind.Utc)
+        };
+        Assert.Equal("ngày 01 tháng 09 năm 2026", Mau08Data.From(record, Header).DateLine);
+        Assert.Equal("ngày 01 tháng 09 năm 2026", Mau07Data.From(record, Header, new Dictionary<string, string>()).DateLine);
     }
 
     [Fact]
@@ -99,6 +112,7 @@ public class CollectiveFormsTemplateTests
         // Nhóm có dòng "- Nhiệm vụ 1: …" trong biểu mẫu gốc mà chưa nhập → giữ chữ mẫu.
         Assert.Contains(rows, r => r.StartsWith("2Công tác xây dựng Đảng.", StringComparison.Ordinal) && r.Contains("Nhiệm vụ 1: …"));
         Assert.Contains("QUÝ III/NĂM 2026", BodyText(result.Content));
+        Assert.Contains("Hà Nội, ngày 21 tháng 09 năm 2026", BodyText(result.Content));
     }
 
     [Theory]
@@ -120,6 +134,82 @@ public class CollectiveFormsTemplateTests
             Assert.Contains("(1) Đồng chí Lê Văn C - Đảng viên, ghi biên bản.", text);
         else
             Assert.DoesNotContain("Lê Văn C", text);
+        // Chữ ký chủ trì: chức danh theo chức vụ chủ trì đã lưu; hội nghị cấp ủy (B4) giữ ghi chú đóng dấu.
+        Assert.Contains("CHỦ TRÌ HỘI NGHỊ\nBÍ THƯ CHI BỘ\n(ký, ghi rõ họ tên, đóng dấu)", text);
+    }
+
+    [Fact]
+    public void Mau12_ProposalMeeting_ChairSignsByStoredTitle_ArchiveNameInSentenceCase()
+    {
+        var org = new OrganizationSettingsDto
+        {
+            PartyCommitteeName = "ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", SuperiorPartyName = "ĐẢNG BỘ TỔNG CÔNG TY QUẢN LÝ BAY VIỆT NAM",
+            CompanyName = "Công ty TNHH Kỹ thuật Quản lý bay", ParentCompanyName = "Tổng công ty Quản lý bay Việt Nam"
+        };
+        var partyName = CollectiveFormText.PartyCommitteeInSentence(org);
+        var meeting = new EvaluationMeeting
+        {
+            Period = Period, FormCode = "M12", Stage = WorkflowStep.B3A_COLLECTIVE, Location = "Phòng họp",
+            StartedAt = new DateTime(2026, 9, 15, 1, 30, 0, DateTimeKind.Utc), ChairName = "Phạm Văn Trưởng", SecretaryName = "Trần Thị B"
+        };
+        var details = new MeetingDetailsDto { ChairTitle = "Trưởng phòng Kỹ thuật", SecretaryTitle = "Chuyên viên" };
+        var header = PartyHeader.Of(org.SuperiorPartyName, org.PartyCommitteeName, partyName);
+
+        var text = BodyText(Render(Mau12Data.TemplateFileName, Mau12Data.From(meeting, header, "Phòng Kỹ thuật", partyName, details)).Content);
+
+        Assert.Contains("CHỦ TRÌ HỘI NGHỊ\nTRƯỞNG PHÒNG KỸ THUẬT\n(ký, ghi rõ họ tên)", text);
+        Assert.DoesNotContain("BÍ THƯ", text);
+        Assert.DoesNotContain("đóng dấu", text);
+        // Giữa câu dùng tên thường; chỉ dòng tiêu đề in hoa.
+        Assert.Contains("01 bản lưu tại Đảng bộ Công ty TNHH Kỹ thuật Quản lý bay và 01 bản lưu hồ sơ", text);
+        Assert.Contains("ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", text);
+        Assert.Contains("Hội nghị tập thể lãnh đạo, quản lý Phòng Kỹ thuật về việc", text);
+
+        // Chưa ghi chức vụ chủ trì: hội nghị tập thể lãnh đạo không in "BÍ THƯ".
+        var noTitle = Mau12Data.From(meeting, header, "Phòng Kỹ thuật", partyName, new MeetingDetailsDto());
+        Assert.Equal(string.Empty, noTitle.ChairSignTitle);
+    }
+
+    [Fact]
+    public void Mau16_WholeParty_OrganizerInSentenceCase_DateFromDraft()
+    {
+        var org = new OrganizationSettingsDto { PartyCommitteeName = "ĐẢNG BỘ CÔNG TY A", SuperiorPartyName = "ĐẢNG BỘ TỔNG CÔNG TY B", CompanyName = "Công ty A" };
+        var header = PartyHeader.Of(org.SuperiorPartyName, org.PartyCommitteeName, CollectiveFormText.PartyCommitteeInSentence(org));
+        var draft = new Form16DraftDto
+        {
+            UpdatedAt = new DateTime(2026, 9, 25, 20, 0, 0, DateTimeKind.Utc),
+            Content = new Form16DraftContentDto { MeetingDate = "15/9/2026" },
+            BaseRows = new List<Form16SummaryRowDto> { new() { Subject = "Tổng cộng" } },
+            SuperiorRows = new List<Form16SummaryRowDto> { new() { Subject = "Tổng cộng" } }
+        };
+
+        var text = BodyText(Render(Mau16Data.TemplateFileName, Mau16Data.From(Period, header, draft)).Content);
+
+        Assert.Contains("Ngày 15/9/2026, Đảng bộ Công ty A đã tổ chức Hội nghị", text);
+        Assert.DoesNotContain("ĐẢNG BỘ CÔNG TY A đã", text);
+        Assert.Contains("Hà Nội, ngày 26 tháng 09 năm 2026", text);
+        Assert.Contains("ĐẢNG BỘ CÔNG TY A", text);
+    }
+
+    [Fact]
+    public void CollectiveFormText_NameInSentence_CommitteeAndDateLine()
+    {
+        Assert.Equal("Đảng bộ Công ty TNHH Kỹ thuật Quản lý bay",
+            CollectiveFormText.NameInSentence("ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", "Công ty TNHH Kỹ thuật Quản lý bay", "Tổng công ty Quản lý bay Việt Nam"));
+        // Tên riêng dài hơn được ưu tiên (tên đơn vị cấp trên chứa tên ngắn hơn).
+        Assert.Equal("Đảng bộ Tổng công ty Quản lý bay Việt Nam",
+            CollectiveFormText.NameInSentence("ĐẢNG BỘ TỔNG CÔNG TY QUẢN LÝ BAY VIỆT NAM", "Công ty Quản lý bay Việt Nam", "Tổng công ty Quản lý bay Việt Nam"));
+        Assert.Equal("Chi bộ Kỹ thuật", CollectiveFormText.NameInSentence("Chi bộ Kỹ thuật", "Công ty A"));
+        Assert.Equal("ĐẢNG BỘ X", CollectiveFormText.NameInSentence("ĐẢNG BỘ X", "Công ty A"));
+        Assert.Null(CollectiveFormText.NameInSentence(" "));
+
+        Assert.Equal("ĐẢNG ỦY CÔNG TY A", CollectiveFormText.CommitteeUpper("Đảng bộ Công ty A"));
+        Assert.Equal("CHI BỘ KỸ THUẬT", CollectiveFormText.CommitteeUpper("Chi bộ Kỹ thuật"));
+        Assert.Equal("ĐẢNG ỦY CÔNG TY A", CollectiveFormText.CommitteeUpper("Đảng ủy Công ty A"));
+        Assert.Null(CollectiveFormText.CommitteeUpper(null));
+
+        Assert.Equal("ngày 16 tháng 09 năm 2026", CollectiveFormText.DateLine(new DateTime(2026, 9, 15, 18, 0, 0, DateTimeKind.Utc)));
+        Assert.Null(CollectiveFormText.DateLine(null));
     }
 
     [Fact]
@@ -157,7 +247,8 @@ public class CollectiveFormsTemplateTests
         {
             Period = Period, Form = CollectiveEvaluationForm.M07, SubjectName = "Chi ủy Chi bộ Kỹ thuật",
             Limitations = "Hạn chế: chậm báo cáo", Causes = "Nguyên nhân chủ quan", RemediationPlan = "Khắc phục trong quý IV",
-            GeneralCriteriaScore = 27.5, TaskCriteriaScore = 63, TotalScore = 90.5
+            GeneralCriteriaScore = 27.5, TaskCriteriaScore = 63, TotalScore = 90.5,
+            UpdatedAt = new DateTime(2026, 9, 21, 2, 0, 0, DateTimeKind.Utc)
         };
         var sections = new Dictionary<string, string> { ["I.1"] = "Nội dung mục I.1", ["I.4"] = "Nội dung mục I.4" };
         return Mau07Data.From(record, Header, sections);
@@ -165,7 +256,11 @@ public class CollectiveFormsTemplateTests
 
     private static Mau08Data Mau08Sample()
     {
-        var record = new CollectiveEvaluationRecord { Period = Period, Form = CollectiveEvaluationForm.M08, SubjectName = "Phòng Kỹ thuật" };
+        var record = new CollectiveEvaluationRecord
+        {
+            Period = Period, Form = CollectiveEvaluationForm.M08, SubjectName = "Phòng Kỹ thuật",
+            UpdatedAt = new DateTime(2026, 9, 21, 2, 0, 0, DateTimeKind.Utc)
+        };
         record.Items.Add(new CollectiveEvaluationItem { ItemOrder = 1, Category = "1", TaskName = "Bảo dưỡng radar", PlanOrDirection = "Kế hoạch 2026", Result = "Radar hoạt động 99,9%" });
         record.Items.Add(new CollectiveEvaluationItem { ItemOrder = 2, Category = "8", TaskName = "Không để xảy ra sự cố", Result = "Đạt" });
         return Mau08Data.From(record, Header);

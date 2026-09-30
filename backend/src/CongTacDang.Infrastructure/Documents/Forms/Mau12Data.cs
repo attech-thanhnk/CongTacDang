@@ -68,6 +68,18 @@ public sealed class Mau12Data
     [TemplateField("CHAIR_SIGN")] public string? ChairSign { get; init; }
 
     /// <summary>
+    /// Chức danh dưới "CHỦ TRÌ HỘI NGHỊ" (chữ in sẵn "BÍ THƯ"): chức vụ chủ trì đã lưu trên biên bản, chữ in hoa. Chưa ghi chức vụ:
+    /// hội nghị tập thể lãnh đạo (B3a) để trống — chủ trì là thủ trưởng đơn vị, không phải Bí thư; hội nghị cấp ủy giữ "BÍ THƯ".
+    /// </summary>
+    [TemplateField("CHAIR_SIGN_TITLE")] public string? ChairSignTitle { get; init; }
+
+    /// <summary>Ghi chú chữ ký chủ trì: hội nghị tập thể lãnh đạo (B3a) không đóng dấu Đảng → "(ký, ghi rõ họ tên)"; khác giữ chữ mẫu.</summary>
+    [TemplateField("CHAIR_SIGN_NOTE")] public string? ChairSignNote { get; init; }
+
+    /// <summary>Chữ ký chủ trì khi hội nghị tập thể lãnh đạo, quản lý (B3a).</summary>
+    public const string ProposalChairSignNote = "(ký, ghi rõ họ tên)";
+
+    /// <summary>
     /// Dựng từ biên bản đã lưu. <paramref name="unitName"/>: đơn vị tổ chức hội nghị (Phòng / tổ chức Đảng / Đảng bộ);
     /// <paramref name="archiveUnit"/>: tổ chức Đảng lưu biên bản.
     /// </summary>
@@ -124,7 +136,9 @@ public sealed class Mau12Data
             Content = FormText.OrNull(content),
             ArchiveUnit = FormText.OrNull(archiveUnit?.Trim()),
             SecretarySign = FormText.OrNull(meeting.SecretaryName),
-            ChairSign = FormText.OrNull(meeting.ChairName)
+            ChairSign = FormText.OrNull(meeting.ChairName),
+            ChairSignTitle = PartyHeader.Upper(details.ChairTitle) ?? (isProposal ? string.Empty : null),
+            ChairSignNote = isProposal ? ProposalChairSignNote : null
         };
     }
 }

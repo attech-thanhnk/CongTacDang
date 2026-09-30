@@ -295,6 +295,37 @@ public class DocumentTemplateTests
     }
 
     [Fact]
+    public void Mau01_02_10_FillDateLine_FromStoredStepDates()
+    {
+        var (_, records) = SampleData();
+        var record = records[0];
+        record.TasksApprovedAt = new DateTime(2026, 7, 3, 2, 0, 0, DateTimeKind.Utc);
+        record.SelfScoredAt = new DateTime(2026, 9, 11, 2, 0, 0, DateTimeKind.Utc);
+        record.AppraisedAt = new DateTime(2026, 9, 18, 2, 0, 0, DateTimeKind.Utc);
+        var org = OrganizationTemplateFields.From("ĐẢNG BỘ A", "ĐẢNG BỘ CẤP TRÊN", "Công ty A", "Tổng công ty B", "A", "Hà Nội");
+        string Text(string file, object data)
+        {
+            var result = DocxTemplateEngine.Render(new FileWordTemplateStore().Load(file), TemplateDataBinder.Bind(data).WithShared(TemplateDataBinder.Bind(org)));
+            using var doc = Open(result.Content);
+            return BodyText(doc);
+        }
+
+        Assert.Contains("Hà Nội, ngày 03 tháng 07 năm 2026", Text(Mau01Data.TemplateFileName, Mau01Data.From(record)));
+        Assert.Contains("Hà Nội, ngày 11 tháng 09 năm 2026", Text(Mau02Data.TemplateFileName, Mau02Data.From(record)));
+        var mau10 = Text(Mau10Data.TemplateFileName, Mau10Data.From(record));
+        Assert.Contains("Hà Nội, ngày 18 tháng 09 năm 2026", mau10);
+        Assert.Contains("Mẫu số 10", mau10);
+        // Tên đơn vị thay cả dòng chấm (không còn "Phòng Kỹ thuật……").
+        Assert.Contains("Đơn vị công tác: Phòng Kỹ thuật  Kỳ đánh giá", mau10);
+
+        // Chưa tới bước → giữ dòng chấm.
+        record.TasksApprovedAt = null;
+        record.AppraisedAt = null;
+        Assert.Null(Mau01Data.From(record).DateLine);
+        Assert.Null(Mau10Data.From(record).DateLine);
+    }
+
+    [Fact]
     public void TemplateStore_MissingTemplate_ThrowsClearError()
     {
         var store = new FileWordTemplateStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")));

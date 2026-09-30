@@ -94,6 +94,9 @@ internal static class Mau09Shared
     /// <summary>Tên Chi bộ in hoa ở tiêu đề trái (giống Mẫu 11, 13); null giữ chữ mặc định.</summary>
     public static string? PartyCellUpper(EvaluationRecord record) => FormText.OrNull(record.PartyCell?.Name)?.ToUpper(Vietnamese);
 
+    /// <summary>"ngày … tháng … năm …" sau địa danh: ngày nộp phiếu tự chấm; chưa nộp → null (giữ dòng chấm).</summary>
+    public static string? DateLine(IndividualFormSource source) => CollectiveFormText.DateLine(source.Record.SelfScoredAt);
+
     /// <summary>Quý của kỳ; null nếu không nạp kỳ.</summary>
     public static string? Quarter(EvaluationRecord record) => record.Period != null ? FormText.Quarter(record.Period.Quarter) : null;
 

@@ -15,6 +15,9 @@ public sealed class Mau02Data
     /// <summary>Tên tệp template.</summary>
     public const string TemplateFileName = "Mau_02_TuDanhGia.docx";
 
+    /// <summary>"ngày … tháng … năm …" sau địa danh: ngày nộp phiếu tự chấm (chưa nộp → giữ dòng chấm).</summary>
+    [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
+
     [TemplateField("DEPARTMENT")] public string? Department { get; init; }
     [TemplateField("QUARTER")] public string? Quarter { get; init; }
     [TemplateField("YEAR")] public string? Year { get; init; }
@@ -34,6 +37,7 @@ public sealed class Mau02Data
         var scoreDecimals = FormCriteria.Read(record.Period)?.Content.Parameters.Rounding.TaskScore.Decimals ?? 2;
         return new Mau02Data
         {
+            DateLine = CollectiveFormText.DateLine(record.SelfScoredAt),
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
             Quarter = record.Period != null ? FormText.Quarter(record.Period.Quarter) : null,
             Year = record.Period != null ? FormText.Year(record.Period.Year) : null,
