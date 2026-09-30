@@ -176,7 +176,7 @@ public class OrganizationService : IOrganizationService
             SortOrder = input.SortOrder ?? 0,
             IsActive = input.IsActive ?? true,
             ParentId = ResolveNewParent(input.ParentId, all, BranchLabel),
-            UnitTypeId = await ResolveUnitTypeAsync(input.UnitTypeId, null, OrgSide.Party)
+            UnitTypeId = await ResolveUnitTypeAsync(input.UnitTypeId, null, OrgSide.Party, isNew: true)
         };
         _orgRepo.AddPartyCell(cell);
         all.Add(cell);
@@ -266,7 +266,7 @@ public class OrganizationService : IOrganizationService
             SortOrder = input.SortOrder ?? 0,
             IsActive = input.IsActive ?? true,
             ParentId = ResolveNewParent(input.ParentId, all, DepartmentLabel),
-            UnitTypeId = await ResolveUnitTypeAsync(input.UnitTypeId, null, OrgSide.Administrative)
+            UnitTypeId = await ResolveUnitTypeAsync(input.UnitTypeId, null, OrgSide.Administrative, isNew: true)
         };
         _orgRepo.AddDepartment(department);
         all.Add(department);
@@ -403,11 +403,16 @@ public class OrganizationService : IOrganizationService
 
     // ===================== Hỗ trợ cây =====================
 
-    /// <summary>Đơn vị cha cho đơn vị mới: null/Empty = gốc; phải tồn tại (chưa xóa) cùng bên.</summary>
+    /// <summary>
+    /// Đơn vị cha cho đơn vị mới: null/Empty = gốc (chỉ khi cây chưa có gốc — mỗi cây một gốc); phải tồn tại (chưa xóa) cùng bên.
+    /// </summary>
     private static Guid? ResolveNewParent<T>(Guid? parentId, IReadOnlyList<T> all, string label) where T : IOrgUnit
     {
         if (!parentId.HasValue || parentId.Value == Guid.Empty)
+        {
+            EnsureNoOtherRoot(all, null, label);
             return null;
+        }
         if (all.All(u => u.Id != parentId.Value))
             throw new ValidationException($"Không tìm thấy {label} cha đã chọn (có thể đã bị xóa). Hãy chọn lại {label} cha.");
         return parentId.Value;
@@ -436,10 +441,28 @@ public class OrganizationService : IOrganizationService
                     $"Không thể chọn \"{parent.Name}\" làm {label} cha của \"{unit.Name}\" vì \"{parent.Name}\" đang là {label} cấp dưới của "
                     + $"\"{unit.Name}\" (sẽ tạo vòng). Hãy chọn {label} cha khác.");
         }
+        else
+        {
+            EnsureNoOtherRoot(all, unit.Id, label);
+        }
 
         unit.ParentId = newParent;
         RecomputePaths(all, label);
         return true;
+    }
+
+    /// <summary>
+    /// Mỗi cây (đơn vị chính quyền / tổ chức Đảng) chỉ có một gốc: chặn tạo gốc mới hoặc đưa đơn vị lên làm gốc khi cây đã có gốc khác
+    /// (chưa xóa). Dữ liệu cũ đã có nhiều gốc không bị sửa, chỉ không thêm gốc nữa.
+    /// </summary>
+    private static void EnsureNoOtherRoot<T>(IReadOnlyList<T> all, Guid? selfId, string label) where T : IOrgUnit
+    {
+        var root = all.Where(u => u.ParentId == null && u.Id != selfId).OrderBy(u => u.Path, StringComparer.Ordinal).FirstOrDefault();
+        if (root != null)
+        {
+            throw new ValidationException($"Cây {label} đã có {label} gốc \"{root.Name}\"; mỗi cây chỉ có một gốc. "
+                + $"Hãy chọn {label} cha (ví dụ \"{root.Name}\" hoặc {label} cấp dưới của nó).");
+        }
     }
 
     /// <summary>Tính lại đường dẫn của mọi nút một bên; phát hiện vòng/thiếu cha → 400.</summary>
@@ -500,12 +523,18 @@ public class OrganizationService : IOrganizationService
         };
     }
 
-    private async Task<Guid?> ResolveUnitTypeAsync(Guid? requested, Guid? current, OrgSide side)
+    /// <summary>
+    /// Loại đơn vị bắt buộc: tạo mới phải chọn loại; khi sửa, không gửi = giữ nguyên (kể cả dữ liệu cũ chưa có loại), gửi rỗng = bỏ loại → 400.
+    /// </summary>
+    private async Task<Guid?> ResolveUnitTypeAsync(Guid? requested, Guid? current, OrgSide side, bool isNew = false)
     {
-        if (!requested.HasValue)
+        if (!requested.HasValue && !isNew)
             return current;
-        if (requested.Value == Guid.Empty)
-            return null;
+        if (!requested.HasValue || requested.Value == Guid.Empty)
+        {
+            var label = side == OrgSide.Party ? BranchLabel : DepartmentLabel;
+            throw new ValidationException($"Hãy chọn loại {label} (danh mục \"Loại đơn vị\", bên {CatalogRules.SideName(side)}).");
+        }
         if (requested == current)
             return current;
         var type = await _orgRepo.FindUnitTypeAsync(requested.Value)
