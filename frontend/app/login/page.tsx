@@ -43,10 +43,10 @@ function LoginForm() {
   return (
     <div
       className="card border w-100 shadow-sm"
-      style={{ maxWidth: "400px", borderRadius: "12px", borderColor: "#e2e8f0" }}
+      style={{ maxWidth: "420px", borderRadius: "12px", borderColor: "#e2e8f0" }}
     >
       <div className="p-4 pb-3 border-bottom text-center bg-white" style={{ borderColor: "#e2e8f0" }}>
-        <h1 className="fw-bold text-primary text-uppercase mb-0" style={{ fontSize: "17px", letterSpacing: "0.5px" }}>
+        <h1 className="fw-bold text-primary text-uppercase mb-0" style={{ fontSize: "18px", letterSpacing: "0.5px" }}>
           {org?.systemName ?? "Đánh giá cán bộ"}
         </h1>
       </div>
@@ -55,7 +55,7 @@ function LoginForm() {
         {errorMsg && (
           <div
             className="alert alert-danger py-2 px-3 small mb-3 d-flex align-items-center gap-2"
-            style={{ fontSize: "12px", borderRadius: "6px" }}
+            style={{ borderRadius: "6px" }}
           >
             <i className="bi bi-exclamation-octagon-fill text-danger flex-shrink-0"></i>
             <span>{errorMsg}</span>
@@ -67,7 +67,7 @@ function LoginForm() {
             <label className="form-label small fw-semibold text-secondary mb-1">
               Tên đăng nhập
             </label>
-            <div className="input-group input-group-sm">
+            <div className="input-group">
               <span className="input-group-text bg-light text-muted border-end-0">
                 <i className="bi bi-person"></i>
               </span>
@@ -88,7 +88,7 @@ function LoginForm() {
             <label className="form-label small fw-semibold text-secondary mb-1">
               Mật khẩu
             </label>
-            <div className="input-group input-group-sm">
+            <div className="input-group">
               <span className="input-group-text bg-light text-muted border-end-0">
                 <i className="bi bi-lock"></i>
               </span>
@@ -123,7 +123,7 @@ function LoginForm() {
           </Button>
         </form>
 
-        <div className="text-center mt-4 pt-2 border-top text-muted" style={{ fontSize: "11px", borderColor: "#f1f5f9" }}>
+        <div className="text-center mt-4 pt-2 border-top text-muted" style={{ fontSize: "13px", borderColor: "#f1f5f9" }}>
           {org ? [org.companyName, org.parentCompanyName].filter(Boolean).join(" • ") : " "}
         </div>
       </div>

@@ -212,7 +212,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
 
       <Card>
         <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0" style={{ fontSize: 13 }}>
+          <table className="table table-hover align-middle mb-0">
             <thead style={{ background: "var(--bg-base)" }}>
               <tr>
                 <th className="ps-3">Tên</th>

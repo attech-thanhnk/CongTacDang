@@ -83,7 +83,7 @@ export function AppHeader() {
         </button>
 
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span className="header-title" style={{ fontSize: "13px", fontWeight: 600 }}>{org?.systemName ?? "Đánh giá cán bộ"}</span>
+          <span className="header-title" style={{ fontSize: "15px", fontWeight: 600 }}>{org?.systemName ?? "Đánh giá cán bộ"}</span>
           {pathname !== "/" && (
             <>
               <span className="header-sep">/</span>
@@ -96,7 +96,7 @@ export function AppHeader() {
       {/* Right */}
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         {loading ? (
-          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Đang nạp...</span>
+          <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>Đang nạp...</span>
         ) : user ? (
           <>
           {/* Tài khoản phải đổi mật khẩu chỉ được gọi API đổi mật khẩu — không nạp chuông nhắc việc (tránh 403). */}
@@ -148,10 +148,10 @@ export function AppHeader() {
                 className="d-none d-sm-flex flex-column text-start"
                 style={{ lineHeight: 1.15, gap: "2px" }}
               >
-                <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>
+                <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-primary)" }}>
                   {user.fullName}
                 </span>
-                <span style={{ fontSize: "11.5px", color: "var(--text-secondary)" }}>
+                <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
                   {sessionRoleLabel(user)}
                 </span>
               </div>
@@ -178,7 +178,7 @@ export function AppHeader() {
                     position: "absolute",
                     right: 0,
                     top: "calc(100% + 8px)",
-                    width: "220px",
+                    width: "240px",
                     background: "var(--bg-card)",
                     border: "1px solid var(--border-base)",
                     borderRadius: "var(--radius-lg)",
@@ -198,7 +198,7 @@ export function AppHeader() {
                     <div
                       style={{
                         fontWeight: 600,
-                        fontSize: "13px",
+                        fontSize: "14px",
                         color: "var(--text-primary)",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
@@ -209,7 +209,7 @@ export function AppHeader() {
                     </div>
                     <div
                       style={{
-                        fontSize: "11px",
+                        fontSize: "13px",
                         color: "var(--text-muted)",
                         marginTop: "2px",
                         overflow: "hidden",
@@ -236,7 +236,7 @@ export function AppHeader() {
                         border: "none",
                         borderRadius: "var(--radius-sm)",
                         cursor: "pointer",
-                        fontSize: "13px",
+                        fontSize: "14px",
                         color: "var(--color-danger)",
                         fontWeight: 500,
                         transition: "background var(--transition-fast)",

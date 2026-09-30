@@ -33,11 +33,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       >
         <i className={`bi ${icon}`}></i>
       </div>
-      <h6 className="fw-semibold text-dark mb-1" style={{ fontSize: "14.5px" }}>
+      <h6 className="fw-semibold text-dark mb-1" style={{ fontSize: "16px" }}>
         {title}
       </h6>
       {description && (
-        <p className="text-secondary small mb-3 max-w-md lh-base" style={{ fontSize: "12.5px" }}>
+        <p className="text-secondary small mb-3 max-w-md lh-base" style={{ fontSize: "14px" }}>
           {description}
         </p>
       )}

@@ -79,7 +79,7 @@ export default function ReportsPage() {
   const renderActions = (report: ReportDefinition) => {
     if (report.scope === "collective" || report.scope === "meeting") {
       return (
-        <Link href="/collective-evaluations" className="btn btn-sm btn-outline-secondary" style={{ fontSize: "12px" }}>
+        <Link href="/collective-evaluations" className="btn btn-sm btn-outline-secondary">
           <i className="bi bi-box-arrow-up-right me-1" />
           Trang Tập thể & Hội nghị
         </Link>
@@ -91,7 +91,7 @@ export default function ReportsPage() {
     return (
       <div className="d-flex flex-wrap gap-1 justify-content-end">
         {report.id === "mau-16" && (
-          <Button size="sm" variant={showForm16 ? "primary" : "outline-primary"} icon="bi-pencil-square" onClick={() => setShowForm16(!showForm16)} style={{ fontSize: "12px" }}>
+          <Button size="sm" variant={showForm16 ? "primary" : "outline-primary"} icon="bi-pencil-square" onClick={() => setShowForm16(!showForm16)}>
             Soạn báo cáo
           </Button>
         )}
@@ -102,7 +102,6 @@ export default function ReportsPage() {
           loading={busy === `${report.id}-original`}
           loadingText="Đang xuất..."
           onClick={() => download(report, "original")}
-          style={{ fontSize: "12px" }}
         >
           {report.fileType === "XLSX" ? "Excel" : "Word"}
         </Button>
@@ -114,7 +113,6 @@ export default function ReportsPage() {
             loading={busy === `${report.id}-pdf`}
             loadingText="Đang xuất..."
             onClick={() => download(report, "pdf")}
-            style={{ fontSize: "12px" }}
           >
             PDF
           </Button>
@@ -131,7 +129,7 @@ export default function ReportsPage() {
       <div className="table-responsive">
         <table className="table align-middle mb-0">
           <thead className="table-light">
-            <tr style={{ fontSize: "12.5px" }}>
+            <tr>
               <th style={{ width: 90 }}>Mẫu</th>
               <th>Tên biểu mẫu</th>
               <th style={{ width: 80 }} className="text-center">Định dạng</th>
@@ -143,10 +141,10 @@ export default function ReportsPage() {
               <React.Fragment key={report.id}>
                 <tr>
                   <td>
-                    <span className="badge text-bg-light border" style={{ fontSize: "12px" }}>{report.code}</span>
+                    <span className="badge text-bg-light border">{report.code}</span>
                   </td>
                   <td>
-                    <div className="fw-semibold" style={{ fontSize: "13.5px" }}>{report.title}</div>
+                    <div className="fw-semibold">{report.title}</div>
                   </td>
                   <td className="text-center small text-secondary">{report.fileType}</td>
                   <td className="text-end">{renderActions(report)}</td>

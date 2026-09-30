@@ -44,6 +44,7 @@
 
   /* Surface & Background */
   --bg-app:         #f4f6fb;
+  --bg-base:        #f8fafc;
   --bg-card:        #ffffff;
   --bg-sidebar:     #0f1a36;
   --bg-sidebar-mid: #162348;
@@ -75,8 +76,18 @@
   --shadow-lg:  0 8px 30px rgba(12, 22, 48, 0.12), 0 4px 12px rgba(12, 22, 48, 0.06);
   --shadow-xl:  0 20px 50px rgba(12, 22, 48, 0.16), 0 8px 20px rgba(12, 22, 48, 0.08);
 
+  /* Cỡ chữ dùng chung */
+  --fs-base:   15px;   /* chữ nền: đoạn văn, ô nhập */
+  --fs-table:  14.5px; /* ô bảng */
+  --fs-control:14.5px; /* ô nhập, ô chọn */
+  --fs-label:  14px;   /* nhãn form, tiêu đề cột */
+  --fs-btn:    14px;
+  --fs-btn-sm: 13.5px;
+  --fs-small:  13px;   /* chữ phụ tối thiểu */
+  --fs-title:  20px;   /* tiêu đề trang */
+
   /* Sidebar */
-  --sidebar-w: 228px;
+  --sidebar-w: 236px;
   --header-h:  46px;
 
   /* Transitions */
@@ -97,7 +108,7 @@
   overflow: auto;
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--fs-small);
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
@@ -115,9 +126,10 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Cỡ chữ nền 15px (rem = 15px): chữ phụ Bootstrap (.small = .875em) ≈ 13px. */
 html, body {
   font-family: var(--font-ui) !important;
-  font-size: 14px;
+  font-size: var(--fs-base);
   line-height: 1.55;
   background-color: var(--bg-app);
   color: var(--text-primary);
@@ -157,6 +169,26 @@ button, input, select, textarea, label {
   font-family: var(--font-ui) !important;
 }
 
+/* Chữ phụ không nhỏ hơn 13px; trong bảng thì dùng đúng cỡ chữ bảng. */
+.small, small {
+  font-size: max(0.875em, var(--fs-small));
+}
+
+.table .small,
+.table small {
+  font-size: inherit;
+}
+
+/* Dòng phụ bên dưới nội dung ô (mã, ghi chú ngắn) giữ cỡ chữ phụ. */
+.table td .small.text-secondary,
+.table td .small.text-muted {
+  font-size: var(--fs-small);
+}
+
+/* Tiêu đề khối trong card (h2.h5 / h2.h6) */
+h5, .h5 { font-size: 1.1rem; }
+h6, .h6 { font-size: 1rem; }
+
 /* ============================================================
    SIDEBAR — Dark Navy (như Singapore CorpPass)
    ============================================================ */
@@ -186,7 +218,7 @@ aside.app-sidebar .sidebar-brand {
 
 aside.app-sidebar .sidebar-brand-text {
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: #ffffff;
@@ -194,8 +226,8 @@ aside.app-sidebar .sidebar-brand-text {
 }
 
 aside.app-sidebar .sidebar-brand-sub {
-  font-size: 11.5px;
-  color: rgba(255,255,255,0.65);
+  font-size: var(--fs-small);
+  color: rgba(255,255,255,0.7);
   font-weight: 500;
   letter-spacing: 0.2px;
   margin-top: 2px;
@@ -225,11 +257,11 @@ aside.app-sidebar .nav-link {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
+  padding: 10px 12px;
   border-radius: var(--radius-md);
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
-  color: rgba(255,255,255,0.78);
+  color: rgba(255,255,255,0.82);
   text-decoration: none;
   transition: background-color var(--transition-fast), color var(--transition-fast);
   margin-bottom: 2px;
@@ -277,15 +309,15 @@ aside.app-sidebar .sidebar-footer {
 }
 
 aside.app-sidebar .sidebar-footer .user-name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: #ffffff;
   line-height: 1.2;
 }
 
 aside.app-sidebar .sidebar-footer .user-role {
-  font-size: 11.5px;
-  color: rgba(255,255,255,0.65);
+  font-size: var(--fs-small);
+  color: rgba(255,255,255,0.7);
   margin-top: 2px;
 }
 
@@ -362,7 +394,7 @@ header.app-header {
 }
 
 header.app-header .header-title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
@@ -375,7 +407,7 @@ header.app-header .header-sep {
 }
 
 header.app-header .header-page {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-secondary);
 }
@@ -407,7 +439,7 @@ header.app-header .header-page {
 }
 
 .app-card-title {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.6px;
@@ -434,9 +466,53 @@ header.app-header .header-page {
 .card-header {
   background-color: var(--bg-card);
   border-bottom: 1px solid var(--border-subtle);
-  padding: 12px 18px;
+  padding: 12px var(--card-px);
   border-top-left-radius: var(--radius-lg) !important;
   border-top-right-radius: var(--radius-lg) !important;
+}
+
+.card-body {
+  padding: var(--card-py) var(--card-px);
+}
+
+.card-footer {
+  padding: 12px var(--card-px);
+  background-color: var(--bg-card);
+}
+
+/* Bảng nằm sát mép card: ô đầu/cuối thẳng hàng với lề card. */
+.card > .table-responsive > .table > thead > tr > th:first-child,
+.card > .table-responsive > .table > tbody > tr > td:first-child,
+.card-body.p-0 > .table-responsive > .table > thead > tr > th:first-child,
+.card-body.p-0 > .table-responsive > .table > tbody > tr > td:first-child {
+  padding-left: var(--card-px) !important;
+}
+
+.card > .table-responsive > .table > thead > tr > th:last-child,
+.card > .table-responsive > .table > tbody > tr > td:last-child,
+.card-body.p-0 > .table-responsive > .table > thead > tr > th:last-child,
+.card-body.p-0 > .table-responsive > .table > tbody > tr > td:last-child {
+  padding-right: var(--card-px) !important;
+}
+
+.card > .table-responsive,
+.card-body.p-0 > .table-responsive {
+  border: none;
+  border-radius: 0;
+}
+
+/* Hộp thoại */
+.modal-title {
+  font-size: 16px;
+}
+
+.modal-header,
+.modal-footer {
+  padding: 12px 18px !important;
+}
+
+.modal-body {
+  padding: 16px 18px !important;
 }
 
 /* ============================================================
@@ -536,7 +612,7 @@ header.app-header .header-page {
 .evaluation-action-bar .btn {
   min-height: 32px;
   padding: 6px 12px;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.35;
 }
 
@@ -546,7 +622,7 @@ header.app-header .header-page {
   flex-wrap: wrap;
   gap: 6px;
   color: var(--text-secondary);
-  font-size: 12.5px;
+  font-size: 13.5px;
 }
 
 .evaluation-status-success i {
@@ -578,7 +654,7 @@ header.app-header .header-page {
   border-radius: var(--radius-sm);
   background: var(--color-warning-bg);
   color: var(--color-warning);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.35;
 }
 
@@ -608,7 +684,7 @@ header.app-header .header-page {
 .task-add-trigger .btn {
   min-height: 38px;
   padding: 8px 16px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -630,12 +706,12 @@ header.app-header .header-page {
 
 .task-add-heading strong {
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .task-add-heading span {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
   margin-top: 2px;
 }
 
@@ -643,7 +719,7 @@ header.app-header .header-page {
   display: block;
   margin-bottom: 5px;
   color: var(--text-secondary);
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -790,7 +866,7 @@ header.app-header .header-page {
 
   .task-table tbody td::before {
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
   }
 
@@ -862,22 +938,39 @@ header.app-header .header-page {
   margin-left: auto;
 }
 
+/* Nút và ô chọn trên thanh tiêu đề: cùng chiều cao, cùng cỡ chữ (kể cả bản -sm). */
 .page-header-actions .btn,
 .page-header-actions .form-select,
 .page-header-actions .form-control {
-  min-height: 32px;
+  min-height: 36px;
+  font-size: var(--fs-btn);
 }
 
 .page-header-actions .btn {
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: 7px 14px;
   line-height: 1.35;
+}
+
+.page-header-actions .btn-link {
+  padding-left: 6px;
+  padding-right: 6px;
 }
 
 .page-header-actions .form-select,
 .page-header-actions .form-control {
   padding-top: 6px;
   padding-bottom: 6px;
+}
+
+.page-header-actions .form-select {
+  width: auto;
+  max-width: 100%;
+  min-width: 160px;
+}
+
+.page-header-actions > .d-flex,
+.page-header-actions .page-header-filters {
+  align-items: center;
 }
 
 @media (max-width: 767.98px) {
@@ -894,10 +987,20 @@ header.app-header .header-page {
     margin-left: 0;
     flex-wrap: wrap;
   }
+
+  .page-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .page-header-actions .form-select {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
 }
 
 .page-header-bar h1 {
-  font-size: 19px !important;
+  font-size: var(--fs-title) !important;
   font-weight: 700 !important;
   color: var(--text-primary) !important;
   margin: 0 !important;
@@ -906,7 +1009,7 @@ header.app-header .header-page {
 }
 
 .page-header-bar .page-subtitle {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text-secondary);
   margin-top: 3px;
   line-height: 1.2;
@@ -948,7 +1051,7 @@ header.app-header .header-page {
 .page-section-title {
   margin: 0;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   line-height: 1.35;
 }
@@ -1009,18 +1112,20 @@ header.app-header .header-page {
   background: #f1f5f9 !important;
   color: var(--text-secondary) !important;
   font-weight: 600 !important;
-  font-size: 12.5px !important;
+  font-size: var(--fs-label) !important;
   letter-spacing: 0.01em;
   border-bottom: 1px solid var(--border-base) !important;
   border-top: none !important;
   border-left: none !important;
   border-right: none !important;
-  padding: 11px 14px !important;
+  padding: 10px 14px !important;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .table tbody td {
-  padding: 11px 14px;
-  font-size: 13.5px;
+  padding: 10px 14px;
+  font-size: var(--fs-table);
   color: var(--text-primary);
   border-top: 1px solid var(--border-subtle);
   border-bottom: none;
@@ -1028,6 +1133,21 @@ header.app-header .header-page {
   border-right: none;
   vertical-align: middle;
   transition: background-color var(--transition-fast);
+}
+
+/* Bảng soạn thảo nhỏ (table-sm) trong form: vẫn giữ cỡ chữ bảng, chỉ gọn hơn. */
+.table-sm tbody td {
+  padding: 7px 10px;
+}
+
+.table-sm thead th {
+  padding: 8px 10px !important;
+}
+
+/* Cột ngắn (ngày, trạng thái, mã, thao tác): không xuống dòng. */
+.table .col-nowrap,
+.table td.text-nowrap {
+  white-space: nowrap;
 }
 
 .table-bordered {
@@ -1055,7 +1175,7 @@ header.app-header .header-page {
 .form-control {
   border: 1.5px solid var(--border-base);
   border-radius: var(--radius-sm);
-  font-size: 13.5px;
+  font-size: var(--fs-control);
   font-family: var(--font-ui) !important;
   color: var(--text-primary);
   padding: 7px 12px;
@@ -1067,7 +1187,7 @@ header.app-header .header-page {
 .form-select {
   border: 1.5px solid var(--border-base);
   border-radius: var(--radius-sm);
-  font-size: 13.5px;
+  font-size: var(--fs-control);
   font-family: var(--font-ui) !important;
   color: var(--text-primary);
   padding: 7px 34px 7px 12px; /* Dành riêng 34px bên phải cho mũi tên */
@@ -1097,16 +1217,19 @@ header.app-header .header-page {
   font-weight: 400;
 }
 
+/* Bản -sm chỉ gọn hơn về khoảng đệm, chữ vẫn đủ lớn để đọc. */
 .form-control-sm {
   border-radius: var(--radius-sm);
-  padding: 5px 10px;
-  font-size: 13px;
+  padding: 6px 10px;
+  font-size: var(--fs-label);
+  min-height: 34px;
 }
 
 .form-select-sm {
   border-radius: var(--radius-sm);
-  padding: 5px 28px 5px 10px; /* Dành riêng 28px bên phải để tuyệt đối không đè ký tự */
-  font-size: 13px;
+  padding: 6px 28px 6px 10px; /* Dành riêng 28px bên phải để tuyệt đối không đè ký tự */
+  font-size: var(--fs-label);
+  min-height: 34px;
   background-position: right 8px center;
   background-size: 12px 8px;
   appearance: none;
@@ -1115,12 +1238,22 @@ header.app-header .header-page {
   cursor: pointer;
 }
 
-.form-label {
-  font-size: 12.5px;
+.form-label,
+.form-label.small {
+  font-size: var(--fs-label);
   font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: 5px;
   letter-spacing: 0.01em;
+}
+
+.form-check-label,
+.form-text {
+  font-size: max(0.93em, var(--fs-small));
+}
+
+textarea.form-control {
+  line-height: 1.5;
 }
 
 /* ============================================================
@@ -1128,7 +1261,7 @@ header.app-header .header-page {
    ============================================================ */
 .btn {
   font-family: var(--font-ui) !important;
-  font-size: 13px;
+  font-size: var(--fs-btn);
   font-weight: 600;
   border-radius: var(--radius-sm);
   padding: 7px 16px;
@@ -1145,8 +1278,19 @@ header.app-header .header-page {
 
 .btn-sm {
   border-radius: var(--radius-sm);
-  padding: 5px 12px;
-  font-size: 12px;
+  padding: 6px 12px;
+  font-size: var(--fs-btn-sm);
+  min-height: 32px;
+}
+
+.btn-link.btn-sm,
+.btn-sm.p-0 {
+  min-height: 0;
+}
+
+.btn-group-sm > .btn {
+  font-size: var(--fs-btn-sm);
+  padding: 6px 12px;
 }
 
 /* Primary — Cobalt solid */
@@ -1235,7 +1379,7 @@ header.app-header .header-page {
 .badge {
   font-family: var(--font-ui) !important;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 13px;
   padding: 3.5px 8.5px;
   border-radius: 6px;
   letter-spacing: 0.01em;
@@ -1303,7 +1447,7 @@ header.app-header .header-page {
   align-items: center;
   gap: 8px;
   padding: 12px 18px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-secondary);
   border-bottom: 2px solid transparent;
@@ -1335,7 +1479,7 @@ header.app-header .header-page {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   flex-shrink: 0;
   transition: all var(--transition-fast);
@@ -1416,7 +1560,7 @@ header.app-header .header-page {
 }
 
 .stat-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
   line-height: 1.3;
@@ -1433,7 +1577,7 @@ header.app-header .header-page {
 }
 
 .stat-meta {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-muted);
   margin-top: 3px;
 }
@@ -1496,25 +1640,25 @@ header.app-header .header-page {
 }
 
 .timeline-step-num {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .timeline-step-name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   margin-top: 4px;
 }
 
 .timeline-step-desc {
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--text-muted);
   margin-top: 2px;
 }
 
 .timeline-step-status {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   margin-top: 10px;
   padding-top: 8px;
@@ -1554,7 +1698,7 @@ header.app-header .header-page {
    ============================================================ */
 .alert {
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: 14px;
   border-width: 1px;
 }
 
@@ -1599,7 +1743,7 @@ header.app-header .header-page {
    SECTION DIVIDER
    ============================================================ */
 .section-label {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;

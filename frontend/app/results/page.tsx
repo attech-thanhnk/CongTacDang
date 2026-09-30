@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
+import { Badge, GradeBadge } from "@/components/common/StatusBadge";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { GRADE_OPTIONS } from "@/services/evaluationService";
@@ -97,12 +98,12 @@ export default function ResultsPage() {
         ) : items.length === 0 ? (
           <EmptyState icon="bi-award" title="Chưa có kết quả công bố" description="Khi kết quả đánh giá được công bố trong phạm vi của bạn, danh sách sẽ hiện ở đây." />
         ) : (
-          <section className="card border-0 shadow-sm">
+          <section className="card">
             <div className="card-body p-0">
               <div className="table-responsive">
-                <table className="table table-hover table-sm align-middle mb-0">
+                <table className="table table-hover align-middle mb-0">
                   <thead>
-                    <tr className="small text-secondary">
+                    <tr>
                       <th className="ps-3">#</th>
                       <th>Họ và tên</th>
                       <th>Chức danh</th>
@@ -116,19 +117,19 @@ export default function ResultsPage() {
                   <tbody>
                     {items.map((item, index) => (
                       <tr key={`${item.periodId}-${item.fullName}-${index}`}>
-                        <td className="ps-3 small text-secondary">{index + 1}</td>
-                        <td className="small fw-semibold">
+                        <td className="ps-3 text-secondary">{index + 1}</td>
+                        <td className="fw-semibold">
                           {item.recordId ? <Link href={`/evaluations/${item.recordId}`}>{item.fullName}</Link> : item.fullName}
                           {item.isOwn && <span className="badge text-bg-info ms-2">Của tôi</span>}
                           {!periodId && <div className="small text-secondary fw-normal">{item.periodName}</div>}
                         </td>
-                        <td className="small">{item.positionTitle || "—"}</td>
-                        <td className="small">{item.departmentName || "—"}</td>
-                        <td className="small">{item.finalGradeName}</td>
-                        {data?.showsScores && <td className="small text-end">{item.finalScore ?? "—"}</td>}
-                        <td className="small">{formatDate(item.publishedAt)}</td>
-                        <td className="small">
-                          {item.underReview && <span className="badge text-bg-warning">Đang xem xét kiến nghị</span>}
+                        <td>{item.positionTitle || "—"}</td>
+                        <td>{item.departmentName || "—"}</td>
+                        <td><GradeBadge grade={item.finalGrade} /></td>
+                        {data?.showsScores && <td className="text-end">{item.finalScore ?? "—"}</td>}
+                        <td className="text-nowrap">{formatDate(item.publishedAt)}</td>
+                        <td>
+                          {item.underReview && <Badge tone="warning">Đang xem xét kiến nghị</Badge>}
                         </td>
                       </tr>
                     ))}

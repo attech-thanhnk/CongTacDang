@@ -117,7 +117,7 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
   const textArea = (label: string, value: string, onChange: (value: string) => void, rows = 3, hint?: string) => (
     <div className="col-12">
       <label className="form-label small mb-1 fw-semibold">{label}</label>
-      {hint && <div className="text-secondary mb-1" style={{ fontSize: "11.5px" }}>{hint}</div>}
+      {hint && <div className="text-secondary mb-1" style={{ fontSize: "13px" }}>{hint}</div>}
       <textarea className="form-control form-control-sm" rows={rows} value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   );

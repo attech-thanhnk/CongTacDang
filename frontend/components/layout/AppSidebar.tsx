@@ -139,7 +139,7 @@ export function AppSidebar() {
               {group.title && (
                 <div
                   className="px-3 pt-3 pb-1 text-uppercase fw-semibold"
-                  style={{ fontSize: "11px", letterSpacing: "0.06em", color: "rgba(255,255,255,0.4)" }}
+                  style={{ fontSize: "12px", letterSpacing: "0.06em", color: "rgba(255,255,255,0.55)" }}
                 >
                   {group.title}
                 </div>
@@ -188,7 +188,7 @@ export function AppSidebar() {
                   border: "none",
                   color: "rgba(255,255,255,0.45)",
                   cursor: "pointer",
-                  fontSize: "14px",
+                  fontSize: "16px",
                   padding: "4px",
                   borderRadius: "4px",
                   display: "flex",
@@ -204,7 +204,7 @@ export function AppSidebar() {
               </button>
             </>
           ) : (
-            <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "12px" }}>Chưa đăng nhập</div>
+            <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px" }}>Chưa đăng nhập</div>
           )}
         </div>
       </aside>

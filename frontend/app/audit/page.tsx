@@ -7,6 +7,7 @@ import { auditService, AuditLogDto } from "@/services/auditService";
 import { Card, CardBody, PageHeader } from "@/components/common";
 import { LoginEventsTab } from "@/components/admin/LoginEventsTab";
 import { NoAccess } from "@/components/admin/NoAccess";
+import { AdminModal } from "@/components/admin/AdminModal";
 import { errorMessage, formatDateTime } from "@/components/admin/adminUtils";
 
 type AuditTab = "actions" | "logins";
@@ -85,7 +86,7 @@ function AuditPageContent() {
         limit: 200,
       });
       setLogs(result);
-      setSelectedLog((current) => (current && result.some((log) => log.id === current.id) ? current : result[0] || null));
+      setSelectedLog((current) => (current && result.some((log) => log.id === current.id) ? current : null));
     } catch (error) {
       toast.error(errorMessage(error, "Không thể tải nhật ký thao tác."));
     } finally {
@@ -223,18 +224,16 @@ function AuditPageContent() {
           </CardBody>
         </Card>
 
-        <div className="row g-3 align-items-start">
-          <div className="col-12 col-xl-8">
             <Card>
               <div className="table-responsive">
-                <table className="table table-hover align-middle mb-0" style={{ fontSize: 13 }}>
-                  <thead style={{ background: "var(--bg-base)" }}>
+                <table className="table table-hover align-middle mb-0">
+                  <thead>
                     <tr>
-                      <th className="ps-3">Thời điểm</th>
+                      <th>Thời điểm</th>
                       <th>Thao tác</th>
                       <th>Người thực hiện</th>
                       <th>Đối tượng</th>
-                      <th className="pe-3">Đường dẫn API</th>
+                      <th>Đường dẫn API</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -247,11 +246,11 @@ function AuditPageContent() {
                       const isSelected = selectedLog?.id === log.id;
                       return (
                         <tr key={log.id} onClick={() => setSelectedLog(log)} style={{ cursor: "pointer", background: isSelected ? "var(--bg-row-selected)" : undefined }}>
-                          <td className="ps-3 text-nowrap">
+                          <td className="text-nowrap">
                             <div className="fw-semibold text-dark">{formatDate(log.createdAt).split(",")[0]}</div>
                             <div className="small text-secondary">{formatDate(log.createdAt).split(",").slice(1).join(",").trim()}</div>
                           </td>
-                          <td>
+                          <td className="text-nowrap">
                             <span className="badge border" style={{ color: meta.color, background: meta.background, borderColor: `${meta.color}33` }}>
                               <i className={`bi ${meta.icon} me-1`} />{meta.label}
                             </span>
@@ -264,7 +263,7 @@ function AuditPageContent() {
                             <div className="fw-semibold text-dark">{entityLabel(log.entityType)}</div>
                             <code className="small text-secondary">{log.entityId.slice(0, 14)}…</code>
                           </td>
-                          <td className="pe-3 text-secondary small text-truncate" style={{ maxWidth: 180 }}>{log.requestPath || "—"}</td>
+                          <td className="text-secondary text-truncate" style={{ maxWidth: 320 }} title={log.requestPath || undefined}>{log.requestPath || "—"}</td>
                         </tr>
                       );
                     })}
@@ -272,45 +271,37 @@ function AuditPageContent() {
                 </table>
               </div>
             </Card>
-          </div>
 
-          <div className="col-12 col-xl-4">
-            <Card>
-              <div className="card-header bg-white border-bottom py-3 px-3">
-                <div className="d-flex align-items-center gap-2">
-                  <i className="bi bi-file-diff text-primary" />
-                  <span className="fw-bold text-dark">Chi tiết thay đổi</span>
+        </>
+        )}
+
+        {tab === "actions" && selectedLog && (
+          <AdminModal title="Chi tiết thay đổi" onClose={() => setSelectedLog(null)} maxWidth={900}>
+            <div className="d-flex justify-content-between align-items-start gap-2 mb-3">
+              <div>
+                <div className="fw-semibold">{entityLabel(selectedLog.entityType)}</div>
+                <code className="small text-dark text-break">{selectedLog.entityId}</code>
+              </div>
+              <div className="text-end">
+                <div className="text-nowrap">{formatDate(selectedLog.createdAt)}</div>
+                <div className="small text-secondary">{selectedLog.actorName || "system"}</div>
+              </div>
+            </div>
+            <div className="row g-3">
+              <div className="col-12 col-lg-6">
+                <div className="audit-detail-block h-100">
+                  <div className="small fw-semibold text-secondary mb-1">Dữ liệu trước</div>
+                  <pre className="mb-0">{parseSnapshot(selectedLog.oldValues)}</pre>
                 </div>
               </div>
-              <CardBody>
-                {selectedLog ? (
-                  <div>
-                    <div className="d-flex justify-content-between align-items-start gap-2 mb-3">
-                      <div>
-                        <div className="small text-secondary">{entityLabel(selectedLog.entityType)}</div>
-                        <code className="small text-dark text-break">{selectedLog.entityId}</code>
-                      </div>
-                      <span className="small text-secondary text-nowrap">{formatDate(selectedLog.createdAt)}</span>
-                    </div>
-                    <div className="audit-detail-block mb-3">
-                      <div className="small fw-semibold text-secondary mb-1">Dữ liệu trước</div>
-                      <pre className="mb-0">{parseSnapshot(selectedLog.oldValues)}</pre>
-                    </div>
-                    <div className="audit-detail-block">
-                      <div className="small fw-semibold text-secondary mb-1">Dữ liệu sau</div>
-                      <pre className="mb-0">{parseSnapshot(selectedLog.newValues)}</pre>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center text-secondary py-4 small">
-                    <i className="bi bi-cursor-text fs-4 d-block mb-2" />Chọn một dòng để xem dữ liệu trước và sau thay đổi.
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-          </div>
-        </div>
-        </>
+              <div className="col-12 col-lg-6">
+                <div className="audit-detail-block h-100">
+                  <div className="small fw-semibold text-secondary mb-1">Dữ liệu sau</div>
+                  <pre className="mb-0">{parseSnapshot(selectedLog.newValues)}</pre>
+                </div>
+              </div>
+            </div>
+          </AdminModal>
         )}
       </div>
     </div>
