@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
+import { Badge, GradeBadge, RecordStatusBadge } from "@/components/common/StatusBadge";
 import { useToast } from "@/contexts/ToastContext";
 import { RecordProgress } from "@/components/evaluations/RecordProgress";
 import { RecordActionPanel } from "@/components/evaluations/RecordActionPanel";
@@ -12,6 +13,8 @@ import { AppealPanel } from "@/components/evaluations/AppealPanel";
 import { ImprovementPlanPanel } from "@/components/evaluations/ImprovementPlanPanel";
 import { EvaluationPdfModal } from "@/components/evaluations/EvaluationPdfModal";
 import { RecordFormsPanel } from "@/components/evaluations/RecordFormsPanel";
+import { RecordHistory } from "@/components/evaluations/RecordHistory";
+import { CollapsibleSection } from "@/components/evaluations/CollapsibleSection";
 import { SelfAssessmentView, TaskResultsView } from "@/components/evaluations/IndividualFormInputs";
 import { useCriteria } from "@/components/evaluations/useCriteria";
 import { attachmentService } from "@/services/attachmentService";
@@ -26,13 +29,15 @@ import {
   WorkflowStepCode,
   criteriaAppliesForm,
   evaluationService,
-  gradeLabel,
   isConcurrencyConflict,
   selfAssessmentSections,
 } from "@/services/evaluationService";
 import { formatDate, formatDateTime } from "@/lib/dateFormat";
 
-/** Trang hồ sơ đánh giá: tiến trình 9 bước, dữ liệu từng bước, nút thao tác theo `actions`, lịch sử. */
+/**
+ * Trang hồ sơ đánh giá: đầu trang là tiến trình; khu thao tác (theo `actions`) ngay dưới tiến trình khi có;
+ * dữ liệu từng bước chia mục thu gọn được; cột phải là biểu mẫu và lịch sử.
+ */
 export default function EvaluationRecordPage() {
   const params = useParams<{ recordId: string }>();
   const recordId = params?.recordId;
@@ -114,13 +119,14 @@ export default function EvaluationRecordPage() {
   }
 
   const isReturned = !!record.returnReason;
+  const overdue = record.progress.some((p) => p.state === "current" && p.overdue);
 
   return (
     <div className="page-wrapper">
       <PageHeader
         title={record.fullName}
         subTitle={`${record.periodName} · ${record.departmentName || "Chưa gắn Phòng"} · ${record.partyCellName || "Chưa gắn Chi bộ"} · ${record.approvalAuthority === "CapTren" ? "Cấp trên quyết định" : "Đảng ủy cơ sở quyết định"} · Hồ sơ luồng: ${record.workflowProfileName || record.workflowProfileCode}`}
-        badge={<span className="badge text-bg-primary">{record.statusDisplayName}</span>}
+        badge={<RecordStatusBadge status={record.status} label={record.statusDisplayName} returned={isReturned} overdue={overdue} />}
         actions={
           <div className="d-flex gap-2">
             <Link href="/work-queue" className="btn btn-outline-secondary btn-sm"><i className="bi bi-arrow-left me-1" />Việc cần xử lý</Link>
@@ -146,56 +152,34 @@ export default function EvaluationRecordPage() {
           </div>
         )}
 
-        <section className="card border-0 shadow-sm">
-          <div className="card-body">
-            <h2 className="h6 mb-3">Tiến trình</h2>
+        <section className="card border-0 shadow-sm" aria-label="Tiến trình hồ sơ">
+          <div className="card-body py-2 px-3">
             <RecordProgress progress={record.progress} />
           </div>
         </section>
 
+        {actions.length > 0 && (
+          <section className="card shadow-sm" style={{ outline: "2px solid #3b82f6", outlineOffset: -1 }} aria-labelledby="record-actions-title">
+            <div className="card-header bg-primary-subtle border-0 py-2">
+              <h2 id="record-actions-title" className="h6 mb-0 text-primary-emphasis">
+                <i className="bi bi-pencil-square me-2" />Thao tác của bạn
+              </h2>
+            </div>
+            <div className="card-body" style={{ fontSize: 14 }}>
+              <RecordActionPanel record={record} actions={actions} busy={busy} onSubmit={perform} onReason={setReasonAction} />
+            </div>
+          </section>
+        )}
+
         <div className="row g-3">
-          <div className="col-12 col-xl-7 d-flex flex-column gap-3">
-            <section className="card border-0 shadow-sm">
-              <div className="card-body">
-                <h2 className="h6 mb-3">Thao tác của bạn</h2>
-                <RecordActionPanel record={record} actions={actions} busy={busy} onSubmit={perform} onReason={setReasonAction} />
-              </div>
-            </section>
+          <div className="col-12 col-xl-8 d-flex flex-column gap-3">
             <RecordData record={record} />
             <AppealPanel record={record} onRecordChanged={load} />
             <ImprovementPlanPanel record={record} />
           </div>
-          <div className="col-12 col-xl-5 d-flex flex-column gap-3">
+          <div className="col-12 col-xl-4 d-flex flex-column gap-3">
             <RecordFormsPanel recordId={record.id} fullName={record.fullName} forms={forms} />
-            <section className="card border-0 shadow-sm">
-              <div className="card-body">
-                <h2 className="h6 mb-3">Lịch sử hồ sơ</h2>
-                {history.length === 0 ? (
-                  <div className="text-secondary small">Chưa có mốc nào.</div>
-                ) : (
-                  <ul className="list-unstyled mb-0 d-flex flex-column gap-2">
-                    {history.map((h) => (
-                      <li key={h.id} className="border-start border-3 ps-2" style={{ borderColor: h.action === "Return" || h.action === "Reopen" ? "#dc2626" : "#93c5fd" }}>
-                        <div className="small fw-semibold">
-                          {h.actionName}
-                          {h.stepName ? ` · ${h.stepName}` : ""}
-                        </div>
-                        <div className="small text-secondary">
-                          {formatDateTime(h.createdAt)} · {h.actorName} · {h.fromStatusName || "—"} → {h.toStatusName}
-                        </div>
-                        {h.reason && <div className="small"><strong>Lý do:</strong> {h.reason}</div>}
-                        {h.gradeBefore !== h.gradeAfter && (
-                          <div className="small text-secondary">Mức: {gradeLabel(h.gradeBefore)} → {gradeLabel(h.gradeAfter)}</div>
-                        )}
-                        {h.scoreBefore !== h.scoreAfter && (
-                          <div className="small text-secondary">Điểm: {h.scoreBefore ?? "—"} → {h.scoreAfter ?? "—"}</div>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </section>
+            <RecordHistory history={history} />
           </div>
         </div>
       </div>
@@ -222,47 +206,59 @@ export default function EvaluationRecordPage() {
   );
 }
 
-function Field({ label, value }: { label: string; value?: React.ReactNode }) {
+type FieldItem = [label: string, value: React.ReactNode];
+
+const isEmpty = (value: React.ReactNode) => value === undefined || value === null || value === "" || value === false;
+
+/** Lưới trường chỉ đọc: bỏ trường chưa có giá trị; không còn trường nào thì báo chưa có dữ liệu. */
+function Fields({ items }: { items: FieldItem[] }) {
+  const shown = items.filter(([, value]) => !isEmpty(value));
+  if (shown.length === 0) return <div className="text-secondary">Chưa có dữ liệu.</div>;
   return (
-    <div className="col-6 col-md-4">
-      <div className="small text-secondary">{label}</div>
-      <div className="small fw-semibold">{value === undefined || value === null || value === "" ? "—" : value}</div>
+    <div className="row g-2">
+      {shown.map(([label, value]) => (
+        <div key={label} className="col-6 col-md-4">
+          <div className="text-secondary" style={{ fontSize: 13 }}>{label}</div>
+          <div className="fw-semibold" style={{ whiteSpace: "pre-wrap" }}>{value}</div>
+        </div>
+      ))}
     </div>
   );
 }
 
-/** Nhãn chế độ bước cạnh tiêu đề mục dữ liệu: cấp trên thực hiện / không áp dụng cho nhóm này. */
-function ModeNote({ record, step }: { record: EvaluationRecordDto; step: WorkflowStepCode }) {
-  const mode = record.progress.find((p) => p.step === step)?.mode;
-  if (mode === "External") return <span className="badge text-bg-light border ms-2 fw-normal">Do cấp trên thực hiện — ghi nhận kết quả</span>;
-  if (mode === "Off") return <span className="badge text-bg-light border ms-2 fw-normal">Không áp dụng cho nhóm này</span>;
-  return null;
-}
+const hasGrade = (grade?: string | null) => !!grade && grade !== "ChuaXepLoai";
 
-/** Dữ liệu đã lưu của các bước (chỉ đọc). */
+/** Dữ liệu đã lưu của các bước (chỉ đọc), mỗi bước một mục; bước chưa tới thu gọn, bước không áp dụng ẩn. */
 function RecordData({ record }: { record: EvaluationRecordDto }) {
   const { toast } = useToast();
   const { criteria } = useCriteria(record.periodId);
-  const enabled = (step: WorkflowStepCode) => record.progress.find((p) => p.step === step)?.enabled ?? true;
-  const offSteps = record.progress.filter((p) => p.mode === "Off");
+  const stepOf = (step: WorkflowStepCode) => record.progress.find((p) => p.step === step);
+  const enabled = (step: WorkflowStepCode) => stepOf(step)?.enabled ?? true;
+  const reached = (step: WorkflowStepCode) => {
+    const state = stepOf(step)?.state;
+    return state === undefined || state === "done" || state === "current";
+  };
+  const tag = (step: WorkflowStepCode) => {
+    const item = stepOf(step);
+    return (
+      <span className="d-inline-flex gap-1">
+        {item?.mode === "External" && <Badge tone="neutral">Cấp trên thực hiện</Badge>}
+        {item?.state === "pending" && <Badge tone="neutral">Chưa tới</Badge>}
+      </span>
+    );
+  };
   const axisName = (code: string) =>
     criteria?.content.axes.find((a) => a.code.toLowerCase() === code.toLowerCase())?.name;
+
   return (
     <section className="card border-0 shadow-sm">
-      <div className="card-body d-flex flex-column gap-3">
-        <h2 className="h6 mb-0">Dữ liệu hồ sơ</h2>
-        {offSteps.length > 0 && (
-          <div className="small text-secondary">
-            <i className="bi bi-slash-circle me-1" />
-            Không áp dụng cho nhóm này ({record.workflowProfileName}): {offSteps.map((p) => p.name).join(", ")}.
-          </div>
-        )}
+      <div className="card-body d-flex flex-column gap-2">
+        <h2 className="h6 mb-1">Dữ liệu hồ sơ</h2>
 
         {record.externalResults?.length > 0 && (
-          <div>
-            <h3 className="small fw-bold text-secondary">Kết quả do cấp trên thực hiện (đã ghi nhận)</h3>
-            <div className="table-responsive"><table className="table table-sm small mb-0">
-              <thead><tr><th>Bước</th><th>Cơ quan</th><th>Văn bản</th><th>Mức / điểm</th><th>Ghi nhận</th></tr></thead>
+          <CollapsibleSection title="Kết quả do cấp trên thực hiện">
+            <div className="table-responsive"><table className="table table-sm mb-0">
+              <thead><tr className="text-secondary" style={{ fontSize: 13 }}><th>Bước</th><th>Cơ quan</th><th>Văn bản</th><th>Mức / điểm</th><th>Ghi nhận</th></tr></thead>
               <tbody>
                 {record.externalResults.map((r) => (
                   <tr key={r.step}>
@@ -274,7 +270,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
                         <div>
                           <button
                             type="button"
-                            className="btn btn-link btn-sm p-0 small"
+                            className="btn btn-link btn-sm p-0"
                             onClick={() => {
                               attachmentService.downloadById(r.attachmentId as string)
                                 .catch((error: any) => toast.error(error?.message || "Không tải được văn bản đính kèm."));
@@ -285,23 +281,22 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
                         </div>
                       )}
                     </td>
-                    <td>{gradeLabel(r.grade)}{r.score != null ? ` · ${r.score}` : ""}</td>
+                    <td><GradeBadge grade={r.grade} />{r.score != null ? ` · ${r.score}` : ""}</td>
                     <td>{r.recordedByName || "—"}<div className="text-secondary">{formatDateTime(r.recordedAt)}</div></td>
                   </tr>
                 ))}
               </tbody>
             </table></div>
-          </div>
+          </CollapsibleSection>
         )}
 
         {enabled("B1_REGISTER") && (
-          <div>
-            <h3 className="small fw-bold text-secondary">Danh mục sản phẩm (Mẫu 01)</h3>
+          <CollapsibleSection title="Danh mục sản phẩm (Mẫu 01)" tag={tag("B1_REGISTER")} defaultOpen={reached("B1_REGISTER")}>
             {record.tasks.length === 0 ? (
-              <div className="small text-secondary">Chưa đăng ký.</div>
+              <div className="text-secondary">Chưa đăng ký.</div>
             ) : (
-              <div className="table-responsive"><table className="table table-sm small mb-1">
-                <thead><tr><th>#</th><th>Sản phẩm</th><th>Trọng số</th><th>Điểm</th><th>Minh chứng</th></tr></thead>
+              <div className="table-responsive"><table className="table table-sm mb-1">
+                <thead><tr className="text-secondary" style={{ fontSize: 13 }}><th>#</th><th>Sản phẩm</th><th>Trọng số</th><th>Điểm</th><th>Minh chứng</th></tr></thead>
                 <tbody>
                   {record.tasks.map((t) => (
                     <tr key={t.id}>
@@ -316,30 +311,39 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
               </table></div>
             )}
             {record.tasksApprovedAt && (
-              <div className="small text-secondary">Duyệt bởi {record.tasksApprovedByName} lúc {formatDateTime(record.tasksApprovedAt)}{record.tasksApprovalComment ? ` — ${record.tasksApprovalComment}` : ""}</div>
+              <div className="text-secondary" style={{ fontSize: 13 }}>Duyệt bởi {record.tasksApprovedByName} lúc {formatDateTime(record.tasksApprovedAt)}{record.tasksApprovalComment ? ` — ${record.tasksApprovalComment}` : ""}</div>
             )}
-          </div>
+          </CollapsibleSection>
         )}
 
-        <div>
-          <h3 className="small fw-bold text-secondary">Tự chấm (Mẫu 09{record.selfScoreForm === "09B" ? "B" : "A"})</h3>
-          <div className="row g-2">
-            <Field label="Tiêu chí chung" value={record.generalCriteriaScore} />
-            <Field label="Kết quả nhiệm vụ" value={record.tasksScore} />
-            <Field label="Tổng tự chấm" value={record.totalSelfScore} />
-            <Field label="Mức tự đề xuất" value={gradeLabel(record.selfProposedGrade)} />
-            <Field label="Nộp lúc" value={record.selfScoredAt ? formatDateTime(record.selfScoredAt) : null} />
-            {record.axisScores && (
-              <Field
-                label="Điểm theo trục"
-                value={Object.entries(record.axisScores).map(([code, score], i, all) => (
-                  <span key={code} title={axisName(code)}>{code}: {score}{i < all.length - 1 ? " · " : ""}</span>
-                ))}
-              />
-            )}
-          </div>
+        <CollapsibleSection
+          title={`Tự chấm (Mẫu 09${record.selfScoreForm === "09B" ? "B" : "A"})`}
+          tag={tag("B2_SELF_SCORE")}
+          defaultOpen={reached("B2_SELF_SCORE")}
+        >
+          {record.selfScoredAt || stepOf("B2_SELF_SCORE")?.state === "done" ? (
+            <Fields
+              items={[
+                ["Tiêu chí chung", record.generalCriteriaScore],
+                ["Kết quả nhiệm vụ", record.tasksScore],
+                ["Tổng tự chấm", record.totalSelfScore],
+                ["Mức tự đề xuất", hasGrade(record.selfProposedGrade) ? <GradeBadge grade={record.selfProposedGrade} /> : null],
+                ["Nộp lúc", record.selfScoredAt ? formatDateTime(record.selfScoredAt) : null],
+                [
+                  "Điểm theo trục",
+                  record.axisScores && Object.keys(record.axisScores).length > 0
+                    ? Object.entries(record.axisScores).map(([code, score], i, all) => (
+                        <span key={code} title={axisName(code)}>{code}: {score}{i < all.length - 1 ? " · " : ""}</span>
+                      ))
+                    : null,
+                ],
+              ]}
+            />
+          ) : (
+            <div className="text-secondary">Chưa có dữ liệu.</div>
+          )}
           {record.axisNotes && Object.keys(record.axisNotes).length > 0 && (
-            <ul className="small mb-0 mt-2 ps-3">
+            <ul className="mb-0 mt-2 ps-3">
               {Object.entries(record.axisNotes).map(([code, note]) => (
                 <li key={code}>
                   <strong>{code}</strong>{axisName(code) ? ` (${axisName(code)})` : ""}
@@ -350,84 +354,84 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
               ))}
             </ul>
           )}
-        </div>
+        </CollapsibleSection>
 
         {criteriaAppliesForm(criteria, "9D") && (
-          <div>
-            <h3 className="small fw-bold text-secondary">Kết quả thực hiện nhiệm vụ theo trục (Mẫu 9D)</h3>
+          <CollapsibleSection title="Kết quả thực hiện nhiệm vụ theo trục (Mẫu 9D)" tag={tag("B2_SELF_SCORE")} defaultOpen={reached("B2_SELF_SCORE")}>
             <TaskResultsView axes={criteria?.content.axes ?? []} rows={record.taskResults} />
-          </div>
+          </CollapsibleSection>
         )}
 
         {criteriaAppliesForm(criteria, "09C") && (
-          <div>
-            <h3 className="small fw-bold text-secondary">Bản tự đánh giá (Mẫu 09C)</h3>
+          <CollapsibleSection title="Bản tự đánh giá (Mẫu 09C)" tag={tag("B2_SELF_SCORE")} defaultOpen={reached("B2_SELF_SCORE")}>
             <SelfAssessmentView sections={selfAssessmentSections(criteria)} value={record.selfAssessment} />
-          </div>
+          </CollapsibleSection>
         )}
 
         {enabled("B2_CELL_CONFIRM") && (
-          <div>
-            <h3 className="small fw-bold text-secondary">Xác nhận của Chi bộ<ModeNote record={record} step="B2_CELL_CONFIRM" /></h3>
-            <div className="row g-2">
-              <Field label="Người xác nhận" value={record.cellConfirmedByName} />
-              <Field label="Thời điểm" value={record.cellConfirmedAt ? formatDateTime(record.cellConfirmedAt) : null} />
-              <Field label="Ý kiến" value={record.partyCellComment} />
-            </div>
-          </div>
+          <CollapsibleSection title="Xác nhận của Chi bộ" tag={tag("B2_CELL_CONFIRM")} defaultOpen={reached("B2_CELL_CONFIRM")}>
+            <Fields
+              items={[
+                ["Người xác nhận", record.cellConfirmedByName],
+                ["Thời điểm", record.cellConfirmedAt ? formatDateTime(record.cellConfirmedAt) : null],
+                ["Ý kiến", record.partyCellComment],
+              ]}
+            />
+          </CollapsibleSection>
         )}
 
         {enabled("B3A_COLLECTIVE") && (
-          <div>
-            <h3 className="small fw-bold text-secondary">Đề xuất của tập thể lãnh đạo<ModeNote record={record} step="B3A_COLLECTIVE" /></h3>
-            <div className="row g-2">
-              <Field label="Mức đề xuất" value={gradeLabel(record.collectiveProposedGrade)} />
-              <Field label="Ghi nhận bởi" value={record.collectiveRecordedByName} />
-              <Field label="Nhận xét" value={record.collectiveComment} />
-            </div>
-          </div>
+          <CollapsibleSection title="Đề xuất của tập thể lãnh đạo" tag={tag("B3A_COLLECTIVE")} defaultOpen={reached("B3A_COLLECTIVE")}>
+            <Fields
+              items={[
+                ["Mức đề xuất", hasGrade(record.collectiveProposedGrade) ? <GradeBadge grade={record.collectiveProposedGrade} /> : null],
+                ["Ghi nhận bởi", record.collectiveRecordedByName],
+                ["Nhận xét", record.collectiveComment],
+              ]}
+            />
+          </CollapsibleSection>
         )}
 
         {enabled("B3B_APPRAISAL") && (
-          <div>
-            <h3 className="small fw-bold text-secondary">Thẩm định<ModeNote record={record} step="B3B_APPRAISAL" /></h3>
-            <div className="row g-2">
-              <Field label="Điểm thẩm định" value={record.appraisalScore} />
-              <Field label="Mức đề xuất" value={gradeLabel(record.appraisalProposedGrade)} />
-              <Field label="Người / cơ quan thẩm định" value={record.appraisedByName} />
-              <Field label="Ý kiến" value={record.appraisalComment} />
-            </div>
-            {record.appraisalExplanation && (
-              <div className="small mt-2">
-                <div className="text-secondary">Giải trình chênh lệch với điểm tự chấm</div>
-                <div className="fw-semibold" style={{ whiteSpace: "pre-wrap" }}>{record.appraisalExplanation}</div>
-              </div>
-            )}
-          </div>
+          <CollapsibleSection title="Thẩm định" tag={tag("B3B_APPRAISAL")} defaultOpen={reached("B3B_APPRAISAL")}>
+            <Fields
+              items={[
+                ["Điểm thẩm định", record.appraisedAt || stepOf("B3B_APPRAISAL")?.state === "done" ? record.appraisalScore : null],
+                ["Mức đề xuất", hasGrade(record.appraisalProposedGrade) ? <GradeBadge grade={record.appraisalProposedGrade} /> : null],
+                ["Người / cơ quan thẩm định", record.appraisedByName],
+                ["Ý kiến", record.appraisalComment],
+                ["Giải trình chênh lệch với điểm tự chấm", record.appraisalExplanation],
+              ]}
+            />
+          </CollapsibleSection>
         )}
 
         {enabled("B3C_DIRECTOR") && (
-          <div>
-            <h3 className="small fw-bold text-secondary">Cấp trực tiếp sử dụng / lãnh đạo đơn vị đề xuất<ModeNote record={record} step="B3C_DIRECTOR" /></h3>
-            <div className="row g-2">
-              <Field label="Mức đề xuất" value={gradeLabel(record.directorProposedGrade)} />
-              <Field label="Người / cơ quan nhận xét" value={record.directorReviewedByName} />
-              <Field label="Nhận xét" value={record.directorComment} />
-            </div>
-          </div>
+          <CollapsibleSection title="Cấp trực tiếp sử dụng / lãnh đạo đơn vị đề xuất" tag={tag("B3C_DIRECTOR")} defaultOpen={reached("B3C_DIRECTOR")}>
+            <Fields
+              items={[
+                ["Mức đề xuất", hasGrade(record.directorProposedGrade) ? <GradeBadge grade={record.directorProposedGrade} /> : null],
+                ["Người / cơ quan nhận xét", record.directorReviewedByName],
+                ["Nhận xét", record.directorComment],
+              ]}
+            />
+          </CollapsibleSection>
         )}
 
-        <div>
-          <h3 className="small fw-bold text-secondary">Quyết định và công bố<ModeNote record={record} step="B4_DECISION" /></h3>
-          <div className="row g-2">
-            <Field label="Mức xếp loại" value={gradeLabel(record.finalGrade)} />
-            <Field label="Điểm chính thức" value={record.finalGrade && record.finalGrade !== "ChuaXepLoai" ? record.finalScore : null} />
-            <Field label="Văn bản" value={record.decisionDocumentNumber ? `${record.decisionDocumentNumber} (${formatDate(record.decisionDocumentDate)})` : null} />
-            <Field label="Cơ quan quyết định" value={record.decisionAuthorityName} />
-            <Field label="Đề xuất về công tác cán bộ" value={record.cadreWorkProposal} />
-            <Field label="Công bố" value={record.publishedAt ? `${record.publishedByName} · ${formatDateTime(record.publishedAt)}` : null} />
-          </div>
-        </div>
+        {stepOf("B4_DECISION")?.state !== "skipped" && (
+          <CollapsibleSection title="Quyết định và công bố" tag={tag("B4_DECISION")} defaultOpen={reached("B4_DECISION")}>
+            <Fields
+              items={[
+                ["Mức xếp loại", hasGrade(record.finalGrade) ? <GradeBadge grade={record.finalGrade} /> : null],
+                ["Điểm chính thức", hasGrade(record.finalGrade) ? record.finalScore : null],
+                ["Văn bản", record.decisionDocumentNumber ? `${record.decisionDocumentNumber} (${formatDate(record.decisionDocumentDate)})` : null],
+                ["Cơ quan quyết định", record.decisionAuthorityName],
+                ["Đề xuất về công tác cán bộ", record.cadreWorkProposal],
+                ["Công bố", record.publishedAt ? `${record.publishedByName} · ${formatDateTime(record.publishedAt)}` : null],
+              ]}
+            />
+          </CollapsibleSection>
+        )}
       </div>
     </section>
   );

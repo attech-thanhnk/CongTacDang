@@ -100,7 +100,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
       <div className="row g-2">
         {AUTHORITIES.map((a) => (
           <div className="col-md-6" key={a.key}>
-            <label className="form-label small mb-0" htmlFor={`default-${a.key}`}>Hồ sơ luồng mặc định — {a.label}</label>
+            <label className="form-label mb-0" style={{ fontSize: 13 }} htmlFor={`default-${a.key}`}>Hồ sơ luồng mặc định — {a.label}</label>
             <select id={`default-${a.key}`} className="form-select form-select-sm" value={settings.defaultProfiles[a.key] || ""} disabled={!editable}
               onChange={(e) => onChange({ ...settings, defaultProfiles: { ...settings.defaultProfiles, [a.key]: e.target.value } })}>
               <option value="">— Chọn —</option>
@@ -110,10 +110,10 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
         ))}
       </div>
 
-      <div className="d-flex flex-wrap gap-2 align-items-center" role="tablist" aria-label="Hồ sơ luồng">
+      <div className="d-flex flex-wrap gap-2 align-items-center border-bottom pb-2" role="tablist" aria-label="Hồ sơ luồng">
         {settings.profiles.map((p) => (
           <button key={p.code} type="button" role="tab" aria-selected={p.code === selected}
-            className={`btn btn-sm ${p.code === selected ? "btn-primary" : "btn-outline-primary"}`} onClick={() => setSelected(p.code)}>
+            className={`btn btn-sm rounded-pill px-3 ${p.code === selected ? "btn-primary" : "btn-outline-primary"}`} onClick={() => setSelected(p.code)}>
             {p.name || p.code}
           </button>
         ))}
@@ -128,17 +128,17 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
         <div className="border rounded-3 p-3">
           <div className="row g-2 mb-2">
             <div className="col-md-3">
-              <label className="form-label small mb-0" htmlFor="profile-code">Mã</label>
+              <label className="form-label mb-0" style={{ fontSize: 13 }} htmlFor="profile-code">Mã</label>
               <input id="profile-code" className="form-control form-control-sm" value={profile.code} maxLength={50}
                 disabled={!editable || savedCodes.includes(profile.code)} onChange={(e) => renameCode(e.target.value)} />
             </div>
             <div className="col-md-4">
-              <label className="form-label small mb-0" htmlFor="profile-name">Tên nhóm đối tượng</label>
+              <label className="form-label mb-0" style={{ fontSize: 13 }} htmlFor="profile-name">Tên nhóm đối tượng</label>
               <input id="profile-name" className="form-control form-control-sm" value={profile.name} maxLength={200} disabled={!editable}
                 onChange={(e) => updateProfile(profile.code, (p) => ({ ...p, name: e.target.value }))} />
             </div>
             <div className="col-md-5">
-              <label className="form-label small mb-0" htmlFor="profile-desc">Mô tả</label>
+              <label className="form-label mb-0" style={{ fontSize: 13 }} htmlFor="profile-desc">Mô tả</label>
               <input id="profile-desc" className="form-control form-control-sm" value={profile.description || ""} maxLength={1000} disabled={!editable}
                 onChange={(e) => updateProfile(profile.code, (p) => ({ ...p, description: e.target.value }))} />
             </div>
@@ -147,7 +147,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
           <div className="table-responsive">
             <table className="table table-sm align-middle mb-2">
               <thead>
-                <tr className="small text-secondary"><th>#</th><th>Bước</th><th style={{ width: 190 }}>Chế độ</th><th>Người thực hiện (quyền)</th><th style={{ width: 170 }}>Thời hạn</th></tr>
+                <tr className="text-secondary" style={{ fontSize: 13 }}><th>#</th><th>Bước</th><th style={{ width: 190 }}>Chế độ</th><th>Người thực hiện (quyền)</th><th style={{ width: 170 }}>Thời hạn</th></tr>
               </thead>
               <tbody>
                 {STEP_ORDER.map((step, index) => {
@@ -157,7 +157,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
                     (m) => !(m === "Off" && MANDATORY_STEPS.includes(step)) && !(m === "External" && NEVER_EXTERNAL_STEPS.includes(step))
                   ) as StepMode[];
                   return (
-                    <tr key={step} className="small" style={{ opacity: setting.mode === "Off" ? 0.6 : 1 }}>
+                    <tr key={step} style={{ fontSize: 14, opacity: setting.mode === "Off" ? 0.6 : 1 }}>
                       <td>{index + 1}</td>
                       <td>{STEP_NAMES[step]}{MANDATORY_STEPS.includes(step) && <span className="text-secondary"> (bắt buộc)</span>}</td>
                       <td>

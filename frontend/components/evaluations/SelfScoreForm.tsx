@@ -346,7 +346,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
         Tổng điểm tạm tính: <strong>{fmt(total)}</strong> — mức theo điểm: <strong>{GRADE_LABELS[gradeByScore(content, total)]}</strong>
       </div>
 
-      <div className="row g-2 align-items-end">
+      <div className="row g-2 align-items-end bg-white border-top py-2 mx-0" style={{ position: "sticky", bottom: 0, zIndex: 5 }}>
         <div className="col-md-5">
           <label className="form-label small" htmlFor="self-grade">Mức tự đề xuất</label>
           <select id="self-grade" className="form-select form-select-sm" value={grade} onChange={(e) => setGrade(e.target.value)}>
@@ -354,7 +354,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
             {GRADE_OPTIONS.filter((g) => g.value !== "ChuaXepLoai").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
           </select>
         </div>
-        <div className="col-md-7 text-end"><button type="submit" className="btn btn-primary btn-sm" disabled={busy}>Nộp phiếu tự chấm</button></div>
+        <div className="col-md-7 text-end"><button type="submit" className="btn btn-primary" disabled={busy}>Nộp phiếu tự chấm</button></div>
       </div>
 
       {uploadFor && (
