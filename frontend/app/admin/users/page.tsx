@@ -100,14 +100,14 @@ export default function AdminUsersPage() {
     }
   };
 
-  if (!canRead) return <NoAccess title="Tài khoản" permissionName="Xem tài khoản, hồ sơ cán bộ" />;
+  if (!canRead) return <NoAccess title="Người dùng" permissionName="Xem tài khoản, hồ sơ cán bộ" />;
 
   const items = result?.items ?? [];
 
   return (
     <div className="page-wrapper">
       <PageHeader
-        title="Tài khoản"
+        title="Người dùng"
         actions={
           canManage ? (
             <button type="button" className="btn btn-sm btn-primary" onClick={() => setCreating(true)}>
