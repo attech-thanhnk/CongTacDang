@@ -74,7 +74,7 @@ export function NotificationBell() {
         {total > 0 && (
           <span
             className={`badge rounded-pill ${urgent ? "text-bg-danger" : "text-bg-primary"}`}
-            style={{ position: "absolute", top: "-4px", right: "-6px", fontSize: "10px" }}
+            style={{ position: "absolute", top: "-4px", right: "-6px", fontSize: "11px" }}
           >
             {total > 99 ? "99+" : total}
           </span>

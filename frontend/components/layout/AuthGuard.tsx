@@ -93,7 +93,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
               background: "var(--bg-card)",
               borderTop: "1px solid var(--border-base)",
               textAlign: "center",
-              fontSize: "11px",
+              fontSize: "13px",
               color: "var(--text-muted)",
             }}
           >

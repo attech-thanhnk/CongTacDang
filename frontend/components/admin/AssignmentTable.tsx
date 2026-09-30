@@ -36,7 +36,7 @@ export function AssignmentTable({ assignments, showUser, showRole, canManage, em
   const columnCount = 4 + (showUser ? 1 : 0) + (showRole ? 1 : 0) + (canManage ? 1 : 0);
   return (
     <div className="table-responsive">
-      <table className="table table-hover align-middle mb-0" style={{ fontSize: 13 }}>
+      <table className="table table-hover align-middle mb-0">
         <thead style={{ background: "var(--bg-base)" }}>
           <tr>
             {showUser && <th className="ps-3">Người được gán</th>}

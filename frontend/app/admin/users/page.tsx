@@ -121,7 +121,7 @@ export default function AdminUsersPage() {
       <div className="page-body">
         <Card className="mb-3">
           <form className="row g-2 align-items-end p-3" onSubmit={applyFilters}>
-            <div className="col-12 col-md-4">
+            <div className="col-12 col-md-6 col-xl-4">
               <label className="form-label small fw-semibold text-secondary mb-1">Tìm kiếm</label>
               <input
                 className="form-control form-control-sm"
@@ -130,7 +130,7 @@ export default function AdminUsersPage() {
                 onChange={(e) => setDraft({ ...draft, q: e.target.value })}
               />
             </div>
-            <div className="col-6 col-md-2">
+            <div className="col-6 col-md-3 col-xl-2">
               <label className="form-label small fw-semibold text-secondary mb-1">Đơn vị</label>
               <select className="form-select form-select-sm" value={draft.departmentId} onChange={(e) => setDraft({ ...draft, departmentId: e.target.value })}>
                 <option value="">Tất cả</option>
@@ -141,7 +141,7 @@ export default function AdminUsersPage() {
                 ))}
               </select>
             </div>
-            <div className="col-6 col-md-2">
+            <div className="col-6 col-md-3 col-xl-2">
               <label className="form-label small fw-semibold text-secondary mb-1">Tổ chức Đảng</label>
               <select className="form-select form-select-sm" value={draft.partyCellId} onChange={(e) => setDraft({ ...draft, partyCellId: e.target.value })}>
                 <option value="">Tất cả</option>
@@ -152,7 +152,7 @@ export default function AdminUsersPage() {
                 ))}
               </select>
             </div>
-            <div className="col-6 col-md-2">
+            <div className="col-6 col-md-3 col-xl-2">
               <label className="form-label small fw-semibold text-secondary mb-1">Trạng thái</label>
               <select
                 className="form-select form-select-sm"
@@ -164,7 +164,7 @@ export default function AdminUsersPage() {
                 <option value="inactive">Vô hiệu</option>
               </select>
             </div>
-            <div className="col-6 col-md-2 d-flex gap-1">
+            <div className="col-6 col-md-3 col-xl-2 d-flex gap-1">
               <button type="submit" className="btn btn-sm btn-primary flex-fill" disabled={loading}>
                 <i className="bi bi-search me-1" />
                 Lọc
@@ -178,16 +178,16 @@ export default function AdminUsersPage() {
 
         <Card>
           <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0" style={{ fontSize: 13 }}>
-              <thead style={{ background: "var(--bg-base)" }}>
+            <table className="table table-hover align-middle mb-0">
+              <thead>
                 <tr>
-                  <th className="ps-3">Cán bộ</th>
+                  <th>Cán bộ</th>
                   <th>Chức danh</th>
                   <th>Đơn vị</th>
                   <th>Tổ chức Đảng</th>
                   <th>Trạng thái</th>
                   <th>Đăng nhập cuối</th>
-                  <th className="pe-3 text-end" />
+                  <th className="text-end" />
                 </tr>
               </thead>
               <tbody>
@@ -208,20 +208,20 @@ export default function AdminUsersPage() {
                 ) : (
                   items.map((account) => (
                     <tr key={account.id} style={{ opacity: loading ? 0.6 : 1 }}>
-                      <td className="ps-3">
+                      <td>
                         <Link href={`/admin/users/${account.id}`} className="fw-semibold text-decoration-none">
                           {account.fullName}
                         </Link>
                         <div className="small text-secondary">{account.username}</div>
                       </td>
-                      <td className="small">{account.positionTitle || "—"}</td>
-                      <td className="small">{account.departmentName || "—"}</td>
-                      <td className="small">{account.partyCellName || "—"}</td>
+                      <td>{account.positionTitle || "—"}</td>
+                      <td>{account.departmentName || "—"}</td>
+                      <td>{account.partyCellName || "—"}</td>
                       <td>
                         <AccountStatusBadge account={account} />
                       </td>
-                      <td className="small text-nowrap">{account.lastLoginAt ? formatDateTime(account.lastLoginAt) : "Chưa đăng nhập"}</td>
-                      <td className="pe-3 text-end">
+                      <td className="text-nowrap">{account.lastLoginAt ? formatDateTime(account.lastLoginAt) : "Chưa đăng nhập"}</td>
+                      <td className="text-end text-nowrap">
                         <Link href={`/admin/users/${account.id}`} className="btn btn-sm btn-outline-primary">
                           Chi tiết
                         </Link>

@@ -415,7 +415,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
 
         {tab === "info" && (
           <Card>
-            <table className="table mb-0" style={{ fontSize: 13 }}>
+            <table className="table mb-0">
               <tbody>
                 {infoRows.map(([label, value]) => (
                   <tr key={label}>

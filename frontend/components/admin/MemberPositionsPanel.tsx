@@ -206,7 +206,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
 
   const renderTable = (rows: MemberPosition[], active: boolean) => (
     <div className="table-responsive">
-      <table className="table table-hover align-middle mb-0" style={{ fontSize: 13 }}>
+      <table className="table table-hover align-middle mb-0">
         <thead style={{ background: "var(--bg-base)" }}>
           <tr>
             <th className="ps-3">Chức vụ</th>
@@ -266,7 +266,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
   return (
     <>
       <Card className="mb-3">
-        <div className="px-3 py-2 d-flex flex-wrap align-items-center gap-3" style={{ fontSize: 13 }}>
+        <div className="px-3 py-2 d-flex flex-wrap align-items-center gap-3">
           <div>
             <div className="small text-secondary">Cấp quyết định xếp loại đang áp dụng</div>
             <div className="fw-semibold">

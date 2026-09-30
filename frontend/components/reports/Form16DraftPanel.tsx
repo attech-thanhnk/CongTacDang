@@ -45,7 +45,7 @@ function SummaryTable({ title, rows }: { title: string; rows: Form16SummaryRow[]
     <div className="mb-3">
       <div className="fw-semibold small mb-1">{title}</div>
       <div className="table-responsive">
-        <table className="table table-sm table-bordered align-middle mb-0" style={{ fontSize: "12.5px" }}>
+        <table className="table table-sm table-bordered align-middle mb-0">
           <thead className="table-light">
             <tr>
               <th>Đối tượng đánh giá, xếp loại</th>
