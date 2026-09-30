@@ -49,8 +49,8 @@ export default function AccountPage() {
           <dl className="card-body border-top m-0 row g-3">
             {rows.map(([label, value]) => (
               <React.Fragment key={label}>
-                <dt className="col-sm-3 col-lg-2 fw-normal text-secondary">{label}</dt>
-                <dd className="col-sm-9 col-lg-10 m-0 fw-medium">{value}</dd>
+                <dt className="col-sm-3 col-lg-2 mb-0 fw-normal text-secondary">{label}</dt>
+                <dd className="col-sm-9 col-lg-10 mb-0 fw-medium">{value}</dd>
               </React.Fragment>
             ))}
           </dl>
