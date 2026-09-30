@@ -51,7 +51,8 @@ export default function AccountPage() {
   return (
     <div className="page-wrapper">
       <PageHeader title="Tài khoản" />
-      <div className={`page-body ${styles.layout}`}>
+      <div className="page-body">
+      <div className={styles.layout}>
         <nav className={styles.nav} aria-label="Mục tài khoản">
           {SECTIONS.map((s) => (
             <button
@@ -112,6 +113,7 @@ export default function AccountPage() {
             </section>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
