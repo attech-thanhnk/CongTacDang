@@ -102,7 +102,3 @@ export function useAuth() {
   return context;
 }
 
-/** Nhãn hiển thị dưới tên người dùng (thanh bên, đầu trang): tên vai trò đầu tiên từ bản gán đang hiệu lực. */
-export function sessionRoleLabel(user: AuthUser | null): string {
-  return user?.roles.find((role) => role.trim()) || "Cán bộ";
-}

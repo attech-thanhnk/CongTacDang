@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { sessionRoleLabel, useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { userService } from "@/services/userService";
 import { useToast } from "@/contexts/ToastContext";
 import styles from "./SidebarAccount.module.css";
 
@@ -22,6 +23,17 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+
+  // Dòng dưới tên: chức vụ của cán bộ (không phải vai trò trong hệ thống).
+  useEffect(() => {
+    if (!user || user.mustChangePassword) return;
+    let alive = true;
+    userService.getMyProfile().then((p) => alive && setTitle(p.adminTitle || "")).catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [user]);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -85,7 +97,7 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
         <span className="initials">{initialsOf(user.fullName)}</span>
         <span className={styles.who}>
           <b className="text-truncate">{user.fullName}</b>
-          <small className="text-truncate">{sessionRoleLabel(user)}</small>
+          {title && <small className="text-truncate" title={title}>{title}</small>}
         </span>
         <i className={`bi bi-chevron-expand ${styles.chev}`} />
       </button>
