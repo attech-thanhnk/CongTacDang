@@ -161,7 +161,8 @@ public class AuthzContractTests
         var cell = Guid.NewGuid();
 
         var created = await service.CreateAsync(new CreateAccountCommand(
-            " nguyenvana ", " Nguyễn Văn A ", "a@attech.com.vn", "093-001", "Trưởng phòng", null, cell, ApprovalAuthority.CapTren));
+            " nguyenvana ", " Nguyễn Văn A ", "a@attech.com.vn", "093-001", "Trưởng phòng", null, cell, ApprovalAuthority.CapTren)
+            { ApprovalAuthorityReason = " Theo văn bản phân cấp " });
 
         var saved = Assert.Single(users.All);
         Assert.Equal("nguyenvana", created.Username);
@@ -169,6 +170,8 @@ public class AuthzContractTests
         Assert.Equal("Nguyễn Văn A", saved.FullName);
         Assert.Equal(cell, saved.PartyCellId);
         Assert.Equal(ApprovalAuthority.CapTren, saved.ApprovalAuthority);
+        Assert.Equal(ApprovalAuthority.CapTren, saved.ApprovalAuthorityOverride);
+        Assert.Equal("Theo văn bản phân cấp", saved.ApprovalAuthorityOverrideReason);
         Assert.True(saved.MustChangePassword);
         Assert.True(saved.IsPartyMember);
         Assert.False(string.IsNullOrWhiteSpace(saved.SecurityStamp));
@@ -177,6 +180,25 @@ public class AuthzContractTests
         Assert.Contains(created.TemporaryPassword, char.IsDigit);
         Assert.NotEqual(created.TemporaryPassword, saved.PasswordHash);
         Assert.True(BCrypt.Net.BCrypt.Verify(created.TemporaryPassword, saved.PasswordHash));
+    }
+
+    [Fact]
+    public async Task UserAccountService_Create_AuthorityDifferentFromDerived_RequiresReason_SameAsDerived_NotOverride()
+    {
+        // Khác cấp suy ra (tài khoản mới chưa có chức vụ → CoSo) mà không có lý do → 400.
+        var users = new FakeUsers();
+        var service = new UserAccountService(users);
+        var ex = await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(
+            new CreateAccountCommand("nguyenvanb", "Nguyễn Văn B", null, null, null, null, null, ApprovalAuthority.CapTren)));
+        Assert.Contains("lý do", ex.Message);
+        Assert.Empty(users.All);
+
+        // Gửi đúng cấp suy ra → không phải đặt tay, không cần lý do.
+        await service.CreateAsync(new CreateAccountCommand("nguyenvanc", "Nguyễn Văn C", null, null, null, null, null, ApprovalAuthority.CoSo));
+        var saved = Assert.Single(users.All);
+        Assert.Equal(ApprovalAuthority.CoSo, saved.ApprovalAuthority);
+        Assert.Null(saved.ApprovalAuthorityOverride);
+        Assert.Null(saved.ApprovalAuthorityOverrideReason);
     }
 
     [Theory]

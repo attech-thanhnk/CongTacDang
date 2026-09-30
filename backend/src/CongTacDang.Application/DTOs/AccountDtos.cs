@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Serialization;
 using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Application.DTOs;
@@ -32,10 +33,12 @@ public class CreateAccountRequestDto
 
     /// <summary>
     /// Đặt tay cấp có thẩm quyền quyết định xếp loại; null (mặc định) → suy ra từ chức vụ (<c>/api/users/{id}/positions</c>).
+    /// Nhận tên (<c>"CoSo"</c>, <c>"CapTren"</c>) như các API khác, hoặc số (1, 2) để tương thích.
     /// </summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public ApprovalAuthority? ApprovalAuthority { get; set; }
 
-    /// <summary>Lý do đặt tay thẩm quyền (khi có <see cref="ApprovalAuthority"/>).</summary>
+    /// <summary>Lý do đặt tay thẩm quyền — bắt buộc khi <see cref="ApprovalAuthority"/> khác cấp suy ra từ chức vụ.</summary>
     public string? ApprovalAuthorityReason { get; set; }
 
     /// <summary>Mã khung tỷ trọng A-B-C-D mặc định (theo bộ tiêu chí, ví dụ "K2"); trống → chưa chọn.</summary>
