@@ -188,7 +188,17 @@ Mọi dữ liệu nền được khai báo trực tiếp trên giao diện (khô
 
 Biểu mẫu Word/Excel được chuyển sang PDF ngay trên máy chủ bằng LibreOffice headless (không gọi dịch vụ bên ngoài). Thiếu LibreOffice thì API xuất PDF (`?format=pdf`) trả **503** kèm thông báo; xuất Word/Excel vẫn hoạt động bình thường.
 
-- **Docker:** image backend (`docker/Dockerfile.backend`) đã cài `libreoffice-writer-nogui`, `libreoffice-calc-nogui` và font `fonts-liberation` (Liberation Serif tương thích kích thước với Times New Roman, đủ dấu tiếng Việt), `fonts-dejavu-core`. Không cần cấu hình thêm.
+- **Docker:** image backend (`docker/Dockerfile.backend`) đã cài `libreoffice-writer-nogui`, `libreoffice-calc-nogui` và font `fonts-liberation` (Liberation Serif tương thích kích thước với Times New Roman, đủ dấu tiếng Việt), `fonts-dejavu-core`.
+- **Font gốc cho PDF (làm một lần trên máy dựng image):** biểu mẫu dùng Times New Roman, bảng tính dùng Calibri — font bản quyền Microsoft nên không có trong git. Chép 8 tệp từ `C:WindowsFonts` của một máy Windows bất kỳ vào `docker/fonts/` trên máy chủ (Linux hay Windows đều được, font nằm trong container) rồi dựng lại image backend:
+
+  ```bash
+  # tệp cần chép: times.ttf timesbd.ttf timesi.ttf timesbi.ttf calibri.ttf calibrib.ttf calibrii.ttf calibriz.ttf
+  scp times*.ttf calibri.ttf calibrib.ttf calibrii.ttf calibriz.ttf user@server:/opt/congtacdang/docker/fonts/
+  docker compose -f docker/docker-compose.yml up -d --build backend
+  docker exec attech-dangbo-api fc-match "Times New Roman"   # phải ra times.ttf
+  ```
+
+  Không chép thì PDF dùng Liberation Serif/Sans thay thế (cùng kích thước chữ, nét hơi khác). Các lần cập nhật sau không phải chép lại, trừ khi xóa thư mục `docker/fonts/`.
 - **Chạy trực tiếp trên Ubuntu/Debian:**
 
   ```bash

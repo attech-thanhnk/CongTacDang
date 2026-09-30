@@ -101,3 +101,7 @@ pgadmin-data/
 
 # Worktree tạm của agent Claude Code
 .claude/worktrees/
+
+# Font bản quyền chép vào để dựng image (docker/Dockerfile.backend), không commit
+docker/fonts/*
+!docker/fonts/.gitkeep
