@@ -228,7 +228,7 @@
 /* Hai cột */
 .cols {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
   gap: 24px;
   align-items: start;
 }

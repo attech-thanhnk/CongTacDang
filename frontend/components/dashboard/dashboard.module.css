@@ -284,7 +284,7 @@ a.name:hover {
 /* Hai cột: tiến độ | hồ sơ của tôi */
 .cols {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
   gap: 24px;
   align-items: start;
 }
