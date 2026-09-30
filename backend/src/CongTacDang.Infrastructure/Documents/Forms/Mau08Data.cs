@@ -17,6 +17,9 @@ public sealed class Mau08Data
     [TemplateField("PARTY_PARENT")] public string? PartyParent { get; init; }
     [TemplateField("PARTY_ORG")] public string? PartyOrganization { get; init; }
 
+    /// <summary>"ngày … tháng … năm …" sau địa danh: ngày lập báo cáo = lần cập nhật hồ sơ tập thể gần nhất (chưa sửa → ngày tạo).</summary>
+    [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
+
     /// <summary>"QUÝ…/NĂM..." — chỗ điền không có khoảng trắng trước nên giá trị có khoảng trắng đầu.</summary>
     [TemplateField("QUARTER")] public string? Quarter { get; init; }
     [TemplateField("YEAR")] public string? Year { get; init; }
@@ -32,6 +35,7 @@ public sealed class Mau08Data
         {
             PartyParent = header.Parent,
             PartyOrganization = header.Organization,
+            DateLine = CollectiveFormText.DateLine(record.UpdatedAt ?? record.CreatedAt),
             Quarter = " " + CollectiveFormText.RomanQuarter(record.Period.Quarter),
             Year = " " + FormText.Year(record.Period.Year),
             Rows = Hd03FormCatalog.Form08Categories.Select(category =>

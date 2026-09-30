@@ -199,6 +199,21 @@ public class IndividualFormTests
         Assert.Contains("ĐẢNG BỘ THỬ NGHIỆM", text);
         Assert.Contains("CHI BỘ KỸ THUẬT", text);
         Assert.Contains("Nguyễn Văn A", text);
+        // Dòng địa danh – ngày: ngày nộp phiếu tự chấm (11/9/2026).
+        Assert.Contains("Hà Nội, ngày 11 tháng 09 năm 2026", text);
+        // Chỗ điền đặt liền sau nhãn: không dính chữ ("Quý3", "NĂM2026").
+        Assert.DoesNotMatch(@"(?i)(Quý|Năm)\d", text);
+    }
+
+    [Fact]
+    public void NotYetSelfScored_KeepsDateDots()
+    {
+        var source = Source();
+        source.Record.SelfScoredAt = null;
+        Assert.Null(Mau09AData.From(source).DateLine);
+        Assert.Null(Mau09BData.From(source).DateLine);
+        Assert.Null(Mau09CData.From(source).DateLine);
+        Assert.Null(Mau9DData.From(source).DateLine);
     }
 
     [Fact]
@@ -254,7 +269,8 @@ public class IndividualFormTests
     [Fact]
     public void Mau9D_GroupsRowsUnderEachAxis()
     {
-        Render(Mau9DData.TemplateFileName, Mau9DData.From(Source()), out var content);
+        var text = Render(Mau9DData.TemplateFileName, Mau9DData.From(Source()), out var content);
+        Assert.Contains("TRONG QUÝ 3 NĂM 2026", text);
 
         using var doc = WordprocessingDocument.Open(new MemoryStream(content), false);
         var rows = doc.MainDocumentPart!.Document!.Body!.Elements<Table>().Single().Elements<TableRow>()
@@ -276,6 +292,7 @@ public class IndividualFormTests
         var source = Source();
         var text = Render(Mau09AData.TemplateFileName, Mau09AData.From(source), out _);
 
+        Assert.Contains("Quý 3 Năm 2026", text);
         Assert.Contains("1 / 2 sản phẩm (đạt tỷ lệ: 50%)", text);
         Assert.Contains("☒ Hoàn thành tốt", text);
         Assert.Contains("☐ Hoàn thành xuất sắc", text);

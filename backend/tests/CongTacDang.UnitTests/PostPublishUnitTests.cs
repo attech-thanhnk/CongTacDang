@@ -186,6 +186,7 @@ public sealed class PostPublishUnitTests
         {
             Content = content.Normalize().ToJson(),
             ApprovedByName = "Lê Thủ Trưởng",
+            ApprovedAt = new DateTime(2026, 10, 5, 2, 0, 0, DateTimeKind.Utc),
             AcknowledgedAt = DateTime.UtcNow
         };
         return (plan, record);
@@ -261,6 +262,19 @@ public sealed class PostPublishUnitTests
         Assert.Equal(2, text.Count(c => c == '☒'));
         Assert.Equal(4, text.Count(c => c == '☐'));
         Assert.DoesNotContain(body.Descendants<SdtElement>(), sdt => sdt.SdtProperties?.GetFirstChild<Tag>() != null);
+        // Ngày duyệt kế hoạch ở dòng địa danh; tên đơn vị cấp trên và tên công ty trên hai dòng, không dính nhau.
+        Assert.Contains("Hà Nội, ngày 05 tháng 10 năm 2026", text);
+        var header = body.Descendants<Paragraph>().First(p => p.InnerText.Contains("TỔNG CÔNG TY B"));
+        var headerText = string.Concat(header.Descendants().Select(e => e switch { Text t => t.Text, Break => "\n", _ => string.Empty }));
+        Assert.Contains("TỔNG CÔNG TY B\nCÔNG TY A", headerText);
+    }
+
+    [Fact]
+    public void Mau17_NotApproved_KeepsDateDots()
+    {
+        var (plan, record) = SamplePlan();
+        plan.ApprovedAt = null;
+        Assert.Null(Mau17Data.From(plan, record).DateLine);
     }
 
     #endregion

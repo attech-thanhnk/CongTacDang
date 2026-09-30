@@ -18,6 +18,9 @@ public sealed class Mau07Data
     /// <summary>Dòng "ĐẢNG ỦY (CHI BỘ) …" (tổ chức Đảng của tập thể).</summary>
     [TemplateField("PARTY_ORG")] public string? PartyOrganization { get; init; }
 
+    /// <summary>"ngày … tháng … năm …" sau địa danh: ngày lập báo cáo = lần cập nhật hồ sơ tập thể gần nhất (chưa sửa → ngày tạo).</summary>
+    [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
+
     /// <summary>Tên tập thể trong tiêu đề ("CỦA TẬP THỂ …"), chữ in hoa.</summary>
     [TemplateField("SUBJECT_NAME_UPPER")] public string? SubjectNameUpper { get; init; }
 
@@ -67,6 +70,7 @@ public sealed class Mau07Data
         {
             PartyParent = header.Parent,
             PartyOrganization = header.Organization,
+            DateLine = CollectiveFormText.DateLine(record.UpdatedAt ?? record.CreatedAt),
             SubjectNameUpper = PartyHeader.Upper(record.SubjectName),
             Quarter = " " + CollectiveFormText.RomanQuarter(record.Period.Quarter) + " ",
             Year = FormText.Year(record.Period.Year),

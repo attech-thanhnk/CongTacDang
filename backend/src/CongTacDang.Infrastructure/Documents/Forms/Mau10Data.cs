@@ -12,6 +12,9 @@ public sealed class Mau10Data
     /// <summary>Tên tệp template.</summary>
     public const string TemplateFileName = "Mau_10_PhieuThamDinh.docx";
 
+    /// <summary>"ngày … tháng … năm …" sau địa danh: ngày thẩm định (chưa thẩm định → giữ dòng chấm).</summary>
+    [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
+
     [TemplateField("QUARTER")] public string? Quarter { get; init; }
     [TemplateField("YEAR")] public string? Year { get; init; }
     [TemplateField("FULL_NAME")] public string? FullName { get; init; }
@@ -65,6 +68,7 @@ public sealed class Mau10Data
     {
         return new Mau10Data
         {
+            DateLine = CollectiveFormText.DateLine(record.AppraisedAt),
             Quarter = record.Period != null ? FormText.Quarter(record.Period.Quarter) : null,
             Year = record.Period != null ? FormText.Year(record.Period.Year) : null,
             FullName = FormText.OrNull(record.Member?.FullName),

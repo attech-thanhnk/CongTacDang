@@ -18,6 +18,9 @@ public sealed class Mau17Data
     /// <summary>Ô đã đánh dấu (thay ký hiệu ☐ in sẵn).</summary>
     public const string CheckedBox = "☒";
 
+    /// <summary>"ngày … tháng … năm …" sau địa danh: ngày thủ trưởng duyệt kế hoạch (chưa duyệt → giữ dòng chấm).</summary>
+    [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
+
     [TemplateField("FULL_NAME")] public string? FullName { get; init; }
     [TemplateField("POSITION")] public string? Position { get; init; }
     [TemplateField("DEPARTMENT")] public string? Department { get; init; }
@@ -81,6 +84,7 @@ public sealed class Mau17Data
 
         return new Mau17Data
         {
+            DateLine = CollectiveFormText.DateLine(plan.ApprovedAt),
             FullName = FormText.OrNull(record.Member?.FullName),
             Position = FormText.OrNull(record.Member?.PositionTitle),
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),

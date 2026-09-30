@@ -19,6 +19,9 @@ public sealed class Mau16Data
     [TemplateField("PARTY_PARENT")] public string? PartyParent { get; init; }
     [TemplateField("PARTY_ORG")] public string? PartyOrganization { get; init; }
 
+    /// <summary>"ngày … tháng … năm …" sau địa danh: lần lưu bản nháp gần nhất (chưa lưu → giữ dòng chấm).</summary>
+    [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
+
     /// <summary>"Số …..-BC/……" (nhập tay).</summary>
     [TemplateField("DOC_NUMBER")] public string? DocumentNumber { get; init; }
 
@@ -56,6 +59,7 @@ public sealed class Mau16Data
         {
             PartyParent = header.Parent,
             PartyOrganization = header.Organization,
+            DateLine = CollectiveFormText.DateLine(draft.UpdatedAt),
             DocumentNumber = FormText.OrNull(c.DocumentNumber),
             Quarter = " " + CollectiveFormText.RomanQuarter(period.Quarter),
             Year = " " + FormText.Year(period.Year),
