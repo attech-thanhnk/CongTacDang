@@ -3,26 +3,50 @@
 import React, { useMemo } from "react";
 import Link from "next/link";
 import type { EvaluationRecordDto } from "@/services/evaluationService";
-import { recordTone as toneOf } from "@/components/common/StatusBadge";
 import styles from "./dashboard.module.css";
 
-/** Tiến độ hồ sơ trong phạm vi được xem: số theo trạng thái và bảng theo Chi bộ. */
-export function ScopeProgressSection({ records, loading }: { records: EvaluationRecordDto[]; loading: boolean }) {
-  const statusCounts = useMemo(() => {
-    const map = new Map<string, { name: string; count: number; order: number }>();
+/** Trạng thái thuộc giai đoạn cá nhân đăng ký / tự chấm. */
+const SELF_STAGE = new Set(["AwaitingRegistration", "AwaitingTaskApproval", "AwaitingSelfScore"]);
+
+/** Dải số liệu trong phạm vi được xem: đang tự chấm, đang xét duyệt, bị trả lại, đã công bố. */
+export function ScopeStats({ records, loading }: { records: EvaluationRecordDto[]; loading: boolean }) {
+  const counts = useMemo(() => {
+    let self = 0;
+    let review = 0;
+    let returned = 0;
+    let published = 0;
     for (const r of records) {
-      const entry = map.get(r.status) || { name: r.statusDisplayName, count: 0, order: r.progress.findIndex((s) => s.state === "current") };
-      entry.count++;
-      map.set(r.status, entry);
+      if (r.status === "Published") published++;
+      else if (r.returnReason) returned++;
+      else if (SELF_STAGE.has(r.status)) self++;
+      else review++;
     }
-    // Sắp theo thứ tự bước; đã công bố (không còn bước hiện hành) xếp cuối.
-    return Array.from(map.entries())
-      .map(([status, v]) => ({ status, ...v }))
-      .sort((a, b) => (a.order < 0 ? 99 : a.order) - (b.order < 0 ? 99 : b.order));
+    return { self, review, returned, published };
   }, [records]);
 
-  const returnedCount = useMemo(() => records.filter((r) => !!r.returnReason).length, [records]);
+  const items: [string, number, string][] = [
+    ["Đang tự chấm", counts.self, "var(--info)"],
+    ["Đang xét duyệt", counts.review, "var(--wait)"],
+    ["Bị trả lại", counts.returned, "var(--bad)"],
+    ["Đã công bố", counts.published, "var(--ok)"],
+  ];
 
+  return (
+    <section className={styles.block} aria-label="Số liệu hồ sơ">
+      <div className={styles.stats}>
+        {items.map(([label, value, color]) => (
+          <Link key={label} href="/evaluations" className={styles.stat} style={{ "--c": color } as React.CSSProperties}>
+            <div className={styles.statV}>{loading ? "…" : value}</div>
+            <div className={styles.statL}>{label}</div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** Tiến độ theo Chi bộ: số hồ sơ, số đã công bố, thanh tỷ lệ. */
+export function ScopeProgressSection({ records, loading }: { records: EvaluationRecordDto[]; loading: boolean }) {
   const byCell = useMemo(() => {
     const map = new Map<string, { total: number; published: number }>();
     for (const r of records) {
@@ -36,13 +60,12 @@ export function ScopeProgressSection({ records, loading }: { records: Evaluation
   }, [records]);
 
   return (
-    <section className={styles.section}>
-      <div className={styles.sectionHeader}>
-        <h2 className={styles.sectionTitle}>
-          Tiến độ trong phạm vi
-          <span className="badge text-bg-light border">{records.length} hồ sơ</span>
+    <section className={styles.block}>
+      <div className={styles.blockH}>
+        <h2>
+          Tiến độ theo Chi bộ <span className={styles.count}>{records.length}</span>
         </h2>
-        <Link href="/evaluations" className="btn btn-outline-secondary btn-sm">
+        <Link href="/evaluations" className={styles.link}>
           Danh sách hồ sơ
         </Link>
       </div>
@@ -53,56 +76,39 @@ export function ScopeProgressSection({ records, loading }: { records: Evaluation
           Đang tải...
         </div>
       ) : records.length === 0 ? (
-        <div className={styles.empty}>Chưa có hồ sơ nào trong phạm vi của bạn.</div>
+        <div className={styles.empty}>Chưa có hồ sơ trong phạm vi</div>
       ) : (
-        <div className={styles.sectionBody}>
-          <div className={styles.tiles}>
-            {statusCounts.map((s) => (
-              <div key={s.status} className={`${styles.tile} ${styles[`tone-${toneOf(s.status)}`]}`}>
-                <div className={styles.tileValue}>{s.count}</div>
-                <div className={styles.tileLabel}>{s.name}</div>
-              </div>
-            ))}
-            {returnedCount > 0 && (
-              <div className={`${styles.tile} ${styles["tone-danger"]}`}>
-                <div className={styles.tileValue}>{returnedCount}</div>
-                <div className={styles.tileLabel}>Bị trả lại</div>
-              </div>
-            )}
-          </div>
-
-          <div className="table-responsive">
-            <table className={`table table-sm align-middle mb-0 ${styles.table}`}>
-              <thead>
-                <tr>
-                  <th>Chi bộ</th>
-                  <th className="text-center">Số hồ sơ</th>
-                  <th className="text-center">Đã công bố</th>
-                  <th style={{ width: "30%" }}>Tỷ lệ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {byCell.map(([name, v]) => {
-                  const percent = v.total ? Math.round((v.published / v.total) * 100) : 0;
-                  return (
-                    <tr key={name}>
-                      <td>{name}</td>
-                      <td className="text-center">{v.total}</td>
-                      <td className="text-center">{v.published}</td>
-                      <td>
-                        <div className="d-flex align-items-center gap-2">
-                          <div className={`${styles.bar} flex-grow-1`}>
-                            <div className={styles.barFill} style={{ width: `${percent}%` }} />
-                          </div>
-                          <span className={styles.muted}>{percent}%</span>
+        <div className={styles.tw}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Chi bộ</th>
+                <th className={styles.right}>Hồ sơ</th>
+                <th className={styles.right}>Công bố</th>
+                <th style={{ width: "38%" }}>Tiến độ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {byCell.map(([name, v]) => {
+                const percent = v.total ? Math.round((v.published / v.total) * 100) : 0;
+                return (
+                  <tr key={name}>
+                    <td>{name}</td>
+                    <td className={`${styles.right} num`}>{v.total}</td>
+                    <td className={`${styles.right} num`}>{v.published}</td>
+                    <td>
+                      <div className={styles.barRow}>
+                        <div className={styles.bar}>
+                          <i style={{ width: `${percent}%` }} />
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        <span className={styles.barPct}>{percent}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </section>

@@ -1,0 +1,23 @@
+/* Nút biểu tượng ở khu tài khoản thanh bên (đổi mật khẩu): cùng cỡ nút đăng xuất, rê chuột tô primary. */
+.iconBtn {
+  border-radius: 8px;
+  color: var(--ink-3);
+  font-size: 16px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  text-decoration: none;
+}
+
+.iconBtn:hover,
+.iconBtn[aria-current="page"] {
+  background: var(--primary-tint);
+  color: var(--primary-ink);
+}
+
+.iconBtn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}

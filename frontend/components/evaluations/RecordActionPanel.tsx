@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useId, useMemo, useState } from "react";
 import {
   EvaluationMeetingDto,
   EvaluationRecordDto,
@@ -18,6 +18,7 @@ import { FileUploadModal } from "@/components/attachments/FileUploadModal";
 import { useCriteria } from "@/components/evaluations/useCriteria";
 import { SelfScoreForm } from "@/components/evaluations/SelfScoreForm";
 import { CriteriaSnapshot, fmt, requiresExplanation } from "@/services/criteriaService";
+import styles from "./record.module.css";
 
 interface Props {
   record: EvaluationRecordDto;
@@ -37,32 +38,98 @@ const EMPTY_VOTES: VoteTallyDto = { votesExcellent: 0, votesGood: 0, votesSatisf
  */
 export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }: Props) {
   const { criteria } = useCriteria(record.periodId);
+  const [appraisal, setAppraisal] = useState<number | null>(null);
   const complete = actions.filter((a) => !a.requiresReason);
   const withReason = actions.filter((a) => a.requiresReason);
 
   if (actions.length === 0) return null;
 
+  const reasonButtons =
+    withReason.length > 0 ? (
+      <span className={styles.pushRight}>
+        {withReason.map((action) => (
+          <button key={action.action} type="button" className="btn btn-outline-danger btn-sm" disabled={busy} onClick={() => onReason(action)}>
+            {action.label}
+          </button>
+        ))}
+      </span>
+    ) : null;
+
+  // Nút trả lại / mở lại đặt chung chân với nút chính của thao tác đầu tiên (nếu biểu mẫu đó có chân).
+  const first = complete[0];
+  const reasonsInForm = !!reasonButtons && !!first && FOOTED_FORMS.has(first.action);
+
+  if (complete.length === 0) {
+    return (
+      <section className={styles.task}>
+        <div className={styles.blockH}>
+          <h2>Thao tác</h2>
+        </div>
+        <div className={styles.foot}>{reasonButtons}</div>
+      </section>
+    );
+  }
+
   return (
-    <div className="d-flex flex-column gap-3">
-      {complete.map((action) => (
-        <div key={action.action} className="border rounded-3 p-3">
-          <div className="d-flex align-items-center justify-content-between mb-2">
-            <h3 className="h6 mb-0">{action.label}</h3>
-            {action.overdue && <span className="badge text-bg-warning">Đã quá thời hạn của bước</span>}
-          </div>
-          <ActionForm record={record} criteria={criteria} action={action.action} step={action.step} busy={busy} onSubmit={onSubmit} />
-        </div>
-      ))}
-      {withReason.length > 0 && (
-        <div className="d-flex flex-wrap gap-2">
-          {withReason.map((action) => (
-            <button key={action.action} type="button" className="btn btn-outline-danger btn-sm" disabled={busy} onClick={() => onReason(action)}>
-              <i className={`bi ${action.action === "Reopen" ? "bi-unlock" : "bi-arrow-return-left"} me-1`} />
-              {action.label}
-            </button>
-          ))}
-        </div>
-      )}
+    <>
+      {complete.map((action, index) => {
+        const isAppraise = action.action === "Appraise";
+        const diff = isAppraise && appraisal != null ? appraisal - record.totalSelfScore : null;
+        const diffBad = isAppraise && !!criteria && requiresExplanation(criteria.content, record.totalSelfScore, appraisal);
+        return (
+          <section key={action.action} className={styles.task} aria-label={action.label}>
+            <div className={styles.blockH}>
+              <h2>{action.label}</h2>
+              {action.overdue && <span className="tag t-bad">Quá hạn</span>}
+              {isAppraise && (
+                <span className={styles.cmp}>
+                  Tự chấm <b className="num">{fmt(record.totalSelfScore)}</b>
+                  {diff != null && (
+                    <>
+                      {" "}· chênh lệch <b className={`num ${diffBad ? styles.bad : ""}`}>{diff > 0 ? "+" : ""}{fmt(diff)}</b>
+                    </>
+                  )}
+                </span>
+              )}
+            </div>
+            <div className={styles.taskBody}>
+              <ActionForm
+                record={record}
+                criteria={criteria}
+                action={action.action}
+                step={action.step}
+                busy={busy}
+                onSubmit={onSubmit}
+                extra={index === 0 && reasonsInForm ? reasonButtons : null}
+                onAppraisalChange={setAppraisal}
+              />
+            </div>
+            {index === 0 && reasonButtons && !reasonsInForm && <div className={styles.foot}>{reasonButtons}</div>}
+          </section>
+        );
+      })}
+    </>
+  );
+}
+
+/** Thao tác có biểu mẫu gọn, nút chính nằm ở chân khu thao tác (cùng nút trả lại). */
+const FOOTED_FORMS = new Set<WorkflowActionCode>([
+  "RecordExternal",
+  "ApproveTasks",
+  "ConfirmByCell",
+  "RecordCollectiveProposal",
+  "Appraise",
+  "DirectorReview",
+  "RecordDecision",
+  "Publish",
+]);
+
+/** Chân biểu mẫu tràn tới mép khu thao tác; `row` khi nằm trong lưới Bootstrap `.row.g-2`. */
+function FormFoot({ extra, row = false, only = false, children }: { extra?: React.ReactNode; row?: boolean; only?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={row ? `col-12 ${styles.formFootRow}` : only ? styles.formFootOnly : styles.formFoot}>
+      {children}
+      {extra}
     </div>
   );
 }
@@ -74,46 +141,51 @@ interface FormProps {
   step: WorkflowStepCode;
   busy: boolean;
   onSubmit: (action: WorkflowActionCode, payload: Record<string, unknown>, step?: WorkflowStepCode) => void;
+  /** Nút phụ đặt ở chân biểu mẫu (trả lại / mở lại). */
+  extra?: React.ReactNode;
+  onAppraisalChange?: (score: number | null) => void;
 }
 
-function ActionForm({ record, criteria, action, step, busy, onSubmit }: FormProps) {
+function ActionForm({ record, criteria, action, step, busy, onSubmit, extra, onAppraisalChange }: FormProps) {
   switch (action) {
     case "RecordExternal":
-      return <ExternalResultForm record={record} step={step} busy={busy} onSubmit={(payload) => onSubmit(action, payload, step)} />;
+      return <ExternalResultForm record={record} step={step} busy={busy} extra={extra} onSubmit={(payload) => onSubmit(action, payload, step)} />;
     case "SubmitTasks":
       return <TasksForm record={record} criteria={criteria} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "SubmitSelfScore":
       return <SelfScoreForm record={record} criteria={criteria} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "ApproveTasks":
     case "ConfirmByCell":
-      return <CommentForm busy={busy} label="Ý kiến (không bắt buộc)" submitText={action === "ApproveTasks" ? "Duyệt danh mục" : "Xác nhận phiếu tự chấm"} onSubmit={(payload) => onSubmit(action, payload)} />;
+      return <CommentForm busy={busy} extra={extra} label="Ý kiến" submitText={action === "ApproveTasks" ? "Duyệt danh mục" : "Xác nhận phiếu tự chấm"} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "RecordCollectiveProposal":
-      return <ProposalForm record={record} busy={busy} stage="B3A_COLLECTIVE" submitText="Ghi nhận đề xuất" onSubmit={(payload) => onSubmit(action, payload)} />;
+      return <ProposalForm record={record} busy={busy} extra={extra} stage="B3A_COLLECTIVE" submitText="Ghi nhận đề xuất" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "Appraise":
-      return <AppraisalForm record={record} criteria={criteria} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
+      return <AppraisalForm record={record} criteria={criteria} busy={busy} extra={extra} onScoreChange={onAppraisalChange} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "DirectorReview":
-      return <GradeCommentForm busy={busy} defaultGrade={record.appraisalProposedGrade} submitText="Ghi nhận nhận xét" onSubmit={(payload) => onSubmit(action, payload)} />;
+      return <GradeCommentForm busy={busy} extra={extra} defaultGrade={record.appraisalProposedGrade} submitText="Ghi nhận nhận xét" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "RecordDecision":
-      return <ProposalForm record={record} busy={busy} stage="B4_DECISION" submitText="Ghi nhận quyết định" onSubmit={(payload) => onSubmit(action, payload)} />;
+      return <ProposalForm record={record} busy={busy} extra={extra} stage="B4_DECISION" submitText="Ghi nhận quyết định" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "Publish":
       return (
-        <div className="d-flex justify-content-between align-items-center gap-2">
-          <div className="small text-secondary">Sau khi công bố, muốn sửa phải "Mở lại hồ sơ" và nêu lý do.</div>
+        <FormFoot only extra={extra}>
           <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={() => onSubmit(action, {})}>Công bố, khóa kết quả</button>
-        </div>
+        </FormFoot>
       );
     default:
       return null;
   }
 }
 
-function CommentForm({ busy, label, submitText, onSubmit }: { busy: boolean; label: string; submitText: string; onSubmit: (p: Record<string, unknown>) => void }) {
+function CommentForm({ busy, label, submitText, extra, onSubmit }: { busy: boolean; label: string; submitText: string; extra?: React.ReactNode; onSubmit: (p: Record<string, unknown>) => void }) {
   const [comment, setComment] = useState("");
+  const id = useId();
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit({ comment }); }}>
-      <label className="form-label small">{label}</label>
-      <textarea className="form-control form-control-sm mb-2" rows={2} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} />
-      <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>{submitText}</button>
+      <label className="form-label small" htmlFor={id}>{label}</label>
+      <textarea id={id} className="form-control form-control-sm" rows={2} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} />
+      <FormFoot extra={extra}>
+        <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>{submitText}</button>
+      </FormFoot>
     </form>
   );
 }
@@ -129,57 +201,55 @@ function GradeSelect({ value, onChange, id }: { value: string; onChange: (v: str
 
 const initialGrade = (value?: string) => (value && value !== "ChuaXepLoai" ? value : "");
 
-function GradeCommentForm({ busy, defaultGrade, submitText, onSubmit }: { busy: boolean; defaultGrade?: string; submitText: string; onSubmit: (p: Record<string, unknown>) => void }) {
+function GradeCommentForm({ busy, defaultGrade, submitText, extra, onSubmit }: { busy: boolean; defaultGrade?: string; submitText: string; extra?: React.ReactNode; onSubmit: (p: Record<string, unknown>) => void }) {
   const [grade, setGrade] = useState(initialGrade(defaultGrade));
   const [comment, setComment] = useState("");
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit({ proposedGrade: grade, comment }); }} className="row g-2">
       <div className="col-md-5"><label className="form-label small" htmlFor="gc-grade">Mức đề xuất</label><GradeSelect id="gc-grade" value={grade} onChange={setGrade} /></div>
-      <div className="col-12"><label className="form-label small">Nhận xét</label><textarea className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
-      <div className="col-12"><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !grade}>{submitText}</button></div>
+      <div className="col-12"><label className="form-label small" htmlFor="gc-comment">Nhận xét</label><textarea id="gc-comment" className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
+      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !grade}>{submitText}</button></FormFoot>
     </form>
   );
 }
 
 /**
  * Thẩm định: chênh lệch |tự chấm − thẩm định| từ ngưỡng của bộ tiêu chí (hoặc làm đổi mức, nếu bộ bật) → bắt buộc nội dung
- * giải trình/căn cứ (máy chủ kiểm tra lại).
+ * giải trình/căn cứ (máy chủ kiểm tra lại). Điểm tự chấm và chênh lệch hiện ở tiêu đề khu thao tác (`onScoreChange`).
  */
-function AppraisalForm({ record, criteria, busy, onSubmit }: { record: EvaluationRecordDto; criteria: CriteriaSnapshot | null; busy: boolean; onSubmit: (p: Record<string, unknown>) => void }) {
+function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit }: { record: EvaluationRecordDto; criteria: CriteriaSnapshot | null; busy: boolean; extra?: React.ReactNode; onScoreChange?: (score: number | null) => void; onSubmit: (p: Record<string, unknown>) => void }) {
   const [score, setScore] = useState<string>(record.appraisalScore != null ? String(record.appraisalScore) : String(record.totalSelfScore ?? ""));
   const [grade, setGrade] = useState(initialGrade(record.appraisalProposedGrade) || initialGrade(record.collectiveProposedGrade) || initialGrade(record.selfProposedGrade));
   const [comment, setComment] = useState(record.appraisalComment || "");
   const [explanation, setExplanation] = useState(record.appraisalExplanation || "");
   const appraisal = score === "" ? null : Number(score);
   const needsExplanation = !!criteria && requiresExplanation(criteria.content, record.totalSelfScore, appraisal);
-  const diff = appraisal == null ? null : appraisal - record.totalSelfScore;
+  const rule = criteria
+    ? `Bắt buộc khi chênh lệch từ ${fmt(criteria.content.parameters.explanationThreshold)} điểm${criteria.content.parameters.explanationOnGradeChange ? " hoặc đổi mức xếp loại" : ""}`
+    : undefined;
+
+  useEffect(() => {
+    onScoreChange?.(appraisal);
+  }, [appraisal, onScoreChange]);
+
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit({ appraisalScore: appraisal, proposedGrade: grade, comment, explanation: explanation.trim() || null }); }} className="row g-2">
-      <div className="col-md-3"><label className="form-label small">Điểm thẩm định</label><input type="number" min={0} max={100} step={0.1} className="form-control form-control-sm" value={score} onChange={(e) => setScore(e.target.value)} /></div>
-      <div className="col-md-5"><label className="form-label small" htmlFor="ap-grade">Mức đề xuất</label><GradeSelect id="ap-grade" value={grade} onChange={setGrade} /></div>
-      <div className="col-md-4 small text-secondary align-self-end">
-        Tự chấm: <strong>{fmt(record.totalSelfScore)}</strong>{diff != null && <> · Chênh lệch: <strong className={needsExplanation ? "text-danger" : ""}>{fmt(diff)}</strong></>}
-      </div>
-      <div className="col-12"><label className="form-label small">Ý kiến thẩm định</label><textarea className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
+      <div className="col-md-4"><label className="form-label small" htmlFor="ap-score">Điểm thẩm định</label><input id="ap-score" type="number" min={0} max={100} step={0.1} className="form-control form-control-sm num" value={score} onChange={(e) => setScore(e.target.value)} /></div>
+      <div className="col-md-8"><label className="form-label small" htmlFor="ap-grade">Mức đề xuất</label><GradeSelect id="ap-grade" value={grade} onChange={setGrade} /></div>
+      <div className="col-12"><label className="form-label small" htmlFor="ap-comment">Ý kiến thẩm định</label><textarea id="ap-comment" className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
       <div className="col-12">
-        <label className="form-label small" htmlFor="ap-explanation">
-          Nội dung giải trình {needsExplanation ? <span className="text-danger">(bắt buộc)</span> : "(khi chênh lệch)"}
+        <label className="form-label small" htmlFor="ap-explanation" title={rule}>
+          Giải trình {needsExplanation && <span className="text-danger">*</span>}
         </label>
-        <textarea id="ap-explanation" className="form-control form-control-sm" rows={2} maxLength={4000} required={needsExplanation} value={explanation} onChange={(e) => setExplanation(e.target.value)} />
-        {criteria && (
-          <div className="form-text">
-            Bắt buộc khi chênh lệch từ {fmt(criteria.content.parameters.explanationThreshold)} điểm trở lên
-            {criteria.content.parameters.explanationOnGradeChange ? " hoặc làm đổi mức xếp loại" : ""}.
-          </div>
-        )}
+        <textarea id="ap-explanation" className="form-control form-control-sm" rows={2} maxLength={4000} required={needsExplanation} title={rule} value={explanation} onChange={(e) => setExplanation(e.target.value)} />
       </div>
-      <div className="col-12"><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !grade || (needsExplanation && !explanation.trim())}>Ghi nhận thẩm định</button></div>
+      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !grade || (needsExplanation && !explanation.trim())}>Ghi nhận thẩm định</button></FormFoot>
     </form>
   );
 }
 
 /** Ghi nhận đề xuất tập thể (B3a) hoặc quyết định (B4); kết quả kiểm phiếu (tùy chọn) gắn với biên bản. */
-function ProposalForm({ record, busy, stage, submitText, onSubmit }: { record: EvaluationRecordDto; busy: boolean; stage: "B3A_COLLECTIVE" | "B4_DECISION"; submitText: string; onSubmit: (p: Record<string, unknown>) => void }) {
+function ProposalForm({ record, busy, stage, submitText, extra, onSubmit }: { record: EvaluationRecordDto; busy: boolean; stage: "B3A_COLLECTIVE" | "B4_DECISION"; submitText: string; extra?: React.ReactNode; onSubmit: (p: Record<string, unknown>) => void }) {
   const isDecision = stage === "B4_DECISION";
   const [grade, setGrade] = useState(
     isDecision
@@ -252,7 +322,6 @@ function ProposalForm({ record, busy, stage, submitText, onSubmit }: { record: E
             </option>
           ))}
         </select>
-        <div className="form-text">Lập biên bản ở trang "Đánh giá tập thể &amp; Hội nghị".</div>
       </div>
       {meetingId && (
         <div className="col-12">
@@ -282,7 +351,7 @@ function ProposalForm({ record, busy, stage, submitText, onSubmit }: { record: E
           )}
         </div>
       )}
-      <div className="col-12"><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !grade}>{submitText}</button></div>
+      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !grade}>{submitText}</button></FormFoot>
     </form>
   );
 }
@@ -299,7 +368,7 @@ const DEFAULT_AUTHORITY: Partial<Record<WorkflowStepCode, string>> = {
  * Ghi nhận kết quả của bước do cấp trên / cơ quan ngoài hệ thống thực hiện: cơ quan, số/ngày văn bản, nhận xét,
  * mức đề xuất/quyết định (bước có mức), điểm (tùy chọn), tệp đính kèm (tùy chọn).
  */
-function ExternalResultForm({ record, step, busy, onSubmit }: { record: EvaluationRecordDto; step: WorkflowStepCode; busy: boolean; onSubmit: (p: Record<string, unknown>) => void }) {
+function ExternalResultForm({ record, step, busy, extra, onSubmit }: { record: EvaluationRecordDto; step: WorkflowStepCode; busy: boolean; extra?: React.ReactNode; onSubmit: (p: Record<string, unknown>) => void }) {
   const graded = GRADED_STEPS.includes(step);
   const withScore = step === "B3B_APPRAISAL" || step === "B4_DECISION";
   const previous = record.externalResults?.find((r) => r.step === step);
@@ -334,10 +403,6 @@ function ExternalResultForm({ record, step, busy, onSubmit }: { record: Evaluati
 
   return (
     <form onSubmit={submit} className="row g-2">
-      <div className="col-12 small text-secondary">
-        <i className="bi bi-info-circle me-1" />
-        Bước "{STEP_NAMES[step]}" do cấp trên thực hiện — nhập kết quả của cấp trên.
-      </div>
       <div className="col-md-6"><label className="form-label small" htmlFor={`ext-${step}-authority`}>Cơ quan / cấp thực hiện (bắt buộc)</label>
         <input id={`ext-${step}-authority`} className="form-control form-control-sm" required maxLength={300} value={authorityName} onChange={(e) => setAuthorityName(e.target.value)} />
       </div>
@@ -365,7 +430,7 @@ function ExternalResultForm({ record, step, busy, onSubmit }: { record: Evaluati
         )}
         <button type="button" className="btn btn-link btn-sm p-0 ms-2" onClick={() => setUploading(true)}>Đính kèm văn bản (tùy chọn)</button>
       </div>
-      <div className="col-12"><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !authorityName.trim() || (graded && !grade)}>Ghi nhận kết quả của cấp trên</button></div>
+      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !authorityName.trim() || (graded && !grade)}>Ghi nhận kết quả của cấp trên</button></FormFoot>
       {uploading && (
         <FileUploadModal
           isOpen

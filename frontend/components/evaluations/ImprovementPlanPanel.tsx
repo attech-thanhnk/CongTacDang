@@ -118,20 +118,20 @@ export function ImprovementPlanPanel({ record }: { record: EvaluationRecordDto }
     setDraft({ ...draft, milestones: draft.milestones.map((m) => (m.code === code ? { ...m, [key]: value } : m)) });
 
   return (
-    <section className="card border-0 shadow-sm">
+    <section className="card">
+      <div className="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h2 className="mb-0 d-flex align-items-center gap-2">
+          Kế hoạch 30-60-90 ngày (Mẫu 17)
+          {plan && <span className="tag t-info">{plan.statusName}</span>}
+        </h2>
+        {plan && (
+          <div className="btn-group btn-group-sm">
+            <button type="button" className="btn btn-outline-primary" onClick={() => download("original")}>Word</button>
+            <button type="button" className="btn btn-outline-primary" onClick={() => download("pdf")}>PDF</button>
+          </div>
+        )}
+      </div>
       <div className="card-body d-flex flex-column gap-3">
-        <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <h2 className="h6 mb-0">
-            Kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17)
-            {plan && <span className="badge text-bg-light border ms-2 fw-normal">{plan.statusName}</span>}
-          </h2>
-          {plan && (
-            <div className="btn-group btn-group-sm">
-              <button type="button" className="btn btn-outline-primary" onClick={() => download("original")}>Xuất Word</button>
-              <button type="button" className="btn btn-outline-primary" onClick={() => download("pdf")}>PDF</button>
-            </div>
-          )}
-        </div>
         {error && <div className="alert alert-warning mb-0 small">{error}</div>}
         {data && (
           data.required ? (

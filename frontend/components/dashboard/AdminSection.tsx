@@ -19,19 +19,17 @@ export function AdminSection({ stats }: { stats: AdminStats }) {
   ].filter(Boolean) as { href: string; label: string; value: number }[];
 
   return (
-    <section className={styles.section}>
-      <div className={styles.sectionHeader}>
-        <h2 className={styles.sectionTitle}>Quản trị</h2>
+    <section className={styles.block}>
+      <div className={styles.blockH}>
+        <h2>Quản trị</h2>
       </div>
-      <div className={styles.sectionBody}>
-        <div className={styles.adminLinks}>
-          {items.map((item) => (
-            <Link key={item.label} href={item.href} className={styles.adminLink}>
-              <div className={styles.factLabel}>{item.label}</div>
-              <div className={styles.factValue}>{item.value}</div>
-            </Link>
-          ))}
-        </div>
+      <div className={styles.stats} style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+        {items.map((item) => (
+          <Link key={item.label} href={item.href} className={styles.stat}>
+            <div className={styles.statV}>{item.value}</div>
+            <div className={styles.statL}>{item.label}</div>
+          </Link>
+        ))}
       </div>
     </section>
   );

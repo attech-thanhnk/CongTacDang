@@ -1,315 +1,326 @@
-/* Tổng quan và Việc cần xử lý: cỡ chữ nền 14px, chữ phụ 13px. */
+/* Tổng quan, Việc cần xử lý, danh sách hồ sơ — theo bản mẫu: khối giấy trắng, vạch mảnh, bảng lề 20px. */
 
-.section {
-  background: var(--bg-card);
-  border: 1px solid var(--border-base);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+.block {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
   overflow: hidden;
-  font-size: 14px;
+  min-width: 0;
 }
 
-.sectionPrimary {
-  composes: section;
-  border-color: var(--color-cobalt);
-  border-width: 1.5px;
-}
-
-.sectionHeader {
+.blockH {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border-base);
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--rule);
 }
 
-.sectionTitle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.blockH h2 {
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--ink);
   margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.sectionBody {
-  padding: 14px 18px;
+.count {
+  color: var(--ink-2);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
-.bigCount {
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--color-cobalt);
+.link {
+  margin-left: auto;
+  color: var(--primary-ink);
+  font-weight: 500;
+  font-size: 13.5px;
+  text-decoration: none;
 }
 
-.bigCountZero {
-  composes: bigCount;
-  color: var(--text-muted);
+.link:hover {
+  text-decoration: underline;
 }
 
-.muted {
-  font-size: 13px;
-  color: var(--text-secondary);
+.tools {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.tools :global(.form-select),
+.tools :global(.form-control) {
+  width: auto;
+  max-width: 260px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--rule);
 }
 
 .empty {
-  padding: 14px 18px;
-  color: var(--text-secondary);
+  padding: 16px 20px;
+  color: var(--ink-2);
 }
 
-/* Danh sách việc: mỗi việc một dòng */
-.taskList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* Dải số liệu có vạch chia */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.taskRow {
+.stat {
+  padding: 18px 20px;
+  border-left: 1px solid var(--rule);
+  color: var(--ink);
+  text-decoration: none;
+  display: block;
+}
+
+.stat:first-child {
+  border-left: 0;
+}
+
+a.stat:hover {
+  background: var(--tint);
+  color: var(--ink);
+}
+
+.statV {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.statL {
+  color: var(--ink-2);
+  font-size: 13px;
+  margin-top: 4px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 18px;
-  border-bottom: 1px solid var(--border-base);
+  gap: 6px;
 }
 
-.taskRow:last-child {
+.statL::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--c, var(--primary));
+}
+
+@media (max-width: 760px) {
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .stats .stat:nth-child(3) {
+    border-left: 0;
+  }
+  .stats .stat:nth-child(n + 3) {
+    border-top: 1px solid var(--rule);
+  }
+}
+
+/* Bảng */
+.tw {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.table td {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
   border-bottom: 0;
 }
 
-.taskRowOverdue {
-  composes: taskRow;
-  background: var(--color-danger-bg);
-  box-shadow: inset 3px 0 0 var(--color-danger);
+.table tbody tr:hover td {
+  background: var(--tint);
 }
 
-.taskMain {
-  flex: 1;
+.table th + th,
+.table td + td {
+  padding-left: 12px;
+}
+
+.rowLink {
+  cursor: pointer;
+}
+
+.sortBtn {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.sortBtn:hover {
+  color: var(--ink);
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   min-width: 0;
 }
 
-.taskName {
+.name {
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--ink);
+  text-decoration: none;
 }
 
-.taskMeta {
+a.name:hover {
+  color: var(--primary-ink);
+  text-decoration: underline;
+}
+
+.sub {
+  display: block;
+  color: var(--ink-2);
   font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.taskStep {
-  flex: 0 0 auto;
-  min-width: 0;
-}
-
-.deadline {
-  flex: 0 0 auto;
-  width: 110px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.deadlineOverdue {
-  composes: deadline;
-  color: var(--color-danger);
-  font-weight: 600;
-}
-
-.deadlineSoon {
-  composes: deadline;
-  color: var(--color-warning);
-  font-weight: 600;
 }
 
 .reason {
-  font-size: 13px;
-  color: var(--color-danger);
-}
-
-@media (max-width: 767.98px) {
-  .taskRow {
-    flex-wrap: wrap;
-  }
-  .taskMain {
-    flex-basis: 100%;
-  }
-  .deadline {
-    width: auto;
-  }
-}
-
-/* Tiến trình các bước của hồ sơ */
-.steps {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.step {
-  flex: 1 1 120px;
-  padding: 6px 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-base);
-  background: var(--bg-base);
-  color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.stepNo {
-  font-weight: 700;
-}
-
-.stepName {
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--bad);
+  font-size: 13px;
+}
+
+.hint {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-3);
   white-space: nowrap;
 }
 
-.stepDone {
-  composes: step;
-  border-color: var(--color-success-border);
-  background: var(--color-success-bg);
-  color: var(--color-success);
+.right {
+  text-align: right !important;
 }
 
-.stepCurrent {
-  composes: step;
-  border: 1.5px solid var(--color-cobalt);
-  background: var(--color-primary-light);
-  color: var(--color-cobalt);
-}
-
-.stepCurrentOverdue {
-  composes: step;
-  border: 1.5px solid var(--color-danger);
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-}
-
-.stepSkipped {
-  composes: step;
-  border-style: dashed;
-}
-
-.facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 28px;
-  margin-top: 14px;
-}
-
-.fact {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.factLabel {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.factValue {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-/* Ô số theo trạng thái (tông giống RecordStatusBadge) */
-.tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.tile {
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
-  border: 1px solid #e2e8f0;
-  background: #f1f5f9;
-  color: #475569;
-}
-
-.tileValue {
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.tileLabel {
-  font-size: 13px;
+.late {
+  color: var(--bad);
   font-weight: 500;
 }
 
-.tone-success { color: var(--color-success); background: var(--color-success-bg); border-color: var(--color-success-border); }
-.tone-info    { color: var(--color-info);    background: var(--color-info-bg);    border-color: var(--color-info-border); }
-.tone-warning { color: var(--color-warning); background: var(--color-warning-bg); border-color: var(--color-warning-border); }
-.tone-danger  { color: var(--color-danger);  background: var(--color-danger-bg);  border-color: var(--color-danger-border); }
-.tone-neutral { color: #475569; background: #f1f5f9; border-color: #e2e8f0; }
+.soon {
+  color: var(--wait);
+  font-weight: 500;
+}
 
-.table {
-  font-size: 14px;
+.muted {
+  color: var(--ink-2);
+}
+
+.nowrap {
+  white-space: nowrap;
 }
 
 .bar {
-  height: 8px;
-  border-radius: 4px;
-  background: var(--bg-base);
-  border: 1px solid var(--border-base);
+  height: 6px;
+  border-radius: 3px;
+  background: var(--tint);
   overflow: hidden;
-  min-width: 80px;
+  min-width: 120px;
+  flex: 1;
 }
 
-.barFill {
+.bar i {
+  display: block;
   height: 100%;
-  background: var(--color-success);
+  background: var(--primary);
 }
 
-/* Ô quản trị */
-.adminLinks {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+.barRow {
+  display: flex;
+  align-items: center;
   gap: 10px;
 }
 
-.adminLink {
-  display: block;
-  padding: 10px 12px;
-  border: 1px solid var(--border-base);
-  border-radius: var(--radius-md);
-  text-decoration: none;
-  color: var(--text-primary);
-}
-
-.adminLink:hover {
-  border-color: var(--color-cobalt);
-}
-
-/* Nhóm theo bước ở trang Việc cần xử lý */
-.groupCount {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 26px;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 11px;
-  background: var(--color-cobalt);
-  color: #fff;
+.barPct {
+  width: 40px;
+  text-align: right;
+  color: var(--ink-2);
   font-size: 13px;
-  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hai cột: tiến độ | hồ sơ của tôi */
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1040px) {
+  .cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 10px 20px;
+  padding: 16px 20px;
+  margin: 0;
+}
+
+.dl dt {
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 400;
+}
+
+.dl dd {
+  margin: 0;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Nhãn trạng thái trung tính (bổ sung cho .t-ok/.t-wait/.t-info/.t-bad) */
+.tNeutral {
+  color: var(--ink-2);
+  background: var(--tint);
 }
 
 .search {
-  max-width: 280px;
+  max-width: 260px;
 }
