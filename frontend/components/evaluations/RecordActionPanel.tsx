@@ -40,14 +40,7 @@ export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }:
   const complete = actions.filter((a) => !a.requiresReason);
   const withReason = actions.filter((a) => a.requiresReason);
 
-  if (actions.length === 0) {
-    return (
-      <div className="text-secondary small">
-        <i className="bi bi-info-circle me-1" />
-        Bạn không có thao tác nào trên hồ sơ ở bước hiện tại.
-      </div>
-    );
-  }
+  if (actions.length === 0) return null;
 
   return (
     <div className="d-flex flex-column gap-3">
@@ -447,7 +440,7 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
           </tbody>
         </table>
       </div>
-      <div className="d-flex justify-content-between align-items-center">
+      <div className="d-flex justify-content-between align-items-center bg-white border-top py-2" style={{ position: "sticky", bottom: 0, zIndex: 5 }}>
         <div className="d-flex gap-2 align-items-center">
           <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setTasks([...tasks, { taskName: "", targetOutput: "", weight: 0, deadline: "", axisCode: "" }])}>
             <i className="bi bi-plus-lg me-1" />Thêm dòng

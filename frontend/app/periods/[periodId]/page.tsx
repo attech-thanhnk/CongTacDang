@@ -23,9 +23,12 @@ import {
   evaluationService,
 } from "@/services/evaluationService";
 import { CriteriaSummary } from "@/components/evaluations/CriteriaSummary";
+import { PeriodStatusBadge } from "@/components/periods/PeriodStatusBadge";
+import { RecordStatusBadge } from "@/components/common/StatusBadge";
 import { CriteriaSetListItem, WeightFrame, criteriaService } from "@/services/criteriaService";
 
 type Transition = "open" | "lock" | "unlock" | "close";
+type PeriodTab = "profiles" | "criteria" | "readiness" | "participants";
 
 /**
  * Cấu hình kỳ: trạng thái kỳ, hồ sơ luồng (bước × chế độ × quyền thực hiện × thời hạn), bộ tiêu chí (chọn khi dự thảo, xem
@@ -49,6 +52,7 @@ export default function PeriodDetailPage() {
   const [unlockOpen, setUnlockOpen] = useState(false);
   const [forceOpen, setForceOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<PeriodTab>("profiles");
 
   const checkReadiness = useCallback(async () => {
     if (!periodId || !canManage) return;
@@ -93,6 +97,15 @@ export default function PeriodDetailPage() {
   const isDraft = period.status === "Draft";
   const editable = canManage && isDraft;
   const deadlinesEditable = canManage && period.status !== "Closed";
+  const showReadiness = canManage && period.status !== "Closed";
+  const tabs: { key: PeriodTab; label: string; count?: number; warn?: boolean }[] = [
+    { key: "profiles", label: "Hồ sơ luồng" },
+    { key: "criteria", label: "Bộ tiêu chí" },
+    ...(showReadiness
+      ? [{ key: "readiness" as PeriodTab, label: "Kiểm tra kẹt luồng", count: readiness && !readiness.ready ? readiness.issues.length : undefined, warn: true }]
+      : []),
+    ...(canManage ? [{ key: "participants" as PeriodTab, label: "Người được đánh giá", count: participants.length }] : []),
+  ];
 
   const run = async (work: () => Promise<unknown>, success: string) => {
     setBusy(true);
@@ -123,6 +136,7 @@ export default function PeriodDetailPage() {
       const body = err instanceof ApiError ? err.data : null;
       if (err?.status === 409 && body?.code === "PERIOD_NOT_READY") {
         setReadiness(body.data as PeriodReadinessDto);
+        setTab("readiness");
         toast.error(body.message || "Chưa mở được kỳ: còn cảnh báo kẹt luồng.");
         setForceOpen(true);
       } else {
@@ -145,7 +159,7 @@ export default function PeriodDetailPage() {
       <PageHeader
         title={period.name}
         subTitle={`Quý ${period.quarter}/${period.year} · ${period.totalRecords} người được đánh giá${period.statusReason ? ` · Lý do chuyển trạng thái gần nhất: ${period.statusReason}` : ""}`}
-        badge={<span className="badge text-bg-primary">{period.statusDisplayName}</span>}
+        badge={<PeriodStatusBadge status={period.status} label={period.statusDisplayName} />}
         actions={
           <div className="d-flex gap-2 flex-wrap">
             <Link href="/periods" className="btn btn-outline-secondary btn-sm"><i className="bi bi-arrow-left me-1" />Danh sách kỳ</Link>
@@ -175,9 +189,27 @@ export default function PeriodDetailPage() {
       />
 
       <div className="page-body d-flex flex-column gap-3">
+        <ul className="nav nav-tabs" role="tablist" style={{ fontSize: 15 }}>
+          {tabs.map((t) => (
+            <li className="nav-item" key={t.key} role="presentation">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === t.key}
+                className={`nav-link ${tab === t.key ? "active fw-semibold" : ""}`}
+                onClick={() => setTab(t.key)}
+              >
+                {t.label}
+                {t.count != null && <span className={`badge rounded-pill ms-2 ${t.warn ? "text-bg-warning" : "text-bg-light border"}`}>{t.count}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {tab === "profiles" && (
         <section className="card border-0 shadow-sm">
           <div className="card-body">
-            <div className="d-flex justify-content-between align-items-center mb-2">
+            <div className="d-flex justify-content-between align-items-center mb-3">
               <h2 className="h6 mb-0">Hồ sơ luồng — các bước theo nhóm đối tượng</h2>
               {canManage && period.status !== "Closed" && (
                 <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={saveSettings}>Lưu cấu hình</button>
@@ -196,18 +228,19 @@ export default function PeriodDetailPage() {
             <div className="form-check mt-2">
               <input className="form-check-input" type="checkbox" id="enforce" checked={settings.enforceDeadlines} disabled={!editable}
                 onChange={(e) => setSettings({ ...settings, enforceDeadlines: e.target.checked })} />
-              <label className="form-check-label small" htmlFor="enforce">Chặn hoàn thành bước khi đã quá thời hạn</label>
+              <label className="form-check-label" htmlFor="enforce">Chặn hoàn thành bước khi đã quá thời hạn</label>
             </div>
           </div>
         </section>
+        )}
 
-        <CriteriaSection period={period} editable={editable} busy={busy} onChoose={chooseCriteria} />
+        {tab === "criteria" && <CriteriaSection period={period} editable={editable} busy={busy} onChoose={chooseCriteria} />}
 
-        {canManage && period.status !== "Closed" && (
+        {tab === "readiness" && showReadiness && (
           <ReadinessPanel readiness={readiness} loading={checking} onCheck={checkReadiness} />
         )}
 
-        {canManage && (
+        {tab === "participants" && canManage && (
           <ParticipantsSection
             period={period}
             profiles={period.settings.profiles}
@@ -302,22 +335,22 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
         </div>
 
         {canAdd && (
-          <div className="border rounded-3 p-2 mb-3">
+          <div className="border rounded-3 p-3 mb-3 bg-light">
             <div className="row g-2 align-items-end">
-              <div className="col-md-3"><label className="form-label small mb-0">Phòng</label>
+              <div className="col-md-3"><label className="form-label mb-1" style={{ fontSize: 13 }}>Phòng</label>
                 <select className="form-select form-select-sm" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
                   <option value="">— Tất cả —</option>
                   {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
-              <div className="col-md-3"><label className="form-label small mb-0">Chi bộ</label>
+              <div className="col-md-3"><label className="form-label mb-1" style={{ fontSize: 13 }}>Chi bộ</label>
                 <select className="form-select form-select-sm" value={cellId} onChange={(e) => setCellId(e.target.value)}>
                   <option value="">— Tất cả —</option>
                   {cells.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <div className="col-md-3"><label className="form-label small mb-0">Tên / tài khoản</label><input className="form-control form-control-sm" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
-              <div className="col-md-3"><label className="form-label small mb-0">Hồ sơ luồng khi thêm</label>
+              <div className="col-md-3"><label className="form-label mb-1" style={{ fontSize: 13 }}>Tên / tài khoản</label><input className="form-control form-control-sm" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
+              <div className="col-md-3"><label className="form-label mb-1" style={{ fontSize: 13 }}>Hồ sơ luồng khi thêm</label>
                 <select className="form-select form-select-sm" value={addProfile} onChange={(e) => setAddProfile(e.target.value)}>
                   <option value="">Mặc định theo cấp quyết định</option>
                   {profiles.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
@@ -360,7 +393,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
         <div className="table-responsive">
           <table className="table table-sm align-middle mb-0">
             <thead>
-              <tr className="small text-secondary">
+              <tr className="text-secondary" style={{ fontSize: 13 }}>
                 {canChangeProfile && (
                   <th style={{ width: 28 }}>
                     <input type="checkbox" className="form-check-input" aria-label="Chọn tất cả" checked={allChecked}
@@ -372,20 +405,20 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
             </thead>
             <tbody>
               {participants.map((p) => (
-                <tr key={p.recordId} className="small">
+                <tr key={p.recordId} style={{ fontSize: 14 }}>
                   {canChangeProfile && (
                     <td>
                       <input type="checkbox" className="form-check-input" aria-label={`Chọn ${p.fullName}`} checked={checked.includes(p.recordId)}
                         onChange={(e) => setChecked(e.target.checked ? [...checked, p.recordId] : checked.filter((id) => id !== p.recordId))} />
                     </td>
                   )}
-                  <td><Link href={`/evaluations/${p.recordId}`}>{p.fullName}</Link><div className="text-secondary">{p.username}</div></td>
+                  <td><Link href={`/evaluations/${p.recordId}`} className="fw-semibold">{p.fullName}</Link><div className="text-secondary" style={{ fontSize: 13 }}>{p.username}</div></td>
                   <td>{p.departmentName || "—"}</td>
                   <td>{p.partyCellName || "—"}</td>
                   <td title={p.weightFrameName || undefined}>{p.weightFrameCode || "—"}{p.weightFrameCode && !p.weightFrameName && period.criteria?.selfScoreForm === "09A" && <i className="bi bi-exclamation-triangle text-danger ms-1" title="Khung không có trong bộ tiêu chí của kỳ" />}</td>
                   <td>{p.approvalAuthority === "CapTren" ? "Cấp trên" : "Cơ sở"}</td>
                   <td>{p.workflowProfileName || p.workflowProfileCode}</td>
-                  <td>{p.statusDisplayName}</td>
+                  <td><RecordStatusBadge status={p.status} label={p.statusDisplayName} /></td>
                   <td className="text-end text-nowrap">
                     {canChangeProfile && <button type="button" className="btn btn-link btn-sm p-0 me-2" onClick={() => setProfileTargets([p])}>Đổi hồ sơ luồng</button>}
                     {canAdd && <button type="button" className="btn btn-link btn-sm p-0 me-2" onClick={() => setEditing(p)}>Sửa ảnh chụp</button>}
