@@ -25,19 +25,16 @@ export interface ReportDefinition {
   endpoint?: string;
   /** Mã mẫu trong tên tệp theo quy cách HD03 ("Mau 16_…_Quy III-2026"). */
   fileCode: string;
-  note?: string;
 }
 
 export const REPORTS: ReportDefinition[] = [
   {
     id: "mau-07", code: "Mẫu 07", group: "hd03", scope: "collective", fileType: "DOCX", fileCode: "07",
     title: "Báo cáo tự đánh giá, xếp loại chất lượng của tập thể Đảng ủy (Chi ủy, Chi bộ)",
-    note: "Xuất từ hồ sơ tập thể Mẫu 07 trên trang Đánh giá tập thể & Hội nghị.",
   },
   {
     id: "mau-08", code: "Mẫu 08", group: "hd03", scope: "collective", fileType: "XLSX", fileCode: "08",
     title: "Báo cáo tổng hợp kết quả thực hiện các nhiệm vụ của cơ quan, đơn vị",
-    note: "Xuất từ hồ sơ tập thể Mẫu 08 trên trang Đánh giá tập thể & Hội nghị.",
   },
   {
     id: "mau-11", code: "Mẫu 11", group: "hd03", scope: "period", fileType: "DOCX", fileCode: "11",
@@ -46,12 +43,10 @@ export const REPORTS: ReportDefinition[] = [
   {
     id: "mau-12", code: "Mẫu 12", group: "hd03", scope: "meeting", fileType: "DOCX", fileCode: "12",
     title: "Biên bản Hội nghị tập thể lãnh đạo, quản lý hoặc Hội nghị Đảng ủy/Chi ủy cơ sở về việc đánh giá, xếp loại chất lượng cán bộ quý",
-    note: "Xuất từ từng biên bản hội nghị (M12) trên trang Đánh giá tập thể & Hội nghị.",
   },
   {
     id: "mau-13", code: "Mẫu 13", group: "hd03", scope: "meeting", fileType: "DOCX", fileCode: "13",
     title: "Biên bản kiểm phiếu Hội nghị tập thể lãnh đạo, quản lý hoặc Hội nghị Đảng ủy/Chi ủy cơ sở về việc đánh giá, xếp loại chất lượng cán bộ quý",
-    note: "Xuất từ từng biên bản đã có kết quả kiểm phiếu trên trang Đánh giá tập thể & Hội nghị.",
   },
   {
     id: "mau-14", code: "Mẫu 14", group: "hd03", scope: "period", fileType: "XLSX", fileCode: "14",
@@ -72,7 +67,6 @@ export const REPORTS: ReportDefinition[] = [
     id: "mau-16", code: "Mẫu 16", group: "hd03", scope: "period", fileType: "DOCX", fileCode: "16",
     title: "Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý … năm …",
     endpoint: "/reports/docx/mau-16",
-    note: "Nhập phần đề xuất, nơi gửi… và lưu nháp trước khi xuất.",
   },
   {
     id: "cadres", code: "Nội bộ", group: "internal", scope: "none", fileType: "XLSX", fileCode: "DanhSachCanBo",

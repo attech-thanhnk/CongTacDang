@@ -147,7 +147,6 @@ export default function ReportsPage() {
                   </td>
                   <td>
                     <div className="fw-semibold" style={{ fontSize: "13.5px" }}>{report.title}</div>
-                    {report.note && <div className="text-secondary" style={{ fontSize: "12px" }}>{report.note}</div>}
                   </td>
                   <td className="text-center small text-secondary">{report.fileType}</td>
                   <td className="text-end">{renderActions(report)}</td>
