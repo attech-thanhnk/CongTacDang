@@ -63,8 +63,9 @@ public sealed class OrganizationSettingsService : IOrganizationSettingsService
         if (cached != null)
             return cached;
 
-        // Chưa có bản ghi (CSDL chưa seed) → giá trị mặc định, không ghi.
-        var entity = await _db.Set<OrganizationSettings>().AsNoTracking().FirstOrDefaultAsync(ct)
+        // Chưa có bản ghi (CSDL chưa seed) → giá trị mặc định, không ghi. Bản ghi đơn — vẫn sắp xếp để truy vấn xác định (EF cảnh báo
+        // First không OrderBy).
+        var entity = await _db.Set<OrganizationSettings>().AsNoTracking().OrderBy(s => s.CreatedAt).ThenBy(s => s.Id).FirstOrDefaultAsync(ct)
             ?? DataSeeder.DefaultOrganizationSettings();
         var dto = await ToDtoAsync(entity, ct);
         _cache.Set(dto);
@@ -101,7 +102,7 @@ public sealed class OrganizationSettingsService : IOrganizationSettingsService
         if (errors.Count > 0)
             throw new ValidationException(string.Join(" ", errors));
 
-        var entity = await _db.Set<OrganizationSettings>().FirstOrDefaultAsync(ct);
+        var entity = await _db.Set<OrganizationSettings>().OrderBy(s => s.CreatedAt).ThenBy(s => s.Id).FirstOrDefaultAsync(ct);
         if (entity == null)
         {
             entity = new OrganizationSettings { Id = OrganizationSettings.SingletonId };
