@@ -1,14 +1,12 @@
 "use client";
 
+import { formatDate } from "@/lib/dateFormat";
 import React from "react";
 import { RecordStepProgressDto } from "@/services/evaluationService";
 
 interface Props {
   progress: RecordStepProgressDto[];
 }
-
-const formatDate = (value?: string | null) =>
-  value ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "short" }).format(new Date(value)) : null;
 
 /**
  * Tiến trình 9 bước của hồ sơ theo hồ sơ luồng của hồ sơ. Trạng thái từng bước (xong / đang chờ / chưa tới / không áp dụng)

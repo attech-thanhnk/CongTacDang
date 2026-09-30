@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatDate } from "@/lib/dateFormat";
 import { useToast } from "@/contexts/ToastContext";
 import { PageHeader } from "@/components/common/PageHeader";
 import { CollectiveRecordEditor } from "@/components/collective/CollectiveRecordEditor";
@@ -222,7 +223,7 @@ export default function CollectiveEvaluationsPage() {
                     <div>
                       <strong>{item.formCode === "M13" ? "Mẫu 13 — Kiểm phiếu" : "Mẫu 12 — Hội nghị"}</strong>
                       <div className="text-secondary small">
-                        {item.partyCellName || item.departmentName || "Cấp Công ty"} · {item.stage === "B4_DECISION" ? "Quyết định" : item.stage === "B3A_COLLECTIVE" ? "Đề xuất tập thể" : "—"} · {new Date(item.startedAt).toLocaleDateString("vi-VN")}
+                        {item.partyCellName || item.departmentName || "Cấp Công ty"} · {item.stage === "B4_DECISION" ? "Quyết định" : item.stage === "B3A_COLLECTIVE" ? "Đề xuất tập thể" : "—"} · {formatDate(item.startedAt)}
                       </div>
                     </div>
                     <div className="d-flex gap-2">

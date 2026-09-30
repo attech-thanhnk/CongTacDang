@@ -85,7 +85,7 @@ export default function PeriodsPage() {
                 ) : periods.length === 0 ? (
                   <EmptyState title="Chưa có kỳ đánh giá" />
                 ) : (
-                  <table className="table table-hover table-sm align-middle mb-0">
+                  <div className="table-responsive"><table className="table table-hover table-sm align-middle mb-0">
                     <thead>
                       <tr className="small text-secondary"><th className="ps-3">Kỳ</th><th>Trạng thái</th><th>Bộ tiêu chí</th><th>Hồ sơ luồng</th><th>Người được đánh giá</th><th /></tr>
                     </thead>
@@ -105,7 +105,7 @@ export default function PeriodsPage() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </table></div>
                 )}
               </div>
             </section>

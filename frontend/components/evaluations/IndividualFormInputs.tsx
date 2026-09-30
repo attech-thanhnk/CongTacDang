@@ -214,36 +214,46 @@ export function SelfAssessmentView({ sections, value }: { sections: SelfAssessme
   );
 }
 
-/** Các dòng Mẫu 9D đã lưu (chỉ đọc), nhóm theo trục. */
+/** Các dòng Mẫu 9D đã lưu (chỉ đọc), nhóm theo trục. Khung hẹp thì bảng cuộn ngang để các cột ngắn không bị ép chữ. */
 export function TaskResultsView({ axes, rows }: { axes: AxisInfo[]; rows?: TaskResultRow[] }) {
   if (!rows || rows.length === 0) return <div className="small text-secondary">Chưa nhập.</div>;
   return (
-    <table className="table table-sm small mb-0">
-      <thead>
-        <tr><th>TT</th><th>Nội dung</th><th>Thời hạn</th><th>Tình hình thực hiện</th><th>Sản phẩm</th><th>Tiến độ</th><th>Ghi chú</th></tr>
-      </thead>
-      <tbody>
-        {axes.map((axis, axisIndex) => {
-          const own = rows.filter((r) => r.axisCode.toLowerCase() === axis.code.toLowerCase());
-          if (own.length === 0) return null;
-          return (
-            <React.Fragment key={axis.code}>
-              <tr className="table-light"><td className="fw-semibold text-nowrap">Trục {axisIndex + 1}</td><td colSpan={6} className="fw-semibold">{axis.name}</td></tr>
-              {own.map((r, i) => (
-                <tr key={`${axis.code}-${i}`}>
-                  <td>{i + 1}</td>
-                  <td style={{ whiteSpace: "pre-wrap" }}>{r.content}</td>
-                  <td>{r.deadline || "—"}</td>
-                  <td style={{ whiteSpace: "pre-wrap" }}>{r.status || "—"}</td>
-                  <td style={{ whiteSpace: "pre-wrap" }}>{r.product || "—"}</td>
-                  <td>{r.progress || "—"}</td>
-                  <td>{r.note || "—"}</td>
-                </tr>
-              ))}
-            </React.Fragment>
-          );
-        })}
-      </tbody>
-    </table>
+    <div className="table-responsive">
+      <table className="table table-sm align-top small mb-0" style={{ minWidth: 820 }}>
+        <thead>
+          <tr>
+            <th style={{ width: 40 }}>TT</th>
+            <th style={{ minWidth: 200 }}>Nội dung</th>
+            <th style={{ minWidth: 110 }}>Thời hạn</th>
+            <th style={{ minWidth: 160 }}>Tình hình thực hiện</th>
+            <th style={{ minWidth: 150 }}>Sản phẩm</th>
+            <th style={{ minWidth: 110 }}>Tiến độ</th>
+            <th style={{ minWidth: 120 }}>Ghi chú</th>
+          </tr>
+        </thead>
+        <tbody>
+          {axes.map((axis, axisIndex) => {
+            const own = rows.filter((r) => r.axisCode.toLowerCase() === axis.code.toLowerCase());
+            if (own.length === 0) return null;
+            return (
+              <React.Fragment key={axis.code}>
+                <tr className="table-light"><td className="fw-semibold text-nowrap">Trục {axisIndex + 1}</td><td colSpan={6} className="fw-semibold">{axis.name}</td></tr>
+                {own.map((r, i) => (
+                  <tr key={`${axis.code}-${i}`}>
+                    <td>{i + 1}</td>
+                    <td style={{ whiteSpace: "pre-wrap" }}>{r.content}</td>
+                    <td>{r.deadline || "—"}</td>
+                    <td style={{ whiteSpace: "pre-wrap" }}>{r.status || "—"}</td>
+                    <td style={{ whiteSpace: "pre-wrap" }}>{r.product || "—"}</td>
+                    <td>{r.progress || "—"}</td>
+                    <td style={{ whiteSpace: "pre-wrap" }}>{r.note || "—"}</td>
+                  </tr>
+                ))}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }

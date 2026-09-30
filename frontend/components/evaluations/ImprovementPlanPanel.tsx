@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/dateFormat";
 import React, { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { EvaluationRecordDto } from "@/services/evaluationService";
@@ -13,9 +14,6 @@ import {
   milestoneResultLabel,
   postPublishService,
 } from "@/services/postPublishService";
-
-const formatDate = (value?: string | null) =>
-  value ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "short" }).format(new Date(value)) : "—";
 
 const MILESTONES: { code: MilestoneCode; name: string }[] = [
   { code: "M30", name: "Mốc 30 ngày (Khắc phục cấp bách)" },

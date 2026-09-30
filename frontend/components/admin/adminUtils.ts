@@ -25,20 +25,8 @@ export function errorTitle(error: unknown): string | undefined {
   }
 }
 
-const dateTimeFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" });
-const dateFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "short" });
-
-export function formatDateTime(value?: string | null): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : dateTimeFormatter.format(date);
-}
-
-export function formatDate(value?: string | null): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : dateFormatter.format(date);
-}
+// Định dạng ngày giờ hiển thị dùng chung (dd/MM/yyyy) — giữ tên cũ để các màn quản trị không phải đổi import.
+export { formatDate, formatDateTime } from "@/lib/dateFormat";
 
 function pad(value: number): string {
   return String(value).padStart(2, "0");

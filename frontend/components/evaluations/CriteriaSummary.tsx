@@ -10,7 +10,7 @@ export function CriteriaSummary({ content, form }: { content: CriteriaSetContent
     <div className="d-flex flex-column gap-3 small">
       <div>
         <h3 className="h6 small fw-bold text-secondary">Nhóm tiêu chí chung (tối đa {fmt(p.generalMaxScore)} điểm)</h3>
-        <table className="table table-sm mb-0">
+        <div className="table-responsive"><table className="table table-sm mb-0">
           <thead><tr className="text-secondary"><th style={{ width: 60 }}>Mã</th><th>Tiêu chí</th><th style={{ width: 80 }}>Tối đa</th></tr></thead>
           <tbody>
             {content.generalGroups.map((g) => (
@@ -24,12 +24,12 @@ export function CriteriaSummary({ content, form }: { content: CriteriaSetContent
               </React.Fragment>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       <div>
         <h3 className="h6 small fw-bold text-secondary">Trục kết quả{form === "09B" ? ` (chấm trực tiếp, tổng ${fmt(content.axes.reduce((s, a) => s + a.maxScore, 0))} điểm)` : ""}</h3>
-        <table className="table table-sm mb-0">
+        <div className="table-responsive"><table className="table table-sm mb-0">
           <thead><tr className="text-secondary"><th style={{ width: 60 }}>Mã</th><th>Trục</th>{form === "09B" && <th style={{ width: 80 }}>Tối đa</th>}</tr></thead>
           <tbody>
             {content.axes.map((a) => (
@@ -44,7 +44,7 @@ export function CriteriaSummary({ content, form }: { content: CriteriaSetContent
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       <div>
@@ -62,14 +62,14 @@ export function CriteriaSummary({ content, form }: { content: CriteriaSetContent
       <div className="row g-3">
         <div className="col-lg-6">
           <h3 className="h6 small fw-bold text-secondary">Khung tỷ trọng A-B-C-D</h3>
-          <table className="table table-sm mb-0">
+          <div className="table-responsive"><table className="table table-sm mb-0">
             <thead><tr className="text-secondary"><th>Khung</th><th>A</th><th>B</th><th>C</th><th>D</th></tr></thead>
             <tbody>
               {content.weightFrames.map((f) => (
                 <tr key={f.code}><td>{f.code} — {f.name}{p.defaultWeightFrameCode === f.code && <span className="badge text-bg-light ms-1">mặc định</span>}</td><td>{fmt(f.a * 100)}%</td><td>{fmt(f.b * 100)}%</td><td>{fmt(f.c * 100)}%</td><td>{fmt(f.d * 100)}%</td></tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
         <div className="col-lg-6">
           <h3 className="h6 small fw-bold text-secondary">Thang quy đổi % A-B-C-D</h3>
@@ -81,14 +81,14 @@ export function CriteriaSummary({ content, form }: { content: CriteriaSetContent
 
       <div>
         <h3 className="h6 small fw-bold text-secondary">Mức xếp loại</h3>
-        <table className="table table-sm mb-0">
+        <div className="table-responsive"><table className="table table-sm mb-0">
           <thead><tr className="text-secondary"><th>Mức</th><th style={{ width: 90 }}>Từ điểm</th><th style={{ width: 120 }}>% vượt chuẩn tối thiểu</th><th>Điều kiện kèm theo</th></tr></thead>
           <tbody>
             {content.grades.map((g) => (
               <tr key={g.grade}><td>{GRADE_LABELS[g.grade] ?? g.grade}</td><td>{fmt(g.minScore)}</td><td>{g.minExceedStandardRatio != null ? `${fmt(g.minExceedStandardRatio * 100)}%` : "—"}</td><td>{g.conditions || "—"}</td></tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       <div>

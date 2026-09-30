@@ -88,6 +88,7 @@ export default function CriteriaSetPage() {
       title: "Xuất bản bộ tiêu chí",
       message: "Sau khi xuất bản, bộ không sửa được nữa (chỉ nhân bản thành bản nháp mới); kỳ dự thảo chọn được bộ này. Hãy lưu thay đổi trước khi xuất bản.",
       confirmText: "Xuất bản",
+      isDanger: false,
       onConfirm: () => run(() => criteriaService.publish(set.id, set.version), "Đã xuất bản bộ tiêu chí."),
     });
 
@@ -184,7 +185,7 @@ export default function CriteriaSetPage() {
                         <button type="button" className="btn btn-link btn-sm text-danger p-0 ms-2" onClick={() => update({ generalGroups: content.generalGroups.filter((_, i) => i !== gi) })}>Xóa nhóm</button>
                       </div>
                     </div>
-                    <table className="table table-sm mb-1">
+                    <div className="table-responsive"><table className="table table-sm mb-1">
                       <thead><tr className="small text-secondary"><th style={{ width: 80 }}>Mã</th><th>Nội dung tiêu chí con</th><th style={{ width: 90 }}>Tối đa</th><th style={{ width: 30 }} /></tr></thead>
                       <tbody>
                         {g.items.map((item, ii) => {
@@ -199,7 +200,7 @@ export default function CriteriaSetPage() {
                           );
                         })}
                       </tbody>
-                    </table>
+                    </table></div>
                     <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setGroup(gi, { items: [...g.items, { code: `${g.code}.${g.items.length + 1}`, text: "", maxScore: 1 }] })}>Thêm tiêu chí con</button>
                   </div>
                 ))}
@@ -212,7 +213,7 @@ export default function CriteriaSetPage() {
                   <h2 className="h6 mb-0">Trục kết quả{info.selfScoreForm === "09B" && <> — tổng <span className={Math.abs(axisTotal - p.totalTaskWeight) > 1e-6 ? "text-danger" : "text-success"}>{fmt(axisTotal)}</span> / {fmt(p.totalTaskWeight)}</>}</h2>
                   <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ axes: [...content.axes, { code: `T${content.axes.length + 1}`, name: "", description: "", maxScore: 0 }] })}>Thêm trục</button>
                 </div>
-                <table className="table table-sm mb-0">
+                <div className="table-responsive"><table className="table table-sm mb-0">
                   <thead><tr className="small text-secondary"><th style={{ width: 80 }}>Mã</th><th>Tên trục</th><th>Nội dung áp dụng</th><th style={{ width: 100 }}>Tối đa (09B)</th><th style={{ width: 30 }} /></tr></thead>
                   <tbody>
                     {content.axes.map((a, ai) => {
@@ -240,7 +241,7 @@ export default function CriteriaSetPage() {
                       );
                     })}
                   </tbody>
-                </table>
+                </table></div>
               </div>
             </section>
 
@@ -295,7 +296,7 @@ export default function CriteriaSetPage() {
                   <h2 className="h6 mb-0">Khung tỷ trọng A-B-C-D (%, tổng 100)</h2>
                   <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ weightFrames: [...content.weightFrames, { code: `K${content.weightFrames.length + 1}`, name: "", a: 0.25, b: 0.25, c: 0.25, d: 0.25 }] })}>Thêm khung</button>
                 </div>
-                <table className="table table-sm mb-2">
+                <div className="table-responsive"><table className="table table-sm mb-2">
                   <thead><tr className="small text-secondary"><th style={{ width: 80 }}>Mã</th><th>Tên khung</th><th style={{ width: 80 }}>A</th><th style={{ width: 80 }}>B</th><th style={{ width: 80 }}>C</th><th style={{ width: 80 }}>D</th><th style={{ width: 70 }}>Tổng</th><th style={{ width: 30 }} /></tr></thead>
                   <tbody>
                     {content.weightFrames.map((f, fi) => {
@@ -315,7 +316,7 @@ export default function CriteriaSetPage() {
                       );
                     })}
                   </tbody>
-                </table>
+                </table></div>
                 <div className="row g-2">
                   <div className="col-md-4"><label className="form-label small mb-0">Khung mặc định (cán bộ chưa có khung)</label>
                     <select className="form-select form-select-sm" value={p.defaultWeightFrameCode || ""} onChange={(e) => setParam("defaultWeightFrameCode", e.target.value || null)}>
@@ -333,7 +334,7 @@ export default function CriteriaSetPage() {
                   <h2 className="h6 mb-0">Thang quy đổi % A-B-C-D (mức áp dụng cho giá trị ≥ ngưỡng dưới)</h2>
                   <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ conversionScale: [...content.conversionScale, { minPercent: 0, label: "", description: "" }] })}>Thêm mức</button>
                 </div>
-                <table className="table table-sm mb-0">
+                <div className="table-responsive"><table className="table table-sm mb-0">
                   <thead><tr className="small text-secondary"><th style={{ width: 110 }}>Từ (%)</th><th style={{ width: 180 }}>Nhãn</th><th>Cách hiểu</th><th style={{ width: 30 }} /></tr></thead>
                   <tbody>
                     {content.conversionScale.map((b, bi) => {
@@ -348,14 +349,14 @@ export default function CriteriaSetPage() {
                       );
                     })}
                   </tbody>
-                </table>
+                </table></div>
               </div>
             </section>
 
             <section className="card border-0 shadow-sm">
               <div className="card-body">
                 <h2 className="h6">Mức xếp loại (4 mức cố định — cấu hình ngưỡng và điều kiện)</h2>
-                <table className="table table-sm mb-0">
+                <div className="table-responsive"><table className="table table-sm mb-0">
                   <thead><tr className="small text-secondary"><th style={{ width: 230 }}>Mức</th><th style={{ width: 100 }}>Từ điểm</th><th style={{ width: 130 }}>% vượt chuẩn tối thiểu</th><th>Điều kiện kèm theo (hiển thị)</th></tr></thead>
                   <tbody>
                     {content.grades.map((g, gi) => {
@@ -372,7 +373,7 @@ export default function CriteriaSetPage() {
                       );
                     })}
                   </tbody>
-                </table>
+                </table></div>
               </div>
             </section>
 

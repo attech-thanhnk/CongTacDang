@@ -1,14 +1,12 @@
 "use client";
 
+import { formatDateTime } from "@/lib/dateFormat";
 import React, { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { attachmentService } from "@/services/attachmentService";
 import { EvaluationRecordDto, WorkflowStepCode, evaluationService } from "@/services/evaluationService";
 import { AppealDto, AppealFileDto, RecordAppealsDto, postPublishService } from "@/services/postPublishService";
 import { ReasonDialog } from "./ReasonDialog";
-
-const formatDateTime = (value?: string | null) =>
-  value ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(new Date(value)) : "—";
 
 const STATUS_CLASS: Record<string, string> = {
   Submitted: "text-bg-warning",

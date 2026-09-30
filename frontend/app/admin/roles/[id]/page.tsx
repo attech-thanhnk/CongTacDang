@@ -235,7 +235,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
           ) : undefined
         }
         actions={
-          <div className="d-flex gap-2">
+          <div className="d-flex flex-wrap gap-2">
             <Link href="/admin/roles" className="btn btn-sm btn-outline-secondary">
               <i className="bi bi-arrow-left me-1" />
               Danh sách

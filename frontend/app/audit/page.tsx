@@ -7,7 +7,7 @@ import { auditService, AuditLogDto } from "@/services/auditService";
 import { Card, CardBody, PageHeader } from "@/components/common";
 import { LoginEventsTab } from "@/components/admin/LoginEventsTab";
 import { NoAccess } from "@/components/admin/NoAccess";
-import { errorMessage } from "@/components/admin/adminUtils";
+import { errorMessage, formatDateTime } from "@/components/admin/adminUtils";
 
 type AuditTab = "actions" | "logins";
 
@@ -26,10 +26,7 @@ const entityOptions = [
 
 /** Định dạng thời điểm audit theo locale tiếng Việt. */
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return formatDateTime(value);
 }
 
 /** Trả về nhãn và màu hiển thị tương ứng với loại thao tác. */
@@ -237,7 +234,7 @@ function AuditPageContent() {
                       <th>Thao tác</th>
                       <th>Người thực hiện</th>
                       <th>Đối tượng</th>
-                      <th className="pe-3">Endpoint</th>
+                      <th className="pe-3">Đường dẫn API</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -306,7 +303,7 @@ function AuditPageContent() {
                   </div>
                 ) : (
                   <div className="text-center text-secondary py-4 small">
-                    <i className="bi bi-cursor-text fs-4 d-block mb-2" />Chọn một dòng để xem snapshot thay đổi.
+                    <i className="bi bi-cursor-text fs-4 d-block mb-2" />Chọn một dòng để xem dữ liệu trước và sau thay đổi.
                   </div>
                 )}
               </CardBody>

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/dateFormat";
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -13,9 +14,6 @@ const KIND_ICON: Record<string, { icon: string; color: string }> = {
   acknowledge: { icon: "bi-pen-fill", color: "#0f766e" },
   pending: { icon: "bi-inbox-fill", color: "var(--text-secondary)" },
 };
-
-const formatDate = (value?: string | null) =>
-  value ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "short" }).format(new Date(value)) : null;
 
 /**
  * Chuông nhắc việc ở header (task 20 — T-89): số việc đang chờ, bước sắp tới hạn / quá hạn, kiến nghị mới, kế hoạch 30-60-90 ngày

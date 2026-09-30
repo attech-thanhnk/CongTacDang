@@ -490,7 +490,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
 
         {tab === "effective" && (
           <Card>
-            <div className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+            <div className="d-flex justify-content-between align-items-center gap-2 px-3 py-2 border-bottom">
               <span className="small text-secondary">
                 Quyền tính từ các bản gán đang hiệu lực. Chủ hồ sơ luôn xem được hồ sơ đánh giá của mình; không duyệt được hồ sơ của chính mình.
               </span>
