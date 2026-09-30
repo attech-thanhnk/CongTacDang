@@ -29,6 +29,7 @@ services:
     restart: unless-stopped
     environment:
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:-congtacdang_db};Username=${POSTGRES_USER:-dangbo_admin};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD phải được đặt trong docker/.env}
+      Jwt__Secret: ${Jwt__Secret:?Jwt__Secret phải được đặt trong docker/.env}
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5000
       Storage__Local__Path: /app/uploads
@@ -49,7 +50,6 @@ services:
       Notifications__DueSoonDays: ${Notifications__DueSoonDays:-2}
     expose:
       - "5000"
-    ports: ${BACKEND_PORTS:-[]}
     depends_on:
       postgres:
         condition: service_healthy
@@ -83,7 +83,7 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider --quiet http://localhost:3000/login || exit 1"]
+      test: ["CMD-SHELL", "wget --spider --quiet http://127.0.0.1:3000/login || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5

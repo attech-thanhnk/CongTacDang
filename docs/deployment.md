@@ -21,6 +21,7 @@ chmod 600 .env
 Thay các giá trị `CHANGE_ME_*` trong `docker/.env`, tối thiểu:
 
 - `POSTGRES_PASSWORD`: mật khẩu PostgreSQL.
+- `Jwt__Secret`: khóa ký JWT, ít nhất 32 byte (`openssl rand -base64 48`). Thiếu hoặc quá ngắn thì backend dừng khi khởi động.
 - `PGADMIN_DEFAULT_PASSWORD`: chỉ cần khi bật profile `tools`.
 
 Sinh mật khẩu ngẫu nhiên trên Linux:
@@ -29,11 +30,16 @@ Sinh mật khẩu ngẫu nhiên trên Linux:
 openssl rand -base64 32
 ```
 
-Compose mặc định chỉ publish frontend ở `127.0.0.1:3001` và PostgreSQL ở `127.0.0.1:5434`. Backend chỉ có `expose: 5000` trong mạng Docker. Nếu cần debug backend cục bộ, đặt trong `.env`:
+Compose mặc định chỉ publish frontend ở `127.0.0.1:3001` và PostgreSQL ở `127.0.0.1:5434`. Backend chỉ có `expose: 5000` trong mạng Docker. Nếu cần debug backend cục bộ, tạo `docker/docker-compose.debug.yml` (không commit):
 
-```dotenv
-BACKEND_PORTS=["127.0.0.1:5000:5000"]
+```yaml
+services:
+  backend:
+    ports:
+      - "127.0.0.1:5000:5000"
 ```
+
+rồi chạy `docker compose -f docker/docker-compose.yml -f docker/docker-compose.debug.yml up -d`.
 
 Không đặt backend bind vào `0.0.0.0` nếu không có firewall và reverse proxy phù hợp.
 
@@ -82,7 +88,7 @@ Backend `/healthz` được container kiểm tra nội bộ; health check gồm 
 
 ## Biến cấu hình tài khoản, bảo mật và dữ liệu khởi tạo
 
-Dấu `__` trong tên biến môi trường tương ứng với `:` trong `appsettings.json`. `docker-compose.yml` truyền vào container các biến `Database__AutoMigrate` (mặc định `true` trong Compose), `Database__SeedSampleData`, `Seed__*`, `Security__*`, `Organization__*` và `Notifications__*` đặt trong `docker/.env`. Khi chạy trực tiếp ngoài Docker, đặt bằng biến môi trường hoặc `user-secrets`.
+Dấu `__` trong tên biến môi trường tương ứng với `:` trong `appsettings.json`. `docker-compose.yml` truyền vào container các biến `Jwt__Secret`, `Database__AutoMigrate` (mặc định `true` trong Compose), `Database__SeedSampleData`, `Seed__*`, `Security__*`, `Organization__*` và `Notifications__*` đặt trong `docker/.env`. Khi chạy trực tiếp ngoài Docker, đặt bằng biến môi trường hoặc `user-secrets`.
 
 | Biến môi trường | Mặc định | Ý nghĩa |
 |---|---|---|
@@ -138,7 +144,7 @@ Các bước 1–5 được kiểm tra tự động bởi `GoLiveScenarioTests` 
 Mọi dữ liệu nền được khai báo trực tiếp trên giao diện (không có chức năng nhập từ tệp).
 
 **0. Chuẩn bị**
-- [ ] `docker/.env`: `POSTGRES_PASSWORD`, `Seed__InitialAdmin__Username`, `Seed__InitialAdmin__Password` (mạnh, có chữ và số), các biến `Security__*` nếu khác mặc định. **Không** bật `Database__SeedSampleData`, `Database__ResetRolePermissions`.
+- [ ] `docker/.env`: `POSTGRES_PASSWORD`, `Jwt__Secret`, `Seed__InitialAdmin__Username`, `Seed__InitialAdmin__Password` (mạnh, có chữ và số), các biến `Security__*` nếu khác mặc định. **Không** bật `Database__SeedSampleData`, `Database__ResetRolePermissions`.
 - [ ] CSDL **mới, trống**. Khởi động stack (`Database__AutoMigrate=true` mặc định trong `docker/.env`) — backend tự áp dụng migration khi khởi động; lỗi migrate làm backend dừng và ghi log Critical. Chạy ngoài Docker: dùng `dotnet ef database update` (xem `docs/database-migrations.md`). Seeder tạo danh mục quyền, 9 vai trò mặc định (có "Quản trị hệ thống" được bảo vệ), danh mục loại đơn vị và danh mục chức vụ mặc định (M1–M26 theo HD03 — chờ nghiệp vụ xác nhận), **2 bộ tiêu chí đã xuất bản** theo bản trích xuất HD03 ("Mẫu 09B — Quý III/2026", "Mẫu 09A — từ 2027" — chờ nghiệp vụ xác nhận), **thông tin đơn vị mặc định** và tài khoản quản trị ban đầu; **không** tạo đơn vị, tổ chức Đảng, cán bộ nào.
 - [ ] Chuẩn bị danh sách (giấy hoặc bảng tính nội bộ) để khai báo: cây đơn vị chính quyền và cây tổ chức Đảng (mã, tên, đơn vị cấp trên, loại đơn vị), cán bộ (tên đăng nhập, họ tên, đơn vị, tổ chức Đảng), chức vụ của từng cán bộ (kể cả kiêm nhiệm), vai trò và phạm vi của từng người, danh sách người được đánh giá của kỳ.
 
