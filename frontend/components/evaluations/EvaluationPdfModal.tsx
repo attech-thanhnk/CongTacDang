@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { EvaluationRecordDto, RecordFormDto, evaluationService } from "@/services/evaluationService";
 import { reportService } from "@/services/reportService";
-import { organizationSettingsService, OrganizationSettings } from "@/services/organizationSettingsService";
+import styles from "./pdfViewer.module.css";
 
 interface Props {
   isOpen: boolean;
@@ -27,28 +27,25 @@ export const EvaluationPdfModal: React.FC<Props> = ({ isOpen, onClose, record, f
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [org, setOrg] = useState<OrganizationSettings | null>(null);
-
-  // Dòng chân trang lấy từ Thông tin đơn vị (không ghi cứng tên đơn vị).
-  useEffect(() => {
-    if (!isOpen) return;
-    let active = true;
-    organizationSettingsService
-      .get()
-      .then((value) => {
-        if (active) setOrg(value);
-      })
-      .catch(() => {
-        // Không chặn xem bản PDF khi chưa tải được thông tin đơn vị.
-      });
-    return () => {
-      active = false;
-    };
-  }, [isOpen]);
 
   useEffect(() => {
     setCode(initialCode);
   }, [initialCode, isOpen]);
+
+  // Esc để đóng; khóa cuộn trang nền khi đang xem.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = overflow;
+    };
+  }, [isOpen, onClose]);
 
   const form = forms.find((f) => f.code === code);
   const endpoint = form ? evaluationService.recordFormEndpoint(record.id, form.code) : null;
@@ -93,78 +90,58 @@ export const EvaluationPdfModal: React.FC<Props> = ({ isOpen, onClose, record, f
 
   if (!isOpen) return null;
 
-  const title = `${form?.name || "Biểu mẫu"} — ${record.fullName}`;
-
   const handleDownload = () => {
     if (pdfBlob && form) reportService.saveBlob(pdfBlob, `Mau_${form.code}_${safeName(record.fullName)}.pdf`);
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-300">
-        <div className="bg-slate-900 text-white px-6 py-3.5 flex items-center justify-between border-b border-slate-800">
-          <div>
-            <h3 className="font-bold text-base text-slate-100">{title}</h3>
+    <div className={styles.backdrop} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className={styles.dialog} role="dialog" aria-modal="true" aria-label={form?.name || "Biểu mẫu"}>
+        <header className={styles.bar}>
+          <div className={styles.title}>
+            <b className="text-truncate">{form?.name || "Biểu mẫu"}</b>
+            <small className="text-truncate">{record.fullName}</small>
           </div>
-
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={handleDownload}
-              disabled={!pdfBlob}
-              className="px-3.5 py-1.5 bg-blue-800 hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded shadow transition cursor-pointer d-inline-flex align-items-center gap-1.5"
-            >
-              <i className="bi bi-file-earmark-pdf"></i>
-              <span>Tải PDF</span>
-            </button>
-            <button
-              onClick={onClose}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs rounded transition cursor-pointer"
-            >
-              Đóng
-            </button>
-          </div>
-        </div>
-
-        {forms.length > 1 && (
-          <div className="bg-slate-800 px-6 py-2 border-b border-slate-700 flex flex-wrap gap-1.5 text-xs">
-            <span className="text-slate-400 py-1 mr-2 self-center font-semibold">Biểu mẫu:</span>
-            {forms.map((f) => (
-              <button
-                key={f.code}
-                onClick={() => setCode(f.code)}
-                className={`px-2.5 py-1 rounded transition cursor-pointer ${code === f.code ? "bg-blue-800 text-white font-bold" : "bg-slate-700 text-slate-300 hover:bg-slate-600"}`}
-              >
-                Mẫu {f.code}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="p-4 bg-slate-200/60">
-          {!form && (
-            <div className="bg-white border border-slate-300 rounded p-6 text-sm text-slate-700">
-              Kỳ đánh giá không áp dụng biểu mẫu này cho hồ sơ.
+          {forms.length > 1 && (
+            <div className={styles.tabs} role="tablist">
+              {forms.map((f) => (
+                <button
+                  key={f.code}
+                  type="button"
+                  role="tab"
+                  aria-selected={code === f.code}
+                  className={code === f.code ? styles.on : undefined}
+                  onClick={() => setCode(f.code)}
+                  title={f.name}
+                >
+                  Mẫu {f.code}
+                </button>
+              ))}
             </div>
           )}
-          {form && loading && (
-            <div className="bg-white border border-slate-300 rounded p-6 text-sm text-slate-600">Đang tạo bản PDF trên máy chủ…</div>
-          )}
-          {form && !loading && error && (
-            <div className="bg-white border border-red-300 rounded p-6 text-sm text-red-700">{error}</div>
-          )}
-          {form && !loading && !error && pdfUrl && (
-            <iframe title={title} src={pdfUrl} className="w-full bg-white border border-slate-300 rounded" style={{ height: "75vh" }} />
-          )}
-        </div>
+          <div className={styles.actions}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={handleDownload} disabled={!pdfBlob}>
+              <i className="bi bi-download me-1" />
+              Tải PDF
+            </button>
+            <button type="button" className={styles.close} onClick={onClose} aria-label="Đóng">
+              <i className="bi bi-x-lg" />
+            </button>
+          </div>
+        </header>
 
-        <div className="bg-slate-100 px-6 py-3 border-t border-slate-200 flex justify-between items-center text-xs text-slate-500">
-          <span>{org ? [org.superiorPartyName, org.partyCommitteeName].filter(Boolean).join(" — ") : ""}</span>
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded text-sm cursor-pointer"
-          >
-            Đóng
-          </button>
+        <div className={styles.body}>
+          {!form && <div className={styles.state}>Kỳ đánh giá không áp dụng biểu mẫu này cho hồ sơ.</div>}
+          {form && loading && (
+            <div className={styles.state}>
+              <span className="spinner-border spinner-border-sm me-2" />
+              Đang tạo bản PDF…
+            </div>
+          )}
+          {form && !loading && error && <div className={`${styles.state} text-danger`}>{error}</div>}
+          {form && !loading && !error && pdfUrl && (
+            <iframe title={form.name} src={`${pdfUrl}#navpanes=0&view=FitH`} className={styles.frame} />
+          )}
         </div>
       </div>
     </div>
