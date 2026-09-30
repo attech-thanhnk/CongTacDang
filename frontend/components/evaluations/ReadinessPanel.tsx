@@ -30,14 +30,14 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
         ) : readiness.ready ? (
           <div className="alert alert-success small mb-0">
             <i className="bi bi-check-circle me-1" />
-            Không có cảnh báo: {readiness.checkedRecords} hồ sơ chưa công bố đều có người thực hiện được mọi bước còn lại.
+            Không có cảnh báo kẹt luồng ({readiness.checkedRecords} hồ sơ).
           </div>
         ) : (
           <>
             <div className="alert alert-warning small">
               <i className="bi bi-exclamation-triangle me-1" />
-              {readiness.issues.length} cảnh báo trên {readiness.checkedRecords} hồ sơ: các hồ sơ dưới đây sẽ kẹt nếu không bổ sung người thực hiện.
-              Hãy <Link href="/admin/users">gán vai trò</Link> có quyền tương ứng trong phạm vi của hồ sơ, hoặc sửa cấu hình bước của hồ sơ luồng.
+              {readiness.issues.length} cảnh báo trên {readiness.checkedRecords} hồ sơ.
+              Hãy <Link href="/admin/users">gán vai trò</Link> có quyền tương ứng hoặc sửa cấu hình bước.
             </div>
             <div className="table-responsive" style={{ maxHeight: 360, overflowY: "auto" }}>
               <table className="table table-sm align-middle small mb-0">

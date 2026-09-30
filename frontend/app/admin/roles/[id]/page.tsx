@@ -276,18 +276,17 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
           <>
             {heldBySelf && (
               <div className="alert alert-info small py-2">
-                Bạn đang được gán vai trò này nên không thể tự sửa quyền của nó (chống tự nâng quyền). Nhờ quản trị viên khác thực hiện.
+                Bạn đang giữ vai trò này nên không tự sửa quyền được — nhờ quản trị viên khác thực hiện.
               </div>
             )}
             {role.isProtected && (
               <div className="alert alert-secondary small py-2">
-                Vai trò bảo vệ luôn giữ hai quyền &quot;Quản lý vai trò&quot; và &quot;Gán vai trò&quot; để hệ thống luôn còn người quản trị.
+                Vai trò bảo vệ luôn giữ hai quyền &quot;Quản lý vai trò&quot; và &quot;Gán vai trò&quot;.
               </div>
             )}
             {addedGlobalOnly.length > 0 && scopedAssignments > 0 && (
               <div className="alert alert-warning small py-2">
-                Vai trò đang được gán theo đơn vị chính quyền / tổ chức Đảng ({scopedAssignments} bản gán) nên không thêm được quyền &quot;Chỉ Toàn công ty&quot;. Máy chủ sẽ từ chối
-                khi lưu.
+                Vai trò đang được gán theo đơn vị chính quyền / tổ chức Đảng ({scopedAssignments} bản gán) nên không thêm được quyền &quot;Chỉ Toàn công ty&quot;.
               </div>
             )}
             <div className="d-flex justify-content-end gap-2 mb-2 position-sticky" style={{ top: 0, zIndex: 2 }}>

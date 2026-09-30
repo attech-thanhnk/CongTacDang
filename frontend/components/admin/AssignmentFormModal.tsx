@@ -187,13 +187,13 @@ export function AssignmentFormModal({
                         </option>
                       ))}
                     </select>
-                    <div className="form-text">Phạm vi gồm đơn vị được chọn và mọi đơn vị cấp dưới của nó.</div>
+                    <div className="form-text">Gồm cả các đơn vị cấp dưới.</div>
                   </>
                 )}
               </div>
               {mustBeGlobal && (
                 <div className="col-12 form-text mt-0">
-                  Vai trò có quyền chỉ áp dụng Toàn công ty ({globalOnlyPermissions.length} quyền) nên chỉ gán được phạm vi Toàn công ty.
+                  Vai trò này chỉ gán được phạm vi Toàn công ty.
                 </div>
               )}
             </div>

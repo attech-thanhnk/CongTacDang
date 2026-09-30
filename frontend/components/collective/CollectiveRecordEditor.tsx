@@ -132,7 +132,7 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
         <select className="form-select form-select-sm" value={form} disabled={!!editing} onChange={(e) => setForm(e.target.value as CollectiveForm)}>
           <option value="M07">Mẫu 07 — Tự đánh giá của tập thể Đảng ủy (Chi ủy, Chi bộ)</option>
           <option value="M08">Mẫu 08 — Tổng hợp kết quả nhiệm vụ của cơ quan, đơn vị</option>
-          <option value="M06">Mẫu 06 — Kết quả tập thể/lĩnh vực (chưa áp dụng Q3/2026)</option>
+          <option value="M06">Mẫu 06 — Kết quả tập thể/lĩnh vực</option>
         </select>
       </div>
       <div className="col-md-3">
@@ -222,7 +222,7 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
       {form === "M08" && (
         <div className="col-12 mt-2">
           <div className="fw-semibold small text-uppercase text-secondary mb-1">Nhiệm vụ theo nhóm nội dung của biểu mẫu</div>
-          {items.length === 0 && <div className="text-secondary small mb-2">Chưa có nhiệm vụ. Nhóm nội dung không có nhiệm vụ vẫn in đủ trên Mẫu 08.</div>}
+          {items.length === 0 && <div className="text-secondary small mb-2">Chưa có nhiệm vụ.</div>}
           {items.map((item, index) => (
             <div key={index} className="border rounded p-2 mb-2">
               <div className="row g-1">

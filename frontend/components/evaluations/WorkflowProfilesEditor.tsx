@@ -138,7 +138,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
                 onChange={(e) => updateProfile(profile.code, (p) => ({ ...p, name: e.target.value }))} />
             </div>
             <div className="col-md-5">
-              <label className="form-label small mb-0" htmlFor="profile-desc">Mô tả / căn cứ</label>
+              <label className="form-label small mb-0" htmlFor="profile-desc">Mô tả</label>
               <input id="profile-desc" className="form-control form-control-sm" value={profile.description || ""} maxLength={1000} disabled={!editable}
                 onChange={(e) => updateProfile(profile.code, (p) => ({ ...p, description: e.target.value }))} />
             </div>
@@ -170,7 +170,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
                         {setting.mode === "Off" ? (
                           <span className="text-secondary">Không áp dụng cho nhóm này</span>
                         ) : setting.mode === "External" ? (
-                          <span className="text-secondary">Do cấp trên thực hiện — người có quyền "Ghi nhận kết quả của cấp trên" ghi nhận kết quả</span>
+                          <span className="text-secondary">Do cấp trên thực hiện — ghi nhận kết quả</span>
                         ) : owner ? (
                           <span className="text-secondary">Chủ hồ sơ (Tham gia đánh giá — bản thân)</span>
                         ) : editable ? (
@@ -196,10 +196,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
           </div>
 
           {editable && (
-            <div className="d-flex justify-content-between align-items-center">
-              <div className="small text-secondary">
-                Quyền thực hiện bước là mã quyền trong danh mục; ai được làm do vai trò và phạm vi gán quyết định (xem "Kiểm tra kẹt luồng").
-              </div>
+            <div className="d-flex justify-content-end align-items-center">
               <button type="button" className="btn btn-outline-danger btn-sm" disabled={settings.profiles.length <= 1 || usedAsDefault}
                 title={usedAsDefault ? "Đang là hồ sơ luồng mặc định — hãy đổi mặc định trước" : undefined} onClick={removeProfile}>
                 Xóa hồ sơ luồng

@@ -76,7 +76,6 @@ export default function EvaluationsPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Hồ sơ đánh giá"
-        subTitle="Hồ sơ của tôi và các hồ sơ trong phạm vi được xem."
         actions={
           <div className="d-flex flex-wrap gap-2">
             <select className="form-select form-select-sm w-auto" aria-label="Kỳ đánh giá" value={periodId} onChange={(e) => setPeriodId(e.target.value)}>

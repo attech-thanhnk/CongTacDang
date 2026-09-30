@@ -158,7 +158,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       title: "Nộp phiếu tự chấm",
       message: `Tổng điểm tự chấm ${fmt(total)}, mức tự đề xuất: ${gradeLabel}.`
         + (missing.length ? ` Chưa nhập ${missing.join(" và ")}.` : "")
-        + " Sau khi nộp, phiếu chuyển sang Chi bộ xác nhận và bạn không sửa được, trừ khi bị trả lại.",
+        + " Sau khi nộp, bạn không sửa được trừ khi bị trả lại.",
       confirmText: "Nộp phiếu",
       isDanger: false,
       onConfirm: () => onSubmit(payload),
@@ -171,8 +171,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   return (
     <form onSubmit={submit}>
       <div className="small text-secondary mb-2">
-        Bộ tiêu chí: <strong>{criteria.name}</strong> (Mẫu {criteria.selfScoreForm}). Mặc định ghi nhận "Đảm bảo"; khoản giảm
-        {p.deductionReasonMinPoints != null ? ` từ ${fmt(p.deductionReasonMinPoints)} điểm` : ""} trở lên và tiêu chí "K/AD" phải nêu lý do/căn cứ.
+        Giảm điểm{p.deductionReasonMinPoints != null ? ` từ ${fmt(p.deductionReasonMinPoints)} điểm trở lên` : ""} hoặc chọn &quot;K/AD&quot; phải nêu lý do.
       </div>
 
       <h4 className="h6 small fw-bold text-secondary">I. Nhóm tiêu chí chung (tối đa {fmt(p.generalMaxScore)} điểm)</h4>
@@ -180,7 +179,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
         <table className="table table-sm align-middle">
           <thead>
             <tr className="small text-secondary">
-              <th style={{ width: 48 }}>Mã</th><th>Tiêu chí</th><th style={{ width: 60 }}>Tối đa</th><th style={{ width: 260 }}>Chấm</th><th style={{ width: 220 }}>Lý do / căn cứ</th>
+              <th style={{ width: 48 }}>Mã</th><th>Tiêu chí</th><th style={{ width: 60 }}>Tối đa</th><th style={{ width: 260 }}>Chấm</th><th style={{ width: 220 }}>Lý do</th>
             </tr>
           </thead>
           <tbody>
@@ -228,7 +227,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                       </td>
                       <td>
                         {reasonRequired || s.reason ? (
-                          <input className="form-control form-control-sm" maxLength={4000} required={reasonRequired} placeholder={na ? "Lý do không áp dụng" : "Căn cứ giảm điểm"}
+                          <input className="form-control form-control-sm" maxLength={4000} required={reasonRequired} placeholder={na ? "Lý do không áp dụng" : "Lý do giảm điểm"}
                             value={s.reason || ""} onChange={(e) => setItem(item.code, { reason: e.target.value })} aria-label={`Lý do tiêu chí ${item.code}`} />
                         ) : (
                           <span className="text-secondary">—</span>
@@ -244,7 +243,6 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       </div>
       <div className="small text-secondary mb-3">
         Cộng tiêu chí chung (tạm tính): <strong>{fmt(generalScore)}</strong> / {fmt(p.generalMaxScore)}
-        {p.allowNotApplicable && <> · K/AD: {p.notApplicableRule === "GrantFull" ? "tính như đạt tối đa" : "bỏ khỏi mẫu số rồi quy đổi"}</>}
       </div>
 
       {uses09B ? (
@@ -313,7 +311,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
             </table>
           </div>
           <details className="small text-secondary mb-3">
-            <summary>Thang quy đổi % A-B-C-D của bộ tiêu chí</summary>
+            <summary>Thang quy đổi % A-B-C-D</summary>
             <ul className="mb-0">
               {content.conversionScale.map((b) => <li key={b.minPercent}><strong>{b.label}</strong>{b.description ? `: ${b.description}` : ""}</li>)}
             </ul>
@@ -325,7 +323,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       {uses9D && (
         <>
           <h4 className="h6 small fw-bold text-secondary">Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ, công việc được giao trong quý</h4>
-          <div className="small text-secondary mb-1">Nhập theo từng trục (bấm <i className="bi bi-plus-lg" /> để thêm dòng). Không bắt buộc có nhiệm vụ ở cả sáu trục.</div>
+          <div className="small text-secondary mb-1">Không bắt buộc nhập đủ các trục.</div>
           <div className="mb-3">
             <TaskResultsInput axes={content.axes} rows={taskResults} onChange={setTaskResults} />
           </div>
@@ -336,7 +334,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
         <>
           <h4 className="h6 small fw-bold text-secondary">Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân</h4>
           <div className="small text-secondary mb-2">
-            Phần "Tự đề xuất xếp loại" của Mẫu 09C lấy từ tổng điểm và mức tự đề xuất của phiếu này. Nội dung trình bày không quá 02 trang A4.
+            Nội dung không quá 02 trang A4.
           </div>
           <div className="mb-3">
             <SelfAssessmentInput sections={sections} value={selfAssessment} onChange={setSelfAssessment} />
@@ -345,15 +343,14 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       )}
 
       <div className="alert alert-light border small py-2">
-        Tổng điểm tạm tính: <strong>{fmt(total)}</strong> — theo ngưỡng điểm: <strong>{GRADE_LABELS[gradeByScore(content, total)]}</strong>
-        {" "}(chưa xét điều kiện kèm theo; máy chủ tính lại khi nộp).
+        Tổng điểm tạm tính: <strong>{fmt(total)}</strong> — mức theo điểm: <strong>{GRADE_LABELS[gradeByScore(content, total)]}</strong>
       </div>
 
       <div className="row g-2 align-items-end">
         <div className="col-md-5">
           <label className="form-label small" htmlFor="self-grade">Mức tự đề xuất</label>
           <select id="self-grade" className="form-select form-select-sm" value={grade} onChange={(e) => setGrade(e.target.value)}>
-            <option value="">— Để hệ thống gợi ý theo ngưỡng và điều kiện của bộ —</option>
+            <option value="">— Hệ thống gợi ý —</option>
             {GRADE_OPTIONS.filter((g) => g.value !== "ChuaXepLoai").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
           </select>
         </div>

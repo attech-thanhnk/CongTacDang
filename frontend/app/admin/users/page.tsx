@@ -108,7 +108,6 @@ export default function AdminUsersPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Tài khoản"
-        subTitle="Tài khoản đăng nhập và hồ sơ cán bộ trong phạm vi bạn được xem."
         actions={
           canManage ? (
             <button type="button" className="btn btn-sm btn-primary" onClick={() => setCreating(true)}>

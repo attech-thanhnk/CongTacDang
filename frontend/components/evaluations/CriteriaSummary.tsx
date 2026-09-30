@@ -95,7 +95,7 @@ export function CriteriaSummary({ content, form }: { content: CriteriaSetContent
         <h3 className="h6 small fw-bold text-secondary">Tham số</h3>
         <ul className="mb-0 ps-3">
           <li>Số sản phẩm {p.minTasks}–{p.maxTasks}; tổng trọng số / điểm tối đa nhóm nhiệm vụ {fmt(p.totalTaskWeight)} (sai số {fmt(p.taskWeightTolerance)}).</li>
-          <li>K/AD: {p.allowNotApplicable ? (p.notApplicableRule === "GrantFull" ? "cho phép, tính như đạt tối đa" : "cho phép, bỏ khỏi mẫu số rồi quy đổi") : "không cho phép"}; khoản giảm {p.deductionReasonMinPoints != null ? `từ ${fmt(p.deductionReasonMinPoints)} điểm phải nêu căn cứ` : "không bắt buộc căn cứ"}.</li>
+          <li>K/AD: {p.allowNotApplicable ? (p.notApplicableRule === "GrantFull" ? "cho phép, tính như đạt tối đa" : "cho phép, bỏ khỏi mẫu số rồi quy đổi") : "không cho phép"}; khoản giảm {p.deductionReasonMinPoints != null ? `từ ${fmt(p.deductionReasonMinPoints)} điểm phải nêu lý do` : "không bắt buộc lý do"}.</li>
           <li>Giải trình khi chênh lệch tự chấm – thẩm định từ {fmt(p.explanationThreshold)} điểm{p.explanationOnGradeChange ? " hoặc làm đổi mức" : ""}.</li>
           <li>Trần xuất sắc {fmt(p.excellentQuota.ratio * 100)}% số {p.excellentQuota.denominator === "GoodOnly" ? "\"Hoàn thành tốt\"" : "\"Hoàn thành tốt\" trở lên"}, làm tròn: {ROUNDING_LABELS[p.excellentQuota.rounding]}.</li>
           <li>

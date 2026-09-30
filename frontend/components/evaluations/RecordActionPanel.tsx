@@ -105,7 +105,7 @@ function ActionForm({ record, criteria, action, step, busy, onSubmit }: FormProp
     case "Publish":
       return (
         <div className="d-flex justify-content-between align-items-center gap-2">
-          <div className="small text-secondary">Công bố sẽ khóa hồ sơ; mọi sửa đổi sau đó phải qua "Mở lại hồ sơ" có lý do.</div>
+          <div className="small text-secondary">Sau khi công bố, muốn sửa phải "Mở lại hồ sơ" và nêu lý do.</div>
           <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={() => onSubmit(action, {})}>Công bố, khóa kết quả</button>
         </div>
       );
@@ -170,13 +170,13 @@ function AppraisalForm({ record, criteria, busy, onSubmit }: { record: Evaluatio
       <div className="col-12"><label className="form-label small">Ý kiến thẩm định</label><textarea className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
       <div className="col-12">
         <label className="form-label small" htmlFor="ap-explanation">
-          Nội dung giải trình, căn cứ {needsExplanation ? <span className="text-danger">(bắt buộc)</span> : "(khi chênh lệch)"}
+          Nội dung giải trình {needsExplanation ? <span className="text-danger">(bắt buộc)</span> : "(khi chênh lệch)"}
         </label>
         <textarea id="ap-explanation" className="form-control form-control-sm" rows={2} maxLength={4000} required={needsExplanation} value={explanation} onChange={(e) => setExplanation(e.target.value)} />
         {criteria && (
           <div className="form-text">
             Bắt buộc khi chênh lệch từ {fmt(criteria.content.parameters.explanationThreshold)} điểm trở lên
-            {criteria.content.parameters.explanationOnGradeChange ? " hoặc làm đổi mức xếp loại theo ngưỡng điểm" : ""} (bộ tiêu chí "{criteria.name}").
+            {criteria.content.parameters.explanationOnGradeChange ? " hoặc làm đổi mức xếp loại" : ""}.
           </div>
         )}
       </div>
@@ -259,7 +259,7 @@ function ProposalForm({ record, busy, stage, submitText, onSubmit }: { record: E
             </option>
           ))}
         </select>
-        <div className="form-text">Lập biên bản ở trang "Đánh giá tập thể &amp; Hội nghị". Hệ thống chỉ lưu kết quả kiểm phiếu tổng hợp, không lưu phiếu từng người.</div>
+        <div className="form-text">Lập biên bản ở trang "Đánh giá tập thể &amp; Hội nghị".</div>
       </div>
       {meetingId && (
         <div className="col-12">
@@ -343,7 +343,7 @@ function ExternalResultForm({ record, step, busy, onSubmit }: { record: Evaluati
     <form onSubmit={submit} className="row g-2">
       <div className="col-12 small text-secondary">
         <i className="bi bi-info-circle me-1" />
-        Bước "{STEP_NAMES[step]}" do cấp trên thực hiện đối với nhóm đối tượng của hồ sơ này — ghi nhận kết quả theo văn bản của cấp trên.
+        Bước "{STEP_NAMES[step]}" do cấp trên thực hiện — nhập kết quả của cấp trên.
       </div>
       <div className="col-md-6"><label className="form-label small" htmlFor={`ext-${step}-authority`}>Cơ quan / cấp thực hiện (bắt buộc)</label>
         <input id={`ext-${step}-authority`} className="form-control form-control-sm" required maxLength={300} value={authorityName} onChange={(e) => setAuthorityName(e.target.value)} />
@@ -459,11 +459,7 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
         </div>
         <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>Nộp danh mục</button>
       </div>
-      <div className="form-text">
-        {p
-          ? `Theo bộ tiêu chí "${criteria!.name}": ${p.minTasks}–${p.maxTasks} sản phẩm, tổng trọng số ${fmt(p.totalTaskWeight)}; máy chủ kiểm tra khi nộp.`
-          : "Số lượng sản phẩm và tổng trọng số theo bộ tiêu chí của kỳ; máy chủ kiểm tra khi nộp."}
-      </div>
+      {p && <div className="form-text">{`${p.minTasks}–${p.maxTasks} sản phẩm, tổng trọng số ${fmt(p.totalTaskWeight)}.`}</div>}
     </form>
   );
 }
@@ -476,7 +472,6 @@ function CadreProposalInput({ id, value, onChange }: { id: string; value: string
     <div className="col-12">
       <label className="form-label small" htmlFor={id}>Đề xuất nội dung liên quan về công tác cán bộ (nếu có)</label>
       <textarea id={id} className="form-control form-control-sm" rows={2} maxLength={2000} value={value} onChange={(e) => onChange(e.target.value)} />
-      <div className="form-text">In ở cột 13 Mẫu 14.</div>
     </div>
   );
 }

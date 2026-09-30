@@ -86,7 +86,7 @@ export default function CriteriaSetPage() {
   const publish = () =>
     confirm({
       title: "Xuất bản bộ tiêu chí",
-      message: "Sau khi xuất bản, bộ không sửa được nữa (chỉ nhân bản thành bản nháp mới); kỳ dự thảo chọn được bộ này. Hãy lưu thay đổi trước khi xuất bản.",
+      message: "Sau khi xuất bản, bộ không sửa được nữa. Hãy lưu thay đổi trước khi xuất bản.",
       confirmText: "Xuất bản",
       isDanger: false,
       onConfirm: () => run(() => criteriaService.publish(set.id, set.version), "Đã xuất bản bộ tiêu chí."),
@@ -160,7 +160,7 @@ export default function CriteriaSetPage() {
                     <option value="09B">09B — chấm trực tiếp theo trục</option>
                   </select>
                 </div>
-                <div className="col-12"><label className="form-label small" htmlFor="cs-notes">Ghi chú (căn cứ văn bản)</label><textarea id="cs-notes" className="form-control form-control-sm" rows={2} maxLength={4000} value={info.notes} onChange={(e) => setInfo({ ...info, notes: e.target.value })} /></div>
+                <div className="col-12"><label className="form-label small" htmlFor="cs-notes">Ghi chú</label><textarea id="cs-notes" className="form-control form-control-sm" rows={2} maxLength={4000} value={info.notes} onChange={(e) => setInfo({ ...info, notes: e.target.value })} /></div>
               </div>
             </section>
 
@@ -247,8 +247,7 @@ export default function CriteriaSetPage() {
 
             <section className="card border-0 shadow-sm">
               <div className="card-body">
-                <h2 className="h6">Biểu mẫu cá nhân áp dụng cho hồ sơ (HD03 mục 7)</h2>
-                <div className="small text-secondary mb-2">Quyết định nút xuất trên trang hồ sơ và phần nhập Mẫu 09C, 9D khi tự chấm. Mẫu tự chấm (09A/09B) luôn theo "Mẫu tự chấm" của bộ.</div>
+                <h2 className="h6">Biểu mẫu cá nhân áp dụng cho hồ sơ</h2>
                 <div className="d-flex flex-column gap-1 mb-3">
                   {RECORD_FORMS.map((form) => {
                     const isSelfScore = form.code === "09A" || form.code === "09B";
@@ -331,7 +330,7 @@ export default function CriteriaSetPage() {
             <section className="card border-0 shadow-sm">
               <div className="card-body">
                 <div className="d-flex justify-content-between align-items-center mb-2">
-                  <h2 className="h6 mb-0">Thang quy đổi % A-B-C-D (mức áp dụng cho giá trị ≥ ngưỡng dưới)</h2>
+                  <h2 className="h6 mb-0">Thang quy đổi % A-B-C-D</h2>
                   <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ conversionScale: [...content.conversionScale, { minPercent: 0, label: "", description: "" }] })}>Thêm mức</button>
                 </div>
                 <div className="table-responsive"><table className="table table-sm mb-0">
@@ -355,9 +354,9 @@ export default function CriteriaSetPage() {
 
             <section className="card border-0 shadow-sm">
               <div className="card-body">
-                <h2 className="h6">Mức xếp loại (4 mức cố định — cấu hình ngưỡng và điều kiện)</h2>
+                <h2 className="h6">Mức xếp loại</h2>
                 <div className="table-responsive"><table className="table table-sm mb-0">
-                  <thead><tr className="small text-secondary"><th style={{ width: 230 }}>Mức</th><th style={{ width: 100 }}>Từ điểm</th><th style={{ width: 130 }}>% vượt chuẩn tối thiểu</th><th>Điều kiện kèm theo (hiển thị)</th></tr></thead>
+                  <thead><tr className="small text-secondary"><th style={{ width: 230 }}>Mức</th><th style={{ width: 100 }}>Từ điểm</th><th style={{ width: 130 }}>% vượt chuẩn tối thiểu</th><th>Điều kiện kèm theo</th></tr></thead>
                   <tbody>
                     {content.grades.map((g, gi) => {
                       const setGrade = (change: Partial<typeof g>) => update({ grades: content.grades.map((x, i) => (i === gi ? { ...x, ...change } : x)) });
@@ -397,7 +396,7 @@ export default function CriteriaSetPage() {
                     </div>
                   ))}
                   <div className="col-6 col-md-3">
-                    <label className="form-label small mb-0">Giảm từ … điểm phải nêu căn cứ</label>
+                    <label className="form-label small mb-0">Giảm từ … điểm phải nêu lý do</label>
                     <input type="number" step={0.5} min={0} className="form-control form-control-sm" placeholder="Không bắt buộc" value={p.deductionReasonMinPoints ?? ""}
                       onChange={(e) => setParam("deductionReasonMinPoints", e.target.value === "" ? null : num(e.target.value))} />
                   </div>
@@ -407,7 +406,7 @@ export default function CriteriaSetPage() {
                   </div>
                   {/* Task 20 — sau công bố (mặc định chờ nghiệp vụ xác nhận). */}
                   <div className="col-12 col-md-6">
-                    <label className="form-check small mb-1"><input type="checkbox" className="form-check-input" checked={!!p.publishScores} onChange={(e) => setParam("publishScores", e.target.checked)} /> <span className="form-check-label">Công khai kết quả kèm điểm chính thức (mặc định chỉ công khai mức)</span></label>
+                    <label className="form-check small mb-1"><input type="checkbox" className="form-check-input" checked={!!p.publishScores} onChange={(e) => setParam("publishScores", e.target.checked)} /> <span className="form-check-label">Công khai kết quả kèm điểm chính thức</span></label>
                     <div className="small mb-0">Bắt buộc lập kế hoạch 30-60-90 ngày (Mẫu 17) với mức:</div>
                     <div className="d-flex flex-wrap gap-2">
                       {([["HoanThanhXuatSac", "Hoàn thành xuất sắc"], ["HoanThanhTot", "Hoàn thành tốt"], ["HoanThanh", "Hoàn thành (Mức C)"], ["KhongHoanThanh", "Không hoàn thành (Mức D)"]] as [string, string][]).map(([grade, label]) => {

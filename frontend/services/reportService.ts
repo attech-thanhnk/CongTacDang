@@ -37,12 +37,11 @@ export const REPORTS: ReportDefinition[] = [
   {
     id: "mau-08", code: "Mẫu 08", group: "hd03", scope: "collective", fileType: "XLSX", fileCode: "08",
     title: "Báo cáo tổng hợp kết quả thực hiện các nhiệm vụ của cơ quan, đơn vị",
-    note: "Xuất từ hồ sơ tập thể Mẫu 08 trên trang Đánh giá tập thể & Hội nghị (Excel theo HD03 V.1; có thêm bản Word).",
+    note: "Xuất từ hồ sơ tập thể Mẫu 08 trên trang Đánh giá tập thể & Hội nghị.",
   },
   {
     id: "mau-11", code: "Mẫu 11", group: "hd03", scope: "period", fileType: "DOCX", fileCode: "11",
     title: "Phiếu đánh giá, xếp loại cán bộ", endpoint: "/reports/docx/mau-11",
-    note: "Quý III/2026 chưa áp dụng (HD03 mục VI.4).",
   },
   {
     id: "mau-12", code: "Mẫu 12", group: "hd03", scope: "meeting", fileType: "DOCX", fileCode: "12",
@@ -58,7 +57,6 @@ export const REPORTS: ReportDefinition[] = [
     id: "mau-14", code: "Mẫu 14", group: "hd03", scope: "period", fileType: "XLSX", fileCode: "14",
     title: "Danh sách đánh giá và đề xuất xếp loại quý … năm … đối với cán bộ thuộc diện … quyết định, phê duyệt mức xếp loại",
     endpoint: "/reports/form-14",
-    note: "Mỗi cấp quyết định (đảng ủy cơ sở, Ban Thường vụ Đảng ủy Tổng công ty) một trang tính.",
   },
   {
     id: "mau-15a", code: "Mẫu 15A", group: "hd03", scope: "period", fileType: "XLSX", fileCode: "15A",
@@ -74,12 +72,11 @@ export const REPORTS: ReportDefinition[] = [
     id: "mau-16", code: "Mẫu 16", group: "hd03", scope: "period", fileType: "DOCX", fileCode: "16",
     title: "Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý … năm …",
     endpoint: "/reports/docx/mau-16",
-    note: "Số liệu tổng hợp tự động từ kết quả kỳ; phần đề xuất, nơi gửi… nhập tay và lưu nháp trước khi xuất.",
+    note: "Nhập phần đề xuất, nơi gửi… và lưu nháp trước khi xuất.",
   },
   {
     id: "cadres", code: "Nội bộ", group: "internal", scope: "none", fileType: "XLSX", fileCode: "DanhSachCanBo",
     title: "Danh sách cán bộ (nội bộ)", endpoint: "/reports/cadres",
-    note: "Theo phạm vi quyền xuất báo cáo được giao.",
   },
   {
     id: "excellent-quota", code: "Nội bộ", group: "internal", scope: "period", fileType: "XLSX", fileCode: "KiemSoatTyLeXuatSac",

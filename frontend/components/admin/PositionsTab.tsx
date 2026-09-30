@@ -132,11 +132,6 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
 
   return (
     <>
-      <div className="alert alert-info small py-2">
-        Mã chức danh (M1–M26) dùng để thống kê Mẫu 15A/15B: mỗi cán bộ được tính một lần theo mã nhỏ nhất trong các chức vụ đang giữ.
-        Thẩm quyền mặc định dùng để suy ra cấp quyết định xếp loại: có ít nhất một chức vụ &quot;cấp trên quyết định&quot; → cấp trên quyết định.
-        Danh mục mặc định theo HD03 đang chờ nghiệp vụ xác nhận.
-      </div>
       <div className="d-flex flex-wrap gap-2 mb-3">
         <input
           className="form-control form-control-sm"

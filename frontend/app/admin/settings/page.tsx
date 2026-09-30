@@ -25,43 +25,43 @@ const FIELDS: FieldMeta[] = [
   {
     key: "superiorPartyName",
     label: "Tên tổ chức Đảng cấp trên",
-    help: "Dòng trên cùng của tiêu đề trái (Excel Mẫu 14, 15; Word Mẫu 11, 13). Ghi đúng như in, thường là chữ in hoa.",
+    help: "Ghi đúng như in, thường là chữ in hoa.",
     maxLength: 300,
   },
   {
     key: "partyCommitteeName",
     label: "Tên Đảng bộ",
-    help: "Dòng tiêu đề trái của biểu mẫu, báo cáo (Excel Mẫu 14, 15, danh sách cán bộ; Word Mẫu 11, 13 khi xuất toàn Đảng bộ).",
+    help: "",
     maxLength: 300,
   },
   {
     key: "companyName",
     label: "Tên đầy đủ của công ty",
-    help: "Word Mẫu 01, 02: dòng cơ quan quản lý (tự in hoa). Trang đăng nhập.",
+    help: "",
     maxLength: 300,
   },
   {
     key: "parentCompanyName",
     label: "Tên đơn vị chủ quản cấp trên",
-    help: "Word Mẫu 10: dòng cơ quan cấp trên (tự in hoa). Trang đăng nhập.",
+    help: "",
     maxLength: 300,
   },
   {
     key: "shortName",
     label: "Tên viết tắt",
-    help: "Dùng trong tên tệp tải xuống và tiêu đề danh sách cán bộ. Chỉ chữ không dấu, số, dấu - hoặc _.",
+    help: "Chỉ chữ không dấu, số, dấu - hoặc _.",
     maxLength: 30,
   },
   {
     key: "location",
     label: "Địa danh",
-    help: "Dòng \"…, ngày … tháng … năm …\" trên biểu mẫu Word và Excel.",
+    help: "",
     maxLength: 100,
   },
   {
     key: "systemName",
     label: "Tên hiển thị của hệ thống",
-    help: "Hiện trên thanh bên, đầu trang, tiêu đề cửa sổ và trang đăng nhập.",
+    help: "",
     maxLength: 300,
   },
 ];
@@ -131,7 +131,6 @@ export default function OrganizationSettingsPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Thông tin đơn vị"
-        subTitle="Tên Đảng bộ, tên công ty, tên viết tắt, địa danh dùng trên biểu mẫu, báo cáo và giao diện."
       />
       <div className="page-body">
         <Card>
@@ -168,7 +167,7 @@ export default function OrganizationSettingsPage() {
                         />
                         <div className={invalid ? "invalid-feedback" : "form-text"}>
                           {field.key === "shortName" && shortNameInvalid
-                            ? "Tên viết tắt chỉ gồm chữ không dấu, số, dấu - hoặc _ (dùng trong tên tệp)."
+                            ? "Tên viết tắt chỉ gồm chữ không dấu, số, dấu - hoặc _."
                             : invalid
                               ? `${field.label} không được để trống.`
                               : field.help}

@@ -151,7 +151,7 @@ export default function PeriodDetailPage() {
             <Link href="/periods" className="btn btn-outline-secondary btn-sm"><i className="bi bi-arrow-left me-1" />Danh sách kỳ</Link>
             {canManage && period.status === "Draft" && (
               <button type="button" className="btn btn-success btn-sm" disabled={busy}
-                onClick={() => confirm({ title: "Mở kỳ đánh giá", message: "Hệ thống kiểm tra kẹt luồng trước khi mở. Sau khi mở, chỉ sửa được thời hạn các bước; hồ sơ luồng, chế độ và quyền thực hiện bước bị khóa; bộ tiêu chí được chụp nguyên vào kỳ và không đổi được nữa.", confirmText: "Mở kỳ", isDanger: false, onConfirm: () => openPeriod() })}>
+                onClick={() => confirm({ title: "Mở kỳ đánh giá", message: "Sau khi mở kỳ chỉ sửa được thời hạn các bước; không đổi được hồ sơ luồng và bộ tiêu chí.", confirmText: "Mở kỳ", isDanger: false, onConfirm: () => openPeriod() })}>
                 Mở kỳ
               </button>
             )}
@@ -183,11 +183,7 @@ export default function PeriodDetailPage() {
                 <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={saveSettings}>Lưu cấu hình</button>
               )}
             </div>
-            <div className="small text-secondary mb-2">
-              Mỗi người được đánh giá đi theo một hồ sơ luồng (mặc định theo cấp quyết định, đổi được từng người).
-              Cấu hình dựng sẵn theo Phụ lục III Hướng dẫn 03 là <strong>đề xuất chờ nghiệp vụ xác nhận</strong>.
-              {!isDraft && " Kỳ đã mở: chỉ sửa được thời hạn các bước."}
-            </div>
+            {!isDraft && <div className="small text-secondary mb-2">Kỳ đã mở: chỉ sửa được thời hạn các bước.</div>}
             <WorkflowProfilesEditor
               settings={settings}
               onChange={setSettings}
@@ -200,7 +196,7 @@ export default function PeriodDetailPage() {
             <div className="form-check mt-2">
               <input className="form-check-input" type="checkbox" id="enforce" checked={settings.enforceDeadlines} disabled={!editable}
                 onChange={(e) => setSettings({ ...settings, enforceDeadlines: e.target.checked })} />
-              <label className="form-check-label small" htmlFor="enforce">Chặn hoàn thành bước khi đã quá thời hạn (mặc định chỉ cảnh báo)</label>
+              <label className="form-check-label small" htmlFor="enforce">Chặn hoàn thành bước khi đã quá thời hạn</label>
             </div>
           </div>
         </section>
@@ -240,7 +236,7 @@ export default function PeriodDetailPage() {
       <ReasonDialog
         isOpen={forceOpen}
         title="Mở kỳ bắt buộc"
-        description={`Còn ${readiness?.issues.length ?? 0} cảnh báo kẹt luồng (xem bảng "Kiểm tra kẹt luồng"). Chỉ mở bắt buộc khi chắc chắn sẽ bổ sung người thực hiện kịp thời; lý do được lưu cùng kỳ.`}
+        description={`Còn ${readiness?.issues.length ?? 0} cảnh báo kẹt luồng. Chỉ mở bắt buộc khi sẽ bổ sung người thực hiện kịp thời.`}
         confirmText="Mở kỳ bắt buộc"
         busy={busy}
         onCancel={() => setForceOpen(false)}
@@ -480,8 +476,7 @@ function ProfileDialog({ targets, profiles, busy, onCancel, onSave }: ProfileDia
           <form onSubmit={(e) => { e.preventDefault(); onSave(code, reason.trim()); }}>
             <div className="modal-body d-flex flex-column gap-2">
               <div className="small text-secondary">
-                Chỉ đổi được khi hồ sơ chưa qua bước mà hai hồ sơ luồng cấu hình khác nhau; bước đang chờ không còn áp dụng thì hồ sơ
-                chuyển sang bước áp dụng kế tiếp. Mọi lần đổi được ghi lịch sử hồ sơ.
+                Chỉ đổi được khi hồ sơ chưa qua bước mà hai hồ sơ luồng cấu hình khác nhau.
               </div>
               <div><label className="form-label small" htmlFor="profile-target">Hồ sơ luồng mới</label>
                 <select id="profile-target" className="form-select form-select-sm" required value={code} onChange={(e) => setCode(e.target.value)}>
@@ -544,14 +539,13 @@ function SnapshotDialog({ participant, frames, departments, cells, busy, onCance
                   {!frames.some((f) => f.code === weightFrameCode) && <option value={weightFrameCode}>{weightFrameCode || "— Chưa có —"} (không có trong bộ)</option>}
                   {frames.map((f) => <option key={f.code} value={f.code}>{f.code} — {f.name}</option>)}
                 </select>
-                <div className="form-text">Danh sách khung theo bộ tiêu chí của kỳ.</div>
               </div>
               <div className="col-6"><label className="form-label small">Cấp quyết định</label>
                 <select className="form-select form-select-sm" value={authority} onChange={(e) => setAuthority(e.target.value)}>
                   <option value="CoSo">Đảng ủy cơ sở</option>
                   <option value="CapTren">Cấp trên</option>
                 </select>
-                <div className="form-text">Không tự đổi hồ sơ luồng — dùng "Đổi hồ sơ luồng" nếu cần.</div>
+                <div className="form-text">Không tự đổi hồ sơ luồng.</div>
               </div>
               <div className="col-12"><label className="form-label small">Lý do (bắt buộc)</label><textarea className="form-control form-control-sm" rows={3} required value={reason} onChange={(e) => setReason(e.target.value)} /></div>
             </div>

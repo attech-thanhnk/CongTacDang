@@ -49,14 +49,7 @@ export default function CatalogPage() {
 
   return (
     <div className="page-wrapper">
-      <PageHeader
-        title="Danh mục tổ chức"
-        subTitle={
-          canManage
-            ? "Cây đơn vị chính quyền và tổ chức Đảng (bao nhiêu cấp cũng được), loại đơn vị, danh mục chức vụ."
-            : "Cây đơn vị, loại đơn vị và danh mục chức vụ (chỉ xem)."
-        }
-      />
+      <PageHeader title="Danh mục tổ chức" />
 
       <div className="page-body">
         <ul className="nav nav-tabs mb-3">

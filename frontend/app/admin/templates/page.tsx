@@ -169,7 +169,6 @@ function UploadModal({
     >
       <p className="small text-secondary">
         Sửa file mẫu trong Word (bật tab Developer), giữ nguyên các Content Control có Tag. Nên tải file đang dùng về để sửa.
-        Hệ thống kiểm tra tag và sinh thử tài liệu trước khi lưu; tag không nhận diện sẽ bị từ chối.
       </p>
       <div className="mb-3">
         <input ref={input} type="file" accept=".docx" className="form-control form-control-sm" onChange={handleFile} disabled={busy !== ""} />
@@ -182,7 +181,7 @@ function UploadModal({
           id="template-note"
           className="form-control form-control-sm"
           maxLength={500}
-          placeholder="Lý do thay đổi, căn cứ văn bản…"
+          placeholder="Lý do thay đổi…"
           value={note}
           onChange={(e) => setNote(e.target.value)}
           disabled={busy !== ""}
@@ -350,8 +349,7 @@ function TagsModal({ template, onClose }: { template: TemplateSummary; onClose: 
   return (
     <AdminModal title={`Danh mục tag — ${template.name}`} onClose={onClose} maxWidth={760}>
       <p className="small text-secondary">
-        Tag bắt buộc thiếu trong file mẫu sẽ bị cảnh báo; tag không có trong danh mục bị từ chối. Tag thông tin đơn vị (ORG_*)
-        dùng được ở mọi biểu mẫu, không bắt buộc — giá trị lấy từ trang Thông tin đơn vị. Hướng dẫn: docs/bieu-mau.md.
+        Thiếu tag bắt buộc sẽ bị cảnh báo; tag không có trong danh mục bị từ chối.
       </p>
       <div className="table-responsive">
         <table className="table table-sm small align-middle mb-0">
@@ -445,7 +443,6 @@ export default function TemplatesPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Biểu mẫu Word"
-        subTitle="File mẫu của từng biểu mẫu: tải về để sửa trong Word, tải lên phiên bản mới, kích hoạt lại phiên bản cũ."
       />
       <div className="page-body">
         <Card>

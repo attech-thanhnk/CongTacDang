@@ -205,7 +205,7 @@ export default function EvaluationRecordPage() {
         title={reasonAction?.label || ""}
         description={
           reasonAction?.action === "Reopen"
-            ? "Mở lại hồ sơ đã công bố để đính chính. Dữ liệu các bước sau được giữ để đối chiếu; mọi lần mở lại được ghi lịch sử."
+            ? "Mở lại hồ sơ đã công bố để đính chính."
             : "Hồ sơ sẽ quay về chủ hồ sơ để sửa. Lý do được hiển thị cho chủ hồ sơ."
         }
         confirmText={reasonAction?.action === "Reopen" ? "Mở lại hồ sơ" : "Trả lại"}
@@ -399,7 +399,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
             </div>
             {record.appraisalExplanation && (
               <div className="small mt-2">
-                <div className="text-secondary">Nội dung giải trình, căn cứ (chênh lệch với điểm tự chấm)</div>
+                <div className="text-secondary">Giải trình chênh lệch với điểm tự chấm</div>
                 <div className="fw-semibold" style={{ whiteSpace: "pre-wrap" }}>{record.appraisalExplanation}</div>
               </div>
             )}

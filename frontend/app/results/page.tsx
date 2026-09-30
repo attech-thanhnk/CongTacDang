@@ -60,7 +60,6 @@ export default function ResultsPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Kết quả đánh giá"
-        subTitle="Kết quả xếp loại đã công bố trong phạm vi được giao. Chi tiết hồ sơ, minh chứng, ý kiến không được công khai."
         badge={data ? <span className="badge text-bg-primary">{items.length}</span> : undefined}
         actions={
           <div className="d-flex flex-wrap gap-2">

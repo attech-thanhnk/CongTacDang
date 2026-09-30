@@ -133,7 +133,7 @@ export function AppealPanel({ record, onRecordChanged }: Props) {
               onChange={(e) => setContent(e.target.value)} />
             {data.stepOptions.length > 0 && (
               <div>
-                <div className="small fw-semibold">Kiến nghị liên quan tới bước (người đã thực hiện bước được chọn sẽ không chủ trì xử lý)</div>
+                <div className="small fw-semibold">Kiến nghị liên quan tới bước</div>
                 {data.stepOptions.map((option) => (
                   <label key={option.step} className="form-check small mb-0">
                     <input type="checkbox" className="form-check-input" checked={steps.includes(option.step)}
@@ -168,7 +168,7 @@ export function AppealPanel({ record, onRecordChanged }: Props) {
       <ReasonDialog
         isOpen={!!reopenAppeal}
         title="Mở lại hồ sơ theo kiến nghị"
-        description="Kiến nghị đã được chấp nhận. Hồ sơ quay về bước được chọn để đính chính; lý do được ghi vào lịch sử hồ sơ kèm dẫn chiếu kiến nghị."
+        description="Kiến nghị đã được chấp nhận. Hồ sơ quay về bước được chọn để đính chính."
         confirmText="Mở lại hồ sơ"
         targetSteps={reopenTargets}
         busy={busy}

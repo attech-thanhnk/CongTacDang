@@ -136,12 +136,12 @@ export function ImprovementPlanPanel({ record }: { record: EvaluationRecordDto }
         {data && (
           data.required ? (
             <div className={`alert ${plan ? "alert-info" : "alert-warning"} mb-0 small`}>
-              Bắt buộc lập kế hoạch với mức &quot;{data.finalGradeName}&quot; (bộ tiêu chí của kỳ: {data.requiredGradeNames.join(", ") || "—"}).
+              Bắt buộc lập kế hoạch với mức &quot;{data.finalGradeName}&quot;.
               {!plan && " Hồ sơ chưa có kế hoạch."}
             </div>
           ) : !plan && (
             <div className="small text-secondary">
-              Mức &quot;{data.finalGradeName}&quot; không thuộc nhóm bắt buộc lập kế hoạch ({data.requiredGradeNames.join(", ") || "—"}).
+              Không bắt buộc lập kế hoạch với mức &quot;{data.finalGradeName}&quot;.
             </div>
           )
         )}

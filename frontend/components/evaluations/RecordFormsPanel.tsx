@@ -41,7 +41,7 @@ export function RecordFormsPanel({ recordId, fullName, forms }: { recordId: stri
       <div className="card-body">
         <h2 className="h6 mb-2">Biểu mẫu của hồ sơ</h2>
         {forms.length === 0 ? (
-          <div className="small text-secondary">Kỳ đánh giá chưa có bộ tiêu chí nên chưa có biểu mẫu áp dụng.</div>
+          <div className="small text-secondary">Kỳ đánh giá chưa có bộ tiêu chí.</div>
         ) : (
           <ul className="list-unstyled mb-0 d-flex flex-column gap-2">
             {forms.map((form) => (

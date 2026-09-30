@@ -155,7 +155,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
   const handleEnd = (item: MemberPosition) =>
     confirm({
       title: "Kết thúc chức vụ",
-      message: `Kết thúc ngay chức vụ "${item.positionName}"? Chức vụ chuyển vào lịch sử; thẩm quyền phê duyệt được suy ra lại.`,
+      message: `Kết thúc ngay chức vụ "${item.positionName}"?`,
       confirmText: "Kết thúc",
       isDanger: true,
       onConfirm: async () => {
@@ -452,7 +452,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
                 />
               </div>
             )}
-            <div className="small text-secondary">Hồ sơ đánh giá đã tạo giữ nguyên ảnh chụp thẩm quyền; thay đổi áp dụng cho hồ sơ tạo sau.</div>
+            <div className="small text-secondary">Chỉ áp dụng cho hồ sơ đánh giá tạo sau.</div>
             <div className="d-flex justify-content-end gap-2 mt-3">
               <button type="button" className="btn btn-sm btn-light" onClick={() => setOverrideForm(null)} disabled={saving}>
                 Hủy

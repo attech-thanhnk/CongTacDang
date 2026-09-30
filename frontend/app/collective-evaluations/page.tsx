@@ -145,7 +145,6 @@ export default function CollectiveEvaluationsPage() {
     <div className="page-wrapper collective-page">
       <PageHeader
         title="Đánh giá tập thể & Hội nghị"
-        subTitle="Hồ sơ tự đánh giá của tập thể (Mẫu 07, 08) và biên bản hội nghị (Mẫu 12, 13) theo kỳ; xuất Word/PDF đúng biểu mẫu HD03."
         actions={
           <div className="collective-toolbar-controls">
             <select className="form-select form-select-sm" aria-label="Kỳ đánh giá" value={periodId} onChange={(event) => setPeriodId(event.target.value)}>
@@ -160,8 +159,7 @@ export default function CollectiveEvaluationsPage() {
           <div className="col-12 col-xl-7">
             <section className="card border-0 shadow-sm mb-3">
               <div className="card-header bg-white border-0 pt-4 px-4">
-                <h2 className="h5 mb-1">Hồ sơ tập thể</h2>
-                <div className="text-secondary small">Mẫu 07, 08 bắt buộc Quý III/2026 (Mẫu 06 chưa áp dụng). Xuất Word/PDF ngay trên từng hồ sơ.</div>
+                <h2 className="h5 mb-0">Hồ sơ tập thể</h2>
               </div>
               <div className="card-body px-4">
                 {records.length === 0 ? <div className="text-secondary small">Chưa có hồ sơ tập thể trong kỳ.</div> : records.map((record) => (
@@ -191,8 +189,7 @@ export default function CollectiveEvaluationsPage() {
             {canManageCollective && periodId && (
               <section className="card border-0 shadow-sm">
                 <div className="card-header bg-white border-0 pt-4 px-4">
-                  <h2 className="h6 mb-1">{editingRecord ? `Sửa hồ sơ: ${editingRecord.subjectName}` : "Lập hồ sơ tập thể"}</h2>
-                  <div className="text-secondary small">Các mục nhập theo đúng biểu mẫu gốc; mục để trống giữ dòng chấm trên bản xuất.</div>
+                  <h2 className="h6 mb-0">{editingRecord ? `Sửa hồ sơ: ${editingRecord.subjectName}` : "Lập hồ sơ tập thể"}</h2>
                 </div>
                 <div className="card-body px-4">
                   <CollectiveRecordEditor
@@ -243,8 +240,7 @@ export default function CollectiveEvaluationsPage() {
             {canManageMeeting && periodId && (
               <section className="card border-0 shadow-sm">
                 <div className="card-header bg-white border-0 pt-4 px-4">
-                  <h2 className="h6 mb-1">{editingMeeting ? "Sửa biên bản" : "Lập biên bản hội nghị"}</h2>
-                  <div className="text-secondary small">Mẫu 12 là biên bản hội nghị; Mẫu 13 (biên bản kiểm phiếu) xuất từ biên bản đã có kết quả kiểm phiếu — Tổ kiểm phiếu và số phiếu nhập ở đây.</div>
+                  <h2 className="h6 mb-0">{editingMeeting ? "Sửa biên bản" : "Lập biên bản hội nghị"}</h2>
                 </div>
                 <div className="card-body px-4">
                   <MeetingEditor

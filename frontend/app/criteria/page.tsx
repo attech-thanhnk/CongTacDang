@@ -64,7 +64,7 @@ export default function CriteriaSetsPage() {
     setBusy(true);
     try {
       const created = await criteriaService.create({ ...form, code: form.code.trim(), name: form.name.trim() });
-      toast.success("Đã tạo bản nháp từ nội dung mặc định theo bản trích xuất HD03. Hãy sửa rồi xuất bản.");
+      toast.success("Đã tạo bản nháp. Hãy sửa rồi xuất bản.");
       router.push(`/criteria/${created.id}`);
     } catch (err: any) {
       toast.error(err?.message || "Không tạo được bộ tiêu chí.");
@@ -87,7 +87,6 @@ export default function CriteriaSetsPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Bộ tiêu chí và thang điểm"
-        subTitle="Tiêu chí chung, trục kết quả, khung tỷ trọng A-B-C-D, mức xếp loại và tham số theo phiên bản. Bộ đã xuất bản không sửa được — nhân bản thành bản nháp mới."
         actions={<Link href="/periods" className="btn btn-outline-secondary btn-sm"><i className="bi bi-calendar3 me-1" />Kỳ đánh giá</Link>}
       />
       <div className="page-body">
@@ -151,7 +150,7 @@ export default function CriteriaSetsPage() {
                   <h2 className="h6">Tạo bộ tiêu chí (bản nháp)</h2>
                   <form onSubmit={create} className="row g-2">
                     <div className="col-12"><label className="form-label small" htmlFor="cs-code">Mã bộ</label>
-                      <input id="cs-code" className="form-control form-control-sm" required maxLength={50} placeholder="VD: HD03-09A-2027-V2" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+                      <input id="cs-code" className="form-control form-control-sm" required maxLength={50} placeholder="VD: 09A-2027-V2" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
                     </div>
                     <div className="col-12"><label className="form-label small" htmlFor="cs-name">Tên bộ</label>
                       <input id="cs-name" className="form-control form-control-sm" required maxLength={200} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -162,10 +161,9 @@ export default function CriteriaSetsPage() {
                         <option value="09B">09B — chấm trực tiếp theo trục</option>
                       </select>
                     </div>
-                    <div className="col-12"><label className="form-label small" htmlFor="cs-notes">Ghi chú (căn cứ văn bản)</label>
+                    <div className="col-12"><label className="form-label small" htmlFor="cs-notes">Ghi chú</label>
                       <textarea id="cs-notes" className="form-control form-control-sm" rows={2} maxLength={4000} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
                     </div>
-                    <div className="col-12 small text-secondary">Nội dung khởi tạo theo bản trích xuất HD03 (chờ nghiệp vụ xác nhận) — sửa trong bản nháp.</div>
                     <div className="col-12"><button type="submit" className="btn btn-primary btn-sm" disabled={busy}>Tạo bản nháp</button></div>
                   </form>
                 </div>

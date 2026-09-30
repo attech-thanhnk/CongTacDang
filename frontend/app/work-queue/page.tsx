@@ -44,7 +44,6 @@ export default function WorkQueuePage() {
     <div className="page-wrapper">
       <PageHeader
         title="Việc cần xử lý"
-        subTitle="Hồ sơ đánh giá đang chờ bạn thực hiện, nhóm theo bước."
         badge={queue ? <span className="badge text-bg-primary">{queue.total}</span> : undefined}
         actions={
           <div className="d-flex flex-wrap gap-2">

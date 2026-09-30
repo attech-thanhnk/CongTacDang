@@ -164,7 +164,6 @@ export function Form16DraftPanel({ periodId, branchId, periodLabel, shortName }:
       <SummaryTable title="I. Các trường hợp thuộc thẩm quyền quyết định, phê duyệt mức xếp loại của đảng ủy, chi ủy cơ sở" rows={draft.baseRows} />
       <SummaryTable title="II. Các trường hợp thuộc thẩm quyền quyết định, phê duyệt mức xếp loại của Ban Thường vụ Đảng ủy Tổng công ty" rows={draft.superiorRows} />
       <div className="small text-secondary mb-3">
-        Số liệu tính tự động khi xuất: mức quyết định; hồ sơ chưa có quyết định tính theo mức đề xuất gần nhất (cấp trực tiếp sử dụng → thẩm định → tập thể lãnh đạo).
         Hãy lưu nháp trước khi xuất để phần nhập tay có trong báo cáo.
       </div>
 

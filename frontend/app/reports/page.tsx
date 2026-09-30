@@ -123,11 +123,10 @@ export default function ReportsPage() {
     );
   };
 
-  const renderGroup = (title: string, description: string, reports: ReportDefinition[]) => (
+  const renderGroup = (title: string, reports: ReportDefinition[]) => (
     <section className="card border-0 shadow-sm mb-4">
       <div className="card-header bg-white border-0 pt-3 px-3">
-        <h2 className="h6 mb-1">{title}</h2>
-        <div className="text-secondary small">{description}</div>
+        <h2 className="h6 mb-0">{title}</h2>
       </div>
       <div className="table-responsive">
         <table className="table align-middle mb-0">
@@ -172,7 +171,6 @@ export default function ReportsPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Báo cáo"
-        subTitle="Hồ sơ nộp theo Hướng dẫn 03-HD/TVĐU (mục V.1) và báo cáo nội bộ."
         actions={
           <div className="d-flex flex-wrap gap-2">
             <select className="form-select form-select-sm w-auto" style={{ minWidth: 200 }} aria-label="Kỳ đánh giá" value={periodId} onChange={(e) => setPeriodId(e.target.value)}>
@@ -193,13 +191,11 @@ export default function ReportsPage() {
 
       <div className="page-body">
         {renderGroup(
-          "Hồ sơ nộp theo HD03",
-          "Tên và bố cục đúng biểu mẫu gốc. Bảng tính (14, 15A, 15B) và văn bản Word (07, 12, 13, 16) theo quy định mục V.1; tên tệp theo quy cách \"Mau 16_<tên viết tắt>_Quy III-2026\".",
+          "Biểu mẫu",
           REPORTS.filter((r) => r.group === "hd03")
         )}
         {renderGroup(
           "Báo cáo nội bộ",
-          "Phục vụ theo dõi trong đơn vị, không mang số mẫu HD03.",
           REPORTS.filter((r) => r.group === "internal")
         )}
       </div>

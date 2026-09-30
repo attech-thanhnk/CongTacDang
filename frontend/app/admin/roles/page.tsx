@@ -87,7 +87,6 @@ export default function AdminRolesPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Vai trò"
-        subTitle="Vai trò là tập quyền; gán vai trò cho người kèm phạm vi (Toàn công ty / Đơn vị chính quyền / Tổ chức Đảng — gồm cả các đơn vị cấp dưới) và thời hạn."
         actions={
           <button type="button" className="btn btn-sm btn-primary" onClick={() => setForm({})}>
             <i className="bi bi-plus-lg me-1" />

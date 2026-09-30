@@ -164,7 +164,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
           <div className="col-12 col-md-6">
             <label className="form-label small fw-semibold mb-1">Số thẻ Đảng viên</label>
             <input className="form-control form-control-sm" value={form.partyCardNumber} onChange={(e) => set("partyCardNumber", e.target.value)} />
-            <div className="form-text">Có số thẻ → là Đảng viên; để trống → không phải Đảng viên.</div>
+            <div className="form-text">Để trống nếu không phải Đảng viên.</div>
           </div>
           <div className="col-12 col-md-6">
             <label className="form-label small fw-semibold mb-1">Đơn vị công tác chính</label>
@@ -203,17 +203,11 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
                 <option value={form.weightFrameCode}>{form.weightFrameCode} (không có trong bộ tiêu chí hiện hành)</option>
               )}
             </select>
-            <div className="form-text">
-              {framesError
-                ? "Không tải được danh sách khung tỷ trọng."
-                : frames?.sourceName
-                  ? `Theo bộ tiêu chí "${frames.sourceName}". Hồ sơ đánh giá chụp lại khung khi thêm vào kỳ.`
-                  : "Hồ sơ đánh giá chụp lại khung khi thêm vào kỳ."}
-            </div>
+            {framesError && <div className="form-text">Không tải được danh sách khung tỷ trọng.</div>}
           </div>
           {isEdit ? (
             <div className="col-12 form-text mt-1">
-              Chức vụ (kể cả kiêm nhiệm) và cấp quyết định xếp loại quản lý ở thẻ &quot;Chức vụ&quot; của tài khoản.
+              Chức vụ và cấp quyết định xếp loại sửa ở thẻ &quot;Chức vụ&quot;.
             </div>
           ) : (
             <>

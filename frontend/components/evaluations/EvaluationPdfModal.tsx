@@ -105,7 +105,6 @@ export const EvaluationPdfModal: React.FC<Props> = ({ isOpen, onClose, record, f
         <div className="bg-slate-900 text-white px-6 py-3.5 flex items-center justify-between border-b border-slate-800">
           <div>
             <h3 className="font-bold text-base text-slate-100">{title}</h3>
-            <p className="text-xs text-slate-400">Bản PDF do máy chủ sinh từ biểu mẫu Word</p>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -140,10 +139,6 @@ export const EvaluationPdfModal: React.FC<Props> = ({ isOpen, onClose, record, f
             ))}
           </div>
         )}
-
-        <div className="bg-slate-100 border-b border-slate-300 px-6 py-2 text-xs text-slate-700">
-          <strong>Lưu ý:</strong> Nội dung PDF giống hệt bản Word xuất từ máy chủ. Bấm <strong>&quot;Tải PDF&quot;</strong> để lưu tệp; dùng nút in của trình xem PDF để in.
-        </div>
 
         <div className="p-4 bg-slate-200/60">
           {!form && (

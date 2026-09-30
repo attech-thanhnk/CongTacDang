@@ -72,7 +72,6 @@ export default function PeriodsPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Kỳ đánh giá"
-        subTitle="Cấu hình hồ sơ luồng theo nhóm đối tượng, thời hạn, bộ tiêu chí và danh sách người được đánh giá theo từng kỳ."
         actions={canSeeCriteria ? <Link href="/criteria" className="btn btn-outline-primary btn-sm"><i className="bi bi-list-check me-1" />Bộ tiêu chí</Link> : undefined}
       />
       <div className="page-body">
@@ -127,7 +126,7 @@ export default function PeriodsPage() {
                     <div className="col-6"><label className="form-label small">Từ ngày</label><input type="date" className="form-control form-control-sm" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
                     <div className="col-6"><label className="form-label small">Đến ngày</label><input type="date" className="form-control form-control-sm" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} /></div>
                     <div className="col-12">
-                      <label className="form-label small">Kiểu kỳ (sinh sẵn các hồ sơ luồng — sửa được sau khi tạo)</label>
+                      <label className="form-label small">Kiểu kỳ</label>
                       {presets.map((preset) => (
                         <div className="form-check" key={preset.code}>
                           <input className="form-check-input" type="radio" name="preset" id={`preset-${preset.code}`} checked={form.preset === preset.code} onChange={() => setForm({ ...form, preset: preset.code })} />
@@ -144,7 +143,7 @@ export default function PeriodsPage() {
                         <option value="">Tự chọn bộ mới nhất theo kiểu kỳ{suggestedForm ? ` (Mẫu ${suggestedForm})` : ""}</option>
                         {criteriaSets.map((s) => <option key={s.id} value={s.id}>{s.name} — Mẫu {s.selfScoreForm}</option>)}
                       </select>
-                      <div className="form-text">Đổi được khi kỳ còn dự thảo; khi mở kỳ, bộ tiêu chí được chụp vào kỳ và không đổi nữa.</div>
+                      <div className="form-text">Sau khi mở kỳ không đổi được bộ tiêu chí.</div>
                     </div>
                     <div className="col-12"><button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? "Đang tạo..." : "Tạo kỳ (dự thảo)"}</button></div>
                   </form>
