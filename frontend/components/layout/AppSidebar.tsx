@@ -161,8 +161,9 @@ export function AppSidebar() {
             >
               {periods.length === 0 && <option value="">Chưa có kỳ</option>}
               {periods.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
+                <option key={p.id} value={p.id} title={p.name}>
+                  Quý {["I", "II", "III", "IV"][p.quarter - 1] ?? p.quarter}/{p.year}
+                  {p.status === "Open" ? "" : ` (${p.statusDisplayName})`}
                 </option>
               ))}
             </select>
