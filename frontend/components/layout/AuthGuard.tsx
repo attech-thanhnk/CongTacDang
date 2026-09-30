@@ -67,6 +67,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     return null;
   }
 
+  // Phải đổi mật khẩu: không render trang nghiệp vụ (tránh gọi API bị 403) trong lúc chờ chuyển sang /change-password
+  if (user.mustChangePassword && !isChangePasswordPage) {
+    return null;
+  }
+
   // Đã xác thực thành công: Render toàn bộ hệ thống làm việc trong LayoutProvider
   return (
     <LayoutProvider>

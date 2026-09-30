@@ -30,12 +30,7 @@ import {
   isConcurrencyConflict,
   selfAssessmentSections,
 } from "@/services/evaluationService";
-
-const formatDateTime = (value?: string | null) =>
-  value ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(new Date(value)) : "—";
-
-const formatDate = (value?: string | null) =>
-  value ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "short" }).format(new Date(value)) : "—";
+import { formatDate, formatDateTime } from "@/lib/dateFormat";
 
 /** Trang hồ sơ đánh giá: tiến trình 9 bước, dữ liệu từng bước, nút thao tác theo `actions`, lịch sử. */
 export default function EvaluationRecordPage() {
@@ -250,6 +245,8 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
   const { criteria } = useCriteria(record.periodId);
   const enabled = (step: WorkflowStepCode) => record.progress.find((p) => p.step === step)?.enabled ?? true;
   const offSteps = record.progress.filter((p) => p.mode === "Off");
+  const axisName = (code: string) =>
+    criteria?.content.axes.find((a) => a.code.toLowerCase() === code.toLowerCase())?.name;
   return (
     <section className="card border-0 shadow-sm">
       <div className="card-body d-flex flex-column gap-3">
@@ -264,7 +261,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
         {record.externalResults?.length > 0 && (
           <div>
             <h3 className="small fw-bold text-secondary">Kết quả do cấp trên thực hiện (đã ghi nhận)</h3>
-            <table className="table table-sm small mb-0">
+            <div className="table-responsive"><table className="table table-sm small mb-0">
               <thead><tr><th>Bước</th><th>Cơ quan</th><th>Văn bản</th><th>Mức / điểm</th><th>Ghi nhận</th></tr></thead>
               <tbody>
                 {record.externalResults.map((r) => (
@@ -293,7 +290,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </div>
         )}
 
@@ -303,7 +300,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
             {record.tasks.length === 0 ? (
               <div className="small text-secondary">Chưa đăng ký.</div>
             ) : (
-              <table className="table table-sm small mb-1">
+              <div className="table-responsive"><table className="table table-sm small mb-1">
                 <thead><tr><th>#</th><th>Sản phẩm</th><th>Trọng số</th><th>Điểm</th><th>Minh chứng</th></tr></thead>
                 <tbody>
                   {record.tasks.map((t) => (
@@ -316,7 +313,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
             {record.tasksApprovedAt && (
               <div className="small text-secondary">Duyệt bởi {record.tasksApprovedByName} lúc {formatDateTime(record.tasksApprovedAt)}{record.tasksApprovalComment ? ` — ${record.tasksApprovalComment}` : ""}</div>
@@ -332,13 +329,20 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
             <Field label="Tổng tự chấm" value={record.totalSelfScore} />
             <Field label="Mức tự đề xuất" value={gradeLabel(record.selfProposedGrade)} />
             <Field label="Nộp lúc" value={record.selfScoredAt ? formatDateTime(record.selfScoredAt) : null} />
-            {record.axisScores && <Field label="Điểm theo trục" value={Object.entries(record.axisScores).map(([code, score]) => `${code}: ${score}`).join(" · ")} />}
+            {record.axisScores && (
+              <Field
+                label="Điểm theo trục"
+                value={Object.entries(record.axisScores).map(([code, score], i, all) => (
+                  <span key={code} title={axisName(code)}>{code}: {score}{i < all.length - 1 ? " · " : ""}</span>
+                ))}
+              />
+            )}
           </div>
           {record.axisNotes && Object.keys(record.axisNotes).length > 0 && (
             <ul className="small mb-0 mt-2 ps-3">
               {Object.entries(record.axisNotes).map(([code, note]) => (
                 <li key={code}>
-                  <strong>{code}</strong>
+                  <strong>{code}</strong>{axisName(code) ? ` (${axisName(code)})` : ""}
                   {note.target ? ` — Mục tiêu: ${note.target}` : ""}
                   {note.result ? ` — Kết quả: ${note.result}` : ""}
                   {note.note ? ` — Ghi chú: ${note.note}` : ""}

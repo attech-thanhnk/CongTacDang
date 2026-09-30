@@ -101,7 +101,7 @@ apiClient.interceptors.response.use(
     return payload;
   },
   async (error: AxiosError<any>) => {
-    let message = "Không thể kết nối đến máy chủ Web API.";
+    let message = "";
     let status: number | undefined = undefined;
     let errors: string[] | undefined = undefined;
     const resData = error.response?.data;
@@ -121,13 +121,16 @@ apiClient.interceptors.response.use(
         }
       }
 
+      // Tiêu đề ProblemDetails mặc định của ASP.NET là tiếng Anh ("Not Found", "One or more validation errors occurred.")
+      // nên chỉ dùng khi mã trạng thái không có thông báo tiếng Việt dự phòng bên dưới.
+      let problemTitle = "";
       if (parsedData && typeof parsedData === "object") {
         if (parsedData.message) {
           message = parsedData.message;
         } else if (parsedData.detail) {
           message = parsedData.detail;
         } else if (parsedData.title) {
-          message = parsedData.title;
+          problemTitle = parsedData.title;
         }
 
         if (Array.isArray(parsedData.errors)) {
@@ -206,13 +209,19 @@ apiClient.interceptors.response.use(
         message = message || "Cán bộ không có thẩm quyền thực hiện thao tác này.";
       } else if (status === 404) {
         message = message || "Không tìm thấy dữ liệu yêu cầu trên hệ thống.";
+      } else if (status === 400) {
+        message = message || "Dữ liệu gửi lên chưa hợp lệ.";
       } else if (status >= 500) {
         message = message || "Lỗi xử lý nội bộ tại máy chủ. Vui lòng liên hệ Quản trị viên.";
       }
+      message = message || problemTitle || "Yêu cầu không thành công.";
     } else if (error.code === "ECONNABORTED") {
       message = "Yêu cầu máy chủ quá thời gian chờ (Timeout). Vui lòng thử lại.";
-    } else if (error.message) {
-      message = error.message;
+    } else if (error.code === "ERR_CANCELED") {
+      message = "Yêu cầu đã bị hủy.";
+    } else {
+      // Không có phản hồi (mất kết nối, máy chủ tắt): axios chỉ trả "Network Error" tiếng Anh.
+      message = "Không thể kết nối đến máy chủ Web API.";
     }
 
     return Promise.reject(new ApiError(message, status, errors, resData));

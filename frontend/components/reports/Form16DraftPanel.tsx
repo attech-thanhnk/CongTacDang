@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/common";
 import { useToast } from "@/contexts/ToastContext";
+import { formatDateTime } from "@/lib/dateFormat";
 import {
   Form16Draft,
   Form16DraftContent,
@@ -145,7 +146,7 @@ export function Form16DraftPanel({ periodId, branchId, periodLabel, shortName }:
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div className="small text-secondary">
           {draft.partyOrganizationName} · {draft.periodName}
-          {draft.updatedAt ? ` · Bản nháp lưu lúc ${new Date(draft.updatedAt).toLocaleString("vi-VN")}` : " · Chưa lưu bản nháp"}
+          {draft.updatedAt ? ` · Bản nháp lưu lúc ${formatDateTime(draft.updatedAt)}` : " · Chưa lưu bản nháp"}
         </div>
         <div className="d-flex gap-2">
           <Button size="sm" variant="primary" icon="bi-save" loading={saving} loadingText="Đang lưu..." onClick={save}>

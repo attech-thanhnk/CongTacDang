@@ -1,13 +1,11 @@
 "use client";
 
+import { formatDate } from "@/lib/dateFormat";
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
 import { EvaluationPeriodDto, WorkQueueDto, evaluationService } from "@/services/evaluationService";
-
-const formatDate = (value?: string | null) =>
-  value ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "short" }).format(new Date(value)) : null;
 
 /**
  * Việc cần xử lý: hồ sơ đang chờ chính người dùng ở bước họ có quyền, trong phạm vi được gán (máy chủ lọc).
@@ -49,8 +47,8 @@ export default function WorkQueuePage() {
         subTitle="Hồ sơ đánh giá đang chờ bạn thực hiện, nhóm theo bước."
         badge={queue ? <span className="badge text-bg-primary">{queue.total}</span> : undefined}
         actions={
-          <div className="d-flex gap-2">
-            <select className="form-select form-select-sm" aria-label="Kỳ đánh giá" value={periodId} onChange={(e) => setPeriodId(e.target.value)}>
+          <div className="d-flex flex-wrap gap-2">
+            <select className="form-select form-select-sm w-auto" aria-label="Kỳ đánh giá" value={periodId} onChange={(e) => setPeriodId(e.target.value)}>
               <option value="">Tất cả kỳ đang mở</option>
               {selectablePeriods.map((p) => (
                 <option key={p.id} value={p.id}>{p.name} ({p.statusDisplayName})</option>

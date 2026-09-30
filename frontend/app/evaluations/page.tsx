@@ -78,8 +78,8 @@ export default function EvaluationsPage() {
         title="Hồ sơ đánh giá"
         subTitle="Hồ sơ của tôi và các hồ sơ trong phạm vi được xem."
         actions={
-          <div className="d-flex gap-2">
-            <select className="form-select form-select-sm" aria-label="Kỳ đánh giá" value={periodId} onChange={(e) => setPeriodId(e.target.value)}>
+          <div className="d-flex flex-wrap gap-2">
+            <select className="form-select form-select-sm w-auto" aria-label="Kỳ đánh giá" value={periodId} onChange={(e) => setPeriodId(e.target.value)}>
               {periods.map((p) => (
                 <option key={p.id} value={p.id}>{p.name} ({p.statusDisplayName})</option>
               ))}
@@ -155,7 +155,7 @@ export default function EvaluationsPage() {
           <section className="card border-0 shadow-sm">
             <div className="card-header bg-white"><h2 className="h6 mb-0">Kiểm soát trần Hoàn thành xuất sắc theo Chi bộ (Mẫu 15)</h2></div>
             <div className="card-body p-0">
-              <table className="table table-sm mb-0">
+              <div className="table-responsive"><table className="table table-sm mb-0">
                 <thead><tr className="small text-secondary"><th className="ps-3">Chi bộ</th><th>Số hồ sơ</th><th>HT tốt trở lên</th><th>Tối đa XS</th><th>Đề xuất XS</th><th /></tr></thead>
                 <tbody>
                   {quotas.map((q) => (
@@ -169,7 +169,7 @@ export default function EvaluationsPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </div>
           </section>
         )}

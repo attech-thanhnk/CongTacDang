@@ -239,6 +239,7 @@ function HistoryModal({
       title: "Kích hoạt phiên bản",
       message: `Biểu mẫu xuất từ bây giờ sẽ dùng phiên bản ${version.versionNumber} (${version.originalFileName}). Tiếp tục?`,
       confirmText: "Kích hoạt",
+      isDanger: false,
       onConfirm: async () => {
         setBusy(version.id);
         try {

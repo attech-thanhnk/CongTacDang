@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatDateTime } from "@/lib/dateFormat";
 import { useToast } from "@/contexts/ToastContext";
 import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
 import { WorkflowProfilesEditor } from "@/components/evaluations/WorkflowProfilesEditor";
@@ -150,7 +151,7 @@ export default function PeriodDetailPage() {
             <Link href="/periods" className="btn btn-outline-secondary btn-sm"><i className="bi bi-arrow-left me-1" />Danh sách kỳ</Link>
             {canManage && period.status === "Draft" && (
               <button type="button" className="btn btn-success btn-sm" disabled={busy}
-                onClick={() => confirm({ title: "Mở kỳ đánh giá", message: "Hệ thống kiểm tra kẹt luồng trước khi mở. Sau khi mở, chỉ sửa được thời hạn các bước; hồ sơ luồng, chế độ và quyền thực hiện bước bị khóa; bộ tiêu chí được chụp nguyên vào kỳ và không đổi được nữa.", confirmText: "Mở kỳ", onConfirm: () => openPeriod() })}>
+                onClick={() => confirm({ title: "Mở kỳ đánh giá", message: "Hệ thống kiểm tra kẹt luồng trước khi mở. Sau khi mở, chỉ sửa được thời hạn các bước; hồ sơ luồng, chế độ và quyền thực hiện bước bị khóa; bộ tiêu chí được chụp nguyên vào kỳ và không đổi được nữa.", confirmText: "Mở kỳ", isDanger: false, onConfirm: () => openPeriod() })}>
                 Mở kỳ
               </button>
             )}
@@ -595,7 +596,7 @@ function CriteriaSection({ period, editable, busy, onChoose }: CriteriaSectionPr
         {criteria ? (
           <div className="small mb-2">
             <strong>{criteria.name}</strong> ({criteria.code}) · Mẫu tự chấm {criteria.selfScoreForm} ·{" "}
-            {period.status === "Draft" ? "chọn lúc" : "chụp vào kỳ lúc"} {new Date(criteria.takenAt).toLocaleString("vi-VN")}
+            {period.status === "Draft" ? "chọn lúc" : "chụp vào kỳ lúc"} {formatDateTime(criteria.takenAt)}
             <button type="button" className="btn btn-link btn-sm p-0 ms-2" onClick={() => setExpanded(!expanded)}>{expanded ? "Ẩn nội dung" : "Xem nội dung"}</button>
           </div>
         ) : (

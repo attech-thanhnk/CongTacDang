@@ -12,6 +12,7 @@ import {
 import { organizationService } from "@/services/organizationService";
 import { userService } from "@/services/userService";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatDate } from "@/lib/dateFormat";
 import { Button } from "@/components/common";
 
 const card: React.CSSProperties = {
@@ -269,7 +270,7 @@ export default function DashboardPage() {
                     <div style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--text-primary)" }}>{step.name}</div>
                     {step.deadline && (
                       <div style={{ fontSize: "11px", color: step.overdue ? "var(--color-danger)" : "var(--text-secondary)" }}>
-                        Hạn: {new Intl.DateTimeFormat("vi-VN").format(new Date(step.deadline))}
+                        Hạn: {formatDate(step.deadline)}
                       </div>
                     )}
                   </div>
@@ -309,7 +310,7 @@ export default function DashboardPage() {
                     </span>
                   ))}
                 </div>
-                <table className="table table-sm align-middle mb-0" style={{ fontSize: "13.5px" }}>
+                <div className="table-responsive"><table className="table table-sm align-middle mb-0" style={{ fontSize: "13.5px" }}>
                   <thead>
                     <tr>
                       <th>Chi bộ</th>
@@ -326,7 +327,7 @@ export default function DashboardPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               </>
             )}
           </div>

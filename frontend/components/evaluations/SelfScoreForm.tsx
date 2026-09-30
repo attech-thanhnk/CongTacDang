@@ -160,6 +160,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
         + (missing.length ? ` Chưa nhập ${missing.join(" và ")}.` : "")
         + " Sau khi nộp, phiếu chuyển sang Chi bộ xác nhận và bạn không sửa được, trừ khi bị trả lại.",
       confirmText: "Nộp phiếu",
+      isDanger: false,
       onConfirm: () => onSubmit(payload),
     });
   };

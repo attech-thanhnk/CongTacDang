@@ -99,7 +99,8 @@ export function AppHeader() {
           <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Đang nạp...</span>
         ) : user ? (
           <>
-          <NotificationBell />
+          {/* Tài khoản phải đổi mật khẩu chỉ được gọi API đổi mật khẩu — không nạp chuông nhắc việc (tránh 403). */}
+          {!user.mustChangePassword && <NotificationBell />}
           <div style={{ position: "relative" }}>
             <button
               type="button"

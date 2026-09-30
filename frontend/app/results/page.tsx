@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/dateFormat";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -8,9 +9,6 @@ import { NoAccess } from "@/components/admin/NoAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { GRADE_OPTIONS } from "@/services/evaluationService";
 import { PublishedResultsDto, postPublishService } from "@/services/postPublishService";
-
-const formatDate = (value?: string | null) =>
-  value ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "short" }).format(new Date(value)) : "—";
 
 /**
  * Kết quả đánh giá đã công bố (HD03 Bước 5). Chỉ họ tên, chức danh, đơn vị, mức xếp loại chính thức (điểm khi bộ tiêu chí cho phép);
