@@ -161,9 +161,17 @@ public sealed class CriteriaSetIntegrationTests
         var frameIssue = Assert.Single(readiness.GetProperty("issues").EnumerateArray(), i => i.GetProperty("message").GetString()!.Contains("Khung tỷ trọng"));
         Assert.Equal(r2, frameIssue.GetProperty("recordId").GetGuid());
         Assert.Contains("\"K9\"", frameIssue.GetProperty("message").GetString());
-        var openRefused = await w.Manager.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open",
-            new { version = (await Data(w.Manager, $"/api/evaluations/periods/{periodId}")).GetProperty("version").GetUInt32() });
-        Assert.Equal(HttpStatusCode.Conflict, openRefused.StatusCode);
+        // Khung sai chặn cứng (400, nêu tên người + khung) — kể cả "mở bắt buộc" có lý do.
+        var periodVersion = (await Data(w.Manager, $"/api/evaluations/periods/{periodId}")).GetProperty("version").GetUInt32();
+        var openRefused = await w.Manager.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open", new { version = periodVersion });
+        Assert.Equal(HttpStatusCode.BadRequest, openRefused.StatusCode);
+        var forcedRefused = await w.Manager.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open",
+            new { version = periodVersion, force = true, reason = "Mở bắt buộc" });
+        Assert.Equal(HttpStatusCode.BadRequest, forcedRefused.StatusCode);
+        var forcedMessage = await MessageAsync(forcedRefused);
+        Assert.Contains("(khung \"K9\")", forcedMessage);
+        Assert.Contains(frameIssue.GetProperty("fullName").GetString()!, forcedMessage);
+        Assert.Equal("Draft", (await Data(w.Manager, $"/api/evaluations/periods/{periodId}")).GetProperty("status").GetString());
 
         var p2 = Participant(participants, r2);
         var badFrame = await w.Manager.PutAsJsonAsync($"/api/evaluations/periods/{periodId}/participants/{r2}/snapshot",

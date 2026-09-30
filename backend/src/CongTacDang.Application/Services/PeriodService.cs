@@ -308,11 +308,22 @@ public sealed class PeriodService : IPeriodService
         if (errors.Count > 0)
             throw new ValidationException("Cấu hình kỳ chưa hợp lệ, chưa mở được kỳ: " + string.Join(" ", errors));
 
-        if ((await _repo.ListRecordsAsync(period.Id, ct)).Count == 0)
+        var records = await _repo.ListRecordsAsync(period.Id, ct);
+        if (records.Count == 0)
             throw new ValidationException("Kỳ chưa có người được đánh giá nên chưa mở được. Hãy thêm danh sách người được đánh giá trước khi mở kỳ.");
 
         // Chụp nguyên bộ vào kỳ (bất biến cho kỳ này).
         AttachCriteria(period, set, DateTime.UtcNow);
+
+        // Khung tỷ trọng sai là lỗi dữ liệu (không tự chấm được theo Mẫu 09A), không phải cảnh báo kẹt luồng: "mở bắt buộc" không bỏ qua được.
+        var frameErrors = WeightFrameErrors(ReadCriteria(period), records.Where(r => r.Status != RecordStatus.Published));
+        if (frameErrors.Count > 0)
+        {
+            var criteria = ReadCriteria(period)!;
+            throw new ValidationException($"Chưa mở được kỳ: khung tỷ trọng A-B-C-D của {frameErrors.Count} hồ sơ không có trong bộ tiêu chí "
+                + $"\"{criteria.Name}\" (có: {FrameList(criteria)}) nên không tự chấm được theo Mẫu 09A — " + string.Join("; ", frameErrors)
+                + ". Hãy sửa khung của hồ sơ trong danh sách người được đánh giá (mở bắt buộc không bỏ qua được lỗi này).");
+        }
 
         var readiness = await BuildReadinessAsync(period, ct);
         var reason = dto?.Reason?.Trim();
@@ -515,15 +526,31 @@ public sealed class PeriodService : IPeriodService
                     Scope = string.Empty,
                     Message = string.IsNullOrEmpty(record.WeightFrameCode)
                         ? $"Hồ sơ của {fullName} chưa có khung tỷ trọng A-B-C-D nên không tự chấm được theo Mẫu 09A. "
-                          + $"Hãy chọn khung trong danh sách người được đánh giá (bộ \"{criteria.Name}\" có: {FrameList(criteria)})."
+                          + $"Hãy chọn khung trong danh sách người được đánh giá (bộ \"{criteria.Name}\" có: {FrameList(criteria)}). Lỗi này chặn mở kỳ, kể cả mở bắt buộc."
                         : $"Khung tỷ trọng \"{record.WeightFrameCode}\" của hồ sơ {fullName} không có trong bộ tiêu chí \"{criteria.Name}\" "
-                          + $"của kỳ (có: {FrameList(criteria)}). Hãy sửa khung của hồ sơ trong danh sách người được đánh giá."
+                          + $"của kỳ (có: {FrameList(criteria)}). Hãy sửa khung của hồ sơ trong danh sách người được đánh giá. Lỗi này chặn mở kỳ, kể cả mở bắt buộc."
                 });
             }
         }
 
         result.Ready = result.Issues.Count == 0;
         return result;
+    }
+
+    /// <summary>
+    /// "Tên (khung "X")" / "Tên (chưa có khung)" của hồ sơ có khung tỷ trọng không có trong bộ tiêu chí — chỉ với bộ tính A-B-C-D theo
+    /// khung (Mẫu 09A); bộ chấm theo trục không dùng khung.
+    /// </summary>
+    private static List<string> WeightFrameErrors(CriteriaSnapshot? criteria, IEnumerable<EvaluationRecord> records)
+    {
+        if (criteria is not { UsesAxisScoring: false })
+            return new List<string>();
+        return records
+            .Where(r => criteria.Content.FindFrame(r.WeightFrameCode) == null)
+            .OrderBy(r => r.Member?.FullName, StringComparer.CurrentCulture)
+            .Select(r => $"{r.Member?.FullName ?? r.MemberId.ToString()} "
+                + (string.IsNullOrEmpty(r.WeightFrameCode) ? "(chưa có khung)" : $"(khung \"{r.WeightFrameCode}\")"))
+            .ToList();
     }
 
     private static string FrameList(CriteriaSnapshot criteria) =>
