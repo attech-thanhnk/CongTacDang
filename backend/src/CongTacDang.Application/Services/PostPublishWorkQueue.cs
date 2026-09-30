@@ -34,15 +34,28 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
     /// <summary>Mã nhóm "Kế hoạch 30-60-90 ngày chờ bạn xác nhận".</summary>
     public const string PlanAcknowledgementGroup = "IMPROVEMENT_PLAN_ACK";
 
+    /// <summary>
+    /// Mã nhóm "Kiến nghị chưa có người xử lý" — cho người có quyền gán vai trò: kiến nghị đang mở mà không còn ai (ngoài người có
+    /// xung đột lợi ích) có quyền xử lý trong phạm vi hồ sơ, cần gán vai trò cho người phù hợp.
+    /// </summary>
+    public const string UnassignedAppealsGroup = "APPEALS_UNASSIGNED";
+
     private readonly IPostPublishRepository _repo;
     private readonly IAuthorizationGuard _guard;
     private readonly ICurrentUserService _currentUser;
+    private readonly AppealResolverCheck _resolverCheck;
 
-    public PostPublishWorkQueue(IPostPublishRepository repo, IAuthorizationGuard guard, ICurrentUserService currentUser)
+    public PostPublishWorkQueue(
+        IPostPublishRepository repo,
+        IAuthorizationGuard guard,
+        ICurrentUserService currentUser,
+        IEvaluationWorkflowRepository workflowRepo,
+        IPermissionResolver permissions)
     {
         _repo = repo;
         _guard = guard;
         _currentUser = currentUser;
+        _resolverCheck = new AppealResolverCheck(workflowRepo, permissions);
     }
 
     /// <inheritdoc />
@@ -62,6 +75,22 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
                 .ToList();
             AddGroup(groups, AppealsGroup, "Kiến nghị chờ xử lý", appeals.Select(a => Item(a.Record, userId,
                 a.Status.ToString(), $"Kiến nghị: {AppealService.StatusName(a.Status)} (gửi {EvaluationMapping.Today(a.SubmittedAt).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)})")));
+        }
+
+        if (_guard.HasAny(PermissionCodes.SystemAssignmentsManage))
+        {
+            // Người gán vai trò (quyền không áp dụng phạm vi): kiến nghị không còn ai xử lý được — tính lại mỗi lần tải nên nhóm tự
+            // hết khi đã gán người xử lý.
+            var unassigned = new List<EvaluationAppeal>();
+            foreach (var appeal in await _repo.ListOpenAppealsAsync(period, ct))
+            {
+                if (!await _resolverCheck.HasResolverAsync(appeal, appeal.Record, ct))
+                    unassigned.Add(appeal);
+            }
+            var permissionName = PermissionCodes.DisplayName(PermissionCodes.EvaluationAppealResolve);
+            AddGroup(groups, UnassignedAppealsGroup, "Kiến nghị chưa có người xử lý (cần gán vai trò)", unassigned.Select(a => Item(a.Record, userId,
+                a.Status.ToString(), $"Không còn ai có quyền \"{permissionName}\" trong phạm vi hồ sơ (ngoài người có xung đột lợi ích) — "
+                    + "hãy gán vai trò có quyền này cho người phù hợp")));
         }
 
         if (_guard.HasAny(PermissionCodes.EvaluationImprovementManage))
