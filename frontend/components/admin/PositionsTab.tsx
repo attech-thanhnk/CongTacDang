@@ -132,7 +132,8 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
 
   return (
     <>
-      <div className="d-flex flex-wrap gap-2 mb-3">
+      <Card>
+      <div className="card-header d-flex flex-wrap align-items-center gap-2">
         <input
           className="form-control form-control-sm"
           style={{ maxWidth: 300 }}
@@ -160,10 +161,9 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
           </button>
         )}
       </div>
-      <Card>
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
-            <thead style={{ background: "var(--bg-base)" }}>
+            <thead>
               <tr>
                 <th className="ps-3">Chức vụ</th>
                 <th style={{ width: 120 }}>Bên</th>
@@ -193,7 +193,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                   <tr key={p.id} style={{ opacity: p.isActive ? 1 : 0.6 }}>
                     <td className="ps-3">
                       <span className="fw-semibold text-dark">{p.name}</span>
-                      {p.isLeadership && <span className="badge bg-light text-secondary border ms-2">Lãnh đạo, quản lý</span>}
+                      {p.isLeadership && <span className="status-badge tone-neutral ms-2">Lãnh đạo, quản lý</span>}
                     </td>
                     <td>{POSITION_SIDE_LABELS[p.side] ?? p.side}</td>
                     <td>{p.statCode ? <code>{p.statCode}</code> : "—"}</td>
@@ -203,9 +203,9 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                     <td className="text-center">{p.holderCount}</td>
                     <td>
                       {p.isActive ? (
-                        <span className="badge bg-success-subtle text-success border border-success-subtle">Đang dùng</span>
+                        <span className="tag t-ok">Đang dùng</span>
                       ) : (
-                        <span className="badge bg-secondary-subtle text-secondary border">Ngừng dùng</span>
+                        <span className="status-badge tone-neutral">Ngừng dùng</span>
                       )}
                     </td>
                     {canManage && (
@@ -231,7 +231,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
           <form onSubmit={handleSave}>
             <div className="row g-2">
               <div className="col-12">
-                <label className="form-label small fw-semibold mb-1">
+                <label className="form-label">
                   Tên chức vụ <span className="text-danger">*</span>
                 </label>
                 <input
@@ -243,7 +243,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                 />
               </div>
               <div className="col-6">
-                <label className="form-label small fw-semibold mb-1">Bên</label>
+                <label className="form-label">Bên</label>
                 <select className="form-select form-select-sm" value={form.side} onChange={(e) => setForm({ ...form, side: e.target.value as PositionSide })}>
                   {(Object.keys(POSITION_SIDE_LABELS) as PositionSide[]).map((s) => (
                     <option key={s} value={s}>
@@ -253,7 +253,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                 </select>
               </div>
               <div className="col-6">
-                <label className="form-label small fw-semibold mb-1">Mã chức danh (15A/15B)</label>
+                <label className="form-label">Mã chức danh (15A/15B)</label>
                 <input
                   className="form-control form-control-sm"
                   value={form.statCode}
@@ -263,7 +263,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                 />
               </div>
               <div className="col-12">
-                <label className="form-label small fw-semibold mb-1">Thẩm quyền quyết định xếp loại mặc định</label>
+                <label className="form-label">Thẩm quyền quyết định xếp loại mặc định</label>
                 <select
                   className="form-select form-select-sm"
                   value={form.defaultApprovalAuthority}
@@ -278,7 +278,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                 </select>
               </div>
               <div className="col-4">
-                <label className="form-label small fw-semibold mb-1">Thứ tự</label>
+                <label className="form-label">Thứ tự</label>
                 <input
                   type="number"
                   min={0}
@@ -315,7 +315,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
               </div>
             </div>
             <div className="d-flex justify-content-end gap-2 mt-3">
-              <button type="button" className="btn btn-sm btn-light" onClick={() => setForm(null)} disabled={saving}>
+              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setForm(null)} disabled={saving}>
                 Hủy
               </button>
               <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>

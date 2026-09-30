@@ -36,8 +36,8 @@ export function PermissionMatrix({ modules, selected, onChange, readOnly, locked
         const count = module.permissions.filter((p) => selected.has(p.code)).length;
         const all = count === module.permissions.length;
         return (
-          <div key={module.module} className="border rounded">
-            <div className="d-flex justify-content-between align-items-center px-3 py-2 bg-light border-bottom">
+          <div key={module.module} className="card overflow-hidden">
+            <div className="card-header d-flex justify-content-between align-items-center">
               <span className="fw-semibold">
                 {module.moduleName}{" "}
                 <span className="small text-secondary fw-normal">
@@ -70,14 +70,14 @@ export function PermissionMatrix({ modules, selected, onChange, readOnly, locked
                         <code className="small text-secondary">{permission.code}</code>
                         {!permission.appliesScope && (
                           <span
-                            className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-2"
+                            className="tag t-wait ms-2"
                             title="Quyền này không áp dụng phạm vi: vai trò chứa quyền này chỉ gán được phạm vi Toàn công ty."
                           >
                             Chỉ Toàn công ty
                           </span>
                         )}
                         {locked && (
-                          <span className="badge bg-secondary-subtle text-secondary border ms-2" title="Vai trò được bảo vệ phải giữ quyền này">
+                          <span className="status-badge tone-neutral ms-2" title="Vai trò được bảo vệ phải giữ quyền này">
                             <i className="bi bi-lock-fill me-1" />
                             Bắt buộc
                           </span>

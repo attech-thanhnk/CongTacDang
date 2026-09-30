@@ -28,19 +28,19 @@ export function RoleFormModal({
         }}
       >
         <div className="mb-2">
-          <label className="form-label small fw-semibold mb-1">
+          <label className="form-label">
             Tên vai trò <span className="text-danger">*</span>
           </label>
           <input className="form-control form-control-sm" value={name} required maxLength={100} onChange={(e) => setName(e.target.value)} />
           <div className="form-text">Không trùng tên vai trò khác (không phân biệt hoa thường).</div>
         </div>
         <div className="mb-2">
-          <label className="form-label small fw-semibold mb-1">Mô tả</label>
+          <label className="form-label">Mô tả</label>
           <textarea className="form-control form-control-sm" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
         {!role && <div className="small text-secondary">Sau khi tạo, chọn quyền cho vai trò ở trang chi tiết.</div>}
         <div className="d-flex justify-content-end gap-2 mt-3">
-          <button type="button" className="btn btn-sm btn-light" onClick={onClose} disabled={saving}>
+          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={onClose} disabled={saving}>
             Hủy
           </button>
           <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>

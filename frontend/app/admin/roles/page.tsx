@@ -98,7 +98,7 @@ export default function AdminRolesPage() {
         <Card>
           <div className="table-responsive">
             <table className="table table-hover align-middle mb-0">
-              <thead style={{ background: "var(--bg-base)" }}>
+              <thead>
                 <tr>
                   <th className="ps-3">Vai trò</th>
                   <th>Mô tả</th>
@@ -129,7 +129,7 @@ export default function AdminRolesPage() {
                           {role.name}
                         </Link>
                         {role.isProtected && (
-                          <span className="badge bg-secondary-subtle text-secondary border ms-2" title="Không xóa được, không gỡ được quyền quản trị">
+                          <span className="status-badge tone-neutral ms-2" title="Không xóa được, không gỡ được quyền quản trị">
                             <i className="bi bi-lock-fill me-1" />
                             Bảo vệ
                           </span>

@@ -177,7 +177,8 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
 
   return (
     <>
-      <div className="d-flex flex-wrap gap-2 mb-3">
+      <Card>
+      <div className="card-header d-flex flex-wrap align-items-center gap-2">
         <input
           className="form-control form-control-sm"
           style={{ maxWidth: 320 }}
@@ -209,11 +210,9 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
           </button>
         )}
       </div>
-
-      <Card>
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
-            <thead style={{ background: "var(--bg-base)" }}>
+            <thead>
               <tr>
                 <th className="ps-3">Tên</th>
                 <th style={{ width: 140 }}>Mã</th>
@@ -256,7 +255,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                           <span className="me-1" style={{ display: "inline-block", width: 14 }} />
                         )}
                         <span className="fw-semibold text-dark">{item.name}</span>
-                        {item.childCount > 0 && <span className="badge bg-light text-secondary border ms-2">{item.childCount} cấp dưới</span>}
+                        {item.childCount > 0 && <span className="status-badge tone-neutral ms-2">{item.childCount} cấp dưới</span>}
                       </div>
                       {search && item.parentName && <div className="small text-secondary">thuộc {item.parentName}</div>}
                     </td>
@@ -267,9 +266,9 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                     <td className="text-center">{item.memberCount}</td>
                     <td>
                       {item.isActive ? (
-                        <span className="badge bg-success-subtle text-success border border-success-subtle">Hoạt động</span>
+                        <span className="tag t-ok">Hoạt động</span>
                       ) : (
-                        <span className="badge bg-secondary-subtle text-secondary border">Ngừng hoạt động</span>
+                        <span className="status-badge tone-neutral">Ngừng hoạt động</span>
                       )}
                     </td>
                     {canManage && (
@@ -306,7 +305,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
           <form onSubmit={handleSave}>
             <div className="row g-2">
               <div className="col-12 col-md-5">
-                <label className="form-label small fw-semibold mb-1">
+                <label className="form-label">
                   Mã {kind === "departments" && <span className="text-danger">*</span>}
                 </label>
                 <input
@@ -319,7 +318,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                 />
               </div>
               <div className="col-12 col-md-7">
-                <label className="form-label small fw-semibold mb-1">
+                <label className="form-label">
                   Tên <span className="text-danger">*</span>
                 </label>
                 <input
@@ -331,7 +330,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                 />
               </div>
               <div className="col-12 col-md-7">
-                <label className="form-label small fw-semibold mb-1">Cấp trên trực tiếp</label>
+                <label className="form-label">Cấp trên trực tiếp</label>
                 <select className="form-select form-select-sm" value={form.parentId} required={hasOtherRoot} onChange={(e) => setForm({ ...form, parentId: e.target.value })}>
                   <option value="">{hasOtherRoot ? "— Chọn cấp trên —" : "— Không có (đơn vị gốc) —"}</option>
                   {parentOptions.map((item) => (
@@ -344,7 +343,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                 {form.id && <div className="form-text">Không chọn được chính nó hoặc cấp dưới của nó.</div>}
               </div>
               <div className="col-12 col-md-5">
-                <label className="form-label small fw-semibold mb-1">Loại</label>
+                <label className="form-label">Loại</label>
                 <select className="form-select form-select-sm" value={form.unitTypeId} required={typeRequired} onChange={(e) => setForm({ ...form, unitTypeId: e.target.value })}>
                   <option value="">{typeRequired ? "— Chọn loại —" : "— Chưa phân loại —"}</option>
                   {selectableTypes.map((t) => (
@@ -356,7 +355,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                 </select>
               </div>
               <div className="col-12">
-                <label className="form-label small fw-semibold mb-1">Mô tả</label>
+                <label className="form-label">Mô tả</label>
                 <textarea
                   className="form-control form-control-sm"
                   rows={2}
@@ -365,7 +364,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                 />
               </div>
               <div className="col-5">
-                <label className="form-label small fw-semibold mb-1">Thứ tự trong cùng cấp</label>
+                <label className="form-label">Thứ tự trong cùng cấp</label>
                 <input
                   type="number"
                   min={0}
@@ -390,7 +389,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
               </div>
             </div>
             <div className="d-flex justify-content-end gap-2 mt-3">
-              <button type="button" className="btn btn-sm btn-light" onClick={() => setForm(null)} disabled={saving}>
+              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setForm(null)} disabled={saving}>
                 Hủy
               </button>
               <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>

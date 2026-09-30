@@ -91,7 +91,7 @@ export function UserPicker({
               onClick={() => onChange({ id: account.id, username: account.username, fullName: account.fullName })}
             >
               <strong>{account.fullName}</strong> <span className="text-secondary">({account.username})</span>
-              <div className="text-secondary" style={{ fontSize: 13 }}>
+              <div className="small text-secondary">
                 {[account.positionTitle, account.departmentName, account.partyCellName].filter(Boolean).join(" · ") || "—"}
               </div>
             </button>

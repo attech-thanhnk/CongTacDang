@@ -70,8 +70,9 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
 
   return (
     <>
+      <Card>
       {canManage && (
-        <div className="d-flex mb-3">
+        <div className="card-header d-flex">
           <button
             type="button"
             className="btn btn-sm btn-primary ms-auto"
@@ -82,10 +83,9 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
           </button>
         </div>
       )}
-      <Card>
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
-            <thead style={{ background: "var(--bg-base)" }}>
+            <thead>
               <tr>
                 <th className="ps-3">Tên loại</th>
                 <th style={{ width: 180 }}>Bên</th>
@@ -118,9 +118,9 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
                     <td className="text-center">{t.unitCount}</td>
                     <td>
                       {t.isActive ? (
-                        <span className="badge bg-success-subtle text-success border border-success-subtle">Đang dùng</span>
+                        <span className="tag t-ok">Đang dùng</span>
                       ) : (
-                        <span className="badge bg-secondary-subtle text-secondary border">Ngừng dùng</span>
+                        <span className="status-badge tone-neutral">Ngừng dùng</span>
                       )}
                     </td>
                     {canManage && (
@@ -150,7 +150,7 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
         <AdminModal title={form.id ? "Sửa loại đơn vị" : "Thêm loại đơn vị"} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={460}>
           <form onSubmit={handleSave}>
             <div className="mb-2">
-              <label className="form-label small fw-semibold mb-1">
+              <label className="form-label">
                 Tên loại <span className="text-danger">*</span>
               </label>
               <input
@@ -163,7 +163,7 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
               />
             </div>
             <div className="mb-2">
-              <label className="form-label small fw-semibold mb-1">Bên</label>
+              <label className="form-label">Bên</label>
               <select className="form-select form-select-sm" value={form.side} onChange={(e) => setForm({ ...form, side: e.target.value as OrgSide })}>
                 {(Object.keys(ORG_SIDE_LABELS) as OrgSide[]).map((s) => (
                   <option key={s} value={s}>
@@ -174,7 +174,7 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
             </div>
             <div className="row g-2">
               <div className="col-5">
-                <label className="form-label small fw-semibold mb-1">Thứ tự</label>
+                <label className="form-label">Thứ tự</label>
                 <input
                   type="number"
                   min={0}
@@ -199,7 +199,7 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
               </div>
             </div>
             <div className="d-flex justify-content-end gap-2 mt-3">
-              <button type="button" className="btn btn-sm btn-light" onClick={() => setForm(null)} disabled={saving}>
+              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setForm(null)} disabled={saving}>
                 Hủy
               </button>
               <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>

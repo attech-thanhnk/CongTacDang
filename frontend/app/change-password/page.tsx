@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { authService } from "@/services/authService";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
+import { AuthBrand } from "../login/AuthBrand";
+import styles from "../login/auth.module.css";
 
 export default function ChangePasswordPage() {
   const router = useRouter();
@@ -36,31 +38,28 @@ export default function ChangePasswordPage() {
   };
 
   return (
-    <div className="container py-5" style={{ maxWidth: "620px" }}>
-      <div className="card border-0 shadow-sm">
-        <div className="card-body p-4 p-md-5">
-          <h1 className="h4 fw-bold mb-2">Đổi mật khẩu</h1>
-          <p className="text-secondary small mb-4">
-            Mật khẩu mới tối thiểu 8 ký tự, gồm cả chữ và số.
-          </p>
-          <form onSubmit={handleSubmit} className="d-grid gap-3">
-            <label className="small fw-semibold">
-              Mật khẩu hiện tại
-              <input className="form-control mt-1" type="password" required value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
-            </label>
-            <label className="small fw-semibold">
-              Mật khẩu mới
-              <input className="form-control mt-1" type="password" minLength={8} required value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
-            </label>
-            <label className="small fw-semibold">
-              Xác nhận mật khẩu mới
-              <input className="form-control mt-1" type="password" minLength={8} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
-            </label>
-            <button className="btn btn-primary" type="submit" disabled={submitting}>
-              {submitting ? "Đang cập nhật..." : "Đổi mật khẩu"}
-            </button>
-          </form>
-        </div>
+    <div className={styles.inline}>
+      <div className={styles.card}>
+        <AuthBrand />
+        <h1 className={styles.title}>Đổi mật khẩu</h1>
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div>
+            <label className="form-label" htmlFor="cp-current">Mật khẩu hiện tại</label>
+            <input id="cp-current" className="form-control" type="password" autoComplete="current-password" required value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
+          </div>
+          <div>
+            <label className="form-label" htmlFor="cp-new">Mật khẩu mới</label>
+            <input id="cp-new" className="form-control" type="password" autoComplete="new-password" minLength={8} required
+              placeholder="Tối thiểu 8 ký tự, gồm chữ và số" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
+          </div>
+          <div>
+            <label className="form-label" htmlFor="cp-confirm">Xác nhận mật khẩu mới</label>
+            <input id="cp-confirm" className="form-control" type="password" autoComplete="new-password" minLength={8} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+          </div>
+          <button className={`btn btn-primary ${styles.submit}`} type="submit" disabled={submitting}>
+            {submitting ? "Đang cập nhật..." : "Đổi mật khẩu"}
+          </button>
+        </form>
       </div>
     </div>
   );

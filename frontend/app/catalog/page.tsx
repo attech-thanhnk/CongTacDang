@@ -52,10 +52,11 @@ export default function CatalogPage() {
       <PageHeader title="Danh mục tổ chức" />
 
       <div className="page-body">
-        <ul className="nav nav-tabs mb-3">
+        <div className="d-flex flex-column gap-3">
+        <ul className="nav nav-tabs">
           {TABS.map((t) => (
             <li className="nav-item" key={t.key}>
-              <button type="button" className={`nav-link ${tab === t.key ? "active fw-semibold" : ""}`} onClick={() => setTab(t.key)}>
+              <button type="button" className={`nav-link ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>
                 <i className={`bi ${t.icon} me-1`} />
                 {t.label}
               </button>
@@ -67,6 +68,7 @@ export default function CatalogPage() {
         {tab === "branches" && <OrgTreeTab key="branches" kind="branches" unit="tổ chức Đảng" canManage={canManage} unitTypes={unitTypes} />}
         {tab === "unit-types" && <UnitTypesTab unitTypes={unitTypes} loading={typesLoading} canManage={canManage} onChanged={loadUnitTypes} />}
         {tab === "positions" && <PositionsTab canManage={canManage} />}
+        </div>
       </div>
     </div>
   );

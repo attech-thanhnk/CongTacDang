@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
+import { Badge, BadgeTone } from "@/components/common/StatusBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { CriteriaSummary } from "@/components/evaluations/CriteriaSummary";
@@ -24,6 +25,12 @@ import {
 } from "@/services/criteriaService";
 
 type Rounding = CriteriaSetContent["parameters"]["rounding"];
+
+const STATUS_TONE: Record<string, BadgeTone> = {
+  Draft: "warning",
+  Published: "success",
+  Archived: "neutral",
+};
 
 /** Xem / sửa bản nháp bộ tiêu chí (bảng sửa trực tiếp, kiểm tra tổng điểm tức thì), xuất bản, nhân bản, lưu trữ. */
 export default function CriteriaSetPage() {
@@ -116,66 +123,78 @@ export default function CriteriaSetPage() {
     <div className="page-wrapper">
       <PageHeader
         title={set.name}
-        subTitle={`${set.code} · Mẫu ${set.selfScoreForm} · ${set.statusDisplayName}${set.usedByPeriods.length ? ` · Kỳ đang dùng: ${set.usedByPeriods.join(", ")}` : ""}`}
+        badge={
+          <span className="d-inline-flex flex-wrap align-items-center gap-2">
+            <Badge tone={STATUS_TONE[set.status] ?? "neutral"}>{set.statusDisplayName}</Badge>
+            <span className="tag t-info">Mẫu {set.selfScoreForm}</span>
+            <span className="text-secondary">{set.code}</span>
+          </span>
+        }
         actions={
-          <div className="d-flex gap-2 flex-wrap">
-            <Link href="/criteria" className="btn btn-outline-secondary btn-sm"><i className="bi bi-arrow-left me-1" />Danh sách</Link>
-            {editable && <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={save}>Lưu bản nháp</button>}
-            {editable && <button type="button" className="btn btn-success btn-sm" disabled={busy} onClick={publish}>Xuất bản</button>}
-            {canManage && <button type="button" className="btn btn-outline-primary btn-sm" disabled={busy} onClick={clone}>Nhân bản</button>}
+          <>
+            <Link href="/criteria" className="btn btn-outline-secondary"><i className="bi bi-arrow-left me-1" />Danh sách</Link>
+            {canManage && <button type="button" className="btn btn-outline-secondary" disabled={busy} onClick={clone}>Nhân bản</button>}
             {canManage && set.status === "Published" && (
-              <button type="button" className="btn btn-outline-warning btn-sm" disabled={busy}
+              <button type="button" className="btn btn-outline-secondary" disabled={busy}
                 onClick={() => confirm({ title: "Lưu trữ", message: "Kỳ đã dùng bộ này giữ nguyên ảnh chụp; bộ không chọn được cho kỳ mới.", confirmText: "Lưu trữ", onConfirm: () => run(() => criteriaService.archive(set.id, set.version), "Đã lưu trữ.") })}>
                 Lưu trữ
               </button>
             )}
-          </div>
+            {editable && <button type="button" className="btn btn-outline-primary" disabled={busy} onClick={save}>Lưu bản nháp</button>}
+            {editable && <button type="button" className="btn btn-primary" disabled={busy} onClick={publish}>Xuất bản</button>}
+          </>
         }
       />
 
-      <div className="page-body d-flex flex-column gap-3">
-        {set.notes && !editable && <div className="alert alert-light border small mb-0">{set.notes}</div>}
+      <div className="page-body">
+        {set.usedByPeriods.length > 0 && (
+          <div className="d-flex flex-wrap align-items-center gap-2">
+            <span className="text-secondary">Kỳ đang dùng</span>
+            {set.usedByPeriods.map((name) => <span key={name} className="tag t-ok">{name}</span>)}
+          </div>
+        )}
+        {set.notes && !editable && <div className="alert alert-light border mb-0">{set.notes}</div>}
         {set.validationErrors.length > 0 && (
-          <div className="alert alert-warning small mb-0">
+          <div className="alert alert-warning mb-0">
             <div className="fw-semibold mb-1">Chưa xuất bản được — lỗi kiểm tra (theo lần lưu gần nhất):</div>
             <ul className="mb-0">{set.validationErrors.map((e) => <li key={e}>{e}</li>)}</ul>
           </div>
         )}
 
         {!editable ? (
-          <section className="card border-0 shadow-sm"><div className="card-body"><CriteriaSummary content={content} form={set.selfScoreForm} /></div></section>
+          <section className="card"><div className="card-body"><CriteriaSummary content={content} form={set.selfScoreForm} /></div></section>
         ) : (
           <>
             {checks.length > 0 && (
               <div className="alert alert-danger small mb-0"><ul className="mb-0">{checks.map((c) => <li key={c}>{c}</li>)}</ul></div>
             )}
 
-            <section className="card border-0 shadow-sm">
+            <section className="card">
               <div className="card-body row g-2">
-                <div className="col-md-3"><label className="form-label small" htmlFor="cs-code">Mã bộ</label><input id="cs-code" className="form-control form-control-sm" maxLength={50} value={info.code} onChange={(e) => setInfo({ ...info, code: e.target.value })} /></div>
-                <div className="col-md-5"><label className="form-label small" htmlFor="cs-name">Tên bộ</label><input id="cs-name" className="form-control form-control-sm" maxLength={200} value={info.name} onChange={(e) => setInfo({ ...info, name: e.target.value })} /></div>
-                <div className="col-md-4"><label className="form-label small" htmlFor="cs-form">Mẫu tự chấm</label>
+                <div className="col-md-3"><label className="form-label" htmlFor="cs-code">Mã bộ</label><input id="cs-code" className="form-control form-control-sm" maxLength={50} value={info.code} onChange={(e) => setInfo({ ...info, code: e.target.value })} /></div>
+                <div className="col-md-5"><label className="form-label" htmlFor="cs-name">Tên bộ</label><input id="cs-name" className="form-control form-control-sm" maxLength={200} value={info.name} onChange={(e) => setInfo({ ...info, name: e.target.value })} /></div>
+                <div className="col-md-4"><label className="form-label" htmlFor="cs-form">Mẫu tự chấm</label>
                   <select id="cs-form" className="form-select form-select-sm" value={info.selfScoreForm} onChange={(e) => setInfo({ ...info, selfScoreForm: e.target.value })}>
                     <option value="09A">09A — chấm theo nhiệm vụ (Mẫu 01/02, A-B-C-D)</option>
                     <option value="09B">09B — chấm trực tiếp theo trục</option>
                   </select>
                 </div>
-                <div className="col-12"><label className="form-label small" htmlFor="cs-notes">Ghi chú</label><textarea id="cs-notes" className="form-control form-control-sm" rows={2} maxLength={4000} value={info.notes} onChange={(e) => setInfo({ ...info, notes: e.target.value })} /></div>
+                <div className="col-12"><label className="form-label" htmlFor="cs-notes">Ghi chú</label><textarea id="cs-notes" className="form-control form-control-sm" rows={2} maxLength={4000} value={info.notes} onChange={(e) => setInfo({ ...info, notes: e.target.value })} /></div>
               </div>
             </section>
 
-            <section className="card border-0 shadow-sm">
+            <section className="card">
+              <div className="card-header d-flex justify-content-between align-items-center gap-2">
+                <h2 className="mb-0">Nhóm tiêu chí chung — tổng <span className={Math.abs(generalTotal - p.generalMaxScore) > 1e-6 ? "text-danger" : "text-success"}>{fmt(generalTotal)}</span> / {fmt(p.generalMaxScore)}</h2>
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ generalGroups: [...content.generalGroups, { code: String(content.generalGroups.length + 1), name: "", scoringMode: "Binary", items: [] }] })}>Thêm nhóm</button>
+              </div>
               <div className="card-body">
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <h2 className="h6 mb-0">Nhóm tiêu chí chung — tổng <span className={Math.abs(generalTotal - p.generalMaxScore) > 1e-6 ? "text-danger" : "text-success"}>{fmt(generalTotal)}</span> / {fmt(p.generalMaxScore)}</h2>
-                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ generalGroups: [...content.generalGroups, { code: String(content.generalGroups.length + 1), name: "", scoringMode: "Binary", items: [] }] })}>Thêm nhóm</button>
-                </div>
                 {content.generalGroups.map((g, gi) => (
                   <div className="border rounded-3 p-2 mb-2" key={gi}>
                     <div className="row g-2 align-items-end mb-2">
-                      <div className="col-md-1"><label className="form-label small mb-0">Mã</label><input className="form-control form-control-sm" value={g.code} onChange={(e) => setGroup(gi, { code: e.target.value })} /></div>
-                      <div className="col-md-6"><label className="form-label small mb-0">Tên nhóm</label><input className="form-control form-control-sm" value={g.name} onChange={(e) => setGroup(gi, { name: e.target.value })} /></div>
-                      <div className="col-md-3"><label className="form-label small mb-0">Cách chấm</label>
+                      <div className="col-md-1"><label className="form-label mb-1">Mã</label><input className="form-control form-control-sm" value={g.code} onChange={(e) => setGroup(gi, { code: e.target.value })} /></div>
+                      <div className="col-md-6"><label className="form-label mb-1">Tên nhóm</label><input className="form-control form-control-sm" value={g.name} onChange={(e) => setGroup(gi, { name: e.target.value })} /></div>
+                      <div className="col-md-3"><label className="form-label mb-1">Cách chấm</label>
                         <select className="form-select form-select-sm" value={g.scoringMode} onChange={(e) => setGroup(gi, { scoringMode: e.target.value as CriteriaGroup["scoringMode"] })}>
                           <option value="Binary">Đảm bảo / Không đảm bảo</option>
                           <option value="Range">Nhập điểm 0..tối đa</option>
@@ -186,7 +205,7 @@ export default function CriteriaSetPage() {
                       </div>
                     </div>
                     <div className="table-responsive"><table className="table table-sm mb-1">
-                      <thead><tr className="small text-secondary"><th style={{ width: 80 }}>Mã</th><th>Nội dung tiêu chí con</th><th style={{ width: 90 }}>Tối đa</th><th style={{ width: 30 }} /></tr></thead>
+                      <thead><tr><th style={{ width: 80 }}>Mã</th><th>Nội dung tiêu chí con</th><th style={{ width: 90 }}>Tối đa</th><th style={{ width: 30 }} /></tr></thead>
                       <tbody>
                         {g.items.map((item, ii) => {
                           const setItem = (change: Partial<typeof item>) => setGroup(gi, { items: g.items.map((x, i) => (i === ii ? { ...x, ...change } : x)) });
@@ -207,14 +226,14 @@ export default function CriteriaSetPage() {
               </div>
             </section>
 
-            <section className="card border-0 shadow-sm">
+            <section className="card">
+              <div className="card-header d-flex justify-content-between align-items-center gap-2">
+                <h2 className="mb-0">Trục kết quả{info.selfScoreForm === "09B" && <> — tổng <span className={Math.abs(axisTotal - p.totalTaskWeight) > 1e-6 ? "text-danger" : "text-success"}>{fmt(axisTotal)}</span> / {fmt(p.totalTaskWeight)}</>}</h2>
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ axes: [...content.axes, { code: `T${content.axes.length + 1}`, name: "", description: "", maxScore: 0 }] })}>Thêm trục</button>
+              </div>
               <div className="card-body">
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <h2 className="h6 mb-0">Trục kết quả{info.selfScoreForm === "09B" && <> — tổng <span className={Math.abs(axisTotal - p.totalTaskWeight) > 1e-6 ? "text-danger" : "text-success"}>{fmt(axisTotal)}</span> / {fmt(p.totalTaskWeight)}</>}</h2>
-                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ axes: [...content.axes, { code: `T${content.axes.length + 1}`, name: "", description: "", maxScore: 0 }] })}>Thêm trục</button>
-                </div>
                 <div className="table-responsive"><table className="table table-sm mb-0">
-                  <thead><tr className="small text-secondary"><th style={{ width: 80 }}>Mã</th><th>Tên trục</th><th>Nội dung áp dụng</th><th style={{ width: 100 }}>Tối đa (09B)</th><th style={{ width: 30 }} /></tr></thead>
+                  <thead><tr><th style={{ width: 80 }}>Mã</th><th>Tên trục</th><th>Nội dung áp dụng</th><th style={{ width: 100 }}>Tối đa (09B)</th><th style={{ width: 30 }} /></tr></thead>
                   <tbody>
                     {content.axes.map((a, ai) => {
                       const setAxis = (change: Partial<typeof a>) => update({ axes: content.axes.map((x, i) => (i === ai ? { ...x, ...change } : x)) });
@@ -245,9 +264,9 @@ export default function CriteriaSetPage() {
               </div>
             </section>
 
-            <section className="card border-0 shadow-sm">
+            <section className="card">
+              <div className="card-header"><h2 className="mb-0">Biểu mẫu cá nhân áp dụng cho hồ sơ</h2></div>
               <div className="card-body">
-                <h2 className="h6">Biểu mẫu cá nhân áp dụng cho hồ sơ</h2>
                 <div className="d-flex flex-column gap-1 mb-3">
                   {RECORD_FORMS.map((form) => {
                     const isSelfScore = form.code === "09A" || form.code === "09B";
@@ -262,7 +281,7 @@ export default function CriteriaSetPage() {
                   })}
                 </div>
                 <div className="d-flex justify-content-between align-items-center mb-2">
-                  <h3 className="h6 small fw-bold text-secondary mb-0">Mục tự đánh giá của Mẫu 09C {!content.requiredForms.includes("09C") && <span className="fw-normal">(chỉ dùng khi áp dụng Mẫu 09C)</span>}</h3>
+                  <h3 className="form-label mb-0 fw-semibold">Mục tự đánh giá của Mẫu 09C {!content.requiredForms.includes("09C") && <span className="fw-normal">(chỉ dùng khi áp dụng Mẫu 09C)</span>}</h3>
                   <button type="button" className="btn btn-outline-secondary btn-sm"
                     onClick={() => update({ selfAssessmentSections: [...content.selfAssessmentSections, { code: `M${content.selfAssessmentSections.length + 1}`, title: "", guidance: null, note: null, maxLength: 6000, required: false }] })}>
                     Thêm mục
@@ -272,31 +291,31 @@ export default function CriteriaSetPage() {
                 {content.selfAssessmentSections.map((section, si) => (
                   <div className="border rounded-3 p-2 mb-2" key={si}>
                     <div className="row g-2 align-items-end">
-                      <div className="col-md-2"><label className="form-label small mb-0">Mã</label><input className="form-control form-control-sm" maxLength={20} value={section.code} onChange={(e) => setSection(si, { code: e.target.value })} /></div>
-                      <div className="col-md-6"><label className="form-label small mb-0">Tiêu đề in trên biểu mẫu</label><input className="form-control form-control-sm" maxLength={FORM_CONFIG_LIMITS.title} value={section.title} onChange={(e) => setSection(si, { title: e.target.value })} /></div>
-                      <div className="col-md-2"><label className="form-label small mb-0">Tối đa (ký tự)</label>
+                      <div className="col-md-2"><label className="form-label mb-1">Mã</label><input className="form-control form-control-sm" maxLength={20} value={section.code} onChange={(e) => setSection(si, { code: e.target.value })} /></div>
+                      <div className="col-md-6"><label className="form-label mb-1">Tiêu đề in trên biểu mẫu</label><input className="form-control form-control-sm" maxLength={FORM_CONFIG_LIMITS.title} value={section.title} onChange={(e) => setSection(si, { title: e.target.value })} /></div>
+                      <div className="col-md-2"><label className="form-label mb-1">Tối đa (ký tự)</label>
                         <input type="number" min={FORM_CONFIG_LIMITS.sectionMin} max={FORM_CONFIG_LIMITS.sectionMax} step={100} className="form-control form-control-sm" value={section.maxLength} onChange={(e) => setSection(si, { maxLength: num(e.target.value) })} />
                       </div>
                       <div className="col-md-2 d-flex flex-column">
                         <label className="form-check small mb-0"><input type="checkbox" className="form-check-input" checked={section.required} onChange={(e) => setSection(si, { required: e.target.checked })} /> <span className="form-check-label">Bắt buộc khi nộp</span></label>
                         <button type="button" className="btn btn-link btn-sm text-danger p-0 text-start" onClick={() => update({ selfAssessmentSections: content.selfAssessmentSections.filter((_, i) => i !== si) })}>Xóa mục</button>
                       </div>
-                      <div className="col-md-6"><label className="form-label small mb-0">Câu dẫn (in dưới tiêu đề)</label><textarea className="form-control form-control-sm" rows={2} maxLength={FORM_CONFIG_LIMITS.guidance} value={section.guidance || ""} onChange={(e) => setSection(si, { guidance: e.target.value || null })} /></div>
-                      <div className="col-md-6"><label className="form-label small mb-0">Lưu ý (in sau nội dung)</label><textarea className="form-control form-control-sm" rows={2} maxLength={FORM_CONFIG_LIMITS.guidance} value={section.note || ""} onChange={(e) => setSection(si, { note: e.target.value || null })} /></div>
+                      <div className="col-md-6"><label className="form-label mb-1">Câu dẫn (in dưới tiêu đề)</label><textarea className="form-control form-control-sm" rows={2} maxLength={FORM_CONFIG_LIMITS.guidance} value={section.guidance || ""} onChange={(e) => setSection(si, { guidance: e.target.value || null })} /></div>
+                      <div className="col-md-6"><label className="form-label mb-1">Lưu ý (in sau nội dung)</label><textarea className="form-control form-control-sm" rows={2} maxLength={FORM_CONFIG_LIMITS.guidance} value={section.note || ""} onChange={(e) => setSection(si, { note: e.target.value || null })} /></div>
                     </div>
                   </div>
                 ))}
               </div>
             </section>
 
-            <section className="card border-0 shadow-sm">
+            <section className="card">
+              <div className="card-header d-flex justify-content-between align-items-center gap-2">
+                <h2 className="mb-0">Khung tỷ trọng A-B-C-D (%, tổng 100)</h2>
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ weightFrames: [...content.weightFrames, { code: `K${content.weightFrames.length + 1}`, name: "", a: 0.25, b: 0.25, c: 0.25, d: 0.25 }] })}>Thêm khung</button>
+              </div>
               <div className="card-body">
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <h2 className="h6 mb-0">Khung tỷ trọng A-B-C-D (%, tổng 100)</h2>
-                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ weightFrames: [...content.weightFrames, { code: `K${content.weightFrames.length + 1}`, name: "", a: 0.25, b: 0.25, c: 0.25, d: 0.25 }] })}>Thêm khung</button>
-                </div>
                 <div className="table-responsive"><table className="table table-sm mb-2">
-                  <thead><tr className="small text-secondary"><th style={{ width: 80 }}>Mã</th><th>Tên khung</th><th style={{ width: 80 }}>A</th><th style={{ width: 80 }}>B</th><th style={{ width: 80 }}>C</th><th style={{ width: 80 }}>D</th><th style={{ width: 70 }}>Tổng</th><th style={{ width: 30 }} /></tr></thead>
+                  <thead><tr><th style={{ width: 80 }}>Mã</th><th>Tên khung</th><th style={{ width: 80 }}>A</th><th style={{ width: 80 }}>B</th><th style={{ width: 80 }}>C</th><th style={{ width: 80 }}>D</th><th style={{ width: 70 }}>Tổng</th><th style={{ width: 30 }} /></tr></thead>
                   <tbody>
                     {content.weightFrames.map((f, fi) => {
                       const setFrame = (change: Partial<typeof f>) => update({ weightFrames: content.weightFrames.map((x, i) => (i === fi ? { ...x, ...change } : x)) });
@@ -317,7 +336,7 @@ export default function CriteriaSetPage() {
                   </tbody>
                 </table></div>
                 <div className="row g-2">
-                  <div className="col-md-4"><label className="form-label small mb-0">Khung mặc định (cán bộ chưa có khung)</label>
+                  <div className="col-md-4"><label className="form-label mb-1">Khung mặc định (cán bộ chưa có khung)</label>
                     <select className="form-select form-select-sm" value={p.defaultWeightFrameCode || ""} onChange={(e) => setParam("defaultWeightFrameCode", e.target.value || null)}>
                       <option value="">— Không (kẹt luồng báo lỗi) —</option>
                       {content.weightFrames.map((f) => <option key={f.code} value={f.code}>{f.code} — {f.name}</option>)}
@@ -327,14 +346,14 @@ export default function CriteriaSetPage() {
               </div>
             </section>
 
-            <section className="card border-0 shadow-sm">
+            <section className="card">
+              <div className="card-header d-flex justify-content-between align-items-center gap-2">
+                <h2 className="mb-0">Thang quy đổi % A-B-C-D</h2>
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ conversionScale: [...content.conversionScale, { minPercent: 0, label: "", description: "" }] })}>Thêm mức</button>
+              </div>
               <div className="card-body">
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <h2 className="h6 mb-0">Thang quy đổi % A-B-C-D</h2>
-                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ conversionScale: [...content.conversionScale, { minPercent: 0, label: "", description: "" }] })}>Thêm mức</button>
-                </div>
                 <div className="table-responsive"><table className="table table-sm mb-0">
-                  <thead><tr className="small text-secondary"><th style={{ width: 110 }}>Từ (%)</th><th style={{ width: 180 }}>Nhãn</th><th>Cách hiểu</th><th style={{ width: 30 }} /></tr></thead>
+                  <thead><tr><th style={{ width: 110 }}>Từ (%)</th><th style={{ width: 180 }}>Nhãn</th><th>Cách hiểu</th><th style={{ width: 30 }} /></tr></thead>
                   <tbody>
                     {content.conversionScale.map((b, bi) => {
                       const setBand = (change: Partial<typeof b>) => update({ conversionScale: content.conversionScale.map((x, i) => (i === bi ? { ...x, ...change } : x)) });
@@ -352,11 +371,11 @@ export default function CriteriaSetPage() {
               </div>
             </section>
 
-            <section className="card border-0 shadow-sm">
+            <section className="card">
+              <div className="card-header"><h2 className="mb-0">Mức xếp loại</h2></div>
               <div className="card-body">
-                <h2 className="h6">Mức xếp loại</h2>
                 <div className="table-responsive"><table className="table table-sm mb-0">
-                  <thead><tr className="small text-secondary"><th style={{ width: 230 }}>Mức</th><th style={{ width: 100 }}>Từ điểm</th><th style={{ width: 130 }}>% vượt chuẩn tối thiểu</th><th>Điều kiện kèm theo</th></tr></thead>
+                  <thead><tr><th style={{ width: 230 }}>Mức</th><th style={{ width: 100 }}>Từ điểm</th><th style={{ width: 130 }}>% vượt chuẩn tối thiểu</th><th>Điều kiện kèm theo</th></tr></thead>
                   <tbody>
                     {content.grades.map((g, gi) => {
                       const setGrade = (change: Partial<typeof g>) => update({ grades: content.grades.map((x, i) => (i === gi ? { ...x, ...change } : x)) });
@@ -376,9 +395,9 @@ export default function CriteriaSetPage() {
               </div>
             </section>
 
-            <section className="card border-0 shadow-sm">
+            <section className="card">
+              <div className="card-header"><h2 className="mb-0">Tham số</h2></div>
               <div className="card-body">
-                <h2 className="h6">Tham số</h2>
                 <div className="row g-2">
                   {([
                     ["minTasks", "Số sản phẩm tối thiểu", 1],
@@ -391,12 +410,12 @@ export default function CriteriaSetPage() {
                     ["collectiveTaskMaxScore", "Tập thể: tối đa nhiệm vụ", 0.5],
                   ] as [keyof CriteriaSetContent["parameters"], string, number][]).map(([key, label, step]) => (
                     <div className="col-6 col-md-3" key={key}>
-                      <label className="form-label small mb-0">{label}</label>
+                      <label className="form-label mb-1">{label}</label>
                       <input type="number" step={step} className="form-control form-control-sm" value={p[key] as number} onChange={(e) => setParam(key, num(e.target.value) as never)} />
                     </div>
                   ))}
                   <div className="col-6 col-md-3">
-                    <label className="form-label small mb-0">Giảm từ … điểm phải nêu lý do</label>
+                    <label className="form-label mb-1">Giảm từ … điểm phải nêu lý do</label>
                     <input type="number" step={0.5} min={0} className="form-control form-control-sm" placeholder="Không bắt buộc" value={p.deductionReasonMinPoints ?? ""}
                       onChange={(e) => setParam("deductionReasonMinPoints", e.target.value === "" ? null : num(e.target.value))} />
                   </div>
@@ -417,35 +436,35 @@ export default function CriteriaSetPage() {
                         );
                       })}
                     </div>
-                    <label className="form-label small mb-0 mt-1" htmlFor="cs-alert-days">Cảnh báo "kế hoạch cần lập" còn xét kỳ đã đóng trong (ngày)</label>
+                    <label className="form-label mb-1 mt-2" htmlFor="cs-alert-days">Cảnh báo "kế hoạch cần lập" còn xét kỳ đã đóng trong (ngày)</label>
                     <input id="cs-alert-days" type="number" min={1} max={FORM_CONFIG_LIMITS.alertDaysMax} step={1} className="form-control form-control-sm" style={{ maxWidth: 140 }}
                       value={p.improvementPlanAlertDays ?? 90} onChange={(e) => setParam("improvementPlanAlertDays", Math.trunc(num(e.target.value)))} />
                   </div>
                   <div className="col-6 col-md-3">
-                    <label className="form-label small mb-0">Xử lý điểm khi K/AD</label>
+                    <label className="form-label mb-1">Xử lý điểm khi K/AD</label>
                     <select className="form-select form-select-sm" value={p.notApplicableRule} onChange={(e) => setParam("notApplicableRule", e.target.value as typeof p.notApplicableRule)}>
                       <option value="ExcludeAndRescale">Bỏ khỏi mẫu số rồi quy đổi</option>
                       <option value="GrantFull">Tính như đạt tối đa</option>
                     </select>
                   </div>
                   <div className="col-6 col-md-3">
-                    <label className="form-label small mb-0">Trần xuất sắc (%)</label>
+                    <label className="form-label mb-1">Trần xuất sắc (%)</label>
                     <input type="number" min={0} max={100} step={1} className="form-control form-control-sm" value={Math.round(p.excellentQuota.ratio * 10000) / 100}
                       onChange={(e) => setParam("excellentQuota", { ...p.excellentQuota, ratio: num(e.target.value) / 100 })} />
                   </div>
                   <div className="col-6 col-md-3">
-                    <label className="form-label small mb-0">Mẫu số trần xuất sắc</label>
+                    <label className="form-label mb-1">Mẫu số trần xuất sắc</label>
                     <select className="form-select form-select-sm" value={p.excellentQuota.denominator} onChange={(e) => setParam("excellentQuota", { ...p.excellentQuota, denominator: e.target.value as typeof p.excellentQuota.denominator })}>
                       <option value="GoodOnly">Số "Hoàn thành tốt"</option>
                       <option value="GoodOrBetter">Số "Hoàn thành tốt" trở lên</option>
                     </select>
                   </div>
                   <div className="col-6 col-md-3">
-                    <label className="form-label small mb-0">Làm tròn số người tối đa</label>
+                    <label className="form-label mb-1">Làm tròn số người tối đa</label>
                     <RoundingModeSelect value={p.excellentQuota.rounding} onChange={(mode) => setParam("excellentQuota", { ...p.excellentQuota, rounding: mode })} />
                   </div>
                 </div>
-                <h3 className="h6 small fw-bold text-secondary mt-3">Làm tròn theo loại điểm</h3>
+                <h3 className="form-label fw-semibold mt-3">Làm tròn theo loại điểm</h3>
                 <div className="row g-2">
                   {([
                     ["taskScore", "Điểm từng sản phẩm"],
@@ -457,7 +476,7 @@ export default function CriteriaSetPage() {
                     const setRule = (change: Partial<RoundingRule>) => setParam("rounding", { ...p.rounding, [key]: { ...rule, ...change } });
                     return (
                       <div className="col-6 col-md-3" key={key}>
-                        <label className="form-label small mb-0">{label}</label>
+                        <label className="form-label mb-1">{label}</label>
                         <div className="input-group input-group-sm">
                           <input type="number" min={0} max={4} className="form-control" value={rule.decimals} onChange={(e) => setRule({ decimals: num(e.target.value) })} aria-label={`Số chữ số thập phân — ${label}`} />
                           <RoundingModeSelect value={rule.mode} onChange={(mode) => setRule({ mode })} />

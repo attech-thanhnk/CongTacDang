@@ -186,14 +186,14 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
   return (
     <form onSubmit={submit} className="row g-2">
       <div className="col-6">
-        <label className="form-label small mb-1">Biểu mẫu</label>
+        <label className="form-label">Biểu mẫu</label>
         <select className="form-select form-select-sm" value={formCode} disabled={!!editing} onChange={(e) => setFormCode(e.target.value as "M12" | "M13")}>
           <option value="M12">Mẫu 12 — Biên bản hội nghị</option>
           <option value="M13">Mẫu 13 — Biên bản kiểm phiếu</option>
         </select>
       </div>
       <div className="col-6">
-        <label className="form-label small mb-1">Hội nghị</label>
+        <label className="form-label">Hội nghị</label>
         <select className="form-select form-select-sm" value={stage} disabled={!!editing} onChange={(e) => setStage(e.target.value as "" | "B3A_COLLECTIVE" | "B4_DECISION")}>
           <option value="B3A_COLLECTIVE">Tập thể lãnh đạo, quản lý (đề xuất)</option>
           <option value="B4_DECISION">Đảng ủy/Chi ủy cơ sở (quyết định)</option>
@@ -201,7 +201,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
         </select>
       </div>
       <div className="col-6">
-        <label className="form-label small mb-1">Đơn vị tổ chức</label>
+        <label className="form-label">Đơn vị tổ chức</label>
         <select className="form-select form-select-sm" value={unit} disabled={!!editing} onChange={(e) => setUnit(e.target.value as Unit)}>
           <option value="cell">Tổ chức Đảng</option>
           <option value="department">Phòng / đơn vị</option>
@@ -211,7 +211,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
       <div className="col-6">
         {unit === "cell" && (
           <>
-            <label className="form-label small mb-1">Tổ chức Đảng</label>
+            <label className="form-label">Tổ chức Đảng</label>
             <select className="form-select form-select-sm" value={partyCellId} disabled={!!editing} onChange={(e) => setPartyCellId(e.target.value)}>
               <option value="">Chọn tổ chức Đảng</option>
               {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -220,7 +220,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
         )}
         {unit === "department" && (
           <>
-            <label className="form-label small mb-1">Phòng / đơn vị</label>
+            <label className="form-label">Phòng / đơn vị</label>
             <select className="form-select form-select-sm" value={departmentId} disabled={!!editing} onChange={(e) => setDepartmentId(e.target.value)}>
               <option value="">Chọn Phòng / đơn vị</option>
               {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -229,39 +229,39 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
         )}
       </div>
       <div className="col-12">
-        <label className="form-label small mb-1">Căn cứ Quy chế làm việc của</label>
+        <label className="form-label">Căn cứ Quy chế làm việc của</label>
         <input className="form-control form-control-sm" placeholder="… nhiệm kỳ …" value={workingRules} onChange={(e) => setWorkingRules(e.target.value)} />
       </div>
       <div className="col-6">
-        <label className="form-label small mb-1">1. Bắt đầu</label>
+        <label className="form-label">1. Bắt đầu</label>
         <input type="datetime-local" className="form-control form-control-sm" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} />
       </div>
       <div className="col-6">
-        <label className="form-label small mb-1">Kết thúc</label>
+        <label className="form-label">Kết thúc</label>
         <input type="datetime-local" className="form-control form-control-sm" value={endedAt} onChange={(e) => setEndedAt(e.target.value)} />
       </div>
       <div className="col-12">
-        <label className="form-label small mb-1">2. Địa điểm</label>
+        <label className="form-label">2. Địa điểm</label>
         <input className="form-control form-control-sm" value={location} onChange={(e) => setLocation(e.target.value)} />
       </div>
       <div className="col-4">
-        <label className="form-label small mb-1">Triệu tập</label>
+        <label className="form-label">Triệu tập</label>
         <input type="number" min={0} className="form-control form-control-sm" value={invited} onChange={(e) => setInvited(Number(e.target.value))} />
       </div>
       <div className="col-4">
-        <label className="form-label small mb-1">Có mặt</label>
+        <label className="form-label">Có mặt</label>
         <input type="number" min={0} className="form-control form-control-sm" value={present} onChange={(e) => setPresent(Number(e.target.value))} />
       </div>
       <div className="col-4">
-        <label className="form-label small mb-1">Vắng mặt</label>
+        <label className="form-label">Vắng mặt</label>
         <input className="form-control form-control-sm" readOnly value={Math.max(invited - present, 0)} />
       </div>
       <div className="col-12">
-        <label className="form-label small mb-1">Lý do vắng mặt</label>
+        <label className="form-label">Lý do vắng mặt</label>
         <input className="form-control form-control-sm" value={absentReasons} onChange={(e) => setAbsentReasons(e.target.value)} />
       </div>
       <div className="col-12">
-        <label className="form-label small mb-1">3.2. Cán bộ, đảng viên khác được cử tham dự (ghi chép, báo cáo, phục vụ hội nghị)</label>
+        <label className="form-label">3.2. Cán bộ, đảng viên khác được cử tham dự (ghi chép, báo cáo, phục vụ hội nghị)</label>
         {attendees.map((attendee, index) => (
           <div key={index} className="d-flex gap-1 mb-1">
             <input className="form-control form-control-sm" placeholder="Họ và tên" value={attendee.name} onChange={(e) => setAttendee(index, { name: e.target.value })} />
@@ -276,21 +276,21 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
         </button>
       </div>
       <div className="col-md-6">
-        <label className="form-label small mb-1">4. Chủ trì hội nghị</label>
+        <label className="form-label">4. Chủ trì hội nghị</label>
         <input className="form-control form-control-sm mb-1" placeholder="Họ và tên" value={chairName} onChange={(e) => setChairName(e.target.value)} />
         <input className="form-control form-control-sm" placeholder="Chức vụ Đảng, chính quyền" value={chairTitle} onChange={(e) => setChairTitle(e.target.value)} />
       </div>
       <div className="col-md-6">
-        <label className="form-label small mb-1">5. Thư ký hội nghị</label>
+        <label className="form-label">5. Thư ký hội nghị</label>
         <input className="form-control form-control-sm mb-1" placeholder="Họ và tên" value={secretaryName} onChange={(e) => setSecretaryName(e.target.value)} />
         <input className="form-control form-control-sm" placeholder="Chức vụ Đảng, chính quyền" value={secretaryTitle} onChange={(e) => setSecretaryTitle(e.target.value)} />
       </div>
       <div className="col-12">
-        <label className="form-label small mb-1">II. Cơ quan, đơn vị báo cáo tình hình thực hiện nhiệm vụ trọng tâm</label>
+        <label className="form-label">II. Cơ quan, đơn vị báo cáo tình hình thực hiện nhiệm vụ trọng tâm</label>
         <input className="form-control form-control-sm" placeholder="Để trống: tên đơn vị tổ chức hội nghị" value={reportingUnit} onChange={(e) => setReportingUnit(e.target.value)} />
       </div>
       <div className="col-12">
-        <label className="form-label small mb-1">Mẫu 13 — Tổ kiểm phiếu do hội nghị bầu (người đầu tiên là Tổ trưởng)</label>
+        <label className="form-label">Mẫu 13 — Tổ kiểm phiếu do hội nghị bầu (người đầu tiên là Tổ trưởng)</label>
         {committee.map((member, index) => (
           <div key={index} className="d-flex gap-1 mb-1 align-items-center">
             <span className="small text-secondary" style={{ minWidth: 80 }}>{index === 0 ? "Tổ trưởng" : "Thành viên"}</span>
@@ -312,23 +312,23 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
         ["invalid", "Phiếu không hợp lệ"],
       ] as [keyof typeof ballots, string][]).map(([key, label]) => (
         <div className="col-6 col-md-3" key={key}>
-          <label className="form-label small mb-1">{label}</label>
+          <label className="form-label">{label}</label>
           <input type="number" min={0} className="form-control form-control-sm" placeholder="Chưa ghi" value={ballots[key] ?? ""}
             onChange={(e) => setBallots({ ...ballots, [key]: toCount(e.target.value) })} />
         </div>
       ))}
       <div className="col-12">
-        <label className="form-label small mb-1">Diễn biến hội nghị</label>
+        <label className="form-label">Diễn biến hội nghị</label>
         <textarea className="form-control form-control-sm" rows={3} value={minutes} onChange={(e) => setMinutes(e.target.value)} />
       </div>
       <div className="col-12">
-        <label className="form-label small mb-1">Kết quả hội nghị</label>
+        <label className="form-label">Kết quả hội nghị</label>
         <textarea className="form-control form-control-sm" rows={2} value={outcome} onChange={(e) => setOutcome(e.target.value)} />
       </div>
 
       {formCode === "M13" && !editing && (
         <div className="col-12">
-          <label className="form-label small mb-1">Tổng hợp phiếu theo hồ sơ (không lưu người bỏ phiếu)</label>
+          <label className="form-label">Tổng hợp phiếu theo hồ sơ (không lưu người bỏ phiếu)</label>
           <div className="border rounded p-2" style={{ maxHeight: 240, overflowY: "auto" }}>
             {records.length === 0 ? (
               <div className="text-secondary small">Chưa tải được hồ sơ của đơn vị đã chọn.</div>
@@ -358,12 +358,9 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
           </div>
         </div>
       )}
-      {formCode === "M13" && editing && (
-        <div className="col-12 small text-secondary">Kết quả kiểm phiếu đã ghi nhận cho hồ sơ không sửa ở đây.</div>
-      )}
 
       <div className="col-12 d-flex gap-2 mt-2">
-        <button className="btn btn-outline-primary btn-sm" disabled={saving}>{saving ? "Đang lưu..." : editing ? "Lưu thay đổi" : "Lưu biên bản"}</button>
+        <button className="btn btn-primary btn-sm" disabled={saving}>{saving ? "Đang lưu..." : editing ? "Lưu thay đổi" : "Lưu biên bản"}</button>
         {editing && <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onCancel}>Hủy sửa</button>}
       </div>
     </form>

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { Card, CardBody, CardHeader, PageHeader } from "@/components/common";
+import { Card, CardBody, PageHeader } from "@/components/common";
 import { errorMessage, errorTitle, formatDateTime } from "@/components/admin/adminUtils";
 import {
   OrganizationSettings,
@@ -119,7 +119,7 @@ export default function OrganizationSettingsPage() {
       const saved = await organizationSettingsService.update(trimmed);
       setSettings(saved);
       setForm(toPayload(saved));
-      toast.success("Đã cập nhật thông tin đơn vị. Biểu mẫu xuất từ bây giờ dùng giá trị mới.");
+      toast.success("Đã cập nhật thông tin đơn vị.");
     } catch (err) {
       toast.error(errorMessage(err, "Không lưu được thông tin đơn vị."), errorTitle(err), 8000);
     } finally {
@@ -134,18 +134,16 @@ export default function OrganizationSettingsPage() {
       />
       <div className="page-body">
         <Card>
-          <CardHeader>
-            <span className="fw-semibold">Thông tin in trên biểu mẫu</span>
-          </CardHeader>
+          <div className="card-header">
+            <h2 className="mb-0">Thông tin in trên biểu mẫu</h2>
+          </div>
           <CardBody>
             {loading ? (
               <div className="text-secondary small">Đang tải…</div>
             ) : (
               <form onSubmit={handleSubmit} noValidate>
                 {!canManage && (
-                  <div className="alert alert-light border small py-2">
-                    Bạn chỉ xem được. Cần quyền &quot;Quản lý thông tin đơn vị&quot; để sửa.
-                  </div>
+                  <div className="alert alert-light border py-2">Chỉ xem.</div>
                 )}
                 <div className="row g-3">
                   {FIELDS.map((field) => {
@@ -154,7 +152,7 @@ export default function OrganizationSettingsPage() {
                       (canManage && dirty && value.trim().length === 0) || (field.key === "shortName" && shortNameInvalid);
                     return (
                       <div className="col-12 col-lg-6" key={field.key}>
-                        <label className="form-label small fw-semibold mb-1" htmlFor={`org-${field.key}`}>
+                        <label className="form-label" htmlFor={`org-${field.key}`}>
                           {field.label} <span className="text-danger">*</span>
                         </label>
                         <input

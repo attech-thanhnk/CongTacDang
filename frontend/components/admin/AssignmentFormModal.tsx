@@ -125,7 +125,7 @@ export function AssignmentFormModal({
         ) : (
           <>
             <div className="mb-2">
-              <label className="form-label small fw-semibold mb-1">
+              <label className="form-label">
                 Người được gán <span className="text-danger">*</span>
               </label>
               {fixedUser ? (
@@ -137,7 +137,7 @@ export function AssignmentFormModal({
               )}
             </div>
             <div className="mb-2">
-              <label className="form-label small fw-semibold mb-1">
+              <label className="form-label">
                 Vai trò <span className="text-danger">*</span>
               </label>
               {fixedRole ? (
@@ -156,7 +156,7 @@ export function AssignmentFormModal({
             </div>
             <div className="row g-2 mb-2">
               <div className="col-12 col-md-5">
-                <label className="form-label small fw-semibold mb-1">Loại phạm vi</label>
+                <label className="form-label">Loại phạm vi</label>
                 <select
                   className="form-select form-select-sm"
                   value={mustBeGlobal ? "Global" : scopeType}
@@ -174,7 +174,7 @@ export function AssignmentFormModal({
                 </select>
               </div>
               <div className="col-12 col-md-7">
-                <label className="form-label small fw-semibold mb-1">Đối tượng phạm vi</label>
+                <label className="form-label">Đối tượng phạm vi</label>
                 {mustBeGlobal || scopeType === "Global" ? (
                   <div className="form-control form-control-sm bg-light text-secondary">Toàn công ty</div>
                 ) : (
@@ -202,18 +202,18 @@ export function AssignmentFormModal({
 
         <div className="row g-2 mb-2">
           <div className="col-6">
-            <label className="form-label small fw-semibold mb-1">Hiệu lực từ ngày</label>
+            <label className="form-label">Hiệu lực từ ngày</label>
             <input type="date" className="form-control form-control-sm" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
             <div className="form-text">{isEdit ? "Để trống = giữ nguyên." : "Để trống = ngay bây giờ."}</div>
           </div>
           <div className="col-6">
-            <label className="form-label small fw-semibold mb-1">Đến hết ngày</label>
+            <label className="form-label">Đến hết ngày</label>
             <input type="date" className="form-control form-control-sm" value={validTo} onChange={(e) => setValidTo(e.target.value)} />
             <div className="form-text">Để trống = không thời hạn.</div>
           </div>
         </div>
         <div className="mb-2">
-          <label className="form-label small fw-semibold mb-1">Ghi chú</label>
+          <label className="form-label">Ghi chú</label>
           <textarea
             className="form-control form-control-sm"
             rows={2}
@@ -225,7 +225,7 @@ export function AssignmentFormModal({
         </div>
         {localError && <div className="alert alert-danger small py-2 mb-2">{localError}</div>}
         <div className="d-flex justify-content-end gap-2 mt-3">
-          <button type="button" className="btn btn-sm btn-light" onClick={onClose} disabled={saving}>
+          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={onClose} disabled={saving}>
             Hủy
           </button>
           <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>

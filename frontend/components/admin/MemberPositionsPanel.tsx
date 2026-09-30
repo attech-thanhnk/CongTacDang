@@ -207,7 +207,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
   const renderTable = (rows: MemberPosition[], active: boolean) => (
     <div className="table-responsive">
       <table className="table table-hover align-middle mb-0">
-        <thead style={{ background: "var(--bg-base)" }}>
+        <thead>
           <tr>
             <th className="ps-3">Chức vụ</th>
             <th>Nơi giữ chức vụ</th>
@@ -229,9 +229,9 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
               <tr key={i.id}>
                 <td className="ps-3">
                   <span className="fw-semibold text-dark">{i.positionName}</span>
-                  {i.isPrimary && active && <span className="badge bg-primary-subtle text-primary border border-primary-subtle ms-2">Chính</span>}
-                  {!i.isPrimary && active && <span className="badge bg-light text-secondary border ms-2">Kiêm nhiệm</span>}
-                  {i.defaultApprovalAuthority === "CapTren" && <span className="badge bg-warning-subtle text-warning-emphasis border ms-1">Cấp trên QĐ</span>}
+                  {i.isPrimary && active && <span className="tag t-info ms-2">Chính</span>}
+                  {!i.isPrimary && active && <span className="status-badge tone-neutral ms-2">Kiêm nhiệm</span>}
+                  {i.defaultApprovalAuthority === "CapTren" && <span className="tag t-wait ms-1">Cấp trên QĐ</span>}
                   <div className="small text-secondary">{POSITION_SIDE_LABELS[i.side as PositionSide] ?? i.side}{i.note ? ` · ${i.note}` : ""}</div>
                 </td>
                 <td>{unitName(i)}</td>
@@ -264,17 +264,17 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
   );
 
   return (
-    <>
-      <Card className="mb-3">
-        <div className="px-3 py-2 d-flex flex-wrap align-items-center gap-3">
+    <div className="d-flex flex-column gap-4">
+      <Card>
+        <div className="card-body d-flex flex-wrap align-items-center gap-4">
           <div>
             <div className="small text-secondary">Cấp quyết định xếp loại đang áp dụng</div>
             <div className="fw-semibold">
               {authority ? APPROVAL_AUTHORITY_CODE_LABELS[authority.effective] : "—"}
               {authority?.override ? (
-                <span className="badge bg-warning-subtle text-warning-emphasis border ms-2">Đặt tay</span>
+                <span className="tag t-wait ms-2">Đặt tay</span>
               ) : (
-                <span className="badge bg-light text-secondary border ms-2">Suy ra từ chức vụ</span>
+                <span className="status-badge tone-neutral ms-2">Suy ra từ chức vụ</span>
               )}
             </div>
             {authority && (
@@ -302,16 +302,16 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
         </div>
       </Card>
 
-      <div className="d-flex justify-content-between align-items-center mb-2">
-        <h2 className="h6 fw-bold mb-0">Chức vụ đang giữ (kể cả kiêm nhiệm)</h2>
-        {canManage && (
-          <button type="button" className="btn btn-sm btn-primary" onClick={openCreate}>
-            <i className="bi bi-plus-lg me-1" />
-            Thêm chức vụ
-          </button>
-        )}
-      </div>
-      <Card className="mb-3">
+      <Card>
+        <div className="card-header d-flex justify-content-between align-items-center gap-2">
+          <h2 className="mb-0">Chức vụ đang giữ</h2>
+          {canManage && (
+            <button type="button" className="btn btn-sm btn-primary" onClick={openCreate}>
+              <i className="bi bi-plus-lg me-1" />
+              Thêm chức vụ
+            </button>
+          )}
+        </div>
         {loading && items.length === 0 ? (
           <div className="text-center py-4 text-secondary small">
             <span className="spinner-border spinner-border-sm me-2" />
@@ -321,14 +321,18 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
           renderTable(current, true)
         )}
       </Card>
-      <h2 className="h6 fw-bold mb-2">Đã kết thúc</h2>
-      <Card>{renderTable(history, false)}</Card>
+      <Card>
+        <div className="card-header">
+          <h2 className="mb-0">Đã kết thúc</h2>
+        </div>
+        {renderTable(history, false)}
+      </Card>
 
       {form && (
         <AdminModal title={form.id ? "Sửa chức vụ" : "Thêm chức vụ"} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={560}>
           <form onSubmit={handleSave}>
             <div className="mb-2">
-              <label className="form-label small fw-semibold mb-1">
+              <label className="form-label">
                 Chức vụ <span className="text-danger">*</span>
               </label>
               {form.id ? (
@@ -353,7 +357,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
               )}
             </div>
             <div className="mb-2">
-              <label className="form-label small fw-semibold mb-1">Nơi giữ chức vụ</label>
+              <label className="form-label">Nơi giữ chức vụ</label>
               <select className="form-select form-select-sm" value={form.unitId} onChange={(e) => setForm({ ...form, unitId: e.target.value })}>
                 <option value="">— Không ghi đơn vị —</option>
                 {unitOptions.map((o) => (
@@ -373,12 +377,12 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
             </div>
             <div className="row g-2 mb-2">
               <div className="col-6">
-                <label className="form-label small fw-semibold mb-1">Từ ngày</label>
+                <label className="form-label">Từ ngày</label>
                 <input type="date" className="form-control form-control-sm" value={form.validFrom} onChange={(e) => setForm({ ...form, validFrom: e.target.value })} />
                 <div className="form-text">{form.id ? "Để trống = giữ nguyên." : "Để trống = hôm nay."}</div>
               </div>
               <div className="col-6">
-                <label className="form-label small fw-semibold mb-1">Đến hết ngày</label>
+                <label className="form-label">Đến hết ngày</label>
                 <input type="date" className="form-control form-control-sm" value={form.validTo} onChange={(e) => setForm({ ...form, validTo: e.target.value })} />
                 <div className="form-text">Để trống = không thời hạn.</div>
               </div>
@@ -396,7 +400,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
               </label>
             </div>
             <div className="mb-2">
-              <label className="form-label small fw-semibold mb-1">Ghi chú</label>
+              <label className="form-label">Ghi chú</label>
               <input
                 className="form-control form-control-sm"
                 maxLength={1000}
@@ -406,7 +410,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
               />
             </div>
             <div className="d-flex justify-content-end gap-2 mt-3">
-              <button type="button" className="btn btn-sm btn-light" onClick={() => setForm(null)} disabled={saving}>
+              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setForm(null)} disabled={saving}>
                 Hủy
               </button>
               <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
@@ -422,7 +426,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
         <AdminModal title="Thẩm quyền phê duyệt" onClose={() => setOverrideForm(null)} closeDisabled={saving} maxWidth={480}>
           <form onSubmit={handleOverride}>
             <div className="mb-2">
-              <label className="form-label small fw-semibold mb-1">Cấp quyết định xếp loại</label>
+              <label className="form-label">Cấp quyết định xếp loại</label>
               <select
                 className="form-select form-select-sm"
                 value={overrideForm.value}
@@ -438,7 +442,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
             </div>
             {overrideForm.value && (
               <div className="mb-2">
-                <label className="form-label small fw-semibold mb-1">
+                <label className="form-label">
                   Lý do <span className="text-danger">*</span>
                 </label>
                 <textarea
@@ -454,7 +458,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
             )}
             <div className="small text-secondary">Chỉ áp dụng cho hồ sơ đánh giá tạo sau.</div>
             <div className="d-flex justify-content-end gap-2 mt-3">
-              <button type="button" className="btn btn-sm btn-light" onClick={() => setOverrideForm(null)} disabled={saving}>
+              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setOverrideForm(null)} disabled={saving}>
                 Hủy
               </button>
               <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
@@ -465,7 +469,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
           </form>
         </AdminModal>
       )}
-    </>
+    </div>
   );
 }
 

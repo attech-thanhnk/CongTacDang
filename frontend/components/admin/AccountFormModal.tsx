@@ -128,7 +128,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
       <form onSubmit={handleSubmit}>
         <div className="row g-2">
           <div className="col-12 col-md-6">
-            <label className="form-label small fw-semibold mb-1">
+            <label className="form-label">
               Tên đăng nhập {!isEdit && <span className="text-danger">*</span>}
             </label>
             <input
@@ -144,30 +144,30 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
             <div className="form-text">{isEdit ? "Không đổi được tên đăng nhập." : "3–50 ký tự a-z, 0-9, dấu . _ -"}</div>
           </div>
           <div className="col-12 col-md-6">
-            <label className="form-label small fw-semibold mb-1">
+            <label className="form-label">
               Họ và tên <span className="text-danger">*</span>
             </label>
             <input className="form-control form-control-sm" value={form.fullName} required maxLength={200} onChange={(e) => set("fullName", e.target.value)} />
           </div>
           <div className="col-12 col-md-6">
-            <label className="form-label small fw-semibold mb-1">Email</label>
+            <label className="form-label">Email</label>
             <input type="email" className="form-control form-control-sm" value={form.email} onChange={(e) => set("email", e.target.value)} />
           </div>
           <div className="col-12 col-md-6">
-            <label className="form-label small fw-semibold mb-1">Số điện thoại</label>
+            <label className="form-label">Số điện thoại</label>
             <input className="form-control form-control-sm" value={form.phoneNumber} onChange={(e) => set("phoneNumber", e.target.value)} />
           </div>
           <div className="col-12 col-md-6">
-            <label className="form-label small fw-semibold mb-1">Chức danh</label>
+            <label className="form-label">Chức danh</label>
             <input className="form-control form-control-sm" value={form.positionTitle} onChange={(e) => set("positionTitle", e.target.value)} />
           </div>
           <div className="col-12 col-md-6">
-            <label className="form-label small fw-semibold mb-1">Số thẻ Đảng viên</label>
+            <label className="form-label">Số thẻ Đảng viên</label>
             <input className="form-control form-control-sm" value={form.partyCardNumber} onChange={(e) => set("partyCardNumber", e.target.value)} />
             <div className="form-text">Để trống nếu không phải Đảng viên.</div>
           </div>
           <div className="col-12 col-md-6">
-            <label className="form-label small fw-semibold mb-1">Đơn vị công tác chính</label>
+            <label className="form-label">Đơn vị công tác chính</label>
             <select className="form-select form-select-sm" value={form.departmentId} onChange={(e) => set("departmentId", e.target.value)}>
               <option value="">— Chưa gán —</option>
               {selectable(departments, form.departmentId).map((item) => (
@@ -179,7 +179,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
             </select>
           </div>
           <div className="col-12 col-md-6">
-            <label className="form-label small fw-semibold mb-1">Nơi sinh hoạt Đảng</label>
+            <label className="form-label">Nơi sinh hoạt Đảng</label>
             <select className="form-select form-select-sm" value={form.partyCellId} onChange={(e) => set("partyCellId", e.target.value)}>
               <option value="">— Chưa gán —</option>
               {selectable(partyCells, form.partyCellId).map((item) => (
@@ -191,7 +191,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
             </select>
           </div>
           <div className="col-12 col-md-6">
-            <label className="form-label small fw-semibold mb-1">Khung tỷ trọng mặc định</label>
+            <label className="form-label">Khung tỷ trọng mặc định</label>
             <select className="form-select form-select-sm" value={form.weightFrameCode} onChange={(e) => set("weightFrameCode", e.target.value)}>
               <option value="">— Chưa chọn (dùng khung mặc định của bộ tiêu chí) —</option>
               {frameOptions.map((frame) => (
@@ -212,7 +212,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
           ) : (
             <>
               <div className="col-12 col-md-6">
-                <label className="form-label small fw-semibold mb-1">Cấp quyết định xếp loại</label>
+                <label className="form-label">Cấp quyết định xếp loại</label>
                 <select
                   className="form-select form-select-sm"
                   value={form.approvalAuthority}
@@ -229,7 +229,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
               </div>
               {form.approvalAuthority !== "" && (
                 <div className="col-12 col-md-6">
-                  <label className="form-label small fw-semibold mb-1">Lý do đặt tay</label>
+                  <label className="form-label">Lý do đặt tay</label>
                   <input
                     className="form-control form-control-sm"
                     value={form.approvalAuthorityReason}
@@ -244,7 +244,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
           )}
         </div>
         <div className="d-flex justify-content-end gap-2 mt-3">
-          <button type="button" className="btn btn-sm btn-light" onClick={onClose} disabled={saving}>
+          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={onClose} disabled={saving}>
             Hủy
           </button>
           <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
