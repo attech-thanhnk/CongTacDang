@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Xunit;
@@ -131,6 +132,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         // Tùy chọn cho test (không đổi hành vi mặc định): request có header X-Test-Client-Ip được gán địa chỉ IP đó,
         // để test nhiều người dùng không cùng rơi vào một phân vùng giới hạn đăng nhập (10 lần/phút/IP).
         builder.ConfigureServices(services => services.AddSingleton<IStartupFilter, TestClientIpStartupFilter>());
+        // Truy vấn First/FirstOrDefault hoặc Skip/Take không có OrderBy (kết quả không xác định) → lỗi ngay trong test thay vì chỉ ghi cảnh báo.
+        builder.ConfigureServices(services => services.ConfigureDbContext<CongTacDangDbContext>(options => options.ConfigureWarnings(w => w.Throw(
+            CoreEventId.FirstWithoutOrderByAndFilterWarning, CoreEventId.RowLimitingOperationWithoutOrderByWarning))));
     }
 
     /// <summary>Header dùng để giả lập địa chỉ IP client trong test (xem <see cref="LoginAsAsync(string, string, bool)"/>).</summary>

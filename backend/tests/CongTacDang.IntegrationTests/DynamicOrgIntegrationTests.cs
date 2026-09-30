@@ -46,7 +46,9 @@ public sealed class DynamicOrgIntegrationTests
         var unitTypes = (await DataAsync(await admin.GetAsync("/api/organizations/unit-types"))).EnumerateArray()
             .Where(t => t.GetProperty("side").GetString() == "Administrative")
             .ToDictionary(t => t.GetProperty("name").GetString()!, t => t.GetProperty("id").GetGuid());
-        var rootId = await CreateUnitAsync(admin, "departments", new { code = R, name = "Công ty R", unitTypeId = unitTypes["Công ty"] });
+        // Mỗi cây một gốc: nhánh R đặt dưới gốc hiện có của cây đơn vị chính quyền.
+        var treeRoot = await RootAsync(admin, "departments");
+        var rootId = await CreateUnitAsync(admin, "departments", new { code = R, name = "Công ty R", parentId = treeRoot, unitTypeId = unitTypes["Đơn vị"] });
         var middleId = await CreateUnitAsync(admin, "departments", new { code = M, name = "Phòng M", parentId = rootId, unitTypeId = unitTypes["Phòng"] });
         await CreateUnitAsync(admin, "departments", new { code = L, name = "Đội L", parentId = middleId, unitTypeId = unitTypes["Đội"] });
         await CreateUnitAsync(admin, "departments", new { code = S, name = "Phòng S", parentId = rootId, unitTypeId = unitTypes["Phòng"] });
@@ -55,7 +57,7 @@ public sealed class DynamicOrgIntegrationTests
         JsonElement Dept(string code) => departments.Single(d => d.GetProperty("code").GetString() == code);
         Guid Id(string code) => Dept(code).GetProperty("id").GetGuid();
         Assert.Equal(Id(M), Dept(L).GetProperty("parentId").GetGuid());
-        Assert.Equal(2, Dept(L).GetProperty("depth").GetInt32());
+        Assert.Equal(Dept(R).GetProperty("depth").GetInt32() + 2, Dept(L).GetProperty("depth").GetInt32());
         Assert.Contains($"/{Id(R)}/", Dept(L).GetProperty("path").GetString());
         Assert.Equal("Đội", Dept(L).GetProperty("unitTypeName").GetString());
         // Danh sách sắp theo cây: cha đứng trước con.
@@ -64,7 +66,7 @@ public sealed class DynamicOrgIntegrationTests
 
         // Đơn vị cha không tồn tại → 400, không tạo.
         var missingParent = await admin.PostAsJsonAsync("/api/organizations/departments",
-            new { code = $"X-{s}", name = "Đơn vị X", parentId = Guid.NewGuid() });
+            new { code = $"X-{s}", name = "Đơn vị X", parentId = Guid.NewGuid(), unitTypeId = unitTypes["Phòng"] });
         Assert.Equal(HttpStatusCode.BadRequest, missingParent.StatusCode);
         Assert.Contains("Không tìm thấy đơn vị cha", await MessageAsync(missingParent));
 
@@ -123,9 +125,13 @@ public sealed class DynamicOrgIntegrationTests
         var s = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
 
         // Cây: đơn vị chính quyền (Phòng) + tổ chức Đảng (Đảng ủy → Chi bộ) qua API.
-        var deptId = await CreateUnitAsync(admin, "departments", new { code = $"PH-{s}", name = $"Phòng {s}" });
-        var partyId = await CreateUnitAsync(admin, "branches", new { code = $"DU-{s}", name = $"Đảng ủy {s}" });
-        var cellId = await CreateUnitAsync(admin, "branches", new { code = $"CB-{s}", name = $"Chi bộ {s}", parentId = partyId });
+        var adminTypes = await UnitTypesAsync(admin, "Administrative");
+        var partyTypes = await UnitTypesAsync(admin, "Party");
+        var deptId = await CreateUnitAsync(admin, "departments",
+            new { code = $"PH-{s}", name = $"Phòng {s}", parentId = await RootAsync(admin, "departments"), unitTypeId = adminTypes["Phòng"] });
+        var partyId = await CreateUnitAsync(admin, "branches",
+            new { code = $"DU-{s}", name = $"Đảng ủy {s}", parentId = await RootAsync(admin, "branches"), unitTypeId = partyTypes["Đảng bộ bộ phận"] });
+        var cellId = await CreateUnitAsync(admin, "branches", new { code = $"CB-{s}", name = $"Chi bộ {s}", parentId = partyId, unitTypeId = partyTypes["Chi bộ"] });
         var cell = (await DataAsync(await admin.GetAsync($"/api/organizations/branches/{cellId}")));
         Assert.Equal(partyId, cell.GetProperty("parentId").GetGuid());
 
@@ -230,13 +236,52 @@ public sealed class DynamicOrgIntegrationTests
         var typeId = type.GetProperty("id").GetGuid();
         Assert.Equal(HttpStatusCode.Conflict,
             (await admin.PostAsJsonAsync("/api/organizations/unit-types", new { name = $"ban {s}", side = "Administrative" })).StatusCode);
-        var dept = await CreateUnitAsync(admin, "departments", new { code = $"BAN-{s.ToUpperInvariant()}", name = $"Ban {s}", unitTypeId = typeId });
+        var dept = await CreateUnitAsync(admin, "departments",
+            new { code = $"BAN-{s.ToUpperInvariant()}", name = $"Ban {s}", parentId = await RootAsync(admin, "departments"), unitTypeId = typeId });
         Assert.Equal(HttpStatusCode.Conflict, (await admin.DeleteAsync($"/api/organizations/unit-types/{typeId}")).StatusCode);
         // Loại bên chính quyền không dùng được cho tổ chức Đảng.
         Assert.Equal(HttpStatusCode.BadRequest,
-            (await admin.PostAsJsonAsync("/api/organizations/branches", new { code = $"CB-T{s}", name = "Sai loại", unitTypeId = typeId })).StatusCode);
+            (await admin.PostAsJsonAsync("/api/organizations/branches",
+                new { code = $"CB-T{s}", name = "Sai loại", parentId = await RootAsync(admin, "branches"), unitTypeId = typeId })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await admin.DeleteAsync($"/api/organizations/departments/{dept}")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await admin.DeleteAsync($"/api/organizations/unit-types/{typeId}")).StatusCode);
+    }
+
+    // ===================== O4: bắt buộc loại đơn vị, mỗi cây một gốc =====================
+
+    [SkippableFact]
+    public async Task O4_CreateUnit_RequiresUnitType_AndOnlyOneRootPerTree()
+    {
+        SkipIfNoDatabase();
+        var admin = await AdminAsync();
+        var s = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        var adminTypes = await UnitTypesAsync(admin, "Administrative");
+        var partyTypes = await UnitTypesAsync(admin, "Party");
+        var deptRoot = await RootAsync(admin, "departments");
+        var cellRoot = await RootAsync(admin, "branches");
+
+        // Thiếu loại → 400 (cả hai cây).
+        var noType = await admin.PostAsJsonAsync("/api/organizations/departments", new { code = $"NT-{s}", name = "Không loại", parentId = deptRoot });
+        Assert.Equal(HttpStatusCode.BadRequest, noType.StatusCode);
+        Assert.Contains("Hãy chọn loại", await MessageAsync(noType));
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync("/api/organizations/branches",
+            new { code = $"NT-{s}", name = "Không loại", parentId = cellRoot, unitTypeId = Guid.Empty })).StatusCode);
+
+        // Gốc thứ hai → 400 (cả hai cây).
+        var root2 = await admin.PostAsJsonAsync("/api/organizations/departments", new { code = $"ROOT2-{s}", name = "Gốc 2", unitTypeId = adminTypes["Công ty"] });
+        Assert.Equal(HttpStatusCode.BadRequest, root2.StatusCode);
+        Assert.Contains("một gốc", await MessageAsync(root2));
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync("/api/organizations/branches",
+            new { code = $"ROOT2-{s}", name = "Gốc 2", unitTypeId = partyTypes["Đảng ủy"] })).StatusCode);
+
+        // Đưa đơn vị con lên làm gốc khi đã có gốc → 400; bỏ loại khi sửa → 400; sửa không gửi loại → giữ nguyên.
+        var child = await CreateUnitAsync(admin, "departments", new { code = $"CH-{s}", name = $"Phòng con {s}", parentId = deptRoot, unitTypeId = adminTypes["Phòng"] });
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/organizations/departments/{child}", new { parentId = Guid.Empty })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/organizations/departments/{child}", new { unitTypeId = Guid.Empty })).StatusCode);
+        var renamed = await DataAsync(await admin.PutAsJsonAsync($"/api/organizations/departments/{child}", new { name = $"Phòng con đổi tên {s}" }));
+        Assert.Equal("Phòng", renamed.GetProperty("unitTypeName").GetString());
+        Assert.Equal(deptRoot, renamed.GetProperty("parentId").GetGuid());
+        Assert.Equal(HttpStatusCode.OK, (await admin.DeleteAsync($"/api/organizations/departments/{child}")).StatusCode);
     }
 
     // ===================== Hỗ trợ =====================
@@ -265,6 +310,27 @@ public sealed class DynamicOrgIntegrationTests
             await db.SaveChangesAsync();
         });
         return (recordL.Id, recordS.Id);
+    }
+
+    /// <summary>Loại đơn vị theo bên: tên → Id.</summary>
+    private static async Task<Dictionary<string, Guid>> UnitTypesAsync(HttpClient client, string side) =>
+        (await DataAsync(await client.GetAsync("/api/organizations/unit-types"))).EnumerateArray()
+            .Where(t => t.GetProperty("side").GetString() == side)
+            .ToDictionary(t => t.GetProperty("name").GetString()!, t => t.GetProperty("id").GetGuid());
+
+    /// <summary>Gốc của cây (<c>departments</c>/<c>branches</c>): gốc hiện có, chưa có thì tạo (mỗi cây chỉ một gốc).</summary>
+    private static async Task<Guid> RootAsync(HttpClient client, string kind)
+    {
+        var units = (await DataAsync(await client.GetAsync($"/api/organizations/{kind}"))).EnumerateArray().ToList();
+        var root = units.FirstOrDefault(u => u.GetProperty("parentId").ValueKind == JsonValueKind.Null);
+        if (root.ValueKind != JsonValueKind.Undefined)
+            return root.GetProperty("id").GetGuid();
+        var isParty = kind == "branches";
+        var types = await UnitTypesAsync(client, isParty ? "Party" : "Administrative");
+        var s = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        return await CreateUnitAsync(client, kind, isParty
+            ? (object)new { code = $"GOC-DU-{s}", name = $"Đảng ủy gốc {s}", unitTypeId = types["Đảng ủy"] }
+            : new { code = $"GOC-CT-{s}", name = $"Công ty gốc {s}", unitTypeId = types["Công ty"] });
     }
 
     private static async Task<Guid> CreateUnitAsync(HttpClient client, string kind, object body)

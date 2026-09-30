@@ -1,12 +1,14 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.Domain.Evaluation;
 using CongTacDang.IntegrationTests.Infrastructure;
 using DocumentFormat.OpenXml.Packaging;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace CongTacDang.IntegrationTests;
@@ -211,6 +213,87 @@ public sealed class PostPublishIntegrationTests
         })).StatusCode);
     }
 
+    [SkippableFact]
+    public async Task P2b_Appeal_OnlyResolverIsConflicted_AcceptedWithWarning_AssignmentManagerReminded()
+    {
+        var w = await WorldAsync();
+
+        // Hồ sơ riêng (đã công bố) có người thẩm định = người có quyền xử lý kiến nghị duy nhất còn lại sau khi tạm gỡ người khác.
+        var owner = await _factory.CreateUserAsync(w.Dept1, w.Cell1, ApprovalAuthority.CoSo, $"KQ Chủ hồ sơ D {Guid.NewGuid().ToString("N")[..6]}");
+        await _factory.AssignAsync(owner.Id, await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA"), RoleScopeType.Global, null);
+        var ownerC = await _factory.LoginAsAsync(owner.Username, owner.Password, distinctClientIp: true);
+        var periodId = await World.OpenPeriodAsync(w.PeriodManagerC, owner.Id);
+        var recordId = (await World.RecordsAsync(w.PeriodManagerC, periodId))[owner.Id];
+        await _factory.WithDbAsync(async db =>
+        {
+            var record = await db.EvaluationRecords.FirstAsync(r => r.Id == recordId);
+            record.Status = RecordStatus.Published;
+            record.FinalGrade = EvaluationGrade.HoanThanh;
+            record.FinalScore = 71;
+            record.AppraisedById = w.ConflictedId;
+            record.AppraisedByName = "Người thẩm định (test)";
+            record.AppraisedAt = DateTime.UtcNow;
+            record.PublishedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+        });
+        var assignmentManager = await _factory.CreateUserWithPermissionsAsync("system.assignments.manage");
+        var assignmentManagerC = await _factory.LoginAsAsync(assignmentManager.Username, assignmentManager.Password, distinctClientIp: true);
+
+        // Tạm gỡ (xóa mềm) mọi bản gán có quyền xử lý kiến nghị của người khác → chỉ còn người có xung đột lợi ích.
+        var suspended = new List<Guid>();
+        await _factory.WithDbAsync(async db =>
+        {
+            var assignments = await db.Set<UserRoleAssignment>()
+                .Where(a => a.UserId != w.ConflictedId && a.Role!.Permissions.Any(p => p.Code == "evaluation.appeal.resolve"))
+                .ToListAsync();
+            foreach (var a in assignments)
+                a.IsDeleted = true;
+            await db.SaveChangesAsync();
+            suspended.AddRange(assignments.Select(a => a.Id));
+        });
+        _factory.Services.GetRequiredService<PermissionCache>().InvalidateAll();
+        Guid appealId;
+        try
+        {
+            // Kiến nghị vẫn được nhận, kèm cảnh báo rõ.
+            var response = await ownerC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appeals",
+                new { content = "Đề nghị xem xét lại kết quả thẩm định.", concernedSteps = new[] { "B3B_APPRAISAL" } });
+            var appeal = await Data(response);
+            appealId = appeal.GetProperty("id").GetGuid();
+            Assert.Equal("Submitted", appeal.GetProperty("status").GetString());
+            Assert.Contains("chưa có người xử lý", appeal.GetProperty("resolverWarning").GetString());
+            Assert.Contains("Lưu ý", await MessageAsync(response));
+            var block = await Data(ownerC, $"/api/evaluations/records/{recordId}/appeals");
+            Assert.NotEqual(JsonValueKind.Null, block.GetProperty("appeals")[0].GetProperty("resolverWarning").ValueKind);
+
+            // Nhắc việc cho người có quyền gán vai trò.
+            Assert.Contains(await QueueRecordsAsync(assignmentManagerC, "APPEALS_UNASSIGNED"), id => id == recordId);
+            var summary = await Data(assignmentManagerC, "/api/notifications/summary");
+            Assert.True(summary.GetProperty("unassignedAppeals").GetInt32() >= 1);
+            Assert.Contains(summary.GetProperty("items").EnumerateArray(), i => i.GetProperty("kind").GetString() == "appealUnassigned");
+            // Người không có quyền gán vai trò không thấy nhóm này.
+            Assert.Empty(await QueueRecordsAsync(ownerC, "APPEALS_UNASSIGNED"));
+        }
+        finally
+        {
+            await _factory.WithDbAsync(async db =>
+            {
+                var assignments = await db.Set<UserRoleAssignment>().IgnoreQueryFilters().Where(a => suspended.Contains(a.Id)).ToListAsync();
+                foreach (var a in assignments)
+                    a.IsDeleted = false;
+                await db.SaveChangesAsync();
+            });
+            _factory.Services.GetRequiredService<PermissionCache>().InvalidateAll();
+        }
+
+        // Đã có người xử lý → hết cảnh báo, hết nhắc việc; người xử lý trả lời để không còn kiến nghị mở cho test khác.
+        var after = (await Data(ownerC, $"/api/evaluations/records/{recordId}/appeals")).GetProperty("appeals")[0];
+        Assert.Equal(JsonValueKind.Null, after.GetProperty("resolverWarning").ValueKind);
+        Assert.DoesNotContain(await QueueRecordsAsync(assignmentManagerC, "APPEALS_UNASSIGNED"), id => id == recordId);
+        await Data(await w.ResolverC.PostAsJsonAsync($"/api/appeals/{appealId}/resolve",
+            new { version = after.GetProperty("version").GetUInt32(), accepted = false, response = "Không chấp nhận: đúng quy định." }));
+    }
+
     #endregion
 
     #region P3 — kế hoạch 30-60-90 ngày, Mẫu 17 (T-88)
@@ -253,12 +336,24 @@ public sealed class PostPublishIntegrationTests
         Assert.Equal(HttpStatusCode.BadRequest, incomplete.StatusCode);
         Assert.Contains("Mốc 60 ngày", await MessageAsync(incomplete));
 
+        // Ngày bắt đầu: không sớm hơn 30 ngày trước và không muộn hơn 180 ngày sau ngày công bố (hồ sơ công bố hôm nay).
+        var published = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        foreach (var badStart in new[] { published.AddDays(-31), published.AddDays(181) })
+        {
+            var refused = await w.ManagerC.PutAsJsonAsync($"/api/improvement-plans/{planId}", new
+            {
+                version = plan.GetProperty("version").GetUInt32(), supporterName = "Người hỗ trợ thử nghiệm", startDate = badStart.ToString("yyyy-MM-dd")
+            });
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+            Assert.Contains("Ngày bắt đầu kế hoạch", await MessageAsync(refused));
+        }
+        var startDate = published.AddDays(1);
         plan = await Data(await w.ManagerC.PutAsJsonAsync($"/api/improvement-plans/{planId}", new
         {
             version = plan.GetProperty("version").GetUInt32(),
             supporterName = "Người hỗ trợ thử nghiệm",
             supporterTitle = "Phó Trưởng phòng",
-            startDate = "2026-10-01",
+            startDate = startDate.ToString("yyyy-MM-dd"),
             milestones = new[] { "M30", "M60", "M90" }.Select(code => new
             {
                 code, limitation = $"Hạn chế {code}", target = $"Mục tiêu {code}", measures = $"Biện pháp {code}", coordination = $"Phối hợp {code}"
@@ -266,7 +361,7 @@ public sealed class PostPublishIntegrationTests
         }));
         plan = await Data(await w.ManagerC.PostAsJsonAsync($"/api/improvement-plans/{planId}/approve", new { version = plan.GetProperty("version").GetUInt32() }));
         Assert.Equal("Approved", plan.GetProperty("status").GetString());
-        Assert.Equal("2026-12-30", plan.GetProperty("milestones")[2].GetProperty("dueDate").GetString());
+        Assert.Equal(startDate.AddDays(90).ToString("yyyy-MM-dd"), plan.GetProperty("milestones")[2].GetProperty("dueDate").GetString());
         Assert.DoesNotContain(await QueueRecordsAsync(w.ManagerC, "IMPROVEMENT_PLANS"), id => id == recordId);
         Assert.Equal(HttpStatusCode.Conflict, (await w.ManagerC.PutAsJsonAsync($"/api/improvement-plans/{planId}", new
         {
@@ -289,6 +384,14 @@ public sealed class PostPublishIntegrationTests
         Assert.Equal("Đạt yêu cầu", plan.GetProperty("milestones")[0].GetProperty("resultName").GetString());
         Assert.Equal(HttpStatusCode.BadRequest, (await w.ManagerC.PostAsJsonAsync($"/api/improvement-plans/{planId}/milestone-result",
             new { version = plan.GetProperty("version").GetUInt32(), milestone = "M45", result = "Achieved" })).StatusCode);
+        // Theo thứ tự mốc: chưa ghi mốc 60 ngày → chưa ghi mốc 90 ngày được (không chặn theo ngày đến hạn).
+        var outOfOrder = await w.ManagerC.PostAsJsonAsync($"/api/improvement-plans/{planId}/milestone-result",
+            new { version = plan.GetProperty("version").GetUInt32(), milestone = "M90", result = "NotAchieved" });
+        Assert.Equal(HttpStatusCode.BadRequest, outOfOrder.StatusCode);
+        Assert.Contains("Mốc 60 ngày", await MessageAsync(outOfOrder));
+        plan = await Data(await w.ManagerC.PostAsJsonAsync($"/api/improvement-plans/{planId}/milestone-result",
+            new { version = plan.GetProperty("version").GetUInt32(), milestone = "M60", result = "Achieved" }));
+        Assert.Equal("Acknowledged", plan.GetProperty("status").GetString());
         plan = await Data(await w.ManagerC.PostAsJsonAsync($"/api/improvement-plans/{planId}/milestone-result",
             new { version = plan.GetProperty("version").GetUInt32(), milestone = "M90", result = "NotAchieved" }));
         Assert.Equal("Closed", plan.GetProperty("status").GetString());
@@ -306,7 +409,7 @@ public sealed class PostPublishIntegrationTests
             Assert.Contains("Người hỗ trợ thử nghiệm", text);
             Assert.Contains("Hạn chế M60", text);
             Assert.Contains("Hoàn thành nhiệm vụ - Mức C", text);
-            Assert.Equal(2, text.Count(c => c == '☒'));
+            Assert.Equal(3, text.Count(c => c == '☒')); // kết quả 3 mốc
         }
         Assert.Equal(HttpStatusCode.Forbidden, (await w.DeptViewerC.GetAsync($"/api/improvement-plans/{planId}/mau-17")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await w.OwnerAC.GetAsync($"/api/improvement-plans/{planId}/mau-17?format=xls")).StatusCode);
@@ -400,7 +503,8 @@ public sealed class PostPublishIntegrationTests
         public TestUser OwnerA = null!, OwnerB = null!, OwnerC = null!;
         public string OwnerAName = string.Empty, OwnerBName = string.Empty;
         public HttpClient OwnerAC = null!, OwnerBC = null!, OwnerCC = null!, DeptViewerC = null!, ResolverC = null!, ConflictedC = null!;
-        public HttpClient ManagerC = null!, OutsideManagerC = null!, PlainC = null!;
+        public HttpClient ManagerC = null!, OutsideManagerC = null!, PlainC = null!, PeriodManagerC = null!;
+        public Guid ConflictedId;
 
         public static async Task<World> CreateAsync(ApiFactory factory)
         {
@@ -446,6 +550,8 @@ public sealed class PostPublishIntegrationTests
 
             Task<HttpClient> Login(TestUser user) => factory.LoginAsAsync(user.Username, user.Password, distinctClientIp: true);
             var periodManagerC = await Login(periodManager);
+            w.PeriodManagerC = periodManagerC;
+            w.ConflictedId = conflicted.Id;
             w.OwnerAC = await Login(w.OwnerA);
             w.OwnerBC = await Login(w.OwnerB);
             w.OwnerCC = await Login(w.OwnerC);
@@ -492,7 +598,7 @@ public sealed class PostPublishIntegrationTests
             return w;
         }
 
-        private static async Task<Guid> OpenPeriodAsync(HttpClient manager, params Guid[] members)
+        public static async Task<Guid> OpenPeriodAsync(HttpClient manager, params Guid[] members)
         {
             var created = await Data(await manager.PostAsJsonAsync("/api/evaluations/periods", new
             {
@@ -508,7 +614,7 @@ public sealed class PostPublishIntegrationTests
             return periodId;
         }
 
-        private static async Task<Dictionary<Guid, Guid>> RecordsAsync(HttpClient manager, Guid periodId) =>
+        public static async Task<Dictionary<Guid, Guid>> RecordsAsync(HttpClient manager, Guid periodId) =>
             (await Data(manager, $"/api/evaluations/periods/{periodId}/participants")).EnumerateArray()
                 .ToDictionary(p => p.GetProperty("memberId").GetGuid(), p => p.GetProperty("recordId").GetGuid());
     }

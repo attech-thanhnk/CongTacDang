@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CongTacDang.Api.Authorization;
+using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Models;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
@@ -19,11 +20,23 @@ public class ExportReportController : ControllerBase
 {
     private readonly IReportService _reportService;
     private readonly IReportAccessService _reportAccess;
+    private readonly IPeriodService _periods;
 
-    public ExportReportController(IReportService reportService, IReportAccessService reportAccess)
+    public ExportReportController(IReportService reportService, IReportAccessService reportAccess, IPeriodService periods)
     {
         _reportService = reportService;
         _reportAccess = reportAccess;
+        _periods = periods;
+    }
+
+    /// <summary>Kỳ của báo cáo: kỳ được chọn, không chọn → kỳ đang hoạt động; không có kỳ đang hoạt động → 404.</summary>
+    private async Task<Guid> ResolvePeriodIdAsync(Guid? periodId)
+    {
+        if (periodId.HasValue && periodId.Value != Guid.Empty)
+            return periodId.Value;
+        var active = await _periods.GetActivePeriodAsync();
+        return active?.Id ?? throw new NotFoundException(
+            "Hiện không có kỳ đánh giá đang mở hoặc đang khóa dữ liệu. Hãy chọn kỳ đánh giá của báo cáo (tham số periodId).");
     }
 
     /// <summary>Lấy Id người dùng hiện tại từ JWT.</summary>
@@ -118,31 +131,31 @@ public class ExportReportController : ControllerBase
     /// <summary>Bản nháp phần nhập tay Mẫu 16 kèm số liệu tổng hợp tự động của kỳ và tổ chức Đảng.</summary>
     [HttpGet("mau-16/draft")]
     [RequirePermission(PermissionCodes.ReportExport)]
-    public async Task<IActionResult> GetMau16Draft([FromQuery] Guid periodId, [FromQuery] Guid? branchId = null)
+    public async Task<IActionResult> GetMau16Draft([FromQuery] Guid? periodId, [FromQuery] Guid? branchId = null)
     {
         var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
-        var draft = await _reportService.GetForm16DraftAsync(periodId, scope);
+        var draft = await _reportService.GetForm16DraftAsync(await ResolvePeriodIdAsync(periodId), scope);
         return Ok(ApiResponse<Form16DraftDto>.Ok(draft, "Lấy bản nháp Mẫu 16 thành công."));
     }
 
     /// <summary>Lưu bản nháp phần nhập tay Mẫu 16 (kiểm tra phiên bản).</summary>
     [HttpPut("mau-16/draft")]
     [RequirePermission(PermissionCodes.ReportExport)]
-    public async Task<IActionResult> SaveMau16Draft([FromQuery] Guid periodId, [FromQuery] Guid? branchId, [FromBody] SaveForm16DraftDto dto)
+    public async Task<IActionResult> SaveMau16Draft([FromQuery] Guid? periodId, [FromQuery] Guid? branchId, [FromBody] SaveForm16DraftDto dto)
     {
         var userId = GetCurrentUserId();
         var scope = await _reportAccess.ResolveBranchExportScopeAsync(userId, branchId);
-        var draft = await _reportService.SaveForm16DraftAsync(periodId, scope, userId, dto);
+        var draft = await _reportService.SaveForm16DraftAsync(await ResolvePeriodIdAsync(periodId), scope, userId, dto);
         return Ok(ApiResponse<Form16DraftDto>.Ok(draft, "Đã lưu bản nháp Mẫu 16."));
     }
 
     /// <summary>Xuất Word Mẫu 16 — Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý.</summary>
     [HttpGet("docx/mau-16")]
     [RequirePermission(PermissionCodes.ReportExport)]
-    public async Task<IActionResult> ExportMau16Docx([FromQuery] Guid periodId, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
+    public async Task<IActionResult> ExportMau16Docx([FromQuery] Guid? periodId, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
     {
         var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
-        var result = await _reportService.ExportMau16DocxAsync(periodId, scope, ParseFormat(format));
+        var result = await _reportService.ExportMau16DocxAsync(await ResolvePeriodIdAsync(periodId), scope, ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 

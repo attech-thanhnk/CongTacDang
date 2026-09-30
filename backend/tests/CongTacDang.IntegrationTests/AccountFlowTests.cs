@@ -65,6 +65,56 @@ public sealed class AccountFlowTests
     }
 
     [SkippableFact]
+    public async Task L1b_CreateAccount_ApprovalAuthorityAsNameOrNumber_OverrideNeedsReason_WeightFrameFormatOnly()
+    {
+        SkipIfNoDatabase();
+        var (_, admin) = await _fx.CreateAccountAdminAsync();
+
+        async Task<System.Text.Json.JsonElement> DetailAsync(HttpResponseMessage created)
+        {
+            Assert.Equal(HttpStatusCode.OK, created.StatusCode);
+            var id = (await AccountTestFixture.ReadJsonAsync(created)).GetProperty("data").GetProperty("userId").GetGuid();
+            return (await AccountTestFixture.ReadJsonAsync(await admin.GetAsync($"/api/users/{id}"))).GetProperty("data");
+        }
+
+        // Tên enum (như các API khác) và số (tương thích) đều nhận; khác cấp suy ra (CoSo) → bắt buộc lý do.
+        var noReason = await admin.PostAsJsonAsync("/api/users",
+            new { username = AccountTestFixture.NewUsername("l1b.a"), fullName = "Cấp trên thiếu lý do", approvalAuthority = "CapTren" });
+        Assert.Equal(HttpStatusCode.BadRequest, noReason.StatusCode);
+        Assert.Contains("lý do", (await AccountTestFixture.ReadJsonAsync(noReason)).GetProperty("message").GetString());
+
+        var byName = await DetailAsync(await admin.PostAsJsonAsync("/api/users", new
+        {
+            username = AccountTestFixture.NewUsername("l1b.b"), fullName = "Cấp trên theo tên", approvalAuthority = "CapTren",
+            approvalAuthorityReason = "Theo văn bản phân cấp"
+        }));
+        Assert.Equal("Theo văn bản phân cấp", byName.GetProperty("approvalAuthorityOverrideReason").GetString());
+        Assert.NotEqual(System.Text.Json.JsonValueKind.Null, byName.GetProperty("approvalAuthorityOverride").ValueKind);
+
+        var byNumber = await DetailAsync(await admin.PostAsJsonAsync("/api/users", new
+        {
+            username = AccountTestFixture.NewUsername("l1b.c"), fullName = "Cấp trên theo số", approvalAuthority = 2,
+            approvalAuthorityReason = "Theo văn bản phân cấp"
+        }));
+        Assert.Equal(byName.GetProperty("approvalAuthority").ToString(), byNumber.GetProperty("approvalAuthority").ToString());
+
+        // Gửi đúng cấp suy ra → không đặt tay, không cần lý do.
+        var same = await DetailAsync(await admin.PostAsJsonAsync("/api/users",
+            new { username = AccountTestFixture.NewUsername("l1b.d"), fullName = "Cơ sở", approvalAuthority = "CoSo" }));
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, same.GetProperty("approvalAuthorityOverride").ValueKind);
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync("/api/users",
+            new { username = AccountTestFixture.NewUsername("l1b.e"), fullName = "Sai", approvalAuthority = "KhongCo" })).StatusCode);
+
+        // Khung tỷ trọng: tài khoản không gắn bộ tiêu chí → chỉ kiểm định dạng, không bắt buộc tồn tại.
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync("/api/users",
+            new { username = AccountTestFixture.NewUsername("l1b.f"), fullName = "Sai khung", weightFrameCode = "K 9!" })).StatusCode);
+        var frame = await DetailAsync(await admin.PostAsJsonAsync("/api/users",
+            new { username = AccountTestFixture.NewUsername("l1b.g"), fullName = "Khung chưa có", weightFrameCode = "K77" }));
+        Assert.Equal("K77", frame.GetProperty("weightFrameCode").GetString());
+    }
+
+    [SkippableFact]
     public async Task L2_FirstLogin_MustChangePassword_BlocksApisUntilChanged()
     {
         SkipIfNoDatabase();

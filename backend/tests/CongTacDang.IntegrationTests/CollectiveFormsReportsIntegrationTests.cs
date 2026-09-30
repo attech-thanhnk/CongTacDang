@@ -11,6 +11,7 @@ using CongTacDang.IntegrationTests.Infrastructure;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 using Position = CongTacDang.Domain.Entities.Position;
 
@@ -350,6 +351,37 @@ public sealed class CollectiveFormsReportsIntegrationTests
         Assert.Equal(HttpStatusCode.OK, (await s.Committee.GetAsync("/api/reports/cadres")).StatusCode);
         var file = await s.Committee.GetAsync($"/api/reports/form-15a?periodId={s.PeriodId}");
         Assert.StartsWith("Mau 15A_", file.Content.Headers.ContentDisposition?.FileName?.Trim('"'));
+    }
+
+    // ===================== R6: thiếu periodId =====================
+
+    [SkippableFact]
+    public async Task R6_MissingPeriodId_RecordsBadRequest_Mau16UsesActivePeriodOr404()
+    {
+        SkipIfNoDatabase();
+        var s = await GetScenarioAsync();
+
+        // Danh sách hồ sơ bắt buộc chọn kỳ → 400 tiếng Việt (trước đây 200 rỗng).
+        var records = await s.Committee.GetAsync("/api/evaluations/records");
+        Assert.Equal(HttpStatusCode.BadRequest, records.StatusCode);
+        using (var json = JsonDocument.Parse(await records.Content.ReadAsStringAsync()))
+            Assert.Contains("Hãy chọn kỳ đánh giá", json.RootElement.GetProperty("message").GetString());
+
+        // Mẫu 16 không truyền kỳ → kỳ đang hoạt động (không có → 404 tiếng Việt, không phải "kỳ 0000…").
+        var hasActive = false;
+        await _factory.WithDbAsync(async db => hasActive = await db.EvaluationPeriods
+            .AnyAsync(p => p.Status == PeriodStatus.Open || p.Status == PeriodStatus.Locked));
+        var mau16 = await s.Committee.GetAsync("/api/reports/docx/mau-16");
+        if (hasActive)
+        {
+            Assert.Equal(HttpStatusCode.OK, mau16.StatusCode);
+        }
+        else
+        {
+            Assert.Equal(HttpStatusCode.NotFound, mau16.StatusCode);
+            Assert.Contains("không có kỳ đánh giá đang mở", await mau16.Content.ReadAsStringAsync());
+        }
+        Assert.DoesNotContain("00000000-0000", await mau16.Content.ReadAsStringAsync());
     }
 
     #region Dữ liệu

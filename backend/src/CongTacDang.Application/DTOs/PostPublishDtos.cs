@@ -94,6 +94,11 @@ public class AppealDto
     public bool CanReopen { get; set; }
     /// <summary>Người hiện tại được gắn thêm tệp (chủ hồ sơ, kiến nghị đang xử lý).</summary>
     public bool CanAttach { get; set; }
+    /// <summary>
+    /// Cảnh báo khi kiến nghị đang mở mà không còn tài khoản nào (ngoài người có xung đột lợi ích) xử lý được trong phạm vi hồ sơ;
+    /// null = có người xử lý.
+    /// </summary>
+    public string? ResolverWarning { get; set; }
 }
 
 /// <summary>Khối "Kiến nghị" trên trang hồ sơ.</summary>
@@ -263,7 +268,7 @@ public class MilestoneResultRequestDto : VersionedRequestDto
 /// <summary>Một mục nhắc việc.</summary>
 public class NotificationItemDto
 {
-    /// <summary>overdue / dueSoon / appeal / improvementPlan / acknowledge / pending.</summary>
+    /// <summary>overdue / dueSoon / appealUnassigned / appeal / improvementPlan / acknowledge / pending.</summary>
     public string Kind { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string? Detail { get; set; }
@@ -289,6 +294,8 @@ public class NotificationSummaryDto
     public int ImprovementPlans { get; set; }
     /// <summary>Kế hoạch chờ chính người dùng xác nhận.</summary>
     public int PlansToAcknowledge { get; set; }
+    /// <summary>Kiến nghị không còn ai xử lý được (với người có quyền gán vai trò) — cần gán người xử lý.</summary>
+    public int UnassignedAppeals { get; set; }
     /// <summary>Ngưỡng "sắp tới hạn" (ngày).</summary>
     public int DueSoonDays { get; set; }
     public List<NotificationItemDto> Items { get; set; } = new();

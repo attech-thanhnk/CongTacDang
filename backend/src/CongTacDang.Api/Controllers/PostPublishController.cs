@@ -70,7 +70,10 @@ public class PostPublishController : ControllerBase
     public async Task<IActionResult> SubmitAppeal(Guid recordId, [FromBody] SubmitAppealRequestDto dto, CancellationToken ct)
     {
         var appeal = await _appeals.SubmitAsync(recordId, dto, ct);
-        return Ok(ApiResponse<AppealDto>.Ok(appeal, "Đã gửi kiến nghị. Kết quả của bạn được ghi chú \"đang xem xét\" tới khi có trả lời."));
+        var message = "Đã gửi kiến nghị. Kết quả của bạn được ghi chú \"đang xem xét\" tới khi có trả lời.";
+        if (appeal.ResolverWarning != null)
+            message += " Lưu ý: " + appeal.ResolverWarning;
+        return Ok(ApiResponse<AppealDto>.Ok(appeal, message));
     }
 
     /// <summary>Nhận xem xét kiến nghị.</summary>

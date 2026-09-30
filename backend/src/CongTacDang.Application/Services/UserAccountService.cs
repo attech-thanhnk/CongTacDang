@@ -26,6 +26,7 @@ public sealed class UserAccountService : IUserAccountService
     public const int MaxUsernameLength = AccountRules.UsernameMaxLength;
 
     private const int TemporaryPasswordLength = 12;
+    private const int MaxApprovalAuthorityReasonLength = 1000;
     private const string Letters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
     private const string Digits = "23456789";
 
@@ -96,6 +97,23 @@ public sealed class UserAccountService : IUserAccountService
         var partyCellId = cmd.PartyCellId == Guid.Empty ? null : cmd.PartyCellId;
         var weightFrameCode = NormalizeWeightFrameCode(cmd.WeightFrameCode);
 
+        // Tài khoản mới chưa có chức vụ → thẩm quyền suy ra = CoSo. Gửi đúng giá trị suy ra = không đặt tay; gửi khác = ghi đè,
+        // bắt buộc lý do như thao tác đặt tay thẩm quyền hiện có.
+        const ApprovalAuthority derivedAuthority = ApprovalAuthority.CoSo;
+        var authorityOverride = cmd.ApprovalAuthority is { } requested && requested != derivedAuthority ? requested : (ApprovalAuthority?)null;
+        string? authorityReason = null;
+        if (authorityOverride.HasValue)
+        {
+            authorityReason = cmd.ApprovalAuthorityReason?.Trim() ?? string.Empty;
+            if (authorityReason.Length == 0)
+            {
+                throw new ValidationException("Cấp có thẩm quyền quyết định xếp loại khác với cấp suy ra từ chức vụ (tài khoản mới chưa có chức vụ → "
+                    + "Đảng ủy cơ sở): hãy nhập lý do đặt tay thẩm quyền (ví dụ: căn cứ văn bản phân cấp).");
+            }
+            if (authorityReason.Length > MaxApprovalAuthorityReasonLength)
+                throw new ValidationException($"Lý do đặt tay thẩm quyền dài quá {MaxApprovalAuthorityReasonLength} ký tự. Hãy rút ngắn.");
+        }
+
         if (_accounts != null)
         {
             EnsureCanManage(departmentId, partyCellId);
@@ -120,12 +138,9 @@ public sealed class UserAccountService : IUserAccountService
             DepartmentId = departmentId,
             PartyCellId = partyCellId,
             WeightFrameCode = weightFrameCode,
-            // Tài khoản mới chưa có chức vụ → thẩm quyền suy ra = CoSo; giá trị truyền vào được lưu là đặt tay (ghi đè).
-            ApprovalAuthority = cmd.ApprovalAuthority ?? ApprovalAuthority.CoSo,
-            ApprovalAuthorityOverride = cmd.ApprovalAuthority,
-            ApprovalAuthorityOverrideReason = cmd.ApprovalAuthority.HasValue
-                ? (string.IsNullOrWhiteSpace(cmd.ApprovalAuthorityReason) ? "Đặt khi tạo tài khoản." : cmd.ApprovalAuthorityReason.Trim())
-                : null,
+            ApprovalAuthority = authorityOverride ?? derivedAuthority,
+            ApprovalAuthorityOverride = authorityOverride,
+            ApprovalAuthorityOverrideReason = authorityReason,
             IsActive = true,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(temporaryPassword),
             MustChangePassword = true,

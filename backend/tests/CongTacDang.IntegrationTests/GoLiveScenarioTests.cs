@@ -65,14 +65,19 @@ public sealed class GoLiveScenarioTests
         Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/api/users")).StatusCode);
 
         // ============ Bước 2: trang Danh mục (đơn vị, tổ chức Đảng) → trang Tài khoản → gán vai trò ============
-        var deptKt = await GoLiveHttp.CreateCatalogItemAsync(admin, "departments", "PH-KT", "Phòng Kỹ thuật", 1);
-        var deptTccb = await GoLiveHttp.CreateCatalogItemAsync(admin, "departments", "PH-TCCB", "Phòng Tổ chức cán bộ - Lao động", 2);
-        var cellKt = await GoLiveHttp.CreateCatalogItemAsync(admin, "branches", "CB-KT", "Chi bộ Kỹ thuật", 1);
-        var cellVp = await GoLiveHttp.CreateCatalogItemAsync(admin, "branches", "CB-VP", "Chi bộ Văn phòng", 2);
+        // Mỗi cây một gốc (Công ty / Đảng ủy), đơn vị nào cũng phải chọn loại.
+        var types = (await GoLiveHttp.DataAsync(await admin.GetAsync("/api/organizations/unit-types"))).EnumerateArray()
+            .ToDictionary(t => $"{t.GetProperty("side").GetString()}:{t.GetProperty("name").GetString()}", t => t.GetProperty("id").GetGuid());
+        var company = await GoLiveHttp.CreateCatalogItemAsync(admin, "departments", "CT", "Công ty", 0, null, types["Administrative:Công ty"]);
+        var committee = await GoLiveHttp.CreateCatalogItemAsync(admin, "branches", "DU", "Đảng ủy", 0, null, types["Party:Đảng ủy"]);
+        var deptKt = await GoLiveHttp.CreateCatalogItemAsync(admin, "departments", "PH-KT", "Phòng Kỹ thuật", 1, company, types["Administrative:Phòng"]);
+        var deptTccb = await GoLiveHttp.CreateCatalogItemAsync(admin, "departments", "PH-TCCB", "Phòng Tổ chức cán bộ - Lao động", 2, company, types["Administrative:Phòng"]);
+        var cellKt = await GoLiveHttp.CreateCatalogItemAsync(admin, "branches", "CB-KT", "Chi bộ Kỹ thuật", 1, committee, types["Party:Chi bộ"]);
+        var cellVp = await GoLiveHttp.CreateCatalogItemAsync(admin, "branches", "CB-VP", "Chi bộ Văn phòng", 2, committee, types["Party:Chi bộ"]);
         await _factory.WithDbAsync(async db =>
         {
-            Assert.Equal(2, await db.AdministrativeDepartments.CountAsync());
-            Assert.Equal(2, await db.PartyCells.CountAsync());
+            Assert.Equal(3, await db.AdministrativeDepartments.CountAsync());
+            Assert.Equal(3, await db.PartyCells.CountAsync());
         });
 
         // Mỗi tài khoản tạo mới trả mật khẩu tạm (hiển thị một lần).
@@ -176,6 +181,10 @@ public sealed class GoLiveScenarioTests
         // ============ Bước 5: cơ quan thẩm định tạo kỳ, thêm người được đánh giá, mở kỳ ============
         var appraiser = await _factory.LoginAsAsync("tran.thi.b", passwords["tran.thi.b"], distinctClientIp: true);
         await GoLiveHttp.ChangePasswordAsync(appraiser, passwords["tran.thi.b"], CadreNewPassword);
+        // Chưa có kỳ đang hoạt động: hồ sơ của tôi không truyền kỳ → 404 tiếng Việt rõ ràng (không phải "kỳ 0000…").
+        var noActive = await appraiser.GetAsync("/api/evaluations/my-record");
+        Assert.Equal(HttpStatusCode.NotFound, noActive.StatusCode);
+        Assert.Contains("không có kỳ đánh giá đang mở", (await GoLiveHttp.JsonAsync(noActive)).GetProperty("message").GetString());
         var period = await GoLiveHttp.DataAsync(await appraiser.PostAsJsonAsync("/api/evaluations/periods", new
         {
             year = todayVn.Year, quarter = (todayVn.Month - 1) / 3 + 1, name = "Kỳ đánh giá go-live", preset = "q3-2026-transition",
@@ -224,6 +233,8 @@ public sealed class GoLiveScenarioTests
         var mine = await GoLiveHttp.DataAsync(await owner.GetAsync($"/api/evaluations/my-record?periodId={periodId}"));
         Assert.Equal(recordId, mine.GetProperty("id").GetGuid());
         Assert.Equal("AwaitingSelfScore", mine.GetProperty("status").GetString());
+        // Không truyền kỳ → kỳ đang hoạt động.
+        Assert.Equal(recordId, (await GoLiveHttp.DataAsync(await owner.GetAsync("/api/evaluations/my-record"))).GetProperty("id").GetGuid());
         var ownerQueue = await GoLiveHttp.DataAsync(await owner.GetAsync($"/api/evaluations/work-queue?periodId={periodId}"));
         Assert.Equal("B2_SELF_SCORE", ownerQueue.GetProperty("groups").EnumerateArray().Single().GetProperty("step").GetString());
 
@@ -297,10 +308,11 @@ public sealed class GoLiveCollection : ICollectionFixture<ApiFactory>
 internal static class GoLiveHttp
 {
     /// <summary>Thêm đơn vị (<c>departments</c>) hoặc tổ chức Đảng (<c>branches</c>) như trang Danh mục; trả Id.</summary>
-    public static async Task<Guid> CreateCatalogItemAsync(HttpClient client, string kind, string code, string name, int sortOrder, Guid? parentId = null)
+    public static async Task<Guid> CreateCatalogItemAsync(HttpClient client, string kind, string code, string name, int sortOrder,
+        Guid? parentId, Guid unitTypeId)
     {
         var data = await DataAsync(await client.PostAsJsonAsync($"/api/organizations/{kind}",
-            new { code, name, sortOrder, parentId }));
+            new { code, name, sortOrder, parentId, unitTypeId }));
         return data.GetProperty("id").GetGuid();
     }
 

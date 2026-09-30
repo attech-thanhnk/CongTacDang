@@ -62,19 +62,23 @@ public sealed class AppealService : IAppealService
     private readonly IAuthorizationGuard _guard;
     private readonly ICurrentUserService _currentUser;
     private readonly IEvaluationWorkflowService _workflow;
+    private readonly AppealResolverCheck _resolverCheck;
 
     public AppealService(
         IPostPublishRepository repo,
         IUnitOfWork unitOfWork,
         IAuthorizationGuard guard,
         ICurrentUserService currentUser,
-        IEvaluationWorkflowService workflow)
+        IEvaluationWorkflowService workflow,
+        IEvaluationWorkflowRepository workflowRepo,
+        IPermissionResolver permissions)
     {
         _repo = repo;
         _unitOfWork = unitOfWork;
         _guard = guard;
         _currentUser = currentUser;
         _workflow = workflow;
+        _resolverCheck = new AppealResolverCheck(workflowRepo, permissions);
     }
 
     /// <inheritdoc />
@@ -87,6 +91,9 @@ public sealed class AppealService : IAppealService
         var isOwner = IsOwner(record);
         var canSubmitPermission = _guard.Can(PermissionCodes.EvaluationAppealSubmit, AccessTarget.ForRecord(record));
         var blocked = SubmitBlockedReason(record, appeals);
+        var items = new List<AppealDto>();
+        foreach (var appeal in appeals)
+            items.Add(ToDto(appeal, record, await ResolverWarningAsync(appeal, record, ct)));
 
         return new RecordAppealsDto
         {
@@ -95,7 +102,7 @@ public sealed class AppealService : IAppealService
             CanSubmit = canSubmitPermission && blocked == null,
             SubmitBlockedReason = isOwner ? (canSubmitPermission ? blocked : $"Bạn chưa có quyền \"{PermissionCodes.DisplayName(PermissionCodes.EvaluationAppealSubmit)}\".") : null,
             StepOptions = isOwner ? StepOptions(record) : new List<AppealStepOptionDto>(),
-            Appeals = appeals.Select(a => ToDto(a, record)).ToList()
+            Appeals = items
         };
     }
 
@@ -143,7 +150,9 @@ public sealed class AppealService : IAppealService
         };
         _repo.AddAppeal(appeal);
         await _unitOfWork.SaveChangesAsync(ct);
-        return ToDto(appeal, record);
+        // Không đổi luật xung đột lợi ích: vẫn nhận kiến nghị, nhưng báo rõ khi không còn ai xử lý được để quản trị gán người
+        // (nhóm việc "Kiến nghị chưa có người xử lý" của người có quyền gán vai trò).
+        return ToDto(appeal, record, await ResolverWarningAsync(appeal, record, ct));
     }
 
     /// <inheritdoc />
@@ -244,8 +253,12 @@ public sealed class AppealService : IAppealService
         await _unitOfWork.SaveChangesAsync(ct);
 
         var saved = await _repo.FindAppealAsync(appealId, ct) ?? appeal;
-        return ToDto(saved, saved.Record);
+        return ToDto(saved, saved.Record, await ResolverWarningAsync(saved, saved.Record, ct));
     }
+
+    /// <summary>Cảnh báo khi kiến nghị đang mở mà không còn ai xử lý được (null = có người xử lý hoặc kiến nghị đã đóng).</summary>
+    private async Task<string?> ResolverWarningAsync(EvaluationAppeal appeal, EvaluationRecord record, CancellationToken ct) =>
+        appeal.IsOpen && !await _resolverCheck.HasResolverAsync(appeal, record, ct) ? AppealResolverCheck.NoResolverWarning : null;
 
     private async Task<EvaluationRecord> RequireRecordAsync(Guid recordId, CancellationToken ct) =>
         await _repo.FindRecordAsync(recordId, ct)
@@ -343,7 +356,7 @@ public sealed class AppealService : IAppealService
         _ => status.ToString()
     };
 
-    private AppealDto ToDto(EvaluationAppeal appeal, EvaluationRecord record)
+    private AppealDto ToDto(EvaluationAppeal appeal, EvaluationRecord record, string? resolverWarning = null)
     {
         var blocked = appeal.IsOpen ? ResolveBlockedReason(appeal, record) : null;
         var canReopen = appeal.Status == AppealStatus.Accepted
@@ -375,7 +388,8 @@ public sealed class AppealService : IAppealService
             // Chỉ báo lý do bị chặn cho người có quyền xử lý ở phạm vi nào đó (không lộ luật cho người chỉ xem).
             ResolveBlockedReason = appeal.IsOpen && blocked != null && _guard.HasAny(PermissionCodes.EvaluationAppealResolve) ? blocked : null,
             CanReopen = canReopen,
-            CanAttach = appeal.IsOpen && _guard.Can(PermissionCodes.EvaluationSelf, AccessTarget.ForRecord(record))
+            CanAttach = appeal.IsOpen && _guard.Can(PermissionCodes.EvaluationSelf, AccessTarget.ForRecord(record)),
+            ResolverWarning = resolverWarning
         };
     }
 

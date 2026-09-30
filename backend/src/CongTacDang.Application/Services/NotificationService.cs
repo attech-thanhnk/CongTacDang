@@ -47,7 +47,8 @@ public sealed class NotificationService : INotificationService
         var dueSoonDays = Math.Max(0, _options.DueSoonDays);
         var postPublishCodes = new HashSet<string>(StringComparer.Ordinal)
         {
-            PostPublishWorkQueue.AppealsGroup, PostPublishWorkQueue.ImprovementPlansGroup, PostPublishWorkQueue.PlanAcknowledgementGroup
+            PostPublishWorkQueue.AppealsGroup, PostPublishWorkQueue.ImprovementPlansGroup, PostPublishWorkQueue.PlanAcknowledgementGroup,
+            PostPublishWorkQueue.UnassignedAppealsGroup
         };
 
         var stepGroups = queue.Groups.Where(g => !postPublishCodes.Contains(g.Step)).ToList();
@@ -66,10 +67,11 @@ public sealed class NotificationService : INotificationService
             Appeals = CountOf(PostPublishWorkQueue.AppealsGroup),
             ImprovementPlans = CountOf(PostPublishWorkQueue.ImprovementPlansGroup),
             PlansToAcknowledge = CountOf(PostPublishWorkQueue.PlanAcknowledgementGroup),
+            UnassignedAppeals = CountOf(PostPublishWorkQueue.UnassignedAppealsGroup),
             DueSoonDays = dueSoonDays
         };
 
-        // Thứ tự ưu tiên: quá hạn → sắp tới hạn → kiến nghị → kế hoạch → xác nhận → việc khác.
+        // Thứ tự ưu tiên: quá hạn → sắp tới hạn → kiến nghị chưa có người xử lý → kiến nghị → kế hoạch → xác nhận → việc khác.
         var items = new List<NotificationItemDto>();
         items.AddRange(stepItems.Where(x => x.Item.Overdue).OrderBy(x => x.Item.Deadline)
             .Select(x => StepItem("overdue", x.Group, x.Item, $"Quá hạn {x.Group.StepName.ToLowerInvariant()}")));
@@ -77,6 +79,7 @@ public sealed class NotificationService : INotificationService
             .Select(x => StepItem("dueSoon", x.Group, x.Item, $"Sắp tới hạn: {x.Group.StepName}")));
         foreach (var (code, kind) in new[]
                  {
+                     (PostPublishWorkQueue.UnassignedAppealsGroup, "appealUnassigned"),
                      (PostPublishWorkQueue.AppealsGroup, "appeal"),
                      (PostPublishWorkQueue.ImprovementPlansGroup, "improvementPlan"),
                      (PostPublishWorkQueue.PlanAcknowledgementGroup, "acknowledge")
@@ -84,7 +87,16 @@ public sealed class NotificationService : INotificationService
         {
             var group = queue.Groups.FirstOrDefault(g => g.Step == code);
             if (group != null)
-                items.AddRange(group.Items.Select(i => StepItem(kind, group, i, group.StepName, $"{i.FullName} · {i.StatusDisplayName}")));
+            {
+                items.AddRange(group.Items.Select(i =>
+                {
+                    var item = StepItem(kind, group, i, group.StepName, $"{i.FullName} · {i.StatusDisplayName}");
+                    // Người gán vai trò có thể không xem được hồ sơ: dẫn tới trang tài khoản (gán vai trò theo từng người).
+                    if (code == PostPublishWorkQueue.UnassignedAppealsGroup)
+                        item.Link = "/admin/users";
+                    return item;
+                }));
+            }
         }
         items.AddRange(stepItems.Where(x => !x.Item.Overdue && !IsDueSoon(x.Item))
             .Select(x => StepItem("pending", x.Group, x.Item, x.Group.StepName)));

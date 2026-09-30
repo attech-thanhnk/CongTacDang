@@ -63,7 +63,8 @@ public interface IUserAccountService
 /// <param name="DepartmentId">Đơn vị công tác chính (đơn vị chính quyền).</param>
 /// <param name="PartyCellId">Nơi sinh hoạt Đảng (tổ chức Đảng).</param>
 /// <param name="ApprovalAuthority">
-/// Thẩm quyền phê duyệt <b>đặt tay</b> (ghi đè); null → suy ra từ chức vụ (tài khoản mới chưa có chức vụ → CoSo).
+/// Thẩm quyền phê duyệt <b>đặt tay</b> (ghi đè, bắt buộc lý do khi khác cấp suy ra); null hoặc bằng cấp suy ra → suy ra từ chức vụ
+/// (tài khoản mới chưa có chức vụ → CoSo).
 /// </param>
 public sealed record CreateAccountCommand(
     string Username,
@@ -78,7 +79,7 @@ public sealed record CreateAccountCommand(
     /// <summary>Số điện thoại (tùy chọn).</summary>
     public string? PhoneNumber { get; init; }
 
-    /// <summary>Lý do đặt tay thẩm quyền (khi <see cref="ApprovalAuthority"/> có giá trị; trống → "Đặt khi tạo tài khoản").</summary>
+    /// <summary>Lý do đặt tay thẩm quyền — bắt buộc khi <see cref="ApprovalAuthority"/> khác cấp suy ra từ chức vụ (tài khoản mới: CoSo).</summary>
     public string? ApprovalAuthorityReason { get; init; }
 
     /// <summary>Mã khung tỷ trọng A-B-C-D mặc định (theo bộ tiêu chí, ví dụ "K2"); trống → chưa chọn.</summary>
