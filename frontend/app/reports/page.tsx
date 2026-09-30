@@ -175,13 +175,13 @@ export default function ReportsPage() {
         subTitle="Hồ sơ nộp theo Hướng dẫn 03-HD/TVĐU (mục V.1) và báo cáo nội bộ."
         actions={
           <div className="d-flex flex-wrap gap-2">
-            <select className="form-select form-select-sm" style={{ minWidth: 200 }} aria-label="Kỳ đánh giá" value={periodId} onChange={(e) => setPeriodId(e.target.value)}>
+            <select className="form-select form-select-sm w-auto" style={{ minWidth: 200 }} aria-label="Kỳ đánh giá" value={periodId} onChange={(e) => setPeriodId(e.target.value)}>
               {periods.length === 0 && <option value="">Chưa có kỳ đánh giá</option>}
               {periods.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
-            <select className="form-select form-select-sm" style={{ minWidth: 240 }} aria-label="Phạm vi tổ chức Đảng" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+            <select className="form-select form-select-sm w-auto" style={{ minWidth: 240 }} aria-label="Phạm vi tổ chức Đảng" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
               <option value="">Toàn Đảng bộ / theo phạm vi được giao</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>{b.name}</option>

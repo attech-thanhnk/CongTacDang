@@ -21,7 +21,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleSessionExpired = () => {
       logout().finally(() => {
-        router.replace(`/login?returnUrl=${encodeURIComponent(pathname)}`);
+        router.replace(isLoginPage ? "/login" : `/login?returnUrl=${encodeURIComponent(pathname)}`);
       });
     };
 
@@ -29,7 +29,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     return () => {
       window.removeEventListener("auth:session-expired", handleSessionExpired);
     };
-  }, [logout, pathname, router]);
+  }, [logout, pathname, router, isLoginPage]);
 
   useEffect(() => {
     if (!loading) {

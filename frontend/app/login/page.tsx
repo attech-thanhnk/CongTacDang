@@ -6,12 +6,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/common";
 import { useOrganizationInfo } from "@/services/organizationSettingsService";
 
+/** Chỉ quay lại đường dẫn nội bộ (chặn chuyển hướng ra ngoài như "//host" hay "https://…"), bỏ qua trang đăng nhập. */
+function safeReturnUrl(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return "/evaluations";
+  if (value === "/login" || value.startsWith("/login?")) return "/evaluations";
+  return value;
+}
+
 function LoginForm() {
   const { login } = useAuth();
   const org = useOrganizationInfo();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get("returnUrl") || "/evaluations";
+  const returnUrl = safeReturnUrl(searchParams.get("returnUrl"));
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");

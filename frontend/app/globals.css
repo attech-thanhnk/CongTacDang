@@ -504,7 +504,7 @@ header.app-header .header-page {
   background: var(--bg-card);
   border-bottom: 1px solid var(--border-base);
   padding: var(--page-header-py) var(--page-px);
-  height: var(--page-header-min-h);
+  min-height: var(--page-header-min-h);
   box-sizing: border-box;
   display: flex;
   align-items: center;

@@ -7,6 +7,7 @@ import {
   EvaluationPeriodDto,
   EvaluationRecordDto,
   WorkQueueDto,
+  gradeLabel,
 } from "@/services/evaluationService";
 import { organizationService } from "@/services/organizationService";
 import { userService } from "@/services/userService";
@@ -257,12 +258,12 @@ export default function DashboardPage() {
               </div>
             )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "8px" }}>
-              {myRecord.progress.map((step) => {
+              {myRecord.progress.map((step, index) => {
                 const style = STEP_STATE_STYLE[step.state] || STEP_STATE_STYLE.pending;
                 return (
                   <div key={step.step} style={{ border: style.border, background: style.background, borderRadius: "var(--radius-md)", padding: "8px 10px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontWeight: 700, color: style.color }}>
-                      <span>{step.step}</span>
+                      <span>Bước {index + 1}</span>
                       <span>{style.mark}</span>
                     </div>
                     <div style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--text-primary)" }}>{step.name}</div>
@@ -278,7 +279,7 @@ export default function DashboardPage() {
             <div style={{ display: "flex", gap: "24px", flexWrap: "wrap", marginTop: "12px", fontSize: "13px", color: "var(--text-secondary)" }}>
               <span>Điểm tự chấm: <strong>{myRecord.totalSelfScore || "—"}</strong></span>
               <span>Thẩm định: <strong>{myRecord.appraisalScore ?? "—"}</strong></span>
-              <span>Xếp loại chính thức: <strong>{myRecord.status === "Published" ? myRecord.finalGrade : "Chưa công bố"}</strong></span>
+              <span>Xếp loại chính thức: <strong>{myRecord.status === "Published" ? gradeLabel(myRecord.finalGrade) : "Chưa công bố"}</strong></span>
             </div>
           </div>
         )}

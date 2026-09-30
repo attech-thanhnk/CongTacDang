@@ -393,6 +393,12 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
               <Field label="Người / cơ quan thẩm định" value={record.appraisedByName} />
               <Field label="Ý kiến" value={record.appraisalComment} />
             </div>
+            {record.appraisalExplanation && (
+              <div className="small mt-2">
+                <div className="text-secondary">Nội dung giải trình, căn cứ (chênh lệch với điểm tự chấm)</div>
+                <div className="fw-semibold" style={{ whiteSpace: "pre-wrap" }}>{record.appraisalExplanation}</div>
+              </div>
+            )}
           </div>
         )}
 

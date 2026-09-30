@@ -66,16 +66,16 @@ export default function ResultsPage() {
         badge={data ? <span className="badge text-bg-primary">{items.length}</span> : undefined}
         actions={
           <div className="d-flex flex-wrap gap-2">
-            <select className="form-select form-select-sm" aria-label="Kỳ đánh giá" value={periodId}
+            <select className="form-select form-select-sm w-auto" aria-label="Kỳ đánh giá" value={periodId}
               onChange={(e) => { setPeriodId(e.target.value); setDepartmentId(""); }}>
               <option value="">Tất cả kỳ</option>
               {(data?.periods ?? []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            <select className="form-select form-select-sm" aria-label="Đơn vị" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+            <select className="form-select form-select-sm w-auto" aria-label="Đơn vị" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
               <option value="">Tất cả đơn vị</option>
               {(data?.departments ?? []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
-            <select className="form-select form-select-sm" aria-label="Mức xếp loại" value={grade} onChange={(e) => setGrade(e.target.value)}>
+            <select className="form-select form-select-sm w-auto" aria-label="Mức xếp loại" value={grade} onChange={(e) => setGrade(e.target.value)}>
               <option value="">Tất cả mức</option>
               {GRADE_OPTIONS.filter((g) => g.value !== "ChuaXepLoai").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
             </select>

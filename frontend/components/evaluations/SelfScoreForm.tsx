@@ -20,12 +20,16 @@ import {
 } from "@/services/criteriaService";
 import { FileUploadModal } from "@/components/attachments/FileUploadModal";
 import { AxisNoteFields, SelfAssessmentInput, TaskResultsInput } from "@/components/evaluations/IndividualFormInputs";
+import { useToast } from "@/contexts/ToastContext";
+
+/** Ô điểm để trống ("") cho tới khi cán bộ tự nhập — không điền sẵn mức tối đa. */
+type ScoreInput = number | "";
 
 interface TaskRatio {
-  a: number;
-  b: number;
-  c: number;
-  d: number;
+  a: ScoreInput;
+  b: ScoreInput;
+  c: ScoreInput;
+  d: ScoreInput;
   exceed: boolean;
   attachmentId?: string | null;
   attachmentName?: string | null;
@@ -68,8 +72,9 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
         initial[item.code] = record.generalScores?.[item.code] ?? { score: item.maxScore, notApplicable: false, reason: "" };
     return initial;
   });
-  const [axis, setAxis] = useState<Record<string, number>>(() =>
-    Object.fromEntries(content.axes.map((a) => [a.code, record.axisScores?.[a.code] ?? a.maxScore]))
+  const { confirm } = useToast();
+  const [axis, setAxis] = useState<Record<string, ScoreInput>>(() =>
+    Object.fromEntries(content.axes.map((a) => [a.code, record.axisScores?.[a.code] ?? ""]))
   );
   const [grade, setGrade] = useState(record.selfProposedGrade && record.selfProposedGrade !== "ChuaXepLoai" ? record.selfProposedGrade : "");
   const [ratios, setRatios] = useState<Record<string, TaskRatio>>(() =>
@@ -77,10 +82,10 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       record.tasks.map((t) => [
         t.id,
         {
-          a: Math.round((t.criteriaA_Ratio ?? 1) * 100),
-          b: Math.round((t.criteriaB_Ratio ?? 1) * 100),
-          c: Math.round((t.criteriaC_Ratio ?? 1) * 100),
-          d: Math.round((t.criteriaD_Ratio ?? 1) * 100),
+          a: t.criteriaA_Ratio == null ? "" : Math.round(t.criteriaA_Ratio * 100),
+          b: t.criteriaB_Ratio == null ? "" : Math.round(t.criteriaB_Ratio * 100),
+          c: t.criteriaC_Ratio == null ? "" : Math.round(t.criteriaC_Ratio * 100),
+          d: t.criteriaD_Ratio == null ? "" : Math.round(t.criteriaD_Ratio * 100),
           exceed: t.isExceedStandard,
           attachmentId: t.attachmentId,
           attachmentName: t.attachmentOriginalName || t.attachmentFileName,
@@ -101,18 +106,19 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   );
 
   const setItem = (code: string, change: Partial<GeneralItemScore>) => setGeneral({ ...general, [code]: { ...general[code], ...change } });
-  const setRatio = (taskId: string, key: keyof TaskRatio, value: number | boolean | string | null) =>
+  const toInput = (raw: string): ScoreInput => (raw === "" ? "" : Number(raw));
+  const setRatio = (taskId: string, key: keyof TaskRatio, value: ScoreInput | boolean | string | null) =>
     setRatios({ ...ratios, [taskId]: { ...ratios[taskId], [key]: value } });
 
   const generalScore = useMemo(() => generalTotal(content, general), [content, general]);
   const taskScore = (weight: number, r: TaskRatio) => {
     if (!frame) return 0;
-    const clamp = (v: number) => Math.min(1, Math.max(0, (Number(v) || 0) / 100));
+    const clamp = (v: ScoreInput) => Math.min(1, Math.max(0, (Number(v) || 0) / 100));
     const ratio = clamp(r.a) * frame.a + clamp(r.b) * frame.b + clamp(r.c) * frame.c + clamp(r.d) * frame.d;
     return roundScore(weight * ratio, p.rounding.taskScore);
   };
   const tasksScore = useMemo(() => {
-    if (uses09B) return roundScore(Object.values(axis).reduce((s, v) => s + (Number(v) || 0), 0), p.rounding.tasksTotal);
+    if (uses09B) return roundScore(Object.values(axis).reduce<number>((s, v) => s + (Number(v) || 0), 0), p.rounding.tasksTotal);
     return roundScore(record.tasks.reduce((s, t) => s + (ratios[t.id] ? taskScore(t.weight, ratios[t.id]) : t.selfScore), 0), p.rounding.tasksTotal);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uses09B, axis, ratios, record.tasks, frame, p]);
@@ -143,7 +149,19 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
         attachmentId: ratios[t.id].attachmentId || null,
       }));
     }
-    onSubmit(payload);
+    const gradeLabel = grade ? GRADE_LABELS[grade as keyof typeof GRADE_LABELS] : `${GRADE_LABELS[gradeByScore(content, total)]} (hệ thống gợi ý)`;
+    const missing = [
+      uses09C && !Object.values(selfAssessment).some((v) => v?.trim()) ? "bản tự đánh giá Mẫu 09C" : null,
+      uses9D && taskResults.length === 0 ? "kết quả nhiệm vụ Mẫu 9D" : null,
+    ].filter(Boolean);
+    confirm({
+      title: "Nộp phiếu tự chấm",
+      message: `Tổng điểm tự chấm ${fmt(total)}, mức tự đề xuất: ${gradeLabel}.`
+        + (missing.length ? ` Chưa nhập ${missing.join(" và ")}.` : "")
+        + " Sau khi nộp, phiếu chuyển sang Chi bộ xác nhận và bạn không sửa được, trừ khi bị trả lại.",
+      confirmText: "Nộp phiếu",
+      onConfirm: () => onSubmit(payload),
+    });
   };
 
   const band = (percent: number) =>
@@ -240,8 +258,8 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                   </div>
                   <div className="col-12 col-md-3">
                     <div className="input-group input-group-sm">
-                      <input id={`axis-${a.code}`} type="number" min={0} max={a.maxScore} step={0.5} className="form-control form-control-sm" value={axis[a.code]}
-                        onChange={(e) => setAxis({ ...axis, [a.code]: Number(e.target.value) })} />
+                      <input id={`axis-${a.code}`} type="number" min={0} max={a.maxScore} step={0.5} className="form-control form-control-sm" value={axis[a.code]} required
+                        placeholder="Nhập điểm" onChange={(e) => setAxis({ ...axis, [a.code]: toInput(e.target.value) })} />
                       <span className="input-group-text">/ {fmt(a.maxScore)}</span>
                     </div>
                   </div>
@@ -277,8 +295,8 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                       <td className="small">{t.weight}</td>
                       {(["a", "b", "c", "d"] as const).map((k) => (
                         <td key={k}>
-                          <input type="number" min={0} max={100} step={1} className="form-control form-control-sm" value={r[k]} title={band(Number(r[k]) || 0)?.label}
-                            onChange={(e) => setRatio(t.id, k, Number(e.target.value))} aria-label={`Thành phần ${k.toUpperCase()} — ${t.taskName}`} />
+                          <input type="number" min={0} max={100} step={1} className="form-control form-control-sm" value={r[k]} required title={band(Number(r[k]) || 0)?.label}
+                            onChange={(e) => setRatio(t.id, k, toInput(e.target.value))} aria-label={`Thành phần ${k.toUpperCase()} — ${t.taskName}`} />
                         </td>
                       ))}
                       <td className="small fw-semibold">{fmt(taskScore(t.weight, r))}</td>
