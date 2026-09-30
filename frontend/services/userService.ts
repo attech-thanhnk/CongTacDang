@@ -166,7 +166,22 @@ function toQuery(params: Record<string, string | number | boolean | undefined>):
 }
 
 /** Dịch vụ quản trị tài khoản (API task 08). */
+/** Thông tin cán bộ của chính người đang đăng nhập (GET /users/profile). */
+export interface MyProfile {
+  id: string;
+  fullName: string;
+  userName: string;
+  adminTitle: string;
+  partyBranchName: string;
+  adminDeptName: string;
+}
+
 export const userService = {
+  /** Thông tin của chính mình. */
+  getMyProfile(): Promise<MyProfile> {
+    return request<MyProfile>("/users/profile");
+  },
+
   /** Danh sách tài khoản có phân trang, tìm kiếm, lọc (trong phạm vi được xem). */
   search(params: AccountSearchParams = {}): Promise<PagedResult<AccountListItem>> {
     return request<PagedResult<AccountListItem>>(

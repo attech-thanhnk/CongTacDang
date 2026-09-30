@@ -3,12 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { sessionRoleLabel, useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
 import { usePeriod } from "@/contexts/PeriodContext";
-import { useToast } from "@/contexts/ToastContext";
 import { useOrganizationInfo } from "@/services/organizationSettingsService";
-import accountStyles from "./SidebarAccount.module.css";
+import { AccountMenu } from "./AccountMenu";
 
 interface MenuItem {
   title: string;
@@ -26,17 +25,6 @@ interface MenuGroup {
 }
 
 /** Chữ cái đầu của hai từ cuối trong họ tên. */
-function initialsOf(fullName?: string): string {
-  if (!fullName) return "?";
-  return fullName
-    .split(" ")
-    .filter(Boolean)
-    .slice(-2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-}
-
 /** Biểu tượng Đảng bộ: ngôi sao trong vòng tròn đỏ son. */
 function Emblem() {
   return (
@@ -50,10 +38,9 @@ function Emblem() {
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { user, logout, hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { isSidebarOpen, closeSidebar } = useLayout();
   const { periods, periodId, setPeriodId } = usePeriod();
-  const { toast } = useToast();
   const org = useOrganizationInfo();
 
   // Tên hiển thị lấy từ cài đặt đơn vị: dòng lớn là tên viết tắt, dòng nhỏ là phần còn lại của tên hệ thống.
@@ -126,14 +113,6 @@ export function AppSidebar() {
     if (typeof window !== "undefined" && window.innerWidth < 768) closeSidebar();
   };
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (err: any) {
-      toast.error(err?.message || "Đăng xuất thất bại.");
-    }
-  };
-
   return (
     <>
       {isSidebarOpen && <div onClick={closeSidebar} className="side-backdrop d-md-none" />}
@@ -194,28 +173,7 @@ export function AppSidebar() {
           ))}
         </nav>
 
-        {user && (
-          <div className="side-me">
-            <div className="initials">{initialsOf(user.fullName)}</div>
-            <div className="side-me-text">
-              <b className="text-truncate">{user.fullName}</b>
-              <small className="text-truncate">{sessionRoleLabel(user)}</small>
-            </div>
-            <Link
-              href="/change-password"
-              onClick={closeOnMobile}
-              className={accountStyles.iconBtn}
-              title="Đổi mật khẩu"
-              aria-label="Đổi mật khẩu"
-              aria-current={pathname === "/change-password" ? "page" : undefined}
-            >
-              <i className="bi bi-key" />
-            </Link>
-            <button type="button" onClick={handleLogout} className="side-logout" title="Đăng xuất" aria-label="Đăng xuất">
-              <i className="bi bi-box-arrow-right" />
-            </button>
-          </div>
-        )}
+        <AccountMenu onNavigate={closeOnMobile} />
       </aside>
     </>
   );
