@@ -166,7 +166,7 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         if (isOwner && ConflictOfInterestCodes.Contains(permission))
         {
             return new ForbiddenException(
-                $"Bạn không được thực hiện \"{name}\" trên hồ sơ của chính mình (xung đột lợi ích theo Hướng dẫn 03-HD/TVĐU).");
+                $"Bạn không được thực hiện \"{name}\" trên hồ sơ của chính mình (xung đột lợi ích).");
         }
 
         if ((permission is PermissionCodes.EvaluationSelf or PermissionCodes.EvaluationAppealSubmit) && !isOwner)

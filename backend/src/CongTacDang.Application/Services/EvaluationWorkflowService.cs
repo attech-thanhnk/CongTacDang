@@ -806,7 +806,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         if (IsConflictOfInterest(action, record))
         {
             throw new ForbiddenException(
-                $"Bạn không được thực hiện \"{PermissionCodes.DisplayName(permission)}\" trên hồ sơ của chính mình (xung đột lợi ích theo Hướng dẫn 03-HD/TVĐU).");
+                $"Bạn không được thực hiện \"{PermissionCodes.DisplayName(permission)}\" trên hồ sơ của chính mình (xung đột lợi ích).");
         }
         _guard.Ensure(permission, AccessTarget.ForRecord(record));
 

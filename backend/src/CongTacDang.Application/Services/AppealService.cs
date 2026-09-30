@@ -177,7 +177,7 @@ public sealed class AppealService : IAppealService
                 throw new ValidationException("Hãy chọn chấp nhận hoặc không chấp nhận kiến nghị.");
             var response = request.Response?.Trim();
             if (string.IsNullOrEmpty(response))
-                throw new ValidationException("Hãy nhập nội dung trả lời, nêu rõ căn cứ chấp nhận hoặc không chấp nhận (HD03 PL II mục III.2).");
+                throw new ValidationException("Hãy nhập nội dung trả lời, nêu rõ căn cứ chấp nhận hoặc không chấp nhận.");
             if (response.Length > MaxContentLength)
                 throw new ValidationException($"Nội dung trả lời dài tối đa {MaxContentLength} ký tự.");
 
@@ -284,11 +284,11 @@ public sealed class AppealService : IAppealService
         if (userId == null)
             return "Chưa đăng nhập.";
         if (userId == appeal.SubmittedById || userId == record.MemberId)
-            return "Bạn không được xử lý kiến nghị của chính mình (xung đột lợi ích theo Hướng dẫn 03-HD/TVĐU).";
+            return "Bạn không được xử lý kiến nghị của chính mình (xung đột lợi ích).";
         if (appeal.ConflictedUserIds.Contains(userId.Value))
         {
-            return "Kiến nghị liên quan tới bước bạn đã thực hiện trên hồ sơ này nên bạn không chủ trì xử lý (xung đột lợi ích — "
-                + "HD03 PL II mục III.2). Hãy chuyển cho người có thẩm quyền khác.";
+            return "Kiến nghị liên quan tới bước bạn đã thực hiện trên hồ sơ này nên bạn không chủ trì xử lý (xung đột lợi ích). "
+                + "Hãy chuyển cho người có thẩm quyền khác.";
         }
         if (!_guard.Can(PermissionCodes.EvaluationAppealResolve, AccessTarget.ForRecord(record)))
         {

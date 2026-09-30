@@ -350,7 +350,7 @@ public sealed class CriteriaSetService : ICriteriaSetService
     {
         var clean = code?.Trim().ToUpperInvariant();
         if (string.IsNullOrEmpty(clean))
-            throw new ValidationException("Hãy nhập mã bộ tiêu chí (ví dụ \"HD03-09B-Q3-2026\").");
+            throw new ValidationException("Hãy nhập mã bộ tiêu chí (ví dụ \"09B-Q3-2026\").");
         if (clean.Length > MaxCodeLength || !clean.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.'))
             throw new ValidationException($"Mã bộ tiêu chí \"{clean}\" không hợp lệ: chỉ gồm chữ không dấu, số, dấu chấm, gạch nối, gạch dưới (tối đa {MaxCodeLength} ký tự).");
         if (await _repo.CodeExistsAsync(clean, exceptId, ct))

@@ -246,11 +246,9 @@ public sealed class PeriodSettings
     public static readonly IReadOnlyList<PeriodPreset> Presets = new[]
     {
         new PeriodPreset(PresetFull, "Đầy đủ",
-            "Đủ các bước (có đăng ký, duyệt danh mục sản phẩm Mẫu 01 — dùng với bộ tiêu chí Mẫu 09A). Sinh sẵn 3 hồ sơ luồng: "
-            + "Diện Đảng ủy cơ sở, Diện BTV Đảng ủy Tổng công ty, Bí thư/Phó bí thư Chi bộ là nhân viên.", CriteriaSetContent.Form09A),
+            "Đủ các bước, có đăng ký và duyệt sản phẩm (Mẫu 01); dùng bộ tiêu chí Mẫu 09A.", CriteriaSetContent.Form09A),
         new PeriodPreset(PresetTransitionQ3, "Quý III/2026 — chuyển tiếp",
-            "Như kiểu \"Đầy đủ\" nhưng không áp dụng đăng ký và duyệt sản phẩm (B1) ở mọi hồ sơ luồng; dùng với bộ tiêu chí Mẫu 09B "
-            + "(chấm trực tiếp theo trục).", CriteriaSetContent.Form09B)
+            "Không có bước đăng ký, duyệt sản phẩm; dùng bộ tiêu chí Mẫu 09B.", CriteriaSetContent.Form09B)
     };
 
     /// <summary>Tùy chọn JSON: camelCase, không phân biệt hoa thường; khóa bước và khóa cấp quyết định giữ nguyên mã.</summary>
@@ -288,10 +286,10 @@ public sealed class PeriodSettings
             {
                 // Ví dụ 1: B3a tập thể lãnh đạo Phòng, B3b Phòng TCCB-LĐ, B3c Giám đốc, B4 Đảng ủy cơ sở — tất cả trong hệ thống.
                 WorkflowProfile.Create(ProfileBase, "Diện Đảng ủy cơ sở",
-                    "PL III ví dụ 1: tập thể lãnh đạo Phòng đề xuất, Phòng TCCB-LĐ thẩm định, Giám đốc nhận xét, Đảng ủy cơ sở quyết định."),
+                    "Tập thể lãnh đạo Phòng đề xuất, Phòng TCCB-LĐ thẩm định, Giám đốc nhận xét, Đảng ủy cơ sở quyết định."),
                 // Ví dụ 2: B3a tập thể lãnh đạo Công ty (nội bộ); thẩm định, nhận xét, quyết định ở cấp trên.
                 WorkflowProfile.Create(ProfileUpper, "Diện BTV Đảng ủy Tổng công ty",
-                    "PL III ví dụ 2: tập thể lãnh đạo Công ty đề xuất trong hệ thống; thẩm định (Ban TCĐU), nhận xét (HĐTV), "
+                    "Tập thể lãnh đạo Công ty đề xuất trong hệ thống; thẩm định (Ban TCĐU), nhận xét (HĐTV), "
                     + "quyết định (BTV Đảng ủy Tổng công ty) do cấp trên thực hiện — hệ thống ghi nhận kết quả.",
                     new Dictionary<WorkflowStep, StepMode>
                     {
@@ -301,7 +299,7 @@ public sealed class PeriodSettings
                     }),
                 // Ví dụ 3: Trưởng phòng đề xuất thay bước cấp trực tiếp sử dụng của Giám đốc.
                 WorkflowProfile.Create(ProfileCellSecretaryStaff, "Bí thư/Phó bí thư Chi bộ là nhân viên",
-                    "PL III ví dụ 3: tập thể lãnh đạo Phòng đề xuất, Trưởng phòng đề xuất mức (thay Giám đốc), "
+                    "Tập thể lãnh đạo Phòng đề xuất, Trưởng phòng đề xuất mức (thay Giám đốc), "
                     + "Phòng TCCB-LĐ thẩm định, Đảng ủy cơ sở quyết định.",
                     permissions: new Dictionary<WorkflowStep, string>
                     {
