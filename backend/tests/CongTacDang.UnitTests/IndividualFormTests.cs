@@ -140,6 +140,64 @@ public class IndividualFormTests
     }
 
     [Fact]
+    public void TaskResults_Level_ValidatedAndRenderedIn09C()
+    {
+        var c = CriteriaSetDefaults.Build09B();
+        Assert.Contains("mức tự đánh giá", RecordFormContent.ValidateTaskResults(c, new List<TaskResultRow?> { new() { AxisCode = "T1", Content = "x", Level = 4 } }));
+        Assert.Null(RecordFormContent.ValidateTaskResults(c, new List<TaskResultRow?> { new() { AxisCode = "T1", Content = "x", Level = 3 } }));
+
+        var source = Source();
+        source.Record.TaskResults = RecordFormContent.TaskResultsToJson(c, new List<TaskResultRow?>
+        {
+            new() { AxisCode = "T1", Content = "Nhóm nhiệm vụ KHCN", Status = "02 đề tài chậm tiến độ", Level = 2 },
+            new() { AxisCode = "T1", Content = "Lãnh đạo SXKD.", Level = 1 },
+            new() { AxisCode = "T2", Content = "Chưa chọn mức" }
+        });
+        var content = Assert.Single(Mau09CData.From(source).Sections).Content!;
+        Assert.Contains("Nhiệm vụ 1: Nhóm nhiệm vụ KHCN. 02 đề tài chậm tiến độ. Tự đánh giá mức 2.", content);
+        Assert.Contains("Nhiệm vụ 2: Lãnh đạo SXKD. Tự đánh giá mức 1.", content);
+        Assert.Contains("Nhiệm vụ 1: Chưa chọn mức.", content);
+        Assert.DoesNotContain("Chưa chọn mức. Tự đánh giá", content);
+        Assert.EndsWith("Tự đánh giá mục I (test)", content);
+    }
+
+    [Fact]
+    public void TaskLevels_AndWording_AreConfiguredInCriteriaSet()
+    {
+        var c = CriteriaSetDefaults.Build09B();
+        Assert.Equal(new[] { 1, 2, 3 }, c.TaskLevels.Select(l => l.Code));
+        Assert.Empty(c.Validate(CriteriaSetContent.Form09B));
+
+        // Bộ khác khai báo mức và câu chữ riêng → máy chủ và Mẫu 09C theo bộ, không theo hằng số trong code.
+        c.TaskLevels = new List<TaskLevel> { new() { Code = 1, Label = "Tốt" }, new() { Code = 5, Label = "Kém" } };
+        c.TaskLineLabel = "Việc {n} -";
+        c.TaskLevelPhrase = "(mức {level})";
+        Assert.Empty(c.Validate(CriteriaSetContent.Form09B));
+        Assert.Null(RecordFormContent.ValidateTaskResults(c, new List<TaskResultRow?> { new() { AxisCode = "T1", Content = "x", Level = 5 } }));
+        Assert.Contains("chỉ nhận 1, 5", RecordFormContent.ValidateTaskResults(c, new List<TaskResultRow?> { new() { AxisCode = "T1", Content = "x", Level = 3 } }));
+
+        var source = Source();
+        source.Criteria.TaskLevels = c.TaskLevels;
+        source.Criteria.TaskLineLabel = c.TaskLineLabel;
+        source.Criteria.TaskLevelPhrase = c.TaskLevelPhrase;
+        source.Record.TaskResults = RecordFormContent.TaskResultsToJson(c, new List<TaskResultRow?> { new() { AxisCode = "T1", Content = "Làm A", Level = 5 } });
+        Assert.Contains("Việc 1 - Làm A. (mức 5)", Assert.Single(Mau09CData.From(source).Sections).Content!);
+
+        // Không khai báo mức → không nhận mức.
+        c.TaskLevels = new List<TaskLevel>();
+        c.TaskLevelPhrase = null;
+        Assert.Contains("chưa khai báo mức", RecordFormContent.ValidateTaskResults(c, new List<TaskResultRow?> { new() { AxisCode = "T1", Content = "x", Level = 1 } }));
+
+        // Cấu hình sai bị từ chối.
+        var bad = CriteriaSetDefaults.Build09B();
+        bad.TaskLevels[1].Code = 1;
+        bad.TaskLevelPhrase = "không có tham số";
+        var errors = bad.Validate(CriteriaSetContent.Form09B);
+        Assert.Contains(errors, e => e.Contains("bị trùng"));
+        Assert.Contains(errors, e => e.Contains("{level}"));
+    }
+
+    [Fact]
     public void AxisNotes_Validation_AndJson()
     {
         var c = CriteriaSetDefaults.Build09B();
@@ -298,6 +356,50 @@ public class IndividualFormTests
         Assert.Contains("☐ Hoàn thành xuất sắc", text);
     }
 
+
+    [Fact]
+    public void RealRecord_Q3_2026_ReproducesStandardDocuments()
+    {
+        // Số liệu lấy từ Mẫu 9B/9C/9D thật trong docs/tai-lieu-chuan (quý III/2026): chung 30/30, trục 10+7+7+12+7+10 = 53, tổng 83.
+        var criteria = CriteriaSetDefaults.Build09B();
+        var general = criteria.AllItems.ToDictionary(x => x.Item.Code, x => new GeneralItemScore { Score = x.Item.MaxScore });
+        var axes = new Dictionary<string, double> { ["T1"] = 10, ["T2"] = 7, ["T3"] = 7, ["T4"] = 12, ["T5"] = 7, ["T6"] = 10 };
+
+        Assert.Null(EvaluationScoring.ValidateGeneralScores(criteria, general));
+        Assert.Null(EvaluationScoring.ValidateAxisScores(criteria, axes));
+        var generalTotal = EvaluationScoring.GeneralCriteriaScore(criteria, general);
+        var tasksTotal = EvaluationScoring.AxisTasksScore(criteria, axes);
+        Assert.Equal(30, generalTotal);
+        Assert.Equal(53, tasksTotal);
+        Assert.Equal(83, EvaluationScoring.TotalScore(generalTotal, tasksTotal, criteria.Parameters.Rounding.Total));
+
+        var source = Source();
+        var record = source.Record;
+        record.Member!.FullName = "Nguyễn Văn B";
+        record.GeneralScores = EvaluationScoring.GeneralScoresToJson(criteria, general);
+        record.AxisScores = EvaluationScoring.AxisScoresToJson(criteria, axes);
+        record.GeneralCriteriaScore = generalTotal;
+        record.TasksScore = tasksTotal;
+        record.TotalSelfScore = 83;
+        record.SelfProposedGrade = EvaluationGrade.HoanThanh;
+        record.SelfAssessment = RecordFormContent.SelfAssessmentToJson(criteria, new Dictionary<string, string?>());
+        record.TaskResults = RecordFormContent.TaskResultsToJson(criteria, new List<TaskResultRow?>
+        {
+            new() { AxisCode = "T1", Content = "Nhóm nhiệm vụ KHCN đang trong giai đoạn lập Hồ sơ thiết kế", Status = "02 đề tài chậm tiến độ, cần điều chỉnh tiến độ", Level = 2 },
+            new() { AxisCode = "T1", Content = "Lãnh đạo thực hiện SXKD, đảm bảo các hệ thống CNTT hoạt động ổn định, an toàn và liên tục", Level = 1 },
+            new() { AxisCode = "T6", Content = "Đối ngoại và hội nhập quốc tế: tham gia nhóm SWIM của Thụy Điển và Hội nghị ICAO về SWIM", Level = 1 }
+        });
+
+        var text = Render(Mau09CData.TemplateFileName, Mau09CData.From(source), out _);
+        Assert.Contains("Nguyễn Văn B", text, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(criteria.Axes[0].Name, text);
+        Assert.Contains("Nhiệm vụ 1: Nhóm nhiệm vụ KHCN đang trong giai đoạn lập Hồ sơ thiết kế. 02 đề tài chậm tiến độ, cần điều chỉnh tiến độ. Tự đánh giá mức 2.", text);
+        Assert.Contains("Nhiệm vụ 2: Lãnh đạo thực hiện SXKD", text);
+        Assert.Contains("Tự đánh giá mức 1.", text);
+        Assert.Contains("30", text);
+        Assert.Contains("53", text);
+        Assert.Contains("83", text);
+    }
     [Fact]
     public void NotYetSelfScored_KeepsTemplateDots_ForScores()
     {

@@ -158,3 +158,27 @@ public class OrgUnitType : IAuditableEntity, ISoftDeletable
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedBy { get; set; }
 }
+
+/// <summary>
+/// Ngày nghỉ (bảng <c>holidays</c>): lễ, Tết, nghỉ bù… ngoài thứ Bảy, Chủ nhật. Danh mục chung của hệ thống do quản trị khai báo
+/// theo năm; dùng khi tính thời hạn các bước theo "ngày làm việc" (<c>PeriodSettings.ApplyDeadlineRules</c>).
+/// </summary>
+public class Holiday : IAuditableEntity, ISoftDeletable
+{
+    /// <summary>Mã định danh.</summary>
+    public Guid Id { get; set; } = Guid.NewGuid();
+
+    /// <summary>Ngày nghỉ (duy nhất trong danh mục).</summary>
+    public DateOnly Date { get; set; }
+
+    /// <summary>Tên ngày nghỉ (ví dụ "Quốc khánh", "Tết Nguyên đán").</summary>
+    public string Name { get; set; } = string.Empty;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid? CreatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? UpdatedBy { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedBy { get; set; }
+}

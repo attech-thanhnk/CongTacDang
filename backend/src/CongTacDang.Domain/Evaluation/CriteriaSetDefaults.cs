@@ -99,6 +99,9 @@ public static partial class CriteriaSetDefaults
             Axes = axes,
             RequiredForms = new List<string>(requiredForms),
             SelfAssessmentSections = SelfAssessmentSections(),
+            TaskLevels = TaskLevels(),
+            TaskLineLabel = TaskLineLabel,
+            TaskLevelPhrase = TaskLevelPhrase,
             WeightFrames = new List<WeightFrame>
             {
                 new() { Code = "K1", Name = "Khung 1 - Quản lý, tham mưu, công tác Đảng, Đoàn thể", A = 0.25, B = 0.35, C = 0.20, D = 0.20 },

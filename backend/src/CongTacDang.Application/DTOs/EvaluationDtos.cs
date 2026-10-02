@@ -468,6 +468,8 @@ public class UpdatePeriodDto
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public PeriodSettings? Settings { get; set; }
+    /// <summary>Điền thời hạn các bước theo quy tắc (cần gửi kèm <see cref="Settings"/>); ngày sau đó vẫn sửa tự do.</summary>
+    public bool ApplyDeadlineRules { get; set; }
     /// <summary>Đổi bộ tiêu chí (chỉ khi kỳ dự thảo; chỉ bộ đã xuất bản); trống = giữ nguyên.</summary>
     public Guid? CriteriaSetId { get; set; }
 }

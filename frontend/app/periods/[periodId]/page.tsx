@@ -159,6 +159,9 @@ export default function PeriodDetailPage() {
   const saveSettings = () =>
     run(() => evaluationService.updatePeriod(period.id, period.version, { settings }), "Đã lưu cấu hình kỳ.");
 
+  const applyRules = () =>
+    run(() => evaluationService.updatePeriod(period.id, period.version, { settings, applyDeadlineRules: true }), "Đã điền thời hạn theo quy tắc.");
+
   const chooseCriteria = (criteriaSetId: string) =>
     run(() => evaluationService.updatePeriod(period.id, period.version, { criteriaSetId }), "Đã chọn bộ tiêu chí cho kỳ.");
 
@@ -236,7 +239,7 @@ export default function PeriodDetailPage() {
               deadlinesEditable={deadlinesEditable}
               permissionOptions={permissionOptions}
               savedCodes={period.settings.profiles.map((p) => p.code)}
-            />
+              onApplyRules={applyRules}            />
 
             <div className="form-check mt-2">
               <input className="form-check-input" type="checkbox" id="enforce" checked={settings.enforceDeadlines} disabled={!editable}

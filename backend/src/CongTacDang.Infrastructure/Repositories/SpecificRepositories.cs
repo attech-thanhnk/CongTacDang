@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using CongTacDang.Application.Common.Interfaces;
@@ -833,4 +834,35 @@ public class EvaluationMeetingRepository : IEvaluationMeetingRepository
             .Include(x => x.Period)
             .Include(x => x.VoteSummaries)
             .FirstOrDefaultAsync(x => x.Id == id);
+}
+
+/// <summary>Repository danh mục ngày nghỉ.</summary>
+public class HolidayRepository : IHolidayRepository
+{
+    private readonly CongTacDangDbContext _db;
+
+    public HolidayRepository(CongTacDangDbContext db)
+    {
+        _db = db;
+    }
+
+    /// <inheritdoc />
+    public Task<List<Holiday>> ListAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
+        => _db.Holidays.AsNoTracking().Where(h => h.Date >= from && h.Date <= to).OrderBy(h => h.Date).ToListAsync(ct);
+
+    /// <inheritdoc />
+    public Task<Holiday?> FindAsync(Guid id, CancellationToken ct = default)
+        => _db.Holidays.FirstOrDefaultAsync(h => h.Id == id, ct);
+
+    /// <inheritdoc />
+    public async Task<HashSet<DateOnly>> ExistingDatesAsync(DateOnly from, DateOnly to, Guid? excludeId = null, CancellationToken ct = default)
+        => (await _db.Holidays.AsNoTracking()
+                .Where(h => h.Date >= from && h.Date <= to && (excludeId == null || h.Id != excludeId))
+                .Select(h => h.Date).ToListAsync(ct)).ToHashSet();
+
+    /// <inheritdoc />
+    public void Add(Holiday holiday) => _db.Holidays.Add(holiday);
+
+    /// <inheritdoc />
+    public void Remove(Holiday holiday) => _db.Holidays.Remove(holiday);
 }

@@ -22,6 +22,20 @@ public static partial class CriteriaSetDefaults
         RecordFormCodes.Form01, RecordFormCodes.Form02, RecordFormCodes.Form09A, RecordFormCodes.Form09C, RecordFormCodes.Form9D, RecordFormCodes.Form10
     };
 
+    /// <summary>Ba mức kết luận chất lượng sản phẩm của nhiệm vụ trọng tâm (lưu ý cuối Mẫu 09B/09C, HD03).</summary>
+    public static List<TaskLevel> TaskLevels() => new()
+    {
+        new TaskLevel { Code = 1, Label = "Chủ động tiếp cận, giải quyết hiệu quả vấn đề, có kết quả cụ thể" },
+        new TaskLevel { Code = 2, Label = "Cơ bản đáp ứng yêu cầu nhưng còn hạn chế, cần tiếp tục hoàn thiện" },
+        new TaskLevel { Code = 3, Label = "Không đáp ứng yêu cầu nhiệm vụ" }
+    };
+
+    /// <summary>Tiền tố mỗi nhiệm vụ khi dựng Mẫu 09C (theo bản tự đánh giá mẫu).</summary>
+    public const string TaskLineLabel = "Nhiệm vụ {n}:";
+
+    /// <summary>Câu nối mức khi dựng Mẫu 09C (theo bản tự đánh giá mẫu).</summary>
+    public const string TaskLevelPhrase = "Tự đánh giá mức {level}.";
+
     /// <summary>Mục tự đánh giá của Mẫu 09C (mẫu gốc có một mục; phần II lấy từ điểm tự chấm đã lưu).</summary>
     public static List<SelfAssessmentSection> SelfAssessmentSections() => new()
     {

@@ -34,6 +34,7 @@ import {
   evaluationService,
   isConcurrencyConflict,
   selfAssessmentSections,
+  taskLevels,
 } from "@/services/evaluationService";
 import { formatDate, formatDateTime } from "@/lib/dateFormat";
 
@@ -392,7 +393,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
 
       {criteriaAppliesForm(criteria, "9D") && (
         <CollapsibleSection title="Kết quả thực hiện nhiệm vụ (Mẫu 9D)" tag={tag("B2_SELF_SCORE")} defaultOpen={false}>
-          <TaskResultsView axes={axes} rows={record.taskResults} />
+          <TaskResultsView axes={axes} rows={record.taskResults} levels={taskLevels(criteria)} />
         </CollapsibleSection>
       )}
 

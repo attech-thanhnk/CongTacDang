@@ -57,6 +57,9 @@ export function CriteriaSummary({ content, form }: { content: CriteriaSetContent
             Mục 09C <strong>{s.code}</strong>: {s.title} — tối đa {fmt(s.maxLength, 0)} ký tự{s.required ? ", bắt buộc khi nộp" : ""}
           </div>
         ))}
+        {(content.taskLevels ?? []).map((l) => (
+          <div key={l.code} className="ms-3">Mức tự đánh giá nhiệm vụ <strong>{l.code}</strong>: {l.label}</div>
+        ))}
       </div>
 
       <div className="row g-3">

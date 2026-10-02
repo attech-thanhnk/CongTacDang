@@ -54,6 +54,7 @@ export default function CriteriaSetPage() {
       const copy: CriteriaSetContent = JSON.parse(JSON.stringify(loaded.content));
       copy.requiredForms = copy.requiredForms ?? [];
       copy.selfAssessmentSections = copy.selfAssessmentSections ?? [];
+      copy.taskLevels = copy.taskLevels ?? [];
       setContent(copy);
       setInfo({ code: loaded.code, name: loaded.name, selfScoreForm: loaded.selfScoreForm, notes: loaded.notes || "" });
     } catch (err: any) {
@@ -305,6 +306,40 @@ export default function CriteriaSetPage() {
                     </div>
                   </div>
                 ))}
+
+                <div className="d-flex justify-content-between align-items-center mt-3 mb-2">
+                  <h3 className="form-label mb-0 fw-semibold">Mức tự đánh giá của từng nhiệm vụ (cột "Mức" ở Mẫu 9D, câu "Tự đánh giá mức" ở Mẫu 09C)</h3>
+                  <button type="button" className="btn btn-outline-secondary btn-sm"
+                    onClick={() => update({ taskLevels: [...content.taskLevels, { code: Math.max(0, ...content.taskLevels.map((l) => l.code)) + 1, label: "" }] })}>
+                    Thêm mức
+                  </button>
+                </div>
+                {content.taskLevels.length === 0 && <div className="small text-secondary">Chưa khai báo mức nào — hồ sơ không có ô chọn mức.</div>}
+                {content.taskLevels.map((level, li) => (
+                  <div className="row g-2 align-items-end mb-1" key={li}>
+                    <div className="col-md-2"><label className="form-label mb-1">Mức</label>
+                      <input type="number" min={1} max={99} className="form-control form-control-sm" value={level.code}
+                        onChange={(e) => update({ taskLevels: content.taskLevels.map((l, i) => (i === li ? { ...l, code: num(e.target.value) } : l)) })} />
+                    </div>
+                    <div className="col-md-9"><label className="form-label mb-1">Nhãn mô tả</label>
+                      <input className="form-control form-control-sm" maxLength={FORM_CONFIG_LIMITS.title} value={level.label}
+                        onChange={(e) => update({ taskLevels: content.taskLevels.map((l, i) => (i === li ? { ...l, label: e.target.value } : l)) })} />
+                    </div>
+                    <div className="col-md-1">
+                      <button type="button" className="btn btn-link btn-sm text-danger p-0" onClick={() => update({ taskLevels: content.taskLevels.filter((_, i) => i !== li) })}>Xóa</button>
+                    </div>
+                  </div>
+                ))}
+                <div className="row g-2 mt-1">
+                  <div className="col-md-4"><label className="form-label mb-1">Tiền tố mỗi nhiệm vụ trên Mẫu 09C ({"{n}"} = số thứ tự)</label>
+                    <input className="form-control form-control-sm" maxLength={100} value={content.taskLineLabel || ""} placeholder="Nhiệm vụ {n}:"
+                      onChange={(e) => update({ taskLineLabel: e.target.value || null })} />
+                  </div>
+                  <div className="col-md-8"><label className="form-label mb-1">Câu nối mức trên Mẫu 09C ({"{level}"} = mã mức)</label>
+                    <input className="form-control form-control-sm" maxLength={200} value={content.taskLevelPhrase || ""} placeholder="Tự đánh giá mức {level}."
+                      onChange={(e) => update({ taskLevelPhrase: e.target.value || null })} />
+                  </div>
+                </div>
               </div>
             </section>
 

@@ -253,6 +253,7 @@ ghi log lỗi và xuất theo file gốc.
 - **Mục Mẫu 09C** khai báo trong `selfAssessmentSections` (mã, tiêu đề, câu dẫn, lưu ý, số ký tự tối đa, bắt buộc); nội dung hồ sơ
   lưu jsonb theo mã mục (`evaluation_records.SelfAssessment`). **Mẫu 9D** lưu các dòng theo mã trục (`TaskResults`); phần tự luận
   theo trục của 09B lưu ở `AxisNotes`. Cả ba nhập cùng phiếu tự chấm (bước `B2_SELF_SCORE`); trường không gửi = giữ nội dung đã lưu.
+- **Mức tự đánh giá từng nhiệm vụ:** khai báo trong bộ tiêu chí — `taskLevels` (mã số nguyên + nhãn; bộ mặc định theo lưu ý cuối Mẫu 09B/09C: mức 1, 2, 3), `taskLineLabel` (tiền tố, `{n}` = số thứ tự, mặc định "Nhiệm vụ {n}:") và `taskLevelPhrase` (câu nối, `{level}` = mã mức, mặc định "Tự đánh giá mức {level}."); sửa ở trang Bộ tiêu chí (bản nháp). Mỗi dòng Mẫu 9D có `level` (mã mức của bộ hoặc trống) — không in ở Mẫu 9D, máy chủ chỉ nhận mã có trong bộ. Khi xuất Mẫu 09C, mục đầu tiên tự dựng phần "n. Tên trục / <tiền tố> nội dung. Tình hình. <câu nối mức>" từ các dòng 9D (bỏ câu mức nếu chưa chọn), rồi đến phần nhận xét chung chủ hồ sơ nhập ở mục 09C. Bộ không khai báo mức thì màn hình tự chấm không có ô chọn mức; bộ đã xuất bản trước đây muốn dùng phải nhân bản thành bản nháp mới.
 - **API** (quyền xem hồ sơ — `evaluation.read` trong phạm vi, chủ hồ sơ luôn xem được; kiểm tra bằng guard trên hồ sơ):
   - `GET /api/reports/docx/record/{recordId}` — danh sách mẫu áp dụng (mã, tên).
   - `GET /api/reports/docx/record/{recordId}/{formCode}?format=docx|pdf` — xuất một mẫu; 01/02/10 dùng lại bộ xuất hiện có. Mẫu

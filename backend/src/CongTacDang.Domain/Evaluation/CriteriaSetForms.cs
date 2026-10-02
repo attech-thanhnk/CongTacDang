@@ -96,3 +96,15 @@ public sealed class SelfAssessmentSection
     /// <summary>Bắt buộc nhập khi nộp phiếu tự chấm.</summary>
     public bool Required { get; set; }
 }
+
+/// <summary>
+/// Một mức tự đánh giá của từng nhiệm vụ (Mẫu 09C/9D). Mã là số nguyên dương, nhãn in ở ô chọn trên màn hình tự chấm.
+/// </summary>
+public sealed class TaskLevel
+{
+    /// <summary>Mã mức (1, 2, 3…), duy nhất trong bộ.</summary>
+    public int Code { get; set; }
+
+    /// <summary>Nhãn mô tả mức (ví dụ "Chủ động tiếp cận, giải quyết hiệu quả vấn đề, có kết quả cụ thể").</summary>
+    public string Label { get; set; } = string.Empty;
+}

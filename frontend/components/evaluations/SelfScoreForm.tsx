@@ -8,6 +8,7 @@ import {
   TaskResultRow,
   criteriaAppliesForm,
   selfAssessmentSections,
+  taskLevels,
 } from "@/services/evaluationService";
 import {
   CriteriaSnapshot,
@@ -325,7 +326,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
           <h4 className="h6 small fw-bold text-secondary">Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ, công việc được giao trong quý</h4>
           <div className="small text-secondary mb-1">Không bắt buộc nhập đủ các trục.</div>
           <div className="mb-3">
-            <TaskResultsInput axes={content.axes} rows={taskResults} onChange={setTaskResults} />
+            <TaskResultsInput axes={content.axes} rows={taskResults} onChange={setTaskResults} levels={taskLevels(criteria)} />
           </div>
         </>
       )}

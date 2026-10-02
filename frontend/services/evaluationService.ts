@@ -1,5 +1,6 @@
 import { ApiError, request } from "./apiClient";
 import type { CriteriaSnapshot, GeneralItemScore } from "./criteriaService";
+import type { DeadlineRule } from "./deadlineRules";
 
 // ---------------------------------------------------------------------------
 // Kiểu dữ liệu — luồng đánh giá 9 bước theo cấu hình kỳ.
@@ -46,6 +47,8 @@ export interface ProfileStepSetting {
   /** Mã quyền thực hiện khi `Internal` (bước của chủ hồ sơ luôn là evaluation.self; chế độ khác: null). */
   permission?: string | null;
   deadline?: string | null;
+  /** Quy tắc tính thời hạn theo quý (null = nhập tay). */
+  rule?: DeadlineRule | null;
 }
 
 /** Hồ sơ luồng: cấu hình bước cho một nhóm đối tượng (ví dụ Diện Đảng ủy cơ sở). */
@@ -287,6 +290,8 @@ export interface TaskResultRow {
   product?: string | null;
   progress?: string | null;
   note?: string | null;
+  /** Mức tự đánh giá của nhiệm vụ: 1, 2, 3 (null = chưa chọn); dùng dựng câu "Tự đánh giá mức N" ở Mẫu 09C. */
+  level?: number | null;
 }
 
 /** Nội dung tự luận của một trục trên Mẫu 09B. */
@@ -306,10 +311,19 @@ export interface SelfAssessmentSection {
   required: boolean;
 }
 
-/** Phần cấu hình biểu mẫu cá nhân trong nội dung bộ tiêu chí (`requiredForms`, mục 09C). */
+/** Một mức tự đánh giá của nhiệm vụ (khai báo trong bộ tiêu chí). */
+export interface TaskLevel {
+  code: number;
+  label: string;
+}
+
+/** Phần cấu hình biểu mẫu cá nhân trong nội dung bộ tiêu chí (`requiredForms`, mục 09C, mức nhiệm vụ). */
 export interface IndividualFormConfig {
   requiredForms?: string[];
   selfAssessmentSections?: SelfAssessmentSection[];
+  taskLevels?: TaskLevel[];
+  taskLineLabel?: string | null;
+  taskLevelPhrase?: string | null;
 }
 
 /** Biểu mẫu xuất được cho hồ sơ (`GET /reports/docx/record/{recordId}`). */
@@ -332,6 +346,11 @@ export function criteriaAppliesForm(criteria: { selfScoreForm: string; content: 
 /** Mục Mẫu 09C của bộ tiêu chí (rỗng nếu bộ không khai báo). */
 export function selfAssessmentSections(criteria: { content: unknown } | null | undefined): SelfAssessmentSection[] {
   return (criteria?.content as IndividualFormConfig | undefined)?.selfAssessmentSections ?? [];
+}
+
+/** Các mức tự đánh giá nhiệm vụ của bộ tiêu chí (rỗng nếu bộ không dùng mức). */
+export function taskLevels(criteria: { content: unknown } | null | undefined): TaskLevel[] {
+  return (criteria?.content as IndividualFormConfig | undefined)?.taskLevels ?? [];
 }
 
 /** Kết quả của một bước do cấp trên thực hiện (đã ghi nhận). */
@@ -790,7 +809,7 @@ export const evaluationService = {
   async updatePeriod(
     id: string,
     version: number | undefined,
-    changes: { name?: string; startDate?: string; endDate?: string; settings?: PeriodSettings; criteriaSetId?: string }
+    changes: { name?: string; startDate?: string; endDate?: string; settings?: PeriodSettings; applyDeadlineRules?: boolean; criteriaSetId?: string }
   ): Promise<EvaluationPeriodDto> {
     return withConflictHandling("updatePeriod", () =>
       request<EvaluationPeriodDto>(`/evaluations/periods/${id}`, {

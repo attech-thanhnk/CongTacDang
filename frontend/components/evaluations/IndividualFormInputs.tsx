@@ -5,6 +5,7 @@ import {
   AxisNote,
   SelfAssessmentSection,
   TASK_RESULT_LIMITS,
+  TaskLevel,
   TaskResultRow,
 } from "@/services/evaluationService";
 
@@ -67,7 +68,7 @@ export function SelfAssessmentInput({
   );
 }
 
-const EMPTY_ROW = (axisCode: string): TaskResultRow => ({ axisCode, content: "", deadline: "", status: "", product: "", progress: "", note: "" });
+const EMPTY_ROW = (axisCode: string): TaskResultRow => ({ axisCode, content: "", deadline: "", status: "", product: "", progress: "", note: "", level: null });
 
 /**
  * Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ, công việc được giao trong quý: các dòng nhiệm vụ nhóm theo trục của bộ tiêu chí,
@@ -77,10 +78,12 @@ export function TaskResultsInput({
   axes,
   rows,
   onChange,
+  levels = [],
 }: {
   axes: AxisInfo[];
   rows: TaskResultRow[];
   onChange: (rows: TaskResultRow[]) => void;
+  levels?: TaskLevel[];
 }) {
   const update = (index: number, change: Partial<TaskResultRow>) =>
     onChange(rows.map((r, i) => (i === index ? { ...r, ...change } : r)));
@@ -109,6 +112,7 @@ export function TaskResultsInput({
             <th style={{ minWidth: 160 }}>Sản phẩm hoàn thành</th>
             <th style={{ width: 130 }}>Đánh giá tiến độ</th>
             <th style={{ width: 130 }}>Ghi chú</th>
+            {levels.length > 0 && <th style={{ width: 96 }} title={levels.map((l) => `Mức ${l.code}: ${l.label}`).join("; ")}>Mức tự đánh giá</th>}
             <th style={{ width: 32 }} />
           </tr>
         </thead>
@@ -121,7 +125,7 @@ export function TaskResultsInput({
               <React.Fragment key={axis.code}>
                 <tr className="table-light">
                   <td className="fw-semibold text-nowrap">Trục {axisIndex + 1}</td>
-                  <td colSpan={6} className="fw-semibold">{axis.name}</td>
+                  <td colSpan={levels.length > 0 ? 7 : 6} className="fw-semibold">{axis.name}</td>
                   <td>
                     <button type="button" className="btn btn-link btn-sm p-0" title="Thêm dòng" aria-label={`Thêm nhiệm vụ trục ${axisIndex + 1}`}
                       disabled={rows.length >= TASK_RESULT_LIMITS.rows} onClick={() => add(axis.code)}>
@@ -156,6 +160,15 @@ export function TaskResultsInput({
                       <input className="form-control form-control-sm" maxLength={TASK_RESULT_LIMITS.short} value={r.note ?? ""}
                         onChange={(e) => update(i, { note: e.target.value })} aria-label="Ghi chú" />
                     </td>
+                    {levels.length > 0 && (
+                      <td>
+                        <select className="form-select form-select-sm" value={r.level ?? ""} aria-label="Mức tự đánh giá"
+                          onChange={(e) => update(i, { level: e.target.value ? Number(e.target.value) : null })}>
+                          <option value="">—</option>
+                          {levels.map((l) => <option key={l.code} value={l.code} title={l.label}>Mức {l.code}</option>)}
+                        </select>
+                      </td>
+                    )}
                     <td>
                       <button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa dòng" onClick={() => remove(i)}>
                         <i className="bi bi-x-lg" />
@@ -215,7 +228,7 @@ export function SelfAssessmentView({ sections, value }: { sections: SelfAssessme
 }
 
 /** Các dòng Mẫu 9D đã lưu (chỉ đọc), nhóm theo trục. Khung hẹp thì bảng cuộn ngang để các cột ngắn không bị ép chữ. */
-export function TaskResultsView({ axes, rows }: { axes: AxisInfo[]; rows?: TaskResultRow[] }) {
+export function TaskResultsView({ axes, rows, levels = [] }: { axes: AxisInfo[]; rows?: TaskResultRow[]; levels?: TaskLevel[] }) {
   if (!rows || rows.length === 0) return <div className="small text-secondary">Chưa nhập.</div>;
   return (
     <div className="table-responsive">
@@ -229,6 +242,7 @@ export function TaskResultsView({ axes, rows }: { axes: AxisInfo[]; rows?: TaskR
             <th style={{ minWidth: 150 }}>Sản phẩm</th>
             <th style={{ minWidth: 110 }}>Tiến độ</th>
             <th style={{ minWidth: 120 }}>Ghi chú</th>
+            {levels.length > 0 && <th style={{ minWidth: 80 }}>Mức</th>}
           </tr>
         </thead>
         <tbody>
@@ -237,7 +251,7 @@ export function TaskResultsView({ axes, rows }: { axes: AxisInfo[]; rows?: TaskR
             if (own.length === 0) return null;
             return (
               <React.Fragment key={axis.code}>
-                <tr className="table-light"><td className="fw-semibold text-nowrap">Trục {axisIndex + 1}</td><td colSpan={6} className="fw-semibold">{axis.name}</td></tr>
+                <tr className="table-light"><td className="fw-semibold text-nowrap">Trục {axisIndex + 1}</td><td colSpan={levels.length > 0 ? 7 : 6} className="fw-semibold">{axis.name}</td></tr>
                 {own.map((r, i) => (
                   <tr key={`${axis.code}-${i}`}>
                     <td>{i + 1}</td>
@@ -247,6 +261,9 @@ export function TaskResultsView({ axes, rows }: { axes: AxisInfo[]; rows?: TaskR
                     <td style={{ whiteSpace: "pre-wrap" }}>{r.product || "—"}</td>
                     <td>{r.progress || "—"}</td>
                     <td style={{ whiteSpace: "pre-wrap" }}>{r.note || "—"}</td>
+                    {levels.length > 0 && (
+                      <td className="text-nowrap" title={levels.find((l) => l.code === r.level)?.label}>{r.level ? `Mức ${r.level}` : "—"}</td>
+                    )}
                   </tr>
                 ))}
               </React.Fragment>

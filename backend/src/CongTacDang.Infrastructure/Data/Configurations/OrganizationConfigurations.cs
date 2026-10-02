@@ -136,3 +136,18 @@ public sealed class MemberPositionConfiguration : IEntityTypeConfiguration<Membe
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+/// <summary>Bảng <c>holidays</c>: danh mục ngày nghỉ.</summary>
+public sealed class HolidayConfiguration : IEntityTypeConfiguration<Holiday>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<Holiday> entity)
+    {
+        entity.ToTable("holidays");
+        entity.HasKey(e => e.Id);
+        entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+        // Mỗi ngày chỉ một dòng (chỉ tính bản ghi chưa xóa).
+        entity.HasIndex(e => e.Date).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
+        entity.HasQueryFilter(e => !e.IsDeleted);
+    }
+}

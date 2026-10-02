@@ -32,6 +32,12 @@ public sealed class TaskResultRow
 
     /// <summary>(7) Ghi chú.</summary>
     public string? Note { get; set; }
+
+    /// <summary>
+    /// Mức tự đánh giá của nhiệm vụ (1 = chủ động, hiệu quả; 2 = cơ bản đáp ứng nhưng còn hạn chế; 3 = không đáp ứng). Không in ở
+    /// Mẫu 9D; dùng dựng câu "Tự đánh giá mức N" cho Mẫu 09C. Null = chưa đánh giá.
+    /// </summary>
+    public int? Level { get; set; }
 }
 
 /// <summary>
@@ -158,6 +164,10 @@ public static class RecordFormContent
                 return $"{label}: trục \"{row.AxisCode}\" không có trong bộ tiêu chí của kỳ (có: {string.Join(", ", criteria.Axes.Select(a => a.Code))}).";
             if (string.IsNullOrWhiteSpace(row.Content))
                 return $"{label}: hãy nhập nội dung nhiệm vụ, công việc (hoặc xóa dòng).";
+            if (row.Level.HasValue && criteria.TaskLevels.All(l => l.Code != row.Level.Value))
+                return criteria.TaskLevels.Count == 0
+                    ? $"{label}: bộ tiêu chí của kỳ chưa khai báo mức tự đánh giá nhiệm vụ."
+                    : $"{label}: mức tự đánh giá chỉ nhận {string.Join(", ", criteria.TaskLevels.Select(l => l.Code))}.";
             foreach (var (name, value, max) in new[]
                      {
                          ("Nội dung nhiệm vụ, công việc", row.Content, MaxLongCellLength),
@@ -190,7 +200,8 @@ public static class RecordFormContent
                 Status = Clean(r.Status),
                 Product = Clean(r.Product),
                 Progress = Clean(r.Progress),
-                Note = Clean(r.Note)
+                Note = Clean(r.Note),
+                Level = r.Level
             }, index))
             .OrderBy(x => axisOrder[x.Row.AxisCode])
             .ThenBy(x => x.index)

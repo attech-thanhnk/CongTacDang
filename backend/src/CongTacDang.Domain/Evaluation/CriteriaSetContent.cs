@@ -360,6 +360,15 @@ public sealed class CriteriaSetContent
     /// <summary>Các mục tự luận của Mẫu 09C (khi <see cref="RequiredForms"/> có 09C).</summary>
     public List<SelfAssessmentSection> SelfAssessmentSections { get; set; } = new();
 
+    /// <summary>Các mức tự đánh giá của từng nhiệm vụ (ô "Mức" ở Mẫu 9D). Rỗng = không dùng mức.</summary>
+    public List<TaskLevel> TaskLevels { get; set; } = new();
+
+    /// <summary>Tiền tố mỗi nhiệm vụ khi dựng Mẫu 09C; <c>{n}</c> là số thứ tự trong trục (ví dụ "Nhiệm vụ {n}:"). Trống = "{n}.".</summary>
+    public string? TaskLineLabel { get; set; }
+
+    /// <summary>Câu nối sau mỗi nhiệm vụ đã chọn mức khi dựng Mẫu 09C; <c>{level}</c> là mã mức (ví dụ "Tự đánh giá mức {level}.").</summary>
+    public string? TaskLevelPhrase { get; set; }
+
     #region Tra cứu
 
     /// <summary>Mọi tiêu chí con theo thứ tự nhóm.</summary>
@@ -441,6 +450,11 @@ public sealed class CriteriaSetContent
             section.Guidance = string.IsNullOrWhiteSpace(section.Guidance) ? null : section.Guidance.Trim();
             section.Note = string.IsNullOrWhiteSpace(section.Note) ? null : section.Note.Trim();
         }
+        TaskLevels = (TaskLevels ?? new()).Where(l => l != null).ToList();
+        foreach (var level in TaskLevels)
+            level.Label = level.Label?.Trim() ?? string.Empty;
+        TaskLineLabel = string.IsNullOrWhiteSpace(TaskLineLabel) ? null : TaskLineLabel.Trim();
+        TaskLevelPhrase = string.IsNullOrWhiteSpace(TaskLevelPhrase) ? null : TaskLevelPhrase.Trim();
         WeightFrames = (WeightFrames ?? new()).Where(f => f != null).ToList();
         foreach (var frame in WeightFrames)
         {
@@ -509,6 +523,9 @@ public sealed class CriteriaSetContent
     /// <summary>Độ dài tối đa nội dung gợi ý của trục, câu dẫn và lưu ý của mục 09C.</summary>
     public const int MaxFormGuidanceLength = 8000;
 
+    /// <summary>Số mức tự đánh giá nhiệm vụ tối đa.</summary>
+    public const int MaxTaskLevels = 9;
+
     /// <summary>Số ngày tối đa sau khi đóng kỳ còn cảnh báo lập kế hoạch 30-60-90 ngày.</summary>
     public const int MaxImprovementPlanAlertDays = 3650;
 
@@ -547,6 +564,24 @@ public sealed class CriteriaSetContent
         }
         foreach (var dup in SelfAssessmentSections.GroupBy(s => s.Code, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
             errors.Add($"Mã mục Mẫu 09C \"{dup.Key}\" bị trùng.");
+
+        if (TaskLevels.Count > MaxTaskLevels)
+            errors.Add($"Một bộ tiêu chí có tối đa {MaxTaskLevels} mức tự đánh giá nhiệm vụ.");
+        foreach (var level in TaskLevels)
+        {
+            if (level.Code < 1 || level.Code > 99)
+                errors.Add($"Mã mức tự đánh giá nhiệm vụ \"{level.Code}\" không hợp lệ: số nguyên từ 1 đến 99.");
+            if (string.IsNullOrWhiteSpace(level.Label))
+                errors.Add($"Mức tự đánh giá nhiệm vụ {level.Code} chưa có nhãn.");
+            else if (level.Label.Length > MaxFormTitleLength)
+                errors.Add($"Nhãn mức tự đánh giá nhiệm vụ {level.Code} không được dài quá {MaxFormTitleLength} ký tự.");
+        }
+        foreach (var dup in TaskLevels.GroupBy(l => l.Code).Where(g => g.Count() > 1))
+            errors.Add($"Mã mức tự đánh giá nhiệm vụ {dup.Key} bị trùng.");
+        if ((TaskLineLabel?.Length ?? 0) > 100 || (TaskLevelPhrase?.Length ?? 0) > 200)
+            errors.Add("Câu chữ dựng Mẫu 09C: tiền tố nhiệm vụ tối đa 100 ký tự, câu nối mức tối đa 200 ký tự.");
+        if (TaskLevels.Count > 0 && (TaskLevelPhrase == null || !TaskLevelPhrase.Contains("{level}")))
+            errors.Add("Câu nối mức (Mẫu 09C) phải chứa {level} khi bộ có khai báo mức tự đánh giá nhiệm vụ.");
     }
 
     private void ValidateCodes(List<string> errors)

@@ -72,6 +72,7 @@ public sealed class PeriodService : IPeriodService
     private readonly ICurrentUserService _currentUser;
     private readonly IPermissionResolver _permissions;
     private readonly ICriteriaSetRepository _criteriaSets;
+    private readonly IHolidayRepository _holidays;
 
     public PeriodService(
         IEvaluationWorkflowRepository repo,
@@ -79,7 +80,8 @@ public sealed class PeriodService : IPeriodService
         IAuthorizationGuard guard,
         ICurrentUserService currentUser,
         IPermissionResolver permissions,
-        ICriteriaSetRepository criteriaSets)
+        ICriteriaSetRepository criteriaSets,
+        IHolidayRepository holidays)
     {
         _repo = repo;
         _unitOfWork = unitOfWork;
@@ -87,6 +89,7 @@ public sealed class PeriodService : IPeriodService
         _currentUser = currentUser;
         _permissions = permissions;
         _criteriaSets = criteriaSets;
+        _holidays = holidays;
     }
 
     #region Đọc
@@ -230,6 +233,13 @@ public sealed class PeriodService : IPeriodService
         if (dto.Settings != null)
         {
             var next = dto.Settings.Normalize();
+            if (dto.ApplyDeadlineRules)
+            {
+                // Ngày nghỉ lấy từ danh mục chung; lấy rộng hơn quý vì "ngày làm việc thứ N" và ngày rơi vào ngày nghỉ có thể lùi sang sau.
+                var quarterStart = new DateOnly(period.Year, ((int)period.Quarter - 1) * 3 + 1, 1);
+                var holidays = (await _holidays.ListAsync(quarterStart, quarterStart.AddMonths(3).AddDays(60), ct)).Select(h => h.Date).ToList();
+                next.ApplyDeadlineRules(period.Year, (int)period.Quarter, holidays);
+            }
             var errors = ValidateSettings(next, form);
             if (errors.Count > 0)
                 throw new ValidationException("Cấu hình kỳ chưa hợp lệ: " + string.Join(" ", errors));

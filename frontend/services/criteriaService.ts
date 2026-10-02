@@ -1,7 +1,7 @@
 import { request } from "./apiClient";
-import type { SelfAssessmentSection } from "./evaluationService";
+import type { SelfAssessmentSection, TaskLevel } from "./evaluationService";
 
-export type { SelfAssessmentSection };
+export type { SelfAssessmentSection, TaskLevel };
 
 // ---------------------------------------------------------------------------
 // Bộ tiêu chí và thang điểm theo phiên bản (task 16). Nội dung bộ khai báo được; cấu trúc công thức tính điểm cố định ở
@@ -103,6 +103,12 @@ export interface CriteriaSetContent {
   requiredForms: string[];
   /** Các mục tự luận của Mẫu 09C. */
   selfAssessmentSections: SelfAssessmentSection[];
+  /** Các mức tự đánh giá của từng nhiệm vụ (ô "Mức" ở Mẫu 9D); rỗng = không dùng. */
+  taskLevels: TaskLevel[];
+  /** Tiền tố mỗi nhiệm vụ khi dựng Mẫu 09C, `{n}` = số thứ tự. */
+  taskLineLabel?: string | null;
+  /** Câu nối mức khi dựng Mẫu 09C, `{level}` = mã mức. */
+  taskLevelPhrase?: string | null;
 }
 
 /** Danh mục biểu mẫu cá nhân (HD03 mục 7) — khớp `RecordFormCodes` phía máy chủ. */

@@ -16,6 +16,7 @@ import {
   WorkflowProfile,
   WorkflowStepCode,
 } from "@/services/evaluationService";
+import { DEADLINE_RULE_LABELS, DEADLINE_RULE_LIMITS, DeadlineRuleKind } from "@/services/deadlineRules";
 
 interface Props {
   settings: PeriodSettings;
@@ -28,6 +29,8 @@ interface Props {
   permissionOptions: StepPermissionOptionDto[];
   /** Mã hồ sơ luồng đã lưu (không đổi mã được vì hồ sơ đánh giá có thể đang tham chiếu). */
   savedCodes: string[];
+  /** Điền thời hạn các bước theo quy tắc (máy chủ tính và lưu); ngày sau đó vẫn sửa tự do. */
+  onApplyRules?: () => void;
 }
 
 const AUTHORITIES: { key: string; label: string }[] = [
@@ -39,7 +42,7 @@ const AUTHORITIES: { key: string; label: string }[] = [
  * Cấu hình hồ sơ luồng của kỳ: mỗi hồ sơ luồng (nhóm đối tượng) có bảng bước × chế độ (nội bộ / cấp trên thực hiện /
  * không áp dụng) × quyền thực hiện × thời hạn; hồ sơ luồng mặc định theo cấp quyết định. Máy chủ kiểm tra lại toàn bộ khi lưu.
  */
-export function WorkflowProfilesEditor({ settings, onChange, editable, deadlinesEditable, permissionOptions, savedCodes }: Props) {
+export function WorkflowProfilesEditor({ settings, onChange, editable, deadlinesEditable, permissionOptions, savedCodes, onApplyRules }: Props) {
   const [selected, setSelected] = useState(settings.profiles[0]?.code ?? "");
 
   useEffect(() => {
@@ -90,6 +93,21 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
       profiles: settings.profiles.map((p) => (p.code === profile.code ? { ...p, code } : p)),
     });
     setSelected(code);
+  };
+
+  const setRule = (step: WorkflowStepCode, kind: DeadlineRuleKind | "") => {
+    if (!profile) return;
+    const current = profile.steps[step]?.rule;
+    setStep(step, {
+      rule: kind
+        ? { kind, value: Math.min(Math.max(current?.value ?? 1, DEADLINE_RULE_LIMITS[kind].min), DEADLINE_RULE_LIMITS[kind].max) }
+        : null,
+    });
+  };
+
+  const setRuleValue = (step: WorkflowStepCode, value: number) => {
+    const rule = profile?.steps[step]?.rule;
+    if (rule) setStep(step, { rule: { ...rule, value } });
   };
 
   const usedAsDefault = !!profile && Object.values(settings.defaultProfiles).includes(profile.code);
@@ -184,9 +202,24 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
                         )}
                       </td>
                       <td>
-                        <input type="date" className="form-control form-control-sm" value={setting.deadline || ""}
-                          disabled={!deadlinesEditable || setting.mode === "Off"} aria-label={`Thời hạn — ${STEP_NAMES[step]}`}
-                          onChange={(e) => setStep(step, { deadline: e.target.value || null })} />
+                        <div className="d-flex flex-column gap-1">
+                          <div className="d-flex gap-1">
+                            <select className="form-select form-select-sm" value={setting.rule?.kind ?? ""}
+                              disabled={!deadlinesEditable || setting.mode === "Off"} aria-label={`Cách tính thời hạn — ${STEP_NAMES[step]}`}
+                              onChange={(e) => setRule(step, e.target.value as DeadlineRuleKind | "")}>
+                              <option value="">Nhập tay</option>
+                              {(Object.keys(DEADLINE_RULE_LABELS) as DeadlineRuleKind[]).map((k) => <option key={k} value={k}>{DEADLINE_RULE_LABELS[k]}</option>)}
+                            </select>
+                            {setting.rule && (
+                              <input type="number" className="form-control form-control-sm" style={{ width: 64 }} value={setting.rule.value}
+                                min={DEADLINE_RULE_LIMITS[setting.rule.kind].min} max={DEADLINE_RULE_LIMITS[setting.rule.kind].max}
+                                disabled={!deadlinesEditable || setting.mode === "Off"} aria-label={`Số ngày — ${STEP_NAMES[step]}`}
+                                onChange={(e) => setRuleValue(step, Number(e.target.value))} />
+                            )}
+                          </div>
+                          <input type="date" className="form-control form-control-sm" value={setting.deadline || ""}
+                            disabled={!deadlinesEditable || setting.mode === "Off"} aria-label={`Thời hạn — ${STEP_NAMES[step]}`}
+                            onChange={(e) => setStep(step, { deadline: e.target.value || null })} />                        </div>
                       </td>
                     </tr>
                   );
@@ -194,6 +227,13 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
               </tbody>
             </table>
           </div>
+
+          {deadlinesEditable && onApplyRules && (
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <span className="text-secondary" style={{ fontSize: 13 }}>Chọn cách tính cho từng bước rồi bấm "Áp dụng quy tắc" để điền ngày (loại thứ Bảy, Chủ nhật và các ngày trong Danh mục → Ngày nghỉ); sau đó vẫn sửa từng ngày tự do.</span>
+              <button type="button" className="btn btn-outline-primary btn-sm" onClick={onApplyRules}>Áp dụng quy tắc</button>
+            </div>
+          )}
 
           {editable && (
             <div className="d-flex justify-content-end align-items-center">

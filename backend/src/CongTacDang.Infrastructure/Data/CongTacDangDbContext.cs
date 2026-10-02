@@ -25,6 +25,7 @@ namespace CongTacDang.Infrastructure.Data
         public DbSet<PartyCell> PartyCells => Set<PartyCell>();
         public DbSet<AdministrativeDepartment> AdministrativeDepartments => Set<AdministrativeDepartment>();
         public DbSet<OrgUnitType> OrgUnitTypes => Set<OrgUnitType>();
+        public DbSet<Holiday> Holidays => Set<Holiday>();
         public DbSet<Position> Positions => Set<Position>();
         public DbSet<MemberPosition> MemberPositions => Set<MemberPosition>();
         public DbSet<PartyMemberProfile> PartyMemberProfiles => Set<PartyMemberProfile>();

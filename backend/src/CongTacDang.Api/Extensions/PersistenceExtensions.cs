@@ -41,6 +41,7 @@ public static class PersistenceExtensions
         services.AddScoped<IAttachmentVersionRepository, AttachmentRepository>();
         services.AddScoped<IAuditRepository, AuditRepository>();
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+        services.AddScoped<IHolidayRepository, HolidayRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IEvaluationRepository, EvaluationRepository>();

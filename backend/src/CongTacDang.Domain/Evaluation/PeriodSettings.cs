@@ -71,6 +71,12 @@ public sealed class ProfileStepSetting
 
     /// <summary>Thời hạn (ngày). Chỉ hiển thị/cảnh báo, chỉ chặn khi <see cref="PeriodSettings.EnforceDeadlines"/> = true.</summary>
     public DateOnly? Deadline { get; set; }
+
+    /// <summary>
+    /// Quy tắc tính thời hạn theo quý (null = chỉ nhập tay). Chỉ là công cụ điền ngày: <see cref="PeriodSettings.ApplyDeadlineRules"/>
+    /// ghi ngày vào <see cref="Deadline"/> khi người dùng yêu cầu; ngày hạn luôn sửa tự do và không tự bị tính lại.
+    /// </summary>
+    public DeadlineRule? Rule { get; set; }
 }
 
 /// <summary>
@@ -273,6 +279,20 @@ public sealed class PeriodSettings
     /// <summary>Chặn hoàn thành bước khi đã quá thời hạn.</summary>
     public bool EnforceDeadlines { get; set; }
 
+    /// <summary>
+    /// Điền thời hạn cho mọi bước đang áp dụng có quy tắc hợp lệ, theo quý <paramref name="quarter"/> năm <paramref name="year"/> và
+    /// <paramref name="holidays"/> (danh mục ngày nghỉ chung). Ghi đè ngày hiện có của các bước đó; bước không có quy tắc giữ nguyên.
+    /// </summary>
+    public PeriodSettings ApplyDeadlineRules(int year, int quarter, IReadOnlyCollection<DateOnly>? holidays = null)
+    {
+        foreach (var setting in (Profiles ?? new()).SelectMany(p => p.Steps.Values))
+        {
+            if (setting.Rule != null && setting.Mode != StepMode.Off && setting.Rule.Validate() == null)
+                setting.Deadline = DeadlineCalculator.Compute(setting.Rule, year, quarter, holidays);
+        }
+        return this;
+    }
+
     #region Kiểu kỳ dựng sẵn
 
     /// <summary>
@@ -464,6 +484,12 @@ public sealed class PeriodSettings
         if (profile.Description is { Length: > 1000 })
             yield return $"Mô tả hồ sơ luồng \"{label}\" không được dài quá 1000 ký tự.";
 
+        foreach (var (stepKey, stepSetting) in profile.Steps ?? new Dictionary<string, ProfileStepSetting>())
+        {
+            if (stepSetting?.Rule?.Validate() is { } ruleError)
+                yield return $"Hồ sơ luồng \"{label}\": quy tắc thời hạn của bước \"{stepKey}\" không hợp lệ — {ruleError}";
+        }
+
         foreach (var key in (profile.Steps ?? new Dictionary<string, ProfileStepSetting>()).Keys.Where(k => WorkflowSteps.Parse(k) == null))
             yield return $"Hồ sơ luồng \"{label}\": mã bước \"{key}\" không tồn tại.";
 
@@ -502,7 +528,10 @@ public sealed class PeriodSettings
     {
         var copy = settings.Clone();
         foreach (var setting in copy.Profiles.SelectMany(p => p.Steps.Values))
+        {
             setting.Deadline = null;
+            setting.Rule = null;
+        }
         return copy.ToJson();
     }
 
