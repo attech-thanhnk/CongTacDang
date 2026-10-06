@@ -185,7 +185,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
         <table className="table table-sm align-middle">
           <thead>
             <tr className="small text-secondary">
-              <th style={{ width: 48 }}>Mã</th><th>Tiêu chí</th><th style={{ width: 60 }}>Tối đa</th><th style={{ width: 260 }}>Chấm</th><th style={{ width: 220 }}>Lý do</th>
+              <th style={{ width: 48 }}>Mã</th><th style={{ minWidth: 260 }}>Tiêu chí</th><th style={{ width: 52 }}>Tối đa</th><th style={{ width: 170 }}>Chấm</th><th style={{ width: 150 }}>Lý do</th>
             </tr>
           </thead>
           <tbody>
