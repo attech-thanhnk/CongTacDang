@@ -120,7 +120,7 @@ a.stat:hover {
   background: var(--c, var(--primary));
 }
 
-@media (max-width: 760px) {
+@media (max-width: 991.98px) {
   .stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -323,4 +323,62 @@ a.name:hover {
 
 .search {
   max-width: 260px;
+}
+
+/* Bảng nhiều cột: giữ bề rộng tối thiểu để cuộn ngang trong khối thay vì bóp chữ mỗi từ một dòng. */
+.wide {
+  min-width: 720px;
+}
+
+.wide .person {
+  min-width: 210px;
+}
+
+.wide td:nth-child(2) {
+  min-width: 160px;
+}
+
+.mid {
+  min-width: 540px;
+}
+
+@media (max-width: 991.98px) {
+  .table td:first-child {
+    min-width: 128px;
+  }
+
+  .bar {
+    min-width: 64px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .blockH,
+  .chips {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .table th,
+  .table td {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .table th + th,
+  .table td + td {
+    padding-left: 10px;
+  }
+
+  .tools {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .tools :global(.form-select),
+  .tools :global(.form-control) {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: none;
+  }
 }

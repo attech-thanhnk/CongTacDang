@@ -1476,6 +1476,11 @@ header.app-header {
   min-width: 0;
 }
 
+/* Hàng lưới Bootstrap có lề âm: để tự giãn, nếu không cột phải hụt một khoảng gutter. */
+.page-body > .row {
+  width: auto;
+}
+
 .page-section {
   width: 100%;
   min-width: 0;
@@ -2385,3 +2390,118 @@ textarea.form-control {
 .status-badge.tone-warning { color: var(--wait); background: var(--wait-bg); }
 .status-badge.tone-danger  { color: var(--bad);  background: var(--bad-bg); }
 .status-badge.tone-neutral { color: var(--ink-2); background: var(--tint); }
+
+/* ============================================================
+   MÀN HẸP — điện thoại, máy tính bảng dọc
+   ============================================================ */
+/* Trình duyệt điện thoại: 100vh cao hơn vùng nhìn thấy (thanh địa chỉ) → khung và thanh bên theo 100dvh. */
+@supports (height: 100dvh) {
+  .app-shell,
+  aside.app-sidebar {
+    height: 100dvh;
+  }
+}
+
+@media (max-width: 991.98px) {
+  /* Bảng Bootstrap nhiều cột: cuộn ngang trong khung thay vì bóp chữ mỗi từ một dòng. */
+  .table-responsive > .table:not(.report-table) {
+    min-width: 600px;
+  }
+
+  .table-responsive > .table.periods-table {
+    min-width: 860px;
+  }
+
+  /* Bảng báo cáo: mỗi biểu mẫu một khối — mã, tên, định dạng; nút xuất xuống dòng dưới. */
+  .report-table,
+  .report-table tbody {
+    display: block;
+  }
+
+  .report-table thead {
+    display: none;
+  }
+
+  .report-table tbody tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 8px 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .report-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .report-table tbody td,
+  .card > .table-responsive > .report-table > tbody > tr > td:nth-child(n) {
+    display: block;
+    padding: 0 !important;
+    border: 0;
+    box-shadow: none;
+    width: auto !important;
+  }
+
+  .report-table tbody td:nth-child(4) {
+    grid-column: 1 / -1;
+    text-align: left !important;
+  }
+
+  .report-table tbody td:nth-child(4) > .d-flex {
+    justify-content: flex-start !important;
+  }
+
+  .report-table tbody td[colspan] {
+    grid-column: 1 / -1;
+    margin: 0 -16px -12px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  /* Thanh bên đã đóng: không để bóng đổ lộ ở mép trái, không nhận tiêu điểm bàn phím. */
+  aside.app-sidebar.sidebar-hidden {
+    box-shadow: none;
+    visibility: hidden;
+    transition: transform var(--transition-slow), visibility 0s linear 0.3s;
+  }
+
+  aside.app-sidebar.sidebar-visible {
+    visibility: visible;
+    transition: transform var(--transition-slow), visibility 0s;
+  }
+
+  header.app-header {
+    padding: 0 12px;
+  }
+
+  /* Vùng chạm tối thiểu 40px */
+  .app-header-menu,
+  .bell-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .side-close {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    margin: -8px -8px -8px 0;
+  }
+
+  .btn:not(.btn-link):not(.p-0),
+  .btn-group-sm > .btn {
+    min-height: 40px;
+  }
+
+  /* Chữ ô nhập 16px: điện thoại không tự phóng to trang khi chạm vào ô. */
+  .form-control,
+  .form-select,
+  .form-control-sm,
+  .form-select-sm {
+    font-size: 16px;
+    min-height: 40px;
+  }
+}

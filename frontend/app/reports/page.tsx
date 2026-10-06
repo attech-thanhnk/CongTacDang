@@ -117,7 +117,7 @@ export default function ReportsPage() {
         <h2 className="mb-0">{title}</h2>
       </div>
       <div className="table-responsive">
-        <table className="table table-hover align-middle mb-0">
+        <table className="table table-hover align-middle mb-0 report-table">
           <thead>
             <tr>
               <th style={{ width: 110 }}>Mẫu</th>

@@ -225,7 +225,7 @@ export default function EvaluationsPage() {
               <EmptyState title="Không có hồ sơ" />
             ) : (
               <div className={styles.tw}>
-                <table className={styles.table}>
+                <table className={`${styles.table} ${styles.wide}`}>
                   <thead>
                     <tr>
                       <th aria-sort={ariaSort("name")}>
@@ -271,7 +271,7 @@ export default function EvaluationsPage() {
           <section className={styles.block}>
             <div className={styles.blockH}><h2>Trần Hoàn thành xuất sắc theo Chi bộ (Mẫu 15)</h2></div>
             <div className={styles.tw}>
-              <table className={styles.table}>
+              <table className={`${styles.table} ${styles.mid}`}>
                 <thead>
                   <tr>
                     <th>Chi bộ</th>
