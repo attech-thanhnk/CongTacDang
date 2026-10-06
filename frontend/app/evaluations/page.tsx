@@ -256,7 +256,7 @@ export default function EvaluationsPage() {
                           {r.partyCellName && <span className={styles.sub}>{r.partyCellName}</span>}
                         </td>
                         <td><RecordTag status={r.status} label={r.statusDisplayName} returned={!!r.returnReason} overdue={isOverdue(r)} /></td>
-                        <td className={`${styles.right} num`}>{r.totalSelfScore || "—"}</td>
+                        <td className={`${styles.right} num`}>{r.selfScoredAt ? r.totalSelfScore : "—"}</td>
                         <td><GradeBadge grade={displayGrade(r)} /></td>
                       </tr>
                     ))}

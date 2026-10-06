@@ -291,14 +291,16 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Kết quả ghi nhận của các bước do cấp trên / cơ quan ngoài hệ thống thực hiện (mỗi bước một bản ghi).</summary>
     public ICollection<EvaluationExternalResult> ExternalResults { get; set; } = new List<EvaluationExternalResult>();
 
-    /// <summary>Điểm hiệu lực: quyết định → thẩm định → tự chấm.</summary>
+    /// <summary>Điểm hiệu lực: quyết định → thẩm định → tự chấm (chỉ khi đã nộp phiếu — bản nháp không tính).</summary>
     public double EffectiveScore() =>
-        FinalGrade != EvaluationGrade.ChuaXepLoai && FinalScore > 0 ? FinalScore : AppraisalScore ?? TotalSelfScore;
+        FinalGrade != EvaluationGrade.ChuaXepLoai && FinalScore > 0 ? FinalScore : AppraisalScore ?? (SelfScoredAt.HasValue ? TotalSelfScore : 0);
 
     /// <summary>Mức hiệu lực: quyết định → cấp trực tiếp sử dụng → thẩm định → tập thể → tự đề xuất.</summary>
     public EvaluationGrade EffectiveGrade()
     {
-        foreach (var grade in new[] { FinalGrade, DirectorProposedGrade, AppraisalProposedGrade, CollectiveProposedGrade, SelfProposedGrade })
+        // Mức tự đề xuất chỉ tính khi đã nộp phiếu tự chấm (bản nháp không tính).
+        var self = SelfScoredAt.HasValue ? SelfProposedGrade : EvaluationGrade.ChuaXepLoai;
+        foreach (var grade in new[] { FinalGrade, DirectorProposedGrade, AppraisalProposedGrade, CollectiveProposedGrade, self })
         {
             if (grade != EvaluationGrade.ChuaXepLoai)
                 return grade;
