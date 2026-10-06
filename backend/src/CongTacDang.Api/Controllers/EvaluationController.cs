@@ -129,6 +129,12 @@ public class EvaluationController : ControllerBase
     public Task<IActionResult> SubmitSelfScore(Guid id, [FromBody] SubmitSelfScoreRequestDto dto, CancellationToken ct) =>
         Run(() => _workflow.SubmitSelfScoreAsync(id, dto, ct), "Đã nộp phiếu tự chấm.");
 
+    /// <summary>B2_SELF_SCORE — chủ hồ sơ lưu nháp phiếu tự chấm (không chuyển bước, không bắt buộc nhập đủ).</summary>
+    [HttpPost("records/{id:guid}/self-score/draft")]
+    [RequirePermission(PermissionCodes.EvaluationSelf)]
+    public Task<IActionResult> SaveSelfScoreDraft(Guid id, [FromBody] SubmitSelfScoreRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.SaveSelfScoreDraftAsync(id, dto, ct), "Đã lưu nháp phiếu tự chấm.");
+
     /// <summary>B2_CELL_CONFIRM — Chi bộ xác nhận phiếu tự chấm.</summary>
     [HttpPost("records/{id:guid}/cell/confirm")]
     public Task<IActionResult> ConfirmByCell(Guid id, [FromBody] CommentRequestDto dto, CancellationToken ct) =>

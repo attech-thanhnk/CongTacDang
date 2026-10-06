@@ -94,14 +94,16 @@ public static class EvaluationScoring
     /// <summary>
     /// Kiểm tra điểm tiêu chí chung theo bộ: đủ mọi tiêu chí con, không có mã lạ; "Đảm bảo/Không đảm bảo" chỉ nhận 0 hoặc điểm
     /// tối đa; chấm theo khoảng nhận 0..tối đa; "K/AD" chỉ khi bộ cho phép và phải có lý do; khoản giảm ≥ ngưỡng phải có căn cứ.
-    /// Trả thông báo lỗi hoặc null.
+    /// Trả thông báo lỗi hoặc null. <paramref name="partial"/> = lưu nháp: chỉ kiểm định dạng (mã, khoảng điểm, K/AD có được
+    /// phép không), không bắt buộc chấm đủ hay nêu lý do.
     /// </summary>
-    public static string? ValidateGeneralScores(CriteriaSetContent criteria, IReadOnlyDictionary<string, GeneralItemScore>? scores)
+    public static string? ValidateGeneralScores(CriteriaSetContent criteria, IReadOnlyDictionary<string, GeneralItemScore>? scores,
+        bool partial = false)
     {
         ArgumentNullException.ThrowIfNull(criteria);
         var items = criteria.AllItems.ToList();
         if (scores == null || scores.Count == 0)
-            return $"Hãy chấm đủ {items.Count} tiêu chí con của nhóm tiêu chí chung.";
+            return partial ? null : $"Hãy chấm đủ {items.Count} tiêu chí con của nhóm tiêu chí chung.";
 
         var known = new HashSet<string>(items.Select(x => x.Item.Code), StringComparer.OrdinalIgnoreCase);
         var unknown = scores.Keys.FirstOrDefault(k => !known.Contains(k));
@@ -113,13 +115,17 @@ public static class EvaluationScoring
         {
             var score = Find(scores, item.Code);
             if (score == null)
+            {
+                if (partial)
+                    continue;
                 return $"Chưa chấm tiêu chí {item.Code} \"{Short(item.Text)}\".";
+            }
 
             if (score.NotApplicable)
             {
                 if (!p.AllowNotApplicable)
                     return $"Bộ tiêu chí của kỳ không cho phép đánh dấu \"Không áp dụng\" (tiêu chí {item.Code}).";
-                if (string.IsNullOrWhiteSpace(score.Reason))
+                if (!partial && string.IsNullOrWhiteSpace(score.Reason))
                     return $"Tiêu chí {item.Code} được đánh dấu \"K/AD — Không áp dụng\": hãy nêu lý do.";
                 continue;
             }
@@ -132,7 +138,7 @@ public static class EvaluationScoring
                 return string.Create(CultureInfo.InvariantCulture,
                     $"Tiêu chí {item.Code} chấm \"Đảm bảo\" ({item.MaxScore:0.##} điểm) hoặc \"Không đảm bảo\" (0 điểm).");
             }
-            if (p.DeductionReasonMinPoints is { } minDeduction
+            if (!partial && p.DeductionReasonMinPoints is { } minDeduction
                 && item.MaxScore - score.Score + CriteriaSetContent.Epsilon >= minDeduction
                 && string.IsNullOrWhiteSpace(score.Reason))
             {
@@ -218,12 +224,15 @@ public static class EvaluationScoring
 
     #region Trục kết quả (Mẫu 09B)
 
-    /// <summary>Kiểm tra điểm theo trục (Mẫu 09B): đủ mọi trục của bộ, không có mã lạ, mỗi trục 0..điểm tối đa. Trả lỗi hoặc null.</summary>
-    public static string? ValidateAxisScores(CriteriaSetContent criteria, IReadOnlyDictionary<string, double>? scores)
+    /// <summary>
+    /// Kiểm tra điểm theo trục (Mẫu 09B): đủ mọi trục của bộ, không có mã lạ, mỗi trục 0..điểm tối đa. Trả lỗi hoặc null.
+    /// <paramref name="partial"/> = lưu nháp: không bắt buộc chấm đủ trục.
+    /// </summary>
+    public static string? ValidateAxisScores(CriteriaSetContent criteria, IReadOnlyDictionary<string, double>? scores, bool partial = false)
     {
         ArgumentNullException.ThrowIfNull(criteria);
         if (scores == null || scores.Count == 0)
-            return $"Tự chấm theo Mẫu 09B phải có điểm đủ {criteria.Axes.Count} trục ({string.Join(", ", criteria.Axes.Select(a => a.Code))}).";
+            return partial ? null : $"Tự chấm theo Mẫu 09B phải có điểm đủ {criteria.Axes.Count} trục ({string.Join(", ", criteria.Axes.Select(a => a.Code))}).";
         var unknown = scores.Keys.FirstOrDefault(k => criteria.FindAxis(k) == null);
         if (unknown != null)
             return $"Trục \"{unknown}\" không có trong bộ tiêu chí của kỳ.";
@@ -231,7 +240,11 @@ public static class EvaluationScoring
         {
             var found = scores.FirstOrDefault(kv => string.Equals(kv.Key, axis.Code, StringComparison.OrdinalIgnoreCase));
             if (found.Key == null)
+            {
+                if (partial)
+                    continue;
                 return $"Chưa chấm trục {axis.Code} \"{Short(axis.Name)}\".";
+            }
             if (double.IsNaN(found.Value) || found.Value < 0 || found.Value > axis.MaxScore + CriteriaSetContent.Epsilon)
                 return string.Create(CultureInfo.InvariantCulture, $"Điểm trục {axis.Code} phải từ 0 đến {axis.MaxScore:0.##} điểm.");
         }

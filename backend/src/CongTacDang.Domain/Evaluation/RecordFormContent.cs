@@ -128,10 +128,10 @@ public static class RecordFormContent
     /// <summary>
     /// Kiểm tra nội dung 09C theo các mục của bộ tiêu chí: mã mục phải có trong bộ, không vượt số ký tự tối đa của mục, mục bắt
     /// buộc phải có nội dung. Mục đầu tiên in kèm các nhiệm vụ theo trục (<paramref name="axisReports"/>) nên số ký tự và điều kiện
-    /// bắt buộc tính cả phần đó. Trả thông báo lỗi hoặc null.
+    /// bắt buộc tính cả phần đó. Trả thông báo lỗi hoặc null. <paramref name="partial"/> = lưu nháp: mục bắt buộc được để trống.
     /// </summary>
     public static string? ValidateSelfAssessment(CriteriaSetContent criteria, IReadOnlyDictionary<string, string?>? sections,
-        IReadOnlyDictionary<string, AxisReport>? axisReports = null)
+        IReadOnlyDictionary<string, AxisReport>? axisReports = null, bool partial = false)
     {
         ArgumentNullException.ThrowIfNull(criteria);
         var input = sections ?? new Dictionary<string, string?>();
@@ -148,7 +148,7 @@ public static class RecordFormContent
             var extra = i == 0 ? taskLength : 0;
             if (text.Length == 0 && extra == 0)
             {
-                if (section.Required)
+                if (section.Required && !partial)
                     return $"Mẫu 09C: hãy nhập nội dung mục \"{section.Title}\".";
                 continue;
             }
@@ -189,9 +189,11 @@ public static class RecordFormContent
 
     /// <summary>
     /// Kiểm tra nội dung theo trục: mã trục có trong bộ tiêu chí; số nhiệm vụ, ý con; nhiệm vụ và ý con phải có nội dung; mức thuộc
-    /// danh sách mức của bộ; độ dài từng ô. Trả thông báo lỗi hoặc null.
+    /// danh sách mức của bộ; độ dài từng ô. Trả thông báo lỗi hoặc null. <paramref name="partial"/> = lưu nháp: nhiệm vụ/ý con
+    /// chưa có nội dung không báo lỗi (khi ghi bị bỏ như mọi dòng trống).
     /// </summary>
-    public static string? ValidateAxisReports(CriteriaSetContent criteria, IReadOnlyDictionary<string, AxisReport?>? reports)
+    public static string? ValidateAxisReports(CriteriaSetContent criteria, IReadOnlyDictionary<string, AxisReport?>? reports,
+        bool partial = false)
     {
         ArgumentNullException.ThrowIfNull(criteria);
         foreach (var (code, report) in reports ?? new Dictionary<string, AxisReport?>())
@@ -209,10 +211,12 @@ public static class RecordFormContent
             {
                 var task = tasks[k];
                 var label = $"{axisLabel}, nhiệm vụ {k + 1}";
-                if (task == null)
-                    return $"{label}: dữ liệu trống.";
-                if (string.IsNullOrWhiteSpace(task.Content))
-                    return $"{label}: hãy nhập nội dung (hoặc xóa nhiệm vụ).";
+                if (task == null || string.IsNullOrWhiteSpace(task.Content))
+                {
+                    if (partial)
+                        continue;
+                    return task == null ? $"{label}: dữ liệu trống." : $"{label}: hãy nhập nội dung (hoặc xóa nhiệm vụ).";
+                }
                 if (task.Content.Trim().Length > MaxLongCellLength)
                     return $"{label}: nội dung không được dài quá {MaxLongCellLength} ký tự.";
                 if (LevelError(criteria, task.Level, label) is { } levelError)
@@ -225,7 +229,11 @@ public static class RecordFormContent
                     var item = items[j];
                     var itemLabel = $"{label}, ý {j + 1}";
                     if (item == null || string.IsNullOrWhiteSpace(item.Content))
+                    {
+                        if (partial)
+                            continue;
                         return $"{itemLabel}: hãy nhập nội dung (hoặc xóa ý).";
+                    }
                     if (item.Content.Trim().Length > MaxLongCellLength)
                         return $"{itemLabel}: nội dung không được dài quá {MaxLongCellLength} ký tự.";
                     if (LevelError(criteria, item.Level, itemLabel) is { } itemLevelError)

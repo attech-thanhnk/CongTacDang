@@ -25,6 +25,13 @@ public interface IEvaluationWorkflowService
     Task<EvaluationRecordDto> ApproveTasksAsync(Guid recordId, CommentRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> ReturnTasksAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> SubmitSelfScoreAsync(Guid recordId, SubmitSelfScoreRequestDto request, CancellationToken ct = default);
+
+    /// <summary>
+    /// Lưu nháp phiếu tự chấm: cùng điều kiện quyền/bước/khóa kỳ/phiên bản như nộp phiếu nhưng không chuyển trạng thái, không ghi
+    /// thời điểm nộp và không ghi lịch sử hồ sơ; chỉ kiểm định dạng, không bắt buộc nhập đủ.
+    /// </summary>
+    Task<EvaluationRecordDto> SaveSelfScoreDraftAsync(Guid recordId, SubmitSelfScoreRequestDto request, CancellationToken ct = default);
+
     Task<EvaluationRecordDto> ConfirmByCellAsync(Guid recordId, CommentRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> ReturnByCellAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> RecordCollectiveProposalAsync(Guid recordId, CollectiveProposalRequestDto request, CancellationToken ct = default);
@@ -151,42 +158,71 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     public Task<EvaluationRecordDto> SubmitSelfScoreAsync(Guid recordId, SubmitSelfScoreRequestDto request, CancellationToken ct = default) =>
         ExecuteAsync(recordId, request, WorkflowActions.SubmitSelfScore, null, async ctx =>
         {
-            var record = ctx.Record;
-            var criteria = RequireCriteria(ctx);
-            var content = criteria.Content;
-            var rounding = content.Parameters.Rounding;
-            var general = request.GeneralScores ?? new Dictionary<string, GeneralItemScore>();
-            var generalError = EvaluationScoring.ValidateGeneralScores(content, general);
-            if (generalError != null)
-                throw new ValidationException(generalError);
-            if (general.Values.Any(s => s.Reason is { Length: > MaxCommentLength }))
-                throw new ValidationException($"Lý do/căn cứ của tiêu chí không được dài quá {MaxCommentLength} ký tự.");
+            var formChanges = await ApplySelfScoreAsync(ctx, request, draft: false, ct);
+            ctx.Record.SelfScoredAt = ctx.Now;
+            ctx.Record.ReturnReason = null;
+            return formChanges.Count == 0
+                ? "Nộp phiếu tự chấm."
+                : $"Nộp phiếu tự chấm; cập nhật {string.Join(", ", formChanges)}.";
+        }, ct);
 
-            record.GeneralScores = EvaluationScoring.GeneralScoresToJson(content, general);
-            record.GeneralCriteriaScore = EvaluationScoring.GeneralCriteriaScore(content, general);
-            double? exceedRatio = null;
+    /// <inheritdoc />
+    public Task<EvaluationRecordDto> SaveSelfScoreDraftAsync(Guid recordId, SubmitSelfScoreRequestDto request, CancellationToken ct = default) =>
+        ExecuteAsync(recordId, request, WorkflowActions.SubmitSelfScore, null, async ctx =>
+        {
+            await ApplySelfScoreAsync(ctx, request, draft: true, ct);
+            return null;
+        }, ct, draft: true);
 
-            if (criteria.UsesAxisScoring)
+    /// <summary>
+    /// Áp nội dung phiếu tự chấm vào hồ sơ: điểm tiêu chí chung, điểm theo trục (09B) hoặc A-B-C-D từng nhiệm vụ (09A), tổng
+    /// điểm, mức tự đề xuất và biểu mẫu cá nhân nhập kèm. <paramref name="draft"/> = lưu nháp: chỉ kiểm định dạng (không bắt buộc
+    /// đủ tiêu chí/trục, lý do, mục bắt buộc 09C); điểm tổng tính trên phần đã nhập (thiếu = 0); mức để trống thì giữ "chưa xếp
+    /// loại" thay vì gợi ý. Trả danh sách biểu mẫu có nội dung thay đổi (ghi lịch sử khi nộp).
+    /// </summary>
+    private async Task<List<string>> ApplySelfScoreAsync(ActionContext ctx, SubmitSelfScoreRequestDto request, bool draft, CancellationToken ct)
+    {
+        var record = ctx.Record;
+        var criteria = RequireCriteria(ctx);
+        var content = criteria.Content;
+        var rounding = content.Parameters.Rounding;
+        var general = request.GeneralScores ?? new Dictionary<string, GeneralItemScore>();
+        var generalError = EvaluationScoring.ValidateGeneralScores(content, general, partial: draft);
+        if (generalError != null)
+            throw new ValidationException(generalError);
+        if (general.Values.Any(s => s?.Reason is { Length: > MaxCommentLength }))
+            throw new ValidationException($"Lý do/căn cứ của tiêu chí không được dài quá {MaxCommentLength} ký tự.");
+
+        record.GeneralScores = EvaluationScoring.GeneralScoresToJson(content, general);
+        record.GeneralCriteriaScore = EvaluationScoring.GeneralCriteriaScore(content, general);
+        double? exceedRatio = null;
+
+        if (criteria.UsesAxisScoring)
+        {
+            var axisScores = request.AxisScores ?? new Dictionary<string, double>();
+            var axisError = EvaluationScoring.ValidateAxisScores(content, axisScores, partial: draft);
+            if (axisError != null)
+                throw new ValidationException(axisError);
+            record.AxisScores = EvaluationScoring.AxisScoresToJson(content, axisScores);
+            record.TasksScore = EvaluationScoring.AxisTasksScore(content, axisScores);
+            record.SelfScoreForm = CriteriaSetContent.Form09B;
+        }
+        else
+        {
+            // Lưu nháp khi hồ sơ chưa có khung / chưa có danh mục: giữ nguyên điểm nhiệm vụ, vẫn lưu các phần còn lại.
+            var frame = content.FindFrame(record.WeightFrameCode);
+            if (frame == null && !draft)
+                throw new ValidationException(string.IsNullOrEmpty(record.WeightFrameCode)
+                    ? "Hồ sơ chưa có khung tỷ trọng A-B-C-D nên chưa tự chấm được theo Mẫu 09A. Hãy liên hệ người quản lý kỳ để chọn khung."
+                    : $"Khung tỷ trọng \"{record.WeightFrameCode}\" của hồ sơ không có trong bộ tiêu chí \"{criteria.Name}\" của kỳ. "
+                      + "Hãy liên hệ người quản lý kỳ để sửa khung.");
+
+            var tasks = await _repo.GetTasksAsync(record.Id, ct);
+            if (tasks.Count == 0 && !draft)
+                throw new ValidationException("Hồ sơ chưa có danh mục sản phẩm (Mẫu 01) nên chưa tự chấm theo Mẫu 09A được.");
+
+            if (frame != null)
             {
-                var axisError = EvaluationScoring.ValidateAxisScores(content, request.AxisScores);
-                if (axisError != null)
-                    throw new ValidationException(axisError);
-                record.AxisScores = EvaluationScoring.AxisScoresToJson(content, request.AxisScores!);
-                record.TasksScore = EvaluationScoring.AxisTasksScore(content, request.AxisScores!);
-                record.SelfScoreForm = CriteriaSetContent.Form09B;
-            }
-            else
-            {
-                var frame = content.FindFrame(record.WeightFrameCode)
-                    ?? throw new ValidationException(string.IsNullOrEmpty(record.WeightFrameCode)
-                        ? "Hồ sơ chưa có khung tỷ trọng A-B-C-D nên chưa tự chấm được theo Mẫu 09A. Hãy liên hệ người quản lý kỳ để chọn khung."
-                        : $"Khung tỷ trọng \"{record.WeightFrameCode}\" của hồ sơ không có trong bộ tiêu chí \"{criteria.Name}\" của kỳ. "
-                          + "Hãy liên hệ người quản lý kỳ để sửa khung.");
-
-                var tasks = await _repo.GetTasksAsync(record.Id, ct);
-                if (tasks.Count == 0)
-                    throw new ValidationException("Hồ sơ chưa có danh mục sản phẩm (Mẫu 01) nên chưa tự chấm theo Mẫu 09A được.");
-
                 // T-47: tệp minh chứng mới gắn vào nhiệm vụ phải tồn tại và thuộc quyền người gửi.
                 var changed = tasks
                     .Select(task => (task, input: request.TaskScores?.FirstOrDefault(s => s.TaskId == task.Id)))
@@ -194,57 +230,53 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                     .Select(x => x.input!.AttachmentId);
                 await EnsureNewAttachmentsLinkableAsync(changed, new HashSet<Guid>());
 
-                var taskScores = new List<double>();
                 foreach (var task in tasks)
                 {
                     var input = request.TaskScores?.FirstOrDefault(s => s.TaskId == task.Id);
-                    if (input != null)
-                    {
-                        var scored = EvaluationScoring.ScoreTask(task.Weight, input.CriteriaA_Ratio, input.CriteriaB_Ratio,
-                            input.CriteriaC_Ratio, input.CriteriaD_Ratio, frame, rounding.TaskScore);
-                        task.CriteriaA_Ratio = scored.A;
-                        task.CriteriaB_Ratio = scored.B;
-                        task.CriteriaC_Ratio = scored.C;
-                        task.CriteriaD_Ratio = scored.D;
-                        task.IsExceedStandard = input.IsExceedStandard;
-                        task.AttachmentId = input.AttachmentId;
-                        task.SelfScore = scored.Score;
-                    }
-                    taskScores.Add(task.SelfScore);
+                    if (input == null)
+                        continue;
+                    var scored = EvaluationScoring.ScoreTask(task.Weight, input.CriteriaA_Ratio, input.CriteriaB_Ratio,
+                        input.CriteriaC_Ratio, input.CriteriaD_Ratio, frame, rounding.TaskScore);
+                    task.CriteriaA_Ratio = scored.A;
+                    task.CriteriaB_Ratio = scored.B;
+                    task.CriteriaC_Ratio = scored.C;
+                    task.CriteriaD_Ratio = scored.D;
+                    task.IsExceedStandard = input.IsExceedStandard;
+                    task.AttachmentId = input.AttachmentId;
+                    task.SelfScore = scored.Score;
                 }
-
-                record.TasksScore = EvaluationScoring.TasksScore(taskScores, rounding.TasksTotal);
-                record.AxisScores = null;
-                record.SelfScoreForm = CriteriaSetContent.Form09A;
-                exceedRatio = EvaluationScoring.ExceedStandardRatio(tasks.Count(t => t.IsExceedStandard), tasks.Count);
             }
 
-            record.TotalSelfScore = EvaluationScoring.TotalScore(record.GeneralCriteriaScore, record.TasksScore, rounding.Total);
-            if (string.IsNullOrWhiteSpace(request.SelfProposedGrade))
-            {
-                record.SelfProposedGrade = EvaluationScoring.SuggestGrade(content, record.TotalSelfScore, exceedRatio);
-            }
-            else
-            {
-                record.SelfProposedGrade = EvaluationMapping.ParseGrade(request.SelfProposedGrade)
-                    ?? throw new ValidationException("Mức tự đề xuất không hợp lệ.");
-            }
+            record.TasksScore = EvaluationScoring.TasksScore(tasks.Select(t => t.SelfScore), rounding.TasksTotal);
+            record.AxisScores = null;
+            record.SelfScoreForm = CriteriaSetContent.Form09A;
+            exceedRatio = EvaluationScoring.ExceedStandardRatio(tasks.Count(t => t.IsExceedStandard), tasks.Count);
+        }
 
-            var formChanges = ApplyIndividualForms(record, criteria, request);
+        record.TotalSelfScore = EvaluationScoring.TotalScore(record.GeneralCriteriaScore, record.TasksScore, rounding.Total);
+        if (!string.IsNullOrWhiteSpace(request.SelfProposedGrade))
+        {
+            record.SelfProposedGrade = EvaluationMapping.ParseGrade(request.SelfProposedGrade)
+                ?? throw new ValidationException("Mức tự đề xuất không hợp lệ.");
+        }
+        else
+        {
+            record.SelfProposedGrade = draft
+                ? EvaluationGrade.ChuaXepLoai
+                : EvaluationScoring.SuggestGrade(content, record.TotalSelfScore, exceedRatio);
+        }
 
-            record.SelfScoredAt = ctx.Now;
-            record.ReturnReason = null;
-            return formChanges.Count == 0
-                ? "Nộp phiếu tự chấm."
-                : $"Nộp phiếu tự chấm; cập nhật {string.Join(", ", formChanges)}.";
-        }, ct);
+        return ApplyIndividualForms(record, criteria, request, partial: draft);
+    }
 
     /// <summary>
     /// Lưu nội dung biểu mẫu cá nhân nhập cùng phiếu tự chấm (khi kỳ áp dụng theo bộ tiêu chí): nhiệm vụ và kết quả theo trục
     /// (nhiệm vụ kèm mức cho mục I Mẫu 09C, phần tóm tắt trục cho Mẫu 9D), nhận xét chung Mẫu 09C, phần tự luận theo trục của
     /// Mẫu 09B. Trường null trong yêu cầu = giữ nội dung đã lưu. Trả danh sách biểu mẫu có nội dung thay đổi (ghi lịch sử).
+    /// <paramref name="partial"/> = lưu nháp: không bắt buộc mục 09C, bỏ qua dòng nhiệm vụ/ý con chưa có nội dung.
     /// </summary>
-    private static List<string> ApplyIndividualForms(EvaluationRecord record, CriteriaSnapshot criteria, SubmitSelfScoreRequestDto request)
+    private static List<string> ApplyIndividualForms(EvaluationRecord record, CriteriaSnapshot criteria, SubmitSelfScoreRequestDto request,
+        bool partial = false)
     {
         var content = criteria.Content;
         var changed = new List<string>();
@@ -253,7 +285,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
         if (request.AxisReports != null && (uses09C || uses9D))
         {
-            var error = RecordFormContent.ValidateAxisReports(content, request.AxisReports);
+            var error = RecordFormContent.ValidateAxisReports(content, request.AxisReports, partial);
             if (error != null)
                 throw new ValidationException(error);
             var json = RecordFormContent.AxisReportsToJson(content, request.AxisReports, includeTasks: uses09C, includeSummary: uses9D);
@@ -274,7 +306,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             // Mục I in kèm các nhiệm vụ theo trục: giới hạn ký tự và mục bắt buộc tính trên nội dung sẽ in (gửi lên hoặc đang lưu).
             var sections = request.SelfAssessment
                 ?? RecordFormContent.ParseSelfAssessment(record.SelfAssessment).ToDictionary(kv => kv.Key, kv => (string?)kv.Value);
-            var error = RecordFormContent.ValidateSelfAssessment(content, sections, ParseAxisReportsOrEmpty(record.AxisReports));
+            var error = RecordFormContent.ValidateSelfAssessment(content, sections, ParseAxisReportsOrEmpty(record.AxisReports), partial);
             if (error != null)
                 throw new ValidationException(error);
             if (request.SelfAssessment != null)
@@ -806,12 +838,16 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         string? reason,
         Func<ActionContext, Task<string?>> apply,
         CancellationToken ct,
-        WorkflowStep? reopenTarget = null) =>
-        ExecuteAsync(recordId, request, WorkflowActions.Get(actionCode), reason, apply, ct, reopenTarget);
+        WorkflowStep? reopenTarget = null,
+        bool draft = false) =>
+        ExecuteAsync(recordId, request, WorkflowActions.Get(actionCode), reason, apply, ct, reopenTarget, draft);
 
     /// <summary>
     /// Trình tự chung: phiên bản bắt buộc → nạp hồ sơ → chế độ bước theo hồ sơ luồng → xung đột lợi ích → guard (quyền thực hiện
     /// của bước theo hồ sơ luồng) → so phiên bản → luật kỳ + thời hạn → lý do → máy trạng thái → áp dữ liệu → lịch sử → lưu (xmin).
+    /// <paramref name="draft"/> = lưu nháp dữ liệu của bước: kiểm như hành động (máy trạng thái phải cho phép hoàn thành bước,
+    /// tức hồ sơ đang ở bước này) nhưng không chuyển trạng thái, không ghi lịch sử hồ sơ (mỗi lần lưu nháp đã có audit log tự động)
+    /// và không chặn theo thời hạn của bước (không đưa hồ sơ đi tiếp).
     /// </summary>
     private async Task<EvaluationRecordDto> ExecuteAsync(
         Guid recordId,
@@ -820,7 +856,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         string? reason,
         Func<ActionContext, Task<string?>> apply,
         CancellationToken ct,
-        WorkflowStep? reopenTarget = null)
+        WorkflowStep? reopenTarget = null,
+        bool draft = false)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -856,7 +893,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             throw new ConflictException(periodBlock);
 
         var now = DateTime.UtcNow;
-        if (action.Advances && settings.EnforceDeadlines
+        if (!draft && action.Advances && settings.EnforceDeadlines
             && profile.Deadline(action.Step) is { } deadline && EvaluationMapping.Today(now) > deadline)
         {
             throw new ConflictException(
@@ -893,10 +930,17 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
         var comment = await apply(new ActionContext(record, settings, profile, actorId, actorName, now, ReadCriteria(period)));
 
+        record.UpdatedAt = now;
+        if (draft)
+        {
+            _unitOfWork.SetOriginalVersion(record, request.Version);
+            await _unitOfWork.SaveChangesAsync(ct);
+            return await LoadDtoAsync(record, ct);
+        }
+
         if (action.Kind == WorkflowAction.Return)
             record.ReturnReason = cleanReason;
         record.Status = transition.Status;
-        record.UpdatedAt = now;
 
         _repo.AddHistory(new EvaluationRecordHistory
         {
@@ -918,7 +962,12 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
         _unitOfWork.SetOriginalVersion(record, request.Version);
         await _unitOfWork.SaveChangesAsync(ct);
+        return await LoadDtoAsync(record, ct);
+    }
 
+    /// <summary>Nạp lại hồ sơ vừa lưu (phiên bản mới) và chuyển sang DTO.</summary>
+    private async Task<EvaluationRecordDto> LoadDtoAsync(EvaluationRecord record, CancellationToken ct)
+    {
         var saved = await _repo.FindRecordAsync(record.Id, ct) ?? record;
         var evidence = await _repo.GetCurrentEvidenceAsync(saved.Tasks.ToList(), ct);
         return EvaluationMapping.ToDto(saved, ReadSettings(saved.Period), EvaluationMapping.Today(DateTime.UtcNow), evidence);

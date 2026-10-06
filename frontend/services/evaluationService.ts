@@ -1035,7 +1035,8 @@ export const evaluationService = {
   /**
    * Thực hiện một hành động theo bước. `version` là phiên bản hồ sơ đã đọc — bắt buộc (máy chủ trả 400 nếu thiếu).
    * 409 (người khác đã cập nhật / hồ sơ đã sang bước khác) → phát sự kiện EVALUATION_CONFLICT_EVENT.
-   * `RecordExternal` cần `step` (bước do cấp trên thực hiện được ghi nhận).
+   * `RecordExternal` cần `step` (bước do cấp trên thực hiện được ghi nhận). Biểu mẫu đã lưu nháp (phiên bản hồ sơ tăng mà trang
+   * chưa tải lại) gửi phiên bản mới trong `payload.version` — được ưu tiên hơn `version`.
    */
   async performAction(
     recordId: string,
@@ -1045,8 +1046,14 @@ export const evaluationService = {
     step?: WorkflowStepCode
   ): Promise<EvaluationRecordDto> {
     const path = action === "RecordExternal" ? `${ACTION_PATH[action]}/${step}` : ACTION_PATH[action];
-    return withConflictHandling(action, () =>
-      post<EvaluationRecordDto>(`/evaluations/records/${recordId}/${path}`, { ...payload, version })
+    const body = { ...payload, version: typeof payload.version === "number" ? payload.version : version };
+    return withConflictHandling(action, () => post<EvaluationRecordDto>(`/evaluations/records/${recordId}/${path}`, body));
+  },
+
+  /** Lưu nháp phiếu tự chấm: lưu nội dung đang nhập, hồ sơ giữ nguyên bước; trả hồ sơ đã lưu (phiên bản mới). */
+  async saveSelfScoreDraft(recordId: string, version: number, payload: Record<string, unknown>): Promise<EvaluationRecordDto> {
+    return withConflictHandling("SaveSelfScoreDraft", () =>
+      post<EvaluationRecordDto>(`/evaluations/records/${recordId}/self-score/draft`, { ...payload, version })
     );
   },
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   AxisNote,
   AxisReport,
@@ -9,6 +9,8 @@ import {
   axisTaskTextLength,
   buildAxisTaskBlocks,
   criteriaAppliesForm,
+  evaluationService,
+  isConcurrencyConflict,
   selfAssessmentSections,
   taskLevels,
 } from "@/services/evaluationService";
@@ -45,6 +47,46 @@ interface Props {
   onSubmit: (payload: Record<string, unknown>) => void;
 }
 
+const LEAVE_MESSAGE = "Phiếu tự chấm có thay đổi chưa lưu. Rời trang và bỏ các thay đổi này?";
+
+const timeOf = (date: Date) => date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+
+/**
+ * Cảnh báo khi rời trang lúc còn thay đổi chưa lưu: đóng/tải lại tab (`beforeunload`) và bấm liên kết nội bộ (chặn click trên thẻ
+ * `<a>` ở pha capture, trước khi Next.js điều hướng). Không bắt được điều hướng bằng mã (`router.push`) hay nút Back của trình duyệt.
+ */
+function useLeaveGuard(dirty: boolean) {
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!dirtyRef.current) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    const onClick = (e: MouseEvent) => {
+      if (!dirtyRef.current || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const anchor = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!anchor || (anchor.target && anchor.target !== "_self") || anchor.hasAttribute("download")) return;
+      const url = new URL(anchor.href, window.location.href);
+      // Liên kết ra ngoài ứng dụng tải lại toàn trang → đã có beforeunload; liên kết cùng trang (#mục) không rời phiếu.
+      if (url.origin !== window.location.origin) return;
+      if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+      if (!window.confirm(LEAVE_MESSAGE)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("click", onClick, true);
+    };
+  }, []);
+}
+
 /**
  * Phiếu tự chấm dựng động từ bộ tiêu chí của kỳ: tiêu chí con "Đảm bảo / Không đảm bảo / K/AD (lý do)" hoặc ô điểm (theo cách chấm
  * của nhóm), trục theo mã (Mẫu 09B) hoặc A-B-C-D theo khung tỷ trọng của hồ sơ (Mẫu 09A); tổng tạm tính — máy chủ tính lại.
@@ -75,7 +117,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
         initial[item.code] = record.generalScores?.[item.code] ?? { score: item.maxScore, notApplicable: false, reason: "" };
     return initial;
   });
-  const { confirm } = useToast();
+  const { confirm, toast } = useToast();
   const [axis, setAxis] = useState<Record<string, ScoreInput>>(() =>
     Object.fromEntries(content.axes.map((a) => [a.code, record.axisScores?.[a.code] ?? ""]))
   );
@@ -111,6 +153,19 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     Object.fromEntries(content.axes.map((a) => [a.code, { ...(record.axisNotes?.[a.code] ?? {}) }]))
   );
 
+  // Lưu nháp: theo dõi thay đổi chưa lưu bằng ảnh chụp nội dung phiếu; phiên bản hồ sơ sau lần lưu nháp gần nhất được dùng cho
+  // lần lưu/nộp tiếp theo (trang chưa tải lại hồ sơ) — trừ khi trang đã nạp hồ sơ mới.
+  const snapshot = JSON.stringify([general, axis, grade, ratios, selfAssessment, axisReports, groupNotes, axisNotes]);
+  const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [draftVersion, setDraftVersion] = useState<{ base?: number; next?: number } | null>(null);
+  const currentVersion = draftVersion && draftVersion.base === record.version ? draftVersion.next : record.version;
+  const initialSubmittedAt = useRef(record.selfScoredAt ?? null);
+  const submitted = !!record.selfScoredAt && record.selfScoredAt !== initialSubmittedAt.current;
+  const dirty = !submitted && snapshot !== savedSnapshot;
+  useLeaveGuard(dirty);
+
   const setItem = (code: string, change: Partial<GeneralItemScore>) => setGeneral({ ...general, [code]: { ...general[code], ...change } });
   const toInput = (raw: string): ScoreInput => (raw === "" ? "" : Number(raw));
   const setRatio = (taskId: string, key: keyof TaskRatio, value: ScoreInput | boolean | string | null) =>
@@ -133,8 +188,8 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   const needsReason = (item: { maxScore: number }, s: GeneralItemScore) =>
     !!s.notApplicable || (p.deductionReasonMinPoints != null && item.maxScore - (Number(s.score) || 0) + 1e-6 >= p.deductionReasonMinPoints);
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  /** Nội dung gửi máy chủ. Lưu nháp: bỏ trục / nhiệm vụ còn ô điểm trống (giữ trống khi mở lại, không ghi thành 0). */
+  const buildPayload = (draft: boolean): Record<string, unknown> => {
     const generalScores = Object.fromEntries(
       Object.entries(general).map(([code, s]) => [code, { score: s.notApplicable ? 0 : Number(s.score) || 0, notApplicable: !!s.notApplicable, reason: s.reason?.trim() || null }])
     );
@@ -142,19 +197,47 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     if (uses09C) payload.selfAssessment = selfAssessment;
     if (uses09C || uses9D) payload.axisReports = axisReports;
     if (uses09B) {
-      payload.axisScores = Object.fromEntries(Object.entries(axis).map(([k, v]) => [k, Number(v) || 0]));
+      payload.axisScores = Object.fromEntries(
+        Object.entries(axis).filter(([, v]) => !draft || v !== "").map(([k, v]) => [k, Number(v) || 0])
+      );
       payload.axisNotes = axisNotes;
     } else {
-      payload.taskScores = record.tasks.map((t) => ({
-        taskId: t.id,
-        criteriaA_Ratio: (Number(ratios[t.id].a) || 0) / 100,
-        criteriaB_Ratio: (Number(ratios[t.id].b) || 0) / 100,
-        criteriaC_Ratio: (Number(ratios[t.id].c) || 0) / 100,
-        criteriaD_Ratio: (Number(ratios[t.id].d) || 0) / 100,
-        isExceedStandard: ratios[t.id].exceed,
-        attachmentId: ratios[t.id].attachmentId || null,
-      }));
+      payload.taskScores = record.tasks
+        .filter((t) => !draft || (["a", "b", "c", "d"] as const).every((k) => ratios[t.id][k] !== ""))
+        .map((t) => ({
+          taskId: t.id,
+          criteriaA_Ratio: (Number(ratios[t.id].a) || 0) / 100,
+          criteriaB_Ratio: (Number(ratios[t.id].b) || 0) / 100,
+          criteriaC_Ratio: (Number(ratios[t.id].c) || 0) / 100,
+          criteriaD_Ratio: (Number(ratios[t.id].d) || 0) / 100,
+          isExceedStandard: ratios[t.id].exceed,
+          attachmentId: ratios[t.id].attachmentId || null,
+        }));
     }
+    return payload;
+  };
+
+  const saveDraft = async () => {
+    const savingSnapshot = snapshot;
+    setSaving(true);
+    try {
+      const saved = await evaluationService.saveSelfScoreDraft(record.id, currentVersion ?? 0, buildPayload(true));
+      setDraftVersion({ base: record.version, next: saved.version });
+      setSavedSnapshot(savingSnapshot);
+      const now = new Date();
+      setSavedAt(now);
+      toast.success(`Đã lưu nháp lúc ${timeOf(now)}.`);
+    } catch (error: any) {
+      if (!isConcurrencyConflict(error)) toast.error(error?.message || "Không lưu được nháp.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload = buildPayload(false);
+    if (currentVersion !== record.version && currentVersion != null) payload.version = currentVersion;
     const gradeLabel = grade ? GRADE_LABELS[grade as keyof typeof GRADE_LABELS] : `${GRADE_LABELS[gradeByScore(content, total)]} (hệ thống gợi ý)`;
     const missing = [
       uses09C && !Object.values(selfAssessment).some((v) => v?.trim()) && blocks.length === 0 ? "bản tự đánh giá Mẫu 09C" : null,
@@ -380,7 +463,19 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
             {GRADE_OPTIONS.filter((g) => g.value !== "ChuaXepLoai").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
           </select>
         </div>
-        <div className="col-md-7 text-end"><button type="submit" className="btn btn-primary" disabled={busy}>Nộp phiếu tự chấm</button></div>
+        <div className="col-md-7 d-flex flex-wrap align-items-center justify-content-end gap-2">
+          {(savedAt || dirty) && (
+            <span className="small text-secondary" aria-live="polite">
+              {savedAt ? `Đã lưu lúc ${timeOf(savedAt)}` : null}
+              {savedAt && dirty ? " · " : null}
+              {dirty ? "Có thay đổi chưa lưu" : null}
+            </span>
+          )}
+          <button type="button" className="btn btn-outline-secondary" disabled={busy || saving} onClick={saveDraft}>
+            {saving ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-save me-1" />}Lưu nháp
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={busy || saving}>Nộp phiếu tự chấm</button>
+        </div>
       </div>
 
       {uploadFor && (
