@@ -7,6 +7,7 @@ import {
   AxisReport,
   AxisTask,
   AxisTaskBlock,
+  AxisTaskLine,
   SelfAssessmentSection,
   TaskLevel,
 } from "@/services/evaluationService";
@@ -150,7 +151,7 @@ export function AxisReportsInput({
                   {tasks.map((task, k) => (
                     <div key={k}>
                       <div className="d-flex gap-2 align-items-start">
-                        <span className="small fw-semibold text-nowrap pt-1" style={{ minWidth: 84 }}>{taskLabel.split("{n}").join(String(k + 1))}</span>
+                        <span className="small fw-semibold text-nowrap pt-1" style={{ minWidth: 84 }}>{taskLabel.replace(/^[-–]\s*/, "").split("{n}").join(String(k + 1))}</span>
                         <textarea className="form-control form-control-sm" rows={2} maxLength={AXIS_REPORT_LIMITS.long} required value={task.content}
                           placeholder="Nội dung nhiệm vụ, tình hình và kết quả thực hiện"
                           aria-label={`Trục ${axisIndex + 1}, nhiệm vụ ${k + 1}`}
@@ -230,18 +231,30 @@ export function AxisReportsInput({
   );
 }
 
-/** Mục I Mẫu 09C như bản in: câu dẫn, nhận xét chung, rồi các trục (tiêu đề đậm, mỗi nhiệm vụ một đoạn). */
+/** Một dòng nhiệm vụ / ý con: câu nối mức in nghiêng như bản in. */
+function AxisTaskLineText({ line }: { line: AxisTaskLine }) {
+  return (
+    <>
+      {line.text}
+      {line.level && <> <em>{line.level}</em></>}
+    </>
+  );
+}
+
+/** Mục I Mẫu 09C như bản in: nhận xét chung (chưa nhập thì câu dẫn), rồi các trục (tiêu đề đậm, mỗi nhiệm vụ một đoạn). */
 export function SelfAssessmentPreview({ section, text, blocks }: { section?: SelfAssessmentSection; text?: string; blocks: AxisTaskBlock[] }) {
   if (!section) return null;
+  const intro = text?.trim() || section.guidance?.trim();
   return (
     <div className="border rounded p-3 small" style={{ fontFamily: "'Times New Roman', serif", fontSize: "0.95rem" }}>
       <div className="fw-bold">{section.title}</div>
-      {section.guidance && <div style={{ textIndent: 32 }}>{section.guidance}</div>}
-      {text?.trim() && <div style={{ textIndent: 32, whiteSpace: "pre-wrap" }}>{text.trim()}</div>}
+      {intro && <div style={{ textIndent: 32, whiteSpace: "pre-wrap", textAlign: "justify" }}>{intro}</div>}
       {blocks.map((b) => (
         <React.Fragment key={b.title}>
-          <div className="fw-bold mt-1" style={{ textIndent: 32 }}>{b.title}</div>
-          {b.lines.map((l, i) => <div key={i} style={{ textIndent: 32, whiteSpace: "pre-wrap" }}>{l}</div>)}
+          <div className="fw-bold mt-1">{b.title}</div>
+          {b.lines.map((l, i) => (
+            <div key={i} style={{ textIndent: 20, whiteSpace: "pre-wrap", textAlign: "justify" }}><AxisTaskLineText line={l} /></div>
+          ))}
         </React.Fragment>
       ))}
       {!text?.trim() && blocks.length === 0 && <div className="text-secondary">Chưa nhập.</div>}
@@ -288,7 +301,7 @@ export function SelfAssessmentView({ sections, value, blocks = [] }: { sections:
           {s.code === sections[0].code && blocks.map((b) => (
             <div key={b.title} className="small mt-1">
               <div className="fw-semibold">{b.title}</div>
-              {b.lines.map((l, i) => <div key={i} style={{ whiteSpace: "pre-wrap" }}>{l}</div>)}
+              {b.lines.map((l, i) => <div key={i} style={{ whiteSpace: "pre-wrap" }}><AxisTaskLineText line={l} /></div>)}
             </div>
           ))}
         </div>

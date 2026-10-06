@@ -304,11 +304,20 @@ export interface AxisReport {
   note?: string | null;
 }
 
+/** Một dòng nhiệm vụ / ý con của Mẫu 09C: nội dung và câu nối mức (in nghiêng; null khi không kết luận mức). */
+export interface AxisTaskLine {
+  text: string;
+  level: string | null;
+}
+
 /** Khối một trục khi in mục I Mẫu 09C. */
 export interface AxisTaskBlock {
   title: string;
-  lines: string[];
+  lines: AxisTaskLine[];
 }
+
+/** Cả dòng như bản in (nội dung + câu nối mức). */
+export const axisTaskLineText = (line: AxisTaskLine) => (line.level ? `${line.text} ${line.level}` : line.text);
 
 /** Nội dung tự luận của một trục trên Mẫu 09B. */
 export interface AxisNote {
@@ -375,8 +384,9 @@ const endSentence = (value: string) => {
 };
 
 /**
- * Dựng phần nhiệm vụ theo trục của mục I Mẫu 09C đúng như bản in (giống máy chủ): "n. Tên trục", mỗi nhiệm vụ
- * "<tiền tố> nội dung. <câu nối mức>", ý con "+ nội dung. <câu nối mức>"; trục không có nhiệm vụ bị bỏ qua.
+ * Dựng phần nhiệm vụ theo trục của mục I Mẫu 09C đúng như bản in (giống máy chủ): "n. Tên trục (trục n)", mỗi nhiệm vụ
+ * "<tiền tố> nội dung. <câu nối mức>", ý con "+ nội dung. <câu nối mức>" (câu nối mức tách riêng để in nghiêng); trục không
+ * có nhiệm vụ bị bỏ qua.
  */
 export function buildAxisTaskBlocks(
   axes: { code: string; name: string }[],
@@ -388,26 +398,28 @@ export function buildAxisTaskBlocks(
   const prefix = cfg.taskLineLabel?.trim() || "{n}.";
   const phrase = (level?: number | null) =>
     level != null && levels.some((l) => l.code === level) && cfg.taskLevelPhrase?.trim()
-      ? ` ${cfg.taskLevelPhrase.trim().split("{level}").join(String(level))}`
-      : "";
+      ? cfg.taskLevelPhrase.trim().split("{level}").join(String(level))
+      : null;
   const find = (code: string) => Object.entries(reports ?? {}).find(([k]) => k.toLowerCase() === code.toLowerCase())?.[1];
   const blocks: AxisTaskBlock[] = [];
   axes.forEach((axis, i) => {
     const tasks = (find(axis.code)?.tasks ?? []).filter((t) => t.content?.trim());
     if (tasks.length === 0) return;
-    const lines: string[] = [];
+    const lines: AxisTaskLine[] = [];
     tasks.forEach((task, k) => {
-      lines.push(`${prefix.split("{n}").join(String(k + 1))} ${endSentence(task.content)}${phrase(task.level)}`);
-      (task.items ?? []).filter((x) => x.content?.trim()).forEach((x) => lines.push(`+ ${endSentence(x.content)}${phrase(x.level)}`));
+      lines.push({ text: `${prefix.split("{n}").join(String(k + 1))} ${endSentence(task.content)}`, level: phrase(task.level) });
+      (task.items ?? [])
+        .filter((x) => x.content?.trim())
+        .forEach((x) => lines.push({ text: `+ ${endSentence(x.content)}`, level: phrase(x.level) }));
     });
-    blocks.push({ title: `${i + 1}. ${axis.name}`, lines });
+    blocks.push({ title: `${i + 1}. ${axis.name} (trục ${i + 1})`, lines });
   });
   return blocks;
 }
 
 /** Số ký tự phần nhiệm vụ theo trục khi in (tính vào giới hạn mục I Mẫu 09C, giống máy chủ). */
 export function axisTaskTextLength(blocks: AxisTaskBlock[]): number {
-  return blocks.reduce((sum, b) => sum + b.title.length + 1 + b.lines.reduce((s, l) => s + l.length + 1, 0), 0);
+  return blocks.reduce((sum, b) => sum + b.title.length + 1 + b.lines.reduce((s, l) => s + axisTaskLineText(l).length + 1, 0), 0);
 }
 
 /** Kết quả của một bước do cấp trên thực hiện (đã ghi nhận). */

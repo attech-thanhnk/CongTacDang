@@ -188,18 +188,22 @@ public class IndividualFormTests
 
         var blocks = RecordFormContent.BuildAxisTaskBlocks(c, reports);
         // Trục không có nhiệm vụ không in; số thứ tự trục giữ theo bộ tiêu chí.
-        Assert.Equal(new[] { $"1. {c.Axes[0].Name}", $"3. {c.Axes[2].Name}" }, blocks.Select(b => b.Title));
+        Assert.Equal(new[] { $"1. {c.Axes[0].Name} (trục 1)", $"3. {c.Axes[2].Name} (trục 3)" }, blocks.Select(b => b.Title));
         Assert.Equal(new[]
         {
-            "Nhiệm vụ 1: Nhóm nhiệm vụ KHCN. 02 đề tài chậm tiến độ. Tự đánh giá mức 2.",
-            "Nhiệm vụ 2: Lãnh đạo SXKD. Tự đánh giá mức 1."
-        }, blocks[0].Lines);
+            "- Nhiệm vụ 1: Nhóm nhiệm vụ KHCN. 02 đề tài chậm tiến độ. Tự đánh giá mức 2.",
+            "- Nhiệm vụ 2: Lãnh đạo SXKD. Tự đánh giá mức 1."
+        }, blocks[0].Lines.Select(l => l.FullText));
         Assert.Equal(new[]
         {
-            "Nhiệm vụ 1: Thực hiện Kế hoạch 824.",
+            "- Nhiệm vụ 1: Thực hiện Kế hoạch 824.",
             "+ Phối hợp sửa biểu mẫu. Tự đánh giá mức 1.",
             "+ Đề tài chậm tiến độ."
-        }, blocks[1].Lines);
+        }, blocks[1].Lines.Select(l => l.FullText));
+        // Câu nối mức tách riêng (in nghiêng); không chọn mức thì không có.
+        Assert.Equal(new AxisTaskLine("- Nhiệm vụ 1: Nhóm nhiệm vụ KHCN. 02 đề tài chậm tiến độ.", "Tự đánh giá mức 2."), blocks[0].Lines[0]);
+        Assert.Null(blocks[1].Lines[0].Level);
+        Assert.Equal(blocks.Sum(b => b.Title.Length + 1 + b.Lines.Sum(l => l.FullText.Length + 1)), RecordFormContent.AxisTaskTextLength(c, reports));
 
         // Giới hạn ký tự của mục I tính cả phần nhiệm vụ theo trục.
         var taskLength = RecordFormContent.AxisTaskTextLength(c, reports);
@@ -238,7 +242,8 @@ public class IndividualFormTests
         source.Criteria.TaskLevelPhrase = c.TaskLevelPhrase;
         source.Record.AxisReports = RecordFormContent.AxisReportsToJson(c, One(5));
         var section = Assert.Single(Mau09CData.From(source).Sections);
-        Assert.Equal("Việc 1 - Làm A. (mức 5)", section.Axes.Single().Lines.Single().Text);
+        var line = section.Axes.Single().Lines.Single();
+        Assert.Equal(("Việc 1 - Làm A.", " (mức 5)"), (line.Text, line.Level));
 
         // Không khai báo mức → không nhận mức.
         c.TaskLevels = new List<TaskLevel>();
@@ -378,33 +383,43 @@ public class IndividualFormTests
 
         Assert.Contains("BẢN TỰ ĐÁNH GIÁ, XẾP LOẠI CỦA CÁ NHÂN", text);
         Assert.Contains("I. Tự đánh giá kết quả thực hiện chức trách, nhiệm vụ được giao", text);
-        Assert.Matches(@"Họ và tên:\s+Nguyễn Văn A", text);
+        Assert.Matches(@"Họ và tên:\s+NGUYỄN VĂN A\s*Ngày sinh:\s*21/10/1973", text);
         // Mẫu gốc dùng khoảng trắng không ngắt (U+00A0) sau dấu hai chấm.
         Assert.Matches(@"Chức vụ Đảng:\s+Bí thư Chi bộ", text);
         Assert.Matches(@"Chức vụ chính quyền:\s+Trưởng phòng", text);
         Assert.Matches(@"Chức vụ đoàn thể:\s+Chủ tịch Công đoàn", text);
-        Assert.Contains("29,0/30", text);
-        Assert.Contains("93,0/100", text);
+        // Điểm số nguyên in gọn như bản đã nộp.
+        Assert.Contains("29/30", text);
+        Assert.Contains("64/70", text);
+        Assert.Contains("93/100", text);
         Assert.Contains("Hà Nội, ngày", text);
+        Assert.Contains("Quý III Năm 2026", text);
+        Assert.Matches(@"Đơn vị công tác:\s+Phòng Kỹ thuật, Công ty A\.", text);
 
-        // Mục I: câu dẫn, nhận xét chung, rồi từng trục (tiêu đề in đậm, mỗi nhiệm vụ một đoạn) — trục không có nhiệm vụ không in.
+        // Mục I: nhận xét chung thay cho câu dẫn, rồi từng trục (tiêu đề in đậm, mỗi nhiệm vụ một đoạn) — trục không có nhiệm vụ không in.
         var axes = CriteriaSetDefaults.Build09B().Axes;
         var paragraphs = text.Split('\n').ToList();
         var expected = new[]
         {
-            "Trên cơ sở nhiệm vụ được giao, cá nhân tự đánh giá về kết quả thực hiện nhiệm vụ theo quý như sau:",
+            "I. Tự đánh giá kết quả thực hiện chức trách, nhiệm vụ được giao",
             "Tự đánh giá mục I (test)",
-            $"1. {axes[0].Name}",
-            "Nhiệm vụ 1: Việc T1 thứ nhất.",
-            "Nhiệm vụ 2: Việc T1 thứ hai. Tự đánh giá mức 2.",
+            $"1. {axes[0].Name} (trục 1)",
+            "- Nhiệm vụ 1: Việc T1 thứ nhất.",
+            "- Nhiệm vụ 2: Việc T1 thứ hai. Tự đánh giá mức 2.",
             "+ Ý con của việc thứ hai. Tự đánh giá mức 1.",
-            $"3. {axes[2].Name}",
-            "Nhiệm vụ 1: Việc T3."
+            $"3. {axes[2].Name} (trục 3)",
+            "- Nhiệm vụ 1: Việc T3.",
+            "II. Tự đề xuất xếp loại mức chất lượng"
         };
         var start = paragraphs.IndexOf(expected[0]);
         Assert.True(start >= 0);
         Assert.Equal(expected, paragraphs.Skip(start).Take(expected.Length));
-        Assert.DoesNotContain(paragraphs, p => p == $"2. {axes[1].Name}");
+        Assert.DoesNotContain("Trên cơ sở nhiệm vụ được giao", text);
+        Assert.DoesNotContain("………", text);
+        Assert.DoesNotContain(paragraphs, p => p.StartsWith($"2. {axes[1].Name}", StringComparison.Ordinal));
+        // Ký tên: họ tên chữ thường dưới "(Ký, ghi rõ họ tên)".
+        var sign = paragraphs.FindIndex(p => p.Contains("NHÂN TỰ ĐÁNH GIÁ", StringComparison.Ordinal));
+        Assert.Equal("Nguyễn Văn A", paragraphs.Skip(sign + 1).First(p => p.Trim().Length > 0));
         // Lưu ý hướng dẫn viết (chữ đỏ của biểu mẫu gốc) không in — như bản tự đánh giá đã nộp; lưu ý cuối biểu mẫu vẫn giữ.
         Assert.DoesNotContain("Viết tóm tắt theo kết quả 6 trục", text);
         Assert.Contains("Nội dung trình bày trong phạm vi không quá 02 trang A4", text);
@@ -413,11 +428,11 @@ public class IndividualFormTests
     [Fact]
     public void Mau09C_KeepsDots_OnlyWhenNothingEntered()
     {
-        // Chỉ có nhiệm vụ theo trục: không còn dòng chấm giữa câu dẫn và trục.
+        // Chỉ có nhiệm vụ theo trục: câu dẫn rồi tới trục, không còn dòng chấm.
         var source = Source();
         source.Record.SelfAssessment = "{}";
         var section = Assert.Single(Mau09CData.From(source).Sections);
-        Assert.False(section.ShowContent);
+        Assert.False(section.ShowDots);
         var text = Render(Mau09CData.TemplateFileName, Mau09CData.From(source), out _);
         var paragraphs = text.Split('\n').ToList();
         var intro = paragraphs.FindIndex(p => p.StartsWith("Trên cơ sở nhiệm vụ được giao", StringComparison.Ordinal));
@@ -426,10 +441,38 @@ public class IndividualFormTests
         // Chưa nhập gì: giữ dòng chấm của biểu mẫu để viết tay.
         source.Record.AxisReports = "{}";
         section = Assert.Single(Mau09CData.From(source).Sections);
-        Assert.True(section.ShowContent);
+        Assert.True(section.ShowDots);
         Assert.Empty(section.Axes);
         text = Render(Mau09CData.TemplateFileName, Mau09CData.From(source), out _);
-        Assert.Contains("………", text);
+        paragraphs = text.Split('\n').ToList();
+        intro = paragraphs.FindIndex(p => p.StartsWith("Trên cơ sở nhiệm vụ được giao", StringComparison.Ordinal));
+        Assert.StartsWith("………", paragraphs[intro + 1]);
+
+        // Chưa nhập ngày sinh, chưa tự chấm: giữ dòng chấm; điểm lẻ in theo làm tròn của bộ tiêu chí.
+        source.Record.Member!.DateOfBirth = null;
+        Assert.Null(Mau09CData.From(source).DateOfBirth);
+        source.Record.GeneralCriteriaScore = 29.5;
+        Assert.Equal("29,5", Mau09CData.From(source).GeneralScore);
+    }
+
+    [Fact]
+    public void Mau09C_LevelPhraseItalic_TitleBlack()
+    {
+        Render(Mau09CData.TemplateFileName, Mau09CData.From(Source()), out var content);
+        using var doc = WordprocessingDocument.Open(new MemoryStream(content), false);
+        var body = doc.MainDocumentPart!.Document!.Body!;
+        var line = body.Descendants<Paragraph>().First(p => p.InnerText.StartsWith("- Nhiệm vụ 2: Việc T1 thứ hai.", StringComparison.Ordinal));
+        var runs = line.Descendants<Run>().Where(r => r.InnerText.Length > 0).ToList();
+        Assert.Equal(" Tự đánh giá mức 2.", runs[^1].InnerText);
+        Assert.NotNull(runs[^1].RunProperties?.Italic);
+        Assert.Null(runs[0].RunProperties?.Italic);
+        // Tiêu đề trục in đậm, không thụt đầu dòng.
+        var axisTitle = body.Descendants<Paragraph>().First(p => p.InnerText.EndsWith("(trục 1)", StringComparison.Ordinal));
+        Assert.NotNull(axisTitle.Descendants<Run>().First().RunProperties?.Bold);
+        Assert.Null(axisTitle.ParagraphProperties?.Indentation);
+        // Tiêu đề và dòng quý màu đen như bản đã nộp.
+        foreach (var title in body.Descendants<Paragraph>().Where(p => p.InnerText.StartsWith("BẢN TỰ ĐÁNH GIÁ", StringComparison.Ordinal) || p.InnerText.StartsWith("Quý ", StringComparison.Ordinal)))
+            Assert.Empty(title.Descendants<Color>());
     }
 
     [Fact]
@@ -553,22 +596,22 @@ public class IndividualFormTests
         });
 
         var text = Render(Mau09CData.TemplateFileName, Mau09CData.From(source), out _);
-        Assert.Contains("Nguyễn Văn B", text, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("NGUYỄN VĂN B", text, StringComparison.Ordinal);
         var paragraphs = text.Split('\n').ToList();
         var start = paragraphs.FindIndex(p => p.StartsWith("Bản thân luôn bám sát", StringComparison.Ordinal));
         Assert.Equal(new[]
         {
-            $"1. {criteria.Axes[0].Name}",
-            "Nhiệm vụ 1: Nhóm nhiệm vụ KHCN đang trong giai đoạn lập Hồ sơ thiết kế. Tuy vậy có 02 đề tài đang chậm tiến độ cần phải làm thủ tục điều chỉnh tiến độ. Tự đánh giá mức 2.",
-            "Nhiệm vụ 2: Lãnh đạo thực hiện SXKD. Đảm bảo các hệ thống CNTT của Công ty và khách hàng hoạt động ổn định, an toàn và liên tục. Tự đánh giá mức 1.",
-            $"3. {criteria.Axes[2].Name}",
-            "Nhiệm vụ 1: Thực hiện Kế hoạch tại quyết định 824/QĐ-KTQLB về phát triển KHCN, ĐMST và CĐS tại Công ty và Phòng.",
+            $"1. {criteria.Axes[0].Name} (trục 1)",
+            "- Nhiệm vụ 1: Nhóm nhiệm vụ KHCN đang trong giai đoạn lập Hồ sơ thiết kế. Tuy vậy có 02 đề tài đang chậm tiến độ cần phải làm thủ tục điều chỉnh tiến độ. Tự đánh giá mức 2.",
+            "- Nhiệm vụ 2: Lãnh đạo thực hiện SXKD. Đảm bảo các hệ thống CNTT của Công ty và khách hàng hoạt động ổn định, an toàn và liên tục. Tự đánh giá mức 1.",
+            $"3. {criteria.Axes[2].Name} (trục 3)",
+            "- Nhiệm vụ 1: Thực hiện Kế hoạch tại quyết định 824/QĐ-KTQLB về phát triển KHCN, ĐMST và CĐS tại Công ty và Phòng.",
             "+ Phối hợp với Trung tâm BĐKT trong quá trình sửa, bổ sung các biểu mẫu trong hệ thống SIRMS. Tự đánh giá mức 1.",
             "+ Đối với các NV KHCN: công việc phải đề xuất KH điều chỉnh tiến độ. Tự đánh giá mức 2."
         }, paragraphs.Skip(start + 1).Take(7));
-        Assert.Contains("30,0/30", text);
-        Assert.Contains("53,0/70", text);
-        Assert.Contains("83,0/100", text);
+        Assert.Contains("30/30", text);
+        Assert.Contains("53/70", text);
+        Assert.Contains("83/100", text);
 
         // Mẫu 9D: dòng Trục 1 như bản thật (tình hình nhiều dòng "- …" trong một ô).
         using var doc = WordprocessingDocument.Open(new MemoryStream(Render(Mau9DData.TemplateFileName, Mau9DData.From(source))), false);
@@ -615,7 +658,10 @@ public class IndividualFormTests
         var period = new EvaluationPeriod { Year = 2026, Quarter = EvaluationQuarter.Quy3, Name = "Quý III/2026" };
         var cell = new PartyCell { Name = "Chi bộ Kỹ thuật" };
         var dept = new AdministrativeDepartment { Name = "Phòng Kỹ thuật" };
-        var member = new PartyMemberProfile { FullName = "Nguyễn Văn A", PositionTitle = "Trưởng phòng", PartyCell = cell, Department = dept };
+        var member = new PartyMemberProfile
+        {
+            FullName = "Nguyễn Văn A", DateOfBirth = new DateOnly(1973, 10, 21), PositionTitle = "Trưởng phòng", PartyCell = cell, Department = dept
+        };
         var general = criteria.AllItems.ToDictionary(
             x => x.Item.Code,
             x => x.Item.Code == "2.1" ? new GeneralItemScore { Score = 0, Reason = "Căn cứ giảm điểm" } : new GeneralItemScore { Score = x.Item.MaxScore });

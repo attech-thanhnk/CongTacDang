@@ -55,8 +55,18 @@ public sealed class AxisTaskItem
     public int? Level { get; set; }
 }
 
-/// <summary>Khối một trục trong mục I của Mẫu 09C: tiêu đề "n. Tên trục" và các dòng nhiệm vụ / ý con đã dựng câu.</summary>
-public sealed record AxisTaskBlock(string Title, IReadOnlyList<string> Lines);
+/// <summary>Khối một trục trong mục I của Mẫu 09C: tiêu đề "n. Tên trục (trục n)" và các dòng nhiệm vụ / ý con đã dựng câu.</summary>
+public sealed record AxisTaskBlock(string Title, IReadOnlyList<AxisTaskLine> Lines);
+
+/// <summary>
+/// Một dòng nhiệm vụ / ý con của Mẫu 09C: phần nội dung ("- Nhiệm vụ 1: … ." hoặc "+ … .") và câu nối mức ("Tự đánh giá mức 2.",
+/// in nghiêng; null khi không kết luận mức). Bản in đặt câu nối ngay sau nội dung, cách một khoảng trắng.
+/// </summary>
+public sealed record AxisTaskLine(string Text, string? Level)
+{
+    /// <summary>Cả dòng như bản in.</summary>
+    public string FullText => Level == null ? Text : Text + " " + Level;
+}
 
 /// <summary>
 /// Nội dung các cột tự luận của một trục trên Mẫu 09B (phần II): "Mục tiêu, nhiệm vụ đề ra", "Tóm tắt kết quả sản phẩm thực tế;
@@ -276,9 +286,9 @@ public static class RecordFormContent
     }
 
     /// <summary>
-    /// Dựng phần tự đánh giá theo trục của mục I Mẫu 09C: mỗi trục có nhiệm vụ một khối "n. Tên trục", mỗi nhiệm vụ một dòng
-    /// "&lt;tiền tố&gt; nội dung. &lt;câu nối mức&gt;" (tiền tố, câu nối theo bộ tiêu chí; chưa chọn mức thì bỏ câu nối), ý con là dòng
-    /// "+ nội dung. &lt;câu nối mức&gt;" ngay dưới nhiệm vụ. Trục không có nhiệm vụ bị bỏ qua.
+    /// Dựng phần tự đánh giá theo trục của mục I Mẫu 09C: mỗi trục có nhiệm vụ một khối "n. Tên trục (trục n)", mỗi nhiệm vụ một
+    /// dòng "&lt;tiền tố&gt; nội dung. &lt;câu nối mức&gt;" (tiền tố, câu nối theo bộ tiêu chí; chưa chọn mức thì bỏ câu nối), ý con là
+    /// dòng "+ nội dung. &lt;câu nối mức&gt;" ngay dưới nhiệm vụ. Câu nối mức tách riêng để in nghiêng. Trục không có nhiệm vụ bị bỏ qua.
     /// </summary>
     public static List<AxisTaskBlock> BuildAxisTaskBlocks(CriteriaSetContent criteria, IReadOnlyDictionary<string, AxisReport> reports)
     {
@@ -293,23 +303,24 @@ public static class RecordFormContent
             var tasks = (report?.Tasks ?? new List<AxisTask>()).Where(t => t != null && !string.IsNullOrWhiteSpace(t.Content)).ToList();
             if (tasks.Count == 0)
                 continue;
-            var lines = new List<string>();
+            var lines = new List<AxisTaskLine>();
             for (var k = 0; k < tasks.Count; k++)
             {
                 var task = tasks[k];
                 var number = (k + 1).ToString(CultureInfo.InvariantCulture);
-                lines.Add($"{prefix.Replace("{n}", number)} {EndSentence(task.Content)}{LevelPhrase(criteria, task.Level)}");
+                lines.Add(new AxisTaskLine($"{prefix.Replace("{n}", number)} {EndSentence(task.Content)}", LevelPhrase(criteria, task.Level)));
                 foreach (var item in (task.Items ?? new List<AxisTaskItem>()).Where(x => x != null && !string.IsNullOrWhiteSpace(x.Content)))
-                    lines.Add($"+ {EndSentence(item.Content)}{LevelPhrase(criteria, item.Level)}");
+                    lines.Add(new AxisTaskLine($"+ {EndSentence(item.Content)}", LevelPhrase(criteria, item.Level)));
             }
-            blocks.Add(new AxisTaskBlock($"{i + 1}. {axis.Name}", lines));
+            var axisNumber = (i + 1).ToString(CultureInfo.InvariantCulture);
+            blocks.Add(new AxisTaskBlock($"{axisNumber}. {axis.Name} (trục {axisNumber})", lines));
         }
         return blocks;
     }
 
     /// <summary>Số ký tự phần nhiệm vụ theo trục khi in ở mục I Mẫu 09C (tiêu đề trục và các dòng, mỗi dòng tính thêm một ký tự xuống dòng).</summary>
     public static int AxisTaskTextLength(CriteriaSetContent criteria, IReadOnlyDictionary<string, AxisReport> reports) =>
-        BuildAxisTaskBlocks(criteria, reports).Sum(b => b.Title.Length + 1 + b.Lines.Sum(l => l.Length + 1));
+        BuildAxisTaskBlocks(criteria, reports).Sum(b => b.Title.Length + 1 + b.Lines.Sum(l => l.FullText.Length + 1));
 
     private static string? LevelError(CriteriaSetContent criteria, int? level, string label)
     {
@@ -320,10 +331,10 @@ public static class RecordFormContent
             : $"{label}: mức tự đánh giá chỉ nhận {string.Join(", ", criteria.TaskLevels.Select(l => l.Code))}.";
     }
 
-    private static string LevelPhrase(CriteriaSetContent criteria, int? level) =>
+    private static string? LevelPhrase(CriteriaSetContent criteria, int? level) =>
         level.HasValue && criteria.TaskLevels.Any(l => l.Code == level.Value) && !string.IsNullOrWhiteSpace(criteria.TaskLevelPhrase)
-            ? " " + criteria.TaskLevelPhrase.Replace("{level}", level.Value.ToString(CultureInfo.InvariantCulture))
-            : string.Empty;
+            ? criteria.TaskLevelPhrase.Trim().Replace("{level}", level.Value.ToString(CultureInfo.InvariantCulture))
+            : null;
 
     private static string EndSentence(string value)
     {

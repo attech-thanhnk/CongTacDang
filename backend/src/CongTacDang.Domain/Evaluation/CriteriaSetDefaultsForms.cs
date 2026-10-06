@@ -31,7 +31,7 @@ public static partial class CriteriaSetDefaults
     };
 
     /// <summary>Tiền tố mỗi nhiệm vụ khi dựng Mẫu 09C (theo bản tự đánh giá mẫu).</summary>
-    public const string TaskLineLabel = "Nhiệm vụ {n}:";
+    public const string TaskLineLabel = "- Nhiệm vụ {n}:";
 
     /// <summary>Câu nối mức khi dựng Mẫu 09C (theo bản tự đánh giá mẫu).</summary>
     public const string TaskLevelPhrase = "Tự đánh giá mức {level}.";
