@@ -120,6 +120,62 @@ public class AttachmentVersioningTests
         Assert.Single(await _world.Service.GetAttachmentsByOwnerAsync(AttachmentOwnerTypes.EvaluationRecord, record.Id, _world.Secretary(CellA).Id));
     }
 
+    /// <summary>
+    /// B-02: minh chứng chỉ chủ hồ sơ và người có <c>evaluation.read</c> trong phạm vi bao trùm hồ sơ xem được;
+    /// có quyền đọc ở phạm vi khác hoặc chỉ có quyền tự đánh giá thì không xem được minh chứng của cán bộ khác.
+    /// </summary>
+    [Fact]
+    public async Task Evidence_ReadableOnlyByOwnerAndInScopeReaders()
+    {
+        var owner = _world.Cadre(CellA);
+        var (record, task) = _world.RecordWithTask(owner);
+        record.DepartmentId = Guid.NewGuid();
+        var onRecord = await _world.Service.UploadAttachmentAsync(Pdf("r"), "r.pdf", 10, "MAU02", "", "A", owner.Id,
+            AttachmentOwnerTypes.EvaluationRecord, record.Id);
+        var onTask = await _world.Service.UploadAttachmentAsync(Pdf("t"), "t.pdf", 10, "MAU02", "", "A", owner.Id,
+            AttachmentOwnerTypes.EvaluationTask, task.Id);
+        var ids = new[] { onRecord.Id, onTask.Id };
+
+        // Được xem: chủ hồ sơ (không cần evaluation.read), Bí thư cùng Chi bộ, người có evaluation.read Toàn công ty,
+        // người có evaluation.read phạm vi đơn vị chính quyền của hồ sơ.
+        var deptReader = _world.UserWithScope(PermissionCodes.EvaluationRead, ScopeType.Department, record.DepartmentId);
+        foreach (var reader in new[] { owner, _world.Secretary(CellA), _world.UserWith(PermissionCodes.EvaluationRead), deptReader })
+        {
+            var visible = (await _world.Service.GetAttachmentsAsync(reader.Id)).Select(a => a.Id).ToList();
+            Assert.All(ids, id => Assert.Contains(id, visible));
+            foreach (var id in ids)
+            {
+                Assert.NotNull(await _world.Service.GetAttachmentByIdAsync(id, reader.Id));
+                Assert.NotNull(await _world.Service.DownloadAttachmentAsync(id, reader.Id));
+                Assert.Single(await _world.Service.GetVersionsAsync(id, reader.Id));
+            }
+        }
+
+        // Không được xem: cán bộ khác (chỉ evaluation.self), Bí thư Chi bộ khác, evaluation.read phạm vi đơn vị khác,
+        // tài khoản chỉ có quyền quản trị hệ thống.
+        var outsiders = new[]
+        {
+            _world.Cadre(CellA),
+            _world.Secretary(CellB),
+            _world.UserWithScope(PermissionCodes.EvaluationRead, ScopeType.Department, Guid.NewGuid()),
+            _world.UserWith(PermissionCodes.SystemUsersManage, PermissionCodes.CatalogManage),
+        };
+        foreach (var outsider in outsiders)
+        {
+            var visible = (await _world.Service.GetAttachmentsAsync(outsider.Id)).Select(a => a.Id).ToList();
+            Assert.All(ids, id => Assert.DoesNotContain(id, visible));
+            Assert.Empty(await _world.Service.GetAttachmentsByOwnerAsync(AttachmentOwnerTypes.EvaluationRecord, record.Id, outsider.Id));
+            Assert.Empty(await _world.Service.GetAttachmentsByOwnerAsync(AttachmentOwnerTypes.EvaluationTask, task.Id, outsider.Id));
+            foreach (var id in ids)
+            {
+                await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.GetAttachmentByIdAsync(id, outsider.Id));
+                await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.DownloadAttachmentAsync(id, outsider.Id));
+                await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.DownloadVersionAsync(id, 1, outsider.Id));
+                await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.GetVersionsAsync(id, outsider.Id));
+            }
+        }
+    }
+
     [Fact]
     public async Task Unlinked_VisibleOnlyToUploader_UntilLinked()
     {
@@ -240,6 +296,10 @@ public class AttachmentVersioningTests
         /// <summary>Người dùng có các quyền cho trước, phạm vi Toàn công ty.</summary>
         public PartyMemberProfile UserWith(params string[] codes) =>
             User(null, codes.Select(code => new PermissionGrant(code, ScopeType.Global, null, Guid.NewGuid(), "Vai trò thử")).ToArray());
+
+        /// <summary>Người dùng có một quyền ở phạm vi cho trước.</summary>
+        public PartyMemberProfile UserWithScope(string code, ScopeType scopeType, Guid? scopeId) =>
+            User(null, new PermissionGrant(code, scopeType, scopeId, Guid.NewGuid(), "Vai trò thử"));
 
         public (EvaluationRecord Record, EvaluationTask Task) RecordWithTask(PartyMemberProfile owner)
         {
