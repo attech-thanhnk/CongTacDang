@@ -38,3 +38,7 @@ dotnet ef migrations has-pending-model-changes -p backend/src/CongTacDang.Infras
 ```bash
 dotnet ef migrations script -p backend/src/CongTacDang.Infrastructure -s backend/src/CongTacDang.Api
 ```
+
+## Khôi phục bản sao lưu
+
+Khi `Database:AutoMigrate=true`, khôi phục bản sao lưu của phiên bản cũ rồi khởi động bản mới sẽ tự nâng cấp schema; bản sao lưu mới hơn mã nguồn thì mã nguồn không chạy được. `docker/restore.sh` so sánh `__EFMigrationsHistory` trong bản sao lưu với migration của mã nguồn trước khi ghi đè — xem `docs/deployment.md`, mục "Khôi phục sao lưu".

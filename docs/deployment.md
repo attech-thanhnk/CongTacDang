@@ -24,6 +24,14 @@ Thay các giá trị `CHANGE_ME_*` trong `docker/.env`, tối thiểu:
 - `Jwt__Secret`: khóa ký JWT, ít nhất 32 byte (`openssl rand -base64 48`). Thiếu hoặc quá ngắn thì backend dừng khi khởi động.
 - `PGADMIN_DEFAULT_PASSWORD`: chỉ cần khi bật profile `tools`.
 
+Khi chạy thật (mọi môi trường trừ `Development` và `Testing`; Compose đặt `ASPNETCORE_ENVIRONMENT=Production`) backend **từ chối khởi động** và ghi lý do vào log (`docker compose logs backend`, dòng `[LỖI CẤU HÌNH]`) nếu:
+
+- `Jwt__Secret` trống, dưới 32 byte, còn giá trị giữ chỗ `CHANGE_ME…`, trùng khóa mẫu cũ từng có trong mã nguồn, quá đơn điệu (dưới 10 ký tự khác nhau) hoặc trùng mật khẩu CSDL;
+- mật khẩu CSDL trong chuỗi kết nối trống, dưới 12 ký tự, còn `CHANGE_ME…` hoặc trùng mật khẩu mẫu/mặc định từng có trong mã nguồn;
+- `Seed__InitialAdmin__Password` (nếu còn đặt) là giá trị mẫu/mặc định.
+
+Ở `Development` chỉ kiểm tra như trước (khóa JWT bắt buộc, ≥ 32 byte, không phải khóa mẫu cũ; có chuỗi kết nối). Cách đổi: mục [Đổi khóa và mật khẩu trước khi chạy thật](#đổi-khóa-và-mật-khẩu-trước-khi-chạy-thật).
+
 Sinh mật khẩu ngẫu nhiên trên Linux:
 
 ```bash
@@ -144,7 +152,7 @@ Các bước 1–5 được kiểm tra tự động bởi `GoLiveScenarioTests` 
 Mọi dữ liệu nền được khai báo trực tiếp trên giao diện (không có chức năng nhập từ tệp).
 
 **0. Chuẩn bị**
-- [ ] `docker/.env`: `POSTGRES_PASSWORD`, `Jwt__Secret`, `Seed__InitialAdmin__Username`, `Seed__InitialAdmin__Password` (mạnh, có chữ và số), các biến `Security__*` nếu khác mặc định. **Không** bật `Database__SeedSampleData`, `Database__ResetRolePermissions`.
+- [ ] `docker/.env`: `POSTGRES_PASSWORD`, `Jwt__Secret`, `Seed__InitialAdmin__Username`, `Seed__InitialAdmin__Password` (mạnh, có chữ và số), các biến `Security__*` nếu khác mặc định. **Không** bật `Database__SeedSampleData`, `Database__ResetRolePermissions`. `POSTGRES_PASSWORD`, `Jwt__Secret` là giá trị ngẫu nhiên mới, không dùng lại giá trị mẫu/cũ (mục [Đổi khóa và mật khẩu trước khi chạy thật](#đổi-khóa-và-mật-khẩu-trước-khi-chạy-thật)).
 - [ ] CSDL **mới, trống**. Khởi động stack (`Database__AutoMigrate=true` mặc định trong `docker/.env`) — backend tự áp dụng migration khi khởi động; lỗi migrate làm backend dừng và ghi log Critical. Chạy ngoài Docker: dùng `dotnet ef database update` (xem `docs/database-migrations.md`). Seeder tạo danh mục quyền, 9 vai trò mặc định (có "Quản trị hệ thống" được bảo vệ), danh mục loại đơn vị và danh mục chức vụ mặc định (M1–M26 theo HD03 — chờ nghiệp vụ xác nhận), **2 bộ tiêu chí đã xuất bản** theo bản trích xuất HD03 ("Mẫu 09B — Quý III/2026", "Mẫu 09A — từ 2027" — chờ nghiệp vụ xác nhận), **thông tin đơn vị mặc định** và tài khoản quản trị ban đầu; **không** tạo đơn vị, tổ chức Đảng, cán bộ nào.
 - [ ] Chuẩn bị danh sách (giấy hoặc bảng tính nội bộ) để khai báo: cây đơn vị chính quyền và cây tổ chức Đảng (mã, tên, đơn vị cấp trên, loại đơn vị), cán bộ (tên đăng nhập, họ tên, đơn vị, tổ chức Đảng), chức vụ của từng cán bộ (kể cả kiêm nhiệm), vai trò và phạm vi của từng người, danh sách người được đánh giá của kỳ.
 
@@ -235,8 +243,8 @@ Dùng hai script trong `docker/` (chạy trên máy chủ Docker, bằng user c�
 
 | Script | Việc làm |
 |---|---|
-| `docker/backup.sh` | `pg_dump --format=custom` CSDL + nén volume `attech-dangbo-backend-uploads`, ghi `SHA256SUMS` và `manifest.txt`, giữ `N` bản gần nhất |
-| `docker/restore.sh` | Kiểm tra checksum, yêu cầu gõ `KHOI PHUC` để xác nhận, dừng frontend/backend, `pg_restore --clean --if-exists --single-transaction`, thay nội dung volume upload, khởi động lại |
+| `docker/backup.sh` | `pg_dump --format=custom` CSDL + nén volume `attech-dangbo-backend-uploads` (file đính kèm và file mẫu Word tải lên), ghi `SHA256SUMS` và `manifest.txt` (commit mã nguồn, migration mới nhất), giữ `N` bản gần nhất |
+| `docker/restore.sh` | Kiểm tra checksum, so sánh migration của bản sao lưu với mã nguồn đang triển khai, xác nhận, dừng frontend/backend, sao lưu dự phòng hiện trạng, `pg_restore --clean --if-exists --single-transaction`, thay nội dung volume upload, khởi động lại — xem [Khôi phục sao lưu](#khôi-phục-sao-lưu) |
 
 Mật khẩu CSDL không đi qua dòng lệnh: `pg_dump`/`pg_restore` chạy bên trong container `postgres` bằng biến môi trường của container.
 
@@ -279,16 +287,48 @@ tar tzf uploads.tar.gz | head              # danh sách file upload
 
 Và **khôi phục thử** vào một môi trường riêng (máy thử nghiệm hoặc compose project khác, không phải CSDL đang dùng): chạy `restore.sh`, đăng nhập, mở một hồ sơ có minh chứng, xuất một biểu mẫu.
 
-### Khôi phục
+## Khôi phục sao lưu
+
+Backend chạy trong Compose bật `Database__AutoMigrate=true`: khi khởi động, nó **tự nâng cấp** schema lên migration của mã nguồn đang chạy. Vì vậy khôi phục phải đi cùng đúng phiên bản mã nguồn:
+
+| Bản sao lưu so với mã nguồn đang triển khai | `restore.sh` làm gì |
+|---|---|
+| Cùng danh sách migration | Khôi phục bình thường (gõ `KHOI PHUC`). |
+| **Cũ hơn** (mã nguồn có thêm migration) | Liệt kê các migration sẽ được áp dụng, yêu cầu gõ thêm `NANG CAP`. Khởi động lại backend → schema được nâng cấp, **không quay lại** schema cũ được trừ khi khôi phục lại. Muốn giữ đúng phiên bản cũ: checkout commit ghi trong `manifest.txt` (`git_commit`), dựng lại image rồi mới khôi phục. |
+| **Mới hơn** (bản sao lưu có migration mã nguồn không biết) | **Dừng, không khôi phục**: mã nguồn cũ không chạy được trên dữ liệu mới. Triển khai phiên bản mã nguồn của bản sao lưu (`git_commit` trong `manifest.txt`) rồi chạy lại. |
+| Không có bảng `__EFMigrationsHistory` | Dừng, không khôi phục (không xác định được phiên bản schema). |
+
+Danh sách migration của bản sao lưu được đọc từ bảng `__EFMigrationsHistory` trong `db.dump` (bằng `pg_restore`, không đụng CSDL); danh sách của mã nguồn đọc từ `backend/src/CongTacDang.Infrastructure/Data/Migrations/` trong thư mục repo chứa script (`--repo-dir` để chỉ thư mục khác). Thư mục repo phải **cùng phiên bản** với image backend đang dựng — sau `git pull` luôn dựng lại image trước khi khôi phục.
+
+Quy trình của `restore.sh`:
+
+1. Kiểm tra `db.dump`, `uploads.tar.gz`, `SHA256SUMS`; in `manifest.txt`.
+2. So sánh migration như bảng trên; in migration mới nhất của mã nguồn, bản sao lưu và CSDL hiện tại.
+3. Xác nhận (`NANG CAP` nếu bản sao lưu cũ hơn, rồi `KHOI PHUC`).
+4. **Dừng frontend và backend** (không ai ghi dữ liệu, backend không tự migrate giữa chừng); giữ `postgres` chạy.
+5. **Sao lưu dự phòng hiện trạng** (CSDL + upload) bằng `backup.sh` vào `<thư mục cha của bản sao lưu>/truoc-khoi-phuc/` (giữ 10 bản; đổi bằng `--safety-dir`). Sao lưu dự phòng lỗi → dừng, dữ liệu giữ nguyên.
+6. `pg_restore --clean --if-exists --single-transaction`: lỗi giữa chừng thì CSDL giữ nguyên.
+7. Thay toàn bộ nội dung volume upload (bỏ qua với `--skip-uploads`).
+8. Khởi động lại backend/frontend (giữ dừng với `--no-start`). Bản sao lưu cũ hơn → backend nâng cấp schema khi khởi động; theo dõi `docker compose ... logs -f backend`.
 
 ```bash
-docker/backup.sh                                                        # sao lưu hiện trạng trước
+# 1. Kiểm tra trước, không thay đổi gì: checksum + so sánh migration
+docker/restore.sh --check /var/backups/congtacdang/congtacdang-20260928-020000
+# 2. Xem các lệnh sẽ chạy
 docker/restore.sh --dry-run /var/backups/congtacdang/congtacdang-20260928-020000
-docker/restore.sh /var/backups/congtacdang/congtacdang-20260928-020000  # gõ KHOI PHUC để xác nhận
-docker/restore.sh --skip-uploads <thư-mục>                              # chỉ khôi phục CSDL
+# 3. Khôi phục (gõ NANG CAP nếu được hỏi, rồi KHOI PHUC)
+docker/restore.sh /var/backups/congtacdang/congtacdang-20260928-020000
+# Chỉ khôi phục CSDL, giữ nguyên file đính kèm hiện tại
+docker/restore.sh --skip-uploads <thư-mục>
+# Khôi phục nhưng chưa khởi động lại (kiểm tra thủ công trước)
+docker/restore.sh --no-start <thư-mục>
 ```
 
-`--yes` bỏ bước xác nhận (chỉ dùng trong kịch bản tự động đã kiểm soát). `pg_restore` chạy trong một transaction: lỗi giữa chừng thì CSDL giữ nguyên. Sau khi khôi phục, script khởi động lại backend/frontend; kiểm tra `/api/healthz`, đăng nhập và mở file minh chứng.
+Kịch bản tự động: `--yes` bỏ các bước gõ xác nhận; nếu bản sao lưu cũ hơn mã nguồn phải kèm `--allow-upgrade`, không thì script dừng. `--no-safety-backup` bỏ bước sao lưu dự phòng — chỉ dùng khi vừa chạy `backup.sh` thủ công.
+
+Nếu chạy với `Database__AutoMigrate=false`, sau khi khôi phục bản cũ hơn phải áp dụng migration thủ công (`docs/database-migrations.md`) trước khi dùng.
+
+Sau khi khôi phục: kiểm tra `/api/healthz`, đăng nhập, mở một hồ sơ có minh chứng, xuất một biểu mẫu. Khôi phục nhầm → khôi phục lại từ bản trong `truoc-khoi-phuc/` bằng chính `restore.sh`.
 
 ## Log
 
@@ -313,14 +353,64 @@ Cấu hình (biến môi trường dạng `Logging__File__Path`):
 
 Log không ghi body request, header, cookie hay token.
 
-## Rotate secret
+## Đổi khóa và mật khẩu trước khi chạy thật
 
-Secret cũ từng nằm trong lịch sử Git. Cần rotate cả JWT secret và mật khẩu database, không rewrite lịch sử Git:
+Khóa ký JWT và mật khẩu CSDL mẫu/cũ từng nằm trong lịch sử Git (không viết lại lịch sử Git). Mọi máy chạy thật phải dùng giá trị **mới, ngẫu nhiên**; backend ở Production từ chối khởi động nếu còn giá trị mẫu (xem [Cấu hình bắt buộc](#cấu-hình-bắt-buộc)). Làm khi triển khai lần đầu, và làm lại khi nghi lộ `docker/.env` hoặc có người vận hành nghỉ việc.
 
-1. Sinh JWT secret và mật khẩu database mới.
-2. Cập nhật secret trong secret manager, `dotnet user-secrets`, hoặc `docker/.env` trên máy triển khai.
-3. Khởi động lại backend và kiểm tra đăng nhập, healthcheck.
-4. Thu hồi secret cũ và xác nhận các phiên/token cũ không còn được chấp nhận.
-5. Giới hạn quyền đọc file `.env` ở `600`, không gửi file này qua chat hoặc commit vào repository.
+Các lệnh dưới đây chạy trên máy chủ, tại thư mục gốc của repo, bằng user vận hành.
 
-Sau khi đổi mật khẩu PostgreSQL, cập nhật chuỗi kết nối backend cùng lúc và giữ lại backup trước khi rotate.
+1. **Sao lưu** trước khi đổi:
+
+   ```bash
+   docker/backup.sh
+   ```
+
+2. **Sinh giá trị mới** (không gửi qua chat/email, không ghi vào Git):
+
+   ```bash
+   openssl rand -base64 48   # khóa ký JWT mới (Jwt__Secret)
+   openssl rand -hex 32      # mật khẩu PostgreSQL mới (POSTGRES_PASSWORD) — chỉ chữ số hex, không cần trích dẫn
+   ```
+
+3. **Đổi mật khẩu PostgreSQL** của user ứng dụng (mặc định `dangbo_admin`). Biến `POSTGRES_PASSWORD` chỉ có tác dụng khi khởi tạo CSDL lần đầu — CSDL đã có thì **phải** đổi bằng `ALTER USER`, nếu chỉ sửa `.env` thì backend không kết nối được:
+
+   ```bash
+   docker compose --env-file docker/.env -f docker/docker-compose.yml exec postgres \
+     sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+   ```
+
+   Trong `psql`:
+
+   ```sql
+   ALTER USER dangbo_admin WITH PASSWORD '<mật-khẩu-mới>';
+   \q
+   ```
+
+   (Hoặc gõ `\password dangbo_admin` để nhập mật khẩu không hiện trên màn hình và không lưu vào lịch sử lệnh.)
+
+4. **Cập nhật `docker/.env`**: `POSTGRES_PASSWORD=<mật-khẩu-mới>`, `Jwt__Secret=<khóa-mới>`; nếu dùng pgAdmin đổi cả `PGADMIN_DEFAULT_PASSWORD`. Xóa `Seed__InitialAdmin__Password` nếu quản trị ban đầu đã đổi mật khẩu. Giữ quyền file:
+
+   ```bash
+   chmod 600 docker/.env
+   ```
+
+5. **Khởi động lại** để container nhận biến mới (`restart` không đọc lại `.env`, phải tạo lại container):
+
+   ```bash
+   docker compose --env-file docker/.env -f docker/docker-compose.yml up -d --force-recreate backend
+   docker compose --env-file docker/.env -f docker/docker-compose.yml logs --tail=50 backend   # không có [LỖI CẤU HÌNH]
+   curl --fail http://127.0.0.1:3001/api/healthz
+   ```
+
+6. **Buộc mọi người đăng nhập lại.** Khóa JWT mới làm mọi access token cũ mất hiệu lực ngay, nhưng refresh token (lưu trong CSDL) vẫn có thể cấp access token mới. Thu hồi toàn bộ refresh token để mọi phiên cũ (kể cả phiên có thể đã bị lộ) phải đăng nhập lại:
+
+   ```bash
+   docker compose --env-file docker/.env -f docker/docker-compose.yml exec postgres \
+     sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "UPDATE refresh_tokens SET \"IsRevoked\" = true, \"RevokedAt\" = now() WHERE NOT \"IsRevoked\";"'
+   ```
+
+7. Đăng nhập thử, mở một hồ sơ, xuất một biểu mẫu.
+
+**Hậu quả:** mọi người dùng bị đăng xuất và phải đăng nhập lại (mật khẩu tài khoản không đổi); thao tác đang mở dở chưa lưu bị mất — nên làm ngoài giờ làm việc và báo trước. Đổi mật khẩu CSDL làm backend mất kết nối từ lúc chạy `ALTER USER` tới khi khởi động lại ở bước 5, nên làm liền các bước 3–5. Bản sao lưu cũ vẫn khôi phục được (mật khẩu CSDL không nằm trong bản dump).
+
+Khi chạy API ngoài Docker, cập nhật `Jwt:Secret` và chuỗi kết nối bằng `dotnet user-secrets` (mục [Secret backend khi chạy trực tiếp](#secret-backend-khi-chạy-trực-tiếp)) rồi khởi động lại.

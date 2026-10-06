@@ -6,7 +6,7 @@
 #   db.dump          pg_dump định dạng custom (khôi phục bằng pg_restore)
 #   uploads.tar.gz   nén toàn bộ volume upload của backend
 #   SHA256SUMS       checksum để kiểm tra toàn vẹn
-#   manifest.txt     thông tin bản sao lưu
+#   manifest.txt     thông tin bản sao lưu (thời điểm, commit mã nguồn, migration mới nhất)
 # Sau đó chỉ giữ lại KEEP bản gần nhất.
 #
 # Cách dùng:
@@ -117,6 +117,10 @@ if [ "$DRY_RUN" -eq 0 ]; then
         echo "db_dump_bytes=$(stat -c %s "$PARTIAL/db.dump")"
         echo "uploads_bytes=$(stat -c %s "$PARTIAL/uploads.tar.gz")"
         echo "git_commit=$(git -C "$SCRIPT_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+        # Phiên bản schema của bản sao lưu (restore.sh so sánh với migration của mã nguồn khi khôi phục).
+        echo "last_migration=$(compose exec -T postgres sh -c \
+            'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA -c "SELECT max(\"MigrationId\") FROM \"__EFMigrationsHistory\""' \
+            2>/dev/null || echo unknown)"
     } > "$PARTIAL/manifest.txt"
     mv -- "$PARTIAL" "$TARGET"
 else
