@@ -36,17 +36,17 @@ public static partial class CriteriaSetDefaults
     {
         var axes = new List<ResultAxis>
         {
-            new() { Code = "T1", Name = "Nhiệm vụ chính trị, sản xuất kinh doanh và cung cấp dịch vụ",
+            new() { Code = "T1", Name = "Thực hiện nhiệm vụ chính trị, sản xuất kinh doanh, cung cấp dịch vụ",
                 Description = "Bảo đảm an toàn, điều hòa, hiệu quả hoạt động bay; chất lượng ATS, ATFM, CNS, AIM, MET, SAR; sản xuất kinh doanh, tài chính, đầu tư, dự án và nhiệm vụ chính trị khác." },
-            new() { Code = "T2", Name = "Thể chế, phân cấp, kiểm tra, kiểm soát và giám sát",
+            new() { Code = "T2", Name = "Hoàn thiện thể chế, đẩy mạnh phân cấp, phân quyền gắn với kiểm tra, giám sát",
                 Description = "Quy chế, quy định, quy trình; phân cấp, phân quyền; kiểm soát quyền lực; pháp chế, kiểm tra, giám sát, kiểm toán, chất lượng và tuân thủ." },
-            new() { Code = "T3", Name = "Khoa học công nghệ, đổi mới sáng tạo và chuyển đổi số",
+            new() { Code = "T3", Name = "Thúc đẩy phát triển khoa học, công nghệ, đổi mới sáng tạo và chuyển đổi số",
                 Description = "Hiện đại hóa ATM/CNS/AIM/MET; tự động hóa, số hóa dữ liệu, nghiên cứu, sáng kiến, an toàn thông tin, an ninh mạng và cải tiến quy trình." },
-            new() { Code = "T4", Name = "Xây dựng Đảng và hệ thống chính trị",
+            new() { Code = "T4", Name = "Xây dựng đảng và hệ thống chính trị trong sạch, vững mạnh; giữ gìn đoàn kết, thống nhất nội bộ; phòng, chống tham nhũng, lãng phí, tiêu cực",
                 Description = "Công tác xây dựng Đảng, kiểm tra, giám sát, tổ chức cán bộ, đoàn thể, phòng chống tham nhũng, lãng phí, tiêu cực." },
-            new() { Code = "T5", Name = "Văn hóa, con người và an sinh người lao động",
+            new() { Code = "T5", Name = "Phát triển văn hóa, nâng cao đời sống vật chất và tinh thần người lao động; thực hiện trách nhiệm xã hội",
                 Description = "Văn hóa an toàn, văn hóa doanh nghiệp, nguồn nhân lực, đào tạo, dân chủ cơ sở, chế độ chính sách, sức khỏe và đời sống người lao động." },
-            new() { Code = "T6", Name = "Quốc phòng, an ninh, đối ngoại và hợp tác quốc tế",
+            new() { Code = "T6", Name = "Thực hiện nhiệm vụ quốc phòng, an ninh, giữ vững ổn định chính trị, trật tự, an toàn cơ quan, đơn vị; nâng cao hiệu quả đối ngoại và hội nhập quốc tế",
                 Description = "Hiệp đồng quân sự - dân dụng, an ninh vùng trời/hàng không, phòng chống thiên tai, SAR; hợp tác ICAO, CANSO và đối tác quốc tế." }
         };
         for (var i = 0; i < axes.Count; i++)

@@ -38,6 +38,19 @@ public sealed class CriteriaSetUnitTests
         Assert.Equal(new[] { 15.0, 10, 10, 15, 10, 10 }, b.Axes.Select(x => x.MaxScore));
         Assert.All(a.Axes, x => Assert.Equal(0.0, x.MaxScore));
 
+        // Tên trục đúng nguyên văn biểu mẫu gốc (cột (2) Mẫu 9D), giống nhau ở cả hai bộ mặc định.
+        var axisNames = new[]
+        {
+            "Thực hiện nhiệm vụ chính trị, sản xuất kinh doanh, cung cấp dịch vụ",
+            "Hoàn thiện thể chế, đẩy mạnh phân cấp, phân quyền gắn với kiểm tra, giám sát",
+            "Thúc đẩy phát triển khoa học, công nghệ, đổi mới sáng tạo và chuyển đổi số",
+            "Xây dựng đảng và hệ thống chính trị trong sạch, vững mạnh; giữ gìn đoàn kết, thống nhất nội bộ; phòng, chống tham nhũng, lãng phí, tiêu cực",
+            "Phát triển văn hóa, nâng cao đời sống vật chất và tinh thần người lao động; thực hiện trách nhiệm xã hội",
+            "Thực hiện nhiệm vụ quốc phòng, an ninh, giữ vững ổn định chính trị, trật tự, an toàn cơ quan, đơn vị; nâng cao hiệu quả đối ngoại và hội nhập quốc tế"
+        };
+        Assert.Equal(axisNames, b.Axes.Select(x => x.Name));
+        Assert.Equal(axisNames, a.Axes.Select(x => x.Name));
+
         // Mục 3.6: 4 khung tỷ trọng; 3.7: 6 mức thang quy đổi; 4.1: ngưỡng 90/70/50/0, xuất sắc cần ≥ 30% vượt chuẩn.
         Assert.Equal(new[] { "K1", "K2", "K3", "K4" }, a.WeightFrames.Select(f => f.Code));
         var k2 = a.FindFrame("k2")!;

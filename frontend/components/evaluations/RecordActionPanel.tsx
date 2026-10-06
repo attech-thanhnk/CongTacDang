@@ -488,9 +488,10 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
                 <td><input className="form-control form-control-sm" value={t.taskName} maxLength={500} required onChange={(e) => update(i, "taskName", e.target.value)} /></td>
                 <td><input className="form-control form-control-sm" value={t.targetOutput} onChange={(e) => update(i, "targetOutput", e.target.value)} /></td>
                 <td>
-                  <select className="form-select form-select-sm" value={t.axisCode || ""} onChange={(e) => update(i, "axisCode", e.target.value)} aria-label={`Trục kết quả dòng ${i + 1}`}>
+                  <select className="form-select form-select-sm text-truncate" style={{ maxWidth: "16rem" }} value={t.axisCode || ""} onChange={(e) => update(i, "axisCode", e.target.value)} aria-label={`Trục kết quả dòng ${i + 1}`}
+                    title={axes.find((a) => a.code === t.axisCode)?.name}>
                     <option value="">— Chưa chọn —</option>
-                    {axes.map((a) => <option key={a.code} value={a.code} title={a.description || undefined}>{a.code} — {a.name}</option>)}
+                    {axes.map((a) => <option key={a.code} value={a.code} title={a.description ? `${a.name}\n${a.description}` : a.name}>{a.code} — {a.name}</option>)}
                   </select>
                 </td>
                 <td><input type="number" min={0} step={0.5} className="form-control form-control-sm" value={t.weight} onChange={(e) => update(i, "weight", e.target.value)} /></td>
