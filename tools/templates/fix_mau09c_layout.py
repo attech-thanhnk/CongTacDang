@@ -376,9 +376,85 @@ def fix_signer(root, ids):
     return changed
 
 
+HEADER_COLS = ('5600', '4600')
+
+
+def fix_header_table(root):
+    """Bảng tiêu đề: cột trái đủ rộng để "ĐẢNG BỘ …" / "CHI BỘ …" mỗi dòng một hàng như bản chuẩn; dòng "*" dưới tên Chi bộ."""
+    tbl = next(root.iter(W + 'tbl'))
+    pr = tbl.find(W + 'tblPr')
+    changed = False
+    width = str(sum(int(w) for w in HEADER_COLS))
+    tbl_w = pr.find(W + 'tblW')
+    if (tbl_w.get(W + 'w'), tbl_w.get(W + 'type')) != (width, 'dxa'):
+        tbl_w.set(W + 'w', width)
+        tbl_w.set(W + 'type', 'dxa')
+        changed = True
+    ind = pr.find(W + 'tblInd')
+    if ind is not None and ind.get(W + 'w') != '0':
+        ind.set(W + 'w', '0')
+        changed = True
+    for col, w in zip(tbl.find(W + 'tblGrid').findall(W + 'gridCol'), HEADER_COLS):
+        if col.get(W + 'w') != w:
+            col.set(W + 'w', w)
+            changed = True
+    for tr in tbl.findall(W + 'tr'):
+        for tc, w in zip(tr.findall(W + 'tc'), HEADER_COLS):
+            tcw = tc.find(W + 'tcPr/' + W + 'tcW')
+            if tcw is not None and tcw.get(W + 'w') != w:
+                tcw.set(W + 'w', w)
+                changed = True
+    # Độ rộng cột cố định (không tự co theo nội dung).
+    if pr.find(W + 'tblLayout') is None:
+        layout = etree.Element(W + 'tblLayout')
+        layout.set(W + 'type', 'fixed')
+        look = pr.find(W + 'tblLook')
+        if look is not None:
+            look.addprevious(layout)
+        else:
+            pr.append(layout)
+        changed = True
+    # Ô trái: các dòng căn giữa như bản chuẩn, bỏ run chỉ có khoảng trắng đứng trước tên tổ chức.
+    cell_p = paragraph_of(find_sdt(root, 'PARTY_CELL'))
+    for p in cell_p.getparent().findall(W + 'p'):
+        changed |= set_jc(p, 'center')
+        for r in list(p.findall(W + 'r')):
+            ts = r.findall(W + 't')
+            if ts and all((t.text or '').strip() == '' for t in ts) and r.getnext() is not None:
+                p.remove(r)
+                changed = True
+    # Hàng tổ chức / quốc hiệu: chữ 12 như bản chuẩn (mặc định văn bản 13); ô trái không giãn dòng phía trên (ô phải giữ
+    # khoảng cách để dòng địa danh – ngày không chạm gạch dưới quốc hiệu).
+    left_cell = cell_p.getparent()
+    for tr in tbl.findall(W + 'tr')[1:]:
+        for p in tr.iter(W + 'p'):
+            spacing = p.find(W + 'pPr/' + W + 'spacing')
+            if p.getparent() is left_cell and spacing is not None and spacing.get(W + 'before') is not None:
+                del spacing.attrib[W + 'before']
+                changed = True
+            for r in p.iter(W + 'r'):
+                pr = rpr(r)
+                for name in ('sz', 'szCs'):
+                    e = ordered_child(pr, name, RPR_ORDER)
+                    if e.get(W + 'val') != '24':
+                        e.set(W + 'val', '24')
+                        changed = True
+    # Đoạn trống ngay sau đoạn PARTY_CELL trong cùng ô → "*".
+    star = cell_p.getnext()
+    if star is not None and star.tag == W + 'p' and norm(text_of(star)) in ('', '*'):
+        ts = list(star.iter(W + 't'))
+        if ts and (len(ts) != 1 or ts[0].text != '*'):
+            ts[0].text = '*'
+            for t in ts[1:]:
+                t.getparent().remove(t)
+            changed = True
+    return changed
+
+
 def fix_09c(root):
     ids = Ids(root)
     changed = fix_header(root)
+    changed |= fix_header_table(root)
     changed |= fix_birth_date(root, ids)
     changed |= fix_department(root, ids)
     changed |= fix_section(root, ids)
