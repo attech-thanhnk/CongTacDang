@@ -177,7 +177,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-4 text-secondary">
+                  <td colSpan={7} className="text-center py-4 text-secondary loading-delay">
                     <span className="spinner-border spinner-border-sm me-2" />
                     Đang tải…
                   </td>

@@ -265,7 +265,7 @@ function HistoryModal({
   return (
     <AdminModal title={`Lịch sử phiên bản — ${template.name}`} onClose={onClose} maxWidth={900}>
       {versions === null ? (
-        <div className="text-secondary small">Đang tải…</div>
+        <div className="text-secondary small loading-delay">Đang tải…</div>
       ) : versions.length === 0 ? (
         <div className="text-secondary small">Chưa tải lên phiên bản nào — đang dùng file mẫu gốc đi kèm ứng dụng.</div>
       ) : (
@@ -454,7 +454,7 @@ export default function TemplatesPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="text-center text-secondary py-4">
+                    <td colSpan={5} className="text-center text-secondary py-4 loading-delay">
                       Đang tải…
                     </td>
                   </tr>

@@ -139,7 +139,7 @@ export default function OrganizationSettingsPage() {
           </div>
           <CardBody>
             {loading ? (
-              <div className="text-secondary small">Đang tải…</div>
+              <div className="text-secondary small loading-delay">Đang tải…</div>
             ) : (
               <form onSubmit={handleSubmit} noValidate>
                 {!canManage && (

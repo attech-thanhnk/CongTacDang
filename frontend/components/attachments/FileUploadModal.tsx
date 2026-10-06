@@ -306,7 +306,7 @@ export function FileUploadModal({
 
               <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded">
                 {loadingExisting ? (
-                  <p className="p-4 text-center text-xs text-slate-500">Đang tải danh sách...</p>
+                  <p className="p-4 text-center text-xs text-slate-500 loading-delay">Đang tải danh sách...</p>
                 ) : filteredExisting.length === 0 ? (
                   <p className="p-4 text-center text-xs text-slate-500">Chưa có tệp minh chứng nào phù hợp.</p>
                 ) : (

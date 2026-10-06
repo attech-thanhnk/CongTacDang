@@ -109,7 +109,7 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={4} className="text-center py-4 text-secondary"><span className="spinner-border spinner-border-sm me-2" />Đang tải…</td></tr>
+                <tr><td colSpan={4} className="text-center py-4 text-secondary loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải…</td></tr>
               ) : items.length === 0 ? (
                 <tr><td colSpan={4} className="text-center py-4 text-secondary">Chưa có ngày nghỉ nào trong năm {year}.</td></tr>
               ) : (

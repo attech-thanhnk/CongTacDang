@@ -210,7 +210,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
   if (!role) {
     return (
       <div className="page-wrapper">
-        <div className="page-body text-center py-5 text-secondary">
+        <div className="page-body text-center py-5 text-secondary loading-delay">
           <span className="spinner-border spinner-border-sm me-2" />
           Đang tải…
         </div>

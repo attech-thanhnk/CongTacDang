@@ -108,7 +108,7 @@ export default function CriteriaSetsPage() {
         <section className="card">
           <div className="card-body p-0">
             {loading ? (
-              <div className="text-secondary p-3"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
+              <div className="text-secondary p-3 loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
             ) : sets.length === 0 ? (
               <EmptyState title="Chưa có bộ tiêu chí" />
             ) : (

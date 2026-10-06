@@ -313,7 +313,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
           )}
         </div>
         {loading && items.length === 0 ? (
-          <div className="text-center py-4 text-secondary small">
+          <div className="text-center py-4 text-secondary small loading-delay">
             <span className="spinner-border spinner-border-sm me-2" />
             Đang tải…
           </div>

@@ -99,7 +99,7 @@ export function DataTable<T>({
             {loading ? (
               <tr>
                 <td colSpan={columns.length} className="text-center py-5 text-muted">
-                  <div className="d-flex flex-column align-items-center justify-content-center gap-2">
+                  <div className="d-flex flex-column align-items-center justify-content-center gap-2 loading-delay">
                     <span className="spinner-border spinner-border-sm text-primary" role="status"></span>
                     <span className="small">Đang tải dữ liệu...</span>
                   </div>

@@ -2340,6 +2340,19 @@ textarea.form-control {
 }
 
 /* ============================================================
+   CHỈ BÁO ĐANG TẢI
+   ============================================================ */
+/* Hiện sau một nhịp: dữ liệu về nhanh thì không chớp vòng xoay rồi giật sang nội dung. */
+.loading-delay {
+  animation: loading-delay-appear 0.15s ease-out 0.4s both;
+}
+
+@keyframes loading-delay-appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ============================================================
    LOADING SHIMMER
    ============================================================ */
 @keyframes shimmer {

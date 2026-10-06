@@ -71,7 +71,7 @@ export function ScopeProgressSection({ records, loading }: { records: Evaluation
       </div>
 
       {loading ? (
-        <div className={styles.empty}>
+        <div className={`${styles.empty} loading-delay`}>
           <span className="spinner-border spinner-border-sm me-2" />
           Đang tải...
         </div>

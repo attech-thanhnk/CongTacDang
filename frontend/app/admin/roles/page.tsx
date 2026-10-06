@@ -110,7 +110,7 @@ export default function AdminRolesPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-5 text-secondary">
+                    <td colSpan={5} className="text-center py-5 text-secondary loading-delay">
                       <span className="spinner-border spinner-border-sm me-2" />
                       Đang tải…
                     </td>

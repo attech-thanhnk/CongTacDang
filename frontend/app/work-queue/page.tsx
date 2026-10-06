@@ -82,7 +82,7 @@ export default function WorkQueuePage() {
       <div className="page-body">
         {error && <div className="alert alert-danger mb-0">{error}</div>}
         {loading ? (
-          <div className="text-secondary">
+          <div className="text-secondary loading-delay">
             <span className="spinner-border spinner-border-sm me-2" />
             Đang tải...
           </div>

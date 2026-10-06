@@ -95,7 +95,7 @@ export default function PeriodDetailPage() {
   }, [canManage]);
 
   if (error) return <div className="page-wrapper"><div className="alert alert-danger m-4">{error}</div></div>;
-  if (!period || !settings) return <div className="page-wrapper"><div className="text-secondary p-4"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div></div>;
+  if (!period || !settings) return <div className="page-wrapper"><div className="text-secondary p-4 loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div></div>;
 
   const isDraft = period.status === "Draft";
   const editable = canManage && isDraft;

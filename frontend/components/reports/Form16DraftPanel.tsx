@@ -138,7 +138,7 @@ export function Form16DraftPanel({ periodId, branchId, periodLabel, shortName }:
     }
   };
 
-  if (loading) return <div className="text-secondary small p-3">Đang tải số liệu Mẫu 16…</div>;
+  if (loading) return <div className="text-secondary small p-3 loading-delay">Đang tải số liệu Mẫu 16…</div>;
   if (error || !draft) return <div className="alert alert-warning small m-3">{error || "Không có dữ liệu."}</div>;
 
   return (

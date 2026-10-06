@@ -310,7 +310,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
   if (!account) {
     return (
       <div className="page-wrapper">
-        <div className="page-body text-center py-5 text-secondary">
+        <div className="page-body text-center py-5 text-secondary loading-delay">
           <span className="spinner-border spinner-border-sm me-2" />
           Đang tải…
         </div>
@@ -461,7 +461,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                 </div>
               </div>
               {assignmentsLoading && assignments.length === 0 ? (
-                <div className="text-center py-4 text-secondary small">
+                <div className="text-center py-4 text-secondary small loading-delay">
                   <span className="spinner-border spinner-border-sm me-2" />
                   Đang tải…
                 </div>

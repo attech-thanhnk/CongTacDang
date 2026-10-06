@@ -52,7 +52,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   // Nếu đang nạp phiên ở các trang nội bộ
   if (loading) {
     return (
-      <div className="d-flex flex-column align-items-center justify-content-center min-vh-100 bg-light">
+      <div className="d-flex flex-column align-items-center justify-content-center min-vh-100 bg-light loading-delay">
         <div className="spinner-border text-primary mb-3" role="status" style={{ width: "2.2rem", height: "2.2rem" }}>
           <span className="visually-hidden">Đang tải...</span>
         </div>

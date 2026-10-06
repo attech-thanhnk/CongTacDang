@@ -28,7 +28,7 @@ export function MyTasksSection({ queue, loading, periodId }: { queue: WorkQueueD
       </div>
 
       {loading ? (
-        <div className={styles.empty}>
+        <div className={`${styles.empty} loading-delay`}>
           <span className="spinner-border spinner-border-sm me-2" />
           Đang tải...
         </div>

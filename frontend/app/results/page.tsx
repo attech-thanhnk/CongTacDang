@@ -81,7 +81,7 @@ export default function ResultsPage() {
       <div className="page-body">
         {error && <div className="alert alert-danger mb-0">{error}</div>}
         {loading ? (
-          <div className="text-secondary"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
+          <div className="text-secondary loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
         ) : items.length === 0 ? (
           <section className="card">
             <EmptyState icon="bi-award" title="Chưa có kết quả công bố" />

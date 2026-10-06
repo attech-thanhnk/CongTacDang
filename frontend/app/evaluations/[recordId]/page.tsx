@@ -15,7 +15,7 @@ import { RecordFormsPanel } from "@/components/evaluations/RecordFormsPanel";
 import { RecordHistory } from "@/components/evaluations/RecordHistory";
 import { CollapsibleSection } from "@/components/evaluations/CollapsibleSection";
 import { AxisSummaryView, SelfAssessmentView } from "@/components/evaluations/IndividualFormInputs";
-import { useCriteria } from "@/components/evaluations/useCriteria";
+import { loadCriteria, useCriteria } from "@/components/evaluations/useCriteria";
 import { initialsOf } from "@/components/dashboard/taskUtils";
 import styles from "@/components/evaluations/record.module.css";
 import { attachmentService } from "@/services/attachmentService";
@@ -67,6 +67,8 @@ export default function EvaluationRecordPage() {
         evaluationService.getRecordHistory(recordId),
         evaluationService.getRecordForms(recordId).catch(() => [] as RecordFormDto[]),
       ]);
+      // Chờ bộ tiêu chí của kỳ (thường đã có trong bộ nhớ) để trang hiện đủ một lần, không dựng lại bố cục khi bộ tiêu chí về sau.
+      await loadCriteria(loadedRecord.periodId);
       setRecord(loadedRecord);
       setActions(loadedActions.actions);
       setHistory(loadedHistory);
@@ -109,7 +111,7 @@ export default function EvaluationRecordPage() {
   };
 
   if (loading) {
-    return <div className="page-wrapper"><div className="text-secondary p-4"><span className="spinner-border spinner-border-sm me-2" />Đang tải hồ sơ...</div></div>;
+    return <div className="page-wrapper"><div className="text-secondary p-4 loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải hồ sơ...</div></div>;
   }
 
   if (loadError || !record) {

@@ -220,7 +220,7 @@ export default function EvaluationsPage() {
               </div>
             )}
             {loading ? (
-              <div className={styles.empty}><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
+              <div className={`${styles.empty} loading-delay`}><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
             ) : filtered.length === 0 ? (
               <EmptyState title="Không có hồ sơ" />
             ) : (

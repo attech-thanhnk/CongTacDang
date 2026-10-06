@@ -225,7 +225,7 @@ function AuditPageContent() {
                   </thead>
                   <tbody>
                     {loading ? (
-                      <tr><td colSpan={5} className="text-center py-5 text-secondary"><span className="spinner-border spinner-border-sm me-2" />Đang tải nhật ký...</td></tr>
+                      <tr><td colSpan={5} className="text-center py-5 text-secondary loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải nhật ký...</td></tr>
                     ) : logs.length === 0 ? (
                       <tr><td colSpan={5} className="text-center py-5 text-secondary"><i className="bi bi-inbox fs-3 d-block mb-2" />Chưa có bản ghi phù hợp.</td></tr>
                     ) : logs.map((log) => {

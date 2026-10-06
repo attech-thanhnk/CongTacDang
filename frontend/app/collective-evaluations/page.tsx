@@ -146,7 +146,7 @@ export default function CollectiveEvaluationsPage() {
       <div className="page-wrapper">
         {title}
         <div className="page-body">
-          <div className="text-secondary"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
+          <div className="text-secondary loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
         </div>
       </div>
     );

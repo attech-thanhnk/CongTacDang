@@ -98,7 +98,7 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-4 text-secondary">
+                  <td colSpan={6} className="text-center py-4 text-secondary loading-delay">
                     <span className="spinner-border spinner-border-sm me-2" />
                     Đang tải…
                   </td>

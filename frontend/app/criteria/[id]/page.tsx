@@ -69,7 +69,7 @@ export default function CriteriaSetPage() {
   const checks = useMemo(() => (content ? quickChecks(content, info.selfScoreForm) : []), [content, info.selfScoreForm]);
 
   if (error) return <div className="page-wrapper"><div className="alert alert-danger m-4">{error}</div></div>;
-  if (!set || !content) return <div className="page-wrapper"><div className="text-secondary p-4"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div></div>;
+  if (!set || !content) return <div className="page-wrapper"><div className="text-secondary p-4 loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div></div>;
 
   const editable = canManage && set.status === "Draft";
   const p = content.parameters;
