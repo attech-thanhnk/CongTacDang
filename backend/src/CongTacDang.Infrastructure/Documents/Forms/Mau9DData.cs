@@ -20,16 +20,21 @@ public sealed class Mau9DData
     /// <summary>Tên Chi bộ (in hoa) ở tiêu đề trái.</summary>
     [TemplateField("PARTY_CELL")] public string? PartyCell { get; init; }
 
-    /// <summary>"ngày … tháng … năm …" sau địa danh: ngày nộp phiếu tự chấm (chưa nộp → giữ dòng chấm).</summary>
-    [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
-
-    /// <summary>"QUÝ… NĂM…" — chỗ điền liền sau chữ nên giá trị có khoảng trắng đầu.</summary>
+    /// <summary>"QUÝ… NĂM…" — quý in số La Mã như bản chuẩn ("QUÝ III NĂM 2026"); chỗ điền liền sau chữ nên giá trị có khoảng trắng đầu.</summary>
     [TemplateField("QUARTER")] public string? Quarter { get; init; }
     [TemplateField("YEAR")] public string? Year { get; init; }
     [TemplateField("FULL_NAME")] public string? FullName { get; init; }
 
-    /// <summary>Chức vụ (Đảng, Chính quyền, Đoàn thể) đang giữ; không có thì chức danh trên hồ sơ cán bộ.</summary>
-    [TemplateField("POSITIONS")] public string? Positions { get; init; }
+    /// <summary>Chức vụ Đảng (dòng "Chức vụ: Chức vụ Đảng: …").</summary>
+    [TemplateField("PARTY_POSITION")] public string? PartyPosition { get; init; }
+
+    /// <summary>Chức vụ chính quyền; không giữ chức vụ nào trong danh mục thì dùng chức danh trên hồ sơ cán bộ.</summary>
+    [TemplateField("ADMIN_POSITION")] public string? AdministrativePosition { get; init; }
+
+    /// <summary>Chức vụ đoàn thể.</summary>
+    [TemplateField("MASS_POSITION")] public string? MassPosition { get; init; }
+
+    /// <summary>Tên phòng/đơn vị; template in tiếp ", " + tên công ty (<c>ORG_COMPANY_NAME</c>) như bản chuẩn.</summary>
     [TemplateField("DEPARTMENT")] public string? Department { get; init; }
 
     /// <summary>Chi bộ đang sinh hoạt (ảnh chụp trên hồ sơ).</summary>
@@ -52,14 +57,17 @@ public sealed class Mau9DData
             reports = new Dictionary<string, AxisReport>(StringComparer.OrdinalIgnoreCase);
         }
 
+        var positions = source.Positions;
+        var noPositions = positions.All() == null;
         return new Mau9DData
         {
             PartyCell = Mau09Shared.PartyCellUpper(record),
-            DateLine = Mau09Shared.DateLine(source),
-            Quarter = FormText.Spaced(Mau09Shared.Quarter(record)),
+            Quarter = record.Period != null ? " " + CollectiveFormText.RomanQuarter(record.Period.Quarter) : null,
             Year = FormText.Spaced(Mau09Shared.Year(record)),
             FullName = FormText.OrNull(record.Member?.FullName),
-            Positions = source.Positions.All() ?? FormText.OrNull(record.Member?.PositionTitle),
+            PartyPosition = positions.Party,
+            AdministrativePosition = noPositions ? FormText.OrNull(record.Member?.PositionTitle) : positions.Administrative,
+            MassPosition = positions.MassOrganization,
             Department = FormText.OrNull(record.Department?.Name),
             CellName = FormText.OrNull(record.PartyCell?.Name),
             Axes = source.Criteria.Axes.Select((axis, index) =>

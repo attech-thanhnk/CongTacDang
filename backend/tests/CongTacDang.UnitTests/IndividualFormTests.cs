@@ -320,8 +320,11 @@ public class IndividualFormTests
         Assert.Contains("ĐẢNG BỘ THỬ NGHIỆM", text);
         Assert.Contains("CHI BỘ KỸ THUẬT", text);
         Assert.Contains("Nguyễn Văn A", text);
-        // Dòng địa danh – ngày: ngày nộp phiếu tự chấm (11/9/2026).
-        Assert.Contains("Hà Nội, ngày 11 tháng 09 năm 2026", text);
+        // Dòng địa danh – ngày: ngày nộp phiếu tự chấm (11/9/2026); bản chuẩn Mẫu 9D không có dòng này.
+        if (templateFileName == Mau9DData.TemplateFileName)
+            Assert.DoesNotContain("Hà Nội, ngày", text);
+        else
+            Assert.Contains("Hà Nội, ngày 11 tháng 09 năm 2026", text);
         // Chỗ điền đặt liền sau nhãn: không dính chữ ("Quý3", "NĂM2026").
         Assert.DoesNotMatch(@"(?i)(Quý|Năm)\d", text);
     }
@@ -334,7 +337,6 @@ public class IndividualFormTests
         Assert.Null(Mau09AData.From(source).DateLine);
         Assert.Null(Mau09BData.From(source).DateLine);
         Assert.Null(Mau09CData.From(source).DateLine);
-        Assert.Null(Mau9DData.From(source).DateLine);
     }
 
     [Fact]
@@ -434,17 +436,45 @@ public class IndividualFormTests
     public void Mau9D_OneRowPerAxis_AsOriginalForm()
     {
         var text = Render(Mau9DData.TemplateFileName, Mau9DData.From(Source()), out var content);
-        Assert.Contains("TRONG QUÝ 3 NĂM 2026", text);
         var axes = CriteriaSetDefaults.Build09B().Axes;
 
+        // Phần đầu như bản chuẩn: "Mẫu số 09D", quý số La Mã, chức vụ 3 dòng (Đảng / chính quyền / đoàn thể), đơn vị kèm tên công ty.
+        Assert.Contains("Mẫu số 09D", text);
+        Assert.Contains("TRONG QUÝ III NĂM 2026", text);
+        Assert.Contains("Chức vụ: Chức vụ Đảng: Bí thư Chi bộ", text);
+        Assert.Contains("Chức vụ chính quyền: Trưởng phòng", text);
+        Assert.Contains("Chức vụ đoàn thể: Chủ tịch Công đoàn", text);
+        Assert.Contains("Đơn vị công tác: Phòng Kỹ thuật, Công ty A", text);
+        Assert.DoesNotContain("*", text);
+
         using var doc = WordprocessingDocument.Open(new MemoryStream(content), false);
-        var rows = doc.MainDocumentPart!.Document!.Body!.Elements<Table>().Single().Elements<TableRow>()
+        var tables = doc.MainDocumentPart!.Document!.Body!.Elements<Table>().ToList();
+        // Bảng tiêu đề (Đảng bộ, Chi bộ | ĐẢNG CỘNG SẢN VIỆT NAM) và bảng kết quả.
+        Assert.Equal(2, tables.Count);
+        var header = tables[0].Elements<TableRow>().Single().Elements<TableCell>().Select(c => c.Elements<Paragraph>().Select(p => p.InnerText).ToList()).ToList();
+        Assert.Equal(new[] { "ĐẢNG BỘ THỬ NGHIỆM", "CHI BỘ KỸ THUẬT" }, header[0].Take(2));
+        Assert.Equal("ĐẢNG CỘNG SẢN VIỆT NAM", header[1][0]);
+        var rows = tables[1].Elements<TableRow>()
             .Select(r => r.Elements<TableCell>().Select(c => c.InnerText).ToList()).ToList();
         // 2 dòng tiêu đề + đúng 6 dòng trục như biểu mẫu gốc (không có dòng nhiệm vụ riêng).
         Assert.Equal(2 + 6, rows.Count);
         Assert.Equal(new[] { "Trục 1", axes[0].Name, "30/9/2026", "Đã xong", "Báo cáo", "Đúng hạn", "" }, rows[2]);
         Assert.Equal(new[] { "Trục 2", axes[1].Name, "", "", "", "", "" }, rows[3]);
         Assert.Equal("Trục 6", rows[7][0]);
+    }
+
+    [Fact]
+    public void Mau9D_NoPositionsInCatalog_UsesProfileTitleForAdministrativeLine()
+    {
+        var source = Source() with { Positions = MemberPositionNames.Empty };
+        var data = Mau9DData.From(source);
+        Assert.Equal((null, "Trưởng phòng", null), (data.PartyPosition, data.AdministrativePosition, data.MassPosition));
+
+        // Chức vụ trống giữ dòng chấm của template.
+        var text = Render(Mau9DData.TemplateFileName, data, out _);
+        Assert.Contains("Chức vụ: Chức vụ Đảng: …", text);
+        Assert.Contains("Chức vụ chính quyền: Trưởng phòng", text);
+        Assert.Contains("Chức vụ đoàn thể: …", text);
     }
 
     [Fact]
@@ -542,7 +572,7 @@ public class IndividualFormTests
 
         // Mẫu 9D: dòng Trục 1 như bản thật (tình hình nhiều dòng "- …" trong một ô).
         using var doc = WordprocessingDocument.Open(new MemoryStream(Render(Mau9DData.TemplateFileName, Mau9DData.From(source))), false);
-        var axis1 = doc.MainDocumentPart!.Document!.Body!.Elements<Table>().Single().Elements<TableRow>().ElementAt(2).Elements<TableCell>().ToList();
+        var axis1 = doc.MainDocumentPart!.Document!.Body!.Elements<Table>().Last().Elements<TableRow>().ElementAt(2).Elements<TableCell>().ToList();
         Assert.Equal(2, axis1[3].Descendants<Break>().Count() + 1);
         Assert.StartsWith("- Nhóm nhiệm vụ KHCN", axis1[3].InnerText);
         Assert.Equal(("Cơ bản hoàn thành", "Chậm tiến độ 02 đề tài KHCN"), (axis1[4].InnerText, axis1[5].InnerText));

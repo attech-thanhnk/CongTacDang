@@ -2,7 +2,7 @@
 """
 Bổ sung Content Control cho các template Word đã có (đợt rà soát xuất biểu mẫu):
 
-- DATE_LINE: phần "ngày … tháng … năm …" ngay sau ORG_LOCATION (Mẫu 01, 02, 07, 08, 09A, 09B, 09C, 9D, 10, 16, 17) — lớp dữ
+- DATE_LINE: phần "ngày … tháng … năm …" ngay sau ORG_LOCATION (Mẫu 01, 02, 07, 08, 09A, 09B, 09C, 10, 16, 17; Mẫu 9D không có dòng này — xem fix_mau9d_layout.py) — lớp dữ
   liệu mẫu điền ngày lập/duyệt; null giữ dòng chấm.
 - CHAIR_SIGN_TITLE / CHAIR_SIGN_NOTE: chức danh "BÍ THƯ" và ghi chú "(ký, ghi rõ họ tên, đóng dấu)" dưới "CHỦ TRÌ HỘI NGHỊ"
   (Mẫu 12, 13) — lấy theo chức vụ chủ trì đã lưu trên biên bản.
@@ -219,7 +219,6 @@ STEPS = {
     'Mau_09A_PhieuTuCham.docx': [add_date_line],
     'Mau_09B_PhieuTuChamTheoTruc.docx': [add_date_line],
     'Mau_09C_BanTuDanhGia.docx': [add_date_line],
-    'Mau_9D_PhuLucKetQuaNhiemVu.docx': [add_date_line],
     'Mau_10_PhieuThamDinh.docx': [add_date_line, fix_mau10],
     'Mau_12_BienBanHoiNghi.docx': [add_chair_sign],
     'Mau_13_BienBanKiemPhieu.docx': [add_chair_sign, add_base_authority],
