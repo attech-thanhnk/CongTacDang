@@ -45,7 +45,7 @@ dist/
 
 # Next.js telemetry & cache
 .vercel
-next-env.d.ts
+# frontend/next-env.d.ts được commit: tsc --noEmit chạy trước next build (CI, checkout mới) cần file này.
 *.tsbuildinfo
 
 # NPM / Yarn / PNPM debug logs
