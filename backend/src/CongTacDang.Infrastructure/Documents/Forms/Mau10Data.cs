@@ -1,4 +1,6 @@
+using System;
 using CongTacDang.Domain.Entities;
+using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
@@ -60,31 +62,39 @@ public sealed class Mau10Data
     /// </summary>
     [TemplateField("APPRAISAL_EXPLANATION")] public string? AppraisalExplanation { get; init; }
 
-    /// <summary>Mức xếp loại Tổ thẩm định đề xuất (đã lưu).</summary>
-    [TemplateField("PROPOSED_GRADE")] public string? ProposedGrade { get; init; }
+    /// <summary>Ô ☒/☐ của mức xếp loại Tổ thẩm định đề xuất (đã lưu); chưa đề xuất → mọi ô ☐.</summary>
+    [TemplateField("CHECK_EXCELLENT")] public string? CheckExcellent { get; init; }
+    [TemplateField("CHECK_GOOD")] public string? CheckGood { get; init; }
+    [TemplateField("CHECK_DONE")] public string? CheckDone { get; init; }
+    [TemplateField("CHECK_FAILED")] public string? CheckFailed { get; init; }
 
     /// <summary>Dựng dữ liệu mẫu từ hồ sơ đã lưu (nạp kèm Period, Member, Department, PartyCell).</summary>
     public static Mau10Data From(EvaluationRecord record)
     {
+        string Box(EvaluationGrade grade) => record.AppraisalProposedGrade == grade ? "☒" : "☐";
         return new Mau10Data
         {
             DateLine = CollectiveFormText.DateLine(record.AppraisedAt),
-            Quarter = record.Period != null ? FormText.Quarter(record.Period.Quarter) : null,
+            Quarter = record.Period != null ? CollectiveFormText.RomanQuarter(record.Period.Quarter) : null,
             Year = record.Period != null ? FormText.Year(record.Period.Year) : null,
             FullName = FormText.OrNull(record.Member?.FullName),
             Position = FormText.OrNull(record.Member?.PositionTitle),
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
-            GeneralSelfScore = FormText.Number(record.GeneralCriteriaScore, 1),
-            TasksSelfScore = FormText.Number(record.TasksScore, 1),
-            TotalSelfScore = FormText.Number(record.TotalSelfScore, 1),
-            TotalAppraisalScore = FormText.Number(record.AppraisalScore, 1),
+            // Điểm in gọn: số nguyên "26", số lẻ một chữ số thập phân "26,5".
+            GeneralSelfScore = CollectiveFormText.Score(record.GeneralCriteriaScore),
+            TasksSelfScore = CollectiveFormText.Score(record.TasksScore),
+            TotalSelfScore = CollectiveFormText.Score(record.TotalSelfScore),
+            TotalAppraisalScore = record.AppraisalScore.HasValue ? CollectiveFormText.Score(record.AppraisalScore.Value) : null,
             TotalDiff = record.AppraisalScore.HasValue
-                ? FormText.Number(record.AppraisalScore.Value - record.TotalSelfScore, 1)
+                ? CollectiveFormText.Score(Math.Round(record.AppraisalScore.Value - record.TotalSelfScore, 1))
                 : null,
             SupervisorComment = FormText.OrNull(record.DirectorComment),
             AppraisalComment = FormText.OrNull(record.AppraisalComment),
             AppraisalExplanation = FormText.OrNull(record.AppraisalExplanation),
-            ProposedGrade = FormText.Grade(record.AppraisalProposedGrade)
+            CheckExcellent = Box(EvaluationGrade.HoanThanhXuatSac),
+            CheckGood = Box(EvaluationGrade.HoanThanhTot),
+            CheckDone = Box(EvaluationGrade.HoanThanh),
+            CheckFailed = Box(EvaluationGrade.KhongHoanThanh)
         };
     }
 }

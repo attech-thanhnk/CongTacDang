@@ -289,9 +289,11 @@ public class DocumentTemplateTests
         Assert.Equal("28,5", data.GeneralSelfScore);
         Assert.Equal("65,4", data.TasksSelfScore);
         Assert.Equal("93,9", data.TotalSelfScore);
-        Assert.Equal("92,0", data.TotalAppraisalScore);
+        // Số nguyên in gọn ("92", không "92,0").
+        Assert.Equal("92", data.TotalAppraisalScore);
         Assert.Equal("-1,9", data.TotalDiff);
         Assert.Null(data.GeneralAppraisalScore);
+        Assert.Equal("III", data.Quarter);
     }
 
     [Fact]
@@ -315,8 +317,17 @@ public class DocumentTemplateTests
         var mau10 = Text(Mau10Data.TemplateFileName, Mau10Data.From(record));
         Assert.Contains("Hà Nội, ngày 18 tháng 09 năm 2026", mau10);
         Assert.Contains("Mẫu số 10", mau10);
-        // Tên đơn vị thay cả dòng chấm (không còn "Phòng Kỹ thuật……").
-        Assert.Contains("Đơn vị công tác: Phòng Kỹ thuật  Kỳ đánh giá", mau10);
+        // Tên đơn vị thay cả dòng chấm (không còn "Phòng Kỹ thuật……"); "Kỳ đánh giá" chỉ in một lần ở dòng đầu phiếu.
+        Assert.Contains("Đơn vị công tác: Phòng Kỹ thuật", mau10);
+        Assert.DoesNotContain("Phòng Kỹ thuật……", mau10);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(mau10, "Kỳ đánh giá"));
+        Assert.Contains("Kỳ đánh giá: Quý III / Năm 2026", mau10);
+        // Mức đề xuất đánh dấu ☒ đúng ô; ý kiến đã có thì không còn dòng chấm thừa phía sau.
+        Assert.Contains("Mức xếp loại đề xuất trình cấp có thẩm quyền:", mau10);
+        Assert.Contains("☒ Hoàn thành tốt", mau10);
+        Assert.Contains("☐ Hoàn thành xuất sắc", mau10);
+        Assert.DoesNotContain("Nhất trí…", mau10);
+        Assert.DoesNotContain("(TC   /30đ)", mau10);
 
         // Chưa tới bước → giữ dòng chấm.
         record.TasksApprovedAt = null;

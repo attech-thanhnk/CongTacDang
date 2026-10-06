@@ -376,7 +376,9 @@ def fix_signer(root, ids):
     return changed
 
 
-HEADER_COLS = ('5600', '4600')
+# Bảng tiêu đề rộng hơn vùng chữ và lấn sang lề trái (như bản chuẩn) để tên Đảng bộ đầy đủ nằm một dòng.
+HEADER_COLS = ('6600', '4200')
+HEADER_IND = '-400'
 
 
 def fix_header_table(root):
@@ -391,8 +393,8 @@ def fix_header_table(root):
         tbl_w.set(W + 'type', 'dxa')
         changed = True
     ind = pr.find(W + 'tblInd')
-    if ind is not None and ind.get(W + 'w') != '0':
-        ind.set(W + 'w', '0')
+    if ind is not None and ind.get(W + 'w') != HEADER_IND:
+        ind.set(W + 'w', HEADER_IND)
         changed = True
     for col, w in zip(tbl.find(W + 'tblGrid').findall(W + 'gridCol'), HEADER_COLS):
         if col.get(W + 'w') != w:
