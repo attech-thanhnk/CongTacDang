@@ -126,10 +126,13 @@ public static class DataSeeder
         InitialAdminOptions? initialAdmin = null)
     {
         // 1. Danh mục quyền: đồng bộ từ PermissionCodes (tạo mới, cập nhật tên/mô tả/phân hệ/thứ tự).
-        await SyncPermissionCatalogAsync(context, logger);
+        var createdPermissions = await SyncPermissionCatalogAsync(context, logger);
 
         // 2. Vai trò mặc định (chỉ khi chưa có vai trò nào).
         await SeedDefaultRolesAsync(context, logger);
+
+        // 2a. Mã quyền mới xuất hiện lần đầu → thêm vào vai trò mặc định có mã đó trong cấu hình (CSDL đã có vai trò từ trước).
+        await GrantNewPermissionsToDefaultRolesAsync(context, createdPermissions, logger);
         if (resetRolePermissions)
             await ResetRolePermissionsAsync(context, logger);
 
@@ -285,7 +288,7 @@ public static class DataSeeder
     /// Đồng bộ bảng <c>permissions</c> từ <see cref="PermissionCodes.Definitions"/>: tạo mã còn thiếu, cập nhật tên/mô tả/phân hệ/thứ tự,
     /// khôi phục mã bị xóa mềm. Mã trong CSDL không còn trong code được giữ nguyên (resolver bỏ qua và ghi cảnh báo).
     /// </summary>
-    private static async Task SyncPermissionCatalogAsync(CongTacDangDbContext context, ILogger? logger)
+    private static async Task<IReadOnlyList<string>> SyncPermissionCatalogAsync(CongTacDangDbContext context, ILogger? logger)
     {
         var existing = await context.Permissions.IgnoreQueryFilters().ToListAsync();
         var created = new List<string>();
@@ -323,6 +326,38 @@ public static class DataSeeder
             await context.SaveChangesAsync();
         if (created.Count > 0)
             logger?.LogInformation("Đã tạo mã quyền: {Permissions}", string.Join(", ", created));
+        return created;
+    }
+
+    /// <summary>
+    /// Mã quyền vừa được tạo lần đầu (bản cập nhật thêm quyền mới, ví dụ <c>system.import</c>): thêm vào các vai trò mặc định đã có
+    /// (theo mã vai trò) mà cấu hình mặc định có quyền đó. Chỉ chạy một lần cho mỗi mã — quản trị gỡ quyền sau đó không bị thêm lại.
+    /// </summary>
+    private static async Task GrantNewPermissionsToDefaultRolesAsync(CongTacDangDbContext context, IReadOnlyList<string> createdCodes, ILogger? logger)
+    {
+        if (createdCodes.Count == 0)
+            return;
+        var permissions = await context.Permissions.Where(p => createdCodes.Contains(p.Code)).ToDictionaryAsync(p => p.Code);
+        var roleCodes = DefaultRoles.Select(r => r.Code).ToList();
+        var roles = await context.Roles.Include(r => r.Permissions).Where(r => roleCodes.Contains(r.Code)).ToListAsync();
+        var granted = new List<string>();
+        foreach (var role in roles)
+        {
+            var definition = DefaultRoles.First(r => r.Code == role.Code);
+            foreach (var code in definition.Permissions.Where(createdCodes.Contains))
+            {
+                if (permissions.TryGetValue(code, out var permission) && role.Permissions.All(p => p.Code != code))
+                {
+                    role.Permissions.Add(permission);
+                    granted.Add($"{role.Name}: {code}");
+                }
+            }
+        }
+
+        if (granted.Count == 0)
+            return;
+        await context.SaveChangesAsync();
+        logger?.LogInformation("Đã thêm quyền mới vào vai trò mặc định: {Grants}", string.Join("; ", granted));
     }
 
     /// <summary>

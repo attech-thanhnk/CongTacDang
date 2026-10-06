@@ -46,6 +46,12 @@ public static class PermissionCodes
     /// <summary>Quản lý file mẫu Word của biểu mẫu: tải lên phiên bản mới, kích hoạt, xem lịch sử (task 17).</summary>
     public const string SystemTemplatesManage = "system.templates.manage";
 
+    /// <summary>
+    /// Nhập dữ liệu từ Excel (đơn vị, tổ chức Đảng, cán bộ, gán vai trò). Chỉ mở chức năng; mỗi loại nhập còn đòi quyền dữ liệu
+    /// tương ứng (<see cref="CatalogManage"/>, <see cref="SystemUsersManage"/> theo phạm vi, <see cref="SystemAssignmentsManage"/>).
+    /// </summary>
+    public const string SystemImport = "system.import";
+
     #endregion
 
     #region Danh mục, kỳ đánh giá
@@ -152,6 +158,7 @@ public static class PermissionCodes
         new(SystemAuditRead, "Xem nhật ký", "system", "Xem nhật ký thao tác và nhật ký đăng nhập.", false),
         new(SystemSettingsManage, "Quản lý thông tin đơn vị", "system", "Sửa tên Đảng bộ, tên công ty, tên viết tắt, địa danh… dùng trên biểu mẫu, báo cáo và giao diện.", false),
         new(SystemTemplatesManage, "Quản lý file mẫu biểu mẫu", "system", "Tải lên phiên bản file mẫu Word mới (kiểm tra tag), kích hoạt lại phiên bản cũ, xem lịch sử.", false),
+        new(SystemImport, "Nhập dữ liệu từ Excel", "system", "Nhập đơn vị, tổ chức Đảng, cán bộ và gán vai trò từ file Excel; mỗi loại còn cần quyền quản lý dữ liệu tương ứng.", false),
         new(CatalogManage, "Quản lý danh mục", "catalog", "Quản lý danh mục đơn vị chính quyền, tổ chức Đảng, loại đơn vị, chức vụ. Xem danh mục: mọi người đã đăng nhập.", false),
         new(PeriodManage, "Quản lý kỳ đánh giá", "period", "Tạo kỳ, cấu hình bước/thời hạn, chọn bộ tiêu chí, danh sách người được đánh giá, mở/khóa kỳ.", false),
         new(CriteriaManage, "Quản lý bộ tiêu chí", "criteria", "Tạo, nhân bản, sửa bản nháp, xuất bản, lưu trữ bộ tiêu chí và thang điểm (tiêu chí chung, trục, khung tỷ trọng, mức xếp loại, tham số).", false),

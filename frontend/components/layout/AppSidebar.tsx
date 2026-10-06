@@ -92,6 +92,7 @@ export function AppSidebar() {
         { title: "Người dùng", href: "/admin/users", icon: "bi-people", permission: "system.users.read" },
         { title: "Vai trò", href: "/admin/roles", icon: "bi-shield-lock", permission: "system.roles.manage" },
         { title: "Danh mục", href: "/catalog", icon: "bi-building", permission: "catalog.manage" },
+        { title: "Nhập dữ liệu", href: "/admin/imports", icon: "bi-file-earmark-arrow-up", permission: "system.import" },
         { title: "Nhật ký", href: "/audit", icon: "bi-clock-history", permission: "system.audit.read" },
         { title: "Thông tin đơn vị", href: "/admin/settings", icon: "bi-gear", permission: "system.settings.manage" },
         { title: "Biểu mẫu Word", href: "/admin/templates", icon: "bi-file-earmark-word", permission: "system.templates.manage" },

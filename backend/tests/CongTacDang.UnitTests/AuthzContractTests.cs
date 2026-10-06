@@ -112,7 +112,7 @@ public class AuthzContractTests
         var expected = new[]
         {
             "system.users.read", "system.users.manage", "system.roles.manage", "system.assignments.manage",
-            "system.audit.read", "system.settings.manage", "system.templates.manage",
+            "system.audit.read", "system.settings.manage", "system.templates.manage", "system.import",
             "catalog.manage", "period.manage", "criteria.manage", "evaluation.self",
             "evaluation.read", "evaluation.tasks.approve", "evaluation.cell.confirm", "evaluation.collective.record",
             "evaluation.appraise", "evaluation.director.review", "evaluation.unit.review", "evaluation.decide", "evaluation.external.record",
@@ -134,7 +134,7 @@ public class AuthzContractTests
         Assert.Equal(new HashSet<string>
         {
             "system.roles.manage", "system.assignments.manage", "system.audit.read",
-            "system.settings.manage", "system.templates.manage", "catalog.manage", "period.manage", "criteria.manage"
+            "system.settings.manage", "system.templates.manage", "system.import", "catalog.manage", "period.manage", "criteria.manage"
         }, globalOnly);
     }
 

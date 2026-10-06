@@ -39,6 +39,7 @@ Trường bổ sung (task 07, sửa ở task 14):
 | `system.audit.read` | Xem nhật ký | không | Nhật ký thao tác + nhật ký đăng nhập |
 | `system.settings.manage` | Quản lý thông tin đơn vị | không | Sửa tên Đảng bộ, tổ chức Đảng cấp trên, tên công ty, tên viết tắt, địa danh, tên hệ thống dùng trên biểu mẫu/báo cáo/giao diện. **Xem**: mọi người đã đăng nhập; phần tên hiển thị công khai trước đăng nhập |
 | `system.templates.manage` | Quản lý file mẫu biểu mẫu | không | Tải lên phiên bản file mẫu Word mới (kiểm tra tag), kích hoạt lại phiên bản cũ, về file gốc, tải file, xem lịch sử |
+| `system.import` | Nhập dữ liệu từ Excel | không | Mở chức năng nhập dữ liệu (`docs/nhap-du-lieu.md`); mỗi loại nhập còn cần quyền dữ liệu: `catalog.manage` (đơn vị, tổ chức Đảng), `system.users.manage` trong phạm vi (cán bộ), `system.assignments.manage` (gán vai trò) |
 | `catalog.manage` | Quản lý danh mục | không | Đơn vị chính quyền, tổ chức Đảng (cây), loại đơn vị, chức vụ. **Xem** danh mục: mọi người đã đăng nhập |
 | `period.manage` | Quản lý kỳ đánh giá | không | Tạo kỳ, cấu hình hồ sơ luồng (chế độ bước, quyền thực hiện, thời hạn)/tham số, danh sách người được đánh giá và hồ sơ luồng của từng người, kiểm tra kẹt luồng, mở/khóa kỳ; **chọn bộ tiêu chí đã xuất bản** cho kỳ (khi Dự thảo) và xem danh sách bộ tiêu chí |
 | `criteria.manage` | Quản lý bộ tiêu chí | không | Tạo, nhân bản, sửa bản nháp, xuất bản, lưu trữ, xóa bản nháp bộ tiêu chí và thang điểm (tiêu chí chung, trục, khung tỷ trọng, thang quy đổi, mức xếp loại, tham số). Danh sách khung tỷ trọng (chọn khung mặc định cho cán bộ): mọi người đã đăng nhập |
@@ -141,7 +142,7 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
 | Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch) | `evaluation.read`, `evaluation.director.review`, `report.export`, `evaluation.improvement.manage` | Global | IV.3c; Mẫu 17 |
 | Cấp ủy viên Đảng ủy | `evaluation.read`, `meeting.read`, `report.export` | Global | IV.4; Mẫu 18 |
 | Văn phòng Đảng ủy (ghi nhận quyết định) | `evaluation.read`, `evaluation.decide`, `evaluation.external.record`, `evaluation.publish`, `evaluation.reopen`, `meeting.read`, `meeting.manage`, `report.export`, `evaluation.appeal.resolve` | Global | IV.4, IV.5; PL II III.2 |
-| Quản trị hệ thống (`IsProtected`) | `system.*` (gồm `system.settings.manage`, `system.templates.manage`), `catalog.manage` | Global | Mẫu 18 (đầu mối IT) |
+| Quản trị hệ thống (`IsProtected`) | `system.*` (gồm `system.settings.manage`, `system.templates.manage`, `system.import`), `catalog.manage` | Global | Mẫu 18 (đầu mối IT) |
 
 Phạm vi `Department`/`PartyCell` trong bảng hiển thị là "Đơn vị chính quyền"/"Tổ chức Đảng" và bao trùm mọi đơn vị cấp dưới của nút được gán (mục 4.1).
 
