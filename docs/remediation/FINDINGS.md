@@ -41,6 +41,13 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 - Cần nghiệp vụ xác nhận: 09A/09B/9D có phải nộp bản Excel (HD03 V.1) không; Mẫu 10 có áp dụng Q3/2026; 09C bắt buộc nhập, giới hạn ~6.000 ký tự ≈ 02 trang A4; cách đếm 15A/15B/16 khi kỳ chưa kết thúc; hạn và người xử lý kiến nghị; người lập/duyệt Mẫu 17, mức bắt buộc, cửa sổ 90 ngày; công khai điểm hay chỉ mức (xem `reports/wave8-integration.md`).
 - Chưa làm (⚪): ngày sinh cán bộ trên 09A/09B/09C; tự điền "Căn cứ Hướng dẫn số …"; Mẫu 03–06, 18–20 (chờ nghiệp vụ có áp dụng không).
 
+**Rà soát 2026-10-06** — đối chiếu code tại `8ed20db` + 5 commit triển khai an toàn (báo cáo chi tiết: `reports/ra-soat-2026-10-06.md`).
+- `done`: T-27 (compose build/chạy thật, `/healthz` 200), T-38 (PDF qua LibreOffice trong container), T-42 (~370 unit test, 93 integration test), T-65, B-04, B-05 (`docs/huong-dan-su-dung.md`), T-43 (commit `next-env.d.ts`), T-44 (`restore.sh` so migration bản sao lưu với code, sao lưu dự phòng trước khi ghi đè), T-70 (query filter cho bảng phụ thuộc, test `DbModelWarningTests`), B-02 (phạm vi xem minh chứng theo hồ sơ — test `Evidence_ReadableOnlyByOwnerAndInScopeReaders`).
+- T-28 `partial`: backend từ chối khởi động ở Production khi khóa JWT/mật khẩu là mẫu hoặc yếu (`StartupSecretPolicy`); **người vận hành vẫn phải đổi khóa/mật khẩu trên máy triển khai** theo `docs/deployment.md`.
+- T-22, B-07, B-08, B-09 `partial`; T-54, B-10 vẫn `open`; B-06 đề xuất `wontfix` (không còn xóa tệp, chỉ thay phiên bản) — chờ chủ dự án xác nhận.
+- Integration test chưa chạy lại trên CSDL test sau các thay đổi ngày 2026-10-06.
+
+
 **Gỡ import (2026-09-29)** — theo quyết định chủ dự án, **bỏ hẳn chức năng nhập từ Excel** (trang `/imports`, API `/api/imports`, khung import, 7 loại import, quyền `system.import`, `proxyTimeout` 5 phút). Go-live khai báo qua giao diện: Danh mục → Tài khoản → Vai trò & phạm vi → Kỳ đánh giá (`docs/deployment.md`). Kịch bản go-live, cây đơn vị, W10, G4 viết lại dựng dữ liệu bằng API thường. Kiểm lại: build 0 warning, unit 244/245 (1 skip PDF), integration 88/88, `tsc` pass, grep sạch. T-64, T-73 (phần import): đóng theo quyết định bỏ chức năng. Code cũ còn trong lịch sử git nếu cần làm lại.
 
 **Đợt 7 (2026-09-29)** — task 16 (bộ tiêu chí theo phiên bản), task 17 (cài đặt đơn vị, quản lý file mẫu Word) và tích hợp đã merge (`f62a116`). Người điều phối kiểm lại: build 0 lỗi 0 warning, unit 273/274 (1 skip PDF), integration 98/98 trên `192.168.22.159`, `tsc` pass, grep không còn điểm/trục/khung cứng, frontend không còn tên đơn vị cứng. Migration gộp lại `InitialCreate` mới → **CSDL cũ phải tạo lại**. Tiêu chí chung nay theo HD03 (3 nhóm, 17 tiêu chí con, Đảm bảo/Không đảm bảo/K/AD); ví dụ TC-1 ra đúng 67,6 / 97,6 như văn bản (trước ra 67,47 do làm tròn cứng).
@@ -75,13 +82,13 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-19 | 🟡 | Thiếu security headers (CSP, frame-ancestors, nosniff, Referrer-Policy); `/healthz` không kiểm tra DB | `Program.cs`, `frontend/next.config.mjs` | 03 (DB check: 02) | done |
 | T-20 | 🟡 | Compose đặt `NEXT_PUBLIC_API_URL=http://localhost:5000/api` → trình duyệt bỏ qua proxy; biến NEXT_PUBLIC chỉ có hiệu lực lúc build | `docker/docker-compose.yml` | 03 | done |
 | T-21 | 🟡 | Repo theo dõi file build/IDE/log/upload thật; chưa có test, chưa có CI | `.gitignore`, `backend/publish*`, `.vs/`, … | 03 (test project: 01) | done |
-| T-22 | ⚪ | Frontend dùng 3 bộ UI (Bootstrap, Tailwind, PrimeReact) + 3 bộ icon; nhiều file > 1000 dòng | `frontend/` | — | deferred |
+| T-22 | ⚪ | Frontend dùng 3 bộ UI (Bootstrap, Tailwind, PrimeReact) + 3 bộ icon; nhiều file > 1000 dòng | `frontend/` | — | partial |
 | T-23 | ⚪ | Truy vấn chỉ đọc thiếu `AsNoTracking`, thiếu index cho cột lọc thường dùng | `SpecificRepositories.cs`, `CongTacDangDbContext.cs` | 02 | done |
 | T-24 | 🟠 | Frontend chưa gửi `version` khi cập nhật hồ sơ/kỳ đánh giá → kiểm tra concurrency (T-15) chưa có hiệu lực; backend tạm coi `version` là tùy chọn | `frontend/services/evaluationService.ts`, `components/evaluations/Step*.tsx` | 06 → 12 | done |
 | T-25 | 🟠 | Migration chưa chạy thử trên PostgreSQL thật (DB trống + DB cũ baseline); DB cũ baseline sẽ thiếu các index mới nằm trong `InitialCreate` (kể cả unique index kỳ đang hoạt động) | `Infrastructure/Data/Migrations`, `Api/Extensions/PersistenceExtensions.cs` | — | wontfix |
 | T-26 | 🟡 | `DataSeeder` còn khối DDL `ALTER TABLE … ADD COLUMN IF NOT EXISTS` tương thích schema cũ — trùng vai trò với migration | `Infrastructure/Data/DataSeeder.cs` | 06 | done |
-| T-27 | 🟡 | Docker chưa được kiểm chứng: chưa `docker compose config`, chưa build image, chưa gọi `/healthz` (máy không có Docker) | `docker/`, `.github/workflows/ci.yml` | — | open |
-| T-28 | 🟡 | Vận hành: JWT secret và mật khẩu DB cũ đã nằm trong lịch sử git → phải rotate trước khi triển khai | môi trường triển khai | — | open |
+| T-27 | 🟡 | Docker chưa được kiểm chứng: chưa `docker compose config`, chưa build image, chưa gọi `/healthz` (máy không có Docker) | `docker/`, `.github/workflows/ci.yml` | — | done |
+| T-28 | 🟡 | Vận hành: JWT secret và mật khẩu DB cũ đã nằm trong lịch sử git → phải rotate trước khi triển khai | môi trường triển khai | — | partial |
 | T-29 | ⚪ | Chưa có `.gitattributes` — file LF/CRLF lẫn lộn (cảnh báo khi commit trên Windows) | gốc repo | 06 | done |
 | T-30 | 🔴 | Xuất Word `/api/reports/docx/*` chỉ yêu cầu đăng nhập, không kiểm tra phạm vi → ai cũng tải được Mẫu 01/02/10 của người khác, Mẫu 11/13 của mọi Chi bộ; Excel 14/15/16 chỉ cần `reports.export` (CAN_BO có sẵn) và xuất toàn Đảng bộ | `Api/Controllers/ExportReportController.cs`, `Infrastructure/Services/ReportService.cs` | 04 | done |
 | T-31 | 🔴 | File đính kèm không có chủ sở hữu (`UploadedBy` là tên dạng chữ) và không kiểm tra phạm vi khi liệt kê/xem/tải/xóa → ai có `attachments.read` xem được mọi minh chứng | `TaskAttachment.cs`, `AttachmentService.cs`, `AttachmentController.cs` | 04 | done |
@@ -91,14 +98,14 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-35 | 🟠 | `backend/sign.ps1` tự tạo chứng chỉ và thêm vào kho **Trusted Root** của Windows để ký file build | `backend/sign.ps1` | 04 | done |
 | T-36 | 🟠 | Mô hình file: mỗi nhiệm vụ chỉ 1 file, không có phiên bản (thay file = mất bản cũ), không gắn đối tượng tổng quát; adapter MinIO không dùng được (phần còn lại của T-07) | `TaskAttachment.cs`, `EvaluationTask.AttachmentId`, `MinioFileStorageService.cs` | 05 | done |
 | T-37 | 🔴 | Bộ sinh Word thay `{{TAG}}` theo từng đoạn chữ (run) → hỏng khi Word tách run; file phôi sinh bằng code; nhiều chữ in cứng (giờ họp, khối, tên đơn vị) | `Infrastructure/Services/DocxTemplateEngine.cs` | 05 | done |
-| T-38 | 🟠 | Không có xuất PDF phía máy chủ (Hướng dẫn yêu cầu nộp PDF kèm Word/Excel); 3 đường hiển thị biểu mẫu độc lập (Word, Excel, HTML in bằng `window.print`) có thể ra số khác nhau (ví dụ Mẫu 02 tính lại điểm theo trọng số Khung 2 cố định) | `DocxTemplateEngine.cs`, `ReportService.cs`, `frontend/components/evaluations/EvaluationPrintTemplate.tsx` | 05 | partial |
+| T-38 | 🟠 | Không có xuất PDF phía máy chủ (Hướng dẫn yêu cầu nộp PDF kèm Word/Excel); 3 đường hiển thị biểu mẫu độc lập (Word, Excel, HTML in bằng `window.print`) có thể ra số khác nhau (ví dụ Mẫu 02 tính lại điểm theo trọng số Khung 2 cố định) | `DocxTemplateEngine.cs`, `ReportService.cs`, `frontend/components/evaluations/EvaluationPrintTemplate.tsx` | 05 | done |
 | T-39 | ⚪ | Warning build: `KnownNetworks`/`IPNetwork` obsolete, nullable trong `DocxTemplateEngine` | `HostingExtensions.cs`, `DocxTemplateEngine.cs` | 06 | done |
 | T-40 | 🟡 | Log chỉ ra console: chưa có log ra file có xoay vòng, chưa có correlation id để lần theo một yêu cầu | `Api/Program.cs` | 06 | done |
 | T-41 | 🟡 | Chưa có script sao lưu/khôi phục (PostgreSQL + thư mục upload) đã được thử nghiệm | `docker/`, `docs/deployment.md` | 06 | done |
-| T-42 | 🟡 | Test mỏng (7 unit test, chỉ phần bảo mật); chưa có integration test cho API | `backend/tests/` | 04/05/06 | partial |
+| T-42 | 🟡 | Test mỏng (7 unit test, chỉ phần bảo mật); chưa có integration test cho API | `backend/tests/` | 04/05/06 | done |
 
-| T-43 | 🟡 | `frontend/next-env.d.ts` nằm trong `.gitignore` → checkout mới / CI chạy `tsc --noEmit` trước `next build` báo lỗi `<style jsx>` | `.gitignore`, `frontend/` | — | open |
-| T-44 | 🟡 | Khôi phục bản sao lưu của phiên bản code cũ trong khi app bật `AutoMigrate` → migrate tự chạy lên schema mới ngay khi khởi động; cần quy trình khôi phục kèm đúng phiên bản code | `docker/restore.sh`, `docs/deployment.md` | — | open |
+| T-43 | 🟡 | `frontend/next-env.d.ts` nằm trong `.gitignore` → checkout mới / CI chạy `tsc --noEmit` trước `next build` báo lỗi `<style jsx>` | `.gitignore`, `frontend/` | — | done |
+| T-44 | 🟡 | Khôi phục bản sao lưu của phiên bản code cũ trong khi app bật `AutoMigrate` → migrate tự chạy lên schema mới ngay khi khởi động; cần quy trình khôi phục kèm đúng phiên bản code | `docker/restore.sh`, `docs/deployment.md` | — | done |
 | T-45 | 🟡 | Người có `branch_vote` nhưng chưa gán Chi bộ xem được mọi biên bản họp trong kỳ | `Application/Common/Security/AccessPolicy.cs`, `CollectiveEvaluationService.cs` | 09 | done |
 | T-46 | 🟡 | Seeder vẫn gán lại role cho người dùng mỗi lần khởi động khi `SeedSampleData=true` | `Infrastructure/Data/DataSeeder.cs` | 09 | done |
 | T-47 | 🟡 | `EvaluationTask.AttachmentId` gửi từ client không được kiểm tra (file có tồn tại, có thuộc quyền người gửi) | `EvaluationService.RegisterTasksAsync` | 05 | done |
@@ -119,7 +126,7 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-62 | 🟡 | Phòng ban chỉ có API đọc; xóa danh mục không kiểm tra còn cán bộ/hồ sơ | `OrganizationController`, `OrganizationService` | 10 | done |
 | T-63 | 🟡 | Không có test tích hợp API trên PostgreSQL thật (một phần T-42) | `backend/tests/` | 07 | done |
 | T-64 | 🟠 | Không có chức năng import dữ liệu (Phòng, Chi bộ, cán bộ, gán vai trò, người được đánh giá) → go-live phải nhập tay từng người | — | 10, 13, 12 | done |
-| T-65 | 🟡 | `app/users/page.tsx` > 1.000 dòng gộp tài khoản/Chi bộ/vai trò; không có giao diện gán phạm vi, tra cứu quyền, nhật ký đăng nhập | `frontend/app/users/page.tsx` | 11 | partial |
+| T-65 | 🟡 | `app/users/page.tsx` > 1.000 dòng gộp tài khoản/Chi bộ/vai trò; không có giao diện gán phạm vi, tra cứu quyền, nhật ký đăng nhập | `frontend/app/users/page.tsx` | 11 | done |
 | T-66 | 🟠 | Luồng đánh giá lệch HD03: thiếu duyệt danh mục (B1), Chi bộ xác nhận tách khỏi đề xuất tập thể lãnh đạo Phòng (B3a), cấp trực tiếp sử dụng (B3c), ghi nhận quyết định cấp trên, công bố/khóa (B5), trả lại/mở lại có lý do; bước không cấu hình theo kỳ | `EvaluationService`, `DomainEnums.cs`, `components/evaluations/*` | 12 | done |
 | T-67 | 🟡 | Hằng số nghiệp vụ (số sản phẩm, tổng trọng số, ngưỡng, trần %, chênh lệch) rải rác trong code, không cấu hình theo kỳ | `EvaluationService`, `CollectiveEvaluationService` | 12 | done |
 | T-68 | 🟡 | Chưa có kịch bản go-live kiểm thử đầu-cuối (CSDL trống → import → đăng nhập → phân quyền → đánh giá) | `backend/tests/` | 13 | done |
@@ -143,19 +150,19 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-87 | 🟠 | Không có kiến nghị/giải trình sau công bố (PL II mục III.2) — chỉ có mở lại hồ sơ | — | 20 | done |
 | T-88 | 🟠 | Không có kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17, bắt buộc với mức C/D) | — | 20 | done |
 | T-89 | 🟡 | Không có nhắc việc/sắp tới hạn trong ứng dụng | — | 20 | done |
-| T-70 | ⚪ | EF cảnh báo 10622 khi khởi động: `CollectiveEvaluationRecord`, `EvaluationMeeting` có query filter xóa mềm nhưng là đầu bắt buộc của quan hệ với bảng con (item, vote summary) — cần filter tương ứng cho bảng con hoặc quan hệ tùy chọn | `CongTacDangDbContext`, `Data/Configurations/` | — | open |
+| T-70 | ⚪ | EF cảnh báo 10622 khi khởi động: `CollectiveEvaluationRecord`, `EvaluationMeeting` có query filter xóa mềm nhưng là đầu bắt buộc của quan hệ với bảng con (item, vote summary) — cần filter tương ứng cho bảng con hoặc quan hệ tùy chọn | `CongTacDangDbContext`, `Data/Configurations/` | — | done |
 
 ## B — Nghiệp vụ (để xử lý sau)
 
 | Mã | Mức | Vấn đề | Vị trí chính | Owner | Trạng thái |
 |---|---|---|---|---|---|
 | B-01 | 🟠 | `UpdatePeriodStatusAsync` nhận bất kỳ trạng thái nào (lùi bước được); chưa có state machine cho kỳ/hồ sơ | `EvaluationService.cs` | 12 | done |
-| B-02 | 🟠 | File đính kèm không giới hạn phạm vi: ai có `AttachmentsRead` cũng xem được minh chứng của mọi cán bộ | `AttachmentService.cs`, `AttachmentController.cs` | — | deferred (cơ chế kiểm tra phạm vi: T-31) |
+| B-02 | 🟠 | File đính kèm không giới hạn phạm vi: ai có `AttachmentsRead` cũng xem được minh chứng của mọi cán bộ | `AttachmentService.cs`, `AttachmentController.cs` | — | done |
 | B-03 | 🟠 | Bỏ phiếu kín "không lưu User ID" cần kiểm chứng — audit log tự ghi `ActorId` cho mọi entity thêm mới | `CongTacDangDbContext.PrepareAuditEntries`, `CollectiveEvaluationService.cs` | 12 | done |
-| B-04 | 🟡 | Quy tắc 70đ, ≥30% minh chứng vượt chuẩn, trần 20% Xuất sắc, chênh lệch ≥5đ cần đối chiếu Hướng dẫn 03 và có unit test | `EvaluationService.cs`, `CollectiveEvaluationService.cs` | — | deferred |
-| B-05 | ⚪ | Chưa có tài liệu hướng dẫn sử dụng (HDSD cũ mô tả sai route đã bị xóa); cần viết lại theo route thực tế | `docs/` | — | deferred |
+| B-04 | 🟡 | Quy tắc 70đ, ≥30% minh chứng vượt chuẩn, trần 20% Xuất sắc, chênh lệch ≥5đ cần đối chiếu Hướng dẫn 03 và có unit test | `EvaluationService.cs`, `CollectiveEvaluationService.cs` | — | done |
+| B-05 | ⚪ | Chưa có tài liệu hướng dẫn sử dụng (HDSD cũ mô tả sai route đã bị xóa); cần viết lại theo route thực tế | `docs/` | — | done |
 | B-06 | 🟡 | Cán bộ không xóa được file của chính mình (role `CAN_BO` không có `attachments.delete`); cơ chế theo đối tượng đã cho phép chủ file — cần quyết định ai được xóa | `DataSeeder.cs` (quyền mặc định) | — | deferred |
 | B-07 | 🟡 | Biểu mẫu có ô để trống vì chưa có dữ liệu lưu: Mẫu 01 mã SP/trục/vai trò, Mẫu 10 điểm thẩm định theo nhóm, Mẫu 13 số phiếu không hợp lệ | `Infrastructure/Documents/`, template Word | 12 | partial |
-| B-08 | 🟠 | Cần nghiệp vụ xác nhận công thức (code giữ nguyên, tham số hóa trong `EvaluationParameters`): ví dụ TC-1 văn bản ra 67,6 điểm, code ra ≈ 67,47 (cách làm tròn); mẫu số và làm tròn của trần tỷ lệ Xuất sắc (TC-3); điểm tối đa từng trục 09B | `Domain/Evaluation/EvaluationParameters.cs`, `EvaluationScoring` | — | open |
-| B-09 | 🟡 | Chưa bắt giải trình khi chênh lệch tự chấm – thẩm định ≥ 5 điểm; mở lại hồ sơ trong kỳ đã đóng tự đưa kỳ về "Khóa dữ liệu" — cần nghiệp vụ xác nhận | `EvaluationWorkflowService` | — | open |
+| B-08 | 🟠 | Cần nghiệp vụ xác nhận công thức (code giữ nguyên, tham số hóa trong `EvaluationParameters`): ví dụ TC-1 văn bản ra 67,6 điểm, code ra ≈ 67,47 (cách làm tròn); mẫu số và làm tròn của trần tỷ lệ Xuất sắc (TC-3); điểm tối đa từng trục 09B | `Domain/Evaluation/EvaluationParameters.cs`, `EvaluationScoring` | — | partial |
+| B-09 | 🟡 | Chưa bắt giải trình khi chênh lệch tự chấm – thẩm định ≥ 5 điểm; mở lại hồ sơ trong kỳ đã đóng tự đưa kỳ về "Khóa dữ liệu" — cần nghiệp vụ xác nhận | `EvaluationWorkflowService` | — | partial |
 | B-10 | 🟡 | Cần TCCB-LĐ xác nhận cấu hình mặc định: vai trò/phạm vi (`docs/thiet-ke/phan-quyen.md` mục 6) và 5 câu hỏi luồng (`docs/thiet-ke/luong-danh-gia.md` mục 6); quy ước ngày import gán vai trò (giờ Việt Nam, "Đến ngày" tính trọn ngày) | `docs/thiet-ke/` | — | open |
