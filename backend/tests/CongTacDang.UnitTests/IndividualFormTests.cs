@@ -115,50 +115,103 @@ public class IndividualFormTests
     }
 
     [Fact]
-    public void TaskResults_Validation_AndJson_OrderedByAxis()
+    public void AxisReports_Validation_AndJson_OrderedByAxis()
     {
         var c = CriteriaSetDefaults.Build09B();
-        var rows = new List<TaskResultRow?>
+        var reports = new Dictionary<string, AxisReport?>
         {
-            new() { AxisCode = "t3", Content = "Việc trục 3", Deadline = "30/9/2026" },
-            new() { AxisCode = "T1", Content = " Việc trục 1a ", Status = "Hoàn thành", Product = "Báo cáo", Progress = "Đúng hạn", Note = " " },
-            new() { AxisCode = "T1", Content = "Việc trục 1b" }
+            ["t3"] = new() { Tasks = { new() { Content = "Việc trục 3" } }, Deadline = "30/9/2026" },
+            ["T1"] = new()
+            {
+                Tasks =
+                {
+                    new() { Content = " Việc trục 1a ", Level = 1 },
+                    new() { Content = "Việc trục 1b", Items = { new() { Content = " Ý con ", Level = 2 } } }
+                },
+                Status = "- Việc 1a\n- Việc 1b", Product = "Báo cáo", Progress = "Đúng hạn", Note = " "
+            },
+            ["T2"] = new() { Note = "  " }
         };
-        Assert.Null(RecordFormContent.ValidateTaskResults(c, rows));
+        Assert.Null(RecordFormContent.ValidateAxisReports(c, reports));
 
-        var saved = RecordFormContent.ParseTaskResults(RecordFormContent.TaskResultsToJson(c, rows));
-        Assert.Equal(new[] { "Việc trục 1a", "Việc trục 1b", "Việc trục 3" }, saved.Select(r => r.Content));
-        Assert.Equal(new[] { "T1", "T1", "T3" }, saved.Select(r => r.AxisCode));
-        Assert.Null(saved[0].Note);
-        Assert.Equal("Đúng hạn", saved[0].Progress);
+        var json = RecordFormContent.AxisReportsToJson(c, reports);
+        var saved = RecordFormContent.ParseAxisReports(json);
+        // Theo thứ tự trục của bộ, khóa theo mã trục của bộ; trục không có nội dung bị bỏ.
+        Assert.Equal(new[] { "T1", "T3" }, saved.Keys);
+        Assert.Equal(new[] { "Việc trục 1a", "Việc trục 1b" }, saved["T1"].Tasks.Select(t => t.Content));
+        Assert.Equal("Ý con", saved["T1"].Tasks[1].Items.Single().Content);
+        Assert.Equal(2, saved["T1"].Tasks[1].Items.Single().Level);
+        Assert.Null(saved["T1"].Note);
+        Assert.Equal("Đúng hạn", saved["T1"].Progress);
+        Assert.Equal("30/9/2026", saved["T3"].Deadline);
 
-        Assert.Contains("trục \"T9\"", RecordFormContent.ValidateTaskResults(c, new List<TaskResultRow?> { new() { AxisCode = "T9", Content = "x" } }));
-        Assert.Contains("dòng 1: hãy nhập nội dung", RecordFormContent.ValidateTaskResults(c, new List<TaskResultRow?> { new() { AxisCode = "T1", Content = " " } }));
-        Assert.Contains("\"Đánh giá tiến độ\"", RecordFormContent.ValidateTaskResults(c, new List<TaskResultRow?> { new() { AxisCode = "T1", Content = "x", Progress = new string('a', 501) } }));
-        var many = Enumerable.Range(0, RecordFormContent.MaxTaskResultRows + 1).Select(_ => (TaskResultRow?)new TaskResultRow { AxisCode = "T1", Content = "x" }).ToList();
-        Assert.Contains("tối đa", RecordFormContent.ValidateTaskResults(c, many));
+        // Kỳ chỉ áp dụng 9D: không lưu nhiệm vụ; chỉ áp dụng 09C: không lưu phần tóm tắt.
+        var summaryOnly = RecordFormContent.ParseAxisReports(RecordFormContent.AxisReportsToJson(c, reports, includeTasks: false));
+        Assert.All(summaryOnly.Values, r => Assert.Empty(r.Tasks));
+        var tasksOnly = RecordFormContent.ParseAxisReports(RecordFormContent.AxisReportsToJson(c, reports, includeSummary: false));
+        Assert.Null(tasksOnly["T1"].Status);
+        Assert.Null(tasksOnly["T3"].Deadline);
+
+        static string? Error(AxisReport report, string axis = "T1") =>
+            RecordFormContent.ValidateAxisReports(CriteriaSetDefaults.Build09B(), new Dictionary<string, AxisReport?> { [axis] = report });
+        Assert.Contains("Trục \"T9\"", Error(new AxisReport(), "T9"));
+        Assert.Contains("Trục 1, nhiệm vụ 1: hãy nhập nội dung", Error(new AxisReport { Tasks = { new() { Content = " " } } }));
+        Assert.Contains("Trục 1, nhiệm vụ 1, ý 1: hãy nhập nội dung", Error(new AxisReport { Tasks = { new() { Content = "x", Items = { new() { Content = "" } } } } }));
+        Assert.Contains("\"Đánh giá tiến độ\"", Error(new AxisReport { Progress = new string('a', 501) }));
+        Assert.Contains("tối đa", Error(new AxisReport { Tasks = Enumerable.Range(0, RecordFormContent.MaxTasksPerAxis + 1).Select(_ => new AxisTask { Content = "x" }).ToList() }));
+        Assert.Contains("tối đa", Error(new AxisReport { Tasks = { new() { Content = "x", Items = Enumerable.Range(0, RecordFormContent.MaxItemsPerTask + 1).Select(_ => new AxisTaskItem { Content = "y" }).ToList() } } }));
+        Assert.Contains("mức tự đánh giá", Error(new AxisReport { Tasks = { new() { Content = "x", Level = 4 } } }));
+        Assert.Contains("ý 1: mức tự đánh giá", Error(new AxisReport { Tasks = { new() { Content = "x", Items = { new() { Content = "y", Level = 4 } } } } }));
+        Assert.Null(Error(new AxisReport { Tasks = { new() { Content = "x", Level = 3 } } }));
     }
 
     [Fact]
-    public void TaskResults_Level_ValidatedAndRenderedIn09C()
+    public void AxisTaskBlocks_FollowStandardWording_AndCountTowards09CLimit()
     {
         var c = CriteriaSetDefaults.Build09B();
-        Assert.Contains("mức tự đánh giá", RecordFormContent.ValidateTaskResults(c, new List<TaskResultRow?> { new() { AxisCode = "T1", Content = "x", Level = 4 } }));
-        Assert.Null(RecordFormContent.ValidateTaskResults(c, new List<TaskResultRow?> { new() { AxisCode = "T1", Content = "x", Level = 3 } }));
-
-        var source = Source();
-        source.Record.TaskResults = RecordFormContent.TaskResultsToJson(c, new List<TaskResultRow?>
+        var reports = RecordFormContent.ParseAxisReports(RecordFormContent.AxisReportsToJson(c, new Dictionary<string, AxisReport?>
         {
-            new() { AxisCode = "T1", Content = "Nhóm nhiệm vụ KHCN", Status = "02 đề tài chậm tiến độ", Level = 2 },
-            new() { AxisCode = "T1", Content = "Lãnh đạo SXKD.", Level = 1 },
-            new() { AxisCode = "T2", Content = "Chưa chọn mức" }
-        });
-        var content = Assert.Single(Mau09CData.From(source).Sections).Content!;
-        Assert.Contains("Nhiệm vụ 1: Nhóm nhiệm vụ KHCN. 02 đề tài chậm tiến độ. Tự đánh giá mức 2.", content);
-        Assert.Contains("Nhiệm vụ 2: Lãnh đạo SXKD. Tự đánh giá mức 1.", content);
-        Assert.Contains("Nhiệm vụ 1: Chưa chọn mức.", content);
-        Assert.DoesNotContain("Chưa chọn mức. Tự đánh giá", content);
-        Assert.EndsWith("Tự đánh giá mục I (test)", content);
+            ["T1"] = new()
+            {
+                Tasks =
+                {
+                    new() { Content = "Nhóm nhiệm vụ KHCN. 02 đề tài chậm tiến độ", Level = 2 },
+                    new() { Content = "Lãnh đạo SXKD.", Level = 1 }
+                }
+            },
+            ["T2"] = new() { Status = "Chỉ có phần tóm tắt 9D" },
+            ["T3"] = new()
+            {
+                Tasks = { new() { Content = "Thực hiện Kế hoạch 824", Items = { new() { Content = "Phối hợp sửa biểu mẫu", Level = 1 }, new() { Content = "Đề tài chậm tiến độ" } } } }
+            }
+        }));
+
+        var blocks = RecordFormContent.BuildAxisTaskBlocks(c, reports);
+        // Trục không có nhiệm vụ không in; số thứ tự trục giữ theo bộ tiêu chí.
+        Assert.Equal(new[] { $"1. {c.Axes[0].Name}", $"3. {c.Axes[2].Name}" }, blocks.Select(b => b.Title));
+        Assert.Equal(new[]
+        {
+            "Nhiệm vụ 1: Nhóm nhiệm vụ KHCN. 02 đề tài chậm tiến độ. Tự đánh giá mức 2.",
+            "Nhiệm vụ 2: Lãnh đạo SXKD. Tự đánh giá mức 1."
+        }, blocks[0].Lines);
+        Assert.Equal(new[]
+        {
+            "Nhiệm vụ 1: Thực hiện Kế hoạch 824.",
+            "+ Phối hợp sửa biểu mẫu. Tự đánh giá mức 1.",
+            "+ Đề tài chậm tiến độ."
+        }, blocks[1].Lines);
+
+        // Giới hạn ký tự của mục I tính cả phần nhiệm vụ theo trục.
+        var taskLength = RecordFormContent.AxisTaskTextLength(c, reports);
+        Assert.True(taskLength > 0);
+        var limit = c.SelfAssessmentSections[0].MaxLength;
+        Assert.Null(RecordFormContent.ValidateSelfAssessment(c, new Dictionary<string, string?> { ["I"] = new string('a', limit - taskLength) }, reports));
+        Assert.Contains("nhận xét chung và nhiệm vụ theo trục", RecordFormContent.ValidateSelfAssessment(c, new Dictionary<string, string?> { ["I"] = new string('a', limit - taskLength + 1) }, reports));
+
+        // Mục bắt buộc: có nhiệm vụ theo trục là đã có nội dung.
+        c.SelfAssessmentSections[0].Required = true;
+        Assert.Null(RecordFormContent.ValidateSelfAssessment(c, new Dictionary<string, string?>(), reports));
+        Assert.Contains("hãy nhập nội dung", RecordFormContent.ValidateSelfAssessment(c, new Dictionary<string, string?>(), new Dictionary<string, AxisReport>()));
     }
 
     [Fact]
@@ -168,25 +221,29 @@ public class IndividualFormTests
         Assert.Equal(new[] { 1, 2, 3 }, c.TaskLevels.Select(l => l.Code));
         Assert.Empty(c.Validate(CriteriaSetContent.Form09B));
 
+        static Dictionary<string, AxisReport?> One(int? level) =>
+            new() { ["T1"] = new AxisReport { Tasks = { new() { Content = "Làm A", Level = level } } } };
+
         // Bộ khác khai báo mức và câu chữ riêng → máy chủ và Mẫu 09C theo bộ, không theo hằng số trong code.
         c.TaskLevels = new List<TaskLevel> { new() { Code = 1, Label = "Tốt" }, new() { Code = 5, Label = "Kém" } };
         c.TaskLineLabel = "Việc {n} -";
         c.TaskLevelPhrase = "(mức {level})";
         Assert.Empty(c.Validate(CriteriaSetContent.Form09B));
-        Assert.Null(RecordFormContent.ValidateTaskResults(c, new List<TaskResultRow?> { new() { AxisCode = "T1", Content = "x", Level = 5 } }));
-        Assert.Contains("chỉ nhận 1, 5", RecordFormContent.ValidateTaskResults(c, new List<TaskResultRow?> { new() { AxisCode = "T1", Content = "x", Level = 3 } }));
+        Assert.Null(RecordFormContent.ValidateAxisReports(c, One(5)));
+        Assert.Contains("chỉ nhận 1, 5", RecordFormContent.ValidateAxisReports(c, One(3)));
 
         var source = Source();
         source.Criteria.TaskLevels = c.TaskLevels;
         source.Criteria.TaskLineLabel = c.TaskLineLabel;
         source.Criteria.TaskLevelPhrase = c.TaskLevelPhrase;
-        source.Record.TaskResults = RecordFormContent.TaskResultsToJson(c, new List<TaskResultRow?> { new() { AxisCode = "T1", Content = "Làm A", Level = 5 } });
-        Assert.Contains("Việc 1 - Làm A. (mức 5)", Assert.Single(Mau09CData.From(source).Sections).Content!);
+        source.Record.AxisReports = RecordFormContent.AxisReportsToJson(c, One(5));
+        var section = Assert.Single(Mau09CData.From(source).Sections);
+        Assert.Equal("Việc 1 - Làm A. (mức 5)", section.Axes.Single().Lines.Single().Text);
 
         // Không khai báo mức → không nhận mức.
         c.TaskLevels = new List<TaskLevel>();
         c.TaskLevelPhrase = null;
-        Assert.Contains("chưa khai báo mức", RecordFormContent.ValidateTaskResults(c, new List<TaskResultRow?> { new() { AxisCode = "T1", Content = "x", Level = 1 } }));
+        Assert.Contains("chưa khai báo mức", RecordFormContent.ValidateAxisReports(c, One(1)));
 
         // Cấu hình sai bị từ chối.
         var bad = CriteriaSetDefaults.Build09B();
@@ -239,7 +296,13 @@ public class IndividualFormTests
         var commonTags = OrganizationTemplateFields.Tags.Select(t => t.Tag);
 
         Assert.Empty(templateTags.Except(dataTags.Concat(commonTags), StringComparer.OrdinalIgnoreCase).OrderBy(t => t));
-        Assert.Empty(dataTags.Except(templateTags, StringComparer.OrdinalIgnoreCase).OrderBy(t => t));
+        // Khối điều kiện chỉ cần một nhánh (if: hoặc ifnot:).
+        static string Condition(string tag) => tag.StartsWith(DocxTemplateEngine.IfNotPrefix, StringComparison.OrdinalIgnoreCase)
+            ? tag[DocxTemplateEngine.IfNotPrefix.Length..]
+            : tag.StartsWith(DocxTemplateEngine.IfPrefix, StringComparison.OrdinalIgnoreCase) ? tag[DocxTemplateEngine.IfPrefix.Length..] : tag;
+        var templateConditions = templateTags.Select(Condition).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Assert.Empty(dataTags.Except(templateTags, StringComparer.OrdinalIgnoreCase)
+            .Where(t => Condition(t) == t || !templateConditions.Contains(Condition(t))).OrderBy(t => t));
         Assert.NotNull(WordFormCatalog.FindByFileName(templateFileName));
     }
 
@@ -313,7 +376,6 @@ public class IndividualFormTests
 
         Assert.Contains("BẢN TỰ ĐÁNH GIÁ, XẾP LOẠI CỦA CÁ NHÂN", text);
         Assert.Contains("I. Tự đánh giá kết quả thực hiện chức trách, nhiệm vụ được giao", text);
-        Assert.Contains("Tự đánh giá mục I (test)", text);
         Assert.Matches(@"Họ và tên:\s+Nguyễn Văn A", text);
         // Mẫu gốc dùng khoảng trắng không ngắt (U+00A0) sau dấu hai chấm.
         Assert.Matches(@"Chức vụ Đảng:\s+Bí thư Chi bộ", text);
@@ -322,26 +384,67 @@ public class IndividualFormTests
         Assert.Contains("29,0/30", text);
         Assert.Contains("93,0/100", text);
         Assert.Contains("Hà Nội, ngày", text);
+
+        // Mục I: câu dẫn, nhận xét chung, rồi từng trục (tiêu đề in đậm, mỗi nhiệm vụ một đoạn) — trục không có nhiệm vụ không in.
+        var axes = CriteriaSetDefaults.Build09B().Axes;
+        var paragraphs = text.Split('\n').ToList();
+        var expected = new[]
+        {
+            "Trên cơ sở nhiệm vụ được giao, cá nhân tự đánh giá về kết quả thực hiện nhiệm vụ theo quý như sau:",
+            "Tự đánh giá mục I (test)",
+            $"1. {axes[0].Name}",
+            "Nhiệm vụ 1: Việc T1 thứ nhất.",
+            "Nhiệm vụ 2: Việc T1 thứ hai. Tự đánh giá mức 2.",
+            "+ Ý con của việc thứ hai. Tự đánh giá mức 1.",
+            $"3. {axes[2].Name}",
+            "Nhiệm vụ 1: Việc T3."
+        };
+        var start = paragraphs.IndexOf(expected[0]);
+        Assert.True(start >= 0);
+        Assert.Equal(expected, paragraphs.Skip(start).Take(expected.Length));
+        Assert.DoesNotContain(paragraphs, p => p == $"2. {axes[1].Name}");
+        // Lưu ý hướng dẫn viết (chữ đỏ của biểu mẫu gốc) không in — như bản tự đánh giá đã nộp; lưu ý cuối biểu mẫu vẫn giữ.
+        Assert.DoesNotContain("Viết tóm tắt theo kết quả 6 trục", text);
+        Assert.Contains("Nội dung trình bày trong phạm vi không quá 02 trang A4", text);
     }
 
     [Fact]
-    public void Mau9D_GroupsRowsUnderEachAxis()
+    public void Mau09C_KeepsDots_OnlyWhenNothingEntered()
+    {
+        // Chỉ có nhiệm vụ theo trục: không còn dòng chấm giữa câu dẫn và trục.
+        var source = Source();
+        source.Record.SelfAssessment = "{}";
+        var section = Assert.Single(Mau09CData.From(source).Sections);
+        Assert.False(section.ShowContent);
+        var text = Render(Mau09CData.TemplateFileName, Mau09CData.From(source), out _);
+        var paragraphs = text.Split('\n').ToList();
+        var intro = paragraphs.FindIndex(p => p.StartsWith("Trên cơ sở nhiệm vụ được giao", StringComparison.Ordinal));
+        Assert.StartsWith("1. ", paragraphs[intro + 1]);
+
+        // Chưa nhập gì: giữ dòng chấm của biểu mẫu để viết tay.
+        source.Record.AxisReports = "{}";
+        section = Assert.Single(Mau09CData.From(source).Sections);
+        Assert.True(section.ShowContent);
+        Assert.Empty(section.Axes);
+        text = Render(Mau09CData.TemplateFileName, Mau09CData.From(source), out _);
+        Assert.Contains("………", text);
+    }
+
+    [Fact]
+    public void Mau9D_OneRowPerAxis_AsOriginalForm()
     {
         var text = Render(Mau9DData.TemplateFileName, Mau9DData.From(Source()), out var content);
         Assert.Contains("TRONG QUÝ 3 NĂM 2026", text);
+        var axes = CriteriaSetDefaults.Build09B().Axes;
 
         using var doc = WordprocessingDocument.Open(new MemoryStream(content), false);
         var rows = doc.MainDocumentPart!.Document!.Body!.Elements<Table>().Single().Elements<TableRow>()
             .Select(r => r.Elements<TableCell>().Select(c => c.InnerText).ToList()).ToList();
-        // 2 dòng tiêu đề + 6 dòng trục + 3 dòng nhiệm vụ.
-        Assert.Equal(2 + 6 + 3, rows.Count);
-        Assert.Equal("Trục 1", rows[2][0]);
-        Assert.Equal(new[] { "1", "Việc T1 thứ nhất", "30/9/2026", "Đã xong", "Báo cáo", "Đúng hạn", "" }, rows[3]);
-        Assert.Equal(new[] { "2", "Việc T1 thứ hai" }, rows[4].Take(2));
-        Assert.Equal("Trục 2", rows[5][0]);
-        Assert.Equal("Trục 3", rows[6][0]);
-        Assert.Equal(new[] { "1", "Việc T3" }, rows[7].Take(2));
-        Assert.Equal("Trục 6", rows[10][0]);
+        // 2 dòng tiêu đề + đúng 6 dòng trục như biểu mẫu gốc (không có dòng nhiệm vụ riêng).
+        Assert.Equal(2 + 6, rows.Count);
+        Assert.Equal(new[] { "Trục 1", axes[0].Name, "30/9/2026", "Đã xong", "Báo cáo", "Đúng hạn", "" }, rows[2]);
+        Assert.Equal(new[] { "Trục 2", axes[1].Name, "", "", "", "", "" }, rows[3]);
+        Assert.Equal("Trục 6", rows[7][0]);
     }
 
     [Fact]
@@ -382,24 +485,69 @@ public class IndividualFormTests
         record.TasksScore = tasksTotal;
         record.TotalSelfScore = 83;
         record.SelfProposedGrade = EvaluationGrade.HoanThanh;
-        record.SelfAssessment = RecordFormContent.SelfAssessmentToJson(criteria, new Dictionary<string, string?>());
-        record.TaskResults = RecordFormContent.TaskResultsToJson(criteria, new List<TaskResultRow?>
+        // Một phần nội dung Mẫu 9C/9D thật: nhận xét chung, nhiệm vụ kèm mức, nhiệm vụ có ý con "+", tóm tắt trục trên Mẫu 9D.
+        record.SelfAssessment = RecordFormContent.SelfAssessmentToJson(criteria, new Dictionary<string, string?>
         {
-            new() { AxisCode = "T1", Content = "Nhóm nhiệm vụ KHCN đang trong giai đoạn lập Hồ sơ thiết kế", Status = "02 đề tài chậm tiến độ, cần điều chỉnh tiến độ", Level = 2 },
-            new() { AxisCode = "T1", Content = "Lãnh đạo thực hiện SXKD, đảm bảo các hệ thống CNTT hoạt động ổn định, an toàn và liên tục", Level = 1 },
-            new() { AxisCode = "T6", Content = "Đối ngoại và hội nhập quốc tế: tham gia nhóm SWIM của Thụy Điển và Hội nghị ICAO về SWIM", Level = 1 }
+            ["I"] = "Bản thân luôn bám sát nghị quyết, kế hoạch công tác của Đảng ủy và của Công ty, hoàn thành các nhiệm vụ được giao. Cụ thể như sau:"
+        });
+        record.AxisReports = RecordFormContent.AxisReportsToJson(criteria, new Dictionary<string, AxisReport?>
+        {
+            ["T1"] = new()
+            {
+                Tasks =
+                {
+                    new() { Content = "Nhóm nhiệm vụ KHCN đang trong giai đoạn lập Hồ sơ thiết kế. Tuy vậy có 02 đề tài đang chậm tiến độ cần phải làm thủ tục điều chỉnh tiến độ", Level = 2 },
+                    new() { Content = "Lãnh đạo thực hiện SXKD. Đảm bảo các hệ thống CNTT của Công ty và khách hàng hoạt động ổn định, an toàn và liên tục", Level = 1 }
+                },
+                Status = "- Nhóm nhiệm vụ KHCN: 02 đề tài phải điều chỉnh tiến độ\n- Lãnh đạo thực hiện SXKD: Các hệ thống CNTT được giao hoạt động ổn định",
+                Product = "Cơ bản hoàn thành",
+                Progress = "Chậm tiến độ 02 đề tài KHCN"
+            },
+            ["T3"] = new()
+            {
+                Tasks =
+                {
+                    new()
+                    {
+                        Content = "Thực hiện Kế hoạch tại quyết định 824/QĐ-KTQLB về phát triển KHCN, ĐMST và CĐS tại Công ty và Phòng",
+                        Items =
+                        {
+                            new() { Content = "Phối hợp với Trung tâm BĐKT trong quá trình sửa, bổ sung các biểu mẫu trong hệ thống SIRMS", Level = 1 },
+                            new() { Content = "Đối với các NV KHCN: công việc phải đề xuất KH điều chỉnh tiến độ", Level = 2 }
+                        }
+                    }
+                },
+                Product = "Cơ bản hoàn thành",
+                Progress = "Chậm tiến độ 02 đề tài KHCN"
+            }
         });
 
         var text = Render(Mau09CData.TemplateFileName, Mau09CData.From(source), out _);
         Assert.Contains("Nguyễn Văn B", text, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(criteria.Axes[0].Name, text);
-        Assert.Contains("Nhiệm vụ 1: Nhóm nhiệm vụ KHCN đang trong giai đoạn lập Hồ sơ thiết kế. 02 đề tài chậm tiến độ, cần điều chỉnh tiến độ. Tự đánh giá mức 2.", text);
-        Assert.Contains("Nhiệm vụ 2: Lãnh đạo thực hiện SXKD", text);
-        Assert.Contains("Tự đánh giá mức 1.", text);
-        Assert.Contains("30", text);
-        Assert.Contains("53", text);
-        Assert.Contains("83", text);
+        var paragraphs = text.Split('\n').ToList();
+        var start = paragraphs.FindIndex(p => p.StartsWith("Bản thân luôn bám sát", StringComparison.Ordinal));
+        Assert.Equal(new[]
+        {
+            $"1. {criteria.Axes[0].Name}",
+            "Nhiệm vụ 1: Nhóm nhiệm vụ KHCN đang trong giai đoạn lập Hồ sơ thiết kế. Tuy vậy có 02 đề tài đang chậm tiến độ cần phải làm thủ tục điều chỉnh tiến độ. Tự đánh giá mức 2.",
+            "Nhiệm vụ 2: Lãnh đạo thực hiện SXKD. Đảm bảo các hệ thống CNTT của Công ty và khách hàng hoạt động ổn định, an toàn và liên tục. Tự đánh giá mức 1.",
+            $"3. {criteria.Axes[2].Name}",
+            "Nhiệm vụ 1: Thực hiện Kế hoạch tại quyết định 824/QĐ-KTQLB về phát triển KHCN, ĐMST và CĐS tại Công ty và Phòng.",
+            "+ Phối hợp với Trung tâm BĐKT trong quá trình sửa, bổ sung các biểu mẫu trong hệ thống SIRMS. Tự đánh giá mức 1.",
+            "+ Đối với các NV KHCN: công việc phải đề xuất KH điều chỉnh tiến độ. Tự đánh giá mức 2."
+        }, paragraphs.Skip(start + 1).Take(7));
+        Assert.Contains("30,0/30", text);
+        Assert.Contains("53,0/70", text);
+        Assert.Contains("83,0/100", text);
+
+        // Mẫu 9D: dòng Trục 1 như bản thật (tình hình nhiều dòng "- …" trong một ô).
+        using var doc = WordprocessingDocument.Open(new MemoryStream(Render(Mau9DData.TemplateFileName, Mau9DData.From(source))), false);
+        var axis1 = doc.MainDocumentPart!.Document!.Body!.Elements<Table>().Single().Elements<TableRow>().ElementAt(2).Elements<TableCell>().ToList();
+        Assert.Equal(2, axis1[3].Descendants<Break>().Count() + 1);
+        Assert.StartsWith("- Nhóm nhiệm vụ KHCN", axis1[3].InnerText);
+        Assert.Equal(("Cơ bản hoàn thành", "Chậm tiến độ 02 đề tài KHCN"), (axis1[4].InnerText, axis1[5].InnerText));
     }
+
     [Fact]
     public void NotYetSelfScored_KeepsTemplateDots_ForScores()
     {
@@ -413,6 +561,12 @@ public class IndividualFormTests
     #endregion
 
     #region Hỗ trợ
+
+    private static byte[] Render(string templateFileName, object formData)
+    {
+        Render(templateFileName, formData, out var content);
+        return content;
+    }
 
     private static string Render(string templateFileName, object formData, out byte[] content)
     {
@@ -444,11 +598,18 @@ public class IndividualFormTests
             SelfProposedGrade = EvaluationGrade.HoanThanhTot,
             SelfScoredAt = new DateTime(2026, 9, 11, 0, 0, 0, DateTimeKind.Utc),
             SelfAssessment = RecordFormContent.SelfAssessmentToJson(criteria, new Dictionary<string, string?> { ["I"] = "Tự đánh giá mục I (test)" }),
-            TaskResults = RecordFormContent.TaskResultsToJson(criteria, new List<TaskResultRow?>
+            AxisReports = RecordFormContent.AxisReportsToJson(criteria, new Dictionary<string, AxisReport?>
             {
-                new() { AxisCode = "T1", Content = "Việc T1 thứ nhất", Deadline = "30/9/2026", Status = "Đã xong", Product = "Báo cáo", Progress = "Đúng hạn" },
-                new() { AxisCode = "T3", Content = "Việc T3" },
-                new() { AxisCode = "T1", Content = "Việc T1 thứ hai" }
+                ["T1"] = new()
+                {
+                    Tasks =
+                    {
+                        new() { Content = "Việc T1 thứ nhất" },
+                        new() { Content = "Việc T1 thứ hai", Level = 2, Items = { new() { Content = "Ý con của việc thứ hai", Level = 1 } } }
+                    },
+                    Deadline = "30/9/2026", Status = "Đã xong", Product = "Báo cáo", Progress = "Đúng hạn"
+                },
+                ["T3"] = new() { Tasks = { new() { Content = "Việc T3" } } }
             }),
             AxisNotes = RecordFormContent.AxisNotesToJson(criteria, new Dictionary<string, AxisNote?>
             {

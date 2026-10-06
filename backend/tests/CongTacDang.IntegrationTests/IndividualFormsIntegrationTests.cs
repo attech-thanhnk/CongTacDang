@@ -36,7 +36,7 @@ public sealed class IndividualFormsIntegrationTests
         var forms = (await Data(w.Owner, $"/api/reports/docx/record/{recordId}")).EnumerateArray().Select(f => f.GetProperty("code").GetString()).ToList();
         Assert.Equal(new[] { "09B", "09C", "9D", "10" }, forms);
 
-        // Kiểm tra độ dài 09C, trục 9D không có trong bộ → 400 (hồ sơ không đổi).
+        // Kiểm tra độ dài 09C (tính cả nhiệm vụ theo trục), trục không có trong bộ → 400 (hồ sơ không đổi).
         var tooLong = await SubmitAsync(w, recordId, SelfScoreBody(selfAssessment: new string('a', 6001)));
         Assert.Equal(HttpStatusCode.BadRequest, tooLong.StatusCode);
         Assert.Contains("6000 ký tự", await MessageAsync(tooLong));
@@ -47,8 +47,11 @@ public sealed class IndividualFormsIntegrationTests
         var saved = await Data(await SubmitAsync(w, recordId, SelfScoreBody()));
         Assert.Equal("AwaitingCellConfirm", saved.GetProperty("status").GetString());
         Assert.Equal("Tự đánh giá mục I — lần 1", saved.GetProperty("selfAssessment").GetProperty("I").GetString());
-        var rows = saved.GetProperty("taskResults").EnumerateArray().ToList();
-        Assert.Equal(new[] { "T1", "T1", "T4" }, rows.Select(r => r.GetProperty("axisCode").GetString()));
+        var reports = saved.GetProperty("axisReports");
+        Assert.Equal(new[] { "T1", "T4" }, reports.EnumerateObject().Select(r => r.Name));
+        Assert.Equal(2, reports.GetProperty("T1").GetProperty("tasks").GetArrayLength());
+        Assert.Equal("Ý con T1 (IT)", reports.GetProperty("T1").GetProperty("tasks")[1].GetProperty("items")[0].GetProperty("content").GetString());
+        Assert.Equal("Đúng hạn", reports.GetProperty("T1").GetProperty("progress").GetString());
         Assert.Equal("Mục tiêu trục 1 (IT)", saved.GetProperty("axisNotes").GetProperty("T1").GetProperty("target").GetString());
 
         // Lịch sử ghi nhận thay đổi biểu mẫu.
@@ -70,12 +73,16 @@ public sealed class IndividualFormsIntegrationTests
         var c = await DocxAsync(w.Owner, $"/api/reports/docx/record/{recordId}/09c");
         Assert.Contains("BẢN TỰ ĐÁNH GIÁ, XẾP LOẠI CỦA CÁ NHÂN", c.Text);
         Assert.Contains("Tự đánh giá mục I — lần 1", c.Text);
+        Assert.Contains("Nhiệm vụ 1: Việc T1 thứ nhất (IT). Tự đánh giá mức 1.", c.Text);
+        Assert.Contains("+ Ý con T1 (IT). Tự đánh giá mức 1.", c.Text);
+        Assert.Contains("Nhiệm vụ 1: Việc T4 (IT).", c.Text);
         Assert.Contains("Hoàn thành tốt nhiệm vụ", c.Text);
 
         var d = await DocxAsync(w.CellSec, $"/api/reports/docx/record/{recordId}/9D");
         Assert.Contains("PHỤ LỤC", d.Text);
-        Assert.Contains("Việc T1 thứ nhất (IT)", d.Text);
-        Assert.Contains("Việc T4 (IT)", d.Text);
+        Assert.Contains("- Việc T1 đã hoàn thành (IT)", d.Text);
+        Assert.Contains("Hoàn thành công việc T4 (IT)", d.Text);
+        Assert.DoesNotContain("Việc T1 thứ nhất (IT)", d.Text);
         Assert.Contains("Trục 6", d.Text);
         Assert.Contains(w.OwnerName, d.Text);
 
@@ -139,26 +146,33 @@ public sealed class IndividualFormsIntegrationTests
 
     private static object SelfScoreBody(string selfAssessment = "Tự đánh giá mục I — lần 1", string? extraAxis = null, bool withAxisNotes = true)
     {
-        var rows = new List<object>
+        var reports = new Dictionary<string, object>
         {
-            new { axisCode = "T1", content = "Việc T1 thứ nhất (IT)", deadline = "30/9/2026", status = "Đã hoàn thành", product = "Báo cáo", progress = "Đúng hạn" },
-            new { axisCode = "T4", content = "Việc T4 (IT)" },
-            new { axisCode = "t1", content = "Việc T1 thứ hai (IT)" }
+            ["T1"] = new
+            {
+                tasks = new object[]
+                {
+                    new { content = "Việc T1 thứ nhất (IT)", level = 1 },
+                    new { content = "Việc T1 thứ hai (IT)", level = 2, items = new[] { new { content = "Ý con T1 (IT)", level = 1 } } }
+                },
+                deadline = "30/9/2026", status = "- Việc T1 đã hoàn thành (IT)", product = "Báo cáo", progress = "Đúng hạn"
+            },
+            ["t4"] = new { tasks = new[] { new { content = "Việc T4 (IT)" } }, product = "Hoàn thành công việc T4 (IT)" }
         };
         if (extraAxis != null)
-            rows.Add(new { axisCode = extraAxis, content = "Trục lạ" });
+            reports[extraAxis] = new { tasks = new[] { new { content = "Trục lạ" } } };
 
         var general = CriteriaTestData.General("2.1");
         var axis = CriteriaTestData.Axis(14, 9, 9, 14, 9, 9);
         if (!withAxisNotes)
-            return new { generalScores = general, axisScores = axis, selfProposedGrade = "HoanThanhTot", selfAssessment = new Dictionary<string, string> { ["I"] = selfAssessment }, taskResults = rows };
+            return new { generalScores = general, axisScores = axis, selfProposedGrade = "HoanThanhTot", selfAssessment = new Dictionary<string, string> { ["I"] = selfAssessment }, axisReports = reports };
         return new
         {
             generalScores = general,
             axisScores = axis,
             selfProposedGrade = "HoanThanhTot",
             selfAssessment = new Dictionary<string, string> { ["I"] = selfAssessment },
-            taskResults = rows,
+            axisReports = reports,
             axisNotes = new Dictionary<string, object> { ["T1"] = new { target = "Mục tiêu trục 1 (IT)", result = "Kết quả trục 1 (IT)" } }
         };
     }

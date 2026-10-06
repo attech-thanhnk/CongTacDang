@@ -901,6 +901,10 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<string>("AxisNotes")
                         .HasColumnType("jsonb");
 
+                    b.Property<string>("AxisReports")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("AxisScores")
                         .HasColumnType("jsonb");
 
@@ -1053,10 +1057,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
-
-                    b.Property<string>("TaskResults")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
 
                     b.Property<string>("TasksApprovalComment")
                         .HasMaxLength(4000)

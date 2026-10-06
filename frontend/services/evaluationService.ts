@@ -269,29 +269,45 @@ export interface EvaluationRecordDto {
 
   tasks: EvaluationTaskDto[];
 
-  /** Mẫu 09C — nội dung tự đánh giá theo mã mục của bộ tiêu chí (task 18). */
+  /** Mẫu 09C — nội dung tự đánh giá theo mã mục của bộ tiêu chí (mục I: phần nhận xét chung). */
   selfAssessment?: Record<string, string>;
-  /** Mẫu 9D — kết quả thực hiện nhiệm vụ theo trục (task 18). */
-  taskResults?: TaskResultRow[];
+  /** Nhiệm vụ (kèm mức) và kết quả theo trục, khóa = mã trục — mục I Mẫu 09C và Mẫu 9D. */
+  axisReports?: Record<string, AxisReport>;
   /** Mẫu 09B — nội dung tự luận theo trục, khóa = mã trục (task 18). */
   axisNotes?: Record<string, AxisNote>;
 }
 
 // ---------------------------------------------------------------------------
-// Biểu mẫu cá nhân (task 18): 09C, 9D nhập cùng phiếu tự chấm; xuất 01/02/09A/09B/09C/9D/10 theo bộ tiêu chí của kỳ.
+// Biểu mẫu cá nhân: 09C, 9D nhập cùng phiếu tự chấm (theo trục); xuất 01/02/09A/09B/09C/9D/10 theo bộ tiêu chí của kỳ.
 // ---------------------------------------------------------------------------
 
-/** Một dòng Mẫu 9D (cột (2)–(7) của biểu mẫu gốc), mã trục theo bộ tiêu chí của kỳ. */
-export interface TaskResultRow {
-  axisCode: string;
+/** Ý con "+ …" của một nhiệm vụ (Mẫu 09C). */
+export interface AxisTaskItem {
   content: string;
+  level?: number | null;
+}
+
+/** Một nhiệm vụ của trục (Mẫu 09C): nội dung, tình hình thực hiện và mức tự đánh giá. */
+export interface AxisTask {
+  content: string;
+  level?: number | null;
+  items?: AxisTaskItem[];
+}
+
+/** Nội dung một trục: các nhiệm vụ (mục I Mẫu 09C) và dòng tóm tắt "Trục n" của Mẫu 9D (cột (3)–(7)). */
+export interface AxisReport {
+  tasks?: AxisTask[];
   deadline?: string | null;
   status?: string | null;
   product?: string | null;
   progress?: string | null;
   note?: string | null;
-  /** Mức tự đánh giá của nhiệm vụ: 1, 2, 3 (null = chưa chọn); dùng dựng câu "Tự đánh giá mức N" ở Mẫu 09C. */
-  level?: number | null;
+}
+
+/** Khối một trục khi in mục I Mẫu 09C. */
+export interface AxisTaskBlock {
+  title: string;
+  lines: string[];
 }
 
 /** Nội dung tự luận của một trục trên Mẫu 09B. */
@@ -332,8 +348,8 @@ export interface RecordFormDto {
   name: string;
 }
 
-/** Giới hạn độ dài ô Mẫu 9D / 09B (khớp kiểm tra phía máy chủ). */
-export const TASK_RESULT_LIMITS = { rows: 100, long: 2000, short: 500, axisNote: 4000 } as const;
+/** Giới hạn nội dung theo trục (Mẫu 09C, 9D) và ô tự luận Mẫu 09B (khớp kiểm tra phía máy chủ). */
+export const AXIS_REPORT_LIMITS = { tasks: 30, items: 20, long: 2000, short: 500, axisNote: 4000 } as const;
 
 /** Bộ tiêu chí áp dụng biểu mẫu `code` (mẫu tự chấm theo `selfScoreForm` của bộ). */
 export function criteriaAppliesForm(criteria: { selfScoreForm: string; content: unknown } | null | undefined, code: string): boolean {
@@ -351,6 +367,47 @@ export function selfAssessmentSections(criteria: { content: unknown } | null | u
 /** Các mức tự đánh giá nhiệm vụ của bộ tiêu chí (rỗng nếu bộ không dùng mức). */
 export function taskLevels(criteria: { content: unknown } | null | undefined): TaskLevel[] {
   return (criteria?.content as IndividualFormConfig | undefined)?.taskLevels ?? [];
+}
+
+const endSentence = (value: string) => {
+  const t = value.trim().replace(/\r\n?/g, "\n");
+  return t.length === 0 || ".!?;:".includes(t[t.length - 1]) ? t : `${t}.`;
+};
+
+/**
+ * Dựng phần nhiệm vụ theo trục của mục I Mẫu 09C đúng như bản in (giống máy chủ): "n. Tên trục", mỗi nhiệm vụ
+ * "<tiền tố> nội dung. <câu nối mức>", ý con "+ nội dung. <câu nối mức>"; trục không có nhiệm vụ bị bỏ qua.
+ */
+export function buildAxisTaskBlocks(
+  axes: { code: string; name: string }[],
+  reports: Record<string, AxisReport> | undefined,
+  criteria: { content: unknown } | null | undefined
+): AxisTaskBlock[] {
+  const cfg = (criteria?.content as IndividualFormConfig | undefined) ?? {};
+  const levels = cfg.taskLevels ?? [];
+  const prefix = cfg.taskLineLabel?.trim() || "{n}.";
+  const phrase = (level?: number | null) =>
+    level != null && levels.some((l) => l.code === level) && cfg.taskLevelPhrase?.trim()
+      ? ` ${cfg.taskLevelPhrase.trim().split("{level}").join(String(level))}`
+      : "";
+  const find = (code: string) => Object.entries(reports ?? {}).find(([k]) => k.toLowerCase() === code.toLowerCase())?.[1];
+  const blocks: AxisTaskBlock[] = [];
+  axes.forEach((axis, i) => {
+    const tasks = (find(axis.code)?.tasks ?? []).filter((t) => t.content?.trim());
+    if (tasks.length === 0) return;
+    const lines: string[] = [];
+    tasks.forEach((task, k) => {
+      lines.push(`${prefix.split("{n}").join(String(k + 1))} ${endSentence(task.content)}${phrase(task.level)}`);
+      (task.items ?? []).filter((x) => x.content?.trim()).forEach((x) => lines.push(`+ ${endSentence(x.content)}${phrase(x.level)}`));
+    });
+    blocks.push({ title: `${i + 1}. ${axis.name}`, lines });
+  });
+  return blocks;
+}
+
+/** Số ký tự phần nhiệm vụ theo trục khi in (tính vào giới hạn mục I Mẫu 09C, giống máy chủ). */
+export function axisTaskTextLength(blocks: AxisTaskBlock[]): number {
+  return blocks.reduce((sum, b) => sum + b.title.length + 1 + b.lines.reduce((s, l) => s + l.length + 1, 0), 0);
 }
 
 /** Kết quả của một bước do cấp trên thực hiện (đã ghi nhận). */

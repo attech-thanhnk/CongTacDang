@@ -120,7 +120,7 @@ public static class EvaluationMapping
             SelfProposedGrade = GradeCode(r.SelfProposedGrade),
             SelfScoredAt = r.SelfScoredAt,
             SelfAssessment = SafeParse(() => RecordFormContent.ParseSelfAssessment(r.SelfAssessment), new Dictionary<string, string>()),
-            TaskResults = SafeParse(() => RecordFormContent.ParseTaskResults(r.TaskResults), new List<TaskResultRow>()),
+            AxisReports = SafeParse(() => RecordFormContent.ParseAxisReports(r.AxisReports), new Dictionary<string, AxisReport>()),
             AxisNotes = SafeParse(() => RecordFormContent.ParseAxisNotes(r.AxisNotes), new Dictionary<string, AxisNote>()),
 
             PartyCellComment = r.PartyCellComment,

@@ -244,14 +244,17 @@ public sealed class SampleDataSeedTests
     /// </summary>
     private static async Task AssertWave8SampleAsync(WebApplicationFactory<Program> host, ApiFactory factory, Guid periodId)
     {
-        // Hồ sơ đã tự chấm có Mẫu 09C (mục I), 9D (một dòng mỗi trục), phần tự luận theo trục 09B; xuất được 09C/9D.
+        // Hồ sơ đã tự chấm có Mẫu 09C (nhận xét chung), nhiệm vụ và kết quả theo 6 trục (09C, 9D), phần tự luận theo trục 09B;
+        // xuất được 09C/9D.
         using var officer = await LoginAndChangePasswordAsync(host, "vanphong");
         var records = await DataAsync(await officer.GetAsync($"/api/evaluations/records?periodId={periodId}"));
         var hung = records.EnumerateArray().Single(r => r.GetProperty("fullName").GetString() == "Nguyễn Văn Hùng");
         var hungId = hung.GetProperty("id").GetGuid();
         var hungRecord = await DataAsync(await officer.GetAsync($"/api/evaluations/records/{hungId}"));
-        Assert.Contains("Mức 1", hungRecord.GetProperty("selfAssessment").GetProperty("I").GetString());
-        Assert.Equal(6, hungRecord.GetProperty("taskResults").GetArrayLength());
+        Assert.Contains("Cụ thể như sau", hungRecord.GetProperty("selfAssessment").GetProperty("I").GetString());
+        var axisReports = hungRecord.GetProperty("axisReports");
+        Assert.Equal(6, axisReports.EnumerateObject().Count());
+        Assert.All(axisReports.EnumerateObject(), a => Assert.Equal(1, a.Value.GetProperty("tasks").GetArrayLength()));
         Assert.Equal(6, hungRecord.GetProperty("axisNotes").EnumerateObject().Count());
         foreach (var code in new[] { "09B", "09C", "9D" })
             Assert.Equal(HttpStatusCode.OK, (await officer.GetAsync($"/api/reports/docx/record/{hungId}/{code}")).StatusCode);

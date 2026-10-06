@@ -240,43 +240,50 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         }, ct);
 
     /// <summary>
-    /// Task 18 (T-82): lưu nội dung Mẫu 09C, 9D (khi kỳ áp dụng theo bộ tiêu chí) và phần tự luận theo trục của Mẫu 09B, nhập
-    /// cùng phiếu tự chấm. Trường null trong yêu cầu = giữ nội dung đã lưu. Trả danh sách biểu mẫu có nội dung thay đổi (ghi lịch sử).
+    /// Lưu nội dung biểu mẫu cá nhân nhập cùng phiếu tự chấm (khi kỳ áp dụng theo bộ tiêu chí): nhiệm vụ và kết quả theo trục
+    /// (nhiệm vụ kèm mức cho mục I Mẫu 09C, phần tóm tắt trục cho Mẫu 9D), nhận xét chung Mẫu 09C, phần tự luận theo trục của
+    /// Mẫu 09B. Trường null trong yêu cầu = giữ nội dung đã lưu. Trả danh sách biểu mẫu có nội dung thay đổi (ghi lịch sử).
     /// </summary>
     private static List<string> ApplyIndividualForms(EvaluationRecord record, CriteriaSnapshot criteria, SubmitSelfScoreRequestDto request)
     {
         var content = criteria.Content;
         var changed = new List<string>();
+        var uses09C = criteria.AppliesForm(RecordFormCodes.Form09C);
+        var uses9D = criteria.AppliesForm(RecordFormCodes.Form9D);
 
-        if (request.SelfAssessment != null && criteria.AppliesForm(RecordFormCodes.Form09C))
+        if (request.AxisReports != null && (uses09C || uses9D))
         {
-            var error = RecordFormContent.ValidateSelfAssessment(content, request.SelfAssessment);
+            var error = RecordFormContent.ValidateAxisReports(content, request.AxisReports);
             if (error != null)
                 throw new ValidationException(error);
-            var json = RecordFormContent.SelfAssessmentToJson(content, request.SelfAssessment);
-            if (json != record.SelfAssessment)
-                changed.Add("Mẫu 09C");
-            record.SelfAssessment = json;
-        }
-        else if (criteria.AppliesForm(RecordFormCodes.Form09C))
-        {
-            // Không gửi nội dung 09C: vẫn kiểm tra mục bắt buộc trên nội dung đang lưu.
-            var stored = RecordFormContent.ParseSelfAssessment(record.SelfAssessment)
-                .ToDictionary(kv => kv.Key, kv => (string?)kv.Value);
-            var error = RecordFormContent.ValidateSelfAssessment(content, stored);
-            if (error != null)
-                throw new ValidationException(error);
+            var json = RecordFormContent.AxisReportsToJson(content, request.AxisReports, includeTasks: uses09C, includeSummary: uses9D);
+            if (json != record.AxisReports)
+            {
+                var before = AxisReportParts(content, record.AxisReports);
+                var after = AxisReportParts(content, json);
+                if (before.Tasks != after.Tasks)
+                    changed.Add("nhiệm vụ theo trục Mẫu 09C");
+                if (before.Summary != after.Summary)
+                    changed.Add("Mẫu 9D");
+            }
+            record.AxisReports = json;
         }
 
-        if (request.TaskResults != null && criteria.AppliesForm(RecordFormCodes.Form9D))
+        if (uses09C)
         {
-            var error = RecordFormContent.ValidateTaskResults(content, request.TaskResults);
+            // Mục I in kèm các nhiệm vụ theo trục: giới hạn ký tự và mục bắt buộc tính trên nội dung sẽ in (gửi lên hoặc đang lưu).
+            var sections = request.SelfAssessment
+                ?? RecordFormContent.ParseSelfAssessment(record.SelfAssessment).ToDictionary(kv => kv.Key, kv => (string?)kv.Value);
+            var error = RecordFormContent.ValidateSelfAssessment(content, sections, ParseAxisReportsOrEmpty(record.AxisReports));
             if (error != null)
                 throw new ValidationException(error);
-            var json = RecordFormContent.TaskResultsToJson(content, request.TaskResults);
-            if (json != record.TaskResults)
-                changed.Add("Mẫu 9D");
-            record.TaskResults = json;
+            if (request.SelfAssessment != null)
+            {
+                var json = RecordFormContent.SelfAssessmentToJson(content, request.SelfAssessment);
+                if (json != record.SelfAssessment)
+                    changed.Add("Mẫu 09C");
+                record.SelfAssessment = json;
+            }
         }
 
         if (request.AxisNotes != null && criteria.UsesAxisScoring)
@@ -291,6 +298,26 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         }
 
         return changed;
+    }
+
+    private static Dictionary<string, AxisReport> ParseAxisReportsOrEmpty(string? json)
+    {
+        try
+        {
+            return RecordFormContent.ParseAxisReports(json);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return new Dictionary<string, AxisReport>(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    /// <summary>Tách nội dung theo trục thành phần nhiệm vụ (Mẫu 09C) và phần tóm tắt (Mẫu 9D) để ghi lịch sử phần nào thay đổi.</summary>
+    private static (string Tasks, string Summary) AxisReportParts(CriteriaSetContent content, string? json)
+    {
+        var input = ParseAxisReportsOrEmpty(json).ToDictionary(kv => kv.Key, kv => (AxisReport?)kv.Value);
+        return (RecordFormContent.AxisReportsToJson(content, input, includeTasks: true, includeSummary: false),
+            RecordFormContent.AxisReportsToJson(content, input, includeTasks: false, includeSummary: true));
     }
 
     /// <inheritdoc />

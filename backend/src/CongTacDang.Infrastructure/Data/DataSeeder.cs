@@ -1130,24 +1130,33 @@ public static class DataSeeder
         }
     }
 
-    /// <summary>Nội dung Mẫu 09C (mỗi mục của bộ), Mẫu 9D (một dòng mỗi trục) và phần tự luận theo trục của Mẫu 09B.</summary>
+    /// <summary>
+    /// Nội dung Mẫu 09C (nhận xét chung), nhiệm vụ và kết quả theo trục (mục I Mẫu 09C, một dòng Mẫu 9D mỗi trục) và phần tự luận
+    /// theo trục của Mẫu 09B.
+    /// </summary>
     private static void FillIndividualForms(EvaluationRecord record, CriteriaSetContent criteria)
     {
-        if (criteria.RequiredForms.Contains(RecordFormCodes.Form09C))
+        var uses09C = criteria.RequiredForms.Contains(RecordFormCodes.Form09C);
+        var uses9D = criteria.RequiredForms.Contains(RecordFormCodes.Form9D);
+        if (uses09C)
             record.SelfAssessment = RecordFormContent.SelfAssessmentToJson(criteria, criteria.SelfAssessmentSections.ToDictionary<SelfAssessmentSection, string, string?>(
                 s => s.Code,
-                s => "Trong quý, tôi hoàn thành các nhiệm vụ trọng tâm theo 6 trục; nhiệm vụ an toàn, chất lượng đạt Mức 1 - Hoàn thành "
-                    + "đúng hạn, đạt yêu cầu. Còn hạn chế về tiến độ báo cáo, sẽ khắc phục trong quý IV (dữ liệu mẫu)."));
-        if (criteria.RequiredForms.Contains(RecordFormCodes.Form9D))
-            record.TaskResults = RecordFormContent.TaskResultsToJson(criteria, criteria.Axes.Select(a => (TaskResultRow?)new TaskResultRow
+                s => "Trong quý, bản thân bám sát nghị quyết, kế hoạch công tác của cấp ủy và của đơn vị, hoàn thành các nhiệm vụ được "
+                    + "giao. Cụ thể như sau (dữ liệu mẫu):"));
+        if (uses09C || uses9D)
+        {
+            var level = criteria.TaskLevels.Select(l => (int?)l.Code).FirstOrDefault();
+            record.AxisReports = RecordFormContent.AxisReportsToJson(criteria, criteria.Axes.ToDictionary(a => a.Code, a => (AxisReport?)new AxisReport
             {
-                AxisCode = a.Code,
-                Content = $"Nhiệm vụ trọng tâm thuộc {a.Name.ToLowerInvariant()} (dữ liệu mẫu)",
-                Deadline = "30/9/2026",
-                Status = "Đã thực hiện theo kế hoạch",
-                Product = "Báo cáo kết quả, hồ sơ minh chứng",
-                Progress = "Đúng tiến độ"
-            }).ToList());
+                Tasks = new List<AxisTask>
+                {
+                    new() { Content = $"Nhiệm vụ trọng tâm thuộc {a.Name.ToLowerInvariant()}: thực hiện theo kế hoạch, đạt yêu cầu (dữ liệu mẫu)", Level = level }
+                },
+                Status = "- Thực hiện các nhiệm vụ trọng tâm theo kế hoạch quý (dữ liệu mẫu)",
+                Product = "Hoàn thành công việc",
+                Progress = "Hoàn thành các công việc đúng theo yêu cầu"
+            }), includeTasks: uses09C, includeSummary: uses9D);
+        }
         if (criteria.Axes.All(a => a.MaxScore > 0))
             record.AxisNotes = RecordFormContent.AxisNotesToJson(criteria, criteria.Axes.ToDictionary(
                 a => a.Code,

@@ -14,7 +14,7 @@ import { EvaluationPdfModal } from "@/components/evaluations/EvaluationPdfModal"
 import { RecordFormsPanel } from "@/components/evaluations/RecordFormsPanel";
 import { RecordHistory } from "@/components/evaluations/RecordHistory";
 import { CollapsibleSection } from "@/components/evaluations/CollapsibleSection";
-import { SelfAssessmentView, TaskResultsView } from "@/components/evaluations/IndividualFormInputs";
+import { AxisSummaryView, SelfAssessmentView } from "@/components/evaluations/IndividualFormInputs";
 import { useCriteria } from "@/components/evaluations/useCriteria";
 import { initialsOf } from "@/components/dashboard/taskUtils";
 import styles from "@/components/evaluations/record.module.css";
@@ -34,7 +34,7 @@ import {
   evaluationService,
   isConcurrencyConflict,
   selfAssessmentSections,
-  taskLevels,
+  buildAxisTaskBlocks,
 } from "@/services/evaluationService";
 import { formatDate, formatDateTime } from "@/lib/dateFormat";
 
@@ -393,13 +393,14 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
 
       {criteriaAppliesForm(criteria, "9D") && (
         <CollapsibleSection title="Kết quả thực hiện nhiệm vụ (Mẫu 9D)" tag={tag("B2_SELF_SCORE")} defaultOpen={false}>
-          <TaskResultsView axes={axes} rows={record.taskResults} levels={taskLevels(criteria)} />
+          <AxisSummaryView axes={axes} reports={record.axisReports} />
         </CollapsibleSection>
       )}
 
       {criteriaAppliesForm(criteria, "09C") && (
         <CollapsibleSection title="Bản tự đánh giá (Mẫu 09C)" tag={tag("B2_SELF_SCORE")} defaultOpen={false}>
-          <SelfAssessmentView sections={selfAssessmentSections(criteria)} value={record.selfAssessment} />
+          <SelfAssessmentView sections={selfAssessmentSections(criteria)} value={record.selfAssessment}
+            blocks={buildAxisTaskBlocks(axes, record.axisReports, criteria)} />
         </CollapsibleSection>
       )}
 

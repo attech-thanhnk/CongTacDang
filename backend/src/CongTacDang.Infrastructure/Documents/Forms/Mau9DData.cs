@@ -9,8 +9,8 @@ namespace CongTacDang.Infrastructure.Documents.Forms;
 
 /// <summary>
 /// Dữ liệu Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ, công việc được giao trong quý. Template:
-/// <c>Mau_9D_PhuLucKetQuaNhiemVu.docx</c> (dựng từ file biểu mẫu gốc). Mỗi trục của bộ tiêu chí một dòng "Trục n", sau đó các dòng
-/// nhiệm vụ chủ hồ sơ đã nhập cho trục đó (cột (2)–(7) của mẫu gốc).
+/// <c>Mau_9D_PhuLucKetQuaNhiemVu.docx</c> (dựng từ file biểu mẫu gốc). Đúng như biểu mẫu gốc: mỗi trục của bộ tiêu chí một dòng
+/// "Trục n" — cột (2) tên trục, cột (3)–(7) phần tóm tắt của trục chủ hồ sơ nhập trên phiếu tự chấm.
 /// </summary>
 public sealed class Mau9DData
 {
@@ -42,14 +42,14 @@ public sealed class Mau9DData
     {
         ArgumentNullException.ThrowIfNull(source);
         var record = source.Record;
-        List<TaskResultRow> rows;
+        Dictionary<string, AxisReport> reports;
         try
         {
-            rows = RecordFormContent.ParseTaskResults(record.TaskResults);
+            reports = RecordFormContent.ParseAxisReports(record.AxisReports);
         }
         catch (JsonException)
         {
-            rows = new List<TaskResultRow>();
+            reports = new Dictionary<string, AxisReport>(StringComparer.OrdinalIgnoreCase);
         }
 
         return new Mau9DData
@@ -62,47 +62,36 @@ public sealed class Mau9DData
             Positions = source.Positions.All() ?? FormText.OrNull(record.Member?.PositionTitle),
             Department = FormText.OrNull(record.Department?.Name),
             CellName = FormText.OrNull(record.PartyCell?.Name),
-            Axes = source.Criteria.Axes.Select((axis, index) => new Mau9DAxis
+            Axes = source.Criteria.Axes.Select((axis, index) =>
             {
-                Label = "Trục " + (index + 1).ToString(CultureInfo.InvariantCulture),
-                Name = axis.Name,
-                Rows = rows
-                    .Where(r => string.Equals(r.AxisCode, axis.Code, StringComparison.OrdinalIgnoreCase))
-                    .Select((r, i) => new Mau9DRow
-                    {
-                        Order = (i + 1).ToString(CultureInfo.InvariantCulture),
-                        Content = r.Content,
-                        Deadline = r.Deadline ?? string.Empty,
-                        Status = r.Status ?? string.Empty,
-                        Product = r.Product ?? string.Empty,
-                        Progress = r.Progress ?? string.Empty,
-                        Note = r.Note ?? string.Empty
-                    }).ToList()
+                var report = reports.GetValueOrDefault(axis.Code);
+                return new Mau9DAxis
+                {
+                    Label = "Trục " + (index + 1).ToString(CultureInfo.InvariantCulture),
+                    Name = axis.Name,
+                    Deadline = report?.Deadline ?? string.Empty,
+                    Status = report?.Status ?? string.Empty,
+                    Product = report?.Product ?? string.Empty,
+                    Progress = report?.Progress ?? string.Empty,
+                    Note = report?.Note ?? string.Empty
+                };
             }).ToList()
         };
     }
 }
 
-/// <summary>Một trục của Mẫu 9D (dòng "Trục n" và các dòng nhiệm vụ).</summary>
+/// <summary>Một dòng "Trục n" của Mẫu 9D.</summary>
 public sealed class Mau9DAxis
 {
     /// <summary>"Trục 1", "Trục 2"… như cột TT của mẫu gốc.</summary>
     [TemplateField("A_LABEL")] public string? Label { get; init; }
 
-    /// <summary>Tên trục theo bộ tiêu chí của kỳ.</summary>
+    /// <summary>(2) Tên trục theo bộ tiêu chí của kỳ.</summary>
     [TemplateField("A_NAME")] public string? Name { get; init; }
 
-    [TemplateCollection("ROWS")] public List<Mau9DRow> Rows { get; init; } = new();
-}
-
-/// <summary>Một dòng nhiệm vụ của Mẫu 9D.</summary>
-public sealed class Mau9DRow
-{
-    [TemplateField("R_STT")] public string? Order { get; init; }
-    [TemplateField("R_CONTENT")] public string? Content { get; init; }
-    [TemplateField("R_DEADLINE")] public string? Deadline { get; init; }
-    [TemplateField("R_STATUS")] public string? Status { get; init; }
-    [TemplateField("R_PRODUCT")] public string? Product { get; init; }
-    [TemplateField("R_PROGRESS")] public string? Progress { get; init; }
-    [TemplateField("R_NOTE")] public string? Note { get; init; }
+    [TemplateField("A_DEADLINE")] public string? Deadline { get; init; }
+    [TemplateField("A_STATUS")] public string? Status { get; init; }
+    [TemplateField("A_PRODUCT")] public string? Product { get; init; }
+    [TemplateField("A_PROGRESS")] public string? Progress { get; init; }
+    [TemplateField("A_NOTE")] public string? Note { get; init; }
 }

@@ -9,7 +9,9 @@ namespace CongTacDang.Infrastructure.Documents.Forms;
 
 /// <summary>
 /// Dữ liệu Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân. Template: <c>Mau_09C_BanTuDanhGia.docx</c> (dựng từ file biểu mẫu
-/// gốc). Phần I lặp theo các mục khai báo trong bộ tiêu chí của kỳ, nội dung lấy từ hồ sơ; phần II lấy điểm và mức tự đề xuất đã lưu.
+/// gốc). Phần I lặp theo các mục khai báo trong bộ tiêu chí của kỳ: mục đầu tiên gồm nhận xét chung và nhiệm vụ theo 6 trục (kèm
+/// mức tự đánh giá) nhập trên phiếu tự chấm; phần II lấy điểm và mức tự đề xuất đã lưu. Lưu ý hướng dẫn viết của mục (chữ đỏ trên
+/// biểu mẫu gốc) chỉ hiện trên màn hình nhập, không in — như bản tự đánh giá đã nộp.
 /// </summary>
 public sealed class Mau09CData
 {
@@ -55,16 +57,18 @@ public sealed class Mau09CData
             texts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
-        List<TaskResultRow> taskRows;
+        Dictionary<string, AxisReport> reports;
         try
         {
-            taskRows = RecordFormContent.ParseTaskResults(record.TaskResults);
+            reports = RecordFormContent.ParseAxisReports(record.AxisReports);
         }
         catch (JsonException)
         {
-            taskRows = new List<TaskResultRow>();
+            reports = new Dictionary<string, AxisReport>(StringComparer.OrdinalIgnoreCase);
         }
-        var structured = BuildTaskLines(source.Criteria, taskRows);
+        var axisBlocks = RecordFormContent.BuildAxisTaskBlocks(source.Criteria, reports)
+            .Select(b => new Mau09CAxis { Title = b.Title, Lines = b.Lines.Select(l => new Mau09CLine { Text = l }).ToList() })
+            .ToList();
 
         var positions = source.Positions;
         var noPositions = positions.All() == null;
@@ -79,61 +83,26 @@ public sealed class Mau09CData
             AdministrativePosition = noPositions ? FormText.OrNull(record.Member?.PositionTitle) : positions.Administrative,
             MassPosition = positions.MassOrganization,
             Department = FormText.OrNull(record.Department?.Name),
-            Sections = source.Criteria.SelfAssessmentSections.Select((section, index) => new Mau09CSection
+            Sections = source.Criteria.SelfAssessmentSections.Select((section, index) =>
             {
-                Title = section.Title,
-                Intro = section.Guidance ?? string.Empty,
-                // Chưa nhập → giữ dòng chấm của template để viết tay.
-                // Mục đầu tiên nhận thêm các câu "Nhiệm vụ n: … Tự đánh giá mức N." dựng từ các dòng nhiệm vụ đã nhập, đứng trước
-                // phần nhận xét chung do chủ hồ sơ viết.
-                Content = index == 0
-                    ? FormText.OrNull(string.Join("\n\n", new[] { structured, texts.GetValueOrDefault(section.Code) }
-                        .Where(t => !string.IsNullOrWhiteSpace(t))))
-                    : FormText.OrNull(texts.GetValueOrDefault(section.Code)),
-                Note = section.Note ?? string.Empty
+                // Mục đầu tiên: phần nhận xét chung rồi các khối "n. Tên trục" / "Nhiệm vụ k: … Tự đánh giá mức N." dựng từ nhiệm
+                // vụ theo trục. Chưa nhập gì → giữ dòng chấm của template để viết tay; chỉ có nhiệm vụ → bỏ đoạn nhận xét.
+                var text = FormText.OrNull(texts.GetValueOrDefault(section.Code));
+                var axes = index == 0 ? axisBlocks : new List<Mau09CAxis>();
+                return new Mau09CSection
+                {
+                    Title = section.Title,
+                    Intro = section.Guidance ?? string.Empty,
+                    Content = text,
+                    ShowContent = text != null || axes.Count == 0,
+                    Axes = axes
+                };
             }).ToList(),
             GeneralScore = Mau09Shared.Score(source, record.GeneralCriteriaScore, rounding.GeneralTotal),
             TasksScore = Mau09Shared.Score(source, record.TasksScore, rounding.TasksTotal),
             TotalScore = Mau09Shared.Score(source, record.TotalSelfScore, rounding.Total),
             SelfGrade = Mau09Shared.SelfGrade(record)
         };
-    }
-
-    /// <summary>
-    /// Dựng phần tự đánh giá theo trục từ các dòng nhiệm vụ: "n. Tên trục" rồi "Nhiệm vụ k: nội dung. Tự đánh giá mức N."
-    /// (bỏ câu mức nếu chưa chọn). Không có dòng nào → chuỗi rỗng.
-    /// </summary>
-    internal static string BuildTaskLines(CriteriaSetContent criteria, IReadOnlyList<TaskResultRow> rows)
-    {
-        var blocks = new List<string>();
-        for (var i = 0; i < criteria.Axes.Count; i++)
-        {
-            var axis = criteria.Axes[i];
-            var own = rows.Where(r => string.Equals(r.AxisCode, axis.Code, StringComparison.OrdinalIgnoreCase)
-                                      && !string.IsNullOrWhiteSpace(r.Content)).ToList();
-            if (own.Count == 0)
-                continue;
-            var lines = new List<string> { $"{i + 1}. {axis.Name}" };
-            for (var k = 0; k < own.Count; k++)
-            {
-                var r = own[k];
-                var text = EndSentence(r.Content);
-                if (!string.IsNullOrWhiteSpace(r.Status))
-                    text += " " + EndSentence(r.Status);
-                if (r.Level.HasValue && criteria.TaskLevels.Any(l => l.Code == r.Level.Value) && !string.IsNullOrWhiteSpace(criteria.TaskLevelPhrase))
-                    text += " " + criteria.TaskLevelPhrase.Replace("{level}", r.Level.Value.ToString(CultureInfo.InvariantCulture));
-                var prefix = string.IsNullOrWhiteSpace(criteria.TaskLineLabel) ? "{n}." : criteria.TaskLineLabel;
-                lines.Add($"{prefix.Replace("{n}", (k + 1).ToString(CultureInfo.InvariantCulture))} {text}");
-            }
-            blocks.Add(string.Join("\n", lines));
-        }
-        return string.Join("\n", blocks);
-    }
-
-    private static string EndSentence(string? value)
-    {
-        var t = (value ?? string.Empty).Trim().Replace("\r\n", " ").Replace('\n', ' ');
-        return t.Length == 0 || ".!?;:".Contains(t[^1]) ? t : t + ".";
     }
 }
 
@@ -143,5 +112,23 @@ public sealed class Mau09CSection
     [TemplateField("S_TITLE")] public string? Title { get; init; }
     [TemplateField("S_INTRO")] public string? Intro { get; init; }
     [TemplateField("S_CONTENT")] public string? Content { get; init; }
-    [TemplateField("S_NOTE")] public string? Note { get; init; }
+
+    /// <summary>Hiện đoạn nội dung (có nhận xét chung, hoặc mục không có nhiệm vụ theo trục — giữ dòng chấm).</summary>
+    [TemplateCondition("S_SHOW_CONTENT")] public bool ShowContent { get; init; }
+
+    /// <summary>Các khối nhiệm vụ theo trục (chỉ mục đầu tiên).</summary>
+    [TemplateCollection("S_AXES")] public List<Mau09CAxis> Axes { get; init; } = new();
+}
+
+/// <summary>Một trục trong mục I Mẫu 09C: tiêu đề "n. Tên trục" và các dòng nhiệm vụ / ý con.</summary>
+public sealed class Mau09CAxis
+{
+    [TemplateField("AX_TITLE")] public string? Title { get; init; }
+    [TemplateCollection("AX_LINES")] public List<Mau09CLine> Lines { get; init; } = new();
+}
+
+/// <summary>Một dòng "Nhiệm vụ k: … Tự đánh giá mức N." hoặc ý con "+ …" (một đoạn văn).</summary>
+public sealed class Mau09CLine
+{
+    [TemplateField("L_TEXT")] public string? Text { get; init; }
 }

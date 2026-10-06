@@ -122,10 +122,10 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     public string SelfAssessment { get; set; } = "{}";
 
     /// <summary>
-    /// Mẫu 9D — kết quả thực hiện nhiệm vụ theo trục (jsonb): danh sách <see cref="Evaluation.TaskResultRow"/>, mã trục theo bộ
-    /// tiêu chí của kỳ.
+    /// Nhiệm vụ và kết quả theo trục (jsonb): <c>{ "T1": <see cref="Evaluation.AxisReport"/> }</c>, mã trục theo bộ tiêu chí của
+    /// kỳ — các nhiệm vụ kèm mức tự đánh giá in ở mục I Mẫu 09C, phần tóm tắt của trục là một dòng Mẫu 9D.
     /// </summary>
-    public string TaskResults { get; set; } = "[]";
+    public string AxisReports { get; set; } = "{}";
 
     /// <summary>
     /// Mẫu 09B — nội dung tự luận theo trục (jsonb): <c>{ "T1": { "target": …, "result": …, "note": … } }</c>

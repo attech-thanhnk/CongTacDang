@@ -3,9 +3,11 @@
 import React, { useMemo, useState } from "react";
 import {
   AxisNote,
+  AxisReport,
   EvaluationRecordDto,
   GRADE_OPTIONS,
-  TaskResultRow,
+  axisTaskTextLength,
+  buildAxisTaskBlocks,
   criteriaAppliesForm,
   selfAssessmentSections,
   taskLevels,
@@ -20,7 +22,7 @@ import {
   roundScore,
 } from "@/services/criteriaService";
 import { FileUploadModal } from "@/components/attachments/FileUploadModal";
-import { AxisNoteFields, SelfAssessmentInput, TaskResultsInput } from "@/components/evaluations/IndividualFormInputs";
+import { AxisNoteFields, AxisReportsInput, SelfAssessmentInput, SelfAssessmentPreview } from "@/components/evaluations/IndividualFormInputs";
 import { useToast } from "@/contexts/ToastContext";
 
 /** Ô điểm để trống ("") cho tới khi cán bộ tự nhập — không điền sẵn mức tối đa. */
@@ -46,8 +48,8 @@ interface Props {
 /**
  * Phiếu tự chấm dựng động từ bộ tiêu chí của kỳ: tiêu chí con "Đảm bảo / Không đảm bảo / K/AD (lý do)" hoặc ô điểm (theo cách chấm
  * của nhóm), trục theo mã (Mẫu 09B) hoặc A-B-C-D theo khung tỷ trọng của hồ sơ (Mẫu 09A); tổng tạm tính — máy chủ tính lại.
- * Task 18: nhập kèm Mẫu 09C (mục tự luận theo bộ tiêu chí), 9D (nhiệm vụ theo trục) khi kỳ áp dụng và phần tự luận theo trục của
- * Mẫu 09B; nội dung đã lưu được nạp lại để sửa tiếp khi hồ sơ bị trả lại.
+ * Nhập kèm (khi kỳ áp dụng) Mẫu 09C — nhận xét chung và nhiệm vụ theo trục kèm mức — và Mẫu 9D — dòng tóm tắt mỗi trục — trên
+ * cùng một khối theo trục, cùng phần tự luận theo trục của Mẫu 09B; nội dung đã lưu được nạp lại để sửa tiếp khi hồ sơ bị trả lại.
  */
 export function SelfScoreForm({ record, criteria, busy, onSubmit }: Props) {
   if (!criteria) {
@@ -96,12 +98,14 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   );
   const [uploadFor, setUploadFor] = useState<string | null>(null);
 
-  // Task 18: biểu mẫu cá nhân nhập cùng phiếu tự chấm.
+  // Biểu mẫu cá nhân nhập cùng phiếu tự chấm.
   const uses09C = criteriaAppliesForm(criteria, "09C");
   const uses9D = criteriaAppliesForm(criteria, "9D");
   const sections = selfAssessmentSections(criteria);
   const [selfAssessment, setSelfAssessment] = useState<Record<string, string>>(() => ({ ...(record.selfAssessment ?? {}) }));
-  const [taskResults, setTaskResults] = useState<TaskResultRow[]>(() => (record.taskResults ?? []).map((r) => ({ ...r })));
+  const [axisReports, setAxisReports] = useState<Record<string, AxisReport>>(() => JSON.parse(JSON.stringify(record.axisReports ?? {})));
+  const [showPreview, setShowPreview] = useState(false);
+  const blocks = useMemo(() => (uses09C ? buildAxisTaskBlocks(content.axes, axisReports, criteria) : []), [uses09C, content.axes, axisReports, criteria]);
   const [axisNotes, setAxisNotes] = useState<Record<string, AxisNote>>(() =>
     Object.fromEntries(content.axes.map((a) => [a.code, { ...(record.axisNotes?.[a.code] ?? {}) }]))
   );
@@ -135,7 +139,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     );
     const payload: Record<string, unknown> = { generalScores, selfProposedGrade: grade || null };
     if (uses09C) payload.selfAssessment = selfAssessment;
-    if (uses9D) payload.taskResults = taskResults;
+    if (uses09C || uses9D) payload.axisReports = axisReports;
     if (uses09B) {
       payload.axisScores = Object.fromEntries(Object.entries(axis).map(([k, v]) => [k, Number(v) || 0]));
       payload.axisNotes = axisNotes;
@@ -152,8 +156,8 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     }
     const gradeLabel = grade ? GRADE_LABELS[grade as keyof typeof GRADE_LABELS] : `${GRADE_LABELS[gradeByScore(content, total)]} (hệ thống gợi ý)`;
     const missing = [
-      uses09C && !Object.values(selfAssessment).some((v) => v?.trim()) ? "bản tự đánh giá Mẫu 09C" : null,
-      uses9D && taskResults.length === 0 ? "kết quả nhiệm vụ Mẫu 9D" : null,
+      uses09C && !Object.values(selfAssessment).some((v) => v?.trim()) && blocks.length === 0 ? "bản tự đánh giá Mẫu 09C" : null,
+      uses9D && !Object.values(axisReports).some((r) => r.status?.trim() || r.product?.trim() || r.progress?.trim()) ? "kết quả theo trục Mẫu 9D" : null,
     ].filter(Boolean);
     confirm({
       title: "Nộp phiếu tự chấm",
@@ -321,25 +325,37 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
         </>
       )}
 
-      {uses9D && (
+      {uses09C && sections.length > 0 && (
         <>
-          <h4 className="h6 small fw-bold text-secondary">Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ, công việc được giao trong quý</h4>
-          <div className="small text-secondary mb-1">Không bắt buộc nhập đủ các trục.</div>
+          <h4 className="h6 small fw-bold text-secondary">Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân</h4>
+          <div className="small text-secondary mb-2">Nội dung không quá 02 trang A4.</div>
           <div className="mb-3">
-            <TaskResultsInput axes={content.axes} rows={taskResults} onChange={setTaskResults} levels={taskLevels(criteria)} />
+            <SelfAssessmentInput sections={sections} value={selfAssessment} onChange={setSelfAssessment} firstSectionExtra={axisTaskTextLength(blocks)} />
           </div>
         </>
       )}
 
-      {uses09C && sections.length > 0 && (
+      {(uses09C || uses9D) && (
         <>
-          <h4 className="h6 small fw-bold text-secondary">Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân</h4>
-          <div className="small text-secondary mb-2">
-            Nội dung không quá 02 trang A4.
+          <h4 className="h6 small fw-bold text-secondary">
+            {uses09C && uses9D ? "Nhiệm vụ và kết quả theo trục (Mẫu 09C, 9D)" : uses09C ? "Nhiệm vụ theo trục (Mẫu 09C)" : "Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ, công việc được giao trong quý"}
+          </h4>
+          <div className="mb-2">
+            <AxisReportsInput axes={content.axes} value={axisReports} onChange={setAxisReports} levels={taskLevels(criteria)}
+              showTasks={uses09C} showSummary={uses9D} taskLabel={content.taskLineLabel || "Nhiệm vụ {n}:"} />
           </div>
-          <div className="mb-3">
-            <SelfAssessmentInput sections={sections} value={selfAssessment} onChange={setSelfAssessment} />
-          </div>
+          {uses09C && sections.length > 0 && (
+            <div className="mb-3">
+              <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setShowPreview((v) => !v)}>
+                <i className={`bi ${showPreview ? "bi-eye-slash" : "bi-eye"} me-1`} />{showPreview ? "Ẩn xem trước" : "Xem trước mục I Mẫu 09C"}
+              </button>
+              {showPreview && (
+                <div className="mt-2">
+                  <SelfAssessmentPreview section={sections[0]} text={selfAssessment[sections[0].code]} blocks={blocks} />
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 

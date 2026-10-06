@@ -130,10 +130,10 @@ public class EvaluationRecordDto
     public double TotalSelfScore { get; set; }
     public string SelfProposedGrade { get; set; } = string.Empty;
     public DateTime? SelfScoredAt { get; set; }
-    /// <summary>Mẫu 09C — nội dung tự đánh giá theo mã mục của bộ tiêu chí (task 18).</summary>
+    /// <summary>Mẫu 09C — nội dung tự đánh giá theo mã mục của bộ tiêu chí (mục I: phần nhận xét chung).</summary>
     public Dictionary<string, string> SelfAssessment { get; set; } = new();
-    /// <summary>Mẫu 9D — kết quả thực hiện nhiệm vụ theo trục (task 18).</summary>
-    public List<TaskResultRow> TaskResults { get; set; } = new();
+    /// <summary>Nhiệm vụ (kèm mức) và kết quả theo trục — mục I Mẫu 09C và Mẫu 9D (khóa = mã trục).</summary>
+    public Dictionary<string, AxisReport> AxisReports { get; set; } = new();
     /// <summary>Mẫu 09B — nội dung tự luận theo trục (khóa = mã trục; task 18).</summary>
     public Dictionary<string, AxisNote> AxisNotes { get; set; } = new();
 
@@ -266,8 +266,10 @@ public class SubmitSelfScoreRequestDto : WorkflowRequestDto
     public string? SelfProposedGrade { get; set; }
     /// <summary>Mẫu 09C (khi kỳ áp dụng): nội dung theo mã mục; null = giữ nội dung đã lưu (task 18).</summary>
     public Dictionary<string, string?>? SelfAssessment { get; set; }
-    /// <summary>Mẫu 9D (khi kỳ áp dụng): các dòng kết quả nhiệm vụ theo trục; null = giữ nội dung đã lưu (task 18).</summary>
-    public List<TaskResultRow?>? TaskResults { get; set; }
+    /// <summary>
+    /// Nhiệm vụ và kết quả theo trục (khóa = mã trục; khi kỳ áp dụng Mẫu 09C và/hoặc 9D); null = giữ nội dung đã lưu.
+    /// </summary>
+    public Dictionary<string, AxisReport?>? AxisReports { get; set; }
     /// <summary>Mẫu 09B: nội dung tự luận theo trục (khóa = mã trục); null = giữ nội dung đã lưu (task 18).</summary>
     public Dictionary<string, AxisNote?>? AxisNotes { get; set; }
 }
