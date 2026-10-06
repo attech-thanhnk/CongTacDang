@@ -259,6 +259,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
   };
   const axes = criteria?.content.axes ?? [];
   const axisName = (code: string) => axes.find((a) => a.code.toLowerCase() === code.toLowerCase())?.name;
+  const groupName = (code: string) => criteria?.content.generalGroups.find((g) => g.code === code)?.name;
   const axisMax = (code: string) => axes.find((a) => a.code.toLowerCase() === code.toLowerCase())?.maxScore;
   const params = criteria?.content.parameters;
   const selfScored = !!record.selfScoredAt || stepOf("B2_SELF_SCORE")?.state === "done";
@@ -376,6 +377,17 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
           </>
         ) : (
           <div className={`${styles.body} ${styles.small}`}>Chưa có dữ liệu.</div>
+        )}
+        {record.generalGroupNotes && Object.keys(record.generalGroupNotes).length > 0 && (
+          <div className={styles.subline}>
+            <ul>
+              {Object.entries(record.generalGroupNotes).map(([code, text]) => (
+                <li key={code}>
+                  <strong>Nhóm {code}</strong>{groupName(code) ? ` (${groupName(code)})` : ""} — {text}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         {record.axisNotes && Object.keys(record.axisNotes).length > 0 && (
           <div className={styles.subline}>

@@ -106,6 +106,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   const [axisReports, setAxisReports] = useState<Record<string, AxisReport>>(() => JSON.parse(JSON.stringify(record.axisReports ?? {})));
   const [showPreview, setShowPreview] = useState(false);
   const blocks = useMemo(() => (uses09C ? buildAxisTaskBlocks(content.axes, axisReports, criteria) : []), [uses09C, content.axes, axisReports, criteria]);
+  const [groupNotes, setGroupNotes] = useState<Record<string, string>>(() => ({ ...(record.generalGroupNotes ?? {}) }));
   const [axisNotes, setAxisNotes] = useState<Record<string, AxisNote>>(() =>
     Object.fromEntries(content.axes.map((a) => [a.code, { ...(record.axisNotes?.[a.code] ?? {}) }]))
   );
@@ -137,7 +138,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     const generalScores = Object.fromEntries(
       Object.entries(general).map(([code, s]) => [code, { score: s.notApplicable ? 0 : Number(s.score) || 0, notApplicable: !!s.notApplicable, reason: s.reason?.trim() || null }])
     );
-    const payload: Record<string, unknown> = { generalScores, selfProposedGrade: grade || null };
+    const payload: Record<string, unknown> = { generalScores, generalGroupNotes: groupNotes, selfProposedGrade: grade || null };
     if (uses09C) payload.selfAssessment = selfAssessment;
     if (uses09C || uses9D) payload.axisReports = axisReports;
     if (uses09B) {
@@ -193,6 +194,14 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                 <tr className="table-light small fw-semibold">
                   <td>{group.code}</td>
                   <td colSpan={4}>{group.name} — {fmt(group.items.reduce((s, i) => s + i.maxScore, 0))} điểm</td>
+                </tr>
+                <tr className="small">
+                  <td />
+                  <td colSpan={4}>
+                    <textarea className="form-control form-control-sm" rows={1} maxLength={2000} value={groupNotes[group.code] ?? ""}
+                      placeholder="Tóm tắt kết quả, minh chứng chung của nhóm (không bắt buộc)" aria-label={`Nhận xét nhóm ${group.code}`}
+                      onChange={(e) => setGroupNotes({ ...groupNotes, [group.code]: e.target.value })} />
+                  </td>
                 </tr>
                 {group.items.map((item) => {
                   const s = general[item.code];

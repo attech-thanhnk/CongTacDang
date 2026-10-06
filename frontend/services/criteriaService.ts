@@ -18,6 +18,8 @@ export type RankedGrade = "HoanThanhXuatSac" | "HoanThanhTot" | "HoanThanh" | "K
 export interface CriteriaItem {
   code: string;
   text: string;
+  /** Nội dung in trên phiếu tự chấm (nguyên văn biểu mẫu gốc); trống → in `text`. */
+  formText?: string | null;
   maxScore: number;
 }
 

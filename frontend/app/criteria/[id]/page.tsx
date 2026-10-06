@@ -213,7 +213,11 @@ export default function CriteriaSetPage() {
                           return (
                             <tr key={ii}>
                               <td><input className="form-control form-control-sm" value={item.code} onChange={(e) => setItem({ code: e.target.value })} /></td>
-                              <td><textarea className="form-control form-control-sm" rows={1} value={item.text} onChange={(e) => setItem({ text: e.target.value })} /></td>
+                              <td>
+                                <textarea className="form-control form-control-sm" rows={1} value={item.text} aria-label="Nội dung tiêu chí con" onChange={(e) => setItem({ text: e.target.value })} />
+                                <textarea className="form-control form-control-sm mt-1" rows={1} maxLength={4000} value={item.formText ?? ""} aria-label="Nội dung in trên phiếu"
+                                  placeholder="Nội dung in trên phiếu (trống = in như trên)" onChange={(e) => setItem({ formText: e.target.value || null })} />
+                              </td>
                               <td><input type="number" min={0} step={0.5} className="form-control form-control-sm" value={item.maxScore} onChange={(e) => setItem({ maxScore: num(e.target.value) })} /></td>
                               <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa tiêu chí" onClick={() => setGroup(gi, { items: g.items.filter((_, i) => i !== ii) })}><i className="bi bi-x-lg" /></button></td>
                             </tr>

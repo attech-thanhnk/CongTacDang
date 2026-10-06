@@ -63,6 +63,7 @@ public sealed class EvaluationRecordConfiguration : IEntityTypeConfiguration<Eva
         entity.Property(e => e.SelfAssessment).HasColumnType("jsonb").IsRequired();
         entity.Property(e => e.AxisReports).HasColumnType("jsonb").IsRequired();
         entity.Property(e => e.AxisNotes).HasColumnType("jsonb");
+        entity.Property(e => e.GeneralGroupNotes).HasColumnType("jsonb");
         entity.Property(e => e.AppraisalExplanation).HasMaxLength(4000);
         entity.Property(e => e.TasksApprovedByName).HasMaxLength(200);
         entity.Property(e => e.TasksApprovalComment).HasMaxLength(4000);

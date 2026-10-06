@@ -133,6 +133,12 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     /// </summary>
     public string? AxisNotes { get; set; }
 
+    /// <summary>
+    /// Phiếu tự chấm — nhận xét theo nhóm tiêu chí chung (jsonb): <c>{ "1": "…" }</c>, khóa là mã nhóm của bộ tiêu chí của kỳ; in ở
+    /// ô "Tóm tắt kết quả/Tài liệu minh chứng" của dòng nhóm (Mẫu 09A/09B); null khi chưa nhập.
+    /// </summary>
+    public string? GeneralGroupNotes { get; set; }
+
     #endregion
 
     #region B2: Chi bộ xác nhận phiếu tự chấm

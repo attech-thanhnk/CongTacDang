@@ -65,6 +65,9 @@ public sealed class CriteriaItem
     /// <summary>Nội dung tiêu chí.</summary>
     public string Text { get; set; } = string.Empty;
 
+    /// <summary>Nội dung in trên phiếu tự chấm (nguyên văn biểu mẫu gốc); trống → in <see cref="Text"/>.</summary>
+    public string? FormText { get; set; }
+
     /// <summary>Điểm tối đa.</summary>
     public double MaxScore { get; set; }
 }
@@ -430,6 +433,7 @@ public sealed class CriteriaSetContent
             {
                 item.Code = item.Code?.Trim() ?? string.Empty;
                 item.Text = item.Text?.Trim() ?? string.Empty;
+                item.FormText = string.IsNullOrWhiteSpace(item.FormText) ? null : item.FormText.Trim();
             }
         }
         Axes = (Axes ?? new()).Where(a => a != null).ToList();
@@ -619,6 +623,8 @@ public sealed class CriteriaSetContent
                     errors.Add($"Tiêu chí con \"{item.Code}\" chưa có nội dung.");
                 else if (item.Text.Length > 2000)
                     errors.Add($"Nội dung tiêu chí con \"{item.Code}\" không được dài quá 2000 ký tự.");
+                if ((item.FormText?.Length ?? 0) > 4000)
+                    errors.Add($"Nội dung in trên phiếu của tiêu chí con \"{item.Code}\" không được dài quá 4000 ký tự.");
                 if (!(item.MaxScore > 0) || item.MaxScore > 100)
                     errors.Add($"Điểm tối đa của tiêu chí con \"{item.Code}\" phải lớn hơn 0 và không quá 100.");
             }

@@ -1007,6 +1007,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<double>("GeneralCriteriaScore")
                         .HasColumnType("double precision");
 
+                    b.Property<string>("GeneralGroupNotes")
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("GeneralScores")
                         .IsRequired()
                         .HasColumnType("jsonb");

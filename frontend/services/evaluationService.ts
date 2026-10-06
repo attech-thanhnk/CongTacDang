@@ -275,6 +275,8 @@ export interface EvaluationRecordDto {
   axisReports?: Record<string, AxisReport>;
   /** Mẫu 09B — nội dung tự luận theo trục, khóa = mã trục (task 18). */
   axisNotes?: Record<string, AxisNote>;
+  /** Nhận xét theo nhóm tiêu chí chung, khóa = mã nhóm (in ở dòng nhóm của phiếu tự chấm). */
+  generalGroupNotes?: Record<string, string>;
 }
 
 // ---------------------------------------------------------------------------

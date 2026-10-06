@@ -297,6 +297,17 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             record.AxisNotes = json;
         }
 
+        if (request.GeneralGroupNotes != null)
+        {
+            var error = RecordFormContent.ValidateGeneralGroupNotes(content, request.GeneralGroupNotes);
+            if (error != null)
+                throw new ValidationException(error);
+            var json = RecordFormContent.GeneralGroupNotesToJson(content, request.GeneralGroupNotes);
+            if (json != record.GeneralGroupNotes)
+                changed.Add("nhận xét theo nhóm tiêu chí chung");
+            record.GeneralGroupNotes = json;
+        }
+
         return changed;
     }
 

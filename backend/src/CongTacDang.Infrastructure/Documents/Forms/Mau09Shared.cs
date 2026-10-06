@@ -57,6 +57,9 @@ public sealed class GeneralGroupRow
     [TemplateField("G_NO")] public string? Number { get; init; }
     [TemplateField("G_NAME")] public string? Name { get; init; }
     [TemplateField("G_MAX")] public string? MaxScore { get; init; }
+
+    /// <summary>Nhận xét chung của nhóm (ô "Tóm tắt kết quả/Tài liệu minh chứng" của dòng nhóm).</summary>
+    [TemplateField("G_NOTE")] public string? Note { get; init; }
     [TemplateCollection("ITEMS")] public List<GeneralItemRow> Items { get; init; } = new();
 }
 
@@ -107,6 +110,22 @@ internal static class Mau09Shared
     public static string? Score(IndividualFormSource source, double value, RoundingRule rule) =>
         source.HasSelfScore ? FormText.Number(value, Math.Clamp(rule.Decimals, 0, 4)) : null;
 
+    /// <summary>
+    /// Điểm tổng như bản đã nộp: số nguyên in gọn ("30"), số lẻ theo số chữ số làm tròn của bộ tiêu chí ("29,5"); chưa tự chấm → null.
+    /// </summary>
+    public static string? CompactScore(IndividualFormSource source, double value, RoundingRule rule)
+    {
+        if (!source.HasSelfScore)
+            return null;
+        var text = FormText.Number(value, Math.Clamp(rule.Decimals, 0, 4));
+        var comma = text.IndexOf(',', StringComparison.Ordinal);
+        return comma >= 0 && text[(comma + 1)..].All(c => c == '0') ? text[..comma] : text;
+    }
+
+    /// <summary>Ngày sinh "dd/MM/yyyy"; chưa nhập → null (giữ dòng chấm).</summary>
+    public static string? DateOfBirth(EvaluationRecord record) =>
+        record.Member?.DateOfBirth?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+
     /// <summary>Mức tự đề xuất đã lưu; chưa có → null.</summary>
     public static string? SelfGrade(EvaluationRecord record) =>
         record.SelfProposedGrade == EvaluationGrade.ChuaXepLoai ? null : FormText.Grade(record.SelfProposedGrade);
@@ -126,25 +145,35 @@ internal static class Mau09Shared
         {
             scores = new Dictionary<string, GeneralItemScore>(StringComparer.OrdinalIgnoreCase);
         }
+        Dictionary<string, string> groupNotes;
+        try
+        {
+            groupNotes = RecordFormContent.ParseGeneralGroupNotes(source.Record.GeneralGroupNotes);
+        }
+        catch (JsonException)
+        {
+            groupNotes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
 
         return source.Criteria.GeneralGroups.Select(group => new GeneralGroupRow
         {
             Number = group.Code,
             Name = group.Name,
             MaxScore = Compact(group.MaxScore),
+            Note = groupNotes.GetValueOrDefault(group.Code) ?? string.Empty,
             Items = group.Items.Select(item =>
             {
                 if (!scores.TryGetValue(item.Code, out var s) || s == null)
-                    return new GeneralItemRow { Code = item.Code, Text = item.Text, MaxScore = Compact(item.MaxScore), Met = "", NotMet = "", Score = "", Note = "" };
+                    return new GeneralItemRow { Code = item.Code, Text = item.FormText ?? item.Text, MaxScore = Compact(item.MaxScore), Met = "", NotMet = "", Score = "", Note = "" };
                 if (s.NotApplicable)
-                    return new GeneralItemRow { Code = item.Code, Text = item.Text, MaxScore = Compact(item.MaxScore), Met = "", NotMet = "", Score = "K/AD", Note = s.Reason?.Trim() ?? "" };
+                    return new GeneralItemRow { Code = item.Code, Text = item.FormText ?? item.Text, MaxScore = Compact(item.MaxScore), Met = "", NotMet = "", Score = "K/AD", Note = s.Reason?.Trim() ?? "" };
 
                 var full = s.Score + CriteriaSetContent.Epsilon >= item.MaxScore;
                 var notMet = group.ScoringMode == CriteriaScoringMode.Binary ? !full : s.Score <= CriteriaSetContent.Epsilon;
                 return new GeneralItemRow
                 {
                     Code = item.Code,
-                    Text = item.Text,
+                    Text = item.FormText ?? item.Text,
                     MaxScore = Compact(item.MaxScore),
                     Met = full ? "X" : "",
                     NotMet = notMet ? "X" : "",

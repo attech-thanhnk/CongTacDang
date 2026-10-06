@@ -27,10 +27,10 @@ public static partial class CriteriaSetDefaults
     public const string Notes = "";
 
     /// <summary>Nội dung bộ Mẫu 09B (Quý III/2026): 6 trục có điểm tối đa 15/10/10/15/10/10.</summary>
-    public static CriteriaSetContent Build09B() => Build(axisMax: new[] { 15.0, 10, 10, 15, 10, 10 }, RequiredForms09B);
+    public static CriteriaSetContent Build09B() => WithItemFormTexts(Build(axisMax: new[] { 15.0, 10, 10, 15, 10, 10 }, RequiredForms09B));
 
     /// <summary>Nội dung bộ Mẫu 09A (từ 2027): chấm theo nhiệm vụ Mẫu 01/02, công thức A-B-C-D; trục không có điểm tối đa riêng.</summary>
-    public static CriteriaSetContent Build09A() => Build(axisMax: new[] { 0.0, 0, 0, 0, 0, 0 }, RequiredForms09A);
+    public static CriteriaSetContent Build09A() => WithItemFormTexts(Build(axisMax: new[] { 0.0, 0, 0, 0, 0, 0 }, RequiredForms09A));
 
     private static CriteriaSetContent Build(double[] axisMax, IReadOnlyList<string> requiredForms)
     {

@@ -25,12 +25,19 @@ public sealed class Mau09BData
     /// <summary>"ngày … tháng … năm …" sau địa danh: ngày nộp phiếu tự chấm (chưa nộp → giữ dòng chấm).</summary>
     [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
 
+    /// <summary>Quý (số La Mã, "Quý III Năm 2026" như bản đã nộp).</summary>
     [TemplateField("QUARTER")] public string? Quarter { get; init; }
     [TemplateField("YEAR")] public string? Year { get; init; }
     [TemplateField("FULL_NAME")] public string? FullName { get; init; }
 
-    /// <summary>Chức vụ (Đảng, Đoàn thể, Chính quyền) đang giữ; không có thì chức danh trên hồ sơ cán bộ.</summary>
-    [TemplateField("POSITIONS")] public string? Positions { get; init; }
+    /// <summary>Ngày sinh dd/MM/yyyy; chưa nhập → giữ dòng chấm.</summary>
+    [TemplateField("DATE_OF_BIRTH")] public string? DateOfBirth { get; init; }
+
+    [TemplateField("PARTY_POSITION")] public string? PartyPosition { get; init; }
+
+    /// <summary>Chức vụ chính quyền; không có chức vụ nào trong danh mục thì chức danh trên hồ sơ cán bộ.</summary>
+    [TemplateField("ADMIN_POSITION")] public string? AdministrativePosition { get; init; }
+    [TemplateField("MASS_POSITION")] public string? MassPosition { get; init; }
     [TemplateField("DEPARTMENT")] public string? Department { get; init; }
 
     /// <summary>Chi bộ sinh hoạt (ảnh chụp trên hồ sơ).</summary>
@@ -70,14 +77,19 @@ public sealed class Mau09BData
             notes = new Dictionary<string, AxisNote>(StringComparer.OrdinalIgnoreCase);
         }
 
+        var positions = source.Positions;
+        var noPositions = positions.All() == null;
         return new Mau09BData
         {
             PartyCell = Mau09Shared.PartyCellUpper(record),
             DateLine = Mau09Shared.DateLine(source),
-            Quarter = FormText.Spaced(Mau09Shared.Quarter(record)),
+            Quarter = record.Period != null ? " " + CollectiveFormText.RomanQuarter(record.Period.Quarter) : null,
             Year = Mau09Shared.Year(record),
             FullName = FormText.OrNull(record.Member?.FullName),
-            Positions = FormText.Spaced(source.Positions.All() ?? record.Member?.PositionTitle),
+            DateOfBirth = Mau09Shared.DateOfBirth(record),
+            PartyPosition = positions.Party,
+            AdministrativePosition = noPositions ? FormText.OrNull(record.Member?.PositionTitle) : positions.Administrative,
+            MassPosition = positions.MassOrganization,
             Department = FormText.OrNull(record.Department?.Name),
             CellName = FormText.Spaced(record.PartyCell?.Name),
             Groups = Mau09Shared.GeneralGroups(source),
@@ -96,9 +108,9 @@ public sealed class Mau09BData
                     Note = note?.Note ?? string.Empty
                 };
             }).ToList(),
-            GeneralScore = Mau09Shared.Score(source, record.GeneralCriteriaScore, rounding.GeneralTotal),
-            TasksScore = Mau09Shared.Score(source, record.TasksScore, rounding.TasksTotal),
-            TotalScore = Mau09Shared.Score(source, record.TotalSelfScore, rounding.Total),
+            GeneralScore = Mau09Shared.CompactScore(source, record.GeneralCriteriaScore, rounding.GeneralTotal),
+            TasksScore = Mau09Shared.CompactScore(source, record.TasksScore, rounding.TasksTotal),
+            TotalScore = Mau09Shared.CompactScore(source, record.TotalSelfScore, rounding.Total),
             SelfGrade = Mau09Shared.SelfGrade(record)
         };
     }

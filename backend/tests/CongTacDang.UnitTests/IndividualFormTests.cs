@@ -348,6 +348,9 @@ public class IndividualFormTests
     public void Mau09B_ShowsGroupsAxesScoresAndNotes()
     {
         var source = Source();
+        source.Record.Member!.DateOfBirth = new DateOnly(1973, 10, 21);
+        source.Record.GeneralGroupNotes = RecordFormContent.GeneralGroupNotesToJson(source.Criteria,
+            new Dictionary<string, string?> { ["1"] = "Nhận xét nhóm 1 (test)" });
         var text = Render(Mau09BData.TemplateFileName, Mau09BData.From(source), out var content);
 
         Assert.Contains("Mẫu số 09B", text);
@@ -356,10 +359,14 @@ public class IndividualFormTests
         Assert.Contains("Mục tiêu trục 1 (test)", text);
         Assert.Contains("Kết quả trục 1 (test)", text);
         Assert.Contains("Hoàn thành tốt nhiệm vụ", text);
-        Assert.Contains("Bí thư Chi bộ; Chủ tịch Công đoàn; Trưởng phòng", text);
-        // Chỗ điền đặt liền sau nhãn trong template gốc: phải có khoảng trắng, không dính chữ.
-        Assert.Matches(@"Quý\s+\d", text);
-        Assert.Matches(@"Chính quyền\)\s+Bí thư Chi bộ", text);
+        // Như phiếu đã nộp: quý La Mã, ngày sinh, chức vụ 3 dòng, đơn vị kèm tên công ty, không còn ghi chú soạn thảo tô vàng.
+        Assert.Matches(@"Quý\s+III\s+Năm\s+2026", text);
+        Assert.Matches(@"Ngày sinh:\s+21/10/1973", text);
+        Assert.Contains("Chức vụ: Chức vụ Đảng: Bí thư Chi bộ", text);
+        Assert.Contains("Chức vụ chính quyền: Trưởng phòng", text);
+        Assert.Contains("Chức vụ đoàn thể: Chủ tịch Công đoàn", text);
+        Assert.Contains("Đơn vị công tác: Phòng Kỹ thuật, Công ty A", text);
+        Assert.DoesNotContain("Mẫu này áp dụng cho kỳ", text);
         Assert.Matches(@"Chi bộ:\s+\S", text);
 
         using var doc = WordprocessingDocument.Open(new MemoryStream(content), false);
@@ -367,13 +374,51 @@ public class IndividualFormTests
         // Nhóm I: 1 dòng tiêu đề + 3 nhóm + 17 tiêu chí con; nhóm II: 1 + 6 trục.
         Assert.Equal(1 + 3 + 17, tables[1].Elements<TableRow>().Count());
         Assert.Equal(1 + 6, tables[2].Elements<TableRow>().Count());
-        var item21 = tables[1].Elements<TableRow>().Single(r => r.Elements<TableCell>().First().InnerText == "2.1");
-        var cells = item21.Elements<TableCell>().Select(c => c.InnerText).ToList();
-        Assert.Equal(("", "X", "1", "0", "Căn cứ giảm điểm"), (cells[2], cells[3], cells[4], cells[5], cells[6]));
+        var rows = tables[1].Elements<TableRow>().Select(r => r.Elements<TableCell>().Select(c => c.InnerText).ToList()).ToList();
+        // Nhận xét nhóm ở ô cuối dòng nhóm; nội dung tiêu chí con in nguyên văn biểu mẫu gốc.
+        Assert.Equal("Nhận xét nhóm 1 (test)", rows.Single(r => r[0] == "1")[^1]);
+        Assert.Equal("", rows.Single(r => r[0] == "2")[^1]);
+        Assert.StartsWith("Tuyệt đối trung thành với Đảng, với Tổ quốc và Nhân dân", rows.Single(r => r[0] == "1.1")[1]);
+        var item21 = rows.Single(r => r[0] == "2.1");
+        Assert.Equal(("", "X", "1", "0", "Căn cứ giảm điểm"), (item21[2], item21[3], item21[4], item21[5], item21[6]));
         var axis1 = tables[2].Elements<TableRow>().ElementAt(1).Elements<TableCell>().Select(c => c.InnerText).ToList();
         Assert.Equal(("15", "14"), (axis1[3], axis1[4]));
+        // Điểm tổng in gọn như phiếu đã nộp ("29", không "29,0").
         var summary = tables[3].Elements<TableRow>().Select(r => r.Elements<TableCell>().ElementAt(2).InnerText).ToList();
-        Assert.Equal(new[] { "29,0", "64,0", "93,0", "Hoàn thành tốt nhiệm vụ" }, summary.Skip(2));
+        Assert.Equal(new[] { "29", "64", "93", "Hoàn thành tốt nhiệm vụ" }, summary.Skip(2));
+    }
+
+    [Fact]
+    public void GeneralGroupNotes_Validation_AndJson()
+    {
+        var c = CriteriaSetDefaults.Build09B();
+        var json = RecordFormContent.GeneralGroupNotesToJson(c, new Dictionary<string, string?> { [" 1 "] = "  Nhận xét  ", ["2"] = " " });
+        Assert.Equal(new[] { "1" }, RecordFormContent.ParseGeneralGroupNotes(json).Keys);
+        Assert.Equal("Nhận xét", RecordFormContent.ParseGeneralGroupNotes(json)["1"]);
+        Assert.Null(RecordFormContent.GeneralGroupNotesToJson(c, new Dictionary<string, string?> { ["1"] = "" }));
+        Assert.Null(RecordFormContent.ValidateGeneralGroupNotes(c, new Dictionary<string, string?> { ["3"] = "x" }));
+        Assert.Contains("\"9\"", RecordFormContent.ValidateGeneralGroupNotes(c, new Dictionary<string, string?> { ["9"] = "x" }));
+        Assert.Contains("2000", RecordFormContent.ValidateGeneralGroupNotes(c, new Dictionary<string, string?> { ["1"] = new string('a', 2001) }));
+    }
+
+    [Fact]
+    public void DefaultCriteria_ItemFormTexts_AreOriginalWording()
+    {
+        foreach (var (c, form) in new[] { (CriteriaSetDefaults.Build09B(), CriteriaSetContent.Form09B), (CriteriaSetDefaults.Build09A(), CriteriaSetContent.Form09A) })
+        {
+            var items = c.AllItems.Select(x => x.Item).ToList();
+            Assert.Equal(17, items.Count);
+            Assert.All(items, i => Assert.False(string.IsNullOrWhiteSpace(i.FormText)));
+            Assert.StartsWith("Tuyệt đối trung thành với Đảng", items.Single(i => i.Code == "1.1").FormText);
+            Assert.Equal("Tự soi, tự sửa trên tinh thần trách nhiệm chính trị cao, không né tránh, không đổ lỗi.", items.Single(i => i.Code == "3.4").FormText);
+            Assert.Empty(c.Validate(form));
+        }
+        var bad = CriteriaSetDefaults.Build09B();
+        bad.GeneralGroups[0].Items[0].FormText = new string('a', 4001);
+        Assert.Contains(bad.Validate(CriteriaSetContent.Form09B), e => e.Contains("in trên phiếu"));
+        // Lưu/đọc bộ tiêu chí giữ nguyên nội dung in.
+        var parsed = CriteriaSetContent.Parse(CriteriaSetDefaults.Build09B().ToJson());
+        Assert.StartsWith("Tuyệt đối trung thành", parsed.GeneralGroups[0].Items[0].FormText);
     }
 
     [Fact]

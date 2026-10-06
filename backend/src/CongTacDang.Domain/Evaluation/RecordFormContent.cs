@@ -107,6 +107,9 @@ public static class RecordFormContent
     /// <summary>Độ dài tối đa mỗi ô tự luận của một trục trên Mẫu 09B.</summary>
     public const int MaxAxisNoteLength = 4000;
 
+    /// <summary>Độ dài tối đa nhận xét của một nhóm tiêu chí chung.</summary>
+    public const int MaxGroupNoteLength = 2000;
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -340,6 +343,47 @@ public static class RecordFormContent
     {
         var t = NormalizeNewLines(value.Trim());
         return t.Length == 0 || ".!?;:".Contains(t[^1]) ? t : t + ".";
+    }
+
+    #endregion
+
+    #region Nhận xét theo nhóm tiêu chí chung (Mẫu 09A/09B)
+
+    /// <summary>Đọc nhận xét theo nhóm; chuỗi rỗng → rỗng; JSON sai → <see cref="JsonException"/>.</summary>
+    public static Dictionary<string, string> ParseGeneralGroupNotes(string? json) =>
+        string.IsNullOrWhiteSpace(json)
+            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, string>(
+                JsonSerializer.Deserialize<Dictionary<string, string>>(json, JsonOptions) ?? new(), StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Kiểm tra nhận xét theo nhóm: mã nhóm có trong bộ tiêu chí, độ dài. Trả thông báo lỗi hoặc null.</summary>
+    public static string? ValidateGeneralGroupNotes(CriteriaSetContent criteria, IReadOnlyDictionary<string, string?>? notes)
+    {
+        ArgumentNullException.ThrowIfNull(criteria);
+        foreach (var (code, text) in notes ?? new Dictionary<string, string?>())
+        {
+            var group = criteria.GeneralGroups.FirstOrDefault(g => string.Equals(g.Code, code?.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (group == null)
+                return $"Nhóm tiêu chí \"{code}\" không có trong bộ tiêu chí của kỳ (có: {string.Join(", ", criteria.GeneralGroups.Select(g => g.Code))}).";
+            if ((text?.Trim().Length ?? 0) > MaxGroupNoteLength)
+                return $"Nhận xét nhóm tiêu chí {group.Code} không được dài quá {MaxGroupNoteLength} ký tự.";
+        }
+        return null;
+    }
+
+    /// <summary>Ghi nhận xét theo nhóm đã kiểm tra: khóa theo mã nhóm của bộ, bỏ nhóm trống; không có gì → null.</summary>
+    public static string? GeneralGroupNotesToJson(CriteriaSetContent criteria, IReadOnlyDictionary<string, string?>? notes)
+    {
+        ArgumentNullException.ThrowIfNull(criteria);
+        var input = notes ?? new Dictionary<string, string?>();
+        var result = new Dictionary<string, string>();
+        foreach (var group in criteria.GeneralGroups)
+        {
+            var text = Clean(Find(input, group.Code));
+            if (text != null)
+                result[group.Code] = text;
+        }
+        return result.Count == 0 ? null : JsonSerializer.Serialize(result, JsonOptions);
     }
 
     #endregion

@@ -53,6 +53,7 @@ public sealed class IndividualFormsIntegrationTests
         Assert.Equal("Ý con T1 (IT)", reports.GetProperty("T1").GetProperty("tasks")[1].GetProperty("items")[0].GetProperty("content").GetString());
         Assert.Equal("Đúng hạn", reports.GetProperty("T1").GetProperty("progress").GetString());
         Assert.Equal("Mục tiêu trục 1 (IT)", saved.GetProperty("axisNotes").GetProperty("T1").GetProperty("target").GetString());
+        Assert.Equal("Nhận xét nhóm 1 (IT)", saved.GetProperty("generalGroupNotes").GetProperty("1").GetString());
 
         // Lịch sử ghi nhận thay đổi biểu mẫu.
         var history = (await Data(w.Owner, $"/api/evaluations/records/{recordId}/history")).EnumerateArray().ToList();
@@ -66,6 +67,7 @@ public sealed class IndividualFormsIntegrationTests
         Assert.Contains("TRỤC (1) – NHIỆM VỤ CHÍNH TRỊ", b.Text);
         Assert.Contains("Mục tiêu trục 1 (IT)", b.Text);
         Assert.Contains("Kết quả trục 1 (IT)", b.Text);
+        Assert.Contains("Nhận xét nhóm 1 (IT)", b.Text);
         Assert.Contains(w.OwnerName, b.Text);
         Assert.Contains(w.PositionName, b.Text);
         Assert.Contains($"CHI BỘ 1 {w.Suffix}", b.Text);
@@ -162,10 +164,11 @@ public sealed class IndividualFormsIntegrationTests
         if (extraAxis != null)
             reports[extraAxis] = new { tasks = new[] { new { content = "Trục lạ" } } };
 
+        var groupNotes = new Dictionary<string, string> { ["1"] = "Nhận xét nhóm 1 (IT)" };
         var general = CriteriaTestData.General("2.1");
         var axis = CriteriaTestData.Axis(14, 9, 9, 14, 9, 9);
         if (!withAxisNotes)
-            return new { generalScores = general, axisScores = axis, selfProposedGrade = "HoanThanhTot", selfAssessment = new Dictionary<string, string> { ["I"] = selfAssessment }, axisReports = reports };
+            return new { generalScores = general, axisScores = axis, selfProposedGrade = "HoanThanhTot", selfAssessment = new Dictionary<string, string> { ["I"] = selfAssessment }, axisReports = reports, generalGroupNotes = groupNotes };
         return new
         {
             generalScores = general,
@@ -173,6 +176,7 @@ public sealed class IndividualFormsIntegrationTests
             selfProposedGrade = "HoanThanhTot",
             selfAssessment = new Dictionary<string, string> { ["I"] = selfAssessment },
             axisReports = reports,
+            generalGroupNotes = groupNotes,
             axisNotes = new Dictionary<string, object> { ["T1"] = new { target = "Mục tiêu trục 1 (IT)", result = "Kết quả trục 1 (IT)" } }
         };
     }

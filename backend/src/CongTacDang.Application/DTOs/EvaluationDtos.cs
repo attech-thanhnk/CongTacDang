@@ -136,6 +136,8 @@ public class EvaluationRecordDto
     public Dictionary<string, AxisReport> AxisReports { get; set; } = new();
     /// <summary>Mẫu 09B — nội dung tự luận theo trục (khóa = mã trục; task 18).</summary>
     public Dictionary<string, AxisNote> AxisNotes { get; set; } = new();
+    /// <summary>Nhận xét theo nhóm tiêu chí chung (khóa = mã nhóm), in ở dòng nhóm của phiếu tự chấm.</summary>
+    public Dictionary<string, string> GeneralGroupNotes { get; set; } = new();
 
     // B2 — Chi bộ xác nhận
     /// <summary>Ý kiến xác nhận của Chi bộ trên phiếu tự chấm.</summary>
@@ -272,6 +274,8 @@ public class SubmitSelfScoreRequestDto : WorkflowRequestDto
     public Dictionary<string, AxisReport?>? AxisReports { get; set; }
     /// <summary>Mẫu 09B: nội dung tự luận theo trục (khóa = mã trục); null = giữ nội dung đã lưu (task 18).</summary>
     public Dictionary<string, AxisNote?>? AxisNotes { get; set; }
+    /// <summary>Nhận xét theo nhóm tiêu chí chung (khóa = mã nhóm); null = giữ nội dung đã lưu.</summary>
+    public Dictionary<string, string?>? GeneralGroupNotes { get; set; }
 }
 
 /// <summary>Kết quả kiểm phiếu tổng hợp của một hồ sơ (không có thông tin người bỏ phiếu).</summary>

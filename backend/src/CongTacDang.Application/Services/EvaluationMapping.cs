@@ -122,6 +122,7 @@ public static class EvaluationMapping
             SelfAssessment = SafeParse(() => RecordFormContent.ParseSelfAssessment(r.SelfAssessment), new Dictionary<string, string>()),
             AxisReports = SafeParse(() => RecordFormContent.ParseAxisReports(r.AxisReports), new Dictionary<string, AxisReport>()),
             AxisNotes = SafeParse(() => RecordFormContent.ParseAxisNotes(r.AxisNotes), new Dictionary<string, AxisNote>()),
+            GeneralGroupNotes = SafeParse(() => RecordFormContent.ParseGeneralGroupNotes(r.GeneralGroupNotes), new Dictionary<string, string>()),
 
             PartyCellComment = r.PartyCellComment,
             CellConfirmedByName = r.CellConfirmedByName,

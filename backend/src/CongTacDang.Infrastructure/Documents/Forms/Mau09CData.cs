@@ -98,7 +98,7 @@ public sealed class Mau09CData
             Quarter = record.Period != null ? CollectiveFormText.RomanQuarter(record.Period.Quarter) : null,
             Year = Mau09Shared.Year(record),
             FullName = FormText.Spaced(fullName?.ToUpper(Vietnamese)),
-            DateOfBirth = record.Member?.DateOfBirth?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture),
+            DateOfBirth = Mau09Shared.DateOfBirth(record),
             PartyPosition = positions.Party,
             AdministrativePosition = noPositions ? FormText.OrNull(record.Member?.PositionTitle) : positions.Administrative,
             MassPosition = positions.MassOrganization,
@@ -120,22 +120,12 @@ public sealed class Mau09CData
                     Axes = axes
                 };
             }).ToList(),
-            GeneralScore = Score(source, record.GeneralCriteriaScore, rounding.GeneralTotal),
-            TasksScore = Score(source, record.TasksScore, rounding.TasksTotal),
-            TotalScore = Score(source, record.TotalSelfScore, rounding.Total),
+            GeneralScore = Mau09Shared.CompactScore(source, record.GeneralCriteriaScore, rounding.GeneralTotal),
+            TasksScore = Mau09Shared.CompactScore(source, record.TasksScore, rounding.TasksTotal),
+            TotalScore = Mau09Shared.CompactScore(source, record.TotalSelfScore, rounding.Total),
             SelfGrade = Mau09Shared.SelfGrade(record),
             SignerName = fullName
         };
-    }
-
-    /// <summary>Điểm phần II như bản đã nộp: số nguyên in gọn ("30/30"), số lẻ theo làm tròn của bộ tiêu chí ("29,5/30").</summary>
-    private static string? Score(IndividualFormSource source, double value, RoundingRule rule)
-    {
-        if (!source.HasSelfScore)
-            return null;
-        var text = FormText.Number(value, Math.Clamp(rule.Decimals, 0, 4));
-        var comma = text.IndexOf(',', StringComparison.Ordinal);
-        return comma >= 0 && text[(comma + 1)..].All(c => c == '0') ? text[..comma] : text;
     }
 }
 
