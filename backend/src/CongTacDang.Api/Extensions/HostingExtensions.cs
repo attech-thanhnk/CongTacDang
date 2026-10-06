@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -10,32 +9,23 @@ namespace CongTacDang.Api.Extensions;
 
 public static class HostingExtensions
 {
-    public static void ValidateRequiredConfiguration(this IConfiguration configuration)
+    /// <summary>
+    /// Kiểm tra cấu hình bắt buộc và khóa/mật khẩu (xem <see cref="StartupSecretPolicy"/>). Có lỗi → ghi thông báo
+    /// tiếng Việt ra stderr (log của container) rồi ném ngoại lệ để ứng dụng dừng, không khởi động với cấu hình không an toàn.
+    /// </summary>
+    public static void ValidateRequiredConfiguration(this IConfiguration configuration, string environmentName)
     {
-        var jwtSecret = configuration["Jwt:Secret"];
-        if (string.IsNullOrWhiteSpace(jwtSecret))
+        var errors = StartupSecretPolicy.Validate(configuration, environmentName);
+        if (errors.Count == 0)
         {
-            throw new InvalidOperationException(
-                "Thiếu cấu hình bắt buộc 'Jwt:Secret'. Hãy đặt bằng biến môi trường hoặc dotnet user-secrets.");
+            return;
         }
 
-        if (Encoding.UTF8.GetByteCount(jwtSecret) < 32)
-        {
-            throw new InvalidOperationException("Cấu hình 'Jwt:Secret' phải có ít nhất 32 byte.");
-        }
-
-        if (jwtSecret.Contains("CongTacDang_ATTECH_2026_SecretKey", StringComparison.OrdinalIgnoreCase) ||
-            jwtSecret.Contains("Minimum_32_Chars_Long", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException(
-                "Cấu hình 'Jwt:Secret' vẫn là chuỗi mẫu cũ. Hãy sinh secret mới trước khi khởi động.");
-        }
-
-        if (string.IsNullOrWhiteSpace(configuration.GetConnectionString("Default")))
-        {
-            throw new InvalidOperationException(
-                "Thiếu cấu hình bắt buộc 'ConnectionStrings:Default'. Hãy đặt bằng biến môi trường hoặc dotnet user-secrets.");
-        }
+        var message = $"Không khởi động: cấu hình khóa/mật khẩu không an toàn (môi trường {environmentName}):"
+            + Environment.NewLine + string.Join(Environment.NewLine, errors.Select(e => " - " + e))
+            + Environment.NewLine + "Xem docs/deployment.md, mục \"Đổi khóa và mật khẩu trước khi chạy thật\".";
+        Console.Error.WriteLine("[LỖI CẤU HÌNH] " + message);
+        throw new InvalidOperationException(message);
     }
 
     public static IServiceCollection AddConfiguredForwardedHeaders(

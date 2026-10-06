@@ -18,7 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Log có cấu trúc ra console và file xoay vòng theo ngày (cấu hình Logging:Console:Json, Logging:File:*)
 builder.Logging.AddConfiguredLogging(builder.Configuration, builder.Environment);
 
-builder.Configuration.ValidateRequiredConfiguration();
+builder.Configuration.ValidateRequiredConfiguration(builder.Environment.EnvironmentName);
 builder.Services.AddConfiguredForwardedHeaders(builder.Configuration);
 
 builder.Services.AddHttpContextAccessor();
