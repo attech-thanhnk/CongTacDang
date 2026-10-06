@@ -225,6 +225,164 @@
   font-weight: 500;
 }
 
+/* Bước bấm được (đã xong / đang làm) và bước chưa tới */
+.stepBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0 4px 4px;
+  background: none;
+  border: 0;
+  border-radius: 10px;
+  font: inherit;
+  color: inherit;
+  text-align: center;
+}
+
+button.stepBtn {
+  cursor: pointer;
+}
+
+button.stepBtn:hover .stepName {
+  color: var(--primary-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+button.stepBtn:hover .c {
+  box-shadow: 0 0 0 4px var(--primary-tint);
+}
+
+button.stepBtn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.stepIdle {
+  cursor: default;
+}
+
+/* Khối cuộn tới được: chừa khoảng phía trên khi cuộn */
+.anchor {
+  scroll-margin-top: 16px;
+}
+
+.actionsAnchor {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  scroll-margin-top: 16px;
+}
+
+.actionsAnchor:empty {
+  display: none;
+}
+
+.actionsAnchor:focus {
+  outline: none;
+}
+
+/* Dòng trạng thái dưới tên cán bộ */
+.headMain {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.statusLine {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--rule);
+  background: var(--tint);
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.statusMine {
+  border-color: var(--primary-line);
+  background: var(--primary-tint);
+  color: var(--ink);
+}
+
+.statusDone {
+  border-color: var(--ok-line);
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.statusText {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+.statusText strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.statusMine .statusText strong {
+  color: var(--primary-ink);
+}
+
+.statusSep {
+  color: var(--ink-3);
+}
+
+.statusGo {
+  margin-left: auto;
+}
+
+.stepTagDone {
+  color: var(--ok);
+  background: var(--ok-bg);
+}
+
+.stepTagText {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stepTagNow {
+  color: var(--primary-ink);
+  background: var(--primary-tint);
+}
+
+@media (max-width: 560px) {
+  .statusLine {
+    font-size: 13.5px;
+  }
+  .statusGo {
+    margin-left: 0;
+  }
+  .step {
+    min-width: 84px;
+  }
+  .hideNarrow {
+    display: none !important;
+  }
+  /* Màn hình hẹp: mỗi phần của dòng trạng thái một dòng, bỏ dấu ngăn cách */
+  .statusSep {
+    display: none;
+  }
+  .statusPart {
+    flex-basis: 100%;
+  }
+  .stepTagText {
+    max-width: 130px;
+  }
+}
+
 /* Hai cột */
 .cols {
   display: grid;

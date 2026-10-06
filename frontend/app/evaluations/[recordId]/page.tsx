@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { GradeBadge } from "@/components/common/StatusBadge";
 import { useToast } from "@/contexts/ToastContext";
-import { RecordProgress } from "@/components/evaluations/RecordProgress";
+import { RecordProgress, actorOf, formatShortDateTime } from "@/components/evaluations/RecordProgress";
 import { RecordActionPanel } from "@/components/evaluations/RecordActionPanel";
 import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
 import { AppealPanel } from "@/components/evaluations/AppealPanel";
@@ -13,7 +13,7 @@ import { ImprovementPlanPanel } from "@/components/evaluations/ImprovementPlanPa
 import { EvaluationPdfModal } from "@/components/evaluations/EvaluationPdfModal";
 import { RecordFormsPanel } from "@/components/evaluations/RecordFormsPanel";
 import { RecordHistory } from "@/components/evaluations/RecordHistory";
-import { CollapsibleSection } from "@/components/evaluations/CollapsibleSection";
+import { CollapsibleSection, revealSection } from "@/components/evaluations/CollapsibleSection";
 import { AxisSummaryView, SelfAssessmentView } from "@/components/evaluations/IndividualFormInputs";
 import { loadCriteria, useCriteria } from "@/components/evaluations/useCriteria";
 import { initialsOf } from "@/components/dashboard/taskUtils";
@@ -27,6 +27,7 @@ import {
   EvaluationRecordHistoryDto,
   RecordActionDto,
   RecordFormDto,
+  RecordStepProgressDto,
   WorkflowActionCode,
   WorkflowStepCode,
   STEP_NAMES,
@@ -110,6 +111,15 @@ export default function EvaluationRecordPage() {
     }
   };
 
+  // Bước đang làm mà người xem có thao tác → tới khu thao tác; còn lại → mở và cuộn tới khối nội dung của bước.
+  const selectStep = (item: RecordStepProgressDto) => {
+    if (item.state === "current" && actions.some((a) => a.step === item.step)) {
+      goToActions();
+      return;
+    }
+    if (!revealSection(STEP_SECTION[item.step]) && item.mode === "External") revealSection(EXTERNAL_SECTION);
+  };
+
   if (loading) {
     return <div className="page-wrapper"><div className="text-secondary p-4 loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải hồ sơ...</div></div>;
   }
@@ -129,9 +139,10 @@ export default function EvaluationRecordPage() {
       <div className="page-body">
         <div className={styles.head}>
           <div className={`initials ${styles.bigInitials}`}>{initialsOf(record.fullName)}</div>
-          <div>
+          <div className={styles.headMain}>
             <h1>{record.fullName}</h1>
             <p className={styles.lede}>{[record.positionTitle, record.partyCellName].filter(Boolean).join(" · ") || record.departmentName}</p>
+            <RecordStatusLine record={record} actions={actions} onGo={goToActions} />
           </div>
         </div>
 
@@ -148,12 +159,14 @@ export default function EvaluationRecordPage() {
         )}
 
         <section className={styles.block} aria-label="Tiến trình hồ sơ">
-          <RecordProgress progress={record.progress} />
+          <RecordProgress progress={record.progress} onSelect={selectStep} />
         </section>
 
         <div className={styles.cols}>
           <div className={styles.stack}>
-            <RecordActionPanel record={record} actions={actions} busy={busy} onSubmit={perform} onReason={setReasonAction} />
+            <div id={ACTIONS_ANCHOR} className={styles.actionsAnchor} tabIndex={-1}>
+              <RecordActionPanel record={record} actions={actions} busy={busy} onSubmit={perform} onReason={setReasonAction} />
+            </div>
             <RecordData record={record} />
             <AppealPanel record={record} onRecordChanged={load} />
             <ImprovementPlanPanel record={record} />
@@ -189,6 +202,113 @@ export default function EvaluationRecordPage() {
       />
 
       {pdf && <EvaluationPdfModal isOpen onClose={() => setPdf(null)} record={record} forms={forms} initialCode={pdf} />}
+    </div>
+  );
+}
+
+/** Id khu thao tác và khối nội dung của từng bước (cuộn tới từ dòng trạng thái / thanh tiến trình). */
+const ACTIONS_ANCHOR = "record-actions";
+const EXTERNAL_SECTION = "step-external";
+const STEP_SECTION: Record<WorkflowStepCode, string> = {
+  B1_REGISTER: "step-b1",
+  B1_APPROVE: "step-b1",
+  B2_SELF_SCORE: "step-b2-self",
+  B2_CELL_CONFIRM: "step-b2-cell",
+  B3A_COLLECTIVE: "step-b3a",
+  B3B_APPRAISAL: "step-b3b",
+  B3C_DIRECTOR: "step-b3c",
+  B4_DECISION: "step-b4",
+  B5_PUBLISH: "step-b4",
+};
+const B1_STEPS: WorkflowStepCode[] = ["B1_REGISTER", "B1_APPROVE"];
+const DECISION_STEPS: WorkflowStepCode[] = ["B4_DECISION", "B5_PUBLISH"];
+
+/** Cuộn mượt tới khu thao tác và đặt focus vào ô nhập / nút đầu tiên. */
+function goToActions() {
+  const area = document.getElementById(ACTIONS_ANCHOR);
+  if (!area) return;
+  area.scrollIntoView({ behavior: "smooth", block: "start" });
+  const first = area.querySelector<HTMLElement>(
+    "input:not([disabled]):not([type='hidden']), select:not([disabled]), textarea:not([disabled]), button:not([disabled])",
+  );
+  (first ?? area).focus({ preventScroll: true });
+}
+
+/** Số ngày từ hôm nay (giờ máy) tới thời hạn dạng yyyy-MM-dd; null khi không đọc được. */
+function daysUntil(deadline: string): number | null {
+  const [y, m, d] = deadline.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((Date.UTC(y, m - 1, d) - today) / 86_400_000);
+}
+
+/** "Hạn dd/MM/yyyy (còn N ngày / hôm nay / quá hạn N ngày)". */
+function DueText({ item }: { item?: RecordStepProgressDto }) {
+  if (!item?.deadline) return null;
+  const days = daysUntil(item.deadline);
+  const late = item.overdue || (days !== null && days < 0);
+  const rest =
+    days === null ? "" : days > 0 ? ` (còn ${days} ngày)` : days === 0 ? " (hôm nay)" : ` (quá hạn ${-days} ngày)`;
+  return (
+    <>
+      <span className={styles.statusSep} aria-hidden="true">·</span>
+      <span className={`num ${styles.statusPart} ${late ? styles.late : ""}`}>Hạn {formatDate(item.deadline)}{rest}</span>
+    </>
+  );
+}
+
+/**
+ * Dòng trạng thái dưới tên cán bộ: việc của người đang xem (theo `actions`) kèm nút tới khu thao tác;
+ * nếu không có việc thì bước đang chờ và chủ thể thực hiện (máy chủ mô tả); hồ sơ đã công bố thì mức xếp loại.
+ */
+function RecordStatusLine({ record, actions, onGo }: { record: EvaluationRecordDto; actions: RecordActionDto[]; onGo: () => void }) {
+  if (record.status === "Published") {
+    return (
+      <div className={`${styles.statusLine} ${styles.statusDone}`}>
+        <span className={styles.statusText}>
+          <i className="bi bi-check-circle-fill" aria-hidden="true" />
+          <strong>Đã công bố kết quả</strong>
+          {hasGrade(record.finalGrade) && <GradeBadge grade={record.finalGrade} />}
+        </span>
+      </div>
+    );
+  }
+
+  const primary = actions.find((a) => !a.requiresReason) ?? actions[0];
+  if (primary) {
+    const step = record.progress.find((p) => p.step === primary.step);
+    return (
+      <div className={`${styles.statusLine} ${styles.statusMine}`}>
+        <span className={styles.statusText}>
+          <i className="bi bi-pencil-square" aria-hidden="true" />
+          <span>Việc của bạn: <strong>{primary.label}</strong></span>
+          <DueText item={step} />
+        </span>
+        <button type="button" className={`btn btn-primary btn-sm ${styles.statusGo}`} onClick={onGo}>
+          Làm ngay <i className="bi bi-arrow-down-short" aria-hidden="true" />
+        </button>
+      </div>
+    );
+  }
+
+  const steps = record.progress.filter((p) => p.state !== "skipped");
+  const index = steps.findIndex((p) => p.state === "current");
+  if (index < 0) return null;
+  const current = steps[index];
+  const actor = actorOf(current);
+  return (
+    <div className={styles.statusLine}>
+      <span className={styles.statusText}>
+        <span>Đang ở bước {index + 1} – <strong>{current.name}</strong></span>
+        {actor && (
+          <>
+            <span className={styles.statusSep} aria-hidden="true">·</span>
+            <span className={styles.statusPart}>{current.mode === "External" ? actor : `Chờ: ${actor}`}</span>
+          </>
+        )}
+        <DueText item={current} />
+      </span>
     </div>
   );
 }
@@ -243,20 +363,49 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
   const { criteria } = useCriteria(record.periodId);
   const stepOf = (step: WorkflowStepCode) => record.progress.find((p) => p.step === step);
   const enabled = (step: WorkflowStepCode) => stepOf(step)?.enabled ?? true;
-  const reached = (step: WorkflowStepCode) => {
-    const state = stepOf(step)?.state;
-    return state === undefined || state === "done" || state === "current";
+  /** Các bước áp dụng của một khối (khối "Danh mục" gồm B1 đăng ký + duyệt; "Quyết định và công bố" gồm B4 + B5). */
+  const itemsOf = (steps: WorkflowStepCode[]) =>
+    steps.map(stepOf).filter((p): p is RecordStepProgressDto => !!p && p.state !== "skipped");
+  const isCurrent = (steps: WorkflowStepCode[]) => itemsOf(steps).some((p) => p.state === "current");
+  /** Khối hiện khi bước đã xong / đang làm, hoặc còn dữ liệu cũ (sau khi mở lại); bước chưa tới chưa có dữ liệu thì ẩn. */
+  const visible = (steps: WorkflowStepCode[], hasData: boolean) => {
+    const items = itemsOf(steps);
+    if (items.length === 0) return steps.every((s) => !stepOf(s)) || hasData;
+    return hasData || items.some((p) => p.state === "done" || p.state === "current");
   };
-  const tag = (step: WorkflowStepCode) => {
-    const item = stepOf(step);
-    if (item?.mode !== "External" && item?.state !== "pending") return undefined;
+  /** Trạng thái ngắn ở tiêu đề khối: ✓ ngày · người / Đang làm / Chưa tới (+ "Cấp trên thực hiện"). */
+  const tag = (steps: WorkflowStepCode[]) => {
+    const items = itemsOf(steps);
+    if (items.length === 0) return undefined;
+    const external = items.some((p) => p.mode === "External");
+    let status: React.ReactNode;
+    if (items.some((p) => p.state === "current")) {
+      status = <span className={`tag ${styles.stepTagNow}`}>Đang làm</span>;
+    } else if (items.every((p) => p.state === "done")) {
+      const last = items[items.length - 1];
+      const day = formatShortDateTime(last.doneAt).slice(0, 5);
+      const text = [day, last.doneByName].filter(Boolean).join(" · ");
+      status = (
+        <span className={`tag ${styles.stepTagDone}`} title={text || undefined}>
+          <i className="bi bi-check-lg" aria-hidden="true" />
+          {text ? <span className={styles.stepTagText}>{text}</span> : "Đã xong"}
+        </span>
+      );
+    } else {
+      status = <span className={`tag ${styles.tNeutral}`}>Chưa tới</span>;
+    }
     return (
       <>
-        {item?.mode === "External" && <span className={`tag ${styles.tNeutral}`}>Cấp trên thực hiện</span>}
-        {item?.state === "pending" && <span className={`tag ${styles.tNeutral}`}>Chưa tới</span>}
+        {external && <span className={`tag ${styles.tNeutral} ${styles.hideNarrow}`}>Cấp trên thực hiện</span>}
+        {status}
       </>
     );
   };
+  const section = (steps: WorkflowStepCode[]) => ({
+    anchorId: STEP_SECTION[steps[0]],
+    tag: tag(steps),
+    defaultOpen: isCurrent(steps),
+  });
   const axes = criteria?.content.axes ?? [];
   const axisName = (code: string) => axes.find((a) => a.code.toLowerCase() === code.toLowerCase())?.name;
   const groupName = (code: string) => criteria?.content.generalGroups.find((g) => g.code === code)?.name;
@@ -264,11 +413,12 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
   const params = criteria?.content.parameters;
   const selfScored = !!record.selfScoredAt || stepOf("B2_SELF_SCORE")?.state === "done";
   const axisEntries = record.axisScores ? Object.entries(record.axisScores) : [];
+  const selfVisible = visible(["B2_SELF_SCORE"], !!record.selfScoredAt);
 
   return (
     <>
       {record.externalResults?.length > 0 && (
-        <CollapsibleSection title="Kết quả do cấp trên thực hiện" flush>
+        <CollapsibleSection title="Kết quả do cấp trên thực hiện" anchorId={EXTERNAL_SECTION} defaultOpen={false} flush>
           <div className={styles.tw}><table className={styles.table}>
             <thead><tr><th>Bước</th><th>Cơ quan</th><th>Văn bản</th><th>Mức / điểm</th><th>Ghi nhận</th></tr></thead>
             <tbody>
@@ -302,8 +452,8 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
         </CollapsibleSection>
       )}
 
-      {enabled("B1_REGISTER") && (
-        <CollapsibleSection title="Danh mục sản phẩm (Mẫu 01)" tag={tag("B1_REGISTER")} defaultOpen={reached("B1_REGISTER")} flush>
+      {enabled("B1_REGISTER") && visible(B1_STEPS, record.tasks.length > 0) && (
+        <CollapsibleSection title="Danh mục sản phẩm (Mẫu 01)" {...section(B1_STEPS)} flush>
           {record.tasks.length === 0 ? (
             <div className={`${styles.body} ${styles.small}`}>Chưa đăng ký.</div>
           ) : (
@@ -330,10 +480,10 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
         </CollapsibleSection>
       )}
 
+      {selfVisible && (
       <CollapsibleSection
         title={`Phiếu tự chấm (Mẫu 09${record.selfScoreForm === "09B" ? "B" : "A"})`}
-        tag={tag("B2_SELF_SCORE")}
-        defaultOpen={reached("B2_SELF_SCORE")}
+        {...section(["B2_SELF_SCORE"])}
         flush
       >
         {selfScored ? (
@@ -404,22 +554,23 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
           </div>
         )}
       </CollapsibleSection>
+      )}
 
-      {criteriaAppliesForm(criteria, "9D") && (
-        <CollapsibleSection title="Kết quả thực hiện nhiệm vụ (Mẫu 9D)" tag={tag("B2_SELF_SCORE")} defaultOpen={false}>
+      {selfVisible && criteriaAppliesForm(criteria, "9D") && (
+        <CollapsibleSection title="Kết quả thực hiện nhiệm vụ (Mẫu 9D)" defaultOpen={false}>
           <AxisSummaryView axes={axes} reports={record.axisReports} />
         </CollapsibleSection>
       )}
 
-      {criteriaAppliesForm(criteria, "09C") && (
-        <CollapsibleSection title="Bản tự đánh giá (Mẫu 09C)" tag={tag("B2_SELF_SCORE")} defaultOpen={false}>
+      {selfVisible && criteriaAppliesForm(criteria, "09C") && (
+        <CollapsibleSection title="Bản tự đánh giá (Mẫu 09C)" defaultOpen={false}>
           <SelfAssessmentView sections={selfAssessmentSections(criteria)} value={record.selfAssessment}
             blocks={buildAxisTaskBlocks(axes, record.axisReports, criteria)} />
         </CollapsibleSection>
       )}
 
-      {enabled("B2_CELL_CONFIRM") && (
-        <CollapsibleSection title="Xác nhận của Chi bộ" tag={tag("B2_CELL_CONFIRM")} defaultOpen={reached("B2_CELL_CONFIRM")}>
+      {enabled("B2_CELL_CONFIRM") && visible(["B2_CELL_CONFIRM"], !!record.cellConfirmedAt) && (
+        <CollapsibleSection title="Xác nhận của Chi bộ" {...section(["B2_CELL_CONFIRM"])}>
           <Fields
             items={[
               ["Người xác nhận", record.cellConfirmedByName],
@@ -430,8 +581,8 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
         </CollapsibleSection>
       )}
 
-      {enabled("B3A_COLLECTIVE") && (
-        <CollapsibleSection title={STEP_NAMES.B3A_COLLECTIVE} tag={tag("B3A_COLLECTIVE")} defaultOpen={reached("B3A_COLLECTIVE")}>
+      {enabled("B3A_COLLECTIVE") && visible(["B3A_COLLECTIVE"], !!record.collectiveRecordedAt) && (
+        <CollapsibleSection title={STEP_NAMES.B3A_COLLECTIVE} {...section(["B3A_COLLECTIVE"])}>
           <Fields
             items={[
               ["Mức đề xuất", hasGrade(record.collectiveProposedGrade) ? <GradeBadge grade={record.collectiveProposedGrade} /> : null],
@@ -442,8 +593,8 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
         </CollapsibleSection>
       )}
 
-      {enabled("B3B_APPRAISAL") && (
-        <CollapsibleSection title="Thẩm định" tag={tag("B3B_APPRAISAL")} defaultOpen={reached("B3B_APPRAISAL")}>
+      {enabled("B3B_APPRAISAL") && visible(["B3B_APPRAISAL"], !!record.appraisedAt) && (
+        <CollapsibleSection title="Thẩm định" {...section(["B3B_APPRAISAL"])}>
           <Fields
             items={[
               ["Điểm thẩm định", record.appraisedAt || stepOf("B3B_APPRAISAL")?.state === "done" ? record.appraisalScore : null],
@@ -456,8 +607,8 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
         </CollapsibleSection>
       )}
 
-      {enabled("B3C_DIRECTOR") && (
-        <CollapsibleSection title={STEP_NAMES.B3C_DIRECTOR} tag={tag("B3C_DIRECTOR")} defaultOpen={reached("B3C_DIRECTOR")}>
+      {enabled("B3C_DIRECTOR") && visible(["B3C_DIRECTOR"], !!record.directorReviewedAt) && (
+        <CollapsibleSection title={STEP_NAMES.B3C_DIRECTOR} {...section(["B3C_DIRECTOR"])}>
           <Fields
             items={[
               ["Mức đề xuất", hasGrade(record.directorProposedGrade) ? <GradeBadge grade={record.directorProposedGrade} /> : null],
@@ -468,8 +619,8 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
         </CollapsibleSection>
       )}
 
-      {stepOf("B4_DECISION")?.state !== "skipped" && (
-        <CollapsibleSection title="Quyết định và công bố" tag={tag("B4_DECISION")} defaultOpen={reached("B4_DECISION")}>
+      {stepOf("B4_DECISION")?.state !== "skipped" && visible(DECISION_STEPS, !!record.decisionRecordedAt || !!record.publishedAt) && (
+        <CollapsibleSection title="Quyết định và công bố" {...section(DECISION_STEPS)}>
           <Fields
             items={[
               ["Mức xếp loại", hasGrade(record.finalGrade) ? <GradeBadge grade={record.finalGrade} /> : null],

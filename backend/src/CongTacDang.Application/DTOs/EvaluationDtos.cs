@@ -75,6 +75,12 @@ public class RecordStepProgressDto
     public DateOnly? Deadline { get; set; }
     /// <summary>Đã quá thời hạn mà bước chưa xong.</summary>
     public bool Overdue { get; set; }
+    /// <summary>Chủ thể thực hiện bước (tên chủ hồ sơ, Chi bộ, tập thể lãnh đạo đơn vị…; bước cấp trên: "Cấp trên thực hiện").</summary>
+    public string Actor { get; set; } = string.Empty;
+    /// <summary>Thời điểm hoàn thành bước (chỉ với bước đã xong và có dữ liệu thời điểm).</summary>
+    public DateTime? DoneAt { get; set; }
+    /// <summary>Người / cơ quan đã hoàn thành bước (chỉ với bước đã xong).</summary>
+    public string? DoneByName { get; set; }
 }
 
 /// <summary>Thông tin Hồ sơ Đánh giá Cán bộ</summary>

@@ -183,6 +183,12 @@ export interface RecordStepProgressDto {
   state: "done" | "current" | "pending" | "skipped";
   deadline?: string | null;
   overdue: boolean;
+  /** Chủ thể thực hiện bước (máy chủ mô tả theo hồ sơ luồng và dữ liệu hồ sơ); máy chủ cũ có thể chưa trả. */
+  actor?: string | null;
+  /** Thời điểm hoàn thành (bước đã xong). */
+  doneAt?: string | null;
+  /** Người / cơ quan hoàn thành (bước đã xong). */
+  doneByName?: string | null;
 }
 
 /** Hồ sơ đánh giá cá nhân */

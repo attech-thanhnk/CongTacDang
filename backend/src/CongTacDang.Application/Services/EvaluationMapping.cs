@@ -32,7 +32,93 @@ public static class EvaluationMapping
     public static WorkflowProfile ProfileOf(PeriodSettings settings, EvaluationRecord record) =>
         settings.ResolveProfile(record.WorkflowProfileCode, record.ApprovalAuthority);
 
-    /// <summary>Tiến trình 9 bước của hồ sơ theo hồ sơ luồng của hồ sơ.</summary>
+    /// <summary>
+    /// Tiến trình 9 bước của hồ sơ theo hồ sơ luồng của hồ sơ, kèm chủ thể thực hiện từng bước và người/thời điểm
+    /// hoàn thành của bước đã xong (lấy từ các trường …ByName/…At của hồ sơ hoặc kết quả do cấp trên thực hiện).
+    /// </summary>
+    public static List<RecordStepProgressDto> Progress(EvaluationRecord record, WorkflowProfile profile, DateOnly today)
+    {
+        var result = Progress(record.Status, profile, today);
+        foreach (var item in result)
+        {
+            var step = WorkflowSteps.Parse(item.Step)!.Value;
+            item.Actor = StepActor(step, profile, record);
+            if (item.State != "done")
+                continue;
+            var (at, by) = StepCompletion(step, profile, record);
+            item.DoneAt = at;
+            item.DoneByName = by;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Mô tả chủ thể thực hiện bước theo chế độ trong hồ sơ luồng và dữ liệu ảnh chụp của hồ sơ (Phòng, Chi bộ, cấp quyết định).
+    /// Không ghi cứng tên đơn vị — tên lấy từ dữ liệu.
+    /// </summary>
+    public static string StepActor(WorkflowStep step, WorkflowProfile profile, EvaluationRecord record)
+    {
+        var mode = profile.Mode(step);
+        if (mode == StepMode.Off)
+            return string.Empty;
+        if (mode == StepMode.External)
+            return "Cấp trên thực hiện";
+
+        var department = Clean(record.Department?.Name);
+        var cell = Clean(record.PartyCell?.Name);
+        var unitLeaders = department != null ? $"Lãnh đạo {department}" : "Lãnh đạo đơn vị";
+        return step switch
+        {
+            WorkflowStep.B1_REGISTER or WorkflowStep.B2_SELF_SCORE => Clean(record.Member?.FullName) ?? "Chủ hồ sơ",
+            WorkflowStep.B1_APPROVE => unitLeaders,
+            WorkflowStep.B2_CELL_CONFIRM => cell == null
+                ? "Chi bộ"
+                : cell.StartsWith("Chi bộ", StringComparison.OrdinalIgnoreCase) ? cell : $"Chi bộ {cell}",
+            WorkflowStep.B3A_COLLECTIVE => department != null ? $"Tập thể lãnh đạo {department}" : "Tập thể lãnh đạo đơn vị",
+            WorkflowStep.B3B_APPRAISAL => "Cơ quan thẩm định",
+            WorkflowStep.B3C_DIRECTOR => string.Equals(profile.PermissionFor(step), WorkflowPermissions.UnitReview, StringComparison.Ordinal)
+                ? unitLeaders
+                : "Cấp trực tiếp sử dụng",
+            WorkflowStep.B4_DECISION => record.ApprovalAuthority == ApprovalAuthority.CapTren
+                ? "Cấp trên có thẩm quyền quyết định"
+                : "Đảng ủy cơ sở",
+            WorkflowStep.B5_PUBLISH => "Cơ quan công bố kết quả",
+            _ => string.Empty
+        };
+    }
+
+    /// <summary>
+    /// Thời điểm và người hoàn thành bước: bước cấp trên → kết quả ghi nhận (thời điểm ghi nhận, tên cơ quan);
+    /// bước nội bộ → các trường …At/…ByName của hồ sơ. Bước đăng ký sản phẩm không lưu thời điểm riêng → null.
+    /// </summary>
+    public static (DateTime? At, string? ByName) StepCompletion(WorkflowStep step, WorkflowProfile profile, EvaluationRecord record)
+    {
+        if (profile.Mode(step) == StepMode.External)
+        {
+            var external = record.ExternalResults?.FirstOrDefault(x => x.Step == step);
+            if (external != null)
+                return (external.RecordedAt, Clean(external.AuthorityName) ?? Clean(external.RecordedByName));
+        }
+
+        return step switch
+        {
+            WorkflowStep.B1_REGISTER => (null, Clean(record.Member?.FullName)),
+            WorkflowStep.B1_APPROVE => (record.TasksApprovedAt, Clean(record.TasksApprovedByName)),
+            WorkflowStep.B2_SELF_SCORE => (record.SelfScoredAt, Clean(record.Member?.FullName)),
+            WorkflowStep.B2_CELL_CONFIRM => (record.CellConfirmedAt, Clean(record.CellConfirmedByName)),
+            WorkflowStep.B3A_COLLECTIVE => (record.CollectiveRecordedAt, Clean(record.CollectiveRecordedByName)),
+            WorkflowStep.B3B_APPRAISAL => (record.AppraisedAt, Clean(record.AppraisedByName)),
+            WorkflowStep.B3C_DIRECTOR => (record.DirectorReviewedAt, Clean(record.DirectorReviewedByName)),
+            WorkflowStep.B4_DECISION => (record.DecisionRecordedAt, Clean(record.DecisionRecordedByName) ?? Clean(record.DecisionAuthorityName)),
+            WorkflowStep.B5_PUBLISH => (record.PublishedAt, Clean(record.PublishedByName)),
+            _ => (null, null)
+        };
+    }
+
+    private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    /// <summary>Tiến trình 9 bước theo trạng thái (chưa kèm chủ thể và người hoàn thành).</summary>
     public static List<RecordStepProgressDto> Progress(RecordStatus status, WorkflowProfile profile, DateOnly today)
     {
         var enabled = profile.ActiveSteps();
@@ -106,7 +192,7 @@ public static class EvaluationMapping
             StatusDisplayName = WorkflowSteps.StatusDisplayName(r.Status),
             CurrentStep = currentStep.HasValue ? WorkflowSteps.Code(currentStep.Value) : null,
             ReturnReason = r.ReturnReason,
-            Progress = Progress(r.Status, profile, today),
+            Progress = Progress(r, profile, today),
 
             TasksApprovedByName = r.TasksApprovedByName,
             TasksApprovedAt = r.TasksApprovedAt,

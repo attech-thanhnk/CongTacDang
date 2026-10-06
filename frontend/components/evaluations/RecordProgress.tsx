@@ -1,47 +1,77 @@
 "use client";
 
 import { formatDate } from "@/lib/dateFormat";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { RecordStepProgressDto } from "@/services/evaluationService";
 import styles from "./record.module.css";
 
 interface Props {
   progress: RecordStepProgressDto[];
+  /** Bấm vào bước đã xong / đang làm (điều hướng tới nội dung của bước trên trang). */
+  onSelect?: (item: RecordStepProgressDto) => void;
+}
+
+const pad = (value: number) => String(value).padStart(2, "0");
+
+/** dd/MM HH:mm theo giờ máy. */
+export function formatShortDateTime(value?: string | null): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/** Chủ thể thực hiện bước do máy chủ mô tả (máy chủ cũ chưa có → suy từ chế độ bước). */
+export function actorOf(item: RecordStepProgressDto): string {
+  if (item.actor) return item.actor;
+  return item.mode === "External" ? "Cấp trên thực hiện" : "";
 }
 
 /** Mô tả đầy đủ trạng thái bước (hiện khi rê chuột và cho trình đọc màn hình). */
-function describe(item: RecordStepProgressDto): string {
+export function describeStep(item: RecordStepProgressDto): string {
   const external = item.mode === "External";
-  const state =
-    item.state === "done"
-      ? external ? "Đã ghi nhận kết quả của cấp trên" : "Đã hoàn thành"
-      : item.state === "current"
-        ? external ? "Do cấp trên thực hiện — chờ ghi nhận kết quả" : "Đang chờ xử lý"
-        : external ? "Do cấp trên thực hiện" : "Chưa tới";
+  const actor = actorOf(item);
   const deadline = item.deadline ? ` · Hạn ${formatDate(item.deadline)}${item.overdue ? " (quá hạn)" : ""}` : "";
+  let state: string;
+  if (item.state === "done") {
+    const at = formatShortDateTime(item.doneAt);
+    const by = item.doneByName ? ` · ${item.doneByName}` : "";
+    state = `Hoàn thành${at ? ` ${at}` : ""}${by}${external ? " (cấp trên thực hiện)" : ""}`;
+    return `${item.name}: ${state}`;
+  }
+  if (item.state === "current") {
+    state = actor ? `Chờ ${external ? "cấp trên thực hiện" : actor}` : "Đang chờ xử lý";
+  } else {
+    state = external ? "Cấp trên thực hiện" : actor ? `${actor} thực hiện` : "Chưa tới";
+  }
   return `${item.name}: ${state}${deadline}`;
 }
 
 /**
  * Tiến trình các bước của hồ sơ (vòng tròn nối nhau): bước xong tô đầy, bước hiện tại sáng kèm hạn (đỏ khi quá hạn);
- * bước không áp dụng cho hồ sơ luồng thì ẩn. Trạng thái do máy chủ tính.
+ * bước không áp dụng cho hồ sơ luồng thì ẩn. Bước đã xong / đang làm bấm được để tới nội dung của bước.
+ * Trạng thái do máy chủ tính.
  */
-export function RecordProgress({ progress }: Props) {
+export function RecordProgress({ progress, onSelect }: Props) {
   const steps = progress.filter((item) => item.state !== "skipped");
+  const listRef = useRef<HTMLOListElement>(null);
+
+  // Màn hình hẹp: cuộn ngang để bước đang làm nằm trong tầm nhìn (không cuộn cả trang).
+  useEffect(() => {
+    const list = listRef.current;
+    const current = list?.querySelector<HTMLElement>("[aria-current='step']");
+    if (!list || !current || list.scrollWidth <= list.clientWidth) return;
+    list.scrollLeft = current.offsetLeft - (list.clientWidth - current.offsetWidth) / 2;
+  }, [progress]);
+
   return (
-    <ol className={styles.steps} aria-label="Tiến trình hồ sơ">
+    <ol ref={listRef} className={styles.steps} aria-label="Tiến trình hồ sơ">
       {steps.map((item, index) => {
         const current = item.state === "current";
         const done = item.state === "done";
-        const label = describe(item);
-        return (
-          <li
-            key={item.step}
-            className={`${styles.step} ${done ? styles.done : current ? styles.now : ""}`}
-            title={label}
-            aria-label={label}
-            aria-current={current ? "step" : undefined}
-          >
+        const label = describeStep(item);
+        const content = (
+          <>
             <div className={styles.c}>{done ? <i className="bi bi-check-lg" aria-hidden="true" /> : index + 1}</div>
             <span className={styles.stepName}>
               {item.name}
@@ -53,6 +83,23 @@ export function RecordProgress({ progress }: Props) {
               )}
               {!current && !done && item.overdue && <em className={`${styles.stepDue} ${styles.late}`}>quá hạn</em>}
             </span>
+          </>
+        );
+        return (
+          <li
+            key={item.step}
+            className={`${styles.step} ${done ? styles.done : current ? styles.now : ""}`}
+            aria-current={current ? "step" : undefined}
+          >
+            {(done || current) && onSelect ? (
+              <button type="button" className={styles.stepBtn} title={label} aria-label={label} onClick={() => onSelect(item)}>
+                {content}
+              </button>
+            ) : (
+              <div className={`${styles.stepBtn} ${styles.stepIdle}`} role="group" title={label} aria-label={label}>
+                {content}
+              </div>
+            )}
           </li>
         );
       })}
