@@ -14,7 +14,7 @@ import { EffectivePermissionsPanel } from "@/components/admin/EffectivePermissio
 import { MemberPositionsPanel } from "@/components/admin/MemberPositionsPanel";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { TemporaryCredential, TemporaryPasswordModal } from "@/components/admin/TemporaryPasswordModal";
-import { errorMessage, errorTitle, formatDateTime } from "@/components/admin/adminUtils";
+import { errorMessage, errorTitle, formatDateOnly, formatDateTime } from "@/components/admin/adminUtils";
 import { useCatalogOptions } from "@/components/admin/useCatalogOptions";
 import { AccountListItem, APPROVAL_AUTHORITY_LABELS, UpdateAccountPayload, userService } from "@/services/userService";
 import {
@@ -321,6 +321,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
   const infoRows: [string, React.ReactNode][] = [
     ["Tên đăng nhập", <code key="u">{account.username}</code>],
     ["Họ và tên", account.fullName],
+    ["Ngày sinh", formatDateOnly(account.dateOfBirth)],
     ["Chức danh", account.positionTitle || "—"],
     ["Khung tỷ trọng mặc định", account.weightFrameCode || "Chưa chọn (dùng khung mặc định của bộ tiêu chí)"],
     ["Email", account.email || "—"],

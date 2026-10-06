@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using CongTacDang.Application.Common.Security;
 using Xunit;
 
@@ -62,6 +63,21 @@ public sealed class AccountFlowTests
         // Thiếu tên đăng nhập → 400.
         var noUsername = await admin.PostAsJsonAsync("/api/users", new { fullName = "Không có tên đăng nhập" });
         Assert.Equal(HttpStatusCode.BadRequest, noUsername.StatusCode);
+
+        // Ngày sinh: ghi khi tạo, sửa, xóa bằng chuỗi rỗng; ngày ở tương lai → 400.
+        var withBirth = await admin.PostAsJsonAsync("/api/users",
+            new { username = AccountTestFixture.NewUsername("l1.dob"), fullName = "Có ngày sinh", dateOfBirth = "1973-10-21" });
+        Assert.Equal(HttpStatusCode.OK, withBirth.StatusCode);
+        var birthId = (await AccountTestFixture.ReadJsonAsync(withBirth)).GetProperty("data").GetProperty("userId").GetGuid();
+        var birthDetail = (await AccountTestFixture.ReadJsonAsync(await admin.GetAsync($"/api/users/{birthId}"))).GetProperty("data");
+        Assert.Equal("1973-10-21", birthDetail.GetProperty("dateOfBirth").GetString());
+        var changed = await admin.PutAsJsonAsync($"/api/users/{birthId}", new { dateOfBirth = "1980-01-02" });
+        Assert.Equal("1980-01-02", (await AccountTestFixture.ReadJsonAsync(changed)).GetProperty("data").GetProperty("dateOfBirth").GetString());
+        var cleared = await admin.PutAsJsonAsync($"/api/users/{birthId}", new { dateOfBirth = "" });
+        Assert.Equal(JsonValueKind.Null, (await AccountTestFixture.ReadJsonAsync(cleared)).GetProperty("data").GetProperty("dateOfBirth").ValueKind);
+        var future = await admin.PutAsJsonAsync($"/api/users/{birthId}",
+            new { dateOfBirth = DateTime.Today.AddDays(2).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) });
+        Assert.Equal(HttpStatusCode.BadRequest, future.StatusCode);
     }
 
     [SkippableFact]

@@ -22,6 +22,8 @@ export interface AccountListItem {
   id: string;
   username: string;
   fullName: string;
+  /** Ngày sinh `yyyy-MM-dd`; null = chưa nhập. */
+  dateOfBirth?: string | null;
   email: string;
   phoneNumber: string;
   partyCardNumber?: string | null;
@@ -65,6 +67,8 @@ export interface AccountSearchParams {
 export interface CreateAccountPayload {
   username: string;
   fullName: string;
+  /** Ngày sinh `yyyy-MM-dd`. */
+  dateOfBirth?: string;
   email?: string;
   phoneNumber?: string;
   partyCardNumber?: string;
@@ -85,6 +89,8 @@ export interface CreateAccountPayload {
  */
 export interface UpdateAccountPayload {
   fullName?: string;
+  /** Ngày sinh `yyyy-MM-dd`; chuỗi rỗng = xóa. */
+  dateOfBirth?: string;
   email?: string;
   phoneNumber?: string;
   partyCardNumber?: string;

@@ -90,6 +90,7 @@ public sealed class UserAccountService : IUserAccountService
         var fullName = cmd.FullName?.Trim() ?? string.Empty;
         if (fullName.Length == 0)
             throw new ValidationException("Họ và tên không được để trống. Hãy nhập họ và tên cán bộ.");
+        var dateOfBirth = AccountRules.ParseOptionalDateOfBirth(cmd.DateOfBirth, Today());
         var email = AccountRules.NormalizeOptionalEmail(cmd.Email);
         if (cmd.ApprovalAuthority.HasValue && !Enum.IsDefined(cmd.ApprovalAuthority.Value))
             throw new ValidationException("Cấp có thẩm quyền quyết định xếp loại không hợp lệ. Hãy chọn Đảng ủy cơ sở hoặc cấp trên, hoặc để trống để suy ra từ chức vụ.");
@@ -130,6 +131,7 @@ public sealed class UserAccountService : IUserAccountService
         {
             Username = username,
             FullName = fullName,
+            DateOfBirth = dateOfBirth,
             Email = email,
             PhoneNumber = cmd.PhoneNumber?.Trim() ?? string.Empty,
             PartyCardNumber = partyCardNumber,
@@ -199,6 +201,8 @@ public sealed class UserAccountService : IUserAccountService
             member.FullName = fullName;
         }
 
+        if (cmd.DateOfBirth != null)
+            member.DateOfBirth = AccountRules.ParseOptionalDateOfBirth(cmd.DateOfBirth, Today());
         if (cmd.Email != null)
             member.Email = AccountRules.NormalizeOptionalEmail(cmd.Email);
         if (cmd.PhoneNumber != null)
@@ -339,6 +343,7 @@ public sealed class UserAccountService : IUserAccountService
         Id = m.Id,
         Username = m.Username,
         FullName = m.FullName,
+        DateOfBirth = m.DateOfBirth,
         Email = m.Email,
         PhoneNumber = m.PhoneNumber,
         PartyCardNumber = m.PartyCardNumber,
@@ -429,6 +434,9 @@ public sealed class UserAccountService : IUserAccountService
                 $"Bạn không thể {actionName} tài khoản của chính mình. Hãy nhờ một quản trị viên khác thực hiện nếu thật sự cần.");
         await RoleAssignments.EnsureAdministratorsRemainWithoutUserAsync(targetUserId, ct);
     }
+
+    /// <summary>Ngày hiện tại theo giờ máy chủ (dùng kiểm tra ngày sinh).</summary>
+    private static DateOnly Today() => DateOnly.FromDateTime(DateTime.Now);
 
     private static InvalidOperationException NotConfigured() =>
         new("UserAccountService được khởi tạo ở chế độ tối giản; thao tác này cần đầy đủ phụ thuộc (DI).");

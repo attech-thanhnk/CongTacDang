@@ -42,6 +42,30 @@ public sealed class AccountUnitTests
     }
 
     [Fact]
+    public void DateOfBirth_ParsesIsoDate_AndEmptyIsNull()
+    {
+        var today = new DateOnly(2026, 10, 6);
+        Assert.Equal(new DateOnly(1973, 10, 21), AccountRules.ParseOptionalDateOfBirth(" 1973-10-21 ", today));
+        Assert.Null(AccountRules.ParseOptionalDateOfBirth(null, today));
+        Assert.Null(AccountRules.ParseOptionalDateOfBirth("  ", today));
+        // Biên: hôm nay và đúng 100 năm trước vẫn hợp lệ.
+        Assert.Equal(today, AccountRules.ParseOptionalDateOfBirth("2026-10-06", today));
+        Assert.Equal(new DateOnly(1926, 10, 6), AccountRules.ParseOptionalDateOfBirth("1926-10-06", today));
+    }
+
+    [Theory]
+    [InlineData("21/10/1973", "không hợp lệ")]
+    [InlineData("1973-02-30", "không hợp lệ")]
+    [InlineData("abc", "không hợp lệ")]
+    [InlineData("2026-10-07", "tương lai")]
+    [InlineData("1926-10-05", "100 năm")]
+    public void DateOfBirth_RejectsInvalidValues(string input, string expectedMessage)
+    {
+        var ex = Assert.Throws<ValidationException>(() => AccountRules.ParseOptionalDateOfBirth(input, new DateOnly(2026, 10, 6)));
+        Assert.Contains(expectedMessage, ex.Message);
+    }
+
+    [Fact]
     public void Username_LengthBoundaries()
     {
         Assert.Equal(new string('a', 50), AccountRules.NormalizeAndValidateUsername(new string('A', 50)));

@@ -28,6 +28,12 @@ export function errorTitle(error: unknown): string | undefined {
 // Định dạng ngày giờ hiển thị dùng chung (dd/MM/yyyy) — giữ tên cũ để các màn quản trị không phải đổi import.
 export { formatDate, formatDateTime } from "@/lib/dateFormat";
 
+/** Ngày thuần `yyyy-MM-dd` → `dd/MM/yyyy` (không qua múi giờ). */
+export function formatDateOnly(value?: string | null): string {
+  const match = value ? /^(\d{4})-(\d{2})-(\d{2})/.exec(value) : null;
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : "—";
+}
+
 function pad(value: number): string {
   return String(value).padStart(2, "0");
 }

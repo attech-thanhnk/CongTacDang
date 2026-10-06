@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { CatalogItem, treeLabel } from "@/services/catalogService";
 import { criteriaService, WeightFrameOptions } from "@/services/criteriaService";
 import {
@@ -12,10 +12,13 @@ import {
   UpdateAccountPayload,
 } from "@/services/userService";
 import { AdminModal } from "./AdminModal";
+import { toDateInput } from "./adminUtils";
 
 interface FormState {
   username: string;
   fullName: string;
+  /** `yyyy-MM-dd`; "" = chưa nhập. */
+  dateOfBirth: string;
   email: string;
   phoneNumber: string;
   partyCardNumber: string;
@@ -33,6 +36,7 @@ function initialState(account?: AccountListItem): FormState {
   return {
     username: account?.username ?? "",
     fullName: account?.fullName ?? "",
+    dateOfBirth: account?.dateOfBirth ?? "",
     email: account?.email ?? "",
     phoneNumber: account?.phoneNumber ?? "",
     partyCardNumber: account?.partyCardNumber ?? "",
@@ -84,6 +88,14 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
     };
   }, []);
 
+  // Ngày sinh: không ở tương lai, không quá 100 năm trước (máy chủ kiểm tra lại).
+  const [minBirthDate, maxBirthDate] = useMemo(() => {
+    const today = new Date();
+    const past = new Date(today);
+    past.setFullYear(today.getFullYear() - 100);
+    return [toDateInput(past.toISOString()), toDateInput(today.toISOString())];
+  }, []);
+
   const frameOptions = frames?.frames ?? [];
   const currentFrameMissing = !!form.weightFrameCode && !frameOptions.some((f) => f.code === form.weightFrameCode);
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((prev) => ({ ...prev, [key]: value }));
@@ -93,6 +105,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
     if (isEdit) {
       onUpdate?.({
         fullName: form.fullName.trim(),
+        dateOfBirth: form.dateOfBirth,
         email: form.email.trim(),
         phoneNumber: form.phoneNumber.trim(),
         partyCardNumber: form.partyCardNumber.trim(),
@@ -105,6 +118,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
       onCreate?.({
         username: form.username.trim().toLowerCase(),
         fullName: form.fullName.trim(),
+        dateOfBirth: form.dateOfBirth || undefined,
         email: form.email.trim() || undefined,
         phoneNumber: form.phoneNumber.trim() || undefined,
         partyCardNumber: form.partyCardNumber.trim() || undefined,
@@ -148,6 +162,18 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
               Họ và tên <span className="text-danger">*</span>
             </label>
             <input className="form-control form-control-sm" value={form.fullName} required maxLength={200} onChange={(e) => set("fullName", e.target.value)} />
+          </div>
+          <div className="col-12 col-md-6">
+            <label className="form-label" htmlFor="account-date-of-birth">Ngày sinh</label>
+            <input
+              id="account-date-of-birth"
+              type="date"
+              className="form-control form-control-sm"
+              value={form.dateOfBirth}
+              min={minBirthDate}
+              max={maxBirthDate}
+              onChange={(e) => set("dateOfBirth", e.target.value)}
+            />
           </div>
           <div className="col-12 col-md-6">
             <label className="form-label">Email</label>

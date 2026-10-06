@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Net.Mail;
 using System.Text.RegularExpressions;
@@ -53,6 +54,27 @@ public static partial class AccountRules
         if (value.Length > EmailMaxLength || !IsValidEmail(value))
             throw new ValidationException($"Email \"{value}\" không đúng định dạng. Hãy nhập email dạng ten@donvi.vn hoặc để trống.");
         return value;
+    }
+
+    /// <summary>Số năm tối đa tính từ ngày sinh tới hôm nay.</summary>
+    public const int DateOfBirthMaxYears = 100;
+
+    /// <summary>
+    /// Đọc ngày sinh tùy chọn dạng "yyyy-MM-dd": trống → null; sai định dạng, ở tương lai hoặc quá
+    /// <see cref="DateOfBirthMaxYears"/> năm trước <paramref name="today"/> → <see cref="ValidationException"/>.
+    /// </summary>
+    public static DateOnly? ParseOptionalDateOfBirth(string? value, DateOnly today)
+    {
+        var text = value?.Trim() ?? string.Empty;
+        if (text.Length == 0)
+            return null;
+        if (!DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            throw new ValidationException($"Ngày sinh \"{text}\" không hợp lệ. Hãy chọn ngày sinh hoặc để trống.");
+        if (date > today)
+            throw new ValidationException("Ngày sinh không được ở tương lai. Hãy kiểm tra lại ngày sinh.");
+        if (date < today.AddYears(-DateOfBirthMaxYears))
+            throw new ValidationException($"Ngày sinh không được trước quá {DateOfBirthMaxYears} năm. Hãy kiểm tra lại ngày sinh.");
+        return date;
     }
 
     /// <summary>Email có định dạng hợp lệ (một ký tự @, tên miền có dấu chấm, không khoảng trắng).</summary>

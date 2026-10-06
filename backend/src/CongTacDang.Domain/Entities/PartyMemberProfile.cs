@@ -21,6 +21,9 @@ public class PartyMemberProfile : IAuditableEntity, ISoftDeletable
     /// <summary>Họ và tên cán bộ</summary>
     public string FullName { get; set; } = string.Empty;
 
+    /// <summary>Ngày sinh (in trên Mẫu 09C); null khi chưa nhập.</summary>
+    public DateOnly? DateOfBirth { get; set; }
+
     /// <summary>Thư điện tử liên hệ</summary>
     public string Email { get; set; } = string.Empty;
 

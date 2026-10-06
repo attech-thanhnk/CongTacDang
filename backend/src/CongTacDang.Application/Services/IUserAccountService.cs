@@ -84,6 +84,9 @@ public sealed record CreateAccountCommand(
 
     /// <summary>Mã khung tỷ trọng A-B-C-D mặc định (theo bộ tiêu chí, ví dụ "K2"); trống → chưa chọn.</summary>
     public string? WeightFrameCode { get; init; }
+
+    /// <summary>Ngày sinh dạng "yyyy-MM-dd"; trống → chưa nhập.</summary>
+    public string? DateOfBirth { get; init; }
 }
 
 /// <summary>Kết quả tạo tài khoản; <see cref="TemporaryPassword"/> chỉ trả về một lần để giao cho người dùng.</summary>
@@ -107,6 +110,9 @@ public sealed record UpdateAccountCommand(
 {
     /// <summary>Mã khung tỷ trọng A-B-C-D mặc định; null → giữ nguyên, chuỗi rỗng → bỏ chọn.</summary>
     public string? WeightFrameCode { get; init; }
+
+    /// <summary>Ngày sinh dạng "yyyy-MM-dd"; null → giữ nguyên, chuỗi rỗng → xóa.</summary>
+    public string? DateOfBirth { get; init; }
 }
 
 /// <summary>Tham số tra cứu tài khoản.</summary>
