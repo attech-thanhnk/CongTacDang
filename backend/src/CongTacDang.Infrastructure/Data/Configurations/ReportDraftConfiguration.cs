@@ -26,5 +26,7 @@ public sealed class ReportDraftConfiguration : IEntityTypeConfiguration<ReportDr
             .WithMany()
             .HasForeignKey(e => e.PartyCellId)
             .OnDelete(DeleteBehavior.Cascade);
+        // Bản nháp ẩn cùng kỳ đã xóa mềm (khớp query filter của kỳ — tránh cảnh báo EF 10622).
+        entity.HasQueryFilter(e => !e.Period.IsDeleted);
     }
 }

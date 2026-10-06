@@ -147,6 +147,9 @@ namespace CongTacDang.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
+                // Token của tài khoản đã xóa mềm không dùng được (khớp query filter của tài khoản — tránh cảnh báo EF 10622).
+                // Thu hồi token theo tài khoản bỏ qua bộ lọc này (RefreshTokenRepository) để vẫn thu hồi được sau khi xóa.
+                entity.HasQueryFilter(e => !e.User.IsDeleted);
             });
         }
 

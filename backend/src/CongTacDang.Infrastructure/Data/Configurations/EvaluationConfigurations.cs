@@ -143,6 +143,8 @@ public sealed class EvaluationRecordHistoryConfiguration : IEntityTypeConfigurat
             .WithMany()
             .HasForeignKey(e => e.RecordId)
             .OnDelete(DeleteBehavior.Cascade);
+        // Lịch sử ẩn cùng hồ sơ đã xóa mềm (khớp query filter của hồ sơ — tránh cảnh báo EF 10622).
+        entity.HasQueryFilter(e => !e.Record.IsDeleted);
     }
 }
 
@@ -196,6 +198,8 @@ public sealed class CollectiveEvaluationItemConfiguration : IEntityTypeConfigura
         entity.HasKey(e => e.Id);
         entity.Property(e => e.Category).HasMaxLength(200);
         entity.Property(e => e.TaskName).HasMaxLength(500);
+        // Dòng nội dung ẩn cùng hồ sơ tập thể đã xóa mềm (khớp query filter của hồ sơ tập thể — tránh cảnh báo EF 10622).
+        entity.HasQueryFilter(e => !e.CollectiveRecord.IsDeleted);
     }
 }
 
@@ -248,5 +252,7 @@ public sealed class EvaluationMeetingVoteSummaryConfiguration : IEntityTypeConfi
             .WithMany()
             .HasForeignKey(e => e.RecordId)
             .OnDelete(DeleteBehavior.Restrict);
+        // Kết quả kiểm phiếu ẩn cùng biên bản đã xóa mềm (khớp query filter của biên bản — tránh cảnh báo EF 10622).
+        entity.HasQueryFilter(e => !e.Meeting.IsDeleted);
     }
 }

@@ -56,6 +56,7 @@ public class RefreshTokenRepository : GenericRepository<RefreshToken>, IRefreshT
     public async Task RevokeAllUserTokensAsync(Guid userId)
     {
         var activeTokens = await _db.RefreshTokens
+            .IgnoreQueryFilters() // thu hồi cả token của tài khoản đã xóa mềm
             .Where(t => t.UserId == userId && !t.IsRevoked)
             .ToListAsync();
 
@@ -72,6 +73,7 @@ public class RefreshTokenRepository : GenericRepository<RefreshToken>, IRefreshT
     {
         var currentHash = string.IsNullOrWhiteSpace(currentToken) ? null : HashToken(currentToken);
         var activeTokens = await _db.RefreshTokens
+            .IgnoreQueryFilters() // thu hồi cả token của tài khoản đã xóa mềm
             .Where(t => t.UserId == userId && !t.IsRevoked && (currentHash == null || t.TokenHash != currentHash))
             .ToListAsync();
 
