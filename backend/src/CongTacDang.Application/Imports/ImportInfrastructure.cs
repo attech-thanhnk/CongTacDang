@@ -18,6 +18,9 @@ public sealed record UnitTypeRef(Guid Id, string Name, OrgSide Side, bool IsActi
 /// <summary>Chức vụ trong danh mục.</summary>
 public sealed record PositionRef(Guid Id, string Name, string? StatCode, PositionSide Side, bool IsActive);
 
+/// <summary>Kiểu trình bày biểu mẫu tự đánh giá.</summary>
+public sealed record FormLayoutRef(Guid Id, string Name);
+
 /// <summary>Vai trò kèm mã quyền.</summary>
 public sealed record RoleRef(Guid Id, string Code, string Name, IReadOnlyList<string> PermissionCodes);
 
@@ -51,6 +54,9 @@ public interface IImportLookup
 
     /// <summary>Vai trò chưa xóa kèm mã quyền.</summary>
     Task<IReadOnlyList<RoleRef>> GetRolesAsync(CancellationToken ct = default);
+
+    /// <summary>Kiểu trình bày biểu mẫu chưa xóa.</summary>
+    Task<IReadOnlyList<FormLayoutRef>> GetFormLayoutsAsync(CancellationToken ct = default);
 
     /// <summary>Tài khoản theo tên đăng nhập (đã chuẩn hóa chữ thường), kể cả đã xóa; chức vụ đang giữ tại <paramref name="now"/>.</summary>
     Task<IReadOnlyList<UserRef>> FindUsersAsync(IReadOnlyCollection<string> usernames, DateTime now, CancellationToken ct = default);

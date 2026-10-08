@@ -139,7 +139,7 @@ public class ImportTests
     public async Task Users_ParseAndValidate()
     {
         var (lookup, deptId, cellId) = UserLookup();
-        var definition = new UserImportDefinition(lookup, new FakeGuard(), null!, null!);
+        var definition = new UserImportDefinition(lookup, new FakeGuard(), null!, null!, null!);
         var analysis = await definition.AnalyzeAsync(new[]
         {
             User(2, "Nguyen.Van.A", "Nguyễn Văn A", ("dateOfBirth", "15/08/1980"), ("departmentCode", "ph-kt"), ("partyCellCode", "CB-KT"),
@@ -191,6 +191,28 @@ public class ImportTests
     }
 
     [Fact]
+    public async Task Users_FormLayoutColumn_NameOrByPosition()
+    {
+        var (lookup, _, _) = UserLookup();
+        var leader = new FormLayoutRef(Guid.NewGuid(), "Lãnh đạo Công ty");
+        lookup.FormLayouts.Add(leader);
+        var definition = new UserImportDefinition(lookup, new FakeGuard(), null!, null!, null!);
+        var analysis = await definition.AnalyzeAsync(new[]
+        {
+            User(2, "nguyen.van.a", "A", ("formLayout", "lãnh đạo công ty")),
+            User(3, "da.co", "Đã có", ("formLayout", "theo chuc vu")),
+            User(4, "nguyen.van.b", "B", ("formLayout", "Kiểu không có")),
+            User(5, "nguyen.van.c", "C")
+        });
+
+        var parsed = ((List<ParsedImportRow<UserImportRow>>)analysis.Payload!).ToDictionary(r => r.RowNumber, r => r.Data);
+        Assert.Equal((leader.Id, false), (parsed[2].FormLayoutId, parsed[2].ClearFormLayout));
+        Assert.Equal(((Guid?)null, true), (parsed[3].FormLayoutId, parsed[3].ClearFormLayout));
+        Assert.Contains(analysis.Rows.Single(r => r.RowNumber == 4).Errors, e => e.Contains("Kiểu không có"));
+        Assert.Equal(((Guid?)null, false), (parsed[5].FormLayoutId, parsed[5].ClearFormLayout));
+    }
+
+    [Fact]
     public async Task Users_OutOfScope_IsRowError()
     {
         var (lookup, deptId, _) = UserLookup();
@@ -198,7 +220,7 @@ public class ImportTests
         lookup.Departments.Add(new OrgUnitRef(otherDept, "PH-KHAC", "Phòng khác", null, PhongType, true, false));
         // Chỉ quản lý được tài khoản của Phòng Kỹ thuật.
         var guard = new FakeGuard(target => target.DepartmentId == deptId);
-        var definition = new UserImportDefinition(lookup, guard, null!, null!);
+        var definition = new UserImportDefinition(lookup, guard, null!, null!, null!);
         var analysis = await definition.AnalyzeAsync(new[]
         {
             User(2, "trong.pham.vi", "A", ("departmentCode", "PH-KT")),
@@ -331,7 +353,7 @@ public class ImportTests
 
     #region File Excel
 
-    private static IReadOnlyList<ImportColumn> UserColumns() => new UserImportDefinition(new FakeLookup(), new FakeGuard(), null!, null!).Columns;
+    private static IReadOnlyList<ImportColumn> UserColumns() => new UserImportDefinition(new FakeLookup(), new FakeGuard(), null!, null!, null!).Columns;
 
     [Fact]
     public void Template_HasDataAndGuideSheets_AndReadsBackFilledRows()
@@ -517,6 +539,8 @@ public class ImportTests
         public Task<IReadOnlyList<UnitTypeRef>> GetUnitTypesAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<UnitTypeRef>>(UnitTypes);
         public Task<IReadOnlyList<PositionRef>> GetPositionsAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<PositionRef>>(Positions);
         public Task<IReadOnlyList<RoleRef>> GetRolesAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<RoleRef>>(Roles);
+        public List<FormLayoutRef> FormLayouts { get; } = new();
+        public Task<IReadOnlyList<FormLayoutRef>> GetFormLayoutsAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<FormLayoutRef>>(FormLayouts);
 
         public Task<IReadOnlyList<UserRef>> FindUsersAsync(IReadOnlyCollection<string> usernames, DateTime now, CancellationToken ct = default)
             => Task.FromResult<IReadOnlyList<UserRef>>(Users.Where(u => usernames.Contains(u.Username, StringComparer.OrdinalIgnoreCase)).ToList());

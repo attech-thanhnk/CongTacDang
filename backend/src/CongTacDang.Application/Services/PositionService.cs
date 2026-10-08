@@ -106,12 +106,13 @@ public sealed class PositionService : IPositionService
             StatCode = ParseStatCode(input.StatCode),
             DefaultApprovalAuthority = ParseAuthority(input.DefaultApprovalAuthority),
             IsLeadership = input.IsLeadership ?? false,
+            FormLayoutId = await ParseFormLayoutAsync(input.FormLayoutId, ct),
             SortOrder = input.SortOrder ?? 0,
             IsActive = input.IsActive ?? true
         };
         _repo.AddPosition(position);
         await _repo.SaveChangesAsync(ct);
-        return ToDto(position, 0);
+        return ToDto(await _repo.FindPositionAsync(position.Id, ct) ?? position, 0);
     }
 
     /// <inheritdoc />
@@ -146,6 +147,15 @@ public sealed class PositionService : IPositionService
             position.DefaultApprovalAuthority = authority;
         }
         if (input.IsLeadership.HasValue) position.IsLeadership = input.IsLeadership.Value;
+        if (input.FormLayoutId != null)
+        {
+            var layoutId = await ParseFormLayoutAsync(input.FormLayoutId, ct);
+            if (layoutId != position.FormLayoutId)
+            {
+                position.FormLayoutId = layoutId;
+                position.FormLayout = null;
+            }
+        }
         if (input.SortOrder.HasValue) position.SortOrder = input.SortOrder.Value;
         if (input.IsActive.HasValue) position.IsActive = input.IsActive.Value;
         await _repo.SaveChangesAsync(ct);
@@ -154,7 +164,7 @@ public sealed class PositionService : IPositionService
             await RecomputeAllApprovalAuthoritiesAsync(ct);
 
         var holders = await _repo.CountHoldersAsync(Now, ct);
-        return ToDto(position, holders.GetValueOrDefault(id));
+        return ToDto(await _repo.FindPositionAsync(id, ct) ?? position, holders.GetValueOrDefault(id));
     }
 
     /// <inheritdoc />
@@ -446,6 +456,16 @@ public sealed class PositionService : IPositionService
         _guard.Ensure(PermissionCodes.SystemUsersManage, TargetOf(member));
     }
 
+    /// <summary>Id kiểu trình bày từ chuỗi: rỗng → null; phải có trong danh mục.</summary>
+    private async Task<Guid?> ParseFormLayoutAsync(string? value, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+        if (!Guid.TryParse(value.Trim(), out var id) || !await _repo.FormLayoutExistsAsync(id, ct))
+            throw new ValidationException("Kiểu trình bày biểu mẫu đã chọn không còn trong danh mục. Hãy tải lại trang.");
+        return id;
+    }
+
     private async Task<PartyMemberProfile> LoadMemberAsync(Guid userId, CancellationToken ct)
         => await _repo.FindMemberAsync(userId, ct)
             ?? throw new NotFoundException("Không tìm thấy tài khoản cán bộ (có thể đã bị xóa). Hãy tải lại danh sách.");
@@ -520,6 +540,8 @@ public sealed class PositionService : IPositionService
         StatCode = p.StatCode,
         DefaultApprovalAuthority = p.DefaultApprovalAuthority?.ToString(),
         IsLeadership = p.IsLeadership,
+        FormLayoutId = p.FormLayoutId,
+        FormLayoutName = p.FormLayout?.Name,
         SortOrder = p.SortOrder,
         IsActive = p.IsActive,
         HolderCount = holders

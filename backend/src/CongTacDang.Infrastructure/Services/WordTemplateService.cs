@@ -67,6 +67,7 @@ public sealed class WordTemplateService : IWordTemplateService
                 TemplateFileName = form.TemplateFileName,
                 ActiveVersion = active == null ? null : ToDto(active),
                 VersionCount = own.Count,
+                ActiveMissingTags = active == null ? new List<string>() : WordTemplateValidator.MissingRequired(form, ParseList(active.TagsJson)),
                 Tags = TagCatalog(form)
             };
         }).ToList();

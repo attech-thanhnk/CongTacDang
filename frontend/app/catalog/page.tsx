@@ -6,18 +6,20 @@ import { useToast } from "@/contexts/ToastContext";
 import { PageHeader } from "@/components/common";
 import { OrgTreeTab } from "@/components/admin/OrgTreeTab";
 import { HolidaysTab } from "@/components/admin/HolidaysTab";
+import { FormLayoutsTab } from "@/components/admin/FormLayoutsTab";
 import { PositionsTab } from "@/components/admin/PositionsTab";
 import { UnitTypesTab } from "@/components/admin/UnitTypesTab";
 import { errorMessage, errorTitle } from "@/components/admin/adminUtils";
 import { catalogService, OrgUnitType } from "@/services/catalogService";
 
-type Tab = "departments" | "branches" | "unit-types" | "positions" | "holidays";
+type Tab = "departments" | "branches" | "unit-types" | "positions" | "form-layouts" | "holidays";
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: "departments", label: "Đơn vị chính quyền", icon: "bi-building" },
   { key: "branches", label: "Tổ chức Đảng", icon: "bi-flag" },
   { key: "unit-types", label: "Loại đơn vị", icon: "bi-tags" },
   { key: "positions", label: "Chức vụ", icon: "bi-person-badge" },
+  { key: "form-layouts", label: "Kiểu trình bày biểu mẫu", icon: "bi-file-earmark-text" },
   { key: "holidays", label: "Ngày nghỉ", icon: "bi-calendar-x" },
 ];
 
@@ -70,6 +72,7 @@ export default function CatalogPage() {
         {tab === "branches" && <OrgTreeTab key="branches" kind="branches" unit="tổ chức Đảng" canManage={canManage} unitTypes={unitTypes} />}
         {tab === "unit-types" && <UnitTypesTab unitTypes={unitTypes} loading={typesLoading} canManage={canManage} onChanged={loadUnitTypes} />}
         {tab === "positions" && <PositionsTab canManage={canManage} />}
+        {tab === "form-layouts" && <FormLayoutsTab canManage={canManage} />}
         {tab === "holidays" && <HolidaysTab canManage={canManage} />}
         </div>
       </div>

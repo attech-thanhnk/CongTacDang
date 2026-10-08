@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.Json;
+using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
@@ -38,7 +39,19 @@ public sealed class Mau09BData
     /// <summary>Chức vụ chính quyền; không có chức vụ nào trong danh mục thì chức danh trên hồ sơ cán bộ.</summary>
     [TemplateField("ADMIN_POSITION")] public string? AdministrativePosition { get; init; }
     [TemplateField("MASS_POSITION")] public string? MassPosition { get; init; }
+
+    /// <summary>In chức vụ trên một dòng (<c>POSITIONS</c>) thay cho 3 dòng — theo kiểu trình bày.</summary>
+    [TemplateCondition("POSITIONS_ONE_LINE")] public bool PositionsOneLine { get; init; }
+
+    /// <summary>Chức vụ trên một dòng "(Đảng, Đoàn thể, Chính quyền)".</summary>
+    [TemplateField("POSITIONS")] public string? Positions { get; init; }
+
+    /// <summary>Có ô "Xác nhận của chi bộ" — theo kiểu trình bày (chưa có kiểu → có).</summary>
+    [TemplateCondition("HAS_CELL_CONFIRMATION")] public bool HasCellConfirmation { get; init; }
     [TemplateField("DEPARTMENT")] public string? Department { get; init; }
+
+    /// <summary>In "DEPARTMENT, " trước tên công ty; hồ sơ thuộc đơn vị gốc (lãnh đạo Công ty) → false, chỉ in tên công ty.</summary>
+    [TemplateCondition("HAS_DEPARTMENT")] public bool HasDepartment { get; init; }
 
     /// <summary>Chi bộ sinh hoạt (ảnh chụp trên hồ sơ).</summary>
     [TemplateField("CELL_NAME")] public string? CellName { get; init; }
@@ -50,6 +63,20 @@ public sealed class Mau09BData
     [TemplateField("TASKS_SCORE")] public string? TasksScore { get; init; }
     [TemplateField("TOTAL_SCORE")] public string? TotalScore { get; init; }
     [TemplateField("SELF_GRADE")] public string? SelfGrade { get; init; }
+
+    /// <summary>
+    /// Tiêu đề trái theo kiểu trình bày: kiểu "Đảng ủy cơ sở" in tên tổ chức Đảng cấp trên và "ĐẢNG ỦY …" (từ tên Đảng bộ) thay cho
+    /// tên Đảng bộ và tên Chi bộ, như phiếu của Bí thư Đảng ủy. Gọi sau khi gắn dữ liệu chung (<c>ORG_*</c>).
+    /// </summary>
+    public static void ApplyHeader(TemplateData data, FormLayout? layout, OrganizationTemplateFields org)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(org);
+        if (layout?.HeaderStyle != FormHeaderStyle.PartyCommittee)
+            return;
+        data.Field("ORG_PARTY_NAME", FormText.OrNull(org.SuperiorPartyName?.Trim()));
+        data.Field("PARTY_CELL", CollectiveFormText.CommitteeUpper(org.PartyCommitteeName));
+    }
 
     /// <summary>Dựng dữ liệu mẫu từ hồ sơ đã lưu và bộ tiêu chí của kỳ.</summary>
     public static Mau09BData From(IndividualFormSource source)
@@ -77,8 +104,7 @@ public sealed class Mau09BData
             notes = new Dictionary<string, AxisNote>(StringComparer.OrdinalIgnoreCase);
         }
 
-        var positions = source.Positions;
-        var noPositions = positions.All() == null;
+        var lines = Mau09Shared.PositionLines(source);
         return new Mau09BData
         {
             PartyCell = Mau09Shared.PartyCellUpper(record),
@@ -87,10 +113,14 @@ public sealed class Mau09BData
             Year = Mau09Shared.Year(record),
             FullName = FormText.OrNull(record.Member?.FullName),
             DateOfBirth = Mau09Shared.DateOfBirth(record),
-            PartyPosition = positions.Party,
-            AdministrativePosition = noPositions ? FormText.OrNull(record.Member?.PositionTitle) : positions.Administrative,
-            MassPosition = positions.MassOrganization,
-            Department = FormText.OrNull(record.Department?.Name),
+            PartyPosition = lines.Party,
+            AdministrativePosition = lines.Administrative,
+            MassPosition = lines.MassOrganization,
+            PositionsOneLine = Mau09Shared.SingleLinePositions(source),
+            Positions = Mau09Shared.PositionsOneLine(source),
+            HasCellConfirmation = source.Layout?.ShowCellConfirmation ?? true,
+            Department = Mau09Shared.Department(record),
+            HasDepartment = Mau09Shared.HasDepartment(record),
             CellName = FormText.Spaced(record.PartyCell?.Name),
             Groups = Mau09Shared.GeneralGroups(source),
             Axes = source.Criteria.Axes.Select((axis, index) =>

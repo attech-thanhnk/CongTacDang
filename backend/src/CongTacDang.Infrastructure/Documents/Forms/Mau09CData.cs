@@ -45,6 +45,9 @@ public sealed class Mau09CData
     /// <summary>Tên phòng ở "Đơn vị công tác: &lt;phòng&gt;, &lt;công ty&gt;." (tên công ty lấy từ tag dùng chung ORG_COMPANY_NAME).</summary>
     [TemplateField("DEPARTMENT")] public string? Department { get; init; }
 
+    /// <summary>In "DEPARTMENT, " trước tên công ty; hồ sơ thuộc đơn vị gốc (lãnh đạo Công ty) → false, chỉ in tên công ty.</summary>
+    [TemplateCondition("HAS_DEPARTMENT")] public bool HasDepartment { get; init; }
+
     [TemplateCollection("SECTIONS")] public List<Mau09CSection> Sections { get; init; } = new();
 
     [TemplateField("GENERAL_SCORE")] public string? GeneralScore { get; init; }
@@ -88,8 +91,7 @@ public sealed class Mau09CData
             })
             .ToList();
 
-        var positions = source.Positions;
-        var noPositions = positions.All() == null;
+        var lines = Mau09Shared.PositionLines(source);
         var fullName = FormText.OrNull(record.Member?.FullName?.Trim());
         return new Mau09CData
         {
@@ -99,10 +101,11 @@ public sealed class Mau09CData
             Year = Mau09Shared.Year(record),
             FullName = FormText.Spaced(fullName?.ToUpper(Vietnamese)),
             DateOfBirth = Mau09Shared.DateOfBirth(record),
-            PartyPosition = positions.Party,
-            AdministrativePosition = noPositions ? FormText.OrNull(record.Member?.PositionTitle) : positions.Administrative,
-            MassPosition = positions.MassOrganization,
-            Department = FormText.OrNull(record.Department?.Name),
+            PartyPosition = lines.Party,
+            AdministrativePosition = lines.Administrative,
+            MassPosition = lines.MassOrganization,
+            Department = Mau09Shared.Department(record),
+            HasDepartment = Mau09Shared.HasDepartment(record),
             Sections = source.Criteria.SelfAssessmentSections.Select((section, index) =>
             {
                 // Nhận xét chung đã nhập thay cho câu dẫn của mục (như bản tự đánh giá đã nộp: một đoạn duy nhất); mục đầu tiên

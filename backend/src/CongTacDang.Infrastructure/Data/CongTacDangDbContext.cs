@@ -26,6 +26,7 @@ namespace CongTacDang.Infrastructure.Data
         public DbSet<AdministrativeDepartment> AdministrativeDepartments => Set<AdministrativeDepartment>();
         public DbSet<OrgUnitType> OrgUnitTypes => Set<OrgUnitType>();
         public DbSet<Holiday> Holidays => Set<Holiday>();
+        public DbSet<FormLayout> FormLayouts => Set<FormLayout>();
         public DbSet<Position> Positions => Set<Position>();
         public DbSet<MemberPosition> MemberPositions => Set<MemberPosition>();
         public DbSet<PartyMemberProfile> PartyMemberProfiles => Set<PartyMemberProfile>();
@@ -87,6 +88,11 @@ namespace CongTacDang.Infrastructure.Data
                     .WithMany(d => d.Members)
                     .HasForeignKey(m => m.DepartmentId)
                     .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(m => m.FormLayoutOverride)
+                    .WithMany()
+                    .HasForeignKey(m => m.FormLayoutOverrideId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // 3. Tệp đính kèm minh chứng & tài liệu

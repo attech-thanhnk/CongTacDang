@@ -34,8 +34,23 @@ public sealed class Mau9DData
     /// <summary>Chức vụ đoàn thể.</summary>
     [TemplateField("MASS_POSITION")] public string? MassPosition { get; init; }
 
+    /// <summary>In chức vụ trên một dòng (<c>POSITIONS</c>) thay cho 3 dòng — theo kiểu trình bày.</summary>
+    [TemplateCondition("POSITIONS_ONE_LINE")] public bool PositionsOneLine { get; init; }
+
+    /// <summary>Chức vụ trên một dòng "(Đảng, Đoàn thể, Chính quyền)".</summary>
+    [TemplateField("POSITIONS")] public string? Positions { get; init; }
+
+    /// <summary>Có dòng "Địa danh, ngày … tháng … năm …" dưới "ĐẢNG CỘNG SẢN VIỆT NAM" — theo kiểu trình bày.</summary>
+    [TemplateCondition("HAS_DATE_LINE")] public bool HasDateLine { get; init; }
+
+    /// <summary>"ngày … tháng … năm …": ngày nộp phiếu tự chấm (chưa nộp → giữ dòng chấm).</summary>
+    [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
+
     /// <summary>Tên phòng/đơn vị; template in tiếp ", " + tên công ty (<c>ORG_COMPANY_NAME</c>) như bản chuẩn.</summary>
     [TemplateField("DEPARTMENT")] public string? Department { get; init; }
+
+    /// <summary>In "DEPARTMENT, " trước tên công ty; hồ sơ thuộc đơn vị gốc (lãnh đạo Công ty) → false, chỉ in tên công ty.</summary>
+    [TemplateCondition("HAS_DEPARTMENT")] public bool HasDepartment { get; init; }
 
     /// <summary>Chi bộ đang sinh hoạt (ảnh chụp trên hồ sơ).</summary>
     [TemplateField("CELL_NAME")] public string? CellName { get; init; }
@@ -57,18 +72,22 @@ public sealed class Mau9DData
             reports = new Dictionary<string, AxisReport>(StringComparer.OrdinalIgnoreCase);
         }
 
-        var positions = source.Positions;
-        var noPositions = positions.All() == null;
+        var lines = Mau09Shared.PositionLines(source);
         return new Mau9DData
         {
             PartyCell = Mau09Shared.PartyCellUpper(record),
             Quarter = record.Period != null ? " " + CollectiveFormText.RomanQuarter(record.Period.Quarter) : null,
             Year = FormText.Spaced(Mau09Shared.Year(record)),
             FullName = FormText.OrNull(record.Member?.FullName),
-            PartyPosition = positions.Party,
-            AdministrativePosition = noPositions ? FormText.OrNull(record.Member?.PositionTitle) : positions.Administrative,
-            MassPosition = positions.MassOrganization,
-            Department = FormText.OrNull(record.Department?.Name),
+            PartyPosition = lines.Party,
+            AdministrativePosition = lines.Administrative,
+            MassPosition = lines.MassOrganization,
+            PositionsOneLine = Mau09Shared.SingleLinePositions(source),
+            Positions = Mau09Shared.PositionsOneLine(source),
+            HasDateLine = source.Layout?.ShowDateLineOn9D == true,
+            DateLine = Mau09Shared.DateLine(source),
+            Department = Mau09Shared.Department(record),
+            HasDepartment = Mau09Shared.HasDepartment(record),
             CellName = FormText.OrNull(record.PartyCell?.Name),
             Axes = source.Criteria.Axes.Select((axis, index) =>
             {

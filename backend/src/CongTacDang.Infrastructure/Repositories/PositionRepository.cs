@@ -21,11 +21,15 @@ public sealed class PositionRepository : IPositionRepository
 
     /// <inheritdoc />
     public Task<List<Position>> ListPositionsAsync(CancellationToken ct = default)
-        => _db.Positions.AsNoTracking().OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToListAsync(ct);
+        => _db.Positions.AsNoTracking().Include(p => p.FormLayout).OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToListAsync(ct);
+
+    /// <inheritdoc />
+    public Task<bool> FormLayoutExistsAsync(Guid id, CancellationToken ct = default)
+        => _db.FormLayouts.AnyAsync(l => l.Id == id, ct);
 
     /// <inheritdoc />
     public Task<Position?> FindPositionAsync(Guid id, CancellationToken ct = default)
-        => _db.Positions.FirstOrDefaultAsync(p => p.Id == id, ct);
+        => _db.Positions.Include(p => p.FormLayout).FirstOrDefaultAsync(p => p.Id == id, ct);
 
     /// <inheritdoc />
     public Task<bool> PositionNameExistsAsync(string name, Guid? excludeId = null, CancellationToken ct = default)

@@ -16,6 +16,9 @@ public interface IPositionRepository
     /// <summary>Chức vụ chưa xóa (không theo dõi), sắp theo thứ tự rồi tên.</summary>
     Task<List<Position>> ListPositionsAsync(CancellationToken ct = default);
 
+    /// <summary>Kiểu trình bày biểu mẫu chưa xóa có tồn tại.</summary>
+    Task<bool> FormLayoutExistsAsync(Guid id, CancellationToken ct = default);
+
     /// <summary>Chức vụ chưa xóa theo Id (được theo dõi).</summary>
     Task<Position?> FindPositionAsync(Guid id, CancellationToken ct = default);
 

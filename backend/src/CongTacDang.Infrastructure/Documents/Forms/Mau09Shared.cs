@@ -45,7 +45,9 @@ public sealed record MemberPositionNames(string? Party, string? Administrative, 
 /// <param name="Record">Hồ sơ đánh giá.</param>
 /// <param name="Criteria">Nội dung bộ tiêu chí của kỳ (ảnh chụp).</param>
 /// <param name="Positions">Chức vụ đang giữ.</param>
-public sealed record IndividualFormSource(EvaluationRecord Record, CriteriaSetContent Criteria, MemberPositionNames Positions)
+/// <param name="Layout">Kiểu trình bày áp dụng cho cán bộ; null = in như template.</param>
+public sealed record IndividualFormSource(
+    EvaluationRecord Record, CriteriaSetContent Criteria, MemberPositionNames Positions, FormLayout? Layout = null)
 {
     /// <summary>Đã nộp phiếu tự chấm (có điểm lưu) — chưa nộp thì các ô điểm giữ chữ mặc định.</summary>
     public bool HasSelfScore => Record.SelfScoredAt.HasValue;
@@ -96,6 +98,42 @@ internal static class Mau09Shared
 
     /// <summary>Tên Chi bộ in hoa ở tiêu đề trái (giống Mẫu 11, 13); null giữ chữ mặc định.</summary>
     public static string? PartyCellUpper(EvaluationRecord record) => FormText.OrNull(record.PartyCell?.Name)?.ToUpper(Vietnamese);
+
+    /// <summary>
+    /// Chức vụ 3 dòng (Đảng / chính quyền / đoàn thể): không giữ chức vụ nào trong danh mục → dòng chính quyền là chức danh trên
+    /// hồ sơ cán bộ; dòng không có chức vụ in chữ của kiểu trình bày (null → giữ dòng chấm).
+    /// </summary>
+    public static (string? Party, string? Administrative, string? MassOrganization) PositionLines(IndividualFormSource source)
+    {
+        var positions = source.Positions;
+        var empty = source.Layout?.EmptyPositionText;
+        return (positions.Party ?? empty, AdministrativePosition(source) ?? empty, positions.MassOrganization ?? empty);
+    }
+
+    /// <summary>Chức vụ trên một dòng "Chức vụ (Đảng, Đoàn thể, Chính quyền): …", ngăn cách bằng dấu phẩy; null nếu không có.</summary>
+    public static string? PositionsOneLine(IndividualFormSource source)
+    {
+        var parts = new[] { source.Positions.Party, source.Positions.MassOrganization, AdministrativePosition(source) }
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .ToList();
+        return parts.Count == 0 ? null : string.Join(", ", parts);
+    }
+
+    /// <summary>Mẫu 09B, 9D in chức vụ trên một dòng (theo kiểu trình bày).</summary>
+    public static bool SingleLinePositions(IndividualFormSource source) => source.Layout?.SingleLinePositions == true;
+
+    private static string? AdministrativePosition(IndividualFormSource source) => source.Positions.All() == null
+        ? FormText.OrNull(source.Record.Member?.PositionTitle)
+        : source.Positions.Administrative;
+
+    /// <summary>
+    /// Dòng "Đơn vị công tác: DEPARTMENT, ORG_COMPANY_NAME" có in tên đơn vị không: hồ sơ thuộc đơn vị gốc của cây (Công ty —
+    /// lãnh đạo Công ty) thì chỉ in tên công ty, như bản đã nộp của Chủ tịch, Giám đốc.
+    /// </summary>
+    public static bool HasDepartment(EvaluationRecord record) => record.Department is not { ParentId: null };
+
+    /// <summary>Tên đơn vị công tác trước tên công ty; đơn vị gốc → null (khối if:HAS_DEPARTMENT bị bỏ).</summary>
+    public static string? Department(EvaluationRecord record) => HasDepartment(record) ? FormText.OrNull(record.Department?.Name) : null;
 
     /// <summary>"ngày … tháng … năm …" sau địa danh: ngày nộp phiếu tự chấm; chưa nộp → null (giữ dòng chấm).</summary>
     public static string? DateLine(IndividualFormSource source) => CollectiveFormText.DateLine(source.Record.SelfScoredAt);

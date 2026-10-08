@@ -49,6 +49,15 @@ public sealed class UserImportRow
     /// <summary>Mã khung tỷ trọng (đã chuẩn hóa); null = trống.</summary>
     public string? WeightFrameCode { get; init; }
 
+    /// <summary>Kiểu trình bày biểu mẫu như ghi trong ô; rỗng = trống.</summary>
+    public string FormLayoutText { get; init; } = string.Empty;
+
+    /// <summary>Kiểu trình bày đặt riêng đã đối chiếu.</summary>
+    public Guid? FormLayoutId { get; set; }
+
+    /// <summary>Ô ghi "Theo chức vụ": bỏ kiểu đặt riêng (cán bộ dùng kiểu của chức vụ).</summary>
+    public bool ClearFormLayout { get; set; }
+
     /// <summary>Tài khoản đã có (cập nhật).</summary>
     public UserRef? Existing { get; set; }
 
@@ -73,7 +82,10 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
     /// <summary>Khóa cột.</summary>
     public const string UsernameKey = "username", FullNameKey = "fullName", DateOfBirthKey = "dateOfBirth", EmailKey = "email",
         PhoneKey = "phone", DepartmentKey = "departmentCode", PartyCellKey = "partyCellCode", PartyMemberKey = "isPartyMember",
-        PartyCardKey = "partyCardNumber", PositionsKey = "positions", WeightFrameKey = "weightFrame";
+        PartyCardKey = "partyCardNumber", PositionsKey = "positions", WeightFrameKey = "weightFrame", FormLayoutKey = "formLayout";
+
+    /// <summary>Giá trị cột kiểu trình bày: bỏ kiểu đặt riêng, dùng kiểu theo chức vụ.</summary>
+    public const string ByPositionLayout = "Theo chức vụ";
 
     private const int MaxFullNameLength = 200;
     private const int MaxPhoneLength = 30;
@@ -83,16 +95,18 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
     private readonly IAuthorizationGuard _guard;
     private readonly IUserAccountService _accounts;
     private readonly IPositionService _positions;
+    private readonly IFormLayoutService _formLayouts;
     private readonly TimeProvider _time;
 
     /// <summary>Khởi tạo.</summary>
     public UserImportDefinition(IImportLookup lookup, IAuthorizationGuard guard, IUserAccountService accounts, IPositionService positions,
-        TimeProvider? time = null)
+        IFormLayoutService formLayouts, TimeProvider? time = null)
     {
         _lookup = lookup;
         _guard = guard;
         _accounts = accounts;
         _positions = positions;
+        _formLayouts = formLayouts;
         _time = time ?? TimeProvider.System;
     }
 
@@ -130,7 +144,9 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
         new(PositionsKey, "Chức vụ", false,
             "Tên chức vụ hoặc mã thống kê (M1…M26) trong danh mục; nhiều chức vụ phân tách bằng dấu ;. Chức vụ đầu tiên là chức vụ chính.",
             MultipleValues: true, Example: "Trưởng phòng; Bí thư chi bộ"),
-        new(WeightFrameKey, "Khung tỷ trọng mặc định", false, "Mã khung tỷ trọng A-B-C-D theo bộ tiêu chí (tùy chọn).", Example: "K2")
+        new(WeightFrameKey, "Khung tỷ trọng mặc định", false, "Mã khung tỷ trọng A-B-C-D theo bộ tiêu chí (tùy chọn).", Example: "K2"),
+        new(FormLayoutKey, "Kiểu trình bày biểu mẫu", false,
+            $"Chỉ ghi khi cán bộ cần kiểu khác kiểu của chức vụ. Để trống: theo chức vụ (tài khoản đã có thì giữ nguyên); ghi \"{ByPositionLayout}\" để bỏ kiểu đã đặt riêng.")
     };
 
     /// <inheritdoc />
@@ -139,7 +155,13 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
         var positions = (await _lookup.GetPositionsAsync(ct)).Where(p => p.IsActive)
             .Select(p => string.IsNullOrEmpty(p.StatCode) ? p.Name : $"{p.Name} ({p.StatCode})")
             .ToList();
-        return Columns.Select(c => c.Key == PositionsKey ? c.WithAllowedValues(positions) : c).ToList();
+        var layouts = (await _lookup.GetFormLayoutsAsync(ct)).Select(l => l.Name).Prepend(ByPositionLayout).ToList();
+        return Columns.Select(c => c.Key switch
+        {
+            PositionsKey => c.WithAllowedValues(positions),
+            FormLayoutKey => c.WithAllowedValues(layouts),
+            _ => c
+        }).ToList();
     }
 
     /// <inheritdoc />
@@ -198,7 +220,8 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
             IsPartyMember = isMember,
             PartyCardNumber = card,
             PositionTokens = ImportValues.SplitList(raw.Get(PositionsKey)),
-            WeightFrameCode = weightFrame
+            WeightFrameCode = weightFrame,
+            FormLayoutText = raw.Get(FormLayoutKey).Trim()
         };
     }
 
@@ -214,6 +237,7 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
         var departments = ActiveByCode(await _lookup.GetDepartmentsAsync(ct));
         var cells = ActiveByCode(await _lookup.GetPartyCellsAsync(ct));
         var positions = await _lookup.GetPositionsAsync(ct);
+        var layouts = rows.Any(r => r.Data.FormLayoutText.Length > 0) ? await _lookup.GetFormLayoutsAsync(ct) : Array.Empty<FormLayoutRef>();
 
         foreach (var row in rows)
         {
@@ -245,6 +269,7 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
                 if (position != null && data.Positions.All(p => p.Id != position.Id))
                     data.Positions.Add(position);
             }
+            ResolveFormLayout(row, layouts);
 
             // Quyền quản lý tài khoản trên đơn vị/tổ chức Đảng của tài khoản (nơi hiện tại và nơi đến).
             if (existing is { IsDeleted: false }
@@ -275,6 +300,8 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
                     var held = existing.HeldPositionIds.ToHashSet();
                     foreach (var position in data.Positions.Where(p => !held.Contains(p.Id)))
                         await _positions.AddMemberPositionAsync(existing.Id, PositionInput(position, data, isPrimary: null), ct);
+                    if (data.FormLayoutId.HasValue || data.ClearFormLayout)
+                        await _formLayouts.SetMemberLayoutAsync(existing.Id, new SetMemberFormLayoutDto { LayoutId = data.FormLayoutId }, ct);
                 });
                 outcome.Updated++;
             }
@@ -291,6 +318,8 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
                     }, ct);
                     for (var i = 0; i < data.Positions.Count; i++)
                         await _positions.AddMemberPositionAsync(account.UserId, PositionInput(data.Positions[i], data, isPrimary: i == 0), ct);
+                    if (data.FormLayoutId.HasValue)
+                        await _formLayouts.SetMemberLayoutAsync(account.UserId, new SetMemberFormLayoutDto { LayoutId = data.FormLayoutId }, ct);
                     return account;
                 });
                 outcome.Credentials.Add(new ImportCredential(created.Username, data.FullName, created.TemporaryPassword));
@@ -343,6 +372,25 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
             return null;
         }
         return unit.Id;
+    }
+
+    /// <summary>Đối chiếu ô kiểu trình bày: tên kiểu trong danh mục hoặc "Theo chức vụ".</summary>
+    private static void ResolveFormLayout(ParsedImportRow<UserImportRow> row, IReadOnlyList<FormLayoutRef> layouts)
+    {
+        var text = row.Data.FormLayoutText;
+        if (text.Length == 0)
+            return;
+        if (ImportValues.Fold(text) == ImportValues.Fold(ByPositionLayout))
+        {
+            row.Data.ClearFormLayout = true;
+            return;
+        }
+        var match = layouts.FirstOrDefault(l => ImportValues.SameText(l.Name, text))
+            ?? layouts.FirstOrDefault(l => ImportValues.Fold(l.Name) == ImportValues.Fold(text));
+        if (match == null)
+            row.Error($"Kiểu trình bày \"{text}\" không có trong danh mục kiểu trình bày biểu mẫu.");
+        else
+            row.Data.FormLayoutId = match.Id;
     }
 
     private static PositionRef? ResolvePosition(ParsedImportRow<UserImportRow> row, string token, IReadOnlyList<PositionRef> positions, UserRef? existing)

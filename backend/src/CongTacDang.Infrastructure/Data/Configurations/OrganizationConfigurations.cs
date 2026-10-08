@@ -97,6 +97,28 @@ public sealed class PositionConfiguration : IEntityTypeConfiguration<Position>
         entity.Property(e => e.DefaultApprovalAuthority).HasConversion<int?>();
         entity.HasIndex(e => e.Name).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
         entity.HasQueryFilter(e => !e.IsDeleted);
+
+        entity.HasOne(e => e.FormLayout)
+            .WithMany()
+            .HasForeignKey(e => e.FormLayoutId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+/// <summary>Bảng <c>form_layouts</c>: kiểu trình bày biểu mẫu tự đánh giá.</summary>
+public sealed class FormLayoutConfiguration : IEntityTypeConfiguration<FormLayout>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<FormLayout> entity)
+    {
+        entity.ToTable("form_layouts");
+        entity.HasKey(e => e.Id);
+        entity.Property(e => e.Name).HasMaxLength(FormLayout.MaxNameLength).IsRequired();
+        entity.Property(e => e.Description).HasMaxLength(FormLayout.MaxDescriptionLength);
+        entity.Property(e => e.HeaderStyle).HasConversion<int>();
+        entity.Property(e => e.EmptyPositionText).HasMaxLength(FormLayout.MaxEmptyPositionTextLength);
+        entity.HasIndex(e => e.Name).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
+        entity.HasQueryFilter(e => !e.IsDeleted);
     }
 }
 

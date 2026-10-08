@@ -69,7 +69,7 @@ public static class WordTemplateValidator
     }
 
     /// <summary>Tag bắt buộc của mẫu không có trong tệp (điều kiện: thiếu cả <c>if:</c> lẫn <c>ifnot:</c>).</summary>
-    private static List<string> MissingRequired(WordFormDefinition form, IReadOnlyCollection<string> tags)
+    public static List<string> MissingRequired(WordFormDefinition form, IReadOnlyCollection<string> tags)
     {
         var present = tags.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var missing = new List<string>();

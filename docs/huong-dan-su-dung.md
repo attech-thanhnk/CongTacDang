@@ -411,7 +411,7 @@ Menu **Quản lý → Người dùng**. Lọc theo đơn vị, tổ chức Đả
 - **Tạo tài khoản**: nhập tên đăng nhập, họ tên, **ngày sinh**, chức danh, email, đơn vị công tác chính, nơi sinh hoạt Đảng, khung tỷ trọng mặc định… Hệ thống cấp mật khẩu tạm; người dùng phải đổi khi đăng nhập lần đầu.
 - Trang chi tiết có các nút **Sửa thông tin**, **Vô hiệu hóa**, **Đặt lại mật khẩu**, **Xóa** và các tab:
   - **Thông tin**: thông tin hồ sơ cán bộ, cấp quyết định xếp loại, tình trạng khóa đăng nhập.
-  - **Chức vụ**: **Thêm chức vụ** (chức vụ Đảng gắn tổ chức Đảng, chức vụ chính quyền gắn đơn vị, chức vụ đoàn thể gắn một trong hai), ngày bắt đầu/kết thúc, căn cứ văn bản. Dùng **Kết thúc chức vụ** khi thôi giữ; **Xóa** chỉ khi nhập nhầm. Ở đây cũng đặt tay **Thẩm quyền phê duyệt** (cấp quyết định xếp loại) khi cần, kèm lý do.
+  - **Chức vụ**: **Thêm chức vụ** (chức vụ Đảng gắn tổ chức Đảng, chức vụ chính quyền gắn đơn vị, chức vụ đoàn thể gắn một trong hai), ngày bắt đầu/kết thúc, căn cứ văn bản. Dùng **Kết thúc chức vụ** khi thôi giữ; **Xóa** chỉ khi nhập nhầm. Ở đây cũng đặt tay **Thẩm quyền phê duyệt** (cấp quyết định xếp loại) khi cần, kèm lý do, và **Đổi kiểu trình bày** khi cán bộ cần cách in Mẫu 09B, 09C, 9D khác với kiểu theo chức vụ.
   - **Vai trò & phạm vi**: các bản gán vai trò của người này.
   - **Người này làm được gì**: tra cứu quyền thực tế và phạm vi.
 
@@ -438,7 +438,8 @@ Menu **Quản lý → Danh mục**, gồm các tab:
 
 - **Đơn vị chính quyền**, **Tổ chức Đảng**: hai cây nhiều cấp. **Thêm đơn vị gốc**, thêm đơn vị con, sửa, đổi đơn vị cha, ngừng hoạt động. **Mở rộng** / **Thu gọn** để xem cây.
 - **Loại đơn vị**: Công ty, Phòng, Chi bộ…
-- **Chức vụ**: tên, bên (Đảng / chính quyền / đoàn thể), **Mã chức danh (15A/15B)**, thẩm quyền quyết định xếp loại mặc định. Chức vụ đã từng gán cho cán bộ không xóa được, chỉ chuyển sang **Ngừng dùng**.
+- **Chức vụ**: tên, bên (Đảng / chính quyền / đoàn thể), **Mã chức danh (15A/15B)**, thẩm quyền quyết định xếp loại mặc định. Chức vụ đã từng gán cho cán bộ không xóa được, chỉ chuyển sang **Ngừng dùng**. Mỗi chức vụ chọn được **Kiểu trình bày biểu mẫu tự đánh giá**.
+- **Kiểu trình bày biểu mẫu**: cách in Mẫu 09B, 09C, 9D — tiêu đề Mẫu 09B (Chi bộ hay Đảng ủy), ô xác nhận của chi bộ, chức vụ một dòng hay 3 dòng, dòng ngày trên Mẫu 9D, chữ ghi khi không có chức vụ. Cán bộ giữ nhiều chức vụ khác kiểu thì dùng kiểu có thứ tự nhỏ hơn; chức vụ chưa gắn kiểu dùng kiểu mặc định. Dùng **Nhân bản** để tạo kiểu mới từ kiểu có sẵn.
 - **Ngày nghỉ**: khai báo ngày lễ, Tết, nghỉ bù (thứ Bảy, Chủ nhật đã được loại sẵn). Dùng khi tính thời hạn các bước.
 
 ### 10.4 Thông tin đơn vị
@@ -454,6 +455,7 @@ Menu **Quản lý → Biểu mẫu Word**. Mỗi biểu mẫu có:
 - **Lịch sử**: các phiên bản đã tải lên; **Kích hoạt** lại phiên bản cũ.
 - **Dùng file gốc**: quay về file mẫu đi kèm phần mềm.
 - **Tag**: danh sách ô dữ liệu của biểu mẫu.
+- Dòng **Thiếu n tag so với file gốc**: file đang dùng thiếu ô dữ liệu mà phiên bản phần mềm mới cần; phiếu xuất ra sẽ thiếu nội dung tương ứng. Tải **File gốc**, sửa lại rồi tải lên, hoặc bấm **Dùng file gốc**.
 
 ### 10.6 Nhật ký
 

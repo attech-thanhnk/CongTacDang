@@ -540,6 +540,60 @@ public static class DataSeeder
             await context.SaveChangesAsync();
             logger?.LogInformation("Đã tạo {Count} chức vụ mặc định.", DefaultPositions.Length);
         }
+
+        await SeedFormLayoutsAsync(context, logger);
+    }
+
+    /// <summary>Kiểu trình bày biểu mẫu mặc định và chức vụ gắn kiểu đó (tên chức vụ trong danh mục mặc định).</summary>
+    private sealed record DefaultFormLayout(
+        string Name, string Description, FormHeaderStyle Header, bool CellConfirmation, bool SingleLine, bool DateLine9D,
+        string? EmptyPositionText, bool IsDefault, string[] Positions);
+
+    /// <summary>
+    /// Kiểu trình bày mặc định theo các bản tự đánh giá đã nộp quý III/2026 (Trưởng phòng, Giám đốc, Chủ tịch). Thứ tự = ưu tiên khi
+    /// cán bộ giữ nhiều chức vụ gắn kiểu khác nhau (Chủ tịch kiêm Bí thư Đảng ủy → "Bí thư Đảng ủy").
+    /// </summary>
+    private static readonly DefaultFormLayout[] DefaultFormLayouts =
+    {
+        new("Bí thư Đảng ủy", "Tiêu đề Mẫu 09B theo Đảng ủy, không có ô xác nhận của chi bộ; chức vụ một dòng; Mẫu 9D có dòng ngày.",
+            FormHeaderStyle.PartyCommittee, false, true, true, "không", false, new[] { "Bí thư Đảng ủy" }),
+        new("Lãnh đạo Công ty", "Chức vụ một dòng trên Mẫu 09B, 9D; Mẫu 9D có dòng ngày; chức vụ trống ghi \"không\".",
+            FormHeaderStyle.PartyCell, true, true, true, "không", false, new[] { "Chủ tịch Công ty", "Giám đốc", "Phó Giám đốc" }),
+        new("Cán bộ phòng ban", "Như biểu mẫu gốc: chức vụ 3 dòng, có ô xác nhận của chi bộ.",
+            FormHeaderStyle.PartyCell, true, false, false, null, true, Array.Empty<string>())
+    };
+
+    /// <summary>
+    /// Tạo kiểu trình bày mặc định khi danh mục đang trống (kể cả bản ghi đã xóa) và gắn cho các chức vụ cùng tên chưa có kiểu —
+    /// không ghi đè cấu hình quản trị đã sửa.
+    /// </summary>
+    private static async Task SeedFormLayoutsAsync(CongTacDangDbContext context, ILogger? logger)
+    {
+        if (await context.FormLayouts.IgnoreQueryFilters().AnyAsync())
+            return;
+
+        var layouts = DefaultFormLayouts.Select((l, i) => (Seed: l, Entity: new FormLayout
+        {
+            Name = l.Name,
+            Description = l.Description,
+            HeaderStyle = l.Header,
+            ShowCellConfirmation = l.CellConfirmation,
+            SingleLinePositions = l.SingleLine,
+            ShowDateLineOn9D = l.DateLine9D,
+            EmptyPositionText = l.EmptyPositionText,
+            IsDefault = l.IsDefault,
+            SortOrder = (i + 1) * 10
+        })).ToList();
+        context.FormLayouts.AddRange(layouts.Select(l => l.Entity));
+
+        var positions = await context.Positions.Where(p => p.FormLayoutId == null).ToListAsync();
+        foreach (var (seed, entity) in layouts)
+        {
+            foreach (var position in positions.Where(p => seed.Positions.Contains(p.Name, StringComparer.OrdinalIgnoreCase)))
+                position.FormLayoutId = entity.Id;
+        }
+        await context.SaveChangesAsync();
+        logger?.LogInformation("Đã tạo {Count} kiểu trình bày biểu mẫu mặc định.", layouts.Count);
     }
 
     #endregion

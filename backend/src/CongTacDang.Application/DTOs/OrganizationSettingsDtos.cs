@@ -80,6 +80,12 @@ public sealed class WordTemplateSummaryDto
     /// <summary>Số phiên bản đã tải lên.</summary>
     public int VersionCount { get; set; }
 
+    /// <summary>
+    /// Tag bắt buộc mà phiên bản đang dùng không có (so với danh mục tag hiện tại — ví dụ file mẫu gốc được bổ sung tag
+    /// sau khi tải bản này lên). Rỗng khi đang dùng file gốc.
+    /// </summary>
+    public List<string> ActiveMissingTags { get; set; } = new();
+
     /// <summary>Danh mục tag của biểu mẫu.</summary>
     public List<WordTemplateTagDto> Tags { get; set; } = new();
 }

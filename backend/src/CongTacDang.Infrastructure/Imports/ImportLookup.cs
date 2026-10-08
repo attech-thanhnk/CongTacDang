@@ -54,6 +54,13 @@ public sealed class ImportLookup : IImportLookup, IImportAuditWriter
             .ToListAsync(ct);
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<FormLayoutRef>> GetFormLayoutsAsync(CancellationToken ct = default)
+        => await _db.FormLayouts.AsNoTracking()
+            .OrderBy(l => l.SortOrder).ThenBy(l => l.Name)
+            .Select(l => new FormLayoutRef(l.Id, l.Name))
+            .ToListAsync(ct);
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<RoleRef>> GetRolesAsync(CancellationToken ct = default)
     {
         var roles = await _db.Roles.AsNoTracking()

@@ -32,6 +32,12 @@ public class Position : IAuditableEntity, ISoftDeletable
     /// <summary>Chức vụ lãnh đạo, quản lý.</summary>
     public bool IsLeadership { get; set; }
 
+    /// <summary>Kiểu trình bày biểu mẫu tự đánh giá mặc định của người giữ chức vụ; null = không xác định.</summary>
+    public Guid? FormLayoutId { get; set; }
+
+    /// <summary>Kiểu trình bày biểu mẫu (navigation).</summary>
+    public FormLayout? FormLayout { get; set; }
+
     /// <summary>Thứ tự hiển thị (nhỏ đứng trước).</summary>
     public int SortOrder { get; set; }
 

@@ -93,6 +93,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddAccountServices(builder.Configuration); // Tài khoản, phiên, nhật ký đăng nhập (Api/Extensions/AccountExtensions.cs)
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IHolidayService, HolidayService>();
+builder.Services.AddScoped<IFormLayoutService, FormLayoutService>();
 builder.Services.AddScoped<IAttachmentService, AttachmentService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IEvaluationService, EvaluationService>();

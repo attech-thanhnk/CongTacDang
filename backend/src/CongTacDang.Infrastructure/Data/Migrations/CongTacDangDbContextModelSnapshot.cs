@@ -1269,6 +1269,73 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.ToTable("evaluation_tasks", (string)null);
                 });
 
+            modelBuilder.Entity("CongTacDang.Domain.Entities.FormLayout", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("EmptyPositionText")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("HeaderStyle")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("ShowCellConfirmation")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ShowDateLineOn9D")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("SingleLinePositions")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = FALSE");
+
+                    b.ToTable("form_layouts", (string)null);
+                });
+
             modelBuilder.Entity("CongTacDang.Domain.Entities.Holiday", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1715,6 +1782,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
+                    b.Property<Guid?>("FormLayoutOverrideId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1786,6 +1856,8 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DepartmentId");
+
+                    b.HasIndex("FormLayoutOverrideId");
 
                     b.HasIndex("IsActive");
 
@@ -1875,6 +1947,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("FormLayoutId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -1906,6 +1981,8 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FormLayoutId");
 
                     b.HasIndex("Name")
                         .IsUnique()
@@ -2559,6 +2636,11 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasForeignKey("DepartmentId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("CongTacDang.Domain.Entities.FormLayout", "FormLayoutOverride")
+                        .WithMany()
+                        .HasForeignKey("FormLayoutOverrideId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CongTacDang.Domain.Entities.PartyCell", "PartyCell")
                         .WithMany("Members")
                         .HasForeignKey("PartyCellId")
@@ -2566,7 +2648,19 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
                     b.Navigation("Department");
 
+                    b.Navigation("FormLayoutOverride");
+
                     b.Navigation("PartyCell");
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.Position", b =>
+                {
+                    b.HasOne("CongTacDang.Domain.Entities.FormLayout", "FormLayout")
+                        .WithMany()
+                        .HasForeignKey("FormLayoutId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("FormLayout");
                 });
 
             modelBuilder.Entity("CongTacDang.Domain.Entities.RefreshToken", b =>

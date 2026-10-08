@@ -11,6 +11,7 @@ import {
   POSITION_SIDE_LABELS,
   PositionSide,
 } from "@/services/catalogService";
+import { FormLayout, formLayoutService } from "@/services/formLayoutService";
 import { AdminModal } from "./AdminModal";
 import { errorMessage, errorTitle } from "./adminUtils";
 
@@ -21,6 +22,7 @@ interface FormState {
   statCode: string;
   defaultApprovalAuthority: "" | ApprovalAuthorityCode;
   isLeadership: boolean;
+  formLayoutId: string;
   sortOrder: string;
   isActive: boolean;
 }
@@ -31,6 +33,7 @@ const EMPTY_FORM: FormState = {
   statCode: "",
   defaultApprovalAuthority: "",
   isLeadership: false,
+  formLayoutId: "",
   sortOrder: "0",
   isActive: true,
 };
@@ -39,6 +42,7 @@ const EMPTY_FORM: FormState = {
 export function PositionsTab({ canManage }: { canManage: boolean }) {
   const { toast, confirm } = useToast();
   const [positions, setPositions] = useState<Position[]>([]);
+  const [layouts, setLayouts] = useState<FormLayout[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [sideFilter, setSideFilter] = useState<"" | PositionSide>("");
@@ -48,7 +52,9 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setPositions(await catalogService.listPositions());
+      const [items, layoutItems] = await Promise.all([catalogService.listPositions(), formLayoutService.list()]);
+      setPositions(items);
+      setLayouts(layoutItems);
     } catch (err) {
       toast.error(errorMessage(err, "Không tải được danh mục chức vụ."), errorTitle(err));
     } finally {
@@ -78,6 +84,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
       statCode: p.statCode ?? "",
       defaultApprovalAuthority: p.defaultApprovalAuthority ?? "",
       isLeadership: p.isLeadership,
+      formLayoutId: p.formLayoutId ?? "",
       sortOrder: String(p.sortOrder),
       isActive: p.isActive,
     });
@@ -96,6 +103,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
       statCode: form.statCode.trim(),
       defaultApprovalAuthority: form.defaultApprovalAuthority,
       isLeadership: form.isLeadership,
+      formLayoutId: form.formLayoutId,
       sortOrder,
       isActive: form.isActive,
     };
@@ -169,6 +177,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                 <th style={{ width: 120 }}>Bên</th>
                 <th style={{ width: 90 }}>Mã</th>
                 <th style={{ width: 210 }}>Thẩm quyền mặc định</th>
+                <th style={{ width: 170 }}>Kiểu trình bày</th>
                 <th className="text-center" style={{ width: 90 }}>Đang giữ</th>
                 <th style={{ width: 110 }}>Trạng thái</th>
                 {canManage && <th className="pe-3 text-end" style={{ width: 100 }}>Thao tác</th>}
@@ -177,14 +186,14 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-4 text-secondary loading-delay">
+                  <td colSpan={8} className="text-center py-4 text-secondary loading-delay">
                     <span className="spinner-border spinner-border-sm me-2" />
                     Đang tải…
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-4 text-secondary">
+                  <td colSpan={8} className="text-center py-4 text-secondary">
                     Không có chức vụ phù hợp.
                   </td>
                 </tr>
@@ -200,6 +209,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                     <td className="small">
                       {p.defaultApprovalAuthority ? APPROVAL_AUTHORITY_CODE_LABELS[p.defaultApprovalAuthority] : <span className="text-secondary">Không xác định</span>}
                     </td>
+                    <td className="small">{p.formLayoutName ?? <span className="text-secondary">Mặc định</span>}</td>
                     <td className="text-center">{p.holderCount}</td>
                     <td>
                       {p.isActive ? (
@@ -273,6 +283,17 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                   {(Object.keys(APPROVAL_AUTHORITY_CODE_LABELS) as ApprovalAuthorityCode[]).map((a) => (
                     <option key={a} value={a}>
                       {APPROVAL_AUTHORITY_CODE_LABELS[a]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-12">
+                <label className="form-label">Kiểu trình bày biểu mẫu tự đánh giá</label>
+                <select className="form-select form-select-sm" value={form.formLayoutId} onChange={(e) => setForm({ ...form, formLayoutId: e.target.value })}>
+                  <option value="">Không gắn (dùng kiểu mặc định)</option>
+                  {layouts.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
                     </option>
                   ))}
                 </select>

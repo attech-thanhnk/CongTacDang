@@ -90,6 +90,12 @@ public class PartyMemberProfile : IAuditableEntity, ISoftDeletable
     /// <summary>Lý do đặt tay thẩm quyền (bắt buộc khi <see cref="ApprovalAuthorityOverride"/> có giá trị).</summary>
     public string? ApprovalAuthorityOverrideReason { get; set; }
 
+    /// <summary>Kiểu trình bày biểu mẫu tự đánh giá đặt riêng cho cán bộ (ghi đè kiểu suy ra từ chức vụ); null = suy ra.</summary>
+    public Guid? FormLayoutOverrideId { get; set; }
+
+    /// <summary>Kiểu trình bày đặt riêng (navigation).</summary>
+    public FormLayout? FormLayoutOverride { get; set; }
+
     /// <summary>
     /// Dấu bảo mật của tài khoản: đổi khi đổi/đặt lại mật khẩu, khóa hoặc xóa để vô hiệu phiên đang dùng (task 08 sử dụng).
     /// </summary>

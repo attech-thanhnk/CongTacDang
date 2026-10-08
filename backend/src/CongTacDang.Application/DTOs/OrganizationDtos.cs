@@ -62,6 +62,12 @@ public class PositionDto
     /// <summary>Chức vụ lãnh đạo, quản lý.</summary>
     public bool IsLeadership { get; set; }
 
+    /// <summary>Kiểu trình bày biểu mẫu tự đánh giá mặc định; null = không xác định.</summary>
+    public Guid? FormLayoutId { get; set; }
+
+    /// <summary>Tên kiểu trình bày.</summary>
+    public string? FormLayoutName { get; set; }
+
     /// <summary>Thứ tự hiển thị.</summary>
     public int SortOrder { get; set; }
 
@@ -92,6 +98,9 @@ public class SavePositionDto
 
     /// <summary>Chức vụ lãnh đạo, quản lý.</summary>
     public bool? IsLeadership { get; set; }
+
+    /// <summary>Id kiểu trình bày biểu mẫu tự đánh giá; rỗng = không xác định.</summary>
+    public string? FormLayoutId { get; set; }
 
     /// <summary>Thứ tự hiển thị.</summary>
     public int? SortOrder { get; set; }

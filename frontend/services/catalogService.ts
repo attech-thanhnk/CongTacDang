@@ -91,6 +91,9 @@ export interface Position {
   statCode?: string | null;
   defaultApprovalAuthority?: ApprovalAuthorityCode | null;
   isLeadership: boolean;
+  /** Kiểu trình bày biểu mẫu tự đánh giá mặc định của người giữ chức vụ. */
+  formLayoutId?: string | null;
+  formLayoutName?: string | null;
   sortOrder: number;
   isActive: boolean;
   holderCount: number;
@@ -101,6 +104,8 @@ export interface SavePositionPayload {
   name?: string;
   side?: PositionSide;
   statCode?: string;
+  /** Id kiểu trình bày; rỗng = không xác định. */
+  formLayoutId?: string;
   defaultApprovalAuthority?: string;
   isLeadership?: boolean;
   sortOrder?: number;

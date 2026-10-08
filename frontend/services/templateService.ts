@@ -34,6 +34,8 @@ export interface TemplateSummary {
   templateFileName: string;
   activeVersion?: TemplateVersion | null;
   versionCount: number;
+  /** Tag bắt buộc mà phiên bản đang dùng không có. */
+  activeMissingTags: string[];
   tags: TemplateTag[];
 }
 

@@ -90,7 +90,7 @@ public sealed class RecordFormService : IRecordFormService
         if (criteria == null)
             throw new ConflictException("Kỳ đánh giá chưa có bộ tiêu chí nên chưa xuất được biểu mẫu tự chấm. Hãy liên hệ người quản lý kỳ.");
 
-        var source = new IndividualFormSource(record, criteria.Content, await PositionsAsync(record, ct));
+        var source = new IndividualFormSource(record, criteria.Content, await PositionsAsync(record, ct), await LayoutAsync(record, ct));
         var (templateFileName, data) = code switch
         {
             RecordFormCodes.Form09A => (Mau09AData.TemplateFileName, (object)Mau09AData.From(source)),
@@ -101,7 +101,10 @@ public sealed class RecordFormService : IRecordFormService
 
         var template = await _templates.LoadAsync(templateFileName, ct);
         var org = OrganizationSettingsService.ToTemplateFields(await _orgSettings.GetAsync(ct));
-        var bytes = DocxTemplateEngine.Render(template, TemplateDataBinder.Bind(data).WithShared(TemplateDataBinder.Bind(org))).Content;
+        var bound = TemplateDataBinder.Bind(data);
+        if (code == RecordFormCodes.Form09B)
+            Mau09BData.ApplyHeader(bound, source.Layout, org);
+        var bytes = DocxTemplateEngine.Render(template, bound.WithShared(TemplateDataBinder.Bind(org))).Content;
         var fileName = FileName(code, record);
 
         if (format != ReportFormat.Pdf)
@@ -165,6 +168,30 @@ public sealed class RecordFormService : IRecordFormService
             .OrderByDescending(mp => mp.IsPrimary)
             .ThenBy(mp => mp.Position!.SortOrder)
             .Select(mp => (mp.Position!.Side, mp.Position.Name)));
+    }
+
+    /// <summary>
+    /// Kiểu trình bày biểu mẫu của cán bộ (cùng thời điểm với chức vụ in trên phiếu): kiểu đặt riêng, không có thì kiểu của chức vụ
+    /// đang giữ, không có thì kiểu mặc định.
+    /// </summary>
+    private async Task<FormLayout?> LayoutAsync(EvaluationRecord record, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var at = record.Period.EndDate < now ? record.Period.EndDate : now;
+        var overrideId = await _db.PartyMemberProfiles.AsNoTracking()
+            .Where(m => m.Id == record.MemberId)
+            .Select(m => m.FormLayoutOverrideId)
+            .FirstOrDefaultAsync(ct);
+        var layouts = await _db.FormLayouts.AsNoTracking().ToListAsync(ct);
+        var positionLayoutIds = await _db.MemberPositions.AsNoTracking()
+            .Where(mp => mp.UserId == record.MemberId && mp.Position != null && mp.Position.FormLayoutId != null
+                         && mp.ValidFrom <= at && (mp.ValidTo == null || mp.ValidTo > at))
+            .Select(mp => mp.Position!.FormLayoutId!.Value)
+            .ToListAsync(ct);
+        return FormLayout.Resolve(
+            layouts.FirstOrDefault(l => l.Id == overrideId),
+            positionLayoutIds.Select(id => layouts.FirstOrDefault(l => l.Id == id)),
+            layouts.FirstOrDefault(l => l.IsDefault));
     }
 
     /// <summary>Tên tệp không dấu theo quy cách HD03 ("Mau …_…_Quy …"), ví dụ <c>Mau_09B_Nguyen_Van_A_Q3-2026.docx</c>.</summary>

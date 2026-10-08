@@ -479,6 +479,12 @@ export default function TemplatesPage() {
                             <span className="status-badge tone-neutral">File gốc</span>
                           )}
                           <div className="text-secondary mt-1">{t.versionCount} phiên bản đã tải lên</div>
+                          {active && t.activeMissingTags.length > 0 && (
+                            <div className="text-warning-emphasis mt-1" title={t.activeMissingTags.join("\n")}>
+                              <i className="bi bi-exclamation-triangle me-1" />
+                              Thiếu {t.activeMissingTags.length} tag so với file gốc
+                            </div>
+                          )}
                         </td>
                         <td className="text-nowrap">
                           {active ? (

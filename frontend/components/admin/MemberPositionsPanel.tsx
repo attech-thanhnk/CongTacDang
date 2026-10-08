@@ -14,6 +14,7 @@ import {
   treeLabel,
 } from "@/services/catalogService";
 import { ApprovalAuthorityInfo, MemberPosition, SaveMemberPositionPayload, userService } from "@/services/userService";
+import { FormLayout, formLayoutService, MemberFormLayout } from "@/services/formLayoutService";
 import { AdminModal } from "./AdminModal";
 import {
   endOfDayExclusiveIso,
@@ -60,14 +61,22 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<PositionForm | null>(null);
   const [overrideForm, setOverrideForm] = useState<{ value: "" | ApprovalAuthorityCode; reason: string } | null>(null);
+  const [memberLayout, setMemberLayout] = useState<MemberFormLayout | null>(null);
+  const [layouts, setLayouts] = useState<FormLayout[]>([]);
+  const [layoutForm, setLayoutForm] = useState<{ value: string } | null>(null);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [list, info] = await Promise.all([userService.listPositions(userId), userService.getApprovalAuthority(userId)]);
+      const [list, info, layout] = await Promise.all([
+        userService.listPositions(userId),
+        userService.getApprovalAuthority(userId),
+        formLayoutService.getForMember(userId),
+      ]);
       setItems(list);
       setAuthority(info);
+      setMemberLayout(layout);
     } catch (err) {
       toast.error(errorMessage(err, "Không tải được chức vụ của cán bộ."), errorTitle(err));
     } finally {
@@ -86,6 +95,10 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
       .listPositions()
       .then(setPositions)
       .catch((err: unknown) => toast.error(errorMessage(err, "Không tải được danh mục chức vụ."), errorTitle(err)));
+    formLayoutService
+      .list()
+      .then(setLayouts)
+      .catch((err: unknown) => toast.error(errorMessage(err, "Không tải được danh mục kiểu trình bày."), errorTitle(err)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canManage]);
 
@@ -202,6 +215,21 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
     }
   };
 
+  const handleLayout = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!layoutForm) return;
+    setSaving(true);
+    try {
+      setMemberLayout(await formLayoutService.setForMember(userId, layoutForm.value || null));
+      toast.success(layoutForm.value ? "Đã đặt riêng kiểu trình bày." : "Đã bỏ đặt riêng — kiểu trình bày theo chức vụ.");
+      setLayoutForm(null);
+    } catch (err) {
+      toast.error(errorMessage(err, "Không cập nhật được kiểu trình bày."), errorTitle(err), 10000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const unitName = (i: MemberPosition) => i.departmentName || i.partyCellName || "—";
 
   const renderTable = (rows: MemberPosition[], active: boolean) => (
@@ -297,6 +325,31 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
             >
               <i className="bi bi-sliders me-1" />
               Đặt tay / bỏ đặt tay
+            </button>
+          )}
+        </div>
+        <div className="card-body border-top d-flex flex-wrap align-items-center gap-4">
+          <div>
+            <div className="small text-secondary">Kiểu trình bày biểu mẫu tự đánh giá</div>
+            <div className="fw-semibold">
+              {memberLayout?.effectiveName ?? "Như biểu mẫu gốc"}
+              {memberLayout?.overrideId ? (
+                <span className="tag t-wait ms-2">Đặt riêng</span>
+              ) : (
+                <span className="status-badge tone-neutral ms-2">Theo chức vụ</span>
+              )}
+            </div>
+            {memberLayout && (
+              <div className="small text-secondary">
+                Theo chức vụ: {memberLayout.derivedName ?? "Như biểu mẫu gốc"}
+                {memberLayout.positionLayouts.length > 0 && ` (${memberLayout.positionLayouts.join("; ")})`}
+              </div>
+            )}
+          </div>
+          {canManage && memberLayout && (
+            <button type="button" className="btn btn-sm btn-outline-secondary ms-auto" onClick={() => setLayoutForm({ value: memberLayout.overrideId ?? "" })}>
+              <i className="bi bi-file-earmark-text me-1" />
+              Đổi kiểu trình bày
             </button>
           )}
         </div>
@@ -411,6 +464,31 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
             </div>
             <div className="d-flex justify-content-end gap-2 mt-3">
               <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setForm(null)} disabled={saving}>
+                Hủy
+              </button>
+              <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
+                {saving && <span className="spinner-border spinner-border-sm me-1" />}
+                Lưu
+              </button>
+            </div>
+          </form>
+        </AdminModal>
+      )}
+
+      {layoutForm && (
+        <AdminModal title="Kiểu trình bày biểu mẫu" onClose={() => setLayoutForm(null)} closeDisabled={saving} maxWidth={480}>
+          <form onSubmit={handleLayout}>
+            <label className="form-label">Kiểu trình bày Mẫu 09B, 09C, 9D</label>
+            <select className="form-select form-select-sm" value={layoutForm.value} onChange={(e) => setLayoutForm({ value: e.target.value })}>
+              <option value="">Theo chức vụ{memberLayout?.derivedName ? ` (${memberLayout.derivedName})` : ""}</option>
+              {layouts.map((l) => (
+                <option key={l.id} value={l.id}>
+                  Đặt riêng: {l.name}
+                </option>
+              ))}
+            </select>
+            <div className="d-flex justify-content-end gap-2 mt-3">
+              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setLayoutForm(null)} disabled={saving}>
                 Hủy
               </button>
               <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>

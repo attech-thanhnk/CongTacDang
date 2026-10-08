@@ -566,6 +566,100 @@ public class IndividualFormTests
     }
 
     [Fact]
+    public void CompanyLeader_WorkUnitLine_ShowsOnlyCompanyName()
+    {
+        // Chủ tịch, Giám đốc (bản đã nộp quý III/2026): "Đơn vị công tác: Công ty TNHH Kỹ thuật Quản lý bay" — hồ sơ thuộc đơn vị gốc.
+        var source = Source();
+        source.Record.Department = new AdministrativeDepartment { Name = "Công ty A" };
+
+        Assert.Matches(@"Đơn vị công tác:\s+Công ty A\.\n", Render(Mau09CData.TemplateFileName, Mau09CData.From(source), out _));
+        foreach (var text in new[]
+        {
+            Render(Mau09BData.TemplateFileName, Mau09BData.From(source), out _),
+            Render(Mau9DData.TemplateFileName, Mau9DData.From(source), out _)
+        })
+        {
+            Assert.Contains("Đơn vị công tác: Công ty A\n", text);
+            Assert.DoesNotContain("Công ty A, Công ty A", text);
+        }
+
+        // Hồ sơ chưa gắn đơn vị: giữ dòng chấm trước tên công ty để viết tay.
+        source.Record.Department = null;
+        Assert.True(Mau9DData.From(source).HasDepartment);
+    }
+
+    [Fact]
+    public void FormLayout_Resolve_OverrideThenPositionsBySortOrderThenDefault()
+    {
+        var secretary = new FormLayout { Name = "Bí thư Đảng ủy", SortOrder = 1 };
+        var leader = new FormLayout { Name = "Lãnh đạo Công ty", SortOrder = 2 };
+        var staff = new FormLayout { Name = "Cán bộ phòng ban", SortOrder = 3, IsDefault = true };
+
+        // Chủ tịch kiêm Bí thư Đảng ủy: hai chức vụ gắn hai kiểu → kiểu có thứ tự nhỏ hơn.
+        Assert.Same(secretary, FormLayout.Resolve(null, new[] { leader, secretary }, staff));
+        // Chức vụ không gắn kiểu → kiểu mặc định; đặt riêng thắng tất cả.
+        Assert.Same(staff, FormLayout.Resolve(null, new FormLayout?[] { null }, staff));
+        Assert.Same(leader, FormLayout.Resolve(leader, new[] { secretary }, staff));
+        Assert.Null(FormLayout.Resolve(null, Array.Empty<FormLayout>(), null));
+    }
+
+    [Fact]
+    public void Mau09B_SecretaryLayout_CommitteeHeader_OneLinePositions_NoCellConfirmation()
+    {
+        // Như phiếu 09B của Chủ tịch (Bí thư Đảng ủy): tiêu đề Đảng bộ cấp trên / Đảng ủy, chức vụ một dòng, không có ô xác nhận chi bộ.
+        var layout = new FormLayout
+        {
+            Name = "Bí thư Đảng ủy", HeaderStyle = FormHeaderStyle.PartyCommittee, ShowCellConfirmation = false, SingleLinePositions = true
+        };
+        var source = Source() with { Layout = layout };
+        var data = TemplateDataBinder.Bind(Mau09BData.From(source));
+        var org = OrganizationTemplateFields.From("ĐẢNG BỘ CÔNG TY A", "ĐẢNG BỘ TỔNG CÔNG TY B", "Công ty A", "Tổng công ty B", "A", "Hà Nội");
+        Mau09BData.ApplyHeader(data, layout, org);
+        var text = RenderData(Mau09BData.TemplateFileName, data, org);
+
+        Assert.Contains("ĐẢNG BỘ TỔNG CÔNG TY B\nĐẢNG ỦY CÔNG TY A", text);
+        Assert.DoesNotContain("CHI BỘ KỸ THUẬT", text);
+        Assert.Contains("Chức vụ (Đảng, Đoàn thể, Chính quyền): Bí thư Chi bộ, Chủ tịch Công đoàn, Trưởng phòng", text);
+        Assert.DoesNotContain("Chức vụ Đảng:", text);
+        Assert.DoesNotContain("XÁC NHẬN CỦA CHI BỘ", text);
+        Assert.Contains("NGƯỜI TỰ ĐÁNH GIÁ", text);
+    }
+
+    [Fact]
+    public void Mau09B_WithoutLayout_KeepsCellHeaderThreeLinesAndConfirmation()
+    {
+        var text = Render(Mau09BData.TemplateFileName, Mau09BData.From(Source()), out _);
+        Assert.Contains("ĐẢNG BỘ THỬ NGHIỆM\nCHI BỘ KỸ THUẬT", text);
+        Assert.Contains("Chức vụ chính quyền: Trưởng phòng", text);
+        Assert.Contains("XÁC NHẬN CỦA CHI BỘ", text);
+        Assert.Contains("NGƯỜI TỰ ĐÁNH GIÁ", text);
+    }
+
+    [Fact]
+    public void Mau9D_LeaderLayout_DateLineAndOneLinePositions()
+    {
+        // Như Mẫu 9D của Giám đốc: dòng "Hà Nội, ngày …" dưới quốc hiệu, chức vụ một dòng.
+        var layout = new FormLayout { Name = "Lãnh đạo Công ty", SingleLinePositions = true, ShowDateLineOn9D = true };
+        var text = Render(Mau9DData.TemplateFileName, Mau9DData.From(Source() with { Layout = layout }), out _);
+
+        Assert.Contains("ĐẢNG CỘNG SẢN VIỆT NAM\n\nHà Nội, ngày 11 tháng 09 năm 2026", text);
+        Assert.Contains("Chức vụ (Đảng, Đoàn thể, Chính quyền): Bí thư Chi bộ, Chủ tịch Công đoàn, Trưởng phòng", text);
+        Assert.DoesNotContain("Chức vụ chính quyền:", text);
+    }
+
+    [Fact]
+    public void Mau09C_EmptyPositionText_FromLayout()
+    {
+        // Bản 9C của lãnh đạo ghi "Chức vụ đoàn thể: không"; chưa có kiểu thì giữ dòng chấm.
+        var positions = MemberPositionNames.From(new[] { (PositionSide.Party, "Bí thư Đảng ủy"), (PositionSide.Administrative, "Chủ tịch Công ty") });
+        var layout = new FormLayout { Name = "Lãnh đạo Công ty", EmptyPositionText = "không" };
+
+        var data = Mau09CData.From(Source() with { Positions = positions, Layout = layout });
+        Assert.Equal(("Bí thư Đảng ủy", "Chủ tịch Công ty", "không"), (data.PartyPosition, data.AdministrativePosition, data.MassPosition));
+        Assert.Null(Mau09CData.From(Source() with { Positions = positions }).MassPosition);
+    }
+
+    [Fact]
     public void Mau09A_ShowsTasksExceedAndGradeCheckbox()
     {
         var source = Source();
@@ -686,6 +780,16 @@ public class IndividualFormTests
         return content;
     }
 
+    private static string RenderData(string templateFileName, TemplateData data, OrganizationTemplateFields org)
+    {
+        var template = new FileWordTemplateStore().Load(templateFileName);
+        var result = DocxTemplateEngine.Render(template, data.WithShared(TemplateDataBinder.Bind(org)));
+        Assert.Empty(result.MissingTags);
+        Assert.Empty(DocumentTemplateTests.Validate(result.Content));
+        using var doc = WordprocessingDocument.Open(new MemoryStream(result.Content), false);
+        return string.Join("\n", doc.MainDocumentPart!.Document!.Body!.Descendants<Paragraph>().Select(p => p.InnerText));
+    }
+
     private static string Render(string templateFileName, object formData, out byte[] content)
     {
         var template = new FileWordTemplateStore().Load(templateFileName);
@@ -702,7 +806,7 @@ public class IndividualFormTests
         var criteria = CriteriaSetDefaults.Build09B();
         var period = new EvaluationPeriod { Year = 2026, Quarter = EvaluationQuarter.Quy3, Name = "Quý III/2026" };
         var cell = new PartyCell { Name = "Chi bộ Kỹ thuật" };
-        var dept = new AdministrativeDepartment { Name = "Phòng Kỹ thuật" };
+        var dept = new AdministrativeDepartment { Name = "Phòng Kỹ thuật", ParentId = Guid.NewGuid() };
         var member = new PartyMemberProfile
         {
             FullName = "Nguyễn Văn A", DateOfBirth = new DateOnly(1973, 10, 21), PositionTitle = "Trưởng phòng", PartyCell = cell, Department = dept
