@@ -244,10 +244,10 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
                   value={form.approvalAuthority}
                   onChange={(e) => set("approvalAuthority", e.target.value === "" ? "" : Number(e.target.value) === 2 ? 2 : 1)}
                 >
-                  <option value="">Suy ra từ chức vụ (khuyến nghị)</option>
+                  <option value="">Theo chức vụ</option>
                   {([1, 2] as ApprovalAuthority[]).map((value) => (
                     <option key={value} value={value}>
-                      Đặt tay: {APPROVAL_AUTHORITY_LABELS[value]}
+                      {APPROVAL_AUTHORITY_LABELS[value]}
                     </option>
                   ))}
                 </select>
@@ -255,7 +255,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
               </div>
               {form.approvalAuthority !== "" && (
                 <div className="col-12 col-md-6">
-                  <label className="form-label">Lý do đặt tay</label>
+                  <label className="form-label">Lý do</label>
                   <input
                     className="form-control form-control-sm"
                     value={form.approvalAuthorityReason}

@@ -263,7 +263,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                 </select>
               </div>
               <div className="col-6">
-                <label className="form-label">Mã chức danh (15A/15B)</label>
+                <label className="form-label">Mã chức danh</label>
                 <input
                   className="form-control form-control-sm"
                   value={form.statCode}

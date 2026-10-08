@@ -205,7 +205,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
     setSaving(true);
     try {
       setAuthority(await userService.setApprovalAuthority(userId, overrideForm.value, overrideForm.reason.trim() || undefined));
-      toast.success(overrideForm.value ? "Đã đặt tay thẩm quyền phê duyệt." : "Đã bỏ đặt tay — thẩm quyền suy ra từ chức vụ.");
+      toast.success(overrideForm.value ? "Đã đổi cấp quyết định xếp loại." : "Cấp quyết định xếp loại theo chức vụ.");
       setOverrideForm(null);
       onChanged?.();
     } catch (err) {
@@ -296,60 +296,59 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
       <Card>
         <div className="card-body d-flex flex-wrap align-items-center gap-4">
           <div>
-            <div className="small text-secondary">Cấp quyết định xếp loại đang áp dụng</div>
-            <div className="fw-semibold">
-              {authority ? APPROVAL_AUTHORITY_CODE_LABELS[authority.effective] : "—"}
-              {authority?.override ? (
-                <span className="tag t-wait ms-2">Đặt tay</span>
-              ) : (
-                <span className="status-badge tone-neutral ms-2">Suy ra từ chức vụ</span>
-              )}
-            </div>
+            <div className="small text-secondary">Cấp quyết định xếp loại</div>
+            <div className="fw-semibold">{authority ? APPROVAL_AUTHORITY_CODE_LABELS[authority.effective] : "—"}</div>
             {authority && (
               <div className="small text-secondary">
-                Suy ra: {APPROVAL_AUTHORITY_CODE_LABELS[authority.derived]}
-                {authority.capTrenPositions.length > 0 && ` (do giữ: ${authority.capTrenPositions.join(", ")})`}
-                {authority.override && authority.overrideReason && ` · Lý do đặt tay: ${authority.overrideReason}`}
+                {authority.override
+                  ? [
+                      "Đặt riêng",
+                      authority.overrideReason && `lý do: ${authority.overrideReason}`,
+                      authority.derived !== authority.effective && `theo chức vụ sẽ là: ${APPROVAL_AUTHORITY_CODE_LABELS[authority.derived]}`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")
+                  : authority.capTrenPositions.length > 0
+                    ? `Theo chức vụ ${authority.capTrenPositions.join(", ")}`
+                    : "Theo chức vụ đang giữ"}
               </div>
             )}
           </div>
-          <div>
-            <div className="small text-secondary">Mã chức danh thống kê (15A/15B)</div>
-            <div className="fw-semibold">{authority?.statCode ?? "—"}</div>
-          </div>
+          {authority?.statCode && (
+            <div>
+              <div className="small text-secondary">Mã chức danh</div>
+              <div className="fw-semibold">{authority.statCode}</div>
+            </div>
+          )}
           {canManage && authority && (
             <button
               type="button"
               className="btn btn-sm btn-outline-secondary ms-auto"
               onClick={() => setOverrideForm({ value: authority.override ?? "", reason: authority.overrideReason ?? "" })}
             >
-              <i className="bi bi-sliders me-1" />
-              Đặt tay / bỏ đặt tay
+              <i className="bi bi-pencil-square me-1" />
+              Thay đổi
             </button>
           )}
         </div>
         <div className="card-body border-top d-flex flex-wrap align-items-center gap-4">
           <div>
-            <div className="small text-secondary">Kiểu trình bày biểu mẫu tự đánh giá</div>
-            <div className="fw-semibold">
-              {memberLayout?.effectiveName ?? "Như biểu mẫu gốc"}
-              {memberLayout?.overrideId ? (
-                <span className="tag t-wait ms-2">Đặt riêng</span>
-              ) : (
-                <span className="status-badge tone-neutral ms-2">Theo chức vụ</span>
-              )}
-            </div>
+            <div className="small text-secondary">Kiểu trình bày phiếu tự đánh giá</div>
+            <div className="fw-semibold">{memberLayout?.effectiveName ?? "Như biểu mẫu gốc"}</div>
             {memberLayout && (
               <div className="small text-secondary">
-                Theo chức vụ: {memberLayout.derivedName ?? "Như biểu mẫu gốc"}
-                {memberLayout.positionLayouts.length > 0 && ` (${memberLayout.positionLayouts.join("; ")})`}
+                {memberLayout.overrideId
+                  ? memberLayout.derivedId !== memberLayout.effectiveId
+                    ? `Đặt riêng · theo chức vụ sẽ là: ${memberLayout.derivedName ?? "Như biểu mẫu gốc"}`
+                    : "Đặt riêng"
+                  : "Theo chức vụ đang giữ"}
               </div>
             )}
           </div>
           {canManage && memberLayout && (
             <button type="button" className="btn btn-sm btn-outline-secondary ms-auto" onClick={() => setLayoutForm({ value: memberLayout.overrideId ?? "" })}>
-              <i className="bi bi-file-earmark-text me-1" />
-              Đổi kiểu trình bày
+              <i className="bi bi-pencil-square me-1" />
+              Thay đổi
             </button>
           )}
         </div>
@@ -480,10 +479,10 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
           <form onSubmit={handleLayout}>
             <label className="form-label">Kiểu trình bày Mẫu 09B, 09C, 9D</label>
             <select className="form-select form-select-sm" value={layoutForm.value} onChange={(e) => setLayoutForm({ value: e.target.value })}>
-              <option value="">Theo chức vụ{memberLayout?.derivedName ? ` (${memberLayout.derivedName})` : ""}</option>
+              <option value="">Theo chức vụ ({memberLayout?.derivedName ?? "Như biểu mẫu gốc"})</option>
               {layouts.map((l) => (
                 <option key={l.id} value={l.id}>
-                  Đặt riêng: {l.name}
+                  {l.name}
                 </option>
               ))}
             </select>
@@ -501,7 +500,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
       )}
 
       {overrideForm && (
-        <AdminModal title="Thẩm quyền phê duyệt" onClose={() => setOverrideForm(null)} closeDisabled={saving} maxWidth={480}>
+        <AdminModal title="Cấp quyết định xếp loại" onClose={() => setOverrideForm(null)} closeDisabled={saving} maxWidth={480}>
           <form onSubmit={handleOverride}>
             <div className="mb-2">
               <label className="form-label">Cấp quyết định xếp loại</label>
@@ -510,10 +509,10 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
                 value={overrideForm.value}
                 onChange={(e) => setOverrideForm({ ...overrideForm, value: e.target.value as "" | ApprovalAuthorityCode })}
               >
-                <option value="">Suy ra từ chức vụ (khuyến nghị)</option>
+                <option value="">Theo chức vụ{authority ? ` (${APPROVAL_AUTHORITY_CODE_LABELS[authority.derived]})` : ""}</option>
                 {(Object.keys(APPROVAL_AUTHORITY_CODE_LABELS) as ApprovalAuthorityCode[]).map((a) => (
                   <option key={a} value={a}>
-                    Đặt tay: {APPROVAL_AUTHORITY_CODE_LABELS[a]}
+                    {APPROVAL_AUTHORITY_CODE_LABELS[a]}
                   </option>
                 ))}
               </select>

@@ -411,7 +411,7 @@ Menu **Quản lý → Người dùng**. Lọc theo đơn vị, tổ chức Đả
 - **Tạo tài khoản**: nhập tên đăng nhập, họ tên, **ngày sinh**, chức danh, email, đơn vị công tác chính, nơi sinh hoạt Đảng, khung tỷ trọng mặc định… Hệ thống cấp mật khẩu tạm; người dùng phải đổi khi đăng nhập lần đầu.
 - Trang chi tiết có các nút **Sửa thông tin**, **Vô hiệu hóa**, **Đặt lại mật khẩu**, **Xóa** và các tab:
   - **Thông tin**: thông tin hồ sơ cán bộ, cấp quyết định xếp loại, tình trạng khóa đăng nhập.
-  - **Chức vụ**: **Thêm chức vụ** (chức vụ Đảng gắn tổ chức Đảng, chức vụ chính quyền gắn đơn vị, chức vụ đoàn thể gắn một trong hai), ngày bắt đầu/kết thúc, căn cứ văn bản. Dùng **Kết thúc chức vụ** khi thôi giữ; **Xóa** chỉ khi nhập nhầm. Ở đây cũng đặt tay **Thẩm quyền phê duyệt** (cấp quyết định xếp loại) khi cần, kèm lý do, và **Đổi kiểu trình bày** khi cán bộ cần cách in Mẫu 09B, 09C, 9D khác với kiểu theo chức vụ.
+  - **Chức vụ**: **Thêm chức vụ** (chức vụ Đảng gắn tổ chức Đảng, chức vụ chính quyền gắn đơn vị, chức vụ đoàn thể gắn một trong hai), ngày bắt đầu/kết thúc, căn cứ văn bản. Dùng **Kết thúc chức vụ** khi thôi giữ; **Xóa** chỉ khi nhập nhầm. Phía trên có **Cấp quyết định xếp loại** và **Kiểu trình bày phiếu tự đánh giá** (mặc định theo chức vụ); bấm **Thay đổi** để đặt riêng cho cán bộ khi cần (cấp quyết định phải ghi lý do).
   - **Vai trò & phạm vi**: các bản gán vai trò của người này.
   - **Người này làm được gì**: tra cứu quyền thực tế và phạm vi.
 

@@ -331,7 +331,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     ["Đảng viên", account.isPartyMember ? `Có (số thẻ ${account.partyCardNumber || "—"})` : "Không"],
     [
       "Cấp quyết định xếp loại",
-      `${APPROVAL_AUTHORITY_LABELS[account.approvalAuthority] ?? "—"} (${account.approvalAuthorityOverride ? "đặt tay" : "suy ra từ chức vụ"})`,
+      `${APPROVAL_AUTHORITY_LABELS[account.approvalAuthority] ?? "—"} (${account.approvalAuthorityOverride ? "đặt riêng" : "theo chức vụ"})`,
     ],
     ["Khóa tạm đến", account.isLockedOut ? formatDateTime(account.lockoutEnd) : "—"],
     ["Số lần nhập sai liên tiếp", account.failedLoginCount],
