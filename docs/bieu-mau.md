@@ -174,7 +174,9 @@ Cột "Q3/2026" theo `docs/nghiep-vu/hd03-trich-xuat.md` mục 7–8. Mẫu cá 
 |---|---|---|---|---|---|
 | 01 — Phiếu giao / đăng ký sản phẩm | Chưa áp dụng (bộ 09A từ 2027) | Hồ sơ cá nhân — bước B1 (đăng ký nhiệm vụ) | Hồ sơ → "Biểu mẫu của hồ sơ": `GET /api/reports/docx/record/{recordId}/01` | Word/PDF | xem hồ sơ (`evaluation.read` trong phạm vi, chủ hồ sơ) |
 | 02 — Phiếu tự đánh giá sản phẩm | Chưa áp dụng (bộ 09A) | Hồ sơ cá nhân — bước B2 (tự chấm nhiệm vụ) | Hồ sơ: `…/record/{recordId}/02` | Word/PDF | như Mẫu 01 |
-| 03, 04, 05, 06 | Chưa áp dụng | — (chưa số hóa) | — | — | — |
+| 03, 06 | Chưa áp dụng | — (chưa số hóa) | — | — | — |
+| 04 — Đề nghị điều chỉnh, chuyển tiếp, loại trừ / ngoại lệ sản phẩm | Chưa áp dụng (bộ 09A) | Hồ sơ cá nhân — khối "Điều chỉnh việc trong quý" (sau duyệt danh sách việc, trước tự chấm): chủ hồ sơ đề nghị, người duyệt danh sách việc duyệt (`/api/evaluations/records/{recordId}/task-changes`) | — (chưa có file mẫu Word; nội dung xem trên trang hồ sơ và lịch sử) | — | đề nghị: `evaluation.self`; duyệt: quyền bước duyệt danh sách việc theo cách xét duyệt |
+| 05 — Ghi nhận nhiệm vụ bổ sung, khẩn cấp, đột xuất | Chưa áp dụng (bộ 09A) | Hồ sơ cá nhân — "Ghi nhận việc đột xuất" (chủ hồ sơ hoặc người duyệt danh sách việc); duyệt như Mẫu 04 → thêm việc loại đột xuất | — (chưa có file mẫu Word) | — | như Mẫu 04 |
 | 07 — Báo cáo tự đánh giá của tập thể | Áp dụng | Tập thể & Hội nghị → hồ sơ tập thể M07 (mục I.1–I.4, II–VI, điểm B) | Tập thể & Hội nghị (từng hồ sơ): `GET /api/reports/docx/mau-07/{collectiveRecordId}` | Word/PDF | `evaluation.read` hoặc `collective.manage` trên tổ chức của hồ sơ |
 | 08 — Tổng hợp kết quả nhiệm vụ của cơ quan, đơn vị | Áp dụng | Tập thể & Hội nghị → hồ sơ tập thể M08 (dòng nhiệm vụ theo nhóm nội dung 1–13) | Tập thể & Hội nghị: **Excel** `GET /api/reports/form-08/{collectiveRecordId}` (HD03 V.1); Word `GET /api/reports/docx/mau-08/{collectiveRecordId}` | Excel/Word/PDF | như Mẫu 07 |
 | 09A — Phiếu tự chấm (theo sản phẩm) | Chưa áp dụng (thay bằng 09B) | Hồ sơ — bước B2 (phiếu tự chấm, bộ 09A) | Hồ sơ: `…/record/{recordId}/09A` | Word/PDF | như Mẫu 01 |

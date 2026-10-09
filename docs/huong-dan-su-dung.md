@@ -129,7 +129,20 @@ Trong 5 ngày làm việc đầu quý, khi kỳ có bước đăng ký sản ph�
 3. Bấm **Thêm dòng** hoặc **Xóa** để đủ 3–7 sản phẩm. Tổng trọng số phải đúng 70; ô tổng chuyển đỏ khi chưa đủ.
 4. Bấm **Nộp danh mục**. Thiếu ô nào, hệ thống báo đúng dòng và ô đó.
 
-Việc đột xuất giao thêm trong quý không đăng ký ở đây.
+Việc đột xuất giao thêm trong quý không đăng ký ở đây (xem mục 3.3a).
+
+### 3.3a Điều chỉnh việc trong quý (Mẫu 04, 05)
+
+Sau khi danh mục đã được duyệt và **trước khi nộp phiếu tự chấm**, trên trang hồ sơ có khối **Điều chỉnh việc trong quý** (chỉ với kỳ chấm theo sản phẩm, có bước đăng ký sản phẩm):
+
+1. Chủ hồ sơ bấm **Đề nghị điều chỉnh**, chọn việc và loại đề nghị:
+   - **Điều chỉnh việc**: sửa tên, chuẩn đạt, thời hạn, trục, vai trò, vượt chuẩn, minh chứng, thẩm quyền xác nhận và/hoặc trọng số;
+   - **Chuyển tiếp sang quý sau** hoặc **Loại trừ việc**: việc vẫn hiện trên phiếu nhưng trọng số về 0 và không chấm.
+2. Chủ hồ sơ hoặc người duyệt danh mục bấm **Ghi nhận việc đột xuất**: nhập việc mới (tên, chuẩn đạt, trục, trọng số…).
+3. Nhập **trọng số sau điều chỉnh** của các việc còn lại; ô tổng chuyển đỏ khi khác 70 và nút gửi bị khóa. Nhập lý do / nguyên nhân rồi bấm **Gửi đề nghị**.
+4. Người duyệt danh mục của hồ sơ thấy đề nghị trong **Việc cần xử lý** (nhóm "Duyệt đề nghị điều chỉnh việc") và trên chuông; bấm **Duyệt** để áp vào danh mục, hoặc **Không duyệt** kèm lý do.
+
+Mỗi hồ sơ chỉ có một đề nghị chờ duyệt tại một thời điểm. Bảng việc hiện dấu **Đã loại trừ**, **Chuyển tiếp**, **Đột xuất**; khi tự chấm, việc đã loại trừ / chuyển tiếp không có ô chấm. Mọi đề nghị và quyết định được ghi vào **Lịch sử** của hồ sơ.
 
 ### 3.4 Tự chấm điểm
 

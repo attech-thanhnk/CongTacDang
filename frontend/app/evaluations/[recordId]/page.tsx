@@ -13,6 +13,7 @@ import { ImprovementPlanPanel } from "@/components/evaluations/ImprovementPlanPa
 import { EvaluationPdfModal } from "@/components/evaluations/EvaluationPdfModal";
 import { RecordFormsPanel } from "@/components/evaluations/RecordFormsPanel";
 import { RecordHistory } from "@/components/evaluations/RecordHistory";
+import { TaskChangeMark, TaskChangeRequests } from "@/components/evaluations/TaskChangeRequests";
 import { CollapsibleSection, revealSection } from "@/components/evaluations/CollapsibleSection";
 import { AxisSummaryView, SelfAssessmentView } from "@/components/evaluations/IndividualFormInputs";
 import { loadCriteria, useCriteria } from "@/components/evaluations/useCriteria";
@@ -170,6 +171,7 @@ export default function EvaluationRecordPage() {
               <RecordActionPanel record={record} actions={actions} busy={busy} onSubmit={perform} onReason={setReasonAction} />
             </div>
             <RecordData record={record} />
+            <TaskChangeRequests record={record} onRecordChanged={load} />
             <AppealPanel record={record} onRecordChanged={load} />
             <ImprovementPlanPanel record={record} />
           </div>
@@ -468,6 +470,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
                     <td className="num">{t.taskOrder}</td>
                     <td>
                       {t.taskName}{t.productCode ? ` (${t.productCode})` : ""}
+                      <TaskChangeMark task={t} />
                       {t.targetOutput && <span className={styles.sub}>Chuẩn đạt: {t.targetOutput}</span>}
                       {t.exceedCriteria && <span className={styles.sub}>Vượt chuẩn: {t.exceedCriteria}</span>}
                       {t.evidenceSource && <span className={styles.sub}>Minh chứng: {t.evidenceSource}</span>}

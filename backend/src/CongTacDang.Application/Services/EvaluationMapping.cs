@@ -315,6 +315,7 @@ public static class EvaluationMapping
             ExceedCriteria = t.ExceedCriteria,
             EvidenceSource = t.EvidenceSource,
             Confirmer = t.Confirmer,
+            ChangeStatus = t.ChangeStatus?.ToString(),
             CriteriaA_Ratio = t.CriteriaA_Ratio,
             CriteriaB_Ratio = t.CriteriaB_Ratio,
             CriteriaC_Ratio = t.CriteriaC_Ratio,

@@ -58,6 +58,8 @@ public class EvaluationTaskDto
     public string? EvidenceSource { get; set; }
     /// <summary>Thẩm quyền xác nhận (Mẫu 01).</summary>
     public string? Confirmer { get; set; }
+    /// <summary>Việc đã loại trừ / chuyển tiếp trong quý: <c>Excluded</c> / <c>CarriedOver</c>; null = còn hiệu lực.</summary>
+    public string? ChangeStatus { get; set; }
     public double CriteriaA_Ratio { get; set; }
     public double CriteriaB_Ratio { get; set; }
     public double CriteriaC_Ratio { get; set; }

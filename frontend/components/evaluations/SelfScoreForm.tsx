@@ -27,6 +27,7 @@ import {
 import { FileUploadModal } from "@/components/attachments/FileUploadModal";
 import { AxisNoteFields, AxisReportsInput, SelfAssessmentInput, SelfAssessmentPreview } from "@/components/evaluations/IndividualFormInputs";
 import { useToast } from "@/contexts/ToastContext";
+import { TaskChangeMark } from "@/components/evaluations/TaskChangeRequests";
 
 /** Ô điểm để trống ("") cho tới khi cán bộ tự nhập — không điền sẵn mức tối đa. */
 type ScoreInput = number | "";
@@ -205,6 +206,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       payload.axisNotes = axisNotes;
     } else {
       payload.taskScores = record.tasks
+        .filter((t) => !t.changeStatus)
         .filter((t) => !draft || (["a", "b", "c", "d"] as const).every((k) => ratios[t.id][k] !== ""))
         .map((t) => ({
           taskId: t.id,
@@ -386,6 +388,16 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
               <tbody>
                 {record.tasks.map((t) => {
                   const r = ratios[t.id];
+                  if (t.changeStatus) {
+                    return (
+                      <tr key={t.id} className="text-secondary">
+                        <td><div className="small">{t.taskName}<TaskChangeMark task={t} /></div></td>
+                        <td className="small">{t.axisCode || "—"}</td>
+                        <td className="small">0</td>
+                        <td colSpan={7} />
+                      </tr>
+                    );
+                  }
                   return (
                     <tr key={t.id}>
                       <td><div className="small fw-semibold">{t.taskName}</div><div className="small text-secondary">{t.targetOutput}</div></td>
