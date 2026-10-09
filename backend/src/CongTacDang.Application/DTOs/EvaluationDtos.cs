@@ -551,6 +551,21 @@ public class PeriodParticipantDto
     public string WorkflowProfileName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string StatusDisplayName { get; set; } = string.Empty;
+
+    /// <summary>Mã bước đang chờ; null khi hồ sơ đã công bố.</summary>
+    public string? CurrentStep { get; set; }
+
+    /// <summary>Tên bước đang chờ.</summary>
+    public string? CurrentStepName { get; set; }
+
+    /// <summary>Thời hạn của bước đang chờ theo hồ sơ luồng của hồ sơ; null khi bước không đặt hạn hoặc hồ sơ đã công bố.</summary>
+    public DateOnly? CurrentStepDeadline { get; set; }
+
+    /// <summary>Số ngày đã quá hạn (≥ 1), tính theo ngày giờ Việt Nam; null khi chưa quá hạn hoặc không có hạn.</summary>
+    public int? DaysOverdue { get; set; }
+
+    /// <summary>Số ngày còn lại tới hạn (0 = hạn là hôm nay); null khi đã quá hạn hoặc không có hạn.</summary>
+    public int? DaysLeft { get; set; }
 }
 
 /// <summary>Cán bộ có thể thêm vào kỳ.</summary>

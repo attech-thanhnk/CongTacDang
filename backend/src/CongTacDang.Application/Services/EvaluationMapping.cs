@@ -17,6 +17,18 @@ public static class EvaluationMapping
     /// <summary>Ngày hiện tại theo giờ Việt Nam.</summary>
     public static DateOnly Today(DateTime utcNow) => DateOnly.FromDateTime(utcNow + BusinessUtcOffset);
 
+    /// <summary>
+    /// Khoảng cách tới thời hạn theo ngày: hôm nay sau ngày hạn → số ngày quá hạn (≥ 1); ngược lại → số ngày còn lại
+    /// (0 = hạn là hôm nay). Không có hạn → (null, null).
+    /// </summary>
+    public static (int? DaysOverdue, int? DaysLeft) DeadlineDistance(DateOnly? deadline, DateOnly today)
+    {
+        if (!deadline.HasValue)
+            return (null, null);
+        var diff = deadline.Value.DayNumber - today.DayNumber;
+        return diff < 0 ? (-diff, null) : (null, diff);
+    }
+
     /// <summary>Tên mức xếp loại (mã enum) — rỗng khi chưa xếp loại để frontend hiển thị "—".</summary>
     public static string GradeCode(EvaluationGrade grade) => grade.ToString();
 

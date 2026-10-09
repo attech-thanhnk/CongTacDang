@@ -125,6 +125,7 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 - Đổi hồ sơ luồng từng người / hàng loạt: mục 2.
 - Chỉ người trong danh sách mới có hồ sơ; `evaluation.self` không tự tạo hồ sơ.
 - Thêm theo: chọn tay hoặc theo Phòng/Chi bộ, có thể chỉ định hồ sơ luồng (mã; bỏ trống = mặc định theo cấp quyết định).
+- **Theo dõi tiến độ:** `GET /api/evaluations/periods/{id}/participants` (`period.manage`) trả thêm cho từng hồ sơ `currentStep` / `currentStepName` (bước đang chờ, `WorkflowSteps.StepOf(status)`), `currentStepDeadline` (= `deadline` của bước đó trong hồ sơ luồng của hồ sơ), `daysOverdue` (≥ 1 khi hôm nay sau ngày hạn) và `daysLeft` (≥ 0, 0 = hạn hôm nay); "hôm nay" theo giờ Việt Nam (`EvaluationMapping.Today`). Hồ sơ `Published` không còn bước chờ → các trường này `null`. Trang kỳ (tab Tiến độ, khi kỳ `Open`/`Locked`) báo "sắp đến hạn" khi `daysLeft ≤ 3`.
 
 ### 3.4 Kiểm tra kẹt luồng (task 15)
 - `GET /api/evaluations/periods/{id}/readiness` (`period.manage`): với mỗi hồ sơ chưa công bố và mỗi bước **còn phía trước** (kể cả bước đang chờ) có chế độ Nội bộ hoặc Cấp trên, cần **ít nhất một** tài khoản đang hoạt động — không phải chủ hồ sơ — có quyền thực hiện bước (Cấp trên: `evaluation.external.record`) với phạm vi bao trùm hồ sơ. Bước của chủ hồ sơ: chính chủ hồ sơ phải còn hoạt động và có `evaluation.self`. Quyền tính bằng `IPermissionResolver` + `AuthorizationGuard.Evaluate` (không tự suy luật).

@@ -26,11 +26,12 @@ import {
 } from "@/services/evaluationService";
 import { CriteriaSummary } from "@/components/evaluations/CriteriaSummary";
 import { PeriodStatusBadge } from "@/components/periods/PeriodStatusBadge";
+import { PeriodProgressSection } from "@/components/periods/PeriodProgressSection";
 import { RecordStatusBadge } from "@/components/common/StatusBadge";
 import { CriteriaSetListItem, WeightFrame, criteriaService } from "@/services/criteriaService";
 
 type Transition = "open" | "lock" | "unlock" | "close";
-type PeriodTab = "profiles" | "criteria" | "readiness" | "participants";
+type PeriodTab = "progress" | "profiles" | "criteria" | "readiness" | "participants";
 
 /**
  * Cấu hình kỳ: việc còn thiếu để mở kỳ, danh sách người được đánh giá, người thực hiện các bước, bộ tiêu chí (chọn khi dự thảo, xem
@@ -58,6 +59,8 @@ export default function PeriodDetailPage() {
   const [tab, setTab] = useState<PeriodTab>(canManage ? "participants" : "criteria");
   // Cấu hình cách xét duyệt đang sửa dở: nạp lại kỳ (sau thêm người, đổi trạng thái…) không ghi đè lên.
   const dirtyRef = useRef(false);
+  // Lần nạp đầu: kỳ Đang mở / Khóa dữ liệu thì mở sẵn tab Tiến độ.
+  const initialTabRef = useRef(false);
   const [dirty, setDirty] = useState(false);
   const setDirtyState = (value: boolean) => {
     dirtyRef.current = value;
@@ -81,6 +84,10 @@ export default function PeriodDetailPage() {
     try {
       const loaded = await evaluationService.getPeriod(periodId);
       setPeriod(loaded);
+      if (!initialTabRef.current) {
+        initialTabRef.current = true;
+        if (canManage && (loaded.status === "Open" || loaded.status === "Locked")) setTab("progress");
+      }
       if (!dirtyRef.current) setSettings(JSON.parse(JSON.stringify(loaded.settings)));
       if (canManage) {
         setParticipants(await evaluationService.getParticipants(periodId));
@@ -101,6 +108,12 @@ export default function PeriodDetailPage() {
     if (canManage) evaluationService.getStepPermissions().then(setPermissionOptions).catch(() => setPermissionOptions([]));
   }, [canManage]);
 
+  // Kỳ không còn Đang mở / Khóa dữ liệu (đã đóng) khi đang xem Tiến độ → về tab mặc định.
+  useEffect(() => {
+    if (tab === "progress" && period && !(canManage && (period.status === "Open" || period.status === "Locked")))
+      setTab(canManage ? "participants" : "criteria");
+  }, [tab, period, canManage]);
+
   if (error) return <div className="page-wrapper"><div className="alert alert-danger m-4">{error}</div></div>;
   if (!period || !settings) return <div className="page-wrapper"><div className="text-secondary p-4 loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div></div>;
 
@@ -110,7 +123,12 @@ export default function PeriodDetailPage() {
   const showReadiness = canManage && period.status !== "Closed";
   const stepIssues = readiness?.issues.filter((i) => i.permission) ?? [];
   const frameIssues = readiness?.issues.filter((i) => !i.permission) ?? [];
+  const showProgress = canManage && (period.status === "Open" || period.status === "Locked");
+  const overdueCount = participants.filter((p) => (p.daysOverdue ?? 0) > 0).length;
   const tabs: { key: PeriodTab; label: string; count?: number; warn?: boolean }[] = [
+    ...(showProgress
+      ? [{ key: "progress" as PeriodTab, label: "Tiến độ", count: overdueCount > 0 ? overdueCount : undefined, warn: true }]
+      : []),
     ...(canManage ? [{ key: "participants" as PeriodTab, label: "Người được đánh giá", count: participants.length }] : []),
     ...(showReadiness
       ? [{ key: "readiness" as PeriodTab, label: "Người thực hiện các bước", count: stepIssues.length > 0 ? stepIssues.length : undefined, warn: true }]
@@ -294,6 +312,8 @@ export default function PeriodDetailPage() {
             </li>
           ))}
         </ul>
+
+        {tab === "progress" && showProgress && <PeriodProgressSection participants={participants} />}
 
         {tab === "profiles" && (
         <section className="card">

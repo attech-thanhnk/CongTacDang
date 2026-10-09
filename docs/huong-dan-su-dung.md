@@ -368,6 +368,15 @@ Chọn **Chọn bộ đã xuất bản** khi kỳ còn Dự thảo. Bấm **Xem 
 - **Mở lại kỳ** (khi đang Khóa dữ liệu): cho cán bộ sửa lại; bắt buộc lý do.
 - **Đóng kỳ**: chỉ đóng được khi mọi hồ sơ đã công bố.
 
+### 7.7 Theo dõi tiến độ (tab "Tiến độ")
+
+Khi kỳ **Đang mở** hoặc **Khóa dữ liệu**, trang kỳ mở sẵn tab **Tiến độ** (người có quyền quản lý kỳ) để biết ai đang ở bước nào và đôn đốc:
+
+- Dòng nút trên cùng đếm số hồ sơ theo từng bước (ví dụ *Chờ tự chấm 12 · Chờ Chi bộ xác nhận 5 · … · Đã công bố 3*); bấm một nút để chỉ xem hồ sơ ở bước đó, bấm lại để bỏ lọc. Bên phải có tổng số hồ sơ **Quá hạn** và **Sắp đến hạn**.
+- Bảng: Cán bộ (bấm tên để mở hồ sơ), Phòng, Chi bộ, Bước đang chờ, **Hạn** của bước đó (theo cách xét duyệt của hồ sơ) và **Tình trạng hạn**: *Quá hạn N ngày* (đỏ), *Còn N ngày* / *Hạn hôm nay* khi còn từ 3 ngày trở xuống (vàng). Hồ sơ đã công bố hoặc bước không đặt hạn thì để trống.
+- Lọc theo Phòng, Chi bộ, bước; đánh dấu **Chỉ hồ sơ quá hạn / sắp đến hạn** để lấy danh sách cần nhắc.
+- Bảng xếp hồ sơ quá hạn lâu nhất lên đầu, tiếp đến hồ sơ sắp đến hạn. Ngày được tính theo giờ Việt Nam.
+
 ---
 
 ## 8. Bộ tiêu chí

@@ -357,6 +357,68 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Equal(HttpStatusCode.OK, (await w.Lead1C.GetAsync($"/api/attachments/{v2.GetProperty("id").GetGuid()}/download")).StatusCode);
     }
 
+    /// <summary>
+    /// Theo dõi tiến độ: danh sách người được đánh giá trả bước đang chờ và thời hạn của bước đó theo hồ sơ luồng của từng hồ sơ —
+    /// hạn đã qua → số ngày quá hạn; hạn chưa tới → số ngày còn lại; hồ sơ đã công bố không còn bước chờ nên không tính hạn
+    /// (kể cả khi hạn công bố đã qua).
+    /// </summary>
+    [SkippableFact]
+    public async Task G6_Participants_CurrentStepDeadline_OverdueAndDueSoon_PublishedNotCounted()
+    {
+        var w = await WorldAsync();
+        var periodId = await OpenPeriodAsync(w, "09B", w.Director.Id, w.Other.Id);
+        var directorId = await RecordOfAsync(w, periodId, w.Director.Id);
+        var otherId = await RecordOfAsync(w, periodId, w.Other.Id);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        var yesterday = today.AddDays(-1).ToString("yyyy-MM-dd");
+        var current = await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}");
+        var settings = JsonNode.Parse(current.GetProperty("settings").GetRawText())!.AsObject();
+        JsonObject Steps(string code) => settings["profiles"]!.AsArray().Select(p => p!.AsObject())
+            .First(p => p["code"]!.GetValue<string>() == code)["steps"]!.AsObject();
+        Steps("cap-tren")["B2_SELF_SCORE"]!["deadline"] = yesterday;
+        Steps("cap-tren")["B5_PUBLISH"]!["deadline"] = yesterday;
+        Steps("co-so")["B2_SELF_SCORE"]!["deadline"] = today.AddDays(2).ToString("yyyy-MM-dd");
+        await Data(await w.ManagerC.PutAsJsonAsync($"/api/evaluations/periods/{periodId}",
+            new { version = current.GetProperty("version").GetUInt32(), settings }));
+
+        var director = await ParticipantAsync(w, periodId, directorId);
+        Assert.Equal("B2_SELF_SCORE", director.GetProperty("currentStep").GetString());
+        Assert.Equal("Tự chấm điểm, đề xuất mức", director.GetProperty("currentStepName").GetString());
+        Assert.Equal(yesterday, director.GetProperty("currentStepDeadline").GetString());
+        Assert.Equal(1, director.GetProperty("daysOverdue").GetInt32());
+        Assert.Equal(JsonValueKind.Null, director.GetProperty("daysLeft").ValueKind);
+
+        var other = await ParticipantAsync(w, periodId, otherId);
+        Assert.Equal("B2_SELF_SCORE", other.GetProperty("currentStep").GetString());
+        Assert.Equal(2, other.GetProperty("daysLeft").GetInt32());
+        Assert.Equal(JsonValueKind.Null, other.GetProperty("daysOverdue").ValueKind);
+
+        // Bước không đặt hạn → không có hạn, không tính quá hạn.
+        await StepAsync(w.OwnerDirectorC, directorId, "self-score/submit", new { generalScores = General, axisScores = Axis }, "AwaitingCellConfirm");
+        director = await ParticipantAsync(w, periodId, directorId);
+        Assert.Equal("B2_CELL_CONFIRM", director.GetProperty("currentStep").GetString());
+        Assert.Equal(JsonValueKind.Null, director.GetProperty("currentStepDeadline").ValueKind);
+        Assert.Equal(JsonValueKind.Null, director.GetProperty("daysOverdue").ValueKind);
+        Assert.Equal(JsonValueKind.Null, director.GetProperty("daysLeft").ValueKind);
+
+        await StepAsync(w.CellSecC, directorId, "cell/confirm", new { }, "AwaitingCollective");
+        await StepAsync(w.SecretaryC, directorId, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
+        await StepAsync(w.OfficeC, directorId, "external/B3B_APPRAISAL", new { authorityName = "Ban TCĐU", grade = "HoanThanhTot" }, "AwaitingDirectorReview");
+        await StepAsync(w.OfficeC, directorId, "external/B3C_DIRECTOR", new { authorityName = "HĐTV", grade = "HoanThanhTot" }, "AwaitingDecision");
+        await StepAsync(w.OfficeC, directorId, "external/B4_DECISION", new { authorityName = "BTV", grade = "HoanThanhTot" }, "AwaitingPublish");
+
+        director = await ParticipantAsync(w, periodId, directorId);
+        Assert.Equal("B5_PUBLISH", director.GetProperty("currentStep").GetString());
+        Assert.Equal(1, director.GetProperty("daysOverdue").GetInt32());
+
+        await StepAsync(w.OfficeC, directorId, "publish", new { }, "Published");
+        director = await ParticipantAsync(w, periodId, directorId);
+        Assert.Equal("Published", director.GetProperty("status").GetString());
+        foreach (var field in new[] { "currentStep", "currentStepName", "currentStepDeadline", "daysOverdue", "daysLeft" })
+            Assert.Equal(JsonValueKind.Null, director.GetProperty(field).ValueKind);
+    }
+
     #region Hỗ trợ
 
     private static async Task<HttpResponseMessage> UploadAsync(HttpClient client, string url = "/api/attachments/upload")

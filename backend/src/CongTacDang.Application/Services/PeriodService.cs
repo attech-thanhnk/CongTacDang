@@ -564,7 +564,8 @@ public sealed class PeriodService : IPeriodService
         var settings = ReadSettings(period);
         var criteria = ReadCriteria(period);
         var records = await _repo.ListRecordsAsync(periodId, ct);
-        return records.Select(r => ToParticipant(r, settings, criteria)).ToList();
+        var today = EvaluationMapping.Today(DateTime.UtcNow);
+        return records.Select(r => ToParticipant(r, settings, criteria, today)).ToList();
     }
 
     /// <inheritdoc />
@@ -903,7 +904,7 @@ public sealed class PeriodService : IPeriodService
     {
         var period = await _repo.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
         var saved = (await _repo.ListRecordsAsync(periodId, ct)).First(r => r.Id == recordId);
-        return ToParticipant(saved, ReadSettings(period), ReadCriteria(period));
+        return ToParticipant(saved, ReadSettings(period), ReadCriteria(period), EvaluationMapping.Today(DateTime.UtcNow));
     }
 
     #endregion
@@ -990,9 +991,16 @@ public sealed class PeriodService : IPeriodService
         CreatedAt = DateTime.UtcNow
     };
 
-    private static PeriodParticipantDto ToParticipant(EvaluationRecord r, PeriodSettings settings, CriteriaSnapshot? criteria)
+    /// <summary>
+    /// Một dòng danh sách người được đánh giá, kèm bước đang chờ và thời hạn của bước đó theo hồ sơ luồng của hồ sơ
+    /// (hồ sơ đã công bố không còn bước chờ nên không tính hạn).
+    /// </summary>
+    private static PeriodParticipantDto ToParticipant(EvaluationRecord r, PeriodSettings settings, CriteriaSnapshot? criteria, DateOnly today)
     {
         var profile = EvaluationMapping.ProfileOf(settings, r);
+        var step = WorkflowSteps.StepOf(r.Status);
+        var deadline = step.HasValue ? profile.Deadline(step.Value) : null;
+        var (daysOverdue, daysLeft) = EvaluationMapping.DeadlineDistance(deadline, today);
         return new PeriodParticipantDto
         {
             RecordId = r.Id,
@@ -1010,7 +1018,12 @@ public sealed class PeriodService : IPeriodService
             WorkflowProfileCode = profile.Code,
             WorkflowProfileName = profile.Name,
             Status = r.Status.ToString(),
-            StatusDisplayName = WorkflowSteps.StatusDisplayName(r.Status)
+            StatusDisplayName = WorkflowSteps.StatusDisplayName(r.Status),
+            CurrentStep = step.HasValue ? WorkflowSteps.Code(step.Value) : null,
+            CurrentStepName = step.HasValue ? WorkflowSteps.DisplayName(step.Value) : null,
+            CurrentStepDeadline = deadline,
+            DaysOverdue = daysOverdue,
+            DaysLeft = daysLeft
         };
     }
 

@@ -137,4 +137,21 @@ public sealed class RecordProgressUnitTests
         // Bước đăng ký không lưu thời điểm riêng.
         Assert.Null(progress.Single(p => p.Step == "B1_REGISTER").DoneAt);
     }
+
+    [Fact]
+    public void DeadlineDistance_OverdueDueTodayFutureAndNoDeadline()
+    {
+        Assert.Equal((3, (int?)null), EvaluationMapping.DeadlineDistance(Today.AddDays(-3), Today));
+        Assert.Equal((1, (int?)null), EvaluationMapping.DeadlineDistance(Today.AddDays(-1), Today));
+        Assert.Equal(((int?)null, 0), EvaluationMapping.DeadlineDistance(Today, Today));
+        Assert.Equal(((int?)null, 5), EvaluationMapping.DeadlineDistance(Today.AddDays(5), Today));
+        Assert.Equal(((int?)null, (int?)null), EvaluationMapping.DeadlineDistance(null, Today));
+    }
+
+    [Fact]
+    public void Today_UsesVietnamTime()
+    {
+        // 18:00 UTC ngày 30/11 là 01:00 ngày 01/12 giờ Việt Nam.
+        Assert.Equal(new DateOnly(2026, 12, 1), EvaluationMapping.Today(new DateTime(2026, 11, 30, 18, 0, 0, DateTimeKind.Utc)));
+    }
 }

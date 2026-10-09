@@ -122,6 +122,15 @@ export interface PeriodParticipantDto {
   workflowProfileName: string;
   status: string;
   statusDisplayName: string;
+  /** Mã bước đang chờ; null khi đã công bố. */
+  currentStep?: string | null;
+  currentStepName?: string | null;
+  /** Hạn của bước đang chờ theo cách xét duyệt của hồ sơ (yyyy-MM-dd). */
+  currentStepDeadline?: string | null;
+  /** Số ngày quá hạn (≥ 1), tính theo giờ Việt Nam. */
+  daysOverdue?: number | null;
+  /** Số ngày còn lại tới hạn (0 = hạn hôm nay). */
+  daysLeft?: number | null;
 }
 
 export interface ParticipantCandidateDto {
