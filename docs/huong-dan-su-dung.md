@@ -351,12 +351,12 @@ Dành cho người được giao quản lý kỳ. Menu **Quản lý → Kỳ đ�
 3. Chọn **Bộ tiêu chí** (đã xuất bản; mặc định là bộ mới nhất). Bộ quyết định có bước đăng ký sản phẩm hay không: bộ Mẫu 09A có bước đăng ký, duyệt sản phẩm đầu quý; bộ Mẫu 09B không có, tự chấm theo trục.
 4. Bấm **Tạo kỳ (dự thảo)**; trang cấu hình kỳ mở ra để thiết lập tiếp.
 
-### 7.2 Cấu hình hồ sơ luồng (tab "Hồ sơ luồng")
+### 7.2 Cấu hình cách xét duyệt (tab "Cách xét duyệt")
 
-Mỗi **hồ sơ luồng** là cách xét duyệt cho một nhóm đối tượng, ví dụ *Diện Đảng ủy cơ sở*, *Diện BTV Đảng ủy Tổng công ty*, *Bí thư/Phó bí thư Chi bộ là nhân viên*.
+Mỗi **cách xét duyệt** áp dụng cho một nhóm đối tượng, ví dụ *Diện Đảng ủy cơ sở*, *Diện BTV Đảng ủy Tổng công ty*, *Bí thư/Phó bí thư Chi bộ là nhân viên*.
 
-- Hai ô **Hồ sơ luồng mặc định** chọn nhóm cho người thuộc diện Đảng ủy cơ sở quyết định và người thuộc diện cấp trên quyết định.
-- Bấm tên một hồ sơ luồng để sửa. Với mỗi bước:
+- Hai ô **Cách xét duyệt mặc định** chọn nhóm cho người thuộc diện Đảng ủy cơ sở quyết định và người thuộc diện cấp trên quyết định.
+- Bấm tên một cách xét duyệt để sửa. Với mỗi bước:
   - **Chế độ**: *Nội bộ* (làm trong hệ thống), *Cấp trên thực hiện* (chỉ ghi nhận kết quả), *Không áp dụng*. Bước có ghi "(bắt buộc)" không tắt được; bước có ghi "(theo bộ tiêu chí)" (đăng ký, duyệt sản phẩm) do bộ tiêu chí của kỳ quyết định — đổi bộ ở tab **Bộ tiêu chí**.
   - **Người thực hiện (quyền)**: quyền mà người làm bước cần có.
   - **Thời hạn**: chọn *Nhập tay* rồi nhập ngày, hoặc chọn quy tắc (*Ngày làm việc thứ … đầu quý*, *Ngày … tháng cuối quý*, *… ngày làm việc trước đầu quý*) rồi bấm **Áp dụng quy tắc** để điền ngày. Hệ thống tự bỏ qua thứ Bảy, Chủ nhật và ngày nghỉ trong *Danh mục → Ngày nghỉ*. Sau đó vẫn sửa từng ngày được.
@@ -371,17 +371,17 @@ Chọn **Chọn bộ đã xuất bản** khi kỳ còn Dự thảo. Bấm **Xem 
 
 ### 7.4 Người được đánh giá (tab "Người được đánh giá")
 
-- Thêm theo đơn vị: chọn **Phòng** / **Chi bộ**, chọn **Hồ sơ luồng khi thêm** (hoặc *Mặc định theo cấp quyết định*), bấm **Thêm cả đơn vị**.
+- Thêm theo đơn vị: chọn **Phòng** / **Chi bộ**, chọn **Cách xét duyệt khi thêm** (hoặc *Mặc định theo cấp quyết định*), bấm **Thêm cả đơn vị**.
 - Thêm từng người: nhập **Tên / tài khoản**, bấm **Tìm cán bộ**, đánh dấu người cần thêm, bấm **Thêm … người đã chọn**.
 - Trên từng dòng:
-  - **Đổi hồ sơ luồng** (bắt buộc lý do). Đánh dấu nhiều dòng để **Đổi hồ sơ luồng hàng loạt**.
+  - **Đổi cách xét duyệt** (bắt buộc lý do). Đánh dấu nhiều dòng để **Đổi cách xét duyệt hàng loạt**.
   - **Sửa ảnh chụp**: sửa Phòng, Chi bộ, Khung tỷ trọng, Cấp quyết định của hồ sơ trong kỳ (bắt buộc lý do).
   - **Bỏ**: bỏ người khỏi kỳ.
 
-### 7.5 Kiểm tra kẹt luồng và mở kỳ
+### 7.5 Người thực hiện các bước và mở kỳ
 
-- Tab **Kiểm tra kẹt luồng** liệt kê hồ sơ có bước **không ai làm được** (chưa ai được giao vai trò có quyền cần thiết trong phạm vi của hồ sơ). Mỗi dòng ghi hồ sơ, hồ sơ luồng, bước sẽ kẹt, quyền cần có, phạm vi. Cách sửa: nhờ quản trị **gán vai trò** phù hợp (bấm vào phạm vi để mở màn hình **Người thực hiện** đúng đơn vị — mục 10.2a), hoặc đổi hồ sơ luồng của người đó.
-- Bấm **Mở kỳ**. Còn cảnh báo kẹt luồng thì hệ thống không mở; nếu vẫn cần mở, dùng **Mở kỳ bắt buộc** và nhập lý do.
+- Tab **Người thực hiện các bước** liệt kê hồ sơ có bước **không ai làm được** (chưa ai được giao vai trò có quyền cần thiết trong phạm vi của hồ sơ). Mỗi dòng ghi hồ sơ, hồ sơ luồng, bước sẽ kẹt, quyền cần có, phạm vi. Cách sửa: nhờ quản trị **gán vai trò** phù hợp (bấm vào phạm vi để mở màn hình **Người thực hiện** đúng đơn vị — mục 10.2a), hoặc đổi hồ sơ luồng của người đó.
+- Bấm **Mở kỳ**. Còn bước chưa có người thực hiện thì hệ thống không mở; nếu vẫn cần mở, dùng **Mở kỳ bắt buộc** và nhập lý do.
 
 ### 7.6 Khóa dữ liệu, mở lại kỳ, đóng kỳ
 
@@ -549,8 +549,8 @@ Người có quyền mở lại hồ sơ dùng **Mở lại hồ sơ**, chọn b
 **Hệ thống báo hồ sơ đã được thay đổi ở nơi khác.**
 Người khác (hoặc bạn ở cửa sổ khác) vừa cập nhật hồ sơ. Bấm **Tải lại hồ sơ** và làm lại thao tác.
 
-**Không mở được kỳ vì "kẹt luồng".**
-Xem tab **Kiểm tra kẹt luồng** của kỳ: mỗi dòng cho biết bước nào không ai làm được và quyền cần có. Nhờ quản trị gán vai trò đúng phạm vi, rồi kiểm tra lại.
+**Không mở được kỳ vì còn bước chưa có người thực hiện.**
+Xem tab **Người thực hiện các bước** của kỳ: mỗi dòng cho biết bước nào không ai làm được và quyền cần có. Nhờ quản trị gán vai trò đúng phạm vi, rồi kiểm tra lại.
 
 **Quên mật khẩu hoặc tài khoản bị khóa.**
 Liên hệ quản trị hệ thống để **Đặt lại mật khẩu** hoặc chờ hết thời gian khóa tạm.

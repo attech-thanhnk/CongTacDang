@@ -288,7 +288,7 @@ public static class EvaluationMapping
         if (criteria is not { UsesAxisScoring: false } || r.Tasks == null)
             return Array.Empty<string>();
         var tasks = r.Tasks
-            .Where(t => !t.IsDeleted)
+            .Where(t => !t.IsDeleted && TaskChangeRules.IsActive(t))
             .Select(t => new GradeConditionTask(t.Kind, t.AppraisalLevel, t.IsExceedStandard))
             .ToList();
         return GradeConditions.Check(tasks, grade, GradeConditions.ExcellentMinExceedRatio(criteria.Content));

@@ -233,7 +233,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
             var tasks = await _records.GetTasksAsync(record.Id, ct);
             var before = tasks.Where(TaskChangeRules.IsActive).ToDictionary(t => t.Id, t => t.Weight);
             var content = context.Criteria!.Content;
-            var (error, created) = TaskChangeRules.Apply(change, tasks, content, record.Period.EndDate, content.FindFrame(record.WeightFrameCode));
+            var (error, created) = TaskChangeRules.Apply(change, tasks, content, record.Period.EndDate, RecordWeightFrames.Effective(record, content));
             if (error != null)
                 throw new ValidationException($"Không áp được đề nghị vào danh mục hiện tại: {error}");
             if (created != null)

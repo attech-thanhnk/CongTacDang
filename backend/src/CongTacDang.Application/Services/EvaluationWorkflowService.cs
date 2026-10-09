@@ -494,7 +494,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
     /// <summary>
     /// Ghi mức thẩm định (1/2/3) và nhận xét ngắn cho từng nhiệm vụ của hồ sơ: bắt buộc đủ mọi nhiệm vụ, không nhận nhiệm vụ
-    /// của hồ sơ khác, mỗi nhiệm vụ một dòng.
+    /// của hồ sơ khác, mỗi nhiệm vụ một dòng (trừ việc đã loại trừ / chuyển tiếp).
     /// </summary>
     private static void ApplyTaskLevels(IReadOnlyList<EvaluationTask> tasks, IReadOnlyList<AppraisalTaskLevelDto>? levels)
     {
@@ -513,7 +513,9 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 throw new ValidationException($"Mức thẩm định của nhiệm vụ \"{task.TaskName}\" chỉ là Mức 1, Mức 2 hoặc Mức 3.");
         }
 
+        // Việc đã loại trừ / chuyển tiếp hợp lệ (Mẫu 04) không chấm nên không bắt buộc xếp mức.
         var missing = tasks
+            .Where(TaskChangeRules.IsActive)
             .Where(t => levels.FirstOrDefault(l => l != null && l.TaskId == t.Id)?.Level is null)
             .OrderBy(t => t.TaskOrder)
             .Select(t => $"\"{t.TaskName}\"")

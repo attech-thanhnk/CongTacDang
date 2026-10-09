@@ -301,7 +301,9 @@ function GradeCommentForm({ record, busy, defaultGrade, submitText, extra, onSub
  */
 function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit }: { record: EvaluationRecordDto; criteria: CriteriaSnapshot | null; busy: boolean; extra?: React.ReactNode; onScoreChange?: (score: number | null) => void; onSubmit: (p: Record<string, unknown>) => void }) {
   // Bộ chấm theo danh mục nhiệm vụ (09A): xếp Mức 1/2/3 cho từng nhiệm vụ; bộ chấm theo trục (09B) không có phần này.
-  const usesTasks = record.selfScoreForm !== "09B" && record.tasks.length > 0;
+  // Việc đã loại trừ / chuyển tiếp trong quý không chấm, không xếp mức.
+  const scoredTasks = record.tasks.filter((t) => !t.changeStatus);
+  const usesTasks = record.selfScoreForm !== "09B" && scoredTasks.length > 0;
   const [general, setGeneral] = useState<string>(String(record.appraisalGeneralScore ?? record.generalCriteriaScore ?? ""));
   const [tasksScore, setTasksScore] = useState<string>(String(record.appraisalTasksScore ?? record.tasksScore ?? ""));
   const [levels, setLevels] = useState<Record<string, number | null>>(() => Object.fromEntries(record.tasks.map((t) => [t.id, t.appraisalLevel ?? null])));
@@ -322,7 +324,7 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
   const rule = criteria
     ? `Bắt buộc khi chênh lệch từ ${fmt(criteria.content.parameters.explanationThreshold)} điểm${criteria.content.parameters.explanationOnGradeChange ? " hoặc đổi mức xếp loại" : ""}`
     : undefined;
-  const leveledTasks = record.tasks.map((t) => ({ ...t, appraisalLevel: levels[t.id] ?? null }));
+  const leveledTasks = scoredTasks.map((t) => ({ ...t, appraisalLevel: levels[t.id] ?? null }));
   const missingLevels = usesTasks && leveledTasks.some((t) => t.appraisalLevel == null);
   const warnings = usesTasks ? gradeConditionWarnings(leveledTasks, grade, record.excellentMinExceedRatio) : [];
 
@@ -339,7 +341,7 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
       comment,
       explanation: explanation.trim() || null,
       taskLevels: usesTasks
-        ? record.tasks.map((t) => ({ taskId: t.id, level: levels[t.id], comment: taskComments[t.id]?.trim() || null }))
+        ? scoredTasks.map((t) => ({ taskId: t.id, level: levels[t.id], comment: taskComments[t.id]?.trim() || null }))
         : null,
     });
   };
@@ -351,7 +353,7 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
           <div className={styles.tw}><table className={styles.table}>
             <thead><tr><th>#</th><th>Nhiệm vụ</th><th>Loại</th><th>Tự chấm</th><th>Vượt chuẩn</th><th>Mức thẩm định</th><th>Nhận xét</th></tr></thead>
             <tbody>
-              {record.tasks.map((t) => (
+              {scoredTasks.map((t) => (
                 <tr key={t.id}>
                   <td className="num">{t.taskOrder}</td>
                   <td>{t.taskName}</td>
@@ -417,7 +419,7 @@ function GradeWarningList({ warnings }: { warnings: string[] }) {
 /** Cảnh báo điều kiện xếp loại với mức đang chọn, theo mức thẩm định đã lưu của từng nhiệm vụ. */
 function recordGradeWarnings(record: EvaluationRecordDto, grade: string): string[] {
   if (record.selfScoreForm === "09B") return [];
-  return gradeConditionWarnings(record.tasks, grade, record.excellentMinExceedRatio);
+  return gradeConditionWarnings(record.tasks.filter((t) => !t.changeStatus), grade, record.excellentMinExceedRatio);
 }
 
 /** Ghi nhận đề xuất tập thể (B3a) hoặc quyết định (B4); kết quả kiểm phiếu (tùy chọn) gắn với biên bản. */
