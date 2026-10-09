@@ -464,6 +464,9 @@ export interface ReadinessIssueDto {
   permission: string;
   permissionName: string;
   scope: string;
+  /** Đơn vị chính quyền / tổ chức Đảng của hồ sơ. */
+  departmentId?: string | null;
+  partyCellId?: string | null;
   message: string;
 }
 

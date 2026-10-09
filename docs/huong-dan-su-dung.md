@@ -359,7 +359,7 @@ Chọn **Chọn bộ đã xuất bản** khi kỳ còn Dự thảo. Bấm **Xem 
 
 ### 7.5 Kiểm tra kẹt luồng và mở kỳ
 
-- Tab **Kiểm tra kẹt luồng** liệt kê hồ sơ có bước **không ai làm được** (chưa ai được giao vai trò có quyền cần thiết trong phạm vi của hồ sơ). Mỗi dòng ghi hồ sơ, hồ sơ luồng, bước sẽ kẹt, quyền cần có, phạm vi. Cách sửa: nhờ quản trị **gán vai trò** phù hợp, hoặc đổi hồ sơ luồng của người đó.
+- Tab **Kiểm tra kẹt luồng** liệt kê hồ sơ có bước **không ai làm được** (chưa ai được giao vai trò có quyền cần thiết trong phạm vi của hồ sơ). Mỗi dòng ghi hồ sơ, hồ sơ luồng, bước sẽ kẹt, quyền cần có, phạm vi. Cách sửa: nhờ quản trị **gán vai trò** phù hợp (bấm vào phạm vi để mở màn hình **Người thực hiện** đúng đơn vị — mục 10.2a), hoặc đổi hồ sơ luồng của người đó.
 - Bấm **Mở kỳ**. Còn cảnh báo kẹt luồng thì hệ thống không mở; nếu vẫn cần mở, dùng **Mở kỳ bắt buộc** và nhập lý do.
 
 ### 7.6 Khóa dữ liệu, mở lại kỳ, đóng kỳ
@@ -450,6 +450,16 @@ Menu **Quản lý → Vai trò**.
 - Vai trò "Quản trị hệ thống" được bảo vệ, không xóa được. Vai trò này không xem được nội dung đánh giá.
 
 Thay đổi vai trò, bản gán có hiệu lực ngay, người dùng không cần đăng nhập lại.
+
+### 10.2a Người thực hiện
+
+Menu **Quản lý → Người thực hiện** (cần quyền **Gán vai trò**). Dùng để trả lời nhanh "ai làm việc gì ở đơn vị nào" mà không phải tra từng vai trò.
+
+- **Xem theo**: *Toàn công ty*, *Đơn vị chính quyền* hoặc *Tổ chức Đảng*, rồi chọn đơn vị.
+- Màn hình liệt kê các việc của quy trình đánh giá (duyệt danh mục sản phẩm, chi bộ xác nhận phiếu tự chấm, ghi kết quả họp tập thể lãnh đạo, thẩm định, nhận xét của cấp trực tiếp sử dụng, lãnh đạo đơn vị đề xuất, ghi quyết định xếp loại, công bố, ghi nhận kết quả của cấp trên). Mỗi việc ghi tên người làm được, vai trò và nơi giao. Người được giao ở đơn vị cấp trên hoặc toàn công ty cũng làm được ở đơn vị cấp dưới. Việc chưa có ai được đánh dấu **Chưa có người**.
+- **Thêm người**: chọn người, chọn vai trò (chỉ hiện vai trò làm được việc đó), thời hạn và ghi chú. Hệ thống tạo bản gán vai trò tại đơn vị đang xem.
+- **Gỡ**: chỉ có ở người được giao tại đúng đơn vị đang xem; bản gán vai trò kết thúc ngay (người đó mất mọi việc của vai trò này tại đơn vị). Người được giao ở cấp trên chỉ xem, bấm **Xem tài khoản** để sửa.
+- Từ trang kỳ đánh giá, bảng **Người thực hiện các bước** có liên kết mở thẳng màn hình này đúng đơn vị và việc còn thiếu người.
 
 ### 10.3 Danh mục
 

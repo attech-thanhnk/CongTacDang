@@ -86,6 +86,10 @@ public class ReadinessIssueDto
     public string PermissionName { get; set; } = string.Empty;
     /// <summary>Phạm vi của hồ sơ (đơn vị chính quyền / tổ chức Đảng) mà bản gán cần bao trùm.</summary>
     public string Scope { get; set; } = string.Empty;
+    /// <summary>Đơn vị chính quyền của hồ sơ (để mở màn hình "Người thực hiện" đúng đơn vị).</summary>
+    public Guid? DepartmentId { get; set; }
+    /// <summary>Tổ chức Đảng của hồ sơ.</summary>
+    public Guid? PartyCellId { get; set; }
     public string Message { get; set; } = string.Empty;
 }
 

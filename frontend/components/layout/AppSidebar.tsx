@@ -91,6 +91,7 @@ export function AppSidebar() {
         { title: "Bộ tiêu chí", href: "/criteria", icon: "bi-list-check", permission: "criteria.manage" },
         { title: "Người dùng", href: "/admin/users", icon: "bi-people", permission: "system.users.read" },
         { title: "Vai trò", href: "/admin/roles", icon: "bi-shield-lock", permission: "system.roles.manage" },
+        { title: "Người thực hiện", href: "/admin/performers", icon: "bi-person-check", permission: "system.assignments.manage" },
         { title: "Danh mục", href: "/catalog", icon: "bi-building", permission: "catalog.manage" },
         { title: "Nhập dữ liệu", href: "/admin/imports", icon: "bi-file-earmark-arrow-up", permission: "system.import" },
         { title: "Nhật ký", href: "/audit", icon: "bi-clock-history", permission: "system.audit.read" },
