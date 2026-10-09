@@ -47,6 +47,22 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     /// </summary>
     public string WeightFrameCode { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Tỷ trọng A (0..1) đã điều chỉnh cho riêng hồ sơ khi cấp giao nhiệm vụ duyệt danh mục sản phẩm; bốn cột
+    /// <see cref="FrameA"/>..<see cref="FrameD"/> cùng null = dùng tỷ trọng gốc của khung <see cref="WeightFrameCode"/>.
+    /// Khung hiệu lực: <c>RecordWeightFrames.Effective</c>.
+    /// </summary>
+    public double? FrameA { get; set; }
+
+    /// <summary>Tỷ trọng B (0..1) đã điều chỉnh; null = theo khung gốc.</summary>
+    public double? FrameB { get; set; }
+
+    /// <summary>Tỷ trọng C (0..1) đã điều chỉnh; null = theo khung gốc.</summary>
+    public double? FrameC { get; set; }
+
+    /// <summary>Tỷ trọng D (0..1) đã điều chỉnh; null = theo khung gốc.</summary>
+    public double? FrameD { get; set; }
+
     /// <summary>Cấp có thẩm quyền quyết định xếp loại — ảnh chụp từ hồ sơ cán bộ tại thời điểm thêm vào kỳ</summary>
     public ApprovalAuthority ApprovalAuthority { get; set; } = ApprovalAuthority.CoSo;
 

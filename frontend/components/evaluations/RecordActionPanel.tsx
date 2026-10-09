@@ -19,7 +19,7 @@ import {
 import { FileUploadModal } from "@/components/attachments/FileUploadModal";
 import { useCriteria } from "@/components/evaluations/useCriteria";
 import { SelfScoreForm } from "@/components/evaluations/SelfScoreForm";
-import { CriteriaSnapshot, fmt, requiresExplanation } from "@/services/criteriaService";
+import { CriteriaSnapshot, WeightFrame, describeFrame, fmt, requiresExplanation } from "@/services/criteriaService";
 import styles from "./record.module.css";
 
 interface Props {
@@ -157,8 +157,9 @@ function ActionForm({ record, criteria, action, step, busy, onSubmit, extra, onA
     case "SubmitSelfScore":
       return <SelfScoreForm record={record} criteria={criteria} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "ApproveTasks":
+      return <ApproveTasksForm record={record} busy={busy} extra={extra} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "ConfirmByCell":
-      return <CommentForm busy={busy} extra={extra} label="Ý kiến" submitText={action === "ApproveTasks" ? "Duyệt danh mục" : "Xác nhận phiếu tự chấm"} onSubmit={(payload) => onSubmit(action, payload)} />;
+      return <CommentForm busy={busy} extra={extra} label="Ý kiến" submitText="Xác nhận phiếu tự chấm" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "RecordCollectiveProposal":
       return <ProposalForm record={record} busy={busy} extra={extra} stage="B3A_COLLECTIVE" submitText="Ghi nhận đề xuất" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "Appraise":
@@ -187,6 +188,82 @@ function CommentForm({ busy, label, submitText, extra, onSubmit }: { busy: boole
       <textarea id={id} className="form-control form-control-sm" rows={2} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} />
       <FormFoot extra={extra}>
         <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>{submitText}</button>
+      </FormFoot>
+    </form>
+  );
+}
+
+const FRAME_PARTS = [
+  { key: "a", label: "A — Khối lượng" },
+  { key: "b", label: "B — Chất lượng, an toàn" },
+  { key: "c", label: "C — Tiến độ" },
+  { key: "d", label: "D — Tổ chức, hiệu quả" },
+] as const;
+type FramePercents = Record<(typeof FRAME_PARTS)[number]["key"], number>;
+const toPercents = (f: WeightFrame): FramePercents => ({ a: Math.round(f.a * 10000) / 100, b: Math.round(f.b * 10000) / 100, c: Math.round(f.c * 10000) / 100, d: Math.round(f.d * 10000) / 100 });
+
+/** Duyệt danh mục sản phẩm: ý kiến + điều chỉnh tỷ lệ 4 mặt chấm A-B-C-D trong biên độ của bộ tiêu chí (mặc định giữ nguyên). */
+function ApproveTasksForm({ record, busy, extra, onSubmit }: { record: EvaluationRecordDto; busy: boolean; extra?: React.ReactNode; onSubmit: (p: Record<string, unknown>) => void }) {
+  const [comment, setComment] = useState("");
+  const id = useId();
+  const base = record.baseWeightFrame ?? null;
+  const limit = record.frameAdjustLimit ?? 0;
+  const current = useMemo(() => toPercents(record.weightFrame ?? base ?? { code: "", name: "", a: 0, b: 0, c: 0, d: 0 }), [record.weightFrame, base]);
+  const [values, setValues] = useState<FramePercents>(current);
+  const canAdjust = !!base && limit > 0;
+  const basePercents = base ? toPercents(base) : null;
+
+  const sum = values.a + values.b + values.c + values.d;
+  const errors: string[] = [];
+  if (canAdjust && basePercents) {
+    for (const part of FRAME_PARTS) {
+      const v = values[part.key];
+      if (!Number.isFinite(v) || v < 0) errors.push(`Tỷ lệ ${part.key.toUpperCase()} không hợp lệ.`);
+      else if (Math.abs(v - basePercents[part.key]) > limit + 1e-6)
+        errors.push(`Tỷ lệ ${part.key.toUpperCase()} chỉ được từ ${fmt(Math.max(0, basePercents[part.key] - limit))}% đến ${fmt(basePercents[part.key] + limit)}%.`);
+    }
+    if (Math.abs(sum - 100) > 0.01) errors.push(`Tổng tỷ lệ phải bằng 100% (đang là ${fmt(sum)}%).`);
+  }
+  const changed = FRAME_PARTS.some((part) => Math.abs(values[part.key] - current[part.key]) > 1e-6);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (canAdjust && changed && errors.length > 0) return;
+    onSubmit(canAdjust && changed ? { comment, frameAdjustment: values } : { comment });
+  };
+
+  return (
+    <form onSubmit={submit}>
+      {canAdjust && basePercents && (
+        <details className="border rounded-2 px-2 py-1 mb-2 small" open={record.weightFrameAdjusted || changed}>
+          <summary className="fw-semibold">
+            Tỷ lệ 4 mặt chấm: {describeFrame({ a: values.a / 100, b: values.b / 100, c: values.c / 100, d: values.d / 100 })}
+            {FRAME_PARTS.some((p) => Math.abs(values[p.key] - basePercents[p.key]) > 1e-6) && <span className="text-primary"> (đã điều chỉnh)</span>}
+          </summary>
+          <div className="text-secondary my-1">
+            Khung {base!.code}: {describeFrame(base!)}. Được điều chỉnh mỗi mặt ±{fmt(limit)} điểm %, tổng 100%.
+          </div>
+          <div className="row g-2 align-items-end">
+            {FRAME_PARTS.map((part) => (
+              <div className="col-6 col-md-3" key={part.key}>
+                <label className="form-label small mb-0" htmlFor={`${id}-${part.key}`}>{part.label} (%)</label>
+                <input id={`${id}-${part.key}`} type="number" step={1} min={Math.max(0, basePercents[part.key] - limit)} max={basePercents[part.key] + limit}
+                  className="form-control form-control-sm" value={Number.isFinite(values[part.key]) ? values[part.key] : ""}
+                  onChange={(e) => setValues({ ...values, [part.key]: e.target.value === "" ? NaN : Number(e.target.value) })} />
+              </div>
+            ))}
+          </div>
+          <div className="d-flex justify-content-between align-items-center mt-1">
+            <span className={Math.abs(sum - 100) > 0.01 ? "text-danger" : "text-success"}>Tổng: {fmt(sum)}%</span>
+            <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setValues(basePercents)}>Dùng tỷ lệ của khung</button>
+          </div>
+          {changed && errors.map((m) => <div key={m} className="text-danger">{m}</div>)}
+        </details>
+      )}
+      <label className="form-label small" htmlFor={id}>Ý kiến</label>
+      <textarea id={id} className="form-control form-control-sm" rows={2} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} />
+      <FormFoot extra={extra}>
+        <button type="submit" className="btn btn-primary btn-sm" disabled={busy || (canAdjust && changed && errors.length > 0)}>Duyệt danh mục</button>
       </FormFoot>
     </form>
   );

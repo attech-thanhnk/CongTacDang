@@ -18,6 +18,7 @@ import {
   CriteriaSnapshot,
   GRADE_LABELS,
   GeneralItemScore,
+  describeFrame,
   fmt,
   generalTotal,
   gradeByScore,
@@ -108,7 +109,8 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   const content = criteria.content;
   const p = content.parameters;
   const uses09B = criteria.selfScoreForm === "09B";
-  const frame = content.weightFrames.find((f) => f.code.toLowerCase() === (record.weightFrameCode || "").toLowerCase());
+  // Khung hiệu lực do máy chủ tính (tỷ lệ đã điều chỉnh khi duyệt danh mục, nếu có); máy chủ cũ chưa trả thì tra trong bộ.
+  const frame = record.weightFrame ?? content.weightFrames.find((f) => f.code.toLowerCase() === (record.weightFrameCode || "").toLowerCase());
 
   const [general, setGeneral] = useState<Record<string, GeneralItemScore>>(() => {
     const initial: Record<string, GeneralItemScore> = {};
@@ -371,7 +373,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
           <h4 className="h6 small fw-bold text-secondary">II. Kết quả thực hiện sản phẩm (Mẫu 02) — % đạt từng thành phần A-B-C-D</h4>
           <div className="small text-secondary mb-1">
             {frame
-              ? <>Khung tỷ trọng của hồ sơ: <strong>{frame.code} — {frame.name}</strong> (A {fmt(frame.a * 100)}% · B {fmt(frame.b * 100)}% · C {fmt(frame.c * 100)}% · D {fmt(frame.d * 100)}%)</>
+              ? <>Khung tỷ trọng của hồ sơ: <strong>{frame.code} — {frame.name}</strong>. Tỷ lệ 4 mặt: {describeFrame(frame)}{record.weightFrameAdjusted && <strong> (đã điều chỉnh)</strong>}</>
               : <span className="text-danger">Khung tỷ trọng "{record.weightFrameCode || "—"}" của hồ sơ không có trong bộ tiêu chí — liên hệ người quản lý kỳ.</span>}
           </div>
           <div className="table-responsive mb-2">

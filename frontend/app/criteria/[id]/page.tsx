@@ -21,6 +21,7 @@ import {
   SelfAssessmentSection,
   criteriaService,
   fmt,
+  MAX_FRAME_ADJUST_LIMIT,
   quickChecks,
 } from "@/services/criteriaService";
 
@@ -457,6 +458,11 @@ export default function CriteriaSetPage() {
                     <label className="form-label mb-1">Giảm từ … điểm phải nêu lý do</label>
                     <input type="number" step={0.5} min={0} className="form-control form-control-sm" placeholder="Không bắt buộc" value={p.deductionReasonMinPoints ?? ""}
                       onChange={(e) => setParam("deductionReasonMinPoints", e.target.value === "" ? null : num(e.target.value))} />
+                  </div>
+                  <div className="col-6 col-md-3">
+                    <label className="form-label small mb-0">Điều chỉnh tỷ lệ A-B-C-D (± điểm %)</label>
+                    <input type="number" step={1} min={0} max={MAX_FRAME_ADJUST_LIMIT} className="form-control form-control-sm" placeholder="Không cho điều chỉnh" value={p.frameAdjustLimit ?? ""}
+                      onChange={(e) => setParam("frameAdjustLimit", e.target.value === "" ? null : num(e.target.value))} />
                   </div>
                   <div className="col-6 col-md-3 d-flex flex-column justify-content-end">
                     <label className="form-check small mb-0"><input type="checkbox" className="form-check-input" checked={p.allowNotApplicable} onChange={(e) => setParam("allowNotApplicable", e.target.checked)} /> <span className="form-check-label">Cho phép K/AD (có lý do)</span></label>

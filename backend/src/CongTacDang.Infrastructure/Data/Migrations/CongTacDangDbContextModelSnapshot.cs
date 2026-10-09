@@ -1004,6 +1004,18 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<double>("FinalScore")
                         .HasColumnType("double precision");
 
+                    b.Property<double?>("FrameA")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("FrameB")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("FrameC")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("FrameD")
+                        .HasColumnType("double precision");
+
                     b.Property<double>("GeneralCriteriaScore")
                         .HasColumnType("double precision");
 

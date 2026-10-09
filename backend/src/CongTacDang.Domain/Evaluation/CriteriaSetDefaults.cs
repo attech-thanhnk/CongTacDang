@@ -30,7 +30,13 @@ public static partial class CriteriaSetDefaults
     public static CriteriaSetContent Build09B() => WithItemFormTexts(Build(axisMax: new[] { 15.0, 10, 10, 15, 10, 10 }, RequiredForms09B));
 
     /// <summary>Nội dung bộ Mẫu 09A (từ 2027): chấm theo nhiệm vụ Mẫu 01/02, công thức A-B-C-D; trục không có điểm tối đa riêng.</summary>
-    public static CriteriaSetContent Build09A() => WithItemFormTexts(Build(axisMax: new[] { 0.0, 0, 0, 0, 0, 0 }, RequiredForms09A));
+    public static CriteriaSetContent Build09A()
+    {
+        var content = WithItemFormTexts(Build(axisMax: new[] { 0.0, 0, 0, 0, 0, 0 }, RequiredForms09A));
+        // Cấp giao nhiệm vụ được điều chỉnh từng thành phần A-B-C-D trong phạm vi ±10 điểm phần trăm, tổng bằng 100%.
+        content.Parameters.FrameAdjustLimit = 10;
+        return content;
+    }
 
     private static CriteriaSetContent Build(double[] axisMax, IReadOnlyList<string> requiredForms)
     {

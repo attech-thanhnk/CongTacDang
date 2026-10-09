@@ -118,6 +118,14 @@ public class EvaluationRecordDto
     public string? DepartmentName { get; set; }
     /// <summary>Mã khung tỷ trọng A-B-C-D (ảnh chụp).</summary>
     public string WeightFrameCode { get; set; } = string.Empty;
+    /// <summary>Khung gốc trong bộ tiêu chí của kỳ (null nếu không có).</summary>
+    public RecordWeightFrameDto? BaseWeightFrame { get; set; }
+    /// <summary>Khung hiệu lực dùng để chấm: khung gốc với tỷ trọng đã điều chỉnh (nếu có).</summary>
+    public RecordWeightFrameDto? WeightFrame { get; set; }
+    /// <summary>Tỷ trọng đã được cấp giao nhiệm vụ điều chỉnh khi duyệt danh mục.</summary>
+    public bool WeightFrameAdjusted { get; set; }
+    /// <summary>Biên độ điều chỉnh (điểm phần trăm) của bộ tiêu chí; null = không cho điều chỉnh.</summary>
+    public double? FrameAdjustLimit { get; set; }
     public string ApprovalAuthority { get; set; } = string.Empty;
     /// <summary>Hồ sơ luồng (nhóm đối tượng) của hồ sơ.</summary>
     public string WorkflowProfileCode { get; set; } = string.Empty;
@@ -241,6 +249,38 @@ public class ReturnRecordRequestDto : WorkflowRequestDto
 public class CommentRequestDto : WorkflowRequestDto
 {
     public string? Comment { get; set; }
+}
+
+/// <summary>Duyệt danh mục sản phẩm (B1_APPROVE): ý kiến + điều chỉnh tỷ lệ A-B-C-D tùy chọn.</summary>
+public class ApproveTasksRequestDto : CommentRequestDto
+{
+    /// <summary>Tỷ lệ A-B-C-D (phần trăm) điều chỉnh cho hồ sơ; null = giữ nguyên tỷ lệ đang áp dụng.</summary>
+    public FrameAdjustmentDto? FrameAdjustment { get; set; }
+}
+
+/// <summary>Tỷ lệ A-B-C-D theo phần trăm (tổng 100).</summary>
+public class FrameAdjustmentDto
+{
+    public double A { get; set; }
+    public double B { get; set; }
+    public double C { get; set; }
+    public double D { get; set; }
+}
+
+/// <summary>Tỷ trọng A-B-C-D của khung (0..1).</summary>
+public class RecordWeightFrameDto
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public double A { get; set; }
+    public double B { get; set; }
+    public double C { get; set; }
+    public double D { get; set; }
+
+    /// <summary>Ánh xạ từ khung của bộ tiêu chí.</summary>
+    public static RecordWeightFrameDto? From(CongTacDang.Domain.Evaluation.WeightFrame? frame) => frame == null
+        ? null
+        : new RecordWeightFrameDto { Code = frame.Code, Name = frame.Name, A = frame.A, B = frame.B, C = frame.C, D = frame.D };
 }
 
 /// <summary>Dữ liệu một nhiệm vụ khi đăng ký (Mẫu 01).</summary>
