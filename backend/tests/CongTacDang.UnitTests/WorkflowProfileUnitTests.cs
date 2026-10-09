@@ -19,12 +19,12 @@ public sealed class WorkflowProfileUnitTests
     #region Cấu hình mặc định
 
     [Fact]
-    public void Default_IsValid_WithThreeProfiles_MatchingAppendixIII()
+    public void Default_IsValid_WithFourProfiles_MatchingAppendixIIIAndDeputyDirector()
     {
         var full = PeriodSettings.Default(CriteriaSetContent.Form09A);
         Assert.Empty(full.Validate(WorkflowActions.IsAssignableStepPermission, "09A"));
         Assert.Equal(PeriodSettings.Default().ToJson(), full.ToJson());
-        Assert.Equal(new[] { "co-so", "cap-tren", "bi-thu-nhan-vien" }, full.Profiles.Select(p => p.Code));
+        Assert.Equal(new[] { "co-so", "cap-tren", "bi-thu-nhan-vien", "pho-giam-doc" }, full.Profiles.Select(p => p.Code));
         Assert.Equal("co-so", full.DefaultProfileCode(ApprovalAuthority.CoSo));
         Assert.Equal("cap-tren", full.DefaultProfileCode(ApprovalAuthority.CapTren));
 
@@ -49,15 +49,26 @@ public sealed class WorkflowProfileUnitTests
         Assert.Equal(StepMode.Internal, staff.Mode(WorkflowStep.B3C_DIRECTOR));
         Assert.Equal(PermissionCodes.EvaluationUnitReview, staff.PermissionFor(WorkflowStep.B3C_DIRECTOR));
 
+        // Chủ tịch, Giám đốc, Kiểm soát viên: HĐTV Tổng công ty duyệt danh mục sản phẩm (cấp trên thực hiện).
+        Assert.Equal(StepMode.External, upper.Mode(WorkflowStep.B1_APPROVE));
+
+        // Phó Giám đốc: tập thể Công ty, Chủ tịch nhận xét trong hệ thống; không có bước thẩm định riêng; BTV quyết định.
+        var deputy = Profile(full, "pho-giam-doc");
+        Assert.Equal(StepMode.Internal, deputy.Mode(WorkflowStep.B1_APPROVE));
+        Assert.Equal(StepMode.Internal, deputy.Mode(WorkflowStep.B3A_COLLECTIVE));
+        Assert.Equal(StepMode.Off, deputy.Mode(WorkflowStep.B3B_APPRAISAL));
+        Assert.Equal(StepMode.Internal, deputy.Mode(WorkflowStep.B3C_DIRECTOR));
+        Assert.Equal(StepMode.External, deputy.Mode(WorkflowStep.B4_DECISION));
+
         // Bộ 09B: B1 không áp dụng ở mọi hồ sơ luồng, các bước khác như 09A.
         var transition = PeriodSettings.Default(CriteriaSetContent.Form09B);
         Assert.Empty(transition.Validate(WorkflowActions.IsAssignableStepPermission, "09B"));
-        Assert.Equal(3, transition.Profiles.Count);
+        Assert.Equal(4, transition.Profiles.Count);
         Assert.All(transition.Profiles, p =>
         {
             Assert.Equal(StepMode.Off, p.Mode(WorkflowStep.B1_REGISTER));
             Assert.Equal(StepMode.Off, p.Mode(WorkflowStep.B1_APPROVE));
-            Assert.Equal(7, p.ActiveSteps().Count);
+            Assert.Equal(p.Code == "pho-giam-doc" ? 6 : 7, p.ActiveSteps().Count);
         });
         Assert.Equal(StepMode.External, Profile(transition, "cap-tren").Mode(WorkflowStep.B4_DECISION));
     }
@@ -170,7 +181,7 @@ public sealed class WorkflowProfileUnitTests
         Assert.Empty(aWithoutRegister.Validate(WorkflowActions.IsAssignableStepPermission, "09B"));
         Assert.Empty(Validate(aWithoutRegister));
         var bWithRegister = PeriodSettings.Default(CriteriaSetContent.Form09A);
-        Assert.Equal(3, bWithRegister.Validate(WorkflowActions.IsAssignableStepPermission, "09B").Count(e => e.Contains("Không áp dụng", StringComparison.Ordinal)));
+        Assert.Equal(4, bWithRegister.Validate(WorkflowActions.IsAssignableStepPermission, "09B").Count(e => e.Contains("Không áp dụng", StringComparison.Ordinal)));
         Assert.Empty(Validate(bWithRegister));
 
         var oldVersion = PeriodSettings.Parse("{\"schemaVersion\":1,\"steps\":{\"B1_REGISTER\":{\"enabled\":true}}}");
@@ -312,7 +323,7 @@ public sealed class WorkflowProfileUnitTests
     {
         var settings = PeriodSettings.Default();
         var baseProfile = Profile(settings, "co-so");
-        Assert.Equal(new[] { WorkflowStep.B3B_APPRAISAL, WorkflowStep.B3C_DIRECTOR, WorkflowStep.B4_DECISION },
+        Assert.Equal(new[] { WorkflowStep.B1_APPROVE, WorkflowStep.B3B_APPRAISAL, WorkflowStep.B3C_DIRECTOR, WorkflowStep.B4_DECISION },
             baseProfile.DifferingSteps(Profile(settings, "cap-tren")));
         Assert.Equal(new[] { WorkflowStep.B3C_DIRECTOR }, baseProfile.DifferingSteps(Profile(settings, "bi-thu-nhan-vien")));
 

@@ -222,6 +222,9 @@ public sealed class PeriodSettings
     /// <summary>Mã hồ sơ luồng "Bí thư/Phó bí thư Chi bộ là nhân viên" (PL III ví dụ 3).</summary>
     public const string ProfileCellSecretaryStaff = "bi-thu-nhan-vien";
 
+    /// <summary>Mã hồ sơ luồng "Phó Giám đốc" (Chủ tịch nhận xét trước khi cấp trên thẩm định, BTV quyết định).</summary>
+    public const string ProfileDeputyDirector = "pho-giam-doc";
+
     private static readonly Regex CodePattern = new("^[a-z0-9][a-z0-9-]{0,49}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     /// <summary>Tùy chọn JSON: camelCase, không phân biệt hoa thường; khóa bước và khóa cấp quyết định giữ nguyên mã.</summary>
@@ -270,7 +273,7 @@ public sealed class PeriodSettings
         !string.Equals(selfScoreForm, CriteriaSetContent.Form09B, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Cấu hình của kỳ mới: 3 hồ sơ luồng theo PL III — cấu hình mặc định <b>chờ nghiệp vụ xác nhận</b>, sửa được trong giao diện kỳ;
+    /// Cấu hình của kỳ mới: 3 hồ sơ luồng theo PL III và hồ sơ luồng Phó Giám đốc — cấu hình mặc định <b>chờ nghiệp vụ xác nhận</b>, sửa được trong giao diện kỳ;
     /// bước đăng ký, duyệt sản phẩm theo mẫu tự chấm của bộ tiêu chí (<see cref="AlignWithCriteria"/>).
     /// </summary>
     public static PeriodSettings Default(string? selfScoreForm = null)
@@ -282,12 +285,15 @@ public sealed class PeriodSettings
                 // Ví dụ 1: B3a tập thể lãnh đạo Phòng, B3b Phòng TCCB-LĐ, B3c Giám đốc, B4 Đảng ủy cơ sở — tất cả trong hệ thống.
                 WorkflowProfile.Create(ProfileBase, "Diện Đảng ủy cơ sở",
                     "Tập thể lãnh đạo Phòng đề xuất, Phòng TCCB-LĐ thẩm định, Giám đốc nhận xét, Đảng ủy cơ sở quyết định."),
-                // Ví dụ 2: B3a tập thể lãnh đạo Công ty (nội bộ); thẩm định, nhận xét, quyết định ở cấp trên.
+                // Ví dụ 2 (Chủ tịch, Giám đốc, Kiểm soát viên): HĐTV Tổng công ty duyệt danh mục sản phẩm; B3a tập thể lãnh đạo
+                // Công ty (nội bộ); thẩm định, nhận xét, quyết định ở cấp trên.
                 WorkflowProfile.Create(ProfileUpper, "Diện BTV Đảng ủy Tổng công ty",
-                    "Tập thể lãnh đạo Công ty đề xuất trong hệ thống; thẩm định (Ban TCĐU), nhận xét (HĐTV), "
-                    + "quyết định (BTV Đảng ủy Tổng công ty) do cấp trên thực hiện — hệ thống ghi nhận kết quả.",
+                    "Chủ tịch, Giám đốc, Kiểm soát viên: HĐTV Tổng công ty duyệt danh mục sản phẩm; tập thể lãnh đạo Công ty đề xuất "
+                    + "trong hệ thống; thẩm định (Ban TCĐU), nhận xét (HĐTV), quyết định (BTV Đảng ủy Tổng công ty) do cấp trên thực hiện "
+                    + "— hệ thống ghi nhận kết quả.",
                     new Dictionary<WorkflowStep, StepMode>
                     {
+                        [WorkflowStep.B1_APPROVE] = StepMode.External,
                         [WorkflowStep.B3B_APPRAISAL] = StepMode.External,
                         [WorkflowStep.B3C_DIRECTOR] = StepMode.External,
                         [WorkflowStep.B4_DECISION] = StepMode.External
@@ -299,6 +305,17 @@ public sealed class PeriodSettings
                     permissions: new Dictionary<WorkflowStep, string>
                     {
                         [WorkflowStep.B3C_DIRECTOR] = WorkflowPermissions.UnitReview
+                    }),
+                // Phó Giám đốc (kế hoạch đánh giá của Phòng TCCB-LĐ): Chủ tịch duyệt danh mục; tập thể lãnh đạo Công ty đề xuất,
+                // Chủ tịch nhận xét, đề xuất trước khi cấp trên thẩm định — hệ thống không có bước thẩm định riêng (Ban TCĐU thẩm định
+                // ở cấp trên sau bước nhận xét), kết quả thẩm định và quyết định của BTV ghi nhận cùng bước quyết định.
+                WorkflowProfile.Create(ProfileDeputyDirector, "Phó Giám đốc",
+                    "Chủ tịch duyệt danh mục sản phẩm; tập thể lãnh đạo Công ty đề xuất, Chủ tịch nhận xét, đề xuất trong hệ thống; "
+                    + "thẩm định (Ban TCĐU) và quyết định (BTV Đảng ủy Tổng công ty) do cấp trên thực hiện — hệ thống ghi nhận kết quả.",
+                    new Dictionary<WorkflowStep, StepMode>
+                    {
+                        [WorkflowStep.B3B_APPRAISAL] = StepMode.Off,
+                        [WorkflowStep.B4_DECISION] = StepMode.External
                     })
             },
             DefaultProfiles = new Dictionary<string, string>(StringComparer.Ordinal)

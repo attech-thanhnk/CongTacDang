@@ -115,8 +115,9 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 | Hồ sơ luồng (mã) | Căn cứ | B1 đăng ký/duyệt (theo bộ tiêu chí) | B2 tự chấm | B2 Chi bộ | B3a tập thể | B3b thẩm định | B3c | B4 quyết định | B5 |
 |---|---|---|---|---|---|---|---|---|---|
 | Diện Đảng ủy cơ sở (`co-so`) — mặc định `CoSo` | PL III ví dụ 1 | Nội bộ | Nội bộ | Nội bộ | Nội bộ (tập thể lãnh đạo Phòng) | Nội bộ (Phòng TCCB-LĐ) | Nội bộ — `evaluation.director.review` (Giám đốc) | Nội bộ — `evaluation.decide` (Đảng ủy) | Nội bộ |
-| Diện BTV Đảng ủy Tổng công ty (`cap-tren`) — mặc định `CapTren` | PL III ví dụ 2 | Nội bộ | Nội bộ | Nội bộ | Nội bộ (tập thể lãnh đạo Công ty) | **Cấp trên** (Ban TCĐU) | **Cấp trên** (HĐTV) | **Cấp trên** (BTV ĐUTCT) | Nội bộ |
+| Diện BTV Đảng ủy Tổng công ty (`cap-tren`) — mặc định `CapTren` | PL III ví dụ 2; Chủ tịch, Giám đốc, Kiểm soát viên | Đăng ký nội bộ; **duyệt: Cấp trên** (HĐTV Tổng công ty) | Nội bộ | Nội bộ | Nội bộ (tập thể lãnh đạo Công ty) | **Cấp trên** (Ban TCĐU) | **Cấp trên** (HĐTV) | **Cấp trên** (BTV ĐUTCT) | Nội bộ |
 | Bí thư/Phó bí thư Chi bộ là nhân viên (`bi-thu-nhan-vien`) | PL III ví dụ 3 | Nội bộ | Nội bộ | Nội bộ | Nội bộ | Nội bộ | Nội bộ — **`evaluation.unit.review`** (Trưởng phòng đề xuất thay Giám đốc) | Nội bộ — `evaluation.decide` | Nội bộ |
+| Phó Giám đốc (`pho-giam-doc`) | Kế hoạch đánh giá quý IV/2026 của Phòng TCCB-LĐ | Nội bộ (Chủ tịch duyệt) | Nội bộ | Nội bộ | Nội bộ (tập thể lãnh đạo Công ty) | **Không áp dụng** (Ban TCĐU thẩm định ở cấp trên sau bước nhận xét — ghi nhận cùng bước quyết định) | Nội bộ — Chủ tịch nhận xét, đề xuất (`evaluation.director.review`) | **Cấp trên** (BTV ĐUTCT) | Nội bộ |
 
 - Cột B1: bộ `09A` → Nội bộ; bộ `09B` → **Không áp dụng** (bộ seed "Chấm theo 6 trục (Quý III, IV/2026)" dùng cho quý chuyển tiếp không đăng ký sản phẩm).
 
