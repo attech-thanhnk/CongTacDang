@@ -18,7 +18,7 @@ public static partial class CriteriaSetDefaults
     public const string Code09A = "09A-2027";
 
     /// <summary>Tên bộ mặc định Mẫu 09B.</summary>
-    public const string Name09B = "Quý III/2026 (chuyển tiếp)";
+    public const string Name09B = "Chấm theo 6 trục (Quý III, IV/2026)";
 
     /// <summary>Tên bộ mặc định Mẫu 09A.</summary>
     public const string Name09A = "Từ Quý I/2027";

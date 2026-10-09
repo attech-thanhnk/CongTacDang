@@ -156,7 +156,7 @@ public static class DataSeeder
     #region Bộ tiêu chí mặc định
 
     /// <summary>
-    /// Tạo hai bộ tiêu chí đã xuất bản theo bản trích xuất HD03 (<see cref="CriteriaSetDefaults"/>): "Quý III/2026 (chuyển tiếp)" và
+    /// Tạo hai bộ tiêu chí đã xuất bản theo bản trích xuất HD03 (<see cref="CriteriaSetDefaults"/>): "Chấm theo 6 trục (Quý III, IV/2026)" và
     /// "Từ Quý I/2027" — chỉ khi CSDL chưa có bộ tiêu chí nào (không ghi đè bộ đã sửa).
     /// </summary>
     private static async Task SeedCriteriaSetsAsync(CongTacDangDbContext context, ILogger? logger)

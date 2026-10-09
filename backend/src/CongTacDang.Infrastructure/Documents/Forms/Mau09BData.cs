@@ -9,7 +9,7 @@ using CongTacDang.Domain.Evaluation;
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
 /// <summary>
-/// Dữ liệu Mẫu 09B — Phiếu tự chấm điểm đánh giá, xếp loại chất lượng hằng quý (chấm trực tiếp theo trục, Quý III/2026).
+/// Dữ liệu Mẫu 09B — Phiếu tự chấm điểm đánh giá, xếp loại chất lượng hằng quý (chấm trực tiếp theo trục — dùng cho Quý III, IV/2026).
 /// Template: <c>Mau_09B_PhieuTuChamTheoTruc.docx</c> (dựng từ file biểu mẫu gốc). Nhóm tiêu chí chung và các trục lặp theo bộ
 /// tiêu chí của kỳ; điểm, mức, nội dung tự luận theo trục lấy từ giá trị đã lưu trên hồ sơ.
 /// </summary>

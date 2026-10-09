@@ -243,7 +243,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 ## E. Bộ tiêu chí & cách tính điểm
 
 ### E1. [Ưu tiên] Nội dung bộ tiêu chí Mẫu 09B (Q3/2026)
-- **Câu hỏi:** Bộ tiêu chí "Quý III/2026 (chuyển tiếp)" dựng sẵn dưới đây có đúng văn bản không?
+- **Câu hỏi:** Bộ tiêu chí "Chấm theo 6 trục (Quý III, IV/2026)" dựng sẵn dưới đây có đúng văn bản không?
 - **Căn cứ:** Mục III.2 (tr.9–10); Mẫu 09B (tr.53–62).
 - **Hệ thống đang làm (mặc định):** Tiêu chí chung 30 điểm, 3 nhóm 18/4/8 với 17 tiêu chí con (1.1–1.9 mỗi tiêu chí 2 điểm; 2.1–2.4 mỗi tiêu chí 1 điểm; 3.1–3.4 mỗi tiêu chí 2 điểm). Kết quả nhiệm vụ 70 điểm, chấm trực tiếp 6 trục, điểm tối đa 15/10/10/15/10/10. Ngưỡng mức 90/70/50.
 - **Phương án khác:** Sửa nội dung hoặc điểm tối đa.

@@ -30,7 +30,7 @@ public static class WordFormCatalog
         new WordFormDefinition("MAU_07", "Mẫu 07 — Báo cáo tự đánh giá, xếp loại chất lượng của tập thể Đảng ủy (Chi ủy, Chi bộ)", Mau07Data.TemplateFileName, typeof(Mau07Data)),
         new WordFormDefinition("MAU_08", "Mẫu 08 — Báo cáo tổng hợp kết quả thực hiện các nhiệm vụ của cơ quan, đơn vị", Mau08Data.TemplateFileName, typeof(Mau08Data)),
         new WordFormDefinition("MAU_09A", "Mẫu 09A — Phiếu tự chấm điểm đánh giá, xếp loại (theo sản phẩm Mẫu 01/02)", Mau09AData.TemplateFileName, typeof(Mau09AData)),
-        new WordFormDefinition("MAU_09B", "Mẫu 09B — Phiếu tự chấm điểm đánh giá, xếp loại (theo trục, Quý III/2026)", Mau09BData.TemplateFileName, typeof(Mau09BData)),
+        new WordFormDefinition("MAU_09B", "Mẫu 09B — Phiếu tự chấm điểm đánh giá, xếp loại (theo trục)", Mau09BData.TemplateFileName, typeof(Mau09BData)),
         new WordFormDefinition("MAU_09C", "Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân", Mau09CData.TemplateFileName, typeof(Mau09CData)),
         new WordFormDefinition("MAU_9D", "Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ, công việc được giao trong quý", Mau9DData.TemplateFileName, typeof(Mau9DData)),
         new WordFormDefinition("MAU_10", "Mẫu 10 — Phiếu thẩm định, nhận xét, đề xuất xếp loại", Mau10Data.TemplateFileName, typeof(Mau10Data)),
