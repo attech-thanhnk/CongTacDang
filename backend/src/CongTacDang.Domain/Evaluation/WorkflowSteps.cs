@@ -227,7 +227,7 @@ public static class WorkflowSteps
         WorkflowAction.Create => "Thêm vào danh sách",
         WorkflowAction.EditSnapshot => "Sửa thông tin ảnh chụp",
         WorkflowAction.Recalculate => "Tính lại theo cấu hình kỳ",
-        WorkflowAction.ChangeProfile => "Đổi hồ sơ luồng",
+        WorkflowAction.ChangeProfile => "Đổi cách xét duyệt",
         WorkflowAction.RecordExternal => "Ghi nhận kết quả của cấp trên",
         _ => action.ToString()
     };

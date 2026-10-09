@@ -96,14 +96,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             var error = EvaluationScoring.ValidateTaskRegistration(tasks.Select(t => t.Weight).ToList(), criteria.Content.Parameters);
             if (error != null)
                 throw new ValidationException(error);
-            if (tasks.Any(t => string.IsNullOrWhiteSpace(t.TaskName)))
-                throw new ValidationException("Tên sản phẩm/nhiệm vụ không được để trống.");
-            foreach (var task in tasks.Where(t => !string.IsNullOrWhiteSpace(t.AxisCode)))
-            {
-                if (criteria.Content.FindAxis(task.AxisCode) == null)
-                    throw new ValidationException($"Trục kết quả \"{task.AxisCode!.Trim()}\" của nhiệm vụ \"{task.TaskName?.Trim()}\" không có trong bộ tiêu chí "
-                        + $"của kỳ (có: {string.Join(", ", criteria.Content.Axes.Select(a => a.Code))}).");
-            }
+            ValidateTaskRows(tasks, criteria.Content);
 
             // T-47: tệp minh chứng mới gắn vào nhiệm vụ phải tồn tại và thuộc quyền người gửi.
             var existing = (await _repo.GetTasksAsync(ctx.Record.Id, ct))
@@ -121,6 +114,12 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 Weight = t.Weight,
                 Deadline = t.Deadline.HasValue ? DateTime.SpecifyKind(t.Deadline.Value, DateTimeKind.Utc) : ctx.Record.Period.EndDate,
                 AxisCode = criteria.Content.FindAxis(t.AxisCode)?.Code,
+                ProductCode = string.IsNullOrWhiteSpace(t.ProductCode) ? null : t.ProductCode.Trim(),
+                Kind = ParseTaskKind(t.Kind),
+                Role = ParseTaskRole(t.Role),
+                ExceedCriteria = t.ExceedCriteria!.Trim(),
+                EvidenceSource = t.EvidenceSource!.Trim(),
+                Confirmer = t.Confirmer!.Trim(),
                 AttachmentId = t.AttachmentId,
                 CriteriaA_Ratio = 1.0,
                 CriteriaB_Ratio = 1.0,
@@ -1072,6 +1071,53 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             throw new ValidationException($"{field} không được dài quá {maxLength} ký tự.");
         return trimmed;
     }
+
+    /// <summary>
+    /// Kiểm tra từng dòng danh mục (Mẫu 01): đủ các cột Hướng dẫn 03 yêu cầu ("mỗi sản phẩm tối thiểu có: tên và đầu ra; trục;
+    /// vai trò chủ trì/phối hợp; trọng số; chuẩn đạt; dấu hiệu vượt chuẩn; thời hạn; minh chứng; thẩm quyền xác nhận"), loại việc
+    /// khi đăng ký chỉ là trọng tâm / thường xuyên (đột xuất ghi nhận trong kỳ), trục thuộc bộ tiêu chí của kỳ. Mã SP, thời hạn
+    /// không bắt buộc (thời hạn trống = ngày cuối kỳ).
+    /// </summary>
+    private static void ValidateTaskRows(IReadOnlyList<TaskInputDto> tasks, CriteriaSetContent criteria)
+    {
+        for (var i = 0; i < tasks.Count; i++)
+        {
+            var t = tasks[i];
+            var row = $"Dòng {i + 1}";
+            var missing = new List<string>();
+            if (string.IsNullOrWhiteSpace(t.TaskName)) missing.Add("tên sản phẩm");
+            if (string.IsNullOrWhiteSpace(t.Kind)) missing.Add("loại việc");
+            if (string.IsNullOrWhiteSpace(t.Role)) missing.Add("vai trò");
+            if (criteria.Axes.Count > 0 && string.IsNullOrWhiteSpace(t.AxisCode)) missing.Add("trục kết quả");
+            if (string.IsNullOrWhiteSpace(t.TargetOutput)) missing.Add("chuẩn đạt");
+            if (string.IsNullOrWhiteSpace(t.ExceedCriteria)) missing.Add("tiêu chí vượt chuẩn");
+            if (string.IsNullOrWhiteSpace(t.EvidenceSource)) missing.Add("nguồn minh chứng");
+            if (string.IsNullOrWhiteSpace(t.Confirmer)) missing.Add("thẩm quyền xác nhận");
+            if (missing.Count > 0)
+                throw new ValidationException($"{row}: chưa nhập {string.Join(", ", missing)}.");
+
+            if (ParseTaskKind(t.Kind) is not (TaskKind.TrongTam or TaskKind.ThuongXuyen))
+                throw new ValidationException($"{row}: loại việc khi đăng ký là \"Trọng tâm\" hoặc \"Thường xuyên\" (việc đột xuất ghi nhận trong kỳ).");
+            if (ParseTaskRole(t.Role) == null)
+                throw new ValidationException($"{row}: vai trò là \"Chủ trì\" hoặc \"Phối hợp\".");
+            if (!string.IsNullOrWhiteSpace(t.AxisCode) && criteria.FindAxis(t.AxisCode) == null)
+                throw new ValidationException($"{row}: trục kết quả \"{t.AxisCode.Trim()}\" không có trong bộ tiêu chí của kỳ "
+                    + $"(có: {string.Join(", ", criteria.Axes.Select(a => a.Code))}).");
+
+            Trim(t.TaskName, 500, $"{row}: tên sản phẩm");
+            Trim(t.ProductCode, 50, $"{row}: mã sản phẩm");
+            Trim(t.TargetOutput, 2000, $"{row}: chuẩn đạt");
+            Trim(t.ExceedCriteria, 2000, $"{row}: tiêu chí vượt chuẩn");
+            Trim(t.EvidenceSource, 1000, $"{row}: nguồn minh chứng");
+            Trim(t.Confirmer, 500, $"{row}: thẩm quyền xác nhận");
+        }
+    }
+
+    private static TaskKind? ParseTaskKind(string? value) =>
+        Enum.TryParse<TaskKind>(value?.Trim(), true, out var kind) && Enum.IsDefined(kind) ? kind : null;
+
+    private static TaskRole? ParseTaskRole(string? value) =>
+        Enum.TryParse<TaskRole>(value?.Trim(), true, out var role) && Enum.IsDefined(role) ? role : null;
 
     #endregion
 }

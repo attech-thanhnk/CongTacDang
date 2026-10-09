@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -33,8 +33,8 @@ type Transition = "open" | "lock" | "unlock" | "close";
 type PeriodTab = "profiles" | "criteria" | "readiness" | "participants";
 
 /**
- * Cấu hình kỳ: trạng thái kỳ, hồ sơ luồng (bước × chế độ × quyền thực hiện × thời hạn), bộ tiêu chí (chọn khi dự thảo, xem
- * ảnh chụp), kiểm tra kẹt luồng, danh sách người được đánh giá, hồ sơ luồng và khung tỷ trọng của từng người.
+ * Cấu hình kỳ: việc còn thiếu để mở kỳ, danh sách người được đánh giá, người thực hiện các bước, bộ tiêu chí (chọn khi dự thảo, xem
+ * ảnh chụp), hồ sơ luồng (bước × chế độ × quyền thực hiện × thời hạn — hiển thị "Cách xét duyệt").
  */
 export default function PeriodDetailPage() {
   const params = useParams<{ periodId: string }>();
@@ -55,7 +55,14 @@ export default function PeriodDetailPage() {
   const [unlockOpen, setUnlockOpen] = useState(false);
   const [forceOpen, setForceOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<PeriodTab>("profiles");
+  const [tab, setTab] = useState<PeriodTab>(canManage ? "participants" : "criteria");
+  // Cấu hình cách xét duyệt đang sửa dở: nạp lại kỳ (sau thêm người, đổi trạng thái…) không ghi đè lên.
+  const dirtyRef = useRef(false);
+  const [dirty, setDirty] = useState(false);
+  const setDirtyState = (value: boolean) => {
+    dirtyRef.current = value;
+    setDirty(value);
+  };
 
   const checkReadiness = useCallback(async () => {
     if (!periodId || !canManage) return;
@@ -74,7 +81,7 @@ export default function PeriodDetailPage() {
     try {
       const loaded = await evaluationService.getPeriod(periodId);
       setPeriod(loaded);
-      setSettings(JSON.parse(JSON.stringify(loaded.settings)));
+      if (!dirtyRef.current) setSettings(JSON.parse(JSON.stringify(loaded.settings)));
       if (canManage) {
         setParticipants(await evaluationService.getParticipants(periodId));
         if (loaded.status === "Draft" || loaded.status === "Open" || loaded.status === "Locked") await checkReadiness();
@@ -101,13 +108,15 @@ export default function PeriodDetailPage() {
   const editable = canManage && isDraft;
   const deadlinesEditable = canManage && period.status !== "Closed";
   const showReadiness = canManage && period.status !== "Closed";
+  const stepIssues = readiness?.issues.filter((i) => i.permission) ?? [];
+  const frameIssues = readiness?.issues.filter((i) => !i.permission) ?? [];
   const tabs: { key: PeriodTab; label: string; count?: number; warn?: boolean }[] = [
-    { key: "profiles", label: "Hồ sơ luồng" },
-    { key: "criteria", label: "Bộ tiêu chí" },
-    ...(showReadiness
-      ? [{ key: "readiness" as PeriodTab, label: "Kiểm tra kẹt luồng", count: readiness && !readiness.ready ? readiness.issues.length : undefined, warn: true }]
-      : []),
     ...(canManage ? [{ key: "participants" as PeriodTab, label: "Người được đánh giá", count: participants.length }] : []),
+    ...(showReadiness
+      ? [{ key: "readiness" as PeriodTab, label: "Người thực hiện các bước", count: stepIssues.length > 0 ? stepIssues.length : undefined, warn: true }]
+      : []),
+    { key: "criteria", label: "Bộ tiêu chí" },
+    { key: "profiles", label: dirty ? "Cách xét duyệt •" : "Cách xét duyệt" },
   ];
 
   const run = async (work: () => Promise<unknown>, success: string) => {
@@ -145,7 +154,7 @@ export default function PeriodDetailPage() {
       if (err?.status === 409 && body?.code === "PERIOD_NOT_READY") {
         setReadiness(body.data as PeriodReadinessDto);
         setTab("readiness");
-        toast.error(body.message || "Chưa mở được kỳ: còn cảnh báo kẹt luồng.");
+        toast.error(body.message || "Chưa mở được kỳ: còn bước chưa có người thực hiện.");
         setForceOpen(true);
       } else {
         toast.error(err?.message || "Không mở được kỳ.");
@@ -157,13 +166,61 @@ export default function PeriodDetailPage() {
   };
 
   const saveSettings = () =>
-    run(() => evaluationService.updatePeriod(period.id, period.version, { settings }), "Đã lưu cấu hình kỳ.");
+    run(async () => {
+      await evaluationService.updatePeriod(period.id, period.version, { settings });
+      setDirtyState(false);
+    }, "Đã lưu cấu hình kỳ.");
 
   const applyRules = () =>
-    run(() => evaluationService.updatePeriod(period.id, period.version, { settings, applyDeadlineRules: true }), "Đã điền thời hạn theo quy tắc.");
+    run(async () => {
+      await evaluationService.updatePeriod(period.id, period.version, { settings, applyDeadlineRules: true });
+      setDirtyState(false);
+    }, "Đã điền thời hạn theo quy tắc.");
 
-  const chooseCriteria = (criteriaSetId: string) =>
-    run(() => evaluationService.updatePeriod(period.id, period.version, { criteriaSetId }), "Đã chọn bộ tiêu chí cho kỳ.");
+  const editSettings = (next: PeriodSettings) => {
+    setSettings(next);
+    setDirtyState(true);
+  };
+
+  // Đổi bộ tiêu chí thì máy chủ đặt lại bước đăng ký sản phẩm của mọi cách xét duyệt — lưu phần đang sửa trước.
+  const chooseCriteria = (criteriaSetId: string) => {
+    if (dirtyRef.current) {
+      toast.error("Cách xét duyệt đang có thay đổi chưa lưu. Hãy lưu cấu hình trước khi đổi bộ tiêu chí.");
+      return;
+    }
+    return run(() => evaluationService.updatePeriod(period.id, period.version, { criteriaSetId }), "Đã chọn bộ tiêu chí cho kỳ.");
+  };
+
+  const checklist: { ok: boolean; text: string; action: string; go: () => void }[] = [
+    {
+      ok: !!period.criteria,
+      text: period.criteria ? `Bộ tiêu chí: ${period.criteria.name}` : "Chưa chọn bộ tiêu chí",
+      action: "Chọn bộ tiêu chí",
+      go: () => setTab("criteria"),
+    },
+    {
+      ok: participants.length > 0,
+      text: participants.length > 0 ? `${participants.length} người được đánh giá` : "Chưa có người được đánh giá",
+      action: "Thêm người",
+      go: () => setTab("participants"),
+    },
+    ...((period.criteria?.content.weightFrames.length ?? 0) > 0 && participants.length > 0
+      ? [{
+          ok: frameIssues.length === 0,
+          text: frameIssues.length === 0 ? "Mọi người đã có khung tỷ trọng" : `${frameIssues.length} người chưa có khung tỷ trọng hợp lệ`,
+          action: "Sửa thông tin",
+          go: () => setTab("participants"),
+        }]
+      : []),
+    ...(participants.length > 0
+      ? [{
+          ok: stepIssues.length === 0,
+          text: stepIssues.length === 0 ? "Mọi bước đều có người thực hiện" : `${stepIssues.length} bước chưa có người thực hiện`,
+          action: "Xem chi tiết",
+          go: () => setTab("readiness"),
+        }]
+      : []),
+  ];
 
   return (
     <div className="page-wrapper">
@@ -179,7 +236,7 @@ export default function PeriodDetailPage() {
             <Link href="/periods" className="btn btn-outline-secondary"><i className="bi bi-arrow-left me-1" />Danh sách kỳ</Link>
             {canManage && period.status === "Draft" && (
               <button type="button" className="btn btn-primary" disabled={busy}
-                onClick={() => confirm({ title: "Mở kỳ đánh giá", message: "Sau khi mở kỳ chỉ sửa được thời hạn các bước; không đổi được hồ sơ luồng và bộ tiêu chí.", confirmText: "Mở kỳ", isDanger: false, onConfirm: () => openPeriod() })}>
+                onClick={() => confirm({ title: "Mở kỳ đánh giá", message: "Sau khi mở kỳ chỉ sửa được thời hạn các bước; không đổi được cách xét duyệt và bộ tiêu chí.", confirmText: "Mở kỳ", isDanger: false, onConfirm: () => openPeriod() })}>
                 Mở kỳ
               </button>
             )}
@@ -204,6 +261,21 @@ export default function PeriodDetailPage() {
 
       <div className="page-body">
         <div className="d-flex flex-column gap-3">
+        {canManage && isDraft && (
+          <section className="card">
+            <div className="card-header"><h2 className="mb-0">Chuẩn bị mở kỳ</h2></div>
+            <ul className="list-group list-group-flush">
+              {checklist.map((item) => (
+                <li key={item.action} className="list-group-item d-flex align-items-center gap-2">
+                  <i className={`bi ${item.ok ? "bi-check-circle-fill text-success" : "bi-exclamation-circle-fill text-warning"}`} />
+                  <span className="flex-grow-1">{item.text}</span>
+                  {!item.ok && <button type="button" className="btn btn-outline-primary btn-sm" onClick={item.go}>{item.action}</button>}
+                </li>
+              ))}
+            </ul>
+            {checklist.every((item) => item.ok) && <div className="card-body py-2 text-success">Đủ điều kiện mở kỳ.</div>}
+          </section>
+        )}
         <ul className="nav nav-tabs" role="tablist">
           {tabs.map((t) => (
             <li className="nav-item" key={t.key} role="presentation">
@@ -226,24 +298,30 @@ export default function PeriodDetailPage() {
         {tab === "profiles" && (
         <section className="card">
           <div className="card-header d-flex justify-content-between align-items-center gap-2">
-            <h2 className="mb-0">Hồ sơ luồng</h2>
+            <h2 className="mb-0">Cách xét duyệt</h2>
             {canManage && period.status !== "Closed" && (
-              <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={saveSettings}>Lưu cấu hình</button>
+              <div className="d-flex align-items-center gap-2">
+                {dirty && <span className="text-warning small">Có thay đổi chưa lưu</span>}
+                <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={saveSettings}>Lưu cấu hình</button>
+              </div>
             )}
           </div>
           <div className="card-body">
+            <p className="text-secondary small">Mỗi diện cán bộ có một cách xét duyệt riêng. Thường chỉ cần điền thời hạn các bước.</p>
             <WorkflowProfilesEditor
               settings={settings}
-              onChange={setSettings}
+              onChange={editSettings}
               editable={editable}
               deadlinesEditable={deadlinesEditable}
               permissionOptions={permissionOptions}
               savedCodes={period.settings.profiles.map((p) => p.code)}
-              onApplyRules={applyRules}            />
+              onApplyRules={applyRules}
+              selfScoreForm={period.criteria?.selfScoreForm}
+            />
 
             <div className="form-check mt-2">
               <input className="form-check-input" type="checkbox" id="enforce" checked={settings.enforceDeadlines} disabled={!editable}
-                onChange={(e) => setSettings({ ...settings, enforceDeadlines: e.target.checked })} />
+                onChange={(e) => editSettings({ ...settings, enforceDeadlines: e.target.checked })} />
               <label className="form-check-label" htmlFor="enforce">Chặn hoàn thành bước khi đã quá thời hạn</label>
             </div>
           </div>
@@ -286,7 +364,7 @@ export default function PeriodDetailPage() {
       <ReasonDialog
         isOpen={forceOpen}
         title="Mở kỳ bắt buộc"
-        description={`Còn ${readiness?.issues.length ?? 0} cảnh báo kẹt luồng. Chỉ mở bắt buộc khi sẽ bổ sung người thực hiện kịp thời.`}
+        description={`Còn ${readiness?.issues.length ?? 0} bước chưa có người thực hiện. Chỉ mở bắt buộc khi sẽ bổ sung người thực hiện kịp thời.`}
         confirmText="Mở kỳ bắt buộc"
         busy={busy}
         onCancel={() => setForceOpen(false)}
@@ -368,7 +446,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                 </select>
               </div>
               <div className="col-md-3"><label className="form-label">Tên / tài khoản</label><input className="form-control form-control-sm" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
-              <div className="col-md-3"><label className="form-label">Hồ sơ luồng khi thêm</label>
+              <div className="col-md-3"><label className="form-label">Cách xét duyệt khi thêm</label>
                 <select className="form-select form-select-sm" value={addProfile} onChange={(e) => setAddProfile(e.target.value)}>
                   <option value="">Mặc định theo cấp quyết định</option>
                   {profiles.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
@@ -403,7 +481,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
             <span className="text-secondary">Đã chọn <span className="num">{checked.length}</span> người</span>
             <button type="button" className="btn btn-outline-primary btn-sm" disabled={busy}
               onClick={() => setProfileTargets(participants.filter((p) => checked.includes(p.recordId)))}>
-              Đổi hồ sơ luồng hàng loạt
+              Đổi cách xét duyệt hàng loạt
             </button>
           </div>
         )}
@@ -420,7 +498,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                       onChange={(e) => setChecked(e.target.checked ? participants.map((p) => p.recordId) : [])} />
                   </th>
                 )}
-                <th>Cán bộ</th><th>Phòng</th><th>Chi bộ</th><th>Khung tỷ trọng</th><th>Cấp quyết định</th><th>Hồ sơ luồng</th><th>Trạng thái</th><th />
+                <th>Cán bộ</th><th>Phòng</th><th>Chi bộ</th><th>Khung tỷ trọng</th><th>Cấp quyết định</th><th>Cách xét duyệt</th><th>Trạng thái</th><th />
               </tr>
             </thead>
             <tbody>
@@ -440,8 +518,8 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                   <td>{p.workflowProfileName || p.workflowProfileCode}</td>
                   <td><RecordStatusBadge status={p.status} label={p.statusDisplayName} /></td>
                   <td className="text-end text-nowrap">
-                    {canChangeProfile && <button type="button" className="btn btn-link btn-sm p-0 me-2" onClick={() => setProfileTargets([p])}>Đổi hồ sơ luồng</button>}
-                    {canAdd && <button type="button" className="btn btn-link btn-sm p-0 me-2" onClick={() => setEditing(p)}>Sửa ảnh chụp</button>}
+                    {canChangeProfile && <button type="button" className="btn btn-link btn-sm p-0 me-2" onClick={() => setProfileTargets([p])}>Đổi cách xét duyệt</button>}
+                    {canAdd && <button type="button" className="btn btn-link btn-sm p-0 me-2" onClick={() => setEditing(p)}>Sửa thông tin</button>}
                     {canAdd && (
                       <button type="button" className="btn btn-link btn-sm p-0 text-danger" disabled={busy}
                         onClick={() => run(() => evaluationService.removeParticipant(period.id, p.recordId, p.version), "Đã bỏ khỏi danh sách.")}>
@@ -467,7 +545,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
             run(async () => {
               await evaluationService.updateSnapshot(period.id, editing.recordId, { version: editing.version, ...payload });
               setEditing(null);
-            }, "Đã sửa thông tin ảnh chụp.")
+            }, "Đã sửa thông tin.")
           }
         />
       )}
@@ -493,7 +571,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
               }
               setProfileTargets(null);
               setChecked([]);
-            }, "Đã đổi hồ sơ luồng.")
+            }, "Đã đổi cách xét duyệt.")
           }
         />
       )}
@@ -519,17 +597,17 @@ function ProfileDialog({ targets, profiles, busy, onCancel, onSave }: ProfileDia
   const [reason, setReason] = useState("");
   return (
     <AdminModal
-      title={`Đổi hồ sơ luồng — ${targets.length === 1 ? targets[0].fullName : `${targets.length} người`}`}
+      title={`Đổi cách xét duyệt — ${targets.length === 1 ? targets[0].fullName : `${targets.length} người`}`}
       onClose={onCancel}
       footer={
         <>
           <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onCancel}>Hủy</button>
-          <button type="submit" form="profile-dialog-form" className="btn btn-primary btn-sm" disabled={busy || !code || !reason.trim()}>Đổi hồ sơ luồng</button>
+          <button type="submit" form="profile-dialog-form" className="btn btn-primary btn-sm" disabled={busy || !code || !reason.trim()}>Đổi cách xét duyệt</button>
         </>
       }
     >
       <form id="profile-dialog-form" className="d-flex flex-column gap-3" onSubmit={(e) => { e.preventDefault(); onSave(code, reason.trim()); }}>
-        <div><label className="form-label" htmlFor="profile-target">Hồ sơ luồng mới</label>
+        <div><label className="form-label" htmlFor="profile-target">Cách xét duyệt mới</label>
           <select id="profile-target" className="form-select" required value={code} onChange={(e) => setCode(e.target.value)}>
             <option value="">— Chọn —</option>
             {profiles.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
@@ -561,7 +639,7 @@ function SnapshotDialog({ participant, frames, departments, cells, busy, onCance
   const [reason, setReason] = useState("");
   return (
     <AdminModal
-      title={`Sửa ảnh chụp — ${participant.fullName}`}
+      title={`Sửa thông tin — ${participant.fullName}`}
       onClose={onCancel}
       footer={
         <>

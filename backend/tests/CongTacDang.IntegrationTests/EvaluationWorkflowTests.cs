@@ -26,19 +26,16 @@ public sealed class EvaluationWorkflowTests
     #region W1, W2 — đi hết luồng
 
     [SkippableFact]
-    public async Task W1_FullPreset_ManualAndDepartmentParticipants_RecordWalksNineStepsToPublished()
+    public async Task W1_Criteria09A_ManualAndDepartmentParticipants_RecordWalksNineStepsToPublished()
     {
         var w = await WorldAsync();
 
-        // Mẫu cấu hình dựng sẵn.
-        var presets = await Data(w.Appraiser, "/api/evaluations/periods/presets");
-        Assert.Contains(presets.EnumerateArray(), p => p.GetProperty("code").GetString() == "full");
-        Assert.Contains(presets.EnumerateArray(), p => p.GetProperty("code").GetString() == "q3-2026-transition");
-
-        // Tạo kỳ từ mẫu "Đầy đủ theo HD03" → dự thảo.
-        var period = await CreatePeriodAsync(w, "full");
+        // Tạo kỳ với bộ 09A → dự thảo, mọi hồ sơ luồng có bước đăng ký, duyệt sản phẩm.
+        var period = await CreatePeriodAsync(w, "09A");
         Assert.Equal("Draft", period.GetProperty("status").GetString());
-        Assert.Equal("09A", period.GetProperty("criteria").GetProperty("selfScoreForm").GetString()); // task 16: bộ 09A chọn sẵn theo kiểu kỳ
+        Assert.Equal("09A", period.GetProperty("criteria").GetProperty("selfScoreForm").GetString());
+        Assert.All(period.GetProperty("settings").GetProperty("profiles").EnumerateArray(), p =>
+            Assert.Equal("Internal", p.GetProperty("steps").GetProperty("B1_REGISTER").GetProperty("mode").GetString()));
         var periodId = period.GetProperty("id").GetGuid();
 
         // Thêm người được đánh giá: chọn tay, rồi theo Phòng (người đã có bị bỏ qua).
@@ -68,7 +65,36 @@ public sealed class EvaluationWorkflowTests
         // 1. B1_REGISTER — chủ hồ sơ
         await AssertActionsAsync(w.Owner1C, recordId, "SubmitTasks");
         await AssertActionsAsync(w.DeptLeadC, recordId);
-        await StepAsync(w.Owner1C, recordId, "tasks/submit", Tasks(), "AwaitingTaskApproval");
+        // Mẫu 01: thiếu cột bắt buộc → 400 nêu dòng và cột; việc đột xuất không đăng ký đầu kỳ.
+        var incomplete = await PostAsync(w.Owner1C, recordId, "tasks/submit", new
+        {
+            tasks = new[]
+            {
+                new { taskName = "Sản phẩm 1", targetOutput = "Kết quả 1", weight = 30.0, kind = "TrongTam" },
+                new { taskName = "Sản phẩm 2", targetOutput = "Kết quả 2", weight = 20.0, kind = "TrongTam" },
+                new { taskName = "Sản phẩm 3", targetOutput = "Kết quả 3", weight = 20.0, kind = "TrongTam" }
+            }
+        }, await VersionAsync(w, recordId));
+        Assert.Equal(HttpStatusCode.BadRequest, incomplete.StatusCode);
+        Assert.Contains("Dòng 1: chưa nhập vai trò, trục kết quả, tiêu chí vượt chuẩn, nguồn minh chứng, thẩm quyền xác nhận", await MessageAsync(incomplete));
+        var unplanned = await PostAsync(w.Owner1C, recordId, "tasks/submit", new
+        {
+            tasks = new[]
+            {
+                new { taskName = "Sản phẩm 1", targetOutput = "Kết quả 1", weight = 30.0, axisCode = "T1", kind = "DotXuat", role = "ChuTri", exceedCriteria = "x", evidenceSource = "x", confirmer = "x" },
+                new { taskName = "Sản phẩm 2", targetOutput = "Kết quả 2", weight = 20.0, axisCode = "T1", kind = "TrongTam", role = "ChuTri", exceedCriteria = "x", evidenceSource = "x", confirmer = "x" },
+                new { taskName = "Sản phẩm 3", targetOutput = "Kết quả 3", weight = 20.0, axisCode = "T1", kind = "TrongTam", role = "ChuTri", exceedCriteria = "x", evidenceSource = "x", confirmer = "x" }
+            }
+        }, await VersionAsync(w, recordId));
+        Assert.Equal(HttpStatusCode.BadRequest, unplanned.StatusCode);
+        Assert.Contains("Dòng 1: loại việc khi đăng ký", await MessageAsync(unplanned));
+
+        var submitted = await StepAsync(w.Owner1C, recordId, "tasks/submit", Tasks(), "AwaitingTaskApproval");
+        var firstTask = submitted.GetProperty("tasks")[0];
+        Assert.Equal("TrongTam", firstTask.GetProperty("kind").GetString());
+        Assert.Equal("ChuTri", firstTask.GetProperty("role").GetString());
+        Assert.Equal("T1", firstTask.GetProperty("axisCode").GetString());
+        Assert.Equal("Giám đốc", firstTask.GetProperty("confirmer").GetString());
         // 2. B1_APPROVE — Lãnh đạo Phòng 1
         await AssertActionsAsync(w.DeptLeadC, recordId, "ApproveTasks", "ReturnTasks");
         await StepAsync(w.DeptLeadC, recordId, "tasks/approve", new { comment = "Đồng ý danh mục" }, "AwaitingSelfScore");
@@ -136,22 +162,50 @@ public sealed class EvaluationWorkflowTests
     public async Task W1b_Period_DuplicateQuarterRejected_EmptyPeriodCannotOpen_JsonTypeErrorInVietnamese()
     {
         var w = await WorldAsync();
-        var period = await CreatePeriodAsync(w, "q3-2026-transition");
+        var period = await CreatePeriodAsync(w, "09B");
         var periodId = period.GetProperty("id").GetGuid();
 
         // Hai kỳ cùng năm, quý → 409.
         var duplicate = await w.Appraiser.PostAsJsonAsync("/api/evaluations/periods", new
         {
-            year = period.GetProperty("year").GetInt32(), quarter = TestPeriodSlots.Quarter, preset = "q3-2026-transition",
+            year = period.GetProperty("year").GetInt32(), quarter = TestPeriodSlots.Quarter,
+            criteriaSetId = period.GetProperty("criteriaSetId").GetGuid(),
             name = "Kỳ trùng quý", startDate = DateTime.UtcNow, endDate = DateTime.UtcNow.AddDays(30)
         });
         Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
         Assert.Contains("Mỗi quý chỉ có một kỳ", await MessageAsync(duplicate));
 
+        // Tạo kỳ phải chọn bộ tiêu chí.
+        var noCriteria = await w.Appraiser.PostAsJsonAsync("/api/evaluations/periods", new
+        {
+            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter,
+            name = "Kỳ chưa chọn bộ", startDate = DateTime.UtcNow, endDate = DateTime.UtcNow.AddDays(30)
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, noCriteria.StatusCode);
+        Assert.Contains("Hãy chọn bộ tiêu chí", await MessageAsync(noCriteria));
+
         // Kỳ chưa có người được đánh giá → không mở được (kể cả mở bắt buộc).
         var open = await TransitionRawAsync(w.Appraiser, periodId, "open", "Thử mở kỳ rỗng");
         Assert.Equal(HttpStatusCode.BadRequest, open.StatusCode);
         Assert.Contains("chưa có người được đánh giá", await MessageAsync(open));
+
+        // Kỳ dự thảo đổi bộ 09B → 09A: bước đăng ký sản phẩm tự áp dụng ở mọi hồ sơ luồng, hồ sơ đã thêm về bước đăng ký.
+        var recordId = await AddParticipantAsync(w, periodId, w.Owner1.Id);
+        string StatusOf(JsonElement list) => list.EnumerateArray().Single(p => p.GetProperty("recordId").GetGuid() == recordId).GetProperty("status").GetString()!;
+        Assert.Equal("AwaitingSelfScore", StatusOf(await Data(w.Appraiser, $"/api/evaluations/periods/{periodId}/participants")));
+        var draft = await Data(w.Appraiser, $"/api/evaluations/periods/{periodId}");
+        var switched = await Data(await w.Appraiser.PutAsJsonAsync($"/api/evaluations/periods/{periodId}", new
+        {
+            version = draft.GetProperty("version").GetUInt32(),
+            criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(w.Appraiser, "09A")
+        }));
+        Assert.Equal("09A", switched.GetProperty("criteria").GetProperty("selfScoreForm").GetString());
+        Assert.All(switched.GetProperty("settings").GetProperty("profiles").EnumerateArray(), p =>
+        {
+            Assert.Equal("Internal", p.GetProperty("steps").GetProperty("B1_REGISTER").GetProperty("mode").GetString());
+            Assert.Equal("Internal", p.GetProperty("steps").GetProperty("B1_APPROVE").GetProperty("mode").GetString());
+        });
+        Assert.Equal("AwaitingRegistration", StatusOf(await Data(w.Appraiser, $"/api/evaluations/periods/{periodId}/participants")));
 
         // JSON sai kiểu → thông báo tiếng Việt nêu tên trường, không lộ thông báo kỹ thuật tiếng Anh.
         var badJson = await w.Appraiser.PostAsJsonAsync("/api/evaluations/periods", new { year = "abc", quarter = 1, name = "x" });
@@ -162,10 +216,10 @@ public sealed class EvaluationWorkflowTests
     }
 
     [SkippableFact]
-    public async Task W2_TransitionPreset_SkipsB1_SelfScores09B_ToPublished()
+    public async Task W2_Criteria09B_SkipsB1_SelfScores09B_ToPublished()
     {
         var w = await WorldAsync();
-        var periodId = (await CreatePeriodAsync(w, "q3-2026-transition")).GetProperty("id").GetGuid();
+        var periodId = (await CreatePeriodAsync(w, "09B")).GetProperty("id").GetGuid();
         var recordId = await AddParticipantAsync(w, periodId, w.Owner1.Id);
         await TransitionAsync(w.Appraiser, periodId, "open");
 
@@ -208,7 +262,7 @@ public sealed class EvaluationWorkflowTests
     public async Task W3_NoPermissionOrOutOfScope_Is403_OwnerCannotApproveOwnRecord()
     {
         var w = await WorldAsync();
-        var periodId = await OpenPeriodAsync(w, "full", w.Owner1.Id, w.Owner3.Id, w.DeptLead.Id, w.AppraiserUser.Id);
+        var periodId = await OpenPeriodAsync(w, "09A", w.Owner1.Id, w.Owner3.Id, w.DeptLead.Id, w.AppraiserUser.Id);
         var r1 = await RecordOfAsync(w, periodId, w.Owner1.Id);
         var r3 = await RecordOfAsync(w, periodId, w.Owner3.Id);
         var rLead = await RecordOfAsync(w, periodId, w.DeptLead.Id);
@@ -242,7 +296,7 @@ public sealed class EvaluationWorkflowTests
     public async Task W4_ReturnWithReason_AtB1B2B3b_OwnerFixesAndResubmits()
     {
         var w = await WorldAsync();
-        var periodId = await OpenPeriodAsync(w, "full", w.Owner2.Id);
+        var periodId = await OpenPeriodAsync(w, "09A", w.Owner2.Id);
         var id = await RecordOfAsync(w, periodId, w.Owner2.Id);
         // Task 15: người diện cấp trên mặc định đi hồ sơ luồng "cap-tren" (thẩm định do cấp trên thực hiện, không trả lại
         // trong hệ thống) → chuyển sang hồ sơ luồng cơ sở để kiểm tra trả lại ở cả 3 bước.
@@ -290,7 +344,7 @@ public sealed class EvaluationWorkflowTests
     public async Task W5_OutOfOrder409_MissingVersion400_LockedPeriodBlocksOwner()
     {
         var w = await WorldAsync();
-        var periodId = await OpenPeriodAsync(w, "full", w.Owner1.Id, w.Owner3.Id);
+        var periodId = await OpenPeriodAsync(w, "09A", w.Owner1.Id, w.Owner3.Id);
         var id = await RecordOfAsync(w, periodId, w.Owner1.Id);
 
         // Gọi thẳng API bước sau khi hồ sơ còn ở bước đăng ký → 409.
@@ -336,7 +390,7 @@ public sealed class EvaluationWorkflowTests
         // Task 15: hồ sơ diện cấp trên (hồ sơ luồng "cap-tren") có B4 do cấp trên thực hiện — chỉ ghi nhận kết quả
         // (evaluation.external.record); hồ sơ cơ sở ghi nhận quyết định trong hệ thống (evaluation.decide).
         var w = await WorldAsync();
-        var periodId = await OpenPeriodAsync(w, "full", w.Owner1.Id, w.Owner2.Id);
+        var periodId = await OpenPeriodAsync(w, "09A", w.Owner1.Id, w.Owner2.Id);
         var coSo = await RecordOfAsync(w, periodId, w.Owner1.Id);
         var capTren = await RecordOfAsync(w, periodId, w.Owner2.Id);
         await SetStatusAsync(coSo, RecordStatus.AwaitingDecision);
@@ -368,7 +422,7 @@ public sealed class EvaluationWorkflowTests
     public async Task W7_Published_IsLocked_ReopenWithReason_EditAndRepublish_HistoryKeepsAll()
     {
         var w = await WorldAsync();
-        var periodId = await OpenPeriodAsync(w, "full", w.Owner3.Id);
+        var periodId = await OpenPeriodAsync(w, "09A", w.Owner3.Id);
         var id = await RecordOfAsync(w, periodId, w.Owner3.Id);
         await SetStatusAsync(id, RecordStatus.AwaitingDecision);
         await StepAsync(w.OfficeC, id, "decision", new { finalGrade = "HoanThanhTot" }, "AwaitingPublish");
@@ -405,7 +459,7 @@ public sealed class EvaluationWorkflowTests
     public async Task W8_TwoUsersSameRecord_SecondGets409()
     {
         var w = await WorldAsync();
-        var periodId = await OpenPeriodAsync(w, "full", w.Owner1.Id, w.Owner3.Id);
+        var periodId = await OpenPeriodAsync(w, "09A", w.Owner1.Id, w.Owner3.Id);
         var id = await RecordOfAsync(w, periodId, w.Owner1.Id);
         await SetStatusAsync(id, RecordStatus.AwaitingAppraisal);
 
@@ -441,7 +495,7 @@ public sealed class EvaluationWorkflowTests
     public async Task W9_WorkQueue_ContainsOnlyRecordsWaitingForCurrentUser_InScope()
     {
         var w = await WorldAsync();
-        var periodId = await OpenPeriodAsync(w, "full", w.Owner1.Id, w.Owner2.Id, w.Owner3.Id);
+        var periodId = await OpenPeriodAsync(w, "09A", w.Owner1.Id, w.Owner2.Id, w.Owner3.Id);
         var r1 = await RecordOfAsync(w, periodId, w.Owner1.Id);
         var r2 = await RecordOfAsync(w, periodId, w.Owner2.Id);
         var r3 = await RecordOfAsync(w, periodId, w.Owner3.Id);
@@ -474,7 +528,7 @@ public sealed class EvaluationWorkflowTests
     public async Task W10_AddParticipants_SnapshotAndGuards()
     {
         var w = await WorldAsync();
-        var period = await CreatePeriodAsync(w, "full");
+        var period = await CreatePeriodAsync(w, "09A");
         var periodId = period.GetProperty("id").GetGuid();
 
         // Không có period.manage → không thêm được người được đánh giá.
@@ -530,18 +584,18 @@ public sealed class EvaluationWorkflowTests
     {
         tasks = new[]
         {
-            new { taskName = "Sản phẩm 1", targetOutput = "Kết quả 1", weight = a },
-            new { taskName = "Sản phẩm 2", targetOutput = "Kết quả 2", weight = b },
-            new { taskName = "Sản phẩm 3", targetOutput = "Kết quả 3", weight = c }
+            new { taskName = "Sản phẩm 1", targetOutput = "Kết quả 1", weight = a, axisCode = "T1", kind = "TrongTam", role = "ChuTri", exceedCriteria = "Vượt tiến độ", evidenceSource = "Biên bản nghiệm thu", confirmer = "Giám đốc" },
+            new { taskName = "Sản phẩm 2", targetOutput = "Kết quả 2", weight = b, axisCode = "T1", kind = "TrongTam", role = "ChuTri", exceedCriteria = "Vượt tiến độ", evidenceSource = "Biên bản nghiệm thu", confirmer = "Giám đốc" },
+            new { taskName = "Sản phẩm 3", targetOutput = "Kết quả 3", weight = c, axisCode = "T1", kind = "ThuongXuyen", role = "PhoiHop", exceedCriteria = "Vượt tiến độ", evidenceSource = "Biên bản nghiệm thu", confirmer = "Giám đốc" }
         }
     };
 
-    private static async Task<JsonElement> CreatePeriodAsync(World w, string preset)
+    private static async Task<JsonElement> CreatePeriodAsync(World w, string form)
     {
         var year = TestPeriodSlots.NextYear();
         var body = new
         {
-            year, quarter = TestPeriodSlots.Quarter, preset,
+            year, quarter = TestPeriodSlots.Quarter, criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(w.Appraiser, form),
             name = $"Kỳ W {Guid.NewGuid().ToString("N")[..8]}",
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         };
@@ -554,9 +608,9 @@ public sealed class EvaluationWorkflowTests
         return await RecordOfAsync(w, periodId, memberId);
     }
 
-    private static async Task<Guid> OpenPeriodAsync(World w, string preset, params Guid[] members)
+    private static async Task<Guid> OpenPeriodAsync(World w, string form, params Guid[] members)
     {
-        var periodId = (await CreatePeriodAsync(w, preset)).GetProperty("id").GetGuid();
+        var periodId = (await CreatePeriodAsync(w, form)).GetProperty("id").GetGuid();
         await Data(await w.Appraiser.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = members }));
         await TransitionAsync(w.Appraiser, periodId, "open");
         return periodId;

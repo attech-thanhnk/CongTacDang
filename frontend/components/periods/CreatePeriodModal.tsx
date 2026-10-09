@@ -4,38 +4,50 @@ import React, { useEffect, useState } from "react";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { useToast } from "@/contexts/ToastContext";
 import { usePeriod } from "@/contexts/PeriodContext";
-import { EvaluationPeriodDto, PeriodPresetDto, evaluationService } from "@/services/evaluationService";
+import { EvaluationPeriodDto, evaluationService } from "@/services/evaluationService";
 import { CriteriaSetListItem, criteriaService } from "@/services/criteriaService";
 
 const today = () => new Date().toISOString().substring(0, 10);
 
+/** Bước đăng ký, duyệt sản phẩm theo mẫu tự chấm của bộ tiêu chí (máy chủ đặt sẵn khi tạo kỳ). */
+const FORM_FLOW: Record<string, string> = {
+  "09A": "Có bước đăng ký, duyệt sản phẩm (Mẫu 01); tự chấm theo sản phẩm.",
+  "09B": "Không có bước đăng ký sản phẩm; tự chấm theo trục.",
+};
+
 interface Props {
-  presets: PeriodPresetDto[];
   onClose: () => void;
   onCreated: (period: EvaluationPeriodDto) => void;
 }
 
-/** Hộp thoại tạo kỳ đánh giá (dự thảo) từ kiểu kỳ dựng sẵn. */
-export function CreatePeriodModal({ presets, onClose, onCreated }: Props) {
+/** Hộp thoại tạo kỳ đánh giá (dự thảo) với bộ tiêu chí đã xuất bản. */
+export function CreatePeriodModal({ onClose, onCreated }: Props) {
   const { toast } = useToast();
   const { reload: reloadPeriods } = usePeriod();
   const [saving, setSaving] = useState(false);
-  const [criteriaSets, setCriteriaSets] = useState<CriteriaSetListItem[]>([]);
+  const [criteriaSets, setCriteriaSets] = useState<CriteriaSetListItem[] | null>(null);
   const [form, setForm] = useState({
     year: new Date().getFullYear(),
     quarter: Math.floor(new Date().getMonth() / 3) + 1,
     name: "",
     startDate: today(),
     endDate: today(),
-    preset: "full",
     criteriaSetId: "",
   });
 
   useEffect(() => {
-    criteriaService.list().then((list) => setCriteriaSets(list.filter((s) => s.status === "Published"))).catch(() => setCriteriaSets([]));
+    criteriaService.list()
+      .then((list) => {
+        const published = list
+          .filter((s) => s.status === "Published")
+          .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""));
+        setCriteriaSets(published);
+        setForm((f) => (f.criteriaSetId ? f : { ...f, criteriaSetId: published[0]?.id ?? "" }));
+      })
+      .catch(() => setCriteriaSets([]));
   }, []);
 
-  const suggestedForm = presets.find((p) => p.code === form.preset)?.suggestedForm;
+  const selectedForm = criteriaSets?.find((s) => s.id === form.criteriaSetId)?.selfScoreForm;
 
   const create = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -43,7 +55,6 @@ export function CreatePeriodModal({ presets, onClose, onCreated }: Props) {
     try {
       const period = await evaluationService.createPeriod({
         ...form,
-        criteriaSetId: form.criteriaSetId || null,
         name: form.name.trim() || `Đánh giá, xếp loại cán bộ Quý ${["I", "II", "III", "IV"][form.quarter - 1]}/${form.year}`,
       });
       toast.success("Đã tạo kỳ đánh giá (dự thảo).");
@@ -64,7 +75,7 @@ export function CreatePeriodModal({ presets, onClose, onCreated }: Props) {
       footer={
         <>
           <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onClose} disabled={saving}>Hủy</button>
-          <button type="submit" form="create-period-form" className="btn btn-primary btn-sm" disabled={saving}>
+          <button type="submit" form="create-period-form" className="btn btn-primary btn-sm" disabled={saving || !form.criteriaSetId}>
             {saving ? "Đang tạo..." : "Tạo kỳ (dự thảo)"}
           </button>
         </>
@@ -94,23 +105,19 @@ export function CreatePeriodModal({ presets, onClose, onCreated }: Props) {
           <input id="cp-name" className="form-control form-control-sm" maxLength={200} placeholder="Để trống: tự đặt theo quý/năm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         </div>
         <div className="col-12">
-          <div className="form-label">Kiểu kỳ</div>
-          {presets.map((preset) => (
-            <div className="form-check" key={preset.code}>
-              <input className="form-check-input" type="radio" name="preset" id={`preset-${preset.code}`} checked={form.preset === preset.code} onChange={() => setForm({ ...form, preset: preset.code })} />
-              <label className="form-check-label" htmlFor={`preset-${preset.code}`}>
-                <strong>{preset.name}</strong>
-                <div className="small text-secondary">{preset.description}</div>
-              </label>
-            </div>
-          ))}
-        </div>
-        <div className="col-12">
-          <label className="form-label" htmlFor="period-criteria">Bộ tiêu chí (đã xuất bản)</label>
-          <select id="period-criteria" className="form-select form-select-sm" value={form.criteriaSetId} onChange={(e) => setForm({ ...form, criteriaSetId: e.target.value })}>
-            <option value="">Tự chọn bộ mới nhất theo kiểu kỳ{suggestedForm ? ` (Mẫu ${suggestedForm})` : ""}</option>
-            {criteriaSets.map((s) => <option key={s.id} value={s.id}>{s.name} — Mẫu {s.selfScoreForm}</option>)}
-          </select>
+          <label className="form-label" htmlFor="cp-criteria">Bộ tiêu chí</label>
+          {criteriaSets !== null && criteriaSets.length === 0 ? (
+            <div className="alert alert-warning py-2 mb-0">Chưa có bộ tiêu chí đã xuất bản. Hãy xuất bản một bộ ở trang Bộ tiêu chí trước.</div>
+          ) : (
+            <>
+              <select id="cp-criteria" className="form-select form-select-sm" required value={form.criteriaSetId}
+                onChange={(e) => setForm({ ...form, criteriaSetId: e.target.value })}>
+                {criteriaSets === null && <option value="">Đang tải...</option>}
+                {(criteriaSets ?? []).map((s) => <option key={s.id} value={s.id}>{s.name} — Mẫu {s.selfScoreForm}</option>)}
+              </select>
+              {selectedForm && FORM_FLOW[selectedForm] && <div className="form-text">{FORM_FLOW[selectedForm]}</div>}
+            </>
+          )}
         </div>
       </form>
     </AdminModal>

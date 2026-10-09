@@ -167,6 +167,7 @@ public sealed class DynamicOrgIntegrationTests
         var period = await DataAsync(await admin.PostAsJsonAsync("/api/evaluations/periods", new
         {
             year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, name = $"Kỳ tổ chức động {s}",
+            criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(admin, "09A"),
             startDate = DateTime.UtcNow.AddDays(-10), endDate = DateTime.UtcNow.AddDays(30)
         }));
         var periodId = period.GetProperty("id").GetGuid();

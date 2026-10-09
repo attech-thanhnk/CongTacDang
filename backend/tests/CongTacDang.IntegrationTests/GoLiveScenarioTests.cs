@@ -187,7 +187,7 @@ public sealed class GoLiveScenarioTests
         Assert.Contains("không có kỳ đánh giá đang mở", (await GoLiveHttp.JsonAsync(noActive)).GetProperty("message").GetString());
         var period = await GoLiveHttp.DataAsync(await appraiser.PostAsJsonAsync("/api/evaluations/periods", new
         {
-            year = todayVn.Year, quarter = (todayVn.Month - 1) / 3 + 1, name = "Kỳ đánh giá go-live", preset = "q3-2026-transition",
+            year = todayVn.Year, quarter = (todayVn.Month - 1) / 3 + 1, name = "Kỳ đánh giá go-live", criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(appraiser, "09B"),
             startDate = DateTime.UtcNow.AddDays(-1), endDate = DateTime.UtcNow.AddDays(60)
         }));
         var periodId = period.GetProperty("id").GetGuid();

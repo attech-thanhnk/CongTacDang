@@ -8,6 +8,8 @@ import {
   GRADE_OPTIONS,
   RecordActionDto,
   STEP_NAMES,
+  TASK_KIND_LABELS,
+  TASK_ROLE_LABELS,
   TaskInputDto,
   VoteTallyDto,
   WorkflowActionCode,
@@ -452,9 +454,16 @@ function ExternalResultForm({ record, step, busy, extra, onSubmit }: { record: E
 function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRecordDto; criteria: CriteriaSnapshot | null; busy: boolean; onSubmit: (p: Record<string, unknown>) => void }) {
   const axes = criteria?.content.axes ?? [];
   const p = criteria?.content.parameters;
+  const blank = (): TaskInputDto => ({
+    taskName: "", targetOutput: "", weight: 0, deadline: "", axisCode: "", productCode: "", kind: "", role: "", exceedCriteria: "", evidenceSource: "", confirmer: "",
+  });
   const initial: TaskInputDto[] = record.tasks.length > 0
-    ? record.tasks.map((t) => ({ taskName: t.taskName, targetOutput: t.targetOutput, weight: t.weight, deadline: t.deadline?.substring(0, 10), attachmentId: t.attachmentId, axisCode: t.axisCode ?? "" }))
-    : Array.from({ length: p?.minTasks ?? 3 }, () => ({ taskName: "", targetOutput: "", weight: 0, deadline: "", axisCode: "" }));
+    ? record.tasks.map((t) => ({
+        taskName: t.taskName, targetOutput: t.targetOutput, weight: t.weight, deadline: t.deadline?.substring(0, 10), attachmentId: t.attachmentId,
+        axisCode: t.axisCode ?? "", productCode: t.productCode ?? "", kind: t.kind === "DotXuat" ? "" : t.kind ?? "", role: t.role ?? "",
+        exceedCriteria: t.exceedCriteria ?? "", evidenceSource: t.evidenceSource ?? "", confirmer: t.confirmer ?? "",
+      }))
+    : Array.from({ length: p?.minTasks ?? 3 }, blank);
   const [tasks, setTasks] = useState<TaskInputDto[]>(initial);
   const total = useMemo(() => Math.round(tasks.reduce((sum, t) => sum + (Number(t.weight) || 0), 0) * 100) / 100, [tasks]);
 
@@ -465,50 +474,82 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ tasks: tasks.map((t) => ({ ...t, deadline: t.deadline || null, axisCode: t.axisCode || null })) });
+        onSubmit({ tasks: tasks.map((t) => ({ ...t, deadline: t.deadline || null, axisCode: t.axisCode || null, productCode: t.productCode || null })) });
       }}
     >
-      <div className="table-responsive">
-        <table className="table table-sm align-middle mb-2">
-          <thead>
-            <tr className="small text-secondary">
-              <th style={{ width: 32 }}>#</th>
-              <th>Sản phẩm / nhiệm vụ</th>
-              <th>Kết quả cần đạt</th>
-              <th style={{ width: 150 }}>Trục kết quả</th>
-              <th style={{ width: 100 }}>Trọng số</th>
-              <th style={{ width: 150 }}>Thời hạn</th>
-              <th style={{ width: 40 }} />
-            </tr>
-          </thead>
-          <tbody>
-            {tasks.map((t, i) => (
-              <tr key={i}>
-                <td className="small text-secondary">{i + 1}</td>
-                <td><input className="form-control form-control-sm" value={t.taskName} maxLength={500} required onChange={(e) => update(i, "taskName", e.target.value)} /></td>
-                <td><input className="form-control form-control-sm" value={t.targetOutput} onChange={(e) => update(i, "targetOutput", e.target.value)} /></td>
-                <td>
-                  <select className="form-select form-select-sm text-truncate" style={{ maxWidth: "16rem" }} value={t.axisCode || ""} onChange={(e) => update(i, "axisCode", e.target.value)} aria-label={`Trục kết quả dòng ${i + 1}`}
-                    title={axes.find((a) => a.code === t.axisCode)?.name}>
-                    <option value="">— Chưa chọn —</option>
-                    {axes.map((a) => <option key={a.code} value={a.code} title={a.description ? `${a.name}\n${a.description}` : a.name}>{a.code} — {a.name}</option>)}
-                  </select>
-                </td>
-                <td><input type="number" min={0} step={0.5} className="form-control form-control-sm" value={t.weight} onChange={(e) => update(i, "weight", e.target.value)} /></td>
-                <td><input type="date" className="form-control form-control-sm" value={t.deadline || ""} onChange={(e) => update(i, "deadline", e.target.value)} /></td>
-                <td>
-                  <button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa dòng" onClick={() => setTasks(tasks.filter((_, idx) => idx !== i))}>
-                    <i className="bi bi-x-lg" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="d-flex flex-column gap-2 mb-2">
+        {tasks.map((t, i) => (
+          <fieldset key={i} className="border rounded-3 p-3">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <legend className="h6 mb-0 float-none w-auto">Sản phẩm {i + 1}</legend>
+              <button type="button" className="btn btn-link btn-sm text-danger p-0" onClick={() => setTasks(tasks.filter((_, idx) => idx !== i))}>
+                <i className="bi bi-x-lg me-1" />Xóa
+              </button>
+            </div>
+            <div className="row g-2">
+              <div className="col-md-8">
+                <label className="form-label small mb-0" htmlFor={`t${i}-name`}>Tên sản phẩm, công việc</label>
+                <input id={`t${i}-name`} className="form-control form-control-sm" value={t.taskName} maxLength={500} required onChange={(e) => update(i, "taskName", e.target.value)} />
+              </div>
+              <div className="col-md-4">
+                <label className="form-label small mb-0" htmlFor={`t${i}-code`}>Mã SP (nếu có)</label>
+                <input id={`t${i}-code`} className="form-control form-control-sm" value={t.productCode || ""} maxLength={50} onChange={(e) => update(i, "productCode", e.target.value)} />
+              </div>
+              <div className="col-md-3">
+                <label className="form-label small mb-0" htmlFor={`t${i}-kind`}>Loại việc</label>
+                <select id={`t${i}-kind`} className="form-select form-select-sm" value={t.kind || ""} required onChange={(e) => update(i, "kind", e.target.value)}>
+                  <option value="">— Chọn —</option>
+                  <option value="TrongTam">{TASK_KIND_LABELS.TrongTam}</option>
+                  <option value="ThuongXuyen">{TASK_KIND_LABELS.ThuongXuyen}</option>
+                </select>
+              </div>
+              <div className="col-md-3">
+                <label className="form-label small mb-0" htmlFor={`t${i}-role`}>Vai trò</label>
+                <select id={`t${i}-role`} className="form-select form-select-sm" value={t.role || ""} required onChange={(e) => update(i, "role", e.target.value)}>
+                  <option value="">— Chọn —</option>
+                  <option value="ChuTri">{TASK_ROLE_LABELS.ChuTri}</option>
+                  <option value="PhoiHop">{TASK_ROLE_LABELS.PhoiHop}</option>
+                </select>
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small mb-0" htmlFor={`t${i}-axis`}>Trục kết quả</label>
+                <select id={`t${i}-axis`} className="form-select form-select-sm text-truncate" value={t.axisCode || ""} required={axes.length > 0}
+                  onChange={(e) => update(i, "axisCode", e.target.value)} title={axes.find((a) => a.code === t.axisCode)?.name}>
+                  <option value="">— Chọn —</option>
+                  {axes.map((a) => <option key={a.code} value={a.code} title={a.description ? `${a.name}\n${a.description}` : a.name}>{a.code} — {a.name}</option>)}
+                </select>
+              </div>
+              <div className="col-md-3">
+                <label className="form-label small mb-0" htmlFor={`t${i}-weight`}>Trọng số (điểm)</label>
+                <input id={`t${i}-weight`} type="number" min={0} step={0.5} className="form-control form-control-sm" value={t.weight} onChange={(e) => update(i, "weight", e.target.value)} />
+              </div>
+              <div className="col-md-3">
+                <label className="form-label small mb-0" htmlFor={`t${i}-deadline`}>Thời hạn / mốc quý</label>
+                <input id={`t${i}-deadline`} type="date" className="form-control form-control-sm" value={t.deadline || ""} onChange={(e) => update(i, "deadline", e.target.value)} />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small mb-0" htmlFor={`t${i}-standard`}>Chuẩn đạt</label>
+                <textarea id={`t${i}-standard`} className="form-control form-control-sm" rows={2} maxLength={2000} required value={t.targetOutput} onChange={(e) => update(i, "targetOutput", e.target.value)} />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small mb-0" htmlFor={`t${i}-exceed`}>Tiêu chí vượt chuẩn</label>
+                <textarea id={`t${i}-exceed`} className="form-control form-control-sm" rows={2} maxLength={2000} required value={t.exceedCriteria || ""} onChange={(e) => update(i, "exceedCriteria", e.target.value)} />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small mb-0" htmlFor={`t${i}-evidence`}>Nguồn dữ liệu / minh chứng</label>
+                <input id={`t${i}-evidence`} className="form-control form-control-sm" maxLength={1000} required value={t.evidenceSource || ""} onChange={(e) => update(i, "evidenceSource", e.target.value)} />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small mb-0" htmlFor={`t${i}-confirmer`}>Thẩm quyền xác nhận</label>
+                <input id={`t${i}-confirmer`} className="form-control form-control-sm" maxLength={500} required value={t.confirmer || ""} onChange={(e) => update(i, "confirmer", e.target.value)} />
+              </div>
+            </div>
+          </fieldset>
+        ))}
       </div>
       <div className="d-flex justify-content-between align-items-center bg-white border-top py-2" style={{ position: "sticky", bottom: 0, zIndex: 5 }}>
         <div className="d-flex gap-2 align-items-center">
-          <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setTasks([...tasks, { taskName: "", targetOutput: "", weight: 0, deadline: "", axisCode: "" }])}>
+          <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setTasks([...tasks, blank()])}>
             <i className="bi bi-plus-lg me-1" />Thêm dòng
           </button>
           <span className="small text-secondary">

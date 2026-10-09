@@ -90,6 +90,29 @@ public enum CollectiveEvaluationForm
     M08 = 8
 }
 
+/// <summary>Loại sản phẩm/nhiệm vụ đăng ký (Hướng dẫn 03, PL II mục I.3).</summary>
+public enum TaskKind
+{
+    /// <summary>Sản phẩm trọng tâm (trục chính, trọng số lớn).</summary>
+    TrongTam = 1,
+
+    /// <summary>Sản phẩm thường xuyên / định kỳ.</summary>
+    ThuongXuyen = 2,
+
+    /// <summary>Nhiệm vụ đột xuất phát sinh trong kỳ (Mẫu 05) — không chọn khi đăng ký đầu kỳ.</summary>
+    DotXuat = 3
+}
+
+/// <summary>Vai trò của cá nhân với sản phẩm (Mẫu 01 cột "Vai trò").</summary>
+public enum TaskRole
+{
+    /// <summary>Chủ trì.</summary>
+    ChuTri = 1,
+
+    /// <summary>Phối hợp.</summary>
+    PhoiHop = 2
+}
+
 /// <summary>
 /// Mức xếp loại chất lượng cán bộ lãnh đạo, quản lý
 /// </summary>

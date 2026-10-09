@@ -32,7 +32,7 @@ public sealed class WorkflowProfileIntegrationTests
     public async Task G1_DirectorRecord_UpperProfile_ExternalStepsRecorded_ToPublished()
     {
         var w = await WorldAsync();
-        var periodId = await OpenPeriodAsync(w, "q3-2026-transition", w.Director.Id);
+        var periodId = await OpenPeriodAsync(w, "09B", w.Director.Id);
         var id = await RecordOfAsync(w, periodId, w.Director.Id);
 
         var record = await Data(w.OwnerDirectorC, $"/api/evaluations/records/{id}");
@@ -116,7 +116,7 @@ public sealed class WorkflowProfileIntegrationTests
     public async Task G2_CellSecretaryStaffProfile_UnitLeaderProposesInsteadOfDirector()
     {
         var w = await WorldAsync();
-        var periodId = (await CreatePeriodAsync(w, "q3-2026-transition")).GetProperty("id").GetGuid();
+        var periodId = (await CreatePeriodAsync(w, "09B")).GetProperty("id").GetGuid();
         // Thêm người kèm hồ sơ luồng chỉ định.
         var added = await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
             new { memberIds = new[] { w.Staff.Id }, workflowProfileCode = "bi-thu-nhan-vien" }));
@@ -162,7 +162,7 @@ public sealed class WorkflowProfileIntegrationTests
     public async Task G3_Readiness_DetectsStuckRecord_OpenReturns409_ForceNeedsReason()
     {
         var w = await WorldAsync();
-        var periodId = (await CreatePeriodAsync(w, "q3-2026-transition")).GetProperty("id").GetGuid();
+        var periodId = (await CreatePeriodAsync(w, "09B")).GetProperty("id").GetGuid();
         await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
             new { memberIds = new[] { w.Staff3.Id }, workflowProfileCode = "bi-thu-nhan-vien" }));
 
@@ -206,7 +206,7 @@ public sealed class WorkflowProfileIntegrationTests
     public async Task G4_ProfileConfiguration_ChangeProfile_Bulk_AddWithProfile_AndValidation()
     {
         var w = await WorldAsync();
-        var period = await CreatePeriodAsync(w, "full");
+        var period = await CreatePeriodAsync(w, "09A");
         var periodId = period.GetProperty("id").GetGuid();
         await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
             new { memberIds = new[] { w.Director.Id, w.Staff.Id } }));
@@ -324,7 +324,7 @@ public sealed class WorkflowProfileIntegrationTests
     public async Task G5_ExternalResultAttachment_VisibleToRecordReaders_ManagedByRecorder()
     {
         var w = await WorldAsync();
-        var periodId = await OpenPeriodAsync(w, "q3-2026-transition", w.Director.Id);
+        var periodId = await OpenPeriodAsync(w, "09B", w.Director.Id);
         var id = await RecordOfAsync(w, periodId, w.Director.Id);
         await StepAsync(w.OwnerDirectorC, id, "self-score/submit", new { generalScores = General, axisScores = Axis }, "AwaitingCellConfirm");
         await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
@@ -388,11 +388,11 @@ public sealed class WorkflowProfileIntegrationTests
         }
     }
 
-    private static async Task<JsonElement> CreatePeriodAsync(World w, string preset)
+    private static async Task<JsonElement> CreatePeriodAsync(World w, string form)
     {
         var body = new
         {
-            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, preset,
+            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(w.ManagerC, form),
             name = $"Kỳ G {Guid.NewGuid().ToString("N")[..8]}",
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         };
@@ -406,9 +406,9 @@ public sealed class WorkflowProfileIntegrationTests
             new { version = period.GetProperty("version").GetUInt32(), force = true, reason = "Kiểm thử hồ sơ luồng" }));
     }
 
-    private static async Task<Guid> OpenPeriodAsync(World w, string preset, params Guid[] members)
+    private static async Task<Guid> OpenPeriodAsync(World w, string form, params Guid[] members)
     {
-        var periodId = (await CreatePeriodAsync(w, preset)).GetProperty("id").GetGuid();
+        var periodId = (await CreatePeriodAsync(w, form)).GetProperty("id").GetGuid();
         await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = members }));
         await OpenAsync(w, periodId);
         return periodId;

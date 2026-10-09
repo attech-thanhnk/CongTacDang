@@ -31,6 +31,8 @@ interface Props {
   savedCodes: string[];
   /** Điền thời hạn các bước theo quy tắc (máy chủ tính và lưu); ngày sau đó vẫn sửa tự do. */
   onApplyRules?: () => void;
+  /** Mẫu tự chấm của bộ tiêu chí của kỳ — quyết định bước đăng ký, duyệt sản phẩm (máy chủ đặt khi chọn bộ). */
+  selfScoreForm?: string | null;
 }
 
 const AUTHORITIES: { key: string; label: string }[] = [
@@ -42,8 +44,12 @@ const AUTHORITIES: { key: string; label: string }[] = [
  * Cấu hình hồ sơ luồng của kỳ: mỗi hồ sơ luồng (nhóm đối tượng) có bảng bước × chế độ (nội bộ / cấp trên thực hiện /
  * không áp dụng) × quyền thực hiện × thời hạn; hồ sơ luồng mặc định theo cấp quyết định. Máy chủ kiểm tra lại toàn bộ khi lưu.
  */
-export function WorkflowProfilesEditor({ settings, onChange, editable, deadlinesEditable, permissionOptions, savedCodes, onApplyRules }: Props) {
+export function WorkflowProfilesEditor({ settings, onChange, editable, deadlinesEditable, permissionOptions, savedCodes, onApplyRules, selfScoreForm }: Props) {
   const [selected, setSelected] = useState(settings.profiles[0]?.code ?? "");
+  // Bước theo bộ tiêu chí: 09A luôn có bước đăng ký sản phẩm; 09B không có bước đăng ký, duyệt.
+  const registration = selfScoreForm ? selfScoreForm !== "09B" : null;
+  const followsCriteria = (step: WorkflowStepCode) =>
+    registration !== null && (step === "B1_REGISTER" || (step === "B1_APPROVE" && !registration));
 
   useEffect(() => {
     if (!settings.profiles.some((p) => p.code === selected)) setSelected(settings.profiles[0]?.code ?? "");
@@ -73,7 +79,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
     while (settings.profiles.some((p) => p.code === code)) code = `nhom-${++index}`;
     const copy: WorkflowProfile = base
       ? { ...JSON.parse(JSON.stringify(base)), code, name: `${base.name} (bản sao)` }
-      : { code, name: "Hồ sơ luồng mới", description: null, steps: {} };
+      : { code, name: "Cách xét duyệt mới", description: null, steps: {} };
     onChange({ ...settings, profiles: [...settings.profiles, copy] });
     setSelected(code);
   };
@@ -118,7 +124,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
       <div className="row g-2">
         {AUTHORITIES.map((a) => (
           <div className="col-md-6" key={a.key}>
-            <label className="form-label mb-0" style={{ fontSize: 13 }} htmlFor={`default-${a.key}`}>Hồ sơ luồng mặc định — {a.label}</label>
+            <label className="form-label mb-0" style={{ fontSize: 13 }} htmlFor={`default-${a.key}`}>Cách xét duyệt mặc định — {a.label}</label>
             <select id={`default-${a.key}`} className="form-select form-select-sm" value={settings.defaultProfiles[a.key] || ""} disabled={!editable}
               onChange={(e) => onChange({ ...settings, defaultProfiles: { ...settings.defaultProfiles, [a.key]: e.target.value } })}>
               <option value="">— Chọn —</option>
@@ -128,7 +134,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
         ))}
       </div>
 
-      <div className="d-flex flex-wrap gap-2 align-items-center border-bottom pb-2" role="tablist" aria-label="Hồ sơ luồng">
+      <div className="d-flex flex-wrap gap-2 align-items-center border-bottom pb-2" role="tablist" aria-label="Cách xét duyệt">
         {settings.profiles.map((p) => (
           <button key={p.code} type="button" role="tab" aria-selected={p.code === selected}
             className={`btn btn-sm rounded-pill px-3 ${p.code === selected ? "btn-primary" : "btn-outline-primary"}`} onClick={() => setSelected(p.code)}>
@@ -137,7 +143,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
         ))}
         {editable && (
           <button type="button" className="btn btn-sm btn-outline-success" onClick={addProfile}>
-            <i className="bi bi-plus-lg me-1" />Thêm hồ sơ luồng (sao chép)
+            <i className="bi bi-plus-lg me-1" />Thêm cách xét duyệt (sao chép)
           </button>
         )}
       </div>
@@ -171,13 +177,16 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
                 {STEP_ORDER.map((step, index) => {
                   const setting = profile.steps[step] ?? { mode: "Internal" as StepMode, permission: DEFAULT_STEP_PERMISSIONS[step] };
                   const owner = OWNER_STEPS.includes(step);
-                  const modes: StepMode[] = ["Internal", "External", "Off"].filter(
-                    (m) => !(m === "Off" && MANDATORY_STEPS.includes(step)) && !(m === "External" && NEVER_EXTERNAL_STEPS.includes(step))
-                  ) as StepMode[];
+                  const modes: StepMode[] = followsCriteria(step)
+                    ? [setting.mode]
+                    : (["Internal", "External", "Off"].filter(
+                        (m) => !(m === "Off" && MANDATORY_STEPS.includes(step)) && !(m === "External" && NEVER_EXTERNAL_STEPS.includes(step))
+                      ) as StepMode[]);
                   return (
                     <tr key={step} style={{ fontSize: 14, opacity: setting.mode === "Off" ? 0.6 : 1 }}>
                       <td>{index + 1}</td>
-                      <td>{STEP_NAMES[step]}{MANDATORY_STEPS.includes(step) && <span className="text-secondary"> (bắt buộc)</span>}</td>
+                      <td>{STEP_NAMES[step]}{MANDATORY_STEPS.includes(step) && <span className="text-secondary"> (bắt buộc)</span>}
+                        {followsCriteria(step) && <span className="text-secondary"> (theo bộ tiêu chí)</span>}</td>
                       <td>
                         <select className="form-select form-select-sm" value={setting.mode} disabled={!editable || modes.length === 1}
                           aria-label={`Chế độ — ${STEP_NAMES[step]}`} onChange={(e) => setStep(step, { mode: e.target.value as StepMode })}>
@@ -238,8 +247,8 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
           {editable && (
             <div className="d-flex justify-content-end align-items-center">
               <button type="button" className="btn btn-outline-danger btn-sm" disabled={settings.profiles.length <= 1 || usedAsDefault}
-                title={usedAsDefault ? "Đang là hồ sơ luồng mặc định — hãy đổi mặc định trước" : undefined} onClick={removeProfile}>
-                Xóa hồ sơ luồng
+                title={usedAsDefault ? "Đang là cách xét duyệt mặc định — hãy đổi mặc định trước" : undefined} onClick={removeProfile}>
+                Xóa cách xét duyệt
               </button>
             </div>
           )}

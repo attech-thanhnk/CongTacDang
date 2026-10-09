@@ -1191,6 +1191,10 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<string>("Confirmer")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1218,14 +1222,32 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("EvidenceSource")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ExceedCriteria")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsExceedStandard")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProductCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<Guid>("RecordId")
                         .HasColumnType("uuid");
+
+                    b.Property<int?>("Role")
+                        .HasColumnType("integer");
 
                     b.Property<double>("SelfScore")
                         .HasColumnType("double precision");

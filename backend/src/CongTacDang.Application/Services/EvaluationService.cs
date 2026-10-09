@@ -160,14 +160,14 @@ public class EvaluationService : IEvaluationService
     private static PeriodSettings SafeSettings(EvaluationPeriod? period)
     {
         if (period == null)
-            return PeriodSettings.FullPreset();
+            return PeriodSettings.Default();
         try
         {
             return period.GetSettings();
         }
         catch (FormatException)
         {
-            return PeriodSettings.FullPreset();
+            return PeriodSettings.Default();
         }
     }
 }

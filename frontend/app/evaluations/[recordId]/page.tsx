@@ -31,6 +31,8 @@ import {
   WorkflowActionCode,
   WorkflowStepCode,
   STEP_NAMES,
+  TASK_KIND_LABELS,
+  TASK_ROLE_LABELS,
   criteriaAppliesForm,
   evaluationService,
   isConcurrencyConflict,
@@ -327,7 +329,7 @@ function RecordInfo({ record }: { record: EvaluationRecordDto }) {
             ["Phòng", record.departmentName],
             ["Chi bộ", record.partyCellName],
             ["Thẩm quyền", record.approvalAuthority === "CapTren" ? "Cấp trên quyết định" : "Đảng ủy cơ sở quyết định"],
-            ["Hồ sơ luồng", record.workflowProfileName || record.workflowProfileCode],
+            ["Cách xét duyệt", record.workflowProfileName || record.workflowProfileCode],
           ]}
         />
       </div>
@@ -458,12 +460,19 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
             <div className={`${styles.body} ${styles.small}`}>Chưa đăng ký.</div>
           ) : (
             <div className={styles.tw}><table className={styles.table}>
-              <thead><tr><th>#</th><th>Sản phẩm</th><th>Trọng số</th><th>Điểm</th><th>Minh chứng</th></tr></thead>
+              <thead><tr><th>#</th><th>Sản phẩm</th><th>Loại · vai trò · trục</th><th>Trọng số</th><th>Điểm</th><th>Minh chứng</th></tr></thead>
               <tbody>
                 {record.tasks.map((t) => (
                   <tr key={t.id}>
                     <td className="num">{t.taskOrder}</td>
-                    <td>{t.taskName}<span className={styles.sub}>{t.targetOutput}</span></td>
+                    <td>
+                      {t.taskName}{t.productCode ? ` (${t.productCode})` : ""}
+                      {t.targetOutput && <span className={styles.sub}>Chuẩn đạt: {t.targetOutput}</span>}
+                      {t.exceedCriteria && <span className={styles.sub}>Vượt chuẩn: {t.exceedCriteria}</span>}
+                      {t.evidenceSource && <span className={styles.sub}>Minh chứng: {t.evidenceSource}</span>}
+                      {t.confirmer && <span className={styles.sub}>Xác nhận: {t.confirmer}</span>}
+                    </td>
+                    <td>{[t.kind && TASK_KIND_LABELS[t.kind], t.role && TASK_ROLE_LABELS[t.role], t.axisCode].filter(Boolean).join(" · ") || "—"}</td>
                     <td className="num">{t.weight}</td>
                     <td className="num">{t.selfScore}</td>
                     <td>{t.attachmentOriginalName || t.attachmentFileName || "—"}</td>

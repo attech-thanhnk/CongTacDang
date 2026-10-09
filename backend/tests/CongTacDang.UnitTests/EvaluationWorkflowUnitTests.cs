@@ -100,9 +100,9 @@ public sealed class EvaluationWorkflowUnitTests
     }
 
     [Fact]
-    public void StateMachine_FullPreset_WalksNineSteps_InOrder()
+    public void StateMachine_WithRegistration_WalksNineSteps_InOrder()
     {
-        var enabled = Profile(PeriodSettings.FullPreset(), PeriodSettings.ProfileBase).ActiveSteps();
+        var enabled = Profile(PeriodSettings.Default(), PeriodSettings.ProfileBase).ActiveSteps();
         var status = RecordStateMachine.Initial(enabled);
         Assert.Equal(RecordStatus.AwaitingRegistration, status);
         foreach (var step in WorkflowSteps.Ordered)
@@ -115,9 +115,9 @@ public sealed class EvaluationWorkflowUnitTests
     }
 
     [Fact]
-    public void StateMachine_TransitionPreset_StartsAtSelfScore_AndRejectsB1()
+    public void StateMachine_WithoutRegistration_StartsAtSelfScore_AndRejectsB1()
     {
-        var enabled = Profile(PeriodSettings.TransitionQ3Preset(), PeriodSettings.ProfileBase).ActiveSteps();
+        var enabled = Profile(PeriodSettings.Default(CriteriaSetContent.Form09B), PeriodSettings.ProfileBase).ActiveSteps();
         Assert.Equal(RecordStatus.AwaitingSelfScore, RecordStateMachine.Initial(enabled));
         var b1 = RecordStateMachine.Apply(RecordStatus.AwaitingRegistration, enabled, WorkflowCommand.Complete(WorkflowStep.B1_REGISTER));
         Assert.False(b1.Succeeded);
@@ -127,7 +127,7 @@ public sealed class EvaluationWorkflowUnitTests
     [Fact]
     public void StateMachine_OutOfOrder_MessageNamesCurrentStep()
     {
-        var result = RecordStateMachine.Apply(RecordStatus.AwaitingRegistration, Profile(PeriodSettings.FullPreset(), PeriodSettings.ProfileBase).ActiveSteps(),
+        var result = RecordStateMachine.Apply(RecordStatus.AwaitingRegistration, Profile(PeriodSettings.Default(), PeriodSettings.ProfileBase).ActiveSteps(),
             WorkflowCommand.Complete(WorkflowStep.B3B_APPRAISAL));
         Assert.False(result.Succeeded);
         Assert.Equal("Hồ sơ đang ở bước \"Chờ đăng ký sản phẩm\", không thể thực hiện \"Thẩm định\".", result.Error);
@@ -149,7 +149,7 @@ public sealed class EvaluationWorkflowUnitTests
 
     #endregion
 
-    // Task 15: kiểm thử PeriodSettings (hồ sơ luồng, kiểu kỳ, kiểm tra cấu hình, JSON, thời hạn) chuyển sang WorkflowProfileUnitTests.
+    // Task 15: kiểm thử PeriodSettings (hồ sơ luồng, cấu hình mặc định, kiểm tra cấu hình, JSON, thời hạn) chuyển sang WorkflowProfileUnitTests.
 
     // Task 16: kiểm thử EvaluationScoring (so với code cũ, TC-1/TC-2, làm tròn, K/AD) chuyển sang CriteriaSetUnitTests — công thức
     // nhận bộ tiêu chí thay cho tham số kỳ.

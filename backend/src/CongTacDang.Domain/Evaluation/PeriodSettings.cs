@@ -199,24 +199,6 @@ public sealed class WorkflowProfile
     }
 }
 
-/// <summary>Kiểu kỳ dựng sẵn khi tạo kỳ (mỗi kiểu sinh sẵn các hồ sơ luồng).</summary>
-/// <param name="Code">Mã (dùng trong API).</param>
-/// <param name="Name">Tên hiển thị.</param>
-/// <param name="Description">Mô tả.</param>
-/// <param name="SuggestedForm">
-/// Mẫu tự chấm gợi ý (09A/09B): khi tạo kỳ không chỉ định bộ tiêu chí, chọn sẵn bộ đã xuất bản mới nhất có mẫu này.
-/// </param>
-public sealed record PeriodPreset(string Code, string Name, string Description, string SuggestedForm)
-{
-    /// <summary>Cấu hình của kiểu kỳ.</summary>
-    public PeriodSettings Build() => Code switch
-    {
-        PeriodSettings.PresetFull => PeriodSettings.FullPreset(),
-        PeriodSettings.PresetTransitionQ3 => PeriodSettings.TransitionQ3Preset(),
-        _ => throw new ArgumentOutOfRangeException(nameof(Code), Code, null)
-    };
-}
-
 /// <summary>
 /// Cấu hình theo kỳ (<c>EvaluationPeriod.Settings</c>, cột jsonb) — docs/thiet-ke/luong-danh-gia.md mục 3.2.
 /// Luồng theo <b>hồ sơ luồng</b> (nhóm đối tượng): mỗi hồ sơ luồng đặt chế độ, quyền thực hiện, thời hạn của từng bước;
@@ -231,12 +213,6 @@ public sealed class PeriodSettings
     /// <summary>Số hồ sơ luồng tối đa trong một kỳ.</summary>
     public const int MaxProfiles = 20;
 
-    /// <summary>Mã kiểu kỳ "Đầy đủ".</summary>
-    public const string PresetFull = "full";
-
-    /// <summary>Mã kiểu kỳ "Quý III/2026 — chuyển tiếp".</summary>
-    public const string PresetTransitionQ3 = "q3-2026-transition";
-
     /// <summary>Mã hồ sơ luồng "Diện Đảng ủy cơ sở" (PL III ví dụ 1).</summary>
     public const string ProfileBase = "co-so";
 
@@ -247,15 +223,6 @@ public sealed class PeriodSettings
     public const string ProfileCellSecretaryStaff = "bi-thu-nhan-vien";
 
     private static readonly Regex CodePattern = new("^[a-z0-9][a-z0-9-]{0,49}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
-    /// <summary>Hai kiểu kỳ dựng sẵn.</summary>
-    public static readonly IReadOnlyList<PeriodPreset> Presets = new[]
-    {
-        new PeriodPreset(PresetFull, "Đầy đủ",
-            "Đủ các bước, có đăng ký và duyệt sản phẩm (Mẫu 01); dùng bộ tiêu chí Mẫu 09A.", CriteriaSetContent.Form09A),
-        new PeriodPreset(PresetTransitionQ3, "Quý III/2026 — chuyển tiếp",
-            "Không có bước đăng ký, duyệt sản phẩm; dùng bộ tiêu chí Mẫu 09B.", CriteriaSetContent.Form09B)
-    };
 
     /// <summary>Tùy chọn JSON: camelCase, không phân biệt hoa thường; khóa bước và khóa cấp quyết định giữ nguyên mã.</summary>
     public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
@@ -293,12 +260,20 @@ public sealed class PeriodSettings
         return this;
     }
 
-    #region Kiểu kỳ dựng sẵn
+    #region Cấu hình mặc định
 
     /// <summary>
-    /// Kiểu kỳ "Đầy đủ": 3 hồ sơ luồng theo PL III — cấu hình mặc định <b>chờ nghiệp vụ xác nhận</b>, sửa được trong giao diện kỳ.
+    /// Bộ tiêu chí có mẫu tự chấm <paramref name="selfScoreForm"/> cần bước đăng ký, duyệt sản phẩm (Mẫu 01): Mẫu 09A chấm theo sản
+    /// phẩm đã đăng ký; Mẫu 09B chấm trực tiếp theo trục, không đăng ký. Chưa chọn bộ (null) → có đăng ký.
     /// </summary>
-    public static PeriodSettings FullPreset()
+    public static bool UsesRegistration(string? selfScoreForm) =>
+        !string.Equals(selfScoreForm, CriteriaSetContent.Form09B, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Cấu hình của kỳ mới: 3 hồ sơ luồng theo PL III — cấu hình mặc định <b>chờ nghiệp vụ xác nhận</b>, sửa được trong giao diện kỳ;
+    /// bước đăng ký, duyệt sản phẩm theo mẫu tự chấm của bộ tiêu chí (<see cref="AlignWithCriteria"/>).
+    /// </summary>
+    public static PeriodSettings Default(string? selfScoreForm = null)
     {
         var settings = new PeriodSettings
         {
@@ -332,37 +307,47 @@ public sealed class PeriodSettings
                 [nameof(ApprovalAuthority.CapTren)] = ProfileUpper
             }
         };
-        return settings;
+        return settings.AlignWithCriteria(selfScoreForm);
     }
 
-    /// <summary>Kiểu kỳ "Quý III/2026 — chuyển tiếp": như "Đầy đủ" nhưng B1 không áp dụng ở mọi hồ sơ luồng (dùng với bộ 09B).</summary>
-    public static PeriodSettings TransitionQ3Preset()
+    /// <summary>
+    /// Đặt bước đăng ký, duyệt sản phẩm của mọi hồ sơ luồng theo mẫu tự chấm của bộ tiêu chí. Có đăng ký (09A): bước đăng ký nội bộ;
+    /// bước duyệt đang "Không áp dụng" thì bật lại (nội bộ, quyền mặc định), đang nội bộ / cấp trên thì giữ. Không đăng ký (09B): cả
+    /// hai bước "Không áp dụng". Các bước khác giữ nguyên.
+    /// </summary>
+    public PeriodSettings AlignWithCriteria(string? selfScoreForm)
     {
-        var settings = FullPreset();
-        foreach (var profile in settings.Profiles)
+        var registration = UsesRegistration(selfScoreForm);
+        foreach (var profile in Profiles ?? new())
         {
-            profile.Step(WorkflowStep.B1_REGISTER).Mode = StepMode.Off;
-            profile.Step(WorkflowStep.B1_APPROVE).Mode = StepMode.Off;
+            var approve = profile.Step(WorkflowStep.B1_APPROVE);
+            profile.Steps[WorkflowSteps.Code(WorkflowStep.B1_REGISTER)] = new ProfileStepSetting
+            {
+                Mode = registration ? StepMode.Internal : StepMode.Off,
+                Deadline = profile.Step(WorkflowStep.B1_REGISTER).Deadline,
+                Rule = profile.Step(WorkflowStep.B1_REGISTER).Rule
+            };
+            if (!registration)
+                approve.Mode = StepMode.Off;
+            else if (approve.Mode == StepMode.Off)
+                approve.Mode = StepMode.Internal;
+            profile.Steps[WorkflowSteps.Code(WorkflowStep.B1_APPROVE)] = approve;
             profile.Normalize();
         }
-        return settings;
+        return this;
     }
-
-    /// <summary>Tìm kiểu kỳ theo mã; null nếu không có.</summary>
-    public static PeriodPreset? FindPreset(string? code) =>
-        Presets.FirstOrDefault(p => string.Equals(p.Code, code?.Trim(), StringComparison.OrdinalIgnoreCase));
 
     #endregion
 
     #region Đọc / ghi
 
     /// <summary>
-    /// Đọc cấu hình từ JSON. Chuỗi rỗng → kiểu kỳ "Đầy đủ". JSON sai định dạng → <see cref="FormatException"/>.
+    /// Đọc cấu hình từ JSON. Chuỗi rỗng → cấu hình mặc định (<see cref="Default"/>). JSON sai định dạng → <see cref="FormatException"/>.
     /// </summary>
     public static PeriodSettings Parse(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
-            return FullPreset();
+            return Default();
 
         PeriodSettings? settings;
         try
@@ -374,7 +359,7 @@ public sealed class PeriodSettings
             throw new FormatException("Cấu hình kỳ không đúng định dạng JSON.", ex);
         }
 
-        return (settings ?? FullPreset()).Normalize();
+        return (settings ?? Default()).Normalize();
     }
 
     /// <summary>Chuẩn hóa: hồ sơ luồng đủ 9 bước, khóa cấp quyết định đúng tên.</summary>
@@ -431,22 +416,23 @@ public sealed class PeriodSettings
     /// <summary>
     /// Kiểm tra cấu trúc cấu hình; trả danh sách lỗi (rỗng = hợp lệ). Mã quyền của bước nội bộ phải thuộc danh mục quyền
     /// — kiểm tra ở tầng Application (<paramref name="isAllowedPermission"/>). <paramref name="selfScoreForm"/>: mẫu tự chấm của
-    /// bộ tiêu chí kỳ đã chọn (09A cần bước đăng ký sản phẩm ở mọi hồ sơ luồng); null = chưa chọn bộ.
+    /// bộ tiêu chí kỳ đã chọn (09A: mọi hồ sơ luồng áp dụng bước đăng ký sản phẩm; 09B: không áp dụng bước đăng ký, duyệt);
+    /// null = chưa chọn bộ.
     /// </summary>
     public List<string> Validate(Func<string, bool>? isAllowedPermission = null, string? selfScoreForm = null)
     {
         var errors = new List<string>();
         if (SchemaVersion != CurrentSchemaVersion)
-            errors.Add($"Phiên bản cấu hình {SchemaVersion} không được hỗ trợ (chỉ hỗ trợ phiên bản {CurrentSchemaVersion} — cấu hình theo hồ sơ luồng).");
+            errors.Add($"Phiên bản cấu hình {SchemaVersion} không được hỗ trợ (chỉ hỗ trợ phiên bản {CurrentSchemaVersion} — cấu hình theo cách xét duyệt).");
 
         var profiles = Profiles ?? new List<WorkflowProfile>();
         if (profiles.Count == 0)
-            errors.Add("Kỳ phải có ít nhất một hồ sơ luồng.");
+            errors.Add("Kỳ phải có ít nhất một cách xét duyệt.");
         if (profiles.Count > MaxProfiles)
-            errors.Add($"Một kỳ có tối đa {MaxProfiles} hồ sơ luồng.");
+            errors.Add($"Một kỳ có tối đa {MaxProfiles} cách xét duyệt.");
 
         foreach (var duplicate in profiles.GroupBy(p => p.Code, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
-            errors.Add($"Mã hồ sơ luồng \"{duplicate.Key}\" bị trùng.");
+            errors.Add($"Mã cách xét duyệt \"{duplicate.Key}\" bị trùng.");
 
         foreach (var profile in profiles)
             errors.AddRange(ValidateProfile(profile, isAllowedPermission));
@@ -455,18 +441,25 @@ public sealed class PeriodSettings
         {
             var label = authority == ApprovalAuthority.CoSo ? "Đảng ủy cơ sở quyết định" : "cấp trên quyết định";
             if (!DefaultProfiles.TryGetValue(authority.ToString(), out var code) || string.IsNullOrWhiteSpace(code))
-                errors.Add($"Hãy chọn hồ sơ luồng mặc định cho người thuộc diện {label}.");
+                errors.Add($"Hãy chọn cách xét duyệt mặc định cho người thuộc diện {label}.");
             else if (FindProfile(code) == null)
-                errors.Add($"Hồ sơ luồng mặc định \"{code}\" (diện {label}) không tồn tại.");
+                errors.Add($"Cách xét duyệt mặc định \"{code}\" (diện {label}) không tồn tại.");
         }
         foreach (var key in DefaultProfiles.Keys.Where(k => !Enum.TryParse<ApprovalAuthority>(k, false, out _)))
             errors.Add($"Cấp quyết định \"{key}\" không hợp lệ (chỉ CoSo hoặc CapTren).");
 
-        if (string.Equals(selfScoreForm, CriteriaSetContent.Form09A, StringComparison.OrdinalIgnoreCase))
+        // Bước đăng ký, duyệt sản phẩm đi theo bộ tiêu chí (AlignWithCriteria đặt sẵn khi tạo kỳ, đổi bộ).
+        if (selfScoreForm != null && UsesRegistration(selfScoreForm))
         {
             foreach (var profile in profiles.Where(p => !p.IsActive(WorkflowStep.B1_REGISTER)))
-                errors.Add($"Hồ sơ luồng \"{profile.Name}\": bộ tiêu chí của kỳ tự chấm theo Mẫu 09A, cần danh mục sản phẩm (Mẫu 01) — "
-                    + "hãy áp dụng bước đăng ký sản phẩm hoặc chọn bộ tiêu chí Mẫu 09B.");
+                errors.Add($"Cách xét duyệt \"{profile.Name}\": bộ tiêu chí của kỳ tự chấm theo Mẫu {selfScoreForm}, cần danh mục sản phẩm "
+                    + "(Mẫu 01) — bước đăng ký sản phẩm phải áp dụng.");
+        }
+        else if (selfScoreForm != null)
+        {
+            foreach (var profile in profiles.Where(p => p.IsActive(WorkflowStep.B1_REGISTER) || p.IsActive(WorkflowStep.B1_APPROVE)))
+                errors.Add($"Cách xét duyệt \"{profile.Name}\": bộ tiêu chí của kỳ tự chấm theo Mẫu {selfScoreForm}, không đăng ký sản phẩm — "
+                    + "bước đăng ký, duyệt sản phẩm phải \"Không áp dụng\".");
         }
 
         return errors;
@@ -476,22 +469,22 @@ public sealed class PeriodSettings
     {
         var label = string.IsNullOrWhiteSpace(profile.Name) ? profile.Code : profile.Name;
         if (!CodePattern.IsMatch(profile.Code ?? string.Empty))
-            yield return $"Mã hồ sơ luồng \"{profile.Code}\" không hợp lệ: chỉ gồm chữ thường không dấu, số, gạch nối (tối đa 50 ký tự).";
+            yield return $"Mã cách xét duyệt \"{profile.Code}\" không hợp lệ: chỉ gồm chữ thường không dấu, số, gạch nối (tối đa 50 ký tự).";
         if (string.IsNullOrWhiteSpace(profile.Name))
-            yield return $"Hồ sơ luồng \"{profile.Code}\" chưa có tên.";
+            yield return $"Cách xét duyệt \"{profile.Code}\" chưa có tên.";
         else if (profile.Name.Length > 200)
-            yield return $"Tên hồ sơ luồng \"{profile.Code}\" không được dài quá 200 ký tự.";
+            yield return $"Tên cách xét duyệt \"{profile.Code}\" không được dài quá 200 ký tự.";
         if (profile.Description is { Length: > 1000 })
-            yield return $"Mô tả hồ sơ luồng \"{label}\" không được dài quá 1000 ký tự.";
+            yield return $"Mô tả cách xét duyệt \"{label}\" không được dài quá 1000 ký tự.";
 
         foreach (var (stepKey, stepSetting) in profile.Steps ?? new Dictionary<string, ProfileStepSetting>())
         {
             if (stepSetting?.Rule?.Validate() is { } ruleError)
-                yield return $"Hồ sơ luồng \"{label}\": quy tắc thời hạn của bước \"{stepKey}\" không hợp lệ — {ruleError}";
+                yield return $"Cách xét duyệt \"{label}\": quy tắc thời hạn của bước \"{stepKey}\" không hợp lệ — {ruleError}";
         }
 
         foreach (var key in (profile.Steps ?? new Dictionary<string, ProfileStepSetting>()).Keys.Where(k => WorkflowSteps.Parse(k) == null))
-            yield return $"Hồ sơ luồng \"{label}\": mã bước \"{key}\" không tồn tại.";
+            yield return $"Cách xét duyệt \"{label}\": mã bước \"{key}\" không tồn tại.";
 
         foreach (var step in WorkflowSteps.Ordered)
         {
@@ -499,20 +492,20 @@ public sealed class PeriodSettings
             var name = WorkflowSteps.DisplayName(step);
             if (!Enum.IsDefined(setting.Mode))
             {
-                yield return $"Hồ sơ luồng \"{label}\": chế độ của bước \"{name}\" không hợp lệ.";
+                yield return $"Cách xét duyệt \"{label}\": chế độ của bước \"{name}\" không hợp lệ.";
                 continue;
             }
             if (setting.Mode == StepMode.Off && WorkflowSteps.Mandatory.Contains(step))
-                yield return $"Hồ sơ luồng \"{label}\": bước \"{name}\" là bước bắt buộc, không đặt \"Không áp dụng\" được.";
+                yield return $"Cách xét duyệt \"{label}\": bước \"{name}\" là bước bắt buộc, không đặt \"Không áp dụng\" được.";
             if (setting.Mode == StepMode.External && WorkflowSteps.NeverExternal.Contains(step))
-                yield return $"Hồ sơ luồng \"{label}\": bước \"{name}\" không giao cho cấp trên thực hiện được.";
+                yield return $"Cách xét duyệt \"{label}\": bước \"{name}\" không giao cho cấp trên thực hiện được.";
             if (setting.Mode == StepMode.Internal && !WorkflowSteps.OwnerSteps.Contains(step) && isAllowedPermission != null
                 && (string.IsNullOrWhiteSpace(setting.Permission) || !isAllowedPermission(setting.Permission)))
-                yield return $"Hồ sơ luồng \"{label}\": quyền thực hiện bước \"{name}\" (\"{setting.Permission}\") không hợp lệ — hãy chọn một quyền đánh giá trong danh mục quyền.";
+                yield return $"Cách xét duyệt \"{label}\": quyền thực hiện bước \"{name}\" (\"{setting.Permission}\") không hợp lệ — hãy chọn một quyền đánh giá trong danh mục quyền.";
         }
 
         if (profile.IsActive(WorkflowStep.B1_APPROVE) && !profile.IsActive(WorkflowStep.B1_REGISTER))
-            yield return $"Hồ sơ luồng \"{label}\": không thể áp dụng bước duyệt danh mục sản phẩm khi bước đăng ký sản phẩm không áp dụng.";
+            yield return $"Cách xét duyệt \"{label}\": không thể áp dụng bước duyệt danh mục sản phẩm khi bước đăng ký sản phẩm không áp dụng.";
     }
 
     /// <summary>

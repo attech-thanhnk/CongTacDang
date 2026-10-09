@@ -117,6 +117,12 @@ public sealed class EvaluationTaskConfiguration : IEntityTypeConfiguration<Evalu
         entity.HasIndex(e => e.AttachmentId);
         entity.Property(e => e.TaskName).HasMaxLength(500).IsRequired();
         entity.Property(e => e.AxisCode).HasMaxLength(20);
+        entity.Property(e => e.ProductCode).HasMaxLength(50);
+        entity.Property(e => e.Kind).HasConversion<int?>();
+        entity.Property(e => e.Role).HasConversion<int?>();
+        entity.Property(e => e.ExceedCriteria).HasMaxLength(2000);
+        entity.Property(e => e.EvidenceSource).HasMaxLength(1000);
+        entity.Property(e => e.Confirmer).HasMaxLength(500);
         entity.Property(e => e.Version)
             .HasColumnName("xmin")
             .IsRowVersion();

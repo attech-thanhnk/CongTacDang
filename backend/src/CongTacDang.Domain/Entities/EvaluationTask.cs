@@ -1,4 +1,5 @@
 using System;
+using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Domain.Entities;
 
@@ -36,6 +37,24 @@ public class EvaluationTask : IAuditableEntity, ISoftDeletable, IVersioned
 
     /// <summary>Mã trục kết quả (Mẫu 01 cột "Trục KQ") — thuộc bộ tiêu chí của kỳ; null nếu chưa chọn.</summary>
     public string? AxisCode { get; set; }
+
+    /// <summary>Mã sản phẩm (Mẫu 01 cột "Mã SP") — không bắt buộc.</summary>
+    public string? ProductCode { get; set; }
+
+    /// <summary>Loại sản phẩm: trọng tâm / thường xuyên / đột xuất; null với dữ liệu đăng ký trước khi có trường này.</summary>
+    public TaskKind? Kind { get; set; }
+
+    /// <summary>Vai trò chủ trì / phối hợp (Mẫu 01 cột "Vai trò"); null với dữ liệu cũ.</summary>
+    public TaskRole? Role { get; set; }
+
+    /// <summary>Tiêu chí vượt chuẩn (Mẫu 01 cột "Tiêu chí vượt chuẩn").</summary>
+    public string? ExceedCriteria { get; set; }
+
+    /// <summary>Nguồn dữ liệu / minh chứng (Mẫu 01 cột "Nguồn dữ liệu/minh chứng").</summary>
+    public string? EvidenceSource { get; set; }
+
+    /// <summary>Thẩm quyền xác nhận kết quả (Mẫu 01 cột "Thẩm quyền xác nhận").</summary>
+    public string? Confirmer { get; set; }
 
     #region Tự chấm điểm 4 Tiêu chí A-B-C-D theo khung tỷ trọng (0.0 đến 1.0)
 

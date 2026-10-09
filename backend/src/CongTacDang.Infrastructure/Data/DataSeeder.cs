@@ -680,7 +680,7 @@ public static class DataSeeder
     /// <summary>
     /// Dữ liệu mẫu dùng thử ngay theo mô hình hiện hành: cây đơn vị chính quyền (Công ty → Ban Giám đốc, các Phòng) và cây
     /// tổ chức Đảng (Đảng ủy → 2 Chi bộ) có loại đơn vị, tài khoản (bắt buộc đổi mật khẩu) kèm chức vụ (có kiêm nhiệm; thẩm quyền
-    /// phê duyệt suy ra từ chức vụ) và bản gán vai trò có phạm vi, kỳ "Quý III/2026" (kiểu kỳ chuyển tiếp, đủ 3 hồ sơ luồng,
+    /// phê duyệt suy ra từ chức vụ) và bản gán vai trò có phạm vi, kỳ "Quý III/2026" (bộ tiêu chí 09B — không đăng ký sản phẩm, đủ 3 hồ sơ luồng,
     /// đang mở, kiểm tra kẹt luồng sạch) và hồ sơ ở nhiều bước — hồ sơ Giám đốc theo hồ sơ luồng cấp trên. Chỉ chạy trên CSDL
     /// chưa có tài khoản, đơn vị, kỳ nào — không bao giờ gán lại vai trò cho người đã có.
     /// </summary>
@@ -807,7 +807,7 @@ public static class DataSeeder
             }
         }
 
-        var settings = PeriodSettings.TransitionQ3Preset();
+        var settings = PeriodSettings.Default(CriteriaSetContent.Form09B);
         var period = new EvaluationPeriod
         {
             Year = 2026,

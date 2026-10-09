@@ -36,9 +36,9 @@ public class EvaluationPeriod : IAuditableEntity, ISoftDeletable, IVersioned
 
     /// <summary>
     /// Cấu hình kỳ dạng JSON (cột jsonb, có schema version) — đọc/ghi qua <see cref="PeriodSettings"/>.
-    /// Chuỗi rỗng được hiểu là mẫu "Đầy đủ theo HD03".
+    /// Chuỗi rỗng được hiểu là cấu hình mặc định (<see cref="PeriodSettings.Default"/>).
     /// </summary>
-    public string Settings { get; set; } = PeriodSettings.FullPreset().ToJson();
+    public string Settings { get; set; } = PeriodSettings.Default().ToJson();
 
     /// <summary>Bộ tiêu chí đã chọn (chỉ chọn/đổi khi kỳ còn dự thảo; chỉ bộ đã xuất bản).</summary>
     public Guid? CriteriaSetId { get; set; }

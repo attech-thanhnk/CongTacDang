@@ -273,6 +273,12 @@ public static class EvaluationMapping
             Weight = t.Weight,
             Deadline = t.Deadline,
             AxisCode = t.AxisCode,
+            ProductCode = t.ProductCode,
+            Kind = t.Kind?.ToString(),
+            Role = t.Role?.ToString(),
+            ExceedCriteria = t.ExceedCriteria,
+            EvidenceSource = t.EvidenceSource,
+            Confirmer = t.Confirmer,
             CriteriaA_Ratio = t.CriteriaA_Ratio,
             CriteriaB_Ratio = t.CriteriaB_Ratio,
             CriteriaC_Ratio = t.CriteriaC_Ratio,
@@ -391,7 +397,7 @@ public static class EvaluationMapping
         }
         catch (FormatException)
         {
-            settings = PeriodSettings.FullPreset();
+            settings = PeriodSettings.Default();
         }
 
         return new EvaluationPeriodDto

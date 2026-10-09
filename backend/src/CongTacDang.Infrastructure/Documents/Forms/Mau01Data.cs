@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CongTacDang.Domain.Entities;
+using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
@@ -43,10 +44,15 @@ public sealed class Mau01Data
             {
                 Order = (index + 1).ToString(),
                 Name = t.TaskName,
+                Code = FormText.OrNull(t.ProductCode),
                 Axis = FormText.OrNull(t.AxisCode),
+                Role = t.Role switch { TaskRole.ChuTri => "Chủ trì", TaskRole.PhoiHop => "Phối hợp", _ => null },
                 Weight = FormText.Number(t.Weight, 1),
                 Deadline = FormText.Date(t.Deadline),
-                Standard = FormText.OrNull(t.TargetOutput)
+                Standard = FormText.OrNull(t.TargetOutput),
+                ExceedCriteria = FormText.OrNull(t.ExceedCriteria),
+                Evidence = FormText.OrNull(t.EvidenceSource),
+                Signer = FormText.OrNull(t.Confirmer)
             }).ToList()
         };
     }
@@ -58,27 +64,27 @@ public sealed class Mau01TaskRow
     [TemplateField("T_STT")] public string? Order { get; init; }
     [TemplateField("T_NAME")] public string? Name { get; init; }
 
-    /// <summary>Chưa có dữ liệu lưu (mã sản phẩm) — giữ chữ mặc định trong template.</summary>
+    /// <summary>Mã sản phẩm (không bắt buộc) — trống thì giữ chữ mặc định trong template.</summary>
     [TemplateField("T_CODE")] public string? Code { get; init; }
 
     /// <summary>Mã trục kết quả theo bộ tiêu chí của kỳ; nhiệm vụ chưa chọn trục → giữ chữ mặc định trong template.</summary>
     [TemplateField("T_AXIS")] public string? Axis { get; init; }
 
-    /// <summary>Chưa có dữ liệu lưu (vai trò chủ trì/phối hợp) — giữ chữ mặc định trong template.</summary>
+    /// <summary>Vai trò "Chủ trì" / "Phối hợp"; dữ liệu đăng ký cũ chưa có → giữ chữ mặc định trong template.</summary>
     [TemplateField("T_ROLE")] public string? Role { get; init; }
 
     [TemplateField("T_WEIGHT")] public string? Weight { get; init; }
     [TemplateField("T_DEADLINE")] public string? Deadline { get; init; }
 
-    /// <summary>Chỉ tiêu đầu ra đã đăng ký; trống thì giữ chữ mặc định trong template.</summary>
+    /// <summary>Chuẩn đạt đã đăng ký; trống thì giữ chữ mặc định trong template.</summary>
     [TemplateField("T_STANDARD")] public string? Standard { get; init; }
 
-    /// <summary>Chưa có dữ liệu lưu — giữ chữ mặc định trong template.</summary>
+    /// <summary>Trống (dữ liệu đăng ký cũ) thì giữ chữ mặc định trong template.</summary>
     [TemplateField("T_EXCEED")] public string? ExceedCriteria { get; init; }
 
-    /// <summary>Chưa có dữ liệu lưu — giữ chữ mặc định trong template.</summary>
+    /// <summary>Trống (dữ liệu đăng ký cũ) thì giữ chữ mặc định trong template.</summary>
     [TemplateField("T_EVIDENCE")] public string? Evidence { get; init; }
 
-    /// <summary>Chưa có dữ liệu lưu — giữ chữ mặc định trong template.</summary>
+    /// <summary>Trống (dữ liệu đăng ký cũ) thì giữ chữ mặc định trong template.</summary>
     [TemplateField("T_SIGNER")] public string? Signer { get; init; }
 }

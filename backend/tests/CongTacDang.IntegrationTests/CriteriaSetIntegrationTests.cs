@@ -62,8 +62,8 @@ public sealed class CriteriaSetIntegrationTests
         Assert.Equal(HttpStatusCode.Conflict, (await w.Manager.PutAsJsonAsync($"/api/criteria-sets/{setId}", new { version = publishedVersion, name = "Sửa" })).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await w.Manager.DeleteAsync($"/api/criteria-sets/{setId}?version={publishedVersion}")).StatusCode);
 
-        // 2. Kỳ (Quý III — chuyển tiếp) chọn bộ vừa xuất bản; mở kỳ → chụp nguyên bộ.
-        var period = await CreatePeriodAsync(w, "q3-2026-transition", setId);
+        // 2. Kỳ chọn bộ vừa xuất bản; mở kỳ → chụp nguyên bộ.
+        var period = await CreatePeriodAsync(w, setId);
         var periodId = period.GetProperty("id").GetGuid();
         Assert.Equal(setId, period.GetProperty("criteriaSetId").GetGuid());
         Assert.Equal(code, period.GetProperty("criteria").GetProperty("code").GetString());
@@ -93,7 +93,7 @@ public sealed class CriteriaSetIntegrationTests
         Assert.Equal(5, snapshot.GetProperty("content").GetProperty("parameters").GetProperty("explanationThreshold").GetDouble());
         Assert.NotEqual("Nội dung đã sửa ở bản mới", snapshot.GetProperty("content").GetProperty("generalGroups")[0].GetProperty("items")[0].GetProperty("text").GetString());
         // Bộ đã lưu trữ không chọn được cho kỳ mới.
-        var archivedChoice = await PostPeriodAsync(w, "q3-2026-transition", setId);
+        var archivedChoice = await PostPeriodAsync(w, setId);
         Assert.Equal(HttpStatusCode.BadRequest, archivedChoice.StatusCode);
         Assert.Contains("đã xuất bản", await MessageAsync(archivedChoice));
 
@@ -139,7 +139,7 @@ public sealed class CriteriaSetIntegrationTests
     public async Task C2_Form09A_WeightFrameReadiness_TaskAxisCodes_AbcdByFrame_ExportsMau01Mau02()
     {
         var w = await WorldAsync();
-        var period = await CreatePeriodAsync(w, "full", null);
+        var period = await CreatePeriodAsync(w, await TestCriteriaSets.LatestPublishedAsync(w.Manager, "09A"));
         var periodId = period.GetProperty("id").GetGuid();
         Assert.Equal("09A", period.GetProperty("criteria").GetProperty("selfScoreForm").GetString());
 
@@ -212,6 +212,8 @@ public sealed class CriteriaSetIntegrationTests
 
         // Mẫu 01 ghi mã trục, Mẫu 02 ghi điểm theo số chữ số thập phân của bộ.
         await AssertDocxAsync(w.Manager, $"/api/reports/docx/mau-01/{r1}", "T1");
+        await AssertDocxAsync(w.Manager, $"/api/reports/docx/mau-01/{r1}", "Chủ trì");
+        await AssertDocxAsync(w.Manager, $"/api/reports/docx/mau-01/{r1}", "Biên bản nghiệm thu");
         await AssertDocxAsync(w.Manager, $"/api/reports/docx/mau-02/{r1}", "29,3");
     }
 
@@ -236,7 +238,7 @@ public sealed class CriteriaSetIntegrationTests
         // Bản nháp xóa được; bản nháp không chọn được cho kỳ.
         var draft = await Data(await w.Manager.PostAsJsonAsync("/api/criteria-sets", new { code = $"IT-DEL-{Guid.NewGuid().ToString("N")[..6]}", name = "Nháp xóa", selfScoreForm = "09A" }));
         var draftId = draft.GetProperty("id").GetGuid();
-        var draftChoice = await PostPeriodAsync(w, "full", draftId);
+        var draftChoice = await PostPeriodAsync(w, draftId);
         Assert.Equal(HttpStatusCode.BadRequest, draftChoice.StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await w.Manager.DeleteAsync($"/api/criteria-sets/{draftId}?version={draft.GetProperty("version").GetUInt32()}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await w.Manager.GetAsync($"/api/criteria-sets/{draftId}")).StatusCode);
@@ -320,22 +322,22 @@ public sealed class CriteriaSetIntegrationTests
     {
         tasks = new[]
         {
-            new { taskName = "Sản phẩm trọng tâm", targetOutput = "Kết quả 1", weight = 30.0, axisCode },
-            new { taskName = "Sản phẩm 2", targetOutput = "Kết quả 2", weight = 25.0, axisCode },
-            new { taskName = "Sản phẩm 3", targetOutput = "Kết quả 3", weight = 15.0, axisCode }
+            new { taskName = "Sản phẩm trọng tâm", targetOutput = "Kết quả 1", weight = 30.0, axisCode, kind = "TrongTam", role = "ChuTri", exceedCriteria = "Vượt tiến độ", evidenceSource = "Biên bản nghiệm thu", confirmer = "Giám đốc" },
+            new { taskName = "Sản phẩm 2", targetOutput = "Kết quả 2", weight = 25.0, axisCode, kind = "TrongTam", role = "ChuTri", exceedCriteria = "Vượt tiến độ", evidenceSource = "Biên bản nghiệm thu", confirmer = "Giám đốc" },
+            new { taskName = "Sản phẩm 3", targetOutput = "Kết quả 3", weight = 15.0, axisCode, kind = "ThuongXuyen", role = "PhoiHop", exceedCriteria = "Vượt tiến độ", evidenceSource = "Biên bản nghiệm thu", confirmer = "Giám đốc" }
         }
     };
 
-    private static Task<HttpResponseMessage> PostPeriodAsync(World w, string preset, Guid? criteriaSetId) =>
+    private static Task<HttpResponseMessage> PostPeriodAsync(World w, Guid? criteriaSetId) =>
         w.Manager.PostAsJsonAsync("/api/evaluations/periods", new
         {
-            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, preset, criteriaSetId,
+            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, criteriaSetId,
             name = $"Kỳ tiêu chí {Guid.NewGuid().ToString("N")[..8]}",
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         });
 
-    private static async Task<JsonElement> CreatePeriodAsync(World w, string preset, Guid? criteriaSetId) =>
-        await Data(await PostPeriodAsync(w, preset, criteriaSetId));
+    private static async Task<JsonElement> CreatePeriodAsync(World w, Guid criteriaSetId) =>
+        await Data(await PostPeriodAsync(w, criteriaSetId));
 
     private static async Task<Guid> AddParticipantAsync(World w, Guid periodId, Guid memberId)
     {

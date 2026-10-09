@@ -9,26 +9,22 @@ import { PeriodStatusBadge } from "@/components/periods/PeriodStatusBadge";
 import { CreatePeriodModal } from "@/components/periods/CreatePeriodModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { EvaluationPeriodDto, PeriodPresetDto, evaluationService } from "@/services/evaluationService";
+import { EvaluationPeriodDto, evaluationService } from "@/services/evaluationService";
 
-/** Kỳ đánh giá: danh sách (mọi người đã đăng nhập) và tạo kỳ từ kiểu kỳ dựng sẵn (period.manage). */
+/** Kỳ đánh giá: danh sách (mọi người đã đăng nhập) và tạo kỳ với bộ tiêu chí đã chọn (period.manage). */
 export default function PeriodsPage() {
   const { hasPermission } = useAuth();
   const canManage = hasPermission("period.manage");
   const { toast } = useToast();
   const router = useRouter();
   const [periods, setPeriods] = useState<EvaluationPeriodDto[]>([]);
-  const [presets, setPresets] = useState<PeriodPresetDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const canSeeCriteria = canManage || hasPermission("criteria.manage");
 
   useEffect(() => {
-    Promise.all([evaluationService.getPeriods(), evaluationService.getPresets()])
-      .then(([list, presetList]) => {
-        setPeriods(list);
-        setPresets(presetList);
-      })
+    evaluationService.getPeriods()
+      .then(setPeriods)
       .catch((err: any) => toast.error(err?.message || "Không tải được danh sách kỳ."))
       .finally(() => setLoading(false));
   }, [toast]);
@@ -58,7 +54,7 @@ export default function PeriodsPage() {
             ) : (
               <div className="table-responsive"><table className="table table-hover align-middle mb-0 periods-table">
                 <thead>
-                  <tr><th>Kỳ</th><th>Trạng thái</th><th>Bộ tiêu chí</th><th>Hồ sơ luồng</th><th className="text-end">Người được đánh giá</th><th /></tr>
+                  <tr><th>Kỳ</th><th>Trạng thái</th><th>Bộ tiêu chí</th><th>Cách xét duyệt</th><th className="text-end">Người được đánh giá</th><th /></tr>
                 </thead>
                 <tbody>
                   {periods.map((p) => (
@@ -86,7 +82,6 @@ export default function PeriodsPage() {
 
       {creating && (
         <CreatePeriodModal
-          presets={presets}
           onClose={() => setCreating(false)}
           onCreated={(period) => router.push(`/periods/${period.id}`)}
         />

@@ -14,7 +14,7 @@ using CongTacDang.Domain.Evaluation;
 namespace CongTacDang.Application.Services;
 
 /// <summary>
-/// Quản lý kỳ đánh giá (docs/thiet-ke/luong-danh-gia.md mục 3): tạo từ kiểu kỳ dựng sẵn (sinh sẵn các hồ sơ luồng), sửa cấu hình
+/// Quản lý kỳ đánh giá (docs/thiet-ke/luong-danh-gia.md mục 3): tạo với bộ tiêu chí đã chọn (sinh sẵn các hồ sơ luồng, bước đăng ký sản phẩm theo bộ), sửa cấu hình
 /// (chỉ khi dự thảo — riêng thời hạn sửa được khi đang mở/khóa dữ liệu), danh sách người được đánh giá và hồ sơ luồng của từng
 /// người, kiểm tra kẹt luồng, chuyển trạng thái kỳ. Quyền <c>period.manage</c>.
 /// </summary>
@@ -23,7 +23,6 @@ public interface IPeriodService
     Task<List<EvaluationPeriodDto>> GetPeriodsAsync(CancellationToken ct = default);
     Task<EvaluationPeriodDto?> GetActivePeriodAsync(CancellationToken ct = default);
     Task<EvaluationPeriodDto> GetPeriodAsync(Guid id, CancellationToken ct = default);
-    IReadOnlyList<PeriodPresetDto> GetPresets();
 
     /// <summary>Mã quyền chọn được làm quyền thực hiện bước nội bộ trong hồ sơ luồng.</summary>
     IReadOnlyList<StepPermissionOptionDto> GetStepPermissions();
@@ -125,17 +124,6 @@ public sealed class PeriodService : IPeriodService
     }
 
     /// <inheritdoc />
-    public IReadOnlyList<PeriodPresetDto> GetPresets() =>
-        PeriodSettings.Presets.Select(p => new PeriodPresetDto
-        {
-            Code = p.Code,
-            Name = p.Name,
-            Description = p.Description,
-            SuggestedForm = p.SuggestedForm,
-            Settings = p.Build()
-        }).ToList();
-
-    /// <inheritdoc />
     public IReadOnlyList<StepPermissionOptionDto> GetStepPermissions() =>
         WorkflowActions.AssignableStepPermissions()
             .Select(d => new StepPermissionOptionDto { Code = d.Code, Name = d.Name, Description = d.Description })
@@ -166,12 +154,11 @@ public sealed class PeriodService : IPeriodService
             throw new ConflictException($"Đã có kỳ \"{duplicate.Name}\" cho quý {dto.Quarter}/{dto.Year}. Mỗi quý chỉ có một kỳ đánh giá; "
                 + "hãy bổ sung người được đánh giá vào kỳ đó thay vì tạo kỳ mới.");
 
-        var preset = string.IsNullOrWhiteSpace(dto.Preset)
-            ? PeriodSettings.FindPreset(PeriodSettings.PresetFull)!
-            : PeriodSettings.FindPreset(dto.Preset)
-              ?? throw new ValidationException($"Kiểu kỳ \"{dto.Preset}\" không tồn tại. Hãy chọn một trong: "
-                  + string.Join(", ", PeriodSettings.Presets.Select(p => p.Name)) + ".");
+        if (dto.CriteriaSetId is not { } setId || setId == Guid.Empty)
+            throw new ValidationException("Hãy chọn bộ tiêu chí cho kỳ.");
+        var set = await LoadPublishedSetAsync(setId, ct);
 
+        // Cấu hình mặc định; bước đăng ký, duyệt sản phẩm theo mẫu tự chấm của bộ tiêu chí.
         var now = DateTime.UtcNow;
         var period = new EvaluationPeriod
         {
@@ -182,21 +169,10 @@ public sealed class PeriodService : IPeriodService
             StartDate = DateTime.SpecifyKind(dto.StartDate, DateTimeKind.Utc),
             EndDate = DateTime.SpecifyKind(dto.EndDate, DateTimeKind.Utc),
             Status = PeriodStatus.Draft,
-            Settings = preset.Build().ToJson(),
+            Settings = PeriodSettings.Default(set.SelfScoreForm).ToJson(),
             CreatedAt = now
         };
-
-        // Bộ tiêu chí: chỉ định → phải đã xuất bản; không chỉ định → bộ đã xuất bản mới nhất có mẫu tự chấm gợi ý của kiểu kỳ.
-        var set = dto.CriteriaSetId.HasValue
-            ? await LoadPublishedSetAsync(dto.CriteriaSetId.Value, ct)
-            : await _criteriaSets.LatestPublishedAsync(preset.SuggestedForm, ct);
-        if (set != null)
-        {
-            var errors = ValidateSettings(preset.Build(), set.SelfScoreForm);
-            if (errors.Count > 0)
-                throw new ValidationException($"Kiểu kỳ \"{preset.Name}\" không dùng được với bộ tiêu chí \"{set.Name}\": " + string.Join(" ", errors));
-            AttachCriteria(period, set, now);
-        }
+        AttachCriteria(period, set, now);
 
         _repo.AddPeriod(period);
         await _unitOfWork.SaveChangesAsync(ct);
@@ -221,12 +197,9 @@ public sealed class PeriodService : IPeriodService
             var set = await LoadPublishedSetAsync(dto.CriteriaSetId.Value, ct);
             AttachCriteria(period, set, DateTime.UtcNow);
             form = set.SelfScoreForm;
-            if (dto.Settings == null)
-            {
-                var errors = ValidateSettings(current, form);
-                if (errors.Count > 0)
-                    throw new ValidationException($"Cấu hình kỳ không dùng được với bộ tiêu chí \"{set.Name}\": " + string.Join(" ", errors));
-            }
+            // Bước đăng ký, duyệt sản phẩm đi theo bộ mới (cả khi gửi kèm cấu hình).
+            dto.Settings ??= current.Clone();
+            dto.Settings.AlignWithCriteria(form);
         }
 
         var settingsChanged = false;
@@ -245,7 +218,7 @@ public sealed class PeriodService : IPeriodService
                 throw new ValidationException("Cấu hình kỳ chưa hợp lệ: " + string.Join(" ", errors));
 
             if (period.Status != PeriodStatus.Draft && !next.DiffersOnlyInDeadlines(current))
-                throw new ConflictException("Kỳ đã mở: chỉ được sửa thời hạn các bước. Hồ sơ luồng, chế độ và quyền thực hiện bước "
+                throw new ConflictException("Kỳ đã mở: chỉ được sửa thời hạn các bước. Cách xét duyệt, chế độ và quyền thực hiện bước "
                     + "chỉ sửa được khi kỳ còn dự thảo.");
 
             settingsChanged = next.ToJson() != current.ToJson();
@@ -292,8 +265,8 @@ public sealed class PeriodService : IPeriodService
             .ToList();
         if (missing.Count > 0)
         {
-            throw new ConflictException("Không xóa được hồ sơ luồng đang được dùng: " + string.Join(", ", missing)
-                + ". Hãy chuyển các hồ sơ đó sang hồ sơ luồng khác trước.");
+            throw new ConflictException("Không xóa được cách xét duyệt đang được dùng: " + string.Join(", ", missing)
+                + ". Hãy chuyển các hồ sơ đó sang cách xét duyệt khác trước.");
         }
     }
 
@@ -325,7 +298,7 @@ public sealed class PeriodService : IPeriodService
         // Chụp nguyên bộ vào kỳ (bất biến cho kỳ này).
         AttachCriteria(period, set, DateTime.UtcNow);
 
-        // Khung tỷ trọng sai là lỗi dữ liệu (không tự chấm được theo Mẫu 09A), không phải cảnh báo kẹt luồng: "mở bắt buộc" không bỏ qua được.
+        // Khung tỷ trọng sai là lỗi dữ liệu (không tự chấm được theo Mẫu 09A), không phải cảnh báo thiếu người thực hiện: "mở bắt buộc" không bỏ qua được.
         var frameErrors = WeightFrameErrors(ReadCriteria(period), records.Where(r => r.Status != RecordStatus.Published));
         if (frameErrors.Count > 0)
         {
@@ -342,8 +315,8 @@ public sealed class PeriodService : IPeriodService
             if (dto?.Force != true)
                 return new OpenPeriodOutcome { Readiness = readiness };
             if (string.IsNullOrWhiteSpace(reason))
-                throw new ValidationException("Mở kỳ bắt buộc khi còn cảnh báo kẹt luồng: hãy nhập lý do.");
-            reason = $"Mở kỳ bắt buộc khi còn {readiness.Issues.Count} cảnh báo kẹt luồng. Lý do: {reason}";
+                throw new ValidationException("Mở kỳ bắt buộc khi còn cảnh báo thiếu người thực hiện: hãy nhập lý do.");
+            reason = $"Mở kỳ bắt buộc khi còn {readiness.Issues.Count} cảnh báo thiếu người thực hiện. Lý do: {reason}";
             if (reason.Length > MaxReasonLength)
                 reason = reason[..MaxReasonLength];
         }
@@ -495,7 +468,7 @@ public sealed class PeriodService : IPeriodService
                 : $"Hồ sơ của {fullName} ({profile.Name}) sẽ kẹt ở bước \"{WorkflowSteps.DisplayName(step)}\""
                   + (mode == StepMode.External ? " (do cấp trên thực hiện)" : string.Empty)
                   + $" vì không có tài khoản đang hoạt động nào (ngoài chủ hồ sơ) có quyền \"{permissionName}\" trong phạm vi {scope}. "
-                  + "Hãy gán vai trò có quyền này hoặc sửa cấu hình bước của hồ sơ luồng.";
+                  + "Hãy gán vai trò có quyền này hoặc sửa cấu hình bước của cách xét duyệt.";
             result.Issues.Add(new ReadinessIssueDto
             {
                 RecordId = record.Id,
@@ -659,7 +632,7 @@ public sealed class PeriodService : IPeriodService
         foreach (var code in (profileByMember?.Values ?? Enumerable.Empty<string>()).Distinct())
         {
             if (settings.FindProfile(code) == null)
-                throw new ValidationException($"Hồ sơ luồng \"{code}\" không có trong cấu hình kỳ. Hãy chọn một trong: "
+                throw new ValidationException($"Cách xét duyệt \"{code}\" không có trong cấu hình kỳ. Hãy chọn một trong: "
                     + string.Join(", ", settings.Profiles.Select(p => $"{p.Code} ({p.Name})")) + ".");
         }
 
@@ -713,7 +686,7 @@ public sealed class PeriodService : IPeriodService
 
             _repo.AddHistory(NewHistory(record, from, initial, WorkflowAction.Create, null,
                 $"Thêm vào danh sách được đánh giá ({source}); ảnh chụp Phòng: {member.DepartmentName ?? "—"}, Chi bộ: {member.PartyCellName ?? "—"}; "
-                + $"hồ sơ luồng: {profile.Name}."));
+                + $"cách xét duyệt: {profile.Name}."));
             existing.Add(id);
             result.Added++;
         }
@@ -797,7 +770,7 @@ public sealed class PeriodService : IPeriodService
                 throw new ValidationException("Cấp quyết định phải là CoSo hoặc CapTren.");
             if (authority != record.ApprovalAuthority)
             {
-                changes.Add("cấp quyết định (hồ sơ luồng giữ nguyên — đổi riêng nếu cần)");
+                changes.Add("cấp quyết định (cách xét duyệt giữ nguyên — đổi riêng nếu cần)");
                 record.ApprovalAuthority = authority;
             }
         }
@@ -841,7 +814,7 @@ public sealed class PeriodService : IPeriodService
         var items = (dto.Items ?? new List<ProfileChangeItemDto>()).Where(i => i.RecordId != Guid.Empty)
             .GroupBy(i => i.RecordId).Select(g => g.First()).ToList();
         if (items.Count == 0)
-            throw new ValidationException("Hãy chọn ít nhất một người được đánh giá để đổi hồ sơ luồng.");
+            throw new ValidationException("Hãy chọn ít nhất một người được đánh giá để đổi cách xét duyệt.");
 
         var result = new BulkChangeProfileResultDto();
         foreach (var item in items)
@@ -871,10 +844,10 @@ public sealed class PeriodService : IPeriodService
     {
         var code = profileCode?.Trim();
         if (string.IsNullOrEmpty(code))
-            throw new ValidationException("Hãy chọn hồ sơ luồng mới.");
+            throw new ValidationException("Hãy chọn cách xét duyệt mới.");
         var clean = reason?.Trim();
         if (string.IsNullOrWhiteSpace(clean))
-            throw new ValidationException("Hãy nhập lý do đổi hồ sơ luồng.");
+            throw new ValidationException("Hãy nhập lý do đổi cách xét duyệt.");
         if (clean.Length > 2000)
             throw new ValidationException("Lý do không được dài quá 2000 ký tự.");
         return (code, clean);
@@ -892,15 +865,15 @@ public sealed class PeriodService : IPeriodService
         if (record.Version != version)
             return new ConflictException("Hồ sơ đã được cập nhật sau khi bạn mở danh sách. Hãy tải lại.");
         if (record.Period.Status == PeriodStatus.Closed)
-            return new ConflictException("Kỳ đã đóng, không đổi được hồ sơ luồng.");
+            return new ConflictException("Kỳ đã đóng, không đổi được cách xét duyệt.");
 
         var settings = ReadSettings(record.Period);
         var next = settings.FindProfile(profileCode);
         if (next == null)
-            return new ValidationException($"Hồ sơ luồng \"{profileCode}\" không có trong cấu hình kỳ.");
+            return new ValidationException($"Cách xét duyệt \"{profileCode}\" không có trong cấu hình kỳ.");
         var current = EvaluationMapping.ProfileOf(settings, record);
         if (string.Equals(current.Code, next.Code, StringComparison.Ordinal) && record.WorkflowProfileCode == next.Code)
-            return new ValidationException($"Hồ sơ đang dùng hồ sơ luồng \"{next.Name}\".");
+            return new ValidationException($"Hồ sơ đang dùng cách xét duyệt \"{next.Name}\".");
 
         var differing = current.DifferingSteps(next);
         if (differing.Count > 0)
@@ -912,14 +885,14 @@ public sealed class PeriodService : IPeriodService
                 var affected = WorkflowSteps.Ordered[firstAffected];
                 return new ConflictException(
                     $"Hồ sơ đang ở bước \"{WorkflowSteps.StatusDisplayName(record.Status)}\", đã qua bước \"{WorkflowSteps.DisplayName(affected)}\" "
-                    + $"mà hồ sơ luồng \"{next.Name}\" cấu hình khác — không đổi được. Hãy mở lại hồ sơ về trước bước đó nếu cần.");
+                    + $"mà cách xét duyệt \"{next.Name}\" cấu hình khác — không đổi được. Hãy mở lại hồ sơ về trước bước đó nếu cần.");
             }
         }
 
         var from = record.Status;
         var to = RecordStateMachine.Realign(record.Status, next.ActiveSteps());
         _repo.AddHistory(NewHistory(record, from, to, WorkflowAction.ChangeProfile, reason,
-            $"Đổi hồ sơ luồng: {current.Name} → {next.Name}."));
+            $"Đổi cách xét duyệt: {current.Name} → {next.Name}."));
         record.WorkflowProfileCode = next.Code;
         record.Status = to;
         record.UpdatedAt = DateTime.UtcNow;

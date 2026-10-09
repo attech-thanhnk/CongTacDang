@@ -135,7 +135,7 @@ export default function CriteriaSetsPage() {
                           {canManage && <button type="button" className="btn btn-link btn-sm p-0 me-3" disabled={busy} onClick={() => clone(s)}>Nhân bản</button>}
                           {canManage && s.status === "Published" && (
                             <button type="button" className="btn btn-link btn-sm p-0 me-3 text-warning" disabled={busy}
-                              onClick={() => confirm({ title: "Lưu trữ bộ tiêu chí", message: `Kỳ đã dùng "${s.name}" giữ nguyên ảnh chụp; bộ không chọn được cho kỳ mới.`, confirmText: "Lưu trữ", onConfirm: () => run(() => criteriaService.archive(s.id, s.version), "Đã lưu trữ bộ tiêu chí.") })}>
+                              onClick={() => confirm({ title: "Lưu trữ bộ tiêu chí", message: `Kỳ đã dùng "${s.name}" không bị ảnh hưởng; bộ không chọn được cho kỳ mới.`, confirmText: "Lưu trữ", onConfirm: () => run(() => criteriaService.archive(s.id, s.version), "Đã lưu trữ bộ tiêu chí.") })}>
                               Lưu trữ
                             </button>
                           )}

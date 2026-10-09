@@ -37,7 +37,7 @@ docs/remediation/  Danh sách lỗi (FINDINGS.md), quy tắc (RULES.md), task v�
 ```bash
 dotnet build backend/CongTacDang.slnx
 dotnet test  backend/CongTacDang.slnx     # test tích hợp tự skip nếu thiếu CONGTACDANG_TEST_PG
-CONGTACDANG_TEST_PG='Host=192.168.22.159;Port=5432;Database=postgres;Username=ctd_it;Password=<...>' \
+CONGTACDANG_TEST_PG='Host=localhost;Port=5434;Database=postgres;Username=dangbo_admin;Password=<POSTGRES_PASSWORD>' \
   dotnet test backend/CongTacDang.slnx    # chạy cả test tích hợp (chỉ tạo/xóa CSDL ctd_it_*)
 dotnet run --project backend/src/CongTacDang.Api
 dotnet ef migrations add <Ten> -p backend/src/CongTacDang.Infrastructure -s backend/src/CongTacDang.Api -o Data/Migrations
@@ -63,5 +63,5 @@ docker compose -f docker/docker-compose.yml config
 - **Thông tin đơn vị** (tên Đảng bộ, công ty, tên viết tắt, địa danh) lấy từ cài đặt đơn vị; **file mẫu Word** quản lý phiên bản qua giao diện (kiểm tra tag khi tải lên). Không ghi cứng tên đơn vị trong code.
 - **CSDL:** migration là nguồn schema duy nhất; entity mới cấu hình trong `Infrastructure/Data/Configurations/`.
 - Entity hỗ trợ xóa mềm (`ISoftDeletable`) và audit (`IAuditableEntity`); audit log được ghi tự động trong `CongTacDangDbContext.SaveChangesAsync`.
-- Máy chủ PostgreSQL `192.168.22.159` dùng chung: test chỉ tạo/xóa CSDL `ctd_it_*`, không đụng CSDL khác.
+- PostgreSQL chạy cục bộ bằng container `postgres` của `docker/docker-compose.yml` (`localhost:5434`, tài khoản/mật khẩu trong `docker/.env`): `dotnet run` dùng CSDL `congtacdang_dev` (user-secrets), container backend dùng `congtacdang_db`, test tích hợp chỉ tạo/xóa CSDL `ctd_it_*`.
 - Không commit secret, file build (`publish*/`, `.next*/`, `.vs/`) hay file upload.

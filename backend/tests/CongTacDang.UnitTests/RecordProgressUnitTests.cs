@@ -23,7 +23,7 @@ public sealed class RecordProgressUnitTests
         PartyCell = new PartyCell { Name = "Chi bộ Kỹ thuật" }
     };
 
-    private static WorkflowProfile Profile(string code) => PeriodSettings.FullPreset().FindProfile(code)!;
+    private static WorkflowProfile Profile(string code) => PeriodSettings.Default().FindProfile(code)!;
 
     [Fact]
     public void Actor_InternalProfile_DescribesStepOwnerFromRecordData()

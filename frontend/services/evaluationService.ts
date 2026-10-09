@@ -93,24 +93,14 @@ export interface EvaluationPeriodDto {
   criteria?: CriteriaSnapshot | null;
 }
 
-export interface PeriodPresetDto {
-  code: string;
-  name: string;
-  description: string;
-  /** Mẫu tự chấm gợi ý (09A/09B) — chọn sẵn bộ tiêu chí đã xuất bản mới nhất có mẫu này. */
-  suggestedForm: string;
-  settings: PeriodSettings;
-}
-
 export interface CreatePeriodDto {
   year: number;
   quarter: number;
   name: string;
   startDate: string;
   endDate: string;
-  preset: string;
-  /** Bộ tiêu chí đã xuất bản; bỏ trống → bộ mới nhất theo mẫu gợi ý của kiểu kỳ. */
-  criteriaSetId?: string | null;
+  /** Bộ tiêu chí đã xuất bản (bắt buộc) — mẫu 09A có bước đăng ký, duyệt sản phẩm; 09B không có. */
+  criteriaSetId: string;
 }
 
 export interface PeriodParticipantDto {
@@ -160,6 +150,13 @@ export interface EvaluationTaskDto {
   deadline: string;
   /** Mã trục kết quả (Mẫu 01). */
   axisCode?: string | null;
+  productCode?: string | null;
+  /** Null với dữ liệu đăng ký trước khi có cột này. */
+  kind?: TaskKind | null;
+  role?: TaskRole | null;
+  exceedCriteria?: string | null;
+  evidenceSource?: string | null;
+  confirmer?: string | null;
   criteriaA_Ratio: number;
   criteriaB_Ratio: number;
   criteriaC_Ratio: number;
@@ -554,14 +551,29 @@ export interface WorkQueueDto {
 }
 
 /** Dữ liệu một nhiệm vụ khi đăng ký (Mẫu 01) */
+export type TaskKind = "TrongTam" | "ThuongXuyen" | "DotXuat";
+export type TaskRole = "ChuTri" | "PhoiHop";
+
+export const TASK_KIND_LABELS: Record<TaskKind, string> = { TrongTam: "Trọng tâm", ThuongXuyen: "Thường xuyên", DotXuat: "Đột xuất" };
+export const TASK_ROLE_LABELS: Record<TaskRole, string> = { ChuTri: "Chủ trì", PhoiHop: "Phối hợp" };
+
+/** Một dòng Mẫu 01 khi đăng ký: mọi cột bắt buộc trừ mã SP và thời hạn (trống = ngày cuối kỳ). */
 export interface TaskInputDto {
   taskName: string;
+  /** Chuẩn đạt. */
   targetOutput: string;
   weight: number;
   deadline?: string | null;
   attachmentId?: string | null;
-  /** Mã trục kết quả thuộc bộ tiêu chí của kỳ (không bắt buộc). */
+  /** Mã trục kết quả thuộc bộ tiêu chí của kỳ. */
   axisCode?: string | null;
+  productCode?: string | null;
+  /** Khi đăng ký chỉ "TrongTam" hoặc "ThuongXuyen". */
+  kind?: TaskKind | "";
+  role?: TaskRole | "";
+  exceedCriteria?: string;
+  evidenceSource?: string;
+  confirmer?: string;
 }
 
 export interface TaskScoreInputDto {
@@ -873,10 +885,6 @@ export const evaluationService = {
 
   async getPeriod(id: string): Promise<EvaluationPeriodDto> {
     return request<EvaluationPeriodDto>(`/evaluations/periods/${id}`);
-  },
-
-  async getPresets(): Promise<PeriodPresetDto[]> {
-    return request<PeriodPresetDto[]>("/evaluations/periods/presets");
   },
 
   async createPeriod(dto: CreatePeriodDto): Promise<EvaluationPeriodDto> {

@@ -137,7 +137,7 @@ export default function CriteriaSetPage() {
             {canManage && <button type="button" className="btn btn-outline-secondary" disabled={busy} onClick={clone}>Nhân bản</button>}
             {canManage && set.status === "Published" && (
               <button type="button" className="btn btn-outline-secondary" disabled={busy}
-                onClick={() => confirm({ title: "Lưu trữ", message: "Kỳ đã dùng bộ này giữ nguyên ảnh chụp; bộ không chọn được cho kỳ mới.", confirmText: "Lưu trữ", onConfirm: () => run(() => criteriaService.archive(set.id, set.version), "Đã lưu trữ.") })}>
+                onClick={() => confirm({ title: "Lưu trữ", message: "Kỳ đã dùng bộ này không bị ảnh hưởng; bộ không chọn được cho kỳ mới.", confirmText: "Lưu trữ", onConfirm: () => run(() => criteriaService.archive(set.id, set.version), "Đã lưu trữ.") })}>
                 Lưu trữ
               </button>
             )}
@@ -377,7 +377,7 @@ export default function CriteriaSetPage() {
                 <div className="row g-2">
                   <div className="col-md-4"><label className="form-label mb-1">Khung mặc định (cán bộ chưa có khung)</label>
                     <select className="form-select form-select-sm" value={p.defaultWeightFrameCode || ""} onChange={(e) => setParam("defaultWeightFrameCode", e.target.value || null)}>
-                      <option value="">— Không (kẹt luồng báo lỗi) —</option>
+                      <option value="">— Không (báo thiếu khi mở kỳ) —</option>
                       {content.weightFrames.map((f) => <option key={f.code} value={f.code}>{f.code} — {f.name}</option>)}
                     </select>
                   </div>

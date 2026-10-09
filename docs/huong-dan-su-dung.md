@@ -120,7 +120,18 @@ Từ trên xuống:
 - **Các khối nội dung** của từng bước: Phiếu tự chấm, Kết quả thực hiện nhiệm vụ (Mẫu 9D), Bản tự đánh giá (Mẫu 09C), Xác nhận của Chi bộ, Đề xuất của tập thể lãnh đạo, Thẩm định… Bấm tiêu đề để mở/thu gọn.
 - Cột bên phải: **Biểu mẫu** (tải Word/PDF), **Lịch sử** (ai làm gì, lúc nào, điểm và mức thay đổi ra sao), **Thông tin** (kỳ, phòng, Chi bộ, thẩm quyền, nhóm đối tượng).
 
-### 3.3 Tự chấm điểm
+### 3.3 Đăng ký sản phẩm đầu quý (Mẫu 01)
+
+Trong 5 ngày làm việc đầu quý, khi kỳ có bước đăng ký sản phẩm:
+
+1. Mở hồ sơ, phần **Đăng ký sản phẩm, nhiệm vụ**. Mỗi sản phẩm là một khung riêng.
+2. Nhập đủ các ô như phiếu giấy: tên sản phẩm, **loại việc** (trọng tâm / thường xuyên), **vai trò** (chủ trì / phối hợp), trục kết quả, trọng số, thời hạn, chuẩn đạt, tiêu chí vượt chuẩn, nguồn dữ liệu / minh chứng, thẩm quyền xác nhận. Mã SP không bắt buộc; thời hạn để trống là ngày cuối kỳ.
+3. Bấm **Thêm dòng** hoặc **Xóa** để đủ 3–7 sản phẩm. Tổng trọng số phải đúng 70; ô tổng chuyển đỏ khi chưa đủ.
+4. Bấm **Nộp danh mục**. Thiếu ô nào, hệ thống báo đúng dòng và ô đó.
+
+Việc đột xuất giao thêm trong quý không đăng ký ở đây.
+
+### 3.4 Tự chấm điểm
 
 Khung **Nộp phiếu tự chấm** gồm các phần sau.
 
@@ -163,13 +174,13 @@ Với mỗi trục:
 
 Nếu hệ thống báo hồ sơ đã bị thay đổi ở nơi khác (ví dụ bạn mở hai cửa sổ), bấm **Tải lại hồ sơ** rồi làm lại thao tác.
 
-### 3.4 Tải biểu mẫu Word/PDF
+### 3.5 Tải biểu mẫu Word/PDF
 
 Khối **Biểu mẫu** ở cột phải liệt kê các mẫu áp dụng cho hồ sơ (ví dụ Mẫu 09B, 09C, 9D, 10). Bấm **Word** để tải tệp .docx (sửa, in được), **PDF** để tải bản PDF. Nút **Bản in (PDF)** mở bản xem trước ngay trên màn hình.
 
 Thông tin trên biểu mẫu (họ tên, ngày sinh, chức vụ Đảng / chính quyền / đoàn thể, đơn vị) lấy từ hồ sơ cán bộ. Thiếu hoặc sai → xem [Câu hỏi thường gặp](#11-câu-hỏi-thường-gặp).
 
-### 3.5 Khi hồ sơ bị trả lại
+### 3.6 Khi hồ sơ bị trả lại
 
 Chi bộ (khi xác nhận) hoặc cơ quan thẩm định có thể trả lại phiếu kèm lý do. Khi đó:
 
@@ -177,7 +188,7 @@ Chi bộ (khi xác nhận) hoặc cơ quan thẩm định có thể trả lại 
 - Hồ sơ quay về bước tự chấm, dòng trạng thái lại là **"Việc của bạn: Nộp phiếu tự chấm"**.
 - Sửa theo lý do rồi **Nộp phiếu tự chấm** lại.
 
-### 3.6 Sau khi công bố
+### 3.7 Sau khi công bố
 
 - **Xem kết quả**: dòng trạng thái của hồ sơ hiện "Đã công bố kết quả" và mức chính thức. Menu **Kết quả đánh giá** hiện danh sách kết quả đã công bố trong phạm vi bạn được xem (luôn có kết quả của bạn); lọc theo đơn vị và mức.
 - **Gửi kiến nghị** và **xác nhận kế hoạch 30-60-90 ngày**: xem [mục 6](#6-sau-khi-công-bố-kiến-nghị-và-kế-hoạch-30-60-90-ngày).
@@ -316,9 +327,8 @@ Dành cho người được giao quản lý kỳ. Menu **Quản lý → Kỳ đ�
 
 1. Bấm **Tạo kỳ**.
 2. Nhập **Năm**, **Quý**, **Từ ngày**, **Đến ngày**, **Tên kỳ**.
-3. Chọn **Kiểu kỳ**: *Đầy đủ* (có đăng ký sản phẩm đầu quý) hoặc *Quý III/2026 — chuyển tiếp* (không có bước đăng ký, duyệt danh mục).
-4. Chọn **Bộ tiêu chí (đã xuất bản)**, hoặc để hệ thống chọn bộ mới nhất phù hợp kiểu kỳ.
-5. Bấm **Tạo kỳ (dự thảo)**. Bấm **Cấu hình** ở dòng kỳ để thiết lập tiếp.
+3. Chọn **Bộ tiêu chí** (đã xuất bản; mặc định là bộ mới nhất). Bộ quyết định có bước đăng ký sản phẩm hay không: bộ Mẫu 09A có bước đăng ký, duyệt sản phẩm đầu quý; bộ Mẫu 09B không có, tự chấm theo trục.
+4. Bấm **Tạo kỳ (dự thảo)**; trang cấu hình kỳ mở ra để thiết lập tiếp.
 
 ### 7.2 Cấu hình hồ sơ luồng (tab "Hồ sơ luồng")
 
@@ -326,7 +336,7 @@ Mỗi **hồ sơ luồng** là cách xét duyệt cho một nhóm đối tượn
 
 - Hai ô **Hồ sơ luồng mặc định** chọn nhóm cho người thuộc diện Đảng ủy cơ sở quyết định và người thuộc diện cấp trên quyết định.
 - Bấm tên một hồ sơ luồng để sửa. Với mỗi bước:
-  - **Chế độ**: *Nội bộ* (làm trong hệ thống), *Cấp trên thực hiện* (chỉ ghi nhận kết quả), *Không áp dụng*. Bước có ghi "(bắt buộc)" không tắt được.
+  - **Chế độ**: *Nội bộ* (làm trong hệ thống), *Cấp trên thực hiện* (chỉ ghi nhận kết quả), *Không áp dụng*. Bước có ghi "(bắt buộc)" không tắt được; bước có ghi "(theo bộ tiêu chí)" (đăng ký, duyệt sản phẩm) do bộ tiêu chí của kỳ quyết định — đổi bộ ở tab **Bộ tiêu chí**.
   - **Người thực hiện (quyền)**: quyền mà người làm bước cần có.
   - **Thời hạn**: chọn *Nhập tay* rồi nhập ngày, hoặc chọn quy tắc (*Ngày làm việc thứ … đầu quý*, *Ngày … tháng cuối quý*, *… ngày làm việc trước đầu quý*) rồi bấm **Áp dụng quy tắc** để điền ngày. Hệ thống tự bỏ qua thứ Bảy, Chủ nhật và ngày nghỉ trong *Danh mục → Ngày nghỉ*. Sau đó vẫn sửa từng ngày được.
 - **Chặn hoàn thành bước khi đã quá thời hạn**: bật thì hết hạn sẽ không làm được bước; tắt thì chỉ cảnh báo.

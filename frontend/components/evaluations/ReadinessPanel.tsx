@@ -19,7 +19,7 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
     <section className="card border-0 shadow-sm">
       <div className="card-body">
         <div className="d-flex justify-content-between align-items-center mb-2">
-          <h2 className="h6 mb-0">Kiểm tra kẹt luồng</h2>
+          <h2 className="h6 mb-0">Người thực hiện các bước</h2>
           <button type="button" className="btn btn-outline-primary btn-sm" disabled={loading} onClick={onCheck}>
             {loading ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-shield-check me-1" />}
             Kiểm tra lại
@@ -27,22 +27,24 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
         </div>
         {!readiness ? (
           <div className="small text-secondary">Chưa kiểm tra.</div>
+        ) : readiness.checkedRecords === 0 ? (
+          <div className="small text-secondary">Chưa có người được đánh giá để kiểm tra.</div>
         ) : readiness.ready ? (
           <div className="alert alert-success small mb-0">
             <i className="bi bi-check-circle me-1" />
-            Không có cảnh báo kẹt luồng ({readiness.checkedRecords} hồ sơ).
+            Mọi bước đều có người thực hiện ({readiness.checkedRecords} hồ sơ).
           </div>
         ) : (
           <>
             <div className="alert alert-warning small">
               <i className="bi bi-exclamation-triangle me-1" />
-              {readiness.issues.length} cảnh báo trên {readiness.checkedRecords} hồ sơ.
+              {readiness.issues.length} bước chưa có người thực hiện, trên {readiness.checkedRecords} hồ sơ.
               Hãy <Link href="/admin/users">gán vai trò</Link> có quyền tương ứng hoặc sửa cấu hình bước.
             </div>
             <div className="table-responsive" style={{ maxHeight: 360, overflowY: "auto" }}>
               <table className="table table-sm align-middle small mb-0">
                 <thead>
-                  <tr className="text-secondary"><th>Hồ sơ</th><th>Hồ sơ luồng</th><th>Bước sẽ kẹt</th><th>Quyền cần có</th><th>Phạm vi</th></tr>
+                  <tr className="text-secondary"><th>Hồ sơ</th><th>Cách xét duyệt</th><th>Bước thiếu người làm</th><th>Quyền cần có</th><th>Phạm vi</th></tr>
                 </thead>
                 <tbody>
                   {readiness.issues.map((issue) => (

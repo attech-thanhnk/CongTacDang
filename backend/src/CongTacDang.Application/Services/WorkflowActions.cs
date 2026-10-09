@@ -115,11 +115,11 @@ public static class WorkflowActions
         return (profile.Mode(action.Step), action.Kind) switch
         {
             (StepMode.Off, _) =>
-                $"Bước \"{name}\" không áp dụng cho nhóm đối tượng của hồ sơ này (hồ sơ luồng \"{profile.Name}\").",
+                $"Bước \"{name}\" không áp dụng cho nhóm đối tượng của hồ sơ này (cách xét duyệt \"{profile.Name}\").",
             (StepMode.External, not WorkflowAction.RecordExternal) =>
-                $"Bước \"{name}\" do cấp trên thực hiện đối với hồ sơ luồng \"{profile.Name}\": hãy dùng chức năng \"Ghi nhận kết quả của cấp trên\".",
+                $"Bước \"{name}\" do cấp trên thực hiện đối với cách xét duyệt \"{profile.Name}\": hãy dùng chức năng \"Ghi nhận kết quả của cấp trên\".",
             (StepMode.Internal, WorkflowAction.RecordExternal) =>
-                $"Bước \"{name}\" được thực hiện trong hệ thống đối với hồ sơ luồng \"{profile.Name}\", không ghi nhận kết quả của cấp trên được.",
+                $"Bước \"{name}\" được thực hiện trong hệ thống đối với cách xét duyệt \"{profile.Name}\", không ghi nhận kết quả của cấp trên được.",
             _ => null
         };
     }

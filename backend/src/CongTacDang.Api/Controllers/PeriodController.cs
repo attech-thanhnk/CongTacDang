@@ -38,11 +38,6 @@ public class PeriodController : ControllerBase
     public async Task<IActionResult> GetActive(CancellationToken ct) =>
         Ok(ApiResponse<EvaluationPeriodDto?>.Ok(await _periods.GetActivePeriodAsync(ct), "Lấy kỳ đánh giá hiện hành thành công."));
 
-    /// <summary>Hai mẫu cấu hình dựng sẵn.</summary>
-    [HttpGet("presets")]
-    public IActionResult GetPresets() =>
-        Ok(ApiResponse<IReadOnlyList<PeriodPresetDto>>.Ok(_periods.GetPresets(), "Lấy mẫu cấu hình kỳ thành công."));
-
     /// <summary>Chi tiết kỳ.</summary>
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetPeriod(Guid id, CancellationToken ct) =>
@@ -76,8 +71,8 @@ public class PeriodController : ControllerBase
             {
                 Success = false,
                 Code = "PERIOD_NOT_READY",
-                Message = $"Chưa mở được kỳ: có {readiness.Issues.Count} cảnh báo kẹt luồng (hồ sơ sẽ không có ai thực hiện được bước). "
-                    + "Hãy gán vai trò hoặc sửa cấu hình hồ sơ luồng, hoặc mở bắt buộc kèm lý do.",
+                Message = $"Chưa mở được kỳ: có {readiness.Issues.Count} cảnh báo thiếu người thực hiện (hồ sơ sẽ không có ai thực hiện được bước). "
+                    + "Hãy gán vai trò hoặc sửa cấu hình cách xét duyệt, hoặc mở bắt buộc kèm lý do.",
                 Data = readiness,
                 Errors = readiness.Issues.Select(i => i.Message).ToList()
             });
@@ -89,7 +84,7 @@ public class PeriodController : ControllerBase
     [HttpGet("{id:guid}/readiness")]
     [RequirePermission(PermissionCodes.PeriodManage)]
     public async Task<IActionResult> GetReadiness(Guid id, CancellationToken ct) =>
-        Ok(ApiResponse<PeriodReadinessDto>.Ok(await _periods.GetReadinessAsync(id, ct), "Đã kiểm tra kẹt luồng của kỳ."));
+        Ok(ApiResponse<PeriodReadinessDto>.Ok(await _periods.GetReadinessAsync(id, ct), "Đã kiểm tra thiếu người thực hiện của kỳ."));
 
     /// <summary>Mã quyền chọn được làm quyền thực hiện bước trong hồ sơ luồng.</summary>
     [HttpGet("step-permissions")]
@@ -155,7 +150,7 @@ public class PeriodController : ControllerBase
     [HttpPut("{id:guid}/participants/{recordId:guid}/profile")]
     [RequirePermission(PermissionCodes.PeriodManage)]
     public async Task<IActionResult> ChangeProfile(Guid id, Guid recordId, [FromBody] ChangeProfileDto dto, CancellationToken ct) =>
-        Ok(ApiResponse<PeriodParticipantDto>.Ok(await _periods.ChangeProfileAsync(id, recordId, dto, ct), "Đã đổi hồ sơ luồng của hồ sơ."));
+        Ok(ApiResponse<PeriodParticipantDto>.Ok(await _periods.ChangeProfileAsync(id, recordId, dto, ct), "Đã đổi cách xét duyệt của hồ sơ."));
 
     /// <summary>Đổi hồ sơ luồng hàng loạt (hồ sơ không đổi được trả về kèm lý do).</summary>
     [HttpPut("{id:guid}/participants/profile")]
@@ -163,6 +158,6 @@ public class PeriodController : ControllerBase
     public async Task<IActionResult> BulkChangeProfile(Guid id, [FromBody] BulkChangeProfileDto dto, CancellationToken ct)
     {
         var result = await _periods.BulkChangeProfileAsync(id, dto, ct);
-        return Ok(ApiResponse<BulkChangeProfileResultDto>.Ok(result, $"Đã đổi hồ sơ luồng cho {result.Updated} hồ sơ."));
+        return Ok(ApiResponse<BulkChangeProfileResultDto>.Ok(result, $"Đã đổi cách xét duyệt cho {result.Updated} hồ sơ."));
     }
 }

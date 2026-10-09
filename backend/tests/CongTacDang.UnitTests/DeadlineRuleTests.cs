@@ -8,6 +8,29 @@ public class DeadlineRuleTests
 {
     private static DeadlineRule Wd(int n) => new() { Kind = DeadlineRuleKind.WorkingDayOfQuarter, Value = n };
     private static DeadlineRule Day(int d) => new() { Kind = DeadlineRuleKind.DayOfLastMonth, Value = d };
+    private static DeadlineRule PrevWd(int n) => new() { Kind = DeadlineRuleKind.WorkingDaysBeforeQuarter, Value = n };
+
+    [Fact]
+    public void WorkingDaysBeforeQuarter_CountsBackwardsCorrectly()
+    {
+        // Quý 4/2026 bắt đầu 01/10/2026 (thứ Năm).
+        // 1 ngày làm việc trước = 30/09/2026 (thứ Tư, ngày làm việc cuối cùng của quý trước).
+        // 2 ngày trước = 29/09 (thứ Ba, ngày cuối quý trước -1).
+        // 3 ngày trước = 28/09 (thứ Hai, ngày cuối quý trước -2).
+        // 27/09 (Chủ nhật), 26/09 (thứ Bảy) bỏ qua.
+        // 4 ngày trước = 25/09 (thứ Sáu, ngày cuối quý trước -3).
+        // 5 ngày trước = 24/09 (thứ Năm, ngày cuối quý trước -4).
+        // 6 ngày trước = 23/09 (thứ Tư, ngày cuối quý trước -5) - đúng kế hoạch KH DGCB_quy 4_2026_10_05_3rd.docx!
+        Assert.Equal(new DateOnly(2026, 9, 30), DeadlineCalculator.Compute(PrevWd(1), 2026, 4, null));
+        Assert.Equal(new DateOnly(2026, 9, 29), DeadlineCalculator.Compute(PrevWd(2), 2026, 4, null));
+        Assert.Equal(new DateOnly(2026, 9, 28), DeadlineCalculator.Compute(PrevWd(3), 2026, 4, null));
+        Assert.Equal(new DateOnly(2026, 9, 25), DeadlineCalculator.Compute(PrevWd(4), 2026, 4, null));
+        Assert.Equal(new DateOnly(2026, 9, 24), DeadlineCalculator.Compute(PrevWd(5), 2026, 4, null));
+        Assert.Equal(new DateOnly(2026, 9, 23), DeadlineCalculator.Compute(PrevWd(6), 2026, 4, null));
+
+        // Nếu 30/09 là ngày nghỉ → lùi thêm 1 ngày.
+        Assert.Equal(new DateOnly(2026, 9, 29), DeadlineCalculator.Compute(PrevWd(1), 2026, 4, new[] { new DateOnly(2026, 9, 30) }));
+    }
 
     [Fact]
     public void WorkingDayOfQuarter_SkipsWeekendsAndHolidays()
@@ -31,7 +54,7 @@ public class DeadlineRuleTests
 
     private static PeriodSettings WithRules()
     {
-        var settings = PeriodSettings.FullPreset();
+        var settings = PeriodSettings.Default();
         var p = settings.Profiles[0];
         p.Step(WorkflowStep.B2_SELF_SCORE).Rule = Day(9);
         p.Step(WorkflowStep.B4_DECISION).Rule = Day(14);
@@ -39,9 +62,9 @@ public class DeadlineRuleTests
     }
 
     [Fact]
-    public void Presets_CarryNoHardcodedDeadlines()
+    public void Default_CarriesNoHardcodedDeadlines()
     {
-        var settings = PeriodSettings.FullPreset();
+        var settings = PeriodSettings.Default();
         Assert.All(settings.Profiles.SelectMany(p => p.Steps.Values), s =>
         {
             Assert.Null(s.Rule);
@@ -95,9 +118,59 @@ public class DeadlineRuleTests
     [Fact]
     public void DeadlineOnlyChanges_AreAllowedAfterOpen()
     {
-        var a = PeriodSettings.FullPreset();
+        var a = PeriodSettings.Default();
         var b = WithRules();
         b.ApplyDeadlineRules(2026, 4, new[] { new DateOnly(2026, 12, 10) });
         Assert.True(a.DiffersOnlyInDeadlines(b));
+    }
+
+    [Fact]
+    public void RealisticQuarterSchedule_ComputesExactDatesFromDocument()
+    {
+        var settings = PeriodSettings.Default();
+        var baseProfile = settings.Profiles.First(p => p.Code == PeriodSettings.ProfileBase);
+        // Trưởng/Phó phòng: B1 từ -5 đến -1 trước quý, B2 ngày 9, B3a ngày 10, B3b ngày 11, B3c ngày 14, B4 ngày 14
+        baseProfile.Step(WorkflowStep.B1_REGISTER).Rule = new DeadlineRule { Kind = DeadlineRuleKind.WorkingDaysBeforeQuarter, Value = 6 };
+        baseProfile.Step(WorkflowStep.B1_APPROVE).Rule = new DeadlineRule { Kind = DeadlineRuleKind.WorkingDaysBeforeQuarter, Value = 2 };
+        baseProfile.Step(WorkflowStep.B2_SELF_SCORE).Rule = new DeadlineRule { Kind = DeadlineRuleKind.DayOfLastMonth, Value = 9 };
+        baseProfile.Step(WorkflowStep.B2_CELL_CONFIRM).Rule = new DeadlineRule { Kind = DeadlineRuleKind.DayOfLastMonth, Value = 9 };
+        baseProfile.Step(WorkflowStep.B3A_COLLECTIVE).Rule = new DeadlineRule { Kind = DeadlineRuleKind.DayOfLastMonth, Value = 10 };
+        baseProfile.Step(WorkflowStep.B3B_APPRAISAL).Rule = new DeadlineRule { Kind = DeadlineRuleKind.DayOfLastMonth, Value = 11 };
+        baseProfile.Step(WorkflowStep.B3C_DIRECTOR).Rule = new DeadlineRule { Kind = DeadlineRuleKind.DayOfLastMonth, Value = 14 };
+        baseProfile.Step(WorkflowStep.B4_DECISION).Rule = new DeadlineRule { Kind = DeadlineRuleKind.DayOfLastMonth, Value = 14 };
+
+        var upperProfile = settings.Profiles.First(p => p.Code == PeriodSettings.ProfileUpper);
+        // Cấp trên: B1 ngày làm việc thứ 5, B2 ngày 9, B3a ngày 14, B3b ngày 15, B3c ngày 17, B4 ngày 18
+        upperProfile.Step(WorkflowStep.B1_REGISTER).Rule = new DeadlineRule { Kind = DeadlineRuleKind.WorkingDayOfQuarter, Value = 1 };
+        upperProfile.Step(WorkflowStep.B1_APPROVE).Rule = new DeadlineRule { Kind = DeadlineRuleKind.WorkingDayOfQuarter, Value = 5 };
+        upperProfile.Step(WorkflowStep.B2_SELF_SCORE).Rule = new DeadlineRule { Kind = DeadlineRuleKind.DayOfLastMonth, Value = 9 };
+        upperProfile.Step(WorkflowStep.B2_CELL_CONFIRM).Rule = new DeadlineRule { Kind = DeadlineRuleKind.DayOfLastMonth, Value = 9 };
+        upperProfile.Step(WorkflowStep.B3A_COLLECTIVE).Rule = new DeadlineRule { Kind = DeadlineRuleKind.DayOfLastMonth, Value = 14 };
+        upperProfile.Step(WorkflowStep.B3B_APPRAISAL).Rule = new DeadlineRule { Kind = DeadlineRuleKind.DayOfLastMonth, Value = 15 };
+        upperProfile.Step(WorkflowStep.B3C_DIRECTOR).Rule = new DeadlineRule { Kind = DeadlineRuleKind.DayOfLastMonth, Value = 17 };
+        upperProfile.Step(WorkflowStep.B4_DECISION).Rule = new DeadlineRule { Kind = DeadlineRuleKind.DayOfLastMonth, Value = 18 };
+
+        settings.ApplyDeadlineRules(2026, 4);
+
+        // B1: cá nhân nộp ngày cuối quý trước -5 (23/09/2026), Giám đốc duyệt ngày cuối quý trước -1 (29/09/2026)
+        Assert.Equal(new DateOnly(2026, 9, 23), baseProfile.Deadline(WorkflowStep.B1_REGISTER));
+        Assert.Equal(new DateOnly(2026, 9, 29), baseProfile.Deadline(WorkflowStep.B1_APPROVE));
+        // B2: tự chấm ngày 9 tháng cuối quý (09/12/2026)
+        Assert.Equal(new DateOnly(2026, 12, 9), baseProfile.Deadline(WorkflowStep.B2_SELF_SCORE));
+        // B3: B3a ngày 10, B3b ngày 11, B3c ngày 14
+        Assert.Equal(new DateOnly(2026, 12, 10), baseProfile.Deadline(WorkflowStep.B3A_COLLECTIVE));
+        Assert.Equal(new DateOnly(2026, 12, 11), baseProfile.Deadline(WorkflowStep.B3B_APPRAISAL));
+        Assert.Equal(new DateOnly(2026, 12, 14), baseProfile.Deadline(WorkflowStep.B3C_DIRECTOR));
+        // B4: Đảng ủy Công ty quyết định ngày 14
+        Assert.Equal(new DateOnly(2026, 12, 14), baseProfile.Deadline(WorkflowStep.B4_DECISION));
+
+        // Cấp trên: B1 phê duyệt ngày làm việc thứ 5 đầu quý (07/10/2026)
+        Assert.Equal(new DateOnly(2026, 10, 7), upperProfile.Deadline(WorkflowStep.B1_APPROVE));
+        // B3: B3a ngày 14, B3b ngày 15, B3c ngày 17
+        Assert.Equal(new DateOnly(2026, 12, 14), upperProfile.Deadline(WorkflowStep.B3A_COLLECTIVE));
+        Assert.Equal(new DateOnly(2026, 12, 15), upperProfile.Deadline(WorkflowStep.B3B_APPRAISAL));
+        Assert.Equal(new DateOnly(2026, 12, 17), upperProfile.Deadline(WorkflowStep.B3C_DIRECTOR));
+        // B4: BTV Đảng ủy TCT quyết định ngày 18
+        Assert.Equal(new DateOnly(2026, 12, 18), upperProfile.Deadline(WorkflowStep.B4_DECISION));
     }
 }

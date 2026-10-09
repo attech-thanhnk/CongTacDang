@@ -164,7 +164,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 ### D2. [Ưu tiên] Các bước áp dụng trong Q3/2026
 - **Câu hỏi:** Kỳ Q3/2026 chỉ bỏ bước đăng ký và duyệt sản phẩm, giữ mọi bước còn lại, đúng không?
 - **Căn cứ:** Mục VI.4 (tr.23) chưa áp dụng Mẫu 01–06, 09A, 11; IV.2 (tr.18) dùng Mẫu 09B.
-- **Hệ thống đang làm (mặc định):** Kiểu kỳ "Quý III/2026 — chuyển tiếp": tắt đăng ký, duyệt sản phẩm. Bật tự chấm 09B, Chi bộ xác nhận, tập thể lãnh đạo đề xuất (3a), thẩm định (3b), cấp trực tiếp sử dụng (3c), quyết định, công bố.
+- **Hệ thống đang làm (mặc định):** Kỳ chọn bộ tiêu chí 09B: tự động tắt đăng ký, duyệt sản phẩm. Bật tự chấm 09B, Chi bộ xác nhận, tập thể lãnh đạo đề xuất (3a), thẩm định (3b), cấp trực tiếp sử dụng (3c), quyết định, công bố.
 - **Phương án khác:** Tắt thêm bước 3a hoặc bước Chi bộ xác nhận (làm ngoài hệ thống).
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Kỳ đánh giá, trước khi mở kỳ).
 

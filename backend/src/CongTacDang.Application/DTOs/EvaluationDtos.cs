@@ -46,6 +46,18 @@ public class EvaluationTaskDto
     public DateTime Deadline { get; set; }
     /// <summary>Mã trục kết quả (Mẫu 01).</summary>
     public string? AxisCode { get; set; }
+    /// <summary>Mã sản phẩm (Mẫu 01).</summary>
+    public string? ProductCode { get; set; }
+    /// <summary>Loại sản phẩm: <c>TrongTam</c> / <c>ThuongXuyen</c> / <c>DotXuat</c>; null với dữ liệu cũ.</summary>
+    public string? Kind { get; set; }
+    /// <summary>Vai trò: <c>ChuTri</c> / <c>PhoiHop</c>; null với dữ liệu cũ.</summary>
+    public string? Role { get; set; }
+    /// <summary>Tiêu chí vượt chuẩn (Mẫu 01).</summary>
+    public string? ExceedCriteria { get; set; }
+    /// <summary>Nguồn dữ liệu / minh chứng (Mẫu 01).</summary>
+    public string? EvidenceSource { get; set; }
+    /// <summary>Thẩm quyền xác nhận (Mẫu 01).</summary>
+    public string? Confirmer { get; set; }
     public double CriteriaA_Ratio { get; set; }
     public double CriteriaB_Ratio { get; set; }
     public double CriteriaC_Ratio { get; set; }
@@ -235,12 +247,25 @@ public class CommentRequestDto : WorkflowRequestDto
 public class TaskInputDto
 {
     public string? TaskName { get; set; }
+    /// <summary>Chuẩn đạt (Mẫu 01) — bắt buộc.</summary>
     public string? TargetOutput { get; set; }
     public double Weight { get; set; }
     public DateTime? Deadline { get; set; }
     public Guid? AttachmentId { get; set; }
-    /// <summary>Mã trục kết quả (thuộc bộ tiêu chí của kỳ); không bắt buộc.</summary>
+    /// <summary>Mã trục kết quả (thuộc bộ tiêu chí của kỳ) — bắt buộc khi bộ có trục.</summary>
     public string? AxisCode { get; set; }
+    /// <summary>Mã sản phẩm — không bắt buộc.</summary>
+    public string? ProductCode { get; set; }
+    /// <summary>Loại sản phẩm khi đăng ký: <c>TrongTam</c> hoặc <c>ThuongXuyen</c> — bắt buộc.</summary>
+    public string? Kind { get; set; }
+    /// <summary>Vai trò: <c>ChuTri</c> hoặc <c>PhoiHop</c> — bắt buộc.</summary>
+    public string? Role { get; set; }
+    /// <summary>Tiêu chí vượt chuẩn — bắt buộc.</summary>
+    public string? ExceedCriteria { get; set; }
+    /// <summary>Nguồn dữ liệu / minh chứng — bắt buộc.</summary>
+    public string? EvidenceSource { get; set; }
+    /// <summary>Thẩm quyền xác nhận — bắt buộc.</summary>
+    public string? Confirmer { get; set; }
 }
 
 /// <summary>B1_REGISTER: nộp danh mục sản phẩm (Mẫu 01).</summary>
@@ -447,18 +472,7 @@ public class EvaluationPeriodDto
     public CriteriaSnapshot? Criteria { get; set; }
 }
 
-/// <summary>Mẫu cấu hình dựng sẵn.</summary>
-public class PeriodPresetDto
-{
-    public string Code { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    /// <summary>Mẫu tự chấm gợi ý (09A/09B) — chọn sẵn bộ tiêu chí đã xuất bản mới nhất có mẫu này.</summary>
-    public string SuggestedForm { get; set; } = string.Empty;
-    public PeriodSettings Settings { get; set; } = new();
-}
-
-/// <summary>Tạo kỳ từ mẫu cấu hình.</summary>
+/// <summary>Tạo kỳ (dự thảo) với bộ tiêu chí đã chọn; hồ sơ luồng lấy theo cấu hình mặc định.</summary>
 public class CreatePeriodDto
 {
     public int Year { get; set; }
@@ -466,9 +480,9 @@ public class CreatePeriodDto
     public string? Name { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
-    /// <summary>Mã mẫu: <c>full</c> (mặc định) hoặc <c>q3-2026-transition</c>.</summary>
-    public string? Preset { get; set; }
-    /// <summary>Bộ tiêu chí (đã xuất bản); trống → bộ đã xuất bản mới nhất có mẫu tự chấm gợi ý của kiểu kỳ (nếu có).</summary>
+    /// <summary>
+    /// Bộ tiêu chí đã xuất bản (bắt buộc). Mẫu tự chấm của bộ quyết định bước đăng ký, duyệt sản phẩm: 09A có, 09B không.
+    /// </summary>
     public Guid? CriteriaSetId { get; set; }
 }
 
@@ -482,7 +496,10 @@ public class UpdatePeriodDto
     public PeriodSettings? Settings { get; set; }
     /// <summary>Điền thời hạn các bước theo quy tắc (cần gửi kèm <see cref="Settings"/>); ngày sau đó vẫn sửa tự do.</summary>
     public bool ApplyDeadlineRules { get; set; }
-    /// <summary>Đổi bộ tiêu chí (chỉ khi kỳ dự thảo; chỉ bộ đã xuất bản); trống = giữ nguyên.</summary>
+    /// <summary>
+    /// Đổi bộ tiêu chí (chỉ khi kỳ dự thảo; chỉ bộ đã xuất bản); trống = giữ nguyên. Đổi bộ thì bước đăng ký, duyệt sản phẩm của
+    /// mọi hồ sơ luồng đặt lại theo mẫu tự chấm của bộ mới.
+    /// </summary>
     public Guid? CriteriaSetId { get; set; }
 }
 

@@ -7,7 +7,7 @@ using Xunit;
 namespace CongTacDang.UnitTests;
 
 /// <summary>
-/// Task 15: hồ sơ luồng (Internal / External / Off) trong cấu hình kỳ — kiểu kỳ dựng sẵn, kiểm tra cấu hình, JSON,
+/// Task 15: hồ sơ luồng (Internal / External / Off) trong cấu hình kỳ — cấu hình mặc định theo bộ tiêu chí, kiểm tra cấu hình, JSON,
 /// máy trạng thái theo hồ sơ luồng, quyền thực hiện bước và khớp chế độ bước của hành động.
 /// </summary>
 public sealed class WorkflowProfileUnitTests
@@ -16,20 +16,14 @@ public sealed class WorkflowProfileUnitTests
 
     private static WorkflowProfile Profile(PeriodSettings settings, string code) => settings.FindProfile(code)!;
 
-    #region Kiểu kỳ dựng sẵn
+    #region Cấu hình mặc định
 
     [Fact]
-    public void Presets_AreValid_WithThreeProfiles_MatchingAppendixIII()
+    public void Default_IsValid_WithThreeProfiles_MatchingAppendixIII()
     {
-        foreach (var preset in PeriodSettings.Presets)
-            Assert.Empty(Validate(preset.Build()));
-        Assert.Equal(new[] { "full", "q3-2026-transition" }, PeriodSettings.Presets.Select(p => p.Code));
-        Assert.NotNull(PeriodSettings.FindPreset("FULL"));
-        Assert.Null(PeriodSettings.FindPreset("khac"));
-
-        var full = PeriodSettings.FullPreset();
-        // Task 16: mẫu tự chấm thuộc bộ tiêu chí; kiểu kỳ chỉ gợi ý mẫu để chọn sẵn bộ.
-        Assert.Equal("09A", PeriodSettings.FindPreset("full")!.SuggestedForm);
+        var full = PeriodSettings.Default(CriteriaSetContent.Form09A);
+        Assert.Empty(full.Validate(WorkflowActions.IsAssignableStepPermission, "09A"));
+        Assert.Equal(PeriodSettings.Default().ToJson(), full.ToJson());
         Assert.Equal(new[] { "co-so", "cap-tren", "bi-thu-nhan-vien" }, full.Profiles.Select(p => p.Code));
         Assert.Equal("co-so", full.DefaultProfileCode(ApprovalAuthority.CoSo));
         Assert.Equal("cap-tren", full.DefaultProfileCode(ApprovalAuthority.CapTren));
@@ -55,9 +49,9 @@ public sealed class WorkflowProfileUnitTests
         Assert.Equal(StepMode.Internal, staff.Mode(WorkflowStep.B3C_DIRECTOR));
         Assert.Equal(PermissionCodes.EvaluationUnitReview, staff.PermissionFor(WorkflowStep.B3C_DIRECTOR));
 
-        // Quý III/2026: B1 không áp dụng ở mọi hồ sơ luồng, 09B.
-        var transition = PeriodSettings.TransitionQ3Preset();
-        Assert.Equal("09B", PeriodSettings.FindPreset("q3-2026-transition")!.SuggestedForm);
+        // Bộ 09B: B1 không áp dụng ở mọi hồ sơ luồng, các bước khác như 09A.
+        var transition = PeriodSettings.Default(CriteriaSetContent.Form09B);
+        Assert.Empty(transition.Validate(WorkflowActions.IsAssignableStepPermission, "09B"));
         Assert.Equal(3, transition.Profiles.Count);
         Assert.All(transition.Profiles, p =>
         {
@@ -66,6 +60,35 @@ public sealed class WorkflowProfileUnitTests
             Assert.Equal(7, p.ActiveSteps().Count);
         });
         Assert.Equal(StepMode.External, Profile(transition, "cap-tren").Mode(WorkflowStep.B4_DECISION));
+    }
+
+    [Fact]
+    public void AlignWithCriteria_SetsRegistrationSteps_KeepsOtherSteps()
+    {
+        // 09A → 09B: tắt cả hai bước B1, giữ thời hạn, các bước khác giữ nguyên.
+        var settings = PeriodSettings.Default(CriteriaSetContent.Form09A);
+        var baseProfile = Profile(settings, "co-so");
+        baseProfile.Step(WorkflowStep.B1_REGISTER).Deadline = new DateOnly(2026, 10, 10);
+        baseProfile.Step(WorkflowStep.B1_APPROVE).Mode = StepMode.External;
+        baseProfile.Step(WorkflowStep.B3B_APPRAISAL).Mode = StepMode.External;
+        settings.Normalize().AlignWithCriteria(CriteriaSetContent.Form09B);
+        Assert.Equal(StepMode.Off, baseProfile.Mode(WorkflowStep.B1_REGISTER));
+        Assert.Equal(StepMode.Off, baseProfile.Mode(WorkflowStep.B1_APPROVE));
+        Assert.Equal(new DateOnly(2026, 10, 10), baseProfile.Deadline(WorkflowStep.B1_REGISTER));
+        Assert.Equal(StepMode.External, baseProfile.Mode(WorkflowStep.B3B_APPRAISAL));
+        Assert.Empty(settings.Validate(WorkflowActions.IsAssignableStepPermission, "09B"));
+
+        // 09B → 09A: bật lại hai bước B1 (nội bộ, quyền mặc định).
+        settings.AlignWithCriteria(CriteriaSetContent.Form09A);
+        Assert.Equal(StepMode.Internal, baseProfile.Mode(WorkflowStep.B1_REGISTER));
+        Assert.Equal(StepMode.Internal, baseProfile.Mode(WorkflowStep.B1_APPROVE));
+        Assert.Equal(PermissionCodes.EvaluationTasksApprove, baseProfile.PermissionFor(WorkflowStep.B1_APPROVE));
+        Assert.Empty(settings.Validate(WorkflowActions.IsAssignableStepPermission, "09A"));
+
+        // 09A giữ chế độ đã chọn của bước duyệt (ví dụ cấp trên duyệt).
+        baseProfile.Step(WorkflowStep.B1_APPROVE).Mode = StepMode.External;
+        settings.Normalize().AlignWithCriteria(CriteriaSetContent.Form09A);
+        Assert.Equal(StepMode.External, baseProfile.Mode(WorkflowStep.B1_APPROVE));
     }
 
     [Fact]
@@ -107,7 +130,7 @@ public sealed class WorkflowProfileUnitTests
     [InlineData(WorkflowStep.B5_PUBLISH)]
     public void Validate_MandatoryStepsCannotBeOff(WorkflowStep step)
     {
-        var settings = PeriodSettings.FullPreset();
+        var settings = PeriodSettings.Default();
         Profile(settings, "co-so").Step(step).Mode = StepMode.Off;
         Assert.Contains(Validate(settings.Normalize()), e => e.Contains("bước bắt buộc", StringComparison.Ordinal));
     }
@@ -118,7 +141,7 @@ public sealed class WorkflowProfileUnitTests
     [InlineData(WorkflowStep.B5_PUBLISH)]
     public void Validate_OwnerStepsAndPublishCannotBeExternal(WorkflowStep step)
     {
-        var settings = PeriodSettings.FullPreset();
+        var settings = PeriodSettings.Default();
         Profile(settings, "co-so").Step(step).Mode = StepMode.External;
         Assert.Contains(Validate(settings.Normalize()), e => e.Contains("không giao cho cấp trên", StringComparison.Ordinal));
     }
@@ -126,7 +149,7 @@ public sealed class WorkflowProfileUnitTests
     [Fact]
     public void Validate_AppraisalCanBeOff_AndAnyNonMandatoryStepCanBeExternal()
     {
-        var settings = PeriodSettings.FullPreset();
+        var settings = PeriodSettings.Default();
         var profile = Profile(settings, "co-so");
         profile.Step(WorkflowStep.B3B_APPRAISAL).Mode = StepMode.Off;
         profile.Step(WorkflowStep.B3A_COLLECTIVE).Mode = StepMode.External;
@@ -137,47 +160,50 @@ public sealed class WorkflowProfileUnitTests
     [Fact]
     public void Validate_RejectsInconsistentConfigurations()
     {
-        var approveWithoutRegister = PeriodSettings.FullPreset();
+        var approveWithoutRegister = PeriodSettings.Default();
         Profile(approveWithoutRegister, "co-so").Step(WorkflowStep.B1_REGISTER).Mode = StepMode.Off;
         Assert.Contains(Validate(approveWithoutRegister.Normalize()), e => e.Contains("duyệt danh mục", StringComparison.Ordinal));
 
-        // Task 16: bộ tiêu chí 09A cần bước đăng ký sản phẩm ở mọi hồ sơ luồng; 09B / chưa chọn bộ thì không.
-        var aWithoutRegister = PeriodSettings.TransitionQ3Preset();
+        // Bộ tiêu chí 09A cần bước đăng ký sản phẩm ở mọi hồ sơ luồng; 09B không được áp dụng bước đăng ký, duyệt; chưa chọn bộ thì không kiểm tra.
+        var aWithoutRegister = PeriodSettings.Default(CriteriaSetContent.Form09B);
         Assert.Contains(aWithoutRegister.Validate(WorkflowActions.IsAssignableStepPermission, "09A"), e => e.Contains("09A", StringComparison.Ordinal));
         Assert.Empty(aWithoutRegister.Validate(WorkflowActions.IsAssignableStepPermission, "09B"));
         Assert.Empty(Validate(aWithoutRegister));
+        var bWithRegister = PeriodSettings.Default(CriteriaSetContent.Form09A);
+        Assert.Equal(3, bWithRegister.Validate(WorkflowActions.IsAssignableStepPermission, "09B").Count(e => e.Contains("Không áp dụng", StringComparison.Ordinal)));
+        Assert.Empty(Validate(bWithRegister));
 
         var oldVersion = PeriodSettings.Parse("{\"schemaVersion\":1,\"steps\":{\"B1_REGISTER\":{\"enabled\":true}}}");
         Assert.Contains(Validate(oldVersion), e => e.Contains("Phiên bản cấu hình 1", StringComparison.Ordinal));
-        Assert.Contains(Validate(oldVersion), e => e.Contains("ít nhất một hồ sơ luồng", StringComparison.Ordinal));
+        Assert.Contains(Validate(oldVersion), e => e.Contains("ít nhất một cách xét duyệt", StringComparison.Ordinal));
 
-        var unknownStep = PeriodSettings.FullPreset();
+        var unknownStep = PeriodSettings.Default();
         Profile(unknownStep, "co-so").Steps["B9_UNKNOWN"] = new ProfileStepSetting();
         Assert.Contains(Validate(unknownStep.Normalize()), e => e.Contains("B9_UNKNOWN", StringComparison.Ordinal));
 
-        var duplicate = PeriodSettings.FullPreset();
+        var duplicate = PeriodSettings.Default();
         duplicate.Profiles[1].Code = "CO-SO";
         Assert.Contains(Validate(duplicate.Normalize()), e => e.Contains("bị trùng", StringComparison.Ordinal));
 
-        var badCode = PeriodSettings.FullPreset();
+        var badCode = PeriodSettings.Default();
         badCode.Profiles[2].Code = "bí thư";
         Assert.Contains(Validate(badCode.Normalize()), e => e.Contains("không hợp lệ", StringComparison.Ordinal));
 
-        var noName = PeriodSettings.FullPreset();
+        var noName = PeriodSettings.Default();
         noName.Profiles[2].Name = " ";
         Assert.Contains(Validate(noName.Normalize()), e => e.Contains("chưa có tên", StringComparison.Ordinal));
 
-        var missingDefault = PeriodSettings.FullPreset();
+        var missingDefault = PeriodSettings.Default();
         missingDefault.DefaultProfiles.Remove("CapTren");
         Assert.Contains(Validate(missingDefault), e => e.Contains("cấp trên quyết định", StringComparison.Ordinal));
 
-        var wrongDefault = PeriodSettings.FullPreset();
+        var wrongDefault = PeriodSettings.Default();
         wrongDefault.DefaultProfiles["CoSo"] = "khong-co";
         Assert.Contains(Validate(wrongDefault), e => e.Contains("\"khong-co\"", StringComparison.Ordinal));
 
-        var empty = PeriodSettings.FullPreset();
+        var empty = PeriodSettings.Default();
         empty.Profiles.Clear();
-        Assert.Contains(Validate(empty), e => e.Contains("ít nhất một hồ sơ luồng", StringComparison.Ordinal));
+        Assert.Contains(Validate(empty), e => e.Contains("ít nhất một cách xét duyệt", StringComparison.Ordinal));
     }
 
     [Theory]
@@ -188,7 +214,7 @@ public sealed class WorkflowProfileUnitTests
     [InlineData("khong.ton.tai")]
     public void Validate_InternalStepPermission_MustBeAssignableEvaluationCode(string permission)
     {
-        var settings = PeriodSettings.FullPreset();
+        var settings = PeriodSettings.Default();
         Profile(settings, "co-so").Step(WorkflowStep.B3C_DIRECTOR).Permission = permission;
         Assert.Contains(Validate(settings.Normalize()), e => e.Contains("quyền thực hiện bước", StringComparison.Ordinal));
         // Không truyền bộ kiểm tra mã quyền → Domain chỉ kiểm cấu trúc.
@@ -219,17 +245,17 @@ public sealed class WorkflowProfileUnitTests
     #region JSON, thời hạn, tra cứu
 
     [Fact]
-    public void Json_RoundTrip_ModeAsString_EmptyMeansFullPreset()
+    public void Json_RoundTrip_ModeAsString_EmptyMeansDefault()
     {
-        var json = PeriodSettings.TransitionQ3Preset().ToJson();
+        var json = PeriodSettings.Default(CriteriaSetContent.Form09B).ToJson();
         Assert.Contains("\"schemaVersion\":2", json);
         Assert.Contains("\"mode\":\"External\"", json);
         Assert.Contains("\"mode\":\"Off\"", json);
         Assert.Contains("\"defaultProfiles\":{\"CoSo\":\"co-so\",\"CapTren\":\"cap-tren\"}", json);
         Assert.Equal(json, PeriodSettings.Parse(json).ToJson());
 
-        Assert.Equal(PeriodSettings.FullPreset().ToJson(), PeriodSettings.Parse(null).ToJson());
-        Assert.Equal(PeriodSettings.FullPreset().ToJson(), PeriodSettings.Parse("  ").ToJson());
+        Assert.Equal(PeriodSettings.Default().ToJson(), PeriodSettings.Parse(null).ToJson());
+        Assert.Equal(PeriodSettings.Default().ToJson(), PeriodSettings.Parse("  ").ToJson());
 
         // Bước thiếu được bổ sung (nội bộ, quyền mặc định); khóa bước, khóa cấp quyết định không phân biệt hoa thường.
         var partial = PeriodSettings.Parse(
@@ -250,7 +276,7 @@ public sealed class WorkflowProfileUnitTests
     [Fact]
     public void DiffersOnlyInDeadlines_AcrossProfiles()
     {
-        var current = PeriodSettings.FullPreset();
+        var current = PeriodSettings.Default();
         var deadlines = current.Clone();
         Profile(deadlines, "cap-tren").Step(WorkflowStep.B4_DECISION).Deadline = new DateOnly(2026, 12, 20);
         Assert.True(deadlines.DiffersOnlyInDeadlines(current));
@@ -271,7 +297,7 @@ public sealed class WorkflowProfileUnitTests
     [Fact]
     public void ResolveProfile_ByCode_ThenDefaultByAuthority_ThenFirst()
     {
-        var settings = PeriodSettings.FullPreset();
+        var settings = PeriodSettings.Default();
         Assert.Equal("bi-thu-nhan-vien", settings.ResolveProfile("BI-THU-NHAN-VIEN", ApprovalAuthority.CapTren).Code);
         Assert.Equal("cap-tren", settings.ResolveProfile(null, ApprovalAuthority.CapTren).Code);
         Assert.Equal("co-so", settings.ResolveProfile("khong-con", ApprovalAuthority.CoSo).Code);
@@ -284,13 +310,13 @@ public sealed class WorkflowProfileUnitTests
     [Fact]
     public void DifferingSteps_IgnoreDeadlines()
     {
-        var settings = PeriodSettings.FullPreset();
+        var settings = PeriodSettings.Default();
         var baseProfile = Profile(settings, "co-so");
         Assert.Equal(new[] { WorkflowStep.B3B_APPRAISAL, WorkflowStep.B3C_DIRECTOR, WorkflowStep.B4_DECISION },
             baseProfile.DifferingSteps(Profile(settings, "cap-tren")));
         Assert.Equal(new[] { WorkflowStep.B3C_DIRECTOR }, baseProfile.DifferingSteps(Profile(settings, "bi-thu-nhan-vien")));
 
-        var withDeadline = PeriodSettings.FullPreset();
+        var withDeadline = PeriodSettings.Default();
         Profile(withDeadline, "co-so").Step(WorkflowStep.B2_SELF_SCORE).Deadline = new DateOnly(2026, 12, 11);
         Assert.Empty(baseProfile.DifferingSteps(Profile(withDeadline, "co-so")));
     }
@@ -302,7 +328,7 @@ public sealed class WorkflowProfileUnitTests
     [Fact]
     public void StateMachine_ExternalStepsAreActive_OffStepsAreSkipped()
     {
-        var upper = Profile(PeriodSettings.FullPreset(), "cap-tren");
+        var upper = Profile(PeriodSettings.Default(), "cap-tren");
         var status = RecordStateMachine.Initial(upper.ActiveSteps());
         var walked = new List<WorkflowStep>();
         while (WorkflowSteps.StepOf(status) is { } step)
@@ -332,8 +358,8 @@ public sealed class WorkflowProfileUnitTests
     [Fact]
     public void Realign_MovesForwardOnlyWhenCurrentStepNoLongerApplies()
     {
-        var baseProfile = Profile(PeriodSettings.FullPreset(), "co-so");
-        var transitionBase = Profile(PeriodSettings.TransitionQ3Preset(), "co-so");
+        var baseProfile = Profile(PeriodSettings.Default(), "co-so");
+        var transitionBase = Profile(PeriodSettings.Default(CriteriaSetContent.Form09B), "co-so");
         var noDirector = WorkflowProfile.Create("x", "X", null, new Dictionary<WorkflowStep, StepMode> { [WorkflowStep.B3C_DIRECTOR] = StepMode.Off });
 
         Assert.Equal(RecordStatus.AwaitingSelfScore, RecordStateMachine.Realign(RecordStatus.AwaitingRegistration, transitionBase.ActiveSteps()));
@@ -349,7 +375,7 @@ public sealed class WorkflowProfileUnitTests
     [Fact]
     public void PermissionFor_FollowsProfileMode()
     {
-        var settings = PeriodSettings.FullPreset();
+        var settings = PeriodSettings.Default();
         var baseProfile = Profile(settings, "co-so");
         var upper = Profile(settings, "cap-tren");
         var staff = Profile(settings, "bi-thu-nhan-vien");
@@ -363,13 +389,13 @@ public sealed class WorkflowProfileUnitTests
 
         Assert.Equal(WorkflowAction.RecordExternal, WorkflowActions.AdvanceOf(WorkflowStep.B3B_APPRAISAL, upper)!.Kind);
         Assert.Equal(WorkflowAction.Complete, WorkflowActions.AdvanceOf(WorkflowStep.B3B_APPRAISAL, baseProfile)!.Kind);
-        Assert.Null(WorkflowActions.AdvanceOf(WorkflowStep.B1_REGISTER, Profile(PeriodSettings.TransitionQ3Preset(), "co-so")));
+        Assert.Null(WorkflowActions.AdvanceOf(WorkflowStep.B1_REGISTER, Profile(PeriodSettings.Default(CriteriaSetContent.Form09B), "co-so")));
     }
 
     [Fact]
     public void ModeBlockReason_RejectsActionNotMatchingStepMode()
     {
-        var settings = PeriodSettings.TransitionQ3Preset();
+        var settings = PeriodSettings.Default(CriteriaSetContent.Form09B);
         var baseProfile = Profile(settings, "co-so");
         var upper = Profile(settings, "cap-tren");
 
