@@ -194,4 +194,52 @@ export const roleService = {
   getEffectivePermissions(userId: string): Promise<UserEffectivePermissions> {
     return request<UserEffectivePermissions>(`/admin/users/${userId}/effective-permissions`);
   },
+
+  /** Người thực hiện các việc tại một đơn vị; bỏ trống cả hai = Toàn công ty. */
+  getPerformers(unit: { departmentId?: string; partyCellId?: string }): Promise<UnitPerformers> {
+    return request<UnitPerformers>(
+      `/admin/performers${toQuery({ departmentId: unit.departmentId, partyCellId: unit.partyCellId })}`
+    );
+  },
 };
+
+/** Một người làm được việc tại đơn vị, qua một bản gán vai trò. */
+export interface Performer {
+  userId: string;
+  fullName: string;
+  username: string;
+  roleName: string;
+  /** Loại phạm vi của bản gán. */
+  scopeType: ScopeType;
+  scopeId?: string | null;
+  /** Nơi gán ("Toàn công ty" hoặc tên đơn vị). */
+  scopeText: string;
+  assignmentId: string;
+  /** Gán tại đúng đơn vị đang xem (gỡ được tại màn hình này). */
+  assignedHere: boolean;
+  validTo?: string | null;
+}
+
+/** Vai trò chọn được khi thêm người cho một việc. */
+export interface PerformerRoleOption {
+  id: string;
+  name: string;
+  description?: string | null;
+}
+
+/** Một việc trong quy trình đánh giá và người làm được việc đó. */
+export interface PerformerJob {
+  permission: string;
+  permissionName: string;
+  people: Performer[];
+  roles: PerformerRoleOption[];
+}
+
+/** Người thực hiện theo đơn vị (`GET /api/admin/performers`). */
+export interface UnitPerformers {
+  scopeType: ScopeType;
+  scopeId?: string | null;
+  scopeName: string;
+  scopeActive: boolean;
+  jobs: PerformerJob[];
+}

@@ -129,6 +129,7 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
 | Kiểm tra phạm vi hợp lệ | Quyền "không áp dụng phạm vi" chỉ nằm trong vai trò được gán `Global`; `ScopeId` phải tồn tại và đang hoạt động |
 | Lưu vết | Mọi thay đổi vai trò/quyền/gán ghi audit (tự động qua DbContext) với trước–sau |
 | Tra cứu | API "người X làm được gì": danh sách quyền kèm phạm vi và bản gán nguồn |
+| Người thực hiện theo đơn vị | `GET /api/admin/performers?departmentId=` \| `?partyCellId=` (bỏ trống = Toàn công ty), quyền `system.assignments.manage` (Global): với mỗi việc của quy trình (quyền thực hiện bước, `PerformerService.JobPermissions`) trả người làm được việc đó tại đơn vị — tài khoản đang hoạt động, bản gán hiệu lực, phạm vi bao trùm đơn vị. Tính bằng resolver + `AuthorizationGuard.Evaluate` trên đối tượng "hồ sơ bất kỳ của đơn vị" (không có chủ hồ sơ), cùng luật với kiểm tra thiếu người thực hiện của kỳ; gán ở cây tổ chức Đảng không tính cho đơn vị chính quyền và ngược lại. Kèm danh sách vai trò chứa quyền và gán được tại đơn vị (cùng chốt "kiểm tra phạm vi hợp lệ"). Thêm/gỡ người dùng API bản gán sẵn có (giữ mọi chốt trên); màn hình chỉ cho gỡ bản gán đặt tại đúng đơn vị đang xem |
 
 ## 6. Cấu hình mặc định (seed khi CSDL chưa có vai trò nào — ĐỀ XUẤT, CHỜ XÁC NHẬN)
 

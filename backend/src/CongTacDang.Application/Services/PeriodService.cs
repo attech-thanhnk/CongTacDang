@@ -482,6 +482,8 @@ public sealed class PeriodService : IPeriodService
                 Permission = permission,
                 PermissionName = permissionName,
                 Scope = scope,
+                DepartmentId = record.DepartmentId,
+                PartyCellId = record.PartyCellId,
                 Message = message
             });
         }

@@ -2,7 +2,17 @@
 
 import React from "react";
 import Link from "next/link";
-import { PeriodReadinessDto, STEP_MODE_LABELS } from "@/services/evaluationService";
+import { PeriodReadinessDto, ReadinessIssueDto, STEP_MODE_LABELS } from "@/services/evaluationService";
+
+/** Trang "Người thực hiện" mở sẵn đơn vị của hồ sơ (ưu tiên đơn vị chính quyền) và việc cần bổ sung người. */
+function performersHref(issue?: Pick<ReadinessIssueDto, "departmentId" | "partyCellId" | "permission">): string {
+  const params = new URLSearchParams();
+  if (issue?.departmentId) params.set("departmentId", issue.departmentId);
+  else if (issue?.partyCellId) params.set("partyCellId", issue.partyCellId);
+  if (issue?.permission) params.set("permission", issue.permission);
+  const query = params.toString();
+  return query ? `/admin/performers?${query}` : "/admin/performers";
+}
 
 interface Props {
   readiness: PeriodReadinessDto | null;
@@ -39,7 +49,15 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
             <div className="alert alert-warning small">
               <i className="bi bi-exclamation-triangle me-1" />
               {readiness.issues.length} bước chưa có người thực hiện, trên {readiness.checkedRecords} hồ sơ.
-              Hãy <Link href="/admin/users">gán vai trò</Link> có quyền tương ứng hoặc sửa cấu hình bước.
+              Hãy <Link
+                href={performersHref(
+                  new Set(readiness.issues.map((i) => i.departmentId || i.partyCellId || "")).size === 1
+                    ? { ...readiness.issues[0], permission: "" }
+                    : undefined
+                )}
+              >
+                gán vai trò
+              </Link> có quyền tương ứng hoặc sửa cấu hình bước.
             </div>
             <div className="table-responsive" style={{ maxHeight: 360, overflowY: "auto" }}>
               <table className="table table-sm align-middle small mb-0">
@@ -53,7 +71,7 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
                       <td>{issue.workflowProfileName}</td>
                       <td>{issue.stepName}{issue.mode === "External" && <div className="text-secondary">{STEP_MODE_LABELS.External}</div>}</td>
                       <td>{issue.permissionName}</td>
-                      <td>{issue.scope}</td>
+                      <td><Link href={performersHref(issue)}>{issue.scope}</Link></td>
                     </tr>
                   ))}
                 </tbody>

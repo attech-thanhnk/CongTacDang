@@ -32,6 +32,8 @@ public static class AuthorizationExtensions
 
         // Quản trị bản gán vai trò (task 13).
         services.AddScoped<IRoleAssignmentService, RoleAssignmentService>();
+        // "Người thực hiện" theo đơn vị.
+        services.AddScoped<IPerformerService, PerformerService>();
 
         // Policy tên = mã quyền (và any:a|b), đánh giá từ IPermissionResolver.
         services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
