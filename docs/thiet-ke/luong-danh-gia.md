@@ -171,6 +171,27 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
   mở/khóa dữ liệu và kỳ đã đóng trong `improvementPlanAlertDays` ngày gần nhất, tính từ lúc đóng kỳ), "Kế hoạch chờ bạn xác nhận";
   `GET /api/notifications/summary` đếm tổng việc, bước quá hạn, sắp tới hạn (`Notifications:DueSoonDays`, mặc định 2).
 
+## 4b. Điều chỉnh việc trong quý (Mẫu 04, 05)
+- Bảng `task_change_requests` (`TaskChangeRequest`, xmin, xóa mềm, audit): `Type` = `Adjust` (điều chỉnh nội dung/chỉ tiêu/thời hạn/trọng số
+  một việc) / `Carryover` (chuyển tiếp sang quý sau) / `Exclude` (loại trừ, bất khả kháng) — Mẫu 04; `Urgent` (việc đột xuất) — Mẫu 05.
+  `TaskId?`, `Proposal` (jsonb — các trường mới của việc, hoặc toàn bộ việc đột xuất), `Weights` (jsonb — trọng số sau điều chỉnh của mọi
+  việc còn hiệu lực), `WeightsBefore`, `Reason`, `Status` = `Pending / Approved / Rejected`, người đề nghị / quyết định, thời điểm, ý kiến.
+- Áp dụng khi: kỳ **Đang mở**, hồ sơ ở `AwaitingSelfScore` (đã duyệt danh sách việc, chưa nộp tự chấm), bộ tiêu chí chấm theo sản phẩm
+  (09A) và cách xét duyệt có bước `B1_REGISTER` (bộ 09B → không có chức năng). Mỗi hồ sơ tối đa **một** đề nghị chờ duyệt.
+- Quyền: Mẫu 04 — chủ hồ sơ (`evaluation.self`); Mẫu 05 — chủ hồ sơ hoặc người duyệt danh sách việc. Duyệt / không duyệt — quyền thực hiện
+  `B1_APPROVE` theo cách xét duyệt của hồ sơ (`WorkflowActions.PermissionFor`; bước do cấp trên thực hiện → `evaluation.external.record`),
+  `IAuthorizationGuard.Ensure` với `AccessTarget.ForRecord`; chủ hồ sơ không tự duyệt; không duyệt bắt buộc lý do.
+- Duyệt: kiểm lại trên danh mục hiện tại (`TaskChangeRules.Validate` → `EvaluationScoring.ValidateTaskRegistration`, **chỉ đếm việc còn
+  hiệu lực**) rồi áp vào `evaluation_tasks` trong cùng một lần lưu: Adjust → sửa việc; Exclude/Carryover → `ChangeStatus` = `Excluded` /
+  `CarriedOver`, trọng số 0, điểm 0 (việc còn trên phiếu, không chấm); Urgent → thêm việc `Kind = DotXuat`; trọng số các việc theo bảng sau
+  điều chỉnh (điểm tạm tính lại theo khung tỷ trọng). Lịch sử hồ sơ: hành động `TaskChange` (gửi, duyệt — kèm thay đổi trọng số, không duyệt —
+  kèm lý do). Phiên bản: gửi đề nghị dùng `version` của hồ sơ; duyệt / không duyệt dùng `version` của đề nghị.
+- Tự chấm (B2): việc đã loại trừ / chuyển tiếp bị bỏ qua (điểm 0, không tính vào tỷ lệ vượt chuẩn) — công thức không đổi.
+- API: `GET /api/evaluations/records/{id}/task-changes` (danh sách + cờ `canRequestChange`, `canRecordUrgent`, `requests[].canDecide`),
+  `POST …/task-changes`, `POST …/task-changes/{changeId}/approve`, `POST …/task-changes/{changeId}/reject`. Việc cần xử lý / chuông: nhóm
+  `TASK_CHANGES` "Duyệt đề nghị điều chỉnh việc".
+- Chưa làm: xuất Word Mẫu 04/05 (chưa có template), tệp minh chứng gắn đề nghị, tạo việc chuyển tiếp ở kỳ quý sau.
+
 ## 5. API hành động (để frontend không tự suy luật)
 - `GET /api/evaluations/records/{id}/actions` → danh sách hành động người hiện tại được làm trên hồ sơ, mỗi mục: `{ action, step, label, requiresReason, reasonOptional, overdue, targetSteps? }`. Tính từ: trạng thái hồ sơ + **hồ sơ luồng của hồ sơ** (chế độ + quyền thực hiện của bước) + trạng thái kỳ + xung đột lợi ích + `IAuthorizationGuard`. Bước cấp trên thực hiện → hành động `RecordExternal` (bước ở trường `step`).
 - `POST /api/evaluations/records/{id}/external/{step}` (`evaluation.external.record`) → ghi nhận kết quả của bước do cấp trên thực hiện: `{ version, authorityName, documentNumber?, documentDate?, comment?, grade?, score?, attachmentId?, cadreWorkProposal? }` (`cadreWorkProposal` — cột 13 Mẫu 14 — chỉ nhận ở `B4_DECISION`, bước khác → 400). Quyết định nội bộ (`decision`) nhận cùng trường.

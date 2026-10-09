@@ -68,6 +68,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     private readonly ICurrentUserService _currentUser;
     private readonly IAttachmentService _attachments;
     private readonly IPostPublishWorkQueue? _postPublish;
+    private readonly ITaskChangeWorkQueue? _taskChanges;
 
     public EvaluationWorkflowService(
         IEvaluationWorkflowRepository repo,
@@ -75,8 +76,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         IAuthorizationGuard guard,
         ICurrentUserService currentUser,
         IAttachmentService attachments,
-        IPostPublishWorkQueue? postPublish = null)
+        IPostPublishWorkQueue? postPublish = null,
+        ITaskChangeWorkQueue? taskChanges = null)
     {
+        _taskChanges = taskChanges;
         _repo = repo;
         _unitOfWork = unitOfWork;
         _guard = guard;
@@ -231,6 +234,13 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
                 foreach (var task in tasks)
                 {
+                    // Việc đã loại trừ / chuyển tiếp hợp lệ (Mẫu 04): không chấm, điểm 0, không tính vượt chuẩn.
+                    if (!TaskChangeRules.IsActive(task))
+                    {
+                        task.SelfScore = 0;
+                        task.IsExceedStandard = false;
+                        continue;
+                    }
                     var input = request.TaskScores?.FirstOrDefault(s => s.TaskId == task.Id);
                     if (input == null)
                         continue;
@@ -249,7 +259,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             record.TasksScore = EvaluationScoring.TasksScore(tasks.Select(t => t.SelfScore), rounding.TasksTotal);
             record.AxisScores = null;
             record.SelfScoreForm = CriteriaSetContent.Form09A;
-            exceedRatio = EvaluationScoring.ExceedStandardRatio(tasks.Count(t => t.IsExceedStandard), tasks.Count);
+            var scoredTasks = tasks.Where(TaskChangeRules.IsActive).ToList();
+            exceedRatio = EvaluationScoring.ExceedStandardRatio(scoredTasks.Count(t => t.IsExceedStandard), scoredTasks.Count);
         }
 
         record.TotalSelfScore = EvaluationScoring.TotalScore(record.GeneralCriteriaScore, record.TasksScore, rounding.Total);
@@ -658,6 +669,13 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             var extra = await _postPublish.GetGroupsAsync(periodId, ct);
             queue.Groups.AddRange(extra);
             queue.Total += extra.Sum(g => g.Count);
+        }
+        // Đề nghị điều chỉnh việc trong quý (Mẫu 04, 05) chờ người hiện tại duyệt.
+        if (_taskChanges != null)
+        {
+            var changes = await _taskChanges.GetGroupsAsync(periodId, ct);
+            queue.Groups.AddRange(changes);
+            queue.Total += changes.Sum(g => g.Count);
         }
         return queue;
     }

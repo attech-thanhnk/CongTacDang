@@ -157,6 +157,8 @@ export interface EvaluationTaskDto {
   exceedCriteria?: string | null;
   evidenceSource?: string | null;
   confirmer?: string | null;
+  /** Việc đã loại trừ / chuyển tiếp trong quý (không chấm); null = còn hiệu lực. */
+  changeStatus?: "Excluded" | "CarriedOver" | null;
   criteriaA_Ratio: number;
   criteriaB_Ratio: number;
   criteriaC_Ratio: number;

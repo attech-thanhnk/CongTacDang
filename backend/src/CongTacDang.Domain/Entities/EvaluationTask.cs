@@ -56,6 +56,12 @@ public class EvaluationTask : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Thẩm quyền xác nhận kết quả (Mẫu 01 cột "Thẩm quyền xác nhận").</summary>
     public string? Confirmer { get; set; }
 
+    /// <summary>
+    /// Đã loại trừ / chuyển tiếp hợp lệ trong quý (đề nghị Mẫu 04 đã duyệt): việc giữ lại trên phiếu, trọng số 0, không chấm;
+    /// null = việc còn hiệu lực.
+    /// </summary>
+    public TaskChangeMark? ChangeStatus { get; set; }
+
     #region Tự chấm điểm 4 Tiêu chí A-B-C-D theo khung tỷ trọng (0.0 đến 1.0)
 
     /// <summary>Tỷ lệ hoàn thành Tiêu chí A - Khối lượng công việc (0.0 đến 1.0 tương ứng 0% đến 100%)</summary>

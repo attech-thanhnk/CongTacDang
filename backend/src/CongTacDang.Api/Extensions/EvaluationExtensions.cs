@@ -17,6 +17,11 @@ public static class EvaluationExtensions
         // Task 16: bộ tiêu chí và thang điểm theo phiên bản.
         services.AddScoped<ICriteriaSetRepository, CriteriaSetRepository>();
         services.AddScoped<ICriteriaSetService, CriteriaSetService>();
+        // Điều chỉnh việc trong quý (Mẫu 04, 05); nhóm việc chờ duyệt trong danh sách việc cần xử lý / nhắc việc.
+        services.AddScoped<ITaskChangeRepository, TaskChangeRepository>();
+        services.AddScoped<TaskChangeService>();
+        services.AddScoped<ITaskChangeService>(sp => sp.GetRequiredService<TaskChangeService>());
+        services.AddScoped<ITaskChangeWorkQueue>(sp => sp.GetRequiredService<TaskChangeService>());
         return services;
     }
 }
