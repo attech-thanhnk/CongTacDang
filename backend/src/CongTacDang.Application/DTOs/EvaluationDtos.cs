@@ -65,6 +65,10 @@ public class EvaluationTaskDto
     public double SelfScore { get; set; }
     public double? SupervisorScore { get; set; }
     public bool IsExceedStandard { get; set; }
+    /// <summary>Mức thẩm định 1/2/3 do cơ quan thẩm định xếp; null khi chưa thẩm định.</summary>
+    public int? AppraisalLevel { get; set; }
+    /// <summary>Nhận xét ngắn của cơ quan thẩm định về nhiệm vụ.</summary>
+    public string? AppraisalComment { get; set; }
     /// <summary>Id tệp minh chứng (phiên bản hiện hành của nhóm tệp — T-53).</summary>
     public Guid? AttachmentId { get; set; }
     /// <summary>Tên tệp minh chứng theo phiên bản hiện hành (T-53).</summary>
@@ -171,7 +175,12 @@ public class EvaluationRecordDto
     public DateTime? CollectiveRecordedAt { get; set; }
 
     // B3b
+    /// <summary>Tổng điểm thẩm định = nhóm tiêu chí chung + nhóm kết quả thực hiện nhiệm vụ.</summary>
     public double? AppraisalScore { get; set; }
+    /// <summary>Điểm thẩm định nhóm tiêu chí chung; null khi chỉ có điểm tổng.</summary>
+    public double? AppraisalGeneralScore { get; set; }
+    /// <summary>Điểm thẩm định nhóm kết quả thực hiện nhiệm vụ; null khi chỉ có điểm tổng.</summary>
+    public double? AppraisalTasksScore { get; set; }
     public string AppraisalComment { get; set; } = string.Empty;
     /// <summary>Nội dung giải trình/căn cứ khi chênh lệch tự chấm – thẩm định (B-09).</summary>
     public string? AppraisalExplanation { get; set; }
@@ -205,6 +214,15 @@ public class EvaluationRecordDto
     public List<ExternalResultDto> ExternalResults { get; set; } = new();
 
     public List<EvaluationTaskDto> Tasks { get; set; } = new();
+
+    /// <summary>
+    /// Cảnh báo điều kiện xếp loại theo mức thẩm định từng nhiệm vụ (<see cref="GradeConditions"/>) với mức hiệu lực hiện tại
+    /// của hồ sơ — chỉ cảnh báo, không chặn.
+    /// </summary>
+    public List<string> GradeWarnings { get; set; } = new();
+
+    /// <summary>Tỷ lệ nhiệm vụ vượt chuẩn tối thiểu (0..1) của mức Xuất sắc theo bộ tiêu chí của kỳ; null = không xét.</summary>
+    public double? ExcellentMinExceedRatio { get; set; }
 }
 
 /// <summary>Báo cáo kiểm soát tỷ lệ trần Hoàn thành xuất sắc theo từng Chi bộ (Mẫu 15)</summary>
@@ -335,13 +353,32 @@ public class CollectiveProposalRequestDto : WorkflowRequestDto
 /// <summary>B3B_APPRAISAL: thẩm định.</summary>
 public class AppraisalRequestDto : WorkflowRequestDto
 {
+    /// <summary>Điểm thẩm định nhóm tiêu chí chung (gửi cùng <see cref="TasksScore"/>; tổng do máy chủ tính).</summary>
+    public double? GeneralScore { get; set; }
+    /// <summary>Điểm thẩm định nhóm kết quả thực hiện nhiệm vụ (gửi cùng <see cref="GeneralScore"/>).</summary>
+    public double? TasksScore { get; set; }
+    /// <summary>
+    /// Tổng điểm thẩm định — chỉ dùng khi không gửi điểm theo nhóm (client cũ); có điểm theo nhóm thì bị bỏ qua.
+    /// </summary>
     public double? AppraisalScore { get; set; }
+    /// <summary>Mức thẩm định từng nhiệm vụ — bắt buộc đủ mọi nhiệm vụ khi bộ tiêu chí chấm theo danh mục nhiệm vụ (09A).</summary>
+    public List<AppraisalTaskLevelDto>? TaskLevels { get; set; }
     public string? Comment { get; set; }
     public string? ProposedGrade { get; set; }
     /// <summary>
     /// Nội dung giải trình/căn cứ — bắt buộc khi |tự chấm − thẩm định| ≥ ngưỡng của bộ tiêu chí (hoặc chênh lệch làm đổi mức).
     /// </summary>
     public string? Explanation { get; set; }
+}
+
+/// <summary>Mức thẩm định một nhiệm vụ.</summary>
+public class AppraisalTaskLevelDto
+{
+    public Guid TaskId { get; set; }
+    /// <summary>Mức 1 / 2 / 3.</summary>
+    public int? Level { get; set; }
+    /// <summary>Nhận xét ngắn (không bắt buộc).</summary>
+    public string? Comment { get; set; }
 }
 
 /// <summary>B3C_DIRECTOR: nhận xét, đề xuất của cấp trực tiếp sử dụng.</summary>

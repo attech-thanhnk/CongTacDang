@@ -61,6 +61,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     private const int MaxReasonLength = 2000;
     private const int MaxCommentLength = 4000;
     private const int MaxCadreProposalLength = 2000;
+    private const int MaxTaskAppraisalCommentLength = 1000;
 
     private readonly IEvaluationWorkflowRepository _repo;
     private readonly IUnitOfWork _unitOfWork;
@@ -396,34 +397,105 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
     /// <inheritdoc />
     public Task<EvaluationRecordDto> AppraiseAsync(Guid recordId, AppraisalRequestDto request, CancellationToken ct = default) =>
-        ExecuteAsync(recordId, request, WorkflowActions.Appraise, null, ctx =>
+        ExecuteAsync(recordId, request, WorkflowActions.Appraise, null, async ctx =>
         {
             var grade = EvaluationMapping.ParseGrade(request.ProposedGrade)
                 ?? throw new ValidationException("Hãy chọn mức xếp loại do cơ quan thẩm định đề xuất.");
-            if (request.AppraisalScore is < 0 or > 100)
-                throw new ValidationException("Điểm thẩm định phải từ 0 đến 100.");
-
-            // B-09: chênh lệch tự chấm – thẩm định từ ngưỡng của bộ tiêu chí (hoặc làm đổi mức) → bắt buộc giải trình/căn cứ.
-            var explanation = Trim(request.Explanation, MaxCommentLength, "Nội dung giải trình");
             var criteria = RequireCriteria(ctx);
-            if (explanation == null && EvaluationScoring.RequiresExplanation(criteria.Content, ctx.Record.TotalSelfScore, request.AppraisalScore))
+            var (general, tasksScore, total) = AppraisalScores(request, criteria.Content);
+
+            // B-09: chênh lệch tự chấm – thẩm định (theo tổng) từ ngưỡng của bộ tiêu chí (hoặc làm đổi mức) → bắt buộc giải trình/căn cứ.
+            var explanation = Trim(request.Explanation, MaxCommentLength, "Nội dung giải trình");
+            if (explanation == null && EvaluationScoring.RequiresExplanation(criteria.Content, ctx.Record.TotalSelfScore, total))
             {
                 var p = criteria.Content.Parameters;
-                var diff = Math.Abs(ctx.Record.TotalSelfScore - request.AppraisalScore!.Value);
+                var diff = Math.Abs(ctx.Record.TotalSelfScore - total!.Value);
                 var gradeChange = p.ExplanationOnGradeChange ? " hoặc làm đổi mức xếp loại" : string.Empty;
                 throw new ValidationException(string.Create(CultureInfo.InvariantCulture,
-                    $"Điểm thẩm định {request.AppraisalScore:0.##} chênh lệch {diff:0.##} điểm so với điểm tự chấm {ctx.Record.TotalSelfScore:0.##} (ngưỡng {p.ExplanationThreshold:0.##} điểm{gradeChange}): hãy nhập nội dung giải trình, căn cứ."));
+                    $"Điểm thẩm định {total:0.##} chênh lệch {diff:0.##} điểm so với điểm tự chấm {ctx.Record.TotalSelfScore:0.##} (ngưỡng {p.ExplanationThreshold:0.##} điểm{gradeChange}): hãy nhập nội dung giải trình, căn cứ."));
             }
 
-            ctx.Record.AppraisalScore = request.AppraisalScore;
+            // Bộ chấm theo danh mục nhiệm vụ (09A): bắt buộc xếp mức 1/2/3 cho mọi nhiệm vụ; bộ chấm theo trục (09B) bỏ qua.
+            if (!criteria.UsesAxisScoring)
+                ApplyTaskLevels(await _repo.GetTasksAsync(ctx.Record.Id, ct), request.TaskLevels);
+
+            ctx.Record.AppraisalScore = total;
+            ctx.Record.AppraisalGeneralScore = general;
+            ctx.Record.AppraisalTasksScore = tasksScore;
             ctx.Record.AppraisalExplanation = explanation;
             ctx.Record.AppraisalComment = Trim(request.Comment, MaxCommentLength, "Ý kiến thẩm định") ?? string.Empty;
             ctx.Record.AppraisalProposedGrade = grade;
             ctx.Record.AppraisedById = ctx.ActorId;
             ctx.Record.AppraisedByName = ctx.ActorName;
             ctx.Record.AppraisedAt = ctx.Now;
-            return Task.FromResult<string?>("Thẩm định hồ sơ.");
+            return "Thẩm định hồ sơ.";
         }, ct);
+
+    /// <summary>
+    /// Điểm thẩm định: theo nhóm (tiêu chí chung + kết quả thực hiện nhiệm vụ, mỗi nhóm 0..điểm tối đa nhóm của bộ, làm tròn theo
+    /// quy tắc của nhóm), tổng = chung + nhiệm vụ làm tròn theo quy tắc "tổng điểm". Không gửi điểm nhóm → dùng tổng
+    /// <see cref="AppraisalRequestDto.AppraisalScore"/> (client cũ; không có điểm nhóm). Không có điểm nào → cả ba null.
+    /// </summary>
+    private static (double? General, double? Tasks, double? Total) AppraisalScores(AppraisalRequestDto request, CriteriaSetContent criteria)
+    {
+        var p = criteria.Parameters;
+        if (request.GeneralScore is null && request.TasksScore is null)
+        {
+            if (request.AppraisalScore is < 0 or > 100)
+                throw new ValidationException("Điểm thẩm định phải từ 0 đến 100.");
+            return (null, null, request.AppraisalScore);
+        }
+
+        if (request.GeneralScore is not { } general || request.TasksScore is not { } tasks)
+            throw new ValidationException("Hãy nhập đủ điểm thẩm định nhóm tiêu chí chung và nhóm kết quả thực hiện nhiệm vụ.");
+        if (double.IsNaN(general) || general < 0 || general > p.GeneralMaxScore + CriteriaSetContent.Epsilon)
+            throw new ValidationException(string.Create(CultureInfo.InvariantCulture,
+                $"Điểm thẩm định nhóm tiêu chí chung phải từ 0 đến {p.GeneralMaxScore:0.##}."));
+        if (double.IsNaN(tasks) || tasks < 0 || tasks > p.TotalTaskWeight + CriteriaSetContent.Epsilon)
+            throw new ValidationException(string.Create(CultureInfo.InvariantCulture,
+                $"Điểm thẩm định nhóm kết quả thực hiện nhiệm vụ phải từ 0 đến {p.TotalTaskWeight:0.##}."));
+
+        var roundedGeneral = EvaluationScoring.Round(general, p.Rounding.GeneralTotal);
+        var roundedTasks = EvaluationScoring.Round(tasks, p.Rounding.TasksTotal);
+        return (roundedGeneral, roundedTasks, EvaluationScoring.TotalScore(roundedGeneral, roundedTasks, p.Rounding.Total));
+    }
+
+    /// <summary>
+    /// Ghi mức thẩm định (1/2/3) và nhận xét ngắn cho từng nhiệm vụ của hồ sơ: bắt buộc đủ mọi nhiệm vụ, không nhận nhiệm vụ
+    /// của hồ sơ khác, mỗi nhiệm vụ một dòng.
+    /// </summary>
+    private static void ApplyTaskLevels(IReadOnlyList<EvaluationTask> tasks, IReadOnlyList<AppraisalTaskLevelDto>? levels)
+    {
+        levels ??= Array.Empty<AppraisalTaskLevelDto>();
+        var byId = tasks.ToDictionary(t => t.Id);
+        var seen = new HashSet<Guid>();
+        foreach (var input in levels)
+        {
+            if (input == null)
+                continue;
+            if (!byId.TryGetValue(input.TaskId, out var task))
+                throw new ValidationException("Có nhiệm vụ được xếp mức không thuộc danh mục của hồ sơ. Hãy tải lại hồ sơ rồi thẩm định lại.");
+            if (!seen.Add(input.TaskId))
+                throw new ValidationException($"Nhiệm vụ \"{task.TaskName}\" được xếp mức nhiều lần.");
+            if (input.Level is { } level && !GradeConditions.IsValidLevel(level))
+                throw new ValidationException($"Mức thẩm định của nhiệm vụ \"{task.TaskName}\" chỉ là Mức 1, Mức 2 hoặc Mức 3.");
+        }
+
+        var missing = tasks
+            .Where(t => levels.FirstOrDefault(l => l != null && l.TaskId == t.Id)?.Level is null)
+            .OrderBy(t => t.TaskOrder)
+            .Select(t => $"\"{t.TaskName}\"")
+            .ToList();
+        if (missing.Count > 0)
+            throw new ValidationException($"Chưa xếp mức thẩm định cho nhiệm vụ: {string.Join(", ", missing)}.");
+
+        foreach (var input in levels.Where(l => l != null))
+        {
+            var task = byId[input.TaskId];
+            task.AppraisalLevel = input.Level;
+            task.AppraisalComment = Trim(input.Comment, MaxTaskAppraisalCommentLength, $"Nhận xét nhiệm vụ \"{task.TaskName}\"");
+        }
+    }
 
     /// <inheritdoc />
     public Task<EvaluationRecordDto> ReturnByAppraiserAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default) =>
@@ -598,6 +670,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 break;
             case WorkflowStep.B3B_APPRAISAL:
                 record.AppraisalScore = result.Score;
+                record.AppraisalGeneralScore = null;
+                record.AppraisalTasksScore = null;
                 record.AppraisalComment = result.Comment ?? string.Empty;
                 record.AppraisalProposedGrade = result.Grade;
                 record.AppraisedById = null;

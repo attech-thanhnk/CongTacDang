@@ -879,10 +879,16 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
 
+                    b.Property<double?>("AppraisalGeneralScore")
+                        .HasColumnType("double precision");
+
                     b.Property<int>("AppraisalProposedGrade")
                         .HasColumnType("integer");
 
                     b.Property<double?>("AppraisalScore")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("AppraisalTasksScore")
                         .HasColumnType("double precision");
 
                     b.Property<DateTime?>("AppraisedAt")
@@ -1183,6 +1189,13 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("AppraisalComment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("AppraisalLevel")
+                        .HasColumnType("integer");
 
                     b.Property<Guid?>("AttachmentId")
                         .HasColumnType("uuid");

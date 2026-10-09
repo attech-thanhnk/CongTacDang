@@ -123,6 +123,7 @@ public sealed class EvaluationTaskConfiguration : IEntityTypeConfiguration<Evalu
         entity.Property(e => e.ExceedCriteria).HasMaxLength(2000);
         entity.Property(e => e.EvidenceSource).HasMaxLength(1000);
         entity.Property(e => e.Confirmer).HasMaxLength(500);
+        entity.Property(e => e.AppraisalComment).HasMaxLength(1000);
         entity.Property(e => e.Version)
             .HasColumnName("xmin")
             .IsRowVersion();

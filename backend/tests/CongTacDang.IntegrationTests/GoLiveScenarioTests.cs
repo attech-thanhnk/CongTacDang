@@ -341,6 +341,8 @@ internal static class GoLiveHttp
         var current = await DataAsync(await client.GetAsync($"/api/evaluations/records/{recordId}"));
         var json = JsonSerializer.SerializeToNode(body)!.AsObject();
         json["version"] = current.GetProperty("version").GetUInt32();
+        if (action == "appraisal")
+            await AppraisalTestData.AddTaskLevelsAsync(client, recordId, json);
         var result = await DataAsync(await client.PostAsJsonAsync($"/api/evaluations/records/{recordId}/{action}", json));
         Assert.Equal(expectedStatus, result.GetProperty("status").GetString());
         return result;

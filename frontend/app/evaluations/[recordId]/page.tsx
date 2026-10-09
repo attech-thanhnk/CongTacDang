@@ -416,6 +416,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
   const selfScored = !!record.selfScoredAt || stepOf("B2_SELF_SCORE")?.state === "done";
   const axisEntries = record.axisScores ? Object.entries(record.axisScores) : [];
   const selfVisible = visible(["B2_SELF_SCORE"], !!record.selfScoredAt);
+  const appraisedLevels = record.tasks.some((t) => t.appraisalLevel != null);
 
   return (
     <>
@@ -460,7 +461,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
             <div className={`${styles.body} ${styles.small}`}>Chưa đăng ký.</div>
           ) : (
             <div className={styles.tw}><table className={styles.table}>
-              <thead><tr><th>#</th><th>Sản phẩm</th><th>Loại · vai trò · trục</th><th>Trọng số</th><th>Điểm</th><th>Minh chứng</th></tr></thead>
+              <thead><tr><th>#</th><th>Sản phẩm</th><th>Loại · vai trò · trục</th><th>Trọng số</th><th>Điểm</th>{appraisedLevels && <th>Thẩm định</th>}<th>Minh chứng</th></tr></thead>
               <tbody>
                 {record.tasks.map((t) => (
                   <tr key={t.id}>
@@ -475,6 +476,12 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
                     <td>{[t.kind && TASK_KIND_LABELS[t.kind], t.role && TASK_ROLE_LABELS[t.role], t.axisCode].filter(Boolean).join(" · ") || "—"}</td>
                     <td className="num">{t.weight}</td>
                     <td className="num">{t.selfScore}</td>
+                    {appraisedLevels && (
+                      <td>
+                        {t.appraisalLevel ? `Mức ${t.appraisalLevel}` : "—"}
+                        {t.appraisalComment && <span className={styles.sub}>{t.appraisalComment}</span>}
+                      </td>
+                    )}
                     <td>{t.attachmentOriginalName || t.attachmentFileName || "—"}</td>
                   </tr>
                 ))}
@@ -607,12 +614,19 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
           <Fields
             items={[
               ["Điểm thẩm định", record.appraisedAt || stepOf("B3B_APPRAISAL")?.state === "done" ? record.appraisalScore : null],
+              ["Tiêu chí chung", record.appraisalGeneralScore],
+              ["Kết quả nhiệm vụ", record.appraisalTasksScore],
               ["Mức đề xuất", hasGrade(record.appraisalProposedGrade) ? <GradeBadge grade={record.appraisalProposedGrade} /> : null],
               ["Người / cơ quan thẩm định", record.appraisedByName],
               ["Ý kiến", record.appraisalComment],
               ["Giải trình chênh lệch", record.appraisalExplanation],
             ]}
           />
+          {(record.gradeWarnings?.length ?? 0) > 0 && (
+            <div className="alert alert-warning small py-2 mt-2 mb-0" role="status">
+              {record.gradeWarnings!.map((w) => <div key={w}>{w}</div>)}
+            </div>
+          )}
         </CollapsibleSection>
       )}
 

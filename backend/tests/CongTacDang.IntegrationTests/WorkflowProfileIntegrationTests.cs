@@ -425,12 +425,14 @@ public sealed class WorkflowProfileIntegrationTests
     private static async Task<uint> VersionAsync(World w, Guid recordId) =>
         (await Data(w.ManagerC, $"/api/evaluations/records/{recordId}")).GetProperty("version").GetUInt32();
 
-    private static Task<HttpResponseMessage> PostAsync(HttpClient client, Guid recordId, string action, object body, uint? version = null)
+    private static async Task<HttpResponseMessage> PostAsync(HttpClient client, Guid recordId, string action, object body, uint? version = null)
     {
         var json = JsonSerializer.SerializeToNode(body)!.AsObject();
         if (version.HasValue)
             json["version"] = version.Value;
-        return client.PostAsJsonAsync($"/api/evaluations/records/{recordId}/{action}", json);
+        if (action == "appraisal")
+            await AppraisalTestData.AddTaskLevelsAsync(client, recordId, json);
+        return await client.PostAsJsonAsync($"/api/evaluations/records/{recordId}/{action}", json);
     }
 
     private async Task<JsonElement> StepAsync(HttpClient client, Guid recordId, string action, object body, string expectedStatus)
