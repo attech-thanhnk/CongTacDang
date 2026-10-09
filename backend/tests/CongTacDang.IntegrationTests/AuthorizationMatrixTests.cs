@@ -179,7 +179,8 @@ public sealed class AuthorizationMatrixTests
         var s = await GetScenarioAsync();
         foreach (var record in new[] { s.RecordA1, s.RecordB1, s.RecordT })
             await SetStatusAsync(record, RecordStatus.AwaitingAppraisal);
-        async Task<object> Appraise(Guid record) => new { version = await VersionAsync(s, record), appraisalScore = 90.0, explanation = "Căn cứ thẩm định (test)", comment = "Thẩm định", proposedGrade = "HoanThanhTot" };
+        async Task<object> Appraise(Guid record) => await AppraisalTestData.BodyAsync(s.Appraiser, record,
+            new { version = await VersionAsync(s, record), appraisalScore = 90.0, explanation = "Căn cứ thẩm định (test)", comment = "Thẩm định", proposedGrade = "HoanThanhTot" });
         string Url(Guid record) => $"/api/evaluations/records/{record}/appraisal";
 
         Assert.Equal(HttpStatusCode.OK, (await s.Appraiser.PostAsJsonAsync(Url(s.RecordB1), await Appraise(s.RecordB1))).StatusCode);

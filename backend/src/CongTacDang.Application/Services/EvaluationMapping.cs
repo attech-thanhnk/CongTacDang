@@ -233,6 +233,8 @@ public static class EvaluationMapping
             CollectiveRecordedAt = r.CollectiveRecordedAt,
 
             AppraisalScore = r.AppraisalScore,
+            AppraisalGeneralScore = r.AppraisalGeneralScore,
+            AppraisalTasksScore = r.AppraisalTasksScore,
             AppraisalComment = r.AppraisalComment,
             AppraisalExplanation = r.AppraisalExplanation,
             AppraisalProposedGrade = GradeCode(r.AppraisalProposedGrade),
@@ -266,8 +268,26 @@ public static class EvaluationMapping
                 .Where(t => !t.IsDeleted)
                 .OrderBy(t => t.TaskOrder)
                 .Select(t => ToTaskDto(t, evidence))
-                .ToList()
+                .ToList(),
+
+            GradeWarnings = GradeWarnings(r, r.EffectiveGrade(), criteria).ToList(),
+            ExcellentMinExceedRatio = criteria is { UsesAxisScoring: false } ? GradeConditions.ExcellentMinExceedRatio(criteria.Content) : null
         };
+    }
+
+    /// <summary>
+    /// Cảnh báo điều kiện xếp loại của hồ sơ với mức <paramref name="grade"/> theo mức thẩm định từng nhiệm vụ — chỉ khi bộ
+    /// tiêu chí của kỳ chấm theo danh mục nhiệm vụ (09A); bộ chấm theo trục (09B) không có nhiệm vụ → rỗng.
+    /// </summary>
+    public static IReadOnlyList<string> GradeWarnings(EvaluationRecord r, EvaluationGrade grade, CriteriaSnapshot? criteria)
+    {
+        if (criteria is not { UsesAxisScoring: false } || r.Tasks == null)
+            return Array.Empty<string>();
+        var tasks = r.Tasks
+            .Where(t => !t.IsDeleted)
+            .Select(t => new GradeConditionTask(t.Kind, t.AppraisalLevel, t.IsExceedStandard))
+            .ToList();
+        return GradeConditions.Check(tasks, grade, GradeConditions.ExcellentMinExceedRatio(criteria.Content));
     }
 
     /// <summary>Ánh xạ nhiệm vụ; tên tệp minh chứng theo phiên bản hiện hành nếu có (T-53).</summary>
@@ -298,6 +318,8 @@ public static class EvaluationMapping
             SelfScore = t.SelfScore,
             SupervisorScore = t.SupervisorScore,
             IsExceedStandard = t.IsExceedStandard,
+            AppraisalLevel = t.AppraisalLevel,
+            AppraisalComment = t.AppraisalComment,
             AttachmentId = current?.AttachmentId ?? t.AttachmentId,
             AttachmentFileName = current?.FileName ?? t.Attachment?.FileName ?? t.Attachment?.OriginalFileName,
             AttachmentOriginalName = current?.FileName ?? t.Attachment?.OriginalFileName ?? t.Attachment?.FileName

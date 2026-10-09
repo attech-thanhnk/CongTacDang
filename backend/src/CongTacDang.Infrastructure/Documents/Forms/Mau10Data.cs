@@ -7,7 +7,7 @@ namespace CongTacDang.Infrastructure.Documents.Forms;
 /// <summary>
 /// Dữ liệu Mẫu 10 — Phiếu thẩm định, nhận xét, đề xuất xếp loại và ghi nhận giải trình.
 /// Template: <c>Mau_10_PhieuThamDinh.docx</c>. Mọi con số lấy từ giá trị đã lưu trên hồ sơ;
-/// ô chưa có dữ liệu lưu (điểm thẩm định từng nhóm) giữ chữ mặc định trong template.
+/// ô chưa có dữ liệu lưu (điểm thẩm định từng nhóm khi hồ sơ chỉ có điểm tổng) giữ chữ mặc định trong template.
 /// </summary>
 public sealed class Mau10Data
 {
@@ -26,19 +26,19 @@ public sealed class Mau10Data
     /// <summary>Điểm nhóm tiêu chí chung tự chấm (đã lưu).</summary>
     [TemplateField("GENERAL_SELF_SCORE")] public string? GeneralSelfScore { get; init; }
 
-    /// <summary>Chưa lưu điểm thẩm định theo nhóm — giữ chữ mặc định trong template.</summary>
+    /// <summary>Điểm thẩm định nhóm tiêu chí chung (đã lưu); hồ sơ chỉ có điểm tổng → giữ chữ mặc định trong template.</summary>
     [TemplateField("GENERAL_APPRAISAL_SCORE")] public string? GeneralAppraisalScore { get; init; }
 
-    /// <summary>Chưa lưu điểm thẩm định theo nhóm — giữ chữ mặc định trong template.</summary>
+    /// <summary>Chênh lệch nhóm tiêu chí chung = điểm thẩm định − điểm tự chấm của nhóm.</summary>
     [TemplateField("GENERAL_DIFF")] public string? GeneralDiff { get; init; }
 
     /// <summary>Điểm nhóm sản phẩm chuyên môn tự chấm (đã lưu).</summary>
     [TemplateField("TASKS_SELF_SCORE")] public string? TasksSelfScore { get; init; }
 
-    /// <summary>Chưa lưu điểm thẩm định theo nhóm — giữ chữ mặc định trong template.</summary>
+    /// <summary>Điểm thẩm định nhóm kết quả thực hiện nhiệm vụ (đã lưu); hồ sơ chỉ có điểm tổng → giữ chữ mặc định.</summary>
     [TemplateField("TASKS_APPRAISAL_SCORE")] public string? TasksAppraisalScore { get; init; }
 
-    /// <summary>Chưa lưu điểm thẩm định theo nhóm — giữ chữ mặc định trong template.</summary>
+    /// <summary>Chênh lệch nhóm kết quả thực hiện nhiệm vụ = điểm thẩm định − điểm tự chấm của nhóm.</summary>
     [TemplateField("TASKS_DIFF")] public string? TasksDiff { get; init; }
 
     /// <summary>Tổng điểm tự chấm (đã lưu).</summary>
@@ -83,11 +83,13 @@ public sealed class Mau10Data
             // Điểm in gọn: số nguyên "26", số lẻ một chữ số thập phân "26,5".
             GeneralSelfScore = CollectiveFormText.Score(record.GeneralCriteriaScore),
             TasksSelfScore = CollectiveFormText.Score(record.TasksScore),
+            GeneralAppraisalScore = Score(record.AppraisalGeneralScore),
+            GeneralDiff = Diff(record.AppraisalGeneralScore, record.GeneralCriteriaScore),
+            TasksAppraisalScore = Score(record.AppraisalTasksScore),
+            TasksDiff = Diff(record.AppraisalTasksScore, record.TasksScore),
             TotalSelfScore = CollectiveFormText.Score(record.TotalSelfScore),
-            TotalAppraisalScore = record.AppraisalScore.HasValue ? CollectiveFormText.Score(record.AppraisalScore.Value) : null,
-            TotalDiff = record.AppraisalScore.HasValue
-                ? CollectiveFormText.Score(Math.Round(record.AppraisalScore.Value - record.TotalSelfScore, 1))
-                : null,
+            TotalAppraisalScore = Score(record.AppraisalScore),
+            TotalDiff = Diff(record.AppraisalScore, record.TotalSelfScore),
             SupervisorComment = FormText.OrNull(record.DirectorComment),
             AppraisalComment = FormText.OrNull(record.AppraisalComment),
             AppraisalExplanation = FormText.OrNull(record.AppraisalExplanation),
@@ -97,4 +99,10 @@ public sealed class Mau10Data
             CheckFailed = Box(EvaluationGrade.KhongHoanThanh)
         };
     }
+
+    private static string? Score(double? value) => value.HasValue ? CollectiveFormText.Score(value.Value) : null;
+
+    /// <summary>Chênh lệch = điểm thẩm định − điểm tự chấm (làm tròn 1 chữ số); chưa có điểm thẩm định → null.</summary>
+    private static string? Diff(double? appraisal, double self) =>
+        appraisal.HasValue ? CollectiveFormText.Score(Math.Round(appraisal.Value - self, 1)) : null;
 }

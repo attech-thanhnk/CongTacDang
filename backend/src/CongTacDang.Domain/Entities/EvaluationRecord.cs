@@ -181,8 +181,17 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 
     #region B3b: Thẩm định (Mẫu 10, 03)
 
-    /// <summary>Điểm do cơ quan thẩm định chấm lại (nếu có)</summary>
+    /// <summary>
+    /// Điểm do cơ quan thẩm định chấm lại (nếu có) = điểm thẩm định nhóm tiêu chí chung + nhóm kết quả thực hiện nhiệm vụ,
+    /// làm tròn theo quy tắc "tổng điểm" của bộ tiêu chí. Kết quả do cấp trên ghi nhận chỉ có tổng.
+    /// </summary>
     public double? AppraisalScore { get; set; }
+
+    /// <summary>Điểm thẩm định nhóm tiêu chí chung (Mẫu 10); null khi chỉ có điểm tổng.</summary>
+    public double? AppraisalGeneralScore { get; set; }
+
+    /// <summary>Điểm thẩm định nhóm kết quả thực hiện nhiệm vụ (Mẫu 10); null khi chỉ có điểm tổng.</summary>
+    public double? AppraisalTasksScore { get; set; }
 
     /// <summary>Ý kiến thẩm định</summary>
     public string AppraisalComment { get; set; } = string.Empty;

@@ -224,9 +224,11 @@ Hệ thống không tổ chức bỏ phiếu điện tử. Thư ký ghi lại **
 
 ### 4.3 Thẩm định
 
-- Nhập **Điểm thẩm định** (mặc định bằng điểm tự chấm), chọn **Mức đề xuất**, nhập **Ý kiến thẩm định**.
-- Khung hiện độ chênh lệch so với điểm tự chấm. Chênh lệch từ ngưỡng quy định trở lên (hoặc làm đổi mức, nếu bộ tiêu chí quy định) → bắt buộc nhập **nội dung giải trình, căn cứ**. Nội dung này in ở Mẫu 10.
-- Bấm **Ghi nhận thẩm định**.
+- Với kỳ chấm theo danh mục nhiệm vụ: bảng nhiệm vụ hiện tên, loại, tỷ lệ tự chấm, vượt chuẩn. Chọn **Mức 1 / Mức 2 / Mức 3** cho từng nhiệm vụ (bắt buộc đủ), có thể ghi nhận xét ngắn.
+- Nhập điểm thẩm định **Tiêu chí chung** và **Kết quả nhiệm vụ** (mặc định bằng điểm tự chấm của từng nhóm); **Tổng** tự tính. Chọn **Mức đề xuất**, nhập **Ý kiến thẩm định**.
+- Mức đề xuất chưa đủ điều kiện theo mức của các nhiệm vụ (ví dụ có nhiệm vụ trọng tâm Mức 3 mà đề xuất cao hơn Không hoàn thành) → khung vàng cảnh báo; vẫn ghi nhận được. Cảnh báo này cũng hiện khi nhận xét và khi quyết định mức xếp loại.
+- Khung hiện độ chênh lệch tổng so với điểm tự chấm. Chênh lệch từ ngưỡng quy định trở lên (hoặc làm đổi mức, nếu bộ tiêu chí quy định) → bắt buộc nhập **nội dung giải trình, căn cứ**. Nội dung này in ở Mẫu 10.
+- Bấm **Ghi nhận thẩm định**. Sau khi thẩm định, danh mục sản phẩm trên hồ sơ có thêm cột **Thẩm định** (mức, nhận xét từng việc); Mẫu 10 in điểm thẩm định và chênh lệch của từng nhóm.
 - Cần cán bộ sửa phiếu → **Trả lại để chủ hồ sơ sửa**, nhập lý do.
 
 ### 4.4 Nhận xét của cấp trực tiếp sử dụng

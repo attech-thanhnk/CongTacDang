@@ -79,6 +79,15 @@ public class EvaluationTask : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Có đạt tiêu chuẩn vượt chuẩn tiến độ/chất lượng để xét danh hiệu Xuất sắc hay không</summary>
     public bool IsExceedStandard { get; set; } = false;
 
+    /// <summary>
+    /// Mức thẩm định của nhiệm vụ do cơ quan thẩm định xếp: 1 — chủ động, có kết quả cụ thể, chất lượng cao; 2 — cơ bản đáp ứng,
+    /// còn hạn chế; 3 — không đáp ứng. Null khi chưa thẩm định (hoặc bộ tiêu chí chấm theo trục).
+    /// </summary>
+    public int? AppraisalLevel { get; set; }
+
+    /// <summary>Nhận xét ngắn của cơ quan thẩm định về nhiệm vụ (không bắt buộc).</summary>
+    public string? AppraisalComment { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Guid? CreatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }

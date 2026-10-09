@@ -559,6 +559,78 @@ public sealed class EvaluationWorkflowTests
 
     #endregion
 
+    #region Thẩm định theo nhóm điểm và mức từng nhiệm vụ
+
+    [SkippableFact]
+    public async Task Appraisal_09A_RequiresLevelForEveryTask_SumsGroupScores_FillsMau10()
+    {
+        var w = await WorldAsync();
+        var periodId = await OpenPeriodAsync(w, "09A", w.Owner1.Id);
+        var id = await RecordOfAsync(w, periodId, w.Owner1.Id);
+        await StepAsync(w.Owner1C, id, "tasks/submit", Tasks(), "AwaitingTaskApproval");
+        await StepAsync(w.DeptLeadC, id, "tasks/approve", new { }, "AwaitingSelfScore");
+        await SelfScoreAsync(w, w.Owner1C, id);
+        await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
+        await StepAsync(w.SecretaryC, id, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
+        var taskIds = (await Data(w.AppraiserC, $"/api/evaluations/records/{id}")).GetProperty("tasks").EnumerateArray()
+            .Select(t => t.GetProperty("id").GetGuid()).ToList();
+        Assert.Equal(3, taskIds.Count);
+
+        // Thiếu mức của "Sản phẩm 2", "Sản phẩm 3" → 400 nêu tên việc.
+        var missing = await PostAsync(w.AppraiserC, id, "appraisal", new
+        {
+            generalScore = 27.0, tasksScore = 60.5, explanation = "Căn cứ thẩm định (test)", proposedGrade = "HoanThanhTot",
+            taskLevels = new[] { new { taskId = taskIds[0], level = 1 } }
+        }, await VersionAsync(w, id));
+        Assert.Equal(HttpStatusCode.BadRequest, missing.StatusCode);
+        var message = await MessageAsync(missing);
+        Assert.Contains("\"Sản phẩm 2\"", message);
+        Assert.Contains("\"Sản phẩm 3\"", message);
+        Assert.DoesNotContain("\"Sản phẩm 1\"", message);
+
+        object Levels(int first) => taskIds.Select((t, i) => new { taskId = t, level = i == 0 ? first : 1, comment = i == 0 ? "Chậm tiến độ" : null }).ToArray();
+
+        // Mức ngoài 1..3 → 400; chỉ gửi một nhóm điểm → 400.
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostAsync(w.AppraiserC, id, "appraisal", new
+        {
+            generalScore = 27.0, tasksScore = 60.5, explanation = "Căn cứ", proposedGrade = "HoanThanhTot", taskLevels = Levels(4)
+        }, await VersionAsync(w, id))).StatusCode);
+        var oneGroup = await PostAsync(w.AppraiserC, id, "appraisal", new
+        {
+            generalScore = 27.0, explanation = "Căn cứ", proposedGrade = "HoanThanhTot", taskLevels = Levels(1)
+        }, await VersionAsync(w, id));
+        Assert.Equal(HttpStatusCode.BadRequest, oneGroup.StatusCode);
+        Assert.Contains("nhóm kết quả thực hiện nhiệm vụ", await MessageAsync(oneGroup));
+
+        // Nhiệm vụ trọng tâm "Sản phẩm 1" Mức 3 mà đề xuất Hoàn thành tốt → vẫn lưu (chỉ cảnh báo); tổng = chung + nhiệm vụ.
+        var appraised = await StepAsync(w.AppraiserC, id, "appraisal", new
+        {
+            generalScore = 27.0, tasksScore = 60.5, appraisalScore = 1.0, explanation = "Căn cứ thẩm định (test)", comment = "Đạt",
+            proposedGrade = "HoanThanhTot", taskLevels = Levels(3)
+        }, "AwaitingDirectorReview");
+        Assert.Equal(27.0, appraised.GetProperty("appraisalGeneralScore").GetDouble(), 6);
+        Assert.Equal(60.5, appraised.GetProperty("appraisalTasksScore").GetDouble(), 6);
+        Assert.Equal(87.5, appraised.GetProperty("appraisalScore").GetDouble(), 6);
+        var tasks = appraised.GetProperty("tasks").EnumerateArray().ToList();
+        Assert.Equal(3, tasks[0].GetProperty("appraisalLevel").GetInt32());
+        Assert.Equal("Chậm tiến độ", tasks[0].GetProperty("appraisalComment").GetString());
+        Assert.All(tasks.Skip(1), t => Assert.Equal(1, t.GetProperty("appraisalLevel").GetInt32()));
+        Assert.Contains(appraised.GetProperty("gradeWarnings").EnumerateArray(), x => x.GetString()!.Contains("Mức 3"));
+        Assert.Equal(0.30, appraised.GetProperty("excellentMinExceedRatio").GetDouble(), 6);
+
+        // Mẫu 10 có điểm thẩm định theo nhóm và tổng.
+        var docx = await w.AppraiserC.GetAsync($"/api/reports/docx/mau-10/{id}");
+        var bytes = await docx.Content.ReadAsByteArrayAsync();
+        Assert.True(docx.IsSuccessStatusCode, $"{(int)docx.StatusCode}: {System.Text.Encoding.UTF8.GetString(bytes)}");
+        using var zip = new System.IO.Compression.ZipArchive(new MemoryStream(bytes), System.IO.Compression.ZipArchiveMode.Read);
+        using var reader = new StreamReader(zip.GetEntry("word/document.xml")!.Open());
+        var text = System.Text.RegularExpressions.Regex.Replace(await reader.ReadToEndAsync(), "<[^>]+>", string.Empty);
+        Assert.Contains("60,5", text);
+        Assert.Contains("87,5", text);
+    }
+
+    #endregion
+
     #region Hỗ trợ
 
     private async Task<World> WorldAsync()
@@ -640,12 +712,14 @@ public sealed class EvaluationWorkflowTests
         (await Data(w.AppraiserC, $"/api/evaluations/records/{recordId}")).GetProperty("version").GetUInt32();
 
     /// <summary>Gửi hành động kèm version (đọc mới nếu không truyền).</summary>
-    private static Task<HttpResponseMessage> PostAsync(HttpClient client, Guid recordId, string action, object body, uint? version = null)
+    private static async Task<HttpResponseMessage> PostAsync(HttpClient client, Guid recordId, string action, object body, uint? version = null)
     {
         var json = JsonSerializer.SerializeToNode(body)!.AsObject();
         if (version.HasValue)
             json["version"] = version.Value;
-        return client.PostAsJsonAsync($"/api/evaluations/records/{recordId}/{action}", json);
+        if (action == "appraisal")
+            await AppraisalTestData.AddTaskLevelsAsync(client, recordId, json);
+        return await client.PostAsJsonAsync($"/api/evaluations/records/{recordId}/{action}", json);
     }
 
     /// <summary>Thực hiện một bước với version hiện tại và kiểm tra trạng thái sau.</summary>

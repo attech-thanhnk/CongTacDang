@@ -173,6 +173,10 @@ export interface EvaluationTaskDto {
   selfScore: number;
   supervisorScore?: number;
   isExceedStandard: boolean;
+  /** Mức thẩm định 1/2/3 (sau khi thẩm định). */
+  appraisalLevel?: number | null;
+  /** Nhận xét ngắn của cơ quan thẩm định về nhiệm vụ. */
+  appraisalComment?: string | null;
   attachmentId?: string | null;
   /** Tên tệp minh chứng theo phiên bản hiện hành (T-53). */
   attachmentFileName?: string | null;
@@ -249,7 +253,12 @@ export interface EvaluationRecordDto {
   collectiveRecordedByName?: string | null;
   collectiveRecordedAt?: string | null;
 
+  /** Tổng điểm thẩm định = nhóm tiêu chí chung + nhóm kết quả thực hiện nhiệm vụ. */
   appraisalScore?: number;
+  /** Điểm thẩm định nhóm tiêu chí chung (null khi chỉ có điểm tổng). */
+  appraisalGeneralScore?: number | null;
+  /** Điểm thẩm định nhóm kết quả thực hiện nhiệm vụ (null khi chỉ có điểm tổng). */
+  appraisalTasksScore?: number | null;
   appraisalComment: string;
   /** Nội dung giải trình/căn cứ khi chênh lệch tự chấm – thẩm định (B-09). */
   appraisalExplanation?: string | null;
@@ -280,6 +289,10 @@ export interface EvaluationRecordDto {
   externalResults: ExternalResultDto[];
 
   tasks: EvaluationTaskDto[];
+  /** Cảnh báo điều kiện xếp loại theo mức thẩm định từng nhiệm vụ (với mức hiện tại của hồ sơ). */
+  gradeWarnings?: string[];
+  /** Tỷ lệ nhiệm vụ vượt chuẩn tối thiểu (0..1) của mức Xuất sắc theo bộ tiêu chí; null = không xét. */
+  excellentMinExceedRatio?: number | null;
 
   /** Mẫu 09C — nội dung tự đánh giá theo mã mục của bộ tiêu chí (mục I: phần nhận xét chung). */
   selfAssessment?: Record<string, string>;
@@ -568,6 +581,47 @@ export type TaskRole = "ChuTri" | "PhoiHop";
 
 export const TASK_KIND_LABELS: Record<TaskKind, string> = { TrongTam: "Trọng tâm", ThuongXuyen: "Thường xuyên", DotXuat: "Đột xuất" };
 export const TASK_ROLE_LABELS: Record<TaskRole, string> = { ChuTri: "Chủ trì", PhoiHop: "Phối hợp" };
+
+/** Mức thẩm định từng nhiệm vụ. */
+export const APPRAISAL_LEVELS: { value: number; label: string; hint: string }[] = [
+  { value: 1, label: "Mức 1", hint: "Chủ động, có kết quả cụ thể, chất lượng cao" },
+  { value: 2, label: "Mức 2", hint: "Cơ bản đáp ứng, còn hạn chế" },
+  { value: 3, label: "Mức 3", hint: "Không đáp ứng" },
+];
+
+const GRADE_CONDITION_NAMES: Record<string, string> = {
+  HoanThanhXuatSac: "Hoàn thành xuất sắc nhiệm vụ",
+  KhongHoanThanh: "Không hoàn thành nhiệm vụ",
+};
+
+/**
+ * Cảnh báo điều kiện xếp loại theo mức thẩm định từng nhiệm vụ — cùng quy tắc với máy chủ (`GradeConditions`), dùng để báo
+ * ngay khi đổi mức; máy chủ trả lại `gradeWarnings` khi tải hồ sơ. Chỉ cảnh báo, không chặn.
+ */
+export function gradeConditionWarnings(
+  tasks: { kind?: TaskKind | null; appraisalLevel?: number | null; isExceedStandard: boolean }[],
+  grade: string,
+  minExceedRatio: number | null | undefined
+): string[] {
+  const warnings: string[] = [];
+  if (tasks.length === 0 || !grade || grade === "ChuaXepLoai") return warnings;
+  const focus = tasks.filter((t) => t.kind === "TrongTam");
+  const level3 = focus.filter((t) => t.appraisalLevel === 3).length;
+  const level2 = focus.filter((t) => t.appraisalLevel === 2).length;
+  if (level3 > 0 && grade !== "KhongHoanThanh")
+    warnings.push(`Có ${level3} nhiệm vụ trọng tâm xếp Mức 3: chỉ xếp được "${GRADE_CONDITION_NAMES.KhongHoanThanh}".`);
+  if (grade === "HoanThanhXuatSac") {
+    if (level2 > 0) warnings.push(`Có ${level2} nhiệm vụ trọng tâm xếp Mức 2: chưa đủ điều kiện "${GRADE_CONDITION_NAMES.HoanThanhXuatSac}".`);
+    if (minExceedRatio != null && minExceedRatio > 0) {
+      const exceed = tasks.filter((t) => t.isExceedStandard).length;
+      const ratio = exceed / tasks.length;
+      const pct = (r: number) => `${String(Math.round(r * 1000) / 10).replace(".", ",")}%`;
+      if (ratio + 1e-6 < minExceedRatio)
+        warnings.push(`Mới có ${exceed}/${tasks.length} nhiệm vụ vượt chuẩn (${pct(ratio)}), cần từ ${pct(minExceedRatio)}: chưa đủ điều kiện "${GRADE_CONDITION_NAMES.HoanThanhXuatSac}".`);
+    }
+  }
+  return warnings;
+}
 
 /** Một dòng Mẫu 01 khi đăng ký: mọi cột bắt buộc trừ mã SP và thời hạn (trống = ngày cuối kỳ). */
 export interface TaskInputDto {

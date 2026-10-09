@@ -297,6 +297,25 @@ public class DocumentTemplateTests
     }
 
     [Fact]
+    public void Mau10_FillsGroupAppraisalScoresAndDiffs()
+    {
+        var (_, records) = SampleData();
+        var record = records[0];
+        record.AppraisalGeneralScore = 27;
+        record.AppraisalTasksScore = 62.5;
+        record.AppraisalScore = 89.5;
+
+        var data = Mau10Data.From(record);
+
+        Assert.Equal("27", data.GeneralAppraisalScore);
+        Assert.Equal("-1,5", data.GeneralDiff);
+        Assert.Equal("62,5", data.TasksAppraisalScore);
+        Assert.Equal("-2,9", data.TasksDiff);
+        Assert.Equal("89,5", data.TotalAppraisalScore);
+        Assert.Equal("-4,4", data.TotalDiff);
+    }
+
+    [Fact]
     public void Mau01_02_10_FillDateLine_FromStoredStepDates()
     {
         var (_, records) = SampleData();
