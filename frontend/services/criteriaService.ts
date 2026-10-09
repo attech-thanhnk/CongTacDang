@@ -176,6 +176,16 @@ export interface GeneralItemScore {
   reason?: string | null;
 }
 
+/** Tên cách chấm hiển thị cho người dùng theo mẫu tự chấm của bộ tiêu chí (số mẫu chỉ dùng khi in biểu mẫu). */
+export const SCORING_METHOD_LABELS: Record<string, string> = {
+  "09A": "Chấm theo việc đã đăng ký",
+  "09B": "Chấm theo 6 trục",
+};
+
+export function scoringMethodLabel(form?: string | null): string {
+  return (form && SCORING_METHOD_LABELS[form]) || form || "";
+}
+
 export const GRADE_LABELS: Record<RankedGrade, string> = {
   HoanThanhXuatSac: "Hoàn thành xuất sắc nhiệm vụ",
   HoanThanhTot: "Hoàn thành tốt nhiệm vụ",

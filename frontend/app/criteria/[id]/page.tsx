@@ -23,6 +23,7 @@ import {
   fmt,
   MAX_FRAME_ADJUST_LIMIT,
   quickChecks,
+  scoringMethodLabel,
 } from "@/services/criteriaService";
 
 type Rounding = CriteriaSetContent["parameters"]["rounding"];
@@ -128,7 +129,7 @@ export default function CriteriaSetPage() {
         badge={
           <span className="d-inline-flex flex-wrap align-items-center gap-2">
             <Badge tone={STATUS_TONE[set.status] ?? "neutral"}>{set.statusDisplayName}</Badge>
-            <span className="tag t-info">Mẫu {set.selfScoreForm}</span>
+            <span className="tag t-info">{scoringMethodLabel(set.selfScoreForm)}</span>
             <span className="text-secondary">{set.code}</span>
           </span>
         }
@@ -175,10 +176,10 @@ export default function CriteriaSetPage() {
               <div className="card-body row g-2">
                 <div className="col-md-3"><label className="form-label" htmlFor="cs-code">Mã bộ</label><input id="cs-code" className="form-control form-control-sm" maxLength={50} value={info.code} onChange={(e) => setInfo({ ...info, code: e.target.value })} /></div>
                 <div className="col-md-5"><label className="form-label" htmlFor="cs-name">Tên bộ</label><input id="cs-name" className="form-control form-control-sm" maxLength={200} value={info.name} onChange={(e) => setInfo({ ...info, name: e.target.value })} /></div>
-                <div className="col-md-4"><label className="form-label" htmlFor="cs-form">Mẫu tự chấm</label>
+                <div className="col-md-4"><label className="form-label" htmlFor="cs-form">Cách chấm</label>
                   <select id="cs-form" className="form-select form-select-sm" value={info.selfScoreForm} onChange={(e) => setInfo({ ...info, selfScoreForm: e.target.value })}>
-                    <option value="09A">09A — chấm theo nhiệm vụ (Mẫu 01/02, A-B-C-D)</option>
-                    <option value="09B">09B — chấm trực tiếp theo trục</option>
+                    <option value="09A">Chấm theo việc đã đăng ký (Mẫu 09A)</option>
+                    <option value="09B">Chấm theo 6 trục (Mẫu 09B)</option>
                   </select>
                 </div>
                 <div className="col-12"><label className="form-label" htmlFor="cs-notes">Ghi chú</label><textarea id="cs-notes" className="form-control form-control-sm" rows={2} maxLength={4000} value={info.notes} onChange={(e) => setInfo({ ...info, notes: e.target.value })} /></div>

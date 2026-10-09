@@ -348,7 +348,7 @@ Dành cho người được giao quản lý kỳ. Menu **Quản lý → Kỳ đ�
 
 1. Bấm **Tạo kỳ**.
 2. Nhập **Năm**, **Quý**, **Từ ngày**, **Đến ngày**, **Tên kỳ**.
-3. Chọn **Bộ tiêu chí** (đã xuất bản; mặc định là bộ mới nhất). Bộ quyết định có bước đăng ký sản phẩm hay không: bộ Mẫu 09A có bước đăng ký, duyệt sản phẩm đầu quý; bộ Mẫu 09B không có, tự chấm theo trục.
+3. **Cách chấm**: khi chỉ có một bộ tiêu chí đang dùng, hệ thống tự dùng bộ đó. Khi có nhiều bộ thì chọn: *Chấm theo việc đã đăng ký* (đầu quý đăng ký việc, lãnh đạo duyệt) hoặc *Chấm theo 6 trục* (không đăng ký việc). Bộ không còn dùng thì vào **Bộ tiêu chí** bấm **Lưu trữ** để không hiện nữa.
 4. Bấm **Tạo kỳ (dự thảo)**; trang cấu hình kỳ mở ra để thiết lập tiếp.
 
 ### 7.2 Cấu hình cách xét duyệt (tab "Cách xét duyệt")

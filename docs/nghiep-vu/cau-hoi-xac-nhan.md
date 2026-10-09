@@ -243,7 +243,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 ## E. Bộ tiêu chí & cách tính điểm
 
 ### E1. [Ưu tiên] Nội dung bộ tiêu chí Mẫu 09B (Q3/2026)
-- **Câu hỏi:** Bộ tiêu chí "Mẫu 09B — Quý III/2026" dựng sẵn dưới đây có đúng văn bản không?
+- **Câu hỏi:** Bộ tiêu chí "Quý III/2026 (chuyển tiếp)" dựng sẵn dưới đây có đúng văn bản không?
 - **Căn cứ:** Mục III.2 (tr.9–10); Mẫu 09B (tr.53–62).
 - **Hệ thống đang làm (mặc định):** Tiêu chí chung 30 điểm, 3 nhóm 18/4/8 với 17 tiêu chí con (1.1–1.9 mỗi tiêu chí 2 điểm; 2.1–2.4 mỗi tiêu chí 1 điểm; 3.1–3.4 mỗi tiêu chí 2 điểm). Kết quả nhiệm vụ 70 điểm, chấm trực tiếp 6 trục, điểm tối đa 15/10/10/15/10/10. Ngưỡng mức 90/70/50.
 - **Phương án khác:** Sửa nội dung hoặc điểm tối đa.
@@ -327,7 +327,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
 ### E13. Bộ tiêu chí Mẫu 09A (áp dụng từ Q1/2027)
-- **Câu hỏi:** Nội dung bộ "Mẫu 09A — từ 2027" dưới đây có giữ nguyên không?
+- **Câu hỏi:** Nội dung bộ "Từ Quý I/2027" dưới đây có giữ nguyên không?
 - **Căn cứ:** Mục III.3 (tr.11–14); Phụ lục II (tr.26–28, 35).
 - **Hệ thống đang làm (mặc định):** 3–7 sản phẩm, tổng trọng số 70; 4 khung tỷ trọng; thang quy đổi liên tục; mức Xuất sắc cần ít nhất 30% sản phẩm vượt chuẩn. Chưa áp sàn thành phần Chất lượng/An toàn (B) và điều kiện "B dưới 80% thì tối đa Hoàn thành" (chỉ có trong ví dụ).
 - **Phương án khác:** Áp sàn B và điều kiện an toàn; cảnh báo cơ cấu trọng số trục chính/trục phụ.

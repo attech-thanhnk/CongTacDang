@@ -10,7 +10,7 @@ import { AdminModal } from "@/components/admin/AdminModal";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { CriteriaSetListItem, criteriaService } from "@/services/criteriaService";
+import { CriteriaSetListItem, criteriaService, scoringMethodLabel } from "@/services/criteriaService";
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   Draft: "warning",
@@ -127,7 +127,7 @@ export default function CriteriaSetsPage() {
                           <div className="small text-secondary">{s.code}</div>
                         </td>
                         <td className="text-nowrap"><Badge tone={STATUS_TONE[s.status] ?? "neutral"}>{s.statusDisplayName}</Badge></td>
-                        <td className="text-nowrap"><span className="tag t-info">{s.selfScoreForm}</span></td>
+                        <td className="text-nowrap"><span className="tag t-info">{scoringMethodLabel(s.selfScoreForm)}</span></td>
                         <td className="num">{s.generalItemCount} tiêu chí con · {s.axisCount} trục · {s.weightFrameCount} khung</td>
                         <td>{s.usedByPeriods.length > 0 ? s.usedByPeriods.join(", ") : "—"}</td>
                         <td className="text-end text-nowrap">
@@ -178,10 +178,10 @@ export default function CriteriaSetsPage() {
               <input id="cs-name" className="form-control" required maxLength={200} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </div>
             <div className="col-12">
-              <label className="form-label" htmlFor="cs-form">Mẫu tự chấm</label>
+              <label className="form-label" htmlFor="cs-form">Cách chấm</label>
               <select id="cs-form" className="form-select" value={form.selfScoreForm} onChange={(e) => setForm({ ...form, selfScoreForm: e.target.value })}>
-                <option value="09A">09A — chấm theo nhiệm vụ (Mẫu 01/02, A-B-C-D)</option>
-                <option value="09B">09B — chấm trực tiếp theo trục</option>
+                <option value="09A">Chấm theo việc đã đăng ký (Mẫu 09A)</option>
+                <option value="09B">Chấm theo 6 trục (Mẫu 09B)</option>
               </select>
             </div>
             <div className="col-12">

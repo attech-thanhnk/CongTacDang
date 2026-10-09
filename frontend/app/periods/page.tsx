@@ -10,6 +10,7 @@ import { CreatePeriodModal } from "@/components/periods/CreatePeriodModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { EvaluationPeriodDto, evaluationService } from "@/services/evaluationService";
+import { scoringMethodLabel } from "@/services/criteriaService";
 
 /** Kỳ đánh giá: danh sách (mọi người đã đăng nhập) và tạo kỳ với bộ tiêu chí đã chọn (period.manage). */
 export default function PeriodsPage() {
@@ -65,7 +66,7 @@ export default function PeriodsPage() {
                         <div className="small text-secondary fw-normal">Quý {p.quarter}/{p.year}</div>
                       </td>
                       <td><PeriodStatusBadge status={p.status} label={p.statusDisplayName} /></td>
-                      <td>{p.criteria ? <>{p.criteria.name}<div className="small text-secondary">Mẫu {p.criteria.selfScoreForm}</div></> : <span className="text-danger">Chưa chọn</span>}</td>
+                      <td>{p.criteria ? <>{p.criteria.name}<div className="small text-secondary">{scoringMethodLabel(p.criteria.selfScoreForm)}</div></> : <span className="text-danger">Chưa chọn</span>}</td>
                       <td>{p.settings?.profiles?.map((profile) => profile.name).join(", ") || "—"}</td>
                       <td className="text-end num">{p.totalRecords}</td>
                       <td className="text-end">

@@ -28,7 +28,7 @@ import { CriteriaSummary } from "@/components/evaluations/CriteriaSummary";
 import { PeriodStatusBadge } from "@/components/periods/PeriodStatusBadge";
 import { PeriodProgressSection } from "@/components/periods/PeriodProgressSection";
 import { RecordStatusBadge } from "@/components/common/StatusBadge";
-import { CriteriaSetListItem, WeightFrame, criteriaService } from "@/services/criteriaService";
+import { CriteriaSetListItem, WeightFrame, criteriaService, scoringMethodLabel } from "@/services/criteriaService";
 
 type Transition = "open" | "lock" | "unlock" | "close";
 type PeriodTab = "progress" | "profiles" | "criteria" | "readiness" | "participants";
@@ -730,7 +730,7 @@ function CriteriaSection({ period, editable, busy, onChoose }: CriteriaSectionPr
           <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
             <strong>{criteria.name}</strong>
             <span className="text-secondary">{criteria.code}</span>
-            <span className="tag t-info">Mẫu {criteria.selfScoreForm}</span>
+            <span className="tag t-info">{scoringMethodLabel(criteria.selfScoreForm)}</span>
             <span className="text-secondary small num">
               {period.status === "Draft" ? "Chọn lúc" : "Chụp vào kỳ lúc"} {formatDateTime(criteria.takenAt)}
             </span>
@@ -745,7 +745,7 @@ function CriteriaSection({ period, editable, busy, onChoose }: CriteriaSectionPr
               <label className="form-label" htmlFor="period-criteria-set">Chọn bộ đã xuất bản</label>
               <select id="period-criteria-set" className="form-select form-select-sm" value={choice} onChange={(e) => setChoice(e.target.value)}>
                 <option value="">— Chọn —</option>
-                {sets.map((s) => <option key={s.id} value={s.id}>{s.name} — Mẫu {s.selfScoreForm} ({s.code})</option>)}
+                {sets.map((s) => <option key={s.id} value={s.id}>{s.name} — {scoringMethodLabel(s.selfScoreForm)}</option>)}
               </select>
             </div>
             <button type="button" className="btn btn-outline-primary btn-sm" disabled={busy || !choice || choice === period.criteriaSetId} onClick={() => onChoose(choice)}>

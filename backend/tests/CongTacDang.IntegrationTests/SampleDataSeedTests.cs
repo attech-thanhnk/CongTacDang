@@ -85,7 +85,7 @@ public sealed class SampleDataSeedTests
             Assert.Empty(readiness.GetProperty("issues").EnumerateArray());
             Assert.Equal(5, readiness.GetProperty("checkedRecords").GetInt32()); // 6 hồ sơ, trừ hồ sơ Giám đốc đã công bố
 
-            // Kỳ mẫu gắn bộ "Mẫu 09B — Quý III/2026" đã chụp (tích hợp đợt 7).
+            // Kỳ mẫu gắn bộ "Quý III/2026 (chuyển tiếp)" đã chụp (tích hợp đợt 7).
             var criteria = active.GetProperty("criteria");
             Assert.Equal(CriteriaSetDefaults.Code09B, criteria.GetProperty("code").GetString());
             Assert.Equal(CriteriaSetDefaults.Name09B, criteria.GetProperty("name").GetString());

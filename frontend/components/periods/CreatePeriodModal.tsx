@@ -5,14 +5,14 @@ import { AdminModal } from "@/components/admin/AdminModal";
 import { useToast } from "@/contexts/ToastContext";
 import { usePeriod } from "@/contexts/PeriodContext";
 import { EvaluationPeriodDto, evaluationService } from "@/services/evaluationService";
-import { CriteriaSetListItem, criteriaService } from "@/services/criteriaService";
+import { CriteriaSetListItem, criteriaService, scoringMethodLabel } from "@/services/criteriaService";
 
 const today = () => new Date().toISOString().substring(0, 10);
 
-/** Bước đăng ký, duyệt sản phẩm theo mẫu tự chấm của bộ tiêu chí (máy chủ đặt sẵn khi tạo kỳ). */
+/** Bước đăng ký, duyệt việc theo cách chấm của bộ tiêu chí (máy chủ đặt sẵn khi tạo kỳ). */
 const FORM_FLOW: Record<string, string> = {
-  "09A": "Có bước đăng ký, duyệt sản phẩm (Mẫu 01); tự chấm theo sản phẩm.",
-  "09B": "Không có bước đăng ký sản phẩm; tự chấm theo trục.",
+  "09A": "Đầu quý cán bộ đăng ký việc, lãnh đạo duyệt; cuối quý chấm theo từng việc.",
+  "09B": "Không đăng ký việc; cuối quý chấm theo 6 trục.",
 };
 
 interface Props {
@@ -105,15 +105,20 @@ export function CreatePeriodModal({ onClose, onCreated }: Props) {
           <input id="cp-name" className="form-control form-control-sm" maxLength={200} placeholder="Để trống: tự đặt theo quý/năm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         </div>
         <div className="col-12">
-          <label className="form-label" htmlFor="cp-criteria">Bộ tiêu chí</label>
+          <label className="form-label" htmlFor="cp-criteria">Cách chấm</label>
           {criteriaSets !== null && criteriaSets.length === 0 ? (
             <div className="alert alert-warning py-2 mb-0">Chưa có bộ tiêu chí đã xuất bản. Hãy xuất bản một bộ ở trang Bộ tiêu chí trước.</div>
+          ) : criteriaSets !== null && criteriaSets.length === 1 ? (
+            <>
+              <div id="cp-criteria" className="form-control-plaintext py-0">{scoringMethodLabel(criteriaSets[0].selfScoreForm)} — {criteriaSets[0].name}</div>
+              {selectedForm && FORM_FLOW[selectedForm] && <div className="form-text">{FORM_FLOW[selectedForm]}</div>}
+            </>
           ) : (
             <>
               <select id="cp-criteria" className="form-select form-select-sm" required value={form.criteriaSetId}
                 onChange={(e) => setForm({ ...form, criteriaSetId: e.target.value })}>
                 {criteriaSets === null && <option value="">Đang tải...</option>}
-                {(criteriaSets ?? []).map((s) => <option key={s.id} value={s.id}>{s.name} — Mẫu {s.selfScoreForm}</option>)}
+                {(criteriaSets ?? []).map((s) => <option key={s.id} value={s.id}>{scoringMethodLabel(s.selfScoreForm)} — {s.name}</option>)}
               </select>
               {selectedForm && FORM_FLOW[selectedForm] && <div className="form-text">{FORM_FLOW[selectedForm]}</div>}
             </>
