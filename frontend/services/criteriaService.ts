@@ -75,6 +75,8 @@ export interface CriteriaParameters {
   taskWeightTolerance: number;
   generalMaxScore: number;
   defaultWeightFrameCode?: string | null;
+  /** Biên độ điều chỉnh tỷ lệ A-B-C-D theo hồ sơ (điểm phần trăm); null/0 = không cho điều chỉnh. */
+  frameAdjustLimit?: number | null;
   allowNotApplicable: boolean;
   notApplicableRule: NotApplicableRule;
   deductionReasonMinPoints?: number | null;
@@ -273,6 +275,9 @@ export function quickChecks(content: CriteriaSetContent, form: string): string[]
     if (!(section.maxLength >= FORM_CONFIG_LIMITS.sectionMin && section.maxLength <= FORM_CONFIG_LIMITS.sectionMax))
       messages.push(`Số ký tự tối đa của mục Mẫu 09C "${code}" phải từ ${FORM_CONFIG_LIMITS.sectionMin} đến ${FORM_CONFIG_LIMITS.sectionMax}.`);
   }
+  const adjust = content.parameters.frameAdjustLimit;
+  if (adjust != null && !(adjust >= 0 && adjust <= MAX_FRAME_ADJUST_LIMIT))
+    messages.push(`Biên độ điều chỉnh tỷ lệ A-B-C-D phải từ 0 đến ${MAX_FRAME_ADJUST_LIMIT} điểm phần trăm.`);
   const alertDays = content.parameters.improvementPlanAlertDays ?? 90;
   if (!(Number.isInteger(alertDays) && alertDays >= 1 && alertDays <= FORM_CONFIG_LIMITS.alertDaysMax))
     messages.push(`Số ngày cảnh báo lập kế hoạch 30-60-90 ngày sau khi đóng kỳ phải là số nguyên từ 1 đến ${FORM_CONFIG_LIMITS.alertDaysMax}.`);
@@ -282,6 +287,14 @@ export function quickChecks(content: CriteriaSetContent, form: string): string[]
 export function fmt(value: number, digits = 2): string {
   return Number.isFinite(value) ? value.toLocaleString("vi-VN", { maximumFractionDigits: digits }) : "—";
 }
+
+/** Tỷ lệ 4 mặt chấm của khung, ví dụ "A 15% · B 50% · C 15% · D 20%". */
+export function describeFrame(frame: Pick<WeightFrame, "a" | "b" | "c" | "d">): string {
+  return `A ${fmt(frame.a * 100)}% · B ${fmt(frame.b * 100)}% · C ${fmt(frame.c * 100)}% · D ${fmt(frame.d * 100)}%`;
+}
+
+/** Biên độ tối đa (điểm phần trăm) khi khai báo trong bộ tiêu chí — khớp máy chủ. */
+export const MAX_FRAME_ADJUST_LIMIT = 50;
 
 export const criteriaService = {
   list(): Promise<CriteriaSetListItem[]> {

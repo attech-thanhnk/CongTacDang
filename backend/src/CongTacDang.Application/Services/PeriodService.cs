@@ -679,6 +679,7 @@ public sealed class PeriodService : IPeriodService
             record.DepartmentId = member.DepartmentId;
             record.PartyCellId = member.PartyCellId;
             record.WeightFrameCode = member.WeightFrameCode ?? defaultFrame ?? string.Empty;
+            RecordWeightFrames.Clear(record);
             record.ApprovalAuthority = member.ApprovalAuthority;
             record.WorkflowProfileCode = profile.Code;
             var from = isNew ? (RecordStatus?)null : record.Status;
@@ -763,8 +764,10 @@ public sealed class PeriodService : IPeriodService
             var code = frame?.Code ?? UserAccountService.NormalizeWeightFrameCode(dto.WeightFrameCode)!;
             if (!string.Equals(code, record.WeightFrameCode, StringComparison.Ordinal))
             {
-                changes.Add("khung tỷ trọng");
+                // Tỷ lệ đã điều chỉnh khi duyệt danh mục gắn với khung cũ → bỏ, hồ sơ dùng tỷ lệ của khung mới.
+                changes.Add(RecordWeightFrames.IsAdjusted(record) ? "khung tỷ trọng (bỏ tỷ lệ A-B-C-D đã điều chỉnh)" : "khung tỷ trọng");
                 record.WeightFrameCode = code;
+                RecordWeightFrames.Clear(record);
             }
         }
         if (!string.IsNullOrWhiteSpace(dto.ApprovalAuthority))

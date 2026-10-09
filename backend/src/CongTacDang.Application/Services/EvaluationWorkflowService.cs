@@ -22,7 +22,7 @@ namespace CongTacDang.Application.Services;
 public interface IEvaluationWorkflowService
 {
     Task<EvaluationRecordDto> SubmitTasksAsync(Guid recordId, SubmitTasksRequestDto request, CancellationToken ct = default);
-    Task<EvaluationRecordDto> ApproveTasksAsync(Guid recordId, CommentRequestDto request, CancellationToken ct = default);
+    Task<EvaluationRecordDto> ApproveTasksAsync(Guid recordId, ApproveTasksRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> ReturnTasksAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> SubmitSelfScoreAsync(Guid recordId, SubmitSelfScoreRequestDto request, CancellationToken ct = default);
 
@@ -134,14 +134,34 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         }, ct);
 
     /// <inheritdoc />
-    public Task<EvaluationRecordDto> ApproveTasksAsync(Guid recordId, CommentRequestDto request, CancellationToken ct = default) =>
+    public Task<EvaluationRecordDto> ApproveTasksAsync(Guid recordId, ApproveTasksRequestDto request, CancellationToken ct = default) =>
         ExecuteAsync(recordId, request, WorkflowActions.ApproveTasks, null, ctx =>
         {
+            var comment = Trim(request.Comment, MaxCommentLength, "Ý kiến");
+            var history = "Duyệt danh mục sản phẩm.";
+
+            // Cấp giao nhiệm vụ điều chỉnh tỷ lệ A-B-C-D của khung cho hồ sơ (đầu kỳ, trong biên độ của bộ tiêu chí).
+            if (request.FrameAdjustment is { } adjust)
+            {
+                var content = RequireCriteria(ctx).Content;
+                var baseFrame = RecordWeightFrames.Base(ctx.Record, content);
+                var error = RecordWeightFrames.ValidateAdjustment(content, baseFrame, adjust.A, adjust.B, adjust.C, adjust.D);
+                if (error != null)
+                    throw new ValidationException(error);
+                if (RecordWeightFrames.Apply(ctx.Record, baseFrame!, adjust.A, adjust.B, adjust.C, adjust.D))
+                {
+                    var effective = RecordWeightFrames.Effective(ctx.Record, content)!;
+                    history += RecordWeightFrames.IsAdjusted(ctx.Record)
+                        ? $" Điều chỉnh tỷ lệ A-B-C-D: {RecordWeightFrames.Describe(effective)} (khung {baseFrame!.Code}: {RecordWeightFrames.Describe(baseFrame)})."
+                        : $" Bỏ điều chỉnh tỷ lệ A-B-C-D, dùng tỷ lệ của khung {baseFrame!.Code}: {RecordWeightFrames.Describe(baseFrame)}.";
+                }
+            }
+
             ctx.Record.TasksApprovedById = ctx.ActorId;
             ctx.Record.TasksApprovedByName = ctx.ActorName;
             ctx.Record.TasksApprovedAt = ctx.Now;
-            ctx.Record.TasksApprovalComment = Trim(request.Comment, MaxCommentLength, "Ý kiến");
-            return Task.FromResult<string?>("Duyệt danh mục sản phẩm.");
+            ctx.Record.TasksApprovalComment = comment;
+            return Task.FromResult<string?>(history);
         }, ct);
 
     /// <inheritdoc />
@@ -210,7 +230,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         else
         {
             // Lưu nháp khi hồ sơ chưa có khung / chưa có danh mục: giữ nguyên điểm nhiệm vụ, vẫn lưu các phần còn lại.
-            var frame = content.FindFrame(record.WeightFrameCode);
+            // Khung hiệu lực: khung gốc với tỷ lệ A-B-C-D đã được điều chỉnh khi duyệt danh mục (nếu có).
+            var frame = RecordWeightFrames.Effective(record, content);
             if (frame == null && !draft)
                 throw new ValidationException(string.IsNullOrEmpty(record.WeightFrameCode)
                     ? "Hồ sơ chưa có khung tỷ trọng A-B-C-D nên chưa tự chấm được theo Mẫu 09A. Hãy liên hệ người quản lý kỳ để chọn khung."

@@ -204,6 +204,12 @@ Cách làm chung cho mọi bước xét duyệt:
 3. Xem các khối nội dung các bước trước (phiếu tự chấm, Mẫu 9D, Mẫu 09C…) và biểu mẫu bên phải nếu cần.
 4. Nhập nội dung trong khung thao tác và bấm nút ghi nhận.
 
+### 4.0 Duyệt danh mục sản phẩm
+
+- **Duyệt danh mục**: xem danh mục sản phẩm cán bộ đăng ký, nhập *Ý kiến* (nếu có) rồi bấm **Duyệt danh mục**.
+- **Tỷ lệ 4 mặt chấm** (khi bộ tiêu chí cho phép): mở khối này để xem tỷ lệ A-B-C-D của khung và sửa cho riêng hồ sơ, mỗi mặt trong biên độ cho phép, tổng phải bằng 100%. Không mở hoặc không sửa thì giữ nguyên. **Dùng tỷ lệ của khung** để quay về tỷ lệ gốc. Tỷ lệ đã sửa được dùng khi cán bộ tự chấm và hiện "(đã điều chỉnh)" trên hồ sơ.
+- **Trả lại danh mục**: bấm nút trả lại ở chân khung, nhập lý do (bắt buộc).
+
 Muốn xem tất cả hồ sơ trong phạm vi (không chỉ hồ sơ chờ mình): menu **Đánh giá cán bộ** → bảng **Hồ sơ trong phạm vi**, lọc theo Phòng, Chi bộ, trạng thái. Trang này còn có bảng kiểm soát tỷ lệ Hoàn thành xuất sắc theo Chi bộ.
 
 ### 4.1 Chi bộ xác nhận phiếu tự chấm
@@ -393,7 +399,7 @@ Menu **Quản lý → Bộ tiêu chí**. Bộ tiêu chí chứa toàn bộ nội
   - **Trục kết quả**: **Thêm trục**, tên, nội dung áp dụng, điểm tối đa, tiêu đề và gợi ý in trên Mẫu 09B.
   - **Biểu mẫu cá nhân áp dụng cho hồ sơ**; các mục của Mẫu 09C (tiêu đề, câu dẫn, lưu ý, số ký tự tối đa, bắt buộc khi nộp); các mức tự đánh giá nhiệm vụ (Mức 1, 2, 3 và nhãn).
   - **Khung tỷ trọng A-B-C-D**, **Khung mặc định**, **Thang quy đổi**, **Mức xếp loại** (từ điểm, điều kiện kèm theo).
-  - **Tham số**: giảm từ bao nhiêu điểm phải nêu lý do, cho phép K/AD, ngưỡng giải trình khi thẩm định, công khai kết quả kèm điểm, mức bắt buộc lập kế hoạch 30-60-90 ngày…
+  - **Tham số**: giảm từ bao nhiêu điểm phải nêu lý do, **Điều chỉnh tỷ lệ A-B-C-D (± điểm %)** — biên độ người duyệt danh mục được sửa tỷ lệ 4 mặt chấm cho từng hồ sơ (để trống = không cho sửa), cho phép K/AD, ngưỡng giải trình khi thẩm định, công khai kết quả kèm điểm, mức bắt buộc lập kế hoạch 30-60-90 ngày…
 - Bấm **Lưu bản nháp**. Khi xong, bấm **Xuất bản**. Còn lỗi thì hệ thống liệt kê lỗi cần sửa.
 - **Lưu trữ**: ẩn bộ không dùng nữa (kỳ đang dùng bộ không bị ảnh hưởng).
 

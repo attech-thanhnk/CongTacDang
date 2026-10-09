@@ -252,6 +252,101 @@ public sealed class CriteriaSetIntegrationTests
         });
     }
 
+    [SkippableFact]
+    public async Task C4_ApproveTasks_FrameAdjustment_ScoresByAdjustedWeights_ExportsMau02_SnapshotClears()
+    {
+        var w = await WorldAsync();
+        var period = await CreatePeriodAsync(w, await TestCriteriaSets.LatestPublishedAsync(w.Manager, "09A"));
+        var periodId = period.GetProperty("id").GetGuid();
+        Assert.Equal(10, period.GetProperty("criteria").GetProperty("content").GetProperty("parameters").GetProperty("frameAdjustLimit").GetDouble());
+        var r1 = await AddParticipantAsync(w, periodId, w.Owner1.Id); // khung K2: A 15 · B 50 · C 15 · D 20
+        await OpenAsync(w, periodId);
+        await StepAsync(w, w.Owner1C, r1, "tasks/submit", Tasks("T1"), "AwaitingTaskApproval");
+
+        // Lệch quá ±10 điểm phần trăm → 400; tổng khác 100 → 400.
+        var tooFar = await PostAsync(w.DeptLeadC, r1, "tasks/approve", new { frameAdjustment = new { a = 15, b = 35, c = 30, d = 20 } }, await VersionAsync(w, r1));
+        Assert.Equal(HttpStatusCode.BadRequest, tooFar.StatusCode);
+        Assert.Contains("lệch quá 10", await MessageAsync(tooFar));
+        var badSum = await PostAsync(w.DeptLeadC, r1, "tasks/approve", new { frameAdjustment = new { a = 20, b = 50, c = 15, d = 20 } }, await VersionAsync(w, r1));
+        Assert.Equal(HttpStatusCode.BadRequest, badSum.StatusCode);
+        Assert.Contains("100%", await MessageAsync(badSum));
+
+        // Hợp lệ: A 25 · B 40 · C 15 · D 20.
+        var approved = await StepAsync(w, w.DeptLeadC, r1, "tasks/approve",
+            new { comment = "Đồng ý", frameAdjustment = new { a = 25, b = 40, c = 15, d = 20 } }, "AwaitingSelfScore");
+        Assert.True(approved.GetProperty("weightFrameAdjusted").GetBoolean());
+        Assert.Equal(0.25, approved.GetProperty("weightFrame").GetProperty("a").GetDouble(), 6);
+        Assert.Equal(0.40, approved.GetProperty("weightFrame").GetProperty("b").GetDouble(), 6);
+        Assert.Equal(0.15, approved.GetProperty("baseWeightFrame").GetProperty("a").GetDouble(), 6);
+        var history = await Data(w.Manager, $"/api/evaluations/records/{r1}/history");
+        Assert.Contains(history.EnumerateArray(), h => (h.GetProperty("comment").GetString() ?? string.Empty)
+            .Contains("Điều chỉnh tỷ lệ A-B-C-D: A 25% · B 40% · C 15% · D 20%"));
+
+        // Tự chấm theo tỷ trọng đã điều chỉnh (theo khung K2 gốc sẽ là 29,3 / 23,8 / 14,3).
+        var record = await Data(w.Owner1C, $"/api/evaluations/records/{r1}");
+        var tasks = record.GetProperty("tasks").EnumerateArray().Select(t => t.GetProperty("id").GetGuid()).ToList();
+        var taskScores = new object[]
+        {
+            new { taskId = tasks[0], criteriaA_Ratio = 1.0, criteriaB_Ratio = 0.95, criteriaC_Ratio = 1.0, criteriaD_Ratio = 1.0, isExceedStandard = false },
+            new { taskId = tasks[1], criteriaA_Ratio = 1.0, criteriaB_Ratio = 0.90, criteriaC_Ratio = 1.0, criteriaD_Ratio = 1.0, isExceedStandard = false },
+            new { taskId = tasks[2], criteriaA_Ratio = 1.0, criteriaB_Ratio = 0.95, criteriaC_Ratio = 1.0, criteriaD_Ratio = 0.90, isExceedStandard = false }
+        };
+        var scored = await StepAsync(w, w.Owner1C, r1, "self-score/submit", new { generalScores = CriteriaTestData.General(), taskScores }, "AwaitingCellConfirm");
+        var selfScores = scored.GetProperty("tasks").EnumerateArray().OrderBy(t => t.GetProperty("taskOrder").GetInt32())
+            .Select(t => t.GetProperty("selfScore").GetDouble()).ToList();
+        Assert.Equal(new[] { 29.4, 24.0, 14.4 }, selfScores); // 30×98% = 29,4; 25×96% = 24; 15×96% = 14,4
+        Assert.Equal(67.8, scored.GetProperty("tasksScore").GetDouble(), 6);
+
+        // Mẫu 02: kết quả % theo tỷ trọng mới (29,4 / 30 = 98,0%).
+        await AssertDocxAsync(w.Manager, $"/api/reports/docx/mau-02/{r1}", "98,0%");
+        await AssertDocxAsync(w.Manager, $"/api/reports/docx/mau-02/{r1}", "29,4");
+
+        // Sửa ảnh chụp sang khung khác → bỏ phần điều chỉnh.
+        var participant = Participant(await Data(w.Manager, $"/api/evaluations/periods/{periodId}/participants"), r1);
+        await Data(await w.Manager.PutAsJsonAsync($"/api/evaluations/periods/{periodId}/participants/{r1}/snapshot",
+            new { version = participant.GetProperty("version").GetUInt32(), weightFrameCode = "K1", reason = "Đổi lĩnh vực" }));
+        var after = await Data(w.Manager, $"/api/evaluations/records/{r1}");
+        Assert.False(after.GetProperty("weightFrameAdjusted").GetBoolean());
+        Assert.Equal(0.25, after.GetProperty("weightFrame").GetProperty("a").GetDouble(), 6);
+        Assert.Equal(0.35, after.GetProperty("weightFrame").GetProperty("b").GetDouble(), 6);
+    }
+
+    [SkippableFact]
+    public async Task C5_ApproveTasks_FrameAdjustment_RefusedWhenCriteriaSetDisallows()
+    {
+        var w = await WorldAsync();
+
+        // Bản sao bộ 09A không cho điều chỉnh (frameAdjustLimit = null).
+        var sourceId = await TestCriteriaSets.LatestPublishedAsync(w.Manager, "09A");
+        var clone = await Data(await w.Manager.PostAsJsonAsync($"/api/criteria-sets/{sourceId}/clone", new { }));
+        var cloneId = clone.GetProperty("id").GetGuid();
+        var content = JsonNode.Parse(clone.GetProperty("content").GetRawText())!.AsObject();
+        content["parameters"]!["frameAdjustLimit"] = null;
+        var saved = await Data(await w.Manager.PutAsJsonAsync($"/api/criteria-sets/{cloneId}", new { version = clone.GetProperty("version").GetUInt32(), content }));
+        var published = await Data(await w.Manager.PostAsJsonAsync($"/api/criteria-sets/{cloneId}/publish", new { version = saved.GetProperty("version").GetUInt32() }));
+
+        var period = await CreatePeriodAsync(w, cloneId);
+        var periodId = period.GetProperty("id").GetGuid();
+        var owner = await _factory.CreateUserAsync(fullName: "IT Tiêu chí 3");
+        await _factory.AssignAsync(owner.Id, await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA"), RoleScopeType.Global, null);
+        var r2 = await AddParticipantAsync(w, periodId, owner.Id);
+        await OpenAsync(w, periodId);
+        // Dọn: bộ nhân bản không được là "bộ 09A mới nhất" cho test khác (kỳ đã mở giữ ảnh chụp).
+        await Data(await w.Manager.PostAsJsonAsync($"/api/criteria-sets/{cloneId}/archive", new { version = published.GetProperty("version").GetUInt32() }));
+
+        var owner2 = await _factory.LoginAsAsync(owner.Username, owner.Password, distinctClientIp: true);
+        await StepAsync(w, owner2, r2, "tasks/submit", Tasks("T1"), "AwaitingTaskApproval");
+        var refused = await PostAsync(w.DeptLeadC, r2, "tasks/approve", new { frameAdjustment = new { a = 25, b = 35, c = 20, d = 20 } }, await VersionAsync(w, r2));
+        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        Assert.Contains("không cho điều chỉnh", await MessageAsync(refused));
+        var record = await Data(w.Manager, $"/api/evaluations/records/{r2}");
+        Assert.Equal(JsonValueKind.Null, record.GetProperty("frameAdjustLimit").ValueKind);
+
+        // Không gửi điều chỉnh → duyệt bình thường.
+        var approved = await StepAsync(w, w.DeptLeadC, r2, "tasks/approve", new { comment = "Đồng ý" }, "AwaitingSelfScore");
+        Assert.False(approved.GetProperty("weightFrameAdjusted").GetBoolean());
+    }
+
     #region Thế giới test và hỗ trợ
 
     private sealed class World

@@ -73,6 +73,13 @@ export function CriteriaSummary({ content, form }: { content: CriteriaSetContent
               ))}
             </tbody>
           </table></div>
+          {content.weightFrames.length > 0 && (
+            <div className="text-secondary mt-1">
+              {p.frameAdjustLimit != null && p.frameAdjustLimit > 0
+                ? `Người duyệt danh sách sản phẩm được điều chỉnh từng thành phần trong phạm vi ±${fmt(p.frameAdjustLimit)} điểm %, tổng 100%.`
+                : "Không điều chỉnh tỷ lệ theo từng hồ sơ."}
+            </div>
+          )}
         </div>
         <div className="col-lg-6">
           <h3 className="h6 small fw-bold text-secondary">Thang quy đổi % A-B-C-D</h3>

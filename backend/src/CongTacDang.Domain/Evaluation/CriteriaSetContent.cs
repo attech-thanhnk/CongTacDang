@@ -244,6 +244,17 @@ public sealed class CriteriaParameters
     /// </summary>
     public string? DefaultWeightFrameCode { get; set; }
 
+    /// <summary>
+    /// Biên độ (điểm phần trăm) mà cấp giao nhiệm vụ được điều chỉnh từng tỷ trọng A-B-C-D của khung cho một hồ sơ khi duyệt
+    /// danh mục sản phẩm (đầu kỳ); tổng sau điều chỉnh vẫn bằng 100%. null hoặc 0 = không cho điều chỉnh. Trường tùy chọn:
+    /// nội dung lưu trước khi có trường này đọc ra null (không cần nâng phiên bản schema).
+    /// </summary>
+    public double? FrameAdjustLimit { get; set; }
+
+    /// <summary>Bộ cho phép điều chỉnh tỷ trọng khung theo hồ sơ.</summary>
+    [JsonIgnore]
+    public bool AllowsFrameAdjustment => FrameAdjustLimit is > 0;
+
     /// <summary>Cho phép đánh dấu tiêu chí con "K/AD — Không áp dụng" (bắt buộc nêu lý do).</summary>
     public bool AllowNotApplicable { get; set; } = true;
 
@@ -530,6 +541,9 @@ public sealed class CriteriaSetContent
     /// <summary>Số mức tự đánh giá nhiệm vụ tối đa.</summary>
     public const int MaxTaskLevels = 9;
 
+    /// <summary>Biên độ điều chỉnh tỷ trọng khung tối đa (điểm phần trăm).</summary>
+    public const double MaxFrameAdjustLimit = 50;
+
     /// <summary>Số ngày tối đa sau khi đóng kỳ còn cảnh báo lập kế hoạch 30-60-90 ngày.</summary>
     public const int MaxImprovementPlanAlertDays = 3650;
 
@@ -743,6 +757,8 @@ public sealed class CriteriaSetContent
             errors.Add("Cách xử lý điểm khi \"Không áp dụng\" không hợp lệ.");
         if (p.DeductionReasonMinPoints is { } deduction && !(deduction > 0))
             errors.Add("Mức giảm điểm phải nêu căn cứ phải lớn hơn 0 (để trống nếu không bắt buộc).");
+        if (p.FrameAdjustLimit is { } adjust && (double.IsNaN(adjust) || adjust < 0 || adjust > MaxFrameAdjustLimit))
+            errors.Add(Invariant($"Biên độ điều chỉnh tỷ lệ A-B-C-D phải từ 0 đến {MaxFrameAdjustLimit:0.##} điểm phần trăm (để trống nếu không cho điều chỉnh)."));
         if (p.ExplanationThreshold < 0 || p.ExplanationThreshold > 100)
             errors.Add("Ngưỡng chênh lệch cần giải trình phải từ 0 đến 100 điểm.");
         if (p.ExcellentQuota.Ratio < 0 || p.ExcellentQuota.Ratio > 1)

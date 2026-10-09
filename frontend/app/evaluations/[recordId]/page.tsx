@@ -19,7 +19,7 @@ import { loadCriteria, useCriteria } from "@/components/evaluations/useCriteria"
 import { initialsOf } from "@/components/dashboard/taskUtils";
 import styles from "@/components/evaluations/record.module.css";
 import { attachmentService } from "@/services/attachmentService";
-import { fmt } from "@/services/criteriaService";
+import { describeFrame, fmt } from "@/services/criteriaService";
 import {
   EVALUATION_CONFLICT_EVENT,
   EvaluationConflictDetail,
@@ -487,6 +487,11 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
                 ))}
               </tbody>
             </table></div>
+          )}
+          {record.selfScoreForm === "09A" && record.weightFrame && (
+            <div className={styles.subline}>
+              Khung {record.weightFrame.code} · Tỷ lệ 4 mặt: {describeFrame(record.weightFrame)}{record.weightFrameAdjusted ? " (đã điều chỉnh)" : ""}
+            </div>
           )}
           {record.tasksApprovedAt && (
             <div className={styles.subline}>

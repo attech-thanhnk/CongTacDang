@@ -329,7 +329,7 @@ public sealed class PostPublishUnitTests
         public Task<WorkQueueDto> GetWorkQueueAsync(Guid? periodId, CancellationToken ct = default) => Task.FromResult(_queue);
 
         public Task<EvaluationRecordDto> SubmitTasksAsync(Guid recordId, SubmitTasksRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<EvaluationRecordDto> ApproveTasksAsync(Guid recordId, CommentRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<EvaluationRecordDto> ApproveTasksAsync(Guid recordId, ApproveTasksRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<EvaluationRecordDto> ReturnTasksAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<EvaluationRecordDto> SubmitSelfScoreAsync(Guid recordId, SubmitSelfScoreRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<EvaluationRecordDto> SaveSelfScoreDraftAsync(Guid recordId, SubmitSelfScoreRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();

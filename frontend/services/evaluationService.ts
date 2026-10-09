@@ -1,5 +1,5 @@
 import { ApiError, request } from "./apiClient";
-import type { CriteriaSnapshot, GeneralItemScore } from "./criteriaService";
+import type { CriteriaSnapshot, GeneralItemScore, WeightFrame } from "./criteriaService";
 import type { DeadlineRule } from "./deadlineRules";
 
 // ---------------------------------------------------------------------------
@@ -219,6 +219,14 @@ export interface EvaluationRecordDto {
   departmentName?: string;
   /** Mã khung tỷ trọng A-B-C-D (ảnh chụp). */
   weightFrameCode: string;
+  /** Khung gốc trong bộ tiêu chí của kỳ (tỷ trọng 0..1). */
+  baseWeightFrame?: WeightFrame | null;
+  /** Khung hiệu lực dùng để chấm: khung gốc với tỷ trọng đã điều chỉnh (nếu có). */
+  weightFrame?: WeightFrame | null;
+  /** Tỷ lệ A-B-C-D đã được điều chỉnh khi duyệt danh mục. */
+  weightFrameAdjusted?: boolean;
+  /** Biên độ điều chỉnh (điểm phần trăm); null = bộ không cho điều chỉnh. */
+  frameAdjustLimit?: number | null;
   approvalAuthority: string;
   workflowProfileCode: string;
   workflowProfileName: string;

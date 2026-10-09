@@ -113,9 +113,9 @@ public class EvaluationController : ControllerBase
     public Task<IActionResult> SubmitTasks(Guid id, [FromBody] SubmitTasksRequestDto dto, CancellationToken ct) =>
         Run(() => _workflow.SubmitTasksAsync(id, dto, ct), "Đã nộp danh mục sản phẩm.");
 
-    /// <summary>B1_APPROVE — duyệt danh mục.</summary>
+    /// <summary>B1_APPROVE — duyệt danh mục (tùy chọn điều chỉnh tỷ lệ A-B-C-D của hồ sơ trong biên độ của bộ tiêu chí).</summary>
     [HttpPost("records/{id:guid}/tasks/approve")]
-    public Task<IActionResult> ApproveTasks(Guid id, [FromBody] CommentRequestDto dto, CancellationToken ct) =>
+    public Task<IActionResult> ApproveTasks(Guid id, [FromBody] ApproveTasksRequestDto dto, CancellationToken ct) =>
         Run(() => _workflow.ApproveTasksAsync(id, dto, ct), "Đã duyệt danh mục sản phẩm.");
 
     /// <summary>B1_APPROVE — trả lại danh mục (bắt buộc lý do).</summary>
