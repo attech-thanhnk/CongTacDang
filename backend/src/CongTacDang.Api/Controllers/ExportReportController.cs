@@ -90,6 +90,22 @@ public class ExportReportController : ControllerBase
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
+    /// <summary>
+    /// Bảng tổng hợp xếp loại cán bộ của kỳ (Excel, hai khối theo cấp quyết định). Lọc theo phạm vi <c>report.export</c> của người xem
+    /// (Toàn công ty / đơn vị chính quyền / tổ chức Đảng); <c>branchId</c> (tùy chọn) thu hẹp theo tổ chức Đảng trong phạm vi đó.
+    /// </summary>
+    [HttpGet("internal/rating-summary")]
+    [RequirePermission(PermissionCodes.ReportExport)]
+    public async Task<IActionResult> ExportRatingSummary([FromQuery] Guid? periodId = null, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
+    {
+        Guid? branch = null;
+        if (branchId.HasValue && branchId.Value != Guid.Empty)
+            branch = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
+        var result = await _reportService.ExportRatingSummaryAsync(
+            await ResolvePeriodIdAsync(periodId), branch, _reportAccess.GetCadreExportScope(), ParseFormat(format));
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
     #endregion
 
     #region Hồ sơ nộp theo HD03 — bảng tính

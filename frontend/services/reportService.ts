@@ -73,6 +73,10 @@ export const REPORTS: ReportDefinition[] = [
     title: "Danh sách cán bộ (nội bộ)", endpoint: "/reports/cadres",
   },
   {
+    id: "rating-summary", code: "Nội bộ", group: "internal", scope: "period", fileType: "XLSX", fileCode: "BangTongHop_XepLoaiCanBo",
+    title: "Bảng tổng hợp xếp loại cán bộ", endpoint: "/reports/internal/rating-summary",
+  },
+  {
     id: "excellent-quota", code: "Nội bộ", group: "internal", scope: "period", fileType: "XLSX", fileCode: "KiemSoatTyLeXuatSac",
     title: "Báo cáo nội bộ — Kiểm soát tỷ lệ Hoàn thành xuất sắc nhiệm vụ theo tổ chức Đảng",
     endpoint: "/reports/internal/excellent-quota",
@@ -159,6 +163,12 @@ export function asciiName(value: string): string {
 export function hd03FileName(fileCode: string, unit: string, periodLabel: string, extension: string): string {
   const unitPart = asciiName(unit).replace(/\s+/g, "") || "DonVi";
   return `Mau ${fileCode}_${unitPart}_${asciiName(periodLabel)}${extension}`;
+}
+
+/** Tên tệp báo cáo nội bộ: "<mã báo cáo>_<đơn vị>_Quy III-2026" (viết không dấu). */
+export function internalFileName(fileCode: string, unit: string, periodLabel: string, extension: string): string {
+  const unitPart = asciiName(unit).replace(/s+/g, "") || "DonVi";
+  return `${fileCode}_${unitPart}_${asciiName(periodLabel)}${extension}`;
 }
 
 export const reportService = {
