@@ -28,6 +28,7 @@ public class CollectiveFormsTemplateTests
         var (period, records) = DocumentTemplateTests.SampleData();
         yield return new object[] { Mau13Data.TemplateFileName, Wave8FormsTests.Mau13Sample(period, records) };
         yield return new object[] { Mau16Data.TemplateFileName, Mau16Sample() };
+        yield return new object[] { MauQdData.TemplateFileName, MauQdSample() };
     }
 
     [Theory]
@@ -229,6 +230,82 @@ public class CollectiveFormsTemplateTests
     }
 
     [Fact]
+    public void MauQd_FillsDecisionAndAppendixFromRecords()
+    {
+        var result = Render(MauQdData.TemplateFileName, MauQdSample());
+        var text = BodyText(result.Content);
+
+        // Trang Quyết định: tiêu đề, căn cứ, cấp ủy ra quyết định, nơi nhận, chữ ký — tên tổ chức lấy từ dữ liệu.
+        Assert.Contains("ĐẢNG BỘ TỔNG CÔNG TY B", text);
+        Assert.Contains("ĐẢNG BỘ CÔNG TY A", text);
+        Assert.Contains("Số 15-QĐ/ĐU", text);
+        Assert.Contains("Hà Nội, ngày 20 tháng 09 năm 2026", text);
+        Assert.Contains("Xếp loại cán bộ Quý III năm 2026 đối với các trường hợp thuộc thẩm quyền quyết định của Đảng ủy Công ty A", text);
+        Assert.Contains("của Thường vụ Đảng ủy Tổng công ty B về việc đánh giá, xếp loại cán bộ Quý III năm 2026;", text);
+        Assert.Contains("Quy chế hoạt động của Ban Chấp hành Đảng bộ Công ty A, nhiệm kỳ 2025-2030;", text);
+        Assert.Contains("Hội nghị Đảng ủy Công ty A ngày 18/09/2026", text);
+        Assert.Contains("thuộc diện Ban Chấp hành Đảng bộ Công ty A đánh giá, xếp loại.", text);
+        Assert.Contains("ĐẢNG ỦY CÔNG TY A QUYẾT ĐỊNH", text);
+        Assert.Contains("Điều 1: Xếp loại cán bộ Quý III năm 2026", text);
+        Assert.Contains("- BTV Đảng ủy Tổng công ty B (để b/c),", text);
+        Assert.Contains("T/M ĐẢNG ỦY", text);
+        Assert.Contains("Phạm Văn Chủ Trì", text);
+
+        // Phụ lục: tiêu đề, dòng tham chiếu Quyết định, cột 8 theo tên tổ chức, dòng cán bộ đủ mức từng bước.
+        Assert.Contains("KẾT QUẢ ĐÁNH GIÁ, XẾP LOẠI CÁN BỘ QUÝ III/2026 THUỘC THẨM QUYỀN QUYẾT ĐỊNH CỦA ĐẢNG ỦY CÔNG TY A", text);
+        Assert.Contains("(kèm theo Quyết định số 15-QĐ/ĐU ngày 20/09/2026)", text);
+        Assert.Contains("Ban Chấp hành Đảng bộ Công ty A đánh giá, xếp loại", text);
+        using var doc = Open(result.Content);
+        var rows = doc.MainDocumentPart!.Document!.Body!.Elements<Table>().Last().Elements<TableRow>().Skip(2)
+            .Select(r => r.Elements<TableCell>().Select(c => c.InnerText).ToList())
+            .ToList();
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(new[] { "1", "Nguyễn Văn Một", "Trưởng phòng — Phòng Kỹ thuật", "Hoàn thành tốt nhiệm vụ", "Hoàn thành tốt nhiệm vụ",
+            "Hoàn thành xuất sắc nhiệm vụ", "Hoàn thành tốt nhiệm vụ", "Hoàn thành tốt nhiệm vụ", "" }, rows[0]);
+        // Bước không thực hiện (chưa có mức) để trống, không in "Chưa xếp loại".
+        Assert.Equal(new[] { "2", "Trần Thị Hai", "Phó Bí thư Chi bộ", "Hoàn thành nhiệm vụ", "Hoàn thành nhiệm vụ", "", "",
+            "Hoàn thành nhiệm vụ", "" }, rows[1]);
+    }
+
+    [Fact]
+    public void MauQd_NoDocumentOrMeeting_KeepsDottedPlaceholders_ChiBoSigns()
+    {
+        var header = PartyHeader.Of("Đảng bộ Công ty A", "Chi bộ Kỹ thuật");
+        var data = MauQdData.From(Period, header, "Đảng bộ Công ty A", new DecisionDocumentInfo(null, null, null, null),
+            new[] { new MauQdLine("Lê Văn Ba", null, EvaluationGrade.HoanThanhTot, EvaluationGrade.ChuaXepLoai, EvaluationGrade.ChuaXepLoai,
+                EvaluationGrade.ChuaXepLoai, EvaluationGrade.HoanThanhTot) });
+
+        var text = BodyText(Render(MauQdData.TemplateFileName, data).Content);
+
+        Assert.Contains("Số …..-QĐ/……", text);
+        Assert.Contains("Hà Nội, ngày …… tháng …… năm ……", text);
+        Assert.Contains("Hội nghị Chi bộ Kỹ thuật ngày …../…../…….", text);
+        Assert.Contains("(kèm theo Quyết định số …..-QĐ/…… ngày …… tháng …… năm ……)", text);
+        Assert.Contains("CHI BỘ KỸ THUẬT QUYẾT ĐỊNH", text);
+        Assert.Contains("T/M CHI BỘ", text);
+        Assert.Contains("- BTV Đảng ủy Công ty A (để b/c),", text);
+        Assert.Null(data.SignerName);
+    }
+
+    [Fact]
+    public void CollectiveFormText_CommitteeExecutiveTermAndSigner()
+    {
+        Assert.Equal("Đảng ủy Công ty A", CollectiveFormText.CommitteeInSentence("Đảng bộ Công ty A"));
+        Assert.Equal("ĐẢNG ỦY TCT B", CollectiveFormText.CommitteeInSentence("ĐẢNG BỘ TCT B"));
+        Assert.Equal("Chi bộ Kỹ thuật", CollectiveFormText.CommitteeInSentence("Chi bộ Kỹ thuật"));
+        Assert.Null(CollectiveFormText.CommitteeInSentence(" "));
+        Assert.Equal("Ban Chấp hành Đảng bộ Công ty A", CollectiveFormText.ExecutiveInSentence("Đảng bộ Công ty A"));
+        Assert.Equal("Chi bộ Kỹ thuật", CollectiveFormText.ExecutiveInSentence("Chi bộ Kỹ thuật"));
+        Assert.Equal("T/M ĐẢNG ỦY", CollectiveFormText.SignOnBehalf("ĐẢNG ỦY CÔNG TY A"));
+        Assert.Equal("T/M CHI BỘ", CollectiveFormText.SignOnBehalf("CHI BỘ KỸ THUẬT"));
+        Assert.Null(CollectiveFormText.SignOnBehalf("ĐẢNG BỘ X"));
+        Assert.Equal("2025-2030", CollectiveFormText.PartyTerm(2025));
+        Assert.Equal("2025-2030", CollectiveFormText.PartyTerm(2029));
+        Assert.Null(CollectiveFormText.PartyTerm(2030));
+        Assert.Equal("2030-2035", CollectiveFormText.PartyTerm(2031));
+    }
+
+    [Fact]
     public void CollectiveFormText_FormatsQuarterTimeAndLines()
     {
         Assert.Equal("III", CollectiveFormText.RomanQuarter(EvaluationQuarter.Quy3));
@@ -300,6 +377,21 @@ public class CollectiveFormsTemplateTests
             SuperiorRows = new List<Form16SummaryRowDto> { new() { Subject = "Tổng cộng" } }
         };
         return Mau16Data.From(Period, Header, draft);
+    }
+
+    private static MauQdData MauQdSample()
+    {
+        var header = PartyHeader.Of("ĐẢNG BỘ TỔNG CÔNG TY B", "ĐẢNG BỘ CÔNG TY A", "Đảng bộ Công ty A");
+        var info = new DecisionDocumentInfo("Số 15-QĐ/ĐU", new DateTime(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc),
+            new DateTime(2026, 9, 18, 1, 30, 0, DateTimeKind.Utc), "Phạm Văn Chủ Trì");
+        var lines = new[]
+        {
+            new MauQdLine("Nguyễn Văn Một", "Trưởng phòng — Phòng Kỹ thuật", EvaluationGrade.HoanThanhTot, EvaluationGrade.HoanThanhTot,
+                EvaluationGrade.HoanThanhXuatSac, EvaluationGrade.HoanThanhTot, EvaluationGrade.HoanThanhTot),
+            new MauQdLine("Trần Thị Hai", "Phó Bí thư Chi bộ", EvaluationGrade.HoanThanh, EvaluationGrade.HoanThanh,
+                EvaluationGrade.ChuaXepLoai, EvaluationGrade.ChuaXepLoai, EvaluationGrade.HoanThanh)
+        };
+        return MauQdData.From(Period, header, "Đảng bộ Tổng công ty B", info, lines);
     }
 
     #endregion

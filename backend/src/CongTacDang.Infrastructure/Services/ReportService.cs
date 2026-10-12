@@ -603,6 +603,109 @@ public class ReportService : IReportService
         return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("16", org.ShortName, cell, period, ".docx"), format);
     }
 
+    #endregion
+
+    #region Quyết định xếp loại kèm Phụ lục — văn bản Word của cấp ủy cơ sở
+
+    /// <inheritdoc />
+    public async Task<ReportFileResult> ExportDecisionDocxAsync(Guid periodId, Guid? partyCellId, ReportFormat format = ReportFormat.Original)
+    {
+        var (loadedPeriod, records, cell) = await LoadExcelScopeAsync(periodId, partyCellId);
+        var period = loadedPeriod ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+        PeriodSettings settings;
+        try
+        {
+            settings = period.GetSettings();
+        }
+        catch (FormatException)
+        {
+            throw new ArgumentException("Cấu hình của kỳ đánh giá bị lỗi định dạng nên chưa lập được Quyết định. Hãy liên hệ người quản lý kỳ.");
+        }
+
+        // Diện tổ chức Đảng cơ sở quyết định và bước quyết định thực hiện trong hệ thống (không phải cấp trên quyết định).
+        var decided = records
+            .Where(r => r.ApprovalAuthority == ApprovalAuthority.CoSo
+                && EvaluationMapping.ProfileOf(settings, r).Mode(WorkflowStep.B4_DECISION) == StepMode.Internal)
+            .ToList();
+        if (decided.Count == 0)
+            throw new ArgumentException(
+                "Phạm vi đã chọn không có hồ sơ nào thuộc diện Đảng ủy (Chi ủy) cơ sở quyết định nên không có Quyết định để lập.");
+        var pending = decided.Where(r => r.DecisionRecordedAt == null).ToList();
+        if (pending.Count > 0)
+        {
+            var names = string.Join(", ", pending.Take(5).Select(r => r.Member?.FullName ?? r.MemberId.ToString()));
+            throw new ArgumentException(
+                $"Còn {pending.Count} hồ sơ chưa ghi quyết định mức xếp loại ({names}{(pending.Count > 5 ? ", …" : string.Empty)}). "
+                + "Hãy ghi quyết định cho đủ các hồ sơ rồi mới lập Quyết định.");
+        }
+
+        var org = await _orgSettings.GetAsync();
+        var header = await ReportHeaderAsync(cell);
+        var superior = cell == null
+            ? CollectiveFormText.NameInSentence(org.SuperiorPartyName, org.CompanyName, org.ParentCompanyName)
+            : await ParentNameInSentenceAsync(cell, org);
+        var held = await HeldPositionsAsync(decided.Select(r => r.MemberId), PositionDate(period));
+        var lines = decided.Select(r => new MauQdLine(
+            r.Member?.FullName,
+            PositionAndUnit(r, held.GetValueOrDefault(r.MemberId) ?? new List<Position>()),
+            r.SelfProposedGrade,
+            r.CollectiveProposedGrade,
+            r.AppraisalProposedGrade,
+            r.DirectorProposedGrade,
+            r.FinalGrade));
+
+        var data = MauQdData.From(period, header, superior, await DecisionInfoAsync(period.Id, partyCellId, decided), lines);
+        var bytes = await RenderWordAsync(MauQdData.TemplateFileName, data);
+        return await ToResultAsync(bytes, DocxMimeType, ScopedFileName("Quyet dinh xep loai", org.ShortName, cell, period, ".docx"), format);
+    }
+
+    /// <summary>
+    /// Số, ngày văn bản quyết định (chỉ khi mọi hồ sơ ghi cùng một giá trị) và hội nghị quyết định: biên bản được nhiều hồ sơ gắn
+    /// nhất; không hồ sơ nào gắn biên bản → hội nghị quyết định (B4) gần nhất của tổ chức Đảng (toàn Đảng bộ: hội nghị không gắn
+    /// tổ chức Đảng).
+    /// </summary>
+    private async Task<DecisionDocumentInfo> DecisionInfoAsync(Guid periodId, Guid? partyCellId, IReadOnlyCollection<EvaluationRecord> decided)
+    {
+        static T? Single<T>(IEnumerable<T?> values) where T : struct
+        {
+            var distinct = values.Where(v => v.HasValue).Select(v => v!.Value).Distinct().ToList();
+            return distinct.Count == 1 ? distinct[0] : null;
+        }
+
+        var numbers = decided.Select(r => FormText.OrNull(r.DecisionDocumentNumber?.Trim())).Where(n => n != null).Distinct().ToList();
+        var number = numbers.Count == 1 ? numbers[0] : null;
+        var date = Single(decided.Select(r => r.DecisionDocumentDate?.Date));
+
+        var meetingId = decided.Where(r => r.DecisionMeetingId.HasValue)
+            .GroupBy(r => r.DecisionMeetingId!.Value)
+            .OrderByDescending(g => g.Count())
+            .Select(g => (Guid?)g.Key)
+            .FirstOrDefault();
+        var meetings = _db.EvaluationMeetings.AsNoTracking();
+        var meeting = meetingId.HasValue
+            ? await meetings.FirstOrDefaultAsync(m => m.Id == meetingId.Value)
+            : await meetings
+                .Where(m => m.PeriodId == periodId && m.Stage == WorkflowStep.B4_DECISION && m.PartyCellId == partyCellId)
+                .OrderByDescending(m => m.StartedAt)
+                .FirstOrDefaultAsync();
+        return new DecisionDocumentInfo(number, date, meeting?.StartedAt, meeting?.ChairName);
+    }
+
+    /// <summary>Tên tổ chức Đảng cấp trên của <paramref name="cell"/> dùng giữa câu (không có tổ chức cha → Đảng bộ).</summary>
+    private async Task<string?> ParentNameInSentenceAsync(PartyCell cell, OrganizationSettingsDto org)
+    {
+        var parentName = cell.ParentId.HasValue
+            ? await _db.PartyCells.AsNoTracking().Where(c => c.Id == cell.ParentId.Value).Select(c => c.Name).FirstOrDefaultAsync()
+            : null;
+        return parentName != null
+            ? CollectiveFormText.NameInSentence(parentName, org.CompanyName, org.ParentCompanyName)
+            : CollectiveFormText.PartyCommitteeInSentence(org);
+    }
+
+    #endregion
+
+    #region Mẫu 16 — số liệu tổng hợp
+
     /// <summary>Số liệu Mẫu 16 theo nhóm chức danh (mã thống kê); dòng cuối "Tổng cộng".</summary>
     private static List<Form16SummaryRowDto> Summarize(IEnumerable<EvaluationRecord> records, IReadOnlyDictionary<Guid, string?> statCodes)
     {
@@ -845,12 +948,16 @@ public class ReportService : IReportService
     /// (ví dụ "Mau 16_QLBMB_Quy III-2026"). Xuất theo tổ chức Đảng: tên viết tắt là tên tổ chức (không dấu, bỏ khoảng trắng).
     /// </summary>
     private static string Hd03FileName(string formCode, string? shortName, PartyCell? cell, EvaluationPeriod? period, string extension)
+        => ScopedFileName($"Mau {formCode}", shortName, cell, period, extension);
+
+    /// <summary>Tên tệp "Tiền tố_Ten viet tat_Quy III-2026" (không dấu) — cùng quy cách với biểu mẫu HD03.</summary>
+    private static string ScopedFileName(string prefix, string? shortName, PartyCell? cell, EvaluationPeriod? period, string extension)
     {
         var unit = cell != null ? Ascii(cell.Name).Replace(" ", string.Empty) : Ascii(shortName ?? string.Empty).Replace(" ", string.Empty);
         if (string.IsNullOrEmpty(unit))
             unit = "DonVi";
         var periodPart = period != null ? $"Quy {CollectiveFormText.RomanQuarter(period.Quarter)}-{period.Year}" : "Ky bao cao";
-        return $"Mau {formCode}_{unit}_{periodPart}{extension}";
+        return $"{prefix}_{unit}_{periodPart}{extension}";
     }
 
     /// <summary>Bỏ dấu tiếng Việt và ký tự không hợp lệ trong tên tệp.</summary>

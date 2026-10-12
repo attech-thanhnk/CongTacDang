@@ -106,6 +106,53 @@ public static class CollectiveFormText
         return upper != null && upper.StartsWith(partyBody, StringComparison.Ordinal) ? "ĐẢNG ỦY " + upper[partyBody.Length..] : upper;
     }
 
+    /// <summary>
+    /// Cấp ủy của tổ chức Đảng dùng giữa câu: "Đảng bộ X" → "Đảng ủy X"; tên khác (Chi bộ, Đảng ủy …) giữ nguyên. Rỗng → null.
+    /// </summary>
+    public static string? CommitteeInSentence(string? partyOrganization)
+    {
+        const string partyBody = "Đảng bộ ";
+        var text = FormText.OrNull(partyOrganization?.Trim());
+        if (text == null || !text.StartsWith(partyBody, true, Vietnamese))
+            return text;
+        var prefix = text[..partyBody.Length];
+        return (prefix == prefix.ToUpper(Vietnamese) ? "ĐẢNG ỦY " : "Đảng ủy ") + text[partyBody.Length..];
+    }
+
+    /// <summary>
+    /// Cơ quan lãnh đạo của tổ chức Đảng dùng giữa câu: "Đảng bộ X" → "Ban Chấp hành Đảng bộ X"; tên khác giữ nguyên. Rỗng → null.
+    /// </summary>
+    public static string? ExecutiveInSentence(string? partyOrganization)
+    {
+        var text = FormText.OrNull(partyOrganization?.Trim());
+        return text != null && text.StartsWith("Đảng bộ ", true, Vietnamese) ? "Ban Chấp hành " + text : text;
+    }
+
+    /// <summary>Dòng "T/M …" của chữ ký theo cấp ủy chữ in hoa (ĐẢNG ỦY / CHI ỦY / CHI BỘ); không nhận ra → null (giữ mặc định).</summary>
+    public static string? SignOnBehalf(string? committeeUpper)
+    {
+        foreach (var body in new[] { "ĐẢNG ỦY", "CHI ỦY", "CHI BỘ" })
+        {
+            if (committeeUpper != null && committeeUpper.StartsWith(body, StringComparison.Ordinal))
+                return "T/M " + body;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Nhiệm kỳ cấp ủy (5 năm, bắt đầu từ năm 2025) chứa năm của kỳ, dạng "2025-2030". Năm đại hội (bắt đầu nhiệm kỳ mới, trừ
+    /// 2025) không xác định được kỳ thuộc nhiệm kỳ nào → null (giữ chỗ chấm để ghi tay).
+    /// </summary>
+    public static string? PartyTerm(int year)
+    {
+        const int firstTerm = 2025, length = 5;
+        var offset = ((year - firstTerm) % length + length) % length;
+        if (offset == 0 && year != firstTerm)
+            return null;
+        var start = year - offset;
+        return $"{start.ToString(CultureInfo.InvariantCulture)}-{(start + length).ToString(CultureInfo.InvariantCulture)}";
+    }
+
     /// <summary>Điểm dạng "28,5".</summary>
     public static string Score(double value) => FormText.Number(value, value % 1 == 0 ? 0 : 1);
 

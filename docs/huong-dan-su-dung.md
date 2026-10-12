@@ -260,7 +260,7 @@ Người được giao ghi nhận quyết định của Đảng ủy:
 
 1. Chọn **Mức xếp loại được quyết định**.
 2. **Điểm chính thức (tùy chọn)** — để trống thì lấy điểm thẩm định.
-3. Nhập **Cơ quan quyết định**, **Số văn bản**, **Ngày văn bản**; gắn **Biên bản hội nghị** và ghi kết quả kiểm phiếu nếu có.
+3. Nhập **Cơ quan quyết định**, **Số văn bản**, **Ngày văn bản**; gắn **Biên bản hội nghị** và ghi kết quả kiểm phiếu nếu có. Số, ngày văn bản và biên bản này được in vào Quyết định xếp loại (mục 9).
 4. Ô **Đề xuất nội dung liên quan về công tác cán bộ (nếu có)** — in ở cột cuối Mẫu 14.
 5. Bấm **Ghi nhận quyết định**.
 
@@ -431,10 +431,15 @@ Menu **Báo cáo**. Chọn phạm vi ở đầu trang (toàn Đảng bộ hoặc
 | Mẫu 14 — Danh sách đánh giá và đề xuất xếp loại | **Excel**, **PDF** |
 | Mẫu 15A, 15B — Tổng hợp kết quả theo diện quyết định | **Excel**, **PDF** |
 | Mẫu 16 — Báo cáo kết quả đánh giá, xếp loại | **Soạn báo cáo** (nhập phần lời văn, lưu nháp), rồi **Word**, **PDF** |
+| Quyết định xếp loại cán bộ quý kèm Phụ lục | **Word**, **PDF** |
 | Danh sách cán bộ (nội bộ) | **Excel** |
 | Kiểm soát tỷ lệ Hoàn thành xuất sắc theo tổ chức Đảng (nội bộ) | **Excel**, **PDF** |
 
 **Soạn Mẫu 16**: số liệu tự điền. Bạn nhập số văn bản, kính gửi, ngày hội nghị, các đề xuất mục III, người ký. Ô để trống sẽ dùng nội dung mẫu. Bấm lưu bản nháp trước khi xuất.
+
+**Quyết định xếp loại**: gồm Quyết định của Đảng ủy (Chi ủy) và Phụ lục danh sách cán bộ thuộc diện Đảng ủy (Chi ủy) cơ sở quyết định, kèm mức của từng bước và mức được quyết định. Cán bộ thuộc diện cấp trên quyết định không có trong Phụ lục.
+- Xuất được khi mọi hồ sơ thuộc diện cơ sở trong phạm vi đã ghi quyết định; còn hồ sơ chưa ghi, hệ thống báo tên để bạn hoàn tất trước.
+- Số và ngày Quyết định lấy từ **Số văn bản**, **Ngày văn bản** nhập khi ghi nhận quyết định (mục 4.5) nếu các hồ sơ ghi giống nhau; ngày hội nghị và người ký lấy từ biên bản hội nghị quyết định được gắn. Chỗ chưa có dữ liệu để trống (dòng chấm) để ghi tay.
 
 Mẫu 15A, 15B thống kê theo mã chức danh. Cán bộ chưa có mã chức danh được liệt kê riêng ở trang tính "Kiểm tra dữ liệu" để bổ sung chức vụ.
 

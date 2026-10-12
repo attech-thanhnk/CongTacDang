@@ -159,6 +159,19 @@ public class ExportReportController : ControllerBase
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
+    /// <summary>
+    /// Xuất Word Quyết định xếp loại cán bộ quý của Đảng ủy (Chi ủy) kèm Phụ lục — hồ sơ thuộc diện tổ chức Đảng cơ sở quyết định,
+    /// đã ghi quyết định; phạm vi chọn như Mẫu 16. Không có hồ sơ hoặc còn hồ sơ chưa quyết định → 400.
+    /// </summary>
+    [HttpGet("docx/decision")]
+    [RequirePermission(PermissionCodes.ReportExport)]
+    public async Task<IActionResult> ExportDecisionDocx([FromQuery] Guid? periodId, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
+    {
+        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
+        var result = await _reportService.ExportDecisionDocxAsync(await ResolvePeriodIdAsync(periodId), scope, ParseFormat(format));
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
     #endregion
 
     #region Mẫu 07, 08 (hồ sơ tập thể), Mẫu 12 (biên bản hội nghị)

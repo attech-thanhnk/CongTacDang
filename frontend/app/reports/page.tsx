@@ -10,7 +10,7 @@ import { Form16DraftPanel } from "@/components/reports/Form16DraftPanel";
 import { EvaluationPeriodDto } from "@/services/evaluationService";
 import { BranchItem, organizationService } from "@/services/organizationService";
 import { organizationSettingsService } from "@/services/organizationSettingsService";
-import { REPORTS, ReportDefinition, ReportFileFormat, hd03FileName, reportService, withQuery } from "@/services/reportService";
+import { REPORTS, ReportDefinition, ReportFileFormat, hd03FileName, reportService, scopedFileName, withQuery } from "@/services/reportService";
 
 const ROMAN = ["", "I", "II", "III", "IV"];
 
@@ -54,9 +54,12 @@ export default function ReportsPage() {
     try {
       const extension = report.fileType === "XLSX" ? ".xlsx" : ".docx";
       const endpoint = report.scope === "period" ? withQuery(report.endpoint, { periodId, branchId: branchId || undefined }) : report.endpoint;
+      const unit = branch?.name || shortName;
       const fileName = report.id === "cadres"
         ? "DanhSach_CanBo_{SHORT_NAME}.xlsx"
-        : hd03FileName(report.fileCode, branch?.name || shortName, periodLabel(period), extension);
+        : report.filePrefix
+          ? scopedFileName(report.filePrefix, unit, periodLabel(period), extension)
+          : hd03FileName(report.fileCode, unit, periodLabel(period), extension);
       await reportService.downloadReport(endpoint, fileName, format);
       toast.success(`Đã xuất ${report.code === "Nội bộ" ? report.title : report.code}.`);
     } catch (err: any) {
