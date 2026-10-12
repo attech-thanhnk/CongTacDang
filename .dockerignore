@@ -1,0 +1,11 @@
+# Ngữ cảnh build Docker (context = gốc repo): chỉ cần backend/src, backend/*.slnx, frontend (không node_modules, .next), docker/.
+.git
+.claude
+.vs
+docs
+**/node_modules
+**/.next
+**/bin
+**/obj
+**/publish*
+backend/tests
