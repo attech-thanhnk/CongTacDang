@@ -26,7 +26,8 @@ public sealed class Mau11Data
         return new Mau11Data
         {
             PartyCell = FormText.OrNull(branchName)?.ToUpperInvariant(),
-            PeriodQuarterYear = $"QUÝ {FormText.Quarter(period.Quarter)} NĂM {FormText.Year(period.Year)}",
+            // Quý in số La Mã như các biểu mẫu khác và văn bản HD03 ("QUÝ IV NĂM 2026").
+            PeriodQuarterYear = $"QUÝ {CollectiveFormText.RomanQuarter(period.Quarter)} NĂM {FormText.Year(period.Year)}",
             Records = records.Select((r, index) => new Mau11Row
             {
                 Order = (index + 1).ToString(),

@@ -209,6 +209,16 @@ public class DocumentTemplateTests
     }
 
     [Theory]
+    [InlineData(EvaluationQuarter.Quy3, "QUÝ III NĂM 2026")]
+    [InlineData(EvaluationQuarter.Quy4, "QUÝ IV NĂM 2026")]
+    public void Mau11_QuarterInRomanNumerals_LikeOtherForms(EvaluationQuarter quarter, string expected)
+    {
+        var (period, records) = SampleData();
+        period.Quarter = quarter;
+        Assert.Equal(expected, Mau11Data.From(period, records, null).PeriodQuarterYear);
+    }
+
+    [Theory]
     [MemberData(nameof(AllForms))]
     public void Template_TagsMatchFormDataClass(string templateFileName, object formData)
     {

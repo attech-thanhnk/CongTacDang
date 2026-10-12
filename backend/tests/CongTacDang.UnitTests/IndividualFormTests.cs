@@ -552,6 +552,23 @@ public class IndividualFormTests
     }
 
     [Fact]
+    public void CellLine_DropsLeadingChiBoFromCatalogName_AsSubmittedForm()
+    {
+        // Phiếu đã nộp quý III/2026: "Chi bộ: Phòng Nghiên cứu phát triển" — không lặp chữ "Chi bộ" của nhãn; tiêu đề trái giữ tên đầy đủ.
+        var source = Source();
+        Assert.Contains("Chi bộ: Kỹ thuật\n", Render(Mau09BData.TemplateFileName, Mau09BData.From(source), out _));
+        var d = Render(Mau9DData.TemplateFileName, Mau9DData.From(source), out _);
+        Assert.Contains("Chi bộ, Đảng bộ đang sinh hoạt: Kỹ thuật", d);
+        Assert.Contains("CHI BỘ KỸ THUẬT", d);
+
+        // Tên không bắt đầu bằng "Chi bộ" (Đảng bộ bộ phận…) giữ nguyên; chỉ có chữ "Chi bộ" cũng giữ nguyên.
+        source.Record.PartyCell = new PartyCell { Name = "Đảng bộ bộ phận Khối Kỹ thuật" };
+        Assert.Equal("Đảng bộ bộ phận Khối Kỹ thuật", Mau9DData.From(source).CellName);
+        source.Record.PartyCell = new PartyCell { Name = "Chi bộ" };
+        Assert.Equal("Chi bộ", Mau9DData.From(source).CellName);
+    }
+
+    [Fact]
     public void Mau9D_NoPositionsInCatalog_UsesProfileTitleForAdministrativeLine()
     {
         var source = Source() with { Positions = MemberPositionNames.Empty };

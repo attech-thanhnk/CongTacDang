@@ -88,7 +88,7 @@ public sealed class Mau9DData
             DateLine = Mau09Shared.DateLine(source),
             Department = Mau09Shared.Department(record),
             HasDepartment = Mau09Shared.HasDepartment(record),
-            CellName = FormText.OrNull(record.PartyCell?.Name),
+            CellName = Mau09Shared.CellLabelName(record),
             Axes = source.Criteria.Axes.Select((axis, index) =>
             {
                 var report = reports.GetValueOrDefault(axis.Code);
