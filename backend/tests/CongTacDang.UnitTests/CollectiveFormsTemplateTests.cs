@@ -14,7 +14,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>Task 19 (T-84, T-85): template Mẫu 07, 08, 12, 16 dựng từ biểu mẫu gốc — khớp tag, sinh tài liệu hợp lệ, đúng số liệu.</summary>
+/// <summary>Task 19 (T-84, T-85): template Mẫu 07, 08, 11, 12, 13, 16 dựng từ biểu mẫu gốc — khớp tag, sinh tài liệu hợp lệ, đúng số liệu.</summary>
 public class CollectiveFormsTemplateTests
 {
     private static readonly EvaluationPeriod Period = new() { Year = 2026, Quarter = EvaluationQuarter.Quy3, Name = "Quý III/2026" };
@@ -27,6 +27,7 @@ public class CollectiveFormsTemplateTests
         yield return new object[] { Mau12Data.TemplateFileName, Mau12Sample(withAttendees: true) };
         var (period, records) = DocumentTemplateTests.SampleData();
         yield return new object[] { Mau13Data.TemplateFileName, Wave8FormsTests.Mau13Sample(period, records) };
+        yield return new object[] { Mau11Data.TemplateFileName, Mau11Data.From(period, records.Select(r => new Mau11Line(r, null)).ToList(), "Chi bộ Kỹ thuật") };
         yield return new object[] { Mau16Data.TemplateFileName, Mau16Sample() };
     }
 

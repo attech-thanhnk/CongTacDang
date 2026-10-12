@@ -488,10 +488,15 @@ public partial class ReportService : IReportService
         ws.Range(row + 1, half + 1, row + 1, lastColumn).Merge().Style.Font.SetItalic(true).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
     }
 
-    /// <summary>Cột 3 Mẫu 14: các chức vụ đang giữ (Đảng, chính quyền, đoàn thể) và đơn vị công tác.</summary>
+    /// <summary>
+    /// Cột "Chức vụ, đơn vị công tác (Đảng, chính quyền, đoàn thể)" của Mẫu 11, 13, 14: các chức vụ đang giữ theo thứ tự Đảng,
+    /// chính quyền, đoàn thể (trong mỗi nhóm theo thứ tự danh mục), ngăn cách bằng dấu phẩy, rồi đơn vị công tác.
+    /// </summary>
     private static string PositionAndUnit(EvaluationRecord record, IReadOnlyCollection<Position> positions)
     {
-        var names = positions.Count > 0 ? string.Join(", ", positions.Select(p => p.Name)) : record.Member?.PositionTitle;
+        var names = positions.Count > 0
+            ? string.Join(", ", positions.OrderBy(p => (int)p.Side).ThenBy(p => p.SortOrder).Select(p => p.Name))
+            : record.Member?.PositionTitle;
         var unit = record.Department?.Name ?? record.Member?.Department?.Name;
         return string.Join(" — ", new[] { names, unit }.Where(s => !string.IsNullOrWhiteSpace(s)));
     }
@@ -918,7 +923,22 @@ public partial class ReportService : IReportService
         var (period, records, branch) = await LoadPeriodRecordsAsync(periodId, branchId);
         // Xuất toàn Đảng bộ: dòng tổ chức Đảng lập phiếu là tên Đảng bộ (cài đặt đơn vị).
         var issuer = branch?.Name ?? (await _orgSettings.GetAsync()).PartyCommitteeName;
-        var bytes = await RenderWordAsync(Mau11Data.TemplateFileName, Mau11Data.From(period, records, issuer));
+
+        // Chức vụ (Đảng, chính quyền, đoàn thể), đơn vị công tác tại thời điểm của kỳ; thứ tự theo mã chức danh rồi họ tên (như Mẫu 13).
+        var held = await HeldPositionsAsync(records.Select(r => r.MemberId), PositionDate(period));
+        var lines = records
+            .Select(r =>
+            {
+                var positions = held.GetValueOrDefault(r.MemberId) ?? new List<Position>();
+                var code = PositionRules.PersonStatCode(positions.Select(p => new HeldPosition(p.Name, p.StatCode, p.DefaultApprovalAuthority)));
+                return (Line: new Mau11Line(r, PositionAndUnit(r, positions)), Code: code);
+            })
+            .OrderBy(x => StatCodeOrder(x.Code))
+            .ThenBy(x => x.Line.Record.Member?.FullName, StringComparer.Create(new CultureInfo("vi-VN"), true))
+            .Select(x => x.Line)
+            .ToList();
+
+        var bytes = await RenderWordAsync(Mau11Data.TemplateFileName, Mau11Data.From(period, lines, issuer));
         return await ToResultAsync(bytes, DocxMimeType, $"Mau_11_PhieuBoPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx", format);
     }
 
@@ -1166,7 +1186,7 @@ public partial class ReportService : IReportService
         var query = _db.EvaluationRecords
             .AsNoTracking()
             .Include(r => r.Period)
-            .Include(r => r.Member)
+            .Include(r => r.Member).ThenInclude(m => m.Department)
             .Include(r => r.Department)
             .Include(r => r.PartyCell)
             .Where(r => r.PeriodId == periodId);

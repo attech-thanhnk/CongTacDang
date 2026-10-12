@@ -123,7 +123,7 @@ public class Wave8FormsTests
     }
 
     [Fact]
-    public void Mau13_WithoutCommitteeOrRowsOfOneAuthority_KeepsOriginalBlankLines()
+    public void Mau13_WithoutCommitteeOrRowsOfOneAuthority_OmitsEmptySection()
     {
         var (period, records) = DocumentTemplateTests.SampleData();
         var template = new FileWordTemplateStore().Load(Mau13Data.TemplateFileName);
@@ -137,10 +137,11 @@ public class Wave8FormsTests
         Assert.Contains(paragraphs, p => p.StartsWith("(2) Đồng chí …") && p.EndsWith("Thành viên."));
         var table = body.Descendants<Table>().Single(t => t.InnerText.Contains("Số phiếu bầu"));
         var rows = table.Elements<TableRow>().ToList();
-        // Mục I không có cán bộ → giữ một dòng trống như biểu mẫu; mục II có một cán bộ.
-        Assert.Equal(7, rows.Count);
-        Assert.All(rows[4].Elements<TableCell>(), c => Assert.Equal(string.Empty, c.InnerText));
-        Assert.Equal("Nguyễn Văn A", rows[6].Elements<TableCell>().ElementAt(1).InnerText);
+        // Mục I không có cán bộ → không in (như bảng tính của Công ty); mục II có một cán bộ.
+        Assert.Equal(5, rows.Count);
+        Assert.DoesNotContain("CỦA BTVĐUTCT", table.InnerText);
+        Assert.Equal("II", rows[3].Elements<TableCell>().First().InnerText);
+        Assert.Equal("Nguyễn Văn A", rows[4].Elements<TableCell>().ElementAt(1).InnerText);
     }
 
     [Fact]
