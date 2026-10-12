@@ -64,9 +64,15 @@ public sealed class Mau13Data
     [TemplateCollection("SUPERIOR_ROWS")] public List<Mau13Row> SuperiorRows { get; init; } = new();
     [TemplateCondition("HAS_SUPERIOR_ROWS")] public bool HasSuperiorRows { get; init; }
 
+    /// <summary>In mục I: có cán bộ của mục, hoặc biên bản chưa có dòng kiểm phiếu nào (giữ dòng trống của biểu mẫu).</summary>
+    [TemplateCondition("SHOW_SUPERIOR")] public bool ShowSuperior { get; init; }
+
     /// <summary>Mục II của bảng: cán bộ thuộc thẩm quyền quyết định, phê duyệt mức xếp loại của Đảng ủy/Chi ủy cơ sở.</summary>
     [TemplateCollection("BASE_ROWS")] public List<Mau13Row> BaseRows { get; init; } = new();
     [TemplateCondition("HAS_BASE_ROWS")] public bool HasBaseRows { get; init; }
+
+    /// <summary>In mục II: có cán bộ của mục, hoặc biên bản chưa có dòng kiểm phiếu nào.</summary>
+    [TemplateCondition("SHOW_BASE")] public bool ShowBase { get; init; }
 
     [TemplateField("ARCHIVE_UNIT")] public string? ArchiveUnit { get; init; }
 
@@ -113,6 +119,8 @@ public sealed class Mau13Data
 
         var superior = Rows(ApprovalAuthority.CapTren);
         var baseRows = Rows(ApprovalAuthority.CoSo);
+        // Như bảng tính của Công ty: mục không có cán bộ thì không in; chưa có dòng nào thì in cả hai mục để ghi tay.
+        var blank = superior.Count == 0 && baseRows.Count == 0;
 
         // Số phiếu không hợp lệ: ưu tiên số ghi trên biên bản; chưa ghi thì dùng số chung của các dòng kiểm phiếu (khi mọi dòng
         // cùng một số).
@@ -163,8 +171,10 @@ public sealed class Mau13Data
             BallotsInvalid = Number(invalid),
             SuperiorRows = superior,
             HasSuperiorRows = superior.Count > 0,
+            ShowSuperior = superior.Count > 0 || blank,
             BaseRows = baseRows,
             HasBaseRows = baseRows.Count > 0,
+            ShowBase = baseRows.Count > 0 || blank,
             ArchiveUnit = common.ArchiveUnit,
             CounterHeadSign = committee.Count > 0 ? committee[0].Name.Trim() : null,
             ChairSign = common.ChairSign,

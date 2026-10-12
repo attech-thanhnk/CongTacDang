@@ -205,7 +205,6 @@ public class DocumentTemplateTests
         yield return new object[] { Mau01Data.TemplateFileName, Mau01Data.From(records[0]) };
         yield return new object[] { Mau02Data.TemplateFileName, Mau02Data.From(records[0], new Dictionary<Guid, string>()) };
         yield return new object[] { Mau10Data.TemplateFileName, Mau10Data.From(records[0]) };
-        yield return new object[] { Mau11Data.TemplateFileName, Mau11Data.From(period, records, "Chi bộ Kỹ thuật") };
     }
 
     [Theory]

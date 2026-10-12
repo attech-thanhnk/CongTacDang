@@ -115,6 +115,13 @@ public sealed class CriteriaSetIntegrationTests
         Assert.Equal("09B", scored.GetProperty("selfScoreForm").GetString());
 
         await StepAsync(w, w.CellSecC, recordId, "cell/confirm", new { comment = "Xác nhận" }, "AwaitingCollective");
+
+        // Mẫu 11 in cho hội nghị tập thể lãnh đạo (trước bước đề xuất): chỉ có cột (1)–(4c); hồ sơ diện đảng ủy cơ sở → chỉ mục II.
+        var ballot = await Mau11RowsAsync(w.Manager, periodId);
+        Assert.DoesNotContain(ballot, r => r[0] == "I");
+        var beforeCollective = Assert.Single(ballot, r => r.Count == 14 && r[1] == "IT Tiêu chí 1");
+        Assert.Equal(new[] { "27,9", "62", "Hoàn thành tốt nhiệm vụ", "", "", "" }, beforeCollective.Skip(3).Take(6));
+
         await StepAsync(w, w.SecretaryC, recordId, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
 
         // 5. Thẩm định chênh 5,9 điểm (≥ ngưỡng 5 của bộ trong ảnh chụp) → bắt buộc giải trình.
@@ -125,7 +132,14 @@ public sealed class CriteriaSetIntegrationTests
             new { appraisalScore = 84.0, proposedGrade = "HoanThanhTot", comment = "Đạt", explanation = "Trừ điểm trục 1 do chậm tiến độ dự án" }, "AwaitingDirectorReview");
         Assert.Equal("Trừ điểm trục 1 do chậm tiến độ dự án", appraised.GetProperty("appraisalExplanation").GetString());
 
+        // Mẫu 11 sau thẩm định: cột (5) tập thể, (6) thẩm định đã có; cột (7) cấp trực tiếp chưa nhận xét → trống.
+        var afterAppraisal = Assert.Single(await Mau11RowsAsync(w.Manager, periodId), r => r.Count == 14 && r[1] == "IT Tiêu chí 1");
+        Assert.Equal(new[] { "Hoàn thành tốt nhiệm vụ", "Hoàn thành tốt nhiệm vụ", "" }, afterAppraisal.Skip(6).Take(3));
+
         await StepAsync(w, w.DirectorC, recordId, "director-review", new { proposedGrade = "HoanThanhTot", comment = "Đồng ý" }, "AwaitingDecision");
+        // Phiếu cho hội nghị quyết định: đủ cột (5)–(7).
+        var forDecision = Assert.Single(await Mau11RowsAsync(w.Manager, periodId), r => r.Count == 14 && r[1] == "IT Tiêu chí 1");
+        Assert.Equal(new[] { "Hoàn thành tốt nhiệm vụ", "Hoàn thành tốt nhiệm vụ", "Hoàn thành tốt nhiệm vụ" }, forDecision.Skip(6).Take(3));
         await StepAsync(w, w.OfficeC, recordId, "decision", new { finalGrade = "HoanThanhTot" }, "AwaitingPublish");
         await StepAsync(w, w.OfficeC, recordId, "publish", new { }, "Published");
 
@@ -481,6 +495,21 @@ public sealed class CriteriaSetIntegrationTests
         using var reader = new StreamReader(zip.GetEntry("word/document.xml")!.Open());
         var text = System.Text.RegularExpressions.Regex.Replace(await reader.ReadToEndAsync(), "<[^>]+>", string.Empty);
         Assert.Contains(expectedText, text);
+    }
+
+    /// <summary>Tải Mẫu 11 của kỳ và trả nội dung từng dòng của bảng danh sách cán bộ (mỗi dòng là chữ trong từng ô).</summary>
+    private static async Task<List<List<string>>> Mau11RowsAsync(HttpClient client, Guid periodId)
+    {
+        var url = $"/api/reports/docx/mau-11?periodId={periodId}";
+        var response = await client.GetAsync(url);
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.True(response.IsSuccessStatusCode, $"{(int)response.StatusCode} {url}: {System.Text.Encoding.UTF8.GetString(bytes)}");
+        using var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(new MemoryStream(bytes), false);
+        var table = doc.MainDocumentPart!.Document!.Body!.Descendants<DocumentFormat.OpenXml.Wordprocessing.Table>()
+            .Single(t => t.InnerText.Contains("Mức tự xếp loại đề xuất"));
+        return table.Elements<DocumentFormat.OpenXml.Wordprocessing.TableRow>()
+            .Select(r => r.Elements<DocumentFormat.OpenXml.Wordprocessing.TableCell>().Select(c => c.InnerText).ToList())
+            .ToList();
     }
 
     private static async Task<JsonElement> Data(HttpResponseMessage response)
