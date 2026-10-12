@@ -38,6 +38,7 @@ public static class WordFormCatalog
         new WordFormDefinition("MAU_12", "Mẫu 12 — Biên bản hội nghị đánh giá, xếp loại chất lượng cán bộ quý", Mau12Data.TemplateFileName, typeof(Mau12Data)),
         new WordFormDefinition("MAU_13", "Mẫu 13 — Biên bản kiểm phiếu hội nghị đánh giá, xếp loại chất lượng cán bộ quý", Mau13Data.TemplateFileName, typeof(Mau13Data)),
         new WordFormDefinition("MAU_16", "Mẫu 16 — Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý", Mau16Data.TemplateFileName, typeof(Mau16Data)),
+        new WordFormDefinition("MAU_QD", "Quyết định xếp loại cán bộ quý của Đảng ủy (Chi ủy) kèm Phụ lục kết quả", MauQdData.TemplateFileName, typeof(MauQdData)),
         new WordFormDefinition("MAU_17", "Mẫu 17 — Kế hoạch hỗ trợ, khắc phục và phát triển 30-60-90 ngày", Mau17Data.TemplateFileName, typeof(Mau17Data))
     };
 

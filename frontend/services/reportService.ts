@@ -25,6 +25,8 @@ export interface ReportDefinition {
   endpoint?: string;
   /** Mã mẫu trong tên tệp theo quy cách HD03 ("Mau 16_…_Quy III-2026"). */
   fileCode: string;
+  /** Phần đầu tên tệp thay cho "Mau <fileCode>" (văn bản không mang số mẫu, ví dụ Quyết định xếp loại). */
+  filePrefix?: string;
 }
 
 export const REPORTS: ReportDefinition[] = [
@@ -67,6 +69,12 @@ export const REPORTS: ReportDefinition[] = [
     id: "mau-16", code: "Mẫu 16", group: "hd03", scope: "period", fileType: "DOCX", fileCode: "16",
     title: "Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý … năm …",
     endpoint: "/reports/docx/mau-16",
+  },
+  {
+    id: "decision", code: "Quyết định", group: "hd03", scope: "period", fileType: "DOCX", fileCode: "QD",
+    filePrefix: "Quyet dinh xep loai",
+    title: "Quyết định xếp loại cán bộ quý … năm … thuộc thẩm quyền quyết định của Đảng ủy (Chi ủy), kèm Phụ lục kết quả",
+    endpoint: "/reports/docx/decision",
   },
   {
     id: "cadres", code: "Nội bộ", group: "internal", scope: "none", fileType: "XLSX", fileCode: "DanhSachCanBo",
@@ -161,8 +169,13 @@ export function asciiName(value: string): string {
 
 /** Tên tệp theo quy cách HD03 V.1: "Mau 16_<tên viết tắt>_Quy III-2026". */
 export function hd03FileName(fileCode: string, unit: string, periodLabel: string, extension: string): string {
+  return scopedFileName(`Mau ${fileCode}`, unit, periodLabel, extension);
+}
+
+/** Tên tệp "<phần đầu>_<tên viết tắt>_Quy III-2026" (không dấu) — cùng quy cách với biểu mẫu HD03. */
+export function scopedFileName(prefix: string, unit: string, periodLabel: string, extension: string): string {
   const unitPart = asciiName(unit).replace(/\s+/g, "") || "DonVi";
-  return `Mau ${fileCode}_${unitPart}_${asciiName(periodLabel)}${extension}`;
+  return `${prefix}_${unitPart}_${asciiName(periodLabel)}${extension}`;
 }
 
 /** Tên tệp báo cáo nội bộ: "<mã báo cáo>_<đơn vị>_Quy III-2026" (viết không dấu). */

@@ -73,6 +73,13 @@ public interface IReportService
     /// <summary>Mẫu 16 — Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý (Word).</summary>
     Task<ReportFileResult> ExportMau16DocxAsync(Guid periodId, Guid? partyCellId, ReportFormat format = ReportFormat.Original);
 
+    /// <summary>
+    /// Quyết định xếp loại cán bộ quý của Đảng ủy (Chi ủy) kèm Phụ lục (Word): các hồ sơ của kỳ trong phạm vi tổ chức Đảng thuộc
+    /// diện tổ chức Đảng cơ sở quyết định, bước quyết định thực hiện trong hệ thống. Không có hồ sơ nào, hoặc còn hồ sơ chưa ghi
+    /// quyết định → <see cref="ArgumentException"/>.
+    /// </summary>
+    Task<ReportFileResult> ExportDecisionDocxAsync(Guid periodId, Guid? partyCellId, ReportFormat format = ReportFormat.Original);
+
     /// <summary>Bản nháp phần nhập tay Mẫu 16 kèm số liệu tổng hợp tự động.</summary>
     Task<Form16DraftDto> GetForm16DraftAsync(Guid periodId, Guid? partyCellId);
 
