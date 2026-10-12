@@ -458,7 +458,9 @@ public static class DataSeeder
         ("Phòng", OrgSide.Administrative),
         ("Trung tâm", OrgSide.Administrative),
         ("Xưởng", OrgSide.Administrative),
-        ("Đội", OrgSide.Administrative)
+        ("Đội", OrgSide.Administrative),
+        ("Đài", OrgSide.Administrative),
+        ("Trạm", OrgSide.Administrative)
     };
 
     /// <summary>Một chức vụ mặc định.</summary>
@@ -505,9 +507,31 @@ public static class DataSeeder
         new("Phó Trưởng trung tâm", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
         new("Quản đốc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
         new("Phó Quản đốc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        // Lãnh đạo đơn vị trực thuộc Công ty (xí nghiệp, chi nhánh, ban quản lý dự án) và Văn phòng: tương đương trưởng, phó
+        // phòng (M26, Đảng ủy cơ sở quyết định) — khác "Giám đốc", "Phó Giám đốc" của Công ty (M14, cấp trên quyết định).
+        new("Giám đốc đơn vị trực thuộc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        new("Phó Giám đốc đơn vị trực thuộc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        new("Chánh Văn phòng", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        new("Phó Chánh Văn phòng", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        new("Chủ nhiệm Ủy ban Kiểm tra Đảng ủy", PositionSide.Party, "M19", ApprovalAuthority.CoSo, true),
+        new("Phó Chủ nhiệm Ủy ban Kiểm tra Đảng ủy", PositionSide.Party, "M19", ApprovalAuthority.CoSo, true),
         // Chức vụ thường gặp chưa xác định mã thống kê/thẩm quyền (chờ xác nhận).
         new("Kế toán trưởng", PositionSide.Administrative, null, null, true),
+        new("Đội trưởng", PositionSide.Administrative, null, null, true),
+        new("Đài trưởng", PositionSide.Administrative, null, null, true),
+        new("Trạm trưởng", PositionSide.Administrative, null, null, true),
+        new("Ủy viên Ban Chấp hành Đảng bộ bộ phận", PositionSide.Party, null, null, true),
         new("Chi ủy viên", PositionSide.Party, null, null, true),
+        new("Chủ tịch Công đoàn Công ty", PositionSide.MassOrganization, null, null, true),
+        new("Phó Chủ tịch Công đoàn Công ty", PositionSide.MassOrganization, null, null, true),
+        new("Ủy viên Ban Thường vụ Công đoàn Công ty", PositionSide.MassOrganization, null, null, true),
+        new("Ủy viên Ban Chấp hành Công đoàn Công ty", PositionSide.MassOrganization, null, null, true),
+        new("Ủy viên Ban Chấp hành Công đoàn Tổng công ty", PositionSide.MassOrganization, null, null, true),
+        new("Chủ tịch Công đoàn bộ phận", PositionSide.MassOrganization, null, null, true),
+        new("Phó Chủ tịch Công đoàn bộ phận", PositionSide.MassOrganization, null, null, true),
+        new("Bí thư Đoàn cơ sở", PositionSide.MassOrganization, null, null, true),
+        new("Ủy viên Ban Chấp hành Đoàn cơ sở", PositionSide.MassOrganization, null, null, true),
+        new("Bí thư Chi đoàn", PositionSide.MassOrganization, null, null, true),
         new("Đảng viên", PositionSide.Party, null, null, false),
         new("Chuyên viên", PositionSide.Administrative, null, null, false),
         new("Nhân viên", PositionSide.Administrative, null, null, false)
