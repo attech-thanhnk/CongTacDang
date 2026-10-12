@@ -433,8 +433,11 @@ Menu **Báo cáo**. Chọn phạm vi ở đầu trang (toàn Đảng bộ hoặc
 | Mẫu 16 — Báo cáo kết quả đánh giá, xếp loại | **Soạn báo cáo** (nhập phần lời văn, lưu nháp), rồi **Word**, **PDF** |
 | Danh sách cán bộ (nội bộ) | **Excel** |
 | Kiểm soát tỷ lệ Hoàn thành xuất sắc theo tổ chức Đảng (nội bộ) | **Excel**, **PDF** |
+| Bảng tổng hợp xếp loại cán bộ (nội bộ) | **Excel**, **PDF**; cũng tải được bằng nút **Bảng tổng hợp xếp loại** trên trang chi tiết kỳ |
 
 **Soạn Mẫu 16**: số liệu tự điền. Bạn nhập số văn bản, kính gửi, ngày hội nghị, các đề xuất mục III, người ký. Ô để trống sẽ dùng nội dung mẫu. Bấm lưu bản nháp trước khi xuất.
+
+**Bảng tổng hợp xếp loại cán bộ**: toàn bộ cán bộ của kỳ trên một trang tính, chia hai khối — thuộc diện Ban Thường vụ Đảng ủy cấp trên xếp loại và thuộc diện Ban Chấp hành Đảng bộ xếp loại (theo thẩm quyền phê duyệt của hồ sơ). Mỗi khối có 13 cột: STT, mã hiệu (mã chức danh M1–M26; kiêm nhiệm lấy mã đứng trước), họ tên, chức vụ (Đảng, chính quyền) và đơn vị, điểm tiêu chí chung, điểm kết quả thực hiện nhiệm vụ, tổng điểm tự chấm, mức tự đề xuất, mức tập thể lãnh đạo đề xuất, mức thẩm định đề xuất, mức cấp trực tiếp sử dụng đề xuất, mức được quyết định, số tệp đính kèm của hồ sơ. Bước do cấp trên thực hiện lấy mức đã ghi nhận; bước chưa làm để trống. Bảng chỉ gồm cán bộ trong phạm vi bạn được giao xuất báo cáo (toàn công ty, đơn vị hoặc tổ chức Đảng); chọn một tổ chức Đảng ở đầu trang để thu hẹp.
 
 Mẫu 15A, 15B thống kê theo mã chức danh. Cán bộ chưa có mã chức danh được liệt kê riêng ở trang tính "Kiểm tra dữ liệu" để bổ sung chức vụ.
 

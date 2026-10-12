@@ -45,6 +45,14 @@ public interface IReportService
     /// <summary>Báo cáo nội bộ — kiểm soát tỷ lệ Hoàn thành xuất sắc theo tổ chức Đảng (trần của bộ tiêu chí của kỳ).</summary>
     Task<ReportFileResult> ExportExcellentQuotaReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
 
+    /// <summary>
+    /// Bảng tổng hợp xếp loại cán bộ của kỳ (nội bộ): hai khối theo cấp quyết định (cấp trên / cơ sở), 13 cột — mã hiệu, chức vụ,
+    /// điểm tự chấm, mức của từng bước, hồ sơ kèm theo. Chỉ hồ sơ trong <paramref name="viewerScope"/> (phạm vi <c>report.export</c>
+    /// của người xem); <paramref name="partyCellId"/> thu hẹp thêm theo tổ chức Đảng (gồm tổ chức con).
+    /// </summary>
+    Task<ReportFileResult> ExportRatingSummaryAsync(Guid? periodId, Guid? partyCellId,
+        CongTacDang.Application.Common.Security.ScopeFilter viewerScope, ReportFormat format = ReportFormat.Original);
+
     #endregion
 
     #region Hồ sơ nộp theo HD03 — bảng tính (periodId null = kỳ đang hoạt động; partyCellId null = toàn Đảng bộ)

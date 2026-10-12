@@ -26,7 +26,7 @@ namespace CongTacDang.Infrastructure.Services;
 /// Kết xuất biểu mẫu HD03 (Word: 01, 02, 07, 08, 10, 11, 12, 13, 16; bảng tính: 14, 15A, 15B) và báo cáo nội bộ.
 /// Bố cục, tiêu đề, cột đúng nguyên văn biểu mẫu gốc (<c>docs/2.03-HD.TVDU … (Bieu mau).docx</c>, PDF HD03 tr.72–78).
 /// </summary>
-public class ReportService : IReportService
+public partial class ReportService : IReportService
 {
     private readonly CongTacDangDbContext _db;
     private readonly IUserRepository _userRepo;

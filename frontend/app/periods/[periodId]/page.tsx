@@ -29,6 +29,7 @@ import { PeriodStatusBadge } from "@/components/periods/PeriodStatusBadge";
 import { PeriodProgressSection } from "@/components/periods/PeriodProgressSection";
 import { RecordStatusBadge } from "@/components/common/StatusBadge";
 import { CriteriaSetListItem, WeightFrame, criteriaService, scoringMethodLabel } from "@/services/criteriaService";
+import { reportService, withQuery } from "@/services/reportService";
 
 type Transition = "open" | "lock" | "unlock" | "close";
 type PeriodTab = "progress" | "profiles" | "criteria" | "readiness" | "participants";
@@ -54,6 +55,7 @@ export default function PeriodDetailPage() {
   const [checking, setChecking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [unlockOpen, setUnlockOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [forceOpen, setForceOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<PeriodTab>(canManage ? "participants" : "criteria");
@@ -136,6 +138,22 @@ export default function PeriodDetailPage() {
     { key: "criteria", label: "Bộ tiêu chí" },
     { key: "profiles", label: dirty ? "Cách xét duyệt •" : "Cách xét duyệt" },
   ];
+
+  // Bảng tổng hợp xếp loại cán bộ của kỳ (Excel, theo phạm vi xuất báo cáo được giao).
+  const downloadRatingSummary = async () => {
+    setDownloading(true);
+    try {
+      const quarter = ["", "I", "II", "III", "IV"][period.quarter] ?? String(period.quarter);
+      await reportService.downloadReport(
+        withQuery("/reports/internal/rating-summary", { periodId: period.id }),
+        `BangTongHop_XepLoaiCanBo_{SHORT_NAME}_Quy ${quarter}-${period.year}.xlsx`,
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "Không xuất được bảng tổng hợp xếp loại.");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const run = async (work: () => Promise<unknown>, success: string) => {
     setBusy(true);
@@ -252,6 +270,12 @@ export default function PeriodDetailPage() {
         actions={
           <>
             <Link href="/periods" className="btn btn-outline-secondary"><i className="bi bi-arrow-left me-1" />Danh sách kỳ</Link>
+            {hasPermission("report.export") && !isDraft && (
+              <button type="button" className="btn btn-outline-secondary" disabled={downloading} onClick={downloadRatingSummary}>
+                <i className="bi bi-file-earmark-excel me-1" />
+                {downloading ? "Đang xuất..." : "Bảng tổng hợp xếp loại"}
+              </button>
+            )}
             {canManage && period.status === "Draft" && (
               <button type="button" className="btn btn-primary" disabled={busy}
                 onClick={() => confirm({ title: "Mở kỳ đánh giá", message: "Sau khi mở kỳ chỉ sửa được thời hạn các bước; không đổi được cách xét duyệt và bộ tiêu chí.", confirmText: "Mở kỳ", isDanger: false, onConfirm: () => openPeriod() })}>
