@@ -135,6 +135,19 @@ internal static class Mau09Shared
     /// <summary>Tên đơn vị công tác trước tên công ty; đơn vị gốc → null (khối if:HAS_DEPARTMENT bị bỏ).</summary>
     public static string? Department(EvaluationRecord record) => HasDepartment(record) ? FormText.OrNull(record.Department?.Name) : null;
 
+    /// <summary>
+    /// Tên Chi bộ in sau nhãn "Chi bộ:" (Mẫu 09B) / "Chi bộ, Đảng bộ đang sinh hoạt:" (Mẫu 9D): bỏ chữ "Chi bộ" đứng đầu tên trong
+    /// danh mục để không lặp nhãn ("Chi bộ: Phòng Kỹ thuật" như phiếu đã nộp); tên không bắt đầu bằng "Chi bộ" giữ nguyên.
+    /// </summary>
+    public static string? CellLabelName(EvaluationRecord record)
+    {
+        var name = FormText.OrNull(record.PartyCell?.Name)?.Trim();
+        const string prefix = "Chi bộ ";
+        if (name != null && name.Length > prefix.Length && name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return name[prefix.Length..].TrimStart();
+        return name;
+    }
+
     /// <summary>"ngày … tháng … năm …" sau địa danh: ngày nộp phiếu tự chấm; chưa nộp → null (giữ dòng chấm).</summary>
     public static string? DateLine(IndividualFormSource source) => CollectiveFormText.DateLine(source.Record.SelfScoredAt);
 

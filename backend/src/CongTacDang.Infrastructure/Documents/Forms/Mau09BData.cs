@@ -121,7 +121,7 @@ public sealed class Mau09BData
             HasCellConfirmation = source.Layout?.ShowCellConfirmation ?? true,
             Department = Mau09Shared.Department(record),
             HasDepartment = Mau09Shared.HasDepartment(record),
-            CellName = FormText.Spaced(record.PartyCell?.Name),
+            CellName = FormText.Spaced(Mau09Shared.CellLabelName(record)),
             Groups = Mau09Shared.GeneralGroups(source),
             Axes = source.Criteria.Axes.Select((axis, index) =>
             {

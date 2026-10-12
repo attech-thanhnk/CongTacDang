@@ -59,7 +59,8 @@ public sealed class Mau11Data
         return new Mau11Data
         {
             PartyCell = PartyHeader.Upper(issuer),
-            PeriodQuarterYear = $"QUÝ {FormText.Quarter(period.Quarter)} NĂM {FormText.Year(period.Year)}",
+            // Quý in số La Mã như các biểu mẫu khác và văn bản HD03 ("QUÝ IV NĂM 2026").
+            PeriodQuarterYear = $"QUÝ {CollectiveFormText.RomanQuarter(period.Quarter)} NĂM {FormText.Year(period.Year)}",
             SuperiorRows = superior,
             HasSuperiorRows = superior.Count > 0,
             ShowSuperior = superior.Count > 0 || blank,
