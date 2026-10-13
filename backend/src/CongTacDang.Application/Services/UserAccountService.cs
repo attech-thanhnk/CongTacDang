@@ -135,7 +135,7 @@ public sealed class UserAccountService : IUserAccountService
             Email = email,
             PhoneNumber = cmd.PhoneNumber?.Trim() ?? string.Empty,
             PartyCardNumber = partyCardNumber,
-            IsPartyMember = partyCardNumber != null,
+            IsPartyMember = partyCardNumber != null || partyCellId.HasValue,
             PositionTitle = string.IsNullOrWhiteSpace(cmd.PositionTitle) ? "Cán bộ" : cmd.PositionTitle.Trim(),
             DepartmentId = departmentId,
             PartyCellId = partyCellId,
@@ -210,7 +210,6 @@ public sealed class UserAccountService : IUserAccountService
         if (cmd.PartyCardNumber != null)
         {
             member.PartyCardNumber = string.IsNullOrWhiteSpace(cmd.PartyCardNumber) ? null : cmd.PartyCardNumber.Trim();
-            member.IsPartyMember = member.PartyCardNumber != null;
         }
         if (cmd.PositionTitle != null && !string.IsNullOrWhiteSpace(cmd.PositionTitle))
             member.PositionTitle = cmd.PositionTitle.Trim();
@@ -234,6 +233,8 @@ public sealed class UserAccountService : IUserAccountService
             member.DepartmentId = newDepartment;
             member.PartyCellId = newCell;
         }
+        // Đảng viên: sinh hoạt ở một tổ chức Đảng hoặc có số thẻ đảng (số thẻ không bắt buộc).
+        member.IsPartyMember = member.PartyCardNumber != null || member.PartyCellId.HasValue;
 
         await Accounts.SaveChangesAsync(ct);
         AccessCache.InvalidateUser(member.Id);

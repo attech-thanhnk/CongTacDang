@@ -139,7 +139,7 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
         new(PhoneKey, "Điện thoại", false, "Số điện thoại (để dạng chữ để giữ số 0 đầu).", Example: "0912345678"),
         new(DepartmentKey, "Mã đơn vị", false, "Mã đơn vị chính quyền đang công tác (phải có trong danh mục, đang hoạt động).", Example: "PH-KT"),
         new(PartyCellKey, "Mã tổ chức Đảng", false, "Mã tổ chức Đảng nơi sinh hoạt (phải có trong danh mục, đang hoạt động).", Example: "CB-KT"),
-        new(PartyMemberKey, "Đảng viên", false, "Có hoặc Không. Có thì phải nhập số thẻ đảng; để trống thì suy theo số thẻ đảng.", ImportValues.YesNo, Example: "Có"),
+        new(PartyMemberKey, "Đảng viên", false, "Có hoặc Không. Để trống: có mã tổ chức Đảng hoặc số thẻ đảng thì là Đảng viên.", ImportValues.YesNo, Example: "Có"),
         new(PartyCardKey, "Số thẻ đảng", false, "Số thẻ đảng viên.", Example: "01234567"),
         new(PositionsKey, "Chức vụ", false,
             "Tên chức vụ hoặc mã thống kê (M1…M26) trong danh mục; nhiều chức vụ phân tách bằng dấu ;. Chức vụ đầu tiên là chức vụ chính.",
@@ -199,8 +199,8 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
         var isMember = ImportValues.ParseYesNo(raw.Get(PartyMemberKey), out var memberOk);
         if (!memberOk)
             result.AddError($"Đảng viên \"{raw.Get(PartyMemberKey)}\" không hợp lệ: chỉ nhận Có hoặc Không.");
-        else if (isMember == true && card.Length == 0)
-            result.AddError("Đảng viên phải có số thẻ đảng.");
+        else if (isMember == true && card.Length == 0 && raw.Get(PartyCellKey).Trim().Length == 0)
+            result.AddError("Đảng viên phải có mã tổ chức Đảng nơi sinh hoạt hoặc số thẻ đảng.");
         else if (isMember == false && card.Length > 0)
             result.AddError("Không phải đảng viên thì để trống số thẻ đảng.");
 

@@ -58,7 +58,7 @@ public interface IUserAccountService
 /// <param name="Username">Tên đăng nhập (bắt buộc, không trùng).</param>
 /// <param name="FullName">Họ và tên (bắt buộc).</param>
 /// <param name="Email">Thư điện tử.</param>
-/// <param name="PartyCardNumber">Số thẻ Đảng viên; có giá trị → là Đảng viên.</param>
+/// <param name="PartyCardNumber">Số thẻ Đảng viên (không bắt buộc). Có số thẻ hoặc có nơi sinh hoạt Đảng → là Đảng viên.</param>
 /// <param name="PositionTitle">Chức danh hiển thị trên văn bản.</param>
 /// <param name="DepartmentId">Đơn vị công tác chính (đơn vị chính quyền).</param>
 /// <param name="PartyCellId">Nơi sinh hoạt Đảng (tổ chức Đảng).</param>
