@@ -28,8 +28,6 @@ public static class FormText
     public static string Percent(double ratio) =>
         Math.Round(ratio * 100).ToString("F0", VietnameseNumbers) + "%";
 
-    /// <summary>Số quý (1-4).</summary>
-    public static string Quarter(EvaluationQuarter quarter) => ((int)quarter).ToString(CultureInfo.InvariantCulture);
 
     /// <summary>Năm.</summary>
     public static string Year(int year) => year.ToString(CultureInfo.InvariantCulture);

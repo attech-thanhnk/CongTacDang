@@ -36,7 +36,7 @@ public sealed class Mau01Data
         {
             DateLine = CollectiveFormText.DateLine(record.TasksApprovedAt),
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
-            Quarter = record.Period != null ? FormText.Quarter(record.Period.Quarter) : null,
+            Quarter = record.Period != null ? CollectiveFormText.RomanQuarter(record.Period.Quarter) : null,
             Year = record.Period != null ? FormText.Year(record.Period.Year) : null,
             FullName = FormText.OrNull(record.Member?.FullName),
             Position = FormText.OrNull(record.Member?.PositionTitle),

@@ -152,7 +152,7 @@ internal static class Mau09Shared
     public static string? DateLine(IndividualFormSource source) => CollectiveFormText.DateLine(source.Record.SelfScoredAt);
 
     /// <summary>Quý của kỳ; null nếu không nạp kỳ.</summary>
-    public static string? Quarter(EvaluationRecord record) => record.Period != null ? FormText.Quarter(record.Period.Quarter) : null;
+    public static string? Quarter(EvaluationRecord record) => record.Period != null ? CollectiveFormText.RomanQuarter(record.Period.Quarter) : null;
 
     /// <summary>Năm của kỳ; null nếu không nạp kỳ.</summary>
     public static string? Year(EvaluationRecord record) => record.Period != null ? FormText.Year(record.Period.Year) : null;

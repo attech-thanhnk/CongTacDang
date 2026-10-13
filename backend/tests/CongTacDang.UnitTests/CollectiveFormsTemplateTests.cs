@@ -164,7 +164,8 @@ public class CollectiveFormsTemplateTests
         Assert.DoesNotContain("đóng dấu", text);
         // Giữa câu dùng tên thường; chỉ dòng tiêu đề in hoa.
         Assert.Contains("01 bản lưu tại Đảng bộ Công ty TNHH Kỹ thuật Quản lý bay và 01 bản lưu hồ sơ", text);
-        Assert.Contains("ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", text);
+        // Tên dài ngắt thành hai dòng cân nhau ở cột tiêu đề trái.
+        Assert.Contains("ĐẢNG BỘ CÔNG TY TNHH\nKỸ THUẬT QUẢN LÝ BAY", text);
         Assert.Contains("Hội nghị tập thể lãnh đạo, quản lý Phòng Kỹ thuật về việc", text);
 
         // Chưa ghi chức vụ chủ trì: hội nghị tập thể lãnh đạo không in "BÍ THƯ".

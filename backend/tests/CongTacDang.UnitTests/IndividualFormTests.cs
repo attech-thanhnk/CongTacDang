@@ -682,7 +682,7 @@ public class IndividualFormTests
         var source = Source();
         var text = Render(Mau09AData.TemplateFileName, Mau09AData.From(source), out _);
 
-        Assert.Contains("Quý 3 Năm 2026", text);
+        Assert.Contains("Quý III Năm 2026", text);
         Assert.Contains("1 / 2 sản phẩm (đạt tỷ lệ: 50%)", text);
         Assert.Contains("☒ Hoàn thành tốt", text);
         Assert.Contains("☐ Hoàn thành xuất sắc", text);

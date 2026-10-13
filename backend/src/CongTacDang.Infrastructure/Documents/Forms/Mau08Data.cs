@@ -33,8 +33,8 @@ public sealed class Mau08Data
         var items = record.Items.OrderBy(i => i.ItemOrder).ToList();
         return new Mau08Data
         {
-            PartyParent = header.Parent,
-            PartyOrganization = header.Organization,
+            PartyParent = PartyHeader.Lines(header.Parent),
+            PartyOrganization = PartyHeader.Lines(header.Organization),
             DateLine = CollectiveFormText.DateLine(record.UpdatedAt ?? record.CreatedAt),
             Quarter = " " + CollectiveFormText.RomanQuarter(record.Period.Quarter),
             Year = " " + FormText.Year(record.Period.Year),

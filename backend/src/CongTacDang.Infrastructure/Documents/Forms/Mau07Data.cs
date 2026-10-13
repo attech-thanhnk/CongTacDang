@@ -68,8 +68,8 @@ public sealed class Mau07Data
         string? Section(string code) => sections.TryGetValue(code, out var text) ? FormText.OrNull(text) : null;
         return new Mau07Data
         {
-            PartyParent = header.Parent,
-            PartyOrganization = header.Organization,
+            PartyParent = PartyHeader.Lines(header.Parent),
+            PartyOrganization = PartyHeader.Lines(header.Organization),
             DateLine = CollectiveFormText.DateLine(record.UpdatedAt ?? record.CreatedAt),
             SubjectNameUpper = PartyHeader.Upper(record.SubjectName),
             Quarter = " " + CollectiveFormText.RomanQuarter(record.Period.Quarter) + " ",

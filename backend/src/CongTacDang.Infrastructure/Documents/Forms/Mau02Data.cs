@@ -26,6 +26,12 @@ public sealed class Mau02Data
 
     [TemplateCollection("TASKS")] public List<Mau02TaskRow> Tasks { get; init; } = new();
 
+    /// <summary>Dòng "CỘNG": tổng điểm đạt của các sản phẩm ("… / 70,0"); chưa có sản phẩm → giữ dòng chấm.</summary>
+    [TemplateField("TOTAL_SCORE")] public string? TotalScore { get; init; }
+
+    /// <summary>Dòng "CỘNG": số sản phẩm ghi nhận vượt chuẩn ("… SP"); chưa có sản phẩm → giữ dòng chấm.</summary>
+    [TemplateField("EXCEED_COUNT")] public string? ExceedCount { get; init; }
+
     /// <summary>
     /// Dựng dữ liệu mẫu từ hồ sơ đã lưu (nạp kèm Period, Member, Department, PartyCell, Tasks).
     /// <paramref name="evidenceNames"/>: tên tệp minh chứng (phiên bản hiện hành) theo Id nhiệm vụ.
@@ -39,10 +45,12 @@ public sealed class Mau02Data
         {
             DateLine = CollectiveFormText.DateLine(record.SelfScoredAt),
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
-            Quarter = record.Period != null ? FormText.Quarter(record.Period.Quarter) : null,
+            Quarter = record.Period != null ? CollectiveFormText.RomanQuarter(record.Period.Quarter) : null,
             Year = record.Period != null ? FormText.Year(record.Period.Year) : null,
             FullName = FormText.OrNull(record.Member?.FullName),
             Position = FormText.OrNull(record.Member?.PositionTitle),
+            TotalScore = tasks.Count > 0 ? FormText.Number(tasks.Sum(t => t.SelfScore), scoreDecimals) : null,
+            ExceedCount = tasks.Count > 0 ? tasks.Count(t => t.IsExceedStandard).ToString(System.Globalization.CultureInfo.InvariantCulture) : null,
             Tasks = tasks.Select((t, index) =>
             {
                 // Một nguồn số liệu (T-38): điểm đạt = SelfScore đã lưu (đã tính theo khung tỷ trọng của hồ sơ

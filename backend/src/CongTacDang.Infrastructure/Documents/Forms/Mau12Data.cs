@@ -95,8 +95,8 @@ public sealed class Mau12Data
 
         return new Mau12Data
         {
-            PartyParent = header.Parent,
-            PartyOrganization = header.Organization,
+            PartyParent = PartyHeader.Lines(header.Parent),
+            PartyOrganization = PartyHeader.Lines(header.Organization),
             MeetingName = unit == null ? null
                 : isProposal ? "Hội nghị tập thể lãnh đạo, quản lý " + unit
                 : isDecision ? "Hội nghị " + unit

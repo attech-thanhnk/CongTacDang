@@ -78,8 +78,8 @@ public sealed class MauQdData
 
         return new MauQdData
         {
-            PartyParent = header.Parent,
-            PartyOrganization = header.Organization,
+            PartyParent = PartyHeader.Lines(header.Parent),
+            PartyOrganization = PartyHeader.Lines(header.Organization),
             DocumentNumber = number != null ? "Số " + number : null,
             DateLine = date.HasValue
                 ? date.Value.ToString("'ngày 'dd' tháng 'MM' năm 'yyyy", CultureInfo.InvariantCulture)

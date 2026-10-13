@@ -74,6 +74,12 @@ public static class DocxTemplateEngine
                 EnsureValidTableCells(element);
             }
 
+            if (mainPart.Document?.Body is { } body)
+            {
+                AlignNarrowCellsLeft(body, mainPart.StyleDefinitionsPart?.Styles);
+                KeepSignaturesWithContent(body);
+            }
+
             foreach (var element in PartRoots(mainPart))
             {
                 if (element is OpenXmlPartRootElement partRoot)
@@ -104,6 +110,132 @@ public static class DocxTemplateEngine
     }
 
     /// <summary>Phần thân tài liệu, header và footer.</summary>
+    /// <summary>Ô bảng hẹp hơn mức này (twip, ~4,6 cm) không căn đều hai bên.</summary>
+    private const int NarrowCellWidth = 2600;
+
+    /// <summary>
+    /// Ô bảng hẹp (cột họ tên, chức vụ, minh chứng…): đoạn căn đều hai bên chuyển sang căn trái, tránh chữ bị giãn
+    /// ("Biên      bản"). Ô rộng (nội dung tiêu chí dài) giữ nguyên căn đều.
+    /// </summary>
+    private static void AlignNarrowCellsLeft(Body body, Styles? styles)
+    {
+        foreach (var cell in body.Descendants<TableCell>())
+        {
+            var width = cell.TableCellProperties?.TableCellWidth;
+            if (width?.Type?.Value != TableWidthUnitValues.Dxa || !int.TryParse(width.Width?.Value, out var twips) || twips >= NarrowCellWidth)
+                continue;
+            foreach (var paragraph in cell.Elements<Paragraph>())
+            {
+                var justification = EffectiveJustification(paragraph, styles);
+                if (justification != JustificationValues.Both && justification != JustificationValues.Distribute)
+                    continue;
+                var properties = paragraph.ParagraphProperties ??= new ParagraphProperties();
+                properties.Justification = new Justification { Val = JustificationValues.Left };
+            }
+        }
+    }
+
+    /// <summary>Căn lề của đoạn: khai báo trên đoạn, nếu không thì theo kiểu đoạn (và kiểu gốc), cuối cùng là mặc định tài liệu.</summary>
+    private static JustificationValues? EffectiveJustification(Paragraph paragraph, Styles? styles)
+    {
+        if (paragraph.ParagraphProperties?.Justification?.Val?.Value is { } own)
+            return own;
+        if (styles == null)
+            return null;
+        var styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value
+            ?? styles.Elements<Style>().FirstOrDefault(s => s.Type?.Value == StyleValues.Paragraph && s.Default?.Value == true)?.StyleId?.Value;
+        for (var depth = 0; styleId != null && depth < 10; depth++)
+        {
+            var style = styles.Elements<Style>().FirstOrDefault(s => s.StyleId?.Value == styleId);
+            if (style?.StyleParagraphProperties?.Justification?.Val?.Value is { } fromStyle)
+                return fromStyle;
+            styleId = style?.BasedOn?.Val?.Value;
+        }
+        return styles.DocDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.Justification?.Val?.Value;
+    }
+
+    /// <summary>Chữ ghi chú dưới chức danh người ký — đánh dấu khối chữ ký.</summary>
+    private const string SignatureNote = "ghi rõ họ tên";
+
+    /// <summary>
+    /// Khối chữ ký không bị tách khỏi phần nội dung ngay trước nó (tránh trang chỉ có chữ ký): khối là bảng chữ ký
+    /// (các hàng không ngắt trang), đoạn chức danh + "(Ký, ghi rõ họ tên)", hoặc hàng chữ ký cuối một bảng lớn; khối đi liền
+    /// với đoạn văn / hàng cuối của bảng đứng trước.
+    /// </summary>
+    private static void KeepSignaturesWithContent(Body body)
+    {
+        foreach (var element in body.Elements().ToList())
+        {
+            if (element is Table table && table.InnerText.Contains(SignatureNote, StringComparison.OrdinalIgnoreCase))
+            {
+                var rows = table.Elements<TableRow>().ToList();
+                if (rows.Count <= 3)
+                {
+                    for (var i = 0; i < rows.Count; i++)
+                    {
+                        NotSplit(rows[i]);
+                        if (i < rows.Count - 1)
+                            KeepWithNext(rows[i].Descendants<Paragraph>());
+                    }
+                    KeepPreviousWith(table);
+                }
+                else if (rows[^1].InnerText.Contains(SignatureNote, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Hàng chữ ký nằm cuối bảng (Mẫu 01): đi cùng trang với hàng ngay trên.
+                    NotSplit(rows[^1]);
+                    KeepWithNext(rows[^2].Descendants<Paragraph>());
+                }
+            }
+            else if (element is Paragraph paragraph && paragraph.InnerText.Contains(SignatureNote, StringComparison.OrdinalIgnoreCase))
+            {
+                KeepPreviousWith(paragraph);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Các phần tử ngay trước <paramref name="element"/> đi liền với nó: đoạn trống và đoạn chức danh người ký (chữ in hoa)
+    /// được kéo theo cho tới đoạn nội dung đầu tiên, hoặc hàng cuối của bảng đứng trước.
+    /// </summary>
+    private static void KeepPreviousWith(OpenXmlElement element)
+    {
+        for (var previous = element.PreviousSibling(); previous != null; previous = previous.PreviousSibling())
+        {
+            if (previous is Paragraph paragraph)
+            {
+                KeepWithNext(new[] { paragraph });
+                var text = paragraph.InnerText.Trim();
+                var signatureLine = text.Length == 0 || text.Contains(SignatureNote, StringComparison.OrdinalIgnoreCase)
+                    || (text.Any(char.IsLetter) && text == text.ToUpperInvariant());
+                if (!signatureLine)
+                    return;
+            }
+            else if (previous is Table before)
+            {
+                if (before.Elements<TableRow>().LastOrDefault() is { } lastRow)
+                    KeepWithNext(lastRow.Descendants<Paragraph>());
+                return;
+            }
+            else if (previous is not BookmarkStart and not BookmarkEnd)
+            {
+                return;
+            }
+        }
+    }
+
+    private static void NotSplit(TableRow row)
+    {
+        var properties = row.TableRowProperties ??= new TableRowProperties();
+        if (properties.GetFirstChild<CantSplit>() == null)
+            properties.AppendChild(new CantSplit());
+    }
+
+    private static void KeepWithNext(IEnumerable<Paragraph> paragraphs)
+    {
+        foreach (var paragraph in paragraphs)
+            (paragraph.ParagraphProperties ??= new ParagraphProperties()).KeepNext ??= new KeepNext();
+    }
+
     /// <summary>
     /// Dòng kết thúc bằng ngắt dòng (giá trị nhiều dòng điền vào đoạn căn đều) không bị giãn chữ ra hết dòng
     /// (tùy chọn tương thích <c>doNotExpandShiftReturn</c>, Word và LibreOffice đều theo).

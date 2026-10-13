@@ -57,8 +57,8 @@ public sealed class Mau16Data
         string? Numbered(string number, string? text) => FormText.OrNull(text) is { } t ? number + ". " + t.Trim() : null;
         return new Mau16Data
         {
-            PartyParent = header.Parent,
-            PartyOrganization = header.Organization,
+            PartyParent = PartyHeader.Lines(header.Parent),
+            PartyOrganization = PartyHeader.Lines(header.Organization),
             DateLine = CollectiveFormText.DateLine(draft.UpdatedAt),
             DocumentNumber = FormText.OrNull(c.DocumentNumber),
             Quarter = " " + CollectiveFormText.RomanQuarter(period.Quarter),

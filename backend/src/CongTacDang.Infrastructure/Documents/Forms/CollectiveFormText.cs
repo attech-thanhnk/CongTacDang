@@ -24,6 +24,26 @@ public sealed record PartyHeader(string? Parent, string? Organization, string? U
 
     /// <summary>Chữ in hoa theo tiếng Việt; rỗng → null.</summary>
     public static string? Upper(string? value) => FormText.OrNull(value?.Trim())?.ToUpper(Vietnamese);
+
+    /// <summary>Tên dài hơn mức này (ký tự) không vừa một dòng ở cột tiêu đề trái.</summary>
+    private const int MaxLineLength = 30;
+
+    /// <summary>
+    /// Dòng tiêu đề trái in trên biểu mẫu: tên dài ngắt thành hai dòng cân nhau tại khoảng trắng
+    /// ("ĐẢNG BỘ TỔNG CÔNG TY" / "QUẢN LÝ BAY VIỆT NAM") thay vì để Word ngắt lửng một chữ xuống dòng.
+    /// </summary>
+    public static string? Lines(string? value)
+    {
+        if (value == null || value.Length <= MaxLineLength || value.Contains('\n'))
+            return value;
+        var best = -1;
+        for (var i = value.IndexOf(' '); i > 0; i = value.IndexOf(' ', i + 1))
+        {
+            if (best < 0 || Math.Abs(value.Length - 2 * i) < Math.Abs(value.Length - 2 * best))
+                best = i;
+        }
+        return best < 0 ? value : value[..best] + "\n" + value[(best + 1)..];
+    }
 }
 
 /// <summary>Định dạng riêng của các biểu mẫu tập thể, biên bản và báo cáo (Mẫu 07, 08, 12, 16).</summary>

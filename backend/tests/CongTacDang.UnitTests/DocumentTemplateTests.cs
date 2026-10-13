@@ -261,7 +261,7 @@ public class DocumentTemplateTests
         using var doc = Open(result.Content);
         var text = doc.MainDocumentPart!.Document!.Body!.InnerText;
         Assert.Contains("Nguyễn Văn A", text);
-        Assert.Contains("Quý 3", text);
+        Assert.Contains("Quý III", text);
         foreach (var task in records[0].Tasks)
             Assert.Contains(task.TaskName, text);
     }
@@ -287,6 +287,15 @@ public class DocumentTemplateTests
         Assert.Equal("17,50", row.Score);
         Assert.Equal("87,5%", row.ResultPercent);
         Assert.Equal("50%", row.CriteriaA);
+
+        // Dòng "CỘNG": tổng điểm đạt và số sản phẩm vượt chuẩn.
+        Assert.Equal(FormText.Number(record.Tasks.Sum(t => t.SelfScore), 2), data.TotalScore);
+        Assert.Equal(record.Tasks.Count(t => t.IsExceedStandard).ToString(), data.ExceedCount);
+        var result = DocxTemplateEngine.Render(new FileWordTemplateStore().Load(Mau02Data.TemplateFileName), TemplateDataBinder.Bind(data));
+        using var doc = Open(result.Content);
+        var text = BodyText(doc);
+        Assert.Contains(data.TotalScore + " / 70,0", text);
+        Assert.Contains(data.ExceedCount + " SP", text);
     }
 
     [Fact]
