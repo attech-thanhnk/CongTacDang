@@ -78,6 +78,12 @@ public class PerformerJobDto
     /// <summary>Tên hiển thị của quyền (tên việc).</summary>
     public string PermissionName { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Có kỳ đang dự thảo/mở/khóa dùng việc này (một hồ sơ luồng có bước nội bộ cần quyền này, hoặc có bước cấp trên với
+    /// việc ghi nhận kết quả của cấp trên). Không có kỳ nào như vậy → true.
+    /// </summary>
+    public bool InUse { get; set; } = true;
+
     /// <summary>Người làm được việc này tại đơn vị (mỗi dòng ứng với một bản gán cấp quyền).</summary>
     public List<PerformerDto> People { get; set; } = new();
 

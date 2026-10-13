@@ -122,7 +122,7 @@ function PerformersContent() {
   );
   const selectedUnitId = kind === "Department" ? departmentId : kind === "PartyCell" ? partyCellId : "";
   const waitingForUnit = kind !== "Global" && !selectedUnitId;
-  const missing = useMemo(() => (data ? data.jobs.filter((job) => job.people.length === 0).length : 0), [data]);
+  const missing = useMemo(() => (data ? data.jobs.filter((job) => job.inUse && job.people.length === 0).length : 0), [data]);
 
   const handleRemove = (job: PerformerJob, person: Performer) =>
     confirm({
@@ -413,13 +413,15 @@ function JobCard({
   onRemove: (person: Performer) => void;
 }) {
   const empty = job.people.length === 0;
+  const missing = empty && job.inUse;
   return (
-    <div id={`job-${job.permission}`} className={`card shadow-sm ${empty ? "border-danger" : "border-0"} ${focused ? "border-primary border-2" : ""}`}>
+    <div id={`job-${job.permission}`} className={`card shadow-sm ${missing ? "border-danger" : "border-0"} ${job.inUse ? "" : "opacity-50"} ${focused ? "border-primary border-2" : ""}`}>
       <div className="card-body py-2">
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
           <div className="fw-semibold">
             {job.permissionName}
-            {empty && <span className="badge bg-danger ms-2">Chưa có người</span>}
+            {missing && <span className="badge bg-danger ms-2">Chưa có người</span>}
+            {!job.inUse && <span className="badge bg-secondary-subtle text-secondary-emphasis ms-2">Kỳ hiện tại không dùng</span>}
           </div>
           <button type="button" className="btn btn-sm btn-outline-primary" disabled={!canAdd} onClick={onAdd}>
             <i className="bi bi-person-plus me-1" />

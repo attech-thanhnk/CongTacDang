@@ -261,6 +261,7 @@ export interface PerformerRoleOption {
 export interface PerformerJob {
   permission: string;
   permissionName: string;
+  inUse: boolean;
   people: Performer[];
   roles: PerformerRoleOption[];
 }

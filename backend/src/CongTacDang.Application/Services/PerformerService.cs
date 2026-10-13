@@ -191,10 +191,16 @@ public sealed class PerformerService : IPerformerService
             ct);
 
         var roles = await _roles.GetAllRolesWithPermissionsAsync();
+        var used = await UsedPermissionsAsync(ct);
 
         foreach (var code in JobPermissions)
         {
-            var job = new PerformerJobDto { Permission = code, PermissionName = PermissionCodes.DisplayName(code) };
+            var job = new PerformerJobDto
+            {
+                Permission = code,
+                PermissionName = PermissionCodes.DisplayName(code),
+                InUse = used == null || used.Contains(code)
+            };
 
             foreach (var permissions in effective.Where(p => Covers(p, code)))
             {
@@ -320,6 +326,42 @@ public sealed class PerformerService : IPerformerService
             .ThenBy(i => i.RoleName, StringComparer.CurrentCulture)
             .ThenBy(i => i.ScopeText, StringComparer.CurrentCulture)
             .ToList();
+    }
+
+    /// <summary>
+    /// Quyền thực hiện bước mà các kỳ đang dự thảo/mở/khóa cần đến (theo hồ sơ luồng của kỳ); null khi không có kỳ nào
+    /// như vậy (coi mọi việc đều dùng). Kỳ có cấu hình lỗi bỏ qua.
+    /// </summary>
+    private async Task<HashSet<string>?> UsedPermissionsAsync(CancellationToken ct)
+    {
+        var current = (await _workflow.ListPeriodsAsync(ct))
+            .Where(p => p.Status is PeriodStatus.Draft or PeriodStatus.Open or PeriodStatus.Locked)
+            .ToList();
+        if (current.Count == 0)
+            return null;
+
+        var used = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var period in current)
+        {
+            PeriodSettings settings;
+            try
+            {
+                settings = period.GetSettings();
+            }
+            catch (FormatException)
+            {
+                continue;
+            }
+            foreach (var profile in settings.Profiles)
+            {
+                foreach (var step in WorkflowSteps.Ordered)
+                {
+                    if (profile.PermissionFor(step) is { } permission)
+                        used.Add(permission);
+                }
+            }
+        }
+        return used;
     }
 
     private static ScopeType ParseScope(string value)
