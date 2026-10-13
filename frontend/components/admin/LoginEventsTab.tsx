@@ -4,14 +4,11 @@ import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { Card } from "@/components/common";
+import { Card, Pagination, usePageSize } from "@/components/common";
 import { auditService, LOGIN_RESULT_LABELS, LoginEventDto, LoginResult } from "@/services/auditService";
 import type { PagedResult } from "@/services/userService";
-import { Pagination } from "./Pagination";
 import { PickedUser, UserPicker } from "./UserPicker";
 import { endOfDayExclusiveIso, errorMessage, errorTitle, formatDateTime, startOfDayIso } from "./adminUtils";
-
-const PAGE_SIZE = 50;
 
 const RESULT_CLASS: Record<LoginResult, string> = {
   Success: "tag t-ok",
@@ -38,6 +35,7 @@ export function LoginEventsTab() {
   const [draft, setDraft] = useState<Filters>(EMPTY);
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = usePageSize("admin.loginEvents");
   const [data, setData] = useState<PagedResult<LoginEventDto> | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -51,7 +49,7 @@ export function LoginEventsTab() {
           from: startOfDayIso(filters.from),
           to: endOfDayExclusiveIso(filters.to),
           page,
-          pageSize: PAGE_SIZE,
+          pageSize,
         })
       );
     } catch (err) {
@@ -60,7 +58,7 @@ export function LoginEventsTab() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, page]);
+  }, [filters, page, pageSize]);
 
   useEffect(() => {
     load();
@@ -188,11 +186,14 @@ export function LoginEventsTab() {
         {data && (
           <Pagination
             page={data.page}
-            totalPages={data.totalPages}
-            totalCount={data.totalCount}
             pageSize={data.pageSize}
+            total={data.totalCount}
             disabled={loading}
             onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
           />
         )}
     </Card>

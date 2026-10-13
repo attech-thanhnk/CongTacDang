@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
+import { Pagination } from "@/components/common/Pagination";
+import { usePagination } from "@/components/common/usePagination";
 import { Badge, BadgeTone } from "@/components/common/StatusBadge";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { NoAccess } from "@/components/admin/NoAccess";
@@ -85,6 +87,8 @@ export default function CriteriaSetsPage() {
       router.push(`/criteria/${created.id}`);
     }, "Đã nhân bản thành bản nháp mới.");
 
+  const paging = usePagination(sets, { storageKey: "criteriaSets" });
+
   if (!canView) {
     return <NoAccess title="Bộ tiêu chí và thang điểm" permissionName="Quản lý bộ tiêu chí" />;
   }
@@ -112,6 +116,7 @@ export default function CriteriaSetsPage() {
             ) : sets.length === 0 ? (
               <EmptyState title="Chưa có bộ tiêu chí" />
             ) : (
+              <>
               <div className="table-responsive">
                 <table className="table table-hover align-middle mb-0">
                   <thead>
@@ -120,7 +125,7 @@ export default function CriteriaSetsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sets.map((s) => (
+                    {paging.pageItems.map((s) => (
                       <tr key={s.id}>
                         <td>
                           <Link href={`/criteria/${s.id}`} className="fw-semibold">{s.name}</Link>
@@ -151,6 +156,14 @@ export default function CriteriaSetsPage() {
                   </tbody>
                 </table>
               </div>
+              <Pagination
+                page={paging.page}
+                pageSize={paging.pageSize}
+                total={paging.total}
+                onPageChange={paging.setPage}
+                onPageSizeChange={paging.setPageSize}
+              />
+              </>
             )}
           </div>
         </section>

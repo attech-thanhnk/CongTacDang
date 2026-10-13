@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { auditService, AuditLogDto } from "@/services/auditService";
-import { PageHeader } from "@/components/common";
+import { PageHeader, Pagination, usePagination } from "@/components/common";
 import styles from "./audit.module.css";
 import { LoginEventsTab } from "@/components/admin/LoginEventsTab";
 import { NoAccess } from "@/components/admin/NoAccess";
@@ -107,6 +107,7 @@ function AuditPageContent() {
     const deleteCount = logs.filter((log) => log.action === "Delete").length;
     return { actorCount, updateCount, deleteCount };
   }, [logs]);
+  const paging = usePagination(logs, { storageKey: "audit.actions", resetKeys: [entityType, appliedEntityId] });
 
   /** Áp dụng bộ lọc tra cứu và đồng bộ Id đang hiển thị. */
   const handleApplyFilters = async (event: React.FormEvent) => {
@@ -228,7 +229,7 @@ function AuditPageContent() {
                       <tr><td colSpan={5} className="text-center py-5 text-secondary loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải nhật ký...</td></tr>
                     ) : logs.length === 0 ? (
                       <tr><td colSpan={5} className="text-center py-5 text-secondary"><i className="bi bi-inbox fs-3 d-block mb-2" />Chưa có bản ghi phù hợp.</td></tr>
-                    ) : logs.map((log) => {
+                    ) : paging.pageItems.map((log) => {
                       const meta = actionMeta(log.action);
                       const isSelected = selectedLog?.id === log.id;
                       return (
@@ -257,6 +258,13 @@ function AuditPageContent() {
                   </tbody>
                 </table>
               </div>
+              <Pagination
+                page={paging.page}
+                pageSize={paging.pageSize}
+                total={paging.total}
+                onPageChange={paging.setPage}
+                onPageSizeChange={paging.setPageSize}
+              />
             </section>
 
         </div>

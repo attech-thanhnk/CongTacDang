@@ -98,7 +98,7 @@ export default function WorkQueuePage() {
                   {group.stepName} <span className={styles.count}>{group.items.length}</span>
                 </h2>
               </div>
-              <TaskTable tasks={group.items} periodId={periodId} />
+              <TaskTable tasks={group.items} periodId={periodId} pageKey="workQueue" resetKeys={[keyword]} />
             </section>
           ))
         )}

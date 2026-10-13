@@ -7,6 +7,8 @@ import { formatDate } from "@/lib/dateFormat";
 import { useToast } from "@/contexts/ToastContext";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
+import { Pagination } from "@/components/common/Pagination";
+import { usePagination } from "@/components/common/usePagination";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { CollectiveRecordEditor } from "@/components/collective/CollectiveRecordEditor";
 import { MeetingEditor } from "@/components/collective/MeetingEditor";
@@ -134,6 +136,9 @@ export default function CollectiveEvaluationsPage() {
     </div>
   );
 
+  const recordPaging = usePagination(records, { storageKey: "collective.records", resetKeys: [periodId] });
+  const meetingPaging = usePagination(meetings, { storageKey: "collective.meetings", resetKeys: [periodId] });
+
   if (authLoading) return null;
   if (!canUseModule) {
     return <NoAccess title="Đánh giá tập thể & Hội nghị" permissionName="Xem hồ sơ tập thể / biên bản hội nghị" />;
@@ -178,7 +183,7 @@ export default function CollectiveEvaluationsPage() {
                 <div className="card-body text-secondary">Chưa có hồ sơ tập thể trong kỳ.</div>
               ) : (
                 <ul className="list-group list-group-flush">
-                  {records.map((record) => (
+                  {recordPaging.pageItems.map((record) => (
                     <li key={record.id} className="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2 px-4 py-3">
                       <div className="min-w-0">
                         <div className="fw-semibold">{record.subjectName}</div>
@@ -202,6 +207,13 @@ export default function CollectiveEvaluationsPage() {
                   ))}
                 </ul>
               )}
+              <Pagination
+                page={recordPaging.page}
+                pageSize={recordPaging.pageSize}
+                total={recordPaging.total}
+                onPageChange={recordPaging.setPage}
+                onPageSizeChange={recordPaging.setPageSize}
+              />
             </section>
 
             {canManageCollective && (
@@ -238,7 +250,7 @@ export default function CollectiveEvaluationsPage() {
                 <div className="card-body text-secondary">Chưa có biên bản trong kỳ.</div>
               ) : (
                 <ul className="list-group list-group-flush">
-                  {meetings.map((item) => (
+                  {meetingPaging.pageItems.map((item) => (
                     <li key={item.id} className="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2 px-4 py-3">
                       <div className="min-w-0">
                         <div className="fw-semibold">{item.formCode === "M13" ? "Mẫu 13 — Kiểm phiếu" : "Mẫu 12 — Hội nghị"}</div>
@@ -259,6 +271,13 @@ export default function CollectiveEvaluationsPage() {
                   ))}
                 </ul>
               )}
+              <Pagination
+                page={meetingPaging.page}
+                pageSize={meetingPaging.pageSize}
+                total={meetingPaging.total}
+                onPageChange={meetingPaging.setPage}
+                onPageSizeChange={meetingPaging.setPageSize}
+              />
             </section>
 
             {canManageMeeting && (

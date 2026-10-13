@@ -5,6 +5,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
+import { Pagination } from "@/components/common/Pagination";
+import { usePagination } from "@/components/common/usePagination";
 import { Badge, GradeBadge } from "@/components/common/StatusBadge";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,10 +54,11 @@ export default function ResultsPage() {
     if (allowed && !periodLoading) load();
   }, [allowed, periodLoading, load]);
 
+  const items = data?.items ?? [];
+  const paging = usePagination(items, { storageKey: "results", resetKeys: [periodId, departmentId, grade] });
+
   if (authLoading) return null;
   if (!allowed) return <NoAccess title="Kết quả đánh giá" permissionName="Xem kết quả đánh giá đã công bố" />;
-
-  const items = data?.items ?? [];
 
   return (
     <div className="page-wrapper">
@@ -113,7 +116,9 @@ export default function ResultsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item, index) => (
+                  {paging.pageItems.map((item, i) => {
+                    const index = paging.offset + i;
+                    return (
                     <tr key={`${item.periodId}-${item.fullName}-${index}`}>
                       <td className="text-secondary num">{index + 1}</td>
                       <td className="fw-semibold">
@@ -128,10 +133,18 @@ export default function ResultsPage() {
                       <td className="text-nowrap num">{formatDate(item.publishedAt)}</td>
                       <td>{item.underReview && <Badge tone="warning">Đang xem xét kiến nghị</Badge>}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+            <Pagination
+              page={paging.page}
+              pageSize={paging.pageSize}
+              total={paging.total}
+              onPageChange={paging.setPage}
+              onPageSizeChange={paging.setPageSize}
+            />
           </section>
         )}
       </div>

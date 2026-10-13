@@ -28,6 +28,8 @@ import { CriteriaSummary } from "@/components/evaluations/CriteriaSummary";
 import { PeriodStatusBadge } from "@/components/periods/PeriodStatusBadge";
 import { PeriodProgressSection } from "@/components/periods/PeriodProgressSection";
 import { RecordStatusBadge } from "@/components/common/StatusBadge";
+import { Pagination } from "@/components/common/Pagination";
+import { usePagination } from "@/components/common/usePagination";
 import { CriteriaSetListItem, WeightFrame, criteriaService, scoringMethodLabel } from "@/services/criteriaService";
 import { reportService, withQuery } from "@/services/reportService";
 
@@ -463,6 +465,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
     }, `Đã thêm ${selected.length} người được đánh giá.`);
 
   const allChecked = participants.length > 0 && checked.length === participants.length;
+  const paging = usePagination(participants, { storageKey: "period.participants" });
 
   return (
     <section className="card">
@@ -544,7 +547,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
               </tr>
             </thead>
             <tbody>
-              {participants.map((p) => (
+              {paging.pageItems.map((p) => (
                 <tr key={p.recordId}>
                   {canChangeProfile && (
                     <td>
@@ -574,6 +577,13 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
             </tbody>
           </table>
         </div>
+        <Pagination
+          page={paging.page}
+          pageSize={paging.pageSize}
+          total={paging.total}
+          onPageChange={paging.setPage}
+          onPageSizeChange={paging.setPageSize}
+        />
 
       {editing && (
         <SnapshotDialog

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { Pagination } from "@/components/common/Pagination";
+import { usePagination } from "@/components/common/usePagination";
 import Link from "next/link";
 import { formatDate } from "@/lib/dateFormat";
 import { PeriodParticipantDto } from "@/services/evaluationService";
@@ -81,6 +83,7 @@ export function PeriodProgressSection({ participants }: Props) {
     const list = base.filter((p) => (!status || p.status === status) && (!onlyUrgent || isOverdue(p) || isDueSoon(p)));
     return [...list].sort((a, b) => urgency(a) - urgency(b) || a.fullName.localeCompare(b.fullName, "vi"));
   }, [base, status, onlyUrgent]);
+  const paging = usePagination(rows, { storageKey: "period.progress", resetKeys: [department, cell, status, onlyUrgent] });
 
   return (
     <section className="card">
@@ -130,13 +133,14 @@ export function PeriodProgressSection({ participants }: Props) {
       {rows.length === 0 ? (
         <div className="card-body text-secondary">Không có hồ sơ.</div>
       ) : (
+        <>
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
             <thead>
               <tr><th>Cán bộ</th><th>Phòng</th><th>Chi bộ</th><th>Bước đang chờ</th><th>Hạn</th><th>Tình trạng hạn</th></tr>
             </thead>
             <tbody>
-              {rows.map((p) => (
+              {paging.pageItems.map((p) => (
                 <tr key={p.recordId}>
                   <td><Link href={`/evaluations/${p.recordId}`} className="fw-semibold">{p.fullName}</Link></td>
                   <td>{p.departmentName || "—"}</td>
@@ -149,6 +153,14 @@ export function PeriodProgressSection({ participants }: Props) {
             </tbody>
           </table>
         </div>
+        <Pagination
+          page={paging.page}
+          pageSize={paging.pageSize}
+          total={paging.total}
+          onPageChange={paging.setPage}
+          onPageSizeChange={paging.setPageSize}
+        />
+        </>
       )}
     </section>
   );

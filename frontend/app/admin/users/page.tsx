@@ -4,18 +4,15 @@ import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { Card, PageHeader } from "@/components/common";
+import { Card, PageHeader, Pagination, usePageSize } from "@/components/common";
 import { AccountFormModal } from "@/components/admin/AccountFormModal";
 import { AccountStatusBadge } from "@/components/admin/AccountStatusBadge";
 import { NoAccess } from "@/components/admin/NoAccess";
-import { Pagination } from "@/components/admin/Pagination";
 import { TemporaryCredential, TemporaryPasswordModal } from "@/components/admin/TemporaryPasswordModal";
 import { errorMessage, errorTitle, formatDateTime } from "@/components/admin/adminUtils";
 import { useCatalogOptions } from "@/components/admin/useCatalogOptions";
 import { AccountListItem, CreateAccountPayload, PagedResult, userService } from "@/services/userService";
 import { treeLabel } from "@/services/catalogService";
-
-const PAGE_SIZE = 20;
 
 type StatusFilter = "" | "active" | "inactive";
 
@@ -39,6 +36,7 @@ export default function AdminUsersPage() {
   const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = usePageSize("admin.users");
   const [result, setResult] = useState<PagedResult<AccountListItem> | null>(null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -50,7 +48,7 @@ export default function AdminUsersPage() {
     try {
       const data = await userService.search({
         page,
-        pageSize: PAGE_SIZE,
+        pageSize,
         q: filters.q,
         departmentId: filters.departmentId || undefined,
         partyCellId: filters.partyCellId || undefined,
@@ -63,7 +61,7 @@ export default function AdminUsersPage() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, filters]);
+  }, [page, pageSize, filters]);
 
   useEffect(() => {
     if (canRead) load();
@@ -234,11 +232,14 @@ export default function AdminUsersPage() {
           {result && (
             <Pagination
               page={result.page}
-              totalPages={result.totalPages}
-              totalCount={result.totalCount}
               pageSize={result.pageSize}
+              total={result.totalCount}
               disabled={loading}
               onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
             />
           )}
         </Card>

@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { Card, PageHeader } from "@/components/common";
+import { Card, PageHeader, Pagination, usePagination } from "@/components/common";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { errorMessage, errorTitle, formatDateTime } from "@/components/admin/adminUtils";
@@ -215,6 +215,7 @@ function HistoryModal({
   const { toast, confirm } = useToast();
   const [versions, setVersions] = useState<TemplateVersion[] | null>(null);
   const [busy, setBusy] = useState("");
+  const paging = usePagination(versions ?? [], { storageKey: "templates.versions" });
 
   const load = useCallback(async () => {
     try {
@@ -269,6 +270,7 @@ function HistoryModal({
       ) : versions.length === 0 ? (
         <div className="text-secondary small">Chưa có phiên bản tải lên — đang dùng file mẫu gốc.</div>
       ) : (
+        <>
         <div className="table-responsive">
           <table className="table table-sm align-middle small mb-0">
             <thead>
@@ -281,7 +283,7 @@ function HistoryModal({
               </tr>
             </thead>
             <tbody>
-              {versions.map((v) => (
+              {paging.pageItems.map((v) => (
                 <tr key={v.id} className={v.isActive ? "table-success" : ""}>
                   <td className="text-nowrap">
                     v{v.versionNumber}
@@ -336,6 +338,14 @@ function HistoryModal({
             </tbody>
           </table>
         </div>
+        <Pagination
+          page={paging.page}
+          pageSize={paging.pageSize}
+          total={paging.total}
+          onPageChange={paging.setPage}
+          onPageSizeChange={paging.setPageSize}
+        />
+        </>
       )}
     </AdminModal>
   );

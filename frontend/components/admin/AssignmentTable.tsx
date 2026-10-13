@@ -2,6 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
+import { Pagination } from "@/components/common/Pagination";
+import { usePagination } from "@/components/common/usePagination";
 import type { AssignmentStatus, RoleAssignment } from "@/services/roleService";
 import { formatDateTime } from "./adminUtils";
 
@@ -29,12 +31,29 @@ export interface AssignmentTableProps {
   onEdit?: (assignment: RoleAssignment) => void;
   onEnd?: (assignment: RoleAssignment) => void;
   onDelete?: (assignment: RoleAssignment) => void;
+  /** Có thì phân trang (khóa ghi nhớ số dòng/trang); bỏ trống thì hiện mọi dòng. */
+  pageKey?: string;
+  resetKeys?: readonly unknown[];
 }
 
 /** Bảng bản gán vai trò (phạm vi, thời hạn, trạng thái, ghi chú). */
-export function AssignmentTable({ assignments, showUser, showRole, canManage, emptyText, onEdit, onEnd, onDelete }: AssignmentTableProps) {
+export function AssignmentTable({
+  assignments,
+  showUser,
+  showRole,
+  canManage,
+  emptyText,
+  onEdit,
+  onEnd,
+  onDelete,
+  pageKey,
+  resetKeys,
+}: AssignmentTableProps) {
   const columnCount = 4 + (showUser ? 1 : 0) + (showRole ? 1 : 0) + (canManage ? 1 : 0);
+  const paging = usePagination(assignments, { storageKey: pageKey, resetKeys });
+  const rows = pageKey ? paging.pageItems : assignments;
   return (
+    <>
     <div className="table-responsive">
       <table className="table table-hover align-middle mb-0">
         <thead>
@@ -56,7 +75,7 @@ export function AssignmentTable({ assignments, showUser, showRole, canManage, em
               </td>
             </tr>
           ) : (
-            assignments.map((a) => {
+            rows.map((a) => {
               const status = STATUS_META[a.status] ?? STATUS_META.Active;
               return (
                 <tr key={a.id} style={{ opacity: a.status === "Expired" ? 0.7 : 1 }}>
@@ -111,6 +130,16 @@ export function AssignmentTable({ assignments, showUser, showRole, canManage, em
         </tbody>
       </table>
     </div>
+    {pageKey && (
+      <Pagination
+        page={paging.page}
+        pageSize={paging.pageSize}
+        total={paging.total}
+        onPageChange={paging.setPage}
+        onPageSizeChange={paging.setPageSize}
+      />
+    )}
+    </>
   );
 }
 

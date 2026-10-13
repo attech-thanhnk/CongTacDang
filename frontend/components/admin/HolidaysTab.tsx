@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
-import { Card } from "@/components/common";
+import { Card, Pagination, usePagination } from "@/components/common";
 import { Holiday, holidayService } from "@/services/holidayService";
 import { AdminModal } from "./AdminModal";
 import { errorMessage, errorTitle } from "./adminUtils";
@@ -82,6 +82,8 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
       },
     });
 
+  const paging = usePagination(items, { storageKey: "catalog.holidays", resetKeys: [year] });
+
   return (
     <>
       <Card>
@@ -113,7 +115,7 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
               ) : items.length === 0 ? (
                 <tr><td colSpan={4} className="text-center py-4 text-secondary">Chưa có ngày nghỉ nào trong năm {year}.</td></tr>
               ) : (
-                items.map((h) => (
+                paging.pageItems.map((h) => (
                   <tr key={h.id}>
                     <td className="ps-3 fw-semibold">{formatDate(h.date)}</td>
                     <td>{weekday(h.date)}</td>
@@ -134,6 +136,13 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
             </tbody>
           </table>
         </div>
+        <Pagination
+          page={paging.page}
+          pageSize={paging.pageSize}
+          total={paging.total}
+          onPageChange={paging.setPage}
+          onPageSizeChange={paging.setPageSize}
+        />
       </Card>
 
       {form && (

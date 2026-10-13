@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
+import { Pagination } from "@/components/common/Pagination";
+import { usePagination } from "@/components/common/usePagination";
 import { PeriodStatusBadge } from "@/components/periods/PeriodStatusBadge";
 import { CreatePeriodModal } from "@/components/periods/CreatePeriodModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,6 +31,7 @@ export default function PeriodsPage() {
       .catch((err: any) => toast.error(err?.message || "Không tải được danh sách kỳ."))
       .finally(() => setLoading(false));
   }, [toast]);
+  const paging = usePagination(periods, { storageKey: "periods" });
 
   return (
     <div className="page-wrapper">
@@ -53,12 +56,13 @@ export default function PeriodsPage() {
             ) : periods.length === 0 ? (
               <EmptyState title="Chưa có kỳ đánh giá" />
             ) : (
+              <>
               <div className="table-responsive"><table className="table table-hover align-middle mb-0 periods-table">
                 <thead>
                   <tr><th>Kỳ</th><th>Trạng thái</th><th>Bộ tiêu chí</th><th>Cách xét duyệt</th><th className="text-end">Người được đánh giá</th><th /></tr>
                 </thead>
                 <tbody>
-                  {periods.map((p) => (
+                  {paging.pageItems.map((p) => (
                     <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => router.push(`/periods/${p.id}`)}>
                       <td className="fw-semibold">
                         {p.name}
@@ -76,6 +80,14 @@ export default function PeriodsPage() {
                   ))}
                 </tbody>
               </table></div>
+              <Pagination
+                page={paging.page}
+                pageSize={paging.pageSize}
+                total={paging.total}
+                onPageChange={paging.setPage}
+                onPageSizeChange={paging.setPageSize}
+              />
+              </>
             )}
           </div>
         </section>

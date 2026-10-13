@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
+import { Pagination } from "@/components/common/Pagination";
+import { usePagination } from "@/components/common/usePagination";
 import { GradeBadge } from "@/components/common/StatusBadge";
 import { RecordTag } from "@/components/dashboard/RecordTag";
 import { initialsOf } from "@/components/dashboard/taskUtils";
@@ -136,6 +138,10 @@ export default function EvaluationsPage() {
       return byName * direction;
     });
   }, [baseFiltered, statusFilter, sort]);
+  const paging = usePagination(filtered, {
+    storageKey: "evaluations",
+    resetKeys: [periodId, search, statusFilter, department, partyCell, sort],
+  });
 
   const toggleSort = (key: SortKey) => setSort((s) => (s.key === key ? { key, desc: !s.desc } : { key, desc: false }));
   const sortIcon = (key: SortKey) =>
@@ -224,6 +230,7 @@ export default function EvaluationsPage() {
             ) : filtered.length === 0 ? (
               <EmptyState title="Không có hồ sơ" />
             ) : (
+              <>
               <div className={styles.tw}>
                 <table className={`${styles.table} ${styles.wide}`}>
                   <thead>
@@ -240,7 +247,7 @@ export default function EvaluationsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((r) => (
+                    {paging.pageItems.map((r) => (
                       <tr key={r.id} className={styles.rowLink} onClick={() => open(r.id)}>
                         <td>
                           <div className={styles.person}>
@@ -263,6 +270,14 @@ export default function EvaluationsPage() {
                   </tbody>
                 </table>
               </div>
+              <Pagination
+                page={paging.page}
+                pageSize={paging.pageSize}
+                total={paging.total}
+                onPageChange={paging.setPage}
+                onPageSizeChange={paging.setPageSize}
+              />
+              </>
             )}
           </section>
         )}

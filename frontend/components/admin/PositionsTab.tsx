@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
-import { Card } from "@/components/common";
+import { Card, Pagination, usePagination } from "@/components/common";
 import {
   APPROVAL_AUTHORITY_CODE_LABELS,
   ApprovalAuthorityCode,
@@ -75,6 +75,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
         (!term || p.name.toLowerCase().includes(term) || (p.statCode || "").toLowerCase().includes(term))
     );
   }, [positions, search, sideFilter]);
+  const paging = usePagination(filtered, { storageKey: "catalog.positions", resetKeys: [search, sideFilter] });
 
   const openEdit = (p: Position) =>
     setForm({
@@ -198,7 +199,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                   </td>
                 </tr>
               ) : (
-                filtered.map((p) => (
+                paging.pageItems.map((p) => (
                   <tr key={p.id} style={{ opacity: p.isActive ? 1 : 0.6 }}>
                     <td className="ps-3">
                       <span className="fw-semibold text-dark">{p.name}</span>
@@ -234,6 +235,13 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
             </tbody>
           </table>
         </div>
+        <Pagination
+          page={paging.page}
+          pageSize={paging.pageSize}
+          total={paging.total}
+          onPageChange={paging.setPage}
+          onPageSizeChange={paging.setPageSize}
+        />
       </Card>
 
       {form && (

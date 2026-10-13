@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { Card, PageHeader } from "@/components/common";
+import { Card, PageHeader, Pagination, usePagination } from "@/components/common";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { errorMessage, errorTitle, formatDateTime } from "@/components/admin/adminUtils";
 import {
@@ -60,6 +60,10 @@ export default function ImportsPage() {
     () => (preview ? (onlyErrors ? preview.rows.filter((r) => r.action === "error") : preview.rows) : []),
     [preview, onlyErrors]
   );
+  const paging = usePagination(visibleRows, {
+    storageKey: "imports.preview",
+    resetKeys: [preview?.fileName, preview?.expiresAt, onlyErrors],
+  });
 
   if (!canImport) return <NoAccess title="Nhập dữ liệu" permissionName="Nhập dữ liệu từ Excel" />;
 
@@ -316,7 +320,7 @@ export default function ImportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleRows.map((row) => {
+                  {paging.pageItems.map((row) => {
                     const action = ACTION_LABELS[row.action];
                     return (
                       <tr key={row.rowNumber} className={row.action === "error" ? "table-danger" : undefined}>
@@ -347,6 +351,13 @@ export default function ImportsPage() {
                 </tbody>
               </table>
             </div>
+            <Pagination
+              page={paging.page}
+              pageSize={paging.pageSize}
+              total={paging.total}
+              onPageChange={paging.setPage}
+              onPageSizeChange={paging.setPageSize}
+            />
             <div className="card-body pt-3 d-flex flex-wrap align-items-center gap-2">
               {preview.summary.error > 0 ? (
                 <span className="text-danger">

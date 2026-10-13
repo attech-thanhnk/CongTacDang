@@ -314,6 +314,8 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
               <AssignmentTable
                 assignments={visibleAssignments}
                 showUser
+                pageKey="role.assignments"
+                resetKeys={[showHistory]}
                 canManage
                 emptyText="Chưa có ai được gán vai trò này."
                 onEdit={(a) => (isOwnAssignment(a) ? toast.warning("Không thể sửa bản gán của chính mình.") : setAssignmentForm({ assignment: a }))}

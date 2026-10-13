@@ -3,6 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import type { WorkQueueItemDto, WorkflowStepCode } from "@/services/evaluationService";
+import { Pagination } from "@/components/common/Pagination";
+import { usePagination } from "@/components/common/usePagination";
 import styles from "./dashboard.module.css";
 import { deadlineState, initialsOf, shortDate, taskActionLabel } from "./taskUtils";
 
@@ -35,8 +37,22 @@ function DeadlineCell({ task }: { task: TaskRow }) {
  * Bảng việc cần xử lý (Tổng quan và trang Việc cần xử lý): cán bộ, hạn, nút ghi đúng tên việc.
  * Việc thuộc kỳ khác kỳ đang chọn hiện thêm tên kỳ cạnh tên cán bộ.
  */
-export function TaskTable({ tasks, periodId }: { tasks: TaskRow[]; periodId?: string }) {
+export function TaskTable({
+  tasks,
+  periodId,
+  pageKey,
+  resetKeys,
+}: {
+  tasks: TaskRow[];
+  periodId?: string;
+  /** Có thì phân trang (khóa ghi nhớ số dòng/trang); bỏ trống thì hiện mọi dòng. */
+  pageKey?: string;
+  resetKeys?: readonly unknown[];
+}) {
+  const paging = usePagination(tasks, { storageKey: pageKey, resetKeys });
+  const rows = pageKey ? paging.pageItems : tasks;
   return (
+    <>
     <div className={styles.tw}>
       <table className={styles.table}>
         <thead>
@@ -47,7 +63,7 @@ export function TaskTable({ tasks, periodId }: { tasks: TaskRow[]; periodId?: st
           </tr>
         </thead>
         <tbody>
-          {tasks.map((task) => (
+          {rows.map((task) => (
             <tr key={`${task.recordId}-${task.step}`}>
               <td>
                 <div className={styles.person}>
@@ -79,6 +95,16 @@ export function TaskTable({ tasks, periodId }: { tasks: TaskRow[]; periodId?: st
         </tbody>
       </table>
     </div>
+    {pageKey && (
+      <Pagination
+        page={paging.page}
+        pageSize={paging.pageSize}
+        total={paging.total}
+        onPageChange={paging.setPage}
+        onPageSizeChange={paging.setPageSize}
+      />
+    )}
+    </>
   );
 }
 
