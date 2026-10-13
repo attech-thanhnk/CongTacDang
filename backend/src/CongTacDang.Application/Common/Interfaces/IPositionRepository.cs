@@ -67,6 +67,36 @@ public interface IPositionRepository
     /// <summary>Đơn vị chính quyền tồn tại, chưa xóa, đang hoạt động.</summary>
     Task<bool> DepartmentIsActiveAsync(Guid id, CancellationToken ct = default);
 
+    /// <summary>
+    /// Chức vụ đang hiệu lực tại <paramref name="at"/> kèm cán bộ (chưa xóa) và đơn vị giữ chức vụ (không theo dõi).
+    /// Lọc theo cán bộ (<paramref name="userIds"/>) và/hoặc đúng đơn vị chính quyền / tổ chức Đảng; null = không lọc.
+    /// </summary>
+    Task<List<PositionHolding>> ListActiveHoldingsAsync(
+        IReadOnlyCollection<Guid>? userIds, Guid? departmentId, Guid? partyCellId, DateTime at, CancellationToken ct = default);
+
+    /// <summary>Đơn vị chính quyền và tổ chức Đảng của các cán bộ (chưa xóa) theo Id.</summary>
+    Task<Dictionary<Guid, MemberUnits>> GetMemberUnitsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct = default);
+
+    /// <summary>Đường dẫn cây (<c>Path</c>) của mọi đơn vị chính quyền và tổ chức Đảng (kể cả đã ngừng hoạt động).</summary>
+    Task<OrgPaths> GetOrgPathsAsync(CancellationToken ct = default);
+
     /// <summary>Lưu thay đổi (audit tự động qua DbContext).</summary>
     Task SaveChangesAsync(CancellationToken ct = default);
 }
+
+/// <summary>Một chức vụ đang hiệu lực của cán bộ tại một đơn vị.</summary>
+public sealed record PositionHolding(
+    Guid UserId,
+    string FullName,
+    string Username,
+    bool UserActive,
+    string PositionName,
+    int PositionSortOrder,
+    Guid? DepartmentId,
+    Guid? PartyCellId);
+
+/// <summary>Đơn vị chính quyền và tổ chức Đảng (nơi sinh hoạt) của một cán bộ.</summary>
+public sealed record MemberUnits(Guid? DepartmentId, Guid? PartyCellId);
+
+/// <summary>Đường dẫn cây theo Id của đơn vị chính quyền và tổ chức Đảng.</summary>
+public sealed record OrgPaths(IReadOnlyDictionary<Guid, string> Departments, IReadOnlyDictionary<Guid, string> PartyCells);

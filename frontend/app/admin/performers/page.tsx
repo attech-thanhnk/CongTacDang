@@ -10,9 +10,23 @@ import { NoAccess } from "@/components/admin/NoAccess";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { UserPicker, PickedUser } from "@/components/admin/UserPicker";
 import { useCatalogOptions } from "@/components/admin/useCatalogOptions";
-import { endOfDayExclusiveIso, errorMessage, errorTitle, formatDate } from "@/components/admin/adminUtils";
+import {
+  endOfDayExclusiveIso,
+  errorMessage,
+  errorTitle,
+  exclusiveIsoToLastDayInput,
+  formatDateOnly,
+} from "@/components/admin/adminUtils";
 import { treeLabel } from "@/services/catalogService";
-import { Performer, PerformerJob, roleService, ScopeType, UnitPerformers } from "@/services/roleService";
+import {
+  Performer,
+  PerformerJob,
+  PerformerReviewItem,
+  PositionHolder,
+  roleService,
+  ScopeType,
+  UnitPerformers,
+} from "@/services/roleService";
 
 type UnitKind = ScopeType;
 
@@ -52,6 +66,8 @@ function PerformersContent() {
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState<PerformerJob | null>(null);
   const [saving, setSaving] = useState(false);
+  const [review, setReview] = useState<PerformerReviewItem[] | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(true);
 
   useEffect(() => setKind(urlKind), [urlKind]);
 
@@ -78,9 +94,23 @@ function PerformersContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [departmentId, partyCellId]);
 
+  const loadReview = useCallback(async () => {
+    try {
+      setReview(await roleService.getPerformerReview());
+    } catch (err) {
+      setReview(null);
+      toast.error(errorMessage(err, "Không tải được danh sách bản gán cần xem lại."), errorTitle(err));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (canAssign) load();
   }, [canAssign, load]);
+
+  useEffect(() => {
+    if (canAssign) loadReview();
+  }, [canAssign, loadReview]);
 
   useEffect(() => {
     if (!data || !focusPermission) return;
@@ -106,12 +136,37 @@ function PerformersContent() {
         try {
           await roleService.endAssignment(person.assignmentId);
           toast.success(`Đã gỡ ${person.fullName}.`);
-          await load();
+          await Promise.all([load(), loadReview()]);
         } catch (err) {
           toast.error(errorMessage(err, "Không gỡ được người thực hiện."), errorTitle(err), 8000);
         }
       },
     });
+
+  const handleRemoveReviewed = (item: PerformerReviewItem) =>
+    confirm({
+      title: "Gỡ bản gán",
+      message:
+        `Gỡ vai trò "${item.roleName}" của ${item.fullName} tại ${item.scopeText}? ` +
+        "Bản gán kết thúc ngay, người này mất mọi việc của vai trò đó tại nơi giao.",
+      confirmText: "Gỡ",
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          await roleService.endAssignment(item.assignmentId);
+          toast.success(`Đã gỡ ${item.fullName}.`);
+          await Promise.all([load(), loadReview()]);
+        } catch (err) {
+          toast.error(errorMessage(err, "Không gỡ được bản gán."), errorTitle(err), 8000);
+        }
+      },
+    });
+
+  const viewUnit = (item: PerformerReviewItem) => {
+    if (item.scopeType === "Department" && item.scopeId) selectUnit({ departmentId: item.scopeId });
+    else if (item.scopeType === "PartyCell" && item.scopeId) selectUnit({ partyCellId: item.scopeId });
+    else selectUnit({});
+  };
 
   const handleAdd = async (payload: { user: PickedUser; roleId: string; validTo: string; note: string }) => {
     if (!data) return;
@@ -127,7 +182,7 @@ function PerformersContent() {
       });
       toast.success(`Đã thêm ${payload.user.fullName}.`);
       setAdding(null);
-      await load();
+      await Promise.all([load(), loadReview()]);
     } catch (err) {
       toast.error(errorMessage(err, "Không thêm được người thực hiện."), errorTitle(err), 8000);
     } finally {
@@ -141,6 +196,13 @@ function PerformersContent() {
     <div className="page-wrapper">
       <PageHeader title="Người thực hiện" subTitle="Ai làm từng việc của quy trình đánh giá tại mỗi đơn vị" />
       <div className="page-body">
+        <ReviewCard
+          items={review}
+          open={reviewOpen}
+          onToggle={() => setReviewOpen((v) => !v)}
+          onViewUnit={viewUnit}
+          onRemove={handleRemoveReviewed}
+        />
         <Card className="mb-3">
           <CardBody>
             <div className="row g-2 align-items-end">
@@ -208,6 +270,7 @@ function PerformersContent() {
               {!data.scopeActive && <span className="badge bg-secondary">Đơn vị đã ngừng hoạt động</span>}
               {loading && <span className="spinner-border spinner-border-sm text-secondary" />}
             </div>
+            {data.scopeType !== "Global" && <HoldersLine holders={data.holders} />}
             <div className="d-flex flex-column gap-2">
               {data.jobs.map((job) => (
                 <JobCard
@@ -229,12 +292,121 @@ function PerformersContent() {
         <AddPerformerModal
           job={adding}
           unitName={data.scopeName}
+          holders={data.holders}
           canManageRoles={canManageRoles}
           saving={saving}
           onClose={() => setAdding(null)}
           onSubmit={handleAdd}
         />
       )}
+    </div>
+  );
+}
+
+const EXPIRING_SOON_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Ngày cuối còn hiệu lực của bản gán (validTo không bao gồm) dạng dd/MM/yyyy. */
+function lastDay(validTo: string): string {
+  return formatDateOnly(exclusiveIsoToLastDayInput(validTo));
+}
+
+function isExpiringSoon(validTo: string): boolean {
+  return new Date(validTo).getTime() - Date.now() <= EXPIRING_SOON_MS;
+}
+
+function TemporaryBadge({ validTo }: { validTo: string }) {
+  const soon = isExpiringSoon(validTo);
+  return (
+    <span className={`badge ${soon ? "bg-warning-subtle text-warning-emphasis" : "bg-info-subtle text-info-emphasis"}`}>
+      <i className="bi bi-clock me-1" />
+      Giao tạm đến {lastDay(validTo)}
+    </span>
+  );
+}
+
+/** Người giữ chức vụ tại đơn vị đang xem. */
+function HoldersLine({ holders }: { holders: PositionHolder[] }) {
+  return (
+    <div className="small mb-2 px-2 py-1 rounded border bg-light">
+      <span className="text-secondary">Chức vụ tại đơn vị: </span>
+      {holders.length === 0 ? (
+        <span className="text-secondary">chưa có ai được ghi nhận chức vụ tại đơn vị này.</span>
+      ) : (
+        holders.map((h, i) => (
+          <React.Fragment key={`${h.userId}-${h.positionName}`}>
+            {i > 0 && "; "}
+            {h.positionName} — <span className="fw-semibold">{h.fullName}</span>
+          </React.Fragment>
+        ))
+      )}
+    </div>
+  );
+}
+
+/** Bản gán cần xem lại trên toàn công ty. */
+function ReviewCard({
+  items,
+  open,
+  onToggle,
+  onViewUnit,
+  onRemove,
+}: {
+  items: PerformerReviewItem[] | null;
+  open: boolean;
+  onToggle: () => void;
+  onViewUnit: (item: PerformerReviewItem) => void;
+  onRemove: (item: PerformerReviewItem) => void;
+}) {
+  if (!items) return null;
+  if (items.length === 0) {
+    return (
+      <div className="small text-success mb-3">
+        <i className="bi bi-check-circle me-1" />
+        Không có bản gán cần xem lại
+      </div>
+    );
+  }
+  return (
+    <div className="card shadow-sm border-warning mb-3">
+      <div className="card-body py-2">
+        <button
+          type="button"
+          className="btn btn-link p-0 text-decoration-none fw-semibold text-warning-emphasis"
+          onClick={onToggle}
+          aria-expanded={open}
+        >
+          <i className={`bi ${open ? "bi-chevron-down" : "bi-chevron-right"} me-1`} />
+          Cần xem lại ({items.length})
+        </button>
+        {open && (
+          <ul className="list-unstyled small mb-0 mt-2">
+            {items.map((item) => (
+              <li key={item.assignmentId} className="d-flex flex-wrap align-items-center gap-2 py-1 border-top">
+                <span className="fw-semibold">{item.fullName}</span>
+                <span className="text-secondary">({item.username})</span>
+                <span className="text-secondary">
+                  — vai trò {item.roleName}, giao tại {item.scopeText}
+                </span>
+                <span
+                  className={`badge ${
+                    item.reasonCode === "ExpiringSoon" ? "bg-info-subtle text-info-emphasis" : "bg-warning-subtle text-warning-emphasis"
+                  }`}
+                >
+                  {item.reason}
+                </span>
+                <span className="ms-auto d-flex gap-3">
+                  <button type="button" className="btn btn-sm btn-link p-0" onClick={() => onViewUnit(item)}>
+                    Xem đơn vị
+                  </button>
+                  <button type="button" className="btn btn-sm btn-link text-danger p-0" onClick={() => onRemove(item)}>
+                    Gỡ
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
@@ -274,10 +446,24 @@ function JobCard({
               <li key={`${person.userId}-${person.assignmentId}`} className="d-flex flex-wrap align-items-center gap-2 py-1 border-top">
                 <span className="fw-semibold">{person.fullName}</span>
                 <span className="text-secondary">({person.username})</span>
+                {person.positionAtScope && <span className="text-body">· {person.positionAtScope}</span>}
                 <span className="text-secondary">
                   — vai trò {person.roleName}, giao tại {person.scopeText}
-                  {person.validTo && `, đến ${formatDate(person.validTo)}`}
                 </span>
+                {person.validTo ? (
+                  <TemporaryBadge validTo={person.validTo} />
+                ) : (
+                  person.scopeType !== "Global" &&
+                  !person.positionAtScope && (
+                    <span
+                      className="badge bg-warning-subtle text-warning-emphasis"
+                      title="Nếu đã luân chuyển thì gỡ; nếu là phụ trách tạm thì đặt thời hạn."
+                    >
+                      <i className="bi bi-exclamation-triangle me-1" />
+                      Không giữ chức vụ ở nơi giao
+                    </span>
+                  )
+                )}
                 <span className="ms-auto">
                   {person.assignedHere ? (
                     <button type="button" className="btn btn-sm btn-link text-danger p-0" onClick={() => onRemove(person)}>
@@ -301,6 +487,7 @@ function JobCard({
 function AddPerformerModal({
   job,
   unitName,
+  holders,
   canManageRoles,
   saving,
   onClose,
@@ -308,6 +495,7 @@ function AddPerformerModal({
 }: {
   job: PerformerJob;
   unitName: string;
+  holders: PositionHolder[];
   canManageRoles: boolean;
   saving: boolean;
   onClose: () => void;
@@ -355,6 +543,21 @@ function AddPerformerModal({
             <label className="form-label">
               Người thực hiện <span className="text-danger">*</span>
             </label>
+            {holders.length > 0 && (
+              <div className="d-flex flex-wrap align-items-center gap-1 mb-2 small">
+                <span className="text-secondary">Chọn nhanh:</span>
+                {holders.map((h) => (
+                  <button
+                    key={`${h.userId}-${h.positionName}`}
+                    type="button"
+                    className={`btn btn-sm py-0 ${user?.id === h.userId ? "btn-primary" : "btn-outline-secondary"}`}
+                    onClick={() => setUser({ id: h.userId, username: h.username, fullName: h.fullName })}
+                  >
+                    {h.fullName} ({h.positionName})
+                  </button>
+                ))}
+              </div>
+            )}
             <UserPicker value={user} onChange={setUser} />
           </div>
           <div className="mb-2">

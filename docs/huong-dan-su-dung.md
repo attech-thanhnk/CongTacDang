@@ -33,7 +33,7 @@ Tài liệu dành cho người dùng: cán bộ được đánh giá, Chi ủy, 
 | 1 | Tự chấm điểm, đề xuất mức | Chính cán bộ |
 | 2 | Chi bộ xác nhận phiếu tự chấm | Chi ủy / Bí thư Chi bộ |
 | 3 | Đề xuất của tập thể lãnh đạo | Thư ký tập thể lãnh đạo ghi nhận kết quả hội nghị |
-| 4 | Thẩm định | Cơ quan thẩm định (Phòng Tổ chức cán bộ - Lao động) hoặc cấp trên |
+| 4 | Thẩm định | Phòng TCCB-LĐ hoặc cấp trên |
 | 5 | Nhận xét của cấp trực tiếp sử dụng | Giám đốc (hoặc Trưởng phòng, tùy nhóm) hoặc cấp trên |
 | 6 | Quyết định mức xếp loại | Người ghi nhận quyết định của Đảng ủy, hoặc kết quả của cấp trên |
 | 7 | Công bố, khóa kết quả | Văn phòng Đảng ủy |
@@ -461,6 +461,7 @@ Menu **Quản lý → Người dùng**. Lọc theo đơn vị, tổ chức Đả
   - **Thông tin**: thông tin hồ sơ cán bộ, cấp quyết định xếp loại, tình trạng khóa đăng nhập.
   - **Chức vụ**: **Thêm chức vụ** (chức vụ Đảng gắn tổ chức Đảng, chức vụ chính quyền gắn đơn vị, chức vụ đoàn thể gắn một trong hai), ngày bắt đầu/kết thúc, căn cứ văn bản. Dùng **Kết thúc chức vụ** khi thôi giữ; **Xóa** chỉ khi nhập nhầm. Phía trên có **Cấp quyết định xếp loại** và **Kiểu trình bày phiếu tự đánh giá** (mặc định theo chức vụ); bấm **Thay đổi** để đặt riêng cho cán bộ khi cần (cấp quyết định phải ghi lý do).
   - **Vai trò & phạm vi**: các bản gán vai trò của người này.
+  - Khi người này có vai trò cần xem lại (vừa luân chuyển, thôi chức vụ, hoặc giao tạm sắp hết hạn), đầu trang hiện khung vàng **Vai trò cần xem lại** kèm nút **Gỡ**. Sau khi sửa chức vụ ở tab **Chức vụ**, khung này cập nhật ngay để biết cần gỡ vai trò nào.
   - **Người này làm được gì**: tra cứu quyền thực tế và phạm vi.
 
 Cấp quyết định xếp loại được suy ra từ chức vụ đang giữ. Thay đổi chức vụ chỉ áp dụng cho hồ sơ đánh giá tạo sau.
@@ -486,8 +487,11 @@ Menu **Quản lý → Người thực hiện** (cần quyền **Gán vai trò**)
 
 - **Xem theo**: *Toàn công ty*, *Đơn vị chính quyền* hoặc *Tổ chức Đảng*, rồi chọn đơn vị.
 - Màn hình liệt kê các việc của quy trình đánh giá (duyệt danh mục sản phẩm, chi bộ xác nhận phiếu tự chấm, ghi kết quả họp tập thể lãnh đạo, thẩm định, nhận xét của cấp trực tiếp sử dụng, lãnh đạo đơn vị đề xuất, ghi quyết định xếp loại, công bố, ghi nhận kết quả của cấp trên). Mỗi việc ghi tên người làm được, vai trò và nơi giao. Người được giao ở đơn vị cấp trên hoặc toàn công ty cũng làm được ở đơn vị cấp dưới. Xem theo Phòng thì hiện cả người được giao ở Chi bộ của cán bộ trong Phòng (ví dụ Bí thư Chi bộ xác nhận phiếu), và ngược lại; cột nơi giao ghi rõ giao ở đâu. Việc chưa có ai được đánh dấu **Chưa có người**.
-- **Thêm người**: chọn người, chọn vai trò (chỉ hiện vai trò làm được việc đó), thời hạn và ghi chú. Hệ thống tạo bản gán vai trò tại đơn vị đang xem.
+- Dưới tên đơn vị có dòng **Chức vụ tại đơn vị**: ai đang giữ chức vụ gì ở đúng đơn vị đó (theo tab **Chức vụ** của từng người). Quyền **không** tự đi theo chức vụ — người quản trị vẫn tự giao, dòng này chỉ để biết nên giao cho ai.
+- Cạnh tên mỗi người là chức vụ họ giữ ở nơi giao hoặc đơn vị cấp trên (ví dụ *Bí thư Chi bộ*, *Phó Giám đốc*), hoặc *Cán bộ của đơn vị*. Giao không thời hạn mà người đó không giữ chức vụ cũng không thuộc nơi giao thì có nhãn vàng **Không giữ chức vụ ở nơi giao**: nếu đã luân chuyển thì gỡ, nếu là phụ trách tạm thì đặt thời hạn. Bản gán có thời hạn có nhãn **Giao tạm đến …** (màu vàng khi còn dưới 7 ngày).
+- **Thêm người**: chọn người, chọn vai trò (chỉ hiện vai trò làm được việc đó), thời hạn và ghi chú. Hệ thống tạo bản gán vai trò tại đơn vị đang xem. Ô **Chọn nhanh** liệt kê người giữ chức vụ tại đơn vị, bấm để chọn ngay.
 - **Gỡ**: chỉ có ở người được giao tại đúng đơn vị đang xem; bản gán vai trò kết thúc ngay (người đó mất mọi việc của vai trò này tại đơn vị). Người được giao ở cấp trên chỉ xem, bấm **Xem tài khoản** để sửa.
+- Khung **Cần xem lại** ở đầu trang gom các bản gán trên toàn công ty cần xử lý: người không còn giữ chức vụ hay sinh hoạt ở nơi được giao, và bản giao tạm sắp hết hạn (trong 7 ngày). Mỗi dòng có **Xem đơn vị** và **Gỡ**. Khi không có gì cần xử lý, trang ghi *Không có bản gán cần xem lại*.
 - Từ trang kỳ đánh giá, bảng **Người thực hiện các bước** có liên kết mở thẳng màn hình này đúng đơn vị và việc còn thiếu người.
 
 ### 10.3 Danh mục

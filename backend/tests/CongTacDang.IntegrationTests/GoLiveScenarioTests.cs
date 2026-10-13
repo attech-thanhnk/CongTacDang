@@ -119,7 +119,7 @@ public sealed class GoLiveScenarioTests
         await GoLiveHttp.AssignAsync(admin, cadreId, await RoleIdByNameAsync("Lãnh đạo Phòng"), "Department", deptKt);
         await GoLiveHttp.AssignAsync(admin, cadreId, await RoleIdByNameAsync("Cấp ủy viên Đảng ủy"), "Global", null);
         await GoLiveHttp.AssignAsync(admin, appraiserId, evaluatedRole, "Global", null);
-        await GoLiveHttp.AssignAsync(admin, appraiserId, await RoleIdByNameAsync("Cơ quan thẩm định (Phòng TCCB-LĐ)"), "Global", null);
+        await GoLiveHttp.AssignAsync(admin, appraiserId, await RoleIdByNameAsync("Phòng TCCB-LĐ (mở kỳ, thẩm định)"), "Global", null);
 
         await _factory.WithDbAsync(async db =>
             Assert.Equal(8, await db.Set<UserRoleAssignment>().CountAsync()));
@@ -224,7 +224,7 @@ public sealed class GoLiveScenarioTests
 
         // ============ Bước 6: hồ sơ đi hết các bước bật tới Published ============
         // Quản trị giao thêm vai trò ghi nhận quyết định/công bố cho nguyen.van.a qua API gán vai trò.
-        var officeRoleId = await RoleIdByNameAsync("Văn phòng Đảng ủy (ghi nhận quyết định)");
+        var officeRoleId = await RoleIdByNameAsync("Văn phòng Đảng ủy (quyết định, công bố)");
         await GoLiveHttp.DataAsync(await admin.PostAsJsonAsync("/api/admin/assignments",
             new { userId = cadreId, roleId = officeRoleId, scopeType = "Global", note = "Phân công ghi nhận quyết định kỳ go-live" }));
 

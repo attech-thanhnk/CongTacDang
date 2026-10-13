@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using CongTacDang.Api.Authorization;
 using CongTacDang.Application.Common.Models;
@@ -32,5 +33,17 @@ public class AdminPerformerController : ControllerBase
     {
         var result = await _performers.GetAsync(departmentId, partyCellId, HttpContext.RequestAborted);
         return Ok(ApiResponse<UnitPerformersDto>.Ok(result, "Lấy danh sách người thực hiện thành công."));
+    }
+
+    /// <summary>
+    /// Bản gán cần xem lại: gán không thời hạn tại đơn vị mà người được giao không còn giữ chức vụ hay sinh hoạt ở đó,
+    /// hoặc giao tạm sắp hết hạn. <c>?userId=</c> để xem riêng một người.
+    /// </summary>
+    [HttpGet("review")]
+    [RequirePermission(PermissionCodes.SystemAssignmentsManage)]
+    public async Task<IActionResult> Review([FromQuery] Guid? userId)
+    {
+        var result = await _performers.GetReviewAsync(userId, HttpContext.RequestAborted);
+        return Ok(ApiResponse<List<PerformerReviewItemDto>>.Ok(result, "Lấy danh sách bản gán cần xem lại thành công."));
     }
 }

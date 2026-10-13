@@ -21,8 +21,52 @@ public class UnitPerformersDto
     /// <summary>Đơn vị đang xem còn hoạt động (đơn vị ngừng hoạt động không nhận bản gán mới).</summary>
     public bool ScopeActive { get; set; } = true;
 
+    /// <summary>
+    /// Người đang giữ chức vụ tại đúng đơn vị đang xem (tài khoản đang hoạt động), theo thứ tự chức vụ rồi họ tên;
+    /// rỗng khi Toàn công ty. Chỉ để tham khảo khi giao việc — quyền không tự đi theo chức vụ.
+    /// </summary>
+    public List<PositionHolderDto> Holders { get; set; } = new();
+
     /// <summary>Các việc theo thứ tự quy trình.</summary>
     public List<PerformerJobDto> Jobs { get; set; } = new();
+}
+
+/// <summary>Một người giữ chức vụ tại đơn vị.</summary>
+public class PositionHolderDto
+{
+    public Guid UserId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
+    public string PositionName { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Bản gán vai trò (có quyền thực hiện bước) cần người quản trị xem lại (API <c>GET /api/admin/performers/review</c>).
+/// </summary>
+public class PerformerReviewItemDto
+{
+    public Guid AssignmentId { get; set; }
+    public Guid UserId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
+    public string RoleName { get; set; } = string.Empty;
+
+    /// <summary>Global | Department | PartyCell.</summary>
+    public string ScopeType { get; set; } = string.Empty;
+
+    public Guid? ScopeId { get; set; }
+
+    /// <summary>Tên nơi giao.</summary>
+    public string ScopeText { get; set; } = string.Empty;
+
+    /// <summary>Hiệu lực đến (không bao gồm); null = không thời hạn.</summary>
+    public DateTime? ValidTo { get; set; }
+
+    /// <summary>NoPositionAtScope (không còn gắn với nơi giao) | ExpiringSoon (giao tạm sắp hết hạn).</summary>
+    public string ReasonCode { get; set; } = string.Empty;
+
+    /// <summary>Lý do cần xem lại (hiển thị).</summary>
+    public string Reason { get; set; } = string.Empty;
 }
 
 /// <summary>Một việc (ứng với một mã quyền thực hiện bước) và những người làm được việc đó tại đơn vị.</summary>
@@ -68,6 +112,13 @@ public class PerformerDto
 
     /// <summary>Hiệu lực đến (không bao gồm); null = không thời hạn.</summary>
     public DateTime? ValidTo { get; set; }
+
+    /// <summary>
+    /// Quan hệ của người được giao với nơi giao: tên các chức vụ đang giữ tại nơi giao hoặc đơn vị cấp trên của nó
+    /// (nối bằng ", "); "Cán bộ của đơn vị" nếu không giữ chức vụ nhưng thuộc nơi giao (hoặc đơn vị con);
+    /// null nếu không có quan hệ nào hoặc bản gán Toàn công ty.
+    /// </summary>
+    public string? PositionAtScope { get; set; }
 }
 
 /// <summary>Vai trò chọn được khi thêm người cho một việc.</summary>

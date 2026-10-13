@@ -23,6 +23,13 @@ public interface IPerformerService
     /// tổ chức Đảng <paramref name="partyCellId"/>, hoặc Toàn công ty (cả hai null).
     /// </summary>
     Task<UnitPerformersDto> GetAsync(Guid? departmentId, Guid? partyCellId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Bản gán đang hiệu lực (vai trò có quyền thực hiện bước, tài khoản đang hoạt động) cần xem lại: gán không thời hạn
+    /// tại đơn vị mà người được giao không giữ chức vụ cũng không thuộc đơn vị đó; hoặc giao tạm sắp hết hạn.
+    /// Lọc theo <paramref name="userId"/> nếu có.
+    /// </summary>
+    Task<List<PerformerReviewItemDto>> GetReviewAsync(Guid? userId, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -52,7 +59,17 @@ public sealed class PerformerService : IPerformerService
     private readonly IRoleRepository _roles;
     private readonly IPermissionResolver _resolver;
     private readonly IAuthorizationGuard _guard;
+    private readonly IPositionRepository _positions;
     private readonly TimeProvider _time;
+
+    /// <summary>Nhãn khi người được giao không giữ chức vụ nhưng là cán bộ của nơi giao (hoặc đơn vị con).</summary>
+    public const string MemberOfUnitText = "Cán bộ của đơn vị";
+
+    /// <summary>Số ngày trước khi hết hạn thì bản giao tạm được đưa vào danh sách cần xem lại.</summary>
+    public const int ExpiringSoonDays = 7;
+
+    /// <summary>Lệch giờ Việt Nam so với UTC (hiển thị ngày trong lý do).</summary>
+    private static readonly TimeSpan VietnamOffset = TimeSpan.FromHours(7);
 
     /// <summary>Khởi tạo dịch vụ.</summary>
     public PerformerService(
@@ -61,6 +78,7 @@ public sealed class PerformerService : IPerformerService
         IRoleRepository roles,
         IPermissionResolver resolver,
         IAuthorizationGuard guard,
+        IPositionRepository positions,
         TimeProvider? time = null)
     {
         _workflow = workflow;
@@ -68,11 +86,11 @@ public sealed class PerformerService : IPerformerService
         _roles = roles;
         _resolver = resolver;
         _guard = guard;
+        _positions = positions;
         _time = time ?? TimeProvider.System;
     }
 
-    /// <inheritdoc />
-    public async Task<UnitPerformersDto> GetAsync(Guid? departmentId, Guid? partyCellId, CancellationToken ct = default)
+    private void EnsureCanManage()
     {
         if (!_guard.Can(PermissionCodes.SystemAssignmentsManage, AccessTarget.None))
         {
@@ -80,6 +98,12 @@ public sealed class PerformerService : IPerformerService
                 $"Bạn không có quyền \"{PermissionCodes.DisplayName(PermissionCodes.SystemAssignmentsManage)}\" (phạm vi Toàn công ty). "
                 + "Hãy liên hệ quản trị hệ thống nếu cần được cấp quyền.");
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<UnitPerformersDto> GetAsync(Guid? departmentId, Guid? partyCellId, CancellationToken ct = default)
+    {
+        EnsureCanManage();
 
         if (departmentId == Guid.Empty)
             departmentId = null;
@@ -139,6 +163,19 @@ public sealed class PerformerService : IPerformerService
 
         // Ứng viên: tài khoản đang hoạt động có bản gán hiệu lực mà vai trò chứa một trong các quyền; quyền + phạm vi tính bằng resolver.
         var now = _time.GetUtcNow().UtcDateTime;
+
+        // Người giữ chức vụ tại đúng đơn vị đang xem — gợi ý khi giao việc (quyền không tự đi theo chức vụ).
+        if (scopeId.HasValue)
+        {
+            result.Holders = (await _positions.ListActiveHoldingsAsync(null, departmentId, partyCellId, now, ct))
+                .Where(h => h.UserActive)
+                .OrderBy(h => h.PositionSortOrder)
+                .ThenBy(h => h.PositionName, StringComparer.CurrentCulture)
+                .ThenBy(h => h.FullName, StringComparer.CurrentCulture)
+                .Select(h => new PositionHolderDto { UserId = h.UserId, FullName = h.FullName, Username = h.Username, PositionName = h.PositionName })
+                .ToList();
+        }
+
         var candidateIds = await _workflow.ListActiveUserIdsWithAnyPermissionAsync(JobPermissions, now, ct);
         var effective = new List<EffectivePermissions>();
         foreach (var userId in candidateIds)
@@ -206,6 +243,161 @@ public sealed class PerformerService : IPerformerService
             result.Jobs.Add(job);
         }
 
+        // Quan hệ của từng người được giao với nơi giao (chức vụ tại đó / cán bộ của đơn vị).
+        var allPeople = result.Jobs.SelectMany(j => j.People).ToList();
+        if (allPeople.Count > 0)
+        {
+            var relations = await ScopeRelations.LoadAsync(_positions, allPeople.Select(p => p.UserId).ToList(), now, ct);
+            foreach (var person in allPeople)
+                person.PositionAtScope = relations.Describe(person.UserId, ParseScope(person.ScopeType), person.ScopeId);
+        }
+
         return result;
+    }
+
+    /// <inheritdoc />
+    public async Task<List<PerformerReviewItemDto>> GetReviewAsync(Guid? userId, CancellationToken ct = default)
+    {
+        EnsureCanManage();
+        if (userId == Guid.Empty)
+            userId = null;
+
+        var now = _time.GetUtcNow().UtcDateTime;
+        var soon = now.AddDays(ExpiringSoonDays);
+        var jobRoles = (await _roles.GetAllRolesWithPermissionsAsync())
+            .Where(r => r.Permissions.Any(p => JobPermissions.Contains(p.Code)))
+            .Select(r => r.Id)
+            .ToHashSet();
+
+        var assignments = (await _assignments.QueryAsync(new RoleAssignmentFilter(UserId: userId, ActiveOn: now), ct))
+            .Where(a => jobRoles.Contains(a.RoleId) && a.User is { IsActive: true, IsDeleted: false })
+            .ToList();
+        if (assignments.Count == 0)
+            return new List<PerformerReviewItemDto>();
+
+        var relations = await ScopeRelations.LoadAsync(_positions, assignments.Select(a => a.UserId).ToList(), now, ct);
+        var flagged = new List<(Domain.Entities.UserRoleAssignment Assignment, string Code, string Reason)>();
+        foreach (var a in assignments)
+        {
+            var scope = (ScopeType)(int)a.ScopeType;
+            if (a.ValidTo.HasValue)
+            {
+                if (a.ValidTo.Value <= soon)
+                    flagged.Add((a, "ExpiringSoon", $"Giao tạm, hết hạn ngày {LastDayText(a.ValidTo.Value)}"));
+            }
+            else if (scope != ScopeType.Global && a.ScopeId.HasValue && relations.Describe(a.UserId, scope, a.ScopeId) == null)
+            {
+                flagged.Add((a, "NoPositionAtScope", "Không còn giữ chức vụ hay sinh hoạt ở nơi được giao"));
+            }
+        }
+        if (flagged.Count == 0)
+            return new List<PerformerReviewItemDto>();
+
+        var scoped = flagged.Where(f => f.Assignment.ScopeId.HasValue && f.Assignment.ScopeType != RoleScopeType.Global).ToList();
+        var names = await _assignments.GetScopeNamesAsync(
+            scoped.Where(f => f.Assignment.ScopeType == RoleScopeType.Department).Select(f => f.Assignment.ScopeId!.Value).Distinct().ToList(),
+            scoped.Where(f => f.Assignment.ScopeType == RoleScopeType.PartyCell).Select(f => f.Assignment.ScopeId!.Value).Distinct().ToList(),
+            ct);
+
+        return flagged
+            .Select(f => new PerformerReviewItemDto
+            {
+                AssignmentId = f.Assignment.Id,
+                UserId = f.Assignment.UserId,
+                FullName = f.Assignment.User?.FullName ?? string.Empty,
+                Username = f.Assignment.User?.Username ?? string.Empty,
+                RoleName = f.Assignment.Role?.Name ?? string.Empty,
+                ScopeType = ((ScopeType)(int)f.Assignment.ScopeType).ToString(),
+                ScopeId = f.Assignment.ScopeId,
+                ScopeText = f.Assignment.ScopeType == RoleScopeType.Global || !f.Assignment.ScopeId.HasValue
+                    ? RoleAssignmentService.GlobalScopeName
+                    : names.TryGetValue(f.Assignment.ScopeId.Value, out var n) ? n : "(không xác định)",
+                ValidTo = f.Assignment.ValidTo,
+                ReasonCode = f.Code,
+                Reason = f.Reason
+            })
+            .OrderBy(i => i.FullName, StringComparer.CurrentCulture)
+            .ThenBy(i => i.RoleName, StringComparer.CurrentCulture)
+            .ThenBy(i => i.ScopeText, StringComparer.CurrentCulture)
+            .ToList();
+    }
+
+    private static ScopeType ParseScope(string value)
+        => Enum.TryParse<ScopeType>(value, out var scope) ? scope : ScopeType.Global;
+
+    /// <summary>Ngày cuối còn hiệu lực (giờ Việt Nam) của mốc hết hạn không bao gồm, dạng dd/MM/yyyy.</summary>
+    private static string LastDayText(DateTime validToExclusive)
+    {
+        var utc = validToExclusive.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(validToExclusive, DateTimeKind.Utc)
+            : validToExclusive.ToUniversalTime();
+        return (utc.AddTicks(-1) + VietnamOffset).ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// Quan hệ giữa cán bộ và đơn vị: chức vụ đang giữ tại đơn vị hoặc đơn vị cấp trên của nó; nếu không có thì
+    /// cán bộ thuộc đơn vị đó (hoặc đơn vị con).
+    /// </summary>
+    private sealed class ScopeRelations
+    {
+        private readonly ILookup<Guid, PositionHolding> _holdings;
+        private readonly IReadOnlyDictionary<Guid, MemberUnits> _units;
+        private readonly OrgPaths _paths;
+
+        private ScopeRelations(ILookup<Guid, PositionHolding> holdings, IReadOnlyDictionary<Guid, MemberUnits> units, OrgPaths paths)
+        {
+            _holdings = holdings;
+            _units = units;
+            _paths = paths;
+        }
+
+        public static async Task<ScopeRelations> LoadAsync(IPositionRepository positions, IReadOnlyCollection<Guid> userIds, DateTime now, CancellationToken ct)
+        {
+            var ids = userIds.Distinct().ToList();
+            var holdings = await positions.ListActiveHoldingsAsync(ids, null, null, now, ct);
+            var units = await positions.GetMemberUnitsAsync(ids, ct);
+            var paths = await positions.GetOrgPathsAsync(ct);
+            return new ScopeRelations(holdings.ToLookup(h => h.UserId), units, paths);
+        }
+
+        /// <summary>Mô tả quan hệ; null khi bản gán Toàn công ty hoặc không có quan hệ nào.</summary>
+        public string? Describe(Guid userId, ScopeType scopeType, Guid? scopeId)
+        {
+            if (scopeType == ScopeType.Global || !scopeId.HasValue)
+                return null;
+            var isDepartment = scopeType == ScopeType.Department;
+            var tree = isDepartment ? _paths.Departments : _paths.PartyCells;
+
+            // Đơn vị được giao và các đơn vị cấp trên (theo Path); đơn vị không còn trong cây: chỉ chính nó.
+            var chain = new HashSet<Guid> { scopeId.Value };
+            if (tree.TryGetValue(scopeId.Value, out var scopePath))
+            {
+                foreach (var segment in scopePath.Split('/', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (Guid.TryParse(segment, out var id))
+                        chain.Add(id);
+                }
+            }
+
+            var names = _holdings[userId]
+                .Where(h => (isDepartment ? h.DepartmentId : h.PartyCellId) is Guid unit && chain.Contains(unit))
+                .OrderBy(h => h.PositionSortOrder)
+                .ThenBy(h => h.PositionName, StringComparer.CurrentCulture)
+                .Select(h => h.PositionName)
+                .Distinct()
+                .ToList();
+            if (names.Count > 0)
+                return string.Join(", ", names);
+
+            if (_units.TryGetValue(userId, out var member))
+            {
+                var own = isDepartment ? member.DepartmentId : member.PartyCellId;
+                if (own.HasValue
+                    && (own.Value == scopeId.Value
+                        || (tree.TryGetValue(own.Value, out var ownPath) && Organization.OrgTree.IsSelfOrDescendant(ownPath, scopeId.Value))))
+                    return MemberOfUnitText;
+            }
+            return null;
+        }
     }
 }

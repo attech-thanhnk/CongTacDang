@@ -619,7 +619,7 @@ public sealed class Quarter4ScenarioTests
 
             foreach (var p in w.All)
                 await Assign(p.Id, "Người được đánh giá", "Global", null);
-            await Assign(tccb.User.Id, "Cơ quan thẩm định (Phòng TCCB-LĐ)", "Global", null);
+            await Assign(tccb.User.Id, "Phòng TCCB-LĐ (mở kỳ, thẩm định)", "Global", null);
             await Assign(w.Bt.Id, "Chi ủy / Bí thư Chi bộ", "PartyCell", w.CellKt);
             await Assign(cellKtDeputy.User.Id, "Chi ủy / Bí thư Chi bộ", "PartyCell", w.CellKt);
             await Assign(cellVp.User.Id, "Chi ủy / Bí thư Chi bộ", "PartyCell", w.CellVpId);
@@ -631,7 +631,7 @@ public sealed class Quarter4ScenarioTests
             await Assign(w.Gd.Id, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Department", w.DeptTc);
             await Assign(w.Ct.Id, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Department", w.DeptBgd);
             await Assign(w.Tp.Id, "Lãnh đạo Phòng", "Department", w.DeptKt);
-            await Assign(office.User.Id, "Văn phòng Đảng ủy (ghi nhận quyết định)", "Global", null);
+            await Assign(office.User.Id, "Văn phòng Đảng ủy (quyết định, công bố)", "Global", null);
 
             w.Tccb = tccb.Client;
             w.CellKtDeputy = cellKtDeputy.Client;

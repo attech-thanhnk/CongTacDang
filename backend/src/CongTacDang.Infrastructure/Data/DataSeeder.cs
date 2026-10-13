@@ -91,7 +91,7 @@ public static class DataSeeder
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.MeetingRead, PermissionCodes.MeetingManage }),
         new(RoleCodes.CellCommittee, "Chi ủy / Bí thư Chi bộ", "Xác nhận phiếu tự chấm, lập hồ sơ tập thể của Chi bộ.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCellConfirm, PermissionCodes.CollectiveManage, PermissionCodes.MeetingRead }),
-        new(RoleCodes.Appraisal, "Cơ quan thẩm định (Phòng TCCB-LĐ)", "Thẩm định hồ sơ, quản lý kỳ đánh giá và bộ tiêu chí.",
+        new(RoleCodes.Appraisal, "Phòng TCCB-LĐ (mở kỳ, thẩm định)", "Thẩm định hồ sơ, quản lý kỳ đánh giá và bộ tiêu chí.",
             new[]
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationAppraise, PermissionCodes.PeriodManage,
@@ -101,7 +101,7 @@ public static class DataSeeder
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport, PermissionCodes.EvaluationImprovementManage }),
         new(RoleCodes.PartyCommitteeMember, "Cấp ủy viên Đảng ủy", "Xem hồ sơ, biên bản, báo cáo.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.MeetingRead, PermissionCodes.ReportExport }),
-        new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy (ghi nhận quyết định)", "Ghi nhận quyết định và kết quả của cấp trên, công bố, mở lại hồ sơ, xử lý kiến nghị.",
+        new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy (quyết định, công bố)", "Ghi nhận quyết định và kết quả của cấp trên, công bố, mở lại hồ sơ, xử lý kiến nghị.",
             new[]
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationExternalRecord,

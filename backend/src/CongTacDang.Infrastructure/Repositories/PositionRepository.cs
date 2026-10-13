@@ -108,6 +108,64 @@ public sealed class PositionRepository : IPositionRepository
     }
 
     /// <inheritdoc />
+    public async Task<List<PositionHolding>> ListActiveHoldingsAsync(
+        IReadOnlyCollection<Guid>? userIds, Guid? departmentId, Guid? partyCellId, DateTime at, CancellationToken ct = default)
+    {
+        var query = _db.MemberPositions.AsNoTracking()
+            .Where(mp => mp.ValidFrom <= at && (mp.ValidTo == null || mp.ValidTo > at)
+                && mp.Position != null && mp.User != null && !mp.User.IsDeleted);
+        if (userIds != null)
+        {
+            var ids = userIds.Distinct().ToList();
+            query = query.Where(mp => ids.Contains(mp.UserId));
+        }
+        if (departmentId.HasValue)
+            query = query.Where(mp => mp.DepartmentId == departmentId.Value);
+        if (partyCellId.HasValue)
+            query = query.Where(mp => mp.PartyCellId == partyCellId.Value);
+
+        var rows = await query
+            .Select(mp => new
+            {
+                mp.UserId,
+                mp.User!.FullName,
+                mp.User.Username,
+                mp.User.IsActive,
+                mp.Position!.Name,
+                mp.Position.SortOrder,
+                mp.DepartmentId,
+                mp.PartyCellId
+            })
+            .ToListAsync(ct);
+        return rows
+            .Select(r => new PositionHolding(r.UserId, r.FullName, r.Username, r.IsActive, r.Name, r.SortOrder, r.DepartmentId, r.PartyCellId))
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<Dictionary<Guid, MemberUnits>> GetMemberUnitsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct = default)
+    {
+        var ids = userIds.Distinct().ToList();
+        if (ids.Count == 0)
+            return new Dictionary<Guid, MemberUnits>();
+        var rows = await _db.PartyMemberProfiles.AsNoTracking()
+            .Where(m => ids.Contains(m.Id))
+            .Select(m => new { m.Id, m.DepartmentId, m.PartyCellId })
+            .ToListAsync(ct);
+        return rows.ToDictionary(r => r.Id, r => new MemberUnits(r.DepartmentId, r.PartyCellId));
+    }
+
+    /// <inheritdoc />
+    public async Task<OrgPaths> GetOrgPathsAsync(CancellationToken ct = default)
+    {
+        var departments = await _db.AdministrativeDepartments.AsNoTracking()
+            .Select(d => new { d.Id, d.Path }).ToDictionaryAsync(d => d.Id, d => d.Path, ct);
+        var cells = await _db.PartyCells.AsNoTracking()
+            .Select(c => new { c.Id, c.Path }).ToDictionaryAsync(c => c.Id, c => c.Path, ct);
+        return new OrgPaths(departments, cells);
+    }
+
+    /// <inheritdoc />
     public Task<List<PartyMemberProfile>> ListMembersWithDerivedAuthorityAsync(CancellationToken ct = default)
         => _db.PartyMemberProfiles
             .Where(m => m.ApprovalAuthorityOverride == null && _db.MemberPositions.Any(mp => mp.UserId == m.Id))

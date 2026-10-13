@@ -201,6 +201,11 @@ export const roleService = {
       `/admin/performers${toQuery({ departmentId: unit.departmentId, partyCellId: unit.partyCellId })}`
     );
   },
+
+  /** Bản gán cần xem lại (không còn gắn với nơi giao / giao tạm sắp hết hạn); có `userId` = riêng một người. */
+  getPerformerReview(userId?: string): Promise<PerformerReviewItem[]> {
+    return request<PerformerReviewItem[]>(`/admin/performers/review${toQuery({ userId })}`);
+  },
 };
 
 /** Một người làm được việc tại đơn vị, qua một bản gán vai trò. */
@@ -218,6 +223,31 @@ export interface Performer {
   /** Gán tại đúng đơn vị đang xem (gỡ được tại màn hình này). */
   assignedHere: boolean;
   validTo?: string | null;
+  /** Chức vụ người này giữ tại nơi giao (hoặc đơn vị cấp trên), "Cán bộ của đơn vị", hoặc null nếu không liên quan. */
+  positionAtScope?: string | null;
+}
+
+/** Người giữ chức vụ tại đơn vị đang xem. */
+export interface PositionHolder {
+  userId: string;
+  fullName: string;
+  username: string;
+  positionName: string;
+}
+
+/** Bản gán cần xem lại (`GET /api/admin/performers/review`). */
+export interface PerformerReviewItem {
+  assignmentId: string;
+  userId: string;
+  fullName: string;
+  username: string;
+  roleName: string;
+  scopeType: ScopeType;
+  scopeId?: string | null;
+  scopeText: string;
+  validTo?: string | null;
+  reasonCode: "NoPositionAtScope" | "ExpiringSoon";
+  reason: string;
 }
 
 /** Vai trò chọn được khi thêm người cho một việc. */
@@ -241,5 +271,7 @@ export interface UnitPerformers {
   scopeId?: string | null;
   scopeName: string;
   scopeActive: boolean;
+  /** Người giữ chức vụ tại đúng đơn vị đang xem (rỗng khi Toàn công ty). */
+  holders: PositionHolder[];
   jobs: PerformerJob[];
 }

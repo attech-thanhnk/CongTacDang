@@ -20,6 +20,7 @@ import { AccountListItem, APPROVAL_AUTHORITY_LABELS, UpdateAccountPayload, userS
 import {
   AdminRole,
   CreateAssignmentPayload,
+  PerformerReviewItem,
   PermissionModule,
   RoleAssignment,
   roleService,
@@ -42,6 +43,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
   const isSelf = currentUser?.id === userId;
 
   const [account, setAccount] = useState<AccountListItem | null>(null);
+  const [review, setReview] = useState<PerformerReviewItem[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("info");
   const [editing, setEditing] = useState(false);
@@ -106,9 +108,23 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     }
   }, [userId]);
 
+  // Bản gán của người này cần xem lại (không còn gắn với nơi giao / giao tạm sắp hết hạn) — hiện ngay sau khi đổi chức vụ.
+  const loadReview = useCallback(async () => {
+    if (!canAssign) return;
+    try {
+      setReview(await roleService.getPerformerReview(userId));
+    } catch {
+      setReview([]);
+    }
+  }, [userId, canAssign]);
+
   useEffect(() => {
     if (canRead) loadAccount();
   }, [canRead, loadAccount]);
+
+  useEffect(() => {
+    loadReview();
+  }, [loadReview]);
 
   useEffect(() => {
     if (tab === "assignments") loadAssignments();
@@ -237,6 +253,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
 
   const afterAssignmentChange = async () => {
     await loadAssignments();
+    await loadReview();
     if (effective) await loadEffective();
   };
 
@@ -276,6 +293,17 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       isDanger: true,
       onConfirm: async () => {
         if (await run(() => roleService.endAssignment(a.id), "Đã kết thúc bản gán.", "Không kết thúc được bản gán.")) await afterAssignmentChange();
+      },
+    });
+
+  const handleEndReviewed = (item: PerformerReviewItem) =>
+    confirm({
+      title: "Gỡ bản gán",
+      message: `Gỡ vai trò "${item.roleName}" (${item.scopeText}) của ${item.fullName}? Bản gán kết thúc ngay và chuyển vào lịch sử.`,
+      confirmText: "Gỡ",
+      isDanger: true,
+      onConfirm: async () => {
+        if (await run(() => roleService.endAssignment(item.assignmentId), "Đã gỡ bản gán.", "Không gỡ được bản gán.")) await afterAssignmentChange();
       },
     });
 
@@ -394,6 +422,28 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
 
       <div className="page-body">
         <div className="d-flex flex-column gap-3">
+        {canAssign && review.length > 0 && (
+          <div className="alert alert-warning small mb-0">
+            <div className="fw-semibold mb-1">
+              <i className="bi bi-exclamation-triangle me-1" />
+              Vai trò cần xem lại
+            </div>
+            <ul className="list-unstyled mb-0">
+              {review.map((item) => (
+                <li key={item.assignmentId} className="d-flex flex-wrap align-items-center gap-2 py-1">
+                  <span>
+                    <strong>{item.roleName}</strong> tại {item.scopeText} — {item.reason}
+                  </span>
+                  {!isSelf && (
+                    <button type="button" className="btn btn-sm btn-link text-danger p-0 ms-auto" onClick={() => handleEndReviewed(item)}>
+                      Gỡ
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <ul className="nav nav-tabs">
           {(
             [
@@ -437,7 +487,10 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
             canManage={canManage}
             departments={departments}
             partyCells={partyCells}
-            onChanged={loadAccount}
+            onChanged={() => {
+              loadAccount();
+              loadReview();
+            }}
           />
         )}
 
