@@ -79,6 +79,8 @@ public static class DocxTemplateEngine
                 if (element is OpenXmlPartRootElement partRoot)
                     partRoot.Save();
             }
+
+            KeepManualLineBreaksUnjustified(mainPart);
         }
 
         return new DocxRenderResult(ms.ToArray(), missing.ToList());
@@ -102,6 +104,25 @@ public static class DocxTemplateEngine
     }
 
     /// <summary>Phần thân tài liệu, header và footer.</summary>
+    /// <summary>
+    /// Dòng kết thúc bằng ngắt dòng (giá trị nhiều dòng điền vào đoạn căn đều) không bị giãn chữ ra hết dòng
+    /// (tùy chọn tương thích <c>doNotExpandShiftReturn</c>, Word và LibreOffice đều theo).
+    /// </summary>
+    private static void KeepManualLineBreaksUnjustified(MainDocumentPart mainPart)
+    {
+        var settingsPart = mainPart.DocumentSettingsPart ?? mainPart.AddNewPart<DocumentSettingsPart>();
+        settingsPart.Settings ??= new Settings();
+        var compat = settingsPart.Settings.GetFirstChild<Compatibility>();
+        if (compat == null)
+        {
+            compat = new Compatibility();
+            settingsPart.Settings.AddChild(compat);
+        }
+        if (compat.GetFirstChild<DoNotExpandShiftReturn>() == null)
+            compat.AddChild(new DoNotExpandShiftReturn());
+        settingsPart.Settings.Save();
+    }
+
     private static IEnumerable<OpenXmlElement> PartRoots(MainDocumentPart mainPart)
     {
         if (mainPart.Document != null)

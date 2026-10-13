@@ -19,15 +19,17 @@ interface Props {
 type Unit = "cell" | "department" | "company";
 type Vote = Omit<EvaluationMeetingVoteSummaryDto, "recordId">;
 
-/** ISO (UTC) → giá trị ô datetime-local theo giờ máy người dùng. */
+/** Giờ họp nhập và hiển thị theo giờ Việt Nam (như giờ in trên biên bản), không phụ thuộc múi giờ của máy. */
+const VN_OFFSET = "+07:00";
+
+/** ISO (UTC) → giá trị ô datetime-local theo giờ Việt Nam. */
 const toLocalInput = (iso?: string | null) => {
   if (!iso) return "";
-  const date = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  const date = new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000);
+  return date.toISOString().slice(0, 16);
 };
 
-const toIso = (local: string) => (local ? new Date(local).toISOString() : undefined);
+const toIso = (local: string) => (local ? new Date(`${local}:00${VN_OFFSET}`).toISOString() : undefined);
 
 const emptyVote: Vote = { votesExcellent: 0, votesGood: 0, votesSatisfactory: 0, votesUnsatisfactory: 0, votesNotRated: 0, invalidVotes: 0, notes: "" };
 
