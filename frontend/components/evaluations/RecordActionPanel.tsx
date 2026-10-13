@@ -22,6 +22,7 @@ import { FileUploadModal } from "@/components/attachments/FileUploadModal";
 import { useCriteria } from "@/components/evaluations/useCriteria";
 import { SelfScoreForm } from "@/components/evaluations/SelfScoreForm";
 import { CriteriaSnapshot, WeightFrame, describeFrame, fmt, requiresExplanation, roundScore } from "@/services/criteriaService";
+import { PublicOrganizationInfo, useOrganizationInfo } from "@/services/organizationSettingsService";
 import styles from "./record.module.css";
 
 interface Props {
@@ -434,7 +435,12 @@ function ProposalForm({ record, busy, stage, submitText, extra, onSubmit }: { re
   const [finalScore, setFinalScore] = useState("");
   const [documentNumber, setDocumentNumber] = useState("");
   const [documentDate, setDocumentDate] = useState("");
-  const [authorityName, setAuthorityName] = useState(record.approvalAuthority === "CapTren" ? "Ban Thường vụ Đảng ủy Tổng công ty" : "Đảng ủy Công ty");
+  const org = useOrganizationInfo();
+  const [authorityName, setAuthorityName] = useState("");
+  // Gợi ý cơ quan quyết định theo thông tin đơn vị; người ghi nhận sửa được.
+  useEffect(() => {
+    if (org) setAuthorityName((current) => current || (record.approvalAuthority === "CapTren" ? `Ban Thường vụ Đảng ủy ${org.parentCompanyName}` : `Đảng ủy ${org.companyName}`));
+  }, [org, record.approvalAuthority]);
   const [cadreWorkProposal, setCadreWorkProposal] = useState(record.cadreWorkProposal || "");
   const [meetings, setMeetings] = useState<EvaluationMeetingDto[]>([]);
   const [meetingId, setMeetingId] = useState("");
@@ -531,13 +537,17 @@ function ProposalForm({ record, busy, stage, submitText, extra, onSubmit }: { re
   );
 }
 
-/** Cơ quan cấp trên gợi ý theo bước (PL III ví dụ 2) — người ghi nhận sửa được. */
-const DEFAULT_AUTHORITY: Partial<Record<WorkflowStepCode, string>> = {
-  B3A_COLLECTIVE: "Tập thể lãnh đạo, quản lý cấp trên",
-  B3B_APPRAISAL: "Ban Tổ chức Đảng ủy Tổng công ty",
-  B3C_DIRECTOR: "Hội đồng thành viên Tổng công ty",
-  B4_DECISION: "Ban Thường vụ Đảng ủy Tổng công ty",
-};
+/** Cơ quan cấp trên gợi ý theo bước, dựng từ thông tin đơn vị — người ghi nhận sửa được. */
+function defaultAuthority(step: WorkflowStepCode, org: PublicOrganizationInfo): string {
+  const parent = org.parentCompanyName;
+  switch (step) {
+    case "B3A_COLLECTIVE": return "Tập thể lãnh đạo, quản lý cấp trên";
+    case "B3B_APPRAISAL": return `Ban Tổ chức Đảng ủy ${parent}`;
+    case "B3C_DIRECTOR": return `Hội đồng thành viên ${parent}`;
+    case "B4_DECISION": return `Ban Thường vụ Đảng ủy ${parent}`;
+    default: return "";
+  }
+}
 
 /**
  * Ghi nhận kết quả của bước do cấp trên / cơ quan ngoài hệ thống thực hiện: cơ quan, số/ngày văn bản, nhận xét,
@@ -547,7 +557,11 @@ function ExternalResultForm({ record, step, busy, extra, onSubmit }: { record: E
   const graded = GRADED_STEPS.includes(step);
   const withScore = step === "B3B_APPRAISAL" || step === "B4_DECISION";
   const previous = record.externalResults?.find((r) => r.step === step);
-  const [authorityName, setAuthorityName] = useState(previous?.authorityName || DEFAULT_AUTHORITY[step] || "");
+  const org = useOrganizationInfo();
+  const [authorityName, setAuthorityName] = useState(previous?.authorityName || "");
+  useEffect(() => {
+    if (org) setAuthorityName((current) => current || defaultAuthority(step, org));
+  }, [org, step]);
   const [documentNumber, setDocumentNumber] = useState(previous?.documentNumber || "");
   const [documentDate, setDocumentDate] = useState(previous?.documentDate?.substring(0, 10) || "");
   const [comment, setComment] = useState(previous?.comment || "");
