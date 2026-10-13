@@ -281,7 +281,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
             )}
             {addedGlobalOnly.length > 0 && scopedAssignments > 0 && (
               <div className="alert alert-warning py-2">
-                Vai trò đang được gán theo đơn vị chính quyền / tổ chức Đảng ({scopedAssignments} bản gán) nên không thêm được quyền &quot;Chỉ Toàn công ty&quot;.
+                Vai trò đang có {scopedAssignments} bản gán theo đơn vị nên không thêm được quyền &quot;Chỉ Toàn công ty&quot;.
               </div>
             )}
             <div className="d-flex justify-content-end gap-2 mb-2 position-sticky" style={{ top: 0, zIndex: 2 }}>

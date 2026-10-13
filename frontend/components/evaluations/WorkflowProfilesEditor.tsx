@@ -195,11 +195,11 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
                       </td>
                       <td>
                         {setting.mode === "Off" ? (
-                          <span className="text-secondary">Không áp dụng cho nhóm này</span>
+                          <span className="text-secondary">—</span>
                         ) : setting.mode === "External" ? (
-                          <span className="text-secondary">Do cấp trên thực hiện — ghi nhận kết quả</span>
+                          <span className="text-secondary">—</span>
                         ) : owner ? (
-                          <span className="text-secondary">Chủ hồ sơ (Tham gia đánh giá — bản thân)</span>
+                          <span className="text-secondary">Chủ hồ sơ</span>
                         ) : editable ? (
                           <select className="form-select form-select-sm" value={setting.permission || DEFAULT_STEP_PERMISSIONS[step]}
                             aria-label={`Quyền thực hiện — ${STEP_NAMES[step]}`} onChange={(e) => setStep(step, { permission: e.target.value })}>
@@ -238,8 +238,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
           </div>
 
           {deadlinesEditable && onApplyRules && (
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <span className="text-secondary" style={{ fontSize: 13 }}>Chọn cách tính cho từng bước rồi bấm "Áp dụng quy tắc" để điền ngày (loại thứ Bảy, Chủ nhật và các ngày trong Danh mục → Ngày nghỉ); sau đó vẫn sửa từng ngày tự do.</span>
+            <div className="d-flex justify-content-end align-items-center mb-2">
               <button type="button" className="btn btn-outline-primary btn-sm" onClick={onApplyRules}>Áp dụng quy tắc</button>
             </div>
           )}

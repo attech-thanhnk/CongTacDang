@@ -150,17 +150,14 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
   return (
     <>
       <Card>
-        <div className="card-header d-flex flex-wrap align-items-center gap-2">
-          <span className="small text-secondary">
-            Cán bộ dùng kiểu của chức vụ đang giữ; nhiều chức vụ khác kiểu thì lấy kiểu có thứ tự nhỏ hơn; không có thì dùng kiểu mặc định.
-          </span>
-          {canManage && (
+        {canManage && (
+          <div className="card-header d-flex flex-wrap align-items-center gap-2">
             <button type="button" className="btn btn-sm btn-primary ms-auto" onClick={() => setForm({ ...EMPTY_FORM })}>
               <i className="bi bi-plus-lg me-1" />
               Thêm kiểu
             </button>
-          )}
-        </div>
+          </div>
+        )}
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
             <thead>

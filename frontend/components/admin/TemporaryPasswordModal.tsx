@@ -51,8 +51,7 @@ export function TemporaryPasswordModal({ credential, onClose }: { credential: Te
       <div className="alert alert-warning small py-2 d-flex gap-2" role="alert">
         <i className="bi bi-exclamation-triangle-fill" />
         <div>
-          Mật khẩu tạm <strong>chỉ hiển thị một lần</strong>. Đóng hộp thoại này là không xem lại được — hãy sao chép và
-          giao cho cán bộ qua kênh an toàn. Cán bộ phải đổi mật khẩu ở lần đăng nhập đầu tiên.
+          Mật khẩu tạm <strong>chỉ hiển thị một lần</strong> — hãy sao chép trước khi đóng.
         </div>
       </div>
       {credential.fullName && <div className="small text-secondary mb-2">Cán bộ: <strong className="text-dark">{credential.fullName}</strong></div>}

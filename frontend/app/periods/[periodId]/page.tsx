@@ -315,7 +315,6 @@ export default function PeriodDetailPage() {
                 </li>
               ))}
             </ul>
-            {checklist.every((item) => item.ok) && <div className="card-body py-2 text-success">Đủ điều kiện mở kỳ.</div>}
           </section>
         )}
         <ul className="nav nav-tabs" role="tablist">
@@ -351,7 +350,6 @@ export default function PeriodDetailPage() {
             )}
           </div>
           <div className="card-body">
-            <p className="text-secondary small">Mỗi diện cán bộ có một cách xét duyệt riêng. Thường chỉ cần điền thời hạn các bước.</p>
             <WorkflowProfilesEditor
               settings={settings}
               onChange={editSettings}
@@ -395,7 +393,7 @@ export default function PeriodDetailPage() {
       <ReasonDialog
         isOpen={unlockOpen}
         title="Mở lại kỳ (Khóa dữ liệu → Đang mở)"
-        description="Chủ hồ sơ sẽ sửa được hồ sơ trở lại. Lý do được lưu cùng kỳ."
+        description="Chủ hồ sơ sẽ sửa được hồ sơ trở lại."
         confirmText="Mở lại kỳ"
         busy={busy}
         onCancel={() => setUnlockOpen(false)}

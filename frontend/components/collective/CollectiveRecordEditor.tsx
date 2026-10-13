@@ -222,7 +222,6 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
       {form === "M08" && (
         <div className="col-12 mt-2">
           <div className="fw-semibold small text-uppercase text-secondary mb-1">Nhiệm vụ theo nhóm nội dung của biểu mẫu</div>
-          {items.length === 0 && <div className="text-secondary small mb-2">Chưa có nhiệm vụ.</div>}
           {items.map((item, index) => (
             <div key={index} className="border rounded p-2 mb-2">
               <div className="row g-1">

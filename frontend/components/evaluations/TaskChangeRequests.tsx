@@ -100,7 +100,6 @@ export function TaskChangeRequests({ record, onRecordChanged }: Props) {
             }
           />
         )}
-        {data.requests.length === 0 && !form && <div className="small text-secondary">Chưa có đề nghị nào.</div>}
         {data.requests.map((item) => (
           <RequestItem
             key={item.id}

@@ -279,7 +279,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                   value={form.defaultApprovalAuthority}
                   onChange={(e) => setForm({ ...form, defaultApprovalAuthority: e.target.value as "" | ApprovalAuthorityCode })}
                 >
-                  <option value="">Không xác định (không ảnh hưởng suy ra)</option>
+                  <option value="">Không xác định</option>
                   {(Object.keys(APPROVAL_AUTHORITY_CODE_LABELS) as ApprovalAuthorityCode[]).map((a) => (
                     <option key={a} value={a}>
                       {APPROVAL_AUTHORITY_CODE_LABELS[a]}
@@ -290,7 +290,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
               <div className="col-12">
                 <label className="form-label">Kiểu trình bày biểu mẫu tự đánh giá</label>
                 <select className="form-select form-select-sm" value={form.formLayoutId} onChange={(e) => setForm({ ...form, formLayoutId: e.target.value })}>
-                  <option value="">Không gắn (dùng kiểu mặc định)</option>
+                  <option value="">Kiểu mặc định</option>
                   {layouts.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.name}

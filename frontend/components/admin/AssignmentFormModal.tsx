@@ -120,7 +120,6 @@ export function AssignmentFormModal({
             <div>
               Vai trò <strong>{assignment.roleName}</strong> — phạm vi <strong>{assignment.scopeName}</strong>
             </div>
-            <div className="text-secondary">Không đổi được người, vai trò, phạm vi; cần khác → kết thúc bản gán này và tạo bản gán mới.</div>
           </div>
         ) : (
           <>
@@ -178,24 +177,16 @@ export function AssignmentFormModal({
                 {mustBeGlobal || scopeType === "Global" ? (
                   <div className="form-control form-control-sm bg-light text-secondary">Toàn công ty</div>
                 ) : (
-                  <>
-                    <select className="form-select form-select-sm" value={scopeId} required onChange={(e) => setScopeId(e.target.value)}>
-                      <option value="">— Chọn {scopeType === "Department" ? "đơn vị chính quyền" : "tổ chức Đảng"} —</option>
-                      {scopeOptions.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {treeLabel(item)} ({item.code})
-                        </option>
-                      ))}
-                    </select>
-                    <div className="form-text">Gồm cả các đơn vị cấp dưới.</div>
-                  </>
+                  <select className="form-select form-select-sm" value={scopeId} required onChange={(e) => setScopeId(e.target.value)}>
+                    <option value="">— Chọn {scopeType === "Department" ? "đơn vị chính quyền" : "tổ chức Đảng"} —</option>
+                    {scopeOptions.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {treeLabel(item)} ({item.code})
+                      </option>
+                    ))}
+                  </select>
                 )}
               </div>
-              {mustBeGlobal && (
-                <div className="col-12 form-text mt-0">
-                  Vai trò này chỉ gán được phạm vi Toàn công ty.
-                </div>
-              )}
             </div>
           </>
         )}

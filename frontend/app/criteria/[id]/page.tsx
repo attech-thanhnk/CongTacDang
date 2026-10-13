@@ -288,13 +288,12 @@ export default function CriteriaSetPage() {
                   })}
                 </div>
                 <div className="d-flex justify-content-between align-items-center mb-2">
-                  <h3 className="form-label mb-0 fw-semibold">Mục tự đánh giá của Mẫu 09C {!content.requiredForms.includes("09C") && <span className="fw-normal">(chỉ dùng khi áp dụng Mẫu 09C)</span>}</h3>
+                  <h3 className="form-label mb-0 fw-semibold">Mục tự đánh giá của Mẫu 09C</h3>
                   <button type="button" className="btn btn-outline-secondary btn-sm"
                     onClick={() => update({ selfAssessmentSections: [...content.selfAssessmentSections, { code: `M${content.selfAssessmentSections.length + 1}`, title: "", guidance: null, note: null, maxLength: 6000, required: false }] })}>
                     Thêm mục
                   </button>
                 </div>
-                {content.selfAssessmentSections.length === 0 && <div className="small text-secondary">Chưa khai báo mục nào.</div>}
                 {content.selfAssessmentSections.map((section, si) => (
                   <div className="border rounded-3 p-2 mb-2" key={si}>
                     <div className="row g-2 align-items-end">
@@ -314,13 +313,12 @@ export default function CriteriaSetPage() {
                 ))}
 
                 <div className="d-flex justify-content-between align-items-center mt-3 mb-2">
-                  <h3 className="form-label mb-0 fw-semibold">Mức tự đánh giá của từng nhiệm vụ (cột "Mức" ở Mẫu 9D, câu "Tự đánh giá mức" ở Mẫu 09C)</h3>
+                  <h3 className="form-label mb-0 fw-semibold">Mức tự đánh giá của từng nhiệm vụ</h3>
                   <button type="button" className="btn btn-outline-secondary btn-sm"
                     onClick={() => update({ taskLevels: [...content.taskLevels, { code: Math.max(0, ...content.taskLevels.map((l) => l.code)) + 1, label: "" }] })}>
                     Thêm mức
                   </button>
                 </div>
-                {content.taskLevels.length === 0 && <div className="small text-secondary">Chưa khai báo mức nào — hồ sơ không có ô chọn mức.</div>}
                 {content.taskLevels.map((level, li) => (
                   <div className="row g-2 align-items-end mb-1" key={li}>
                     <div className="col-md-2"><label className="form-label mb-1">Mức</label>
@@ -469,7 +467,6 @@ export default function CriteriaSetPage() {
                     <label className="form-check small mb-0"><input type="checkbox" className="form-check-input" checked={p.allowNotApplicable} onChange={(e) => setParam("allowNotApplicable", e.target.checked)} /> <span className="form-check-label">Cho phép K/AD (có lý do)</span></label>
                     <label className="form-check small mb-0"><input type="checkbox" className="form-check-input" checked={p.explanationOnGradeChange} onChange={(e) => setParam("explanationOnGradeChange", e.target.checked)} /> <span className="form-check-label">Giải trình cả khi đổi mức</span></label>
                   </div>
-                  {/* Task 20 — sau công bố (mặc định chờ nghiệp vụ xác nhận). */}
                   <div className="col-12 col-md-6">
                     <label className="form-check small mb-1"><input type="checkbox" className="form-check-input" checked={!!p.publishScores} onChange={(e) => setParam("publishScores", e.target.checked)} /> <span className="form-check-label">Công khai kết quả kèm điểm chính thức</span></label>
                     <div className="small mb-0">Bắt buộc lập kế hoạch 30-60-90 ngày (Mẫu 17) với mức:</div>

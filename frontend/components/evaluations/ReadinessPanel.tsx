@@ -38,7 +38,7 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
         {!readiness ? (
           <div className="small text-secondary">Chưa kiểm tra.</div>
         ) : readiness.checkedRecords === 0 ? (
-          <div className="small text-secondary">Chưa có người được đánh giá để kiểm tra.</div>
+          <div className="small text-secondary">Chưa có người được đánh giá.</div>
         ) : readiness.ready ? (
           <div className="alert alert-success small mb-0">
             <i className="bi bi-check-circle me-1" />

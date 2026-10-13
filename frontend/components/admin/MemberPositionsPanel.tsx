@@ -249,7 +249,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
           {rows.length === 0 ? (
             <tr>
               <td colSpan={6} className="text-center py-3 text-secondary small">
-                {active ? "Chưa có chức vụ nào đang giữ." : "Chưa có chức vụ nào đã kết thúc."}
+                Chưa có chức vụ nào.
               </td>
             </tr>
           ) : (
@@ -419,13 +419,6 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
                   </option>
                 ))}
               </select>
-              <div className="form-text">
-                {side === "Party"
-                  ? "Chức vụ Đảng: chọn tổ chức Đảng."
-                  : side === "Administrative"
-                    ? "Chức vụ chính quyền: chọn đơn vị chính quyền."
-                    : "Chọn đơn vị chính quyền hoặc tổ chức Đảng."}
-              </div>
             </div>
             <div className="row g-2 mb-2">
               <div className="col-6">
@@ -448,7 +441,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
                 onChange={(e) => setForm({ ...form, isPrimary: e.target.checked })}
               />
               <label className="form-check-label small" htmlFor="member-position-primary">
-                Chức vụ chính (chức danh hiển thị mặc định; bỏ đánh dấu = kiêm nhiệm)
+                Chức vụ chính (bỏ đánh dấu = kiêm nhiệm)
               </label>
             </div>
             <div className="mb-2">

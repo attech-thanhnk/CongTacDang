@@ -89,7 +89,7 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
           <label className="form-label mb-0" htmlFor="holiday-year">Năm</label>
           <input id="holiday-year" type="number" min={2000} max={2100} className="form-control form-control-sm" style={{ width: 100 }}
             value={year} onChange={(e) => setYear(Number(e.target.value) || year)} />
-          <span className="text-secondary small">Thứ Bảy, Chủ nhật đã được loại sẵn khi tính ngày làm việc; chỉ cần khai báo lễ, Tết, nghỉ bù.</span>
+          <span className="text-secondary small">Chỉ khai báo lễ, Tết, nghỉ bù.</span>
           {canManage && (
             <button type="button" className="btn btn-sm btn-primary ms-auto text-nowrap"
               onClick={() => setForm({ date: `${year}-01-01`, endDate: "", name: "" })}>

@@ -434,7 +434,6 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       {uses09C && sections.length > 0 && (
         <>
           <h4 className="h6 small fw-bold text-secondary">Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân</h4>
-          <div className="small text-secondary mb-2">Nội dung không quá 02 trang A4.</div>
           <div className="mb-3">
             <SelfAssessmentInput sections={sections} value={selfAssessment} onChange={setSelfAssessment} firstSectionExtra={axisTaskTextLength(blocks)} />
           </div>
@@ -444,7 +443,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       {(uses09C || uses9D) && (
         <>
           <h4 className="h6 small fw-bold text-secondary">
-            {uses09C && uses9D ? "Nhiệm vụ và kết quả theo trục (Mẫu 09C, 9D)" : uses09C ? "Nhiệm vụ theo trục (Mẫu 09C)" : "Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ, công việc được giao trong quý"}
+            {uses09C && uses9D ? "Nhiệm vụ và kết quả theo trục (Mẫu 09C, 9D)" : uses09C ? "Nhiệm vụ theo trục (Mẫu 09C)" : "Kết quả theo trục (Mẫu 9D)"}
           </h4>
           <div className="mb-2">
             <AxisReportsInput axes={content.axes} value={axisReports} onChange={setAxisReports} levels={taskLevels(criteria)}

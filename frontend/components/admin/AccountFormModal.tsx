@@ -155,7 +155,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
               autoComplete="off"
               onChange={(e) => set("username", e.target.value)}
             />
-            <div className="form-text">{isEdit ? "Không đổi được tên đăng nhập." : "3–50 ký tự a-z, 0-9, dấu . _ -"}</div>
+            {!isEdit && <div className="form-text">3–50 ký tự a-z, 0-9, dấu . _ -</div>}
           </div>
           <div className="col-12 col-md-6">
             <label className="form-label">
@@ -219,7 +219,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
           <div className="col-12 col-md-6">
             <label className="form-label">Khung tỷ trọng mặc định</label>
             <select className="form-select form-select-sm" value={form.weightFrameCode} onChange={(e) => set("weightFrameCode", e.target.value)}>
-              <option value="">— Chưa chọn (dùng khung mặc định của bộ tiêu chí) —</option>
+              <option value="">— Mặc định của bộ tiêu chí —</option>
               {frameOptions.map((frame) => (
                 <option key={frame.code} value={frame.code}>
                   {frame.code} — {frame.name}

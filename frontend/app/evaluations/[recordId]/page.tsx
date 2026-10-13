@@ -194,7 +194,7 @@ export default function EvaluationRecordPage() {
         description={
           reasonAction?.action === "Reopen"
             ? "Mở lại hồ sơ đã công bố để đính chính."
-            : "Hồ sơ sẽ quay về chủ hồ sơ để sửa. Lý do được hiển thị cho chủ hồ sơ."
+            : "Hồ sơ sẽ quay về chủ hồ sơ để sửa."
         }
         confirmText={reasonAction?.action === "Reopen" ? "Mở lại hồ sơ" : "Trả lại"}
         targetSteps={reasonAction?.targetSteps}

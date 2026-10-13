@@ -74,6 +74,7 @@ export function ImprovementPlanPanel({ record }: { record: EvaluationRecordDto }
 
   if (!data && !error) return null;
   if (data && !data.isPublished && !data.plan) return null;
+  if (data && !data.required && !data.plan && !data.canManage) return null;
 
   const plan = data?.plan ?? null;
 
@@ -133,17 +134,11 @@ export function ImprovementPlanPanel({ record }: { record: EvaluationRecordDto }
       </div>
       <div className="card-body d-flex flex-column gap-3">
         {error && <div className="alert alert-warning mb-0 small">{error}</div>}
-        {data && (
-          data.required ? (
-            <div className={`alert ${plan ? "alert-info" : "alert-warning"} mb-0 small`}>
-              Bắt buộc lập kế hoạch với mức &quot;{data.finalGradeName}&quot;.
-              {!plan && " Hồ sơ chưa có kế hoạch."}
-            </div>
-          ) : !plan && (
-            <div className="small text-secondary">
-              Không bắt buộc lập kế hoạch với mức &quot;{data.finalGradeName}&quot;.
-            </div>
-          )
+        {data?.required && (
+          <div className={`alert ${plan ? "alert-info" : "alert-warning"} mb-0 small`}>
+            Bắt buộc lập kế hoạch với mức &quot;{data.finalGradeName}&quot;.
+            {!plan && " Hồ sơ chưa có kế hoạch."}
+          </div>
         )}
 
         {data?.canManage && !plan && !editing && (

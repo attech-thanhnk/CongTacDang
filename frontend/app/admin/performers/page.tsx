@@ -194,7 +194,7 @@ function PerformersContent() {
 
   return (
     <div className="page-wrapper">
-      <PageHeader title="Người thực hiện" subTitle="Ai làm từng việc của quy trình đánh giá tại mỗi đơn vị" />
+      <PageHeader title="Người thực hiện" />
       <div className="page-body">
         <ReviewCard
           items={review}
@@ -245,9 +245,6 @@ function PerformersContent() {
               )}
             </div>
             {catalogError && <div className="small text-danger mt-2">{catalogError}</div>}
-            <div className="small text-secondary mt-2">
-              Người được giao ở đơn vị cấp trên hoặc toàn công ty cũng làm được việc ở đơn vị cấp dưới.
-            </div>
           </CardBody>
         </Card>
 
@@ -326,19 +323,16 @@ function TemporaryBadge({ validTo }: { validTo: string }) {
 
 /** Người giữ chức vụ tại đơn vị đang xem. */
 function HoldersLine({ holders }: { holders: PositionHolder[] }) {
+  if (holders.length === 0) return null;
   return (
     <div className="small mb-2 px-2 py-1 rounded border bg-light">
       <span className="text-secondary">Chức vụ tại đơn vị: </span>
-      {holders.length === 0 ? (
-        <span className="text-secondary">chưa có ai được ghi nhận chức vụ tại đơn vị này.</span>
-      ) : (
-        holders.map((h, i) => (
-          <React.Fragment key={`${h.userId}-${h.positionName}`}>
-            {i > 0 && "; "}
-            {h.positionName} — <span className="fw-semibold">{h.fullName}</span>
-          </React.Fragment>
-        ))
-      )}
+      {holders.map((h, i) => (
+        <React.Fragment key={`${h.userId}-${h.positionName}`}>
+          {i > 0 && "; "}
+          {h.positionName} — <span className="fw-semibold">{h.fullName}</span>
+        </React.Fragment>
+      ))}
     </div>
   );
 }
@@ -357,15 +351,7 @@ function ReviewCard({
   onViewUnit: (item: PerformerReviewItem) => void;
   onRemove: (item: PerformerReviewItem) => void;
 }) {
-  if (!items) return null;
-  if (items.length === 0) {
-    return (
-      <div className="small text-success mb-3">
-        <i className="bi bi-check-circle me-1" />
-        Không có bản gán cần xem lại
-      </div>
-    );
-  }
+  if (!items || items.length === 0) return null;
   return (
     <div className="card shadow-sm border-warning mb-3">
       <div className="card-body py-2">

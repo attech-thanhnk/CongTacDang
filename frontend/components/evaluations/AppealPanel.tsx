@@ -155,7 +155,6 @@ export function AppealPanel({ record, onRecordChanged }: Props) {
           </div>
         )}
 
-        {data && data.appeals.length === 0 && !showForm && <div className="small text-secondary">Chưa có kiến nghị nào.</div>}
         {data?.appeals.map((appeal) => (
           <AppealItem key={appeal.id} appeal={appeal} busy={busy}
             onStartReview={() => run(() => postPublishService.startReview(appeal.id, appeal.version), "Đã nhận xem xét kiến nghị.")}

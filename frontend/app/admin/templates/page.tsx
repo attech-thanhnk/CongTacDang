@@ -45,7 +45,7 @@ function CheckResult({ check }: { check: TemplateCheck }) {
           </ul>
         </div>
       ) : (
-        <div className="alert alert-success py-2 mb-2">Tệp hợp lệ: mở được, không có tag lạ, sinh thử thành công.</div>
+        <div className="alert alert-success py-2 mb-2">Tệp hợp lệ.</div>
       )}
       {check.warnings.length > 0 && (
         <div className="alert alert-warning py-2 mb-2">
@@ -194,7 +194,7 @@ function UploadModal({
           disabled={busy !== ""}
         />
         <label className="form-check-label small" htmlFor="template-activate">
-          Kích hoạt ngay (biểu mẫu xuất từ bây giờ dùng phiên bản này)
+          Kích hoạt ngay
         </label>
       </div>
       {check && <CheckResult check={check} />}
@@ -267,7 +267,7 @@ function HistoryModal({
       {versions === null ? (
         <div className="text-secondary small loading-delay">Đang tải…</div>
       ) : versions.length === 0 ? (
-        <div className="text-secondary small">Chưa tải lên phiên bản nào — đang dùng file mẫu gốc đi kèm ứng dụng.</div>
+        <div className="text-secondary small">Chưa có phiên bản tải lên — đang dùng file mẫu gốc.</div>
       ) : (
         <div className="table-responsive">
           <table className="table table-sm align-middle small mb-0">

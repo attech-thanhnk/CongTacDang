@@ -351,7 +351,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     ["Họ và tên", account.fullName],
     ["Ngày sinh", formatDateOnly(account.dateOfBirth)],
     ["Chức danh", account.positionTitle || "—"],
-    ["Khung tỷ trọng mặc định", account.weightFrameCode || "Chưa chọn (dùng khung mặc định của bộ tiêu chí)"],
+    ["Khung tỷ trọng mặc định", account.weightFrameCode || "Mặc định của bộ tiêu chí"],
     ["Email", account.email || "—"],
     ["Số điện thoại", account.phoneNumber || "—"],
     ["Đơn vị công tác chính", account.departmentName || "—"],
@@ -501,7 +501,6 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
               <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h2 className="mb-0">Bản gán đang và sắp hiệu lực</h2>
                 <div className="d-flex align-items-center gap-2">
-                  {isSelf && <span className="small text-secondary">Không tự gán, sửa hay thu hồi vai trò của chính mình</span>}
                   <button
                     type="button"
                     className="btn btn-sm btn-primary"
@@ -524,7 +523,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                   assignments={current}
                   showRole
                   canManage={!isSelf}
-                  emptyText="Chưa có bản gán vai trò nào đang hiệu lực."
+                  emptyText="Chưa có bản gán nào."
                   onEdit={(a) => setAssignmentForm({ assignment: a })}
                   onEnd={handleEndAssignment}
                   onDelete={handleDeleteAssignment}
@@ -539,7 +538,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                 assignments={history}
                 showRole
                 canManage={!isSelf}
-                emptyText="Chưa có bản gán nào đã hết hạn."
+                emptyText="Chưa có bản gán nào."
                 onDelete={handleDeleteAssignment}
               />
             </Card>

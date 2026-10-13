@@ -340,7 +340,6 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                     </option>
                   ))}
                 </select>
-                {form.id && <div className="form-text">Không chọn được chính nó hoặc cấp dưới của nó.</div>}
               </div>
               <div className="col-12 col-md-5">
                 <label className="form-label">Loại</label>

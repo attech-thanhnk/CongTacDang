@@ -51,12 +51,12 @@ export function EffectivePermissionsPanel({ data, loading, error, moduleNames }:
     <>
       {!data.isActive && (
         <div className="alert alert-warning small m-3">
-          Tài khoản đang bị vô hiệu hóa nên hiện <strong>không có quyền nào</strong>, dù vẫn còn bản gán vai trò.
+          Tài khoản đang bị vô hiệu hóa — <strong>không có quyền nào</strong>.
         </div>
       )}
       {data.permissions.length === 0 ? (
         <div className="text-center py-4 text-secondary small">
-          Người này chưa có quyền nào (chưa được gán vai trò đang hiệu lực).
+          Chưa có quyền nào.
         </div>
       ) : (
         <div className="table-responsive">

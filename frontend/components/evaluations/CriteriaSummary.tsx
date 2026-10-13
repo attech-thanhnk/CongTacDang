@@ -76,8 +76,8 @@ export function CriteriaSummary({ content, form }: { content: CriteriaSetContent
           {content.weightFrames.length > 0 && (
             <div className="text-secondary mt-1">
               {p.frameAdjustLimit != null && p.frameAdjustLimit > 0
-                ? `Người duyệt danh sách sản phẩm được điều chỉnh từng thành phần trong phạm vi ±${fmt(p.frameAdjustLimit)} điểm %, tổng 100%.`
-                : "Không điều chỉnh tỷ lệ theo từng hồ sơ."}
+                ? `Được điều chỉnh mỗi thành phần ±${fmt(p.frameAdjustLimit)} điểm % khi duyệt danh mục.`
+                : "Không điều chỉnh tỷ lệ."}
             </div>
           )}
         </div>
@@ -116,7 +116,7 @@ export function CriteriaSummary({ content, form }: { content: CriteriaSetContent
           <li>
             Sau công bố: công khai {p.publishScores ? "mức xếp loại kèm điểm chính thức" : "chỉ mức xếp loại"}; bắt buộc lập kế hoạch 30-60-90 ngày (Mẫu 17) với mức{" "}
             {(p.improvementPlanRequiredGrades ?? ["HoanThanh", "KhongHoanThanh"]).map((g) => GRADE_LABELS[g as keyof typeof GRADE_LABELS] ?? g).join(", ") || "— (không bắt buộc)"};
-            cảnh báo kế hoạch cần lập với kỳ đang mở/khóa và kỳ đã đóng trong {p.improvementPlanAlertDays ?? 90} ngày.
+            cảnh báo kế hoạch cần lập tới {p.improvementPlanAlertDays ?? 90} ngày sau khi đóng kỳ.
           </li>
         </ul>
       </div>

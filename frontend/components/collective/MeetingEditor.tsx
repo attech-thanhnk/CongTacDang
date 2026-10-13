@@ -328,7 +328,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
 
       {formCode === "M13" && !editing && (
         <div className="col-12">
-          <label className="form-label">Tổng hợp phiếu theo hồ sơ (không lưu người bỏ phiếu)</label>
+          <label className="form-label">Tổng hợp phiếu theo hồ sơ</label>
           <div className="border rounded p-2" style={{ maxHeight: 240, overflowY: "auto" }}>
             {records.length === 0 ? (
               <div className="text-secondary small">Chưa tải được hồ sơ của đơn vị đã chọn.</div>

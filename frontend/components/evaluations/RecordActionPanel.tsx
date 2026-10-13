@@ -596,14 +596,12 @@ function ExternalResultForm({ record, step, busy, extra, onSubmit }: { record: E
       <div className="col-12"><label className="form-label small">Nhận xét / nội dung kết luận</label><textarea className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
       {step === "B4_DECISION" && <CadreProposalInput id={`ext-${step}-cadre`} value={cadreWorkProposal} onChange={setCadreWorkProposal} />}
       <div className="col-12 small">
-        {attachment ? (
-          <span><i className="bi bi-paperclip me-1" />{attachment.name}
+        {attachment && (
+          <span className="me-2"><i className="bi bi-paperclip me-1" />{attachment.name}
             <button type="button" className="btn btn-link btn-sm p-0 ms-2 text-danger" onClick={() => setAttachment(null)}>Bỏ tệp</button>
           </span>
-        ) : (
-          <span className="text-secondary">Chưa đính kèm văn bản.</span>
         )}
-        <button type="button" className="btn btn-link btn-sm p-0 ms-2" onClick={() => setUploading(true)}>Đính kèm văn bản (tùy chọn)</button>
+        <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setUploading(true)}>Đính kèm văn bản (tùy chọn)</button>
       </div>
       <FormFoot row extra={extra}><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !authorityName.trim() || (graded && !grade)}>Ghi nhận kết quả của cấp trên</button></FormFoot>
       {uploading && (
@@ -732,7 +730,7 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
         </div>
         <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>Nộp danh mục</button>
       </div>
-      {p && <div className="form-text">{`${p.minTasks}–${p.maxTasks} sản phẩm, tổng trọng số ${fmt(p.totalTaskWeight)}.`}</div>}
+      {p && <div className="form-text">{`${p.minTasks}–${p.maxTasks} sản phẩm.`}</div>}
     </form>
   );
 }
