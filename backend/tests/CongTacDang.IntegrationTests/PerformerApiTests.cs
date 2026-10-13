@@ -14,7 +14,8 @@ namespace CongTacDang.IntegrationTests;
 
 /// <summary>
 /// Màn hình "Người thực hiện" (<c>GET /api/admin/performers</c>): ai làm được việc gì tại một đơn vị — gán ở đơn vị cha
-/// thấy ở đơn vị con, tài khoản bị khóa / bản gán hết hạn / gán ở cây kia không hiện, thiếu quyền gán vai trò → 403.
+/// thấy ở đơn vị con, tài khoản bị khóa / bản gán hết hạn không hiện, gán ở cây kia chỉ hiện khi có cán bộ thuộc cả hai
+/// đơn vị, thiếu quyền gán vai trò → 403.
 /// </summary>
 [Collection(ApiCollection.Name)]
 public sealed class PerformerApiTests
@@ -99,6 +100,24 @@ public sealed class PerformerApiTests
         // Toàn công ty: người gán theo đơn vị không tính.
         var global = Job(await Data(await admin.GetAsync("/api/admin/performers")), PermissionCodes.EvaluationAppraise);
         Assert.DoesNotContain(global.GetProperty("people").EnumerateArray(), p => p.GetProperty("userId").GetGuid() == atParent.Id);
+
+        // Có cán bộ thuộc Phòng con và sinh hoạt ở Chi bộ: xem theo Phòng thấy người gán ở Chi bộ, xem theo Chi bộ thấy người gán
+        // ở Phòng (khối cha) — đúng như guard xét hồ sơ của cán bộ đó; không gỡ được tại màn hình cây kia.
+        var member = await _factory.CreateUserAsync(fullName: $"Cán bộ hai cây {sfx}");
+        await _factory.WithDbAsync(async db =>
+        {
+            var user = await db.PartyMemberProfiles.SingleAsync(u => u.Id == member.Id);
+            user.DepartmentId = childId;
+            user.PartyCellId = cellId;
+            await db.SaveChangesAsync();
+        });
+        var linkedChild = Job(await Data(await admin.GetAsync($"/api/admin/performers?departmentId={childId}")), PermissionCodes.EvaluationAppraise);
+        var cellRow = Assert.Single(linkedChild.GetProperty("people").EnumerateArray(), p => p.GetProperty("userId").GetGuid() == atCell.Id);
+        Assert.False(cellRow.GetProperty("assignedHere").GetBoolean());
+        Assert.Equal($"Chi bộ thực hiện {sfx}", cellRow.GetProperty("scopeText").GetString());
+        var linkedCell = Job(await Data(await admin.GetAsync($"/api/admin/performers?partyCellId={cellId}")), PermissionCodes.EvaluationAppraise);
+        Assert.False(Assert.Single(linkedCell.GetProperty("people").EnumerateArray(), p => p.GetProperty("userId").GetGuid() == atParent.Id)
+            .GetProperty("assignedHere").GetBoolean());
 
         // "Thêm người" = API gán vai trò sẵn có tại đơn vị đang xem → hiện ngay, gỡ được tại đây.
         var added = await _factory.CreateUserAsync(fullName: $"Thêm mới {sfx}");

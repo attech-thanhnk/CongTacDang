@@ -114,12 +114,28 @@ public sealed class PerformerService : IPerformerService
         }
 
         // Đối tượng kiểm tra: "một hồ sơ bất kỳ thuộc đơn vị này" (không có chủ hồ sơ → không xét xung đột lợi ích).
-        var target = scopeType switch
+        // Hồ sơ mang cả Phòng lẫn Chi bộ của cán bộ: xem theo Phòng thì tính cả người giao ở Chi bộ của cán bộ trong Phòng
+        // (và ngược lại), để việc giao theo cây kia không hiện là "Chưa có người".
+        var targets = new List<AccessTarget>();
+        switch (scopeType)
         {
-            ScopeType.Department => new AccessTarget(null, scopeId, null),
-            ScopeType.PartyCell => new AccessTarget(null, null, scopeId),
-            _ => AccessTarget.None
-        };
+            case ScopeType.Department:
+                targets.Add(new AccessTarget(null, scopeId, null));
+                foreach (var cellId in (await _workflow.SearchMembersAsync(scopeId, null, null, ct))
+                             .Where(m => m.PartyCellId.HasValue).Select(m => m.PartyCellId).Distinct())
+                    targets.Add(new AccessTarget(null, scopeId, cellId));
+                break;
+            case ScopeType.PartyCell:
+                targets.Add(new AccessTarget(null, null, scopeId));
+                foreach (var deptId in (await _workflow.SearchMembersAsync(null, scopeId, null, ct))
+                             .Where(m => m.DepartmentId.HasValue).Select(m => m.DepartmentId).Distinct())
+                    targets.Add(new AccessTarget(null, deptId, scopeId));
+                break;
+            default:
+                targets.Add(AccessTarget.None);
+                break;
+        }
+        bool Covers(EffectivePermissions p, string code) => targets.Any(t => AuthorizationGuard.Evaluate(p, code, t));
 
         // Ứng viên: tài khoản đang hoạt động có bản gán hiệu lực mà vai trò chứa một trong các quyền; quyền + phạm vi tính bằng resolver.
         var now = _time.GetUtcNow().UtcDateTime;
@@ -143,11 +159,11 @@ public sealed class PerformerService : IPerformerService
         {
             var job = new PerformerJobDto { Permission = code, PermissionName = PermissionCodes.DisplayName(code) };
 
-            foreach (var permissions in effective.Where(p => AuthorizationGuard.Evaluate(p, code, target)))
+            foreach (var permissions in effective.Where(p => Covers(p, code)))
             {
                 // Bản gán nào bao trùm đơn vị: kiểm tra từng bản cấp riêng bằng đúng luật của guard.
                 var covering = permissions.GrantsFor(code)
-                    .Where(g => AuthorizationGuard.Evaluate(new EffectivePermissions(permissions.UserId, new[] { g }), code, target))
+                    .Where(g => Covers(new EffectivePermissions(permissions.UserId, new[] { g }), code))
                     .GroupBy(g => g.SourceAssignmentId)
                     .Select(g => g.First());
                 foreach (var grant in covering)
