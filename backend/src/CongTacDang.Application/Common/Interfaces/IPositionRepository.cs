@@ -84,7 +84,7 @@ public interface IPositionRepository
     Task SaveChangesAsync(CancellationToken ct = default);
 }
 
-/// <summary>Một chức vụ đang hiệu lực của cán bộ tại một đơn vị.</summary>
+/// <summary>Một chức vụ đang hiệu lực của cán bộ tại một đơn vị (<c>PositionName</c> là chức danh hiển thị, có "Quyền " nếu giữ dạng quyền).</summary>
 public sealed record PositionHolding(
     Guid UserId,
     string FullName,

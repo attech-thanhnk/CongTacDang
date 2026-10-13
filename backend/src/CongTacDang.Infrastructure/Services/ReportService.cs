@@ -259,13 +259,13 @@ public partial class ReportService : IReportService
             var stt = 1;
             foreach (var r in records.Where(r => r.ApprovalAuthority == authority))
             {
-                var positions = held.GetValueOrDefault(r.MemberId) ?? new List<Position>();
+                var positions = held.GetValueOrDefault(r.MemberId) ?? new List<MemberPosition>();
                 var values = new object?[]
                 {
                     stt++,
                     r.Member?.FullName,
                     PositionAndUnit(r, positions),
-                    PositionRules.PersonStatCode(positions.Select(p => new HeldPosition(p.Name, p.StatCode, p.DefaultApprovalAuthority))),
+                    PositionRules.PersonStatCode(positions.Select(PositionRules.Held)),
                     r.SelfScoredAt.HasValue ? r.GeneralCriteriaScore : null,
                     r.SelfScoredAt.HasValue ? r.TasksScore : null,
                     GradeOrBlank(r.SelfProposedGrade),
@@ -492,10 +492,10 @@ public partial class ReportService : IReportService
     /// Cột "Chức vụ, đơn vị công tác (Đảng, chính quyền, đoàn thể)" của Mẫu 11, 13, 14: các chức vụ đang giữ theo thứ tự Đảng,
     /// chính quyền, đoàn thể (trong mỗi nhóm theo thứ tự danh mục), ngăn cách bằng dấu phẩy, rồi đơn vị công tác.
     /// </summary>
-    private static string PositionAndUnit(EvaluationRecord record, IReadOnlyCollection<Position> positions)
+    private static string PositionAndUnit(EvaluationRecord record, IReadOnlyCollection<MemberPosition> positions)
     {
         var names = positions.Count > 0
-            ? string.Join(", ", positions.OrderBy(p => (int)p.Side).ThenBy(p => p.SortOrder).Select(p => p.Name))
+            ? string.Join(", ", positions.OrderBy(p => (int)p.Position!.Side).ThenBy(p => p.Position!.SortOrder).Select(PositionRules.DisplayName))
             : record.Member?.PositionTitle;
         var unit = record.Department?.Name ?? record.Member?.Department?.Name;
         return string.Join(" — ", new[] { names, unit }.Where(s => !string.IsNullOrWhiteSpace(s)));
@@ -652,7 +652,7 @@ public partial class ReportService : IReportService
         var held = await HeldPositionsAsync(decided.Select(r => r.MemberId), PositionDate(period));
         var lines = decided.Select(r => new MauQdLine(
             r.Member?.FullName,
-            PositionAndUnit(r, held.GetValueOrDefault(r.MemberId) ?? new List<Position>()),
+            PositionAndUnit(r, held.GetValueOrDefault(r.MemberId) ?? new List<MemberPosition>()),
             r.SelfProposedGrade,
             r.CollectiveProposedGrade,
             r.AppraisalProposedGrade,
@@ -836,31 +836,31 @@ public partial class ReportService : IReportService
         return end < now ? end : now;
     }
 
-    /// <summary>Chức vụ đang hiệu lực của các cán bộ (kèm chức vụ trong danh mục).</summary>
-    private async Task<Dictionary<Guid, List<Position>>> HeldPositionsAsync(IEnumerable<Guid> memberIds, DateTime at)
+    /// <summary>Chức vụ đang hiệu lực của các cán bộ (kèm chức vụ trong danh mục; chức danh qua <see cref="PositionRules.DisplayName(MemberPosition)"/>).</summary>
+    private async Task<Dictionary<Guid, List<MemberPosition>>> HeldPositionsAsync(IEnumerable<Guid> memberIds, DateTime at)
     {
         var ids = memberIds.Distinct().ToList();
         if (ids.Count == 0)
-            return new Dictionary<Guid, List<Position>>();
+            return new Dictionary<Guid, List<MemberPosition>>();
         var rows = await _db.MemberPositions.AsNoTracking()
             .Include(mp => mp.Position)
             .Where(mp => ids.Contains(mp.UserId) && mp.ValidFrom <= at && (mp.ValidTo == null || mp.ValidTo > at) && mp.Position != null)
             .ToListAsync();
         return rows.GroupBy(mp => mp.UserId)
-            .ToDictionary(g => g.Key, g => g.OrderBy(mp => mp.Position!.SortOrder).Select(mp => mp.Position!).ToList());
+            .ToDictionary(g => g.Key, g => g.OrderBy(mp => mp.Position!.SortOrder).ToList());
     }
 
     /// <summary>Mã chức danh thống kê của từng cán bộ (mã nhỏ nhất trong các chức vụ đang hiệu lực).</summary>
     private async Task<Dictionary<Guid, string?>> PersonStatCodesAsync(IEnumerable<Guid> memberIds, DateTime at)
         => (await HeldPositionsAsync(memberIds, at)).ToDictionary(
             kv => kv.Key,
-            kv => PositionRules.PersonStatCode(kv.Value.Select(p => new HeldPosition(p.Name, p.StatCode, p.DefaultApprovalAuthority))));
+            kv => PositionRules.PersonStatCode(kv.Value.Select(PositionRules.Held)));
 
     /// <summary>Tên các chức vụ Đảng đang giữ của từng cán bộ (ngăn cách bằng dấu phẩy).</summary>
     private async Task<Dictionary<Guid, string>> PartyPositionNamesAsync(IEnumerable<Guid> memberIds, DateTime at)
         => (await HeldPositionsAsync(memberIds, at)).ToDictionary(
             kv => kv.Key,
-            kv => string.Join(", ", kv.Value.Where(p => p.Side == PositionSide.Party).Select(p => p.Name)));
+            kv => string.Join(", ", kv.Value.Where(p => p.Position!.Side == PositionSide.Party).Select(PositionRules.DisplayName)));
 
     /// <summary>Id tổ chức Đảng được chọn và mọi tổ chức con cháu (cây); null = toàn Đảng bộ.</summary>
     private async Task<HashSet<Guid>?> SubtreeCellIdsAsync(PartyCell? cell)
@@ -1036,8 +1036,8 @@ public partial class ReportService : IReportService
         var lines = records
             .Select(r =>
             {
-                var positions = held.GetValueOrDefault(r.MemberId) ?? new List<Position>();
-                var code = PositionRules.PersonStatCode(positions.Select(p => new HeldPosition(p.Name, p.StatCode, p.DefaultApprovalAuthority)));
+                var positions = held.GetValueOrDefault(r.MemberId) ?? new List<MemberPosition>();
+                var code = PositionRules.PersonStatCode(positions.Select(PositionRules.Held));
                 return (Line: new Mau11Line(r, PositionAndUnit(r, positions)), Code: code);
             })
             .OrderBy(x => StatCodeOrder(x.Code))
@@ -1074,8 +1074,8 @@ public partial class ReportService : IReportService
         var lines = meeting.VoteSummaries
             .Select(v =>
             {
-                var positions = held.GetValueOrDefault(v.Record.MemberId) ?? new List<Position>();
-                var code = PositionRules.PersonStatCode(positions.Select(p => new HeldPosition(p.Name, p.StatCode, p.DefaultApprovalAuthority)));
+                var positions = held.GetValueOrDefault(v.Record.MemberId) ?? new List<MemberPosition>();
+                var code = PositionRules.PersonStatCode(positions.Select(PositionRules.Held));
                 return (Line: new Mau13Line(v, v.Record.Member?.FullName, PositionAndUnit(v.Record, positions), v.Record.ApprovalAuthority), Code: code);
             })
             .OrderBy(x => StatCodeOrder(x.Code))

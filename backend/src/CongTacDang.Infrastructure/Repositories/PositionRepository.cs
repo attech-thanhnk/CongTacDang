@@ -100,11 +100,11 @@ public sealed class PositionRepository : IPositionRepository
         }
 
         var rows = await query
-            .Select(mp => new { mp.UserId, mp.Position!.Name, mp.Position.StatCode, mp.Position.DefaultApprovalAuthority })
+            .Select(mp => new { mp.UserId, mp.Position!.Name, mp.IsActing, mp.Position.StatCode, mp.Position.DefaultApprovalAuthority })
             .ToListAsync(ct);
         return rows
             .GroupBy(r => r.UserId)
-            .ToDictionary(g => g.Key, g => g.Select(r => new HeldPosition(r.Name, r.StatCode, r.DefaultApprovalAuthority)).ToList());
+            .ToDictionary(g => g.Key, g => g.Select(r => new HeldPosition(PositionRules.DisplayName(r.Name, r.IsActing), r.StatCode, r.DefaultApprovalAuthority)).ToList());
     }
 
     /// <inheritdoc />
@@ -132,13 +132,14 @@ public sealed class PositionRepository : IPositionRepository
                 mp.User.Username,
                 mp.User.IsActive,
                 mp.Position!.Name,
+                mp.IsActing,
                 mp.Position.SortOrder,
                 mp.DepartmentId,
                 mp.PartyCellId
             })
             .ToListAsync(ct);
         return rows
-            .Select(r => new PositionHolding(r.UserId, r.FullName, r.Username, r.IsActive, r.Name, r.SortOrder, r.DepartmentId, r.PartyCellId))
+            .Select(r => new PositionHolding(r.UserId, r.FullName, r.Username, r.IsActive, PositionRules.DisplayName(r.Name, r.IsActing), r.SortOrder, r.DepartmentId, r.PartyCellId))
             .ToList();
     }
 

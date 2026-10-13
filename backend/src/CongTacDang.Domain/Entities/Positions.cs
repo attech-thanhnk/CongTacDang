@@ -89,6 +89,12 @@ public class MemberPosition : IAuditableEntity, ISoftDeletable
     /// <summary>Chức vụ chính (mặc định dùng làm chức danh hiển thị trên văn bản).</summary>
     public bool IsPrimary { get; set; }
 
+    /// <summary>
+    /// Giữ chức vụ ở dạng "Quyền" (được giao phụ trách): đánh giá, xếp loại như chính chức vụ đó (mã thống kê, thẩm quyền,
+    /// kiểu trình bày…); chỉ khác chức danh hiển thị ("Quyền " + tên chức vụ).
+    /// </summary>
+    public bool IsActing { get; set; }
+
     /// <summary>Hiệu lực từ (UTC, bao gồm).</summary>
     public DateTime ValidFrom { get; set; } = DateTime.UtcNow;
 

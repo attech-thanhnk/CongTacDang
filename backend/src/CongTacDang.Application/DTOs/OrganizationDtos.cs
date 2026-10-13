@@ -148,6 +148,12 @@ public class MemberPositionDto
     /// <summary>Chức vụ chính.</summary>
     public bool IsPrimary { get; set; }
 
+    /// <summary>Giữ chức vụ dạng "Quyền" (đánh giá như chính chức vụ đó).</summary>
+    public bool IsActing { get; set; }
+
+    /// <summary>Chức danh hiển thị ("Quyền " + tên chức vụ khi <see cref="IsActing"/>).</summary>
+    public string DisplayName { get; set; } = string.Empty;
+
     /// <summary>Hiệu lực từ (UTC, bao gồm).</summary>
     public DateTime ValidFrom { get; set; }
 
@@ -178,6 +184,9 @@ public class SaveMemberPositionDto
 
     /// <summary>Chức vụ chính (bỏ chức vụ chính cũ của người đó).</summary>
     public bool? IsPrimary { get; set; }
+
+    /// <summary>Giữ chức vụ dạng "Quyền" (thêm: mặc định false; sửa: null giữ nguyên).</summary>
+    public bool? IsActing { get; set; }
 
     /// <summary>Hiệu lực từ (mặc định: bây giờ).</summary>
     public DateTime? ValidFrom { get; set; }

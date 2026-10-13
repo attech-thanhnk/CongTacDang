@@ -31,6 +31,7 @@ interface PositionForm {
   positionId: string;
   unitId: string;
   isPrimary: boolean;
+  isActing: boolean;
   validFrom: string;
   validTo: string;
   note: string;
@@ -120,7 +121,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
   ].filter((o) => o.active || o.value === form?.unitId);
 
   const openCreate = () =>
-    setForm({ positionId: "", unitId: "", isPrimary: current.every((c) => !c.isPrimary), validFrom: "", validTo: "", note: "" });
+    setForm({ positionId: "", unitId: "", isPrimary: current.every((c) => !c.isPrimary), isActing: false, validFrom: "", validTo: "", note: "" });
 
   const openEdit = (item: MemberPosition) =>
     setForm({
@@ -128,6 +129,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
       positionId: item.positionId,
       unitId: item.departmentId ? `d:${item.departmentId}` : item.partyCellId ? `c:${item.partyCellId}` : "",
       isPrimary: item.isPrimary,
+      isActing: item.isActing,
       validFrom: toDateInput(item.validFrom),
       validTo: exclusiveIsoToLastDayInput(item.validTo),
       note: item.note ?? "",
@@ -146,6 +148,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
       departmentId: kind === "d" ? unitId : form.id ? "00000000-0000-0000-0000-000000000000" : undefined,
       partyCellId: kind === "c" ? unitId : form.id ? "00000000-0000-0000-0000-000000000000" : undefined,
       isPrimary: form.isPrimary,
+      isActing: form.isActing,
       validFrom: startOfDayIso(form.validFrom),
       validTo: endOfDayExclusiveIso(form.validTo),
       clearValidTo: form.id ? !form.validTo : undefined,
@@ -168,7 +171,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
   const handleEnd = (item: MemberPosition) =>
     confirm({
       title: "Kết thúc chức vụ",
-      message: `Kết thúc ngay chức vụ "${item.positionName}"?`,
+      message: `Kết thúc ngay chức vụ "${item.displayName}"?`,
       confirmText: "Kết thúc",
       isDanger: true,
       onConfirm: async () => {
@@ -185,7 +188,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
   const handleDelete = (item: MemberPosition) =>
     confirm({
       title: "Xóa chức vụ",
-      message: `Xóa bản ghi chức vụ "${item.positionName}"? Chỉ dùng khi nhập nhầm; bình thường hãy dùng "Kết thúc" để giữ lịch sử.`,
+      message: `Xóa bản ghi chức vụ "${item.displayName}"? Chỉ dùng khi nhập nhầm; bình thường hãy dùng "Kết thúc" để giữ lịch sử.`,
       confirmText: "Xóa",
       isDanger: true,
       onConfirm: async () => {
@@ -256,7 +259,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
             rows.map((i) => (
               <tr key={i.id}>
                 <td className="ps-3">
-                  <span className="fw-semibold text-dark">{i.positionName}</span>
+                  <span className="fw-semibold text-dark">{i.displayName}</span>
                   {i.isPrimary && active && <span className="tag t-info ms-2">Chính</span>}
                   {!i.isPrimary && active && <span className="status-badge tone-neutral ms-2">Kiêm nhiệm</span>}
                   {i.defaultApprovalAuthority === "CapTren" && <span className="tag t-wait ms-1">Cấp trên QĐ</span>}
@@ -432,17 +435,31 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
                 <div className="form-text">Để trống = không thời hạn.</div>
               </div>
             </div>
-            <div className="form-check mb-2">
-              <input
-                id="member-position-primary"
-                type="checkbox"
-                className="form-check-input"
-                checked={form.isPrimary}
-                onChange={(e) => setForm({ ...form, isPrimary: e.target.checked })}
-              />
-              <label className="form-check-label small" htmlFor="member-position-primary">
-                Chức vụ chính (bỏ đánh dấu = kiêm nhiệm)
-              </label>
+            <div className="mb-2">
+              <div className="form-check form-check-inline">
+                <input
+                  id="member-position-primary"
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={form.isPrimary}
+                  onChange={(e) => setForm({ ...form, isPrimary: e.target.checked })}
+                />
+                <label className="form-check-label small" htmlFor="member-position-primary">
+                  Chức vụ chính (bỏ đánh dấu = kiêm nhiệm)
+                </label>
+              </div>
+              <div className="form-check form-check-inline">
+                <input
+                  id="member-position-acting"
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={form.isActing}
+                  onChange={(e) => setForm({ ...form, isActing: e.target.checked })}
+                />
+                <label className="form-check-label small" htmlFor="member-position-acting">
+                  Quyền
+                </label>
+              </div>
             </div>
             <div className="mb-2">
               <label className="form-label">Ghi chú</label>

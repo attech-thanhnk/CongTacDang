@@ -7,6 +7,7 @@ using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
+using CongTacDang.Application.Organization;
 using CongTacDang.Domain.Entities;
 
 namespace CongTacDang.Application.Services;
@@ -135,7 +136,7 @@ public sealed class FormLayoutService : IFormLayoutService
             DerivedName = derived?.Name,
             OverrideId = member.FormLayoutOverrideId,
             PositionLayouts = held.Where(mp => mp.Position?.FormLayout != null)
-                .Select(mp => $"{mp.Position!.Name} → {mp.Position.FormLayout!.Name}")
+                .Select(mp => $"{PositionRules.DisplayName(mp)} → {mp.Position!.FormLayout!.Name}")
                 .Distinct()
                 .ToList()
         };

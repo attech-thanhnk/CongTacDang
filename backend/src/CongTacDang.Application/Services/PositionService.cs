@@ -223,6 +223,7 @@ public sealed class PositionService : IPositionService
             PartyCellId = partyCellId,
             DepartmentId = departmentId,
             IsPrimary = input.IsPrimary ?? !all.Any(mp => mp.IsPrimary && mp.IsEffectiveAt(Now)),
+            IsActing = input.IsActing ?? false,
             ValidFrom = validFrom,
             ValidTo = validTo,
             Note = NormalizeNote(input.Note)
@@ -264,8 +265,10 @@ public sealed class PositionService : IPositionService
         entity.ValidTo = validTo;
         if (input.Note != null) entity.Note = NormalizeNote(input.Note);
         if (input.IsPrimary.HasValue) entity.IsPrimary = input.IsPrimary.Value;
+        var previousTitle = PositionRules.DisplayName(entity);
+        if (input.IsActing.HasValue) entity.IsActing = input.IsActing.Value;
 
-        ApplyPrimary(member, entity, all);
+        ApplyPrimary(member, entity, all, previousTitle);
         Recompute(member, all);
         await _repo.SaveChangesAsync(ct);
         return ToDto(entity, Now);
@@ -388,30 +391,35 @@ public sealed class PositionService : IPositionService
     {
         var now = Now;
         var held = all.Where(mp => mp.IsEffectiveAt(now) && mp.Position != null)
-            .Select(mp => new HeldPosition(mp.Position!.Name, mp.Position.StatCode, mp.Position.DefaultApprovalAuthority));
+            .Select(PositionRules.Held);
         member.ApprovalAuthority = PositionRules.EffectiveApprovalAuthority(member.ApprovalAuthorityOverride, held);
     }
 
     /// <summary>
     /// Chức vụ chính duy nhất: đặt <paramref name="entity"/> làm chính → bỏ cờ chính ở các bản ghi khác; chức danh hiển thị
-    /// (<see cref="PartyMemberProfile.PositionTitle"/>) theo chức vụ chính nếu đang để mặc định.
+    /// (<see cref="PartyMemberProfile.PositionTitle"/>) theo chức vụ chính nếu đang để mặc định. Chức danh của chức vụ "Quyền"
+    /// là "Quyền " + tên chức vụ (<see cref="PositionRules.DisplayName(MemberPosition)"/>).
     /// </summary>
-    private static void ApplyPrimary(PartyMemberProfile member, MemberPosition entity, IEnumerable<MemberPosition> all)
+    /// <param name="previousEntityTitle">Chức danh cũ của chính bản ghi (khi sửa, trước khi đổi cờ "Quyền").</param>
+    private static void ApplyPrimary(PartyMemberProfile member, MemberPosition entity, IEnumerable<MemberPosition> all,
+        string? previousEntityTitle = null)
     {
         if (!entity.IsPrimary)
             return;
         var previousNames = new List<string>();
+        if (!string.IsNullOrEmpty(previousEntityTitle))
+            previousNames.Add(previousEntityTitle);
         foreach (var other in all.Where(mp => mp.Id != entity.Id && mp.IsPrimary))
         {
             other.IsPrimary = false;
             if (other.Position != null)
-                previousNames.Add(other.Position.Name);
+                previousNames.Add(PositionRules.DisplayName(other));
         }
 
         var title = member.PositionTitle?.Trim() ?? string.Empty;
         var isDefaultTitle = title.Length == 0 || title == "Cán bộ" || previousNames.Contains(title, StringComparer.OrdinalIgnoreCase);
         if (isDefaultTitle && entity.Position != null)
-            member.PositionTitle = entity.Position.Name;
+            member.PositionTitle = PositionRules.DisplayName(entity);
     }
 
     private async Task<ApprovalAuthorityInfoDto> BuildInfoAsync(PartyMemberProfile member, CancellationToken ct)
@@ -561,6 +569,8 @@ public sealed class PositionService : IPositionService
         DepartmentId = mp.DepartmentId,
         DepartmentName = mp.Department?.Name,
         IsPrimary = mp.IsPrimary,
+        IsActing = mp.IsActing,
+        DisplayName = PositionRules.DisplayName(mp),
         ValidFrom = mp.ValidFrom,
         ValidTo = mp.ValidTo,
         IsEffective = mp.IsEffectiveAt(now),

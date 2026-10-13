@@ -135,6 +135,7 @@ public sealed class MemberPositionConfiguration : IEntityTypeConfiguration<Membe
         entity.HasIndex(e => e.PartyCellId);
         entity.HasIndex(e => e.DepartmentId);
         entity.Property(e => e.Note).HasMaxLength(1000);
+        entity.Property(e => e.IsActing).HasDefaultValue(false);
         entity.HasQueryFilter(e => !e.IsDeleted);
 
         entity.HasOne(e => e.User)

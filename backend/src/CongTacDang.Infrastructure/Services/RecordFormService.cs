@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
+using CongTacDang.Application.Organization;
 using CongTacDang.Application.Services;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Evaluation;
@@ -167,7 +168,7 @@ public sealed class RecordFormService : IRecordFormService
         return MemberPositionNames.From(rows
             .OrderByDescending(mp => mp.IsPrimary)
             .ThenBy(mp => mp.Position!.SortOrder)
-            .Select(mp => (mp.Position!.Side, mp.Position.Name)));
+            .Select(mp => (mp.Position!.Side, PositionRules.DisplayName(mp))));
     }
 
     /// <summary>

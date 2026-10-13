@@ -206,6 +206,59 @@ public sealed class DynamicOrgIntegrationTests
         Assert.Equal("CoSo", (await DataAsync(await admin.GetAsync($"/api/users/{x.Id}/approval-authority"))).GetProperty("effective").GetString());
     }
 
+    // ===================== O2b: chức vụ dạng "Quyền" =====================
+
+    [SkippableFact]
+    public async Task O2b_ActingPosition_DisplaysQuyen_AndDerivesLikeHeadPosition()
+    {
+        SkipIfNoDatabase();
+        var admin = await AdminAsync();
+        var s = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        var adminTypes = await UnitTypesAsync(admin, "Administrative");
+        var partyTypes = await UnitTypesAsync(admin, "Party");
+        var deptId = await CreateUnitAsync(admin, "departments",
+            new { code = $"PQ-{s}", name = $"Phòng quyền {s}", parentId = await RootAsync(admin, "departments"), unitTypeId = adminTypes["Phòng"] });
+        var partyId = await CreateUnitAsync(admin, "branches",
+            new { code = $"DQ-{s}", name = $"Đảng ủy quyền {s}", parentId = await RootAsync(admin, "branches"), unitTypeId = partyTypes["Đảng bộ bộ phận"] });
+
+        var catalog = (await DataAsync(await admin.GetAsync("/api/positions"))).EnumerateArray()
+            .ToDictionary(p => p.GetProperty("name").GetString()!, p => p);
+        var head = catalog["Trưởng phòng"];
+        var secretary = catalog["Bí thư Đảng ủy"];
+        Assert.Equal("CapTren", secretary.GetProperty("defaultApprovalAuthority").GetString());
+
+        // Chỉ giữ "Quyền Trưởng phòng" (chức vụ chính).
+        var a = await _factory.CreateUserAsync(deptId, null, fullName: $"Quyền trưởng {s}");
+        var added = await DataAsync(await admin.PostAsJsonAsync($"/api/users/{a.Id}/positions",
+            new { positionId = head.GetProperty("id").GetGuid(), departmentId = deptId, isPrimary = true, isActing = true }));
+        Assert.True(added.GetProperty("isActing").GetBoolean());
+        Assert.Equal("Trưởng phòng", added.GetProperty("positionName").GetString());
+        Assert.Equal("Quyền Trưởng phòng", added.GetProperty("displayName").GetString());
+        Assert.Equal("Quyền Trưởng phòng", (await DataAsync(await admin.GetAsync($"/api/users/{a.Id}"))).GetProperty("positionTitle").GetString());
+        var authorityA = await DataAsync(await admin.GetAsync($"/api/users/{a.Id}/approval-authority"));
+        Assert.Equal(head.GetProperty("statCode").GetString(), authorityA.GetProperty("statCode").GetString());
+        Assert.Equal(head.GetProperty("defaultApprovalAuthority").GetString() ?? "CoSo", authorityA.GetProperty("derived").GetString());
+
+        // Bỏ dạng quyền khi sửa → chức danh mặc định theo tên chức vụ.
+        var updated = await DataAsync(await admin.PutAsJsonAsync($"/api/users/{a.Id}/positions/{added.GetProperty("id").GetGuid()}", new { isActing = false }));
+        Assert.False(updated.GetProperty("isActing").GetBoolean());
+        Assert.Equal("Trưởng phòng", (await DataAsync(await admin.GetAsync($"/api/users/{a.Id}"))).GetProperty("positionTitle").GetString());
+
+        // "Quyền Bí thư Đảng ủy" → thẩm quyền cấp trên, mã chức danh như Bí thư Đảng ủy.
+        var b = await _factory.CreateUserAsync(null, partyId, fullName: $"Quyền bí thư {s}");
+        await AddPositionAsync(admin, b.Id, new { positionId = secretary.GetProperty("id").GetGuid(), partyCellId = partyId, isPrimary = true, isActing = true });
+        var authorityB = await DataAsync(await admin.GetAsync($"/api/users/{b.Id}/approval-authority"));
+        Assert.Equal("CapTren", authorityB.GetProperty("derived").GetString());
+        Assert.Equal("CapTren", authorityB.GetProperty("effective").GetString());
+        Assert.Equal(secretary.GetProperty("statCode").GetString(), authorityB.GetProperty("statCode").GetString());
+        Assert.Contains("Quyền Bí thư Đảng ủy", authorityB.GetProperty("capTrenPositions").EnumerateArray().Select(e => e.GetString()));
+        var listB = (await DataAsync(await admin.GetAsync($"/api/users/{b.Id}/positions"))).EnumerateArray().Single();
+        Assert.True(listB.GetProperty("isActing").GetBoolean());
+        Assert.Equal("Quyền Bí thư Đảng ủy", listB.GetProperty("displayName").GetString());
+        await _factory.WithDbAsync(async db =>
+            Assert.True((await db.MemberPositions.SingleAsync(mp => mp.UserId == b.Id)).IsActing));
+    }
+
     // ===================== O3: danh mục chức vụ, loại đơn vị =====================
 
     [SkippableFact]

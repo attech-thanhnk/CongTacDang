@@ -191,6 +191,28 @@ public class ImportTests
     }
 
     [Fact]
+    public async Task Users_ActingPositionPrefix_ResolvesPositionAndMarksActing()
+    {
+        var (lookup, _, _) = UserLookup();
+        var head = lookup.Positions.Single(p => p.Name == "Trưởng phòng");
+        var secretary = lookup.Positions.Single(p => p.Name == "Bí thư chi bộ");
+        var definition = new UserImportDefinition(lookup, new FakeGuard(), null!, null!, null!);
+        var analysis = await definition.AnalyzeAsync(new[]
+        {
+            User(2, "nguyen.van.a", "A", ("positions", "Quyền Trưởng phòng; Bí thư chi bộ")),
+            User(3, "nguyen.van.b", "B", ("positions", "q. bí thư chi bộ")),
+            User(4, "nguyen.van.c", "C", ("positions", "Quyền Giám đốc"))
+        });
+
+        var parsed = ((List<ParsedImportRow<UserImportRow>>)analysis.Payload!).ToDictionary(r => r.RowNumber, r => r.Data);
+        Assert.True(analysis.Rows[0].IsValid, string.Join("; ", analysis.Rows[0].Errors));
+        Assert.Equal(new[] { head.Id, secretary.Id }, parsed[2].Positions.Select(p => p.Id));
+        Assert.Equal(new[] { head.Id }, parsed[2].ActingPositionIds);
+        Assert.Equal(new[] { secretary.Id }, parsed[3].ActingPositionIds);
+        Assert.Contains(analysis.Rows.Single(r => r.RowNumber == 4).Errors, e => e.Contains("Giám đốc"));
+    }
+
+    [Fact]
     public async Task Users_FormLayoutColumn_NameOrByPosition()
     {
         var (lookup, _, _) = UserLookup();

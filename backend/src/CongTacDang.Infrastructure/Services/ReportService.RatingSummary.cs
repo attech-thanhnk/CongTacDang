@@ -82,8 +82,8 @@ public partial class ReportService
                 .Where(r => r.ApprovalAuthority == authority)
                 .Select(r =>
                 {
-                    var positions = held.GetValueOrDefault(r.MemberId) ?? new List<Position>();
-                    var code = PositionRules.PersonStatCode(positions.Select(p => new HeldPosition(p.Name, p.StatCode, p.DefaultApprovalAuthority)));
+                    var positions = held.GetValueOrDefault(r.MemberId) ?? new List<MemberPosition>();
+                    var code = PositionRules.PersonStatCode(positions.Select(PositionRules.Held));
                     return (Record: r, Positions: positions, Code: code);
                 })
                 .OrderBy(x => StatCodeOrder(x.Code))
@@ -162,10 +162,10 @@ public partial class ReportService
     /// Cột (4): chức vụ đang giữ — chức vụ Đảng trước, chức vụ chính quyền sau, rồi chức vụ đoàn thể; kèm đơn vị công tác.
     /// Chưa khai báo chức vụ → chức danh ghi trên hồ sơ cán bộ.
     /// </summary>
-    private static string RatingSummaryPositions(EvaluationRecord record, IReadOnlyCollection<Position> positions)
+    private static string RatingSummaryPositions(EvaluationRecord record, IReadOnlyCollection<MemberPosition> positions)
     {
         var names = positions.Count > 0
-            ? string.Join(", ", positions.OrderBy(p => p.Side).ThenBy(p => p.SortOrder).Select(p => p.Name))
+            ? string.Join(", ", positions.OrderBy(p => p.Position!.Side).ThenBy(p => p.Position!.SortOrder).Select(PositionRules.DisplayName))
             : record.Member?.PositionTitle;
         var unit = record.Department?.Name ?? record.Member?.Department?.Name;
         return string.Join(" — ", new[] { names, unit }.Where(s => !string.IsNullOrWhiteSpace(s)));

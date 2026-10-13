@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
+using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Application.Organization;
@@ -69,6 +70,52 @@ public static class PositionRules
             throw new ArgumentException(
                 $"Mã chức danh thống kê \"{code.Trim()}\" không hợp lệ. Hãy nhập dạng M1…M26 theo Mẫu 15A/15B hoặc để trống.");
         return "M" + order.ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Tiền tố chức danh của người giữ chức vụ dạng "Quyền" (được giao phụ trách).</summary>
+    public const string ActingPrefix = "Quyền ";
+
+    /// <summary>
+    /// Chức danh hiển thị của một chức vụ đang giữ: <c>isActing</c> → "Quyền " + tên chức vụ (giữ nguyên chữ đầu của tên,
+    /// ví dụ "Quyền Trưởng trung tâm"); ngược lại là tên chức vụ. Mọi nơi ghép tên chức vụ thành chức danh của người đều dùng hàm này.
+    /// </summary>
+    public static string DisplayName(string positionName, bool isActing)
+    {
+        var name = positionName?.Trim() ?? string.Empty;
+        return isActing && name.Length > 0 ? ActingPrefix + name : name;
+    }
+
+    /// <summary>Chức danh hiển thị của bản ghi chức vụ (rỗng nếu chưa nạp chức vụ).</summary>
+    public static string DisplayName(MemberPosition memberPosition)
+        => DisplayName(memberPosition.Position?.Name ?? string.Empty, memberPosition.IsActing);
+
+    /// <summary>
+    /// Dữ liệu suy ra của bản ghi chức vụ: chức vụ "Quyền" có mã thống kê, thẩm quyền như chính chức vụ đó; tên là chức danh hiển thị.
+    /// </summary>
+    public static HeldPosition Held(MemberPosition memberPosition)
+        => new(DisplayName(memberPosition), memberPosition.Position?.StatCode, memberPosition.Position?.DefaultApprovalAuthority);
+
+    /// <summary>
+    /// Tách tiền tố "Quyền " / "Q. " (không phân biệt hoa thường) khỏi chức vụ ghi dạng chữ (nhập Excel):
+    /// trả về true và phần tên chức vụ còn lại khi có tiền tố; ngược lại false và chuỗi đã cắt khoảng trắng.
+    /// </summary>
+    public static bool TryStripActingPrefix(string text, out string positionName)
+    {
+        var value = (text ?? string.Empty).Normalize(System.Text.NormalizationForm.FormC).Trim();
+        foreach (var prefix in new[] { "Quyền ", "Q." })
+        {
+            if (value.Length > prefix.Length && value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var rest = value[prefix.Length..].Trim();
+                if (rest.Length > 0)
+                {
+                    positionName = rest;
+                    return true;
+                }
+            }
+        }
+        positionName = value;
+        return false;
     }
 
     /// <summary>Tên hiển thị của bên chức vụ.</summary>

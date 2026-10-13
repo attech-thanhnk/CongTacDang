@@ -460,6 +460,7 @@ Menu **Quản lý → Người dùng**. Lọc theo đơn vị, tổ chức Đả
 - Trang chi tiết có các nút **Sửa thông tin**, **Vô hiệu hóa**, **Đặt lại mật khẩu**, **Xóa** và các tab:
   - **Thông tin**: thông tin hồ sơ cán bộ, cấp quyết định xếp loại, tình trạng khóa đăng nhập.
   - **Chức vụ**: **Thêm chức vụ** (chức vụ Đảng gắn tổ chức Đảng, chức vụ chính quyền gắn đơn vị, chức vụ đoàn thể gắn một trong hai), ngày bắt đầu/kết thúc, căn cứ văn bản. Dùng **Kết thúc chức vụ** khi thôi giữ; **Xóa** chỉ khi nhập nhầm. Phía trên có **Cấp quyết định xếp loại** và **Kiểu trình bày phiếu tự đánh giá** (mặc định theo chức vụ); bấm **Thay đổi** để đặt riêng cho cán bộ khi cần (cấp quyết định phải ghi lý do).
+    - Người được giao phụ trách (quyền trưởng): chọn đúng chức vụ cấp trưởng và đánh dấu **Quyền**. Chức danh in ra là "Quyền …" (ví dụ *Quyền Trưởng trung tâm*); mã chức danh, cấp quyết định xếp loại, kiểu trình bày phiếu như cấp trưởng.
   - **Vai trò & phạm vi**: các bản gán vai trò của người này.
   - Khi người này có vai trò cần xem lại (vừa luân chuyển, thôi chức vụ, hoặc giao tạm sắp hết hạn), đầu trang hiện khung vàng **Vai trò cần xem lại** kèm nút **Gỡ**. Sau khi sửa chức vụ ở tab **Chức vụ**, khung này cập nhật ngay để biết cần gỡ vai trò nào.
   - **Người này làm được gì**: tra cứu quyền thực tế và phạm vi.

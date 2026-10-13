@@ -197,6 +197,39 @@ public class DynamicOrgTests
     }
 
     [Theory]
+    [InlineData("Trưởng trung tâm", true, "Quyền Trưởng trung tâm")]
+    [InlineData("Bí thư Đảng bộ bộ phận", true, "Quyền Bí thư Đảng bộ bộ phận")]
+    [InlineData("  Trưởng phòng ", false, "Trưởng phòng")]
+    [InlineData("", true, "")]
+    public void DisplayName_PrefixesQuyenWhenActing(string name, bool isActing, string expected)
+        => Assert.Equal(expected, PositionRules.DisplayName(name, isActing));
+
+    [Fact]
+    public void Held_ActingPositionDerivesLikeHeadPosition()
+    {
+        var head = new Position { Name = "Bí thư Đảng ủy", StatCode = "M8", DefaultApprovalAuthority = ApprovalAuthority.CapTren };
+        var acting = PositionRules.Held(new MemberPosition { Position = head, IsActing = true });
+
+        Assert.Equal("Quyền Bí thư Đảng ủy", acting.PositionName);
+        Assert.Equal("M8", PositionRules.PersonStatCode(new[] { acting }));
+        Assert.Equal(ApprovalAuthority.CapTren, PositionRules.DeriveApprovalAuthority(new[] { acting }));
+    }
+
+    [Theory]
+    [InlineData("Quyền Trưởng phòng", true, "Trưởng phòng")]
+    [InlineData("quyền  trưởng phòng", true, "trưởng phòng")]
+    [InlineData("Q. Trưởng phòng", true, "Trưởng phòng")]
+    [InlineData("q.Trưởng phòng", true, "Trưởng phòng")]
+    [InlineData(" Trưởng phòng ", false, "Trưởng phòng")]
+    [InlineData("Quyền", false, "Quyền")]
+    [InlineData("Quyền ", false, "Quyền")]
+    public void TryStripActingPrefix_RecognizesQuyenAndQDot(string text, bool expected, string name)
+    {
+        Assert.Equal(expected, PositionRules.TryStripActingPrefix(text, out var rest));
+        Assert.Equal(name, rest);
+    }
+
+    [Theory]
     [InlineData(" m7 ", "M7")]
     [InlineData("M026", "M26")]
     [InlineData("", null)]

@@ -8,6 +8,7 @@ using CongTacDang.Application.Accounts;
 using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
+using CongTacDang.Application.Organization;
 using CongTacDang.Application.Services;
 using CongTacDang.Domain.Enums;
 
@@ -69,6 +70,9 @@ public sealed class UserImportRow
 
     /// <summary>Chức vụ đã đối chiếu (bỏ trùng).</summary>
     public List<PositionRef> Positions { get; } = new();
+
+    /// <summary>Chức vụ ghi dạng "Quyền …" / "Q. …" trong ô (giữ dạng quyền).</summary>
+    public HashSet<Guid> ActingPositionIds { get; } = new();
 }
 
 /// <summary>
@@ -142,7 +146,7 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
         new(PartyMemberKey, "Đảng viên", false, "Có hoặc Không. Để trống: có mã tổ chức Đảng hoặc số thẻ đảng thì là Đảng viên.", ImportValues.YesNo, Example: "Có"),
         new(PartyCardKey, "Số thẻ đảng", false, "Số thẻ đảng viên.", Example: "01234567"),
         new(PositionsKey, "Chức vụ", false,
-            "Tên chức vụ hoặc mã thống kê (M1…M26) trong danh mục; nhiều chức vụ phân tách bằng dấu ;. Chức vụ đầu tiên là chức vụ chính.",
+            "Tên chức vụ hoặc mã thống kê (M1…M26) trong danh mục; nhiều chức vụ phân tách bằng dấu ;. Chức vụ đầu tiên là chức vụ chính. Quyền: ghi \"Quyền\" trước tên (Quyền Trưởng phòng).",
             MultipleValues: true, Example: "Trưởng phòng; Bí thư chi bộ"),
         new(WeightFrameKey, "Khung tỷ trọng mặc định", false, "Mã khung tỷ trọng A-B-C-D theo bộ tiêu chí (tùy chọn).", Example: "K2"),
         new(FormLayoutKey, "Kiểu trình bày biểu mẫu", false,
@@ -265,9 +269,16 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
 
             foreach (var token in data.PositionTokens)
             {
-                var position = ResolvePosition(row, token, positions, existing);
+                // "Quyền Trưởng phòng" / "Q. Trưởng phòng": chức vụ Trưởng phòng, giữ dạng quyền.
+                var isActing = PositionRules.TryStripActingPrefix(token, out var positionText)
+                    && !positions.Any(p => ImportValues.SameText(p.Name, token));
+                var position = ResolvePosition(row, isActing ? positionText : token, positions, existing);
                 if (position != null && data.Positions.All(p => p.Id != position.Id))
+                {
                     data.Positions.Add(position);
+                    if (isActing)
+                        data.ActingPositionIds.Add(position.Id);
+                }
             }
             ResolveFormLayout(row, layouts);
 
@@ -353,7 +364,8 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
         PositionId = position.Id,
         PartyCellId = position.Side == PositionSide.Party ? data.PartyCellId : null,
         DepartmentId = position.Side == PositionSide.Administrative ? data.DepartmentId : null,
-        IsPrimary = isPrimary
+        IsPrimary = isPrimary,
+        IsActing = data.ActingPositionIds.Contains(position.Id)
     };
 
     private static Guid? ResolveUnit(ParsedImportRow<UserImportRow> row, string code, IReadOnlyDictionary<string, OrgUnitRef> units,

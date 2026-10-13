@@ -115,6 +115,10 @@ export interface MemberPosition {
   departmentId?: string | null;
   departmentName?: string | null;
   isPrimary: boolean;
+  /** Giữ dạng "Quyền" (đánh giá như chính chức vụ). */
+  isActing: boolean;
+  /** Chức danh hiển thị ("Quyền …" khi giữ dạng quyền). */
+  displayName: string;
   validFrom: string;
   /** Mốc hết hiệu lực (không bao gồm). */
   validTo?: string | null;
@@ -128,6 +132,7 @@ export interface SaveMemberPositionPayload {
   partyCellId?: string;
   departmentId?: string;
   isPrimary?: boolean;
+  isActing?: boolean;
   validFrom?: string;
   validTo?: string;
   clearValidTo?: boolean;
