@@ -283,6 +283,19 @@ public sealed class AuthorizationMatrixTests
         object Meeting(Guid cell) => new { periodId = s.PeriodId, partyCellId = cell, formCode = "M12", meetingType = "Hội nghị", invitedCount = 5, presentCount = 5 };
         Assert.Equal(HttpStatusCode.OK, (await s.Office.PostAsJsonAsync("/api/evaluations/meetings", Meeting(s.CellB))).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await s.CellSecA.PostAsJsonAsync("/api/evaluations/meetings", Meeting(s.CellA))).StatusCode);
+
+        // Hội nghị quyết định là hội nghị cấp ủy: không tổ chức ở Phòng; hội nghị tập thể lãnh đạo thì được.
+        object DeptMeeting(string stage) => new { periodId = s.PeriodId, departmentId = s.DeptA, stage, formCode = "M12", meetingType = "Hội nghị", invitedCount = 3, presentCount = 3 };
+        Assert.Equal(HttpStatusCode.BadRequest, (await s.DeptSecretaryA.PostAsJsonAsync("/api/evaluations/meetings", DeptMeeting("B4_DECISION"))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await s.DeptSecretaryA.PostAsJsonAsync("/api/evaluations/meetings", DeptMeeting("B3A_COLLECTIVE"))).StatusCode);
+
+        // Phạm vi quyền cho giao diện: thư ký Phòng chỉ ở Phòng A; Văn phòng Đảng ủy toàn công ty.
+        var deptScope = await Data(s.DeptSecretaryA, "/api/auth/scope?permission=meeting.manage");
+        Assert.False(deptScope.GetProperty("isGlobal").GetBoolean());
+        Assert.Contains(s.DeptA, deptScope.GetProperty("departmentIds").EnumerateArray().Select(e => e.GetGuid()));
+        Assert.Empty(deptScope.GetProperty("partyCellIds").EnumerateArray());
+        Assert.True((await Data(s.Office, "/api/auth/scope?permission=meeting.manage")).GetProperty("isGlobal").GetBoolean());
+        Assert.Equal(HttpStatusCode.BadRequest, (await s.Office.GetAsync("/api/auth/scope?permission=khong.co")).StatusCode);
     }
 
     #endregion

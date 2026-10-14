@@ -183,6 +183,19 @@ public class AccessGrantDto
     public string ScopeName { get; set; } = string.Empty;
 }
 
+/// <summary>Nơi người dùng hiện tại thực hiện được một quyền (<c>/api/auth/scope</c>).</summary>
+public class PermissionScopeDto
+{
+    /// <summary>Được làm ở toàn công ty.</summary>
+    public bool IsGlobal { get; set; }
+
+    /// <summary>Đơn vị chính quyền được làm (đã gồm đơn vị con); rỗng khi toàn công ty.</summary>
+    public List<Guid> DepartmentIds { get; set; } = new();
+
+    /// <summary>Tổ chức Đảng được làm (đã gồm tổ chức cấp dưới); rỗng khi toàn công ty.</summary>
+    public List<Guid> PartyCellIds { get; set; } = new();
+}
+
 /// <summary>Nguồn của một quyền: phạm vi + vai trò + bản gán.</summary>
 public class EffectiveGrantSourceDto
 {

@@ -10,6 +10,7 @@ import { Form16DraftPanel } from "@/components/reports/Form16DraftPanel";
 import { EvaluationPeriodDto } from "@/services/evaluationService";
 import { BranchItem, organizationService } from "@/services/organizationService";
 import { organizationSettingsService } from "@/services/organizationSettingsService";
+import { usePermissionScope, withinScope } from "@/services/authService";
 import { REPORTS, ReportDefinition, ReportFileFormat, hd03FileName, internalFileName, reportService, scopedFileName, withQuery } from "@/services/reportService";
 
 const ROMAN = ["", "I", "II", "III", "IV"];
@@ -17,6 +18,9 @@ const ROMAN = ["", "I", "II", "III", "IV"];
 /** Nhãn kỳ trong tên tệp theo quy cách HD03 ("Quy III-2026"). */
 const periodLabel = (period?: EvaluationPeriodDto | null) =>
   period ? `Quy ${ROMAN[period.quarter] ?? period.quarter}-${period.year}` : "Ky bao cao";
+
+/** Biểu mẫu xuất theo Chi bộ: cần phạm vi tổ chức Đảng hoặc toàn công ty. */
+const BRANCH_REPORTS = new Set(["mau-11", "mau-14", "mau-15a", "mau-15b", "mau-16", "decision", "excellent-quota"]);
 
 export default function ReportsPage() {
   const { hasPermission } = useAuth();
@@ -29,7 +33,12 @@ export default function ReportsPage() {
   const [showForm16, setShowForm16] = useState(false);
 
   const canExport = hasPermission("report.export");
-  const canMeeting = hasPermission("meeting.read") || hasPermission("meeting.manage");
+  const canMeeting = hasPermission("meeting.read");
+  // Chỉ cho chọn tổ chức Đảng trong phạm vi được giao; "Toàn Đảng bộ" chỉ khi được giao toàn công ty.
+  const scope = usePermissionScope(canExport ? "report.export" : "meeting.read");
+  const scopedBranches = useMemo(() => withinScope(branches, scope, "partyCell"), [branches, scope]);
+  const canWholeParty = !!scope?.isGlobal;
+  const noBranchScope = !!scope && !canWholeParty && scopedBranches.length === 0;
 
   useEffect(() => {
     organizationService.getBranches().then(setBranches).catch(() => setBranches([]));
@@ -38,6 +47,10 @@ export default function ReportsPage() {
       .then((info) => setShortName(info.shortName))
       .catch(() => setShortName(""));
   }, []);
+
+  useEffect(() => {
+    if (scope && !canWholeParty && !branchId && scopedBranches.length > 0) setBranchId(scopedBranches[0].id);
+  }, [scope, canWholeParty, branchId, scopedBranches]);
 
   const branch = useMemo(() => branches.find((b) => b.id === branchId), [branches, branchId]);
 
@@ -82,6 +95,9 @@ export default function ReportsPage() {
     }
     if (!canRun(report)) {
       return <span className="small text-secondary">Chưa được cấp quyền</span>;
+    }
+    if (noBranchScope && BRANCH_REPORTS.has(report.id)) {
+      return <span className="small text-secondary">Cần được giao ở Chi bộ hoặc toàn công ty</span>;
     }
     return (
       <div className="d-flex flex-wrap gap-1 justify-content-end">
@@ -142,7 +158,7 @@ export default function ReportsPage() {
                   <td className="text-center text-secondary">{report.fileType}</td>
                   <td className="text-end">{renderActions(report)}</td>
                 </tr>
-                {report.id === "mau-16" && showForm16 && periodId && canExport && (
+                {report.id === "mau-16" && showForm16 && periodId && canExport && !noBranchScope && (
                   <tr>
                     <td colSpan={4} className="p-0" style={{ background: "var(--tint)" }}>
                       <Form16DraftPanel periodId={periodId} branchId={branchId || undefined} periodLabel={periodLabel(period)} shortName={shortName} />
@@ -163,8 +179,8 @@ export default function ReportsPage() {
         title="Báo cáo"
         actions={
           <select className="form-select w-auto" style={{ minWidth: 240 }} aria-label="Phạm vi tổ chức Đảng" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-            <option value="">Toàn Đảng bộ / theo phạm vi được giao</option>
-            {branches.map((b) => (
+            {(canWholeParty || scopedBranches.length === 0) && <option value="">{canWholeParty ? "Toàn Đảng bộ" : "Theo phạm vi được giao"}</option>}
+            {scopedBranches.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>

@@ -102,6 +102,9 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             ?? throw new ArgumentException("Hồ sơ tập thể phải có mã M06, M07 hoặc M08.");
         if (string.IsNullOrWhiteSpace(dto.SubjectName))
             throw new ArgumentException("Tên tập thể hoặc lĩnh vực đánh giá không được để trống.");
+        // Mẫu 07 là báo cáo tự đánh giá của tập thể cấp ủy: gắn tổ chức Đảng, không gắn Phòng / đơn vị.
+        if (form == CollectiveEvaluationForm.M07 && (dto.PartyCellId is null || dto.PartyCellId == Guid.Empty || dto.DepartmentId.HasValue))
+            throw new ArgumentException("Mẫu 07 là tự đánh giá của tập thể Đảng ủy, Chi ủy, Chi bộ: hãy chọn tổ chức Đảng.");
 
         _guard.Ensure(PermissionCodes.CollectiveManage, new AccessTarget(DepartmentId: dto.DepartmentId, PartyCellId: dto.PartyCellId));
         // Điểm tối đa lấy từ tham số bộ tiêu chí của kỳ (mặc định 30 / 70).
@@ -293,7 +296,6 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     {
         var partyCellId = dto.PartyCellId == Guid.Empty ? null : dto.PartyCellId;
         var departmentId = dto.DepartmentId == Guid.Empty ? null : dto.DepartmentId;
-        _guard.Ensure(PermissionCodes.MeetingManage, new AccessTarget(DepartmentId: departmentId, PartyCellId: partyCellId));
         if (dto.FormCode is not ("M12" or "M13"))
             throw new ArgumentException("Biên bản chỉ hỗ trợ M12 hoặc M13.");
         WorkflowStep? stage = null;
@@ -303,6 +305,10 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             if (stage is not (WorkflowStep.B3A_COLLECTIVE or WorkflowStep.B4_DECISION))
                 throw new ArgumentException("Biên bản chỉ dùng cho bước đề xuất của tập thể lãnh đạo (B3A_COLLECTIVE) hoặc quyết định (B4_DECISION).");
         }
+        // Hội nghị quyết định mức xếp loại là hội nghị cấp ủy: tổ chức Đảng hoặc cấp Công ty, không phải Phòng / đơn vị.
+        if (stage == WorkflowStep.B4_DECISION && departmentId.HasValue)
+            throw new ArgumentException("Hội nghị quyết định mức xếp loại do cấp ủy tổ chức: chọn tổ chức Đảng hoặc Cấp Công ty, không chọn Phòng / đơn vị.");
+        _guard.Ensure(PermissionCodes.MeetingManage, new AccessTarget(DepartmentId: departmentId, PartyCellId: partyCellId));
         if (dto.FormCode == "M13" && dto.VoteSummaries.Count == 0)
             throw new ArgumentException("Mẫu 13 phải có tổng hợp phiếu theo từng hồ sơ cán bộ.");
         if (dto.InvitedCount < 0 || dto.PresentCount < 0 || dto.AbsentCount < 0 || dto.PresentCount > dto.InvitedCount)

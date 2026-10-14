@@ -4,6 +4,7 @@ import React, { FormEvent, useEffect, useState } from "react";
 import type { CollectiveEvaluationItemDto } from "@/services/evaluationService";
 import type { BranchItem, DepartmentItem } from "@/services/organizationService";
 import { CollectiveFormCatalog, CollectiveRecord, SaveCollectiveRecord, collectiveService } from "@/services/collectiveService";
+import { usePermissionScope, withinScope } from "@/services/authService";
 
 export type CollectiveForm = "M06" | "M07" | "M08";
 
@@ -43,6 +44,29 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
   const [grade, setGrade] = useState("HoanThanhTot");
   const [items, setItems] = useState<CollectiveEvaluationItemDto[]>([]);
   const [saving, setSaving] = useState(false);
+
+  // Chỉ cho chọn nơi được lập hồ sơ tập thể. Mẫu 07 là tự đánh giá của cấp ủy: chỉ tổ chức Đảng.
+  const scope = usePermissionScope("collective.manage");
+  const cellOptions = withinScope(branches, scope, "partyCell");
+  const departmentOptions = withinScope(departments, scope, "department");
+  const unitOptions: ("cell" | "department")[] = [
+    ...(cellOptions.length > 0 ? (["cell"] as const) : []),
+    ...(departmentOptions.length > 0 && form !== "M07" ? (["department"] as const) : []),
+  ];
+  const formOptions = (["M07", "M08", "M06"] as CollectiveForm[]).filter((value) =>
+    cellOptions.length > 0 || (value !== "M07" && departmentOptions.length > 0));
+
+  useEffect(() => {
+    if (editing || !scope) return;
+    if (!formOptions.includes(form) && formOptions.length > 0) {
+      setForm(formOptions[0]);
+      return;
+    }
+    if (!unitOptions.includes(unit) && unitOptions.length > 0) setUnit(unitOptions[0]);
+    if (cellOptions.length === 1 && !partyCellId) setPartyCellId(cellOptions[0].id);
+    if (departmentOptions.length === 1 && !departmentId) setDepartmentId(departmentOptions[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing, scope, form, unit, cellOptions.length, departmentOptions.length]);
 
   useEffect(() => {
     if (!editing) {
@@ -125,21 +149,29 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
   const setItem = (index: number, patch: Partial<CollectiveEvaluationItemDto>) =>
     setItems(items.map((item, i) => (i === index ? { ...item, ...patch } : item)));
 
+  if (!editing && scope && formOptions.length === 0)
+    return <div className="text-secondary small">Bạn chưa được giao lập hồ sơ tập thể ở đơn vị nào.</div>;
+
+  const FORM_LABELS: Record<CollectiveForm, string> = {
+    M07: "Mẫu 07 — Tự đánh giá của tập thể Đảng ủy (Chi ủy, Chi bộ)",
+    M08: "Mẫu 08 — Tổng hợp kết quả nhiệm vụ của cơ quan, đơn vị",
+    M06: "Mẫu 06 — Kết quả tập thể/lĩnh vực",
+  };
+
   return (
     <form onSubmit={submit} className="row g-2">
       <div className="col-md-4">
         <label className="form-label">Biểu mẫu</label>
         <select className="form-select form-select-sm" value={form} disabled={!!editing} onChange={(e) => setForm(e.target.value as CollectiveForm)}>
-          <option value="M07">Mẫu 07 — Tự đánh giá của tập thể Đảng ủy (Chi ủy, Chi bộ)</option>
-          <option value="M08">Mẫu 08 — Tổng hợp kết quả nhiệm vụ của cơ quan, đơn vị</option>
-          <option value="M06">Mẫu 06 — Kết quả tập thể/lĩnh vực</option>
+          {(editing ? (["M07", "M08", "M06"] as CollectiveForm[]) : formOptions).map((value) => <option key={value} value={value}>{FORM_LABELS[value]}</option>)}
         </select>
       </div>
       <div className="col-md-3">
         <label className="form-label">Thuộc</label>
         <select className="form-select form-select-sm" value={unit} disabled={!!editing} onChange={(e) => setUnit(e.target.value as "cell" | "department")}>
-          <option value="cell">Tổ chức Đảng</option>
-          <option value="department">Phòng / đơn vị</option>
+          {(editing ? (["cell", "department"] as const) : unitOptions).map((value) => (
+            <option key={value} value={value}>{value === "cell" ? "Tổ chức Đảng" : "Phòng / đơn vị"}</option>
+          ))}
         </select>
       </div>
       <div className="col-md-5">
@@ -147,12 +179,12 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
         {unit === "cell" ? (
           <select className="form-select form-select-sm" value={partyCellId} disabled={!!editing} onChange={(e) => setPartyCellId(e.target.value)}>
             <option value="">Chọn tổ chức Đảng</option>
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            {(editing ? branches : cellOptions).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
         ) : (
           <select className="form-select form-select-sm" value={departmentId} disabled={!!editing} onChange={(e) => setDepartmentId(e.target.value)}>
             <option value="">Chọn Phòng / đơn vị</option>
-            {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            {(editing ? departments : departmentOptions).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         )}
       </div>

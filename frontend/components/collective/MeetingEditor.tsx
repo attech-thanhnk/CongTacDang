@@ -4,6 +4,7 @@ import React, { FormEvent, useEffect, useState } from "react";
 import { EvaluationMeetingVoteSummaryDto, EvaluationRecordDto, evaluationService } from "@/services/evaluationService";
 import type { BranchItem, DepartmentItem } from "@/services/organizationService";
 import { MeetingAttendee, MeetingRecord, SaveMeetingRecord, collectiveService } from "@/services/collectiveService";
+import { usePermissionScope, withinScope } from "@/services/authService";
 
 interface Props {
   periodId: string;
@@ -17,7 +18,15 @@ interface Props {
 }
 
 type Unit = "cell" | "department" | "company";
+type Stage = "" | "B3A_COLLECTIVE" | "B4_DECISION";
 type Vote = Omit<EvaluationMeetingVoteSummaryDto, "recordId">;
+
+const UNIT_LABELS: Record<Unit, string> = { cell: "Tổ chức Đảng", department: "Phòng / đơn vị", company: "Cấp Công ty" };
+const STAGE_LABELS: [Stage, string][] = [
+  ["B3A_COLLECTIVE", "Tập thể lãnh đạo, quản lý (đề xuất)"],
+  ["B4_DECISION", "Đảng ủy/Chi ủy cơ sở (quyết định)"],
+  ["", "Không xác định"],
+];
 
 /** Giờ họp nhập và hiển thị theo giờ Việt Nam (như giờ in trên biên bản), không phụ thuộc múi giờ của máy. */
 const VN_OFFSET = "+07:00";
@@ -45,7 +54,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
   const [unit, setUnit] = useState<Unit>("cell");
   const [partyCellId, setPartyCellId] = useState("");
   const [departmentId, setDepartmentId] = useState("");
-  const [stage, setStage] = useState<"" | "B3A_COLLECTIVE" | "B4_DECISION">("B4_DECISION");
+  const [stage, setStage] = useState<Stage>("B4_DECISION");
   const [location, setLocation] = useState("");
   const [startedAt, setStartedAt] = useState(toLocalInput(new Date().toISOString()));
   const [endedAt, setEndedAt] = useState("");
@@ -67,6 +76,31 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
   const [records, setRecords] = useState<EvaluationRecordDto[]>([]);
   const [votes, setVotes] = useState<Record<string, Vote>>({});
   const [saving, setSaving] = useState(false);
+
+  // Chỉ cho chọn nơi được lập biên bản. Hội nghị quyết định là hội nghị cấp ủy: tổ chức Đảng hoặc cấp Công ty.
+  const scope = usePermissionScope("meeting.manage");
+  const cellOptions = withinScope(branches, scope, "partyCell");
+  const departmentOptions = withinScope(departments, scope, "department");
+  const unitsFor = (value: Stage): Unit[] => [
+    ...(cellOptions.length > 0 ? (["cell"] as Unit[]) : []),
+    ...(departmentOptions.length > 0 && value !== "B4_DECISION" ? (["department"] as Unit[]) : []),
+    ...(scope?.isGlobal ? (["company"] as Unit[]) : []),
+  ];
+  const stageOptions = STAGE_LABELS.filter(([value]) => unitsFor(value).length > 0);
+  const unitOptions = unitsFor(stage);
+
+  useEffect(() => {
+    if (editing || !scope) return;
+    if (!stageOptions.some(([value]) => value === stage) && stageOptions.length > 0) {
+      setStage(stageOptions[0][0]);
+      return;
+    }
+    if (!unitOptions.includes(unit) && unitOptions.length > 0)
+      setUnit(stage === "B3A_COLLECTIVE" && unitOptions.includes("department") ? "department" : unitOptions[0]);
+    if (cellOptions.length === 1 && !partyCellId) setPartyCellId(cellOptions[0].id);
+    if (departmentOptions.length === 1 && !departmentId) setDepartmentId(departmentOptions[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing, scope, stage, unit, cellOptions.length, departmentOptions.length]);
 
   useEffect(() => {
     if (!editing) return;
@@ -185,6 +219,9 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
   const setMember = (index: number, patch: Partial<MeetingAttendee>) =>
     setCommittee(committee.map((a, i) => (i === index ? { ...a, ...patch } : a)));
 
+  if (!editing && scope && stageOptions.length === 0)
+    return <div className="text-secondary small">Bạn chưa được giao lập biên bản hội nghị ở đơn vị nào.</div>;
+
   return (
     <form onSubmit={submit} className="row g-2">
       <div className="col-6">
@@ -196,18 +233,14 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
       </div>
       <div className="col-6">
         <label className="form-label">Hội nghị</label>
-        <select className="form-select form-select-sm" value={stage} disabled={!!editing} onChange={(e) => setStage(e.target.value as "" | "B3A_COLLECTIVE" | "B4_DECISION")}>
-          <option value="B3A_COLLECTIVE">Tập thể lãnh đạo, quản lý (đề xuất)</option>
-          <option value="B4_DECISION">Đảng ủy/Chi ủy cơ sở (quyết định)</option>
-          <option value="">Không xác định</option>
+        <select className="form-select form-select-sm" value={stage} disabled={!!editing} onChange={(e) => setStage(e.target.value as Stage)}>
+          {(editing ? STAGE_LABELS : stageOptions).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </div>
       <div className="col-6">
         <label className="form-label">Đơn vị tổ chức</label>
         <select className="form-select form-select-sm" value={unit} disabled={!!editing} onChange={(e) => setUnit(e.target.value as Unit)}>
-          <option value="cell">Tổ chức Đảng</option>
-          <option value="department">Phòng / đơn vị</option>
-          <option value="company">Cấp Công ty</option>
+          {(editing ? (Object.keys(UNIT_LABELS) as Unit[]) : unitOptions).map((value) => <option key={value} value={value}>{UNIT_LABELS[value]}</option>)}
         </select>
       </div>
       <div className="col-6">
@@ -216,7 +249,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
             <label className="form-label">Tổ chức Đảng</label>
             <select className="form-select form-select-sm" value={partyCellId} disabled={!!editing} onChange={(e) => setPartyCellId(e.target.value)}>
               <option value="">Chọn tổ chức Đảng</option>
-              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              {(editing ? branches : cellOptions).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           </>
         )}
@@ -225,7 +258,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
             <label className="form-label">Phòng / đơn vị</label>
             <select className="form-select form-select-sm" value={departmentId} disabled={!!editing} onChange={(e) => setDepartmentId(e.target.value)}>
               <option value="">Chọn Phòng / đơn vị</option>
-              {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              {(editing ? departments : departmentOptions).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           </>
         )}

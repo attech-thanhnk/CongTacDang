@@ -298,7 +298,7 @@ Menu **Đánh giá tập thể** (trang "Đánh giá tập thể & Hội nghị"
 ### 5.2 Biên bản hội nghị và kiểm phiếu (Mẫu 12, 13)
 
 1. Bấm **Lập biên bản hội nghị**.
-2. Chọn **Hội nghị**: *Tập thể lãnh đạo, quản lý (đề xuất)* hoặc *Đảng ủy/Chi ủy cơ sở (quyết định)*; chọn đơn vị tổ chức.
+2. Chọn **Hội nghị**: *Tập thể lãnh đạo, quản lý (đề xuất)* hoặc *Đảng ủy/Chi ủy cơ sở (quyết định)*; chọn đơn vị tổ chức. Hội nghị quyết định là hội nghị cấp ủy nên chỉ chọn được tổ chức Đảng hoặc *Cấp Công ty*, không chọn Phòng. Danh sách chỉ hiện nơi bạn được giao lập biên bản.
 3. Nhập thời gian bắt đầu/kết thúc, địa điểm, số triệu tập, có mặt, vắng mặt và lý do, người dự khác (**Thêm người dự**), chủ trì, thư ký, nội dung.
 4. Phần Mẫu 13: **Thêm thành viên Tổ kiểm phiếu** (người đầu tiên là Tổ trưởng), nhập *Phiếu phát ra*, *Phiếu thu về*, *Phiếu hợp lệ*, *Phiếu không hợp lệ*.
 5. Nhập **Diễn biến hội nghị**, **Kết quả hội nghị**, bấm **Lưu biên bản**.

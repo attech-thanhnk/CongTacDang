@@ -20,17 +20,39 @@ public class AuthController : ControllerBase
     private readonly IUserService _userService;
     private readonly IPermissionResolver _permissionResolver;
     private readonly IRoleAssignmentService _roleAssignments;
+    private readonly IAuthorizationGuard _guard;
 
     public AuthController(
         IAuthService authService,
         IUserService userService,
         IPermissionResolver permissionResolver,
-        IRoleAssignmentService roleAssignments)
+        IRoleAssignmentService roleAssignments,
+        IAuthorizationGuard guard)
     {
         _authService = authService;
         _userService = userService;
         _permissionResolver = permissionResolver;
         _roleAssignments = roleAssignments;
+        _guard = guard;
+    }
+
+    /// <summary>
+    /// Nơi người dùng hiện tại thực hiện được một quyền: toàn công ty, hoặc các đơn vị / tổ chức Đảng (đã gồm cấp dưới).
+    /// Giao diện dùng để chỉ cho chọn đúng nơi được làm, tránh chọn rồi mới bị từ chối.
+    /// </summary>
+    [Authorize]
+    [HttpGet("scope")]
+    public IActionResult Scope([FromQuery] string permission)
+    {
+        if (string.IsNullOrWhiteSpace(permission) || PermissionCodes.Find(permission) == null)
+            return BadRequest(ApiResponse.Fail("Mã quyền không hợp lệ."));
+        var scope = _guard.GetScope(permission);
+        return Ok(ApiResponse<PermissionScopeDto>.Ok(new PermissionScopeDto
+        {
+            IsGlobal = scope.IsGlobal,
+            DepartmentIds = scope.DepartmentIds.ToList(),
+            PartyCellIds = scope.PartyCellIds.ToList()
+        }, "Lấy phạm vi quyền thành công."));
     }
 
     /// <summary>Đăng nhập bằng username/password — cấp Access Token (15 phút) và Refresh Token (7 ngày)</summary>

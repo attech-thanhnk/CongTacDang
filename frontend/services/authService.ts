@@ -1,4 +1,12 @@
+import { useEffect, useState } from "react";
 import { request } from "./apiClient";
+
+/** Nơi người dùng hiện tại làm được một quyền (toàn công ty, hoặc các đơn vị / tổ chức Đảng — đã gồm cấp dưới). */
+export interface PermissionScope {
+  isGlobal: boolean;
+  departmentIds: string[];
+  partyCellIds: string[];
+}
 
 /** Một quyền kèm phạm vi áp dụng */
 export interface AccessGrant {
@@ -53,6 +61,11 @@ export const authService = {
     return request<UserSession>("/auth/me");
   },
 
+  /** Nơi người dùng hiện tại làm được quyền <paramref name="permission"/>. */
+  async getScope(permission: string): Promise<PermissionScope> {
+    return request<PermissionScope>(`/auth/scope?permission=${encodeURIComponent(permission)}`);
+  },
+
   /** Làm mới phiên làm việc bằng Refresh Token */
   async refreshToken(): Promise<UserSession> {
     return request<UserSession>("/auth/refresh-token", {
@@ -71,3 +84,30 @@ export const authService = {
     });
   },
 };
+
+/**
+ * Phạm vi của một quyền cho người dùng hiện tại (null khi đang tải). Dùng để chỉ cho chọn đúng nơi được làm
+ * thay vì để chọn rồi mới bị máy chủ từ chối.
+ */
+export function usePermissionScope(permission: string): PermissionScope | null {
+  const [scope, setScope] = useState<PermissionScope | null>(null);
+  useEffect(() => {
+    let active = true;
+    authService
+      .getScope(permission)
+      .then((value) => active && setScope(value))
+      .catch(() => active && setScope({ isGlobal: false, departmentIds: [], partyCellIds: [] }));
+    return () => {
+      active = false;
+    };
+  }, [permission]);
+  return scope;
+}
+
+/** Lọc danh sách đơn vị theo phạm vi (toàn công ty → giữ nguyên). */
+export function withinScope<T extends { id: string }>(items: T[], scope: PermissionScope | null, kind: "department" | "partyCell"): T[] {
+  if (!scope) return [];
+  if (scope.isGlobal) return items;
+  const allowed = new Set(kind === "department" ? scope.departmentIds : scope.partyCellIds);
+  return items.filter((item) => allowed.has(item.id));
+}

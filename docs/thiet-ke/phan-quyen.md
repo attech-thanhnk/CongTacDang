@@ -10,7 +10,8 @@
 3. **Mỗi lần gán vai trò có phạm vi và thời hạn:** ai — vai trò gì — ở đâu (toàn công ty / một Phòng / một Chi bộ) — từ ngày, đến ngày.
 4. **Quyền được tính lại ở mỗi request** từ CSDL (có cache, xóa cache khi thay đổi). JWT chỉ chứa danh tính, không chứa vai trò/quyền → thay đổi có hiệu lực ngay ở request kế tiếp.
 5. **Mọi kiểm tra quyền theo đối tượng đi qua một chỗ** (`IAuthorizationGuard`). Truy vấn danh sách dùng bộ lọc phạm vi của guard, không tự viết điều kiện.
-6. **Quản trị kỹ thuật tách khỏi nghiệp vụ:** vai trò quản trị mặc định không có quyền xem nội dung đánh giá (Mẫu 18: IT là đầu mối quản trị dữ liệu).
+6. **Giao diện chỉ cho chọn nơi được làm:** ô chọn đơn vị / tổ chức Đảng / "toàn công ty" lấy phạm vi từ `GET /api/auth/scope?permission=<mã>` (`IsGlobal`, `DepartmentIds`, `PartyCellIds` đã gồm cấp dưới — cùng bộ lọc của guard), để người không đủ phạm vi không chọn được rồi mới bị máy chủ từ chối. Máy chủ vẫn kiểm tra lại.
+7. **Quản trị kỹ thuật tách khỏi nghiệp vụ:** vai trò quản trị mặc định không có quyền xem nội dung đánh giá (Mẫu 18: IT là đầu mối quản trị dữ liệu).
 
 ## 2. Mô hình dữ liệu
 

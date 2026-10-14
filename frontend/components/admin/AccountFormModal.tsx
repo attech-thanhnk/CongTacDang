@@ -12,6 +12,7 @@ import {
   UpdateAccountPayload,
 } from "@/services/userService";
 import { AdminModal } from "./AdminModal";
+import { usePermissionScope } from "@/services/authService";
 import { toDateInput } from "./adminUtils";
 
 interface FormState {
@@ -100,8 +101,22 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
   const currentFrameMissing = !!form.weightFrameCode && !frameOptions.some((f) => f.code === form.weightFrameCode);
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((prev) => ({ ...prev, [key]: value }));
 
+  // Người quản trị theo phạm vi chỉ chọn được đơn vị / tổ chức Đảng mình được giao; tài khoản phải thuộc phạm vi đó
+  // (đơn vị công tác hoặc nơi sinh hoạt Đảng nằm trong phạm vi) — kiểm tra trước khi gửi, không để máy chủ từ chối.
+  const scope = usePermissionScope("system.users.manage");
+  const departmentIds = new Set(scope?.departmentIds ?? []);
+  const partyCellIds = new Set(scope?.partyCellIds ?? []);
+  const scopedDepartments = !scope || scope.isGlobal || departmentIds.size === 0
+    ? departments : departments.filter((d) => departmentIds.has(d.id) || d.id === form.departmentId);
+  const scopedPartyCells = !scope || scope.isGlobal || partyCellIds.size === 0
+    ? partyCells : partyCells.filter((c) => partyCellIds.has(c.id) || c.id === form.partyCellId);
+  const outOfScope = !!scope && !scope.isGlobal
+    && !(form.departmentId && departmentIds.has(form.departmentId))
+    && !(form.partyCellId && partyCellIds.has(form.partyCellId));
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    if (outOfScope) return;
     if (isEdit) {
       onUpdate?.({
         fullName: form.fullName.trim(),
@@ -196,7 +211,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
             <label className="form-label">Đơn vị công tác chính</label>
             <select className="form-select form-select-sm" value={form.departmentId} onChange={(e) => set("departmentId", e.target.value)}>
               <option value="">— Chưa gán —</option>
-              {selectable(departments, form.departmentId).map((item) => (
+              {selectable(scopedDepartments, form.departmentId).map((item) => (
                 <option key={item.id} value={item.id}>
                   {treeLabel(item)}
                   {item.isActive ? "" : " (ngừng hoạt động)"}
@@ -208,7 +223,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
             <label className="form-label">Nơi sinh hoạt Đảng</label>
             <select className="form-select form-select-sm" value={form.partyCellId} onChange={(e) => set("partyCellId", e.target.value)}>
               <option value="">— Chưa gán —</option>
-              {selectable(partyCells, form.partyCellId).map((item) => (
+              {selectable(scopedPartyCells, form.partyCellId).map((item) => (
                 <option key={item.id} value={item.id}>
                   {treeLabel(item)}
                   {item.isActive ? "" : " (ngừng hoạt động)"}
@@ -269,11 +284,16 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
             </>
           )}
         </div>
+        {outOfScope && (
+          <div className="alert alert-warning py-2 small mt-3 mb-0">
+            Chọn đơn vị công tác hoặc nơi sinh hoạt Đảng thuộc phạm vi bạn được giao quản lý tài khoản.
+          </div>
+        )}
         <div className="d-flex justify-content-end gap-2 mt-3">
           <button type="button" className="btn btn-sm btn-outline-secondary" onClick={onClose} disabled={saving}>
             Hủy
           </button>
-          <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
+          <button type="submit" className="btn btn-sm btn-primary" disabled={saving || outOfScope}>
             {saving && <span className="spinner-border spinner-border-sm me-1" />}
             {isEdit ? "Lưu thay đổi" : "Tạo tài khoản"}
           </button>
