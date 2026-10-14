@@ -9,6 +9,7 @@ export interface OrganizationSettings {
   parentCompanyName: string;
   shortName: string;
   location: string;
+  appraisalUnitName: string;
   systemName: string;
   updatedAt?: string | null;
   updatedByName?: string | null;

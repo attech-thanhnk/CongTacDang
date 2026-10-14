@@ -1666,6 +1666,13 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AppraisalUnitName")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasDefaultValue("");
+
                     b.Property<string>("CompanyName")
                         .IsRequired()
                         .HasMaxLength(300)

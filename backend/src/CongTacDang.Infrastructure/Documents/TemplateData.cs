@@ -263,13 +263,16 @@ public sealed class OrganizationTemplateFields
     /// <summary>Địa danh ở dòng "…, ngày … tháng … năm …".</summary>
     [TemplateField("ORG_LOCATION")] public string? Location { get; init; }
 
+    /// <summary>Cơ quan thẩm định, chữ in hoa (tiêu đề trái Mẫu 10).</summary>
+    [TemplateField("ORG_APPRAISAL_UNIT_UPPER")] public string? AppraisalUnitNameUpper { get; init; }
+
     /// <summary>Danh mục tag thông tin đơn vị (dùng chung, tùy chọn).</summary>
     public static IReadOnlyList<TemplateTagInfo> Tags { get; } = TemplateTagCatalog.Describe(typeof(OrganizationTemplateFields));
 
     /// <summary>Dựng từ các giá trị cài đặt (chuỗi rỗng → null: giữ chữ mặc định của template).</summary>
     public static OrganizationTemplateFields From(
         string? partyCommitteeName, string? superiorPartyName, string? companyName,
-        string? parentCompanyName, string? shortName, string? location) => new()
+        string? parentCompanyName, string? shortName, string? location, string? appraisalUnitName = null) => new()
     {
         PartyCommitteeName = OrNull(partyCommitteeName),
         SuperiorPartyName = OrNull(superiorPartyName),
@@ -278,7 +281,8 @@ public sealed class OrganizationTemplateFields
         ParentCompanyName = OrNull(parentCompanyName),
         ParentCompanyNameUpper = OrNull(parentCompanyName)?.ToUpper(Vietnamese),
         ShortName = OrNull(shortName),
-        Location = OrNull(location)
+        Location = OrNull(location),
+        AppraisalUnitNameUpper = OrNull(appraisalUnitName)?.ToUpper(Vietnamese)
     };
 
     private static string? OrNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

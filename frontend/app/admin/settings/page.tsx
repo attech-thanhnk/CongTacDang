@@ -18,6 +18,7 @@ interface FieldMeta {
   label: string;
   help: string;
   maxLength: number;
+  optional?: boolean;
 }
 
 /** Các trường thông tin đơn vị và nơi dùng (khớp máy chủ). */
@@ -59,6 +60,13 @@ const FIELDS: FieldMeta[] = [
     maxLength: 100,
   },
   {
+    key: "appraisalUnitName",
+    label: "Cơ quan thẩm định",
+    help: "In dưới tên công ty trên Phiếu thẩm định (Mẫu 10).",
+    maxLength: 300,
+    optional: true,
+  },
+  {
     key: "systemName",
     label: "Tên hiển thị của hệ thống",
     help: "",
@@ -73,6 +81,7 @@ const EMPTY: SaveOrganizationSettingsPayload = {
   parentCompanyName: "",
   shortName: "",
   location: "",
+  appraisalUnitName: "",
   systemName: "",
 };
 
@@ -106,7 +115,7 @@ export default function OrganizationSettingsPage() {
 
   const dirty = settings !== null && FIELDS.some((f) => form[f.key] !== settings[f.key]);
   const shortNameInvalid = form.shortName.trim().length > 0 && !/^[A-Za-z0-9_-]+$/.test(form.shortName.trim());
-  const missing = FIELDS.filter((f) => form[f.key].trim().length === 0);
+  const missing = FIELDS.filter((f) => !f.optional && form[f.key].trim().length === 0);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -149,11 +158,11 @@ export default function OrganizationSettingsPage() {
                   {FIELDS.map((field) => {
                     const value = form[field.key];
                     const invalid =
-                      (canManage && dirty && value.trim().length === 0) || (field.key === "shortName" && shortNameInvalid);
+                      (canManage && dirty && !field.optional && value.trim().length === 0) || (field.key === "shortName" && shortNameInvalid);
                     return (
                       <div className="col-12 col-lg-6" key={field.key}>
                         <label className="form-label" htmlFor={`org-${field.key}`}>
-                          {field.label} <span className="text-danger">*</span>
+                          {field.label} {!field.optional && <span className="text-danger">*</span>}
                         </label>
                         <input
                           id={`org-${field.key}`}

@@ -19,6 +19,7 @@ public sealed class OrganizationSettingsConfiguration : IEntityTypeConfiguration
         entity.Property(e => e.ParentCompanyName).HasMaxLength(OrganizationSettings.MaxNameLength).IsRequired();
         entity.Property(e => e.ShortName).HasMaxLength(OrganizationSettings.MaxShortNameLength).IsRequired();
         entity.Property(e => e.Location).HasMaxLength(OrganizationSettings.MaxLocationLength).IsRequired();
+        entity.Property(e => e.AppraisalUnitName).HasMaxLength(OrganizationSettings.MaxNameLength).IsRequired().HasDefaultValue(string.Empty);
         entity.Property(e => e.SystemName).HasMaxLength(OrganizationSettings.MaxNameLength).IsRequired();
     }
 }

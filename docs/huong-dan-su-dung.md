@@ -507,7 +507,7 @@ Menu **Quản lý → Danh mục**, gồm các tab:
 
 ### 10.4 Thông tin đơn vị
 
-Menu **Quản lý → Thông tin đơn vị**. Sửa tên tổ chức Đảng cấp trên, tên Đảng bộ, tên đầy đủ của công ty, đơn vị chủ quản cấp trên, tên viết tắt, địa danh, tên hiển thị của hệ thống. Các thông tin này in trên mọi biểu mẫu, báo cáo và hiện trên giao diện. Bấm **Lưu thay đổi** (hoặc **Hoàn tác**).
+Menu **Quản lý → Thông tin đơn vị**. Sửa tên tổ chức Đảng cấp trên, tên Đảng bộ, tên đầy đủ của công ty, đơn vị chủ quản cấp trên, tên viết tắt, địa danh, cơ quan thẩm định (in dưới tên công ty trên Phiếu thẩm định — Mẫu 10), tên hiển thị của hệ thống. Các thông tin này in trên mọi biểu mẫu, báo cáo và hiện trên giao diện. Bấm **Lưu thay đổi** (hoặc **Hoàn tác**).
 
 ### 10.5 Biểu mẫu Word
 

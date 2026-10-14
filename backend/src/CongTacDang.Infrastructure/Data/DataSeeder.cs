@@ -429,6 +429,7 @@ public static class DataSeeder
         ParentCompanyName = "Tổng công ty Quản lý bay Việt Nam",
         ShortName = "ATTECH",
         Location = "Hà Nội",
+        AppraisalUnitName = "Phòng Tổ chức cán bộ - Lao động",
         SystemName = "Đảng bộ ATTECH"
     };
 

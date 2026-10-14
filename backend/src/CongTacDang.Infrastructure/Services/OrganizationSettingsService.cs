@@ -97,6 +97,9 @@ public sealed class OrganizationSettingsService : IOrganizationSettingsService
         var shortName = Required(request.ShortName, "Tên viết tắt", OrganizationSettings.MaxShortNameLength, errors);
         var location = Required(request.Location, "Địa danh", OrganizationSettings.MaxLocationLength, errors);
         var systemName = Required(request.SystemName, "Tên hiển thị hệ thống", OrganizationSettings.MaxNameLength, errors);
+        var appraisalUnit = request.AppraisalUnitName?.Trim() ?? string.Empty;
+        if (appraisalUnit.Length > OrganizationSettings.MaxNameLength)
+            errors.Add($"Cơ quan thẩm định không được dài quá {OrganizationSettings.MaxNameLength} ký tự.");
         if (shortName.Length > 0 && !ShortNamePattern.IsMatch(shortName))
             errors.Add("Tên viết tắt chỉ gồm chữ không dấu, số, dấu gạch ngang hoặc gạch dưới (dùng trong tên tệp tải xuống), ví dụ \"ABC-CORP\".");
         if (errors.Count > 0)
@@ -115,6 +118,7 @@ public sealed class OrganizationSettingsService : IOrganizationSettingsService
         entity.ParentCompanyName = parentName;
         entity.ShortName = shortName;
         entity.Location = location;
+        entity.AppraisalUnitName = appraisalUnit;
         entity.SystemName = systemName;
         entity.UpdatedAt = DateTime.UtcNow;
 
@@ -126,7 +130,7 @@ public sealed class OrganizationSettingsService : IOrganizationSettingsService
     /// <summary>Thông tin đơn vị dạng tag dùng chung cho biểu mẫu Word.</summary>
     public static OrganizationTemplateFields ToTemplateFields(OrganizationSettingsDto settings) =>
         OrganizationTemplateFields.From(settings.PartyCommitteeName, settings.SuperiorPartyName, settings.CompanyName,
-            settings.ParentCompanyName, settings.ShortName, settings.Location);
+            settings.ParentCompanyName, settings.ShortName, settings.Location, settings.AppraisalUnitName);
 
     private async Task<OrganizationSettingsDto> ToDtoAsync(OrganizationSettings entity, CancellationToken ct)
     {
@@ -145,6 +149,7 @@ public sealed class OrganizationSettingsService : IOrganizationSettingsService
             ParentCompanyName = entity.ParentCompanyName,
             ShortName = entity.ShortName,
             Location = entity.Location,
+            AppraisalUnitName = entity.AppraisalUnitName,
             SystemName = entity.SystemName,
             UpdatedAt = entity.UpdatedAt,
             UpdatedByName = updatedBy

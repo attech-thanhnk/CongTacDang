@@ -111,8 +111,9 @@ buộc**: mẫu nào cần thì đặt Content Control tương ứng. Cài đặ
 |---|---|---|
 | `ORG_PARTY_NAME` | Tên Đảng bộ (ghi đúng như in) | Mẫu 09A, 09B, 09C, 9D — dòng "ĐẢNG BỘ …" tiêu đề trái (Mẫu 11 dùng tên Đảng bộ làm dòng tổ chức lập phiếu khi xuất toàn Đảng bộ, qua `PARTY_CELL`) |
 | `ORG_SUPERIOR_PARTY_NAME` | Tên tổ chức Đảng cấp trên (ghi đúng như in) | Mẫu 11 — dòng trên cùng tiêu đề trái (Mẫu 07, 08, 12, 13, 16 dùng `PARTY_PARENT`/`PARTY_ORG` dựng từ cây tổ chức Đảng và cài đặt đơn vị) |
-| `ORG_COMPANY_NAME` / `ORG_COMPANY_NAME_UPPER` | Tên công ty / chữ in hoa | Mẫu 01, 02 — dòng cơ quan quản lý (`_UPPER`) |
-| `ORG_PARENT_COMPANY_NAME` / `ORG_PARENT_COMPANY_NAME_UPPER` | Tên đơn vị chủ quản / chữ in hoa | Mẫu 10 — dòng cơ quan cấp trên (`_UPPER`) |
+| `ORG_COMPANY_NAME` / `ORG_COMPANY_NAME_UPPER` | Tên công ty / chữ in hoa | Mẫu 01, 02 — dòng cơ quan quản lý; Mẫu 10 — dòng trên tiêu đề trái (`_UPPER`) |
+| `ORG_PARENT_COMPANY_NAME` / `ORG_PARENT_COMPANY_NAME_UPPER` | Tên đơn vị chủ quản / chữ in hoa | Mẫu 17 — dòng cơ quan cấp trên (`_UPPER`) |
+| `ORG_APPRAISAL_UNIT_UPPER` | Cơ quan thẩm định, chữ in hoa (để trống → giữ chữ "CƠ QUAN THẨM ĐỊNH") | Mẫu 10 — dòng dưới tiêu đề trái: phiếu do hệ thống in là phiếu của cơ quan thẩm định ở công ty (diện Đảng ủy cơ sở); diện cấp trên do Tổng công ty tự thẩm định |
 | `ORG_SHORT_NAME` | Tên viết tắt | — |
 | `ORG_LOCATION` | Địa danh | Mẫu 01, 02, 07, 08, 09A, 09B, 09C, 10, 11, 16, 17 — phần `……` của dòng "……, ngày … tháng … năm …" (phần ngày là tag `DATE_LINE` của từng mẫu) |
 

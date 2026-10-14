@@ -26,11 +26,29 @@ public class OrgSettingsTemplateTests
         Assert.Equal("ĐẢNG BỘ TỔNG CÔNG TY QUẢN LÝ BAY VIỆT NAM", defaults.SuperiorPartyName);
         Assert.Equal("ATTECH", defaults.ShortName);
         Assert.Equal("Hà Nội", defaults.Location);
-        // Mẫu 10 in sẵn "TỔNG CÔNG TY QUẢN LÝ BAY VIỆT NAM" — tag in hoa từ giá trị mặc định phải trùng khớp.
         var fields = OrganizationTemplateFields.From(defaults.PartyCommitteeName, defaults.SuperiorPartyName, defaults.CompanyName,
-            defaults.ParentCompanyName, defaults.ShortName, defaults.Location);
+            defaults.ParentCompanyName, defaults.ShortName, defaults.Location, defaults.AppraisalUnitName);
         Assert.Equal("TỔNG CÔNG TY QUẢN LÝ BAY VIỆT NAM", fields.ParentCompanyNameUpper);
         Assert.Equal("CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", fields.CompanyNameUpper);
+        Assert.Equal("PHÒNG TỔ CHỨC CÁN BỘ - LAO ĐỘNG", fields.AppraisalUnitNameUpper);
+    }
+
+    [Fact]
+    public void Mau10_HeaderIsCompanyAndAppraisalUnit_EmptyUnitKeepsFormText()
+    {
+        var (_, records) = DocumentTemplateTests.SampleData();
+        string Header(string? unit)
+        {
+            var org = OrganizationTemplateFields.From("ĐẢNG BỘ A", "ĐẢNG BỘ CẤP TRÊN", "Công ty A", "Tổng công ty B", "A", "Hà Nội", unit);
+            var result = DocxTemplateEngine.Render(Bundled.Load(Mau10Data.TemplateFileName),
+                TemplateDataBinder.Bind(Mau10Data.From(records[0])).WithShared(TemplateDataBinder.Bind(org)));
+            using var doc = WordprocessingDocument.Open(new MemoryStream(result.Content), false);
+            var cell = doc.MainDocumentPart!.Document!.Body!.Descendants<TableCell>().First();
+            return string.Concat(cell.Descendants().Select(e => e switch { Text t => t.Text, Break => "\n", _ => "" }));
+        }
+
+        Assert.Equal("CÔNG TY A\nPHÒNG TỔ CHỨC CÁN BỘ", Header("Phòng Tổ chức cán bộ"));
+        Assert.Equal("CÔNG TY A\nCƠ QUAN THẨM ĐỊNH", Header(""));
     }
 
     [Fact]

@@ -43,6 +43,12 @@ public class OrganizationSettings : IAuditableEntity
     /// <summary>Địa danh ghi ở dòng "…, ngày … tháng … năm …".</summary>
     public string Location { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Cơ quan thẩm định của công ty (cơ quan tham mưu về tổ chức, cán bộ — ví dụ phòng tổ chức cán bộ) — dòng thứ hai tiêu đề
+    /// trái Phiếu thẩm định (Mẫu 10), dưới tên công ty. Rỗng → giữ chữ "CƠ QUAN THẨM ĐỊNH" của biểu mẫu.
+    /// </summary>
+    public string AppraisalUnitName { get; set; } = string.Empty;
+
     /// <summary>Tên hiển thị của hệ thống trên giao diện (thanh bên, tiêu đề, trang đăng nhập).</summary>
     public string SystemName { get; set; } = string.Empty;
 

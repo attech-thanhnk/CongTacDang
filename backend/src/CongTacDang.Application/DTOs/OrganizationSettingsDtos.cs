@@ -24,6 +24,9 @@ public sealed class OrganizationSettingsDto
     /// <summary>Địa danh ở dòng "…, ngày … tháng … năm …".</summary>
     public string Location { get; set; } = string.Empty;
 
+    /// <summary>Cơ quan thẩm định (dòng thứ hai tiêu đề Mẫu 10); rỗng = giữ chữ của biểu mẫu.</summary>
+    public string AppraisalUnitName { get; set; } = string.Empty;
+
     /// <summary>Tên hiển thị của hệ thống trên giao diện.</summary>
     public string SystemName { get; set; } = string.Empty;
 
@@ -59,6 +62,7 @@ public sealed class UpdateOrganizationSettingsDto
     public string? ParentCompanyName { get; set; }
     public string? ShortName { get; set; }
     public string? Location { get; set; }
+    public string? AppraisalUnitName { get; set; }
     public string? SystemName { get; set; }
 }
 
