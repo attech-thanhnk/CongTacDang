@@ -76,6 +76,16 @@ public sealed class DecisionDocumentIntegrationTests
             Assert.Contains(s.NamePending, message);
         }
 
+        // Kiểm tra trước (giao diện hiện lý do thay cho nút xuất): cùng quy tắc.
+        using (var json = JsonDocument.Parse(await (await s.Committee.GetAsync($"/api/reports/decision/readiness?periodId={s.PeriodId}")).Content.ReadAsStringAsync()))
+        {
+            var data = json.RootElement.GetProperty("data");
+            Assert.False(data.GetProperty("ready").GetBoolean());
+            Assert.Contains(s.NamePending, data.GetProperty("message").GetString());
+        }
+        using (var json = JsonDocument.Parse(await (await s.Committee.GetAsync($"/api/reports/decision/readiness?periodId={s.PeriodId}&branchId={s.CellA}")).Content.ReadAsStringAsync()))
+            Assert.True(json.RootElement.GetProperty("data").GetProperty("ready").GetBoolean());
+
         // Chi bộ C chỉ có hồ sơ diện cấp trên → không có Quyết định để lập.
         var onlySuperior = await s.Committee.GetAsync($"/api/reports/docx/decision?periodId={s.PeriodId}&branchId={s.CellC}");
         Assert.Equal(HttpStatusCode.BadRequest, onlySuperior.StatusCode);

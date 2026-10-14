@@ -52,6 +52,22 @@ export default function ReportsPage() {
     if (scope && !canWholeParty && !branchId && scopedBranches.length > 0) setBranchId(scopedBranches[0].id);
   }, [scope, canWholeParty, branchId, scopedBranches]);
 
+  // Quyết định xếp loại: kiểm tra trước, chưa đủ điều kiện thì hiện lý do thay cho nút xuất.
+  const [decisionBlocked, setDecisionBlocked] = useState<string | null>(null);
+  useEffect(() => {
+    setDecisionBlocked(null);
+    if (!periodId || !canExport || !scope || noBranchScope) return;
+    if (!canWholeParty && !branchId && scopedBranches.length > 0) return;
+    let active = true;
+    reportService
+      .getDecisionReadiness(periodId, branchId || undefined)
+      .then((r) => active && setDecisionBlocked(r.ready ? null : r.message || "Chưa lập được Quyết định."))
+      .catch(() => active && setDecisionBlocked(null));
+    return () => {
+      active = false;
+    };
+  }, [periodId, branchId, canExport, scope, noBranchScope, canWholeParty, scopedBranches.length]);
+
   const branch = useMemo(() => branches.find((b) => b.id === branchId), [branches, branchId]);
 
   const canRun = (report: ReportDefinition) =>
@@ -98,6 +114,9 @@ export default function ReportsPage() {
     }
     if (noBranchScope && BRANCH_REPORTS.has(report.id)) {
       return <span className="small text-secondary">Cần được giao ở Chi bộ hoặc toàn công ty</span>;
+    }
+    if (report.id === "decision" && decisionBlocked) {
+      return <span className="small text-secondary d-inline-block text-start" style={{ maxWidth: 280 }}>{decisionBlocked}</span>;
     }
     return (
       <div className="d-flex flex-wrap gap-1 justify-content-end">

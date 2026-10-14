@@ -19,6 +19,16 @@ public class ReportFileResult
     public string FileName { get; set; } = string.Empty;
 }
 
+/// <summary>Lập được Quyết định xếp loại chưa (kiểm tra trước khi bấm xuất).</summary>
+public class DecisionReadinessDto
+{
+    /// <summary>Đủ điều kiện lập Quyết định.</summary>
+    public bool Ready { get; set; }
+
+    /// <summary>Lý do chưa lập được (Ready = false).</summary>
+    public string? Message { get; set; }
+}
+
 /// <summary>Định dạng tệp xuất.</summary>
 public enum ReportFormat
 {
@@ -79,6 +89,9 @@ public interface IReportService
     /// quyết định → <see cref="ArgumentException"/>.
     /// </summary>
     Task<ReportFileResult> ExportDecisionDocxAsync(Guid periodId, Guid? partyCellId, ReportFormat format = ReportFormat.Original);
+
+    /// <summary>Kiểm tra trước điều kiện lập Quyết định xếp loại (cùng quy tắc với <see cref="ExportDecisionDocxAsync"/>).</summary>
+    Task<DecisionReadinessDto> GetDecisionReadinessAsync(Guid periodId, Guid? partyCellId);
 
     /// <summary>Bản nháp phần nhập tay Mẫu 16 kèm số liệu tổng hợp tự động.</summary>
     Task<Form16DraftDto> GetForm16DraftAsync(Guid periodId, Guid? partyCellId);

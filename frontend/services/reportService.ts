@@ -214,6 +214,11 @@ export const reportService = {
   },
 
   /** Bản nháp Mẫu 16 + số liệu tự động. Không truyền `branchId`: phạm vi mặc định theo quyền được giao. */
+  /** Lập được Quyết định xếp loại chưa (lý do khi chưa). */
+  getDecisionReadiness(periodId: string, branchId?: string): Promise<{ ready: boolean; message?: string | null }> {
+    return request(withQuery("/reports/decision/readiness", { periodId, branchId }));
+  },
+
   getForm16Draft(periodId: string, branchId?: string): Promise<Form16Draft> {
     return request<Form16Draft>(withQuery("/reports/mau-16/draft", { periodId, branchId }));
   },

@@ -188,6 +188,16 @@ public class ExportReportController : ControllerBase
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
+    /// <summary>Lập được Quyết định xếp loại chưa — giao diện hiện lý do thay vì để bấm xuất rồi mới báo lỗi.</summary>
+    [HttpGet("decision/readiness")]
+    [RequirePermission(PermissionCodes.ReportExport)]
+    public async Task<IActionResult> GetDecisionReadiness([FromQuery] Guid? periodId, [FromQuery] Guid? branchId = null)
+    {
+        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
+        var result = await _reportService.GetDecisionReadinessAsync(await ResolvePeriodIdAsync(periodId), scope);
+        return Ok(ApiResponse<DecisionReadinessDto>.Ok(result, result.Ready ? "Đủ điều kiện lập Quyết định." : result.Message ?? string.Empty));
+    }
+
     #endregion
 
     #region Mẫu 07, 08 (hồ sơ tập thể), Mẫu 12 (biên bản hội nghị)

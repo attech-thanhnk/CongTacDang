@@ -613,7 +613,18 @@ public partial class ReportService : IReportService
     #region Quyết định xếp loại kèm Phụ lục — văn bản Word của cấp ủy cơ sở
 
     /// <inheritdoc />
-    public async Task<ReportFileResult> ExportDecisionDocxAsync(Guid periodId, Guid? partyCellId, ReportFormat format = ReportFormat.Original)
+    public async Task<DecisionReadinessDto> GetDecisionReadinessAsync(Guid periodId, Guid? partyCellId)
+    {
+        var (_, _, _, problem) = await DecisionScopeAsync(periodId, partyCellId);
+        return new DecisionReadinessDto { Ready = problem == null, Message = problem };
+    }
+
+    /// <summary>
+    /// Hồ sơ của Quyết định: diện tổ chức Đảng cơ sở quyết định và bước quyết định thực hiện trong hệ thống (không phải cấp trên
+    /// quyết định). <c>Problem</c> khác null → chưa lập được Quyết định (không có hồ sơ, hoặc còn hồ sơ chưa ghi quyết định).
+    /// </summary>
+    private async Task<(EvaluationPeriod Period, List<EvaluationRecord> Decided, PartyCell? Cell, string? Problem)> DecisionScopeAsync(
+        Guid periodId, Guid? partyCellId)
     {
         var (loadedPeriod, records, cell) = await LoadExcelScopeAsync(periodId, partyCellId);
         var period = loadedPeriod ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
@@ -624,25 +635,34 @@ public partial class ReportService : IReportService
         }
         catch (FormatException)
         {
-            throw new ArgumentException("Cấu hình của kỳ đánh giá bị lỗi định dạng nên chưa lập được Quyết định. Hãy liên hệ người quản lý kỳ.");
+            return (period, new List<EvaluationRecord>(), cell,
+                "Cấu hình của kỳ đánh giá bị lỗi định dạng nên chưa lập được Quyết định. Hãy liên hệ người quản lý kỳ.");
         }
 
-        // Diện tổ chức Đảng cơ sở quyết định và bước quyết định thực hiện trong hệ thống (không phải cấp trên quyết định).
         var decided = records
             .Where(r => r.ApprovalAuthority == ApprovalAuthority.CoSo
                 && EvaluationMapping.ProfileOf(settings, r).Mode(WorkflowStep.B4_DECISION) == StepMode.Internal)
             .ToList();
         if (decided.Count == 0)
-            throw new ArgumentException(
+            return (period, decided, cell,
                 "Phạm vi đã chọn không có hồ sơ nào thuộc diện Đảng ủy (Chi ủy) cơ sở quyết định nên không có Quyết định để lập.");
         var pending = decided.Where(r => r.DecisionRecordedAt == null).ToList();
         if (pending.Count > 0)
         {
             var names = string.Join(", ", pending.Take(5).Select(r => r.Member?.FullName ?? r.MemberId.ToString()));
-            throw new ArgumentException(
+            return (period, decided, cell,
                 $"Còn {pending.Count} hồ sơ chưa ghi quyết định mức xếp loại ({names}{(pending.Count > 5 ? ", …" : string.Empty)}). "
                 + "Hãy ghi quyết định cho đủ các hồ sơ rồi mới lập Quyết định.");
         }
+        return (period, decided, cell, null);
+    }
+
+    /// <inheritdoc />
+    public async Task<ReportFileResult> ExportDecisionDocxAsync(Guid periodId, Guid? partyCellId, ReportFormat format = ReportFormat.Original)
+    {
+        var (period, decided, cell, problem) = await DecisionScopeAsync(periodId, partyCellId);
+        if (problem != null)
+            throw new ArgumentException(problem);
 
         var org = await _orgSettings.GetAsync();
         var header = await ReportHeaderAsync(cell);
