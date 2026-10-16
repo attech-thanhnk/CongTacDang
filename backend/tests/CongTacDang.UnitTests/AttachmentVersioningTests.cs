@@ -414,6 +414,13 @@ public class AttachmentVersioningTests
             Items.Add(next);
             return Task.CompletedTask;
         }
+
+        public Task RemoveGroupAsync(Guid groupId)
+        {
+            foreach (var version in Items.Where(a => a.GroupId == groupId))
+                version.IsDeleted = true;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class InMemoryStorage : IFileStorageService

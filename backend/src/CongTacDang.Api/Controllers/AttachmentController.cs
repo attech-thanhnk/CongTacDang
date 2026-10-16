@@ -159,6 +159,15 @@ public class AttachmentController : ControllerBase
         }
     }
 
+    /// <summary>Gỡ tệp minh chứng chủ hồ sơ đã đính kèm vào hồ sơ của mình (tệp vẫn được lưu, nhật ký ghi người gỡ)</summary>
+    [HttpDelete("{id}")]
+    [Authorize] // Service: chủ hồ sơ (evaluation.self) và là người tải lên
+    public async Task<IActionResult> Remove(Guid id)
+    {
+        await _attachmentService.RemoveAttachmentAsync(id, GetCurrentUserId());
+        return Ok(ApiResponse.Ok("Đã gỡ tệp minh chứng."));
+    }
+
     /// <summary>Thông tin chi tiết tệp tin</summary>
     [HttpGet("{id}")]
     [Authorize] // Quyền trên tệp = quyền trên hồ sơ gắn tệp; tệp chưa gắn: chỉ người tải lên (kiểm tra trong service)

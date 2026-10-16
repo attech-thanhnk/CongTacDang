@@ -346,8 +346,9 @@ public sealed class AuthorizationMatrixTests
         Assert.Equal(HttpStatusCode.BadRequest, (await Upload(s.OwnerA1, "MAU02", "General", null)).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await Upload(s.OwnerA1, null, null, null)).StatusCode);
 
-        // Endpoint của trang tài liệu cũ đã bỏ: xóa tệp, xem inline.
-        Assert.Equal(HttpStatusCode.MethodNotAllowed, (await s.OwnerA1.DeleteAsync($"/api/attachments/{unlinkedId}")).StatusCode);
+        // Gỡ tệp chỉ áp dụng cho minh chứng chủ hồ sơ gắn vào hồ sơ của mình — tệp chưa gắn không gỡ qua đường này (403);
+        // endpoint xem inline của trang tài liệu cũ đã bỏ.
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerA1.DeleteAsync($"/api/attachments/{unlinkedId}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await s.OwnerA1.GetAsync($"/api/attachments/{unlinkedId}/view")).StatusCode);
     }
 

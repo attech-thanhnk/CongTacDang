@@ -291,6 +291,10 @@ public sealed class PeriodService : IPeriodService
         if (errors.Count > 0)
             throw new ValidationException("Cấu hình kỳ chưa hợp lệ, chưa mở được kỳ: " + string.Join(" ", errors));
 
+        // Ảnh chụp Phòng/Chi bộ/cấp quyết định lấy theo hồ sơ cán bộ hiện tại tại thời điểm mở kỳ (trừ hồ sơ đã sửa tay).
+        if (await StageDraftSnapshotSyncAsync(period, settings, ct) > 0)
+            await _unitOfWork.SaveChangesAsync(ct);
+
         var records = await _repo.ListRecordsAsync(period.Id, ct);
         if (records.Count == 0)
             throw new ValidationException("Kỳ chưa có người được đánh giá nên chưa mở được. Hãy thêm danh sách người được đánh giá trước khi mở kỳ.");
@@ -414,6 +418,7 @@ public sealed class PeriodService : IPeriodService
     {
         var settings = ReadSettings(period);
         var records = (await _repo.ListRecordsAsync(period.Id, ct)).Where(r => r.Status != RecordStatus.Published).ToList();
+        await OverlayDraftSnapshotsAsync(period, settings, records, ct);
         var result = new PeriodReadinessDto { PeriodId = period.Id, CheckedRecords = records.Count };
         if (records.Count == 0)
         {
@@ -442,6 +447,10 @@ public sealed class PeriodService : IPeriodService
         foreach (var userId in candidateIds.Concat(records.Select(r => r.MemberId)).Distinct())
             effective[userId] = await _permissions.GetAsync(userId, ct);
 
+        var roleNames = await _repo.GetRoleNamesByPermissionAsync(codes, ct);
+        // Bước chỉ có đúng một người làm được (kể cả chủ hồ sơ): người đó vắng, hoặc chính họ được đánh giá, là hồ sơ kẹt.
+        var singles = new Dictionary<(string Step, string Scope, Guid UserId), int>();
+
         foreach (var (record, profile, step, _, permission) in pending)
         {
             var target = AccessTarget.ForRecord(record);
@@ -452,8 +461,13 @@ public sealed class PeriodService : IPeriodService
             }
             else
             {
-                covered = candidateIds.Any(userId => userId != record.MemberId
-                    && AuthorizationGuard.Evaluate(effective[userId], permission, target));
+                var performers = candidateIds.Where(userId => AuthorizationGuard.Evaluate(effective[userId], permission, target)).ToList();
+                covered = performers.Any(userId => userId != record.MemberId);
+                if (performers.Count == 1 && performers[0] != record.MemberId)
+                {
+                    var key = (WorkflowSteps.DisplayName(step), ScopeName(record), performers[0]);
+                    singles[key] = singles.GetValueOrDefault(key) + 1;
+                }
             }
             if (covered)
                 continue;
@@ -481,7 +495,9 @@ public sealed class PeriodService : IPeriodService
                 Mode = mode.ToString(),
                 Permission = permission,
                 PermissionName = permissionName,
+                RoleNames = roleNames.GetValueOrDefault(permission) ?? new List<string>(),
                 Scope = scope,
+                ScopeName = permission == PermissionCodes.EvaluationSelf ? string.Empty : ScopeName(record),
                 DepartmentId = record.DepartmentId,
                 PartyCellId = record.PartyCellId,
                 Message = message
@@ -519,7 +535,64 @@ public sealed class PeriodService : IPeriodService
         }
 
         result.Ready = result.Issues.Count == 0;
+        result.DataReview = await BuildDataReviewAsync(records, singles, ct);
         return result;
+    }
+
+    /// <summary>
+    /// Rà soát dữ liệu (không chặn mở kỳ): cán bộ ghi thẳng vào Đảng bộ / Đảng bộ bộ phận thay vì chi bộ nơi sinh hoạt, hồ sơ thiếu
+    /// Phòng hoặc Chi bộ, bước chỉ có một người làm được.
+    /// </summary>
+    private async Task<List<DataReviewItemDto>> BuildDataReviewAsync(IReadOnlyCollection<EvaluationRecord> records,
+        IReadOnlyDictionary<(string Step, string Scope, Guid UserId), int> singles, CancellationToken ct)
+    {
+        var items = new List<DataReviewItemDto>();
+        static string NameOf(EvaluationRecord r) => r.Member?.FullName ?? r.MemberId.ToString();
+
+        var committees = await _repo.GetPartyCellIdsWithChildrenAsync(ct);
+        var direct = records.Where(r => r.PartyCellId is { } cell && committees.Contains(cell)).ToList();
+        if (direct.Count > 0)
+        {
+            items.Add(new DataReviewItemDto
+            {
+                Kind = "DirectInPartyCommittee",
+                Title = $"{direct.Count} người đang ghi là sinh hoạt thẳng ở Đảng bộ / Đảng bộ bộ phận, không thuộc chi bộ nào",
+                Hint = "Nếu họ sinh hoạt ở chi bộ, hãy sửa Tổ chức Đảng trong Người dùng — hồ sơ trong kỳ tự cập nhật khi kỳ còn dự thảo.",
+                Names = direct.OrderBy(NameOf, StringComparer.CurrentCulture)
+                    .Select(r => $"{NameOf(r)} ({r.PartyCell?.Name})").ToList()
+            });
+        }
+
+        var missing = records.Where(r => !r.DepartmentId.HasValue || !r.PartyCellId.HasValue).ToList();
+        if (missing.Count > 0)
+        {
+            items.Add(new DataReviewItemDto
+            {
+                Kind = "MissingOrg",
+                Title = $"{missing.Count} hồ sơ thiếu Phòng hoặc Chi bộ",
+                Hint = "Hãy bổ sung Đơn vị chính quyền / Tổ chức Đảng trong Người dùng.",
+                Names = missing.OrderBy(NameOf, StringComparer.CurrentCulture)
+                    .Select(r => $"{NameOf(r)} (thiếu {(!r.DepartmentId.HasValue && !r.PartyCellId.HasValue ? "Phòng và Chi bộ" : !r.DepartmentId.HasValue ? "Phòng" : "Chi bộ")})")
+                    .ToList()
+            });
+        }
+
+        if (singles.Count > 0)
+        {
+            var names = new Dictionary<Guid, string>();
+            foreach (var userId in singles.Keys.Select(k => k.UserId).Distinct())
+                names[userId] = await _repo.GetMemberNameAsync(userId, ct) ?? userId.ToString();
+            items.Add(new DataReviewItemDto
+            {
+                Kind = "SinglePerformer",
+                Title = $"{singles.Count} bước chỉ có một người làm được",
+                Hint = "Người đó vắng thì hồ sơ phải chờ. Cân nhắc gán thêm người dự phòng nếu phù hợp (ví dụ Phó Bí thư Chi bộ).",
+                Names = singles.OrderBy(x => x.Key.Scope, StringComparer.CurrentCulture).ThenBy(x => x.Key.Step, StringComparer.CurrentCulture)
+                    .Select(x => $"{x.Key.Step} — {x.Key.Scope}: chỉ {names[x.Key.UserId]} ({x.Value} hồ sơ)").ToList()
+            });
+        }
+
+        return items;
     }
 
     /// <summary>
@@ -540,6 +613,13 @@ public sealed class PeriodService : IPeriodService
 
     private static string FrameList(CriteriaSnapshot criteria) =>
         criteria.Content.WeightFrames.Count == 0 ? "không có khung nào" : string.Join(", ", criteria.Content.WeightFrames.Select(f => f.Code));
+
+    /// <summary>Tên ngắn của nơi cần gán: tổ chức Đảng và/hoặc đơn vị chính quyền của hồ sơ.</summary>
+    private static string ScopeName(EvaluationRecord record)
+    {
+        var parts = new[] { record.PartyCell?.Name, record.Department?.Name }.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
+        return parts.Count == 0 ? "Toàn công ty" : string.Join(" / ", parts);
+    }
 
     private static string ScopeText(EvaluationRecord record)
     {
@@ -566,6 +646,7 @@ public sealed class PeriodService : IPeriodService
         var settings = ReadSettings(period);
         var criteria = ReadCriteria(period);
         var records = await _repo.ListRecordsAsync(periodId, ct);
+        await OverlayDraftSnapshotsAsync(period, settings, records, ct);
         var today = EvaluationMapping.Today(DateTime.UtcNow);
         return records.Select(r => ToParticipant(r, settings, criteria, today)).ToList();
     }
@@ -903,6 +984,92 @@ public sealed class PeriodService : IPeriodService
         record.Status = to;
         record.UpdatedAt = DateTime.UtcNow;
         return null;
+    }
+
+    /// <summary>Hồ sơ có ảnh chụp khác hồ sơ cán bộ hiện tại, kèm thông tin hiện tại và nội dung khác.</summary>
+    private sealed record SnapshotDrift(EvaluationRecord Record, MemberSnapshotSource Member, List<string> Changes);
+
+    /// <summary>
+    /// Kỳ còn dự thảo: ảnh chụp Phòng, Chi bộ, cấp quyết định của hồ sơ đi theo hồ sơ cán bộ hiện tại — trừ hồ sơ đã sửa tay ảnh chụp
+    /// (giữ giá trị đã sửa). Kỳ đã mở: ảnh chụp cố định, điều chuyển trong kỳ sửa bằng "Sửa thông tin".
+    /// </summary>
+    private async Task<List<SnapshotDrift>> FindDraftSnapshotDriftAsync(EvaluationPeriod period, IReadOnlyCollection<EvaluationRecord> records, CancellationToken ct)
+    {
+        var drifts = new List<SnapshotDrift>();
+        if (period.Status != PeriodStatus.Draft || records.Count == 0)
+            return drifts;
+        var edited = await _repo.GetRecordIdsWithActionAsync(period.Id, WorkflowAction.EditSnapshot, ct);
+        var members = (await _repo.GetMembersAsync(records.Select(r => r.MemberId).Distinct().ToList(), ct)).ToDictionary(m => m.Id);
+        static string Name(string? value) => string.IsNullOrWhiteSpace(value) ? "—" : value;
+        static string Authority(ApprovalAuthority value) => value == ApprovalAuthority.CapTren ? "cấp trên" : "Đảng ủy cơ sở";
+
+        foreach (var record in records)
+        {
+            if (edited.Contains(record.Id) || !members.TryGetValue(record.MemberId, out var member))
+                continue;
+            var changes = new List<string>();
+            if (record.DepartmentId != member.DepartmentId)
+                changes.Add($"Phòng {Name(record.Department?.Name)} → {Name(member.DepartmentName)}");
+            if (record.PartyCellId != member.PartyCellId)
+                changes.Add($"Chi bộ {Name(record.PartyCell?.Name)} → {Name(member.PartyCellName)}");
+            if (record.ApprovalAuthority != member.ApprovalAuthority)
+                changes.Add($"cấp quyết định {Authority(record.ApprovalAuthority)} → {Authority(member.ApprovalAuthority)}");
+            if (changes.Count > 0)
+                drifts.Add(new SnapshotDrift(record, member, changes));
+        }
+        return drifts;
+    }
+
+    /// <summary>
+    /// Đặt ảnh chụp theo hồ sơ cán bộ. Đổi cấp quyết định thì hồ sơ đang theo cách xét duyệt mặc định của cấp cũ chuyển sang mặc định
+    /// của cấp mới (cách xét duyệt đã chọn riêng giữ nguyên). <paramref name="withNames"/>: gắn tên Phòng/Chi bộ cho bản chỉ đọc.
+    /// </summary>
+    private static void ApplySnapshot(EvaluationRecord record, MemberSnapshotSource member, PeriodSettings settings, bool withNames)
+    {
+        record.DepartmentId = member.DepartmentId;
+        record.PartyCellId = member.PartyCellId;
+        if (withNames)
+        {
+            record.Department = member.DepartmentId is { } departmentId
+                ? new AdministrativeDepartment { Id = departmentId, Name = member.DepartmentName ?? string.Empty }
+                : null;
+            record.PartyCell = member.PartyCellId is { } cellId
+                ? new PartyCell { Id = cellId, Name = member.PartyCellName ?? string.Empty }
+                : null;
+        }
+        if (record.ApprovalAuthority == member.ApprovalAuthority)
+            return;
+        var usedDefault = string.Equals(record.WorkflowProfileCode, settings.ResolveProfile(null, record.ApprovalAuthority).Code, StringComparison.Ordinal);
+        record.ApprovalAuthority = member.ApprovalAuthority;
+        if (usedDefault)
+            record.WorkflowProfileCode = settings.ResolveProfile(null, member.ApprovalAuthority).Code;
+    }
+
+    /// <summary>Bản chỉ đọc của kỳ dự thảo: hiện ảnh chụp theo hồ sơ cán bộ hiện tại (sẽ được lưu khi mở kỳ).</summary>
+    private async Task OverlayDraftSnapshotsAsync(EvaluationPeriod period, PeriodSettings settings, IReadOnlyCollection<EvaluationRecord> records, CancellationToken ct)
+    {
+        foreach (var drift in await FindDraftSnapshotDriftAsync(period, records, ct))
+            ApplySnapshot(drift.Record, drift.Member, settings, withNames: true);
+    }
+
+    /// <summary>Lưu ảnh chụp theo hồ sơ cán bộ hiện tại cho các hồ sơ đã khác (kỳ dự thảo); ghi lịch sử từng hồ sơ. Không lưu DbContext.</summary>
+    private async Task<int> StageDraftSnapshotSyncAsync(EvaluationPeriod period, PeriodSettings settings, CancellationToken ct)
+    {
+        var drifts = await FindDraftSnapshotDriftAsync(period, await _repo.ListRecordsAsync(period.Id, ct), ct);
+        if (drifts.Count == 0)
+            return 0;
+        var tracked = (await _repo.ListRecordsForUpdateAsync(period.Id, ct)).ToDictionary(r => r.Id);
+        var now = DateTime.UtcNow;
+        foreach (var drift in drifts)
+        {
+            if (!tracked.TryGetValue(drift.Record.Id, out var record))
+                continue;
+            ApplySnapshot(record, drift.Member, settings, withNames: false);
+            record.UpdatedAt = now;
+            _repo.AddHistory(NewHistory(record, record.Status, record.Status, WorkflowAction.SyncSnapshot, null,
+                "Cập nhật theo hồ sơ cán bộ khi mở kỳ: " + string.Join("; ", drift.Changes) + "."));
+        }
+        return drifts.Count;
     }
 
     private async Task<PeriodParticipantDto> ReloadParticipantAsync(Guid periodId, Guid recordId, CancellationToken ct)

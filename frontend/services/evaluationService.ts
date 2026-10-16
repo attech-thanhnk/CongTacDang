@@ -486,7 +486,11 @@ export interface ReadinessIssueDto {
   mode: StepMode;
   permission: string;
   permissionName: string;
+  /** Các vai trò đang chứa quyền cần có — quản trị gán một trong các vai trò này. */
+  roleNames: string[];
   scope: string;
+  /** Tên ngắn nơi cần gán (gán ở cấp trên hoặc Toàn công ty cũng được). */
+  scopeName: string;
   /** Đơn vị chính quyền / tổ chức Đảng của hồ sơ. */
   departmentId?: string | null;
   partyCellId?: string | null;
@@ -499,6 +503,16 @@ export interface PeriodReadinessDto {
   ready: boolean;
   checkedRecords: number;
   issues: ReadinessIssueDto[];
+  /** Rà soát dữ liệu trước khi mở kỳ (không chặn mở kỳ). */
+  dataReview?: DataReviewItemDto[];
+}
+
+/** Một mục rà soát dữ liệu: nội dung cần xem, người/hồ sơ liên quan và cách xử lý gợi ý. */
+export interface DataReviewItemDto {
+  kind: string;
+  title: string;
+  hint: string;
+  names: string[];
 }
 
 /** Mã quyền chọn được làm quyền thực hiện bước. */

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 using CongTacDang.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -180,6 +181,32 @@ public sealed class EvaluationWorkflowRepository : IEvaluationWorkflowRepository
 
         return MemberSources(members.OrderBy(m => m.FullName)).ToListAsync(ct);
     }
+
+    /// <inheritdoc />
+    public async Task<HashSet<Guid>> GetPartyCellIdsWithChildrenAsync(CancellationToken ct = default) =>
+        (await _db.PartyCells.AsNoTracking()
+            .Where(c => c.ParentId.HasValue)
+            .Select(c => c.ParentId!.Value)
+            .Distinct()
+            .ToListAsync(ct)).ToHashSet();
+
+    /// <inheritdoc />
+    public async Task<Dictionary<string, List<string>>> GetRoleNamesByPermissionAsync(IReadOnlyCollection<string> permissionCodes, CancellationToken ct = default)
+    {
+        var pairs = await _db.Roles.AsNoTracking()
+            .SelectMany(r => r.Permissions.Where(p => permissionCodes.Contains(p.Code)).Select(p => new { p.Code, r.Name }))
+            .ToListAsync(ct);
+        return pairs.GroupBy(x => x.Code)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Name).Distinct().OrderBy(n => n, StringComparer.CurrentCulture).ToList());
+    }
+
+    /// <inheritdoc />
+    public async Task<HashSet<Guid>> GetRecordIdsWithActionAsync(Guid periodId, WorkflowAction action, CancellationToken ct = default) =>
+        (await _db.EvaluationRecordHistories.AsNoTracking()
+            .Where(h => h.Action == action && _db.EvaluationRecords.Any(r => r.Id == h.RecordId && r.PeriodId == periodId))
+            .Select(h => h.RecordId)
+            .Distinct()
+            .ToListAsync(ct)).ToHashSet();
 
     /// <inheritdoc />
     public Task<string?> GetMemberNameAsync(Guid memberId, CancellationToken ct = default) =>

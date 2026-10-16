@@ -316,6 +316,21 @@ export default function PeriodDetailPage() {
                   {!item.ok && <button type="button" className="btn btn-outline-primary btn-sm" onClick={item.go}>{item.action}</button>}
                 </li>
               ))}
+              {(readiness?.dataReview ?? []).map((item) => (
+                <li key={item.kind} className="list-group-item">
+                  <details>
+                    <summary className="d-flex align-items-center gap-2" style={{ cursor: "pointer" }}>
+                      <i className="bi bi-info-circle-fill text-info" />
+                      <span className="flex-grow-1">Rà soát: {item.title}</span>
+                      <span className="small text-secondary">Xem</span>
+                    </summary>
+                    <ul className="small mt-2 mb-1">
+                      {item.names.map((name) => <li key={name}>{name}</li>)}
+                    </ul>
+                    <div className="small text-secondary">{item.hint}</div>
+                  </details>
+                </li>
+              ))}
             </ul>
           </section>
         )}

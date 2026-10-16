@@ -75,6 +75,12 @@ public interface IAttachmentService
     Task<AttachmentDto> ReplaceAttachmentAsync(Guid id, Stream stream, string originalFileName, long size, string uploadedBy, Guid requesterId);
 
     /// <summary>
+    /// Gỡ tệp minh chứng chủ hồ sơ đã đính kèm vào hồ sơ của mình (mọi phiên bản; xóa mềm — tệp vẫn lưu, nhật ký ghi người gỡ).
+    /// Không áp dụng cho tệp gắn nhiệm vụ hay văn bản của cấp trên.
+    /// </summary>
+    Task RemoveAttachmentAsync(Guid id, Guid requesterId);
+
+    /// <summary>
     /// Bảo đảm các tệp client gửi kèm (ví dụ <c>EvaluationTask.AttachmentId</c>) tồn tại và người gửi có quyền cập nhật trên tệp
     /// (người tải lên, chủ hồ sơ đang gắn tệp hoặc quản trị). Báo 400 nếu tệp không tồn tại, 403 nếu không có quyền.
     /// </summary>
@@ -245,6 +251,16 @@ public class AttachmentService : IAttachmentService
         }
 
         return ToDto(attachment);
+    }
+
+    /// <inheritdoc />
+    public async Task RemoveAttachmentAsync(Guid id, Guid requesterId)
+    {
+        var current = await GetCurrentRequiredAsync(id);
+        if (current.EffectiveOwnerType != AttachmentOwnerTypes.EvaluationRecord || current.UploadedById != requesterId)
+            throw new ForbiddenException("Chỉ gỡ được tệp minh chứng do chính bạn đính kèm vào hồ sơ của mình.");
+        await EnsureAccessAsync(requesterId, current, FileOperation.Update, "Bạn không có quyền gỡ tệp đính kèm này.");
+        await VersionRepo.RemoveGroupAsync(current.GroupId);
     }
 
     /// <summary>Thay tệp bằng phiên bản mới, giữ phiên bản cũ</summary>

@@ -28,6 +28,7 @@ import { FileUploadModal } from "@/components/attachments/FileUploadModal";
 import { AxisNoteFields, AxisReportsInput, SelfAssessmentInput, SelfAssessmentPreview } from "@/components/evaluations/IndividualFormInputs";
 import { useToast } from "@/contexts/ToastContext";
 import { TaskChangeMark } from "@/components/evaluations/TaskChangeRequests";
+import { EvidenceFiles, evidenceSlot, useRecordEvidence } from "@/components/evaluations/EvidenceFiles";
 
 /** Ô điểm để trống ("") cho tới khi cán bộ tự nhập — không điền sẵn mức tối đa. */
 type ScoreInput = number | "";
@@ -152,6 +153,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   const [showPreview, setShowPreview] = useState(false);
   const blocks = useMemo(() => (uses09C ? buildAxisTaskBlocks(content.axes, axisReports, criteria) : []), [uses09C, content.axes, axisReports, criteria]);
   const [groupNotes, setGroupNotes] = useState<Record<string, string>>(() => ({ ...(record.generalGroupNotes ?? {}) }));
+  const evidence = useRecordEvidence(record.id);
   const [axisNotes, setAxisNotes] = useState<Record<string, AxisNote>>(() =>
     Object.fromEntries(content.axes.map((a) => [a.code, { ...(record.axisNotes?.[a.code] ?? {}) }]))
   );
@@ -288,6 +290,8 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                     <textarea className="form-control form-control-sm" rows={1} maxLength={2000} value={groupNotes[group.code] ?? ""}
                       placeholder="Tóm tắt kết quả, minh chứng chung của nhóm (không bắt buộc)" aria-label={`Nhận xét nhóm ${group.code}`}
                       onChange={(e) => setGroupNotes({ ...groupNotes, [group.code]: e.target.value })} />
+                    <EvidenceFiles recordId={record.id} slot={evidenceSlot("group", group.code)} label={`nhóm ${group.code} — ${group.name}`}
+                      files={evidence.files} editable onChanged={evidence.reload} />
                   </td>
                 </tr>
                 {group.items.map((item) => {
@@ -365,6 +369,8 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                   </div>
                 </div>
                 <AxisNoteFields axisCode={a.code} value={axisNotes[a.code] ?? {}} onChange={(note) => setAxisNotes({ ...axisNotes, [a.code]: note })} />
+                <EvidenceFiles recordId={record.id} slot={evidenceSlot("axis", a.code)} label={`${a.code} — ${a.name}`}
+                  files={evidence.files} editable onChanged={evidence.reload} />
               </div>
             ))}
             <div className="small text-secondary">Cộng các trục (tạm tính): <strong>{fmt(tasksScore)}</strong> / {fmt(p.totalTaskWeight)}</div>

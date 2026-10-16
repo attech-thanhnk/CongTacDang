@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { GradeBadge } from "@/components/common/StatusBadge";
 import { useToast } from "@/contexts/ToastContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { RecordProgress, actorOf, formatShortDateTime } from "@/components/evaluations/RecordProgress";
 import { RecordActionPanel } from "@/components/evaluations/RecordActionPanel";
 import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
@@ -20,6 +21,7 @@ import { loadCriteria, useCriteria } from "@/components/evaluations/useCriteria"
 import { initialsOf } from "@/components/dashboard/taskUtils";
 import styles from "@/components/evaluations/record.module.css";
 import { attachmentService } from "@/services/attachmentService";
+import { EvidenceFiles, evidenceSlot, useRecordEvidence } from "@/components/evaluations/EvidenceFiles";
 import { describeFrame, fmt } from "@/services/criteriaService";
 import {
   EVALUATION_CONFLICT_EVENT,
@@ -365,6 +367,9 @@ const hasGrade = (grade?: string | null) => !!grade && grade !== "ChuaXepLoai";
 function RecordData({ record }: { record: EvaluationRecordDto }) {
   const { toast } = useToast();
   const { criteria } = useCriteria(record.periodId);
+  const evidence = useRecordEvidence(record.id);
+  const { user } = useAuth();
+  const isOwner = !!user && user.id === record.memberId;
   const stepOf = (step: WorkflowStepCode) => record.progress.find((p) => p.step === step);
   const enabled = (step: WorkflowStepCode) => stepOf(step)?.enabled ?? true;
   /** Các bước áp dụng của một khối (khối "Danh mục" gồm B1 đăng ký + duyệt; "Quyết định và công bố" gồm B4 + B5). */
@@ -575,6 +580,21 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+        {(evidence.files.length > 0 || (isOwner && selfScored)) && (
+          <div className={styles.subline}>
+            {[
+              ...(criteria?.content.generalGroups ?? []).map((g) => ({ slot: evidenceSlot("group", g.code), label: `Nhóm ${g.code}` })),
+              ...axes.map((a) => ({ slot: evidenceSlot("axis", a.code), label: a.code })),
+            ]
+              .filter(({ slot }) => isOwner || evidence.files.some((f) => (f.formCode || "").toUpperCase() === slot))
+              .map(({ slot, label }) => (
+                <div key={slot} className="d-flex flex-wrap align-items-center gap-2">
+                  <strong>{label}</strong>
+                  <EvidenceFiles recordId={record.id} slot={slot} label={label} files={evidence.files} editable={isOwner} onChanged={evidence.reload} />
+                </div>
+              ))}
           </div>
         )}
       </CollapsibleSection>

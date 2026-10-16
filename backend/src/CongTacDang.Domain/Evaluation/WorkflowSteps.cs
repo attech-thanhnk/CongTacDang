@@ -68,7 +68,10 @@ public enum WorkflowAction
     RecordExternal = 8,
 
     /// <summary>Duyệt / không duyệt đề nghị điều chỉnh, chuyển tiếp, loại trừ việc hoặc ghi nhận việc đột xuất trong quý (Mẫu 04, 05).</summary>
-    TaskChange = 9
+    TaskChange = 9,
+
+    /// <summary>Kỳ còn dự thảo: cập nhật ảnh chụp Phòng/Chi bộ/cấp quyết định theo hồ sơ cán bộ hiện tại.</summary>
+    SyncSnapshot = 10
 }
 
 /// <summary>Thông tin tĩnh về các bước: thứ tự, trạng thái chờ tương ứng, bước bắt buộc, bước được trả lại.</summary>
@@ -233,6 +236,7 @@ public static class WorkflowSteps
         WorkflowAction.ChangeProfile => "Đổi cách xét duyệt",
         WorkflowAction.RecordExternal => "Ghi nhận kết quả của cấp trên",
         WorkflowAction.TaskChange => "Điều chỉnh việc trong quý",
+        WorkflowAction.SyncSnapshot => "Cập nhật theo hồ sơ cán bộ",
         _ => action.ToString()
     };
 }

@@ -54,6 +54,9 @@ public interface IAttachmentVersionRepository
 
     /// <summary>Lưu phiên bản mới và đánh dấu phiên bản trước không còn hiện hành trong cùng một lần lưu.</summary>
     Task AddVersionAsync(TaskAttachment previous, TaskAttachment next);
+
+    /// <summary>Gỡ (xóa mềm) mọi phiên bản của một nhóm tệp; tệp trên đĩa giữ nguyên, nhật ký ghi người gỡ.</summary>
+    Task RemoveGroupAsync(Guid groupId);
 }
 
 /// <summary>Tra cứu dữ liệu phục vụ kiểm tra quyền trên tệp đính kèm.</summary>

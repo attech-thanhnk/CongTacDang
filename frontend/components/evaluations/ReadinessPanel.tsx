@@ -62,7 +62,7 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
             <div className="table-responsive" style={{ maxHeight: 360, overflowY: "auto" }}>
               <table className="table table-sm align-middle small mb-0">
                 <thead>
-                  <tr className="text-secondary"><th>Hồ sơ</th><th>Cách xét duyệt</th><th>Bước thiếu người làm</th><th>Quyền cần có</th><th>Phạm vi</th></tr>
+                  <tr className="text-secondary"><th>Hồ sơ</th><th>Cách xét duyệt</th><th>Bước thiếu người làm</th><th>Vai trò cần gán</th><th>Gán tại</th></tr>
                 </thead>
                 <tbody>
                   {readiness.issues.map((issue) => (
@@ -70,12 +70,18 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
                       <td><Link href={`/evaluations/${issue.recordId}`}>{issue.fullName}</Link></td>
                       <td>{issue.workflowProfileName}</td>
                       <td>{issue.stepName}{issue.mode === "External" && <div className="text-secondary">{STEP_MODE_LABELS.External}</div>}</td>
-                      <td>{issue.permissionName}</td>
-                      <td><Link href={performersHref(issue)}>{issue.scope}</Link></td>
+                      <td>
+                        {issue.roleNames?.length ? issue.roleNames.join(" hoặc ") : issue.permissionName}
+                        {!issue.roleNames?.length && issue.permission && <div className="text-secondary">Chưa vai trò nào có quyền này</div>}
+                      </td>
+                      <td>{issue.scopeName ? <Link href={performersHref(issue)}>{issue.scopeName}</Link> : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="small text-secondary mt-2">
+              Gán ở nơi ghi trong cột &quot;Gán tại&quot;, ở đơn vị cấp trên của nó hoặc Toàn công ty đều được; người được gán không được là chủ hồ sơ.
             </div>
           </>
         )}

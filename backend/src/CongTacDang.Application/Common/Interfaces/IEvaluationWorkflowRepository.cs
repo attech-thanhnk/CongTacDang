@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Common.Interfaces;
 
@@ -104,6 +105,15 @@ public interface IEvaluationWorkflowRepository
 
     /// <summary>Cán bộ đang hoạt động theo Phòng/Chi bộ (null = mọi cán bộ), có lọc theo tên/tài khoản.</summary>
     Task<List<MemberSnapshotSource>> SearchMembersAsync(Guid? departmentId, Guid? partyCellId, string? query, CancellationToken ct = default);
+
+    /// <summary>Id các tổ chức Đảng có tổ chức con (Đảng bộ, Đảng bộ bộ phận) — Đảng viên thường sinh hoạt ở tổ chức không có con.</summary>
+    Task<HashSet<Guid>> GetPartyCellIdsWithChildrenAsync(CancellationToken ct = default);
+
+    /// <summary>Tên các vai trò đang chứa từng mã quyền (để chỉ người quản trị cần gán vai trò nào).</summary>
+    Task<Dictionary<string, List<string>>> GetRoleNamesByPermissionAsync(IReadOnlyCollection<string> permissionCodes, CancellationToken ct = default);
+
+    /// <summary>Id các hồ sơ của kỳ có lịch sử với hành động <paramref name="action"/> (ví dụ đã sửa tay ảnh chụp).</summary>
+    Task<HashSet<Guid>> GetRecordIdsWithActionAsync(Guid periodId, WorkflowAction action, CancellationToken ct = default);
 
     /// <summary>Tên đầy đủ của cán bộ (để ghi người thực hiện).</summary>
     Task<string?> GetMemberNameAsync(Guid memberId, CancellationToken ct = default);

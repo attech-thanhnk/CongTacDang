@@ -178,6 +178,14 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
         await _db.SaveChangesAsync();
     }
 
+    /// <summary>Xóa mềm mọi phiên bản của nhóm (DbContext đổi Remove thành xóa mềm và ghi audit).</summary>
+    public async Task RemoveGroupAsync(Guid groupId)
+    {
+        var versions = await _db.TaskAttachments.Where(a => a.Id == groupId || a.FileGroupId == groupId).ToListAsync();
+        _db.TaskAttachments.RemoveRange(versions);
+        await _db.SaveChangesAsync();
+    }
+
     /// <summary>Lấy hồ sơ đánh giá của đối tượng sở hữu tệp.</summary>
     public async Task<EvaluationRecord?> GetOwnerRecordAsync(string ownerType, Guid ownerId)
     {

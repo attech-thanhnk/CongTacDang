@@ -464,9 +464,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 ### I2. Xóa tệp minh chứng
 - **Câu hỏi:** Cá nhân có được xóa tệp minh chứng đã nộp không?
 - **Căn cứ:** Phụ lục II V.4 (tr.34): "Không xóa bản cũ; hiệu chỉnh dữ liệu phải có lý do và thời điểm".
-- **Hệ thống đang làm (mặc định):** Không ai xóa được tệp. Cá nhân chỉ tải lên phiên bản mới, hệ thống giữ mọi bản cũ.
-- **Phương án khác:** Cho xóa khi hồ sơ chưa nộp.
-- **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
+- **Đã chốt (15/10/2026):** Chủ hồ sơ được gỡ tệp minh chứng mình đã đính kèm vào hồ sơ của mình, kể cả sau khi nộp phiếu. Gỡ là xóa mềm: tệp không còn hiện trên hồ sơ nhưng hệ thống vẫn lưu tệp (mọi phiên bản) và nhật ký ghi người gỡ, thời điểm gỡ — đáp ứng "không xóa bản cũ". Cá nhân cũng có thể thay tệp bằng phiên bản mới (giữ bản cũ). Tệp gắn nhiệm vụ và văn bản của cấp trên không gỡ qua đường này.
 
 ### I3. Thời hạn lưu trữ và hủy dữ liệu
 - **Câu hỏi:** Hồ sơ đánh giá lưu trên hệ thống bao lâu, hết hạn thì xử lý thế nào?

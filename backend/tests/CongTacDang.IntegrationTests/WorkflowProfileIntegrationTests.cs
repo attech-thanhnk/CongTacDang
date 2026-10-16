@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.IntegrationTests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace CongTacDang.IntegrationTests;
@@ -429,6 +430,145 @@ public sealed class WorkflowProfileIntegrationTests
         content.Add(file, "file", "van-ban-cap-tren.pdf");
         content.Add(new StringContent("CAPTREN"), "formCode");
         return await client.PostAsync(url, content);
+    }
+
+    [SkippableFact]
+    public async Task G9_DraftSnapshot_FollowsMemberProfile_PersistedOnOpen_DataReviewFlagsCommitteeMembers()
+    {
+        var w = await WorldAsync();
+        var suffix = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        Guid dept = Guid.Empty, committee = Guid.Empty, cell = Guid.Empty;
+        await _factory.WithDbAsync(async db =>
+        {
+            var d = new AdministrativeDepartment { Code = $"G9-P-{suffix}", Name = $"Phòng G9 {suffix}" };
+            var parent = new PartyCell { Code = $"G9-DB-{suffix}", Name = $"Đảng bộ G9 {suffix}" };
+            db.AddRange(d, parent);
+            await db.SaveChangesAsync();
+            var child = new PartyCell { Code = $"G9-CB-{suffix}", Name = $"Chi bộ G9 {suffix}", ParentId = parent.Id };
+            db.Add(child);
+            await db.SaveChangesAsync();
+            (dept, committee, cell) = (d.Id, parent.Id, child.Id);
+        });
+        var member = await _factory.CreateUserAsync(dept, committee, ApprovalAuthority.CoSo, $"G9 Lãnh đạo {suffix}");
+        var noCell = await _factory.CreateUserAsync(dept, null, ApprovalAuthority.CoSo, $"G9 Chưa có Chi bộ {suffix}");
+
+        var periodId = (await CreatePeriodAsync(w, "09B")).GetProperty("id").GetGuid();
+        await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
+            new { memberIds = new[] { member.Id, noCell.Id } }));
+        var recordId = await RecordOfAsync(w, periodId, member.Id);
+
+        // Rà soát: người ghi thẳng vào Đảng bộ (tổ chức có tổ chức con) và hồ sơ thiếu Chi bộ.
+        var review = (await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}/readiness")).GetProperty("dataReview").EnumerateArray().ToList();
+        var direct = Assert.Single(review, i => i.GetProperty("kind").GetString() == "DirectInPartyCommittee");
+        Assert.Contains(direct.GetProperty("names").EnumerateArray(), n => n.GetString()!.Contains($"G9 Lãnh đạo {suffix}"));
+        var missing = Assert.Single(review, i => i.GetProperty("kind").GetString() == "MissingOrg");
+        Assert.Contains(missing.GetProperty("names").EnumerateArray(), n => n.GetString()!.Contains($"G9 Chưa có Chi bộ {suffix}"));
+
+        // Kỳ dự thảo: sửa Chi bộ của cán bộ → danh sách và kiểm tra kẹt luồng dùng ngay Chi bộ mới, không cần bỏ ra thêm lại.
+        await _factory.WithDbAsync(async db =>
+        {
+            var profile = await db.PartyMemberProfiles.FindAsync(member.Id);
+            profile!.PartyCellId = cell;
+            await db.SaveChangesAsync();
+        });
+        var participant = await ParticipantAsync(w, periodId, recordId);
+        Assert.Equal(cell, participant.GetProperty("partyCellId").GetGuid());
+        Assert.Equal($"Chi bộ G9 {suffix}", participant.GetProperty("partyCellName").GetString());
+        review = (await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}/readiness")).GetProperty("dataReview").EnumerateArray().ToList();
+        Assert.DoesNotContain(review, i => i.GetProperty("kind").GetString() == "DirectInPartyCommittee");
+
+        // Mở kỳ → ảnh chụp mới được lưu, kèm lịch sử "Cập nhật theo hồ sơ cán bộ".
+        await OpenAsync(w, periodId);
+        await _factory.WithDbAsync(async db =>
+        {
+            var record = await db.EvaluationRecords.FindAsync(recordId);
+            Assert.Equal(cell, record!.PartyCellId);
+            Assert.True(db.EvaluationRecordHistories.Any(h => h.RecordId == recordId
+                && h.Action == CongTacDang.Domain.Evaluation.WorkflowAction.SyncSnapshot));
+            var profile = await db.PartyMemberProfiles.FindAsync(member.Id);
+            profile!.PartyCellId = committee;
+            await db.SaveChangesAsync();
+        });
+
+        // Kỳ đã mở: ảnh chụp cố định, không đi theo hồ sơ cán bộ nữa.
+        Assert.Equal(cell, (await ParticipantAsync(w, periodId, recordId)).GetProperty("partyCellId").GetGuid());
+    }
+
+    [SkippableFact]
+    public async Task G10_DraftSnapshot_ManualEditIsKept()
+    {
+        var w = await WorldAsync();
+        var suffix = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        Guid dept = Guid.Empty, cellA = Guid.Empty, cellB = Guid.Empty;
+        await _factory.WithDbAsync(async db =>
+        {
+            var d = new AdministrativeDepartment { Code = $"G10-P-{suffix}", Name = $"Phòng G10 {suffix}" };
+            var a = new PartyCell { Code = $"G10-A-{suffix}", Name = $"Chi bộ G10 A {suffix}" };
+            var b = new PartyCell { Code = $"G10-B-{suffix}", Name = $"Chi bộ G10 B {suffix}" };
+            db.AddRange(d, a, b);
+            await db.SaveChangesAsync();
+            (dept, cellA, cellB) = (d.Id, a.Id, b.Id);
+        });
+        var member = await _factory.CreateUserAsync(dept, cellA, ApprovalAuthority.CoSo, $"G10 Cán bộ {suffix}");
+        var periodId = (await CreatePeriodAsync(w, "09B")).GetProperty("id").GetGuid();
+        await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { member.Id } }));
+        var recordId = await RecordOfAsync(w, periodId, member.Id);
+
+        // Sửa tay ảnh chụp sang Chi bộ B (có lý do) → giữ nguyên dù hồ sơ cán bộ vẫn ở Chi bộ A.
+        var participant = await ParticipantAsync(w, periodId, recordId);
+        await Data(await w.ManagerC.PutAsJsonAsync($"/api/evaluations/periods/{periodId}/participants/{recordId}/snapshot", new
+        {
+            version = participant.GetProperty("version").GetUInt32(),
+            departmentId = dept,
+            partyCellId = cellB,
+            reason = "Sinh hoạt tạm ở Chi bộ B trong quý"
+        }));
+        Assert.Equal(cellB, (await ParticipantAsync(w, periodId, recordId)).GetProperty("partyCellId").GetGuid());
+        await OpenAsync(w, periodId);
+        Assert.Equal(cellB, (await ParticipantAsync(w, periodId, recordId)).GetProperty("partyCellId").GetGuid());
+    }
+
+    [SkippableFact]
+    public async Task G11_Evidence_OwnerAttachesToRecord_ReviewersSee_OthersCannotAttach()
+    {
+        var w = await WorldAsync();
+        var periodId = await OpenPeriodAsync(w, "09B", w.Staff.Id);
+        var recordId = await RecordOfAsync(w, periodId, w.Staff.Id);
+
+        static MultipartFormDataContent Form(Guid recordId)
+        {
+            var file = new ByteArrayContent(System.Text.Encoding.ASCII.GetBytes("%PDF-1.4\n% minh chung truc T1\n"));
+            file.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+            return new MultipartFormDataContent
+            {
+                { file, "file", "bao-cao-quy.pdf" },
+                { new StringContent("MC-T1"), "formCode" },
+                { new StringContent("Minh chứng T1"), "description" },
+                { new StringContent("EvaluationRecord"), "ownerType" },
+                { new StringContent(recordId.ToString()), "ownerId" }
+            };
+        }
+
+        var uploaded = await Data(await w.StaffC.PostAsync("/api/attachments/upload", Form(recordId)));
+        Assert.Equal("MC-T1", uploaded.GetProperty("formCode").GetString());
+
+        // Người xem được hồ sơ thấy tệp; người khác không gắn được tệp vào hồ sơ này.
+        var seen = await Data(w.ManagerC, $"/api/attachments?ownerType=EvaluationRecord&ownerId={recordId}");
+        Assert.Contains(seen.EnumerateArray(), f => f.GetProperty("formCode").GetString() == "MC-T1");
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.ManagerC.PostAsync("/api/attachments/upload", Form(recordId))).StatusCode);
+
+        // Gỡ: người khác không gỡ được; chủ hồ sơ gỡ được (cả khi đã nộp phiếu) — tệp không còn hiện nhưng vẫn lưu (xóa mềm).
+        var fileId = uploaded.GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.ManagerC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        await StepAsync(w.StaffC, recordId, "self-score/submit", new { generalScores = General, axisScores = Axis }, "AwaitingCellConfirm");
+        Assert.Equal(HttpStatusCode.OK, (await w.StaffC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        var after = await Data(w.ManagerC, $"/api/attachments?ownerType=EvaluationRecord&ownerId={recordId}");
+        Assert.DoesNotContain(after.EnumerateArray(), f => f.GetProperty("id").GetGuid() == fileId);
+        await _factory.WithDbAsync(async db =>
+        {
+            var stored = await db.TaskAttachments.IgnoreQueryFilters().FirstAsync(a => a.Id == fileId);
+            Assert.True(stored.IsDeleted);
+        });
     }
 
     private async Task<World> WorldAsync()

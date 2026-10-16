@@ -84,6 +84,10 @@ public class ReadinessIssueDto
     public string Mode { get; set; } = string.Empty;
     public string Permission { get; set; } = string.Empty;
     public string PermissionName { get; set; } = string.Empty;
+    /// <summary>Các vai trò đang chứa quyền này — người quản trị gán một trong các vai trò đó.</summary>
+    public List<string> RoleNames { get; set; } = new();
+    /// <summary>Tên ngắn của nơi cần gán (tổ chức Đảng / đơn vị chính quyền của hồ sơ); gán ở cấp trên hoặc Toàn công ty cũng được.</summary>
+    public string ScopeName { get; set; } = string.Empty;
     /// <summary>Phạm vi của hồ sơ (đơn vị chính quyền / tổ chức Đảng) mà bản gán cần bao trùm.</summary>
     public string Scope { get; set; } = string.Empty;
     /// <summary>Đơn vị chính quyền của hồ sơ (để mở màn hình "Người thực hiện" đúng đơn vị).</summary>
@@ -102,6 +106,19 @@ public class PeriodReadinessDto
     /// <summary>Số hồ sơ chưa công bố đã kiểm tra.</summary>
     public int CheckedRecords { get; set; }
     public List<ReadinessIssueDto> Issues { get; set; } = new();
+    /// <summary>Rà soát dữ liệu trước khi mở kỳ: những chỗ dễ gây kẹt hoặc chưa đúng thực tế (không chặn mở kỳ).</summary>
+    public List<DataReviewItemDto> DataReview { get; set; } = new();
+}
+
+/// <summary>Một mục rà soát dữ liệu: nội dung cần xem và những người/hồ sơ liên quan.</summary>
+public class DataReviewItemDto
+{
+    /// <summary>Loại mục: DirectInPartyCommittee, MissingOrg, SinglePerformer.</summary>
+    public string Kind { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    /// <summary>Cách xử lý gợi ý.</summary>
+    public string Hint { get; set; } = string.Empty;
+    public List<string> Names { get; set; } = new();
 }
 
 /// <summary>Kết quả mở kỳ: kỳ đã mở, hoặc bị chặn vì còn cảnh báo kẹt luồng (<see cref="Readiness"/>).</summary>
