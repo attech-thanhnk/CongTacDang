@@ -13,12 +13,20 @@ namespace CongTacDang.Application.Services;
 /// <summary>Dịch vụ tra cứu nhật ký thao tác và nhật ký đăng nhập cho quản trị hệ thống.</summary>
 public interface IAuditService
 {
-    /// <summary>Lấy danh sách audit log theo entity và giới hạn bản ghi.</summary>
-    Task<List<AuditLogDto>> GetAuditLogsAsync(string? entityType, string? entityId, int limit);
+    /// <summary>Tra cứu nhật ký thao tác (mới nhất trước), có phân trang và số đếm trên toàn bộ kết quả lọc.</summary>
+    Task<AuditLogPageDto> GetAuditLogsAsync(AuditLogQuery query, CancellationToken ct = default);
 
     /// <summary>Tra cứu nhật ký đăng nhập (mới nhất trước), có phân trang.</summary>
     Task<PagedResult<LoginEventDto>> GetLoginEventsAsync(LoginEventQuery query, CancellationToken ct = default);
 }
+
+/// <summary>Tham số tra cứu nhật ký thao tác.</summary>
+public sealed record AuditLogQuery(
+    string? EntityType = null,
+    string? EntityId = null,
+    string? Action = null,
+    int? Page = null,
+    int? PageSize = null);
 
 /// <summary>Tham số tra cứu nhật ký đăng nhập.</summary>
 public sealed record LoginEventQuery(
@@ -42,25 +50,40 @@ public class AuditService : IAuditService
         _loginEvents = loginEvents;
     }
 
-    /// <summary>Tra cứu các thao tác gần nhất theo bộ lọc.</summary>
-    public async Task<List<AuditLogDto>> GetAuditLogsAsync(string? entityType, string? entityId, int limit)
+    /// <inheritdoc />
+    public async Task<AuditLogPageDto> GetAuditLogsAsync(AuditLogQuery query, CancellationToken ct = default)
     {
-        var logs = await _auditRepository.GetAuditLogsAsync(entityType, entityId, limit);
-        return logs.Select(x => new AuditLogDto
+        ArgumentNullException.ThrowIfNull(query);
+        var (page, pageSize) = Paging.Normalize(query.Page, query.PageSize);
+        var result = await _auditRepository.SearchAuditLogsAsync(new AuditLogCriteria(
+            page, pageSize, Clean(query.EntityType), Clean(query.EntityId), Clean(query.Action)), ct);
+
+        return new AuditLogPageDto
         {
-            Id = x.Id,
-            ActorId = x.ActorId,
-            ActorName = x.ActorName,
-            Action = x.Action,
-            EntityType = x.EntityType,
-            EntityId = x.EntityId,
-            OldValues = x.OldValues,
-            NewValues = x.NewValues,
-            IpAddress = x.IpAddress,
-            RequestPath = x.RequestPath,
-            CreatedAt = x.CreatedAt
-        }).ToList();
+            Items = result.Items.Select(x => new AuditLogDto
+            {
+                Id = x.Id,
+                ActorId = x.ActorId,
+                ActorName = x.ActorName,
+                Action = x.Action,
+                EntityType = x.EntityType,
+                EntityId = x.EntityId,
+                OldValues = x.OldValues,
+                NewValues = x.NewValues,
+                IpAddress = x.IpAddress,
+                RequestPath = x.RequestPath,
+                CreatedAt = x.CreatedAt
+            }).ToList(),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = result.TotalCount,
+            ActionCounts = new Dictionary<string, int>(result.ActionCounts),
+            ActorCount = result.ActorCount,
+            EntityTypes = result.EntityTypes.ToList()
+        };
     }
+
+    private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     /// <inheritdoc />
     public async Task<PagedResult<LoginEventDto>> GetLoginEventsAsync(LoginEventQuery query, CancellationToken ct = default)

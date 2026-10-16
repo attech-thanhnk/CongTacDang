@@ -255,7 +255,8 @@ namespace CongTacDang.Infrastructure.Data
                     ActorId = _currentUser.UserId,
                     ActorName = string.IsNullOrWhiteSpace(_currentUser.UserName) ? "system" : _currentUser.UserName,
                     Action = entry.State == EntityState.Added ? "Create" : isDelete ? "Delete" : "Update",
-                    EntityType = entry.Metadata.ClrType.Name,
+                    // Bảng nối nhiều-nhiều (role_permissions) dùng chung kiểu Dictionary: ghi tên bảng thay cho tên kiểu.
+                    EntityType = entry.Metadata.HasSharedClrType ? entry.Metadata.Name : entry.Metadata.ClrType.Name,
                     EntityId = entityId,
                     OldValues = JsonSerializer.Serialize(oldValues),
                     NewValues = JsonSerializer.Serialize(newValues),

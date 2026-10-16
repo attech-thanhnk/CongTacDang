@@ -304,19 +304,42 @@ public class AuditRepository : IAuditRepository
         _db = db;
     }
 
-    /// <summary>Truy vấn audit log mới nhất theo bộ lọc tùy chọn.</summary>
-    public async Task<List<AuditLog>> GetAuditLogsAsync(string? entityType, string? entityId, int limit)
+    /// <summary>Truy vấn audit log theo bộ lọc, phân trang; số đếm tính trên toàn bộ bản ghi khớp bộ lọc.</summary>
+    public async Task<AuditLogSearchResult> SearchAuditLogsAsync(AuditLogCriteria criteria, CancellationToken ct = default)
     {
-        var query = _db.AuditLogs.AsNoTracking().AsQueryable();
-        if (!string.IsNullOrWhiteSpace(entityType))
-            query = query.Where(x => x.EntityType == entityType);
-        if (!string.IsNullOrWhiteSpace(entityId))
-            query = query.Where(x => x.EntityId == entityId);
+        var all = _db.AuditLogs.AsNoTracking();
+        var query = all;
+        if (!string.IsNullOrWhiteSpace(criteria.EntityType))
+            query = query.Where(x => x.EntityType == criteria.EntityType);
+        if (!string.IsNullOrWhiteSpace(criteria.EntityId))
+            query = query.Where(x => x.EntityId == criteria.EntityId);
+        if (!string.IsNullOrWhiteSpace(criteria.Action))
+            query = query.Where(x => x.Action == criteria.Action);
 
-        return await query
+        var actionCounts = await query
+            .GroupBy(x => x.Action)
+            .Select(g => new { Action = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Action, x => x.Count, ct);
+        var actorCount = await query
+            .Select(x => x.ActorId.HasValue ? x.ActorId.Value.ToString() : x.ActorName)
+            .Distinct()
+            .CountAsync(ct);
+        var items = await query
             .OrderByDescending(x => x.CreatedAt)
-            .Take(Math.Clamp(limit, 1, 500))
-            .ToListAsync();
+            .ThenByDescending(x => x.Id)
+            .Skip((criteria.Page - 1) * criteria.PageSize)
+            .Take(criteria.PageSize)
+            .ToListAsync(ct);
+        var entityTypes = await all.Select(x => x.EntityType).Distinct().OrderBy(x => x).ToListAsync(ct);
+
+        return new AuditLogSearchResult
+        {
+            Items = items,
+            TotalCount = actionCounts.Values.Sum(),
+            ActionCounts = actionCounts,
+            ActorCount = actorCount,
+            EntityTypes = entityTypes
+        };
     }
 }
 

@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { auditService, AuditLogDto } from "@/services/auditService";
-import { PageHeader, Pagination, usePagination } from "@/components/common";
+import { auditService, AuditLogDto, AuditLogPage } from "@/services/auditService";
+import { PageHeader, Pagination, usePageSize } from "@/components/common";
 import styles from "./audit.module.css";
 import { LoginEventsTab } from "@/components/admin/LoginEventsTab";
 import { NoAccess } from "@/components/admin/NoAccess";
@@ -13,18 +13,51 @@ import { errorMessage, formatDateTime } from "@/components/admin/adminUtils";
 
 type AuditTab = "actions" | "logins";
 
-const entityOptions = [
-  { value: "", label: "Tất cả đối tượng" },
-  { value: "EvaluationRecord", label: "Hồ sơ đánh giá" },
-  { value: "EvaluationTask", label: "Nhiệm vụ đánh giá" },
-  { value: "EvaluationPeriod", label: "Kỳ đánh giá" },
-  { value: "PartyMemberProfile", label: "Hồ sơ cán bộ" },
-  { value: "PartyCell", label: "Tổ chức Đảng" },
-  { value: "TaskAttachment", label: "Tệp minh chứng" },
-  { value: "AppRole", label: "Vai trò / phân quyền" },
-  { value: "UserRoleAssignment", label: "Bản gán vai trò" },
-  { value: "AdministrativeDepartment", label: "Đơn vị chính quyền" },
-];
+/** Nhãn của loại đối tượng ghi trong nhật ký; loại chưa có nhãn hiện nguyên tên. */
+const ENTITY_LABELS: Record<string, string> = {
+  EvaluationPeriod: "Kỳ đánh giá",
+  EvaluationRecord: "Hồ sơ đánh giá",
+  EvaluationTask: "Nhiệm vụ đánh giá",
+  TaskAttachment: "Tệp minh chứng",
+  TaskChangeRequest: "Đề nghị điều chỉnh nhiệm vụ",
+  EvaluationMeeting: "Biên bản hội nghị",
+  EvaluationMeetingVoteSummary: "Kết quả biểu quyết",
+  EvaluationExternalResult: "Kết quả cấp trên",
+  CollectiveEvaluationRecord: "Hồ sơ tập thể",
+  CollectiveEvaluationItem: "Nội dung hồ sơ tập thể",
+  EvaluationAppeal: "Kiến nghị",
+  ImprovementPlan: "Kế hoạch khắc phục (Mẫu 17)",
+  ReportDraft: "Báo cáo",
+  CriteriaSet: "Bộ tiêu chí",
+  FormLayout: "Bố cục biểu mẫu",
+  WordTemplateVersion: "File mẫu Word",
+  OrganizationSettings: "Thông tin đơn vị",
+  PartyMemberProfile: "Hồ sơ cán bộ",
+  MemberPosition: "Chức vụ của cán bộ",
+  Position: "Danh mục chức vụ",
+  PartyCell: "Tổ chức Đảng",
+  AdministrativeDepartment: "Đơn vị chính quyền",
+  OrgUnitType: "Loại đơn vị",
+  Holiday: "Ngày nghỉ",
+  AppRole: "Vai trò",
+  Permission: "Quyền",
+  role_permissions: "Quyền của vai trò",
+  "Dictionary`2": "Quyền của vai trò",
+  UserRoleAssignment: "Bản gán vai trò",
+  RefreshToken: "Phiên đăng nhập",
+  Import: "Nhập dữ liệu từ Excel",
+};
+
+/** Nhãn và màu của loại thao tác. */
+const ACTION_META: Record<string, { label: string; icon: string; tone: string }> = {
+  Create: { label: "Tạo mới", icon: "bi-plus-lg", tone: "t-ok" },
+  Update: { label: "Cập nhật", icon: "bi-pencil-square", tone: "t-info" },
+  Delete: { label: "Xóa mềm", icon: "bi-archive", tone: "t-bad" },
+  Import: { label: "Nhập dữ liệu", icon: "bi-file-earmark-arrow-up", tone: "t-wait" },
+  Approve: { label: "Phê duyệt", icon: "bi-check2-circle", tone: "t-ok" },
+  AssignRoles: { label: "Gán vai trò", icon: "bi-person-badge", tone: "t-wait" },
+  UpdatePermissions: { label: "Cập nhật quyền", icon: "bi-shield-check", tone: "t-wait" },
+};
 
 /** Định dạng thời điểm audit theo locale tiếng Việt. */
 function formatDate(value: string) {
@@ -33,25 +66,12 @@ function formatDate(value: string) {
 
 /** Trả về nhãn và màu hiển thị tương ứng với loại thao tác. */
 function actionMeta(action: string) {
-  switch (action) {
-    case "Create":
-      return { label: "Tạo mới", icon: "bi-plus-lg", tone: "t-ok" };
-    case "Delete":
-      return { label: "Xóa mềm", icon: "bi-archive", tone: "t-bad" };
-    case "Approve":
-      return { label: "Phê duyệt", icon: "bi-check2-circle", tone: "t-ok" };
-    case "AssignRoles":
-      return { label: "Gán vai trò", icon: "bi-person-badge", tone: "t-wait" };
-    case "UpdatePermissions":
-      return { label: "Cập nhật quyền", icon: "bi-shield-check", tone: "t-wait" };
-    default:
-      return { label: "Cập nhật", icon: "bi-pencil-square", tone: "t-info" };
-  }
+  return ACTION_META[action] ?? { label: action, icon: "bi-dot", tone: "t-info" };
 }
 
 /** Chuyển tên CLR entity thành nhãn dễ đọc trên giao diện. */
 function entityLabel(entityType: string) {
-  return entityOptions.find((option) => option.value === entityType)?.label || entityType;
+  return ENTITY_LABELS[entityType] || entityType;
 }
 
 /** Parse snapshot JSON để hiển thị dễ đọc và an toàn khi dữ liệu lỗi. */
@@ -63,65 +83,88 @@ function parseSnapshot(value: string) {
   }
 }
 
+interface Filters {
+  entityType: string;
+  entityId: string;
+  action: string;
+}
+
+const EMPTY_FILTERS: Filters = { entityType: "", entityId: "", action: "" };
+
 /** Nội dung trang nhật ký: tab Nhật ký thao tác + tab Nhật ký đăng nhập. */
 function AuditPageContent() {
   const { hasPermission } = useAuth();
   const { toast } = useToast();
   const [tab, setTab] = useState<AuditTab>("actions");
-  const [logs, setLogs] = useState<AuditLogDto[]>([]);
-  const [entityType, setEntityType] = useState("");
-  const [entityId, setEntityId] = useState("");
-  const [appliedEntityId, setAppliedEntityId] = useState("");
+  const [data, setData] = useState<AuditLogPage | null>(null);
+  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = usePageSize("audit.actions");
   const [selectedLog, setSelectedLog] = useState<AuditLogDto | null>(null);
   const [loading, setLoading] = useState(true);
+  const canRead = hasPermission("system.audit.read");
 
-  /** Tải lại audit log theo bộ lọc hiện tại hoặc bộ lọc truyền vào. */
-  const loadLogs = async (filters?: { entityType?: string; entityId?: string }) => {
+  /** Tải trang nhật ký theo bộ lọc đã áp dụng. */
+  const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const nextEntityType = filters?.entityType ?? entityType;
-      const nextEntityId = filters?.entityId ?? appliedEntityId;
-      const result = await auditService.getLogs({
-        entityType: nextEntityType || undefined,
-        entityId: nextEntityId || undefined,
-        limit: 200,
-      });
-      setLogs(result);
-      setSelectedLog((current) => (current && result.some((log) => log.id === current.id) ? current : null));
+      setData(
+        await auditService.getLogs({
+          entityType: filters.entityType || undefined,
+          entityId: filters.entityId || undefined,
+          action: filters.action || undefined,
+          page,
+          pageSize,
+        })
+      );
     } catch (error) {
       toast.error(errorMessage(error, "Không thể tải nhật ký thao tác."));
     } finally {
       setLoading(false);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, page, pageSize]);
 
   useEffect(() => {
-    if (hasPermission("system.audit.read")) {
-      loadLogs();
-    }
-  }, [hasPermission]);
+    if (canRead) loadLogs();
+  }, [canRead, loadLogs]);
 
-  const stats = useMemo(() => {
-    const actorCount = new Set(logs.map((log) => log.actorId || log.actorName)).size;
-    const updateCount = logs.filter((log) => log.action === "Update").length;
-    const deleteCount = logs.filter((log) => log.action === "Delete").length;
-    return { actorCount, updateCount, deleteCount };
-  }, [logs]);
-  const paging = usePagination(logs, { storageKey: "audit.actions", resetKeys: [entityType, appliedEntityId] });
+  const logs = data?.items ?? [];
+  const counts = data?.actionCounts ?? {};
+  const entityOptions = useMemo(
+    () =>
+      (data?.entityTypes ?? [])
+        .map((value) => ({ value, label: entityLabel(value) }))
+        .filter((option, index, all) => all.findIndex((o) => o.label === option.label) === index)
+        .sort((a, b) => a.label.localeCompare(b.label, "vi")),
+    [data?.entityTypes]
+  );
+  const actionOptions = useMemo(
+    () => Object.keys(counts).sort((a, b) => actionMeta(a).label.localeCompare(actionMeta(b).label, "vi")),
+    [counts]
+  );
 
-  /** Áp dụng bộ lọc tra cứu và đồng bộ Id đang hiển thị. */
-  const handleApplyFilters = async (event: React.FormEvent) => {
+  /** Áp dụng bộ lọc tra cứu, quay về trang đầu. */
+  const handleApplyFilters = (event: React.FormEvent) => {
     event.preventDefault();
-    setAppliedEntityId(entityId.trim());
-    await loadLogs({ entityType, entityId: entityId.trim() });
+    setPage(1);
+    setFilters({ ...draft, entityId: draft.entityId.trim() });
   };
 
   /** Xóa toàn bộ bộ lọc và tải lại nhật ký mới nhất. */
-  const clearFilters = async () => {
-    setEntityType("");
-    setEntityId("");
-    setAppliedEntityId("");
-    await loadLogs({ entityType: "", entityId: "" });
+  const clearFilters = () => {
+    setDraft(EMPTY_FILTERS);
+    setPage(1);
+    setFilters(EMPTY_FILTERS);
+  };
+
+  /** Lọc nhanh theo một loại thao tác khi bấm ô số liệu. */
+  const filterByAction = (action: string) => {
+    const next = { ...filters, action: filters.action === action ? "" : action };
+    setDraft({ ...draft, action: next.action });
+    setPage(1);
+    setFilters(next);
   };
 
   if (!hasPermission("system.audit.read")) {
@@ -172,12 +215,18 @@ function AuditPageContent() {
         <section className="card">
           <div className={styles.stats}>
             {[
-              { label: "Tổng thao tác", value: logs.length, tone: "var(--info)" },
-              { label: "Lượt cập nhật", value: stats.updateCount, tone: "var(--wait)" },
-              { label: "Xóa mềm", value: stats.deleteCount, tone: "var(--bad)" },
-              { label: "Người thao tác", value: stats.actorCount, tone: "var(--ok)" },
+              { label: "Tổng thao tác", value: data?.totalCount ?? 0, tone: "var(--info)" },
+              { label: "Lượt cập nhật", value: counts.Update ?? 0, tone: "var(--wait)", action: "Update" },
+              { label: "Xóa mềm", value: counts.Delete ?? 0, tone: "var(--bad)", action: "Delete" },
+              { label: "Người thao tác", value: data?.actorCount ?? 0, tone: "var(--ok)" },
             ].map((stat) => (
-              <div className={styles.stat} key={stat.label} style={{ "--c": stat.tone } as React.CSSProperties}>
+              <div
+                className={styles.stat}
+                key={stat.label}
+                style={{ "--c": stat.tone, cursor: stat.action ? "pointer" : undefined } as React.CSSProperties}
+                onClick={stat.action ? () => filterByAction(stat.action) : undefined}
+                title={stat.action ? (filters.action === stat.action ? "Bỏ lọc" : "Chỉ xem loại thao tác này") : undefined}
+              >
                 <div className={styles.value}>{stat.value}</div>
                 <div className={styles.label}>{stat.label}</div>
               </div>
@@ -190,17 +239,27 @@ function AuditPageContent() {
                 <form className="row g-2 align-items-end" onSubmit={handleApplyFilters}>
                   <div className="col-12 col-md-4 col-xl-3">
                     <label className="form-label" htmlFor="audit-entity-type">Đối tượng</label>
-                    <select id="audit-entity-type" className="form-select form-select-sm" value={entityType} onChange={(event) => setEntityType(event.target.value)}>
+                    <select id="audit-entity-type" className="form-select form-select-sm" value={draft.entityType} onChange={(event) => setDraft({ ...draft, entityType: event.target.value })}>
+                      <option value="">Tất cả đối tượng</option>
                       {entityOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                     </select>
                   </div>
-                  <div className="col-12 col-md-5 col-xl-5">
+                  <div className="col-12 col-md-3 col-xl-2">
+                    <label className="form-label" htmlFor="audit-action">Thao tác</label>
+                    <select id="audit-action" className="form-select form-select-sm" value={draft.action} onChange={(event) => setDraft({ ...draft, action: event.target.value })}>
+                      <option value="">Tất cả</option>
+                      {(draft.action && !actionOptions.includes(draft.action) ? [...actionOptions, draft.action] : actionOptions).map((action) => (
+                        <option key={action} value={action}>{actionMeta(action).label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-12 col-md-5 col-xl-4">
                     <label className="form-label" htmlFor="audit-entity-id">Id đối tượng</label>
                     <input
                       id="audit-entity-id"
                       className="form-control form-control-sm"
-                      value={entityId}
-                      onChange={(event) => setEntityId(event.target.value)}
+                      value={draft.entityId}
+                      onChange={(event) => setDraft({ ...draft, entityId: event.target.value })}
                     />
                   </div>
                   <div className="col-12 col-md-auto d-flex gap-2">
@@ -229,7 +288,7 @@ function AuditPageContent() {
                       <tr><td colSpan={5} className="text-center py-5 text-secondary loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải nhật ký...</td></tr>
                     ) : logs.length === 0 ? (
                       <tr><td colSpan={5} className="text-center py-5 text-secondary"><i className="bi bi-inbox fs-3 d-block mb-2" />Chưa có bản ghi phù hợp.</td></tr>
-                    ) : paging.pageItems.map((log) => {
+                    ) : logs.map((log) => {
                       const meta = actionMeta(log.action);
                       const isSelected = selectedLog?.id === log.id;
                       return (
@@ -259,11 +318,15 @@ function AuditPageContent() {
                 </table>
               </div>
               <Pagination
-                page={paging.page}
-                pageSize={paging.pageSize}
-                total={paging.total}
-                onPageChange={paging.setPage}
-                onPageSizeChange={paging.setPageSize}
+                page={page}
+                pageSize={pageSize}
+                total={data?.totalCount ?? 0}
+                onPageChange={setPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setPage(1);
+                }}
+                disabled={loading}
               />
             </section>
 

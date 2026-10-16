@@ -84,6 +84,43 @@ public sealed class LoginAuditTests
         Assert.Equal(HttpStatusCode.OK, (await auditorClient.GetAsync("/api/admin/audit")).StatusCode);
     }
 
+    [SkippableFact]
+    public async Task AuditLogs_ArePagedOnServer_WithCountsOverAllMatches()
+    {
+        SkipIfNoDatabase();
+        await _fx.Base.CreateUserWithPermissionsAsync(PermissionCodes.EvaluationSelf);
+        await _fx.Base.CreateUserWithPermissionsAsync(PermissionCodes.EvaluationSelf);
+        var auditor = await _fx.Base.CreateUserWithPermissionsAsync(PermissionCodes.SystemAuditRead);
+        using var client = await _fx.LoginAsync(auditor.Username, auditor.Password);
+
+        var data = await AuditAsync(client, "page=1&pageSize=2");
+        var total = data.GetProperty("totalCount").GetInt32();
+        Assert.True(total > 2, $"Cần nhiều hơn 2 bản ghi để kiểm tra phân trang, có {total}.");
+        Assert.Equal(2, data.GetProperty("items").GetArrayLength());
+        var counts = data.GetProperty("actionCounts").EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetInt32());
+        Assert.Equal(total, counts.Values.Sum());
+        Assert.True(data.GetProperty("actorCount").GetInt32() >= 1);
+        var entityTypes = data.GetProperty("entityTypes").EnumerateArray().Select(e => e.GetString()).ToList();
+        Assert.DoesNotContain("Dictionary`2", entityTypes);
+
+        // Trang 2 khác trang 1; lọc theo thao tác chỉ còn đúng loại đó và tổng khớp số đếm.
+        var page1 = data.GetProperty("items").EnumerateArray().Select(e => e.GetProperty("id").GetGuid()).ToList();
+        var page2 = (await AuditAsync(client, "page=2&pageSize=2")).GetProperty("items").EnumerateArray()
+            .Select(e => e.GetProperty("id").GetGuid()).ToList();
+        Assert.Empty(page1.Intersect(page2));
+
+        var creates = await AuditAsync(client, "action=Create&pageSize=200");
+        Assert.Equal(counts["Create"], creates.GetProperty("totalCount").GetInt32());
+        Assert.All(creates.GetProperty("items").EnumerateArray(), e => Assert.Equal("Create", e.GetProperty("action").GetString()));
+    }
+
+    private static async Task<JsonElement> AuditAsync(HttpClient client, string query)
+    {
+        var response = await client.GetAsync("/api/admin/audit?" + query);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return (await AccountTestFixture.ReadJsonAsync(response)).GetProperty("data");
+    }
+
     private async Task AttemptAsync(string username, string password)
     {
         var (client, response) = await _fx.TryLoginAsync(username, password);

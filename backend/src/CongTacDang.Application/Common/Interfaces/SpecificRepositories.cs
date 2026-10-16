@@ -77,8 +77,30 @@ public interface IAttachmentAccessReader
 /// <summary>Giao diện tra cứu audit log tập trung.</summary>
 public interface IAuditRepository
 {
-    /// <summary>Lấy audit log mới nhất theo entity, có giới hạn số lượng bản ghi.</summary>
-    Task<List<AuditLog>> GetAuditLogsAsync(string? entityType, string? entityId, int limit);
+    /// <summary>Tra cứu audit log (mới nhất trước) theo bộ lọc, có phân trang và số đếm trên toàn bộ kết quả lọc.</summary>
+    Task<AuditLogSearchResult> SearchAuditLogsAsync(AuditLogCriteria criteria, CancellationToken ct = default);
+}
+
+/// <summary>Điều kiện tra cứu audit log; trang đã chuẩn hóa.</summary>
+public sealed record AuditLogCriteria(int Page, int PageSize, string? EntityType = null, string? EntityId = null, string? Action = null);
+
+/// <summary>Kết quả tra cứu audit log: trang hiện tại và số đếm trên toàn bộ bản ghi khớp bộ lọc.</summary>
+public sealed class AuditLogSearchResult
+{
+    /// <summary>Các bản ghi của trang hiện tại.</summary>
+    public IReadOnlyList<AuditLog> Items { get; init; } = Array.Empty<AuditLog>();
+
+    /// <summary>Tổng số bản ghi khớp bộ lọc.</summary>
+    public int TotalCount { get; init; }
+
+    /// <summary>Số bản ghi theo loại thao tác (Create, Update, Delete, Import...).</summary>
+    public IReadOnlyDictionary<string, int> ActionCounts { get; init; } = new Dictionary<string, int>();
+
+    /// <summary>Số người thao tác khác nhau.</summary>
+    public int ActorCount { get; init; }
+
+    /// <summary>Các loại đối tượng có trong nhật ký (không phụ thuộc bộ lọc), để chọn bộ lọc.</summary>
+    public IReadOnlyList<string> EntityTypes { get; init; } = Array.Empty<string>();
 }
 
 /// <summary>

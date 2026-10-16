@@ -167,6 +167,24 @@ public class AuditLogDto
     public DateTime CreatedAt { get; set; }
 }
 
+/// <summary>Một trang nhật ký thao tác kèm số đếm trên toàn bộ bản ghi khớp bộ lọc.</summary>
+public class AuditLogPageDto
+{
+    public List<AuditLogDto> Items { get; set; } = new();
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalCount { get; set; }
+    public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
+
+    /// <summary>Số bản ghi theo loại thao tác (Create, Update, Delete, Import...).</summary>
+    public Dictionary<string, int> ActionCounts { get; set; } = new();
+
+    /// <summary>Số người thao tác khác nhau.</summary>
+    public int ActorCount { get; set; }
+
+    /// <summary>Các loại đối tượng có trong nhật ký, để chọn bộ lọc.</summary>
+    public List<string> EntityTypes { get; set; } = new();
+}
 
 /// <summary>Payload đăng nhập từ client</summary>
 public class LoginRequestDto

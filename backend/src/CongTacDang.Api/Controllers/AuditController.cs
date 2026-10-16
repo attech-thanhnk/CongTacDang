@@ -26,15 +26,18 @@ public class AuditController : ControllerBase
         _auditService = auditService;
     }
 
-    /// <summary>Lấy audit log mới nhất, có thể lọc theo loại và Id entity.</summary>
+    /// <summary>Nhật ký thao tác (mới nhất trước), lọc theo loại đối tượng, Id đối tượng, loại thao tác; phân trang phía máy chủ.</summary>
     [HttpGet]
     public async Task<IActionResult> GetAuditLogs(
         [FromQuery] string? entityType = null,
         [FromQuery] string? entityId = null,
-        [FromQuery] int limit = 100)
+        [FromQuery] string? action = null,
+        [FromQuery] int? page = null,
+        [FromQuery] int? pageSize = null,
+        CancellationToken ct = default)
     {
-        var logs = await _auditService.GetAuditLogsAsync(entityType, entityId, limit);
-        return Ok(ApiResponse<List<AuditLogDto>>.Ok(logs, "Lấy nhật ký audit thành công."));
+        var logs = await _auditService.GetAuditLogsAsync(new AuditLogQuery(entityType, entityId, action, page, pageSize), ct);
+        return Ok(ApiResponse<AuditLogPageDto>.Ok(logs, "Lấy nhật ký audit thành công."));
     }
 
     /// <summary>
