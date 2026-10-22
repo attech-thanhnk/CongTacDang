@@ -46,6 +46,12 @@ public class CollectiveEvaluationRecord : IAuditableEntity, ISoftDeletable, IVer
     /// </summary>
     public string Sections { get; set; } = "{}";
 
+    /// <summary>
+    /// Điểm từng tiêu chí của khung tiêu chí tập thể (jsonb, khóa là mã tiêu chí con trong <c>CollectiveGroups</c> của bộ tiêu chí
+    /// của kỳ): <c>{ "I.1": 4.5, … }</c>. Rỗng khi bộ tiêu chí không có khung tập thể (nhập thẳng hai điểm nhóm).
+    /// </summary>
+    public string CriteriaScores { get; set; } = "{}";
+
     /// <summary>Điểm nhóm tiêu chí chung, nhóm kết quả và tổng điểm.</summary>
     public double GeneralCriteriaScore { get; set; }
     public double TaskCriteriaScore { get; set; }

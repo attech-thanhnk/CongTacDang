@@ -24,6 +24,7 @@ public interface IEvaluationWorkflowService
     Task<EvaluationRecordDto> SubmitTasksAsync(Guid recordId, SubmitTasksRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> ApproveTasksAsync(Guid recordId, ApproveTasksRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> ReturnTasksAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default);
+    Task<EvaluationRecordDto> RevokeTaskApprovalAsync(Guid recordId, WorkflowRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> SubmitSelfScoreAsync(Guid recordId, SubmitSelfScoreRequestDto request, CancellationToken ct = default);
 
     /// <summary>
@@ -176,6 +177,87 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             ctx.Record.TasksApprovedAt = null;
             return Task.FromResult<string?>(null);
         }, ct);
+
+    /// <inheritdoc />
+    public async Task<EvaluationRecordDto> RevokeTaskApprovalAsync(Guid recordId, WorkflowRequestDto request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (request.Version is null)
+            throw new ValidationException("Thiếu phiên bản dữ liệu (version) của hồ sơ. Hãy tải lại hồ sơ rồi thử lại.");
+
+        var record = await _repo.FindRecordAsync(recordId, ct)
+            ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
+        var settings = ReadSettings(record.Period);
+        var profile = EvaluationMapping.ProfileOf(settings, record);
+        var approveAction = WorkflowActions.Get(WorkflowActions.ApproveTasks);
+        var revokeAction = WorkflowActions.Get(WorkflowActions.RevokeTaskApproval);
+
+        if (record.Period.Status != PeriodStatus.Open)
+            throw new ConflictException("Chỉ được thu hồi duyệt khi kỳ đánh giá đang mở.");
+        if (!CanRevokeTaskApproval(record, profile))
+            throw new ConflictException("Chỉ được thu hồi duyệt ngay sau khi duyệt danh mục và trước khi chủ hồ sơ tự chấm.");
+
+        var histories = await _repo.ListHistoryAsync(record.Id, ct);
+        var latest = histories.OrderByDescending(h => h.CreatedAt).FirstOrDefault();
+        if (latest is null
+            || latest.Action != WorkflowAction.Complete
+            || latest.Step != WorkflowStep.B1_APPROVE
+            || latest.ToStatus != RecordStatus.AwaitingSelfScore)
+            throw new ConflictException("Hồ sơ đã có thao tác khác sau khi duyệt; không thể thu hồi tự động.");
+
+        var permission = WorkflowActions.PermissionFor(approveAction, profile);
+        if (IsConflictOfInterest(revokeAction, record))
+            throw new ForbiddenException("Người được đánh giá không được thu hồi duyệt trên hồ sơ của chính mình.");
+        _guard.Ensure(permission, AccessTarget.ForRecord(record));
+
+        var actorId = _currentUser.UserId;
+        if (record.TasksApprovedById != actorId)
+            throw new ForbiddenException("Chỉ người đã bấm duyệt danh mục mới được thu hồi thao tác này.");
+
+        if (record.Version != request.Version.Value)
+            throw new ConflictException("Hồ sơ đã được người khác cập nhật. Hãy tải lại hồ sơ rồi thử lại.");
+
+        var now = DateTime.UtcNow;
+        var actorName = actorId.HasValue
+            ? await _repo.GetMemberNameAsync(actorId.Value, ct) ?? _currentUser.UserName
+            : _currentUser.UserName;
+        var fromStatus = record.Status;
+        var scoreBefore = record.EffectiveScore();
+        var gradeBefore = record.EffectiveGrade();
+
+        record.Status = RecordStatus.AwaitingRegistration;
+        record.TasksApprovedById = null;
+        record.TasksApprovedByName = null;
+        record.TasksApprovedAt = null;
+        record.TasksApprovalComment = null;
+        record.FrameA = null;
+        record.FrameB = null;
+        record.FrameC = null;
+        record.FrameD = null;
+        record.ReturnReason = "Thu hồi duyệt danh mục để chỉnh sửa trước khi tự chấm.";
+        record.UpdatedAt = now;
+
+        _repo.AddHistory(new EvaluationRecordHistory
+        {
+            RecordId = record.Id,
+            FromStatus = fromStatus,
+            ToStatus = record.Status,
+            Step = WorkflowStep.B1_APPROVE,
+            Action = WorkflowAction.RevokeTaskApproval,
+            ScoreBefore = scoreBefore,
+            ScoreAfter = scoreBefore,
+            GradeBefore = gradeBefore,
+            GradeAfter = gradeBefore,
+            ActorId = actorId,
+            ActorName = string.IsNullOrWhiteSpace(actorName) ? "system" : actorName,
+            Comment = "Thu hồi duyệt danh mục trước khi tự chấm.",
+            CreatedAt = now
+        });
+
+        _unitOfWork.SetOriginalVersion(record, request.Version);
+        await _unitOfWork.SaveChangesAsync(ct);
+        return await LoadDtoAsync(record, ct);
+    }
 
     /// <inheritdoc />
     public Task<EvaluationRecordDto> SubmitSelfScoreAsync(Guid recordId, SubmitSelfScoreRequestDto request, CancellationToken ct = default) =>
@@ -870,8 +952,17 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     /// không làm được) và guard cho phép quyền thực hiện của bước theo hồ sơ luồng.
     /// </summary>
     private bool CanPerform(WorkflowActionDefinition action, WorkflowProfile profile, EvaluationRecord record) =>
-        !IsConflictOfInterest(action, record)
+        (action.Kind != WorkflowAction.RevokeTaskApproval || CanRevokeTaskApproval(record, profile))
+        && (action.Kind != WorkflowAction.RevokeTaskApproval || record.TasksApprovedById == _currentUser.UserId)
+        && !IsConflictOfInterest(action, record)
         && _guard.Can(WorkflowActions.PermissionFor(action, profile), AccessTarget.ForRecord(record));
+
+    private static bool CanRevokeTaskApproval(EvaluationRecord record, WorkflowProfile profile) =>
+        profile.Mode(WorkflowStep.B1_APPROVE) == StepMode.Internal
+        && record.Status == RecordStatus.AwaitingSelfScore
+        && record.TasksApprovedById.HasValue
+        && record.TasksApprovedAt.HasValue
+        && !record.SelfScoredAt.HasValue;
 
     /// <summary>
     /// Xung đột lợi ích (HD03 tr.4): mọi bước không phải của chủ hồ sơ (duyệt, xác nhận, ghi nhận, thẩm định, nhận xét, đề xuất,
@@ -900,6 +991,9 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 candidates.Add(returnAction);
         }
 
+        if (CanRevokeTaskApproval(record, profile))
+            candidates.Add(WorkflowActions.Get(WorkflowActions.RevokeTaskApproval));
+
         foreach (var action in candidates)
         {
             if (WorkflowActions.PeriodBlockReason(record.Period.Status, action) != null)
@@ -909,6 +1003,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
             var command = action.Kind switch
             {
+                WorkflowAction.RevokeTaskApproval => null,
                 WorkflowAction.Return => WorkflowCommand.Return(action.Step),
                 WorkflowAction.Reopen => null,
                 _ => WorkflowCommand.Complete(action.Step)
@@ -916,7 +1011,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             if (command != null && !RecordStateMachine.Apply(record.Status, active, command).Succeeded)
                 continue;
 
-            var deadline = profile.Deadline(action.Step);
+            var deadline = action.Kind == WorkflowAction.RevokeTaskApproval ? null : profile.Deadline(action.Step);
             var overdue = action.Advances && deadline.HasValue && today > deadline.Value;
             if (overdue && settings.EnforceDeadlines)
                 continue;

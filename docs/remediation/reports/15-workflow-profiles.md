@@ -32,7 +32,7 @@ Unit (`WorkflowProfileUnitTests`): 3 hồ sơ luồng × 2 kiểu kỳ đúng PL
 |---|---|---|
 | `dotnet build backend/CongTacDang.slnx --no-incremental` | pass | 0 lỗi, **0 warning** |
 | `dotnet test` — unit | pass | 210 test: 209 pass, 1 skip (`PdfConversionTests.Mau01…` — thiếu LibreOffice, skip sẵn có), 0 fail |
-| `dotnet test` — integration, có `CONGTACDANG_TEST_PG` (máy chủ 159) | pass | **76 test đã chạy: 76 pass, 0 skip**, 0 fail (4 mới của task 15). Lần chạy đầu `DataSeederAuthorizationTests.SampleData_SeededOnce…` lỗi ở bước `CREATE DATABASE` (lỗi máy chủ, chi tiết bị ẩn — nghi tạo CSDL đồng thời); chạy lại 2 lần đều pass, không liên quan thay đổi |
+| `dotnet test` — integration, có `CONGTACDANG_TEST_PG` | pass | **76 test đã chạy: 76 pass, 0 skip**, 0 fail (4 mới của task 15). Lần chạy đầu `DataSeederAuthorizationTests.SampleData_SeededOnce…` lỗi ở bước `CREATE DATABASE` (lỗi máy chủ, chi tiết bị ẩn — nghi tạo CSDL đồng thời); chạy lại 2 lần đều pass, không liên quan thay đổi |
 | `npx tsc --noEmit` | pass | |
 | `npm run build` | pass | `next lint`: không cảnh báo mới ở file của task (cảnh báo còn lại là của file khác, có sẵn) |
 | Chạy app / thử giao diện thủ công | không chạy | Không tạo `ctd_it_g15`; giao diện kiểm bằng `tsc` + `build` + lint, API bằng test tích hợp |
@@ -128,4 +128,4 @@ Không có.
 - 🟡 Kiểm tra kẹt luồng gọi `IPermissionResolver` cho từng ứng viên (tài khoản có vai trò chứa quyền cần) và từng chủ hồ sơ — có cache, đủ cho quy mô ATTECH (vài trăm người); nếu kỳ rất lớn nên thêm truy vấn phạm vi gộp ở repository.
 - ⚪ Sửa ảnh chụp "cấp quyết định" không tự đổi hồ sơ luồng (tránh đổi luồng ngầm) — giao diện ghi chú "dùng Đổi hồ sơ luồng nếu cần". Cần nghiệp vụ xác nhận hành vi này.
 - ⚪ Đổi hồ sơ luồng hàng loạt lưu một lần: nếu một hồ sơ bị người khác sửa đồng thời trong lúc lưu, cả lô báo 409 (hồ sơ sai phiên bản đã được lọc trước khi lưu).
-- ⚪ `DataSeederAuthorizationTests` có lúc lỗi ở `CREATE DATABASE` khi chạy đồng thời với fixture khác trên máy chủ 159 (một lần/3 lần chạy) — đề xuất thử lại khi tạo CSDL test.
+- ⚪ `DataSeederAuthorizationTests` có lúc lỗi ở `CREATE DATABASE` khi chạy đồng thời với fixture khác (một lần/3 lần chạy) — đề xuất thử lại khi tạo CSDL test.

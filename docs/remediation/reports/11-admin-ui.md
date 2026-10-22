@@ -19,7 +19,7 @@ Service viết lại theo endpoint task 08/09/10, kiểu TypeScript chặt, khô
 
 ## Luồng
 
-Máy này không có Docker/PostgreSQL cục bộ và không có chuỗi kết nối tới máy chủ 159 cho CSDL tạm `ctd_it_ui11` (biến `CONGTACDANG_TEST_PG` không đặt; không đọc `user-secrets`). Vì vậy **chưa chạy backend, chưa kiểm trên trình duyệt**; không tạo CSDL nào. Cột "Kiểm tra tĩnh" là đối chiếu code với DTO/controller backend hiện tại.
+Máy này không có Docker/PostgreSQL cục bộ và không có chuỗi kết nối PostgreSQL cho CSDL tạm `ctd_it_ui11` (biến `CONGTACDANG_TEST_PG` không đặt; không đọc `user-secrets`). Vì vậy **chưa chạy backend, chưa kiểm trên trình duyệt**; không tạo CSDL nào. Cột "Kiểm tra tĩnh" là đối chiếu code với DTO/controller backend hiện tại.
 
 | # | Luồng | Trạng thái | Kiểm tra tĩnh |
 |---|---|---|---|

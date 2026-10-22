@@ -12,20 +12,46 @@ export interface CollectiveFormSection {
   title: string;
 }
 
-/** Danh mục mục nhập Mẫu 07 (I.1–I.4) và nhóm nội dung Mẫu 08 (1–13). */
+/** Một tiêu chí con của khung tiêu chí tập thể. */
+export interface CollectiveCriteriaItem {
+  code: string;
+  text: string;
+  maxScore: number;
+}
+
+/** Nhóm điểm mà tiêu chí con cộng vào: nhóm tiêu chí chung hoặc nhóm kết quả thực hiện nhiệm vụ. */
+export type CollectiveScoreKind = "General" | "Task";
+
+/** Một nhóm của khung tiêu chí tập thể theo bộ tiêu chí của kỳ. */
+export interface CollectiveCriteriaGroup {
+  code: string;
+  name: string;
+  kind: CollectiveScoreKind;
+  items: CollectiveCriteriaItem[];
+}
+
+/** Danh mục mục nhập Mẫu 07 (I.1–I.4), nhóm nội dung Mẫu 08 (1–13) và khung tiêu chí tập thể của kỳ. */
 export interface CollectiveFormCatalog {
   form07Strengths: CollectiveFormSection[];
   form08Categories: CollectiveFormSection[];
+  /** Rỗng = bộ tiêu chí của kỳ không có khung tập thể (nhập thẳng hai điểm nhóm). */
+  collectiveGroups: CollectiveCriteriaGroup[];
+  generalMaxScore: number;
+  taskMaxScore: number;
 }
 
 /** Hồ sơ tập thể kèm các mục con theo mã (Mẫu 07: I.1–I.4). */
 export interface CollectiveRecord extends CollectiveEvaluationRecordDto {
   sections: Record<string, string>;
+  /** Điểm từng tiêu chí của khung tập thể theo mã tiêu chí con (rỗng = nhập thẳng hai điểm nhóm). */
+  criteriaScores: Record<string, number>;
 }
 
 /** Dữ liệu lưu hồ sơ tập thể (tạo hoặc sửa). */
 export interface SaveCollectiveRecord extends SaveCollectiveEvaluationRequestDto {
   sections: Record<string, string>;
+  /** Gửi khi kỳ có khung tiêu chí tập thể (Mẫu 06, 07). */
+  criteriaScores?: Record<string, number>;
 }
 
 /** Người dự hội nghị ở mục 3.2 của Mẫu 12. */
@@ -61,9 +87,10 @@ export interface SaveMeetingRecord extends SaveEvaluationMeetingRequestDto {
 }
 
 export const collectiveService = {
-  /** Danh mục mục nhập của Mẫu 07/08 theo biểu mẫu gốc. */
-  getCatalog(): Promise<CollectiveFormCatalog> {
-    return request<CollectiveFormCatalog>("/evaluations/collective-forms/catalog");
+  /** Danh mục mục nhập của Mẫu 07/08; có kỳ thì kèm khung tiêu chí tập thể của bộ tiêu chí của kỳ. */
+  getCatalog(periodId?: string): Promise<CollectiveFormCatalog> {
+    const query = periodId ? `?periodId=${encodeURIComponent(periodId)}` : "";
+    return request<CollectiveFormCatalog>(`/evaluations/collective-forms/catalog${query}`);
   },
 
   getRecords(periodId: string): Promise<CollectiveRecord[]> {

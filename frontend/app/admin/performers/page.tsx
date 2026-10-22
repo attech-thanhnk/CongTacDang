@@ -99,7 +99,7 @@ function PerformersContent() {
       setReview(await roleService.getPerformerReview());
     } catch (err) {
       setReview(null);
-      toast.error(errorMessage(err, "Không tải được danh sách bản gán cần xem lại."), errorTitle(err));
+      toast.error(errorMessage(err, "Không tải được danh sách phân công cần xem lại."), errorTitle(err));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -129,7 +129,7 @@ function PerformersContent() {
       title: "Gỡ người thực hiện",
       message:
         `Gỡ ${person.fullName} khỏi việc "${job.permissionName}" tại ${person.scopeText}? ` +
-        `Bản gán vai trò "${person.roleName}" sẽ kết thúc ngay, người này mất mọi việc khác của vai trò đó tại đơn vị này.`,
+        `Phân công vai trò "${person.roleName}" sẽ kết thúc ngay, người này mất mọi việc khác của vai trò đó tại đơn vị này.`,
       confirmText: "Gỡ",
       isDanger: true,
       onConfirm: async () => {
@@ -145,10 +145,10 @@ function PerformersContent() {
 
   const handleRemoveReviewed = (item: PerformerReviewItem) =>
     confirm({
-      title: "Gỡ bản gán",
+      title: "Gỡ phân công",
       message:
         `Gỡ vai trò "${item.roleName}" của ${item.fullName} tại ${item.scopeText}? ` +
-        "Bản gán kết thúc ngay, người này mất mọi việc của vai trò đó tại nơi giao.",
+        "Phân công kết thúc ngay, người này mất mọi việc của vai trò đó tại nơi giao.",
       confirmText: "Gỡ",
       isDanger: true,
       onConfirm: async () => {
@@ -157,7 +157,7 @@ function PerformersContent() {
           toast.success(`Đã gỡ ${item.fullName}.`);
           await Promise.all([load(), loadReview()]);
         } catch (err) {
-          toast.error(errorMessage(err, "Không gỡ được bản gán."), errorTitle(err), 8000);
+          toast.error(errorMessage(err, "Không gỡ được phân công."), errorTitle(err), 8000);
         }
       },
     });
@@ -190,7 +190,7 @@ function PerformersContent() {
     }
   };
 
-  if (!canAssign) return <NoAccess title="Người thực hiện" permissionName="Gán vai trò" />;
+  if (!canAssign) return <NoAccess title="Người thực hiện" permissionName="Phân công vai trò" />;
 
   return (
     <div className="page-wrapper">

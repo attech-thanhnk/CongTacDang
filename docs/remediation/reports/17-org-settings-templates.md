@@ -89,7 +89,7 @@ cả hai chỉ phạm vi Global. Vai trò Quản trị hệ thống nhận tự 
 |---|---|---|
 | `dotnet build backend/CongTacDang.slnx --no-incremental` | pass | 0 error, 0 warning |
 | `dotnet test` — unit | pass | 246 pass, 1 skip (`PdfConversionTests` — máy không cài LibreOffice, có sẵn từ trước) |
-| `dotnet test` — tích hợp | pass | 95 chạy, 95 pass, **0 skip** (có `CONGTACDANG_TEST_PG`, CSDL tạm `ctd_it_*` trên 159) |
+| `dotnet test` — tích hợp | pass | 95 chạy, 95 pass, **0 skip** (có `CONGTACDANG_TEST_PG`, CSDL tạm `ctd_it_*`) |
 | `npx tsc --noEmit` | pass | |
 | `npm run build` | pass | 3 cảnh báo ESLint có sẵn ở file khác (audit, DocumentViewerModal `blobUrl`, `<img>`), không phải do task này |
 | `has-pending-model-changes` (với migration tạm) | sạch | |

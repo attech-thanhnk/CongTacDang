@@ -117,7 +117,7 @@ export function AssignmentTable({
                         </button>
                       )}
                       {onDelete && (
-                        <button type="button" className="btn btn-sm btn-link p-1 text-danger" title="Xóa bản gán" onClick={() => onDelete(a)}>
+                        <button type="button" className="btn btn-sm btn-link p-1 text-danger" title="Xóa phân công" onClick={() => onDelete(a)}>
                           <i className="bi bi-trash" />
                         </button>
                       )}

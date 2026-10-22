@@ -35,7 +35,7 @@
 
 **Down** (cố gắng đảo ngược): dựng lại `user_roles` + chép các bản gán Global chưa xóa đang hiệu lực (`DISTINCT`); bản gán Phòng/Chi bộ/thời hạn không biểu diễn được → bỏ. Xóa index `lower(Username)` (cách viết hoa cũ không khôi phục được). Xóa `login_events`, `user_role_assignments`, cột mới; khôi phục `HeadId` (rỗng), `Description` text.
 
-**Kiểm chứng trên CSDL thật (192.168.22.159, chỉ `ctd_it_*`)**
+**Kiểm chứng trên CSDL thật (chỉ `ctd_it_*`)**
 - CLI: tạo `ctd_it_mig_wave4` (script F# + Npgsql trong thư mục tạm, chuỗi kết nối lấy từ biến môi trường), `dotnet ef database update Wave3` → chèn dữ liệu trạng thái Wave3: 3 vai trò cũ (`CAN_BO`, `BI_THU_CHI_BO`, `QUAN_TRI_HE_THONG`), 4 tài khoản (`Admin`, `NguyenVanA` có chữ hoa, `bithu`, `daxoa` đã xóa mềm), 5 dòng `user_roles` → `dotnet ef database update` (Wave4). Kết quả: lịch sử có đủ 3 migration; `user_roles` đã xóa; `user_role_assignments` đúng **5** dòng (admin–QUAN_TRI, bithu–BI_THU, bithu–CAN_BO, daxoa–CAN_BO, nguyenvana–CAN_BO), tất cả `ScopeType = 0`, `ScopeId` NULL, `ValidFrom` = thời điểm nâng cấp, `ValidTo` NULL; tên đăng nhập `admin`, `nguyenvana` (chữ thường); có `IX_party_member_profiles_Username_lower`; `SortOrder` NOT NULL default 0; `IsProtected` false (seeder xử lý). `dotnet ef migrations has-pending-model-changes`: **"No changes have been made to the model since the last migration."** Đã xóa `ctd_it_mig_wave4`.
 - Test tự động `Wave4MigrationTests` (CSDL `ctd_it_*` tạo/xóa trong test): (a) Wave3 → chèn dữ liệu cũ → Wave4: 3 bản gán Global đúng cặp, `user_roles` bị xóa, username hạ chữ thường, chèn `NGUYEN.VAN.A` bị `IX_party_member_profiles_Username_lower` chặn (23505); chạy seeder → admin cũ có `system.assignments.manage` Global và tên vai trò trong `RoleNames`; Down về Wave3 → `user_roles` có lại 3 dòng, `user_role_assignments` không còn. (b) Hai tài khoản `TranVanB`/`tranvanb` (một đã xóa) → migration dừng với `RAISE EXCEPTION` "tên đăng nhập trùng … tranvanb", dữ liệu giữ nguyên, CSDL vẫn ở Wave3.
 
@@ -45,7 +45,7 @@
 |---|---|---|
 | `dotnet build backend/CongTacDang.slnx --no-incremental` | pass | **0 warning, 0 error** |
 | `dotnet test` — unit | pass | 169: **168 pass, 1 skip** (`PdfConversionTests.Mau01…` — thiếu LibreOffice, skip sẵn có), 0 fail |
-| `dotnet test` — integration (`CONGTACDANG_TEST_PG`, máy 159) | pass | **57 chạy, 57 pass, 0 skip, 0 fail** — chạy toàn bộ 3 lần liên tiếp đều xanh |
+| `dotnet test` — integration (`CONGTACDANG_TEST_PG`) | pass | **57 chạy, 57 pass, 0 skip, 0 fail** — chạy toàn bộ 3 lần liên tiếp đều xanh |
 | `npx tsc --noEmit` | pass | |
 | `npm run build` | pass | Next.js nhận `experimental.proxyTimeout`; cảnh báo lint `exhaustive-deps`/`no-img-element` có từ trước |
 | `docker compose -f docker/docker-compose.yml config` | **không chạy** | máy không có Docker |
@@ -100,7 +100,7 @@ Test cũ đã sửa (ngoài phần dựng dữ liệu): `AccountUnitTests.AdminG
 - `docker compose config` chưa kiểm được (máy không có Docker) — cần chạy trên máy có Docker.
 
 ## Phát hiện thêm
-- 🟡 Đồng hồ máy chủ CSDL (159) nhanh hơn máy chạy app ~2 giây. Bản gán do migration tạo có `ValidFrom = now()` phía máy chủ → vài giây đầu sau nâng cấp resolver phía app coi là "chưa hiệu lực" (tự hết khi qua mốc — cache hết hạn đúng mốc). Triển khai Docker cùng máy không bị; nếu tách máy cần đồng bộ NTP.
+- 🟡 Đồng hồ máy chủ CSDL dùng chung lúc đó nhanh hơn máy chạy app ~2 giây. Bản gán do migration tạo có `ValidFrom = now()` phía máy chủ → vài giây đầu sau nâng cấp resolver phía app coi là "chưa hiệu lực" (tự hết khi qua mốc — cache hết hạn đúng mốc). Triển khai Docker cùng máy không bị; nếu tách máy cần đồng bộ NTP.
 - 🟡 `AccountStateCache` (trạng thái tài khoản, TTL 60 s) cũng được xóa trước commit khi thao tác nằm trong transaction — hiện chưa có luồng khóa/xóa tài khoản nào chạy trong transaction bao ngoài nên chưa ảnh hưởng; nếu thêm (ví dụ import khóa tài khoản) nên dùng `IAfterCommitActions` như cache quyền.
 - ⚪ Nhập cán bộ: xem trước chưa kiểm tra phạm vi `system.users.manage` của người nhập trên Phòng/Chi bộ từng dòng — dòng ngoài phạm vi chỉ bị chặn (403, rollback cả lô) ở bước ghi. Có thể thêm vào `ValidateAsync` để báo lỗi dòng sớm.
 - ⚪ `GenericRepository.UpdateAsync` dùng `DbSet.Update` đánh dấu mọi cột là đã sửa → audit "Update" ghi toàn bộ cột (không chỉ cột đổi). Ngoài phạm vi.

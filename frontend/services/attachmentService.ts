@@ -12,6 +12,9 @@ export interface AttachmentItem {
   checksum?: string;
 }
 
+/** Loại đối tượng gắn tệp (khớp AttachmentOwnerTypes ở máy chủ). */
+export type AttachmentOwnerType = "EvaluationRecord" | "EvaluationTask" | "EvaluationAppeal" | "CollectiveEvaluationRecord";
+
 // Tệp luôn gắn với một đối tượng (nhiệm vụ / hồ sơ đánh giá, kết quả của cấp trên); quyền xem tệp = quyền trên đối tượng.
 export const attachmentService = {
   // Danh sách tệp người dùng được xem (tệp gắn hồ sơ trong phạm vi + tệp mình tải lên chưa gắn) — dùng khi chọn lại minh chứng
@@ -43,23 +46,28 @@ export const attachmentService = {
   },
 
   // Tệp (phiên bản hiện hành) của một đối tượng mà người dùng được xem
-  async getByOwner(ownerType: "EvaluationRecord" | "EvaluationTask", ownerId: string): Promise<AttachmentItem[]> {
+  async getByOwner(ownerType: AttachmentOwnerType, ownerId: string): Promise<AttachmentItem[]> {
     return request<AttachmentItem[]>(`/attachments?ownerType=${ownerType}&ownerId=${ownerId}`);
   },
 
-  // Tải tệp lên và gắn ngay vào hồ sơ đánh giá (máy chủ kiểm tra quyền trên hồ sơ)
-  async uploadToRecord(recordId: string, file: File, formCode: string, description: string): Promise<AttachmentItem> {
+  // Tải tệp lên và gắn ngay vào một đối tượng (máy chủ kiểm tra quyền trên đối tượng)
+  async uploadToOwner(ownerType: AttachmentOwnerType, ownerId: string, file: File, formCode: string, description: string): Promise<AttachmentItem> {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("formCode", formCode);
     formData.append("description", description);
-    formData.append("ownerType", "EvaluationRecord");
-    formData.append("ownerId", recordId);
+    formData.append("ownerType", ownerType);
+    formData.append("ownerId", ownerId);
     return request<AttachmentItem>("/attachments/upload", {
       method: "POST",
       body: formData,
       headers: { "Content-Type": "multipart/form-data" },
     });
+  },
+
+  // Tải tệp lên và gắn ngay vào hồ sơ đánh giá (máy chủ kiểm tra quyền trên hồ sơ)
+  async uploadToRecord(recordId: string, file: File, formCode: string, description: string): Promise<AttachmentItem> {
+    return attachmentService.uploadToOwner("EvaluationRecord", recordId, file, formCode, description);
   },
 
   // Thay tệp bằng phiên bản mới; phiên bản cũ vẫn được lưu
@@ -73,7 +81,7 @@ export const attachmentService = {
     });
   },
 
-  // Gỡ tệp minh chứng mình đã đính kèm vào hồ sơ của mình (tệp vẫn được lưu, nhật ký ghi người gỡ)
+  // Gỡ tệp: minh chứng mình đã đính kèm vào hồ sơ của mình, hoặc phụ lục của hồ sơ tập thể (tệp vẫn được lưu, nhật ký ghi người gỡ)
   async remove(id: string): Promise<void> {
     await request<void>(`/attachments/${id}`, { method: "DELETE" });
   },

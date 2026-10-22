@@ -161,6 +161,14 @@ function ActionForm({ record, criteria, action, step, busy, onSubmit, extra, onA
       return <SelfScoreForm record={record} criteria={criteria} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "ApproveTasks":
       return <ApproveTasksForm record={record} busy={busy} extra={extra} onSubmit={(payload) => onSubmit(action, payload)} />;
+    case "RevokeTaskApproval":
+      return (
+        <FormFoot only>
+          <button type="button" className="btn btn-outline-warning btn-sm" disabled={busy} onClick={() => onSubmit(action, {})}>
+            Thu hồi duyệt danh mục
+          </button>
+        </FormFoot>
+      );
     case "ConfirmByCell":
       return <CommentForm busy={busy} extra={extra} label="Ý kiến" submitText="Xác nhận phiếu tự chấm" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "RecordCollectiveProposal":

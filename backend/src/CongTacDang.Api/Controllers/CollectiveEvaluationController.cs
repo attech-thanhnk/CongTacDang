@@ -61,11 +61,14 @@ public class CollectiveEvaluationController : ControllerBase
         return Ok(ApiResponse<CollectiveEvaluationRecordDto>.Ok(record, "Đã lưu hồ sơ tập thể."));
     }
 
-    /// <summary>Danh mục mục nhập Mẫu 07 và nhóm nội dung Mẫu 08 (nguyên văn biểu mẫu HD03).</summary>
+    /// <summary>Danh mục mục nhập Mẫu 07 và nhóm nội dung Mẫu 08 (nguyên văn biểu mẫu HD03); có <c>periodId</c> thì kèm khung tiêu chí tập thể của kỳ.</summary>
     [HttpGet("collective-forms/catalog")]
     [RequireAnyPermission(PermissionCodes.EvaluationRead, PermissionCodes.CollectiveManage)]
-    public IActionResult GetCollectiveFormCatalog()
-        => Ok(ApiResponse<CollectiveFormCatalogDto>.Ok(_service.GetFormCatalog(), "Lấy danh mục biểu mẫu tập thể thành công."));
+    public async Task<IActionResult> GetCollectiveFormCatalog([FromQuery] Guid? periodId)
+    {
+        var catalog = await _service.GetFormCatalogAsync(periodId);
+        return Ok(ApiResponse<CollectiveFormCatalogDto>.Ok(catalog, "Lấy danh mục biểu mẫu tập thể thành công."));
+    }
 
     /// <summary>Sửa thông tin biên bản hội nghị (các mục Mẫu 12 trong <c>details</c>); kết quả kiểm phiếu không đổi.</summary>
     [HttpPut("meetings/{id}")]

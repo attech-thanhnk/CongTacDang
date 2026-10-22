@@ -69,7 +69,7 @@ kỳ mẫu gắn bộ "Mẫu 09B — Quý III/2026" (`CriteriaSetId` + ảnh ch�
 - Giữ SQL tay: `CREATE UNIQUE INDEX "IX_party_member_profiles_Username_lower" ON party_member_profiles (lower("Username"))` (sau index `IX_party_member_profiles_Username`, kèm chú thích).
 - Schema mới có: `criteria_sets` (unique `Code`), `evaluation_periods.CriteriaSetId` (FK Restrict) + `CriteriaSnapshot` jsonb, `evaluation_records.GeneralScores`/`AxisScores` jsonb + `WeightFrameCode` + `AppraisalExplanation`, `evaluation_tasks.AxisCode`, `party_member_profiles.WeightFrameCode`, `organization_settings`, `word_template_versions` (unique `(TemplateCode, VersionNumber)`, unique lọc `"IsActive" = TRUE`). Không còn cột `GeneralScoreT*`/`AxisScoreT*`/`JobGroup`.
 - `dotnet ef migrations has-pending-model-changes`: **sạch**.
-- Áp dụng trên CSDL tạm `ctd_it_mig_w7` (máy 159) bằng `dotnet ef database update` → `Applying migration '20260929052857_InitialCreate'. Done.`; `migrations list` chỉ có `InitialCreate`; đã `dotnet ef database drop --force` (xóa thành công). Test tích hợp dựng mọi CSDL tạm bằng chính migration này.
+- Áp dụng trên CSDL tạm `ctd_it_mig_w7` bằng `dotnet ef database update` → `Applying migration '20260929052857_InitialCreate'. Done.`; `migrations list` chỉ có `InitialCreate`; đã `dotnet ef database drop --force` (xóa thành công). Test tích hợp dựng mọi CSDL tạm bằng chính migration này.
 
 ## 5. Tài liệu
 
@@ -105,7 +105,7 @@ trong `backend/src`, `backend/tests`, `frontend/{app,components,contexts,service
 |---|---|
 | `dotnet build backend/CongTacDang.slnx --no-incremental` | 0 lỗi, 0 warning |
 | `dotnet test` — unit | 274: 273 pass, 1 skip có sẵn (`PdfConversionTests.Mau01_ConvertsToPdf_AndCleansWorkDirectory` — máy không cài LibreOffice), 0 fail — cả 2 lần |
-| `dotnet test` — tích hợp (159, `CONGTACDANG_TEST_PG`), lần 1 | **98 chạy, 98 pass, 0 skip**, 0 fail |
+| `dotnet test` — tích hợp (`CONGTACDANG_TEST_PG`), lần 1 | **98 chạy, 98 pass, 0 skip**, 0 fail |
 | `dotnet test` — tích hợp, lần 2 liên tiếp | **98 chạy, 98 pass, 0 skip**, 0 fail |
 | `npx tsc --noEmit` | pass |
 | `npm run build` | pass (3 cảnh báo ESLint có sẵn: `app/audit/page.tsx` `loadLogs`, `DocumentViewerModal` `blobUrl`, `<img>` — không thuộc đợt này) |

@@ -11,6 +11,7 @@ import {
   criteriaAppliesForm,
   evaluationService,
   isConcurrencyConflict,
+  prefillAxisReportsFromTasks,
   selfAssessmentSections,
   taskLevels,
 } from "@/services/evaluationService";
@@ -111,6 +112,9 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   const content = criteria.content;
   const p = content.parameters;
   const uses09B = criteria.selfScoreForm === "09B";
+  const uses09C = criteriaAppliesForm(criteria, "09C");
+  const uses9D = criteriaAppliesForm(criteria, "9D");
+  const sections = selfAssessmentSections(criteria);
   // Khung hiệu lực do máy chủ tính (tỷ lệ đã điều chỉnh khi duyệt danh mục, nếu có); máy chủ cũ chưa trả thì tra trong bộ.
   const frame = record.weightFrame ?? content.weightFrames.find((f) => f.code.toLowerCase() === (record.weightFrameCode || "").toLowerCase());
 
@@ -145,11 +149,12 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   const [uploadFor, setUploadFor] = useState<string | null>(null);
 
   // Biểu mẫu cá nhân nhập cùng phiếu tự chấm.
-  const uses09C = criteriaAppliesForm(criteria, "09C");
-  const uses9D = criteriaAppliesForm(criteria, "9D");
-  const sections = selfAssessmentSections(criteria);
   const [selfAssessment, setSelfAssessment] = useState<Record<string, string>>(() => ({ ...(record.selfAssessment ?? {}) }));
-  const [axisReports, setAxisReports] = useState<Record<string, AxisReport>>(() => JSON.parse(JSON.stringify(record.axisReports ?? {})));
+  const initialAxisReports = useMemo(
+    () => prefillAxisReportsFromTasks(content.axes, record.tasks, record.axisReports),
+    [content.axes, record.tasks, record.axisReports]
+  );
+  const [axisReports, setAxisReports] = useState<Record<string, AxisReport>>(() => JSON.parse(JSON.stringify(initialAxisReports.reports)));
   const [showPreview, setShowPreview] = useState(false);
   const blocks = useMemo(() => (uses09C ? buildAxisTaskBlocks(content.axes, axisReports, criteria) : []), [uses09C, content.axes, axisReports, criteria]);
   const [groupNotes, setGroupNotes] = useState<Record<string, string>>(() => ({ ...(record.generalGroupNotes ?? {}) }));
@@ -266,7 +271,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   return (
     <form onSubmit={submit}>
       <div className="small text-secondary mb-2">
-        Giảm điểm{p.deductionReasonMinPoints != null ? ` từ ${fmt(p.deductionReasonMinPoints)} điểm trở lên` : ""} hoặc chọn &quot;K/AD&quot; phải nêu lý do.
+        Giảm điểm{p.deductionReasonMinPoints != null ? ` từ ${fmt(p.deductionReasonMinPoints)} điểm trở lên` : ""} hoặc chọn &quot;Không áp dụng (K/AD)&quot; phải nêu lý do.
       </div>
 
       <h4 className="h6 small fw-bold text-secondary">I. Nhóm tiêu chí chung (tối đa {fmt(p.generalMaxScore)} điểm)</h4>
@@ -309,7 +314,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                             {[
                               { key: "ok", label: "Đảm bảo", checked: !na && Number(s.score) >= item.maxScore, apply: { notApplicable: false, score: item.maxScore } },
                               { key: "no", label: "Không đảm bảo", checked: !na && Number(s.score) < item.maxScore, apply: { notApplicable: false, score: 0 } },
-                              ...(p.allowNotApplicable ? [{ key: "na", label: "K/AD", checked: na, apply: { notApplicable: true, score: 0 } }] : []),
+                              ...(p.allowNotApplicable ? [{ key: "na", label: "Không áp dụng", checked: na, apply: { notApplicable: true, score: 0 } }] : []),
                             ].map((option) => (
                               <label className="form-check form-check-inline mb-0" key={option.key}>
                                 <input type="radio" className="form-check-input" name={`gi-${item.code}`} checked={option.checked} onChange={() => setItem(item.code, option.apply)} />
@@ -324,7 +329,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                             {p.allowNotApplicable && (
                               <label className="form-check mb-0">
                                 <input type="checkbox" className="form-check-input" checked={na} onChange={(e) => setItem(item.code, { notApplicable: e.target.checked })} />
-                                <span className="form-check-label">K/AD</span>
+                                <span className="form-check-label">Không áp dụng</span>
                               </label>
                             )}
                           </div>
@@ -451,6 +456,11 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
           <h4 className="h6 small fw-bold text-secondary">
             {uses09C && uses9D ? "Nhiệm vụ và kết quả theo trục (Mẫu 09C, 9D)" : uses09C ? "Nhiệm vụ theo trục (Mẫu 09C)" : "Kết quả theo trục (Mẫu 9D)"}
           </h4>
+          {(initialAxisReports.taskCount > 0 || initialAxisReports.summaryFieldCount > 0) && (
+            <div className="alert alert-info small py-2">
+              Đã lấy thông tin từ Mẫu 01. Bổ sung kết quả thực tế.
+            </div>
+          )}
           <div className="mb-2">
             <AxisReportsInput axes={content.axes} value={axisReports} onChange={setAxisReports} levels={taskLevels(criteria)}
               showTasks={uses09C} showSummary={uses9D} taskLabel={content.taskLineLabel || "Nhiệm vụ {n}:"} />

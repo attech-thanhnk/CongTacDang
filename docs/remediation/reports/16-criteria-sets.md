@@ -109,7 +109,7 @@ Test cũ được sửa **kỳ vọng** do task yêu cầu đổi hành vi (khô
 |---|---|---|
 | `dotnet build backend/CongTacDang.slnx --no-incremental` | pass | 0 lỗi, **0 warning** |
 | `dotnet test` — unit | pass | 256 test: 255 pass, 1 skip sẵn có (`PdfConversionTests.Mau01…` — máy không có LibreOffice), 0 fail |
-| `dotnet test` — integration (máy chủ 159, `CONGTACDANG_TEST_PG`) | pass | **92 chạy, 92 pass, 0 skip**, 0 fail — 2 lần liên tiếp (3 test mới) |
+| `dotnet test` — integration (`CONGTACDANG_TEST_PG`) | pass | **92 chạy, 92 pass, 0 skip**, 0 fail — 2 lần liên tiếp (3 test mới) |
 | `npx tsc --noEmit` | pass | |
 | `npm run build` | pass | `next lint`: không cảnh báo ở file của task (2 cảnh báo sẵn có ở `app/audit/page.tsx`, `DocumentViewerModal.tsx`) |
 | grep `GeneralScoreT\|AxisScoreT\|TaskResultAxis\|JobGroup\|GeneralCriterionMaxScore` | pass (trừ migration cũ) | Rỗng trong `backend/src` (mã nguồn) và `frontend/{app,components,services,contexts}`; chỉ còn trong `Data/Migrations/20260929031346_InitialCreate*` (người điều phối sinh lại). Không còn mảng 6 điểm/6 trục cứng (`AXIS_NAMES`, `GENERAL_NAMES`, `[5,5,5,5,5,5]`, `GeneralCriteriaCount`, `AxisCount`) |

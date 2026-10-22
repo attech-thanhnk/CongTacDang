@@ -48,21 +48,21 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
           <>
             <div className="alert alert-warning small">
               <i className="bi bi-exclamation-triangle me-1" />
-              {readiness.issues.length} bước chưa có người thực hiện, trên {readiness.checkedRecords} hồ sơ.
-              Hãy <Link
+              {readiness.issues.length} bước chưa có người phụ trách trong {readiness.checkedRecords} hồ sơ.
+              <Link
                 href={performersHref(
                   new Set(readiness.issues.map((i) => i.departmentId || i.partyCellId || "")).size === 1
                     ? { ...readiness.issues[0], permission: "" }
                     : undefined
                 )}
               >
-                gán vai trò
-              </Link> có quyền tương ứng hoặc sửa cấu hình bước.
+                Phân công người phụ trách
+              </Link> hoặc sửa bước này.
             </div>
             <div className="table-responsive" style={{ maxHeight: 360, overflowY: "auto" }}>
               <table className="table table-sm align-middle small mb-0">
                 <thead>
-                  <tr className="text-secondary"><th>Hồ sơ</th><th>Cách xét duyệt</th><th>Bước thiếu người làm</th><th>Vai trò cần gán</th><th>Gán tại</th></tr>
+                  <tr className="text-secondary"><th>Hồ sơ</th><th>Cách xét duyệt</th><th>Bước chưa có người phụ trách</th><th>Vai trò</th><th>Nơi phân công</th></tr>
                 </thead>
                 <tbody>
                   {readiness.issues.map((issue) => (
@@ -81,7 +81,7 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
               </table>
             </div>
             <div className="small text-secondary mt-2">
-              Gán ở nơi ghi trong cột &quot;Gán tại&quot;, ở đơn vị cấp trên của nó hoặc Toàn công ty đều được; người được gán không được là chủ hồ sơ.
+              Có thể phân công tại nơi ghi trong cột &quot;Nơi phân công&quot;, đơn vị cấp trên hoặc Toàn công ty. Không phân công cho chủ hồ sơ.
             </div>
           </>
         )}

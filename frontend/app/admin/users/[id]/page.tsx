@@ -89,7 +89,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     try {
       setAssignments(await roleService.listAssignments({ userId }));
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được bản gán vai trò."), errorTitle(err));
+      toast.error(errorMessage(err, "Không tải được phân công vai trò."), errorTitle(err));
     } finally {
       setAssignmentsLoading(false);
     }
@@ -262,7 +262,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     try {
       await roleService.createAssignment(payload);
       setAssignmentForm(null);
-      toast.success("Đã gán vai trò.");
+      toast.success("Đã phân công vai trò.");
       await afterAssignmentChange();
     } catch (err) {
       toast.error(errorMessage(err, "Không gán được vai trò."), errorTitle(err), 10000);
@@ -276,10 +276,10 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     try {
       await roleService.updateAssignment(id, payload);
       setAssignmentForm(null);
-      toast.success("Đã cập nhật bản gán.");
+      toast.success("Đã cập nhật phân công.");
       await afterAssignmentChange();
     } catch (err) {
-      toast.error(errorMessage(err, "Không cập nhật được bản gán."), errorTitle(err), 10000);
+      toast.error(errorMessage(err, "Không cập nhật được phân công."), errorTitle(err), 10000);
     } finally {
       setSaving(false);
     }
@@ -287,34 +287,34 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
 
   const handleEndAssignment = (a: RoleAssignment) =>
     confirm({
-      title: "Kết thúc bản gán",
-      message: `Kết thúc ngay vai trò "${a.roleName}" (${a.scopeName}) của ${a.fullName}? Bản gán chuyển vào lịch sử.`,
+      title: "Kết thúc phân công",
+      message: `Kết thúc ngay vai trò "${a.roleName}" (${a.scopeName}) của ${a.fullName}? Phân công sẽ chuyển vào lịch sử.`,
       confirmText: "Kết thúc",
       isDanger: true,
       onConfirm: async () => {
-        if (await run(() => roleService.endAssignment(a.id), "Đã kết thúc bản gán.", "Không kết thúc được bản gán.")) await afterAssignmentChange();
+        if (await run(() => roleService.endAssignment(a.id), "Đã kết thúc phân công.", "Không kết thúc được phân công.")) await afterAssignmentChange();
       },
     });
 
   const handleEndReviewed = (item: PerformerReviewItem) =>
     confirm({
-      title: "Gỡ bản gán",
-      message: `Gỡ vai trò "${item.roleName}" (${item.scopeText}) của ${item.fullName}? Bản gán kết thúc ngay và chuyển vào lịch sử.`,
+      title: "Gỡ phân công",
+      message: `Gỡ vai trò "${item.roleName}" (${item.scopeText}) của ${item.fullName}? Phân công sẽ kết thúc ngay và chuyển vào lịch sử.`,
       confirmText: "Gỡ",
       isDanger: true,
       onConfirm: async () => {
-        if (await run(() => roleService.endAssignment(item.assignmentId), "Đã gỡ bản gán.", "Không gỡ được bản gán.")) await afterAssignmentChange();
+        if (await run(() => roleService.endAssignment(item.assignmentId), "Đã gỡ phân công.", "Không gỡ được phân công.")) await afterAssignmentChange();
       },
     });
 
   const handleDeleteAssignment = (a: RoleAssignment) =>
     confirm({
-      title: "Xóa bản gán",
-      message: `Xóa bản gán vai trò "${a.roleName}" (${a.scopeName}) của ${a.fullName}? Nên dùng "Kết thúc" để giữ lịch sử; chỉ xóa khi gán nhầm.`,
+      title: "Xóa phân công",
+      message: `Xóa phân công vai trò "${a.roleName}" (${a.scopeName}) của ${a.fullName}? Nên dùng "Kết thúc" để giữ lịch sử; chỉ xóa khi phân công nhầm.`,
       confirmText: "Xóa",
       isDanger: true,
       onConfirm: async () => {
-        if (await run(() => roleService.deleteAssignment(a.id), "Đã xóa bản gán.", "Không xóa được bản gán.")) await afterAssignmentChange();
+        if (await run(() => roleService.deleteAssignment(a.id), "Đã xóa phân công.", "Không xóa được phân công.")) await afterAssignmentChange();
       },
     });
 
@@ -499,17 +499,17 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
             {rolesError && <div className="alert alert-warning py-2 mb-0">{rolesError}</div>}
             <Card>
               <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-                <h2 className="mb-0">Bản gán đang và sắp hiệu lực</h2>
+                <h2 className="mb-0">Phân công đang và sắp hiệu lực</h2>
                 <div className="d-flex align-items-center gap-2">
                   <button
                     type="button"
                     className="btn btn-sm btn-primary"
                     onClick={() => setAssignmentForm({})}
                     disabled={isSelf || roles.length === 0}
-                    title={isSelf ? "Không thể tự gán vai trò cho chính mình." : undefined}
+                    title={isSelf ? "Không thể tự phân công vai trò cho chính mình." : undefined}
                   >
                     <i className="bi bi-plus-lg me-1" />
-                    Gán vai trò
+                    Phân công vai trò
                   </button>
                 </div>
               </div>
@@ -523,7 +523,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                   assignments={current}
                   showRole
                   canManage={!isSelf}
-                  emptyText="Chưa có bản gán nào."
+                  emptyText="Chưa có phân công nào."
                   onEdit={(a) => setAssignmentForm({ assignment: a })}
                   onEnd={handleEndAssignment}
                   onDelete={handleDeleteAssignment}
@@ -538,7 +538,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                 assignments={history}
                 showRole
                 canManage={!isSelf}
-                emptyText="Chưa có bản gán nào."
+                  emptyText="Chưa có phân công nào."
                 onDelete={handleDeleteAssignment}
               />
             </Card>

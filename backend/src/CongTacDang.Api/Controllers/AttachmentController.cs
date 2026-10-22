@@ -46,7 +46,7 @@ public class AttachmentController : ControllerBase
         return Ok(ApiResponse<List<AttachmentDto>>.Ok(files, "Lấy danh mục tệp tin thành công."));
     }
 
-    /// <summary>Danh sách tệp (phiên bản hiện hành) của một đối tượng: <c>ownerType</c> = EvaluationRecord | EvaluationTask</summary>
+    /// <summary>Danh sách tệp (phiên bản hiện hành) của một đối tượng: <c>ownerType</c> = EvaluationRecord | EvaluationTask | EvaluationAppeal | CollectiveEvaluationRecord</summary>
     [HttpGet]
     [Authorize] // Quyền trên tệp = quyền trên hồ sơ gắn tệp; tệp chưa gắn: chỉ người tải lên (kiểm tra trong service)
     public async Task<IActionResult> GetByOwner([FromQuery] string ownerType, [FromQuery] Guid ownerId)
@@ -61,7 +61,7 @@ public class AttachmentController : ControllerBase
     /// chỉ người tải lên thấy tới khi gắn vào nhiệm vụ / kết quả của cấp trên.
     /// </summary>
     [HttpPost("upload")]
-    [Authorize] // Service: evaluation.self (tệp của mình) hoặc evaluation.external.record (văn bản của cấp trên)
+    [Authorize] // Service: evaluation.self (tệp của mình), evaluation.external.record (văn bản của cấp trên), collective.manage (hồ sơ tập thể)
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> UploadFile(
         [FromForm] IFormFile file,
@@ -91,7 +91,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Thay tệp bằng phiên bản mới (phiên bản cũ được giữ lại trong lịch sử)</summary>
     [HttpPost("{id}/versions")]
-    [Authorize] // Service: evaluation.self (tệp của mình) hoặc evaluation.external.record (văn bản của cấp trên)
+    [Authorize] // Service: evaluation.self (tệp của mình), evaluation.external.record (văn bản của cấp trên), collective.manage (hồ sơ tập thể)
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> UploadNewVersion(Guid id, [FromForm] IFormFile file)
     {
@@ -161,7 +161,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Gỡ tệp minh chứng chủ hồ sơ đã đính kèm vào hồ sơ của mình (tệp vẫn được lưu, nhật ký ghi người gỡ)</summary>
     [HttpDelete("{id}")]
-    [Authorize] // Service: chủ hồ sơ (evaluation.self) và là người tải lên
+    [Authorize] // Service: chủ hồ sơ (evaluation.self) và là người tải lên; hồ sơ tập thể: collective.manage, kỳ chưa đóng
     public async Task<IActionResult> Remove(Guid id)
     {
         await _attachmentService.RemoveAttachmentAsync(id, GetCurrentUserId());

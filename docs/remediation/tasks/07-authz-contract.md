@@ -56,9 +56,9 @@ public sealed record CreatedAccount(Guid UserId, string Username, string Tempora
 
 ### 7. Hạ tầng test tích hợp
 - Project `backend/tests/CongTacDang.IntegrationTests` (thêm vào `.slnx`), gói: `Microsoft.AspNetCore.Mvc.Testing`, `Xunit.SkippableFact` (xUnit hiện là 2.9.3), `Npgsql` (đã có qua Infrastructure).
-- `ApiFactory : WebApplicationFactory<Program>`: đọc chuỗi kết nối từ biến môi trường `CONGTACDANG_TEST_PG` (máy chủ `192.168.22.159`, CSDL quản trị `postgres`, tài khoản có `CREATEDB`). Mỗi lần chạy tạo CSDL `ctd_it_<yyyyMMddHHmmss>_<guid8>`, `EnsureCreated`, seed tối thiểu, xóa CSDL khi xong. Tắt `AutoMigrate`, `SeedSampleData`; cấu hình JWT secret test.
+- `ApiFactory : WebApplicationFactory<Program>`: đọc chuỗi kết nối từ biến môi trường `CONGTACDANG_TEST_PG` (PostgreSQL cục bộ `localhost:5434`, CSDL quản trị `postgres`, tài khoản có `CREATEDB`). Mỗi lần chạy tạo CSDL `ctd_it_<yyyyMMddHHmmss>_<guid8>`, `EnsureCreated`, seed tối thiểu, xóa CSDL khi xong. Tắt `AutoMigrate`, `SeedSampleData`; cấu hình JWT secret test.
 - An toàn trên máy chủ dùng chung: fixture **từ chối chạy** nếu tên CSDL đích không bắt đầu bằng `ctd_it_`; chỉ `DROP DATABASE` tên `ctd_it_*`; khi khởi động, dọn các CSDL `ctd_it_*` sót lại quá 24 giờ (do lần chạy trước bị ngắt). Không bao giờ kết nối tới `congtacdang_test`.
-- CI (GitHub Actions) dùng service `postgres:16` riêng, không kết nối tới `192.168.22.159`.
+- CI (GitHub Actions) dùng service `postgres:16` riêng, không kết nối tới PostgreSQL của máy phát triển.
 - Helper: `LoginAsAsync(username, password)` trả `HttpClient` giữ cookie; `CreateUserWithPermissionsAsync(params string[] codes)` (dùng API/DbContext) để test dựng người dùng theo quyền.
 - Thiếu biến môi trường → test **skip** (không fail), in lý do.
 - Test mẫu: login thành công/sai mật khẩu; một endpoint yêu cầu quyền trả 403 khi thiếu quyền, 200 khi có.

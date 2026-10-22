@@ -28,14 +28,24 @@ internal static class CriteriaTestData
         ["T1"] = t1, ["T2"] = t2, ["T3"] = t3, ["T4"] = t4, ["T5"] = t5, ["T6"] = t6
     };
 
-    /// <summary>Ảnh chụp bộ mặc định (dựng kỳ trực tiếp trong CSDL cho test).</summary>
-    public static string Snapshot(string form) => new CriteriaSnapshot
+    /// <summary>
+    /// Ảnh chụp bộ mặc định (dựng kỳ trực tiếp trong CSDL cho test). <paramref name="collectiveFramework"/> = false bỏ khung tiêu chí
+    /// tập thể (hồ sơ tập thể nhập thẳng hai điểm nhóm như bộ cũ).
+    /// </summary>
+    public static string Snapshot(string form, bool collectiveFramework = true) => new CriteriaSnapshot
     {
         SetId = Guid.Empty,
         Code = form == CriteriaSetContent.Form09B ? CriteriaSetDefaults.Code09B : CriteriaSetDefaults.Code09A,
         Name = form == CriteriaSetContent.Form09B ? CriteriaSetDefaults.Name09B : CriteriaSetDefaults.Name09A,
         SelfScoreForm = form,
         TakenAt = DateTime.UtcNow,
-        Content = form == CriteriaSetContent.Form09B ? CriteriaSetDefaults.Build09B() : CriteriaSetDefaults.Build09A()
+        Content = WithCollective(form == CriteriaSetContent.Form09B ? CriteriaSetDefaults.Build09B() : CriteriaSetDefaults.Build09A(), collectiveFramework)
     }.ToJson();
+
+    private static CriteriaSetContent WithCollective(CriteriaSetContent content, bool keep)
+    {
+        if (!keep)
+            content.CollectiveGroups.Clear();
+        return content;
+    }
 }

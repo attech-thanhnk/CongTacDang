@@ -94,8 +94,10 @@ Người dùng **được** thực hiện quyền `P` trên đối tượng `T` 
    - Guard **không** xét cấp quyết định (`ApprovalAuthority`). Bước nào làm trong hệ thống ("Nội bộ", với quyền thực hiện cấu hình được), bước nào do cấp trên thực hiện (ghi nhận bằng `evaluation.external.record`) hay không áp dụng là cấu hình **hồ sơ luồng** của hồ sơ (`docs/thiet-ke/luong-danh-gia.md`); service luồng kiểm tra chế độ bước (sai → 409) rồi mới gọi guard với quyền thực hiện của bước. Cấp quyết định chỉ dùng để chọn hồ sơ luồng mặc định khi thêm người vào kỳ.
    - Tệp đính kèm: mọi tệp gắn với một đối tượng (hồ sơ đánh giá, nhiệm vụ, kết quả bước do cấp trên thực hiện); không có tệp dùng chung, không có trang danh sách tệp riêng — tệp được nộp/xem ngay trong hồ sơ.
      - Xem/tải: `evaluation.read` trên hồ sơ gắn tệp (chủ hồ sơ luôn xem được).
-     - Tải phiên bản mới: tệp của chủ hồ sơ theo `evaluation.self`; văn bản của cấp trên theo `evaluation.external.record`. Không có API xóa tệp.
+     - Tải phiên bản mới: tệp của chủ hồ sơ theo `evaluation.self`; văn bản của cấp trên theo `evaluation.external.record`.
+     - Gỡ tệp (`DELETE /attachments/{id}`, xóa mềm cả nhóm phiên bản, ghi nhật ký): chỉ minh chứng chủ hồ sơ tự đính kèm vào hồ sơ của mình; tệp gắn nhiệm vụ / văn bản của cấp trên không gỡ qua đường này.
      - Tải lên: gắn đối tượng ngay (`ownerType` = `EvaluationRecord` | `EvaluationTask`) cần `evaluation.self` trên hồ sơ; hoặc tải lên trước rồi gắn qua `AttachmentId` của nhiệm vụ / kết quả của cấp trên — cần `evaluation.self` hoặc `evaluation.external.record`, tệp **chưa gắn** chỉ người tải lên thấy tới khi được gắn; khi gắn, service kiểm tra người gắn có quyền sửa tệp.
+     - Phụ lục, báo cáo kèm hồ sơ tập thể (`ownerType` = `CollectiveEvaluationRecord`, Mẫu 06/07/08): tệp thuộc tập thể. Xem/tải — `evaluation.read` hoặc `collective.manage` trên tổ chức của hồ sơ (đơn vị / tổ chức Đảng); tải lên, thay bản mới, gỡ — `collective.manage` trên tổ chức đó và kỳ chưa đóng (không giới hạn người tải lên). Không gắn sang hồ sơ cá nhân qua `AttachmentId`.
 
 Guard cung cấp:
 - `bool Can(string permission, AccessTarget target)` và `void Ensure(...)` (ném `ForbiddenException` → 403);

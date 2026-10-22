@@ -56,6 +56,36 @@ public enum QuotaDenominator
     GoodOrBetter = 1
 }
 
+/// <summary>Nhóm điểm của hồ sơ tập thể (Mẫu 07 mục B: 1. Nhóm tiêu chí chung, 2. Nhóm tiêu chí về kết quả thực hiện nhiệm vụ).</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<CollectiveScoreKind>))]
+public enum CollectiveScoreKind
+{
+    /// <summary>Cộng vào điểm nhóm tiêu chí chung (tối đa <see cref="CriteriaParameters.CollectiveGeneralMaxScore"/>).</summary>
+    General = 0,
+
+    /// <summary>Cộng vào điểm nhóm kết quả thực hiện nhiệm vụ (tối đa <see cref="CriteriaParameters.CollectiveTaskMaxScore"/>).</summary>
+    Task = 1
+}
+
+/// <summary>
+/// Một nhóm của khung tiêu chí đánh giá tập thể (HD03 Phụ lục I): tiêu chí con chấm điểm trong khoảng 0..điểm tối đa;
+/// điểm các tiêu chí con cộng vào nhóm điểm <see cref="Kind"/> của hồ sơ tập thể.
+/// </summary>
+public sealed class CollectiveCriteriaGroup
+{
+    /// <summary>Mã nhóm (ví dụ "I", "II").</summary>
+    public string Code { get; set; } = string.Empty;
+
+    /// <summary>Tên nhóm.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Nhóm điểm mà các tiêu chí con cộng vào.</summary>
+    public CollectiveScoreKind Kind { get; set; } = CollectiveScoreKind.General;
+
+    /// <summary>Tiêu chí con (mã duy nhất trong toàn khung tập thể).</summary>
+    public List<CriteriaItem> Items { get; set; } = new();
+}
+
 /// <summary>Một tiêu chí con của nhóm tiêu chí chung.</summary>
 public sealed class CriteriaItem
 {
@@ -371,6 +401,12 @@ public sealed class CriteriaSetContent
     /// </summary>
     public List<string> RequiredForms { get; set; } = new();
 
+    /// <summary>
+    /// Khung tiêu chí đánh giá tập thể (Mẫu 06, 07 — HD03 Phụ lục I). Rỗng = hồ sơ tập thể nhập thẳng hai điểm nhóm.
+    /// Có khung thì điểm nhóm là tổng điểm các tiêu chí con theo <see cref="CollectiveCriteriaGroup.Kind"/>.
+    /// </summary>
+    public List<CollectiveCriteriaGroup> CollectiveGroups { get; set; } = new();
+
     /// <summary>Các mục tự luận của Mẫu 09C (khi <see cref="RequiredForms"/> có 09C).</summary>
     public List<SelfAssessmentSection> SelfAssessmentSections { get; set; } = new();
 
@@ -447,7 +483,20 @@ public sealed class CriteriaSetContent
                 item.FormText = string.IsNullOrWhiteSpace(item.FormText) ? null : item.FormText.Trim();
             }
         }
-        Axes = (Axes ?? new()).Where(a => a != null).ToList();
+        CollectiveGroups = (CollectiveGroups ?? new()).Where(g => g != null).ToList();
+        foreach (var group in CollectiveGroups)
+        {
+            group.Code = group.Code?.Trim() ?? string.Empty;
+            group.Name = group.Name?.Trim() ?? string.Empty;
+            group.Items = (group.Items ?? new()).Where(i => i != null).ToList();
+            foreach (var item in group.Items)
+            {
+                item.Code = item.Code?.Trim() ?? string.Empty;
+                item.Text = item.Text?.Trim() ?? string.Empty;
+                item.FormText = string.IsNullOrWhiteSpace(item.FormText) ? null : item.FormText.Trim();
+            }
+        }
+        Axes =(Axes ?? new()).Where(a => a != null).ToList();
         foreach (var axis in Axes)
         {
             axis.Code = axis.Code?.Trim() ?? string.Empty;
@@ -521,6 +570,7 @@ public sealed class CriteriaSetContent
 
         ValidateCodes(errors);
         ValidateGeneral(errors, p);
+        ValidateCollective(errors, p);
         ValidateAxes(errors, p, selfScoreForm);
         ValidateFrames(errors, selfScoreForm);
         if (!string.IsNullOrWhiteSpace(p.DefaultWeightFrameCode) && FindFrame(p.DefaultWeightFrameCode) == null)
@@ -647,6 +697,58 @@ public sealed class CriteriaSetContent
         var total = AllItems.Sum(x => x.Item.MaxScore);
         if (GeneralGroups.Count > 0 && Math.Abs(total - p.GeneralMaxScore) > Epsilon)
             errors.Add(Invariant($"Tổng điểm tối đa các tiêu chí con ({total:0.##}) phải bằng điểm tối đa nhóm tiêu chí chung ({p.GeneralMaxScore:0.##})."));
+    }
+
+    /// <summary>
+    /// Khung tiêu chí tập thể (Mẫu 06, 07): rỗng = hợp lệ (hồ sơ tập thể nhập thẳng hai điểm nhóm). Mã nhóm/tiêu chí con dùng không
+    /// gian mã riêng (không so với nhóm tiêu chí chung cá nhân); tổng điểm tối đa theo từng nhóm điểm phải khớp tham số tập thể.
+    /// </summary>
+    private void ValidateCollective(List<string> errors, CriteriaParameters p)
+    {
+        if (CollectiveGroups.Count == 0)
+            return;
+
+        var items = CollectiveGroups.SelectMany(g => g.Items.Select(i => (Group: g, Item: i))).ToList();
+        var codes = CollectiveGroups.Select(g => g.Code).Concat(items.Select(x => x.Item.Code)).ToList();
+        foreach (var code in codes.Where(c => !IsValidCode(c)))
+            errors.Add($"Mã nhóm/tiêu chí tập thể \"{code}\" không hợp lệ: chỉ gồm chữ không dấu, số, dấu chấm, gạch nối, gạch dưới (tối đa 20 ký tự).");
+        foreach (var dup in codes.GroupBy(c => c, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
+            errors.Add($"Mã nhóm/tiêu chí tập thể \"{dup.Key}\" bị trùng.");
+
+        foreach (var group in CollectiveGroups)
+        {
+            var label = string.IsNullOrWhiteSpace(group.Name) ? group.Code : group.Name;
+            if (string.IsNullOrWhiteSpace(group.Name))
+                errors.Add($"Nhóm tiêu chí tập thể \"{group.Code}\" chưa có tên.");
+            else if (group.Name.Length > MaxFormTitleLength)
+                errors.Add($"Tên nhóm tiêu chí tập thể \"{group.Code}\" không được dài quá {MaxFormTitleLength} ký tự.");
+            if (!Enum.IsDefined(group.Kind))
+                errors.Add($"Nhóm điểm của nhóm tiêu chí tập thể \"{label}\" không hợp lệ.");
+            if (group.Items.Count == 0)
+                errors.Add($"Nhóm tiêu chí tập thể \"{label}\" phải có ít nhất một tiêu chí con.");
+            foreach (var item in group.Items)
+            {
+                if (string.IsNullOrWhiteSpace(item.Text))
+                    errors.Add($"Tiêu chí tập thể \"{item.Code}\" chưa có nội dung.");
+                else if (item.Text.Length > 2000)
+                    errors.Add($"Nội dung tiêu chí tập thể \"{item.Code}\" không được dài quá 2000 ký tự.");
+                if ((item.FormText?.Length ?? 0) > 4000)
+                    errors.Add($"Nội dung in trên phiếu của tiêu chí tập thể \"{item.Code}\" không được dài quá 4000 ký tự.");
+                if (!(item.MaxScore > 0) || item.MaxScore > 100)
+                    errors.Add($"Điểm tối đa của tiêu chí tập thể \"{item.Code}\" phải lớn hơn 0 và không quá 100.");
+            }
+        }
+
+        foreach (var (kind, max, name) in new[]
+                 {
+                     (CollectiveScoreKind.General, p.CollectiveGeneralMaxScore, "nhóm tiêu chí chung"),
+                     (CollectiveScoreKind.Task, p.CollectiveTaskMaxScore, "nhóm kết quả thực hiện nhiệm vụ")
+                 })
+        {
+            var total = items.Where(x => x.Group.Kind == kind).Sum(x => x.Item.MaxScore);
+            if (Math.Abs(total - max) > Epsilon)
+                errors.Add(Invariant($"Khung tiêu chí tập thể: tổng điểm tối đa các tiêu chí thuộc {name} ({total:0.##}) phải bằng điểm tối đa {name} của hồ sơ tập thể ({max:0.##})."));
+        }
     }
 
     private void ValidateAxes(List<string> errors, CriteriaParameters p, string? form)

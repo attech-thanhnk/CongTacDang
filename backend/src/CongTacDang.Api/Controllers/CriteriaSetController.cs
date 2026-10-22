@@ -43,6 +43,15 @@ public class CriteriaSetController : ControllerBase
     public async Task<IActionResult> WeightFrames(CancellationToken ct) =>
         Ok(ApiResponse<WeightFrameOptionsDto>.Ok(await _sets.GetWeightFrameOptionsAsync(ct), "Lấy danh sách khung tỷ trọng thành công."));
 
+    /// <summary>
+    /// Khung tiêu chí tập thể mặc định (Mẫu 06, 07) — để bản nháp của bộ cũ chưa có khung "Điền theo mặc định".
+    /// Đường dẫn chữ cố định được ưu tiên hơn <c>defaults/{form}</c>.
+    /// </summary>
+    [HttpGet("defaults/collective-groups")]
+    [RequirePermission(PermissionCodes.CriteriaManage)]
+    public IActionResult DefaultCollectiveGroups() =>
+        Ok(ApiResponse<List<CollectiveCriteriaGroup>>.Ok(CriteriaSetDefaults.CollectiveGroups(), "Lấy khung tiêu chí tập thể mặc định thành công."));
+
     /// <summary>Nội dung mặc định theo bản trích xuất HD03 cho mẫu tự chấm (09A/09B) — dùng khi tạo bộ mới.</summary>
     [HttpGet("defaults/{form}")]
     [RequirePermission(PermissionCodes.CriteriaManage)]

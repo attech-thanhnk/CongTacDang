@@ -20,7 +20,7 @@ B-07 `partial`: task file chỉ yêu cầu "điền được bằng trường m�
 
 ## Luồng W1–W10
 
-Tất cả trong `backend/tests/CongTacDang.IntegrationTests/EvaluationWorkflowTests.cs`, chạy trên PostgreSQL thật (máy chủ 159, CSDL `ctd_it_*` tạm).
+Tất cả trong `backend/tests/CongTacDang.IntegrationTests/EvaluationWorkflowTests.cs`, chạy trên PostgreSQL thật (CSDL `ctd_it_*` tạm).
 
 | # | Luồng | Trạng thái | Test |
 |---|---|---|---|
@@ -43,7 +43,7 @@ Unit test (`backend/tests/CongTacDang.UnitTests/EvaluationWorkflowUnitTests.cs`,
 |---|---|---|
 | `dotnet build backend/CongTacDang.slnx` | pass | 0 lỗi; 6 warning đều CS0618 (`[Obsolete]` sẵn có ở file ngoài phạm vi: `UserController`, `SecurityTests`…), không thêm warning mới |
 | `dotnet test` — unit | pass | 190 test: **189 pass, 1 skip** (`PdfConversionTests.Mau01…` — thiếu LibreOffice, skip sẵn có), 0 fail |
-| `dotnet test` — integration, có `CONGTACDANG_TEST_PG` (máy chủ 159) | pass | 57 test **đã chạy**: 57 pass, **0 skip**, 0 fail (10 mới của task 12) |
+| `dotnet test` — integration, có `CONGTACDANG_TEST_PG` | pass | 57 test **đã chạy**: 57 pass, **0 skip**, 0 fail (10 mới của task 12) |
 | `dotnet test` — integration, không có biến | pass (skip) | 8 pass (tên CSDL), **49 skip** — skip không tính là pass |
 | `npx tsc --noEmit` | pass | |
 | `npm run build` | pass | `next lint` trên `app/evaluations`, `app/work-queue`, `app/periods`, `app/collective-evaluations`, `components/evaluations`, `services`: không cảnh báo |

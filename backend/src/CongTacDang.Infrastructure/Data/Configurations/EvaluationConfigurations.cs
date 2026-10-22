@@ -168,6 +168,7 @@ public sealed class CollectiveEvaluationRecordConfiguration : IEntityTypeConfigu
         entity.HasIndex(e => e.DepartmentId);
         entity.Property(e => e.SubjectName).HasMaxLength(300).IsRequired();
         entity.Property(e => e.Sections).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb").IsRequired();
+        entity.Property(e => e.CriteriaScores).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb").IsRequired();
         entity.Property(e => e.Form).HasConversion<int>();
         entity.Property(e => e.Version)
             .HasColumnName("xmin")

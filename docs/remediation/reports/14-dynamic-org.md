@@ -30,7 +30,7 @@
 |---|---|---|
 | `dotnet build backend/CongTacDang.slnx --no-incremental` | pass | 0 lỗi, **0 warning** |
 | `dotnet test` — unit | pass | 214 test: 213 pass, 1 skip sẵn có (`PdfConversionTests.Mau01_ConvertsToPdf…` — thiếu LibreOffice); 20 test mới (`DynamicOrgTests`) |
-| `dotnet test` — integration (`CONGTACDANG_TEST_PG`, máy chủ 159) | pass | 75 test: **75 chạy + pass, 0 skip**; 3 test mới. Ghi nhận: trong một lần chạy cả solution, `InitialAdminSeedTests.EmptyDatabase_WithPasswordViolatingPolicy_DoesNotCreateAdmin` fail một lần (15 s, không liên quan task — CSDL tạm riêng, không dùng mô hình tổ chức); chạy lại riêng lớp đó và chạy lại toàn bộ integration đều pass |
+| `dotnet test` — integration (`CONGTACDANG_TEST_PG`) | pass | 75 test: **75 chạy + pass, 0 skip**; 3 test mới. Ghi nhận: trong một lần chạy cả solution, `InitialAdminSeedTests.EmptyDatabase_WithPasswordViolatingPolicy_DoesNotCreateAdmin` fail một lần (15 s, không liên quan task — CSDL tạm riêng, không dùng mô hình tổ chức); chạy lại riêng lớp đó và chạy lại toàn bộ integration đều pass |
 | `npx tsc --noEmit` | pass | |
 | `npm run build` | pass | |
 | `grep PartyRole\|AdministrativePosition` | pass (trừ migration cũ) | Rỗng trong `backend/src` (mã nguồn) và `frontend/{app,components,contexts,services}`. Chỉ còn trong `Data/Migrations/20260928170355_InitialCreate*.cs` (migration cũ; người điều phối sinh lại `InitialCreate`) |

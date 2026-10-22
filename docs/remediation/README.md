@@ -82,5 +82,5 @@ Mục tiêu: tài khoản, phân quyền động có phạm vi, danh mục, impo
 4. Việc "Cần phối hợp" nhỏ: người điều phối sửa khi tích hợp; lớn: giao lại cho agent chủ sở hữu trước khi mở đợt sau.
 
 ## Việc của người điều phối trước Đợt 3
-- Trên máy chủ `192.168.22.159`: tạo tài khoản PostgreSQL có quyền `CREATEDB` cho test tích hợp; đặt biến môi trường `CONGTACDANG_TEST_PG` (chuỗi kết nối tới CSDL `postgres` bằng tài khoản đó) trên máy chạy agent. Không ghi chuỗi này vào repo.
+- Trên PostgreSQL cục bộ (container `postgres` của Docker Compose, `localhost:5434`): dùng tài khoản có quyền `CREATEDB` cho test tích hợp; đặt biến môi trường `CONGTACDANG_TEST_PG` (chuỗi kết nối tới CSDL `postgres` bằng tài khoản đó) trên máy chạy agent. Không ghi chuỗi này vào repo.
 - Gửi `docs/thiet-ke/phan-quyen.md` mục 6 và `docs/thiet-ke/luong-danh-gia.md` mục 6 cho TCCB-LĐ xác nhận — **không chặn** việc code, kết quả chỉ làm đổi cấu hình mặc định.

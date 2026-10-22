@@ -12,6 +12,8 @@ import { usePagination } from "@/components/common/usePagination";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { CollectiveRecordEditor } from "@/components/collective/CollectiveRecordEditor";
 import { MeetingEditor } from "@/components/collective/MeetingEditor";
+import { CollectiveAttachments } from "@/components/collective/CollectiveAttachments";
+import { usePermissionScope } from "@/services/authService";
 import { organizationService, BranchItem, DepartmentItem } from "@/services/organizationService";
 import { CollectiveFormCatalog, CollectiveRecord, MeetingRecord, collectiveService } from "@/services/collectiveService";
 import { ReportFileFormat, hd03FileName, reportService } from "@/services/reportService";
@@ -49,6 +51,14 @@ export default function CollectiveEvaluationsPage() {
     hasPermission("meeting.manage");
   const canManageCollective = hasPermission("collective.manage");
   const canManageMeeting = hasPermission("meeting.manage");
+  // Phạm vi collective.manage (máy chủ đã gộp đơn vị con): đính kèm phụ lục khi hồ sơ thuộc phạm vi và kỳ chưa đóng.
+  const collectiveScope = usePermissionScope("collective.manage");
+  const canAttach = (record: CollectiveRecord) =>
+    period?.status !== "Closed" &&
+    !!collectiveScope &&
+    (collectiveScope.isGlobal ||
+      (!!record.partyCellId && collectiveScope.partyCellIds.includes(record.partyCellId)) ||
+      (!!record.departmentId && collectiveScope.departmentIds.includes(record.departmentId)));
 
   useEffect(() => {
     if (!canUseModule) {
@@ -58,17 +68,30 @@ export default function CollectiveEvaluationsPage() {
     Promise.all([
       organizationService.getBranches(),
       organizationService.getDepartments().catch(() => [] as DepartmentItem[]),
-      collectiveService.getCatalog().catch(() => null),
     ])
-      .then(([loadedBranches, loadedDepartments, loadedCatalog]) => {
+      .then(([loadedBranches, loadedDepartments]) => {
         setBranches(loadedBranches);
         setDepartments(loadedDepartments);
-        setCatalog(loadedCatalog);
       })
       .catch((error: any) => showError(error?.message || "Không thể tải dữ liệu đánh giá tập thể."))
       .finally(() => setLoading(false));
     organizationSettingsService.getPublic().then((info) => setShortName(info.shortName)).catch(() => setShortName(""));
   }, [canUseModule, showError]);
+
+  useEffect(() => {
+    if (!canUseModule || !periodId) return;
+    let cancelled = false;
+    setCatalog(null);
+    collectiveService
+      .getCatalog(periodId)
+      .catch(() => null)
+      .then((loaded) => {
+        if (!cancelled) setCatalog(loaded);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canUseModule, periodId]);
 
   const reload = useCallback(async () => {
     if (!periodId) return;
@@ -202,6 +225,9 @@ export default function CollectiveEvaluationsPage() {
                         )}
                         {record.form === "M07" && exportButtons(record.id, (format) => exportRecord(record, format))}
                         {record.form === "M08" && exportButtons(record.id, (format) => exportRecord(record, format), "Word", () => exportRecordExcel(record))}
+                      </div>
+                      <div className="w-100">
+                        <CollectiveAttachments recordId={record.id} formCode={record.form} editable={canAttach(record)} />
                       </div>
                     </li>
                   ))}

@@ -23,7 +23,7 @@
 |---|---|---|
 | `dotnet build backend/CongTacDang.slnx` | pass | 0 warning, 0 error |
 | `dotnet test` — unit | pass | 140 test: 139 pass, 1 skip (`PdfConversionTests.Mau01…` — thiếu LibreOffice, skip sẵn có), 0 fail (44 test mới) |
-| `dotnet test` — integration (có `CONGTACDANG_TEST_PG`, máy chủ 159) | pass | **24 test chạy: 24 pass, 0 skip, 0 fail** (13 test cũ + 11 test mới của task này) |
+| `dotnet test` — integration (có `CONGTACDANG_TEST_PG`) | pass | **24 test chạy: 24 pass, 0 skip, 0 fail** (13 test cũ + 11 test mới của task này) |
 | `dotnet test` — integration (không có biến) | pass (skip) | 16 test HTTP **skip** kèm lý do, 8 test tên CSDL pass — skip không tính là pass |
 | `npx tsc --noEmit` | pass | |
 | `npm run build` | pass | |

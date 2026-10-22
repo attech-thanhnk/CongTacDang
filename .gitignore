@@ -105,3 +105,9 @@ pgadmin-data/
 # Font bản quyền chép vào để dựng image (docker/Dockerfile.backend), không commit
 docker/fonts/*
 !docker/fonts/.gitkeep
+
+# File khóa tạm của Word/Excel
+~$*
+
+# Tài liệu chuẩn có phiếu đánh giá của người thật — không commit
+docs/tai-lieu-chuan/

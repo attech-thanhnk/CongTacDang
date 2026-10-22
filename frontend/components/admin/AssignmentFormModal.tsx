@@ -110,7 +110,7 @@ export function AssignmentFormModal({
   };
 
   return (
-    <AdminModal title={isEdit ? "Sửa thời hạn bản gán" : "Gán vai trò"} onClose={onClose} closeDisabled={saving} maxWidth={600}>
+    <AdminModal title={isEdit ? "Sửa thời hạn phân công" : "Phân công vai trò"} onClose={onClose} closeDisabled={saving} maxWidth={600}>
       <form onSubmit={handleSubmit}>
         {isEdit ? (
           <div className="small mb-3 p-2 rounded border bg-light">
@@ -221,7 +221,7 @@ export function AssignmentFormModal({
           </button>
           <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
             {saving && <span className="spinner-border spinner-border-sm me-1" />}
-            {isEdit ? "Lưu" : "Gán vai trò"}
+            {isEdit ? "Lưu" : "Phân công vai trò"}
           </button>
         </div>
       </form>

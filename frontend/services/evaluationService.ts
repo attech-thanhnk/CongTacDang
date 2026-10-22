@@ -25,6 +25,7 @@ export type WorkflowActionCode =
   | "SubmitTasks"
   | "ApproveTasks"
   | "ReturnTasks"
+  | "RevokeTaskApproval"
   | "SubmitSelfScore"
   | "ConfirmByCell"
   | "ReturnByCell"
@@ -339,6 +340,75 @@ export interface AxisReport {
   product?: string | null;
   progress?: string | null;
   note?: string | null;
+}
+
+export interface AxisReportsPrefillResult {
+  reports: Record<string, AxisReport>;
+  taskCount: number;
+  summaryFieldCount: number;
+}
+
+const nonEmpty = (value?: string | null) => value?.trim() || "";
+
+const shortDate = (value: string) => {
+  const date = value.split("T")[0];
+  const parts = date.split("-");
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : value;
+};
+
+/**
+ * Gợi ý nội dung Mẫu 09C/9D từ danh mục Mẫu 01. Chỉ bổ sung ô còn trống;
+ * nội dung đã lưu của cá nhân luôn được giữ nguyên để người dùng tiếp tục chỉnh sửa.
+ */
+export function prefillAxisReportsFromTasks(
+  axes: { code: string }[],
+  tasks: Pick<EvaluationTaskDto, "axisCode" | "taskName" | "targetOutput" | "deadline" | "productCode" | "changeStatus">[],
+  existing?: Record<string, AxisReport>
+): AxisReportsPrefillResult {
+  const source = existing ?? {};
+  const reports: Record<string, AxisReport> = {};
+  let taskCount = 0;
+  let summaryFieldCount = 0;
+  const activeTasks = tasks.filter((task) => !task.changeStatus && nonEmpty(task.axisCode));
+
+  for (const axis of axes) {
+    const existingKey = Object.keys(source).find((key) => key.toLowerCase() === axis.code.toLowerCase());
+    const current: AxisReport = { ...(existingKey ? source[existingKey] : undefined) };
+    const axisTasks = activeTasks.filter((task) => task.axisCode!.trim().toLowerCase() === axis.code.toLowerCase());
+
+    if ((!current.tasks || current.tasks.length === 0) && axisTasks.length > 0) {
+      current.tasks = axisTasks.map((task) => ({
+        content: [
+          task.productCode?.trim() ? `${task.productCode.trim()} —` : "",
+          nonEmpty(task.taskName) || nonEmpty(task.targetOutput),
+          nonEmpty(task.targetOutput) ? `Đầu ra/chuẩn đạt: ${task.targetOutput.trim()}` : "",
+        ].filter(Boolean).join(" "),
+        level: null,
+        items: [],
+      }));
+      taskCount += current.tasks.length;
+    }
+
+    if (!nonEmpty(current.deadline) && axisTasks.length > 0) {
+      const deadlines = Array.from(new Set(axisTasks.map((task) => shortDate(task.deadline)).filter(Boolean)));
+      if (deadlines.length > 0) {
+        current.deadline = deadlines.join(", ");
+        summaryFieldCount++;
+      }
+    }
+
+    if (!nonEmpty(current.product) && axisTasks.length > 0) {
+      const outputs = Array.from(new Set(axisTasks.map((task) => nonEmpty(task.targetOutput) || nonEmpty(task.taskName)).filter(Boolean)));
+      if (outputs.length > 0) {
+        current.product = outputs.join("\n");
+        summaryFieldCount++;
+      }
+    }
+
+    reports[axis.code] = current;
+  }
+
+  return { reports, taskCount, summaryFieldCount };
 }
 
 /** Một dòng nhiệm vụ / ý con của Mẫu 09C: nội dung và câu nối mức (in nghiêng; null khi không kết luận mức). */
@@ -946,6 +1016,7 @@ const ACTION_PATH: Record<WorkflowActionCode, string> = {
   SubmitTasks: "tasks/submit",
   ApproveTasks: "tasks/approve",
   ReturnTasks: "tasks/return",
+  RevokeTaskApproval: "tasks/approve/revoke",
   SubmitSelfScore: "self-score/submit",
   ConfirmByCell: "cell/confirm",
   ReturnByCell: "cell/return",

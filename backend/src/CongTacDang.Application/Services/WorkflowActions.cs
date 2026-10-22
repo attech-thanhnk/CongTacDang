@@ -26,6 +26,7 @@ public static class WorkflowActions
     public const string SubmitTasks = "SubmitTasks";
     public const string ApproveTasks = "ApproveTasks";
     public const string ReturnTasks = "ReturnTasks";
+    public const string RevokeTaskApproval = "RevokeTaskApproval";
     public const string SubmitSelfScore = "SubmitSelfScore";
     public const string ConfirmByCell = "ConfirmByCell";
     public const string ReturnByCell = "ReturnByCell";
@@ -46,6 +47,7 @@ public static class WorkflowActions
         new WorkflowActionDefinition(SubmitTasks, WorkflowStep.B1_REGISTER, WorkflowAction.Complete, "Nộp danh mục sản phẩm"),
         new WorkflowActionDefinition(ApproveTasks, WorkflowStep.B1_APPROVE, WorkflowAction.Complete, "Duyệt danh mục"),
         new WorkflowActionDefinition(ReturnTasks, WorkflowStep.B1_APPROVE, WorkflowAction.Return, "Trả lại danh mục"),
+        new WorkflowActionDefinition(RevokeTaskApproval, WorkflowStep.B1_APPROVE, WorkflowAction.RevokeTaskApproval, "Thu hồi duyệt danh mục"),
         new WorkflowActionDefinition(SubmitSelfScore, WorkflowStep.B2_SELF_SCORE, WorkflowAction.Complete, "Nộp phiếu tự chấm"),
         new WorkflowActionDefinition(ConfirmByCell, WorkflowStep.B2_CELL_CONFIRM, WorkflowAction.Complete, "Chi bộ xác nhận"),
         new WorkflowActionDefinition(ReturnByCell, WorkflowStep.B2_CELL_CONFIRM, WorkflowAction.Return, "Trả lại phiếu tự chấm"),
@@ -94,6 +96,8 @@ public static class WorkflowActions
             return PermissionCodes.EvaluationReopen;
         if (action.Kind == WorkflowAction.RecordExternal)
             return PermissionCodes.EvaluationExternalRecord;
+        if (action.Kind == WorkflowAction.RevokeTaskApproval)
+            return PermissionCodes.EvaluationTasksApprove;
         if (WorkflowSteps.OwnerSteps.Contains(action.Step))
             return PermissionCodes.EvaluationSelf;
         var setting = profile.Step(action.Step);
@@ -109,6 +113,8 @@ public static class WorkflowActions
     {
         ArgumentNullException.ThrowIfNull(profile);
         if (action.Kind == WorkflowAction.Reopen)
+            return null;
+        if (action.Kind == WorkflowAction.RevokeTaskApproval)
             return null;
 
         var name = WorkflowSteps.DisplayName(action.Step);
@@ -138,6 +144,8 @@ public static class WorkflowActions
             case PeriodStatus.Draft:
                 return "Kỳ đánh giá đang ở trạng thái dự thảo, chưa mở. Hãy chờ người quản lý kỳ mở kỳ.";
             case PeriodStatus.Locked:
+                if (action.Kind == WorkflowAction.RevokeTaskApproval)
+                    return "Kỳ đánh giá đã khóa dữ liệu: không thể thu hồi duyệt danh mục.";
                 if (action.Kind == WorkflowAction.Reopen
                     || WorkflowSteps.IndexOf(action.Step) >= WorkflowSteps.IndexOf(WorkflowSteps.FirstStepWhenLocked))
                     return null;

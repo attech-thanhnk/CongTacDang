@@ -12,7 +12,7 @@
 | Sinh lại **một** `20260928170355_InitialCreate` từ model | done (`dotnet ef migrations add InitialCreate`) |
 | Index unique `lower("Username")` | giữ, tạo bằng `migrationBuilder.Sql` trong `InitialCreate` (`IX_party_member_profiles_Username_lower`). Npgsql không khai báo được index biểu thức bằng `HasIndex` → nằm ngoài model, `has-pending-model-changes` sạch. Index `IX_party_member_profiles_Username` (unique, phân biệt hoa thường) vẫn trong model. |
 | Thay đổi schema task 12 có trong model | có: `evaluation_periods.Settings/StatusReason/StatusChanged*` (không còn `IsActive`), cột B1–B5/09B của `evaluation_records`, `evaluation_record_histories.Step/Action/Reason/Score*/Grade*`, `evaluation_meetings.DepartmentId/Stage`, index `(PeriodId, Status)`, `(PeriodId, DepartmentId)` |
-| Kiểm trên máy chủ 159 | tạo `ctd_it_mig_final` bằng `dotnet ef database update` (áp `InitialCreate`), `has-pending-model-changes`: *"No changes have been made to the model since the last migration."*, `migrations list` = 1 migration, đã `database drop --force`. |
+| Kiểm | tạo `ctd_it_mig_final` bằng `dotnet ef database update` (áp `InitialCreate`), `has-pending-model-changes`: *"No changes have been made to the model since the last migration."*, `migrations list` = 1 migration, đã `database drop --force`. |
 | Test tích hợp dựng CSDL | `ApiFactory` và `DataSeederAuthorizationTests` chuyển từ `EnsureCreated` sang `MigrateAsync` → mọi test tích hợp chạy trên đúng migration triển khai (gồm index `lower(Username)`, có assert 23505 khi chèn `ADMIN` trùng `admin`). |
 | Xóa test chỉ phục vụ migration cũ | `Wave4MigrationTests` (2 test) |
 | `docs/database-migrations.md` | ghi migration đã gộp, index SQL, test dùng migration (không có mục Wave nào trước đó) |
@@ -104,7 +104,7 @@
 |---|---|---|
 | `dotnet build backend/CongTacDang.slnx --no-incremental` | pass | **0 Warning(s), 0 Error(s)** |
 | `dotnet test` — unit | pass | 194: **193 pass, 1 skip** (`PdfConversionTests.Mau01…` — máy không có LibreOffice, skip sẵn có), 0 fail |
-| `dotnet test` — integration (`CONGTACDANG_TEST_PG`, máy 159) | pass | **72 chạy, 72 pass, 0 skip**, 0 fail |
+| `dotnet test` — integration (`CONGTACDANG_TEST_PG`) | pass | **72 chạy, 72 pass, 0 skip**, 0 fail |
 | `dotnet ef migrations has-pending-model-changes` | pass | sạch (trên `ctd_it_mig_final`, đã xóa) |
 | `npx tsc --noEmit` | pass | |
 | `npm run build` | pass | `next lint` các file sửa: không cảnh báo |

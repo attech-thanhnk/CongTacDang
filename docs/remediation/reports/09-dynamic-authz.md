@@ -25,7 +25,7 @@
 |---|---|---|
 | `dotnet build backend/CongTacDang.slnx` | pass | 0 lỗi; **24 warning CS0618** (đều do `[Obsolete]` có chủ đích, chỉ trong file ngoài phạm vi: `UserController`, `OrganizationController`, `AuditController`, `UserService`, `AuthService`, `SecurityTests`) |
 | `dotnet test` — unit | pass | 102 test: **101 pass, 1 skip** (`PdfConversionTests.Mau01…` — thiếu LibreOffice, skip sẵn có), 0 fail |
-| `dotnet test` — integration, có `CONGTACDANG_TEST_PG` (máy chủ 159) | pass | 31 test: **31 chạy, 31 pass, 0 skip**, 0 fail |
+| `dotnet test` — integration, có `CONGTACDANG_TEST_PG` | pass | 31 test: **31 chạy, 31 pass, 0 skip**, 0 fail |
 | `dotnet test` — integration, không có biến | pass (skip) | 8 pass (tên CSDL), **23 skip** — skip không tính là pass |
 | `npx tsc --noEmit` | pass | |
 | `npm run build` | pass | |

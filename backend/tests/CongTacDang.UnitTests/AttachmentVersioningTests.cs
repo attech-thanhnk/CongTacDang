@@ -248,6 +248,52 @@ public class AttachmentVersioningTests
             _world.Service.EnsureCanLinkAttachmentsAsync(new[] { own.Id, foreign.Id }, owner.Id));
     }
 
+    /// <summary>
+    /// Phụ lục của hồ sơ tập thể: collective.manage trên tổ chức tải lên/thay/gỡ (không cần là người tải lên); evaluation.read
+    /// trong phạm vi chỉ xem; ngoài phạm vi không thấy; kỳ đóng không cập nhật; không gắn sang hồ sơ cá nhân.
+    /// </summary>
+    [Fact]
+    public async Task CollectiveAttachment_FollowsCollectiveRecordPermissions()
+    {
+        var collective = new CollectiveAttachmentOwner(Guid.NewGuid(), null, CellA, false);
+        _world.Collectives[collective.Id] = collective;
+        var manager = _world.UserWithScope(PermissionCodes.CollectiveManage, ScopeType.PartyCell, CellA);
+        var otherManager = _world.UserWithScope(PermissionCodes.CollectiveManage, ScopeType.PartyCell, CellA);
+        var reader = _world.Secretary(CellA);
+        var outsider = _world.Secretary(CellB);
+
+        var v1 = await _world.Service.UploadAttachmentAsync(Pdf("v1"), "pl.pdf", 10, "M07", "Phụ lục", "Q", manager.Id,
+            AttachmentOwnerTypes.CollectiveEvaluationRecord, collective.Id);
+        var stored = _world.Files.Items.Single();
+        Assert.Equal(AttachmentOwnerTypes.CollectiveEvaluationRecord, stored.OwnerType);
+        Assert.Null(stored.RecordId);
+
+        await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.UploadAttachmentAsync(Pdf("x"), "x.pdf", 1, "M07", "", "S",
+            reader.Id, AttachmentOwnerTypes.CollectiveEvaluationRecord, collective.Id));
+        Assert.Single(await _world.Service.GetAttachmentsByOwnerAsync(AttachmentOwnerTypes.CollectiveEvaluationRecord, collective.Id, reader.Id));
+        Assert.NotNull(await _world.Service.DownloadAttachmentAsync(v1.Id, reader.Id));
+        await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.ReplaceAttachmentAsync(v1.Id, Pdf("v2"), "b.pdf", 1, "S", reader.Id));
+        await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.RemoveAttachmentAsync(v1.Id, reader.Id));
+        Assert.Empty(await _world.Service.GetAttachmentsByOwnerAsync(AttachmentOwnerTypes.CollectiveEvaluationRecord, collective.Id, outsider.Id));
+        await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.DownloadAttachmentAsync(v1.Id, outsider.Id));
+        await Assert.ThrowsAsync<ValidationException>(() => _world.Service.EnsureCanLinkAttachmentsAsync(new[] { v1.Id }, manager.Id));
+
+        // Người quản lý khác cùng tổ chức thay bản mới được (tệp thuộc tập thể).
+        var v2 = await _world.Service.ReplaceAttachmentAsync(v1.Id, Pdf("v2"), "b.pdf", 1, "Q2", otherManager.Id);
+        Assert.Equal(2, v2.VersionNumber);
+
+        // Kỳ đóng: chỉ xem.
+        _world.Collectives[collective.Id] = collective with { PeriodClosed = true };
+        await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.RemoveAttachmentAsync(v2.Id, manager.Id));
+        await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.UploadAttachmentAsync(Pdf("x"), "x.pdf", 1, "M07", "", "Q",
+            manager.Id, AttachmentOwnerTypes.CollectiveEvaluationRecord, collective.Id));
+        Assert.NotNull(await _world.Service.DownloadAttachmentAsync(v2.Id, manager.Id));
+
+        _world.Collectives[collective.Id] = collective;
+        await _world.Service.RemoveAttachmentAsync(v2.Id, otherManager.Id);
+        Assert.All(_world.Files.Items, a => Assert.True(a.IsDeleted));
+    }
+
     #region Hỗ trợ
 
     private static MemoryStream Pdf(string content) => new(Encoding.ASCII.GetBytes("%PDF " + content));
@@ -266,6 +312,7 @@ public class AttachmentVersioningTests
         public Dictionary<Guid, EvaluationRecord> Records { get; } = new();
         public Dictionary<Guid, EvaluationTask> Tasks { get; } = new();
         public Dictionary<Guid, List<PermissionGrant>> Grants { get; } = new();
+        public Dictionary<Guid, CollectiveAttachmentOwner> Collectives { get; } = new();
         public AttachmentService Service { get; }
 
         public World()
@@ -346,6 +393,12 @@ public class AttachmentVersioningTests
             };
             return Task.FromResult(record);
         }
+
+        public Task<Dictionary<Guid, CollectiveAttachmentOwner>> GetCollectiveOwnersAsync(IReadOnlyCollection<Guid> collectiveRecordIds) =>
+            Task.FromResult(collectiveRecordIds
+                .Where(_world.Collectives.ContainsKey)
+                .Distinct()
+                .ToDictionary(id => id, id => _world.Collectives[id]));
     }
 
     private sealed class Resolver : IPermissionResolver

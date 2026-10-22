@@ -1,11 +1,12 @@
 "use client";
 
 import React from "react";
-import { CriteriaSetContent, GRADE_LABELS, RECORD_FORMS, ROUNDING_LABELS, fmt } from "@/services/criteriaService";
+import { COLLECTIVE_KIND_LABELS, CriteriaSetContent, GRADE_LABELS, RECORD_FORMS, ROUNDING_LABELS, fmt } from "@/services/criteriaService";
 
 /** Xem nội dung bộ tiêu chí (chỉ đọc): tiêu chí chung, trục, khung tỷ trọng, thang quy đổi, mức xếp loại, tham số. */
 export function CriteriaSummary({ content, form }: { content: CriteriaSetContent; form: string }) {
   const p = content.parameters;
+  const collectiveGroups = content.collectiveGroups ?? [];
   return (
     <div className="d-flex flex-column gap-3 small">
       <div>
@@ -26,6 +27,27 @@ export function CriteriaSummary({ content, form }: { content: CriteriaSetContent
           </tbody>
         </table></div>
       </div>
+
+      {collectiveGroups.length > 0 && (
+        <div>
+          <h3 className="h6 small fw-bold text-secondary">Khung tiêu chí tập thể (Mẫu 06, 07)</h3>
+          <table className="table table-sm mb-0">
+            <thead><tr className="text-secondary"><th style={{ width: 60 }}>Mã</th><th>Tiêu chí</th><th style={{ width: 80 }}>Tối đa</th></tr></thead>
+            <tbody>
+              {collectiveGroups.map((g) => (
+                <React.Fragment key={g.code}>
+                  <tr className="table-light fw-semibold">
+                    <td>{g.code}</td>
+                    <td>{g.name} <span className="fw-normal text-secondary">— {COLLECTIVE_KIND_LABELS[g.kind] ?? g.kind}</span></td>
+                    <td>{fmt(g.items.reduce((s, i) => s + i.maxScore, 0))}</td>
+                  </tr>
+                  {g.items.map((i) => <tr key={i.code}><td>{i.code}</td><td>{i.text}</td><td>{fmt(i.maxScore)}</td></tr>)}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div>
         <h3 className="h6 small fw-bold text-secondary">Trục kết quả{form === "09B" ? ` (chấm trực tiếp, tổng ${fmt(content.axes.reduce((s, a) => s + a.maxScore, 0))} điểm)` : ""}</h3>
@@ -105,14 +127,14 @@ export function CriteriaSummary({ content, form }: { content: CriteriaSetContent
         <h3 className="h6 small fw-bold text-secondary">Tham số</h3>
         <ul className="mb-0 ps-3">
           <li>Số sản phẩm {p.minTasks}–{p.maxTasks}; tổng trọng số / điểm tối đa nhóm nhiệm vụ {fmt(p.totalTaskWeight)} (sai số {fmt(p.taskWeightTolerance)}).</li>
-          <li>K/AD: {p.allowNotApplicable ? (p.notApplicableRule === "GrantFull" ? "cho phép, tính như đạt tối đa" : "cho phép, bỏ khỏi mẫu số rồi quy đổi") : "không cho phép"}; khoản giảm {p.deductionReasonMinPoints != null ? `từ ${fmt(p.deductionReasonMinPoints)} điểm phải nêu lý do` : "không bắt buộc lý do"}.</li>
+          <li>Không áp dụng (K/AD): {p.allowNotApplicable ? (p.notApplicableRule === "GrantFull" ? "được phép, tính như đạt tối đa" : "được phép, bỏ khỏi mẫu số rồi quy đổi") : "không được phép"}; giảm từ {p.deductionReasonMinPoints != null ? `${fmt(p.deductionReasonMinPoints)} điểm phải nêu lý do` : "không bắt buộc nêu lý do"}.</li>
           <li>Giải trình khi chênh lệch tự chấm – thẩm định từ {fmt(p.explanationThreshold)} điểm{p.explanationOnGradeChange ? " hoặc làm đổi mức" : ""}.</li>
           <li>Trần xuất sắc {fmt(p.excellentQuota.ratio * 100)}% số {p.excellentQuota.denominator === "GoodOnly" ? "\"Hoàn thành tốt\"" : "\"Hoàn thành tốt\" trở lên"}, làm tròn: {ROUNDING_LABELS[p.excellentQuota.rounding]}.</li>
           <li>
             Làm tròn — điểm sản phẩm: {p.rounding.taskScore.decimals} chữ số, {ROUNDING_LABELS[p.rounding.taskScore.mode]}; tổng nhiệm vụ: {p.rounding.tasksTotal.decimals}, {ROUNDING_LABELS[p.rounding.tasksTotal.mode]};
             tiêu chí chung: {p.rounding.generalTotal.decimals}, {ROUNDING_LABELS[p.rounding.generalTotal.mode]}; tổng điểm: {p.rounding.total.decimals}, {ROUNDING_LABELS[p.rounding.total.mode]}.
           </li>
-          <li>Hồ sơ tập thể: tối đa {fmt(p.collectiveGeneralMaxScore)} / {fmt(p.collectiveTaskMaxScore)} điểm.</li>
+          <li>Hồ sơ tập thể: tối đa {fmt(p.collectiveGeneralMaxScore)} / {fmt(p.collectiveTaskMaxScore)} điểm{collectiveGroups.length > 0 ? ", chấm theo khung tiêu chí tập thể" : ", nhập thẳng điểm hai nhóm"}.</li>
           <li>
             Sau công bố: công khai {p.publishScores ? "mức xếp loại kèm điểm chính thức" : "chỉ mức xếp loại"}; bắt buộc lập kế hoạch 30-60-90 ngày (Mẫu 17) với mức{" "}
             {(p.improvementPlanRequiredGrades ?? ["HoanThanh", "KhongHoanThanh"]).map((g) => GRADE_LABELS[g as keyof typeof GRADE_LABELS] ?? g).join(", ") || "— (không bắt buộc)"};

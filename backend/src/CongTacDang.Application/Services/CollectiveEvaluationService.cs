@@ -29,8 +29,11 @@ public interface ICollectiveEvaluationService
     /// <summary>Sửa nội dung hồ sơ tập thể (không đổi kỳ, biểu mẫu, tổ chức) — kiểm tra phiên bản.</summary>
     Task<CollectiveEvaluationRecordDto> UpdateCollectiveRecordAsync(Guid id, Guid requesterId, SaveCollectiveEvaluationRequestDto dto);
 
-    /// <summary>Danh mục mục nhập Mẫu 07 và nhóm nội dung Mẫu 08 (nguyên văn biểu mẫu gốc).</summary>
-    CollectiveFormCatalogDto GetFormCatalog();
+    /// <summary>
+    /// Danh mục mục nhập Mẫu 07 và nhóm nội dung Mẫu 08 (nguyên văn biểu mẫu gốc); có <paramref name="periodId"/> thì kèm khung
+    /// tiêu chí tập thể và điểm tối đa hai nhóm theo bộ tiêu chí của kỳ.
+    /// </summary>
+    Task<CollectiveFormCatalogDto> GetFormCatalogAsync(Guid? periodId = null);
 
     /// <summary>Sửa thông tin biên bản (không đổi kỳ, tổ chức, biểu mẫu, kết quả kiểm phiếu) — kiểm tra phiên bản.</summary>
     Task<EvaluationMeetingDto> UpdateMeetingAsync(Guid id, Guid requesterId, SaveEvaluationMeetingRequestDto dto);
@@ -110,9 +113,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         // Điểm tối đa lấy từ tham số bộ tiêu chí của kỳ (mặc định 30 / 70).
         var period = await _evaluationRepo.GetPeriodByIdAsync(dto.PeriodId)
             ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {dto.PeriodId}");
-        var parameters = SafeParameters(period);
-        ValidateScore(dto.GeneralCriteriaScore, parameters.CollectiveGeneralMaxScore, "Điểm nhóm tiêu chí chung");
-        ValidateScore(dto.TaskCriteriaScore, parameters.CollectiveTaskMaxScore, "Điểm nhóm kết quả thực hiện nhiệm vụ");
+        var scores = ResolveScores(period, form, dto);
 
         var record = new CollectiveEvaluationRecord
         {
@@ -123,7 +124,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             Status = CollectiveRecordStatus.Submitted,
             CreatedBy = requesterId
         };
-        ApplyContent(record, dto, requesterId);
+        ApplyContent(record, dto, scores, requesterId);
         record.Items = BuildItems(form, dto.Items);
 
         await _collectiveRepo.AddAsync(record);
@@ -142,11 +143,9 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         if (string.IsNullOrWhiteSpace(dto.SubjectName))
             throw new ArgumentException("Tên tập thể hoặc lĩnh vực đánh giá không được để trống.");
 
-        var parameters = SafeParameters(record.Period);
-        ValidateScore(dto.GeneralCriteriaScore, parameters.CollectiveGeneralMaxScore, "Điểm nhóm tiêu chí chung");
-        ValidateScore(dto.TaskCriteriaScore, parameters.CollectiveTaskMaxScore, "Điểm nhóm kết quả thực hiện nhiệm vụ");
+        var scores = ResolveScores(record.Period, record.Form, dto);
 
-        ApplyContent(record, dto, requesterId);
+        ApplyContent(record, dto, scores, requesterId);
         _collectiveRepo.ReplaceItems(record, BuildItems(record.Form, dto.Items));
         _unitOfWork.SetOriginalVersion(record, dto.Version);
         await _unitOfWork.SaveChangesAsync();
@@ -155,15 +154,117 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return MapCollective(saved);
     }
 
-    /// <summary>Danh mục mục nhập Mẫu 07 và nhóm nội dung Mẫu 08.</summary>
-    public CollectiveFormCatalogDto GetFormCatalog() => new()
+    /// <summary>Danh mục mục nhập Mẫu 07 và nhóm nội dung Mẫu 08; có kỳ thì kèm khung tiêu chí tập thể của bộ tiêu chí của kỳ.</summary>
+    public async Task<CollectiveFormCatalogDto> GetFormCatalogAsync(Guid? periodId = null)
     {
-        Form07Strengths = Hd03FormCatalog.Form07Strengths.Select(s => new CollectiveFormSectionDto { Code = s.Code, Title = s.Title }).ToList(),
-        Form08Categories = Hd03FormCatalog.Form08Categories.Select(s => new CollectiveFormSectionDto { Code = s.Code, Title = s.Title }).ToList()
-    };
+        var catalog = new CollectiveFormCatalogDto
+        {
+            Form07Strengths = Hd03FormCatalog.Form07Strengths.Select(s => new CollectiveFormSectionDto { Code = s.Code, Title = s.Title }).ToList(),
+            Form08Categories = Hd03FormCatalog.Form08Categories.Select(s => new CollectiveFormSectionDto { Code = s.Code, Title = s.Title }).ToList()
+        };
+        if (!periodId.HasValue)
+            return catalog;
+
+        var period = await _evaluationRepo.GetPeriodByIdAsync(periodId.Value)
+            ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId.Value}");
+        var content = EvaluationMapping.SafeCriteria(period)?.Content;
+        var parameters = content?.Parameters ?? new CriteriaParameters();
+        catalog.GeneralMaxScore = parameters.CollectiveGeneralMaxScore;
+        catalog.TaskMaxScore = parameters.CollectiveTaskMaxScore;
+        catalog.CollectiveGroups = (content?.CollectiveGroups ?? new List<CollectiveCriteriaGroup>())
+            .Select(group => new CollectiveCriteriaGroupDto
+            {
+                Code = group.Code,
+                Name = group.Name,
+                Kind = group.Kind.ToString(),
+                Items = group.Items.Select(item => new CollectiveCriteriaItemDto
+                {
+                    Code = item.Code,
+                    Text = item.Text,
+                    MaxScore = item.MaxScore
+                }).ToList()
+            })
+            .ToList();
+        return catalog;
+    }
+
+    /// <summary>Điểm hồ sơ tập thể đã kiểm tra: hai điểm nhóm và điểm từng tiêu chí (JSON) để lưu.</summary>
+    private sealed record CollectiveScores(double General, double Task, string CriteriaScoresJson);
+
+    /// <summary>
+    /// Kiểm tra và tính điểm hồ sơ tập thể. Bộ tiêu chí của kỳ có khung tập thể và mẫu là M06/M07 → chấm từng tiêu chí, điểm
+    /// nhóm là tổng điểm tiêu chí theo nhóm điểm (bỏ qua hai điểm nhóm gửi lên). Ngược lại → nhập thẳng hai điểm nhóm.
+    /// </summary>
+    private static CollectiveScores ResolveScores(EvaluationPeriod period, CollectiveEvaluationForm form, SaveCollectiveEvaluationRequestDto dto)
+    {
+        var content = EvaluationMapping.SafeCriteria(period)?.Content;
+        var parameters = content?.Parameters ?? new CriteriaParameters();
+        var groups = content?.CollectiveGroups ?? new List<CollectiveCriteriaGroup>();
+        var usesFramework = groups.Any(g => g.Items.Count > 0)
+            && form is CollectiveEvaluationForm.M06 or CollectiveEvaluationForm.M07;
+
+        if (!usesFramework)
+        {
+            ValidateScore(dto.GeneralCriteriaScore, parameters.CollectiveGeneralMaxScore, "Điểm nhóm tiêu chí chung");
+            ValidateScore(dto.TaskCriteriaScore, parameters.CollectiveTaskMaxScore, "Điểm nhóm kết quả thực hiện nhiệm vụ");
+            return new CollectiveScores(dto.GeneralCriteriaScore, dto.TaskCriteriaScore, "{}");
+        }
+
+        if (dto.CriteriaScores == null || dto.CriteriaScores.Count == 0)
+            throw new ArgumentException("Bộ tiêu chí của kỳ có khung tiêu chí tập thể: hãy chấm điểm từng tiêu chí (criteriaScores).");
+
+        var input = new Dictionary<string, double>(StringComparer.Ordinal);
+        foreach (var (rawCode, value) in dto.CriteriaScores)
+        {
+            var code = rawCode?.Trim() ?? string.Empty;
+            if (!input.TryAdd(code, value))
+                throw new ArgumentException($"Tiêu chí \"{code}\" được chấm nhiều lần.");
+        }
+
+        var known = groups.SelectMany(g => g.Items).Select(i => i.Code).ToHashSet(StringComparer.Ordinal);
+        var unknown = input.Keys.Where(code => !known.Contains(code)).ToList();
+        if (unknown.Count > 0)
+            throw new ArgumentException(
+                $"Tiêu chí {string.Join(", ", unknown.Select(c => $"\"{c}\""))} không có trong khung tiêu chí tập thể của kỳ.");
+
+        var clean = new SortedDictionary<string, double>(StringComparer.Ordinal);
+        double general = 0, task = 0;
+        foreach (var group in groups)
+        {
+            foreach (var item in group.Items)
+            {
+                if (!input.TryGetValue(item.Code, out var score))
+                    throw new ArgumentException($"Chưa chấm điểm tiêu chí {item.Code} — {item.Text}.");
+                if (!double.IsFinite(score) || score < 0 || score > item.MaxScore)
+                    throw new ArgumentException($"Điểm tiêu chí {item.Code} — {item.Text} phải từ 0 đến {item.MaxScore} điểm.");
+                clean[item.Code] = score;
+                if (group.Kind == CollectiveScoreKind.Task)
+                    task += score;
+                else
+                    general += score;
+            }
+        }
+
+        return new CollectiveScores(Math.Round(general, 2), Math.Round(task, 2), JsonSerializer.Serialize(clean));
+    }
+
+    /// <summary>Đọc điểm từng tiêu chí đã lưu (dữ liệu hỏng → rỗng).</summary>
+    public static Dictionary<string, double> DeserializeCriteriaScores(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return new Dictionary<string, double>();
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, double>>(json) ?? new Dictionary<string, double>();
+        }
+        catch (JsonException)
+        {
+            return new Dictionary<string, double>();
+        }
+    }
 
     /// <summary>Gán nội dung tự đánh giá, điểm và các mục con từ yêu cầu (dùng chung cho tạo và sửa).</summary>
-    private static void ApplyContent(CollectiveEvaluationRecord record, SaveCollectiveEvaluationRequestDto dto, Guid requesterId)
+    private static void ApplyContent(CollectiveEvaluationRecord record, SaveCollectiveEvaluationRequestDto dto, CollectiveScores scores, Guid requesterId)
     {
         record.HeadId = dto.HeadId;
         record.SubjectName = Limit(dto.SubjectName.Trim(), 300, "Tên tập thể hoặc lĩnh vực đánh giá");
@@ -174,9 +275,10 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         record.Explanation = Limit(dto.Explanation, MaxTextLength, "Giải trình những vấn đề được gợi ý kiểm điểm");
         record.Responsibilities = Limit(dto.Responsibilities, MaxTextLength, "Trách nhiệm của tập thể, cá nhân");
         record.RemediationPlan = Limit(dto.RemediationPlan, MaxTextLength, "Phương hướng, biện pháp khắc phục");
-        record.GeneralCriteriaScore = dto.GeneralCriteriaScore;
-        record.TaskCriteriaScore = dto.TaskCriteriaScore;
-        record.TotalScore = Math.Round(dto.GeneralCriteriaScore + dto.TaskCriteriaScore, 2);
+        record.GeneralCriteriaScore = scores.General;
+        record.TaskCriteriaScore = scores.Task;
+        record.TotalScore = Math.Round(scores.General + scores.Task, 2);
+        record.CriteriaScores = scores.CriteriaScoresJson;
         record.SelfProposedGrade = ParseGrade(dto.SelfProposedGrade);
         record.Sections = SerializeSections(record.Form, dto.Sections);
         record.UpdatedBy = requesterId;
@@ -509,10 +611,6 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return read.Union(_guard.GetScope(PermissionCodes.CollectiveManage));
     }
 
-    /// <summary>Tham số của bộ tiêu chí của kỳ (mặc định 30/70 nếu kỳ chưa chọn bộ hoặc ảnh chụp lỗi).</summary>
-    private static CriteriaParameters SafeParameters(EvaluationPeriod period) =>
-        EvaluationMapping.SafeCriteria(period)?.Content.Parameters ?? new CriteriaParameters();
-
     /// <summary>Chuyển mã Mẫu 06-08 sang enum nghiệp vụ.</summary>
     private static CollectiveEvaluationForm? ParseCollectiveForm(string? form)
     {
@@ -563,6 +661,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             RemediationPlan = record.RemediationPlan,
             GeneralCriteriaScore = record.GeneralCriteriaScore,
             TaskCriteriaScore = record.TaskCriteriaScore,
+            CriteriaScores = DeserializeCriteriaScores(record.CriteriaScores),
             TotalScore = record.TotalScore,
             SelfProposedGrade = record.SelfProposedGrade.ToString(),
             Status = record.Status.ToString(),

@@ -38,7 +38,7 @@
 |---|---|---|
 | `dotnet build backend/CongTacDang.slnx` | pass | 0 lỗi, 9 warning CS0618 — đều có sẵn trên nền `473665f` (`UserService`, `AuthService`, `UserController`, `SecurityTests`), không thêm warning mới |
 | `dotnet test` — unit | pass | 175 test: **174 pass, 1 skip** (`PdfConversionTests.Mau01…` — thiếu LibreOffice, skip sẵn có), 0 fail; 5 test mới |
-| `dotnet test` — integration (có `CONGTACDANG_TEST_PG`, máy chủ 159) | pass | 51 test: **50 chạy + pass, 1 skip** (`GoLive_Step3_AuthMe_ReturnsGrantsWithScope` — chờ `grants`), 0 fail; 4 test mới (3 chạy, 1 skip). Skip không tính là pass |
+| `dotnet test` — integration (có `CONGTACDANG_TEST_PG`) | pass | 51 test: **50 chạy + pass, 1 skip** (`GoLive_Step3_AuthMe_ReturnsGrantsWithScope` — chờ `grants`), 0 fail; 4 test mới (3 chạy, 1 skip). Skip không tính là pass |
 | `npx tsc --noEmit` | pass | |
 | `npm run build` | pass | Không sửa frontend |
 | CSDL tạm | chỉ `ctd_it_*` | Kịch bản go-live dùng collection `golive` với `ApiFactory` riêng → **thêm 1 CSDL `ctd_it_*`** mỗi lần chạy, xóa khi xong. Không đụng `congtacdang_test`. |

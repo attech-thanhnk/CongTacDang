@@ -22,3 +22,14 @@ public enum AttachmentLinkKind
 /// <param name="Record">Hồ sơ đánh giá (nạp kèm Member).</param>
 /// <param name="Kind">Cách tệp gắn vào hồ sơ (quyết định quyền sửa/xóa tệp).</param>
 public sealed record AttachmentRecordLink(EvaluationRecord Record, AttachmentLinkKind Kind);
+
+/// <summary>Hồ sơ đánh giá tập thể sở hữu tệp (phụ lục, báo cáo kèm theo) — dữ liệu kiểm tra quyền trên tệp.</summary>
+/// <param name="Id">Id hồ sơ tập thể.</param>
+/// <param name="DepartmentId">Đơn vị chính quyền của hồ sơ.</param>
+/// <param name="PartyCellId">Tổ chức Đảng của hồ sơ.</param>
+/// <param name="PeriodClosed">Kỳ của hồ sơ đã đóng (không tải lên/thay/gỡ tệp).</param>
+public sealed record CollectiveAttachmentOwner(System.Guid Id, System.Guid? DepartmentId, System.Guid? PartyCellId, bool PeriodClosed)
+{
+    /// <summary>Đối tượng kiểm tra quyền theo tổ chức của hồ sơ tập thể.</summary>
+    public AccessTarget Target => new(DepartmentId: DepartmentId, PartyCellId: PartyCellId);
+}

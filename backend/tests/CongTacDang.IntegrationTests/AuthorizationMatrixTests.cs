@@ -254,7 +254,8 @@ public sealed class AuthorizationMatrixTests
         Assert.Equal(HttpStatusCode.Forbidden, (await s.CellSecA.GetAsync($"/api/evaluations/collective-records/{s.CollectiveB}")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await s.CellSecA.GetAsync($"/api/evaluations/collective-records/{s.CollectiveA}")).StatusCode);
 
-        object Collective(Guid cell) => new { periodId = s.PeriodId, form = "M07", partyCellId = cell, subjectName = "Chi bộ", generalCriteriaScore = 25.0, taskCriteriaScore = 60.0 };
+        object Collective(Guid cell) => new { periodId = s.PeriodId, form = "M07", partyCellId = cell, subjectName = "Chi bộ", generalCriteriaScore = 25.0, taskCriteriaScore = 60.0,
+            criteriaScores = new Dictionary<string, double> { ["I.1"] = 5, ["I.2"] = 5, ["I.3"] = 5, ["I.4"] = 5, ["I.5"] = 5, ["I.6"] = 0, ["II.1"] = 40, ["II.2"] = 20 } };
         Assert.Equal(HttpStatusCode.OK, (await s.CellSecA.PostAsJsonAsync("/api/evaluations/collective-records", Collective(s.CellA))).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await s.CellSecA.PostAsJsonAsync("/api/evaluations/collective-records", Collective(s.CellB))).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await s.Appraiser.PostAsJsonAsync("/api/evaluations/collective-records", Collective(s.CellA))).StatusCode);
@@ -352,6 +353,91 @@ public sealed class AuthorizationMatrixTests
         Assert.Equal(HttpStatusCode.NotFound, (await s.OwnerA1.GetAsync($"/api/attachments/{unlinkedId}/view")).StatusCode);
     }
 
+    /// <summary>
+    /// Phụ lục, báo cáo kèm hồ sơ tập thể (Mẫu 06/07/08): collective.manage trên tổ chức của hồ sơ tải lên/thay/gỡ (tệp thuộc tập thể,
+    /// không giới hạn người tải); evaluation.read trong phạm vi chỉ xem/tải; ngoài phạm vi 403; kỳ đóng không tải lên/gỡ;
+    /// gỡ là xóa mềm cả nhóm phiên bản.
+    /// </summary>
+    [SkippableFact]
+    public async Task CollectiveAttachments_ManageByCollectiveManage_ReadByScope()
+    {
+        var s = await GetScenarioAsync();
+        var readerOnly = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(readerOnly.Id, (await _factory.CreateRoleAsync("evaluation.read")).Id, RoleScopeType.PartyCell, s.CellA);
+        var otherManager = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(otherManager.Id, (await _factory.CreateRoleAsync("collective.manage")).Id, RoleScopeType.PartyCell, s.CellA);
+        var reader = await _factory.LoginAsAsync(readerOnly.Username, readerOnly.Password, distinctClientIp: true);
+        var manager2 = await _factory.LoginAsAsync(otherManager.Username, otherManager.Password, distinctClientIp: true);
+        const string type = "CollectiveEvaluationRecord";
+        var byOwner = $"/api/attachments?ownerType={type}&ownerId={s.CollectiveA}";
+
+        // Tải lên: Chi ủy Chi bộ A (collective.manage) → 200; chỉ evaluation.read, ngoài phạm vi, cán bộ, quản trị → 403.
+        var uploaded = await Upload(s.CellSecA, "M07", type, s.CollectiveA);
+        var fileId = (await ReadData(uploaded)).GetProperty("id").GetGuid();
+        foreach (var client in new[] { reader, s.DeptLeadB, s.OwnerA1, s.Admin, s.Appraiser })
+            Assert.Equal(HttpStatusCode.Forbidden, (await Upload(client, "M07", type, s.CollectiveA)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await Upload(s.CellSecA, "M06", type, s.CollectiveB)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await Upload(s.CellSecA, "M07", type, Guid.NewGuid())).StatusCode);
+
+        // Xem/tải: ai xem được hồ sơ tập thể (evaluation.read hoặc collective.manage trong phạm vi).
+        foreach (var client in new[] { s.CellSecA, reader, manager2, s.Committee })
+        {
+            Assert.Contains(fileId, await Ids(client, byOwner));
+            Assert.Contains(fileId, await Ids(client, "/api/attachments/list"));
+            Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/attachments/{fileId}")).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/attachments/{fileId}/download")).StatusCode);
+        }
+        foreach (var client in new[] { s.DeptLeadB, s.OwnerA1, s.Admin, s.Plain })
+        {
+            Assert.Empty(await Ids(client, byOwner));
+            Assert.DoesNotContain(fileId, await Ids(client, "/api/attachments/list"));
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/attachments/{fileId}/download")).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/attachments/{fileId}/versions")).StatusCode);
+        }
+
+        // Thay bản mới / gỡ: chỉ collective.manage (người quản lý khác cùng tổ chức cũng được); người chỉ xem → 403.
+        Assert.Equal(HttpStatusCode.Forbidden, (await UploadVersion(reader, fileId)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await reader.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerA1.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        var v2 = await ReadData(await UploadVersion(manager2, fileId));
+        Assert.Equal(2, v2.GetProperty("versionNumber").GetInt32());
+        Assert.Equal(HttpStatusCode.OK, (await s.CellSecA.DeleteAsync($"/api/attachments/{v2.GetProperty("id").GetGuid()}")).StatusCode);
+        Assert.Empty(await Ids(s.CellSecA, byOwner));
+        await _factory.WithDbAsync(async db =>
+        {
+            var versions = await db.TaskAttachments.IgnoreQueryFilters()
+                .Where(a => a.Id == fileId || a.FileGroupId == fileId).ToListAsync();
+            Assert.Equal(2, versions.Count);
+            Assert.All(versions, v => Assert.True(v.IsDeleted));
+        });
+
+        // Kỳ đã đóng: chỉ xem, không tải lên/thay/gỡ.
+        Guid closedRecord = Guid.Empty, closedFile = Guid.Empty;
+        var kept = await ReadData(await Upload(s.CellSecA, "M07", type, s.CollectiveA));
+        await _factory.WithDbAsync(async db =>
+        {
+            var period = new EvaluationPeriod
+            {
+                Year = 2030, Quarter = EvaluationQuarter.Quy3, Name = $"Kỳ đóng {Guid.NewGuid():N}"[..20],
+                StartDate = DateTime.UtcNow.AddDays(-100), EndDate = DateTime.UtcNow.AddDays(-10), Status = PeriodStatus.Closed
+            };
+            var record = new CollectiveEvaluationRecord { Period = period, Form = CollectiveEvaluationForm.M07, PartyCellId = s.CellA, SubjectName = "Chi bộ A", UpdatedAt = DateTime.UtcNow };
+            db.AddRange(period, record);
+            await db.SaveChangesAsync();
+            closedRecord = record.Id;
+            // Tệp có từ trước khi đóng kỳ: chuyển tệp vừa tải sang hồ sơ của kỳ đã đóng.
+            var file = await db.TaskAttachments.SingleAsync(a => a.Id == kept.GetProperty("id").GetGuid());
+            file.OwnerId = record.Id;
+            await db.SaveChangesAsync();
+            closedFile = file.Id;
+        });
+        Assert.Equal(HttpStatusCode.Forbidden, (await Upload(s.CellSecA, "M07", type, closedRecord)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await UploadVersion(s.CellSecA, closedFile)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.CellSecA.DeleteAsync($"/api/attachments/{closedFile}")).StatusCode);
+        Assert.Contains(closedFile, await Ids(reader, $"/api/attachments?ownerType={type}&ownerId={closedRecord}"));
+        Assert.Equal(HttpStatusCode.OK, (await s.CellSecA.GetAsync($"/api/attachments/{closedFile}/download")).StatusCode);
+    }
+
     #endregion
 
     #region Báo cáo
@@ -436,6 +522,15 @@ public sealed class AuthorizationMatrixTests
         if (ownerId != null)
             content.Add(new StringContent(ownerId.Value.ToString()), "ownerId");
         return await client.PostAsync("/api/attachments/upload", content);
+    }
+
+    private static async Task<HttpResponseMessage> UploadVersion(HttpClient client, Guid fileId)
+    {
+        using var content = new MultipartFormDataContent();
+        var file = new ByteArrayContent("%PDF-1.4 v2"u8.ToArray());
+        file.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        content.Add(file, "file", "phu-luc-v2.pdf");
+        return await client.PostAsync($"/api/attachments/{fileId}/versions", content);
     }
 
     private static async Task<List<string>> CadreNames(HttpClient client)

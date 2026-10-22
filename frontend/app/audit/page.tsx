@@ -43,7 +43,7 @@ const ENTITY_LABELS: Record<string, string> = {
   Permission: "Quyền",
   role_permissions: "Quyền của vai trò",
   "Dictionary`2": "Quyền của vai trò",
-  UserRoleAssignment: "Bản gán vai trò",
+  UserRoleAssignment: "Phân công vai trò",
   RefreshToken: "Phiên đăng nhập",
   Import: "Nhập dữ liệu từ Excel",
 };
@@ -55,7 +55,7 @@ const ACTION_META: Record<string, { label: string; icon: string; tone: string }>
   Delete: { label: "Xóa mềm", icon: "bi-archive", tone: "t-bad" },
   Import: { label: "Nhập dữ liệu", icon: "bi-file-earmark-arrow-up", tone: "t-wait" },
   Approve: { label: "Phê duyệt", icon: "bi-check2-circle", tone: "t-ok" },
-  AssignRoles: { label: "Gán vai trò", icon: "bi-person-badge", tone: "t-wait" },
+  AssignRoles: { label: "Phân công vai trò", icon: "bi-person-badge", tone: "t-wait" },
   UpdatePermissions: { label: "Cập nhật quyền", icon: "bi-shield-check", tone: "t-wait" },
 };
 

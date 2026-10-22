@@ -331,6 +331,7 @@ public sealed class PostPublishUnitTests
         public Task<EvaluationRecordDto> SubmitTasksAsync(Guid recordId, SubmitTasksRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<EvaluationRecordDto> ApproveTasksAsync(Guid recordId, ApproveTasksRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<EvaluationRecordDto> ReturnTasksAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<EvaluationRecordDto> RevokeTaskApprovalAsync(Guid recordId, WorkflowRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<EvaluationRecordDto> SubmitSelfScoreAsync(Guid recordId, SubmitSelfScoreRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<EvaluationRecordDto> SaveSelfScoreDraftAsync(Guid recordId, SubmitSelfScoreRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<EvaluationRecordDto> ConfirmByCellAsync(Guid recordId, CommentRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();

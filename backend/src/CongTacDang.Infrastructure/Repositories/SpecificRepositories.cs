@@ -214,6 +214,21 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
             .FirstOrDefaultAsync(r => r.Id == recordId.Value);
     }
 
+    /// <summary>Lấy tổ chức và trạng thái kỳ của các hồ sơ tập thể sở hữu tệp (hồ sơ đã xóa mềm bị bộ lọc loại ra).</summary>
+    public async Task<Dictionary<Guid, CollectiveAttachmentOwner>> GetCollectiveOwnersAsync(IReadOnlyCollection<Guid> collectiveRecordIds)
+    {
+        if (collectiveRecordIds.Count == 0)
+            return new Dictionary<Guid, CollectiveAttachmentOwner>();
+
+        var ids = collectiveRecordIds.Distinct().ToList();
+        var rows = await _db.CollectiveEvaluationRecords
+            .AsNoTracking()
+            .Where(r => ids.Contains(r.Id))
+            .Select(r => new { r.Id, r.DepartmentId, r.PartyCellId, Closed = r.Period.Status == PeriodStatus.Closed })
+            .ToListAsync();
+        return rows.ToDictionary(r => r.Id, r => new CollectiveAttachmentOwner(r.Id, r.DepartmentId, r.PartyCellId, r.Closed));
+    }
+
 
     /// <summary>Lấy các hồ sơ đánh giá mà mỗi tệp đang gắn vào (qua RecordId hoặc qua nhiệm vụ).</summary>
     public async Task<Dictionary<Guid, List<AttachmentRecordLink>>> GetRecordLinksAsync(IReadOnlyCollection<TaskAttachment> attachments)

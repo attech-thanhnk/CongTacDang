@@ -710,6 +710,8 @@ public class CollectiveEvaluationRecordDto
     public string RemediationPlan { get; set; } = string.Empty;
     public double GeneralCriteriaScore { get; set; }
     public double TaskCriteriaScore { get; set; }
+    /// <summary>Điểm từng tiêu chí của khung tiêu chí tập thể theo mã tiêu chí con (rỗng = nhập thẳng hai điểm nhóm).</summary>
+    public Dictionary<string, double> CriteriaScores { get; set; } = new();
     public double TotalScore { get; set; }
     public string SelfProposedGrade { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
@@ -738,6 +740,11 @@ public class SaveCollectiveEvaluationRequestDto
     public double GeneralCriteriaScore { get; set; }
     public double TaskCriteriaScore { get; set; }
     public string SelfProposedGrade { get; set; } = "HoanThanhTot";
+    /// <summary>
+    /// Điểm từng tiêu chí khi bộ tiêu chí của kỳ có khung tập thể (mã tiêu chí con → điểm); khi đó máy chủ tự cộng ra
+    /// <see cref="GeneralCriteriaScore"/>, <see cref="TaskCriteriaScore"/> và bỏ qua hai giá trị gửi lên.
+    /// </summary>
+    public Dictionary<string, double>? CriteriaScores { get; set; }
     /// <summary>Nội dung các mục con theo mã mục của biểu mẫu (Mẫu 07: I.1–I.4; mã khác bị từ chối).</summary>
     public Dictionary<string, string> Sections { get; set; } = new();
     /// <summary>Mẫu 08: mỗi dòng một nhiệm vụ, <see cref="CollectiveEvaluationItemDto.Category"/> là mã nhóm nội dung 1–13.</summary>

@@ -249,6 +249,15 @@ public sealed class CriteriaSetIntegrationTests
         var frames = await Data(w.Owner1C, "/api/criteria-sets/weight-frames");
         Assert.Equal(new[] { "K1", "K2", "K3", "K4" }, frames.GetProperty("frames").EnumerateArray().Select(f => f.GetProperty("code").GetString()));
 
+        // Khung tiêu chí tập thể mặc định: chỉ người có criteria.manage; Kind dạng chuỗi, tổng 30 / 70.
+        Assert.Equal(HttpStatusCode.Forbidden, (await periodOnly.GetAsync("/api/criteria-sets/defaults/collective-groups")).StatusCode);
+        var collective = (await Data(w.Manager, "/api/criteria-sets/defaults/collective-groups")).EnumerateArray().ToList();
+        Assert.Equal(new[] { "I", "II" }, collective.Select(g => g.GetProperty("code").GetString()));
+        Assert.Equal(new[] { "General", "Task" }, collective.Select(g => g.GetProperty("kind").GetString()));
+        Assert.Equal(new[] { 30.0, 70.0 }, collective.Select(g => g.GetProperty("items").EnumerateArray().Sum(i => i.GetProperty("maxScore").GetDouble())));
+        var defaults09B = await Data(w.Manager, "/api/criteria-sets/defaults/09B");
+        Assert.Equal(2, defaults09B.GetProperty("collectiveGroups").GetArrayLength());
+
         // Bản nháp xóa được; bản nháp không chọn được cho kỳ.
         var draft = await Data(await w.Manager.PostAsJsonAsync("/api/criteria-sets", new { code = $"IT-DEL-{Guid.NewGuid().ToString("N")[..6]}", name = "Nháp xóa", selfScoreForm = "09A" }));
         var draftId = draft.GetProperty("id").GetGuid();

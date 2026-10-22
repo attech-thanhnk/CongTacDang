@@ -123,6 +123,11 @@ public class EvaluationController : ControllerBase
     public Task<IActionResult> ReturnTasks(Guid id, [FromBody] ReturnRecordRequestDto dto, CancellationToken ct) =>
         Run(() => _workflow.ReturnTasksAsync(id, dto, ct), "Đã trả lại danh mục sản phẩm.");
 
+    /// <summary>Thu hồi duyệt B1 ngay sau khi duyệt nhầm, trước khi chủ hồ sơ tự chấm.</summary>
+    [HttpPost("records/{id:guid}/tasks/approve/revoke")]
+    public Task<IActionResult> RevokeTaskApproval(Guid id, [FromBody] WorkflowRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.RevokeTaskApprovalAsync(id, dto, ct), "Đã thu hồi duyệt danh mục sản phẩm.");
+
     /// <summary>B2_SELF_SCORE — chủ hồ sơ nộp phiếu tự chấm.</summary>
     [HttpPost("records/{id:guid}/self-score/submit")]
     [RequirePermission(PermissionCodes.EvaluationSelf)]

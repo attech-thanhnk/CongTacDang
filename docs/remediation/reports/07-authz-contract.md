@@ -135,7 +135,7 @@ public sealed record CreatedAccount(Guid UserId, string Username, string Tempora
 |---|---|---|
 | `dotnet build backend/CongTacDang.slnx` | pass | 0 warning, 0 error |
 | `dotnet test` — unit | pass | 96 test: 95 pass, 1 skip (`PdfConversionTests.Mau01…` — thiếu LibreOffice, skip sẵn có), 0 fail |
-| `dotnet test` — integration (có `CONGTACDANG_TEST_PG`, máy chủ 159) | pass | 13 test: 13 pass, 0 skip, 0 fail (5 test HTTP trên PostgreSQL + 8 test chốt an toàn tên CSDL) |
+| `dotnet test` — integration (có `CONGTACDANG_TEST_PG`) | pass | 13 test: 13 pass, 0 skip, 0 fail (5 test HTTP trên PostgreSQL + 8 test chốt an toàn tên CSDL) |
 | `dotnet test` — integration (không có biến) | pass (skip) | 5 test HTTP **skip** kèm lý do, 8 test tên CSDL pass — skip không tính là pass |
 | `npx tsc --noEmit` | pass | frontend không đổi |
 | `npm run build` | pass | |

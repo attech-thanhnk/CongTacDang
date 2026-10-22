@@ -131,7 +131,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
       title: "Xóa vai trò",
       message:
         role.assignmentCount > 0
-          ? `Vai trò "${role.name}" đang có ${role.assignmentCount} bản gán đang hoặc sắp hiệu lực. Hãy kết thúc các bản gán trước khi xóa. Vẫn thử xóa?`
+          ? `Vai trò "${role.name}" đang có ${role.assignmentCount} phân công đang hoặc sắp hiệu lực. Hãy kết thúc các phân công trước khi xóa. Vẫn thử xóa?`
           : `Xóa vai trò "${role.name}"?`,
       confirmText: "Xóa",
       isDanger: true,
@@ -167,7 +167,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
     try {
       await roleService.createAssignment(payload);
       setAssignmentForm(null);
-      toast.success("Đã gán vai trò.");
+      toast.success("Đã phân công vai trò.");
       await afterAssignmentChange();
     } catch (err) {
       toast.error(errorMessage(err, "Không gán được vai trò."), errorTitle(err), 10000);
@@ -181,10 +181,10 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
     try {
       await roleService.updateAssignment(id, payload);
       setAssignmentForm(null);
-      toast.success("Đã cập nhật bản gán.");
+      toast.success("Đã cập nhật phân công.");
       await afterAssignmentChange();
     } catch (err) {
-      toast.error(errorMessage(err, "Không cập nhật được bản gán."), errorTitle(err), 10000);
+      toast.error(errorMessage(err, "Không cập nhật được phân công."), errorTitle(err), 10000);
     } finally {
       setSaving(false);
     }
@@ -281,7 +281,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
             )}
             {addedGlobalOnly.length > 0 && scopedAssignments > 0 && (
               <div className="alert alert-warning py-2">
-                Vai trò đang có {scopedAssignments} bản gán theo đơn vị nên không thêm được quyền &quot;Chỉ Toàn công ty&quot;.
+                Vai trò đang có {scopedAssignments} phân công theo đơn vị nên không thêm được quyền &quot;Chỉ Toàn công ty&quot;.
               </div>
             )}
             <div className="d-flex justify-content-end gap-2 mb-2 position-sticky" style={{ top: 0, zIndex: 2 }}>
@@ -303,7 +303,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
                 <div className="form-check mb-0">
                   <input id="show-history" type="checkbox" className="form-check-input" checked={showHistory} onChange={(e) => setShowHistory(e.target.checked)} />
                   <label htmlFor="show-history" className="form-check-label">
-                    Hiện cả bản gán đã hết hạn
+                    Hiện cả phân công đã hết hạn
                   </label>
                 </div>
                 <button type="button" className="btn btn-sm btn-primary" onClick={() => setAssignmentForm({})}>
@@ -317,24 +317,24 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
                 pageKey="role.assignments"
                 resetKeys={[showHistory]}
                 canManage
-                emptyText="Chưa có ai được gán vai trò này."
-                onEdit={(a) => (isOwnAssignment(a) ? toast.warning("Không thể sửa bản gán của chính mình.") : setAssignmentForm({ assignment: a }))}
+                emptyText="Chưa có ai được phân công vai trò này."
+                onEdit={(a) => (isOwnAssignment(a) ? toast.warning("Không thể sửa phân công của chính mình.") : setAssignmentForm({ assignment: a }))}
                 onEnd={(a) =>
                   confirm({
-                    title: "Kết thúc bản gán",
+                    title: "Kết thúc phân công",
                     message: `Kết thúc ngay vai trò "${a.roleName}" (${a.scopeName}) của ${a.fullName}?`,
                     confirmText: "Kết thúc",
                     isDanger: true,
-                    onConfirm: () => runAssignment(() => roleService.endAssignment(a.id), "Đã kết thúc bản gán.", "Không kết thúc được bản gán."),
+                    onConfirm: () => runAssignment(() => roleService.endAssignment(a.id), "Đã kết thúc phân công.", "Không kết thúc được phân công."),
                   })
                 }
                 onDelete={(a) =>
                   confirm({
-                    title: "Xóa bản gán",
-                    message: `Xóa bản gán vai trò "${a.roleName}" (${a.scopeName}) của ${a.fullName}? Nên dùng "Kết thúc" để giữ lịch sử; chỉ xóa khi gán nhầm.`,
+                    title: "Xóa phân công",
+                    message: `Xóa phân công vai trò "${a.roleName}" (${a.scopeName}) của ${a.fullName}? Nên dùng "Kết thúc" để giữ lịch sử; chỉ xóa khi phân công nhầm.`,
                     confirmText: "Xóa",
                     isDanger: true,
-                    onConfirm: () => runAssignment(() => roleService.deleteAssignment(a.id), "Đã xóa bản gán.", "Không xóa được bản gán."),
+                    onConfirm: () => runAssignment(() => roleService.deleteAssignment(a.id), "Đã xóa phân công.", "Không xóa được phân công."),
                   })
                 }
               />

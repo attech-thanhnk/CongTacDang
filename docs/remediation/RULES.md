@@ -83,7 +83,7 @@ Mục 3 (bảng phân chia file) và mục 5 (migration) ở trên áp dụng ch
 | `backend/tests/**` | mỗi task thêm file test riêng, không sửa file test của task khác |
 
 ### 7.3 Môi trường
-- **Không** chạy ứng dụng hay migration vào CSDL dùng chung (`192.168.22.159`). `user-secrets` của máy đang trỏ tới CSDL thử nghiệm của người điều phối — nếu cần chạy app, dùng biến môi trường trỏ tới CSDL khác hoặc không chạy.
+- **Không** chạy ứng dụng hay migration vào CSDL của người khác. `user-secrets` của máy trỏ tới CSDL `congtacdang_dev` trên PostgreSQL cục bộ (container `postgres` của Docker Compose, `localhost:5434`) — cần chạy app riêng thì dùng biến môi trường trỏ tới CSDL khác.
 - **Không** dùng cổng 5000 và 3001 (người điều phối đang chạy). Cần chạy thử thì dùng 5100–5199 / 3100–3199.
 - **Không** tạo EF migration; thay đổi schema liệt kê trong báo cáo, người điều phối sinh migration sau khi merge.
 - **Không** tự đặt luật nghiệp vụ mới (xem `docs/nghiep-vu/` — chưa xác nhận, không dùng làm căn cứ).
@@ -128,7 +128,7 @@ dotnet build backend/CongTacDang.slnx
 dotnet test  backend/CongTacDang.slnx          # unit + integration (integration skip nếu thiếu CONGTACDANG_TEST_PG)
 cd frontend && npx tsc --noEmit && npm run build
 ```
-- Test tích hợp chạy trên máy chủ PostgreSQL `192.168.22.159`: `CONGTACDANG_TEST_PG` trỏ tới CSDL quản trị `postgres` bằng tài khoản có quyền `CREATEDB` (người điều phối cấp, không ghi vào file nào trong repo). Test chỉ tạo/xóa CSDL tên `ctd_it_*`; **tuyệt đối không** đọc/ghi `congtacdang_test` hay CSDL khác. Mục 7.3 (không chạy app/migration vào CSDL dùng chung) vẫn giữ nguyên.
+- Test tích hợp chạy trên PostgreSQL cục bộ (container `postgres` của Docker Compose, `localhost:5434`): `CONGTACDANG_TEST_PG` trỏ tới CSDL quản trị `postgres` bằng tài khoản có quyền `CREATEDB` (tài khoản trong `docker/.env`, không ghi chuỗi kết nối vào file nào trong repo). Test chỉ tạo/xóa CSDL tên `ctd_it_*`; **tuyệt đối không** đọc/ghi `congtacdang_dev`, `congtacdang_db` hay CSDL khác. Mục 7.3 vẫn giữ nguyên.
 - Báo cáo ghi số test tích hợp **đã chạy** và **đã skip** — skip không được tính là pass.
 - Mỗi luồng (L/U/W…) trong task file phải xuất hiện trong báo cáo với trạng thái pass / fail / không chạy + tên test.
 

@@ -103,6 +103,8 @@ export default function EvaluationRecordPage() {
 
   const perform = async (action: WorkflowActionCode, payload: Record<string, unknown>, step?: WorkflowStepCode) => {
     if (!record) return;
+    const confirmation = ACTION_CONFIRMATIONS[action];
+    if (confirmation && !window.confirm(confirmation)) return;
     setBusy(true);
     try {
       await evaluationService.performAction(record.id, action, record.version ?? 0, payload, step);
@@ -211,6 +213,20 @@ export default function EvaluationRecordPage() {
     </div>
   );
 }
+
+const ACTION_CONFIRMATIONS: Partial<Record<WorkflowActionCode, string>> = {
+  SubmitTasks: "Nộp danh mục sản phẩm? Sau khi nộp, danh mục sẽ chờ duyệt.",
+  ApproveTasks: "Duyệt danh mục sản phẩm?",
+  RevokeTaskApproval: "Thu hồi duyệt? Hồ sơ sẽ quay lại bước đăng ký sản phẩm.",
+  SubmitSelfScore: "Nộp phiếu tự chấm? Sau khi nộp, bạn không thể sửa nếu chưa được trả lại.",
+  ConfirmByCell: "Xác nhận phiếu tự chấm?",
+  RecordCollectiveProposal: "Ghi nhận đề xuất của tập thể?",
+  Appraise: "Ghi nhận kết quả thẩm định?",
+  DirectorReview: "Ghi nhận nhận xét và đề xuất?",
+  RecordDecision: "Ghi nhận quyết định xếp loại?",
+  Publish: "Công bố và khóa kết quả? Sau đó chỉ có thể sửa bằng chức năng mở lại.",
+  RecordExternal: "Ghi nhận kết quả của cấp trên?",
+};
 
 /** Id khu thao tác và khối nội dung của từng bước (cuộn tới từ dòng trạng thái / thanh tiến trình). */
 const ACTIONS_ANCHOR = "record-actions";

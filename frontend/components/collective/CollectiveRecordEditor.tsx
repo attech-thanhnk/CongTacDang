@@ -1,9 +1,15 @@
 "use client";
 
-import React, { FormEvent, useEffect, useState } from "react";
+import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import type { CollectiveEvaluationItemDto } from "@/services/evaluationService";
 import type { BranchItem, DepartmentItem } from "@/services/organizationService";
-import { CollectiveFormCatalog, CollectiveRecord, SaveCollectiveRecord, collectiveService } from "@/services/collectiveService";
+import {
+  CollectiveCriteriaItem,
+  CollectiveFormCatalog,
+  CollectiveRecord,
+  SaveCollectiveRecord,
+  collectiveService,
+} from "@/services/collectiveService";
 import { usePermissionScope, withinScope } from "@/services/authService";
 
 export type CollectiveForm = "M06" | "M07" | "M08";
@@ -30,6 +36,13 @@ const emptyItem = (category: string, order: number): CollectiveEvaluationItemDto
   notes: "",
 });
 
+/** Nội dung tiêu chí dài hơn ngưỡng này thì rút gọn, bấm để xem đầy đủ. */
+const TEXT_PREVIEW_LENGTH = 140;
+
+const formatScore = (value: number) => String(Math.round(value * 100) / 100);
+
+const shortText = (text: string, length = 60) => (text.length > length ? text.slice(0, length) + "…" : text);
+
 /** Nhập hồ sơ tập thể theo đúng mục của biểu mẫu gốc: Mẫu 07 (mục A.I–VI, B), Mẫu 08 (13 nhóm nội dung), Mẫu 06. */
 export function CollectiveRecordEditor({ periodId, catalog, branches, departments, editing, onSaved, onCancel, showError }: Props) {
   const [form, setForm] = useState<CollectiveForm>("M07");
@@ -41,6 +54,9 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
   const [text, setText] = useState({ strengths: "", limitations: "", causes: "", previousRemediation: "", explanation: "", responsibilities: "", remediationPlan: "" });
   const [general, setGeneral] = useState(0);
   const [task, setTask] = useState(0);
+  /** Điểm từng tiêu chí của khung tập thể, giữ dạng chuỗi để ô chưa chấm để trống. */
+  const [criteriaInput, setCriteriaInput] = useState<Record<string, string>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [grade, setGrade] = useState("HoanThanhTot");
   const [items, setItems] = useState<CollectiveEvaluationItemDto[]>([]);
   const [saving, setSaving] = useState(false);
@@ -75,6 +91,8 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
       setText({ strengths: "", limitations: "", causes: "", previousRemediation: "", explanation: "", responsibilities: "", remediationPlan: "" });
       setGeneral(0);
       setTask(0);
+      setCriteriaInput({});
+      setExpanded({});
       setItems([]);
       return;
     }
@@ -95,9 +113,53 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
     });
     setGeneral(editing.generalCriteriaScore);
     setTask(editing.taskCriteriaScore);
+    setCriteriaInput(
+      Object.fromEntries(Object.entries(editing.criteriaScores ?? {}).map(([code, score]) => [code, String(score)])),
+    );
+    setExpanded({});
     setGrade(editing.selfProposedGrade || "HoanThanhTot");
     setItems(editing.items.map((item) => ({ ...item })));
   }, [editing]);
+
+  const groups = useMemo(() => catalog?.collectiveGroups ?? [], [catalog]);
+  const generalMax = catalog?.generalMaxScore ?? 30;
+  const taskMax = catalog?.taskMaxScore ?? 70;
+  /** Mẫu 06/07 chấm theo từng tiêu chí khi bộ tiêu chí của kỳ có khung tập thể. */
+  const useFramework = form !== "M08" && groups.some((group) => group.items.length > 0);
+
+  /** Điểm đã nhập hợp lệ của một tiêu chí (null = chưa chấm hoặc không phải số). */
+  const itemScore = (item: CollectiveCriteriaItem): number | null => {
+    const raw = (criteriaInput[item.code] ?? "").trim();
+    if (raw === "") return null;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : null;
+  };
+
+  const groupSum = (items: CollectiveCriteriaItem[]) => items.reduce((sum, item) => sum + (itemScore(item) ?? 0), 0);
+  const groupMax = (items: CollectiveCriteriaItem[]) => items.reduce((sum, item) => sum + item.maxScore, 0);
+
+  const frameworkGeneral = groups.filter((g) => g.kind !== "Task").reduce((sum, g) => sum + groupSum(g.items), 0);
+  const frameworkTask = groups.filter((g) => g.kind === "Task").reduce((sum, g) => sum + groupSum(g.items), 0);
+  const generalScore = useFramework ? frameworkGeneral : Number(general) || 0;
+  const taskScore = useFramework ? frameworkTask : Number(task) || 0;
+
+  /** Kiểm tra đủ và đúng khoảng điểm các tiêu chí; trả về thông báo lỗi hoặc null. */
+  const validateFramework = (): string | null => {
+    const missing: string[] = [];
+    const outOfRange: string[] = [];
+    for (const group of groups) {
+      for (const item of group.items) {
+        const raw = (criteriaInput[item.code] ?? "").trim();
+        const value = itemScore(item);
+        if (raw === "") missing.push(`${item.code}. ${shortText(item.text)}`);
+        else if (value === null || value < 0 || value > item.maxScore) outOfRange.push(`${item.code} (0–${formatScore(item.maxScore)})`);
+      }
+    }
+    const list = (values: string[]) => values.slice(0, 5).join("; ") + (values.length > 5 ? `; và ${values.length - 5} tiêu chí khác` : "");
+    if (missing.length > 0) return `Chưa chấm điểm ${missing.length} tiêu chí: ${list(missing)}.`;
+    if (outOfRange.length > 0) return `Điểm vượt khoảng cho phép ở tiêu chí: ${list(outOfRange)}.`;
+    return null;
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -113,6 +175,21 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
       showError("Hãy chọn Phòng / đơn vị của hồ sơ.");
       return;
     }
+    let criteriaScores: Record<string, number> | undefined;
+    if (useFramework) {
+      const problem = validateFramework();
+      if (problem) {
+        showError(problem);
+        return;
+      }
+      criteriaScores = {};
+      for (const group of groups) for (const item of group.items) criteriaScores[item.code] = itemScore(item) ?? 0;
+    } else if (form !== "M08") {
+      if (generalScore < 0 || generalScore > generalMax || taskScore < 0 || taskScore > taskMax) {
+        showError(`Điểm nhóm tiêu chí chung trong khoảng 0–${formatScore(generalMax)}, nhóm kết quả thực hiện nhiệm vụ trong khoảng 0–${formatScore(taskMax)}.`);
+        return;
+      }
+    }
     setSaving(true);
     const payload: SaveCollectiveRecord = {
       version: editing?.version,
@@ -122,8 +199,9 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
       departmentId: unit === "department" ? departmentId || undefined : undefined,
       subjectName,
       ...text,
-      generalCriteriaScore: Number(general),
-      taskCriteriaScore: Number(task),
+      generalCriteriaScore: form === "M08" ? Number(general) : generalScore,
+      taskCriteriaScore: form === "M08" ? Number(task) : taskScore,
+      ...(criteriaScores ? { criteriaScores } : {}),
       selfProposedGrade: grade,
       sections: form === "M07" ? sections : {},
       items: form === "M08" ? items.map((item, index) => ({ ...item, itemOrder: index + 1 })) : [],
@@ -225,18 +303,98 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
       {form !== "M08" && (
         <>
           <div className="col-12 mt-2 fw-semibold small text-uppercase text-secondary">B. Kết quả chấm điểm các tiêu chí đánh giá</div>
-          <div className="col-md-4">
-            <label className="form-label">1. Nhóm tiêu chí chung (/30)</label>
-            <input type="number" min={0} max={30} step={0.5} className="form-control form-control-sm" value={general} onChange={(e) => setGeneral(Number(e.target.value))} />
-          </div>
-          <div className="col-md-4">
-            <label className="form-label">2. Nhóm kết quả thực hiện nhiệm vụ (/70)</label>
-            <input type="number" min={0} max={70} step={0.5} className="form-control form-control-sm" value={task} onChange={(e) => setTask(Number(e.target.value))} />
-          </div>
-          <div className="col-md-4">
-            <label className="form-label">Tổng điểm (/100)</label>
-            <input className="form-control form-control-sm" readOnly value={(Number(general) + Number(task)).toFixed(1)} />
-          </div>
+          {useFramework ? (
+            <>
+              <div className="col-12">
+                <div className="table-responsive">
+                  <table className="table table-sm table-bordered align-middle mb-0 small">
+                    <thead className="table-light">
+                      <tr>
+                        <th style={{ width: 64 }}>Mã</th>
+                        <th>Tiêu chí</th>
+                        <th className="text-center" style={{ width: 72 }}>Tối đa</th>
+                        <th className="text-center" style={{ width: 104 }}>Điểm</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groups.map((group) => (
+                        <React.Fragment key={group.code}>
+                          <tr className="table-light">
+                            <td className="fw-semibold">{group.code}</td>
+                            <td colSpan={3} className="fw-semibold">{group.name}</td>
+                          </tr>
+                          {group.items.map((item) => {
+                            const long = item.text.length > TEXT_PREVIEW_LENGTH;
+                            const open = !!expanded[item.code];
+                            const raw = criteriaInput[item.code] ?? "";
+                            const value = itemScore(item);
+                            const invalid = raw.trim() !== "" && (value === null || value < 0 || value > item.maxScore);
+                            return (
+                              <tr key={item.code}>
+                                <td className="text-nowrap">{item.code}</td>
+                                <td>
+                                  <span style={{ whiteSpace: "pre-line" }}>{long && !open ? item.text.slice(0, TEXT_PREVIEW_LENGTH) + "…" : item.text}</span>
+                                  {long && (
+                                    <button
+                                      type="button"
+                                      className="btn btn-link btn-sm p-0 ms-1 align-baseline"
+                                      style={{ fontSize: "inherit" }}
+                                      onClick={() => setExpanded({ ...expanded, [item.code]: !open })}
+                                    >
+                                      {open ? "Thu gọn" : "Xem đầy đủ"}
+                                    </button>
+                                  )}
+                                </td>
+                                <td className="text-center">{formatScore(item.maxScore)}</td>
+                                <td>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={item.maxScore}
+                                    step={0.25}
+                                    inputMode="decimal"
+                                    aria-label={`Điểm tiêu chí ${item.code}`}
+                                    className={`form-control form-control-sm text-end${invalid ? " is-invalid" : ""}`}
+                                    value={raw}
+                                    onChange={(e) => setCriteriaInput({ ...criteriaInput, [item.code]: e.target.value })}
+                                  />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          <tr>
+                            <td colSpan={2} className="text-end fw-semibold">Cộng {group.code}</td>
+                            <td className="text-center fw-semibold">{formatScore(groupMax(group.items))}</td>
+                            <td className="text-end fw-semibold pe-3">{formatScore(groupSum(group.items))}</td>
+                          </tr>
+                        </React.Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div className="col-12 small">
+                <div>1. Nhóm tiêu chí chung: <strong>{formatScore(generalScore)}</strong>/{formatScore(generalMax)}</div>
+                <div>2. Nhóm tiêu chí về kết quả thực hiện nhiệm vụ: <strong>{formatScore(taskScore)}</strong>/{formatScore(taskMax)}</div>
+                <div className="fw-semibold">Tổng điểm: {formatScore(generalScore + taskScore)}/{formatScore(generalMax + taskMax)}</div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="col-md-4">
+                <label className="form-label small mb-1">1. Nhóm tiêu chí chung (/{formatScore(generalMax)})</label>
+                <input type="number" min={0} max={generalMax} step={0.5} className="form-control form-control-sm" value={general} onChange={(e) => setGeneral(Number(e.target.value))} />
+              </div>
+              <div className="col-md-4">
+                <label className="form-label small mb-1">2. Nhóm kết quả thực hiện nhiệm vụ (/{formatScore(taskMax)})</label>
+                <input type="number" min={0} max={taskMax} step={0.5} className="form-control form-control-sm" value={task} onChange={(e) => setTask(Number(e.target.value))} />
+              </div>
+              <div className="col-md-4">
+                <label className="form-label small mb-1">Tổng điểm (/{formatScore(generalMax + taskMax)})</label>
+                <input className="form-control form-control-sm" readOnly value={formatScore(generalScore + taskScore)} />
+              </div>
+            </>
+          )}
           {form === "M06" && (
             <div className="col-md-6">
               <label className="form-label">Mức tự xếp loại của tập thể</label>

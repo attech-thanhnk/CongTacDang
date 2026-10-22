@@ -61,6 +61,15 @@ public class CollectiveFormCatalogDto
 
     /// <summary>Mẫu 08: 13 nhóm nội dung công việc (mã 1–13).</summary>
     public List<CollectiveFormSectionDto> Form08Categories { get; set; } = new();
+
+    /// <summary>
+    /// Khung tiêu chí tập thể của bộ tiêu chí của kỳ (chỉ có khi gọi kèm <c>periodId</c>); rỗng = nhập thẳng hai điểm nhóm.
+    /// </summary>
+    public List<CollectiveCriteriaGroupDto> CollectiveGroups { get; set; } = new();
+
+    /// <summary>Điểm tối đa hai nhóm điểm của hồ sơ tập thể theo bộ tiêu chí của kỳ (mặc định 30 / 70).</summary>
+    public double GeneralMaxScore { get; set; } = 30;
+    public double TaskMaxScore { get; set; } = 70;
 }
 
 /// <summary>Phần nhập tay của báo cáo Mẫu 16 (bản nháp theo kỳ + tổ chức Đảng). Trường để trống → giữ chữ mẫu của biểu mẫu.</summary>
@@ -141,4 +150,24 @@ public class SaveForm16DraftDto
 {
     public uint? Version { get; set; }
     public Form16DraftContentDto Content { get; set; } = new();
+}
+
+/// <summary>Một nhóm của khung tiêu chí tập thể (HD03 Phụ lục I) để trang nhập hiển thị và chấm từng tiêu chí.</summary>
+public class CollectiveCriteriaGroupDto
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>"General" (cộng vào nhóm tiêu chí chung) hoặc "Task" (cộng vào nhóm kết quả thực hiện nhiệm vụ).</summary>
+    public string Kind { get; set; } = "General";
+
+    public List<CollectiveCriteriaItemDto> Items { get; set; } = new();
+}
+
+/// <summary>Một tiêu chí con của khung tiêu chí tập thể.</summary>
+public class CollectiveCriteriaItemDto
+{
+    public string Code { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
+    public double MaxScore { get; set; }
 }

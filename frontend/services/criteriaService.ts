@@ -30,6 +30,22 @@ export interface CriteriaGroup {
   items: CriteriaItem[];
 }
 
+/** Nhóm điểm của hồ sơ tập thể mà tiêu chí con cộng vào. */
+export type CollectiveScoreKind = "General" | "Task";
+
+export const COLLECTIVE_KIND_LABELS: Record<CollectiveScoreKind, string> = {
+  General: "Nhóm tiêu chí chung",
+  Task: "Nhóm kết quả thực hiện nhiệm vụ",
+};
+
+/** Một nhóm của khung tiêu chí tập thể (Mẫu 06, 07); mã nhóm/tiêu chí con duy nhất trong khung. */
+export interface CollectiveCriteriaGroup {
+  code: string;
+  name: string;
+  kind: CollectiveScoreKind;
+  items: CriteriaItem[];
+}
+
 export interface ResultAxis {
   code: string;
   name: string;
@@ -113,6 +129,8 @@ export interface CriteriaSetContent {
   taskLineLabel?: string | null;
   /** Câu nối mức khi dựng Mẫu 09C, `{level}` = mã mức. */
   taskLevelPhrase?: string | null;
+  /** Khung tiêu chí tập thể (Mẫu 06, 07); rỗng = hồ sơ tập thể nhập thẳng hai điểm nhóm. */
+  collectiveGroups: CollectiveCriteriaGroup[];
 }
 
 /** Danh mục biểu mẫu cá nhân (HD03 mục 7) — khớp `RecordFormCodes` phía máy chủ. */
@@ -257,6 +275,18 @@ export function requiresExplanation(content: CriteriaSetContent, self: number, a
   return p.explanationOnGradeChange && gradeByScore(content, self) !== gradeByScore(content, appraisal);
 }
 
+/** Tổng điểm tối đa các tiêu chí con của khung tập thể thuộc nhóm điểm `kind`. */
+export function collectiveTotal(content: CriteriaSetContent, kind: CollectiveScoreKind): number {
+  return (content.collectiveGroups ?? [])
+    .filter((g) => g.kind === kind)
+    .reduce((s, g) => s + g.items.reduce((t, i) => t + (Number(i.maxScore) || 0), 0), 0);
+}
+
+/** Điểm tối đa của nhóm điểm `kind` trong hồ sơ tập thể theo tham số bộ. */
+export function collectiveMax(content: CriteriaSetContent, kind: CollectiveScoreKind): number {
+  return kind === "General" ? content.parameters.collectiveGeneralMaxScore : content.parameters.collectiveTaskMaxScore;
+}
+
 /** Kiểm tra nhanh (tổng điểm) để báo tức thì khi sửa bản nháp; kiểm tra đầy đủ do máy chủ trả về khi lưu. */
 export function quickChecks(content: CriteriaSetContent, form: string): string[] {
   const messages: string[] = [];
@@ -271,6 +301,23 @@ export function quickChecks(content: CriteriaSetContent, form: string): string[]
   for (const frame of content.weightFrames) {
     const sum = frame.a + frame.b + frame.c + frame.d;
     if (Math.abs(sum - 1) > 1e-6) messages.push(`Khung ${frame.code}: tổng tỷ trọng ${fmt(sum * 100)}% ≠ 100%.`);
+  }
+  const collective = content.collectiveGroups ?? [];
+  if (collective.length > 0) {
+    for (const kind of ["General", "Task"] as CollectiveScoreKind[]) {
+      const sum = collectiveTotal(content, kind);
+      const max = collectiveMax(content, kind);
+      if (Math.abs(sum - max) > 1e-6)
+        messages.push(`Khung tiêu chí tập thể: tổng ${COLLECTIVE_KIND_LABELS[kind].toLowerCase()} ${fmt(sum)} ≠ điểm tối đa ${fmt(max)}.`);
+    }
+    const collectiveCodes = new Set<string>();
+    for (const code of collective.flatMap((g) => [g.code, ...g.items.map((i) => i.code)]).map((c) => c.trim())) {
+      if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,19}$/.test(code)) messages.push(`Mã nhóm/tiêu chí tập thể "${code}" không hợp lệ (chữ không dấu, số, . - _; tối đa 20 ký tự).`);
+      else if (collectiveCodes.has(code.toUpperCase())) messages.push(`Mã nhóm/tiêu chí tập thể "${code}" bị trùng.`);
+      collectiveCodes.add(code.toUpperCase());
+    }
+    for (const group of collective)
+      if (group.items.length === 0) messages.push(`Nhóm tiêu chí tập thể "${group.name.trim() || group.code}" phải có ít nhất một tiêu chí con.`);
   }
   const sections = content.selfAssessmentSections ?? [];
   if ((content.requiredForms ?? []).includes("09C") && sections.length === 0)
@@ -317,6 +364,10 @@ export const criteriaService = {
 
   defaults(form: string): Promise<CriteriaSetContent> {
     return request<CriteriaSetContent>(`/criteria-sets/defaults/${form}`);
+  },
+
+  defaultCollectiveGroups(): Promise<CollectiveCriteriaGroup[]> {
+    return request<CollectiveCriteriaGroup[]>("/criteria-sets/defaults/collective-groups");
   },
 
   weightFrames(): Promise<WeightFrameOptions> {

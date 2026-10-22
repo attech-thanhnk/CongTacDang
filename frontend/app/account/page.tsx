@@ -94,7 +94,7 @@ export default function AccountPage() {
               <h2 className={styles.h}>Vai trò</h2>
               <div className="d-flex flex-wrap gap-2">
                 {user.roles.length === 0
-                  ? <span className="text-secondary">Chưa được gán vai trò.</span>
+                  ? <span className="text-secondary">Chưa được phân công vai trò.</span>
                   : user.roles.map((r) => <span key={r} className="tag t-info">{r}</span>)}
               </div>
               {scopes.length > 0 && (

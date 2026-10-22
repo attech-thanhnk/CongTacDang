@@ -75,6 +75,12 @@ public interface IAttachmentAccessReader
     /// <see cref="AttachmentOwnerTypes.EvaluationAppeal"/>. Null nếu không tìm thấy.
     /// </summary>
     Task<EvaluationRecord?> GetOwnerRecordAsync(string ownerType, Guid ownerId);
+
+    /// <summary>
+    /// Lấy tổ chức (đơn vị, tổ chức Đảng) và trạng thái kỳ của các hồ sơ đánh giá tập thể sở hữu tệp
+    /// (<see cref="AttachmentOwnerTypes.CollectiveEvaluationRecord"/>). Khóa là Id hồ sơ; hồ sơ không tồn tại / đã xóa không có trong kết quả.
+    /// </summary>
+    Task<Dictionary<Guid, CollectiveAttachmentOwner>> GetCollectiveOwnersAsync(IReadOnlyCollection<Guid> collectiveRecordIds);
 }
 
 /// <summary>Giao diện tra cứu audit log tập trung.</summary>

@@ -71,7 +71,10 @@ public enum WorkflowAction
     TaskChange = 9,
 
     /// <summary>Kỳ còn dự thảo: cập nhật ảnh chụp Phòng/Chi bộ/cấp quyết định theo hồ sơ cán bộ hiện tại.</summary>
-    SyncSnapshot = 10
+    SyncSnapshot = 10,
+
+    /// <summary>Thu hồi duyệt danh mục B1 ngay sau khi duyệt nhầm, trước khi chủ hồ sơ tự chấm.</summary>
+    RevokeTaskApproval = 11
 }
 
 /// <summary>Thông tin tĩnh về các bước: thứ tự, trạng thái chờ tương ứng, bước bắt buộc, bước được trả lại.</summary>
@@ -237,6 +240,7 @@ public static class WorkflowSteps
         WorkflowAction.RecordExternal => "Ghi nhận kết quả của cấp trên",
         WorkflowAction.TaskChange => "Điều chỉnh việc trong quý",
         WorkflowAction.SyncSnapshot => "Cập nhật theo hồ sơ cán bộ",
+        WorkflowAction.RevokeTaskApproval => "Thu hồi duyệt danh mục",
         _ => action.ToString()
     };
 }

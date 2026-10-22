@@ -68,7 +68,7 @@ Thêm tài khoản `canbo.kh` (Phó Trưởng phòng PH-KH, Chi bộ Khối Văn
 - SQL tay giữ: `IX_party_member_profiles_Username_lower` trên `lower("Username")`. `report_drafts` unique `(PeriodId, PartyCellId, FormCode)` — EF tự sinh `NULLS NOT DISTINCT` (`AreNullsDistinct(false)`), không cần SQL tay. jsonb mặc định `'{}'::jsonb` của `Sections`, `Details` do EF sinh.
 - Schema đợt 8: `evaluation_records.SelfAssessment`/`TaskResults`/`AxisNotes`/`CadreWorkProposal`, `collective_evaluation_records.Sections`, `evaluation_meetings.Details`, `evaluation_meeting_vote_summaries.VotesNotRated`, bảng `report_drafts`, `evaluation_appeals`, `improvement_plans`.
 - `has-pending-model-changes`: **sạch** (sau mọi thay đổi).
-- Áp dụng trên CSDL tạm `ctd_it_mig_w8` (159): `Applying migration '20260929095331_InitialCreate'. Done.`; `migrations list` chỉ có `InitialCreate`; `database drop --force` thành công.
+- Áp dụng trên CSDL tạm `ctd_it_mig_w8`: `Applying migration '20260929095331_InitialCreate'. Done.`; `migrations list` chỉ có `InitialCreate`; `database drop --force` thành công.
 
 ## 6. Tài liệu, cấu hình
 
@@ -92,7 +92,7 @@ mẫu này (không có ranh giới từ) khớp các endpoint hợp lệ `/repor
 |---|---|
 | `dotnet build backend/CongTacDang.slnx --no-incremental` (artifacts ngoài repo) | 0 lỗi, 0 warning |
 | `dotnet test` — unit | 307: 306 pass, 1 skip có sẵn (`PdfConversionTests.Mau01_ConvertsToPdf_AndCleansWorkDirectory` — máy không có LibreOffice), 0 fail — cả 2 lần |
-| `dotnet test` — tích hợp (159, `CONGTACDANG_TEST_PG`), lần 1 | **100 chạy, 100 pass, 0 skip**, 0 fail |
+| `dotnet test` — tích hợp (`CONGTACDANG_TEST_PG`), lần 1 | **100 chạy, 100 pass, 0 skip**, 0 fail |
 | `dotnet test` — tích hợp, lần 2 liên tiếp | **100 chạy, 100 pass, 0 skip**, 0 fail |
 | `npx tsc --noEmit` | pass |
 | `npm run build` | pass (3 cảnh báo ESLint có sẵn: `app/audit/page.tsx`, `DocumentViewerModal.tsx` ×2) |

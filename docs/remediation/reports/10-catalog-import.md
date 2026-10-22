@@ -32,7 +32,7 @@ Unit test theo yêu cầu (`ImportFrameworkTests`, 24 test): thiếu cột (`Rea
 |---|---|---|
 | `dotnet build backend/CongTacDang.slnx` | pass | 0 warning, 0 error |
 | `dotnet test` — unit | pass | 120 test: 119 pass, 1 skip (`PdfConversionTests.Mau01…` — thiếu LibreOffice, skip sẵn có), 0 fail |
-| `dotnet test` — integration (có `CONGTACDANG_TEST_PG`, máy chủ 159) | pass | 18 test **đã chạy**: 18 pass, 0 skip, 0 fail (13 cũ + 5 mới của task 10) |
+| `dotnet test` — integration (có `CONGTACDANG_TEST_PG`) | pass | 18 test **đã chạy**: 18 pass, 0 skip, 0 fail (13 cũ + 5 mới của task 10) |
 | `npx tsc --noEmit` | pass | |
 | `npm run build` | pass | Không thêm cảnh báo ESLint (`next lint` trên `app/catalog`, `app/imports`, `services` sạch) |
 | Chạy app / thử giao diện thủ công | không chạy | Theo 7.3 không chạy app vào CSDL dùng chung; giao diện chỉ kiểm tra bằng `tsc` + `build` |

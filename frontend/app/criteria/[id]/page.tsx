@@ -9,6 +9,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { CriteriaSummary } from "@/components/evaluations/CriteriaSummary";
 import {
+  COLLECTIVE_KIND_LABELS,
+  CollectiveCriteriaGroup,
+  CollectiveScoreKind,
   CriteriaGroup,
   CriteriaSetContent,
   CriteriaSetDto,
@@ -19,6 +22,8 @@ import {
   RoundingRule,
   ScoreRoundingMode,
   SelfAssessmentSection,
+  collectiveMax,
+  collectiveTotal,
   criteriaService,
   fmt,
   MAX_FRAME_ADJUST_LIMIT,
@@ -57,6 +62,7 @@ export default function CriteriaSetPage() {
       copy.requiredForms = copy.requiredForms ?? [];
       copy.selfAssessmentSections = copy.selfAssessmentSections ?? [];
       copy.taskLevels = copy.taskLevels ?? [];
+      copy.collectiveGroups = copy.collectiveGroups ?? [];
       setContent(copy);
       setInfo({ code: loaded.code, name: loaded.name, selfScoreForm: loaded.selfScoreForm, notes: loaded.notes || "" });
     } catch (err: any) {
@@ -118,6 +124,20 @@ export default function CriteriaSetPage() {
     update({ requiredForms: on ? [...content.requiredForms.filter((c) => c !== code), code] : content.requiredForms.filter((c) => c !== code) });
   const setSection = (index: number, change: Partial<SelfAssessmentSection>) =>
     update({ selfAssessmentSections: content.selfAssessmentSections.map((s, i) => (i === index ? { ...s, ...change } : s)) });
+
+  const setCollective = (index: number, change: Partial<CollectiveCriteriaGroup>) =>
+    update({ collectiveGroups: content.collectiveGroups.map((g, i) => (i === index ? { ...g, ...change } : g)) });
+  const fillCollectiveDefaults = async () => {
+    setBusy(true);
+    try {
+      const groups = await criteriaService.defaultCollectiveGroups();
+      update({ collectiveGroups: groups });
+    } catch (err: any) {
+      toast.error(err?.message || "Không tải được khung tiêu chí tập thể mặc định.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const generalTotal = content.generalGroups.reduce((s, g) => s + g.items.reduce((t, i) => t + (Number(i.maxScore) || 0), 0), 0);
   const axisTotal = content.axes.reduce((s, a) => s + (Number(a.maxScore) || 0), 0);
@@ -228,6 +248,76 @@ export default function CriteriaSetPage() {
                       </tbody>
                     </table></div>
                     <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setGroup(gi, { items: [...g.items, { code: `${g.code}.${g.items.length + 1}`, text: "", maxScore: 1 }] })}>Thêm tiêu chí con</button>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="card">
+              <div className="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <h2 className="mb-0">Khung tiêu chí tập thể (Mẫu 06, 07)</h2>
+                <div className="d-flex gap-2">
+                  {content.collectiveGroups.length === 0 && (
+                    <button type="button" className="btn btn-outline-primary btn-sm" disabled={busy} onClick={fillCollectiveDefaults}>Điền theo mặc định</button>
+                  )}
+                  <button type="button" className="btn btn-outline-secondary btn-sm"
+                    onClick={() => update({ collectiveGroups: [...content.collectiveGroups, { code: `N${content.collectiveGroups.length + 1}`, name: "", kind: "General", items: [] }] })}>
+                    Thêm nhóm
+                  </button>
+                </div>
+              </div>
+              <div className="card-body">
+                {content.collectiveGroups.length === 0 ? (
+                  <div className="text-secondary">Chưa có khung: hồ sơ tập thể nhập thẳng điểm hai nhóm.</div>
+                ) : (
+                  <div className="mb-2 d-flex gap-3 flex-wrap">
+                    {(["General", "Task"] as CollectiveScoreKind[]).map((kind) => {
+                      const sum = collectiveTotal(content, kind);
+                      const max = collectiveMax(content, kind);
+                      return (
+                        <span key={kind}>
+                          {COLLECTIVE_KIND_LABELS[kind]}: <span className={Math.abs(sum - max) > 1e-6 ? "text-danger fw-semibold" : "text-success fw-semibold"}>{fmt(sum)}</span> / {fmt(max)}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+                {content.collectiveGroups.map((g, gi) => (
+                  <div className="border rounded-3 p-2 mb-2" key={gi}>
+                    <div className="row g-2 align-items-end mb-2">
+                      <div className="col-md-1"><label className="form-label mb-1">Mã</label><input className="form-control form-control-sm" maxLength={20} value={g.code} onChange={(e) => setCollective(gi, { code: e.target.value })} /></div>
+                      <div className="col-md-6"><label className="form-label mb-1">Tên nhóm</label><input className="form-control form-control-sm" maxLength={FORM_CONFIG_LIMITS.title} value={g.name} onChange={(e) => setCollective(gi, { name: e.target.value })} /></div>
+                      <div className="col-md-3"><label className="form-label mb-1">Cộng vào</label>
+                        <select className="form-select form-select-sm" value={g.kind} onChange={(e) => setCollective(gi, { kind: e.target.value as CollectiveScoreKind })}>
+                          <option value="General">{COLLECTIVE_KIND_LABELS.General}</option>
+                          <option value="Task">{COLLECTIVE_KIND_LABELS.Task}</option>
+                        </select>
+                      </div>
+                      <div className="col-md-2 small text-secondary">Cộng nhóm: <strong>{fmt(g.items.reduce((s, i) => s + (Number(i.maxScore) || 0), 0))}</strong>
+                        <button type="button" className="btn btn-link btn-sm text-danger p-0 ms-2" onClick={() => update({ collectiveGroups: content.collectiveGroups.filter((_, i) => i !== gi) })}>Xóa nhóm</button>
+                      </div>
+                    </div>
+                    <div className="table-responsive"><table className="table table-sm mb-1">
+                      <thead><tr><th style={{ width: 80 }}>Mã</th><th>Nội dung tiêu chí</th><th style={{ width: 90 }}>Tối đa</th><th style={{ width: 30 }} /></tr></thead>
+                      <tbody>
+                        {g.items.map((item, ii) => {
+                          const setItem = (change: Partial<typeof item>) => setCollective(gi, { items: g.items.map((x, i) => (i === ii ? { ...x, ...change } : x)) });
+                          return (
+                            <tr key={ii}>
+                              <td><input className="form-control form-control-sm" maxLength={20} value={item.code} onChange={(e) => setItem({ code: e.target.value })} /></td>
+                              <td>
+                                <textarea className="form-control form-control-sm" rows={2} maxLength={2000} value={item.text} aria-label="Nội dung tiêu chí tập thể" onChange={(e) => setItem({ text: e.target.value })} />
+                                <textarea className="form-control form-control-sm mt-1" rows={1} maxLength={4000} value={item.formText ?? ""} aria-label="Nội dung in trên phiếu"
+                                  placeholder="Nội dung in trên phiếu (trống = in như trên)" onChange={(e) => setItem({ formText: e.target.value || null })} />
+                              </td>
+                              <td><input type="number" min={0} max={100} step={0.5} className="form-control form-control-sm" value={item.maxScore} onChange={(e) => setItem({ maxScore: num(e.target.value) })} /></td>
+                              <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa tiêu chí" onClick={() => setCollective(gi, { items: g.items.filter((_, i) => i !== ii) })}><i className="bi bi-x-lg" /></button></td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table></div>
+                    <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setCollective(gi, { items: [...g.items, { code: `${g.code}.${g.items.length + 1}`, text: "", maxScore: 1 }] })}>Thêm tiêu chí con</button>
                   </div>
                 ))}
               </div>
@@ -464,7 +554,7 @@ export default function CriteriaSetPage() {
                       onChange={(e) => setParam("frameAdjustLimit", e.target.value === "" ? null : num(e.target.value))} />
                   </div>
                   <div className="col-6 col-md-3 d-flex flex-column justify-content-end">
-                    <label className="form-check small mb-0"><input type="checkbox" className="form-check-input" checked={p.allowNotApplicable} onChange={(e) => setParam("allowNotApplicable", e.target.checked)} /> <span className="form-check-label">Cho phép K/AD (có lý do)</span></label>
+                    <label className="form-check small mb-0"><input type="checkbox" className="form-check-input" checked={p.allowNotApplicable} onChange={(e) => setParam("allowNotApplicable", e.target.checked)} /> <span className="form-check-label">Cho phép Không áp dụng (K/AD), có lý do</span></label>
                     <label className="form-check small mb-0"><input type="checkbox" className="form-check-input" checked={p.explanationOnGradeChange} onChange={(e) => setParam("explanationOnGradeChange", e.target.checked)} /> <span className="form-check-label">Giải trình cả khi đổi mức</span></label>
                   </div>
                   <div className="col-12 col-md-6">
@@ -484,7 +574,7 @@ export default function CriteriaSetPage() {
                       value={p.improvementPlanAlertDays ?? 90} onChange={(e) => setParam("improvementPlanAlertDays", Math.trunc(num(e.target.value)))} />
                   </div>
                   <div className="col-6 col-md-3">
-                    <label className="form-label mb-1">Xử lý điểm khi K/AD</label>
+                    <label className="form-label mb-1">Xử lý điểm khi Không áp dụng (K/AD)</label>
                     <select className="form-select form-select-sm" value={p.notApplicableRule} onChange={(e) => setParam("notApplicableRule", e.target.value as typeof p.notApplicableRule)}>
                       <option value="ExcludeAndRescale">Bỏ khỏi mẫu số rồi quy đổi</option>
                       <option value="GrantFull">Tính như đạt tối đa</option>

@@ -65,7 +65,7 @@ export default function AdminRolesPage() {
       title: "Xóa vai trò",
       message:
         role.assignmentCount > 0
-          ? `Vai trò "${role.name}" đang có ${role.assignmentCount} bản gán đang hoặc sắp hiệu lực. Hãy kết thúc các bản gán trước khi xóa. Vẫn thử xóa?`
+          ? `Vai trò "${role.name}" đang có ${role.assignmentCount} phân công đang hoặc sắp hiệu lực. Hãy kết thúc các phân công trước khi xóa. Vẫn thử xóa?`
           : `Xóa vai trò "${role.name}"?`,
       confirmText: "Xóa",
       isDanger: true,
@@ -103,7 +103,7 @@ export default function AdminRolesPage() {
                   <th className="ps-3">Vai trò</th>
                   <th>Mô tả</th>
                   <th className="text-center">Số quyền</th>
-                  <th className="text-center">Bản gán hiệu lực</th>
+                  <th className="text-center">Phân công đang hiệu lực</th>
                   <th className="pe-3 text-end">Thao tác</th>
                 </tr>
               </thead>

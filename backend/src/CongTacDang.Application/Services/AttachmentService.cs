@@ -33,7 +33,7 @@ public class AttachmentDownloadResult
 /// Giao diện xử lý nghiệp vụ tệp đính kèm văn bản và minh chứng.
 /// Một tệp gắn với một đối tượng (<see cref="AttachmentOwnerTypes"/>), có nhiều phiên bản; mọi thao tác kiểm tra quyền qua
 /// <see cref="IAuthorizationGuard"/>: quyền trên tệp = quyền trên hồ sơ gắn tệp (<c>evaluation.read</c> / <c>evaluation.self</c>;
-/// văn bản của cấp trên: <c>evaluation.external.record</c>).
+/// văn bản của cấp trên: <c>evaluation.external.record</c>; phụ lục của hồ sơ tập thể: <c>evaluation.read</c> / <c>collective.manage</c> trên tổ chức).
 /// Không có tệp dùng chung: tệp chưa gắn đối tượng (tải lên trước khi gắn vào nhiệm vụ / kết quả của cấp trên) chỉ người tải lên thấy.
 /// </summary>
 public interface IAttachmentService
@@ -76,6 +76,7 @@ public interface IAttachmentService
 
     /// <summary>
     /// Gỡ tệp minh chứng chủ hồ sơ đã đính kèm vào hồ sơ của mình (mọi phiên bản; xóa mềm — tệp vẫn lưu, nhật ký ghi người gỡ).
+    /// Phụ lục, báo cáo của hồ sơ tập thể: người có <c>collective.manage</c> trên tổ chức của hồ sơ gỡ được khi kỳ chưa đóng.
     /// Không áp dụng cho tệp gắn nhiệm vụ hay văn bản của cấp trên.
     /// </summary>
     Task RemoveAttachmentAsync(Guid id, Guid requesterId);
@@ -257,6 +258,14 @@ public class AttachmentService : IAttachmentService
     public async Task RemoveAttachmentAsync(Guid id, Guid requesterId)
     {
         var current = await GetCurrentRequiredAsync(id);
+        if (current.EffectiveOwnerType == AttachmentOwnerTypes.CollectiveEvaluationRecord)
+        {
+            // Tệp thuộc tập thể: không giới hạn người tải lên — quyền cập nhật = collective.manage trên tổ chức, kỳ chưa đóng.
+            await EnsureAccessAsync(requesterId, current, FileOperation.Update, "Bạn không có quyền gỡ tệp đính kèm của hồ sơ tập thể này.");
+            await VersionRepo.RemoveGroupAsync(current.GroupId);
+            return;
+        }
+
         if (current.EffectiveOwnerType != AttachmentOwnerTypes.EvaluationRecord || current.UploadedById != requesterId)
             throw new ForbiddenException("Chỉ gỡ được tệp minh chứng do chính bạn đính kèm vào hồ sơ của mình.");
         await EnsureAccessAsync(requesterId, current, FileOperation.Update, "Bạn không có quyền gỡ tệp đính kèm này.");
@@ -329,7 +338,11 @@ public class AttachmentService : IAttachmentService
         {
             var attachment = await _attachmentRepo.GetByIdAsync(id)
                 ?? throw new ValidationException("Tệp minh chứng đính kèm không tồn tại hoặc đã bị xóa.");
-            attachments.Add(await GetCurrentOrSelfAsync(attachment));
+            var current = await GetCurrentOrSelfAsync(attachment);
+            // Phụ lục của hồ sơ tập thể chỉ thuộc hồ sơ đó, không gắn sang hồ sơ cá nhân.
+            if (current.EffectiveOwnerType == AttachmentOwnerTypes.CollectiveEvaluationRecord)
+                throw new ValidationException("Tệp đính kèm của hồ sơ tập thể không gắn được vào hồ sơ đánh giá cá nhân.");
+            attachments.Add(current);
         }
 
         var allowed = await FilterAccessibleAsync(requesterId, attachments, FileOperation.Update);
@@ -402,6 +415,24 @@ public class AttachmentService : IAttachmentService
             throw new InvalidOperationException("AttachmentService chưa được cấu hình kiểm tra quyền.");
         if (!uploadedById.HasValue)
             throw new ForbiddenException("Không xác định được người tải lên.");
+
+        if (normalizedType == AttachmentOwnerTypes.CollectiveEvaluationRecord)
+        {
+            var owners = await _accessReader.GetCollectiveOwnersAsync(new[] { ownerId.Value });
+            if (!owners.TryGetValue(ownerId.Value, out var collective))
+                throw new KeyNotFoundException("Không tìm thấy hồ sơ đánh giá tập thể cần gắn tệp.");
+
+            var manager = await _resolver.GetAsync(uploadedById.Value);
+            if (!AuthorizationGuard.Evaluate(manager, PermissionCodes.CollectiveManage, collective.Target))
+            {
+                throw new ForbiddenException(
+                    $"Bạn cần quyền \"{PermissionCodes.DisplayName(PermissionCodes.CollectiveManage)}\" trên tổ chức của hồ sơ tập thể để đính kèm tệp.");
+            }
+            if (collective.PeriodClosed)
+                throw new ForbiddenException("Kỳ đánh giá đã đóng, không đính kèm thêm tệp vào hồ sơ tập thể.");
+
+            return new OwnerInfo(normalizedType, ownerId.Value, null);
+        }
 
         var record = await _accessReader.GetOwnerRecordAsync(normalizedType, ownerId.Value)
             ?? throw new KeyNotFoundException("Không tìm thấy đối tượng cần gắn tệp.");
@@ -534,15 +565,47 @@ public class AttachmentService : IAttachmentService
         if (attachments.Count == 0)
             return attachments;
 
-        var links = await _accessReader.GetRecordLinksAsync(attachments);
+        // Phụ lục của hồ sơ tập thể: quyền theo tổ chức của hồ sơ tập thể, không qua hồ sơ cá nhân.
+        var collectiveIds = attachments
+            .Where(a => a.EffectiveOwnerType == AttachmentOwnerTypes.CollectiveEvaluationRecord && a.EffectiveOwnerId.HasValue)
+            .Select(a => a.EffectiveOwnerId!.Value)
+            .Distinct()
+            .ToList();
+        var collectiveOwners = await _accessReader.GetCollectiveOwnersAsync(collectiveIds);
+        var personal = attachments
+            .Where(a => a.EffectiveOwnerType != AttachmentOwnerTypes.CollectiveEvaluationRecord)
+            .ToList();
+        var links = await _accessReader.GetRecordLinksAsync(personal);
 
         return attachments
-            .Where(a => CanAccessAttachment(
-                requester,
-                a,
-                links.TryGetValue(a.Id, out var attachmentLinks) ? attachmentLinks : new List<AttachmentRecordLink>(),
-                operation))
+            .Where(a => a.EffectiveOwnerType == AttachmentOwnerTypes.CollectiveEvaluationRecord
+                ? CanAccessCollectiveAttachment(
+                    requester,
+                    a.EffectiveOwnerId.HasValue && collectiveOwners.TryGetValue(a.EffectiveOwnerId.Value, out var owner) ? owner : null,
+                    operation)
+                : CanAccessAttachment(
+                    requester,
+                    a,
+                    links.TryGetValue(a.Id, out var attachmentLinks) ? attachmentLinks : new List<AttachmentRecordLink>(),
+                    operation))
             .ToList();
+    }
+
+    /// <summary>
+    /// Quyền trên phụ lục, báo cáo của hồ sơ tập thể (như quyền trên hồ sơ tập thể): xem — <c>evaluation.read</c> hoặc
+    /// <c>collective.manage</c> trên tổ chức của hồ sơ; cập nhật (tải lên, thay, gỡ) — <c>collective.manage</c> và kỳ chưa đóng.
+    /// Hồ sơ không còn (đã xóa) → không ai thao tác được.
+    /// </summary>
+    private static bool CanAccessCollectiveAttachment(EffectivePermissions requester, CollectiveAttachmentOwner? owner, FileOperation operation)
+    {
+        if (owner == null)
+            return false;
+        if (operation == FileOperation.Read)
+        {
+            return AuthorizationGuard.Evaluate(requester, PermissionCodes.EvaluationRead, owner.Target)
+                || AuthorizationGuard.Evaluate(requester, PermissionCodes.CollectiveManage, owner.Target);
+        }
+        return !owner.PeriodClosed && AuthorizationGuard.Evaluate(requester, PermissionCodes.CollectiveManage, owner.Target);
     }
 
     /// <summary>
