@@ -265,7 +265,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       toast.success("Đã phân công vai trò.");
       await afterAssignmentChange();
     } catch (err) {
-      toast.error(errorMessage(err, "Không gán được vai trò."), errorTitle(err), 10000);
+      toast.error(errorMessage(err, "Không phân công được vai trò."), errorTitle(err), 10000);
     } finally {
       setSaving(false);
     }
@@ -523,7 +523,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                   assignments={current}
                   showRole
                   canManage={!isSelf}
-                  emptyText="Chưa có phân công nào."
+                emptyText="Chưa có phân công nào."
                   onEdit={(a) => setAssignmentForm({ assignment: a })}
                   onEnd={handleEndAssignment}
                   onDelete={handleDeleteAssignment}
@@ -538,7 +538,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                 assignments={history}
                 showRole
                 canManage={!isSelf}
-                  emptyText="Chưa có phân công nào."
+                emptyText="Chưa có phân công nào."
                 onDelete={handleDeleteAssignment}
               />
             </Card>

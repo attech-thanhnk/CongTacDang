@@ -30,6 +30,7 @@ import { AxisNoteFields, AxisReportsInput, SelfAssessmentInput, SelfAssessmentPr
 import { useToast } from "@/contexts/ToastContext";
 import { TaskChangeMark } from "@/components/evaluations/TaskChangeRequests";
 import { EvidenceFiles, evidenceSlot, useRecordEvidence } from "@/components/evaluations/EvidenceFiles";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 /** Ô điểm để trống ("") cho tới khi cán bộ tự nhập — không điền sẵn mức tối đa. */
 type ScoreInput = number | "";
@@ -238,8 +239,8 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       const now = new Date();
       setSavedAt(now);
       toast.success(`Đã lưu nháp lúc ${timeOf(now)}.`);
-    } catch (error: any) {
-      if (!isConcurrencyConflict(error)) toast.error(error?.message || "Không lưu được nháp.");
+    } catch (error: unknown) {
+      if (!isConcurrencyConflict(error)) toast.error(errorMessage(error, "Không lưu được nháp."));
     } finally {
       setSaving(false);
     }
@@ -468,7 +469,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
           {uses09C && sections.length > 0 && (
             <div className="mb-3">
               <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setShowPreview((v) => !v)}>
-                <i className={`bi ${showPreview ? "bi-eye-slash" : "bi-eye"} me-1`} />{showPreview ? "Ẩn xem trước" : "Xem trước mục I Mẫu 09C"}
+                <i className={`bi ${showPreview ? "bi-eye-slash" : "bi-eye"} me-1`} />{showPreview ? "Ẩn xem trước" : "Xem trước bản in"}
               </button>
               {showPreview && (
                 <div className="mt-2">

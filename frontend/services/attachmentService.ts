@@ -1,4 +1,5 @@
 import { apiClient, request } from "./apiClient";
+import { downloadFile } from "./download";
 
 export interface AttachmentItem {
   id: string;
@@ -34,13 +35,15 @@ export const attachmentService = {
   },
 
   // Tải lên tệp minh chứng (chưa gắn): chỉ người tải lên thấy tới khi tệp được gắn vào nhiệm vụ / kết quả của cấp trên
-  async uploadAttachment(file: File, formCode: string, description: string): Promise<any> {
+  async uploadAttachment(file: File, formCode: string, description: string): Promise<AttachmentItem> {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("formCode", formCode);
     formData.append("description", description);
 
-    return apiClient.post("/attachments/upload", formData, {
+    return request<AttachmentItem>("/attachments/upload", {
+      method: "POST",
+      body: formData,
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
@@ -86,30 +89,9 @@ export const attachmentService = {
     await request<void>(`/attachments/${id}`, { method: "DELETE" });
   },
 
-  // Tải trực tiếp tệp an toàn qua API kèm xác thực
+  // Tải tệp về máy qua API kèm xác thực (tên tệp theo máy chủ, không có thì dùng tên đã biết)
   async downloadAttachment(id: string, fileName?: string): Promise<void> {
-    try {
-      const res: any = await apiClient.get(`/attachments/${id}/download`, { responseType: "blob" });
-      const actualBlob = res instanceof Blob ? res : new Blob([res]);
-      const url = window.URL.createObjectURL(actualBlob);
-      const link = document.createElement("a");
-      link.href = url;
-      if (fileName) link.setAttribute("download", fileName);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (err: any) {
-      console.error("Lỗi khi tải tệp tin:", err);
-      throw err;
-    }
-  },
-
-  // Tải nội dung blob để xem an toàn trong iframe / modal
-  async getBlobUrl(id: string): Promise<{ url: string; mimeType: string }> {
-    const res: any = await apiClient.get(`/attachments/${id}/download`, { responseType: "blob" });
-    const actualBlob = res instanceof Blob ? res : new Blob([res], { type: res.type || "application/pdf" });
-    return { url: window.URL.createObjectURL(actualBlob), mimeType: actualBlob.type.toLowerCase() };
+    await downloadFile(`/attachments/${id}/download`, fileName || "tep-dinh-kem");
   },
 
   // Định dạng dung lượng tệp sang chuỗi hiển thị

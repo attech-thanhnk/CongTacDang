@@ -5,6 +5,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { RecordFormDto, evaluationService } from "@/services/evaluationService";
 import { ReportFileFormat, reportService } from "@/services/reportService";
 import styles from "./record.module.css";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 /** Tên tệp tải về (không dấu), ví dụ "Mau_09B_Nguyen_Van_A.docx". */
 function fileName(code: string, fullName: string, format: ReportFileFormat): string {
@@ -41,8 +42,8 @@ export function RecordFormsPanel({
     setBusy(`${code}-${format}`);
     try {
       await reportService.downloadReport(evaluationService.recordFormEndpoint(recordId, code), fileName(code, fullName, format), format);
-    } catch (error: any) {
-      toast.error(error?.message || "Không xuất được biểu mẫu.");
+    } catch (error: unknown) {
+      toast.error(errorMessage(error, "Không xuất được biểu mẫu."));
     } finally {
       setBusy(null);
     }

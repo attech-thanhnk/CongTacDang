@@ -4,6 +4,7 @@ import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import type { CollectiveEvaluationItemDto } from "@/services/evaluationService";
 import type { BranchItem, DepartmentItem } from "@/services/organizationService";
 import {
+  CatalogState,
   CollectiveCriteriaItem,
   CollectiveFormCatalog,
   CollectiveRecord,
@@ -11,12 +12,16 @@ import {
   collectiveService,
 } from "@/services/collectiveService";
 import { usePermissionScope, withinScope } from "@/services/authService";
+import { fmt as formatScore } from "@/services/criteriaService";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 export type CollectiveForm = "M06" | "M07" | "M08";
 
 interface Props {
   periodId: string;
   catalog: CollectiveFormCatalog | null;
+  /** Trạng thái tải khung tiêu chí của kỳ: chỉ cho lưu khi đã tải xong. */
+  catalogState: CatalogState;
   branches: BranchItem[];
   departments: DepartmentItem[];
   /** Hồ sơ đang sửa (null = tạo mới). */
@@ -39,12 +44,10 @@ const emptyItem = (category: string, order: number): CollectiveEvaluationItemDto
 /** Nội dung tiêu chí dài hơn ngưỡng này thì rút gọn, bấm để xem đầy đủ. */
 const TEXT_PREVIEW_LENGTH = 140;
 
-const formatScore = (value: number) => String(Math.round(value * 100) / 100);
-
 const shortText = (text: string, length = 60) => (text.length > length ? text.slice(0, length) + "…" : text);
 
 /** Nhập hồ sơ tập thể theo đúng mục của biểu mẫu gốc: Mẫu 07 (mục A.I–VI, B), Mẫu 08 (13 nhóm nội dung), Mẫu 06. */
-export function CollectiveRecordEditor({ periodId, catalog, branches, departments, editing, onSaved, onCancel, showError }: Props) {
+export function CollectiveRecordEditor({ periodId, catalog, catalogState, branches, departments, editing, onSaved, onCancel, showError }: Props) {
   const [form, setForm] = useState<CollectiveForm>("M07");
   const [unit, setUnit] = useState<"cell" | "department">("cell");
   const [partyCellId, setPartyCellId] = useState("");
@@ -163,6 +166,10 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (catalogState !== "ready") {
+      showError("Chưa tải được khung tiêu chí của kỳ, chưa lưu được hồ sơ.");
+      return;
+    }
     if (!subjectName.trim()) {
       showError("Hãy nhập tên tập thể (Đảng ủy, Chi ủy, Chi bộ) hoặc cơ quan, đơn vị.");
       return;
@@ -209,8 +216,8 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
     try {
       const saved = editing ? await collectiveService.updateRecord(editing.id, payload) : await collectiveService.createRecord(payload);
       onSaved(saved);
-    } catch (error: any) {
-      showError(error?.message || "Không lưu được hồ sơ tập thể.");
+    } catch (error: unknown) {
+      showError(errorMessage(error, "Không lưu được hồ sơ tập thể."));
     } finally {
       setSaving(false);
     }
@@ -431,7 +438,7 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
                   </button>
                 </div>
                 <div className="col-md-6">
-                  <textarea className="form-control form-control-sm" rows={2} placeholder="Kế hoạch hoặc sự chỉ đạo, yêu cầu của lãnh đạo Tổng công ty" value={item.planOrDirection} onChange={(e) => setItem(index, { planOrDirection: e.target.value })} />
+                  <textarea className="form-control form-control-sm" rows={2} placeholder="Kế hoạch hoặc sự chỉ đạo, yêu cầu của lãnh đạo" value={item.planOrDirection} onChange={(e) => setItem(index, { planOrDirection: e.target.value })} />
                 </div>
                 <div className="col-md-6">
                   <textarea className="form-control form-control-sm" rows={2} placeholder="Kết quả thực hiện trong kỳ đánh giá" value={item.result} onChange={(e) => setItem(index, { result: e.target.value })} />
@@ -451,8 +458,14 @@ export function CollectiveRecordEditor({ periodId, catalog, branches, department
         </div>
       )}
 
+      {catalogState === "loading" && (
+        <div className="col-12 small text-secondary"><span className="spinner-border spinner-border-sm me-2" />Đang tải khung tiêu chí của kỳ...</div>
+      )}
+      {catalogState === "error" && (
+        <div className="col-12"><div className="alert alert-danger small mb-0">Không tải được khung tiêu chí của kỳ. Hãy tải lại trang trước khi lưu hồ sơ.</div></div>
+      )}
       <div className="col-12 d-flex gap-2 mt-3">
-        <button className="btn btn-primary btn-sm" disabled={saving}>{saving ? "Đang lưu..." : editing ? "Lưu thay đổi" : "Lưu hồ sơ tập thể"}</button>
+        <button className="btn btn-primary btn-sm" disabled={saving || catalogState !== "ready"}>{saving ? "Đang lưu..." : editing ? "Lưu thay đổi" : "Lưu hồ sơ tập thể"}</button>
         {editing && <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onCancel}>Hủy sửa</button>}
       </div>
     </form>

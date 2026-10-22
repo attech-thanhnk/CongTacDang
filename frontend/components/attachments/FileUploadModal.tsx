@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { attachmentService, AttachmentItem } from "@/services/attachmentService";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 interface FileUploadModalProps {
   isOpen: boolean;
@@ -116,17 +117,15 @@ export function FileUploadModal({
     setErrorMsg(null);
 
     try {
-      const res: any = await attachmentService.uploadAttachment(
+      const created = await attachmentService.uploadAttachment(
         selectedFile,
         formCode.trim(),
         description.trim()
       );
-
-      const created: AttachmentItem = res.data || res;
       finalOnSuccess(created);
       onClose();
-    } catch (err: any) {
-      setErrorMsg(err.message || "Tải lên thất bại. Vui lòng kiểm tra lại kết nối.");
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, "Tải lên thất bại. Vui lòng kiểm tra lại kết nối."));
     } finally {
       setIsSubmitting(false);
     }

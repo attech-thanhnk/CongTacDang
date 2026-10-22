@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { attachmentService, AttachmentItem } from "@/services/attachmentService";
 import { useToast } from "@/contexts/ToastContext";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 /** Tiền tố mã phân loại của tệp minh chứng gắn theo mục của phiếu tự chấm (trục, nhóm tiêu chí chung). */
 const EVIDENCE_PREFIX = "MC-";
@@ -61,8 +62,8 @@ export function EvidenceFiles({ recordId, slot, label, files, editable, onChange
       await action();
       toast.success(done);
       onChanged?.();
-    } catch (error: any) {
-      toast.error(error?.message || "Không tải được tệp lên.");
+    } catch (error: unknown) {
+      toast.error(errorMessage(error, "Không tải được tệp lên."));
     } finally {
       setBusy(false);
     }
@@ -83,7 +84,7 @@ export function EvidenceFiles({ recordId, slot, label, files, editable, onChange
   };
 
   const download = (f: AttachmentItem) =>
-    attachmentService.downloadAttachment(f.id, f.fileName).catch((error: any) => toast.error(error?.message || "Không tải được tệp."));
+    attachmentService.downloadAttachment(f.id, f.fileName).catch((error: unknown) => toast.error(errorMessage(error, "Không tải được tệp.")));
 
   return (
     <div className="d-flex flex-wrap align-items-center gap-2 small mt-1">

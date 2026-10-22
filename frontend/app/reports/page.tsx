@@ -12,6 +12,7 @@ import { BranchItem, organizationService } from "@/services/organizationService"
 import { organizationSettingsService } from "@/services/organizationSettingsService";
 import { usePermissionScope, withinScope } from "@/services/authService";
 import { REPORTS, ReportDefinition, ReportFileFormat, hd03FileName, internalFileName, reportService, scopedFileName, withQuery } from "@/services/reportService";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 const ROMAN = ["", "I", "II", "III", "IV"];
 
@@ -93,8 +94,8 @@ export default function ReportsPage() {
             : hd03FileName(report.fileCode, unit, periodLabel(period), extension);
       await reportService.downloadReport(endpoint, fileName, format);
       toast.success(`Đã xuất ${report.code === "Nội bộ" ? report.title : report.code}.`);
-    } catch (err: any) {
-      toast.error(err?.message || "Không xuất được báo cáo. Hãy kiểm tra quyền và phạm vi được giao.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Không xuất được báo cáo. Hãy kiểm tra quyền và phạm vi được giao."));
     } finally {
       setBusy(null);
     }

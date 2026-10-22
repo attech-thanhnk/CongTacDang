@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { userService } from "@/services/userService";
 import { useToast } from "@/contexts/ToastContext";
 import styles from "./SidebarAccount.module.css";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 export function initialsOf(fullName?: string): string {
   if (!fullName) return "?";
@@ -63,8 +64,8 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
     setOpen(false);
     try {
       await logout();
-    } catch (err: any) {
-      toast.error(err?.message || "Đăng xuất thất bại.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Đăng xuất thất bại."));
     }
   };
 

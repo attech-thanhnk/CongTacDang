@@ -1,5 +1,12 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from "axios";
 
+declare module "axios" {
+  interface AxiosRequestConfig {
+    /** Trả nguyên AxiosResponse (giữ header, ví dụ Content-Disposition khi tải tệp) thay vì chỉ phần dữ liệu. */
+    rawResponse?: boolean;
+  }
+}
+
 /**
  * Cấu hình Endpoint Web API.
  * Mặc định sử dụng relative path `/api` được chuyển tiếp (reverse-proxy) an toàn qua Next.js rewrites,
@@ -74,7 +81,7 @@ let failedQueue: Array<{
   reject: (reason?: unknown) => void;
 }> = [];
 
-const processQueue = (error: any = null) => {
+const processQueue = (error: unknown = null) => {
   failedQueue.forEach((promise) => {
     if (error) {
       promise.reject(error);
@@ -88,6 +95,7 @@ const processQueue = (error: any = null) => {
 // Xử lý và chuẩn hóa dữ liệu phản hồi, bắt lỗi HTTP tập trung
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
+    if (response.config.rawResponse) return response;
     const payload = response.data;
     // Kiểm tra cấu trúc ApiResponse bọc chuẩn từ ASP.NET Core
     if (payload && typeof payload === "object" && "success" in payload) {

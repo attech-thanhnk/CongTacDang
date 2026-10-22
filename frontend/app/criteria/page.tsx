@@ -13,6 +13,7 @@ import { NoAccess } from "@/components/admin/NoAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { CriteriaSetListItem, criteriaService, scoringMethodLabel } from "@/services/criteriaService";
+import { errorMessage, errorStatus } from "@/components/admin/adminUtils";
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   Draft: "warning",
@@ -42,8 +43,8 @@ export default function CriteriaSetsPage() {
     if (!canView) return;
     try {
       setSets(await criteriaService.list());
-    } catch (err: any) {
-      toast.error(err?.message || "Không tải được danh sách bộ tiêu chí.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Không tải được danh sách bộ tiêu chí."));
     } finally {
       setLoading(false);
     }
@@ -59,9 +60,9 @@ export default function CriteriaSetsPage() {
       await work();
       toast.success(success);
       await load();
-    } catch (err: any) {
-      toast.error(err?.message || "Không thực hiện được thao tác.");
-      if (err?.status === 409) await load();
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Không thực hiện được thao tác."));
+      if (errorStatus(err) === 409) await load();
     } finally {
       setBusy(false);
     }
@@ -74,8 +75,8 @@ export default function CriteriaSetsPage() {
       const created = await criteriaService.create({ ...form, code: form.code.trim(), name: form.name.trim() });
       toast.success("Đã tạo bản nháp.");
       router.push(`/criteria/${created.id}`);
-    } catch (err: any) {
-      toast.error(err?.message || "Không tạo được bộ tiêu chí.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Không tạo được bộ tiêu chí."));
     } finally {
       setBusy(false);
     }

@@ -32,6 +32,7 @@ import { Pagination } from "@/components/common/Pagination";
 import { usePagination } from "@/components/common/usePagination";
 import { CriteriaSetListItem, WeightFrame, criteriaService, scoringMethodLabel } from "@/services/criteriaService";
 import { reportService, withQuery } from "@/services/reportService";
+import { errorMessage, errorStatus } from "@/components/admin/adminUtils";
 
 type Transition = "open" | "lock" | "unlock" | "close";
 type PeriodTab = "progress" | "profiles" | "criteria" | "readiness" | "participants";
@@ -97,8 +98,8 @@ export default function PeriodDetailPage() {
         setParticipants(await evaluationService.getParticipants(periodId));
         if (loaded.status === "Draft" || loaded.status === "Open" || loaded.status === "Locked") await checkReadiness();
       }
-    } catch (err: any) {
-      setError(err?.message || "Không tải được kỳ đánh giá.");
+    } catch (err: unknown) {
+      setError(errorMessage(err, "Không tải được kỳ đánh giá."));
     }
   }, [periodId, canManage, checkReadiness]);
 
@@ -150,8 +151,8 @@ export default function PeriodDetailPage() {
         withQuery("/reports/internal/rating-summary", { periodId: period.id }),
         `BangTongHop_XepLoaiCanBo_{SHORT_NAME}_Quy ${quarter}-${period.year}.xlsx`,
       );
-    } catch (err: any) {
-      toast.error(err?.message || "Không xuất được bảng tổng hợp xếp loại.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Không xuất được bảng tổng hợp xếp loại."));
     } finally {
       setDownloading(false);
     }
@@ -163,9 +164,9 @@ export default function PeriodDetailPage() {
       await work();
       toast.success(success);
       await load();
-    } catch (err: any) {
-      toast.error(err?.message || "Không thực hiện được thao tác.");
-      if (err?.status === 409) await load();
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Không thực hiện được thao tác."));
+      if (errorStatus(err) === 409) await load();
     } finally {
       setBusy(false);
     }
@@ -187,16 +188,16 @@ export default function PeriodDetailPage() {
       setForceOpen(false);
       reloadPeriods().catch(() => undefined);
       await load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       const body = err instanceof ApiError ? err.data : null;
-      if (err?.status === 409 && body?.code === "PERIOD_NOT_READY") {
+      if (errorStatus(err) === 409 && body?.code === "PERIOD_NOT_READY") {
         setReadiness(body.data as PeriodReadinessDto);
         setTab("readiness");
         toast.error(body.message || "Chưa mở được kỳ: còn bước chưa có người thực hiện.");
         setForceOpen(true);
       } else {
-        toast.error(err?.message || "Không mở được kỳ.");
-        if (err?.status === 409) await load();
+        toast.error(errorMessage(err, "Không mở được kỳ."));
+        if (errorStatus(err) === 409) await load();
       }
     } finally {
       setBusy(false);

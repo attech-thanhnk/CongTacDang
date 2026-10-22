@@ -45,7 +45,12 @@ export interface CollectiveRecord extends CollectiveEvaluationRecordDto {
   sections: Record<string, string>;
   /** Điểm từng tiêu chí của khung tập thể theo mã tiêu chí con (rỗng = nhập thẳng hai điểm nhóm). */
   criteriaScores: Record<string, number>;
+  /** Người xem được đính kèm / thay / gỡ tệp của hồ sơ (máy chủ tính theo quyền và trạng thái kỳ). */
+  canAttach?: boolean;
 }
+
+/** Trạng thái tải khung tiêu chí tập thể của kỳ. */
+export type CatalogState = "loading" | "error" | "ready";
 
 /** Dữ liệu lưu hồ sơ tập thể (tạo hoặc sửa). */
 export interface SaveCollectiveRecord extends SaveCollectiveEvaluationRequestDto {

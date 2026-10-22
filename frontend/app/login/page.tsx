@@ -7,6 +7,7 @@ import { Button } from "@/components/common";
 import { useOrganizationInfo } from "@/services/organizationSettingsService";
 import { AuthBrand } from "./AuthBrand";
 import styles from "./auth.module.css";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 /** Chỉ quay lại đường dẫn nội bộ (chặn chuyển hướng ra ngoài như "//host" hay "https://…"), bỏ qua trang đăng nhập. */
 function safeReturnUrl(value: string | null): string {
@@ -35,8 +36,8 @@ function LoginForm() {
     try {
       await login(username.trim(), password);
       router.replace(returnUrl);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Tên đăng nhập hoặc mật khẩu không chính xác.");
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, "Tên đăng nhập hoặc mật khẩu không chính xác."));
     } finally {
       setIsSubmitting(false);
     }
