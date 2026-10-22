@@ -339,7 +339,7 @@ public static class TaskChangeRules
                 CriteriaB_Ratio = 1.0,
                 CriteriaC_Ratio = 1.0,
                 CriteriaD_Ratio = 1.0,
-                SelfScore = weight
+                SelfScore = 0 // Chưa tự chấm (như nhiệm vụ đăng ký): nộp phiếu bắt buộc nhập tỷ lệ A-B-C-D cho việc này.
             };
         }
 

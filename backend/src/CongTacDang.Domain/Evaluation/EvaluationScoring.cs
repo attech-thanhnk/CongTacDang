@@ -47,10 +47,9 @@ public static class EvaluationScoring
     #region Làm tròn
 
     /// <summary>
-    /// Làm tròn theo quy tắc. <see cref="ScoreRoundingMode.HalfUp"/> và <see cref="ScoreRoundingMode.Truncate"/> tính trên
-    /// <see cref="decimal"/> (chuyển từ double lấy 15 chữ số có nghĩa) để 9,55 → 9,6 như ví dụ HD03, không bị sai số nhị phân.
-    /// <see cref="ScoreRoundingMode.HalfEven"/> giữ đúng <c>Math.Round(double, n)</c> của phiên bản trước (làm tròn ngân hàng trên
-    /// giá trị nhị phân) để cấu hình "2 chữ số, nửa về chẵn" cho kết quả trùng từng bit với code cũ.
+    /// Làm tròn theo quy tắc. Mọi chế độ (<see cref="ScoreRoundingMode.HalfUp"/>, <see cref="ScoreRoundingMode.HalfEven"/>,
+    /// <see cref="ScoreRoundingMode.Truncate"/>) tính trên <see cref="decimal"/> (chuyển từ double lấy 15 chữ số có nghĩa) để
+    /// 9,55 → 9,6 (nửa lên) và 2,355 → 2,36 (nửa về chẵn) theo giá trị thập phân, không bị sai số nhị phân.
     /// </summary>
     public static double Round(double value, RoundingRule rule)
     {
@@ -60,7 +59,7 @@ public static class EvaluationScoring
         var decimals = Math.Clamp(rule.Decimals, 0, 4);
         return rule.Mode switch
         {
-            ScoreRoundingMode.HalfEven => Math.Round(value, decimals, MidpointRounding.ToEven),
+            ScoreRoundingMode.HalfEven => (double)Math.Round((decimal)value, decimals, MidpointRounding.ToEven),
             ScoreRoundingMode.Truncate => (double)Math.Round((decimal)value, decimals, MidpointRounding.ToZero),
             _ => (double)Math.Round((decimal)value, decimals, MidpointRounding.AwayFromZero)
         };
