@@ -24,10 +24,11 @@ backend/tests/
   CongTacDang.IntegrationTests/  API thật trên PostgreSQL (CSDL tạm ctd_it_*)
 frontend/
   app/          Trang: work-queue, evaluations, periods, collective-evaluations, results, reports,
-                catalog, criteria, admin (users, roles, settings, templates), audit, login, change-password
-  components/   admin, evaluations, attachments, layout, common
+                catalog, criteria, admin (users, roles, performers, imports, settings, templates), audit,
+                account, login, change-password
+  components/   admin, account, evaluations, collective, periods, reports, dashboard, attachments, layout, common
   services/     apiClient.ts + service theo module
-  contexts/     AuthContext (permissions + grants), LayoutContext, ToastContext
+  contexts/     AuthContext (permissions + grants), PeriodContext, LayoutContext, ToastContext
 docker/         Dockerfile.backend, Dockerfile.frontend, docker-compose.yml, backup/restore
 docs/thiet-ke/     Thiết kế phân quyền động và luồng đánh giá (căn cứ kỹ thuật)
 docs/remediation/  Danh sách lỗi (FINDINGS.md), quy tắc (RULES.md), task và báo cáo
