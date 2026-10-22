@@ -457,10 +457,18 @@ public sealed class PositionService : IPositionService
             throw new ValidationException("Ngày hết hiệu lực phải sau ngày bắt đầu. Hãy kiểm tra lại thời hạn giữ chức vụ.");
     }
 
+    /// <summary>
+    /// Quyền sửa chức vụ / thẩm quyền phê duyệt của cán bộ: <c>system.users.manage</c> bao trùm cán bộ, và không phải chính mình
+    /// (chức vụ quyết định thẩm quyền phê duyệt và người duyệt hồ sơ của mình — xung đột lợi ích).
+    /// </summary>
     private void EnsureCanManage(PartyMemberProfile member)
     {
         if (_currentUser.UserId == null)
             return; // tác vụ hệ thống
+        if (_currentUser.UserId == member.Id)
+            throw new ForbiddenException(
+                "Bạn không thể tự thêm, sửa, kết thúc, xóa chức vụ hoặc đặt tay thẩm quyền phê duyệt của chính mình (xung đột lợi ích). "
+                + "Hãy nhờ người quản lý tài khoản khác thực hiện.");
         _guard.Ensure(PermissionCodes.SystemUsersManage, TargetOf(member));
     }
 

@@ -42,13 +42,16 @@ public sealed class FormLayoutService : IFormLayoutService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthorizationGuard _guard;
     private readonly TimeProvider _time;
+    private readonly ICurrentUserService? _currentUser;
 
-    public FormLayoutService(IFormLayoutRepository repo, IUnitOfWork unitOfWork, IAuthorizationGuard guard, TimeProvider? time = null)
+    public FormLayoutService(IFormLayoutRepository repo, IUnitOfWork unitOfWork, IAuthorizationGuard guard, TimeProvider? time = null,
+        ICurrentUserService? currentUser = null)
     {
         _repo = repo;
         _unitOfWork = unitOfWork;
         _guard = guard;
         _time = time ?? TimeProvider.System;
+        _currentUser = currentUser;
     }
 
     /// <inheritdoc />
@@ -110,6 +113,10 @@ public sealed class FormLayoutService : IFormLayoutService
     {
         ArgumentNullException.ThrowIfNull(input);
         var member = await LoadMemberAsync(userId, ct);
+        // Kiểu trình bày quyết định tiêu đề, cấp ký trên biểu mẫu của chính mình → không tự đặt (xung đột lợi ích).
+        if (_currentUser?.UserId == member.Id)
+            throw new ForbiddenException(
+                "Bạn không thể tự đặt kiểu trình bày biểu mẫu cho chính mình (xung đột lợi ích). Hãy nhờ người quản lý tài khoản khác thực hiện.");
         _guard.Ensure(PermissionCodes.SystemUsersManage, TargetOf(member));
         if (input.LayoutId.HasValue)
             member.FormLayoutOverride = await _repo.FindAsync(input.LayoutId.Value, ct)

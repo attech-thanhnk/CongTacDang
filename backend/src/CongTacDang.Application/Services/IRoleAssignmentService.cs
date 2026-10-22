@@ -71,4 +71,11 @@ public interface IRoleAssignmentService
     /// quản trị cuối cùng (dùng cho khóa/xóa tài khoản — task 08).
     /// </summary>
     Task EnsureAdministratorsRemainWithoutUserAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Tài khoản đặc quyền: có bản gán chưa hết hạn (đang hoặc sắp hiệu lực) ở phạm vi Toàn công ty, hoặc vai trò có quyền
+    /// quản trị hệ thống (<c>system.*</c>) ở bất kỳ phạm vi nào. Xét cả tài khoản đang bị khóa. Quản lý tài khoản đặc quyền
+    /// (sửa, khóa/mở, mở khóa đăng nhập, đặt lại mật khẩu, xóa) cần <c>system.users.manage</c> phạm vi Toàn công ty.
+    /// </summary>
+    Task<bool> IsPrivilegedAccountAsync(Guid userId, CancellationToken ct = default);
 }

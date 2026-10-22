@@ -285,6 +285,15 @@ public sealed class RoleAssignmentService : IRoleAssignmentService
     public Task EnsureAdministratorsRemainWithoutUserAsync(Guid userId, CancellationToken ct = default)
         => EnsureAdministratorsRemainAsync(rows => rows.Where(r => r.UserId != userId), ct);
 
+    /// <inheritdoc />
+    public async Task<bool> IsPrivilegedAccountAsync(Guid userId, CancellationToken ct = default)
+    {
+        var snapshot = await _assignments.GetAccessSnapshotAsync(userId, Now, ct);
+        return snapshot != null && snapshot.Assignments.Any(a =>
+            a.ScopeType == RoleScopeType.Global
+            || a.PermissionCodes.Any(code => code.StartsWith(PermissionCodes.SystemPrefix, StringComparison.Ordinal)));
+    }
+
     #region Kiểm tra
 
     private void EnsureCanManageAssignments()

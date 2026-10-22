@@ -93,10 +93,14 @@ public class AuthService : IAuthService
 
         var now = DateTime.UtcNow;
 
-        // Đang khóa tạm thời: từ chối trước khi xét mật khẩu để không để lộ mật khẩu đúng/sai trong thời gian khóa.
+        // Đang khóa tạm thời: luôn từ chối và không tăng bộ đếm (không kéo dài khóa). Mật khẩu sai → báo lỗi chung như tài khoản
+        // không tồn tại, để người ngoài không dò được tên đăng nhập có thật hay bị khóa; chỉ người nhập đúng mật khẩu mới biết
+        // tài khoản đang bị khóa và còn bao lâu.
         if (member.LockoutEnd.HasValue && member.LockoutEnd.Value > now)
         {
             await RecordAsync(member.Id, username, LoginResult.LockedOut, ipAddress, userAgent);
+            if (!passwordValid)
+                throw new UnauthorizedAccessException(InvalidCredentialsMessage);
             var minutes = Math.Max(1, (int)Math.Ceiling((member.LockoutEnd.Value - now).TotalMinutes));
             throw new UnauthorizedAccessException(
                 $"Tài khoản đang bị khóa tạm thời do nhập sai mật khẩu nhiều lần. Hãy thử lại sau khoảng {minutes} phút "

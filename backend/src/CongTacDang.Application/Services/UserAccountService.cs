@@ -182,7 +182,10 @@ public sealed class UserAccountService : IUserAccountService
         Authz.Ensure(PermissionCodes.SystemUsersRead, TargetOf(member.DepartmentId, member.PartyCellId));
         var dto = ToDto(member);
         // Phạm vi bao trùm cây con chỉ máy chủ biết đầy đủ → trả sẵn cho giao diện hiển thị nút thao tác.
-        dto.CanManage = Authz.Can(PermissionCodes.SystemUsersManage, TargetOf(member.DepartmentId, member.PartyCellId));
+        dto.CanManage = Authz.Can(PermissionCodes.SystemUsersManage, TargetOf(member.DepartmentId, member.PartyCellId))
+            && (_currentUser?.UserId == null
+                || Authz.Can(PermissionCodes.SystemUsersManage, AccessTarget.None)
+                || !await RoleAssignments.IsPrivilegedAccountAsync(member.Id, ct));
         return dto;
     }
 
@@ -191,7 +194,8 @@ public sealed class UserAccountService : IUserAccountService
     {
         ArgumentNullException.ThrowIfNull(cmd);
         var member = await LoadAsync(id, ct);
-        EnsureCanManage(member.DepartmentId, member.PartyCellId);
+        await EnsureCanManageAccountAsync(member, ct);
+        var isSelf = _currentUser?.UserId == member.Id;
 
         if (cmd.FullName != null)
         {
@@ -214,7 +218,12 @@ public sealed class UserAccountService : IUserAccountService
         if (cmd.PositionTitle != null && !string.IsNullOrWhiteSpace(cmd.PositionTitle))
             member.PositionTitle = cmd.PositionTitle.Trim();
         if (cmd.WeightFrameCode != null)
-            member.WeightFrameCode = NormalizeWeightFrameCode(cmd.WeightFrameCode);
+        {
+            var weightFrameCode = NormalizeWeightFrameCode(cmd.WeightFrameCode);
+            if (isSelf && !string.Equals(weightFrameCode, member.WeightFrameCode, StringComparison.Ordinal))
+                throw SelfChangeForbidden("khung tỷ trọng");
+            member.WeightFrameCode = weightFrameCode;
+        }
 
         var newDepartment = cmd.DepartmentId.HasValue
             ? (cmd.DepartmentId.Value == Guid.Empty ? null : cmd.DepartmentId)
@@ -224,6 +233,9 @@ public sealed class UserAccountService : IUserAccountService
             : member.PartyCellId;
         if (newDepartment != member.DepartmentId || newCell != member.PartyCellId)
         {
+            // Xung đột lợi ích: đơn vị/tổ chức Đảng quyết định người duyệt và phạm vi đánh giá của chính mình.
+            if (isSelf)
+                throw SelfChangeForbidden(newDepartment != member.DepartmentId ? "đơn vị chính quyền" : "tổ chức Đảng");
             // Chuyển tài khoản sang Phòng/Chi bộ khác: người thao tác phải quản lý được cả nơi đến.
             EnsureCanManage(newDepartment, newCell);
             await EnsureCatalogAsync(
@@ -247,7 +259,7 @@ public sealed class UserAccountService : IUserAccountService
     public async Task SetActiveAsync(Guid id, bool isActive, CancellationToken ct = default)
     {
         var member = await LoadAsync(id, ct);
-        EnsureCanManage(member.DepartmentId, member.PartyCellId);
+        await EnsureCanManageAccountAsync(member, ct);
         if (member.IsActive == isActive)
             return;
 
@@ -268,7 +280,7 @@ public sealed class UserAccountService : IUserAccountService
     public async Task UnlockAsync(Guid id, CancellationToken ct = default)
     {
         var member = await LoadAsync(id, ct);
-        EnsureCanManage(member.DepartmentId, member.PartyCellId);
+        await EnsureCanManageAccountAsync(member, ct);
 
         member.FailedLoginCount = 0;
         member.LockoutEnd = null;
@@ -280,7 +292,7 @@ public sealed class UserAccountService : IUserAccountService
     public async Task<CreatedAccount> ResetPasswordAsync(Guid id, CancellationToken ct = default)
     {
         var member = await LoadAsync(id, ct);
-        EnsureCanManage(member.DepartmentId, member.PartyCellId);
+        await EnsureCanManageAccountAsync(member, ct);
 
         var temporaryPassword = GenerateTemporaryPassword();
         member.PasswordHash = BCrypt.Net.BCrypt.HashPassword(temporaryPassword);
@@ -296,7 +308,7 @@ public sealed class UserAccountService : IUserAccountService
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         var member = await LoadAsync(id, ct);
-        EnsureCanManage(member.DepartmentId, member.PartyCellId);
+        await EnsureCanManageAccountAsync(member, ct);
         await EnsureCanDisableAsync(member.Id, "xóa", ct);
 
         member.SecurityStamp = NewSecurityStamp();
@@ -414,6 +426,29 @@ public sealed class UserAccountService : IUserAccountService
             return;
         Authz.Ensure(PermissionCodes.SystemUsersManage, TargetOf(departmentId, partyCellId));
     }
+
+    /// <summary>
+    /// Quyền quản lý một tài khoản cụ thể: <c>system.users.manage</c> bao trùm Phòng/Chi bộ của tài khoản; tài khoản đặc quyền
+    /// (có bản gán phạm vi Toàn công ty hoặc giữ quyền quản trị hệ thống) chỉ người có <c>system.users.manage</c> phạm vi
+    /// Toàn công ty mới được sửa, khóa/mở, mở khóa, đặt lại mật khẩu, xóa — tránh quản trị cấp đơn vị chiếm tài khoản cấp trên.
+    /// </summary>
+    private async Task EnsureCanManageAccountAsync(PartyMemberProfile member, CancellationToken ct)
+    {
+        EnsureCanManage(member.DepartmentId, member.PartyCellId);
+        if (_currentUser?.UserId == null || Authz.Can(PermissionCodes.SystemUsersManage, AccessTarget.None))
+            return;
+        if (await RoleAssignments.IsPrivilegedAccountAsync(member.Id, ct))
+        {
+            throw new ForbiddenException(
+                "Tài khoản này có vai trò phạm vi Toàn công ty hoặc giữ quyền quản trị hệ thống: chỉ người có quyền "
+                + $"\"{PermissionCodes.DisplayName(PermissionCodes.SystemUsersManage)}\" phạm vi Toàn công ty mới được sửa, khóa/mở, "
+                + "đặt lại mật khẩu hoặc xóa. Hãy liên hệ quản trị hệ thống.");
+        }
+    }
+
+    /// <summary>Lỗi khi tự đổi thông tin quyết định việc đánh giá của chính mình (xung đột lợi ích).</summary>
+    private static ForbiddenException SelfChangeForbidden(string field) =>
+        new($"Bạn không thể tự đổi {field} của chính mình (xung đột lợi ích). Hãy nhờ người quản lý tài khoản khác thực hiện.");
 
     private static AccessTarget TargetOf(Guid? departmentId, Guid? partyCellId) =>
         new(DepartmentId: departmentId, PartyCellId: partyCellId);

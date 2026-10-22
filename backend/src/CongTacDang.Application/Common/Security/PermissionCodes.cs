@@ -25,6 +25,9 @@ public static class PermissionCodes
 {
     #region Quản trị hệ thống
 
+    /// <summary>Tiền tố chung của các mã quyền quản trị hệ thống.</summary>
+    public const string SystemPrefix = "system.";
+
     /// <summary>Xem tài khoản, hồ sơ cán bộ (không gồm hồ sơ đánh giá).</summary>
     public const string SystemUsersRead = "system.users.read";
 
