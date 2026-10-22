@@ -96,8 +96,7 @@ public static class WorkflowActions
             return PermissionCodes.EvaluationReopen;
         if (action.Kind == WorkflowAction.RecordExternal)
             return PermissionCodes.EvaluationExternalRecord;
-        if (action.Kind == WorkflowAction.RevokeTaskApproval)
-            return PermissionCodes.EvaluationTasksApprove;
+        // Thu hồi duyệt danh mục (bước B1_APPROVE) dùng chung quyền thực hiện bước duyệt theo hồ sơ luồng (nhánh cuối).
         if (WorkflowSteps.OwnerSteps.Contains(action.Step))
             return PermissionCodes.EvaluationSelf;
         var setting = profile.Step(action.Step);

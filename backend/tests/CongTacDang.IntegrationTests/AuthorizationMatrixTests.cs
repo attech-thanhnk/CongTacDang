@@ -144,7 +144,13 @@ public sealed class AuthorizationMatrixTests
 
         await SetStatusAsync(s.RecordA1, RecordStatus.AwaitingSelfScore, withTasks: true);
         var selfScoreUrl = $"/api/evaluations/records/{s.RecordA1}/self-score/submit";
-        var selfScore = new { version = await VersionAsync(s, s.RecordA1), generalScores = CriteriaTestData.General(), selfProposedGrade = "HoanThanhTot" };
+        // Nộp phiếu 09A phải chấm đủ mọi nhiệm vụ còn hiệu lực.
+        var recordA1 = await s.OwnerA1.GetAsync($"/api/evaluations/records/{s.RecordA1}");
+        using var recordJson = JsonDocument.Parse(await recordA1.Content.ReadAsStringAsync());
+        var taskScores = recordJson.RootElement.GetProperty("data").GetProperty("tasks").EnumerateArray()
+            .Select(t => new { taskId = t.GetProperty("id").GetGuid(), criteriaA_Ratio = 1.0, criteriaB_Ratio = 1.0, criteriaC_Ratio = 1.0, criteriaD_Ratio = 1.0 })
+            .ToList();
+        var selfScore = new { version = await VersionAsync(s, s.RecordA1), generalScores = CriteriaTestData.General(), taskScores, selfProposedGrade = "HoanThanhTot" };
         Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerB1.PostAsJsonAsync(selfScoreUrl, selfScore)).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await s.OwnerA1.PostAsJsonAsync(selfScoreUrl, selfScore)).StatusCode);
     }

@@ -130,7 +130,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 CriteriaB_Ratio = 1.0,
                 CriteriaC_Ratio = 1.0,
                 CriteriaD_Ratio = 1.0,
-                SelfScore = t.Weight // Khởi tạo điểm trần bằng trọng số (như trước task 12)
+                SelfScore = 0 // Chưa tự chấm: điểm 0 cho tới khi chủ hồ sơ nhập tỷ lệ A-B-C-D (không mặc định bằng trọng số)
             }).ToList();
             await _repo.ReplaceTasksAsync(ctx.Record.Id, newTasks, ct);
             ctx.Record.ReturnReason = null;
@@ -189,7 +189,6 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
         var settings = ReadSettings(record.Period);
         var profile = EvaluationMapping.ProfileOf(settings, record);
-        var approveAction = WorkflowActions.Get(WorkflowActions.ApproveTasks);
         var revokeAction = WorkflowActions.Get(WorkflowActions.RevokeTaskApproval);
 
         if (record.Period.Status != PeriodStatus.Open)
@@ -205,7 +204,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             || latest.ToStatus != RecordStatus.AwaitingSelfScore)
             throw new ConflictException("Hồ sơ đã có thao tác khác sau khi duyệt; không thể thu hồi tự động.");
 
-        var permission = WorkflowActions.PermissionFor(approveAction, profile);
+        // Cùng mã quyền với API actions: quyền thực hiện bước duyệt danh mục theo hồ sơ luồng của hồ sơ.
+        var permission = WorkflowActions.PermissionFor(revokeAction, profile);
         if (IsConflictOfInterest(revokeAction, record))
             throw new ForbiddenException("Người được đánh giá không được thu hồi duyệt trên hồ sơ của chính mình.");
         _guard.Ensure(permission, AccessTarget.ForRecord(record));
@@ -336,6 +336,19 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                     .Select(x => x.input!.AttachmentId);
                 await EnsureNewAttachmentsLinkableAsync(changed, new HashSet<Guid>());
 
+                // Nộp phiếu: mọi nhiệm vụ còn hiệu lực phải có tỷ lệ A-B-C-D (không lấy điểm đã lưu / điểm khởi tạo thay phần chưa chấm).
+                if (!draft)
+                {
+                    var missing = tasks
+                        .Where(TaskChangeRules.IsActive)
+                        .Where(t => request.TaskScores?.Any(s => s != null && s.TaskId == t.Id) != true)
+                        .OrderBy(t => t.TaskOrder)
+                        .Select(t => $"\"{t.TaskName}\"")
+                        .ToList();
+                    if (missing.Count > 0)
+                        throw new ValidationException($"Chưa chấm tỷ lệ A-B-C-D cho nhiệm vụ: {string.Join(", ", missing)}.");
+                }
+
                 foreach (var task in tasks)
                 {
                     // Việc đã loại trừ / chuyển tiếp hợp lệ (Mẫu 04): không chấm, điểm 0, không tính vượt chuẩn.
@@ -345,9 +358,9 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                         task.IsExceedStandard = false;
                         continue;
                     }
-                    var input = request.TaskScores?.FirstOrDefault(s => s.TaskId == task.Id);
+                    var input = request.TaskScores?.FirstOrDefault(s => s != null && s.TaskId == task.Id);
                     if (input == null)
-                        continue;
+                        continue; // Chỉ xảy ra khi lưu nháp: giữ điểm đã lưu của nhiệm vụ chưa nhập.
                     var scored = EvaluationScoring.ScoreTask(task.Weight, input.CriteriaA_Ratio, input.CriteriaB_Ratio,
                         input.CriteriaC_Ratio, input.CriteriaD_Ratio, frame, rounding.TaskScore);
                     task.CriteriaA_Ratio = scored.A;
@@ -496,8 +509,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     public Task<EvaluationRecordDto> RecordCollectiveProposalAsync(Guid recordId, CollectiveProposalRequestDto request, CancellationToken ct = default) =>
         ExecuteAsync(recordId, request, WorkflowActions.RecordCollectiveProposal, null, async ctx =>
         {
-            var grade = EvaluationMapping.ParseGrade(request.ProposedGrade)
-                ?? throw new ValidationException("Hãy chọn mức xếp loại do tập thể lãnh đạo đề xuất.");
+            var grade = RequireGrade(request.ProposedGrade, "Hãy chọn mức xếp loại do tập thể lãnh đạo đề xuất.");
             await AttachVotesAsync(ctx.Record, request.MeetingId, request.Votes, WorkflowStep.B3A_COLLECTIVE, ct);
 
             ctx.Record.CollectiveProposedGrade = grade;
@@ -513,8 +525,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     public Task<EvaluationRecordDto> AppraiseAsync(Guid recordId, AppraisalRequestDto request, CancellationToken ct = default) =>
         ExecuteAsync(recordId, request, WorkflowActions.Appraise, null, async ctx =>
         {
-            var grade = EvaluationMapping.ParseGrade(request.ProposedGrade)
-                ?? throw new ValidationException("Hãy chọn mức xếp loại do cơ quan thẩm định đề xuất.");
+            var grade = RequireGrade(request.ProposedGrade, "Hãy chọn mức xếp loại do cơ quan thẩm định đề xuất.");
             var criteria = RequireCriteria(ctx);
             var (general, tasksScore, total) = AppraisalScores(request, criteria.Content);
 
@@ -523,7 +534,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             if (explanation == null && EvaluationScoring.RequiresExplanation(criteria.Content, ctx.Record.TotalSelfScore, total))
             {
                 var p = criteria.Content.Parameters;
-                var diff = Math.Abs(ctx.Record.TotalSelfScore - total!.Value);
+                var diff = Math.Abs(ctx.Record.TotalSelfScore - total);
                 var gradeChange = p.ExplanationOnGradeChange ? " hoặc làm đổi mức xếp loại" : string.Empty;
                 throw new ValidationException(string.Create(CultureInfo.InvariantCulture,
                     $"Điểm thẩm định {total:0.##} chênh lệch {diff:0.##} điểm so với điểm tự chấm {ctx.Record.TotalSelfScore:0.##} (ngưỡng {p.ExplanationThreshold:0.##} điểm{gradeChange}): hãy nhập nội dung giải trình, căn cứ."));
@@ -548,16 +559,20 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     /// <summary>
     /// Điểm thẩm định: theo nhóm (tiêu chí chung + kết quả thực hiện nhiệm vụ, mỗi nhóm 0..điểm tối đa nhóm của bộ, làm tròn theo
     /// quy tắc của nhóm), tổng = chung + nhiệm vụ làm tròn theo quy tắc "tổng điểm". Không gửi điểm nhóm → dùng tổng
-    /// <see cref="AppraisalRequestDto.AppraisalScore"/> (client cũ; không có điểm nhóm). Không có điểm nào → cả ba null.
+    /// <see cref="AppraisalRequestDto.AppraisalScore"/> (client cũ): 0..tổng điểm tối đa của bộ, làm tròn theo quy tắc "tổng điểm".
+    /// Bước thẩm định nội bộ bắt buộc có điểm (để kiểm chênh lệch với tự chấm theo ngưỡng giải trình) → không có điểm nào: 400.
     /// </summary>
-    private static (double? General, double? Tasks, double? Total) AppraisalScores(AppraisalRequestDto request, CriteriaSetContent criteria)
+    private static (double? General, double? Tasks, double Total) AppraisalScores(AppraisalRequestDto request, CriteriaSetContent criteria)
     {
         var p = criteria.Parameters;
         if (request.GeneralScore is null && request.TasksScore is null)
         {
-            if (request.AppraisalScore is < 0 or > 100)
-                throw new ValidationException("Điểm thẩm định phải từ 0 đến 100.");
-            return (null, null, request.AppraisalScore);
+            if (request.AppraisalScore is not { } legacy)
+                throw new ValidationException("Hãy nhập điểm thẩm định nhóm tiêu chí chung và nhóm kết quả thực hiện nhiệm vụ.");
+            var max = p.GeneralMaxScore + p.TotalTaskWeight;
+            if (double.IsNaN(legacy) || legacy < 0 || legacy > max + CriteriaSetContent.Epsilon)
+                throw new ValidationException(string.Create(CultureInfo.InvariantCulture, $"Điểm thẩm định phải từ 0 đến {max:0.##}."));
+            return (null, null, EvaluationScoring.Round(legacy, p.Rounding.Total));
         }
 
         if (request.GeneralScore is not { } general || request.TasksScore is not { } tasks)
@@ -621,8 +636,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     public Task<EvaluationRecordDto> DirectorReviewAsync(Guid recordId, DirectorReviewRequestDto request, CancellationToken ct = default) =>
         ExecuteAsync(recordId, request, WorkflowActions.DirectorReview, null, ctx =>
         {
-            var grade = EvaluationMapping.ParseGrade(request.ProposedGrade)
-                ?? throw new ValidationException("Hãy chọn mức xếp loại do cấp trực tiếp sử dụng đề xuất.");
+            var grade = RequireGrade(request.ProposedGrade, "Hãy chọn mức xếp loại do cấp trực tiếp sử dụng đề xuất.");
             ctx.Record.DirectorComment = Trim(request.Comment, MaxCommentLength, "Nhận xét");
             ctx.Record.DirectorProposedGrade = grade;
             ctx.Record.DirectorReviewedById = ctx.ActorId;
@@ -635,8 +649,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     public Task<EvaluationRecordDto> RecordDecisionAsync(Guid recordId, DecisionRequestDto request, CancellationToken ct = default) =>
         ExecuteAsync(recordId, request, WorkflowActions.RecordDecision, null, async ctx =>
         {
-            var grade = EvaluationMapping.ParseGrade(request.FinalGrade)
-                ?? throw new ValidationException("Hãy chọn mức xếp loại được quyết định.");
+            var grade = RequireGrade(request.FinalGrade, "Hãy chọn mức xếp loại được quyết định.");
             if (request.FinalScore is < 0 or > 100)
                 throw new ValidationException("Điểm chính thức phải từ 0 đến 100.");
             await AttachVotesAsync(ctx.Record, request.MeetingId, request.Votes, WorkflowStep.B4_DECISION, ct);
@@ -660,8 +673,11 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     public Task<EvaluationRecordDto> PublishAsync(Guid recordId, WorkflowRequestDto request, CancellationToken ct = default) =>
         ExecuteAsync(recordId, request, WorkflowActions.Publish, null, ctx =>
         {
-            if (ctx.Record.FinalGrade == EvaluationGrade.ChuaXepLoai && ctx.Record.DecisionRecordedAt == null)
-                throw new ConflictException("Hồ sơ chưa có quyết định mức xếp loại nên chưa công bố được.");
+            // Bước quyết định luôn áp dụng (nội bộ hoặc cấp trên): chỉ công bố khi đã có mức được quyết định.
+            if (ctx.Record.FinalGrade == EvaluationGrade.ChuaXepLoai)
+                throw new ConflictException(ctx.Record.DecisionRecordedAt == null
+                    ? "Hồ sơ chưa có quyết định mức xếp loại nên chưa công bố được."
+                    : "Hồ sơ chưa có mức xếp loại được quyết định nên chưa công bố được. Hãy ghi nhận lại quyết định mức xếp loại.");
             ctx.Record.PublishedById = ctx.ActorId;
             ctx.Record.PublishedByName = ctx.ActorName;
             ctx.Record.PublishedAt = ctx.Now;
@@ -719,11 +735,9 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             var grade = EvaluationGrade.ChuaXepLoai;
             if (WorkflowSteps.GradedSteps.Contains(parsed))
             {
-                grade = EvaluationMapping.ParseGrade(request.Grade) is { } g && g != EvaluationGrade.ChuaXepLoai
-                    ? g
-                    : throw new ValidationException(parsed == WorkflowStep.B4_DECISION
-                        ? "Hãy chọn mức xếp loại được cấp trên quyết định."
-                        : "Hãy chọn mức xếp loại do cấp trên đề xuất.");
+                grade = RequireGrade(request.Grade, parsed == WorkflowStep.B4_DECISION
+                    ? "Hãy chọn mức xếp loại được cấp trên quyết định."
+                    : "Hãy chọn mức xếp loại do cấp trên đề xuất.");
             }
 
             var record = ctx.Record;
@@ -1271,6 +1285,15 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     /// <summary>Bộ tiêu chí của kỳ — bắt buộc cho các bước có chấm điểm.</summary>
     private static CriteriaSnapshot RequireCriteria(ActionContext ctx) =>
         ctx.Criteria ?? throw new ConflictException("Kỳ đánh giá chưa có bộ tiêu chí nên chưa chấm điểm được. Hãy liên hệ người quản lý kỳ để chọn bộ tiêu chí.");
+
+    /// <summary>
+    /// Mức xếp loại bắt buộc của bước có xếp loại: phải là mức hợp lệ, không nhận "Chưa xếp loại" (giá trị chỉ dành cho hồ sơ
+    /// chưa có mức).
+    /// </summary>
+    private static EvaluationGrade RequireGrade(string? value, string message) =>
+        EvaluationMapping.ParseGrade(value) is { } grade && grade != EvaluationGrade.ChuaXepLoai
+            ? grade
+            : throw new ValidationException(message);
 
     private static string? Trim(string? value, int maxLength, string field)
     {

@@ -299,8 +299,9 @@ public sealed class CriteriaSetUnitTests
     #region Công thức A/B/C/D = code cũ
 
     /// <summary>
-    /// Cấu trúc công thức giữ nguyên: với tỷ trọng khung bằng bảng cũ và làm tròn 2 chữ số nửa về chẵn (như <c>Math.Round</c> cũ),
-    /// điểm sản phẩm, tổng nhiệm vụ, tổng điểm <b>bằng đúng</b> code trước khi có bộ tiêu chí; tỷ lệ có trọng số trùng từng bit.
+    /// Cấu trúc công thức giữ nguyên: với tỷ trọng khung bằng bảng cũ và làm tròn 2 chữ số nửa về chẵn, điểm sản phẩm, tổng nhiệm
+    /// vụ, tổng điểm <b>bằng đúng</b> code trước khi có bộ tiêu chí; tỷ lệ có trọng số trùng từng bit. Riêng phép làm tròn nửa về
+    /// chẵn nay tính trên giá trị thập phân (decimal) thay cho <c>Math.Round(double)</c> cũ (2,355 → 2,36, không phải 2,35).
     /// </summary>
     [Fact]
     public void AbcdFormula_WithOldWeightsAndRounding_IsIdenticalToOldCode_OnRandomInputs()
@@ -476,16 +477,19 @@ public sealed class CriteriaSetUnitTests
         }
 
         public static double TaskScore(double weight, double a, double b, double c, double d, int group) =>
-            Math.Round(weight * WeightedRatio(a, b, c, d, group), 2);
+            HalfEven(weight * WeightedRatio(a, b, c, d, group));
 
         public static (double Tasks, double Total) Totals(double general, List<double> taskScores)
         {
             double totalTaskScore = 0.0;
             foreach (var score in taskScores)
                 totalTaskScore += score;
-            var tasks = Math.Round(totalTaskScore, 2);
-            return (tasks, Math.Round(general + tasks, 2));
+            var tasks = HalfEven(totalTaskScore);
+            return (tasks, HalfEven(general + tasks));
         }
+
+        /// <summary>Làm tròn 2 chữ số nửa về chẵn trên giá trị thập phân (sửa sai số nhị phân của <c>Math.Round(double)</c>).</summary>
+        private static double HalfEven(double value) => (double)Math.Round((decimal)value, 2, MidpointRounding.ToEven);
 
         public static EvaluationGrade Grade(double score)
         {
