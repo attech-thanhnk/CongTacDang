@@ -14,6 +14,7 @@ import styles from "@/components/dashboard/dashboard.module.css";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePeriod } from "@/contexts/PeriodContext";
 import { BranchQuotaCheckDto, EvaluationRecordDto, evaluationService } from "@/services/evaluationService";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 /** Thứ tự trạng thái theo luồng (để sắp xếp và xếp nút lọc). */
 const STATUS_ORDER = [
@@ -86,7 +87,7 @@ export default function EvaluationsPage() {
         setRecords(list);
         setQuotas(quota.filter((q) => q.totalCadres > 0));
       })
-      .catch((err: any) => mounted && setError(err?.message || "Không tải được hồ sơ đánh giá."))
+      .catch((err: unknown) => mounted && setError(errorMessage(err, "Không tải được hồ sơ đánh giá.")))
       .finally(() => mounted && setLoading(false));
     return () => {
       mounted = false;

@@ -43,6 +43,7 @@ import {
   buildAxisTaskBlocks,
 } from "@/services/evaluationService";
 import { formatDate, formatDateTime } from "@/lib/dateFormat";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 /**
  * Trang hồ sơ đánh giá: đầu trang (cán bộ), tiến trình; cột trái là khu thao tác (theo `actions`) rồi dữ liệu từng bước
@@ -51,7 +52,7 @@ import { formatDate, formatDateTime } from "@/lib/dateFormat";
 export default function EvaluationRecordPage() {
   const params = useParams<{ recordId: string }>();
   const recordId = params?.recordId;
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const [record, setRecord] = useState<EvaluationRecordDto | null>(null);
   const [actions, setActions] = useState<RecordActionDto[]>([]);
   const [history, setHistory] = useState<EvaluationRecordHistoryDto[]>([]);
@@ -80,8 +81,8 @@ export default function EvaluationRecordPage() {
       setHistory(loadedHistory);
       setForms(loadedForms);
       setConflict(null);
-    } catch (error: any) {
-      setLoadError(error?.message || "Không tải được hồ sơ.");
+    } catch (error: unknown) {
+      setLoadError(errorMessage(error, "Không tải được hồ sơ."));
     } finally {
       setLoading(false);
     }
@@ -103,19 +104,25 @@ export default function EvaluationRecordPage() {
 
   const perform = async (action: WorkflowActionCode, payload: Record<string, unknown>, step?: WorkflowStepCode) => {
     if (!record) return;
+    const run = async () => {
+      setBusy(true);
+      try {
+        await evaluationService.performAction(record.id, action, record.version ?? 0, payload, step);
+        toast.success("Đã lưu thao tác trên hồ sơ.");
+        setReasonAction(null);
+        await load();
+      } catch (error: unknown) {
+        if (!isConcurrencyConflict(error)) toast.error(errorMessage(error, "Không thực hiện được thao tác."));
+      } finally {
+        setBusy(false);
+      }
+    };
     const confirmation = ACTION_CONFIRMATIONS[action];
-    if (confirmation && !window.confirm(confirmation)) return;
-    setBusy(true);
-    try {
-      await evaluationService.performAction(record.id, action, record.version ?? 0, payload, step);
-      toast.success("Đã lưu thao tác trên hồ sơ.");
-      setReasonAction(null);
-      await load();
-    } catch (error: any) {
-      if (!isConcurrencyConflict(error)) toast.error(error?.message || "Không thực hiện được thao tác.");
-    } finally {
-      setBusy(false);
+    if (confirmation) {
+      confirm({ title: "Xác nhận thao tác", message: confirmation, confirmText: "Đồng ý", onConfirm: run });
+      return;
     }
+    await run();
   };
 
   // Bước đang làm mà người xem có thao tác → tới khu thao tác; còn lại → mở và cuộn tới khối nội dung của bước.
@@ -218,7 +225,6 @@ const ACTION_CONFIRMATIONS: Partial<Record<WorkflowActionCode, string>> = {
   SubmitTasks: "Nộp danh mục sản phẩm? Sau khi nộp, danh mục sẽ chờ duyệt.",
   ApproveTasks: "Duyệt danh mục sản phẩm?",
   RevokeTaskApproval: "Thu hồi duyệt? Hồ sơ sẽ quay lại bước đăng ký sản phẩm.",
-  SubmitSelfScore: "Nộp phiếu tự chấm? Sau khi nộp, bạn không thể sửa nếu chưa được trả lại.",
   ConfirmByCell: "Xác nhận phiếu tự chấm?",
   RecordCollectiveProposal: "Ghi nhận đề xuất của tập thể?",
   Appraise: "Ghi nhận kết quả thẩm định?",
@@ -461,7 +467,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
                           className={styles.linkBtn}
                           onClick={() => {
                             attachmentService.downloadById(r.attachmentId as string)
-                              .catch((error: any) => toast.error(error?.message || "Không tải được văn bản đính kèm."));
+                              .catch((error: unknown) => toast.error(errorMessage(error, "Không tải được văn bản đính kèm.")));
                           }}
                         >
                           <i className="bi bi-paperclip me-1" />Văn bản đính kèm

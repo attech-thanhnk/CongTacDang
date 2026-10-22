@@ -5,6 +5,7 @@ import { EvaluationMeetingVoteSummaryDto, EvaluationRecordDto, evaluationService
 import type { BranchItem, DepartmentItem } from "@/services/organizationService";
 import { MeetingAttendee, MeetingRecord, SaveMeetingRecord, collectiveService } from "@/services/collectiveService";
 import { usePermissionScope, withinScope } from "@/services/authService";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 interface Props {
   periodId: string;
@@ -207,8 +208,8 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
     try {
       const saved = editing ? await collectiveService.updateMeeting(editing.id, payload) : await collectiveService.createMeeting(payload);
       onSaved(saved);
-    } catch (error: any) {
-      showError(error?.message || "Không lưu được biên bản.");
+    } catch (error: unknown) {
+      showError(errorMessage(error, "Không lưu được biên bản."));
     } finally {
       setSaving(false);
     }

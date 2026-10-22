@@ -7,6 +7,7 @@ import { attachmentService } from "@/services/attachmentService";
 import { EvaluationRecordDto, WorkflowStepCode, evaluationService } from "@/services/evaluationService";
 import { AppealDto, AppealFileDto, RecordAppealsDto, postPublishService } from "@/services/postPublishService";
 import { ReasonDialog } from "./ReasonDialog";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 const STATUS_CLASS: Record<string, string> = {
   Submitted: "t-wait",
@@ -42,8 +43,8 @@ export function AppealPanel({ record, onRecordChanged }: Props) {
     try {
       setData(await postPublishService.getRecordAppeals(record.id));
       setError(null);
-    } catch (err: any) {
-      setError(err?.message || "Không tải được kiến nghị.");
+    } catch (err: unknown) {
+      setError(errorMessage(err, "Không tải được kiến nghị."));
     }
   }, [record.id]);
 
@@ -62,8 +63,8 @@ export function AppealPanel({ record, onRecordChanged }: Props) {
       toast.success(message);
       await load();
       return true;
-    } catch (err: any) {
-      toast.error(err?.message || "Không thực hiện được thao tác.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Không thực hiện được thao tác."));
       await load();
       return false;
     } finally {
@@ -101,8 +102,8 @@ export function AppealPanel({ record, onRecordChanged }: Props) {
       }
       setReopenTargets(reopen.targetSteps);
       setReopenAppeal(appeal);
-    } catch (err: any) {
-      toast.error(err?.message || "Không tải được thao tác của hồ sơ.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Không tải được thao tác của hồ sơ."));
     }
   };
 
@@ -236,7 +237,7 @@ function AppealItem({
           {files.map((f) => (
             <li key={f.id}>
               <button type="button" className="btn btn-link btn-sm p-0 small"
-                onClick={() => attachmentService.downloadAttachment(f.id, f.fileName).catch((err: any) => toast.error(err?.message || "Không tải được tệp."))}>
+                onClick={() => attachmentService.downloadAttachment(f.id, f.fileName).catch((err: unknown) => toast.error(errorMessage(err, "Không tải được tệp.")))}>
                 <i className="bi bi-paperclip me-1" />{f.fileName}
               </button>
             </li>

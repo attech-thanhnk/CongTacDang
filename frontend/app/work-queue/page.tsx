@@ -8,6 +8,7 @@ import { WorkQueueDto, evaluationService } from "@/services/evaluationService";
 import { normalizeText } from "@/components/dashboard/taskUtils";
 import { TaskTable } from "@/components/dashboard/TaskTable";
 import styles from "@/components/dashboard/dashboard.module.css";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 /** Hiện ô tìm khi danh sách dài hơn số này. */
 const SEARCH_THRESHOLD = 10;
@@ -28,8 +29,8 @@ export default function WorkQueuePage() {
     setError(null);
     try {
       setQueue(await evaluationService.getWorkQueue());
-    } catch (err: any) {
-      setError(err?.message || "Không tải được danh sách việc cần xử lý.");
+    } catch (err: unknown) {
+      setError(errorMessage(err, "Không tải được danh sách việc cần xử lý."));
     } finally {
       setLoading(false);
     }

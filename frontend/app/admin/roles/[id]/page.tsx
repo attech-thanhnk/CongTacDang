@@ -170,7 +170,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
       toast.success("Đã phân công vai trò.");
       await afterAssignmentChange();
     } catch (err) {
-      toast.error(errorMessage(err, "Không gán được vai trò."), errorTitle(err), 10000);
+      toast.error(errorMessage(err, "Không phân công được vai trò."), errorTitle(err), 10000);
     } finally {
       setSaving(false);
     }

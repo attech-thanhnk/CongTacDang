@@ -13,6 +13,7 @@ import {
   reportService,
   withQuery,
 } from "@/services/reportService";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 interface Props {
   periodId: string;
@@ -99,7 +100,7 @@ export function Form16DraftPanel({ periodId, branchId, periodLabel, shortName }:
         setDraft(loaded);
         setContent(loaded.content ?? {});
       })
-      .catch((err: any) => active && setError(err?.message || "Không tải được bản nháp Mẫu 16."))
+      .catch((err: unknown) => active && setError(errorMessage(err, "Không tải được bản nháp Mẫu 16.")))
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
@@ -114,8 +115,8 @@ export function Form16DraftPanel({ periodId, branchId, periodLabel, shortName }:
       setDraft(saved);
       setContent(saved.content ?? {});
       toast.success("Đã lưu bản nháp Mẫu 16.");
-    } catch (err: any) {
-      toast.error(err?.message || "Không lưu được bản nháp Mẫu 16.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Không lưu được bản nháp Mẫu 16."));
     } finally {
       setSaving(false);
     }
@@ -131,8 +132,8 @@ export function Form16DraftPanel({ periodId, branchId, periodLabel, shortName }:
         hd03FileName("16", unit, periodLabel, ".docx"),
         format
       );
-    } catch (err: any) {
-      toast.error(err?.message || "Không xuất được Mẫu 16.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Không xuất được Mẫu 16."));
     } finally {
       setExporting(null);
     }
@@ -162,7 +163,7 @@ export function Form16DraftPanel({ periodId, branchId, periodLabel, shortName }:
       </div>
 
       <SummaryTable title="I. Các trường hợp thuộc thẩm quyền quyết định, phê duyệt mức xếp loại của đảng ủy, chi ủy cơ sở" rows={draft.baseRows} />
-      <SummaryTable title="II. Các trường hợp thuộc thẩm quyền quyết định, phê duyệt mức xếp loại của Ban Thường vụ Đảng ủy Tổng công ty" rows={draft.superiorRows} />
+      <SummaryTable title="II. Các trường hợp thuộc thẩm quyền quyết định, phê duyệt mức xếp loại của cấp trên" rows={draft.superiorRows} />
       <div className="small text-secondary mb-3">
         Hãy lưu nháp trước khi xuất để phần nhập tay có trong báo cáo.
       </div>

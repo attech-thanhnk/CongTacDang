@@ -6,6 +6,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { usePeriod } from "@/contexts/PeriodContext";
 import { EvaluationPeriodDto, evaluationService } from "@/services/evaluationService";
 import { CriteriaSetListItem, criteriaService, scoringMethodLabel } from "@/services/criteriaService";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 const today = () => new Date().toISOString().substring(0, 10);
 
@@ -52,8 +53,8 @@ export function CreatePeriodModal({ onClose, onCreated }: Props) {
       toast.success("Đã tạo kỳ đánh giá (dự thảo).");
       reloadPeriods().catch(() => undefined);
       onCreated(period);
-    } catch (err: any) {
-      toast.error(err?.message || "Không tạo được kỳ đánh giá.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Không tạo được kỳ đánh giá."));
       setSaving(false);
     }
   };

@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePeriod } from "@/contexts/PeriodContext";
 import { GRADE_OPTIONS } from "@/services/evaluationService";
 import { PublishedResultsDto, postPublishService } from "@/services/postPublishService";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 /**
  * Kết quả đánh giá đã công bố (HD03 Bước 5) của kỳ đang chọn ở thanh bên. Chỉ họ tên, chức danh, đơn vị,
@@ -43,8 +44,8 @@ export default function ResultsPage() {
         grade: grade || undefined,
       });
       setData(result);
-    } catch (err: any) {
-      setError(err?.message || "Không tải được danh sách kết quả.");
+    } catch (err: unknown) {
+      setError(errorMessage(err, "Không tải được danh sách kết quả."));
     } finally {
       setLoading(false);
     }

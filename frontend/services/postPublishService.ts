@@ -279,9 +279,8 @@ export const postPublishService = {
 
   /** Tải Mẫu 17 (Word hoặc PDF do máy chủ chuyển). */
   async downloadMau17(planId: string, fullName: string, format: ReportFileFormat = "original"): Promise<void> {
-    const blob = await reportService.fetchReportBlob(`/improvement-plans/${planId}/mau-17`, format);
     const safeName = (fullName || "CanBo").trim().replace(/\s+/g, "_");
-    reportService.saveBlob(blob, `Mau_17_KeHoach_30_60_90_${safeName}.${format === "pdf" ? "pdf" : "docx"}`);
+    await reportService.downloadReport(`/improvement-plans/${planId}/mau-17`, `Mau_17_KeHoach_30_60_90_${safeName}.docx`, format);
   },
 
   getNotificationSummary(): Promise<NotificationSummaryDto> {

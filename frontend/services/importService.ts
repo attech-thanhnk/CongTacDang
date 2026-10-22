@@ -1,4 +1,5 @@
 import { apiClient, request } from "./apiClient";
+import { downloadFile } from "./download";
 
 /** Cột của file nhập. */
 export interface ImportColumn {
@@ -51,18 +52,6 @@ export interface ImportCommitResult {
 /** Dung lượng tối đa (khớp máy chủ). */
 export const IMPORT_MAX_FILE_BYTES = 5 * 1024 * 1024;
 
-function saveBlob(data: unknown, fileName: string) {
-  const blob = data instanceof Blob ? data : new Blob([data as BlobPart]);
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", fileName);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
-}
-
 /** Nhập dữ liệu từ Excel (API `/api/imports`, quyền system.import + quyền dữ liệu của từng loại). */
 export const importService = {
   kinds(): Promise<ImportKind[]> {
@@ -70,7 +59,7 @@ export const importService = {
   },
 
   async downloadTemplate(kind: string): Promise<void> {
-    saveBlob(await apiClient.get(`/imports/${encodeURIComponent(kind)}/template`, { responseType: "blob" }), `mau-nhap-${kind}.xlsx`);
+    await downloadFile(`/imports/${encodeURIComponent(kind)}/template`, `mau-nhap-${kind}.xlsx`);
   },
 
   preview(kind: string, file: File): Promise<ImportPreview> {
@@ -89,6 +78,6 @@ export const importService = {
 
   /** Tải file mật khẩu tạm — máy chủ chỉ cho tải một lần. */
   async downloadResult(token: string, fileName: string): Promise<void> {
-    saveBlob(await apiClient.get(`/imports/results/${encodeURIComponent(token)}`, { responseType: "blob" }), fileName);
+    await downloadFile(`/imports/results/${encodeURIComponent(token)}`, fileName);
   },
 };

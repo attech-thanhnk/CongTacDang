@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePeriod } from "@/contexts/PeriodContext";
 import { formatDate } from "@/lib/dateFormat";
@@ -13,9 +13,10 @@ import { NoAccess } from "@/components/admin/NoAccess";
 import { CollectiveRecordEditor } from "@/components/collective/CollectiveRecordEditor";
 import { MeetingEditor } from "@/components/collective/MeetingEditor";
 import { CollectiveAttachments } from "@/components/collective/CollectiveAttachments";
-import { usePermissionScope } from "@/services/authService";
 import { organizationService, BranchItem, DepartmentItem } from "@/services/organizationService";
-import { CollectiveFormCatalog, CollectiveRecord, MeetingRecord, collectiveService } from "@/services/collectiveService";
+import { CatalogState, CollectiveFormCatalog, CollectiveRecord, MeetingRecord, collectiveService } from "@/services/collectiveService";
+import { fmt } from "@/services/criteriaService";
+import { errorMessage } from "@/components/admin/adminUtils";
 import { ReportFileFormat, hd03FileName, reportService } from "@/services/reportService";
 import { organizationSettingsService } from "@/services/organizationSettingsService";
 
@@ -36,6 +37,7 @@ export default function CollectiveEvaluationsPage() {
   const [branches, setBranches] = useState<BranchItem[]>([]);
   const [departments, setDepartments] = useState<DepartmentItem[]>([]);
   const [catalog, setCatalog] = useState<CollectiveFormCatalog | null>(null);
+  const [catalogState, setCatalogState] = useState<CatalogState>("loading");
   const [records, setRecords] = useState<CollectiveRecord[]>([]);
   const [meetings, setMeetings] = useState<MeetingRecord[]>([]);
   const [editingRecord, setEditingRecord] = useState<CollectiveRecord | null>(null);
@@ -51,14 +53,8 @@ export default function CollectiveEvaluationsPage() {
     hasPermission("meeting.manage");
   const canManageCollective = hasPermission("collective.manage");
   const canManageMeeting = hasPermission("meeting.manage");
-  // Phạm vi collective.manage (máy chủ đã gộp đơn vị con): đính kèm phụ lục khi hồ sơ thuộc phạm vi và kỳ chưa đóng.
-  const collectiveScope = usePermissionScope("collective.manage");
-  const canAttach = (record: CollectiveRecord) =>
-    period?.status !== "Closed" &&
-    !!collectiveScope &&
-    (collectiveScope.isGlobal ||
-      (!!record.partyCellId && collectiveScope.partyCellIds.includes(record.partyCellId)) ||
-      (!!record.departmentId && collectiveScope.departmentIds.includes(record.departmentId)));
+  const canReadRecords = hasPermission("evaluation.read") || canManageCollective;
+  const canReadMeetings = hasPermission("meeting.read") || canManageMeeting;
 
   useEffect(() => {
     if (!canUseModule) {
@@ -73,46 +69,65 @@ export default function CollectiveEvaluationsPage() {
         setBranches(loadedBranches);
         setDepartments(loadedDepartments);
       })
-      .catch((error: any) => showError(error?.message || "Không thể tải dữ liệu đánh giá tập thể."))
+      .catch((error: unknown) => showError(errorMessage(error, "Không thể tải dữ liệu đánh giá tập thể.")))
       .finally(() => setLoading(false));
     organizationSettingsService.getPublic().then((info) => setShortName(info.shortName)).catch(() => setShortName(""));
   }, [canUseModule, showError]);
 
   useEffect(() => {
-    if (!canUseModule || !periodId) return;
+    if (!canReadRecords || !periodId) return;
     let cancelled = false;
     setCatalog(null);
+    setCatalogState("loading");
     collectiveService
       .getCatalog(periodId)
-      .catch(() => null)
       .then((loaded) => {
-        if (!cancelled) setCatalog(loaded);
+        if (cancelled) return;
+        setCatalog(loaded);
+        setCatalogState("ready");
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setCatalogState("error");
+        showError(errorMessage(error, "Không tải được khung tiêu chí tập thể của kỳ."));
       });
     return () => {
       cancelled = true;
     };
-  }, [canUseModule, periodId]);
+  }, [canReadRecords, periodId, showError]);
+
+  /** Kỳ mà dữ liệu đang hiển thị thuộc về — kết quả về muộn của kỳ cũ bị bỏ qua. */
+  const activePeriod = useRef<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!periodId) return;
-    const [loadedRecords, loadedMeetings] = await Promise.all([
-      collectiveService.getRecords(periodId).catch(() => [] as CollectiveRecord[]),
-      collectiveService.getMeetings(periodId).catch(() => [] as MeetingRecord[]),
+    const requested = periodId;
+    const [recordsResult, meetingsResult] = await Promise.allSettled([
+      canReadRecords ? collectiveService.getRecords(requested) : Promise.resolve([] as CollectiveRecord[]),
+      canReadMeetings ? collectiveService.getMeetings(requested) : Promise.resolve([] as MeetingRecord[]),
     ]);
-    setRecords(loadedRecords);
-    setMeetings(loadedMeetings);
-  }, [periodId]);
+    if (activePeriod.current !== requested) return;
+    if (recordsResult.status === "fulfilled") setRecords(recordsResult.value);
+    else showError(errorMessage(recordsResult.reason, "Không tải được hồ sơ tập thể."));
+    if (meetingsResult.status === "fulfilled") setMeetings(meetingsResult.value);
+    else showError(errorMessage(meetingsResult.reason, "Không tải được biên bản hội nghị."));
+  }, [periodId, canReadRecords, canReadMeetings, showError]);
 
   useEffect(() => {
     setEditingRecord(null);
     setEditingMeeting(null);
+    setRecords([]);
+    setMeetings([]);
     if (!periodId || !canUseModule) {
-      setRecords([]);
-      setMeetings([]);
+      activePeriod.current = null;
       return;
     }
-    reload().catch((error: any) => showError(error?.message || "Không thể tải hồ sơ tập thể."));
-  }, [periodId, canUseModule, reload, showError]);
+    activePeriod.current = periodId;
+    reload();
+    return () => {
+      activePeriod.current = null;
+    };
+  }, [periodId, canUseModule, reload]);
 
   const periodLabel = period ? `Quy ${ROMAN[period.quarter] ?? period.quarter}-${period.year}` : "Ky bao cao";
 
@@ -120,8 +135,8 @@ export default function CollectiveEvaluationsPage() {
     setExporting(key);
     try {
       await work();
-    } catch (error: any) {
-      showError(error?.message || failure);
+    } catch (error: unknown) {
+      showError(errorMessage(error, failure));
     } finally {
       setExporting(null);
     }
@@ -213,7 +228,7 @@ export default function CollectiveEvaluationsPage() {
                         <div className="text-secondary small">
                           <span className="tag t-info me-2">{FORM_NAMES[record.form] || record.form}</span>
                           {record.partyCellName || record.departmentName || "Chưa gắn tổ chức"}
-                          {record.form !== "M08" && <> · <span className="num">{record.totalScore.toFixed(1)} / 100</span></>}
+                          {record.form !== "M08" && <> · <span className="num">{fmt(record.totalScore)}{catalog ? ` / ${fmt(catalog.generalMaxScore + catalog.taskMaxScore)}` : ""}</span></>}
                           {record.form === "M08" && <> · <span className="num">{record.items.length}</span> nhiệm vụ</>}
                         </div>
                       </div>
@@ -227,7 +242,7 @@ export default function CollectiveEvaluationsPage() {
                         {record.form === "M08" && exportButtons(record.id, (format) => exportRecord(record, format), "Word", () => exportRecordExcel(record))}
                       </div>
                       <div className="w-100">
-                        <CollectiveAttachments recordId={record.id} formCode={record.form} editable={canAttach(record)} />
+                        <CollectiveAttachments recordId={record.id} formCode={record.form} editable={record.canAttach ?? false} />
                       </div>
                     </li>
                   ))}
@@ -251,6 +266,7 @@ export default function CollectiveEvaluationsPage() {
                   <CollectiveRecordEditor
                     periodId={periodId}
                     catalog={catalog}
+                    catalogState={catalogState}
                     branches={branches}
                     departments={departments}
                     editing={editingRecord}

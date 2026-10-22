@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { authService } from "@/services/authService";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 /** Form đổi mật khẩu dùng chung: trang đổi mật khẩu bắt buộc (lần đăng nhập đầu) và mục Bảo mật của trang Tài khoản. */
 export function ChangePasswordForm({
@@ -41,8 +42,8 @@ export function ChangePasswordForm({
       setNewPassword("");
       setConfirmPassword("");
       onSuccess?.();
-    } catch (error: any) {
-      toast.error(error.message || "Không thể đổi mật khẩu.");
+    } catch (error: unknown) {
+      toast.error(errorMessage(error, "Không thể đổi mật khẩu."));
     } finally {
       setSubmitting(false);
     }

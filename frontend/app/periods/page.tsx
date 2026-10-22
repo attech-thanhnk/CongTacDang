@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { EvaluationPeriodDto, evaluationService } from "@/services/evaluationService";
 import { scoringMethodLabel } from "@/services/criteriaService";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 /** Kỳ đánh giá: danh sách (mọi người đã đăng nhập) và tạo kỳ với bộ tiêu chí đã chọn (period.manage). */
 export default function PeriodsPage() {
@@ -28,7 +29,7 @@ export default function PeriodsPage() {
   useEffect(() => {
     evaluationService.getPeriods()
       .then(setPeriods)
-      .catch((err: any) => toast.error(err?.message || "Không tải được danh sách kỳ."))
+      .catch((err: unknown) => toast.error(errorMessage(err, "Không tải được danh sách kỳ.")))
       .finally(() => setLoading(false));
   }, [toast]);
   const paging = usePagination(periods, { storageKey: "periods" });

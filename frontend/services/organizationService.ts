@@ -12,8 +12,6 @@ export interface BranchItem {
   description?: string;
   /** Số lượng cán bộ sinh hoạt */
   memberCount?: number;
-  /** Danh sách thành viên (nếu có) */
-  members?: any[];
 }
 
 /** Thông tin Phòng ban / Phân xưởng chuyên môn */

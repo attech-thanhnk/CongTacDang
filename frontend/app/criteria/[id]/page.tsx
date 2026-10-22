@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -8,6 +8,8 @@ import { Badge, BadgeTone } from "@/components/common/StatusBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { CriteriaSummary } from "@/components/evaluations/CriteriaSummary";
+import { NoAccess } from "@/components/admin/NoAccess";
+import { errorMessage, errorStatus } from "@/components/admin/adminUtils";
 import {
   COLLECTIVE_KIND_LABELS,
   CollectiveCriteriaGroup,
@@ -46,15 +48,18 @@ export default function CriteriaSetPage() {
   const router = useRouter();
   const { hasPermission } = useAuth();
   const canManage = hasPermission("criteria.manage");
+  const canView = canManage || hasPermission("period.manage");
   const { toast, confirm } = useToast();
+  const rowKey = useRowKeys();
   const [set, setSet] = useState<CriteriaSetDto | null>(null);
   const [content, setContent] = useState<CriteriaSetContent | null>(null);
   const [info, setInfo] = useState({ code: "", name: "", selfScoreForm: "09A", notes: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!id) return;
+    if (!id || !canView) return;
     try {
       const loaded = await criteriaService.get(id);
       setSet(loaded);
@@ -65,10 +70,11 @@ export default function CriteriaSetPage() {
       copy.collectiveGroups = copy.collectiveGroups ?? [];
       setContent(copy);
       setInfo({ code: loaded.code, name: loaded.name, selfScoreForm: loaded.selfScoreForm, notes: loaded.notes || "" });
-    } catch (err: any) {
-      setError(err?.message || "Không tải được bộ tiêu chí.");
+      setConflict(null);
+    } catch (err: unknown) {
+      setError(errorMessage(err, "Không tải được bộ tiêu chí."));
     }
-  }, [id]);
+  }, [id, canView]);
 
   useEffect(() => {
     load();
@@ -76,6 +82,7 @@ export default function CriteriaSetPage() {
 
   const checks = useMemo(() => (content ? quickChecks(content, info.selfScoreForm) : []), [content, info.selfScoreForm]);
 
+  if (!canView) return <NoAccess title="Bộ tiêu chí và thang điểm" permissionName="Quản lý bộ tiêu chí" />;
   if (error) return <div className="page-wrapper"><div className="alert alert-danger m-4">{error}</div></div>;
   if (!set || !content) return <div className="page-wrapper"><div className="text-secondary p-4 loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div></div>;
 
@@ -88,9 +95,11 @@ export default function CriteriaSetPage() {
       await work();
       toast.success(success);
       await load();
-    } catch (err: any) {
-      toast.error(err?.message || "Không thực hiện được thao tác.");
-      if (err?.status === 409) await load();
+    } catch (err: unknown) {
+      const message = errorMessage(err, "Không thực hiện được thao tác.");
+      // Xung đột: giữ nguyên nội dung đang sửa, để người dùng chủ động tải lại.
+      if (errorStatus(err) === 409) setConflict(message);
+      else toast.error(message);
     } finally {
       setBusy(false);
     }
@@ -118,7 +127,7 @@ export default function CriteriaSetPage() {
   const setParam = <K extends keyof CriteriaSetContent["parameters"]>(key: K, value: CriteriaSetContent["parameters"][K]) =>
     update({ parameters: { ...p, [key]: value } });
   const setGroup = (index: number, change: Partial<CriteriaGroup>) =>
-    update({ generalGroups: content.generalGroups.map((g, i) => (i === index ? { ...g, ...change } : g)) });
+    update({ generalGroups: content.generalGroups.map((g, i) => (i === index ? rowKey.carry(g, { ...g, ...change }) : g)) });
   const num = (value: string) => (value === "" ? 0 : Number(value));
   const toggleForm = (code: string, on: boolean) =>
     update({ requiredForms: on ? [...content.requiredForms.filter((c) => c !== code), code] : content.requiredForms.filter((c) => c !== code) });
@@ -126,14 +135,14 @@ export default function CriteriaSetPage() {
     update({ selfAssessmentSections: content.selfAssessmentSections.map((s, i) => (i === index ? { ...s, ...change } : s)) });
 
   const setCollective = (index: number, change: Partial<CollectiveCriteriaGroup>) =>
-    update({ collectiveGroups: content.collectiveGroups.map((g, i) => (i === index ? { ...g, ...change } : g)) });
+    update({ collectiveGroups: content.collectiveGroups.map((g, i) => (i === index ? rowKey.carry(g, { ...g, ...change }) : g)) });
   const fillCollectiveDefaults = async () => {
     setBusy(true);
     try {
       const groups = await criteriaService.defaultCollectiveGroups();
       update({ collectiveGroups: groups });
-    } catch (err: any) {
-      toast.error(err?.message || "Không tải được khung tiêu chí tập thể mặc định.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Không tải được khung tiêu chí tập thể mặc định."));
     } finally {
       setBusy(false);
     }
@@ -170,6 +179,15 @@ export default function CriteriaSetPage() {
       />
 
       <div className="page-body">
+        {conflict && (
+          <div className="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mb-0" role="alert">
+            <span>{conflict} Nội dung đang sửa vẫn được giữ trên màn hình.</span>
+            <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy}
+              onClick={() => confirm({ title: "Tải lại bộ tiêu chí", message: "Các thay đổi chưa lưu trên màn hình sẽ bị bỏ.", confirmText: "Tải lại", isDanger: true, onConfirm: load })}>
+              Tải lại (bỏ thay đổi)
+            </button>
+          </div>
+        )}
         {set.usedByPeriods.length > 0 && (
           <div className="d-flex flex-wrap align-items-center gap-2">
             <span className="text-secondary">Kỳ đang dùng</span>
@@ -213,12 +231,12 @@ export default function CriteriaSetPage() {
               </div>
               <div className="card-body">
                 {content.generalGroups.map((g, gi) => (
-                  <div className="border rounded-3 p-2 mb-2" key={gi}>
+                  <div className="border rounded-3 p-2 mb-2" key={rowKey(g)}>
                     <div className="row g-2 align-items-end mb-2">
-                      <div className="col-md-1"><label className="form-label mb-1">Mã</label><input className="form-control form-control-sm" value={g.code} onChange={(e) => setGroup(gi, { code: e.target.value })} /></div>
-                      <div className="col-md-6"><label className="form-label mb-1">Tên nhóm</label><input className="form-control form-control-sm" value={g.name} onChange={(e) => setGroup(gi, { name: e.target.value })} /></div>
+                      <div className="col-md-1"><label className="form-label mb-1">Mã</label><input className="form-control form-control-sm" aria-label="Mã nhóm" value={g.code} onChange={(e) => setGroup(gi, { code: e.target.value })} /></div>
+                      <div className="col-md-6"><label className="form-label mb-1">Tên nhóm</label><input className="form-control form-control-sm" aria-label="Tên nhóm" value={g.name} onChange={(e) => setGroup(gi, { name: e.target.value })} /></div>
                       <div className="col-md-3"><label className="form-label mb-1">Cách chấm</label>
-                        <select className="form-select form-select-sm" value={g.scoringMode} onChange={(e) => setGroup(gi, { scoringMode: e.target.value as CriteriaGroup["scoringMode"] })}>
+                        <select className="form-select form-select-sm" aria-label="Cách chấm" value={g.scoringMode} onChange={(e) => setGroup(gi, { scoringMode: e.target.value as CriteriaGroup["scoringMode"] })}>
                           <option value="Binary">Đảm bảo / Không đảm bảo</option>
                           <option value="Range">Nhập điểm 0..tối đa</option>
                         </select>
@@ -231,16 +249,16 @@ export default function CriteriaSetPage() {
                       <thead><tr><th style={{ width: 80 }}>Mã</th><th>Nội dung tiêu chí con</th><th style={{ width: 90 }}>Tối đa</th><th style={{ width: 30 }} /></tr></thead>
                       <tbody>
                         {g.items.map((item, ii) => {
-                          const setItem = (change: Partial<typeof item>) => setGroup(gi, { items: g.items.map((x, i) => (i === ii ? { ...x, ...change } : x)) });
+                          const setItem = (change: Partial<typeof item>) => setGroup(gi, { items: g.items.map((x, i) => (i === ii ? rowKey.carry(x, { ...x, ...change }) : x)) });
                           return (
-                            <tr key={ii}>
-                              <td><input className="form-control form-control-sm" value={item.code} onChange={(e) => setItem({ code: e.target.value })} /></td>
+                            <tr key={rowKey(item)}>
+                              <td><input className="form-control form-control-sm" aria-label="Mã tiêu chí con" value={item.code} onChange={(e) => setItem({ code: e.target.value })} /></td>
                               <td>
                                 <textarea className="form-control form-control-sm" rows={1} value={item.text} aria-label="Nội dung tiêu chí con" onChange={(e) => setItem({ text: e.target.value })} />
                                 <textarea className="form-control form-control-sm mt-1" rows={1} maxLength={4000} value={item.formText ?? ""} aria-label="Nội dung in trên phiếu"
                                   placeholder="Nội dung in trên phiếu (trống = in như trên)" onChange={(e) => setItem({ formText: e.target.value || null })} />
                               </td>
-                              <td><input type="number" min={0} step={0.5} className="form-control form-control-sm" value={item.maxScore} onChange={(e) => setItem({ maxScore: num(e.target.value) })} /></td>
+                              <td><input type="number" min={0} step={0.5} className="form-control form-control-sm" aria-label="Điểm tối đa" value={item.maxScore} onChange={(e) => setItem({ maxScore: num(e.target.value) })} /></td>
                               <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa tiêu chí" onClick={() => setGroup(gi, { items: g.items.filter((_, i) => i !== ii) })}><i className="bi bi-x-lg" /></button></td>
                             </tr>
                           );
@@ -283,12 +301,12 @@ export default function CriteriaSetPage() {
                   </div>
                 )}
                 {content.collectiveGroups.map((g, gi) => (
-                  <div className="border rounded-3 p-2 mb-2" key={gi}>
+                  <div className="border rounded-3 p-2 mb-2" key={rowKey(g)}>
                     <div className="row g-2 align-items-end mb-2">
-                      <div className="col-md-1"><label className="form-label mb-1">Mã</label><input className="form-control form-control-sm" maxLength={20} value={g.code} onChange={(e) => setCollective(gi, { code: e.target.value })} /></div>
-                      <div className="col-md-6"><label className="form-label mb-1">Tên nhóm</label><input className="form-control form-control-sm" maxLength={FORM_CONFIG_LIMITS.title} value={g.name} onChange={(e) => setCollective(gi, { name: e.target.value })} /></div>
+                      <div className="col-md-1"><label className="form-label mb-1">Mã</label><input className="form-control form-control-sm" maxLength={20} aria-label="Mã nhóm" value={g.code} onChange={(e) => setCollective(gi, { code: e.target.value })} /></div>
+                      <div className="col-md-6"><label className="form-label mb-1">Tên nhóm</label><input className="form-control form-control-sm" maxLength={FORM_CONFIG_LIMITS.title} aria-label="Tên nhóm" value={g.name} onChange={(e) => setCollective(gi, { name: e.target.value })} /></div>
                       <div className="col-md-3"><label className="form-label mb-1">Cộng vào</label>
-                        <select className="form-select form-select-sm" value={g.kind} onChange={(e) => setCollective(gi, { kind: e.target.value as CollectiveScoreKind })}>
+                        <select className="form-select form-select-sm" aria-label="Cộng vào" value={g.kind} onChange={(e) => setCollective(gi, { kind: e.target.value as CollectiveScoreKind })}>
                           <option value="General">{COLLECTIVE_KIND_LABELS.General}</option>
                           <option value="Task">{COLLECTIVE_KIND_LABELS.Task}</option>
                         </select>
@@ -301,16 +319,16 @@ export default function CriteriaSetPage() {
                       <thead><tr><th style={{ width: 80 }}>Mã</th><th>Nội dung tiêu chí</th><th style={{ width: 90 }}>Tối đa</th><th style={{ width: 30 }} /></tr></thead>
                       <tbody>
                         {g.items.map((item, ii) => {
-                          const setItem = (change: Partial<typeof item>) => setCollective(gi, { items: g.items.map((x, i) => (i === ii ? { ...x, ...change } : x)) });
+                          const setItem = (change: Partial<typeof item>) => setCollective(gi, { items: g.items.map((x, i) => (i === ii ? rowKey.carry(x, { ...x, ...change }) : x)) });
                           return (
-                            <tr key={ii}>
-                              <td><input className="form-control form-control-sm" maxLength={20} value={item.code} onChange={(e) => setItem({ code: e.target.value })} /></td>
+                            <tr key={rowKey(item)}>
+                              <td><input className="form-control form-control-sm" maxLength={20} aria-label="Mã tiêu chí" value={item.code} onChange={(e) => setItem({ code: e.target.value })} /></td>
                               <td>
                                 <textarea className="form-control form-control-sm" rows={2} maxLength={2000} value={item.text} aria-label="Nội dung tiêu chí tập thể" onChange={(e) => setItem({ text: e.target.value })} />
                                 <textarea className="form-control form-control-sm mt-1" rows={1} maxLength={4000} value={item.formText ?? ""} aria-label="Nội dung in trên phiếu"
                                   placeholder="Nội dung in trên phiếu (trống = in như trên)" onChange={(e) => setItem({ formText: e.target.value || null })} />
                               </td>
-                              <td><input type="number" min={0} max={100} step={0.5} className="form-control form-control-sm" value={item.maxScore} onChange={(e) => setItem({ maxScore: num(e.target.value) })} /></td>
+                              <td><input type="number" min={0} max={100} step={0.5} className="form-control form-control-sm" aria-label="Điểm tối đa" value={item.maxScore} onChange={(e) => setItem({ maxScore: num(e.target.value) })} /></td>
                               <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa tiêu chí" onClick={() => setCollective(gi, { items: g.items.filter((_, i) => i !== ii) })}><i className="bi bi-x-lg" /></button></td>
                             </tr>
                           );
@@ -633,4 +651,29 @@ function RoundingModeSelect({ value, onChange }: { value: ScoreRoundingMode; onC
       {(Object.keys(ROUNDING_LABELS) as ScoreRoundingMode[]).map((mode) => <option key={mode} value={mode}>{ROUNDING_LABELS[mode]}</option>)}
     </select>
   );
+}
+
+/**
+ * Khóa ổn định cho các dòng sửa trực tiếp (nhóm, tiêu chí): nội dung bộ tiêu chí không có id riêng,
+ * dùng chỉ số mảng làm khóa sẽ lẫn ô nhập khi xóa/thêm dòng. Khi sửa một dòng, khóa được chuyển sang đối tượng mới.
+ */
+function useRowKeys() {
+  const keys = useRef(new WeakMap<object, string>());
+  const next = useRef(0);
+  return useMemo(() => {
+    const keyOf = (row: object): string => {
+      let key = keys.current.get(row);
+      if (!key) {
+        next.current += 1;
+        key = `r${next.current}`;
+        keys.current.set(row, key);
+      }
+      return key;
+    };
+    const carry = <T extends object>(from: object, to: T): T => {
+      keys.current.set(to, keyOf(from));
+      return to;
+    };
+    return Object.assign(keyOf, { carry });
+  }, []);
 }

@@ -1,4 +1,5 @@
-import { apiClient, request } from "./apiClient";
+import { request } from "./apiClient";
+import { DownloadedFile, fetchFile, saveBlob } from "./download";
 import { organizationSettingsService } from "./organizationSettingsService";
 
 /** Nhóm trên trang Báo cáo: hồ sơ nộp theo HD03 (mục V.1) hoặc báo cáo nội bộ (không mang số mẫu HD03). */
@@ -185,40 +186,36 @@ export function internalFileName(fileCode: string, unit: string, periodLabel: st
 }
 
 export const reportService = {
-  /** Lấy nội dung tệp xuất từ máy chủ (kèm HttpOnly Cookie). `format = "pdf"` để máy chủ chuyển sang PDF. */
-  async fetchReportBlob(endpoint: string, format: ReportFileFormat = "original"): Promise<Blob> {
+  /** Lấy tệp xuất từ máy chủ (kèm HttpOnly Cookie) và tên tệp máy chủ đặt. `format = "pdf"` để máy chủ chuyển sang PDF. */
+  fetchReportFile(endpoint: string, format: ReportFileFormat = "original"): Promise<DownloadedFile> {
     const url = format === "pdf" ? withQuery(endpoint, { format: "pdf" }) : endpoint;
     // Chuyển PDF bằng LibreOffice có thể mất vài chục giây.
-    const res: any = await apiClient.get(url, { responseType: "blob", timeout: format === "pdf" ? 120000 : undefined });
-    return res instanceof Blob ? res : new Blob([res]);
+    return fetchFile(url, { timeout: format === "pdf" ? 120000 : undefined });
   },
 
-  /** Lưu Blob thành tệp tải về trên trình duyệt. */
-  saveBlob(blob: Blob, fileName: string): void {
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", fileName);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+  /** Chỉ lấy nội dung tệp xuất (xem trước PDF). */
+  async fetchReportBlob(endpoint: string, format: ReportFileFormat = "original"): Promise<Blob> {
+    return (await this.fetchReportFile(endpoint, format)).blob;
   },
 
-  /** Tải báo cáo kèm HttpOnly Cookie xác thực qua apiClient. */
+  /** Tải báo cáo về máy: tên tệp theo máy chủ, không có thì dùng `fileName` (đổi đuôi khi xuất PDF). */
   async downloadReport(endpoint: string, fileName: string, format: ReportFileFormat = "original"): Promise<void> {
     if (!endpoint) return;
-    const blob = await this.fetchReportBlob(endpoint, format);
+    const file = await this.fetchReportFile(endpoint, format);
+    if (file.fileName) {
+      saveBlob(file.blob, file.fileName);
+      return;
+    }
     const name = await resolveFileName(fileName);
-    this.saveBlob(blob, format === "pdf" ? name.replace(/\.(docx|xlsx)$/i, ".pdf") : name);
+    saveBlob(file.blob, format === "pdf" ? name.replace(/\.(docx|xlsx)$/i, ".pdf") : name);
   },
 
-  /** Bản nháp Mẫu 16 + số liệu tự động. Không truyền `branchId`: phạm vi mặc định theo quyền được giao. */
   /** Lập được Quyết định xếp loại chưa (lý do khi chưa). */
   getDecisionReadiness(periodId: string, branchId?: string): Promise<{ ready: boolean; message?: string | null }> {
     return request(withQuery("/reports/decision/readiness", { periodId, branchId }));
   },
 
+  /** Bản nháp Mẫu 16 + số liệu tự động. Không truyền `branchId`: phạm vi mặc định theo quyền được giao. */
   getForm16Draft(periodId: string, branchId?: string): Promise<Form16Draft> {
     return request<Form16Draft>(withQuery("/reports/mau-16/draft", { periodId, branchId }));
   },
@@ -245,23 +242,5 @@ export const reportService = {
   /** Xuất Mẫu 12 (biên bản hội nghị) hoặc Mẫu 13 (biên bản kiểm phiếu) từ biên bản. */
   async exportMeeting(meetingId: string, form: "12" | "13", fileName: string, format: ReportFileFormat = "original"): Promise<void> {
     return this.downloadReport(`/reports/docx/mau-${form}/${meetingId}`, fileName, format);
-  },
-
-  /** Xuất Mẫu 01: Phiếu giao / đăng ký sản phẩm chuyên môn hàng quý (.docx) */
-  async exportMau01Docx(recordId: string, fullName?: string): Promise<void> {
-    const safeName = fullName ? fullName.replace(/\s+/g, "_") : "CanBo";
-    return this.downloadReport(`/reports/docx/mau-01/${recordId}`, `Mau_01_DangKyNhiemVu_${safeName}.docx`);
-  },
-
-  /** Xuất Mẫu 02: Phiếu tự đánh giá kết quả thực hiện sản phẩm hàng quý (.docx) */
-  async exportMau02Docx(recordId: string, fullName?: string): Promise<void> {
-    const safeName = fullName ? fullName.replace(/\s+/g, "_") : "CanBo";
-    return this.downloadReport(`/reports/docx/mau-02/${recordId}`, `Mau_02_TuDanhGia_${safeName}.docx`);
-  },
-
-  /** Xuất Mẫu 10: Phiếu thẩm định, nhận xét, đề xuất xếp loại và ghi nhận giải trình (.docx) */
-  async exportMau10Docx(recordId: string, fullName?: string): Promise<void> {
-    const safeName = fullName ? fullName.replace(/\s+/g, "_") : "CanBo";
-    return this.downloadReport(`/reports/docx/mau-10/${recordId}`, `Mau_10_PhieuThamDinh_${safeName}.docx`);
   },
 };

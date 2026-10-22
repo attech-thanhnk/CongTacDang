@@ -1,4 +1,5 @@
 import { apiClient, ApiError, request } from "./apiClient";
+import { downloadFile } from "./download";
 
 /** Một tag trong danh mục tag của biểu mẫu. */
 export interface TemplateTag {
@@ -53,18 +54,6 @@ export interface TemplateCheck {
 /** Dung lượng tối đa (khớp máy chủ). */
 export const TEMPLATE_MAX_FILE_BYTES = 10 * 1024 * 1024;
 
-function saveBlob(data: unknown, fileName: string) {
-  const blob = data instanceof Blob ? data : new Blob([data as BlobPart]);
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", fileName);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
-}
-
 function fileForm(file: File, fields: Record<string, string> = {}): FormData {
   const form = new FormData();
   form.append("file", file);
@@ -118,14 +107,14 @@ export const templateService = {
   },
 
   async downloadCurrent(code: string, fileName: string): Promise<void> {
-    saveBlob(await apiClient.get(`${base(code)}/current`, { responseType: "blob" }), fileName);
+    await downloadFile(`${base(code)}/current`, fileName);
   },
 
   async downloadOriginal(code: string, fileName: string): Promise<void> {
-    saveBlob(await apiClient.get(`${base(code)}/original`, { responseType: "blob" }), fileName);
+    await downloadFile(`${base(code)}/original`, fileName);
   },
 
   async downloadVersion(code: string, version: TemplateVersion, fileName: string): Promise<void> {
-    saveBlob(await apiClient.get(`${base(code)}/versions/${version.id}/file`, { responseType: "blob" }), fileName);
+    await downloadFile(`${base(code)}/versions/${version.id}/file`, fileName);
   },
 };

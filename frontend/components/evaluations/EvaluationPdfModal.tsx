@@ -3,7 +3,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { EvaluationRecordDto, RecordFormDto, evaluationService } from "@/services/evaluationService";
 import { reportService } from "@/services/reportService";
+import { saveBlob } from "@/services/download";
 import styles from "./pdfViewer.module.css";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 interface Props {
   isOpen: boolean;
@@ -24,6 +26,7 @@ const safeName = (value?: string | null) => (value ? value.trim().replace(/\s+/g
 export const EvaluationPdfModal: React.FC<Props> = ({ isOpen, onClose, record, forms, initialCode }) => {
   const [code, setCode] = useState(initialCode);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [pdfFileName, setPdfFileName] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,19 +68,21 @@ export const EvaluationPdfModal: React.FC<Props> = ({ isOpen, onClose, record, f
     setLoading(true);
     setError(null);
     setPdfBlob(null);
+    setPdfFileName(null);
     setPdfUrl(null);
 
     reportService
-      .fetchReportBlob(endpoint, "pdf")
-      .then((blob) => {
+      .fetchReportFile(endpoint, "pdf")
+      .then((file) => {
         if (cancelled) return;
-        objectUrl = window.URL.createObjectURL(blob);
-        setPdfBlob(blob);
+        objectUrl = window.URL.createObjectURL(file.blob);
+        setPdfBlob(file.blob);
+        setPdfFileName(file.fileName);
         setPdfUrl(objectUrl);
       })
-      .catch((err: any) => {
+      .catch((err: unknown) => {
         if (cancelled) return;
-        setError(err?.message || "Không tải được bản PDF từ máy chủ.");
+        setError(errorMessage(err, "Không tải được bản PDF từ máy chủ."));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -92,7 +97,7 @@ export const EvaluationPdfModal: React.FC<Props> = ({ isOpen, onClose, record, f
   if (!isOpen) return null;
 
   const handleDownload = () => {
-    if (pdfBlob && form) reportService.saveBlob(pdfBlob, `Mau_${form.code}_${safeName(record.fullName)}.pdf`);
+    if (pdfBlob && form) saveBlob(pdfBlob, pdfFileName || `Mau_${form.code}_${safeName(record.fullName)}.pdf`);
   };
 
   const handlePrint = () => {

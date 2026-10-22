@@ -14,6 +14,7 @@ import {
   taskChangeService,
 } from "@/services/taskChangeService";
 import { useCriteria } from "./useCriteria";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 const STATUS_CLASS: Record<string, string> = { Pending: "t-wait", Approved: "t-ok", Rejected: "t-bad" };
 
@@ -59,8 +60,8 @@ export function TaskChangeRequests({ record, onRecordChanged }: Props) {
       await load();
       onRecordChanged?.();
       return true;
-    } catch (err: any) {
-      toast.error(err?.message || "Không thực hiện được thao tác.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Không thực hiện được thao tác."));
       await load();
       return false;
     } finally {

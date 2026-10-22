@@ -14,6 +14,7 @@ import {
   milestoneResultLabel,
   postPublishService,
 } from "@/services/postPublishService";
+import { errorMessage } from "@/components/admin/adminUtils";
 
 const MILESTONES: { code: MilestoneCode; name: string }[] = [
   { code: "M30", name: "Mốc 30 ngày (Khắc phục cấp bách)" },
@@ -63,8 +64,8 @@ export function ImprovementPlanPanel({ record }: { record: EvaluationRecordDto }
     try {
       setData(await postPublishService.getRecordPlan(record.id));
       setError(null);
-    } catch (err: any) {
-      setError(err?.message || "Không tải được kế hoạch 30-60-90 ngày.");
+    } catch (err: unknown) {
+      setError(errorMessage(err, "Không tải được kế hoạch 30-60-90 ngày."));
     }
   }, [record.id]);
 
@@ -85,8 +86,8 @@ export function ImprovementPlanPanel({ record }: { record: EvaluationRecordDto }
       toast.success(message);
       await load();
       return true;
-    } catch (err: any) {
-      toast.error(err?.message || "Không thực hiện được thao tác.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Không thực hiện được thao tác."));
       await load();
       return false;
     } finally {
@@ -112,7 +113,7 @@ export function ImprovementPlanPanel({ record }: { record: EvaluationRecordDto }
   const download = (format: "original" | "pdf") => {
     if (!plan) return;
     postPublishService.downloadMau17(plan.id, record.fullName, format)
-      .catch((err: any) => toast.error(err?.message || "Không xuất được Mẫu 17."));
+      .catch((err: unknown) => toast.error(errorMessage(err, "Không xuất được Mẫu 17.")));
   };
 
   const updateMilestone = (code: MilestoneCode, key: keyof Omit<MilestoneInput, "code">, value: string) =>
