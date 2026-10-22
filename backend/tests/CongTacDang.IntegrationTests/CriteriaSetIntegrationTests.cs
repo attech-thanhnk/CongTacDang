@@ -175,6 +175,17 @@ public sealed class CriteriaSetIntegrationTests
         var frameIssue = Assert.Single(readiness.GetProperty("issues").EnumerateArray(), i => i.GetProperty("message").GetString()!.Contains("Khung tỷ trọng"));
         Assert.Equal(r2, frameIssue.GetProperty("recordId").GetGuid());
         Assert.Contains("\"K9\"", frameIssue.GetProperty("message").GetString());
+        // Hồ sơ cán bộ của Owner1 đổi cấp quyết định sau khi thêm vào kỳ → lúc mở kỳ sẽ đồng bộ ảnh chụp; mở kỳ thất bại thì
+        // phần đồng bộ và lịch sử "Cập nhật theo hồ sơ cán bộ khi mở kỳ" không được lưu.
+        await _factory.WithDbAsync(async db =>
+        {
+            var member = await db.PartyMemberProfiles.SingleAsync(m => m.Id == w.Owner1.Id);
+            member.ApprovalAuthority = member.ApprovalAuthority == ApprovalAuthority.CoSo ? ApprovalAuthority.CapTren : ApprovalAuthority.CoSo;
+            await db.SaveChangesAsync();
+        });
+        ApprovalAuthority r1AuthorityBefore = default;
+        await _factory.WithDbAsync(async db => r1AuthorityBefore = (await db.EvaluationRecords.SingleAsync(r => r.Id == r1)).ApprovalAuthority);
+
         // Khung sai chặn cứng (400, nêu tên người + khung) — kể cả "mở bắt buộc" có lý do.
         var periodVersion = (await Data(w.Manager, $"/api/evaluations/periods/{periodId}")).GetProperty("version").GetUInt32();
         var openRefused = await w.Manager.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open", new { version = periodVersion });
@@ -186,6 +197,15 @@ public sealed class CriteriaSetIntegrationTests
         Assert.Contains("(khung \"K9\")", forcedMessage);
         Assert.Contains(frameIssue.GetProperty("fullName").GetString()!, forcedMessage);
         Assert.Equal("Draft", (await Data(w.Manager, $"/api/evaluations/periods/{periodId}")).GetProperty("status").GetString());
+        await _factory.WithDbAsync(async db =>
+        {
+            Assert.False(await db.EvaluationRecordHistories.AnyAsync(h => h.RecordId == r1 && h.Action == WorkflowAction.SyncSnapshot));
+            Assert.Equal(r1AuthorityBefore, (await db.EvaluationRecords.SingleAsync(r => r.Id == r1)).ApprovalAuthority);
+            // Trả hồ sơ cán bộ về như cũ cho phần còn lại của kịch bản.
+            var member = await db.PartyMemberProfiles.SingleAsync(m => m.Id == w.Owner1.Id);
+            member.ApprovalAuthority = r1AuthorityBefore;
+            await db.SaveChangesAsync();
+        });
 
         var p2 = Participant(participants, r2);
         var badFrame = await w.Manager.PutAsJsonAsync($"/api/evaluations/periods/{periodId}/participants/{r2}/snapshot",

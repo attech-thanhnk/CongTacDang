@@ -291,6 +291,34 @@ public sealed class PeriodService : IPeriodService
         if (errors.Count > 0)
             throw new ValidationException("Cấu hình kỳ chưa hợp lệ, chưa mở được kỳ: " + string.Join(" ", errors));
 
+        // Đồng bộ ảnh chụp hồ sơ, kiểm tra và chuyển trạng thái trong một transaction: lỗi kiểm tra phía sau hoặc chỉ trả cảnh báo
+        // (chưa mở kỳ) thì bỏ cả phần đồng bộ và lịch sử "Cập nhật theo hồ sơ cán bộ khi mở kỳ" — không để lại thay đổi dở dang.
+        OpenPeriodOutcome? outcome = null;
+        try
+        {
+            await _unitOfWork.ExecuteInTransactionAsync(async () =>
+            {
+                outcome = await OpenInTransactionAsync(period, settings, set, dto, ct);
+                if (outcome.Period == null)
+                    throw new OpenAbortedException();
+            }, ct);
+        }
+        catch (OpenAbortedException)
+        {
+            // Chỉ trả cảnh báo thiếu người thực hiện: transaction đã hủy.
+        }
+        return outcome!;
+    }
+
+    /// <summary>Tín hiệu hủy transaction mở kỳ khi chỉ trả cảnh báo (không phải lỗi).</summary>
+    private sealed class OpenAbortedException : Exception
+    {
+    }
+
+    /// <summary>Phần mở kỳ chạy trong transaction: đồng bộ ảnh chụp hồ sơ, kiểm tra khung tỷ trọng, kẹt luồng, chuyển trạng thái.</summary>
+    private async Task<OpenPeriodOutcome> OpenInTransactionAsync(
+        EvaluationPeriod period, PeriodSettings settings, CriteriaSet set, PeriodTransitionDto? dto, CancellationToken ct)
+    {
         // Ảnh chụp Phòng/Chi bộ/cấp quyết định lấy theo hồ sơ cán bộ hiện tại tại thời điểm mở kỳ (trừ hồ sơ đã sửa tay).
         if (await StageDraftSnapshotSyncAsync(period, settings, ct) > 0)
             await _unitOfWork.SaveChangesAsync(ct);

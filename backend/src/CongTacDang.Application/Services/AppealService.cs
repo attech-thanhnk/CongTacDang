@@ -215,17 +215,22 @@ public sealed class AppealService : IAppealService
         var resolvedAt = appeal.ResolvedAt.HasValue
             ? EvaluationMapping.Today(appeal.ResolvedAt.Value).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)
             : string.Empty;
-        await _workflow.ReopenAsync(record.Id, new ReopenRequestDto
+        // Mở lại hồ sơ và đánh dấu kiến nghị đã mở lại trong một transaction: không để hồ sơ đã mở lại mà kiến nghị chưa ghi nhận
+        // (mở lại lần nữa theo cùng kiến nghị) hoặc ngược lại.
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            Version = request.RecordVersion,
-            TargetStep = request.TargetStep,
-            Reason = $"Theo kiến nghị của {appeal.SubmittedByName} (chấp nhận ngày {resolvedAt}, mã {appeal.Id:D}): {reason}"
-        }, ct);
+            await _workflow.ReopenAsync(record.Id, new ReopenRequestDto
+            {
+                Version = request.RecordVersion,
+                TargetStep = request.TargetStep,
+                Reason = $"Theo kiến nghị của {appeal.SubmittedByName} (chấp nhận ngày {resolvedAt}, mã {appeal.Id:D}): {reason}"
+            }, ct);
 
-        appeal.ReopenedAt = DateTime.UtcNow;
-        appeal.ReopenedById = _currentUser.UserId;
-        appeal.UpdatedAt = appeal.ReopenedAt;
-        await _unitOfWork.SaveChangesAsync(ct);
+            appeal.ReopenedAt = DateTime.UtcNow;
+            appeal.ReopenedById = _currentUser.UserId;
+            appeal.UpdatedAt = appeal.ReopenedAt;
+            await _unitOfWork.SaveChangesAsync(ct);
+        }, ct);
 
         var saved = await _repo.FindAppealAsync(appealId, ct) ?? appeal;
         return ToDto(saved, saved.Record);

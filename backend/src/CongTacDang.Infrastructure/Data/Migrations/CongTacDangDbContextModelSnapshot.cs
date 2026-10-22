@@ -380,7 +380,10 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.HasIndex("PeriodId", "Status");
 
                     b.HasIndex("PeriodId", "Form", "PartyCellId", "DepartmentId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = FALSE");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("PeriodId", "Form", "PartyCellId", "DepartmentId"), false);
 
                     b.ToTable("collective_evaluation_records", (string)null);
                 });

@@ -256,7 +256,8 @@ public sealed class AuthorizationMatrixTests
 
         object Collective(Guid cell) => new { periodId = s.PeriodId, form = "M07", partyCellId = cell, subjectName = "Chi bộ", generalCriteriaScore = 25.0, taskCriteriaScore = 60.0,
             criteriaScores = new Dictionary<string, double> { ["I.1"] = 5, ["I.2"] = 5, ["I.3"] = 5, ["I.4"] = 5, ["I.5"] = 5, ["I.6"] = 0, ["II.1"] = 40, ["II.2"] = 20 } };
-        Assert.Equal(HttpStatusCode.OK, (await s.CellSecA.PostAsJsonAsync("/api/evaluations/collective-records", Collective(s.CellA))).StatusCode);
+        // Chi bộ A đã có hồ sơ Mẫu 07 trong kỳ: qua kiểm tra quyền nhưng bị chặn tạo trùng (409).
+        Assert.Equal(HttpStatusCode.Conflict, (await s.CellSecA.PostAsJsonAsync("/api/evaluations/collective-records", Collective(s.CellA))).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await s.CellSecA.PostAsJsonAsync("/api/evaluations/collective-records", Collective(s.CellB))).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await s.Appraiser.PostAsJsonAsync("/api/evaluations/collective-records", Collective(s.CellA))).StatusCode);
     }

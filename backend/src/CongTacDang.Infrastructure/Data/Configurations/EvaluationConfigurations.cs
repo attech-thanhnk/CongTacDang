@@ -162,7 +162,12 @@ public sealed class CollectiveEvaluationRecordConfiguration : IEntityTypeConfigu
     {
         entity.ToTable("collective_evaluation_records");
         entity.HasKey(e => e.Id);
-        entity.HasIndex(e => new { e.PeriodId, e.Form, e.PartyCellId, e.DepartmentId }).IsUnique();
+        // Mỗi kỳ, biểu mẫu chỉ một hồ sơ cho một tổ chức: NULL coi như bằng nhau (Mẫu 07 luôn không có đơn vị chính quyền),
+        // bỏ qua hồ sơ đã xóa mềm để tạo lại được sau khi xóa.
+        entity.HasIndex(e => new { e.PeriodId, e.Form, e.PartyCellId, e.DepartmentId })
+            .IsUnique()
+            .AreNullsDistinct(false)
+            .HasFilter("\"IsDeleted\" = FALSE");
         entity.HasIndex(e => new { e.PeriodId, e.Status });
         entity.HasIndex(e => e.PartyCellId);
         entity.HasIndex(e => e.DepartmentId);

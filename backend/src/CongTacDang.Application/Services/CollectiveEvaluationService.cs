@@ -80,10 +80,12 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         var scope = CollectiveReadScope();
         var parsedForm = ParseCollectiveForm(form);
         var records = await _collectiveRepo.GetByPeriodAsync(periodId, parsedForm);
-        return records
-            .Where(record => scope.Matches(null, record.DepartmentId, record.PartyCellId))
-            .Select(MapCollective)
-            .ToList();
+        var visible = records.Where(record => scope.Matches(null, record.DepartmentId, record.PartyCellId)).ToList();
+        if (visible.Count == 0)
+            return new List<CollectiveEvaluationRecordDto>();
+        var period = await _evaluationRepo.GetPeriodByIdAsync(periodId);
+        var periodClosed = period?.Status == PeriodStatus.Closed;
+        return visible.Select(record => MapCollective(record, periodClosed)).ToList();
     }
 
     /// <summary>Lấy một hồ sơ tập thể và kiểm tra phạm vi tổ chức.</summary>
@@ -95,7 +97,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         var target = new AccessTarget(DepartmentId: record.DepartmentId, PartyCellId: record.PartyCellId);
         if (!_guard.Can(PermissionCodes.EvaluationRead, target) && !_guard.Can(PermissionCodes.CollectiveManage, target))
             throw new ForbiddenException("Bạn không có quyền xem hồ sơ tập thể của tổ chức này (ngoài phạm vi được gán).");
-        return MapCollective(record);
+        return MapCollective(record, record.Period?.Status == PeriodStatus.Closed);
     }
 
     /// <summary>Tạo hồ sơ Mẫu 06, 07 hoặc 08 sau khi kiểm tra phạm vi tổ chức.</summary>
@@ -113,7 +115,16 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         // Điểm tối đa lấy từ tham số bộ tiêu chí của kỳ (mặc định 30 / 70).
         var period = await _evaluationRepo.GetPeriodByIdAsync(dto.PeriodId)
             ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {dto.PeriodId}");
+        // Cùng luật với sửa hồ sơ: kỳ đã đóng thì không thêm hồ sơ tập thể.
+        if (period.Status == PeriodStatus.Closed)
+            throw new ConflictException($"Kỳ \"{period.Name}\" đã đóng nên không tạo được hồ sơ tập thể. Hãy liên hệ người quản lý kỳ nếu cần mở lại.");
         var scores = ResolveScores(period, form, dto);
+        // Mỗi kỳ, mỗi biểu mẫu chỉ một hồ sơ cho một tổ chức (CSDL cũng chặn bằng chỉ mục duy nhất).
+        var existing = await _collectiveRepo.GetByPeriodAsync(dto.PeriodId, form);
+        var duplicate = existing.FirstOrDefault(r => r.PartyCellId == dto.PartyCellId && r.DepartmentId == dto.DepartmentId);
+        if (duplicate != null)
+            throw new ConflictException(
+                $"Kỳ \"{period.Name}\" đã có hồ sơ {form} \"{duplicate.SubjectName}\" của tổ chức này. Hãy mở hồ sơ đó để sửa thay vì tạo mới.");
 
         var record = new CollectiveEvaluationRecord
         {
@@ -129,7 +140,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
 
         await _collectiveRepo.AddAsync(record);
         var saved = await _collectiveRepo.GetByIdAsync(record.Id) ?? record;
-        return MapCollective(saved);
+        return MapCollective(saved, periodClosed: false);
     }
 
     /// <summary>Sửa nội dung hồ sơ tập thể; kỳ đã đóng thì không sửa được.</summary>
@@ -142,6 +153,9 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             throw new ConflictException($"Kỳ \"{record.Period.Name}\" đã đóng nên không sửa được hồ sơ tập thể. Hãy liên hệ người quản lý kỳ nếu cần mở lại.");
         if (string.IsNullOrWhiteSpace(dto.SubjectName))
             throw new ArgumentException("Tên tập thể hoặc lĩnh vực đánh giá không được để trống.");
+        // Bắt buộc phiên bản để không ghi đè thay đổi của người khác (thiếu phiên bản = bỏ qua kiểm tra đồng thời).
+        if (dto.Version is null)
+            throw new ValidationException("Thiếu phiên bản hồ sơ tập thể (version). Hãy tải lại hồ sơ rồi lưu lại.");
 
         var scores = ResolveScores(record.Period, record.Form, dto);
 
@@ -151,7 +165,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         await _unitOfWork.SaveChangesAsync();
 
         var saved = await _collectiveRepo.GetByIdAsync(record.Id) ?? record;
-        return MapCollective(saved);
+        return MapCollective(saved, periodClosed: false);
     }
 
     /// <summary>Danh mục mục nhập Mẫu 07 và nhóm nội dung Mẫu 08; có kỳ thì kèm khung tiêu chí tập thể của bộ tiêu chí của kỳ.</summary>
@@ -499,7 +513,8 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             throw new ConflictException($"Kỳ \"{meeting.Period.Name}\" đã đóng nên không sửa được biên bản. Hãy liên hệ người quản lý kỳ nếu cần mở lại.");
         if (dto.InvitedCount < 0 || dto.PresentCount < 0 || dto.AbsentCount < 0 || dto.PresentCount > dto.InvitedCount)
             throw new ArgumentException("Số lượng triệu tập, có mặt, vắng mặt không hợp lệ: không âm và số có mặt không vượt số triệu tập.");
-        if (meeting.FormCode == "M13" && meeting.VoteSummaries.Count > 0 && dto.PresentCount < MaxBallots(meeting))
+        // Mẫu 12 cũng có kết quả kiểm phiếu khi bước đề xuất của tập thể ghi phiếu vào biên bản.
+        if (meeting.VoteSummaries.Count > 0 && dto.PresentCount < MaxBallots(meeting))
             throw new ArgumentException("Số người có mặt nhỏ hơn tổng số phiếu đã ghi trong biên bản kiểm phiếu. Hãy kiểm tra lại.");
         if (dto.EndedAt.HasValue && dto.EndedAt.Value < dto.StartedAt)
             throw new ArgumentException("Thời điểm kết thúc hội nghị phải sau thời điểm bắt đầu.");
@@ -636,12 +651,21 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             : EvaluationGrade.ChuaXepLoai;
     }
 
+    /// <summary>
+    /// Người dùng hiện tại được tải lên, thay, gỡ tệp đính kèm của hồ sơ tập thể: cùng luật với AttachmentService cho loại chủ sở
+    /// hữu hồ sơ tập thể — <c>collective.manage</c> bao trùm tổ chức của hồ sơ và kỳ chưa đóng.
+    /// </summary>
+    private bool CanAttach(CollectiveEvaluationRecord record, bool periodClosed) =>
+        !periodClosed && _guard.Can(PermissionCodes.CollectiveManage,
+            new CollectiveAttachmentOwner(record.Id, record.DepartmentId, record.PartyCellId, periodClosed).Target);
+
     /// <summary>Ánh xạ hồ sơ tập thể sang DTO.</summary>
-    private CollectiveEvaluationRecordDto MapCollective(CollectiveEvaluationRecord record)
+    private CollectiveEvaluationRecordDto MapCollective(CollectiveEvaluationRecord record, bool periodClosed)
     {
         return new CollectiveEvaluationRecordDto
         {
             Id = record.Id,
+            CanAttach = CanAttach(record, periodClosed),
             Version = _unitOfWork.GetVersion(record),
             PeriodId = record.PeriodId,
             Form = record.Form.ToString(),

@@ -692,6 +692,11 @@ public class CollectiveEvaluationRecordDto
 {
     public Guid Id { get; set; }
     public uint Version { get; set; }
+
+    /// <summary>
+    /// Người dùng hiện tại được tải lên, thay, gỡ tệp đính kèm của hồ sơ (collective.manage bao trùm tổ chức của hồ sơ, kỳ chưa đóng).
+    /// </summary>
+    public bool CanAttach { get; set; }
     public Guid PeriodId { get; set; }
     public string Form { get; set; } = string.Empty;
     public Guid? PartyCellId { get; set; }
