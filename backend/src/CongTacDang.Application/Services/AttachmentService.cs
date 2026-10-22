@@ -95,6 +95,8 @@ public class AttachmentService : IAttachmentService
     private readonly IAttachmentAccessReader? _accessReader;
     private readonly IPermissionResolver? _resolver;
     private readonly IAttachmentVersionRepository? _versionRepo;
+    private readonly IUnlinkedAttachmentRepository? _unlinked;
+    private readonly AttachmentOptions _options = new();
     private static readonly string[] AllowedExtensions = { ".pdf", ".docx", ".xlsx", ".jpg", ".jpeg", ".png" };
     private const long MaxFileSize = 25 * 1024 * 1024; // 25 MB
     private const string DefaultUploaderName = "Cán bộ quản trị";
@@ -118,12 +120,16 @@ public class AttachmentService : IAttachmentService
         IFileStorageService fileStorage,
         IAttachmentAccessReader accessReader,
         IPermissionResolver resolver,
-        IAttachmentVersionRepository versionRepo)
+        IAttachmentVersionRepository versionRepo,
+        IUnlinkedAttachmentRepository? unlinked = null,
+        AttachmentOptions? options = null)
         : this(attachmentRepo, fileStorage)
     {
         _accessReader = accessReader;
         _resolver = resolver;
         _versionRepo = versionRepo;
+        _unlinked = unlinked;
+        _options = options ?? new AttachmentOptions();
     }
 
     /// <summary>
@@ -131,10 +137,29 @@ public class AttachmentService : IAttachmentService
     /// </summary>
     public async Task<List<AttachmentDto>> GetAttachmentsAsync(Guid requesterId)
     {
-        var all = await _attachmentRepo.GetAllAttachmentsAsync();
-        var list = await FilterAccessibleAsync(requesterId, all, FileOperation.Read);
-        return list.Select(a => ToDto(a)).ToList();
+        // Đọc theo từng trang (mới nhất trước) và lọc quyền từng trang; dừng khi đủ ListLimit tệp hoặc đã xét MaxScanned tệp —
+        // không nạp toàn bộ bảng tệp vào bộ nhớ.
+        var result = new List<TaskAttachment>();
+        for (var skip = 0; result.Count < ListLimit && skip < MaxScanned; skip += ListBatchSize)
+        {
+            var page = await _attachmentRepo.GetCurrentPageAsync(skip, ListBatchSize);
+            if (page.Count == 0)
+                break;
+            result.AddRange(await FilterAccessibleAsync(requesterId, page, FileOperation.Read));
+            if (page.Count < ListBatchSize)
+                break;
+        }
+        return result.Take(ListLimit).Select(a => ToDto(a)).ToList();
     }
+
+    /// <summary>Số tệp tối đa trả về ở danh sách tệp người dùng được xem (chọn lại minh chứng).</summary>
+    public const int ListLimit = 200;
+
+    /// <summary>Số tệp đọc mỗi lần khi dựng danh sách.</summary>
+    private const int ListBatchSize = 500;
+
+    /// <summary>Số tệp xét tối đa khi dựng danh sách.</summary>
+    private const int MaxScanned = 5000;
 
     /// <summary>Lấy danh sách tệp hiện hành của một đối tượng mà người yêu cầu được xem</summary>
     public async Task<List<AttachmentDto>> GetAttachmentsByOwnerAsync(string ownerType, Guid ownerId, Guid requesterId)
@@ -402,6 +427,7 @@ public class AttachmentService : IAttachmentService
             if (ownerId.HasValue)
                 throw new ArgumentException("Thiếu loại đối tượng sở hữu tệp.");
             await EnsureCanUploadUnlinkedAsync(uploadedById);
+            await EnsurePendingUnlinkedLimitAsync(uploadedById);
             return new OwnerInfo(AttachmentOwnerTypes.Unlinked, null, null);
         }
 
@@ -468,6 +494,27 @@ public class AttachmentService : IAttachmentService
             throw new ForbiddenException(
                 $"Bạn cần quyền \"{PermissionCodes.DisplayName(PermissionCodes.EvaluationSelf)}\" (minh chứng của mình) hoặc "
                 + $"\"{PermissionCodes.DisplayName(PermissionCodes.EvaluationExternalRecord)}\" (văn bản của cấp trên) để tải lên tệp này.");
+        }
+    }
+
+    /// <summary>
+    /// Giới hạn số tệp tải lên chưa gắn đối tượng của mỗi người (<see cref="AttachmentOptions.MaxPendingUnlinkedPerUser"/>): tệp chưa
+    /// gắn chiếm dung lượng tới khi được gắn hoặc bị dọn tự động.
+    /// </summary>
+    private async Task EnsurePendingUnlinkedLimitAsync(Guid? uploadedById)
+    {
+        var max = _options.MaxPendingUnlinkedPerUser;
+        if (_unlinked == null || max <= 0 || !uploadedById.HasValue)
+            return;
+        var pending = await _unlinked.CountPendingUnlinkedAsync(uploadedById.Value);
+        if (pending >= max)
+        {
+            throw new ValidationException(
+                $"Bạn đang có {pending} tệp đã tải lên nhưng chưa gắn vào nhiệm vụ hoặc kết quả nào (tối đa {max} tệp). "
+                + "Hãy lưu phiếu / kết quả để gắn các tệp đã tải lên, hoặc chọn lại tệp đã tải thay vì tải mới."
+                + (_options.CleanupEnabled && _options.CleanupRetentionHours > 0
+                    ? $" Tệp chưa gắn quá {_options.CleanupRetentionHours} giờ sẽ được hệ thống tự xóa."
+                    : string.Empty));
         }
     }
 

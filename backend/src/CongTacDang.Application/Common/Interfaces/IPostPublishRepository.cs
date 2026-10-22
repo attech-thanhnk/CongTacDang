@@ -19,6 +19,12 @@ public interface IPostPublishRepository
     /// </summary>
     Task<List<EvaluationRecord>> ListPublishedRecordsAsync(ScopeFilter scope, Guid? periodId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Các kỳ có hồ sơ đã công bố, đã có mức chính thức nằm trong <paramref name="scope"/> (ô chọn kỳ của trang công khai kết quả) —
+    /// chỉ đọc thông tin kỳ, không nạp hồ sơ.
+    /// </summary>
+    Task<List<PublishedPeriodOption>> ListPublishedPeriodsAsync(ScopeFilter scope, CancellationToken ct = default);
+
     /// <summary>Hồ sơ theo Id kèm kỳ, cán bộ, đơn vị, tổ chức Đảng (không theo dõi).</summary>
     Task<EvaluationRecord?> FindRecordAsync(Guid recordId, CancellationToken ct = default);
 
@@ -65,3 +71,11 @@ public interface IPostPublishRepository
     /// <summary>Tên đầy đủ của cán bộ (để ghi người thực hiện).</summary>
     Task<string?> GetMemberNameAsync(Guid memberId, CancellationToken ct = default);
 }
+
+/// <summary>Kỳ có kết quả đã công bố (ô chọn kỳ).</summary>
+/// <param name="Id">Id kỳ.</param>
+/// <param name="Name">Tên kỳ.</param>
+/// <param name="Year">Năm.</param>
+/// <param name="Quarter">Quý.</param>
+/// <param name="CreatedAt">Thời điểm tạo kỳ (sắp xếp kỳ cùng năm, quý).</param>
+public sealed record PublishedPeriodOption(Guid Id, string Name, int Year, Domain.Enums.EvaluationQuarter Quarter, DateTime CreatedAt);

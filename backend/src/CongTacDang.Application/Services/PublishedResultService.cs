@@ -60,22 +60,20 @@ public sealed class PublishedResultService : IPublishedResultService
         if (scope.IsEmpty)
             return new PublishedResultsDto();
 
-        var records = (await _repo.ListPublishedRecordsAsync(scope, null, ct))
-            .Where(r => r.FinalGrade != EvaluationGrade.ChuaXepLoai)
-            .ToList();
-
+        // Ô chọn kỳ: chỉ đọc danh sách kỳ trong phạm vi; hồ sơ chỉ nạp cho kỳ đang chọn (lọc kỳ và phạm vi trong truy vấn).
+        var periods = await _repo.ListPublishedPeriodsAsync(scope, ct);
         var result = new PublishedResultsDto
         {
-            Periods = records
-                .GroupBy(r => r.PeriodId)
-                .Select(g => g.First().Period)
+            Periods = periods
                 .OrderByDescending(p => p.Year).ThenByDescending(p => p.Quarter).ThenByDescending(p => p.CreatedAt)
                 .Select(p => new ResultFilterOptionDto { Id = p.Id, Name = p.Name })
                 .ToList()
         };
 
-        if (periodId.HasValue && periodId.Value != Guid.Empty)
-            records = records.Where(r => r.PeriodId == periodId.Value).ToList();
+        var selectedPeriod = periodId.HasValue && periodId.Value != Guid.Empty ? periodId : null;
+        var records = (await _repo.ListPublishedRecordsAsync(scope, selectedPeriod, ct))
+            .Where(r => r.FinalGrade != EvaluationGrade.ChuaXepLoai)
+            .ToList();
 
         result.Departments = records
             .Where(r => r.DepartmentId.HasValue && r.Department != null)

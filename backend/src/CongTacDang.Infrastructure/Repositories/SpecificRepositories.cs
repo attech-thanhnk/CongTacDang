@@ -68,21 +68,114 @@ public class UserRepository : GenericRepository<PartyMemberProfile>, IUserReposi
 /// <summary>
 /// Repository quản lý tệp đính kèm và minh chứng
 /// </summary>
-public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachmentRepository, IAttachmentAccessReader, IAttachmentVersionRepository
+public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachmentRepository, IAttachmentAccessReader, IAttachmentVersionRepository,
+    IUnlinkedAttachmentRepository
 {
     public AttachmentRepository(CongTacDangDbContext db) : base(db)
     {
     }
 
-    /// <summary>Lấy toàn bộ danh sách tệp đính kèm (phiên bản hiện hành) theo thời gian mới nhất</summary>
-    public async Task<List<TaskAttachment>> GetAllAttachmentsAsync()
+    /// <summary>Một trang tệp đính kèm (phiên bản hiện hành), mới nhất trước.</summary>
+    public async Task<List<TaskAttachment>> GetCurrentPageAsync(int skip, int take)
     {
         return await _db.TaskAttachments
             .AsNoTracking()
             .Where(a => !a.IsSuperseded)
             .OrderByDescending(a => a.UploadedAt)
+            .ThenByDescending(a => a.Id)
+            .Skip(Math.Max(0, skip))
+            .Take(Math.Max(0, take))
             .ToListAsync();
     }
+
+    #region Tệp chưa gắn đối tượng
+
+    /// <summary>Tệp chưa gắn đối tượng (khớp <see cref="TaskAttachment.EffectiveOwnerType"/> = Unlinked).</summary>
+    private IQueryable<TaskAttachment> UnlinkedAttachments() => _db.TaskAttachments.Where(a =>
+        a.OwnerType == AttachmentOwnerTypes.Unlinked || (a.OwnerType == null && a.RecordId == null && a.RelatedId == null));
+
+    /// <summary>Nhóm tệp có phiên bản được nhiệm vụ (kể cả đã xóa mềm) hoặc kết quả của cấp trên tham chiếu qua AttachmentId.</summary>
+    private IQueryable<Guid> ReferencedGroupIds()
+    {
+        var taskRefs = _db.EvaluationTasks.IgnoreQueryFilters()
+            .Where(t => t.AttachmentId != null)
+            .Select(t => t.AttachmentId!.Value);
+        var externalRefs = _db.Set<EvaluationExternalResult>().IgnoreQueryFilters()
+            .Where(x => x.AttachmentId != null)
+            .Select(x => x.AttachmentId!.Value);
+        return _db.TaskAttachments.IgnoreQueryFilters()
+            .Where(v => taskRefs.Contains(v.Id) || externalRefs.Contains(v.Id))
+            .Select(v => v.FileGroupId ?? v.Id);
+    }
+
+    /// <inheritdoc />
+    public Task<int> CountPendingUnlinkedAsync(Guid userId, CancellationToken ct = default)
+    {
+        var referenced = ReferencedGroupIds();
+        return UnlinkedAttachments()
+            .Where(a => a.UploadedById == userId && !a.IsSuperseded && !referenced.Contains(a.FileGroupId ?? a.Id))
+            .CountAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<UnlinkedAttachmentVersion>> GetCleanupCandidatesAsync(DateTime uploadedBefore, int maxGroups, CancellationToken ct = default)
+    {
+        var referenced = ReferencedGroupIds();
+        var linkedGroups = _db.TaskAttachments
+            .Where(a => !(a.OwnerType == AttachmentOwnerTypes.Unlinked || (a.OwnerType == null && a.RecordId == null && a.RelatedId == null)))
+            .Select(a => a.FileGroupId ?? a.Id);
+        var recentGroups = _db.TaskAttachments
+            .Where(a => a.UploadedAt >= uploadedBefore)
+            .Select(a => a.FileGroupId ?? a.Id);
+        var groupIds = await UnlinkedAttachments()
+            .Where(a => a.UploadedAt < uploadedBefore)
+            .Select(a => a.FileGroupId ?? a.Id)
+            .Distinct()
+            .Where(g => !linkedGroups.Contains(g) && !recentGroups.Contains(g) && !referenced.Contains(g))
+            .OrderBy(g => g)
+            .Take(Math.Max(0, maxGroups))
+            .ToListAsync(ct);
+        if (groupIds.Count == 0)
+            return new List<UnlinkedAttachmentVersion>();
+
+        var rows = await _db.TaskAttachments
+            .AsNoTracking()
+            .Where(a => groupIds.Contains(a.FileGroupId ?? a.Id))
+            .ToListAsync(ct);
+        return rows
+            .Select(a => new UnlinkedAttachmentVersion(a.Id, a.GroupId, a.EffectiveOwnerType, a.UploadedAt, a.ObjectKey))
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<HashSet<Guid>> GetReferencedAttachmentIdsAsync(IReadOnlyCollection<Guid> attachmentIds, CancellationToken ct = default)
+    {
+        if (attachmentIds.Count == 0)
+            return new HashSet<Guid>();
+        var ids = attachmentIds.ToList();
+        var fromTasks = await _db.EvaluationTasks.IgnoreQueryFilters()
+            .Where(t => t.AttachmentId != null && ids.Contains(t.AttachmentId.Value))
+            .Select(t => t.AttachmentId!.Value)
+            .ToListAsync(ct);
+        var fromExternal = await _db.Set<EvaluationExternalResult>().IgnoreQueryFilters()
+            .Where(x => x.AttachmentId != null && ids.Contains(x.AttachmentId.Value))
+            .Select(x => x.AttachmentId!.Value)
+            .ToListAsync(ct);
+        return fromTasks.Concat(fromExternal).ToHashSet();
+    }
+
+    /// <inheritdoc />
+    public async Task DeleteAsync(IReadOnlyCollection<Guid> attachmentIds, CancellationToken ct = default)
+    {
+        if (attachmentIds.Count == 0)
+            return;
+        var ids = attachmentIds.ToList();
+        var rows = await _db.TaskAttachments.Where(a => ids.Contains(a.Id)).ToListAsync(ct);
+        _db.TaskAttachments.RemoveRange(rows); // xóa mềm + nhật ký trong SaveChangesAsync của DbContext
+        await _db.SaveChangesAsync(ct);
+    }
+
+    #endregion
 
     /// <summary>Lấy các tệp hiện hành của một đối tượng (kể cả dữ liệu cũ chưa có OwnerType).</summary>
     public async Task<List<TaskAttachment>> GetCurrentByOwnerAsync(string ownerType, Guid ownerId)

@@ -202,6 +202,63 @@ public class AttachmentVersioningTests
     }
 
     [Fact]
+    public async Task Upload_Unlinked_LimitedPerUser_LinkedFilesDoNotCount()
+    {
+        var pending = new PendingCounter(_world);
+        var service = new AttachmentService(_world.Files, _world.Storage, new AccessReader(_world), new Resolver(_world), _world.Files,
+            pending, new AttachmentOptions { MaxPendingUnlinkedPerUser = 2 });
+        var owner = _world.Cadre(CellA);
+        var first = await service.UploadAttachmentAsync(Pdf("1"), "a.pdf", 10, "MAU02", "", "A", owner.Id);
+        await service.UploadAttachmentAsync(Pdf("2"), "b.pdf", 10, "MAU02", "", "A", owner.Id);
+
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
+            service.UploadAttachmentAsync(Pdf("3"), "c.pdf", 10, "MAU02", "", "A", owner.Id));
+        Assert.Contains("tối đa 2 tệp", ex.Message);
+        // Người khác không bị ảnh hưởng.
+        await service.UploadAttachmentAsync(Pdf("x"), "x.pdf", 10, "MAU02", "", "B", _world.Cadre(CellA).Id);
+
+        // Tệp đã gắn vào nhiệm vụ không còn tính là chờ gắn → tải tiếp được.
+        var (_, task) = _world.RecordWithTask(owner);
+        task.AttachmentId = first.Id;
+        await service.UploadAttachmentAsync(Pdf("3"), "c.pdf", 10, "MAU02", "", "A", owner.Id);
+        // Tải thẳng vào hồ sơ của mình không bị giới hạn.
+        var (record, _) = _world.RecordWithTask(owner);
+        await service.UploadAttachmentAsync(Pdf("r"), "r.pdf", 10, "MAU02", "", "A", owner.Id, AttachmentOwnerTypes.EvaluationRecord, record.Id);
+    }
+
+    [Fact]
+    public async Task List_IsLimited_NewestFirst()
+    {
+        var owner = _world.Cadre(CellA);
+        for (var i = 0; i < AttachmentService.ListLimit + 5; i++)
+        {
+            await _world.Service.UploadAttachmentAsync(Pdf("f" + i), $"f{i}.pdf", 10, "MAU02", "", "A", owner.Id);
+            _world.Files.Items[^1].UploadedAt = DateTime.UtcNow.AddMinutes(i);
+        }
+
+        var list = await _world.Service.GetAttachmentsAsync(owner.Id);
+        Assert.Equal(AttachmentService.ListLimit, list.Count);
+        Assert.Equal($"f{AttachmentService.ListLimit + 4}.pdf", list[0].FileName);
+    }
+
+    /// <summary>Đếm tệp chưa gắn của người tải lên theo dữ liệu của World (giống truy vấn ở repository).</summary>
+    private sealed class PendingCounter(World world) : IUnlinkedAttachmentRepository
+    {
+        public Task<int> CountPendingUnlinkedAsync(Guid userId, CancellationToken ct = default)
+        {
+            var referenced = world.Tasks.Values.Where(t => t.AttachmentId.HasValue).Select(t => t.AttachmentId!.Value).ToHashSet();
+            return Task.FromResult(world.Files.Items.Count(a => !a.IsDeleted && !a.IsSuperseded && a.UploadedById == userId
+                && a.EffectiveOwnerType == AttachmentOwnerTypes.Unlinked && !referenced.Contains(a.Id)));
+        }
+
+        public Task<List<UnlinkedAttachmentVersion>> GetCleanupCandidatesAsync(DateTime uploadedBefore, int maxGroups, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<HashSet<Guid>> GetReferencedAttachmentIdsAsync(IReadOnlyCollection<Guid> attachmentIds, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task DeleteAsync(IReadOnlyCollection<Guid> attachmentIds, CancellationToken ct = default) => throw new NotSupportedException();
+    }
+
+    [Fact]
     public async Task Upload_Unlinked_RequiresEvidencePermission()
     {
         // Người không có evaluation.self / evaluation.external.record (VD: chỉ quản trị hệ thống) không tải tệp tự do được.
@@ -443,7 +500,8 @@ public class AttachmentVersioningTests
         public Task AddAsync(TaskAttachment entity) { Items.Add(entity); return Task.CompletedTask; }
         public Task UpdateAsync(TaskAttachment entity) => Task.CompletedTask;
         public Task DeleteAsync(TaskAttachment entity) { entity.IsDeleted = true; return Task.CompletedTask; }
-        public Task<List<TaskAttachment>> GetAllAttachmentsAsync() => Task.FromResult(Visible.Where(a => !a.IsSuperseded).ToList());
+        public Task<List<TaskAttachment>> GetCurrentPageAsync(int skip, int take) =>
+            Task.FromResult(Visible.Where(a => !a.IsSuperseded).OrderByDescending(a => a.UploadedAt).ThenByDescending(a => a.Id).Skip(skip).Take(take).ToList());
 
         public Task<List<TaskAttachment>> GetCurrentByOwnerAsync(string ownerType, Guid ownerId) =>
             Task.FromResult(Visible.Where(a => !a.IsSuperseded && a.EffectiveOwnerType == ownerType && a.EffectiveOwnerId == ownerId).ToList());

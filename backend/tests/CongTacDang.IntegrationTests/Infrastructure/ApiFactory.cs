@@ -125,6 +125,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Database:ResetRolePermissions", "false");
         builder.UseSetting("Storage:Local:Path", _storagePath);
         builder.UseSetting("Swagger:Enabled", "false");
+        // Không chạy tác vụ nền dọn tệp chưa gắn trong test (test tự gọi dịch vụ dọn khi cần).
+        builder.UseSetting("Attachments:UnlinkedCleanup:Enabled", "false");
         builder.UseSetting("Logging:File:Enabled", "false");
         builder.UseSetting("Logging:Console:Json", "false");
         builder.UseSetting("Logging:LogLevel:Default", "Warning");

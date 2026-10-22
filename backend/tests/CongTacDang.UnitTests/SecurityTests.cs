@@ -121,7 +121,7 @@ public class SecurityTests
         public Task<TaskAttachment?> GetByIdAsync(Guid id) => Task.FromResult<TaskAttachment?>(null);
         public Task<List<TaskAttachment>> ListAsync() => Task.FromResult(new List<TaskAttachment>());
         public Task UpdateAsync(TaskAttachment entity) => Task.CompletedTask;
-        public Task<List<TaskAttachment>> GetAllAttachmentsAsync() => Task.FromResult(new List<TaskAttachment>());
+        public Task<List<TaskAttachment>> GetCurrentPageAsync(int skip, int take) => Task.FromResult(new List<TaskAttachment>());
     }
 
     /// <summary>Tài khoản hoạt động, chưa có bản gán nào .</summary>

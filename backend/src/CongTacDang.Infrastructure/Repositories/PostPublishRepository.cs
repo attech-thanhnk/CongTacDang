@@ -36,22 +36,38 @@ public sealed class PostPublishRepository : IPostPublishRepository
     public Task<List<EvaluationRecord>> ListPublishedRecordsAsync(ScopeFilter scope, Guid? periodId, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(scope);
-        var query = RecordsWithHeader().AsNoTracking().Where(r => r.Status == RecordStatus.Published);
+        var query = InScope(RecordsWithHeader().AsNoTracking().Where(r => r.Status == RecordStatus.Published), scope);
         if (periodId.HasValue)
             query = query.Where(r => r.PeriodId == periodId.Value);
-
-        if (!scope.IsGlobal)
-        {
-            var departments = scope.DepartmentIds.ToList();
-            var cells = scope.PartyCellIds.ToList();
-            var owner = scope.OwnerId;
-            query = query.Where(r =>
-                (r.DepartmentId.HasValue && departments.Contains(r.DepartmentId.Value))
-                || (r.PartyCellId.HasValue && cells.Contains(r.PartyCellId.Value))
-                || (owner.HasValue && r.MemberId == owner.Value));
-        }
-
         return query.ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<PublishedPeriodOption>> ListPublishedPeriodsAsync(ScopeFilter scope, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        var periodIds = InScope(_db.EvaluationRecords.AsNoTracking()
+                .Where(r => r.Status == RecordStatus.Published && r.FinalGrade != EvaluationGrade.ChuaXepLoai), scope)
+            .Select(r => r.PeriodId)
+            .Distinct();
+        return await _db.EvaluationPeriods.AsNoTracking()
+            .Where(p => periodIds.Contains(p.Id))
+            .Select(p => new PublishedPeriodOption(p.Id, p.Name, p.Year, p.Quarter, p.CreatedAt))
+            .ToListAsync(ct);
+    }
+
+    /// <summary>Điều kiện phạm vi (đơn vị đã gồm đơn vị con trong bộ lọc của guard, hoặc chủ hồ sơ) đưa vào truy vấn.</summary>
+    private static IQueryable<EvaluationRecord> InScope(IQueryable<EvaluationRecord> query, ScopeFilter scope)
+    {
+        if (scope.IsGlobal)
+            return query;
+        var departments = scope.DepartmentIds.ToList();
+        var cells = scope.PartyCellIds.ToList();
+        var owner = scope.OwnerId;
+        return query.Where(r =>
+            (r.DepartmentId.HasValue && departments.Contains(r.DepartmentId.Value))
+            || (r.PartyCellId.HasValue && cells.Contains(r.PartyCellId.Value))
+            || (owner.HasValue && r.MemberId == owner.Value));
     }
 
     /// <inheritdoc />

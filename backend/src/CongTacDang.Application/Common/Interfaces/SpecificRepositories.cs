@@ -30,8 +30,8 @@ public interface IUserRepository : IRepository<PartyMemberProfile>
 /// </summary>
 public interface IAttachmentRepository : IRepository<TaskAttachment>
 {
-    /// <summary>Lấy toàn bộ danh sách tệp đính kèm (chỉ phiên bản hiện hành) theo thời gian mới nhất</summary>
-    Task<List<TaskAttachment>> GetAllAttachmentsAsync();
+    /// <summary>Một trang tệp đính kèm (chỉ phiên bản hiện hành), mới nhất trước (thời điểm tải lên, rồi Id).</summary>
+    Task<List<TaskAttachment>> GetCurrentPageAsync(int skip, int take);
 }
 
 /// <summary>

@@ -94,7 +94,7 @@ builder.Services.AddAccountServices(builder.Configuration); // Tài khoản, phi
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IHolidayService, HolidayService>();
 builder.Services.AddScoped<IFormLayoutService, FormLayoutService>();
-builder.Services.AddScoped<IAttachmentService, AttachmentService>();
+builder.Services.AddAttachments(builder.Configuration); // Tệp đính kèm, giới hạn và dọn tệp chưa gắn (Api/Extensions/AttachmentExtensions.cs)
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IEvaluationService, EvaluationService>();
 builder.Services.AddScoped<ICollectiveEvaluationService, CollectiveEvaluationService>();
