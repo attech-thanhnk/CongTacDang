@@ -1,0 +1,136 @@
+/* Liên kết sang trang khác: kiểu chữ liên kết, khác nút xuất tệp */
+.navLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--primary-ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.navLink:hover {
+  text-decoration: underline;
+}
+
+.note {
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+.noteWarn {
+  color: var(--wait);
+}
+
+.muted {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.actionsCell {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* Khung soạn Mẫu 16 */
+.panel {
+  /* Không để bảng tổng hợp bên trong nới rộng bảng biểu mẫu bên ngoài. */
+  width: 0;
+  min-width: 100%;
+  box-sizing: border-box;
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--rule);
+  background: var(--tint);
+}
+
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+}
+
+.panelMeta {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.panelActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.blockTitle {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Kết quả công bố */
+.resultsTable td.name {
+  white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+  .navLink {
+    min-height: 40px;
+  }
+
+  .hideSm {
+    display: none;
+  }
+
+  .resultsTable td.name {
+    white-space: normal;
+  }
+
+  .panel {
+    padding: 12px 16px 16px;
+  }
+
+  .panelActions > :global(.btn) {
+    min-height: 40px;
+  }
+}
+
+/* Bảng tổng hợp trong khung Mẫu 16 nằm trong bảng biểu mẫu: bỏ kiểu xếp thẻ của bảng ngoài trên màn hẹp. */
+@media (max-width: 991.98px) {
+  .panel :global(.table) {
+    display: table;
+  }
+
+  .panel :global(.table) thead {
+    display: table-header-group;
+  }
+
+  .panel :global(.table) tbody {
+    display: table-row-group;
+  }
+
+  .panel :global(.table) tr {
+    display: table-row;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .panel :global(.table) th,
+  .panel :global(.table) td {
+    display: table-cell;
+    padding: 4px 8px !important;
+    border: 1px solid var(--rule);
+    width: auto !important;
+  }
+
+  .panel :global(.table) td:not(:first-child) {
+    text-align: center !important;
+  }
+}

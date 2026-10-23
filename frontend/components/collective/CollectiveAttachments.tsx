@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { attachmentService, AttachmentItem } from "@/services/attachmentService";
 import { useToast } from "@/contexts/ToastContext";
 import { errorMessage } from "@/components/admin/adminUtils";
+import styles from "./Collective.module.css";
 
 const ACCEPT = ".pdf,.docx,.xlsx,.jpg,.jpeg,.png";
 
@@ -34,7 +35,7 @@ export function CollectiveAttachments({ recordId, editable, formCode = "M07", de
     try {
       setFiles(await attachmentService.getByOwner("CollectiveEvaluationRecord", recordId));
     } catch (error: unknown) {
-      setLoadError(errorMessage(error, "Không tải được danh sách tệp đính kèm."));
+      setLoadError(errorMessage(error, "Tải danh sách tệp không thành công."));
     } finally {
       setLoading(false);
     }
@@ -68,7 +69,7 @@ export function CollectiveAttachments({ recordId, editable, formCode = "M07", de
     e.target.value = "";
     if (file)
       run(() => attachmentService.uploadToOwner("CollectiveEvaluationRecord", recordId, file, formCode, description),
-        "Đã đính kèm tệp.", "Không tải được tệp lên.");
+        "Đã đính kèm tệp.", "Tải tệp lên không thành công.");
   };
 
   const onReplace = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,18 +77,18 @@ export function CollectiveAttachments({ recordId, editable, formCode = "M07", de
     const target = replacing;
     e.target.value = "";
     setReplacing(null);
-    if (file && target) run(() => attachmentService.replaceVersion(target.id, file), "Đã thay tệp bằng bản mới.", "Không thay được tệp.");
+    if (file && target) run(() => attachmentService.replaceVersion(target.id, file), "Đã thay tệp bằng bản mới.", "Thay tệp không thành công.");
   };
 
   const download = (f: AttachmentItem) =>
-    attachmentService.downloadAttachment(f.id, f.fileName).catch((error: unknown) => toast.error(errorMessage(error, "Không tải được tệp.")));
+    attachmentService.downloadAttachment(f.id, f.fileName).catch((error: unknown) => toast.error(errorMessage(error, "Tải tệp xuống không thành công.")));
 
   return (
-    <div className="d-flex flex-wrap align-items-center gap-2 small mt-2">
-      <button type="button" className="btn btn-link btn-sm p-0 text-secondary text-decoration-none" aria-expanded={open}
-        onClick={() => setOpen(!open)}>
-        <i className={`bi ${open ? "bi-chevron-down" : "bi-chevron-right"} me-1`} />
-        Phụ lục, báo cáo kèm theo{files ? ` (${files.length})` : ""}
+    <div className={styles.attach}>
+      <button type="button" className={styles.attachToggle} aria-expanded={open} onClick={() => setOpen(!open)}>
+        <i className={`bi ${open ? "bi-chevron-down" : "bi-chevron-right"}`} aria-hidden="true" />
+        <i className="bi bi-paperclip" aria-hidden="true" />
+        Tệp kèm theo{files ? ` (${files.length})` : ""}
       </button>
       {open && (
         <>
@@ -98,27 +99,27 @@ export function CollectiveAttachments({ recordId, editable, formCode = "M07", de
               <button type="button" className="btn btn-link btn-sm p-0 align-baseline" onClick={() => reload()}>Thử lại</button>
             </span>
           )}
-          {files && files.length === 0 && <span className="text-secondary">chưa có</span>}
+          {files && files.length === 0 && !editable && <span className="text-secondary">Chưa có tệp</span>}
           {files?.map((f) => (
-            <span key={f.id} className="d-inline-flex align-items-center gap-1 border rounded px-2 py-0">
-              <button type="button" className="btn btn-link btn-sm p-0 text-truncate" style={{ maxWidth: 220 }} title={f.fileName} onClick={() => download(f)}>
-                <i className="bi bi-paperclip me-1" />{f.fileName}
+            <span key={f.id} className={styles.fileChip}>
+              <button type="button" className={styles.fileName} title={`Tải xuống ${f.fileName}`} onClick={() => download(f)}>
+                {f.fileName}
               </button>
               {editable && (
                 <>
-                  <button type="button" className="btn btn-link btn-sm p-0 text-secondary" disabled={busy} title="Thay bằng bản mới (bản cũ vẫn được lưu)"
+                  <button type="button" className={styles.fileBtn} disabled={busy} title="Thay bằng bản mới (bản cũ vẫn được lưu)"
                     aria-label={`Thay tệp ${f.fileName}`} onClick={() => { setReplacing(f); replaceRef.current?.click(); }}>
-                    <i className="bi bi-arrow-repeat" />
+                    <i className="bi bi-arrow-repeat" aria-hidden="true" />
                   </button>
-                  <button type="button" className="btn btn-link btn-sm p-0 text-danger" disabled={busy} title="Gỡ tệp" aria-label={`Gỡ tệp ${f.fileName}`}
+                  <button type="button" className={`${styles.fileBtn} ${styles.fileBtnDanger}`} disabled={busy} title="Gỡ tệp" aria-label={`Gỡ tệp ${f.fileName}`}
                     onClick={() => confirm({
                       title: "Gỡ tệp đính kèm",
-                      message: `Gỡ tệp "${f.fileName}" khỏi hồ sơ tập thể?`,
+                      message: `Gỡ tệp "${f.fileName}" khỏi hồ sơ tập thể? Tệp không còn hiện trong hồ sơ.`,
                       confirmText: "Gỡ tệp",
                       isDanger: true,
-                      onConfirm: () => run(() => attachmentService.remove(f.id), "Đã gỡ tệp.", "Không gỡ được tệp."),
+                      onConfirm: () => run(() => attachmentService.remove(f.id), "Đã gỡ tệp.", "Gỡ tệp không thành công."),
                     })}>
-                    <i className="bi bi-x-lg" />
+                    <i className="bi bi-x-lg" aria-hidden="true" />
                   </button>
                 </>
               )}
@@ -126,8 +127,8 @@ export function CollectiveAttachments({ recordId, editable, formCode = "M07", de
           ))}
           {editable && files !== null && (
             <>
-              <button type="button" className="btn btn-link btn-sm p-0" disabled={busy} onClick={() => addRef.current?.click()}>
-                {busy ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-plus-lg me-1" />}Đính kèm
+              <button type="button" className="btn btn-sm btn-outline-secondary" disabled={busy} onClick={() => addRef.current?.click()}>
+                {busy ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-upload me-1" aria-hidden="true" />}Tải lên
               </button>
               <input ref={addRef} type="file" accept={ACCEPT} hidden onChange={onAdd} />
               <input ref={replaceRef} type="file" accept={ACCEPT} hidden onChange={onReplace} />

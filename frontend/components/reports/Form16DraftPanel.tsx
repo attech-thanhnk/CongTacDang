@@ -14,6 +14,7 @@ import {
   withQuery,
 } from "@/services/reportService";
 import { errorMessage } from "@/components/admin/adminUtils";
+import styles from "./Reports.module.css";
 
 interface Props {
   periodId: string;
@@ -38,13 +39,17 @@ const FIELDS: { key: keyof Form16DraftContent; label: string; placeholder: strin
   { key: "signerName", label: "Bí thư ký báo cáo", placeholder: "Họ và tên" },
 ];
 
+/** Bỏ ô trống để so sánh nội dung đã lưu. */
+const normalize = (content: Form16DraftContent) =>
+  Object.fromEntries(Object.entries(content).filter(([, value]) => typeof value === "string" && value.trim() !== "").sort(([a], [b]) => a.localeCompare(b)));
+
 const percent = (row: Form16SummaryRow) =>
   row.excellentPercent === null || row.excellentPercent === undefined ? "" : `${row.excellentPercent.toFixed(1).replace(".", ",")}%`;
 
 function SummaryTable({ title, rows }: { title: string; rows: Form16SummaryRow[] }) {
   return (
     <div className="mb-3">
-      <div className="fw-semibold small mb-1">{title}</div>
+      <h3 className={styles.blockTitle}>{title}</h3>
       <div className="table-responsive">
         <table className="table table-sm table-bordered align-middle mb-0">
           <thead className="table-light">
@@ -56,7 +61,7 @@ function SummaryTable({ title, rows }: { title: string; rows: Form16SummaryRow[]
               <th className="text-center">HTNV</th>
               <th className="text-center">Không HTNV</th>
               <th className="text-center">Chưa xếp loại</th>
-              <th className="text-center">Tỷ lệ % xuất sắc trong số tốt trở lên</th>
+              <th className="text-center" style={{ whiteSpace: "normal", minWidth: 120 }}>Tỷ lệ % xuất sắc trong số tốt trở lên</th>
             </tr>
           </thead>
           <tbody>
@@ -105,7 +110,7 @@ export function Form16DraftPanel({ periodId, branchId, periodLabel, shortName }:
         setDraft(loaded);
         setContent(loaded.content ?? {});
       })
-      .catch((err: unknown) => active && setError(errorMessage(err, "Không tải được bản nháp Mẫu 16.")))
+      .catch((err: unknown) => active && setError(errorMessage(err, "Tải bản nháp Mẫu 16 không thành công.")))
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
@@ -121,7 +126,7 @@ export function Form16DraftPanel({ periodId, branchId, periodLabel, shortName }:
       setContent(saved.content ?? {});
       toast.success("Đã lưu bản nháp Mẫu 16.");
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Không lưu được bản nháp Mẫu 16."));
+      toast.error(errorMessage(err, "Lưu bản nháp Mẫu 16 không thành công."));
     } finally {
       setSaving(false);
     }
@@ -138,41 +143,45 @@ export function Form16DraftPanel({ periodId, branchId, periodLabel, shortName }:
         format
       );
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Không xuất được Mẫu 16."));
+      toast.error(errorMessage(err, "Xuất Mẫu 16 không thành công."));
     } finally {
       setExporting(null);
     }
   };
 
-  if (loading) return <div className="text-secondary small p-3 loading-delay">Đang tải số liệu Mẫu 16…</div>;
-  if (error || !draft) return <div className="alert alert-warning small m-3">{error || "Không có dữ liệu."}</div>;
+  // Phần nhập tay chỉ vào báo cáo sau khi lưu nháp.
+  const dirty = !!draft && JSON.stringify(normalize(content)) !== JSON.stringify(normalize(draft.content ?? {}));
+
+  if (loading) return <div className={`${styles.panel} text-secondary small loading-delay`}>Đang tải số liệu Mẫu 16…</div>;
+  if (error || !draft) return <div className={styles.panel}><div className="alert alert-warning small mb-0">{error || "Không có dữ liệu."}</div></div>;
 
   return (
-    <div className="p-3">
-      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <div className="small text-secondary">
-          {draft.partyOrganizationName} · {draft.periodName}
-          {draft.updatedAt ? ` · Bản nháp lưu lúc ${formatDateTime(draft.updatedAt)}` : " · Chưa lưu bản nháp"}
+    <div className={styles.panel}>
+      <div className={styles.panelHead}>
+        <div className={styles.panelMeta}>
+          {draft.partyOrganizationName}
+          {draft.updatedAt ? ` · Lưu nháp lúc ${formatDateTime(draft.updatedAt)}` : " · Chưa lưu nháp"}
         </div>
-        <div className="d-flex gap-2">
-          <Button size="sm" variant="primary" icon="bi-save" loading={saving} loadingText="Đang lưu..." onClick={save}>
-            Lưu nháp
-          </Button>
-          <Button size="sm" variant="outline-primary" icon="bi-file-earmark-word" loading={exporting === "original"} loadingText="Đang xuất..." onClick={() => exportFile("original")}>
+        <div className={styles.panelActions}>
+          <Button size="sm" variant="outline-secondary" icon="bi-download" disabled={dirty || exporting !== null} title={dirty ? "Lưu nháp trước khi xuất" : undefined}
+            loading={exporting === "original"} loadingText="Đang xuất..." onClick={() => exportFile("original")}>
             Xuất Word
           </Button>
-          <Button size="sm" variant="outline-secondary" icon="bi-file-earmark-pdf" loading={exporting === "pdf"} loadingText="Đang xuất..." onClick={() => exportFile("pdf")}>
-            PDF
+          <Button size="sm" variant="outline-secondary" icon="bi-filetype-pdf" disabled={dirty || exporting !== null} title={dirty ? "Lưu nháp trước khi xuất" : undefined}
+            loading={exporting === "pdf"} loadingText="Đang xuất..." onClick={() => exportFile("pdf")}>
+            Xuất PDF
+          </Button>
+          <Button size="sm" variant="primary" icon="bi-check-lg" disabled={!dirty} title={!dirty ? "Chưa có thay đổi" : undefined}
+            loading={saving} loadingText="Đang lưu..." onClick={save}>
+            Lưu nháp
           </Button>
         </div>
       </div>
 
       <SummaryTable title="I. Các trường hợp thuộc thẩm quyền quyết định, phê duyệt mức xếp loại của đảng ủy, chi ủy cơ sở" rows={draft.baseRows} />
       <SummaryTable title="II. Các trường hợp thuộc thẩm quyền quyết định, phê duyệt mức xếp loại của cấp trên" rows={draft.superiorRows} />
-      <div className="small text-secondary mb-3">
-        Hãy lưu nháp trước khi xuất để phần nhập tay có trong báo cáo.
-      </div>
 
+      <h3 className={styles.blockTitle}>Phần nhập tay</h3>
       <div className="row g-2">
         {FIELDS.map((field) => (
           <div key={field.key} className={field.multiline ? "col-12" : "col-md-6"}>

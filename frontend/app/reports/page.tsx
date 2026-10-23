@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { usePeriod } from "@/contexts/PeriodContext";
-import { PageHeader, Button } from "@/components/common";
+import { PageHeader } from "@/components/common";
+import { EmptyState } from "@/components/common/EmptyState";
+import { RowActions, RowAction } from "@/components/common/RowActions";
+import styles from "@/components/reports/Reports.module.css";
 import { Form16DraftPanel } from "@/components/reports/Form16DraftPanel";
 import { EvaluationPeriodDto } from "@/services/evaluationService";
 import { BranchItem, organizationService } from "@/services/organizationService";
@@ -35,6 +38,8 @@ export default function ReportsPage() {
 
   const canExport = hasPermission("report.export");
   const canMeeting = hasPermission("meeting.read");
+  const canCollectivePage = hasPermission("evaluation.read") || hasPermission("collective.manage");
+  const canMeetingPage = canMeeting || hasPermission("meeting.manage");
   // Chỉ cho chọn tổ chức Đảng trong phạm vi được giao; "Toàn Đảng bộ" chỉ khi được giao toàn công ty.
   const scope = usePermissionScope(canExport ? "report.export" : "meeting.read");
   const scopedBranches = useMemo(() => withinScope(branches, scope, "partyCell"), [branches, scope]);
@@ -95,103 +100,119 @@ export default function ReportsPage() {
       await reportService.downloadReport(endpoint, fileName, format);
       toast.success(`Đã xuất ${report.code === "Nội bộ" ? report.title : report.code}.`);
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Không xuất được báo cáo. Hãy kiểm tra quyền và phạm vi được giao."));
+      toast.error(errorMessage(err, "Xuất báo cáo không thành công."));
     } finally {
       setBusy(null);
     }
   };
 
+  /** Biểu mẫu lập theo từng hồ sơ/biên bản: xuất ở trang Tập thể & Hội nghị. */
+  const isElsewhere = (report: ReportDefinition) => report.scope === "collective" || report.scope === "meeting";
+
+  // Không có quyền thì không hiện dòng.
+  const visible = (report: ReportDefinition) =>
+    isElsewhere(report) ? (report.scope === "collective" ? canCollectivePage : canMeetingPage) : canRun(report);
+
+  const fileLabel = (report: ReportDefinition) => (report.fileType === "XLSX" ? "Excel" : "Word");
+
+  /** Lý do chưa xuất được (hiện dưới tên biểu mẫu, nút xuất bị tắt). */
+  const blockedReason = (report: ReportDefinition): string | null => {
+    if (noBranchScope && BRANCH_REPORTS.has(report.id)) return "Cần được giao ở Chi bộ hoặc toàn công ty.";
+    if (report.id === "decision" && decisionBlocked) return decisionBlocked;
+    return null;
+  };
+
   const renderActions = (report: ReportDefinition) => {
-    if (report.scope === "collective" || report.scope === "meeting") {
+    if (isElsewhere(report)) {
       return (
-        <Link href="/collective-evaluations" className="btn btn-sm btn-outline-secondary">
-          <i className="bi bi-box-arrow-up-right me-1" />
-          Trang Tập thể & Hội nghị
+        <Link href="/collective-evaluations" className={styles.navLink}>
+          Đến Tập thể & Hội nghị
+          <i className="bi bi-arrow-right" aria-hidden="true" />
         </Link>
       );
     }
-    if (!canRun(report)) {
-      return <span className="small text-secondary">Chưa được cấp quyền</span>;
+    const reason = blockedReason(report);
+    const exportWord: RowAction = {
+      key: "original",
+      label: `Xuất ${fileLabel(report)}`,
+      icon: "bi-download",
+      disabled: !!reason,
+      title: reason ?? undefined,
+      onClick: () => download(report, "original"),
+    };
+    const exportPdf: RowAction = {
+      key: "pdf",
+      label: "Xuất PDF",
+      icon: "bi-filetype-pdf",
+      disabled: !!reason,
+      hidden: report.scope === "none",
+      onClick: () => download(report, "pdf"),
+    };
+    if (report.id === "mau-16") {
+      return (
+        <RowActions
+          primary={[{ key: "draft", label: showForm16 ? "Đóng soạn thảo" : "Soạn báo cáo", icon: showForm16 ? "bi-x-lg" : "bi-pencil-square", disabled: !!reason || !periodId, title: reason ?? undefined, onClick: () => setShowForm16(!showForm16) }]}
+          menu={[exportWord, exportPdf]}
+          itemLabel={report.code}
+          disabled={busy !== null}
+        />
+      );
     }
-    if (noBranchScope && BRANCH_REPORTS.has(report.id)) {
-      return <span className="small text-secondary">Cần được giao ở Chi bộ hoặc toàn công ty</span>;
-    }
-    if (report.id === "decision" && decisionBlocked) {
-      return <span className="small text-secondary d-inline-block text-start" style={{ maxWidth: 280 }}>{decisionBlocked}</span>;
-    }
-    return (
-      <div className="d-flex flex-wrap gap-1 justify-content-end">
-        {report.id === "mau-16" && (
-          <Button size="sm" variant={showForm16 ? "primary" : "outline-primary"} icon="bi-pencil-square" onClick={() => setShowForm16(!showForm16)}>
-            Soạn báo cáo
-          </Button>
-        )}
-        <Button
-          size="sm"
-          variant="outline-primary"
-          icon={report.fileType === "XLSX" ? "bi-file-earmark-excel" : "bi-file-earmark-word"}
-          loading={busy === `${report.id}-original`}
-          loadingText="Đang xuất..."
-          onClick={() => download(report, "original")}
-        >
-          {report.fileType === "XLSX" ? "Excel" : "Word"}
-        </Button>
-        {report.scope !== "none" && (
-          <Button
-            size="sm"
-            variant="outline-secondary"
-            icon="bi-file-earmark-pdf"
-            loading={busy === `${report.id}-pdf`}
-            loadingText="Đang xuất..."
-            onClick={() => download(report, "pdf")}
-          >
-            PDF
-          </Button>
-        )}
-      </div>
-    );
+    return <RowActions primary={[exportWord]} menu={[exportPdf]} itemLabel={report.code === "Nội bộ" ? report.title : report.code} disabled={busy !== null} />;
   };
 
-  const renderGroup = (title: string, reports: ReportDefinition[]) => (
-    <section className="card">
-      <div className="card-header">
-        <h2 className="mb-0">{title}</h2>
-      </div>
-      <div className="table-responsive">
-        <table className="table table-hover align-middle mb-0 report-table">
-          <thead>
-            <tr>
-              <th style={{ width: 110 }}>Mẫu</th>
-              <th>Tên biểu mẫu</th>
-              <th style={{ width: 90 }} className="text-center">Định dạng</th>
-              <th style={{ width: 280 }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {reports.map((report) => (
-              <React.Fragment key={report.id}>
-                <tr>
-                  <td>
-                    <span className="tag t-info">{report.code}</span>
-                  </td>
-                  <td className="fw-semibold">{report.title}</td>
-                  <td className="text-center text-secondary">{report.fileType}</td>
-                  <td className="text-end">{renderActions(report)}</td>
-                </tr>
-                {report.id === "mau-16" && showForm16 && periodId && canExport && !noBranchScope && (
-                  <tr>
-                    <td colSpan={4} className="p-0" style={{ background: "var(--tint)" }}>
-                      <Form16DraftPanel periodId={periodId} branchId={branchId || undefined} periodLabel={periodLabel(period)} shortName={shortName} />
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
+  const renderGroup = (title: string, reports: ReportDefinition[], showCode: boolean) => {
+    const rows = reports.filter(visible);
+    if (rows.length === 0) return null;
+    return (
+      <section className="card">
+        <div className="card-header">
+          <h2 className="mb-0">{title}</h2>
+        </div>
+        <div className="table-responsive">
+          <table className="table table-hover align-middle mb-0 report-table">
+            <thead>
+              <tr>
+                <th style={{ width: showCode ? 110 : 0 }}>{showCode ? "Mẫu" : ""}</th>
+                <th>Tên biểu mẫu</th>
+                <th style={{ width: 90 }} className="text-center">Định dạng</th>
+                <th className={`${styles.actionsCell} text-end`}>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((report) => {
+                const reason = isElsewhere(report) ? null : blockedReason(report);
+                const exporting = busy?.startsWith(`${report.id}-`);
+                return (
+                  <React.Fragment key={report.id}>
+                    <tr>
+                      <td>{showCode && <span className="tag t-info">{report.code}</span>}</td>
+                      <td className="fw-semibold">
+                        {report.title}
+                        {exporting && (
+                          <div className={styles.note}><span className="spinner-border spinner-border-sm me-1" />Đang xuất{busy?.endsWith("-pdf") ? " PDF" : ""}…</div>
+                        )}
+                        {!exporting && reason && <div className={`${styles.note} ${styles.noteWarn}`}>{reason}</div>}
+                      </td>
+                      <td className="text-center text-secondary">{report.fileType}</td>
+                      <td className={styles.actionsCell}>{renderActions(report)}</td>
+                    </tr>
+                    {report.id === "mau-16" && showForm16 && periodId && canExport && !noBranchScope && (
+                      <tr>
+                        <td colSpan={4} className="p-0">
+                          <Form16DraftPanel periodId={periodId} branchId={branchId || undefined} periodLabel={periodLabel(period)} shortName={shortName} />
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    );
+  };
 
   return (
     <div className="page-wrapper">
@@ -208,13 +229,12 @@ export default function ReportsPage() {
       />
 
       <div className="page-body">
-        {renderGroup(
-          "Biểu mẫu",
-          REPORTS.filter((r) => r.group === "hd03")
-        )}
-        {renderGroup(
-          "Báo cáo nội bộ",
-          REPORTS.filter((r) => r.group === "internal")
+        {renderGroup("Biểu mẫu", REPORTS.filter((r) => r.group === "hd03"), true)}
+        {renderGroup("Báo cáo nội bộ", REPORTS.filter((r) => r.group === "internal"), false)}
+        {!REPORTS.some(visible) && (
+          <section className="card">
+            <EmptyState icon="bi-file-earmark-bar-graph" title="Không có báo cáo để xuất" description="Tài khoản chưa được giao quyền xuất báo cáo." />
+          </section>
         )}
       </div>
     </div>

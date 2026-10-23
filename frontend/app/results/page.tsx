@@ -14,6 +14,8 @@ import { usePeriod } from "@/contexts/PeriodContext";
 import { GRADE_OPTIONS } from "@/services/evaluationService";
 import { PublishedResultsDto, postPublishService } from "@/services/postPublishService";
 import { errorMessage } from "@/components/admin/adminUtils";
+import { fmt } from "@/services/criteriaService";
+import styles from "@/components/reports/Reports.module.css";
 
 /** Kết quả đã công bố: chỉ mức xếp loại (điểm khi bộ tiêu chí cho phép); máy chủ lọc theo phạm vi. */
 export default function ResultsPage() {
@@ -42,7 +44,7 @@ export default function ResultsPage() {
       });
       setData(result);
     } catch (err: unknown) {
-      setError(errorMessage(err, "Không tải được danh sách kết quả."));
+      setError(errorMessage(err, "Tải danh sách kết quả không thành công."));
     } finally {
       setLoading(false);
     }
@@ -55,6 +57,9 @@ export default function ResultsPage() {
   const items = data?.items ?? [];
   const paging = usePagination(items, { storageKey: "results", resetKeys: [periodId, departmentId, grade] });
 
+  // Chưa có kết quả nào thì bộ lọc không có tác dụng.
+  const showFilters = items.length > 0 || !!departmentId || !!grade;
+
   if (authLoading) return null;
   if (!allowed) return <NoAccess title="Kết quả đánh giá" permissionName="Xem kết quả đánh giá đã công bố" />;
 
@@ -64,15 +69,19 @@ export default function ResultsPage() {
         title="Kết quả đánh giá"
         actions={
           <>
-            <select className="form-select w-auto" aria-label="Đơn vị" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
-              <option value="">Tất cả đơn vị</option>
-              {(data?.departments ?? []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
-            <select className="form-select w-auto" aria-label="Mức xếp loại" value={grade} onChange={(e) => setGrade(e.target.value)}>
-              <option value="">Tất cả mức</option>
-              {GRADE_OPTIONS.filter((g) => g.value !== "ChuaXepLoai").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-            </select>
-            <button type="button" className="btn btn-outline-secondary" onClick={() => load()} aria-label="Tải lại" title="Tải lại">
+            {showFilters && (
+              <>
+                <select className="form-select w-auto" aria-label="Đơn vị" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+                  <option value="">Tất cả đơn vị</option>
+                  {(data?.departments ?? []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+                <select className="form-select w-auto" aria-label="Mức xếp loại" value={grade} onChange={(e) => setGrade(e.target.value)}>
+                  <option value="">Tất cả mức</option>
+                  {GRADE_OPTIONS.filter((g) => g.value !== "ChuaXepLoai").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                </select>
+              </>
+            )}
+            <button type="button" className="btn btn-outline-secondary" onClick={() => load()} aria-label="Làm mới" title="Làm mới">
               <i className="bi bi-arrow-clockwise" />
             </button>
           </>
@@ -80,9 +89,17 @@ export default function ResultsPage() {
       />
 
       <div className="page-body">
-        {error && <div className="alert alert-danger mb-0">{error}</div>}
         {loading ? (
           <div className="text-secondary loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
+        ) : error ? (
+          <section className="card">
+            <EmptyState
+              icon="bi-exclamation-triangle"
+              title="Tải danh sách kết quả không thành công"
+              description={error}
+              action={<button type="button" className="btn btn-outline-secondary" onClick={() => load()}><i className="bi bi-arrow-clockwise me-1" />Làm mới</button>}
+            />
+          </section>
         ) : items.length === 0 ? (
           <section className="card">
             {departmentId || grade ? (
@@ -106,24 +123,23 @@ export default function ResultsPage() {
               <h2 className="mb-0 me-2">
                 Danh sách <span className="text-secondary fw-medium num">{items.length}</span>
               </h2>
-              {(data?.gradeCounts ?? []).map((g) => (
+              {(data?.gradeCounts ?? []).filter((g) => g.count > 0).map((g) => (
                 <span key={g.grade} className="tag t-info">
                   {g.gradeName} <strong className="num">{g.count}</strong>
                 </span>
               ))}
             </div>
             <div className="table-responsive">
-              <table className="table table-hover align-middle mb-0">
+              <table className={`table table-hover align-middle mb-0 ${styles.resultsTable}`}>
                 <thead>
                   <tr>
                     <th>#</th>
                     <th>Họ và tên</th>
-                    <th>Chức danh</th>
+                    <th className={styles.hideSm}>Chức danh</th>
                     <th>Đơn vị</th>
                     <th>Mức xếp loại</th>
                     {data?.showsScores && <th className="text-end">Điểm</th>}
-                    <th>Công bố</th>
-                    <th></th>
+                    <th className={styles.hideSm}>Công bố</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -132,17 +148,21 @@ export default function ResultsPage() {
                     return (
                     <tr key={`${item.periodId}-${item.fullName}-${index}`}>
                       <td className="text-secondary num">{index + 1}</td>
-                      <td className="fw-semibold">
+                      <td className={`fw-semibold ${styles.name}`}>
                         {item.recordId ? <Link href={`/evaluations/${item.recordId}`}>{item.fullName}</Link> : item.fullName}
                         {item.isOwn && <span className="tag t-info ms-2">Của tôi</span>}
                         {!periodId && <div className="small text-secondary fw-normal">{item.periodName}</div>}
                       </td>
-                      <td>{item.positionTitle || "—"}</td>
+                      <td className={styles.hideSm}>{item.positionTitle || "—"}</td>
                       <td>{item.departmentName || "—"}</td>
-                      <td><GradeBadge grade={item.finalGrade} /></td>
-                      {data?.showsScores && <td className="text-end num">{item.finalScore ?? "—"}</td>}
-                      <td className="text-nowrap num">{formatDate(item.publishedAt)}</td>
-                      <td>{item.underReview && <Badge tone="warning">Đang xem xét kiến nghị</Badge>}</td>
+                      <td>
+                        <div className="d-flex flex-wrap gap-1">
+                          <GradeBadge grade={item.finalGrade} />
+                          {item.underReview && <Badge tone="warning">Đang xem xét kiến nghị</Badge>}
+                        </div>
+                      </td>
+                      {data?.showsScores && <td className="text-end num">{item.finalScore == null ? "—" : fmt(item.finalScore)}</td>}
+                      <td className={`text-nowrap num ${styles.hideSm}`}>{formatDate(item.publishedAt)}</td>
                     </tr>
                     );
                   })}

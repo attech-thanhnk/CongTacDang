@@ -6,6 +6,9 @@ import type { BranchItem, DepartmentItem } from "@/services/organizationService"
 import { MeetingAttendee, MeetingRecord, SaveMeetingRecord, collectiveService } from "@/services/collectiveService";
 import { usePermissionScope, withinScope } from "@/services/authService";
 import { errorMessage } from "@/components/admin/adminUtils";
+import { Button } from "@/components/common/Button";
+import { useToast } from "@/contexts/ToastContext";
+import styles from "./Collective.module.css";
 
 interface Props {
   periodId: string;
@@ -27,6 +30,15 @@ const STAGE_LABELS: [Stage, string][] = [
   ["B3A_COLLECTIVE", "Tập thể lãnh đạo, quản lý (đề xuất)"],
   ["B4_DECISION", "Đảng ủy/Chi ủy cơ sở (quyết định)"],
   ["", "Không xác định"],
+];
+
+const VOTE_FIELDS: [keyof Vote, string][] = [
+  ["votesExcellent", "Xuất sắc"],
+  ["votesGood", "Tốt"],
+  ["votesSatisfactory", "Hoàn thành"],
+  ["votesUnsatisfactory", "Không HT"],
+  ["votesNotRated", "Chưa ĐG"],
+  ["invalidVotes", "Không hợp lệ"],
 ];
 
 /** Giờ họp nhập và hiển thị theo giờ Việt Nam (như giờ in trên biên bản), không phụ thuộc múi giờ của máy. */
@@ -51,6 +63,7 @@ const toCount = (value: string): number | null => (value === "" ? null : Math.ma
 
 /** Lập/sửa biên bản hội nghị (Mẫu 12) hoặc biên bản kiểm phiếu (Mẫu 13) với đủ các mục của biểu mẫu gốc. */
 export function MeetingEditor({ periodId, branches, departments, editing, onSaved, onCancel, showError }: Props) {
+  const { confirm } = useToast();
   const [formCode, setFormCode] = useState<"M12" | "M13">("M12");
   const [unit, setUnit] = useState<Unit>("cell");
   const [partyCellId, setPartyCellId] = useState("");
@@ -77,6 +90,10 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
   const [records, setRecords] = useState<EvaluationRecordDto[]>([]);
   const [votes, setVotes] = useState<Record<string, Vote>>({});
   const [saving, setSaving] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  /** Nội dung lúc mở, để chỉ bật Lưu khi có thay đổi. */
+  const [baseline, setBaseline] = useState<string | null>(null);
+  const [baselineTick, setBaselineTick] = useState(0);
 
   // Chỉ cho chọn nơi được lập biên bản. Hội nghị quyết định là hội nghị cấp ủy: tổ chức Đảng hoặc cấp Công ty.
   const scope = usePermissionScope("meeting.manage");
@@ -104,7 +121,10 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
   }, [editing, scope, stage, unit, cellOptions.length, departmentOptions.length]);
 
   useEffect(() => {
-    if (!editing) return;
+    if (!editing) {
+      setBaselineTick((tick) => tick + 1);
+      return;
+    }
     setFormCode(editing.formCode === "M13" ? "M13" : "M12");
     setUnit(editing.partyCellId ? "cell" : editing.departmentId ? "department" : "company");
     setPartyCellId(editing.partyCellId || "");
@@ -133,7 +153,19 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
       valid: details.ballotsValid ?? null,
       invalid: details.ballotsInvalid ?? null,
     });
+    setBaselineTick((tick) => tick + 1);
   }, [editing]);
+
+  // Ô chọn đơn vị/biểu mẫu tự điền khi lập mới nên không tính là thay đổi.
+  const snapshot = JSON.stringify({
+    location, startedAt, endedAt, invited, present, absentReasons, chairName, chairTitle, secretaryName, secretaryTitle,
+    workingRules, reportingUnit, attendees, committee, ballots, minutes, outcome, votes,
+  });
+  useEffect(() => {
+    if (baselineTick > 0) setBaseline(snapshot);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baselineTick]);
+  const dirty = baseline !== null && snapshot !== baseline;
 
   // Mẫu 13 lập mới: tải hồ sơ của đơn vị tổ chức hội nghị để ghi tổng hợp phiếu (máy chủ lọc theo phạm vi xem).
   useEffect(() => {
@@ -152,20 +184,30 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
     load.then(setRecords).catch(() => setRecords([]));
   }, [editing, formCode, periodId, unit, partyCellId, departmentId]);
 
+  const unitMissing = !editing && ((unit === "cell" && !partyCellId) || (unit === "department" && !departmentId));
+  const presentTooMany = present > invited;
+  const ballotsMismatch = ballots.collected != null && ballots.valid != null && ballots.invalid != null
+    && ballots.valid + ballots.invalid !== ballots.collected;
+
+  const cancel = () => {
+    if (!dirty) {
+      onCancel();
+      return;
+    }
+    confirm({
+      title: "Bỏ nội dung chưa lưu",
+      message: "Nội dung biên bản vừa nhập chưa được lưu. Đóng và bỏ các thay đổi này?",
+      confirmText: "Bỏ thay đổi",
+      isDanger: true,
+      onConfirm: onCancel,
+    });
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!editing && ((unit === "cell" && !partyCellId) || (unit === "department" && !departmentId))) {
-      showError(unit === "department" ? "Hãy chọn Phòng / đơn vị tổ chức hội nghị." : "Hãy chọn Chi bộ / tổ chức Đảng tổ chức hội nghị.");
-      return;
-    }
-    if (present > invited) {
-      showError("Số có mặt không được vượt số triệu tập.");
-      return;
-    }
-    if (ballots.collected != null && ballots.valid != null && ballots.invalid != null && ballots.valid + ballots.invalid !== ballots.collected) {
-      showError("Số phiếu hợp lệ cộng số phiếu không hợp lệ phải bằng số phiếu thu về.");
-      return;
-    }
+    setSubmitted(true);
+    // Lỗi từng ô hiện ngay dưới ô.
+    if (unitMissing || presentTooMany || ballotsMismatch) return;
     setSaving(true);
     const payload: SaveMeetingRecord = {
       version: editing?.version,
@@ -209,7 +251,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
       const saved = editing ? await collectiveService.updateMeeting(editing.id, payload) : await collectiveService.createMeeting(payload);
       onSaved(saved);
     } catch (error: unknown) {
-      showError(errorMessage(error, "Không lưu được biên bản."));
+      showError(errorMessage(error, "Lưu biên bản không thành công."));
     } finally {
       setSaving(false);
     }
@@ -223,181 +265,214 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
   if (!editing && scope && stageOptions.length === 0)
     return <div className="text-secondary small">Bạn chưa được giao lập biên bản hội nghị ở đơn vị nào.</div>;
 
+  const removeButton = (label: string, onClick: () => void) => (
+    <button type="button" className={`btn btn-sm btn-outline-danger ${styles.iconBtn}`} aria-label={label} title={label} onClick={onClick}>
+      <i className="bi bi-x-lg" aria-hidden="true" />
+    </button>
+  );
+
   return (
-    <form onSubmit={submit} className="row g-2">
-      <div className="col-6">
-        <label className="form-label">Biểu mẫu</label>
-        <select className="form-select form-select-sm" value={formCode} disabled={!!editing} onChange={(e) => setFormCode(e.target.value as "M12" | "M13")}>
-          <option value="M12">Mẫu 12 — Biên bản hội nghị</option>
-          <option value="M13">Mẫu 13 — Biên bản kiểm phiếu</option>
-        </select>
-      </div>
-      <div className="col-6">
-        <label className="form-label">Hội nghị</label>
-        <select className="form-select form-select-sm" value={stage} disabled={!!editing} onChange={(e) => setStage(e.target.value as Stage)}>
-          {(editing ? STAGE_LABELS : stageOptions).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-      </div>
-      <div className="col-6">
-        <label className="form-label">Đơn vị tổ chức</label>
-        <select className="form-select form-select-sm" value={unit} disabled={!!editing} onChange={(e) => setUnit(e.target.value as Unit)}>
-          {(editing ? (Object.keys(UNIT_LABELS) as Unit[]) : unitOptions).map((value) => <option key={value} value={value}>{UNIT_LABELS[value]}</option>)}
-        </select>
-      </div>
-      <div className="col-6">
-        {unit === "cell" && (
-          <>
-            <label className="form-label">Tổ chức Đảng</label>
-            <select className="form-select form-select-sm" value={partyCellId} disabled={!!editing} onChange={(e) => setPartyCellId(e.target.value)}>
-              <option value="">Chọn tổ chức Đảng</option>
-              {(editing ? branches : cellOptions).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+    <form onSubmit={submit} noValidate>
+      <section className={styles.section}>
+        <h3 className={styles.legend}>Thông tin hội nghị</h3>
+        <div className="row g-2">
+          <div className="col-md-6">
+            <label className="form-label" htmlFor="mt-form">Biểu mẫu</label>
+            <select id="mt-form" className="form-select form-select-sm" value={formCode} disabled={!!editing} onChange={(e) => setFormCode(e.target.value as "M12" | "M13")}>
+              <option value="M12">Mẫu 12 — Biên bản hội nghị</option>
+              <option value="M13">Mẫu 13 — Biên bản kiểm phiếu</option>
             </select>
-          </>
-        )}
-        {unit === "department" && (
-          <>
-            <label className="form-label">Phòng / đơn vị</label>
-            <select className="form-select form-select-sm" value={departmentId} disabled={!!editing} onChange={(e) => setDepartmentId(e.target.value)}>
-              <option value="">Chọn Phòng / đơn vị</option>
-              {(editing ? departments : departmentOptions).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </div>
+          <div className="col-md-6">
+            <label className="form-label" htmlFor="mt-stage">Hội nghị</label>
+            <select id="mt-stage" className="form-select form-select-sm" value={stage} disabled={!!editing} onChange={(e) => setStage(e.target.value as Stage)}>
+              {(editing ? STAGE_LABELS : stageOptions).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
-          </>
-        )}
-      </div>
-      <div className="col-12">
-        <label className="form-label">Căn cứ Quy chế làm việc của</label>
-        <input className="form-control form-control-sm" placeholder="… nhiệm kỳ …" value={workingRules} onChange={(e) => setWorkingRules(e.target.value)} />
-      </div>
-      <div className="col-6">
-        <label className="form-label">1. Bắt đầu</label>
-        <input type="datetime-local" className="form-control form-control-sm" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} />
-      </div>
-      <div className="col-6">
-        <label className="form-label">Kết thúc</label>
-        <input type="datetime-local" className="form-control form-control-sm" value={endedAt} onChange={(e) => setEndedAt(e.target.value)} />
-      </div>
-      <div className="col-12">
-        <label className="form-label">2. Địa điểm</label>
-        <input className="form-control form-control-sm" value={location} onChange={(e) => setLocation(e.target.value)} />
-      </div>
-      <div className="col-4">
-        <label className="form-label">Triệu tập</label>
-        <input type="number" min={0} className="form-control form-control-sm" value={invited} onChange={(e) => setInvited(Number(e.target.value))} />
-      </div>
-      <div className="col-4">
-        <label className="form-label">Có mặt</label>
-        <input type="number" min={0} className="form-control form-control-sm" value={present} onChange={(e) => setPresent(Number(e.target.value))} />
-      </div>
-      <div className="col-4">
-        <label className="form-label">Vắng mặt</label>
-        <input className="form-control form-control-sm" readOnly value={Math.max(invited - present, 0)} />
-      </div>
-      <div className="col-12">
-        <label className="form-label">Lý do vắng mặt</label>
-        <input className="form-control form-control-sm" value={absentReasons} onChange={(e) => setAbsentReasons(e.target.value)} />
-      </div>
-      <div className="col-12">
-        <label className="form-label">3.2. Cán bộ, đảng viên khác được cử tham dự (ghi chép, báo cáo, phục vụ hội nghị)</label>
-        {attendees.map((attendee, index) => (
-          <div key={index} className="d-flex gap-1 mb-1">
-            <input className="form-control form-control-sm" placeholder="Họ và tên" value={attendee.name} onChange={(e) => setAttendee(index, { name: e.target.value })} />
-            <input className="form-control form-control-sm" placeholder="Chức vụ Đảng, chính quyền" value={attendee.title} onChange={(e) => setAttendee(index, { title: e.target.value })} />
-            <button type="button" className="btn btn-sm btn-outline-danger" aria-label="Bỏ người dự" onClick={() => setAttendees(attendees.filter((_, i) => i !== index))}>
-              <i className="bi bi-x" />
-            </button>
           </div>
-        ))}
-        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setAttendees([...attendees, { name: "", title: "" }])}>
-          <i className="bi bi-plus me-1" />Thêm người dự
-        </button>
-      </div>
-      <div className="col-md-6">
-        <label className="form-label">4. Chủ trì hội nghị</label>
-        <input className="form-control form-control-sm mb-1" placeholder="Họ và tên" value={chairName} onChange={(e) => setChairName(e.target.value)} />
-        <input className="form-control form-control-sm" placeholder="Chức vụ Đảng, chính quyền" value={chairTitle} onChange={(e) => setChairTitle(e.target.value)} />
-      </div>
-      <div className="col-md-6">
-        <label className="form-label">5. Thư ký hội nghị</label>
-        <input className="form-control form-control-sm mb-1" placeholder="Họ và tên" value={secretaryName} onChange={(e) => setSecretaryName(e.target.value)} />
-        <input className="form-control form-control-sm" placeholder="Chức vụ Đảng, chính quyền" value={secretaryTitle} onChange={(e) => setSecretaryTitle(e.target.value)} />
-      </div>
-      <div className="col-12">
-        <label className="form-label">II. Cơ quan, đơn vị báo cáo tình hình thực hiện nhiệm vụ trọng tâm</label>
-        <input className="form-control form-control-sm" placeholder="Để trống: tên đơn vị tổ chức hội nghị" value={reportingUnit} onChange={(e) => setReportingUnit(e.target.value)} />
-      </div>
-      <div className="col-12">
-        <label className="form-label">Mẫu 13 — Tổ kiểm phiếu do hội nghị bầu (người đầu tiên là Tổ trưởng)</label>
-        {committee.map((member, index) => (
-          <div key={index} className="d-flex gap-1 mb-1 align-items-center">
-            <span className="small text-secondary" style={{ minWidth: 80 }}>{index === 0 ? "Tổ trưởng" : "Thành viên"}</span>
-            <input className="form-control form-control-sm" placeholder="Họ và tên" value={member.name} onChange={(e) => setMember(index, { name: e.target.value })} />
-            <input className="form-control form-control-sm" placeholder="Chức vụ Đảng, chính quyền" value={member.title} onChange={(e) => setMember(index, { title: e.target.value })} />
-            <button type="button" className="btn btn-sm btn-outline-danger" aria-label="Bỏ thành viên Tổ kiểm phiếu" onClick={() => setCommittee(committee.filter((_, i) => i !== index))}>
-              <i className="bi bi-x" />
-            </button>
+          <div className="col-md-6">
+            <label className="form-label" htmlFor="mt-unit">Đơn vị tổ chức</label>
+            <select id="mt-unit" className="form-select form-select-sm" value={unit} disabled={!!editing} onChange={(e) => setUnit(e.target.value as Unit)}>
+              {(editing ? (Object.keys(UNIT_LABELS) as Unit[]) : unitOptions).map((value) => <option key={value} value={value}>{UNIT_LABELS[value]}</option>)}
+            </select>
           </div>
-        ))}
-        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setCommittee([...committee, { name: "", title: "" }])}>
-          <i className="bi bi-plus me-1" />Thêm thành viên Tổ kiểm phiếu
-        </button>
-      </div>
-      {([
-        ["issued", "Phiếu phát ra"],
-        ["collected", "Phiếu thu về"],
-        ["valid", "Phiếu hợp lệ"],
-        ["invalid", "Phiếu không hợp lệ"],
-      ] as [keyof typeof ballots, string][]).map(([key, label]) => (
-        <div className="col-6 col-md-3" key={key}>
-          <label className="form-label">{label}</label>
-          <input type="number" min={0} className="form-control form-control-sm" placeholder="Chưa ghi" value={ballots[key] ?? ""}
-            onChange={(e) => setBallots({ ...ballots, [key]: toCount(e.target.value) })} />
+          {unit !== "company" && (
+            <div className="col-md-6">
+              <label className="form-label" htmlFor="mt-org">{unit === "cell" ? "Tổ chức Đảng" : "Phòng / đơn vị"}</label>
+              {unit === "cell" ? (
+                <select id="mt-org" className={`form-select form-select-sm${submitted && unitMissing ? " is-invalid" : ""}`} value={partyCellId} disabled={!!editing} onChange={(e) => setPartyCellId(e.target.value)}>
+                  <option value="">Chọn tổ chức Đảng</option>
+                  {(editing ? branches : cellOptions).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              ) : (
+                <select id="mt-org" className={`form-select form-select-sm${submitted && unitMissing ? " is-invalid" : ""}`} value={departmentId} disabled={!!editing} onChange={(e) => setDepartmentId(e.target.value)}>
+                  <option value="">Chọn Phòng / đơn vị</option>
+                  {(editing ? departments : departmentOptions).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+              )}
+              {submitted && unitMissing && <div className="invalid-feedback">{unit === "cell" ? "Hãy chọn tổ chức Đảng." : "Hãy chọn Phòng / đơn vị."}</div>}
+            </div>
+          )}
+          <div className="col-12">
+            <label className="form-label" htmlFor="mt-rules">Căn cứ Quy chế làm việc của</label>
+            <input id="mt-rules" className="form-control form-control-sm" placeholder="… nhiệm kỳ …" value={workingRules} onChange={(e) => setWorkingRules(e.target.value)} />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label" htmlFor="mt-start">Bắt đầu</label>
+            <input id="mt-start" type="datetime-local" className="form-control form-control-sm" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label" htmlFor="mt-end">Kết thúc</label>
+            <input id="mt-end" type="datetime-local" className="form-control form-control-sm" value={endedAt} onChange={(e) => setEndedAt(e.target.value)} />
+          </div>
+          <div className="col-12">
+            <label className="form-label" htmlFor="mt-location">Địa điểm</label>
+            <input id="mt-location" className="form-control form-control-sm" value={location} onChange={(e) => setLocation(e.target.value)} />
+          </div>
         </div>
-      ))}
-      <div className="col-12">
-        <label className="form-label">Diễn biến hội nghị</label>
-        <textarea className="form-control form-control-sm" rows={3} value={minutes} onChange={(e) => setMinutes(e.target.value)} />
-      </div>
-      <div className="col-12">
-        <label className="form-label">Kết quả hội nghị</label>
-        <textarea className="form-control form-control-sm" rows={2} value={outcome} onChange={(e) => setOutcome(e.target.value)} />
-      </div>
+      </section>
 
-      {formCode === "M13" && !editing && (
-        <div className="col-12">
-          <label className="form-label">Tổng hợp phiếu theo hồ sơ</label>
-          <div className="border rounded p-2" style={{ maxHeight: 240, overflowY: "auto" }}>
-            {records.length === 0 ? (
-              <div className="text-secondary small">Chưa tải được hồ sơ của đơn vị đã chọn.</div>
-            ) : records.map((record) => {
-              const vote = votes[record.id] || emptyVote;
-              const update = (key: keyof Vote, value: number | string) => setVotes({ ...votes, [record.id]: { ...vote, [key]: value } });
-              return (
-                <div key={record.id} className="border-bottom py-2">
-                  <div className="small fw-semibold mb-1">{record.fullName}</div>
-                  <div className="row g-1">
-                    {([
-                      ["votesExcellent", "Xuất sắc"],
-                      ["votesGood", "Tốt"],
-                      ["votesSatisfactory", "Hoàn thành"],
-                      ["votesUnsatisfactory", "Không HT"],
-                      ["votesNotRated", "Chưa đánh giá"],
-                      ["invalidVotes", "Không hợp lệ"],
-                    ] as [keyof Vote, string][]).map(([key, label]) => (
-                      <div key={key} className="col">
-                        <input aria-label={label} title={label} placeholder={label} type="number" min={0} className="form-control form-control-sm" value={vote[key] as number} onChange={(e) => update(key, Number(e.target.value))} />
+      <section className={styles.section}>
+        <h3 className={styles.legend}>Thành phần</h3>
+        <div className="row g-2">
+          <div className="col-4">
+            <label className="form-label" htmlFor="mt-invited">Triệu tập</label>
+            <input id="mt-invited" type="number" min={0} inputMode="numeric" className="form-control form-control-sm" value={invited} onChange={(e) => setInvited(Number(e.target.value))} />
+          </div>
+          <div className="col-4">
+            <label className="form-label" htmlFor="mt-present">Có mặt</label>
+            <input id="mt-present" type="number" min={0} inputMode="numeric" className={`form-control form-control-sm${presentTooMany ? " is-invalid" : ""}`} value={present} onChange={(e) => setPresent(Number(e.target.value))} />
+            {presentTooMany && <div className="invalid-feedback">Vượt số triệu tập.</div>}
+          </div>
+          <div className="col-4">
+            <label className="form-label" htmlFor="mt-absent">Vắng mặt</label>
+            <input id="mt-absent" className="form-control form-control-sm" readOnly value={Math.max(invited - present, 0)} />
+          </div>
+          <div className="col-12">
+            <label className="form-label" htmlFor="mt-absent-reasons">Lý do vắng mặt</label>
+            <input id="mt-absent-reasons" className="form-control form-control-sm" value={absentReasons} onChange={(e) => setAbsentReasons(e.target.value)} />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label" htmlFor="mt-chair">Chủ trì hội nghị</label>
+            <input id="mt-chair" className="form-control form-control-sm mb-1" placeholder="Họ và tên" value={chairName} onChange={(e) => setChairName(e.target.value)} />
+            <input className="form-control form-control-sm" placeholder="Chức vụ Đảng, chính quyền" aria-label="Chức vụ chủ trì" value={chairTitle} onChange={(e) => setChairTitle(e.target.value)} />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label" htmlFor="mt-secretary">Thư ký hội nghị</label>
+            <input id="mt-secretary" className="form-control form-control-sm mb-1" placeholder="Họ và tên" value={secretaryName} onChange={(e) => setSecretaryName(e.target.value)} />
+            <input className="form-control form-control-sm" placeholder="Chức vụ Đảng, chính quyền" aria-label="Chức vụ thư ký" value={secretaryTitle} onChange={(e) => setSecretaryTitle(e.target.value)} />
+          </div>
+          <div className="col-12">
+            <div className="form-label">Cán bộ, đảng viên khác được cử tham dự</div>
+            {attendees.map((attendee, index) => (
+              <div key={index} className={styles.repeatRow}>
+                <input className="form-control form-control-sm" placeholder="Họ và tên" aria-label="Họ và tên người dự" value={attendee.name} onChange={(e) => setAttendee(index, { name: e.target.value })} />
+                <input className="form-control form-control-sm" placeholder="Chức vụ Đảng, chính quyền" aria-label="Chức vụ người dự" value={attendee.title} onChange={(e) => setAttendee(index, { title: e.target.value })} />
+                {removeButton("Bỏ người dự", () => setAttendees(attendees.filter((_, i) => i !== index)))}
+              </div>
+            ))}
+            <Button type="button" size="sm" variant="outline-secondary" icon="bi-plus-lg" onClick={() => setAttendees([...attendees, { name: "", title: "" }])}>
+              Thêm người dự
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <h3 className={styles.legend}>Nội dung</h3>
+        <div className="row g-2">
+          <div className="col-12">
+            <label className="form-label" htmlFor="mt-reporting">Cơ quan, đơn vị báo cáo tình hình thực hiện nhiệm vụ trọng tâm</label>
+            <input id="mt-reporting" className="form-control form-control-sm" placeholder="Để trống: tên đơn vị tổ chức hội nghị" value={reportingUnit} onChange={(e) => setReportingUnit(e.target.value)} />
+          </div>
+          <div className="col-12">
+            <label className="form-label" htmlFor="mt-minutes">Diễn biến hội nghị</label>
+            <textarea id="mt-minutes" className="form-control form-control-sm" rows={3} value={minutes} onChange={(e) => setMinutes(e.target.value)} />
+          </div>
+          <div className="col-12">
+            <label className="form-label" htmlFor="mt-outcome">Kết quả hội nghị</label>
+            <textarea id="mt-outcome" className="form-control form-control-sm" rows={2} value={outcome} onChange={(e) => setOutcome(e.target.value)} />
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <h3 className={styles.legend}>Kiểm phiếu</h3>
+        <div className="row g-2">
+          <div className="col-12">
+            <div className="form-label">Tổ kiểm phiếu <span className="text-secondary fw-normal">(người đầu tiên là Tổ trưởng)</span></div>
+            {committee.map((member, index) => (
+              <div key={index} className={styles.repeatRow}>
+                <span className={styles.repeatRole}>{index === 0 ? "Tổ trưởng" : "Thành viên"}</span>
+                <input className="form-control form-control-sm" placeholder="Họ và tên" aria-label="Họ và tên thành viên Tổ kiểm phiếu" value={member.name} onChange={(e) => setMember(index, { name: e.target.value })} />
+                <input className="form-control form-control-sm" placeholder="Chức vụ Đảng, chính quyền" aria-label="Chức vụ thành viên Tổ kiểm phiếu" value={member.title} onChange={(e) => setMember(index, { title: e.target.value })} />
+                {removeButton("Bỏ thành viên Tổ kiểm phiếu", () => setCommittee(committee.filter((_, i) => i !== index)))}
+              </div>
+            ))}
+            <Button type="button" size="sm" variant="outline-secondary" icon="bi-plus-lg" onClick={() => setCommittee([...committee, { name: "", title: "" }])}>
+              Thêm thành viên
+            </Button>
+          </div>
+          {([
+            ["issued", "Phiếu phát ra"],
+            ["collected", "Phiếu thu về"],
+            ["valid", "Phiếu hợp lệ"],
+            ["invalid", "Không hợp lệ"],
+          ] as [keyof typeof ballots, string][]).map(([key, label]) => (
+            <div className="col-6 col-md-3" key={key}>
+              <label className="form-label" htmlFor={`mt-ballots-${key}`}>{label}</label>
+              <input id={`mt-ballots-${key}`} type="number" min={0} inputMode="numeric" placeholder="Chưa ghi"
+                className={`form-control form-control-sm${ballotsMismatch && key !== "issued" ? " is-invalid" : ""}`}
+                value={ballots[key] ?? ""}
+                onChange={(e) => setBallots({ ...ballots, [key]: toCount(e.target.value) })} />
+            </div>
+          ))}
+          {ballotsMismatch && <div className="col-12 small text-danger">Phiếu hợp lệ cộng phiếu không hợp lệ phải bằng phiếu thu về.</div>}
+
+          {formCode === "M13" && !editing && (
+            <div className="col-12">
+              <div className="form-label">Số phiếu theo từng hồ sơ</div>
+              {records.length === 0 ? (
+                <div className="text-secondary small">Chọn đơn vị tổ chức hội nghị để hiện danh sách hồ sơ.</div>
+              ) : (
+                <div className={styles.voteList}>
+                  {records.map((record) => {
+                    const vote = votes[record.id] || emptyVote;
+                    const update = (key: keyof Vote, value: number | string) => setVotes({ ...votes, [record.id]: { ...vote, [key]: value } });
+                    return (
+                      <div key={record.id} className={styles.voteRow}>
+                        <div className="small fw-semibold mb-1">{record.fullName}</div>
+                        <div className={styles.voteGrid}>
+                          {VOTE_FIELDS.map(([key, label]) => (
+                            <div key={key}>
+                              <label htmlFor={`vote-${record.id}-${key}`} title={label}>{label}</label>
+                              <input id={`vote-${record.id}-${key}`} type="number" min={0} inputMode="numeric" className="form-control form-control-sm"
+                                value={vote[key] as number} onChange={(e) => update(key, Number(e.target.value))} />
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
+              )}
+            </div>
+          )}
         </div>
-      )}
+      </section>
 
-      <div className="col-12 d-flex gap-2 mt-2">
-        <button className="btn btn-primary btn-sm" disabled={saving}>{saving ? "Đang lưu..." : editing ? "Lưu thay đổi" : "Lưu biên bản"}</button>
-        {editing && <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onCancel}>Hủy sửa</button>}
+      <div className={styles.footer}>
+        <Button type="button" variant="outline-secondary" onClick={cancel} disabled={saving}>Hủy</Button>
+        <Button
+          type="submit"
+          variant="primary"
+          icon="bi-check-lg"
+          loading={saving}
+          loadingText="Đang lưu..."
+          disabled={editing ? !dirty : false}
+          title={editing && !dirty ? "Chưa có thay đổi" : undefined}
+        >
+          Lưu
+        </Button>
       </div>
     </form>
   );
