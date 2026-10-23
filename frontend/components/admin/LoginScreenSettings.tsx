@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { Card, CardBody } from "@/components/common";
 import { errorMessage, errorTitle } from "@/components/admin/adminUtils";
@@ -15,9 +15,9 @@ import {
 } from "@/services/organizationSettingsService";
 
 const POSITIONS: { value: LoginPanelPosition; label: string }[] = [
-  { value: "right", label: "Bên phải ảnh" },
-  { value: "left", label: "Bên trái ảnh" },
-  { value: "center", label: "Dưới ảnh" },
+  { value: "center", label: "Giữa" },
+  { value: "left", label: "Bên trái" },
+  { value: "right", label: "Bên phải" },
 ];
 
 const ACCEPTED_TYPES = LOGIN_BACKGROUND_ACCEPT.split(",");
@@ -51,21 +51,6 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
 
   const imageUrl = settings.loginBackgroundUrl ? resolveApiUrl(settings.loginBackgroundUrl) : null;
   const position = settings.loginPanelPosition ?? "center";
-  const [imageNatural, setImageNatural] = useState<{ w: number; h: number } | null>(null);
-
-  useEffect(() => {
-    setImageNatural(null);
-    if (!imageUrl) return;
-    let active = true;
-    const img = new window.Image();
-    img.onload = () => {
-      if (active) setImageNatural({ w: img.naturalWidth, h: img.naturalHeight });
-    };
-    img.src = imageUrl;
-    return () => {
-      active = false;
-    };
-  }, [imageUrl]);
 
   const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -120,24 +105,7 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
     }
   };
 
-  const vertical = position === "center";
-  const mockImage = (
-    <div
-      className="rounded"
-      style={{
-        flex: vertical ? "0 0 auto" : "1 1 0",
-        width: vertical ? "60%" : undefined,
-        aspectRatio: imageNatural ? `${imageNatural.w} / ${imageNatural.h}` : "16 / 9",
-        background: imageUrl ? `center / contain no-repeat url("${imageUrl}")` : "var(--rule)",
-      }}
-    />
-  );
-  const mockCard = (
-    <div
-      className="rounded border"
-      style={{ width: vertical ? "26%" : "28%", aspectRatio: "3 / 4", background: "var(--paper)", flex: "0 0 auto" }}
-    />
-  );
+  const cardJustify = position === "left" ? "flex-start" : position === "right" ? "flex-end" : "center";
 
   return (
     <Card className="mt-3">
@@ -152,28 +120,21 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
               style={{
                 aspectRatio: "16 / 9",
                 maxWidth: 420,
-                padding: "5%",
-                gap: "5%",
-                flexDirection: vertical ? "column" : position === "left" ? "row-reverse" : "row",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "#2a3140",
+                padding: "6% 5%",
+                alignItems: position === "center" ? "center" : "flex-start",
+                justifyContent: cardJustify,
+                background: imageUrl ? `center / cover no-repeat url("${imageUrl}")` : "var(--bg)",
               }}
               aria-label="Xem trước màn hình đăng nhập"
             >
-              {mockImage}
-              {mockCard}
+              <div
+                className="rounded border"
+                style={{ width: "26%", aspectRatio: "3 / 4", background: "var(--paper)", boxShadow: "0 2px 8px rgba(0,0,0,.25)" }}
+              />
             </div>
             <div className="form-text">
-              {settings.loginBackgroundFileName
-                ? `${settings.loginBackgroundFileName}${imageNatural ? ` — ${imageNatural.w}×${imageNatural.h} px` : ""}`
-                : "Chưa có ảnh nền — đang dùng nền mặc định."}
+              {settings.loginBackgroundFileName ?? "Chưa có ảnh nền — đang dùng nền mặc định."}
             </div>
-            {imageNatural && imageNatural.w < 1280 && (
-              <div className="form-text text-warning-emphasis">
-                Ảnh nhỏ, có thể hơi mờ trên màn hình lớn. Nên dùng ảnh rộng từ 1600 px.
-              </div>
-            )}
           </div>
 
           <div className="col-12 col-lg-6">
@@ -203,7 +164,7 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
                   className="d-none"
                   onChange={handleFile}
                 />
-                <div className="form-text">JPG, PNG hoặc WEBP, tối đa {MAX_MB} MB. Nên dùng ảnh ngang, rộng từ 1600 px.</div>
+                <div className="form-text">JPG, PNG hoặc WEBP, tối đa {MAX_MB} MB. Nên dùng ảnh ngang, rộng từ 1920 px.</div>
               </div>
             )}
 
@@ -220,7 +181,7 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
                 <option key={p.value} value={p.value}>{p.label}</option>
               ))}
             </select>
-            <div className="form-text">Trên màn hình hẹp, khung đăng nhập luôn nằm dưới ảnh.</div>
+            <div className="form-text">Trên màn hình hẹp, khung đăng nhập luôn ở giữa.</div>
           </div>
         </div>
       </CardBody>

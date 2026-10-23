@@ -90,97 +90,63 @@
   color: var(--ink-3);
 }
 
-/* Ảnh nền đăng nhập: ảnh rõ nét đặt cạnh khung đăng nhập, phía sau là chính ảnh đó làm mờ để phủ kín màn hình. */
+/* Ảnh nền đăng nhập: phủ kín màn hình, giữ nguyên độ sáng; khung đăng nhập dạng kính mờ nằm ở vùng trống của ảnh. */
 .screen.hasImage {
   isolation: isolate;
-  overflow: hidden;
 }
 
 .backdrop {
   position: fixed;
-  inset: -48px;
+  inset: 0;
   z-index: -1;
   background-size: cover;
   background-position: center;
-  /* Làm mờ để ảnh nhỏ phóng to không lộ vỡ hạt. */
-  filter: blur(28px) saturate(1.1);
+  background-repeat: no-repeat;
   opacity: 0;
   transition: opacity 0.4s ease;
 }
 
-.backdrop::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(10, 16, 28, 0.5);
-}
-
-.split {
-  width: min(1280px, 100%);
-  display: grid;
-  gap: 24px;
-  justify-items: center;
-  align-items: center;
-}
-
-.hero {
-  width: 100%;
-  display: grid;
-  place-items: center;
-}
-
-.hero img {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: 32vh;
-  object-fit: contain;
-  border-radius: 12px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-
-.visible {
-  opacity: 1 !important;
+.backdropVisible {
+  opacity: 1;
 }
 
 .hasImage .card {
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+  max-width: 360px;
+  padding: 24px 24px 18px;
+  background: color-mix(in srgb, var(--paper) 86%, transparent);
+  border-color: color-mix(in srgb, var(--paper) 60%, transparent);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  box-shadow: 0 18px 48px rgba(15, 30, 60, 0.28);
+}
+
+.hasImage .brand {
+  margin-bottom: 16px;
+}
+
+.hasImage .foot {
+  margin-top: 16px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .backdrop,
-  .hero img {
+  .backdrop {
     transition: none;
   }
 }
 
-/* Màn hình rộng: ảnh và khung đăng nhập nằm cạnh nhau; "giữa" = ảnh ở trên, khung ở dưới. */
+/* Màn hình rộng: khung nằm sát mép trên để không che chữ thường đặt ở nửa dưới ảnh. */
 @media (min-width: 992px) {
-  .panelLeft .split,
-  .panelRight .split {
-    gap: 48px;
+  .panelLeft,
+  .panelRight {
+    align-items: start;
+    padding: 7vh 4vw 32px;
   }
 
-  .panelRight .split {
-    grid-template-columns: minmax(0, 1fr) 400px;
+  .panelLeft {
+    justify-items: start;
   }
 
-  .panelLeft .split {
-    grid-template-columns: 400px minmax(0, 1fr);
-  }
-
-  .panelLeft .hero {
-    order: 2;
-  }
-
-  .panelLeft .hero img,
-  .panelRight .hero img {
-    max-height: 80vh;
-  }
-
-  .panelCenter .hero img {
-    max-height: 40vh;
+  .panelRight {
+    justify-items: end;
   }
 }
