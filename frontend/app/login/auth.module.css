@@ -14,21 +14,12 @@
 }
 
 .card {
-  position: relative;
   width: 100%;
   max-width: 400px;
   background: var(--paper);
   border: 1px solid var(--rule);
   border-radius: 14px;
   padding: 32px 28px 24px;
-}
-
-.error {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(100% + 12px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .brand {

@@ -3,6 +3,7 @@
 import React, { useEffect, useLayoutEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { Button } from "@/components/common";
 import { LoginPanelPosition, resolveApiUrl, useOrganizationInfo } from "@/services/organizationSettingsService";
 import { AuthBrand } from "./AuthBrand";
@@ -18,6 +19,7 @@ function safeReturnUrl(value: string | null): string {
 
 function LoginForm() {
   const { login } = useAuth();
+  const { toast } = useToast();
   const org = useOrganizationInfo();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -25,19 +27,17 @@ function LoginForm() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg(null);
     setIsSubmitting(true);
 
     try {
       await login(username.trim(), password);
       router.replace(returnUrl);
     } catch (err: unknown) {
-      setErrorMsg(errorMessage(err, "Tên đăng nhập hoặc mật khẩu không chính xác."));
+      toast.error(errorMessage(err, "Tên đăng nhập hoặc mật khẩu không chính xác."), "Không đăng nhập được");
     } finally {
       setIsSubmitting(false);
     }
@@ -48,14 +48,6 @@ function LoginForm() {
   return (
     <div className={styles.card}>
       <AuthBrand title="Đăng nhập" />
-
-      {errorMsg && (
-        // Nằm ngoài luồng của khung để báo lỗi không đẩy ô nhập xuống.
-        <div className={`alert alert-danger py-2 px-3 mb-0 d-flex align-items-center gap-2 ${styles.error}`} role="alert">
-          <i className="bi bi-exclamation-octagon-fill flex-shrink-0" />
-          <span>{errorMsg}</span>
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className={styles.form}>
         <div>
