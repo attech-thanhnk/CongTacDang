@@ -8,7 +8,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { Card, PageHeader } from "@/components/common";
 import { AssignmentFormModal } from "@/components/admin/AssignmentFormModal";
 import { AssignmentTable } from "@/components/admin/AssignmentTable";
-import { HeaderMenu } from "@/components/admin/HeaderMenu";
+import { HeaderMenu } from "@/components/common/HeaderMenu";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { PermissionMatrix } from "@/components/admin/PermissionMatrix";
 import { RoleFormModal } from "@/components/admin/RoleFormModal";

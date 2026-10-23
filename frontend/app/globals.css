@@ -2525,6 +2525,20 @@ textarea.form-control {
   }
 }
 
+/* Tab nhiều mục trên màn hẹp: cuộn ngang một hàng thay vì xuống dòng. */
+@media (max-width: 767.98px) {
+  .nav-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .nav-tabs .nav-link {
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 767.98px) {
   /* Thanh bên đã đóng: không để bóng đổ lộ ở mép trái, không nhận tiêu điểm bàn phím. */
   aside.app-sidebar.sidebar-hidden {

@@ -13,7 +13,7 @@ import { AssignmentFormModal } from "@/components/admin/AssignmentFormModal";
 import { AssignmentTable } from "@/components/admin/AssignmentTable";
 import { EffectivePermissionsPanel } from "@/components/admin/EffectivePermissionsPanel";
 import { MemberPositionsPanel } from "@/components/admin/MemberPositionsPanel";
-import { HeaderMenu } from "@/components/admin/HeaderMenu";
+import { HeaderMenu } from "@/components/common/HeaderMenu";
 import type { RowAction } from "@/components/common/RowActions";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { TemporaryCredential, TemporaryPasswordModal } from "@/components/admin/TemporaryPasswordModal";

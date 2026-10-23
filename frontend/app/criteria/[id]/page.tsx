@@ -7,7 +7,7 @@ import { Badge, BadgeTone } from "@/components/common/StatusBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { CriteriaSummary } from "@/components/evaluations/CriteriaSummary";
-import { HeaderMenu } from "@/components/admin/HeaderMenu";
+import { HeaderMenu } from "@/components/common/HeaderMenu";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { errorMessage, errorStatus } from "@/components/admin/adminUtils";
 import {

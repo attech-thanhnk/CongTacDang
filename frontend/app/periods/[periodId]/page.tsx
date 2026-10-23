@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { RowActions } from "@/components/common/RowActions";
+import { HeaderMenu } from "@/components/common/HeaderMenu";
 import styles from "@/components/periods/periods.module.css";
 import { useParams } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -313,11 +314,10 @@ export default function PeriodDetailPage() {
               </button>
             )}
             {canManage && !isDraft && period.status !== "Closed" && (
-              <span className={styles.headerMenu}>
-                <RowActions
+              <HeaderMenu
                   itemLabel={period.name}
                   disabled={busy}
-                  menu={[
+                  actions={[
                     { key: "unlock", label: "Mở lại kỳ", icon: "bi-unlock", hidden: period.status !== "Locked", onClick: () => setUnlockOpen(true) },
                     {
                       key: "lock", label: "Khóa dữ liệu", icon: "bi-lock", danger: true, hidden: period.status !== "Open",
@@ -343,7 +343,6 @@ export default function PeriodDetailPage() {
                     },
                   ]}
                 />
-              </span>
             )}
           </>
         }
