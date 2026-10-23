@@ -1,13 +1,11 @@
 namespace CongTacDang.Domain.Enums;
 
-/// <summary>
-/// Cấp có thẩm quyền quyết định kết quả đánh giá, xếp loại của cán bộ.
-/// </summary>
+/// <summary>Cấp có thẩm quyền quyết định xếp loại cán bộ.</summary>
 public enum ApprovalAuthority
 {
-    /// <summary>Đảng ủy cơ sở (Đảng ủy Công ty) quyết định.</summary>
+    /// <summary>Đảng ủy cơ sở.</summary>
     CoSo = 1,
 
-    /// <summary>Cấp trên (Ban Thường vụ Đảng ủy Tổng công ty) quyết định.</summary>
+    /// <summary>Cấp ủy cấp trên.</summary>
     CapTren = 2
 }

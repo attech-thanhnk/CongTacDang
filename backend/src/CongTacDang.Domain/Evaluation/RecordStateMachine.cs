@@ -5,39 +5,28 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>Lệnh chuyển trạng thái đưa vào máy trạng thái.</summary>
-/// <param name="Action">Hoàn thành / trả lại / mở lại.</param>
-/// <param name="Step">Bước thực hiện (với mở lại: <see cref="WorkflowStep.B5_PUBLISH"/> hoặc bất kỳ — không dùng).</param>
-/// <param name="ReopenTarget">Bước mà hồ sơ quay về khi mở lại.</param>
+/// <summary>Lệnh chuyển trạng thái; <c>ReopenTarget</c> chỉ dùng khi mở lại.</summary>
 public sealed record WorkflowCommand(WorkflowAction Action, WorkflowStep Step, WorkflowStep? ReopenTarget = null)
 {
-    /// <summary>Hoàn thành bước.</summary>
     public static WorkflowCommand Complete(WorkflowStep step) => new(WorkflowAction.Complete, step);
 
-    /// <summary>Trả lại tại bước.</summary>
     public static WorkflowCommand Return(WorkflowStep step) => new(WorkflowAction.Return, step);
 
-    /// <summary>Mở lại hồ sơ đã công bố, quay về bước <paramref name="target"/>.</summary>
+    /// <summary>Mở lại hồ sơ đã công bố, quay về <paramref name="target"/>.</summary>
     public static WorkflowCommand Reopen(WorkflowStep target) => new(WorkflowAction.Reopen, WorkflowStep.B5_PUBLISH, target);
 }
 
-/// <summary>Kết quả chuyển trạng thái: trạng thái mới hoặc thông báo lỗi (tiếng Việt).</summary>
 public sealed record TransitionResult(bool Succeeded, RecordStatus Status, string? Error)
 {
-    /// <summary>Thành công.</summary>
     public static TransitionResult Ok(RecordStatus status) => new(true, status, null);
 
-    /// <summary>Không hợp lệ.</summary>
     public static TransitionResult Fail(RecordStatus current, string error) => new(false, current, error);
 }
 
-/// <summary>
-/// Máy trạng thái thuần của hồ sơ đánh giá cá nhân (docs/thiet-ke/luong-danh-gia.md mục 2):
-/// input (trạng thái, các bước áp dụng theo hồ sơ luồng của hồ sơ, hành động) → trạng thái mới hoặc lỗi. Không đọc CSDL, không kiểm tra quyền.
-/// </summary>
+/// <summary>Máy trạng thái thuần của hồ sơ cá nhân; không đọc CSDL, không kiểm tra quyền.</summary>
 public static class RecordStateMachine
 {
-    /// <summary>Trạng thái đầu của hồ sơ mới theo các bước áp dụng (khác "Không áp dụng") của hồ sơ luồng.</summary>
+    /// <summary>Theo các bước áp dụng của hồ sơ luồng.</summary>
     public static RecordStatus Initial(IReadOnlySet<WorkflowStep> enabledSteps)
     {
         ArgumentNullException.ThrowIfNull(enabledSteps);
@@ -46,7 +35,7 @@ public static class RecordStateMachine
         return enabledSteps.Contains(first) ? WorkflowSteps.StatusOf(first) : RecordStatus.AwaitingSelfScore;
     }
 
-    /// <summary>Trạng thái sau khi hoàn thành <paramref name="step"/>: bước bật kế tiếp, hoặc Đã công bố sau bước cuối.</summary>
+    /// <summary>Bước áp dụng kế tiếp, hoặc Đã công bố sau bước cuối.</summary>
     public static RecordStatus NextAfter(WorkflowStep step, IReadOnlySet<WorkflowStep> enabledSteps)
     {
         ArgumentNullException.ThrowIfNull(enabledSteps);
@@ -59,10 +48,7 @@ public static class RecordStateMachine
         return RecordStatus.Published;
     }
 
-    /// <summary>
-    /// Căn lại trạng thái khi tập bước áp dụng thay đổi (đổi hồ sơ luồng): bước đang chờ vẫn áp dụng → giữ nguyên;
-    /// không còn áp dụng → chuyển tới bước áp dụng kế tiếp (không lùi về bước đã qua). Đã công bố → giữ nguyên.
-    /// </summary>
+    /// <summary>Khi đổi hồ sơ luồng: bước đang chờ không còn áp dụng thì chuyển tới bước áp dụng kế tiếp, không lùi.</summary>
     public static RecordStatus Realign(RecordStatus current, IReadOnlySet<WorkflowStep> activeSteps)
     {
         ArgumentNullException.ThrowIfNull(activeSteps);
@@ -71,7 +57,7 @@ public static class RecordStateMachine
         return NextAfter(step, activeSteps);
     }
 
-    /// <summary>Các bước được chọn khi mở lại hồ sơ đã công bố (bước bật, không sớm hơn tự chấm).</summary>
+    /// <summary>Bước đang áp dụng, không sớm hơn tự chấm.</summary>
     public static IReadOnlyList<WorkflowStep> ReopenTargets(IReadOnlySet<WorkflowStep> enabledSteps)
     {
         ArgumentNullException.ThrowIfNull(enabledSteps);
@@ -79,7 +65,6 @@ public static class RecordStateMachine
         return WorkflowSteps.Ordered.Where(s => enabledSteps.Contains(s) && WorkflowSteps.IndexOf(s) >= earliest).ToList();
     }
 
-    /// <summary>Áp lệnh lên trạng thái hiện tại.</summary>
     public static TransitionResult Apply(RecordStatus current, IReadOnlySet<WorkflowStep> enabledSteps, WorkflowCommand command)
     {
         ArgumentNullException.ThrowIfNull(enabledSteps);

@@ -5,88 +5,81 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>
-/// Mã bước của luồng đánh giá (docs/thiet-ke/luong-danh-gia.md mục 1). Mã cố định trong code; bước nào áp dụng
-/// (nội bộ / do cấp trên thực hiện / không áp dụng), ai làm, thời hạn là cấu hình theo hồ sơ luồng của kỳ
-/// (<see cref="WorkflowProfile"/> trong <see cref="PeriodSettings"/>).
-/// </summary>
+/// <summary>Mã bước cố định trong code; chế độ, người làm, thời hạn cấu hình theo hồ sơ luồng (<see cref="WorkflowProfile"/>).</summary>
 public enum WorkflowStep
 {
-    /// <summary>Cá nhân đăng ký sản phẩm/nhiệm vụ (Mẫu 01).</summary>
+    /// <summary>Đăng ký sản phẩm (Mẫu 01).</summary>
     B1_REGISTER = 1,
 
-    /// <summary>Duyệt / trả lại danh mục sản phẩm (Mẫu 01).</summary>
+    /// <summary>Duyệt / trả lại danh mục sản phẩm.</summary>
     B1_APPROVE = 2,
 
-    /// <summary>Tự chấm điểm, đề xuất mức (Mẫu 02, 09A/09B, 09C, 9D) — luôn bật.</summary>
+    /// <summary>Tự chấm, đề xuất mức (Mẫu 02, 09A/09B, 09C, 9D); luôn bật.</summary>
     B2_SELF_SCORE = 3,
 
-    /// <summary>Chi bộ xác nhận / trả lại phiếu tự chấm.</summary>
     B2_CELL_CONFIRM = 4,
 
-    /// <summary>Ghi nhận đề xuất của tập thể lãnh đạo (kết quả phiếu kín, Mẫu 11–13).</summary>
+    /// <summary>Ghi nhận đề xuất tập thể lãnh đạo (phiếu kín, Mẫu 11–13).</summary>
     B3A_COLLECTIVE = 5,
 
-    /// <summary>Thẩm định, đề xuất mức (Mẫu 10, 03, 19, 20).</summary>
+    /// <summary>Mẫu 10, 03, 19, 20.</summary>
     B3B_APPRAISAL = 6,
 
-    /// <summary>Nhận xét, đề xuất của cấp trực tiếp sử dụng (Mẫu 10).</summary>
+    /// <summary>Mẫu 10.</summary>
     B3C_DIRECTOR = 7,
 
-    /// <summary>Ghi nhận quyết định mức xếp loại (Mẫu 12–15) — luôn bật.</summary>
+    /// <summary>Ghi nhận quyết định mức (Mẫu 12–15); luôn bật.</summary>
     B4_DECISION = 8,
 
-    /// <summary>Công bố, khóa hồ sơ (Mẫu 16) — luôn bật.</summary>
+    /// <summary>Công bố, khóa hồ sơ (Mẫu 16); luôn bật.</summary>
     B5_PUBLISH = 9
 }
 
-/// <summary>Loại hành động ghi vào lịch sử hồ sơ.</summary>
+/// <summary>Hành động ghi vào lịch sử hồ sơ.</summary>
 public enum WorkflowAction
 {
-    /// <summary>Hoàn thành bước → chuyển sang bước bật kế tiếp.</summary>
+    /// <summary>Chuyển sang bước áp dụng kế tiếp.</summary>
     Complete = 1,
 
-    /// <summary>Trả lại về bước của chủ hồ sơ (bắt buộc lý do).</summary>
+    /// <summary>Về bước của chủ hồ sơ; bắt buộc lý do.</summary>
     Return = 2,
 
-    /// <summary>Mở lại hồ sơ đã công bố (bắt buộc lý do).</summary>
+    /// <summary>Mở lại hồ sơ đã công bố; bắt buộc lý do.</summary>
     Reopen = 3,
 
-    /// <summary>Thêm người vào danh sách được đánh giá (tạo hồ sơ).</summary>
+    /// <summary>Thêm người vào kỳ (tạo hồ sơ).</summary>
     Create = 4,
 
-    /// <summary>Sửa ảnh chụp Phòng/Chi bộ/khung tỷ trọng/cấp quyết định (bắt buộc lý do).</summary>
+    /// <summary>Sửa ảnh chụp Phòng/Chi bộ/khung/cấp quyết định; bắt buộc lý do.</summary>
     EditSnapshot = 5,
 
-    /// <summary>Cấu hình kỳ đổi khi kỳ còn dự thảo → trạng thái đầu của hồ sơ được tính lại.</summary>
+    /// <summary>Kỳ dự thảo đổi cấu hình → tính lại trạng thái đầu của hồ sơ.</summary>
     Recalculate = 6,
 
-    /// <summary>Đổi hồ sơ luồng (nhóm đối tượng) của hồ sơ (bắt buộc lý do).</summary>
+    /// <summary>Đổi hồ sơ luồng; bắt buộc lý do.</summary>
     ChangeProfile = 7,
 
-    /// <summary>Ghi nhận kết quả của bước do cấp trên / cơ quan ngoài hệ thống thực hiện.</summary>
+    /// <summary>Ghi nhận kết quả bước do cấp trên thực hiện.</summary>
     RecordExternal = 8,
 
-    /// <summary>Duyệt / không duyệt đề nghị điều chỉnh, chuyển tiếp, loại trừ việc hoặc ghi nhận việc đột xuất trong quý (Mẫu 04, 05).</summary>
+    /// <summary>Duyệt đề nghị điều chỉnh, chuyển tiếp, loại trừ hoặc việc đột xuất (Mẫu 04, 05).</summary>
     TaskChange = 9,
 
-    /// <summary>Kỳ còn dự thảo: cập nhật ảnh chụp Phòng/Chi bộ/cấp quyết định theo hồ sơ cán bộ hiện tại.</summary>
+    /// <summary>Kỳ dự thảo: cập nhật ảnh chụp theo hồ sơ cán bộ hiện tại.</summary>
     SyncSnapshot = 10,
 
-    /// <summary>Thu hồi duyệt danh mục B1 ngay sau khi duyệt nhầm, trước khi chủ hồ sơ tự chấm.</summary>
+    /// <summary>Thu hồi duyệt nhầm danh mục, trước khi chủ hồ sơ tự chấm.</summary>
     RevokeTaskApproval = 11,
 
-    /// <summary>Mở riêng hồ sơ (hoặc gia hạn) khi kỳ khóa dữ liệu: các bước trước thẩm định của hồ sơ thao tác được tới hạn.</summary>
+    /// <summary>Mở riêng (hoặc gia hạn) hồ sơ khi kỳ khóa dữ liệu.</summary>
     GrantUnlock = 12,
 
-    /// <summary>Kết thúc mở riêng hồ sơ: hồ sơ đã tới bước được thao tác khi kỳ khóa dữ liệu.</summary>
+    /// <summary>Hồ sơ đã tới bước được thao tác khi kỳ khóa, hết mở riêng.</summary>
     ClearUnlock = 13
 }
 
-/// <summary>Thông tin tĩnh về các bước: thứ tự, trạng thái chờ tương ứng, bước bắt buộc, bước được trả lại.</summary>
 public static class WorkflowSteps
 {
-    /// <summary>Thứ tự cố định của các bước.</summary>
     public static readonly IReadOnlyList<WorkflowStep> Ordered = new[]
     {
         WorkflowStep.B1_REGISTER,
@@ -100,7 +93,6 @@ public static class WorkflowSteps
         WorkflowStep.B5_PUBLISH
     };
 
-    /// <summary>Các bước bắt buộc: không đặt được chế độ "Không áp dụng" trong hồ sơ luồng.</summary>
     public static readonly IReadOnlySet<WorkflowStep> Mandatory = new HashSet<WorkflowStep>
     {
         WorkflowStep.B2_SELF_SCORE,
@@ -108,7 +100,7 @@ public static class WorkflowSteps
         WorkflowStep.B5_PUBLISH
     };
 
-    /// <summary>Các bước không giao được cho cấp trên / cơ quan ngoài hệ thống: bước của chủ hồ sơ và bước công bố.</summary>
+    /// <summary>Bước của chủ hồ sơ và bước công bố.</summary>
     public static readonly IReadOnlySet<WorkflowStep> NeverExternal = new HashSet<WorkflowStep>
     {
         WorkflowStep.B1_REGISTER,
@@ -116,7 +108,7 @@ public static class WorkflowSteps
         WorkflowStep.B5_PUBLISH
     };
 
-    /// <summary>Các bước có mức xếp loại đề xuất/quyết định (ghi nhận kết quả của cấp trên bắt buộc chọn mức).</summary>
+    /// <summary>Ghi nhận kết quả cấp trên ở các bước này bắt buộc chọn mức.</summary>
     public static readonly IReadOnlySet<WorkflowStep> GradedSteps = new HashSet<WorkflowStep>
     {
         WorkflowStep.B3A_COLLECTIVE,
@@ -125,16 +117,13 @@ public static class WorkflowSteps
         WorkflowStep.B4_DECISION
     };
 
-    /// <summary>Các bước do chủ hồ sơ thực hiện.</summary>
     public static readonly IReadOnlySet<WorkflowStep> OwnerSteps = new HashSet<WorkflowStep>
     {
         WorkflowStep.B1_REGISTER,
         WorkflowStep.B2_SELF_SCORE
     };
 
-    /// <summary>
-    /// Bước được trả lại và bước của chủ hồ sơ mà hồ sơ quay về (thiết kế mục 2).
-    /// </summary>
+    /// <summary>Bước được trả lại → bước của chủ hồ sơ mà hồ sơ quay về.</summary>
     public static readonly IReadOnlyDictionary<WorkflowStep, WorkflowStep> ReturnTargets = new Dictionary<WorkflowStep, WorkflowStep>
     {
         [WorkflowStep.B1_APPROVE] = WorkflowStep.B1_REGISTER,
@@ -142,19 +131,18 @@ public static class WorkflowSteps
         [WorkflowStep.B3B_APPRAISAL] = WorkflowStep.B2_SELF_SCORE
     };
 
-    /// <summary>Bước sớm nhất được chọn khi mở lại hồ sơ đã công bố.</summary>
     public const WorkflowStep EarliestReopenStep = WorkflowStep.B2_SELF_SCORE;
 
-    /// <summary>Bước đầu tiên được thao tác khi kỳ ở trạng thái "Khóa dữ liệu" (HD03 II.2).</summary>
+    /// <summary>Kỳ "Khóa dữ liệu" chỉ cho thao tác từ bước này trở đi.</summary>
     public const WorkflowStep FirstStepWhenLocked = WorkflowStep.B3B_APPRAISAL;
 
-    /// <summary>Bước bị chặn khi kỳ "Khóa dữ liệu" (trước <see cref="FirstStepWhenLocked"/>) — cần mở riêng hồ sơ để thao tác.</summary>
+    /// <summary>Bước bị chặn khi kỳ khóa dữ liệu, trừ khi hồ sơ được mở riêng.</summary>
     public static bool IsLockedStep(WorkflowStep step) => IndexOf(step) < IndexOf(FirstStepWhenLocked);
 
-    /// <summary>Mã bước dạng chuỗi (khóa trong cấu hình JSON, giá trị trả về API).</summary>
+    /// <summary>Khóa trong cấu hình JSON và giá trị trả về API.</summary>
     public static string Code(WorkflowStep step) => step.ToString();
 
-    /// <summary>Đọc mã bước; null nếu không hợp lệ.</summary>
+    /// <summary>Null nếu không hợp lệ.</summary>
     public static WorkflowStep? Parse(string? code)
     {
         if (string.IsNullOrWhiteSpace(code))
@@ -162,7 +150,6 @@ public static class WorkflowSteps
         return Enum.TryParse<WorkflowStep>(code.Trim(), ignoreCase: true, out var step) && Enum.IsDefined(step) ? step : null;
     }
 
-    /// <summary>Trạng thái hồ sơ khi đang chờ bước <paramref name="step"/>.</summary>
     public static RecordStatus StatusOf(WorkflowStep step) => step switch
     {
         WorkflowStep.B1_REGISTER => RecordStatus.AwaitingRegistration,
@@ -177,7 +164,7 @@ public static class WorkflowSteps
         _ => throw new ArgumentOutOfRangeException(nameof(step), step, null)
     };
 
-    /// <summary>Bước đang chờ của trạng thái; null với <see cref="RecordStatus.Published"/>.</summary>
+    /// <summary>Null với <see cref="RecordStatus.Published"/>.</summary>
     public static WorkflowStep? StepOf(RecordStatus status) => status switch
     {
         RecordStatus.AwaitingRegistration => WorkflowStep.B1_REGISTER,
@@ -192,10 +179,8 @@ public static class WorkflowSteps
         _ => null
     };
 
-    /// <summary>Vị trí của bước trong thứ tự (0-based).</summary>
     public static int IndexOf(WorkflowStep step) => Ordered.ToList().IndexOf(step);
 
-    /// <summary>Tên bước hiển thị.</summary>
     public static string DisplayName(WorkflowStep step) => step switch
     {
         WorkflowStep.B1_REGISTER => "Đăng ký sản phẩm, nhiệm vụ",
@@ -210,7 +195,6 @@ public static class WorkflowSteps
         _ => step.ToString()
     };
 
-    /// <summary>Tên trạng thái hồ sơ hiển thị.</summary>
     public static string StatusDisplayName(RecordStatus status) => status switch
     {
         RecordStatus.AwaitingRegistration => "Chờ đăng ký sản phẩm",
@@ -226,7 +210,6 @@ public static class WorkflowSteps
         _ => status.ToString()
     };
 
-    /// <summary>Tên trạng thái kỳ hiển thị.</summary>
     public static string PeriodStatusDisplayName(PeriodStatus status) => status switch
     {
         PeriodStatus.Draft => "Dự thảo",
@@ -236,7 +219,6 @@ public static class WorkflowSteps
         _ => status.ToString()
     };
 
-    /// <summary>Tên hành động lịch sử hiển thị.</summary>
     public static string ActionDisplayName(WorkflowAction action) => action switch
     {
         WorkflowAction.Complete => "Hoàn thành",

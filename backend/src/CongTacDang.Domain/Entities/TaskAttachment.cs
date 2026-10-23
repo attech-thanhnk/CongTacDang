@@ -2,101 +2,81 @@ using System;
 
 namespace CongTacDang.Domain.Entities;
 
-/// <summary>
-/// Thực thể lưu trữ tệp đính kèm văn bản và hồ sơ minh chứng đánh giá theo Hướng dẫn 03-HD/TVĐU
-/// </summary>
+/// <summary>Tệp đính kèm, minh chứng; có phiên bản theo nhóm.</summary>
 public class TaskAttachment : IAuditableEntity, ISoftDeletable
 {
-    /// <summary>Mã định danh duy nhất của tệp đính kèm</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    /// <summary>Tên tệp tin hiển thị</summary>
     public string FileName { get; set; } = string.Empty;
 
-    /// <summary>Tên tệp tin gốc khi tải lên</summary>
     public string OriginalFileName { get; set; } = string.Empty;
 
-    /// <summary>Định dạng MIME của tệp (VD: application/pdf)</summary>
     public string ContentType { get; set; } = string.Empty;
 
-    /// <summary>Dung lượng tệp tính bằng byte</summary>
+    /// <summary>Byte.</summary>
     public long FileSize { get; set; }
 
-    /// <summary>Khóa định danh đường dẫn tệp trong Storage (VD: mau02/202609/uuid_name.pdf)</summary>
+    /// <summary>Khóa trong kho lưu trữ (ví dụ mau02/202609/uuid_name.pdf).</summary>
     public string ObjectKey { get; set; } = string.Empty;
 
-    /// <summary>Mã băm SHA-256 kiểm tra tính toàn vẹn của tệp</summary>
+    /// <summary>SHA-256.</summary>
     public string Checksum { get; set; } = string.Empty;
 
-    /// <summary>Thời điểm tải tệp lên máy chủ</summary>
     public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
 
-    /// <summary>Họ tên hoặc tài khoản người tải tệp lên (chỉ dùng để hiển thị)</summary>
+    /// <summary>Chỉ để hiển thị; kiểm quyền sở hữu dùng <see cref="UploadedById"/>.</summary>
     public string UploadedBy { get; set; } = string.Empty;
 
-    /// <summary>Mã người dùng đã tải tệp lên, dùng để kiểm tra quyền sở hữu. Dữ liệu cũ để null.</summary>
+    /// <summary>Dữ liệu cũ để null.</summary>
     public Guid? UploadedById { get; set; }
 
-    /// <summary>Mã biểu mẫu hoặc ký hiệu hồ sơ dùng để phân loại tệp (FormCode: MAU01, MAU02, CAPTREN...)</summary>
+    /// <summary>Phân loại tệp (MAU01, MAU02, CAPTREN...).</summary>
     public string FormCode { get; set; } = string.Empty;
 
-    /// <summary>Mã định danh đối tượng nghiệp vụ liên quan</summary>
+    /// <summary>Nhiệm vụ sở hữu khi tệp gắn nhiệm vụ.</summary>
     public Guid? RelatedId { get; set; }
 
-    /// <summary>Mã bản ghi liên kết</summary>
+    /// <summary>Hồ sơ đánh giá chứa đối tượng sở hữu.</summary>
     public Guid? RecordId { get; set; }
 
-    /// <summary>Trích yếu hoặc tóm tắt nội dung văn bản</summary>
+    /// <summary>Trích yếu văn bản.</summary>
     public string Description { get; set; } = string.Empty;
 
-    /// <summary>Trạng thái tệp (đang sử dụng / đã ẩn)</summary>
+    /// <summary>False = đã ẩn.</summary>
     public bool IsActive { get; set; } = true;
 
     #region Đối tượng sở hữu và phiên bản (T-36)
 
-    /// <summary>
-    /// Loại đối tượng sở hữu tệp (xem <see cref="AttachmentOwnerTypes"/>). Null với dữ liệu cũ —
-    /// khi đó đối tượng được suy ra từ <see cref="RecordId"/> / <see cref="RelatedId"/>.
-    /// </summary>
+    /// <summary>Xem <see cref="AttachmentOwnerTypes"/>; null với dữ liệu cũ (suy ra từ RecordId / RelatedId).</summary>
     public string? OwnerType { get; set; }
 
-    /// <summary>Mã đối tượng sở hữu tệp (null với tệp chưa gắn đối tượng hoặc dữ liệu cũ).</summary>
     public Guid? OwnerId { get; set; }
 
-    /// <summary>
-    /// Mã nhóm phiên bản: mọi phiên bản của cùng một tệp có chung giá trị này (bằng Id của phiên bản đầu tiên).
-    /// Null với dữ liệu cũ — khi đó tệp tự là nhóm của chính nó (<see cref="GroupId"/> = <see cref="Id"/>).
-    /// </summary>
+    /// <summary>Id phiên bản đầu tiên, chung cho mọi phiên bản; null với dữ liệu cũ (dùng <see cref="GroupId"/>).</summary>
     public Guid? FileGroupId { get; set; }
 
-    /// <summary>Số thứ tự phiên bản trong nhóm, bắt đầu từ 1.</summary>
+    /// <summary>Bắt đầu từ 1.</summary>
     public int VersionNumber { get; set; } = 1;
 
-    /// <summary>
-    /// Phiên bản đã bị thay bằng phiên bản mới hơn. Mỗi nhóm có đúng một phiên bản chưa bị thay (hiện hành).
-    /// Mặc định false để dữ liệu cũ tự là phiên bản hiện hành.
-    /// </summary>
+    /// <summary>Mỗi nhóm có đúng một phiên bản chưa bị thay (hiện hành).</summary>
     public bool IsSuperseded { get; set; }
 
-    /// <summary>Phiên bản hiện hành của nhóm.</summary>
     public bool IsCurrent => !IsSuperseded;
 
-    /// <summary>Thời điểm phiên bản này bị thay bằng phiên bản mới.</summary>
     public DateTime? SupersededAt { get; set; }
 
-    /// <summary>Người đã thay phiên bản này bằng phiên bản mới.</summary>
     public Guid? SupersededById { get; set; }
 
-    /// <summary>Mã nhóm phiên bản thực tế (xử lý cả dữ liệu cũ chưa có <see cref="FileGroupId"/>).</summary>
+    /// <summary>Xử lý cả dữ liệu cũ chưa có <see cref="FileGroupId"/>.</summary>
     public Guid GroupId => FileGroupId ?? Id;
 
-    /// <summary>Loại đối tượng sở hữu thực tế, suy ra từ cột cũ khi chưa có <see cref="OwnerType"/>.</summary>
+    /// <summary>Suy ra từ cột cũ khi chưa có <see cref="OwnerType"/>.</summary>
     public string EffectiveOwnerType => OwnerType
         ?? (RecordId.HasValue ? AttachmentOwnerTypes.EvaluationRecord
             : RelatedId.HasValue ? AttachmentOwnerTypes.EvaluationTask
             : AttachmentOwnerTypes.Unlinked);
 
-    /// <summary>Mã đối tượng sở hữu thực tế, suy ra từ cột cũ khi chưa có <see cref="OwnerType"/>.</summary>
+    /// <summary>Suy ra từ cột cũ khi chưa có <see cref="OwnerType"/>.</summary>
     public Guid? EffectiveOwnerId => OwnerType != null ? OwnerId : RecordId ?? RelatedId;
 
     #endregion

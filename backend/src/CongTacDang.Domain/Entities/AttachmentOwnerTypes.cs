@@ -6,34 +6,23 @@ namespace CongTacDang.Domain.Entities;
 /// <summary>Các loại đối tượng có thể sở hữu tệp đính kèm (<see cref="TaskAttachment.OwnerType"/>).</summary>
 public static class AttachmentOwnerTypes
 {
-    /// <summary>
-    /// Tệp chưa gắn đối tượng: tải lên trước rồi gắn vào nhiệm vụ / kết quả của cấp trên qua <c>AttachmentId</c>;
-    /// chỉ người tải lên thấy tới khi được gắn. Không nhận làm <c>ownerType</c> từ client (không có trong <see cref="All"/>).
-    /// </summary>
+    /// <summary>Tải lên trước rồi gắn qua <c>AttachmentId</c>; chỉ người tải lên thấy tới khi gắn. Client không truyền được.</summary>
     public const string Unlinked = "Unlinked";
 
-    /// <summary>Hồ sơ đánh giá cá nhân (<see cref="Entities.EvaluationRecord"/>).</summary>
     public const string EvaluationRecord = "EvaluationRecord";
 
-    /// <summary>Nhiệm vụ/sản phẩm chuyên môn trong hồ sơ đánh giá (<see cref="Entities.EvaluationTask"/>).</summary>
     public const string EvaluationTask = "EvaluationTask";
 
-    /// <summary>
-    /// Kiến nghị sau công bố (<see cref="Entities.EvaluationAppeal"/>, task 20): tệp thuộc hồ sơ của kiến nghị — chủ hồ sơ bổ sung tệp
-    /// khi kiến nghị còn xử lý (không thay, không gỡ); người xem được hồ sơ và người xử lý kiến nghị trong phạm vi xem được tệp.
-    /// </summary>
+    /// <summary>Chủ hồ sơ chỉ bổ sung tệp khi kiến nghị còn xử lý (không thay, không gỡ).</summary>
     public const string EvaluationAppeal = "EvaluationAppeal";
 
-    /// <summary>
-    /// Hồ sơ đánh giá tập thể (<see cref="Entities.CollectiveEvaluationRecord"/>, Mẫu 06/07/08): phụ lục, báo cáo kèm theo — tệp thuộc tập thể,
-    /// người có <c>collective.manage</c> trên tổ chức của hồ sơ tải lên/thay/gỡ khi kỳ chưa đóng; người xem được hồ sơ tập thể xem được tệp.
-    /// </summary>
+    /// <summary>Hồ sơ tập thể (Mẫu 06/07/08); tải lên/thay/gỡ cần <c>collective.manage</c> và kỳ chưa đóng.</summary>
     public const string CollectiveEvaluationRecord = "CollectiveEvaluationRecord";
 
-    /// <summary>Danh sách loại đối tượng được gắn tệp (client truyền khi tải lên / tra cứu tệp của đối tượng).</summary>
+    /// <summary>Các loại client được truyền.</summary>
     public static readonly string[] All = { EvaluationRecord, EvaluationTask, EvaluationAppeal, CollectiveEvaluationRecord };
 
-    /// <summary>Chuẩn hóa tên loại đối tượng (không phân biệt hoa thường); trả về null nếu không hỗ trợ.</summary>
+    /// <summary>Không phân biệt hoa thường; null nếu không hỗ trợ.</summary>
     public static string? Normalize(string? ownerType)
     {
         if (string.IsNullOrWhiteSpace(ownerType))

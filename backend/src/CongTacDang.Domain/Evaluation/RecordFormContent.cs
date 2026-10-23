@@ -7,107 +7,83 @@ using System.Text.Json.Serialization;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>
-/// Nội dung tự đánh giá và kết quả của một trục trong quý, nhập một lần trên phiếu tự chấm: danh sách nhiệm vụ (in ở mục I Mẫu 09C,
-/// mỗi nhiệm vụ kèm mức tự đánh giá) và phần tóm tắt của trục (một dòng "Trục n" của Mẫu 9D, các cột (3)–(7) của biểu mẫu gốc).
-/// </summary>
+/// <summary>Nhiệm vụ của một trục (in ở Mẫu 09C, kèm mức) và phần tóm tắt (một dòng "Trục n" của Mẫu 9D, cột 3–7).</summary>
 public sealed class AxisReport
 {
-    /// <summary>Các nhiệm vụ của trục (Mẫu 09C), theo thứ tự nhập.</summary>
+    /// <summary>Mẫu 09C, theo thứ tự nhập.</summary>
     public List<AxisTask> Tasks { get; set; } = new();
 
-    /// <summary>(3) Thời hạn hoàn thành (Mẫu 9D).</summary>
+    /// <summary>Cột (3) Mẫu 9D.</summary>
     public string? Deadline { get; set; }
 
-    /// <summary>(4) Tình hình thực hiện (Mẫu 9D).</summary>
+    /// <summary>Cột (4) Mẫu 9D.</summary>
     public string? Status { get; set; }
 
-    /// <summary>(5) Sản phẩm hoàn thành (Mẫu 9D).</summary>
+    /// <summary>Cột (5) Mẫu 9D.</summary>
     public string? Product { get; set; }
 
-    /// <summary>(6) Đánh giá tiến độ (Mẫu 9D).</summary>
+    /// <summary>Cột (6) Mẫu 9D.</summary>
     public string? Progress { get; set; }
 
-    /// <summary>(7) Ghi chú (Mẫu 9D).</summary>
+    /// <summary>Cột (7) Mẫu 9D.</summary>
     public string? Note { get; set; }
 }
 
-/// <summary>Một nhiệm vụ trong phần tự đánh giá theo trục của Mẫu 09C: "Nhiệm vụ n: nội dung. Tự đánh giá mức N."</summary>
+/// <summary>In ở Mẫu 09C: "Nhiệm vụ n: nội dung. Tự đánh giá mức N."</summary>
 public sealed class AxisTask
 {
-    /// <summary>Nội dung nhiệm vụ và tình hình, kết quả thực hiện.</summary>
     public string Content { get; set; } = string.Empty;
 
-    /// <summary>Mức tự đánh giá (mã mức khai báo trong bộ tiêu chí); null = không kết luận mức.</summary>
+    /// <summary>Mã mức khai báo trong bộ tiêu chí; null = không kết luận mức.</summary>
     public int? Level { get; set; }
 
-    /// <summary>Các ý con "+ …" của nhiệm vụ, mỗi ý có thể có mức riêng.</summary>
+    /// <summary>Các ý con "+ …", mỗi ý có thể có mức riêng.</summary>
     public List<AxisTaskItem> Items { get; set; } = new();
 }
 
-/// <summary>Một ý con "+ …" của nhiệm vụ trong Mẫu 09C.</summary>
 public sealed class AxisTaskItem
 {
-    /// <summary>Nội dung ý con.</summary>
     public string Content { get; set; } = string.Empty;
 
-    /// <summary>Mức tự đánh giá của ý con; null = không kết luận mức.</summary>
+    /// <summary>Null = không kết luận mức.</summary>
     public int? Level { get; set; }
 }
 
-/// <summary>Khối một trục trong mục I của Mẫu 09C: tiêu đề "n. Tên trục (trục n)" và các dòng nhiệm vụ / ý con đã dựng câu.</summary>
+/// <summary>Khối một trục ở Mẫu 09C: tiêu đề "n. Tên trục (trục n)" và các dòng đã dựng câu.</summary>
 public sealed record AxisTaskBlock(string Title, IReadOnlyList<AxisTaskLine> Lines);
 
-/// <summary>
-/// Một dòng nhiệm vụ / ý con của Mẫu 09C: phần nội dung ("- Nhiệm vụ 1: … ." hoặc "+ … .") và câu nối mức ("Tự đánh giá mức 2.",
-/// in nghiêng; null khi không kết luận mức). Bản in đặt câu nối ngay sau nội dung, cách một khoảng trắng.
-/// </summary>
+/// <summary>Dòng nhiệm vụ / ý con; <c>Level</c> là câu nối mức, in nghiêng ngay sau nội dung (null khi không kết luận mức).</summary>
 public sealed record AxisTaskLine(string Text, string? Level)
 {
-    /// <summary>Cả dòng như bản in.</summary>
     public string FullText => Level == null ? Text : Text + " " + Level;
 }
 
-/// <summary>
-/// Nội dung các cột tự luận của một trục trên Mẫu 09B (phần II): "Mục tiêu, nhiệm vụ đề ra", "Tóm tắt kết quả sản phẩm thực tế;
-/// Tài liệu minh chứng", "Ghi chú". Điểm trục lưu riêng ở <c>EvaluationRecord.AxisScores</c>.
-/// </summary>
+/// <summary>Các ô tự luận của một trục trên Mẫu 09B; điểm trục lưu riêng ở <c>EvaluationRecord.AxisScores</c>.</summary>
 public sealed class AxisNote
 {
-    /// <summary>Mục tiêu, nhiệm vụ đề ra.</summary>
     public string? Target { get; set; }
 
-    /// <summary>Tóm tắt kết quả sản phẩm thực tế; tài liệu minh chứng.</summary>
     public string? Result { get; set; }
 
-    /// <summary>Ghi chú.</summary>
     public string? Note { get; set; }
 }
 
-//// <summary>
-/// Đọc, kiểm tra, ghi nội dung biểu mẫu cá nhân lưu trên hồ sơ (jsonb): Mẫu 09C theo mã mục (<c>{ "I": "…" }</c> — phần nhận
-/// xét chung), nhiệm vụ và kết quả theo trục dùng chung cho Mẫu 09C và 9D (<c>{ "T1": { "tasks": [ … ], "status": … } }</c>), ghi
-/// chú theo trục của Mẫu 09B (<c>{ "T1": { "target": … } }</c>). Danh mục mục, trục, mức lấy từ bộ tiêu chí của kỳ nên đổi mẫu
-/// không cần đổi schema.
-/// </summary>
+/// <summary>Đọc, kiểm tra, ghi nội dung biểu mẫu cá nhân (jsonb) theo mục, trục, mức của bộ tiêu chí của kỳ.</summary>
 public static class RecordFormContent
 {
-    /// <summary>Số nhiệm vụ tối đa của một trục.</summary>
     public const int MaxTasksPerAxis = 30;
 
-    /// <summary>Số ý con tối đa của một nhiệm vụ.</summary>
     public const int MaxItemsPerTask = 20;
 
-    /// <summary>Độ dài tối đa nội dung một nhiệm vụ, một ý con, ô "Tình hình thực hiện", "Sản phẩm hoàn thành" (Mẫu 9D).</summary>
+    /// <summary>Nhiệm vụ, ý con, ô "Tình hình thực hiện", "Sản phẩm hoàn thành" (Mẫu 9D).</summary>
     public const int MaxLongCellLength = 2000;
 
-    /// <summary>Độ dài tối đa ô "Thời hạn", "Đánh giá tiến độ", "Ghi chú" (Mẫu 9D).</summary>
+    /// <summary>Ô "Thời hạn", "Đánh giá tiến độ", "Ghi chú" (Mẫu 9D).</summary>
     public const int MaxShortCellLength = 500;
 
-    /// <summary>Độ dài tối đa mỗi ô tự luận của một trục trên Mẫu 09B.</summary>
+    /// <summary>Mỗi ô tự luận của một trục trên Mẫu 09B.</summary>
     public const int MaxAxisNoteLength = 4000;
 
-    /// <summary>Độ dài tối đa nhận xét của một nhóm tiêu chí chung.</summary>
     public const int MaxGroupNoteLength = 2000;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
@@ -118,18 +94,15 @@ public static class RecordFormContent
 
     #region Mẫu 09C — tự đánh giá theo mục
 
-    /// <summary>Đọc nội dung 09C; chuỗi rỗng → rỗng; JSON sai → <see cref="JsonException"/>.</summary>
+    /// <summary>Chuỗi rỗng → rỗng; JSON sai → <see cref="JsonException"/>.</summary>
     public static Dictionary<string, string> ParseSelfAssessment(string? json) =>
         string.IsNullOrWhiteSpace(json)
             ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             : new Dictionary<string, string>(
                 JsonSerializer.Deserialize<Dictionary<string, string>>(json, JsonOptions) ?? new(), StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// Kiểm tra nội dung 09C theo các mục của bộ tiêu chí: mã mục phải có trong bộ, không vượt số ký tự tối đa của mục, mục bắt
-    /// buộc phải có nội dung. Mục đầu tiên in kèm các nhiệm vụ theo trục (<paramref name="axisReports"/>) nên số ký tự và điều kiện
-    /// bắt buộc tính cả phần đó. Trả thông báo lỗi hoặc null. <paramref name="partial"/> = lưu nháp: mục bắt buộc được để trống.
-    /// </summary>
+    /// <summary>Mục đầu tiên in kèm nhiệm vụ theo trục nên số ký tự và điều kiện bắt buộc tính cả phần đó.
+    /// <paramref name="partial"/> = lưu nháp, mục bắt buộc được để trống. Trả lỗi hoặc null.</summary>
     public static string? ValidateSelfAssessment(CriteriaSetContent criteria, IReadOnlyDictionary<string, string?>? sections,
         IReadOnlyDictionary<string, AxisReport>? axisReports = null, bool partial = false)
     {
@@ -161,7 +134,7 @@ public static class RecordFormContent
         return null;
     }
 
-    /// <summary>Ghi nội dung 09C đã kiểm tra: khóa theo mã mục của bộ, cắt khoảng trắng, bỏ mục rỗng.</summary>
+    /// <summary>Khóa theo mã mục của bộ, bỏ mục rỗng.</summary>
     public static string SelfAssessmentToJson(CriteriaSetContent criteria, IReadOnlyDictionary<string, string?>? sections)
     {
         ArgumentNullException.ThrowIfNull(criteria);
@@ -180,18 +153,15 @@ public static class RecordFormContent
 
     #region Nhiệm vụ và kết quả theo trục (Mẫu 09C mục I, Mẫu 9D)
 
-    /// <summary>Đọc nội dung theo trục; chuỗi rỗng → rỗng; JSON sai → <see cref="JsonException"/>.</summary>
+    /// <summary>Chuỗi rỗng → rỗng; JSON sai → <see cref="JsonException"/>.</summary>
     public static Dictionary<string, AxisReport> ParseAxisReports(string? json) =>
         string.IsNullOrWhiteSpace(json)
             ? new Dictionary<string, AxisReport>(StringComparer.OrdinalIgnoreCase)
             : new Dictionary<string, AxisReport>(
                 JsonSerializer.Deserialize<Dictionary<string, AxisReport>>(json, JsonOptions) ?? new(), StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// Kiểm tra nội dung theo trục: mã trục có trong bộ tiêu chí; số nhiệm vụ, ý con; nhiệm vụ và ý con phải có nội dung; mức thuộc
-    /// danh sách mức của bộ; độ dài từng ô. Trả thông báo lỗi hoặc null. <paramref name="partial"/> = lưu nháp: nhiệm vụ/ý con
-    /// chưa có nội dung không báo lỗi (khi ghi bị bỏ như mọi dòng trống).
-    /// </summary>
+    /// <summary>Trả lỗi hoặc null. <paramref name="partial"/> = lưu nháp: dòng chưa có nội dung không báo lỗi
+    /// (khi ghi sẽ bị bỏ).</summary>
     public static string? ValidateAxisReports(CriteriaSetContent criteria, IReadOnlyDictionary<string, AxisReport?>? reports,
         bool partial = false)
     {
@@ -256,11 +226,8 @@ public static class RecordFormContent
         return null;
     }
 
-    /// <summary>
-    /// Ghi nội dung theo trục đã kiểm tra: khóa theo mã trục của bộ (thứ tự trục), cắt khoảng trắng, bỏ trục không có nội dung.
-    /// <paramref name="includeTasks"/> = kỳ áp dụng Mẫu 09C (lưu nhiệm vụ), <paramref name="includeSummary"/> = kỳ áp dụng Mẫu 9D
-    /// (lưu các cột tóm tắt).
-    /// </summary>
+    /// <summary><paramref name="includeTasks"/> = kỳ áp dụng 09C, <paramref name="includeSummary"/> = kỳ áp dụng 9D.
+    /// Bỏ trục không có nội dung.</summary>
     public static string AxisReportsToJson(CriteriaSetContent criteria, IReadOnlyDictionary<string, AxisReport?>? reports,
         bool includeTasks = true, bool includeSummary = true)
     {
@@ -296,11 +263,7 @@ public static class RecordFormContent
         return JsonSerializer.Serialize(result, JsonOptions);
     }
 
-    /// <summary>
-    /// Dựng phần tự đánh giá theo trục của mục I Mẫu 09C: mỗi trục có nhiệm vụ một khối "n. Tên trục (trục n)", mỗi nhiệm vụ một
-    /// dòng "&lt;tiền tố&gt; nội dung. &lt;câu nối mức&gt;" (tiền tố, câu nối theo bộ tiêu chí; chưa chọn mức thì bỏ câu nối), ý con là
-    /// dòng "+ nội dung. &lt;câu nối mức&gt;" ngay dưới nhiệm vụ. Câu nối mức tách riêng để in nghiêng. Trục không có nhiệm vụ bị bỏ qua.
-    /// </summary>
+    /// <summary>Câu nối mức tách riêng để in nghiêng; trục không có nhiệm vụ bị bỏ qua.</summary>
     public static List<AxisTaskBlock> BuildAxisTaskBlocks(CriteriaSetContent criteria, IReadOnlyDictionary<string, AxisReport> reports)
     {
         ArgumentNullException.ThrowIfNull(criteria);
@@ -329,7 +292,7 @@ public static class RecordFormContent
         return blocks;
     }
 
-    /// <summary>Số ký tự phần nhiệm vụ theo trục khi in ở mục I Mẫu 09C (tiêu đề trục và các dòng, mỗi dòng tính thêm một ký tự xuống dòng).</summary>
+    /// <summary>Mỗi dòng tính thêm một ký tự xuống dòng.</summary>
     public static int AxisTaskTextLength(CriteriaSetContent criteria, IReadOnlyDictionary<string, AxisReport> reports) =>
         BuildAxisTaskBlocks(criteria, reports).Sum(b => b.Title.Length + 1 + b.Lines.Sum(l => l.FullText.Length + 1));
 
@@ -357,14 +320,14 @@ public static class RecordFormContent
 
     #region Nhận xét theo nhóm tiêu chí chung (Mẫu 09A/09B)
 
-    /// <summary>Đọc nhận xét theo nhóm; chuỗi rỗng → rỗng; JSON sai → <see cref="JsonException"/>.</summary>
+    /// <summary>Chuỗi rỗng → rỗng; JSON sai → <see cref="JsonException"/>.</summary>
     public static Dictionary<string, string> ParseGeneralGroupNotes(string? json) =>
         string.IsNullOrWhiteSpace(json)
             ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             : new Dictionary<string, string>(
                 JsonSerializer.Deserialize<Dictionary<string, string>>(json, JsonOptions) ?? new(), StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Kiểm tra nhận xét theo nhóm: mã nhóm có trong bộ tiêu chí, độ dài. Trả thông báo lỗi hoặc null.</summary>
+    /// <summary>Trả lỗi hoặc null.</summary>
     public static string? ValidateGeneralGroupNotes(CriteriaSetContent criteria, IReadOnlyDictionary<string, string?>? notes)
     {
         ArgumentNullException.ThrowIfNull(criteria);
@@ -379,7 +342,7 @@ public static class RecordFormContent
         return null;
     }
 
-    /// <summary>Ghi nhận xét theo nhóm đã kiểm tra: khóa theo mã nhóm của bộ, bỏ nhóm trống; không có gì → null.</summary>
+    /// <summary>Bỏ nhóm trống; không có gì → null.</summary>
     public static string? GeneralGroupNotesToJson(CriteriaSetContent criteria, IReadOnlyDictionary<string, string?>? notes)
     {
         ArgumentNullException.ThrowIfNull(criteria);
@@ -398,14 +361,14 @@ public static class RecordFormContent
 
     #region Mẫu 09B — nội dung tự luận theo trục
 
-    /// <summary>Đọc ghi chú theo trục; chuỗi rỗng → rỗng; JSON sai → <see cref="JsonException"/>.</summary>
+    /// <summary>Chuỗi rỗng → rỗng; JSON sai → <see cref="JsonException"/>.</summary>
     public static Dictionary<string, AxisNote> ParseAxisNotes(string? json) =>
         string.IsNullOrWhiteSpace(json)
             ? new Dictionary<string, AxisNote>(StringComparer.OrdinalIgnoreCase)
             : new Dictionary<string, AxisNote>(
                 JsonSerializer.Deserialize<Dictionary<string, AxisNote>>(json, JsonOptions) ?? new(), StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Kiểm tra ghi chú theo trục (mã trục có trong bộ, độ dài từng ô). Trả thông báo lỗi hoặc null.</summary>
+    /// <summary>Trả lỗi hoặc null.</summary>
     public static string? ValidateAxisNotes(CriteriaSetContent criteria, IReadOnlyDictionary<string, AxisNote?>? notes)
     {
         ArgumentNullException.ThrowIfNull(criteria);
@@ -425,7 +388,7 @@ public static class RecordFormContent
         return null;
     }
 
-    /// <summary>Ghi ghi chú theo trục đã kiểm tra: khóa theo mã trục của bộ, bỏ trục không có nội dung; không có gì → null.</summary>
+    /// <summary>Bỏ trục không có nội dung; không có gì → null.</summary>
     public static string? AxisNotesToJson(CriteriaSetContent criteria, IReadOnlyDictionary<string, AxisNote?>? notes)
     {
         ArgumentNullException.ThrowIfNull(criteria);

@@ -5,27 +5,20 @@ using CongTacDang.Domain.Entities;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>
-/// Khung tỷ trọng A-B-C-D hiệu lực của một hồ sơ: khung gốc (<see cref="EvaluationRecord.WeightFrameCode"/> trong bộ tiêu chí
-/// của kỳ) với tỷ trọng đã được cấp giao nhiệm vụ điều chỉnh khi duyệt danh mục sản phẩm (nếu có). Mọi chỗ chấm điểm/hiển thị
-/// tỷ trọng của hồ sơ dùng <see cref="Effective"/>; công thức chấm (<see cref="EvaluationScoring.ScoreTask"/>) không đổi.
-/// </summary>
+/// <summary>Khung tỷ trọng hiệu lực của hồ sơ: khung gốc, thay bằng tỷ trọng cấp giao nhiệm vụ đã điều chỉnh (nếu có).</summary>
 public static class RecordWeightFrames
 {
-    /// <summary>Sai số cho phép của tổng tỷ lệ (điểm phần trăm).</summary>
+    /// <summary>Đơn vị: điểm phần trăm.</summary>
     public const double SumTolerancePercent = 0.01;
 
-    /// <summary>Hồ sơ có lưu tỷ trọng điều chỉnh (đủ bốn thành phần).</summary>
+    /// <summary>Phải đủ cả bốn thành phần.</summary>
     public static bool IsAdjusted(EvaluationRecord record) =>
         record.FrameA.HasValue && record.FrameB.HasValue && record.FrameC.HasValue && record.FrameD.HasValue;
 
-    /// <summary>Khung gốc của hồ sơ trong bộ tiêu chí; null nếu không có.</summary>
+    /// <summary>Null nếu bộ tiêu chí không có khung.</summary>
     public static WeightFrame? Base(EvaluationRecord record, CriteriaSetContent? content) => content?.FindFrame(record.WeightFrameCode);
 
-    /// <summary>
-    /// Khung hiệu lực của hồ sơ: khung gốc, thay tỷ trọng A-B-C-D bằng phần đã điều chỉnh nếu có. null khi bộ tiêu chí không
-    /// có khung của hồ sơ.
-    /// </summary>
+    /// <summary>Null khi bộ tiêu chí không có khung của hồ sơ.</summary>
     public static WeightFrame? Effective(EvaluationRecord record, CriteriaSetContent? content)
     {
         var frame = Base(record, content);
@@ -42,10 +35,7 @@ public static class RecordWeightFrames
         };
     }
 
-    /// <summary>
-    /// Kiểm tra tỷ lệ điều chỉnh (phần trăm) so với khung gốc: bộ cho phép điều chỉnh; không âm; mỗi thành phần lệch khung gốc
-    /// không quá biên độ của bộ; tổng bằng 100%. Trả thông báo lỗi hoặc null nếu hợp lệ.
-    /// </summary>
+    /// <summary>Tỷ lệ tính bằng phần trăm; mỗi thành phần lệch khung gốc không quá biên độ của bộ, tổng 100%. Trả lỗi hoặc null.</summary>
     public static string? ValidateAdjustment(CriteriaSetContent content, WeightFrame? baseFrame, double a, double b, double c, double d)
     {
         ArgumentNullException.ThrowIfNull(content);
@@ -75,10 +65,7 @@ public static class RecordWeightFrames
         return null;
     }
 
-    /// <summary>
-    /// Áp tỷ lệ điều chỉnh (phần trăm, đã kiểm tra) vào hồ sơ; trùng khung gốc thì xóa phần điều chỉnh. Trả true nếu tỷ trọng
-    /// hiệu lực thay đổi.
-    /// </summary>
+    /// <summary>Tỷ lệ phần trăm đã kiểm tra; trùng khung gốc thì xóa phần điều chỉnh. Trả true nếu tỷ trọng hiệu lực đổi.</summary>
     public static bool Apply(EvaluationRecord record, WeightFrame baseFrame, double a, double b, double c, double d)
     {
         var before = (record.FrameA, record.FrameB, record.FrameC, record.FrameD);
@@ -92,7 +79,7 @@ public static class RecordWeightFrames
         return before != (record.FrameA, record.FrameB, record.FrameC, record.FrameD);
     }
 
-    /// <summary>Xóa phần điều chỉnh (quay về tỷ trọng gốc của khung).</summary>
+    /// <summary>Quay về tỷ trọng gốc của khung.</summary>
     public static void Clear(EvaluationRecord record)
     {
         record.FrameA = null;
@@ -101,13 +88,9 @@ public static class RecordWeightFrames
         record.FrameD = null;
     }
 
-    /// <summary>Thông báo khi đổi khung tỷ trọng của hồ sơ đã qua bước tự chấm.</summary>
     public const string LockedMessage = "Danh mục đã duyệt — trả hồ sơ về bước tự chấm trước khi đổi khung tỷ trọng.";
 
-    /// <summary>
-    /// Đổi được khung tỷ trọng (mã khung / tỷ lệ điều chỉnh) của hồ sơ: hồ sơ đang chờ bước tự chấm hoặc bước trước đó (chưa duyệt
-    /// danh mục, hoặc đã duyệt nhưng đang/được trả về bước tự chấm). Sau bước tự chấm, khung bị khóa.
-    /// </summary>
+    /// <summary>Chỉ đổi được khi hồ sơ đang chờ bước tự chấm hoặc bước trước đó.</summary>
     public static bool CanChangeFrame(EvaluationRecord record)
     {
         ArgumentNullException.ThrowIfNull(record);
@@ -115,7 +98,7 @@ public static class RecordWeightFrames
             && WorkflowSteps.IndexOf(step) <= WorkflowSteps.IndexOf(WorkflowStep.B2_SELF_SCORE);
     }
 
-    /// <summary>Mô tả tỷ lệ của khung, ví dụ "A 30% · B 30% · C 20% · D 20%".</summary>
+    /// <summary>Ví dụ "A 30% · B 30% · C 20% · D 20%".</summary>
     public static string Describe(WeightFrame frame) =>
         Invariant($"A {frame.A * 100:0.##}% · B {frame.B * 100:0.##}% · C {frame.C * 100:0.##}% · D {frame.D * 100:0.##}%");
 

@@ -4,40 +4,34 @@ using System.Linq;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>
-/// Danh mục biểu mẫu gắn với một hồ sơ đánh giá cá nhân (HD 03-HD/TVĐU mục 7) — mã dùng trong cờ
-/// <see cref="CriteriaSetContent.RequiredForms"/> của bộ tiêu chí (task 18 — T-82).
-/// </summary>
+/// <summary>Mã biểu mẫu cá nhân dùng trong <see cref="CriteriaSetContent.RequiredForms"/>.</summary>
 public static class RecordFormCodes
 {
-    /// <summary>Mẫu 01 — Phiếu giao / đăng ký sản phẩm.</summary>
+    /// <summary>Phiếu giao / đăng ký sản phẩm.</summary>
     public const string Form01 = "01";
 
-    /// <summary>Mẫu 02 — Phiếu tự đánh giá kết quả thực hiện sản phẩm.</summary>
+    /// <summary>Phiếu tự đánh giá kết quả thực hiện sản phẩm.</summary>
     public const string Form02 = "02";
 
-    /// <summary>Mẫu 09A — Phiếu tự chấm (chấm theo nhiệm vụ Mẫu 01/02).</summary>
+    /// <summary>Tự chấm theo nhiệm vụ Mẫu 01/02.</summary>
     public const string Form09A = CriteriaSetContent.Form09A;
 
-    /// <summary>Mẫu 09B — Phiếu tự chấm trực tiếp theo trục (Quý III/2026).</summary>
+    /// <summary>Tự chấm trực tiếp theo trục.</summary>
     public const string Form09B = CriteriaSetContent.Form09B;
 
-    /// <summary>Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân (tự luận, tối đa 02 trang A4).</summary>
+    /// <summary>Bản tự đánh giá, xếp loại cá nhân (tự luận).</summary>
     public const string Form09C = "09C";
 
-    /// <summary>Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ, công việc được giao trong quý (theo trục).</summary>
+    /// <summary>Phụ lục kết quả thực hiện nhiệm vụ trong quý (theo trục).</summary>
     public const string Form9D = "9D";
 
-    /// <summary>Mẫu 10 — Phiếu thẩm định, nhận xét, đề xuất xếp loại.</summary>
+    /// <summary>Phiếu thẩm định, nhận xét, đề xuất xếp loại.</summary>
     public const string Form10 = "10";
 
-    /// <summary>Mọi mã biểu mẫu theo thứ tự hiển thị.</summary>
+    /// <summary>Theo thứ tự hiển thị.</summary>
     public static IReadOnlyList<string> All { get; } = new[] { Form01, Form02, Form09A, Form09B, Form09C, Form9D, Form10 };
 
-    /// <summary>
-    /// Chuẩn hóa mã: bỏ khoảng trắng, chữ hoa, bỏ tiền tố "MAU"/"MẪU"; "09D" (cách ghi ở Mẫu 18) = "9D". Mã không có trong
-    /// danh mục → giữ nguyên (đã cắt khoảng trắng) để bộ kiểm tra báo lỗi.
-    /// </summary>
+    /// <summary>Bỏ khoảng trắng, tiền tố "MAU"/"MẪU"; "09D" = "9D". Mã lạ giữ nguyên để bộ kiểm tra báo lỗi.</summary>
     public static string Normalize(string? code)
     {
         var value = (code ?? string.Empty).Trim().ToUpperInvariant().Replace(" ", string.Empty).Replace("_", string.Empty);
@@ -54,10 +48,8 @@ public static class RecordFormCodes
         return All.FirstOrDefault(c => c == value) ?? (code ?? string.Empty).Trim();
     }
 
-    /// <summary>Mã có trong danh mục.</summary>
     public static bool IsKnown(string? code) => All.Contains(code);
 
-    /// <summary>Tên hiển thị của biểu mẫu.</summary>
     public static string DisplayName(string code) => code switch
     {
         Form01 => "Mẫu 01 — Phiếu giao / đăng ký sản phẩm, công việc chuyên môn",
@@ -71,40 +63,33 @@ public static class RecordFormCodes
     };
 }
 
-/// <summary>
-/// Một mục tự luận của Mẫu 09C (khai báo trong bộ tiêu chí; nội dung hồ sơ lưu theo <see cref="Code"/>). Mẫu gốc Quý III/2026
-/// có một mục "I. Tự đánh giá kết quả thực hiện chức trách, nhiệm vụ được giao"; phần "II. Tự đề xuất xếp loại" lấy từ điểm và
-/// mức tự đề xuất đã lưu trên hồ sơ.
-/// </summary>
+/// <summary>Mục tự luận của Mẫu 09C, khai báo trong bộ tiêu chí; nội dung hồ sơ lưu theo <see cref="Code"/>.</summary>
 public sealed class SelfAssessmentSection
 {
-    /// <summary>Mã mục (duy nhất trong bộ, ví dụ "I").</summary>
+    /// <summary>Duy nhất trong bộ, ví dụ "I".</summary>
     public string Code { get; set; } = string.Empty;
 
-    /// <summary>Tiêu đề in trên biểu mẫu (gồm cả số thứ tự, ví dụ "I. Tự đánh giá …").</summary>
+    /// <summary>Gồm cả số thứ tự, ví dụ "I. Tự đánh giá …".</summary>
     public string Title { get; set; } = string.Empty;
 
-    /// <summary>Câu dẫn in dưới tiêu đề (tùy chọn).</summary>
+    /// <summary>Câu dẫn in dưới tiêu đề.</summary>
     public string? Guidance { get; set; }
 
-    /// <summary>Lưu ý in sau nội dung (tùy chọn).</summary>
+    /// <summary>Lưu ý in sau nội dung.</summary>
     public string? Note { get; set; }
 
-    /// <summary>Số ký tự tối đa của nội dung (Mẫu 09C gốc: "không quá 02 trang A4").</summary>
+    /// <summary>Số ký tự tối đa (mẫu gốc: không quá 02 trang A4).</summary>
     public int MaxLength { get; set; } = 6000;
 
-    /// <summary>Bắt buộc nhập khi nộp phiếu tự chấm.</summary>
+    /// <summary>Bắt buộc khi nộp phiếu tự chấm.</summary>
     public bool Required { get; set; }
 }
 
-/// <summary>
-/// Một mức tự đánh giá của từng nhiệm vụ (Mẫu 09C/9D). Mã là số nguyên dương, nhãn in ở ô chọn trên màn hình tự chấm.
-/// </summary>
+/// <summary>Mức tự đánh giá nhiệm vụ (Mẫu 09C/9D).</summary>
 public sealed class TaskLevel
 {
-    /// <summary>Mã mức (1, 2, 3…), duy nhất trong bộ.</summary>
+    /// <summary>Số nguyên dương, duy nhất trong bộ.</summary>
     public int Code { get; set; }
 
-    /// <summary>Nhãn mô tả mức (ví dụ "Chủ động tiếp cận, giải quyết hiệu quả vấn đề, có kết quả cụ thể").</summary>
     public string Label { get; set; } = string.Empty;
 }

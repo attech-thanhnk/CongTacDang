@@ -4,119 +4,92 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Domain.Entities;
 
-/// <summary>
-/// Thực thể hồ sơ Cán bộ lãnh đạo, quản lý 2 vai (Đảng vụ và Chính quyền) theo Hướng dẫn 03-HD/TVĐU
-/// </summary>
+/// <summary>Hồ sơ cán bộ kiêm tài khoản đăng nhập; gồm thông tin Đảng và chính quyền.</summary>
 public class PartyMemberProfile : IAuditableEntity, ISoftDeletable
 {
-    /// <summary>Mã định danh cán bộ</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    /// <summary>Tên tài khoản đăng nhập</summary>
     public string Username { get; set; } = string.Empty;
 
-    /// <summary>Mật khẩu băm bảo mật</summary>
     public string PasswordHash { get; set; } = string.Empty;
 
-    /// <summary>Họ và tên cán bộ</summary>
     public string FullName { get; set; } = string.Empty;
 
-    /// <summary>Ngày sinh (in trên Mẫu 09C); null khi chưa nhập.</summary>
+    /// <summary>In trên Mẫu 09C.</summary>
     public DateOnly? DateOfBirth { get; set; }
 
-    /// <summary>Thư điện tử liên hệ</summary>
     public string Email { get; set; } = string.Empty;
 
-    /// <summary>Số điện thoại liên hệ</summary>
     public string PhoneNumber { get; set; } = string.Empty;
 
-    /// <summary>Đường dẫn ảnh đại diện</summary>
     public string? AvatarUrl { get; set; }
 
     #region Vai 1: Công tác Đảng
 
-    /// <summary>Đã kết nạp Đảng hay chưa</summary>
     public bool IsPartyMember { get; set; } = true;
 
-    /// <summary>Số thẻ Đảng viên</summary>
     public string? PartyCardNumber { get; set; }
 
-    /// <summary>Ngày vào Đảng (dự bị)</summary>
+    /// <summary>Ngày vào Đảng (dự bị).</summary>
     public DateTime? JoinPartyDate { get; set; }
 
-    /// <summary>Ngày công nhận chính thức</summary>
+    /// <summary>Ngày công nhận chính thức.</summary>
     public DateTime? OfficialPartyDate { get; set; }
 
-    /// <summary>Tổ chức Đảng nơi sinh hoạt Đảng (thường là Chi bộ)</summary>
+    /// <summary>Nơi sinh hoạt Đảng (thường là Chi bộ).</summary>
     public Guid? PartyCellId { get; set; }
 
-    /// <summary>Tổ chức Đảng nơi sinh hoạt Đảng</summary>
     public PartyCell? PartyCell { get; set; }
 
     #endregion
 
     #region Vai 2: Chính quyền & Chuyên môn
 
-    /// <summary>Đơn vị công tác chính (đơn vị chính quyền)</summary>
+    /// <summary>Đơn vị công tác chính.</summary>
     public Guid? DepartmentId { get; set; }
 
-    /// <summary>Đơn vị công tác chính</summary>
     public AdministrativeDepartment? Department { get; set; }
 
-    /// <summary>
-    /// Chức danh hiển thị trên văn bản. Mặc định = tên chức vụ chính (<see cref="MemberPosition.IsPrimary"/>);
-    /// sửa tay được. Chức vụ (kể cả kiêm nhiệm) lưu ở bảng <c>member_positions</c>.
-    /// </summary>
+    /// <summary>Chức danh trên văn bản; mặc định = tên chức vụ chính, sửa tay được.</summary>
     public string PositionTitle { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Mã khung tỷ trọng A-B-C-D mặc định (theo bộ tiêu chí, ví dụ "K2") — hồ sơ đánh giá chụp lại khi thêm vào kỳ; null = chưa chọn.
-    /// </summary>
+    /// <summary>Khung tỷ trọng mặc định (ví dụ "K2"); hồ sơ đánh giá chụp lại khi thêm vào kỳ.</summary>
     public string? WeightFrameCode { get; set; }
 
     #endregion
 
-    /// <summary>
-    /// Cấp có thẩm quyền quyết định xếp loại <b>đang áp dụng</b> (CoSo: Đảng ủy cơ sở; CapTren: cấp ủy cấp trên).
-    /// = <see cref="ApprovalAuthorityOverride"/> nếu có, ngược lại suy ra từ chức vụ đang hiệu lực
-    /// (CapTren khi ít nhất một chức vụ có <see cref="Position.DefaultApprovalAuthority"/> = CapTren — HD03 tr.6).
-    /// Được tính lại khi chức vụ hoặc giá trị ghi đè thay đổi.
-    /// </summary>
+    /// <summary>Thẩm quyền đang áp dụng = <see cref="ApprovalAuthorityOverride"/> nếu có, ngược lại CapTren khi có chức vụ
+    /// hiệu lực mặc định CapTren. Tính lại khi chức vụ hoặc giá trị ghi đè thay đổi.</summary>
     public ApprovalAuthority ApprovalAuthority { get; set; } = ApprovalAuthority.CoSo;
 
-    /// <summary>Thẩm quyền đặt tay (ghi đè giá trị suy ra từ chức vụ); null = suy ra.</summary>
+    /// <summary>Ghi đè thẩm quyền suy ra từ chức vụ; null = suy ra.</summary>
     public ApprovalAuthority? ApprovalAuthorityOverride { get; set; }
 
-    /// <summary>Lý do đặt tay thẩm quyền (bắt buộc khi <see cref="ApprovalAuthorityOverride"/> có giá trị).</summary>
+    /// <summary>Bắt buộc khi có <see cref="ApprovalAuthorityOverride"/>.</summary>
     public string? ApprovalAuthorityOverrideReason { get; set; }
 
-    /// <summary>Kiểu trình bày biểu mẫu tự đánh giá đặt riêng cho cán bộ (ghi đè kiểu suy ra từ chức vụ); null = suy ra.</summary>
+    /// <summary>Ghi đè kiểu trình bày suy ra từ chức vụ; null = suy ra.</summary>
     public Guid? FormLayoutOverrideId { get; set; }
 
-    /// <summary>Kiểu trình bày đặt riêng (navigation).</summary>
     public FormLayout? FormLayoutOverride { get; set; }
 
-    /// <summary>
-    /// Dấu bảo mật của tài khoản: đổi khi đổi/đặt lại mật khẩu, khóa hoặc xóa để vô hiệu phiên đang dùng (task 08 sử dụng).
-    /// </summary>
+    /// <summary>Đổi khi đổi/đặt lại mật khẩu, khóa hoặc xóa, để vô hiệu phiên đang dùng.</summary>
     public string SecurityStamp { get; set; } = Guid.NewGuid().ToString("N");
 
-    /// <summary>Trạng thái tài khoản (kích hoạt/vô hiệu hóa)</summary>
     public bool IsActive { get; set; } = true;
 
-    /// <summary>Buộc người dùng đổi mật khẩu tạm ở lần đăng nhập kế tiếp</summary>
+    /// <summary>Buộc đổi mật khẩu tạm ở lần đăng nhập kế tiếp.</summary>
     public bool MustChangePassword { get; set; }
 
-    /// <summary>Số lần đăng nhập sai liên tiếp</summary>
+    /// <summary>Số lần đăng nhập sai liên tiếp.</summary>
     public int FailedLoginCount { get; set; }
 
-    /// <summary>Thời điểm kết thúc khóa đăng nhập tạm thời</summary>
+    /// <summary>Hết khóa đăng nhập tạm thời.</summary>
     public DateTime? LockoutEnd { get; set; }
 
-    /// <summary>Thời điểm đăng nhập thành công gần nhất (UTC)</summary>
+    /// <summary>UTC.</summary>
     public DateTime? LastLoginAt { get; set; }
 
-    /// <summary>Thời điểm khởi tạo hồ sơ</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public Guid? CreatedBy { get; set; }

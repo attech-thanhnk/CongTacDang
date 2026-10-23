@@ -3,27 +3,22 @@ using System.Linq;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>
-/// Nội dung biểu mẫu cá nhân của hai bộ mặc định (task 18 — T-82), chép nguyên văn từ file biểu mẫu gốc
-/// <c>docs/2.03-HD.TVDU (HD DGXL CAN BO QUY III-2026) (Bieu mau).docx</c>: tiêu đề và nội dung gợi ý từng trục ở Mẫu 09B
-/// (phần II), mục tự đánh giá của Mẫu 09C; danh sách biểu mẫu áp dụng theo trích xuất HD03 mục 7–8
-/// (Quý III/2026 chưa áp dụng Mẫu 01–06, 09A, 11).
-/// </summary>
+/// <summary>Nội dung biểu mẫu cá nhân của hai bộ mặc định, chép nguyên văn từ file biểu mẫu gốc trong <c>docs/</c>.</summary>
 public static partial class CriteriaSetDefaults
 {
-    /// <summary>Biểu mẫu cá nhân áp dụng — bộ 09B (Quý III/2026): 09B, 09C, 9D, 10.</summary>
+    /// <summary>Bộ 09B (Quý III/2026).</summary>
     public static IReadOnlyList<string> RequiredForms09B { get; } = new[]
     {
         RecordFormCodes.Form09B, RecordFormCodes.Form09C, RecordFormCodes.Form9D, RecordFormCodes.Form10
     };
 
-    /// <summary>Biểu mẫu cá nhân áp dụng — bộ 09A (từ 2027, áp dụng đầy đủ): 01, 02, 09A, 09C, 9D, 10.</summary>
+    /// <summary>Bộ 09A (từ 2027).</summary>
     public static IReadOnlyList<string> RequiredForms09A { get; } = new[]
     {
         RecordFormCodes.Form01, RecordFormCodes.Form02, RecordFormCodes.Form09A, RecordFormCodes.Form09C, RecordFormCodes.Form9D, RecordFormCodes.Form10
     };
 
-    /// <summary>Ba mức kết luận chất lượng sản phẩm của nhiệm vụ trọng tâm (lưu ý cuối Mẫu 09B/09C, HD03).</summary>
+    /// <summary>Ba mức kết luận chất lượng nhiệm vụ trọng tâm.</summary>
     public static List<TaskLevel> TaskLevels() => new()
     {
         new TaskLevel { Code = 1, Label = "Chủ động tiếp cận, giải quyết hiệu quả vấn đề, có kết quả cụ thể" },
@@ -31,13 +26,11 @@ public static partial class CriteriaSetDefaults
         new TaskLevel { Code = 3, Label = "Không đáp ứng yêu cầu nhiệm vụ" }
     };
 
-    /// <summary>Tiền tố mỗi nhiệm vụ khi dựng Mẫu 09C (theo bản tự đánh giá mẫu).</summary>
     public const string TaskLineLabel = "- Nhiệm vụ {n}:";
 
-    /// <summary>Câu nối mức khi dựng Mẫu 09C (theo bản tự đánh giá mẫu).</summary>
     public const string TaskLevelPhrase = "Tự đánh giá mức {level}.";
 
-    /// <summary>Mục tự đánh giá của Mẫu 09C (mẫu gốc có một mục; phần II lấy từ điểm tự chấm đã lưu).</summary>
+    /// <summary>Mẫu gốc có một mục; phần II lấy từ điểm tự chấm đã lưu.</summary>
     public static List<SelfAssessmentSection> SelfAssessmentSections() => new()
     {
         new SelfAssessmentSection
@@ -46,14 +39,14 @@ public static partial class CriteriaSetDefaults
             Title = "I. Tự đánh giá kết quả thực hiện chức trách, nhiệm vụ được giao",
             Guidance = "Trên cơ sở nhiệm vụ được giao, cá nhân tự đánh giá về kết quả thực hiện nhiệm vụ theo quý như sau:",
             Note = "(Lưu ý: Viết tóm tắt theo kết quả 6 trục. Đối với nhiệm vụ trọng tâm, then chốt, nhất là nhiệm vụ an toàn, an ninh, chất lượng, khai thác, tài chính, đầu tư, dự án và pháp chế, phải kết luận rõ chất lượng sản phẩm, hiệu quả thực hiện nhiệm vụ theo 01 trong 03 mức: Mức 1-Chủ động tiếp cận, giải quyết hiệu quả vấn đề, có kết quả cụ thể; Mức 2-Cơ bản đáp ứng yêu cầu nhưng còn hạn chế, cần tiếp tục hoàn thiện; Mức 3-Không đáp ứng yêu cầu nhiệm vụ)",
-            // Lưu ý cuối Mẫu 09C: "Nội dung trình bày trong phạm vi không quá 02 trang A4" — khoảng 6.000 ký tự.
+            // "Không quá 02 trang A4" ≈ 6.000 ký tự.
             MaxLength = 6000,
-            // Văn bản không nói hệ thống phải chặn nộp khi để trống; bật được trong bộ tiêu chí khi nghiệp vụ yêu cầu.
+            // Văn bản không yêu cầu chặn khi để trống; bật trong bộ tiêu chí khi cần.
             Required = false
         }
     };
 
-    /// <summary>Tiêu đề và nội dung gợi ý của 6 trục trên Mẫu 09B (theo thứ tự T1…T6).</summary>
+    /// <summary>Theo thứ tự T1…T6.</summary>
     private static readonly (string Title, string Guidance)[] AxisFormTexts =
     {
         ("TRỤC (1) – NHIỆM VỤ CHÍNH TRỊ, SẢN XUẤT KINH DOANH, CUNG CẤP DỊCH VỤ",
@@ -134,7 +127,6 @@ public static partial class CriteriaSetDefaults
                 "- Thực hiện các nội dung khác có liên quan (nếu có).")),
     };
 
-    /// <summary>Gắn tiêu đề/nội dung gợi ý Mẫu 09B cho các trục theo thứ tự.</summary>
     private static void ApplyAxisFormTexts(IList<ResultAxis> axes)
     {
         for (var i = 0; i < axes.Count && i < AxisFormTexts.Length; i++)
@@ -144,7 +136,7 @@ public static partial class CriteriaSetDefaults
         }
     }
 
-    /// <summary>Nội dung tiêu chí con in trên phiếu tự chấm Mẫu 09A/09B — nguyên văn biểu mẫu gốc (theo mã tiêu chí con).</summary>
+    /// <summary>Nguyên văn biểu mẫu gốc, theo mã tiêu chí con.</summary>
     private static readonly IReadOnlyDictionary<string, string> ItemFormTexts = new Dictionary<string, string>
     {
         ["1.1"] = "Tuyệt đối trung thành với Đảng, với Tổ quốc và Nhân dân; kiên định chủ nghĩa Mác - Lênin, tư tưởng Hồ Chí Minh, mục tiêu độc lập dân tộc, chủ nghĩa xã hội. Có lập trường, quan điểm, bản lĩnh chính trị vững vàng; kiên quyết bảo vệ nền tảng tư tưởng, Cương lĩnh, đường lối của Đảng, Hiến pháp và pháp luật của Nhà nước; đấu tranh phản bác các quan điểm sai trái, thù địch, các biểu hiện suy thoái, “tự diễn biến”, “tự chuyển hóa”.",
@@ -166,7 +158,6 @@ public static partial class CriteriaSetDefaults
         ["3.4"] = "Tự soi, tự sửa trên tinh thần trách nhiệm chính trị cao, không né tránh, không đổ lỗi.",
     };
 
-    /// <summary>Gắn nội dung in trên phiếu (nguyên văn biểu mẫu gốc) cho các tiêu chí con của bộ mặc định.</summary>
     private static CriteriaSetContent WithItemFormTexts(CriteriaSetContent content)
     {
         foreach (var item in content.GeneralGroups.SelectMany(g => g.Items))

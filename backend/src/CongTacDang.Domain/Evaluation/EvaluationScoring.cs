@@ -8,36 +8,24 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>Kết quả chấm điểm một nhiệm vụ (Mẫu 02).</summary>
-/// <param name="A">Tỷ lệ tiêu chí A sau khi giới hạn 0..1.</param>
-/// <param name="B">Tỷ lệ tiêu chí B sau khi giới hạn 0..1.</param>
-/// <param name="C">Tỷ lệ tiêu chí C sau khi giới hạn 0..1.</param>
-/// <param name="D">Tỷ lệ tiêu chí D sau khi giới hạn 0..1.</param>
-/// <param name="WeightedRatio">Kết quả thực hiện sản phẩm (tỷ lệ, chưa làm tròn) = A×tA + B×tB + C×tC + D×tD.</param>
-/// <param name="Score">Điểm của nhiệm vụ (đã làm tròn theo bộ tiêu chí).</param>
+/// <summary>Kết quả chấm một nhiệm vụ (Mẫu 02): tỷ lệ A–D đã kẹp 0..1, <c>WeightedRatio</c> chưa làm tròn, <c>Score</c> đã làm tròn.</summary>
 public sealed record TaskScoreResult(double A, double B, double C, double D, double WeightedRatio, double Score);
 
-/// <summary>Điểm một tiêu chí con của nhóm tiêu chí chung trên hồ sơ.</summary>
 public sealed class GeneralItemScore
 {
-    /// <summary>Điểm đạt (bỏ qua khi "Không áp dụng").</summary>
+    /// <summary>Bỏ qua khi "Không áp dụng".</summary>
     public double Score { get; set; }
 
-    /// <summary>"K/AD — Không áp dụng".</summary>
     public bool NotApplicable { get; set; }
 
-    /// <summary>Lý do "Không áp dụng" / căn cứ giảm điểm.</summary>
+    /// <summary>Lý do "Không áp dụng" hoặc căn cứ giảm điểm.</summary>
     public string? Reason { get; set; }
 }
 
-/// <summary>
-/// Công thức tính điểm — thuần, nhận bộ tiêu chí của kỳ (<see cref="CriteriaSetContent"/>). <b>Cấu trúc công thức A/B/C/D giữ
-/// nguyên</b> như trước khi có bộ tiêu chí (tỷ lệ giới hạn 0..1 × tỷ trọng khung × trọng số; tổng nhiệm vụ = cộng dồn điểm sản
-/// phẩm đã làm tròn; tổng = chung + nhiệm vụ); bộ tiêu chí chỉ cung cấp tỷ trọng, ngưỡng, danh mục và quy tắc làm tròn.
-/// </summary>
+/// <summary>Công thức tính điểm. Cấu trúc A/B/C/D cố định trong code; bộ tiêu chí chỉ cung cấp tỷ trọng, ngưỡng,
+/// danh mục và quy tắc làm tròn.</summary>
 public static class EvaluationScoring
 {
-    /// <summary>Tùy chọn JSON cho điểm trên hồ sơ (camelCase).</summary>
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -46,11 +34,7 @@ public static class EvaluationScoring
 
     #region Làm tròn
 
-    /// <summary>
-    /// Làm tròn theo quy tắc. Mọi chế độ (<see cref="ScoreRoundingMode.HalfUp"/>, <see cref="ScoreRoundingMode.HalfEven"/>,
-    /// <see cref="ScoreRoundingMode.Truncate"/>) tính trên <see cref="decimal"/> (chuyển từ double lấy 15 chữ số có nghĩa) để
-    /// 9,55 → 9,6 (nửa lên) và 2,355 → 2,36 (nửa về chẵn) theo giá trị thập phân, không bị sai số nhị phân.
-    /// </summary>
+    /// <summary>Tính trên <see cref="decimal"/> để 9,55 → 9,6 (nửa lên), 2,355 → 2,36 (nửa về chẵn), không lệch do sai số nhị phân.</summary>
     public static double Round(double value, RoundingRule rule)
     {
         ArgumentNullException.ThrowIfNull(rule);
@@ -69,9 +53,7 @@ public static class EvaluationScoring
 
     #region Đăng ký nhiệm vụ (Mẫu 01)
 
-    /// <summary>
-    /// Kiểm tra danh mục đăng ký (số lượng, tổng trọng số). Trả thông báo lỗi hoặc null nếu hợp lệ.
-    /// </summary>
+    /// <summary>Kiểm số lượng và tổng trọng số; trả lỗi hoặc null.</summary>
     public static string? ValidateTaskRegistration(IReadOnlyList<double> weights, CriteriaParameters parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
@@ -90,12 +72,7 @@ public static class EvaluationScoring
 
     #region Tiêu chí chung
 
-    /// <summary>
-    /// Kiểm tra điểm tiêu chí chung theo bộ: đủ mọi tiêu chí con, không có mã lạ; "Đảm bảo/Không đảm bảo" chỉ nhận 0 hoặc điểm
-    /// tối đa; chấm theo khoảng nhận 0..tối đa; "K/AD" chỉ khi bộ cho phép và phải có lý do; khoản giảm ≥ ngưỡng phải có căn cứ.
-    /// Trả thông báo lỗi hoặc null. <paramref name="partial"/> = lưu nháp: chỉ kiểm định dạng (mã, khoảng điểm, K/AD có được
-    /// phép không), không bắt buộc chấm đủ hay nêu lý do.
-    /// </summary>
+    /// <summary>Trả lỗi hoặc null. <paramref name="partial"/> = lưu nháp: chỉ kiểm định dạng, không bắt chấm đủ hay nêu lý do.</summary>
     public static string? ValidateGeneralScores(CriteriaSetContent criteria, IReadOnlyDictionary<string, GeneralItemScore>? scores,
         bool partial = false)
     {
@@ -149,11 +126,8 @@ public static class EvaluationScoring
         return null;
     }
 
-    /// <summary>
-    /// Điểm nhóm tiêu chí chung = tổng điểm tiêu chí con; có "K/AD": <see cref="NotApplicableRule.GrantFull"/> tính tối đa,
-    /// <see cref="NotApplicableRule.ExcludeAndRescale"/> = điểm đạt / tổng tối đa các tiêu chí áp dụng × điểm tối đa nhóm
-    /// (không tiêu chí nào áp dụng → điểm tối đa). Làm tròn theo quy tắc "tổng điểm tiêu chí chung".
-    /// </summary>
+    /// <summary>Có "K/AD": GrantFull tính tối đa; ExcludeAndRescale = điểm đạt / tối đa các tiêu chí áp dụng × tối đa nhóm
+    /// (không tiêu chí nào áp dụng → điểm tối đa).</summary>
     public static double GeneralCriteriaScore(CriteriaSetContent criteria, IReadOnlyDictionary<string, GeneralItemScore> scores)
     {
         ArgumentNullException.ThrowIfNull(criteria);
@@ -187,9 +161,7 @@ public static class EvaluationScoring
 
     #region Nhiệm vụ (Mẫu 02) — công thức A/B/C/D
 
-    /// <summary>
-    /// Điểm một nhiệm vụ: tỷ lệ A-B-C-D giới hạn 0..1, nhân tỷ trọng khung, nhân trọng số, làm tròn theo quy tắc "điểm sản phẩm".
-    /// </summary>
+    /// <summary>Tỷ lệ A-B-C-D kẹp 0..1 × tỷ trọng khung × trọng số, làm tròn theo quy tắc "điểm sản phẩm".</summary>
     public static TaskScoreResult ScoreTask(double weight, double a, double b, double c, double d, WeightFrame frame, RoundingRule rounding)
     {
         ArgumentNullException.ThrowIfNull(frame);
@@ -206,7 +178,7 @@ public static class EvaluationScoring
         return new TaskScoreResult(ra, rb, rc, rd, weightedRatio, Round(weight * weightedRatio, rounding));
     }
 
-    /// <summary>Tổng điểm nhóm nhiệm vụ: cộng dồn điểm sản phẩm (đã làm tròn) theo thứ tự rồi làm tròn.</summary>
+    /// <summary>Cộng dồn điểm sản phẩm đã làm tròn rồi làm tròn lại.</summary>
     public static double TasksScore(IEnumerable<double> taskScores, RoundingRule rounding)
     {
         double totalTaskScore = 0.0;
@@ -215,7 +187,7 @@ public static class EvaluationScoring
         return Round(totalTaskScore, rounding);
     }
 
-    /// <summary>Tỷ lệ nhiệm vụ vượt chuẩn (0..1); không có nhiệm vụ → null.</summary>
+    /// <summary>Không có nhiệm vụ → null.</summary>
     public static double? ExceedStandardRatio(int exceedCount, int taskCount) =>
         taskCount > 0 ? (double)exceedCount / taskCount : null;
 
@@ -223,10 +195,7 @@ public static class EvaluationScoring
 
     #region Trục kết quả (Mẫu 09B)
 
-    /// <summary>
-    /// Kiểm tra điểm theo trục (Mẫu 09B): đủ mọi trục của bộ, không có mã lạ, mỗi trục 0..điểm tối đa. Trả lỗi hoặc null.
-    /// <paramref name="partial"/> = lưu nháp: không bắt buộc chấm đủ trục.
-    /// </summary>
+    /// <summary>Trả lỗi hoặc null. <paramref name="partial"/> = lưu nháp: không bắt chấm đủ trục.</summary>
     public static string? ValidateAxisScores(CriteriaSetContent criteria, IReadOnlyDictionary<string, double>? scores, bool partial = false)
     {
         ArgumentNullException.ThrowIfNull(criteria);
@@ -250,7 +219,7 @@ public static class EvaluationScoring
         return null;
     }
 
-    /// <summary>Điểm nhóm kết quả theo Mẫu 09B = tổng điểm các trục (làm tròn theo quy tắc "tổng điểm nhiệm vụ").</summary>
+    /// <summary>Tổng điểm các trục (Mẫu 09B).</summary>
     public static double AxisTasksScore(CriteriaSetContent criteria, IReadOnlyDictionary<string, double> scores)
     {
         ArgumentNullException.ThrowIfNull(criteria);
@@ -262,11 +231,10 @@ public static class EvaluationScoring
 
     #region Tổng, xếp loại, trần, giải trình
 
-    /// <summary>Tổng điểm tự chấm = chung + nhiệm vụ (làm tròn theo quy tắc "tổng điểm").</summary>
     public static double TotalScore(double generalCriteriaScore, double tasksScore, RoundingRule rounding) =>
         Round(generalCriteriaScore + tasksScore, rounding);
 
-    /// <summary>Mức theo ngưỡng điểm của bộ (không xét điều kiện kèm theo).</summary>
+    /// <summary>Chỉ theo ngưỡng điểm, không xét điều kiện kèm theo.</summary>
     public static EvaluationGrade GradeByScore(CriteriaSetContent criteria, double score)
     {
         ArgumentNullException.ThrowIfNull(criteria);
@@ -278,10 +246,7 @@ public static class EvaluationScoring
         return EvaluationGrade.KhongHoanThanh;
     }
 
-    /// <summary>
-    /// Mức gợi ý: xét từ mức cao xuống, lấy mức đầu tiên đạt ngưỡng điểm và điều kiện định lượng (tỷ lệ nhiệm vụ vượt chuẩn —
-    /// chỉ khi có dữ liệu nhiệm vụ, <paramref name="exceedStandardRatio"/> khác null).
-    /// </summary>
+    /// <summary>Mức cao nhất đạt ngưỡng điểm và tỷ lệ nhiệm vụ vượt chuẩn (chỉ xét khi <paramref name="exceedStandardRatio"/> khác null).</summary>
     public static EvaluationGrade SuggestGrade(CriteriaSetContent criteria, double score, double? exceedStandardRatio)
     {
         ArgumentNullException.ThrowIfNull(criteria);
@@ -297,10 +262,8 @@ public static class EvaluationScoring
         return EvaluationGrade.KhongHoanThanh;
     }
 
-    /// <summary>
-    /// Số Hoàn thành xuất sắc tối đa của một nhóm chức danh = làm tròn (tỷ lệ × số người "Hoàn thành tốt nhiệm vụ"), 0,5 trở
-    /// lên thành 1 (8 người × 20% = 1,6 → 2; 10 × 25% = 2,5 → 3). Tính bằng <see cref="decimal"/> để không lệch ở mốc 0,5.
-    /// </summary>
+    /// <summary>Làm tròn tỷ lệ × số "Hoàn thành tốt", 0,5 lên 1 (8 × 20% = 1,6 → 2; 10 × 25% = 2,5 → 3).
+    /// Dùng <see cref="decimal"/> để không lệch ở mốc 0,5.</summary>
     public static int ExcellentQuota(int goodCount, double ratio)
     {
         if (goodCount <= 0 || !double.IsFinite(ratio) || ratio <= 0)
@@ -308,17 +271,13 @@ public static class EvaluationScoring
         return (int)Math.Round((decimal)ratio * goodCount, 0, MidpointRounding.AwayFromZero);
     }
 
-    /// <summary>Số Hoàn thành xuất sắc tối đa theo tỷ lệ của bộ tiêu chí (<see cref="ExcellentQuotaRule.EffectiveRatio"/>).</summary>
     public static int ExcellentQuota(int goodCount, ExcellentQuotaRule rule)
     {
         ArgumentNullException.ThrowIfNull(rule);
         return ExcellentQuota(goodCount, rule.EffectiveRatio);
     }
 
-    /// <summary>
-    /// Bắt buộc giải trình chênh lệch khi thẩm định: |tự chấm − thẩm định| ≥ ngưỡng, hoặc (nếu bộ bật) chênh lệch làm đổi mức
-    /// theo ngưỡng điểm.
-    /// </summary>
+    /// <summary>|tự chấm − thẩm định| ≥ ngưỡng, hoặc (nếu bộ bật) chênh lệch làm đổi mức theo ngưỡng điểm.</summary>
     public static bool RequiresExplanation(CriteriaSetContent criteria, double selfScore, double? appraisalScore)
     {
         ArgumentNullException.ThrowIfNull(criteria);
@@ -334,14 +293,14 @@ public static class EvaluationScoring
 
     #region Lưu điểm trên hồ sơ (jsonb)
 
-    /// <summary>Đọc điểm tiêu chí chung đã lưu (khóa = mã tiêu chí con).</summary>
+    /// <summary>Khóa = mã tiêu chí con.</summary>
     public static Dictionary<string, GeneralItemScore> ParseGeneralScores(string? json) =>
         string.IsNullOrWhiteSpace(json)
             ? new Dictionary<string, GeneralItemScore>(StringComparer.OrdinalIgnoreCase)
             : new Dictionary<string, GeneralItemScore>(
                 JsonSerializer.Deserialize<Dictionary<string, GeneralItemScore>>(json, JsonOptions) ?? new(), StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Ghi điểm tiêu chí chung ra JSON theo thứ tự tiêu chí của bộ (lý do đã cắt khoảng trắng).</summary>
+    /// <summary>Theo thứ tự tiêu chí của bộ.</summary>
     public static string GeneralScoresToJson(CriteriaSetContent criteria, IReadOnlyDictionary<string, GeneralItemScore> scores)
     {
         var ordered = new Dictionary<string, GeneralItemScore>(StringComparer.Ordinal);
@@ -360,13 +319,13 @@ public static class EvaluationScoring
         return JsonSerializer.Serialize(ordered, JsonOptions);
     }
 
-    /// <summary>Đọc điểm theo trục đã lưu (khóa = mã trục); null nếu chưa chấm theo trục.</summary>
+    /// <summary>Khóa = mã trục; null nếu chưa chấm theo trục.</summary>
     public static Dictionary<string, double>? ParseAxisScores(string? json) =>
         string.IsNullOrWhiteSpace(json)
             ? null
             : new Dictionary<string, double>(JsonSerializer.Deserialize<Dictionary<string, double>>(json, JsonOptions) ?? new(), StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Ghi điểm theo trục ra JSON theo thứ tự trục của bộ.</summary>
+    /// <summary>Theo thứ tự trục của bộ.</summary>
     public static string AxisScoresToJson(CriteriaSetContent criteria, IReadOnlyDictionary<string, double> scores)
     {
         var ordered = new Dictionary<string, double>(StringComparer.Ordinal);

@@ -4,67 +4,50 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Domain.Entities;
 
-/// <summary>
-/// Hợp đồng chung của một nút trong cây đơn vị (tổ chức Đảng hoặc đơn vị chính quyền).
-/// </summary>
+/// <summary>Nút trong cây đơn vị (tổ chức Đảng hoặc đơn vị chính quyền).</summary>
 public interface IOrgUnit
 {
-    /// <summary>Mã định danh đơn vị.</summary>
     Guid Id { get; }
 
-    /// <summary>Mã ký hiệu.</summary>
     string Code { get; }
 
-    /// <summary>Tên đơn vị.</summary>
     string Name { get; }
 
-    /// <summary>Đơn vị cha (null = nút gốc).</summary>
+    /// <summary>Null = nút gốc.</summary>
     Guid? ParentId { get; set; }
 
-    /// <summary>
-    /// Đường dẫn vật hóa từ gốc tới chính nút này: <c>/&lt;id gốc&gt;/…/&lt;id nút&gt;/</c> (Guid dạng chữ thường có gạch).
-    /// Mọi nút con có <c>Path</c> bắt đầu bằng <c>Path</c> của nút cha.
-    /// </summary>
+    /// <summary>Đường dẫn từ gốc: <c>/&lt;id gốc&gt;/…/&lt;id nút&gt;/</c> (Guid chữ thường); nút con bắt đầu bằng Path của cha.</summary>
     string Path { get; set; }
 }
 
-/// <summary>
-/// Tổ chức Đảng (Đảng ủy, Đảng bộ bộ phận, Chi bộ…) — xếp thành cây theo <see cref="ParentId"/>.
-/// Tên kỹ thuật giữ là "PartyCell" (hợp đồng API/phạm vi gán <c>PartyCell</c>); tên hiển thị: "Tổ chức Đảng".
-/// </summary>
+/// <summary>Tổ chức Đảng (Đảng ủy, Đảng bộ bộ phận, Chi bộ…). Tên kỹ thuật giữ "PartyCell" vì hợp đồng API/phạm vi gán.</summary>
 public class PartyCell : IAuditableEntity, ISoftDeletable, IOrgUnit
 {
-    /// <summary>Mã định danh tổ chức Đảng</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    /// <summary>Mã ký hiệu (ví dụ: DU-CT, CB-KT)</summary>
+    /// <summary>Ví dụ DU-CT, CB-KT.</summary>
     public string Code { get; set; } = string.Empty;
 
-    /// <summary>Tên đầy đủ của tổ chức Đảng</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Mô tả nhiệm vụ chính trị trọng tâm</summary>
     public string Description { get; set; } = string.Empty;
 
-    /// <summary>Tổ chức Đảng cấp trên trực tiếp (null = gốc).</summary>
+    /// <summary>Null = gốc.</summary>
     public Guid? ParentId { get; set; }
 
-    /// <summary>Loại đơn vị (Đảng ủy, Đảng bộ bộ phận, Chi bộ…) — danh mục <c>org_unit_types</c>, bên Đảng.</summary>
+    /// <summary>Danh mục <c>org_unit_types</c>, bên Đảng.</summary>
     public Guid? UnitTypeId { get; set; }
 
-    /// <summary>Loại đơn vị (navigation).</summary>
     public OrgUnitType? UnitType { get; set; }
 
     /// <inheritdoc />
     public string Path { get; set; } = string.Empty;
 
-    /// <summary>Thứ tự hiển thị trong danh mục (nhỏ đứng trước)</summary>
+    /// <summary>Nhỏ đứng trước.</summary>
     public int SortOrder { get; set; }
 
-    /// <summary>Trạng thái hoạt động</summary>
     public bool IsActive { get; set; } = true;
 
-    /// <summary>Thời điểm tạo trên hệ thống</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public Guid? CreatedBy { get; set; }
@@ -74,47 +57,36 @@ public class PartyCell : IAuditableEntity, ISoftDeletable, IOrgUnit
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedBy { get; set; }
 
-    /// <summary>Cán bộ, Đảng viên sinh hoạt tại tổ chức Đảng này (nơi sinh hoạt Đảng).</summary>
+    /// <summary>Đảng viên sinh hoạt tại tổ chức Đảng này.</summary>
     public ICollection<PartyMemberProfile> Members { get; set; } = new List<PartyMemberProfile>();
 }
 
-/// <summary>
-/// Đơn vị chính quyền (Công ty, Phòng, Trung tâm, Xưởng, Đội…) — xếp thành cây theo <see cref="ParentId"/>.
-/// Tên kỹ thuật giữ là "Department" (hợp đồng API/phạm vi gán <c>Department</c>); tên hiển thị: "Đơn vị chính quyền".
-/// </summary>
+/// <summary>Đơn vị chính quyền (Công ty, Phòng, Trung tâm…). Tên kỹ thuật giữ "Department" vì hợp đồng API/phạm vi gán.</summary>
 public class AdministrativeDepartment : IAuditableEntity, ISoftDeletable, IOrgUnit
 {
-    /// <summary>Mã định danh đơn vị</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    /// <summary>Mã ký hiệu (ví dụ: CT, PH-KT)</summary>
+    /// <summary>Ví dụ CT, PH-KT.</summary>
     public string Code { get; set; } = string.Empty;
 
-    /// <summary>Tên đơn vị</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Mô tả chức năng nhiệm vụ</summary>
     public string Description { get; set; } = string.Empty;
 
-    /// <summary>Đơn vị cấp trên trực tiếp (null = gốc).</summary>
+    /// <summary>Null = gốc.</summary>
     public Guid? ParentId { get; set; }
 
-    /// <summary>Loại đơn vị (Công ty, Phòng, Trung tâm…) — danh mục <c>org_unit_types</c>, bên chính quyền.</summary>
+    /// <summary>Danh mục <c>org_unit_types</c>, bên chính quyền.</summary>
     public Guid? UnitTypeId { get; set; }
 
-    /// <summary>Loại đơn vị (navigation).</summary>
     public OrgUnitType? UnitType { get; set; }
 
     /// <inheritdoc />
     public string Path { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Thứ tự hiển thị trong danh mục (nhỏ đứng trước).
-    /// Người đứng đầu đơn vị không lưu ở đây mà xác định bằng chức vụ (<see cref="MemberPosition"/>) và gán vai trò.
-    /// </summary>
+    /// <summary>Nhỏ đứng trước. Người đứng đầu không lưu ở đây mà xác định qua chức vụ (<see cref="MemberPosition"/>).</summary>
     public int SortOrder { get; set; }
 
-    /// <summary>Trạng thái hoạt động</summary>
     public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -129,25 +101,20 @@ public class AdministrativeDepartment : IAuditableEntity, ISoftDeletable, IOrgUn
     public ICollection<PartyMemberProfile> Members { get; set; } = new List<PartyMemberProfile>();
 }
 
-/// <summary>
-/// Danh mục loại đơn vị (bảng <c>org_unit_types</c>): Đảng ủy, Đảng bộ bộ phận, Chi bộ; Công ty, Phòng, Trung tâm, Xưởng, Đội…
-/// Quản trị tự thêm/sửa; chỉ để phân loại và hiển thị, không mang luật phân quyền.
-/// </summary>
+/// <summary>Danh mục loại đơn vị; chỉ để phân loại và hiển thị, không mang luật phân quyền.</summary>
 public class OrgUnitType : IAuditableEntity, ISoftDeletable
 {
-    /// <summary>Mã định danh loại đơn vị.</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    /// <summary>Tên loại (duy nhất trong cùng một bên).</summary>
+    /// <summary>Duy nhất trong cùng một bên.</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Bên áp dụng: tổ chức Đảng hay đơn vị chính quyền.</summary>
     public OrgSide Side { get; set; } = OrgSide.Administrative;
 
-    /// <summary>Thứ tự hiển thị (nhỏ đứng trước).</summary>
+    /// <summary>Nhỏ đứng trước.</summary>
     public int SortOrder { get; set; }
 
-    /// <summary>Đang dùng (false = ngừng dùng: không chọn được cho đơn vị mới).</summary>
+    /// <summary>False = ngừng dùng, không chọn được cho đơn vị mới.</summary>
     public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -159,19 +126,14 @@ public class OrgUnitType : IAuditableEntity, ISoftDeletable
     public Guid? DeletedBy { get; set; }
 }
 
-/// <summary>
-/// Ngày nghỉ (bảng <c>holidays</c>): lễ, Tết, nghỉ bù… ngoài thứ Bảy, Chủ nhật. Danh mục chung của hệ thống do quản trị khai báo
-/// theo năm; dùng khi tính thời hạn các bước theo "ngày làm việc" (<c>PeriodSettings.ApplyDeadlineRules</c>).
-/// </summary>
+/// <summary>Ngày nghỉ ngoài thứ Bảy, Chủ nhật; dùng khi tính thời hạn theo ngày làm việc.</summary>
 public class Holiday : IAuditableEntity, ISoftDeletable
 {
-    /// <summary>Mã định danh.</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    /// <summary>Ngày nghỉ (duy nhất trong danh mục).</summary>
+    /// <summary>Duy nhất trong danh mục.</summary>
     public DateOnly Date { get; set; }
 
-    /// <summary>Tên ngày nghỉ (ví dụ "Quốc khánh", "Tết Nguyên đán").</summary>
     public string Name { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

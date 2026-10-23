@@ -4,12 +4,10 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Domain.Entities;
 
-/// <summary>
-/// Hồ sơ đánh giá tập thể cho Mẫu 06, 07 và 08. Nội dung chi tiết được lưu theo nhóm trường của từng mẫu.
-/// </summary>
+/// <summary>Hồ sơ đánh giá tập thể (Mẫu 06, 07, 08).</summary>
 public class CollectiveEvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 {
-    /// <summary>Phiên bản bản ghi (xmin) cho optimistic concurrency.</summary>
+    /// <summary>xmin, dùng cho optimistic concurrency.</summary>
     public uint Version { get; set; }
 
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -23,33 +21,24 @@ public class CollectiveEvaluationRecord : IAuditableEntity, ISoftDeletable, IVer
     public Guid? HeadId { get; set; }
     public PartyMemberProfile? Head { get; set; }
 
-    /// <summary>Tên tập thể hoặc lĩnh vực được đánh giá.</summary>
     public string SubjectName { get; set; } = string.Empty;
 
-    /// <summary>Nội dung ưu điểm, kết quả đạt được.</summary>
     public string Strengths { get; set; } = string.Empty;
 
-    /// <summary>Nội dung hạn chế, khuyết điểm và nguyên nhân.</summary>
+    /// <summary>Hạn chế, khuyết điểm (nguyên nhân ở <see cref="Causes"/>).</summary>
     public string Limitations { get; set; } = string.Empty;
     public string Causes { get; set; } = string.Empty;
 
-    /// <summary>Kết quả khắc phục, giải trình, trách nhiệm và phương hướng khắc phục.</summary>
+    /// <summary>Nhóm trường khắc phục, giải trình, trách nhiệm, phương hướng.</summary>
     public string PreviousRemediation { get; set; } = string.Empty;
     public string Explanation { get; set; } = string.Empty;
     public string Responsibilities { get; set; } = string.Empty;
     public string RemediationPlan { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Nội dung các mục con của biểu mẫu chưa có cột riêng (jsonb, khóa là mã mục theo biểu mẫu gốc) — Mẫu 07:
-    /// <c>{ "I.1": "…", "I.2": "…", "I.3": "…", "I.4": "…" }</c> (4 nội dung của mục I "Ưu điểm, kết quả đạt được").
-    /// Đổi mẫu thêm mục không cần đổi schema.
-    /// </summary>
+    /// <summary>Mục con chưa có cột riêng (jsonb theo mã mục), ví dụ Mẫu 07 <c>{ "I.1": "…" }</c>; thêm mục không cần đổi schema.</summary>
     public string Sections { get; set; } = "{}";
 
-    /// <summary>
-    /// Điểm từng tiêu chí của khung tiêu chí tập thể (jsonb, khóa là mã tiêu chí con trong <c>CollectiveGroups</c> của bộ tiêu chí
-    /// của kỳ): <c>{ "I.1": 4.5, … }</c>. Rỗng khi bộ tiêu chí không có khung tập thể (nhập thẳng hai điểm nhóm).
-    /// </summary>
+    /// <summary>jsonb <c>{ "I.1": 4.5 }</c> theo mã tiêu chí trong <c>CollectiveGroups</c>; rỗng khi bộ không có khung tập thể.</summary>
     public string CriteriaScores { get; set; } = "{}";
 
     /// <summary>Điểm nhóm tiêu chí chung, nhóm kết quả và tổng điểm.</summary>
@@ -70,7 +59,7 @@ public class CollectiveEvaluationRecord : IAuditableEntity, ISoftDeletable, IVer
     public Guid? DeletedBy { get; set; }
 }
 
-/// <summary>Chỉ tiêu/dòng nội dung chi tiết của Mẫu 06 hoặc Mẫu 08.</summary>
+/// <summary>Dòng nội dung chi tiết của Mẫu 06 hoặc 08.</summary>
 public class CollectiveEvaluationItem
 {
     public Guid Id { get; set; } = Guid.NewGuid();

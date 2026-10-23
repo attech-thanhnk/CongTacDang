@@ -12,23 +12,18 @@ namespace CongTacDang.Domain.Evaluation;
 [JsonConverter(typeof(JsonStringEnumConverter<StepMode>))]
 public enum StepMode
 {
-    /// <summary>Bước làm trong hệ thống bởi người có quyền thực hiện của bước.</summary>
+    /// <summary>Làm trong hệ thống bởi người có quyền thực hiện của bước.</summary>
     Internal = 0,
 
-    /// <summary>
-    /// Bước do cấp trên / cơ quan ngoài hệ thống thực hiện; người có quyền <c>evaluation.external.record</c>
-    /// ghi nhận kết quả (cơ quan, số/ngày văn bản, nhận xét, mức, tệp đính kèm).
-    /// </summary>
+    /// <summary>Cấp trên thực hiện; người có quyền <c>evaluation.external.record</c> ghi nhận kết quả.</summary>
     External = 1,
 
-    /// <summary>Bước không áp dụng cho nhóm đối tượng này (bỏ qua khi tính bước kế tiếp).</summary>
+    /// <summary>Không áp dụng; bỏ qua khi tính bước kế tiếp.</summary>
     Off = 2
 }
 
-/// <summary>
-/// Mã quyền dùng làm giá trị mặc định trong cấu hình luồng (Domain không tham chiếu Application).
-/// Phải trùng mã trong <c>Application/Common/Security/PermissionCodes</c> — có unit test đối chiếu.
-/// </summary>
+/// <summary>Mã quyền mặc định cho luồng (Domain không tham chiếu Application). Phải trùng
+/// <c>PermissionCodes</c>, có unit test đối chiếu.</summary>
 public static class WorkflowPermissions
 {
     public const string Self = "evaluation.self";
@@ -42,7 +37,7 @@ public static class WorkflowPermissions
     public const string Publish = "evaluation.publish";
     public const string ExternalRecord = "evaluation.external.record";
 
-    /// <summary>Quyền thực hiện mặc định của bước khi ở chế độ nội bộ (theo bảng thiết kế luong-danh-gia.md mục 1).</summary>
+    /// <summary>Quyền thực hiện mặc định của bước nội bộ.</summary>
     public static string DefaultFor(WorkflowStep step) => step switch
     {
         WorkflowStep.B1_REGISTER or WorkflowStep.B2_SELF_SCORE => Self,
@@ -57,66 +52,51 @@ public static class WorkflowPermissions
     };
 }
 
-/// <summary>Cấu hình một bước trong hồ sơ luồng.</summary>
 public sealed class ProfileStepSetting
 {
-    /// <summary>Nội bộ / Cấp trên thực hiện / Không áp dụng.</summary>
     public StepMode Mode { get; set; } = StepMode.Internal;
 
-    /// <summary>
-    /// Mã quyền thực hiện bước khi <see cref="StepMode.Internal"/> (bước của chủ hồ sơ luôn là <c>evaluation.self</c>).
-    /// Chế độ khác: null (bước cấp trên dùng quyền <c>evaluation.external.record</c>).
-    /// </summary>
+    /// <summary>Chỉ dùng khi <see cref="StepMode.Internal"/>; bước của chủ hồ sơ luôn là <c>evaluation.self</c>.</summary>
     public string? Permission { get; set; }
 
-    /// <summary>Thời hạn (ngày). Chỉ hiển thị/cảnh báo, chỉ chặn khi <see cref="PeriodSettings.EnforceDeadlines"/> = true.</summary>
+    /// <summary>Chỉ cảnh báo; chỉ chặn khi <see cref="PeriodSettings.EnforceDeadlines"/>.</summary>
     public DateOnly? Deadline { get; set; }
 
-    /// <summary>
-    /// Quy tắc tính thời hạn theo quý (null = chỉ nhập tay). Chỉ là công cụ điền ngày: <see cref="PeriodSettings.ApplyDeadlineRules"/>
-    /// ghi ngày vào <see cref="Deadline"/> khi người dùng yêu cầu; ngày hạn luôn sửa tự do và không tự bị tính lại.
-    /// </summary>
+    /// <summary>Quy tắc điền ngày hạn theo quý (null = nhập tay). Chỉ ghi vào <see cref="Deadline"/> khi người dùng
+    /// yêu cầu (<see cref="PeriodSettings.ApplyDeadlineRules"/>), không tự tính lại.</summary>
     public DeadlineRule? Rule { get; set; }
 }
 
-/// <summary>
-/// Hồ sơ luồng: cấu hình bước cho một nhóm đối tượng (ví dụ Diện Đảng ủy cơ sở, Diện BTV Đảng ủy Tổng công ty).
-/// Mỗi hồ sơ đánh giá lưu mã hồ sơ luồng của mình (ảnh chụp khi thêm vào kỳ).
-/// </summary>
+/// <summary>Cấu hình bước cho một nhóm đối tượng (ví dụ Diện Đảng ủy cơ sở). Hồ sơ đánh giá lưu mã hồ sơ luồng
+/// của mình (ảnh chụp khi thêm vào kỳ).</summary>
 public sealed class WorkflowProfile
 {
-    /// <summary>Mã (chữ thường, số, gạch nối; duy nhất trong kỳ).</summary>
+    /// <summary>Chữ thường, số, gạch nối; duy nhất trong kỳ.</summary>
     public string Code { get; set; } = string.Empty;
 
-    /// <summary>Tên hiển thị.</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Mô tả (căn cứ, nhóm đối tượng áp dụng).</summary>
     public string? Description { get; set; }
 
-    /// <summary>Cấu hình từng bước (khóa = mã bước).</summary>
+    /// <summary>Khóa = mã bước.</summary>
     public Dictionary<string, ProfileStepSetting> Steps { get; set; } =
         WorkflowSteps.Ordered.ToDictionary(WorkflowSteps.Code, s => new ProfileStepSetting { Permission = WorkflowPermissions.DefaultFor(s) });
 
-    /// <summary>Cấu hình của bước (mặc định: nội bộ, quyền mặc định).</summary>
+    /// <summary>Thiếu thì trả mặc định: nội bộ, quyền mặc định.</summary>
     public ProfileStepSetting Step(WorkflowStep step) =>
         Steps.TryGetValue(WorkflowSteps.Code(step), out var setting) && setting != null
             ? setting
             : new ProfileStepSetting { Permission = WorkflowPermissions.DefaultFor(step) };
 
-    /// <summary>Chế độ của bước.</summary>
     public StepMode Mode(WorkflowStep step) => Step(step).Mode;
 
-    /// <summary>Bước có áp dụng (nội bộ hoặc cấp trên thực hiện).</summary>
+    /// <summary>Nội bộ hoặc cấp trên thực hiện.</summary>
     public bool IsActive(WorkflowStep step) => Mode(step) != StepMode.Off;
 
-    /// <summary>Tập bước áp dụng (dùng cho máy trạng thái).</summary>
     public IReadOnlySet<WorkflowStep> ActiveSteps() => WorkflowSteps.Ordered.Where(IsActive).ToHashSet();
 
-    /// <summary>
-    /// Mã quyền thực hiện bước: bước của chủ hồ sơ → <c>evaluation.self</c>; cấp trên thực hiện →
-    /// <c>evaluation.external.record</c>; nội bộ → quyền cấu hình; không áp dụng → null.
-    /// </summary>
+    /// <summary>Bước của chủ hồ sơ → <c>evaluation.self</c>; cấp trên → <c>evaluation.external.record</c>;
+    /// nội bộ → quyền cấu hình; không áp dụng → null.</summary>
     public string? PermissionFor(WorkflowStep step)
     {
         var setting = Step(step);
@@ -130,13 +110,10 @@ public sealed class WorkflowProfile
         };
     }
 
-    /// <summary>Thời hạn của bước.</summary>
     public DateOnly? Deadline(WorkflowStep step) => Step(step).Deadline;
 
-    /// <summary>
-    /// Các bước mà hai hồ sơ luồng khác nhau về chế độ hoặc quyền thực hiện (không tính thời hạn) — dùng khi đổi hồ sơ luồng
-    /// của một hồ sơ: chỉ được đổi khi hồ sơ chưa qua bước bị ảnh hưởng.
-    /// </summary>
+    /// <summary>Các bước khác chế độ hoặc quyền (không xét thời hạn); chỉ đổi hồ sơ luồng được khi hồ sơ
+    /// chưa qua bước bị ảnh hưởng.</summary>
     public IReadOnlyList<WorkflowStep> DifferingSteps(WorkflowProfile other)
     {
         ArgumentNullException.ThrowIfNull(other);
@@ -145,7 +122,7 @@ public sealed class WorkflowProfile
             .ToList();
     }
 
-    /// <summary>Chuẩn hóa: đủ 9 bước (khóa đúng mã, đúng thứ tự), quyền chỉ giữ ở bước nội bộ không phải của chủ hồ sơ.</summary>
+    /// <summary>Đủ 9 bước theo thứ tự; quyền chỉ giữ ở bước nội bộ không phải của chủ hồ sơ.</summary>
     public WorkflowProfile Normalize()
     {
         Code = Code?.Trim().ToLowerInvariant() ?? string.Empty;
@@ -181,7 +158,7 @@ public sealed class WorkflowProfile
         return this;
     }
 
-    /// <summary>Hồ sơ luồng với chế độ từng bước cho trước (bước không nêu: nội bộ, quyền mặc định).</summary>
+    /// <summary>Bước không nêu: nội bộ, quyền mặc định.</summary>
     public static WorkflowProfile Create(string code, string name, string? description,
         IReadOnlyDictionary<WorkflowStep, StepMode>? modes = null,
         IReadOnlyDictionary<WorkflowStep, string>? permissions = null)
@@ -199,60 +176,46 @@ public sealed class WorkflowProfile
     }
 }
 
-/// <summary>
-/// Cấu hình theo kỳ (<c>EvaluationPeriod.Settings</c>, cột jsonb) — docs/thiet-ke/luong-danh-gia.md mục 3.2.
-/// Luồng theo <b>hồ sơ luồng</b> (nhóm đối tượng): mỗi hồ sơ luồng đặt chế độ, quyền thực hiện, thời hạn của từng bước;
-/// hồ sơ đánh giá dùng cấu hình bước của hồ sơ luồng của mình. Mẫu tự chấm, tiêu chí và tham số chấm điểm thuộc bộ tiêu
-/// chí của kỳ (<see cref="CriteriaSnapshot"/>).
-/// </summary>
+/// <summary>Cấu hình kỳ (jsonb <c>EvaluationPeriod.Settings</c>), xem docs/thiet-ke/luong-danh-gia.md. Tiêu chí và
+/// tham số chấm điểm thuộc bộ tiêu chí của kỳ (<see cref="CriteriaSnapshot"/>).</summary>
 public sealed class PeriodSettings
 {
-    /// <summary>Phiên bản schema hiện tại (2 = theo hồ sơ luồng; bản 1 theo bước cấp kỳ không còn được hỗ trợ).</summary>
+    /// <summary>Bản 1 (theo bước cấp kỳ) không còn được hỗ trợ.</summary>
     public const int CurrentSchemaVersion = 2;
 
-    /// <summary>Số hồ sơ luồng tối đa trong một kỳ.</summary>
     public const int MaxProfiles = 20;
 
-    /// <summary>Mã hồ sơ luồng "Diện Đảng ủy cơ sở" (PL III ví dụ 1).</summary>
+    /// <summary>Diện Đảng ủy cơ sở.</summary>
     public const string ProfileBase = "co-so";
 
-    /// <summary>Mã hồ sơ luồng "Diện BTV Đảng ủy Tổng công ty" (PL III ví dụ 2).</summary>
+    /// <summary>Diện BTV Đảng ủy Tổng công ty.</summary>
     public const string ProfileUpper = "cap-tren";
 
-    /// <summary>Mã hồ sơ luồng "Bí thư/Phó bí thư Chi bộ là nhân viên" (PL III ví dụ 3).</summary>
+    /// <summary>Bí thư/Phó bí thư Chi bộ là nhân viên.</summary>
     public const string ProfileCellSecretaryStaff = "bi-thu-nhan-vien";
 
-    /// <summary>Mã hồ sơ luồng "Phó Giám đốc" (Chủ tịch nhận xét trước khi cấp trên thẩm định, BTV quyết định).</summary>
+    /// <summary>Phó Giám đốc: Chủ tịch nhận xét trước khi cấp trên thẩm định, BTV quyết định.</summary>
     public const string ProfileDeputyDirector = "pho-giam-doc";
 
     private static readonly Regex CodePattern = new("^[a-z0-9][a-z0-9-]{0,49}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    /// <summary>Tùy chọn JSON: camelCase, không phân biệt hoa thường; khóa bước và khóa cấp quyết định giữ nguyên mã.</summary>
     public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
         WriteIndented = false
     };
 
-    /// <summary>Phiên bản schema của cấu hình.</summary>
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
-    /// <summary>Các hồ sơ luồng của kỳ.</summary>
     public List<WorkflowProfile> Profiles { get; set; } = new();
 
-    /// <summary>
-    /// Hồ sơ luồng mặc định theo cấp quyết định (khóa = <see cref="ApprovalAuthority"/>: <c>CoSo</c>, <c>CapTren</c>;
-    /// giá trị = mã hồ sơ luồng) — dùng khi thêm người vào kỳ.
-    /// </summary>
+    /// <summary>Khóa = <see cref="ApprovalAuthority"/> (<c>CoSo</c>, <c>CapTren</c>), giá trị = mã hồ sơ luồng; dùng khi thêm người vào kỳ.</summary>
     public Dictionary<string, string> DefaultProfiles { get; set; } = new(StringComparer.Ordinal);
 
-    /// <summary>Chặn hoàn thành bước khi đã quá thời hạn.</summary>
+    /// <summary>Chặn hoàn thành bước khi đã quá hạn.</summary>
     public bool EnforceDeadlines { get; set; }
 
-    /// <summary>
-    /// Điền thời hạn cho mọi bước đang áp dụng có quy tắc hợp lệ, theo quý <paramref name="quarter"/> năm <paramref name="year"/> và
-    /// <paramref name="holidays"/> (danh mục ngày nghỉ chung). Ghi đè ngày hiện có của các bước đó; bước không có quy tắc giữ nguyên.
-    /// </summary>
+    /// <summary>Điền hạn cho mọi bước đang áp dụng có quy tắc hợp lệ, ghi đè ngày hiện có; bước không có quy tắc giữ nguyên.</summary>
     public PeriodSettings ApplyDeadlineRules(int year, int quarter, IReadOnlyCollection<DateOnly>? holidays = null)
     {
         foreach (var setting in (Profiles ?? new()).SelectMany(p => p.Steps.Values))
@@ -265,28 +228,19 @@ public sealed class PeriodSettings
 
     #region Cấu hình mặc định
 
-    /// <summary>
-    /// Bộ tiêu chí có mẫu tự chấm <paramref name="selfScoreForm"/> cần bước đăng ký, duyệt sản phẩm (Mẫu 01): Mẫu 09A chấm theo sản
-    /// phẩm đã đăng ký; Mẫu 09B chấm trực tiếp theo trục, không đăng ký. Chưa chọn bộ (null) → có đăng ký.
-    /// </summary>
+    /// <summary>09A cần bước đăng ký, duyệt sản phẩm; 09B chấm theo trục, không đăng ký. Chưa chọn bộ (null) → có đăng ký.</summary>
     public static bool UsesRegistration(string? selfScoreForm) =>
         !string.Equals(selfScoreForm, CriteriaSetContent.Form09B, StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// Cấu hình của kỳ mới: 3 hồ sơ luồng theo PL III và hồ sơ luồng Phó Giám đốc — cấu hình mặc định <b>chờ nghiệp vụ xác nhận</b>, sửa được trong giao diện kỳ;
-    /// bước đăng ký, duyệt sản phẩm theo mẫu tự chấm của bộ tiêu chí (<see cref="AlignWithCriteria"/>).
-    /// </summary>
+    /// <summary>Cấu hình kỳ mới: 4 hồ sơ luồng mặc định, chờ nghiệp vụ xác nhận; sửa được trong giao diện kỳ.</summary>
     public static PeriodSettings Default(string? selfScoreForm = null)
     {
         var settings = new PeriodSettings
         {
             Profiles = new List<WorkflowProfile>
             {
-                // Ví dụ 1: B3a tập thể lãnh đạo Phòng, B3b Phòng TCCB-LĐ, B3c Giám đốc, B4 Đảng ủy cơ sở — tất cả trong hệ thống.
                 WorkflowProfile.Create(ProfileBase, "Diện Đảng ủy cơ sở",
                     "Tập thể lãnh đạo Phòng đề xuất, Phòng TCCB-LĐ thẩm định, Giám đốc nhận xét, Đảng ủy cơ sở quyết định."),
-                // Ví dụ 2 (Chủ tịch, Giám đốc, Kiểm soát viên): HĐTV Tổng công ty duyệt danh mục sản phẩm; B3a tập thể lãnh đạo
-                // Công ty (nội bộ); thẩm định, nhận xét, quyết định ở cấp trên.
                 WorkflowProfile.Create(ProfileUpper, "Diện BTV Đảng ủy Tổng công ty",
                     "Chủ tịch, Giám đốc, Kiểm soát viên: HĐTV Tổng công ty duyệt danh mục sản phẩm; tập thể lãnh đạo Công ty đề xuất "
                     + "trong hệ thống; thẩm định (Ban TCĐU), nhận xét (HĐTV), quyết định (BTV Đảng ủy Tổng công ty) do cấp trên thực hiện "
@@ -298,7 +252,6 @@ public sealed class PeriodSettings
                         [WorkflowStep.B3C_DIRECTOR] = StepMode.External,
                         [WorkflowStep.B4_DECISION] = StepMode.External
                     }),
-                // Ví dụ 3: Trưởng phòng đề xuất thay bước cấp trực tiếp sử dụng của Giám đốc.
                 WorkflowProfile.Create(ProfileCellSecretaryStaff, "Bí thư/Phó bí thư Chi bộ là nhân viên",
                     "Tập thể lãnh đạo Phòng đề xuất, Trưởng phòng đề xuất mức (thay Giám đốc), "
                     + "Phòng TCCB-LĐ thẩm định, Đảng ủy cơ sở quyết định.",
@@ -306,9 +259,7 @@ public sealed class PeriodSettings
                     {
                         [WorkflowStep.B3C_DIRECTOR] = WorkflowPermissions.UnitReview
                     }),
-                // Phó Giám đốc (kế hoạch đánh giá của Phòng TCCB-LĐ): Chủ tịch duyệt danh mục; tập thể lãnh đạo Công ty đề xuất,
-                // Chủ tịch nhận xét, đề xuất trước khi cấp trên thẩm định — hệ thống không có bước thẩm định riêng (Ban TCĐU thẩm định
-                // ở cấp trên sau bước nhận xét), kết quả thẩm định và quyết định của BTV ghi nhận cùng bước quyết định.
+                // Không có bước thẩm định riêng: Ban TCĐU thẩm định ở cấp trên, kết quả ghi nhận cùng bước quyết định.
                 WorkflowProfile.Create(ProfileDeputyDirector, "Phó Giám đốc",
                     "Chủ tịch duyệt danh mục sản phẩm; tập thể lãnh đạo Công ty đề xuất, Chủ tịch nhận xét, đề xuất trong hệ thống; "
                     + "thẩm định (Ban TCĐU) và quyết định (BTV Đảng ủy Tổng công ty) do cấp trên thực hiện — hệ thống ghi nhận kết quả.",
@@ -327,11 +278,8 @@ public sealed class PeriodSettings
         return settings.AlignWithCriteria(selfScoreForm);
     }
 
-    /// <summary>
-    /// Đặt bước đăng ký, duyệt sản phẩm của mọi hồ sơ luồng theo mẫu tự chấm của bộ tiêu chí. Có đăng ký (09A): bước đăng ký nội bộ;
-    /// bước duyệt đang "Không áp dụng" thì bật lại (nội bộ, quyền mặc định), đang nội bộ / cấp trên thì giữ. Không đăng ký (09B): cả
-    /// hai bước "Không áp dụng". Các bước khác giữ nguyên.
-    /// </summary>
+    /// <summary>Có đăng ký (09A): bước đăng ký nội bộ, bước duyệt đang "Không áp dụng" thì bật lại. Không đăng ký (09B):
+    /// cả hai bước "Không áp dụng". Bước khác giữ nguyên.</summary>
     public PeriodSettings AlignWithCriteria(string? selfScoreForm)
     {
         var registration = UsesRegistration(selfScoreForm);
@@ -358,9 +306,7 @@ public sealed class PeriodSettings
 
     #region Đọc / ghi
 
-    /// <summary>
-    /// Đọc cấu hình từ JSON. Chuỗi rỗng → cấu hình mặc định (<see cref="Default"/>). JSON sai định dạng → <see cref="FormatException"/>.
-    /// </summary>
+    /// <summary>Chuỗi rỗng → <see cref="Default"/>; JSON sai → <see cref="FormatException"/>.</summary>
     public static PeriodSettings Parse(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -379,7 +325,7 @@ public sealed class PeriodSettings
         return (settings ?? Default()).Normalize();
     }
 
-    /// <summary>Chuẩn hóa: hồ sơ luồng đủ 9 bước, khóa cấp quyết định đúng tên.</summary>
+    /// <summary>Hồ sơ luồng đủ 9 bước, khóa cấp quyết định đúng tên.</summary>
     public PeriodSettings Normalize()
     {
         Profiles = (Profiles ?? new List<WorkflowProfile>()).Where(p => p != null).Select(p => p.Normalize()).ToList();
@@ -396,30 +342,25 @@ public sealed class PeriodSettings
         return this;
     }
 
-    /// <summary>Ghi cấu hình ra JSON (lưu vào cột jsonb).</summary>
     public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
 
-    /// <summary>Bản sao sâu (qua JSON).</summary>
     public PeriodSettings Clone() => Parse(ToJson());
 
     #endregion
 
     #region Tra cứu
 
-    /// <summary>Hồ sơ luồng theo mã; null nếu không có.</summary>
     public WorkflowProfile? FindProfile(string? code) =>
         string.IsNullOrWhiteSpace(code)
             ? null
             : Profiles.FirstOrDefault(p => string.Equals(p.Code, code.Trim(), StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>Mã hồ sơ luồng mặc định cho cấp quyết định (null nếu chưa cấu hình hoặc không tồn tại).</summary>
+    /// <summary>Null nếu chưa cấu hình hoặc hồ sơ luồng không tồn tại.</summary>
     public string? DefaultProfileCode(ApprovalAuthority authority) =>
         DefaultProfiles.TryGetValue(authority.ToString(), out var code) && FindProfile(code) != null ? FindProfile(code)!.Code : null;
 
-    /// <summary>
-    /// Hồ sơ luồng áp dụng cho một hồ sơ đánh giá: theo mã đã lưu trên hồ sơ; không có (mã rỗng/không còn) → mặc định theo
-    /// cấp quyết định → hồ sơ luồng đầu tiên. Cấu hình không có hồ sơ luồng nào → luồng nội bộ đủ bước (phòng lỗi dữ liệu).
-    /// </summary>
+    /// <summary>Theo mã đã lưu → mặc định theo cấp quyết định → hồ sơ luồng đầu tiên → luồng nội bộ đủ bước
+    /// (phòng lỗi dữ liệu).</summary>
     public WorkflowProfile ResolveProfile(string? code, ApprovalAuthority authority) =>
         FindProfile(code)
         ?? FindProfile(DefaultProfileCode(authority))
@@ -430,12 +371,8 @@ public sealed class PeriodSettings
 
     #region Kiểm tra
 
-    /// <summary>
-    /// Kiểm tra cấu trúc cấu hình; trả danh sách lỗi (rỗng = hợp lệ). Mã quyền của bước nội bộ phải thuộc danh mục quyền
-    /// — kiểm tra ở tầng Application (<paramref name="isAllowedPermission"/>). <paramref name="selfScoreForm"/>: mẫu tự chấm của
-    /// bộ tiêu chí kỳ đã chọn (09A: mọi hồ sơ luồng áp dụng bước đăng ký sản phẩm; 09B: không áp dụng bước đăng ký, duyệt);
-    /// null = chưa chọn bộ.
-    /// </summary>
+    /// <summary>Trả danh sách lỗi (rỗng = hợp lệ). Mã quyền kiểm ở tầng Application qua <paramref name="isAllowedPermission"/>;
+    /// <paramref name="selfScoreForm"/> null = chưa chọn bộ.</summary>
     public List<string> Validate(Func<string, bool>? isAllowedPermission = null, string? selfScoreForm = null)
     {
         var errors = new List<string>();
@@ -465,7 +402,7 @@ public sealed class PeriodSettings
         foreach (var key in DefaultProfiles.Keys.Where(k => !Enum.TryParse<ApprovalAuthority>(k, false, out _)))
             errors.Add($"Cấp quyết định \"{key}\" không hợp lệ (chỉ CoSo hoặc CapTren).");
 
-        // Bước đăng ký, duyệt sản phẩm đi theo bộ tiêu chí (AlignWithCriteria đặt sẵn khi tạo kỳ, đổi bộ).
+        // Bước đăng ký, duyệt đi theo bộ tiêu chí (AlignWithCriteria đặt sẵn khi tạo kỳ, đổi bộ).
         if (selfScoreForm != null && UsesRegistration(selfScoreForm))
         {
             foreach (var profile in profiles.Where(p => !p.IsActive(WorkflowStep.B1_REGISTER)))
@@ -525,9 +462,7 @@ public sealed class PeriodSettings
             yield return $"Cách xét duyệt \"{label}\": không thể áp dụng bước duyệt danh mục sản phẩm khi bước đăng ký sản phẩm không áp dụng.";
     }
 
-    /// <summary>
-    /// Hai cấu hình chỉ khác nhau ở thời hạn (dùng khi kỳ đã mở: chỉ được sửa thời hạn).
-    /// </summary>
+    /// <summary>Kỳ đã mở chỉ được sửa thời hạn.</summary>
     public bool DiffersOnlyInDeadlines(PeriodSettings other)
     {
         ArgumentNullException.ThrowIfNull(other);

@@ -3,37 +3,28 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>
-/// Hai bộ tiêu chí mặc định lấy theo <b>bản trích xuất HD 03-HD/TVĐU (docs/nghiep-vu/hd03-trich-xuat.md, CHƯA XÁC NHẬN)</b> —
-/// mục 3.2 (17 tiêu chí con, 3 nhóm 18/4/8), 3.3 (6 trục, điểm tối đa 09B), 3.6 (khung tỷ trọng), 3.7 (thang quy đổi), 3.10
-/// (làm tròn), 4.1 (mức xếp loại), 4.3 (trần xuất sắc). Chờ Phòng TCCB-LĐ / Ban Tổ chức Đảng ủy xác nhận; sửa được qua giao
-/// diện bằng cách nhân bản thành bản nháp. Lựa chọn khi văn bản mâu thuẫn ghi trong báo cáo task 16.
-/// </summary>
+/// <summary>Hai bộ tiêu chí mặc định theo bản trích xuất HD03 (docs/nghiep-vu/hd03-trich-xuat.md), chưa được nghiệp vụ
+/// xác nhận; sửa qua giao diện bằng cách nhân bản thành nháp.</summary>
 public static partial class CriteriaSetDefaults
 {
-    /// <summary>Mã bộ mặc định Mẫu 09B (Quý III/2026).</summary>
     public const string Code09B = "09B-Q3-2026";
 
-    /// <summary>Mã bộ mặc định Mẫu 09A (từ 2027).</summary>
     public const string Code09A = "09A-2027";
 
-    /// <summary>Tên bộ mặc định Mẫu 09B.</summary>
     public const string Name09B = "Chấm theo 6 trục (Quý III, IV/2026)";
 
-    /// <summary>Tên bộ mặc định Mẫu 09A.</summary>
     public const string Name09A = "Từ Quý I/2027";
 
-    /// <summary>Ghi chú chung của hai bộ mặc định.</summary>
     public const string Notes = "";
 
-    /// <summary>Nội dung bộ Mẫu 09B (Quý III/2026): 6 trục có điểm tối đa 15/10/10/15/10/10.</summary>
+    /// <summary>6 trục có điểm tối đa 15/10/10/15/10/10.</summary>
     public static CriteriaSetContent Build09B() => WithItemFormTexts(Build(axisMax: new[] { 15.0, 10, 10, 15, 10, 10 }, RequiredForms09B));
 
-    /// <summary>Nội dung bộ Mẫu 09A (từ 2027): chấm theo nhiệm vụ Mẫu 01/02, công thức A-B-C-D; trục không có điểm tối đa riêng.</summary>
+    /// <summary>Chấm theo nhiệm vụ Mẫu 01/02; trục không có điểm tối đa riêng.</summary>
     public static CriteriaSetContent Build09A()
     {
         var content = WithItemFormTexts(Build(axisMax: new[] { 0.0, 0, 0, 0, 0, 0 }, RequiredForms09A));
-        // Cấp giao nhiệm vụ được điều chỉnh từng thành phần A-B-C-D trong phạm vi ±10 điểm phần trăm, tổng bằng 100%.
+        // Cấp giao nhiệm vụ được chỉnh từng thành phần A-B-C-D trong ±10 điểm phần trăm.
         content.Parameters.FrameAdjustLimit = 10;
         return content;
     }
@@ -155,7 +146,7 @@ public static partial class CriteriaSetDefaults
                 TotalTaskWeight = 70,
                 TaskWeightTolerance = 0.05,
                 GeneralMaxScore = 30,
-                // Văn bản không quy định khung mặc định; giữ mặc định của code trước task 16 (Khung 2) — chờ xác nhận.
+                // Văn bản không quy định khung mặc định; tạm dùng Khung 2, chờ xác nhận.
                 DefaultWeightFrameCode = "K2",
                 AllowNotApplicable = true,
                 NotApplicableRule = NotApplicableRule.ExcludeAndRescale,

@@ -3,95 +3,79 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Domain.Entities;
 
-/// <summary>
-/// Thực thể Công việc / Sản phẩm chuyên môn đăng ký và đánh giá (Mẫu 01 & Mẫu 02) theo Hướng dẫn 03-HD/TVĐU
-/// </summary>
+/// <summary>Sản phẩm chuyên môn đăng ký (Mẫu 01) và tự chấm (Mẫu 02).</summary>
 public class EvaluationTask : IAuditableEntity, ISoftDeletable, IVersioned
 {
-    /// <summary>Phiên bản bản ghi (xmin) cho optimistic concurrency.</summary>
+    /// <summary>xmin, dùng cho optimistic concurrency.</summary>
     public uint Version { get; set; }
 
-    /// <summary>Mã định danh công việc</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    /// <summary>Mã hồ sơ đánh giá sở hữu</summary>
     public Guid RecordId { get; set; }
 
-    /// <summary>Đối tượng hồ sơ đánh giá</summary>
     public EvaluationRecord Record { get; set; } = null!;
 
-    /// <summary>Thứ tự công việc trong danh sách (từ 1 đến 7 việc)</summary>
+    /// <summary>Bắt đầu từ 1.</summary>
     public int TaskOrder { get; set; }
 
-    /// <summary>Tên sản phẩm, công việc chuyên môn</summary>
     public string TaskName { get; set; } = string.Empty;
 
-    /// <summary>Chỉ tiêu đầu ra, quy cách sản phẩm, tiêu chuẩn kỹ thuật</summary>
+    /// <summary>Chỉ tiêu đầu ra, quy cách, tiêu chuẩn kỹ thuật.</summary>
     public string TargetOutput { get; set; } = string.Empty;
 
-    /// <summary>Trọng số điểm giao việc (Tổng trọng số của 3-7 việc phải = đúng 70.0 điểm)</summary>
+    /// <summary>Tổng trọng số các việc phải bằng tổng trọng số của bộ tiêu chí.</summary>
     public double Weight { get; set; }
 
-    /// <summary>Mốc thời gian / hạn chót hoàn thành trong quý</summary>
     public DateTime Deadline { get; set; }
 
-    /// <summary>Mã trục kết quả (Mẫu 01 cột "Trục KQ") — thuộc bộ tiêu chí của kỳ; null nếu chưa chọn.</summary>
+    /// <summary>Thuộc bộ tiêu chí của kỳ; null nếu chưa chọn.</summary>
     public string? AxisCode { get; set; }
 
-    /// <summary>Mã sản phẩm (Mẫu 01 cột "Mã SP") — không bắt buộc.</summary>
+    /// <summary>Không bắt buộc.</summary>
     public string? ProductCode { get; set; }
 
-    /// <summary>Loại sản phẩm: trọng tâm / thường xuyên / đột xuất; null với dữ liệu đăng ký trước khi có trường này.</summary>
+    /// <summary>Null với dữ liệu đăng ký trước khi có trường này.</summary>
     public TaskKind? Kind { get; set; }
 
-    /// <summary>Vai trò chủ trì / phối hợp (Mẫu 01 cột "Vai trò"); null với dữ liệu cũ.</summary>
+    /// <summary>Null với dữ liệu cũ.</summary>
     public TaskRole? Role { get; set; }
 
-    /// <summary>Tiêu chí vượt chuẩn (Mẫu 01 cột "Tiêu chí vượt chuẩn").</summary>
     public string? ExceedCriteria { get; set; }
 
-    /// <summary>Nguồn dữ liệu / minh chứng (Mẫu 01 cột "Nguồn dữ liệu/minh chứng").</summary>
     public string? EvidenceSource { get; set; }
 
-    /// <summary>Thẩm quyền xác nhận kết quả (Mẫu 01 cột "Thẩm quyền xác nhận").</summary>
     public string? Confirmer { get; set; }
 
-    /// <summary>
-    /// Đã loại trừ / chuyển tiếp hợp lệ trong quý (đề nghị Mẫu 04 đã duyệt): việc giữ lại trên phiếu, trọng số 0, không chấm;
-    /// null = việc còn hiệu lực.
-    /// </summary>
+    /// <summary>Đã loại trừ / chuyển tiếp (Mẫu 04 đã duyệt): giữ trên phiếu, trọng số 0, không chấm; null = còn hiệu lực.</summary>
     public TaskChangeMark? ChangeStatus { get; set; }
 
     #region Tự chấm điểm 4 Tiêu chí A-B-C-D theo khung tỷ trọng (0.0 đến 1.0)
 
-    /// <summary>Tỷ lệ hoàn thành Tiêu chí A - Khối lượng công việc (0.0 đến 1.0 tương ứng 0% đến 100%)</summary>
+    /// <summary>A — khối lượng.</summary>
     public double CriteriaA_Ratio { get; set; } = 1.0;
 
-    /// <summary>Tỷ lệ hoàn thành Tiêu chí B - Chất lượng sản phẩm (0.0 đến 1.0 tương ứng 0% đến 100%)</summary>
+    /// <summary>B — chất lượng.</summary>
     public double CriteriaB_Ratio { get; set; } = 1.0;
 
-    /// <summary>Tỷ lệ hoàn thành Tiêu chí C - Tiến độ thực hiện (0.0 đến 1.0 tương ứng 0% đến 100%)</summary>
+    /// <summary>C — tiến độ.</summary>
     public double CriteriaC_Ratio { get; set; } = 1.0;
 
-    /// <summary>Tỷ lệ hoàn thành Tiêu chí D - Hiệu quả, sáng kiến đổi mới (0.0 đến 1.0 tương ứng 0% đến 100%)</summary>
+    /// <summary>D — hiệu quả, sáng kiến.</summary>
     public double CriteriaD_Ratio { get; set; } = 1.0;
 
-    /// <summary>Điểm tự chấm của công việc (bằng Trọng số nhân tổng tỷ trọng đạt được theo khung tỷ trọng)</summary>
+    /// <summary>Trọng số × tỷ lệ đạt theo khung tỷ trọng.</summary>
     public double SelfScore { get; set; }
 
-    /// <summary>Điểm do cấp ủy / lãnh đạo thẩm định chấm</summary>
+    /// <summary>Điểm thẩm định.</summary>
     public double? SupervisorScore { get; set; }
 
-    /// <summary>Có đạt tiêu chuẩn vượt chuẩn tiến độ/chất lượng để xét danh hiệu Xuất sắc hay không</summary>
+    /// <summary>Vượt chuẩn, dùng khi xét mức Xuất sắc.</summary>
     public bool IsExceedStandard { get; set; } = false;
 
-    /// <summary>
-    /// Mức thẩm định của nhiệm vụ do cơ quan thẩm định xếp: 1 — chủ động, có kết quả cụ thể, chất lượng cao; 2 — cơ bản đáp ứng,
-    /// còn hạn chế; 3 — không đáp ứng. Null khi chưa thẩm định (hoặc bộ tiêu chí chấm theo trục).
-    /// </summary>
+    /// <summary>1 = chủ động, chất lượng cao; 2 = cơ bản đáp ứng; 3 = không đáp ứng. Null khi chưa thẩm định hoặc chấm theo trục.</summary>
     public int? AppraisalLevel { get; set; }
 
-    /// <summary>Nhận xét ngắn của cơ quan thẩm định về nhiệm vụ (không bắt buộc).</summary>
+    /// <summary>Không bắt buộc.</summary>
     public string? AppraisalComment { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -102,10 +86,8 @@ public class EvaluationTask : IAuditableEntity, ISoftDeletable, IVersioned
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedBy { get; set; }
 
-    /// <summary>Mã tệp tin đính kèm làm bằng chứng dẫn chiếu (nếu có)</summary>
     public Guid? AttachmentId { get; set; }
 
-    /// <summary>Đối tượng tệp tin đính kèm</summary>
     public TaskAttachment? Attachment { get; set; }
 
     #endregion

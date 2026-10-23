@@ -2,9 +2,6 @@ using System;
 
 namespace CongTacDang.Domain.Entities;
 
-/// <summary>
-/// Nhật ký audit tập trung cho các thay đổi dữ liệu và thao tác nghiệp vụ.
-/// </summary>
 public class AuditLog
 {
     public Guid Id { get; set; } = Guid.NewGuid();

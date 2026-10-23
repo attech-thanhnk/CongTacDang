@@ -2,14 +2,11 @@ using System.Collections.Generic;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>
-/// Khung tiêu chí đánh giá tập thể mặc định (Mẫu 06, 07) chép nguyên văn HD03 Phụ lục I "KHUNG TIÊU CHÍ ĐÁNH GIÁ ĐỐI VỚI TẬP THỂ"
-/// theo bản trích xuất <c>docs/nghiep-vu/hd03-trich-xuat.md</c> mục 5.1: nhóm I tiêu chí chung 30 điểm (6 × 5), nhóm II kết quả
-/// thực hiện nhiệm vụ 70 điểm (50 + 20). Chờ nghiệp vụ xác nhận; sửa được trong bộ tiêu chí bản nháp.
-/// </summary>
+/// <summary>Khung tiêu chí tập thể mặc định (Mẫu 06, 07): nhóm I 30 điểm (6 × 5), nhóm II 70 điểm (50 + 20).
+/// Chép nguyên văn HD03, chờ nghiệp vụ xác nhận.</summary>
 public static partial class CriteriaSetDefaults
 {
-    /// <summary>Khung tiêu chí tập thể mặc định — bản mới mỗi lần gọi (an toàn để sửa).</summary>
+    /// <summary>Bản mới mỗi lần gọi, sửa thoải mái.</summary>
     public static List<CollectiveCriteriaGroup> CollectiveGroups() => new()
     {
         new CollectiveCriteriaGroup
@@ -34,8 +31,7 @@ public static partial class CriteriaSetDefaults
             Kind = CollectiveScoreKind.Task,
             Items = new List<CriteriaItem>
             {
-                // Mục 1 (50 điểm) có hai nhánh không có điểm riêng: 1.1 khối cơ quan tham mưu, giúp việc của Đảng và 1.2 khối cơ quan,
-                // đơn vị trực thuộc. Đơn vị dùng hệ thống thuộc khối 1.2 nên ghép nguyên văn nội dung 1.2 vào tiêu chí II.1; bỏ 1.1.
+                // Mục 1 gốc có hai nhánh không điểm riêng; đơn vị thuộc nhánh 1.2 (đơn vị trực thuộc) nên chỉ lấy nội dung 1.2.
                 Item("II.1", "Nhóm tiêu chí về việc cụ thể hoá nghị quyết, chương trình, kế hoạch công tác của cấp uỷ hoặc cấp có thẩm quyền và tổ chức thực hiện hiệu quả các mục tiêu, chỉ tiêu, nhiệm vụ được giao trên các lĩnh vực (kết quả được lượng hoá bằng sản phẩm, tiến độ, chất lượng hoặc chỉ số đo lường hiệu quả công việc), cụ thể: Khối cơ quan, đơn vị trực thuộc: Tập trung vào thực hiện nhiệm vụ được giao (nếu có); kết quả sản xuất kinh doanh; về quản lý tài chính, tài sản; về quản trị doanh nghiệp, tổ chức bộ máy, nhân sự; xây dựng văn hoá doanh nghiệp; việc chăm lo đời sống người lao động; phòng, chống tham nhũng, lãng phí, tiêu cực… theo chức năng, nhiệm vụ được giao.", 50),
                 Item("II.2", "Nhóm tiêu chí về kết quả đánh giá, xếp loại đối với các lĩnh vực, cơ quan, đơn vị do tập thể phụ trách (nếu có); kết quả đánh giá chất lượng đối với các tổ chức trực thuộc và cá nhân liên quan trực tiếp.", 20)
             }

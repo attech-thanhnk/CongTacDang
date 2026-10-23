@@ -5,60 +5,42 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Domain.Entities;
 
-/// <summary>
-/// Thực thể Kỳ đánh giá định kỳ hằng quý theo Hướng dẫn 03-HD/TVĐU
-/// </summary>
 public class EvaluationPeriod : IAuditableEntity, ISoftDeletable, IVersioned
 {
-    /// <summary>Phiên bản bản ghi (xmin) cho optimistic concurrency.</summary>
+    /// <summary>xmin, dùng cho optimistic concurrency.</summary>
     public uint Version { get; set; }
 
-    /// <summary>Mã định danh kỳ đánh giá</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    /// <summary>Năm đánh giá (VD: 2026)</summary>
     public int Year { get; set; }
 
-    /// <summary>Quý đánh giá trong năm (Quy1, Quy2, Quy3, Quy4)</summary>
     public EvaluationQuarter Quarter { get; set; }
 
-    /// <summary>Tên hiển thị kỳ đánh giá (VD: "Đánh giá, xếp loại cán bộ Quý III/2026")</summary>
+    /// <summary>Ví dụ "Đánh giá, xếp loại cán bộ Quý III/2026".</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Ngày bắt đầu kỳ đánh giá</summary>
     public DateTime StartDate { get; set; }
 
-    /// <summary>Ngày kết thúc kỳ đánh giá</summary>
     public DateTime EndDate { get; set; }
 
-    /// <summary>Trạng thái kỳ: Draft → Open → Locked → Closed.</summary>
     public PeriodStatus Status { get; set; } = PeriodStatus.Draft;
 
-    /// <summary>
-    /// Cấu hình kỳ dạng JSON (cột jsonb, có schema version) — đọc/ghi qua <see cref="PeriodSettings"/>.
-    /// Chuỗi rỗng được hiểu là cấu hình mặc định (<see cref="PeriodSettings.Default"/>).
-    /// </summary>
+    /// <summary>jsonb, đọc/ghi qua <see cref="PeriodSettings"/>; chuỗi rỗng = cấu hình mặc định.</summary>
     public string Settings { get; set; } = PeriodSettings.Default().ToJson();
 
-    /// <summary>Bộ tiêu chí đã chọn (chỉ chọn/đổi khi kỳ còn dự thảo; chỉ bộ đã xuất bản).</summary>
+    /// <summary>Chỉ bộ đã xuất bản; chỉ chọn/đổi khi kỳ còn dự thảo.</summary>
     public Guid? CriteriaSetId { get; set; }
 
-    /// <summary>
-    /// Ảnh chụp nguyên bộ tiêu chí (jsonb, <see cref="Evaluation.CriteriaSnapshot"/>): chụp khi chọn bộ và chụp lại khi mở kỳ;
-    /// mọi tính điểm, kiểm tra, biểu mẫu của kỳ dùng ảnh chụp này.
-    /// </summary>
+    /// <summary>jsonb <see cref="Evaluation.CriteriaSnapshot"/>: chụp khi chọn bộ và khi mở kỳ; mọi tính điểm, biểu mẫu của kỳ dùng bản này.</summary>
     public string? CriteriaSnapshot { get; set; }
 
-    /// <summary>Lý do của lần chuyển trạng thái kỳ gần nhất (bắt buộc khi Khóa dữ liệu → Đang mở).</summary>
+    /// <summary>Bắt buộc khi Khóa dữ liệu → Đang mở.</summary>
     public string? StatusReason { get; set; }
 
-    /// <summary>Thời điểm chuyển trạng thái kỳ gần nhất.</summary>
     public DateTime? StatusChangedAt { get; set; }
 
-    /// <summary>Người chuyển trạng thái kỳ gần nhất.</summary>
     public Guid? StatusChangedBy { get; set; }
 
-    /// <summary>Thời điểm tạo kỳ đánh giá</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Guid? CreatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -67,18 +49,17 @@ public class EvaluationPeriod : IAuditableEntity, ISoftDeletable, IVersioned
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedBy { get; set; }
 
-    /// <summary>Danh sách hồ sơ đánh giá của các cán bộ trong kỳ (= danh sách người được đánh giá).</summary>
+    /// <summary>Cũng là danh sách người được đánh giá.</summary>
     public ICollection<EvaluationRecord> Records { get; set; } = new List<EvaluationRecord>();
 
-    /// <summary>Danh sách hồ sơ đánh giá tập thể Mẫu 06, 07, 08 trong kỳ</summary>
+    /// <summary>Mẫu 06, 07, 08.</summary>
     public ICollection<CollectiveEvaluationRecord> CollectiveRecords { get; set; } = new List<CollectiveEvaluationRecord>();
 
-    /// <summary>Danh sách hội nghị và biên bản Mẫu 12, 13 trong kỳ</summary>
+    /// <summary>Hội nghị, biên bản Mẫu 12, 13.</summary>
     public ICollection<EvaluationMeeting> Meetings { get; set; } = new List<EvaluationMeeting>();
 
-    /// <summary>Đọc cấu hình kỳ.</summary>
     public PeriodSettings GetSettings() => PeriodSettings.Parse(Settings);
 
-    /// <summary>Đọc ảnh chụp bộ tiêu chí; null nếu kỳ chưa chọn bộ. JSON sai → <see cref="FormatException"/>.</summary>
+    /// <summary>Null nếu kỳ chưa chọn bộ; JSON sai → <see cref="FormatException"/>.</summary>
     public CriteriaSnapshot? GetCriteria() => Evaluation.CriteriaSnapshot.Parse(CriteriaSnapshot);
 }

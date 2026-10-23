@@ -13,10 +13,10 @@ namespace CongTacDang.Domain.Evaluation;
 [JsonConverter(typeof(JsonStringEnumConverter<CriteriaScoringMode>))]
 public enum CriteriaScoringMode
 {
-    /// <summary>"Đảm bảo" = điểm tối đa, "Không đảm bảo" = 0 (Mẫu 09A/09B).</summary>
+    /// <summary>"Đảm bảo" = điểm tối đa, "Không đảm bảo" = 0.</summary>
     Binary = 0,
 
-    /// <summary>Nhập điểm trong khoảng 0..điểm tối đa (thân HD03 tr.10: giảm điểm theo mức độ).</summary>
+    /// <summary>Nhập điểm từ 0 đến điểm tối đa.</summary>
     Range = 1
 }
 
@@ -24,18 +24,17 @@ public enum CriteriaScoringMode
 [JsonConverter(typeof(JsonStringEnumConverter<NotApplicableRule>))]
 public enum NotApplicableRule
 {
-    /// <summary>Bỏ tiêu chí khỏi mẫu số rồi quy đổi lại về điểm tối đa của nhóm tiêu chí chung (xử lý trọng số).</summary>
+    /// <summary>Bỏ tiêu chí khỏi mẫu số rồi quy đổi về điểm tối đa của nhóm.</summary>
     ExcludeAndRescale = 0,
 
     /// <summary>Tính như đạt điểm tối đa.</summary>
     GrantFull = 1
 }
 
-/// <summary>Kiểu làm tròn.</summary>
 [JsonConverter(typeof(JsonStringEnumConverter<ScoreRoundingMode>))]
 public enum ScoreRoundingMode
 {
-    /// <summary>Nửa lên (0,5 trở lên làm tròn lên — xa số 0).</summary>
+    /// <summary>Nửa lên (xa số 0).</summary>
     HalfUp = 0,
 
     /// <summary>Nửa về số chẵn (làm tròn ngân hàng).</summary>
@@ -46,7 +45,7 @@ public enum ScoreRoundingMode
 }
 
 
-/// <summary>Nhóm điểm của hồ sơ tập thể (Mẫu 07 mục B: 1. Nhóm tiêu chí chung, 2. Nhóm tiêu chí về kết quả thực hiện nhiệm vụ).</summary>
+/// <summary>Nhóm điểm của hồ sơ tập thể.</summary>
 [JsonConverter(typeof(JsonStringEnumConverter<CollectiveScoreKind>))]
 public enum CollectiveScoreKind
 {
@@ -57,22 +56,17 @@ public enum CollectiveScoreKind
     Task = 1
 }
 
-/// <summary>
-/// Một nhóm của khung tiêu chí đánh giá tập thể (HD03 Phụ lục I): tiêu chí con chấm điểm trong khoảng 0..điểm tối đa;
-/// điểm các tiêu chí con cộng vào nhóm điểm <see cref="Kind"/> của hồ sơ tập thể.
-/// </summary>
+/// <summary>Nhóm của khung tiêu chí tập thể; điểm tiêu chí con cộng vào nhóm điểm <see cref="Kind"/>.</summary>
 public sealed class CollectiveCriteriaGroup
 {
     /// <summary>Mã nhóm (ví dụ "I", "II").</summary>
     public string Code { get; set; } = string.Empty;
 
-    /// <summary>Tên nhóm.</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Nhóm điểm mà các tiêu chí con cộng vào.</summary>
     public CollectiveScoreKind Kind { get; set; } = CollectiveScoreKind.General;
 
-    /// <summary>Tiêu chí con (mã duy nhất trong toàn khung tập thể).</summary>
+    /// <summary>Mã duy nhất trong toàn khung tập thể.</summary>
     public List<CriteriaItem> Items { get; set; } = new();
 }
 
@@ -82,13 +76,11 @@ public sealed class CriteriaItem
     /// <summary>Mã (duy nhất trong bộ, ví dụ "1.1").</summary>
     public string Code { get; set; } = string.Empty;
 
-    /// <summary>Nội dung tiêu chí.</summary>
     public string Text { get; set; } = string.Empty;
 
-    /// <summary>Nội dung in trên phiếu tự chấm (nguyên văn biểu mẫu gốc); trống → in <see cref="Text"/>.</summary>
+    /// <summary>Nguyên văn in trên phiếu tự chấm; trống thì in <see cref="Text"/>.</summary>
     public string? FormText { get; set; }
 
-    /// <summary>Điểm tối đa.</summary>
     public double MaxScore { get; set; }
 }
 
@@ -98,16 +90,13 @@ public sealed class CriteriaGroup
     /// <summary>Mã nhóm (duy nhất trong bộ).</summary>
     public string Code { get; set; } = string.Empty;
 
-    /// <summary>Tên nhóm.</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Cách chấm các tiêu chí con của nhóm.</summary>
     public CriteriaScoringMode ScoringMode { get; set; } = CriteriaScoringMode.Binary;
 
-    /// <summary>Tiêu chí con.</summary>
     public List<CriteriaItem> Items { get; set; } = new();
 
-    /// <summary>Điểm tối đa của nhóm = tổng điểm tối đa các tiêu chí con.</summary>
+    /// <summary>Tổng điểm tối đa các tiêu chí con.</summary>
     [JsonIgnore]
     public double MaxScore => (Items ?? new List<CriteriaItem>()).Sum(i => i?.MaxScore ?? 0);
 }
@@ -118,19 +107,18 @@ public sealed class ResultAxis
     /// <summary>Mã trục (duy nhất trong bộ, ví dụ "T1").</summary>
     public string Code { get; set; } = string.Empty;
 
-    /// <summary>Tên trục.</summary>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>Nội dung áp dụng.</summary>
     public string? Description { get; set; }
 
-    /// <summary>Điểm tối đa khi tự chấm trực tiếp theo trục (Mẫu 09B); bộ 09A không dùng (được để 0).</summary>
+    /// <summary>Điểm tối đa khi tự chấm theo trục (09B); 09A để 0.</summary>
     public double MaxScore { get; set; }
 
-    /// <summary>Tiêu đề trục in ở cột "Nội dung tiêu chí" của Mẫu 09B (ví dụ "TRỤC (1) – …"); trống → dựng từ tên trục.</summary>
+    /// <summary>Tiêu đề in trên Mẫu 09B; trống thì dựng từ tên trục.</summary>
     public string? FormTitle { get; set; }
 
-    /// <summary>Các nội dung gợi ý in dưới tiêu đề trục trên Mẫu 09B (mỗi dòng một gạch đầu dòng); trống → dùng nội dung áp dụng.</summary>
+    /// <summary>Gợi ý in dưới tiêu đề trục trên 09B, mỗi dòng một gạch đầu dòng; trống thì dùng nội dung áp dụng.</summary>
     public string? FormGuidance { get; set; }
 }
 
@@ -140,7 +128,6 @@ public sealed class WeightFrame
     /// <summary>Mã khung (duy nhất trong bộ, ví dụ "K2").</summary>
     public string Code { get; set; } = string.Empty;
 
-    /// <summary>Tên khung.</summary>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>Tỷ trọng A — khối lượng.</summary>
@@ -156,7 +143,7 @@ public sealed class WeightFrame
     public double D { get; set; }
 }
 
-/// <summary>Một mức của thang quy đổi % A-B-C-D: mức áp dụng cho giá trị ≥ <see cref="MinPercent"/> (mức cao nhất thỏa).</summary>
+/// <summary>Mức thang quy đổi %: áp dụng khi giá trị ≥ <see cref="MinPercent"/> (lấy mức cao nhất thỏa).</summary>
 public sealed class ConversionBand
 {
     /// <summary>Ngưỡng dưới (%, gồm cả ngưỡng).</summary>
@@ -165,39 +152,31 @@ public sealed class ConversionBand
     /// <summary>Nhãn (ví dụ "95 – 100%").</summary>
     public string Label { get; set; } = string.Empty;
 
-    /// <summary>Cách hiểu.</summary>
     public string? Description { get; set; }
 }
 
 /// <summary>Ngưỡng điểm và điều kiện kèm theo của một mức xếp loại (4 mức cố định theo <see cref="EvaluationGrade"/>).</summary>
 public sealed class GradeRule
 {
-    /// <summary>Mức xếp loại.</summary>
     [JsonConverter(typeof(JsonStringEnumConverter<EvaluationGrade>))]
     public EvaluationGrade Grade { get; set; }
 
     /// <summary>Điểm tối thiểu (gồm cả ngưỡng).</summary>
     public double MinScore { get; set; }
 
-    /// <summary>
-    /// Tỷ lệ nhiệm vụ vượt chuẩn tối thiểu (0..1) để được gợi ý mức này; null = không đòi. Chỉ kiểm được khi tự chấm theo
-    /// danh mục nhiệm vụ (Mẫu 09A) — Mẫu 09B không có dữ liệu nhiệm vụ nên chỉ xét ngưỡng điểm.
-    /// </summary>
+    /// <summary>Tỷ lệ nhiệm vụ vượt chuẩn tối thiểu (0..1); null = không đòi. Chỉ kiểm được với 09A.</summary>
     public double? MinExceedStandardRatio { get; set; }
 
     /// <summary>Điều kiện đồng thời (hiển thị cho người chấm; phần mềm không tự kiểm các điều kiện định tính).</summary>
     public string? Conditions { get; set; }
 }
 
-/// <summary>Quy tắc làm tròn một loại điểm.</summary>
 public sealed class RoundingRule
 {
-    /// <summary>Khởi tạo rỗng (JSON).</summary>
     public RoundingRule()
     {
     }
 
-    /// <summary>Khởi tạo với giá trị cho trước.</summary>
     public RoundingRule(int decimals, ScoreRoundingMode mode)
     {
         Decimals = decimals;
@@ -207,11 +186,9 @@ public sealed class RoundingRule
     /// <summary>Số chữ số thập phân (0–4).</summary>
     public int Decimals { get; set; } = 1;
 
-    /// <summary>Kiểu làm tròn.</summary>
     public ScoreRoundingMode Mode { get; set; } = ScoreRoundingMode.HalfUp;
 }
 
-/// <summary>Làm tròn theo từng loại điểm.</summary>
 public sealed class RoundingSettings
 {
     /// <summary>Điểm từng sản phẩm/nhiệm vụ (Mẫu 02).</summary>
@@ -220,41 +197,30 @@ public sealed class RoundingSettings
     /// <summary>Tổng điểm nhóm kết quả thực hiện nhiệm vụ (cộng các điểm sản phẩm đã làm tròn, hoặc tổng các trục 09B).</summary>
     public RoundingRule TasksTotal { get; set; } = new();
 
-    /// <summary>Tổng điểm nhóm tiêu chí chung.</summary>
     public RoundingRule GeneralTotal { get; set; } = new();
 
     /// <summary>Tổng điểm (chung + nhiệm vụ).</summary>
     public RoundingRule Total { get; set; } = new();
 }
 
-/// <summary>
-/// Trần tỷ lệ Hoàn thành xuất sắc: số Xuất sắc tối đa của một nhóm chức danh = làm tròn (0,5 trở lên thành 1) của
-/// tỷ lệ × số người "Hoàn thành tốt nhiệm vụ" trong nhóm. Mẫu số và cách làm tròn cố định trong
-/// <see cref="EvaluationScoring.ExcellentQuota(int, double)"/>; bộ tiêu chí chỉ đặt tỷ lệ trong khoảng 20%–25%.
-/// Nội dung lưu trước đây có thêm trường mẫu số/làm tròn: bỏ qua khi đọc (không cần nâng phiên bản schema); thiếu tỷ lệ → 20%.
-/// </summary>
+/// <summary>Trần Xuất sắc = tỷ lệ × số "Hoàn thành tốt" trong nhóm chức danh
+/// (<see cref="EvaluationScoring.ExcellentQuota(int, double)"/>); bộ chỉ đặt tỷ lệ 20%–25%.</summary>
 public sealed class ExcellentQuotaRule
 {
-    /// <summary>Tỷ lệ trần tối thiểu được phép.</summary>
     public const double MinRatio = 0.20;
 
-    /// <summary>Tỷ lệ trần tối đa được phép (cấp có thẩm quyền nâng khi đơn vị có thành tích nổi trội).</summary>
+    /// <summary>Cấp có thẩm quyền được nâng tới mức này khi đơn vị có thành tích nổi trội.</summary>
     public const double MaxRatio = 0.25;
 
-    /// <summary>Tỷ lệ trần mặc định.</summary>
     public const double DefaultRatio = MinRatio;
 
-    /// <summary>Tỷ lệ trần (0,20..0,25).</summary>
     public double Ratio { get; set; } = DefaultRatio;
 
-    /// <summary>
-    /// Tỷ lệ dùng để tính: giá trị không hợp lệ (dữ liệu cũ) → mặc định; ngoài khoảng → kẹp về 20%–25%.
-    /// </summary>
+    /// <summary>Giá trị không hợp lệ thì lấy mặc định; ngoài khoảng thì kẹp về 20%–25%.</summary>
     [JsonIgnore]
     public double EffectiveRatio => double.IsFinite(Ratio) && Ratio > 0 ? Math.Clamp(Ratio, MinRatio, MaxRatio) : DefaultRatio;
 }
 
-/// <summary>Tham số của bộ tiêu chí.</summary>
 public sealed class CriteriaParameters
 {
     /// <summary>Số sản phẩm/nhiệm vụ tối thiểu khi đăng ký (Mẫu 01).</summary>
@@ -263,7 +229,7 @@ public sealed class CriteriaParameters
     /// <summary>Số sản phẩm/nhiệm vụ tối đa khi đăng ký (Mẫu 01).</summary>
     public int MaxTasks { get; set; } = 7;
 
-    /// <summary>Tổng trọng số nhiệm vụ = điểm tối đa nhóm kết quả thực hiện nhiệm vụ (09A: tổng trọng số Mẫu 01; 09B: tổng điểm tối đa các trục).</summary>
+    /// <summary>Điểm tối đa nhóm kết quả (09A: tổng trọng số Mẫu 01; 09B: tổng điểm tối đa các trục).</summary>
     public double TotalTaskWeight { get; set; } = 70.0;
 
     /// <summary>Sai số cho phép khi so tổng trọng số (sau khi làm tròn 2 chữ số).</summary>
@@ -272,32 +238,22 @@ public sealed class CriteriaParameters
     /// <summary>Điểm tối đa nhóm tiêu chí chung (= tổng điểm tối đa các tiêu chí con).</summary>
     public double GeneralMaxScore { get; set; } = 30.0;
 
-    /// <summary>
-    /// Mã khung tỷ trọng gán cho hồ sơ khi cán bộ chưa có khung mặc định (phải có trong danh mục khung); null = để trống và
-    /// kiểm tra kẹt luồng báo lỗi.
-    /// </summary>
+    /// <summary>Khung gán khi cán bộ chưa có khung mặc định; null = để trống, kiểm tra kẹt luồng sẽ báo lỗi.</summary>
     public string? DefaultWeightFrameCode { get; set; }
 
-    /// <summary>
-    /// Biên độ (điểm phần trăm) mà cấp giao nhiệm vụ được điều chỉnh từng tỷ trọng A-B-C-D của khung cho một hồ sơ khi duyệt
-    /// danh mục sản phẩm (đầu kỳ); tổng sau điều chỉnh vẫn bằng 100%. null hoặc 0 = không cho điều chỉnh. Trường tùy chọn:
-    /// nội dung lưu trước khi có trường này đọc ra null (không cần nâng phiên bản schema).
-    /// </summary>
+    /// <summary>Biên độ (điểm %) cấp giao nhiệm vụ được chỉnh từng tỷ trọng A-B-C-D khi duyệt danh mục; tổng vẫn 100%.
+    /// null hoặc 0 = không cho chỉnh.</summary>
     public double? FrameAdjustLimit { get; set; }
 
-    /// <summary>Bộ cho phép điều chỉnh tỷ trọng khung theo hồ sơ.</summary>
     [JsonIgnore]
     public bool AllowsFrameAdjustment => FrameAdjustLimit is > 0;
 
     /// <summary>Cho phép đánh dấu tiêu chí con "K/AD — Không áp dụng" (bắt buộc nêu lý do).</summary>
     public bool AllowNotApplicable { get; set; } = true;
 
-    /// <summary>Cách xử lý điểm khi có tiêu chí "K/AD".</summary>
     public NotApplicableRule NotApplicableRule { get; set; } = NotApplicableRule.ExcludeAndRescale;
 
-    /// <summary>
-    /// Khoản giảm (điểm tối đa − điểm đạt) của một tiêu chí con từ mức này trở lên phải nêu căn cứ; null = không bắt buộc.
-    /// </summary>
+    /// <summary>Khoản giảm điểm của một tiêu chí con từ mức này trở lên phải nêu căn cứ; null = không bắt buộc.</summary>
     public double? DeductionReasonMinPoints { get; set; } = 1.0;
 
     /// <summary>Chênh lệch |tự chấm − thẩm định| từ mức này trở lên thì bắt buộc nhập nội dung giải trình/căn cứ.</summary>
@@ -306,10 +262,8 @@ public sealed class CriteriaParameters
     /// <summary>Bắt buộc giải trình cả khi chênh lệch dưới ngưỡng nhưng làm đổi mức xếp loại theo ngưỡng điểm.</summary>
     public bool ExplanationOnGradeChange { get; set; } = true;
 
-    /// <summary>Trần tỷ lệ Hoàn thành xuất sắc.</summary>
     public ExcellentQuotaRule ExcellentQuota { get; set; } = new();
 
-    /// <summary>Làm tròn từng loại điểm.</summary>
     public RoundingSettings Rounding { get; set; } = new();
 
     /// <summary>Điểm tối đa nhóm tiêu chí chung của hồ sơ tập thể (Mẫu 06–08).</summary>
@@ -318,57 +272,43 @@ public sealed class CriteriaParameters
     /// <summary>Điểm tối đa nhóm kết quả thực hiện nhiệm vụ của hồ sơ tập thể.</summary>
     public double CollectiveTaskMaxScore { get; set; } = 70.0;
 
-    /// <summary>
-    /// Công khai kết quả (task 20 — T-86) có kèm điểm chính thức hay không; mặc định chỉ công khai mức xếp loại
-    /// (HD03 II.2: "công khai kết quả" không đồng nghĩa công bố toàn bộ hồ sơ). Chờ nghiệp vụ xác nhận.
-    /// </summary>
+    /// <summary>Công khai kết quả kèm điểm chính thức; mặc định chỉ công khai mức xếp loại. Chờ nghiệp vụ xác nhận.</summary>
     public bool PublishScores { get; set; }
 
-    /// <summary>
-    /// Mức xếp loại chính thức bắt buộc lập kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17, task 20 — T-88). Mặc định theo
-    /// chữ in trên Mẫu 17: "Hoàn thành nhiệm vụ - Mức C" và "Không hoàn thành nhiệm vụ - Mức D". Chờ nghiệp vụ xác nhận.
-    /// </summary>
+    /// <summary>Mức xếp loại bắt buộc lập kế hoạch 30-60-90 ngày (Mẫu 17). Chờ nghiệp vụ xác nhận.</summary>
     [JsonConverter(typeof(GradeListJsonConverter))]
     public List<EvaluationGrade> ImprovementPlanRequiredGrades { get; set; } = new() { EvaluationGrade.HoanThanh, EvaluationGrade.KhongHoanThanh };
 
-    /// <summary>
-    /// Cảnh báo "Kế hoạch 30-60-90 ngày cần lập" chỉ xét hồ sơ của kỳ đang mở/khóa dữ liệu và kỳ đã đóng trong số ngày này gần nhất
-    /// (tính từ ngày đóng kỳ) — không quét mọi kỳ cũ. Mặc định 90 ngày.
-    /// </summary>
+    /// <summary>Chỉ cảnh báo thiếu kế hoạch 30-60-90 với kỳ đang mở/khóa và kỳ đã đóng trong số ngày này.</summary>
     public int ImprovementPlanAlertDays { get; set; } = 90;
 }
 
-/// <summary>
-/// Nội dung bộ tiêu chí và thang điểm (cột jsonb <c>criteria_sets.Content</c>, có <see cref="SchemaVersion"/>): nhóm tiêu chí
-/// chung + tiêu chí con, trục kết quả, khung tỷ trọng A-B-C-D, thang quy đổi %, mức xếp loại, tham số. Cấu trúc công thức
-/// tính điểm cố định trong <see cref="EvaluationScoring"/>; bộ tiêu chí chỉ cung cấp số liệu và danh mục.
-/// </summary>
+/// <summary>Nội dung bộ tiêu chí (jsonb <c>criteria_sets.Content</c>). Cấu trúc công thức cố định trong
+/// <see cref="EvaluationScoring"/>; bộ chỉ cung cấp số liệu và danh mục.</summary>
 public sealed class CriteriaSetContent
 {
-    /// <summary>Phiên bản schema hiện tại.</summary>
     public const int CurrentSchemaVersion = 1;
 
-    /// <summary>Mẫu tự chấm có Mẫu 01/02 (tính điểm A-B-C-D theo nhiệm vụ).</summary>
+    /// <summary>Tự chấm theo nhiệm vụ Mẫu 01/02 (điểm A-B-C-D).</summary>
     public const string Form09A = "09A";
 
-    /// <summary>Mẫu tự chấm trực tiếp theo trục (Quý III/2026).</summary>
+    /// <summary>Tự chấm trực tiếp theo trục.</summary>
     public const string Form09B = "09B";
 
     private static readonly Regex CodePattern = new("^[A-Za-z0-9][A-Za-z0-9._-]{0,19}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    /// <summary>Mã (tiêu chí, trục, khung) đúng định dạng: chữ không dấu, số, dấu chấm, gạch nối, gạch dưới, tối đa 20 ký tự.</summary>
+    /// <summary>Chữ không dấu, số, dấu chấm, gạch nối, gạch dưới; tối đa 20 ký tự.</summary>
     public static bool IsValidCode(string? code) => code != null && CodePattern.IsMatch(code);
 
     /// <summary>Sai số so sánh số thực (tổng điểm, tổng tỷ trọng).</summary>
     public const double Epsilon = 1e-6;
 
-    /// <summary>Bốn mức xếp loại phải có ngưỡng, theo thứ tự từ cao xuống thấp.</summary>
+    /// <summary>Bốn mức xếp loại, từ cao xuống thấp.</summary>
     public static readonly IReadOnlyList<EvaluationGrade> RankedGrades = new[]
     {
         EvaluationGrade.HoanThanhXuatSac, EvaluationGrade.HoanThanhTot, EvaluationGrade.HoanThanh, EvaluationGrade.KhongHoanThanh
     };
 
-    /// <summary>Tùy chọn JSON: camelCase, enum dạng chuỗi.</summary>
     public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         // Lưu jsonb (không nhúng HTML): giữ nguyên chữ tiếng Việt cho dễ đọc khi tra cứu CSDL.
@@ -377,38 +317,26 @@ public sealed class CriteriaSetContent
         WriteIndented = false
     };
 
-    /// <summary>Phiên bản schema.</summary>
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
-    /// <summary>Nhóm tiêu chí chung.</summary>
     public List<CriteriaGroup> GeneralGroups { get; set; } = new();
 
-    /// <summary>Trục kết quả.</summary>
     public List<ResultAxis> Axes { get; set; } = new();
 
-    /// <summary>Khung tỷ trọng A-B-C-D.</summary>
     public List<WeightFrame> WeightFrames { get; set; } = new();
 
-    /// <summary>Thang quy đổi % cho A/B/C/D (mô tả mức; không đổi công thức).</summary>
+    /// <summary>Thang quy đổi % cho A/B/C/D (chỉ mô tả mức, không đổi công thức).</summary>
     public List<ConversionBand> ConversionScale { get; set; } = new();
 
-    /// <summary>Ngưỡng điểm và điều kiện của 4 mức xếp loại.</summary>
     public List<GradeRule> Grades { get; set; } = new();
 
-    /// <summary>Tham số.</summary>
     public CriteriaParameters Parameters { get; set; } = new();
 
-    /// <summary>
-    /// Biểu mẫu cá nhân áp dụng cho hồ sơ của kỳ dùng bộ này (mã theo <see cref="RecordFormCodes"/>). Mẫu tự chấm (09A/09B) luôn
-    /// theo <c>SelfScoreForm</c> của bộ — mã 09A/09B ghi ở đây bị bỏ qua khi xác định mẫu áp dụng
-    /// (<see cref="CriteriaSnapshot.ApplicableForms"/>). Quyết định nút xuất trên hồ sơ và phần nhập 09C/9D khi tự chấm (task 18).
-    /// </summary>
+    /// <summary>Biểu mẫu cá nhân áp dụng (<see cref="RecordFormCodes"/>). Mã 09A/09B ở đây bị bỏ qua: mẫu tự chấm
+    /// luôn theo <c>SelfScoreForm</c> (<see cref="CriteriaSnapshot.ApplicableForms"/>).</summary>
     public List<string> RequiredForms { get; set; } = new();
 
-    /// <summary>
-    /// Khung tiêu chí đánh giá tập thể (Mẫu 06, 07 — HD03 Phụ lục I). Rỗng = hồ sơ tập thể nhập thẳng hai điểm nhóm.
-    /// Có khung thì điểm nhóm là tổng điểm các tiêu chí con theo <see cref="CollectiveCriteriaGroup.Kind"/>.
-    /// </summary>
+    /// <summary>Khung tiêu chí tập thể; rỗng = hồ sơ tập thể nhập thẳng hai điểm nhóm.</summary>
     public List<CollectiveCriteriaGroup> CollectiveGroups { get; set; } = new();
 
     /// <summary>Các mục tự luận của Mẫu 09C (khi <see cref="RequiredForms"/> có 09C).</summary>
@@ -425,24 +353,20 @@ public sealed class CriteriaSetContent
 
     #region Tra cứu
 
-    /// <summary>Mọi tiêu chí con theo thứ tự nhóm.</summary>
     [JsonIgnore]
     public IEnumerable<(CriteriaGroup Group, CriteriaItem Item)> AllItems =>
         (GeneralGroups ?? new List<CriteriaGroup>()).Where(g => g != null)
             .SelectMany(g => (g.Items ?? new List<CriteriaItem>()).Where(i => i != null).Select(i => (g, i)));
 
-    /// <summary>Trục theo mã (không phân biệt hoa thường); null nếu không có.</summary>
     public ResultAxis? FindAxis(string? code) =>
         string.IsNullOrWhiteSpace(code) ? null : Axes.FirstOrDefault(a => string.Equals(a.Code, code.Trim(), StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>Khung tỷ trọng theo mã (không phân biệt hoa thường); null nếu không có.</summary>
     public WeightFrame? FindFrame(string? code) =>
         string.IsNullOrWhiteSpace(code) ? null : WeightFrames.FirstOrDefault(f => string.Equals(f.Code, code.Trim(), StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>Ngưỡng của mức xếp loại; null nếu không có.</summary>
     public GradeRule? FindGrade(EvaluationGrade grade) => Grades.FirstOrDefault(g => g.Grade == grade);
 
-    /// <summary>Mức của thang quy đổi áp dụng cho giá trị % (mức có ngưỡng dưới cao nhất ≤ giá trị).</summary>
+    /// <summary>Mức có ngưỡng dưới cao nhất ≤ giá trị %.</summary>
     public ConversionBand? BandFor(double percent) =>
         ConversionScale.Where(b => percent + Epsilon >= b.MinPercent).OrderByDescending(b => b.MinPercent).FirstOrDefault();
 
@@ -465,13 +389,10 @@ public sealed class CriteriaSetContent
         }
     }
 
-    /// <summary>Ghi ra JSON.</summary>
     public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
 
-    /// <summary>Bản sao sâu.</summary>
     public CriteriaSetContent Clone() => Parse(ToJson());
 
-    /// <summary>Chuẩn hóa: danh sách không null, cắt khoảng trắng mã/tên.</summary>
     public CriteriaSetContent Normalize()
     {
         GeneralGroups = (GeneralGroups ?? new()).Where(g => g != null).ToList();
@@ -557,12 +478,9 @@ public sealed class CriteriaSetContent
 
     #region Kiểm tra
 
-    /// <summary>Mẫu tự chấm hợp lệ.</summary>
     public static bool IsValidForm(string? form) => form is Form09A or Form09B;
 
-    /// <summary>
-    /// Kiểm tra đầy đủ nội dung bộ tiêu chí cho mẫu tự chấm <paramref name="selfScoreForm"/>; trả danh sách lỗi (rỗng = hợp lệ).
-    /// </summary>
+    /// <summary>Trả danh sách lỗi; rỗng = hợp lệ.</summary>
     public List<string> Validate(string? selfScoreForm)
     {
         var errors = new List<string>();
@@ -592,10 +510,9 @@ public sealed class CriteriaSetContent
     /// <summary>Độ dài tối đa nội dung gợi ý của trục, câu dẫn và lưu ý của mục 09C.</summary>
     public const int MaxFormGuidanceLength = 8000;
 
-    /// <summary>Số mức tự đánh giá nhiệm vụ tối đa.</summary>
     public const int MaxTaskLevels = 9;
 
-    /// <summary>Biên độ điều chỉnh tỷ trọng khung tối đa (điểm phần trăm).</summary>
+    /// <summary>Đơn vị: điểm phần trăm.</summary>
     public const double MaxFrameAdjustLimit = 50;
 
     /// <summary>Số ngày tối đa sau khi đóng kỳ còn cảnh báo lập kế hoạch 30-60-90 ngày.</summary>
@@ -703,10 +620,7 @@ public sealed class CriteriaSetContent
             errors.Add(Invariant($"Tổng điểm tối đa các tiêu chí con ({total:0.##}) phải bằng điểm tối đa nhóm tiêu chí chung ({p.GeneralMaxScore:0.##})."));
     }
 
-    /// <summary>
-    /// Khung tiêu chí tập thể (Mẫu 06, 07): rỗng = hợp lệ (hồ sơ tập thể nhập thẳng hai điểm nhóm). Mã nhóm/tiêu chí con dùng không
-    /// gian mã riêng (không so với nhóm tiêu chí chung cá nhân); tổng điểm tối đa theo từng nhóm điểm phải khớp tham số tập thể.
-    /// </summary>
+    /// <summary>Khung tập thể rỗng là hợp lệ. Mã dùng không gian riêng, không so với nhóm tiêu chí chung cá nhân.</summary>
     private void ValidateCollective(List<string> errors, CriteriaParameters p)
     {
         if (CollectiveGroups.Count == 0)
@@ -888,7 +802,6 @@ public sealed class CriteriaSetContent
             errors.Add($"Số ngày sau khi đóng kỳ còn cảnh báo lập kế hoạch 30-60-90 ngày phải từ 1 đến {MaxImprovementPlanAlertDays}.");
     }
 
-    /// <summary>Tên hiển thị của mức xếp loại.</summary>
     public static string GradeName(EvaluationGrade grade) => grade switch
     {
         EvaluationGrade.HoanThanhXuatSac => "Hoàn thành xuất sắc nhiệm vụ",
@@ -903,38 +816,25 @@ public sealed class CriteriaSetContent
     #endregion
 }
 
-/// <summary>
-/// Ảnh chụp bộ tiêu chí trong kỳ (<c>EvaluationPeriod.CriteriaSnapshot</c>, jsonb): chụp nguyên bộ khi kỳ chọn bộ và chụp lại
-/// khi mở kỳ; bất biến cho kỳ đó dù bộ gốc bị lưu trữ hay có bản mới.
-/// </summary>
+/// <summary>Ảnh chụp bộ tiêu chí trong kỳ (jsonb): chụp khi chọn bộ và chụp lại khi mở kỳ; bất biến dù bộ gốc đổi.</summary>
 public sealed class CriteriaSnapshot
 {
-    /// <summary>Id bộ tiêu chí gốc.</summary>
     public Guid SetId { get; set; }
 
-    /// <summary>Mã bộ.</summary>
     public string Code { get; set; } = string.Empty;
 
-    /// <summary>Tên bộ.</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Mẫu tự chấm (09A/09B).</summary>
     public string SelfScoreForm { get; set; } = CriteriaSetContent.Form09A;
 
-    /// <summary>Thời điểm chụp.</summary>
     public DateTime TakenAt { get; set; }
 
-    /// <summary>Nội dung bộ.</summary>
     public CriteriaSetContent Content { get; set; } = new();
 
-    /// <summary>Tự chấm trực tiếp theo trục (Mẫu 09B).</summary>
     [JsonIgnore]
     public bool UsesAxisScoring => string.Equals(SelfScoreForm, CriteriaSetContent.Form09B, StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// Biểu mẫu cá nhân áp dụng cho hồ sơ của kỳ (task 18): mẫu tự chấm của bộ + các mẫu khác trong
-    /// <see cref="CriteriaSetContent.RequiredForms"/>, theo thứ tự danh mục.
-    /// </summary>
+    /// <summary>Mẫu tự chấm của bộ + các mẫu khác trong <see cref="CriteriaSetContent.RequiredForms"/>, theo thứ tự danh mục.</summary>
     public IReadOnlyList<string> ApplicableForms()
     {
         var self = RecordFormCodes.Normalize(SelfScoreForm);
@@ -945,10 +845,9 @@ public sealed class CriteriaSnapshot
         return RecordFormCodes.All.Where(set.Contains).ToList();
     }
 
-    /// <summary>Kỳ áp dụng biểu mẫu <paramref name="formCode"/>.</summary>
     public bool AppliesForm(string formCode) => ApplicableForms().Contains(RecordFormCodes.Normalize(formCode));
 
-    /// <summary>Đọc ảnh chụp; chuỗi rỗng → null; JSON sai → <see cref="FormatException"/>.</summary>
+    /// <summary>Chuỗi rỗng → null; JSON sai → <see cref="FormatException"/>.</summary>
     public static CriteriaSnapshot? Parse(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -967,11 +866,10 @@ public sealed class CriteriaSnapshot
         }
     }
 
-    /// <summary>Ghi ra JSON.</summary>
     public string ToJson() => JsonSerializer.Serialize(this, CriteriaSetContent.JsonOptions);
 }
 
-/// <summary>Danh sách mức xếp loại dạng chuỗi mã (<c>["HoanThanh","KhongHoanThanh"]</c>); đọc được cả số (task 20).</summary>
+/// <summary>Ghi mức xếp loại dạng chuỗi mã; đọc được cả số.</summary>
 public sealed class GradeListJsonConverter : JsonConverter<List<EvaluationGrade>>
 {
     /// <inheritdoc />

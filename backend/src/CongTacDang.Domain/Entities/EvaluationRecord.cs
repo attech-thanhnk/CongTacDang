@@ -4,329 +4,245 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Domain.Entities;
 
-/// <summary>
-/// Thực thể Hồ sơ Đánh giá, xếp loại cá nhân của Cán bộ theo Hướng dẫn 03-HD/TVĐU.
-/// Hồ sơ được tạo khi <c>period.manage</c> thêm người vào danh sách được đánh giá của kỳ (task 12);
-/// Phòng, Chi bộ, khung tỷ trọng, cấp quyết định là <b>ảnh chụp</b> tại thời điểm thêm.
-/// </summary>
+/// <summary>Hồ sơ đánh giá, xếp loại cá nhân trong một kỳ. Chi bộ, đơn vị, khung tỷ trọng, cấp quyết định
+/// là ảnh chụp lúc thêm người vào kỳ.</summary>
 public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 {
-    /// <summary>Phiên bản bản ghi (xmin) cho optimistic concurrency.</summary>
+    /// <summary>xmin, dùng cho optimistic concurrency.</summary>
     public uint Version { get; set; }
 
-    /// <summary>Mã định danh hồ sơ đánh giá</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    /// <summary>Mã kỳ đánh giá</summary>
     public Guid PeriodId { get; set; }
 
-    /// <summary>Đối tượng kỳ đánh giá</summary>
     public EvaluationPeriod Period { get; set; } = null!;
 
-    /// <summary>Mã cán bộ được đánh giá</summary>
     public Guid MemberId { get; set; }
 
-    /// <summary>Đối tượng hồ sơ cán bộ</summary>
     public PartyMemberProfile Member { get; set; } = null!;
 
-    /// <summary>Mã Chi bộ sinh hoạt tại thời điểm đánh giá (ảnh chụp)</summary>
+    /// <summary>Ảnh chụp lúc thêm vào kỳ.</summary>
     public Guid? PartyCellId { get; set; }
 
-    /// <summary>Đối tượng Chi bộ</summary>
     public PartyCell? PartyCell { get; set; }
 
-    /// <summary>Mã Đơn vị chuyên môn tại thời điểm đánh giá (ảnh chụp)</summary>
+    /// <summary>Ảnh chụp lúc thêm vào kỳ.</summary>
     public Guid? DepartmentId { get; set; }
 
-    /// <summary>Đối tượng Đơn vị chuyên môn</summary>
     public AdministrativeDepartment? Department { get; set; }
 
-    /// <summary>
-    /// Mã khung tỷ trọng A-B-C-D (ảnh chụp từ khung mặc định của cán bộ khi thêm vào kỳ; phải có trong bộ tiêu chí của kỳ —
-    /// kiểm tra kẹt luồng báo lỗi nếu không).
-    /// </summary>
+    /// <summary>Ảnh chụp khung mặc định của cán bộ; phải có trong bộ tiêu chí của kỳ.</summary>
     public string WeightFrameCode { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Tỷ trọng A (0..1) đã điều chỉnh cho riêng hồ sơ khi cấp giao nhiệm vụ duyệt danh mục sản phẩm; bốn cột
-    /// <see cref="FrameA"/>..<see cref="FrameD"/> cùng null = dùng tỷ trọng gốc của khung <see cref="WeightFrameCode"/>.
-    /// Khung hiệu lực: <c>RecordWeightFrames.Effective</c>.
-    /// </summary>
+    /// <summary>Tỷ trọng A (0..1) đã chỉnh riêng cho hồ sơ; cả bốn FrameA..D null = dùng khung gốc
+    /// (xem <c>RecordWeightFrames.Effective</c>).</summary>
     public double? FrameA { get; set; }
 
-    /// <summary>Tỷ trọng B (0..1) đã điều chỉnh; null = theo khung gốc.</summary>
     public double? FrameB { get; set; }
 
-    /// <summary>Tỷ trọng C (0..1) đã điều chỉnh; null = theo khung gốc.</summary>
     public double? FrameC { get; set; }
 
-    /// <summary>Tỷ trọng D (0..1) đã điều chỉnh; null = theo khung gốc.</summary>
     public double? FrameD { get; set; }
 
-    /// <summary>Cấp có thẩm quyền quyết định xếp loại — ảnh chụp từ hồ sơ cán bộ tại thời điểm thêm vào kỳ</summary>
+    /// <summary>Ảnh chụp từ hồ sơ cán bộ lúc thêm vào kỳ.</summary>
     public ApprovalAuthority ApprovalAuthority { get; set; } = ApprovalAuthority.CoSo;
 
-    /// <summary>
-    /// Mã hồ sơ luồng (nhóm đối tượng) trong cấu hình kỳ — ảnh chụp khi thêm vào kỳ (mặc định theo cấp quyết định);
-    /// <c>period.manage</c> đổi được (có lý do). Máy trạng thái, hành động, quyền dùng cấu hình bước của hồ sơ luồng này.
-    /// </summary>
+    /// <summary>Hồ sơ luồng trong cấu hình kỳ, quyết định bước, hành động và quyền. Mặc định theo cấp quyết định;
+    /// đổi được (có lý do).</summary>
     public string WorkflowProfileCode { get; set; } = string.Empty;
 
     /// <summary>Trạng thái = bước đang chờ.</summary>
     public RecordStatus Status { get; set; } = RecordStatus.AwaitingRegistration;
 
-    /// <summary>Lý do của lần trả lại gần nhất (xóa khi chủ hồ sơ nộp lại).</summary>
+    /// <summary>Lý do trả lại gần nhất; xóa khi chủ hồ sơ nộp lại.</summary>
     public string? ReturnReason { get; set; }
 
     #region Mở riêng hồ sơ khi kỳ khóa dữ liệu
 
-    /// <summary>
-    /// Hạn (UTC) mở riêng hồ sơ: kỳ đang "Khóa dữ liệu" nhưng hồ sơ được mở lại / trả lại về bước trước thẩm định — các bước của
-    /// hồ sơ này không bị khóa kỳ chặn cho tới hạn. Xóa khi hồ sơ đi tới bước được thao tác lúc kỳ khóa (hoặc công bố).
-    /// </summary>
+    /// <summary>Hạn (UTC) mở riêng hồ sơ khi kỳ đang khóa dữ liệu; xóa khi hồ sơ tới bước được thao tác lúc kỳ khóa
+    /// (hoặc công bố).</summary>
     public DateTime? UnlockedUntil { get; set; }
 
-    /// <summary>Thời điểm mở riêng / gia hạn gần nhất.</summary>
     public DateTime? UnlockedAt { get; set; }
 
-    /// <summary>Người mở riêng / gia hạn gần nhất.</summary>
     public Guid? UnlockedById { get; set; }
 
-    /// <summary>Họ tên người mở riêng / gia hạn gần nhất.</summary>
     public string? UnlockedByName { get; set; }
 
-    /// <summary>Lý do mở riêng / gia hạn gần nhất.</summary>
     public string? UnlockReason { get; set; }
 
-    /// <summary>Hồ sơ đang được mở riêng tại thời điểm <paramref name="utcNow"/> (chưa quá hạn).</summary>
     public bool IsUnlockedAt(DateTime utcNow) => UnlockedUntil is { } until && until > utcNow;
 
     #endregion
 
     #region B1: Duyệt danh mục sản phẩm (Mẫu 01)
 
-    /// <summary>Người duyệt danh mục.</summary>
     public Guid? TasksApprovedById { get; set; }
 
-    /// <summary>Họ tên người duyệt danh mục.</summary>
     public string? TasksApprovedByName { get; set; }
 
-    /// <summary>Thời điểm duyệt danh mục.</summary>
     public DateTime? TasksApprovedAt { get; set; }
 
-    /// <summary>Ý kiến khi duyệt danh mục.</summary>
     public string? TasksApprovalComment { get; set; }
 
     #endregion
 
     #region B2: Điểm nhóm tiêu chí chung (theo bộ tiêu chí của kỳ)
 
-    /// <summary>
-    /// Điểm từng tiêu chí con (jsonb): <c>{ "1.1": { "score": 2, "notApplicable": false, "reason": null }, … }</c> — khóa là mã
-    /// tiêu chí con trong bộ tiêu chí của kỳ (<see cref="Evaluation.GeneralItemScore"/>).
-    /// </summary>
+    /// <summary>jsonb theo mã tiêu chí con: <c>{ "1.1": { "score": 2, "notApplicable": false, "reason": null } }</c>
+    /// (<see cref="Evaluation.GeneralItemScore"/>).</summary>
     public string GeneralScores { get; set; } = "{}";
 
-    /// <summary>Tổng điểm nhóm tiêu chí chung (theo bộ tiêu chí; có xử lý "K/AD").</summary>
+    /// <summary>Đã xử lý "K/AD".</summary>
     public double GeneralCriteriaScore { get; set; }
 
     #endregion
 
     #region B2: Điểm kết quả thực hiện nhiệm vụ (Mẫu 02 hoặc theo trục Mẫu 09B)
 
-    /// <summary>Tổng điểm nhóm kết quả: tổng điểm nhiệm vụ (09A) hoặc tổng điểm các trục (09B).</summary>
+    /// <summary>Tổng điểm nhiệm vụ (09A) hoặc tổng điểm các trục (09B).</summary>
     public double TasksScore { get; set; }
 
-    /// <summary>Điểm tự chấm theo trục (jsonb, Mẫu 09B): <c>{ "T1": 14, … }</c>; null khi không chấm theo trục.</summary>
+    /// <summary>jsonb <c>{ "T1": 14 }</c> (Mẫu 09B); null khi không chấm theo trục.</summary>
     public string? AxisScores { get; set; }
 
-    /// <summary>Mẫu tự chấm đã dùng (09A/09B) — theo bộ tiêu chí của kỳ lúc nộp.</summary>
+    /// <summary>09A/09B theo bộ tiêu chí của kỳ lúc nộp.</summary>
     public string? SelfScoreForm { get; set; }
 
-    /// <summary>Tổng điểm tự chấm (chung + nhiệm vụ, làm tròn theo bộ tiêu chí).</summary>
+    /// <summary>Chung + nhiệm vụ, làm tròn theo bộ tiêu chí.</summary>
     public double TotalSelfScore { get; set; }
 
-    /// <summary>Mức xếp loại cá nhân cán bộ tự đề xuất</summary>
     public EvaluationGrade SelfProposedGrade { get; set; } = EvaluationGrade.ChuaXepLoai;
 
-    /// <summary>Thời điểm nộp phiếu tự chấm gần nhất.</summary>
     public DateTime? SelfScoredAt { get; set; }
 
     #endregion
 
     #region B2: Nội dung biểu mẫu cá nhân nhập cùng phiếu tự chấm (task 18)
 
-    /// <summary>
-    /// Mẫu 09C — bản tự đánh giá theo mục (jsonb): <c>{ "I": "…" }</c>, khóa là mã mục khai báo trong bộ tiêu chí của kỳ
-    /// (<see cref="Evaluation.SelfAssessmentSection"/>).
-    /// </summary>
+    /// <summary>Mẫu 09C, jsonb <c>{ "I": "…" }</c> theo mã mục (<see cref="Evaluation.SelfAssessmentSection"/>).</summary>
     public string SelfAssessment { get; set; } = "{}";
 
-    /// <summary>
-    /// Nhiệm vụ và kết quả theo trục (jsonb): <c>{ "T1": <see cref="Evaluation.AxisReport"/> }</c>, mã trục theo bộ tiêu chí của
-    /// kỳ — các nhiệm vụ kèm mức tự đánh giá in ở mục I Mẫu 09C, phần tóm tắt của trục là một dòng Mẫu 9D.
-    /// </summary>
+    /// <summary>jsonb <c>{ "T1": <see cref="Evaluation.AxisReport"/> }</c>: nhiệm vụ kèm mức in ở Mẫu 09C,
+    /// phần tóm tắt là một dòng Mẫu 9D.</summary>
     public string AxisReports { get; set; } = "{}";
 
-    /// <summary>
-    /// Mẫu 09B — nội dung tự luận theo trục (jsonb): <c>{ "T1": { "target": …, "result": …, "note": … } }</c>
-    /// (<see cref="Evaluation.AxisNote"/>); null khi chưa nhập.
-    /// </summary>
+    /// <summary>Mẫu 09B, jsonb <c>{ "T1": { "target", "result", "note" } }</c> (<see cref="Evaluation.AxisNote"/>).</summary>
     public string? AxisNotes { get; set; }
 
-    /// <summary>
-    /// Phiếu tự chấm — nhận xét theo nhóm tiêu chí chung (jsonb): <c>{ "1": "…" }</c>, khóa là mã nhóm của bộ tiêu chí của kỳ; in ở
-    /// ô "Tóm tắt kết quả/Tài liệu minh chứng" của dòng nhóm (Mẫu 09A/09B); null khi chưa nhập.
-    /// </summary>
+    /// <summary>Nhận xét theo nhóm tiêu chí chung, jsonb <c>{ "1": "…" }</c>; in ở ô "Tóm tắt kết quả/Tài liệu minh chứng".</summary>
     public string? GeneralGroupNotes { get; set; }
 
     #endregion
 
     #region B2: Chi bộ xác nhận phiếu tự chấm
 
-    /// <summary>Ý kiến xác nhận của Chi bộ trên phiếu tự chấm.</summary>
     public string PartyCellComment { get; set; } = string.Empty;
 
-    /// <summary>Người xác nhận thay mặt Chi bộ.</summary>
     public Guid? CellConfirmedById { get; set; }
 
-    /// <summary>Họ tên người xác nhận thay mặt Chi bộ.</summary>
     public string? CellConfirmedByName { get; set; }
 
-    /// <summary>Thời điểm Chi bộ xác nhận ("Xác lập thời điểm" trên Mẫu 09x).</summary>
+    /// <summary>"Xác lập thời điểm" trên Mẫu 09x.</summary>
     public DateTime? CellConfirmedAt { get; set; }
 
     #endregion
 
     #region B3a: Đề xuất của tập thể lãnh đạo (kết quả phiếu kín — chỉ tổng hợp, gắn biên bản)
 
-    /// <summary>Mức xếp loại tập thể lãnh đạo đề xuất.</summary>
     public EvaluationGrade CollectiveProposedGrade { get; set; } = EvaluationGrade.ChuaXepLoai;
 
-    /// <summary>Nhận xét của tập thể lãnh đạo.</summary>
     public string? CollectiveComment { get; set; }
 
-    /// <summary>Biên bản hội nghị/kiểm phiếu (Mẫu 12/13) chứa kết quả kiểm phiếu của hồ sơ.</summary>
+    /// <summary>Biên bản hội nghị/kiểm phiếu (Mẫu 12/13) chứa kết quả kiểm phiếu.</summary>
     public Guid? CollectiveMeetingId { get; set; }
 
-    /// <summary>Người ghi nhận (thư ký).</summary>
+    /// <summary>Thư ký ghi nhận.</summary>
     public Guid? CollectiveRecordedById { get; set; }
 
-    /// <summary>Họ tên người ghi nhận.</summary>
     public string? CollectiveRecordedByName { get; set; }
 
-    /// <summary>Thời điểm ghi nhận.</summary>
     public DateTime? CollectiveRecordedAt { get; set; }
 
     #endregion
 
     #region B3b: Thẩm định (Mẫu 10, 03)
 
-    /// <summary>
-    /// Điểm do cơ quan thẩm định chấm lại (nếu có) = điểm thẩm định nhóm tiêu chí chung + nhóm kết quả thực hiện nhiệm vụ,
-    /// làm tròn theo quy tắc "tổng điểm" của bộ tiêu chí. Kết quả do cấp trên ghi nhận chỉ có tổng.
-    /// </summary>
+    /// <summary>Điểm thẩm định chung + nhiệm vụ, làm tròn theo quy tắc "tổng điểm". Kết quả cấp trên ghi nhận chỉ có tổng.</summary>
     public double? AppraisalScore { get; set; }
 
-    /// <summary>Điểm thẩm định nhóm tiêu chí chung (Mẫu 10); null khi chỉ có điểm tổng.</summary>
+    /// <summary>Null khi chỉ có điểm tổng.</summary>
     public double? AppraisalGeneralScore { get; set; }
 
-    /// <summary>Điểm thẩm định nhóm kết quả thực hiện nhiệm vụ (Mẫu 10); null khi chỉ có điểm tổng.</summary>
+    /// <summary>Null khi chỉ có điểm tổng.</summary>
     public double? AppraisalTasksScore { get; set; }
 
-    /// <summary>Ý kiến thẩm định</summary>
     public string AppraisalComment { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Nội dung giải trình/căn cứ khi điểm thẩm định chênh lệch với tự chấm từ ngưỡng của bộ tiêu chí trở lên (hoặc làm đổi mức) —
-    /// bắt buộc khi đó (B-09, Mẫu 10).
-    /// </summary>
+    /// <summary>Bắt buộc khi chênh lệch với tự chấm từ ngưỡng của bộ tiêu chí trở lên hoặc làm đổi mức.</summary>
     public string? AppraisalExplanation { get; set; }
 
-    /// <summary>Mức xếp loại cơ quan thẩm định đề xuất</summary>
     public EvaluationGrade AppraisalProposedGrade { get; set; } = EvaluationGrade.ChuaXepLoai;
 
-    /// <summary>Người thẩm định.</summary>
     public Guid? AppraisedById { get; set; }
 
-    /// <summary>Họ tên người thẩm định.</summary>
     public string? AppraisedByName { get; set; }
 
-    /// <summary>Thời điểm thẩm định.</summary>
     public DateTime? AppraisedAt { get; set; }
 
     #endregion
 
     #region B3c: Nhận xét, đề xuất của cấp trực tiếp sử dụng (Mẫu 10)
 
-    /// <summary>Nhận xét của cấp trực tiếp sử dụng.</summary>
     public string? DirectorComment { get; set; }
 
-    /// <summary>Mức xếp loại cấp trực tiếp sử dụng đề xuất.</summary>
     public EvaluationGrade DirectorProposedGrade { get; set; } = EvaluationGrade.ChuaXepLoai;
 
-    /// <summary>Người nhận xét.</summary>
     public Guid? DirectorReviewedById { get; set; }
 
-    /// <summary>Họ tên người nhận xét.</summary>
     public string? DirectorReviewedByName { get; set; }
 
-    /// <summary>Thời điểm nhận xét.</summary>
     public DateTime? DirectorReviewedAt { get; set; }
 
     #endregion
 
     #region B4: Quyết định mức xếp loại (Mẫu 12–15)
 
-    /// <summary>Điểm số chính thức (nếu văn bản quyết định ghi điểm)</summary>
+    /// <summary>Chỉ có khi văn bản quyết định ghi điểm.</summary>
     public double FinalScore { get; set; }
 
-    /// <summary>Mức xếp loại chất lượng chính thức</summary>
     public EvaluationGrade FinalGrade { get; set; } = EvaluationGrade.ChuaXepLoai;
 
-    /// <summary>Số văn bản quyết định / thông báo kết quả.</summary>
     public string? DecisionDocumentNumber { get; set; }
 
-    /// <summary>Ngày văn bản quyết định.</summary>
     public DateTime? DecisionDocumentDate { get; set; }
 
-    /// <summary>Cơ quan quyết định (Đảng ủy cơ sở / BTV Đảng ủy Tổng công ty…).</summary>
+    /// <summary>Ví dụ Đảng ủy cơ sở, BTV Đảng ủy Tổng công ty.</summary>
     public string? DecisionAuthorityName { get; set; }
 
-    /// <summary>
-    /// Đề xuất nội dung liên quan về công tác cán bộ (nếu có) — cột 13 Mẫu 14, ghi ở bước quyết định (nội bộ hoặc ghi nhận
-    /// kết quả của cấp trên).
-    /// </summary>
+    /// <summary>Đề xuất về công tác cán bộ (cột 13 Mẫu 14).</summary>
     public string? CadreWorkProposal { get; set; }
 
-    /// <summary>Biên bản hội nghị/kiểm phiếu quyết định (nếu có).</summary>
     public Guid? DecisionMeetingId { get; set; }
 
-    /// <summary>Người ghi nhận quyết định.</summary>
     public Guid? DecisionRecordedById { get; set; }
 
-    /// <summary>Họ tên người ghi nhận quyết định.</summary>
     public string? DecisionRecordedByName { get; set; }
 
-    /// <summary>Thời điểm ghi nhận quyết định.</summary>
     public DateTime? DecisionRecordedAt { get; set; }
 
     #endregion
 
     #region B5: Công bố
 
-    /// <summary>Người công bố.</summary>
     public Guid? PublishedById { get; set; }
 
-    /// <summary>Họ tên người công bố.</summary>
     public string? PublishedByName { get; set; }
 
-    /// <summary>Thời điểm công bố.</summary>
     public DateTime? PublishedAt { get; set; }
 
     #endregion
 
-    /// <summary>Thời điểm cập nhật hồ sơ gần nhất</summary>
     public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Guid? CreatedBy { get; set; }
@@ -335,17 +251,17 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedBy { get; set; }
 
-    /// <summary>Danh sách các công việc / sản phẩm chuyên môn (Mẫu 01 & Mẫu 02)</summary>
+    /// <summary>Sản phẩm chuyên môn (Mẫu 01, 02).</summary>
     public ICollection<EvaluationTask> Tasks { get; set; } = new List<EvaluationTask>();
 
-    /// <summary>Kết quả ghi nhận của các bước do cấp trên / cơ quan ngoài hệ thống thực hiện (mỗi bước một bản ghi).</summary>
+    /// <summary>Kết quả các bước do cấp trên thực hiện, mỗi bước một bản ghi.</summary>
     public ICollection<EvaluationExternalResult> ExternalResults { get; set; } = new List<EvaluationExternalResult>();
 
-    /// <summary>Điểm hiệu lực: quyết định → thẩm định → tự chấm (chỉ khi đã nộp phiếu — bản nháp không tính).</summary>
+    /// <summary>Quyết định → thẩm định → tự chấm (chỉ khi đã nộp phiếu).</summary>
     public double EffectiveScore() =>
         FinalGrade != EvaluationGrade.ChuaXepLoai && FinalScore > 0 ? FinalScore : AppraisalScore ?? (SelfScoredAt.HasValue ? TotalSelfScore : 0);
 
-    /// <summary>Mức hiệu lực: quyết định → cấp trực tiếp sử dụng → thẩm định → tập thể → tự đề xuất.</summary>
+    /// <summary>Quyết định → cấp trực tiếp sử dụng → thẩm định → tập thể → tự đề xuất.</summary>
     public EvaluationGrade EffectiveGrade()
     {
         // Mức tự đề xuất chỉ tính khi đã nộp phiếu tự chấm (bản nháp không tính).

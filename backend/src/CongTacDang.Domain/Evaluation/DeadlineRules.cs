@@ -5,31 +5,30 @@ using System.Text.Json.Serialization;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>Cách tính thời hạn của một bước từ quy tắc.</summary>
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum DeadlineRuleKind
 {
-    /// <summary>Ngày làm việc thứ N kể từ ngày đầu quý (ví dụ "ngày làm việc thứ 3 đầu quý").</summary>
+    /// <summary>Ngày làm việc thứ N kể từ đầu quý.</summary>
     WorkingDayOfQuarter = 0,
 
-    /// <summary>Ngày D của tháng cuối quý (ví dụ "ngày 14 tháng cuối quý"); rơi vào ngày nghỉ thì lùi sang ngày làm việc kế tiếp.</summary>
+    /// <summary>Ngày D của tháng cuối quý; rơi vào ngày nghỉ thì lùi sang ngày làm việc kế tiếp.</summary>
     DayOfLastMonth = 1,
 
-    /// <summary>N ngày làm việc trước ngày đầu quý (ví dụ 1 = ngày làm việc cuối cùng của quý trước, 6 = ngày làm việc cuối cùng của quý trước -5).</summary>
+    /// <summary>N ngày làm việc trước đầu quý (1 = ngày làm việc cuối của quý trước).</summary>
     WorkingDaysBeforeQuarter = 2
 }
 
-/// <summary>Quy tắc tính thời hạn của một bước theo quý (HD03 / kế hoạch của Phòng TCCB-LĐ).</summary>
+/// <summary>Quy tắc tính thời hạn của một bước theo quý.</summary>
 public sealed class DeadlineRule
 {
     public const int MaxWorkingDay = 40;
 
     public DeadlineRuleKind Kind { get; set; }
 
-    /// <summary>N (ngày làm việc thứ N, 1–<see cref="MaxWorkingDay"/>) hoặc D (ngày trong tháng, 1–28).</summary>
+    /// <summary>N (1–<see cref="MaxWorkingDay"/>) hoặc D (ngày trong tháng, 1–28).</summary>
     public int Value { get; set; } = 1;
 
-    /// <summary>Lỗi cấu hình quy tắc hoặc null.</summary>
+    /// <summary>Lỗi cấu hình hoặc null.</summary>
     public string? Validate() => Kind switch
     {
         DeadlineRuleKind.WorkingDayOfQuarter when Value is < 1 or > MaxWorkingDay =>
@@ -41,13 +40,13 @@ public sealed class DeadlineRule
     };
 }
 
-/// <summary>Tính ngày theo lịch làm việc: thứ Bảy, Chủ nhật và các ngày nghỉ khai báo trong kỳ không phải ngày làm việc.</summary>
+/// <summary>Thứ Bảy, Chủ nhật và ngày nghỉ khai báo không phải ngày làm việc.</summary>
 public static class DeadlineCalculator
 {
     public static bool IsWorkingDay(DateOnly date, IReadOnlyCollection<DateOnly>? holidays) =>
         date.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday) && (holidays == null || !holidays.Contains(date));
 
-    /// <summary>Ngày làm việc gần nhất từ <paramref name="date"/> trở đi (kể cả chính ngày đó).</summary>
+    /// <summary>Kể cả chính ngày đó.</summary>
     public static DateOnly NextWorkingDay(DateOnly date, IReadOnlyCollection<DateOnly>? holidays)
     {
         // Giới hạn vòng lặp phòng khai báo ngày nghỉ liên tiếp quá dài.
@@ -56,7 +55,6 @@ public static class DeadlineCalculator
         return date;
     }
 
-    /// <summary>Ngày cụ thể của quy tắc trong quý <paramref name="quarter"/> (1–4) của năm <paramref name="year"/>.</summary>
     public static DateOnly Compute(DeadlineRule rule, int year, int quarter, IReadOnlyCollection<DateOnly>? holidays)
     {
         ArgumentNullException.ThrowIfNull(rule);

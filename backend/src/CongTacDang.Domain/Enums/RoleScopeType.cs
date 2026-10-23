@@ -1,17 +1,14 @@
 namespace CongTacDang.Domain.Enums;
 
-/// <summary>
-/// Loại phạm vi của một lần gán vai trò (docs/thiet-ke/phan-quyen.md mục 2).
-/// Giá trị trùng với <c>CongTacDang.Application.Common.Security.ScopeType</c>.
-/// </summary>
+/// <summary>Phải trùng giá trị với <c>Application.Common.Security.ScopeType</c>.</summary>
 public enum RoleScopeType
 {
-    /// <summary>Toàn công ty (ScopeId = null).</summary>
+    /// <summary>ScopeId = null.</summary>
     Global = 0,
 
-    /// <summary>Một đơn vị chính quyền và mọi đơn vị con (ScopeId = Id đơn vị).</summary>
+    /// <summary>Đơn vị và mọi đơn vị con.</summary>
     Department = 1,
 
-    /// <summary>Một tổ chức Đảng và mọi tổ chức con (ScopeId = Id tổ chức Đảng).</summary>
+    /// <summary>Tổ chức Đảng và mọi tổ chức con.</summary>
     PartyCell = 2
 }

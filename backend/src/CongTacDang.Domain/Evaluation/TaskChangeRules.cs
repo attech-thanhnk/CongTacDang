@@ -8,10 +8,7 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>
-/// Nội dung đề nghị thay đổi một việc (lưu jsonb trong <see cref="TaskChangeRequest.Proposal"/>). Điều chỉnh: trường null = giữ nguyên;
-/// việc đột xuất: toàn bộ việc mới (tên, chuẩn đạt, trọng số bắt buộc; trục bắt buộc khi bộ có trục).
-/// </summary>
+/// <summary>Nội dung đề nghị (jsonb). Điều chỉnh: trường null = giữ nguyên; đột xuất: toàn bộ việc mới.</summary>
 public sealed class TaskChangeProposal
 {
     public string? TaskName { get; set; }
@@ -19,20 +16,17 @@ public sealed class TaskChangeProposal
     public DateTime? Deadline { get; set; }
     public string? AxisCode { get; set; }
     public string? ProductCode { get; set; }
-    /// <summary>Vai trò: <c>ChuTri</c> / <c>PhoiHop</c>.</summary>
+    /// <summary><c>ChuTri</c> / <c>PhoiHop</c>.</summary>
     public string? Role { get; set; }
     public string? ExceedCriteria { get; set; }
     public string? EvidenceSource { get; set; }
     public string? Confirmer { get; set; }
-    /// <summary>Trọng số của việc đột xuất mới (việc hiện có lấy trọng số trong bảng trọng số sau điều chỉnh).</summary>
+    /// <summary>Chỉ cho việc đột xuất; việc hiện có lấy trọng số trong bảng sau điều chỉnh.</summary>
     public double? Weight { get; set; }
 }
 
-/// <summary>
-/// Luật thuần của đề nghị thay đổi danh mục việc trong quý (Mẫu 04, 05): kiểm tra nội dung, tính bảng trọng số sau điều chỉnh và áp
-/// vào danh mục. Số việc và tổng trọng số của các việc còn hiệu lực kiểm bằng <see cref="EvaluationScoring.ValidateTaskRegistration"/>
-/// (việc đã loại trừ / chuyển tiếp không tính). Không đổi công thức chấm điểm.
-/// </summary>
+/// <summary>Luật đề nghị thay đổi danh mục việc trong quý (Mẫu 04, 05). Việc đã loại trừ / chuyển tiếp không tính vào
+/// số việc và tổng trọng số. Không đổi công thức chấm điểm.</summary>
 public static class TaskChangeRules
 {
     public const int MaxNameLength = 500;
@@ -41,13 +35,12 @@ public static class TaskChangeRules
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    /// <summary>Việc còn hiệu lực (chưa loại trừ / chuyển tiếp, chưa xóa).</summary>
+    /// <summary>Chưa loại trừ / chuyển tiếp, chưa xóa.</summary>
     public static bool IsActive(EvaluationTask task) => !task.IsDeleted && task.ChangeStatus == null;
 
-    /// <summary>Loại đề nghị có tác động lên một việc đang có.</summary>
     public static bool TargetsTask(TaskChangeType type) => type != TaskChangeType.Urgent;
 
-    /// <summary>Loại đề nghị làm việc bị tác động thôi hiệu lực (loại trừ / chuyển tiếp).</summary>
+    /// <summary>Loại đề nghị làm việc thôi hiệu lực.</summary>
     public static TaskChangeMark? MarkOf(TaskChangeType type) => type switch
     {
         TaskChangeType.Exclude => TaskChangeMark.Excluded,
@@ -55,7 +48,6 @@ public static class TaskChangeRules
         _ => null
     };
 
-    /// <summary>Tên loại đề nghị (giao diện, lịch sử).</summary>
     public static string TypeName(TaskChangeType type) => type switch
     {
         TaskChangeType.Adjust => "Điều chỉnh việc",
@@ -65,7 +57,6 @@ public static class TaskChangeRules
         _ => type.ToString()
     };
 
-    /// <summary>Tên trạng thái đề nghị.</summary>
     public static string StatusName(TaskChangeStatus status) => status switch
     {
         TaskChangeStatus.Pending => "Chờ duyệt",
@@ -111,7 +102,7 @@ public static class TaskChangeRules
         }
         catch (JsonException)
         {
-            // Dữ liệu hỏng → coi như không có bảng trọng số (giữ trọng số hiện tại).
+            // Dữ liệu hỏng → giữ trọng số hiện tại.
         }
         return result;
     }
@@ -120,11 +111,7 @@ public static class TaskChangeRules
 
     #region Kiểm tra
 
-    /// <summary>
-    /// Kiểm tra đề nghị trên danh mục hiện tại của hồ sơ. Trả thông báo lỗi (tiếng Việt) hoặc null nếu hợp lệ:
-    /// việc bị tác động còn hiệu lực; nội dung hợp lệ; bảng trọng số chỉ chứa việc còn hiệu lực, trọng số dương; số việc và tổng trọng số
-    /// sau điều chỉnh đúng tham số bộ tiêu chí.
-    /// </summary>
+    /// <summary>Trả lỗi hoặc null. Số việc và tổng trọng số sau điều chỉnh phải đúng tham số bộ tiêu chí.</summary>
     public static string? Validate(
         TaskChangeType type,
         Guid? taskId,
@@ -166,7 +153,7 @@ public static class TaskChangeRules
         if (contentError != null)
             return contentError;
 
-        // Việc bị loại trừ / chuyển tiếp: trọng số trong bảng (nếu có) bỏ qua — việc về 0.
+        // Việc bị loại trừ / chuyển tiếp về 0, bỏ qua trọng số trong bảng.
         var remaining = active.Where(t => !(MarkOf(type) != null && t.Id == target!.Id)).ToList();
         var allowed = active.Select(t => t.Id).ToHashSet();
         if (weights.Keys.Any(k => !allowed.Contains(k)))
@@ -191,10 +178,7 @@ public static class TaskChangeRules
         return EvaluationScoring.ValidateTaskRegistration(list, criteria.Parameters);
     }
 
-    /// <summary>
-    /// Trọng số sau điều chỉnh của mọi việc còn hiệu lực (trừ việc bị loại trừ / chuyển tiếp): lấy trong bảng trọng số, việc không có
-    /// trong bảng giữ trọng số hiện tại.
-    /// </summary>
+    /// <summary>Việc không có trong bảng giữ trọng số hiện tại; bỏ việc bị loại trừ / chuyển tiếp.</summary>
     public static Dictionary<Guid, double> ResultingWeights(
         TaskChangeType type, Guid? targetId, TaskChangeProposal proposal, IReadOnlyDictionary<Guid, double> weights,
         IReadOnlyList<EvaluationTask> tasks)
@@ -271,11 +255,8 @@ public static class TaskChangeRules
 
     #region Áp đề nghị
 
-    /// <summary>
-    /// Áp đề nghị đã kiểm tra vào danh mục: điều chỉnh → sửa việc; loại trừ / chuyển tiếp → đánh dấu, trọng số 0, không chấm; đột xuất →
-    /// thêm việc mới loại <see cref="TaskKind.DotXuat"/>; cập nhật trọng số các việc còn hiệu lực theo bảng sau điều chỉnh. Điểm tạm của
-    /// việc đổi trọng số tính lại theo khung tỷ trọng của hồ sơ (nếu có). Trả lỗi (không thay đổi gì) hoặc việc mới (đột xuất).
-    /// </summary>
+    /// <summary>Áp đề nghị đã kiểm tra; điểm tạm của việc đổi trọng số tính lại theo khung của hồ sơ.
+    /// Trả lỗi (không thay đổi gì) hoặc việc mới (đột xuất).</summary>
     public static (string? Error, EvaluationTask? NewTask) Apply(
         TaskChangeRequest request,
         IReadOnlyList<EvaluationTask> tasks,
@@ -308,7 +289,7 @@ public static class TaskChangeRules
         {
             if (!resulting.TryGetValue(task.Id, out var weight) || Math.Abs(weight - task.Weight) < 0.0001)
                 continue;
-            // Việc chủ hồ sơ chưa nhập tỷ lệ A-B-C-D: chỉ đổi trọng số, giữ điểm 0 (vẫn là "chưa nhập", không thành 100%).
+            // Việc chưa nhập tỷ lệ A-B-C-D: chỉ đổi trọng số, giữ điểm 0 (vẫn là "chưa nhập", không thành 100%).
             var pending = TaskSelfScores.IsPending(task);
             task.Weight = weight;
             if (pending)
@@ -363,7 +344,7 @@ public static class TaskChangeRules
         if (p.Confirmer != null) task.Confirmer = Clean(p.Confirmer);
     }
 
-    /// <summary>Mô tả ngắn thay đổi trọng số (ghi lịch sử hồ sơ): "Việc A 30 → 25; Việc B 20 → 15".</summary>
+    /// <summary>Ghi lịch sử, ví dụ "Việc A 30 → 25; Việc B 20 → 15".</summary>
     public static string DescribeWeightChanges(IReadOnlyList<EvaluationTask> tasks, IReadOnlyDictionary<Guid, double> before)
     {
         var parts = tasks
