@@ -28,7 +28,7 @@ public class RecordFormsController : ControllerBase
         return Ok(ApiResponse<List<RecordFormDto>>.Ok(forms, "Lấy danh sách biểu mẫu của hồ sơ thành công."));
     }
 
-    /// <summary>Xuất một biểu mẫu (formCode: 01, 02, 09A, 09B, 09C, 9D, 10).</summary>
+    /// <summary>Xuất một biểu mẫu (formCode: 01, 02, 09A, 09C, 9D, 10).</summary>
     [HttpGet("{recordId:guid}/{formCode}")]
     public async Task<IActionResult> Export(Guid recordId, string formCode, [FromQuery] string? format, CancellationToken ct)
     {

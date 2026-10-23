@@ -166,7 +166,7 @@ public sealed class PeriodService : IPeriodService
             StartDate = DateTime.SpecifyKind(dto.StartDate, DateTimeKind.Utc),
             EndDate = DateTime.SpecifyKind(dto.EndDate, DateTimeKind.Utc),
             Status = PeriodStatus.Draft,
-            Settings = PeriodSettings.Default(set.SelfScoreForm).ToJson(),
+            Settings = PeriodSettings.Default().ToJson(),
             CreatedAt = now
         };
         AttachCriteria(period, set, now);
@@ -186,17 +186,12 @@ public sealed class PeriodService : IPeriodService
             throw new ConflictException("Kỳ đánh giá đã đóng, không sửa được cấu hình.");
 
         var current = ReadSettings(period);
-        var form = ReadCriteria(period)?.SelfScoreForm;
         if (dto.CriteriaSetId.HasValue && dto.CriteriaSetId.Value != period.CriteriaSetId)
         {
             if (period.Status != PeriodStatus.Draft)
                 throw new ConflictException("Kỳ đã mở: không đổi được bộ tiêu chí (bộ tiêu chí đã được chụp vào kỳ khi mở).");
             var set = await LoadPublishedSetAsync(dto.CriteriaSetId.Value, ct);
             AttachCriteria(period, set, DateTime.UtcNow);
-            form = set.SelfScoreForm;
-            // Bước đăng ký, duyệt sản phẩm đi theo bộ mới, kể cả khi gửi kèm cấu hình.
-            dto.Settings ??= current.Clone();
-            dto.Settings.AlignWithCriteria(form);
         }
 
         var settingsChanged = false;
@@ -210,7 +205,7 @@ public sealed class PeriodService : IPeriodService
                 var holidays = (await _holidays.ListAsync(quarterStart, quarterStart.AddMonths(3).AddDays(60), ct)).Select(h => h.Date).ToList();
                 next.ApplyDeadlineRules(period.Year, (int)period.Quarter, holidays);
             }
-            var errors = ValidateSettings(next, form);
+            var errors = ValidateSettings(next);
             if (errors.Count > 0)
                 throw new ValidationException("Cấu hình kỳ chưa hợp lệ: " + string.Join(" ", errors));
 
@@ -281,10 +276,10 @@ public sealed class PeriodService : IPeriodService
         var set = await _criteriaSets.FindAsync(setId, ct);
         if (set == null || set.Status != CriteriaSetStatus.Published)
             throw new ConflictException("Bộ tiêu chí đã chọn không còn ở trạng thái \"Đã xuất bản\" (đã lưu trữ hoặc bị xóa). Hãy chọn bộ tiêu chí khác cho kỳ.");
-        var criteriaErrors = set.GetContent().Validate(set.SelfScoreForm);
+        var criteriaErrors = set.GetContent().Validate();
         if (criteriaErrors.Count > 0)
             throw new ValidationException($"Bộ tiêu chí \"{set.Name}\" chưa hợp lệ: " + string.Join(" ", criteriaErrors));
-        var errors = ValidateSettings(settings, set.SelfScoreForm);
+        var errors = ValidateSettings(settings);
         if (errors.Count > 0)
             throw new ValidationException("Cấu hình kỳ chưa hợp lệ, chưa mở được kỳ: " + string.Join(" ", errors));
 
@@ -524,9 +519,9 @@ public sealed class PeriodService : IPeriodService
             });
         }
 
-        // Mẫu 09A tính A-B-C-D theo khung nên khung phải có trong bộ tiêu chí của kỳ.
+        // Điểm A-B-C-D tính theo khung nên khung phải có trong bộ tiêu chí của kỳ.
         var criteria = ReadCriteria(period);
-        if (criteria is { UsesAxisScoring: false })
+        if (criteria != null)
         {
             foreach (var record in records.Where(r => criteria.Content.FindFrame(r.WeightFrameCode) == null))
             {
@@ -640,10 +635,10 @@ public sealed class PeriodService : IPeriodService
         return items;
     }
 
-    /// <summary>Chỉ với bộ tính A-B-C-D theo khung (09A); bộ chấm theo trục không dùng khung.</summary>
+    /// <summary>Kỳ chưa có bộ tiêu chí → rỗng.</summary>
     private static List<string> WeightFrameErrors(CriteriaSnapshot? criteria, IEnumerable<EvaluationRecord> records)
     {
-        if (criteria is not { UsesAxisScoring: false })
+        if (criteria == null)
             return new List<string>();
         return records
             .Where(r => criteria.Content.FindFrame(r.WeightFrameCode) == null)
@@ -1142,9 +1137,8 @@ public sealed class PeriodService : IPeriodService
 
     private void EnsureManage() => _guard.Ensure(PermissionCodes.PeriodManage, AccessTarget.None);
 
-    /// <summary>Bộ tiêu chí 09A cần bước đăng ký sản phẩm ở mọi hồ sơ luồng.</summary>
-    private static List<string> ValidateSettings(PeriodSettings settings, string? selfScoreForm) =>
-        settings.Validate(WorkflowActions.IsAssignableStepPermission, selfScoreForm);
+    private static List<string> ValidateSettings(PeriodSettings settings) =>
+        settings.Validate(WorkflowActions.IsAssignableStepPermission);
 
     /// <summary>Bản nháp/lưu trữ không chọn được cho kỳ.</summary>
     private async Task<CriteriaSet> LoadPublishedSetAsync(Guid id, CancellationToken ct)
@@ -1218,7 +1212,7 @@ public sealed class PeriodService : IPeriodService
     /// <summary>Sau khi đổi khung: tính lại điểm nhiệm vụ đã nhập tỷ lệ và tổng điểm tự chấm; trả số nhiệm vụ đã tính lại.</summary>
     private static int RescoreTasksForFrame(EvaluationRecord record, CriteriaSnapshot? criteria)
     {
-        if (criteria == null || criteria.UsesAxisScoring || RecordWeightFrames.Effective(record, criteria.Content) is not { } frame)
+        if (criteria == null || RecordWeightFrames.Effective(record, criteria.Content) is not { } frame)
             return 0;
         var rounding = criteria.Content.Parameters.Rounding;
         var tasks = record.Tasks.Where(t => !t.IsDeleted).ToList();

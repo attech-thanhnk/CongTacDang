@@ -20,7 +20,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Services;
 
-/// <summary>Xuất biểu mẫu cá nhân: 09A/09B/09C/9D từ template Word, 01/02/10 dùng bộ xuất có sẵn.</summary>
+/// <summary>Xuất biểu mẫu cá nhân: 09A/09C/9D từ template Word, 01/02/10 dùng bộ xuất có sẵn.</summary>
 public sealed class RecordFormService : IRecordFormService
 {
     private const string DocxMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -53,7 +53,7 @@ public sealed class RecordFormService : IRecordFormService
     public async Task<List<RecordFormDto>> GetFormsAsync(Guid recordId, CancellationToken ct = default)
     {
         var record = await LoadAsync(recordId, ct);
-        return Available(record, ReadCriteria(record.Period))
+        return Available(ReadCriteria(record.Period))
             .Select(code => new RecordFormDto { Code = code, Name = RecordFormCodes.DisplayName(code) })
             .ToList();
     }
@@ -67,7 +67,7 @@ public sealed class RecordFormService : IRecordFormService
 
         var record = await LoadAsync(recordId, ct);
         var criteria = ReadCriteria(record.Period);
-        if (!Available(record, criteria).Contains(code))
+        if (!Available(criteria).Contains(code))
         {
             throw new ConflictException(
                 $"Kỳ \"{record.Period.Name}\" không áp dụng {RecordFormCodes.DisplayName(code)} (theo bộ tiêu chí của kỳ). "
@@ -91,7 +91,6 @@ public sealed class RecordFormService : IRecordFormService
         var (templateFileName, data) = code switch
         {
             RecordFormCodes.Form09A => (Mau09AData.TemplateFileName, (object)Mau09AData.From(source)),
-            RecordFormCodes.Form09B => (Mau09BData.TemplateFileName, Mau09BData.From(source)),
             RecordFormCodes.Form09C => (Mau09CData.TemplateFileName, Mau09CData.From(source)),
             _ => (Mau9DData.TemplateFileName, (object)Mau9DData.From(source))
         };
@@ -99,8 +98,6 @@ public sealed class RecordFormService : IRecordFormService
         var template = await _templates.LoadAsync(templateFileName, ct);
         var org = OrganizationSettingsService.ToTemplateFields(await _orgSettings.GetAsync(ct));
         var bound = TemplateDataBinder.Bind(data);
-        if (code == RecordFormCodes.Form09B)
-            Mau09BData.ApplyHeader(bound, source.Layout, org);
         var bytes = DocxTemplateEngine.Render(template, bound.WithShared(TemplateDataBinder.Bind(org))).Content;
         var fileName = FileName(code, record);
 
@@ -128,14 +125,9 @@ public sealed class RecordFormService : IRecordFormService
         return record;
     }
 
-    /// <summary>Mẫu theo bộ tiêu chí của kỳ, thêm mẫu tự chấm hồ sơ đã dùng (09A/09B) nếu khác.</summary>
-    private static IReadOnlyList<string> Available(EvaluationRecord record, CriteriaSnapshot? criteria)
-    {
-        var codes = (criteria?.ApplicableForms() ?? Array.Empty<string>()).ToHashSet();
-        if (criteria != null && record.SelfScoredAt.HasValue && CriteriaSetContent.IsValidForm(record.SelfScoreForm))
-            codes.Add(record.SelfScoreForm!);
-        return RecordFormCodes.All.Where(codes.Contains).ToList();
-    }
+    /// <summary>Mẫu theo bộ tiêu chí của kỳ.</summary>
+    private static IReadOnlyList<string> Available(CriteriaSnapshot? criteria) =>
+        criteria?.ApplicableForms().ToList() ?? new List<string>();
 
     private static CriteriaSnapshot? ReadCriteria(EvaluationPeriod period)
     {
@@ -186,7 +178,7 @@ public sealed class RecordFormService : IRecordFormService
             layouts.FirstOrDefault(l => l.IsDefault));
     }
 
-    /// <summary>Tên tệp không dấu, ví dụ <c>Mau_09B_Nguyen_Van_A_Q3-2026.docx</c>.</summary>
+    /// <summary>Tên tệp không dấu, ví dụ <c>Mau_09A_Nguyen_Van_A_Q1-2027.docx</c>.</summary>
     private static string FileName(string code, EvaluationRecord record)
     {
         var name = Ascii(record.Member?.FullName);

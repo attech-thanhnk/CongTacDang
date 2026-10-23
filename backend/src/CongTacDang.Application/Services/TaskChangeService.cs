@@ -356,7 +356,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
             throw new ConflictException("Cấu hình của kỳ đánh giá bị lỗi định dạng. Hãy liên hệ người quản lý kỳ để sửa cấu hình.");
         }
         var profile = EvaluationMapping.ProfileOf(settings, record);
-        var applicable = criteria != null && !criteria.UsesAxisScoring && profile.IsActive(WorkflowStep.B1_REGISTER);
+        var applicable = criteria != null && profile.IsActive(WorkflowStep.B1_REGISTER);
         return new ChangeContext(applicable, profile, criteria);
     }
 

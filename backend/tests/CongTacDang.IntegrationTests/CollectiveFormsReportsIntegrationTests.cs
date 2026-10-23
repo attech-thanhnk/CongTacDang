@@ -450,7 +450,7 @@ public sealed class CollectiveFormsReportsIntegrationTests
             {
                 Year = 2100 + Random.Shared.Next(0, 800), Quarter = EvaluationQuarter.Quy3, Name = $"Kỳ K19 {sfx}",
                 StartDate = DateTime.UtcNow.AddDays(-30), EndDate = DateTime.UtcNow.AddDays(30), Status = PeriodStatus.Open,
-                CriteriaSnapshot = CriteriaTestData.Snapshot("09B", collectiveFramework: false) // R3 nhập thẳng hai điểm nhóm
+                CriteriaSnapshot = CriteriaTestData.Snapshot(collectiveFramework: false) // R3 nhập thẳng hai điểm nhóm
             };
             foreach (var (code, authority) in new[] { ("M8", ApprovalAuthority.CapTren), ("M22", ApprovalAuthority.CoSo), ("M26", ApprovalAuthority.CoSo) })
             {

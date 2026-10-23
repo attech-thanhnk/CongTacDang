@@ -37,17 +37,17 @@ public class CriteriaSetController : ControllerBase
     public async Task<IActionResult> WeightFrames(CancellationToken ct) =>
         Ok(ApiResponse<WeightFrameOptionsDto>.Ok(await _sets.GetWeightFrameOptionsAsync(ct), "Lấy danh sách khung tỷ trọng thành công."));
 
-    /// <summary>Khung tiêu chí tập thể mặc định (Mẫu 06, 07); route cố định được ưu tiên hơn <c>defaults/{form}</c>.</summary>
+    /// <summary>Khung tiêu chí tập thể mặc định (Mẫu 06, 07).</summary>
     [HttpGet("defaults/collective-groups")]
     [RequirePermission(PermissionCodes.CriteriaManage)]
     public IActionResult DefaultCollectiveGroups() =>
         Ok(ApiResponse<List<CollectiveCriteriaGroup>>.Ok(CriteriaSetDefaults.CollectiveGroups(), "Lấy khung tiêu chí tập thể mặc định thành công."));
 
-    /// <summary>Nội dung mặc định của mẫu tự chấm (09A/09B) khi tạo bộ mới.</summary>
-    [HttpGet("defaults/{form}")]
+    /// <summary>Nội dung mặc định khi tạo bộ mới.</summary>
+    [HttpGet("defaults")]
     [RequirePermission(PermissionCodes.CriteriaManage)]
-    public IActionResult Defaults(string form) =>
-        Ok(ApiResponse<CriteriaSetContent>.Ok(_sets.DefaultContent(form), "Lấy nội dung mặc định thành công."));
+    public IActionResult Defaults() =>
+        Ok(ApiResponse<CriteriaSetContent>.Ok(_sets.DefaultContent(), "Lấy nội dung mặc định thành công."));
 
     /// <summary>Chi tiết bộ tiêu chí (kèm nội dung và lỗi kiểm tra).</summary>
     [HttpGet("{id:guid}")]

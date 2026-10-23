@@ -14,27 +14,21 @@ public sealed class CriteriaSetUnitTests
     #region Bộ mặc định, kiểm tra nội dung
 
     [Fact]
-    public void DefaultSets_FollowHd03Extraction_AndAreValid()
+    public void DefaultSet_FollowsHd03Extraction_AndIsValid()
     {
-        var b = CriteriaSetDefaults.Build09B();
-        var a = CriteriaSetDefaults.Build09A();
-        Assert.Empty(b.Validate(CriteriaSetContent.Form09B));
-        Assert.Empty(a.Validate(CriteriaSetContent.Form09A));
+        var a = CriteriaSetDefaults.Build();
+        Assert.Empty(a.Validate());
 
         // 3 nhóm 18/4/8, 17 tiêu chí con, tổng 30.
-        Assert.Equal(new[] { 18.0, 4, 8 }, b.GeneralGroups.Select(g => g.MaxScore));
-        Assert.Equal(17, b.AllItems.Count());
+        Assert.Equal(new[] { 18.0, 4, 8 }, a.GeneralGroups.Select(g => g.MaxScore));
+        Assert.Equal(17, a.AllItems.Count());
         Assert.Equal(new[] { "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "2.1", "2.2", "2.3", "2.4", "3.1", "3.2", "3.3", "3.4" },
-            b.AllItems.Select(x => x.Item.Code));
-        Assert.All(b.GeneralGroups, g => Assert.Equal(CriteriaScoringMode.Binary, g.ScoringMode));
-        Assert.Equal(30.0, b.AllItems.Sum(x => x.Item.MaxScore));
+            a.AllItems.Select(x => x.Item.Code));
+        Assert.All(a.GeneralGroups, g => Assert.Equal(CriteriaScoringMode.Binary, g.ScoringMode));
+        Assert.Equal(30.0, a.AllItems.Sum(x => x.Item.MaxScore));
 
-        // 6 trục, điểm tối đa 09B 15/10/10/15/10/10 = 70; bộ 09A trục không có điểm riêng.
-        Assert.Equal(new[] { "T1", "T2", "T3", "T4", "T5", "T6" }, b.Axes.Select(x => x.Code));
-        Assert.Equal(new[] { 15.0, 10, 10, 15, 10, 10 }, b.Axes.Select(x => x.MaxScore));
-        Assert.All(a.Axes, x => Assert.Equal(0.0, x.MaxScore));
-
-        // Tên trục đúng nguyên văn biểu mẫu gốc (cột (2) Mẫu 9D), giống nhau ở cả hai bộ mặc định.
+        // 6 trục kết quả để phân loại sản phẩm; tên đúng nguyên văn biểu mẫu gốc (cột (2) Mẫu 9D).
+        Assert.Equal(new[] { "T1", "T2", "T3", "T4", "T5", "T6" }, a.Axes.Select(x => x.Code));
         var axisNames = new[]
         {
             "Thực hiện nhiệm vụ chính trị, sản xuất kinh doanh, cung cấp dịch vụ",
@@ -44,7 +38,6 @@ public sealed class CriteriaSetUnitTests
             "Phát triển văn hóa, nâng cao đời sống vật chất và tinh thần người lao động; thực hiện trách nhiệm xã hội",
             "Thực hiện nhiệm vụ quốc phòng, an ninh, giữ vững ổn định chính trị, trật tự, an toàn cơ quan, đơn vị; nâng cao hiệu quả đối ngoại và hội nhập quốc tế"
         };
-        Assert.Equal(axisNames, b.Axes.Select(x => x.Name));
         Assert.Equal(axisNames, a.Axes.Select(x => x.Name));
 
         // 4 khung tỷ trọng; 6 mức thang quy đổi; ngưỡng 90/70/50/0, xuất sắc cần ≥ 30% vượt chuẩn.
@@ -69,11 +62,11 @@ public sealed class CriteriaSetUnitTests
     [Fact]
     public void Validate_RejectsInvalidContent()
     {
-        static List<string> Errors(Action<CriteriaSetContent> change, string form = CriteriaSetContent.Form09B)
+        static List<string> Errors(Action<CriteriaSetContent> change)
         {
-            var content = CriteriaSetDefaults.Build09B();
+            var content = CriteriaSetDefaults.Build();
             change(content);
-            return content.Normalize().Validate(form);
+            return content.Normalize().Validate();
         }
 
         Assert.Contains(Errors(c => c.GeneralGroups[0].Items[1].Code = "1.1"), e => e.Contains("\"1.1\" bị trùng", StringComparison.Ordinal));
@@ -82,12 +75,11 @@ public sealed class CriteriaSetUnitTests
         Assert.Contains(Errors(c => c.GeneralGroups[0].Items[0].MaxScore = 0), e => e.Contains("lớn hơn 0", StringComparison.Ordinal));
         Assert.Contains(Errors(c => c.GeneralGroups[1].Items.Clear()), e => e.Contains("ít nhất một tiêu chí con", StringComparison.Ordinal));
         Assert.Contains(Errors(c => c.GeneralGroups.Clear()), e => e.Contains("nhóm tiêu chí chung", StringComparison.Ordinal));
-        Assert.Contains(Errors(c => c.Axes[0].MaxScore = 16), e => e.Contains("tổng điểm tối đa các trục (71)", StringComparison.Ordinal));
-        Assert.Contains(Errors(c => c.Axes[0].MaxScore = 0), e => e.Contains("phải lớn hơn 0", StringComparison.Ordinal));
+        Assert.Contains(Errors(c => c.Axes.Clear()), e => e.Contains("ít nhất một trục", StringComparison.Ordinal));
+        Assert.Contains(Errors(c => c.Axes[0].Name = " "), e => e.Contains("Trục \"T1\" chưa có tên", StringComparison.Ordinal));
         Assert.Contains(Errors(c => c.Axes[1].Code = "T1"), e => e.Contains("trục kết quả \"T1\" bị trùng", StringComparison.Ordinal));
         Assert.Contains(Errors(c => c.WeightFrames[0].A = 0.3), e => e.Contains("khung \"K1\"", StringComparison.Ordinal));
-        Assert.Contains(Errors(c => c.WeightFrames.Clear(), CriteriaSetContent.Form09A), e => e.Contains("ít nhất một khung", StringComparison.Ordinal));
-        Assert.Empty(Errors(c => { c.WeightFrames.Clear(); c.Parameters.DefaultWeightFrameCode = null; }));
+        Assert.Contains(Errors(c => { c.WeightFrames.Clear(); c.Parameters.DefaultWeightFrameCode = null; }), e => e.Contains("ít nhất một khung", StringComparison.Ordinal));
         Assert.Contains(Errors(c => c.Parameters.DefaultWeightFrameCode = "K9"), e => e.Contains("\"K9\"", StringComparison.Ordinal));
         Assert.Contains(Errors(c => c.ConversionScale.RemoveAll(s => s.MinPercent == 0)), e => e.Contains("từ 0%", StringComparison.Ordinal));
         Assert.Contains(Errors(c => c.Grades.RemoveAt(1)), e => e.Contains("Hoàn thành tốt nhiệm vụ", StringComparison.Ordinal));
@@ -98,13 +90,13 @@ public sealed class CriteriaSetUnitTests
         Assert.Contains(Errors(c => c.Parameters.Rounding.Total.Decimals = 5), e => e.Contains("Làm tròn tổng điểm", StringComparison.Ordinal));
         Assert.Contains(Errors(c => c.Parameters.ExcellentQuota.Ratio = 1.5), e => e.Contains("Trần tỷ lệ", StringComparison.Ordinal));
         Assert.Contains(Errors(c => c.SchemaVersion = 2), e => e.Contains("Phiên bản nội dung", StringComparison.Ordinal));
-        Assert.Contains(Errors(_ => { }, "09C"), e => e.Contains("Mẫu tự chấm", StringComparison.Ordinal));
+        Assert.Contains(Errors(c => c.RequiredForms.Add("09B")), e => e.Contains("\"09B\" không có trong danh mục", StringComparison.Ordinal));
     }
 
     [Fact]
     public void Content_And_Snapshot_RoundTripJson_WithEnumsAsStrings()
     {
-        var content = CriteriaSetDefaults.Build09A();
+        var content = CriteriaSetDefaults.Build();
         var json = content.ToJson();
         Assert.Contains("\"scoringMode\":\"Binary\"", json);
         Assert.Contains("\"grade\":\"HoanThanhXuatSac\"", json);
@@ -113,9 +105,9 @@ public sealed class CriteriaSetUnitTests
         Assert.Equal(json, CriteriaSetContent.Parse(json).ToJson());
         Assert.Throws<FormatException>(() => CriteriaSetContent.Parse("{sai"));
 
-        var snapshot = new CriteriaSnapshot { SetId = Guid.NewGuid(), Code = "X", Name = "Bộ X", SelfScoreForm = "09B", TakenAt = DateTime.UnixEpoch, Content = content };
+        var snapshot = new CriteriaSnapshot { SetId = Guid.NewGuid(), Code = "X", Name = "Bộ X", TakenAt = DateTime.UnixEpoch, Content = content };
         var parsed = CriteriaSnapshot.Parse(snapshot.ToJson())!;
-        Assert.True(parsed.UsesAxisScoring);
+        Assert.Contains(RecordFormCodes.Form09A, parsed.ApplicableForms());
         Assert.Equal(content.ToJson(), parsed.Content.ToJson());
         Assert.Null(CriteriaSnapshot.Parse(null));
     }
@@ -127,7 +119,7 @@ public sealed class CriteriaSetUnitTests
     [Fact]
     public void GeneralScores_Binary_AllAssured_Is30_AndValidationMessages()
     {
-        var c = CriteriaSetDefaults.Build09B();
+        var c = CriteriaSetDefaults.Build();
         var scores = AllAssured(c);
         Assert.Null(EvaluationScoring.ValidateGeneralScores(c, scores));
         Assert.Equal(30.0, EvaluationScoring.GeneralCriteriaScore(c, scores));
@@ -168,7 +160,7 @@ public sealed class CriteriaSetUnitTests
     [Fact]
     public void GeneralScores_NotApplicable_ExcludeAndRescale_Or_GrantFull()
     {
-        var c = CriteriaSetDefaults.Build09B();
+        var c = CriteriaSetDefaults.Build();
         var scores = AllAssured(c);
         scores["1.1"] = new GeneralItemScore { NotApplicable = true };
         Assert.Contains("nêu lý do", EvaluationScoring.ValidateGeneralScores(c, scores));
@@ -240,7 +232,7 @@ public sealed class CriteriaSetUnitTests
     [Fact]
     public void TC1_DefaultSet_MatchesHd03Example()
     {
-        var c = CriteriaSetDefaults.Build09A();
+        var c = CriteriaSetDefaults.Build();
         var frame = c.FindFrame("K2")!;
         var r = c.Parameters.Rounding;
         var sp = new (double W, double A, double B, double C, double D, double Pct, double Score, bool Exceed)[]
@@ -274,7 +266,7 @@ public sealed class CriteriaSetUnitTests
     [Fact]
     public void TC2_EqualCriteria_GiveWeightTimesRatio_ForEveryFrame()
     {
-        var c = CriteriaSetDefaults.Build09A();
+        var c = CriteriaSetDefaults.Build();
         var frames = c.WeightFrames.Append(new WeightFrame { Code = "TW", A = 0.25, B = 0.25, C = 0.25, D = 0.25 });
         foreach (var frame in frames)
         {
@@ -307,7 +299,7 @@ public sealed class CriteriaSetUnitTests
             new WeightFrame { Code = "4", A = 0.15, B = 0.30, C = 0.20, D = 0.35 }
         };
         // Bảng tỷ trọng của bộ mặc định = bảng cũ (khung 1..4).
-        var defaults = CriteriaSetDefaults.Build09A().WeightFrames;
+        var defaults = CriteriaSetDefaults.Build().WeightFrames;
         for (var i = 0; i < 4; i++)
             Assert.Equal((frames[i + 1].A, frames[i + 1].B, frames[i + 1].C, frames[i + 1].D), (defaults[i].A, defaults[i].B, defaults[i].C, defaults[i].D));
 
@@ -337,22 +329,22 @@ public sealed class CriteriaSetUnitTests
     [Fact]
     public void Grades_WithOldParameters_EqualOldCode()
     {
-        var c = CriteriaSetDefaults.Build09A();
+        var c = CriteriaSetDefaults.Build();
         for (var score = -100; score <= 10100; score++)
             Assert.Equal(Old.Grade(score / 100.0), EvaluationScoring.GradeByScore(c, score / 100.0));
     }
 
     #endregion
 
-    #region Gợi ý mức, trần xuất sắc, giải trình, trục 09B, đăng ký
+    #region Gợi ý mức, trần xuất sắc, giải trình, đăng ký
 
     [Fact]
     public void SuggestGrade_UsesThresholds_AndExceedStandardCondition()
     {
-        var c = CriteriaSetDefaults.Build09A();
+        var c = CriteriaSetDefaults.Build();
         Assert.Equal(EvaluationGrade.HoanThanhXuatSac, EvaluationScoring.SuggestGrade(c, 95, 0.3));
         Assert.Equal(EvaluationGrade.HoanThanhTot, EvaluationScoring.SuggestGrade(c, 95, 0.2)); // thiếu điều kiện vượt chuẩn → mức kế tiếp
-        Assert.Equal(EvaluationGrade.HoanThanhXuatSac, EvaluationScoring.SuggestGrade(c, 90, null)); // 09B: không có dữ liệu nhiệm vụ
+        Assert.Equal(EvaluationGrade.HoanThanhXuatSac, EvaluationScoring.SuggestGrade(c, 90, null)); // chưa có dữ liệu nhiệm vụ
         Assert.Equal(EvaluationGrade.HoanThanhTot, EvaluationScoring.SuggestGrade(c, 89.9, 1));
         Assert.Equal(EvaluationGrade.HoanThanh, EvaluationScoring.SuggestGrade(c, 50, 0));
         Assert.Equal(EvaluationGrade.KhongHoanThanh, EvaluationScoring.SuggestGrade(c, 49.9, 0));
@@ -369,7 +361,7 @@ public sealed class CriteriaSetUnitTests
     [InlineData(12, 2)]
     public void ExcellentQuota_Tc3_DefaultRule(int goodCount, int expected)
     {
-        var rule = CriteriaSetDefaults.Build09A().Parameters.ExcellentQuota;
+        var rule = CriteriaSetDefaults.Build().Parameters.ExcellentQuota;
         Assert.Equal(ExcellentQuotaRule.DefaultRatio, rule.Ratio);
         Assert.Equal(expected, EvaluationScoring.ExcellentQuota(goodCount, rule));
         rule.Ratio = 0.25;
@@ -401,9 +393,9 @@ public sealed class CriteriaSetUnitTests
     [InlineData(1.5, false)]
     public void ExcellentQuota_Ratio_MustBe20To25Percent(double ratio, bool valid)
     {
-        var content = CriteriaSetDefaults.Build09B();
+        var content = CriteriaSetDefaults.Build();
         content.Parameters.ExcellentQuota.Ratio = ratio;
-        var errors = content.Normalize().Validate(CriteriaSetContent.Form09B);
+        var errors = content.Normalize().Validate();
         Assert.Equal(valid, !errors.Any(e => e.Contains("Trần tỷ lệ", StringComparison.Ordinal)));
     }
 
@@ -411,7 +403,7 @@ public sealed class CriteriaSetUnitTests
     [Fact]
     public void ExcellentQuota_OldContent_ReadsWithDefaults()
     {
-        var json = System.Text.Json.JsonSerializer.Serialize(CriteriaSetDefaults.Build09A(), CriteriaSetContent.JsonOptions);
+        var json = System.Text.Json.JsonSerializer.Serialize(CriteriaSetDefaults.Build(), CriteriaSetContent.JsonOptions);
         var node = System.Text.Json.Nodes.JsonNode.Parse(json)!;
         node["parameters"]!["excellentQuota"] = System.Text.Json.Nodes.JsonNode.Parse("{\"denominator\":\"GoodOrBetter\",\"rounding\":\"Truncate\"}");
         var content = System.Text.Json.JsonSerializer.Deserialize<CriteriaSetContent>(node.ToJsonString(), CriteriaSetContent.JsonOptions)!.Normalize();
@@ -427,7 +419,7 @@ public sealed class CriteriaSetUnitTests
     [Fact]
     public void RequiresExplanation_Tc5()
     {
-        var c = CriteriaSetDefaults.Build09A();
+        var c = CriteriaSetDefaults.Build();
         Assert.True(EvaluationScoring.RequiresExplanation(c, 88, 83));
         Assert.True(EvaluationScoring.RequiresExplanation(c, 83, 88));
         Assert.True(EvaluationScoring.RequiresExplanation(c, 91, 89));
@@ -440,30 +432,13 @@ public sealed class CriteriaSetUnitTests
     }
 
     [Fact]
-    public void AxisScores_09B_ValidateAgainstSet_AndSum()
-    {
-        var c = CriteriaSetDefaults.Build09B();
-        var full = new Dictionary<string, double> { ["T1"] = 15, ["T2"] = 10, ["T3"] = 10, ["T4"] = 15, ["T5"] = 10, ["t6"] = 10 };
-        Assert.Null(EvaluationScoring.ValidateAxisScores(c, full));
-        Assert.Equal(70.0, EvaluationScoring.AxisTasksScore(c, full));
-        Assert.Equal("{\"T1\":15,\"T2\":10,\"T3\":10,\"T4\":15,\"T5\":10,\"T6\":10}", EvaluationScoring.AxisScoresToJson(c, full));
-
-        Assert.Contains("T1 phải từ 0 đến 15", EvaluationScoring.ValidateAxisScores(c, new Dictionary<string, double>(full) { ["T1"] = 15.5 }));
-        var missing = new Dictionary<string, double>(full);
-        missing.Remove("T3");
-        Assert.Contains("Chưa chấm trục T3", EvaluationScoring.ValidateAxisScores(c, missing));
-        Assert.Contains("\"T7\"", EvaluationScoring.ValidateAxisScores(c, new Dictionary<string, double>(full) { ["T7"] = 1 }));
-        Assert.Contains("đủ 6 trục", EvaluationScoring.ValidateAxisScores(c, null));
-    }
-
-    [Fact]
     public void TaskRegistration_UsesSetParameters()
     {
         var culture = CultureInfo.CurrentCulture;
         try
         {
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-            var p = CriteriaSetDefaults.Build09A().Parameters;
+            var p = CriteriaSetDefaults.Build().Parameters;
             Assert.Null(EvaluationScoring.ValidateTaskRegistration(new[] { 30.0, 20, 20 }, p));
             Assert.Null(EvaluationScoring.ValidateTaskRegistration(new[] { 30.0, 20, 19.96 }, p));
             Assert.Contains("từ 3 đến 7", EvaluationScoring.ValidateTaskRegistration(new[] { 70.0 }, p));

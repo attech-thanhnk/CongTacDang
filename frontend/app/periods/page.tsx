@@ -12,7 +12,6 @@ import { CreatePeriodModal } from "@/components/periods/CreatePeriodModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { EvaluationPeriodDto, evaluationService } from "@/services/evaluationService";
-import { scoringMethodLabel } from "@/services/criteriaService";
 import { errorMessage } from "@/components/admin/adminUtils";
 import { formatDate } from "@/lib/dateFormat";
 import styles from "@/components/periods/periods.module.css";
@@ -90,14 +89,7 @@ export default function PeriodsPage() {
                       </td>
                       <td><PeriodStatusBadge status={p.status} label={p.statusDisplayName} /></td>
                       <td className="d-none d-md-table-cell">
-                        {p.criteria ? (
-                          <>
-                            {p.criteria.name}
-                            {!p.criteria.name.startsWith(scoringMethodLabel(p.criteria.selfScoreForm)) && (
-                              <div className="small text-secondary">{scoringMethodLabel(p.criteria.selfScoreForm)}</div>
-                            )}
-                          </>
-                        ) : <span className="text-danger">Chưa chọn</span>}
+                        {p.criteria ? p.criteria.name : <span className="text-danger">Chưa chọn</span>}
                       </td>
                       <td className="d-none d-lg-table-cell"><ProfilesSummary names={p.settings?.profiles?.map((profile) => profile.name) ?? []} /></td>
                       <td className="text-end num d-none d-sm-table-cell">{p.totalRecords}</td>

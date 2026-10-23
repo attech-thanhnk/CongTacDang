@@ -13,7 +13,6 @@ public sealed class CriteriaSetConfiguration : IEntityTypeConfiguration<Criteria
         entity.Property(e => e.Code).HasMaxLength(50).IsRequired();
         entity.HasIndex(e => e.Code).IsUnique();
         entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
-        entity.Property(e => e.SelfScoreForm).HasMaxLength(10).IsRequired();
         entity.Property(e => e.Notes).HasMaxLength(4000);
         entity.Property(e => e.Content).HasColumnType("jsonb").IsRequired();
         entity.HasIndex(e => e.Status);

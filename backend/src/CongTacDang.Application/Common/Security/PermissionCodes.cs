@@ -132,7 +132,7 @@ public static class PermissionCodes
         new(SystemImport, "Nhập dữ liệu từ Excel", "system", "Nhập đơn vị, tổ chức Đảng, cán bộ và gán vai trò từ file Excel; mỗi loại còn cần quyền quản lý dữ liệu tương ứng.", false),
         new(CatalogManage, "Quản lý danh mục", "catalog", "Quản lý danh mục đơn vị chính quyền, tổ chức Đảng, loại đơn vị, chức vụ. Xem danh mục: mọi người đã đăng nhập.", false),
         new(PeriodManage, "Quản lý kỳ đánh giá", "period", "Tạo kỳ, cấu hình bước/thời hạn, chọn bộ tiêu chí, danh sách người được đánh giá, mở/khóa kỳ.", false),
-        new(CriteriaManage, "Quản lý bộ tiêu chí", "criteria", "Tạo, nhân bản, sửa bản nháp, xuất bản, lưu trữ bộ tiêu chí và thang điểm (tiêu chí chung, trục, khung tỷ trọng, mức xếp loại, tham số).", false),
+        new(CriteriaManage, "Quản lý bộ tiêu chí", "criteria", "Tạo, nhân bản, sửa bản nháp, xuất bản, lưu trữ bộ tiêu chí và thang điểm (tiêu chí chung, trục kết quả, khung tỷ trọng, mức xếp loại, tham số).", false),
         new(EvaluationSelf, "Tham gia đánh giá (bản thân)", "evaluation", "Đăng ký sản phẩm, tự chấm, giải trình, nộp minh chứng — chỉ trên hồ sơ của mình (phạm vi gán được bỏ qua).", true),
         new(EvaluationRead, "Xem hồ sơ đánh giá", "evaluation", "Xem hồ sơ đánh giá trong phạm vi được gán; chủ hồ sơ luôn xem được hồ sơ của mình.", true),
         new(EvaluationTasksApprove, "Duyệt danh mục sản phẩm", "evaluation", "Duyệt danh mục sản phẩm đăng ký đầu kỳ (bước 1).", true),

@@ -2,6 +2,7 @@ using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 using CongTacDang.Infrastructure.Data;
 using CongTacDang.IntegrationTests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -55,10 +56,10 @@ public sealed class DataSeederAuthorizationTests
                 Assert.All(users, u => Assert.True(u.MustChangePassword));
                 Assert.All(users, u => Assert.True(BCrypt.Net.BCrypt.Verify(SamplePassword, u.PasswordHash)));
 
-                // Kỳ mẫu Quý III/2026 (chuyển tiếp, đang mở) với hồ sơ ở nhiều bước.
+                // Kỳ mẫu Quý III/2026 (đang mở) với hồ sơ ở nhiều bước.
                 var period = await db.EvaluationPeriods.SingleAsync();
                 Assert.Equal(PeriodStatus.Open, period.Status);
-                Assert.Equal("09B", period.GetCriteria()!.SelfScoreForm);
+                Assert.Equal(CriteriaSetDefaults.Code, period.GetCriteria()!.Code);
                 var statuses = await db.EvaluationRecords.Select(r => r.Status).ToListAsync();
                 // 7 hồ sơ ở 6 trạng thái: hai hồ sơ đã công bố (Giám đốc — cấp trên; cán bộ mức C có kế hoạch Mẫu 17).
                 Assert.Equal(7, statuses.Count);

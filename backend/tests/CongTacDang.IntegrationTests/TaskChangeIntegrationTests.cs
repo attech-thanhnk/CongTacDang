@@ -19,7 +19,7 @@ public sealed class TaskChangeIntegrationTests
     public async Task Adjust_Exclude_Urgent_ApproveAppliesToTasks_SelfScoreSkipsExcluded()
     {
         var w = await WorldAsync();
-        var periodId = await OpenPeriodAsync(w, "09A");
+        var periodId = await OpenPeriodAsync(w);
         var recordId = await RecordOfAsync(w, periodId, w.Owner.Id);
 
         // Chưa duyệt danh sách việc → chưa đề nghị được.
@@ -132,22 +132,6 @@ public sealed class TaskChangeIntegrationTests
         Assert.True(history.EnumerateArray().Count(h => h.GetProperty("action").GetString() == "TaskChange") >= 6);
     }
 
-    [SkippableFact]
-    public async Task Criteria09B_HasNoTaskChanges()
-    {
-        var w = await WorldAsync();
-        var periodId = await OpenPeriodAsync(w, "09B");
-        var recordId = await RecordOfAsync(w, periodId, w.Owner.Id);
-        var block = await Data(w.OwnerC, $"/api/evaluations/records/{recordId}/task-changes");
-        Assert.False(block.GetProperty("applicable").GetBoolean());
-        Assert.False(block.GetProperty("canRequestChange").GetBoolean());
-        var create = await CreateAsync(w, w.OwnerC, recordId, new
-        {
-            type = "Urgent", proposal = new { taskName = "x", targetOutput = "y", axisCode = "T1", weight = 10.0 }, reason = "x"
-        });
-        Assert.Equal(HttpStatusCode.Conflict, create.StatusCode);
-    }
-
     #region Hỗ trợ
 
     private static readonly SemaphoreSlim Gate = new(1, 1);
@@ -213,12 +197,12 @@ public sealed class TaskChangeIntegrationTests
         }
     };
 
-    private static async Task<Guid> OpenPeriodAsync(World w, string form)
+    private static async Task<Guid> OpenPeriodAsync(World w)
     {
         var body = new
         {
             year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter,
-            criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(w.ManagerC, form),
+            criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(w.ManagerC),
             name = $"Kỳ TC {Guid.NewGuid().ToString("N")[..8]}",
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         };

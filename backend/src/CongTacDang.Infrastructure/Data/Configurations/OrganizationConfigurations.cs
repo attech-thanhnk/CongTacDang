@@ -110,7 +110,6 @@ public sealed class FormLayoutConfiguration : IEntityTypeConfiguration<FormLayou
         entity.HasKey(e => e.Id);
         entity.Property(e => e.Name).HasMaxLength(FormLayout.MaxNameLength).IsRequired();
         entity.Property(e => e.Description).HasMaxLength(FormLayout.MaxDescriptionLength);
-        entity.Property(e => e.HeaderStyle).HasConversion<int>();
         entity.Property(e => e.EmptyPositionText).HasMaxLength(FormLayout.MaxEmptyPositionTextLength);
         entity.HasIndex(e => e.Name).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
         entity.HasQueryFilter(e => !e.IsDeleted);

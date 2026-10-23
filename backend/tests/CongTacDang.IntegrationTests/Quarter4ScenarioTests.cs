@@ -13,7 +13,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>Trọn một kỳ Quý IV/2026 theo bộ 09B với đủ 4 cách xét duyệt, đi hết các bước, xuất mọi biểu mẫu.
+/// <summary>Trọn một kỳ Quý IV/2026 với đủ 4 cách xét duyệt, đi hết các bước, xuất mọi biểu mẫu.
 /// Chạy trên CSDL tạm riêng để kỳ đúng năm 2026, quý IV.</summary>
 [Collection(Quarter4Collection.Name)]
 public sealed class Quarter4ScenarioTests
@@ -43,8 +43,8 @@ public sealed class Quarter4ScenarioTests
         Skip.If(_factory.SkipReason != null, _factory.SkipReason);
         var w = await World.CreateAsync(_factory);
 
-        // ============ 1. Tạo kỳ Quý IV/2026 với bộ 09B ============
-        var setId = await TestCriteriaSets.LatestPublishedAsync(w.Tccb, "09B");
+        // ============ 1. Tạo kỳ Quý IV/2026 ============
+        var setId = await TestCriteriaSets.LatestPublishedAsync(w.Tccb);
         var created = await Data(await w.Tccb.PostAsJsonAsync("/api/evaluations/periods", new
         {
             year = 2026, quarter = 4, name = "Đánh giá cán bộ Quý IV/2026", criteriaSetId = setId,
@@ -54,11 +54,11 @@ public sealed class Quarter4ScenarioTests
         var settings = JsonNode.Parse(created.GetProperty("settings").GetRawText())!.AsObject();
         var profileCodes = settings["profiles"]!.AsArray().Select(p => p!["code"]!.GetValue<string>()).ToList();
         Assert.Equal(new[] { "co-so", "cap-tren", "bi-thu-nhan-vien", "pho-giam-doc" }, profileCodes);
-        // Bộ 09B: không đăng ký, không duyệt việc ở mọi cách xét duyệt.
+        // Đăng ký sản phẩm luôn áp dụng; kịch bản ghi sẵn danh mục nên tắt bước duyệt danh mục.
         foreach (var profile in settings["profiles"]!.AsArray())
         {
-            Assert.Equal("Off", profile!["steps"]!["B1_REGISTER"]!["mode"]!.GetValue<string>());
-            Assert.Equal("Off", profile["steps"]!["B1_APPROVE"]!["mode"]!.GetValue<string>());
+            Assert.Equal("Internal", profile!["steps"]!["B1_REGISTER"]!["mode"]!.GetValue<string>());
+            profile["steps"]!["B1_APPROVE"]!["mode"] = "Off";
         }
         var deputy = Profile(settings, "pho-giam-doc")["steps"]!;
         Assert.Equal("Off", deputy["B3B_APPRAISAL"]!["mode"]!.GetValue<string>());
@@ -101,20 +101,25 @@ public sealed class Quarter4ScenarioTests
         Assert.Equal("Open", opened.GetProperty("status").GetString());
         Assert.Equal(4, opened.GetProperty("quarter").GetInt32());
 
-        // Hồ sơ của tôi và việc cần xử lý: bước đầu là tự chấm (không đăng ký việc).
+        // Hồ sơ của tôi: bước đầu là đăng ký sản phẩm; danh mục được ghi sẵn (kịch bản không xét bước đăng ký, duyệt).
+        var taskScores = new Dictionary<Guid, object[]>();
         foreach (var p in w.All)
         {
             var mine = await Data(p.Client, "/api/evaluations/my-record");
             Assert.Equal(id[p.Id], mine.GetProperty("id").GetGuid());
-            Assert.Equal("AwaitingSelfScore", mine.GetProperty("status").GetString());
+            Assert.Equal("AwaitingRegistration", mine.GetProperty("status").GetString());
+            taskScores[p.Id] = await RegistrationTestData.RegisterAsync(_factory, id[p.Id], 64.0 / 70);
         }
         var forms = (await Data(w.Tp.Client, $"/api/reports/docx/record/{id[w.Tp.Id]}")).EnumerateArray().Select(f => f.GetProperty("code").GetString()).ToList();
-        Assert.Equal(new[] { "09B", "09C", "9D", "10" }, forms);
-        Assert.Equal("2026-12-09", participants[w.Tp.Id].GetProperty("currentStepDeadline").GetString());
+        Assert.Equal(new[] { "01", "02", "09A", "09C", "9D", "10" }, forms);
 
-        // ============ 4. Bước 2: tự chấm 09B (+09C, 9D) → Chi bộ xác nhận ============
+        // ============ 4. Bước 2: tự chấm 09A (+09C, 9D) → Chi bộ xác nhận ============
+        Assert.Equal("2026-12-09", (await Participants(w, periodId))[w.Tp.Id].GetProperty("currentStepDeadline").GetString());
         foreach (var p in w.All)
-            await Step(p.Client, id[p.Id], "self-score/submit", SelfScoreBody(p), "AwaitingCellConfirm");
+            await Step(p.Client, id[p.Id], "self-score/submit", SelfScoreBody(p, taskScores[p.Id]), "AwaitingCellConfirm");
+        // Trưởng phòng, Giám đốc được đề xuất Xuất sắc: sản phẩm vượt chuẩn (minh chứng không thuộc phạm vi kịch bản).
+        foreach (var p in new[] { w.Tp, w.Gd })
+            await RegistrationTestData.MarkExceedAsync(_factory, id[p.Id]);
 
         // Bí thư Chi bộ không tự xác nhận phiếu của mình (xung đột lợi ích); Chi bộ khác không xác nhận được.
         var selfConfirm = await Post(w.Bt.Client, id[w.Bt.Id], "cell/confirm", new { comment = "Tự xác nhận" }, w.Tccb);
@@ -240,10 +245,10 @@ public sealed class Quarter4ScenarioTests
 
         var printed = new List<(string Name, string Text)>();
 
-        // Biểu mẫu cá nhân của từng hồ sơ: 09B, 09C, 9D, 10.
+        // Biểu mẫu cá nhân của từng hồ sơ: 09A, 09C, 9D, 10.
         foreach (var p in w.All)
         {
-            foreach (var code in new[] { "09B", "09C", "9D", "10" })
+            foreach (var code in new[] { "09A", "09C", "9D", "10" })
             {
                 var doc = await Docx(w.Office, $"/api/reports/docx/record/{id[p.Id]}/{code}");
                 Assert.Contains(p.Name, doc.Text);
@@ -251,12 +256,10 @@ public sealed class Quarter4ScenarioTests
                 printed.Add(($"{code} {p.Name}", doc.Text));
             }
         }
-        var tp09b = printed.Single(x => x.Name == $"09B {w.Tp.Name}").Text;
-        Assert.Contains("PHIẾU TỰ CHẤM ĐIỂM", tp09b);
-        Assert.Contains($"Mục tiêu trục 1 của {w.Tp.Name}", tp09b);
-        Assert.Contains("Quý IV Năm 2026", tp09b);
-        Assert.Contains("Chi bộ: Kỹ thuật", tp09b); // không lặp "Chi bộ: Chi bộ …" (như phiếu đã nộp quý III)
-        Assert.Contains("CHI BỘ KỸ THUẬT", tp09b);
+        var tp09a = printed.Single(x => x.Name == $"09A {w.Tp.Name}").Text;
+        Assert.Contains("PHIẾU TỰ CHẤM", tp09a);
+        Assert.Contains("Quý IV Năm 2026", tp09a);
+        Assert.Contains("CHI BỘ KỸ THUẬT", tp09a);
         var tp09c = printed.Single(x => x.Name == $"09C {w.Tp.Name}").Text;
         Assert.Contains($"Tự đánh giá Quý IV của {w.Tp.Name}", tp09c);
         Assert.Contains("Hoàn thành tốt nhiệm vụ", tp09c);
@@ -342,10 +345,10 @@ public sealed class Quarter4ScenarioTests
 
     #region Dữ liệu
 
-    private static object SelfScoreBody(Person p) => new
+    private static object SelfScoreBody(Person p, object[] taskScores) => new
     {
         generalScores = CriteriaTestData.General(),
-        axisScores = CriteriaTestData.Axis(14, 9, 9, 14, 9, 9),
+        taskScores,
         selfProposedGrade = "HoanThanhTot", selfGradeExplanation = "Tự nhận mức thận trọng",
         selfAssessment = new Dictionary<string, string> { ["I"] = $"Tự đánh giá Quý IV của {p.Name}" },
         axisReports = new Dictionary<string, object>
@@ -357,7 +360,6 @@ public sealed class Quarter4ScenarioTests
             },
             ["T4"] = new { tasks = new[] { new { content = $"Công tác Đảng của {p.Name}" } }, product = "Sinh hoạt chi bộ đầy đủ" }
         },
-        axisNotes = new Dictionary<string, object> { ["T1"] = new { target = $"Mục tiêu trục 1 của {p.Name}", result = "Đạt" } },
         generalGroupNotes = new Dictionary<string, string> { ["1"] = "Chấp hành tốt" }
     };
 
@@ -443,6 +445,8 @@ public sealed class Quarter4ScenarioTests
         var version = (await Data(reader, $"/api/evaluations/records/{recordId}")).GetProperty("version").GetUInt32();
         var json = JsonSerializer.SerializeToNode(body)!.AsObject();
         json["version"] = version;
+        if (action == "appraisal")
+            await AppraisalTestData.AddTaskLevelsAsync(reader, recordId, json);
         return await client.PostAsJsonAsync($"/api/evaluations/records/{recordId}/{action}", json);
     }
 

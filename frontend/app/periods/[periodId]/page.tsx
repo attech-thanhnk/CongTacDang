@@ -33,7 +33,7 @@ import { PeriodProgressSection } from "@/components/periods/PeriodProgressSectio
 import { RecordStatusBadge } from "@/components/common/StatusBadge";
 import { Pagination } from "@/components/common/Pagination";
 import { usePagination } from "@/components/common/usePagination";
-import { CriteriaSetListItem, WeightFrame, criteriaService, scoringMethodLabel } from "@/services/criteriaService";
+import { CriteriaSetListItem, WeightFrame, criteriaService } from "@/services/criteriaService";
 import { reportService, withQuery } from "@/services/reportService";
 import { errorMessage, errorStatus } from "@/components/admin/adminUtils";
 
@@ -411,7 +411,6 @@ export default function PeriodDetailPage() {
               permissionOptions={permissionOptions}
               savedCodes={period.settings.profiles.map((p) => p.code)}
               onApplyRules={applyRules}
-              selfScoreForm={period.criteria?.selfScoreForm}
             />
 
             <div className="form-check mt-2">
@@ -665,7 +664,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                     <div className="d-md-none mt-1"><RecordStatusBadge status={p.status} label={p.statusDisplayName} /></div>
                   </td>
                   <td className="d-none d-md-table-cell">{p.departmentName || "—"}<div className={styles.unitSub}>{p.partyCellName || "—"}</div></td>
-                  <td className="d-none d-lg-table-cell" title={p.weightFrameName || undefined}>{p.weightFrameCode || "—"}{p.weightFrameCode && !p.weightFrameName && period.criteria?.selfScoreForm === "09A" && <i className="bi bi-exclamation-triangle text-danger ms-1" title="Khung không có trong bộ tiêu chí của kỳ" />}</td>
+                  <td className="d-none d-lg-table-cell" title={p.weightFrameName || undefined}>{p.weightFrameCode || "—"}{p.weightFrameCode && !p.weightFrameName && period.criteria && <i className="bi bi-exclamation-triangle text-danger ms-1" title="Khung không có trong bộ tiêu chí của kỳ" />}</td>
                   <td className="d-none d-lg-table-cell text-nowrap">{p.approvalAuthority === "CapTren" ? "Cấp trên" : "Cơ sở"}</td>
                   <td className="d-none d-md-table-cell">{p.workflowProfileName || p.workflowProfileCode}</td>
                   <td className="d-none d-md-table-cell"><RecordStatusBadge status={p.status} label={p.statusDisplayName} /></td>
@@ -884,9 +883,6 @@ function CriteriaSection({ period, editable, busy, onChoose }: CriteriaSectionPr
           <div className={`d-flex flex-wrap align-items-center gap-2 ${editable || expanded ? "mb-3" : ""}`}>
             <strong>{criteria.name}</strong>
             <span className="text-secondary">{criteria.code}</span>
-            {!criteria.name.startsWith(scoringMethodLabel(criteria.selfScoreForm)) && (
-              <span className="tag t-info">{scoringMethodLabel(criteria.selfScoreForm)}</span>
-            )}
             <span className="text-secondary small num">
               {period.status === "Draft" ? "Chọn lúc" : "Chụp vào kỳ lúc"} {formatDateTime(criteria.takenAt)}
             </span>
@@ -906,7 +902,7 @@ function CriteriaSection({ period, editable, busy, onChoose }: CriteriaSectionPr
               <label className="form-label" htmlFor="period-criteria-set">Chọn bộ đã xuất bản</label>
               <select id="period-criteria-set" className="form-select form-select-sm" value={choice} onChange={(e) => setChoice(e.target.value)}>
                 <option value="">— Chọn —</option>
-                {sets.map((s) => <option key={s.id} value={s.id}>{s.name} — {scoringMethodLabel(s.selfScoreForm)}</option>)}
+                {sets.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
               </select>
             </div>
             <button type="button" className="btn btn-outline-primary btn-sm" disabled={busy || !choice || choice === period.criteriaSetId} onClick={() => onChoose(choice)}>
@@ -914,7 +910,7 @@ function CriteriaSection({ period, editable, busy, onChoose }: CriteriaSectionPr
             </button>
           </div>
         )}
-        {criteria && expanded && <CriteriaSummary content={criteria.content} form={criteria.selfScoreForm} />}
+        {criteria && expanded && <CriteriaSummary content={criteria.content} />}
       </div>
     </section>
   );

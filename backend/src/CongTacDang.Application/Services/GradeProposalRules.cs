@@ -20,10 +20,10 @@ public sealed record GradeDeviation(WorkflowStep Step, EvaluationGrade Proposed,
 /// </summary>
 public static class GradeProposalRules
 {
-    /// <summary>Chấm theo nhiệm vụ (09A): tỷ lệ nhiệm vụ còn hiệu lực đánh dấu vượt chuẩn; chấm theo trục → null.</summary>
+    /// <summary>Tỷ lệ nhiệm vụ còn hiệu lực đánh dấu vượt chuẩn; hồ sơ chưa nạp danh mục → null.</summary>
     public static double? ExceedRatio(EvaluationRecord record, CriteriaSnapshot criteria)
     {
-        if (criteria.UsesAxisScoring || record.Tasks == null)
+        if (record.Tasks == null)
             return null;
         var tasks = record.Tasks.Where(t => !t.IsDeleted && TaskChangeRules.IsActive(t)).ToList();
         return EvaluationScoring.ExceedStandardRatio(tasks.Count(t => t.IsExceedStandard), tasks.Count);

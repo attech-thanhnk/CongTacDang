@@ -13,23 +13,20 @@ public static class RecordFormCodes
     /// <summary>Phiếu tự đánh giá kết quả thực hiện sản phẩm.</summary>
     public const string Form02 = "02";
 
-    /// <summary>Tự chấm theo nhiệm vụ Mẫu 01/02.</summary>
-    public const string Form09A = CriteriaSetContent.Form09A;
-
-    /// <summary>Tự chấm trực tiếp theo trục.</summary>
-    public const string Form09B = CriteriaSetContent.Form09B;
+    /// <summary>Phiếu tự chấm điểm theo sản phẩm Mẫu 01/02; luôn áp dụng.</summary>
+    public const string Form09A = "09A";
 
     /// <summary>Bản tự đánh giá, xếp loại cá nhân (tự luận).</summary>
     public const string Form09C = "09C";
 
-    /// <summary>Phụ lục kết quả thực hiện nhiệm vụ trong quý (theo trục).</summary>
+    /// <summary>Phụ lục kết quả thực hiện nhiệm vụ trong quý.</summary>
     public const string Form9D = "9D";
 
     /// <summary>Phiếu thẩm định, nhận xét, đề xuất xếp loại.</summary>
     public const string Form10 = "10";
 
     /// <summary>Theo thứ tự hiển thị.</summary>
-    public static IReadOnlyList<string> All { get; } = new[] { Form01, Form02, Form09A, Form09B, Form09C, Form9D, Form10 };
+    public static IReadOnlyList<string> All { get; } = new[] { Form01, Form02, Form09A, Form09C, Form9D, Form10 };
 
     /// <summary>Bỏ khoảng trắng, tiền tố "MAU"/"MẪU"; "09D" = "9D". Mã lạ giữ nguyên để bộ kiểm tra báo lỗi.</summary>
     public static string Normalize(string? code)
@@ -54,8 +51,7 @@ public static class RecordFormCodes
     {
         Form01 => "Mẫu 01 — Phiếu giao / đăng ký sản phẩm, công việc chuyên môn",
         Form02 => "Mẫu 02 — Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc",
-        Form09A => "Mẫu 09A — Phiếu tự chấm điểm (theo sản phẩm Mẫu 01/02)",
-        Form09B => "Mẫu 09B — Phiếu tự chấm điểm (theo trục)",
+        Form09A => "Mẫu 09A — Phiếu tự chấm điểm",
         Form09C => "Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân",
         Form9D => "Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ trong quý",
         Form10 => "Mẫu 10 — Phiếu thẩm định, nhận xét, đề xuất xếp loại",

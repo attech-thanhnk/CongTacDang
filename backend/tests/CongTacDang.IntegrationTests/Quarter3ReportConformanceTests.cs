@@ -214,7 +214,7 @@ public sealed class Quarter3ReportConformanceTests
             {
                 Year = 3000 + Random.Shared.Next(0, 900), Quarter = EvaluationQuarter.Quy3, Name = $"Kỳ Q3 {sfx}",
                 StartDate = DateTime.UtcNow.AddDays(-30), EndDate = DateTime.UtcNow.AddDays(30), Status = PeriodStatus.Open,
-                CriteriaSnapshot = CriteriaTestData.Snapshot("09B")
+                CriteriaSnapshot = CriteriaTestData.Snapshot()
             };
             db.AddRange(root, cell, dept, period);
 

@@ -296,87 +296,71 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
         record.GeneralScores = EvaluationScoring.GeneralScoresToJson(content, general);
         record.GeneralCriteriaScore = EvaluationScoring.GeneralCriteriaScore(content, general);
-        double? exceedRatio = null;
 
-        if (criteria.UsesAxisScoring)
+        // Lưu nháp khi chưa có khung / danh mục: giữ nguyên điểm nhiệm vụ, vẫn lưu phần còn lại.
+        var frame = RecordWeightFrames.Effective(record, content);
+        if (frame == null && !draft)
+            throw new ValidationException(string.IsNullOrEmpty(record.WeightFrameCode)
+                ? "Hồ sơ chưa có khung tỷ trọng A-B-C-D nên chưa tự chấm được theo Mẫu 09A. Hãy liên hệ người quản lý kỳ để chọn khung."
+                : $"Khung tỷ trọng \"{record.WeightFrameCode}\" của hồ sơ không có trong bộ tiêu chí \"{criteria.Name}\" của kỳ. "
+                  + "Hãy liên hệ người quản lý kỳ để sửa khung.");
+
+        var tasks = await _repo.GetTasksAsync(record.Id, ct);
+        if (tasks.Count == 0 && !draft)
+            throw new ValidationException("Hồ sơ chưa có danh mục sản phẩm (Mẫu 01) nên chưa tự chấm theo Mẫu 09A được.");
+
+        if (frame != null)
         {
-            var axisScores = request.AxisScores ?? new Dictionary<string, double>();
-            var axisError = EvaluationScoring.ValidateAxisScores(content, axisScores, partial: draft);
-            if (axisError != null)
-                throw new ValidationException(axisError);
-            record.AxisScores = EvaluationScoring.AxisScoresToJson(content, axisScores);
-            record.TasksScore = EvaluationScoring.AxisTasksScore(content, axisScores);
-            record.SelfScoreForm = CriteriaSetContent.Form09B;
-        }
-        else
-        {
-            // Lưu nháp khi chưa có khung / danh mục: giữ nguyên điểm nhiệm vụ, vẫn lưu phần còn lại.
-            var frame = RecordWeightFrames.Effective(record, content);
-            if (frame == null && !draft)
-                throw new ValidationException(string.IsNullOrEmpty(record.WeightFrameCode)
-                    ? "Hồ sơ chưa có khung tỷ trọng A-B-C-D nên chưa tự chấm được theo Mẫu 09A. Hãy liên hệ người quản lý kỳ để chọn khung."
-                    : $"Khung tỷ trọng \"{record.WeightFrameCode}\" của hồ sơ không có trong bộ tiêu chí \"{criteria.Name}\" của kỳ. "
-                      + "Hãy liên hệ người quản lý kỳ để sửa khung.");
+            // Tệp minh chứng mới gắn vào nhiệm vụ phải tồn tại và thuộc quyền người gửi.
+            var changed = tasks
+                .Select(task => (task, input: request.TaskScores?.FirstOrDefault(s => s.TaskId == task.Id)))
+                .Where(x => x.input != null && x.input.AttachmentId != x.task.AttachmentId)
+                .Select(x => x.input!.AttachmentId);
+            await EnsureNewAttachmentsLinkableAsync(changed, new HashSet<Guid>());
 
-            var tasks = await _repo.GetTasksAsync(record.Id, ct);
-            if (tasks.Count == 0 && !draft)
-                throw new ValidationException("Hồ sơ chưa có danh mục sản phẩm (Mẫu 01) nên chưa tự chấm theo Mẫu 09A được.");
-
-            if (frame != null)
+            // Nộp phiếu: mọi nhiệm vụ còn hiệu lực phải đủ bốn tỷ lệ; không lấy giá trị đã lưu/khởi tạo thay phần chưa nhập.
+            if (!draft)
             {
-                // Tệp minh chứng mới gắn vào nhiệm vụ phải tồn tại và thuộc quyền người gửi.
-                var changed = tasks
-                    .Select(task => (task, input: request.TaskScores?.FirstOrDefault(s => s.TaskId == task.Id)))
-                    .Where(x => x.input != null && x.input.AttachmentId != x.task.AttachmentId)
-                    .Select(x => x.input!.AttachmentId);
-                await EnsureNewAttachmentsLinkableAsync(changed, new HashSet<Guid>());
-
-                // Nộp phiếu: mọi nhiệm vụ còn hiệu lực phải đủ bốn tỷ lệ; không lấy giá trị đã lưu/khởi tạo thay phần chưa nhập.
-                if (!draft)
-                {
-                    var missing = tasks
-                        .Where(TaskChangeRules.IsActive)
-                        .Where(t => !IsComplete(request.TaskScores?.FirstOrDefault(s => s != null && s.TaskId == t.Id)))
-                        .OrderBy(t => t.TaskOrder)
-                        .Select(t => $"\"{t.TaskName}\"")
-                        .ToList();
-                    if (missing.Count > 0)
-                        throw new ValidationException($"Chưa nhập đủ tỷ lệ A-B-C-D cho nhiệm vụ: {string.Join(", ", missing)}.");
-                }
-
-                foreach (var task in tasks)
-                {
-                    // Việc đã loại trừ / chuyển tiếp (Mẫu 04): không chấm, điểm 0.
-                    if (!TaskChangeRules.IsActive(task))
-                    {
-                        task.SelfScore = 0;
-                        task.IsExceedStandard = false;
-                        continue;
-                    }
-                    var input = request.TaskScores?.FirstOrDefault(s => s != null && s.TaskId == task.Id);
-                    if (!IsComplete(input))
-                        continue; // Chỉ xảy ra khi lưu nháp: giữ nội dung đã lưu của nhiệm vụ chưa nhập đủ.
-                    var scored = EvaluationScoring.ScoreTask(task.Weight, input!.CriteriaA_Ratio!.Value, input.CriteriaB_Ratio!.Value,
-                        input.CriteriaC_Ratio!.Value, input.CriteriaD_Ratio!.Value, frame, rounding.TaskScore);
-                    task.CriteriaA_Ratio = scored.A;
-                    task.CriteriaB_Ratio = scored.B;
-                    task.CriteriaC_Ratio = scored.C;
-                    task.CriteriaD_Ratio = scored.D;
-                    task.IsExceedStandard = input.IsExceedStandard;
-                    task.AttachmentId = input.AttachmentId;
-                    task.SelfScore = scored.Score;
-                }
-
-                if (!draft)
-                    await EnsureExceedEvidenceAsync(tasks, ct);
+                var missing = tasks
+                    .Where(TaskChangeRules.IsActive)
+                    .Where(t => !IsComplete(request.TaskScores?.FirstOrDefault(s => s != null && s.TaskId == t.Id)))
+                    .OrderBy(t => t.TaskOrder)
+                    .Select(t => $"\"{t.TaskName}\"")
+                    .ToList();
+                if (missing.Count > 0)
+                    throw new ValidationException($"Chưa nhập đủ tỷ lệ A-B-C-D cho nhiệm vụ: {string.Join(", ", missing)}.");
             }
 
-            record.TasksScore = EvaluationScoring.TasksScore(tasks.Select(t => t.SelfScore), rounding.TasksTotal);
-            record.AxisScores = null;
-            record.SelfScoreForm = CriteriaSetContent.Form09A;
-            var scoredTasks = tasks.Where(TaskChangeRules.IsActive).ToList();
-            exceedRatio = EvaluationScoring.ExceedStandardRatio(scoredTasks.Count(t => t.IsExceedStandard), scoredTasks.Count);
+            foreach (var task in tasks)
+            {
+                // Việc đã loại trừ / chuyển tiếp (Mẫu 04): không chấm, điểm 0.
+                if (!TaskChangeRules.IsActive(task))
+                {
+                    task.SelfScore = 0;
+                    task.IsExceedStandard = false;
+                    continue;
+                }
+                var input = request.TaskScores?.FirstOrDefault(s => s != null && s.TaskId == task.Id);
+                if (!IsComplete(input))
+                    continue; // Chỉ xảy ra khi lưu nháp: giữ nội dung đã lưu của nhiệm vụ chưa nhập đủ.
+                var scored = EvaluationScoring.ScoreTask(task.Weight, input!.CriteriaA_Ratio!.Value, input.CriteriaB_Ratio!.Value,
+                    input.CriteriaC_Ratio!.Value, input.CriteriaD_Ratio!.Value, frame, rounding.TaskScore);
+                task.CriteriaA_Ratio = scored.A;
+                task.CriteriaB_Ratio = scored.B;
+                task.CriteriaC_Ratio = scored.C;
+                task.CriteriaD_Ratio = scored.D;
+                task.IsExceedStandard = input.IsExceedStandard;
+                task.AttachmentId = input.AttachmentId;
+                task.SelfScore = scored.Score;
+            }
+
+            if (!draft)
+                await EnsureExceedEvidenceAsync(tasks, ct);
         }
+
+        record.TasksScore = EvaluationScoring.TasksScore(tasks.Select(t => t.SelfScore), rounding.TasksTotal);
+        var scoredTasks = tasks.Where(TaskChangeRules.IsActive).ToList();
+        var exceedRatio = EvaluationScoring.ExceedStandardRatio(scoredTasks.Count(t => t.IsExceedStandard), scoredTasks.Count);
 
         record.TotalSelfScore = EvaluationScoring.TotalScore(record.GeneralCriteriaScore, record.TasksScore, rounding.Total);
         if (!string.IsNullOrWhiteSpace(request.SelfProposedGrade))
@@ -476,17 +460,6 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             }
         }
 
-        if (request.AxisNotes != null && criteria.UsesAxisScoring)
-        {
-            var error = RecordFormContent.ValidateAxisNotes(content, request.AxisNotes);
-            if (error != null)
-                throw new ValidationException(error);
-            var json = RecordFormContent.AxisNotesToJson(content, request.AxisNotes);
-            if (json != record.AxisNotes)
-                changed.Add("nội dung theo trục Mẫu 09B");
-            record.AxisNotes = json;
-        }
-
         if (request.GeneralGroupNotes != null)
         {
             var error = RecordFormContent.ValidateGeneralGroupNotes(content, request.GeneralGroupNotes);
@@ -582,9 +555,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             GradeProposalRules.EnsureExplained(criteria.Content, WorkflowStep.B3B_APPRAISAL, grade, total,
                 GradeProposalRules.ExceedRatio(ctx.Record, criteria), explanation, "\"Giải trình\"");
 
-            // Chấm theo nhiệm vụ (09A): bắt buộc xếp mức mọi nhiệm vụ; chấm theo trục bỏ qua.
-            if (!criteria.UsesAxisScoring)
-                ApplyTaskLevels(await _repo.GetTasksAsync(ctx.Record.Id, ct), request.TaskLevels);
+            // Bắt buộc xếp mức mọi nhiệm vụ.
+            ApplyTaskLevels(await _repo.GetTasksAsync(ctx.Record.Id, ct), request.TaskLevels);
 
             ctx.Record.AppraisalScore = total;
             ctx.Record.AppraisalGeneralScore = general;

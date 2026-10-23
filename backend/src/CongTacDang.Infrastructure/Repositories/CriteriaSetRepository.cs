@@ -39,9 +39,9 @@ public sealed class CriteriaSetRepository : ICriteriaSetRepository
     }
 
     /// <inheritdoc />
-    public Task<CriteriaSet?> LatestPublishedAsync(string? selfScoreForm, CancellationToken ct = default) =>
+    public Task<CriteriaSet?> LatestPublishedAsync(CancellationToken ct = default) =>
         _db.Set<CriteriaSet>().AsNoTracking()
-            .Where(s => s.Status == CriteriaSetStatus.Published && (selfScoreForm == null || s.SelfScoreForm == selfScoreForm))
+            .Where(s => s.Status == CriteriaSetStatus.Published)
             .OrderByDescending(s => s.PublishedAt)
             .ThenByDescending(s => s.CreatedAt)
             .FirstOrDefaultAsync(ct);

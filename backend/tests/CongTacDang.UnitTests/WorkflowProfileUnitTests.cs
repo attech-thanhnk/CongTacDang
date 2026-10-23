@@ -18,8 +18,8 @@ public sealed class WorkflowProfileUnitTests
     [Fact]
     public void Default_IsValid_WithFourProfiles_MatchingAppendixIIIAndDeputyDirector()
     {
-        var full = PeriodSettings.Default(CriteriaSetContent.Form09A);
-        Assert.Empty(full.Validate(WorkflowActions.IsAssignableStepPermission, "09A"));
+        var full = PeriodSettings.Default();
+        Assert.Empty(full.Validate(WorkflowActions.IsAssignableStepPermission));
         Assert.Equal(PeriodSettings.Default().ToJson(), full.ToJson());
         Assert.Equal(new[] { "co-so", "cap-tren", "bi-thu-nhan-vien", "pho-giam-doc" }, full.Profiles.Select(p => p.Code));
         Assert.Equal("co-so", full.DefaultProfileCode(ApprovalAuthority.CoSo));
@@ -57,46 +57,8 @@ public sealed class WorkflowProfileUnitTests
         Assert.Equal(StepMode.Internal, deputy.Mode(WorkflowStep.B3C_DIRECTOR));
         Assert.Equal(StepMode.External, deputy.Mode(WorkflowStep.B4_DECISION));
 
-        // Bộ 09B: B1 không áp dụng ở mọi hồ sơ luồng, các bước khác như 09A.
-        var transition = PeriodSettings.Default(CriteriaSetContent.Form09B);
-        Assert.Empty(transition.Validate(WorkflowActions.IsAssignableStepPermission, "09B"));
-        Assert.Equal(4, transition.Profiles.Count);
-        Assert.All(transition.Profiles, p =>
-        {
-            Assert.Equal(StepMode.Off, p.Mode(WorkflowStep.B1_REGISTER));
-            Assert.Equal(StepMode.Off, p.Mode(WorkflowStep.B1_APPROVE));
-            Assert.Equal(p.Code == "pho-giam-doc" ? 6 : 7, p.ActiveSteps().Count);
-        });
-        Assert.Equal(StepMode.External, Profile(transition, "cap-tren").Mode(WorkflowStep.B4_DECISION));
-    }
-
-    [Fact]
-    public void AlignWithCriteria_SetsRegistrationSteps_KeepsOtherSteps()
-    {
-        // 09A → 09B: tắt cả hai bước B1, giữ thời hạn, các bước khác giữ nguyên.
-        var settings = PeriodSettings.Default(CriteriaSetContent.Form09A);
-        var baseProfile = Profile(settings, "co-so");
-        baseProfile.Step(WorkflowStep.B1_REGISTER).Deadline = new DateOnly(2026, 10, 10);
-        baseProfile.Step(WorkflowStep.B1_APPROVE).Mode = StepMode.External;
-        baseProfile.Step(WorkflowStep.B3B_APPRAISAL).Mode = StepMode.External;
-        settings.Normalize().AlignWithCriteria(CriteriaSetContent.Form09B);
-        Assert.Equal(StepMode.Off, baseProfile.Mode(WorkflowStep.B1_REGISTER));
-        Assert.Equal(StepMode.Off, baseProfile.Mode(WorkflowStep.B1_APPROVE));
-        Assert.Equal(new DateOnly(2026, 10, 10), baseProfile.Deadline(WorkflowStep.B1_REGISTER));
-        Assert.Equal(StepMode.External, baseProfile.Mode(WorkflowStep.B3B_APPRAISAL));
-        Assert.Empty(settings.Validate(WorkflowActions.IsAssignableStepPermission, "09B"));
-
-        // 09B → 09A: bật lại hai bước B1 (nội bộ, quyền mặc định).
-        settings.AlignWithCriteria(CriteriaSetContent.Form09A);
-        Assert.Equal(StepMode.Internal, baseProfile.Mode(WorkflowStep.B1_REGISTER));
-        Assert.Equal(StepMode.Internal, baseProfile.Mode(WorkflowStep.B1_APPROVE));
-        Assert.Equal(PermissionCodes.EvaluationTasksApprove, baseProfile.PermissionFor(WorkflowStep.B1_APPROVE));
-        Assert.Empty(settings.Validate(WorkflowActions.IsAssignableStepPermission, "09A"));
-
-        // 09A giữ chế độ đã chọn của bước duyệt (ví dụ cấp trên duyệt).
-        baseProfile.Step(WorkflowStep.B1_APPROVE).Mode = StepMode.External;
-        settings.Normalize().AlignWithCriteria(CriteriaSetContent.Form09A);
-        Assert.Equal(StepMode.External, baseProfile.Mode(WorkflowStep.B1_APPROVE));
+        // Đăng ký sản phẩm luôn do chủ hồ sơ thực hiện ở mọi cách xét duyệt.
+        Assert.All(full.Profiles, p => Assert.Equal(StepMode.Internal, p.Mode(WorkflowStep.B1_REGISTER)));
     }
 
     [Fact]
@@ -133,6 +95,7 @@ public sealed class WorkflowProfileUnitTests
     #region Kiểm tra cấu hình
 
     [Theory]
+    [InlineData(WorkflowStep.B1_REGISTER)]
     [InlineData(WorkflowStep.B2_SELF_SCORE)]
     [InlineData(WorkflowStep.B4_DECISION)]
     [InlineData(WorkflowStep.B5_PUBLISH)]
@@ -171,15 +134,6 @@ public sealed class WorkflowProfileUnitTests
         var approveWithoutRegister = PeriodSettings.Default();
         Profile(approveWithoutRegister, "co-so").Step(WorkflowStep.B1_REGISTER).Mode = StepMode.Off;
         Assert.Contains(Validate(approveWithoutRegister.Normalize()), e => e.Contains("duyệt danh mục", StringComparison.Ordinal));
-
-        // Bộ tiêu chí 09A cần bước đăng ký sản phẩm ở mọi hồ sơ luồng; 09B không được áp dụng bước đăng ký, duyệt; chưa chọn bộ thì không kiểm tra.
-        var aWithoutRegister = PeriodSettings.Default(CriteriaSetContent.Form09B);
-        Assert.Contains(aWithoutRegister.Validate(WorkflowActions.IsAssignableStepPermission, "09A"), e => e.Contains("09A", StringComparison.Ordinal));
-        Assert.Empty(aWithoutRegister.Validate(WorkflowActions.IsAssignableStepPermission, "09B"));
-        Assert.Empty(Validate(aWithoutRegister));
-        var bWithRegister = PeriodSettings.Default(CriteriaSetContent.Form09A);
-        Assert.Equal(4, bWithRegister.Validate(WorkflowActions.IsAssignableStepPermission, "09B").Count(e => e.Contains("Không áp dụng", StringComparison.Ordinal)));
-        Assert.Empty(Validate(bWithRegister));
 
         var oldVersion = PeriodSettings.Parse("{\"schemaVersion\":1,\"steps\":{\"B1_REGISTER\":{\"enabled\":true}}}");
         Assert.Contains(Validate(oldVersion), e => e.Contains("Phiên bản cấu hình 1", StringComparison.Ordinal));
@@ -255,7 +209,7 @@ public sealed class WorkflowProfileUnitTests
     [Fact]
     public void Json_RoundTrip_ModeAsString_EmptyMeansDefault()
     {
-        var json = PeriodSettings.Default(CriteriaSetContent.Form09B).ToJson();
+        var json = PeriodSettings.Default().ToJson();
         Assert.Contains("\"schemaVersion\":2", json);
         Assert.Contains("\"mode\":\"External\"", json);
         Assert.Contains("\"mode\":\"Off\"", json);
@@ -267,13 +221,13 @@ public sealed class WorkflowProfileUnitTests
 
         // Bước thiếu được bổ sung (nội bộ, quyền mặc định); khóa bước, khóa cấp quyết định không phân biệt hoa thường.
         var partial = PeriodSettings.Parse(
-            "{\"schemaVersion\":2,\"profiles\":[{\"code\":\"A\",\"name\":\"Nhóm A\",\"steps\":{\"b1_register\":{\"mode\":\"Off\",\"deadline\":\"2026-10-05\"},"
-            + "\"b1_approve\":{\"mode\":\"Off\"}}}],\"defaultProfiles\":{\"coso\":\"a\",\"CAPTREN\":\"A\"},\"selfScoreForm\":\"09b\"}");
+            "{\"schemaVersion\":2,\"profiles\":[{\"code\":\"A\",\"name\":\"Nhóm A\",\"steps\":{\"b1_register\":{\"deadline\":\"2026-10-05\"},"
+            + "\"b1_approve\":{\"mode\":\"Off\"}}}],\"defaultProfiles\":{\"coso\":\"a\",\"CAPTREN\":\"A\"}}");
         var a = partial.FindProfile("a")!;
         Assert.Equal(9, a.Steps.Count);
-        Assert.False(a.IsActive(WorkflowStep.B1_REGISTER));
+        Assert.True(a.IsActive(WorkflowStep.B1_REGISTER));
+        Assert.False(a.IsActive(WorkflowStep.B1_APPROVE));
         Assert.Equal(new DateOnly(2026, 10, 5), a.Deadline(WorkflowStep.B1_REGISTER));
-        Assert.DoesNotContain("selfScoreForm", partial.ToJson(), StringComparison.Ordinal); // thuộc bộ tiêu chí
         Assert.Empty(Validate(partial));
         Assert.Equal("a", partial.DefaultProfileCode(ApprovalAuthority.CapTren));
 
@@ -367,10 +321,11 @@ public sealed class WorkflowProfileUnitTests
     public void Realign_MovesForwardOnlyWhenCurrentStepNoLongerApplies()
     {
         var baseProfile = Profile(PeriodSettings.Default(), "co-so");
-        var transitionBase = Profile(PeriodSettings.Default(CriteriaSetContent.Form09B), "co-so");
+        var noApproval = WorkflowProfile.Create("y", "Y", null, new Dictionary<WorkflowStep, StepMode> { [WorkflowStep.B1_APPROVE] = StepMode.Off });
         var noDirector = WorkflowProfile.Create("x", "X", null, new Dictionary<WorkflowStep, StepMode> { [WorkflowStep.B3C_DIRECTOR] = StepMode.Off });
 
-        Assert.Equal(RecordStatus.AwaitingSelfScore, RecordStateMachine.Realign(RecordStatus.AwaitingRegistration, transitionBase.ActiveSteps()));
+        Assert.Equal(RecordStatus.AwaitingSelfScore, RecordStateMachine.Realign(RecordStatus.AwaitingTaskApproval, noApproval.ActiveSteps()));
+        Assert.Equal(RecordStatus.AwaitingRegistration, RecordStateMachine.Realign(RecordStatus.AwaitingRegistration, noApproval.ActiveSteps()));
         Assert.Equal(RecordStatus.AwaitingDecision, RecordStateMachine.Realign(RecordStatus.AwaitingDirectorReview, noDirector.ActiveSteps()));
         Assert.Equal(RecordStatus.AwaitingAppraisal, RecordStateMachine.Realign(RecordStatus.AwaitingAppraisal, noDirector.ActiveSteps()));
         Assert.Equal(RecordStatus.Published, RecordStateMachine.Realign(RecordStatus.Published, baseProfile.ActiveSteps()));
@@ -397,15 +352,17 @@ public sealed class WorkflowProfileUnitTests
 
         Assert.Equal(WorkflowAction.RecordExternal, WorkflowActions.AdvanceOf(WorkflowStep.B3B_APPRAISAL, upper)!.Kind);
         Assert.Equal(WorkflowAction.Complete, WorkflowActions.AdvanceOf(WorkflowStep.B3B_APPRAISAL, baseProfile)!.Kind);
-        Assert.Null(WorkflowActions.AdvanceOf(WorkflowStep.B1_REGISTER, Profile(PeriodSettings.Default(CriteriaSetContent.Form09B), "co-so")));
+        var noApproval = WorkflowProfile.Create("y", "Y", null, new Dictionary<WorkflowStep, StepMode> { [WorkflowStep.B1_APPROVE] = StepMode.Off });
+        Assert.Null(WorkflowActions.AdvanceOf(WorkflowStep.B1_APPROVE, noApproval));
     }
 
     [Fact]
     public void ModeBlockReason_RejectsActionNotMatchingStepMode()
     {
-        var settings = PeriodSettings.Default(CriteriaSetContent.Form09B);
+        var settings = PeriodSettings.Default();
         var baseProfile = Profile(settings, "co-so");
         var upper = Profile(settings, "cap-tren");
+        baseProfile.Step(WorkflowStep.B1_APPROVE).Mode = StepMode.Off;
 
         Assert.Null(WorkflowActions.ModeBlockReason(WorkflowActions.CompleteOf(WorkflowStep.B4_DECISION), baseProfile));
         Assert.Contains("do cấp trên thực hiện",
@@ -413,7 +370,7 @@ public sealed class WorkflowProfileUnitTests
         Assert.Contains("không ghi nhận kết quả của cấp trên",
             WorkflowActions.ModeBlockReason(WorkflowActions.ExternalOf(WorkflowStep.B4_DECISION), baseProfile));
         Assert.Contains("không áp dụng",
-            WorkflowActions.ModeBlockReason(WorkflowActions.CompleteOf(WorkflowStep.B1_REGISTER), baseProfile));
+            WorkflowActions.ModeBlockReason(WorkflowActions.CompleteOf(WorkflowStep.B1_APPROVE), baseProfile));
         Assert.Null(WorkflowActions.ModeBlockReason(WorkflowActions.Get(WorkflowActions.Reopen), upper));
     }
 

@@ -70,7 +70,7 @@ public enum CollectiveEvaluationForm
 
 public enum TaskKind
 {
-    /// <summary>Trục chính, trọng số lớn.</summary>
+    /// <summary>Nhiệm vụ chính, trọng số lớn.</summary>
     TrongTam = 1,
 
     /// <summary>Thường xuyên / định kỳ.</summary>

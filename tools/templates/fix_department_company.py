@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Dòng "Đơn vị công tác: DEPARTMENT, ORG_COMPANY_NAME" của Mẫu 09B, 09C, 9D: bọc cụm "DEPARTMENT, " trong khối điều kiện
+Dòng "Đơn vị công tác: DEPARTMENT, ORG_COMPANY_NAME" của Mẫu 09C, 9D: bọc cụm "DEPARTMENT, " trong khối điều kiện
 if:HAS_DEPARTMENT. Cán bộ thuộc đơn vị gốc (lãnh đạo Công ty) thì chỉ in tên công ty, như bản đã nộp của Chủ tịch,
 Giám đốc trong docs/tai-lieu-chuan ("Đơn vị công tác: Công ty TNHH Kỹ thuật Quản lý bay").
 
@@ -14,7 +14,7 @@ from lxml import etree
 WNS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 W = '{%s}' % WNS
 
-FILES = ['Mau_09B_PhieuTuChamTheoTruc.docx', 'Mau_09C_BanTuDanhGia.docx', 'Mau_9D_PhuLucKetQuaNhiemVu.docx']
+FILES = ['Mau_09C_BanTuDanhGia.docx', 'Mau_9D_PhuLucKetQuaNhiemVu.docx']
 CONDITION = 'if:HAS_DEPARTMENT'
 
 

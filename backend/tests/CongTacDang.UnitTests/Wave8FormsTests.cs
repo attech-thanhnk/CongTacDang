@@ -163,14 +163,14 @@ public class Wave8FormsTests
     [Fact]
     public void CriteriaParameters_ImprovementPlanAlertDays_DefaultAndValidation()
     {
-        var content = CriteriaSetDefaults.Build09B();
+        var content = CriteriaSetDefaults.Build();
         Assert.Equal(90, content.Parameters.ImprovementPlanAlertDays);
-        Assert.Empty(content.Validate(CriteriaSetContent.Form09B));
+        Assert.Empty(content.Validate());
 
         content.Parameters.ImprovementPlanAlertDays = 0;
-        Assert.Contains(content.Validate(CriteriaSetContent.Form09B), e => e.Contains("kế hoạch 30-60-90"));
+        Assert.Contains(content.Validate(), e => e.Contains("kế hoạch 30-60-90"));
         content.Parameters.ImprovementPlanAlertDays = 3651;
-        Assert.Contains(content.Validate(CriteriaSetContent.Form09B), e => e.Contains("kế hoạch 30-60-90"));
+        Assert.Contains(content.Validate(), e => e.Contains("kế hoạch 30-60-90"));
 
         // JSON cũ không có khóa → mặc định 90.
         var parsed = CriteriaSetContent.Parse("{\"parameters\":{}}");
@@ -178,10 +178,8 @@ public class Wave8FormsTests
     }
 
     [Fact]
-    public void DefaultCriteriaSets_RequiredForms_MatchHd03Q3Column()
+    public void DefaultCriteriaSet_RequiredForms_MatchHd03()
     {
-        // Q3/2026 dùng 09B, 09C, 9D (Mẫu 10 chờ nghiệp vụ xác nhận); từ 2027 đủ mẫu.
-        Assert.Equal(new[] { "09B", "09C", "9D", "10" }, CriteriaSetDefaults.Build09B().RequiredForms);
-        Assert.Equal(new[] { "01", "02", "09A", "09C", "9D", "10" }, CriteriaSetDefaults.Build09A().RequiredForms);
+        Assert.Equal(new[] { "01", "02", "09A", "09C", "9D", "10" }, CriteriaSetDefaults.Build().RequiredForms);
     }
 }

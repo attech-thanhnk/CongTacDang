@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  AxisNote,
   AxisReport,
   EvaluationRecordDto,
   GRADE_OPTIONS,
@@ -28,7 +27,7 @@ import {
   roundScore,
 } from "@/services/criteriaService";
 import { FileUploadModal } from "@/components/attachments/FileUploadModal";
-import { AxisNoteFields, AxisReportsInput, SelfAssessmentInput, SelfAssessmentPreview } from "@/components/evaluations/IndividualFormInputs";
+import { AxisReportsInput, SelfAssessmentInput, SelfAssessmentPreview } from "@/components/evaluations/IndividualFormInputs";
 import { useToast } from "@/contexts/ToastContext";
 import { TaskChangeMark } from "@/components/evaluations/TaskChangeRequests";
 import { EvidenceFiles, evidenceSlot, useRecordEvidence } from "@/components/evaluations/EvidenceFiles";
@@ -125,7 +124,6 @@ export function SelfScoreForm({ record, criteria, busy, onSubmit }: Props) {
 function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { criteria: CriteriaSnapshot }) {
   const content = criteria.content;
   const p = content.parameters;
-  const uses09B = criteria.selfScoreForm === "09B";
   const uses09C = criteriaAppliesForm(criteria, "09C");
   const uses9D = criteriaAppliesForm(criteria, "9D");
   const sections = selfAssessmentSections(criteria);
@@ -140,9 +138,6 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     return initial;
   });
   const { confirm, toast } = useToast();
-  const [axis, setAxis] = useState<Record<string, ScoreInput>>(() =>
-    Object.fromEntries(content.axes.map((a) => [a.code, record.axisScores?.[a.code] ?? ""]))
-  );
   const [grade, setGrade] = useState(record.selfProposedGrade && record.selfProposedGrade !== "ChuaXepLoai" ? record.selfProposedGrade : "");
   const [gradeReason, setGradeReason] = useState(record.selfGradeExplanation ?? "");
   const [gradeReasonError, setGradeReasonError] = useState<string | null>(null);
@@ -175,13 +170,10 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   const blocks = useMemo(() => (uses09C ? buildAxisTaskBlocks(content.axes, axisReports, criteria) : []), [uses09C, content.axes, axisReports, criteria]);
   const [groupNotes, setGroupNotes] = useState<Record<string, string>>(() => ({ ...(record.generalGroupNotes ?? {}) }));
   const evidence = useRecordEvidence(record.id);
-  const [axisNotes, setAxisNotes] = useState<Record<string, AxisNote>>(() =>
-    Object.fromEntries(content.axes.map((a) => [a.code, { ...(record.axisNotes?.[a.code] ?? {}) }]))
-  );
 
   // Thay đổi chưa lưu so với ảnh chụp phiếu; phiên bản sau lần lưu nháp dùng cho lần lưu/nộp tiếp theo
   // (trang chưa tải lại hồ sơ), trừ khi trang đã nạp hồ sơ mới.
-  const snapshot = JSON.stringify([general, axis, grade, gradeReason, ratios, selfAssessment, axisReports, groupNotes, axisNotes]);
+  const snapshot = JSON.stringify([general, grade, gradeReason, ratios, selfAssessment, axisReports, groupNotes]);
   const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [saving, setSaving] = useState(false);
@@ -204,27 +196,27 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     const ratio = clamp(r.a) * frame.a + clamp(r.b) * frame.b + clamp(r.c) * frame.c + clamp(r.d) * frame.d;
     return roundScore(weight * ratio, p.rounding.taskScore);
   };
-  const tasksScore = useMemo(() => {
-    if (uses09B) return roundScore(Object.values(axis).reduce<number>((s, v) => s + (Number(v) || 0), 0), p.rounding.tasksTotal);
-    return roundScore(record.tasks.reduce((s, t) => s + (ratios[t.id] ? taskScore(t.weight, ratios[t.id]) : t.selfScore), 0), p.rounding.tasksTotal);
+  const tasksScore = useMemo(
+    () => roundScore(record.tasks.reduce((s, t) => s + (ratios[t.id] ? taskScore(t.weight, ratios[t.id]) : t.selfScore), 0), p.rounding.tasksTotal),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uses09B, axis, ratios, record.tasks, frame, p]);
+    [ratios, record.tasks, frame, p]
+  );
   const total = roundScore(generalScore + tasksScore, p.rounding.total);
 
   const activeTasks = record.tasks.filter((t) => !t.changeStatus);
   const ratioKeys = ["a", "b", "c", "d"] as const;
   const isComplete = (r: TaskRatio) => ratioKeys.every((k) => r[k] !== "");
   // Chỉ gợi ý mức khi đã nhập đủ điểm, tránh hiện mức thấp lúc phiếu còn trống.
-  const scoresComplete = uses09B ? Object.values(axis).every((v) => v !== "") : activeTasks.every((t) => isComplete(ratios[t.id]));
+  const scoresComplete = activeTasks.every((t) => isComplete(ratios[t.id]));
   const taskNames = (tasks: { taskName: string }[]) => tasks.map((t) => `"${t.taskName}"`).join(", ");
   // Mức chọn khác mức theo điểm: cảnh báo ngay, bộ tiêu chí bật giải trình thì bắt buộc nêu lý do (máy chủ kiểm lại).
-  const exceedRatio = uses09B || activeTasks.length === 0 ? null : activeTasks.filter((t) => ratios[t.id]?.exceed).length / activeTasks.length;
+  const exceedRatio = activeTasks.length === 0 ? null : activeTasks.filter((t) => ratios[t.id]?.exceed).length / activeTasks.length;
   const gradeCheck = scoresComplete && grade ? gradeProposalCheck(content, grade, total, exceedRatio) : null;
 
   const needsReason = (item: { maxScore: number }, s: GeneralItemScore) =>
     !!s.notApplicable || (p.deductionReasonMinPoints != null && item.maxScore - (Number(s.score) || 0) + 1e-6 >= p.deductionReasonMinPoints);
 
-  /** Nội dung gửi máy chủ. Lưu nháp: bỏ trục / nhiệm vụ còn ô điểm trống (giữ trống khi mở lại, không ghi thành 0). */
+  /** Nội dung gửi máy chủ. Lưu nháp: bỏ nhiệm vụ còn ô điểm trống (giữ trống khi mở lại, không ghi thành 0). */
   const buildPayload = (draft: boolean): Record<string, unknown> => {
     const generalScores = Object.fromEntries(
       Object.entries(general).map(([code, s]) => [code, { score: s.notApplicable ? 0 : Number(s.score) || 0, notApplicable: !!s.notApplicable, reason: s.reason?.trim() || null }])
@@ -232,26 +224,19 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     const payload: Record<string, unknown> = { generalScores, generalGroupNotes: groupNotes, selfProposedGrade: grade || null, selfGradeExplanation: gradeReason.trim() };
     if (uses09C) payload.selfAssessment = selfAssessment;
     if (uses09C || uses9D) payload.axisReports = axisReports;
-    if (uses09B) {
-      payload.axisScores = Object.fromEntries(
-        Object.entries(axis).filter(([, v]) => !draft || v !== "").map(([k, v]) => [k, Number(v) || 0])
-      );
-      payload.axisNotes = axisNotes;
-    } else {
-      // Ô để trống gửi null (chưa nhập) — máy chủ từ chối nộp khi còn thiếu, không tự coi là 0% hay 100%.
-      const ratioOf = (v: ScoreInput) => (v === "" ? null : (Number(v) || 0) / 100);
-      payload.taskScores = activeTasks
-        .filter((t) => !draft || isComplete(ratios[t.id]))
-        .map((t) => ({
-          taskId: t.id,
-          criteriaA_Ratio: ratioOf(ratios[t.id].a),
-          criteriaB_Ratio: ratioOf(ratios[t.id].b),
-          criteriaC_Ratio: ratioOf(ratios[t.id].c),
-          criteriaD_Ratio: ratioOf(ratios[t.id].d),
-          isExceedStandard: ratios[t.id].exceed,
-          attachmentId: ratios[t.id].attachmentId || null,
-        }));
-    }
+    // Ô để trống gửi null (chưa nhập) — máy chủ từ chối nộp khi còn thiếu, không tự coi là 0% hay 100%.
+    const ratioOf = (v: ScoreInput) => (v === "" ? null : (Number(v) || 0) / 100);
+    payload.taskScores = activeTasks
+      .filter((t) => !draft || isComplete(ratios[t.id]))
+      .map((t) => ({
+        taskId: t.id,
+        criteriaA_Ratio: ratioOf(ratios[t.id].a),
+        criteriaB_Ratio: ratioOf(ratios[t.id].b),
+        criteriaC_Ratio: ratioOf(ratios[t.id].c),
+        criteriaD_Ratio: ratioOf(ratios[t.id].d),
+        isExceedStandard: ratios[t.id].exceed,
+        attachmentId: ratios[t.id].attachmentId || null,
+      }));
     return payload;
   };
 
@@ -265,11 +250,9 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       const now = new Date();
       setSavedAt(now);
       toast.success(`Đã lưu nháp lúc ${timeOf(now)}.`);
-      if (!uses09B) {
-        // Nhiệm vụ mới nhập một phần A-B-C-D không được lưu (giữ nội dung đã lưu trước đó).
-        const partial = activeTasks.filter((t) => !isComplete(ratios[t.id]) && ratioKeys.some((k) => ratios[t.id][k] !== ""));
-        if (partial.length) toast.warning(`Chưa lưu tỷ lệ của nhiệm vụ nhập chưa đủ A-B-C-D: ${taskNames(partial)}.`);
-      }
+      // Nhiệm vụ mới nhập một phần A-B-C-D không được lưu (giữ nội dung đã lưu trước đó).
+      const partial = activeTasks.filter((t) => !isComplete(ratios[t.id]) && ratioKeys.some((k) => ratios[t.id][k] !== ""));
+      if (partial.length) toast.warning(`Chưa lưu tỷ lệ của nhiệm vụ nhập chưa đủ A-B-C-D: ${taskNames(partial)}.`);
     } catch (error: unknown) {
       if (!isConcurrencyConflict(error)) toast.error(errorMessage(error, "Không lưu được nháp."));
     } finally {
@@ -279,20 +262,17 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    let noEvidence: typeof activeTasks = [];
-    if (!uses09B) {
-      const incomplete = activeTasks.filter((t) => !isComplete(ratios[t.id]));
-      if (incomplete.length) {
-        toast.error(`Chưa nhập đủ tỷ lệ A-B-C-D cho nhiệm vụ: ${taskNames(incomplete)}.`);
-        return;
-      }
-      const exceedNoEvidence = activeTasks.filter((t) => ratios[t.id].exceed && !ratios[t.id].attachmentId);
-      if (exceedNoEvidence.length) {
-        toast.error(`Nhiệm vụ đánh dấu vượt chuẩn phải có minh chứng. Hãy đính kèm minh chứng cho: ${taskNames(exceedNoEvidence)}.`);
-        return;
-      }
-      noEvidence = activeTasks.filter((t) => !ratios[t.id].attachmentId);
+    const incomplete = activeTasks.filter((t) => !isComplete(ratios[t.id]));
+    if (incomplete.length) {
+      toast.error(`Chưa nhập đủ tỷ lệ A-B-C-D cho nhiệm vụ: ${taskNames(incomplete)}.`);
+      return;
     }
+    const exceedNoEvidence = activeTasks.filter((t) => ratios[t.id].exceed && !ratios[t.id].attachmentId);
+    if (exceedNoEvidence.length) {
+      toast.error(`Nhiệm vụ đánh dấu vượt chuẩn phải có minh chứng. Hãy đính kèm minh chứng cho: ${taskNames(exceedNoEvidence)}.`);
+      return;
+    }
+    const noEvidence = activeTasks.filter((t) => !ratios[t.id].attachmentId);
     if (gradeCheck?.required && !gradeReason.trim()) {
       setGradeReasonError(gradeCheck.direction > 0 ? "Hãy nêu lý do đề xuất mức cao hơn mức theo điểm." : "Hãy nêu căn cứ xếp mức thấp hơn mức theo điểm.");
       document.getElementById("self-grade-reason")?.focus();
@@ -407,95 +387,65 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
         Cộng tiêu chí chung (tạm tính): <strong>{fmt(generalScore)}</strong> / {fmt(p.generalMaxScore)}
       </div>
 
-      {uses09B ? (
-        <>
-          <h4 className="h6 small fw-bold text-secondary">II. Kết quả thực hiện nhiệm vụ — chấm trực tiếp theo trục (Mẫu 09B, tối đa {fmt(p.totalTaskWeight)} điểm)</h4>
-          <div className="d-flex flex-column gap-2 mb-3">
-            {content.axes.map((a) => (
-              <div className="border rounded p-2" key={a.code}>
-                <div className="row g-2 align-items-end mb-1">
-                  <div className="col-12 col-md-9">
-                    <label className="form-label small fw-semibold mb-0" htmlFor={`axis-${a.code}`} title={a.description || undefined}>{a.code} — {a.name}</label>
-                  </div>
-                  <div className="col-12 col-md-3">
-                    <div className="input-group input-group-sm">
-                      <input id={`axis-${a.code}`} type="number" min={0} max={a.maxScore} step={0.5} className="form-control form-control-sm" value={axis[a.code]} required
-                        placeholder="Nhập điểm" onChange={(e) => setAxis({ ...axis, [a.code]: toInput(e.target.value) })} />
-                      <span className="input-group-text">/ {fmt(a.maxScore)}</span>
-                    </div>
-                  </div>
-                </div>
-                <AxisNoteFields axisCode={a.code} value={axisNotes[a.code] ?? {}} onChange={(note) => setAxisNotes({ ...axisNotes, [a.code]: note })} />
-                <EvidenceFiles recordId={record.id} slot={evidenceSlot("axis", a.code)} label={`${a.code} — ${a.name}`}
-                  files={evidence.files} rights={evidence.rights} onChanged={evidence.reload} />
-              </div>
-            ))}
-            <div className="small text-secondary">Cộng các trục (tạm tính): <strong>{fmt(tasksScore)}</strong> / {fmt(p.totalTaskWeight)}</div>
-          </div>
-        </>
-      ) : (
-        <>
-          <h4 className="h6 small fw-bold text-secondary">II. Kết quả thực hiện sản phẩm (Mẫu 02) — % đạt từng thành phần A-B-C-D</h4>
-          <div className="small text-secondary mb-1">
-            {frame
-              ? <>Khung tỷ trọng của hồ sơ: <strong>{frame.code} — {frame.name}</strong>. Tỷ lệ 4 mặt: {describeFrame(frame)}{record.weightFrameAdjusted && <strong> (đã điều chỉnh)</strong>}</>
-              : <span className="text-danger">Khung tỷ trọng "{record.weightFrameCode || "—"}" của hồ sơ không có trong bộ tiêu chí — liên hệ người quản lý kỳ.</span>}
-          </div>
-          <div className="table-responsive mb-2">
-            <table className="table table-sm align-middle">
-              <thead>
-                <tr className="small text-secondary">
-                  <th>Sản phẩm</th><th style={{ width: 55 }}>Trục</th><th style={{ width: 65 }}>Trọng số</th><th style={{ width: 75 }}>A %</th><th style={{ width: 75 }}>B %</th><th style={{ width: 75 }}>C %</th><th style={{ width: 75 }}>D %</th><th style={{ width: 70 }}>Điểm</th><th style={{ width: 55 }}>Vượt</th><th style={{ width: 160 }}>Minh chứng</th>
+      <h4 className="h6 small fw-bold text-secondary">II. Kết quả thực hiện sản phẩm (Mẫu 02) — % đạt từng thành phần A-B-C-D</h4>
+      <div className="small text-secondary mb-1">
+        {frame
+          ? <>Khung tỷ trọng của hồ sơ: <strong>{frame.code} — {frame.name}</strong>. Tỷ lệ 4 mặt: {describeFrame(frame)}{record.weightFrameAdjusted && <strong> (đã điều chỉnh)</strong>}</>
+          : <span className="text-danger">Khung tỷ trọng "{record.weightFrameCode || "—"}" của hồ sơ không có trong bộ tiêu chí — liên hệ người quản lý kỳ.</span>}
+      </div>
+      <div className="table-responsive mb-2">
+        <table className="table table-sm align-middle">
+          <thead>
+            <tr className="small text-secondary">
+              <th>Sản phẩm</th><th style={{ width: 55 }}>Trục</th><th style={{ width: 65 }}>Trọng số</th><th style={{ width: 75 }}>A %</th><th style={{ width: 75 }}>B %</th><th style={{ width: 75 }}>C %</th><th style={{ width: 75 }}>D %</th><th style={{ width: 70 }}>Điểm</th><th style={{ width: 55 }}>Vượt</th><th style={{ width: 160 }}>Minh chứng</th>
+            </tr>
+          </thead>
+          <tbody>
+            {record.tasks.map((t) => {
+              const r = ratios[t.id];
+              if (t.changeStatus) {
+                return (
+                  <tr key={t.id} className="text-secondary">
+                    <td><div className="small">{t.taskName}<TaskChangeMark task={t} /></div></td>
+                    <td className="small">{t.axisCode || "—"}</td>
+                    <td className="small">0</td>
+                    <td colSpan={7} />
+                  </tr>
+                );
+              }
+              return (
+                <tr key={t.id}>
+                  <td><div className="small fw-semibold">{t.taskName}</div><div className="small text-secondary">{t.targetOutput}</div></td>
+                  <td className="small">{t.axisCode || "—"}</td>
+                  <td className="small">{t.weight}</td>
+                  {(["a", "b", "c", "d"] as const).map((k) => (
+                    <td key={k}>
+                      <input type="number" min={0} max={100} step={1} className={`form-control form-control-sm${r[k] === "" ? " border-warning" : ""}`} value={r[k]} placeholder="%" title={r[k] === "" ? "Chưa nhập" : band(Number(r[k]) || 0)?.label}
+                        onChange={(e) => setRatio(t.id, k, toInput(e.target.value))} aria-label={`Thành phần ${k.toUpperCase()} — ${t.taskName}`} />
+                    </td>
+                  ))}
+                  <td className="small fw-semibold">{isComplete(r) ? fmt(taskScore(t.weight, r)) : "—"}</td>
+                  <td className="text-center">
+                    <input type="checkbox" className="form-check-input" checked={r.exceed} onChange={(e) => setRatio(t.id, "exceed", e.target.checked)} aria-label="Vượt chuẩn" />
+                    {r.exceed && !r.attachmentId && <div className="small text-danger">Cần minh chứng</div>}
+                  </td>
+                  <td className="small">
+                    {r.attachmentName ? <span className="d-block text-truncate" style={{ maxWidth: 150 }} title={r.attachmentName}><i className="bi bi-paperclip me-1" />{r.attachmentName}</span> : <span className="text-secondary">Chưa có</span>}
+                    <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setUploadFor(t.id)}>Đính kèm</button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {record.tasks.map((t) => {
-                  const r = ratios[t.id];
-                  if (t.changeStatus) {
-                    return (
-                      <tr key={t.id} className="text-secondary">
-                        <td><div className="small">{t.taskName}<TaskChangeMark task={t} /></div></td>
-                        <td className="small">{t.axisCode || "—"}</td>
-                        <td className="small">0</td>
-                        <td colSpan={7} />
-                      </tr>
-                    );
-                  }
-                  return (
-                    <tr key={t.id}>
-                      <td><div className="small fw-semibold">{t.taskName}</div><div className="small text-secondary">{t.targetOutput}</div></td>
-                      <td className="small">{t.axisCode || "—"}</td>
-                      <td className="small">{t.weight}</td>
-                      {(["a", "b", "c", "d"] as const).map((k) => (
-                        <td key={k}>
-                          <input type="number" min={0} max={100} step={1} className={`form-control form-control-sm${r[k] === "" ? " border-warning" : ""}`} value={r[k]} placeholder="%" title={r[k] === "" ? "Chưa nhập" : band(Number(r[k]) || 0)?.label}
-                            onChange={(e) => setRatio(t.id, k, toInput(e.target.value))} aria-label={`Thành phần ${k.toUpperCase()} — ${t.taskName}`} />
-                        </td>
-                      ))}
-                      <td className="small fw-semibold">{isComplete(r) ? fmt(taskScore(t.weight, r)) : "—"}</td>
-                      <td className="text-center">
-                        <input type="checkbox" className="form-check-input" checked={r.exceed} onChange={(e) => setRatio(t.id, "exceed", e.target.checked)} aria-label="Vượt chuẩn" />
-                        {r.exceed && !r.attachmentId && <div className="small text-danger">Cần minh chứng</div>}
-                      </td>
-                      <td className="small">
-                        {r.attachmentName ? <span className="d-block text-truncate" style={{ maxWidth: 150 }} title={r.attachmentName}><i className="bi bi-paperclip me-1" />{r.attachmentName}</span> : <span className="text-secondary">Chưa có</span>}
-                        <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setUploadFor(t.id)}>Đính kèm</button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <details className="small text-secondary mb-3">
-            <summary>Thang quy đổi % A-B-C-D</summary>
-            <ul className="mb-0">
-              {content.conversionScale.map((b) => <li key={b.minPercent}><strong>{b.label}</strong>{b.description ? `: ${b.description}` : ""}</li>)}
-            </ul>
-          </details>
-          <div className="small text-secondary mb-3">Cộng điểm sản phẩm (tạm tính): <strong>{fmt(tasksScore)}</strong> / {fmt(p.totalTaskWeight)}</div>
-        </>
-      )}
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <details className="small text-secondary mb-3">
+        <summary>Thang quy đổi % A-B-C-D</summary>
+        <ul className="mb-0">
+          {content.conversionScale.map((b) => <li key={b.minPercent}><strong>{b.label}</strong>{b.description ? `: ${b.description}` : ""}</li>)}
+        </ul>
+      </details>
+      <div className="small text-secondary mb-3">Cộng điểm sản phẩm (tạm tính): <strong>{fmt(tasksScore)}</strong> / {fmt(p.totalTaskWeight)}</div>
 
       {uses09C && sections.length > 0 && (
         <>

@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CongTacDang.Api.Controllers;
 
-/// <summary>Danh mục kiểu trình bày biểu mẫu tự đánh giá (Mẫu 09B, 09C, 9D).</summary>
+/// <summary>Danh mục kiểu trình bày biểu mẫu tự đánh giá (Mẫu 09C, 9D).</summary>
 [ApiController]
 [Route("api/form-layouts")]
 [Authorize]

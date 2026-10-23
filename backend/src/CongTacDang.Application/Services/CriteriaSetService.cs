@@ -25,8 +25,8 @@ public interface ICriteriaSetService
     Task<CriteriaSetDto> ArchiveAsync(Guid id, CriteriaSetActionDto dto, CancellationToken ct = default);
     Task DeleteAsync(Guid id, CriteriaSetActionDto dto, CancellationToken ct = default);
 
-    /// <summary>Nội dung mặc định cho mẫu tự chấm, dùng khi tạo bộ mới.</summary>
-    CriteriaSetContent DefaultContent(string selfScoreForm);
+    /// <summary>Nội dung mặc định, dùng khi tạo bộ mới.</summary>
+    CriteriaSetContent DefaultContent();
 
     /// <summary>Lấy từ bộ của kỳ gần nhất đã chọn bộ, không có thì bộ đã xuất bản mới nhất.</summary>
     Task<WeightFrameOptionsDto> GetWeightFrameOptionsAsync(CancellationToken ct = default);
@@ -74,10 +74,7 @@ public sealed class CriteriaSetService : ICriteriaSetService
     }
 
     /// <inheritdoc />
-    public CriteriaSetContent DefaultContent(string selfScoreForm) =>
-        string.Equals(selfScoreForm, CriteriaSetContent.Form09B, StringComparison.OrdinalIgnoreCase)
-            ? CriteriaSetDefaults.Build09B()
-            : CriteriaSetDefaults.Build09A();
+    public CriteriaSetContent DefaultContent() => CriteriaSetDefaults.Build();
 
     /// <inheritdoc />
     public async Task<WeightFrameOptionsDto> GetWeightFrameOptionsAsync(CancellationToken ct = default)
@@ -101,7 +98,7 @@ public sealed class CriteriaSetService : ICriteriaSetService
         }
         else
         {
-            var latest = await _repo.LatestPublishedAsync(null, ct);
+            var latest = await _repo.LatestPublishedAsync(ct);
             sourceName = latest?.Name;
             content = latest == null ? null : SafeContent(latest);
         }
@@ -124,9 +121,8 @@ public sealed class CriteriaSetService : ICriteriaSetService
     {
         EnsureManage();
         ArgumentNullException.ThrowIfNull(dto);
-        var form = NormalizeForm(dto.SelfScoreForm);
         var code = await ValidateCodeAsync(dto.Code, null, ct);
-        var content = (dto.Content ?? DefaultContent(form)).Normalize();
+        var content = (dto.Content ?? DefaultContent()).Normalize();
         EnsureStorable(content);
 
         var now = DateTime.UtcNow;
@@ -134,7 +130,6 @@ public sealed class CriteriaSetService : ICriteriaSetService
         {
             Code = code,
             Name = ValidateName(dto.Name),
-            SelfScoreForm = form,
             Notes = ValidateNotes(dto.Notes),
             Status = CriteriaSetStatus.Draft,
             Content = content.ToJson(),
@@ -161,7 +156,6 @@ public sealed class CriteriaSetService : ICriteriaSetService
         {
             Code = code,
             Name = name,
-            SelfScoreForm = source.SelfScoreForm,
             Notes = source.Notes,
             Status = CriteriaSetStatus.Draft,
             Content = SafeContent(source).ToJson(),
@@ -187,8 +181,6 @@ public sealed class CriteriaSetService : ICriteriaSetService
             set.Code = await ValidateCodeAsync(dto.Code, set.Id, ct);
         if (dto.Name != null)
             set.Name = ValidateName(dto.Name);
-        if (dto.SelfScoreForm != null)
-            set.SelfScoreForm = NormalizeForm(dto.SelfScoreForm);
         if (dto.Notes != null)
             set.Notes = ValidateNotes(dto.Notes);
         if (dto.Content != null)
@@ -211,7 +203,7 @@ public sealed class CriteriaSetService : ICriteriaSetService
         var set = await LoadForWriteAsync(id, dto?.Version, ct);
         if (set.Status != CriteriaSetStatus.Draft)
             throw new ConflictException($"Chỉ xuất bản được bản nháp; bộ \"{set.Name}\" đang ở trạng thái \"{StatusName(set.Status)}\".");
-        var errors = SafeContent(set).Validate(set.SelfScoreForm);
+        var errors = SafeContent(set).Validate();
         if (errors.Count > 0)
             throw new ValidationException("Bộ tiêu chí chưa xuất bản được vì: " + string.Join(" ", errors));
 
@@ -284,7 +276,7 @@ public sealed class CriteriaSetService : ICriteriaSetService
         var content = SafeContent(set);
         var dto = Fill(new CriteriaSetDto(), set, content, usages);
         dto.Content = content;
-        dto.ValidationErrors = content.Validate(set.SelfScoreForm);
+        dto.ValidationErrors = content.Validate();
         return dto;
     }
 
@@ -297,7 +289,6 @@ public sealed class CriteriaSetService : ICriteriaSetService
         dto.Name = s.Name;
         dto.Status = s.Status.ToString();
         dto.StatusDisplayName = StatusName(s.Status);
-        dto.SelfScoreForm = s.SelfScoreForm;
         dto.Notes = s.Notes;
         dto.SourceSetId = s.SourceSetId;
         dto.PublishedAt = s.PublishedAt;
@@ -345,7 +336,7 @@ public sealed class CriteriaSetService : ICriteriaSetService
     {
         var clean = code?.Trim().ToUpperInvariant();
         if (string.IsNullOrEmpty(clean))
-            throw new ValidationException("Hãy nhập mã bộ tiêu chí (ví dụ \"09B-Q3-2026\").");
+            throw new ValidationException("Hãy nhập mã bộ tiêu chí (ví dụ \"09A-2027\").");
         if (clean.Length > MaxCodeLength || !clean.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.'))
             throw new ValidationException($"Mã bộ tiêu chí \"{clean}\" không hợp lệ: chỉ gồm chữ không dấu, số, dấu chấm, gạch nối, gạch dưới (tối đa {MaxCodeLength} ký tự).");
         if (await _repo.CodeExistsAsync(clean, exceptId, ct))
@@ -383,14 +374,6 @@ public sealed class CriteriaSetService : ICriteriaSetService
         if (clean.Length > MaxNotesLength)
             throw new ValidationException($"Ghi chú không được dài quá {MaxNotesLength} ký tự.");
         return clean;
-    }
-
-    private static string NormalizeForm(string? form)
-    {
-        var clean = form?.Trim().ToUpperInvariant();
-        if (!CriteriaSetContent.IsValidForm(clean))
-            throw new ValidationException("Hãy chọn mẫu tự chấm: 09A (chấm theo nhiệm vụ Mẫu 01/02) hoặc 09B (chấm trực tiếp theo trục).");
-        return clean!;
     }
 
     private static string Truncate(string value, int max) => value.Length <= max ? value : value[..max];

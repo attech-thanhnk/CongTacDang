@@ -672,7 +672,7 @@ public sealed class PostPublishIntegrationTests
         {
             var created = await Data(await manager.PostAsJsonAsync("/api/evaluations/periods", new
             {
-                year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(manager, "09B"),
+                year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(manager),
                 name = $"Kỳ KQ {Guid.NewGuid().ToString("N")[..8]}",
                 startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
             }));

@@ -13,7 +13,6 @@ interface NavEntry {
 
 interface CriteriaSummaryProps {
   content: CriteriaSetContent;
-  form: string;
   /** Hiện mục lục (thanh bên dính trên màn rộng, thanh nhảy nhanh trên màn hẹp) — dùng khi bộ tiêu chí là nội dung chính của trang. */
   navigation?: boolean;
 }
@@ -21,12 +20,11 @@ interface CriteriaSummaryProps {
 type ItemRow = { code: string; text: string; maxScore: number };
 
 /** Xem nội dung bộ tiêu chí (chỉ đọc): tiêu chí chung, trục, khung tỷ trọng, thang quy đổi, mức xếp loại, tham số. */
-export function CriteriaSummary({ content, form, navigation = false }: CriteriaSummaryProps) {
+export function CriteriaSummary({ content, navigation = false }: CriteriaSummaryProps) {
   const p = content.parameters;
   const collectiveGroups = content.collectiveGroups ?? [];
   const prefix = `cs${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const sid = (key: string) => `${prefix}-${key}`;
-  const is09B = form === "09B";
 
   const nav = useMemo<NavEntry[]>(() => {
     const entries: NavEntry[] = [{ id: sid("general"), label: "Tiêu chí chung" }];
@@ -95,11 +93,6 @@ export function CriteriaSummary({ content, form, navigation = false }: CriteriaS
       <section id={sid("axes")} className={styles.block}>
         <header className={styles.blockHead}>
           <h3 className={styles.blockTitle}>Trục kết quả</h3>
-          {is09B && (
-            <span className={styles.blockMeta}>
-              Chấm trực tiếp, tổng <strong className="num">{fmt(content.axes.reduce((s, a) => s + a.maxScore, 0))}</strong> điểm
-            </span>
-          )}
         </header>
         <div className={styles.axes}>
           {content.axes.map((a) => (
@@ -107,21 +100,8 @@ export function CriteriaSummary({ content, form, navigation = false }: CriteriaS
               <div className={styles.axisHead}>
                 <span className={styles.code}>{a.code}</span>
                 <span className={styles.axisName}>{a.name}</span>
-                {is09B && (
-                  <span className={styles.max}>
-                    <span className="num">{fmt(a.maxScore)}</span>
-                    <span className={styles.maxUnit}>điểm</span>
-                  </span>
-                )}
               </div>
               {a.description && <div className={styles.axisDesc}>{a.description}</div>}
-              {is09B && (a.formTitle || a.formGuidance) && (
-                <details className={styles.axisForm}>
-                  <summary>Nội dung in trên Mẫu 09B</summary>
-                  {a.formTitle && <div className={styles.axisFormTitle}>{a.formTitle}</div>}
-                  {a.formGuidance && <div className={styles.axisGuidance}>{a.formGuidance}</div>}
-                </details>
-              )}
             </div>
           ))}
         </div>
@@ -133,7 +113,7 @@ export function CriteriaSummary({ content, form, navigation = false }: CriteriaS
         </header>
         <div className={styles.blockBody}>
           <ul className={styles.formList}>
-            {RECORD_FORMS.filter((f) => (f.code === "09A" || f.code === "09B" ? f.code === form : (content.requiredForms ?? []).includes(f.code))).map((f) => (
+            {RECORD_FORMS.filter((f) => f.code === "09A" || (content.requiredForms ?? []).includes(f.code)).map((f) => (
               <li key={f.code}>
                 <i className="bi bi-file-earmark-text" aria-hidden="true" />
                 {f.name}

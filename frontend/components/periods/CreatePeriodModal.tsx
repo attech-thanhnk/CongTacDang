@@ -5,7 +5,7 @@ import { AdminModal } from "@/components/admin/AdminModal";
 import { useToast } from "@/contexts/ToastContext";
 import { usePeriod } from "@/contexts/PeriodContext";
 import { EvaluationPeriodDto, evaluationService } from "@/services/evaluationService";
-import { CriteriaSetListItem, criteriaService, scoringMethodLabel } from "@/services/criteriaService";
+import { CriteriaSetListItem, criteriaService } from "@/services/criteriaService";
 import { errorMessage } from "@/components/admin/adminUtils";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -126,24 +126,18 @@ export function CreatePeriodModal({ onClose, onCreated, existing = [] }: Props) 
           {criteriaSets !== null && criteriaSets.length === 0 ? (
             <div className="alert alert-warning py-2 mb-0">Chưa có bộ tiêu chí đã xuất bản. Hãy xuất bản một bộ ở trang Bộ tiêu chí trước.</div>
           ) : criteriaSets !== null && criteriaSets.length === 1 ? (
-            <div id="cp-criteria" className="form-control-plaintext py-0">{criteriaLabel(criteriaSets[0])}</div>
+            <div id="cp-criteria" className="form-control-plaintext py-0">{criteriaSets[0].name}</div>
           ) : (
             <select id="cp-criteria" className="form-select form-select-sm" required value={form.criteriaSetId}
               onChange={(e) => setForm({ ...form, criteriaSetId: e.target.value })}>
               {criteriaSets === null && <option value="">Đang tải...</option>}
-              {(criteriaSets ?? []).map((s) => <option key={s.id} value={s.id}>{criteriaLabel(s)}</option>)}
+              {(criteriaSets ?? []).map((s) => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
             </select>
           )}
         </div>
       </form>
     </AdminModal>
   );
-}
-
-/** Tên bộ, kèm cách chấm khi tên chưa nói rõ. */
-function criteriaLabel(s: CriteriaSetListItem): string {
-  const method = scoringMethodLabel(s.selfScoreForm);
-  return s.name.startsWith(method) ? s.name : `${s.name} — ${method}`;
 }
 
 export default CreatePeriodModal;

@@ -31,8 +31,6 @@ interface Props {
   savedCodes: string[];
   /** Điền thời hạn các bước theo quy tắc (máy chủ tính và lưu); ngày sau đó vẫn sửa tự do. */
   onApplyRules?: () => void;
-  /** Mẫu tự chấm của bộ tiêu chí của kỳ — quyết định bước đăng ký, duyệt sản phẩm (máy chủ đặt khi chọn bộ). */
-  selfScoreForm?: string | null;
 }
 
 const AUTHORITIES: { key: string; label: string }[] = [
@@ -41,12 +39,8 @@ const AUTHORITIES: { key: string; label: string }[] = [
 ];
 
 /** Hồ sơ luồng của kỳ: bước × chế độ × quyền thực hiện × thời hạn; máy chủ kiểm tra lại toàn bộ khi lưu. */
-export function WorkflowProfilesEditor({ settings, onChange, editable, deadlinesEditable, permissionOptions, savedCodes, onApplyRules, selfScoreForm }: Props) {
+export function WorkflowProfilesEditor({ settings, onChange, editable, deadlinesEditable, permissionOptions, savedCodes, onApplyRules }: Props) {
   const [selected, setSelected] = useState(settings.profiles[0]?.code ?? "");
-  // Bước theo bộ tiêu chí: 09A luôn có bước đăng ký sản phẩm; 09B không có bước đăng ký, duyệt.
-  const registration = selfScoreForm ? selfScoreForm !== "09B" : null;
-  const followsCriteria = (step: WorkflowStepCode) =>
-    registration !== null && (step === "B1_REGISTER" || (step === "B1_APPROVE" && !registration));
 
   useEffect(() => {
     if (!settings.profiles.some((p) => p.code === selected)) setSelected(settings.profiles[0]?.code ?? "");
@@ -174,16 +168,13 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
                 {STEP_ORDER.map((step, index) => {
                   const setting = profile.steps[step] ?? { mode: "Internal" as StepMode, permission: DEFAULT_STEP_PERMISSIONS[step] };
                   const owner = OWNER_STEPS.includes(step);
-                  const modes: StepMode[] = followsCriteria(step)
-                    ? [setting.mode]
-                    : (["Internal", "External", "Off"].filter(
-                        (m) => !(m === "Off" && MANDATORY_STEPS.includes(step)) && !(m === "External" && NEVER_EXTERNAL_STEPS.includes(step))
-                      ) as StepMode[]);
+                  const modes = (["Internal", "External", "Off"] as StepMode[]).filter(
+                    (m) => !(m === "Off" && MANDATORY_STEPS.includes(step)) && !(m === "External" && NEVER_EXTERNAL_STEPS.includes(step))
+                  );
                   return (
                     <tr key={step} style={{ fontSize: 14, opacity: setting.mode === "Off" ? 0.6 : 1 }}>
                       <td>{index + 1}</td>
-                      <td>{STEP_NAMES[step]}{MANDATORY_STEPS.includes(step) && <span className="text-secondary"> (bắt buộc)</span>}
-                        {followsCriteria(step) && <span className="text-secondary"> (theo bộ tiêu chí)</span>}</td>
+                      <td>{STEP_NAMES[step]}{MANDATORY_STEPS.includes(step) && <span className="text-secondary"> (bắt buộc)</span>}</td>
                       <td>
                         <select className="form-select form-select-sm" value={setting.mode} disabled={!editable || modes.length === 1}
                           aria-label={`Chế độ — ${STEP_NAMES[step]}`} onChange={(e) => setStep(step, { mode: e.target.value as StepMode })}>

@@ -3,7 +3,6 @@
 import React from "react";
 import {
   AXIS_REPORT_LIMITS,
-  AxisNote,
   AxisReport,
   AxisTask,
   AxisTaskBlock,
@@ -252,32 +251,6 @@ export function SelfAssessmentPreview({ section, text, blocks }: { section?: Sel
         </React.Fragment>
       ))}
       {!text?.trim() && blocks.length === 0 && <div className="text-secondary">Chưa nhập.</div>}
-    </div>
-  );
-}
-
-/** Mẫu 09B — ba cột tự luận của một trục: mục tiêu đề ra, tóm tắt kết quả/minh chứng, ghi chú. */
-export function AxisNoteFields({
-  axisCode,
-  value,
-  onChange,
-}: {
-  axisCode: string;
-  value: AxisNote;
-  onChange: (value: AxisNote) => void;
-}) {
-  const field = (key: keyof AxisNote, label: string, rows: number) => (
-    <div className="col-12 col-lg-4">
-      <label className="form-label small text-secondary mb-0" htmlFor={`an-${axisCode}-${key}`}>{label}</label>
-      <textarea id={`an-${axisCode}-${key}`} className="form-control form-control-sm" rows={rows} maxLength={AXIS_REPORT_LIMITS.axisNote}
-        value={value[key] ?? ""} onChange={(e) => onChange({ ...value, [key]: e.target.value })} />
-    </div>
-  );
-  return (
-    <div className="row g-2">
-      {field("target", "Mục tiêu, nhiệm vụ đề ra", 2)}
-      {field("result", "Tóm tắt kết quả sản phẩm thực tế; tài liệu minh chứng", 2)}
-      {field("note", "Ghi chú", 2)}
     </div>
   );
 }

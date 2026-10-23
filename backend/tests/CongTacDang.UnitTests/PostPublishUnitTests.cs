@@ -123,7 +123,7 @@ public sealed class PostPublishUnitTests
         Assert.Empty(content.Parameters.ImprovementPlanRequiredGrades);
 
         content.Parameters.ImprovementPlanRequiredGrades = new List<EvaluationGrade> { EvaluationGrade.ChuaXepLoai };
-        Assert.Contains(content.Validate(CriteriaSetContent.Form09B), e => e.Contains("kế hoạch 30-60-90"));
+        Assert.Contains(content.Validate(), e => e.Contains("kế hoạch 30-60-90"));
     }
 
     #endregion

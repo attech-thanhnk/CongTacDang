@@ -38,7 +38,7 @@ Tài liệu dành cho người dùng: cán bộ được đánh giá, Chi ủy, 
 | 6 | Quyết định mức xếp loại | Người ghi nhận quyết định của Đảng ủy, hoặc kết quả của cấp trên |
 | 7 | Công bố, khóa kết quả | Văn phòng Đảng ủy |
 
-Khi kỳ áp dụng đăng ký sản phẩm đầu quý, trước bước 1 còn có *Đăng ký sản phẩm, nhiệm vụ* và *Duyệt danh mục sản phẩm*.
+Trước bước 1 luôn có *Đăng ký sản phẩm, nhiệm vụ* (đầu quý) và, tùy nhóm đối tượng, *Duyệt danh mục sản phẩm*.
 
 **Trạng thái kỳ đánh giá:**
 
@@ -122,7 +122,7 @@ Từ trên xuống:
 
 ### 3.3 Đăng ký sản phẩm đầu quý (Mẫu 01)
 
-Trong 5 ngày làm việc đầu quý, khi kỳ có bước đăng ký sản phẩm:
+Trong 5 ngày làm việc đầu quý:
 
 1. Mở hồ sơ, phần **Đăng ký sản phẩm, nhiệm vụ**. Mỗi sản phẩm là một khung riêng.
 2. Nhập đủ các ô như phiếu giấy: tên sản phẩm, **loại việc** (trọng tâm / thường xuyên), **vai trò** (chủ trì / phối hợp), trục kết quả, trọng số, thời hạn, chuẩn đạt, tiêu chí vượt chuẩn, nguồn dữ liệu / minh chứng, thẩm quyền xác nhận. Mã SP không bắt buộc; thời hạn để trống là ngày cuối kỳ.
@@ -133,7 +133,7 @@ Việc đột xuất giao thêm trong quý không đăng ký ở đây (xem mụ
 
 ### 3.3a Điều chỉnh việc trong quý (Mẫu 04, 05)
 
-Sau khi danh mục đã được duyệt và **trước khi nộp phiếu tự chấm**, trên trang hồ sơ có khối **Điều chỉnh việc trong quý** (chỉ với kỳ chấm theo sản phẩm, có bước đăng ký sản phẩm):
+Sau khi danh mục đã được duyệt và **trước khi nộp phiếu tự chấm**, trên trang hồ sơ có khối **Điều chỉnh việc trong quý**:
 
 1. Chủ hồ sơ bấm **Đề nghị điều chỉnh**, chọn việc và loại đề nghị:
    - **Điều chỉnh việc**: sửa tên, chuẩn đạt, thời hạn, trục, vai trò, vượt chuẩn, minh chứng, thẩm quyền xác nhận và/hoặc trọng số;
@@ -155,9 +155,9 @@ Khung **Nộp phiếu tự chấm** gồm các phần sau.
 - Dưới tên mỗi nhóm có ô *Tóm tắt kết quả, minh chứng chung của nhóm* (không bắt buộc).
 - Dòng *Cộng tiêu chí chung (tạm tính)* tự cập nhật.
 
-**II. Kết quả thực hiện nhiệm vụ — chấm theo trục**
+**II. Kết quả thực hiện sản phẩm (Mẫu 02)**
 
-Mỗi trục (T1…T6) có ô điểm (không vượt điểm tối đa ghi bên cạnh, ví dụ "/ 15") và ba ô: *Mục tiêu, nhiệm vụ đề ra*; *Tóm tắt kết quả sản phẩm thực tế; tài liệu minh chứng*; *Ghi chú*. Dòng *Cộng các trục (tạm tính)* tự cập nhật.
+Bảng liệt kê các sản phẩm đã đăng ký (kèm trục, trọng số). Với mỗi sản phẩm, nhập **% đạt** của từng thành phần **A, B, C, D**; điểm sản phẩm tính theo khung tỷ trọng của hồ sơ (ghi phía trên bảng). Đánh dấu **Vượt** nếu sản phẩm vượt chuẩn — khi đó phải **Đính kèm** minh chứng. Bấm *Thang quy đổi % A-B-C-D* để xem ý nghĩa các mức %. Dòng *Cộng điểm sản phẩm (tạm tính)* tự cập nhật.
 
 **Mẫu 09C — Bản tự đánh giá**
 
@@ -189,7 +189,7 @@ Nếu hệ thống báo hồ sơ đã bị thay đổi ở nơi khác (ví dụ 
 
 ### 3.5 Tải biểu mẫu Word/PDF
 
-Khối **Biểu mẫu** ở cột phải liệt kê các mẫu áp dụng cho hồ sơ (ví dụ Mẫu 09B, 09C, 9D, 10). Bấm **Word** để tải tệp .docx (sửa, in được), **PDF** để tải bản PDF. Nút **Bản in (PDF)** mở bản xem trước ngay trên màn hình.
+Khối **Biểu mẫu** ở cột phải liệt kê các mẫu áp dụng cho hồ sơ (ví dụ Mẫu 01, 02, 09A, 09C, 9D, 10). Bấm **Word** để tải tệp .docx (sửa, in được), **PDF** để tải bản PDF. Nút **Bản in (PDF)** mở bản xem trước ngay trên màn hình.
 
 Thông tin trên biểu mẫu (họ tên, ngày sinh, chức vụ Đảng / chính quyền / đoàn thể, đơn vị) lấy từ hồ sơ cán bộ. Thiếu hoặc sai → xem [Câu hỏi thường gặp](#11-câu-hỏi-thường-gặp).
 
@@ -348,7 +348,7 @@ Dành cho người được giao quản lý kỳ. Menu **Quản lý → Kỳ đ�
 
 1. Bấm **Tạo kỳ**.
 2. Nhập **Năm**, **Quý**, **Từ ngày**, **Đến ngày**, **Tên kỳ**.
-3. **Cách chấm**: khi chỉ có một bộ tiêu chí đang dùng, hệ thống tự dùng bộ đó. Khi có nhiều bộ thì chọn: *Chấm theo việc đã đăng ký* (đầu quý đăng ký việc, lãnh đạo duyệt) hoặc *Chấm theo 6 trục* (không đăng ký việc). Bộ không còn dùng thì vào **Bộ tiêu chí** bấm **Lưu trữ** để không hiện nữa.
+3. **Bộ tiêu chí**: khi chỉ có một bộ đã xuất bản, hệ thống tự dùng bộ đó; có nhiều bộ thì chọn một. Bộ không còn dùng thì vào **Bộ tiêu chí** bấm **Lưu trữ** để không hiện nữa.
 4. Bấm **Tạo kỳ (dự thảo)**; trang cấu hình kỳ mở ra để thiết lập tiếp.
 
 ### 7.2 Cấu hình cách xét duyệt (tab "Cách xét duyệt")
@@ -357,7 +357,7 @@ Mỗi **cách xét duyệt** áp dụng cho một nhóm đối tượng, ví d�
 
 - Hai ô **Cách xét duyệt mặc định** chọn nhóm cho người thuộc diện Đảng ủy cơ sở quyết định và người thuộc diện cấp trên quyết định.
 - Bấm tên một cách xét duyệt để sửa. Với mỗi bước:
-  - **Chế độ**: *Nội bộ* (làm trong hệ thống), *Cấp trên thực hiện* (chỉ ghi nhận kết quả), *Không áp dụng*. Bước có ghi "(bắt buộc)" không tắt được; bước có ghi "(theo bộ tiêu chí)" (đăng ký, duyệt sản phẩm) do bộ tiêu chí của kỳ quyết định — đổi bộ ở tab **Bộ tiêu chí**.
+  - **Chế độ**: *Nội bộ* (làm trong hệ thống), *Cấp trên thực hiện* (chỉ ghi nhận kết quả), *Không áp dụng*. Bước có ghi "(bắt buộc)" (đăng ký sản phẩm, tự chấm, quyết định, công bố) không tắt được.
   - **Người thực hiện (quyền)**: quyền mà người làm bước cần có.
   - **Thời hạn**: chọn *Nhập tay* rồi nhập ngày, hoặc chọn quy tắc (*Ngày làm việc thứ … đầu quý*, *Ngày … tháng cuối quý*, *… ngày làm việc trước đầu quý*) rồi bấm **Áp dụng quy tắc** để điền ngày. Hệ thống tự bỏ qua thứ Bảy, Chủ nhật và ngày nghỉ trong *Danh mục → Ngày nghỉ*. Sau đó vẫn sửa từng ngày được.
 - **Chặn hoàn thành bước khi đã quá thời hạn**: bật thì hết hạn sẽ không làm được bước; tắt thì chỉ cảnh báo.
@@ -404,12 +404,12 @@ Khi kỳ **Đang mở** hoặc **Khóa dữ liệu**, trang kỳ mở sẵn tab 
 
 Menu **Quản lý → Bộ tiêu chí**. Bộ tiêu chí chứa toàn bộ nội dung chấm: tiêu chí chung, trục kết quả, khung tỷ trọng, thang quy đổi, mức xếp loại, tham số và biểu mẫu áp dụng.
 
-- Danh sách hiện trạng thái (*Bản nháp*, *Đã xuất bản*, *Lưu trữ*), mẫu tự chấm (09A/09B), kỳ đang dùng.
+- Danh sách hiện trạng thái (*Bản nháp*, *Đã xuất bản*, *Lưu trữ*), kỳ đang dùng.
 - Bộ **đã xuất bản không sửa được**. Muốn thay đổi: bấm **Nhân bản** để có bản nháp mới.
 - Trong bản nháp, sửa các phần:
-  - **Mã bộ**, **Tên bộ**, **Mẫu tự chấm** (09A — chấm theo nhiệm vụ; 09B — chấm trực tiếp theo trục).
+  - **Mã bộ**, **Tên bộ**.
   - **Nhóm tiêu chí chung**: **Thêm nhóm**, **Thêm tiêu chí con**, cách chấm (*Đảm bảo / Không đảm bảo* hoặc *Nhập điểm*), điểm tối đa.
-  - **Trục kết quả**: **Thêm trục**, tên, nội dung áp dụng, điểm tối đa, tiêu đề và gợi ý in trên Mẫu 09B.
+  - **Trục kết quả**: **Thêm trục**, mã, tên, nội dung áp dụng. Trục dùng để phân loại sản phẩm khi đăng ký và nhóm nhiệm vụ trên Mẫu 09C, 9D.
   - **Biểu mẫu cá nhân áp dụng cho hồ sơ**; các mục của Mẫu 09C (tiêu đề, câu dẫn, lưu ý, số ký tự tối đa, bắt buộc khi nộp); các mức tự đánh giá nhiệm vụ (Mức 1, 2, 3 và nhãn).
   - **Khung tỷ trọng A-B-C-D**, **Khung mặc định**, **Thang quy đổi**, **Mức xếp loại** (từ điểm, điều kiện kèm theo).
   - **Tham số**: giảm từ bao nhiêu điểm phải nêu lý do, **Điều chỉnh tỷ lệ A-B-C-D (± điểm %)** — biên độ người duyệt danh mục được sửa tỷ lệ 4 mặt chấm cho từng hồ sơ (để trống = không cho sửa), cho phép K/AD, ngưỡng giải trình khi thẩm định, công khai kết quả kèm điểm, mức bắt buộc lập kế hoạch 30-60-90 ngày…
@@ -502,7 +502,7 @@ Menu **Quản lý → Danh mục**, gồm các tab:
 - **Đơn vị chính quyền**, **Tổ chức Đảng**: hai cây nhiều cấp. **Thêm đơn vị gốc**, thêm đơn vị con, sửa, đổi đơn vị cha, ngừng hoạt động. **Mở rộng** / **Thu gọn** để xem cây.
 - **Loại đơn vị**: Công ty, Phòng, Chi bộ…
 - **Chức vụ**: tên, bên (Đảng / chính quyền / đoàn thể), **Mã chức danh (15A/15B)**, thẩm quyền quyết định xếp loại mặc định. Chức vụ đã từng gán cho cán bộ không xóa được, chỉ chuyển sang **Ngừng dùng**. Mỗi chức vụ chọn được **Kiểu trình bày biểu mẫu tự đánh giá**.
-- **Kiểu trình bày biểu mẫu**: cách in Mẫu 09B, 09C, 9D — tiêu đề Mẫu 09B (Chi bộ hay Đảng ủy), ô xác nhận của chi bộ, chức vụ một dòng hay 3 dòng, dòng ngày trên Mẫu 9D, chữ ghi khi không có chức vụ. Cán bộ giữ nhiều chức vụ khác kiểu thì dùng kiểu có thứ tự nhỏ hơn; chức vụ chưa gắn kiểu dùng kiểu mặc định. Dùng **Nhân bản** để tạo kiểu mới từ kiểu có sẵn.
+- **Kiểu trình bày biểu mẫu**: cách in Mẫu 09C, 9D — chức vụ một dòng hay 3 dòng (Mẫu 9D), dòng ngày trên Mẫu 9D, chữ ghi khi không có chức vụ. Cán bộ giữ nhiều chức vụ khác kiểu thì dùng kiểu có thứ tự nhỏ hơn; chức vụ chưa gắn kiểu dùng kiểu mặc định. Dùng **Nhân bản** để tạo kiểu mới từ kiểu có sẵn.
 - **Ngày nghỉ**: khai báo ngày lễ, Tết, nghỉ bù (thứ Bảy, Chủ nhật đã được loại sẵn). Dùng khi tính thời hạn các bước.
 
 ### 10.4 Thông tin đơn vị

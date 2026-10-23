@@ -43,7 +43,7 @@ Trường bổ sung (task 07, sửa ở task 14):
 | `system.import` | Nhập dữ liệu từ Excel | không | Mở chức năng nhập dữ liệu (`docs/nhap-du-lieu.md`); mỗi loại nhập còn cần quyền dữ liệu: `catalog.manage` (đơn vị, tổ chức Đảng), `system.users.manage` trong phạm vi (cán bộ), `system.assignments.manage` (gán vai trò) |
 | `catalog.manage` | Quản lý danh mục | không | Đơn vị chính quyền, tổ chức Đảng (cây), loại đơn vị, chức vụ. **Xem** danh mục: mọi người đã đăng nhập |
 | `period.manage` | Quản lý kỳ đánh giá | không | Tạo kỳ, cấu hình hồ sơ luồng (chế độ bước, quyền thực hiện, thời hạn)/tham số, danh sách người được đánh giá và hồ sơ luồng của từng người, kiểm tra kẹt luồng, mở/khóa kỳ; **chọn bộ tiêu chí đã xuất bản** cho kỳ (khi Dự thảo) và xem danh sách bộ tiêu chí |
-| `criteria.manage` | Quản lý bộ tiêu chí | không | Tạo, nhân bản, sửa bản nháp, xuất bản, lưu trữ, xóa bản nháp bộ tiêu chí và thang điểm (tiêu chí chung, trục, khung tỷ trọng, thang quy đổi, mức xếp loại, tham số). Danh sách khung tỷ trọng (chọn khung mặc định cho cán bộ): mọi người đã đăng nhập |
+| `criteria.manage` | Quản lý bộ tiêu chí | không | Tạo, nhân bản, sửa bản nháp, xuất bản, lưu trữ, xóa bản nháp bộ tiêu chí và thang điểm (tiêu chí chung, trục kết quả, khung tỷ trọng, thang quy đổi, mức xếp loại, tham số). Danh sách khung tỷ trọng (chọn khung mặc định cho cán bộ): mọi người đã đăng nhập |
 | `evaluation.self` | Tham gia đánh giá (bản thân) | chủ hồ sơ | Đăng ký sản phẩm, tự chấm, giải trình, nộp minh chứng — **chỉ trên hồ sơ của mình** |
 | `evaluation.read` | Xem hồ sơ đánh giá | có | Chủ hồ sơ **luôn** xem được hồ sơ của mình (HD03: quyền được biết) |
 | `evaluation.tasks.approve` | Duyệt danh mục sản phẩm (B1) | có | |

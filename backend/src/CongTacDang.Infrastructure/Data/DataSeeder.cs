@@ -138,18 +138,16 @@ public static class DataSeeder
             return;
 
         var now = DateTime.UtcNow;
-        context.Set<CriteriaSet>().AddRange(
-            DefaultCriteriaSet(CriteriaSetDefaults.Code09B, CriteriaSetDefaults.Name09B, CriteriaSetContent.Form09B, CriteriaSetDefaults.Build09B(), now),
-            DefaultCriteriaSet(CriteriaSetDefaults.Code09A, CriteriaSetDefaults.Name09A, CriteriaSetContent.Form09A, CriteriaSetDefaults.Build09A(), now.AddSeconds(-1)));
+        context.Set<CriteriaSet>().Add(
+            DefaultCriteriaSet(CriteriaSetDefaults.Code, CriteriaSetDefaults.Name, CriteriaSetDefaults.Build(), now));
         await context.SaveChangesAsync();
-        logger?.LogInformation("Đã tạo 2 bộ tiêu chí mặc định.");
+        logger?.LogInformation("Đã tạo bộ tiêu chí mặc định.");
     }
 
-    private static CriteriaSet DefaultCriteriaSet(string code, string name, string form, CriteriaSetContent content, DateTime publishedAt) => new()
+    private static CriteriaSet DefaultCriteriaSet(string code, string name, CriteriaSetContent content, DateTime publishedAt) => new()
     {
         Code = code,
         Name = name,
-        SelfScoreForm = form,
         Notes = CriteriaSetDefaults.Notes,
         Status = CriteriaSetStatus.Published,
         Content = content.ToJson(),
@@ -524,18 +522,17 @@ public static class DataSeeder
     }
 
     private sealed record DefaultFormLayout(
-        string Name, string Description, FormHeaderStyle Header, bool CellConfirmation, bool SingleLine, bool DateLine9D,
-        string? EmptyPositionText, bool IsDefault, string[] Positions);
+        string Name, string Description, bool SingleLine, bool DateLine9D, string? EmptyPositionText, bool IsDefault, string[] Positions);
 
     /// <summary>Thứ tự = ưu tiên khi cán bộ giữ nhiều chức vụ gắn kiểu khác nhau.</summary>
     private static readonly DefaultFormLayout[] DefaultFormLayouts =
     {
-        new("Bí thư Đảng ủy", "Tiêu đề Mẫu 09B theo Đảng ủy, không có ô xác nhận của chi bộ; chức vụ một dòng; Mẫu 9D có dòng ngày.",
-            FormHeaderStyle.PartyCommittee, false, true, true, "không", false, new[] { "Bí thư Đảng ủy" }),
-        new("Lãnh đạo Công ty", "Chức vụ một dòng trên Mẫu 09B, 9D; Mẫu 9D có dòng ngày; chức vụ trống ghi \"không\".",
-            FormHeaderStyle.PartyCell, true, true, true, "không", false, new[] { "Chủ tịch Công ty", "Giám đốc", "Phó Giám đốc" }),
-        new("Cán bộ phòng ban", "Như biểu mẫu gốc: chức vụ 3 dòng, có ô xác nhận của chi bộ.",
-            FormHeaderStyle.PartyCell, true, false, false, null, true, Array.Empty<string>())
+        new("Bí thư Đảng ủy", "Chức vụ một dòng trên Mẫu 9D; Mẫu 9D có dòng ngày; chức vụ trống ghi \"không\".",
+            true, true, "không", false, new[] { "Bí thư Đảng ủy" }),
+        new("Lãnh đạo Công ty", "Chức vụ một dòng trên Mẫu 9D; Mẫu 9D có dòng ngày; chức vụ trống ghi \"không\".",
+            true, true, "không", false, new[] { "Chủ tịch Công ty", "Giám đốc", "Phó Giám đốc" }),
+        new("Cán bộ phòng ban", "Như biểu mẫu gốc: chức vụ 3 dòng.",
+            false, false, null, true, Array.Empty<string>())
     };
 
     /// <summary>Chỉ khi danh mục trống; không ghi đè cấu hình quản trị đã sửa.</summary>
@@ -548,8 +545,6 @@ public static class DataSeeder
         {
             Name = l.Name,
             Description = l.Description,
-            HeaderStyle = l.Header,
-            ShowCellConfirmation = l.CellConfirmation,
             SingleLinePositions = l.SingleLine,
             ShowDateLineOn9D = l.DateLine9D,
             EmptyPositionText = l.EmptyPositionText,
@@ -765,7 +760,7 @@ public static class DataSeeder
             }
         }
 
-        var settings = PeriodSettings.Default(CriteriaSetContent.Form09B);
+        var settings = PeriodSettings.Default();
         var period = new EvaluationPeriod
         {
             Year = 2026,
@@ -780,7 +775,7 @@ public static class DataSeeder
 
         // Chụp bộ tiêu chí vào kỳ mẫu như khi mở kỳ.
         var sampleSet = await context.Set<CriteriaSet>()
-            .Where(s => s.Status == CriteriaSetStatus.Published && s.SelfScoreForm == CriteriaSetContent.Form09B)
+            .Where(s => s.Status == CriteriaSetStatus.Published)
             .OrderByDescending(s => s.PublishedAt)
             .FirstOrDefaultAsync();
         if (sampleSet != null)
@@ -788,7 +783,7 @@ public static class DataSeeder
             period.CriteriaSetId = sampleSet.Id;
             period.CriteriaSnapshot = sampleSet.TakeSnapshot(now).ToJson();
         }
-        var criteria = sampleSet?.GetContent() ?? CriteriaSetDefaults.Build09B();
+        var criteria = sampleSet?.GetContent() ?? CriteriaSetDefaults.Build();
         context.EvaluationPeriods.Add(period);
 
         var records = new Dictionary<string, EvaluationRecord>(StringComparer.Ordinal);
@@ -1098,6 +1093,14 @@ public static class DataSeeder
     {
         switch (step)
         {
+            case WorkflowStep.B1_REGISTER:
+                AddSampleTasks(record, criteria, at);
+                break;
+            case WorkflowStep.B1_APPROVE:
+                record.TasksApprovedByName = "Cấp giao nhiệm vụ (dữ liệu mẫu)";
+                record.TasksApprovedAt = at;
+                record.TasksApprovalComment = "Nhất trí danh mục sản phẩm đăng ký (dữ liệu mẫu).";
+                break;
             case WorkflowStep.B2_SELF_SCORE:
                 var items = criteria.AllItems.Select(x => x.Item).ToList();
                 var general = items.ToDictionary(
@@ -1105,15 +1108,25 @@ public static class DataSeeder
                     i => items.IndexOf(i) >= items.Count - 2
                         ? new GeneralItemScore { Score = 0, Reason = "Còn hạn chế cần khắc phục trong quý (dữ liệu mẫu)." }
                         : new GeneralItemScore { Score = i.MaxScore });
-                var axes = criteria.Axes.ToDictionary(a => a.Code, a => Math.Max(0, a.MaxScore - (a.MaxScore >= 15 ? 2 : 1)));
                 var rounding = criteria.Parameters.Rounding;
                 record.GeneralScores = EvaluationScoring.GeneralScoresToJson(criteria, general);
                 record.GeneralCriteriaScore = EvaluationScoring.GeneralCriteriaScore(criteria, general);
-                record.AxisScores = EvaluationScoring.AxisScoresToJson(criteria, axes);
-                record.TasksScore = EvaluationScoring.AxisTasksScore(criteria, axes);
+                if (RecordWeightFrames.Effective(record, criteria) is { } frame)
+                {
+                    foreach (var task in record.Tasks)
+                    {
+                        var scored = EvaluationScoring.ScoreTask(task.Weight, 1, 0.95, 1, 0.9, frame, rounding.TaskScore);
+                        task.CriteriaA_Ratio = scored.A;
+                        task.CriteriaB_Ratio = scored.B;
+                        task.CriteriaC_Ratio = scored.C;
+                        task.CriteriaD_Ratio = scored.D;
+                        task.SelfScore = scored.Score;
+                    }
+                }
+                record.TasksScore = EvaluationScoring.TasksScore(record.Tasks.Select(t => t.SelfScore), rounding.TasksTotal);
                 record.TotalSelfScore = EvaluationScoring.TotalScore(record.GeneralCriteriaScore, record.TasksScore, rounding.Total);
-                record.SelfProposedGrade = EvaluationScoring.SuggestGrade(criteria, record.TotalSelfScore, null);
-                record.SelfScoreForm = CriteriaSetContent.Form09B;
+                record.SelfProposedGrade = EvaluationScoring.SuggestGrade(criteria, record.TotalSelfScore,
+                    EvaluationScoring.ExceedStandardRatio(0, record.Tasks.Count));
                 record.SelfScoredAt = at;
                 FillIndividualForms(record, criteria);
                 break;
@@ -1135,6 +1148,8 @@ public static class DataSeeder
                     : null;
                 record.AppraisalComment = "Hồ sơ đầy đủ minh chứng (dữ liệu mẫu).";
                 record.AppraisalProposedGrade = grade;
+                foreach (var task in record.Tasks)
+                    task.AppraisalLevel = grade == EvaluationGrade.HoanThanh && task.TaskOrder == 1 ? 2 : 1;
                 record.AppraisedByName = "Cơ quan thẩm định (dữ liệu mẫu)";
                 record.AppraisedAt = at;
                 break;
@@ -1185,10 +1200,41 @@ public static class DataSeeder
                 Progress = "Hoàn thành các công việc đúng theo yêu cầu"
             }), includeTasks: uses09C, includeSummary: uses9D);
         }
-        if (criteria.Axes.All(a => a.MaxScore > 0))
-            record.AxisNotes = RecordFormContent.AxisNotesToJson(criteria, criteria.Axes.ToDictionary(
-                a => a.Code,
-                a => (AxisNote?)new AxisNote { Target = "Hoàn thành chỉ tiêu được giao trong quý (dữ liệu mẫu)", Result = "Đạt; minh chứng: báo cáo quý III (dữ liệu mẫu)" }));
+    }
+
+    /// <summary>Danh mục Mẫu 01 mẫu: trọng số cộng đủ điểm tối đa nhóm kết quả, mỗi việc một trục.</summary>
+    private static void AddSampleTasks(EvaluationRecord record, CriteriaSetContent criteria, DateTime at)
+    {
+        var shares = new[] { 0.35, 0.30, 0.20 };
+        var names = new[]
+        {
+            "Bảo đảm kỹ thuật, an toàn hệ thống được giao phụ trách",
+            "Hoàn thiện quy trình, quy chế nội bộ của đơn vị",
+            "Triển khai nhiệm vụ chuyển đổi số của đơn vị",
+            "Tham gia sinh hoạt chi bộ, học tập nghị quyết"
+        };
+        var total = criteria.Parameters.TotalTaskWeight;
+        var weights = shares.Select(x => Math.Round(total * x, 2)).ToList();
+        weights.Add(Math.Round(total - weights.Sum(), 2));
+        for (var i = 0; i < names.Length; i++)
+        {
+            record.Tasks.Add(new EvaluationTask
+            {
+                RecordId = record.Id,
+                TaskOrder = i + 1,
+                TaskName = names[i] + " (dữ liệu mẫu)",
+                TargetOutput = "Hoàn thành đúng hạn, đạt yêu cầu chất lượng (dữ liệu mẫu)",
+                Weight = weights[i],
+                Deadline = new DateTime(2026, 9, 30, 0, 0, 0, DateTimeKind.Utc),
+                AxisCode = criteria.Axes.ElementAtOrDefault(i)?.Code,
+                Kind = i < 2 ? TaskKind.TrongTam : TaskKind.ThuongXuyen,
+                Role = TaskRole.ChuTri,
+                ExceedCriteria = "Hoàn thành trước hạn, vượt yêu cầu chất lượng (dữ liệu mẫu)",
+                EvidenceSource = "Báo cáo kết quả quý (dữ liệu mẫu)",
+                Confirmer = "Trưởng đơn vị (dữ liệu mẫu)",
+                CreatedAt = at
+            });
+        }
     }
 
     #endregion

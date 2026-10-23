@@ -211,7 +211,6 @@ export interface EvaluationRecordDto {
   periodId: string;
   periodName: string;
   periodStatus: string;
-  selfScoreForm: string;
   memberId: string;
   fullName: string;
   partyCardNumber?: string;
@@ -253,8 +252,6 @@ export interface EvaluationRecordDto {
   generalScores: Record<string, GeneralItemScore>;
   generalCriteriaScore: number;
   tasksScore: number;
-  /** Điểm theo trục (Mẫu 09B, khóa = mã trục). */
-  axisScores?: Record<string, number> | null;
   totalSelfScore: number;
   selfProposedGrade: string;
   /** Lý do tự đề xuất mức khác mức theo điểm. */
@@ -320,13 +317,11 @@ export interface EvaluationRecordDto {
   selfAssessment?: Record<string, string>;
   /** Nhiệm vụ (kèm mức) và kết quả theo trục, khóa = mã trục — mục I Mẫu 09C và Mẫu 9D. */
   axisReports?: Record<string, AxisReport>;
-  /** Mẫu 09B — tự luận theo trục, khóa = mã trục. */
-  axisNotes?: Record<string, AxisNote>;
   /** Nhận xét theo nhóm tiêu chí chung, khóa = mã nhóm (in ở dòng nhóm của phiếu tự chấm). */
   generalGroupNotes?: Record<string, string>;
 }
 
-// Biểu mẫu cá nhân: 09C, 9D nhập cùng phiếu tự chấm (theo trục).
+// Biểu mẫu cá nhân: 09C, 9D nhập cùng phiếu tự chấm, nhóm theo trục kết quả.
 
 /** Ý con "+ …" của một nhiệm vụ (Mẫu 09C). */
 export interface AxisTaskItem {
@@ -432,13 +427,6 @@ export interface AxisTaskBlock {
 /** Cả dòng như bản in (nội dung + câu nối mức). */
 export const axisTaskLineText = (line: AxisTaskLine) => (line.level ? `${line.text} ${line.level}` : line.text);
 
-/** Nội dung tự luận của một trục trên Mẫu 09B. */
-export interface AxisNote {
-  target?: string | null;
-  result?: string | null;
-  note?: string | null;
-}
-
 /** Một mục tự luận của Mẫu 09C (khai báo trong bộ tiêu chí). */
 export interface SelfAssessmentSection {
   code: string;
@@ -471,12 +459,12 @@ export interface RecordFormDto {
 }
 
 /** Khớp giới hạn kiểm tra phía máy chủ. */
-export const AXIS_REPORT_LIMITS = { tasks: 30, items: 20, long: 2000, short: 500, axisNote: 4000 } as const;
+export const AXIS_REPORT_LIMITS = { tasks: 30, items: 20, long: 2000, short: 500 } as const;
 
-/** Bộ tiêu chí áp dụng biểu mẫu `code` (mẫu tự chấm theo `selfScoreForm` của bộ). */
-export function criteriaAppliesForm(criteria: { selfScoreForm: string; content: unknown } | null | undefined, code: string): boolean {
+/** Bộ tiêu chí áp dụng biểu mẫu `code`; Mẫu 09A luôn áp dụng. */
+export function criteriaAppliesForm(criteria: { content: unknown } | null | undefined, code: string): boolean {
   if (!criteria) return false;
-  if (code === "09A" || code === "09B") return criteria.selfScoreForm === code;
+  if (code === "09A") return true;
   const forms = (criteria.content as IndividualFormConfig).requiredForms ?? [];
   return forms.includes(code);
 }
@@ -964,7 +952,7 @@ export const STEP_NAMES: Record<WorkflowStepCode, string> = {
 };
 
 /** Bước bắt buộc (không đặt "Không áp dụng") — chỉ để khóa ô chọn; máy chủ kiểm tra lại. */
-export const MANDATORY_STEPS: WorkflowStepCode[] = ["B2_SELF_SCORE", "B4_DECISION", "B5_PUBLISH"];
+export const MANDATORY_STEPS: WorkflowStepCode[] = ["B1_REGISTER", "B2_SELF_SCORE", "B4_DECISION", "B5_PUBLISH"];
 
 /** Bước không giao cho cấp trên thực hiện (bước của chủ hồ sơ, công bố) — chỉ để khóa ô chọn. */
 export const NEVER_EXTERNAL_STEPS: WorkflowStepCode[] = ["B1_REGISTER", "B2_SELF_SCORE", "B5_PUBLISH"];

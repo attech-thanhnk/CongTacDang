@@ -3,33 +3,18 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>Hai bộ tiêu chí mặc định theo bản trích xuất HD03 (docs/nghiep-vu/hd03-trich-xuat.md), chưa được nghiệp vụ
+/// <summary>Bộ tiêu chí mặc định theo bản trích xuất HD03 (docs/nghiep-vu/hd03-trich-xuat.md), chưa được nghiệp vụ
 /// xác nhận; sửa qua giao diện bằng cách nhân bản thành nháp.</summary>
 public static partial class CriteriaSetDefaults
 {
-    public const string Code09B = "09B-Q3-2026";
+    public const string Code = "09A-2027";
 
-    public const string Code09A = "09A-2027";
-
-    public const string Name09B = "Chấm theo 6 trục (Quý III, IV/2026)";
-
-    public const string Name09A = "Từ Quý I/2027";
+    public const string Name = "Bộ tiêu chí đánh giá cán bộ";
 
     public const string Notes = "";
 
-    /// <summary>6 trục có điểm tối đa 15/10/10/15/10/10.</summary>
-    public static CriteriaSetContent Build09B() => WithItemFormTexts(Build(axisMax: new[] { 15.0, 10, 10, 15, 10, 10 }, RequiredForms09B));
-
-    /// <summary>Chấm theo nhiệm vụ Mẫu 01/02; trục không có điểm tối đa riêng.</summary>
-    public static CriteriaSetContent Build09A()
-    {
-        var content = WithItemFormTexts(Build(axisMax: new[] { 0.0, 0, 0, 0, 0, 0 }, RequiredForms09A));
-        // Cấp giao nhiệm vụ được chỉnh từng thành phần A-B-C-D trong ±10 điểm phần trăm.
-        content.Parameters.FrameAdjustLimit = 10;
-        return content;
-    }
-
-    private static CriteriaSetContent Build(double[] axisMax, IReadOnlyList<string> requiredForms)
+    /// <summary>Chấm theo việc/sản phẩm đăng ký ở Mẫu 01, điểm A-B-C-D theo khung tỷ trọng.</summary>
+    public static CriteriaSetContent Build()
     {
         var axes = new List<ResultAxis>
         {
@@ -46,11 +31,7 @@ public static partial class CriteriaSetDefaults
             new() { Code = "T6", Name = "Thực hiện nhiệm vụ quốc phòng, an ninh, giữ vững ổn định chính trị, trật tự, an toàn cơ quan, đơn vị; nâng cao hiệu quả đối ngoại và hội nhập quốc tế",
                 Description = "Hiệp đồng quân sự - dân dụng, an ninh vùng trời/hàng không, phòng chống thiên tai, SAR; hợp tác ICAO, CANSO và đối tác quốc tế." }
         };
-        for (var i = 0; i < axes.Count; i++)
-            axes[i].MaxScore = axisMax[i];
-        ApplyAxisFormTexts(axes);
-
-        return new CriteriaSetContent
+        var content = new CriteriaSetContent
         {
             GeneralGroups = new List<CriteriaGroup>
             {
@@ -94,7 +75,7 @@ public static partial class CriteriaSetDefaults
                 }
             },
             Axes = axes,
-            RequiredForms = new List<string>(requiredForms),
+            RequiredForms = new List<string>(RequiredForms),
             SelfAssessmentSections = SelfAssessmentSections(),
             TaskLevels = TaskLevels(),
             TaskLineLabel = TaskLineLabel,
@@ -162,9 +143,12 @@ public static partial class CriteriaSetDefaults
                     Total = new RoundingRule(1, ScoreRoundingMode.HalfUp)
                 },
                 CollectiveGeneralMaxScore = 30,
-                CollectiveTaskMaxScore = 70
+                CollectiveTaskMaxScore = 70,
+                // Cấp giao nhiệm vụ được chỉnh từng thành phần A-B-C-D trong ±10 điểm phần trăm.
+                FrameAdjustLimit = 10
             }
         }.Normalize();
+        return WithItemFormTexts(content);
     }
 
     private static CriteriaItem Item(string code, string text, double maxScore) => new() { Code = code, Text = text, MaxScore = maxScore };

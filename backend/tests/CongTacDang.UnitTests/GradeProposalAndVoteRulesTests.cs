@@ -13,9 +13,9 @@ namespace CongTacDang.UnitTests;
 /// <summary>Mức đề xuất so với mức theo điểm, mức theo kết quả kiểm phiếu, hồ sơ luồng gợi ý theo chức vụ, người lập kế hoạch.</summary>
 public sealed class GradeProposalAndVoteRulesTests
 {
-    private static CriteriaSetContent Content09B(bool explanationOnGradeChange = true)
+    private static CriteriaSetContent Content(bool explanationOnGradeChange = true)
     {
-        var content = CriteriaSetDefaults.Build09B();
+        var content = CriteriaSetDefaults.Build();
         content.Parameters.ExplanationOnGradeChange = explanationOnGradeChange;
         return content;
     }
@@ -25,7 +25,7 @@ public sealed class GradeProposalAndVoteRulesTests
     [Fact]
     public void Proposal_ExcellentAt87_IsHigherThanScoreGrade_RequiresExplanation()
     {
-        var content = Content09B();
+        var content = Content();
         // Lỗi cũ: thẩm định 30 + 57 = 87 (dưới ngưỡng 90) đề xuất Xuất sắc vẫn được nhận, không cảnh báo.
         Assert.Equal(1, EvaluationScoring.CompareWithScoreGrade(content, EvaluationGrade.HoanThanhXuatSac, 87));
         Assert.True(EvaluationScoring.ProposalRequiresExplanation(content, EvaluationGrade.HoanThanhXuatSac, 87));
@@ -36,18 +36,18 @@ public sealed class GradeProposalAndVoteRulesTests
     [Fact]
     public void Proposal_Lower_IsNegative_RequiresExplanation_FlagOff_OnlyWarns()
     {
-        Assert.Equal(-1, EvaluationScoring.CompareWithScoreGrade(Content09B(), EvaluationGrade.HoanThanhTot, 93));
-        Assert.True(EvaluationScoring.ProposalRequiresExplanation(Content09B(), EvaluationGrade.HoanThanhTot, 93));
-        Assert.Equal(-2, EvaluationScoring.CompareWithScoreGrade(Content09B(), EvaluationGrade.HoanThanh, 93));
-        Assert.False(EvaluationScoring.ProposalRequiresExplanation(Content09B(explanationOnGradeChange: false), EvaluationGrade.HoanThanhXuatSac, 60));
-        Assert.Equal(0, EvaluationScoring.CompareWithScoreGrade(Content09B(), EvaluationGrade.ChuaXepLoai, 93));
+        Assert.Equal(-1, EvaluationScoring.CompareWithScoreGrade(Content(), EvaluationGrade.HoanThanhTot, 93));
+        Assert.True(EvaluationScoring.ProposalRequiresExplanation(Content(), EvaluationGrade.HoanThanhTot, 93));
+        Assert.Equal(-2, EvaluationScoring.CompareWithScoreGrade(Content(), EvaluationGrade.HoanThanh, 93));
+        Assert.False(EvaluationScoring.ProposalRequiresExplanation(Content(explanationOnGradeChange: false), EvaluationGrade.HoanThanhXuatSac, 60));
+        Assert.Equal(0, EvaluationScoring.CompareWithScoreGrade(Content(), EvaluationGrade.ChuaXepLoai, 93));
     }
 
     [Fact]
     public void Proposal_ScoreGrade_UsesExceedRatioOfCriteria()
     {
         // 09A: Xuất sắc cần tỷ lệ vượt chuẩn của bộ; đủ điểm nhưng thiếu tỷ lệ thì mức theo điểm là Tốt.
-        var content = CriteriaSetDefaults.Build09A();
+        var content = CriteriaSetDefaults.Build();
         Assert.Equal(1, EvaluationScoring.CompareWithScoreGrade(content, EvaluationGrade.HoanThanhXuatSac, 95, exceedStandardRatio: 0.1));
         Assert.Equal(0, EvaluationScoring.CompareWithScoreGrade(content, EvaluationGrade.HoanThanhXuatSac, 95, exceedStandardRatio: 0.5));
     }
@@ -55,7 +55,7 @@ public sealed class GradeProposalAndVoteRulesTests
     [Fact]
     public void EnsureExplained_SelfExcellentAt86_WithoutReason_Throws_WithReason_Passes()
     {
-        var content = Content09B();
+        var content = Content();
         var ex = Assert.Throws<ValidationException>(() => GradeProposalRules.EnsureExplained(content, WorkflowStep.B2_SELF_SCORE,
             EvaluationGrade.HoanThanhXuatSac, 86, null, "  ", "\"Lý do đề xuất mức\""));
         Assert.Contains("cao hơn mức theo điểm", ex.Message);
@@ -72,7 +72,7 @@ public sealed class GradeProposalAndVoteRulesTests
             TotalSelfScore = 86, SelfScoredAt = DateTime.UtcNow, SelfProposedGrade = EvaluationGrade.HoanThanhXuatSac,
             CollectiveProposedGrade = EvaluationGrade.HoanThanhTot, AppraisalScore = 87, AppraisalProposedGrade = EvaluationGrade.HoanThanhXuatSac
         };
-        var criteria = new CriteriaSnapshot { Content = Content09B(), SelfScoreForm = CriteriaSetContent.Form09B };
+        var criteria = new CriteriaSnapshot { Content = Content() };
         var deviations = GradeProposalRules.Deviations(record, criteria);
         Assert.Equal(new[] { WorkflowStep.B2_SELF_SCORE, WorkflowStep.B3B_APPRAISAL }, deviations.ConvertAll(d => d.Step));
         Assert.All(deviations, d => Assert.Equal(EvaluationGrade.HoanThanhTot, d.ScoreGrade));
@@ -123,7 +123,7 @@ public sealed class GradeProposalAndVoteRulesTests
     [Fact]
     public void DefaultProfile_DeputyDirector_UsesPositionProfile_NotUpperByAuthority()
     {
-        var settings = PeriodSettings.Default(CriteriaSetContent.Form09B);
+        var settings = PeriodSettings.Default();
         var held = new[] { Held("Phó Giám đốc", "M14", ApprovalAuthority.CapTren, PeriodSettings.ProfileDeputyDirector, primary: true) };
         // Lỗi cũ: chỉ theo thẩm quyền → cap-tren.
         Assert.Equal(PeriodSettings.ProfileUpper, settings.ResolveProfile(null, ApprovalAuthority.CapTren).Code);
@@ -137,20 +137,20 @@ public sealed class GradeProposalAndVoteRulesTests
     [Fact]
     public void DefaultProfile_IgnoresMissingProfile_AndAuthorityMismatch()
     {
-        var settings = PeriodSettings.Default(CriteriaSetContent.Form09B);
+        var settings = PeriodSettings.Default();
         settings.Profiles.RemoveAll(p => p.Code == PeriodSettings.ProfileDeputyDirector);
         var held = new[] { Held("Phó Giám đốc", "M14", ApprovalAuthority.CapTren, PeriodSettings.ProfileDeputyDirector) };
         Assert.Equal(PeriodSettings.ProfileUpper, PositionRules.DefaultProfile(settings, ApprovalAuthority.CapTren, held).Code);
 
         // Thẩm quyền đặt tay CoSo khác thẩm quyền chức vụ (CapTren) → không dùng gợi ý của chức vụ.
-        var full = PeriodSettings.Default(CriteriaSetContent.Form09B);
+        var full = PeriodSettings.Default();
         Assert.Equal(PeriodSettings.ProfileBase, PositionRules.DefaultProfile(full, ApprovalAuthority.CoSo, held).Code);
     }
 
     [Fact]
     public void SuggestProfile_ManyPositions_HighestStatCodeThenPrimary()
     {
-        var settings = PeriodSettings.Default(CriteriaSetContent.Form09B);
+        var settings = PeriodSettings.Default();
         bool Exists(string code) => settings.FindProfile(code) != null;
         var held = new List<HeldPosition>
         {

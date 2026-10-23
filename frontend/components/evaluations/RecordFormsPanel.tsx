@@ -8,7 +8,7 @@ import { RowActions } from "@/components/common/RowActions";
 import styles from "./record.module.css";
 import { errorMessage } from "@/components/admin/adminUtils";
 
-/** Tên tệp tải về (không dấu), ví dụ "Mau_09B_Nguyen_Van_A.docx". */
+/** Tên tệp tải về (không dấu), ví dụ "Mau_09A_Nguyen_Van_A.docx". */
 function fileName(code: string, fullName: string, format: ReportFileFormat): string {
   const ascii = fullName
     .normalize("NFD")

@@ -12,7 +12,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>Bộ tiêu chí: xuất bản → kỳ chụp khi mở → nhân bản không ảnh hưởng kỳ đã mở; chấm 09B/09A và xuất biểu mẫu.</summary>
+/// <summary>Bộ tiêu chí: xuất bản → kỳ chụp khi mở → nhân bản không ảnh hưởng kỳ đã mở; chấm theo sản phẩm và xuất biểu mẫu.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class CriteriaSetIntegrationTests
 {
@@ -28,28 +28,27 @@ public sealed class CriteriaSetIntegrationTests
     {
         var w = await WorldAsync();
 
-        // Hai bộ mặc định đã xuất bản.
+        // Bộ mặc định đã xuất bản.
         var sets = await Data(w.Manager, "/api/criteria-sets");
-        Assert.Contains(sets.EnumerateArray(), s => s.GetProperty("code").GetString() == CriteriaSetDefaults.Code09B && s.GetProperty("status").GetString() == "Published");
-        Assert.Contains(sets.EnumerateArray(), s => s.GetProperty("code").GetString() == CriteriaSetDefaults.Code09A && s.GetProperty("generalItemCount").GetInt32() == 17);
+        Assert.Contains(sets.EnumerateArray(), s => s.GetProperty("code").GetString() == CriteriaSetDefaults.Code && s.GetProperty("generalItemCount").GetInt32() == 17);
 
-        // 1. Tạo bản nháp 09B (nội dung mặc định), sửa sai → lưu được nhưng không xuất bản được; sửa đúng → xuất bản.
-        var code = $"IT-09B-{Guid.NewGuid().ToString("N")[..6]}".ToUpperInvariant();
-        var draft = await Data(await w.Manager.PostAsJsonAsync("/api/criteria-sets", new { code, name = "Bộ thử 09B", selfScoreForm = "09B" }));
+        // 1. Tạo bản nháp (nội dung mặc định), sửa sai → lưu được nhưng không xuất bản được; sửa đúng → xuất bản.
+        var code = $"IT-TC-{Guid.NewGuid().ToString("N")[..6]}".ToUpperInvariant();
+        var draft = await Data(await w.Manager.PostAsJsonAsync("/api/criteria-sets", new { code, name = "Bộ thử" }));
         var setId = draft.GetProperty("id").GetGuid();
         Assert.Equal("Draft", draft.GetProperty("status").GetString());
         Assert.Empty(draft.GetProperty("validationErrors").EnumerateArray());
-        Assert.Equal(HttpStatusCode.Conflict, (await w.Manager.PostAsJsonAsync("/api/criteria-sets", new { code, name = "Trùng", selfScoreForm = "09B" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await w.Manager.PostAsJsonAsync("/api/criteria-sets", new { code, name = "Trùng" })).StatusCode);
 
         var content = JsonNode.Parse(draft.GetProperty("content").GetRawText())!.AsObject();
-        content["axes"]![0]!["maxScore"] = 16;
+        content["weightFrames"]![0]!["a"] = 0.3;
         var broken = await Data(await w.Manager.PutAsJsonAsync($"/api/criteria-sets/{setId}", new { version = draft.GetProperty("version").GetUInt32(), content }));
-        Assert.Contains(broken.GetProperty("validationErrors").EnumerateArray(), e => e.GetString()!.Contains("(71)"));
+        Assert.Contains(broken.GetProperty("validationErrors").EnumerateArray(), e => e.GetString()!.Contains("khung \"K1\""));
         var refused = await w.Manager.PostAsJsonAsync($"/api/criteria-sets/{setId}/publish", new { version = broken.GetProperty("version").GetUInt32() });
         Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
-        Assert.Contains("tổng điểm tối đa các trục (71)", await MessageAsync(refused));
+        Assert.Contains("khung \"K1\"", await MessageAsync(refused));
 
-        content["axes"]![0]!["maxScore"] = 15;
+        content["weightFrames"]![0]!["a"] = 0.25;
         var fixedSet = await Data(await w.Manager.PutAsJsonAsync($"/api/criteria-sets/{setId}", new { version = broken.GetProperty("version").GetUInt32(), content, notes = "Bộ thử của test tích hợp" }));
         var published = await Data(await w.Manager.PostAsJsonAsync($"/api/criteria-sets/{setId}/publish", new { version = fixedSet.GetProperty("version").GetUInt32() }));
         Assert.Equal("Published", published.GetProperty("status").GetString());
@@ -79,7 +78,7 @@ public sealed class CriteriaSetIntegrationTests
         var archived = await Data(await w.Manager.PostAsJsonAsync($"/api/criteria-sets/{setId}/archive", new { version = publishedVersion }));
         Assert.Equal("Archived", archived.GetProperty("status").GetString());
         Assert.Contains(archived.GetProperty("usedByPeriods").EnumerateArray(), n => n.GetString() == period.GetProperty("name").GetString());
-        // Dọn: bộ nhân bản không được là "bộ 09B mới nhất" cho test khác.
+        // Dọn: bộ nhân bản không được là "bộ mới nhất" cho test khác.
         await Data(await w.Manager.PostAsJsonAsync($"/api/criteria-sets/{cloneId}/archive", new { version = clonePublished.GetProperty("version").GetUInt32() }));
 
         var opened = await Data(w.Manager, $"/api/evaluations/periods/{periodId}");
@@ -95,7 +94,7 @@ public sealed class CriteriaSetIntegrationTests
         // 4. Tự chấm theo 17 tiêu chí + K/AD: thiếu lý do → 400; có lý do → điểm quy đổi 26/28 × 30 = 27,9.
         var general = CriteriaTestData.General("1.2");
         general["1.1"] = new GeneralItemScore { NotApplicable = true };
-        var body = new { generalScores = general, axisScores = CriteriaTestData.Axis(13, 9, 9, 13, 9, 9) };
+        var body = new { generalScores = general, taskScores = await RegistrationTestData.RegisterAsync(_factory, recordId, 62.0 / 70) };
         var noReason = await PostAsync(w.Owner1C, recordId, "self-score/submit", body, await VersionAsync(w, recordId));
         Assert.Equal(HttpStatusCode.BadRequest, noReason.StatusCode);
         Assert.Contains("K/AD", await MessageAsync(noReason));
@@ -106,8 +105,6 @@ public sealed class CriteriaSetIntegrationTests
         Assert.Equal(89.9, scored.GetProperty("totalSelfScore").GetDouble(), 6);
         Assert.Equal("HoanThanhTot", scored.GetProperty("selfProposedGrade").GetString());
         Assert.True(scored.GetProperty("generalScores").GetProperty("1.1").GetProperty("notApplicable").GetBoolean());
-        Assert.Equal(13.0, scored.GetProperty("axisScores").GetProperty("T1").GetDouble());
-        Assert.Equal("09B", scored.GetProperty("selfScoreForm").GetString());
 
         await StepAsync(w, w.CellSecC, recordId, "cell/confirm", new { comment = "Xác nhận" }, "AwaitingCollective");
 
@@ -124,8 +121,8 @@ public sealed class CriteriaSetIntegrationTests
         Assert.Equal(HttpStatusCode.BadRequest, noExplanation.StatusCode);
         Assert.Contains("giải trình", await MessageAsync(noExplanation));
         var appraised = await StepAsync(w, w.AppraiserC, recordId, "appraisal",
-            new { appraisalScore = 84.0, proposedGrade = "HoanThanhTot", comment = "Đạt", explanation = "Trừ điểm trục 1 do chậm tiến độ dự án" }, "AwaitingDirectorReview");
-        Assert.Equal("Trừ điểm trục 1 do chậm tiến độ dự án", appraised.GetProperty("appraisalExplanation").GetString());
+            new { appraisalScore = 84.0, proposedGrade = "HoanThanhTot", comment = "Đạt", explanation = "Trừ điểm sản phẩm 1 do chậm tiến độ dự án" }, "AwaitingDirectorReview");
+        Assert.Equal("Trừ điểm sản phẩm 1 do chậm tiến độ dự án", appraised.GetProperty("appraisalExplanation").GetString());
 
         // Mẫu 11 sau thẩm định: cột (5) tập thể, (6) thẩm định đã có; cột (7) cấp trực tiếp chưa nhận xét → trống.
         var afterAppraisal = Assert.Single(await Mau11RowsAsync(w.Manager, periodId), r => r.Count == 14 && r[1] == "IT Tiêu chí 1");
@@ -141,16 +138,15 @@ public sealed class CriteriaSetIntegrationTests
         // 6. Mẫu 10 xuất được từ hồ sơ đã công bố.
         await AssertDocxAsync(w.Manager, $"/api/reports/docx/mau-10/{recordId}", "84");
         // Nội dung giải trình chênh lệch in vào ô APPRAISAL_EXPLANATION.
-        await AssertDocxAsync(w.Manager, $"/api/reports/docx/mau-10/{recordId}", "Trừ điểm trục 1 do chậm tiến độ dự án");
+        await AssertDocxAsync(w.Manager, $"/api/reports/docx/mau-10/{recordId}", "Trừ điểm sản phẩm 1 do chậm tiến độ dự án");
     }
 
     [SkippableFact]
     public async Task C2_Form09A_WeightFrameReadiness_TaskAxisCodes_AbcdByFrame_ExportsMau01Mau02()
     {
         var w = await WorldAsync();
-        var period = await CreatePeriodAsync(w, await TestCriteriaSets.LatestPublishedAsync(w.Manager, "09A"));
+        var period = await CreatePeriodAsync(w, await TestCriteriaSets.LatestPublishedAsync(w.Manager));
         var periodId = period.GetProperty("id").GetGuid();
-        Assert.Equal("09A", period.GetProperty("criteria").GetProperty("selfScoreForm").GetString());
 
         // Cán bộ có khung "K9" (không có trong bộ) → kẹt luồng báo lỗi; sửa ảnh chụp sang khung không có → 400; sang K1 → hết lỗi.
         await _factory.WithDbAsync(async db =>
@@ -285,7 +281,7 @@ public sealed class CriteriaSetIntegrationTests
         var periodOnlyUser = await _factory.CreateUserWithPermissionsAsync("period.manage");
         var periodOnly = await _factory.LoginAsAsync(periodOnlyUser.Username, periodOnlyUser.Password, distinctClientIp: true);
         Assert.Equal(HttpStatusCode.OK, (await periodOnly.GetAsync("/api/criteria-sets")).StatusCode);
-        var denied = await periodOnly.PostAsJsonAsync("/api/criteria-sets", new { code = "IT-X", name = "X", selfScoreForm = "09A" });
+        var denied = await periodOnly.PostAsJsonAsync("/api/criteria-sets", new { code = "IT-X", name = "X" });
         Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
         Assert.Contains("Quản lý bộ tiêu chí", await MessageAsync(denied));
 
@@ -300,11 +296,11 @@ public sealed class CriteriaSetIntegrationTests
         Assert.Equal(new[] { "I", "II" }, collective.Select(g => g.GetProperty("code").GetString()));
         Assert.Equal(new[] { "General", "Task" }, collective.Select(g => g.GetProperty("kind").GetString()));
         Assert.Equal(new[] { 30.0, 70.0 }, collective.Select(g => g.GetProperty("items").EnumerateArray().Sum(i => i.GetProperty("maxScore").GetDouble())));
-        var defaults09B = await Data(w.Manager, "/api/criteria-sets/defaults/09B");
-        Assert.Equal(2, defaults09B.GetProperty("collectiveGroups").GetArrayLength());
+        var defaults = await Data(w.Manager, "/api/criteria-sets/defaults");
+        Assert.Equal(2, defaults.GetProperty("collectiveGroups").GetArrayLength());
 
         // Bản nháp xóa được; bản nháp không chọn được cho kỳ.
-        var draft = await Data(await w.Manager.PostAsJsonAsync("/api/criteria-sets", new { code = $"IT-DEL-{Guid.NewGuid().ToString("N")[..6]}", name = "Nháp xóa", selfScoreForm = "09A" }));
+        var draft = await Data(await w.Manager.PostAsJsonAsync("/api/criteria-sets", new { code = $"IT-DEL-{Guid.NewGuid().ToString("N")[..6]}", name = "Nháp xóa" }));
         var draftId = draft.GetProperty("id").GetGuid();
         var draftChoice = await PostPeriodAsync(w, draftId);
         Assert.Equal(HttpStatusCode.BadRequest, draftChoice.StatusCode);
@@ -316,7 +312,7 @@ public sealed class CriteriaSetIntegrationTests
         {
             var role = await db.Roles.Include(r => r.Permissions).SingleAsync(r => r.Code == "CO_QUAN_THAM_DINH");
             Assert.Contains(role.Permissions, p => p.Code == "criteria.manage");
-            Assert.Equal(2, await db.Set<CriteriaSet>().CountAsync(s => s.Code == CriteriaSetDefaults.Code09A || s.Code == CriteriaSetDefaults.Code09B));
+            Assert.Equal(1, await db.Set<CriteriaSet>().CountAsync(s => s.Code == CriteriaSetDefaults.Code));
         });
     }
 
@@ -324,7 +320,7 @@ public sealed class CriteriaSetIntegrationTests
     public async Task C4_ApproveTasks_FrameAdjustment_ScoresByAdjustedWeights_ExportsMau02_SnapshotClears()
     {
         var w = await WorldAsync();
-        var period = await CreatePeriodAsync(w, await TestCriteriaSets.LatestPublishedAsync(w.Manager, "09A"));
+        var period = await CreatePeriodAsync(w, await TestCriteriaSets.LatestPublishedAsync(w.Manager));
         var periodId = period.GetProperty("id").GetGuid();
         Assert.Equal(10, period.GetProperty("criteria").GetProperty("content").GetProperty("parameters").GetProperty("frameAdjustLimit").GetDouble());
         var r1 = await AddParticipantAsync(w, periodId, w.Owner1.Id); // khung K2: A 15 · B 50 · C 15 · D 20
@@ -402,7 +398,7 @@ public sealed class CriteriaSetIntegrationTests
         var w = await WorldAsync();
 
         // Bản sao bộ 09A không cho điều chỉnh (frameAdjustLimit = null).
-        var sourceId = await TestCriteriaSets.LatestPublishedAsync(w.Manager, "09A");
+        var sourceId = await TestCriteriaSets.LatestPublishedAsync(w.Manager);
         var clone = await Data(await w.Manager.PostAsJsonAsync($"/api/criteria-sets/{sourceId}/clone", new { }));
         var cloneId = clone.GetProperty("id").GetGuid();
         var content = JsonNode.Parse(clone.GetProperty("content").GetRawText())!.AsObject();
@@ -542,11 +538,13 @@ public sealed class CriteriaSetIntegrationTests
     private static async Task<uint> VersionAsync(World w, Guid recordId) =>
         (await Data(w.Manager, $"/api/evaluations/records/{recordId}")).GetProperty("version").GetUInt32();
 
-    private static Task<HttpResponseMessage> PostAsync(HttpClient client, Guid recordId, string action, object body, uint version)
+    private static async Task<HttpResponseMessage> PostAsync(HttpClient client, Guid recordId, string action, object body, uint version)
     {
         var json = JsonSerializer.SerializeToNode(body)!.AsObject();
         json["version"] = version;
-        return client.PostAsJsonAsync($"/api/evaluations/records/{recordId}/{action}", json);
+        if (action == "appraisal")
+            await AppraisalTestData.AddTaskLevelsAsync(client, recordId, json);
+        return await client.PostAsJsonAsync($"/api/evaluations/records/{recordId}/{action}", json);
     }
 
     private static async Task<JsonElement> StepAsync(World w, HttpClient client, Guid recordId, string action, object body, string expectedStatus)

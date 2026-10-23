@@ -58,16 +58,6 @@ public sealed record AxisTaskLine(string Text, string? Level)
     public string FullText => Level == null ? Text : Text + " " + Level;
 }
 
-/// <summary>Các ô tự luận của một trục trên Mẫu 09B; điểm trục lưu riêng ở <c>EvaluationRecord.AxisScores</c>.</summary>
-public sealed class AxisNote
-{
-    public string? Target { get; set; }
-
-    public string? Result { get; set; }
-
-    public string? Note { get; set; }
-}
-
 /// <summary>Đọc, kiểm tra, ghi nội dung biểu mẫu cá nhân (jsonb) theo mục, trục, mức của bộ tiêu chí của kỳ.</summary>
 public static class RecordFormContent
 {
@@ -80,9 +70,6 @@ public static class RecordFormContent
 
     /// <summary>Ô "Thời hạn", "Đánh giá tiến độ", "Ghi chú" (Mẫu 9D).</summary>
     public const int MaxShortCellLength = 500;
-
-    /// <summary>Mỗi ô tự luận của một trục trên Mẫu 09B.</summary>
-    public const int MaxAxisNoteLength = 4000;
 
     public const int MaxGroupNoteLength = 2000;
 
@@ -318,7 +305,7 @@ public static class RecordFormContent
 
     #endregion
 
-    #region Nhận xét theo nhóm tiêu chí chung (Mẫu 09A/09B)
+    #region Nhận xét theo nhóm tiêu chí chung (Mẫu 09A)
 
     /// <summary>Chuỗi rỗng → rỗng; JSON sai → <see cref="JsonException"/>.</summary>
     public static Dictionary<string, string> ParseGeneralGroupNotes(string? json) =>
@@ -353,55 +340,6 @@ public static class RecordFormContent
             var text = Clean(Find(input, group.Code));
             if (text != null)
                 result[group.Code] = text;
-        }
-        return result.Count == 0 ? null : JsonSerializer.Serialize(result, JsonOptions);
-    }
-
-    #endregion
-
-    #region Mẫu 09B — nội dung tự luận theo trục
-
-    /// <summary>Chuỗi rỗng → rỗng; JSON sai → <see cref="JsonException"/>.</summary>
-    public static Dictionary<string, AxisNote> ParseAxisNotes(string? json) =>
-        string.IsNullOrWhiteSpace(json)
-            ? new Dictionary<string, AxisNote>(StringComparer.OrdinalIgnoreCase)
-            : new Dictionary<string, AxisNote>(
-                JsonSerializer.Deserialize<Dictionary<string, AxisNote>>(json, JsonOptions) ?? new(), StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>Trả lỗi hoặc null.</summary>
-    public static string? ValidateAxisNotes(CriteriaSetContent criteria, IReadOnlyDictionary<string, AxisNote?>? notes)
-    {
-        ArgumentNullException.ThrowIfNull(criteria);
-        foreach (var (code, note) in notes ?? new Dictionary<string, AxisNote?>())
-        {
-            var axis = criteria.FindAxis(code);
-            if (axis == null)
-                return $"Trục \"{code}\" không có trong bộ tiêu chí của kỳ (có: {string.Join(", ", criteria.Axes.Select(a => a.Code))}).";
-            if (note == null)
-                continue;
-            foreach (var (name, value) in new[] { ("Mục tiêu, nhiệm vụ đề ra", note.Target), ("Tóm tắt kết quả; minh chứng", note.Result), ("Ghi chú", note.Note) })
-            {
-                if ((value?.Trim().Length ?? 0) > MaxAxisNoteLength)
-                    return $"Trục {axis.Code}: ô \"{name}\" không được dài quá {MaxAxisNoteLength} ký tự.";
-            }
-        }
-        return null;
-    }
-
-    /// <summary>Bỏ trục không có nội dung; không có gì → null.</summary>
-    public static string? AxisNotesToJson(CriteriaSetContent criteria, IReadOnlyDictionary<string, AxisNote?>? notes)
-    {
-        ArgumentNullException.ThrowIfNull(criteria);
-        var result = new Dictionary<string, AxisNote>();
-        foreach (var axis in criteria.Axes)
-        {
-            var note = (notes ?? new Dictionary<string, AxisNote?>())
-                .FirstOrDefault(kv => string.Equals(kv.Key?.Trim(), axis.Code, StringComparison.OrdinalIgnoreCase)).Value;
-            if (note == null)
-                continue;
-            var clean = new AxisNote { Target = Clean(note.Target), Result = Clean(note.Result), Note = Clean(note.Note) };
-            if (clean.Target != null || clean.Result != null || clean.Note != null)
-                result[axis.Code] = clean;
         }
         return result.Count == 0 ? null : JsonSerializer.Serialize(result, JsonOptions);
     }

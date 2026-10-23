@@ -116,7 +116,7 @@ public sealed class GradeConditionsTests
     [Fact]
     public void ExcellentMinExceedRatio_ReadsCriteriaParameter()
     {
-        var content = CriteriaSetDefaults.Build09A();
+        var content = CriteriaSetDefaults.Build();
         Assert.Equal(0.30, GradeConditions.ExcellentMinExceedRatio(content));
         Assert.Null(GradeConditions.ExcellentMinExceedRatio(null));
     }

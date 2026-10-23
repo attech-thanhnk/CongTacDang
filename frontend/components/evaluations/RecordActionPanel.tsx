@@ -308,7 +308,7 @@ const initialGrade = (value?: string) => (value && value !== "ChuaXepLoai" ? val
 /** Mức chọn khác mức theo điểm (cùng quy tắc máy chủ); `required` = bộ tiêu chí bắt buộc nêu lý do. */
 function proposalCheck(record: EvaluationRecordDto, criteria: CriteriaSnapshot | null, grade: string, score: number | null | undefined) {
   if (!criteria || !grade || score == null || Number.isNaN(score)) return null;
-  return gradeProposalCheck(criteria.content, grade, score, exceedRatioOf(record.tasks, record.selfScoreForm === "09B"));
+  return gradeProposalCheck(criteria.content, grade, score, exceedRatioOf(record.tasks));
 }
 
 const reasonMissing = (direction: number) =>
@@ -354,9 +354,9 @@ function GradeCommentForm({ record, criteria, busy, defaultGrade, submitText, ex
 
 /** Chênh lệch với tự chấm từ ngưỡng của bộ tiêu chí (hoặc làm đổi mức) → bắt buộc giải trình; máy chủ kiểm tra lại. */
 function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit }: { record: EvaluationRecordDto; criteria: CriteriaSnapshot | null; busy: boolean; extra?: React.ReactNode; onScoreChange?: (score: number | null) => void; onSubmit: (p: Record<string, unknown>) => void }) {
-  // Chỉ bộ 09A xếp Mức 1/2/3 từng nhiệm vụ; việc đã loại trừ / chuyển tiếp không chấm.
+  // Việc đã loại trừ / chuyển tiếp không chấm.
   const scoredTasks = record.tasks.filter((t) => !t.changeStatus);
-  const usesTasks = record.selfScoreForm !== "09B" && scoredTasks.length > 0;
+  const usesTasks = scoredTasks.length > 0;
   const [general, setGeneral] = useState<string>(String(record.appraisalGeneralScore ?? record.generalCriteriaScore ?? ""));
   const [tasksScore, setTasksScore] = useState<string>(String(record.appraisalTasksScore ?? record.tasksScore ?? ""));
   const [levels, setLevels] = useState<Record<string, number | null>>(() => Object.fromEntries(record.tasks.map((t) => [t.id, t.appraisalLevel ?? null])));
@@ -484,7 +484,6 @@ function GradeWarningList({ warnings }: { warnings: string[] }) {
 
 /** Cảnh báo điều kiện xếp loại với mức đang chọn, theo mức thẩm định đã lưu của từng nhiệm vụ. */
 function recordGradeWarnings(record: EvaluationRecordDto, grade: string): string[] {
-  if (record.selfScoreForm === "09B") return [];
   return gradeConditionWarnings(record.tasks.filter((t) => !t.changeStatus), grade, record.excellentMinExceedRatio);
 }
 

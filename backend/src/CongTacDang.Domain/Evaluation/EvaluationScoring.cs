@@ -193,42 +193,6 @@ public static class EvaluationScoring
 
     #endregion
 
-    #region Trục kết quả (Mẫu 09B)
-
-    /// <summary>Trả lỗi hoặc null. <paramref name="partial"/> = lưu nháp: không bắt chấm đủ trục.</summary>
-    public static string? ValidateAxisScores(CriteriaSetContent criteria, IReadOnlyDictionary<string, double>? scores, bool partial = false)
-    {
-        ArgumentNullException.ThrowIfNull(criteria);
-        if (scores == null || scores.Count == 0)
-            return partial ? null : $"Tự chấm theo Mẫu 09B phải có điểm đủ {criteria.Axes.Count} trục ({string.Join(", ", criteria.Axes.Select(a => a.Code))}).";
-        var unknown = scores.Keys.FirstOrDefault(k => criteria.FindAxis(k) == null);
-        if (unknown != null)
-            return $"Trục \"{unknown}\" không có trong bộ tiêu chí của kỳ.";
-        foreach (var axis in criteria.Axes)
-        {
-            var found = scores.FirstOrDefault(kv => string.Equals(kv.Key, axis.Code, StringComparison.OrdinalIgnoreCase));
-            if (found.Key == null)
-            {
-                if (partial)
-                    continue;
-                return $"Chưa chấm trục {axis.Code} \"{Short(axis.Name)}\".";
-            }
-            if (double.IsNaN(found.Value) || found.Value < 0 || found.Value > axis.MaxScore + CriteriaSetContent.Epsilon)
-                return string.Create(CultureInfo.InvariantCulture, $"Điểm trục {axis.Code} phải từ 0 đến {axis.MaxScore:0.##} điểm.");
-        }
-        return null;
-    }
-
-    /// <summary>Tổng điểm các trục (Mẫu 09B).</summary>
-    public static double AxisTasksScore(CriteriaSetContent criteria, IReadOnlyDictionary<string, double> scores)
-    {
-        ArgumentNullException.ThrowIfNull(criteria);
-        ArgumentNullException.ThrowIfNull(scores);
-        return Round(scores.Values.Sum(), criteria.Parameters.Rounding.TasksTotal);
-    }
-
-    #endregion
-
     #region Tổng, xếp loại, trần, giải trình
 
     public static double TotalScore(double generalCriteriaScore, double tasksScore, RoundingRule rounding) =>
@@ -345,25 +309,6 @@ public static class EvaluationScoring
                 NotApplicable = score.NotApplicable,
                 Reason = string.IsNullOrWhiteSpace(score.Reason) ? null : score.Reason.Trim()
             };
-        }
-        return JsonSerializer.Serialize(ordered, JsonOptions);
-    }
-
-    /// <summary>Khóa = mã trục; null nếu chưa chấm theo trục.</summary>
-    public static Dictionary<string, double>? ParseAxisScores(string? json) =>
-        string.IsNullOrWhiteSpace(json)
-            ? null
-            : new Dictionary<string, double>(JsonSerializer.Deserialize<Dictionary<string, double>>(json, JsonOptions) ?? new(), StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>Theo thứ tự trục của bộ.</summary>
-    public static string AxisScoresToJson(CriteriaSetContent criteria, IReadOnlyDictionary<string, double> scores)
-    {
-        var ordered = new Dictionary<string, double>(StringComparer.Ordinal);
-        foreach (var axis in criteria.Axes)
-        {
-            var found = scores.FirstOrDefault(kv => string.Equals(kv.Key, axis.Code, StringComparison.OrdinalIgnoreCase));
-            if (found.Key != null)
-                ordered[axis.Code] = found.Value;
         }
         return JsonSerializer.Serialize(ordered, JsonOptions);
     }

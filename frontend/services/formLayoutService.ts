@@ -1,20 +1,10 @@
 import { request } from "./apiClient";
 
-/** Tiêu đề trái Mẫu 09B. */
-export type FormHeaderStyle = "PartyCell" | "PartyCommittee";
-
-export const FORM_HEADER_STYLE_LABELS: Record<FormHeaderStyle, string> = {
-  PartyCell: "Đảng bộ / Chi bộ sinh hoạt",
-  PartyCommittee: "Đảng bộ cấp trên / Đảng ủy",
-};
-
-/** Áp dụng cho Mẫu 09B, 09C, 9D. */
+/** Áp dụng cho Mẫu 09C, 9D. */
 export interface FormLayout {
   id: string;
   name: string;
   description?: string | null;
-  headerStyle: FormHeaderStyle;
-  showCellConfirmation: boolean;
   singleLinePositions: boolean;
   showDateLineOn9D: boolean;
   /** Chữ in ở dòng chức vụ không có; null = dòng chấm. */
@@ -28,8 +18,6 @@ export interface FormLayout {
 export interface SaveFormLayoutPayload {
   name: string;
   description?: string | null;
-  headerStyle: FormHeaderStyle;
-  showCellConfirmation: boolean;
   singleLinePositions: boolean;
   showDateLineOn9D: boolean;
   emptyPositionText?: string | null;

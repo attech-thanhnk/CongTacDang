@@ -231,12 +231,8 @@ public sealed class PeriodSettings
 
     #region Cấu hình mặc định
 
-    /// <summary>09A cần bước đăng ký, duyệt sản phẩm; 09B chấm theo trục, không đăng ký. Chưa chọn bộ (null) → có đăng ký.</summary>
-    public static bool UsesRegistration(string? selfScoreForm) =>
-        !string.Equals(selfScoreForm, CriteriaSetContent.Form09B, StringComparison.OrdinalIgnoreCase);
-
     /// <summary>Cấu hình kỳ mới: 4 hồ sơ luồng mặc định, chờ nghiệp vụ xác nhận; sửa được trong giao diện kỳ.</summary>
-    public static PeriodSettings Default(string? selfScoreForm = null)
+    public static PeriodSettings Default()
     {
         var settings = new PeriodSettings
         {
@@ -278,31 +274,7 @@ public sealed class PeriodSettings
                 [nameof(ApprovalAuthority.CapTren)] = ProfileUpper
             }
         };
-        return settings.AlignWithCriteria(selfScoreForm);
-    }
-
-    /// <summary>Có đăng ký (09A): bước đăng ký nội bộ, bước duyệt đang "Không áp dụng" thì bật lại. Không đăng ký (09B):
-    /// cả hai bước "Không áp dụng". Bước khác giữ nguyên.</summary>
-    public PeriodSettings AlignWithCriteria(string? selfScoreForm)
-    {
-        var registration = UsesRegistration(selfScoreForm);
-        foreach (var profile in Profiles ?? new())
-        {
-            var approve = profile.Step(WorkflowStep.B1_APPROVE);
-            profile.Steps[WorkflowSteps.Code(WorkflowStep.B1_REGISTER)] = new ProfileStepSetting
-            {
-                Mode = registration ? StepMode.Internal : StepMode.Off,
-                Deadline = profile.Step(WorkflowStep.B1_REGISTER).Deadline,
-                Rule = profile.Step(WorkflowStep.B1_REGISTER).Rule
-            };
-            if (!registration)
-                approve.Mode = StepMode.Off;
-            else if (approve.Mode == StepMode.Off)
-                approve.Mode = StepMode.Internal;
-            profile.Steps[WorkflowSteps.Code(WorkflowStep.B1_APPROVE)] = approve;
-            profile.Normalize();
-        }
-        return this;
+        return settings;
     }
 
     #endregion
@@ -378,9 +350,8 @@ public sealed class PeriodSettings
 
     #region Kiểm tra
 
-    /// <summary>Trả danh sách lỗi (rỗng = hợp lệ). Mã quyền kiểm ở tầng Application qua <paramref name="isAllowedPermission"/>;
-    /// <paramref name="selfScoreForm"/> null = chưa chọn bộ.</summary>
-    public List<string> Validate(Func<string, bool>? isAllowedPermission = null, string? selfScoreForm = null)
+    /// <summary>Trả danh sách lỗi (rỗng = hợp lệ). Mã quyền kiểm ở tầng Application qua <paramref name="isAllowedPermission"/>.</summary>
+    public List<string> Validate(Func<string, bool>? isAllowedPermission = null)
     {
         var errors = new List<string>();
         if (SchemaVersion != CurrentSchemaVersion)
@@ -408,20 +379,6 @@ public sealed class PeriodSettings
         }
         foreach (var key in DefaultProfiles.Keys.Where(k => !Enum.TryParse<ApprovalAuthority>(k, false, out _)))
             errors.Add($"Cấp quyết định \"{key}\" không hợp lệ (chỉ CoSo hoặc CapTren).");
-
-        // Bước đăng ký, duyệt đi theo bộ tiêu chí (AlignWithCriteria đặt sẵn khi tạo kỳ, đổi bộ).
-        if (selfScoreForm != null && UsesRegistration(selfScoreForm))
-        {
-            foreach (var profile in profiles.Where(p => !p.IsActive(WorkflowStep.B1_REGISTER)))
-                errors.Add($"Cách xét duyệt \"{profile.Name}\": bộ tiêu chí của kỳ tự chấm theo Mẫu {selfScoreForm}, cần danh mục sản phẩm "
-                    + "(Mẫu 01) — bước đăng ký sản phẩm phải áp dụng.");
-        }
-        else if (selfScoreForm != null)
-        {
-            foreach (var profile in profiles.Where(p => p.IsActive(WorkflowStep.B1_REGISTER) || p.IsActive(WorkflowStep.B1_APPROVE)))
-                errors.Add($"Cách xét duyệt \"{profile.Name}\": bộ tiêu chí của kỳ tự chấm theo Mẫu {selfScoreForm}, không đăng ký sản phẩm — "
-                    + "bước đăng ký, duyệt sản phẩm phải \"Không áp dụng\".");
-        }
 
         return errors;
     }

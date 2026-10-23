@@ -6,7 +6,7 @@ namespace CongTacDang.UnitTests;
 /// <summary>Chế độ <c>partial</c> (lưu nháp) chỉ kiểm định dạng; chế độ mặc định (nộp phiếu) bắt buộc đầy đủ.</summary>
 public class SelfScoreDraftValidationTests
 {
-    private static readonly CriteriaSetContent Criteria = CriteriaSetDefaults.Build09B();
+    private static readonly CriteriaSetContent Criteria = CriteriaSetDefaults.Build();
 
     [Fact]
     public void GeneralScores_Partial_AllowsMissingItemsAndReasons_ButChecksFormat()
@@ -37,24 +37,9 @@ public class SelfScoreDraftValidationTests
     }
 
     [Fact]
-    public void AxisScores_Partial_AllowsMissingAxes_ButChecksRangeAndCode()
-    {
-        var one = new Dictionary<string, double> { ["T1"] = 12 };
-        Assert.Null(EvaluationScoring.ValidateAxisScores(Criteria, one, partial: true));
-        Assert.Null(EvaluationScoring.ValidateAxisScores(Criteria, new Dictionary<string, double>(), partial: true));
-        Assert.Null(EvaluationScoring.ValidateAxisScores(Criteria, null, partial: true));
-        Assert.Contains("Chưa chấm trục", EvaluationScoring.ValidateAxisScores(Criteria, one));
-
-        Assert.NotNull(EvaluationScoring.ValidateAxisScores(Criteria, new Dictionary<string, double> { ["T1"] = 16 }, partial: true));
-        Assert.NotNull(EvaluationScoring.ValidateAxisScores(Criteria, new Dictionary<string, double> { ["T1"] = -1 }, partial: true));
-        Assert.NotNull(EvaluationScoring.ValidateAxisScores(Criteria, new Dictionary<string, double> { ["T9"] = 1 }, partial: true));
-        Assert.Equal(12, EvaluationScoring.AxisTasksScore(Criteria, one));
-    }
-
-    [Fact]
     public void SelfAssessment_Partial_AllowsEmptyRequiredSection_ButChecksLengthAndCode()
     {
-        var criteria = CriteriaSetDefaults.Build09B();
+        var criteria = CriteriaSetDefaults.Build();
         criteria.SelfAssessmentSections[0].Required = true;
         var empty = new Dictionary<string, string?>();
         Assert.NotNull(RecordFormContent.ValidateSelfAssessment(criteria, empty));

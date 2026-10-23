@@ -80,7 +80,7 @@ public class FormLayoutServiceTests
 
     private static SaveFormLayoutDto Input(string name, bool isDefault = false) => new()
     {
-        Name = name, HeaderStyle = "PartyCell", ShowCellConfirmation = true, IsDefault = isDefault
+        Name = name, IsDefault = isDefault
     };
 
     [Fact]
@@ -92,16 +92,15 @@ public class FormLayoutServiceTests
 
         var second = await service.CreateAsync(new SaveFormLayoutDto
         {
-            Name = "Bí thư Đảng ủy", HeaderStyle = "PartyCommittee", ShowCellConfirmation = false, SingleLinePositions = true,
-            EmptyPositionText = " không ", IsDefault = true
+            Name = "Bí thư Đảng ủy", SingleLinePositions = true, EmptyPositionText = " không ", IsDefault = true
         });
-        Assert.Equal(("PartyCommittee", "không"), (second.HeaderStyle, second.EmptyPositionText));
+        Assert.Equal((true, "không"), (second.SingleLinePositions, second.EmptyPositionText));
         Assert.Single(repo.Items, l => l.IsDefault);
         Assert.True(repo.Items.Single(l => l.Id == second.Id).IsDefault);
 
         await Assert.ThrowsAsync<ConflictException>(() => service.CreateAsync(Input("cán bộ PHÒNG BAN")));
         await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(Input(" ")));
-        await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(new SaveFormLayoutDto { Name = "X", HeaderStyle = "Khác" }));
+        await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(new SaveFormLayoutDto { Name = "X", EmptyPositionText = new string('x', 51) }));
     }
 
     [Fact]

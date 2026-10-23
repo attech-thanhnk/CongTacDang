@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Badge, BadgeTone } from "@/components/common/StatusBadge";
@@ -32,7 +32,6 @@ import {
   fmt,
   MAX_FRAME_ADJUST_LIMIT,
   quickChecks,
-  scoringMethodLabel,
 } from "@/services/criteriaService";
 
 type Rounding = CriteriaSetContent["parameters"]["rounding"];
@@ -67,7 +66,7 @@ export default function CriteriaSetPage() {
   const rowKey = useRowKeys();
   const [set, setSet] = useState<CriteriaSetDto | null>(null);
   const [content, setContent] = useState<CriteriaSetContent | null>(null);
-  const [info, setInfo] = useState({ code: "", name: "", selfScoreForm: "09A", notes: "" });
+  const [info, setInfo] = useState({ code: "", name: "", notes: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<string | null>(null);
@@ -85,7 +84,7 @@ export default function CriteriaSetPage() {
       copy.taskLevels = copy.taskLevels ?? [];
       copy.collectiveGroups = copy.collectiveGroups ?? [];
       setContent(copy);
-      const loadedInfo = { code: loaded.code, name: loaded.name, selfScoreForm: loaded.selfScoreForm, notes: loaded.notes || "" };
+      const loadedInfo = { code: loaded.code, name: loaded.name, notes: loaded.notes || "" };
       setInfo(loadedInfo);
       setSaved(JSON.stringify({ info: loadedInfo, content: copy }));
       setConflict(null);
@@ -98,7 +97,7 @@ export default function CriteriaSetPage() {
     load();
   }, [load]);
 
-  const checks = useMemo(() => (content ? quickChecks(content, info.selfScoreForm) : []), [content, info.selfScoreForm]);
+  const checks = useMemo(() => (content ? quickChecks(content) : []), [content]);
   const dirty = useMemo(() => !!content && JSON.stringify({ info, content }) !== saved, [info, content, saved]);
 
   if (!canView) return <NoAccess title="Bộ tiêu chí và thang điểm" permissionName="Quản lý bộ tiêu chí" />;
@@ -168,19 +167,13 @@ export default function CriteriaSetPage() {
   };
 
   const generalTotal = content.generalGroups.reduce((s, g) => s + g.items.reduce((t, i) => t + (Number(i.maxScore) || 0), 0), 0);
-  const axisTotal = content.axes.reduce((s, a) => s + (Number(a.maxScore) || 0), 0);
 
   return (
     <div className="page-wrapper">
       <PageHeader
         title={set.name}
         subTitle={`Mã ${set.code}`}
-        badge={
-          <span className="d-inline-flex flex-wrap align-items-center gap-2">
-            <Badge tone={STATUS_TONE[set.status] ?? "neutral"}>{set.statusDisplayName}</Badge>
-            <span className="tag t-info">{scoringMethodLabel(set.selfScoreForm)}</span>
-          </span>
-        }
+        badge={<Badge tone={STATUS_TONE[set.status] ?? "neutral"}>{set.statusDisplayName}</Badge>}
         actions={
           canManage ? (
             <>
@@ -241,7 +234,7 @@ export default function CriteriaSetPage() {
         )}
 
         {!editable ? (
-          <CriteriaSummary content={content} form={set.selfScoreForm} navigation />
+          <CriteriaSummary content={content} navigation />
         ) : (
           <>
             {checks.length > 0 && (
@@ -261,14 +254,8 @@ export default function CriteriaSetPage() {
             {editorTab === "info" && (
             <section className="card">
               <div className="card-body row g-2">
-                <div className="col-md-3"><label className="form-label" htmlFor="cs-code">Mã bộ</label><input id="cs-code" className="form-control form-control-sm" maxLength={50} value={info.code} onChange={(e) => setInfo({ ...info, code: e.target.value })} /></div>
-                <div className="col-md-5"><label className="form-label" htmlFor="cs-name">Tên bộ</label><input id="cs-name" className="form-control form-control-sm" maxLength={200} value={info.name} onChange={(e) => setInfo({ ...info, name: e.target.value })} /></div>
-                <div className="col-md-4"><label className="form-label" htmlFor="cs-form">Cách chấm</label>
-                  <select id="cs-form" className="form-select form-select-sm" value={info.selfScoreForm} onChange={(e) => setInfo({ ...info, selfScoreForm: e.target.value })}>
-                    <option value="09A">Chấm theo việc đã đăng ký (Mẫu 09A)</option>
-                    <option value="09B">Chấm theo 6 trục (Mẫu 09B)</option>
-                  </select>
-                </div>
+                <div className="col-md-4"><label className="form-label" htmlFor="cs-code">Mã bộ</label><input id="cs-code" className="form-control form-control-sm" maxLength={50} value={info.code} onChange={(e) => setInfo({ ...info, code: e.target.value })} /></div>
+                <div className="col-md-8"><label className="form-label" htmlFor="cs-name">Tên bộ</label><input id="cs-name" className="form-control form-control-sm" maxLength={200} value={info.name} onChange={(e) => setInfo({ ...info, name: e.target.value })} /></div>
                 <div className="col-12"><label className="form-label" htmlFor="cs-notes">Ghi chú</label><textarea id="cs-notes" className="form-control form-control-sm" rows={2} maxLength={4000} value={info.notes} onChange={(e) => setInfo({ ...info, notes: e.target.value })} /></div>
               </div>
             </section>
@@ -398,35 +385,22 @@ export default function CriteriaSetPage() {
             {editorTab === "personal" && (
             <section className="card">
               <div className="card-header d-flex justify-content-between align-items-center gap-2">
-                <h2 className="mb-0">Trục kết quả{info.selfScoreForm === "09B" && <> — tổng <span className={Math.abs(axisTotal - p.totalTaskWeight) > 1e-6 ? "text-danger" : "text-success"}>{fmt(axisTotal)}</span> / {fmt(p.totalTaskWeight)}</>}</h2>
-                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ axes: [...content.axes, { code: `T${content.axes.length + 1}`, name: "", description: "", maxScore: 0 }] })}><i className="bi bi-plus-lg me-1" />Thêm trục</button>
+                <h2 className="mb-0">Trục kết quả</h2>
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ axes: [...content.axes, { code: `T${content.axes.length + 1}`, name: "", description: "" }] })}><i className="bi bi-plus-lg me-1" />Thêm trục</button>
               </div>
               <div className="card-body">
                 <div className="table-responsive"><table className="table table-sm mb-0">
-                  <thead><tr><th style={{ width: 80 }}>Mã</th><th>Tên trục</th><th>Nội dung áp dụng</th><th style={{ width: 100 }}>Tối đa (09B)</th><th style={{ width: 30 }} /></tr></thead>
+                  <thead><tr><th style={{ width: 80 }}>Mã</th><th>Tên trục</th><th>Nội dung áp dụng</th><th style={{ width: 30 }} /></tr></thead>
                   <tbody>
                     {content.axes.map((a, ai) => {
                       const setAxis = (change: Partial<typeof a>) => update({ axes: content.axes.map((x, i) => (i === ai ? { ...x, ...change } : x)) });
                       return (
-                        <React.Fragment key={ai}>
-                          <tr>
-                            <td><input className="form-control form-control-sm" value={a.code} onChange={(e) => setAxis({ code: e.target.value })} /></td>
-                            <td><input className="form-control form-control-sm" value={a.name} onChange={(e) => setAxis({ name: e.target.value })} /></td>
-                            <td><textarea className="form-control form-control-sm" rows={1} value={a.description || ""} onChange={(e) => setAxis({ description: e.target.value })} /></td>
-                            <td><input type="number" min={0} step={0.5} className="form-control form-control-sm" value={a.maxScore} onChange={(e) => setAxis({ maxScore: num(e.target.value) })} /></td>
-                            <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa trục" onClick={() => update({ axes: content.axes.filter((_, i) => i !== ai) })}><i className="bi bi-x-lg" /></button></td>
-                          </tr>
-                          <tr className="border-bottom">
-                            <td className="small text-secondary">Mẫu 09B</td>
-                            <td colSpan={3}>
-                              <input className="form-control form-control-sm mb-1" maxLength={FORM_CONFIG_LIMITS.title} placeholder="Tiêu đề in trên Mẫu 09B (trống: dựng từ tên trục)"
-                                aria-label={`Tiêu đề Mẫu 09B trục ${a.code}`} value={a.formTitle || ""} onChange={(e) => setAxis({ formTitle: e.target.value || null })} />
-                              <textarea className="form-control form-control-sm" rows={2} maxLength={FORM_CONFIG_LIMITS.guidance} placeholder="Nội dung gợi ý in dưới tiêu đề — mỗi dòng một gạch đầu dòng (trống: dùng nội dung áp dụng)"
-                                aria-label={`Nội dung gợi ý Mẫu 09B trục ${a.code}`} value={a.formGuidance || ""} onChange={(e) => setAxis({ formGuidance: e.target.value || null })} />
-                            </td>
-                            <td />
-                          </tr>
-                        </React.Fragment>
+                        <tr key={ai}>
+                          <td><input className="form-control form-control-sm" aria-label="Mã trục" value={a.code} onChange={(e) => setAxis({ code: e.target.value })} /></td>
+                          <td><input className="form-control form-control-sm" aria-label="Tên trục" value={a.name} onChange={(e) => setAxis({ name: e.target.value })} /></td>
+                          <td><textarea className="form-control form-control-sm" rows={1} aria-label="Nội dung áp dụng" value={a.description || ""} onChange={(e) => setAxis({ description: e.target.value })} /></td>
+                          <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa trục" onClick={() => update({ axes: content.axes.filter((_, i) => i !== ai) })}><i className="bi bi-x-lg" /></button></td>
+                        </tr>
                       );
                     })}
                   </tbody>
@@ -441,13 +415,12 @@ export default function CriteriaSetPage() {
               <div className="card-body">
                 <div className="d-flex flex-column gap-1 mb-3">
                   {RECORD_FORMS.map((form) => {
-                    const isSelfScore = form.code === "09A" || form.code === "09B";
-                    const checked = isSelfScore ? info.selfScoreForm === form.code : content.requiredForms.includes(form.code);
+                    const always = form.code === "09A";
                     return (
                       <label key={form.code} className="form-check small mb-0">
-                        <input type="checkbox" className="form-check-input" checked={checked} disabled={isSelfScore}
+                        <input type="checkbox" className="form-check-input" checked={always || content.requiredForms.includes(form.code)} disabled={always}
                           onChange={(e) => toggleForm(form.code, e.target.checked)} />{" "}
-                        <span className="form-check-label">{form.name}{isSelfScore && " (theo mẫu tự chấm)"}</span>
+                        <span className="form-check-label">{form.name}{always && " (luôn áp dụng)"}</span>
                       </label>
                     );
                   })}

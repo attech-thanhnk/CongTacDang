@@ -612,7 +612,7 @@ button.stepBtn:focus-visible {
   border: 1.5px solid var(--primary) !important;
 }
 
-/* Phiếu tự chấm: tổng điểm và điểm theo trục */
+/* Phiếu tự chấm: tổng điểm */
 .totals {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -637,40 +637,6 @@ button.stepBtn:focus-visible {
   font-size: 22px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-}
-
-.axes {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-  border-top: 1px solid var(--rule);
-}
-
-.axes > div {
-  padding: 12px 8px;
-  text-align: center;
-  border-left: 1px solid var(--rule);
-}
-
-.axes > div:first-child {
-  border-left: 0;
-}
-
-.axes small {
-  display: block;
-  color: var(--ink-3);
-  font-size: 12px;
-}
-
-.axes b {
-  font-size: 19px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.axes i {
-  font-style: normal;
-  color: var(--ink-3);
-  font-size: 12px;
 }
 
 .subline {

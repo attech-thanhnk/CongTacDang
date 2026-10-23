@@ -98,16 +98,10 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 
     #endregion
 
-    #region B2: Điểm kết quả thực hiện nhiệm vụ (Mẫu 02 hoặc theo trục Mẫu 09B)
+    #region B2: Điểm kết quả thực hiện nhiệm vụ (Mẫu 02)
 
-    /// <summary>Tổng điểm nhiệm vụ (09A) hoặc tổng điểm các trục (09B).</summary>
+    /// <summary>Tổng điểm các sản phẩm/nhiệm vụ.</summary>
     public double TasksScore { get; set; }
-
-    /// <summary>jsonb <c>{ "T1": 14 }</c> (Mẫu 09B); null khi không chấm theo trục.</summary>
-    public string? AxisScores { get; set; }
-
-    /// <summary>09A/09B theo bộ tiêu chí của kỳ lúc nộp.</summary>
-    public string? SelfScoreForm { get; set; }
 
     /// <summary>Chung + nhiệm vụ, làm tròn theo bộ tiêu chí.</summary>
     public double TotalSelfScore { get; set; }
@@ -129,9 +123,6 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>jsonb <c>{ "T1": <see cref="Evaluation.AxisReport"/> }</c>: nhiệm vụ kèm mức in ở Mẫu 09C,
     /// phần tóm tắt là một dòng Mẫu 9D.</summary>
     public string AxisReports { get; set; } = "{}";
-
-    /// <summary>Mẫu 09B, jsonb <c>{ "T1": { "target", "result", "note" } }</c> (<see cref="Evaluation.AxisNote"/>).</summary>
-    public string? AxisNotes { get; set; }
 
     /// <summary>Nhận xét theo nhóm tiêu chí chung, jsonb <c>{ "1": "…" }</c>; in ở ô "Tóm tắt kết quả/Tài liệu minh chứng".</summary>
     public string? GeneralGroupNotes { get; set; }

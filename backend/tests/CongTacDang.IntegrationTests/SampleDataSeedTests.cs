@@ -69,7 +69,6 @@ public sealed class SampleDataSeedTests
             // Kỳ mẫu đang mở, là kỳ hiện hành.
             var active = await DataAsync(await owner.GetAsync("/api/evaluations/periods/active"));
             Assert.Equal("Open", active.GetProperty("status").GetString());
-            Assert.Equal("09B", active.GetProperty("criteria").GetProperty("selfScoreForm").GetString());
 
             // Kỳ mẫu theo kiểu kỳ dựng sẵn đủ hồ sơ luồng; kiểm tra kẹt luồng sạch (mọi bước còn lại đều có người thực hiện).
             var profiles = active.GetProperty("settings").GetProperty("profiles").EnumerateArray()
@@ -81,10 +80,10 @@ public sealed class SampleDataSeedTests
             Assert.Empty(readiness.GetProperty("issues").EnumerateArray());
             Assert.Equal(5, readiness.GetProperty("checkedRecords").GetInt32()); // 6 hồ sơ, trừ hồ sơ Giám đốc đã công bố
 
-            // Kỳ mẫu gắn bộ "Chấm theo 6 trục (Quý III, IV/2026)" đã chụp.
+            // Kỳ mẫu gắn bộ tiêu chí mặc định đã chụp.
             var criteria = active.GetProperty("criteria");
-            Assert.Equal(CriteriaSetDefaults.Code09B, criteria.GetProperty("code").GetString());
-            Assert.Equal(CriteriaSetDefaults.Name09B, criteria.GetProperty("name").GetString());
+            Assert.Equal(CriteriaSetDefaults.Code, criteria.GetProperty("code").GetString());
+            Assert.Equal(CriteriaSetDefaults.Name, criteria.GetProperty("name").GetString());
 
             // Thông tin đơn vị mặc định có sẵn (công khai và khi đã đăng nhập).
             var publicInfo = await DataAsync(await Client(host).GetAsync("/api/settings/organization/public"));
@@ -189,20 +188,19 @@ public sealed class SampleDataSeedTests
         Assert.Equal(RecordStatus.Published, directorRecord.Status);
         var external = await db.Set<EvaluationExternalResult>().Where(x => x.RecordId == directorRecord.Id)
             .OrderBy(x => x.Step).Select(x => x.Step).ToListAsync();
-        Assert.Equal(new[] { WorkflowStep.B3B_APPRAISAL, WorkflowStep.B3C_DIRECTOR, WorkflowStep.B4_DECISION }, external);
+        Assert.Equal(new[] { WorkflowStep.B1_APPROVE, WorkflowStep.B3B_APPRAISAL, WorkflowStep.B3C_DIRECTOR, WorkflowStep.B4_DECISION }, external);
         Assert.All(records.Where(r => r.Id != directorRecord.Id), r => Assert.Equal("co-so", r.WorkflowProfileCode));
     }
 
-    /// <summary>Kỳ mẫu có ảnh chụp bộ 09B; hồ sơ đã tự chấm có điểm đủ mã tiêu chí con và mã trục.</summary>
+    /// <summary>Kỳ mẫu có ảnh chụp bộ mặc định; hồ sơ đã tự chấm có điểm đủ mã tiêu chí con và điểm từng sản phẩm.</summary>
     private static async Task AssertSampleCriteriaScoresAsync(CongTacDangDbContext db, Guid periodId)
     {
         var period = await db.EvaluationPeriods.SingleAsync(p => p.Id == periodId);
-        var set = await db.Set<CriteriaSet>().SingleAsync(s => s.Code == CriteriaSetDefaults.Code09B);
+        var set = await db.Set<CriteriaSet>().SingleAsync(s => s.Code == CriteriaSetDefaults.Code);
         Assert.Equal(set.Id, period.CriteriaSetId);
         var snapshot = period.GetCriteria();
         Assert.NotNull(snapshot);
-        Assert.Equal(CriteriaSetContent.Form09B, snapshot!.SelfScoreForm);
-        var content = snapshot.Content;
+        var content = snapshot!.Content;
         var itemCodes = content.AllItems.Select(x => x.Item.Code).OrderBy(c => c, StringComparer.Ordinal).ToList();
         var axisCodes = content.Axes.Select(a => a.Code).OrderBy(c => c, StringComparer.Ordinal).ToList();
         Assert.Equal(17, itemCodes.Count);
@@ -211,17 +209,20 @@ public sealed class SampleDataSeedTests
         var members = await db.PartyMemberProfiles.ToDictionaryAsync(m => m.Id);
         Assert.All(members.Values, m => Assert.NotNull(content.FindFrame(m.WeightFrameCode)));
 
-        var records = await db.EvaluationRecords.Where(r => r.PeriodId == periodId).ToListAsync();
+        var records = await db.EvaluationRecords.Include(r => r.Tasks).Where(r => r.PeriodId == periodId).ToListAsync();
         Assert.All(records, r => Assert.Equal(members[r.MemberId].WeightFrameCode, r.WeightFrameCode));
         var scored = records.Where(r => r.SelfScoredAt != null).ToList();
         Assert.True(scored.Count >= 4, $"Số hồ sơ đã tự chấm: {scored.Count}");
         foreach (var record in scored)
         {
-            Assert.Equal(CriteriaSetContent.Form09B, record.SelfScoreForm);
             using var general = JsonDocument.Parse(record.GeneralScores);
             Assert.Equal(itemCodes, general.RootElement.EnumerateObject().Select(p => p.Name).OrderBy(c => c, StringComparer.Ordinal).ToList());
-            using var axes = JsonDocument.Parse(record.AxisScores!);
-            Assert.Equal(axisCodes, axes.RootElement.EnumerateObject().Select(p => p.Name).OrderBy(c => c, StringComparer.Ordinal).ToList());
+            // Danh mục Mẫu 01 đủ trọng số, mỗi sản phẩm thuộc một trục của bộ; điểm nhiệm vụ = tổng điểm sản phẩm.
+            var tasks = record.Tasks.Where(t => !t.IsDeleted).ToList();
+            Assert.Equal(content.Parameters.TotalTaskWeight, tasks.Sum(t => t.Weight), 6);
+            Assert.All(tasks, t => Assert.Contains(t.AxisCode, axisCodes));
+            Assert.Equal(record.TasksScore, tasks.Sum(t => t.SelfScore), 6);
+            Assert.NotNull(record.TasksApprovedAt);
             Assert.Equal(record.GeneralCriteriaScore + record.TasksScore, record.TotalSelfScore, 6);
         }
     }
@@ -229,7 +230,7 @@ public sealed class SampleDataSeedTests
     /// <summary>Dữ liệu mẫu cho 09C/9D, 07/08, 12/13, kế hoạch Mẫu 17, kiến nghị và bản nháp Mẫu 16.</summary>
     private static async Task AssertWave8SampleAsync(WebApplicationFactory<Program> host, ApiFactory factory, Guid periodId)
     {
-        // Hồ sơ đã tự chấm có 09C, 9D và phần tự luận theo trục 09B; xuất được 09C/9D.
+        // Hồ sơ đã tự chấm có 09C, 9D; xuất được 01, 02, 09A, 09C, 9D.
         using var officer = await LoginAndChangePasswordAsync(host, "vanphong");
         var records = await DataAsync(await officer.GetAsync($"/api/evaluations/records?periodId={periodId}"));
         var hung = records.EnumerateArray().Single(r => r.GetProperty("fullName").GetString() == "Nguyễn Văn Hùng");
@@ -239,8 +240,7 @@ public sealed class SampleDataSeedTests
         var axisReports = hungRecord.GetProperty("axisReports");
         Assert.Equal(6, axisReports.EnumerateObject().Count());
         Assert.All(axisReports.EnumerateObject(), a => Assert.Equal(1, a.Value.GetProperty("tasks").GetArrayLength()));
-        Assert.Equal(6, hungRecord.GetProperty("axisNotes").EnumerateObject().Count());
-        foreach (var code in new[] { "09B", "09C", "9D" })
+        foreach (var code in new[] { "01", "02", "09A", "09C", "9D" })
             Assert.Equal(HttpStatusCode.OK, (await officer.GetAsync($"/api/reports/docx/record/{hungId}/{code}")).StatusCode);
 
         // Hồ sơ tập thể Mẫu 07 (đủ mục I.1–I.4) và Mẫu 08 (có dòng nhiệm vụ theo nhóm) xuất được Word/Excel.

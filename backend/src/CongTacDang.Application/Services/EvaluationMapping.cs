@@ -173,7 +173,6 @@ public static class EvaluationMapping
             PeriodId = r.PeriodId,
             PeriodName = r.Period?.Name ?? string.Empty,
             PeriodStatus = r.Period?.Status.ToString() ?? string.Empty,
-            SelfScoreForm = criteria?.SelfScoreForm ?? string.Empty,
             MemberId = r.MemberId,
             FullName = r.Member?.FullName ?? string.Empty,
             PartyCardNumber = r.Member?.PartyCardNumber,
@@ -208,14 +207,12 @@ public static class EvaluationMapping
             GeneralScores = SafeGeneralScores(r.GeneralScores),
             GeneralCriteriaScore = r.GeneralCriteriaScore,
             TasksScore = r.TasksScore,
-            AxisScores = SafeAxisScores(r.AxisScores),
             TotalSelfScore = r.TotalSelfScore,
             SelfProposedGrade = GradeCode(r.SelfProposedGrade),
             SelfGradeExplanation = r.SelfGradeExplanation,
             SelfScoredAt = r.SelfScoredAt,
             SelfAssessment = SafeParse(() => RecordFormContent.ParseSelfAssessment(r.SelfAssessment), new Dictionary<string, string>()),
             AxisReports = SafeParse(() => RecordFormContent.ParseAxisReports(r.AxisReports), new Dictionary<string, AxisReport>()),
-            AxisNotes = SafeParse(() => RecordFormContent.ParseAxisNotes(r.AxisNotes), new Dictionary<string, AxisNote>()),
             GeneralGroupNotes = SafeParse(() => RecordFormContent.ParseGeneralGroupNotes(r.GeneralGroupNotes), new Dictionary<string, string>()),
 
             PartyCellComment = r.PartyCellComment,
@@ -278,14 +275,14 @@ public static class EvaluationMapping
                 HasExplanation = d.HasExplanation,
                 Message = d.Message
             }).ToList(),
-            ExcellentMinExceedRatio = criteria is { UsesAxisScoring: false } ? GradeConditions.ExcellentMinExceedRatio(criteria.Content) : null
+            ExcellentMinExceedRatio = criteria != null ? GradeConditions.ExcellentMinExceedRatio(criteria.Content) : null
         };
     }
 
-    /// <summary>Chỉ áp dụng khi chấm theo danh mục nhiệm vụ (09A); chấm theo trục (09B) → rỗng.</summary>
+    /// <summary>Kỳ chưa có bộ tiêu chí hoặc hồ sơ chưa nạp danh mục → rỗng.</summary>
     public static IReadOnlyList<string> GradeWarnings(EvaluationRecord r, EvaluationGrade grade, CriteriaSnapshot? criteria)
     {
-        if (criteria is not { UsesAxisScoring: false } || r.Tasks == null)
+        if (criteria == null || r.Tasks == null)
             return Array.Empty<string>();
         var tasks = r.Tasks
             .Where(t => !t.IsDeleted && TaskChangeRules.IsActive(t))
@@ -395,18 +392,6 @@ public static class EvaluationMapping
         catch (System.Text.Json.JsonException)
         {
             return new Dictionary<string, GeneralItemScore>();
-        }
-    }
-
-    private static Dictionary<string, double>? SafeAxisScores(string? json)
-    {
-        try
-        {
-            return EvaluationScoring.ParseAxisScores(json);
-        }
-        catch (System.Text.Json.JsonException)
-        {
-            return null;
         }
     }
 

@@ -14,7 +14,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>Nhập Mẫu 09C/9D khi tự chấm, xuất 09B/09C/9D; phạm vi, trả lại, khóa và công bố.</summary>
+/// <summary>Nhập Mẫu 09C/9D khi tự chấm, xuất 09A/09C/9D; phạm vi, trả lại, khóa và công bố.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class IndividualFormsIntegrationTests
 {
@@ -24,14 +24,14 @@ public sealed class IndividualFormsIntegrationTests
     public IndividualFormsIntegrationTests(ApiFactory factory) => _factory = factory;
 
     [SkippableFact]
-    public async Task F1_SelfScoreWith09C9D_Submit_Export09B09C9D()
+    public async Task F1_SelfScoreWith09C9D_Submit_Export09A09C9D()
     {
         var w = await World.CreateAsync(_factory);
         var (_, recordId) = await OpenRecordAsync(w);
 
-        // Danh sách mẫu áp dụng theo bộ 09B (Quý III/2026): không có 01/02/09A.
+        // Danh sách mẫu áp dụng theo bộ tiêu chí của kỳ.
         var forms = (await Data(w.Owner, $"/api/reports/docx/record/{recordId}")).EnumerateArray().Select(f => f.GetProperty("code").GetString()).ToList();
-        Assert.Equal(new[] { "09B", "09C", "9D", "10" }, forms);
+        Assert.Equal(new[] { "01", "02", "09A", "09C", "9D", "10" }, forms);
 
         // Kiểm tra độ dài 09C (tính cả nhiệm vụ theo trục), trục không có trong bộ → 400 (hồ sơ không đổi).
         var tooLong = await SubmitAsync(w, recordId, SelfScoreBody(selfAssessment: new string('a', 6001)));
@@ -49,7 +49,6 @@ public sealed class IndividualFormsIntegrationTests
         Assert.Equal(2, reports.GetProperty("T1").GetProperty("tasks").GetArrayLength());
         Assert.Equal("Ý con T1 (IT)", reports.GetProperty("T1").GetProperty("tasks")[1].GetProperty("items")[0].GetProperty("content").GetString());
         Assert.Equal("Đúng hạn", reports.GetProperty("T1").GetProperty("progress").GetString());
-        Assert.Equal("Mục tiêu trục 1 (IT)", saved.GetProperty("axisNotes").GetProperty("T1").GetProperty("target").GetString());
         Assert.Equal("Nhận xét nhóm 1 (IT)", saved.GetProperty("generalGroupNotes").GetProperty("1").GetString());
 
         // Lịch sử ghi nhận thay đổi biểu mẫu.
@@ -59,15 +58,11 @@ public sealed class IndividualFormsIntegrationTests
         var settings = await Data(w.Manager, "/api/settings/organization");
         var partyName = settings.GetProperty("partyCommitteeName").GetString();
 
-        var b = await DocxAsync(w.Owner, $"/api/reports/docx/record/{recordId}/09B");
-        Assert.Contains("PHIẾU TỰ CHẤM ĐIỂM", b.Text);
-        Assert.Contains("TRỤC (1) – NHIỆM VỤ CHÍNH TRỊ", b.Text);
-        Assert.Contains("Mục tiêu trục 1 (IT)", b.Text);
-        Assert.Contains("Kết quả trục 1 (IT)", b.Text);
-        Assert.Contains("Nhận xét nhóm 1 (IT)", b.Text);
-        Assert.Contains(w.OwnerName, b.Text);
-        Assert.Contains(w.PositionName, b.Text);
-        Assert.Contains($"CHI BỘ 1 {w.Suffix}", b.Text);
+        var a = await DocxAsync(w.Owner, $"/api/reports/docx/record/{recordId}/09A");
+        Assert.Contains("PHIẾU TỰ CHẤM", a.Text);
+        Assert.Contains("Nhận xét nhóm 1 (IT)", a.Text);
+        Assert.Contains(w.OwnerName, a.Text);
+        Assert.Contains($"CHI BỘ 1 {w.Suffix}", a.Text);
 
         var c = await DocxAsync(w.Owner, $"/api/reports/docx/record/{recordId}/09c");
         Assert.Contains("BẢN TỰ ĐÁNH GIÁ, XẾP LOẠI CỦA CÁ NHÂN", c.Text);
@@ -85,7 +80,7 @@ public sealed class IndividualFormsIntegrationTests
         Assert.Contains("Trục 6", d.Text);
         Assert.Contains(w.OwnerName, d.Text);
 
-        foreach (var doc in new[] { b, c, d })
+        foreach (var doc in new[] { a, c, d })
         {
             if (!string.IsNullOrWhiteSpace(partyName))
                 Assert.Contains(partyName, doc.Text);
@@ -93,18 +88,18 @@ public sealed class IndividualFormsIntegrationTests
             Assert.Equal(0, doc.TaggedControls);
             Assert.Empty(doc.ValidationErrors);
         }
-        Assert.StartsWith("Mau_09B_", b.FileName);
+        Assert.StartsWith("Mau_09A_", a.FileName);
 
-        // Mẫu không áp dụng cho kỳ → 409; mã không có → 400.
-        Assert.Equal(HttpStatusCode.Conflict, (await w.Owner.GetAsync($"/api/reports/docx/record/{recordId}/01")).StatusCode);
+        // Mã không có (kể cả 09B) → 400.
         Assert.Equal(HttpStatusCode.BadRequest, (await w.Owner.GetAsync($"/api/reports/docx/record/{recordId}/07")).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await w.Owner.GetAsync($"/api/reports/docx/record/{recordId}/09B?format=xlsx")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await w.Owner.GetAsync($"/api/reports/docx/record/{recordId}/09B")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await w.Owner.GetAsync($"/api/reports/docx/record/{recordId}/09A?format=xlsx")).StatusCode);
 
         // Người ngoài phạm vi (xem hồ sơ Phòng 2) và người không có quyền → 403.
         Assert.Equal(HttpStatusCode.Forbidden, (await w.Outsider.GetAsync($"/api/reports/docx/record/{recordId}/09C")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await w.Outsider.GetAsync($"/api/reports/docx/record/{recordId}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await w.Plain.GetAsync($"/api/reports/docx/record/{recordId}/9D")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await w.Owner.GetAsync($"/api/reports/docx/record/{Guid.NewGuid()}/09B")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await w.Owner.GetAsync($"/api/reports/docx/record/{Guid.NewGuid()}/09A")).StatusCode);
     }
 
     [SkippableFact]
@@ -114,13 +109,13 @@ public sealed class IndividualFormsIntegrationTests
         var (periodId, recordId) = await OpenRecordAsync(w);
         await Data(await SubmitAsync(w, recordId, SelfScoreBody()));
 
-        // Chi bộ trả lại → chủ hồ sơ sửa 09C/9D rồi nộp lại; không gửi axisNotes thì giữ nội dung đã lưu.
+        // Chi bộ trả lại → chủ hồ sơ sửa 09C/9D rồi nộp lại; không gửi nhận xét nhóm thì giữ nội dung đã lưu.
         await Data(await PostAsync(w.CellSec, recordId, "cell/return", new { reason = "Bổ sung mục I" }));
-        var body = SelfScoreBody(selfAssessment: "Tự đánh giá mục I — lần 2", withAxisNotes: false);
+        var body = SelfScoreBody(selfAssessment: "Tự đánh giá mục I — lần 2", withGroupNotes: false);
         var resubmitted = await Data(await SubmitAsync(w, recordId, body));
         Assert.Equal("AwaitingCellConfirm", resubmitted.GetProperty("status").GetString());
         Assert.Equal("Tự đánh giá mục I — lần 2", resubmitted.GetProperty("selfAssessment").GetProperty("I").GetString());
-        Assert.Equal("Mục tiêu trục 1 (IT)", resubmitted.GetProperty("axisNotes").GetProperty("T1").GetProperty("target").GetString());
+        Assert.Equal("Nhận xét nhóm 1 (IT)", resubmitted.GetProperty("generalGroupNotes").GetProperty("1").GetString());
         var exported = await DocxAsync(w.Owner, $"/api/reports/docx/record/{recordId}/09C");
         Assert.Contains("Tự đánh giá mục I — lần 2", exported.Text);
         Assert.DoesNotContain("lần 1", exported.Text);
@@ -143,7 +138,7 @@ public sealed class IndividualFormsIntegrationTests
 
     #region Hỗ trợ
 
-    private static object SelfScoreBody(string selfAssessment = "Tự đánh giá mục I — lần 1", string? extraAxis = null, bool withAxisNotes = true)
+    private static object SelfScoreBody(string selfAssessment = "Tự đánh giá mục I — lần 1", string? extraAxis = null, bool withGroupNotes = true)
     {
         var reports = new Dictionary<string, object>
         {
@@ -163,18 +158,15 @@ public sealed class IndividualFormsIntegrationTests
 
         var groupNotes = new Dictionary<string, string> { ["1"] = "Nhận xét nhóm 1 (IT)" };
         var general = CriteriaTestData.General("2.1");
-        var axis = CriteriaTestData.Axis(14, 9, 9, 14, 9, 9);
-        if (!withAxisNotes)
-            return new { generalScores = general, axisScores = axis, selfProposedGrade = "HoanThanhTot", selfGradeExplanation = "Căn cứ kiểm thử", selfAssessment = new Dictionary<string, string> { ["I"] = selfAssessment }, axisReports = reports, generalGroupNotes = groupNotes };
+        if (!withGroupNotes)
+            return new { generalScores = general, selfProposedGrade = "HoanThanhTot", selfGradeExplanation = "Căn cứ kiểm thử", selfAssessment = new Dictionary<string, string> { ["I"] = selfAssessment }, axisReports = reports };
         return new
         {
             generalScores = general,
-            axisScores = axis,
             selfProposedGrade = "HoanThanhTot", selfGradeExplanation = "Căn cứ kiểm thử",
             selfAssessment = new Dictionary<string, string> { ["I"] = selfAssessment },
             axisReports = reports,
-            generalGroupNotes = groupNotes,
-            axisNotes = new Dictionary<string, object> { ["T1"] = new { target = "Mục tiêu trục 1 (IT)", result = "Kết quả trục 1 (IT)" } }
+            generalGroupNotes = groupNotes
         };
     }
 
@@ -182,7 +174,7 @@ public sealed class IndividualFormsIntegrationTests
     {
         var body = new
         {
-            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(w.Manager, "09B"),
+            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(w.Manager),
             name = $"Kỳ J18 {Guid.NewGuid().ToString("N")[..8]}",
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         };
@@ -191,6 +183,7 @@ public sealed class IndividualFormsIntegrationTests
         await TransitionAsync(w.Manager, periodId, "open");
         var recordId = (await Data(w.Manager, $"/api/evaluations/periods/{periodId}/participants")).EnumerateArray()
             .First(p => p.GetProperty("memberId").GetGuid() == w.OwnerId).GetProperty("recordId").GetGuid();
+        await RegistrationTestData.RegisterAsync(_factory, recordId);
         return (periodId, recordId);
     }
 
@@ -201,8 +194,14 @@ public sealed class IndividualFormsIntegrationTests
             new { version = period.GetProperty("version").GetUInt32(), reason = "Kiểm thử biểu mẫu cá nhân", force = true }));
     }
 
-    private static Task<HttpResponseMessage> SubmitAsync(World w, Guid recordId, object body) =>
-        PostAsync(w.Owner, recordId, "self-score/submit", body, w.Manager);
+    /// <summary>Kèm tỷ lệ A-B-C-D 13/14 cho mọi sản phẩm của hồ sơ (65 điểm nhiệm vụ).</summary>
+    private static async Task<HttpResponseMessage> SubmitAsync(World w, Guid recordId, object body)
+    {
+        var record = await Data(w.Manager, $"/api/evaluations/records/{recordId}");
+        var json = JsonSerializer.SerializeToNode(body)!.AsObject();
+        json["taskScores"] = JsonSerializer.SerializeToNode(CriteriaTestData.TaskScores(record, 13.0 / 14));
+        return await PostAsync(w.Owner, recordId, "self-score/submit", json, w.Manager);
+    }
 
     private static async Task<HttpResponseMessage> PostAsync(HttpClient client, Guid recordId, string action, object body, HttpClient? reader = null)
     {

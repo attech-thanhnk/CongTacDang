@@ -4,17 +4,7 @@ using System.Linq;
 
 namespace CongTacDang.Domain.Entities;
 
-/// <summary>Tiêu đề trái của Mẫu 09B.</summary>
-public enum FormHeaderStyle
-{
-    /// <summary>"ĐẢNG BỘ …" (Đảng bộ cơ sở) / "CHI BỘ …" (Chi bộ sinh hoạt của hồ sơ).</summary>
-    PartyCell = 0,
-
-    /// <summary>"ĐẢNG BỘ …" (cấp trên) / "ĐẢNG ỦY …" (cấp ủy cơ sở), như phiếu của Bí thư Đảng ủy.</summary>
-    PartyCommittee = 1
-}
-
-/// <summary>Cách in phần đầu, chức vụ, chữ ký của Mẫu 09B, 09C, 9D. Gán mặc định theo chức vụ, ghi đè được cho từng cán bộ.</summary>
+/// <summary>Cách in chức vụ, dòng ngày của Mẫu 09C, 9D. Gán mặc định theo chức vụ, ghi đè được cho từng cán bộ.</summary>
 public class FormLayout : IAuditableEntity, ISoftDeletable
 {
     public const int MaxNameLength = 200;
@@ -32,12 +22,7 @@ public class FormLayout : IAuditableEntity, ISoftDeletable
     /// <summary>Áp dụng cho ai.</summary>
     public string? Description { get; set; }
 
-    public FormHeaderStyle HeaderStyle { get; set; } = FormHeaderStyle.PartyCell;
-
-    /// <summary>Mẫu 09B có ô "Xác nhận của chi bộ".</summary>
-    public bool ShowCellConfirmation { get; set; } = true;
-
-    /// <summary>In chức vụ trên một dòng "Chức vụ (Đảng, Đoàn thể, Chính quyền): …" thay cho 3 dòng (09B, 9D).</summary>
+    /// <summary>In chức vụ trên một dòng "Chức vụ (Đảng, Đoàn thể, Chính quyền): …" thay cho 3 dòng (9D).</summary>
     public bool SingleLinePositions { get; set; }
 
     /// <summary>Mẫu 9D có dòng "Địa danh, ngày … tháng … năm …" dưới "ĐẢNG CỘNG SẢN VIỆT NAM".</summary>

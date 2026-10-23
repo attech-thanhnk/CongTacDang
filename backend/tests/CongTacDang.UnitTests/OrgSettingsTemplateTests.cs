@@ -143,14 +143,14 @@ public class OrgSettingsTemplateTests
     public void MissingRequired_FromStoredTags_ListsTagsAddedLater()
     {
         // Phiên bản tải lên trước khi file gốc bổ sung tag kiểu trình bày: danh sách tag lưu lúc tải lên không có các tag mới.
-        var form = WordFormCatalog.Find("MAU_09B")!;
+        var form = WordFormCatalog.Find("MAU_9D")!;
         var stored = DocxTemplateEngine.GetTags(Bundled.Load(form.TemplateFileName))
-            .Where(t => !t.Contains("POSITIONS_ONE_LINE") && !t.Contains("HAS_CELL_CONFIRMATION"))
+            .Where(t => !t.Contains("POSITIONS_ONE_LINE") && !t.Contains("HAS_DATE_LINE"))
             .ToList();
 
         var missing = WordTemplateValidator.MissingRequired(form, stored);
 
-        Assert.Equal(new[] { "if:HAS_CELL_CONFIRMATION / ifnot:HAS_CELL_CONFIRMATION", "if:POSITIONS_ONE_LINE / ifnot:POSITIONS_ONE_LINE" },
+        Assert.Equal(new[] { "if:HAS_DATE_LINE / ifnot:HAS_DATE_LINE", "if:POSITIONS_ONE_LINE / ifnot:POSITIONS_ONE_LINE" },
             missing.OrderBy(t => t, StringComparer.Ordinal));
     }
 

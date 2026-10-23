@@ -51,7 +51,7 @@ public sealed class AuthorizationMatrixTests
         Assert.Equal(HttpStatusCode.OK, (await s.Plain.GetAsync("/api/evaluations/periods")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await s.OwnerA1.GetAsync("/api/evaluations/periods/active")).StatusCode);
 
-        var body = new { year = 2031, quarter = 1, criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(s.Appraiser, "09B"), name = "Kỳ test " + Guid.NewGuid().ToString("N")[..6], startDate = DateTime.UtcNow, endDate = DateTime.UtcNow.AddMonths(3) };
+        var body = new { year = 2031, quarter = 1, criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(s.Appraiser), name = "Kỳ test " + Guid.NewGuid().ToString("N")[..6], startDate = DateTime.UtcNow, endDate = DateTime.UtcNow.AddMonths(3) };
         Assert.Equal(HttpStatusCode.OK, (await s.Appraiser.PostAsJsonAsync("/api/evaluations/periods", body)).StatusCode);
         foreach (var client in new[] { s.Office, s.Admin, s.OwnerA1, s.Plain })
             Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/evaluations/periods", body)).StatusCode);
@@ -650,7 +650,7 @@ public sealed class AuthorizationMatrixTests
                     StartDate = DateTime.UtcNow.AddDays(-10), EndDate = DateTime.UtcNow.AddDays(80),
                     Status = PeriodStatus.Open,
                     // Kỳ mở phải có ảnh chụp bộ tiêu chí (kiểu kỳ "Đầy đủ" → Mẫu 09A).
-                    CriteriaSnapshot = CriteriaTestData.Snapshot("09A")
+                    CriteriaSnapshot = CriteriaTestData.Snapshot()
                 };
                 db.AddRange(deptA, deptB, cellA, cellB, period);
                 await db.SaveChangesAsync();

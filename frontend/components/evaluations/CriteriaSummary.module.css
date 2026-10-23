@@ -189,7 +189,7 @@
 
 .axisHead {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
+  grid-template-columns: 64px minmax(0, 1fr);
   gap: 12px;
   align-items: baseline;
 }
@@ -208,39 +208,6 @@
   margin: 4px 0 0 76px;
   color: var(--ink-2);
   line-height: 1.55;
-}
-
-.axisForm {
-  margin: 8px 0 0 76px;
-}
-
-.axisForm summary {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  color: var(--primary-ink);
-  font-size: 13.5px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.axisForm[open] {
-  padding: 4px 14px 12px;
-  background: var(--tint);
-  border-radius: 8px;
-}
-
-.axisFormTitle {
-  margin: 4px 0 6px;
-  font-weight: 600;
-  line-height: 1.5;
-}
-
-.axisGuidance {
-  white-space: pre-line;
-  color: var(--ink-2);
-  font-size: 13.5px;
-  line-height: 1.6;
 }
 
 /* Biểu mẫu */
@@ -544,12 +511,11 @@
   }
 
   .axisHead {
-    grid-template-columns: 32px minmax(0, 1fr) auto;
+    grid-template-columns: 32px minmax(0, 1fr);
     gap: 8px;
   }
 
-  .axisDesc,
-  .axisForm {
+  .axisDesc {
     margin-left: 0;
   }
 

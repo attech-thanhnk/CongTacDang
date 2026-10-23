@@ -140,7 +140,7 @@ public sealed class RatingSummaryReportIntegrationTests
             {
                 Year = 2100 + Random.Shared.Next(0, 800), Quarter = EvaluationQuarter.Quy3, Name = $"Kỳ RS {sfx}",
                 StartDate = DateTime.UtcNow.AddDays(-30), EndDate = DateTime.UtcNow.AddDays(30), Status = PeriodStatus.Open,
-                CriteriaSnapshot = CriteriaTestData.Snapshot("09B")
+                CriteriaSnapshot = CriteriaTestData.Snapshot()
             };
             foreach (var (code, authority) in new[] { ("M8", ApprovalAuthority.CapTren), ("M22", ApprovalAuthority.CoSo), ("M26", ApprovalAuthority.CoSo) })
             {

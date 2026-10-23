@@ -3,20 +3,14 @@ using System.Collections.Generic;
 
 namespace CongTacDang.Application.DTOs;
 
-/// <summary>Một kiểu trình bày biểu mẫu tự đánh giá (Mẫu 09B, 09C, 9D).</summary>
+/// <summary>Một kiểu trình bày biểu mẫu tự đánh giá (Mẫu 09C, 9D).</summary>
 public class FormLayoutDto
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
 
-    /// <summary>Tiêu đề trái Mẫu 09B: <c>PartyCell</c> (Đảng bộ / Chi bộ) hoặc <c>PartyCommittee</c> (Đảng ủy).</summary>
-    public string HeaderStyle { get; set; } = string.Empty;
-
-    /// <summary>Ô "Xác nhận của chi bộ" trên Mẫu 09B.</summary>
-    public bool ShowCellConfirmation { get; set; }
-
-    /// <summary>Mẫu 09B, 9D.</summary>
+    /// <summary>Mẫu 9D.</summary>
     public bool SingleLinePositions { get; set; }
 
     public bool ShowDateLineOn9D { get; set; }
@@ -41,11 +35,6 @@ public class SaveFormLayoutDto
 {
     public string? Name { get; set; }
     public string? Description { get; set; }
-
-    /// <summary><c>PartyCell</c> / <c>PartyCommittee</c>.</summary>
-    public string? HeaderStyle { get; set; }
-
-    public bool ShowCellConfirmation { get; set; } = true;
     public bool SingleLinePositions { get; set; }
     public bool ShowDateLineOn9D { get; set; }
     public string? EmptyPositionText { get; set; }

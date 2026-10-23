@@ -505,7 +505,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
           }
         >
           <form id="member-layout-form" onSubmit={handleLayout}>
-            <label className="form-label">Kiểu trình bày Mẫu 09B, 09C, 9D</label>
+            <label className="form-label">Kiểu trình bày Mẫu 09C, 9D</label>
             <select className="form-select form-select-sm" value={layoutForm.value} onChange={(e) => setLayoutForm({ value: e.target.value })}>
               <option value="">Theo chức vụ ({memberLayout?.derivedName ?? "Như biểu mẫu gốc"})</option>
               {layouts.map((l) => (

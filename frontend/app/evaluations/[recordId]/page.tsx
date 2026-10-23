@@ -437,12 +437,9 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
     current: isCurrent(steps),
   });
   const axes = criteria?.content.axes ?? [];
-  const axisName = (code: string) => axes.find((a) => a.code.toLowerCase() === code.toLowerCase())?.name;
   const groupName = (code: string) => criteria?.content.generalGroups.find((g) => g.code === code)?.name;
-  const axisMax = (code: string) => axes.find((a) => a.code.toLowerCase() === code.toLowerCase())?.maxScore;
   const params = criteria?.content.parameters;
   const selfScored = !!record.selfScoredAt || stepOf("B2_SELF_SCORE")?.state === "done";
-  const axisEntries = record.axisScores ? Object.entries(record.axisScores) : [];
   const selfVisible = visible(["B2_SELF_SCORE"], !!record.selfScoredAt);
   const appraisedLevels = record.tasks.some((t) => t.appraisalLevel != null);
 
@@ -482,7 +479,7 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
               </tbody>
             </table></div>
           )}
-          {record.selfScoreForm === "09A" && record.weightFrame && (
+          {record.weightFrame && (
             <div className={styles.subline}>
               Khung {record.weightFrame.code} · Tỷ lệ 4 mặt: {describeFrame(record.weightFrame)}{record.weightFrameAdjusted ? " (đã điều chỉnh)" : ""}
             </div>
@@ -498,7 +495,7 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
 
       {selfVisible && (
       <CollapsibleSection
-        title={`Phiếu tự chấm (Mẫu 09${record.selfScoreForm === "09B" ? "B" : "A"})`}
+        title="Phiếu tự chấm (Mẫu 09A)"
         {...section(["B2_SELF_SCORE"])}
         flush
       >
@@ -520,20 +517,6 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
                 <b>{fmt(record.totalSelfScore)}</b>
               </div>
             </div>
-            {axisEntries.length > 0 && (
-              <div className={styles.axes}>
-                {axisEntries.map(([code, score]) => {
-                  const max = axisMax(code);
-                  return (
-                    <div key={code} title={axisName(code)}>
-                      <small>{code}</small>
-                      <b>{fmt(score)}</b>
-                      {max != null && <i className="num">/{fmt(max)}</i>}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
             {hasGrade(record.selfProposedGrade) && (
               <div className={`${styles.subline} d-flex flex-wrap align-items-center gap-2`}>
                 Mức tự đề xuất <GradeBadge grade={record.selfProposedGrade} />
@@ -557,20 +540,6 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
             </ul>
           </div>
         )}
-        {record.axisNotes && Object.keys(record.axisNotes).length > 0 && (
-          <div className={styles.subline}>
-            <ul>
-              {Object.entries(record.axisNotes).map(([code, note]) => (
-                <li key={code}>
-                  <strong>{code}</strong>{axisName(code) ? ` (${axisName(code)})` : ""}
-                  {note.target ? ` — Mục tiêu: ${note.target}` : ""}
-                  {note.result ? ` — Kết quả: ${note.result}` : ""}
-                  {note.note ? ` — Ghi chú: ${note.note}` : ""}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
         {(evidence.files.length > 0 || (canAddEvidence && selfScored)) && (
           <details className={styles.sub2}>
             <summary>
@@ -581,7 +550,6 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
             {isOwner && selfScored && evidence.rights?.reason && <div className="small text-secondary mb-1">{evidence.rights.reason}</div>}
             {[
               ...(criteria?.content.generalGroups ?? []).map((g) => ({ slot: evidenceSlot("group", g.code), label: `Nhóm ${g.code}` })),
-              ...axes.map((a) => ({ slot: evidenceSlot("axis", a.code), label: a.code })),
             ]
               .filter(({ slot }) => canAddEvidence || evidence.files.some((f) => (f.formCode || "").toUpperCase() === slot))
               .map(({ slot, label }) => (

@@ -57,7 +57,7 @@ public sealed class AttachmentCleanupIntegrationTests
             {
                 Year = 2100 + Random.Shared.Next(0, 800), Quarter = EvaluationQuarter.Quy1, Name = $"Kỳ AC {sfx}",
                 StartDate = DateTime.UtcNow.AddDays(-30), EndDate = DateTime.UtcNow.AddDays(30), Status = PeriodStatus.Open,
-                CriteriaSnapshot = CriteriaTestData.Snapshot("09B", collectiveFramework: false)
+                CriteriaSnapshot = CriteriaTestData.Snapshot(collectiveFramework: false)
             };
             var record = new EvaluationRecord
             {

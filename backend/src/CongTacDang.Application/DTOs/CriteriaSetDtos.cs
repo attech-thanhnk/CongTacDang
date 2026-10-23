@@ -14,8 +14,6 @@ public class CriteriaSetListItemDto
     /// <summary>Draft / Published / Archived.</summary>
     public string Status { get; set; } = string.Empty;
     public string StatusDisplayName { get; set; } = string.Empty;
-    /// <summary>09A / 09B.</summary>
-    public string SelfScoreForm { get; set; } = string.Empty;
     public string? Notes { get; set; }
     public Guid? SourceSetId { get; set; }
     public DateTime? PublishedAt { get; set; }
@@ -40,10 +38,8 @@ public class CreateCriteriaSetDto
 {
     public string? Code { get; set; }
     public string? Name { get; set; }
-    /// <summary>09A / 09B.</summary>
-    public string? SelfScoreForm { get; set; }
     public string? Notes { get; set; }
-    /// <summary>Trống → nội dung mặc định theo mẫu tự chấm đã chọn.</summary>
+    /// <summary>Trống → nội dung mặc định.</summary>
     public CriteriaSetContent? Content { get; set; }
 }
 
@@ -53,7 +49,6 @@ public class UpdateCriteriaSetDto
     public uint? Version { get; set; }
     public string? Code { get; set; }
     public string? Name { get; set; }
-    public string? SelfScoreForm { get; set; }
     public string? Notes { get; set; }
     public CriteriaSetContent? Content { get; set; }
 }

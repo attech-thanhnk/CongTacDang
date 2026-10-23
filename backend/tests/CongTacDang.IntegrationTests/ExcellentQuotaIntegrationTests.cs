@@ -33,7 +33,7 @@ public sealed class ExcellentQuotaIntegrationTests
             {
                 Year = 2033, Quarter = EvaluationQuarter.Quy2, Name = $"Kỳ trần xuất sắc {sfx}",
                 StartDate = DateTime.UtcNow.AddDays(-20), EndDate = DateTime.UtcNow.AddDays(60),
-                Status = PeriodStatus.Open, CriteriaSnapshot = CriteriaTestData.Snapshot("09A")
+                Status = PeriodStatus.Open, CriteriaSnapshot = CriteriaTestData.Snapshot()
             };
             var head = new Position { Name = $"Trưởng phòng trần {sfx}", Side = PositionSide.Administrative, StatCode = "M26", DefaultApprovalAuthority = ApprovalAuthority.CoSo, IsHead = true };
             var deputy = new Position { Name = $"Phó Trưởng phòng trần {sfx}", Side = PositionSide.Administrative, StatCode = "M26", DefaultApprovalAuthority = ApprovalAuthority.CoSo };

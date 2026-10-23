@@ -20,9 +20,6 @@ public class CriteriaSet : IAuditableEntity, IVersioned
 
     public CriteriaSetStatus Status { get; set; } = CriteriaSetStatus.Draft;
 
-    /// <summary>09A (chấm theo nhiệm vụ Mẫu 01/02) hoặc 09B (chấm trực tiếp theo trục).</summary>
-    public string SelfScoreForm { get; set; } = CriteriaSetContent.Form09A;
-
     /// <summary>Căn cứ văn bản, phạm vi áp dụng.</summary>
     public string? Notes { get; set; }
 
@@ -50,7 +47,6 @@ public class CriteriaSet : IAuditableEntity, IVersioned
         SetId = Id,
         Code = Code,
         Name = Name,
-        SelfScoreForm = SelfScoreForm,
         TakenAt = takenAt,
         Content = GetContent()
     };

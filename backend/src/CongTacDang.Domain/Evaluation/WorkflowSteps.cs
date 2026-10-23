@@ -8,13 +8,13 @@ namespace CongTacDang.Domain.Evaluation;
 /// <summary>Mã bước cố định trong code; chế độ, người làm, thời hạn cấu hình theo hồ sơ luồng (<see cref="WorkflowProfile"/>).</summary>
 public enum WorkflowStep
 {
-    /// <summary>Đăng ký sản phẩm (Mẫu 01).</summary>
+    /// <summary>Đăng ký sản phẩm (Mẫu 01); luôn bật.</summary>
     B1_REGISTER = 1,
 
     /// <summary>Duyệt / trả lại danh mục sản phẩm.</summary>
     B1_APPROVE = 2,
 
-    /// <summary>Tự chấm, đề xuất mức (Mẫu 02, 09A/09B, 09C, 9D); luôn bật.</summary>
+    /// <summary>Tự chấm, đề xuất mức (Mẫu 02, 09A, 09C, 9D); luôn bật.</summary>
     B2_SELF_SCORE = 3,
 
     B2_CELL_CONFIRM = 4,
@@ -93,8 +93,10 @@ public static class WorkflowSteps
         WorkflowStep.B5_PUBLISH
     };
 
+    /// <summary>Chấm điểm dựa trên danh mục sản phẩm đăng ký nên bước đăng ký luôn bật.</summary>
     public static readonly IReadOnlySet<WorkflowStep> Mandatory = new HashSet<WorkflowStep>
     {
+        WorkflowStep.B1_REGISTER,
         WorkflowStep.B2_SELF_SCORE,
         WorkflowStep.B4_DECISION,
         WorkflowStep.B5_PUBLISH

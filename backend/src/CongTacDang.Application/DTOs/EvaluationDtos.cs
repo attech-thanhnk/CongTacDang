@@ -101,8 +101,6 @@ public class EvaluationRecordDto
     public Guid PeriodId { get; set; }
     public string PeriodName { get; set; } = string.Empty;
     public string PeriodStatus { get; set; } = string.Empty;
-    /// <summary>09A/09B; rỗng nếu kỳ chưa chọn bộ tiêu chí.</summary>
-    public string SelfScoreForm { get; set; } = string.Empty;
     public Guid MemberId { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string? PartyCardNumber { get; set; }
@@ -152,8 +150,6 @@ public class EvaluationRecordDto
     public Dictionary<string, GeneralItemScore> GeneralScores { get; set; } = new();
     public double GeneralCriteriaScore { get; set; }
     public double TasksScore { get; set; }
-    /// <summary>Mẫu 09B, khóa = mã trục; null nếu chưa chấm theo trục.</summary>
-    public Dictionary<string, double>? AxisScores { get; set; }
     public double TotalSelfScore { get; set; }
     public string SelfProposedGrade { get; set; } = string.Empty;
     /// <summary>Lý do tự đề xuất mức khác mức theo điểm.</summary>
@@ -163,8 +159,6 @@ public class EvaluationRecordDto
     public Dictionary<string, string> SelfAssessment { get; set; } = new();
     /// <summary>Mẫu 09C/9D, khóa = mã trục.</summary>
     public Dictionary<string, AxisReport> AxisReports { get; set; } = new();
-    /// <summary>Mẫu 09B, khóa = mã trục.</summary>
-    public Dictionary<string, AxisNote> AxisNotes { get; set; } = new();
     /// <summary>Khóa = mã nhóm; in ở dòng nhóm của phiếu tự chấm.</summary>
     public Dictionary<string, string> GeneralGroupNotes { get; set; } = new();
 
@@ -395,15 +389,12 @@ public class TaskScoreInputDto
     public Guid? AttachmentId { get; set; }
 }
 
-/// <summary>B2_SELF_SCORE: 09A chấm theo nhiệm vụ, 09B chấm theo trục.</summary>
+/// <summary>B2_SELF_SCORE: chấm theo việc/sản phẩm đã đăng ký.</summary>
 public class SubmitSelfScoreRequestDto : WorkflowRequestDto
 {
     /// <summary>Khóa = mã tiêu chí con; "K/AD" phải kèm lý do.</summary>
     public Dictionary<string, GeneralItemScore> GeneralScores { get; set; } = new();
-    /// <summary>Mẫu 09A.</summary>
     public List<TaskScoreInputDto> TaskScores { get; set; } = new();
-    /// <summary>Mẫu 09B, khóa = mã trục.</summary>
-    public Dictionary<string, double>? AxisScores { get; set; }
     /// <summary>Trống → gợi ý theo tổng điểm.</summary>
     public string? SelfProposedGrade { get; set; }
     /// <summary>Bắt buộc khi mức tự đề xuất khác mức theo điểm và bộ tiêu chí yêu cầu giải trình.</summary>
@@ -412,8 +403,6 @@ public class SubmitSelfScoreRequestDto : WorkflowRequestDto
     public Dictionary<string, string?>? SelfAssessment { get; set; }
     /// <summary>Mẫu 09C/9D, khóa = mã trục; null = giữ nội dung đã lưu.</summary>
     public Dictionary<string, AxisReport?>? AxisReports { get; set; }
-    /// <summary>Mẫu 09B, khóa = mã trục; null = giữ nội dung đã lưu.</summary>
-    public Dictionary<string, AxisNote?>? AxisNotes { get; set; }
     /// <summary>Khóa = mã nhóm; null = giữ nội dung đã lưu.</summary>
     public Dictionary<string, string?>? GeneralGroupNotes { get; set; }
 }
@@ -610,8 +599,7 @@ public class CreatePeriodDto
     public string? Name { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
-    /// <summary>Bộ đã xuất bản, bắt buộc. Mẫu tự chấm của bộ quyết định có bước đăng ký, duyệt sản phẩm
-    /// (09A có, 09B không).</summary>
+    /// <summary>Bộ đã xuất bản, bắt buộc.</summary>
     public Guid? CriteriaSetId { get; set; }
 }
 

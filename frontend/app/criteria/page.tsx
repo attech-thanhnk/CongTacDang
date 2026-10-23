@@ -13,7 +13,7 @@ import { AdminModal } from "@/components/admin/AdminModal";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { CriteriaSetListItem, criteriaService, scoringMethodLabel } from "@/services/criteriaService";
+import { CriteriaSetListItem, criteriaService } from "@/services/criteriaService";
 import { errorMessage, errorStatus } from "@/components/admin/adminUtils";
 
 const STATUS_TONE: Record<string, BadgeTone> = {
@@ -22,7 +22,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
   Archived: "neutral",
 };
 
-const EMPTY_FORM = { code: "", name: "", selfScoreForm: "09A", notes: "" };
+const EMPTY_FORM = { code: "", name: "", notes: "" };
 
 /** Xem: criteria.manage hoặc period.manage (để chọn bộ cho kỳ); ghi: criteria.manage. */
 export default function CriteriaSetsPage() {
@@ -117,7 +117,7 @@ export default function CriteriaSetsPage() {
                 <table className="table table-hover align-middle mb-0 table-fit">
                   <thead>
                     <tr>
-                      <th>Bộ tiêu chí</th><th>Trạng thái</th><th className="d-none d-md-table-cell">Mẫu</th><th className="d-none d-md-table-cell">Nội dung</th><th className="d-none d-md-table-cell">Kỳ đang dùng</th><th className="text-end pe-3">Thao tác</th>
+                      <th>Bộ tiêu chí</th><th>Trạng thái</th><th className="d-none d-md-table-cell">Nội dung</th><th className="d-none d-md-table-cell">Kỳ đang dùng</th><th className="text-end pe-3">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -128,7 +128,6 @@ export default function CriteriaSetsPage() {
                           <div className="small text-secondary">{s.code}</div>
                         </td>
                         <td className="text-nowrap"><Badge tone={STATUS_TONE[s.status] ?? "neutral"}>{s.statusDisplayName}</Badge></td>
-                        <td className="text-nowrap d-none d-md-table-cell"><span className="tag t-info">{scoringMethodLabel(s.selfScoreForm)}</span></td>
                         <td className="num d-none d-md-table-cell">{s.generalItemCount} tiêu chí con · {s.axisCount} trục · {s.weightFrameCount} khung</td>
                         <td className="d-none d-md-table-cell">{s.usedByPeriods.length > 0 ? s.usedByPeriods.join(", ") : "—"}</td>
                         <td className="text-end text-nowrap pe-3">
@@ -186,18 +185,11 @@ export default function CriteriaSetsPage() {
           <form id="criteria-create-form" onSubmit={create} className="row g-3">
             <div className="col-12">
               <label className="form-label" htmlFor="cs-code">Mã bộ</label>
-              <input id="cs-code" className="form-control" required maxLength={50} autoFocus placeholder="VD: 09A-2027-V2" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+              <input id="cs-code" className="form-control" required maxLength={50} autoFocus placeholder="VD: TC-2027-V2" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
             </div>
             <div className="col-12">
               <label className="form-label" htmlFor="cs-name">Tên bộ</label>
               <input id="cs-name" className="form-control" required maxLength={200} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div className="col-12">
-              <label className="form-label" htmlFor="cs-form">Cách chấm</label>
-              <select id="cs-form" className="form-select" value={form.selfScoreForm} onChange={(e) => setForm({ ...form, selfScoreForm: e.target.value })}>
-                <option value="09A">Chấm theo việc đã đăng ký (Mẫu 09A)</option>
-                <option value="09B">Chấm theo 6 trục (Mẫu 09B)</option>
-              </select>
             </div>
             <div className="col-12">
               <label className="form-label" htmlFor="cs-notes">Ghi chú</label>

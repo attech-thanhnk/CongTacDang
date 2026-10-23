@@ -22,10 +22,10 @@ public sealed class SelfScoreDraftIntegrationTests
     public async Task D1_Draft_KeepsStatus_KeepsContent_ThenSubmit()
     {
         var w = await World.CreateAsync(_factory);
-        var recordId = await OpenRecordAsync(w);
+        var (recordId, taskScores) = await OpenRecordAsync(w);
         var historyBefore = (await Data(w.Owner, $"/api/evaluations/records/{recordId}/history")).GetArrayLength();
 
-        // Phiếu dở dang: hai tiêu chí chung (một tiêu chí giảm điểm chưa nêu căn cứ), một trục, mục 09C trống, một dòng nhiệm vụ trống.
+        // Phiếu dở dang: hai tiêu chí chung (một tiêu chí giảm điểm chưa nêu căn cứ), một sản phẩm, mục 09C trống, một dòng nhiệm vụ trống.
         var draftBody = new
         {
             generalScores = new Dictionary<string, object>
@@ -33,23 +33,20 @@ public sealed class SelfScoreDraftIntegrationTests
                 ["1.1"] = new { score = 2 },
                 ["2.1"] = new { score = 0 }
             },
-            axisScores = new Dictionary<string, double> { ["T1"] = 12 },
+            taskScores = taskScores.Take(1).ToArray(),
             selfAssessment = new Dictionary<string, string>(),
             axisReports = new Dictionary<string, object>
             {
                 ["T1"] = new { tasks = new object[] { new { content = "Việc nháp T1 (IT)", level = 1 }, new { content = "" } }, status = "Đang làm (IT)" }
             },
-            axisNotes = new Dictionary<string, object> { ["T1"] = new { target = "Mục tiêu nháp (IT)" } },
             generalGroupNotes = new Dictionary<string, string> { ["1"] = "Nhận xét nháp (IT)" }
         };
         var draft = await Data(await PostAsync(w.Owner, recordId, "self-score/draft", draftBody, w.Manager));
         Assert.Equal("AwaitingSelfScore", draft.GetProperty("status").GetString());
         Assert.True(!draft.TryGetProperty("selfScoredAt", out var scoredAt) || scoredAt.ValueKind == JsonValueKind.Null);
-        Assert.Equal(12, draft.GetProperty("axisScores").GetProperty("T1").GetDouble());
-        Assert.Equal(12, draft.GetProperty("tasksScore").GetDouble());
+        Assert.Equal(27.4, draft.GetProperty("tasksScore").GetDouble(), 6);
         Assert.Equal("Việc nháp T1 (IT)", draft.GetProperty("axisReports").GetProperty("T1").GetProperty("tasks")[0].GetProperty("content").GetString());
         Assert.Equal(1, draft.GetProperty("axisReports").GetProperty("T1").GetProperty("tasks").GetArrayLength());
-        Assert.Equal("Mục tiêu nháp (IT)", draft.GetProperty("axisNotes").GetProperty("T1").GetProperty("target").GetString());
         Assert.Equal("Nhận xét nháp (IT)", draft.GetProperty("generalGroupNotes").GetProperty("1").GetString());
         Assert.Equal(2, draft.GetProperty("generalScores").EnumerateObject().Count());
 
@@ -59,9 +56,10 @@ public sealed class SelfScoreDraftIntegrationTests
         Assert.Equal("Nhận xét nháp (IT)", reloaded.GetProperty("generalGroupNotes").GetProperty("1").GetString());
         Assert.Equal(historyBefore, (await Data(w.Owner, $"/api/evaluations/records/{recordId}/history")).GetArrayLength());
 
-        // Sai định dạng vẫn bị từ chối: điểm trục vượt tối đa, mã tiêu chí lạ, mức không có.
-        var overMax = await PostAsync(w.Owner, recordId, "self-score/draft", new { axisScores = new Dictionary<string, double> { ["T1"] = 999 } }, w.Manager);
-        Assert.Equal(HttpStatusCode.BadRequest, overMax.StatusCode);
+        // Sai định dạng vẫn bị từ chối: trục lạ, mã tiêu chí lạ, mức không có.
+        var unknownAxis = await PostAsync(w.Owner, recordId, "self-score/draft",
+            new { axisReports = new Dictionary<string, object> { ["T9"] = new { status = "x" } } }, w.Manager);
+        Assert.Equal(HttpStatusCode.BadRequest, unknownAxis.StatusCode);
         var unknownItem = await PostAsync(w.Owner, recordId, "self-score/draft",
             new { generalScores = new Dictionary<string, object> { ["9.9"] = new { score = 1 } } }, w.Manager);
         Assert.Equal(HttpStatusCode.BadRequest, unknownItem.StatusCode);
@@ -79,7 +77,7 @@ public sealed class SelfScoreDraftIntegrationTests
         Assert.Equal(HttpStatusCode.Forbidden, (await PostAsync(w.CellSec, recordId, "self-score/draft", draftBody, w.Manager)).StatusCode);
 
         // Nộp phiếu đầy đủ sau khi lưu nháp.
-        var submitted = await Data(await PostAsync(w.Owner, recordId, "self-score/submit", FullBody(), w.Manager));
+        var submitted = await Data(await PostAsync(w.Owner, recordId, "self-score/submit", FullBody(taskScores), w.Manager));
         Assert.Equal("AwaitingCellConfirm", submitted.GetProperty("status").GetString());
         Assert.Equal(JsonValueKind.String, submitted.GetProperty("selfScoredAt").ValueKind);
         Assert.Equal(historyBefore + 1, (await Data(w.Owner, $"/api/evaluations/records/{recordId}/history")).GetArrayLength());
@@ -93,10 +91,10 @@ public sealed class SelfScoreDraftIntegrationTests
 
     #region Hỗ trợ
 
-    private static object FullBody() => new
+    private static object FullBody(object[] taskScores) => new
     {
         generalScores = CriteriaTestData.General("2.1"),
-        axisScores = CriteriaTestData.Axis(14, 9, 9, 14, 9, 9),
+        taskScores,
         selfProposedGrade = "HoanThanhTot", selfGradeExplanation = "Căn cứ kiểm thử",
         selfAssessment = new Dictionary<string, string> { ["I"] = "Tự đánh giá mục I (IT)" },
         axisReports = new Dictionary<string, object>
@@ -105,11 +103,12 @@ public sealed class SelfScoreDraftIntegrationTests
         }
     };
 
-    private static async Task<Guid> OpenRecordAsync(World w)
+    /// <summary>Kỳ mở, hồ sơ đã có danh mục; trả kèm tỷ lệ A-B-C-D 64/70 cho mọi sản phẩm.</summary>
+    private async Task<(Guid RecordId, object[] TaskScores)> OpenRecordAsync(World w)
     {
         var body = new
         {
-            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(w.Manager, "09B"),
+            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(w.Manager),
             name = $"Kỳ nháp {Guid.NewGuid().ToString("N")[..8]}",
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         };
@@ -118,8 +117,9 @@ public sealed class SelfScoreDraftIntegrationTests
         var period = await Data(w.Manager, $"/api/evaluations/periods/{periodId}");
         await Data(await w.Manager.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open",
             new { version = period.GetProperty("version").GetUInt32(), reason = "Kiểm thử lưu nháp", force = true }));
-        return (await Data(w.Manager, $"/api/evaluations/periods/{periodId}/participants")).EnumerateArray()
+        var recordId = (await Data(w.Manager, $"/api/evaluations/periods/{periodId}/participants")).EnumerateArray()
             .First(p => p.GetProperty("memberId").GetGuid() == w.OwnerId).GetProperty("recordId").GetGuid();
+        return (recordId, await RegistrationTestData.RegisterAsync(_factory, recordId, 64.0 / 70));
     }
 
     private static async Task<HttpResponseMessage> PostAsync(HttpClient client, Guid recordId, string action, object body, HttpClient reader)

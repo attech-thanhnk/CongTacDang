@@ -46,11 +46,6 @@ export interface ResultAxis {
   code: string;
   name: string;
   description?: string | null;
-  maxScore: number;
-  /** Tiêu đề trục in ở cột "Nội dung tiêu chí" của Mẫu 09B (trống → dựng từ tên trục). */
-  formTitle?: string | null;
-  /** In dưới tiêu đề trục trên Mẫu 09B, mỗi dòng một gạch đầu dòng (trống → nội dung áp dụng). */
-  formGuidance?: string | null;
 }
 
 export interface WeightFrame {
@@ -116,7 +111,7 @@ export interface CriteriaSetContent {
   conversionScale: ConversionBand[];
   grades: GradeRule[];
   parameters: CriteriaParameters;
-  /** Mã theo `RECORD_FORMS`; 09A/09B luôn theo mẫu tự chấm của bộ. */
+  /** Mã theo `RECORD_FORMS`; Mẫu 09A luôn áp dụng. */
   requiredForms: string[];
   selfAssessmentSections: SelfAssessmentSection[];
   /** Các mức tự đánh giá của từng nhiệm vụ (ô "Mức" ở Mẫu 9D); rỗng = không dùng. */
@@ -133,8 +128,7 @@ export interface CriteriaSetContent {
 export const RECORD_FORMS: { code: string; name: string }[] = [
   { code: "01", name: "Mẫu 01 — Phiếu giao / đăng ký sản phẩm, công việc chuyên môn" },
   { code: "02", name: "Mẫu 02 — Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc" },
-  { code: "09A", name: "Mẫu 09A — Phiếu tự chấm điểm (theo sản phẩm Mẫu 01/02)" },
-  { code: "09B", name: "Mẫu 09B — Phiếu tự chấm điểm (theo trục)" },
+  { code: "09A", name: "Mẫu 09A — Phiếu tự chấm điểm" },
   { code: "09C", name: "Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân" },
   { code: "9D", name: "Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ trong quý" },
   { code: "10", name: "Mẫu 10 — Phiếu thẩm định, nhận xét, đề xuất xếp loại" },
@@ -147,7 +141,6 @@ export interface CriteriaSnapshot {
   setId: string;
   code: string;
   name: string;
-  selfScoreForm: "09A" | "09B" | string;
   takenAt: string;
   content: CriteriaSetContent;
 }
@@ -159,7 +152,6 @@ export interface CriteriaSetListItem {
   name: string;
   status: CriteriaSetStatus;
   statusDisplayName: string;
-  selfScoreForm: "09A" | "09B" | string;
   notes?: string | null;
   sourceSetId?: string | null;
   publishedAt?: string | null;
@@ -186,16 +178,6 @@ export interface GeneralItemScore {
   score: number;
   notApplicable?: boolean;
   reason?: string | null;
-}
-
-/** Tên cách chấm hiển thị cho người dùng (số mẫu chỉ dùng khi in). */
-export const SCORING_METHOD_LABELS: Record<string, string> = {
-  "09A": "Chấm theo việc đã đăng ký",
-  "09B": "Chấm theo 6 trục",
-};
-
-export function scoringMethodLabel(form?: string | null): string {
-  return (form && SCORING_METHOD_LABELS[form]) || form || "";
 }
 
 export const GRADE_LABELS: Record<RankedGrade, string> = {
@@ -272,9 +254,8 @@ export function suggestGrade(content: CriteriaSetContent, score: number, exceedR
   return "KhongHoanThanh";
 }
 
-/** Tỷ lệ nhiệm vụ còn hiệu lực đánh dấu vượt chuẩn (09A); chấm theo trục hoặc chưa có nhiệm vụ → null. */
-export function exceedRatioOf(tasks: { changeStatus?: string | null; isExceedStandard?: boolean }[], axisScoring: boolean): number | null {
-  if (axisScoring) return null;
+/** Tỷ lệ nhiệm vụ còn hiệu lực đánh dấu vượt chuẩn; chưa có nhiệm vụ → null. */
+export function exceedRatioOf(tasks: { changeStatus?: string | null; isExceedStandard?: boolean }[]): number | null {
   const active = tasks.filter((t) => !t.changeStatus);
   return active.length > 0 ? active.filter((t) => t.isExceedStandard).length / active.length : null;
 }
@@ -322,16 +303,11 @@ export function collectiveMax(content: CriteriaSetContent, kind: CollectiveScore
 }
 
 /** Kiểm tra nhanh để báo tức thì; kiểm tra đầy đủ do máy chủ trả về khi lưu. */
-export function quickChecks(content: CriteriaSetContent, form: string): string[] {
+export function quickChecks(content: CriteriaSetContent): string[] {
   const messages: string[] = [];
   const general = content.generalGroups.reduce((s, g) => s + g.items.reduce((t, i) => t + (Number(i.maxScore) || 0), 0), 0);
   if (Math.abs(general - content.parameters.generalMaxScore) > 1e-6)
     messages.push(`Tổng tiêu chí con ${fmt(general)} ≠ điểm tối đa nhóm tiêu chí chung ${fmt(content.parameters.generalMaxScore)}.`);
-  if (form === "09B") {
-    const axes = content.axes.reduce((s, a) => s + (Number(a.maxScore) || 0), 0);
-    if (Math.abs(axes - content.parameters.totalTaskWeight) > 1e-6)
-      messages.push(`Tổng điểm tối đa các trục ${fmt(axes)} ≠ điểm tối đa nhóm nhiệm vụ ${fmt(content.parameters.totalTaskWeight)}.`);
-  }
   for (const frame of content.weightFrames) {
     const sum = frame.a + frame.b + frame.c + frame.d;
     if (Math.abs(sum - 1) > 1e-6) messages.push(`Khung ${frame.code}: tổng tỷ trọng ${fmt(sum * 100)}% ≠ 100%.`);
@@ -407,8 +383,8 @@ export const criteriaService = {
     return request<CriteriaSetDto>(`/criteria-sets/${id}`);
   },
 
-  defaults(form: string): Promise<CriteriaSetContent> {
-    return request<CriteriaSetContent>(`/criteria-sets/defaults/${form}`);
+  defaults(): Promise<CriteriaSetContent> {
+    return request<CriteriaSetContent>("/criteria-sets/defaults");
   },
 
   defaultCollectiveGroups(): Promise<CollectiveCriteriaGroup[]> {
@@ -419,7 +395,7 @@ export const criteriaService = {
     return request<WeightFrameOptions>("/criteria-sets/weight-frames");
   },
 
-  create(payload: { code: string; name: string; selfScoreForm: string; notes?: string }): Promise<CriteriaSetDto> {
+  create(payload: { code: string; name: string; notes?: string }): Promise<CriteriaSetDto> {
     return request<CriteriaSetDto>("/criteria-sets", { method: "POST", body: JSON.stringify(payload) });
   },
 
@@ -429,7 +405,7 @@ export const criteriaService = {
 
   update(
     id: string,
-    payload: { version: number; code?: string; name?: string; selfScoreForm?: string; notes?: string; content?: CriteriaSetContent }
+    payload: { version: number; code?: string; name?: string; notes?: string; content?: CriteriaSetContent }
   ): Promise<CriteriaSetDto> {
     return request<CriteriaSetDto>(`/criteria-sets/${id}`, { method: "PUT", body: JSON.stringify(payload) });
   },

@@ -428,12 +428,12 @@ public sealed class EvaluationWorkflowServiceTests
 
         public Harness(RecordStatus status)
         {
-            Content = CriteriaSetDefaults.Build09A();
+            Content = CriteriaSetDefaults.Build();
             Content.RequiredForms = new List<string>();
-            var settings = PeriodSettings.Default("09A");
+            var settings = PeriodSettings.Default();
             foreach (var profile in settings.Profiles)
                 profile.Step(WorkflowStep.B1_APPROVE).Permission = ApprovePermission;
-            var snapshot = new CriteriaSnapshot { SetId = Guid.NewGuid(), Code = "IT", Name = "Bộ thử", SelfScoreForm = "09A", Content = Content };
+            var snapshot = new CriteriaSnapshot { SetId = Guid.NewGuid(), Code = "IT", Name = "Bộ thử", Content = Content };
 
             Period = new EvaluationPeriod
             {

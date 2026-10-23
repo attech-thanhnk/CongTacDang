@@ -155,16 +155,12 @@ public sealed class FormLayoutService : IFormLayoutService
         var description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim();
         if (description?.Length > FormLayout.MaxDescriptionLength)
             throw new ValidationException($"Mô tả dài quá {FormLayout.MaxDescriptionLength} ký tự. Hãy rút ngắn.");
-        if (!Enum.TryParse<FormHeaderStyle>(input.HeaderStyle?.Trim(), true, out var header) || !Enum.IsDefined(header))
-            throw new ValidationException("Hãy chọn tiêu đề Mẫu 09B: theo Chi bộ sinh hoạt hoặc theo Đảng ủy cơ sở.");
         var empty = string.IsNullOrWhiteSpace(input.EmptyPositionText) ? null : input.EmptyPositionText.Trim();
         if (empty?.Length > FormLayout.MaxEmptyPositionTextLength)
             throw new ValidationException($"Chữ in thay chức vụ trống dài quá {FormLayout.MaxEmptyPositionTextLength} ký tự.");
 
         layout.Name = name;
         layout.Description = description;
-        layout.HeaderStyle = header;
-        layout.ShowCellConfirmation = input.ShowCellConfirmation;
         layout.SingleLinePositions = input.SingleLinePositions;
         layout.ShowDateLineOn9D = input.ShowDateLineOn9D;
         layout.EmptyPositionText = empty;
@@ -189,8 +185,6 @@ public sealed class FormLayoutService : IFormLayoutService
         Id = l.Id,
         Name = l.Name,
         Description = l.Description,
-        HeaderStyle = l.HeaderStyle.ToString(),
-        ShowCellConfirmation = l.ShowCellConfirmation,
         SingleLinePositions = l.SingleLinePositions,
         ShowDateLineOn9D = l.ShowDateLineOn9D,
         EmptyPositionText = l.EmptyPositionText,

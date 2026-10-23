@@ -175,17 +175,18 @@ public sealed class GoLiveScenarioTests
         Assert.Contains("không có kỳ đánh giá đang mở", (await GoLiveHttp.JsonAsync(noActive)).GetProperty("message").GetString());
         var period = await GoLiveHttp.DataAsync(await appraiser.PostAsJsonAsync("/api/evaluations/periods", new
         {
-            year = todayVn.Year, quarter = (todayVn.Month - 1) / 3 + 1, name = "Kỳ đánh giá go-live", criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(appraiser, "09B"),
+            year = todayVn.Year, quarter = (todayVn.Month - 1) / 3 + 1, name = "Kỳ đánh giá go-live", criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(appraiser),
             startDate = DateTime.UtcNow.AddDays(-1), endDate = DateTime.UtcNow.AddDays(60)
         }));
         var periodId = period.GetProperty("id").GetGuid();
         Assert.Equal("Draft", period.GetProperty("status").GetString());
 
-        // Đơn vị chưa phân công thư ký tập thể và cấp trực tiếp → tắt B3a, B3c ở mọi hồ sơ luồng.
+        // Đơn vị chưa phân công người duyệt danh mục, thư ký tập thể và cấp trực tiếp → tắt B1 duyệt, B3a, B3c ở mọi hồ sơ luồng.
         var settings = JsonNode.Parse(period.GetProperty("settings").GetRawText())!.AsObject();
         foreach (var profile in settings["profiles"]!.AsArray())
         {
-            profile!["steps"]!["B3A_COLLECTIVE"]!["mode"] = "Off";
+            profile!["steps"]!["B1_APPROVE"]!["mode"] = "Off";
+            profile["steps"]!["B3A_COLLECTIVE"]!["mode"] = "Off";
             profile["steps"]!["B3C_DIRECTOR"]!["mode"] = "Off";
         }
         await GoLiveHttp.DataAsync(await appraiser.PutAsJsonAsync($"/api/evaluations/periods/{periodId}",
@@ -218,14 +219,15 @@ public sealed class GoLiveScenarioTests
         await GoLiveHttp.ChangePasswordAsync(owner, passwords["le.van.c"], CadreNewPassword);
         var mine = await GoLiveHttp.DataAsync(await owner.GetAsync($"/api/evaluations/my-record?periodId={periodId}"));
         Assert.Equal(recordId, mine.GetProperty("id").GetGuid());
-        Assert.Equal("AwaitingSelfScore", mine.GetProperty("status").GetString());
+        Assert.Equal("AwaitingRegistration", mine.GetProperty("status").GetString());
         // Không truyền kỳ → kỳ đang hoạt động.
         Assert.Equal(recordId, (await GoLiveHttp.DataAsync(await owner.GetAsync("/api/evaluations/my-record"))).GetProperty("id").GetGuid());
         var ownerQueue = await GoLiveHttp.DataAsync(await owner.GetAsync($"/api/evaluations/work-queue?periodId={periodId}"));
-        Assert.Equal("B2_SELF_SCORE", ownerQueue.GetProperty("groups").EnumerateArray().Single().GetProperty("step").GetString());
+        Assert.Equal("B1_REGISTER", ownerQueue.GetProperty("groups").EnumerateArray().Single().GetProperty("step").GetString());
 
+        var registered = await GoLiveHttp.StepAsync(owner, recordId, "tasks/submit", CriteriaTestData.Tasks(), "AwaitingSelfScore");
         await GoLiveHttp.StepAsync(owner, recordId, "self-score/submit",
-            new { generalScores = CriteriaTestData.General("2.1", "2.2", "2.3"), axisScores = CriteriaTestData.Axis(13, 9, 9, 13, 9, 9) }, "AwaitingCellConfirm");
+            new { generalScores = CriteriaTestData.General("2.1", "2.2", "2.3"), taskScores = CriteriaTestData.TaskScores(registered, 62.0 / 70) }, "AwaitingCellConfirm");
         var cellQueue = await GoLiveHttp.DataAsync(await cadre.GetAsync($"/api/evaluations/work-queue?periodId={periodId}"));
         Assert.Contains(cellQueue.GetProperty("groups").EnumerateArray(), g => g.GetProperty("step").GetString() == "B2_CELL_CONFIRM");
         await GoLiveHttp.StepAsync(cadre, recordId, "cell/confirm", new { comment = "Chi bộ xác nhận" }, "AwaitingAppraisal");
@@ -240,7 +242,7 @@ public sealed class GoLiveScenarioTests
         var history = await GoLiveHttp.DataAsync(await owner.GetAsync($"/api/evaluations/records/{recordId}/history"));
         var steps = history.EnumerateArray().Where(h => h.GetProperty("step").ValueKind == JsonValueKind.String)
             .Select(h => h.GetProperty("step").GetString()).OrderBy(StepOrder).ToList();
-        Assert.Equal(new[] { "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3B_APPRAISAL", "B4_DECISION", "B5_PUBLISH" }, steps);
+        Assert.Equal(new[] { "B1_REGISTER", "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3B_APPRAISAL", "B4_DECISION", "B5_PUBLISH" }, steps);
     }
 
     /// <summary>Khởi động host với <c>Seed:InitialAdmin:*</c> để seeder tạo tài khoản quản trị ban đầu.</summary>

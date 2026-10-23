@@ -56,8 +56,8 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (trang Vai trò).
 
 ### B2. [Ưu tiên] Ai thao tác "Xác nhận của Chi bộ" trên phiếu tự chấm?
-- **Câu hỏi:** Việc xác nhận phiếu tự chấm (09B, 09C, 9D) trên hệ thống do Bí thư Chi bộ làm hay cả Chi ủy?
-- **Căn cứ:** Mẫu 09B, 09C, 9D (tr.53–65), ô "XÁC NHẬN CỦA CHI BỘ".
+- **Câu hỏi:** Việc xác nhận phiếu tự chấm (09A, 09C, 9D) trên hệ thống do Bí thư Chi bộ làm hay cả Chi ủy?
+- **Căn cứ:** Mẫu 09C, 9D (tr.63–65), ô "XÁC NHẬN CỦA CHI BỘ".
 - **Hệ thống đang làm (mặc định):** Vai trò "Chi ủy / Bí thư Chi bộ" được gán theo từng Chi bộ, được xác nhận hoặc trả lại phiếu (bắt buộc lý do). Áp dụng cho cả cán bộ diện Ban Thường vụ Đảng ủy Tổng công ty (BTV ĐUTCT).
 - **Phương án khác:** Chỉ Bí thư Chi bộ xác nhận; bỏ bước này trên hệ thống, chỉ ký trên giấy.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Vai trò; bật/tắt bước ở Kỳ đánh giá).
@@ -161,12 +161,9 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 - **Phương án khác:** Thêm luồng riêng cho Phó Giám đốc (Chủ tịch đề xuất, dòng 4b), Kiểm soát viên (dòng 5).
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Kỳ đánh giá).
 
-### D2. [Ưu tiên] Các bước áp dụng trong Q3/2026
-- **Câu hỏi:** Kỳ Q3/2026 chỉ bỏ bước đăng ký và duyệt sản phẩm, giữ mọi bước còn lại, đúng không?
-- **Căn cứ:** Mục VI.4 (tr.23) chưa áp dụng Mẫu 01–06, 09A, 11; IV.2 (tr.18) dùng Mẫu 09B.
-- **Hệ thống đang làm (mặc định):** Kỳ chọn bộ tiêu chí 09B: tự động tắt đăng ký, duyệt sản phẩm. Bật tự chấm 09B, Chi bộ xác nhận, tập thể lãnh đạo đề xuất (3a), thẩm định (3b), cấp trực tiếp sử dụng (3c), quyết định, công bố.
-- **Phương án khác:** Tắt thêm bước 3a hoặc bước Chi bộ xác nhận (làm ngoài hệ thống).
-- **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Kỳ đánh giá, trước khi mở kỳ).
+### D2. Các bước áp dụng trong Q3/2026
+- **Không còn áp dụng** (đã bỏ cách chấm theo trục): bước đăng ký sản phẩm luôn bật; duyệt danh mục, Chi bộ xác nhận, 3a, 3b, 3c
+  bật/tắt theo nhóm đối tượng (D1).
 
 ### D3. [Ưu tiên] Bước 3a phiếu kín khi Mẫu 11 chưa áp dụng
 - **Câu hỏi:** Trong Q3/2026, tập thể lãnh đạo vẫn bỏ phiếu kín và nhập kết quả vào hệ thống dù chưa dùng phiếu Mẫu 11, đúng không?
@@ -242,16 +239,16 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 
 ## E. Bộ tiêu chí & cách tính điểm
 
-### E1. [Ưu tiên] Nội dung bộ tiêu chí Mẫu 09B (Q3/2026)
-- **Câu hỏi:** Bộ tiêu chí "Chấm theo 6 trục (Quý III, IV/2026)" dựng sẵn dưới đây có đúng văn bản không?
-- **Căn cứ:** Mục III.2 (tr.9–10); Mẫu 09B (tr.53–62).
-- **Hệ thống đang làm (mặc định):** Tiêu chí chung 30 điểm, 3 nhóm 18/4/8 với 17 tiêu chí con (1.1–1.9 mỗi tiêu chí 2 điểm; 2.1–2.4 mỗi tiêu chí 1 điểm; 3.1–3.4 mỗi tiêu chí 2 điểm). Kết quả nhiệm vụ 70 điểm, chấm trực tiếp 6 trục, điểm tối đa 15/10/10/15/10/10. Ngưỡng mức 90/70/50.
+### E1. [Ưu tiên] Tiêu chí chung của bộ tiêu chí mặc định
+- **Câu hỏi:** Nhóm tiêu chí chung của bộ "Bộ tiêu chí đánh giá cán bộ" dựng sẵn dưới đây có đúng văn bản không?
+- **Căn cứ:** Mục III.2 (tr.9–10).
+- **Hệ thống đang làm (mặc định):** Tiêu chí chung 30 điểm, 3 nhóm 18/4/8 với 17 tiêu chí con (1.1–1.9 mỗi tiêu chí 2 điểm; 2.1–2.4 mỗi tiêu chí 1 điểm; 3.1–3.4 mỗi tiêu chí 2 điểm). Kết quả nhiệm vụ 70 điểm theo sản phẩm đăng ký (E13). Ngưỡng mức 90/70/50.
 - **Phương án khác:** Sửa nội dung hoặc điểm tối đa.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Bộ tiêu chí; nhân bản, sửa, xuất bản trước khi mở kỳ).
 
 ### E2. [Ưu tiên] Cách chấm tiêu chí chung
 - **Câu hỏi:** Tiêu chí con chấm "Đảm bảo = điểm tối đa / Không đảm bảo = 0", hay cho điểm lẻ theo mức độ?
-- **Căn cứ:** Mẫu 09B (tr.54) "chấm tối đa nếu đảm bảo; chấm 0 nếu không đảm bảo"; thân văn bản (tr.10) "không áp dụng cơ học có/không… mỗi khoản giảm từ 1 điểm trở lên phải nêu căn cứ".
+- **Căn cứ:** Phiếu tự chấm (tr.54) "chấm tối đa nếu đảm bảo; chấm 0 nếu không đảm bảo"; thân văn bản (tr.10) "không áp dụng cơ học có/không… mỗi khoản giảm từ 1 điểm trở lên phải nêu căn cứ".
 - **Hệ thống đang làm (mặc định):** Chấm Đảm bảo/Không đảm bảo. Khoản giảm từ 1 điểm phải ghi căn cứ.
 - **Phương án khác:** Cho điểm lẻ từ 0 tới tối đa, bắt buộc căn cứ khi giảm.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Bộ tiêu chí, chọn được cho từng nhóm).
@@ -263,12 +260,8 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 - **Phương án khác:** Tính điểm tối đa cho tiêu chí K/AD; không cho ghi K/AD.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Bộ tiêu chí).
 
-### E4. [Ưu tiên] Trục không áp dụng trên Mẫu 09B
-- **Câu hỏi:** Người không có nhiệm vụ ở một trục (ví dụ Trục 4 chỉ dành cho cán bộ cấp ủy, UBKT) thì điểm trục đó xử lý thế nào?
-- **Căn cứ:** Mục III.3.b (tr.11); tr.10 "không bắt buộc có nhiệm vụ ở cả sáu trục"; Mẫu 09B cố định tổng 70 điểm, không hướng dẫn.
-- **Hệ thống đang làm (mặc định):** Mỗi trục chấm từ 0 tới tối đa, không có "K/AD". Người không có nhiệm vụ ở trục nào thì mất điểm trục đó (Trục 4 là 15 điểm).
-- **Phương án khác:** Cho ghi K/AD ở trục rồi quy đổi về 70; tính điểm tối đa cho trục không áp dụng.
-- **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
+### E4. Trục không có nhiệm vụ
+- **Không còn áp dụng** (đã bỏ cách chấm theo trục): trục chỉ dùng để phân loại sản phẩm đăng ký, không có điểm riêng.
 
 ### E5. [Ưu tiên] Làm tròn điểm
 - **Câu hỏi:** Điểm làm tròn đến 1 chữ số thập phân hay đến 0,5 điểm?
@@ -280,8 +273,8 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 ### E6. [Ưu tiên] Điều kiện kèm theo của các mức xếp loại
 - **Câu hỏi:** Hệ thống có cần tự kiểm tra các điều kiện đồng thời của từng mức không? Khi đủ điểm nhưng thiếu điều kiện thì xếp xuống mức nào?
 - **Căn cứ:** Mục III.5 (tr.14–15); tr.9 "đủ điểm nhưng thiếu điều kiện thì không được xếp ở mức tương ứng".
-- **Hệ thống đang làm (mặc định):** Chỉ gợi ý mức theo tổng điểm, vì Mẫu 09B không có dữ liệu từng nhiệm vụ. Các điều kiện hiển thị để người thẩm định, người quyết định tự xét và chọn mức.
-- **Phương án khác:** Tự kiểm tra (phải nhập thêm nhiệm vụ trọng tâm, Mức 1/2/3, tiến độ); xét từ mức cao xuống, không đạt mức nào thì xếp Không hoàn thành.
+- **Hệ thống đang làm (mặc định):** Gợi ý mức theo tổng điểm. Điều kiện kèm theo (nhiệm vụ trọng tâm Mức 3 → chỉ Không hoàn thành; Hoàn thành xuất sắc cần không có nhiệm vụ trọng tâm Mức 2/3 và đủ tỷ lệ sản phẩm vượt chuẩn) chỉ cảnh báo, không chặn; người thẩm định, người quyết định tự xét và chọn mức.
+- **Phương án khác:** Chặn khi thiếu điều kiện; xét từ mức cao xuống, không đạt mức nào thì xếp Không hoàn thành.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
 ### E7. [Ưu tiên] Trần tỷ lệ Hoàn thành xuất sắc
@@ -326,8 +319,8 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 - **Phương án khác:** Dùng ngưỡng 90/70/50 như cá nhân.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
-### E13. Bộ tiêu chí Mẫu 09A (áp dụng từ Q1/2027)
-- **Câu hỏi:** Nội dung bộ "Từ Quý I/2027" dưới đây có giữ nguyên không?
+### E13. Phần kết quả nhiệm vụ của bộ tiêu chí mặc định
+- **Câu hỏi:** Phần chấm sản phẩm đăng ký của bộ mặc định dưới đây có giữ nguyên không?
 - **Căn cứ:** Mục III.3 (tr.11–14); Phụ lục II (tr.26–28, 35).
 - **Hệ thống đang làm (mặc định):** 3–7 sản phẩm, tổng trọng số 70; 4 khung tỷ trọng; thang quy đổi liên tục; mức Xuất sắc cần ít nhất 30% sản phẩm vượt chuẩn. Chưa áp sàn thành phần Chất lượng/An toàn (B) và điều kiện "B dưới 80% thì tối đa Hoàn thành" (chỉ có trong ví dụ).
 - **Phương án khác:** Áp sàn B và điều kiện an toàn; cảnh báo cơ cấu trọng số trục chính/trục phụ.
@@ -340,22 +333,22 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 ### F1. [Ưu tiên] Danh mục biểu mẫu lập và nộp trong Q3/2026
 - **Câu hỏi:** Q3/2026 lập và nộp các mẫu dưới đây, đúng không?
 - **Căn cứ:** Mục VI.4 (tr.23) chưa áp dụng Mẫu 01–06, 09A, 11; V.1 (tr.20–21).
-- **Hệ thống đang làm (mặc định):** Cá nhân: 09B, 09C, 9D, 10. Tập thể và hội nghị: 07, 08, 12, 13. Tổng hợp: 14, 15A, 15B, 16. Mẫu 17 cho người xếp mức C, D. Không có 01–06, 09A, 11.
+- **Hệ thống đang làm (mặc định):** Cá nhân: 01, 02, 09A, 09C, 9D, 10 (Mẫu 04, 05 khi điều chỉnh việc trong quý). Tập thể và hội nghị: 07, 08, 12, 13. Tổng hợp: 14, 15A, 15B, 16. Mẫu 17 cho người xếp mức C, D. Không có 03, 06, 11.
 - **Phương án khác:** Có lập Mẫu 06 không (IV.2 và V.1 vẫn nêu Mẫu 06).
 - **Ảnh hưởng nếu đổi:** Mẫu cá nhân: cấu hình trên giao diện (Bộ tiêu chí). Thêm Mẫu 06: cần sửa phần mềm.
 
 ### F2. [Ưu tiên] Nộp bản Excel theo mục V.1
-- **Câu hỏi:** Mẫu 09B, 9D (và Mẫu 10) có phải nộp bản Excel không?
+- **Câu hỏi:** Mẫu 01, 02, 09A, 9D (và Mẫu 10) có phải nộp bản Excel không?
 - **Căn cứ:** Mục V.1 (tr.21): mọi biểu mẫu "lập trên file excel (trừ các Mẫu: 07, 09C, 12, 13, 16)".
-- **Hệ thống đang làm (mặc định):** 09B, 09C, 9D, 10, 07, 12, 13, 16, 17 xuất Word/PDF. Mẫu 08 xuất cả Word và Excel. Mẫu 14, 15A, 15B xuất Excel.
-- **Phương án khác:** Thêm bản Excel cho 09B, 9D, 10.
+- **Hệ thống đang làm (mặc định):** 01, 02, 09A, 09C, 9D, 10, 07, 12, 13, 16, 17 xuất Word/PDF. Mẫu 08 xuất cả Word và Excel. Mẫu 14, 15A, 15B xuất Excel.
+- **Phương án khác:** Thêm bản Excel cho 01, 02, 09A, 9D, 10.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
 ### F3. [Ưu tiên] Mẫu 10 trong Q3/2026
 - **Câu hỏi:** Phiếu thẩm định Mẫu 10 có dùng trong Q3/2026 không? Nếu có, có cần ghi điểm thẩm định theo từng nhóm không?
 - **Căn cứ:** Mục VI.4 không nhắc Mẫu 10; Mẫu 18 (tr.80) coi Mẫu 10 là thành phần hồ sơ; Mẫu 10 (tr.66) có cột theo từng nhóm.
 - **Hệ thống đang làm (mặc định):** Có dùng. Hệ thống chỉ lưu tổng điểm thẩm định nên ô điểm và chênh lệch từng nhóm để trống.
-- **Phương án khác:** Bỏ Mẫu 10 trong Q3/2026; nhập điểm thẩm định theo từng tiêu chí, từng trục.
+- **Phương án khác:** Bỏ Mẫu 10 trong Q3/2026; nhập điểm thẩm định theo từng tiêu chí, từng sản phẩm.
 - **Ảnh hưởng nếu đổi:** Bỏ Mẫu 10: cấu hình trên giao diện (Bộ tiêu chí). Điểm theo nhóm: cần sửa phần mềm.
 
 ### F4. [Ưu tiên] Mẫu 09C: bắt buộc nhập và độ dài
@@ -366,7 +359,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Bộ tiêu chí).
 
 ### F5. Thông tin đang để trống trên biểu mẫu
-- **Câu hỏi:** Có cần hệ thống tự điền ngày sinh cán bộ (09A, 09B, 09C) và dòng "Căn cứ Hướng dẫn số …-HD/TVĐU ngày …" (07, 12, 13, 16) không?
+- **Câu hỏi:** Có cần hệ thống tự điền ngày sinh cán bộ (09A, 09C) và dòng "Căn cứ Hướng dẫn số …-HD/TVĐU ngày …" (07, 12, 13, 16) không?
 - **Căn cứ:** Các biểu mẫu gốc có các ô này.
 - **Hệ thống đang làm (mặc định):** Để trống như biểu mẫu gốc, người dùng tự điền sau khi xuất. Riêng Mẫu 14 in sẵn "Hướng dẫn số 03-HD/TVĐU ngày 10/9/2026".
 - **Phương án khác:** Thêm ngày sinh vào hồ sơ cán bộ; thêm số, ngày văn bản hướng dẫn vào trang Cài đặt.

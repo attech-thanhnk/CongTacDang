@@ -35,7 +35,7 @@ public sealed class CollectiveIntegrityIntegrationTests
             {
                 Year = 2100 + Random.Shared.Next(0, 800), Quarter = EvaluationQuarter.Quy2, Name = $"Kỳ CI {sfx}",
                 StartDate = DateTime.UtcNow.AddDays(-30), EndDate = DateTime.UtcNow.AddDays(30), Status = PeriodStatus.Open,
-                CriteriaSnapshot = CriteriaTestData.Snapshot("09B", collectiveFramework: false)
+                CriteriaSnapshot = CriteriaTestData.Snapshot(collectiveFramework: false)
             };
             db.AddRange(cell, period);
             await db.SaveChangesAsync();

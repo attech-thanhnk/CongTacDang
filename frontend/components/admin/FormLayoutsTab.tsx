@@ -4,13 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { RowActions } from "@/components/common/RowActions";
 import { Card } from "@/components/common";
-import {
-  FORM_HEADER_STYLE_LABELS,
-  FormHeaderStyle,
-  FormLayout,
-  formLayoutService,
-  SaveFormLayoutPayload,
-} from "@/services/formLayoutService";
+import { FormLayout, formLayoutService, SaveFormLayoutPayload } from "@/services/formLayoutService";
 import { AdminModal } from "./AdminModal";
 import { useFormDirty } from "./useFormDirty";
 import { errorMessage, errorTitle } from "./adminUtils";
@@ -19,8 +13,6 @@ interface FormState {
   id?: string;
   name: string;
   description: string;
-  headerStyle: FormHeaderStyle;
-  showCellConfirmation: boolean;
   singleLinePositions: boolean;
   showDateLineOn9D: boolean;
   emptyPositionText: string;
@@ -31,8 +23,6 @@ interface FormState {
 const EMPTY_FORM: FormState = {
   name: "",
   description: "",
-  headerStyle: "PartyCell",
-  showCellConfirmation: true,
   singleLinePositions: false,
   showDateLineOn9D: false,
   emptyPositionText: "",
@@ -43,15 +33,13 @@ const EMPTY_FORM: FormState = {
 /** Tóm tắt cách in của một kiểu (cột "Trình bày"). */
 function summary(l: FormLayout): string[] {
   return [
-    `Tiêu đề 09B: ${FORM_HEADER_STYLE_LABELS[l.headerStyle] ?? l.headerStyle}`,
-    l.showCellConfirmation ? "09B có xác nhận của chi bộ" : "09B không có xác nhận của chi bộ",
-    l.singleLinePositions ? "Chức vụ một dòng (09B, 9D)" : "Chức vụ 3 dòng",
+    l.singleLinePositions ? "Chức vụ một dòng (9D)" : "Chức vụ 3 dòng",
     l.showDateLineOn9D ? "9D có dòng ngày" : "9D không có dòng ngày",
     l.emptyPositionText ? `Chức vụ trống ghi "${l.emptyPositionText}"` : "Chức vụ trống để dòng chấm",
   ];
 }
 
-/** Danh mục kiểu trình bày biểu mẫu tự đánh giá (Mẫu 09B, 09C, 9D); gắn cho chức vụ ở tab Chức vụ. */
+/** Danh mục kiểu trình bày biểu mẫu tự đánh giá (Mẫu 09C, 9D); gắn cho chức vụ ở tab Chức vụ. */
 export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
   const { toast, confirm } = useToast();
   const [layouts, setLayouts] = useState<FormLayout[]>([]);
@@ -81,8 +69,6 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
       id: copy ? undefined : l.id,
       name: copy ? `${l.name} (bản sao)` : l.name,
       description: l.description ?? "",
-      headerStyle: l.headerStyle,
-      showCellConfirmation: l.showCellConfirmation,
       singleLinePositions: l.singleLinePositions,
       showDateLineOn9D: l.showDateLineOn9D,
       emptyPositionText: l.emptyPositionText ?? "",
@@ -101,8 +87,6 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
     const payload: SaveFormLayoutPayload = {
       name: form.name.trim(),
       description: form.description.trim() || null,
-      headerStyle: form.headerStyle,
-      showCellConfirmation: form.showCellConfirmation,
       singleLinePositions: form.singleLinePositions,
       showDateLineOn9D: form.showDateLineOn9D,
       emptyPositionText: form.emptyPositionText.trim() || null,
@@ -140,7 +124,7 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
       },
     });
 
-  const check = (id: string, label: string, key: "showCellConfirmation" | "singleLinePositions" | "showDateLineOn9D" | "isDefault") =>
+  const check = (id: string, label: string, key: "singleLinePositions" | "showDateLineOn9D" | "isDefault") =>
     form && (
       <div className="form-check">
         <input id={id} type="checkbox" className="form-check-input" checked={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.checked })} />
@@ -263,22 +247,7 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
                 />
               </div>
               <div className="col-12">
-                <label className="form-label">Tiêu đề trái Mẫu 09B</label>
-                <select
-                  className="form-select form-select-sm"
-                  value={form.headerStyle}
-                  onChange={(e) => setForm({ ...form, headerStyle: e.target.value as FormHeaderStyle })}
-                >
-                  {(Object.keys(FORM_HEADER_STYLE_LABELS) as FormHeaderStyle[]).map((h) => (
-                    <option key={h} value={h}>
-                      {FORM_HEADER_STYLE_LABELS[h]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-12">
-                {check("layout-confirmation", "Mẫu 09B có ô \"Xác nhận của chi bộ\"", "showCellConfirmation")}
-                {check("layout-single-line", "Mẫu 09B, 9D ghi chức vụ trên một dòng", "singleLinePositions")}
+                {check("layout-single-line", "Mẫu 9D ghi chức vụ trên một dòng", "singleLinePositions")}
                 {check("layout-date-line", "Mẫu 9D có dòng địa danh, ngày tháng", "showDateLineOn9D")}
               </div>
               <div className="col-8">

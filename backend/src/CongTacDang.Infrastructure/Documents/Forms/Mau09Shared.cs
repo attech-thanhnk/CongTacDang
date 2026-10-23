@@ -25,7 +25,7 @@ public sealed record MemberPositionNames(string? Party, string? Administrative, 
         return new MemberPositionNames(Join(PositionSide.Party), Join(PositionSide.Administrative), Join(PositionSide.MassOrganization));
     }
 
-    /// <summary>Thứ tự in trên Mẫu 09B: Đảng, Đoàn thể, Chính quyền.</summary>
+    /// <summary>Đảng, Đoàn thể, Chính quyền; null nếu không giữ chức vụ nào.</summary>
     public string? All()
     {
         var parts = new[] { Party, MassOrganization, Administrative }.Where(p => !string.IsNullOrWhiteSpace(p)).ToList();
@@ -41,7 +41,7 @@ public sealed record IndividualFormSource(
     public bool HasSelfScore => Record.SelfScoredAt.HasValue;
 }
 
-/// <summary>Dòng nhóm của bảng Nhóm I (Mẫu 09A/09B).</summary>
+/// <summary>Dòng nhóm của bảng Nhóm I (Mẫu 09A).</summary>
 public sealed class GeneralGroupRow
 {
     [TemplateField("G_NO")] public string? Number { get; init; }

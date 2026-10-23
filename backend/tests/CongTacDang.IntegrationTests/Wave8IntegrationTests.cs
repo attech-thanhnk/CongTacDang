@@ -55,7 +55,7 @@ public sealed class Wave8IntegrationTests
             var owner = await _factory.CreateUserAsync(deptId, cellId, fullName: names[c.Key]);
             await _factory.WithDbAsync(async db =>
             {
-                var snapshot = CriteriaSnapshot.Parse(CriteriaTestData.Snapshot("09B"))!;
+                var snapshot = CriteriaSnapshot.Parse(CriteriaTestData.Snapshot())!;
                 if (c.AlertDays is { } days)
                     snapshot.Content.Parameters.ImprovementPlanAlertDays = days;
                 var period = new EvaluationPeriod

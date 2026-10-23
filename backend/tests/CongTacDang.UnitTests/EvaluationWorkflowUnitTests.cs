@@ -112,13 +112,17 @@ public sealed class EvaluationWorkflowUnitTests
     }
 
     [Fact]
-    public void StateMachine_WithoutRegistration_StartsAtSelfScore_AndRejectsB1()
+    public void StateMachine_WithoutApproval_GoesFromRegistrationToSelfScore_AndRejectsApprove()
     {
-        var enabled = Profile(PeriodSettings.Default(CriteriaSetContent.Form09B), PeriodSettings.ProfileBase).ActiveSteps();
-        Assert.Equal(RecordStatus.AwaitingSelfScore, RecordStateMachine.Initial(enabled));
-        var b1 = RecordStateMachine.Apply(RecordStatus.AwaitingRegistration, enabled, WorkflowCommand.Complete(WorkflowStep.B1_REGISTER));
-        Assert.False(b1.Succeeded);
-        Assert.Contains("không áp dụng", b1.Error);
+        var profile = Profile(PeriodSettings.Default(), PeriodSettings.ProfileBase);
+        profile.Step(WorkflowStep.B1_APPROVE).Mode = StepMode.Off;
+        var enabled = profile.ActiveSteps();
+        Assert.Equal(RecordStatus.AwaitingRegistration, RecordStateMachine.Initial(enabled));
+        var registered = RecordStateMachine.Apply(RecordStatus.AwaitingRegistration, enabled, WorkflowCommand.Complete(WorkflowStep.B1_REGISTER));
+        Assert.Equal(RecordStatus.AwaitingSelfScore, registered.Status);
+        var approve = RecordStateMachine.Apply(RecordStatus.AwaitingTaskApproval, enabled, WorkflowCommand.Complete(WorkflowStep.B1_APPROVE));
+        Assert.False(approve.Succeeded);
+        Assert.Contains("không áp dụng", approve.Error);
     }
 
     [Fact]

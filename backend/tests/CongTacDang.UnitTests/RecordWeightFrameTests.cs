@@ -7,16 +7,15 @@ namespace CongTacDang.UnitTests;
 /// <summary>Điều chỉnh tỷ lệ A-B-C-D của khung cho từng hồ sơ (±biên độ của bộ, tổng 100%) và khung hiệu lực.</summary>
 public sealed class RecordWeightFrameTests
 {
-    private static CriteriaSetContent Set09A() => CriteriaSetDefaults.Build09A();
+    private static CriteriaSetContent Set09A() => CriteriaSetDefaults.Build();
 
     private static EvaluationRecord Record(string frame = "K2") => new() { WeightFrameCode = frame };
 
     [Fact]
-    public void DefaultSets_AdjustLimit_09AIs10_09BNone_AndOldJsonReadsNull()
+    public void DefaultSet_AdjustLimitIs10_AndOldJsonReadsNull()
     {
         Assert.Equal(10, Set09A().Parameters.FrameAdjustLimit);
         Assert.True(Set09A().Parameters.AllowsFrameAdjustment);
-        Assert.Null(CriteriaSetDefaults.Build09B().Parameters.FrameAdjustLimit);
 
         // Nội dung lưu trước khi có tham số (không có khóa frameAdjustLimit) vẫn đọc được, mặc định không cho điều chỉnh.
         var json = Set09A().ToJson().Replace("\"frameAdjustLimit\":10,", string.Empty);
@@ -24,7 +23,7 @@ public sealed class RecordWeightFrameTests
         var parsed = CriteriaSetContent.Parse(json);
         Assert.Null(parsed.Parameters.FrameAdjustLimit);
         Assert.False(parsed.Parameters.AllowsFrameAdjustment);
-        Assert.Empty(parsed.Validate(CriteriaSetContent.Form09A));
+        Assert.Empty(parsed.Validate());
         Assert.Equal(10, CriteriaSetContent.Parse(Set09A().ToJson()).Parameters.FrameAdjustLimit);
     }
 
@@ -37,7 +36,7 @@ public sealed class RecordWeightFrameTests
     {
         var content = Set09A();
         content.Parameters.FrameAdjustLimit = limit;
-        var errors = content.Validate(CriteriaSetContent.Form09A);
+        var errors = content.Validate();
         Assert.Equal(hasError, errors.Any(e => e.Contains("Biên độ điều chỉnh")));
     }
 

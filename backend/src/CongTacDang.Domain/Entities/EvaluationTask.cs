@@ -72,7 +72,7 @@ public class EvaluationTask : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Vượt chuẩn, dùng khi xét mức Xuất sắc.</summary>
     public bool IsExceedStandard { get; set; } = false;
 
-    /// <summary>1 = chủ động, chất lượng cao; 2 = cơ bản đáp ứng; 3 = không đáp ứng. Null khi chưa thẩm định hoặc chấm theo trục.</summary>
+    /// <summary>1 = chủ động, chất lượng cao; 2 = cơ bản đáp ứng; 3 = không đáp ứng. Null khi chưa thẩm định.</summary>
     public int? AppraisalLevel { get; set; }
 
     /// <summary>Không bắt buộc.</summary>

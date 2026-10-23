@@ -18,7 +18,6 @@ public sealed class WorkflowProfileIntegrationTests
     private static readonly SemaphoreSlim Gate = new(1, 1);
     private static readonly Dictionary<string, World> Worlds = new();
     private static readonly Dictionary<string, CongTacDang.Domain.Evaluation.GeneralItemScore> General = CriteriaTestData.General("2.1", "2.2", "2.3");
-    private static readonly Dictionary<string, double> Axis = CriteriaTestData.Axis(13, 9, 9, 13, 9, 9);
 
     private readonly ApiFactory _factory;
 
@@ -28,20 +27,21 @@ public sealed class WorkflowProfileIntegrationTests
     public async Task G1_DirectorRecord_UpperProfile_ExternalStepsRecorded_ToPublished()
     {
         var w = await WorldAsync();
-        var periodId = await OpenPeriodAsync(w, "09B", w.Director.Id);
+        var periodId = await OpenPeriodAsync(w, w.Director.Id);
         var id = await RecordOfAsync(w, periodId, w.Director.Id);
 
         var record = await Data(w.OwnerDirectorC, $"/api/evaluations/records/{id}");
         Assert.Equal("cap-tren", record.GetProperty("workflowProfileCode").GetString());
         var modes = record.GetProperty("progress").EnumerateArray()
             .ToDictionary(p => p.GetProperty("step").GetString()!, p => p.GetProperty("mode").GetString()!);
-        Assert.Equal("Off", modes["B1_REGISTER"]);
+        Assert.Equal("Internal", modes["B1_REGISTER"]);
+        Assert.Equal("External", modes["B1_APPROVE"]);
         Assert.Equal("Internal", modes["B3A_COLLECTIVE"]);
         Assert.Equal("External", modes["B3B_APPRAISAL"]);
         Assert.Equal("External", modes["B3C_DIRECTOR"]);
         Assert.Equal("External", modes["B4_DECISION"]);
 
-        await StepAsync(w.OwnerDirectorC, id, "self-score/submit", new { generalScores = General, axisScores = Axis }, "AwaitingCellConfirm");
+        await StepAsync(w.OwnerDirectorC, id, "self-score/submit", new { generalScores = General, taskScores = await RegistrationTestData.RegisterAsync(_factory, id, 62.0 / 70) }, "AwaitingCellConfirm");
         await StepAsync(w.CellSecC, id, "cell/confirm", new { comment = "Xác nhận" }, "AwaitingCollective");
         await StepAsync(w.SecretaryC, id, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
 
@@ -112,7 +112,7 @@ public sealed class WorkflowProfileIntegrationTests
     public async Task G2_CellSecretaryStaffProfile_UnitLeaderProposesInsteadOfDirector()
     {
         var w = await WorldAsync();
-        var periodId = (await CreatePeriodAsync(w, "09B")).GetProperty("id").GetGuid();
+        var periodId = (await CreatePeriodAsync(w)).GetProperty("id").GetGuid();
         // Thêm người kèm hồ sơ luồng chỉ định.
         var added = await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
             new { memberIds = new[] { w.Staff.Id }, workflowProfileCode = "bi-thu-nhan-vien" }));
@@ -123,7 +123,7 @@ public sealed class WorkflowProfileIntegrationTests
         var id = await RecordOfAsync(w, periodId, w.Staff.Id);
         Assert.Equal("bi-thu-nhan-vien", (await Data(w.StaffC, $"/api/evaluations/records/{id}")).GetProperty("workflowProfileCode").GetString());
 
-        await StepAsync(w.StaffC, id, "self-score/submit", new { generalScores = General, axisScores = Axis }, "AwaitingCellConfirm");
+        await StepAsync(w.StaffC, id, "self-score/submit", new { generalScores = General, taskScores = await RegistrationTestData.RegisterAsync(_factory, id, 62.0 / 70) }, "AwaitingCellConfirm");
         await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
         await StepAsync(w.SecretaryC, id, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
         await StepAsync(w.ManagerC, id, "appraisal", new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 87.0, comment = "Đạt", proposedGrade = "HoanThanhTot" }, "AwaitingDirectorReview");
@@ -158,7 +158,7 @@ public sealed class WorkflowProfileIntegrationTests
     public async Task G3_Readiness_DetectsStuckRecord_OpenReturns409_ForceNeedsReason()
     {
         var w = await WorldAsync();
-        var periodId = (await CreatePeriodAsync(w, "09B")).GetProperty("id").GetGuid();
+        var periodId = (await CreatePeriodAsync(w)).GetProperty("id").GetGuid();
         await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
             new { memberIds = new[] { w.Staff3.Id }, workflowProfileCode = "bi-thu-nhan-vien" }));
 
@@ -167,12 +167,13 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Equal(1, ready.GetProperty("checkedRecords").GetInt32());
         Assert.Equal(HttpStatusCode.Forbidden, (await w.StaffC.GetAsync($"/api/evaluations/periods/{periodId}/readiness")).StatusCode);
 
-        // Thu hồi bản gán của người duy nhất có evaluation.unit.review trong Phòng 3 → hồ sơ kẹt ở B3c.
+        // Thu hồi bản gán Lãnh đạo Phòng 3 (người duy nhất duyệt danh mục, đề xuất của đơn vị) → hồ sơ kẹt ở B1 duyệt và B3c.
         Assert.Equal(HttpStatusCode.OK, (await w.AdminC.DeleteAsync($"/api/admin/assignments/{w.Lead3Assignment}")).StatusCode);
         var stuck = await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}/readiness");
         Assert.False(stuck.GetProperty("ready").GetBoolean());
-        var issue = Assert.Single(stuck.GetProperty("issues").EnumerateArray());
-        Assert.Equal("B3C_DIRECTOR", issue.GetProperty("step").GetString());
+        var issues = stuck.GetProperty("issues").EnumerateArray().ToList();
+        Assert.Equal(new[] { "B1_APPROVE", "B3C_DIRECTOR" }, issues.Select(i => i.GetProperty("step").GetString()));
+        var issue = issues.Single(i => i.GetProperty("step").GetString() == "B3C_DIRECTOR");
         Assert.Equal("evaluation.unit.review", issue.GetProperty("permission").GetString());
         Assert.Equal("bi-thu-nhan-vien", issue.GetProperty("workflowProfileCode").GetString());
         Assert.Contains("sẽ kẹt ở bước", issue.GetProperty("message").GetString());
@@ -185,8 +186,8 @@ public sealed class WorkflowProfileIntegrationTests
         using (var json = JsonDocument.Parse(await blocked.Content.ReadAsStringAsync()))
         {
             Assert.Equal("PERIOD_NOT_READY", json.RootElement.GetProperty("code").GetString());
-            Assert.Single(json.RootElement.GetProperty("data").GetProperty("issues").EnumerateArray());
-            Assert.Single(json.RootElement.GetProperty("errors").EnumerateArray());
+            Assert.Equal(2, json.RootElement.GetProperty("data").GetProperty("issues").GetArrayLength());
+            Assert.Equal(2, json.RootElement.GetProperty("errors").GetArrayLength());
         }
         Assert.Equal("Draft", (await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}")).GetProperty("status").GetString());
         Assert.Equal(HttpStatusCode.BadRequest,
@@ -202,7 +203,7 @@ public sealed class WorkflowProfileIntegrationTests
     public async Task G4_ProfileConfiguration_ChangeProfile_Bulk_AddWithProfile_AndValidation()
     {
         var w = await WorldAsync();
-        var period = await CreatePeriodAsync(w, "09A");
+        var period = await CreatePeriodAsync(w);
         var periodId = period.GetProperty("id").GetGuid();
         await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
             new { memberIds = new[] { w.Director.Id, w.Staff.Id } }));
@@ -315,9 +316,9 @@ public sealed class WorkflowProfileIntegrationTests
     public async Task G5_ExternalResultAttachment_VisibleToRecordReaders_ManagedByRecorder()
     {
         var w = await WorldAsync();
-        var periodId = await OpenPeriodAsync(w, "09B", w.Director.Id);
+        var periodId = await OpenPeriodAsync(w, w.Director.Id);
         var id = await RecordOfAsync(w, periodId, w.Director.Id);
-        await StepAsync(w.OwnerDirectorC, id, "self-score/submit", new { generalScores = General, axisScores = Axis }, "AwaitingCellConfirm");
+        await StepAsync(w.OwnerDirectorC, id, "self-score/submit", new { generalScores = General, taskScores = await RegistrationTestData.RegisterAsync(_factory, id, 62.0 / 70) }, "AwaitingCellConfirm");
         await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
         await StepAsync(w.SecretaryC, id, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
 
@@ -353,9 +354,11 @@ public sealed class WorkflowProfileIntegrationTests
     public async Task G6_Participants_CurrentStepDeadline_OverdueAndDueSoon_PublishedNotCounted()
     {
         var w = await WorldAsync();
-        var periodId = await OpenPeriodAsync(w, "09B", w.Director.Id, w.Other.Id);
+        var periodId = await OpenPeriodAsync(w, w.Director.Id, w.Other.Id);
         var directorId = await RecordOfAsync(w, periodId, w.Director.Id);
         var otherId = await RecordOfAsync(w, periodId, w.Other.Id);
+        var directorScores = await RegistrationTestData.RegisterAsync(_factory, directorId, 62.0 / 70);
+        await RegistrationTestData.RegisterAsync(_factory, otherId);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         var yesterday = today.AddDays(-1).ToString("yyyy-MM-dd");
@@ -382,7 +385,7 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Equal(JsonValueKind.Null, other.GetProperty("daysOverdue").ValueKind);
 
         // Bước không đặt hạn → không có hạn, không tính quá hạn.
-        await StepAsync(w.OwnerDirectorC, directorId, "self-score/submit", new { generalScores = General, axisScores = Axis }, "AwaitingCellConfirm");
+        await StepAsync(w.OwnerDirectorC, directorId, "self-score/submit", new { generalScores = General, taskScores = directorScores }, "AwaitingCellConfirm");
         director = await ParticipantAsync(w, periodId, directorId);
         Assert.Equal("B2_CELL_CONFIRM", director.GetProperty("currentStep").GetString());
         Assert.Equal(JsonValueKind.Null, director.GetProperty("currentStepDeadline").ValueKind);
@@ -438,7 +441,7 @@ public sealed class WorkflowProfileIntegrationTests
         var member = await _factory.CreateUserAsync(dept, committee, ApprovalAuthority.CoSo, $"G9 Lãnh đạo {suffix}");
         var noCell = await _factory.CreateUserAsync(dept, null, ApprovalAuthority.CoSo, $"G9 Chưa có Chi bộ {suffix}");
 
-        var periodId = (await CreatePeriodAsync(w, "09B")).GetProperty("id").GetGuid();
+        var periodId = (await CreatePeriodAsync(w)).GetProperty("id").GetGuid();
         await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
             new { memberIds = new[] { member.Id, noCell.Id } }));
         var recordId = await RecordOfAsync(w, periodId, member.Id);
@@ -496,7 +499,7 @@ public sealed class WorkflowProfileIntegrationTests
             (dept, cellA, cellB) = (d.Id, a.Id, b.Id);
         });
         var member = await _factory.CreateUserAsync(dept, cellA, ApprovalAuthority.CoSo, $"G10 Cán bộ {suffix}");
-        var periodId = (await CreatePeriodAsync(w, "09B")).GetProperty("id").GetGuid();
+        var periodId = (await CreatePeriodAsync(w)).GetProperty("id").GetGuid();
         await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { member.Id } }));
         var recordId = await RecordOfAsync(w, periodId, member.Id);
 
@@ -518,7 +521,7 @@ public sealed class WorkflowProfileIntegrationTests
     public async Task G11_Evidence_OwnerAttachesToRecord_ReviewersSee_OthersCannotAttach()
     {
         var w = await WorldAsync();
-        var periodId = await OpenPeriodAsync(w, "09B", w.Staff.Id);
+        var periodId = await OpenPeriodAsync(w, w.Staff.Id);
         var recordId = await RecordOfAsync(w, periodId, w.Staff.Id);
 
         static MultipartFormDataContent Form(Guid recordId)
@@ -559,7 +562,7 @@ public sealed class WorkflowProfileIntegrationTests
         });
 
         // Đã nộp phiếu tự chấm: chỉ bổ sung tệp mới; thay, gỡ tệp đã nộp → 409. Người xem khác không có thao tác nào.
-        await StepAsync(w.StaffC, recordId, "self-score/submit", new { generalScores = General, axisScores = Axis }, "AwaitingCellConfirm");
+        await StepAsync(w.StaffC, recordId, "self-score/submit", new { generalScores = General, taskScores = await RegistrationTestData.RegisterAsync(_factory, recordId, 62.0 / 70) }, "AwaitingCellConfirm");
         Assert.Equal(HttpStatusCode.Conflict, (await w.StaffC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await UploadAsync(w.StaffC, $"/api/attachments/{fileId}/versions")).StatusCode);
         var added = await Data(await w.StaffC.PostAsync("/api/attachments/upload", Form(recordId)));
@@ -593,11 +596,11 @@ public sealed class WorkflowProfileIntegrationTests
         }
     }
 
-    private static async Task<JsonElement> CreatePeriodAsync(World w, string form)
+    private static async Task<JsonElement> CreatePeriodAsync(World w)
     {
         var body = new
         {
-            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(w.ManagerC, form),
+            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(w.ManagerC),
             name = $"Kỳ G {Guid.NewGuid().ToString("N")[..8]}",
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         };
@@ -611,9 +614,9 @@ public sealed class WorkflowProfileIntegrationTests
             new { version = period.GetProperty("version").GetUInt32(), force = true, reason = "Kiểm thử hồ sơ luồng" }));
     }
 
-    private static async Task<Guid> OpenPeriodAsync(World w, string form, params Guid[] members)
+    private static async Task<Guid> OpenPeriodAsync(World w, params Guid[] members)
     {
-        var periodId = (await CreatePeriodAsync(w, form)).GetProperty("id").GetGuid();
+        var periodId = (await CreatePeriodAsync(w)).GetProperty("id").GetGuid();
         await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = members }));
         await OpenAsync(w, periodId);
         return periodId;

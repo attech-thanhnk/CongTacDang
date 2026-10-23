@@ -427,11 +427,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid?>("PublishedBy")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("SelfScoreForm")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
-
                     b.Property<Guid?>("SourceSetId")
                         .HasColumnType("uuid");
 
@@ -913,14 +908,8 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<int>("ApprovalAuthority")
                         .HasColumnType("integer");
 
-                    b.Property<string>("AxisNotes")
-                        .HasColumnType("jsonb");
-
                     b.Property<string>("AxisReports")
                         .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("AxisScores")
                         .HasColumnType("jsonb");
 
                     b.Property<string>("CadreWorkProposal")
@@ -1085,10 +1074,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
                     b.Property<int>("SelfProposedGrade")
                         .HasColumnType("integer");
-
-                    b.Property<string>("SelfScoreForm")
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
 
                     b.Property<DateTime?>("SelfScoredAt")
                         .HasColumnType("timestamp with time zone");
@@ -1379,9 +1364,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<int>("HeaderStyle")
-                        .HasColumnType("integer");
-
                     b.Property<bool>("IsDefault")
                         .HasColumnType("boolean");
 
@@ -1392,9 +1374,6 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
-
-                    b.Property<bool>("ShowCellConfirmation")
-                        .HasColumnType("boolean");
 
                     b.Property<bool>("ShowDateLineOn9D")
                         .HasColumnType("boolean");

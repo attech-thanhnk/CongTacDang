@@ -8,7 +8,7 @@ namespace CongTacDang.UnitTests;
 /// <summary>Đề nghị điều chỉnh việc (Mẫu 04, 05): kiểm tra nội dung, tổng trọng số 70, áp đề nghị vào danh mục.</summary>
 public sealed class TaskChangeRulesTests
 {
-    private static readonly CriteriaSetContent Criteria = CriteriaSetDefaults.Build09A();
+    private static readonly CriteriaSetContent Criteria = CriteriaSetDefaults.Build();
     private static readonly DateTime EndDate = new(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc);
 
     private static List<EvaluationTask> Tasks(params double[] weights)

@@ -119,7 +119,7 @@ public sealed class CollectiveCriteriaScoresIntegrationTests
     /// <summary>Khung tập thể thử: nhóm I (chung) I.1 = 10, I.2 = 20; nhóm II (nhiệm vụ) II.1 = 40, II.2 = 30.</summary>
     private static string Snapshot(bool withFramework)
     {
-        var content = CriteriaSetDefaults.Build09A();
+        var content = CriteriaSetDefaults.Build();
         content.CollectiveGroups = withFramework
             ? new List<CollectiveCriteriaGroup>
             {
@@ -145,8 +145,8 @@ public sealed class CollectiveCriteriaScoresIntegrationTests
             : new List<CollectiveCriteriaGroup>();
         return new CriteriaSnapshot
         {
-            SetId = Guid.Empty, Code = CriteriaSetDefaults.Code09A, Name = CriteriaSetDefaults.Name09A,
-            SelfScoreForm = CriteriaSetContent.Form09A, TakenAt = DateTime.UtcNow, Content = content
+            SetId = Guid.Empty, Code = CriteriaSetDefaults.Code, Name = CriteriaSetDefaults.Name,
+            TakenAt = DateTime.UtcNow, Content = content
         }.ToJson();
     }
 

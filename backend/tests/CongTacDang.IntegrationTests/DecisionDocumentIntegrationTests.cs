@@ -160,7 +160,7 @@ public sealed class DecisionDocumentIntegrationTests
             {
                 Year = 2100 + Random.Shared.Next(0, 800), Quarter = EvaluationQuarter.Quy3, Name = $"Kỳ K20 {sfx}",
                 StartDate = DateTime.UtcNow.AddDays(-30), EndDate = DateTime.UtcNow.AddDays(30), Status = PeriodStatus.Open,
-                CriteriaSnapshot = CriteriaTestData.Snapshot("09B")
+                CriteriaSnapshot = CriteriaTestData.Snapshot()
             };
             var position = new Position
             {
