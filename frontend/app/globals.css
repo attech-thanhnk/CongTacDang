@@ -2480,15 +2480,15 @@ textarea.form-control {
 
   /* Bảng báo cáo: mỗi biểu mẫu một khối — mã, tên, định dạng; nút xuất xuống dòng dưới. */
   .report-table,
-  .report-table tbody {
+  .report-table > tbody {
     display: block;
   }
 
-  .report-table thead {
+  .report-table > thead {
     display: none;
   }
 
-  .report-table tbody tr {
+  .report-table > tbody > tr {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: start;
@@ -2497,11 +2497,11 @@ textarea.form-control {
     border-bottom: 1px solid var(--rule);
   }
 
-  .report-table tbody tr:last-child {
+  .report-table > tbody > tr:last-child {
     border-bottom: 0;
   }
 
-  .report-table tbody td,
+  .report-table > tbody > tr > td,
   .card > .table-responsive > .report-table > tbody > tr > td:nth-child(n) {
     display: block;
     padding: 0 !important;
@@ -2510,16 +2510,16 @@ textarea.form-control {
     width: auto !important;
   }
 
-  .report-table tbody td:nth-child(4) {
+  .report-table > tbody > tr > td:nth-child(4) {
     grid-column: 1 / -1;
     text-align: left !important;
   }
 
-  .report-table tbody td:nth-child(4) > .d-flex {
+  .report-table > tbody > tr > td:nth-child(4) > .d-flex {
     justify-content: flex-start !important;
   }
 
-  .report-table tbody td[colspan] {
+  .report-table > tbody > tr > td[colspan] {
     grid-column: 1 / -1;
     margin: 0 -16px -12px;
   }

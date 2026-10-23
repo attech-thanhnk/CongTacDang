@@ -178,7 +178,7 @@ export function scopedFileName(prefix: string, unit: string, periodLabel: string
 
 /** "<mã báo cáo>_<đơn vị>_Quy III-2026" (không dấu). */
 export function internalFileName(fileCode: string, unit: string, periodLabel: string, extension: string): string {
-  const unitPart = asciiName(unit).replace(/s+/g, "") || "DonVi";
+  const unitPart = asciiName(unit).replace(/\s+/g, "") || "DonVi";
   return `${fileCode}_${unitPart}_${asciiName(periodLabel)}${extension}`;
 }
 
