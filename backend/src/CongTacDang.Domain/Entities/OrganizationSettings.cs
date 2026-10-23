@@ -15,6 +15,15 @@ public class OrganizationSettings : IAuditableEntity
 
     public const int MaxLocationLength = 100;
 
+    public const int MaxFileNameLength = 255;
+
+    public const string PanelCenter = "center";
+    public const string PanelLeft = "left";
+    public const string PanelRight = "right";
+
+    /// <summary>Giá trị hợp lệ của <see cref="LoginPanelPosition"/>.</summary>
+    public static readonly string[] LoginPanelPositions = [PanelCenter, PanelLeft, PanelRight];
+
     /// <summary>Luôn bằng <see cref="SingletonId"/>.</summary>
     public Guid Id { get; set; } = SingletonId;
 
@@ -41,6 +50,19 @@ public class OrganizationSettings : IAuditableEntity
 
     /// <summary>Tên hệ thống trên giao diện.</summary>
     public string SystemName { get; set; } = string.Empty;
+
+    /// <summary>Khóa tệp ảnh nền màn hình đăng nhập trong kho tệp; null = không dùng ảnh.</summary>
+    public string? LoginBackgroundKey { get; set; }
+
+    public string? LoginBackgroundContentType { get; set; }
+
+    public string? LoginBackgroundFileName { get; set; }
+
+    /// <summary>UTC; làm phiên bản trong URL ảnh để trình duyệt không giữ ảnh cũ.</summary>
+    public DateTime? LoginBackgroundUpdatedAt { get; set; }
+
+    /// <summary><c>center</c> | <c>left</c> | <c>right</c>.</summary>
+    public string LoginPanelPosition { get; set; } = PanelCenter;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Guid? CreatedBy { get; set; }

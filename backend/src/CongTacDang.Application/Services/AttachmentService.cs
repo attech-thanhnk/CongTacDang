@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
+using CongTacDang.Application.Common;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using CongTacDang.Application.Common.Exceptions;
@@ -589,7 +589,7 @@ public class AttachmentService : IAttachmentService
         if (!AllowedExtensions.Contains(ext))
             throw new ArgumentException($"Định dạng tệp '{ext}' không được chấp nhận. Chỉ cho phép PDF, DOCX, XLSX, JPG, PNG.");
 
-        var header = new byte[8];
+        var header = new byte[FileSignatures.HeaderLength];
         var headerLength = await stream.ReadAsync(header.AsMemory(0, header.Length));
         if (stream.CanSeek)
         {
@@ -600,7 +600,7 @@ public class AttachmentService : IAttachmentService
             stream = new PrefixStream(header, headerLength, stream);
         }
 
-        if (!HasExpectedMagicBytes(ext, header, headerLength))
+        if (!FileSignatures.Matches(ext, header.AsSpan(0, headerLength)))
             throw new ArgumentException("Nội dung tệp không khớp với phần mở rộng đã khai báo.");
 
         var contentType = GetContentType(ext);
@@ -755,21 +755,6 @@ public class AttachmentService : IAttachmentService
         ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         _ => "application/octet-stream"
     };
-
-    private static bool HasExpectedMagicBytes(string extension, byte[] header, int length)
-    {
-        static bool StartsWith(byte[] value, int count, params byte[] signature) =>
-            count >= signature.Length && signature.AsSpan().SequenceEqual(value.AsSpan(0, signature.Length));
-
-        return extension switch
-        {
-            ".pdf" => StartsWith(header, length, Encoding.ASCII.GetBytes("%PDF")),
-            ".png" => StartsWith(header, length, 0x89, 0x50, 0x4E, 0x47),
-            ".jpg" or ".jpeg" => StartsWith(header, length, 0xFF, 0xD8, 0xFF),
-            ".docx" or ".xlsx" => StartsWith(header, length, 0x50, 0x4B, 0x03, 0x04),
-            _ => false
-        };
-    }
 
     #endregion
 }

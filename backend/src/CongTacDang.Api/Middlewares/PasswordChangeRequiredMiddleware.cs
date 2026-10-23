@@ -28,6 +28,9 @@ public sealed class PasswordChangeRequiredMiddleware
         ("POST", "/api/auth/logout"),
         ("POST", "/api/auth/refresh-token"),
         ("POST", "/api/auth/login"),
+        // Thông tin công khai của màn hình đổi mật khẩu.
+        ("GET", "/api/settings/organization/public"),
+        ("GET", "/api/settings/organization/login-background"),
     };
 
     private readonly RequestDelegate _next;

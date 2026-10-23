@@ -49,6 +49,51 @@ public class SettingsController : ControllerBase
         var settings = await _settings.UpdateAsync(request, ct);
         return Ok(ApiResponse<OrganizationSettingsDto>.Ok(settings, "Đã cập nhật thông tin đơn vị."));
     }
+
+    /// <summary>Tải lên ảnh nền màn hình đăng nhập (JPG/PNG/WEBP, tối đa 5 MB); thay ảnh cũ.</summary>
+    [HttpPost("login-background")]
+    [Authorize]
+    [RequirePermission(PermissionCodes.SystemSettingsManage)]
+    [RequestSizeLimit(LoginBackgroundRequestLimit)]
+    [RequestFormLimits(MultipartBodyLengthLimit = LoginBackgroundRequestLimit)]
+    public async Task<IActionResult> UploadLoginBackground(IFormFile? file, CancellationToken ct)
+    {
+        if (file == null)
+            return BadRequest(ApiResponse.Fail("Chưa chọn ảnh. Hãy chọn ảnh JPG, PNG hoặc WEBP."));
+
+        await using var stream = file.OpenReadStream();
+        var settings = await _settings.SetLoginBackgroundAsync(stream, file.FileName, file.Length, ct);
+        return Ok(ApiResponse<OrganizationSettingsDto>.Ok(settings, "Đã cập nhật ảnh nền màn hình đăng nhập."));
+    }
+
+    /// <summary>Bỏ ảnh nền màn hình đăng nhập.</summary>
+    [HttpDelete("login-background")]
+    [Authorize]
+    [RequirePermission(PermissionCodes.SystemSettingsManage)]
+    public async Task<IActionResult> RemoveLoginBackground(CancellationToken ct)
+    {
+        var settings = await _settings.RemoveLoginBackgroundAsync(ct);
+        return Ok(ApiResponse<OrganizationSettingsDto>.Ok(settings, "Đã bỏ ảnh nền màn hình đăng nhập."));
+    }
+
+    /// <summary>Ảnh nền màn hình đăng nhập (không cần đăng nhập); URL có <c>?v=</c> nên được cache lâu.</summary>
+    [HttpGet("login-background")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetLoginBackground([FromQuery] string? v, CancellationToken ct)
+    {
+        var image = await _settings.OpenLoginBackgroundAsync(ct);
+        if (image == null)
+            return NotFound(ApiResponse.Fail("Chưa có ảnh nền màn hình đăng nhập."));
+
+        Response.Headers.XContentTypeOptions = "nosniff";
+        Response.Headers.CacheControl = string.IsNullOrEmpty(v)
+            ? "no-cache"
+            : "public, max-age=31536000, immutable";
+        return File(image.Content, image.ContentType);
+    }
+
+    /// <summary>Ảnh 5 MB + phần form.</summary>
+    private const long LoginBackgroundRequestLimit = 6 * 1024 * 1024;
 }
 
 /// <summary>Quản lý phiên bản file mẫu Word (cần system.templates.manage).</summary>

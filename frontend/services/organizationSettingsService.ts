@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { request } from "./apiClient";
+import { API_BASE_URL, apiClient, request } from "./apiClient";
+
+export type LoginPanelPosition = "center" | "left" | "right";
 
 /** Thông tin đơn vị dùng trên biểu mẫu, báo cáo, giao diện. */
 export interface OrganizationSettings {
@@ -11,11 +13,17 @@ export interface OrganizationSettings {
   location: string;
   appraisalUnitName: string;
   systemName: string;
+  loginPanelPosition: LoginPanelPosition;
+  loginBackgroundUrl?: string | null;
+  loginBackgroundFileName?: string | null;
   updatedAt?: string | null;
   updatedByName?: string | null;
 }
 
-export type SaveOrganizationSettingsPayload = Omit<OrganizationSettings, "updatedAt" | "updatedByName">;
+export type SaveOrganizationSettingsPayload = Omit<
+  OrganizationSettings,
+  "updatedAt" | "updatedByName" | "loginBackgroundUrl" | "loginBackgroundFileName"
+>;
 
 /** Phần hiển thị trước khi đăng nhập. */
 export interface PublicOrganizationInfo {
@@ -23,10 +31,26 @@ export interface PublicOrganizationInfo {
   companyName: string;
   parentCompanyName: string;
   shortName: string;
+  loginBackgroundUrl?: string | null;
+  loginPanelPosition?: LoginPanelPosition;
 }
+
+/** Khớp giới hạn máy chủ. */
+export const LOGIN_BACKGROUND_MAX_BYTES = 5 * 1024 * 1024;
+export const LOGIN_BACKGROUND_ACCEPT = "image/jpeg,image/png,image/webp";
 
 const CHANGED_EVENT = "organization-settings:changed";
 let publicCache: Promise<PublicOrganizationInfo> | null = null;
+
+function notifyChanged() {
+  publicCache = null;
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(CHANGED_EVENT));
+}
+
+/** URL máy chủ trả về dạng "/api/..."; đổi sang gốc API đang cấu hình. */
+export function resolveApiUrl(url: string): string {
+  return url.startsWith("/api/") ? `${API_BASE_URL.replace(/\/$/, "")}${url.slice(4)}` : url;
+}
 
 export const organizationSettingsService = {
   get(): Promise<OrganizationSettings> {
@@ -39,8 +63,24 @@ export const organizationSettingsService = {
       method: "PUT",
       body: JSON.stringify(payload),
     });
-    publicCache = null;
-    if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(CHANGED_EVENT));
+    notifyChanged();
+    return saved;
+  },
+
+  async uploadLoginBackground(file: File): Promise<OrganizationSettings> {
+    const form = new FormData();
+    form.append("file", file);
+    const saved = (await apiClient.post("/settings/organization/login-background", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 120000,
+    })) as unknown as OrganizationSettings;
+    notifyChanged();
+    return saved;
+  },
+
+  async removeLoginBackground(): Promise<OrganizationSettings> {
+    const saved = await request<OrganizationSettings>("/settings/organization/login-background", { method: "DELETE" });
+    notifyChanged();
     return saved;
   },
 

@@ -1715,6 +1715,28 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("LoginBackgroundContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("LoginBackgroundFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("LoginBackgroundKey")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("LoginBackgroundUpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LoginPanelPosition")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("center");
+
                     b.Property<string>("ParentCompanyName")
                         .IsRequired()
                         .HasMaxLength(300)

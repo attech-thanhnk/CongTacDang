@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/common";
-import { useOrganizationInfo } from "@/services/organizationSettingsService";
+import { resolveApiUrl, useOrganizationInfo } from "@/services/organizationSettingsService";
 import { AuthBrand } from "./AuthBrand";
 import styles from "./auth.module.css";
 import { errorMessage } from "@/components/admin/adminUtils";
@@ -102,9 +102,40 @@ function LoginForm() {
   );
 }
 
+const PANEL_CLASS = { center: styles.panelCenter, left: styles.panelLeft, right: styles.panelRight } as const;
+
 export default function LoginPage() {
+  const org = useOrganizationInfo();
+  const imageUrl = org?.loginBackgroundUrl ? resolveApiUrl(org.loginBackgroundUrl) : null;
+  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
+
+  // Tải trước ảnh rồi mới hiện dần, tránh nền nhấp nháy khi ảnh lớn.
+  useEffect(() => {
+    if (!imageUrl) return;
+    let active = true;
+    const img = new window.Image();
+    img.onload = () => {
+      if (active) setLoadedUrl(imageUrl);
+    };
+    img.src = imageUrl;
+    return () => {
+      active = false;
+    };
+  }, [imageUrl]);
+
+  const screenClass = imageUrl
+    ? `${styles.screen} ${styles.hasImage} ${PANEL_CLASS[org?.loginPanelPosition ?? "center"] ?? styles.panelCenter}`
+    : styles.screen;
+
   return (
-    <div className={styles.screen}>
+    <div className={screenClass}>
+      {imageUrl && (
+        <div
+          className={`${styles.backdrop} ${loadedUrl === imageUrl ? styles.backdropVisible : ""}`}
+          style={{ backgroundImage: `url("${imageUrl}")` }}
+          aria-hidden="true"
+        />
+      )}
       <Suspense fallback={<div className="spinner-border text-primary" role="status" />}>
         <LoginForm />
       </Suspense>

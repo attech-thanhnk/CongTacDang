@@ -5,13 +5,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { Card, CardBody, PageHeader } from "@/components/common";
 import { errorMessage, errorTitle, formatDateTime } from "@/components/admin/adminUtils";
+import { LoginScreenSettings } from "@/components/admin/LoginScreenSettings";
 import {
   OrganizationSettings,
   organizationSettingsService,
   SaveOrganizationSettingsPayload,
 } from "@/services/organizationSettingsService";
 
-type FieldKey = keyof SaveOrganizationSettingsPayload;
+type TextPayload = Omit<SaveOrganizationSettingsPayload, "loginPanelPosition">;
+type FieldKey = keyof TextPayload;
 
 interface FieldMeta {
   key: FieldKey;
@@ -74,7 +76,7 @@ const FIELDS: FieldMeta[] = [
   },
 ];
 
-const EMPTY: SaveOrganizationSettingsPayload = {
+const EMPTY: TextPayload = {
   partyCommitteeName: "",
   superiorPartyName: "",
   companyName: "",
@@ -85,9 +87,8 @@ const EMPTY: SaveOrganizationSettingsPayload = {
   systemName: "",
 };
 
-function toPayload(settings: OrganizationSettings): SaveOrganizationSettingsPayload {
-  const { updatedAt: _updatedAt, updatedByName: _updatedByName, ...payload } = settings;
-  return payload;
+function toPayload(settings: OrganizationSettings): TextPayload {
+  return Object.fromEntries(FIELDS.map((f) => [f.key, settings[f.key] ?? ""])) as TextPayload;
 }
 
 /** Thông tin đơn vị: xem (mọi người đã đăng nhập), sửa (system.settings.manage). */
@@ -97,7 +98,7 @@ export default function OrganizationSettingsPage() {
   const canManage = hasPermission("system.settings.manage");
 
   const [settings, setSettings] = useState<OrganizationSettings | null>(null);
-  const [form, setForm] = useState<SaveOrganizationSettingsPayload>(EMPTY);
+  const [form, setForm] = useState<TextPayload>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -124,8 +125,8 @@ export default function OrganizationSettingsPage() {
     try {
       const trimmed = Object.fromEntries(
         FIELDS.map((f) => [f.key, form[f.key].trim()])
-      ) as SaveOrganizationSettingsPayload;
-      const saved = await organizationSettingsService.update(trimmed);
+      ) as TextPayload;
+      const saved = await organizationSettingsService.update({ ...trimmed, loginPanelPosition: settings?.loginPanelPosition ?? "center" });
       setSettings(saved);
       setForm(toPayload(saved));
       toast.success("Đã cập nhật thông tin đơn vị.");
@@ -214,6 +215,9 @@ export default function OrganizationSettingsPage() {
             )}
           </CardBody>
         </Card>
+        {settings && !loading && (
+          <LoginScreenSettings settings={settings} canManage={canManage} onSaved={setSettings} />
+        )}
       </div>
     </div>
   );

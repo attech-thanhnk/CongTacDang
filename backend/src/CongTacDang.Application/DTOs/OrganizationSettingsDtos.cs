@@ -27,6 +27,14 @@ public sealed class OrganizationSettingsDto
 
     public string SystemName { get; set; } = string.Empty;
 
+    /// <summary>URL tương đối kèm <c>?v=</c>; null = không có ảnh nền đăng nhập.</summary>
+    public string? LoginBackgroundUrl { get; set; }
+
+    public string? LoginBackgroundFileName { get; set; }
+
+    /// <summary><c>center</c> | <c>left</c> | <c>right</c>.</summary>
+    public string LoginPanelPosition { get; set; } = "center";
+
     /// <summary>UTC; null = giá trị mặc định chưa sửa.</summary>
     public DateTime? UpdatedAt { get; set; }
 
@@ -44,6 +52,11 @@ public sealed class PublicOrganizationInfoDto
 
     /// <summary>Dùng đặt tên tệp tải xuống.</summary>
     public string ShortName { get; set; } = string.Empty;
+
+    /// <summary>URL tương đối kèm <c>?v=</c>; null = không có ảnh nền.</summary>
+    public string? LoginBackgroundUrl { get; set; }
+
+    public string LoginPanelPosition { get; set; } = "center";
 }
 
 public sealed class UpdateOrganizationSettingsDto
@@ -56,7 +69,13 @@ public sealed class UpdateOrganizationSettingsDto
     public string? Location { get; set; }
     public string? AppraisalUnitName { get; set; }
     public string? SystemName { get; set; }
+
+    /// <summary>null = giữ nguyên.</summary>
+    public string? LoginPanelPosition { get; set; }
 }
+
+/// <summary>Ảnh nền đăng nhập trả về trình duyệt.</summary>
+public sealed record LoginBackgroundFile(System.IO.Stream Content, string ContentType);
 
 /// <summary>Biểu mẫu Word kèm phiên bản đang dùng.</summary>
 public sealed class WordTemplateSummaryDto

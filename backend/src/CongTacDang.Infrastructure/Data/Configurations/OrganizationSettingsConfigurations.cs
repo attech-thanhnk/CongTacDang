@@ -20,6 +20,10 @@ public sealed class OrganizationSettingsConfiguration : IEntityTypeConfiguration
         entity.Property(e => e.Location).HasMaxLength(OrganizationSettings.MaxLocationLength).IsRequired();
         entity.Property(e => e.AppraisalUnitName).HasMaxLength(OrganizationSettings.MaxNameLength).IsRequired().HasDefaultValue(string.Empty);
         entity.Property(e => e.SystemName).HasMaxLength(OrganizationSettings.MaxNameLength).IsRequired();
+        entity.Property(e => e.LoginBackgroundKey).HasMaxLength(500);
+        entity.Property(e => e.LoginBackgroundContentType).HasMaxLength(100);
+        entity.Property(e => e.LoginBackgroundFileName).HasMaxLength(OrganizationSettings.MaxFileNameLength);
+        entity.Property(e => e.LoginPanelPosition).HasMaxLength(10).IsRequired().HasDefaultValue(OrganizationSettings.PanelCenter);
     }
 }
 

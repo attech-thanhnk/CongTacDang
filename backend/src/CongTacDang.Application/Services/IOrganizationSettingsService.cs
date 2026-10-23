@@ -16,6 +16,14 @@ public interface IOrganizationSettingsService
     Task<PublicOrganizationInfoDto> GetPublicAsync(CancellationToken ct = default);
 
     Task<OrganizationSettingsDto> UpdateAsync(UpdateOrganizationSettingsDto request, CancellationToken ct = default);
+
+    /// <summary>JPG/PNG/WEBP tối đa 5 MB, kiểm tra chữ ký tệp; thay ảnh cũ (xóa tệp cũ).</summary>
+    Task<OrganizationSettingsDto> SetLoginBackgroundAsync(Stream content, string fileName, long size, CancellationToken ct = default);
+
+    Task<OrganizationSettingsDto> RemoveLoginBackgroundAsync(CancellationToken ct = default);
+
+    /// <summary>null khi chưa có ảnh hoặc tệp đã mất.</summary>
+    Task<LoginBackgroundFile?> OpenLoginBackgroundAsync(CancellationToken ct = default);
 }
 
 public sealed record FileDownload(byte[] Content, string ContentType, string FileName);
