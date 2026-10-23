@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { GradeBadge } from "@/components/common/StatusBadge";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { RecordProgress, actorOf, formatShortDateTime } from "@/components/evaluations/RecordProgress";
+import { RecordProgress, formatShortDateTime } from "@/components/evaluations/RecordProgress";
 import { RecordActionPanel } from "@/components/evaluations/RecordActionPanel";
 import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
 import { AppealPanel } from "@/components/evaluations/AppealPanel";
@@ -45,7 +45,7 @@ import {
 import { formatDate, formatDateTime } from "@/lib/dateFormat";
 import { errorMessage } from "@/components/admin/adminUtils";
 
-/** Cột trái: khu thao tác (theo `actions`) và dữ liệu từng bước; cột phải: biểu mẫu, lịch sử, thông tin hồ sơ. */
+/** Cột trái: tiến trình, khu thao tác (theo `actions`) và dữ liệu từng bước; cột phải: biểu mẫu, lịch sử, thông tin hồ sơ. */
 export default function EvaluationRecordPage() {
   const params = useParams<{ recordId: string }>();
   const recordId = params?.recordId;
@@ -109,14 +109,15 @@ export default function EvaluationRecordPage() {
         setReasonAction(null);
         await load();
       } catch (error: unknown) {
-        if (!isConcurrencyConflict(error)) toast.error(errorMessage(error, "Không thực hiện được thao tác."));
+        if (!isConcurrencyConflict(error)) toast.error(errorMessage(error, "Thao tác không thành công."));
       } finally {
         setBusy(false);
       }
     };
     const confirmation = ACTION_CONFIRMATIONS[action];
     if (confirmation) {
-      confirm({ title: "Xác nhận thao tác", message: confirmation, confirmText: "Đồng ý", onConfirm: run });
+      const danger = DANGER_ACTIONS.has(action);
+      confirm({ title: "Xác nhận thao tác", message: confirmation, confirmText: danger ? "Thu hồi" : "Đồng ý", isDanger: danger, onConfirm: run });
       return;
     }
     await run();
@@ -149,23 +150,29 @@ export default function EvaluationRecordPage() {
     <div className="page-wrapper">
       <div className="page-body">
         <div className={styles.head}>
-          <div className={`initials ${styles.bigInitials}`}>{initialsOf(record.fullName)}</div>
+          <div className={`initials ${styles.bigInitials}`} aria-hidden="true">{initialsOf(record.fullName)}</div>
           <div className={styles.headMain}>
-            <h1>{record.fullName}</h1>
-            <p className={styles.lede}>{[record.positionTitle, record.partyCellName].filter(Boolean).join(" · ") || record.departmentName}</p>
-            <RecordStatusLine record={record} actions={actions} onGo={goToActions} />
+            <div className={styles.titleRow}>
+              <h1>{record.fullName}</h1>
+              {record.status === "Published" && hasGrade(record.finalGrade) && <GradeBadge grade={record.finalGrade} />}
+            </div>
+            {(record.positionTitle || record.departmentName) && (
+              <p className={styles.lede}>{[record.positionTitle, record.departmentName].filter(Boolean).join(" · ")}</p>
+            )}
           </div>
         </div>
 
         {conflict && (
-          <div className="alert alert-warning d-flex justify-content-between align-items-center mb-0" role="alert">
+          <div className="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mb-0" role="alert">
             <span>{conflict}</span>
-            <button type="button" className="btn btn-warning btn-sm" onClick={() => load()}>Tải lại hồ sơ</button>
+            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => load()}>
+              <i className="bi bi-arrow-clockwise me-1" aria-hidden="true" />Tải lại
+            </button>
           </div>
         )}
         {record.returnReason && (
           <div className="alert alert-danger mb-0">
-            <strong>Bị trả lại:</strong> {record.returnReason}
+            <i className="bi bi-arrow-return-left me-2" aria-hidden="true" /><strong>Bị trả lại:</strong> {record.returnReason}
           </div>
         )}
         {record.unlockedUntil && record.periodStatus === "Locked" && (
@@ -182,15 +189,17 @@ export default function EvaluationRecordPage() {
 
         <div className={styles.cols}>
           <div className={styles.stack}>
-            <div id={ACTIONS_ANCHOR} className={styles.actionsAnchor} tabIndex={-1}>
-              <RecordActionPanel record={record} actions={actions} busy={busy} onSubmit={perform} onReason={setReasonAction} />
-            </div>
-            <RecordData record={record} />
+            {actions.length > 0 && (
+              <div id={ACTIONS_ANCHOR} className={styles.actionsAnchor} tabIndex={-1}>
+                <RecordActionPanel record={record} actions={actions} busy={busy} onSubmit={perform} onReason={setReasonAction} />
+              </div>
+            )}
+            <RecordData record={record} reviewing={actions.length > 0} />
             <TaskChangeRequests record={record} onRecordChanged={load} />
             <AppealPanel record={record} onRecordChanged={load} />
             <ImprovementPlanPanel record={record} />
           </div>
-          <div className={styles.stack}>
+          <div className={`${styles.stack} ${styles.side}`}>
             <RecordFormsPanel
               recordId={record.id}
               fullName={record.fullName}
@@ -228,6 +237,9 @@ export default function EvaluationRecordPage() {
     </div>
   );
 }
+
+/** Thao tác làm lùi hồ sơ: hộp xác nhận kiểu nguy hiểm. */
+const DANGER_ACTIONS = new Set<WorkflowActionCode>(["RevokeTaskApproval"]);
 
 const ACTION_CONFIRMATIONS: Partial<Record<WorkflowActionCode, string>> = {
   SubmitTasks: "Nộp danh mục sản phẩm? Sau khi nộp, danh mục sẽ chờ duyệt.",
@@ -270,83 +282,7 @@ function goToActions() {
   (first ?? area).focus({ preventScroll: true });
 }
 
-/** Số ngày từ hôm nay (giờ máy) tới thời hạn dạng yyyy-MM-dd; null khi không đọc được. */
-function daysUntil(deadline: string): number | null {
-  const [y, m, d] = deadline.slice(0, 10).split("-").map(Number);
-  if (!y || !m || !d) return null;
-  const now = new Date();
-  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.round((Date.UTC(y, m - 1, d) - today) / 86_400_000);
-}
-
-/** "Hạn dd/MM/yyyy (còn N ngày / hôm nay / quá hạn N ngày)". */
-function DueText({ item }: { item?: RecordStepProgressDto }) {
-  if (!item?.deadline) return null;
-  const days = daysUntil(item.deadline);
-  const late = item.overdue || (days !== null && days < 0);
-  const rest =
-    days === null ? "" : days > 0 ? ` (còn ${days} ngày)` : days === 0 ? " (hôm nay)" : ` (quá hạn ${-days} ngày)`;
-  return (
-    <>
-      <span className={styles.statusSep} aria-hidden="true">·</span>
-      <span className={`num ${styles.statusPart} ${late ? styles.late : ""}`}>Hạn {formatDate(item.deadline)}{rest}</span>
-    </>
-  );
-}
-
-/** Việc của người xem (theo `actions`); không có việc thì bước đang chờ; đã công bố thì mức xếp loại. */
-function RecordStatusLine({ record, actions, onGo }: { record: EvaluationRecordDto; actions: RecordActionDto[]; onGo: () => void }) {
-  if (record.status === "Published") {
-    return (
-      <div className={`${styles.statusLine} ${styles.statusDone}`}>
-        <span className={styles.statusText}>
-          <i className="bi bi-check-circle-fill" aria-hidden="true" />
-          <strong>Đã công bố kết quả</strong>
-          {hasGrade(record.finalGrade) && <GradeBadge grade={record.finalGrade} />}
-        </span>
-      </div>
-    );
-  }
-
-  const primary = actions.find((a) => !a.requiresReason) ?? actions[0];
-  if (primary) {
-    const step = record.progress.find((p) => p.step === primary.step);
-    return (
-      <div className={`${styles.statusLine} ${styles.statusMine}`}>
-        <span className={styles.statusText}>
-          <i className="bi bi-pencil-square" aria-hidden="true" />
-          <span>Việc của bạn: <strong>{primary.label}</strong></span>
-          <DueText item={step} />
-        </span>
-        <button type="button" className={`btn btn-primary btn-sm ${styles.statusGo}`} onClick={onGo}>
-          Làm ngay <i className="bi bi-arrow-down-short" aria-hidden="true" />
-        </button>
-      </div>
-    );
-  }
-
-  const steps = record.progress.filter((p) => p.state !== "skipped");
-  const index = steps.findIndex((p) => p.state === "current");
-  if (index < 0) return null;
-  const current = steps[index];
-  const actor = actorOf(current);
-  return (
-    <div className={styles.statusLine}>
-      <span className={styles.statusText}>
-        <span>Đang ở bước {index + 1} – <strong>{current.name}</strong></span>
-        {actor && (
-          <>
-            <span className={styles.statusSep} aria-hidden="true">·</span>
-            <span className={styles.statusPart}>{current.mode === "External" ? actor : `Chờ: ${actor}`}</span>
-          </>
-        )}
-        <DueText item={current} />
-      </span>
-    </div>
-  );
-}
-
-/** Thông tin hồ sơ: kỳ, phòng, Chi bộ, thẩm quyền, hồ sơ luồng. */
+/** Thông tin hồ sơ: kỳ, Chi bộ, thẩm quyền, hồ sơ luồng (chức vụ, phòng đã ở đầu trang). */
 function RecordInfo({ record }: { record: EvaluationRecordDto }) {
   return (
     <section className={styles.block}>
@@ -357,7 +293,6 @@ function RecordInfo({ record }: { record: EvaluationRecordDto }) {
         <Fields
           items={[
             ["Kỳ", record.periodName],
-            ["Phòng", record.departmentName],
             ["Chi bộ", record.partyCellName],
             ["Thẩm quyền", record.approvalAuthority === "CapTren" ? "Cấp trên quyết định" : "Đảng ủy cơ sở quyết định"],
             ["Cách xét duyệt", record.workflowProfileName || record.workflowProfileCode],
@@ -373,9 +308,9 @@ type FieldItem = [label: string, value: React.ReactNode];
 const isEmpty = (value: React.ReactNode) => value === undefined || value === null || value === "" || value === false;
 
 /** Danh sách trường chỉ đọc: bỏ trường chưa có giá trị; không còn trường nào thì báo chưa có dữ liệu. */
-function Fields({ items }: { items: FieldItem[] }) {
+function Fields({ items, empty = "Chưa có dữ liệu." }: { items: FieldItem[]; empty?: string }) {
   const shown = items.filter(([, value]) => !isEmpty(value));
-  if (shown.length === 0) return <div className={styles.small}>Chưa có dữ liệu.</div>;
+  if (shown.length === 0) return <div className={styles.small}>{empty}</div>;
   return (
     <dl className={styles.dl}>
       {shown.map(([label, value]) => (
@@ -390,8 +325,8 @@ function Fields({ items }: { items: FieldItem[] }) {
 
 const hasGrade = (grade?: string | null) => !!grade && grade !== "ChuaXepLoai";
 
-/** Dữ liệu đã lưu của các bước (chỉ đọc), mỗi bước một khối; bước chưa tới thu gọn, bước không áp dụng ẩn. */
-function RecordData({ record }: { record: EvaluationRecordDto }) {
+/** Dữ liệu đã lưu của các bước (chỉ đọc), mỗi bước một khối; bước chưa có dữ liệu và bước không áp dụng ẩn. */
+function RecordData({ record, reviewing }: { record: EvaluationRecordDto; reviewing: boolean }) {
   const { toast } = useToast();
   const { criteria } = useCriteria(record.periodId);
   const evidence = useRecordEvidence(record.id, record.version);
@@ -405,20 +340,23 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
   const itemsOf = (steps: WorkflowStepCode[]) =>
     steps.map(stepOf).filter((p): p is RecordStepProgressDto => !!p && p.state !== "skipped");
   const isCurrent = (steps: WorkflowStepCode[]) => itemsOf(steps).some((p) => p.state === "current");
-  /** Hiện cả khi bước chưa tới nhưng còn dữ liệu cũ (sau khi mở lại). */
+  /**
+   * Chỉ hiện khối đã có dữ liệu (kể cả dữ liệu cũ sau khi mở lại) hoặc bước nội bộ đã xong;
+   * bước đang chờ chưa có gì để xem — tiến trình đã nói đang chờ ai, việc nhập nằm ở khu thao tác.
+   */
   const visible = (steps: WorkflowStepCode[], hasData: boolean) => {
     const items = itemsOf(steps);
     if (items.length === 0) return steps.every((s) => !stepOf(s)) || hasData;
-    return hasData || items.some((p) => p.state === "done" || p.state === "current");
+    return hasData || items.some((p) => p.state === "done" && p.mode !== "External");
   };
-  /** Trạng thái ngắn ở tiêu đề khối: ✓ ngày · người / Đang làm / Chưa tới (+ "Cấp trên thực hiện"). */
+  /** Nhãn ở tiêu đề khối: ✓ ngày · người thực hiện (nơi duy nhất ghi ai/lúc nào) hoặc "Chưa tới" khi còn dữ liệu cũ. */
   const tag = (steps: WorkflowStepCode[]) => {
     const items = itemsOf(steps);
     if (items.length === 0) return undefined;
     const external = items.some((p) => p.mode === "External");
-    let status: React.ReactNode;
+    let status: React.ReactNode = null;
     if (items.some((p) => p.state === "current")) {
-      status = <span className={`tag ${styles.stepTagNow}`}>Đang làm</span>;
+      status = null;
     } else if (items.every((p) => p.state === "done")) {
       const last = items[items.length - 1];
       const day = formatShortDateTime(last.doneAt).slice(0, 5);
@@ -426,12 +364,18 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
       status = (
         <span className={`tag ${styles.stepTagDone}`} title={text || undefined}>
           <i className="bi bi-check-lg" aria-hidden="true" />
-          {text ? <span className={styles.stepTagText}>{text}</span> : "Đã xong"}
+          {day ? (
+            <span className={styles.stepTagText}>
+              <span className="num">{day}</span>
+              {last.doneByName && <span className={styles.hideNarrow}> · {last.doneByName}</span>}
+            </span>
+          ) : "Đã xong"}
         </span>
       );
     } else {
       status = <span className={`tag ${styles.tNeutral}`}>Chưa tới</span>;
     }
+    if (!status && !external) return undefined;
     return (
       <>
         {external && <span className={`tag ${styles.tNeutral} ${styles.hideNarrow}`}>Cấp trên thực hiện</span>}
@@ -439,10 +383,13 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
       </>
     );
   };
+  // Người đang xử lý bước: mở sẵn kết quả của bước liền trước để xem trước khi quyết định.
+  const lastDone = [...record.progress].reverse().find((p) => p.state === "done" && p.mode !== "External")?.step;
   const section = (steps: WorkflowStepCode[]) => ({
     anchorId: STEP_SECTION[steps[0]],
     tag: tag(steps),
-    defaultOpen: isCurrent(steps),
+    defaultOpen: isCurrent(steps) || (reviewing && !!lastDone && steps.includes(lastDone)),
+    current: isCurrent(steps),
   });
   const axes = criteria?.content.axes ?? [];
   const axisName = (code: string) => axes.find((a) => a.code.toLowerCase() === code.toLowerCase())?.name;
@@ -576,10 +523,9 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
                 })}
               </div>
             )}
-            {(hasGrade(record.selfProposedGrade) || record.selfScoredAt) && (
+            {hasGrade(record.selfProposedGrade) && (
               <div className={`${styles.subline} d-flex flex-wrap align-items-center gap-2`}>
-                {hasGrade(record.selfProposedGrade) && <>Mức tự đề xuất <GradeBadge grade={record.selfProposedGrade} /></>}
-                {record.selfScoredAt && <span className="num ms-auto">Nộp {formatDateTime(record.selfScoredAt)}</span>}
+                Mức tự đề xuất <GradeBadge grade={record.selfProposedGrade} />
               </div>
             )}
           </>
@@ -612,7 +558,12 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
           </div>
         )}
         {(evidence.files.length > 0 || (canAddEvidence && selfScored)) && (
-          <div className={styles.subline}>
+          <details className={styles.sub2}>
+            <summary>
+              Minh chứng
+              <span className={`tag ${styles.tNeutral} num ms-auto`}>{evidence.files.length} tệp</span>
+            </summary>
+            <div className={`${styles.sub2Body} d-flex flex-column gap-1`}>
             {isOwner && selfScored && evidence.rights?.reason && <div className="small text-secondary mb-1">{evidence.rights.reason}</div>}
             {[
               ...(criteria?.content.generalGroups ?? []).map((g) => ({ slot: evidenceSlot("group", g.code), label: `Nhóm ${g.code}` })),
@@ -620,37 +571,39 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
             ]
               .filter(({ slot }) => canAddEvidence || evidence.files.some((f) => (f.formCode || "").toUpperCase() === slot))
               .map(({ slot, label }) => (
-                <div key={slot} className="d-flex flex-wrap align-items-center gap-2">
-                  <strong>{label}</strong>
-                  <EvidenceFiles recordId={record.id} slot={slot} label={label} files={evidence.files} rights={evidence.rights} onChanged={evidence.reload} />
+                <div key={slot} className="d-flex flex-wrap align-items-center gap-2 small">
+                  <strong className={styles.evidenceLabel}>{label}</strong>
+                  <EvidenceFiles recordId={record.id} slot={slot} label={label} files={evidence.files} rights={evidence.rights} onChanged={evidence.reload} hideLabel />
                 </div>
               ))}
-          </div>
+            </div>
+          </details>
+        )}
+        {criteriaAppliesForm(criteria, "9D") && (
+          <details className={styles.sub2}>
+            <summary>Kết quả thực hiện nhiệm vụ (Mẫu 9D)</summary>
+            <div className={styles.sub2Body}>
+              <AxisSummaryView axes={axes} reports={record.axisReports} />
+            </div>
+          </details>
+        )}
+        {criteriaAppliesForm(criteria, "09C") && (
+          <details className={styles.sub2}>
+            <summary>Bản tự đánh giá (Mẫu 09C)</summary>
+            <div className={styles.sub2Body}>
+              <SelfAssessmentView sections={selfAssessmentSections(criteria)} value={record.selfAssessment}
+                blocks={buildAxisTaskBlocks(axes, record.axisReports, criteria)} />
+            </div>
+          </details>
         )}
       </CollapsibleSection>
-      )}
-
-      {selfVisible && criteriaAppliesForm(criteria, "9D") && (
-        <CollapsibleSection title="Kết quả thực hiện nhiệm vụ (Mẫu 9D)" defaultOpen={false}>
-          <AxisSummaryView axes={axes} reports={record.axisReports} />
-        </CollapsibleSection>
-      )}
-
-      {selfVisible && criteriaAppliesForm(criteria, "09C") && (
-        <CollapsibleSection title="Bản tự đánh giá (Mẫu 09C)" defaultOpen={false}>
-          <SelfAssessmentView sections={selfAssessmentSections(criteria)} value={record.selfAssessment}
-            blocks={buildAxisTaskBlocks(axes, record.axisReports, criteria)} />
-        </CollapsibleSection>
       )}
 
       {enabled("B2_CELL_CONFIRM") && visible(["B2_CELL_CONFIRM"], !!record.cellConfirmedAt) && (
         <CollapsibleSection title="Xác nhận của Chi bộ" {...section(["B2_CELL_CONFIRM"])}>
           <Fields
-            items={[
-              ["Người xác nhận", record.cellConfirmedByName],
-              ["Thời điểm", record.cellConfirmedAt ? formatDateTime(record.cellConfirmedAt) : null],
-              ["Ý kiến", record.partyCellComment],
-            ]}
+            items={[["Ý kiến", record.partyCellComment]]}
+            empty="Không có ý kiến."
           />
         </CollapsibleSection>
       )}
@@ -660,7 +613,6 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
           <Fields
             items={[
               ["Mức đề xuất", hasGrade(record.collectiveProposedGrade) ? <GradeBadge grade={record.collectiveProposedGrade} /> : null],
-              ["Ghi nhận bởi", record.collectiveRecordedByName],
               ["Nhận xét", record.collectiveComment],
             ]}
           />
@@ -704,7 +656,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
         <CollapsibleSection title="Quyết định và công bố" {...section(DECISION_STEPS)}>
           <Fields
             items={[
-              ["Mức xếp loại", hasGrade(record.finalGrade) ? <GradeBadge grade={record.finalGrade} /> : null],
+              ["Mức xếp loại", hasGrade(record.finalGrade) && record.status !== "Published" ? <GradeBadge grade={record.finalGrade} /> : null],
               ["Điểm chính thức", hasGrade(record.finalGrade) ? record.finalScore : null],
               ["Văn bản", record.decisionDocumentNumber ? `${record.decisionDocumentNumber} (${formatDate(record.decisionDocumentDate)})` : null],
               ["Cơ quan quyết định", record.decisionAuthorityName],

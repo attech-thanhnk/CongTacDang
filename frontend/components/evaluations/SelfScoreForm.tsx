@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   AxisNote,
   AxisReport,
@@ -31,6 +32,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { TaskChangeMark } from "@/components/evaluations/TaskChangeRequests";
 import { EvidenceFiles, evidenceSlot, useRecordEvidence } from "@/components/evaluations/EvidenceFiles";
 import { errorMessage } from "@/components/admin/adminUtils";
+import styles from "./record.module.css";
 
 /** Ô điểm để trống ("") cho tới khi cán bộ tự nhập — không điền sẵn mức tối đa. */
 type ScoreInput = number | "";
@@ -57,12 +59,18 @@ const LEAVE_MESSAGE = "Phiếu tự chấm có thay đổi chưa lưu. Rời tra
 const timeOf = (date: Date) => date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 
 /**
- * Cảnh báo rời trang khi chưa lưu: `beforeunload` và click `<a>` ở pha capture (trước khi Next.js điều hướng).
- * Không bắt được `router.push` hay nút Back.
+ * Cảnh báo rời trang khi chưa lưu: `beforeunload` khi đóng tab; click `<a>` trong ứng dụng chặn ở pha capture
+ * (trước khi Next.js điều hướng) rồi hỏi bằng hộp xác nhận của ứng dụng. Không bắt được `router.push` hay nút Back.
  */
 function useLeaveGuard(dirty: boolean) {
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
+  const { confirm } = useToast();
+  const router = useRouter();
+  const confirmRef = useRef(confirm);
+  confirmRef.current = confirm;
+  const routerRef = useRef(router);
+  routerRef.current = router;
 
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -78,10 +86,19 @@ function useLeaveGuard(dirty: boolean) {
       // Liên kết ra ngoài ứng dụng tải lại toàn trang → đã có beforeunload; liên kết cùng trang (#mục) không rời phiếu.
       if (url.origin !== window.location.origin) return;
       if (url.pathname === window.location.pathname && url.search === window.location.search) return;
-      if (!window.confirm(LEAVE_MESSAGE)) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
+      e.preventDefault();
+      e.stopPropagation();
+      const target = url.pathname + url.search + url.hash;
+      confirmRef.current({
+        title: "Rời phiếu tự chấm",
+        message: LEAVE_MESSAGE,
+        confirmText: "Rời trang",
+        cancelText: "Ở lại",
+        onConfirm: () => {
+          dirtyRef.current = false;
+          routerRef.current.push(target);
+        },
+      });
     };
     window.addEventListener("beforeunload", onBeforeUnload);
     document.addEventListener("click", onClick, true);
@@ -97,7 +114,7 @@ export function SelfScoreForm({ record, criteria, busy, onSubmit }: Props) {
   if (!criteria) {
     return (
       <div className="alert alert-warning small mb-0">
-        Kỳ đánh giá chưa có bộ tiêu chí nên chưa tự chấm được. Hãy liên hệ người quản lý kỳ.
+        Kỳ đánh giá chưa có bộ tiêu chí. Hãy liên hệ người quản lý kỳ.
       </div>
     );
   }
@@ -194,6 +211,8 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   const activeTasks = record.tasks.filter((t) => !t.changeStatus);
   const ratioKeys = ["a", "b", "c", "d"] as const;
   const isComplete = (r: TaskRatio) => ratioKeys.every((k) => r[k] !== "");
+  // Chỉ gợi ý mức khi đã nhập đủ điểm, tránh hiện mức thấp lúc phiếu còn trống.
+  const scoresComplete = uses09B ? Object.values(axis).every((v) => v !== "") : activeTasks.every((t) => isComplete(ratios[t.id]));
   const taskNames = (tasks: { taskName: string }[]) => tasks.map((t) => `"${t.taskName}"`).join(", ");
 
   const needsReason = (item: { maxScore: number }, s: GeneralItemScore) =>
@@ -297,8 +316,8 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       </div>
 
       <h4 className="h6 small fw-bold text-secondary">I. Nhóm tiêu chí chung (tối đa {fmt(p.generalMaxScore)} điểm)</h4>
-      <div className="table-responsive mb-2">
-        <table className="table table-sm align-middle">
+      <div className={`table-responsive mb-2 ${styles.critWrap}`}>
+        <table className={`table table-sm align-middle ${styles.critTable}`}>
           <thead>
             <tr className="small text-secondary">
               <th style={{ width: 48 }}>Mã</th><th style={{ minWidth: 260 }}>Tiêu chí</th><th style={{ width: 52 }}>Tối đa</th><th style={{ width: 170 }}>Chấm</th><th style={{ width: 150 }}>Lý do</th>
@@ -311,7 +330,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                   <td>{group.code}</td>
                   <td colSpan={4}>{group.name} — {fmt(group.items.reduce((s, i) => s + i.maxScore, 0))} điểm</td>
                 </tr>
-                <tr className="small">
+                <tr className={`small ${styles.critNote}`}>
                   <td />
                   <td colSpan={4}>
                     <textarea className="form-control form-control-sm" rows={1} maxLength={2000} value={groupNotes[group.code] ?? ""}
@@ -329,7 +348,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                     <tr key={item.code} className="small">
                       <td>{item.code}</td>
                       <td>{item.text}</td>
-                      <td>{fmt(item.maxScore)}</td>
+                      <td className={styles.critMax}>{fmt(item.maxScore)}</td>
                       <td>
                         {group.scoringMode === "Binary" ? (
                           <div className="d-flex flex-wrap gap-2">
@@ -362,7 +381,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                           <input className="form-control form-control-sm" maxLength={4000} required={reasonRequired} placeholder={na ? "Lý do không áp dụng" : "Lý do giảm điểm"}
                             value={s.reason || ""} onChange={(e) => setItem(item.code, { reason: e.target.value })} aria-label={`Lý do tiêu chí ${item.code}`} />
                         ) : (
-                          <span className="text-secondary">—</span>
+                          <span className={`text-secondary ${styles.critEmpty}`}>—</span>
                         )}
                       </td>
                     </tr>
@@ -482,8 +501,8 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
             {uses09C && uses9D ? "Nhiệm vụ và kết quả theo trục (Mẫu 09C, 9D)" : uses09C ? "Nhiệm vụ theo trục (Mẫu 09C)" : "Kết quả theo trục (Mẫu 9D)"}
           </h4>
           {(initialAxisReports.taskCount > 0 || initialAxisReports.summaryFieldCount > 0) && (
-            <div className="alert alert-info small py-2">
-              Đã lấy thông tin từ Mẫu 01. Bổ sung kết quả thực tế.
+            <div className="small text-secondary mb-2">
+              <i className="bi bi-info-circle me-1" aria-hidden="true" />Đã lấy thông tin từ Mẫu 01. Bổ sung kết quả thực tế.
             </div>
           )}
           <div className="mb-2">
@@ -505,11 +524,13 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
         </>
       )}
 
-      <div className="alert alert-light border small py-2">
-        Tổng điểm tạm tính: <strong>{fmt(total)}</strong> — mức theo điểm: <strong>{GRADE_LABELS[gradeByScore(content, total)]}</strong>
-      </div>
-
-      <div className="row g-2 align-items-end bg-white border-top py-2 mx-0" style={{ position: "sticky", bottom: 0, zIndex: 5 }}>
+      <div className={`row g-2 align-items-end border-top py-2 mx-0 ${styles.stickyFoot}`}>
+        <div className="col-12 small text-secondary" aria-live="polite">
+          Tổng tạm tính <strong className="num text-body">{fmt(total)}</strong>
+          {scoresComplete
+            ? <> · Mức theo điểm <strong className="text-body">{GRADE_LABELS[gradeByScore(content, total)]}</strong></>
+            : " · chưa nhập đủ điểm"}
+        </div>
         <div className="col-md-5">
           <label className="form-label small" htmlFor="self-grade">Mức tự đề xuất</label>
           <select id="self-grade" className="form-select form-select-sm" value={grade} onChange={(e) => setGrade(e.target.value)}>
@@ -528,7 +549,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
           <button type="button" className="btn btn-outline-secondary" disabled={busy || saving} onClick={saveDraft}>
             {saving ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-save me-1" />}Lưu nháp
           </button>
-          <button type="submit" className="btn btn-primary" disabled={busy || saving}>Nộp phiếu tự chấm</button>
+          <button type="submit" className="btn btn-primary" disabled={busy || saving}><i className="bi bi-send me-1" aria-hidden="true" />Nộp phiếu</button>
         </div>
       </div>
 

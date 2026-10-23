@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDate } from "@/lib/dateFormat";
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { RecordStepProgressDto } from "@/services/evaluationService";
 import styles from "./record.module.css";
 
@@ -27,6 +27,31 @@ export function actorOf(item: RecordStepProgressDto): string {
   return item.mode === "External" ? "Cấp trên thực hiện" : "";
 }
 
+/** Số ngày từ hôm nay (giờ máy) tới thời hạn dạng yyyy-MM-dd; null khi không đọc được. */
+function daysUntil(deadline: string): number | null {
+  const [y, m, d] = deadline.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((Date.UTC(y, m - 1, d) - today) / 86_400_000);
+}
+
+/** "Hạn dd/MM/yyyy (còn N ngày / hôm nay / quá hạn N ngày)" và cờ trễ hạn. */
+function dueOf(item: RecordStepProgressDto): { text: string; late: boolean } | null {
+  if (!item.deadline) return null;
+  const days = daysUntil(item.deadline);
+  const late = item.overdue || (days !== null && days < 0);
+  const rest = days === null ? "" : days > 0 ? ` (còn ${days} ngày)` : days === 0 ? " (hôm nay)" : ` (quá hạn ${-days} ngày)`;
+  return { text: `Hạn ${formatDate(item.deadline)}${rest}`, late };
+}
+
+/** "Chờ: <ai>" của bước đang làm; bước cấp trên thì ghi rõ cấp trên thực hiện. */
+function waitingText(item: RecordStepProgressDto): string {
+  const actor = actorOf(item);
+  if (!actor) return "";
+  return item.mode === "External" ? actor : `Chờ: ${actor}`;
+}
+
 /** Mô tả đầy đủ trạng thái bước (hiện khi rê chuột và cho trình đọc màn hình). */
 export function describeStep(item: RecordStepProgressDto): string {
   const external = item.mode === "External";
@@ -47,59 +72,84 @@ export function describeStep(item: RecordStepProgressDto): string {
   return `${item.name}: ${state}${deadline}`;
 }
 
-/** Trạng thái bước do máy chủ tính; bước không áp dụng cho hồ sơ luồng thì ẩn. */
+/**
+ * Nơi duy nhất hiện bước hiện tại, người đang chờ và hạn của hồ sơ.
+ * Màn rộng: thanh đủ các bước; màn hẹp: bước hiện tại + số thứ tự và dải tiến độ.
+ */
 export function RecordProgress({ progress, onSelect }: Props) {
   const steps = progress.filter((item) => item.state !== "skipped");
-  const listRef = useRef<HTMLOListElement>(null);
-
-  // Màn hình hẹp: cuộn ngang để bước đang làm nằm trong tầm nhìn (không cuộn cả trang).
-  useEffect(() => {
-    const list = listRef.current;
-    const current = list?.querySelector<HTMLElement>("[aria-current='step']");
-    if (!list || !current || list.scrollWidth <= list.clientWidth) return;
-    list.scrollLeft = current.offsetLeft - (list.clientWidth - current.offsetWidth) / 2;
-  }, [progress]);
+  const currentIndex = steps.findIndex((p) => p.state === "current");
+  const current = currentIndex >= 0 ? steps[currentIndex] : null;
+  const due = current ? dueOf(current) : null;
+  const waiting = current ? waitingText(current) : "";
+  const doneCount = steps.filter((p) => p.state === "done").length;
 
   return (
-    <ol ref={listRef} className={styles.steps} aria-label="Tiến trình hồ sơ">
-      {steps.map((item, index) => {
-        const current = item.state === "current";
-        const done = item.state === "done";
-        const label = describeStep(item);
-        const content = (
-          <>
-            <div className={styles.c}>{done ? <i className="bi bi-check-lg" aria-hidden="true" /> : index + 1}</div>
-            <span className={styles.stepName}>
-              {item.name}
-              {item.mode === "External" && <i className="bi bi-box-arrow-up-right ms-1" aria-hidden="true" />}
-              {current && item.deadline && (
-                <em className={`${styles.stepDue} ${item.overdue ? styles.late : ""} num`}>
-                  hạn {formatDate(item.deadline)}
-                </em>
+    <>
+      <ol className={styles.steps} aria-label="Tiến trình hồ sơ">
+        {steps.map((item, index) => {
+          const isCurrent = item.state === "current";
+          const done = item.state === "done";
+          const label = describeStep(item);
+          const content = (
+            <>
+              <div className={styles.c}>{done ? <i className="bi bi-check-lg" aria-hidden="true" /> : index + 1}</div>
+              <span className={styles.stepName}>
+                {item.name}
+                {item.mode === "External" && <i className="bi bi-box-arrow-up-right ms-1" aria-hidden="true" />}
+                {isCurrent && waiting && <em className={styles.stepMeta}>{waiting}</em>}
+                {isCurrent && due && <em className={`${styles.stepMeta} ${due.late ? styles.late : ""} num`}>{due.text}</em>}
+                {!isCurrent && !done && item.overdue && <em className={`${styles.stepMeta} ${styles.late}`}>Quá hạn</em>}
+              </span>
+            </>
+          );
+          return (
+            <li
+              key={item.step}
+              className={`${styles.step} ${done ? styles.done : isCurrent ? styles.now : ""}`}
+              aria-current={isCurrent ? "step" : undefined}
+            >
+              {(done || isCurrent) && onSelect ? (
+                <button type="button" className={styles.stepBtn} title={label} aria-label={label} onClick={() => onSelect(item)}>
+                  {content}
+                </button>
+              ) : (
+                <div className={`${styles.stepBtn} ${styles.stepIdle}`} role="group" title={label} aria-label={label}>
+                  {content}
+                </div>
               )}
-              {!current && !done && item.overdue && <em className={`${styles.stepDue} ${styles.late}`}>quá hạn</em>}
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className={styles.stepsCompact}>
+        {current ? (
+          <button type="button" className={styles.compactBtn} onClick={onSelect ? () => onSelect(current) : undefined} disabled={!onSelect}>
+            <span className={styles.compactHead}>
+              <span className={`${styles.compactNo} num`}>Bước {currentIndex + 1}/{steps.length}</span>
+              <strong>{current.name}</strong>
             </span>
-          </>
-        );
-        return (
-          <li
-            key={item.step}
-            className={`${styles.step} ${done ? styles.done : current ? styles.now : ""}`}
-            aria-current={current ? "step" : undefined}
-          >
-            {(done || current) && onSelect ? (
-              <button type="button" className={styles.stepBtn} title={label} aria-label={label} onClick={() => onSelect(item)}>
-                {content}
-              </button>
-            ) : (
-              <div className={`${styles.stepBtn} ${styles.stepIdle}`} role="group" title={label} aria-label={label}>
-                {content}
-              </div>
+            {(waiting || due) && (
+              <span className={styles.compactMeta}>
+                {waiting && <span>{waiting}</span>}
+                {due && <span className={`num ${due.late ? styles.late : ""}`}>{due.text}</span>}
+              </span>
             )}
-          </li>
-        );
-      })}
-    </ol>
+          </button>
+        ) : (
+          <div className={styles.compactHead}>
+            <span className={`${styles.compactNo} num`}>{doneCount}/{steps.length} bước</span>
+            <strong>{doneCount === steps.length ? "Đã hoàn thành" : "Chưa bắt đầu"}</strong>
+          </div>
+        )}
+        <div className={styles.compactBar} aria-hidden="true">
+          {steps.map((item) => (
+            <span key={item.step} className={item.state === "done" ? styles.segDone : item.state === "current" ? styles.segNow : undefined} />
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
 

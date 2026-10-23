@@ -42,10 +42,12 @@ interface Props {
   /** Thao tác được làm (từ máy chủ); null khi chưa tải được → chỉ xem. */
   rights: EvidenceRights | null;
   onChanged?: () => void;
+  /** Bỏ chữ "Tệp minh chứng:" khi đã nằm trong mục Minh chứng. */
+  hideLabel?: boolean;
 }
 
 /** Tệp minh chứng của một mục; nút thao tác hiện theo `rights` máy chủ trả về. */
-export function EvidenceFiles({ recordId, slot, label, files, rights, onChanged }: Props) {
+export function EvidenceFiles({ recordId, slot, label, files, rights, onChanged, hideLabel = false }: Props) {
   const { toast, confirm } = useToast();
   const mine = files.filter((f) => (f.formCode || "").toUpperCase() === slot);
   const addRef = useRef<HTMLInputElement>(null);
@@ -90,8 +92,8 @@ export function EvidenceFiles({ recordId, slot, label, files, rights, onChanged 
     attachmentService.downloadAttachment(f.id, f.fileName).catch((error: unknown) => toast.error(errorMessage(error, "Không tải được tệp.")));
 
   return (
-    <div className="d-flex flex-wrap align-items-center gap-2 small mt-1">
-      <span className="text-secondary">Tệp minh chứng:</span>
+    <div className={`d-flex flex-wrap align-items-center gap-2 small ${hideLabel ? "" : "mt-1"}`}>
+      {!hideLabel && <span className="text-secondary">Tệp minh chứng:</span>}
       {mine.length === 0 && <span className="text-secondary">chưa có</span>}
       {mine.map((f) => (
         <span key={f.id} className="d-inline-flex align-items-center gap-1 border rounded px-2 py-0">

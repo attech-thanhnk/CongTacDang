@@ -3,11 +3,13 @@
 import React, { useMemo, useState } from "react";
 import { EvaluationRecordHistoryDto, gradeLabel } from "@/services/evaluationService";
 import { formatDateTime } from "@/lib/dateFormat";
+import { fmt } from "@/services/criteriaService";
 import styles from "./record.module.css";
+import { CollapsibleSection } from "./CollapsibleSection";
 
 const RECENT = 5;
 
-/** Lịch sử hồ sơ dạng dòng thời gian có đường nối: mới nhất trước, mặc định 5 mục gần nhất. */
+/** Lịch sử hồ sơ (thu gọn mặc định — việc chính của trang ở cột trái): mới nhất trước, 5 mục gần nhất. */
 export function RecordHistory({ history }: { history: EvaluationRecordHistoryDto[] }) {
   const [showAll, setShowAll] = useState(false);
   const sorted = useMemo(
@@ -17,10 +19,12 @@ export function RecordHistory({ history }: { history: EvaluationRecordHistoryDto
   const visible = showAll ? sorted : sorted.slice(0, RECENT);
 
   return (
-    <section className={styles.block}>
-      <div className={styles.blockH}>
-        <h2>Lịch sử</h2>
-      </div>
+    <CollapsibleSection
+      title="Lịch sử"
+      defaultOpen={false}
+      flush
+      tag={sorted.length > 0 ? <span className={`tag ${styles.tNeutral} num`}>{sorted.length}</span> : undefined}
+    >
       {sorted.length === 0 ? (
         <div className={`${styles.body} ${styles.small}`}>Chưa có mốc nào.</div>
       ) : (
@@ -43,7 +47,7 @@ export function RecordHistory({ history }: { history: EvaluationRecordHistoryDto
                       <small>Mức: {gradeLabel(h.gradeBefore)} → {gradeLabel(h.gradeAfter)}</small>
                     )}
                     {h.scoreBefore !== h.scoreAfter && (
-                      <small className="num">Điểm: {h.scoreBefore ?? "—"} → {h.scoreAfter ?? "—"}</small>
+                      <small className="num">Điểm: {h.scoreBefore != null ? fmt(h.scoreBefore) : "—"} → {h.scoreAfter != null ? fmt(h.scoreAfter) : "—"}</small>
                     )}
                   </div>
                 </li>
@@ -59,7 +63,7 @@ export function RecordHistory({ history }: { history: EvaluationRecordHistoryDto
           )}
         </>
       )}
-    </section>
+    </CollapsibleSection>
   );
 }
 

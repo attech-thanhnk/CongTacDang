@@ -4,7 +4,6 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  flex-wrap: wrap;
 }
 
 .bigInitials {
@@ -26,10 +25,30 @@
   margin: 4px 0 0;
 }
 
-.headTools {
-  margin-left: auto;
+.titleRow {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+@media (max-width: 767.98px) {
+  .head {
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .bigInitials {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 14px !important;
+  }
+  .head h1 {
+    font-size: 21px;
+    text-align: left;
+  }
+  .lede {
+    font-size: 14px;
+  }
 }
 
 /* Khối */
@@ -118,6 +137,66 @@
   margin-left: auto;
   display: flex;
   gap: 6px;
+  flex: none;
+}
+
+.toggleTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Phần phụ trong khối (vd. Mẫu 9D, 09C trong phiếu tự chấm) */
+.sub2 {
+  border-top: 1px solid var(--rule);
+}
+
+.sub2 > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  font-weight: 500;
+  font-size: 14.5px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.sub2 > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sub2 > summary::before {
+  content: "\F285";
+  font-family: "bootstrap-icons";
+  font-size: 12px;
+  color: var(--ink-3);
+  transition: transform 0.15s;
+}
+
+.sub2[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.sub2 > summary:hover {
+  background: var(--tint);
+}
+
+.sub2 > summary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.evidenceLabel {
+  min-width: 64px;
+}
+
+.sub2Body {
+  padding: 4px 20px 16px;
+}
+
+.current {
+  border-color: var(--primary-line);
+  box-shadow: inset 3px 0 0 var(--primary);
 }
 
 .open .toggle {
@@ -209,12 +288,85 @@
   font-weight: 600;
 }
 
-.stepDue {
+.stepMeta {
   font-style: normal;
   display: block;
   font-weight: 500;
   font-size: 12px;
   color: var(--ink-2);
+}
+
+/* Tiến trình gọn cho màn hẹp: bước hiện tại + dải tiến độ */
+.stepsCompact {
+  display: none;
+  padding: 12px 16px 14px;
+}
+
+.compactBtn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.compactHead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  font-size: 14.5px;
+  line-height: 1.4;
+}
+
+.compactNo {
+  color: var(--primary-ink);
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.compactMeta {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.compactBar {
+  display: flex;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.compactBar span {
+  flex: 1 1 0;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--rule-strong);
+}
+
+.compactBar .segDone {
+  background: var(--primary);
+}
+
+.compactBar .segNow {
+  background: var(--primary-line);
+  box-shadow: inset 0 0 0 1.5px var(--primary);
+}
+
+@media (max-width: 767.98px) {
+  .steps {
+    display: none;
+  }
+  .stepsCompact {
+    display: block;
+  }
 }
 
 .late {
@@ -281,62 +433,10 @@ button.stepBtn:focus-visible {
   outline: none;
 }
 
-/* Dòng trạng thái dưới tên cán bộ */
+/* Tên, chức vụ dưới tên cán bộ */
 .headMain {
-  flex: 1 1 260px;
+  flex: 1 1 auto;
   min-width: 0;
-}
-
-.statusLine {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px 12px;
-  margin-top: 10px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--rule);
-  background: var(--tint);
-  color: var(--ink-2);
-  font-size: 14px;
-  line-height: 1.45;
-}
-
-.statusMine {
-  border-color: var(--primary-line);
-  background: var(--primary-tint);
-  color: var(--ink);
-}
-
-.statusDone {
-  border-color: var(--ok-line);
-  background: var(--ok-bg);
-  color: var(--ok);
-}
-
-.statusText {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 2px 8px;
-  min-width: 0;
-}
-
-.statusText strong {
-  color: var(--ink);
-  font-weight: 600;
-}
-
-.statusMine .statusText strong {
-  color: var(--primary-ink);
-}
-
-.statusSep {
-  color: var(--ink-3);
-}
-
-.statusGo {
-  margin-left: auto;
 }
 
 .stepTagDone {
@@ -348,35 +448,12 @@ button.stepBtn:focus-visible {
   max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.stepTagNow {
-  color: var(--primary-ink);
-  background: var(--primary-tint);
+  white-space: nowrap;
 }
 
 @media (max-width: 560px) {
-  .statusLine {
-    font-size: 13.5px;
-  }
-  .statusGo {
-    margin-left: 0;
-  }
-  .step {
-    min-width: 84px;
-  }
   .hideNarrow {
     display: none !important;
-  }
-  /* Màn hình hẹp: mỗi phần của dòng trạng thái một dòng, bỏ dấu ngăn cách */
-  .statusSep {
-    display: none;
-  }
-  .statusPart {
-    flex-basis: 100%;
-  }
-  .stepTagText {
-    max-width: 130px;
   }
 }
 
@@ -399,6 +476,27 @@ button.stepBtn:focus-visible {
   flex-direction: column;
   gap: 24px;
   min-width: 0;
+}
+
+/* Chưa có việc hay dữ liệu bước nào để xem: bỏ cột trái trống, các khối phụ dàn ngang */
+.cols:has(> .stack:first-child:empty) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cols > .stack:first-child:empty {
+  display: none;
+}
+
+.cols:has(> .stack:first-child:empty) > .side {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  align-items: start;
+}
+
+@media (max-width: 767.98px) {
+  .cols:has(> .stack:first-child:empty) > .side {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Khu thao tác */
@@ -478,11 +576,26 @@ button.stepBtn:focus-visible {
   flex: 1 1 100% !important;
 }
 
-.pushRight {
-  margin-left: auto;
+/* Nút trả lại / mở lại: bên trái chân biểu mẫu, nút chính bên phải */
+.footStart {
+  margin-right: auto;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.formFoot,
+.formFootOnly,
+.foot {
+  justify-content: flex-end;
+}
+
+/* Chân biểu mẫu dài dính đáy vùng cuộn */
+.stickyFoot {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  background: var(--paper);
 }
 
 /* Phiếu tự chấm: tổng điểm và điểm theo trục */
@@ -762,4 +875,50 @@ button.stepBtn:focus-visible {
 
 .linkBtn:hover {
   text-decoration: underline;
+}
+
+/* Bảng tiêu chí chung trên điện thoại: mỗi tiêu chí một thẻ, không cuộn ngang */
+@media (max-width: 767.98px) {
+  .critWrap {
+    overflow-x: visible;
+  }
+  .critTable thead {
+    display: none;
+  }
+  .critTable,
+  .critTable tbody {
+    display: block;
+    min-width: 0 !important;
+    width: 100%;
+  }
+  .critTable tr {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    column-gap: 4px;
+    border-bottom: 1px solid var(--rule);
+    padding: 6px 0;
+  }
+  .critTable td {
+    display: block;
+    border: 0 !important;
+    padding: 2px 4px !important;
+  }
+  .critTable td:nth-child(n + 3) {
+    grid-column: 2;
+  }
+  .critNote td:first-child {
+    display: none;
+  }
+  .critNote td:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+  .critEmpty {
+    display: none;
+  }
+  .critMax {
+    color: var(--ink-3);
+  }
+  .critMax::before {
+    content: "Tối đa ";
+  }
 }

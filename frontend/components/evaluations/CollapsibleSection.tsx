@@ -15,6 +15,8 @@ interface Props {
   flush?: boolean;
   /** Id của khối để cuộn tới / mở từ bên ngoài (`revealSection`). */
   anchorId?: string;
+  /** Khối của bước đang làm: viền nhấn thay cho nhãn "Đang làm". */
+  current?: boolean;
   children: React.ReactNode;
 }
 
@@ -34,7 +36,7 @@ export function revealSection(anchorId: string): boolean {
 }
 
 /** Khối dữ liệu có tiêu đề, bấm tiêu đề để mở/thu gọn. */
-export function CollapsibleSection({ title, tag, defaultOpen = true, flush = false, anchorId, children }: Props) {
+export function CollapsibleSection({ title, tag, defaultOpen = true, flush = false, anchorId, current = false, children }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const id = useId();
 
@@ -48,11 +50,11 @@ export function CollapsibleSection({ title, tag, defaultOpen = true, flush = fal
   }, [anchorId]);
 
   return (
-    <section id={anchorId} className={`${styles.block} ${styles.anchor} ${open ? styles.open : ""}`}>
+    <section id={anchorId} className={`${styles.block} ${styles.anchor} ${open ? styles.open : ""} ${current ? styles.current : ""}`}>
       <h2 className={styles.toggleH}>
         <button type="button" className={styles.toggle} aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
           <i className={`bi ${open ? "bi-chevron-down" : "bi-chevron-right"} ${styles.chev}`} aria-hidden="true" />
-          <span>{title}</span>
+          <span className={styles.toggleTitle}>{title}</span>
           {tag && <span className={styles.end}>{tag}</span>}
         </button>
       </h2>

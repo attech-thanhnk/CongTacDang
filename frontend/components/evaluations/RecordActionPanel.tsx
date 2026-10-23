@@ -46,15 +46,20 @@ export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }:
 
   if (actions.length === 0) return null;
 
+  // Trả lại / mở lại: viền đỏ, tách sang trái chân biểu mẫu để không nhầm với nút chính; hộp lý do là bước xác nhận.
   const reasonButtons =
     withReason.length > 0 ? (
-      <span className={styles.pushRight}>
-        {withReason.map((action) => (
-          <button key={action.action} type="button" className="btn btn-outline-danger btn-sm" disabled={busy} onClick={() => onReason(action)}>
-            {action.label}
-          </button>
-        ))}
-      </span>
+      <>
+        {withReason.map((action) => {
+          const mild = action.action === "ExtendUnlock";
+          return (
+            <button key={action.action} type="button" className={`btn ${mild ? "btn-outline-secondary" : "btn-outline-danger"}`} disabled={busy} onClick={() => onReason(action)}>
+              <i className={`bi ${mild ? "bi-clock-history" : "bi-arrow-return-left"} me-1`} aria-hidden="true" />
+              {action.label}
+            </button>
+          );
+        })}
+      </>
     ) : null;
 
   // Nút trả lại / mở lại đặt chung chân với nút chính của thao tác đầu tiên (nếu biểu mẫu đó có chân).
@@ -67,7 +72,7 @@ export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }:
         <div className={styles.blockH}>
           <h2>Thao tác</h2>
         </div>
-        <div className={styles.foot}>{reasonButtons}</div>
+        <div className={styles.foot}><span className={styles.footStart}>{reasonButtons}</span></div>
       </section>
     );
   }
@@ -82,7 +87,6 @@ export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }:
           <section key={action.action} className={styles.task} aria-label={action.label}>
             <div className={styles.blockH}>
               <h2>{action.label}</h2>
-              {action.overdue && <span className="tag t-bad">Quá hạn</span>}
               {isAppraise && (
                 <span className={styles.cmp}>
                   Tự chấm <b className="num">{fmt(record.totalSelfScore)}</b>
@@ -106,7 +110,7 @@ export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }:
                 onAppraisalChange={setAppraisal}
               />
             </div>
-            {index === 0 && reasonButtons && !reasonsInForm && <div className={styles.foot}>{reasonButtons}</div>}
+            {index === 0 && reasonButtons && !reasonsInForm && <div className={styles.foot}><span className={styles.footStart}>{reasonButtons}</span></div>}
           </section>
         );
       })}
@@ -126,12 +130,12 @@ const FOOTED_FORMS = new Set<WorkflowActionCode>([
   "Publish",
 ]);
 
-/** Chân biểu mẫu tràn tới mép khu thao tác; `row` khi nằm trong lưới Bootstrap `.row.g-2`. */
+/** Chân biểu mẫu tràn tới mép khu thao tác: nút trả lại bên trái, nút chính bên phải; `row` khi nằm trong lưới `.row.g-2`. */
 function FormFoot({ extra, row = false, only = false, children }: { extra?: React.ReactNode; row?: boolean; only?: boolean; children: React.ReactNode }) {
   return (
     <div className={row ? `col-12 ${styles.formFootRow}` : only ? styles.formFootOnly : styles.formFoot}>
+      {extra && <span className={styles.footStart}>{extra}</span>}
       {children}
-      {extra}
     </div>
   );
 }
@@ -161,13 +165,13 @@ function ActionForm({ record, criteria, action, step, busy, onSubmit, extra, onA
     case "RevokeTaskApproval":
       return (
         <FormFoot only>
-          <button type="button" className="btn btn-outline-warning btn-sm" disabled={busy} onClick={() => onSubmit(action, {})}>
-            Thu hồi duyệt danh mục
+          <button type="button" className="btn btn-outline-danger" disabled={busy} onClick={() => onSubmit(action, {})}>
+            <i className="bi bi-arrow-counterclockwise me-1" aria-hidden="true" />Thu hồi duyệt
           </button>
         </FormFoot>
       );
     case "ConfirmByCell":
-      return <CommentForm busy={busy} extra={extra} label="Ý kiến" submitText="Xác nhận phiếu tự chấm" onSubmit={(payload) => onSubmit(action, payload)} />;
+      return <CommentForm busy={busy} extra={extra} label="Ý kiến" submitText="Xác nhận" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "RecordCollectiveProposal":
       return <ProposalForm record={record} busy={busy} extra={extra} stage="B3A_COLLECTIVE" submitText="Ghi nhận đề xuất" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "Appraise":
@@ -179,7 +183,7 @@ function ActionForm({ record, criteria, action, step, busy, onSubmit, extra, onA
     case "Publish":
       return (
         <FormFoot only extra={extra}>
-          <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={() => onSubmit(action, {})}>Công bố, khóa kết quả</button>
+          <button type="button" className="btn btn-primary" disabled={busy} onClick={() => onSubmit(action, {})}><i className="bi bi-megaphone me-1" aria-hidden="true" />Công bố</button>
         </FormFoot>
       );
     default:
@@ -195,7 +199,7 @@ function CommentForm({ busy, label, submitText, extra, onSubmit }: { busy: boole
       <label className="form-label small" htmlFor={id}>{label}</label>
       <textarea id={id} className="form-control form-control-sm" rows={2} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} />
       <FormFoot extra={extra}>
-        <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>{submitText}</button>
+        <button type="submit" className="btn btn-primary" disabled={busy}>{submitText}</button>
       </FormFoot>
     </form>
   );
@@ -271,7 +275,7 @@ function ApproveTasksForm({ record, busy, extra, onSubmit }: { record: Evaluatio
       <label className="form-label small" htmlFor={id}>Ý kiến</label>
       <textarea id={id} className="form-control form-control-sm" rows={2} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} />
       <FormFoot extra={extra}>
-        <button type="submit" className="btn btn-primary btn-sm" disabled={busy || (canAdjust && changed && errors.length > 0)}>Duyệt danh mục</button>
+        <button type="submit" className="btn btn-primary" disabled={busy || (canAdjust && changed && errors.length > 0)}>Duyệt</button>
       </FormFoot>
     </form>
   );
@@ -296,7 +300,7 @@ function GradeCommentForm({ record, busy, defaultGrade, submitText, extra, onSub
       <div className="col-md-5"><label className="form-label small" htmlFor="gc-grade">Mức đề xuất</label><GradeSelect id="gc-grade" value={grade} onChange={setGrade} /></div>
       <GradeWarningList warnings={recordGradeWarnings(record, grade)} />
       <div className="col-12"><label className="form-label small" htmlFor="gc-comment">Nhận xét</label><textarea id="gc-comment" className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
-      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !grade}>{submitText}</button></FormFoot>
+      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary" disabled={busy || !grade}>{submitText}</button></FormFoot>
     </form>
   );
 }
@@ -401,7 +405,7 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
         </label>
         <textarea id="ap-explanation" className="form-control form-control-sm" rows={2} maxLength={4000} required={needsExplanation} title={rule} value={explanation} onChange={(e) => setExplanation(e.target.value)} />
       </div>
-      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !grade || missingLevels || appraisal == null || (needsExplanation && !explanation.trim())}>Ghi nhận thẩm định</button></FormFoot>
+      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary" disabled={busy || !grade || missingLevels || appraisal == null || (needsExplanation && !explanation.trim())}>Ghi nhận thẩm định</button></FormFoot>
     </form>
   );
 }
@@ -533,7 +537,7 @@ function ProposalForm({ record, busy, stage, submitText, extra, onSubmit }: { re
           )}
         </div>
       )}
-      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !grade}>{submitText}</button></FormFoot>
+      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary" disabled={busy || !grade}>{submitText}</button></FormFoot>
     </form>
   );
 }
@@ -615,7 +619,7 @@ function ExternalResultForm({ record, step, busy, extra, onSubmit }: { record: E
         )}
         <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setUploading(true)}>Đính kèm văn bản (tùy chọn)</button>
       </div>
-      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary btn-sm" disabled={busy || !authorityName.trim() || (graded && !grade)}>Ghi nhận kết quả của cấp trên</button></FormFoot>
+      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary" disabled={busy || !authorityName.trim() || (graded && !grade)}>Ghi nhận kết quả</button></FormFoot>
       {uploading && (
         <FileUploadModal
           isOpen
@@ -730,9 +734,9 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
           </fieldset>
         ))}
       </div>
-      <div className="d-flex justify-content-between align-items-center bg-white border-top py-2" style={{ position: "sticky", bottom: 0, zIndex: 5 }}>
+      <div className={`d-flex flex-wrap gap-2 justify-content-between align-items-center border-top py-2 ${styles.stickyFoot}`}>
         <div className="d-flex gap-2 align-items-center">
-          <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setTasks([...tasks, blank()])}>
+          <button type="button" className="btn btn-outline-secondary" onClick={() => setTasks([...tasks, blank()])}>
             <i className="bi bi-plus-lg me-1" />Thêm dòng
           </button>
           <span className="small text-secondary">
@@ -740,7 +744,7 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
             {p && <> / {fmt(p.totalTaskWeight)}</>}
           </span>
         </div>
-        <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>Nộp danh mục</button>
+        <button type="submit" className="btn btn-primary" disabled={busy}><i className="bi bi-send me-1" aria-hidden="true" />Nộp danh mục</button>
       </div>
       {p && <div className="form-text">{`${p.minTasks}–${p.maxTasks} sản phẩm.`}</div>}
     </form>
