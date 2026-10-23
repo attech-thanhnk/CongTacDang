@@ -246,10 +246,14 @@ export default function PeriodDetailPage() {
     return run(() => evaluationService.updatePeriod(period.id, period.version, { criteriaSetId }), "Đã chọn bộ tiêu chí cho kỳ.");
   };
 
-  const missingDeadlines = period.settings.profiles.reduce(
-    (sum, profile) => sum + Object.values(profile.steps).filter((step) => step.mode !== "Off" && !step.deadline).length,
-    0,
+  // Chỉ xét cách xét duyệt đang có người dùng; đếm theo bước (không cộng dồn qua các cách xét duyệt).
+  const usedProfileCodes = new Set(participants.map((p) => p.workflowProfileCode));
+  const deadlineProfiles = period.settings.profiles.filter((p) => usedProfileCodes.size === 0 || usedProfileCodes.has(p.code));
+  const missingDeadlineSteps = new Set(
+    deadlineProfiles.flatMap((profile) =>
+      Object.entries(profile.steps).filter(([, step]) => step.mode !== "Off" && !step.deadline).map(([code]) => code)),
   );
+  const missingDeadlines = missingDeadlineSteps.size;
 
   const checklist: { ok: boolean; text: string; action: string; go: () => void }[] = [
     {
