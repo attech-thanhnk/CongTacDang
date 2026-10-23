@@ -90,105 +90,92 @@
   color: var(--ink-3);
 }
 
-/* Ảnh nền đăng nhập: ảnh hiện tối đa ~1,3 lần cỡ gốc, mép hòa vào bản làm mờ của chính nó phủ kín màn hình. */
+/* Ảnh nền đăng nhập: ảnh hiện tối đa ~1,3 lần cỡ gốc, mép hòa dần vào nền trời sáng phủ kín màn hình. */
 .screen.hasImage {
   isolation: isolate;
+  background: linear-gradient(180deg, #cfe5f6 0%, #e8f2fb 45%, #f1f5f4 100%);
 }
 
-.backdrop,
 .photo {
   position: fixed;
-  z-index: -1;
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-
-.backdrop {
-  inset: -60px;
-  background-size: cover;
-  background-position: center;
-  /* Làm mờ để ảnh nhỏ phóng to không lộ vỡ hạt. */
-  filter: blur(36px) saturate(1.15);
-}
-
-.photo {
   inset: 0;
+  z-index: -1;
   display: grid;
   place-items: center;
 }
 
 .photo img {
   display: block;
+  opacity: 0;
+  transition: opacity 0.25s ease;
   width: 100%;
   height: auto;
   max-height: 100vh;
   object-fit: contain;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent),
-    linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent),
+    linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent);
   -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent),
-    linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent),
+    linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent);
   mask-composite: intersect;
 }
 
-.backdropVisible {
+.photo img.photoVisible {
   opacity: 1;
 }
 
-/* Khung đăng nhập trong suốt: kính mờ, chữ trắng. */
+/* Màn hình hẹp: ảnh nằm trên, khung đăng nhập bên dưới. */
+@media (max-width: 991.98px) {
+  .screen.hasImage {
+    align-content: center;
+    gap: 8px;
+  }
+
+  .photo {
+    position: static;
+    width: 100%;
+  }
+
+  .photo img {
+    max-height: 38vh;
+  }
+}
+
+/* Khung đăng nhập trong suốt dạng kính mờ, hòa vào nền trời. */
 .hasImage .card {
   max-width: 360px;
   padding: 24px 24px 18px;
-  background: rgba(12, 22, 40, 0.28);
-  border-color: rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(14px) saturate(1.3);
-  -webkit-backdrop-filter: blur(14px) saturate(1.3);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.25);
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.42);
+  border-color: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  box-shadow: 0 12px 40px rgba(30, 60, 100, 0.16);
 }
 
 .hasImage .brand {
   margin-bottom: 16px;
 }
 
-.hasImage .emblem {
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.8);
-}
-
-.hasImage .t1,
-.hasImage .t2,
-.hasImage .card :global(.form-label),
-.hasImage .card :global(.form-check-label) {
-  color: #fff !important;
-}
-
 .hasImage .card :global(.form-control) {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: transparent;
-  text-shadow: none;
+  background: rgba(255, 255, 255, 0.85);
 }
 
 .hasImage .foot {
   margin-top: 16px;
-  border-top-color: rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 0.85);
+  border-top-color: rgba(30, 60, 100, 0.15);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .backdrop,
-  .photo {
+  .photo img {
     transition: none;
   }
 }
 
-/* Màn hình rộng: khung nằm sát mép trên để không che chữ thường đặt ở nửa dưới ảnh. */
+/* Màn hình rộng, khung bên trái/phải: ảnh dồn sang phía còn lại để khung không che nội dung ảnh. */
 @media (min-width: 992px) {
   .panelLeft,
   .panelRight {
-    align-items: start;
-    padding: 7vh 4vw 32px;
+    padding: 32px 4vw;
   }
 
   .panelLeft {
@@ -197,5 +184,13 @@
 
   .panelRight {
     justify-items: end;
+  }
+
+  .panelRight .photo {
+    padding-right: calc(360px + 6vw);
+  }
+
+  .panelLeft .photo {
+    padding-left: calc(360px + 6vw);
   }
 }

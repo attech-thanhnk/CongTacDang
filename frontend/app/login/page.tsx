@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useLayoutEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/common";
-import { resolveApiUrl, useOrganizationInfo } from "@/services/organizationSettingsService";
+import { LoginPanelPosition, resolveApiUrl, useOrganizationInfo } from "@/services/organizationSettingsService";
 import { AuthBrand } from "./AuthBrand";
 import styles from "./auth.module.css";
 import { errorMessage } from "@/components/admin/adminUtils";
@@ -103,48 +103,92 @@ function LoginForm() {
 }
 
 const PANEL_CLASS = { center: styles.panelCenter, left: styles.panelLeft, right: styles.panelRight } as const;
+const LOOK_KEY = "login-look";
+const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+interface Look {
+  url: string | null;
+  position: LoginPanelPosition;
+  width?: number;
+}
+
+function readLook(): Look | undefined {
+  try {
+    const raw = localStorage.getItem(LOOK_KEY);
+    return raw ? (JSON.parse(raw) as Look) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function saveLook(look: Look) {
+  try {
+    localStorage.setItem(LOOK_KEY, JSON.stringify(look));
+  } catch {
+    // Không lưu được thì lần sau chờ API như bình thường.
+  }
+}
 
 export default function LoginPage() {
   const org = useOrganizationInfo();
-  const imageUrl = org?.loginBackgroundUrl ? resolveApiUrl(org.loginBackgroundUrl) : null;
-  const [loaded, setLoaded] = useState<{ url: string; width: number } | null>(null);
+  // undefined = chưa biết có ảnh nền không; khi đó chưa vẽ khung để tránh nháy giao diện mặc định.
+  const [look, setLook] = useState<Look | undefined>(undefined);
 
-  // Tải trước ảnh rồi mới hiện dần; lấy chiều rộng gốc để không phóng ảnh quá cỡ.
+  // Dùng cài đặt lần trước ngay trước khi vẽ, API trả về sau sẽ cập nhật.
+  useIsoLayoutEffect(() => {
+    const cached = readLook();
+    if (cached) setLook(cached);
+  }, []);
+
   useEffect(() => {
-    if (!imageUrl) return;
-    let active = true;
-    const img = new window.Image();
-    img.onload = () => {
-      if (active) setLoaded({ url: imageUrl, width: img.naturalWidth });
-    };
-    img.src = imageUrl;
-    return () => {
-      active = false;
-    };
-  }, [imageUrl]);
+    if (!org) return;
+    const url = org.loginBackgroundUrl ? resolveApiUrl(org.loginBackgroundUrl) : null;
+    setLook((prev) => {
+      const next: Look = { url, position: org.loginPanelPosition ?? "center", width: prev?.url === url ? prev.width : undefined };
+      saveLook(next);
+      return next;
+    });
+  }, [org]);
 
-  const ready = !!imageUrl && loaded?.url === imageUrl;
-  const screenClass = imageUrl
-    ? `${styles.screen} ${styles.hasImage} ${PANEL_CLASS[org?.loginPanelPosition ?? "center"] ?? styles.panelCenter}`
-    : styles.screen;
+  // API lỗi hoặc chậm: vẫn hiện khung đăng nhập mặc định.
+  useEffect(() => {
+    const timer = setTimeout(() => setLook((prev) => prev ?? { url: null, position: "center" }), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const width = e.currentTarget.naturalWidth;
+    setLook((prev) => {
+      if (!prev || prev.width === width) return prev;
+      const next = { ...prev, width };
+      saveLook(next);
+      return next;
+    });
+  };
+
+  if (!look) return <div className={styles.screen} />;
+
+  const form = (
+    <Suspense fallback={<div className="spinner-border text-primary" role="status" />}>
+      <LoginForm />
+    </Suspense>
+  );
+
+  if (!look.url) return <div className={styles.screen}>{form}</div>;
 
   return (
-    <div className={screenClass}>
-      {imageUrl && (
-        <>
-          <div
-            className={`${styles.backdrop} ${ready ? styles.backdropVisible : ""}`}
-            style={{ backgroundImage: `url("${imageUrl}")` }}
-            aria-hidden="true"
-          />
-          <div className={`${styles.photo} ${ready ? styles.backdropVisible : ""}`} aria-hidden="true">
-            {ready && <img src={imageUrl} alt="" style={{ maxWidth: `min(100vw, ${Math.round(loaded.width * 1.3)}px)` }} />}
-          </div>
-        </>
-      )}
-      <Suspense fallback={<div className="spinner-border text-primary" role="status" />}>
-        <LoginForm />
-      </Suspense>
+    <div className={`${styles.screen} ${styles.hasImage} ${PANEL_CLASS[look.position] ?? styles.panelCenter}`}>
+      <div className={styles.photo} aria-hidden="true">
+        <img
+          src={look.url}
+          alt=""
+          onLoad={handleImageLoad}
+          className={look.width ? styles.photoVisible : undefined}
+          // Không phóng ảnh quá 1,3 lần cỡ gốc.
+          style={look.width ? { maxWidth: `min(100vw, ${Math.round(look.width * 1.3)}px)` } : undefined}
+        />
+      </div>
+      {form}
     </div>
   );
 }
