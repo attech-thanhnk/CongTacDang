@@ -2469,8 +2469,8 @@ textarea.form-control {
 }
 
 @media (max-width: 991.98px) {
-  /* Bảng Bootstrap nhiều cột: cuộn ngang trong khung thay vì bóp chữ mỗi từ một dòng. */
-  .table-responsive > .table:not(.report-table) {
+  /* Bảng Bootstrap nhiều cột: cuộn ngang trong khung thay vì bóp chữ mỗi từ một dòng. Bảng đã tự gọn cho màn hẹp (ẩn cột, dạng thẻ) thêm lớp .table-fit. */
+  .table-responsive > .table:not(.report-table):not(.table-fit) {
     min-width: 600px;
   }
 
