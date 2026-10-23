@@ -45,16 +45,6 @@ public enum ScoreRoundingMode
     Truncate = 2
 }
 
-/// <summary>Mẫu số của trần tỷ lệ Hoàn thành xuất sắc.</summary>
-[JsonConverter(typeof(JsonStringEnumConverter<QuotaDenominator>))]
-public enum QuotaDenominator
-{
-    /// <summary>Số người xếp "Hoàn thành tốt nhiệm vụ" (câu chữ HD03 III.6, PDF tr.15).</summary>
-    GoodOnly = 0,
-
-    /// <summary>Số người xếp "Hoàn thành tốt" trở lên (nhãn cột Mẫu 15A/15B/16).</summary>
-    GoodOrBetter = 1
-}
 
 /// <summary>Nhóm điểm của hồ sơ tập thể (Mẫu 07 mục B: 1. Nhóm tiêu chí chung, 2. Nhóm tiêu chí về kết quả thực hiện nhiệm vụ).</summary>
 [JsonConverter(typeof(JsonStringEnumConverter<CollectiveScoreKind>))]
@@ -237,17 +227,31 @@ public sealed class RoundingSettings
     public RoundingRule Total { get; set; } = new();
 }
 
-/// <summary>Trần tỷ lệ Hoàn thành xuất sắc.</summary>
+/// <summary>
+/// Trần tỷ lệ Hoàn thành xuất sắc: số Xuất sắc tối đa của một nhóm chức danh = làm tròn (0,5 trở lên thành 1) của
+/// tỷ lệ × số người "Hoàn thành tốt nhiệm vụ" trong nhóm. Mẫu số và cách làm tròn cố định trong
+/// <see cref="EvaluationScoring.ExcellentQuota(int, double)"/>; bộ tiêu chí chỉ đặt tỷ lệ trong khoảng 20%–25%.
+/// Nội dung lưu trước đây có thêm trường mẫu số/làm tròn: bỏ qua khi đọc (không cần nâng phiên bản schema); thiếu tỷ lệ → 20%.
+/// </summary>
 public sealed class ExcellentQuotaRule
 {
-    /// <summary>Tỷ lệ trần (0..1).</summary>
-    public double Ratio { get; set; } = 0.20;
+    /// <summary>Tỷ lệ trần tối thiểu được phép.</summary>
+    public const double MinRatio = 0.20;
 
-    /// <summary>Mẫu số.</summary>
-    public QuotaDenominator Denominator { get; set; } = QuotaDenominator.GoodOnly;
+    /// <summary>Tỷ lệ trần tối đa được phép (cấp có thẩm quyền nâng khi đơn vị có thành tích nổi trội).</summary>
+    public const double MaxRatio = 0.25;
 
-    /// <summary>Làm tròn số người tối đa (0 chữ số thập phân).</summary>
-    public ScoreRoundingMode Rounding { get; set; } = ScoreRoundingMode.HalfUp;
+    /// <summary>Tỷ lệ trần mặc định.</summary>
+    public const double DefaultRatio = MinRatio;
+
+    /// <summary>Tỷ lệ trần (0,20..0,25).</summary>
+    public double Ratio { get; set; } = DefaultRatio;
+
+    /// <summary>
+    /// Tỷ lệ dùng để tính: giá trị không hợp lệ (dữ liệu cũ) → mặc định; ngoài khoảng → kẹp về 20%–25%.
+    /// </summary>
+    [JsonIgnore]
+    public double EffectiveRatio => double.IsFinite(Ratio) && Ratio > 0 ? Math.Clamp(Ratio, MinRatio, MaxRatio) : DefaultRatio;
 }
 
 /// <summary>Tham số của bộ tiêu chí.</summary>
@@ -863,10 +867,10 @@ public sealed class CriteriaSetContent
             errors.Add(Invariant($"Biên độ điều chỉnh tỷ lệ A-B-C-D phải từ 0 đến {MaxFrameAdjustLimit:0.##} điểm phần trăm (để trống nếu không cho điều chỉnh)."));
         if (p.ExplanationThreshold < 0 || p.ExplanationThreshold > 100)
             errors.Add("Ngưỡng chênh lệch cần giải trình phải từ 0 đến 100 điểm.");
-        if (p.ExcellentQuota.Ratio < 0 || p.ExcellentQuota.Ratio > 1)
-            errors.Add("Trần tỷ lệ Hoàn thành xuất sắc phải từ 0 đến 100%.");
-        if (!Enum.IsDefined(p.ExcellentQuota.Denominator) || !Enum.IsDefined(p.ExcellentQuota.Rounding))
-            errors.Add("Cách tính mẫu số hoặc làm tròn của trần tỷ lệ Hoàn thành xuất sắc không hợp lệ.");
+        if (double.IsNaN(p.ExcellentQuota.Ratio)
+            || p.ExcellentQuota.Ratio < ExcellentQuotaRule.MinRatio - Epsilon
+            || p.ExcellentQuota.Ratio > ExcellentQuotaRule.MaxRatio + Epsilon)
+            errors.Add("Trần tỷ lệ Hoàn thành xuất sắc phải từ 20% đến 25%.");
         foreach (var (name, rule) in new[]
                  {
                      ("điểm sản phẩm", p.Rounding.TaskScore), ("tổng điểm nhiệm vụ", p.Rounding.TasksTotal),

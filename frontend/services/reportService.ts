@@ -120,6 +120,10 @@ export interface Form16SummaryRow {
   unsatisfactory: number;
   notRated: number;
   excellentPercent?: number | null;
+  /** Số Xuất sắc tối đa của nhóm chức danh (không in lên biểu mẫu); null với dòng "Tổng cộng". */
+  maxExcellentAllowed?: number | null;
+  /** Nhóm vượt trần Xuất sắc (cảnh báo). */
+  isExceedingQuota?: boolean;
 }
 
 /** Bản nháp Mẫu 16 kèm số liệu tổng hợp tự động. */

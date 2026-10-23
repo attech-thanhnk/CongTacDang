@@ -17,6 +17,8 @@ import {
   CriteriaGroup,
   CriteriaSetContent,
   CriteriaSetDto,
+  EXCELLENT_QUOTA_PERCENT,
+  excellentQuotaInvalid,
   FORM_CONFIG_LIMITS,
   GRADE_LABELS,
   RECORD_FORMS,
@@ -598,21 +600,15 @@ export default function CriteriaSetPage() {
                       <option value="GrantFull">Tính như đạt tối đa</option>
                     </select>
                   </div>
-                  <div className="col-6 col-md-3">
-                    <label className="form-label mb-1">Trần xuất sắc (%)</label>
-                    <input type="number" min={0} max={100} step={1} className="form-control form-control-sm" value={Math.round(p.excellentQuota.ratio * 10000) / 100}
+                  <div className="col-12 col-md-6">
+                    <label className="form-label mb-1" htmlFor="cs-excellent-quota">Trần xuất sắc (% số &quot;Hoàn thành tốt&quot; của nhóm chức danh)</label>
+                    <input id="cs-excellent-quota" type="number" min={EXCELLENT_QUOTA_PERCENT.min} max={EXCELLENT_QUOTA_PERCENT.max} step={1} style={{ maxWidth: 140 }}
+                      className={`form-control form-control-sm${excellentQuotaInvalid(p.excellentQuota.ratio) ? " is-invalid" : ""}`}
+                      value={Math.round(p.excellentQuota.ratio * 10000) / 100}
                       onChange={(e) => setParam("excellentQuota", { ...p.excellentQuota, ratio: num(e.target.value) / 100 })} />
-                  </div>
-                  <div className="col-6 col-md-3">
-                    <label className="form-label mb-1">Mẫu số trần xuất sắc</label>
-                    <select className="form-select form-select-sm" value={p.excellentQuota.denominator} onChange={(e) => setParam("excellentQuota", { ...p.excellentQuota, denominator: e.target.value as typeof p.excellentQuota.denominator })}>
-                      <option value="GoodOnly">Số "Hoàn thành tốt"</option>
-                      <option value="GoodOrBetter">Số "Hoàn thành tốt" trở lên</option>
-                    </select>
-                  </div>
-                  <div className="col-6 col-md-3">
-                    <label className="form-label mb-1">Làm tròn số người tối đa</label>
-                    <RoundingModeSelect value={p.excellentQuota.rounding} onChange={(mode) => setParam("excellentQuota", { ...p.excellentQuota, rounding: mode })} />
+                    <div className={excellentQuotaInvalid(p.excellentQuota.ratio) ? "invalid-feedback d-block" : "form-text"}>
+                      Từ {EXCELLENT_QUOTA_PERCENT.min}% đến {EXCELLENT_QUOTA_PERCENT.max}%; làm tròn từ 0,5 trở lên thành 1; không tính người đứng đầu.
+                    </div>
                   </div>
                 </div>
                 <h3 className="form-label fw-semibold mt-3">Làm tròn theo loại điểm</h3>

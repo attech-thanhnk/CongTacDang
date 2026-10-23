@@ -64,7 +64,7 @@ public sealed class CriteriaSetUnitTests
         // Tham số: 3–7 sản phẩm, 70 điểm, ngưỡng giải trình 5, trần 20% số "Hoàn thành tốt", làm tròn 1 chữ số nửa lên.
         var p = a.Parameters;
         Assert.Equal((3, 7, 70.0, 30.0, 5.0), (p.MinTasks, p.MaxTasks, p.TotalTaskWeight, p.GeneralMaxScore, p.ExplanationThreshold));
-        Assert.Equal((0.20, QuotaDenominator.GoodOnly, ScoreRoundingMode.HalfUp), (p.ExcellentQuota.Ratio, p.ExcellentQuota.Denominator, p.ExcellentQuota.Rounding));
+        Assert.Equal(0.20, p.ExcellentQuota.Ratio);
         Assert.Equal(NotApplicableRule.ExcludeAndRescale, p.NotApplicableRule);
         Assert.All(new[] { p.Rounding.TaskScore, p.Rounding.TasksTotal, p.Rounding.GeneralTotal, p.Rounding.Total },
             r => Assert.Equal((1, ScoreRoundingMode.HalfUp), (r.Decimals, r.Mode)));
@@ -345,16 +345,11 @@ public sealed class CriteriaSetUnitTests
     }
 
     [Fact]
-    public void Grades_And_Quota_WithOldParameters_EqualOldCode()
+    public void Grades_WithOldParameters_EqualOldCode()
     {
         var c = CriteriaSetDefaults.Build09A();
         for (var score = -100; score <= 10100; score++)
             Assert.Equal(Old.Grade(score / 100.0), EvaluationScoring.GradeByScore(c, score / 100.0));
-
-        // Cách tính cũ = mẫu số "tốt trở lên", làm tròn xuống.
-        var oldRule = new ExcellentQuotaRule { Ratio = 0.20, Denominator = QuotaDenominator.GoodOrBetter, Rounding = ScoreRoundingMode.Truncate };
-        for (var n = 0; n <= 1000; n++)
-            Assert.Equal(Old.Quota(n), EvaluationScoring.ExcellentQuota(n, n / 3, oldRule));
     }
 
     #endregion
@@ -385,12 +380,57 @@ public sealed class CriteriaSetUnitTests
     public void ExcellentQuota_Tc3_DefaultRule(int goodCount, int expected)
     {
         var rule = CriteriaSetDefaults.Build09A().Parameters.ExcellentQuota;
-        // Mẫu số "Hoàn thành tốt" = tốt trở lên − xuất sắc: kết quả không phụ thuộc số xuất sắc đề xuất.
-        Assert.Equal(expected, EvaluationScoring.ExcellentQuota(goodCount, 0, rule));
-        Assert.Equal(expected, EvaluationScoring.ExcellentQuota(goodCount + 4, 4, rule));
+        Assert.Equal(ExcellentQuotaRule.DefaultRatio, rule.Ratio);
+        Assert.Equal(expected, EvaluationScoring.ExcellentQuota(goodCount, rule));
         rule.Ratio = 0.25;
         if (goodCount == 12)
-            Assert.Equal(3, EvaluationScoring.ExcellentQuota(goodCount, 0, rule));
+            Assert.Equal(3, EvaluationScoring.ExcellentQuota(goodCount, rule));
+    }
+
+    /// <summary>Làm tròn 0,5 trở lên thành 1, tính chính xác ở mốc 0,5 (không lệch do số thực).</summary>
+    [Theory]
+    [InlineData(0, 0.20, 0)]
+    [InlineData(2, 0.20, 0)]   // 0,4
+    [InlineData(3, 0.20, 1)]   // 0,6
+    [InlineData(10, 0.25, 3)]  // 2,5
+    [InlineData(25, 0.22, 6)]  // 5,5
+    [InlineData(5, 0.23, 1)]   // 1,15
+    [InlineData(15, 0.23, 3)]  // 3,45
+    [InlineData(50, 0.21, 11)] // 10,5
+    public void ExcellentQuota_RoundsHalfUp(int goodCount, double ratio, int expected)
+    {
+        Assert.Equal(expected, EvaluationScoring.ExcellentQuota(goodCount, ratio));
+    }
+
+    [Theory]
+    [InlineData(0.19, false)]
+    [InlineData(0.20, true)]
+    [InlineData(0.225, true)]
+    [InlineData(0.25, true)]
+    [InlineData(0.26, false)]
+    [InlineData(1.5, false)]
+    public void ExcellentQuota_Ratio_MustBe20To25Percent(double ratio, bool valid)
+    {
+        var content = CriteriaSetDefaults.Build09B();
+        content.Parameters.ExcellentQuota.Ratio = ratio;
+        var errors = content.Normalize().Validate(CriteriaSetContent.Form09B);
+        Assert.Equal(valid, !errors.Any(e => e.Contains("Trần tỷ lệ", StringComparison.Ordinal)));
+    }
+
+    /// <summary>Nội dung cũ: thiếu tỷ lệ → 20%; trường mẫu số/làm tròn cũ bị bỏ qua; tỷ lệ ngoài khoảng kẹp về 20%–25% khi tính.</summary>
+    [Fact]
+    public void ExcellentQuota_OldContent_ReadsWithDefaults()
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(CriteriaSetDefaults.Build09A(), CriteriaSetContent.JsonOptions);
+        var node = System.Text.Json.Nodes.JsonNode.Parse(json)!;
+        node["parameters"]!["excellentQuota"] = System.Text.Json.Nodes.JsonNode.Parse("{\"denominator\":\"GoodOrBetter\",\"rounding\":\"Truncate\"}");
+        var content = System.Text.Json.JsonSerializer.Deserialize<CriteriaSetContent>(node.ToJsonString(), CriteriaSetContent.JsonOptions)!.Normalize();
+        Assert.Equal(0.20, content.Parameters.ExcellentQuota.Ratio);
+        Assert.Equal(2, EvaluationScoring.ExcellentQuota(8, content.Parameters.ExcellentQuota));
+
+        Assert.Equal(0.25, new ExcellentQuotaRule { Ratio = 0.5 }.EffectiveRatio);
+        Assert.Equal(0.20, new ExcellentQuotaRule { Ratio = 0.1 }.EffectiveRatio);
+        Assert.Equal(0.20, new ExcellentQuotaRule { Ratio = double.NaN }.EffectiveRatio);
     }
 
     /// <summary>TC-5 (trích xuất mục 9): chênh ≥ 5 hoặc làm đổi mức → bắt buộc giải trình.</summary>
@@ -498,7 +538,5 @@ public sealed class CriteriaSetUnitTests
             if (score >= 50.0) return EvaluationGrade.HoanThanh;
             return EvaluationGrade.KhongHoanThanh;
         }
-
-        public static int Quota(int goodOrBetter) => (int)Math.Floor(goodOrBetter * 0.20);
     }
 }

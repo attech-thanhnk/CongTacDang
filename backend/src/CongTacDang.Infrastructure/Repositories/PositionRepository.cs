@@ -100,11 +100,11 @@ public sealed class PositionRepository : IPositionRepository
         }
 
         var rows = await query
-            .Select(mp => new { mp.UserId, mp.Position!.Name, mp.IsActing, mp.Position.StatCode, mp.Position.DefaultApprovalAuthority })
+            .Select(mp => new { mp.UserId, mp.Position!.Name, mp.IsActing, mp.Position.StatCode, mp.Position.DefaultApprovalAuthority, mp.Position.IsHead })
             .ToListAsync(ct);
         return rows
             .GroupBy(r => r.UserId)
-            .ToDictionary(g => g.Key, g => g.Select(r => new HeldPosition(PositionRules.DisplayName(r.Name, r.IsActing), r.StatCode, r.DefaultApprovalAuthority)).ToList());
+            .ToDictionary(g => g.Key, g => g.Select(r => new HeldPosition(PositionRules.DisplayName(r.Name, r.IsActing), r.StatCode, r.DefaultApprovalAuthority, r.IsHead)).ToList());
     }
 
     /// <inheritdoc />

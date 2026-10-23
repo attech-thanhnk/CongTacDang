@@ -2027,6 +2027,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsHead")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsLeadership")
                         .HasColumnType("boolean");
 

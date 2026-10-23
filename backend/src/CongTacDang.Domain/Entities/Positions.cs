@@ -32,6 +32,12 @@ public class Position : IAuditableEntity, ISoftDeletable
     /// <summary>Chức vụ lãnh đạo, quản lý.</summary>
     public bool IsLeadership { get; set; }
 
+    /// <summary>
+    /// Người đứng đầu (cấp ủy, cơ quan, đơn vị): người giữ chức vụ này không tính vào trần tỷ lệ Hoàn thành xuất sắc của nhóm
+    /// chức danh (cả số Xuất sắc và số Hoàn thành tốt).
+    /// </summary>
+    public bool IsHead { get; set; }
+
     /// <summary>Kiểu trình bày biểu mẫu tự đánh giá mặc định của người giữ chức vụ; null = không xác định.</summary>
     public Guid? FormLayoutId { get; set; }
 

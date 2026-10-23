@@ -12,7 +12,8 @@ namespace CongTacDang.Application.Organization;
 /// <param name="PositionName">Tên chức vụ.</param>
 /// <param name="StatCode">Mã chức danh thống kê (M1…M26) của chức vụ.</param>
 /// <param name="DefaultApprovalAuthority">Thẩm quyền mặc định của chức vụ.</param>
-public sealed record HeldPosition(string PositionName, string? StatCode, ApprovalAuthority? DefaultApprovalAuthority);
+/// <param name="IsHead">Chức vụ người đứng đầu (không tính vào trần tỷ lệ Hoàn thành xuất sắc).</param>
+public sealed record HeldPosition(string PositionName, string? StatCode, ApprovalAuthority? DefaultApprovalAuthority, bool IsHead = false);
 
 /// <summary>
 /// Quy tắc suy ra từ chức vụ (HD03):
@@ -93,7 +94,8 @@ public static class PositionRules
     /// Dữ liệu suy ra của bản ghi chức vụ: chức vụ "Quyền" có mã thống kê, thẩm quyền như chính chức vụ đó; tên là chức danh hiển thị.
     /// </summary>
     public static HeldPosition Held(MemberPosition memberPosition)
-        => new(DisplayName(memberPosition), memberPosition.Position?.StatCode, memberPosition.Position?.DefaultApprovalAuthority);
+        => new(DisplayName(memberPosition), memberPosition.Position?.StatCode, memberPosition.Position?.DefaultApprovalAuthority,
+            memberPosition.Position?.IsHead ?? false);
 
     /// <summary>
     /// Tách tiền tố "Quyền " / "Q. " (không phân biệt hoa thường) khỏi chức vụ ghi dạng chữ (nhập Excel):

@@ -91,6 +91,8 @@ export interface Position {
   statCode?: string | null;
   defaultApprovalAuthority?: ApprovalAuthorityCode | null;
   isLeadership: boolean;
+  /** Người đứng đầu — không tính vào trần tỷ lệ Hoàn thành xuất sắc. */
+  isHead: boolean;
   /** Kiểu trình bày biểu mẫu tự đánh giá mặc định của người giữ chức vụ. */
   formLayoutId?: string | null;
   formLayoutName?: string | null;
@@ -108,6 +110,7 @@ export interface SavePositionPayload {
   formLayoutId?: string;
   defaultApprovalAuthority?: string;
   isLeadership?: boolean;
+  isHead?: boolean;
   sortOrder?: number;
   isActive?: boolean;
 }

@@ -11,7 +11,6 @@ export type { SelfAssessmentSection, TaskLevel };
 export type CriteriaScoringMode = "Binary" | "Range";
 export type NotApplicableRule = "ExcludeAndRescale" | "GrantFull";
 export type ScoreRoundingMode = "HalfUp" | "HalfEven" | "Truncate";
-export type QuotaDenominator = "GoodOnly" | "GoodOrBetter";
 export type CriteriaSetStatus = "Draft" | "Published" | "Archived";
 export type RankedGrade = "HoanThanhXuatSac" | "HoanThanhTot" | "HoanThanh" | "KhongHoanThanh";
 
@@ -98,7 +97,8 @@ export interface CriteriaParameters {
   deductionReasonMinPoints?: number | null;
   explanationThreshold: number;
   explanationOnGradeChange: boolean;
-  excellentQuota: { ratio: number; denominator: QuotaDenominator; rounding: ScoreRoundingMode };
+  /** Trần Xuất sắc: tỷ lệ (0,20..0,25) × số "Hoàn thành tốt" của nhóm chức danh, làm tròn 0,5 lên 1. */
+  excellentQuota: { ratio: number };
   rounding: { taskScore: RoundingRule; tasksTotal: RoundingRule; generalTotal: RoundingRule; total: RoundingRule };
   collectiveGeneralMaxScore: number;
   collectiveTaskMaxScore: number;
@@ -335,6 +335,8 @@ export function quickChecks(content: CriteriaSetContent, form: string): string[]
   const adjust = content.parameters.frameAdjustLimit;
   if (adjust != null && !(adjust >= 0 && adjust <= MAX_FRAME_ADJUST_LIMIT))
     messages.push(`Biên độ điều chỉnh tỷ lệ A-B-C-D phải từ 0 đến ${MAX_FRAME_ADJUST_LIMIT} điểm phần trăm.`);
+  if (excellentQuotaInvalid(content.parameters.excellentQuota.ratio))
+    messages.push(`Trần tỷ lệ Hoàn thành xuất sắc phải từ ${EXCELLENT_QUOTA_PERCENT.min}% đến ${EXCELLENT_QUOTA_PERCENT.max}%.`);
   const alertDays = content.parameters.improvementPlanAlertDays ?? 90;
   if (!(Number.isInteger(alertDays) && alertDays >= 1 && alertDays <= FORM_CONFIG_LIMITS.alertDaysMax))
     messages.push(`Số ngày cảnh báo lập kế hoạch 30-60-90 ngày sau khi đóng kỳ phải là số nguyên từ 1 đến ${FORM_CONFIG_LIMITS.alertDaysMax}.`);
@@ -352,6 +354,15 @@ export function describeFrame(frame: Pick<WeightFrame, "a" | "b" | "c" | "d">): 
 
 /** Biên độ tối đa (điểm phần trăm) khi khai báo trong bộ tiêu chí — khớp máy chủ. */
 export const MAX_FRAME_ADJUST_LIMIT = 50;
+
+/** Khoảng cho phép của trần tỷ lệ Hoàn thành xuất sắc (%) — khớp máy chủ. */
+export const EXCELLENT_QUOTA_PERCENT = { min: 20, max: 25 } as const;
+
+/** Tỷ lệ trần (0..1) nằm ngoài 20%–25%. */
+export function excellentQuotaInvalid(ratio: number): boolean {
+  const percent = Math.round(ratio * 10000) / 100;
+  return !(Number.isFinite(percent) && percent >= EXCELLENT_QUOTA_PERCENT.min && percent <= EXCELLENT_QUOTA_PERCENT.max);
+}
 
 export const criteriaService = {
   list(): Promise<CriteriaSetListItem[]> {

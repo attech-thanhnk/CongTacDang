@@ -406,12 +406,11 @@ public sealed class EvaluationWorkflowServiceTests
     }
 
     [Fact]
-    public void Round_HalfEven_ExcellentQuota_MatchesDecimal()
+    public void ExcellentQuota_HalfUp_MatchesDecimal()
     {
-        // 25 × 0,1 = 2,5 → nửa về chẵn = 2; 35 × 0,1 = 3,5 → 4.
-        var rule = new ExcellentQuotaRule { Ratio = 0.1, Denominator = QuotaDenominator.GoodOrBetter, Rounding = ScoreRoundingMode.HalfEven };
-        Assert.Equal(2, EvaluationScoring.ExcellentQuota(25, 0, rule));
-        Assert.Equal(4, EvaluationScoring.ExcellentQuota(35, 0, rule));
+        // 25 × 0,1 = 2,5 → 3 (0,5 trở lên thành 1); 35 × 0,1 = 3,5 → 4.
+        Assert.Equal(3, EvaluationScoring.ExcellentQuota(25, 0.1));
+        Assert.Equal(4, EvaluationScoring.ExcellentQuota(35, 0.1));
     }
 
     #endregion

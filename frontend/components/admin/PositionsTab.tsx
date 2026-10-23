@@ -22,6 +22,7 @@ interface FormState {
   statCode: string;
   defaultApprovalAuthority: "" | ApprovalAuthorityCode;
   isLeadership: boolean;
+  isHead: boolean;
   formLayoutId: string;
   sortOrder: string;
   isActive: boolean;
@@ -33,6 +34,7 @@ const EMPTY_FORM: FormState = {
   statCode: "",
   defaultApprovalAuthority: "",
   isLeadership: false,
+  isHead: false,
   formLayoutId: "",
   sortOrder: "0",
   isActive: true,
@@ -85,6 +87,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
       statCode: p.statCode ?? "",
       defaultApprovalAuthority: p.defaultApprovalAuthority ?? "",
       isLeadership: p.isLeadership,
+      isHead: p.isHead,
       formLayoutId: p.formLayoutId ?? "",
       sortOrder: String(p.sortOrder),
       isActive: p.isActive,
@@ -104,6 +107,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
       statCode: form.statCode.trim(),
       defaultApprovalAuthority: form.defaultApprovalAuthority,
       isLeadership: form.isLeadership,
+      isHead: form.isHead,
       formLayoutId: form.formLayoutId,
       sortOrder,
       isActive: form.isActive,
@@ -204,6 +208,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                     <td className="ps-3">
                       <span className="fw-semibold text-dark">{p.name}</span>
                       {p.isLeadership && <span className="status-badge tone-neutral ms-2">Lãnh đạo, quản lý</span>}
+                      {p.isHead && <span className="status-badge tone-neutral ms-2">Người đứng đầu</span>}
                     </td>
                     <td>{POSITION_SIDE_LABELS[p.side] ?? p.side}</td>
                     <td>{p.statCode ? <code>{p.statCode}</code> : "—"}</td>
@@ -327,6 +332,18 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                   />
                   <label className="form-check-label small" htmlFor="position-leadership">
                     Chức vụ lãnh đạo, quản lý
+                  </label>
+                </div>
+                <div className="form-check">
+                  <input
+                    id="position-head"
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={form.isHead}
+                    onChange={(e) => setForm({ ...form, isHead: e.target.checked })}
+                  />
+                  <label className="form-check-label small" htmlFor="position-head">
+                    Người đứng đầu (không tính vào trần tỷ lệ Hoàn thành xuất sắc)
                   </label>
                 </div>
                 <div className="form-check">

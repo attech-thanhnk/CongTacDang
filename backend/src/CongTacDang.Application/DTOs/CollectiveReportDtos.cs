@@ -120,6 +120,14 @@ public class Form16SummaryRowDto
 
     /// <summary>Tỷ lệ % xếp loại xuất sắc trong số xếp loại tốt trở lên; null khi không có ai tốt trở lên.</summary>
     public double? ExcellentPercent { get; set; }
+
+    /// <summary>
+    /// Số Xuất sắc tối đa của nhóm chức danh trong cấp quyết định (trần tỷ lệ; không tính người đứng đầu); null với dòng "Tổng cộng".
+    /// </summary>
+    public int? MaxExcellentAllowed { get; set; }
+
+    /// <summary>Nhóm vượt trần Xuất sắc (chỉ cảnh báo khi xem trước, không in lên biểu mẫu).</summary>
+    public bool IsExceedingQuota { get; set; }
 }
 
 /// <summary>Bản nháp Mẫu 16 kèm số liệu tổng hợp tự động (xem trước trước khi xuất).</summary>

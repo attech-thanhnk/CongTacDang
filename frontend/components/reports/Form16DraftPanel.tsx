@@ -62,7 +62,12 @@ function SummaryTable({ title, rows }: { title: string; rows: Form16SummaryRow[]
           <tbody>
             {rows.map((row, index) => (
               <tr key={`${row.statCode ?? "none"}-${index}`} className={index === rows.length - 1 ? "fw-semibold" : undefined}>
-                <td>{row.statCode ? `${row.statCode} — ` : ""}{row.subject}</td>
+                <td>
+                  {row.statCode ? `${row.statCode} — ` : ""}{row.subject}
+                  {row.isExceedingQuota && (
+                    <span className="tag t-bad ms-2">Vượt trần XS (tối đa {row.maxExcellentAllowed ?? 0})</span>
+                  )}
+                </td>
                 <td className="text-center">{row.total}</td>
                 <td className="text-center">{row.excellent}</td>
                 <td className="text-center">{row.good}</td>

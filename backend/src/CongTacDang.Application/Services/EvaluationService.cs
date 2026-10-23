@@ -7,6 +7,8 @@ using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
+using CongTacDang.Application.Organization;
+using CongTacDang.Application.Reports;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.Domain.Evaluation;
@@ -19,18 +21,18 @@ namespace CongTacDang.Application.Services;
 public class EvaluationService : IEvaluationService
 {
     private readonly IEvaluationWorkflowRepository _repo;
-    private readonly IOrganizationRepository _orgRepo;
+    private readonly IPositionRepository _positions;
     private readonly ICurrentUserService _currentUser;
     private readonly IAuthorizationGuard _guard;
 
     public EvaluationService(
         IEvaluationWorkflowRepository repo,
-        IOrganizationRepository orgRepo,
+        IPositionRepository positions,
         ICurrentUserService currentUser,
         IAuthorizationGuard guard)
     {
         _repo = repo;
-        _orgRepo = orgRepo;
+        _positions = positions;
         _currentUser = currentUser;
         _guard = guard;
     }
@@ -94,49 +96,46 @@ public class EvaluationService : IEvaluationService
     }
 
     /// <inheritdoc />
-    public async Task<List<BranchQuotaCheckDto>> CheckBranchQuotasAsync(Guid periodId, CancellationToken ct = default)
+    public async Task<ExcellentQuotaCheckDto> CheckExcellentQuotasAsync(Guid periodId, Guid? partyCellId, CancellationToken ct = default)
     {
+        if (periodId == Guid.Empty)
+            throw new ValidationException("Hãy chọn kỳ đánh giá (tham số periodId).");
         var scope = _guard.GetScope(PermissionCodes.EvaluationRead);
         var period = await _repo.FindPeriodAsync(periodId, ct)
             ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
-        var quota = (EvaluationMapping.SafeCriteria(period)?.Content.Parameters ?? new CriteriaParameters()).ExcellentQuota;
+        var rule = EvaluationMapping.SafeCriteria(period)?.Content.Parameters.ExcellentQuota ?? new ExcellentQuotaRule();
+        var cellId = partyCellId is { } id && id != Guid.Empty ? id : (Guid?)null;
+
+        // Đơn vị của hồ sơ lấy theo ảnh chụp trên hồ sơ (không theo nơi sinh hoạt hiện tại của cán bộ).
         var records = (await _repo.ListRecordsAsync(periodId, ct))
-            .Where(record => scope.Matches(record.MemberId, record.DepartmentId, record.PartyCellId))
+            .Where(r => scope.Matches(r.MemberId, r.DepartmentId, r.PartyCellId))
             .ToList();
-        var cells = await _orgRepo.GetPartyCellsWithMembersAsync();
-
-        var result = new List<BranchQuotaCheckDto>();
-        foreach (var cell in cells)
+        if (cellId is { } selected)
         {
-            var cellRecords = records.Where(r => r.Member?.PartyCellId == cell.Id || r.PartyCellId == cell.Id).ToList();
-
-            // Mức đề xuất trước quyết định: thẩm định → tập thể lãnh đạo.
-            int goodOrBetter = cellRecords.Count(r => ProposedGrade(r) is EvaluationGrade.HoanThanhXuatSac or EvaluationGrade.HoanThanhTot);
-            int proposedExcellent = cellRecords.Count(r => ProposedGrade(r) == EvaluationGrade.HoanThanhXuatSac);
-            int maxAllowed = EvaluationScoring.ExcellentQuota(goodOrBetter, proposedExcellent, quota);
-            double actualPercent = goodOrBetter > 0
-                ? Math.Round(((double)proposedExcellent / goodOrBetter) * 100.0, 1)
-                : 0.0;
-
-            result.Add(new BranchQuotaCheckDto
-            {
-                BranchId = cell.Id,
-                BranchName = cell.Name,
-                TotalCadres = cellRecords.Count,
-                GoodOrBetterCount = goodOrBetter,
-                MaxExcellentAllowed = maxAllowed,
-                ProposedExcellentCount = proposedExcellent,
-                ActualExcellentPercentage = actualPercent,
-                IsExceedingQuota = proposedExcellent > maxAllowed
-            });
+            if (!await _repo.PartyCellExistsAsync(selected, ct))
+                throw new NotFoundException("Không tìm thấy tổ chức Đảng đã chọn.");
+            var cellPaths = (await _positions.GetOrgPathsAsync(ct)).PartyCells;
+            records = records
+                .Where(r => r.PartyCellId is { } c && (c == selected || OrgTree.IsSelfOrDescendant(cellPaths.GetValueOrDefault(c), selected)))
+                .ToList();
         }
 
-        return result;
-    }
+        var at = ExcellentQuotaCalculator.PositionDate(period, DateTime.UtcNow);
+        var held = await _positions.GetHeldPositionsAsync(records.Select(r => r.MemberId).Distinct().ToList(), at, ct);
+        var groups = ExcellentQuotaCalculator.Compute(
+            records.Select(r => ExcellentQuotaCalculator.EntryFor(r, held.GetValueOrDefault(r.MemberId))),
+            rule.EffectiveRatio);
 
-    /// <summary>Mức đề xuất dùng kiểm soát trần: mức thẩm định; chưa thẩm định thì mức đề xuất của tập thể lãnh đạo.</summary>
-    public static EvaluationGrade ProposedGrade(EvaluationRecord r) =>
-        r.AppraisalProposedGrade != EvaluationGrade.ChuaXepLoai ? r.AppraisalProposedGrade : r.CollectiveProposedGrade;
+        return new ExcellentQuotaCheckDto
+        {
+            PeriodId = periodId,
+            Ratio = rule.EffectiveRatio,
+            PartyCellId = cellId,
+            IsFullScope = scope.IsGlobal && cellId == null,
+            ExceedingGroupCount = groups.Count(g => g.IsExceeding),
+            Groups = groups.Select(ExcellentQuotaCalculator.ToDto).ToList()
+        };
+    }
 
     private async Task<EvaluationRecordDto> MapAsync(EvaluationRecord record, CancellationToken ct)
     {

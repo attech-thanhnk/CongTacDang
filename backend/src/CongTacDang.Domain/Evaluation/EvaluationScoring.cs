@@ -298,16 +298,21 @@ public static class EvaluationScoring
     }
 
     /// <summary>
-    /// Số Hoàn thành xuất sắc tối đa = làm tròn (tỷ lệ × mẫu số), mẫu số theo bộ: số "Hoàn thành tốt" (= tốt trở lên − xuất sắc)
-    /// hoặc số "Hoàn thành tốt" trở lên.
+    /// Số Hoàn thành xuất sắc tối đa của một nhóm chức danh = làm tròn (tỷ lệ × số người "Hoàn thành tốt nhiệm vụ"), 0,5 trở
+    /// lên thành 1 (8 người × 20% = 1,6 → 2; 10 × 25% = 2,5 → 3). Tính bằng <see cref="decimal"/> để không lệch ở mốc 0,5.
     /// </summary>
-    public static int ExcellentQuota(int goodOrBetterCount, int excellentCount, ExcellentQuotaRule rule)
+    public static int ExcellentQuota(int goodCount, double ratio)
+    {
+        if (goodCount <= 0 || !double.IsFinite(ratio) || ratio <= 0)
+            return 0;
+        return (int)Math.Round((decimal)ratio * goodCount, 0, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>Số Hoàn thành xuất sắc tối đa theo tỷ lệ của bộ tiêu chí (<see cref="ExcellentQuotaRule.EffectiveRatio"/>).</summary>
+    public static int ExcellentQuota(int goodCount, ExcellentQuotaRule rule)
     {
         ArgumentNullException.ThrowIfNull(rule);
-        var denominator = rule.Denominator == QuotaDenominator.GoodOrBetter
-            ? goodOrBetterCount
-            : Math.Max(0, goodOrBetterCount - excellentCount);
-        return (int)Round(denominator * rule.Ratio, new RoundingRule(0, rule.Rounding));
+        return ExcellentQuota(goodCount, rule.EffectiveRatio);
     }
 
     /// <summary>
