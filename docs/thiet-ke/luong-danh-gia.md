@@ -221,3 +221,6 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 6. Ba hồ sơ luồng dựng sẵn (mục 3.2) có đúng và đủ nhóm đối tượng của ATTECH không (ví dụ Phó Giám đốc — IV.3c dòng 4b; Kiểm soát viên — dòng 5; kiêm nhiệm hai cấp — mục 1.5)?
 7. Diện BTV ĐUTCT: B2 "Chi bộ xác nhận" và B3a "tập thể lãnh đạo Công ty" có làm trong hệ thống như cấu hình mặc định không?
 8. Điều kiện xếp loại theo mức thẩm định nhiệm vụ: có chặn cứng (không cho chọn mức trái điều kiện) hay chỉ cảnh báo như hiện tại? Câu "tỷ lệ nhiệm vụ trọng tâm Mức 2 từ 20%" áp dụng cho mức nào, tính trên tổng nhiệm vụ hay nhiệm vụ trọng tâm — chưa kiểm tra cho đến khi được xác nhận.
+9. ~~Thẩm định trả lại: hồ sơ nộp lại đi thẳng tới thẩm định hay đi lại từ Chi bộ?~~ → **đi lại từ Chi bộ** (Chi bộ xác nhận và tập thể đề xuất lại), giữ như hiện tại (xác nhận 23/10/2026).
+10. ~~Chủ hồ sơ có xem được mức/nhận xét của các bước sau trước khi công bố?~~ → **được xem**, giữ như hiện tại (xác nhận 23/10/2026).
+11. Một người có được thực hiện nhiều bước trên cùng một hồ sơ (vd ghi đề xuất tập thể rồi thẩm định; người đã quyết định lần đầu quyết định lại sau khi chấp nhận kiến nghị)? Hiện chỉ chặn chủ hồ sơ và người đã quyết định xử lý kiến nghị — chưa quyết.
