@@ -1,0 +1,76 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+  padding: 8px 8px 8px 16px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+
+/* Thanh lưu dính trên đầu khi cuộn danh sách quyền dài */
+.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.summary {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  color: var(--ink-2);
+}
+
+.summary strong {
+  color: var(--ink);
+}
+
+.changes {
+  font-weight: 600;
+}
+
+.toolbarActions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.toolbarActions :global(.btn) {
+  min-height: 32px;
+}
+
+.switch {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 8px;
+}
+
+.switch :global(.form-check-input) {
+  margin-top: 0;
+}
+
+@media (max-width: 767.98px) {
+  .toolbar {
+    padding: 8px 12px;
+  }
+
+  .toolbarActions {
+    width: 100%;
+  }
+
+  .toolbarActions :global(.btn) {
+    flex: 1 1 0;
+    min-height: 40px;
+  }
+
+  .switch {
+    min-height: 40px;
+  }
+}

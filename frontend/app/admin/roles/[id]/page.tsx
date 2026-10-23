@@ -22,6 +22,7 @@ import {
   SaveRolePayload,
   UpdateAssignmentPayload,
 } from "@/services/roleService";
+import styles from "./roleDetail.module.css";
 
 /** Hai quyền quản trị mà vai trò bảo vệ bắt buộc giữ. */
 const PROTECTED_CODES = new Set(["system.roles.manage", "system.assignments.manage"]);
@@ -45,6 +46,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
   const [tab, setTab] = useState<Tab>("permissions");
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [showUngranted, setShowUngranted] = useState(false);
 
   const [assignments, setAssignments] = useState<RoleAssignment[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -90,6 +92,15 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
     if (role.permissionCodes.length !== selected.size) return true;
     return role.permissionCodes.some((code) => !selected.has(code));
   }, [role, selected]);
+
+  const originalCodes = useMemo(() => new Set(role?.permissionCodes ?? []), [role]);
+  const changeCount = useMemo(() => {
+    let n = 0;
+    selected.forEach((code) => !originalCodes.has(code) && n++);
+    originalCodes.forEach((code) => !selected.has(code) && n++);
+    return n;
+  }, [selected, originalCodes]);
+  const totalPermissions = useMemo(() => modules.reduce((sum, m) => sum + m.permissions.length, 0), [modules]);
 
   const heldBySelf = assignments.some((a) => a.userId === currentUser?.id && a.status === "Active");
   const lockedCodes = role?.isProtected ? PROTECTED_CODES : undefined;
@@ -275,7 +286,8 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
         {tab === "permissions" && (
           <div>
             {heldBySelf && (
-              <div className="alert alert-info py-2">
+              <div className="alert alert-info py-2 mb-3">
+                <i className="bi bi-info-circle me-2" />
                 Bạn đang giữ vai trò này nên không tự sửa quyền được.
               </div>
             )}
@@ -284,16 +296,51 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
                 Vai trò đang có {scopedAssignments} phân công theo đơn vị nên không thêm được quyền &quot;Chỉ Toàn công ty&quot;.
               </div>
             )}
-            <div className="d-flex justify-content-end gap-2 mb-2 position-sticky" style={{ top: 0, zIndex: 2 }}>
-              <button type="button" className="btn btn-sm btn-outline-secondary" disabled={!dirty || saving} onClick={() => setSelected(new Set(role.permissionCodes))}>
-                Hoàn tác
-              </button>
-              <button type="button" className="btn btn-sm btn-primary" disabled={!dirty || saving || heldBySelf} onClick={savePermissions}>
-                {saving && <span className="spinner-border spinner-border-sm me-1" />}
-                Lưu quyền {dirty && `(${selected.size})`}
-              </button>
-            </div>
-            <PermissionMatrix modules={modules} selected={selected} onChange={setSelected} readOnly={heldBySelf} lockedCodes={lockedCodes} />
+            {heldBySelf ? (
+              <div className={styles.toolbar}>
+                <span className={styles.summary}>
+                  <span>
+                    Có <strong className="num">{role.permissionCodes.length}</strong>/<span className="num">{totalPermissions}</span> quyền
+                  </span>
+                </span>
+                <div className={`form-check form-switch mb-0 ${styles.switch}`}>
+                  <input id="show-ungranted" type="checkbox" role="switch" className="form-check-input" checked={showUngranted} onChange={(e) => setShowUngranted(e.target.checked)} />
+                  <label htmlFor="show-ungranted" className="form-check-label">
+                    Hiện cả quyền chưa cấp
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <div className={`${styles.toolbar} ${styles.sticky}`}>
+                <span className={styles.summary}>
+                  <span>
+                    Đã chọn <strong className="num">{selected.size}</strong>/<span className="num">{totalPermissions}</span> quyền
+                  </span>
+                  {changeCount > 0 && <span className={`tag t-wait ${styles.changes}`}>{changeCount} thay đổi chưa lưu</span>}
+                </span>
+                <div className={styles.toolbarActions}>
+                  {dirty && (
+                    <button type="button" className="btn btn-sm btn-outline-secondary" disabled={saving} onClick={() => setSelected(new Set(role.permissionCodes))}>
+                      <i className="bi bi-arrow-counterclockwise me-1" />
+                      Hoàn tác
+                    </button>
+                  )}
+                  <button type="button" className="btn btn-sm btn-primary" disabled={!dirty || saving} onClick={savePermissions}>
+                    {saving ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-check2 me-1" />}
+                    Lưu quyền
+                  </button>
+                </div>
+              </div>
+            )}
+            <PermissionMatrix
+              modules={modules}
+              selected={selected}
+              onChange={setSelected}
+              readOnly={heldBySelf}
+              lockedCodes={lockedCodes}
+              original={originalCodes}
+              showUngranted={showUngranted}
+            />
           </div>
         )}
 

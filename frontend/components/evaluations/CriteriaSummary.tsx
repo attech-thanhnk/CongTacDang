@@ -1,149 +1,386 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { COLLECTIVE_KIND_LABELS, CriteriaSetContent, GRADE_LABELS, RECORD_FORMS, ROUNDING_LABELS, fmt } from "@/services/criteriaService";
+import styles from "./CriteriaSummary.module.css";
+
+interface NavEntry {
+  id: string;
+  label: string;
+  code?: string;
+  child?: boolean;
+}
+
+interface CriteriaSummaryProps {
+  content: CriteriaSetContent;
+  form: string;
+  /** Hiện mục lục (thanh bên dính trên màn rộng, thanh nhảy nhanh trên màn hẹp) — dùng khi bộ tiêu chí là nội dung chính của trang. */
+  navigation?: boolean;
+}
+
+type ItemRow = { code: string; text: string; maxScore: number };
 
 /** Xem nội dung bộ tiêu chí (chỉ đọc): tiêu chí chung, trục, khung tỷ trọng, thang quy đổi, mức xếp loại, tham số. */
-export function CriteriaSummary({ content, form }: { content: CriteriaSetContent; form: string }) {
+export function CriteriaSummary({ content, form, navigation = false }: CriteriaSummaryProps) {
   const p = content.parameters;
   const collectiveGroups = content.collectiveGroups ?? [];
-  return (
-    <div className="d-flex flex-column gap-3 small">
-      <div>
-        <h3 className="h6 small fw-bold text-secondary">Nhóm tiêu chí chung (tối đa {fmt(p.generalMaxScore)} điểm)</h3>
-        <div className="table-responsive"><table className="table table-sm mb-0">
-          <thead><tr className="text-secondary"><th style={{ width: 60 }}>Mã</th><th>Tiêu chí</th><th style={{ width: 80 }}>Tối đa</th></tr></thead>
-          <tbody>
-            {content.generalGroups.map((g) => (
-              <React.Fragment key={g.code}>
-                <tr className="table-light fw-semibold">
-                  <td>{g.code}</td>
-                  <td>{g.name} <span className="fw-normal text-secondary">— {g.scoringMode === "Binary" ? "Đảm bảo / Không đảm bảo" : "chấm điểm trong khoảng"}</span></td>
-                  <td>{fmt(g.items.reduce((s, i) => s + i.maxScore, 0))}</td>
-                </tr>
-                {g.items.map((i) => <tr key={i.code}><td>{i.code}</td><td>{i.text}</td><td>{fmt(i.maxScore)}</td></tr>)}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table></div>
-      </div>
+  const prefix = `cs${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const sid = (key: string) => `${prefix}-${key}`;
+  const is09B = form === "09B";
+
+  const nav = useMemo<NavEntry[]>(() => {
+    const entries: NavEntry[] = [{ id: sid("general"), label: "Tiêu chí chung" }];
+    content.generalGroups.forEach((g, i) => entries.push({ id: sid(`g${i}`), label: g.name, code: g.code, child: true }));
+    if (collectiveGroups.length > 0) entries.push({ id: sid("collective"), label: "Tiêu chí tập thể" });
+    entries.push(
+      { id: sid("axes"), label: "Trục kết quả" },
+      { id: sid("forms"), label: "Biểu mẫu áp dụng" },
+      { id: sid("frames"), label: "Tỷ trọng và quy đổi" },
+      { id: sid("grades"), label: "Mức xếp loại" },
+      { id: sid("params"), label: "Tham số" }
+    );
+    return entries;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content, prefix]);
+
+  const active = useActiveSection(navigation ? nav.map((n) => n.id) : []);
+  const tocList = useRef<HTMLUListElement>(null);
+
+  // Thanh nhảy nhanh cuộn ngang: giữ mục đang xem trong tầm nhìn (chỉ cuộn thanh, không cuộn trang).
+  useEffect(() => {
+    const list = tocList.current;
+    const link = list?.querySelector<HTMLElement>("[aria-current]");
+    if (!list || !link || list.scrollWidth <= list.clientWidth) return;
+    const left = link.offsetLeft - list.offsetLeft;
+    if (left < list.scrollLeft || left + link.offsetWidth > list.scrollLeft + list.clientWidth) list.scrollLeft = left - 16;
+  }, [active]);
+
+  const body = (
+    <div className={styles.blocks}>
+      <section id={sid("general")} className={styles.block}>
+        <header className={styles.blockHead}>
+          <h3 className={styles.blockTitle}>Nhóm tiêu chí chung</h3>
+          <span className={styles.blockMeta}>
+            Tối đa <strong className="num">{fmt(p.generalMaxScore)}</strong> điểm
+          </span>
+        </header>
+        <CriteriaGroups
+          groups={content.generalGroups.map((g, i) => ({
+            id: sid(`g${i}`),
+            code: g.code,
+            name: g.name,
+            note: g.scoringMode === "Binary" ? "Đảm bảo / Không đảm bảo" : "Chấm điểm trong khoảng",
+            items: g.items,
+          }))}
+        />
+      </section>
 
       {collectiveGroups.length > 0 && (
-        <div>
-          <h3 className="h6 small fw-bold text-secondary">Khung tiêu chí tập thể (Mẫu 06, 07)</h3>
-          <table className="table table-sm mb-0">
-            <thead><tr className="text-secondary"><th style={{ width: 60 }}>Mã</th><th>Tiêu chí</th><th style={{ width: 80 }}>Tối đa</th></tr></thead>
-            <tbody>
-              {collectiveGroups.map((g) => (
-                <React.Fragment key={g.code}>
-                  <tr className="table-light fw-semibold">
-                    <td>{g.code}</td>
-                    <td>{g.name} <span className="fw-normal text-secondary">— {COLLECTIVE_KIND_LABELS[g.kind] ?? g.kind}</span></td>
-                    <td>{fmt(g.items.reduce((s, i) => s + i.maxScore, 0))}</td>
+        <section id={sid("collective")} className={styles.block}>
+          <header className={styles.blockHead}>
+            <h3 className={styles.blockTitle}>Khung tiêu chí tập thể (Mẫu 06, 07)</h3>
+          </header>
+          <CriteriaGroups
+            groups={collectiveGroups.map((g, i) => ({
+              id: sid(`c${i}`),
+              code: g.code,
+              name: g.name,
+              note: COLLECTIVE_KIND_LABELS[g.kind] ?? g.kind,
+              items: g.items,
+            }))}
+          />
+        </section>
+      )}
+
+      <section id={sid("axes")} className={styles.block}>
+        <header className={styles.blockHead}>
+          <h3 className={styles.blockTitle}>Trục kết quả</h3>
+          {is09B && (
+            <span className={styles.blockMeta}>
+              Chấm trực tiếp, tổng <strong className="num">{fmt(content.axes.reduce((s, a) => s + a.maxScore, 0))}</strong> điểm
+            </span>
+          )}
+        </header>
+        <div className={styles.axes}>
+          {content.axes.map((a) => (
+            <div key={a.code} className={styles.axis}>
+              <div className={styles.axisHead}>
+                <span className={styles.code}>{a.code}</span>
+                <span className={styles.axisName}>{a.name}</span>
+                {is09B && (
+                  <span className={styles.max}>
+                    <span className="num">{fmt(a.maxScore)}</span>
+                    <span className={styles.maxUnit}>điểm</span>
+                  </span>
+                )}
+              </div>
+              {a.description && <div className={styles.axisDesc}>{a.description}</div>}
+              {is09B && (a.formTitle || a.formGuidance) && (
+                <details className={styles.axisForm}>
+                  <summary>Nội dung in trên Mẫu 09B</summary>
+                  {a.formTitle && <div className={styles.axisFormTitle}>{a.formTitle}</div>}
+                  {a.formGuidance && <div className={styles.axisGuidance}>{a.formGuidance}</div>}
+                </details>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id={sid("forms")} className={styles.block}>
+        <header className={styles.blockHead}>
+          <h3 className={styles.blockTitle}>Biểu mẫu cá nhân áp dụng</h3>
+        </header>
+        <div className={styles.blockBody}>
+          <ul className={styles.formList}>
+            {RECORD_FORMS.filter((f) => (f.code === "09A" || f.code === "09B" ? f.code === form : (content.requiredForms ?? []).includes(f.code))).map((f) => (
+              <li key={f.code}>
+                <i className="bi bi-file-earmark-text" aria-hidden="true" />
+                {f.name}
+              </li>
+            ))}
+          </ul>
+          {(content.requiredForms ?? []).includes("09C") && (content.selfAssessmentSections ?? []).length > 0 && (
+            <>
+              <h4 className={styles.subTitle}>Mục tự đánh giá của Mẫu 09C</h4>
+              <ul className={styles.plainList}>
+                {(content.selfAssessmentSections ?? []).map((s) => (
+                  <li key={s.code}>
+                    <strong>{s.code}</strong>: {s.title} — tối đa {fmt(s.maxLength, 0)} ký tự{s.required ? ", bắt buộc khi nộp" : ""}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {(content.taskLevels ?? []).length > 0 && (
+            <>
+              <h4 className={styles.subTitle}>Mức tự đánh giá nhiệm vụ</h4>
+              <ul className={styles.plainList}>
+                {(content.taskLevels ?? []).map((l) => (
+                  <li key={l.code}>
+                    <strong>{l.code}</strong>: {l.label}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      </section>
+
+      <section id={sid("frames")} className={styles.block}>
+        <header className={styles.blockHead}>
+          <h3 className={styles.blockTitle}>Khung tỷ trọng và thang quy đổi A-B-C-D</h3>
+        </header>
+        <div className={`${styles.blockBody} ${styles.twoCols}`}>
+          <div>
+            <h4 className={styles.subTitle}>Khung tỷ trọng</h4>
+            <div className="table-responsive">
+              <table className={`table table-sm mb-0 ${styles.table}`}>
+                <thead>
+                  <tr>
+                    <th>Khung</th>
+                    <th className="text-end">A</th>
+                    <th className="text-end">B</th>
+                    <th className="text-end">C</th>
+                    <th className="text-end">D</th>
                   </tr>
-                  {g.items.map((i) => <tr key={i.code}><td>{i.code}</td><td>{i.text}</td><td>{fmt(i.maxScore)}</td></tr>)}
-                </React.Fragment>
+                </thead>
+                <tbody>
+                  {content.weightFrames.map((f) => (
+                    <tr key={f.code}>
+                      <td>
+                        <span className="fw-semibold">{f.code}</span> — {f.name}
+                        {p.defaultWeightFrameCode === f.code && <span className={`tag t-info ${styles.inlineTag}`}>Mặc định</span>}
+                      </td>
+                      {[f.a, f.b, f.c, f.d].map((v, i) => (
+                        <td key={i} className="text-end num">
+                          {fmt(v * 100)}%
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {content.weightFrames.length > 0 && (
+              <div className={styles.note}>
+                {p.frameAdjustLimit != null && p.frameAdjustLimit > 0
+                  ? `Được điều chỉnh mỗi thành phần ±${fmt(p.frameAdjustLimit)} điểm % khi duyệt danh mục.`
+                  : "Không điều chỉnh tỷ lệ."}
+              </div>
+            )}
+          </div>
+          <div>
+            <h4 className={styles.subTitle}>Thang quy đổi %</h4>
+            <ul className={styles.scaleList}>
+              {content.conversionScale.map((b) => (
+                <li key={b.minPercent}>
+                  <strong>{b.label}</strong>
+                  {b.description && <span className={styles.scaleDesc}>{b.description}</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id={sid("grades")} className={styles.block}>
+        <header className={styles.blockHead}>
+          <h3 className={styles.blockTitle}>Mức xếp loại</h3>
+        </header>
+        <div className={`table-responsive ${styles.flush}`}>
+          <table className={`table mb-0 ${styles.table} ${styles.gradeTable}`}>
+            <thead>
+              <tr>
+                <th>Mức</th>
+                <th className="text-end">Từ điểm</th>
+                <th className="text-end">% vượt chuẩn tối thiểu</th>
+                <th>Điều kiện kèm theo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {content.grades.map((g) => (
+                <tr key={g.grade}>
+                  <td className="fw-semibold">{GRADE_LABELS[g.grade] ?? g.grade}</td>
+                  <td className="text-end num" data-label="Từ điểm">{fmt(g.minScore)}</td>
+                  <td className="text-end num" data-label="% vượt chuẩn tối thiểu">{g.minExceedStandardRatio != null ? `${fmt(g.minExceedStandardRatio * 100)}%` : "—"}</td>
+                  <td data-label="Điều kiện kèm theo">{g.conditions || "—"}</td>
+                </tr>
               ))}
             </tbody>
           </table>
         </div>
-      )}
+      </section>
 
-      <div>
-        <h3 className="h6 small fw-bold text-secondary">Trục kết quả{form === "09B" ? ` (chấm trực tiếp, tổng ${fmt(content.axes.reduce((s, a) => s + a.maxScore, 0))} điểm)` : ""}</h3>
-        <div className="table-responsive"><table className="table table-sm mb-0">
-          <thead><tr className="text-secondary"><th style={{ width: 60 }}>Mã</th><th>Trục</th>{form === "09B" && <th style={{ width: 80 }}>Tối đa</th>}</tr></thead>
-          <tbody>
-            {content.axes.map((a) => (
-              <tr key={a.code}>
-                <td>{a.code}</td>
-                <td>
-                  {a.name}{a.description && <div className="text-secondary">{a.description}</div>}
-                  {form === "09B" && a.formTitle && <div className="mt-1"><span className="text-secondary">Tiêu đề Mẫu 09B:</span> {a.formTitle}</div>}
-                  {form === "09B" && a.formGuidance && <div className="text-secondary" style={{ whiteSpace: "pre-line" }}>{a.formGuidance}</div>}
-                </td>
-                {form === "09B" && <td>{fmt(a.maxScore)}</td>}
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
-      </div>
-
-      <div>
-        <h3 className="h6 small fw-bold text-secondary">Biểu mẫu cá nhân áp dụng</h3>
-        <ul className="mb-1 ps-3">
-          {RECORD_FORMS.filter((f) => ((f.code === "09A" || f.code === "09B") ? f.code === form : (content.requiredForms ?? []).includes(f.code))).map((f) => <li key={f.code}>{f.name}</li>)}
-        </ul>
-        {(content.requiredForms ?? []).includes("09C") && (content.selfAssessmentSections ?? []).map((s) => (
-          <div key={s.code} className="ms-3">
-            Mục 09C <strong>{s.code}</strong>: {s.title} — tối đa {fmt(s.maxLength, 0)} ký tự{s.required ? ", bắt buộc khi nộp" : ""}
-          </div>
-        ))}
-        {(content.taskLevels ?? []).map((l) => (
-          <div key={l.code} className="ms-3">Mức tự đánh giá nhiệm vụ <strong>{l.code}</strong>: {l.label}</div>
-        ))}
-      </div>
-
-      <div className="row g-3">
-        <div className="col-lg-6">
-          <h3 className="h6 small fw-bold text-secondary">Khung tỷ trọng A-B-C-D</h3>
-          <div className="table-responsive"><table className="table table-sm mb-0">
-            <thead><tr className="text-secondary"><th>Khung</th><th>A</th><th>B</th><th>C</th><th>D</th></tr></thead>
-            <tbody>
-              {content.weightFrames.map((f) => (
-                <tr key={f.code}><td>{f.code} — {f.name}{p.defaultWeightFrameCode === f.code && <span className="badge text-bg-light ms-1">mặc định</span>}</td><td>{fmt(f.a * 100)}%</td><td>{fmt(f.b * 100)}%</td><td>{fmt(f.c * 100)}%</td><td>{fmt(f.d * 100)}%</td></tr>
-              ))}
-            </tbody>
-          </table></div>
-          {content.weightFrames.length > 0 && (
-            <div className="text-secondary mt-1">
-              {p.frameAdjustLimit != null && p.frameAdjustLimit > 0
-                ? `Được điều chỉnh mỗi thành phần ±${fmt(p.frameAdjustLimit)} điểm % khi duyệt danh mục.`
-                : "Không điều chỉnh tỷ lệ."}
-            </div>
-          )}
-        </div>
-        <div className="col-lg-6">
-          <h3 className="h6 small fw-bold text-secondary">Thang quy đổi % A-B-C-D</h3>
-          <ul className="mb-0 ps-3">
-            {content.conversionScale.map((b) => <li key={b.minPercent}><strong>{b.label}</strong>{b.description ? `: ${b.description}` : ""}</li>)}
-          </ul>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="h6 small fw-bold text-secondary">Mức xếp loại</h3>
-        <div className="table-responsive"><table className="table table-sm mb-0">
-          <thead><tr className="text-secondary"><th>Mức</th><th style={{ width: 90 }}>Từ điểm</th><th style={{ width: 120 }}>% vượt chuẩn tối thiểu</th><th>Điều kiện kèm theo</th></tr></thead>
-          <tbody>
-            {content.grades.map((g) => (
-              <tr key={g.grade}><td>{GRADE_LABELS[g.grade] ?? g.grade}</td><td>{fmt(g.minScore)}</td><td>{g.minExceedStandardRatio != null ? `${fmt(g.minExceedStandardRatio * 100)}%` : "—"}</td><td>{g.conditions || "—"}</td></tr>
-            ))}
-          </tbody>
-        </table></div>
-      </div>
-
-      <div>
-        <h3 className="h6 small fw-bold text-secondary">Tham số</h3>
-        <ul className="mb-0 ps-3">
-          <li>Số sản phẩm {p.minTasks}–{p.maxTasks}; tổng trọng số / điểm tối đa nhóm nhiệm vụ {fmt(p.totalTaskWeight)} (sai số {fmt(p.taskWeightTolerance)}).</li>
-          <li>Không áp dụng (K/AD): {p.allowNotApplicable ? (p.notApplicableRule === "GrantFull" ? "được phép, tính như đạt tối đa" : "được phép, bỏ khỏi mẫu số rồi quy đổi") : "không được phép"}; giảm từ {p.deductionReasonMinPoints != null ? `${fmt(p.deductionReasonMinPoints)} điểm phải nêu lý do` : "không bắt buộc nêu lý do"}.</li>
-          <li>Giải trình khi chênh lệch tự chấm – thẩm định từ {fmt(p.explanationThreshold)} điểm{p.explanationOnGradeChange ? " hoặc làm đổi mức" : ""}.</li>
-          <li>Trần xuất sắc {fmt(p.excellentQuota.ratio * 100)}% số &quot;Hoàn thành tốt&quot; của từng nhóm chức danh, làm tròn từ 0,5 trở lên thành 1, không tính người đứng đầu.</li>
-          <li>
-            Làm tròn — điểm sản phẩm: {p.rounding.taskScore.decimals} chữ số, {ROUNDING_LABELS[p.rounding.taskScore.mode]}; tổng nhiệm vụ: {p.rounding.tasksTotal.decimals}, {ROUNDING_LABELS[p.rounding.tasksTotal.mode]};
-            tiêu chí chung: {p.rounding.generalTotal.decimals}, {ROUNDING_LABELS[p.rounding.generalTotal.mode]}; tổng điểm: {p.rounding.total.decimals}, {ROUNDING_LABELS[p.rounding.total.mode]}.
-          </li>
-          <li>Hồ sơ tập thể: tối đa {fmt(p.collectiveGeneralMaxScore)} / {fmt(p.collectiveTaskMaxScore)} điểm{collectiveGroups.length > 0 ? ", chấm theo khung tiêu chí tập thể" : ", nhập thẳng điểm hai nhóm"}.</li>
-          <li>
-            Sau công bố: công khai {p.publishScores ? "mức xếp loại kèm điểm chính thức" : "chỉ mức xếp loại"}; bắt buộc lập kế hoạch 30-60-90 ngày (Mẫu 17) với mức{" "}
+      <section id={sid("params")} className={styles.block}>
+        <header className={styles.blockHead}>
+          <h3 className={styles.blockTitle}>Tham số</h3>
+        </header>
+        <dl className={styles.params}>
+          <dt>Sản phẩm, nhiệm vụ</dt>
+          <dd>
+            Số sản phẩm {p.minTasks}–{p.maxTasks}; tổng trọng số / điểm tối đa nhóm nhiệm vụ {fmt(p.totalTaskWeight)} (sai số {fmt(p.taskWeightTolerance)}).
+          </dd>
+          <dt>Không áp dụng (K/AD)</dt>
+          <dd>
+            {p.allowNotApplicable ? (p.notApplicableRule === "GrantFull" ? "Được phép, tính như đạt tối đa" : "Được phép, bỏ khỏi mẫu số rồi quy đổi") : "Không được phép"}; giảm từ{" "}
+            {p.deductionReasonMinPoints != null ? `${fmt(p.deductionReasonMinPoints)} điểm phải nêu lý do` : "không bắt buộc nêu lý do"}.
+          </dd>
+          <dt>Giải trình</dt>
+          <dd>
+            Khi chênh lệch tự chấm – thẩm định từ {fmt(p.explanationThreshold)} điểm{p.explanationOnGradeChange ? " hoặc làm đổi mức" : ""}.
+          </dd>
+          <dt>Trần xuất sắc</dt>
+          <dd>{fmt(p.excellentQuota.ratio * 100)}% số &quot;Hoàn thành tốt&quot; của từng nhóm chức danh, làm tròn từ 0,5 trở lên thành 1, không tính người đứng đầu.</dd>
+          <dt>Làm tròn</dt>
+          <dd>
+            Điểm sản phẩm: {p.rounding.taskScore.decimals} chữ số, {ROUNDING_LABELS[p.rounding.taskScore.mode]}; tổng nhiệm vụ: {p.rounding.tasksTotal.decimals},{" "}
+            {ROUNDING_LABELS[p.rounding.tasksTotal.mode]}; tiêu chí chung: {p.rounding.generalTotal.decimals}, {ROUNDING_LABELS[p.rounding.generalTotal.mode]}; tổng điểm:{" "}
+            {p.rounding.total.decimals}, {ROUNDING_LABELS[p.rounding.total.mode]}.
+          </dd>
+          <dt>Hồ sơ tập thể</dt>
+          <dd>
+            Tối đa {fmt(p.collectiveGeneralMaxScore)} / {fmt(p.collectiveTaskMaxScore)} điểm
+            {collectiveGroups.length > 0 ? ", chấm theo khung tiêu chí tập thể" : ", nhập thẳng điểm hai nhóm"}.
+          </dd>
+          <dt>Sau công bố</dt>
+          <dd>
+            Công khai {p.publishScores ? "mức xếp loại kèm điểm chính thức" : "chỉ mức xếp loại"}; bắt buộc lập kế hoạch 30-60-90 ngày (Mẫu 17) với mức{" "}
             {(p.improvementPlanRequiredGrades ?? ["HoanThanh", "KhongHoanThanh"]).map((g) => GRADE_LABELS[g as keyof typeof GRADE_LABELS] ?? g).join(", ") || "— (không bắt buộc)"};
             cảnh báo kế hoạch cần lập tới {p.improvementPlanAlertDays ?? 90} ngày sau khi đóng kỳ.
-          </li>
-        </ul>
-      </div>
+          </dd>
+        </dl>
+      </section>
     </div>
   );
+
+  if (!navigation) return <div className={styles.root}>{body}</div>;
+
+  return (
+    <div className={`${styles.root} ${styles.withNav}`}>
+      <nav className={styles.toc} aria-label="Mục lục bộ tiêu chí">
+        <div className={styles.tocTitle}>Mục lục</div>
+        <ul ref={tocList}>
+          {nav.map((n) => (
+            <li key={n.id} className={n.child ? styles.tocChild : undefined}>
+              <a href={`#${n.id}`} className={active === n.id ? styles.tocActive : undefined} aria-current={active === n.id ? "location" : undefined} onClick={(e) => jump(e, n.id)}>
+                {n.code && <span className={styles.tocCode}>{n.code}</span>}
+                <span className={styles.tocLabel}>{n.label}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      {body}
+    </div>
+  );
+}
+
+function CriteriaGroups({ groups }: { groups: { id: string; code: string; name: string; note: string; items: ItemRow[] }[] }) {
+  return (
+    <div className={styles.groups}>
+      <div className={styles.colHead} aria-hidden="true">
+        <span>Mã</span>
+        <span>Tiêu chí</span>
+        <span className="text-end">Tối đa</span>
+      </div>
+      {groups.map((g) => (
+        <div key={g.id} id={g.id} className={styles.group}>
+          <div className={styles.groupHead}>
+            <span className={styles.groupCode}>{g.code}</span>
+            <span className={styles.groupName}>
+              {g.name}
+              <span className={styles.groupNote}>{g.note}</span>
+            </span>
+            <span className={styles.max}>
+              <span className="num">{fmt(g.items.reduce((s, i) => s + i.maxScore, 0))}</span>
+              <span className={styles.maxUnit}>điểm</span>
+            </span>
+          </div>
+          <ul className={styles.items}>
+            {g.items.map((i) => (
+              <li key={i.code} className={styles.itemRow}>
+                <span className={styles.itemCode}>{i.code}</span>
+                <span className={styles.itemText}>{i.text}</span>
+                <span className={`${styles.itemMax} num`}>{fmt(i.maxScore)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Cuộn mượt tới mục mà không đổi hash trên địa chỉ trang. */
+function jump(e: React.MouseEvent, id: string) {
+  const target = document.getElementById(id);
+  if (!target) return;
+  e.preventDefault();
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/** Mục đang xem: mục cuối cùng đã cuộn qua mép trên vùng nội dung. */
+function useActiveSection(ids: string[]) {
+  const [active, setActive] = useState<string | null>(null);
+  const key = ids.join("|");
+  useEffect(() => {
+    if (!ids.length) return;
+    const scroller = document.querySelector(".app-main") ?? window;
+    const update = () => {
+      let current: string | null = ids[0];
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= 140) current = id;
+      }
+      setActive(current);
+    };
+    update();
+    scroller.addEventListener("scroll", update, { passive: true });
+    return () => scroller.removeEventListener("scroll", update);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return active;
 }
 
 export default CriteriaSummary;

@@ -157,21 +157,21 @@ export default function CriteriaSetPage() {
     <div className="page-wrapper">
       <PageHeader
         title={set.name}
+        subTitle={`Mã ${set.code}`}
         badge={
           <span className="d-inline-flex flex-wrap align-items-center gap-2">
             <Badge tone={STATUS_TONE[set.status] ?? "neutral"}>{set.statusDisplayName}</Badge>
             <span className="tag t-info">{scoringMethodLabel(set.selfScoreForm)}</span>
-            <span className="text-secondary">{set.code}</span>
           </span>
         }
         actions={
           <>
             <Link href="/criteria" className="btn btn-outline-secondary"><i className="bi bi-arrow-left me-1" />Danh sách</Link>
-            {canManage && <button type="button" className="btn btn-outline-secondary" disabled={busy} onClick={clone}>Nhân bản</button>}
+            {canManage && <button type="button" className="btn btn-outline-secondary" disabled={busy} onClick={clone}><i className="bi bi-copy me-1" />Nhân bản</button>}
             {canManage && set.status === "Published" && (
               <button type="button" className="btn btn-outline-secondary" disabled={busy}
                 onClick={() => confirm({ title: "Lưu trữ", message: "Kỳ đã dùng bộ này không bị ảnh hưởng; bộ không chọn được cho kỳ mới.", confirmText: "Lưu trữ", onConfirm: () => run(() => criteriaService.archive(set.id, set.version), "Đã lưu trữ.") })}>
-                Lưu trữ
+                <i className="bi bi-archive me-1" />Lưu trữ
               </button>
             )}
             {editable && <button type="button" className="btn btn-outline-primary" disabled={busy} onClick={save}>Lưu bản nháp</button>}
@@ -205,7 +205,7 @@ export default function CriteriaSetPage() {
         )}
 
         {!editable ? (
-          <section className="card"><div className="card-body"><CriteriaSummary content={content} form={set.selfScoreForm} /></div></section>
+          <CriteriaSummary content={content} form={set.selfScoreForm} navigation />
         ) : (
           <>
             {checks.length > 0 && (

@@ -1,0 +1,615 @@
+.root {
+  --cs-sticky-top: 0px;
+  min-width: 0;
+  font-size: var(--fs-base);
+  color: var(--ink);
+}
+
+.blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.block {
+  min-width: 0;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  scroll-margin-top: calc(var(--cs-sticky-top) + 12px);
+}
+
+.blockHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.blockTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.blockMeta {
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+
+.blockMeta strong {
+  color: var(--ink);
+}
+
+.blockBody {
+  padding: 16px 20px;
+}
+
+.subTitle {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.blockBody .subTitle:not(:first-child) {
+  margin-top: 16px;
+}
+
+.note {
+  margin-top: 8px;
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+
+/* Tiêu chí: nhóm (cha) nổi bật, tiêu chí con thụt vào, điểm tối đa căn phải */
+.colHead {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 72px;
+  gap: 12px;
+  padding: 8px 20px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--rule);
+}
+
+.group {
+  scroll-margin-top: calc(var(--cs-sticky-top) + 4px);
+}
+
+.groupHead {
+  position: sticky;
+  top: var(--cs-sticky-top);
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 72px;
+  gap: 12px;
+  align-items: baseline;
+  padding: 10px 20px;
+  background: var(--tint);
+  border-bottom: 1px solid var(--rule);
+}
+
+.group:not(:first-of-type) .groupHead {
+  border-top: 1px solid var(--rule);
+}
+
+.groupCode {
+  font-weight: 700;
+  color: var(--primary-ink);
+}
+
+.groupName {
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.groupNote {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.max {
+  justify-self: end;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.maxUnit {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.itemRow {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 72px;
+  gap: 12px;
+  padding: 10px 20px;
+  line-height: 1.55;
+  border-bottom: 1px solid var(--rule);
+}
+
+.group:last-child .itemRow:last-child {
+  border-bottom: 0;
+}
+
+.itemCode {
+  padding-left: 12px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.itemText {
+  color: var(--ink);
+}
+
+.itemMax {
+  text-align: right;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Trục kết quả */
+.axes {
+  display: flex;
+  flex-direction: column;
+}
+
+.axis {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.axis:last-child {
+  border-bottom: 0;
+}
+
+.axisHead {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.code {
+  font-weight: 700;
+  color: var(--primary-ink);
+}
+
+.axisName {
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.axisDesc {
+  margin: 4px 0 0 76px;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+
+.axisForm {
+  margin: 8px 0 0 76px;
+}
+
+.axisForm summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  color: var(--primary-ink);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.axisForm[open] {
+  padding: 4px 14px 12px;
+  background: var(--tint);
+  border-radius: 8px;
+}
+
+.axisFormTitle {
+  margin: 4px 0 6px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.axisGuidance {
+  white-space: pre-line;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+/* Biểu mẫu */
+.formList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formList li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.formList i {
+  color: var(--primary);
+}
+
+.plainList {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.twoCols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+
+@media (min-width: 1600px) {
+  .twoCols {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 28px;
+  }
+}
+
+.scaleList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scaleList li {
+  line-height: 1.5;
+}
+
+.scaleDesc {
+  display: block;
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+
+.table {
+  font-size: var(--fs-table);
+}
+
+.table th {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.gradeTable th:first-child,
+.gradeTable td:first-child {
+  padding-left: 20px;
+}
+
+.gradeTable th:last-child,
+.gradeTable td:last-child {
+  padding-right: 20px;
+}
+
+.gradeTable > tbody > tr > td {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  line-height: 1.55;
+  vertical-align: top;
+}
+
+.gradeTable > thead > tr > th:first-child {
+  width: 190px;
+}
+
+.gradeTable > thead > tr > th:nth-child(2),
+.gradeTable > thead > tr > th:nth-child(3) {
+  width: 1%;
+}
+
+.gradeTable td:first-child {
+  min-width: 150px;
+}
+
+.gradeTable > thead > tr > th:last-child {
+  width: 55%;
+}
+
+/* Bảng nằm sát mép khối: bỏ khung viền riêng của .table-responsive */
+.flush {
+  border: 0 !important;
+  border-radius: 0 0 12px 12px !important;
+}
+
+.inlineTag {
+  margin-left: 8px;
+  padding: 1px 8px;
+  font-size: 12px;
+}
+
+.params {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  margin: 0;
+  padding: 6px 20px;
+}
+
+.params dt,
+.params dd {
+  margin: 0;
+  padding: 10px 0;
+  line-height: 1.55;
+  border-bottom: 1px solid var(--rule);
+}
+
+.params dt {
+  padding-right: 16px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.params dt:last-of-type,
+.params dd:last-of-type {
+  border-bottom: 0;
+}
+
+/* Mục lục */
+.toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.toc a {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.toc a:hover {
+  background: var(--tint);
+  color: var(--ink);
+}
+
+.toc a.tocActive {
+  background: var(--primary-tint);
+  color: var(--primary-ink);
+  font-weight: 600;
+}
+
+.tocTitle {
+  padding: 0 10px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+
+.tocCode {
+  flex: none;
+  min-width: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tocLabel {
+  min-width: 0;
+}
+
+@media (min-width: 1200px) {
+  .withNav {
+    display: grid;
+    grid-template-columns: 230px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .withNav .toc {
+    position: sticky;
+    top: 0;
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+    padding: 12px 6px;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    background: var(--paper);
+  }
+
+  .tocChild a {
+    padding-left: 22px;
+  }
+
+  .tocChild .tocLabel {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* Màn hẹp: mục lục thành thanh nhảy nhanh dính trên đầu, cuộn ngang */
+@media (max-width: 1199.98px) {
+  .withNav {
+    --cs-sticky-top: 56px;
+  }
+
+  .withNav .toc {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    margin-bottom: 12px;
+    padding: 8px 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .tocTitle {
+    display: none;
+  }
+
+  .toc ul {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .toc li {
+    flex: none;
+  }
+
+  .toc a {
+    min-height: 36px;
+    align-items: center;
+    padding: 6px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: var(--paper);
+    white-space: nowrap;
+  }
+
+  /* Nhóm con chỉ hiện mã để thanh ngắn gọn */
+  .tocChild .tocLabel {
+    display: none;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .blockHead,
+  .blockBody,
+  .axis {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .colHead,
+  .groupHead,
+  .itemRow {
+    grid-template-columns: 40px minmax(0, 1fr) 44px;
+    gap: 8px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .itemCode {
+    padding-left: 0;
+    font-size: 13px;
+  }
+
+  .groupNote {
+    display: block;
+    margin-left: 0;
+  }
+
+  .maxUnit {
+    display: none;
+  }
+
+  .axisHead {
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .axisDesc,
+  .axisForm {
+    margin-left: 0;
+  }
+
+  .twoCols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .params {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 6px 14px;
+  }
+
+  .params dt {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .params dd {
+    padding-top: 2px;
+  }
+
+  /* Mức xếp loại: mỗi mức thành một khối, không cuộn ngang */
+  .gradeTable > thead {
+    display: none;
+  }
+
+  .gradeTable,
+  .gradeTable > tbody,
+  .gradeTable > tbody > tr {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .gradeTable > tbody > tr {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .gradeTable > tbody > tr:last-child {
+    border-bottom: 0;
+  }
+
+  .gradeTable > tbody > tr > td {
+    display: block;
+    padding: 2px 0 !important;
+    border: 0;
+    text-align: left !important;
+  }
+
+  .gradeTable > tbody > tr > td[data-label]::before {
+    content: attr(data-label) ": ";
+    color: var(--ink-2);
+  }
+
+  .gradeTable > tbody > tr > td:last-child::before {
+    display: block;
+  }
+
+  .withNav .toc a {
+    min-height: 40px;
+  }
+}
