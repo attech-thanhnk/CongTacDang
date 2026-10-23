@@ -78,6 +78,31 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Lý do của lần trả lại gần nhất (xóa khi chủ hồ sơ nộp lại).</summary>
     public string? ReturnReason { get; set; }
 
+    #region Mở riêng hồ sơ khi kỳ khóa dữ liệu
+
+    /// <summary>
+    /// Hạn (UTC) mở riêng hồ sơ: kỳ đang "Khóa dữ liệu" nhưng hồ sơ được mở lại / trả lại về bước trước thẩm định — các bước của
+    /// hồ sơ này không bị khóa kỳ chặn cho tới hạn. Xóa khi hồ sơ đi tới bước được thao tác lúc kỳ khóa (hoặc công bố).
+    /// </summary>
+    public DateTime? UnlockedUntil { get; set; }
+
+    /// <summary>Thời điểm mở riêng / gia hạn gần nhất.</summary>
+    public DateTime? UnlockedAt { get; set; }
+
+    /// <summary>Người mở riêng / gia hạn gần nhất.</summary>
+    public Guid? UnlockedById { get; set; }
+
+    /// <summary>Họ tên người mở riêng / gia hạn gần nhất.</summary>
+    public string? UnlockedByName { get; set; }
+
+    /// <summary>Lý do mở riêng / gia hạn gần nhất.</summary>
+    public string? UnlockReason { get; set; }
+
+    /// <summary>Hồ sơ đang được mở riêng tại thời điểm <paramref name="utcNow"/> (chưa quá hạn).</summary>
+    public bool IsUnlockedAt(DateTime utcNow) => UnlockedUntil is { } until && until > utcNow;
+
+    #endregion
+
     #region B1: Duyệt danh mục sản phẩm (Mẫu 01)
 
     /// <summary>Người duyệt danh mục.</summary>

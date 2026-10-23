@@ -171,6 +171,13 @@ export default function EvaluationRecordPage() {
             <strong>Bị trả lại:</strong> {record.returnReason}
           </div>
         )}
+        {record.unlockedUntil && record.periodStatus === "Locked" && (
+          <div className={`alert ${record.unlockActive ? "alert-info" : "alert-warning"} mb-0`}>
+            {record.unlockActive
+              ? `Hồ sơ được mở riêng đến ${formatDateTime(record.unlockedUntil)}.`
+              : `Thời hạn mở riêng hồ sơ đã hết lúc ${formatDateTime(record.unlockedUntil)}.`}
+          </div>
+        )}
 
         <section className={styles.block} aria-label="Tiến trình hồ sơ">
           <RecordProgress progress={record.progress} onSelect={selectStep} />
@@ -205,14 +212,18 @@ export default function EvaluationRecordPage() {
         description={
           reasonAction?.action === "Reopen"
             ? "Mở lại hồ sơ đã công bố để đính chính."
-            : "Hồ sơ sẽ quay về chủ hồ sơ để sửa."
+            : reasonAction?.action === "ExtendUnlock"
+              ? "Gia hạn thời gian chủ hồ sơ và các bước trước thẩm định được thao tác trên hồ sơ này."
+              : "Hồ sơ sẽ quay về chủ hồ sơ để sửa."
         }
-        confirmText={reasonAction?.action === "Reopen" ? "Mở lại hồ sơ" : "Trả lại"}
+        confirmText={reasonAction?.action === "Reopen" ? "Mở lại hồ sơ" : reasonAction?.action === "ExtendUnlock" ? "Gia hạn" : "Trả lại"}
         targetSteps={reasonAction?.targetSteps}
+        unlock={reasonAction}
         busy={busy}
         onCancel={() => setReasonAction(null)}
-        onConfirm={(reason, targetStep?: WorkflowStepCode) =>
-          reasonAction && perform(reasonAction.action, reasonAction.action === "Reopen" ? { reason, targetStep } : { reason })
+        onConfirm={(reason, targetStep?: WorkflowStepCode, unlockUntil?: string) =>
+          reasonAction &&
+          perform(reasonAction.action, reasonAction.action === "Reopen" ? { reason, targetStep, unlockUntil } : { reason, unlockUntil })
         }
       />
 

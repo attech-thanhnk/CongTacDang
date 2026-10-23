@@ -134,7 +134,40 @@ public static class WorkflowActions
     /// Dự thảo — chưa ai thao tác; Đang mở — mọi bước; Khóa dữ liệu — chỉ từ thẩm định trở đi và mở lại;
     /// Đã đóng — chỉ mở lại.
     /// </summary>
-    public static string? PeriodBlockReason(PeriodStatus status, WorkflowActionDefinition action)
+    public static string? PeriodBlockReason(PeriodStatus status, WorkflowActionDefinition action) =>
+        PeriodBlockReason(status, action, null, DateTime.UtcNow);
+
+    /// <summary>
+    /// Luật trạng thái kỳ có xét mở riêng hồ sơ: kỳ "Khóa dữ liệu" nhưng hồ sơ được mở riêng còn hạn
+    /// (<paramref name="unlockedUntil"/> &gt; <paramref name="utcNow"/>) → các bước của hồ sơ không bị chặn (trừ thu hồi duyệt danh mục).
+    /// Hết hạn → chặn như hồ sơ khác, thông báo kèm hạn đã hết.
+    /// </summary>
+    public static string? PeriodBlockReason(PeriodStatus status, WorkflowActionDefinition action, DateTime? unlockedUntil, DateTime utcNow)
+    {
+        if (status == PeriodStatus.Locked && action.Kind != WorkflowAction.RevokeTaskApproval
+            && action.Kind != WorkflowAction.Reopen && WorkflowSteps.IsLockedStep(action.Step) && unlockedUntil is { } until)
+        {
+            if (until > utcNow)
+                return null;
+            return $"Thời hạn mở riêng hồ sơ đã hết ({FormatLocal(until)}). Liên hệ người quản lý kỳ để gia hạn.";
+        }
+        return BaseBlockReason(status, action);
+    }
+
+    /// <summary>Số ngày mở riêng hồ sơ gợi ý trên giao diện.</summary>
+    public const int DefaultUnlockDays = 7;
+
+    /// <summary>Số ngày mở riêng hồ sơ tối đa tính từ lúc mở / gia hạn.</summary>
+    public const int MaxUnlockDays = 60;
+
+    /// <summary>Mã hành động mở riêng / gia hạn mở riêng hồ sơ (không thuộc bước nào của luồng).</summary>
+    public const string ExtendUnlock = "ExtendUnlock";
+
+    /// <summary>Hiển thị thời điểm UTC theo giờ Việt Nam (dd/MM/yyyy HH:mm).</summary>
+    public static string FormatLocal(DateTime utc) =>
+        (utc + EvaluationMapping.BusinessUtcOffset).ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string? BaseBlockReason(PeriodStatus status, WorkflowActionDefinition action)
     {
         switch (status)
         {

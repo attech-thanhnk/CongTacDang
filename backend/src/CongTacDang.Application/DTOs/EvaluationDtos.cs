@@ -144,6 +144,12 @@ public class EvaluationRecordDto
     public string? CurrentStep { get; set; }
     /// <summary>Lý do trả lại gần nhất (còn hiệu lực đến khi chủ hồ sơ nộp lại).</summary>
     public string? ReturnReason { get; set; }
+    /// <summary>Hạn mở riêng hồ sơ khi kỳ khóa dữ liệu (UTC; null = không mở riêng).</summary>
+    public DateTime? UnlockedUntil { get; set; }
+    /// <summary>Mở riêng còn hạn và kỳ đang khóa dữ liệu (các bước trước thẩm định của hồ sơ thao tác được).</summary>
+    public bool UnlockActive { get; set; }
+    public string? UnlockedByName { get; set; }
+    public string? UnlockReason { get; set; }
     /// <summary>Tiến trình 9 bước.</summary>
     public List<RecordStepProgressDto> Progress { get; set; } = new();
 
@@ -263,6 +269,19 @@ public class WorkflowRequestDto
 public class ReturnRecordRequestDto : WorkflowRequestDto
 {
     public string? Reason { get; set; }
+    /// <summary>
+    /// Hạn mở riêng hồ sơ (UTC) — bắt buộc khi kỳ đang khóa dữ liệu và hồ sơ quay về bước trước thẩm định
+    /// (<see cref="RecordActionDto.RequiresUnlockDeadline"/>), trừ khi hồ sơ đang được mở riêng còn hạn (giữ hạn cũ).
+    /// </summary>
+    public DateTime? UnlockUntil { get; set; }
+}
+
+/// <summary>Gia hạn mở riêng hồ sơ khi kỳ khóa dữ liệu (bắt buộc lý do và hạn mới).</summary>
+public class UnlockRecordRequestDto : WorkflowRequestDto
+{
+    public string? Reason { get; set; }
+    /// <summary>Hạn mới (UTC).</summary>
+    public DateTime? UnlockUntil { get; set; }
 }
 
 /// <summary>Hoàn thành bước kèm ý kiến tùy chọn (duyệt danh mục, Chi bộ xác nhận).</summary>
@@ -451,6 +470,11 @@ public class ReopenRequestDto : WorkflowRequestDto
     public string? Reason { get; set; }
     /// <summary>Bước quay về (mã bước, không sớm hơn B2_SELF_SCORE).</summary>
     public string? TargetStep { get; set; }
+    /// <summary>
+    /// Hạn mở riêng hồ sơ (UTC) — bắt buộc khi kỳ đang khóa dữ liệu / đã đóng và bước quay về nằm trong
+    /// <see cref="RecordActionDto.UnlockDeadlineSteps"/>.
+    /// </summary>
+    public DateTime? UnlockUntil { get; set; }
 }
 
 #endregion
@@ -471,6 +495,18 @@ public class RecordActionDto
     public bool Overdue { get; set; }
     /// <summary>Với Reopen: các bước được chọn để quay về.</summary>
     public List<string>? TargetSteps { get; set; }
+    /// <summary>
+    /// Phải nhập hạn mở riêng hồ sơ (kỳ khóa dữ liệu, hồ sơ quay về bước trước thẩm định). Với Reopen: đúng khi một trong
+    /// các bước quay về cần hạn — xem <see cref="UnlockDeadlineSteps"/>.
+    /// </summary>
+    public bool RequiresUnlockDeadline { get; set; }
+    /// <summary>Với Reopen: các bước quay về cần nhập hạn mở riêng hồ sơ.</summary>
+    public List<string>? UnlockDeadlineSteps { get; set; }
+    /// <summary>Hạn hiện tại khi hồ sơ đang được mở riêng (để trống hạn mới thì giữ hạn này — trừ gia hạn).</summary>
+    public DateTime? CurrentUnlockedUntil { get; set; }
+    /// <summary>Số ngày gợi ý / tối đa của hạn mở riêng.</summary>
+    public int? DefaultUnlockDays { get; set; }
+    public int? MaxUnlockDays { get; set; }
 }
 
 /// <summary>Kết quả <c>GET records/{id}/actions</c>.</summary>

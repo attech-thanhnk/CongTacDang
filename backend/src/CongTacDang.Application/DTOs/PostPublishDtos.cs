@@ -158,6 +158,8 @@ public class ReopenFromAppealRequestDto
     public string? TargetStep { get; set; }
     /// <summary>Lý do mở lại (được ghép dẫn chiếu kiến nghị vào lịch sử hồ sơ).</summary>
     public string? Reason { get; set; }
+    /// <summary>Hạn mở riêng hồ sơ (UTC) khi kỳ khóa dữ liệu / đã đóng và bước quay về trước thẩm định.</summary>
+    public DateTime? UnlockUntil { get; set; }
 }
 
 #endregion

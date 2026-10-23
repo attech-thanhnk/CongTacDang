@@ -44,6 +44,12 @@ public interface IEvaluationWorkflowService
     Task<EvaluationRecordDto> ReopenAsync(Guid recordId, ReopenRequestDto request, CancellationToken ct = default);
 
     /// <summary>
+    /// Gia hạn mở riêng hồ sơ khi kỳ khóa dữ liệu (hồ sơ đã được mở riêng, chưa tới bước thẩm định): quyền
+    /// <c>evaluation.reopen</c> hoặc quyền thực hiện bước thẩm định của hồ sơ; bắt buộc lý do và hạn mới.
+    /// </summary>
+    Task<EvaluationRecordDto> ExtendUnlockAsync(Guid recordId, UnlockRecordRequestDto request, CancellationToken ct = default);
+
+    /// <summary>
     /// Ghi nhận kết quả của bước do cấp trên thực hiện (chế độ "Cấp trên thực hiện" trong hồ sơ luồng của hồ sơ) —
     /// quyền <c>evaluation.external.record</c>; hồ sơ chuyển sang bước áp dụng kế tiếp.
     /// </summary>
@@ -176,7 +182,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             ctx.Record.TasksApprovedByName = null;
             ctx.Record.TasksApprovedAt = null;
             return Task.FromResult<string?>(null);
-        }, ct);
+        }, ct, unlockUntil: request.UnlockUntil);
 
     /// <inheritdoc />
     public async Task<EvaluationRecordDto> RevokeTaskApprovalAsync(Guid recordId, WorkflowRequestDto request, CancellationToken ct = default)
@@ -503,7 +509,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
     /// <inheritdoc />
     public Task<EvaluationRecordDto> ReturnByCellAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default) =>
-        ExecuteAsync(recordId, request, WorkflowActions.ReturnByCell, request.Reason, _ => Task.FromResult<string?>(null), ct);
+        ExecuteAsync(recordId, request, WorkflowActions.ReturnByCell, request.Reason, _ => Task.FromResult<string?>(null), ct,
+            unlockUntil: request.UnlockUntil);
 
     /// <inheritdoc />
     public Task<EvaluationRecordDto> RecordCollectiveProposalAsync(Guid recordId, CollectiveProposalRequestDto request, CancellationToken ct = default) =>
@@ -630,7 +637,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
     /// <inheritdoc />
     public Task<EvaluationRecordDto> ReturnByAppraiserAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default) =>
-        ExecuteAsync(recordId, request, WorkflowActions.ReturnByAppraiser, request.Reason, _ => Task.FromResult<string?>(null), ct);
+        ExecuteAsync(recordId, request, WorkflowActions.ReturnByAppraiser, request.Reason, _ => Task.FromResult<string?>(null), ct,
+            unlockUntil: request.UnlockUntil);
 
     /// <inheritdoc />
     public Task<EvaluationRecordDto> DirectorReviewAsync(Guid recordId, DirectorReviewRequestDto request, CancellationToken ct = default) =>
@@ -708,7 +716,49 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
             await Task.CompletedTask;
             return "Mở lại hồ sơ đã công bố.";
-        }, ct, target);
+        }, ct, target, unlockUntil: request.UnlockUntil);
+    }
+
+    /// <inheritdoc />
+    public async Task<EvaluationRecordDto> ExtendUnlockAsync(Guid recordId, UnlockRecordRequestDto request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (request.Version is null)
+            throw new ValidationException("Thiếu phiên bản dữ liệu (version) của hồ sơ. Hãy tải lại hồ sơ rồi thực hiện lại.");
+
+        var record = await _repo.FindRecordAsync(recordId, ct)
+            ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
+        var profile = EvaluationMapping.ProfileOf(ReadSettings(record.Period), record);
+
+        if (_currentUser.UserId is { } userId && record.MemberId == userId)
+            throw new ForbiddenException("Bạn không được gia hạn mở riêng hồ sơ của chính mình (xung đột lợi ích).");
+        if (!CanExtendUnlock(record, profile))
+            _guard.Ensure(PermissionCodes.EvaluationReopen, AccessTarget.ForRecord(record));
+
+        if (record.Version != request.Version.Value)
+            throw new ConflictException("Hồ sơ đã được người khác cập nhật sau khi bạn mở. Hãy tải lại hồ sơ để xem dữ liệu mới nhất rồi thực hiện lại.");
+        if (!IsExtendableUnlock(record))
+            throw new ConflictException("Chỉ gia hạn được hồ sơ đang được mở riêng khi kỳ khóa dữ liệu và chưa tới bước thẩm định.");
+
+        var reason = request.Reason?.Trim();
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new ValidationException("Hãy nhập lý do gia hạn mở riêng hồ sơ.");
+        if (reason.Length > MaxReasonLength)
+            throw new ValidationException($"Lý do không được dài quá {MaxReasonLength} ký tự.");
+
+        var now = DateTime.UtcNow;
+        var until = ValidateUnlockUntil(request.UnlockUntil, now)
+            ?? throw new ValidationException("Hãy chọn hạn mở riêng hồ sơ.");
+        var actorId = _currentUser.UserId;
+        var actorName = actorId.HasValue
+            ? await _repo.GetMemberNameAsync(actorId.Value, ct) ?? _currentUser.UserName
+            : _currentUser.UserName;
+
+        GrantUnlock(record, until, reason, actorId, actorName, now);
+        record.UpdatedAt = now;
+        _unitOfWork.SetOriginalVersion(record, request.Version);
+        await _unitOfWork.SaveChangesAsync(ct);
+        return await LoadDtoAsync(record, ct);
     }
 
     /// <inheritdoc />
@@ -903,7 +953,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         var statuses = steps.Select(WorkflowSteps.StatusOf).ToList();
         var records = await _repo.ListRecordsByStatusAsync(targetPeriods.Select(p => p.Id).ToList(), statuses, ct);
         var periodById = targetPeriods.ToDictionary(p => p.Id);
-        var today = EvaluationMapping.Today(DateTime.UtcNow);
+        var now = DateTime.UtcNow;
+        var today = EvaluationMapping.Today(now);
         var userId = _currentUser.UserId;
 
         var items = new List<(WorkflowStep Step, WorkQueueItemDto Item)>();
@@ -918,7 +969,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 continue;
 
             var period = periodById[record.PeriodId];
-            if (WorkflowActions.PeriodBlockReason(period.Status, advance) != null)
+            if (WorkflowActions.PeriodBlockReason(period.Status, advance, record.UnlockedUntil, now) != null)
                 continue;
             if (!CanPerform(advance, profile, record))
                 continue;
@@ -1008,9 +1059,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         if (CanRevokeTaskApproval(record, profile))
             candidates.Add(WorkflowActions.Get(WorkflowActions.RevokeTaskApproval));
 
+        var now = DateTime.UtcNow;
         foreach (var action in candidates)
         {
-            if (WorkflowActions.PeriodBlockReason(record.Period.Status, action) != null)
+            if (WorkflowActions.PeriodBlockReason(record.Period.Status, action, record.UnlockedUntil, now) != null)
                 continue;
             if (!CanPerform(action, profile, record))
                 continue;
@@ -1030,6 +1082,17 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             if (overdue && settings.EnforceDeadlines)
                 continue;
 
+            var targets = action.Kind == WorkflowAction.Reopen ? RecordStateMachine.ReopenTargets(active) : null;
+            var unlockSteps = action.Kind switch
+            {
+                WorkflowAction.Reopen => targets!.Where(t => UnlockDeadlineNeeded(record.Period.Status, action, t)).ToList(),
+                WorkflowAction.Return when UnlockDeadlineNeeded(record.Period.Status, action, null) => BackwardTarget(action, null) is { } returnTarget
+                    ? new List<WorkflowStep> { returnTarget }
+                    : new List<WorkflowStep>(),
+                _ => new List<WorkflowStep>()
+            };
+            var requiresUnlock = unlockSteps.Count > 0;
+
             yield return new RecordActionDto
             {
                 Action = action.Code,
@@ -1038,9 +1101,29 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 RequiresReason = action.Kind is WorkflowAction.Return or WorkflowAction.Reopen,
                 ReasonOptional = false,
                 Overdue = overdue,
-                TargetSteps = action.Kind == WorkflowAction.Reopen
-                    ? RecordStateMachine.ReopenTargets(active).Select(WorkflowSteps.Code).ToList()
-                    : null
+                TargetSteps = targets?.Select(WorkflowSteps.Code).ToList(),
+                RequiresUnlockDeadline = requiresUnlock,
+                UnlockDeadlineSteps = requiresUnlock && action.Kind == WorkflowAction.Reopen ? unlockSteps.Select(WorkflowSteps.Code).ToList() : null,
+                CurrentUnlockedUntil = requiresUnlock && record.IsUnlockedAt(now) ? record.UnlockedUntil : null,
+                DefaultUnlockDays = requiresUnlock ? WorkflowActions.DefaultUnlockDays : null,
+                MaxUnlockDays = requiresUnlock ? WorkflowActions.MaxUnlockDays : null
+            };
+        }
+
+        // Gia hạn mở riêng hồ sơ (kỳ khóa dữ liệu, hồ sơ đã được mở riêng và chưa tới bước thẩm định).
+        if (IsExtendableUnlock(record) && CanExtendUnlock(record, profile))
+        {
+            yield return new RecordActionDto
+            {
+                Action = WorkflowActions.ExtendUnlock,
+                Step = WorkflowSteps.Code(WorkflowSteps.StepOf(record.Status)!.Value),
+                Label = "Gia hạn mở riêng hồ sơ",
+                RequiresReason = true,
+                ReasonOptional = false,
+                RequiresUnlockDeadline = true,
+                CurrentUnlockedUntil = record.UnlockedUntil,
+                DefaultUnlockDays = WorkflowActions.DefaultUnlockDays,
+                MaxUnlockDays = WorkflowActions.MaxUnlockDays
             };
         }
     }
@@ -1062,8 +1145,9 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         Func<ActionContext, Task<string?>> apply,
         CancellationToken ct,
         WorkflowStep? reopenTarget = null,
-        bool draft = false) =>
-        ExecuteAsync(recordId, request, WorkflowActions.Get(actionCode), reason, apply, ct, reopenTarget, draft);
+        bool draft = false,
+        DateTime? unlockUntil = null) =>
+        ExecuteAsync(recordId, request, WorkflowActions.Get(actionCode), reason, apply, ct, reopenTarget, draft, unlockUntil);
 
     /// <summary>
     /// Trình tự chung: phiên bản bắt buộc → nạp hồ sơ → chế độ bước theo hồ sơ luồng → xung đột lợi ích → guard (quyền thực hiện
@@ -1080,7 +1164,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         Func<ActionContext, Task<string?>> apply,
         CancellationToken ct,
         WorkflowStep? reopenTarget = null,
-        bool draft = false)
+        bool draft = false,
+        DateTime? unlockUntil = null)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -1111,11 +1196,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         if (record.Version != request.Version.Value)
             throw new ConflictException("Hồ sơ đã được người khác cập nhật sau khi bạn mở. Hãy tải lại hồ sơ để xem dữ liệu mới nhất rồi thực hiện lại.");
 
-        var periodBlock = WorkflowActions.PeriodBlockReason(period.Status, action);
+        var now = DateTime.UtcNow;
+        var periodBlock = WorkflowActions.PeriodBlockReason(period.Status, action, record.UnlockedUntil, now);
         if (periodBlock != null)
             throw new ConflictException(periodBlock);
-
-        var now = DateTime.UtcNow;
         if (!draft && action.Advances && settings.EnforceDeadlines
             && profile.Deadline(action.Step) is { } deadline && EvaluationMapping.Today(now) > deadline)
         {
@@ -1142,6 +1226,16 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         var transition = RecordStateMachine.Apply(record.Status, profile.ActiveSteps(), command);
         if (!transition.Succeeded)
             throw new ConflictException(transition.Error!);
+
+        // Kỳ khóa dữ liệu (hoặc mở lại khi kỳ đã đóng → kỳ về khóa dữ liệu) mà hồ sơ quay về bước trước thẩm định: mở riêng hồ sơ
+        // tới hạn người trả lại / mở lại chọn — không mở lại cả kỳ. Hồ sơ đang mở riêng còn hạn mà không chọn hạn mới → giữ hạn cũ.
+        DateTime? grantUntil = null;
+        if (!draft && UnlockDeadlineNeeded(period.Status, action, reopenTarget))
+        {
+            grantUntil = ValidateUnlockUntil(unlockUntil, now);
+            if (grantUntil == null && !record.IsUnlockedAt(now))
+                throw new ValidationException("Kỳ đánh giá đang khóa dữ liệu: hãy chọn hạn mở riêng hồ sơ để các bước trước thẩm định thao tác được.");
+        }
 
         var actorId = _currentUser.UserId;
         var actorName = actorId.HasValue
@@ -1183,10 +1277,132 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             CreatedAt = now
         });
 
+        if (grantUntil is { } until)
+            GrantUnlock(record, until, cleanReason, actorId, actorName, now.AddMilliseconds(1));
+        else if (record.UnlockedUntil.HasValue
+            && (WorkflowSteps.StepOf(record.Status) is not { } waiting || !WorkflowSteps.IsLockedStep(waiting)))
+            ClearUnlock(record, actorId, actorName, now.AddMilliseconds(1));
+
         _unitOfWork.SetOriginalVersion(record, request.Version);
         await _unitOfWork.SaveChangesAsync(ct);
         return await LoadDtoAsync(record, ct);
     }
+
+    /// <summary>
+    /// Bước mà hồ sơ quay về khi trả lại / mở lại (null với hành động khác).
+    /// </summary>
+    private static WorkflowStep? BackwardTarget(WorkflowActionDefinition action, WorkflowStep? reopenTarget) => action.Kind switch
+    {
+        WorkflowAction.Return => WorkflowSteps.ReturnTargets.TryGetValue(action.Step, out var target) ? target : null,
+        WorkflowAction.Reopen => reopenTarget ?? WorkflowSteps.EarliestReopenStep,
+        _ => null
+    };
+
+    /// <summary>
+    /// Trả lại / mở lại cần hạn mở riêng hồ sơ: kỳ đang khóa dữ liệu (mở lại khi kỳ đã đóng cũng đưa kỳ về khóa dữ liệu) và
+    /// bước quay về nằm trước bước đầu tiên được thao tác khi kỳ khóa.
+    /// </summary>
+    private static bool UnlockDeadlineNeeded(PeriodStatus status, WorkflowActionDefinition action, WorkflowStep? reopenTarget)
+    {
+        var lockedAfter = status == PeriodStatus.Locked || (status == PeriodStatus.Closed && action.Kind == WorkflowAction.Reopen);
+        return lockedAfter && BackwardTarget(action, reopenTarget) is { } target && WorkflowSteps.IsLockedStep(target);
+    }
+
+    /// <summary>Kiểm hạn mở riêng hồ sơ: sau thời điểm hiện tại, không quá <see cref="WorkflowActions.MaxUnlockDays"/> ngày.</summary>
+    private static DateTime? ValidateUnlockUntil(DateTime? value, DateTime now)
+    {
+        if (value is not { } raw)
+            return null;
+        var until = raw.Kind switch
+        {
+            DateTimeKind.Utc => raw,
+            DateTimeKind.Local => raw.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(raw, DateTimeKind.Utc)
+        };
+        if (until <= now)
+            throw new ValidationException("Hạn mở riêng hồ sơ phải sau thời điểm hiện tại.");
+        if (until > now.AddDays(WorkflowActions.MaxUnlockDays))
+            throw new ValidationException($"Hạn mở riêng hồ sơ không được quá {WorkflowActions.MaxUnlockDays} ngày kể từ hôm nay.");
+        return until;
+    }
+
+    /// <summary>Mở riêng / gia hạn mở riêng hồ sơ và ghi lịch sử.</summary>
+    private void GrantUnlock(EvaluationRecord record, DateTime until, string? reason, Guid? actorId, string actorName, DateTime at)
+    {
+        var extended = record.UnlockedUntil.HasValue;
+        record.UnlockedUntil = until;
+        record.UnlockedAt = at;
+        record.UnlockedById = actorId;
+        record.UnlockedByName = Truncate(actorName, 200);
+        record.UnlockReason = reason;
+        _repo.AddHistory(new EvaluationRecordHistory
+        {
+            RecordId = record.Id,
+            FromStatus = record.Status,
+            ToStatus = record.Status,
+            Step = WorkflowSteps.StepOf(record.Status),
+            Action = WorkflowAction.GrantUnlock,
+            Reason = reason,
+            ScoreBefore = record.EffectiveScore(),
+            ScoreAfter = record.EffectiveScore(),
+            GradeBefore = record.EffectiveGrade(),
+            GradeAfter = record.EffectiveGrade(),
+            ActorId = actorId,
+            ActorName = string.IsNullOrWhiteSpace(actorName) ? "system" : actorName,
+            Comment = $"{(extended ? "Gia hạn mở riêng" : "Mở riêng")} hồ sơ khi kỳ khóa dữ liệu đến {WorkflowActions.FormatLocal(until)}.",
+            CreatedAt = at
+        });
+    }
+
+    /// <summary>Kết thúc mở riêng hồ sơ (hồ sơ đã tới bước được thao tác khi kỳ khóa) và ghi lịch sử.</summary>
+    private void ClearUnlock(EvaluationRecord record, Guid? actorId, string actorName, DateTime at)
+    {
+        record.UnlockedUntil = null;
+        record.UnlockedAt = null;
+        record.UnlockedById = null;
+        record.UnlockedByName = null;
+        record.UnlockReason = null;
+        _repo.AddHistory(new EvaluationRecordHistory
+        {
+            RecordId = record.Id,
+            FromStatus = record.Status,
+            ToStatus = record.Status,
+            Step = WorkflowSteps.StepOf(record.Status),
+            Action = WorkflowAction.ClearUnlock,
+            ScoreBefore = record.EffectiveScore(),
+            ScoreAfter = record.EffectiveScore(),
+            GradeBefore = record.EffectiveGrade(),
+            GradeAfter = record.EffectiveGrade(),
+            ActorId = actorId,
+            ActorName = string.IsNullOrWhiteSpace(actorName) ? "system" : actorName,
+            Comment = "Hồ sơ đã tới bước được thao tác khi kỳ khóa dữ liệu; kết thúc mở riêng.",
+            CreatedAt = at
+        });
+    }
+
+    /// <summary>Hồ sơ đã được mở riêng (còn hạn hoặc hết hạn), kỳ đang khóa dữ liệu và hồ sơ chưa tới bước thẩm định.</summary>
+    private static bool IsExtendableUnlock(EvaluationRecord record) =>
+        record.UnlockedUntil.HasValue
+        && record.Period.Status == PeriodStatus.Locked
+        && WorkflowSteps.StepOf(record.Status) is { } step && WorkflowSteps.IsLockedStep(step);
+
+    /// <summary>
+    /// Người hiện tại gia hạn được: quyền <c>evaluation.reopen</c> hoặc quyền thực hiện bước thẩm định (bước trả lại về chủ hồ sơ
+    /// khi kỳ khóa) trên hồ sơ; không phải hồ sơ của chính mình.
+    /// </summary>
+    private bool CanExtendUnlock(EvaluationRecord record, WorkflowProfile profile)
+    {
+        if (_currentUser.UserId is { } userId && record.MemberId == userId)
+            return false;
+        var target = AccessTarget.ForRecord(record);
+        if (_guard.Can(PermissionCodes.EvaluationReopen, target))
+            return true;
+        return profile.Mode(WorkflowSteps.FirstStepWhenLocked) == StepMode.Internal
+            && _guard.Can(WorkflowActions.PermissionFor(WorkflowActions.CompleteOf(WorkflowSteps.FirstStepWhenLocked), profile), target);
+    }
+
+    private static string Truncate(string value, int maxLength) =>
+        value.Length > maxLength ? value[..maxLength] : value;
 
     /// <summary>Nạp lại hồ sơ vừa lưu (phiên bản mới) và chuyển sang DTO.</summary>
     private async Task<EvaluationRecordDto> LoadDtoAsync(EvaluationRecord record, CancellationToken ct)

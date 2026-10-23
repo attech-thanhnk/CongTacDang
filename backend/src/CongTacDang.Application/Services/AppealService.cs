@@ -223,6 +223,7 @@ public sealed class AppealService : IAppealService
             {
                 Version = request.RecordVersion,
                 TargetStep = request.TargetStep,
+                UnlockUntil = request.UnlockUntil,
                 Reason = $"Theo kiến nghị của {appeal.SubmittedByName} (chấp nhận ngày {resolvedAt}, mã {appeal.Id:D}): {reason}"
             }, ct);
 

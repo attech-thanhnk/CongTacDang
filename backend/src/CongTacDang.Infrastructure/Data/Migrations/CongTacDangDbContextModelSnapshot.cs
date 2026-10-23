@@ -1108,6 +1108,23 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<double>("TotalSelfScore")
                         .HasColumnType("double precision");
 
+                    b.Property<string>("UnlockReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("UnlockedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UnlockedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UnlockedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UnlockedUntil")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 

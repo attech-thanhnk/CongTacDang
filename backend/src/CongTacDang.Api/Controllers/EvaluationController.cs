@@ -187,6 +187,14 @@ public class EvaluationController : ControllerBase
         Run(() => _workflow.ReopenAsync(id, dto, ct), "Đã mở lại hồ sơ.");
 
     /// <summary>
+    /// Gia hạn mở riêng hồ sơ khi kỳ khóa dữ liệu (bắt buộc lý do và hạn mới). Service kiểm tra quyền trên hồ sơ:
+    /// <c>evaluation.reopen</c> hoặc quyền thực hiện bước thẩm định theo hồ sơ luồng.
+    /// </summary>
+    [HttpPost("records/{id:guid}/unlock/extend")]
+    public Task<IActionResult> ExtendUnlock(Guid id, [FromBody] UnlockRecordRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.ExtendUnlockAsync(id, dto, ct), "Đã gia hạn mở riêng hồ sơ.");
+
+    /// <summary>
     /// Ghi nhận kết quả của bước do cấp trên thực hiện (<paramref name="step"/> = mã bước, ví dụ <c>B4_DECISION</c>):
     /// cơ quan, số/ngày văn bản, nhận xét, mức, điểm, tệp đính kèm.
     /// </summary>

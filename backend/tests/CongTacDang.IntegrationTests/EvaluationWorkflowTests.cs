@@ -456,6 +456,114 @@ public sealed class EvaluationWorkflowTests
     }
 
     [SkippableFact]
+    public async Task W7b_LockedPeriod_ReopenToSelfScore_UnlocksOnlyThatRecord_ClearedAfterResubmission()
+    {
+        var w = await WorldAsync();
+        var periodId = await OpenPeriodAsync(w, "09A", w.Owner1.Id, w.Owner3.Id);
+        var id = await RecordOfAsync(w, periodId, w.Owner1.Id);
+        var other = await RecordOfAsync(w, periodId, w.Owner3.Id);
+        await SetStatusAsync(id, RecordStatus.AwaitingDecision, withTasks: true);
+        await SetStatusAsync(other, RecordStatus.AwaitingSelfScore, withTasks: true);
+        await StepAsync(w.OfficeC, id, "decision", new { finalGrade = "HoanThanhTot" }, "AwaitingPublish");
+        await StepAsync(w.OfficeC, id, "publish", new { }, "Published");
+        await TransitionAsync(w.Appraiser, periodId, "lock");
+
+        // Hành động mở lại báo bước nào cần hạn mở riêng.
+        var reopenAction = (await Data(w.OfficeC, $"/api/evaluations/records/{id}/actions")).GetProperty("actions").EnumerateArray()
+            .Single(a => a.GetProperty("action").GetString() == "Reopen");
+        Assert.True(reopenAction.GetProperty("requiresUnlockDeadline").GetBoolean());
+        var unlockSteps = reopenAction.GetProperty("unlockDeadlineSteps").EnumerateArray().Select(s => s.GetString()).ToList();
+        Assert.Contains("B2_SELF_SCORE", unlockSteps);
+        Assert.DoesNotContain("B3B_APPRAISAL", unlockSteps);
+
+        // Thiếu hạn / hạn đã qua / quá dài → 400.
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostAsync(w.OfficeC, id, "reopen",
+            new { targetStep = "B2_SELF_SCORE", reason = "Bổ sung minh chứng" }, await VersionAsync(w, id))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostAsync(w.OfficeC, id, "reopen",
+            new { targetStep = "B2_SELF_SCORE", reason = "Bổ sung minh chứng", unlockUntil = DateTime.UtcNow.AddHours(-1) }, await VersionAsync(w, id))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostAsync(w.OfficeC, id, "reopen",
+            new { targetStep = "B2_SELF_SCORE", reason = "Bổ sung minh chứng", unlockUntil = DateTime.UtcNow.AddDays(90) }, await VersionAsync(w, id))).StatusCode);
+
+        var reopened = await StepAsync(w.OfficeC, id, "reopen",
+            new { targetStep = "B2_SELF_SCORE", reason = "Bổ sung minh chứng", unlockUntil = DateTime.UtcNow.AddDays(7) }, "AwaitingSelfScore");
+        Assert.True(reopened.GetProperty("unlockActive").GetBoolean());
+        Assert.NotEqual(JsonValueKind.Null, reopened.GetProperty("unlockedUntil").ValueKind);
+
+        // Chủ hồ sơ thao tác được, hồ sơ có trong việc cần xử lý; hồ sơ khác trong kỳ vẫn khóa.
+        await AssertActionsAsync(w.Owner1C, id, "SubmitSelfScore");
+        Assert.Contains(id, await QueueAsync(w.Owner1C));
+        await AssertActionsAsync(w.Owner3C, other);
+        Assert.DoesNotContain(other, await QueueAsync(w.Owner3C));
+        var blocked = await PostAsync(w.Owner3C, other, "self-score/submit", new { generalScores = CriteriaTestData.General() }, await VersionAsync(w, other));
+        Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
+        Assert.Contains("khóa dữ liệu", await MessageAsync(blocked));
+
+        // Nộp lại → Chi bộ xác nhận → tập thể vẫn trong thời gian mở riêng; tới thẩm định thì kết thúc mở riêng.
+        await SelfScoreAsync(w, w.Owner1C, id);
+        await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
+        var atAppraisal = await StepAsync(w.SecretaryC, id, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
+        Assert.Equal(JsonValueKind.Null, atAppraisal.GetProperty("unlockedUntil").ValueKind);
+        Assert.False(atAppraisal.GetProperty("unlockActive").GetBoolean());
+
+        var history = (await Data(w.Owner1C, $"/api/evaluations/records/{id}/history")).EnumerateArray().ToList();
+        var grant = Assert.Single(history, h => h.GetProperty("action").GetString() == "GrantUnlock");
+        Assert.Equal("Bổ sung minh chứng", grant.GetProperty("reason").GetString());
+        Assert.Single(history, h => h.GetProperty("action").GetString() == "ClearUnlock");
+    }
+
+    [SkippableFact]
+    public async Task W7c_LockedPeriod_ReturnByAppraiser_UnlockExpires_ExtendRestoresOwner()
+    {
+        var w = await WorldAsync();
+        var periodId = await OpenPeriodAsync(w, "09A", w.Owner1.Id);
+        var id = await RecordOfAsync(w, periodId, w.Owner1.Id);
+        await SetStatusAsync(id, RecordStatus.AwaitingAppraisal, withTasks: true);
+        await TransitionAsync(w.Appraiser, periodId, "lock");
+
+        var returnAction = (await Data(w.AppraiserC, $"/api/evaluations/records/{id}/actions")).GetProperty("actions").EnumerateArray()
+            .Single(a => a.GetProperty("action").GetString() == "ReturnByAppraiser");
+        Assert.True(returnAction.GetProperty("requiresUnlockDeadline").GetBoolean());
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostAsync(w.AppraiserC, id, "appraisal/return",
+            new { reason = "Điểm tự chấm chưa khớp minh chứng" }, await VersionAsync(w, id))).StatusCode);
+
+        var returned = await StepAsync(w.AppraiserC, id, "appraisal/return",
+            new { reason = "Điểm tự chấm chưa khớp minh chứng", unlockUntil = DateTime.UtcNow.AddDays(3) }, "AwaitingSelfScore");
+        Assert.True(returned.GetProperty("unlockActive").GetBoolean());
+        await AssertActionsAsync(w.Owner1C, id, "SubmitSelfScore");
+
+        // Hết hạn → hồ sơ khóa lại như các hồ sơ khác.
+        await _factory.WithDbAsync(async db =>
+        {
+            var record = await db.EvaluationRecords.FirstAsync(r => r.Id == id);
+            record.UnlockedUntil = DateTime.UtcNow.AddMinutes(-1);
+            await db.SaveChangesAsync();
+        });
+        await AssertActionsAsync(w.Owner1C, id);
+        Assert.DoesNotContain(id, await QueueAsync(w.Owner1C));
+        var expired = await PostAsync(w.Owner1C, id, "self-score/submit", new { generalScores = CriteriaTestData.General() }, await VersionAsync(w, id));
+        Assert.Equal(HttpStatusCode.Conflict, expired.StatusCode);
+        Assert.Contains("Thời hạn mở riêng", await MessageAsync(expired));
+        Assert.False((await Data(w.Owner1C, $"/api/evaluations/records/{id}")).GetProperty("unlockActive").GetBoolean());
+
+        // Gia hạn: chủ hồ sơ không tự gia hạn; người thẩm định thấy hành động và gia hạn (bắt buộc lý do).
+        var extendAction = (await Data(w.AppraiserC, $"/api/evaluations/records/{id}/actions")).GetProperty("actions").EnumerateArray()
+            .Single(a => a.GetProperty("action").GetString() == "ExtendUnlock");
+        Assert.True(extendAction.GetProperty("requiresUnlockDeadline").GetBoolean());
+        Assert.Equal(HttpStatusCode.Forbidden, (await PostAsync(w.Owner1C, id, "unlock/extend",
+            new { reason = "Tự gia hạn", unlockUntil = DateTime.UtcNow.AddDays(2) }, await VersionAsync(w, id))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostAsync(w.AppraiserC, id, "unlock/extend",
+            new { reason = " ", unlockUntil = DateTime.UtcNow.AddDays(2) }, await VersionAsync(w, id))).StatusCode);
+        var extended = await StepAsync(w.AppraiserC, id, "unlock/extend",
+            new { reason = "Gia hạn bổ sung minh chứng", unlockUntil = DateTime.UtcNow.AddDays(2) }, "AwaitingSelfScore");
+        Assert.True(extended.GetProperty("unlockActive").GetBoolean());
+        await AssertActionsAsync(w.Owner1C, id, "SubmitSelfScore");
+        Assert.Contains(id, await QueueAsync(w.Owner1C));
+
+        var history = (await Data(w.Owner1C, $"/api/evaluations/records/{id}/history")).EnumerateArray().ToList();
+        Assert.Equal(2, history.Count(h => h.GetProperty("action").GetString() == "GrantUnlock"));
+    }
+
+    [SkippableFact]
     public async Task W8_TwoUsersSameRecord_SecondGets409()
     {
         var w = await WorldAsync();
@@ -741,6 +849,14 @@ public sealed class EvaluationWorkflowTests
         return await StepAsync(owner, recordId, "self-score/submit",
             new { generalScores = CriteriaTestData.General("2.1", "2.2", "2.3"), taskScores }, "AwaitingCellConfirm");
     }
+
+    /// <summary>Hồ sơ trong việc cần xử lý (các bước của luồng) của người dùng.</summary>
+    private static async Task<List<Guid>> QueueAsync(HttpClient client) =>
+        (await Data(client, "/api/evaluations/work-queue")).GetProperty("groups").EnumerateArray()
+            .SelectMany(g => g.GetProperty("items").EnumerateArray())
+            .Where(i => i.TryGetProperty("recordId", out var r) && r.ValueKind == JsonValueKind.String)
+            .Select(i => i.GetProperty("recordId").GetGuid())
+            .ToList();
 
     private static async Task AssertActionsAsync(HttpClient client, Guid recordId, params string[] expected)
     {

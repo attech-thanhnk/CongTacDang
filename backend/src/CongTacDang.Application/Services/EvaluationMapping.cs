@@ -208,6 +208,10 @@ public static class EvaluationMapping
             StatusDisplayName = WorkflowSteps.StatusDisplayName(r.Status),
             CurrentStep = currentStep.HasValue ? WorkflowSteps.Code(currentStep.Value) : null,
             ReturnReason = r.ReturnReason,
+            UnlockedUntil = r.UnlockedUntil,
+            UnlockActive = r.Period?.Status == PeriodStatus.Locked && r.IsUnlockedAt(DateTime.UtcNow),
+            UnlockedByName = r.UnlockedUntil.HasValue ? r.UnlockedByName : null,
+            UnlockReason = r.UnlockedUntil.HasValue ? r.UnlockReason : null,
             Progress = Progress(r, profile, today),
 
             TasksApprovedByName = r.TasksApprovedByName,

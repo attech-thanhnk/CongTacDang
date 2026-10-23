@@ -6,7 +6,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { attachmentService } from "@/services/attachmentService";
 import { EvaluationRecordDto, WorkflowStepCode, evaluationService } from "@/services/evaluationService";
 import { AppealDto, AppealFileDto, RecordAppealsDto, postPublishService } from "@/services/postPublishService";
-import { ReasonDialog } from "./ReasonDialog";
+import { ReasonDialog, UnlockDeadlineInfo } from "./ReasonDialog";
 import { errorMessage } from "@/components/admin/adminUtils";
 
 const STATUS_CLASS: Record<string, string> = {
@@ -38,6 +38,7 @@ export function AppealPanel({ record, onRecordChanged }: Props) {
   const [files, setFiles] = useState<File[]>([]);
   const [reopenAppeal, setReopenAppeal] = useState<AppealDto | null>(null);
   const [reopenTargets, setReopenTargets] = useState<WorkflowStepCode[] | null>(null);
+  const [reopenUnlock, setReopenUnlock] = useState<UnlockDeadlineInfo | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -101,6 +102,7 @@ export function AppealPanel({ record, onRecordChanged }: Props) {
         return;
       }
       setReopenTargets(reopen.targetSteps);
+      setReopenUnlock(reopen);
       setReopenAppeal(appeal);
     } catch (err: unknown) {
       toast.error(errorMessage(err, "Không tải được thao tác của hồ sơ."));
@@ -171,11 +173,15 @@ export function AppealPanel({ record, onRecordChanged }: Props) {
         description="Kiến nghị đã được chấp nhận. Hồ sơ quay về bước được chọn để đính chính."
         confirmText="Mở lại hồ sơ"
         targetSteps={reopenTargets}
+        unlock={reopenUnlock}
         busy={busy}
         onCancel={() => setReopenAppeal(null)}
-        onConfirm={async (reason, targetStep) => {
+        onConfirm={async (reason, targetStep, unlockUntil) => {
           if (!reopenAppeal || !targetStep) return;
-          const ok = await run(() => postPublishService.reopenFromAppeal(reopenAppeal.id, record.version ?? 0, targetStep, reason), "Đã mở lại hồ sơ theo kiến nghị.");
+          const ok = await run(
+            () => postPublishService.reopenFromAppeal(reopenAppeal.id, record.version ?? 0, targetStep, reason, unlockUntil),
+            "Đã mở lại hồ sơ theo kiến nghị."
+          );
           if (ok) {
             setReopenAppeal(null);
             onRecordChanged?.();
