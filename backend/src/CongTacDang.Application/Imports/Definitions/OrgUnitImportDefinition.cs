@@ -17,7 +17,6 @@ public sealed class OrgUnitImportRow
     /// <summary>Mã (đã chuẩn hóa chữ hoa).</summary>
     public string Code { get; init; } = string.Empty;
 
-    /// <summary>Tên.</summary>
     public string Name { get; init; } = string.Empty;
 
     /// <summary>Mã cấp trên (đã chuẩn hóa); rỗng = gốc (tạo mới) hoặc giữ nguyên (cập nhật).</summary>
@@ -35,41 +34,31 @@ public sealed class OrgUnitImportRow
     /// <summary>Id đơn vị đã có (cập nhật).</summary>
     public Guid? ExistingId { get; set; }
 
-    /// <summary>Id loại đơn vị đã đối chiếu.</summary>
     public Guid? UnitTypeId { get; set; }
 }
 
 /// <summary>
-/// Khung nhập một cây tổ chức (đơn vị chính quyền hoặc tổ chức Đảng) theo mã: mã đã có → cập nhật, chưa có → tạo mới.
-/// Ghi qua <see cref="IOrganizationService"/> để giữ đúng đường dẫn cây, ràng buộc một gốc, chặn vòng.
-/// Cấp trên trống: tạo mới → đơn vị gốc; cập nhật → giữ nguyên cấp trên hiện tại.
+/// Nhập cây tổ chức theo mã (đã có → cập nhật, chưa có → tạo mới), ghi qua <see cref="IOrganizationService"/>.
+/// Cấp trên trống: tạo mới → đơn vị gốc; cập nhật → giữ nguyên.
 /// </summary>
 public abstract class OrgUnitImportDefinition : ImportDefinition<OrgUnitImportRow>
 {
-    /// <summary>Khóa cột mã.</summary>
     public const string CodeKey = "code";
 
-    /// <summary>Khóa cột tên.</summary>
     public const string NameKey = "name";
 
-    /// <summary>Khóa cột mã cấp trên.</summary>
     public const string ParentKey = "parentCode";
 
-    /// <summary>Khóa cột loại đơn vị.</summary>
     public const string UnitTypeKey = "unitType";
 
-    /// <summary>Khóa cột thứ tự.</summary>
     public const string SortOrderKey = "sortOrder";
 
-    /// <summary>Khóa cột mô tả.</summary>
     public const string DescriptionKey = "description";
 
     private readonly IImportLookup _lookup;
 
-    /// <summary>Khởi tạo.</summary>
     protected OrgUnitImportDefinition(IImportLookup lookup) => _lookup = lookup;
 
-    /// <summary>Bên của cây.</summary>
     protected abstract OrgSide Side { get; }
 
     /// <summary>Nhãn (ví dụ "đơn vị", "tổ chức Đảng").</summary>
@@ -78,23 +67,18 @@ public abstract class OrgUnitImportDefinition : ImportDefinition<OrgUnitImportRo
     /// <summary>Danh sách đơn vị hiện có (kể cả đã xóa).</summary>
     protected abstract Task<IReadOnlyList<OrgUnitRef>> LoadUnitsAsync(IImportLookup lookup, CancellationToken ct);
 
-    /// <summary>Tạo mới qua dịch vụ tổ chức; trả Id.</summary>
     protected abstract Task<Guid> CreateUnitAsync(SaveCatalogItemDto input);
 
-    /// <summary>Cập nhật qua dịch vụ tổ chức.</summary>
     protected abstract Task UpdateUnitAsync(Guid id, SaveCatalogItemDto input);
 
-    /// <inheritdoc />
     public override IReadOnlyList<string> RequiredPermissions { get; } = new[] { PermissionCodes.CatalogManage };
 
-    /// <inheritdoc />
     public override async Task<IReadOnlyList<ImportColumn>> GetTemplateColumnsAsync(CancellationToken ct = default)
     {
         var types = (await _lookup.GetUnitTypesAsync(ct)).Where(t => t.Side == Side && t.IsActive).Select(t => t.Name).ToList();
         return Columns.Select(c => c.Key == UnitTypeKey ? c.WithAllowedValues(types) : c).ToList();
     }
 
-    /// <inheritdoc />
     protected override OrgUnitImportRow? ParseRow(ImportRawRow raw, ImportRowResult result)
     {
         var code = CatalogRules.NormalizeCode(raw.Get(CodeKey));
@@ -123,7 +107,6 @@ public abstract class OrgUnitImportDefinition : ImportDefinition<OrgUnitImportRo
         };
     }
 
-    /// <inheritdoc />
     protected override async Task ValidateAsync(IReadOnlyList<ParsedImportRow<OrgUnitImportRow>> rows, CancellationToken ct)
     {
         var units = await LoadUnitsAsync(_lookup, ct);
@@ -239,7 +222,6 @@ public abstract class OrgUnitImportDefinition : ImportDefinition<OrgUnitImportRo
         }
     }
 
-    /// <inheritdoc />
     protected override async Task<ImportCommitOutcome> CommitRowsAsync(IReadOnlyList<ParsedImportRow<OrgUnitImportRow>> rows, CancellationToken ct)
     {
         var outcome = new ImportCommitOutcome();
@@ -303,29 +285,21 @@ public sealed class DepartmentImportDefinition : OrgUnitImportDefinition
 {
     private readonly IOrganizationService _organization;
 
-    /// <summary>Khởi tạo.</summary>
     public DepartmentImportDefinition(IImportLookup lookup, IOrganizationService organization) : base(lookup)
         => _organization = organization;
 
-    /// <inheritdoc />
     public override string Kind => "departments";
 
-    /// <inheritdoc />
     public override string Name => "Đơn vị chính quyền";
 
-    /// <inheritdoc />
     public override string Description => "Cây đơn vị chính quyền theo mã: mã đã có thì cập nhật, chưa có thì tạo mới.";
 
-    /// <inheritdoc />
     public override int Order => 10;
 
-    /// <inheritdoc />
     protected override OrgSide Side => OrgSide.Administrative;
 
-    /// <inheritdoc />
     protected override string Label => CatalogRules.AdministrativeLabel;
 
-    /// <inheritdoc />
     public override IReadOnlyList<ImportColumn> Columns { get; } = new ImportColumn[]
     {
         new(CodeKey, "Mã đơn vị", true, "Mã duy nhất, không có khoảng trắng (ví dụ PH-KT). Mã đã có thì dòng này cập nhật đơn vị đó.", Example: "PH-KT"),
@@ -338,13 +312,10 @@ public sealed class DepartmentImportDefinition : OrgUnitImportDefinition
         new(DescriptionKey, "Mô tả", false, "Chức năng, nhiệm vụ (tùy chọn).")
     };
 
-    /// <inheritdoc />
     protected override Task<IReadOnlyList<OrgUnitRef>> LoadUnitsAsync(IImportLookup lookup, CancellationToken ct) => lookup.GetDepartmentsAsync(ct);
 
-    /// <inheritdoc />
     protected override async Task<Guid> CreateUnitAsync(SaveCatalogItemDto input) => (await _organization.CreateDepartmentAsync(input)).Id;
 
-    /// <inheritdoc />
     protected override Task UpdateUnitAsync(Guid id, SaveCatalogItemDto input) => _organization.UpdateDepartmentAsync(id, input);
 }
 
@@ -353,29 +324,21 @@ public sealed class PartyCellImportDefinition : OrgUnitImportDefinition
 {
     private readonly IOrganizationService _organization;
 
-    /// <summary>Khởi tạo.</summary>
     public PartyCellImportDefinition(IImportLookup lookup, IOrganizationService organization) : base(lookup)
         => _organization = organization;
 
-    /// <inheritdoc />
     public override string Kind => "party-cells";
 
-    /// <inheritdoc />
     public override string Name => "Tổ chức Đảng";
 
-    /// <inheritdoc />
     public override string Description => "Cây tổ chức Đảng theo mã: mã đã có thì cập nhật, chưa có thì tạo mới.";
 
-    /// <inheritdoc />
     public override int Order => 20;
 
-    /// <inheritdoc />
     protected override OrgSide Side => OrgSide.Party;
 
-    /// <inheritdoc />
     protected override string Label => CatalogRules.PartyLabel;
 
-    /// <inheritdoc />
     public override IReadOnlyList<ImportColumn> Columns { get; } = new ImportColumn[]
     {
         new(CodeKey, "Mã tổ chức Đảng", true, "Mã duy nhất, không có khoảng trắng (ví dụ CB-KT). Mã đã có thì dòng này cập nhật tổ chức đó.", Example: "CB-KT"),
@@ -388,12 +351,9 @@ public sealed class PartyCellImportDefinition : OrgUnitImportDefinition
         new(DescriptionKey, "Mô tả", false, "Ghi chú (tùy chọn).")
     };
 
-    /// <inheritdoc />
     protected override Task<IReadOnlyList<OrgUnitRef>> LoadUnitsAsync(IImportLookup lookup, CancellationToken ct) => lookup.GetPartyCellsAsync(ct);
 
-    /// <inheritdoc />
     protected override async Task<Guid> CreateUnitAsync(SaveCatalogItemDto input) => (await _organization.CreateBranchAsync(input)).Id;
 
-    /// <inheritdoc />
     protected override Task UpdateUnitAsync(Guid id, SaveCatalogItemDto input) => _organization.UpdateBranchAsync(id, input);
 }

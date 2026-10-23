@@ -4,19 +4,16 @@ using System.Linq;
 
 namespace CongTacDang.Application.Reports;
 
-/// <summary>Một mục/nhóm nội dung in sẵn của biểu mẫu HD03.</summary>
-/// <param name="Code">Mã mục (khóa lưu dữ liệu).</param>
-/// <param name="Title">Tiêu đề đúng nguyên văn biểu mẫu gốc.</param>
-/// <param name="HasTaskLines">Mẫu 08: biểu mẫu gốc có dòng "- Nhiệm vụ 1: …" dưới nhóm nội dung.</param>
+/// <summary>Một mục/nhóm nội dung in sẵn của biểu mẫu.</summary>
+/// <param name="Code">Khóa lưu dữ liệu.</param>
+/// <param name="Title">Đúng nguyên văn biểu mẫu gốc.</param>
+/// <param name="HasTaskLines">Mẫu 08: có dòng "- Nhiệm vụ 1: …" dưới nhóm.</param>
 public sealed record Hd03FormSection(string Code, string Title, bool HasTaskLines = false);
 
-/// <summary>
-/// Chữ in sẵn của các biểu mẫu HD03 dùng chung cho nhập liệu, kiểm tra và xuất (đúng nguyên văn
-/// <c>docs/2.03-HD.TVDU (HD DGXL CAN BO QUY III-2026) (Bieu mau).docx</c> và PDF HD03 tr.73–76).
-/// </summary>
+/// <summary>Chữ in sẵn của biểu mẫu, dùng chung cho nhập liệu, kiểm tra và xuất; giữ đúng nguyên văn biểu mẫu gốc.</summary>
 public static class Hd03FormCatalog
 {
-    /// <summary>Mẫu 07, mục A.I "Ưu điểm, kết quả đạt được" — 4 nội dung (mã I.1–I.4).</summary>
+    /// <summary>Mẫu 07, mục A.I — mã I.1–I.4.</summary>
     public static IReadOnlyList<Hd03FormSection> Form07Strengths { get; } = new[]
     {
         new Hd03FormSection("I.1", "Việc chấp hành nguyên tắc tổ chức và hoạt động, nhất là nguyên tắc tập trung dân chủ; thực hiện quy chế làm việc."),
@@ -25,7 +22,7 @@ public static class Hd03FormCatalog
         new Hd03FormSection("I.4", "Trách nhiệm của tập thể lãnh đạo, quản lý trong triển khai thực hiện các chủ trương, đường lối, nghị quyết, văn bản chỉ đạo của Đảng, của cấp trên; thực hiện nhiệm vụ chính trị của tổ chức, cơ quan, đơn vị.")
     };
 
-    /// <summary>Mẫu 08 — 13 nhóm nội dung công việc (cột 2 của bảng, mã 1–13).</summary>
+    /// <summary>Mẫu 08 — nhóm nội dung công việc (cột 2), mã 1–13.</summary>
     public static IReadOnlyList<Hd03FormSection> Form08Categories { get; } = new[]
     {
         new Hd03FormSection("1", "Thực hiện nhiệm vụ sản xuất, kinh doanh.", true),
@@ -49,7 +46,7 @@ public static class Hd03FormCatalog
     /// <summary>Khoảng mã chức danh của Mẫu 15B (đối tượng thuộc diện Đảng ủy/Chi ủy cơ sở quyết định).</summary>
     public const int Form15BFirstCode = 17, Form15BLastCode = 26;
 
-    /// <summary>Cột 2 "Đối tượng đánh giá, xếp loại" của Mẫu 15A/15B theo mã chức danh (nguyên văn PDF HD03 tr.73–76).</summary>
+    /// <summary>Cột 2 "Đối tượng đánh giá, xếp loại" của Mẫu 15A/15B theo mã chức danh.</summary>
     public static IReadOnlyDictionary<string, string> StatCodeSubjects { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["M1"] = "Bí thư Đảng ủy Tổng công ty.",
@@ -83,7 +80,6 @@ public static class Hd03FormCatalog
     /// <summary>Dòng dành cho cán bộ chưa có chức vụ mang mã chức danh thống kê (không có trong biểu mẫu gốc).</summary>
     public const string NoStatCodeSubject = "Cán bộ chưa có mã chức danh thống kê";
 
-    /// <summary>Tìm nhóm nội dung Mẫu 08 theo mã; null nếu không có.</summary>
     public static Hd03FormSection? FindForm08Category(string? code) =>
         Form08Categories.FirstOrDefault(c => string.Equals(c.Code, code?.Trim(), StringComparison.Ordinal));
 }

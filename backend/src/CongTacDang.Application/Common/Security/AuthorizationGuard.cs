@@ -8,26 +8,12 @@ using CongTacDang.Domain.Enums;
 namespace CongTacDang.Application.Common.Security;
 
 /// <summary>
-/// Điểm kiểm tra quyền duy nhất theo đối tượng (docs/thiet-ke/phan-quyen.md mục 4). Người dùng được thực hiện quyền P
-/// trên đối tượng T khi:
-/// <list type="number">
-/// <item>tài khoản đang hoạt động (<see cref="EffectivePermissions.IsActive"/>);</item>
-/// <item>có bản gán đang hiệu lực mà vai trò có P và phạm vi bao trùm T (Global → mọi đối tượng; đơn vị chính quyền d →
-/// T.DepartmentId là d hoặc đơn vị con cháu của d; tổ chức Đảng c → T.PartyCellId là c hoặc con cháu của c);
-/// quyền "không áp dụng phạm vi" chỉ tính bản gán Global;</item>
-/// <item>luật riêng theo mã: <c>evaluation.self</c> chỉ trên hồ sơ của mình; <c>evaluation.read</c> luôn đúng với chủ hồ sơ;
-/// các quyền duyệt/xác nhận/đề xuất/ghi nhận/quyết định không áp dụng trên hồ sơ của chính mình (xung đột lợi ích).</item>
-/// </list>
-/// Guard không xét cấp quyết định (<c>ApprovalAuthority</c>): bước nào làm trong hệ thống, bước nào do cấp trên thực hiện
-/// và quyền thực hiện từng bước là cấu hình hồ sơ luồng của hồ sơ (<c>PeriodSettings.profiles</c>), service luồng kiểm tra
-/// chế độ bước trước khi gọi guard.
-/// Đăng ký scoped: tập quyền của người dùng hiện tại được nạp một lần mỗi request (qua <see cref="IPermissionResolver"/>, có cache).
+/// Không xét cấp quyết định hay chế độ bước — service luồng kiểm tra hồ sơ luồng trước khi gọi guard.
+/// Scoped: tập quyền nạp một lần mỗi request.
 /// </summary>
 public sealed class AuthorizationGuard : IAuthorizationGuard
 {
-    /// <summary>
-    /// Các quyền không áp dụng khi người thực hiện là chủ hồ sơ (xung đột lợi ích, HD03 tr.4).
-    /// </summary>
+    /// <summary>Không áp dụng khi người thực hiện là chủ hồ sơ (xung đột lợi ích).</summary>
     public static readonly IReadOnlySet<string> ConflictOfInterestCodes = new HashSet<string>(StringComparer.Ordinal)
     {
         PermissionCodes.EvaluationTasksApprove,
@@ -40,7 +26,6 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         PermissionCodes.EvaluationExternalRecord,
         PermissionCodes.EvaluationPublish,
         PermissionCodes.EvaluationReopen,
-        // Task 20: không xử lý kiến nghị của chính mình, không tự lập/duyệt kế hoạch khắc phục cho mình.
         PermissionCodes.EvaluationAppealResolve,
         PermissionCodes.EvaluationImprovementManage
     };
@@ -50,14 +35,13 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
     private EffectivePermissions? _permissions;
     private bool _loaded;
 
-    /// <summary>Khởi tạo guard cho request hiện tại.</summary>
     public AuthorizationGuard(ICurrentUserService currentUser, IPermissionResolver resolver)
     {
         _currentUser = currentUser;
         _resolver = resolver;
     }
 
-    /// <summary>Guard trên tập quyền cho sẵn (dùng trong test hoặc khi đã nạp quyền).</summary>
+    /// <summary>Kiểm tra trên tập quyền cho sẵn.</summary>
     public static bool Evaluate(EffectivePermissions permissions, string permission, AccessTarget target)
     {
         ArgumentNullException.ThrowIfNull(permissions);
@@ -72,10 +56,10 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         {
             case PermissionCodes.EvaluationSelf:
             case PermissionCodes.EvaluationAppealSubmit:
-                // Chỉ trên hồ sơ của chính mình; phạm vi gán được bỏ qua (task 20: gửi kiến nghị cũng vậy).
+                // Chỉ trên hồ sơ của chính mình; phạm vi gán được bỏ qua.
                 return isOwner && permissions.Has(permission);
             case PermissionCodes.EvaluationRead when isOwner:
-                // HD03: quyền được biết — chủ hồ sơ luôn xem được hồ sơ của mình.
+                // Chủ hồ sơ luôn xem được hồ sơ của mình.
                 return true;
         }
 
@@ -92,7 +76,7 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
             {
                 case ScopeType.Global:
                     return true;
-                // Phạm vi đơn vị bao trùm cả cây con (task 14): gán ở cha → có quyền ở mọi đơn vị con cháu.
+                // Gán ở cha → có quyền ở mọi đơn vị con cháu.
                 case ScopeType.Department when appliesScope && grant.ScopeId.HasValue && grant.Covers(target.DepartmentId):
                     return true;
                 case ScopeType.PartyCell when appliesScope && grant.ScopeId.HasValue && grant.Covers(target.PartyCellId):
@@ -104,9 +88,8 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
     }
 
     /// <summary>
-    /// Chế độ ghi (<see cref="AccessTarget.RequireAllUnits"/>): phạm vi Global bao trùm mọi đối tượng; ngược lại mỗi đơn vị khác null
-    /// của đối tượng (đơn vị chính quyền, tổ chức Đảng) phải được một bản gán bao trùm — có thể là hai bản gán khác nhau.
-    /// Đối tượng không gắn đơn vị nào chỉ phạm vi Global làm được (như chế độ đọc).
+    /// Chế độ ghi: mỗi đơn vị khác null phải được một bản gán bao trùm (có thể hai bản gán khác nhau);
+    /// đối tượng không gắn đơn vị chỉ phạm vi Global làm được.
     /// </summary>
     private static bool EvaluateAllUnits(EffectivePermissions permissions, string permission, AccessTarget target, bool appliesScope)
     {
@@ -123,7 +106,6 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         return departmentCovered && cellCovered;
     }
 
-    /// <summary>Bộ lọc phạm vi trên tập quyền cho sẵn.</summary>
     public static ScopeFilter BuildScope(EffectivePermissions permissions, string permission)
     {
         ArgumentNullException.ThrowIfNull(permissions);
@@ -137,7 +119,7 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         var appliesScope = PermissionCodes.Find(permission)?.AppliesScope ?? true;
         var grants = permissions.GrantsFor(permission).ToList();
         var isGlobal = grants.Any(g => g.ScopeType == ScopeType.Global);
-        // Danh sách Id đã mở rộng xuống cây con (resolver tính sẵn) → service dựng WHERE ... IN (...) như cũ.
+        // Id đã được resolver mở rộng xuống cây con.
         var departments = appliesScope && !isGlobal
             ? grants.Where(g => g.ScopeType == ScopeType.Department && g.ScopeId.HasValue).SelectMany(g => g.CoveredIds).Distinct().ToList()
             : new List<Guid>();
@@ -145,19 +127,17 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
             ? grants.Where(g => g.ScopeType == ScopeType.PartyCell && g.ScopeId.HasValue).SelectMany(g => g.CoveredIds).Distinct().ToList()
             : new List<Guid>();
 
-        // Chủ hồ sơ luôn xem được hồ sơ của mình (HD03: quyền được biết).
+        // Chủ hồ sơ luôn xem được hồ sơ của mình.
         Guid? owner = permission == PermissionCodes.EvaluationRead ? userId : null;
         return new ScopeFilter(isGlobal, departments, cells, owner);
     }
 
-    /// <inheritdoc />
     public bool HasAny(string permission)
     {
         var permissions = Permissions();
         return permissions != null && permissions.IsActive && permissions.Has(permission);
     }
 
-    /// <inheritdoc />
     public bool Can(string permission, AccessTarget target)
     {
         ArgumentNullException.ThrowIfNull(target);
@@ -165,21 +145,19 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         return permissions != null && Evaluate(permissions, permission, target);
     }
 
-    /// <inheritdoc />
     public void Ensure(string permission, AccessTarget target)
     {
         if (!Can(permission, target))
             throw Forbidden(permission, target);
     }
 
-    /// <inheritdoc />
     public ScopeFilter GetScope(string permission)
     {
         var permissions = Permissions();
         return permissions == null ? ScopeFilter.None : BuildScope(permissions, permission);
     }
 
-    /// <summary>Lỗi 403 nêu tên quyền hiển thị và lý do (RULES 8.5).</summary>
+    /// <summary>Lỗi 403 nêu tên quyền hiển thị và lý do.</summary>
     public ForbiddenException Forbidden(string permission, AccessTarget target)
     {
         var name = PermissionCodes.DisplayName(permission);
@@ -210,7 +188,7 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
             + "Hãy liên hệ quản trị hệ thống nếu cần được cấp quyền.");
     }
 
-    /// <summary>Tập quyền hiệu lực của người dùng hiện tại; null nếu chưa đăng nhập.</summary>
+    /// <summary>Null nếu chưa đăng nhập.</summary>
     private EffectivePermissions? Permissions()
     {
         if (_loaded)

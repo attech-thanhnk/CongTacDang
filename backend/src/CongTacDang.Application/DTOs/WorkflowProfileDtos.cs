@@ -12,7 +12,7 @@ public class ExternalResultDto
     public string? DocumentNumber { get; set; }
     public DateTime? DocumentDate { get; set; }
     public string? Comment { get; set; }
-    /// <summary>Mức đề xuất/quyết định (mã enum; <c>ChuaXepLoai</c> khi bước không có mức).</summary>
+    /// <summary>Mã enum; <c>ChuaXepLoai</c> khi bước không có mức.</summary>
     public string Grade { get; set; } = string.Empty;
     public double? Score { get; set; }
     public Guid? AttachmentId { get; set; }
@@ -29,13 +29,12 @@ public class ExternalResultRequestDto : WorkflowRequestDto
     public string? DocumentNumber { get; set; }
     public DateTime? DocumentDate { get; set; }
     public string? Comment { get; set; }
-    /// <summary>Mức đề xuất/quyết định — bắt buộc với B3a, B3b, B3c, B4.</summary>
+    /// <summary>Bắt buộc với B3a, B3b, B3c, B4.</summary>
     public string? Grade { get; set; }
-    /// <summary>Điểm (tùy chọn, 0–100).</summary>
+    /// <summary>Tùy chọn, 0–100.</summary>
     public double? Score { get; set; }
-    /// <summary>Tệp đính kèm đã tải lên (tùy chọn).</summary>
     public Guid? AttachmentId { get; set; }
-    /// <summary>Chỉ bước B4: đề xuất nội dung liên quan về công tác cán bộ (tùy chọn, cột 13 Mẫu 14).</summary>
+    /// <summary>Chỉ bước B4; tùy chọn, cột 13 Mẫu 14.</summary>
     public string? CadreWorkProposal { get; set; }
 }
 
@@ -48,14 +47,13 @@ public class ChangeProfileDto
     public string? Reason { get; set; }
 }
 
-/// <summary>Một hồ sơ trong yêu cầu đổi hồ sơ luồng hàng loạt.</summary>
 public class ProfileChangeItemDto
 {
     public Guid RecordId { get; set; }
     public uint? Version { get; set; }
 }
 
-/// <summary>Đổi hồ sơ luồng hàng loạt (từng hồ sơ kiểm tra riêng; hồ sơ không đổi được được liệt kê lý do).</summary>
+/// <summary>Từng hồ sơ kiểm tra riêng; hồ sơ không đổi được thì liệt kê lý do.</summary>
 public class BulkChangeProfileDto
 {
     public List<ProfileChangeItemDto> Items { get; set; } = new();
@@ -63,14 +61,13 @@ public class BulkChangeProfileDto
     public string? Reason { get; set; }
 }
 
-/// <summary>Kết quả đổi hồ sơ luồng hàng loạt.</summary>
 public class BulkChangeProfileResultDto
 {
     public int Updated { get; set; }
     public List<string> Skipped { get; set; } = new();
 }
 
-/// <summary>Một cảnh báo kẹt luồng: hồ sơ sẽ kẹt ở bước vì không ai có quyền thực hiện trong phạm vi của hồ sơ.</summary>
+/// <summary>Cảnh báo kẹt luồng: không ai có quyền thực hiện bước trong phạm vi của hồ sơ.</summary>
 public class ReadinessIssueDto
 {
     public Guid RecordId { get; set; }
@@ -84,20 +81,18 @@ public class ReadinessIssueDto
     public string Mode { get; set; } = string.Empty;
     public string Permission { get; set; } = string.Empty;
     public string PermissionName { get; set; } = string.Empty;
-    /// <summary>Các vai trò đang chứa quyền này — người quản trị gán một trong các vai trò đó.</summary>
+    /// <summary>Vai trò đang chứa quyền này; quản trị gán một trong các vai trò đó.</summary>
     public List<string> RoleNames { get; set; } = new();
-    /// <summary>Tên ngắn của nơi cần gán (tổ chức Đảng / đơn vị chính quyền của hồ sơ); gán ở cấp trên hoặc Toàn công ty cũng được.</summary>
+    /// <summary>Nơi cần gán; gán ở cấp trên hoặc Toàn công ty cũng được.</summary>
     public string ScopeName { get; set; } = string.Empty;
-    /// <summary>Phạm vi của hồ sơ (đơn vị chính quyền / tổ chức Đảng) mà bản gán cần bao trùm.</summary>
+    /// <summary>Phạm vi bản gán cần bao trùm.</summary>
     public string Scope { get; set; } = string.Empty;
-    /// <summary>Đơn vị chính quyền của hồ sơ (để mở màn hình "Người thực hiện" đúng đơn vị).</summary>
+    /// <summary>Để mở màn hình "Người thực hiện" đúng đơn vị.</summary>
     public Guid? DepartmentId { get; set; }
-    /// <summary>Tổ chức Đảng của hồ sơ.</summary>
     public Guid? PartyCellId { get; set; }
     public string Message { get; set; } = string.Empty;
 }
 
-/// <summary>Kết quả kiểm tra kẹt luồng của kỳ.</summary>
 public class PeriodReadinessDto
 {
     public Guid PeriodId { get; set; }
@@ -106,17 +101,15 @@ public class PeriodReadinessDto
     /// <summary>Số hồ sơ chưa công bố đã kiểm tra.</summary>
     public int CheckedRecords { get; set; }
     public List<ReadinessIssueDto> Issues { get; set; } = new();
-    /// <summary>Rà soát dữ liệu trước khi mở kỳ: những chỗ dễ gây kẹt hoặc chưa đúng thực tế (không chặn mở kỳ).</summary>
+    /// <summary>Chỗ dễ gây kẹt hoặc chưa đúng thực tế; không chặn mở kỳ.</summary>
     public List<DataReviewItemDto> DataReview { get; set; } = new();
 }
 
-/// <summary>Một mục rà soát dữ liệu: nội dung cần xem và những người/hồ sơ liên quan.</summary>
 public class DataReviewItemDto
 {
-    /// <summary>Loại mục: DirectInPartyCommittee, MissingOrg, SinglePerformer.</summary>
+    /// <summary>DirectInPartyCommittee | MissingOrg | SinglePerformer.</summary>
     public string Kind { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
-    /// <summary>Cách xử lý gợi ý.</summary>
     public string Hint { get; set; } = string.Empty;
     public List<string> Names { get; set; } = new();
 }
@@ -129,7 +122,7 @@ public class OpenPeriodOutcome
     public bool Blocked => Period == null;
 }
 
-/// <summary>Mã quyền chọn được làm quyền thực hiện bước (hiển thị ở cấu hình hồ sơ luồng).</summary>
+/// <summary>Mã quyền chọn được làm quyền thực hiện bước.</summary>
 public class StepPermissionOptionDto
 {
     public string Code { get; set; } = string.Empty;

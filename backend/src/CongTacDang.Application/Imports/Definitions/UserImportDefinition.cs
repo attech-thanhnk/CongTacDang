@@ -20,7 +20,6 @@ public sealed class UserImportRow
     /// <summary>Tên đăng nhập (đã chuẩn hóa chữ thường).</summary>
     public string Username { get; init; } = string.Empty;
 
-    /// <summary>Họ và tên.</summary>
     public string FullName { get; init; } = string.Empty;
 
     /// <summary>Ngày sinh dạng yyyy-MM-dd; null = trống.</summary>
@@ -29,7 +28,6 @@ public sealed class UserImportRow
     /// <summary>Email (đã kiểm tra); rỗng = trống.</summary>
     public string Email { get; init; } = string.Empty;
 
-    /// <summary>Điện thoại.</summary>
     public string Phone { get; init; } = string.Empty;
 
     /// <summary>Mã đơn vị chính quyền (chuẩn hóa chữ hoa).</summary>
@@ -41,7 +39,6 @@ public sealed class UserImportRow
     /// <summary>Đảng viên: true/false; null = suy theo số thẻ đảng.</summary>
     public bool? IsPartyMember { get; init; }
 
-    /// <summary>Số thẻ đảng.</summary>
     public string PartyCardNumber { get; init; } = string.Empty;
 
     /// <summary>Chức vụ (tên hoặc mã thống kê) theo thứ tự trong ô; chức vụ đầu là chức vụ chính khi tạo mới.</summary>
@@ -53,19 +50,15 @@ public sealed class UserImportRow
     /// <summary>Kiểu trình bày biểu mẫu như ghi trong ô; rỗng = trống.</summary>
     public string FormLayoutText { get; init; } = string.Empty;
 
-    /// <summary>Kiểu trình bày đặt riêng đã đối chiếu.</summary>
     public Guid? FormLayoutId { get; set; }
 
     /// <summary>Ô ghi "Theo chức vụ": bỏ kiểu đặt riêng (cán bộ dùng kiểu của chức vụ).</summary>
     public bool ClearFormLayout { get; set; }
 
-    /// <summary>Tài khoản đã có (cập nhật).</summary>
     public UserRef? Existing { get; set; }
 
-    /// <summary>Id đơn vị chính quyền đã đối chiếu.</summary>
     public Guid? DepartmentId { get; set; }
 
-    /// <summary>Id tổ chức Đảng đã đối chiếu.</summary>
     public Guid? PartyCellId { get; set; }
 
     /// <summary>Chức vụ đã đối chiếu (bỏ trùng).</summary>
@@ -76,14 +69,11 @@ public sealed class UserImportRow
 }
 
 /// <summary>
-/// Nhập cán bộ + tài khoản (loại <c>users</c>). Tên đăng nhập chưa có → tạo tài khoản qua <see cref="IUserAccountService"/>
-/// (mật khẩu tạm sinh tự động, bắt đổi ở lần đăng nhập đầu; xuất file mật khẩu một lần). Tên đăng nhập đã có → cập nhật
-/// thông tin, <b>không đổi mật khẩu</b>; ô trống giữ nguyên giá trị cũ; chức vụ chỉ thêm chức vụ chưa giữ (không kết thúc chức vụ đang giữ).
-/// Quyền <c>system.users.manage</c> kiểm tra trên đơn vị/tổ chức Đảng của từng tài khoản.
+/// Tài khoản mới: mật khẩu tạm, xuất file mật khẩu một lần. Tài khoản đã có: không đổi mật khẩu, ô trống giữ nguyên,
+/// chức vụ chỉ thêm (không kết thúc chức vụ đang giữ). Quyền kiểm tra trên đơn vị/tổ chức Đảng của từng tài khoản.
 /// </summary>
 public sealed partial class UserImportDefinition : ImportDefinition<UserImportRow>
 {
-    /// <summary>Khóa cột.</summary>
     public const string UsernameKey = "username", FullNameKey = "fullName", DateOfBirthKey = "dateOfBirth", EmailKey = "email",
         PhoneKey = "phone", DepartmentKey = "departmentCode", PartyCellKey = "partyCellCode", PartyMemberKey = "isPartyMember",
         PartyCardKey = "partyCardNumber", PositionsKey = "positions", WeightFrameKey = "weightFrame", FormLayoutKey = "formLayout";
@@ -102,7 +92,6 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
     private readonly IFormLayoutService _formLayouts;
     private readonly TimeProvider _time;
 
-    /// <summary>Khởi tạo.</summary>
     public UserImportDefinition(IImportLookup lookup, IAuthorizationGuard guard, IUserAccountService accounts, IPositionService positions,
         IFormLayoutService formLayouts, TimeProvider? time = null)
     {
@@ -117,23 +106,17 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
     [GeneratedRegex("^M[0-9]{1,3}$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex StatCodePattern();
 
-    /// <inheritdoc />
     public override string Kind => "users";
 
-    /// <inheritdoc />
     public override string Name => "Cán bộ và tài khoản";
 
-    /// <inheritdoc />
     public override string Description =>
         "Tên đăng nhập chưa có thì tạo tài khoản (mật khẩu tạm, bắt đổi khi đăng nhập lần đầu); đã có thì cập nhật thông tin, không đổi mật khẩu.";
 
-    /// <inheritdoc />
     public override int Order => 30;
 
-    /// <inheritdoc />
     public override IReadOnlyList<string> RequiredPermissions { get; } = new[] { PermissionCodes.SystemUsersManage };
 
-    /// <inheritdoc />
     public override IReadOnlyList<ImportColumn> Columns { get; } = new ImportColumn[]
     {
         new(UsernameKey, "Tên đăng nhập", true, "Chữ không dấu, số và . _ - (3–50 ký tự). Đã có thì dòng này cập nhật tài khoản đó.", Example: "nguyen.van.a"),
@@ -153,7 +136,6 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
             $"Chỉ ghi khi cán bộ cần kiểu khác kiểu của chức vụ. Để trống: theo chức vụ (tài khoản đã có thì giữ nguyên); ghi \"{ByPositionLayout}\" để bỏ kiểu đã đặt riêng.")
     };
 
-    /// <inheritdoc />
     public override async Task<IReadOnlyList<ImportColumn>> GetTemplateColumnsAsync(CancellationToken ct = default)
     {
         var positions = (await _lookup.GetPositionsAsync(ct)).Where(p => p.IsActive)
@@ -168,7 +150,6 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
         }).ToList();
     }
 
-    /// <inheritdoc />
     protected override UserImportRow? ParseRow(ImportRawRow raw, ImportRowResult result)
     {
         var usernameText = raw.Get(UsernameKey);
@@ -229,7 +210,6 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
         };
     }
 
-    /// <inheritdoc />
     protected override async Task ValidateAsync(IReadOnlyList<ParsedImportRow<UserImportRow>> rows, CancellationToken ct)
     {
         MarkDuplicates(rows, r => r.Username, "Tên đăng nhập");
@@ -295,7 +275,6 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
         }
     }
 
-    /// <inheritdoc />
     protected override async Task<ImportCommitOutcome> CommitRowsAsync(IReadOnlyList<ParsedImportRow<UserImportRow>> rows, CancellationToken ct)
     {
         var outcome = new ImportCommitOutcome();

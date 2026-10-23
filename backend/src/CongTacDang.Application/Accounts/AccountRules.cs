@@ -10,10 +10,8 @@ namespace CongTacDang.Application.Accounts;
 /// <summary>Quy tắc tên đăng nhập và email của tài khoản.</summary>
 public static partial class AccountRules
 {
-    /// <summary>Độ dài tối thiểu tên đăng nhập.</summary>
     public const int UsernameMinLength = 3;
 
-    /// <summary>Độ dài tối đa tên đăng nhập.</summary>
     public const int UsernameMaxLength = 50;
 
     /// <summary>Độ dài tối đa email (khớp cấu hình cột).</summary>
@@ -56,13 +54,9 @@ public static partial class AccountRules
         return value;
     }
 
-    /// <summary>Số năm tối đa tính từ ngày sinh tới hôm nay.</summary>
     public const int DateOfBirthMaxYears = 100;
 
-    /// <summary>
-    /// Đọc ngày sinh tùy chọn dạng "yyyy-MM-dd": trống → null; sai định dạng, ở tương lai hoặc quá
-    /// <see cref="DateOfBirthMaxYears"/> năm trước <paramref name="today"/> → <see cref="ValidationException"/>.
-    /// </summary>
+    /// <summary>Ngày sinh tùy chọn "yyyy-MM-dd": trống → null; sai định dạng, ở tương lai hoặc quá xa → <see cref="ValidationException"/>.</summary>
     public static DateOnly? ParseOptionalDateOfBirth(string? value, DateOnly today)
     {
         var text = value?.Trim() ?? string.Empty;
@@ -93,7 +87,6 @@ public static partial class AccountRules
 /// <summary>Chính sách mật khẩu (cấu hình <c>Security:Password:MinLength</c>, mặc định 8; luôn yêu cầu có chữ và số).</summary>
 public sealed class PasswordPolicy
 {
-    /// <summary>Độ dài tối thiểu mặc định.</summary>
     public const int DefaultMinLength = 8;
 
     /// <summary>Độ dài tối đa (giới hạn của BCrypt là 72 byte).</summary>
@@ -105,7 +98,6 @@ public sealed class PasswordPolicy
         MinLength = Math.Clamp(minLength, DefaultMinLength, MaxLength);
     }
 
-    /// <summary>Độ dài tối thiểu.</summary>
     public int MinLength { get; }
 
     /// <summary>Ném <see cref="ValidationException"/> nếu mật khẩu không đạt chính sách.</summary>

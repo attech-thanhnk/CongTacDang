@@ -6,11 +6,9 @@ using CongTacDang.Application.Common.Interfaces;
 
 namespace CongTacDang.Application.Accounts;
 
-/// <summary>Trạng thái tài khoản cần cho việc kiểm tra phiên ở mỗi request.</summary>
-/// <param name="UserId">Id tài khoản.</param>
-/// <param name="IsActive">Đang hoạt động (chưa bị quản trị khóa).</param>
-/// <param name="IsDeleted">Đã xóa mềm.</param>
-/// <param name="SecurityStamp">Dấu bảo mật hiện tại; token mang dấu khác bị từ chối.</param>
+/// <summary>Trạng thái tài khoản dùng để kiểm tra phiên ở mỗi request.</summary>
+/// <param name="IsActive">Chưa bị quản trị khóa.</param>
+/// <param name="SecurityStamp">Token mang dấu khác bị từ chối.</param>
 /// <param name="MustChangePassword">Đang dùng mật khẩu tạm, phải đổi trước khi dùng hệ thống.</param>
 public sealed record AccountState(Guid UserId, bool IsActive, bool IsDeleted, string SecurityStamp, bool MustChangePassword)
 {
@@ -32,13 +30,11 @@ public interface IAccountStateProvider
 }
 
 /// <summary>
-/// Cache trạng thái tài khoản trong bộ nhớ theo UserId (singleton, một instance API).
-/// TTL ngắn làm lưới an toàn khi dữ liệu bị đổi ngoài <see cref="IAccountStateProvider"/>;
+/// Cache trạng thái tài khoản trong bộ nhớ (singleton, một instance API). TTL ngắn phòng dữ liệu đổi ngoài provider;
 /// "thế hệ" chống ghi đè cache bằng dữ liệu nạp trước lệnh xóa.
 /// </summary>
 public sealed class AccountStateCache
 {
-    /// <summary>Thời gian sống mặc định.</summary>
     public static readonly TimeSpan DefaultTtl = TimeSpan.FromSeconds(60);
 
     private readonly ConcurrentDictionary<Guid, Entry> _entries = new();
@@ -46,7 +42,6 @@ public sealed class AccountStateCache
     private readonly TimeSpan _ttl;
     private long _generation;
 
-    /// <summary>Khởi tạo cache (mặc định: đồng hồ hệ thống, TTL 60 giây).</summary>
     public AccountStateCache(TimeProvider? timeProvider = null, TimeSpan? ttl = null)
     {
         _time = timeProvider ?? TimeProvider.System;
@@ -56,7 +51,6 @@ public sealed class AccountStateCache
     /// <summary>Thế hệ hiện tại, đọc trước khi nạp dữ liệu.</summary>
     public long Generation => Interlocked.Read(ref _generation);
 
-    /// <summary>Lấy mục còn hạn.</summary>
     public bool TryGet(Guid userId, out AccountState? state)
     {
         if (_entries.TryGetValue(userId, out var entry) && entry.ExpiresAt > _time.GetUtcNow())
@@ -80,7 +74,6 @@ public sealed class AccountStateCache
             _entries.TryRemove(userId, out _);
     }
 
-    /// <summary>Xóa mục của một tài khoản.</summary>
     public void Invalidate(Guid userId)
     {
         Interlocked.Increment(ref _generation);
@@ -96,14 +89,12 @@ public sealed class AccountStateProvider : IAccountStateProvider
     private readonly IUserAccountRepository _accounts;
     private readonly AccountStateCache _cache;
 
-    /// <summary>Khởi tạo provider.</summary>
     public AccountStateProvider(IUserAccountRepository accounts, AccountStateCache cache)
     {
         _accounts = accounts;
         _cache = cache;
     }
 
-    /// <inheritdoc />
     public async Task<AccountState?> GetAsync(Guid userId, CancellationToken ct = default)
     {
         if (_cache.TryGet(userId, out var cached))
@@ -115,6 +106,5 @@ public sealed class AccountStateProvider : IAccountStateProvider
         return state;
     }
 
-    /// <inheritdoc />
     public void Invalidate(Guid userId) => _cache.Invalidate(userId);
 }
