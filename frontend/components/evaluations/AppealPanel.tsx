@@ -8,6 +8,7 @@ import { EvaluationRecordDto, WorkflowStepCode, evaluationService } from "@/serv
 import { AppealDto, AppealFileDto, RecordAppealsDto, postPublishService } from "@/services/postPublishService";
 import { ReasonDialog, UnlockDeadlineInfo } from "./ReasonDialog";
 import { errorMessage } from "@/components/admin/adminUtils";
+import styles from "./record.module.css";
 
 const STATUS_CLASS: Record<string, string> = {
   Submitted: "t-wait",
@@ -20,10 +21,12 @@ interface Props {
   record: EvaluationRecordDto;
   /** Gọi khi hồ sơ thay đổi (mở lại theo kiến nghị) để trang tải lại. */
   onRecordChanged?: () => void;
+  /** Báo trang khi người xem có kiến nghị cần xử lý (nhận xem xét, trả lời, mở lại). */
+  onPendingChange?: (pending: boolean) => void;
 }
 
 /** Kiến nghị sau công bố; quyền và luật (xung đột lợi ích, không trùng khi đang xử lý) do máy chủ quyết định. */
-export function AppealPanel({ record, onRecordChanged }: Props) {
+export function AppealPanel({ record, onRecordChanged, onPendingChange }: Props) {
   const { toast } = useToast();
   const [data, setData] = useState<RecordAppealsDto | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,9 +52,18 @@ export function AppealPanel({ record, onRecordChanged }: Props) {
     load();
   }, [load, record.status, record.version]);
 
+  const pending = !!data?.appeals.some((a) => (a.canResolve && (a.status === "Submitted" || a.status === "UnderReview")) || a.canReopen);
+  useEffect(() => {
+    onPendingChange?.(pending);
+  }, [pending, onPendingChange]);
+
   // Hồ sơ chưa công bố và chưa từng có kiến nghị: không hiện khối.
   if (!data && !error) return null;
   if (data && data.appeals.length === 0 && !data.canSubmit && record.status !== "Published") return null;
+
+  // Chưa có kiến nghị nào và không có gì để báo: chỉ giữ tiêu đề với nút gửi.
+  const blocked = !!data?.submitBlockedReason && !data.canSubmit && record.status === "Published";
+  const hasBody = !!error || blocked || showForm || (data?.appeals.length ?? 0) > 0;
 
   const run = async (action: () => Promise<unknown>, message: string) => {
     setBusy(true);
@@ -106,8 +118,8 @@ export function AppealPanel({ record, onRecordChanged }: Props) {
   };
 
   return (
-    <section className="card">
-      <div className="card-header d-flex justify-content-between align-items-center gap-2">
+    <section className={`card ${pending ? styles.pendingCard : ""}`}>
+      <div className={`card-header d-flex justify-content-between align-items-center gap-2 ${hasBody ? "" : "border-0"}`}>
         <h2 className="mb-0 d-flex align-items-center gap-2">
           Kiến nghị
           {data?.underReview && <span className="tag t-wait">Đang xem xét</span>}
@@ -118,11 +130,9 @@ export function AppealPanel({ record, onRecordChanged }: Props) {
           </button>
         )}
       </div>
-      <div className="card-body d-flex flex-column gap-3">
+      {hasBody && <div className="card-body d-flex flex-column gap-3">
         {error && <div className="alert alert-warning mb-0 small">{error}</div>}
-        {data?.submitBlockedReason && !data.canSubmit && record.status === "Published" && (
-          <div className="small text-secondary">{data.submitBlockedReason}</div>
-        )}
+        {blocked && <div className="small text-secondary">{data?.submitBlockedReason}</div>}
 
         {showForm && data && (
           <div className="border rounded p-3 d-flex flex-column gap-2">
@@ -161,7 +171,7 @@ export function AppealPanel({ record, onRecordChanged }: Props) {
             onAttach={(file) => run(() => postPublishService.uploadAppealFile(appeal.id, file), "Đã gắn tệp vào kiến nghị.")}
             onReopen={() => openReopen(appeal)} />
         ))}
-      </div>
+      </div>}
 
       <ReasonDialog
         isOpen={!!reopenAppeal}

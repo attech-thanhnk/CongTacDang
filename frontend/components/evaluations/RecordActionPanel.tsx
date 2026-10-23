@@ -21,6 +21,7 @@ import {
 import { FileUploadModal } from "@/components/attachments/FileUploadModal";
 import { useCriteria } from "@/components/evaluations/useCriteria";
 import { SelfScoreForm } from "@/components/evaluations/SelfScoreForm";
+import { DateField } from "@/components/evaluations/DateField";
 import { CriteriaSnapshot, WeightFrame, describeFrame, fmt, requiresExplanation, roundScore } from "@/services/criteriaService";
 import { PublicOrganizationInfo, useOrganizationInfo } from "@/services/organizationSettingsService";
 import styles from "./record.module.css";
@@ -489,10 +490,11 @@ function ProposalForm({ record, busy, stage, submitText, extra, onSubmit }: { re
       {isDecision && <GradeWarningList warnings={recordGradeWarnings(record, grade)} />}
       {isDecision ? (
         <>
-          <div className="col-md-3"><label className="form-label small">Điểm chính thức (tùy chọn)</label><input type="number" min={0} max={100} step={0.1} className="form-control form-control-sm" value={finalScore} onChange={(e) => setFinalScore(e.target.value)} placeholder="Mặc định: điểm thẩm định" /></div>
-          <div className="col-md-4"><label className="form-label small">Cơ quan quyết định</label><input className="form-control form-control-sm" value={authorityName} maxLength={300} onChange={(e) => setAuthorityName(e.target.value)} /></div>
-          <div className="col-md-4"><label className="form-label small">Số văn bản</label><input className="form-control form-control-sm" value={documentNumber} maxLength={100} onChange={(e) => setDocumentNumber(e.target.value)} /></div>
-          <div className="col-md-4"><label className="form-label small">Ngày văn bản</label><input type="date" className="form-control form-control-sm" value={documentDate} onChange={(e) => setDocumentDate(e.target.value)} /></div>
+          {/* Để trống: máy chủ lấy điểm thẩm định. */}
+          <div className="col-md-3"><label className="form-label small text-nowrap" htmlFor={`${stage}-score`}>Điểm chính thức</label><input id={`${stage}-score`} type="number" min={0} max={100} step={0.1} className="form-control form-control-sm num" value={finalScore} onChange={(e) => setFinalScore(e.target.value)} placeholder={record.appraisalScore != null ? `Thẩm định: ${fmt(record.appraisalScore)}` : "Theo thẩm định"} title="Để trống sẽ lấy điểm thẩm định" /></div>
+          <div className="col-md-4"><label className="form-label small" htmlFor={`${stage}-authority`}>Cơ quan quyết định</label><input id={`${stage}-authority`} className="form-control form-control-sm" value={authorityName} maxLength={300} onChange={(e) => setAuthorityName(e.target.value)} title={authorityName} /></div>
+          <div className="col-md-5"><label className="form-label small" htmlFor={`${stage}-docno`}>Số văn bản</label><input id={`${stage}-docno`} className="form-control form-control-sm" value={documentNumber} maxLength={100} onChange={(e) => setDocumentNumber(e.target.value)} /></div>
+          <div className="col-md-4"><label className="form-label small" htmlFor={`${stage}-docdate`}>Ngày văn bản</label><DateField id={`${stage}-docdate`} value={documentDate} onChange={setDocumentDate} /></div>
           <CadreProposalInput id={`${stage}-cadre`} value={cadreWorkProposal} onChange={setCadreWorkProposal} />
         </>
       ) : (
@@ -594,19 +596,19 @@ function ExternalResultForm({ record, step, busy, extra, onSubmit }: { record: E
 
   return (
     <form onSubmit={submit} className="row g-2">
-      <div className="col-md-6"><label className="form-label small" htmlFor={`ext-${step}-authority`}>Cơ quan / cấp thực hiện (bắt buộc)</label>
+      <div className="col-md-6"><label className="form-label small" htmlFor={`ext-${step}-authority`}>Cơ quan / cấp thực hiện <span className="text-danger">*</span></label>
         <input id={`ext-${step}-authority`} className="form-control form-control-sm" required maxLength={300} value={authorityName} onChange={(e) => setAuthorityName(e.target.value)} />
       </div>
-      <div className="col-md-3"><label className="form-label small">Số văn bản</label><input className="form-control form-control-sm" maxLength={100} value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} /></div>
-      <div className="col-md-3"><label className="form-label small">Ngày văn bản</label><input type="date" className="form-control form-control-sm" value={documentDate} onChange={(e) => setDocumentDate(e.target.value)} /></div>
+      <div className="col-md-3"><label className="form-label small" htmlFor={`ext-${step}-docno`}>Số văn bản</label><input id={`ext-${step}-docno`} className="form-control form-control-sm" maxLength={100} value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} /></div>
+      <div className="col-md-3"><label className="form-label small" htmlFor={`ext-${step}-docdate`}>Ngày văn bản</label><DateField id={`ext-${step}-docdate`} value={documentDate} onChange={setDocumentDate} /></div>
       {graded && (
         <div className="col-md-6"><label className="form-label small" htmlFor={`ext-${step}-grade`}>{step === "B4_DECISION" ? "Mức xếp loại được quyết định" : "Mức đề xuất"}</label>
           <GradeSelect id={`ext-${step}-grade`} value={grade} onChange={setGrade} />
         </div>
       )}
       {withScore && (
-        <div className="col-md-3"><label className="form-label small">Điểm (tùy chọn)</label>
-          <input type="number" min={0} max={100} step={0.1} className="form-control form-control-sm" value={score} onChange={(e) => setScore(e.target.value)} />
+        <div className="col-md-3"><label className="form-label small" htmlFor={`ext-${step}-score`}>Điểm (tùy chọn)</label>
+          <input id={`ext-${step}-score`} type="number" min={0} max={100} step={0.1} className="form-control form-control-sm" value={score} onChange={(e) => setScore(e.target.value)} />
         </div>
       )}
       <div className="col-12"><label className="form-label small">Nhận xét / nội dung kết luận</label><textarea className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
@@ -712,7 +714,7 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
               </div>
               <div className="col-md-3">
                 <label className="form-label small mb-0" htmlFor={`t${i}-deadline`}>Thời hạn / mốc quý</label>
-                <input id={`t${i}-deadline`} type="date" className="form-control form-control-sm" value={t.deadline || ""} onChange={(e) => update(i, "deadline", e.target.value)} />
+                <DateField id={`t${i}-deadline`} value={t.deadline || ""} onChange={(v) => update(i, "deadline", v)} />
               </div>
               <div className="col-md-6">
                 <label className="form-label small mb-0" htmlFor={`t${i}-standard`}>Chuẩn đạt</label>

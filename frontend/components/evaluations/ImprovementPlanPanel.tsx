@@ -15,6 +15,8 @@ import {
   postPublishService,
 } from "@/services/postPublishService";
 import { errorMessage } from "@/components/admin/adminUtils";
+import { DateField } from "./DateField";
+import styles from "./record.module.css";
 
 const MILESTONES: { code: MilestoneCode; name: string }[] = [
   { code: "M30", name: "Mốc 30 ngày (Khắc phục cấp bách)" },
@@ -48,7 +50,7 @@ const toDraft = (plan?: ImprovementPlanDto | null): Draft => ({
 });
 
 /** Kế hoạch 30-60-90 ngày (Mẫu 17) của hồ sơ đã công bố; mức bắt buộc theo bộ tiêu chí của kỳ. */
-export function ImprovementPlanPanel({ record }: { record: EvaluationRecordDto }) {
+export function ImprovementPlanPanel({ record, onPendingChange }: { record: EvaluationRecordDto; onPendingChange?: (pending: boolean) => void }) {
   const { toast } = useToast();
   const [data, setData] = useState<RecordImprovementPlanDto | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,11 +72,16 @@ export function ImprovementPlanPanel({ record }: { record: EvaluationRecordDto }
     load();
   }, [load, record.status, record.version]);
 
+  // Người xem đang phải lập/duyệt hoặc xác nhận kế hoạch → trang đưa khối lên gần khu thao tác.
+  const plan = data?.plan ?? null;
+  const pending = !!data && (data.canAcknowledge || (data.canManage && ((!plan && data.required) || plan?.status === "Draft")));
+  useEffect(() => {
+    onPendingChange?.(pending);
+  }, [pending, onPendingChange]);
+
   if (!data && !error) return null;
   if (data && !data.isPublished && !data.plan) return null;
   if (data && !data.required && !data.plan && !data.canManage) return null;
-
-  const plan = data?.plan ?? null;
 
   const run = async (action: () => Promise<unknown>, message: string) => {
     setBusy(true);
@@ -117,7 +124,7 @@ export function ImprovementPlanPanel({ record }: { record: EvaluationRecordDto }
     setDraft({ ...draft, milestones: draft.milestones.map((m) => (m.code === code ? { ...m, [key]: value } : m)) });
 
   return (
-    <section className="card">
+    <section className={`card ${pending ? styles.pendingCard : ""}`}>
       <div className="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         <h2 className="mb-0 d-flex align-items-center gap-2">
           Kế hoạch 30-60-90 ngày (Mẫu 17)
@@ -147,6 +154,32 @@ export function ImprovementPlanPanel({ record }: { record: EvaluationRecordDto }
           </div>
         )}
 
+        {/* Việc của người xem (duyệt, xác nhận) đặt trước bảng dài để không phải cuộn tìm. */}
+        {plan && !editing && ((data?.canManage && plan.status === "Draft") || data?.canAcknowledge) && (
+          <div className="d-flex gap-2 flex-wrap align-items-center">
+            {data?.canManage && plan.status === "Draft" && (
+              <>
+                <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy}
+                  onClick={() => { setDraft(toDraft(plan)); setEditing(true); }}>Sửa kế hoạch</button>
+                <button type="button" className="btn btn-primary btn-sm" disabled={busy}
+                  onClick={() => run(() => postPublishService.approvePlan(plan.id, plan.version), "Đã duyệt kế hoạch; chờ cá nhân xác nhận.")}>
+                  Duyệt kế hoạch
+                </button>
+              </>
+            )}
+            {data?.canAcknowledge && (
+              <>
+                <input className="form-control form-control-sm w-auto flex-grow-1" placeholder="Ý kiến của cá nhân (tùy chọn)" maxLength={2000}
+                  value={ackComment} onChange={(e) => setAckComment(e.target.value)} aria-label="Ý kiến khi xác nhận" />
+                <button type="button" className="btn btn-primary btn-sm" disabled={busy}
+                  onClick={() => run(() => postPublishService.acknowledgePlan(plan.id, plan.version, ackComment || undefined), "Đã xác nhận cam kết khắc phục.")}>
+                  Xác nhận cam kết khắc phục
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         {editing ? (
           <div className="d-flex flex-column gap-2">
             <div className="row g-2">
@@ -162,8 +195,7 @@ export function ImprovementPlanPanel({ record }: { record: EvaluationRecordDto }
               </div>
               <div className="col-12 col-md-3">
                 <label className="form-label small mb-1" htmlFor="plan-start">Ngày bắt đầu</label>
-                <input id="plan-start" type="date" className="form-control form-control-sm" value={draft.startDate}
-                  onChange={(e) => setDraft({ ...draft, startDate: e.target.value })} />
+                <DateField id="plan-start" value={draft.startDate} onChange={(v) => setDraft({ ...draft, startDate: v })} />
               </div>
             </div>
             {MILESTONES.map(({ code, name }) => {
@@ -194,30 +226,6 @@ export function ImprovementPlanPanel({ record }: { record: EvaluationRecordDto }
               run(() => postPublishService.recordMilestoneResult(plan.id, plan.version, code, result, note), "Đã ghi kết quả mốc.")} />
         )}
 
-        {plan && !editing && (
-          <div className="d-flex gap-2 flex-wrap align-items-center">
-            {data?.canManage && plan.status === "Draft" && (
-              <>
-                <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy}
-                  onClick={() => { setDraft(toDraft(plan)); setEditing(true); }}>Sửa kế hoạch</button>
-                <button type="button" className="btn btn-primary btn-sm" disabled={busy}
-                  onClick={() => run(() => postPublishService.approvePlan(plan.id, plan.version), "Đã duyệt kế hoạch; chờ cá nhân xác nhận.")}>
-                  Duyệt kế hoạch
-                </button>
-              </>
-            )}
-            {data?.canAcknowledge && (
-              <>
-                <input className="form-control form-control-sm w-auto flex-grow-1" placeholder="Ý kiến của cá nhân (tùy chọn)" maxLength={2000}
-                  value={ackComment} onChange={(e) => setAckComment(e.target.value)} aria-label="Ý kiến khi xác nhận" />
-                <button type="button" className="btn btn-success btn-sm" disabled={busy}
-                  onClick={() => run(() => postPublishService.acknowledgePlan(plan.id, plan.version, ackComment || undefined), "Đã xác nhận cam kết khắc phục.")}>
-                  Xác nhận cam kết khắc phục
-                </button>
-              </>
-            )}
-          </div>
-        )}
       </div>
     </section>
   );

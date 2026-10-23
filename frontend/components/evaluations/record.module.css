@@ -573,6 +573,8 @@ button.stepBtn:focus-visible {
   margin: 12px calc(-20px + 0.25rem) -20px !important;
   padding: 12px 20px !important;
   width: auto !important;
+  /* .row > * của Bootstrap giới hạn max-width 100% làm chân hụt mép phải */
+  max-width: none !important;
   flex: 1 1 100% !important;
 }
 
@@ -596,6 +598,18 @@ button.stepBtn:focus-visible {
   bottom: 0;
   z-index: 5;
   background: var(--paper);
+}
+
+/* Điện thoại: chân dính chiếm gần nửa màn hình, để trang cuộn tự nhiên */
+@media (max-width: 767.98px) {
+  .stickyFoot {
+    position: static;
+  }
+}
+
+/* Việc đang chờ người xem ngoài khu thao tác (kiến nghị, kế hoạch): viền nhấn như khu thao tác */
+.pendingCard {
+  border: 1.5px solid var(--primary) !important;
 }
 
 /* Phiếu tự chấm: tổng điểm và điểm theo trục */
@@ -920,5 +934,20 @@ button.stepBtn:focus-visible {
   }
   .critMax::before {
     content: "Tối đa ";
+  }
+}
+
+/* Ô ngày dd/MM/yyyy: input-group-sm của Bootstrap ghi đè cỡ chữ lớn trên điện thoại */
+.dateGroup :global(.btn) {
+  min-width: 34px;
+}
+
+@media (max-width: 767.98px) {
+  .dateGroup :global(.form-control) {
+    font-size: 16px;
+    min-height: 40px;
+  }
+  .dateGroup :global(.btn) {
+    min-width: 40px;
   }
 }

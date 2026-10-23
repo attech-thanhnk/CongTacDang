@@ -60,6 +60,9 @@ export default function EvaluationRecordPage() {
   const [reasonAction, setReasonAction] = useState<RecordActionDto | null>(null);
   const [pdf, setPdf] = useState<string | null>(null);
   const [forms, setForms] = useState<RecordFormDto[]>([]);
+  // Kiến nghị / kế hoạch đang chờ chính người xem: đưa lên ngay dưới tiến trình.
+  const [appealPending, setAppealPending] = useState(false);
+  const [planPending, setPlanPending] = useState(false);
 
   const load = useCallback(async () => {
     if (!recordId) return;
@@ -129,7 +132,7 @@ export default function EvaluationRecordPage() {
       goToActions();
       return;
     }
-    if (!revealSection(STEP_SECTION[item.step]) && item.mode === "External") revealSection(EXTERNAL_SECTION);
+    revealSection(STEP_SECTION[item.step]);
   };
 
   if (loading) {
@@ -189,15 +192,22 @@ export default function EvaluationRecordPage() {
 
         <div className={styles.cols}>
           <div className={styles.stack}>
-            {actions.length > 0 && (
-              <div id={ACTIONS_ANCHOR} className={styles.actionsAnchor} tabIndex={-1}>
-                <RecordActionPanel record={record} actions={actions} busy={busy} onSubmit={perform} onReason={setReasonAction} />
-              </div>
-            )}
-            <RecordData record={record} reviewing={actions.length > 0} />
-            <TaskChangeRequests record={record} onRecordChanged={load} />
-            <AppealPanel record={record} onRecordChanged={load} />
-            <ImprovementPlanPanel record={record} />
+            {orderBlocks([
+              {
+                key: "actions",
+                // Thao tác chỉ còn trả lại / mở lại (không phải việc chính) thì nhường chỗ cho việc đang chờ.
+                rank: actions.some((a) => !a.requiresReason) ? 0 : 2,
+                node: actions.length > 0 && (
+                  <div id={ACTIONS_ANCHOR} className={styles.actionsAnchor} tabIndex={-1}>
+                    <RecordActionPanel record={record} actions={actions} busy={busy} onSubmit={perform} onReason={setReasonAction} />
+                  </div>
+                ),
+              },
+              { key: "appeal", rank: appealPending ? 1 : 4, node: <AppealPanel record={record} onRecordChanged={load} onPendingChange={setAppealPending} /> },
+              { key: "plan", rank: planPending ? 1 : 5, node: <ImprovementPlanPanel record={record} onPendingChange={setPlanPending} /> },
+              { key: "data", rank: 3, node: <RecordData record={record} reviewing={actions.length > 0} /> },
+              { key: "changes", rank: 3, node: <TaskChangeRequests record={record} onRecordChanged={load} /> },
+            ])}
           </div>
           <div className={`${styles.stack} ${styles.side}`}>
             <RecordFormsPanel
@@ -238,6 +248,14 @@ export default function EvaluationRecordPage() {
   );
 }
 
+/** Sắp khối cột trái theo hạng (ổn định); key cố định để khối đổi chỗ không bị dựng lại. */
+function orderBlocks(blocks: { key: string; rank: number; node: React.ReactNode }[]) {
+  return blocks
+    .map((b, i) => ({ ...b, i }))
+    .sort((a, b) => a.rank - b.rank || a.i - b.i)
+    .map((b) => <React.Fragment key={b.key}>{b.node}</React.Fragment>);
+}
+
 /** Thao tác làm lùi hồ sơ: hộp xác nhận kiểu nguy hiểm. */
 const DANGER_ACTIONS = new Set<WorkflowActionCode>(["RevokeTaskApproval"]);
 
@@ -256,7 +274,6 @@ const ACTION_CONFIRMATIONS: Partial<Record<WorkflowActionCode, string>> = {
 
 /** Id khu thao tác và khối nội dung của từng bước (cuộn tới từ dòng trạng thái / thanh tiến trình). */
 const ACTIONS_ANCHOR = "record-actions";
-const EXTERNAL_SECTION = "step-external";
 const STEP_SECTION: Record<WorkflowStepCode, string> = {
   B1_REGISTER: "step-b1",
   B1_APPROVE: "step-b1",
@@ -325,6 +342,9 @@ function Fields({ items, empty = "Chưa có dữ liệu." }: { items: FieldItem[
 
 const hasGrade = (grade?: string | null) => !!grade && grade !== "ChuaXepLoai";
 
+/** Mô tả ngắn bước đã xong cho title của nhãn khối gộp. */
+const doneText = (p: RecordStepProgressDto) => `${p.name}: ${[p.doneByName, formatShortDateTime(p.doneAt)].filter(Boolean).join(" ")}`;
+
 /** Dữ liệu đã lưu của các bước (chỉ đọc), mỗi bước một khối; bước chưa có dữ liệu và bước không áp dụng ẩn. */
 function RecordData({ record, reviewing }: { record: EvaluationRecordDto; reviewing: boolean }) {
   const { toast } = useToast();
@@ -349,39 +369,64 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
     if (items.length === 0) return steps.every((s) => !stepOf(s)) || hasData;
     return hasData || items.some((p) => p.state === "done" && p.mode !== "External");
   };
-  /** Nhãn ở tiêu đề khối: ✓ ngày · người thực hiện (nơi duy nhất ghi ai/lúc nào) hoặc "Chưa tới" khi còn dữ liệu cũ. */
+  /**
+   * Nhãn ở tiêu đề khối: ✓ ngày · người thực hiện, hoặc "Chưa tới" khi còn dữ liệu cũ.
+   * Khối gộp nhiều bước chỉ ghi ngày; người của từng bước ghi trong thân khối (stepDoneItems).
+   * Bước cấp trên không gắn nhãn riêng: tiến trình đã đánh dấu, tên cơ quan nằm ở nhãn này.
+   */
   const tag = (steps: WorkflowStepCode[]) => {
     const items = itemsOf(steps);
-    if (items.length === 0) return undefined;
-    const external = items.some((p) => p.mode === "External");
-    let status: React.ReactNode = null;
-    if (items.some((p) => p.state === "current")) {
-      status = null;
-    } else if (items.every((p) => p.state === "done")) {
-      const last = items[items.length - 1];
-      const day = formatShortDateTime(last.doneAt).slice(0, 5);
-      const text = [day, last.doneByName].filter(Boolean).join(" · ");
-      status = (
-        <span className={`tag ${styles.stepTagDone}`} title={text || undefined}>
-          <i className="bi bi-check-lg" aria-hidden="true" />
-          {day ? (
-            <span className={styles.stepTagText}>
-              <span className="num">{day}</span>
-              {last.doneByName && <span className={styles.hideNarrow}> · {last.doneByName}</span>}
-            </span>
-          ) : "Đã xong"}
-        </span>
-      );
-    } else {
-      status = <span className={`tag ${styles.tNeutral}`}>Chưa tới</span>;
-    }
-    if (!status && !external) return undefined;
+    if (items.length === 0 || items.some((p) => p.state === "current")) return undefined;
+    if (!items.every((p) => p.state === "done")) return <span className={`tag ${styles.tNeutral}`}>Chưa tới</span>;
+    const last = items[items.length - 1];
+    const day = formatShortDateTime(last.doneAt).slice(0, 5);
+    const by = items.length === 1 ? last.doneByName : null;
+    const text = items.length === 1 ? [day, by].filter(Boolean).join(" · ") : items.map(doneText).join(" · ");
     return (
-      <>
-        {external && <span className={`tag ${styles.tNeutral} ${styles.hideNarrow}`}>Cấp trên thực hiện</span>}
-        {status}
-      </>
+      <span className={`tag ${styles.stepTagDone}`} title={text || undefined}>
+        <i className="bi bi-check-lg" aria-hidden="true" />
+        {day ? (
+          <span className={styles.stepTagText}>
+            <span className="num">{day}</span>
+            {by && <span className={styles.hideNarrow}> · {by}</span>}
+          </span>
+        ) : "Đã xong"}
+      </span>
     );
+  };
+  const externalOf = (step: WorkflowStepCode) => record.externalResults?.find((r) => r.step === step);
+  /** Dòng "Quyết định: … · Công bố: …" trong thân khối gộp nhiều bước; bước cấp trên ghi người ghi nhận kết quả. */
+  const stepDoneItems = (steps: WorkflowStepCode[], labels: Partial<Record<WorkflowStepCode, string>>): FieldItem[] =>
+    itemsOf(steps)
+      .filter((p) => p.state === "done" && labels[p.step])
+      .map((p) => {
+        const ext = p.mode === "External" ? externalOf(p.step) : undefined;
+        const who = ext ? [ext.recordedByName, formatDateTime(ext.recordedAt, "")] : [p.doneByName, formatDateTime(p.doneAt, "")];
+        return [labels[p.step] as string, who.filter(Boolean).join(" · ")];
+      });
+  /** Phần riêng của kết quả cấp trên (văn bản, tệp, người ghi nhận); mức, ý kiến đã nằm trong trường của bước. */
+  const externalItems = (step: WorkflowStepCode, { withDocument = true, withRecorder = true } = {}): FieldItem[] => {
+    const result = externalOf(step);
+    if (!result) return [];
+    const file = result.attachmentId && (
+      <button
+        type="button"
+        className={styles.linkBtn}
+        onClick={() => {
+          attachmentService.downloadById(result.attachmentId as string)
+            .catch((error: unknown) => toast.error(errorMessage(error, "Tải văn bản đính kèm không thành công.")));
+        }}
+      >
+        <i className="bi bi-paperclip me-1" aria-hidden="true" />Tệp đính kèm
+      </button>
+    );
+    const doc = withDocument && result.documentNumber
+      ? `${result.documentNumber}${result.documentDate ? ` (${formatDate(result.documentDate)})` : ""}`
+      : null;
+    return [
+      [withDocument ? "Văn bản" : "Văn bản đính kèm", doc || file ? <>{doc}{doc && file ? " · " : null}{file}</> : null],
+      ["Ghi nhận", withRecorder ? [result.recordedByName, formatDateTime(result.recordedAt, "")].filter(Boolean).join(" · ") : null],
+    ];
   };
   // Người đang xử lý bước: mở sẵn kết quả của bước liền trước để xem trước khi quyết định.
   const lastDone = [...record.progress].reverse().find((p) => p.state === "done" && p.mode !== "External")?.step;
@@ -403,41 +448,6 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
 
   return (
     <>
-      {record.externalResults?.length > 0 && (
-        <CollapsibleSection title="Kết quả do cấp trên thực hiện" anchorId={EXTERNAL_SECTION} defaultOpen={false} flush>
-          <div className={styles.tw}><table className={styles.table}>
-            <thead><tr><th>Bước</th><th>Cơ quan</th><th>Văn bản</th><th>Mức / điểm</th><th>Ghi nhận</th></tr></thead>
-            <tbody>
-              {record.externalResults.map((r) => (
-                <tr key={r.step}>
-                  <td>{r.stepName}</td>
-                  <td>{r.authorityName}{r.comment && <span className={styles.sub}>{r.comment}</span>}</td>
-                  <td>
-                    {r.documentNumber || "—"}{r.documentDate ? ` (${formatDate(r.documentDate)})` : ""}
-                    {r.attachmentId && (
-                      <div>
-                        <button
-                          type="button"
-                          className={styles.linkBtn}
-                          onClick={() => {
-                            attachmentService.downloadById(r.attachmentId as string)
-                              .catch((error: unknown) => toast.error(errorMessage(error, "Không tải được văn bản đính kèm.")));
-                          }}
-                        >
-                          <i className="bi bi-paperclip me-1" />Văn bản đính kèm
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                  <td><GradeBadge grade={r.grade} />{r.score != null ? ` · ${r.score}` : ""}</td>
-                  <td>{r.recordedByName || "—"}<span className={styles.sub}>{formatDateTime(r.recordedAt)}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
-        </CollapsibleSection>
-      )}
-
       {enabled("B1_REGISTER") && visible(B1_STEPS, record.tasks.length > 0) && (
         <CollapsibleSection title="Danh mục sản phẩm (Mẫu 01)" {...section(B1_STEPS)} flush>
           {record.tasks.length === 0 ? (
@@ -482,6 +492,7 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
               Duyệt: {record.tasksApprovedByName} · {formatDateTime(record.tasksApprovedAt)}{record.tasksApprovalComment ? ` — ${record.tasksApprovalComment}` : ""}
             </div>
           )}
+          {externalOf("B1_APPROVE") && <div className={styles.subline}><Fields items={externalItems("B1_APPROVE")} /></div>}
         </CollapsibleSection>
       )}
 
@@ -602,7 +613,7 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
       {enabled("B2_CELL_CONFIRM") && visible(["B2_CELL_CONFIRM"], !!record.cellConfirmedAt) && (
         <CollapsibleSection title="Xác nhận của Chi bộ" {...section(["B2_CELL_CONFIRM"])}>
           <Fields
-            items={[["Ý kiến", record.partyCellComment]]}
+            items={[["Ý kiến", record.partyCellComment], ...externalItems("B2_CELL_CONFIRM")]}
             empty="Không có ý kiến."
           />
         </CollapsibleSection>
@@ -614,6 +625,7 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
             items={[
               ["Mức đề xuất", hasGrade(record.collectiveProposedGrade) ? <GradeBadge grade={record.collectiveProposedGrade} /> : null],
               ["Nhận xét", record.collectiveComment],
+              ...externalItems("B3A_COLLECTIVE"),
             ]}
           />
         </CollapsibleSection>
@@ -630,6 +642,7 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
               ["Người / cơ quan thẩm định", record.appraisedByName],
               ["Ý kiến", record.appraisalComment],
               ["Giải trình chênh lệch", record.appraisalExplanation],
+              ...externalItems("B3B_APPRAISAL"),
             ]}
           />
           {(record.gradeWarnings?.length ?? 0) > 0 && (
@@ -647,6 +660,7 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
               ["Mức đề xuất", hasGrade(record.directorProposedGrade) ? <GradeBadge grade={record.directorProposedGrade} /> : null],
               ["Người / cơ quan nhận xét", record.directorReviewedByName],
               ["Nhận xét", record.directorComment],
+              ...externalItems("B3C_DIRECTOR"),
             ]}
           />
         </CollapsibleSection>
@@ -659,9 +673,12 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
               ["Mức xếp loại", hasGrade(record.finalGrade) && record.status !== "Published" ? <GradeBadge grade={record.finalGrade} /> : null],
               ["Điểm chính thức", hasGrade(record.finalGrade) ? record.finalScore : null],
               ["Văn bản", record.decisionDocumentNumber ? `${record.decisionDocumentNumber} (${formatDate(record.decisionDocumentDate)})` : null],
+              // Kết luận của cấp trên ở bước quyết định chưa có trường riêng trên hồ sơ.
+              ["Nội dung kết luận", externalOf("B4_DECISION")?.comment],
               ["Cơ quan quyết định", record.decisionAuthorityName],
               ["Đề xuất về công tác cán bộ", record.cadreWorkProposal],
-              ["Công bố", record.publishedAt ? `${record.publishedByName} · ${formatDateTime(record.publishedAt)}` : null],
+              ...externalItems("B4_DECISION", { withDocument: false, withRecorder: false }),
+              ...stepDoneItems(DECISION_STEPS, { B4_DECISION: "Quyết định", B5_PUBLISH: "Công bố" }),
             ]}
           />
         </CollapsibleSection>
