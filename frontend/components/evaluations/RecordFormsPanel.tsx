@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { RecordFormDto, evaluationService } from "@/services/evaluationService";
 import { ReportFileFormat, reportService } from "@/services/reportService";
+import { RowActions } from "@/components/common/RowActions";
 import styles from "./record.module.css";
 import { errorMessage } from "@/components/admin/adminUtils";
 
@@ -40,7 +41,7 @@ export function RecordFormsPanel({
     try {
       await reportService.downloadReport(evaluationService.recordFormEndpoint(recordId, code), fileName(code, fullName, format), format);
     } catch (error: unknown) {
-      toast.error(errorMessage(error, "Không xuất được biểu mẫu."));
+      toast.error(errorMessage(error, "Xuất biểu mẫu không thành công."));
     } finally {
       setBusy(null);
     }
@@ -53,7 +54,8 @@ export function RecordFormsPanel({
         {forms.length > 0 && onPreview && (
           <span className={styles.end}>
             <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onPreview}>
-              Bản in (PDF)
+              <i className="bi bi-printer me-1" />
+              Xem bản in
             </button>
           </span>
         )}
@@ -65,14 +67,19 @@ export function RecordFormsPanel({
           {forms.map((form) => (
             <li key={form.code}>
               <span>{form.name.replace(" — ", " · ")}</span>
-              <span className={styles.fmt}>
-                <button type="button" disabled={busy !== null} onClick={() => download(form.code, "original")} aria-label={`${form.name} — Word`}>
-                  {busy === `${form.code}-original` ? <span className="spinner-border spinner-border-sm" /> : "Word"}
-                </button>
-                <button type="button" disabled={busy !== null} onClick={() => download(form.code, "pdf")} aria-label={`${form.name} — PDF`}>
-                  {busy === `${form.code}-pdf` ? <span className="spinner-border spinner-border-sm" /> : "PDF"}
-                </button>
-              </span>
+              <RowActions
+                itemLabel={form.name}
+                disabled={busy !== null}
+                primary={[
+                  {
+                    key: "word",
+                    label: busy === `${form.code}-original` ? "Đang xuất..." : "Xuất Word",
+                    icon: "bi-download",
+                    onClick: () => download(form.code, "original"),
+                  },
+                ]}
+                menu={[{ key: "pdf", label: "Xuất PDF", icon: "bi-file-earmark-pdf", onClick: () => download(form.code, "pdf") }]}
+              />
             </li>
           ))}
         </ul>
