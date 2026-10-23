@@ -3,58 +3,42 @@
 import React from "react";
 import Link from "next/link";
 import type { EvaluationRecordDto } from "@/services/evaluationService";
+import { fmt } from "@/services/criteriaService";
 import { GradeBadge } from "@/components/common/StatusBadge";
 import styles from "./dashboard.module.css";
 import { RecordTag } from "./RecordTag";
-import { shortDate } from "./taskUtils";
+import { ownerCurrentStep, shortDate } from "./taskUtils";
 
-function formatScore(value?: number | null): string {
-  return value || value === 0 ? String(value) : "—";
-}
-
-/** Hồ sơ của người dùng trong kỳ đang chọn: trạng thái, hạn bước hiện tại, điểm, mức. */
+/** Hồ sơ của người dùng trong kỳ đang chọn, gọn một dòng: trạng thái, hạn (khi đến lượt mình), điểm, mức. */
 export function MyRecordSection({ record }: { record: EvaluationRecordDto }) {
-  const current = record.progress.find((s) => s.state === "current");
+  const ownStep = ownerCurrentStep(record);
+  const myTurn = !!ownStep || !!record.returnReason;
   const published = record.status === "Published";
 
   return (
-    <section className={styles.block}>
-      <div className={styles.blockH}>
-        <h2>Hồ sơ của tôi</h2>
-        <Link href={`/evaluations/${record.id}`} className={styles.link}>
-          Mở hồ sơ
-        </Link>
+    <section className={`${styles.block} ${styles.mine}`} aria-label="Hồ sơ của tôi">
+      <div className={styles.mineMain}>
+        <span className={styles.mineTitle}>Hồ sơ của tôi</span>
+        <RecordTag status={record.status} label={record.statusDisplayName} returned={!!record.returnReason} overdue={ownStep?.overdue} />
+        {ownStep?.deadline && (
+          <span className={ownStep.overdue ? styles.late : styles.muted}>Hạn {shortDate(ownStep.deadline)}</span>
+        )}
+        {record.selfScoredAt && (
+          <span className={styles.muted}>
+            Tự chấm <b className={`${styles.strong} num`}>{fmt(record.totalSelfScore)}</b>
+          </span>
+        )}
+        {record.appraisalScore != null && (
+          <span className={styles.muted}>
+            Thẩm định <b className={`${styles.strong} num`}>{fmt(record.appraisalScore)}</b>
+          </span>
+        )}
+        {published && <GradeBadge grade={record.finalGrade} />}
+        {record.returnReason && <span className={styles.mineReason}>{record.returnReason}</span>}
       </div>
-      <dl className={styles.dl}>
-        <dt>Trạng thái</dt>
-        <dd>
-          <RecordTag status={record.status} label={record.statusDisplayName} returned={!!record.returnReason} overdue={current?.overdue} />
-        </dd>
-        {record.returnReason && (
-          <>
-            <dt>Lý do trả lại</dt>
-            <dd className={styles.late}>{record.returnReason}</dd>
-          </>
-        )}
-        {current?.deadline && (
-          <>
-            <dt>Hạn</dt>
-            <dd className={current.overdue ? styles.late : undefined}>{shortDate(current.deadline)}</dd>
-          </>
-        )}
-        <dt>Tự chấm</dt>
-        <dd>{formatScore(record.totalSelfScore || null)}</dd>
-        <dt>Thẩm định</dt>
-        <dd>{formatScore(record.appraisalScore)}</dd>
-        {published && (
-          <>
-            <dt>Mức xếp loại</dt>
-            <dd>
-              <GradeBadge grade={record.finalGrade} />
-            </dd>
-          </>
-        )}
-      </dl>
+      <Link href={`/evaluations/${record.id}`} className={`btn btn-sm ${myTurn ? "btn-primary" : "btn-outline-secondary"}`}>
+        Mở hồ sơ
+      </Link>
     </section>
   );
 }

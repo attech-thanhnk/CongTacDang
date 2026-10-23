@@ -1,4 +1,5 @@
-import type { WorkQueueDto, WorkQueueItemDto, WorkflowStepCode } from "@/services/evaluationService";
+import { OWNER_STEPS } from "@/services/evaluationService";
+import type { EvaluationRecordDto, RecordStepProgressDto, WorkQueueDto, WorkQueueItemDto, WorkflowStepCode } from "@/services/evaluationService";
 
 /** Số ngày trước hạn coi là "sắp hạn". */
 export const DUE_SOON_DAYS = 3;
@@ -70,12 +71,26 @@ export function initialsOf(fullName?: string | null): string {
     .toUpperCase();
 }
 
-/** Ngày ngắn: dd/MM trong năm nay, dd/MM/yyyy nếu khác năm. */
+/** Ngày dạng dd/MM/yyyy. */
 export function shortDate(value?: string | null): string {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   const dd = String(date.getDate()).padStart(2, "0");
   const mm = String(date.getMonth() + 1).padStart(2, "0");
-  return date.getFullYear() === new Date().getFullYear() ? `${dd}/${mm}` : `${dd}/${mm}/${date.getFullYear()}`;
+  return `${dd}/${mm}/${date.getFullYear()}`;
+}
+
+/** Bước hiện tại nếu là bước của chính chủ hồ sơ (đăng ký, tự chấm) — hạn đó là hạn của người xem. */
+export function ownerCurrentStep(record: EvaluationRecordDto): RecordStepProgressDto | null {
+  const current = record.progress?.find((s) => s.state === "current");
+  return current && OWNER_STEPS.includes(current.step) ? current : null;
+}
+
+/** Mức quyết định; chưa có thì mức đề xuất gần nhất theo luồng. */
+export function latestGrade(record: EvaluationRecordDto): { grade: string | null; final: boolean } {
+  const set = (g?: string | null) => !!g && g !== "ChuaXepLoai";
+  if (set(record.finalGrade)) return { grade: record.finalGrade, final: true };
+  const proposed = [record.directorProposedGrade, record.appraisalProposedGrade, record.collectiveProposedGrade, record.selfProposedGrade].find(set);
+  return { grade: proposed ?? null, final: false };
 }

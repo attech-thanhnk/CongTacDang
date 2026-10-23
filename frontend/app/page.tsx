@@ -11,9 +11,8 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
 import { MyTasksSection } from "@/components/dashboard/MyTasksSection";
 import { MyRecordSection } from "@/components/dashboard/MyRecordSection";
-import { ScopeProgressSection, ScopeStats } from "@/components/dashboard/ScopeProgressSection";
+import { ScopeProgressSection } from "@/components/dashboard/ScopeProgressSection";
 import { AdminSection, AdminStats } from "@/components/dashboard/AdminSection";
-import styles from "@/components/dashboard/dashboard.module.css";
 
 /** Tổng quan theo quyền; việc chờ tôi lấy ở mọi kỳ đang mở, phần còn lại theo kỳ đang chọn. */
 export default function DashboardPage() {
@@ -30,6 +29,8 @@ export default function DashboardPage() {
   const canReadRecords = hasPermission("evaluation.read");
   const canManageUsers = hasPermission("system.users.manage") || hasPermission("catalog.manage");
   const canReadUsers = hasPermission("system.users.read");
+  // Cùng điều kiện với mục menu "Việc cần xử lý": có thao tác nghiệp vụ đánh giá nào đó.
+  const hasTasks = (user?.permissions ?? []).some((code) => code.startsWith("evaluation.") && code !== "evaluation.read");
 
   useEffect(() => {
     if (!user || !canManageUsers) {
@@ -90,7 +91,9 @@ export default function DashboardPage() {
   }, [periodId, periodsLoading, user, canSelf, canReadRecords]);
 
   const noPeriod = !periodsLoading && periods.length === 0;
-  const showMine = canSelf && !loading && !!myRecord;
+  // Hồ sơ của tôi đã nằm trong danh sách việc thì không hiện thêm khối riêng.
+  const mineInQueue = !!myRecord && !!queue?.groups.some((g) => g.items.some((i) => i.recordId === myRecord.id));
+  const showMine = canSelf && !loading && !queueLoading && !!myRecord && !mineInQueue;
 
   return (
     <div className="page-wrapper">
@@ -113,19 +116,9 @@ export default function DashboardPage() {
           />
         ) : (
           <>
-            {canReadRecords && <ScopeStats records={records} loading={loading} />}
-            <MyTasksSection queue={queue} loading={queueLoading} periodId={periodId} />
-            {canReadRecords && showMine ? (
-              <div className={styles.cols}>
-                <ScopeProgressSection records={records} loading={loading} />
-                <MyRecordSection record={myRecord!} />
-              </div>
-            ) : (
-              <>
-                {canReadRecords && <ScopeProgressSection records={records} loading={loading} />}
-                {showMine && <MyRecordSection record={myRecord!} />}
-              </>
-            )}
+            {showMine && <MyRecordSection record={myRecord!} />}
+            {hasTasks && <MyTasksSection queue={queue} loading={queueLoading} periodId={periodId} />}
+            {canReadRecords && <ScopeProgressSection records={records} loading={loading} />}
           </>
         )}
         {adminStats && <AdminSection stats={adminStats} />}

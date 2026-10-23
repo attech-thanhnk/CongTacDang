@@ -252,69 +252,6 @@ a.name:hover {
   white-space: nowrap;
 }
 
-.bar {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--tint);
-  overflow: hidden;
-  min-width: 120px;
-  flex: 1;
-}
-
-.bar i {
-  display: block;
-  height: 100%;
-  background: var(--primary);
-}
-
-.barRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.barPct {
-  width: 40px;
-  text-align: right;
-  color: var(--ink-2);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Hai cột: tiến độ | hồ sơ của tôi */
-.cols {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
-  gap: 24px;
-  align-items: start;
-}
-
-@media (max-width: 1040px) {
-  .cols {
-    grid-template-columns: 1fr;
-  }
-}
-
-.dl {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 10px 20px;
-  padding: 16px 20px;
-  margin: 0;
-}
-
-.dl dt {
-  color: var(--ink-2);
-  font-size: 13.5px;
-  font-weight: 400;
-}
-
-.dl dd {
-  margin: 0;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-}
-
 /* Nhãn trạng thái trung tính (bổ sung cho .t-ok/.t-wait/.t-info/.t-bad) */
 .tNeutral {
   color: var(--ink-2);
@@ -346,10 +283,6 @@ a.name:hover {
   .table td:first-child {
     min-width: 128px;
   }
-
-  .bar {
-    min-width: 64px;
-  }
 }
 
 @media (max-width: 767.98px) {
@@ -380,5 +313,315 @@ a.name:hover {
     flex: 1 1 100%;
     width: 100%;
     max-width: none;
+  }
+}
+
+/* Hồ sơ của tôi: một dòng gọn */
+.mine {
+  display: flex;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 12px 20px;
+}
+
+.mineMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+}
+
+.mineTitle {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.mineReason {
+  flex-basis: 100%;
+  color: var(--bad);
+  font-size: 13px;
+}
+
+.strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Không có việc: một dòng */
+.allDone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  color: var(--ink-2);
+}
+
+.allDone i {
+  color: var(--ok);
+  font-size: 18px;
+}
+
+.topRule {
+  border-top: 1px solid var(--rule);
+}
+
+/* Tiến độ theo tổ chức Đảng: tên | số hồ sơ | thanh nhiều đoạn theo giai đoạn */
+.cells {
+  border-top: 1px solid var(--rule);
+}
+
+.cellRow {
+  display: grid;
+  grid-template-columns: minmax(0, 380px) 56px minmax(120px, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--rule);
+  color: var(--ink);
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.cellRow:first-child {
+  border-top: 0;
+}
+
+a.cellRow:hover {
+  background: var(--tint);
+  color: var(--ink);
+}
+
+.cellHead {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.cellName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.seg {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--rule);
+}
+
+.seg i {
+  display: block;
+  height: 100%;
+}
+
+/* Bộ lọc danh sách hồ sơ: một hàng */
+.filters {
+  flex-wrap: nowrap;
+}
+
+.filters :global(.form-select) {
+  width: auto;
+  max-width: 240px;
+}
+
+.filterSearch {
+  flex: 1 1 260px;
+  max-width: 360px;
+}
+
+/* Khối thu gọn (mặc định đóng) */
+.fold > summary {
+  list-style: none;
+  cursor: pointer;
+  border-bottom: 0;
+}
+
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold[open] > summary {
+  border-bottom: 1px solid var(--rule);
+}
+
+.foldIcon {
+  margin-left: auto;
+  color: var(--ink-3);
+  transition: transform 0.15s;
+}
+
+.fold[open] .foldIcon {
+  transform: rotate(180deg);
+}
+
+.foldNote {
+  padding: 12px 20px 4px;
+}
+
+.mobileOnly {
+  display: none;
+}
+
+.taskTable {
+  min-width: 0;
+}
+
+.moreBtn {
+  display: block;
+  width: 100%;
+  padding: 10px 20px;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  background: none;
+  color: var(--primary-ink);
+  font-weight: 500;
+  font-size: 13.5px;
+  text-align: left;
+}
+
+.moreBtn:hover {
+  background: var(--tint);
+}
+
+.headerTools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.groupDue {
+  margin-left: auto;
+  font-size: 13.5px;
+}
+
+@media (max-width: 767.98px) {
+  .mobileOnly {
+    display: inline;
+  }
+
+  span.mobileOnly.sub {
+    display: block;
+  }
+
+  .deskOnly {
+    display: none !important;
+  }
+
+  .taskTable :global(.initials) {
+    display: none;
+  }
+
+  .moreBtn {
+    padding: 12px 16px;
+  }
+
+  .mine {
+    flex-wrap: wrap;
+    padding: 12px 16px;
+  }
+
+  .allDone {
+    padding: 14px 16px;
+  }
+
+  .cellRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+    padding: 10px 16px;
+  }
+
+  .cellName {
+    white-space: normal;
+  }
+
+  .seg {
+    grid-column: 1 / -1;
+  }
+
+  .cellHead span:last-child {
+    display: none;
+  }
+
+  .filters {
+    flex-wrap: wrap;
+  }
+
+  .filters :global(.form-select) {
+    flex: 1 1 calc(50% - 6px);
+    width: 0;
+    max-width: none;
+  }
+
+  .filterSearch {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  /* Danh sách hồ sơ dạng thẻ */
+  .recordCards {
+    min-width: 0;
+  }
+
+  .recordCards thead {
+    display: none;
+  }
+
+  .recordCards tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .recordCards tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .recordCards tbody td {
+    display: block;
+    padding: 0 !important;
+    border: 0;
+    min-width: 0 !important;
+  }
+
+  .recordCards tbody td:nth-child(1) {
+    grid-column: 1 / -1;
+  }
+
+  .recordCards tbody td:nth-child(2) {
+    grid-column: 1 / -1;
+    padding-left: 44px !important;
+    font-size: 13.5px;
+  }
+
+  .recordCards tbody td:nth-child(3) {
+    padding-left: 44px !important;
+  }
+
+  .recordCards tbody td:nth-child(4) {
+    text-align: right !important;
+    align-self: center;
+    font-size: 13.5px;
+  }
+
+  .recordCards tbody td:nth-child(5) {
+    grid-column: 1 / -1;
+    padding-left: 44px !important;
+  }
+
+  .recordCards tbody td:nth-child(5):empty {
+    display: none;
+  }
+
+  .recordCards .person {
+    min-width: 0;
   }
 }

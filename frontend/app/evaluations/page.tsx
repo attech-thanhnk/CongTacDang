@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -9,10 +9,13 @@ import { Pagination } from "@/components/common/Pagination";
 import { usePagination } from "@/components/common/usePagination";
 import { GradeBadge } from "@/components/common/StatusBadge";
 import { RecordTag } from "@/components/dashboard/RecordTag";
-import { initialsOf } from "@/components/dashboard/taskUtils";
+import { MyRecordSection } from "@/components/dashboard/MyRecordSection";
+import { initialsOf, latestGrade } from "@/components/dashboard/taskUtils";
 import styles from "@/components/dashboard/dashboard.module.css";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePeriod } from "@/contexts/PeriodContext";
+import { useToast } from "@/contexts/ToastContext";
+import { fmt } from "@/services/criteriaService";
 import { EvaluationRecordDto, ExcellentQuotaCheckDto, evaluationService } from "@/services/evaluationService";
 import { errorMessage } from "@/components/admin/adminUtils";
 
@@ -36,7 +39,6 @@ const statusRank = (status: string) => {
 
 /** Hồ sơ quá hạn: bước hiện tại đã quá thời hạn. */
 const isOverdue = (r: EvaluationRecordDto) => r.progress?.some((p) => p.state === "current" && p.overdue) ?? false;
-const displayGrade = (r: EvaluationRecordDto) => (r.finalGrade && r.finalGrade !== "ChuaXepLoai" ? r.finalGrade : r.appraisalProposedGrade);
 
 type SortKey = "name" | "status";
 const RETURNED = "__returned";
@@ -57,7 +59,13 @@ export default function EvaluationsPage() {
   const [partyCell, setPartyCell] = useState("");
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "name", desc: false });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  // Bộ lọc mở sẵn từ đường dẫn (vd. bấm tổ chức Đảng ở Tổng quan); chỉ áp dụng lần nạp đầu.
+  const initialFilter = useRef<{ status: string; partyCell: string } | null>(null);
+  if (initialFilter.current === null && typeof window !== "undefined") {
+    const q = new URLSearchParams(window.location.search);
+    initialFilter.current = { status: q.get("status") ?? "", partyCell: q.get("partyCell") ?? "" };
+  }
 
   useEffect(() => {
     if (!periodId) {
@@ -69,10 +77,11 @@ export default function EvaluationsPage() {
     }
     let mounted = true;
     setLoading(true);
-    setError(null);
-    setStatusFilter("");
+    const initial = initialFilter.current;
+    initialFilter.current = { status: "", partyCell: "" };
+    setStatusFilter(initial?.status ?? "");
     setDepartment("");
-    setPartyCell("");
+    setPartyCell(initial?.partyCell ?? "");
     Promise.all([
       evaluationService.getMyRecord(periodId).catch(() => null),
       canRead ? evaluationService.getRecordsByPeriod(periodId) : Promise.resolve([] as EvaluationRecordDto[]),
@@ -84,11 +93,12 @@ export default function EvaluationsPage() {
         setRecords(list);
         setQuotas(quota);
       })
-      .catch((err: unknown) => mounted && setError(errorMessage(err, "Không tải được hồ sơ đánh giá.")))
+      .catch((err: unknown) => mounted && toast.error(errorMessage(err, "Tải danh sách hồ sơ không thành công.")))
       .finally(() => mounted && setLoading(false));
     return () => {
       mounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodId, periodsLoading, canRead]);
 
   const departments = useMemo(
@@ -168,7 +178,6 @@ export default function EvaluationsPage() {
       <PageHeader title="Hồ sơ đánh giá" />
 
       <div className="page-body">
-        {error && <div className="alert alert-danger mb-0">{error}</div>}
         {!periodsLoading && periods.length === 0 && <EmptyState
             icon="bi-calendar-x"
             title="Chưa có kỳ đánh giá đang diễn ra"
@@ -176,49 +185,28 @@ export default function EvaluationsPage() {
             action={hasPermission("period.manage") ? <Link href="/periods" className="btn btn-primary">Đến trang Kỳ đánh giá</Link> : undefined}
           />}
 
-        {myRecord && (
-          <section className={styles.block}>
-            <div className={styles.blockH}>
-              <div className={styles.person}>
-                <div className="initials">{initialsOf(myRecord.fullName)}</div>
-                <div>
-                  <Link href={`/evaluations/${myRecord.id}`} className={styles.name}>Hồ sơ của tôi</Link>
-                  <span className={styles.sub}>{[myRecord.positionTitle, myRecord.partyCellName].filter(Boolean).join(" · ")}</span>
-                  {myRecord.returnReason && <span className={styles.reason}>{myRecord.returnReason}</span>}
-                </div>
-              </div>
-              <div className={styles.tools}>
-                <RecordTag status={myRecord.status} label={myRecord.statusDisplayName} returned={!!myRecord.returnReason} overdue={isOverdue(myRecord)} />
-                <Link href={`/evaluations/${myRecord.id}`} className="btn btn-primary btn-sm">Mở hồ sơ</Link>
-              </div>
-            </div>
-          </section>
-        )}
+        {myRecord && <MyRecordSection record={myRecord} />}
 
         {canRead && (
           <section className={styles.block}>
-            <div className={styles.blockH}>
-              <h2>
-                Hồ sơ trong phạm vi <span className={styles.count}>{filtered.length}</span>
-              </h2>
-              <div className={styles.tools}>
-                <select className="form-select form-select-sm" aria-label="Lọc theo Phòng" value={department} onChange={(e) => setDepartment(e.target.value)}>
-                  <option value="">Tất cả Phòng</option>
-                  {departments.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
-                <select className="form-select form-select-sm" aria-label="Lọc theo Chi bộ" value={partyCell} onChange={(e) => setPartyCell(e.target.value)}>
-                  <option value="">Tất cả Chi bộ</option>
-                  {partyCells.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <input
-                  type="search"
-                  className="form-control form-control-sm"
-                  placeholder="Tìm tên, Phòng, Chi bộ, trạng thái"
-                  aria-label="Tìm hồ sơ"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
+            <div className={`${styles.blockH} ${styles.filters}`}>
+              <input
+                type="search"
+                className={`form-control form-control-sm ${styles.filterSearch}`}
+                placeholder="Tìm tên, Phòng, Chi bộ, trạng thái"
+                aria-label="Tìm hồ sơ"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <select className="form-select form-select-sm" aria-label="Lọc theo Phòng" value={department} onChange={(e) => setDepartment(e.target.value)}>
+                <option value="">Tất cả Phòng</option>
+                {departments.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+              <select className="form-select form-select-sm" aria-label="Lọc theo Chi bộ" value={partyCell} onChange={(e) => setPartyCell(e.target.value)}>
+                <option value="">Tất cả Chi bộ</option>
+                {partyCell && !partyCells.includes(partyCell) && <option value={partyCell}>{partyCell}</option>}
+                {partyCells.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
             {records.length > 0 && (
               <div className={styles.chips} role="group" aria-label="Lọc theo trạng thái">
@@ -258,7 +246,7 @@ export default function EvaluationsPage() {
             ) : (
               <>
               <div className={styles.tw}>
-                <table className={`${styles.table} ${styles.wide}`}>
+                <table className={`${styles.table} ${styles.wide} ${styles.recordCards}`}>
                   <thead>
                     <tr>
                       <th aria-sort={ariaSort("name")}>
@@ -269,7 +257,7 @@ export default function EvaluationsPage() {
                         <button type="button" className={styles.sortBtn} onClick={() => toggleSort("status")}>Trạng thái{sortIcon("status")}</button>
                       </th>
                       <th className={styles.right}>Tự chấm</th>
-                      <th>Mức</th>
+                      <th title="Mức quyết định; chưa có thì mức đề xuất gần nhất">Mức</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -289,8 +277,10 @@ export default function EvaluationsPage() {
                           {r.partyCellName && <span className={styles.sub}>{r.partyCellName}</span>}
                         </td>
                         <td><RecordTag status={r.status} label={r.statusDisplayName} returned={!!r.returnReason} overdue={isOverdue(r)} /></td>
-                        <td className={`${styles.right} num`}>{r.selfScoredAt ? r.totalSelfScore : "—"}</td>
-                        <td><GradeBadge grade={displayGrade(r)} /></td>
+                        <td className={`${styles.right} num`}>
+                          {r.selfScoredAt ? <><span className={styles.mobileOnly}>Tự chấm </span>{fmt(r.totalSelfScore)}</> : <span className={styles.deskOnly}>—</span>}
+                        </td>
+                        <td><GradeCell record={r} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -309,14 +299,17 @@ export default function EvaluationsPage() {
         )}
 
         {canRead && quotas && quotas.groups.length > 0 && (
-          <section className={styles.block}>
-            <div className={styles.blockH}>
+          <details className={`${styles.block} ${styles.fold}`}>
+            <summary className={styles.blockH}>
               <h2>Trần Hoàn thành xuất sắc theo nhóm chức danh</h2>
-            </div>
-            <p className="small text-secondary mb-2">
+              {quotas.groups.some((q) => q.isExceedingQuota) && (
+                <span className="tag t-bad">Vượt trần {quotas.groups.filter((q) => q.isExceedingQuota).length} nhóm</span>
+              )}
+              <i className={`bi bi-chevron-down ${styles.foldIcon}`} aria-hidden="true" />
+            </summary>
+            <p className={`small text-secondary mb-0 ${styles.foldNote}`}>
               Tối đa {Math.round(quotas.ratio * 100)}% số &quot;Hoàn thành tốt&quot; của nhóm, làm tròn từ 0,5 trở lên thành 1; không tính người đứng đầu.
-              Mức dùng: mức quyết định, chưa có thì mức đề xuất gần nhất.
-              {!quotas.isFullScope && " Số liệu chỉ gồm hồ sơ trong phạm vi bạn được xem."}
+              {!quotas.isFullScope && " Chỉ gồm hồ sơ trong phạm vi bạn được xem."}
             </p>
             <div className={styles.tw}>
               <table className={`${styles.table} ${styles.mid}`}>
@@ -350,9 +343,21 @@ export default function EvaluationsPage() {
                 </tbody>
               </table>
             </div>
-          </section>
+          </details>
         )}
       </div>
     </div>
+  );
+}
+
+/** Mức quyết định, chưa có thì mức đề xuất gần nhất (ghi "đề xuất"). */
+function GradeCell({ record }: { record: EvaluationRecordDto }) {
+  const { grade, final } = latestGrade(record);
+  if (!grade) return <span className={`text-secondary ${styles.deskOnly}`}>—</span>;
+  return (
+    <span className={styles.nowrap}>
+      <GradeBadge grade={grade} />
+      {!final && <span className={styles.hint}>đề xuất</span>}
+    </span>
   );
 }
