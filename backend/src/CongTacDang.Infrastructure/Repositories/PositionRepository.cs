@@ -86,10 +86,14 @@ public sealed class PositionRepository : IPositionRepository
     public void RemoveMemberPosition(MemberPosition memberPosition) => _db.MemberPositions.Remove(memberPosition);
 
     /// <inheritdoc />
-    public async Task<Dictionary<Guid, List<HeldPosition>>> GetHeldPositionsAsync(
-        IReadOnlyCollection<Guid>? userIds, DateTime at, CancellationToken ct = default)
+    public Task<Dictionary<Guid, List<HeldPosition>>> GetHeldPositionsAsync(
+        IReadOnlyCollection<Guid>? userIds, DateTime at, CancellationToken ct = default) => LoadHeldPositionsAsync(_db, userIds, at, ct);
+
+    /// <summary>Dùng chung với kho dữ liệu luồng đánh giá.</summary>
+    internal static async Task<Dictionary<Guid, List<HeldPosition>>> LoadHeldPositionsAsync(
+        CongTacDangDbContext db, IReadOnlyCollection<Guid>? userIds, DateTime at, CancellationToken ct)
     {
-        var query = _db.MemberPositions.AsNoTracking()
+        var query = db.MemberPositions.AsNoTracking()
             .Where(mp => mp.ValidFrom <= at && (mp.ValidTo == null || mp.ValidTo > at) && mp.Position != null);
         if (userIds != null)
         {
@@ -98,11 +102,16 @@ public sealed class PositionRepository : IPositionRepository
         }
 
         var rows = await query
-            .Select(mp => new { mp.UserId, mp.Position!.Name, mp.IsActing, mp.Position.StatCode, mp.Position.DefaultApprovalAuthority, mp.Position.IsHead })
+            .Select(mp => new
+            {
+                mp.UserId, mp.Position!.Name, mp.IsActing, mp.IsPrimary, mp.Position.StatCode, mp.Position.DefaultApprovalAuthority, mp.Position.IsHead,
+                mp.Position.DefaultWorkflowProfileCode
+            })
             .ToListAsync(ct);
         return rows
             .GroupBy(r => r.UserId)
-            .ToDictionary(g => g.Key, g => g.Select(r => new HeldPosition(PositionRules.DisplayName(r.Name, r.IsActing), r.StatCode, r.DefaultApprovalAuthority, r.IsHead)).ToList());
+            .ToDictionary(g => g.Key, g => g.Select(r => new HeldPosition(PositionRules.DisplayName(r.Name, r.IsActing), r.StatCode,
+                r.DefaultApprovalAuthority, r.IsHead, r.DefaultWorkflowProfileCode, r.IsPrimary)).ToList());
     }
 
     /// <inheritdoc />

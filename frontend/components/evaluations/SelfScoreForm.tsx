@@ -24,6 +24,7 @@ import {
   fmt,
   generalTotal,
   gradeByScore,
+  gradeProposalCheck,
   roundScore,
 } from "@/services/criteriaService";
 import { FileUploadModal } from "@/components/attachments/FileUploadModal";
@@ -143,6 +144,8 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     Object.fromEntries(content.axes.map((a) => [a.code, record.axisScores?.[a.code] ?? ""]))
   );
   const [grade, setGrade] = useState(record.selfProposedGrade && record.selfProposedGrade !== "ChuaXepLoai" ? record.selfProposedGrade : "");
+  const [gradeReason, setGradeReason] = useState(record.selfGradeExplanation ?? "");
+  const [gradeReasonError, setGradeReasonError] = useState<string | null>(null);
   const [ratios, setRatios] = useState<Record<string, TaskRatio>>(() =>
     Object.fromEntries(
       record.tasks.map((t) => [
@@ -178,7 +181,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
 
   // Thay đổi chưa lưu so với ảnh chụp phiếu; phiên bản sau lần lưu nháp dùng cho lần lưu/nộp tiếp theo
   // (trang chưa tải lại hồ sơ), trừ khi trang đã nạp hồ sơ mới.
-  const snapshot = JSON.stringify([general, axis, grade, ratios, selfAssessment, axisReports, groupNotes, axisNotes]);
+  const snapshot = JSON.stringify([general, axis, grade, gradeReason, ratios, selfAssessment, axisReports, groupNotes, axisNotes]);
   const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [saving, setSaving] = useState(false);
@@ -214,6 +217,9 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   // Chỉ gợi ý mức khi đã nhập đủ điểm, tránh hiện mức thấp lúc phiếu còn trống.
   const scoresComplete = uses09B ? Object.values(axis).every((v) => v !== "") : activeTasks.every((t) => isComplete(ratios[t.id]));
   const taskNames = (tasks: { taskName: string }[]) => tasks.map((t) => `"${t.taskName}"`).join(", ");
+  // Mức chọn khác mức theo điểm: cảnh báo ngay, bộ tiêu chí bật giải trình thì bắt buộc nêu lý do (máy chủ kiểm lại).
+  const exceedRatio = uses09B || activeTasks.length === 0 ? null : activeTasks.filter((t) => ratios[t.id]?.exceed).length / activeTasks.length;
+  const gradeCheck = scoresComplete && grade ? gradeProposalCheck(content, grade, total, exceedRatio) : null;
 
   const needsReason = (item: { maxScore: number }, s: GeneralItemScore) =>
     !!s.notApplicable || (p.deductionReasonMinPoints != null && item.maxScore - (Number(s.score) || 0) + 1e-6 >= p.deductionReasonMinPoints);
@@ -223,7 +229,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     const generalScores = Object.fromEntries(
       Object.entries(general).map(([code, s]) => [code, { score: s.notApplicable ? 0 : Number(s.score) || 0, notApplicable: !!s.notApplicable, reason: s.reason?.trim() || null }])
     );
-    const payload: Record<string, unknown> = { generalScores, generalGroupNotes: groupNotes, selfProposedGrade: grade || null };
+    const payload: Record<string, unknown> = { generalScores, generalGroupNotes: groupNotes, selfProposedGrade: grade || null, selfGradeExplanation: gradeReason.trim() };
     if (uses09C) payload.selfAssessment = selfAssessment;
     if (uses09C || uses9D) payload.axisReports = axisReports;
     if (uses09B) {
@@ -286,6 +292,11 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
         return;
       }
       noEvidence = activeTasks.filter((t) => !ratios[t.id].attachmentId);
+    }
+    if (gradeCheck?.required && !gradeReason.trim()) {
+      setGradeReasonError(gradeCheck.direction > 0 ? "Hãy nêu lý do đề xuất mức cao hơn mức theo điểm." : "Hãy nêu căn cứ xếp mức thấp hơn mức theo điểm.");
+      document.getElementById("self-grade-reason")?.focus();
+      return;
     }
     const payload = buildPayload(false);
     if (currentVersion !== record.version && currentVersion != null) payload.version = currentVersion;
@@ -537,7 +548,23 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
             <option value="">— Hệ thống gợi ý —</option>
             {GRADE_OPTIONS.filter((g) => g.value !== "ChuaXepLoai").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
           </select>
+          {gradeCheck && (
+            <div className="form-text text-warning-emphasis" role="status">
+              <i className="bi bi-exclamation-triangle me-1" aria-hidden="true" />{gradeCheck.message}{gradeCheck.required ? " Hãy nêu lý do." : ""}
+            </div>
+          )}
         </div>
+        {(gradeCheck || gradeReason) && (
+          <div className="col-12 order-md-last">
+            <label className="form-label small" htmlFor="self-grade-reason">
+              Lý do đề xuất mức {gradeCheck?.required && <span className="text-danger">*</span>}
+            </label>
+            <textarea id="self-grade-reason" rows={2} maxLength={4000}
+              className={`form-control form-control-sm ${gradeReasonError ? "is-invalid" : ""}`}
+              value={gradeReason} onChange={(e) => { setGradeReason(e.target.value); setGradeReasonError(null); }} />
+            {gradeReasonError && <div className="invalid-feedback">{gradeReasonError}</div>}
+          </div>
+        )}
         <div className="col-md-7 d-flex flex-wrap align-items-center justify-content-end gap-2">
           {(savedAt || dirty) && (
             <span className="small text-secondary" aria-live="polite">

@@ -388,7 +388,7 @@ public sealed class PostPublishIntegrationTests
         Assert.Equal("Draft", plan.GetProperty("status").GetString());
         Assert.Equal(3, plan.GetProperty("milestones").GetArrayLength());
         Assert.Equal(HttpStatusCode.Conflict, (await w.ManagerC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/improvement-plan", new { })).StatusCode);
-        var incomplete = await w.ManagerC.PostAsJsonAsync($"/api/improvement-plans/{planId}/approve", new { version = plan.GetProperty("version").GetUInt32() });
+        var incomplete = await w.Manager2C.PostAsJsonAsync($"/api/improvement-plans/{planId}/approve", new { version = plan.GetProperty("version").GetUInt32() });
         Assert.Equal(HttpStatusCode.BadRequest, incomplete.StatusCode);
         Assert.Contains("Mốc 60 ngày", await MessageAsync(incomplete));
 
@@ -415,7 +415,18 @@ public sealed class PostPublishIntegrationTests
                 code, limitation = $"Hạn chế {code}", target = $"Mục tiêu {code}", measures = $"Biện pháp {code}", coordination = $"Phối hợp {code}"
             })
         }));
-        plan = await Data(await w.ManagerC.PostAsJsonAsync($"/api/improvement-plans/{planId}/approve", new { version = plan.GetProperty("version").GetUInt32() }));
+        // Người lập không tự duyệt: không có nút duyệt, không có việc duyệt trong hàng đợi, API từ chối; người khác cùng phạm vi duyệt.
+        var preparerView = await Data(w.ManagerC, $"/api/evaluations/records/{recordId}/improvement-plan");
+        Assert.True(preparerView.GetProperty("canManage").GetBoolean());
+        Assert.False(preparerView.GetProperty("canApprove").GetBoolean());
+        Assert.True((await Data(w.Manager2C, $"/api/evaluations/records/{recordId}/improvement-plan")).GetProperty("canApprove").GetBoolean());
+        Assert.DoesNotContain(await QueueRecordsAsync(w.ManagerC, "IMPROVEMENT_PLANS"), id => id == recordId);
+        Assert.Contains(await QueueRecordsAsync(w.Manager2C, "IMPROVEMENT_PLANS"), id => id == recordId);
+        var selfApprove = await w.ManagerC.PostAsJsonAsync($"/api/improvement-plans/{planId}/approve", new { version = plan.GetProperty("version").GetUInt32() });
+        Assert.Equal(HttpStatusCode.Forbidden, selfApprove.StatusCode);
+        Assert.Contains("người lập", await MessageAsync(selfApprove));
+
+        plan = await Data(await w.Manager2C.PostAsJsonAsync($"/api/improvement-plans/{planId}/approve", new { version = plan.GetProperty("version").GetUInt32() }));
         Assert.Equal("Approved", plan.GetProperty("status").GetString());
         Assert.Equal(startDate.AddDays(90).ToString("yyyy-MM-dd"), plan.GetProperty("milestones")[2].GetProperty("dueDate").GetString());
         Assert.DoesNotContain(await QueueRecordsAsync(w.ManagerC, "IMPROVEMENT_PLANS"), id => id == recordId);
@@ -559,7 +570,7 @@ public sealed class PostPublishIntegrationTests
         public TestUser OwnerA = null!, OwnerB = null!, OwnerC = null!;
         public string OwnerAName = string.Empty, OwnerBName = string.Empty;
         public HttpClient OwnerAC = null!, OwnerBC = null!, OwnerCC = null!, DeptViewerC = null!, ResolverC = null!, ConflictedC = null!;
-        public HttpClient ManagerC = null!, OutsideManagerC = null!, PlainC = null!, PeriodManagerC = null!;
+        public HttpClient ManagerC = null!, Manager2C = null!, OutsideManagerC = null!, PlainC = null!, PeriodManagerC = null!;
         public Guid ConflictedId;
 
         public static async Task<World> CreateAsync(ApiFactory factory)
@@ -590,6 +601,7 @@ public sealed class PostPublishIntegrationTests
             var resolver = await factory.CreateUserAsync();
             var conflicted = await factory.CreateUserAsync();
             var manager = await factory.CreateUserAsync(w.Dept1, null);
+            var manager2 = await factory.CreateUserAsync(w.Dept1, null);
             var outsideManager = await factory.CreateUserAsync(w.Dept2, null);
             var plain = await factory.CreateUserAsync(w.Dept1, w.Cell1);
 
@@ -600,6 +612,7 @@ public sealed class PostPublishIntegrationTests
             await factory.AssignAsync(resolver.Id, await Role("VAN_PHONG_DANG_UY"), RoleScopeType.Global, null);
             await factory.AssignAsync(conflicted.Id, (await factory.CreateRoleAsync("evaluation.read", "evaluation.appeal.resolve")).Id, RoleScopeType.Global, null);
             await factory.AssignAsync(manager.Id, await Role("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept1);
+            await factory.AssignAsync(manager2.Id, await Role("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept1);
             await factory.AssignAsync(outsideManager.Id, await Role("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept2);
             // Chủ hồ sơ B cũng có quyền lập kế hoạch toàn công ty — để kiểm tra không tự lập kế hoạch cho mình.
             await factory.AssignAsync(w.OwnerB.Id, (await factory.CreateRoleAsync("evaluation.read", "evaluation.improvement.manage")).Id, RoleScopeType.Global, null);
@@ -615,6 +628,7 @@ public sealed class PostPublishIntegrationTests
             w.ResolverC = await Login(resolver);
             w.ConflictedC = await Login(conflicted);
             w.ManagerC = await Login(manager);
+            w.Manager2C = await Login(manager2);
             w.OutsideManagerC = await Login(outsideManager);
             w.PlainC = await Login(plain);
 

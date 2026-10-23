@@ -92,6 +92,8 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
                 .ToList();
             var needing = (await _repo.ListRecordsNeedingPlanAsync(alertPeriods, ct))
                 .Where(x => ImprovementPlanService.IsRequired(x.Record))
+                // Kế hoạch do chính mình lập đang chờ người khác duyệt, không phải việc của mình.
+                .Where(x => x.Plan == null || !ImprovementPlanService.IsPreparer(x.Plan, userId))
                 .Where(x => _guard.Can(PermissionCodes.EvaluationImprovementManage, AccessTarget.ForRecord(x.Record)))
                 .ToList();
             AddGroup(groups, ImprovementPlansGroup, "Kế hoạch 30-60-90 ngày cần lập / duyệt (Mẫu 17)", needing.Select(x => Item(x.Record, userId,

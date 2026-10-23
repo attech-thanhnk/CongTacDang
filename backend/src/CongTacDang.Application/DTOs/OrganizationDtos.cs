@@ -51,6 +51,9 @@ public class PositionDto
     /// <summary><c>CoSo</c> / <c>CapTren</c> hoặc null.</summary>
     public string? DefaultApprovalAuthority { get; set; }
 
+    /// <summary>Mã cách xét duyệt gợi ý khi thêm người giữ chức vụ vào kỳ; null = theo thẩm quyền.</summary>
+    public string? DefaultWorkflowProfileCode { get; set; }
+
     public bool IsLeadership { get; set; }
 
     /// <summary>Không tính vào trần tỷ lệ Hoàn thành xuất sắc.</summary>
@@ -83,6 +86,9 @@ public class SavePositionDto
 
     /// <summary><c>CoSo</c> / <c>CapTren</c>; rỗng = không xác định.</summary>
     public string? DefaultApprovalAuthority { get; set; }
+
+    /// <summary>Mã cách xét duyệt gợi ý; rỗng = bỏ (theo thẩm quyền).</summary>
+    public string? DefaultWorkflowProfileCode { get; set; }
 
     public bool? IsLeadership { get; set; }
 
@@ -201,4 +207,12 @@ public class SetApprovalAuthorityOverrideDto
 
     /// <summary>Bắt buộc khi đặt tay.</summary>
     public string? Reason { get; set; }
+}
+
+/// <summary>Cách xét duyệt có thể gắn cho chức vụ.</summary>
+public class WorkflowProfileOptionDto
+{
+    public string Code { get; set; } = string.Empty;
+
+    public string Name { get; set; } = string.Empty;
 }

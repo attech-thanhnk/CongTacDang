@@ -11,6 +11,7 @@ import {
   Position,
   POSITION_SIDE_LABELS,
   PositionSide,
+  WorkflowProfileOption,
 } from "@/services/catalogService";
 import { FormLayout, formLayoutService } from "@/services/formLayoutService";
 import { AdminModal } from "./AdminModal";
@@ -23,6 +24,7 @@ interface FormState {
   side: PositionSide;
   statCode: string;
   defaultApprovalAuthority: "" | ApprovalAuthorityCode;
+  defaultWorkflowProfileCode: string;
   isLeadership: boolean;
   isHead: boolean;
   formLayoutId: string;
@@ -35,6 +37,7 @@ const EMPTY_FORM: FormState = {
   side: "Administrative",
   statCode: "",
   defaultApprovalAuthority: "",
+  defaultWorkflowProfileCode: "",
   isLeadership: false,
   isHead: false,
   formLayoutId: "",
@@ -47,6 +50,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
   const { toast, confirm } = useToast();
   const [positions, setPositions] = useState<Position[]>([]);
   const [layouts, setLayouts] = useState<FormLayout[]>([]);
+  const [profiles, setProfiles] = useState<WorkflowProfileOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [sideFilter, setSideFilter] = useState<"" | PositionSide>("");
@@ -57,9 +61,14 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [items, layoutItems] = await Promise.all([catalogService.listPositions(), formLayoutService.list()]);
+      const [items, layoutItems, profileItems] = await Promise.all([
+        catalogService.listPositions(),
+        formLayoutService.list(),
+        catalogService.listWorkflowProfileOptions(),
+      ]);
       setPositions(items);
       setLayouts(layoutItems);
+      setProfiles(profileItems);
     } catch (err) {
       toast.error(errorMessage(err, "Không tải được danh mục chức vụ."), errorTitle(err));
     } finally {
@@ -82,6 +91,8 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
   }, [positions, search, sideFilter]);
   const paging = usePagination(filtered, { storageKey: "catalog.positions", resetKeys: [search, sideFilter] });
 
+  const profileName = (code: string) => profiles.find((x) => x.code === code)?.name ?? code;
+
   const openEdit = (p: Position) =>
     setForm({
       id: p.id,
@@ -89,6 +100,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
       side: p.side,
       statCode: p.statCode ?? "",
       defaultApprovalAuthority: p.defaultApprovalAuthority ?? "",
+      defaultWorkflowProfileCode: p.defaultWorkflowProfileCode ?? "",
       isLeadership: p.isLeadership,
       isHead: p.isHead,
       formLayoutId: p.formLayoutId ?? "",
@@ -109,6 +121,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
       side: form.side,
       statCode: form.statCode.trim(),
       defaultApprovalAuthority: form.defaultApprovalAuthority,
+      defaultWorkflowProfileCode: form.defaultWorkflowProfileCode,
       isLeadership: form.isLeadership,
       isHead: form.isHead,
       formLayoutId: form.formLayoutId,
@@ -217,6 +230,9 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                     <td>{p.statCode ? <code>{p.statCode}</code> : "—"}</td>
                     <td className="small">
                       {p.defaultApprovalAuthority ? APPROVAL_AUTHORITY_CODE_LABELS[p.defaultApprovalAuthority] : <span className="text-secondary">Không xác định</span>}
+                      {p.defaultWorkflowProfileCode && (
+                        <div className="text-secondary">Cách xét duyệt: {profileName(p.defaultWorkflowProfileCode)}</div>
+                      )}
                     </td>
                     <td className="small">{p.formLayoutName ?? <span className="text-secondary">Mặc định</span>}</td>
                     <td className="text-center">{p.holderCount}</td>
@@ -309,6 +325,26 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                     </option>
                   ))}
                 </select>
+              </div>
+              <div className="col-12">
+                <label className="form-label" htmlFor="pos-workflow-profile">Cách xét duyệt khi thêm vào kỳ</label>
+                <select
+                  id="pos-workflow-profile"
+                  className="form-select form-select-sm"
+                  value={form.defaultWorkflowProfileCode}
+                  onChange={(e) => setForm({ ...form, defaultWorkflowProfileCode: e.target.value })}
+                >
+                  <option value="">Theo thẩm quyền quyết định</option>
+                  {profiles.map((x) => (
+                    <option key={x.code} value={x.code}>
+                      {x.name}
+                    </option>
+                  ))}
+                  {form.defaultWorkflowProfileCode && !profiles.some((x) => x.code === form.defaultWorkflowProfileCode) && (
+                    <option value={form.defaultWorkflowProfileCode}>{form.defaultWorkflowProfileCode}</option>
+                  )}
+                </select>
+                <div className="form-text">Chỉ áp dụng khi kỳ có cách xét duyệt này và thẩm quyền của người khớp thẩm quyền của chức vụ.</div>
               </div>
               <div className="col-12">
                 <label className="form-label">Kiểu trình bày biểu mẫu tự đánh giá</label>

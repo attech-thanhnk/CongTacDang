@@ -17,12 +17,24 @@ import {
   WorkflowStepCode,
   evaluationService,
   gradeConditionWarnings,
+  votePassedGrade,
 } from "@/services/evaluationService";
 import { FileUploadModal } from "@/components/attachments/FileUploadModal";
 import { useCriteria } from "@/components/evaluations/useCriteria";
 import { SelfScoreForm } from "@/components/evaluations/SelfScoreForm";
 import { DateField } from "@/components/evaluations/DateField";
-import { CriteriaSnapshot, WeightFrame, describeFrame, fmt, requiresExplanation, roundScore } from "@/services/criteriaService";
+import {
+  CriteriaSnapshot,
+  GRADE_LABELS,
+  RankedGrade,
+  WeightFrame,
+  describeFrame,
+  exceedRatioOf,
+  fmt,
+  gradeProposalCheck,
+  requiresExplanation,
+  roundScore,
+} from "@/services/criteriaService";
 import { PublicOrganizationInfo, useOrganizationInfo } from "@/services/organizationSettingsService";
 import styles from "./record.module.css";
 
@@ -174,13 +186,13 @@ function ActionForm({ record, criteria, action, step, busy, onSubmit, extra, onA
     case "ConfirmByCell":
       return <CommentForm busy={busy} extra={extra} label="Ý kiến" submitText="Xác nhận" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "RecordCollectiveProposal":
-      return <ProposalForm record={record} busy={busy} extra={extra} stage="B3A_COLLECTIVE" submitText="Ghi nhận đề xuất" onSubmit={(payload) => onSubmit(action, payload)} />;
+      return <ProposalForm record={record} criteria={criteria} busy={busy} extra={extra} stage="B3A_COLLECTIVE" submitText="Ghi nhận đề xuất" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "Appraise":
       return <AppraisalForm record={record} criteria={criteria} busy={busy} extra={extra} onScoreChange={onAppraisalChange} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "DirectorReview":
-      return <GradeCommentForm record={record} busy={busy} extra={extra} defaultGrade={record.appraisalProposedGrade} submitText="Ghi nhận nhận xét" onSubmit={(payload) => onSubmit(action, payload)} />;
+      return <GradeCommentForm record={record} criteria={criteria} busy={busy} extra={extra} defaultGrade={record.appraisalProposedGrade} submitText="Ghi nhận nhận xét" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "RecordDecision":
-      return <ProposalForm record={record} busy={busy} extra={extra} stage="B4_DECISION" submitText="Ghi nhận quyết định" onSubmit={(payload) => onSubmit(action, payload)} />;
+      return <ProposalForm record={record} criteria={criteria} busy={busy} extra={extra} stage="B4_DECISION" submitText="Ghi nhận quyết định" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "Publish":
       return (
         <FormFoot only extra={extra}>
@@ -293,14 +305,48 @@ function GradeSelect({ value, onChange, id }: { value: string; onChange: (v: str
 
 const initialGrade = (value?: string) => (value && value !== "ChuaXepLoai" ? value : "");
 
-function GradeCommentForm({ record, busy, defaultGrade, submitText, extra, onSubmit }: { record: EvaluationRecordDto; busy: boolean; defaultGrade?: string; submitText: string; extra?: React.ReactNode; onSubmit: (p: Record<string, unknown>) => void }) {
+/** Mức chọn khác mức theo điểm (cùng quy tắc máy chủ); `required` = bộ tiêu chí bắt buộc nêu lý do. */
+function proposalCheck(record: EvaluationRecordDto, criteria: CriteriaSnapshot | null, grade: string, score: number | null | undefined) {
+  if (!criteria || !grade || score == null || Number.isNaN(score)) return null;
+  return gradeProposalCheck(criteria.content, grade, score, exceedRatioOf(record.tasks, record.selfScoreForm === "09B"));
+}
+
+const reasonMissing = (direction: number) =>
+  direction > 0 ? "Mức đề xuất cao hơn mức theo điểm: hãy nêu lý do." : "Mức đề xuất thấp hơn mức theo điểm: hãy nêu căn cứ.";
+
+/** Ô lý do / nhận xét; lỗi bắt buộc hiện ngay dưới ô. */
+function ReasonField({ id, label, value, onChange, required, error, rows = 2 }: {
+  id: string; label: string; value: string; onChange: (v: string) => void; required?: boolean; error?: string | null; rows?: number;
+}) {
+  return (
+    <div className="col-12">
+      <label className="form-label small" htmlFor={id}>{label} {required && <span className="text-danger">*</span>}</label>
+      <textarea id={id} className={`form-control form-control-sm ${error ? "is-invalid" : ""}`} rows={rows} maxLength={4000} value={value} onChange={(e) => onChange(e.target.value)} />
+      {error && <div className="invalid-feedback">{error}</div>}
+    </div>
+  );
+}
+
+function GradeCommentForm({ record, criteria, busy, defaultGrade, submitText, extra, onSubmit }: { record: EvaluationRecordDto; criteria: CriteriaSnapshot | null; busy: boolean; defaultGrade?: string; submitText: string; extra?: React.ReactNode; onSubmit: (p: Record<string, unknown>) => void }) {
   const [grade, setGrade] = useState(initialGrade(defaultGrade));
   const [comment, setComment] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const check = proposalCheck(record, criteria, grade, record.appraisalScore ?? record.totalSelfScore);
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (check?.required && !comment.trim()) {
+      setError(reasonMissing(check.direction));
+      document.getElementById("gc-comment")?.focus();
+      return;
+    }
+    onSubmit({ proposedGrade: grade, comment });
+  };
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ proposedGrade: grade, comment }); }} className="row g-2">
+    <form onSubmit={submit} className="row g-2">
       <div className="col-md-5"><label className="form-label small" htmlFor="gc-grade">Mức đề xuất</label><GradeSelect id="gc-grade" value={grade} onChange={setGrade} /></div>
-      <GradeWarningList warnings={recordGradeWarnings(record, grade)} />
-      <div className="col-12"><label className="form-label small" htmlFor="gc-comment">Nhận xét</label><textarea id="gc-comment" className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
+      <GradeWarningList warnings={[...recordGradeWarnings(record, grade), ...(check ? [check.message] : [])]} />
+      <ReasonField id="gc-comment" label="Nhận xét" rows={3} value={comment} required={!!check?.required} error={error}
+        onChange={(v) => { setComment(v); setError(null); }} />
       <FormFoot row extra={extra}><button type="submit" className="btn btn-primary" disabled={busy || !grade}>{submitText}</button></FormFoot>
     </form>
   );
@@ -333,7 +379,13 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
     : undefined;
   const leveledTasks = scoredTasks.map((t) => ({ ...t, appraisalLevel: levels[t.id] ?? null }));
   const missingLevels = usesTasks && leveledTasks.some((t) => t.appraisalLevel == null);
-  const warnings = usesTasks ? gradeConditionWarnings(leveledTasks, grade, record.excellentMinExceedRatio) : [];
+  const check = proposalCheck(record, criteria, grade, appraisal);
+  const warnings = [
+    ...(usesTasks ? gradeConditionWarnings(leveledTasks, grade, record.excellentMinExceedRatio) : []),
+    ...(check ? [check.message] : []),
+  ];
+  const explanationRequired = needsExplanation || !!check?.required;
+  const [explanationError, setExplanationError] = useState<string | null>(null);
 
   useEffect(() => {
     onScoreChange?.(appraisal);
@@ -341,6 +393,11 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (explanationRequired && !explanation.trim()) {
+      setExplanationError(check?.required ? reasonMissing(check.direction) : "Chênh lệch tự chấm – thẩm định cần giải trình, căn cứ.");
+      document.getElementById("ap-explanation")?.focus();
+      return;
+    }
     onSubmit({
       generalScore: generalValue,
       tasksScore: tasksValue,
@@ -402,11 +459,13 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
       <div className="col-12"><label className="form-label small" htmlFor="ap-comment">Ý kiến thẩm định</label><textarea id="ap-comment" className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
       <div className="col-12">
         <label className="form-label small" htmlFor="ap-explanation" title={rule}>
-          Giải trình {needsExplanation && <span className="text-danger">*</span>}
+          Giải trình {explanationRequired && <span className="text-danger">*</span>}
         </label>
-        <textarea id="ap-explanation" className="form-control form-control-sm" rows={2} maxLength={4000} required={needsExplanation} title={rule} value={explanation} onChange={(e) => setExplanation(e.target.value)} />
+        <textarea id="ap-explanation" className={`form-control form-control-sm ${explanationError ? "is-invalid" : ""}`} rows={2} maxLength={4000} title={rule} value={explanation}
+          onChange={(e) => { setExplanation(e.target.value); setExplanationError(null); }} />
+        {explanationError && <div className="invalid-feedback">{explanationError}</div>}
       </div>
-      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary" disabled={busy || !grade || missingLevels || appraisal == null || (needsExplanation && !explanation.trim())}>Ghi nhận thẩm định</button></FormFoot>
+      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary" disabled={busy || !grade || missingLevels || appraisal == null}>Ghi nhận thẩm định</button></FormFoot>
     </form>
   );
 }
@@ -430,7 +489,7 @@ function recordGradeWarnings(record: EvaluationRecordDto, grade: string): string
 }
 
 /** Ghi nhận đề xuất tập thể (B3a) hoặc quyết định (B4); kết quả kiểm phiếu (tùy chọn) gắn với biên bản. */
-function ProposalForm({ record, busy, stage, submitText, extra, onSubmit }: { record: EvaluationRecordDto; busy: boolean; stage: "B3A_COLLECTIVE" | "B4_DECISION"; submitText: string; extra?: React.ReactNode; onSubmit: (p: Record<string, unknown>) => void }) {
+function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubmit }: { record: EvaluationRecordDto; criteria: CriteriaSnapshot | null; busy: boolean; stage: "B3A_COLLECTIVE" | "B4_DECISION"; submitText: string; extra?: React.ReactNode; onSubmit: (p: Record<string, unknown>) => void }) {
   const isDecision = stage === "B4_DECISION";
   const [grade, setGrade] = useState(
     isDecision
@@ -439,6 +498,8 @@ function ProposalForm({ record, busy, stage, submitText, extra, onSubmit }: { re
   );
   const [comment, setComment] = useState("");
   const [finalScore, setFinalScore] = useState("");
+  const [explanation, setExplanation] = useState(record.decisionExplanation ?? "");
+  const [reasonError, setReasonError] = useState<string | null>(null);
   const [documentNumber, setDocumentNumber] = useState("");
   const [documentDate, setDocumentDate] = useState("");
   const org = useOrganizationInfo();
@@ -462,9 +523,34 @@ function ProposalForm({ record, busy, stage, submitText, extra, onSubmit }: { re
 
   const selectedMeeting = meetings.find((m) => m.id === meetingId);
   const totalVotes = votes.votesExcellent + votes.votesGood + votes.votesSatisfactory + votes.votesUnsatisfactory + votes.votesNotRated + votes.invalidVotes;
+  // Kiểm phiếu đã có: mức ghi nhận của tập thể phải là mức đạt quá nửa số có mặt (máy chủ kiểm lại).
+  const voteResult = !isDecision && meetingId && withVotes ? votePassedGrade(votes, selectedMeeting?.presentCount ?? 0) : null;
+  const voteMismatch = !!voteResult && voteResult.grade !== grade;
+  const scoreForCheck = isDecision ? (finalScore === "" ? record.appraisalScore ?? record.totalSelfScore : Number(finalScore)) : record.totalSelfScore;
+  const check = proposalCheck(record, criteria, grade, scoreForCheck);
+  const reason = isDecision ? explanation : comment;
+
+  // Chọn biên bản đã có kết quả kiểm phiếu của hồ sơ → điền sẵn số phiếu.
+  useEffect(() => {
+    const existing = selectedMeeting?.voteSummaries?.find((v) => v.recordId === record.id);
+    if (!existing) return;
+    setVotes({ ...EMPTY_VOTES, ...existing, notes: existing.notes ?? "" });
+    setWithVotes(true);
+  }, [selectedMeeting, record.id]);
+
+  // Kết quả kiểm phiếu đổi → chọn sẵn mức được thông qua.
+  const passedGrade = voteResult?.grade ?? null;
+  useEffect(() => {
+    if (passedGrade) setGrade(passedGrade);
+  }, [passedGrade]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (check?.required && !reason.trim()) {
+      setReasonError(reasonMissing(check.direction));
+      document.getElementById(`${stage}-reason`)?.focus();
+      return;
+    }
     const payload: Record<string, unknown> = { meetingId: meetingId || null, votes: withVotes && meetingId ? votes : null };
     if (isDecision) {
       Object.assign(payload, {
@@ -474,6 +560,7 @@ function ProposalForm({ record, busy, stage, submitText, extra, onSubmit }: { re
         documentDate: documentDate || null,
         authorityName,
         cadreWorkProposal: cadreWorkProposal.trim() || null,
+        explanation: explanation.trim() || null,
       });
     } else {
       Object.assign(payload, { proposedGrade: grade, comment });
@@ -487,7 +574,7 @@ function ProposalForm({ record, busy, stage, submitText, extra, onSubmit }: { re
   return (
     <form onSubmit={submit} className="row g-2">
       <div className="col-md-5"><label className="form-label small" htmlFor={`${stage}-grade`}>{isDecision ? "Mức xếp loại được quyết định" : "Mức tập thể đề xuất"}</label><GradeSelect id={`${stage}-grade`} value={grade} onChange={setGrade} /></div>
-      {isDecision && <GradeWarningList warnings={recordGradeWarnings(record, grade)} />}
+      <GradeWarningList warnings={[...(isDecision ? recordGradeWarnings(record, grade) : []), ...(check ? [check.message] : [])]} />
       {isDecision ? (
         <>
           {/* Để trống: máy chủ lấy điểm thẩm định. */}
@@ -496,9 +583,14 @@ function ProposalForm({ record, busy, stage, submitText, extra, onSubmit }: { re
           <div className="col-md-5"><label className="form-label small" htmlFor={`${stage}-docno`}>Số văn bản</label><input id={`${stage}-docno`} className="form-control form-control-sm" value={documentNumber} maxLength={100} onChange={(e) => setDocumentNumber(e.target.value)} /></div>
           <div className="col-md-4"><label className="form-label small" htmlFor={`${stage}-docdate`}>Ngày văn bản</label><DateField id={`${stage}-docdate`} value={documentDate} onChange={setDocumentDate} /></div>
           <CadreProposalInput id={`${stage}-cadre`} value={cadreWorkProposal} onChange={setCadreWorkProposal} />
+          {(check || explanation) && (
+            <ReasonField id={`${stage}-reason`} label="Căn cứ quyết định mức" value={explanation} required={!!check?.required} error={reasonError}
+              onChange={(v) => { setExplanation(v); setReasonError(null); }} />
+          )}
         </>
       ) : (
-        <div className="col-12"><label className="form-label small">Nhận xét của tập thể</label><textarea className="form-control form-control-sm" rows={2} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
+        <ReasonField id={`${stage}-reason`} label="Nhận xét của tập thể" value={comment} required={!!check?.required} error={reasonError}
+          onChange={(v) => { setComment(v); setReasonError(null); }} />
       )}
       <div className="col-md-8">
         <label className="form-label small">Biên bản hội nghị (Mẫu 12/13)</label>
@@ -535,11 +627,19 @@ function ProposalForm({ record, busy, stage, submitText, extra, onSubmit }: { re
               <div className={`col-12 small ${selectedMeeting && totalVotes > selectedMeeting.presentCount ? "text-danger" : "text-secondary"}`}>
                 Tổng phiếu: {totalVotes}{selectedMeeting ? ` / số có mặt ${selectedMeeting.presentCount}` : ""}
               </div>
+              {voteResult && (
+                <div className={`col-12 small ${voteResult.grade && !voteMismatch ? "text-success" : "text-danger"}`} role="status">
+                  {voteResult.grade
+                    ? `Theo kết quả kiểm phiếu: ${GRADE_LABELS[voteResult.grade as RankedGrade]} (${voteResult.votes}/${voteResult.basis} phiếu, cộng dồn từ mức cao).`
+                      + (voteMismatch ? " Mức đang chọn khác kết quả kiểm phiếu." : "")
+                    : `Không mức nào đạt quá nửa (${voteResult.basis}): hãy kiểm tra lại số phiếu.`}
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
-      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary" disabled={busy || !grade}>{submitText}</button></FormFoot>
+      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary" disabled={busy || !grade || (!!voteResult && (!voteResult.grade || voteMismatch))}>{submitText}</button></FormFoot>
     </form>
   );
 }

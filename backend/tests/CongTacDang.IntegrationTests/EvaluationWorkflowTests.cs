@@ -244,10 +244,10 @@ public sealed class EvaluationWorkflowTests
         Assert.Equal(6, scored.GetProperty("axisScores").EnumerateObject().Count());
 
         await StepAsync(w.CellSecC, recordId, "cell/confirm", new { }, "AwaitingCollective");
-        await StepAsync(w.SecretaryC, recordId, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
+        await StepAsync(w.SecretaryC, recordId, "collective", new { proposedGrade = "HoanThanhTot", comment = "Hạ mức theo kết quả họp" }, "AwaitingAppraisal");
         await StepAsync(w.AppraiserC, recordId, "appraisal", new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 90.0, comment = "Đạt", proposedGrade = "HoanThanhTot" }, "AwaitingDirectorReview");
         await StepAsync(w.DirectorC, recordId, "director-review", new { comment = "Đồng ý", proposedGrade = "HoanThanhTot" }, "AwaitingDecision");
-        await StepAsync(w.OfficeC, recordId, "decision", new { finalGrade = "HoanThanhTot" }, "AwaitingPublish");
+        await StepAsync(w.OfficeC, recordId, "decision", new { finalGrade = "HoanThanhTot", explanation = "Theo đề xuất các cấp" }, "AwaitingPublish");
         await StepAsync(w.OfficeC, recordId, "publish", new { }, "Published");
     }
 
@@ -732,6 +732,149 @@ public sealed class EvaluationWorkflowTests
         var text = System.Text.RegularExpressions.Regex.Replace(await reader.ReadToEndAsync(), "<[^>]+>", string.Empty);
         Assert.Contains("60,5", text);
         Assert.Contains("87,5", text);
+    }
+
+    #endregion
+
+    #region Mức đề xuất so với mức theo điểm, kiểm phiếu, cách xét duyệt theo chức vụ
+
+    [SkippableFact]
+    public async Task W20_ProposalAboveScoreGrade_EveryStep_RequiresReason_ReturnsWarnings()
+    {
+        var w = await WorldAsync();
+        var periodId = await OpenPeriodAsync(w, "09B", w.Owner1.Id);
+        var id = await RecordOfAsync(w, periodId, w.Owner1.Id);
+        // 29 + 57 = 86 điểm → mức theo điểm "Hoàn thành tốt" (Xuất sắc từ 90).
+        var selfScore = new { generalScores = CriteriaTestData.General("2.1"), axisScores = CriteriaTestData.Axis(14, 9, 9, 10, 5, 10), selfProposedGrade = "HoanThanhXuatSac" };
+
+        // Lỗi cũ: tự đề xuất Xuất sắc với 86 điểm vẫn được nhận, không cảnh báo.
+        var noReason = await PostAsync(w.Owner1C, id, "self-score/submit", selfScore, await VersionAsync(w, id));
+        Assert.Equal(HttpStatusCode.BadRequest, noReason.StatusCode);
+        var message = await MessageAsync(noReason);
+        Assert.Contains("cao hơn mức theo điểm", message);
+        Assert.Contains("86 điểm", message);
+        var scored = await StepAsync(w.Owner1C, id, "self-score/submit", new
+        {
+            selfScore.generalScores, selfScore.axisScores, selfScore.selfProposedGrade, selfGradeExplanation = "Có sáng kiến được Tổng công ty khen"
+        }, "AwaitingCellConfirm");
+        Assert.Equal("Có sáng kiến được Tổng công ty khen", scored.GetProperty("selfGradeExplanation").GetString());
+        var deviation = Assert.Single(scored.GetProperty("gradeDeviations").EnumerateArray());
+        Assert.Equal("B2_SELF_SCORE", deviation.GetProperty("step").GetString());
+        Assert.Equal("Higher", deviation.GetProperty("direction").GetString());
+        Assert.Equal("HoanThanhTot", deviation.GetProperty("scoreGrade").GetString());
+        Assert.Contains(scored.GetProperty("gradeWarnings").EnumerateArray(), x => x.GetString()!.Contains("cao hơn mức theo điểm"));
+
+        await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
+        // Tập thể: Xuất sắc cần nhận xét nêu lý do; khớp mức theo điểm thì không bắt buộc.
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostAsync(w.SecretaryC, id, "collective", new { proposedGrade = "HoanThanhXuatSac" }, await VersionAsync(w, id))).StatusCode);
+        await StepAsync(w.SecretaryC, id, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
+
+        // Lỗi cũ: thẩm định 30 + 57 = 87 (chênh 1 điểm, cùng mức) đề xuất Xuất sắc không phải giải trình.
+        var appraisal = new { generalScore = 30.0, tasksScore = 57.0, comment = "Đạt", proposedGrade = "HoanThanhXuatSac" };
+        var appraiseNoReason = await PostAsync(w.AppraiserC, id, "appraisal", appraisal, await VersionAsync(w, id));
+        Assert.Equal(HttpStatusCode.BadRequest, appraiseNoReason.StatusCode);
+        Assert.Contains("87 điểm", await MessageAsync(appraiseNoReason));
+        var appraised = await StepAsync(w.AppraiserC, id, "appraisal", new
+        {
+            appraisal.generalScore, appraisal.tasksScore, appraisal.comment, appraisal.proposedGrade, explanation = "Kết quả vượt trội trục 1"
+        }, "AwaitingDirectorReview");
+        Assert.Contains(appraised.GetProperty("gradeWarnings").EnumerateArray(), x => x.GetString()!.StartsWith("Mức thẩm định đề xuất"));
+
+        // Cấp trực tiếp sử dụng hạ về mức theo điểm: không bắt buộc nhận xét; hạ thấp hơn mức theo điểm thì phải nêu căn cứ.
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostAsync(w.DirectorC, id, "director-review", new { proposedGrade = "HoanThanh" }, await VersionAsync(w, id))).StatusCode);
+        await StepAsync(w.DirectorC, id, "director-review", new { proposedGrade = "HoanThanhTot" }, "AwaitingDecision");
+
+        var decideNoReason = await PostAsync(w.OfficeC, id, "decision", new { finalGrade = "HoanThanhXuatSac" }, await VersionAsync(w, id));
+        Assert.Equal(HttpStatusCode.BadRequest, decideNoReason.StatusCode);
+        Assert.Contains("Mức được quyết định", await MessageAsync(decideNoReason));
+        var decided = await StepAsync(w.OfficeC, id, "decision", new { finalGrade = "HoanThanhXuatSac", explanation = "Hội nghị xét thành tích đột xuất" }, "AwaitingPublish");
+        Assert.Equal("Hội nghị xét thành tích đột xuất", decided.GetProperty("decisionExplanation").GetString());
+        Assert.Contains(decided.GetProperty("gradeDeviations").EnumerateArray(), d => d.GetProperty("step").GetString() == "B4_DECISION");
+    }
+
+    [SkippableFact]
+    public async Task W21_CollectiveProposal_MustMatchVoteMajority()
+    {
+        var w = await WorldAsync();
+        var periodId = await OpenPeriodAsync(w, "09B", w.Owner1.Id);
+        var id = await RecordOfAsync(w, periodId, w.Owner1.Id);
+        // 30 + 64 = 94 điểm: mức theo điểm Xuất sắc, để kiểm tra riêng quy tắc kiểm phiếu.
+        await StepAsync(w.Owner1C, id, "self-score/submit",
+            new { generalScores = CriteriaTestData.General(), axisScores = CriteriaTestData.Axis(14, 9, 9, 14, 8, 10) }, "AwaitingCellConfirm");
+        await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
+        var meetingId = (await Data(await w.SecretaryC.PostAsJsonAsync("/api/evaluations/meetings", new
+        {
+            periodId, departmentId = w.Dept1, stage = "B3A_COLLECTIVE", formCode = "M12", meetingType = "Hội nghị tập thể lãnh đạo Phòng",
+            invitedCount = 5, presentCount = 5
+        }))).GetProperty("id").GetGuid();
+        var votes = new { votesExcellent = 1, votesGood = 4, votesSatisfactory = 0, votesUnsatisfactory = 0, votesNotRated = 0, invalidVotes = 0 };
+
+        // Lỗi cũ: phiếu 1 Xuất sắc / 4 Tốt vẫn ghi nhận được tập thể đề xuất Xuất sắc.
+        var mismatch = await PostAsync(w.SecretaryC, id, "collective",
+            new { proposedGrade = "HoanThanhXuatSac", meetingId, votes }, await VersionAsync(w, id));
+        Assert.Equal(HttpStatusCode.BadRequest, mismatch.StatusCode);
+        var message = await MessageAsync(mismatch);
+        Assert.Contains("Xuất sắc 1, Tốt 4", message);
+        Assert.Contains("\"Hoàn thành tốt nhiệm vụ\" (5/5 phiếu)", message);
+
+        // Không mức nào quá nửa (phiếu "Chưa đánh giá" chiếm đa số) → từ chối, nêu số phiếu.
+        var noMajority = await PostAsync(w.SecretaryC, id, "collective", new
+        {
+            proposedGrade = "HoanThanhTot", comment = "Hạ mức", meetingId,
+            votes = new { votesExcellent = 1, votesGood = 1, votesSatisfactory = 0, votesUnsatisfactory = 0, votesNotRated = 3, invalidVotes = 0 }
+        }, await VersionAsync(w, id));
+        Assert.Equal(HttpStatusCode.BadRequest, noMajority.StatusCode);
+        Assert.Contains("Không mức nào đạt quá nửa", await MessageAsync(noMajority));
+
+        // Kết quả kiểm phiếu đã lưu trên biên bản (không gửi lại phiếu) vẫn được đối chiếu.
+        await _factory.WithDbAsync(async db =>
+        {
+            db.EvaluationMeetingVoteSummaries.Add(new EvaluationMeetingVoteSummary { MeetingId = meetingId, RecordId = id, VotesExcellent = 1, VotesGood = 4 });
+            await db.SaveChangesAsync();
+        });
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await PostAsync(w.SecretaryC, id, "collective", new { proposedGrade = "HoanThanhXuatSac", meetingId }, await VersionAsync(w, id))).StatusCode);
+        // Mức theo kết quả kiểm phiếu (thấp hơn mức theo điểm) → nêu căn cứ trong nhận xét.
+        await StepAsync(w.SecretaryC, id, "collective",
+            new { proposedGrade = "HoanThanhTot", comment = "Theo kết quả biểu quyết của hội nghị", meetingId, votes }, "AwaitingAppraisal");
+    }
+
+    [SkippableFact]
+    public async Task W22_DeputyDirector_DefaultProfileFromPosition_ReadinessWarnsWhenDifferent()
+    {
+        var w = await WorldAsync();
+        var suffix = Guid.NewGuid().ToString("N")[..6];
+        var deputy = await _factory.CreateUserAsync(w.Dept1, w.Cell1, ApprovalAuthority.CapTren, $"W Phó Giám đốc {suffix}");
+        var director = await _factory.CreateUserAsync(w.Dept1, w.Cell1, ApprovalAuthority.CapTren, $"W Giám đốc {suffix}");
+        await _factory.WithDbAsync(async db =>
+        {
+            // Danh mục mặc định đánh dấu sẵn chức vụ Phó Giám đốc (DataSeeder / migration).
+            var deputyPosition = await db.Positions.SingleAsync(p => p.Name == "Phó Giám đốc");
+            Assert.Equal("pho-giam-doc", deputyPosition.DefaultWorkflowProfileCode);
+            var directorPosition = await db.Positions.SingleAsync(p => p.Name == "Giám đốc");
+            Assert.Null(directorPosition.DefaultWorkflowProfileCode);
+            db.MemberPositions.Add(new MemberPosition { UserId = deputy.Id, PositionId = deputyPosition.Id, DepartmentId = w.Dept1, IsPrimary = true, ValidFrom = DateTime.UtcNow.AddDays(-1) });
+            db.MemberPositions.Add(new MemberPosition { UserId = director.Id, PositionId = directorPosition.Id, DepartmentId = w.Dept1, IsPrimary = true, ValidFrom = DateTime.UtcNow.AddDays(-1) });
+            await db.SaveChangesAsync();
+        });
+
+        var periodId = (await CreatePeriodAsync(w, "09B")).GetProperty("id").GetGuid();
+        await Data(await w.Appraiser.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { deputy.Id, director.Id } }));
+        var participants = (await Data(w.Appraiser, $"/api/evaluations/periods/{periodId}/participants")).EnumerateArray().ToList();
+        var deputyRow = participants.First(p => p.GetProperty("memberId").GetGuid() == deputy.Id);
+        // Lỗi cũ: Phó Giám đốc (thẩm quyền cấp trên) rơi vào "cap-tren".
+        Assert.Equal("pho-giam-doc", deputyRow.GetProperty("workflowProfileCode").GetString());
+        Assert.Equal("cap-tren", participants.First(p => p.GetProperty("memberId").GetGuid() == director.Id).GetProperty("workflowProfileCode").GetString());
+
+        var clean = await Data(w.Appraiser, $"/api/evaluations/periods/{periodId}/readiness");
+        Assert.DoesNotContain(clean.GetProperty("dataReview").EnumerateArray(), i => i.GetProperty("kind").GetString() == "ProfileMismatch");
+
+        // Đổi tay sang cách xét duyệt khác → kiểm tra sẵn sàng nhắc (không chặn mở kỳ).
+        await Data(await w.Appraiser.PutAsJsonAsync($"/api/evaluations/periods/{periodId}/participants/{deputyRow.GetProperty("recordId").GetGuid()}/profile",
+            new { version = deputyRow.GetProperty("version").GetUInt32(), workflowProfileCode = "cap-tren", reason = "Kiểm thử cảnh báo" }));
+        var readiness = await Data(w.Appraiser, $"/api/evaluations/periods/{periodId}/readiness");
+        var mismatch = readiness.GetProperty("dataReview").EnumerateArray().Single(i => i.GetProperty("kind").GetString() == "ProfileMismatch");
+        Assert.Contains(mismatch.GetProperty("names").EnumerateArray(), n => n.GetString()!.Contains($"W Phó Giám đốc {suffix}") && n.GetString()!.Contains("Phó Giám đốc"));
     }
 
     #endregion

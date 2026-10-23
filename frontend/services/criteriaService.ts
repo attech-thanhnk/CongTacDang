@@ -261,6 +261,48 @@ export function gradeByScore(content: CriteriaSetContent, score: number): Ranked
   return "KhongHoanThanh";
 }
 
+/** Mức theo điểm như máy chủ: ngưỡng điểm và tỷ lệ nhiệm vụ vượt chuẩn (khi có). */
+export function suggestGrade(content: CriteriaSetContent, score: number, exceedRatio?: number | null): RankedGrade {
+  for (const grade of RANKED_GRADES) {
+    const rule = content.grades.find((g) => g.grade === grade);
+    if (!rule || score + 1e-6 < rule.minScore) continue;
+    if (rule.minExceedStandardRatio != null && exceedRatio != null && exceedRatio + 1e-6 < rule.minExceedStandardRatio) continue;
+    return grade;
+  }
+  return "KhongHoanThanh";
+}
+
+/** Tỷ lệ nhiệm vụ còn hiệu lực đánh dấu vượt chuẩn (09A); chấm theo trục hoặc chưa có nhiệm vụ → null. */
+export function exceedRatioOf(tasks: { changeStatus?: string | null; isExceedStandard?: boolean }[], axisScoring: boolean): number | null {
+  if (axisScoring) return null;
+  const active = tasks.filter((t) => !t.changeStatus);
+  return active.length > 0 ? active.filter((t) => t.isExceedStandard).length / active.length : null;
+}
+
+/** So mức đề xuất với mức theo điểm: dương = cao hơn, âm = thấp hơn, 0 = khớp hoặc chưa chọn. */
+export function compareWithScoreGrade(content: CriteriaSetContent, grade: string | null | undefined, score: number, exceedRatio?: number | null): number {
+  const proposed = RANKED_GRADES.indexOf(grade as RankedGrade);
+  if (proposed < 0) return 0;
+  return RANKED_GRADES.indexOf(suggestGrade(content, score, exceedRatio)) - proposed;
+}
+
+/** Cảnh báo khi mức chọn khác mức theo điểm; `required` = bộ tiêu chí bắt buộc nêu lý do (như máy chủ). */
+export function gradeProposalCheck(
+  content: CriteriaSetContent,
+  grade: string | null | undefined,
+  score: number,
+  exceedRatio?: number | null
+): { direction: number; required: boolean; message: string } | null {
+  const direction = compareWithScoreGrade(content, grade, score, exceedRatio);
+  if (direction === 0) return null;
+  const byScore = suggestGrade(content, score, exceedRatio);
+  return {
+    direction,
+    required: content.parameters.explanationOnGradeChange,
+    message: `Mức đã chọn ${direction > 0 ? "cao hơn" : "thấp hơn"} mức theo điểm (${fmt(score)} điểm → ${GRADE_LABELS[byScore]}).`,
+  };
+}
+
 /** Chênh lệch tự chấm – thẩm định cần giải trình (theo ngưỡng của bộ). */
 export function requiresExplanation(content: CriteriaSetContent, self: number, appraisal: number | null): boolean {
   if (appraisal == null || Number.isNaN(appraisal)) return false;

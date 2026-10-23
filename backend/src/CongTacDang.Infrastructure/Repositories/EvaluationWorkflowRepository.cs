@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Interfaces;
+using CongTacDang.Application.Organization;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.Domain.Evaluation;
@@ -164,6 +165,10 @@ public sealed class EvaluationWorkflowRepository : IEvaluationWorkflowRepository
     /// <inheritdoc />
     public Task<List<MemberSnapshotSource>> GetMembersAsync(IReadOnlyCollection<Guid> memberIds, CancellationToken ct = default) =>
         MemberSources(_db.PartyMemberProfiles.AsNoTracking().Where(m => memberIds.Contains(m.Id))).ToListAsync(ct);
+
+    /// <inheritdoc />
+    public Task<Dictionary<Guid, List<HeldPosition>>> GetHeldPositionsAsync(IReadOnlyCollection<Guid> userIds, DateTime at, CancellationToken ct = default) =>
+        PositionRepository.LoadHeldPositionsAsync(_db, userIds, at, ct);
 
     /// <inheritdoc />
     public Task<List<MemberSnapshotSource>> SearchMembersAsync(Guid? departmentId, Guid? partyCellId, string? query, CancellationToken ct = default)

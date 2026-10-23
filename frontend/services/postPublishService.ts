@@ -147,6 +147,8 @@ export interface RecordImprovementPlanDto {
   plan?: ImprovementPlanDto | null;
   canManage: boolean;
   canAcknowledge: boolean;
+  /** Người lập kế hoạch không tự duyệt. */
+  canApprove: boolean;
 }
 
 export interface MilestoneInput {

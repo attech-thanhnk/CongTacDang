@@ -156,6 +156,8 @@ public class EvaluationRecordDto
     public Dictionary<string, double>? AxisScores { get; set; }
     public double TotalSelfScore { get; set; }
     public string SelfProposedGrade { get; set; } = string.Empty;
+    /// <summary>Lý do tự đề xuất mức khác mức theo điểm.</summary>
+    public string? SelfGradeExplanation { get; set; }
     public DateTime? SelfScoredAt { get; set; }
     /// <summary>Mẫu 09C, khóa = mã mục của bộ tiêu chí.</summary>
     public Dictionary<string, string> SelfAssessment { get; set; } = new();
@@ -201,6 +203,8 @@ public class EvaluationRecordDto
     // B4
     public double FinalScore { get; set; }
     public string FinalGrade { get; set; } = string.Empty;
+    /// <summary>Căn cứ khi mức quyết định khác mức theo điểm.</summary>
+    public string? DecisionExplanation { get; set; }
     public string? DecisionDocumentNumber { get; set; }
     public DateTime? DecisionDocumentDate { get; set; }
     public string? DecisionAuthorityName { get; set; }
@@ -219,8 +223,11 @@ public class EvaluationRecordDto
 
     public List<EvaluationTaskDto> Tasks { get; set; } = new();
 
-    /// <summary>Cảnh báo điều kiện xếp loại theo mức thẩm định từng nhiệm vụ; không chặn.</summary>
+    /// <summary>Cảnh báo về mức hiệu lực: điều kiện xếp loại theo mức thẩm định từng nhiệm vụ, mức khác mức theo điểm; không chặn.</summary>
     public List<string> GradeWarnings { get; set; } = new();
+
+    /// <summary>Các bước có mức đề xuất khác mức theo điểm của bộ tiêu chí.</summary>
+    public List<GradeDeviationDto> GradeDeviations { get; set; } = new();
 
     /// <summary>Tỷ lệ nhiệm vụ vượt chuẩn tối thiểu để đạt Xuất sắc (0..1); null = không xét.</summary>
     public double? ExcellentMinExceedRatio { get; set; }
@@ -399,6 +406,8 @@ public class SubmitSelfScoreRequestDto : WorkflowRequestDto
     public Dictionary<string, double>? AxisScores { get; set; }
     /// <summary>Trống → gợi ý theo tổng điểm.</summary>
     public string? SelfProposedGrade { get; set; }
+    /// <summary>Bắt buộc khi mức tự đề xuất khác mức theo điểm và bộ tiêu chí yêu cầu giải trình.</summary>
+    public string? SelfGradeExplanation { get; set; }
     /// <summary>Mẫu 09C; null = giữ nội dung đã lưu.</summary>
     public Dictionary<string, string?>? SelfAssessment { get; set; }
     /// <summary>Mẫu 09C/9D, khóa = mã trục; null = giữ nội dung đã lưu.</summary>
@@ -477,6 +486,8 @@ public class DecisionRequestDto : WorkflowRequestDto
     public string? CadreWorkProposal { get; set; }
     public Guid? MeetingId { get; set; }
     public VoteTallyDto? Votes { get; set; }
+    /// <summary>Căn cứ khi mức quyết định khác mức theo điểm.</summary>
+    public string? Explanation { get; set; }
 }
 
 /// <summary>Mở lại hồ sơ đã công bố.</summary>
@@ -865,3 +876,17 @@ public class SaveEvaluationMeetingRequestDto
 }
 
 #endregion
+
+/// <summary>Mức đề xuất của một bước khác mức theo điểm.</summary>
+public class GradeDeviationDto
+{
+    public string Step { get; set; } = string.Empty;
+    public string ProposedGrade { get; set; } = string.Empty;
+    /// <summary>Mức theo ngưỡng điểm (và tỷ lệ vượt chuẩn) của bộ tiêu chí.</summary>
+    public string ScoreGrade { get; set; } = string.Empty;
+    public double Score { get; set; }
+    /// <summary><c>Higher</c> / <c>Lower</c>.</summary>
+    public string Direction { get; set; } = string.Empty;
+    public bool HasExplanation { get; set; }
+    public string Message { get; set; } = string.Empty;
+}

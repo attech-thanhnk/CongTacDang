@@ -73,7 +73,7 @@ public sealed class Quarter4ScenarioTests
         await Data(await w.Tccb.PutAsJsonAsync($"/api/evaluations/periods/{periodId}",
             new { version = created.GetProperty("version").GetUInt32(), settings }));
 
-        // ============ 2. Thêm người; Bí thư Chi bộ là nhân viên thêm kèm cách xét duyệt; đổi Phó Giám đốc sang pho-giam-doc ============
+        // ============ 2. Thêm người; Bí thư Chi bộ là nhân viên thêm kèm cách xét duyệt; Phó Giám đốc tự theo pho-giam-doc (chức vụ) ============
         var main = new[] { w.Tp, w.Ptp, w.Ct, w.Gd, w.Ksv, w.Pgd };
         Assert.Equal(6, (await Data(await w.Tccb.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
             new { memberIds = main.Select(p => p.Id) }))).GetProperty("added").GetInt32());
@@ -85,14 +85,9 @@ public sealed class Quarter4ScenarioTests
         Assert.Equal("co-so", participants[w.Ptp.Id].GetProperty("workflowProfileCode").GetString());
         Assert.Equal("bi-thu-nhan-vien", participants[w.Bt.Id].GetProperty("workflowProfileCode").GetString());
         foreach (var leader in new[] { w.Ct, w.Gd, w.Ksv, w.Pgd })
-        {
             Assert.Equal("CapTren", participants[leader.Id].GetProperty("approvalAuthority").GetString());
+        foreach (var leader in new[] { w.Ct, w.Gd, w.Ksv })
             Assert.Equal("cap-tren", participants[leader.Id].GetProperty("workflowProfileCode").GetString());
-        }
-        var pgdRow = participants[w.Pgd.Id];
-        await Data(await w.Tccb.PutAsJsonAsync($"/api/evaluations/periods/{periodId}/participants/{pgdRow.GetProperty("recordId").GetGuid()}/profile",
-            new { version = pgdRow.GetProperty("version").GetUInt32(), workflowProfileCode = "pho-giam-doc", reason = "Phó Giám đốc: Chủ tịch nhận xét, BTV quyết định" }));
-        participants = await Participants(w, periodId);
         Assert.Equal("pho-giam-doc", participants[w.Pgd.Id].GetProperty("workflowProfileCode").GetString());
         var id = participants.ToDictionary(p => p.Key, p => p.Value.GetProperty("recordId").GetGuid());
 
@@ -147,15 +142,15 @@ public sealed class Quarter4ScenarioTests
         await Step(w.SecKt, id[w.Tp.Id], "collective",
             new { proposedGrade = "HoanThanhXuatSac", meetingId = meetingKt, votes = Votes(4, 1) }, "AwaitingAppraisal");
         await Step(w.SecKt, id[w.Bt.Id], "collective",
-            new { proposedGrade = "HoanThanhTot", meetingId = meetingKt, votes = Votes(0, 5) }, "AwaitingAppraisal");
+            new { proposedGrade = "HoanThanhTot", comment = "Theo kết quả biểu quyết", meetingId = meetingKt, votes = Votes(0, 5) }, "AwaitingAppraisal");
         await Step(w.SecTc, id[w.Ptp.Id], "collective",
-            new { proposedGrade = "HoanThanhTot", meetingId = meetingTc, votes = Votes(0, 4) }, "AwaitingAppraisal");
+            new { proposedGrade = "HoanThanhTot", comment = "Theo kết quả biểu quyết", meetingId = meetingTc, votes = Votes(0, 4) }, "AwaitingAppraisal");
         // Diện cấp trên: B3b do Ban TCĐU thực hiện → chờ ghi nhận thẩm định; Phó Giám đốc không có thẩm định → chờ Chủ tịch.
         foreach (var p in new[] { w.Ct, w.Gd, w.Ksv })
             await Step(w.SecBgd, id[p.Id], "collective",
-                new { proposedGrade = "HoanThanhTot", meetingId = meetingBgd, votes = Votes(1, 6) }, "AwaitingAppraisal");
+                new { proposedGrade = "HoanThanhTot", comment = "Theo kết quả biểu quyết", meetingId = meetingBgd, votes = Votes(1, 6) }, "AwaitingAppraisal");
         await Step(w.SecBgd, id[w.Pgd.Id], "collective",
-            new { proposedGrade = "HoanThanhTot", meetingId = meetingBgd, votes = Votes(0, 7) }, "AwaitingDirectorReview");
+            new { proposedGrade = "HoanThanhTot", comment = "Theo kết quả biểu quyết", meetingId = meetingBgd, votes = Votes(0, 7) }, "AwaitingDirectorReview");
 
         // ============ 6. Bước 3b: Phòng TCCB-LĐ thẩm định (co-so, bi-thu-nhan-vien) ============
         // Cơ quan thẩm định không thẩm định hồ sơ diện cấp trên (cấp trên thực hiện) → 409.
@@ -208,7 +203,7 @@ public sealed class Quarter4ScenarioTests
         foreach (var (p, grade, votes) in new[] { (w.Tp, "HoanThanhXuatSac", Votes(8, 1)), (w.Ptp, "HoanThanhTot", Votes(0, 9)), (w.Bt, "HoanThanhTot", Votes(0, 9)) })
             await Step(w.Office, id[p.Id], "decision", new
             {
-                finalGrade = grade, documentNumber = "45-QĐ/ĐU", documentDate = "2026-12-14", meetingId = decisionMeeting, votes
+                finalGrade = grade, documentNumber = "45-QĐ/ĐU", documentDate = "2026-12-14", meetingId = decisionMeeting, votes, explanation = "Theo kết quả biểu quyết của Đảng ủy"
             }, "AwaitingPublish");
         foreach (var (p, grade) in new[] { (w.Ct, "HoanThanhTot"), (w.Gd, "HoanThanhXuatSac"), (w.Ksv, "HoanThanhTot"), (w.Pgd, "HoanThanhTot") })
             await Step(w.Office, id[p.Id], "external/B4_DECISION", new
@@ -351,7 +346,7 @@ public sealed class Quarter4ScenarioTests
     {
         generalScores = CriteriaTestData.General(),
         axisScores = CriteriaTestData.Axis(14, 9, 9, 14, 9, 9),
-        selfProposedGrade = "HoanThanhTot",
+        selfProposedGrade = "HoanThanhTot", selfGradeExplanation = "Tự nhận mức thận trọng",
         selfAssessment = new Dictionary<string, string> { ["I"] = $"Tự đánh giá Quý IV của {p.Name}" },
         axisReports = new Dictionary<string, object>
         {

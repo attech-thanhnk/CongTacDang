@@ -97,7 +97,7 @@ public sealed class SelfScoreDraftIntegrationTests
     {
         generalScores = CriteriaTestData.General("2.1"),
         axisScores = CriteriaTestData.Axis(14, 9, 9, 14, 9, 9),
-        selfProposedGrade = "HoanThanhTot",
+        selfProposedGrade = "HoanThanhTot", selfGradeExplanation = "Căn cứ kiểm thử",
         selfAssessment = new Dictionary<string, string> { ["I"] = "Tự đánh giá mục I (IT)" },
         axisReports = new Dictionary<string, object>
         {

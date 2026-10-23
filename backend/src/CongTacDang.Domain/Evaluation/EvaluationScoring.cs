@@ -277,6 +277,36 @@ public static class EvaluationScoring
         return ExcellentQuota(goodCount, rule.EffectiveRatio);
     }
 
+    /// <summary>So mức đề xuất với mức theo điểm (<see cref="SuggestGrade"/>): dương = cao hơn bấy nhiêu bậc, âm = thấp hơn,
+    /// 0 = khớp hoặc chưa đề xuất.</summary>
+    public static int CompareWithScoreGrade(CriteriaSetContent criteria, EvaluationGrade proposed, double score, double? exceedStandardRatio = null)
+    {
+        ArgumentNullException.ThrowIfNull(criteria);
+        var proposedRank = Rank(proposed);
+        if (proposedRank < 0)
+            return 0;
+        return Rank(SuggestGrade(criteria, score, exceedStandardRatio)) - proposedRank;
+    }
+
+    /// <summary>Đề xuất mức khác mức theo điểm (nâng hay hạ đều là làm đổi mức) phải nêu căn cứ khi bộ bật
+    /// <see cref="CriteriaParameters.ExplanationOnGradeChange"/>.</summary>
+    public static bool ProposalRequiresExplanation(CriteriaSetContent criteria, EvaluationGrade proposed, double score, double? exceedStandardRatio = null)
+    {
+        ArgumentNullException.ThrowIfNull(criteria);
+        return criteria.Parameters.ExplanationOnGradeChange && CompareWithScoreGrade(criteria, proposed, score, exceedStandardRatio) != 0;
+    }
+
+    /// <summary>0 = cao nhất; -1 = không thuộc bốn mức.</summary>
+    private static int Rank(EvaluationGrade grade)
+    {
+        for (var i = 0; i < CriteriaSetContent.RankedGrades.Count; i++)
+        {
+            if (CriteriaSetContent.RankedGrades[i] == grade)
+                return i;
+        }
+        return -1;
+    }
+
     /// <summary>|tự chấm − thẩm định| ≥ ngưỡng, hoặc (nếu bộ bật) chênh lệch làm đổi mức theo ngưỡng điểm.</summary>
     public static bool RequiresExplanation(CriteriaSetContent criteria, double selfScore, double? appraisalScore)
     {

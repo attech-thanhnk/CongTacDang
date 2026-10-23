@@ -194,6 +194,17 @@ export interface RecordStepProgressDto {
   doneByName?: string | null;
 }
 
+/** Mức đề xuất của một bước khác mức theo điểm của bộ tiêu chí. */
+export interface GradeDeviationDto {
+  step: string;
+  proposedGrade: string;
+  scoreGrade: string;
+  score: number;
+  direction: "Higher" | "Lower";
+  hasExplanation: boolean;
+  message: string;
+}
+
 export interface EvaluationRecordDto {
   id: string;
   version?: number;
@@ -246,6 +257,8 @@ export interface EvaluationRecordDto {
   axisScores?: Record<string, number> | null;
   totalSelfScore: number;
   selfProposedGrade: string;
+  /** Lý do tự đề xuất mức khác mức theo điểm. */
+  selfGradeExplanation?: string | null;
   selfScoredAt?: string | null;
 
   partyCellComment: string;
@@ -278,6 +291,8 @@ export interface EvaluationRecordDto {
 
   finalScore: number;
   finalGrade: string;
+  /** Căn cứ khi mức quyết định khác mức theo điểm. */
+  decisionExplanation?: string | null;
   decisionDocumentNumber?: string | null;
   decisionDocumentDate?: string | null;
   decisionAuthorityName?: string | null;
@@ -294,8 +309,10 @@ export interface EvaluationRecordDto {
   externalResults: ExternalResultDto[];
 
   tasks: EvaluationTaskDto[];
-  /** Cảnh báo điều kiện xếp loại theo mức thẩm định từng nhiệm vụ. */
+  /** Cảnh báo về mức hiệu lực (điều kiện xếp loại, mức khác mức theo điểm). */
   gradeWarnings?: string[];
+  /** Các bước có mức đề xuất khác mức theo điểm. */
+  gradeDeviations?: GradeDeviationDto[];
   /** Tỷ lệ nhiệm vụ vượt chuẩn tối thiểu (0..1) của mức Xuất sắc theo bộ tiêu chí; null = không xét. */
   excellentMinExceedRatio?: number | null;
 
@@ -675,6 +692,29 @@ const GRADE_CONDITION_NAMES: Record<string, string> = {
   HoanThanhXuatSac: "Hoàn thành xuất sắc nhiệm vụ",
   KhongHoanThanh: "Không hoàn thành nhiệm vụ",
 };
+
+const VOTE_ORDER: [string, keyof VoteTallyDto][] = [
+  ["HoanThanhXuatSac", "votesExcellent"],
+  ["HoanThanhTot", "votesGood"],
+  ["HoanThanh", "votesSatisfactory"],
+  ["KhongHoanThanh", "votesUnsatisfactory"],
+];
+
+/**
+ * Cùng quy tắc với `CollectiveVoteRules` của máy chủ: mức cao nhất có phiếu cộng dồn từ mức cao xuống quá nửa số người có mặt
+ * (chưa ghi số có mặt → tổng phiếu). `grade` null = không mức nào đạt.
+ */
+export function votePassedGrade(votes: VoteTallyDto, presentCount: number): { grade: string | null; votes: number; basis: number } | null {
+  const total = votes.votesExcellent + votes.votesGood + votes.votesSatisfactory + votes.votesUnsatisfactory + votes.votesNotRated + votes.invalidVotes;
+  if (total === 0) return null;
+  const basis = presentCount > 0 ? presentCount : total;
+  let cumulative = 0;
+  for (const [grade, key] of VOTE_ORDER) {
+    cumulative += Number(votes[key]) || 0;
+    if (cumulative * 2 > basis) return { grade, votes: cumulative, basis };
+  }
+  return { grade: null, votes: cumulative, basis };
+}
 
 /** Cùng quy tắc với `GradeConditions` của máy chủ, để báo ngay khi đổi mức; chỉ cảnh báo, không chặn. */
 export function gradeConditionWarnings(

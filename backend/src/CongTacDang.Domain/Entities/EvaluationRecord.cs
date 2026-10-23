@@ -114,6 +114,9 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 
     public EvaluationGrade SelfProposedGrade { get; set; } = EvaluationGrade.ChuaXepLoai;
 
+    /// <summary>Lý do tự đề xuất mức khác mức theo điểm.</summary>
+    public string? SelfGradeExplanation { get; set; }
+
     public DateTime? SelfScoredAt { get; set; }
 
     #endregion
@@ -212,6 +215,9 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     public double FinalScore { get; set; }
 
     public EvaluationGrade FinalGrade { get; set; } = EvaluationGrade.ChuaXepLoai;
+
+    /// <summary>Căn cứ khi mức quyết định khác mức theo điểm.</summary>
+    public string? DecisionExplanation { get; set; }
 
     public string? DecisionDocumentNumber { get; set; }
 

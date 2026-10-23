@@ -391,6 +391,15 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 : EvaluationScoring.SuggestGrade(content, record.TotalSelfScore, exceedRatio);
         }
 
+        // null = giữ lý do đã lưu (client không gửi trường này); nháp không bắt buộc.
+        var gradeExplanation = request.SelfGradeExplanation == null
+            ? record.SelfGradeExplanation
+            : Trim(request.SelfGradeExplanation, MaxCommentLength, "Lý do đề xuất mức");
+        if (!draft)
+            GradeProposalRules.EnsureExplained(content, WorkflowStep.B2_SELF_SCORE, record.SelfProposedGrade, record.TotalSelfScore, exceedRatio,
+                gradeExplanation, "\"Lý do đề xuất mức\"");
+        record.SelfGradeExplanation = gradeExplanation;
+
         return ApplyIndividualForms(record, criteria, request, partial: draft);
     }
 
@@ -533,10 +542,18 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         ExecuteAsync(recordId, request, WorkflowActions.RecordCollectiveProposal, null, async ctx =>
         {
             var grade = RequireGrade(request.ProposedGrade, "Hãy chọn mức xếp loại do tập thể lãnh đạo đề xuất.");
-            await AttachVotesAsync(ctx.Record, request.MeetingId, request.Votes, WorkflowStep.B3A_COLLECTIVE, ct);
+            var summary = await AttachVotesAsync(ctx.Record, request.MeetingId, request.Votes, WorkflowStep.B3A_COLLECTIVE, ct);
+            // Biên bản có kết quả kiểm phiếu của hồ sơ: mức ghi nhận phải là mức được biểu quyết quá bán.
+            if (summary is { } tally && CollectiveVoteRules.Validate(grade, tally.Tally, tally.PresentCount) is { } voteError)
+                throw new ValidationException(voteError);
+
+            var comment = Trim(request.Comment, MaxCommentLength, "Nhận xét");
+            if (ctx.Criteria is { } criteria && GradeProposalRules.HasScore(ctx.Record))
+                GradeProposalRules.EnsureExplained(criteria.Content, WorkflowStep.B3A_COLLECTIVE, grade, ctx.Record.TotalSelfScore,
+                    GradeProposalRules.ExceedRatio(ctx.Record, criteria), comment, "\"Nhận xét\"");
 
             ctx.Record.CollectiveProposedGrade = grade;
-            ctx.Record.CollectiveComment = Trim(request.Comment, MaxCommentLength, "Nhận xét");
+            ctx.Record.CollectiveComment = comment;
             ctx.Record.CollectiveMeetingId = request.MeetingId;
             ctx.Record.CollectiveRecordedById = ctx.ActorId;
             ctx.Record.CollectiveRecordedByName = ctx.ActorName;
@@ -562,6 +579,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 throw new ValidationException(string.Create(CultureInfo.InvariantCulture,
                     $"Điểm thẩm định {total:0.##} chênh lệch {diff:0.##} điểm so với điểm tự chấm {ctx.Record.TotalSelfScore:0.##} (ngưỡng {p.ExplanationThreshold:0.##} điểm{gradeChange}): hãy nhập nội dung giải trình, căn cứ."));
             }
+            GradeProposalRules.EnsureExplained(criteria.Content, WorkflowStep.B3B_APPRAISAL, grade, total,
+                GradeProposalRules.ExceedRatio(ctx.Record, criteria), explanation, "\"Giải trình\"");
 
             // Chấm theo nhiệm vụ (09A): bắt buộc xếp mức mọi nhiệm vụ; chấm theo trục bỏ qua.
             if (!criteria.UsesAxisScoring)
@@ -656,7 +675,11 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         ExecuteAsync(recordId, request, WorkflowActions.DirectorReview, null, ctx =>
         {
             var grade = RequireGrade(request.ProposedGrade, "Hãy chọn mức xếp loại do cấp trực tiếp sử dụng đề xuất.");
-            ctx.Record.DirectorComment = Trim(request.Comment, MaxCommentLength, "Nhận xét");
+            var comment = Trim(request.Comment, MaxCommentLength, "Nhận xét");
+            if (ctx.Criteria is { } criteria && GradeProposalRules.HasScore(ctx.Record))
+                GradeProposalRules.EnsureExplained(criteria.Content, WorkflowStep.B3C_DIRECTOR, grade, ctx.Record.AppraisalScore ?? ctx.Record.TotalSelfScore,
+                    GradeProposalRules.ExceedRatio(ctx.Record, criteria), comment, "\"Nhận xét\"");
+            ctx.Record.DirectorComment = comment;
             ctx.Record.DirectorProposedGrade = grade;
             ctx.Record.DirectorReviewedById = ctx.ActorId;
             ctx.Record.DirectorReviewedByName = ctx.ActorName;
@@ -673,8 +696,15 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 throw new ValidationException("Điểm chính thức phải từ 0 đến 100.");
             await AttachVotesAsync(ctx.Record, request.MeetingId, request.Votes, WorkflowStep.B4_DECISION, ct);
 
+            var finalScore = request.FinalScore ?? ctx.Record.AppraisalScore ?? ctx.Record.TotalSelfScore;
+            var explanation = Trim(request.Explanation, MaxCommentLength, "Căn cứ quyết định mức");
+            if (ctx.Criteria is { } criteria && (request.FinalScore.HasValue || GradeProposalRules.HasScore(ctx.Record)))
+                GradeProposalRules.EnsureExplained(criteria.Content, WorkflowStep.B4_DECISION, grade, finalScore,
+                    GradeProposalRules.ExceedRatio(ctx.Record, criteria), explanation, "\"Căn cứ quyết định mức\"");
+
             ctx.Record.FinalGrade = grade;
-            ctx.Record.FinalScore = request.FinalScore ?? ctx.Record.AppraisalScore ?? ctx.Record.TotalSelfScore;
+            ctx.Record.FinalScore = finalScore;
+            ctx.Record.DecisionExplanation = explanation;
             ctx.Record.DecisionDocumentNumber = Trim(request.DocumentNumber, 100, "Số văn bản");
             ctx.Record.DecisionDocumentDate = request.DocumentDate.HasValue
                 ? DateTime.SpecifyKind(request.DocumentDate.Value, DateTimeKind.Utc)
@@ -1398,14 +1428,16 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
     /// <summary>
     /// Chỉ lưu tổng hợp: biên bản cùng kỳ, đúng bước, hồ sơ thuộc đơn vị của biên bản; tổng phiếu ≤ số có mặt, không âm.
+    /// Trả kết quả kiểm phiếu của hồ sơ trong biên bản (vừa ghi hoặc đã có) kèm số người có mặt; null nếu không có.
     /// </summary>
-    private async Task AttachVotesAsync(EvaluationRecord record, Guid? meetingId, VoteTallyDto? votes, WorkflowStep stage, CancellationToken ct)
+    private async Task<(VoteTally Tally, int PresentCount)?> AttachVotesAsync(EvaluationRecord record, Guid? meetingId, VoteTallyDto? votes,
+        WorkflowStep stage, CancellationToken ct)
     {
         if (meetingId is null)
         {
             if (votes != null)
                 throw new ValidationException("Kết quả kiểm phiếu phải gắn với một biên bản hội nghị (Mẫu 12/13). Hãy chọn biên bản.");
-            return;
+            return null;
         }
 
         var meeting = await _repo.FindMeetingAsync(meetingId.Value, ct)
@@ -1420,7 +1452,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             throw new ValidationException("Hồ sơ không thuộc đơn vị/tổ chức Đảng của biên bản đã chọn hoặc đơn vị, tổ chức cấp dưới của nó.");
 
         if (votes == null)
-            return;
+        {
+            var existing = meeting.VoteSummaries.FirstOrDefault(v => v.RecordId == record.Id);
+            return existing == null ? null : (TallyOf(existing), meeting.PresentCount);
+        }
 
         var counts = new[] { votes.VotesExcellent, votes.VotesGood, votes.VotesSatisfactory, votes.VotesUnsatisfactory, votes.VotesNotRated, votes.InvalidVotes };
         if (counts.Any(c => c < 0))
@@ -1445,7 +1480,11 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         summary.InvalidVotes = votes.InvalidVotes;
         summary.Notes = votes.Notes?.Trim() ?? string.Empty;
         meeting.UpdatedAt = DateTime.UtcNow;
+        return (TallyOf(summary), meeting.PresentCount);
     }
+
+    private static VoteTally TallyOf(EvaluationMeetingVoteSummary s) =>
+        new(s.VotesExcellent, s.VotesGood, s.VotesSatisfactory, s.VotesUnsatisfactory, s.VotesNotRated, s.InvalidVotes);
 
     private async Task EnsureNewAttachmentsLinkableAsync(IEnumerable<Guid?> attachmentIds, ISet<Guid> alreadyLinked)
     {

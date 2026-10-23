@@ -165,12 +165,12 @@ public sealed class IndividualFormsIntegrationTests
         var general = CriteriaTestData.General("2.1");
         var axis = CriteriaTestData.Axis(14, 9, 9, 14, 9, 9);
         if (!withAxisNotes)
-            return new { generalScores = general, axisScores = axis, selfProposedGrade = "HoanThanhTot", selfAssessment = new Dictionary<string, string> { ["I"] = selfAssessment }, axisReports = reports, generalGroupNotes = groupNotes };
+            return new { generalScores = general, axisScores = axis, selfProposedGrade = "HoanThanhTot", selfGradeExplanation = "Căn cứ kiểm thử", selfAssessment = new Dictionary<string, string> { ["I"] = selfAssessment }, axisReports = reports, generalGroupNotes = groupNotes };
         return new
         {
             generalScores = general,
             axisScores = axis,
-            selfProposedGrade = "HoanThanhTot",
+            selfProposedGrade = "HoanThanhTot", selfGradeExplanation = "Căn cứ kiểm thử",
             selfAssessment = new Dictionary<string, string> { ["I"] = selfAssessment },
             axisReports = reports,
             generalGroupNotes = groupNotes,

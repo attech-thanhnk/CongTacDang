@@ -7,6 +7,7 @@ using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
+using CongTacDang.Application.Organization;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.Domain.Evaluation;
@@ -554,18 +555,44 @@ public sealed class PeriodService : IPeriodService
         }
 
         result.Ready = result.Issues.Count == 0;
-        result.DataReview = await BuildDataReviewAsync(records, singles, ct);
+        result.DataReview = await BuildDataReviewAsync(records, singles, settings, ct);
         return result;
     }
 
     /// <summary>
-    /// Không chặn mở kỳ: cán bộ ghi thẳng vào Đảng bộ thay vì chi bộ, hồ sơ thiếu Phòng/Chi bộ, bước chỉ có một người làm được.
+    /// Không chặn mở kỳ: cán bộ ghi thẳng vào Đảng bộ thay vì chi bộ, hồ sơ thiếu Phòng/Chi bộ, bước chỉ có một người làm được,
+    /// cách xét duyệt khác gợi ý theo chức vụ.
     /// </summary>
     private async Task<List<DataReviewItemDto>> BuildDataReviewAsync(IReadOnlyCollection<EvaluationRecord> records,
-        IReadOnlyDictionary<(string Step, string Scope, Guid UserId), int> singles, CancellationToken ct)
+        IReadOnlyDictionary<(string Step, string Scope, Guid UserId), int> singles, PeriodSettings settings, CancellationToken ct)
     {
         var items = new List<DataReviewItemDto>();
         static string NameOf(EvaluationRecord r) => r.Member?.FullName ?? r.MemberId.ToString();
+
+        // Chỉ nhắc, không tự đổi: người quản lý kỳ có thể đã chọn cách xét duyệt khác có chủ đích.
+        var held = await _repo.GetHeldPositionsAsync(records.Select(r => r.MemberId).Distinct().ToList(), DateTime.UtcNow, ct);
+        var mismatched = new List<string>();
+        foreach (var record in records.OrderBy(NameOf, StringComparer.CurrentCulture))
+        {
+            var suggested = PositionRules.SuggestWorkflowProfile(held.GetValueOrDefault(record.MemberId), record.ApprovalAuthority,
+                code => settings.FindProfile(code) != null);
+            if (suggested == null)
+                continue;
+            var expected = settings.FindProfile(suggested.DefaultWorkflowProfileCode)!;
+            var current = EvaluationMapping.ProfileOf(settings, record);
+            if (!string.Equals(current.Code, expected.Code, StringComparison.OrdinalIgnoreCase))
+                mismatched.Add($"{NameOf(record)}: đang \"{current.Name}\", chức vụ {suggested.PositionName} → \"{expected.Name}\"");
+        }
+        if (mismatched.Count > 0)
+        {
+            items.Add(new DataReviewItemDto
+            {
+                Kind = "ProfileMismatch",
+                Title = $"{mismatched.Count} hồ sơ dùng cách xét duyệt khác cách gợi ý theo chức vụ",
+                Hint = "Nếu cần theo chức vụ, hãy đổi cách xét duyệt của hồ sơ trong danh sách người được đánh giá.",
+                Names = mismatched
+            });
+        }
 
         var committees = await _repo.GetPartyCellIdsWithChildrenAsync(ct);
         var direct = records.Where(r => r.PartyCellId is { } cell && committees.Contains(cell)).ToList();
@@ -741,6 +768,7 @@ public sealed class PeriodService : IPeriodService
         var members = (await _repo.GetMembersAsync(memberIds, ct)).ToDictionary(m => m.Id);
         var result = new AddParticipantsResultDto();
         var now = DateTime.UtcNow;
+        var held = await _repo.GetHeldPositionsAsync(members.Keys.ToList(), now, ct);
 
         foreach (var id in memberIds.Distinct())
         {
@@ -762,7 +790,7 @@ public sealed class PeriodService : IPeriodService
 
             var profile = profileByMember != null && profileByMember.TryGetValue(id, out var chosen)
                 ? settings.FindProfile(chosen)!
-                : settings.ResolveProfile(null, member.ApprovalAuthority);
+                : PositionRules.DefaultProfile(settings, member.ApprovalAuthority, held.GetValueOrDefault(id));
             var initial = RecordStateMachine.Initial(profile.ActiveSteps());
 
             // Hồ sơ đã bị bỏ (xóa mềm) → khôi phục thay vì tạo mới (unique kỳ + cán bộ).
@@ -1006,7 +1034,11 @@ public sealed class PeriodService : IPeriodService
         return null;
     }
 
-    private sealed record SnapshotDrift(EvaluationRecord Record, MemberSnapshotSource Member, List<string> Changes);
+    private sealed record SnapshotDrift(EvaluationRecord Record, MemberSnapshotSource Member, List<string> Changes)
+    {
+        /// <summary>Chức vụ đang giữ, để tính lại hồ sơ luồng mặc định khi đổi cấp quyết định.</summary>
+        public IReadOnlyCollection<HeldPosition>? Held { get; set; }
+    }
 
     /// <summary>
     /// Kỳ dự thảo: ảnh chụp đi theo hồ sơ cán bộ hiện tại, trừ hồ sơ đã sửa tay. Kỳ đã mở: ảnh chụp cố định.
@@ -1035,13 +1067,20 @@ public sealed class PeriodService : IPeriodService
             if (changes.Count > 0)
                 drifts.Add(new SnapshotDrift(record, member, changes));
         }
+        if (drifts.Any(d => d.Record.ApprovalAuthority != d.Member.ApprovalAuthority))
+        {
+            var held = await _repo.GetHeldPositionsAsync(drifts.Select(d => d.Member.Id).Distinct().ToList(), DateTime.UtcNow, ct);
+            foreach (var drift in drifts)
+                drift.Held = held.GetValueOrDefault(drift.Member.Id);
+        }
         return drifts;
     }
 
     /// <summary>
     /// Đổi cấp quyết định → hồ sơ đang dùng cách xét duyệt mặc định của cấp cũ chuyển sang mặc định của cấp mới.
     /// </summary>
-    private static void ApplySnapshot(EvaluationRecord record, MemberSnapshotSource member, PeriodSettings settings, bool withNames)
+    private static void ApplySnapshot(EvaluationRecord record, MemberSnapshotSource member, PeriodSettings settings, bool withNames,
+        IReadOnlyCollection<HeldPosition>? held)
     {
         record.DepartmentId = member.DepartmentId;
         record.PartyCellId = member.PartyCellId;
@@ -1056,17 +1095,18 @@ public sealed class PeriodService : IPeriodService
         }
         if (record.ApprovalAuthority == member.ApprovalAuthority)
             return;
-        var usedDefault = string.Equals(record.WorkflowProfileCode, settings.ResolveProfile(null, record.ApprovalAuthority).Code, StringComparison.Ordinal);
+        var usedDefault = string.Equals(record.WorkflowProfileCode, settings.ResolveProfile(null, record.ApprovalAuthority).Code, StringComparison.Ordinal)
+            || string.Equals(record.WorkflowProfileCode, PositionRules.DefaultProfile(settings, record.ApprovalAuthority, held).Code, StringComparison.Ordinal);
         record.ApprovalAuthority = member.ApprovalAuthority;
         if (usedDefault)
-            record.WorkflowProfileCode = settings.ResolveProfile(null, member.ApprovalAuthority).Code;
+            record.WorkflowProfileCode = PositionRules.DefaultProfile(settings, member.ApprovalAuthority, held).Code;
     }
 
     /// <summary>Bản chỉ đọc của kỳ dự thảo: hiện ảnh chụp sẽ được lưu khi mở kỳ.</summary>
     private async Task OverlayDraftSnapshotsAsync(EvaluationPeriod period, PeriodSettings settings, IReadOnlyCollection<EvaluationRecord> records, CancellationToken ct)
     {
         foreach (var drift in await FindDraftSnapshotDriftAsync(period, records, ct))
-            ApplySnapshot(drift.Record, drift.Member, settings, withNames: true);
+            ApplySnapshot(drift.Record, drift.Member, settings, withNames: true, drift.Held);
     }
 
     /// <summary>Ghi lịch sử từng hồ sơ; không lưu DbContext.</summary>
@@ -1081,7 +1121,7 @@ public sealed class PeriodService : IPeriodService
         {
             if (!tracked.TryGetValue(drift.Record.Id, out var record))
                 continue;
-            ApplySnapshot(record, drift.Member, settings, withNames: false);
+            ApplySnapshot(record, drift.Member, settings, withNames: false, drift.Held);
             record.UpdatedAt = now;
             _repo.AddHistory(NewHistory(record, record.Status, record.Status, WorkflowAction.SyncSnapshot, null,
                 "Cập nhật theo hồ sơ cán bộ khi mở kỳ: " + string.Join("; ", drift.Changes) + "."));

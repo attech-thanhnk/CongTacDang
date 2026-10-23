@@ -83,6 +83,8 @@ export interface Position {
   /** Mã chức danh Mẫu 15A/15B (M1…M26). */
   statCode?: string | null;
   defaultApprovalAuthority?: ApprovalAuthorityCode | null;
+  /** Mã cách xét duyệt gợi ý khi thêm người giữ chức vụ vào kỳ; trống = theo thẩm quyền. */
+  defaultWorkflowProfileCode?: string | null;
   isLeadership: boolean;
   /** Người đứng đầu — không tính vào trần tỷ lệ Hoàn thành xuất sắc. */
   isHead: boolean;
@@ -94,6 +96,12 @@ export interface Position {
   holderCount: number;
 }
 
+/** Cách xét duyệt gắn được cho chức vụ. */
+export interface WorkflowProfileOption {
+  code: string;
+  name: string;
+}
+
 /** Thêm/sửa chức vụ; `statCode`/`defaultApprovalAuthority` rỗng = bỏ giá trị. */
 export interface SavePositionPayload {
   name?: string;
@@ -102,6 +110,8 @@ export interface SavePositionPayload {
   /** Id kiểu trình bày; rỗng = không xác định. */
   formLayoutId?: string;
   defaultApprovalAuthority?: string;
+  /** Rỗng = theo thẩm quyền. */
+  defaultWorkflowProfileCode?: string;
   isLeadership?: boolean;
   isHead?: boolean;
   sortOrder?: number;
@@ -148,6 +158,10 @@ export const catalogService = {
 
   listPositions(): Promise<Position[]> {
     return request<Position[]>("/positions");
+  },
+
+  listWorkflowProfileOptions(): Promise<WorkflowProfileOption[]> {
+    return request<WorkflowProfileOption[]>("/positions/workflow-profiles");
   },
 
   createPosition(payload: SavePositionPayload): Promise<Position> {

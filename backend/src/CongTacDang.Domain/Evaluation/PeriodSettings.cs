@@ -199,6 +199,9 @@ public sealed class PeriodSettings
 
     private static readonly Regex CodePattern = new("^[a-z0-9][a-z0-9-]{0,49}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
+    /// <summary>Chữ thường không dấu, số, gạch nối; tối đa 50 ký tự.</summary>
+    public static bool IsValidProfileCode(string? code) => code != null && CodePattern.IsMatch(code);
+
     public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
@@ -366,6 +369,10 @@ public sealed class PeriodSettings
         ?? FindProfile(DefaultProfileCode(authority))
         ?? Profiles.FirstOrDefault()
         ?? WorkflowProfile.Create("mac-dinh", "Mặc định", null);
+
+    /// <summary>Mặc định khi thêm người vào kỳ: hồ sơ luồng gợi ý theo chức vụ nếu kỳ có, ngược lại theo cấp quyết định.</summary>
+    public WorkflowProfile ResolveDefaultProfile(ApprovalAuthority authority, string? positionProfileCode) =>
+        FindProfile(positionProfileCode) ?? ResolveProfile(null, authority);
 
     #endregion
 

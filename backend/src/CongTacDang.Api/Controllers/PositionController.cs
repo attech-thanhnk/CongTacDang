@@ -30,6 +30,11 @@ public class PositionController : ControllerBase
         return Ok(ApiResponse<List<PositionDto>>.Ok(positions, "Lấy danh mục chức vụ thành công."));
     }
 
+    /// <summary>Cách xét duyệt (hồ sơ luồng) gắn được cho chức vụ.</summary>
+    [HttpGet("workflow-profiles")]
+    public IActionResult GetWorkflowProfiles() =>
+        Ok(ApiResponse<List<WorkflowProfileOptionDto>>.Ok(_positions.GetWorkflowProfileOptions(), "Lấy danh sách cách xét duyệt thành công."));
+
     /// <summary>Thêm chức vụ.</summary>
     [HttpPost]
     [RequirePermission(PermissionCodes.CatalogManage)]

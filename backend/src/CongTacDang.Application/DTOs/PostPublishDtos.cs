@@ -209,6 +209,8 @@ public class RecordImprovementPlanDto
     public bool CanManage { get; set; }
     /// <summary>Người hiện tại là chủ hồ sơ và kế hoạch đang chờ xác nhận.</summary>
     public bool CanAcknowledge { get; set; }
+    /// <summary>Quản lý được, kế hoạch đang lập và người hiện tại không phải người lập.</summary>
+    public bool CanApprove { get; set; }
 }
 
 public class ImprovementMilestoneInputDto

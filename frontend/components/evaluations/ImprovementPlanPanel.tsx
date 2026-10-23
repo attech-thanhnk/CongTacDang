@@ -75,7 +75,7 @@ export function ImprovementPlanPanel({ record, onPendingChange }: { record: Eval
 
   // Người xem đang phải lập/duyệt hoặc xác nhận kế hoạch → trang đưa khối lên gần khu thao tác.
   const plan = data?.plan ?? null;
-  const pending = !!data && (data.canAcknowledge || (data.canManage && ((!plan && data.required) || plan?.status === "Draft")));
+  const pending = !!data && (data.canAcknowledge || data.canApprove || (data.canManage && !plan && data.required));
   useEffect(() => {
     onPendingChange?.(pending);
   }, [pending, onPendingChange]);
@@ -163,10 +163,14 @@ export function ImprovementPlanPanel({ record, onPendingChange }: { record: Eval
               <>
                 <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy}
                   onClick={() => { setDraft(toDraft(plan)); setEditing(true); }}>Sửa kế hoạch</button>
-                <button type="button" className="btn btn-primary btn-sm" disabled={busy}
-                  onClick={() => run(() => postPublishService.approvePlan(plan.id, plan.version), "Đã duyệt kế hoạch; chờ cá nhân xác nhận.")}>
-                  Duyệt kế hoạch
-                </button>
+                {data.canApprove ? (
+                  <button type="button" className="btn btn-primary btn-sm" disabled={busy}
+                    onClick={() => run(() => postPublishService.approvePlan(plan.id, plan.version), "Đã duyệt kế hoạch; chờ cá nhân xác nhận.")}>
+                    Duyệt kế hoạch
+                  </button>
+                ) : (
+                  <span className="small text-secondary">Kế hoạch do bạn lập, chờ người khác duyệt.</span>
+                )}
               </>
             )}
             {data?.canAcknowledge && (

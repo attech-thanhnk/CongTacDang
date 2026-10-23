@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using CongTacDang.Application.Organization;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.Domain.Evaluation;
@@ -87,6 +88,9 @@ public interface IEvaluationWorkflowRepository : IOrgSubtreeReader
 
     /// <summary>Cán bộ đang hoạt động; Phòng/Chi bộ null = không lọc.</summary>
     Task<List<MemberSnapshotSource>> SearchMembersAsync(Guid? departmentId, Guid? partyCellId, string? query, CancellationToken ct = default);
+
+    /// <summary>Chức vụ hiệu lực tại <paramref name="at"/> của các cán bộ (để gợi ý hồ sơ luồng theo chức vụ).</summary>
+    Task<Dictionary<Guid, List<HeldPosition>>> GetHeldPositionsAsync(IReadOnlyCollection<Guid> userIds, DateTime at, CancellationToken ct = default);
 
     /// <summary>Tổ chức Đảng có tổ chức con — Đảng viên thường sinh hoạt ở tổ chức không có con.</summary>
     Task<HashSet<Guid>> GetPartyCellIdsWithChildrenAsync(CancellationToken ct = default);

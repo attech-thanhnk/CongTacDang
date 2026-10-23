@@ -10,6 +10,7 @@ using CongTacDang.Application.DTOs;
 using CongTacDang.Application.Organization;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
@@ -17,6 +18,9 @@ namespace CongTacDang.Application.Services;
 public interface IPositionService
 {
     Task<List<PositionDto>> GetPositionsAsync(CancellationToken ct = default);
+
+    /// <summary>Cách xét duyệt (hồ sơ luồng) của cấu hình kỳ mặc định, để gắn gợi ý cho chức vụ.</summary>
+    List<WorkflowProfileOptionDto> GetWorkflowProfileOptions();
 
     Task<PositionDto> CreatePositionAsync(SavePositionDto input, CancellationToken ct = default);
 
@@ -74,6 +78,10 @@ public sealed class PositionService : IPositionService
     }
 
     /// <inheritdoc />
+    public List<WorkflowProfileOptionDto> GetWorkflowProfileOptions() =>
+        PeriodSettings.Default().Profiles.Select(p => new WorkflowProfileOptionDto { Code = p.Code, Name = p.Name }).ToList();
+
+    /// <inheritdoc />
     public async Task<PositionDto> CreatePositionAsync(SavePositionDto input, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(input);
@@ -89,6 +97,7 @@ public sealed class PositionService : IPositionService
             Side = side,
             StatCode = ParseStatCode(input.StatCode),
             DefaultApprovalAuthority = ParseAuthority(input.DefaultApprovalAuthority),
+            DefaultWorkflowProfileCode = ParseWorkflowProfileCode(input.DefaultWorkflowProfileCode),
             IsLeadership = input.IsLeadership ?? false,
             IsHead = input.IsHead ?? false,
             FormLayoutId = await ParseFormLayoutAsync(input.FormLayoutId, ct),
@@ -131,6 +140,8 @@ public sealed class PositionService : IPositionService
             authorityChanged = authority != position.DefaultApprovalAuthority;
             position.DefaultApprovalAuthority = authority;
         }
+        if (input.DefaultWorkflowProfileCode != null)
+            position.DefaultWorkflowProfileCode = ParseWorkflowProfileCode(input.DefaultWorkflowProfileCode);
         if (input.IsLeadership.HasValue) position.IsLeadership = input.IsLeadership.Value;
         if (input.IsHead.HasValue) position.IsHead = input.IsHead.Value;
         if (input.FormLayoutId != null)
@@ -496,6 +507,17 @@ public sealed class PositionService : IPositionService
         throw new ValidationException($"Thẩm quyền \"{value.Trim()}\" không hợp lệ. Chỉ nhận CoSo (Đảng ủy cơ sở) hoặc CapTren (cấp trên).");
     }
 
+    /// <summary>Rỗng → null; chỉ kiểm định dạng vì mỗi kỳ có bộ cách xét duyệt riêng.</summary>
+    public static string? ParseWorkflowProfileCode(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+        var code = value.Trim().ToLowerInvariant();
+        if (!PeriodSettings.IsValidProfileCode(code))
+            throw new ValidationException($"Mã cách xét duyệt \"{value.Trim()}\" không hợp lệ: chỉ gồm chữ thường không dấu, số, dấu gạch nối, tối đa 50 ký tự.");
+        return code;
+    }
+
     public static bool TryParseSide(string? value, out PositionSide side)
         => Enum.TryParse(value?.Trim(), ignoreCase: true, out side) && Enum.IsDefined(side);
 
@@ -530,6 +552,7 @@ public sealed class PositionService : IPositionService
         Side = p.Side.ToString(),
         StatCode = p.StatCode,
         DefaultApprovalAuthority = p.DefaultApprovalAuthority?.ToString(),
+        DefaultWorkflowProfileCode = p.DefaultWorkflowProfileCode,
         IsLeadership = p.IsLeadership,
         IsHead = p.IsHead,
         FormLayoutId = p.FormLayoutId,

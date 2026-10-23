@@ -206,8 +206,8 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 ### D8. Quy tắc biểu quyết khi kiểm phiếu
 - **Câu hỏi:** Mức đề xuất (Bước 3a) và mức quyết định (Bước 4) xác định từ kết quả kiểm phiếu theo tỷ lệ nào?
 - **Căn cứ:** Mục IV.3a, IV.4 và Mẫu 13: Hướng dẫn không quy định tỷ lệ thông qua hay số người tối thiểu phải có mặt.
-- **Hệ thống đang làm (mặc định):** Không tự tính. Người nhập chọn mức theo biên bản. Hệ thống chỉ kiểm tra tổng số phiếu không vượt số người có mặt.
-- **Phương án khác:** Tự tính mức theo quá bán số phiếu hợp lệ hoặc số người có mặt; cảnh báo khi mức chọn khác kết quả tính.
+- **Hệ thống đang làm (mặc định):** Bước 3a có gắn kết quả kiểm phiếu của hồ sơ: mức ghi nhận phải là mức cao nhất có số phiếu cộng dồn từ mức cao xuống quá nửa số người có mặt (chưa ghi số có mặt thì tính trên tổng phiếu); không mức nào đạt thì không ghi nhận được, phải kiểm tra lại hoặc biểu quyết lại. Bước 4 chưa đối chiếu, chỉ kiểm tra tổng số phiếu không vượt số người có mặt.
+- **Phương án khác:** Quá bán theo số phiếu hợp lệ; không cộng dồn (từng mức phải tự đạt quá nửa); áp dụng cả bước 4.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
 ### D9. Kết quả do cấp trên thực hiện: bắt buộc nhập gì?

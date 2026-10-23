@@ -3,6 +3,7 @@ using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Application.Services;
+using CongTacDang.Application.Organization;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.Domain.Evaluation;
@@ -215,7 +216,7 @@ public sealed class EvaluationWorkflowServiceTests
     public async Task RecordDecision_ValidGrade_Accepted()
     {
         var h = new Harness(RecordStatus.AwaitingDecision);
-        await h.Service.RecordDecisionAsync(h.Record.Id, new DecisionRequestDto { Version = h.Record.Version, FinalGrade = "HoanThanhTot" });
+        await h.Service.RecordDecisionAsync(h.Record.Id, new DecisionRequestDto { Version = h.Record.Version, FinalGrade = "HoanThanhTot", Explanation = "Căn cứ kiểm thử" });
         Assert.Equal(EvaluationGrade.HoanThanhTot, h.Record.FinalGrade);
         Assert.Equal(RecordStatus.AwaitingPublish, h.Record.Status);
     }
@@ -499,7 +500,8 @@ public sealed class EvaluationWorkflowServiceTests
             {
                 TaskId = t.Id, CriteriaA_Ratio = 1, CriteriaB_Ratio = 1, CriteriaC_Ratio = 1, CriteriaD_Ratio = 1, AttachmentId = t.AttachmentId
             }).ToList(),
-            SelfProposedGrade = "HoanThanhTot"
+            SelfProposedGrade = "HoanThanhTot",
+            SelfGradeExplanation = "Căn cứ kiểm thử"
         };
 
         public AppraisalRequestDto AppraisalRequest(string grade, double? general, double? tasks) => new()
@@ -590,6 +592,7 @@ public sealed class EvaluationWorkflowServiceTests
         public Task<List<Guid>> ListActiveUserIdsWithAnyPermissionAsync(IReadOnlyCollection<string> permissionCodes, DateTime now, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<List<MemberSnapshotSource>> GetMembersAsync(IReadOnlyCollection<Guid> memberIds, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<List<MemberSnapshotSource>> SearchMembersAsync(Guid? departmentId, Guid? partyCellId, string? query, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<Dictionary<Guid, List<HeldPosition>>> GetHeldPositionsAsync(IReadOnlyCollection<Guid> userIds, DateTime at, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<HashSet<Guid>> GetPartyCellIdsWithChildrenAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task<Dictionary<string, List<string>>> GetRoleNamesByPermissionAsync(IReadOnlyCollection<string> permissionCodes, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<HashSet<Guid>> GetRecordIdsWithActionAsync(Guid periodId, WorkflowAction action, CancellationToken ct = default) => throw new NotSupportedException();

@@ -423,7 +423,8 @@ public static class DataSeeder
         ("Trạm", OrgSide.Administrative)
     };
 
-    private sealed record DefaultPosition(string Name, PositionSide Side, string? StatCode, ApprovalAuthority? Authority, bool IsLeadership, bool IsHead = false);
+    private sealed record DefaultPosition(string Name, PositionSide Side, string? StatCode, ApprovalAuthority? Authority, bool IsLeadership, bool IsHead = false,
+        string? WorkflowProfile = null);
 
     /// <summary>ĐỀ XUẤT, chờ xác nhận. M1–M16 (Mẫu 15A) → cấp trên quyết định; M17–M26 (Mẫu 15B) → Đảng ủy cơ sở.</summary>
     private static readonly DefaultPosition[] DefaultPositions =
@@ -444,7 +445,7 @@ public static class DataSeeder
         new("Kế toán trưởng Tổng công ty", PositionSide.Administrative, "M13", ApprovalAuthority.CapTren, true),
         new("Chủ tịch Công ty", PositionSide.Administrative, "M14", ApprovalAuthority.CapTren, true, IsHead: true),
         new("Giám đốc", PositionSide.Administrative, "M14", ApprovalAuthority.CapTren, true, IsHead: true),
-        new("Phó Giám đốc", PositionSide.Administrative, "M14", ApprovalAuthority.CapTren, true),
+        new("Phó Giám đốc", PositionSide.Administrative, "M14", ApprovalAuthority.CapTren, true, WorkflowProfile: PeriodSettings.ProfileDeputyDirector),
         new("Kiểm soát viên", PositionSide.Administrative, "M15", ApprovalAuthority.CapTren, true),
         new("Bí thư Đoàn Thanh niên Tổng công ty", PositionSide.MassOrganization, "M16", ApprovalAuthority.CapTren, true),
         // Mẫu 15B (M17–M26).
@@ -512,6 +513,7 @@ public static class DataSeeder
                 DefaultApprovalAuthority = p.Authority,
                 IsLeadership = p.IsLeadership,
                 IsHead = p.IsHead,
+                DefaultWorkflowProfileCode = p.WorkflowProfile,
                 SortOrder = (i + 1) * 10
             }));
             await context.SaveChangesAsync();
@@ -693,6 +695,7 @@ public static class DataSeeder
         var roles = await context.Roles.ToDictionaryAsync(r => r.Code, r => r.Id);
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
         var members = new Dictionary<string, PartyMemberProfile>(StringComparer.Ordinal);
+        var heldByUser = new Dictionary<string, List<HeldPosition>>(StringComparer.Ordinal);
         foreach (var sample in SampleAccounts)
         {
             var department = departments[sample.Department];
@@ -731,9 +734,11 @@ public static class DataSeeder
                     ValidFrom = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                     Note = "Chức vụ mẫu (Database:SeedSampleData)."
                 });
-                held.Add(new HeldPosition(position.Name, position.StatCode, position.DefaultApprovalAuthority));
+                held.Add(new HeldPosition(position.Name, position.StatCode, position.DefaultApprovalAuthority, position.IsHead,
+                    position.DefaultWorkflowProfileCode, sp.IsPrimary));
             }
             member.ApprovalAuthority = PositionRules.DeriveApprovalAuthority(held);
+            heldByUser[sample.Username] = held;
 
             foreach (var (roleCode, scope) in sample.Roles)
             {
@@ -788,7 +793,8 @@ public static class DataSeeder
 
         var records = new Dictionary<string, EvaluationRecord>(StringComparer.Ordinal);
         foreach (var sample in SampleAccounts.Where(s => s.RecordStatus.HasValue))
-            records[sample.Username] = AddSampleRecord(context, period, settings, criteria, members[sample.Username], sample.RecordStatus!.Value, sample.Grade, now);
+            records[sample.Username] = AddSampleRecord(context, period, settings, criteria, members[sample.Username],
+                heldByUser.GetValueOrDefault(sample.Username), sample.RecordStatus!.Value, sample.Grade, now);
 
         AddSampleCollectiveAndMeetings(context, period, departments, cells, members, records);
         AddSamplePostPublish(context, period, members, records);
@@ -815,6 +821,7 @@ public static class DataSeeder
     /// <summary>Ảnh chụp đơn vị/khung/cấp quyết định như khi thêm người vào kỳ, kèm dữ liệu và lịch sử các bước đã qua.</summary>
     private static EvaluationRecord AddSampleRecord(
         CongTacDangDbContext context, EvaluationPeriod period, PeriodSettings settings, CriteriaSetContent criteria, PartyMemberProfile member,
+        IReadOnlyCollection<HeldPosition>? held,
         RecordStatus status, EvaluationGrade grade, DateTime now)
     {
         var record = new EvaluationRecord
@@ -828,7 +835,7 @@ public static class DataSeeder
             UpdatedAt = now
         };
 
-        var profile = settings.ResolveProfile(null, member.ApprovalAuthority);
+        var profile = PositionRules.DefaultProfile(settings, member.ApprovalAuthority, held);
         record.WorkflowProfileCode = profile.Code;
         var enabled = profile.ActiveSteps();
         var current = RecordStateMachine.Initial(enabled);
@@ -992,6 +999,8 @@ public static class DataSeeder
         var record = records["canbo.kh"];
         var owner = members["canbo.kh"];
         var director = members["giamdoc"];
+        // Trưởng phòng TCCB-LĐ lập, Giám đốc duyệt (người lập không tự duyệt).
+        var preparer = members["thamdinh"];
         var at = new DateTime(2026, 9, 20, 2, 0, 0, DateTimeKind.Utc);
 
         var plan = new ImprovementPlanContent
@@ -1010,10 +1019,10 @@ public static class DataSeeder
             Content = plan.ToJson(),
             StartDate = new DateOnly(2026, 10, 1),
             Status = ImprovementPlanStatus.Draft,
-            PreparedById = director.Id,
-            PreparedByName = director.FullName,
+            PreparedById = preparer.Id,
+            PreparedByName = preparer.FullName,
             CreatedAt = at,
-            CreatedBy = director.Id
+            CreatedBy = preparer.Id
         });
 
         context.Set<EvaluationAppeal>().Add(new EvaluationAppeal

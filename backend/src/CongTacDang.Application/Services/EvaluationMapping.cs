@@ -163,6 +163,8 @@ public static class EvaluationMapping
         criteria ??= SafeCriteria(r.Period);
         var currentStep = WorkflowSteps.StepOf(r.Status);
         var profile = ProfileOf(settings, r);
+        var deviations = GradeProposalRules.Deviations(r, criteria);
+        var effectiveStep = GradeProposalRules.EffectiveStep(r);
 
         return new EvaluationRecordDto
         {
@@ -209,6 +211,7 @@ public static class EvaluationMapping
             AxisScores = SafeAxisScores(r.AxisScores),
             TotalSelfScore = r.TotalSelfScore,
             SelfProposedGrade = GradeCode(r.SelfProposedGrade),
+            SelfGradeExplanation = r.SelfGradeExplanation,
             SelfScoredAt = r.SelfScoredAt,
             SelfAssessment = SafeParse(() => RecordFormContent.ParseSelfAssessment(r.SelfAssessment), new Dictionary<string, string>()),
             AxisReports = SafeParse(() => RecordFormContent.ParseAxisReports(r.AxisReports), new Dictionary<string, AxisReport>()),
@@ -241,6 +244,7 @@ public static class EvaluationMapping
 
             FinalScore = r.FinalScore,
             FinalGrade = GradeCode(r.FinalGrade),
+            DecisionExplanation = r.DecisionExplanation,
             DecisionDocumentNumber = r.DecisionDocumentNumber,
             DecisionDocumentDate = r.DecisionDocumentDate,
             DecisionAuthorityName = r.DecisionAuthorityName,
@@ -263,7 +267,17 @@ public static class EvaluationMapping
                 .Select(t => ToTaskDto(t, evidence))
                 .ToList(),
 
-            GradeWarnings = GradeWarnings(r, r.EffectiveGrade(), criteria).ToList(),
+            GradeWarnings = GradeWarnings(r, r.EffectiveGrade(), criteria).Concat(deviations.Where(d => d.Step == effectiveStep).Select(d => d.Message + ".")).ToList(),
+            GradeDeviations = deviations.Select(d => new GradeDeviationDto
+            {
+                Step = WorkflowSteps.Code(d.Step),
+                ProposedGrade = GradeCode(d.Proposed),
+                ScoreGrade = GradeCode(d.ScoreGrade),
+                Score = d.Score,
+                Direction = d.Direction > 0 ? "Higher" : "Lower",
+                HasExplanation = d.HasExplanation,
+                Message = d.Message
+            }).ToList(),
             ExcellentMinExceedRatio = criteria is { UsesAxisScoring: false } ? GradeConditions.ExcellentMinExceedRatio(criteria.Content) : null
         };
     }

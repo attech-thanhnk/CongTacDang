@@ -539,6 +539,9 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
                 Mức tự đề xuất <GradeBadge grade={record.selfProposedGrade} />
               </div>
             )}
+            {record.selfGradeExplanation && (
+              <div className={styles.subline}>Lý do đề xuất mức: {record.selfGradeExplanation}</div>
+            )}
           </>
         ) : (
           <div className={`${styles.body} ${styles.small}`}>Chưa có dữ liệu.</div>
@@ -672,6 +675,7 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
             items={[
               ["Mức xếp loại", hasGrade(record.finalGrade) && record.status !== "Published" ? <GradeBadge grade={record.finalGrade} /> : null],
               ["Điểm chính thức", hasGrade(record.finalGrade) ? record.finalScore : null],
+              ["Căn cứ quyết định mức", record.decisionExplanation],
               ["Văn bản", record.decisionDocumentNumber ? `${record.decisionDocumentNumber} (${formatDate(record.decisionDocumentDate)})` : null],
               // Kết luận của cấp trên ở bước quyết định chưa có trường riêng trên hồ sơ.
               ["Nội dung kết luận", externalOf("B4_DECISION")?.comment],

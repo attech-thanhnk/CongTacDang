@@ -974,6 +974,10 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("DecisionExplanation")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
                     b.Property<Guid?>("DecisionMeetingId")
                         .HasColumnType("uuid");
 
@@ -1074,6 +1078,10 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<string>("SelfAssessment")
                         .IsRequired()
                         .HasColumnType("jsonb");
+
+                    b.Property<string>("SelfGradeExplanation")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<int>("SelfProposedGrade")
                         .HasColumnType("integer");
@@ -2050,6 +2058,10 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
                     b.Property<int?>("DefaultApprovalAuthority")
                         .HasColumnType("integer");
+
+                    b.Property<string>("DefaultWorkflowProfileCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");

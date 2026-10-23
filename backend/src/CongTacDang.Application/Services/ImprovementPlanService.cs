@@ -127,7 +127,9 @@ public sealed class ImprovementPlanService : IImprovementPlanService
             Plan = plan == null ? null : ToDto(plan),
             CanManage = canManage && record.Status == RecordStatus.Published,
             CanAcknowledge = plan?.Status == ImprovementPlanStatus.Approved
-                && _guard.Can(PermissionCodes.EvaluationSelf, AccessTarget.ForRecord(record))
+                && _guard.Can(PermissionCodes.EvaluationSelf, AccessTarget.ForRecord(record)),
+            CanApprove = canManage && record.Status == RecordStatus.Published
+                && plan?.Status == ImprovementPlanStatus.Draft && !IsPreparer(plan, _currentUser.UserId)
         };
     }
 
@@ -179,6 +181,10 @@ public sealed class ImprovementPlanService : IImprovementPlanService
         {
             if (plan.Status != ImprovementPlanStatus.Draft)
                 throw new ConflictException("Kế hoạch đã được duyệt trước đó.");
+            // Người lập không tự duyệt: cần người thứ hai kiểm soát nội dung kế hoạch.
+            if (IsPreparer(plan, _currentUser.UserId))
+                throw new ForbiddenException("Bạn là người lập kế hoạch này nên không tự duyệt được. Kế hoạch cần do người khác có quyền "
+                    + $"\"{PermissionCodes.DisplayName(PermissionCodes.EvaluationImprovementManage)}\" duyệt.");
             var missing = ImprovementPlanContent.Parse(plan.Content).MissingForApproval();
             if (missing.Count > 0)
                 throw new ValidationException("Kế hoạch chưa đủ nội dung theo Mẫu 17 để duyệt: " + string.Join(" ", missing));
@@ -262,6 +268,10 @@ public sealed class ImprovementPlanService : IImprovementPlanService
     }
 
     #region Hỗ trợ
+
+    /// <summary>Kế hoạch không lưu người lập (dữ liệu cũ) → không chặn.</summary>
+    public static bool IsPreparer(ImprovementPlan plan, Guid? userId) =>
+        userId.HasValue && plan.PreparedById == userId;
 
     private void ManageRule(EvaluationRecord record) =>
         _guard.Ensure(PermissionCodes.EvaluationImprovementManage, AccessTarget.ForRecord(record));

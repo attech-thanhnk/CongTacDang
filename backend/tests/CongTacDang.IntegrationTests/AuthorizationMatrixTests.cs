@@ -201,7 +201,7 @@ public sealed class AuthorizationMatrixTests
         var s = await GetScenarioAsync();
         foreach (var record in new[] { s.RecordA1, s.RecordA2, s.RecordB1 })
             await SetStatusAsync(record, RecordStatus.AwaitingDecision);
-        async Task<object> Decide(Guid record) => new { version = await VersionAsync(s, record), finalScore = 90.0, finalGrade = "HoanThanhTot" };
+        async Task<object> Decide(Guid record) => new { version = await VersionAsync(s, record), finalScore = 90.0, finalGrade = "HoanThanhTot", explanation = "Căn cứ kiểm thử" };
         string Url(Guid record) => $"/api/evaluations/records/{record}/decision";
 
         // Hồ sơ CapTren đi luồng "cap-tren": B4 do cấp trên thực hiện, chỉ ghi nhận kết quả.
