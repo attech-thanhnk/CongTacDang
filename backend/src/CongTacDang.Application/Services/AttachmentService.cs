@@ -581,7 +581,7 @@ public class AttachmentService : IAttachmentService
     private static (EvidenceStage Stage, RecordStatus RecordStatus, PeriodStatus PeriodStatus) StageOf(EvaluationRecord record)
     {
         var periodStatus = record.Period?.Status ?? PeriodStatus.Closed;
-        return (EvidenceRules.StageOf(record.Status, periodStatus), record.Status, periodStatus);
+        return (EvidenceRules.StageOf(record.Status, periodStatus, record.IsUnlockedAt(DateTime.UtcNow)), record.Status, periodStatus);
     }
 
     /// <summary>

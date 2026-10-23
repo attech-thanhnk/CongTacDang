@@ -22,10 +22,11 @@ public enum EvidenceStage
 /// </summary>
 public static class EvidenceRules
 {
-    /// <summary>Giai đoạn minh chứng theo trạng thái hồ sơ và trạng thái kỳ.</summary>
-    public static EvidenceStage StageOf(RecordStatus recordStatus, PeriodStatus periodStatus)
+    /// <summary>Giai đoạn minh chứng; hồ sơ đang được mở riêng thì kỳ khóa dữ liệu không chặn.</summary>
+    public static EvidenceStage StageOf(RecordStatus recordStatus, PeriodStatus periodStatus, bool recordUnlocked = false)
     {
-        if (periodStatus != PeriodStatus.Open || recordStatus == RecordStatus.Published)
+        var periodOpen = periodStatus == PeriodStatus.Open || (periodStatus == PeriodStatus.Locked && recordUnlocked);
+        if (!periodOpen || recordStatus == RecordStatus.Published)
             return EvidenceStage.Locked;
         return recordStatus is RecordStatus.AwaitingRegistration or RecordStatus.AwaitingTaskApproval or RecordStatus.AwaitingSelfScore
             ? EvidenceStage.Open

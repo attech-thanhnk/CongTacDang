@@ -86,6 +86,13 @@ public class WriteScopeAndEvidenceRulesTests
         Assert.Equal(expected != EvidenceStage.Locked, EvidenceRules.AddBlockReason(stage, record, period) == null);
     }
 
+    [Theory]
+    [InlineData(RecordStatus.AwaitingSelfScore, PeriodStatus.Locked, EvidenceStage.Open)]
+    [InlineData(RecordStatus.AwaitingCellConfirm, PeriodStatus.Locked, EvidenceStage.AddOnly)]
+    [InlineData(RecordStatus.AwaitingSelfScore, PeriodStatus.Closed, EvidenceStage.Locked)]
+    public void EvidenceStage_UnlockedRecordIgnoresPeriodLock(RecordStatus record, PeriodStatus period, EvidenceStage expected) =>
+        Assert.Equal(expected, EvidenceRules.StageOf(record, period, recordUnlocked: true));
+
     [Fact]
     public void EvidenceReasons_PointPublishedRecordsToAppeal()
     {
