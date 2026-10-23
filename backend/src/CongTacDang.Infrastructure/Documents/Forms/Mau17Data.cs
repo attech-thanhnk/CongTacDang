@@ -5,27 +5,22 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
-/// <summary>
-/// Dữ liệu Mẫu 17 — Kế hoạch hỗ trợ, khắc phục và phát triển 30-60-90 ngày (task 20 — T-88).
-/// Template: <c>Mau_17_KeHoachHoTro.docx</c> — dựng từ đúng phần Mẫu 17 của biểu mẫu gốc HD03 (bố cục, chữ in sẵn giữ nguyên).
-/// Mọi giá trị lấy từ kế hoạch và hồ sơ đã lưu; ô chưa nhập giữ chữ mặc định (dòng chấm) trong template.
-/// </summary>
+/// <summary>Kế hoạch hỗ trợ 30-60-90 ngày; ô chưa nhập giữ chữ mặc định (dòng chấm).</summary>
 public sealed class Mau17Data
 {
-    /// <summary>Tên tệp template.</summary>
     public const string TemplateFileName = "Mau_17_KeHoachHoTro.docx";
 
-    /// <summary>Ô đã đánh dấu (thay ký hiệu ☐ in sẵn).</summary>
+    /// <summary>Thay ký hiệu ☐ in sẵn.</summary>
     public const string CheckedBox = "☒";
 
-    /// <summary>"ngày … tháng … năm …" sau địa danh: ngày thủ trưởng duyệt kế hoạch (chưa duyệt → giữ dòng chấm).</summary>
+    /// <summary>Ngày thủ trưởng duyệt kế hoạch; chưa duyệt → giữ dòng chấm.</summary>
     [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
 
     [TemplateField("FULL_NAME")] public string? FullName { get; init; }
     [TemplateField("POSITION")] public string? Position { get; init; }
     [TemplateField("DEPARTMENT")] public string? Department { get; init; }
 
-    /// <summary>"Mức xếp loại quý vừa qua" — mức chính thức kèm ký hiệu Mức A–D (chữ in trên Mẫu 17: "Mức C / Mức D").</summary>
+    /// <summary>Mức chính thức kèm ký hiệu Mức A–D.</summary>
     [TemplateField("GRADE_LEVEL")] public string? GradeLevel { get; init; }
 
     [TemplateField("SUPPORTER_NAME")] public string? SupporterName { get; init; }
@@ -52,16 +47,12 @@ public sealed class Mau17Data
     [TemplateField("M90_ACHIEVED_BOX")] public string? M90AchievedBox { get; init; }
     [TemplateField("M90_NOT_ACHIEVED_BOX")] public string? M90NotAchievedBox { get; init; }
 
-    /// <summary>Họ tên thủ trưởng đơn vị đã duyệt (dưới chữ ký).</summary>
     [TemplateField("APPROVER_NAME")] public string? ApproverName { get; init; }
 
-    /// <summary>Họ tên người trực tiếp hỗ trợ, theo dõi (dưới chữ ký).</summary>
     [TemplateField("SUPPORTER_SIGN_NAME")] public string? SupporterSignName { get; init; }
 
-    /// <summary>Họ tên cá nhân cam kết khắc phục (dưới chữ ký).</summary>
     [TemplateField("MEMBER_SIGN_NAME")] public string? MemberSignName { get; init; }
 
-    /// <summary>Ký hiệu mức theo HD03 (A: Hoàn thành xuất sắc … D: Không hoàn thành).</summary>
     public static string? GradeLevelText(EvaluationGrade grade) => grade switch
     {
         EvaluationGrade.HoanThanhXuatSac => $"{FormText.Grade(grade)} - Mức A",
@@ -71,7 +62,6 @@ public sealed class Mau17Data
         _ => null
     };
 
-    /// <summary>Dựng dữ liệu từ kế hoạch và hồ sơ (nạp kèm Member, Department, PartyCell).</summary>
     public static Mau17Data From(ImprovementPlan plan, EvaluationRecord record)
     {
         ArgumentNullException.ThrowIfNull(plan);

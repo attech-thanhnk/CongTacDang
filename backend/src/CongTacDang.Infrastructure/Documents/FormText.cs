@@ -4,10 +4,9 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Infrastructure.Documents;
 
-/// <summary>Định dạng giá trị đã lưu thành chữ trên biểu mẫu (dùng chung cho mọi lớp dữ liệu mẫu).</summary>
 public static class FormText
 {
-    /// <summary>Số theo cách viết tiếng Việt: dấu phẩy thập phân (giống chữ in sẵn "70,0" trong template).</summary>
+    /// <summary>Dấu phẩy thập phân như chữ in sẵn "70,0" trong template.</summary>
     private static readonly NumberFormatInfo VietnameseNumbers = new()
     {
         NumberDecimalSeparator = ",",
@@ -16,32 +15,28 @@ public static class FormText
         PercentGroupSeparator = "."
     };
 
-    /// <summary>Định dạng số với số chữ số thập phân cố định.</summary>
     public static string Number(double value, int decimals = 1) =>
         value.ToString("F" + decimals, VietnameseNumbers);
 
-    /// <summary>Định dạng số, null nếu không có giá trị (giữ chữ mặc định của template).</summary>
+    /// <summary>Null → giữ chữ mặc định của template.</summary>
     public static string? Number(double? value, int decimals = 1) =>
         value.HasValue ? Number(value.Value, decimals) : null;
 
-    /// <summary>Tỷ lệ 0..1 thành phần trăm làm tròn, ví dụ 0.9 → "90%".</summary>
+    /// <summary>Tỷ lệ 0..1 → "90%".</summary>
     public static string Percent(double ratio) =>
         Math.Round(ratio * 100).ToString("F0", VietnameseNumbers) + "%";
 
 
-    /// <summary>Năm.</summary>
     public static string Year(int year) => year.ToString(CultureInfo.InvariantCulture);
 
-    /// <summary>Ngày dạng dd/MM/yyyy.</summary>
     public static string Date(DateTime date) => date.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
 
-    /// <summary>Chuỗi rỗng/khoảng trắng thành null (giữ chữ mặc định của template).</summary>
+    /// <summary>Null → giữ chữ mặc định của template.</summary>
     public static string? OrNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 
-    /// <summary>Thêm một khoảng trắng phía trước khi template đặt chỗ điền liền sau nhãn ("Quý", "Chi bộ:"); null giữ nguyên.</summary>
+    /// <summary>Khi template đặt chỗ điền liền sau nhãn ("Quý", "Chi bộ:").</summary>
     public static string? Spaced(string? value) => OrNull(value) is { } text ? " " + text : null;
 
-    /// <summary>Tên mức xếp loại.</summary>
     public static string Grade(EvaluationGrade grade) => grade switch
     {
         EvaluationGrade.HoanThanhXuatSac => "Hoàn thành xuất sắc nhiệm vụ",

@@ -11,11 +11,7 @@ using CongTacDang.Application.Services;
 
 namespace CongTacDang.Api.Controllers;
 
-/// <summary>
-/// Danh mục tổ chức: Chi bộ và Phòng/đơn vị chuyên môn.
-/// Xem: mọi người đã đăng nhập. Thêm/sửa/xóa: quyền <c>catalog.manage</c>.
-/// Lỗi nghiệp vụ (400/404/409) do service ném, <c>GlobalExceptionMiddleware</c> trả về <c>ApiResponse</c>.
-/// </summary>
+/// <summary>Danh mục tổ chức: xem khi đã đăng nhập, thêm/sửa/xóa cần catalog.manage.</summary>
 [ApiController]
 [Route("api/organizations")]
 [Authorize]

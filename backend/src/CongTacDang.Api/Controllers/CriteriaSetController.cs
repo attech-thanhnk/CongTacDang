@@ -13,10 +13,7 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Api.Controllers;
 
-/// <summary>
-/// Bộ tiêu chí và thang điểm theo phiên bản (task 16). Xem: <c>criteria.manage</c> hoặc <c>period.manage</c> (chọn bộ cho kỳ);
-/// ghi: <c>criteria.manage</c>. Bộ đã xuất bản không sửa được — nhân bản thành bản nháp mới.
-/// </summary>
+/// <summary>Bộ tiêu chí theo phiên bản; bộ đã xuất bản không sửa được, phải nhân bản thành bản nháp.</summary>
 [ApiController]
 [Route("api/criteria-sets")]
 [Authorize]
@@ -35,24 +32,18 @@ public class CriteriaSetController : ControllerBase
     public async Task<IActionResult> List(CancellationToken ct) =>
         Ok(ApiResponse<List<CriteriaSetListItemDto>>.Ok(await _sets.ListAsync(ct), "Lấy danh sách bộ tiêu chí thành công."));
 
-    /// <summary>
-    /// Khung tỷ trọng A-B-C-D chọn được cho hồ sơ cán bộ (từ bộ tiêu chí đang dùng gần nhất) — mọi người đã đăng nhập xem được
-    /// (danh mục, không phải dữ liệu đánh giá).
-    /// </summary>
+    /// <summary>Khung tỷ trọng A-B-C-D từ bộ tiêu chí đang dùng gần nhất (ai đăng nhập cũng xem được).</summary>
     [HttpGet("weight-frames")]
     public async Task<IActionResult> WeightFrames(CancellationToken ct) =>
         Ok(ApiResponse<WeightFrameOptionsDto>.Ok(await _sets.GetWeightFrameOptionsAsync(ct), "Lấy danh sách khung tỷ trọng thành công."));
 
-    /// <summary>
-    /// Khung tiêu chí tập thể mặc định (Mẫu 06, 07) — để bản nháp của bộ cũ chưa có khung "Điền theo mặc định".
-    /// Đường dẫn chữ cố định được ưu tiên hơn <c>defaults/{form}</c>.
-    /// </summary>
+    /// <summary>Khung tiêu chí tập thể mặc định (Mẫu 06, 07); route cố định được ưu tiên hơn <c>defaults/{form}</c>.</summary>
     [HttpGet("defaults/collective-groups")]
     [RequirePermission(PermissionCodes.CriteriaManage)]
     public IActionResult DefaultCollectiveGroups() =>
         Ok(ApiResponse<List<CollectiveCriteriaGroup>>.Ok(CriteriaSetDefaults.CollectiveGroups(), "Lấy khung tiêu chí tập thể mặc định thành công."));
 
-    /// <summary>Nội dung mặc định theo bản trích xuất HD03 cho mẫu tự chấm (09A/09B) — dùng khi tạo bộ mới.</summary>
+    /// <summary>Nội dung mặc định của mẫu tự chấm (09A/09B) khi tạo bộ mới.</summary>
     [HttpGet("defaults/{form}")]
     [RequirePermission(PermissionCodes.CriteriaManage)]
     public IActionResult Defaults(string form) =>

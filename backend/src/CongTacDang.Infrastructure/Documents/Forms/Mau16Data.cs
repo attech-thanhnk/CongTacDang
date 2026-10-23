@@ -6,30 +6,23 @@ using CongTacDang.Domain.Entities;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
-/// <summary>
-/// Dữ liệu Mẫu 16 — Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý của cấp ủy, tổ chức Đảng.
-/// Template: <c>Mau_16_BaoCaoKetQuaDanhGia.docx</c> (biểu mẫu gốc HD03, PDF tr.77–78). Số liệu mục I/II tính từ kết quả kỳ;
-/// phần nhập tay lấy từ bản nháp của kỳ + tổ chức Đảng.
-/// </summary>
+/// <summary>Báo cáo kết quả đánh giá: số liệu mục I/II tính từ kết quả kỳ, phần nhập tay lấy từ bản nháp.</summary>
 public sealed class Mau16Data
 {
-    /// <summary>Tên tệp template.</summary>
     public const string TemplateFileName = "Mau_16_BaoCaoKetQuaDanhGia.docx";
 
     [TemplateField("PARTY_PARENT")] public string? PartyParent { get; init; }
     [TemplateField("PARTY_ORG")] public string? PartyOrganization { get; init; }
 
-    /// <summary>"ngày … tháng … năm …" sau địa danh: lần lưu bản nháp gần nhất (chưa lưu → giữ dòng chấm).</summary>
+    /// <summary>Lần lưu bản nháp gần nhất; chưa lưu → giữ dòng chấm.</summary>
     [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
 
-    /// <summary>"Số …..-BC/……" (nhập tay).</summary>
     [TemplateField("DOC_NUMBER")] public string? DocumentNumber { get; init; }
 
-    /// <summary>"quý… năm…" — chỗ điền không có khoảng trắng trước.</summary>
+    /// <summary>Chỗ điền liền với chữ trước nên giá trị có khoảng trắng đầu.</summary>
     [TemplateField("QUARTER")] public string? Quarter { get; init; }
     [TemplateField("YEAR")] public string? Year { get; init; }
 
-    /// <summary>Nơi gửi ("Kính gửi: …", "Kính trình …").</summary>
     [TemplateField("RECIPIENT")] public string? Recipient { get; init; }
 
     [TemplateField("WORKING_RULES")] public string? WorkingRules { get; init; }
@@ -38,10 +31,10 @@ public sealed class Mau16Data
     [TemplateField("MEETING_DATE")] public string? MeetingDate { get; init; }
     [TemplateField("ORGANIZER")] public string? Organizer { get; init; }
 
-    /// <summary>Mục I — thẩm quyền đảng ủy, chi ủy cơ sở; dòng cuối "Tổng cộng".</summary>
+    /// <summary>Mục I: đảng ủy, chi ủy cơ sở quyết định; dòng cuối "Tổng cộng".</summary>
     [TemplateCollection("BASE_ROWS")] public List<Mau16BaseRow> BaseRows { get; init; } = new();
 
-    /// <summary>Mục II — thẩm quyền Ban Thường vụ Đảng ủy Tổng công ty; dòng cuối "Tổng cộng".</summary>
+    /// <summary>Mục II: Ban Thường vụ Đảng ủy cấp trên quyết định; dòng cuối "Tổng cộng".</summary>
     [TemplateCollection("SUPERIOR_ROWS")] public List<Mau16SuperiorRow> SuperiorRows { get; init; } = new();
 
     [TemplateField("PROPOSER")] public string? Proposer { get; init; }
@@ -50,7 +43,7 @@ public sealed class Mau16Data
     [TemplateField("PROPOSAL_3")] public string? Proposal3 { get; init; }
     [TemplateField("SIGNER_NAME")] public string? SignerName { get; init; }
 
-    /// <summary>Dựng từ kỳ, số liệu tổng hợp và phần nhập tay (trường trống → giữ chữ mẫu của biểu mẫu).</summary>
+    /// <summary>Trường trống → giữ chữ mẫu của biểu mẫu.</summary>
     public static Mau16Data From(EvaluationPeriod period, PartyHeader header, Form16DraftDto draft)
     {
         var c = draft.Content;
@@ -77,7 +70,7 @@ public sealed class Mau16Data
         };
     }
 
-    /// <summary>Giá trị 10 cột của một dòng; dòng cuối là "Tổng cộng" (không đánh số).</summary>
+    /// <summary>10 cột của một dòng; dòng cuối "Tổng cộng" không đánh số.</summary>
     private static string?[] Cells(Form16SummaryRowDto row, int index, int count)
     {
         static string N(int value) => value.ToString(CultureInfo.InvariantCulture);
@@ -93,7 +86,6 @@ public sealed class Mau16Data
     }
 }
 
-/// <summary>Một dòng mục I của Mẫu 16.</summary>
 public sealed class Mau16BaseRow
 {
     public Mau16BaseRow() { }
@@ -116,7 +108,6 @@ public sealed class Mau16BaseRow
     [TemplateField("B_NOTE")] public string? Note { get; init; }
 }
 
-/// <summary>Một dòng mục II của Mẫu 16.</summary>
 public sealed class Mau16SuperiorRow
 {
     public Mau16SuperiorRow() { }

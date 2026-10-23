@@ -13,35 +13,29 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Services;
 
-/// <summary>
-/// Cache thông tin đơn vị (singleton): đọc nhiều (mỗi lần xuất biểu mẫu, mỗi trang), sửa rất ít. Xóa ngay khi sửa;
-/// tự hết hạn sau <see cref="Lifetime"/> để nhiều tiến trình máy chủ (nếu có) cũng nhận giá trị mới.
-/// </summary>
+/// <summary>Cache thông tin đơn vị: xóa ngay khi sửa; tự hết hạn để các tiến trình máy chủ khác cũng nhận giá trị mới.</summary>
 public sealed class OrganizationSettingsCache
 {
-    /// <summary>Thời gian giữ trong cache.</summary>
     public static readonly TimeSpan Lifetime = TimeSpan.FromMinutes(5);
 
     private sealed record Entry(OrganizationSettingsDto Value, DateTime ExpiresAt);
 
     private Entry? _entry;
 
-    /// <summary>Giá trị còn hạn; null nếu chưa có hoặc đã hết hạn.</summary>
+    /// <summary>Null nếu chưa có hoặc đã hết hạn.</summary>
     public OrganizationSettingsDto? Get()
     {
         var entry = Volatile.Read(ref _entry);
         return entry != null && entry.ExpiresAt > DateTime.UtcNow ? entry.Value : null;
     }
 
-    /// <summary>Lưu giá trị.</summary>
     public void Set(OrganizationSettingsDto value) =>
         Volatile.Write(ref _entry, new Entry(value, DateTime.UtcNow.Add(Lifetime)));
 
-    /// <summary>Xóa cache (sau khi sửa).</summary>
     public void Invalidate() => Volatile.Write(ref _entry, null);
 }
 
-/// <summary>Thông tin đơn vị (task 17 — T-80): bản ghi duy nhất <see cref="OrganizationSettings"/>.</summary>
+/// <summary>Thông tin đơn vị: bản ghi duy nhất <see cref="OrganizationSettings"/>.</summary>
 public sealed class OrganizationSettingsService : IOrganizationSettingsService
 {
     private static readonly Regex ShortNamePattern = new("^[A-Za-z0-9_-]+$", RegexOptions.Compiled);
@@ -49,7 +43,6 @@ public sealed class OrganizationSettingsService : IOrganizationSettingsService
     private readonly CongTacDangDbContext _db;
     private readonly OrganizationSettingsCache _cache;
 
-    /// <summary>Khởi tạo.</summary>
     public OrganizationSettingsService(CongTacDangDbContext db, OrganizationSettingsCache cache)
     {
         _db = db;
@@ -63,8 +56,7 @@ public sealed class OrganizationSettingsService : IOrganizationSettingsService
         if (cached != null)
             return cached;
 
-        // Chưa có bản ghi (CSDL chưa seed) → giá trị mặc định, không ghi. Bản ghi đơn — vẫn sắp xếp để truy vấn xác định (EF cảnh báo
-        // First không OrderBy).
+        // Chưa seed → giá trị mặc định, không ghi. OrderBy để EF không cảnh báo First không sắp xếp.
         var entity = await _db.Set<OrganizationSettings>().AsNoTracking().OrderBy(s => s.CreatedAt).ThenBy(s => s.Id).FirstOrDefaultAsync(ct)
             ?? DataSeeder.DefaultOrganizationSettings();
         var dto = await ToDtoAsync(entity, ct);

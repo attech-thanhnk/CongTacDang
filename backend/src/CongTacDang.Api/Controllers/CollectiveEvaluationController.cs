@@ -52,7 +52,7 @@ public class CollectiveEvaluationController : ControllerBase
         return Ok(ApiResponse<CollectiveEvaluationRecordDto>.Ok(record, "Tạo hồ sơ tập thể thành công."));
     }
 
-    /// <summary>Sửa nội dung hồ sơ tập thể (Mẫu 07: các mục I.1–I.4 trong <c>sections</c>; Mẫu 08: các dòng nhiệm vụ theo nhóm 1–13).</summary>
+    /// <summary>Sửa nội dung hồ sơ tập thể.</summary>
     [HttpPut("collective-records/{id}")]
     [RequirePermission(PermissionCodes.CollectiveManage)]
     public async Task<IActionResult> UpdateCollectiveRecord(Guid id, [FromBody] SaveCollectiveEvaluationRequestDto dto)
@@ -61,7 +61,7 @@ public class CollectiveEvaluationController : ControllerBase
         return Ok(ApiResponse<CollectiveEvaluationRecordDto>.Ok(record, "Đã lưu hồ sơ tập thể."));
     }
 
-    /// <summary>Danh mục mục nhập Mẫu 07 và nhóm nội dung Mẫu 08 (nguyên văn biểu mẫu HD03); có <c>periodId</c> thì kèm khung tiêu chí tập thể của kỳ.</summary>
+    /// <summary>Danh mục mục nhập Mẫu 07/08; có periodId thì kèm khung tiêu chí tập thể của kỳ.</summary>
     [HttpGet("collective-forms/catalog")]
     [RequireAnyPermission(PermissionCodes.EvaluationRead, PermissionCodes.CollectiveManage)]
     public async Task<IActionResult> GetCollectiveFormCatalog([FromQuery] Guid? periodId)
@@ -70,7 +70,7 @@ public class CollectiveEvaluationController : ControllerBase
         return Ok(ApiResponse<CollectiveFormCatalogDto>.Ok(catalog, "Lấy danh mục biểu mẫu tập thể thành công."));
     }
 
-    /// <summary>Sửa thông tin biên bản hội nghị (các mục Mẫu 12 trong <c>details</c>); kết quả kiểm phiếu không đổi.</summary>
+    /// <summary>Sửa thông tin biên bản hội nghị; kết quả kiểm phiếu không đổi.</summary>
     [HttpPut("meetings/{id}")]
     [RequirePermission(PermissionCodes.MeetingManage)]
     public async Task<IActionResult> UpdateMeeting(Guid id, [FromBody] SaveEvaluationMeetingRequestDto dto)
@@ -106,7 +106,6 @@ public class CollectiveEvaluationController : ControllerBase
         return Ok(ApiResponse<EvaluationMeetingDto>.Ok(meeting, "Tạo biên bản hội nghị thành công."));
     }
 
-    /// <summary>Lấy Id người dùng hiện tại từ claim JWT.</summary>
     private Guid GetCurrentUserId()
     {
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier);

@@ -10,36 +10,30 @@ using CongTacDang.Application.Common.Exceptions;
 
 namespace CongTacDang.Infrastructure.Documents;
 
-/// <summary>Chuyển tài liệu văn phòng (.docx, .xlsx) sang PDF phía máy chủ.</summary>
 public interface IPdfConverter
 {
-    /// <summary>
-    /// Chuyển <paramref name="content"/> (định dạng theo <paramref name="sourceExtension"/>, ví dụ ".docx") sang PDF.
-    /// Báo <see cref="ServiceUnavailableException"/> khi máy chủ không có LibreOffice, quá thời gian hoặc chuyển lỗi.
-    /// </summary>
+    /// <summary>Báo <see cref="ServiceUnavailableException"/> khi không có LibreOffice, quá thời gian hoặc chuyển lỗi.</summary>
     Task<byte[]> ConvertToPdfAsync(byte[] content, string sourceExtension, CancellationToken cancellationToken = default);
 }
 
-/// <summary>Cấu hình chuyển PDF (<c>Documents:Pdf:*</c>).</summary>
+/// <summary>Cấu hình <c>Documents:Pdf:*</c>.</summary>
 public sealed class PdfConversionOptions
 {
-    /// <summary>Đường dẫn tệp chạy <c>soffice</c>. Để trống: tự tìm trong PATH và các thư mục cài đặt mặc định.</summary>
+    /// <summary>Để trống: tự tìm trong PATH và các thư mục cài đặt mặc định.</summary>
     public string? SofficePath { get; set; }
 
-    /// <summary>Thời gian tối đa cho một lần chuyển (giây).</summary>
+    /// <summary>Giây.</summary>
     public int TimeoutSeconds { get; set; } = 60;
 
-    /// <summary>Số lần chuyển chạy đồng thời tối đa.</summary>
     public int MaxConcurrency { get; set; } = 2;
 
-    /// <summary>Thư mục làm việc tạm. Để trống: thư mục tạm của hệ điều hành.</summary>
+    /// <summary>Để trống: thư mục tạm của hệ điều hành.</summary>
     public string? WorkDirectory { get; set; }
 }
 
-/// <summary>Tìm tệp chạy LibreOffice trên máy.</summary>
 public static class LibreOfficeLocator
 {
-    /// <summary>Trả về đường dẫn <c>soffice</c> tìm được (theo cấu hình, PATH, thư mục cài đặt mặc định) hoặc null.</summary>
+    /// <summary>Theo cấu hình, PATH rồi thư mục cài đặt mặc định; không thấy → null.</summary>
     public static string? Find(string? configuredPath = null)
     {
         if (!string.IsNullOrWhiteSpace(configuredPath))
@@ -84,11 +78,7 @@ public static class LibreOfficeLocator
     }
 }
 
-/// <summary>
-/// Chuyển PDF bằng LibreOffice headless (<c>soffice --headless --convert-to pdf</c>), chạy cục bộ trong mạng nội bộ.
-/// Mỗi lần chuyển dùng thư mục tạm và hồ sơ người dùng LibreOffice riêng (chạy song song an toàn), có timeout,
-/// dọn thư mục tạm sau khi xong.
-/// </summary>
+/// <summary>Mỗi lần chuyển dùng thư mục tạm và hồ sơ người dùng LibreOffice riêng để chạy song song an toàn.</summary>
 public sealed class LibreOfficePdfConverter : IPdfConverter, IDisposable
 {
     private readonly PdfConversionOptions _options;
@@ -216,7 +206,7 @@ public sealed class LibreOfficePdfConverter : IPdfConverter, IDisposable
         }
         catch (IOException)
         {
-            // Tệp có thể còn bị khóa trong giây lát sau khi tiến trình bị dừng; bỏ qua, thư mục tạm của hệ điều hành sẽ được dọn.
+            // Tệp có thể còn bị khóa ngay sau khi dừng tiến trình; thư mục tạm của hệ điều hành sẽ được dọn.
         }
         catch (UnauthorizedAccessException)
         {

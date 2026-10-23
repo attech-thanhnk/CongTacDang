@@ -9,10 +9,7 @@ namespace CongTacDang.Api.Extensions;
 
 public static class HostingExtensions
 {
-    /// <summary>
-    /// Kiểm tra cấu hình bắt buộc và khóa/mật khẩu (xem <see cref="StartupSecretPolicy"/>). Có lỗi → ghi thông báo
-    /// tiếng Việt ra stderr (log của container) rồi ném ngoại lệ để ứng dụng dừng, không khởi động với cấu hình không an toàn.
-    /// </summary>
+    /// <summary>Cấu hình không an toàn → ghi lỗi ra stderr rồi ném ngoại lệ để dừng khởi động.</summary>
     public static void ValidateRequiredConfiguration(this IConfiguration configuration, string environmentName)
     {
         var errors = StartupSecretPolicy.Validate(configuration, environmentName);

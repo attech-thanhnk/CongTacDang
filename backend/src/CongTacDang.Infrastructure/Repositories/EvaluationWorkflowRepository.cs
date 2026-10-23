@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Repositories;
 
-/// <summary>Truy cập dữ liệu cho luồng đánh giá theo cấu hình kỳ (task 12). Ghi chỉ đưa vào DbContext, lưu qua IUnitOfWork.</summary>
+/// <summary>Ghi chỉ đưa vào DbContext; lưu qua IUnitOfWork.</summary>
 public sealed class EvaluationWorkflowRepository : IEvaluationWorkflowRepository
 {
     private readonly CongTacDangDbContext _db;
@@ -241,7 +241,7 @@ public sealed class EvaluationWorkflowRepository : IEvaluationWorkflowRepository
         if (linked.Count == 0)
             return result;
 
-        // Nhiệm vụ có thể trỏ tới một phiên bản cũ của nhóm tệp: tìm nhóm rồi lấy phiên bản hiện hành (chưa bị thay, chưa xóa).
+        // Nhiệm vụ có thể trỏ tới phiên bản cũ: tìm nhóm rồi lấy phiên bản hiện hành.
         var versionIds = linked.Select(t => t.AttachmentId!.Value).Distinct().ToList();
         var versions = await _db.TaskAttachments.AsNoTracking()
             .Where(a => versionIds.Contains(a.Id))
@@ -274,7 +274,7 @@ public sealed class EvaluationWorkflowRepository : IEvaluationWorkflowRepository
         if (ids.Count == 0)
             return result;
 
-        // Tệp đính kèm thuộc nhiệm vụ (kể cả dữ liệu cũ chưa có OwnerType, gắn qua RelatedId).
+        // Gồm cả dữ liệu cũ chưa có OwnerType (gắn qua RelatedId).
         var owners = await _db.TaskAttachments.AsNoTracking()
             .Where(a => !a.IsSuperseded
                 && ((a.OwnerType == AttachmentOwnerTypes.EvaluationTask && a.OwnerId.HasValue && ids.Contains(a.OwnerId.Value))

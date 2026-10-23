@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Repositories;
 
-/// <summary>Truy cập dữ liệu bộ tiêu chí (task 16). Ghi chỉ đưa vào DbContext, lưu qua IUnitOfWork.</summary>
+/// <summary>Ghi chỉ đưa vào DbContext; lưu qua IUnitOfWork.</summary>
 public sealed class CriteriaSetRepository : ICriteriaSetRepository
 {
     private readonly CongTacDangDbContext _db;

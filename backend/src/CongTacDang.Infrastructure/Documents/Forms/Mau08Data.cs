@@ -5,29 +5,24 @@ using CongTacDang.Domain.Entities;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
-/// <summary>
-/// Dữ liệu Mẫu 08 — Báo cáo tổng hợp kết quả thực hiện các nhiệm vụ của cơ quan, đơn vị.
-/// Template: <c>Mau_08_TongHopKetQuaNhiemVu.docx</c> (bảng của biểu mẫu gốc HD03, PDF tr.48–49; dòng lặp theo 13 nhóm nội dung).
-/// </summary>
+/// <summary>Tổng hợp kết quả nhiệm vụ của đơn vị; luôn đủ 13 dòng theo nhóm nội dung.</summary>
 public sealed class Mau08Data
 {
-    /// <summary>Tên tệp template.</summary>
     public const string TemplateFileName = "Mau_08_TongHopKetQuaNhiemVu.docx";
 
     [TemplateField("PARTY_PARENT")] public string? PartyParent { get; init; }
     [TemplateField("PARTY_ORG")] public string? PartyOrganization { get; init; }
 
-    /// <summary>"ngày … tháng … năm …" sau địa danh: ngày lập báo cáo = lần cập nhật hồ sơ tập thể gần nhất (chưa sửa → ngày tạo).</summary>
+    /// <summary>Lần cập nhật hồ sơ tập thể gần nhất (chưa sửa → ngày tạo).</summary>
     [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
 
-    /// <summary>"QUÝ…/NĂM..." — chỗ điền không có khoảng trắng trước nên giá trị có khoảng trắng đầu.</summary>
+    /// <summary>Chỗ điền liền với chữ trước nên giá trị có khoảng trắng đầu.</summary>
     [TemplateField("QUARTER")] public string? Quarter { get; init; }
     [TemplateField("YEAR")] public string? Year { get; init; }
 
-    /// <summary>13 dòng theo nhóm nội dung của biểu mẫu (luôn đủ 13 dòng, đúng thứ tự).</summary>
+    /// <summary>Luôn đủ 13 dòng, đúng thứ tự.</summary>
     [TemplateCollection("ROWS")] public List<Mau08Row> Rows { get; init; } = new();
 
-    /// <summary>Dựng từ hồ sơ tập thể Mẫu 08 (các dòng nhiệm vụ gắn mã nhóm nội dung 1–13).</summary>
     public static Mau08Data From(CollectiveEvaluationRecord record, PartyHeader header)
     {
         var items = record.Items.OrderBy(i => i.ItemOrder).ToList();
@@ -46,7 +41,7 @@ public sealed class Mau08Data
                 {
                     Order = category.Code,
                     Title = category.Title,
-                    // Có nhiệm vụ: liệt kê dưới tên nhóm; không có: nhóm có dòng "- Nhiệm vụ 1: …" giữ chữ mẫu, nhóm khác để trống.
+                    // Không có nhiệm vụ: nhóm có dòng "- Nhiệm vụ 1: …" giữ chữ mẫu, nhóm khác để trống.
                     Tasks = names.Count > 0
                         ? "\n" + string.Join("\n", names.Select(n => "- " + n))
                         : category.HasTaskLines ? null : string.Empty,
@@ -60,7 +55,6 @@ public sealed class Mau08Data
     }
 }
 
-/// <summary>Một dòng (nhóm nội dung) của Mẫu 08.</summary>
 public sealed class Mau08Row
 {
     [TemplateField("R_STT")] public string? Order { get; init; }

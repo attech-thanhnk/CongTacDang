@@ -28,10 +28,7 @@ public class UserController : ControllerBase
         _accounts = accounts;
     }
 
-    /// <summary>
-    /// Lấy hồ sơ và vai trò của cán bộ đang đăng nhập. Tham số <paramref name="username"/> chỉ dùng được
-    /// cho hồ sơ của chính mình hoặc khi người yêu cầu có quyền xem hồ sơ người khác ở phạm vi quản trị.
-    /// </summary>
+    /// <summary>Hồ sơ người đang đăng nhập; username người khác cần quyền xem trong phạm vi.</summary>
     [HttpGet("profile")]
     public async Task<IActionResult> GetProfile([FromQuery] string? username = null)
     {
@@ -53,10 +50,7 @@ public class UserController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Danh sách tài khoản có phân trang và tìm kiếm (trong phạm vi được phép xem).
-    /// <paramref name="q"/> tìm theo tên đăng nhập, họ tên, email, số thẻ Đảng; <paramref name="pageSize"/> tối đa 200.
-    /// </summary>
+    /// <summary>Danh sách tài khoản trong phạm vi; q tìm theo tên đăng nhập, họ tên, email, số thẻ Đảng.</summary>
     [HttpGet]
     [RequirePermission(PermissionCodes.SystemUsersRead)]
     public async Task<IActionResult> Search(
@@ -81,9 +75,7 @@ public class UserController : ControllerBase
         return Ok(ApiResponse<AccountListItemDto>.Ok(account, "Lấy thông tin tài khoản thành công."));
     }
 
-    /// <summary>
-    /// Tạo tài khoản: trả tên đăng nhập và mật khẩu tạm (chỉ hiển thị một lần). Người dùng phải đổi mật khẩu ở lần đăng nhập đầu.
-    /// </summary>
+    /// <summary>Tạo tài khoản; mật khẩu tạm chỉ trả về một lần, phải đổi ở lần đăng nhập đầu.</summary>
     [HttpPost]
     [RequirePermission(PermissionCodes.SystemUsersManage)]
     public async Task<IActionResult> CreateUser([FromBody] CreateAccountRequestDto request, CancellationToken ct)

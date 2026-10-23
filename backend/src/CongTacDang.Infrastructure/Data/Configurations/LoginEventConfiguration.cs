@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CongTacDang.Infrastructure.Data.Configurations;
 
-/// <summary>Cấu hình bảng nhật ký đăng nhập <c>login_events</c>.</summary>
 public sealed class LoginEventConfiguration : IEntityTypeConfiguration<LoginEvent>
 {
     /// <inheritdoc />
@@ -19,7 +18,7 @@ public sealed class LoginEventConfiguration : IEntityTypeConfiguration<LoginEven
         entity.HasIndex(e => new { e.UserId, e.CreatedAt });
         entity.HasIndex(e => e.CreatedAt);
 
-        // Không cascade: tài khoản chỉ xóa mềm; nếu bị xóa vật lý thì giữ nhật ký, bỏ liên kết.
+        // Không cascade: tài khoản chỉ xóa mềm; nếu bị xóa vật lý thì giữ nhật ký.
         entity.HasOne<PartyMemberProfile>()
             .WithMany()
             .HasForeignKey(e => e.UserId)

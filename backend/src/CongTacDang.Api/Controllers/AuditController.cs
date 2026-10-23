@@ -20,13 +20,12 @@ public class AuditController : ControllerBase
 {
     private readonly IAuditService _auditService;
 
-    /// <summary>Khởi tạo controller audit.</summary>
     public AuditController(IAuditService auditService)
     {
         _auditService = auditService;
     }
 
-    /// <summary>Nhật ký thao tác (mới nhất trước), lọc theo loại đối tượng, Id đối tượng, loại thao tác; phân trang phía máy chủ.</summary>
+    /// <summary>Nhật ký thao tác (mới nhất trước, phân trang).</summary>
     [HttpGet]
     public async Task<IActionResult> GetAuditLogs(
         [FromQuery] string? entityType = null,
@@ -40,10 +39,7 @@ public class AuditController : ControllerBase
         return Ok(ApiResponse<AuditLogPageDto>.Ok(logs, "Lấy nhật ký audit thành công."));
     }
 
-    /// <summary>
-    /// Nhật ký đăng nhập (mới nhất trước). Lọc theo tài khoản, khoảng thời gian (UTC) và kết quả
-    /// (<c>Success</c>, <c>InvalidPassword</c>, <c>UnknownUser</c>, <c>LockedOut</c>, <c>Disabled</c>).
-    /// </summary>
+    /// <summary>Nhật ký đăng nhập (mới nhất trước; khoảng thời gian theo UTC).</summary>
     [HttpGet("/api/audit/logins")]
     public async Task<IActionResult> GetLoginEvents(
         [FromQuery] Guid? userId = null,

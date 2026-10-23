@@ -13,7 +13,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Repositories;
 
-/// <summary>Repository bản gán vai trò có phạm vi và thời hạn (bảng <c>user_role_assignments</c>).</summary>
 public class RoleAssignmentRepository : IRoleAssignmentRepository
 {
     private static readonly string[] AdministratorCodes =
@@ -24,7 +23,6 @@ public class RoleAssignmentRepository : IRoleAssignmentRepository
 
     private readonly CongTacDangDbContext _db;
 
-    /// <summary>Khởi tạo repository.</summary>
     public RoleAssignmentRepository(CongTacDangDbContext db) => _db = db;
 
     private IQueryable<UserRoleAssignment> Assignments => _db.Set<UserRoleAssignment>();
@@ -40,7 +38,7 @@ public class RoleAssignmentRepository : IRoleAssignmentRepository
         if (user == null)
             return null;
 
-        // Bản gán chưa xóa, chưa hết hạn, vai trò chưa xóa (query filter của AppRole/Permission áp dụng qua navigation).
+        // Query filter của AppRole/Permission áp dụng qua navigation.
         var rows = await Assignments
             .AsNoTracking()
             .Where(a => a.UserId == userId && (a.ValidTo == null || a.ValidTo > now) && a.Role != null && !a.Role.IsDeleted)
@@ -57,8 +55,7 @@ public class RoleAssignmentRepository : IRoleAssignmentRepository
             })
             .ToListAsync(ct);
 
-        // Phạm vi đơn vị bao trùm cả cây con (task 14): mở rộng Id nút được gán thành nút đó + mọi con cháu theo Path.
-        // Nạp (Id, Path) của cả cây một lần cho mỗi bên cần dùng — cây nhỏ, kết quả được cache theo người dùng.
+        // Phạm vi đơn vị bao trùm cây con: mở rộng theo Path; nạp (Id, Path) cả cây một lần (cây nhỏ, kết quả được cache).
         var departmentTree = rows.Any(r => r.ScopeType == RoleScopeType.Department && r.ScopeId.HasValue)
             ? await _db.AdministrativeDepartments.AsNoTracking().Select(d => new TreeNode(d.Id, d.Path)).ToListAsync(ct)
             : new List<TreeNode>();
@@ -75,7 +72,7 @@ public class RoleAssignmentRepository : IRoleAssignmentRepository
 
     private sealed record TreeNode(Guid Id, string Path);
 
-    /// <summary>Nút được gán và mọi nút con cháu (theo đường dẫn vật hóa); null với phạm vi Global.</summary>
+    /// <summary>Nút được gán và mọi con cháu; null với phạm vi Global.</summary>
     private static IReadOnlyList<Guid>? Covered(RoleScopeType type, Guid? scopeId, List<TreeNode> departments, List<TreeNode> cells)
     {
         if (type == RoleScopeType.Global || !scopeId.HasValue)

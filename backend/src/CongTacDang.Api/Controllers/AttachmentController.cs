@@ -12,10 +12,7 @@ using CongTacDang.Application.Services;
 
 namespace CongTacDang.Api.Controllers;
 
-/// <summary>
-/// Tệp đính kèm, minh chứng — luôn gắn với một đối tượng (nhiệm vụ / hồ sơ đánh giá, kết quả của cấp trên);
-/// quyền trên tệp = quyền trên đối tượng. Tiền tố đường dẫn: <c>api/attachments</c>.
-/// </summary>
+/// <summary>Tệp đính kèm, minh chứng; quyền trên tệp = quyền trên đối tượng được gắn.</summary>
 [ApiController]
 [Route("api/attachments")]
 [Authorize] // Tất cả endpoint yêu cầu đăng nhập
@@ -28,7 +25,6 @@ public class AttachmentController : ControllerBase
         _attachmentService = attachmentService;
     }
 
-    /// <summary>Lấy Id người dùng hiện tại từ JWT.</summary>
     private Guid GetCurrentUserId()
     {
         var sub = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -46,7 +42,7 @@ public class AttachmentController : ControllerBase
         return Ok(ApiResponse<List<AttachmentDto>>.Ok(files, "Lấy danh mục tệp tin thành công."));
     }
 
-    /// <summary>Danh sách tệp (phiên bản hiện hành) của một đối tượng: <c>ownerType</c> = EvaluationRecord | EvaluationTask | EvaluationAppeal | CollectiveEvaluationRecord</summary>
+    /// <summary>Tệp (phiên bản hiện hành) của một đối tượng theo ownerType/ownerId.</summary>
     [HttpGet]
     [Authorize] // Quyền trên tệp = quyền trên hồ sơ gắn tệp; tệp chưa gắn: chỉ người tải lên (kiểm tra trong service)
     public async Task<IActionResult> GetByOwner([FromQuery] string ownerType, [FromQuery] Guid ownerId)
@@ -55,9 +51,7 @@ public class AttachmentController : ControllerBase
         return Ok(ApiResponse<List<AttachmentDto>>.Ok(files, "Lấy danh sách tệp của đối tượng thành công."));
     }
 
-    /// <summary>
-    /// Thao tác người dùng được làm với minh chứng cá nhân của hồ sơ (thêm / thay / gỡ) theo quyền và giai đoạn của hồ sơ.
-    /// </summary>
+    /// <summary>Quyền thêm/thay/gỡ minh chứng của hồ sơ theo giai đoạn.</summary>
     [HttpGet("evidence-rights")]
     [Authorize] // Service: evaluation.read trên hồ sơ (chủ hồ sơ luôn xem được)
     public async Task<IActionResult> GetEvidenceRights([FromQuery] Guid recordId)
@@ -67,9 +61,7 @@ public class AttachmentController : ControllerBase
     }
 
     /// <summary>
-    /// Tải lên tệp minh chứng (PDF, DOCX, XLSX, Ảnh). Truyền <c>ownerType</c>/<c>ownerId</c> để gắn tệp vào đối tượng
-    /// (cần quyền cập nhật hồ sơ liên quan); một đối tượng có thể có nhiều tệp. Không truyền đối tượng: tệp chưa gắn,
-    /// chỉ người tải lên thấy tới khi gắn vào nhiệm vụ / kết quả của cấp trên.
+    /// Tải lên minh chứng. Không truyền ownerType/ownerId: tệp chưa gắn, chỉ người tải lên thấy tới khi được gắn.
     /// </summary>
     [HttpPost("upload")]
     [Authorize] // Service: evaluation.self (tệp của mình), evaluation.external.record (văn bản của cấp trên), collective.manage (hồ sơ tập thể)
@@ -145,11 +137,10 @@ public class AttachmentController : ControllerBase
         }
     }
 
-    /// <summary>Tên hiển thị người tải lên lấy từ JWT claim.</summary>
     private string GetUploaderName() =>
         User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "Cán bộ";
 
-    /// <summary>Tải về phiên bản hiện hành của tệp tin minh chứng (Id của bất kỳ phiên bản nào trong tệp)</summary>
+    /// <summary>Tải phiên bản hiện hành (nhận Id của bất kỳ phiên bản nào).</summary>
     [HttpGet("{id}/download")]
     [Authorize] // Quyền trên tệp = quyền trên hồ sơ gắn tệp; tệp chưa gắn: chỉ người tải lên (kiểm tra trong service)
     public async Task<IActionResult> DownloadFile(Guid id)
@@ -170,7 +161,7 @@ public class AttachmentController : ControllerBase
         }
     }
 
-    /// <summary>Gỡ tệp minh chứng chủ hồ sơ đã đính kèm vào hồ sơ của mình (tệp vẫn được lưu, nhật ký ghi người gỡ)</summary>
+    /// <summary>Gỡ minh chứng khỏi hồ sơ (tệp vẫn được lưu).</summary>
     [HttpDelete("{id}")]
     [Authorize] // Service: chủ hồ sơ (evaluation.self) và là người tải lên; hồ sơ tập thể: collective.manage, kỳ chưa đóng
     public async Task<IActionResult> Remove(Guid id)

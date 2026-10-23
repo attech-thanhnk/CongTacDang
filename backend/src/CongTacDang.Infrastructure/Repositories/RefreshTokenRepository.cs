@@ -11,19 +11,13 @@ using CongTacDang.Infrastructure.Data;
 
 namespace CongTacDang.Infrastructure.Repositories;
 
-/// <summary>
-/// Cài đặt repository quản lý Refresh Token
-/// </summary>
 public class RefreshTokenRepository : GenericRepository<RefreshToken>, IRefreshTokenRepository
 {
     public RefreshTokenRepository(CongTacDangDbContext db) : base(db)
     {
     }
 
-    /// <summary>
-    /// Truy vấn Refresh Token cùng tài khoản sở hữu (không nạp vai trò — quyền lấy qua IPermissionResolver).
-    /// Token của tài khoản đã xóa mềm không được trả về (bộ lọc xóa mềm của tài khoản).
-    /// </summary>
+    /// <summary>Không nạp vai trò (quyền lấy qua IPermissionResolver); bỏ token của tài khoản đã xóa mềm.</summary>
     public async Task<RefreshToken?> GetByTokenWithUserAsync(string token)
     {
         var hash = HashToken(token);
@@ -32,7 +26,7 @@ public class RefreshTokenRepository : GenericRepository<RefreshToken>, IRefreshT
             .FirstOrDefaultAsync(t => t.TokenHash == hash);
     }
 
-    /// <summary>Thu hồi token cũ và thêm token mới bằng một lần SaveChanges.</summary>
+    /// <summary>Thu hồi token cũ và thêm token mới trong cùng một SaveChanges.</summary>
     public async Task<bool> RotateAsync(string oldToken, RefreshToken newToken)
     {
         if (string.IsNullOrWhiteSpace(newToken.TokenHash))
@@ -52,7 +46,7 @@ public class RefreshTokenRepository : GenericRepository<RefreshToken>, IRefreshT
         return true;
     }
 
-    /// <summary>Thu hồi toàn bộ Refresh Token còn hiệu lực của một người dùng (sử dụng khi phát hiện tái sử dụng token hoặc đăng xuất toàn cục)</summary>
+    /// <summary>Dùng khi phát hiện tái sử dụng token hoặc đăng xuất toàn cục.</summary>
     public async Task RevokeAllUserTokensAsync(Guid userId)
     {
         var activeTokens = await _db.RefreshTokens

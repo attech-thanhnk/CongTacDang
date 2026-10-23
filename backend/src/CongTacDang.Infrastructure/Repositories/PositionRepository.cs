@@ -11,12 +11,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Repositories;
 
-/// <summary>Repository danh mục chức vụ và chức vụ của cán bộ (task 14).</summary>
 public sealed class PositionRepository : IPositionRepository
 {
     private readonly CongTacDangDbContext _db;
 
-    /// <summary>Khởi tạo repository.</summary>
     public PositionRepository(CongTacDangDbContext db) => _db = db;
 
     /// <inheritdoc />

@@ -77,7 +77,7 @@ public sealed class UnitOfWork : IUnitOfWork, IAfterCommitActions
 
     public void SetOriginalVersion(object entity, uint? version)
     {
-        // Client chưa gửi version (frontend cũ) thì giữ xmin vừa đọc từ DB, không chặn cập nhật.
+        // Client không gửi version thì giữ xmin vừa đọc, không chặn cập nhật.
         if (version is null)
             return;
 

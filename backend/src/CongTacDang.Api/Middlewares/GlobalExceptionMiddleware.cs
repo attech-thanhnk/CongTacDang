@@ -13,9 +13,6 @@ using CongTacDang.Application.Common.Models;
 
 namespace CongTacDang.Api.Middlewares;
 
-/// <summary>
-/// Middleware xử lý lỗi toàn cục
-/// </summary>
 public class GlobalExceptionMiddleware
 {
     private readonly RequestDelegate _next;
@@ -32,7 +29,6 @@ public class GlobalExceptionMiddleware
         _env = env;
     }
 
-    /// <summary>Thực thi middleware chặn và bắt tất cả ngoại lệ chưa được xử lý trong HTTP pipeline</summary>
     public async Task InvokeAsync(HttpContext context)
     {
         try
@@ -45,7 +41,6 @@ public class GlobalExceptionMiddleware
         }
     }
 
-    /// <summary>Chuẩn hóa thông điệp lỗi và mã trạng thái HTTP theo chuẩn ApiResponse</summary>
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         var statusCode = exception switch
@@ -71,8 +66,7 @@ public class GlobalExceptionMiddleware
                 : "Đã xảy ra lỗi xử lý nội bộ tại hệ thống. Vui lòng liên hệ Quản trị viên."
         };
 
-        // Lỗi nghiệp vụ (4xx: dữ liệu sai, không có quyền, xung đột) là hành vi bình thường → Warning, không kèm stack trace;
-        // chỉ lỗi máy chủ (5xx) mới ghi Error để không làm chìm lỗi thật.
+        // 4xx là lỗi nghiệp vụ bình thường → Warning không stack trace; chỉ 5xx ghi Error để không làm chìm lỗi thật.
         if ((int)statusCode >= 500)
             _logger.LogError(exception, "Lỗi hệ thống tại HTTP {Method} {Path}: {Message}",
                 context.Request.Method, context.Request.Path, exception.Message);

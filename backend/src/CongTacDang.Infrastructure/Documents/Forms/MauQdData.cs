@@ -7,24 +7,18 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
-/// <summary>
-/// Dữ liệu Quyết định xếp loại cán bộ quý của Đảng ủy (Chi ủy) kèm Phụ lục kết quả đánh giá, xếp loại — văn bản cuối của bước
-/// quyết định đối với các trường hợp thuộc thẩm quyền của tổ chức Đảng cơ sở.
-/// Template: <c>Mau_QD_QuyetDinhXepLoai.docx</c> (trang 1 Quyết định, trang 2 Phụ lục khổ ngang), dựng theo bảng tính của
-/// Công ty (sheet "Quyết định xếp loại" và "Phụ lục kèm theo Quyết định"). Tên tổ chức lấy từ cài đặt đơn vị / tổ chức Đảng.
-/// </summary>
+/// <summary>Quyết định xếp loại kèm Phụ lục (trang 2 khổ ngang) — diện tổ chức Đảng cơ sở quyết định.</summary>
 public sealed class MauQdData
 {
-    /// <summary>Tên tệp template.</summary>
     public const string TemplateFileName = "Mau_QD_QuyetDinhXepLoai.docx";
 
     [TemplateField("PARTY_PARENT")] public string? PartyParent { get; init; }
     [TemplateField("PARTY_ORG")] public string? PartyOrganization { get; init; }
 
-    /// <summary>"Số …-QĐ/…" — số văn bản quyết định chung của các hồ sơ (nếu đã ghi khi quyết định).</summary>
+    /// <summary>Số văn bản quyết định chung của các hồ sơ (nếu đã ghi).</summary>
     [TemplateField("DOC_NUMBER")] public string? DocumentNumber { get; init; }
 
-    /// <summary>"ngày … tháng … năm …" sau địa danh — ngày văn bản quyết định chung của các hồ sơ.</summary>
+    /// <summary>Ngày văn bản quyết định chung của các hồ sơ.</summary>
     [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
 
     /// <summary>Quý dạng La Mã ("III").</summary>
@@ -37,7 +31,7 @@ public sealed class MauQdData
     /// <summary>Cấp ủy ra quyết định, chữ in hoa ("ĐẢNG ỦY CÔNG TY … QUYẾT ĐỊNH").</summary>
     [TemplateField("COMMITTEE_UPPER")] public string? CommitteeUpper { get; init; }
 
-    /// <summary>"Ban Chấp hành Đảng bộ …" (căn cứ quy chế, diện đánh giá, cột 8 Phụ lục).</summary>
+    /// <summary>"Ban Chấp hành Đảng bộ …".</summary>
     [TemplateField("EXECUTIVE")] public string? Executive { get; init; }
 
     /// <summary>Nhiệm kỳ ("2025-2030").</summary>
@@ -58,13 +52,9 @@ public sealed class MauQdData
     /// <summary>"(kèm theo Quyết định số … ngày …)" dưới tiêu đề Phụ lục.</summary>
     [TemplateField("DECISION_REF")] public string? DecisionReference { get; init; }
 
-    /// <summary>Dòng Phụ lục — mỗi cán bộ một dòng.</summary>
     [TemplateCollection("ROWS")] public List<MauQdRow> Rows { get; init; } = new();
 
-    /// <summary>
-    /// Dựng từ kỳ, tiêu đề tổ chức Đảng ra quyết định, tên tổ chức cấp trên (dạng giữa câu), thông tin văn bản/hội nghị và các
-    /// dòng cán bộ (đã lọc, sắp xếp). Thiếu dữ liệu → giữ chỗ chấm của template.
-    /// </summary>
+    /// <summary>Thiếu dữ liệu → giữ chỗ chấm của template.</summary>
     public static MauQdData From(EvaluationPeriod period, PartyHeader header, string? superiorInSentence,
         DecisionDocumentInfo info, IEnumerable<MauQdLine> lines)
     {
@@ -122,19 +112,14 @@ public sealed class MauQdData
         return text;
     }
 
-    /// <summary>Mức của một bước đề xuất; bước chưa có mức → ô trống (không in "Chưa xếp loại").</summary>
+    /// <summary>Bước chưa có mức → ô trống (không in "Chưa xếp loại").</summary>
     private static string GradeOrBlank(EvaluationGrade grade) =>
         grade == EvaluationGrade.ChuaXepLoai ? string.Empty : FormText.Grade(grade);
 }
 
-/// <summary>Thông tin văn bản và hội nghị quyết định (lấy từ hồ sơ đã ghi quyết định và biên bản hội nghị B4).</summary>
-/// <param name="DocumentNumber">Số văn bản quyết định chung của các hồ sơ; khác nhau/không có → null.</param>
-/// <param name="DocumentDate">Ngày văn bản quyết định chung; khác nhau/không có → null.</param>
-/// <param name="MeetingAt">Thời điểm hội nghị cấp ủy quyết định (UTC).</param>
-/// <param name="ChairName">Người chủ trì hội nghị quyết định.</param>
+/// <summary>Số/ngày văn bản chỉ có khi mọi hồ sơ ghi cùng giá trị; MeetingAt là UTC.</summary>
 public sealed record DecisionDocumentInfo(string? DocumentNumber, DateTime? DocumentDate, DateTime? MeetingAt, string? ChairName);
 
-/// <summary>Một cán bộ trong Phụ lục: mức của từng bước và mức được quyết định.</summary>
 public sealed record MauQdLine(
     string? FullName,
     string? Position,
@@ -145,7 +130,6 @@ public sealed record MauQdLine(
     EvaluationGrade Final,
     string? Note = null);
 
-/// <summary>Một dòng Phụ lục kèm theo Quyết định.</summary>
 public sealed class MauQdRow
 {
     [TemplateField("R_STT")] public string? Order { get; init; }

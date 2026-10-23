@@ -7,12 +7,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CongTacDang.Api.Extensions;
 
-/// <summary>Đăng ký chức năng sau công bố (task 20): công khai kết quả, kiến nghị, kế hoạch 30-60-90 ngày (Mẫu 17), nhắc việc.</summary>
 public static class PostPublishExtensions
 {
-    /// <summary>
-    /// Cấu hình: <c>Notifications:DueSoonDays</c> — số ngày trước hạn của bước được báo "sắp tới hạn" (mặc định 2).
-    /// </summary>
+    /// <summary><c>Notifications:DueSoonDays</c>: số ngày trước hạn bước được báo "sắp tới hạn".</summary>
     public static IServiceCollection AddPostPublish(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IPostPublishRepository, PostPublishRepository>();

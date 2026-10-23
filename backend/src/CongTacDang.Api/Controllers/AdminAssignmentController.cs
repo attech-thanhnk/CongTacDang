@@ -11,19 +11,16 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CongTacDang.Api.Controllers;
 
-/// <summary>
-/// Gán vai trò kèm phạm vi và thời hạn, tra cứu quyền hiệu lực (docs/thiet-ke/phan-quyen.md mục 2, 5).
-/// </summary>
+/// <summary>Gán vai trò kèm phạm vi và thời hạn, tra cứu quyền hiệu lực.</summary>
 [ApiController]
 [Route("api/admin")]
 public class AdminAssignmentController : ControllerBase
 {
     private readonly IRoleAssignmentService _assignments;
 
-    /// <summary>Khởi tạo controller.</summary>
     public AdminAssignmentController(IRoleAssignmentService assignments) => _assignments = assignments;
 
-    /// <summary>Tra cứu bản gán: <c>?userId=&amp;roleId=&amp;scopeType=&amp;scopeId=&amp;activeOn=</c>.</summary>
+    /// <summary>Tra cứu bản gán.</summary>
     [HttpGet("assignments")]
     [RequirePermission(PermissionCodes.SystemAssignmentsManage)]
     public async Task<IActionResult> Query(
@@ -92,7 +89,7 @@ public class AdminAssignmentController : ControllerBase
         return Ok(ApiResponse<UserEffectivePermissionsDto>.Ok(result, "Lấy quyền hiệu lực thành công."));
     }
 
-    /// <summary>Đọc loại phạm vi: <c>Global</c> | <c>Department</c> | <c>PartyCell</c> (không phân biệt hoa thường) hoặc số 0/1/2.</summary>
+    /// <summary>Nhận tên (không phân biệt hoa thường) hoặc số 0/1/2.</summary>
     private static ScopeType? ParseScopeType(string? value, bool allowNull)
     {
         if (string.IsNullOrWhiteSpace(value))

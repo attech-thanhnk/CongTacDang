@@ -9,9 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace CongTacDang.Api.Services;
 
 /// <summary>
-/// Tác vụ nền tính lại thẩm quyền phê duyệt suy ra từ chức vụ (task 14): chức vụ có thời hạn tự bắt đầu/kết thúc theo thời gian
-/// mà không có thao tác sửa nào, nên giá trị lưu trên hồ sơ cán bộ cần được làm mới định kỳ
-/// (cấu hình <c>Organization:ApprovalAuthorityRefreshMinutes</c>, mặc định 60; 0 = tắt).
+/// Làm mới định kỳ thẩm quyền phê duyệt suy ra từ chức vụ, vì chức vụ có thời hạn tự hết/bắt đầu mà không có thao tác sửa.
 /// </summary>
 public sealed class ApprovalAuthorityRefreshService : BackgroundService
 {
@@ -19,7 +17,6 @@ public sealed class ApprovalAuthorityRefreshService : BackgroundService
     private readonly ILogger<ApprovalAuthorityRefreshService> _logger;
     private readonly TimeSpan _interval;
 
-    /// <summary>Khởi tạo tác vụ với chu kỳ làm mới.</summary>
     public ApprovalAuthorityRefreshService(IServiceScopeFactory scopes, ILogger<ApprovalAuthorityRefreshService> logger, TimeSpan interval)
     {
         _scopes = scopes;

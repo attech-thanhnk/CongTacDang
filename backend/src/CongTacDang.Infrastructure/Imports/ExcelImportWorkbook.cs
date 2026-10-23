@@ -9,10 +9,7 @@ using CongTacDang.Application.Imports;
 
 namespace CongTacDang.Infrastructure.Imports;
 
-/// <summary>
-/// Đọc/ghi file Excel của chức năng nhập dữ liệu bằng ClosedXML. File mẫu: sheet "Dữ liệu" (tiêu đề cố định, cột bắt buộc có dấu *,
-/// danh sách chọn cho cột có giá trị hợp lệ, định dạng chữ để giữ số 0 đầu) và sheet "Hướng dẫn".
-/// </summary>
+/// <summary>Đọc/ghi file Excel nhập dữ liệu (ClosedXML); cột định dạng chữ để giữ số 0 đầu.</summary>
 public sealed class ExcelImportWorkbook : IImportWorkbook
 {
     private const string ListSheetName = "Danh mục";
@@ -253,10 +250,7 @@ public sealed class ExcelImportWorkbook : IImportWorkbook
         return stream.ToArray();
     }
 
-    /// <summary>
-    /// Ghi chữ vào ô; chống chèn công thức: giá trị bắt đầu bằng = + - @ (hoặc tab, xuống dòng) được đánh dấu "chữ thuần"
-    /// (tiền tố ' trong Excel) để không bị hiểu là công thức khi mở/chỉnh sửa.
-    /// </summary>
+    /// <summary>Ghi chữ vào ô; giá trị bắt đầu bằng = + - @ (hoặc tab, xuống dòng) đánh dấu chữ thuần để chống chèn công thức.</summary>
     public static void SetText(IXLCell cell, string? value)
     {
         var text = value ?? string.Empty;

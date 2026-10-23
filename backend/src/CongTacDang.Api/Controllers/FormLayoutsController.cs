@@ -55,10 +55,7 @@ public class FormLayoutsController : ControllerBase
     }
 }
 
-/// <summary>
-/// Kiểu trình bày biểu mẫu của một cán bộ. Xem: <c>system.users.read</c>; đặt riêng: <c>system.users.manage</c> — service kiểm tra
-/// phạm vi theo đơn vị của cán bộ.
-/// </summary>
+/// <summary>Kiểu trình bày biểu mẫu của cán bộ; service kiểm tra phạm vi theo đơn vị của cán bộ.</summary>
 [ApiController]
 [Route("api/users/{userId:guid}/form-layout")]
 [Authorize]

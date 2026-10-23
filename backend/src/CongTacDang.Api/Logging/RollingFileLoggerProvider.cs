@@ -11,7 +11,6 @@ namespace CongTacDang.Api.Logging;
 /// <summary>Cấu hình log ra file (section <c>Logging:File</c>).</summary>
 public sealed class RollingFileLoggerOptions
 {
-    /// <summary>Bật/tắt log ra file.</summary>
     public bool Enabled { get; set; } = true;
 
     /// <summary>Thư mục chứa file log. Rỗng → thư mục <c>logs</c> cạnh (không nằm trong) thư mục publish.</summary>
@@ -38,9 +37,8 @@ public sealed class RollingFileLoggerOptions
 }
 
 /// <summary>
-/// Ghi log có cấu trúc (JSON mỗi dòng) ra file xoay vòng theo ngày, giữ tối đa N ngày.
-/// Dùng provider tự viết để không phải thêm thư viện ngoài; ghi bất đồng bộ qua hàng đợi nền.
-/// Scope (ví dụ <c>CorrelationId</c>) được gắn vào từng dòng log.
+/// Log JSON mỗi dòng ra file xoay vòng theo ngày, ghi qua hàng đợi nền; scope (CorrelationId) gắn vào từng dòng.
+/// Tự viết để không thêm thư viện ngoài.
 /// </summary>
 [ProviderAlias("File")]
 public sealed class RollingFileLoggerProvider : ILoggerProvider, ISupportExternalScope
@@ -72,7 +70,6 @@ public sealed class RollingFileLoggerProvider : ILoggerProvider, ISupportExterna
         _writerTask = Task.Run(ProcessQueueAsync);
     }
 
-    /// <summary>Thư mục log thực tế sau khi phân giải cấu hình.</summary>
     public string LogDirectory => _directory;
 
     public ILogger CreateLogger(string categoryName) =>
@@ -259,7 +256,7 @@ public sealed class RollingFileLoggerProvider : ILoggerProvider, ISupportExterna
 
 public static class RollingFileLoggerExtensions
 {
-    /// <summary>Đăng ký log console có cấu trúc (JSON, kèm scope) và log file xoay vòng theo cấu hình <c>Logging:File</c>.</summary>
+    /// <summary>Log console JSON và log file theo cấu hình <c>Logging:File</c>.</summary>
     public static ILoggingBuilder AddConfiguredLogging(this ILoggingBuilder logging, IConfiguration configuration, IHostEnvironment environment)
     {
         var consoleJson = configuration.GetValue<bool?>("Logging:Console:Json") ?? !environment.IsDevelopment();
@@ -284,8 +281,8 @@ public static class RollingFileLoggerExtensions
             try
             {
                 var provider = new RollingFileLoggerProvider(fileOptions);
-                // Đăng ký qua factory để DI container dispose provider khi tắt ứng dụng (xả hết hàng đợi log);
-                // AddProvider(instance) đăng ký instance sẵn có, container không dispose → mất các dòng log cuối.
+                // Đăng ký qua factory để container dispose provider khi tắt (xả hàng đợi);
+                // AddProvider(instance) không được dispose → mất các dòng log cuối.
                 logging.Services.AddSingleton<ILoggerProvider>(_ => provider);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

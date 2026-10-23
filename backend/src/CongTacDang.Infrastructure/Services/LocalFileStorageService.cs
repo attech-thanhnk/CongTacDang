@@ -5,10 +5,7 @@ using CongTacDang.Application.Common.Interfaces;
 
 namespace CongTacDang.Infrastructure.Services;
 
-/// <summary>
-/// Dịch vụ lưu trữ tệp tin vật lý trên ổ đĩa máy chủ cục bộ
-/// Lưu tệp trên đĩa cục bộ của máy chủ backend (thư mục cấu hình Storage:Local:Path)
-/// </summary>
+/// <summary>Lưu tệp trên đĩa cục bộ của máy chủ (cấu hình Storage:Local:Path).</summary>
 public class LocalFileStorageService : IFileStorageService
 {
     private readonly string _storageRoot;
@@ -30,9 +27,6 @@ public class LocalFileStorageService : IFileStorageService
         }
     }
 
-    /// <summary>
-    /// Lưu luồng dữ liệu tệp vào thư mục cục bộ theo cấu trúc phân cấp ObjectKey
-    /// </summary>
     public async Task<string> SaveFileAsync(Stream fileStream, string objectKey, string contentType = "application/octet-stream")
     {
         var fullPath = GetSafePath(objectKey);
@@ -51,9 +45,6 @@ public class LocalFileStorageService : IFileStorageService
         return objectKey;
     }
 
-    /// <summary>
-    /// Đọc luồng dữ liệu của tệp tin từ ổ đĩa
-    /// </summary>
     public Task<Stream?> GetFileStreamAsync(string objectKey)
     {
         var fullPath = GetSafePath(objectKey);
@@ -67,9 +58,6 @@ public class LocalFileStorageService : IFileStorageService
         return Task.FromResult<Stream?>(stream);
     }
 
-    /// <summary>
-    /// Xóa tệp khỏi kho lưu trữ cục bộ
-    /// </summary>
     public Task DeleteFileAsync(string objectKey)
     {
         var fullPath = GetSafePath(objectKey);
@@ -82,18 +70,13 @@ public class LocalFileStorageService : IFileStorageService
         return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Kiểm tra tệp có tồn tại trên đĩa hay không
-    /// </summary>
     public bool FileExists(string objectKey)
     {
         var fullPath = GetSafePath(objectKey);
         return File.Exists(fullPath);
     }
 
-    /// <summary>
-    /// Sinh liên kết tương đối tải tệp tin qua API
-    /// </summary>
+    /// <summary>Liên kết tương đối tải tệp qua API.</summary>
     public Task<string?> GetDownloadUrlAsync(Guid attachmentId, TimeSpan? expiry = null)
     {
         return Task.FromResult<string?>($"/api/attachments/{attachmentId}/download");

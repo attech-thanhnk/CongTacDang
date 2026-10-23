@@ -4,14 +4,14 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CongTacDang.Infrastructure.Data.Configurations;
 
-/// <summary>Bản nháp phần nhập tay của báo cáo tổng hợp (task 19): một bản cho mỗi kỳ + tổ chức Đảng + biểu mẫu.</summary>
+/// <summary>Một bản nháp cho mỗi kỳ + tổ chức Đảng + biểu mẫu.</summary>
 public sealed class ReportDraftConfiguration : IEntityTypeConfiguration<ReportDraft>
 {
     public void Configure(EntityTypeBuilder<ReportDraft> entity)
     {
         entity.ToTable("report_drafts");
         entity.HasKey(e => e.Id);
-        // Toàn Đảng bộ (PartyCellId null) cũng chỉ có một bản nháp cho mỗi kỳ và biểu mẫu.
+        // PartyCellId null (toàn Đảng bộ) cũng chỉ một bản nháp.
         entity.HasIndex(e => new { e.PeriodId, e.PartyCellId, e.FormCode }).IsUnique().AreNullsDistinct(false);
         entity.Property(e => e.FormCode).HasMaxLength(10).IsRequired();
         entity.Property(e => e.Content).HasColumnType("jsonb").IsRequired();
@@ -26,7 +26,7 @@ public sealed class ReportDraftConfiguration : IEntityTypeConfiguration<ReportDr
             .WithMany()
             .HasForeignKey(e => e.PartyCellId)
             .OnDelete(DeleteBehavior.Cascade);
-        // Bản nháp ẩn cùng kỳ đã xóa mềm (khớp query filter của kỳ — tránh cảnh báo EF 10622).
+        // Khớp query filter của kỳ — tránh cảnh báo EF 10622.
         entity.HasQueryFilter(e => !e.Period.IsDeleted);
     }
 }

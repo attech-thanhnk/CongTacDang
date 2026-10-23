@@ -4,14 +4,12 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CongTacDang.Infrastructure.Data.Configurations;
 
-/// <summary>Độ dài cột dùng chung của mô hình tổ chức.</summary>
 internal static class OrganizationColumns
 {
-    /// <summary>Độ dài tối đa của đường dẫn vật hóa (≈ 50 cấp × 37 ký tự).</summary>
+    /// <summary>≈ 50 cấp × 37 ký tự.</summary>
     public const int PathMaxLength = 2000;
 }
 
-/// <summary>Bảng <c>party_cells</c>: cây tổ chức Đảng (tự tham chiếu <c>ParentId</c>, đường dẫn <c>Path</c>).</summary>
 public sealed class PartyCellConfiguration : IEntityTypeConfiguration<PartyCell>
 {
     /// <inheritdoc />
@@ -39,7 +37,6 @@ public sealed class PartyCellConfiguration : IEntityTypeConfiguration<PartyCell>
     }
 }
 
-/// <summary>Bảng <c>administrative_departments</c>: cây đơn vị chính quyền (tự tham chiếu <c>ParentId</c>, đường dẫn <c>Path</c>).</summary>
 public sealed class AdministrativeDepartmentConfiguration : IEntityTypeConfiguration<AdministrativeDepartment>
 {
     /// <inheritdoc />
@@ -67,7 +64,6 @@ public sealed class AdministrativeDepartmentConfiguration : IEntityTypeConfigura
     }
 }
 
-/// <summary>Bảng <c>org_unit_types</c>: danh mục loại đơn vị.</summary>
 public sealed class OrgUnitTypeConfiguration : IEntityTypeConfiguration<OrgUnitType>
 {
     /// <inheritdoc />
@@ -77,13 +73,12 @@ public sealed class OrgUnitTypeConfiguration : IEntityTypeConfiguration<OrgUnitT
         entity.HasKey(e => e.Id);
         entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
         entity.Property(e => e.Side).HasConversion<int>();
-        // Tên loại duy nhất trong cùng một bên (chỉ tính bản ghi chưa xóa).
+        // Duy nhất trong cùng một bên, chỉ tính bản ghi chưa xóa.
         entity.HasIndex(e => new { e.Side, e.Name }).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
         entity.HasQueryFilter(e => !e.IsDeleted);
     }
 }
 
-/// <summary>Bảng <c>positions</c>: danh mục chức vụ.</summary>
 public sealed class PositionConfiguration : IEntityTypeConfiguration<Position>
 {
     /// <inheritdoc />
@@ -105,7 +100,6 @@ public sealed class PositionConfiguration : IEntityTypeConfiguration<Position>
     }
 }
 
-/// <summary>Bảng <c>form_layouts</c>: kiểu trình bày biểu mẫu tự đánh giá.</summary>
 public sealed class FormLayoutConfiguration : IEntityTypeConfiguration<FormLayout>
 {
     /// <inheritdoc />
@@ -122,7 +116,6 @@ public sealed class FormLayoutConfiguration : IEntityTypeConfiguration<FormLayou
     }
 }
 
-/// <summary>Bảng <c>member_positions</c>: chức vụ (kể cả kiêm nhiệm) của cán bộ tại đơn vị, có thời hạn.</summary>
 public sealed class MemberPositionConfiguration : IEntityTypeConfiguration<MemberPosition>
 {
     /// <inheritdoc />
@@ -160,7 +153,6 @@ public sealed class MemberPositionConfiguration : IEntityTypeConfiguration<Membe
     }
 }
 
-/// <summary>Bảng <c>holidays</c>: danh mục ngày nghỉ.</summary>
 public sealed class HolidayConfiguration : IEntityTypeConfiguration<Holiday>
 {
     /// <inheritdoc />
@@ -169,7 +161,7 @@ public sealed class HolidayConfiguration : IEntityTypeConfiguration<Holiday>
         entity.ToTable("holidays");
         entity.HasKey(e => e.Id);
         entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
-        // Mỗi ngày chỉ một dòng (chỉ tính bản ghi chưa xóa).
+        // Chỉ tính bản ghi chưa xóa.
         entity.HasIndex(e => e.Date).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
         entity.HasQueryFilter(e => !e.IsDeleted);
     }

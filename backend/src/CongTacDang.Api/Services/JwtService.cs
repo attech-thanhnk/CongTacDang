@@ -12,9 +12,8 @@ using Microsoft.IdentityModel.Tokens;
 namespace CongTacDang.Api.Services;
 
 /// <summary>
-/// Dịch vụ sinh JWT (chỉ danh tính + dấu bảo mật) và Refresh Token.
-/// Token được đọc từ HttpOnly Cookie bởi middleware JwtBearer; trạng thái tài khoản và dấu bảo mật
-/// được kiểm tra lại ở mỗi request (<c>SecurityExtensions.AddAccountSessionValidation</c>).
+/// JWT chỉ chứa danh tính + dấu bảo mật; trạng thái tài khoản kiểm tra lại mỗi request
+/// (<c>SecurityExtensions.AddAccountSessionValidation</c>).
 /// </summary>
 public class JwtService : IJwtService
 {
@@ -33,7 +32,6 @@ public class JwtService : IJwtService
         _refreshTokenExpiryDays = int.TryParse(config["Jwt:RefreshTokenExpiryDays"], out var d) ? d : 7;
     }
 
-    /// <summary>Sinh JWT Access Token ngắn hạn (mặc định 15 phút) chỉ chứa danh tính và dấu bảo mật.</summary>
     public (string Token, DateTime ExpiresAt) GenerateToken(PartyMemberProfile member)
     {
         var claims = new List<Claim>
@@ -61,9 +59,7 @@ public class JwtService : IJwtService
         return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
     }
 
-    /// <summary>
-    /// Sinh Refresh Token ngẫu nhiên 64 bytes có độ an toàn mã hóa cao (hạn 7 ngày)
-    /// </summary>
+    /// <summary>64 byte ngẫu nhiên an toàn mật mã.</summary>
     public RefreshToken GenerateRefreshToken(Guid userId, string? ipAddress = null)
     {
         var randomBytes = RandomNumberGenerator.GetBytes(64);

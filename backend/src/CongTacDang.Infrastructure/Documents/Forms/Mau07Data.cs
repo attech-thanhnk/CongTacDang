@@ -3,66 +3,58 @@ using CongTacDang.Domain.Entities;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
-/// <summary>
-/// Dữ liệu Mẫu 07 — Báo cáo tự đánh giá, xếp loại chất lượng của tập thể Đảng ủy (Chi ủy, Chi bộ).
-/// Template: <c>Mau_07_BaoCaoTuDanhGiaTapThe.docx</c> (dựng từ biểu mẫu gốc HD03, PDF tr.46–47).
-/// </summary>
+/// <summary>Báo cáo tự đánh giá, xếp loại của tập thể Đảng ủy (Chi ủy, Chi bộ).</summary>
 public sealed class Mau07Data
 {
-    /// <summary>Tên tệp template.</summary>
     public const string TemplateFileName = "Mau_07_BaoCaoTuDanhGiaTapThe.docx";
 
-    /// <summary>Dòng "ĐẢNG BỘ …" (tổ chức Đảng cấp trên của tập thể).</summary>
+    /// <summary>Tổ chức Đảng cấp trên của tập thể.</summary>
     [TemplateField("PARTY_PARENT")] public string? PartyParent { get; init; }
 
-    /// <summary>Dòng "ĐẢNG ỦY (CHI BỘ) …" (tổ chức Đảng của tập thể).</summary>
     [TemplateField("PARTY_ORG")] public string? PartyOrganization { get; init; }
 
-    /// <summary>"ngày … tháng … năm …" sau địa danh: ngày lập báo cáo = lần cập nhật hồ sơ tập thể gần nhất (chưa sửa → ngày tạo).</summary>
+    /// <summary>Lần cập nhật hồ sơ tập thể gần nhất (chưa sửa → ngày tạo).</summary>
     [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
 
-    /// <summary>Tên tập thể trong tiêu đề ("CỦA TẬP THỂ …"), chữ in hoa.</summary>
+    /// <summary>Chữ in hoa, trong tiêu đề "CỦA TẬP THỂ …".</summary>
     [TemplateField("SUBJECT_NAME_UPPER")] public string? SubjectNameUpper { get; init; }
 
-    /// <summary>Quý (La Mã) — chỗ điền "Quý……Năm" nên có khoảng trắng hai bên.</summary>
+    /// <summary>Có khoảng trắng hai bên vì chỗ điền là "Quý……Năm".</summary>
     [TemplateField("QUARTER")] public string? Quarter { get; init; }
 
     [TemplateField("YEAR")] public string? Year { get; init; }
 
-    /// <summary>"… thực hiện các nhiệm vụ tại &lt;Đảng bộ (Chi bộ)&gt;".</summary>
     [TemplateField("UNIT_NAME")] public string? UnitName { get; init; }
 
-    /// <summary>"tập thể &lt;Đảng ủy (Chi ủy, Chi bộ)&gt; tự đánh giá".</summary>
     [TemplateField("SUBJECT_NAME")] public string? SubjectName { get; init; }
 
-    /// <summary>Mục A.I.1–4 (mã I.1–I.4); để trống → giữ dòng chấm của biểu mẫu.</summary>
+    /// <summary>Mục A.I.1–4; để trống → giữ dòng chấm.</summary>
     [TemplateField("STRENGTH_1")] public string? Strength1 { get; init; }
     [TemplateField("STRENGTH_2")] public string? Strength2 { get; init; }
     [TemplateField("STRENGTH_3")] public string? Strength3 { get; init; }
     [TemplateField("STRENGTH_4")] public string? Strength4 { get; init; }
 
-    /// <summary>Mục A.II — hạn chế, khuyết điểm và nguyên nhân.</summary>
+    /// <summary>Mục A.II.</summary>
     [TemplateField("LIMITATIONS")] public string? Limitations { get; init; }
     [TemplateField("CAUSES")] public string? Causes { get; init; }
 
-    /// <summary>Mục A.III — kết quả khắc phục hạn chế, khuyết điểm kỳ trước.</summary>
+    /// <summary>Mục A.III.</summary>
     [TemplateField("PREVIOUS_REMEDIATION")] public string? PreviousRemediation { get; init; }
 
-    /// <summary>Mục A.IV — giải trình những vấn đề được gợi ý kiểm điểm.</summary>
+    /// <summary>Mục A.IV.</summary>
     [TemplateField("EXPLANATION")] public string? Explanation { get; init; }
 
-    /// <summary>Mục A.V — trách nhiệm của tập thể, cá nhân.</summary>
+    /// <summary>Mục A.V.</summary>
     [TemplateField("RESPONSIBILITIES")] public string? Responsibilities { get; init; }
 
-    /// <summary>Mục A.VI — phương hướng, biện pháp khắc phục.</summary>
+    /// <summary>Mục A.VI.</summary>
     [TemplateField("REMEDIATION_PLAN")] public string? RemediationPlan { get; init; }
 
-    /// <summary>Mục B — điểm đã lưu trên hồ sơ tập thể (không tính lại).</summary>
+    /// <summary>Mục B: điểm đã lưu, không tính lại.</summary>
     [TemplateField("GENERAL_SCORE")] public string? GeneralScore { get; init; }
     [TemplateField("TASK_SCORE")] public string? TaskScore { get; init; }
     [TemplateField("TOTAL_SCORE")] public string? TotalScore { get; init; }
 
-    /// <summary>Dựng từ hồ sơ tập thể Mẫu 07 và các mục con I.1–I.4 đã lưu.</summary>
     public static Mau07Data From(CollectiveEvaluationRecord record, PartyHeader header, IReadOnlyDictionary<string, string> sections)
     {
         string? Section(string code) => sections.TryGetValue(code, out var text) ? FormText.OrNull(text) : null;

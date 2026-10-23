@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Repositories;
 
-/// <summary>Truy cập dữ liệu đề nghị điều chỉnh việc trong quý (Mẫu 04, 05). Ghi chỉ đưa vào DbContext, lưu qua IUnitOfWork.</summary>
+/// <summary>Ghi chỉ đưa vào DbContext; lưu qua IUnitOfWork.</summary>
 public sealed class TaskChangeRepository : ITaskChangeRepository
 {
     private readonly CongTacDangDbContext _db;

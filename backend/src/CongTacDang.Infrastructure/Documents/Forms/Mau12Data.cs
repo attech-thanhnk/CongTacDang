@@ -6,13 +6,9 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
-/// <summary>
-/// Dữ liệu Mẫu 12 — Biên bản hội nghị tập thể lãnh đạo, quản lý (B3a) hoặc hội nghị Đảng ủy/Chi ủy cơ sở (B4) về việc đánh giá,
-/// xếp loại chất lượng cán bộ quý. Template: <c>Mau_12_BienBanHoiNghi.docx</c> (biểu mẫu gốc HD03, PDF tr.68–69).
-/// </summary>
+/// <summary>Biên bản hội nghị tập thể lãnh đạo (B3a) hoặc cấp ủy cơ sở (B4).</summary>
 public sealed class Mau12Data
 {
-    /// <summary>Tên tệp template.</summary>
     public const string TemplateFileName = "Mau_12_BienBanHoiNghi.docx";
 
     [TemplateField("PARTY_PARENT")] public string? PartyParent { get; init; }
@@ -21,16 +17,16 @@ public sealed class Mau12Data
     /// <summary>"Hội nghị tập thể lãnh đạo, quản lý &lt;đơn vị&gt;" (B3a) hoặc "Hội nghị &lt;Đảng ủy/Chi ủy&gt;" (B4).</summary>
     [TemplateField("MEETING_NAME")] public string? MeetingName { get; init; }
 
-    /// <summary>" III/2026" — chỗ điền sau chữ "quý".</summary>
+    /// <summary>" III/2026" — điền sau chữ "quý".</summary>
     [TemplateField("PERIOD_TEXT")] public string? PeriodText { get; init; }
 
     /// <summary>"Căn cứ Quy chế làm việc của … nhiệm kỳ …".</summary>
     [TemplateField("WORKING_RULES")] public string? WorkingRules { get; init; }
 
-    /// <summary>Tập thể/tổ chức Đảng tổ chức hội nghị (đầu đoạn "… đã tổ chức Hội nghị để …").</summary>
+    /// <summary>Đầu đoạn "… đã tổ chức Hội nghị để …".</summary>
     [TemplateField("ORGANIZER")] public string? Organizer { get; init; }
 
-    /// <summary>Mục đích hội nghị theo bước: đề xuất (B3a) hoặc quyết định, phê duyệt (B4) mức xếp loại.</summary>
+    /// <summary>Đề xuất (B3a) hoặc quyết định, phê duyệt (B4) mức xếp loại.</summary>
     [TemplateField("PURPOSE")] public string? Purpose { get; init; }
     [TemplateField("VOTE_PURPOSE")] public string? VotePurpose { get; init; }
 
@@ -42,10 +38,10 @@ public sealed class Mau12Data
     [TemplateField("PRESENT")] public string? Present { get; init; }
     [TemplateField("ABSENT")] public string? Absent { get; init; }
 
-    /// <summary>Mục 3.2 — cán bộ, đảng viên được cử tham dự ghi chép, báo cáo, phục vụ hội nghị.</summary>
+    /// <summary>Người được cử ghi chép, phục vụ hội nghị.</summary>
     [TemplateCollection("ATTENDEES")] public List<Mau12Attendee> Attendees { get; init; } = new();
 
-    /// <summary>Có người ở mục 3.2 (không có → giữ dòng "…" của biểu mẫu).</summary>
+    /// <summary>Không có → giữ dòng "…" của biểu mẫu.</summary>
     [TemplateCondition("HAS_ATTENDEES")] public bool HasAttendees { get; init; }
 
     [TemplateField("CHAIR_NAME")] public string? ChairName { get; init; }
@@ -53,36 +49,29 @@ public sealed class Mau12Data
     [TemplateField("SECRETARY_NAME")] public string? SecretaryName { get; init; }
     [TemplateField("SECRETARY_TITLE")] public string? SecretaryTitle { get; init; }
 
-    /// <summary>Cơ quan, đơn vị báo cáo tình hình thực hiện nhiệm vụ trọng tâm (mục II).</summary>
     [TemplateField("REPORTING_UNIT")] public string? ReportingUnit { get; init; }
 
-    /// <summary>Nội dung, diễn biến và kết quả hội nghị đã ghi (không có → không in đoạn này).</summary>
+    /// <summary>Không có nội dung → không in đoạn này.</summary>
     [TemplateCondition("HAS_CONTENT")] public bool HasContent { get; init; }
     [TemplateField("CONTENT")] public string? Content { get; init; }
 
     /// <summary>"01 bản lưu tại &lt;Đảng ủy/Chi bộ&gt;".</summary>
     [TemplateField("ARCHIVE_UNIT")] public string? ArchiveUnit { get; init; }
 
-    /// <summary>Họ tên dưới chữ ký thư ký / chủ trì.</summary>
     [TemplateField("SECRETARY_SIGN")] public string? SecretarySign { get; init; }
     [TemplateField("CHAIR_SIGN")] public string? ChairSign { get; init; }
 
     /// <summary>
-    /// Chức danh dưới "CHỦ TRÌ HỘI NGHỊ" (chữ in sẵn "BÍ THƯ"): chức vụ chủ trì đã lưu trên biên bản, chữ in hoa. Chưa ghi chức vụ:
-    /// hội nghị tập thể lãnh đạo (B3a) để trống — chủ trì là thủ trưởng đơn vị, không phải Bí thư; hội nghị cấp ủy giữ "BÍ THƯ".
+    /// Chức vụ chủ trì, chữ in hoa. Chưa ghi: B3a để trống (chủ trì là thủ trưởng, không phải Bí thư); hội nghị cấp ủy giữ "BÍ THƯ".
     /// </summary>
     [TemplateField("CHAIR_SIGN_TITLE")] public string? ChairSignTitle { get; init; }
 
-    /// <summary>Ghi chú chữ ký chủ trì: hội nghị tập thể lãnh đạo (B3a) không đóng dấu Đảng → "(ký, ghi rõ họ tên)"; khác giữ chữ mẫu.</summary>
+    /// <summary>B3a không đóng dấu Đảng → "(ký, ghi rõ họ tên)"; khác giữ chữ mẫu.</summary>
     [TemplateField("CHAIR_SIGN_NOTE")] public string? ChairSignNote { get; init; }
 
-    /// <summary>Chữ ký chủ trì khi hội nghị tập thể lãnh đạo, quản lý (B3a).</summary>
     public const string ProposalChairSignNote = "(ký, ghi rõ họ tên)";
 
-    /// <summary>
-    /// Dựng từ biên bản đã lưu. <paramref name="unitName"/>: đơn vị tổ chức hội nghị (Phòng / tổ chức Đảng / Đảng bộ);
-    /// <paramref name="archiveUnit"/>: tổ chức Đảng lưu biên bản.
-    /// </summary>
+    /// <summary><paramref name="unitName"/>: đơn vị tổ chức hội nghị; <paramref name="archiveUnit"/>: tổ chức Đảng lưu biên bản.</summary>
     public static Mau12Data From(EvaluationMeeting meeting, PartyHeader header, string? unitName, string? archiveUnit, MeetingDetailsDto details)
     {
         var unit = FormText.OrNull(unitName?.Trim());
@@ -143,7 +132,6 @@ public sealed class Mau12Data
     }
 }
 
-/// <summary>Một người ở mục 3.2 của Mẫu 12.</summary>
 public sealed class Mau12Attendee
 {
     [TemplateField("A_STT")] public string? Order { get; init; }

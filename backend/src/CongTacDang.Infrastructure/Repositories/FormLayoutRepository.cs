@@ -10,7 +10,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Repositories;
 
-/// <summary>Repository danh mục kiểu trình bày biểu mẫu tự đánh giá.</summary>
 public sealed class FormLayoutRepository : IFormLayoutRepository
 {
     private readonly CongTacDangDbContext _db;

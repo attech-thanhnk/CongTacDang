@@ -10,11 +10,7 @@ using CongTacDang.Application.Services;
 
 namespace CongTacDang.Api.Controllers;
 
-/// <summary>
-/// Biểu mẫu cá nhân của hồ sơ đánh giá (task 18 — T-83): Mẫu 09A/09B/09C/9D (và 01/02/10) theo bộ tiêu chí của kỳ, xuất Word
-/// hoặc PDF (<c>?format=pdf</c>). Quyền: xem được hồ sơ (<c>evaluation.read</c> trong phạm vi; chủ hồ sơ luôn xem được) — kiểm tra
-/// trên từng hồ sơ trong service qua <c>IAuthorizationGuard</c>.
-/// </summary>
+/// <summary>Biểu mẫu cá nhân của hồ sơ theo bộ tiêu chí của kỳ; service kiểm tra quyền xem trên hồ sơ.</summary>
 [ApiController]
 [Route("api/reports/docx/record")]
 [Authorize]
@@ -32,7 +28,7 @@ public class RecordFormsController : ControllerBase
         return Ok(ApiResponse<List<RecordFormDto>>.Ok(forms, "Lấy danh sách biểu mẫu của hồ sơ thành công."));
     }
 
-    /// <summary>Xuất một biểu mẫu của hồ sơ (<paramref name="formCode"/>: 01, 02, 09A, 09B, 09C, 9D, 10).</summary>
+    /// <summary>Xuất một biểu mẫu (formCode: 01, 02, 09A, 09B, 09C, 9D, 10).</summary>
     [HttpGet("{recordId:guid}/{formCode}")]
     public async Task<IActionResult> Export(Guid recordId, string formCode, [FromQuery] string? format, CancellationToken ct)
     {

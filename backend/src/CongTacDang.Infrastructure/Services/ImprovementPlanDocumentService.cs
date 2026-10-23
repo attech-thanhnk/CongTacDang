@@ -9,10 +9,7 @@ using CongTacDang.Infrastructure.Documents.Forms;
 
 namespace CongTacDang.Infrastructure.Services;
 
-/// <summary>
-/// Xuất Mẫu 17 (task 20 — T-88): file mẫu đang kích hoạt (hoặc file gốc <c>Mau_17_KeHoachHoTro.docx</c>) + dữ liệu kế hoạch
-/// + tag thông tin đơn vị <c>ORG_*</c>; PDF chuyển phía máy chủ bằng LibreOffice.
-/// </summary>
+/// <summary>Xuất Mẫu 17 từ file mẫu đang kích hoạt (hoặc file gốc); PDF chuyển bằng LibreOffice.</summary>
 public sealed class ImprovementPlanDocumentService : IImprovementPlanDocument
 {
     private const string DocxMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";

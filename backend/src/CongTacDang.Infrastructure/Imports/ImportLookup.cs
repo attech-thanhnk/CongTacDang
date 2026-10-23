@@ -18,7 +18,6 @@ public sealed class ImportLookup : IImportLookup, IImportAuditWriter
     private readonly CongTacDangDbContext _db;
     private readonly ICurrentUserService _currentUser;
 
-    /// <summary>Khởi tạo.</summary>
     public ImportLookup(CongTacDangDbContext db, ICurrentUserService currentUser)
     {
         _db = db;

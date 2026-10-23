@@ -11,13 +11,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Repositories;
 
-/// <summary>Repository quản trị vai trò và danh mục quyền.</summary>
 public class RoleRepository : IRoleRepository
 {
     private readonly CongTacDangDbContext _db;
     private readonly ICurrentUserService _currentUser;
 
-    /// <summary>Khởi tạo repository.</summary>
     public RoleRepository(CongTacDangDbContext db, ICurrentUserService currentUser)
     {
         _db = db;

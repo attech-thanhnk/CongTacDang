@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CongTacDang.Infrastructure.Data.Configurations;
 
-/// <summary>Kiến nghị sau công bố (task 20 — T-87): nhiều kiến nghị mỗi hồ sơ, xmin.</summary>
+/// <summary>Nhiều kiến nghị mỗi hồ sơ.</summary>
 public sealed class EvaluationAppealConfiguration : IEntityTypeConfiguration<EvaluationAppeal>
 {
     public void Configure(EntityTypeBuilder<EvaluationAppeal> entity)
@@ -30,15 +30,15 @@ public sealed class EvaluationAppealConfiguration : IEntityTypeConfiguration<Eva
             .WithMany()
             .HasForeignKey(e => e.RecordId)
             .OnDelete(DeleteBehavior.Cascade);
-        // SubmittedById / ResolvedById…: tham chiếu mềm (không FK) như người thực hiện các bước trên hồ sơ.
+        // SubmittedById / ResolvedById…: tham chiếu mềm (không FK).
         entity.HasIndex(e => e.SubmittedById);
 
-        // Hồ sơ đánh giá có bộ lọc xóa mềm → áp cùng điều kiện cho bảng con.
+        // Áp cùng bộ lọc xóa mềm của hồ sơ.
         entity.HasQueryFilter(e => !e.Record.IsDeleted);
     }
 }
 
-/// <summary>Kế hoạch 30-60-90 ngày — Mẫu 17 (task 20 — T-88): mỗi hồ sơ tối đa một kế hoạch, nội dung jsonb, xmin.</summary>
+/// <summary>Mẫu 17: mỗi hồ sơ tối đa một kế hoạch.</summary>
 public sealed class ImprovementPlanConfiguration : IEntityTypeConfiguration<ImprovementPlan>
 {
     public void Configure(EntityTypeBuilder<ImprovementPlan> entity)

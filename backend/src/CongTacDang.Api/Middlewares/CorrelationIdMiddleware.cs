@@ -4,9 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace CongTacDang.Api.Middlewares;
 
 /// <summary>
-/// Gắn correlation id cho mỗi request: nhận <c>X-Request-Id</c> từ client/reverse proxy nếu hợp lệ,
-/// không thì sinh mới; trả lại trong response header và đưa vào scope log (<c>CorrelationId</c>)
-/// để mọi dòng log của request đều mang cùng một id.
+/// Nhận <c>X-Request-Id</c> nếu hợp lệ, không thì sinh mới; trả trong response header và đưa vào scope log.
 /// </summary>
 public sealed class CorrelationIdMiddleware
 {
@@ -36,10 +34,7 @@ public sealed class CorrelationIdMiddleware
         }
     }
 
-    /// <summary>
-    /// Chỉ chấp nhận id ngắn gồm chữ, số và <c>- _ . :</c> để tránh chèn dòng log / header;
-    /// giá trị không hợp lệ bị thay bằng id mới.
-    /// </summary>
+    /// <summary>Chỉ nhận id ngắn gồm chữ, số và <c>- _ . :</c> để tránh chèn dòng log/header.</summary>
     public static string ResolveCorrelationId(string? incoming)
     {
         if (!string.IsNullOrWhiteSpace(incoming))

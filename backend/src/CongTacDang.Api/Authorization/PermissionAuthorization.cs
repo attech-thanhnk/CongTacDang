@@ -22,7 +22,6 @@ namespace CongTacDang.Api.Authorization;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
 public sealed class RequirePermissionAttribute : AuthorizeAttribute
 {
-    /// <summary>Khai báo endpoint yêu cầu mã quyền <paramref name="permission"/>.</summary>
     public RequirePermissionAttribute(string permission)
     {
         if (string.IsNullOrWhiteSpace(permission))
@@ -32,21 +31,15 @@ public sealed class RequirePermissionAttribute : AuthorizeAttribute
         Policy = permission;
     }
 
-    /// <summary>Mã quyền yêu cầu.</summary>
     public string Permission { get; }
 }
 
-/// <summary>
-/// Yêu cầu endpoint có <b>ít nhất một</b> trong các mã quyền (ở phạm vi bất kỳ) — dùng khi nhiều quyền cùng dẫn tới một chức năng
-/// (vd. ghi nhận quyết định của cơ sở hoặc của cấp trên). Tên policy: <c>any:</c> + các mã nối bằng <c>|</c>.
-/// </summary>
+/// <summary>Có ít nhất một trong các mã quyền (phạm vi bất kỳ). Tên policy: <c>any:a|b</c>.</summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
 public sealed class RequireAnyPermissionAttribute : AuthorizeAttribute
 {
-    /// <summary>Tiền tố tên policy.</summary>
     public const string PolicyPrefix = "any:";
 
-    /// <summary>Khai báo endpoint yêu cầu một trong các mã quyền.</summary>
     public RequireAnyPermissionAttribute(params string[] permissions)
     {
         if (permissions == null || permissions.Length == 0 || permissions.Any(string.IsNullOrWhiteSpace))
@@ -56,47 +49,38 @@ public sealed class RequireAnyPermissionAttribute : AuthorizeAttribute
         Policy = PolicyPrefix + string.Join("|", permissions);
     }
 
-    /// <summary>Các mã quyền (chỉ cần một).</summary>
     public IReadOnlyList<string> Permissions { get; }
 }
 
 /// <summary>Yêu cầu có một trong các mã quyền (ở phạm vi bất kỳ) theo <see cref="IPermissionResolver"/>.</summary>
 public sealed class PermissionRequirement : IAuthorizationRequirement
 {
-    /// <summary>Khởi tạo yêu cầu theo một mã quyền.</summary>
     public PermissionRequirement(string permission) : this(new[] { permission })
     {
     }
 
-    /// <summary>Khởi tạo yêu cầu "một trong các mã quyền".</summary>
     public PermissionRequirement(IReadOnlyList<string> permissions)
     {
         Permissions = permissions;
     }
 
-    /// <summary>Các mã quyền được chấp nhận.</summary>
     public IReadOnlyList<string> Permissions { get; }
 }
 
-/// <summary>
-/// Cung cấp policy động: tên policy là mã quyền trong <see cref="PermissionCodes"/>, hoặc <c>any:a|b</c>.
-/// Tên khác chuyển cho provider mặc định.
-/// </summary>
+/// <summary>Policy động theo mã quyền hoặc <c>any:a|b</c>; tên khác chuyển cho provider mặc định.</summary>
 public sealed class PermissionPolicyProvider : IAuthorizationPolicyProvider
 {
     private readonly DefaultAuthorizationPolicyProvider _fallback;
     private readonly ConcurrentDictionary<string, AuthorizationPolicy> _policies = new(StringComparer.Ordinal);
 
-    /// <summary>Khởi tạo provider.</summary>
     public PermissionPolicyProvider(IOptions<AuthorizationOptions> options)
     {
         _fallback = new DefaultAuthorizationPolicyProvider(options);
     }
 
-    /// <summary>Mã quyền được nhận làm tên policy.</summary>
     public static bool IsKnownPermission(string code) => PermissionCodes.IsDefined(code);
 
-    /// <summary>Dựng yêu cầu cho tên policy; null nếu không phải policy theo mã quyền.</summary>
+    /// <summary>Null nếu không phải policy theo mã quyền.</summary>
     public static PermissionRequirement? CreateRequirement(string policyName)
     {
         if (PermissionCodes.IsDefined(policyName))
@@ -138,12 +122,11 @@ public sealed class PermissionPolicyProvider : IAuthorizationPolicyProvider
     }
 }
 
-/// <summary>Đánh giá <see cref="PermissionRequirement"/> từ <see cref="IPermissionResolver"/> (không đọc claim quyền/vai trò trong JWT).</summary>
+/// <summary>Tính quyền qua <see cref="IPermissionResolver"/>, không đọc claim quyền/vai trò trong JWT.</summary>
 public sealed class PermissionAuthorizationHandler : IAuthorizationHandler
 {
     private readonly IPermissionResolver _resolver;
 
-    /// <summary>Khởi tạo handler.</summary>
     public PermissionAuthorizationHandler(IPermissionResolver resolver) => _resolver = resolver;
 
     /// <inheritdoc />
@@ -169,10 +152,7 @@ public sealed class PermissionAuthorizationHandler : IAuthorizationHandler
     }
 }
 
-/// <summary>
-/// Trả 403 kèm <see cref="ApiResponse"/> nêu tên quyền hiển thị khi thiếu quyền (RULES 8.5);
-/// các trường hợp khác giữ xử lý mặc định.
-/// </summary>
+/// <summary>Thiếu quyền → 403 kèm <see cref="ApiResponse"/> nêu tên quyền; trường hợp khác giữ mặc định.</summary>
 public sealed class PermissionAuthorizationResultHandler : IAuthorizationMiddlewareResultHandler
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -192,7 +172,7 @@ public sealed class PermissionAuthorizationResultHandler : IAuthorizationMiddlew
 
             if (names.Count > 0)
             {
-                // Ghi ra challenge/forbid mặc định trước để giữ hành vi của scheme (WWW-Authenticate, log), rồi thêm nội dung.
+                // Gọi forbid mặc định trước để giữ hành vi của scheme (WWW-Authenticate, log), rồi mới ghi nội dung.
                 if (policy.AuthenticationSchemes.Count > 0)
                 {
                     foreach (var scheme in policy.AuthenticationSchemes)
@@ -217,14 +197,14 @@ public sealed class PermissionAuthorizationResultHandler : IAuthorizationMiddlew
         await _default.HandleAsync(next, context, policy, authorizeResult);
     }
 
-    /// <summary>Tên hiển thị của mã quyền (không lộ mã kỹ thuật).</summary>
+    /// <summary>Không lộ mã kỹ thuật ra người dùng.</summary>
     private static string DisplayNameOf(string code) => PermissionCodes.Find(code)?.Name ?? "Quyền được yêu cầu";
 }
 
-/// <summary>Tiện ích đọc danh tính từ <see cref="ClaimsPrincipal"/> (chỉ danh tính, không đọc vai trò/quyền).</summary>
+/// <summary>Chỉ đọc danh tính, không đọc vai trò/quyền từ claim.</summary>
 public static class ClaimsPrincipalIdentityExtensions
 {
-    /// <summary>Id người dùng từ claim NameIdentifier hoặc sub; null nếu chưa đăng nhập/không hợp lệ.</summary>
+    /// <summary>Claim NameIdentifier hoặc sub; null nếu chưa đăng nhập/không hợp lệ.</summary>
     public static Guid? GetUserId(this ClaimsPrincipal user)
     {
         if (user.Identity?.IsAuthenticated != true)

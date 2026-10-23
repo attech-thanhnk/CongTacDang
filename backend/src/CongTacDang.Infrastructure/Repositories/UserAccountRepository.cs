@@ -12,12 +12,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Repositories;
 
-/// <summary>Truy vấn tài khoản cho vòng đời tài khoản và kiểm tra phiên (task 08).</summary>
 public sealed class UserAccountRepository : IUserAccountRepository
 {
     private readonly CongTacDangDbContext _db;
 
-    /// <summary>Khởi tạo repository.</summary>
     public UserAccountRepository(CongTacDangDbContext db) => _db = db;
 
     /// <inheritdoc />
@@ -133,7 +131,7 @@ public sealed class UserAccountRepository : IUserAccountRepository
     /// <inheritdoc />
     public async Task SoftDeleteAsync(PartyMemberProfile member, CancellationToken ct = default)
     {
-        // DbContext đổi thao tác xóa thành xóa mềm (IsDeleted, IsActive = false) và ghi audit.
+        // DbContext đổi thành xóa mềm (IsDeleted, IsActive = false) và ghi audit.
         _db.PartyMemberProfiles.Remove(member);
         await _db.SaveChangesAsync(ct);
     }
@@ -142,12 +140,10 @@ public sealed class UserAccountRepository : IUserAccountRepository
         value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 }
 
-/// <summary>Ghi và tra cứu nhật ký đăng nhập.</summary>
 public sealed class LoginEventRepository : ILoginEventRepository
 {
     private readonly CongTacDangDbContext _db;
 
-    /// <summary>Khởi tạo repository.</summary>
     public LoginEventRepository(CongTacDangDbContext db) => _db = db;
 
     /// <inheritdoc />

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Repositories;
 
-/// <summary>Truy cập dữ liệu sau công bố (task 20). Ghi chỉ đưa vào DbContext, lưu qua IUnitOfWork.</summary>
+/// <summary>Ghi chỉ đưa vào DbContext; lưu qua IUnitOfWork.</summary>
 public sealed class PostPublishRepository : IPostPublishRepository
 {
     private readonly CongTacDangDbContext _db;
@@ -56,7 +56,7 @@ public sealed class PostPublishRepository : IPostPublishRepository
             .ToListAsync(ct);
     }
 
-    /// <summary>Điều kiện phạm vi (đơn vị đã gồm đơn vị con trong bộ lọc của guard, hoặc chủ hồ sơ) đưa vào truy vấn.</summary>
+    /// <summary>Phạm vi của guard (đơn vị đã gồm đơn vị con) hoặc chủ hồ sơ.</summary>
     private static IQueryable<EvaluationRecord> InScope(IQueryable<EvaluationRecord> query, ScopeFilter scope)
     {
         if (scope.IsGlobal)

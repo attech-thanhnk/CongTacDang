@@ -13,17 +13,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CongTacDang.Api.Controllers;
 
-/// <summary>
-/// Thông tin đơn vị (task 17 — T-80). Xem: mọi người đã đăng nhập (phần tên hệ thống/công ty xem được trước khi đăng nhập
-/// để hiện trên trang đăng nhập). Sửa: <c>system.settings.manage</c>.
-/// </summary>
+/// <summary>Thông tin đơn vị: xem khi đã đăng nhập (riêng phần tên công khai), sửa cần system.settings.manage.</summary>
 [ApiController]
 [Route("api/settings/organization")]
 public class SettingsController : ControllerBase
 {
     private readonly IOrganizationSettingsService _settings;
 
-    /// <summary>Khởi tạo controller.</summary>
     public SettingsController(IOrganizationSettingsService settings) => _settings = settings;
 
     /// <summary>Thông tin đơn vị hiện hành.</summary>
@@ -55,10 +51,7 @@ public class SettingsController : ControllerBase
     }
 }
 
-/// <summary>
-/// Quản lý file mẫu Word của biểu mẫu (task 17 — T-81): danh mục, lịch sử, kiểm tra, tải lên, kích hoạt, tải xuống.
-/// Mọi thao tác cần <c>system.templates.manage</c>.
-/// </summary>
+/// <summary>Quản lý phiên bản file mẫu Word (cần system.templates.manage).</summary>
 [ApiController]
 [Route("api/templates")]
 [Authorize]
@@ -70,7 +63,6 @@ public class WordTemplateController : ControllerBase
 
     private readonly IWordTemplateService _templates;
 
-    /// <summary>Khởi tạo controller.</summary>
     public WordTemplateController(IWordTemplateService templates) => _templates = templates;
 
     /// <summary>Danh mục biểu mẫu kèm phiên bản đang dùng và danh mục tag.</summary>
@@ -103,10 +95,7 @@ public class WordTemplateController : ControllerBase
         return Ok(ApiResponse<WordTemplateCheckDto>.Ok(result, CheckMessage(result)));
     }
 
-    /// <summary>
-    /// Tải lên phiên bản mới (mặc định kích hoạt ngay). Tệp có lỗi (tag lạ, không mở được, sinh thử thất bại) → 400 kèm kết quả
-    /// kiểm tra, không lưu. Tag bắt buộc thiếu chỉ là cảnh báo.
-    /// </summary>
+    /// <summary>Tải lên phiên bản mới; tệp lỗi → 400 kèm kết quả kiểm tra, thiếu tag bắt buộc chỉ cảnh báo.</summary>
     [HttpPost("{code}/versions")]
     [RequestSizeLimit(UploadRequestLimit)]
     [RequestFormLimits(MultipartBodyLengthLimit = UploadRequestLimit)]

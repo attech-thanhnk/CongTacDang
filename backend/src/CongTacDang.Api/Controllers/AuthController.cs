@@ -36,10 +36,7 @@ public class AuthController : ControllerBase
         _guard = guard;
     }
 
-    /// <summary>
-    /// Nơi người dùng hiện tại thực hiện được một quyền: toàn công ty, hoặc các đơn vị / tổ chức Đảng (đã gồm cấp dưới).
-    /// Giao diện dùng để chỉ cho chọn đúng nơi được làm, tránh chọn rồi mới bị từ chối.
-    /// </summary>
+    /// <summary>Phạm vi người dùng có một quyền: toàn công ty hoặc các đơn vị/tổ chức Đảng (gồm cấp dưới).</summary>
     [Authorize]
     [HttpGet("scope")]
     public IActionResult Scope([FromQuery] string permission)
@@ -55,7 +52,7 @@ public class AuthController : ControllerBase
         }, "Lấy phạm vi quyền thành công."));
     }
 
-    /// <summary>Đăng nhập bằng username/password — cấp Access Token (15 phút) và Refresh Token (7 ngày)</summary>
+    /// <summary>Đăng nhập, cấp access token và refresh token qua cookie.</summary>
     [HttpPost("login")]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
@@ -79,7 +76,7 @@ public class AuthController : ControllerBase
         }
     }
 
-    /// <summary>Làm mới phiên làm việc bằng Refresh Token theo chuẩn Token Rotation</summary>
+    /// <summary>Làm mới phiên (xoay vòng refresh token).</summary>
     [HttpPost("refresh-token")]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> RefreshToken()
@@ -106,10 +103,7 @@ public class AuthController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Đổi mật khẩu hiện tại: đổi dấu bảo mật, thu hồi mọi phiên khác, cấp lại cookie cho phiên đang dùng.
-    /// Sai mật khẩu hiện tại / mật khẩu mới không đạt chính sách → 400.
-    /// </summary>
+    /// <summary>Đổi mật khẩu: đổi dấu bảo mật, thu hồi phiên khác, cấp lại cookie cho phiên đang dùng.</summary>
     [Authorize]
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestDto request)
@@ -125,7 +119,7 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<LoginResponseDto>.Ok(result.UserResponse, "Đổi mật khẩu thành công. Các phiên đăng nhập khác đã bị đăng xuất."));
     }
 
-    /// <summary>Đăng xuất — thu hồi Refresh Token trong DB và xóa toàn bộ Cookie</summary>
+    /// <summary>Đăng xuất: thu hồi refresh token và xóa cookie.</summary>
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
@@ -137,16 +131,15 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse.Ok("Đã đăng xuất thành công."));
     }
 
-    /// <summary>Xóa refresh_token hiện hành (Path=/api/auth) và cookie kiểu cũ (Path=/) còn sót ở trình duyệt.</summary>
     private void DeleteRefreshCookies()
     {
-        // Thứ tự quan trọng: Delete loại bỏ header Set-Cookie trước đó có chứa "path=<path>",
-        // nên xóa Path=/ trước để lệnh xóa Path=/api/auth không bị gộp mất.
+        // Xóa cả cookie Path=/api/auth và Path=/ còn sót. Thứ tự quan trọng: Delete gỡ header Set-Cookie trước đó
+        // có cùng "path=", nên xóa Path=/ trước để lệnh xóa Path=/api/auth không bị gộp mất.
         Response.Cookies.Delete("refresh_token");
         Response.Cookies.Delete("refresh_token", new Microsoft.AspNetCore.Http.CookieOptions { Path = "/api/auth" });
     }
 
-    /// <summary>Thông tin phiên hiện tại: hồ sơ, quyền (từ IPermissionResolver), trạng thái bắt buộc đổi mật khẩu.</summary>
+    /// <summary>Phiên hiện tại: hồ sơ, quyền, trạng thái bắt buộc đổi mật khẩu.</summary>
     [Authorize]
     [HttpGet("me")]
     public async Task<IActionResult> Me()
@@ -156,7 +149,7 @@ public class AuthController : ControllerBase
             return Unauthorized(ApiResponse.Fail("Không xác định được tài khoản hiện tại. Vui lòng đăng nhập lại."));
 
         var profile = await _userService.GetProfileByIdAsync(userId.Value);
-        // Vai trò/quyền lấy từ nguồn quyền duy nhất (IPermissionResolver), cùng nguồn với kiểm tra policy.
+        // Cùng nguồn với kiểm tra policy.
         var effective = await _permissionResolver.GetAsync(profile.Id, HttpContext.RequestAborted);
         var grants = await _roleAssignments.GetGrantsAsync(profile.Id, HttpContext.RequestAborted);
 
@@ -180,11 +173,11 @@ public class AuthController : ControllerBase
             HttpOnly = true,
             Secure = isSecure,
             SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
-            // Cookie sống theo refresh token để middleware Next.js nhận biết phiên; JWT bên trong vẫn hết hạn theo AccessTokenExpiryMinutes.
+            // Cookie sống theo refresh token để middleware Next.js nhận biết phiên; JWT bên trong vẫn hết hạn sớm hơn.
             Expires = result.RefreshTokenExpiresAt
         });
 
-        // RefreshToken rỗng: giữ nguyên refresh token hiện tại (đổi mật khẩu trên phiên đang dùng).
+        // Rỗng khi đổi mật khẩu trên phiên đang dùng: giữ refresh token hiện tại.
         if (string.IsNullOrEmpty(result.RefreshToken))
             return;
 
