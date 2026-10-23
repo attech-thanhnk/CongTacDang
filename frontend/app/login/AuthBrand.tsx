@@ -5,10 +5,12 @@ import { useOrganizationInfo } from "@/services/organizationSettingsService";
 import styles from "./auth.module.css";
 
 /** Biểu tượng Đảng bộ (sao trong vòng đỏ son) và tên đơn vị lấy từ cài đặt đơn vị — cùng cách hiển thị với thanh bên. */
-export function AuthBrand() {
+export function AuthBrand({ title }: { title?: string }) {
   const org = useOrganizationInfo();
-  const main = org?.shortName || org?.systemName || "";
-  const sub = org
+  const main = title ?? (org?.shortName || org?.systemName || "");
+  const sub = title
+    ? ""
+    : org
     ? org.shortName && org.systemName.includes(org.shortName)
       ? org.systemName.replace(org.shortName, "").trim()
       : org.systemName !== main

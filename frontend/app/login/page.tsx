@@ -47,10 +47,11 @@ function LoginForm() {
 
   return (
     <div className={styles.card}>
-      <AuthBrand />
+      <AuthBrand title="Đăng nhập" />
 
       {errorMsg && (
-        <div className="alert alert-danger py-2 px-3 mb-3 d-flex align-items-center gap-2" role="alert">
+        // Nằm ngoài luồng của khung để báo lỗi không đẩy ô nhập xuống.
+        <div className={`alert alert-danger py-2 px-3 mb-0 d-flex align-items-center gap-2 ${styles.error}`} role="alert">
           <i className="bi bi-exclamation-octagon-fill flex-shrink-0" />
           <span>{errorMsg}</span>
         </div>
