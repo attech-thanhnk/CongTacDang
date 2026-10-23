@@ -33,17 +33,19 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
           title: "Đánh giá cán bộ",
           href: "/evaluations",
           icon: "bi-file-earmark-text",
-          check: () => hasPermission("evaluation.self") || hasPermission("evaluation.read"),
+          // Người chỉ tự đánh giá mở hồ sơ của mình từ Tổng quan; mục này dành cho người xem hồ sơ người khác.
+          check: () => hasPermission("evaluation.read"),
         },
         {
           title: "Đánh giá tập thể",
           href: "/collective-evaluations",
           icon: "bi-people",
+          // Chỉ người lập hồ sơ tập thể, biên bản hoặc ghi nhận đề xuất tập thể.
           check: () =>
-            hasPermission("evaluation.read") ||
             hasPermission("collective.manage") ||
             hasPermission("meeting.read") ||
-            hasPermission("meeting.manage"),
+            hasPermission("meeting.manage") ||
+            hasPermission("evaluation.collective.record"),
         },
         { title: "Kết quả đánh giá", href: "/results", icon: "bi-trophy", permission: "evaluation.results.view" },
         { title: "Báo cáo", href: "/reports", icon: "bi-bar-chart-line", permission: "report.export" },

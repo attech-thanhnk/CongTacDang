@@ -40,14 +40,15 @@ export function AppSidebar() {
           : "")
     : "";
 
-  const showPeriodPicker = !!user && !user.mustChangePassword && pathname !== "/change-password";
-
   const visibleGroups = buildMenu(user, hasPermission);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-  // Nhớ nhóm đã gập; mặc định gập nhóm Hệ thống, trừ người chỉ làm quản trị hệ thống.
+  // Người chỉ làm quản trị hệ thống: không làm việc theo kỳ, nhóm Hệ thống mở sẵn.
   const onlySystemWork =
-    !!user && !user.permissions.some((code) => /^(evaluation.|period.|criteria.)/.test(code));
+    !!user && !user.permissions.some((code) => /^(evaluation|period|criteria)\./.test(code));
+  const showPeriodPicker = !!user && !user.mustChangePassword && pathname !== "/change-password" && !onlySystemWork;
+
+  // Nhớ nhóm đã gập; mặc định gập nhóm Hệ thống.
   useEffect(() => {
     const fallback = { system: !onlySystemWork };
     try {

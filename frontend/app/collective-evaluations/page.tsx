@@ -343,7 +343,6 @@ export default function CollectiveEvaluationsPage() {
                   icon="bi-people"
                   title="Chưa có hồ sơ tập thể trong kỳ"
                   description={canManageCollective ? "Lập hồ sơ tự đánh giá của tập thể (Mẫu 07) hoặc tổng hợp nhiệm vụ của đơn vị (Mẫu 08)." : undefined}
-                  action={canManageCollective ? <Button variant="outline-primary" icon="bi-plus-lg" onClick={() => setRecordEditor({ item: null })}>Lập hồ sơ</Button> : undefined}
                 />
               ) : (
                 <ul className="list-group list-group-flush">
@@ -394,7 +393,6 @@ export default function CollectiveEvaluationsPage() {
                   icon="bi-journal-text"
                   title="Chưa có biên bản trong kỳ"
                   description={canManageMeeting ? "Lập biên bản hội nghị (Mẫu 12) hoặc biên bản kiểm phiếu (Mẫu 13)." : undefined}
-                  action={canManageMeeting ? <Button variant="outline-primary" icon="bi-plus-lg" onClick={() => setMeetingEditor({ item: null })}>Lập biên bản</Button> : undefined}
                 />
               ) : (
                 <ul className="list-group list-group-flush">
