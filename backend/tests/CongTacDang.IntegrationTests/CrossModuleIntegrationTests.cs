@@ -13,10 +13,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Test tích hợp các chỗ nối giữa tài khoản và phân quyền:
-/// thông tin phiên có <c>grants</c>, danh sách tài khoản lọc theo phạm vi <c>system.users.read</c>.
-/// </summary>
+/// <summary>Chỗ nối tài khoản – phân quyền: <c>grants</c> trong phiên, danh sách tài khoản lọc theo phạm vi.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class CrossModuleIntegrationTests
 {
@@ -73,7 +70,7 @@ public sealed class CrossModuleIntegrationTests
         }
     }
 
-    // ===================== T-61: danh sách tài khoản theo phạm vi =====================
+    // ===================== Danh sách tài khoản theo phạm vi =====================
 
     [SkippableFact]
     public async Task UserLists_AreFilteredBySystemUsersReadScope()

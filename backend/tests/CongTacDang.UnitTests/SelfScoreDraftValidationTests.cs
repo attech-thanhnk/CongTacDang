@@ -3,10 +3,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Lưu nháp phiếu tự chấm: các hàm kiểm tra ở chế độ <c>partial</c> chỉ kiểm định dạng (mã, khoảng điểm, mức, độ dài), không bắt
-/// buộc nhập đủ; chế độ mặc định (nộp phiếu) giữ nguyên yêu cầu đầy đủ.
-/// </summary>
+/// <summary>Chế độ <c>partial</c> (lưu nháp) chỉ kiểm định dạng; chế độ mặc định (nộp phiếu) bắt buộc đầy đủ.</summary>
 public class SelfScoreDraftValidationTests
 {
     private static readonly CriteriaSetContent Criteria = CriteriaSetDefaults.Build09B();

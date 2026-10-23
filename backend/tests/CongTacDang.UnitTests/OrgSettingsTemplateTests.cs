@@ -10,7 +10,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>Task 17 — thông tin đơn vị trên biểu mẫu (T-80), kiểm tra tag và chọn phiên bản file mẫu (T-81).</summary>
+/// <summary>Thông tin đơn vị trên biểu mẫu, kiểm tra tag và chọn phiên bản file mẫu.</summary>
 public class OrgSettingsTemplateTests
 {
     private static readonly FileWordTemplateStore Bundled = new();

@@ -14,11 +14,7 @@ using Position = CongTacDang.Domain.Entities.Position;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Quyết định xếp loại cán bộ quý kèm Phụ lục (<c>GET /api/reports/docx/decision</c>): chỉ hồ sơ thuộc diện tổ chức Đảng cơ sở
-/// quyết định và đã ghi quyết định; số/ngày văn bản và người chủ trì hội nghị lấy từ dữ liệu; còn hồ sơ chưa quyết định hoặc không
-/// có hồ sơ → 400; thiếu quyền <c>report.export</c> → 403; phạm vi tổ chức Đảng như Mẫu 16.
-/// </summary>
+/// <summary>Quyết định xếp loại kèm Phụ lục: chỉ hồ sơ diện cơ sở đã quyết định; còn hồ sơ chưa quyết định → 400.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class DecisionDocumentIntegrationTests
 {

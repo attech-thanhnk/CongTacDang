@@ -10,10 +10,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Seeder trên CSDL PostgreSQL riêng (<c>ctd_it_*</c>, dựng bằng migration, tạo/xóa trong test): vai trò mặc định,
-/// dữ liệu mẫu chỉ tạo một lần, không gán lại vai trò, không ghi đè quyền đã sửa; index unique <c>lower("Username")</c>.
-/// </summary>
+/// <summary>Seeder trên CSDL tạm: vai trò mặc định, dữ liệu mẫu tạo một lần, không gán lại hay ghi đè quyền đã sửa.</summary>
 public sealed class DataSeederAuthorizationTests
 {
     private const string SamplePassword = "MauThu2026x";
@@ -63,7 +60,7 @@ public sealed class DataSeederAuthorizationTests
                 Assert.Equal(PeriodStatus.Open, period.Status);
                 Assert.Equal("09B", period.GetCriteria()!.SelfScoreForm);
                 var statuses = await db.EvaluationRecords.Select(r => r.Status).ToListAsync();
-                // 7 hồ sơ ở 6 trạng thái: hai hồ sơ đã công bố (Giám đốc — cấp trên; cán bộ mức C có kế hoạch Mẫu 17 — đợt 8).
+                // 7 hồ sơ ở 6 trạng thái: hai hồ sơ đã công bố (Giám đốc — cấp trên; cán bộ mức C có kế hoạch Mẫu 17).
                 Assert.Equal(7, statuses.Count);
                 Assert.Equal(6, statuses.Distinct().Count());
                 Assert.Contains(RecordStatus.Published, statuses);

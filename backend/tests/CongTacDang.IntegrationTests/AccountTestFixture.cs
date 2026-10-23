@@ -8,12 +8,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Hạ tầng test tích hợp của task 08 (tài khoản & phiên). Dùng <b>CSDL tạm riêng</b> (collection riêng) vì các luồng
-/// L9 cần kiểm soát ai đang giữ quyền quản trị, và một host dẫn xuất nâng giới hạn tốc độ đăng nhập
-/// (<c>Security:RateLimit:Auth:PermitLimit</c>) vì các luồng khóa tài khoản cần nhiều lần đăng nhập.
-/// Không đổi hành vi mặc định của <see cref="ApiFactory"/>.
-/// </summary>
+/// <summary>CSDL tạm riêng: cần kiểm soát người giữ quyền quản trị và nâng giới hạn đăng nhập cho luồng khóa tài khoản.</summary>
 public sealed class AccountTestFixture : IAsyncLifetime
 {
     /// <summary>Mã quyền của "quản trị tài khoản" dùng trong test (không có quyền quản trị vai trò/gán vai trò).</summary>
@@ -79,7 +74,6 @@ public sealed class AccountTestFixture : IAsyncLifetime
         return client;
     }
 
-    /// <summary>Tạo quản trị tài khoản và đăng nhập.</summary>
     public async Task<(TestUser User, HttpClient Client)> CreateAccountAdminAsync()
     {
         var admin = await Base.CreateUserWithPermissionsAsync(AccountAdminPermissions);
@@ -97,10 +91,8 @@ public sealed class AccountTestFixture : IAsyncLifetime
         return (data.GetProperty("userId").GetGuid(), data.GetProperty("username").GetString()!, data.GetProperty("temporaryPassword").GetString()!);
     }
 
-    /// <summary>Tên đăng nhập ngẫu nhiên hợp lệ.</summary>
     public static string NewUsername(string prefix) => $"{prefix}.{Guid.NewGuid():N}"[..Math.Min(prefix.Length + 13, 50)];
 
-    /// <summary>Đọc JSON phản hồi.</summary>
     public static async Task<JsonElement> ReadJsonAsync(HttpResponseMessage response)
     {
         var body = await response.Content.ReadAsStringAsync();
@@ -109,10 +101,9 @@ public sealed class AccountTestFixture : IAsyncLifetime
     }
 }
 
-/// <summary>Collection riêng của task 08 (CSDL tạm riêng).</summary>
+/// <summary>Collection riêng (CSDL tạm riêng).</summary>
 [CollectionDefinition(Name)]
 public sealed class AccountCollection : ICollectionFixture<AccountTestFixture>
 {
-    /// <summary>Tên collection.</summary>
     public const string Name = "accounts";
 }

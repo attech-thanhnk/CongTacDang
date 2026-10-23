@@ -15,10 +15,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Test tích hợp task 17: thông tin đơn vị trên biểu mẫu (T-80), quản lý file mẫu Word theo phiên bản (T-81).
-/// Các test sửa cài đặt/phiên bản dùng chung CSDL nên luôn khôi phục về mặc định khi xong.
-/// </summary>
+/// <summary>Thông tin đơn vị trên biểu mẫu và file mẫu Word theo phiên bản; test sửa dữ liệu dùng chung luôn khôi phục mặc định.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class OrgSettingsTemplateIntegrationTests
 {
@@ -72,7 +69,7 @@ public sealed class OrgSettingsTemplateIntegrationTests
             using (var workbook = new XLWorkbook(new MemoryStream(await form14.Content.ReadAsByteArrayAsync())))
             {
                 var sheet = workbook.Worksheets.First();
-                // Task 19: Mẫu 14 theo bố cục HD03 — dòng 1 là "Mẫu 14", tiêu đề trái ở dòng 2–3, dòng địa danh ở khối phải.
+                // Mẫu 14: dòng 1 là "Mẫu 14", tiêu đề trái ở dòng 2–3, dòng địa danh ở khối phải.
                 Assert.Equal($"ĐẢNG BỘ CẤP TRÊN {s}", sheet.Cell("A2").GetString());
                 Assert.Equal($"ĐẢNG BỘ THỬ NGHIỆM {s}", sheet.Cell("A3").GetString());
                 Assert.StartsWith("Đà Nẵng, ngày", sheet.Cell("I3").GetString());
@@ -99,7 +96,7 @@ public sealed class OrgSettingsTemplateIntegrationTests
             await RestoreDefaultSettingsAsync(manager);
         }
 
-        // Mặc định: biểu mẫu giữ đúng chuỗi trước đây.
+        // Cài đặt mặc định: biểu mẫu in đúng chuỗi mặc định.
         using var defaults = new XLWorkbook(new MemoryStream(await (await manager.GetAsync($"/api/reports/form-14?periodId={periodId}")).Content.ReadAsByteArrayAsync()));
         Assert.Equal("ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", defaults.Worksheets.First().Cell("A3").GetString());
     }

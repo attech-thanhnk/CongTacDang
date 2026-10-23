@@ -8,10 +8,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Task 14 (T-71, T-72): cây đơn vị (đường dẫn, chống vòng), phạm vi gán bao trùm cây con,
-/// suy ra thẩm quyền phê duyệt và mã chức danh thống kê từ chức vụ.
-/// </summary>
+/// <summary>Cây đơn vị (đường dẫn, chống vòng), phạm vi bao trùm cây con, suy ra thẩm quyền và mã chức danh từ chức vụ.</summary>
 public class DynamicOrgTests
 {
     // Cây:  Root ── Mid ── Leaf

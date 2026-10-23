@@ -13,10 +13,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Kiểm thử khung hợp đồng phân quyền (task 07, T-55): danh mục mã quyền, policy theo mã, cache, tạo tài khoản v0.
-/// Luật theo phạm vi/chủ hồ sơ được kiểm trong <c>AuthorizationGuardTests</c>.
-/// </summary>
+/// <summary>Danh mục mã quyền, policy theo mã, cache, tạo tài khoản; luật phạm vi kiểm ở <c>AuthorizationGuardTests</c>.</summary>
 public class AuthzContractTests
 {
     private static ClaimsPrincipal IdentityOnlyPrincipal(Guid userId) =>
@@ -117,7 +114,7 @@ public class AuthzContractTests
             "evaluation.read", "evaluation.tasks.approve", "evaluation.cell.confirm", "evaluation.collective.record",
             "evaluation.appraise", "evaluation.director.review", "evaluation.unit.review", "evaluation.decide", "evaluation.external.record",
             "evaluation.publish", "evaluation.reopen",
-            // Task 20: sau công bố.
+            // Sau công bố.
             "evaluation.results.view", "evaluation.appeal.submit", "evaluation.appeal.resolve", "evaluation.improvement.manage",
             "collective.manage", "meeting.read", "meeting.manage",
             "report.export"

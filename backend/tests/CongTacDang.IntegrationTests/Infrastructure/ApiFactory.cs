@@ -20,16 +20,8 @@ namespace CongTacDang.IntegrationTests.Infrastructure;
 /// <summary>Người dùng tạo cho test (mật khẩu dạng rõ để đăng nhập).</summary>
 public sealed record TestUser(Guid Id, string Username, string Password, Guid RoleId, string RoleCode);
 
-/// <summary>
-/// Dựng API thật trên PostgreSQL thật cho test tích hợp.
-/// <list type="bullet">
-/// <item>Chuỗi kết nối quản trị đọc từ biến môi trường <c>CONGTACDANG_TEST_PG</c> (CSDL quản trị, tài khoản có CREATEDB).
-/// Thiếu biến → mọi test <b>skip</b> kèm lý do.</item>
-/// <item>Mỗi lần chạy tạo CSDL <c>ctd_it_&lt;yyyyMMddHHmmss&gt;_&lt;guid8&gt;</c>, áp dụng migration, seed tối thiểu
-/// (vai trò + quyền qua DataSeeder), xóa CSDL khi xong; dọn CSDL <c>ctd_it_*</c> sót lại quá 24 giờ.</item>
-/// <item>Chỉ tạo/xóa CSDL đúng định dạng <c>ctd_it_*</c>; từ chối chuỗi kết nối trỏ tới <c>congtacdang_test</c>.</item>
-/// </list>
-/// </summary>
+/// <summary>API thật trên PostgreSQL: mỗi lần chạy tạo CSDL tạm từ <c>CONGTACDANG_TEST_PG</c> (thiếu thì skip), xóa khi xong.
+/// Chỉ tạo/xóa CSDL <c>ctd_it_*</c>; dọn CSDL sót lại quá 24 giờ.</summary>
 public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     /// <summary>Tên biến môi trường chứa chuỗi kết nối quản trị.</summary>
@@ -145,10 +137,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     /// <summary>Đăng nhập và trả về HttpClient giữ cookie phiên (auth_token, refresh_token).</summary>
     public Task<HttpClient> LoginAsAsync(string username, string password) => LoginAsAsync(username, password, distinctClientIp: false);
 
-    /// <summary>
-    /// Đăng nhập; <paramref name="distinctClientIp"/> = true → client dùng một địa chỉ IP giả riêng (header
-    /// <see cref="TestClientIpHeader"/>) nên không chia chung giới hạn 10 lần đăng nhập/phút với test khác.
-    /// </summary>
+    /// <summary>Đăng nhập; <paramref name="distinctClientIp"/> = true → dùng IP giả riêng để không chung giới hạn 10 lần/phút với test khác.</summary>
     public async Task<HttpClient> LoginAsAsync(string username, string password, bool distinctClientIp)
     {
         var client = CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true, AllowAutoRedirect = false });
@@ -169,14 +158,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         return client;
     }
 
-    /// <summary>Đăng nhập bằng người dùng test.</summary>
     public Task<HttpClient> LoginAsAsync(TestUser user) => LoginAsAsync(user.Username, user.Password);
 
-    /// <summary>
-    /// Tạo người dùng đang hoạt động (không bắt buộc đổi mật khẩu) với một vai trò riêng chứa đúng các mã quyền cho trước,
-    /// gán phạm vi Toàn công ty (task 09: bản gán <see cref="UserRoleAssignment"/>). Mã quyền chưa có trong CSDL được tạo thêm
-    /// (mã không thuộc danh mục <c>PermissionCodes</c> không có hiệu lực).
-    /// </summary>
+    /// <summary>Tạo người dùng với vai trò riêng chứa đúng các mã quyền cho trước, phạm vi Toàn công ty; mã quyền chưa có được tạo thêm.</summary>
     public async Task<TestUser> CreateUserWithPermissionsAsync(params string[] codes)
     {
         var role = await CreateRoleAsync(codes);
@@ -314,10 +298,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     }
 }
 
-/// <summary>
-/// Middleware đầu pipeline (chỉ trong test): request có header <see cref="ApiFactory.TestClientIpHeader"/> được gán
-/// <c>RemoteIpAddress</c> theo header — để giới hạn đăng nhập theo IP phân vùng theo từng client test. Không có header → không đổi gì.
-/// </summary>
+/// <summary>Chỉ trong test: gán <c>RemoteIpAddress</c> theo header <see cref="ApiFactory.TestClientIpHeader"/> để giới hạn đăng nhập phân vùng theo client.</summary>
 internal sealed class TestClientIpStartupFilter : IStartupFilter
 {
     public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>
@@ -340,6 +321,5 @@ internal sealed class TestClientIpStartupFilter : IStartupFilter
 [CollectionDefinition(Name)]
 public sealed class ApiCollection : ICollectionFixture<ApiFactory>
 {
-    /// <summary>Tên collection.</summary>
     public const string Name = "api";
 }

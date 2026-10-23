@@ -11,10 +11,7 @@ using Position = CongTacDang.Domain.Entities.Position;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Bảng tổng hợp xếp loại cán bộ của kỳ (báo cáo nội bộ): hai khối theo cấp quyết định, cột mã hiệu, điểm, mức các bước, số tệp
-/// đính kèm; lọc theo phạm vi <c>report.export</c> (Toàn công ty / đơn vị chính quyền / tổ chức Đảng); thiếu quyền → 403.
-/// </summary>
+/// <summary>Bảng tổng hợp xếp loại của kỳ: hai khối theo cấp quyết định, lọc theo phạm vi <c>report.export</c>.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class RatingSummaryReportIntegrationTests
 {

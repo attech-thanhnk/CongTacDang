@@ -8,11 +8,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Trần tỷ lệ Hoàn thành xuất sắc trên PostgreSQL thật: <c>GET /api/evaluations/excellent-quotas</c> tính theo nhóm chức danh
-/// trong cấp quyết định, không tính người đứng đầu, đơn vị theo ảnh chụp trên hồ sơ, lọc theo phạm vi người xem; báo cáo nội bộ
-/// cảnh báo vượt trần.
-/// </summary>
+/// <summary>Trần tỷ lệ Xuất sắc: theo nhóm chức danh trong cấp quyết định, không tính người đứng đầu, đơn vị theo ảnh chụp.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class ExcellentQuotaIntegrationTests
 {

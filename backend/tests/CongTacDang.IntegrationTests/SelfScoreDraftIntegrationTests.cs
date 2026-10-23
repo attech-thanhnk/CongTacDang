@@ -10,11 +10,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Lưu nháp phiếu tự chấm (<c>self-score/draft</c>): không đổi trạng thái, không ghi thời điểm nộp, không ghi lịch sử; nội dung
-/// dở dang (thiếu tiêu chí, thiếu lý do, mục 09C bắt buộc trống, dòng nhiệm vụ trống) được giữ lại; sai định dạng → 400; người
-/// khác → 403; hồ sơ đã qua bước tự chấm → 409; sau khi lưu nháp vẫn nộp phiếu bình thường.
-/// </summary>
+/// <summary>Lưu nháp phiếu tự chấm: không đổi trạng thái, không ghi lịch sử, giữ nội dung dở dang; sai định dạng vẫn 400.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class SelfScoreDraftIntegrationTests
 {

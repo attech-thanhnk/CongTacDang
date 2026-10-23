@@ -11,12 +11,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Task 15: luồng theo hồ sơ luồng (nhóm đối tượng) trên PostgreSQL thật — (a) hồ sơ Giám đốc (CapTren) tới Đã công bố với
-/// B3b/B3c/B4 ghi nhận kết quả của cấp trên; (b) hồ sơ "Bí thư/Phó bí thư Chi bộ là nhân viên": Trưởng phòng đề xuất thay
-/// Giám đốc; (c) kiểm tra kẹt luồng + mở kỳ 409; đổi hồ sơ luồng, thêm người kèm hồ sơ luồng chỉ định, kiểm tra cấu hình qua API.
-/// (d) hồ sơ cơ sở đi như cũ: <c>EvaluationWorkflowTests.W1</c>.
-/// </summary>
+/// <summary>Luồng theo hồ sơ luồng: Giám đốc ghi nhận kết quả cấp trên, Bí thư Chi bộ là nhân viên, kẹt luồng khi mở kỳ.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class WorkflowProfileIntegrationTests
 {
@@ -315,12 +310,7 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Equal("2026-12-20", deadline);
     }
 
-    /// <summary>
-    /// Đợt 6 (tích hợp): văn bản của cấp trên gắn vào kết quả bước do cấp trên thực hiện — người ghi nhận (không có
-    /// evaluation.self) tải lên được; chưa gắn thì chỉ người tải lên thấy; gắn rồi thì ai xem được hồ sơ cũng xem/tải được,
-    /// ngoài phạm vi hồ sơ → 403; chủ hồ sơ/người chỉ xem không sửa được, người ghi nhận thay phiên bản được;
-    /// không gắn được tệp riêng của người khác.
-    /// </summary>
+    /// <summary>Văn bản của cấp trên gắn vào kết quả bước cấp trên thực hiện: người ghi nhận tải lên/thay; ai xem được hồ sơ thì xem được.</summary>
     [SkippableFact]
     public async Task G5_ExternalResultAttachment_VisibleToRecordReaders_ManagedByRecorder()
     {
@@ -358,11 +348,7 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Equal(HttpStatusCode.OK, (await w.Lead1C.GetAsync($"/api/attachments/{v2.GetProperty("id").GetGuid()}/download")).StatusCode);
     }
 
-    /// <summary>
-    /// Theo dõi tiến độ: danh sách người được đánh giá trả bước đang chờ và thời hạn của bước đó theo hồ sơ luồng của từng hồ sơ —
-    /// hạn đã qua → số ngày quá hạn; hạn chưa tới → số ngày còn lại; hồ sơ đã công bố không còn bước chờ nên không tính hạn
-    /// (kể cả khi hạn công bố đã qua).
-    /// </summary>
+    /// <summary>Theo dõi tiến độ: bước đang chờ và số ngày quá hạn/còn lại theo hồ sơ luồng; hồ sơ đã công bố không tính hạn.</summary>
     [SkippableFact]
     public async Task G6_Participants_CurrentStepDeadline_OverdueAndDueSoon_PublishedNotCounted()
     {

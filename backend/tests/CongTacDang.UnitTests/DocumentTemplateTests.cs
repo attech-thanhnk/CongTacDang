@@ -11,7 +11,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>Kiểm thử bộ điền template Word theo Content Control và 5 template biểu mẫu (T-37, T-38, T-42).</summary>
+/// <summary>Bộ điền template Word theo Content Control và các template biểu mẫu.</summary>
 public class DocumentTemplateTests
 {
     #region Bộ điền template
@@ -224,7 +224,7 @@ public class DocumentTemplateTests
         var template = new FileWordTemplateStore().Load(templateFileName);
         var templateTags = DocxTemplateEngine.GetTags(template).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var dataTags = TagsOf(TemplateDataBinder.Bind(formData));
-        // Task 17: tag thông tin đơn vị (ORG_*) dùng chung, tùy chọn — không khai báo trên lớp dữ liệu của mẫu.
+        // Tag thông tin đơn vị (ORG_*) dùng chung, tùy chọn — không khai báo trên lớp dữ liệu của mẫu.
         var commonTags = OrganizationTemplateFields.Tags.Select(t => t.Tag);
 
         // Không thiếu (template có Tag mà lớp dữ liệu không khai báo) và không thừa (khai báo nhưng template không dùng).

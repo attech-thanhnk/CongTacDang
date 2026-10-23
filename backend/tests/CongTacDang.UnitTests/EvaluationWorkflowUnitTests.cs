@@ -4,10 +4,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Task 12: máy trạng thái hồ sơ (mọi trạng thái × hành động × cấu hình bật/tắt), <see cref="PeriodSettings"/>.
-/// Tính điểm: xem CriteriaSetUnitTests (task 16).
-/// </summary>
+/// <summary>Máy trạng thái hồ sơ (mọi trạng thái × hành động × cấu hình bật/tắt); tính điểm xem CriteriaSetUnitTests.</summary>
 public sealed class EvaluationWorkflowUnitTests
 {
     private static readonly WorkflowStep[] Optional =
@@ -15,7 +12,7 @@ public sealed class EvaluationWorkflowUnitTests
         WorkflowStep.B1_REGISTER, WorkflowStep.B1_APPROVE, WorkflowStep.B2_CELL_CONFIRM, WorkflowStep.B3A_COLLECTIVE, WorkflowStep.B3B_APPRAISAL, WorkflowStep.B3C_DIRECTOR
     };
 
-    /// <summary>Mọi tổ hợp bật/tắt của 6 bước tùy chọn (64 cấu hình), bước bắt buộc luôn bật (task 15: thẩm định tùy chọn).</summary>
+    /// <summary>Mọi tổ hợp bật/tắt của 6 bước tùy chọn (64 cấu hình); bước bắt buộc luôn bật.</summary>
     public static IEnumerable<IReadOnlySet<WorkflowStep>> AllConfigurations()
     {
         for (var mask = 0; mask < 1 << Optional.Length; mask++)
@@ -68,7 +65,7 @@ public sealed class EvaluationWorkflowUnitTests
         Assert.Equal(64 * 10 * 27, checkedCases);
     }
 
-    /// <summary>Luật thiết kế mục 2 viết lại theo cách khác (theo số thứ tự) để đối chiếu.</summary>
+    /// <summary>Luật thiết kế viết lại theo số thứ tự để đối chiếu.</summary>
     private static RecordStatus? Oracle(RecordStatus status, List<WorkflowStep> order, WorkflowCommand command)
     {
         static RecordStatus Waiting(WorkflowStep s) => (RecordStatus)(int)s; // B1_REGISTER=1 → 1 … B5_PUBLISH=9 → 9
@@ -136,7 +133,7 @@ public sealed class EvaluationWorkflowUnitTests
     [Fact]
     public void StateMachine_DisabledSteps_AreSkippedWhenComputingNext()
     {
-        // Task 15: thẩm định không còn là bước bắt buộc (bắt buộc: tự chấm, quyết định, công bố).
+        // Bước bắt buộc: tự chấm, quyết định, công bố.
         var enabled = new HashSet<WorkflowStep>(WorkflowSteps.Mandatory) { WorkflowStep.B3B_APPRAISAL };
         Assert.Equal(RecordStatus.AwaitingAppraisal, RecordStateMachine.NextAfter(WorkflowStep.B2_SELF_SCORE, enabled));
         Assert.Equal(RecordStatus.AwaitingDecision, RecordStateMachine.NextAfter(WorkflowStep.B3B_APPRAISAL, enabled));
@@ -148,9 +145,4 @@ public sealed class EvaluationWorkflowUnitTests
     private static WorkflowProfile Profile(PeriodSettings settings, string code) => settings.FindProfile(code)!;
 
     #endregion
-
-    // Task 15: kiểm thử PeriodSettings (hồ sơ luồng, cấu hình mặc định, kiểm tra cấu hình, JSON, thời hạn) chuyển sang WorkflowProfileUnitTests.
-
-    // Task 16: kiểm thử EvaluationScoring (so với code cũ, TC-1/TC-2, làm tròn, K/AD) chuyển sang CriteriaSetUnitTests — công thức
-    // nhận bộ tiêu chí thay cho tham số kỳ.
 }

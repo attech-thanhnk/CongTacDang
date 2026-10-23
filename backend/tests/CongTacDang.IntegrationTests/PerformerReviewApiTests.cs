@@ -11,11 +11,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// "Người thực hiện" — chức vụ tại đơn vị (<c>holders</c>), quan hệ người được giao với nơi giao (<c>positionAtScope</c>,
-/// tính cả chức vụ ở đơn vị cấp trên và "Cán bộ của đơn vị") và danh sách bản gán cần xem lại
-/// (<c>GET /api/admin/performers/review</c>).
-/// </summary>
+/// <summary>"Người thực hiện": chức vụ tại đơn vị, quan hệ người được giao với nơi giao, danh sách bản gán cần xem lại.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class PerformerReviewApiTests
 {

@@ -17,7 +17,7 @@ public sealed class LibreOfficeFactAttribute : FactAttribute
     }
 }
 
-/// <summary>Kiểm thử chuyển PDF phía máy chủ (T-38, T-42).</summary>
+/// <summary>Chuyển PDF phía máy chủ.</summary>
 public class PdfConversionTests
 {
     [Fact]

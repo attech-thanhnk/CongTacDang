@@ -5,9 +5,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Luồng L8 của task 08: nhật ký đăng nhập ghi đủ mọi kết quả và tra cứu được qua <c>GET /api/audit/logins</c>.
-/// </summary>
+/// <summary>Nhật ký đăng nhập ghi mọi kết quả và tra cứu được qua <c>GET /api/audit/logins</c>.</summary>
 [Collection(AccountCollection.Name)]
 public sealed class LoginAuditTests
 {

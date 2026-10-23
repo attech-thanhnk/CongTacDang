@@ -3,16 +3,10 @@ using System.Text.Json.Nodes;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Dữ liệu thẩm định dùng chung cho test: bộ tiêu chí chấm theo danh mục nhiệm vụ (09A) bắt buộc xếp mức cho mọi nhiệm vụ,
-/// nên các test chỉ quan tâm luồng tự bổ sung <c>taskLevels</c> (mặc định Mức 1) nếu thân yêu cầu chưa có.
-/// </summary>
+/// <summary>Bộ 09A bắt buộc xếp mức mọi nhiệm vụ khi thẩm định: tự bổ sung <c>taskLevels</c> nếu thân yêu cầu chưa có.</summary>
 internal static class AppraisalTestData
 {
-    /// <summary>
-    /// Thêm <c>taskLevels</c> (mỗi nhiệm vụ của hồ sơ một mức <paramref name="level"/>) vào thân yêu cầu thẩm định nếu chưa có.
-    /// Người gửi không đọc được hồ sơ (test 403) → giữ nguyên thân yêu cầu.
-    /// </summary>
+    /// <summary>Thêm <c>taskLevels</c> nếu chưa có; người gửi không đọc được hồ sơ (test 403) thì giữ nguyên.</summary>
     public static async Task AddTaskLevelsAsync(HttpClient client, Guid recordId, JsonObject body, int level = 1)
     {
         if (body.ContainsKey("taskLevels"))

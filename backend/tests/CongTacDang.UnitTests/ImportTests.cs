@@ -10,10 +10,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Nhập dữ liệu từ Excel: đọc/kiểm tra từng loại (đơn vị, tổ chức Đảng, cán bộ, gán vai trò), đọc/ghi file Excel, phiên nhập.
-/// Dữ liệu tham chiếu lấy từ bộ giả lập — không cần CSDL.
-/// </summary>
+/// <summary>Nhập Excel: đọc/kiểm tra từng loại, đọc/ghi file, phiên nhập; dữ liệu tham chiếu giả lập, không cần CSDL.</summary>
 public class ImportTests
 {
     #region Đơn vị chính quyền / tổ chức Đảng

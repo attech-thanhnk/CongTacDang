@@ -11,10 +11,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Task 09: ma trận endpoint × vai trò mặc định × phạm vi trên PostgreSQL thật — kiểm tra 200/403 và
-/// <b>dữ liệu trả về đúng phạm vi</b>. T-45 (biên bản), T-48 (thẩm định từng hồ sơ), T-61 (danh sách cán bộ) có test riêng.
-/// </summary>
+/// <summary>Ma trận endpoint × vai trò mặc định × phạm vi: kiểm tra 200/403 và dữ liệu trả về đúng phạm vi.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class AuthorizationMatrixTests
 {
@@ -190,7 +187,7 @@ public sealed class AuthorizationMatrixTests
         string Url(Guid record) => $"/api/evaluations/records/{record}/appraisal";
 
         Assert.Equal(HttpStatusCode.OK, (await s.Appraiser.PostAsJsonAsync(Url(s.RecordB1), await Appraise(s.RecordB1))).StatusCode);
-        // Có evaluation.appraise nhưng là hồ sơ của chính mình → 403 (T-48).
+        // Có evaluation.appraise nhưng là hồ sơ của chính mình → 403.
         Assert.Equal(HttpStatusCode.Forbidden, (await s.Appraiser.PostAsJsonAsync(Url(s.RecordT), await Appraise(s.RecordT))).StatusCode);
         // Thẩm định theo phạm vi Phòng A không thẩm định được hồ sơ Phòng B.
         Assert.Equal(HttpStatusCode.OK, (await s.DeptAppraiserA.PostAsJsonAsync(Url(s.RecordA1), await Appraise(s.RecordA1))).StatusCode);
@@ -207,7 +204,7 @@ public sealed class AuthorizationMatrixTests
         async Task<object> Decide(Guid record) => new { version = await VersionAsync(s, record), finalScore = 90.0, finalGrade = "HoanThanhTot" };
         string Url(Guid record) => $"/api/evaluations/records/{record}/decision";
 
-        // Task 15: hồ sơ CapTren dùng hồ sơ luồng "cap-tren" — B4 do cấp trên thực hiện, chỉ ghi nhận kết quả (evaluation.external.record).
+        // Hồ sơ CapTren đi luồng "cap-tren": B4 do cấp trên thực hiện, chỉ ghi nhận kết quả.
         async Task<object> External(Guid record) => new { version = await VersionAsync(s, record), authorityName = "BTV Đảng ủy Tổng công ty", grade = "HoanThanhTot" };
         string ExternalUrl(Guid record) => $"/api/evaluations/records/{record}/external/B4_DECISION";
 
@@ -273,7 +270,7 @@ public sealed class AuthorizationMatrixTests
     {
         var s = await GetScenarioAsync();
 
-        // Chi ủy (meeting.read phạm vi Chi bộ A) chỉ thấy biên bản Chi bộ A (có thể có thêm biên bản kiểm phiếu do test khác tạo ở Chi bộ A).
+        // Chi ủy chỉ thấy biên bản Chi bộ A (có thể thêm biên bản kiểm phiếu do test khác tạo).
         var cellSecMeetings = await Meetings(s.CellSecA, $"/api/evaluations/meetings?periodId={s.PeriodId}");
         Assert.Contains(s.MeetingA, cellSecMeetings.Keys);
         Assert.All(cellSecMeetings.Values, cell => Assert.Equal(s.CellA, cell));
@@ -282,7 +279,7 @@ public sealed class AuthorizationMatrixTests
         var committeeMeetings = await Meetings(s.Committee, $"/api/evaluations/meetings?periodId={s.PeriodId}");
         Assert.Contains(s.MeetingA, committeeMeetings.Keys);
         Assert.Contains(s.MeetingB, committeeMeetings.Keys);
-        // Có meeting.manage/meeting.read nhưng chỉ phạm vi Phòng (không khớp Chi bộ nào) → không thấy biên bản nào (T-45).
+        // Có meeting.manage/meeting.read nhưng chỉ phạm vi Phòng → không thấy biên bản nào.
         Assert.Empty(await Ids(s.DeptSecretaryA, $"/api/evaluations/meetings?periodId={s.PeriodId}"));
         Assert.Equal(HttpStatusCode.Forbidden, (await s.DeptSecretaryA.GetAsync($"/api/evaluations/meetings/{s.MeetingA}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerA1.GetAsync($"/api/evaluations/meetings?periodId={s.PeriodId}")).StatusCode);
@@ -306,9 +303,7 @@ public sealed class AuthorizationMatrixTests
         Assert.Equal(HttpStatusCode.BadRequest, (await s.Office.GetAsync("/api/auth/scope?permission=khong.co")).StatusCode);
     }
 
-    /// <summary>
-    /// Tạo/sửa đối tượng gắn nhiều đơn vị: mọi đơn vị khác null đều phải trong phạm vi người thao tác (đọc vẫn theo luật "một trong").
-    /// </summary>
+    /// <summary>Tạo/sửa đối tượng gắn nhiều đơn vị: mọi đơn vị phải trong phạm vi (đọc chỉ cần một).</summary>
     [SkippableFact]
     public async Task WriteScope_EveryReferencedUnitMustBeInScope()
     {
@@ -343,10 +338,7 @@ public sealed class AuthorizationMatrixTests
         Assert.Equal(HttpStatusCode.Forbidden, (await s.DeptSecretaryA.PutAsJsonAsync($"/api/evaluations/meetings/{meetingId}", update)).StatusCode);
     }
 
-    /// <summary>
-    /// Biên bản ở tổ chức Đảng cấp trên chứa được kết quả kiểm phiếu của hồ sơ thuộc tổ chức cấp dưới (cây con);
-    /// hồ sơ ngoài cây con vẫn bị từ chối.
-    /// </summary>
+    /// <summary>Biên bản cấp trên chứa được kết quả kiểm phiếu của hồ sơ tổ chức con; ngoài cây con bị từ chối.</summary>
     [SkippableFact]
     public async Task Meeting_AtParentOrg_AcceptsRecordsOfChildUnits()
     {
@@ -432,24 +424,18 @@ public sealed class AuthorizationMatrixTests
             Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/attachments/{unlinkedId}/download")).StatusCode);
         }
 
-        // Không còn đường tải tệp tự do: quản trị kỹ thuật / người không có quyền nộp minh chứng → 403;
-        // loại đối tượng "văn bản chung" không còn → 400; thiếu mã phân loại → 400.
+        // Quản trị kỹ thuật / người không có quyền nộp minh chứng → 403; loại "General" hoặc thiếu mã phân loại → 400.
         Assert.Equal(HttpStatusCode.Forbidden, (await Upload(s.Admin, "MAU02", null, null)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await Upload(s.Plain, "MAU02", null, null)).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await Upload(s.OwnerA1, "MAU02", "General", null)).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await Upload(s.OwnerA1, null, null, null)).StatusCode);
 
-        // Gỡ tệp chỉ áp dụng cho minh chứng chủ hồ sơ gắn vào hồ sơ của mình — tệp chưa gắn không gỡ qua đường này (403);
-        // endpoint xem inline của trang tài liệu cũ đã bỏ.
+        // Tệp chưa gắn không gỡ qua đường này (403); endpoint xem inline đã bỏ (404).
         Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerA1.DeleteAsync($"/api/attachments/{unlinkedId}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await s.OwnerA1.GetAsync($"/api/attachments/{unlinkedId}/view")).StatusCode);
     }
 
-    /// <summary>
-    /// Phụ lục, báo cáo kèm hồ sơ tập thể (Mẫu 06/07/08): collective.manage trên tổ chức của hồ sơ tải lên/thay/gỡ (tệp thuộc tập thể,
-    /// không giới hạn người tải); evaluation.read trong phạm vi chỉ xem/tải; ngoài phạm vi 403; kỳ đóng không tải lên/gỡ;
-    /// gỡ là xóa mềm cả nhóm phiên bản.
-    /// </summary>
+    /// <summary>Phụ lục hồ sơ tập thể: collective.manage tải lên/thay/gỡ, evaluation.read chỉ xem; kỳ đóng không sửa; gỡ là xóa mềm cả nhóm phiên bản.</summary>
     [SkippableFact]
     public async Task CollectiveAttachments_ManageByCollectiveManage_ReadByScope()
     {
@@ -559,7 +545,7 @@ public sealed class AuthorizationMatrixTests
         Assert.Equal(HttpStatusCode.Forbidden, (await s.CellReporterA.GetAsync($"/api/reports/form-14?periodId={s.PeriodId}&branchId={s.CellB}")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await s.Committee.GetAsync($"/api/reports/form-15a?periodId={s.PeriodId}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerA1.GetAsync($"/api/reports/form-14?periodId={s.PeriodId}")).StatusCode);
-        // Mẫu 11 theo Chi bộ: meeting.read (Chi ủy) trong phạm vi Chi bộ (Mẫu 13 xuất theo từng biên bản — test đợt 8).
+        // Mẫu 11 theo Chi bộ: meeting.read (Chi ủy) trong phạm vi Chi bộ.
         Assert.Equal(HttpStatusCode.OK, (await s.CellSecA.GetAsync($"/api/reports/docx/mau-11?periodId={s.PeriodId}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await s.CellSecA.GetAsync($"/api/reports/docx/mau-11?periodId={s.PeriodId}&branchId={s.CellB}")).StatusCode);
         // Biểu mẫu hồ sơ cá nhân: quyền xem hồ sơ.
@@ -663,7 +649,7 @@ public sealed class AuthorizationMatrixTests
                     Year = 2030, Quarter = EvaluationQuarter.Quy1, Name = $"Kỳ ma trận {suffix}",
                     StartDate = DateTime.UtcNow.AddDays(-10), EndDate = DateTime.UtcNow.AddDays(80),
                     Status = PeriodStatus.Open,
-                    // Task 16: kỳ mở phải có ảnh chụp bộ tiêu chí (kiểu kỳ "Đầy đủ" → Mẫu 09A).
+                    // Kỳ mở phải có ảnh chụp bộ tiêu chí (kiểu kỳ "Đầy đủ" → Mẫu 09A).
                     CriteriaSnapshot = CriteriaTestData.Snapshot("09A")
                 };
                 db.AddRange(deptA, deptB, cellA, cellB, period);

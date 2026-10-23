@@ -10,11 +10,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Nhập dữ liệu từ Excel trên PostgreSQL thật: file mẫu → xem trước → xác nhận → dữ liệu có trong CSDL (đơn vị, tổ chức Đảng,
-/// cán bộ + tài khoản kèm file mật khẩu tạm một lần, gán vai trò); người không có quyền bị 403; phiên của người khác không xác nhận được;
-/// còn dòng lỗi thì không ghi dòng nào.
-/// </summary>
+/// <summary>Nhập Excel: file mẫu → xem trước → xác nhận; thiếu quyền 403; còn dòng lỗi thì không ghi dòng nào.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class ImportIntegrationTests
 {

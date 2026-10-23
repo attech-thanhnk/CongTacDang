@@ -3,10 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace CongTacDang.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Quy ước tên CSDL tạm của test tích hợp và các chốt an toàn trên máy chủ PostgreSQL dùng chung:
-/// chỉ tạo/xóa CSDL tên <c>ctd_it_&lt;yyyyMMddHHmmss&gt;_&lt;guid8&gt;</c>, không bao giờ đụng CSDL khác.
-/// </summary>
+/// <summary>Tên CSDL tạm <c>ctd_it_&lt;yyyyMMddHHmmss&gt;_&lt;guid8&gt;</c>; không bao giờ đụng CSDL khác.</summary>
 public static partial class TestDatabaseNames
 {
     /// <summary>Tiền tố bắt buộc của mọi CSDL do test tạo.</summary>

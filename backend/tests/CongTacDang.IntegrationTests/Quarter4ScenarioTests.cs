@@ -13,20 +13,8 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Kịch bản trọn một kỳ <b>Quý IV/2026</b> đánh giá theo cách Quý III (bộ "Chấm theo 6 trục" — Mẫu 09B, không đăng ký việc;
-/// nộp 09B, 09C, 9D; tập thể bỏ phiếu, thẩm định, cấp trực tiếp, Đảng ủy quyết định; diện cấp trên do Tổng công ty quyết định,
-/// hệ thống ghi nhận) — chạy trên CSDL tạm riêng (collection riêng) để kỳ đúng năm 2026, quý IV như dùng thật.
-/// <list type="number">
-/// <item>Dựng tổ chức + cán bộ tên giả đủ 4 cách xét duyệt: Trưởng/Phó phòng (<c>co-so</c>), Bí thư Chi bộ là nhân viên
-/// (<c>bi-thu-nhan-vien</c>), Chủ tịch/Giám đốc/Kiểm soát viên (<c>cap-tren</c>), Phó Giám đốc (<c>pho-giam-doc</c>); chức vụ,
-/// thông tin đơn vị và người thực hiện các bước giao qua API như trang quản trị.</item>
-/// <item>Tạo kỳ, thêm người, đổi cách xét duyệt của Phó Giám đốc, đặt thời hạn theo kế hoạch, kiểm tra kẹt luồng, mở kỳ.</item>
-/// <item>Đi trọn từng hồ sơ qua mọi bước bằng đúng tài khoản; kiểm tra người không đúng phạm vi không thao tác được.</item>
-/// <item>Công bố, đóng kỳ; xuất mọi biểu mẫu của kỳ (09B, 09C, 9D, 10 từng hồ sơ; 11, 12, 13, 14, 15A, 15B, 16) và kiểm tra
-/// quý/năm in đúng của kỳ, không còn "III" ghi cứng, đủ người theo diện, tên tổ chức lấy từ cài đặt.</item>
-/// </list>
-/// </summary>
+/// <summary>Trọn một kỳ Quý IV/2026 theo bộ 09B với đủ 4 cách xét duyệt, đi hết các bước, xuất mọi biểu mẫu.
+/// Chạy trên CSDL tạm riêng để kỳ đúng năm 2026, quý IV.</summary>
 [Collection(Quarter4Collection.Name)]
 public sealed class Quarter4ScenarioTests
 {
@@ -289,7 +277,7 @@ public sealed class Quarter4ScenarioTests
         // Mẫu 11 (phiếu bỏ phiếu), 12 (biên bản hội nghị), 13 (biên bản kiểm phiếu), 16 (báo cáo).
         var m11 = await Docx(w.Office, $"/api/reports/docx/mau-11?periodId={periodId}");
         printed.Add(("11", m11.Text));
-        Assert.Contains("PHIẾU ĐÁNH GIÁ, XẾP LOẠI CÁN BỘ QUÝ IV NĂM 2026", m11.Text); // trước đây in "QUÝ 4"
+        Assert.Contains("PHIẾU ĐÁNH GIÁ, XẾP LOẠI CÁN BỘ QUÝ IV NĂM 2026", m11.Text);
         foreach (var p in w.All)
             Assert.Contains(p.Name, m11.Text);
         var minutes = await CreateMinutesAsync(w.Office, periodId);
@@ -649,6 +637,5 @@ public sealed class Quarter4ScenarioTests
 [CollectionDefinition(Name)]
 public sealed class Quarter4Collection : ICollectionFixture<ApiFactory>
 {
-    /// <summary>Tên collection.</summary>
     public const string Name = "quarter4";
 }

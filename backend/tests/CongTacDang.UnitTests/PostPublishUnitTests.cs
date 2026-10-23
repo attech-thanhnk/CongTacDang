@@ -16,10 +16,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Task 20 — sau công bố: mã quyền mới và luật guard, tham số bộ tiêu chí (công khai điểm, mức bắt buộc lập kế hoạch),
-/// nội dung Mẫu 17, file mẫu Mẫu 17 dựng từ biểu mẫu gốc, nhắc việc (sắp tới hạn/quá hạn).
-/// </summary>
+/// <summary>Sau công bố: quyền và guard, tham số bộ tiêu chí, nội dung và file mẫu Mẫu 17, nhắc việc.</summary>
 public sealed class PostPublishUnitTests
 {
     private static readonly Guid DeptA = Guid.NewGuid();

@@ -6,10 +6,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Task 15: hồ sơ luồng (Internal / External / Off) trong cấu hình kỳ — cấu hình mặc định theo bộ tiêu chí, kiểm tra cấu hình, JSON,
-/// máy trạng thái theo hồ sơ luồng, quyền thực hiện bước và khớp chế độ bước của hành động.
-/// </summary>
+/// <summary>Hồ sơ luồng (Internal / External / Off): cấu hình mặc định, kiểm tra, JSON, máy trạng thái, quyền thực hiện bước.</summary>
 public sealed class WorkflowProfileUnitTests
 {
     private static List<string> Validate(PeriodSettings settings) => settings.Validate(WorkflowActions.IsAssignableStepPermission);
@@ -276,7 +273,7 @@ public sealed class WorkflowProfileUnitTests
         Assert.Equal(9, a.Steps.Count);
         Assert.False(a.IsActive(WorkflowStep.B1_REGISTER));
         Assert.Equal(new DateOnly(2026, 10, 5), a.Deadline(WorkflowStep.B1_REGISTER));
-        Assert.DoesNotContain("selfScoreForm", partial.ToJson(), StringComparison.Ordinal); // task 16: thuộc bộ tiêu chí
+        Assert.DoesNotContain("selfScoreForm", partial.ToJson(), StringComparison.Ordinal); // thuộc bộ tiêu chí
         Assert.Empty(Validate(partial));
         Assert.Equal("a", partial.DefaultProfileCode(ApprovalAuthority.CapTren));
 

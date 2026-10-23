@@ -12,12 +12,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Task 16 trên PostgreSQL thật: (C1) tạo bộ nháp → xuất bản → kỳ chọn bộ → mở kỳ (chụp) → nhân bản + xuất bản + lưu trữ bộ
-/// gốc không ảnh hưởng kỳ đã mở; tự chấm 17 tiêu chí + K/AD → thẩm định chênh ≥ ngưỡng bắt buộc giải trình → Đã công bố,
-/// xuất Mẫu 10. (C2) bộ 09A: khung tỷ trọng phải có trong bộ (kẹt luồng), nhiệm vụ gắn mã trục, tính A-B-C-D theo khung,
-/// xuất Mẫu 01/02. (C3) quyền <c>criteria.manage</c>, danh mục khung cho hồ sơ cán bộ.
-/// </summary>
+/// <summary>Bộ tiêu chí: xuất bản → kỳ chụp khi mở → nhân bản không ảnh hưởng kỳ đã mở; chấm 09B/09A và xuất biểu mẫu.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class CriteriaSetIntegrationTests
 {
@@ -33,7 +28,7 @@ public sealed class CriteriaSetIntegrationTests
     {
         var w = await WorldAsync();
 
-        // Hai bộ mặc định theo bản trích xuất HD03 đã xuất bản.
+        // Hai bộ mặc định đã xuất bản.
         var sets = await Data(w.Manager, "/api/criteria-sets");
         Assert.Contains(sets.EnumerateArray(), s => s.GetProperty("code").GetString() == CriteriaSetDefaults.Code09B && s.GetProperty("status").GetString() == "Published");
         Assert.Contains(sets.EnumerateArray(), s => s.GetProperty("code").GetString() == CriteriaSetDefaults.Code09A && s.GetProperty("generalItemCount").GetInt32() == 17);
@@ -145,7 +140,7 @@ public sealed class CriteriaSetIntegrationTests
 
         // 6. Mẫu 10 xuất được từ hồ sơ đã công bố.
         await AssertDocxAsync(w.Manager, $"/api/reports/docx/mau-10/{recordId}", "84");
-        // Nội dung giải trình chênh lệch in vào ô APPRAISAL_EXPLANATION (tích hợp đợt 7).
+        // Nội dung giải trình chênh lệch in vào ô APPRAISAL_EXPLANATION.
         await AssertDocxAsync(w.Manager, $"/api/reports/docx/mau-10/{recordId}", "Trừ điểm trục 1 do chậm tiến độ dự án");
     }
 

@@ -9,10 +9,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Task 12: luồng đánh giá 9 bước theo cấu hình kỳ trên PostgreSQL thật (W1–W10 trong task file). Mỗi test tự tạo kỳ riêng
-/// (năm ngẫu nhiên + tên duy nhất) để không phụ thuộc thứ tự chạy; người dùng và vai trò dùng chung trong một kịch bản.
-/// </summary>
+/// <summary>Luồng đánh giá theo cấu hình kỳ; mỗi test tự tạo kỳ riêng (năm ngẫu nhiên) để không phụ thuộc thứ tự chạy.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class EvaluationWorkflowTests
 {
@@ -127,7 +124,7 @@ public sealed class EvaluationWorkflowTests
             proposedGrade = "HoanThanhTot", comment = "Tập thể đề xuất", meetingId,
             votes = new { votesExcellent = 2, votesGood = 5, votesSatisfactory = 0, votesUnsatisfactory = 0, invalidVotes = 1 }
         }, "AwaitingAppraisal");
-        // Thư ký phạm vi Phòng thấy biên bản của Phòng mình (task 09 "Cần phối hợp").
+        // Thư ký phạm vi Phòng thấy biên bản của Phòng mình.
         Assert.Contains(await Ids(w.SecretaryC, $"/api/evaluations/meetings?periodId={periodId}"), id => id == meetingId);
         // 6. B3B_APPRAISAL
         await StepAsync(w.AppraiserC, recordId, "appraisal", new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 92.5, comment = "Đạt", proposedGrade = "HoanThanhTot" }, "AwaitingDirectorReview");
@@ -146,7 +143,7 @@ public sealed class EvaluationWorkflowTests
         Assert.Equal(new[] { "B1_REGISTER", "B1_APPROVE", "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3A_COLLECTIVE", "B3B_APPRAISAL", "B3C_DIRECTOR", "B4_DECISION", "B5_PUBLISH" }, completes);
         Assert.Contains(history.EnumerateArray(), h => h.GetProperty("action").GetString() == "Create");
 
-        // B-03: kết quả kiểm phiếu chỉ có tổng hợp; audit của bảng kiểm phiếu chỉ ghi người nhập (thư ký).
+        // Kết quả kiểm phiếu chỉ có tổng hợp; audit bảng kiểm phiếu chỉ ghi người nhập (thư ký).
         await _factory.WithDbAsync(async db =>
         {
             var summary = await db.EvaluationMeetingVoteSummaries.SingleAsync(v => v.MeetingId == meetingId && v.RecordId == recordId);
@@ -298,8 +295,7 @@ public sealed class EvaluationWorkflowTests
         var w = await WorldAsync();
         var periodId = await OpenPeriodAsync(w, "09A", w.Owner2.Id);
         var id = await RecordOfAsync(w, periodId, w.Owner2.Id);
-        // Task 15: người diện cấp trên mặc định đi hồ sơ luồng "cap-tren" (thẩm định do cấp trên thực hiện, không trả lại
-        // trong hệ thống) → chuyển sang hồ sơ luồng cơ sở để kiểm tra trả lại ở cả 3 bước.
+        // Người diện cấp trên mặc định đi luồng "cap-tren" (không trả lại trong hệ thống) → chuyển sang luồng cơ sở để thử trả lại.
         var participant = (await Data(w.Appraiser, $"/api/evaluations/periods/{periodId}/participants")).EnumerateArray()
             .First(p => p.GetProperty("recordId").GetGuid() == id);
         await Data(await w.Appraiser.PutAsJsonAsync($"/api/evaluations/periods/{periodId}/participants/{id}/profile",
@@ -331,8 +327,7 @@ public sealed class EvaluationWorkflowTests
         Assert.Equal(new[] { "B1_APPROVE", "B2_CELL_CONFIRM", "B3B_APPRAISAL" }, returns.Select(h => h.GetProperty("step").GetString()));
         Assert.All(returns, h => Assert.False(string.IsNullOrWhiteSpace(h.GetProperty("reason").GetString())));
 
-        // Đợt 6: guard không còn ràng buộc evaluation.decide theo cấp quyết định — hồ sơ CapTren đã chuyển sang hồ sơ luồng
-        // cơ sở (B4 Nội bộ) được quyết định trong hệ thống; ghi nhận kết quả cấp trên ở bước Nội bộ → 409.
+        // Hồ sơ đã chuyển sang luồng cơ sở (B4 nội bộ) được quyết định trong hệ thống; ghi nhận kết quả cấp trên → 409.
         await StepAsync(w.DirectorC, id, "director-review", new { comment = "Đồng ý", proposedGrade = "HoanThanhTot" }, "AwaitingDecision");
         Assert.Equal(HttpStatusCode.Conflict, (await PostAsync(w.OfficeC, id, "external/B4_DECISION",
             new { authorityName = "BTV Đảng ủy Tổng công ty", grade = "HoanThanhTot" }, await VersionAsync(w, id))).StatusCode);
@@ -352,7 +347,7 @@ public sealed class EvaluationWorkflowTests
         Assert.Equal(HttpStatusCode.Conflict, early.StatusCode);
         Assert.Contains("Hồ sơ đang ở bước", await MessageAsync(early));
         Assert.Equal(HttpStatusCode.Conflict, (await PostAsync(w.OfficeC, id, "publish", new { }, await VersionAsync(w, id))).StatusCode);
-        // Thiếu version với hành động ghi → 400 (T-24).
+        // Thiếu version với hành động ghi → 400.
         Assert.Equal(HttpStatusCode.BadRequest,
             (await PostAsync(w.Owner1C, id, "tasks/submit", Tasks())).StatusCode);
 
@@ -374,7 +369,7 @@ public sealed class EvaluationWorkflowTests
         // Đóng kỳ khi còn hồ sơ chưa công bố → 409.
         Assert.Equal(HttpStatusCode.Conflict, (await TransitionRawAsync(w.Appraiser, periodId, "close", null)).StatusCode);
         await SelfScoreAsync(w, w.Owner1C, id);
-        // Kỳ đã mở: không đổi được mẫu tự chấm — task 16: mẫu tự chấm thuộc bộ tiêu chí, không đổi được bộ tiêu chí đã chụp.
+        // Kỳ đã mở: không đổi được bộ tiêu chí đã chụp.
         var period = await Data(w.Appraiser, $"/api/evaluations/periods/{periodId}");
         var otherSet = (await Data(w.Appraiser, "/api/criteria-sets")).EnumerateArray()
             .First(s => s.GetProperty("status").GetString() == "Published" && s.GetProperty("id").GetGuid() != period.GetProperty("criteriaSetId").GetGuid())
@@ -387,8 +382,7 @@ public sealed class EvaluationWorkflowTests
     [SkippableFact]
     public async Task W6_CapTrenDecisionRecordedAsExternal_CoSoDecidedInternally()
     {
-        // Task 15: hồ sơ diện cấp trên (hồ sơ luồng "cap-tren") có B4 do cấp trên thực hiện — chỉ ghi nhận kết quả
-        // (evaluation.external.record); hồ sơ cơ sở ghi nhận quyết định trong hệ thống (evaluation.decide).
+        // Luồng "cap-tren": B4 chỉ ghi nhận kết quả (evaluation.external.record); hồ sơ cơ sở dùng evaluation.decide.
         var w = await WorldAsync();
         var periodId = await OpenPeriodAsync(w, "09A", w.Owner1.Id, w.Owner2.Id);
         var coSo = await RecordOfAsync(w, periodId, w.Owner1.Id);
@@ -411,7 +405,7 @@ public sealed class EvaluationWorkflowTests
         var recorded = await StepAsync(w.ExternalDeciderC, capTren, "external/B4_DECISION", external, "AwaitingPublish");
         Assert.Equal("HoanThanhTot", recorded.GetProperty("finalGrade").GetString());
         Assert.Equal("BTV Đảng ủy Tổng công ty", recorded.GetProperty("decisionAuthorityName").GetString());
-        // Đợt 8: cột 13 Mẫu 14 — đề xuất về công tác cán bộ ghi ở bước quyết định (ghi nhận cấp trên và nội bộ).
+        // Cột 13 Mẫu 14: đề xuất về công tác cán bộ ghi ở bước quyết định.
         Assert.Equal("Đề xuất đưa vào quy hoạch (test)", recorded.GetProperty("cadreWorkProposal").GetString());
         var decided = await StepAsync(w.LocalDeciderC, coSo, "decision",
             new { finalGrade = "HoanThanhTot", cadreWorkProposal = "Đề xuất luân chuyển (test)" }, "AwaitingPublish");
@@ -806,8 +800,7 @@ public sealed class EvaluationWorkflowTests
     private static async Task<HttpResponseMessage> TransitionRawAsync(HttpClient client, Guid periodId, string action, string? reason)
     {
         var period = await Data(client, $"/api/evaluations/periods/{periodId}");
-        // Task 15: mở kỳ kiểm tra kẹt luồng; thế giới W có người thực hiện theo phạm vi riêng từng Phòng (ví dụ thư ký tập thể
-        // chỉ Phòng 1) nên mở bắt buộc kèm lý do — kiểm tra kẹt luồng có test riêng (WorkflowProfileIntegrationTests).
+        // Có bước chỉ người theo phạm vi từng Phòng thực hiện → mở bắt buộc kèm lý do (kẹt luồng có test riêng).
         if (action == "open")
             return await client.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/{action}",
                 new { version = period.GetProperty("version").GetUInt32(), reason = reason ?? "Kiểm thử luồng", force = true });

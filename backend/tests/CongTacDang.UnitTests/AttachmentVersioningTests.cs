@@ -10,7 +10,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>Kiểm thử mô hình tệp theo đối tượng, phiên bản, tệp chưa gắn và kiểm tra quyền (T-36, T-47, T-42).</summary>
+/// <summary>Tệp theo đối tượng, phiên bản, tệp chưa gắn và kiểm tra quyền.</summary>
 public class AttachmentVersioningTests
 {
     private static readonly Guid CellA = Guid.NewGuid();
@@ -121,10 +121,7 @@ public class AttachmentVersioningTests
         Assert.Single(await _world.Service.GetAttachmentsByOwnerAsync(AttachmentOwnerTypes.EvaluationRecord, record.Id, _world.Secretary(CellA).Id));
     }
 
-    /// <summary>
-    /// B-02: minh chứng chỉ chủ hồ sơ và người có <c>evaluation.read</c> trong phạm vi bao trùm hồ sơ xem được;
-    /// có quyền đọc ở phạm vi khác hoặc chỉ có quyền tự đánh giá thì không xem được minh chứng của cán bộ khác.
-    /// </summary>
+    /// <summary>Minh chứng chỉ chủ hồ sơ và người có <c>evaluation.read</c> trong phạm vi bao trùm hồ sơ xem được.</summary>
     [Fact]
     public async Task Evidence_ReadableOnlyByOwnerAndInScopeReaders()
     {
@@ -279,7 +276,7 @@ public class AttachmentVersioningTests
     public async Task Upload_WithoutValidOwner_IsRejected()
     {
         var owner = _world.Cadre(CellA);
-        // Không còn loại đối tượng "văn bản chung"; loại chưa gắn không nhận từ client.
+        // Loại "văn bản chung" và loại chưa gắn không nhận từ client.
         await Assert.ThrowsAsync<ArgumentException>(() => _world.Service.UploadAttachmentAsync(
             Pdf("x"), "x.pdf", 1, "MAU02", "", "A", owner.Id, "General", null));
         await Assert.ThrowsAsync<ArgumentException>(() => _world.Service.UploadAttachmentAsync(
@@ -306,10 +303,7 @@ public class AttachmentVersioningTests
             _world.Service.EnsureCanLinkAttachmentsAsync(new[] { own.Id, foreign.Id }, owner.Id));
     }
 
-    /// <summary>
-    /// Phụ lục của hồ sơ tập thể: collective.manage trên tổ chức tải lên/thay/gỡ (không cần là người tải lên); evaluation.read
-    /// trong phạm vi chỉ xem; ngoài phạm vi không thấy; kỳ đóng không cập nhật; không gắn sang hồ sơ cá nhân.
-    /// </summary>
+    /// <summary>Phụ lục hồ sơ tập thể: collective.manage tải lên/thay/gỡ; evaluation.read trong phạm vi chỉ xem; kỳ đóng không cập nhật.</summary>
     [Fact]
     public async Task CollectiveAttachment_FollowsCollectiveRecordPermissions()
     {
@@ -352,10 +346,7 @@ public class AttachmentVersioningTests
         Assert.All(_world.Files.Items, a => Assert.True(a.IsDeleted));
     }
 
-    /// <summary>
-    /// Minh chứng cá nhân theo giai đoạn: trước khi nộp phiếu tự chấm thêm/thay/gỡ tự do; sau khi nộp chỉ bổ sung (thay, gỡ → 409);
-    /// hồ sơ trả về bước tự chấm thì lại tự do; đã công bố hoặc kỳ khóa dữ liệu → khóa. Cờ cho giao diện khớp luật.
-    /// </summary>
+    /// <summary>Minh chứng theo giai đoạn: trước khi nộp tự do; sau khi nộp chỉ bổ sung; công bố hoặc kỳ khóa dữ liệu → khóa.</summary>
     [Fact]
     public async Task OwnerEvidence_FollowsRecordStage()
     {
@@ -407,10 +398,7 @@ public class AttachmentVersioningTests
         Assert.False(rights.CanAdd || rights.CanReplace || rights.CanRemove);
     }
 
-    /// <summary>
-    /// Sau công bố, minh chứng bổ sung đi theo kiến nghị: chủ hồ sơ gắn tệp khi kiến nghị còn xử lý (không thay, không gỡ);
-    /// người xử lý kiến nghị trong phạm vi đọc được tệp; kiến nghị đã trả lời → không gắn thêm.
-    /// </summary>
+    /// <summary>Sau công bố, minh chứng bổ sung đi theo kiến nghị còn xử lý; người xử lý trong phạm vi đọc được.</summary>
     [Fact]
     public async Task AppealFiles_AddWhileOpen_ReadableByResolvers()
     {

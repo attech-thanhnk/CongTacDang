@@ -11,10 +11,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Task 09: API quản trị vai trò / gán vai trò trên PostgreSQL thật, các chốt chặn (tự gán, vai trò bảo vệ,
-/// thu hồi quản trị cuối) và "thay đổi có hiệu lực ngay" (không chờ token hết hạn).
-/// </summary>
+/// <summary>API vai trò / gán vai trò: chốt chặn (tự gán, vai trò bảo vệ, quản trị cuối) và thay đổi có hiệu lực ngay.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class RoleAssignmentApiTests
 {

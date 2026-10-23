@@ -12,10 +12,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Trần tỷ lệ Hoàn thành xuất sắc: nhóm chức danh trong cấp quyết định, loại người đứng đầu, mức dùng để tính, làm tròn,
-/// đơn vị theo ảnh chụp trên hồ sơ.
-/// </summary>
+/// <summary>Trần tỷ lệ Xuất sắc: nhóm chức danh, loại người đứng đầu, mức dùng để tính, làm tròn, đơn vị theo ảnh chụp.</summary>
 public class ExcellentQuotaTests
 {
     private const EvaluationGrade XS = EvaluationGrade.HoanThanhXuatSac;

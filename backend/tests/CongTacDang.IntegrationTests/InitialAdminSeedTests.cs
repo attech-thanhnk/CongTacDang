@@ -11,11 +11,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Tài khoản quản trị ban đầu (<c>Seed:InitialAdmin:*</c>) trên CSDL trống, không dữ liệu mẫu: mỗi host
-/// <see cref="WebApplicationFactory{TEntryPoint}.WithWebHostBuilder"/> là một lần khởi động ứng dụng (seeder chạy lại).
-/// Dùng <see cref="ApiFactory"/> riêng để bảo đảm CSDL chưa có quản trị nào.
-/// </summary>
+/// <summary>Tài khoản quản trị ban đầu trên CSDL trống; mỗi <c>WithWebHostBuilder</c> là một lần khởi động (seeder chạy lại).</summary>
 public sealed class InitialAdminSeedTests
 {
     private const string Username = "quantri.bandau";

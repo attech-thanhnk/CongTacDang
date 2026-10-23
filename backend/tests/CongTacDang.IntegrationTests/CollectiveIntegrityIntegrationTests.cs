@@ -11,11 +11,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Toàn vẹn dữ liệu hồ sơ tập thể và biên bản: một hồ sơ mỗi kỳ/biểu mẫu/tổ chức (kể cả Mẫu 07 không có đơn vị), kỳ đã đóng
-/// không tạo được, sửa bắt buộc phiên bản, cờ <c>canAttach</c> khớp luật đính kèm, giảm số có mặt dưới số phiếu đã ghi bị chặn
-/// cho cả Mẫu 12.
-/// </summary>
+/// <summary>Toàn vẹn hồ sơ tập thể và biên bản: trùng hồ sơ, kỳ đóng, phiên bản, cờ <c>canAttach</c>, số có mặt.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class CollectiveIntegrityIntegrationTests
 {

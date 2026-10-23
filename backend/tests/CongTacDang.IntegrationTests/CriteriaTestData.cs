@@ -2,19 +2,13 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Task 16: dữ liệu chấm điểm theo bộ tiêu chí mặc định (17 tiêu chí con, 6 trục T1–T6) dùng chung cho các test tích hợp
-/// — thay mảng 6 điểm cố định trước đây.
-/// </summary>
+/// <summary>Điểm chấm theo bộ tiêu chí mặc định (17 tiêu chí con, 6 trục T1–T6).</summary>
 internal static class CriteriaTestData
 {
     /// <summary>Lý do dùng cho tiêu chí "Không đảm bảo" (khoản giảm ≥ 1 điểm phải nêu căn cứ).</summary>
     public const string DeductionReason = "Căn cứ giảm điểm (test)";
 
-    /// <summary>
-    /// Điểm tiêu chí chung theo bộ mặc định: mọi tiêu chí con "Đảm bảo" (tối đa), trừ các mã trong <paramref name="notAssured"/>
-    /// chấm "Không đảm bảo" (0, có căn cứ). Tổng = 30 − tổng điểm tối đa các mã đó.
-    /// </summary>
+    /// <summary>Mọi tiêu chí con "Đảm bảo", trừ các mã <paramref name="notAssured"/> chấm "Không đảm bảo" (0, có căn cứ).</summary>
     public static Dictionary<string, GeneralItemScore> General(params string[] notAssured) =>
         CriteriaSetDefaults.Build09B().AllItems.ToDictionary(
             x => x.Item.Code,
@@ -28,10 +22,7 @@ internal static class CriteriaTestData
         ["T1"] = t1, ["T2"] = t2, ["T3"] = t3, ["T4"] = t4, ["T5"] = t5, ["T6"] = t6
     };
 
-    /// <summary>
-    /// Ảnh chụp bộ mặc định (dựng kỳ trực tiếp trong CSDL cho test). <paramref name="collectiveFramework"/> = false bỏ khung tiêu chí
-    /// tập thể (hồ sơ tập thể nhập thẳng hai điểm nhóm như bộ cũ).
-    /// </summary>
+    /// <summary>Ảnh chụp bộ mặc định; <paramref name="collectiveFramework"/> = false bỏ khung tiêu chí tập thể.</summary>
     public static string Snapshot(string form, bool collectiveFramework = true) => new CriteriaSnapshot
     {
         SetId = Guid.Empty,
