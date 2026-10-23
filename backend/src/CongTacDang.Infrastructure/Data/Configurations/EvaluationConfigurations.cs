@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CongTacDang.Infrastructure.Data.Configurations;
 
-/// <summary>Kỳ đánh giá: cấu hình jsonb; kỳ hiện hành = kỳ Open/Locked mới nhất.</summary>
+/// <summary>Kỳ hiện hành = kỳ Open/Locked mới nhất.</summary>
 public sealed class EvaluationPeriodConfiguration : IEntityTypeConfiguration<EvaluationPeriod>
 {
     public void Configure(EntityTypeBuilder<EvaluationPeriod> entity)
@@ -34,7 +34,6 @@ public sealed class EvaluationPeriodConfiguration : IEntityTypeConfiguration<Eva
     }
 }
 
-/// <summary>Hồ sơ đánh giá cá nhân.</summary>
 public sealed class EvaluationRecordConfiguration : IEntityTypeConfiguration<EvaluationRecord>
 {
     public void Configure(EntityTypeBuilder<EvaluationRecord> entity)
@@ -42,7 +41,7 @@ public sealed class EvaluationRecordConfiguration : IEntityTypeConfiguration<Eva
         entity.ToTable("evaluation_records");
         entity.HasKey(e => e.Id);
 
-        // 1 Cán bộ chỉ có 1 hồ sơ trong 1 kỳ đánh giá (kể cả bản ghi đã xóa mềm — thêm lại thì khôi phục).
+        // Unique gồm cả bản ghi đã xóa mềm — thêm lại thì khôi phục.
         entity.HasIndex(e => new { e.PeriodId, e.MemberId }).IsUnique();
         entity.HasIndex(e => e.MemberId);
         entity.HasIndex(e => e.PartyCellId);
@@ -61,7 +60,6 @@ public sealed class EvaluationRecordConfiguration : IEntityTypeConfiguration<Eva
         entity.Property(e => e.WeightFrameCode).HasMaxLength(20).IsRequired();
         entity.Property(e => e.GeneralScores).HasColumnType("jsonb").IsRequired();
         entity.Property(e => e.AxisScores).HasColumnType("jsonb");
-        // Nội dung Mẫu 09C (theo mã mục), nhiệm vụ và kết quả theo trục (Mẫu 09C mục I, Mẫu 9D), phần tự luận theo trục của Mẫu 09B.
         entity.Property(e => e.SelfAssessment).HasColumnType("jsonb").IsRequired();
         entity.Property(e => e.AxisReports).HasColumnType("jsonb").IsRequired();
         entity.Property(e => e.AxisNotes).HasColumnType("jsonb");
@@ -101,14 +99,12 @@ public sealed class EvaluationRecordConfiguration : IEntityTypeConfiguration<Eva
             .HasForeignKey(t => t.RecordId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // CollectiveMeetingId / DecisionMeetingId: tham chiếu mềm tới evaluation_meetings (không FK, tránh vòng khóa ngoại
-        // records ↔ meetings qua vote summaries).
+        // Tham chiếu mềm, không FK — tránh vòng khóa ngoại records ↔ meetings qua vote summaries.
 
         entity.HasQueryFilter(e => !e.IsDeleted);
     }
 }
 
-/// <summary>Công việc / sản phẩm của hồ sơ.</summary>
 public sealed class EvaluationTaskConfiguration : IEntityTypeConfiguration<EvaluationTask>
 {
     public void Configure(EntityTypeBuilder<EvaluationTask> entity)
@@ -139,7 +135,6 @@ public sealed class EvaluationTaskConfiguration : IEntityTypeConfiguration<Evalu
     }
 }
 
-/// <summary>Lịch sử chuyển trạng thái hồ sơ : bước, hành động, lý do, ảnh chụp điểm/mức trước–sau.</summary>
 public sealed class EvaluationRecordHistoryConfiguration : IEntityTypeConfiguration<EvaluationRecordHistory>
 {
     public void Configure(EntityTypeBuilder<EvaluationRecordHistory> entity)
@@ -152,20 +147,18 @@ public sealed class EvaluationRecordHistoryConfiguration : IEntityTypeConfigurat
             .WithMany()
             .HasForeignKey(e => e.RecordId)
             .OnDelete(DeleteBehavior.Cascade);
-        // Lịch sử ẩn cùng hồ sơ đã xóa mềm (khớp query filter của hồ sơ — tránh cảnh báo EF 10622).
+        // Khớp query filter của hồ sơ — tránh cảnh báo EF 10622.
         entity.HasQueryFilter(e => !e.Record.IsDeleted);
     }
 }
 
-/// <summary>Hồ sơ tự đánh giá tập thể (Mẫu 06–08).</summary>
 public sealed class CollectiveEvaluationRecordConfiguration : IEntityTypeConfiguration<CollectiveEvaluationRecord>
 {
     public void Configure(EntityTypeBuilder<CollectiveEvaluationRecord> entity)
     {
         entity.ToTable("collective_evaluation_records");
         entity.HasKey(e => e.Id);
-        // Mỗi kỳ, biểu mẫu chỉ một hồ sơ cho một tổ chức: NULL coi như bằng nhau (Mẫu 07 luôn không có đơn vị chính quyền),
-        // bỏ qua hồ sơ đã xóa mềm để tạo lại được sau khi xóa.
+        // NULL coi như bằng nhau (Mẫu 07 không có đơn vị chính quyền); bỏ qua bản đã xóa mềm để tạo lại được.
         entity.HasIndex(e => new { e.PeriodId, e.Form, e.PartyCellId, e.DepartmentId })
             .IsUnique()
             .AreNullsDistinct(false)
@@ -204,7 +197,6 @@ public sealed class CollectiveEvaluationRecordConfiguration : IEntityTypeConfigu
     }
 }
 
-/// <summary>Dòng nội dung của hồ sơ tập thể.</summary>
 public sealed class CollectiveEvaluationItemConfiguration : IEntityTypeConfiguration<CollectiveEvaluationItem>
 {
     public void Configure(EntityTypeBuilder<CollectiveEvaluationItem> entity)
@@ -213,12 +205,11 @@ public sealed class CollectiveEvaluationItemConfiguration : IEntityTypeConfigura
         entity.HasKey(e => e.Id);
         entity.Property(e => e.Category).HasMaxLength(200);
         entity.Property(e => e.TaskName).HasMaxLength(500);
-        // Dòng nội dung ẩn cùng hồ sơ tập thể đã xóa mềm (khớp query filter của hồ sơ tập thể — tránh cảnh báo EF 10622).
+        // Khớp query filter của hồ sơ tập thể — tránh cảnh báo EF 10622.
         entity.HasQueryFilter(e => !e.CollectiveRecord.IsDeleted);
     }
 }
 
-/// <summary>Biên bản hội nghị / kiểm phiếu — gắn Chi bộ hoặc Phòng (cấp Phòng) và bước B3a/B4.</summary>
 public sealed class EvaluationMeetingConfiguration : IEntityTypeConfiguration<EvaluationMeeting>
 {
     public void Configure(EntityTypeBuilder<EvaluationMeeting> entity)
@@ -254,7 +245,7 @@ public sealed class EvaluationMeetingConfiguration : IEntityTypeConfiguration<Ev
     }
 }
 
-/// <summary>Kết quả kiểm phiếu tổng hợp theo hồ sơ (không có thông tin người bỏ phiếu).</summary>
+/// <summary>Không lưu thông tin người bỏ phiếu.</summary>
 public sealed class EvaluationMeetingVoteSummaryConfiguration : IEntityTypeConfiguration<EvaluationMeetingVoteSummary>
 {
     public void Configure(EntityTypeBuilder<EvaluationMeetingVoteSummary> entity)
@@ -267,7 +258,7 @@ public sealed class EvaluationMeetingVoteSummaryConfiguration : IEntityTypeConfi
             .WithMany()
             .HasForeignKey(e => e.RecordId)
             .OnDelete(DeleteBehavior.Restrict);
-        // Kết quả kiểm phiếu ẩn cùng biên bản đã xóa mềm (khớp query filter của biên bản — tránh cảnh báo EF 10622).
+        // Khớp query filter của biên bản — tránh cảnh báo EF 10622.
         entity.HasQueryFilter(e => !e.Meeting.IsDeleted);
     }
 }

@@ -13,8 +13,8 @@ using CongTacDang.Application.Services;
 namespace CongTacDang.Api.Controllers;
 
 /// <summary>
-/// Hồ sơ đánh giá cá nhân và luồng 9 bước theo cấu hình kỳ (task 12). Controller chỉ kiểm tra "có quyền ở phạm vi nào đó";
-/// service kiểm tra quyền trên từng hồ sơ, trạng thái kỳ, máy trạng thái và phiên bản (xmin).
+/// Hồ sơ đánh giá cá nhân. Controller chỉ kiểm tra "có quyền ở phạm vi nào đó";
+/// service kiểm tra quyền trên hồ sơ, trạng thái kỳ, máy trạng thái và phiên bản (xmin).
 /// </summary>
 [ApiController]
 [Route("api/evaluations")]
@@ -90,10 +90,7 @@ public class EvaluationController : ControllerBase
         return Ok(ApiResponse<List<EvaluationRecordDto>>.Ok(records, "Lấy danh sách hồ sơ Chi bộ thành công."));
     }
 
-    /// <summary>
-    /// Kiểm soát trần tỷ lệ Hoàn thành xuất sắc theo nhóm chức danh trong từng cấp quyết định (hiển thị trên trang Đánh giá;
-    /// chỉ cảnh báo). <c>partyCellId</c> (tùy chọn) thu hẹp theo tổ chức Đảng và tổ chức con.
-    /// </summary>
+    /// <summary>Trần tỷ lệ Hoàn thành xuất sắc theo nhóm chức danh (chỉ cảnh báo); partyCellId thu hẹp theo tổ chức Đảng.</summary>
     [HttpGet("excellent-quotas")]
     [RequirePermission(PermissionCodes.EvaluationRead)]
     public async Task<IActionResult> CheckExcellentQuotas([FromQuery] Guid periodId, [FromQuery] Guid? partyCellId, CancellationToken ct)
@@ -106,9 +103,8 @@ public class EvaluationController : ControllerBase
 
     #region Hành động theo bước
 
-    // Quyền thực hiện các bước không phải của chủ hồ sơ (duyệt, xác nhận, ghi nhận, thẩm định, nhận xét, quyết định, công bố)
-    // cấu hình theo hồ sơ luồng của từng hồ sơ (task 15) nên controller chỉ yêu cầu đăng nhập; service kiểm tra chế độ bước,
-    // xung đột lợi ích và IAuthorizationGuard.Ensure với đúng mã quyền của bước trên hồ sơ (403 nêu tên quyền).
+    // Mã quyền của từng bước cấu hình theo hồ sơ luồng nên controller chỉ yêu cầu đăng nhập;
+    // service kiểm tra chế độ bước, xung đột lợi ích và quyền của bước trên hồ sơ.
 
     /// <summary>B1_REGISTER — chủ hồ sơ nộp danh mục sản phẩm (Mẫu 01).</summary>
     [HttpPost("records/{id:guid}/tasks/submit")]
@@ -189,18 +185,12 @@ public class EvaluationController : ControllerBase
     public Task<IActionResult> Reopen(Guid id, [FromBody] ReopenRequestDto dto, CancellationToken ct) =>
         Run(() => _workflow.ReopenAsync(id, dto, ct), "Đã mở lại hồ sơ.");
 
-    /// <summary>
-    /// Gia hạn mở riêng hồ sơ khi kỳ khóa dữ liệu (bắt buộc lý do và hạn mới). Service kiểm tra quyền trên hồ sơ:
-    /// <c>evaluation.reopen</c> hoặc quyền thực hiện bước thẩm định theo hồ sơ luồng.
-    /// </summary>
+    /// <summary>Gia hạn mở riêng hồ sơ khi kỳ khóa dữ liệu (evaluation.reopen hoặc quyền bước thẩm định).</summary>
     [HttpPost("records/{id:guid}/unlock/extend")]
     public Task<IActionResult> ExtendUnlock(Guid id, [FromBody] UnlockRecordRequestDto dto, CancellationToken ct) =>
         Run(() => _workflow.ExtendUnlockAsync(id, dto, ct), "Đã gia hạn mở riêng hồ sơ.");
 
-    /// <summary>
-    /// Ghi nhận kết quả của bước do cấp trên thực hiện (<paramref name="step"/> = mã bước, ví dụ <c>B4_DECISION</c>):
-    /// cơ quan, số/ngày văn bản, nhận xét, mức, điểm, tệp đính kèm.
-    /// </summary>
+    /// <summary>Ghi nhận kết quả bước do cấp trên thực hiện (step = mã bước, ví dụ B4_DECISION).</summary>
     [HttpPost("records/{id:guid}/external/{step}")]
     [RequirePermission(PermissionCodes.EvaluationExternalRecord)]
     public Task<IActionResult> RecordExternalResult(Guid id, string step, [FromBody] ExternalResultRequestDto dto, CancellationToken ct) =>

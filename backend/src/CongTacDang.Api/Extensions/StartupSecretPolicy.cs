@@ -6,11 +6,8 @@ using Microsoft.Extensions.Configuration;
 namespace CongTacDang.Api.Extensions;
 
 /// <summary>
-/// Kiểm tra khóa ký JWT và mật khẩu trong cấu hình khi khởi động.
-/// <para>Mọi môi trường: khóa JWT bắt buộc, ≥ 32 byte, không phải chuỗi mẫu cũ; phải có chuỗi kết nối.</para>
-/// <para>Môi trường chạy thật (mọi môi trường trừ Development và Testing) kiểm tra thêm: khóa JWT không phải giá trị
-/// giữ chỗ, không quá đơn điệu, không trùng mật khẩu CSDL; mật khẩu CSDL và mật khẩu quản trị ban đầu không phải giá trị
-/// mẫu/mặc định từng có trong repo, không phải giá trị giữ chỗ, mật khẩu CSDL đủ dài.</para>
+/// Kiểm tra khóa JWT và mật khẩu cấu hình khi khởi động; ngoài Development/Testing kiểm tra chặt hơn
+/// (không dùng giá trị mẫu/giữ chỗ, khóa JWT không trùng mật khẩu CSDL).
 /// </summary>
 public static class StartupSecretPolicy
 {
@@ -19,9 +16,7 @@ public static class StartupSecretPolicy
     public const int MinDatabasePasswordLength = 12;
 
     /// <summary>
-    /// SHA-256 (hex, chữ thường) của các giá trị khóa/mật khẩu mẫu hoặc mặc định từng nằm trong repo
-    /// (appsettings, docker-compose, .env mẫu, CI, dữ liệu mẫu) và vài mật khẩu mặc định phổ biến.
-    /// Chỉ lưu mã băm để không ghi lại giá trị cũ vào mã nguồn.
+    /// SHA-256 (hex thường) của các khóa/mật khẩu mẫu từng nằm trong repo; chỉ lưu mã băm để không ghi lại giá trị cũ.
     /// </summary>
     private static readonly HashSet<string> KnownSampleValueHashes = new(StringComparer.Ordinal)
     {
@@ -36,12 +31,12 @@ public static class StartupSecretPolicy
         "a942b37ccfaf5a813b1432caa209a43b9d144e47ad0de1549c289c253e556cd5", // mật khẩu mặc định của PostgreSQL
     };
 
-    /// <summary>Môi trường được nới lỏng (giữ cách kiểm tra cũ): Development và Testing (test tích hợp).</summary>
+    /// <summary>Development và Testing (test tích hợp) được nới lỏng.</summary>
     public static bool IsRelaxedEnvironment(string environmentName) =>
         string.Equals(environmentName, "Development", StringComparison.OrdinalIgnoreCase)
         || string.Equals(environmentName, "Testing", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>Trả về danh sách lỗi cấu hình (rỗng = hợp lệ). Thông báo không chứa giá trị secret.</summary>
+    /// <summary>Danh sách lỗi (rỗng = hợp lệ); thông báo không chứa giá trị secret.</summary>
     public static IReadOnlyList<string> Validate(IConfiguration configuration, string environmentName)
     {
         var errors = new List<string>();
@@ -112,7 +107,6 @@ public static class StartupSecretPolicy
         return errors;
     }
 
-    /// <summary>Giá trị trùng (sau khi bỏ khoảng trắng hai đầu) một khóa/mật khẩu mẫu đã biết.</summary>
     public static bool IsKnownSampleValue(string value) =>
         KnownSampleValueHashes.Contains(Sha256Hex(value.Trim()));
 

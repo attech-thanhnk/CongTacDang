@@ -8,10 +8,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Repositories;
 
-/// <summary>Truy vấn quan hệ cây đơn vị theo <c>Path</c> (dùng chung cho các repository cài <c>IOrgSubtreeReader</c>).</summary>
+/// <summary>Truy vấn cây đơn vị theo <c>Path</c>.</summary>
 internal static class OrgSubtreeQueries
 {
-    /// <summary>Đơn vị chính quyền <paramref name="unitId"/> là <paramref name="rootId"/> hoặc con cháu của nó.</summary>
+    /// <summary>Đúng khi <paramref name="unitId"/> là <paramref name="rootId"/> hoặc con cháu.</summary>
     public static async Task<bool> IsDepartmentWithinAsync(CongTacDangDbContext db, Guid rootId, Guid unitId, CancellationToken ct)
     {
         if (rootId == unitId)
@@ -23,7 +23,7 @@ internal static class OrgSubtreeQueries
         return OrgTree.IsSelfOrDescendant(path, rootId);
     }
 
-    /// <summary>Tổ chức Đảng <paramref name="unitId"/> là <paramref name="rootId"/> hoặc con cháu của nó.</summary>
+    /// <summary>Đúng khi <paramref name="unitId"/> là <paramref name="rootId"/> hoặc con cháu.</summary>
     public static async Task<bool> IsPartyCellWithinAsync(CongTacDangDbContext db, Guid rootId, Guid unitId, CancellationToken ct)
     {
         if (rootId == unitId)

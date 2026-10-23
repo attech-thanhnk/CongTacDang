@@ -9,14 +9,11 @@ using Microsoft.AspNetCore.Http;
 namespace CongTacDang.Api.Middlewares;
 
 /// <summary>
-/// Chặn phía máy chủ khi tài khoản đang dùng mật khẩu tạm (<c>MustChangePassword</c>): mọi API trả 403 kèm mã
-/// <see cref="Code"/>, trừ danh sách cho phép (xem phiên, đổi mật khẩu, đăng xuất, làm mới phiên, đăng nhập).
-/// Đặt sau <c>UseAuthentication</c>, trước <c>UseAuthorization</c>. Trạng thái tài khoản do bước kiểm tra phiên
-/// (<c>OnTokenValidated</c>) nạp vào <see cref="HttpContext.Items"/>.
+/// Tài khoản còn mật khẩu tạm: mọi API ngoài danh sách cho phép trả 403 <see cref="Code"/>.
+/// Đặt sau <c>UseAuthentication</c>, trước <c>UseAuthorization</c>; trạng thái do <c>OnTokenValidated</c> nạp.
 /// </summary>
 public sealed class PasswordChangeRequiredMiddleware
 {
-    /// <summary>Mã lỗi trả về cho giao diện.</summary>
     public const string Code = "PASSWORD_CHANGE_REQUIRED";
 
     /// <summary>Khóa <see cref="HttpContext.Items"/> chứa <see cref="AccountState"/> của request.</summary>
@@ -35,10 +32,8 @@ public sealed class PasswordChangeRequiredMiddleware
 
     private readonly RequestDelegate _next;
 
-    /// <summary>Khởi tạo middleware.</summary>
     public PasswordChangeRequiredMiddleware(RequestDelegate next) => _next = next;
 
-    /// <summary>Request được phép khi tài khoản còn phải đổi mật khẩu.</summary>
     public static bool IsAllowed(string method, string? path)
     {
         if (string.IsNullOrEmpty(path))
@@ -47,7 +42,6 @@ public sealed class PasswordChangeRequiredMiddleware
         return Allowed.Contains((method.ToUpperInvariant(), normalized.ToLowerInvariant()));
     }
 
-    /// <summary>Xử lý request.</summary>
     public async Task InvokeAsync(HttpContext context)
     {
         if (context.User.Identity?.IsAuthenticated == true

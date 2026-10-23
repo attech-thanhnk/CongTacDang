@@ -7,13 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CongTacDang.Api.Extensions;
 
-/// <summary>Đăng ký dịch vụ tài khoản và phiên làm việc (task 08).</summary>
 public static class AccountExtensions
 {
-    /// <summary>
-    /// Repository tài khoản/nhật ký đăng nhập, cache trạng thái tài khoản, chính sách mật khẩu
-    /// (<c>Security:Password:MinLength</c>, mặc định 8), dịch vụ tài khoản và kiểm tra phiên mỗi request.
-    /// </summary>
     public static IServiceCollection AddAccountServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IUserAccountRepository, UserAccountRepository>();

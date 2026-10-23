@@ -8,17 +8,13 @@ using Microsoft.Extensions.Logging;
 
 namespace CongTacDang.Api.Services;
 
-/// <summary>
-/// Tác vụ nền dọn tệp tải lên chưa gắn đối tượng quá hạn (<c>Attachments:UnlinkedCleanup</c>: <c>Enabled</c>,
-/// <c>RetentionHours</c> mặc định 24, <c>IntervalMinutes</c> mặc định 60).
-/// </summary>
+/// <summary>Dọn tệp tải lên chưa gắn đối tượng quá hạn (<c>Attachments:UnlinkedCleanup</c>).</summary>
 public sealed class UnlinkedAttachmentCleanupService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly ILogger<UnlinkedAttachmentCleanupService> _logger;
     private readonly TimeSpan _interval;
 
-    /// <summary>Khởi tạo tác vụ với chu kỳ dọn.</summary>
     public UnlinkedAttachmentCleanupService(IServiceScopeFactory scopes, ILogger<UnlinkedAttachmentCleanupService> logger, TimeSpan interval)
     {
         _scopes = scopes;

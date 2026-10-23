@@ -32,12 +32,10 @@ namespace CongTacDang.Infrastructure.Data
         public DbSet<PartyMemberProfile> PartyMemberProfiles => Set<PartyMemberProfile>();
         public DbSet<TaskAttachment> TaskAttachments => Set<TaskAttachment>();
 
-        // Dynamic RBAC & Authentication DbSets
         public DbSet<AppRole> Roles => Set<AppRole>();
         public DbSet<Permission> Permissions => Set<Permission>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
-        // Evaluation DbSets (Hướng dẫn 03-HD/TVĐU)
         public DbSet<EvaluationPeriod> EvaluationPeriods => Set<EvaluationPeriod>();
         public DbSet<EvaluationRecord> EvaluationRecords => Set<EvaluationRecord>();
         public DbSet<EvaluationTask> EvaluationTasks => Set<EvaluationTask>();
@@ -52,20 +50,15 @@ namespace CongTacDang.Infrastructure.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Cấu hình entity mới đặt trong Infrastructure/Data/Configurations/*.cs (IEntityTypeConfiguration<T>),
-            // được nạp tự động để các task sau không phải sửa DbContext.
+            // Cấu hình entity mới đặt trong Data/Configurations/ (nạp tự động).
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(CongTacDangDbContext).Assembly);
 
-            // 1. Cây tổ chức Đảng, cây đơn vị chính quyền, loại đơn vị, chức vụ, kiêm nhiệm:
-            //    Data/Configurations/OrganizationConfigurations.cs.
-
-            // 2. Hồ sơ Cán bộ, Đảng viên
             modelBuilder.Entity<PartyMemberProfile>(entity =>
             {
                 entity.ToTable("party_member_profiles");
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Username).IsUnique();
-                // Thêm index unique lower("Username") — tạo bằng SQL trong migration InitialCreate (index biểu thức).
+                // Index unique lower("Username") tạo bằng SQL trong migration InitialCreate (index biểu thức).
                 entity.HasIndex(e => e.PartyCellId);
                 entity.HasIndex(e => e.DepartmentId);
                 entity.HasIndex(e => e.IsActive);
@@ -95,7 +88,6 @@ namespace CongTacDang.Infrastructure.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // 3. Tệp đính kèm minh chứng & tài liệu
             modelBuilder.Entity<TaskAttachment>(entity =>
             {
                 entity.ToTable("task_attachments");
@@ -107,7 +99,6 @@ namespace CongTacDang.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(e => e.UploadedById)
                     .OnDelete(DeleteBehavior.SetNull);
-                // Mô hình file theo đối tượng + phiên bản (T-36)
                 entity.Property(e => e.OwnerType).HasMaxLength(50);
                 entity.HasIndex(e => new { e.OwnerType, e.OwnerId });
                 entity.HasIndex(e => e.FileGroupId);
@@ -118,9 +109,6 @@ namespace CongTacDang.Infrastructure.Data
                 entity.Ignore(e => e.EffectiveOwnerId);
                 entity.HasQueryFilter(e => !e.IsDeleted);
             });
-
-            // Phân quyền động (Permission, AppRole, UserRoleAssignment): cấu hình trong Data/Configurations/.
-            // Quy trình đánh giá (kỳ, hồ sơ, nhiệm vụ, lịch sử, hồ sơ tập thể, biên bản): Data/Configurations/EvaluationConfigurations.cs.
 
             modelBuilder.Entity<AuditLog>(entity =>
             {
@@ -137,7 +125,6 @@ namespace CongTacDang.Infrastructure.Data
                 entity.Property(e => e.RequestPath).HasMaxLength(1000);
             });
 
-            // Refresh Tokens (Token Rotation)
             modelBuilder.Entity<RefreshToken>(entity =>
             {
                 entity.ToTable("refresh_tokens");
@@ -153,26 +140,23 @@ namespace CongTacDang.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
-                // Token của tài khoản đã xóa mềm không dùng được (khớp query filter của tài khoản — tránh cảnh báo EF 10622).
-                // Thu hồi token theo tài khoản bỏ qua bộ lọc này (RefreshTokenRepository) để vẫn thu hồi được sau khi xóa.
+                // Lọc token của tài khoản đã xóa mềm cho khớp query filter (tránh cảnh báo EF 10622);
+                // thu hồi theo tài khoản bỏ qua bộ lọc này để vẫn thu hồi được sau khi xóa.
                 entity.HasQueryFilter(e => !e.User.IsDeleted);
             });
         }
 
-        /// <summary>Chuẩn hóa xóa mềm và tạo audit log trước khi lưu đồng bộ.</summary>
         public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
             PrepareAuditEntries();
             return base.SaveChanges(acceptAllChangesOnSuccess);
         }
 
-        /// <summary>Lưu thay đổi đồng bộ và tự động ghi audit.</summary>
         public override int SaveChanges()
         {
             return SaveChanges(true);
         }
 
-        /// <summary>Chuẩn hóa xóa mềm và tạo audit log trước khi lưu bất đồng bộ.</summary>
         public override Task<int> SaveChangesAsync(
             bool acceptAllChangesOnSuccess,
             CancellationToken cancellationToken = default)
@@ -181,13 +165,12 @@ namespace CongTacDang.Infrastructure.Data
             return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         }
 
-        /// <summary>Lưu thay đổi bất đồng bộ và tự động ghi audit.</summary>
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             return SaveChangesAsync(true, cancellationToken);
         }
 
-        /// <summary>Đổi thao tác xóa thành xóa mềm, cập nhật metadata và tạo audit entries.</summary>
+        /// <summary>Đổi xóa thành xóa mềm, cập nhật metadata và tạo audit entries.</summary>
         private void PrepareAuditEntries()
         {
             ChangeTracker.DetectChanges();
@@ -229,8 +212,7 @@ namespace CongTacDang.Infrastructure.Data
                 if (entry.State is not (EntityState.Added or EntityState.Modified))
                     continue;
 
-                // Nhật ký đăng nhập đã là bản ghi vết riêng; cập nhật trạng thái đăng nhập (đếm sai, khóa tạm,
-                // lần đăng nhập cuối) do chính luồng đăng nhập ghi không cần nhân đôi vào audit log.
+                // Cập nhật trạng thái đăng nhập không ghi audit — đã có nhật ký đăng nhập riêng.
                 if (entry.Entity is LoginEvent || IsLoginBookkeeping(entry))
                     continue;
 
@@ -255,7 +237,7 @@ namespace CongTacDang.Infrastructure.Data
                     ActorId = _currentUser.UserId,
                     ActorName = string.IsNullOrWhiteSpace(_currentUser.UserName) ? "system" : _currentUser.UserName,
                     Action = entry.State == EntityState.Added ? "Create" : isDelete ? "Delete" : "Update",
-                    // Bảng nối nhiều-nhiều (role_permissions) dùng chung kiểu Dictionary: ghi tên bảng thay cho tên kiểu.
+                    // Bảng nối nhiều-nhiều dùng chung kiểu Dictionary: ghi tên bảng thay cho tên kiểu.
                     EntityType = entry.Metadata.HasSharedClrType ? entry.Metadata.Name : entry.Metadata.ClrType.Name,
                     EntityId = entityId,
                     OldValues = JsonSerializer.Serialize(oldValues),
@@ -271,7 +253,7 @@ namespace CongTacDang.Infrastructure.Data
                 AuditLogs.AddRange(auditLogs);
         }
 
-        /// <summary>Các trường chỉ luồng đăng nhập cập nhật (cùng dấu thời gian sửa đổi do DbContext tự đặt).</summary>
+        /// <summary>Các trường chỉ luồng đăng nhập cập nhật.</summary>
         private static readonly HashSet<string> LoginBookkeepingProperties = new(StringComparer.Ordinal)
         {
             nameof(PartyMemberProfile.LastLoginAt),
@@ -282,9 +264,8 @@ namespace CongTacDang.Infrastructure.Data
         };
 
         /// <summary>
-        /// Cập nhật tài khoản chỉ gồm trường theo dõi đăng nhập, không có người dùng đăng nhập (request đăng nhập
-        /// là ẩn danh). Thao tác của quản trị (ví dụ mở khóa đăng nhập) có người thao tác nên vẫn được ghi audit.
-        /// So theo giá trị thực đổi, vì repository có thể đánh dấu mọi cột là đã sửa.
+        /// Chỉ đổi trường theo dõi đăng nhập (request ẩn danh) — so theo giá trị thực đổi vì repository có thể đánh dấu mọi cột đã sửa.
+        /// Thao tác của quản trị (mở khóa) vẫn ghi audit.
         /// </summary>
         private bool IsLoginBookkeeping(EntityEntry entry)
         {
@@ -298,7 +279,6 @@ namespace CongTacDang.Infrastructure.Data
             return changed.Count > 0 && changed.All(LoginBookkeepingProperties.Contains);
         }
 
-        /// <summary>Loại bỏ các trường bí mật khỏi snapshot audit.</summary>
         private static bool IsSensitiveProperty(string propertyName)
         {
             return propertyName is "PasswordHash" or "SecurityStamp" or "Token" or "TokenHash" or "ReplacedByTokenHash";

@@ -18,18 +18,13 @@ namespace CongTacDang.Api.Extensions;
 
 public static class SecurityExtensions
 {
-    /// <summary>Số lần gọi tối đa mỗi cửa sổ cho endpoint xác thực (mặc định).</summary>
     public const int DefaultAuthPermitLimit = 10;
 
-    /// <summary>Độ dài cửa sổ giới hạn (giây, mặc định).</summary>
     public const int DefaultAuthWindowSeconds = 60;
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    /// <summary>
-    /// Giới hạn các endpoint xác thực theo địa chỉ IP. Cấu hình: <c>Security:RateLimit:Auth:PermitLimit</c> (mặc định 10),
-    /// <c>Security:RateLimit:Auth:WindowSeconds</c> (mặc định 60).
-    /// </summary>
+    /// <summary>Giới hạn tần suất endpoint xác thực theo IP (<c>Security:RateLimit:Auth</c>).</summary>
     public static IServiceCollection AddSecurityRateLimiting(this IServiceCollection services)
     {
         services.AddRateLimiter(options =>
@@ -61,10 +56,8 @@ public static class SecurityExtensions
     }
 
     /// <summary>
-    /// Kiểm tra phiên ở mỗi request (T-57): sau khi JWT hợp lệ về chữ ký/thời hạn, nạp trạng thái tài khoản (có cache)
-    /// và từ chối (401) nếu tài khoản không tồn tại, đã xóa, bị khóa hoặc dấu bảo mật trong token khác dấu hiện tại.
-    /// Trạng thái được lưu vào <see cref="HttpContext.Items"/> cho middleware bắt buộc đổi mật khẩu.
-    /// 401 trả kèm <see cref="ApiResponse"/>.
+    /// Mỗi request: 401 nếu tài khoản không còn, bị khóa hoặc sstamp khác. Trạng thái lưu vào
+    /// <see cref="HttpContext.Items"/> cho middleware bắt buộc đổi mật khẩu.
     /// </summary>
     public static IServiceCollection AddAccountSessionValidation(this IServiceCollection services)
     {
@@ -118,7 +111,7 @@ public static class SecurityExtensions
         return services;
     }
 
-    /// <summary>Bật middleware bắt buộc đổi mật khẩu phía máy chủ (T-58). Gọi sau <c>UseAuthentication</c>.</summary>
+    /// <summary>Gọi sau <c>UseAuthentication</c>.</summary>
     public static IApplicationBuilder UsePasswordChangeEnforcement(this IApplicationBuilder app) =>
         app.UseMiddleware<PasswordChangeRequiredMiddleware>();
 }

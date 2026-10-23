@@ -11,20 +11,13 @@ using DocumentFormat.OpenXml.Validation;
 namespace CongTacDang.Infrastructure.Documents;
 
 /// <summary>
-/// Kiểm tra file mẫu Word trước khi dùng (task 17 — T-81):
-/// <list type="number">
-/// <item>Mở được bằng OpenXML và là tài liệu Word thường (.docx, không phải mẫu/macro).</item>
-/// <item>Tag không nhận diện (không thuộc lớp dữ liệu của mẫu, không phải tag thông tin đơn vị) → <b>lỗi</b>.</item>
-/// <item>Tag bắt buộc (khai báo trên lớp dữ liệu) bị thiếu → <b>cảnh báo</b>; khối điều kiện chỉ cần <c>if:</c> hoặc <c>ifnot:</c>.</item>
-/// <item>Sinh thử với dữ liệu giả: lỗi khi điền → <b>lỗi</b>; tài liệu sinh ra sai cấu trúc OpenXML → <b>cảnh báo</b>.</item>
-/// </list>
+/// Tag lạ → lỗi; thiếu tag bắt buộc → cảnh báo (khối điều kiện chỉ cần <c>if:</c> hoặc <c>ifnot:</c>).
+/// Sinh thử với dữ liệu giả: lỗi khi điền → lỗi; sai cấu trúc OpenXML → cảnh báo.
 /// </summary>
 public static class WordTemplateValidator
 {
-    /// <summary>Số lỗi cấu trúc tối đa liệt kê trong cảnh báo.</summary>
     private const int MaxSchemaMessages = 5;
 
-    /// <summary>Kiểm tra nội dung <paramref name="content"/> theo danh mục tag của <paramref name="form"/>.</summary>
     public static WordTemplateCheckDto Check(WordFormDefinition form, byte[] content)
     {
         ArgumentNullException.ThrowIfNull(form);
@@ -68,7 +61,7 @@ public static class WordTemplateValidator
         return result;
     }
 
-    /// <summary>Tag bắt buộc của mẫu không có trong tệp (điều kiện: thiếu cả <c>if:</c> lẫn <c>ifnot:</c>).</summary>
+    /// <summary>Điều kiện chỉ coi là thiếu khi không có cả <c>if:</c> lẫn <c>ifnot:</c>.</summary>
     public static List<string> MissingRequired(WordFormDefinition form, IReadOnlyCollection<string> tags)
     {
         var present = tags.ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -89,7 +82,6 @@ public static class WordTemplateValidator
         return missing;
     }
 
-    /// <summary>Sinh thử với dữ liệu giả (mọi trường có giá trị, điều kiện đúng, danh sách hai phần tử).</summary>
     private static void DryRun(WordFormDefinition form, byte[] content, WordTemplateCheckDto result)
     {
         byte[] rendered;

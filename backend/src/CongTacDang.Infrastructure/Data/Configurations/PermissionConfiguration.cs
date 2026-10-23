@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CongTacDang.Infrastructure.Data.Configurations;
 
-/// <summary>Bảng <c>permissions</c>: danh mục mã quyền, đồng bộ từ <c>PermissionCodes</c> khi khởi động.</summary>
+/// <summary>Đồng bộ từ <c>PermissionCodes</c> khi khởi động.</summary>
 public sealed class PermissionConfiguration : IEntityTypeConfiguration<Permission>
 {
     /// <inheritdoc />

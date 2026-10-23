@@ -9,16 +9,11 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
-/// <summary>Chức vụ đang giữ của cán bộ theo từng khối (Đảng, chính quyền, đoàn thể) — dùng ở phần thông tin chung Mẫu 09A–9D.</summary>
-/// <param name="Party">Chức vụ Đảng (ngăn cách bằng dấu phẩy); null nếu không có.</param>
-/// <param name="Administrative">Chức vụ chính quyền.</param>
-/// <param name="MassOrganization">Chức vụ đoàn thể.</param>
+/// <summary>Chức vụ đang giữ theo khối; mỗi khối ngăn cách bằng dấu phẩy, null nếu không có.</summary>
 public sealed record MemberPositionNames(string? Party, string? Administrative, string? MassOrganization)
 {
-    /// <summary>Không có chức vụ nào.</summary>
     public static MemberPositionNames Empty { get; } = new(null, null, null);
 
-    /// <summary>Dựng từ danh sách (khối, tên chức vụ) theo thứ tự hiển thị.</summary>
     public static MemberPositionNames From(IEnumerable<(PositionSide Side, string Name)> positions)
     {
         var list = positions.Where(p => !string.IsNullOrWhiteSpace(p.Name)).ToList();
@@ -30,7 +25,7 @@ public sealed record MemberPositionNames(string? Party, string? Administrative, 
         return new MemberPositionNames(Join(PositionSide.Party), Join(PositionSide.Administrative), Join(PositionSide.MassOrganization));
     }
 
-    /// <summary>Mọi chức vụ theo thứ tự in trên Mẫu 09B "(Đảng, Đoàn thể, Chính quyền)"; null nếu không có.</summary>
+    /// <summary>Thứ tự in trên Mẫu 09B: Đảng, Đoàn thể, Chính quyền.</summary>
     public string? All()
     {
         var parts = new[] { Party, MassOrganization, Administrative }.Where(p => !string.IsNullOrWhiteSpace(p)).ToList();
@@ -38,34 +33,27 @@ public sealed record MemberPositionNames(string? Party, string? Administrative, 
     }
 }
 
-/// <summary>
-/// Dữ liệu nguồn của các biểu mẫu cá nhân 09A/09B/09C/9D (task 18 — T-83): hồ sơ đã lưu (nạp kèm Period, Member, Department,
-/// PartyCell, Tasks), bộ tiêu chí của kỳ (ảnh chụp) và chức vụ đang giữ. Lớp dữ liệu mẫu chỉ đọc giá trị đã lưu, không tính lại điểm.
-/// </summary>
-/// <param name="Record">Hồ sơ đánh giá.</param>
-/// <param name="Criteria">Nội dung bộ tiêu chí của kỳ (ảnh chụp).</param>
-/// <param name="Positions">Chức vụ đang giữ.</param>
-/// <param name="Layout">Kiểu trình bày áp dụng cho cán bộ; null = in như template.</param>
+/// <summary>Nguồn Mẫu 09A–9D: chỉ đọc điểm đã lưu, không tính lại. Layout null = in như template.</summary>
 public sealed record IndividualFormSource(
     EvaluationRecord Record, CriteriaSetContent Criteria, MemberPositionNames Positions, FormLayout? Layout = null)
 {
-    /// <summary>Đã nộp phiếu tự chấm (có điểm lưu) — chưa nộp thì các ô điểm giữ chữ mặc định.</summary>
+    /// <summary>Chưa nộp phiếu tự chấm thì các ô điểm giữ chữ mặc định.</summary>
     public bool HasSelfScore => Record.SelfScoredAt.HasValue;
 }
 
-/// <summary>Một nhóm tiêu chí chung (dòng nhóm của bảng Nhóm I, Mẫu 09A/09B).</summary>
+/// <summary>Dòng nhóm của bảng Nhóm I (Mẫu 09A/09B).</summary>
 public sealed class GeneralGroupRow
 {
     [TemplateField("G_NO")] public string? Number { get; init; }
     [TemplateField("G_NAME")] public string? Name { get; init; }
     [TemplateField("G_MAX")] public string? MaxScore { get; init; }
 
-    /// <summary>Nhận xét chung của nhóm (ô "Tóm tắt kết quả/Tài liệu minh chứng" của dòng nhóm).</summary>
+    /// <summary>Ô "Tóm tắt kết quả/Tài liệu minh chứng" của dòng nhóm.</summary>
     [TemplateField("G_NOTE")] public string? Note { get; init; }
     [TemplateCollection("ITEMS")] public List<GeneralItemRow> Items { get; init; } = new();
 }
 
-/// <summary>Một tiêu chí con (dòng của bảng Nhóm I, Mẫu 09A/09B).</summary>
+/// <summary>Dòng tiêu chí con của bảng Nhóm I.</summary>
 public sealed class GeneralItemRow
 {
     [TemplateField("I_CODE")] public string? Code { get; init; }
@@ -82,11 +70,10 @@ public sealed class GeneralItemRow
     /// <summary>Điểm đạt đã lưu; "K/AD" khi không áp dụng.</summary>
     [TemplateField("I_SCORE")] public string? Score { get; init; }
 
-    /// <summary>Lý do/căn cứ đã lưu (cột "Tóm tắt kết quả/Tài liệu minh chứng; Ghi chú khác").</summary>
+    /// <summary>Lý do/căn cứ đã lưu.</summary>
     [TemplateField("I_NOTE")] public string? Note { get; init; }
 }
 
-/// <summary>Phần dùng chung khi dựng dữ liệu Mẫu 09A/09B/09C/9D.</summary>
 internal static class Mau09Shared
 {
     private static readonly CultureInfo Vietnamese = CultureInfo.GetCultureInfo("vi-VN");
@@ -96,12 +83,12 @@ internal static class Mau09Shared
     /// <summary>Số gọn (bỏ số 0 thừa, dấu phẩy thập phân) như chữ in sẵn "18", "2", "1,5".</summary>
     public static string Compact(double value) => value.ToString("0.##", CompactNumbers);
 
-    /// <summary>Tên Chi bộ in hoa ở tiêu đề trái (giống Mẫu 11, 13); null giữ chữ mặc định.</summary>
+    /// <summary>Tên Chi bộ in hoa; null giữ chữ mặc định.</summary>
     public static string? PartyCellUpper(EvaluationRecord record) => FormText.OrNull(record.PartyCell?.Name)?.ToUpper(Vietnamese);
 
     /// <summary>
-    /// Chức vụ 3 dòng (Đảng / chính quyền / đoàn thể): không giữ chức vụ nào trong danh mục → dòng chính quyền là chức danh trên
-    /// hồ sơ cán bộ; dòng không có chức vụ in chữ của kiểu trình bày (null → giữ dòng chấm).
+    /// Không giữ chức vụ nào trong danh mục thì dòng chính quyền lấy chức danh trên hồ sơ cán bộ.
+    /// Dòng trống in EmptyPositionText của kiểu trình bày (null → giữ dòng chấm).
     /// </summary>
     public static (string? Party, string? Administrative, string? MassOrganization) PositionLines(IndividualFormSource source)
     {
@@ -110,7 +97,7 @@ internal static class Mau09Shared
         return (positions.Party ?? empty, AdministrativePosition(source) ?? empty, positions.MassOrganization ?? empty);
     }
 
-    /// <summary>Chức vụ trên một dòng "Chức vụ (Đảng, Đoàn thể, Chính quyền): …", ngăn cách bằng dấu phẩy; null nếu không có.</summary>
+    /// <summary>Null nếu không có chức vụ.</summary>
     public static string? PositionsOneLine(IndividualFormSource source)
     {
         var parts = new[] { source.Positions.Party, source.Positions.MassOrganization, AdministrativePosition(source) }
@@ -119,26 +106,19 @@ internal static class Mau09Shared
         return parts.Count == 0 ? null : string.Join(", ", parts);
     }
 
-    /// <summary>Mẫu 09B, 9D in chức vụ trên một dòng (theo kiểu trình bày).</summary>
     public static bool SingleLinePositions(IndividualFormSource source) => source.Layout?.SingleLinePositions == true;
 
     private static string? AdministrativePosition(IndividualFormSource source) => source.Positions.All() == null
         ? FormText.OrNull(source.Record.Member?.PositionTitle)
         : source.Positions.Administrative;
 
-    /// <summary>
-    /// Dòng "Đơn vị công tác: DEPARTMENT, ORG_COMPANY_NAME" có in tên đơn vị không: hồ sơ thuộc đơn vị gốc của cây (Công ty —
-    /// lãnh đạo Công ty) thì chỉ in tên công ty, như bản đã nộp của Chủ tịch, Giám đốc.
-    /// </summary>
+    /// <summary>Hồ sơ thuộc đơn vị gốc (lãnh đạo Công ty) thì chỉ in tên công ty.</summary>
     public static bool HasDepartment(EvaluationRecord record) => record.Department is not { ParentId: null };
 
-    /// <summary>Tên đơn vị công tác trước tên công ty; đơn vị gốc → null (khối if:HAS_DEPARTMENT bị bỏ).</summary>
+    /// <summary>Đơn vị gốc → null (khối if:HAS_DEPARTMENT bị bỏ).</summary>
     public static string? Department(EvaluationRecord record) => HasDepartment(record) ? FormText.OrNull(record.Department?.Name) : null;
 
-    /// <summary>
-    /// Tên Chi bộ in sau nhãn "Chi bộ:" (Mẫu 09B) / "Chi bộ, Đảng bộ đang sinh hoạt:" (Mẫu 9D): bỏ chữ "Chi bộ" đứng đầu tên trong
-    /// danh mục để không lặp nhãn ("Chi bộ: Phòng Kỹ thuật" như phiếu đã nộp); tên không bắt đầu bằng "Chi bộ" giữ nguyên.
-    /// </summary>
+    /// <summary>Bỏ chữ "Chi bộ" đầu tên để không lặp nhãn "Chi bộ:" trên mẫu.</summary>
     public static string? CellLabelName(EvaluationRecord record)
     {
         var name = FormText.OrNull(record.PartyCell?.Name)?.Trim();
@@ -148,22 +128,18 @@ internal static class Mau09Shared
         return name;
     }
 
-    /// <summary>"ngày … tháng … năm …" sau địa danh: ngày nộp phiếu tự chấm; chưa nộp → null (giữ dòng chấm).</summary>
+    /// <summary>Ngày nộp phiếu tự chấm; chưa nộp → null (giữ dòng chấm).</summary>
     public static string? DateLine(IndividualFormSource source) => CollectiveFormText.DateLine(source.Record.SelfScoredAt);
 
-    /// <summary>Quý của kỳ; null nếu không nạp kỳ.</summary>
     public static string? Quarter(EvaluationRecord record) => record.Period != null ? CollectiveFormText.RomanQuarter(record.Period.Quarter) : null;
 
-    /// <summary>Năm của kỳ; null nếu không nạp kỳ.</summary>
     public static string? Year(EvaluationRecord record) => record.Period != null ? FormText.Year(record.Period.Year) : null;
 
-    /// <summary>Điểm đã lưu theo số chữ số làm tròn của bộ tiêu chí; chưa tự chấm → null.</summary>
+    /// <summary>Làm tròn theo bộ tiêu chí; chưa tự chấm → null.</summary>
     public static string? Score(IndividualFormSource source, double value, RoundingRule rule) =>
         source.HasSelfScore ? FormText.Number(value, Math.Clamp(rule.Decimals, 0, 4)) : null;
 
-    /// <summary>
-    /// Điểm tổng như bản đã nộp: số nguyên in gọn ("30"), số lẻ theo số chữ số làm tròn của bộ tiêu chí ("29,5"); chưa tự chấm → null.
-    /// </summary>
+    /// <summary>Số nguyên in gọn ("30"), số lẻ làm tròn theo bộ tiêu chí ("29,5"); chưa tự chấm → null.</summary>
     public static string? CompactScore(IndividualFormSource source, double value, RoundingRule rule)
     {
         if (!source.HasSelfScore)
@@ -173,17 +149,15 @@ internal static class Mau09Shared
         return comma >= 0 && text[(comma + 1)..].All(c => c == '0') ? text[..comma] : text;
     }
 
-    /// <summary>Ngày sinh "dd/MM/yyyy"; chưa nhập → null (giữ dòng chấm).</summary>
+    /// <summary>"dd/MM/yyyy"; chưa nhập → null (giữ dòng chấm).</summary>
     public static string? DateOfBirth(EvaluationRecord record) =>
         record.Member?.DateOfBirth?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
 
-    /// <summary>Mức tự đề xuất đã lưu; chưa có → null.</summary>
     public static string? SelfGrade(EvaluationRecord record) =>
         record.SelfProposedGrade == EvaluationGrade.ChuaXepLoai ? null : FormText.Grade(record.SelfProposedGrade);
 
     /// <summary>
-    /// Bảng nhóm tiêu chí chung theo bộ tiêu chí của kỳ và điểm đã lưu: "X" ở cột Đảm bảo khi đạt tối đa, ở cột Không đảm bảo khi
-    /// 0 điểm (nhóm chấm "Đảm bảo/Không đảm bảo": mọi mức dưới tối đa); "K/AD" khi không áp dụng.
+    /// "X" ở cột Đảm bảo khi đạt tối đa, cột Không đảm bảo khi 0 điểm (nhóm Binary: dưới tối đa); "K/AD" khi không áp dụng.
     /// </summary>
     public static List<GeneralGroupRow> GeneralGroups(IndividualFormSource source)
     {

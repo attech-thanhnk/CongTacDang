@@ -6,16 +6,12 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
-/// <summary>
-/// Dữ liệu Mẫu 02 — Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc hằng quý.
-/// Template: <c>Mau_02_TuDanhGia.docx</c>.
-/// </summary>
+/// <summary>Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc.</summary>
 public sealed class Mau02Data
 {
-    /// <summary>Tên tệp template.</summary>
     public const string TemplateFileName = "Mau_02_TuDanhGia.docx";
 
-    /// <summary>"ngày … tháng … năm …" sau địa danh: ngày nộp phiếu tự chấm (chưa nộp → giữ dòng chấm).</summary>
+    /// <summary>Ngày nộp phiếu tự chấm; chưa nộp → giữ dòng chấm.</summary>
     [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
 
     [TemplateField("DEPARTMENT")] public string? Department { get; init; }
@@ -26,20 +22,17 @@ public sealed class Mau02Data
 
     [TemplateCollection("TASKS")] public List<Mau02TaskRow> Tasks { get; init; } = new();
 
-    /// <summary>Dòng "CỘNG": tổng điểm đạt của các sản phẩm ("… / 70,0"); chưa có sản phẩm → giữ dòng chấm.</summary>
+    /// <summary>Dòng "CỘNG" ("… / 70,0"); chưa có sản phẩm → giữ dòng chấm.</summary>
     [TemplateField("TOTAL_SCORE")] public string? TotalScore { get; init; }
 
-    /// <summary>Dòng "CỘNG": số sản phẩm ghi nhận vượt chuẩn ("… SP"); chưa có sản phẩm → giữ dòng chấm.</summary>
+    /// <summary>Dòng "CỘNG" ("… SP"); chưa có sản phẩm → giữ dòng chấm.</summary>
     [TemplateField("EXCEED_COUNT")] public string? ExceedCount { get; init; }
 
-    /// <summary>
-    /// Dựng dữ liệu mẫu từ hồ sơ đã lưu (nạp kèm Period, Member, Department, PartyCell, Tasks).
-    /// <paramref name="evidenceNames"/>: tên tệp minh chứng (phiên bản hiện hành) theo Id nhiệm vụ.
-    /// </summary>
+    /// <summary><paramref name="evidenceNames"/>: tên tệp minh chứng (phiên bản hiện hành) theo Id nhiệm vụ.</summary>
     public static Mau02Data From(EvaluationRecord record, IReadOnlyDictionary<Guid, string>? evidenceNames = null)
     {
         var tasks = record.Tasks.OrderBy(t => t.TaskOrder).ToList();
-        // Số chữ số thập phân của điểm sản phẩm theo bộ tiêu chí của kỳ (mặc định 2 nếu kỳ chưa có bộ).
+        // Mặc định 2 chữ số nếu kỳ chưa có bộ tiêu chí.
         var scoreDecimals = FormCriteria.Read(record.Period)?.Content.Parameters.Rounding.TaskScore.Decimals ?? 2;
         return new Mau02Data
         {
@@ -53,8 +46,7 @@ public sealed class Mau02Data
             ExceedCount = tasks.Count > 0 ? tasks.Count(t => t.IsExceedStandard).ToString(System.Globalization.CultureInfo.InvariantCulture) : null,
             Tasks = tasks.Select((t, index) =>
             {
-                // Một nguồn số liệu (T-38): điểm đạt = SelfScore đã lưu (đã tính theo khung tỷ trọng của hồ sơ
-                // khi tự chấm). Kết quả SP (%) chỉ là cách viết khác của cùng giá trị: SelfScore / Trọng số.
+                // Điểm đạt = SelfScore đã lưu; Kết quả SP (%) chỉ là SelfScore / Trọng số.
                 // Nhiệm vụ chưa nhập tỷ lệ A-B-C-D: để trống, không in thành 100%.
                 var pending = TaskSelfScores.IsPending(t);
                 double? resultPct = t.Weight > 0 ? Math.Round(t.SelfScore / t.Weight * 100, 1) : null;
@@ -82,7 +74,7 @@ public sealed class Mau02Data
     }
 }
 
-/// <summary>Đọc ảnh chụp bộ tiêu chí của kỳ cho biểu mẫu (lỗi/không có → null).</summary>
+/// <summary>Ảnh chụp bộ tiêu chí của kỳ; lỗi/không có → null.</summary>
 internal static class FormCriteria
 {
     public static CriteriaSnapshot? Read(EvaluationPeriod? period)
@@ -100,7 +92,6 @@ internal static class FormCriteria
     }
 }
 
-/// <summary>Một dòng nhiệm vụ của Mẫu 02.</summary>
 public sealed class Mau02TaskRow
 {
     [TemplateField("T_STT")] public string? Order { get; init; }
@@ -113,9 +104,9 @@ public sealed class Mau02TaskRow
     [TemplateField("T_RESULT_PCT")] public string? ResultPercent { get; init; }
     [TemplateField("T_SCORE")] public string? Score { get; init; }
 
-    /// <summary>Khối <c>if:T_IS_EXCEED</c> / <c>ifnot:T_IS_EXCEED</c> trong template chứa chữ hiển thị.</summary>
+    /// <summary>Chữ hiển thị nằm trong khối <c>if:T_IS_EXCEED</c> / <c>ifnot:T_IS_EXCEED</c> của template.</summary>
     [TemplateCondition("T_IS_EXCEED")] public bool IsExceedStandard { get; init; }
 
-    /// <summary>Tên tệp minh chứng; không có thì giữ chữ mặc định trong template.</summary>
+    /// <summary>Không có thì giữ chữ mặc định.</summary>
     [TemplateField("T_EVIDENCE")] public string? Evidence { get; init; }
 }

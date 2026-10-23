@@ -20,10 +20,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Services;
 
-/// <summary>
-/// Xuất biểu mẫu cá nhân của hồ sơ đánh giá (task 18 — T-83). Mẫu 09A/09B/09C/9D dựng từ template Word (phiên bản đang kích hoạt
-/// hoặc file gốc) + thông tin đơn vị (<c>ORG_*</c>); Mẫu 01/02/10 dùng lại bộ xuất hiện có. Mẫu áp dụng theo bộ tiêu chí của kỳ.
-/// </summary>
+/// <summary>Xuất biểu mẫu cá nhân: 09A/09B/09C/9D từ template Word, 01/02/10 dùng bộ xuất có sẵn.</summary>
 public sealed class RecordFormService : IRecordFormService
 {
     private const string DocxMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -36,7 +33,6 @@ public sealed class RecordFormService : IRecordFormService
     private readonly IOrganizationSettingsService _orgSettings;
     private readonly IReportService _reports;
 
-    /// <summary>Khởi tạo.</summary>
     public RecordFormService(
         CongTacDangDbContext db,
         IAuthorizationGuard guard,
@@ -132,9 +128,7 @@ public sealed class RecordFormService : IRecordFormService
         return record;
     }
 
-    /// <summary>
-    /// Mẫu áp dụng: theo bộ tiêu chí của kỳ; thêm mẫu tự chấm hồ sơ đã dùng (09A/09B) nếu khác — "xuất được nếu dữ liệu có".
-    /// </summary>
+    /// <summary>Mẫu theo bộ tiêu chí của kỳ, thêm mẫu tự chấm hồ sơ đã dùng (09A/09B) nếu khác.</summary>
     private static IReadOnlyList<string> Available(EvaluationRecord record, CriteriaSnapshot? criteria)
     {
         var codes = (criteria?.ApplicableForms() ?? Array.Empty<string>()).ToHashSet();
@@ -171,10 +165,7 @@ public sealed class RecordFormService : IRecordFormService
             .Select(mp => (mp.Position!.Side, PositionRules.DisplayName(mp))));
     }
 
-    /// <summary>
-    /// Kiểu trình bày biểu mẫu của cán bộ (cùng thời điểm với chức vụ in trên phiếu): kiểu đặt riêng, không có thì kiểu của chức vụ
-    /// đang giữ, không có thì kiểu mặc định.
-    /// </summary>
+    /// <summary>Kiểu trình bày biểu mẫu: kiểu đặt riêng của cán bộ, rồi kiểu của chức vụ đang giữ, rồi mặc định.</summary>
     private async Task<FormLayout?> LayoutAsync(EvaluationRecord record, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
@@ -195,7 +186,7 @@ public sealed class RecordFormService : IRecordFormService
             layouts.FirstOrDefault(l => l.IsDefault));
     }
 
-    /// <summary>Tên tệp không dấu theo quy cách HD03 ("Mau …_…_Quy …"), ví dụ <c>Mau_09B_Nguyen_Van_A_Q3-2026.docx</c>.</summary>
+    /// <summary>Tên tệp không dấu, ví dụ <c>Mau_09B_Nguyen_Van_A_Q3-2026.docx</c>.</summary>
     private static string FileName(string code, EvaluationRecord record)
     {
         var name = Ascii(record.Member?.FullName);

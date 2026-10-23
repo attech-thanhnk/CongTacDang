@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CongTacDang.Infrastructure.Data.Configurations;
 
-/// <summary>Bảng <c>user_role_assignments</c>: gán vai trò kèm phạm vi và thời hạn.</summary>
 public sealed class UserRoleAssignmentConfiguration : IEntityTypeConfiguration<UserRoleAssignment>
 {
     /// <inheritdoc />

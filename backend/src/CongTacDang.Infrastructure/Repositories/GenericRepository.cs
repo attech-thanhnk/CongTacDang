@@ -47,7 +47,7 @@ public class GenericRepository<T> : IRepository<T> where T : class
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Thực hiện xóa qua DbContext để cơ chế soft delete và audit được áp dụng.</summary>
+    /// <summary>Xóa qua DbContext để áp dụng xóa mềm và audit.</summary>
     public virtual async Task DeleteAsync(T entity)
     {
         _dbSet.Remove(entity);

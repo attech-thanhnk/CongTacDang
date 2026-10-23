@@ -10,9 +10,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace CongTacDang.Api.Controllers;
 
 /// <summary>
-/// Điều chỉnh việc trong quý: đề nghị điều chỉnh, chuyển tiếp, loại trừ việc (Mẫu 04) và ghi nhận việc đột xuất (Mẫu 05).
-/// Quyền phụ thuộc cách xét duyệt của từng hồ sơ (quyền duyệt danh sách việc cấu hình được) nên như các hành động theo bước,
-/// controller chỉ yêu cầu đăng nhập; service kiểm tra quyền trên hồ sơ bằng <c>IAuthorizationGuard.Ensure</c>.
+/// Điều chỉnh việc trong quý (Mẫu 04, 05). Quyền duyệt cấu hình theo hồ sơ luồng nên controller chỉ yêu cầu đăng nhập;
+/// service kiểm tra quyền trên hồ sơ.
 /// </summary>
 [ApiController]
 [Route("api/evaluations/records/{recordId:guid}/task-changes")]

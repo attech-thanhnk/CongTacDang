@@ -14,7 +14,6 @@ using Microsoft.Extensions.Hosting;
 
 namespace CongTacDang.Api.Extensions;
 
-/// <summary>Đăng ký và khởi tạo persistence cho API.</summary>
 public static class PersistenceExtensions
 {
     public static IServiceCollection AddPersistence(
@@ -52,7 +51,6 @@ public static class PersistenceExtensions
         return services;
     }
 
-    /// <summary>Áp dụng migration và seed theo cấu hình.</summary>
     public static async Task ApplyPersistenceAsync(this WebApplication app)
     {
         using var scope = app.Services.CreateScope();

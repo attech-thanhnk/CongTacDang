@@ -15,13 +15,9 @@ using ScopeFilter = CongTacDang.Application.Common.Security.ScopeFilter;
 
 namespace CongTacDang.Infrastructure.Services;
 
-/// <summary>
-/// Báo cáo nội bộ "Bảng tổng hợp xếp loại cán bộ" — bảng làm việc chung của Văn phòng/TCCB trong kỳ: mọi cán bộ của kỳ trên một
-/// trang tính, chia hai khối theo cấp quyết định (cấp trên / cơ sở), 13 cột từ mã hiệu, điểm tự chấm đến mức của từng bước.
-/// </summary>
+/// <summary>Bảng tổng hợp xếp loại cán bộ của kỳ: một trang tính, hai khối theo cấp quyết định (cấp trên / cơ sở).</summary>
 public partial class ReportService
 {
-    /// <summary>Số cột của bảng tổng hợp xếp loại.</summary>
     private const int RatingSummaryColumns = 13;
 
     /// <summary>Tiêu đề cột (1)…(11) và (13); cột (12) theo cấp quyết định của khối.</summary>
@@ -40,7 +36,7 @@ public partial class ReportService
     {
         ArgumentNullException.ThrowIfNull(viewerScope);
         var (period, records, scopeCell) = await LoadExcelScopeAsync(periodId, partyCellId);
-        // Chỉ hồ sơ thuộc phạm vi report.export của người xem (đơn vị chính quyền / tổ chức Đảng ảnh chụp trên hồ sơ).
+        // Chỉ hồ sơ thuộc phạm vi report.export của người xem (theo ảnh chụp trên hồ sơ).
         records = records.Where(r => viewerScope.Matches(null, r.DepartmentId, r.PartyCellId)).ToList();
 
         var held = await HeldPositionsAsync(records.Select(r => r.MemberId), PositionDate(period));
@@ -158,10 +154,7 @@ public partial class ReportService
         return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("BangTongHop_XepLoaiCanBo", period, scopeCell), format);
     }
 
-    /// <summary>
-    /// Cột (4): chức vụ đang giữ — chức vụ Đảng trước, chức vụ chính quyền sau, rồi chức vụ đoàn thể; kèm đơn vị công tác.
-    /// Chưa khai báo chức vụ → chức danh ghi trên hồ sơ cán bộ.
-    /// </summary>
+    /// <summary>Cột (4): chức vụ Đảng, chính quyền, đoàn thể kèm đơn vị công tác; chưa khai báo → chức danh trên hồ sơ cán bộ.</summary>
     private static string RatingSummaryPositions(EvaluationRecord record, IReadOnlyCollection<MemberPosition> positions)
     {
         var names = positions.Count > 0
@@ -171,10 +164,7 @@ public partial class ReportService
         return string.Join(" — ", new[] { names, unit }.Where(s => !string.IsNullOrWhiteSpace(s)));
     }
 
-    /// <summary>
-    /// Cột (13): số tệp đính kèm hiện hành của từng hồ sơ — tệp gắn vào hồ sơ, tệp minh chứng của nhiệm vụ và văn bản của cấp trên
-    /// gắn vào kết quả các bước do cấp trên thực hiện; mỗi nhóm phiên bản của một tệp tính một lần.
-    /// </summary>
+    /// <summary>Cột (13): số tệp đính kèm hiện hành của hồ sơ, nhiệm vụ và văn bản cấp trên; mỗi nhóm phiên bản tính một lần.</summary>
     private async Task<Dictionary<Guid, int>> RecordAttachmentCountsAsync(IReadOnlyCollection<EvaluationRecord> records)
     {
         var result = new Dictionary<Guid, int>();

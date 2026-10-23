@@ -15,7 +15,6 @@ using CongTacDang.Api.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Log có cấu trúc ra console và file xoay vòng theo ngày (cấu hình Logging:Console:Json, Logging:File:*)
 builder.Logging.AddConfiguredLogging(builder.Configuration, builder.Environment);
 
 builder.Configuration.ValidateRequiredConfiguration(builder.Environment.EnvironmentName);
@@ -24,10 +23,8 @@ builder.Services.AddConfiguredForwardedHeaders(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.ICurrentUserService, HttpCurrentUserService>();
 
-// 1. Database PostgreSQL, repository, Unit of Work và DB health check
 builder.Services.AddPersistence(builder.Configuration);
 
-// 2. CORS động cho Frontend Next.js
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? new[] { "http://localhost:3000", "http://localhost:3001" };
 
@@ -43,7 +40,6 @@ builder.Services.AddCors(options =>
 });
 builder.Services.AddSecurityRateLimiting();
 
-// 3. JWT Authentication — đọc token từ HttpOnly Cookie (ưu tiên), fallback sang Authorization header
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("Jwt:Secret chưa được cấu hình.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "CongTacDang.Api";
@@ -76,16 +72,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// 4. Authorization — policy theo mã quyền, đánh giá từ IPermissionResolver (Api/Extensions/AuthorizationExtensions.cs)
 builder.Services.AddPermissionAuthorization();
 
-// 5. Đăng ký Storage Service
 var localStoragePath = builder.Configuration["Storage:Local:Path"]
     ?? Path.Combine(AppContext.BaseDirectory, "uploads");
 builder.Services.AddSingleton<CongTacDang.Application.Common.Interfaces.IFileStorageService>(
     new CongTacDang.Infrastructure.Services.LocalFileStorageService(localStoragePath));
 
-// 6. Đăng ký Application Services
 builder.Services.AddSingleton<CongTacDang.Application.Common.Interfaces.IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
@@ -106,14 +99,12 @@ builder.Services.AddEvaluationWorkflow(); // Luồng đánh giá theo cấu hìn
 builder.Services.AddPostPublish(builder.Configuration); // Sau công bố: kết quả, kiến nghị, Mẫu 17, nhắc việc (Api/Extensions/PostPublishExtensions.cs)
 builder.Services.AddImports(); // Nhập dữ liệu từ Excel: đơn vị, tổ chức Đảng, cán bộ, gán vai trò (Api/Extensions/ImportExtensions.cs)
 
-// 7. Controllers & Swagger với hỗ trợ JWT Bearer Authorization
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
         {
-            // Lỗi đọc JSON (sai kiểu, sai cú pháp) có khóa dạng "$.truong" và thông báo tiếng Anh của System.Text.Json
-            // → đổi sang câu tiếng Việt nêu tên trường; thông báo validate tự viết giữ nguyên.
+            // Lỗi đọc JSON của System.Text.Json (khóa dạng "$.truong", tiếng Anh) → câu tiếng Việt nêu tên trường.
             static bool IsJsonError(string key, string message) =>
                 key.StartsWith('$') || message.StartsWith("The JSON value", StringComparison.Ordinal)
                 || message.Contains("is an invalid", StringComparison.Ordinal) || message.EndsWith("field is required.", StringComparison.Ordinal);
@@ -161,10 +152,8 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// 8. Migration và seed dữ liệu theo cấu hình
 await app.ApplyPersistenceAsync();
 
-// 9. Middleware pipeline
 app.UseMiddleware<CongTacDang.Api.Middlewares.CorrelationIdMiddleware>();
 app.UseForwardedHeaders();
 app.UseConfiguredSecurityHeaders();
@@ -190,5 +179,5 @@ app.MapControllers();
 
 app.Run();
 
-/// <summary>Lớp Program công khai để test tích hợp dùng WebApplicationFactory&lt;Program&gt;.</summary>
+/// <summary>Công khai cho WebApplicationFactory&lt;Program&gt; của test tích hợp.</summary>
 public partial class Program { }

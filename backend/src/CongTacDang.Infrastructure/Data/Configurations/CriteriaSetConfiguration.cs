@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CongTacDang.Infrastructure.Data.Configurations;
 
-/// <summary>Bộ tiêu chí và thang điểm (task 16): mã duy nhất, nội dung jsonb, xmin.</summary>
 public sealed class CriteriaSetConfiguration : IEntityTypeConfiguration<CriteriaSet>
 {
     public void Configure(EntityTypeBuilder<CriteriaSet> entity)

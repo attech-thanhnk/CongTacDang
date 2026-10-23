@@ -17,14 +17,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Services;
 
-/// <summary>
-/// Quản lý file mẫu Word (task 17 — T-81): danh mục biểu mẫu, tải lên phiên bản mới (kiểm tra định dạng, magic bytes,
-/// dung lượng, tag, sinh thử), kích hoạt/quay về file gốc, tải xuống. Nội dung lưu qua <see cref="IFileStorageService"/>,
-/// metadata trong bảng <c>word_template_versions</c>. Quyền <c>system.templates.manage</c> kiểm tra ở controller.
-/// </summary>
+/// <summary>Quản lý phiên bản file mẫu Word; nội dung lưu qua <see cref="IFileStorageService"/>, quyền kiểm tra ở controller.</summary>
 public sealed class WordTemplateService : IWordTemplateService
 {
-    /// <summary>Dung lượng tối đa của file mẫu.</summary>
     public const long MaxFileSize = 10 * 1024 * 1024;
 
     private const string DocxContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -35,7 +30,6 @@ public sealed class WordTemplateService : IWordTemplateService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
 
-    /// <summary>Khởi tạo.</summary>
     public WordTemplateService(
         CongTacDangDbContext db,
         IFileStorageService storage,

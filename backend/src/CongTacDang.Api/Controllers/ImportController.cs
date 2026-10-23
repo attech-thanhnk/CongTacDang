@@ -12,22 +12,18 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CongTacDang.Api.Controllers;
 
-/// <summary>
-/// Nhập dữ liệu từ Excel: danh sách loại, file mẫu, xem trước, xác nhận, tải file mật khẩu tạm (một lần).
-/// Cần <c>system.import</c>; mỗi loại còn kiểm tra quyền dữ liệu riêng trong dịch vụ.
-/// </summary>
+/// <summary>Nhập dữ liệu từ Excel; ngoài system.import, service kiểm tra quyền dữ liệu riêng của từng loại.</summary>
 [ApiController]
 [Route("api/imports")]
 [Authorize]
 [RequirePermission(PermissionCodes.SystemImport)]
 public class ImportController : ControllerBase
 {
-    /// <summary>Giới hạn request tải lên (file tối đa 5 MB + phần form).</summary>
+    /// <summary>Kích thước file tối đa + 1 MB cho phần form.</summary>
     private const long UploadRequestLimit = ImportLimits.MaxFileBytes + 1024 * 1024;
 
     private readonly IImportService _imports;
 
-    /// <summary>Khởi tạo controller.</summary>
     public ImportController(IImportService imports) => _imports = imports;
 
     /// <summary>Các loại nhập người dùng hiện tại được dùng.</summary>
@@ -43,7 +39,7 @@ public class ImportController : ControllerBase
         return File(file.Content, file.ContentType, file.FileName);
     }
 
-    /// <summary>Tải file lên, xem trước từng dòng (tạo mới / cập nhật / lỗi) và tạo phiên chờ xác nhận (30 phút).</summary>
+    /// <summary>Xem trước từng dòng và tạo phiên chờ xác nhận (30 phút).</summary>
     [HttpPost("{kind}/preview")]
     [RequestSizeLimit(UploadRequestLimit)]
     [RequestFormLimits(MultipartBodyLengthLimit = UploadRequestLimit)]
@@ -60,7 +56,7 @@ public class ImportController : ControllerBase
         return Ok(ApiResponse<ImportPreviewDto>.Ok(preview, message));
     }
 
-    /// <summary>Xác nhận nhập: ghi toàn bộ trong một transaction (chỉ người tạo phiên, khi không còn dòng lỗi).</summary>
+    /// <summary>Xác nhận nhập trong một transaction (chỉ người tạo phiên, khi không còn dòng lỗi).</summary>
     [HttpPost("sessions/{sessionId:guid}/commit")]
     public async Task<IActionResult> Commit(Guid sessionId, CancellationToken ct)
     {

@@ -18,48 +18,32 @@ using CongTacDang.Infrastructure.Repositories;
 namespace CongTacDang.Infrastructure.Data;
 
 /// <summary>
-/// Khởi tạo dữ liệu nền: danh mục quyền (từ <see cref="PermissionCodes"/>), vai trò mặc định
-/// (docs/thiet-ke/phan-quyen.md mục 6 — ĐỀ XUẤT, chờ nghiệp vụ xác nhận), tài khoản quản trị ban đầu
-/// và dữ liệu mẫu khi bật <c>Database:SeedSampleData</c>.
-/// <para>
-/// Đây là nơi <b>duy nhất</b> biết mã vai trò (<see cref="AppRole.Code"/>): mã chỉ dùng để seeder nhận ra vai trò mặc định
-/// (đặt lại quyền, gán mẫu, chọn vai trò quản trị ban đầu); logic phân quyền chỉ dùng mã quyền.
-/// </para>
+/// Khởi tạo quyền, vai trò mặc định, tài khoản quản trị ban đầu và dữ liệu mẫu.
+/// Nơi duy nhất dùng mã vai trò (chỉ để nhận ra vai trò mặc định); phân quyền chỉ dùng mã quyền.
 /// </summary>
 public static class DataSeeder
 {
-    /// <summary>Cấu hình tài khoản quản trị ban đầu (<c>Seed:InitialAdmin:*</c>).</summary>
-    /// <param name="Username">Tên đăng nhập.</param>
-    /// <param name="FullName">Họ tên hiển thị (trống → "Quản trị hệ thống").</param>
-    /// <param name="Password">Mật khẩu ban đầu (phải đổi ở lần đăng nhập đầu).</param>
-    /// <param name="PasswordMinLength">Độ dài tối thiểu mật khẩu (<c>Security:Password:MinLength</c>).</param>
+    /// <summary>Cấu hình <c>Seed:InitialAdmin:*</c>.</summary>
     public sealed record InitialAdminOptions(string? Username, string? FullName, string? Password,
         int PasswordMinLength = PasswordPolicy.DefaultMinLength)
     {
-        /// <summary>Đã đặt đủ tên đăng nhập và mật khẩu.</summary>
         public bool IsConfigured => !string.IsNullOrWhiteSpace(Username) && !string.IsNullOrEmpty(Password);
 
-        /// <summary>Không in mật khẩu khi ghi log/đối tượng.</summary>
+        /// <summary>Không in mật khẩu khi ghi log.</summary>
         public override string ToString() => $"InitialAdminOptions {{ Username = {Username}, FullName = {FullName} }}";
     }
 
-    /// <summary>Cấu hình dữ liệu mẫu (<c>Database:SeedSampleData</c>, <c>Seed:SamplePassword</c>).</summary>
-    /// <param name="Enabled">Tạo dữ liệu mẫu (chỉ môi trường thử nghiệm).</param>
-    /// <param name="Password">
-    /// Mật khẩu tạm chung của tài khoản mẫu. Trống → sinh ngẫu nhiên và ghi log mức Warning đúng một lần khi tạo.
-    /// </param>
-    /// <param name="PasswordMinLength">Độ dài tối thiểu mật khẩu (<c>Security:Password:MinLength</c>).</param>
+    /// <summary>Mật khẩu trống → sinh ngẫu nhiên và ghi log Warning một lần khi tạo.</summary>
     public sealed record SampleDataOptions(bool Enabled, string? Password = null,
         int PasswordMinLength = PasswordPolicy.DefaultMinLength)
     {
-        /// <summary>Không in mật khẩu khi ghi log/đối tượng.</summary>
+        /// <summary>Không in mật khẩu khi ghi log.</summary>
         public override string ToString() => $"SampleDataOptions {{ Enabled = {Enabled} }}";
     }
 
-    /// <summary>Định nghĩa một vai trò mặc định và bộ quyền của nó.</summary>
     private sealed record RoleDefinition(string Code, string Name, string Description, string[] Permissions, bool IsProtected = false);
 
-    /// <summary>Mã nội bộ của vai trò mặc định (chỉ seeder dùng, không dùng để phân quyền).</summary>
+    /// <summary>Chỉ seeder dùng, không dùng để phân quyền.</summary>
     private static class RoleCodes
     {
         public const string Evaluatee = "NGUOI_DUOC_DANH_GIA";
@@ -73,16 +57,14 @@ public static class DataSeeder
         public const string Administrator = "QUAN_TRI_HE_THONG";
     }
 
-    /// <summary>Quyền của vai trò quản trị hệ thống: <c>system.*</c>, <c>catalog.manage</c>.</summary>
     private static readonly string[] AdministratorPermissionCodes = PermissionCodes.All
         .Where(code => code.StartsWith("system.", StringComparison.Ordinal)
             || code == PermissionCodes.CatalogManage)
         .ToArray();
 
-    /// <summary>Cấu hình mặc định (docs/thiet-ke/phan-quyen.md mục 6).</summary>
     private static readonly RoleDefinition[] DefaultRoles =
     {
-        // Task 20 (ĐỀ XUẤT, chờ nghiệp vụ xác nhận): xem kết quả công khai theo phạm vi bản gán (mẫu gán Toàn công ty), gửi kiến nghị.
+        // ĐỀ XUẤT, chờ nghiệp vụ xác nhận.
         new(RoleCodes.Evaluatee, "Người được đánh giá", "Tự chấm, xem kết quả đã công bố, gửi kiến nghị về kết quả của mình.",
             new[] { PermissionCodes.EvaluationSelf, PermissionCodes.EvaluationResultsView, PermissionCodes.EvaluationAppealSubmit }),
         new(RoleCodes.DepartmentLeader, "Lãnh đạo Phòng", "Duyệt danh mục sản phẩm, đề xuất mức, lập kế hoạch 30-60-90 ngày (Mẫu 17) cho cán bộ của Phòng.",
@@ -114,9 +96,8 @@ public static class DataSeeder
     };
 
     /// <summary>
-    /// Khởi tạo dữ liệu nền. Vai trò mặc định chỉ được tạo khi CSDL chưa có vai trò nào; quyền của vai trò đã tồn tại
-    /// không bị ghi đè trừ khi <paramref name="resetRolePermissions"/> = true (<c>Database:ResetRolePermissions</c>).
-    /// Dữ liệu mẫu chỉ được tạo trên CSDL chưa có tài khoản, Phòng, Chi bộ, kỳ đánh giá nào (không bao giờ gán lại vai trò).
+    /// Vai trò mặc định chỉ tạo khi CSDL chưa có vai trò nào; quyền vai trò cũ chỉ ghi đè khi <paramref name="resetRolePermissions"/>.
+    /// Dữ liệu mẫu chỉ tạo trên CSDL trống (không bao giờ gán lại vai trò).
     /// </summary>
     public static async Task SeedAsync(
         CongTacDangDbContext context,
@@ -125,40 +106,32 @@ public static class DataSeeder
         ILogger? logger = null,
         InitialAdminOptions? initialAdmin = null)
     {
-        // 1. Danh mục quyền: đồng bộ từ PermissionCodes (tạo mới, cập nhật tên/mô tả/phân hệ/thứ tự).
         var createdPermissions = await SyncPermissionCatalogAsync(context, logger);
 
-        // 2. Vai trò mặc định (chỉ khi chưa có vai trò nào).
         await SeedDefaultRolesAsync(context, logger);
 
-        // 2a. Mã quyền mới xuất hiện lần đầu → thêm vào vai trò mặc định có mã đó trong cấu hình (CSDL đã có vai trò từ trước).
+        // Mã quyền mới → thêm vào vai trò mặc định có mã đó trong cấu hình.
         await GrantNewPermissionsToDefaultRolesAsync(context, createdPermissions, logger);
         if (resetRolePermissions)
             await ResetRolePermissionsAsync(context, logger);
 
-        // 2b. Danh mục loại đơn vị và danh mục chức vụ mặc định (chỉ khi danh mục trống — task 14, chờ nghiệp vụ xác nhận).
+        // Danh mục chỉ seed khi đang trống.
         await SeedOrganizationCatalogsAsync(context, logger);
 
-        // 2c. Hai bộ tiêu chí mặc định theo bản trích xuất HD03 (chỉ khi chưa có bộ nào — task 16, chờ nghiệp vụ xác nhận).
         await SeedCriteriaSetsAsync(context, logger);
 
-        // 2d. Thông tin đơn vị mặc định (chỉ khi chưa có — task 17).
         await SeedOrganizationSettingsAsync(context, logger);
 
-        // 3. Dữ liệu mẫu (chỉ môi trường thử nghiệm).
         if (sampleData?.Enabled == true)
             await SeedSampleDataAsync(context, sampleData, logger);
 
-        // 4. Tài khoản quản trị ban đầu (độc lập với dữ liệu mẫu) — chỉ khi hệ thống chưa có quản trị nào.
+        // Độc lập với dữ liệu mẫu; chỉ khi chưa có quản trị nào.
         await SeedInitialAdministratorAsync(context, initialAdmin, logger);
     }
 
     #region Bộ tiêu chí mặc định
 
-    /// <summary>
-    /// Tạo hai bộ tiêu chí đã xuất bản theo bản trích xuất HD03 (<see cref="CriteriaSetDefaults"/>): "Chấm theo 6 trục (Quý III, IV/2026)" và
-    /// "Từ Quý I/2027" — chỉ khi CSDL chưa có bộ tiêu chí nào (không ghi đè bộ đã sửa).
-    /// </summary>
+    /// <summary>Chỉ khi chưa có bộ tiêu chí nào (không ghi đè bộ đã sửa).</summary>
     private static async Task SeedCriteriaSetsAsync(CongTacDangDbContext context, ILogger? logger)
     {
         if (await context.Set<CriteriaSet>().AnyAsync())
@@ -190,10 +163,8 @@ public static class DataSeeder
     #region Quản trị ban đầu
 
     /// <summary>
-    /// Tạo tài khoản quản trị ban đầu (cấu hình <c>Seed:InitialAdmin:*</c>) khi chưa có tài khoản đang hoạt động nào giữ
-    /// <c>system.roles.manage</c> và <c>system.assignments.manage</c> phạm vi Toàn công ty: bắt buộc đổi mật khẩu ở lần
-    /// đăng nhập đầu, gán vai trò quản trị hệ thống (được bảo vệ) phạm vi Toàn công ty. Đã có quản trị → bỏ qua (không đổi
-    /// mật khẩu). Thiếu cấu hình / cấu hình sai → ghi log, không dừng ứng dụng. Mật khẩu không bao giờ được ghi log.
+    /// Chỉ tạo khi chưa có tài khoản hoạt động giữ quyền quản trị vai trò và bản gán phạm vi Toàn công ty.
+    /// Cấu hình thiếu/sai chỉ ghi log, không dừng ứng dụng; không bao giờ ghi log mật khẩu.
     /// </summary>
     private static async Task SeedInitialAdministratorAsync(CongTacDangDbContext context, InitialAdminOptions? options, ILogger? logger)
     {
@@ -284,10 +255,7 @@ public static class DataSeeder
 
     #region Danh mục quyền, vai trò
 
-    /// <summary>
-    /// Đồng bộ bảng <c>permissions</c> từ <see cref="PermissionCodes.Definitions"/>: tạo mã còn thiếu, cập nhật tên/mô tả/phân hệ/thứ tự,
-    /// khôi phục mã bị xóa mềm. Mã trong CSDL không còn trong code được giữ nguyên (resolver bỏ qua và ghi cảnh báo).
-    /// </summary>
+    /// <summary>Mã trong CSDL không còn trong code được giữ nguyên (resolver bỏ qua và ghi cảnh báo).</summary>
     private static async Task<IReadOnlyList<string>> SyncPermissionCatalogAsync(CongTacDangDbContext context, ILogger? logger)
     {
         var existing = await context.Permissions.IgnoreQueryFilters().ToListAsync();
@@ -329,10 +297,7 @@ public static class DataSeeder
         return created;
     }
 
-    /// <summary>
-    /// Mã quyền vừa được tạo lần đầu (bản cập nhật thêm quyền mới, ví dụ <c>system.import</c>): thêm vào các vai trò mặc định đã có
-    /// (theo mã vai trò) mà cấu hình mặc định có quyền đó. Chỉ chạy một lần cho mỗi mã — quản trị gỡ quyền sau đó không bị thêm lại.
-    /// </summary>
+    /// <summary>Chỉ chạy một lần cho mỗi mã mới — quản trị gỡ quyền sau đó không bị thêm lại.</summary>
     private static async Task GrantNewPermissionsToDefaultRolesAsync(CongTacDangDbContext context, IReadOnlyList<string> createdCodes, ILogger? logger)
     {
         if (createdCodes.Count == 0)
@@ -360,10 +325,7 @@ public static class DataSeeder
         logger?.LogInformation("Đã thêm quyền mới vào vai trò mặc định: {Grants}", string.Join("; ", granted));
     }
 
-    /// <summary>
-    /// Tạo vai trò mặc định (mục 6 thiết kế) khi CSDL chưa có vai trò nào (kể cả đã xóa). Vai trò quản trị được bảo vệ.
-    /// Không bao giờ ghi đè vai trò đã tồn tại.
-    /// </summary>
+    /// <summary>Chỉ khi chưa có vai trò nào (kể cả đã xóa); không ghi đè vai trò đã tồn tại.</summary>
     private static async Task SeedDefaultRolesAsync(CongTacDangDbContext context, ILogger? logger)
     {
         if (await context.Roles.IgnoreQueryFilters().AnyAsync())
@@ -387,7 +349,7 @@ public static class DataSeeder
         logger?.LogInformation("Đã tạo vai trò mặc định: {Roles}", string.Join(", ", DefaultRoles.Select(r => r.Name)));
     }
 
-    /// <summary>Đặt lại quyền của các vai trò mặc định về cấu hình mặc định (chỉ khi bật Database:ResetRolePermissions).</summary>
+    /// <summary>Chỉ khi bật Database:ResetRolePermissions.</summary>
     private static async Task ResetRolePermissionsAsync(CongTacDangDbContext context, ILogger? logger)
     {
         var permissions = await context.Permissions.ToDictionaryAsync(p => p.Code);
@@ -416,10 +378,7 @@ public static class DataSeeder
 
     #region Thông tin đơn vị mặc định (task 17)
 
-    /// <summary>
-    /// Thông tin đơn vị mặc định — đúng các chuỗi trước đây ghi cứng trong code xuất biểu mẫu/báo cáo và giao diện, để biểu mẫu
-    /// không đổi khi chưa sửa. Đây là nơi duy nhất trong code chứa tên đơn vị; quản trị sửa trên giao diện (Quản trị → Thông tin đơn vị).
-    /// </summary>
+    /// <summary>Nơi duy nhất trong code chứa tên đơn vị; quản trị sửa trên giao diện.</summary>
     public static OrganizationSettings DefaultOrganizationSettings() => new()
     {
         Id = OrganizationSettings.SingletonId,
@@ -433,7 +392,7 @@ public static class DataSeeder
         SystemName = "Đảng bộ ATTECH"
     };
 
-    /// <summary>Tạo bản ghi thông tin đơn vị mặc định khi chưa có — không bao giờ ghi đè giá trị quản trị đã sửa.</summary>
+    /// <summary>Không ghi đè giá trị quản trị đã sửa.</summary>
     private static async Task SeedOrganizationSettingsAsync(CongTacDangDbContext context, ILogger? logger)
     {
         if (await context.Set<OrganizationSettings>().AnyAsync())
@@ -448,7 +407,7 @@ public static class DataSeeder
 
     #region Danh mục tổ chức mặc định (task 14)
 
-    /// <summary>Loại đơn vị mặc định (tên, bên) — ĐỀ XUẤT, chờ nghiệp vụ xác nhận; quản trị sửa được.</summary>
+    /// <summary>ĐỀ XUẤT, chờ nghiệp vụ xác nhận.</summary>
     private static readonly (string Name, OrgSide Side)[] DefaultUnitTypes =
     {
         ("Đảng ủy", OrgSide.Party),
@@ -464,16 +423,12 @@ public static class DataSeeder
         ("Trạm", OrgSide.Administrative)
     };
 
-    /// <summary>Một chức vụ mặc định.</summary>
     private sealed record DefaultPosition(string Name, PositionSide Side, string? StatCode, ApprovalAuthority? Authority, bool IsLeadership, bool IsHead = false);
 
-    /// <summary>
-    /// Danh mục chức vụ mặc định — ĐỀ XUẤT theo bản trích xuất HD03 (mục 1.4 bảng thẩm quyền, mục 7 mã M1–M26), CHỜ XÁC NHẬN.
-    /// Mã M1–M16 (Mẫu 15A) → cấp trên quyết định; M17–M26 (Mẫu 15B) → Đảng ủy cơ sở quyết định.
-    /// </summary>
+    /// <summary>ĐỀ XUẤT, chờ xác nhận. M1–M16 (Mẫu 15A) → cấp trên quyết định; M17–M26 (Mẫu 15B) → Đảng ủy cơ sở.</summary>
     private static readonly DefaultPosition[] DefaultPositions =
     {
-        // Mẫu 15A — cấp ủy cấp trên quyết định (M1–M16).
+        // Mẫu 15A (M1–M16).
         new("Bí thư Đảng ủy Tổng công ty", PositionSide.Party, "M1", ApprovalAuthority.CapTren, true, IsHead: true),
         new("Phó Bí thư Đảng ủy Tổng công ty", PositionSide.Party, "M2", ApprovalAuthority.CapTren, true),
         new("Thành viên Hội đồng thành viên Tổng công ty", PositionSide.Administrative, "M3", ApprovalAuthority.CapTren, true),
@@ -492,7 +447,7 @@ public static class DataSeeder
         new("Phó Giám đốc", PositionSide.Administrative, "M14", ApprovalAuthority.CapTren, true),
         new("Kiểm soát viên", PositionSide.Administrative, "M15", ApprovalAuthority.CapTren, true),
         new("Bí thư Đoàn Thanh niên Tổng công ty", PositionSide.MassOrganization, "M16", ApprovalAuthority.CapTren, true),
-        // Mẫu 15B — Đảng ủy cơ sở quyết định (M17–M26).
+        // Mẫu 15B (M17–M26).
         new("Ủy viên Ban Thường vụ Đảng ủy", PositionSide.Party, "M17", ApprovalAuthority.CoSo, true),
         new("Đảng ủy viên", PositionSide.Party, "M18", ApprovalAuthority.CoSo, true),
         new("Ủy viên Ủy ban Kiểm tra Đảng ủy", PositionSide.Party, "M19", ApprovalAuthority.CoSo, true),
@@ -508,15 +463,14 @@ public static class DataSeeder
         new("Phó Trưởng trung tâm", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
         new("Quản đốc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true, IsHead: true),
         new("Phó Quản đốc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
-        // Lãnh đạo đơn vị trực thuộc Công ty (xí nghiệp, chi nhánh, ban quản lý dự án) và Văn phòng: tương đương trưởng, phó
-        // phòng (M26, Đảng ủy cơ sở quyết định) — khác "Giám đốc", "Phó Giám đốc" của Công ty (M14, cấp trên quyết định).
+        // Lãnh đạo đơn vị trực thuộc và Văn phòng tương đương trưởng/phó phòng (M26), khác Giám đốc/Phó Giám đốc Công ty (M14).
         new("Giám đốc đơn vị trực thuộc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true, IsHead: true),
         new("Phó Giám đốc đơn vị trực thuộc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
         new("Chánh Văn phòng", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true, IsHead: true),
         new("Phó Chánh Văn phòng", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
         new("Chủ nhiệm Ủy ban Kiểm tra Đảng ủy", PositionSide.Party, "M19", ApprovalAuthority.CoSo, true),
         new("Phó Chủ nhiệm Ủy ban Kiểm tra Đảng ủy", PositionSide.Party, "M19", ApprovalAuthority.CoSo, true),
-        // Chức vụ thường gặp chưa xác định mã thống kê/thẩm quyền (chờ xác nhận).
+        // Chưa xác định mã thống kê/thẩm quyền (chờ xác nhận).
         new("Kế toán trưởng", PositionSide.Administrative, null, null, true),
         new("Đội trưởng", PositionSide.Administrative, null, null, true, IsHead: true),
         new("Đài trưởng", PositionSide.Administrative, null, null, true, IsHead: true),
@@ -538,10 +492,7 @@ public static class DataSeeder
         new("Nhân viên", PositionSide.Administrative, null, null, false)
     };
 
-    /// <summary>
-    /// Tạo loại đơn vị và danh mục chức vụ mặc định, mỗi danh mục chỉ khi đang trống (kể cả bản ghi đã xóa) —
-    /// không bao giờ ghi đè cấu hình quản trị đã sửa.
-    /// </summary>
+    /// <summary>Mỗi danh mục chỉ seed khi trống (kể cả bản ghi đã xóa).</summary>
     private static async Task SeedOrganizationCatalogsAsync(CongTacDangDbContext context, ILogger? logger)
     {
         if (!await context.OrgUnitTypes.IgnoreQueryFilters().AnyAsync())
@@ -570,15 +521,11 @@ public static class DataSeeder
         await SeedFormLayoutsAsync(context, logger);
     }
 
-    /// <summary>Kiểu trình bày biểu mẫu mặc định và chức vụ gắn kiểu đó (tên chức vụ trong danh mục mặc định).</summary>
     private sealed record DefaultFormLayout(
         string Name, string Description, FormHeaderStyle Header, bool CellConfirmation, bool SingleLine, bool DateLine9D,
         string? EmptyPositionText, bool IsDefault, string[] Positions);
 
-    /// <summary>
-    /// Kiểu trình bày mặc định theo các bản tự đánh giá đã nộp quý III/2026 (Trưởng phòng, Giám đốc, Chủ tịch). Thứ tự = ưu tiên khi
-    /// cán bộ giữ nhiều chức vụ gắn kiểu khác nhau (Chủ tịch kiêm Bí thư Đảng ủy → "Bí thư Đảng ủy").
-    /// </summary>
+    /// <summary>Thứ tự = ưu tiên khi cán bộ giữ nhiều chức vụ gắn kiểu khác nhau.</summary>
     private static readonly DefaultFormLayout[] DefaultFormLayouts =
     {
         new("Bí thư Đảng ủy", "Tiêu đề Mẫu 09B theo Đảng ủy, không có ô xác nhận của chi bộ; chức vụ một dòng; Mẫu 9D có dòng ngày.",
@@ -589,10 +536,7 @@ public static class DataSeeder
             FormHeaderStyle.PartyCell, true, false, false, null, true, Array.Empty<string>())
     };
 
-    /// <summary>
-    /// Tạo kiểu trình bày mặc định khi danh mục đang trống (kể cả bản ghi đã xóa) và gắn cho các chức vụ cùng tên chưa có kiểu —
-    /// không ghi đè cấu hình quản trị đã sửa.
-    /// </summary>
+    /// <summary>Chỉ khi danh mục trống; không ghi đè cấu hình quản trị đã sửa.</summary>
     private static async Task SeedFormLayoutsAsync(CongTacDangDbContext context, ILogger? logger)
     {
         if (await context.FormLayouts.IgnoreQueryFilters().AnyAsync())
@@ -626,19 +570,14 @@ public static class DataSeeder
 
     #region Dữ liệu mẫu
 
-    /// <summary>Một chức vụ của tài khoản mẫu: tên chức vụ (danh mục mặc định), mã đơn vị, chức vụ chính.</summary>
     private sealed record SamplePosition(string Position, string UnitCode, bool IsPrimary);
 
-    /// <summary>
-    /// Một tài khoản mẫu kèm chức vụ, bản gán vai trò và trạng thái hồ sơ trong kỳ mẫu (null = không được đánh giá);
-    /// <paramref name="Grade"/>: mức đề xuất/quyết định của các bước sau tự chấm (mặc định Hoàn thành tốt).
-    /// </summary>
+    /// <summary><paramref name="RecordStatus"/> null = không được đánh giá; <paramref name="Grade"/>: mức của các bước sau tự chấm.</summary>
     private sealed record SampleAccount(
         string Username, string FullName, string Department, string? PartyCell, SamplePosition[] Positions,
         string Title, string WeightFrameCode, (string Role, RoleScopeType Scope)[] Roles, RecordStatus? RecordStatus,
         EvaluationGrade Grade = EvaluationGrade.HoanThanhTot);
 
-    /// <summary>Cây đơn vị chính quyền mẫu (mã, tên, mô tả, mã cha, loại).</summary>
     private static readonly (string Code, string Name, string Description, string? Parent, string Type)[] SampleDepartments =
     {
         ("ATTECH", "Công ty TNHH Kỹ thuật Quản lý bay", "Đơn vị gốc", null, "Công ty"),
@@ -648,7 +587,6 @@ public static class DataSeeder
         ("PH-TCCB", "Phòng Tổ chức cán bộ - Lao động", "Tham mưu tổ chức, nhân sự, lao động tiền lương", "ATTECH", "Phòng")
     };
 
-    /// <summary>Cây tổ chức Đảng mẫu (mã, tên, mô tả, mã cha, loại).</summary>
     private static readonly (string Code, string Name, string Description, string? Parent, string Type)[] SampleCells =
     {
         ("DU-ATTECH", "Đảng ủy Công ty", "Đảng bộ cơ sở trực thuộc Đảng ủy Tổng công ty", null, "Đảng ủy"),
@@ -656,10 +594,7 @@ public static class DataSeeder
         ("CB-VP", "Chi bộ Khối Văn phòng", "Chi bộ Ban Giám đốc và các phòng tham mưu", "DU-ATTECH", "Chi bộ")
     };
 
-    /// <summary>
-    /// Tài khoản mẫu. Phạm vi <see cref="RoleScopeType.Department"/>/<see cref="RoleScopeType.PartyCell"/> lấy theo đơn vị/tổ chức Đảng
-    /// của chính tài khoản. Thẩm quyền phê duyệt suy ra từ chức vụ. Trạng thái hồ sơ theo mẫu kỳ "Quý III/2026 — chuyển tiếp".
-    /// </summary>
+    /// <summary>Phạm vi Department/PartyCell lấy theo đơn vị/tổ chức Đảng của chính tài khoản.</summary>
     private static readonly SampleAccount[] SampleAccounts =
     {
         new("admin", "Quản trị hệ thống (mẫu)", "PH-KH", null, new[] { new SamplePosition("Chuyên viên", "PH-KH", true) },
@@ -697,19 +632,12 @@ public static class DataSeeder
         new("canbo.kt2", "Hoàng Văn Nam", "PH-KT", "CB-KT", new[] { new SamplePosition("Phó Trưởng phòng", "PH-KT", true) },
             "Phó Trưởng phòng Kỹ thuật", "K2",
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global) }, RecordStatus.AwaitingCellConfirm),
-        // Đã công bố mức C: có kế hoạch 30-60-90 ngày (Mẫu 17) đang lập và một kiến nghị chờ xử lý (thử chức năng sau công bố).
         new("canbo.kh", "Nguyễn Thị Mai", "PH-KH", "CB-VP", new[] { new SamplePosition("Phó Trưởng phòng", "PH-KH", true) },
             "Phó Trưởng phòng Kế hoạch - Kinh doanh", "K2",
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global) }, RecordStatus.Published, EvaluationGrade.HoanThanh)
     };
 
-    /// <summary>
-    /// Dữ liệu mẫu dùng thử ngay theo mô hình hiện hành: cây đơn vị chính quyền (Công ty → Ban Giám đốc, các Phòng) và cây
-    /// tổ chức Đảng (Đảng ủy → 2 Chi bộ) có loại đơn vị, tài khoản (bắt buộc đổi mật khẩu) kèm chức vụ (có kiêm nhiệm; thẩm quyền
-    /// phê duyệt suy ra từ chức vụ) và bản gán vai trò có phạm vi, kỳ "Quý III/2026" (bộ tiêu chí 09B — không đăng ký sản phẩm, đủ 3 hồ sơ luồng,
-    /// đang mở, kiểm tra kẹt luồng sạch) và hồ sơ ở nhiều bước — hồ sơ Giám đốc theo hồ sơ luồng cấp trên. Chỉ chạy trên CSDL
-    /// chưa có tài khoản, đơn vị, kỳ nào — không bao giờ gán lại vai trò cho người đã có.
-    /// </summary>
+    /// <summary>Chỉ chạy trên CSDL chưa có tài khoản, đơn vị, kỳ nào.</summary>
     private static async Task SeedSampleDataAsync(CongTacDangDbContext context, SampleDataOptions options, ILogger? logger)
     {
         var hasData = await context.PartyMemberProfiles.IgnoreQueryFilters().AnyAsync()
@@ -787,7 +715,6 @@ public static class DataSeeder
             members[sample.Username] = member;
             context.PartyMemberProfiles.Add(member);
 
-            // Chức vụ (kể cả kiêm nhiệm) theo danh mục mặc định; thẩm quyền phê duyệt suy ra từ chức vụ.
             var held = new List<HeldPosition>();
             foreach (var sp in sample.Positions)
             {
@@ -846,7 +773,7 @@ public static class DataSeeder
             StatusChangedAt = now
         };
 
-        // Bộ tiêu chí Mẫu 09B đã xuất bản mới nhất (bộ mặc định vừa seed) — chụp vào kỳ mẫu như khi mở kỳ.
+        // Chụp bộ tiêu chí vào kỳ mẫu như khi mở kỳ.
         var sampleSet = await context.Set<CriteriaSet>()
             .Where(s => s.Status == CriteriaSetStatus.Published && s.SelfScoreForm == CriteriaSetContent.Form09B)
             .OrderByDescending(s => s.PublishedAt)
@@ -871,7 +798,7 @@ public static class DataSeeder
         var usernames = string.Join(", ", SampleAccounts.Select(s => s.Username));
         if (generated)
         {
-            // Ghi đúng một lần, khi tạo: không lưu ở đâu khác; tài khoản bắt buộc đổi mật khẩu ở lần đăng nhập đầu.
+            // Ghi log đúng một lần khi tạo; không lưu ở đâu khác.
             logger?.LogWarning(
                 "Đã tạo dữ liệu mẫu (Database:SeedSampleData). Tài khoản mẫu: {Usernames}. Mật khẩu tạm chung (chỉ hiển thị lần này, "
                 + "phải đổi ở lần đăng nhập đầu): {SamplePassword}. Không bật dữ liệu mẫu trên CSDL thật.",
@@ -885,10 +812,7 @@ public static class DataSeeder
         }
     }
 
-    /// <summary>
-    /// Thêm hồ sơ mẫu đang chờ <paramref name="status"/>: ảnh chụp đơn vị/tổ chức Đảng/khung/cấp quyết định như khi thêm người vào kỳ,
-    /// điền dữ liệu của các bước đã qua và ghi lịch sử từng bước.
-    /// </summary>
+    /// <summary>Ảnh chụp đơn vị/khung/cấp quyết định như khi thêm người vào kỳ, kèm dữ liệu và lịch sử các bước đã qua.</summary>
     private static EvaluationRecord AddSampleRecord(
         CongTacDangDbContext context, EvaluationPeriod period, PeriodSettings settings, CriteriaSetContent criteria, PartyMemberProfile member,
         RecordStatus status, EvaluationGrade grade, DateTime now)
@@ -904,7 +828,6 @@ public static class DataSeeder
             UpdatedAt = now
         };
 
-        // Hồ sơ luồng mặc định theo cấp quyết định (như khi thêm người vào kỳ): cấp trên → B3b/B3c/B4 do cấp trên thực hiện.
         var profile = settings.ResolveProfile(null, member.ApprovalAuthority);
         record.WorkflowProfileCode = profile.Code;
         var enabled = profile.ActiveSteps();
@@ -941,11 +864,6 @@ public static class DataSeeder
         return record;
     }
 
-    /// <summary>
-    /// Hồ sơ tập thể và biên bản mẫu (đợt 8): Mẫu 07 (đủ mục I.1–I.4, II–VI) và Mẫu 08 (một số nhóm nội dung) của Chi bộ Khối
-    /// Kỹ thuật; biên bản Mẫu 12 hội nghị tập thể lãnh đạo Phòng Kỹ thuật (B3a, đủ mục 3.2, chức vụ chủ trì/thư ký) có kết quả
-    /// kiểm phiếu của hồ sơ đã qua B3a; biên bản kiểm phiếu hội nghị Đảng ủy (B4, Mẫu 13: Tổ kiểm phiếu, số phiếu, mục I/II).
-    /// </summary>
     private static void AddSampleCollectiveAndMeetings(
         CongTacDangDbContext context, EvaluationPeriod period, IReadOnlyDictionary<string, AdministrativeDepartment> departments,
         IReadOnlyDictionary<string, PartyCell> cells, IReadOnlyDictionary<string, PartyMemberProfile> members,
@@ -1001,7 +919,6 @@ public static class DataSeeder
 
         static string Details(object value) => System.Text.Json.JsonSerializer.Serialize(value, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
 
-        // B3a — hội nghị tập thể lãnh đạo Phòng Kỹ thuật (Mẫu 12), kiểm phiếu hồ sơ đã qua bước đề xuất.
         var department = departments["PH-KT"];
         var collective = new EvaluationMeeting
         {
@@ -1035,7 +952,6 @@ public static class DataSeeder
         proposed.CollectiveMeetingId = collective.Id;
         context.EvaluationMeetings.Add(collective);
 
-        // B4 — hội nghị Đảng ủy Công ty bỏ phiếu quyết định / đề nghị (Mẫu 13): mục I (cấp trên quyết định), mục II (cơ sở).
         var decision = new EvaluationMeeting
         {
             PeriodId = period.Id,
@@ -1069,10 +985,6 @@ public static class DataSeeder
         context.EvaluationMeetings.Add(decision);
     }
 
-    /// <summary>
-    /// Sau công bố (đợt 8): hồ sơ mức C có kế hoạch 30-60-90 ngày (Mẫu 17) đang lập và một kiến nghị chờ xử lý; bản nháp Mẫu 16
-    /// toàn Đảng bộ.
-    /// </summary>
     private static void AddSamplePostPublish(
         CongTacDangDbContext context, EvaluationPeriod period, IReadOnlyDictionary<string, PartyMemberProfile> members,
         IReadOnlyDictionary<string, EvaluationRecord> records)
@@ -1135,7 +1047,7 @@ public static class DataSeeder
         });
     }
 
-    /// <summary>Kết quả mẫu của bước do cấp trên thực hiện (khớp dữ liệu đã điền vào hồ sơ ở <see cref="FillStep"/>).</summary>
+    /// <summary>Phải khớp dữ liệu đã điền ở <see cref="FillStep"/>.</summary>
     private static void AddSampleExternalResult(CongTacDangDbContext context, EvaluationRecord record, WorkflowStep step, DateTime at)
     {
         var (authority, grade, score, comment) = step switch
@@ -1173,10 +1085,6 @@ public static class DataSeeder
         });
     }
 
-    /// <summary>
-    /// Điền dữ liệu hợp lệ của một bước đã hoàn thành (tự chấm theo bộ Mẫu 09B của kỳ: tiêu chí con "Đảm bảo" trừ hai tiêu chí
-    /// cuối "Không đảm bảo" có căn cứ; mỗi trục thấp hơn điểm tối đa 1–2 điểm).
-    /// </summary>
     private static void FillStep(EvaluationRecord record, CriteriaSetContent criteria, WorkflowStep step, EvaluationGrade grade, DateTime at)
     {
         switch (step)
@@ -1245,10 +1153,6 @@ public static class DataSeeder
         }
     }
 
-    /// <summary>
-    /// Nội dung Mẫu 09C (nhận xét chung), nhiệm vụ và kết quả theo trục (mục I Mẫu 09C, một dòng Mẫu 9D mỗi trục) và phần tự luận
-    /// theo trục của Mẫu 09B.
-    /// </summary>
     private static void FillIndividualForms(EvaluationRecord record, CriteriaSetContent criteria)
     {
         var uses09C = criteria.RequiredForms.Contains(RecordFormCodes.Form09C);

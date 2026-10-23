@@ -7,10 +7,8 @@ using CongTacDang.Application.Imports;
 
 namespace CongTacDang.Infrastructure.Imports;
 
-/// <summary>
-/// Lưu phiên nhập và file kết quả trong bộ nhớ máy chủ (singleton), hết hạn sau <see cref="ImportLimits.SessionLifetime"/>.
-/// File mật khẩu tạm không ghi ra đĩa và bị xóa ngay sau lần tải đầu. Khởi động lại máy chủ → mất phiên đang chờ (phải tải file lên lại).
-/// </summary>
+/// <summary>Lưu phiên nhập và file kết quả trong bộ nhớ (singleton, có hạn); file mật khẩu tạm không ghi ra đĩa,
+/// xóa sau lần tải đầu. Khởi động lại máy chủ thì mất phiên đang chờ.</summary>
 public sealed class MemoryImportSessionStore : IImportSessionStore
 {
     private sealed class SessionEntry
@@ -26,7 +24,6 @@ public sealed class MemoryImportSessionStore : IImportSessionStore
     private readonly TimeProvider _time;
     private readonly object _gate = new();
 
-    /// <summary>Khởi tạo.</summary>
     public MemoryImportSessionStore(TimeProvider? time = null) => _time = time ?? TimeProvider.System;
 
     private DateTime Now => _time.GetUtcNow().UtcDateTime;

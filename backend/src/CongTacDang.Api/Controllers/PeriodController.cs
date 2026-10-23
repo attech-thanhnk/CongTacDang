@@ -13,9 +13,7 @@ using CongTacDang.Application.Services;
 
 namespace CongTacDang.Api.Controllers;
 
-/// <summary>
-/// Kỳ đánh giá: đọc — mọi người đã đăng nhập; ghi — <c>period.manage</c> (task 12, docs/thiet-ke/luong-danh-gia.md mục 3).
-/// </summary>
+/// <summary>Kỳ đánh giá: đọc khi đã đăng nhập, ghi cần period.manage.</summary>
 [ApiController]
 [Route("api/evaluations/periods")]
 [Authorize]
@@ -55,10 +53,7 @@ public class PeriodController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePeriodDto dto, CancellationToken ct) =>
         Ok(ApiResponse<EvaluationPeriodDto>.Ok(await _periods.UpdatePeriodAsync(id, dto, ct), "Đã lưu cấu hình kỳ đánh giá."));
 
-    /// <summary>
-    /// Dự thảo → Đang mở. Còn cảnh báo kẹt luồng → 409 kèm danh sách cảnh báo (<c>data</c> = kết quả kiểm tra, mã
-    /// <c>PERIOD_NOT_READY</c>); mở bắt buộc: <c>force = true</c> + lý do.
-    /// </summary>
+    /// <summary>Dự thảo → Đang mở; kẹt luồng → 409 PERIOD_NOT_READY, mở bắt buộc cần force + lý do.</summary>
     [HttpPost("{id:guid}/open")]
     [RequirePermission(PermissionCodes.PeriodManage)]
     public async Task<IActionResult> Open(Guid id, [FromBody] PeriodTransitionDto dto, CancellationToken ct)
@@ -80,7 +75,7 @@ public class PeriodController : ControllerBase
         return Ok(ApiResponse<EvaluationPeriodDto>.Ok(outcome.Period!, "Đã mở kỳ đánh giá."));
     }
 
-    /// <summary>Kiểm tra kẹt luồng của kỳ (mỗi hồ sơ × mỗi bước còn phía trước có người thực hiện được trong phạm vi).</summary>
+    /// <summary>Kiểm tra kẹt luồng: mỗi bước còn lại của hồ sơ có người thực hiện được.</summary>
     [HttpGet("{id:guid}/readiness")]
     [RequirePermission(PermissionCodes.PeriodManage)]
     public async Task<IActionResult> GetReadiness(Guid id, CancellationToken ct) =>

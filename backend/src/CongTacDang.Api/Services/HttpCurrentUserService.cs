@@ -5,14 +5,11 @@ using Microsoft.AspNetCore.Http;
 
 namespace CongTacDang.Api.Services;
 
-/// <summary>
-/// Đọc actor và thông tin request hiện tại để persistence ghi audit tập trung.
-/// </summary>
+/// <summary>Actor và thông tin request cho audit log.</summary>
 public sealed class HttpCurrentUserService : ICurrentUserService
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    /// <summary>Khởi tạo provider đọc actor từ HTTP context hiện tại.</summary>
     public HttpCurrentUserService(IHttpContextAccessor httpContextAccessor)
     {
         _httpContextAccessor = httpContextAccessor;
@@ -20,7 +17,6 @@ public sealed class HttpCurrentUserService : ICurrentUserService
 
     private HttpContext? Context => _httpContextAccessor.HttpContext;
 
-    /// <summary>Lấy Id người dùng từ claim NameIdentifier hoặc sub.</summary>
     public Guid? UserId
     {
         get
@@ -31,18 +27,14 @@ public sealed class HttpCurrentUserService : ICurrentUserService
         }
     }
 
-    /// <summary>Lấy tên hiển thị hoặc username của actor hiện tại.</summary>
     public string UserName => Context?.User.FindFirstValue(ClaimTypes.Name)
         ?? Context?.User.FindFirstValue("unique_name")
         ?? Context?.User.Identity?.Name
         ?? string.Empty;
 
-    /// <summary>Lấy địa chỉ IP của request hiện tại.</summary>
     public string? IpAddress => Context?.Connection.RemoteIpAddress?.ToString();
 
-    /// <summary>Lấy User-Agent của request hiện tại.</summary>
     public string? UserAgent => Context?.Request.Headers.UserAgent.ToString();
 
-    /// <summary>Lấy đường dẫn endpoint đang thực hiện.</summary>
     public string? RequestPath => Context?.Request.Path.ToString();
 }

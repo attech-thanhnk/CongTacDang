@@ -7,14 +7,9 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
-/// <summary>
-/// Dữ liệu Mẫu 13 — Biên bản kiểm phiếu hội nghị tập thể lãnh đạo, quản lý (B3a) hoặc hội nghị Đảng ủy/Chi ủy cơ sở (B4) về
-/// việc đánh giá, xếp loại chất lượng cán bộ quý. Template: <c>Mau_13_BienBanKiemPhieu.docx</c>, dựng từ đúng phần Mẫu 13 của
-/// biểu mẫu gốc HD03 (PDF tr.70–71). Dữ liệu lấy từ một biên bản hội nghị đã lưu và kết quả kiểm phiếu tổng hợp theo hồ sơ.
-/// </summary>
+/// <summary>Biên bản kiểm phiếu hội nghị tập thể lãnh đạo (B3a) hoặc cấp ủy cơ sở (B4).</summary>
 public sealed class Mau13Data
 {
-    /// <summary>Tên tệp template.</summary>
     public const string TemplateFileName = "Mau_13_BienBanKiemPhieu.docx";
 
     [TemplateField("PARTY_PARENT")] public string? PartyParent { get; init; }
@@ -23,10 +18,10 @@ public sealed class Mau13Data
     /// <summary>"Hội nghị tập thể lãnh đạo, quản lý &lt;đơn vị&gt;" (B3a) hoặc "Hội nghị &lt;Đảng ủy/Chi ủy&gt;" (B4).</summary>
     [TemplateField("MEETING_NAME")] public string? MeetingName { get; init; }
 
-    /// <summary>"III/2026" — chỗ điền "……../….." của dòng tiêu đề.</summary>
+    /// <summary>"III/2026" cho dòng tiêu đề.</summary>
     [TemplateField("QUARTER_YEAR")] public string? QuarterYear { get; init; }
 
-    /// <summary>" III/2026" — chỗ điền ngay sau chữ "quý" trong đoạn văn.</summary>
+    /// <summary>" III/2026" — điền ngay sau chữ "quý" trong đoạn văn.</summary>
     [TemplateField("PERIOD_TEXT")] public string? PeriodText { get; init; }
 
     [TemplateField("WORKING_RULES")] public string? WorkingRules { get; init; }
@@ -41,7 +36,7 @@ public sealed class Mau13Data
     [TemplateField("PRESENT")] public string? Present { get; init; }
     [TemplateField("ABSENT")] public string? Absent { get; init; }
 
-    /// <summary>Mục I.3.2 — cán bộ, đảng viên được cử tham dự ghi chép, báo cáo, phục vụ hội nghị.</summary>
+    /// <summary>Người được cử ghi chép, phục vụ hội nghị.</summary>
     [TemplateCollection("ATTENDEES")] public List<Mau12Attendee> Attendees { get; init; } = new();
     [TemplateCondition("HAS_ATTENDEES")] public bool HasAttendees { get; init; }
 
@@ -51,7 +46,7 @@ public sealed class Mau13Data
     [TemplateField("SECRETARY_TITLE")] public string? SecretaryTitle { get; init; }
     [TemplateField("REPORTING_UNIT")] public string? ReportingUnit { get; init; }
 
-    /// <summary>Tổ kiểm phiếu (mục II): người đầu là Tổ trưởng, còn lại là Thành viên; không có → giữ các dòng của biểu mẫu.</summary>
+    /// <summary>Người đầu là Tổ trưởng, còn lại là Thành viên; rỗng → giữ các dòng của biểu mẫu.</summary>
     [TemplateCollection("COUNTERS")] public List<Mau13Counter> Counters { get; init; } = new();
     [TemplateCondition("HAS_COUNTERS")] public bool HasCounters { get; init; }
 
@@ -60,39 +55,33 @@ public sealed class Mau13Data
     [TemplateField("BALLOTS_VALID")] public string? BallotsValid { get; init; }
     [TemplateField("BALLOTS_INVALID")] public string? BallotsInvalid { get; init; }
 
-    /// <summary>Mục I của bảng: cán bộ thuộc thẩm quyền quyết định, phê duyệt mức xếp loại của BTVĐUTCT.</summary>
+    /// <summary>Mục I: BTVĐUTCT quyết định.</summary>
     [TemplateCollection("SUPERIOR_ROWS")] public List<Mau13Row> SuperiorRows { get; init; } = new();
     [TemplateCondition("HAS_SUPERIOR_ROWS")] public bool HasSuperiorRows { get; init; }
 
-    /// <summary>In mục I: có cán bộ của mục, hoặc biên bản chưa có dòng kiểm phiếu nào (giữ dòng trống của biểu mẫu).</summary>
+    /// <summary>Có cán bộ của mục, hoặc biên bản chưa có dòng nào (giữ dòng trống của biểu mẫu).</summary>
     [TemplateCondition("SHOW_SUPERIOR")] public bool ShowSuperior { get; init; }
 
-    /// <summary>Mục II của bảng: cán bộ thuộc thẩm quyền quyết định, phê duyệt mức xếp loại của Đảng ủy/Chi ủy cơ sở.</summary>
+    /// <summary>Mục II: Đảng ủy/Chi ủy cơ sở quyết định.</summary>
     [TemplateCollection("BASE_ROWS")] public List<Mau13Row> BaseRows { get; init; } = new();
     [TemplateCondition("HAS_BASE_ROWS")] public bool HasBaseRows { get; init; }
 
-    /// <summary>In mục II: có cán bộ của mục, hoặc biên bản chưa có dòng kiểm phiếu nào.</summary>
+    /// <summary>Có cán bộ của mục, hoặc biên bản chưa có dòng nào.</summary>
     [TemplateCondition("SHOW_BASE")] public bool ShowBase { get; init; }
 
     [TemplateField("ARCHIVE_UNIT")] public string? ArchiveUnit { get; init; }
 
-    /// <summary>Họ tên dưới chữ ký Tổ trưởng Tổ kiểm phiếu / chủ trì hội nghị.</summary>
     [TemplateField("COUNTER_HEAD_SIGN")] public string? CounterHeadSign { get; init; }
     [TemplateField("CHAIR_SIGN")] public string? ChairSign { get; init; }
 
-    /// <summary>Chức danh, ghi chú dưới "CHỦ TRÌ HỘI NGHỊ" — cùng quy tắc với <see cref="Mau12Data.ChairSignTitle"/>.</summary>
+    /// <summary>Cùng quy tắc với <see cref="Mau12Data.ChairSignTitle"/>.</summary>
     [TemplateField("CHAIR_SIGN_TITLE")] public string? ChairSignTitle { get; init; }
     [TemplateField("CHAIR_SIGN_NOTE")] public string? ChairSignNote { get; init; }
 
-    /// <summary>
-    /// Cấp ủy cơ sở ở tiêu đề mục II của bảng ("… CỦA ĐẢNG ỦY/CHI ỦY CƠ SỞ…"): cấp ủy của tổ chức Đảng lưu biên bản, chữ in hoa.
-    /// </summary>
+    /// <summary>Cấp ủy của tổ chức Đảng lưu biên bản, chữ in hoa (tiêu đề mục II).</summary>
     [TemplateField("BASE_AUTHORITY")] public string? BaseAuthority { get; init; }
 
-    /// <summary>
-    /// Dựng từ biên bản đã lưu (nạp kèm kỳ) và các dòng kết quả kiểm phiếu. Phần chung với Mẫu 12 (tiêu đề, thời gian, thành phần,
-    /// chủ trì, thư ký) dùng cùng quy tắc với <see cref="Mau12Data"/>.
-    /// </summary>
+    /// <summary>Phần chung với Mẫu 12 dùng cùng quy tắc với <see cref="Mau12Data"/>.</summary>
     public static Mau13Data From(
         EvaluationMeeting meeting, PartyHeader header, string? unitName, string? archiveUnit, MeetingDetailsDto details,
         IReadOnlyList<Mau13Line> lines)
@@ -119,11 +108,10 @@ public sealed class Mau13Data
 
         var superior = Rows(ApprovalAuthority.CapTren);
         var baseRows = Rows(ApprovalAuthority.CoSo);
-        // Như bảng tính của Công ty: mục không có cán bộ thì không in; chưa có dòng nào thì in cả hai mục để ghi tay.
+        // Mục không có cán bộ thì không in; chưa có dòng nào thì in cả hai mục để ghi tay.
         var blank = superior.Count == 0 && baseRows.Count == 0;
 
-        // Số phiếu không hợp lệ: ưu tiên số ghi trên biên bản; chưa ghi thì dùng số chung của các dòng kiểm phiếu (khi mọi dòng
-        // cùng một số).
+        // Ưu tiên số trên biên bản; chưa ghi thì dùng số chung khi mọi dòng kiểm phiếu cùng một số.
         var invalid = details.BallotsInvalid;
         if (invalid == null)
         {
@@ -189,10 +177,8 @@ public sealed class Mau13Data
     private static string? Number(int? value) => value?.ToString(CultureInfo.InvariantCulture);
 }
 
-/// <summary>Một dòng kết quả kiểm phiếu của biên bản kèm thông tin cán bộ để in Mẫu 13.</summary>
 public sealed record Mau13Line(EvaluationMeetingVoteSummary Summary, string? FullName, string? PositionAndUnit, ApprovalAuthority Authority);
 
-/// <summary>Một thành viên Tổ kiểm phiếu.</summary>
 public sealed class Mau13Counter
 {
     [TemplateField("C_STT")] public string? Order { get; init; }
@@ -201,7 +187,7 @@ public sealed class Mau13Counter
     [TemplateField("C_ROLE")] public string? Role { get; init; }
 }
 
-/// <summary>Một dòng cán bộ của bảng kết quả Mẫu 13 (cùng tag cho khối lặp mục I và mục II).</summary>
+/// <summary>Cùng tag cho khối lặp mục I và mục II.</summary>
 public sealed class Mau13Row
 {
     [TemplateField("R_STT")] public string? Order { get; init; }

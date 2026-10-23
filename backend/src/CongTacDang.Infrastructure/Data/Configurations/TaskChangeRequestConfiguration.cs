@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CongTacDang.Infrastructure.Data.Configurations;
 
-/// <summary>Đề nghị điều chỉnh, chuyển tiếp, loại trừ việc / ghi nhận việc đột xuất trong quý (Mẫu 04, 05): nội dung jsonb, xmin.</summary>
 public sealed class TaskChangeRequestConfiguration : IEntityTypeConfiguration<TaskChangeRequest>
 {
     public void Configure(EntityTypeBuilder<TaskChangeRequest> entity)
@@ -31,9 +30,9 @@ public sealed class TaskChangeRequestConfiguration : IEntityTypeConfiguration<Ta
             .WithMany()
             .HasForeignKey(e => e.RecordId)
             .OnDelete(DeleteBehavior.Cascade);
-        // TaskId / ResultTaskId / RequestedById / DecidedById: tham chiếu mềm (không FK) như người thực hiện các bước trên hồ sơ.
+        // Các Id người/việc là tham chiếu mềm (không FK).
 
-        // Hồ sơ đánh giá có bộ lọc xóa mềm → áp cùng điều kiện cho bảng con.
+        // Áp cùng bộ lọc xóa mềm của hồ sơ.
         entity.HasQueryFilter(e => !e.IsDeleted && !e.Record.IsDeleted);
     }
 }

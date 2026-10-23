@@ -9,13 +9,9 @@ using Microsoft.Extensions.Logging;
 
 namespace CongTacDang.Api.Extensions;
 
-/// <summary>Đăng ký mô hình tổ chức động (task 14): danh mục chức vụ, chức vụ của cán bộ, thẩm quyền suy ra.</summary>
 public static class OrganizationExtensions
 {
-    /// <summary>
-    /// Repository/dịch vụ chức vụ và tác vụ nền làm mới thẩm quyền suy ra
-    /// (<c>Organization:ApprovalAuthorityRefreshMinutes</c>, mặc định 60; 0 = tắt).
-    /// </summary>
+    /// <summary><c>Organization:ApprovalAuthorityRefreshMinutes</c>: 0 = tắt làm mới thẩm quyền.</summary>
     public static IServiceCollection AddOrganizationModel(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IPositionRepository, PositionRepository>();

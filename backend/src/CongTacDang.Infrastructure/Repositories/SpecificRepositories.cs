@@ -13,16 +13,13 @@ using CongTacDang.Infrastructure.Data;
 
 namespace CongTacDang.Infrastructure.Repositories;
 
-/// <summary>
-/// Repository quản lý hồ sơ Cán bộ / Đảng viên
-/// </summary>
 public class UserRepository : GenericRepository<PartyMemberProfile>, IUserRepository
 {
     public UserRepository(CongTacDangDbContext db) : base(db)
     {
     }
 
-    /// <summary>Tìm kiếm cán bộ theo tên đăng nhập (không phân biệt chữ hoa/thường)</summary>
+    /// <summary>Không phân biệt chữ hoa/thường.</summary>
     public async Task<PartyMemberProfile?> GetByUsernameAsync(string username)
     {
         var normalized = CongTacDang.Application.Accounts.AccountRules.NormalizeUsername(username);
@@ -32,7 +29,6 @@ public class UserRepository : GenericRepository<PartyMemberProfile>, IUserReposi
             .FirstOrDefaultAsync(m => m.Username.ToLower() == normalized);
     }
 
-    /// <summary>Lấy thông tin cán bộ đầu tiên trong hệ thống</summary>
     public async Task<PartyMemberProfile?> GetFirstMemberAsync()
     {
         return await _db.PartyMemberProfiles
@@ -43,7 +39,6 @@ public class UserRepository : GenericRepository<PartyMemberProfile>, IUserReposi
             .FirstOrDefaultAsync();
     }
 
-    /// <summary>Lấy toàn bộ danh sách cán bộ kèm thông tin Chi bộ và Phòng ban</summary>
     public async Task<List<PartyMemberProfile>> GetAllWithDetailsAsync()
     {
         return await _db.PartyMemberProfiles
@@ -54,7 +49,6 @@ public class UserRepository : GenericRepository<PartyMemberProfile>, IUserReposi
             .ToListAsync();
     }
 
-    /// <summary>Tìm cán bộ theo Id kèm Chi bộ, Phòng.</summary>
     public async Task<PartyMemberProfile?> GetWithOrganizationByIdAsync(Guid id)
     {
         return await _db.PartyMemberProfiles
@@ -65,9 +59,6 @@ public class UserRepository : GenericRepository<PartyMemberProfile>, IUserReposi
     }
 }
 
-/// <summary>
-/// Repository quản lý tệp đính kèm và minh chứng
-/// </summary>
 public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachmentRepository, IAttachmentAccessReader, IAttachmentVersionRepository,
     IUnlinkedAttachmentRepository
 {
@@ -75,7 +66,7 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
     {
     }
 
-    /// <summary>Một trang tệp đính kèm (phiên bản hiện hành), mới nhất trước.</summary>
+    /// <summary>Chỉ phiên bản hiện hành, mới nhất trước.</summary>
     public async Task<List<TaskAttachment>> GetCurrentPageAsync(int skip, int take)
     {
         return await _db.TaskAttachments
@@ -90,11 +81,11 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
 
     #region Tệp chưa gắn đối tượng
 
-    /// <summary>Tệp chưa gắn đối tượng (khớp <see cref="TaskAttachment.EffectiveOwnerType"/> = Unlinked).</summary>
+    /// <summary>Khớp <see cref="TaskAttachment.EffectiveOwnerType"/> = Unlinked.</summary>
     private IQueryable<TaskAttachment> UnlinkedAttachments() => _db.TaskAttachments.Where(a =>
         a.OwnerType == AttachmentOwnerTypes.Unlinked || (a.OwnerType == null && a.RecordId == null && a.RelatedId == null));
 
-    /// <summary>Nhóm tệp có phiên bản được nhiệm vụ (kể cả đã xóa mềm) hoặc kết quả của cấp trên tham chiếu qua AttachmentId.</summary>
+    /// <summary>Nhóm có phiên bản được nhiệm vụ (kể cả đã xóa mềm) hoặc kết quả cấp trên tham chiếu qua AttachmentId.</summary>
     private IQueryable<Guid> ReferencedGroupIds()
     {
         var taskRefs = _db.EvaluationTasks.IgnoreQueryFilters()
@@ -177,7 +168,7 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
 
     #endregion
 
-    /// <summary>Lấy các tệp hiện hành của một đối tượng (kể cả dữ liệu cũ chưa có OwnerType).</summary>
+    /// <summary>Gồm cả dữ liệu cũ chưa có OwnerType.</summary>
     public async Task<List<TaskAttachment>> GetCurrentByOwnerAsync(string ownerType, Guid ownerId)
     {
         var query = _db.TaskAttachments.AsNoTracking().Where(a => !a.IsSuperseded);
@@ -190,7 +181,7 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
                     || (a.OwnerType == null && a.RecordId == ownerId))
                 .ToListAsync();
 
-            // Văn bản của cấp trên gắn vào kết quả các bước do cấp trên thực hiện của hồ sơ.
+            // Văn bản cấp trên gắn vào kết quả các bước do cấp trên thực hiện.
             var externalIds = await _db.Set<EvaluationExternalResult>()
                 .AsNoTracking()
                 .Where(x => x.RecordId == ownerId && x.AttachmentId.HasValue)
@@ -210,7 +201,7 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
                     || (a.OwnerType == null && a.RecordId == null && a.RelatedId == ownerId))
                 .ToListAsync();
 
-            // Dữ liệu cũ: tệp minh chứng gắn qua EvaluationTask.AttachmentId (có thể trỏ tới một phiên bản cũ).
+            // Dữ liệu cũ: gắn qua EvaluationTask.AttachmentId (có thể trỏ tới phiên bản cũ).
             var linkedId = await _db.EvaluationTasks
                 .AsNoTracking()
                 .Where(t => t.Id == ownerId && t.AttachmentId.HasValue)
@@ -233,7 +224,6 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
         return owned.OrderByDescending(a => a.UploadedAt).ToList();
     }
 
-    /// <summary>Lấy phiên bản hiện hành của nhóm chứa phiên bản cho trước.</summary>
     public async Task<TaskAttachment?> GetCurrentVersionAsync(Guid anyVersionId)
     {
         var version = await _db.TaskAttachments
@@ -252,7 +242,6 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
             .FirstOrDefaultAsync();
     }
 
-    /// <summary>Lấy mọi phiên bản chưa xóa của một nhóm.</summary>
     public async Task<List<TaskAttachment>> GetVersionsAsync(Guid groupId)
     {
         return await _db.TaskAttachments
@@ -263,7 +252,7 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
             .ToListAsync();
     }
 
-    /// <summary>Lưu phiên bản mới và đánh dấu phiên bản trước đã bị thay trong một lần SaveChanges.</summary>
+    /// <summary>Lưu bản mới và đánh dấu bản trước bị thay trong cùng một SaveChanges.</summary>
     public async Task AddVersionAsync(TaskAttachment previous, TaskAttachment next)
     {
         _db.TaskAttachments.Update(previous);
@@ -271,7 +260,7 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Xóa mềm mọi phiên bản của nhóm (DbContext đổi Remove thành xóa mềm và ghi audit).</summary>
+    /// <summary>DbContext đổi Remove thành xóa mềm và ghi audit.</summary>
     public async Task RemoveGroupAsync(Guid groupId)
     {
         var versions = await _db.TaskAttachments.Where(a => a.Id == groupId || a.FileGroupId == groupId).ToListAsync();
@@ -279,7 +268,6 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Lấy hồ sơ đánh giá của đối tượng sở hữu tệp.</summary>
     public async Task<EvaluationRecord?> GetOwnerRecordAsync(string ownerType, Guid ownerId)
     {
         Guid? recordId = ownerType switch
@@ -290,7 +278,7 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
                 .Where(t => t.Id == ownerId)
                 .Select(t => (Guid?)t.RecordId)
                 .FirstOrDefaultAsync(),
-            // Task 20: tệp của kiến nghị thuộc hồ sơ của kiến nghị.
+            // Tệp của kiến nghị thuộc hồ sơ của kiến nghị.
             AttachmentOwnerTypes.EvaluationAppeal => await _db.Set<EvaluationAppeal>()
                 .AsNoTracking()
                 .Where(a => a.Id == ownerId)
@@ -308,7 +296,7 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
             .FirstOrDefaultAsync(r => r.Id == recordId.Value);
     }
 
-    /// <summary>Kiến nghị còn đang xử lý hay không (null nếu không tìm thấy).</summary>
+    /// <summary>Null nếu không tìm thấy.</summary>
     public async Task<bool?> IsAppealOpenAsync(Guid appealId)
     {
         var status = await _db.Set<EvaluationAppeal>()
@@ -319,7 +307,7 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
         return status.HasValue ? status is AppealStatus.Submitted or AppealStatus.UnderReview : null;
     }
 
-    /// <summary>Lấy tổ chức và trạng thái kỳ của các hồ sơ tập thể sở hữu tệp (hồ sơ đã xóa mềm bị bộ lọc loại ra).</summary>
+    /// <summary>Hồ sơ đã xóa mềm bị bộ lọc toàn cục loại ra.</summary>
     public async Task<Dictionary<Guid, CollectiveAttachmentOwner>> GetCollectiveOwnersAsync(IReadOnlyCollection<Guid> collectiveRecordIds)
     {
         if (collectiveRecordIds.Count == 0)
@@ -334,16 +322,14 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
         return rows.ToDictionary(r => r.Id, r => new CollectiveAttachmentOwner(r.Id, r.DepartmentId, r.PartyCellId, r.Closed));
     }
 
-
-    /// <summary>Lấy các hồ sơ đánh giá mà mỗi tệp đang gắn vào (qua RecordId hoặc qua nhiệm vụ).</summary>
+    /// <summary>Qua RecordId hoặc qua nhiệm vụ.</summary>
     public async Task<Dictionary<Guid, List<AttachmentRecordLink>>> GetRecordLinksAsync(IReadOnlyCollection<TaskAttachment> attachments)
     {
         var result = new Dictionary<Guid, List<AttachmentRecordLink>>();
         if (attachments.Count == 0)
             return result;
 
-        // EvaluationTask.AttachmentId có thể trỏ tới bất kỳ phiên bản nào của nhóm (thường là phiên bản đầu),
-        // nên liên kết qua nhiệm vụ được tính theo nhóm phiên bản.
+        // EvaluationTask.AttachmentId có thể trỏ tới bất kỳ phiên bản nào (thường là bản đầu) nên nối theo nhóm phiên bản.
         var groupIds = attachments.Select(a => a.GroupId).Distinct().ToList();
         var versionToGroup = await _db.TaskAttachments
             .AsNoTracking()
@@ -368,7 +354,6 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
             .Distinct()
             .ToList();
 
-        // Văn bản của cấp trên gắn vào kết quả bước do cấp trên thực hiện (theo nhóm phiên bản như nhiệm vụ).
         var externalVersionLinks = await _db.Set<EvaluationExternalResult>()
             .AsNoTracking()
             .Where(x => x.AttachmentId.HasValue && versionIds.Contains(x.AttachmentId.Value))
@@ -422,18 +407,16 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
     }
 }
 
-/// <summary>Repository chỉ đọc nhật ký audit tập trung.</summary>
 public class AuditRepository : IAuditRepository
 {
     private readonly CongTacDangDbContext _db;
 
-    /// <summary>Khởi tạo repository audit.</summary>
     public AuditRepository(CongTacDangDbContext db)
     {
         _db = db;
     }
 
-    /// <summary>Truy vấn audit log theo bộ lọc, phân trang; số đếm tính trên toàn bộ bản ghi khớp bộ lọc.</summary>
+    /// <summary>Số đếm tính trên toàn bộ bản ghi khớp bộ lọc.</summary>
     public async Task<AuditLogSearchResult> SearchAuditLogsAsync(AuditLogCriteria criteria, CancellationToken ct = default)
     {
         var all = _db.AuditLogs.AsNoTracking();
@@ -472,9 +455,6 @@ public class AuditRepository : IAuditRepository
     }
 }
 
-/// <summary>
-/// Repository quản lý tổ chức Chi bộ và Phòng ban
-/// </summary>
 public class OrganizationRepository : IOrganizationRepository
 {
     private readonly CongTacDangDbContext _db;
@@ -484,7 +464,6 @@ public class OrganizationRepository : IOrganizationRepository
         _db = db;
     }
 
-    /// <summary>Lấy danh sách Chi bộ kèm Đảng viên trực thuộc</summary>
     public async Task<List<PartyCell>> GetPartyCellsWithMembersAsync()
     {
         return await _db.PartyCells
@@ -494,7 +473,6 @@ public class OrganizationRepository : IOrganizationRepository
             .ToListAsync();
     }
 
-    /// <summary>Lấy danh sách Phòng ban chuyên môn kèm cán bộ trực thuộc</summary>
     public async Task<List<AdministrativeDepartment>> GetDepartmentsWithMembersAsync()
     {
         return await _db.AdministrativeDepartments
@@ -504,7 +482,6 @@ public class OrganizationRepository : IOrganizationRepository
             .ToListAsync();
     }
 
-    /// <summary>Lấy thông tin Chi bộ theo Id</summary>
     public async Task<PartyCell?> GetPartyCellByIdAsync(Guid id)
     {
         return await _db.PartyCells
@@ -512,28 +489,25 @@ public class OrganizationRepository : IOrganizationRepository
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
-    /// <summary>Thêm mới Chi bộ</summary>
     public async Task AddPartyCellAsync(PartyCell cell)
     {
         await _db.PartyCells.AddAsync(cell);
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Cập nhật thông tin Chi bộ</summary>
     public async Task UpdatePartyCellAsync(PartyCell cell)
     {
         _db.PartyCells.Update(cell);
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Đánh dấu Chi bộ xóa mềm qua DbContext.</summary>
     public async Task DeletePartyCellAsync(PartyCell cell)
     {
         _db.PartyCells.Remove(cell);
         await _db.SaveChangesAsync();
     }
 
-    // ----- Danh mục (task 10) -----
+    // ----- Danh mục -----
 
     public Task<List<AdministrativeDepartment>> ListDepartmentsAsync()
         => _db.AdministrativeDepartments.AsNoTracking()
@@ -626,7 +600,7 @@ public class OrganizationRepository : IOrganizationRepository
         return new CatalogUsage(members, records, collective, meetings, children, assignments, positions);
     }
 
-    // ----- Cây đơn vị, loại đơn vị (task 14) -----
+    // ----- Cây đơn vị, loại đơn vị -----
 
     public async Task<Dictionary<Guid, int>> CountChildDepartmentsAsync()
     {
@@ -684,9 +658,6 @@ public class OrganizationRepository : IOrganizationRepository
     public void RemoveUnitType(OrgUnitType type) => _db.OrgUnitTypes.Remove(type);
 }
 
-/// <summary>
-/// Repository triển khai quản lý kỳ đánh giá và hồ sơ đánh giá cán bộ theo Hướng dẫn 03-HD/TVĐU
-/// </summary>
 public class EvaluationRepository : IEvaluationRepository
 {
     private readonly CongTacDangDbContext _db;
@@ -704,7 +675,6 @@ public class EvaluationRepository : IEvaluationRepository
     public Task<bool> IsPartyCellWithinAsync(Guid rootId, Guid unitId, CancellationToken ct = default) =>
         OrgSubtreeQueries.IsPartyCellWithinAsync(_db, rootId, unitId, ct);
 
-    /// <summary>Lấy danh sách tất cả các kỳ đánh giá</summary>
     public async Task<List<EvaluationPeriod>> GetPeriodsAsync()
     {
         return await _db.EvaluationPeriods
@@ -713,13 +683,12 @@ public class EvaluationRepository : IEvaluationRepository
             .ToListAsync();
     }
 
-    /// <summary>Lấy thông tin kỳ đánh giá theo Id</summary>
     public async Task<EvaluationPeriod?> GetPeriodByIdAsync(Guid id)
     {
         return await _db.EvaluationPeriods.FirstOrDefaultAsync(p => p.Id == id);
     }
 
-    /// <summary>Kỳ hiện hành = kỳ Đang mở/Khóa dữ liệu mới nhất .</summary>
+    /// <summary>Kỳ Đang mở/Khóa dữ liệu mới nhất.</summary>
     public async Task<EvaluationPeriod?> GetActivePeriodAsync()
     {
         return await _db.EvaluationPeriods
@@ -731,21 +700,18 @@ public class EvaluationRepository : IEvaluationRepository
             .FirstOrDefaultAsync();
     }
 
-    /// <summary>Thêm mới kỳ đánh giá</summary>
     public async Task AddPeriodAsync(EvaluationPeriod period)
     {
         _db.EvaluationPeriods.Add(period);
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Cập nhật kỳ đánh giá</summary>
     public async Task UpdatePeriodAsync(EvaluationPeriod period)
     {
         _db.EvaluationPeriods.Update(period);
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Lấy hồ sơ đánh giá của một cán bộ trong kỳ cụ thể</summary>
     public async Task<EvaluationRecord?> GetRecordAsync(Guid periodId, Guid memberId)
     {
         return await _db.EvaluationRecords
@@ -759,7 +725,6 @@ public class EvaluationRepository : IEvaluationRepository
             .FirstOrDefaultAsync(r => r.PeriodId == periodId && r.MemberId == memberId);
     }
 
-    /// <summary>Lấy hồ sơ đánh giá theo Id</summary>
     public async Task<EvaluationRecord?> GetRecordByIdAsync(Guid id)
     {
         return await _db.EvaluationRecords
@@ -773,7 +738,6 @@ public class EvaluationRepository : IEvaluationRepository
             .FirstOrDefaultAsync(r => r.Id == id);
     }
 
-    /// <summary>Truy vấn các mốc trạng thái của hồ sơ theo thời gian tăng dần.</summary>
     public async Task<List<EvaluationRecordHistory>> GetRecordHistoriesAsync(Guid recordId)
     {
         return await _db.EvaluationRecordHistories
@@ -783,7 +747,6 @@ public class EvaluationRepository : IEvaluationRepository
             .ToListAsync();
     }
 
-    /// <summary>Lấy toàn bộ hồ sơ đánh giá trong một kỳ</summary>
     public async Task<List<EvaluationRecord>> GetRecordsByPeriodAsync(Guid periodId)
     {
         return await _db.EvaluationRecords
@@ -799,7 +762,6 @@ public class EvaluationRepository : IEvaluationRepository
             .ToListAsync();
     }
 
-    /// <summary>Lấy danh sách hồ sơ đánh giá của một Chi bộ</summary>
     public async Task<List<EvaluationRecord>> GetRecordsByBranchAsync(Guid periodId, Guid branchId)
     {
         return await _db.EvaluationRecords
@@ -815,28 +777,24 @@ public class EvaluationRepository : IEvaluationRepository
             .ToListAsync();
     }
 
-    /// <summary>Thêm mới hồ sơ đánh giá</summary>
     public async Task AddRecordAsync(EvaluationRecord record)
     {
         _db.EvaluationRecords.Add(record);
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Cập nhật hồ sơ đánh giá</summary>
     public async Task UpdateRecordAsync(EvaluationRecord record)
     {
         _db.EvaluationRecords.Update(record);
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Lưu một mốc chuyển trạng thái của hồ sơ đánh giá.</summary>
     public async Task AddRecordHistoryAsync(EvaluationRecordHistory history)
     {
         _db.EvaluationRecordHistories.Add(history);
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Lấy danh sách công việc đăng ký</summary>
     public async Task<List<EvaluationTask>> GetTasksByRecordIdAsync(Guid recordId)
     {
         return await _db.EvaluationTasks
@@ -846,7 +804,6 @@ public class EvaluationRepository : IEvaluationRepository
             .ToListAsync();
     }
 
-    /// <summary>Thay thế danh sách công việc của hồ sơ đánh giá</summary>
     public async Task ReplaceTasksAsync(Guid recordId, IEnumerable<EvaluationTask> tasks)
     {
         var existingTasks = await _db.EvaluationTasks
@@ -859,7 +816,6 @@ public class EvaluationRepository : IEvaluationRepository
     }
 }
 
-/// <summary>Repository triển khai hồ sơ đánh giá tập thể.</summary>
 public class CollectiveEvaluationRepository : ICollectiveEvaluationRepository
 {
     private readonly CongTacDangDbContext _db;
@@ -869,7 +825,6 @@ public class CollectiveEvaluationRepository : ICollectiveEvaluationRepository
         _db = db;
     }
 
-    /// <summary>Lấy hồ sơ tập thể kèm các dòng nội dung chi tiết.</summary>
     public async Task<CollectiveEvaluationRecord?> GetByIdAsync(Guid id)
     {
         return await _db.CollectiveEvaluationRecords
@@ -882,7 +837,6 @@ public class CollectiveEvaluationRepository : ICollectiveEvaluationRepository
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
-    /// <summary>Lấy danh sách hồ sơ tập thể theo kỳ và tùy chọn biểu mẫu.</summary>
     public async Task<List<CollectiveEvaluationRecord>> GetByPeriodAsync(Guid periodId, CollectiveEvaluationForm? form = null)
     {
         var query = _db.CollectiveEvaluationRecords
@@ -898,28 +852,25 @@ public class CollectiveEvaluationRepository : ICollectiveEvaluationRepository
         return await query.OrderBy(x => x.Form).ThenBy(x => x.SubjectName).ToListAsync();
     }
 
-    /// <summary>Lưu mới hồ sơ tập thể.</summary>
     public async Task AddAsync(CollectiveEvaluationRecord record)
     {
         _db.CollectiveEvaluationRecords.Add(record);
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Lưu thay đổi hồ sơ tập thể.</summary>
     public async Task UpdateAsync(CollectiveEvaluationRecord record)
     {
         _db.CollectiveEvaluationRecords.Update(record);
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Lấy hồ sơ tập thể để sửa (được theo dõi thay đổi, kèm các dòng nội dung).</summary>
     public Task<CollectiveEvaluationRecord?> GetForUpdateAsync(Guid id) =>
         _db.CollectiveEvaluationRecords
             .Include(x => x.Period)
             .Include(x => x.Items)
             .FirstOrDefaultAsync(x => x.Id == id);
 
-    /// <summary>Thay toàn bộ dòng nội dung: dòng cũ bị xóa, dòng mới được thêm (trạng thái Added tường minh).</summary>
+    /// <summary>Dòng cũ bị xóa, dòng mới đặt trạng thái Added tường minh.</summary>
     public void ReplaceItems(CollectiveEvaluationRecord record, IEnumerable<CollectiveEvaluationItem> items)
     {
         _db.CollectiveEvaluationItems.RemoveRange(record.Items);
@@ -932,7 +883,6 @@ public class CollectiveEvaluationRepository : ICollectiveEvaluationRepository
     }
 }
 
-/// <summary>Repository triển khai biên bản hội nghị và kiểm phiếu.</summary>
 public class EvaluationMeetingRepository : IEvaluationMeetingRepository
 {
     private readonly CongTacDangDbContext _db;
@@ -942,7 +892,6 @@ public class EvaluationMeetingRepository : IEvaluationMeetingRepository
         _db = db;
     }
 
-    /// <summary>Lấy biên bản kèm tổng hợp phiếu.</summary>
     public async Task<EvaluationMeeting?> GetByIdAsync(Guid id)
     {
         return await _db.EvaluationMeetings
@@ -956,7 +905,6 @@ public class EvaluationMeetingRepository : IEvaluationMeetingRepository
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
-    /// <summary>Lấy biên bản theo kỳ và tùy chọn Chi bộ.</summary>
     public async Task<List<EvaluationMeeting>> GetByPeriodAsync(Guid periodId, Guid? partyCellId = null)
     {
         var query = _db.EvaluationMeetings
@@ -974,21 +922,18 @@ public class EvaluationMeetingRepository : IEvaluationMeetingRepository
         return await query.OrderByDescending(x => x.StartedAt).ToListAsync();
     }
 
-    /// <summary>Lưu mới biên bản hội nghị.</summary>
     public async Task AddAsync(EvaluationMeeting meeting)
     {
         _db.EvaluationMeetings.Add(meeting);
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Lưu thay đổi biên bản hội nghị.</summary>
     public async Task UpdateAsync(EvaluationMeeting meeting)
     {
         _db.EvaluationMeetings.Update(meeting);
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Lấy biên bản để sửa (được theo dõi thay đổi).</summary>
     public Task<EvaluationMeeting?> GetForUpdateAsync(Guid id) =>
         _db.EvaluationMeetings
             .Include(x => x.Period)
@@ -996,7 +941,6 @@ public class EvaluationMeetingRepository : IEvaluationMeetingRepository
             .FirstOrDefaultAsync(x => x.Id == id);
 }
 
-/// <summary>Repository danh mục ngày nghỉ.</summary>
 public class HolidayRepository : IHolidayRepository
 {
     private readonly CongTacDangDbContext _db;

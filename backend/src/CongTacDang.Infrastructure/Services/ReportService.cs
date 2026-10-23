@@ -22,10 +22,7 @@ using CongTacDang.Infrastructure.Documents.Forms;
 
 namespace CongTacDang.Infrastructure.Services;
 
-/// <summary>
-/// Kết xuất biểu mẫu HD03 (Word: 01, 02, 07, 08, 10, 11, 12, 13, 16; bảng tính: 14, 15A, 15B) và báo cáo nội bộ.
-/// Bố cục, tiêu đề, cột đúng nguyên văn biểu mẫu gốc (<c>docs/2.03-HD.TVDU … (Bieu mau).docx</c>, PDF HD03 tr.72–78).
-/// </summary>
+/// <summary>Kết xuất biểu mẫu (Word, Excel) và báo cáo nội bộ; bố cục theo biểu mẫu gốc.</summary>
 public partial class ReportService : IReportService
 {
     private readonly CongTacDangDbContext _db;
@@ -64,7 +61,7 @@ public partial class ReportService : IReportService
     public async Task<ReportFileResult> ExportCadresReportAsync(CongTacDang.Application.Common.Security.ScopeFilter scope)
     {
         ArgumentNullException.ThrowIfNull(scope);
-        // T-61: chỉ cán bộ thuộc phạm vi report.export của người yêu cầu (Toàn công ty / Phòng / Chi bộ).
+        // Chỉ cán bộ thuộc phạm vi report.export của người yêu cầu.
         var members = (await _userRepo.GetAllWithDetailsAsync())
             .Where(m => scope.Matches(null, m.DepartmentId, m.PartyCellId))
             .ToList();
@@ -120,11 +117,7 @@ public partial class ReportService : IReportService
         };
     }
 
-    /// <summary>
-    /// Báo cáo nội bộ — kiểm soát tỷ lệ Hoàn thành xuất sắc theo nhóm chức danh trong từng cấp quyết định
-    /// (<see cref="ExcellentQuotaCalculator"/>; tỷ lệ theo bộ tiêu chí của kỳ). Phạm vi: toàn Đảng bộ hoặc tổ chức Đảng được chọn
-    /// (gồm tổ chức con, theo ảnh chụp trên hồ sơ). Không phải biểu mẫu HD03.
-    /// </summary>
+    /// <summary>Báo cáo nội bộ: trần Hoàn thành xuất sắc theo nhóm chức danh trong từng cấp quyết định (gồm tổ chức con).</summary>
     public async Task<ReportFileResult> ExportExcellentQuotaReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
     {
         var (activePeriod, records, scopeCell) = await LoadExcelScopeAsync(periodId, partyCellId);
@@ -220,10 +213,7 @@ public partial class ReportService : IReportService
         "Đề xuất nội dung liên quan về công tác cán bộ (nếu có)"
     };
 
-    /// <summary>
-    /// Mẫu 14 — "DANH SÁCH ĐÁNH GIÁ VÀ ĐỀ XUẤT XẾP LOẠI QUÝ … NĂM … ĐỐI VỚI CÁN BỘ THUỘC DIỆN … QUYẾT ĐỊNH, PHÊ DUYỆT MỨC XẾP LOẠI".
-    /// Mỗi cấp quyết định (thẩm quyền ảnh chụp trên hồ sơ) một trang tính: đảng ủy cơ sở, Ban Thường vụ Đảng ủy Tổng công ty.
-    /// </summary>
+    /// <summary>Mẫu 14: mỗi cấp quyết định (theo ảnh chụp trên hồ sơ) một trang tính.</summary>
     public async Task<ReportFileResult> ExportForm14ReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
     {
         var (period, records, scopeCell) = await LoadExcelScopeAsync(periodId, partyCellId);
@@ -322,21 +312,17 @@ public partial class ReportService : IReportService
         return await ToResultAsync(stream.ToArray(), XlsxMimeType, Hd03FileName("14", org.ShortName, scopeCell, period, ".xlsx"), format);
     }
 
-    /// <summary>Mẫu 15A (HD03 tr.73–74): mã chức danh M1–M16, đối tượng đề nghị BTVĐUTCT quyết định.</summary>
+    /// <summary>Mẫu 15A: mã M1–M16, diện cấp trên quyết định.</summary>
     public Task<ReportFileResult> ExportForm15AReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
         => ExportStatCodeFormAsync(periodId, partyCellId, format, Hd03FormCatalog.Form15AFirstCode, Hd03FormCatalog.Form15ALastCode, "15A",
             "(Đối tượng đề nghị BTVĐUTCT quyết định, phê duyệt mức xếp loại)", "Mức xếp loại đề nghị BTVĐUTCT quyết định");
 
-    /// <summary>Mẫu 15B (HD03 tr.75–76): mã chức danh M17–M26, đối tượng thuộc diện Đảng ủy/Chi ủy cơ sở quyết định.</summary>
+    /// <summary>Mẫu 15B: mã M17–M26, diện cơ sở quyết định.</summary>
     public Task<ReportFileResult> ExportForm15BReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
         => ExportStatCodeFormAsync(periodId, partyCellId, format, Hd03FormCatalog.Form15BFirstCode, Hd03FormCatalog.Form15BLastCode, "15B",
             "(Đối tượng thuộc diện Đảng ủy/Chi ủy cơ sở quyết định, phê duyệt mức xếp loại)", "Mức xếp loại");
 
-    /// <summary>
-    /// Dựng Mẫu 15A/15B đúng bố cục biểu mẫu: TT | Đối tượng | Mã chức danh | Tổng số | 5 mức | Tỷ lệ % xuất sắc trong số tốt trở lên |
-    /// Ghi chú; một dòng cho mỗi mã; dòng "Tổng cộng"; ghi chú "ưu tiên nhóm chức danh có thứ tự đứng trước". Cán bộ chưa có mã
-    /// liệt kê ở trang tính "Kiểm tra dữ liệu".
-    /// </summary>
+    /// <summary>Mẫu 15A/15B: một dòng mỗi mã chức danh và dòng tổng; cán bộ chưa có mã ghi ở trang "Kiểm tra dữ liệu".</summary>
     private async Task<ReportFileResult> ExportStatCodeFormAsync(Guid? periodId, Guid? partyCellId, ReportFormat format,
         int firstCode, int lastCode, string formName, string subject, string gradeGroupTitle)
     {
@@ -349,7 +335,7 @@ public partial class ReportService : IReportService
             .Select(r => (Record: r, Order: PositionRules.StatCodeOrder(statCodes.GetValueOrDefault(r.MemberId))))
             .ToList();
         var inForm = coded.Where(x => x.Order >= firstCode && x.Order <= lastCode).ToList();
-        // Cảnh báo vượt trần Xuất sắc ở cột "Ghi chú" của dòng mã chức danh (trần tính theo nhóm chức danh trong cấp quyết định).
+        // Cảnh báo vượt trần ở cột "Ghi chú"; trần tính theo nhóm chức danh trong cấp quyết định.
         var quotaGroups = await QuotaGroupsAsync(period, records);
 
         using var workbook = new XLWorkbook();
@@ -435,7 +421,7 @@ public partial class ReportService : IReportService
         ws.Column(11).Width = 12;
         ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
 
-        // Kiểm tra dữ liệu (không in): cán bộ chưa có chức vụ mang mã chức danh thống kê không được đưa vào Mẫu 15A/15B.
+        // Trang kiểm tra (không in): cán bộ chưa có mã chức danh thống kê.
         var withoutCode = coded.Where(x => x.Order == null).Select(x => x.Record).ToList();
         var check = workbook.Worksheets.Add("Kiểm tra dữ liệu");
         check.Cell(1, 1).Value = withoutCode.Count == 0
@@ -452,7 +438,7 @@ public partial class ReportService : IReportService
         return await ToResultAsync(stream.ToArray(), XlsxMimeType, Hd03FileName(formName, org.ShortName, scopeCell, period, ".xlsx"), format);
     }
 
-    /// <summary>Tiêu đề trái/phải dùng chung: dòng mẫu, "ĐẢNG BỘ …" / "ĐẢNG CỘNG SẢN VIỆT NAM", "ĐẢNG ỦY (CHI BỘ) …" / địa danh, ngày.</summary>
+    /// <summary>Tiêu đề trái/phải dùng chung của biểu mẫu.</summary>
     private static void WriteFormHeader(IXLWorksheet ws, int lastColumn, string formLabel, PartyHeader header, string location, int leftColumns)
     {
         ws.Cell(1, lastColumn).Value = formLabel;
@@ -504,10 +490,7 @@ public partial class ReportService : IReportService
         ws.Range(row + 1, half + 1, row + 1, lastColumn).Merge().Style.Font.SetItalic(true).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
     }
 
-    /// <summary>
-    /// Cột "Chức vụ, đơn vị công tác (Đảng, chính quyền, đoàn thể)" của Mẫu 11, 13, 14: các chức vụ đang giữ theo thứ tự Đảng,
-    /// chính quyền, đoàn thể (trong mỗi nhóm theo thứ tự danh mục), ngăn cách bằng dấu phẩy, rồi đơn vị công tác.
-    /// </summary>
+    /// <summary>Cột chức vụ Mẫu 11/13/14: chức vụ Đảng, chính quyền, đoàn thể (theo thứ tự danh mục), rồi đơn vị công tác.</summary>
     private static string PositionAndUnit(EvaluationRecord record, IReadOnlyCollection<MemberPosition> positions)
     {
         var names = positions.Count > 0
@@ -638,10 +621,8 @@ public partial class ReportService : IReportService
         return new DecisionReadinessDto { Ready = problem == null, Message = problem };
     }
 
-    /// <summary>
-    /// Hồ sơ của Quyết định: diện tổ chức Đảng cơ sở quyết định và bước quyết định thực hiện trong hệ thống (không phải cấp trên
-    /// quyết định). <c>Problem</c> khác null → chưa lập được Quyết định (không có hồ sơ, hoặc còn hồ sơ chưa ghi quyết định).
-    /// </summary>
+    /// <summary>Hồ sơ của Quyết định (diện cơ sở, bước quyết định làm trong hệ thống).
+    /// <c>Problem</c> khác null → chưa lập được Quyết định.</summary>
     private async Task<(EvaluationPeriod Period, List<EvaluationRecord> Decided, PartyCell? Cell, string? Problem)> DecisionScopeAsync(
         Guid periodId, Guid? partyCellId)
     {
@@ -703,11 +684,8 @@ public partial class ReportService : IReportService
         return await ToResultAsync(bytes, DocxMimeType, ScopedFileName("Quyet dinh xep loai", org.ShortName, cell, period, ".docx"), format);
     }
 
-    /// <summary>
-    /// Số, ngày văn bản quyết định (chỉ khi mọi hồ sơ ghi cùng một giá trị) và hội nghị quyết định: biên bản được nhiều hồ sơ gắn
-    /// nhất; không hồ sơ nào gắn biên bản → hội nghị quyết định (B4) gần nhất của tổ chức Đảng (toàn Đảng bộ: hội nghị không gắn
-    /// tổ chức Đảng).
-    /// </summary>
+    /// <summary>Số, ngày quyết định (khi mọi hồ sơ ghi giống nhau) và hội nghị: biên bản được nhiều hồ sơ gắn nhất,
+    /// không có thì hội nghị quyết định gần nhất của tổ chức Đảng.</summary>
     private async Task<DecisionDocumentInfo> DecisionInfoAsync(Guid periodId, Guid? partyCellId, IReadOnlyCollection<EvaluationRecord> decided)
     {
         static T? Single<T>(IEnumerable<T?> values) where T : struct
@@ -750,10 +728,7 @@ public partial class ReportService : IReportService
 
     #region Mẫu 16 — số liệu tổng hợp
 
-    /// <summary>
-    /// Số liệu Mẫu 16 theo nhóm chức danh (mã thống kê) của một cấp quyết định; dòng cuối "Tổng cộng". Mỗi dòng mã kèm trần
-    /// Xuất sắc của nhóm (<paramref name="quotaGroups"/> — cùng cấp quyết định) để cảnh báo khi xem trước.
-    /// </summary>
+    /// <summary>Số liệu Mẫu 16 theo mã chức danh của một cấp quyết định, kèm trần Xuất sắc để cảnh báo khi xem trước.</summary>
     private static List<Form16SummaryRowDto> Summarize(IEnumerable<EvaluationRecord> records, IReadOnlyDictionary<Guid, string?> statCodes,
         IReadOnlyCollection<ExcellentQuotaGroup> quotaGroups)
     {
@@ -853,11 +828,8 @@ public partial class ReportService : IReportService
             grades.Count(g => g == EvaluationGrade.ChuaXepLoai));
     }
 
-    /// <summary>
-    /// Mức dùng cho báo cáo tổng hợp: mức quyết định; chưa có thì mức đề xuất gần nhất (cấp trực tiếp sử dụng → thẩm định →
-    /// tập thể lãnh đạo). Không tính mức cá nhân tự đề xuất; chưa có mức nào → "Chưa xếp loại".
-    /// Đã ghi quyết định thì luôn dùng mức quyết định — kể cả khi cấp có thẩm quyền quyết định "Chưa xếp loại".
-    /// </summary>
+    /// <summary>Mức cho báo cáo: mức quyết định (kể cả "Chưa xếp loại"); chưa quyết định thì mức đề xuất gần nhất,
+    /// không tính mức tự đề xuất.</summary>
     private static EvaluationGrade ReportGrade(EvaluationRecord record)
     {
         if (record.DecisionRecordedAt != null)
@@ -870,15 +842,10 @@ public partial class ReportService : IReportService
         return EvaluationGrade.ChuaXepLoai;
     }
 
-    /// <summary>
-    /// Thời điểm xét chức vụ đang hiệu lực cho báo cáo của kỳ: cuối kỳ nếu kỳ đã kết thúc, ngược lại hiện tại.
-    /// </summary>
+    /// <summary>Thời điểm xét chức vụ: cuối kỳ nếu kỳ đã kết thúc, ngược lại hiện tại.</summary>
     private static DateTime PositionDate(EvaluationPeriod? period) => ExcellentQuotaCalculator.PositionDate(period, DateTime.UtcNow);
 
-    /// <summary>
-    /// Trần Hoàn thành xuất sắc theo nhóm chức danh trong từng cấp quyết định trên các hồ sơ của phạm vi báo cáo
-    /// (<see cref="ExcellentQuotaCalculator"/>); mã chức danh và người đứng đầu theo chức vụ đang giữ tại thời điểm xét của kỳ.
-    /// </summary>
+    /// <summary>Trần Hoàn thành xuất sắc theo nhóm chức danh trong từng cấp quyết định; chức vụ tại thời điểm xét của kỳ.</summary>
     private async Task<List<ExcellentQuotaGroup>> QuotaGroupsAsync(EvaluationPeriod? period, IReadOnlyCollection<EvaluationRecord> records)
     {
         var held = await HeldPositionsAsync(records.Select(r => r.MemberId), PositionDate(period));
@@ -897,7 +864,7 @@ public partial class ReportService : IReportService
             : null;
     }
 
-    /// <summary>Chức vụ đang hiệu lực của các cán bộ (kèm chức vụ trong danh mục; chức danh qua <see cref="PositionRules.DisplayName(MemberPosition)"/>).</summary>
+    /// <summary>Chức vụ đang hiệu lực của các cán bộ.</summary>
     private async Task<Dictionary<Guid, List<MemberPosition>>> HeldPositionsAsync(IEnumerable<Guid> memberIds, DateTime at)
     {
         var ids = memberIds.Distinct().ToList();
@@ -934,10 +901,7 @@ public partial class ReportService : IReportService
         return ids;
     }
 
-    /// <summary>
-    /// Tiêu đề trái của báo cáo theo phạm vi: tổ chức Đảng được chọn (dòng trên là tổ chức cha, không có thì tên Đảng bộ);
-    /// toàn Đảng bộ (dòng trên là tổ chức Đảng cấp trên) — lấy từ cài đặt đơn vị, không ghi cứng.
-    /// </summary>
+    /// <summary>Tiêu đề trái theo phạm vi: dòng trên là tổ chức cha, không có thì tên Đảng bộ (lấy từ cài đặt đơn vị).</summary>
     private async Task<PartyHeader> ReportHeaderAsync(PartyCell? cell)
     {
         var org = await _orgSettings.GetAsync();
@@ -949,10 +913,7 @@ public partial class ReportService : IReportService
         return PartyHeader.Of(parentName ?? org.PartyCommitteeName, cell.Name);
     }
 
-    /// <summary>
-    /// Phạm vi dữ liệu báo cáo: kỳ được chọn (mặc định kỳ đang hoạt động) và tổ chức Đảng (null = toàn Đảng bộ), gồm tổ chức con.
-    /// Phạm vi đã được kiểm tra quyền qua IReportAccessService ở controller.
-    /// </summary>
+    /// <summary>Phạm vi dữ liệu báo cáo (mặc định kỳ đang hoạt động; tổ chức null = toàn Đảng bộ); quyền đã kiểm tra ở controller.</summary>
     private async Task<(EvaluationPeriod? Period, List<EvaluationRecord> Records, PartyCell? Cell)> LoadExcelScopeAsync(Guid? periodId, Guid? partyCellId)
     {
         EvaluationPeriod? period;
@@ -1003,7 +964,6 @@ public partial class ReportService : IReportService
         return cell != null ? $"{periodTitle} - {cell.Name.ToUpper(Vietnamese)}" : periodTitle;
     }
 
-    /// <summary>Tên tệp báo cáo nội bộ theo kỳ và phạm vi.</summary>
     private static string ExcelFileName(string baseName, EvaluationPeriod? period, PartyCell? cell)
     {
         var scope = cell != null ? "_" + SafeName(cell.Name, "ChiBo") : "_ToanDangBo";
@@ -1011,14 +971,11 @@ public partial class ReportService : IReportService
         return $"{baseName}{scope}{periodPart}.xlsx";
     }
 
-    /// <summary>
-    /// Tên tệp theo quy cách HD03 V.1: "Mau bao cao_Ten viet tat co quan, don vi_Ky bao cao", viết không dấu
-    /// (ví dụ "Mau 16_QLBMB_Quy III-2026"). Xuất theo tổ chức Đảng: tên viết tắt là tên tổ chức (không dấu, bỏ khoảng trắng).
-    /// </summary>
+    /// <summary>Tên tệp không dấu "Mau bao cao_Ten viet tat_Ky bao cao", ví dụ "Mau 16_QLBMB_Quy III-2026".</summary>
     private static string Hd03FileName(string formCode, string? shortName, PartyCell? cell, EvaluationPeriod? period, string extension)
         => ScopedFileName($"Mau {formCode}", shortName, cell, period, extension);
 
-    /// <summary>Tên tệp "Tiền tố_Ten viet tat_Quy III-2026" (không dấu) — cùng quy cách với biểu mẫu HD03.</summary>
+    /// <summary>Tên tệp "Tiền tố_Ten viet tat_Quy III-2026" (không dấu).</summary>
     private static string ScopedFileName(string prefix, string? shortName, PartyCell? cell, EvaluationPeriod? period, string extension)
     {
         var unit = cell != null ? Ascii(cell.Name).Replace(" ", string.Empty) : Ascii(shortName ?? string.Empty).Replace(" ", string.Empty);
@@ -1043,7 +1000,7 @@ public partial class ReportService : IReportService
         return sb.ToString().Trim();
     }
 
-    /// <summary>Quy tắc trần tỷ lệ Hoàn thành xuất sắc theo bộ tiêu chí của kỳ (kỳ chưa chọn bộ → mặc định của bộ tiêu chí).</summary>
+    /// <summary>Quy tắc trần Xuất sắc theo bộ tiêu chí của kỳ (chưa chọn bộ → mặc định).</summary>
     private static ExcellentQuotaRule QuotaRule(EvaluationPeriod? period) =>
         (EvaluationMapping.SafeCriteria(period)?.Content.Parameters ?? new CriteriaParameters()).ExcellentQuota;
 
@@ -1083,7 +1040,7 @@ public partial class ReportService : IReportService
         // Xuất toàn Đảng bộ: dòng tổ chức Đảng lập phiếu là tên Đảng bộ (cài đặt đơn vị).
         var issuer = branch?.Name ?? (await _orgSettings.GetAsync()).PartyCommitteeName;
 
-        // Chức vụ (Đảng, chính quyền, đoàn thể), đơn vị công tác tại thời điểm của kỳ; thứ tự theo mã chức danh rồi họ tên (như Mẫu 13).
+        // Thứ tự theo mã chức danh rồi họ tên (như Mẫu 13).
         var held = await HeldPositionsAsync(records.Select(r => r.MemberId), PositionDate(period));
         var lines = records
             .Select(r =>
@@ -1120,7 +1077,7 @@ public partial class ReportService : IReportService
         var org = await _orgSettings.GetAsync();
         var (header, unit, archive, unitForFile) = await MeetingUnitAsync(meeting, org);
 
-        // Chức vụ, đơn vị công tác của từng cán bộ tại thời điểm của kỳ; thứ tự theo mã chức danh (M1…M26) rồi họ tên.
+        // Thứ tự theo mã chức danh (M1…M26) rồi họ tên.
         var at = PositionDate(meeting.Period);
         var held = await HeldPositionsAsync(meeting.VoteSummaries.Select(v => v.Record.MemberId), at);
         var lines = meeting.VoteSummaries
@@ -1144,10 +1101,7 @@ public partial class ReportService : IReportService
     private static int StatCodeOrder(string? code) =>
         code != null && code.StartsWith('M') && int.TryParse(code[1..], NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : int.MaxValue;
 
-    /// <summary>
-    /// Tiêu đề trái, đơn vị tổ chức hội nghị, nơi lưu biên bản và đơn vị đặt tên tệp của một biên bản: hội nghị của tổ chức Đảng
-    /// → tổ chức đó; hội nghị cấp Phòng / cấp Công ty → Đảng bộ (cài đặt đơn vị).
-    /// </summary>
+    /// <summary>Tổ chức đứng tên biên bản: hội nghị của tổ chức Đảng → tổ chức đó; cấp Phòng / Công ty → Đảng bộ.</summary>
     private async Task<(PartyHeader Header, string? Unit, string? Archive, PartyCell? UnitForFile)> MeetingUnitAsync(
         EvaluationMeeting meeting, OrganizationSettingsDto org)
     {
@@ -1181,7 +1135,7 @@ public partial class ReportService : IReportService
         return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("08", org.ShortName, record.PartyCell, record.Period, ".docx"), format);
     }
 
-    /// <summary>Tiêu đề cột Mẫu 08 đúng nguyên văn biểu mẫu gốc (PDF tr.48–49).</summary>
+    /// <summary>Tiêu đề cột Mẫu 08 giữ nguyên văn biểu mẫu gốc.</summary>
     private static readonly string[] Form08Columns =
     {
         "TT", "Nội dung công việc", "Kế hoạch hoặc sự chỉ đạo, yêu cầu của lãnh đạo Tổng công ty",
@@ -1192,7 +1146,7 @@ public partial class ReportService : IReportService
     /// <inheritdoc />
     public async Task<ReportFileResult> ExportForm08ExcelAsync(Guid collectiveRecordId, ReportFormat format = ReportFormat.Original)
     {
-        // HD03 V.1: hồ sơ, biểu mẫu báo cáo lập trên file Excel (trừ Mẫu 07, 09C, 12, 13, 16) — Mẫu 08 bản Excel cùng dữ liệu bản Word.
+        // Mẫu 08 bản Excel cùng dữ liệu bản Word.
         var record = await LoadCollectiveAsync(collectiveRecordId, CollectiveEvaluationForm.M08);
         var header = await CollectiveHeaderAsync(record.PartyCell);
         var org = await _orgSettings.GetAsync();
@@ -1216,7 +1170,7 @@ public partial class ReportService : IReportService
         var row = numbers + 1;
         foreach (var item in data.Rows)
         {
-            // Cột 2: tên nhóm nội dung + các dòng "- nhiệm vụ"; nhóm 1–7 chưa nhập giữ dòng mẫu "- Nhiệm vụ 1: …" như biểu mẫu.
+            // Cột 2: tên nhóm + các dòng "- nhiệm vụ"; nhóm 1–7 chưa nhập giữ dòng mẫu.
             var category = Hd03FormCatalog.Form08Categories.First(x => x.Code == item.Order);
             var tasks = item.Tasks ?? (category.HasTaskLines ? "\n- Nhiệm vụ 1: …\n- …" : string.Empty);
             var values = new object?[] { int.Parse(item.Order!, CultureInfo.InvariantCulture), item.Title + tasks, item.Plan, item.Result, item.Issues, item.Notes };
@@ -1294,10 +1248,7 @@ public partial class ReportService : IReportService
     /// <summary>Tiêu đề trái của văn bản tập thể/biên bản: tổ chức Đảng của hồ sơ (không gắn → Đảng bộ).</summary>
     private Task<PartyHeader> CollectiveHeaderAsync(PartyCell? cell) => ReportHeaderAsync(cell);
 
-    /// <summary>
-    /// Điền lớp dữ liệu mẫu vào template (phiên bản đang kích hoạt hoặc file mẫu gốc), kèm tag thông tin đơn vị dùng chung
-    /// (<see cref="OrganizationTemplateFields"/>, lấy từ cài đặt đơn vị).
-    /// </summary>
+    /// <summary>Điền template (phiên bản đang kích hoạt hoặc file gốc) kèm tag thông tin đơn vị.</summary>
     private async Task<byte[]> RenderWordAsync(string templateFileName, object formData)
     {
         var template = await _templates.LoadAsync(templateFileName);

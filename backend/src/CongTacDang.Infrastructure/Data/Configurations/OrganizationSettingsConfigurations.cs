@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CongTacDang.Infrastructure.Data.Configurations;
 
-/// <summary>Cấu hình bảng thông tin đơn vị <c>organization_settings</c> (task 17).</summary>
 public sealed class OrganizationSettingsConfiguration : IEntityTypeConfiguration<OrganizationSettings>
 {
     /// <inheritdoc />
@@ -24,7 +23,6 @@ public sealed class OrganizationSettingsConfiguration : IEntityTypeConfiguration
     }
 }
 
-/// <summary>Cấu hình bảng phiên bản file mẫu Word <c>word_template_versions</c> (task 17).</summary>
 public sealed class WordTemplateVersionConfiguration : IEntityTypeConfiguration<WordTemplateVersion>
 {
     /// <inheritdoc />

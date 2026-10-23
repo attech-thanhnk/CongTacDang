@@ -12,9 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CongTacDang.Api.Controllers;
 
-/// <summary>
-/// Danh mục chức vụ (task 14). Xem: mọi người đã đăng nhập. Thêm/sửa/xóa: <c>catalog.manage</c>.
-/// </summary>
+/// <summary>Danh mục chức vụ: xem khi đã đăng nhập, thêm/sửa/xóa cần catalog.manage.</summary>
 [ApiController]
 [Route("api/positions")]
 [Authorize]
@@ -22,7 +20,6 @@ public class PositionController : ControllerBase
 {
     private readonly IPositionService _positions;
 
-    /// <summary>Khởi tạo controller.</summary>
     public PositionController(IPositionService positions) => _positions = positions;
 
     /// <summary>Danh mục chức vụ kèm số người đang giữ.</summary>
@@ -61,10 +58,7 @@ public class PositionController : ControllerBase
     }
 }
 
-/// <summary>
-/// Chức vụ (kể cả kiêm nhiệm) và thẩm quyền phê duyệt của một cán bộ (task 14).
-/// Xem: <c>system.users.read</c>; sửa: <c>system.users.manage</c> — service kiểm tra phạm vi theo đơn vị của cán bộ.
-/// </summary>
+/// <summary>Chức vụ và thẩm quyền phê duyệt của cán bộ; service kiểm tra phạm vi theo đơn vị của cán bộ.</summary>
 [ApiController]
 [Route("api/users/{userId:guid}")]
 [Authorize]
@@ -72,7 +66,6 @@ public class MemberPositionController : ControllerBase
 {
     private readonly IPositionService _positions;
 
-    /// <summary>Khởi tạo controller.</summary>
     public MemberPositionController(IPositionService positions) => _positions = positions;
 
     /// <summary>Chức vụ của cán bộ (đang và đã giữ).</summary>

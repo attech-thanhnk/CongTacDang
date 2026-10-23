@@ -13,8 +13,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace CongTacDang.Api.Controllers;
 
 /// <summary>
-/// Sau công bố (task 20): công khai kết quả (T-86), kiến nghị (T-87), kế hoạch 30-60-90 ngày — Mẫu 17 (T-88), nhắc việc (T-89).
-/// Controller chỉ kiểm tra "có quyền ở phạm vi nào đó"; service kiểm tra quyền trên từng hồ sơ bằng <see cref="IAuthorizationGuard"/>.
+/// Sau công bố: công khai kết quả, kiến nghị, kế hoạch Mẫu 17, nhắc việc.
+/// Service kiểm tra quyền trên từng hồ sơ bằng <see cref="IAuthorizationGuard"/>.
 /// </summary>
 [ApiController]
 [Route("api")]
@@ -94,7 +94,7 @@ public class PostPublishController : ControllerBase
         return Ok(ApiResponse<AppealDto>.Ok(appeal, "Đã trả lời kiến nghị."));
     }
 
-    /// <summary>Mở lại hồ sơ theo kiến nghị đã chấp nhận (thao tác "Mở lại" hiện có, lý do dẫn chiếu kiến nghị).</summary>
+    /// <summary>Mở lại hồ sơ theo kiến nghị đã chấp nhận.</summary>
     [HttpPost("appeals/{id:guid}/reopen")]
     [RequirePermission(PermissionCodes.EvaluationReopen)]
     public async Task<IActionResult> ReopenFromAppeal(Guid id, [FromBody] ReopenFromAppealRequestDto dto, CancellationToken ct)

@@ -12,10 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CongTacDang.Api.Controllers;
 
 /// <summary>
-/// Quản trị vai trò và danh mục quyền (docs/thiet-ke/phan-quyen.md mục 2, 5). Ghi: <c>system.roles.manage</c>;
-/// đọc (danh sách/chi tiết vai trò, danh mục quyền): <c>system.roles.manage</c> hoặc <c>system.assignments.manage</c>
-/// (người gán vai trò cần chọn vai trò).
-/// Lỗi nghiệp vụ trả qua <c>GlobalExceptionMiddleware</c>: 400 / 403 / 404 / 409 kèm <see cref="ApiResponse"/>.
+/// Quản trị vai trò và danh mục quyền. Đọc cho cả system.assignments.manage vì người gán vai trò cần chọn vai trò.
 /// </summary>
 [ApiController]
 [Route("api/admin")]
@@ -24,7 +21,6 @@ public class AdminRoleController : ControllerBase
 {
     private readonly IRoleService _roles;
 
-    /// <summary>Khởi tạo controller.</summary>
     public AdminRoleController(IRoleService roles) => _roles = roles;
 
     /// <summary>Danh sách vai trò kèm mã quyền và số bản gán chưa hết hạn.</summary>

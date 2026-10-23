@@ -9,7 +9,6 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace CongTacDang.Infrastructure.Services;
 
-/// <summary>Kết quả điền template Word.</summary>
 public sealed class DocxRenderResult
 {
     public DocxRenderResult(byte[] content, IReadOnlyList<string> missingTags)
@@ -18,39 +17,25 @@ public sealed class DocxRenderResult
         MissingTags = missingTags;
     }
 
-    /// <summary>Nội dung tệp .docx đã điền.</summary>
     public byte[] Content { get; }
 
     /// <summary>Tag có trong template nhưng không có trong dữ liệu (giữ nguyên chữ mặc định của template).</summary>
     public IReadOnlyList<string> MissingTags { get; }
 }
 
-/// <summary>
-/// Bộ điền template Word dựa trên Content Control (SDT) của OpenXML — không tìm/thay chuỗi, nên không bị ảnh hưởng
-/// khi Word tách chữ thành nhiều run.
-/// <list type="bullet">
-/// <item><c>TAG</c>: trường đơn — nội dung control được thay bằng giá trị (giữ định dạng của run đầu tiên);
-/// giá trị null giữ nguyên chữ mặc định trong template.</item>
-/// <item><c>repeat:TÊN</c>: khối lặp — nội dung control (một hay nhiều dòng bảng / đoạn văn) được nhân bản cho mỗi phần tử
-/// của danh sách TÊN; Tag bên trong tra theo phần tử trước, sau đó tới dữ liệu cha.</item>
-/// <item><c>if:TÊN</c> / <c>ifnot:TÊN</c>: khối điều kiện — giữ nội dung khi điều kiện đúng / sai, ngược lại bỏ đi.</item>
-/// </list>
-/// Sau khi điền, mọi control có Tag được gỡ bỏ (chỉ giữ nội dung); control không có Tag (ví dụ số trang) giữ nguyên.
-/// </summary>
+/// <summary>Điền template Word qua Content Control theo Tag (không thay chuỗi nên không lỗi khi Word tách run): <c>TAG</c>,
+/// <c>repeat:TÊN</c>, <c>if:TÊN</c>/<c>ifnot:TÊN</c>. Điền xong gỡ control có Tag, giữ control không Tag (số trang).</summary>
 public static class DocxTemplateEngine
 {
-    /// <summary>Tiền tố Tag của khối lặp.</summary>
     public const string RepeatPrefix = "repeat:";
 
-    /// <summary>Tiền tố Tag của khối hiện khi điều kiện đúng.</summary>
     public const string IfPrefix = "if:";
 
-    /// <summary>Tiền tố Tag của khối hiện khi điều kiện sai.</summary>
     public const string IfNotPrefix = "ifnot:";
 
     private const string Word2010Namespace = "http://schemas.microsoft.com/office/word/2010/wordml";
 
-    /// <summary>Điền dữ liệu vào template (.docx) và trả về tài liệu mới; template gốc không bị thay đổi.</summary>
+    /// <summary>Điền dữ liệu vào template; template gốc không bị thay đổi.</summary>
     public static DocxRenderResult Render(byte[] template, TemplateData data)
     {
         ArgumentNullException.ThrowIfNull(template);
@@ -92,7 +77,7 @@ public static class DocxTemplateEngine
         return new DocxRenderResult(ms.ToArray(), missing.ToList());
     }
 
-    /// <summary>Liệt kê Tag của mọi Content Control có Tag trong template (phục vụ kiểm tra template và tài liệu).</summary>
+    /// <summary>Tag của mọi Content Control có Tag trong template.</summary>
     public static IReadOnlyList<string> GetTags(byte[] template)
     {
         using var ms = new MemoryStream(template, writable: false);
@@ -109,14 +94,10 @@ public static class DocxTemplateEngine
             .ToList();
     }
 
-    /// <summary>Phần thân tài liệu, header và footer.</summary>
     /// <summary>Ô bảng hẹp hơn mức này (twip, ~4,6 cm) không căn đều hai bên.</summary>
     private const int NarrowCellWidth = 2600;
 
-    /// <summary>
-    /// Ô bảng hẹp (cột họ tên, chức vụ, minh chứng…): đoạn căn đều hai bên chuyển sang căn trái, tránh chữ bị giãn
-    /// ("Biên      bản"). Ô rộng (nội dung tiêu chí dài) giữ nguyên căn đều.
-    /// </summary>
+    /// <summary>Ô bảng hẹp: đổi căn đều thành căn trái để chữ không bị giãn; ô rộng giữ căn đều.</summary>
     private static void AlignNarrowCellsLeft(Body body, Styles? styles)
     {
         foreach (var cell in body.Descendants<TableCell>())
@@ -157,11 +138,7 @@ public static class DocxTemplateEngine
     /// <summary>Chữ ghi chú dưới chức danh người ký — đánh dấu khối chữ ký.</summary>
     private const string SignatureNote = "ghi rõ họ tên";
 
-    /// <summary>
-    /// Khối chữ ký không bị tách khỏi phần nội dung ngay trước nó (tránh trang chỉ có chữ ký): khối là bảng chữ ký
-    /// (các hàng không ngắt trang), đoạn chức danh + "(Ký, ghi rõ họ tên)", hoặc hàng chữ ký cuối một bảng lớn; khối đi liền
-    /// với đoạn văn / hàng cuối của bảng đứng trước.
-    /// </summary>
+    /// <summary>Giữ khối chữ ký cùng trang với nội dung ngay trước nó (tránh trang chỉ có chữ ký).</summary>
     private static void KeepSignaturesWithContent(Body body)
     {
         foreach (var element in body.Elements().ToList())
@@ -193,10 +170,8 @@ public static class DocxTemplateEngine
         }
     }
 
-    /// <summary>
-    /// Các phần tử ngay trước <paramref name="element"/> đi liền với nó: đoạn trống và đoạn chức danh người ký (chữ in hoa)
-    /// được kéo theo cho tới đoạn nội dung đầu tiên, hoặc hàng cuối của bảng đứng trước.
-    /// </summary>
+    /// <summary>Các phần tử ngay trước <paramref name="element"/> phải đi liền với nó: đoạn trống, đoạn chức danh người ký
+    /// cho tới đoạn nội dung đầu tiên, hoặc hàng cuối của bảng đứng trước.</summary>
     private static void KeepPreviousWith(OpenXmlElement element)
     {
         for (var previous = element.PreviousSibling(); previous != null; previous = previous.PreviousSibling())
@@ -236,10 +211,7 @@ public static class DocxTemplateEngine
             (paragraph.ParagraphProperties ??= new ParagraphProperties()).KeepNext ??= new KeepNext();
     }
 
-    /// <summary>
-    /// Dòng kết thúc bằng ngắt dòng (giá trị nhiều dòng điền vào đoạn căn đều) không bị giãn chữ ra hết dòng
-    /// (tùy chọn tương thích <c>doNotExpandShiftReturn</c>, Word và LibreOffice đều theo).
-    /// </summary>
+    /// <summary>Bật <c>doNotExpandShiftReturn</c>: dòng kết thúc bằng ngắt dòng trong đoạn căn đều không bị giãn chữ.</summary>
     private static void KeepManualLineBreaksUnjustified(MainDocumentPart mainPart)
     {
         var settingsPart = mainPart.DocumentSettingsPart ?? mainPart.AddNewPart<DocumentSettingsPart>();
@@ -422,10 +394,7 @@ public static class DocxTemplateEngine
             return elements;
         }
 
-        /// <summary>
-        /// Thay nội dung control bằng <paramref name="value"/>: giữ run đầu tiên (và định dạng của nó), bỏ các run còn lại.
-        /// Xuống dòng trong giá trị được chuyển thành ngắt dòng.
-        /// </summary>
+        /// <summary>Thay nội dung control: giữ run đầu tiên (và định dạng), bỏ các run còn lại; xuống dòng thành ngắt dòng.</summary>
         private static List<OpenXmlElement> SetText(List<OpenXmlElement> elements, string value)
         {
             var runs = elements
