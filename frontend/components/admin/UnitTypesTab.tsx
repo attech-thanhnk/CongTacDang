@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
+import { RowActions } from "@/components/common/RowActions";
 import { Card } from "@/components/common";
 import { catalogService, ORG_SIDE_LABELS, OrgSide, OrgUnitType } from "@/services/catalogService";
 import { AdminModal } from "./AdminModal";
@@ -92,7 +93,7 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
                 <th className="text-center" style={{ width: 90 }}>Thứ tự</th>
                 <th className="text-center" style={{ width: 110 }}>Số đơn vị</th>
                 <th style={{ width: 120 }}>Trạng thái</th>
-                {canManage && <th className="pe-3 text-end" style={{ width: 100 }}>Thao tác</th>}
+                {canManage && <th className="pe-3 text-end" style={{ width: 130 }}>Thao tác</th>}
               </tr>
             </thead>
             <tbody>
@@ -125,17 +126,11 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
                     </td>
                     {canManage && (
                       <td className="pe-3 text-end text-nowrap">
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-link p-1"
-                          title="Sửa"
-                          onClick={() => setForm({ id: t.id, name: t.name, side: t.side, sortOrder: String(t.sortOrder), isActive: t.isActive })}
-                        >
-                          <i className="bi bi-pencil-square" />
-                        </button>
-                        <button type="button" className="btn btn-sm btn-link p-1 text-danger" title="Xóa" onClick={() => handleDelete(t)}>
-                          <i className="bi bi-trash" />
-                        </button>
+                        <RowActions
+                          itemLabel={t.name}
+                          primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil-square", onClick: () => setForm({ id: t.id, name: t.name, side: t.side, sortOrder: String(t.sortOrder), isActive: t.isActive }) }]}
+                          menu={[{ key: "delete", label: "Xóa", icon: "bi-trash", danger: true, onClick: () => handleDelete(t) }]}
+                        />
                       </td>
                     )}
                   </tr>

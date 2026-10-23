@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
+import { RowActions } from "@/components/common/RowActions";
 import { Card, Pagination, usePagination } from "@/components/common";
 import {
   APPROVAL_AUTHORITY_CODE_LABELS,
@@ -185,7 +186,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                 <th style={{ width: 170 }}>Kiểu trình bày</th>
                 <th className="text-center" style={{ width: 90 }}>Đang giữ</th>
                 <th style={{ width: 110 }}>Trạng thái</th>
-                {canManage && <th className="pe-3 text-end" style={{ width: 100 }}>Thao tác</th>}
+                {canManage && <th className="pe-3 text-end" style={{ width: 130 }}>Thao tác</th>}
               </tr>
             </thead>
             <tbody>
@@ -226,12 +227,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                     </td>
                     {canManage && (
                       <td className="pe-3 text-end text-nowrap">
-                        <button type="button" className="btn btn-sm btn-link p-1" title="Sửa" onClick={() => openEdit(p)}>
-                          <i className="bi bi-pencil-square" />
-                        </button>
-                        <button type="button" className="btn btn-sm btn-link p-1 text-danger" title="Xóa" onClick={() => handleDelete(p)}>
-                          <i className="bi bi-trash" />
-                        </button>
+                        <RowActions itemLabel={p.name} primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil-square", onClick: () => openEdit(p) }]} menu={[{ key: "delete", label: "Xóa", icon: "bi-trash", danger: true, onClick: () => handleDelete(p) }]} />
                       </td>
                     )}
                   </tr>

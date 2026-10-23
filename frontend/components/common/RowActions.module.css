@@ -1,0 +1,175 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  min-width: 32px;
+  padding: 4px 10px;
+}
+
+.iconOnly {
+  padding: 4px;
+  width: 32px;
+}
+
+.primaryDanger {
+  color: var(--bad);
+  border-color: var(--bad-line);
+}
+
+.primaryDanger:hover,
+.primaryDanger:focus-visible {
+  color: var(--bad);
+  background: var(--bad-bg);
+  border-color: var(--bad-line);
+}
+
+.more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--ink-2);
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+}
+
+.more:hover,
+.more:focus-visible,
+.moreOpen {
+  color: var(--ink);
+  background: var(--tint);
+  border-color: var(--rule-strong);
+}
+
+.more:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.menu {
+  position: fixed;
+  z-index: 1070;
+  min-width: 200px;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 4px;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  animation: menuIn 0.12s ease-out;
+  text-align: left;
+}
+
+.up {
+  animation-name: menuInUp;
+}
+
+@keyframes menuIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes menuInUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: var(--fs-btn);
+  color: var(--ink);
+  text-align: left;
+  white-space: normal;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.item:hover:not(:disabled),
+.item:focus-visible {
+  background: var(--tint);
+  outline: none;
+}
+
+.item:disabled {
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+.itemIcon {
+  flex: 0 0 18px;
+  width: 18px;
+  text-align: center;
+  color: var(--ink-2);
+}
+
+.danger,
+.danger .itemIcon {
+  color: var(--bad);
+}
+
+.danger:hover:not(:disabled),
+.danger:focus-visible {
+  background: var(--bad-bg);
+}
+
+.sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--rule);
+}
+
+@media (max-width: 767.98px) {
+  .primaryBtn,
+  .more {
+    min-height: 40px;
+    min-width: 40px;
+  }
+
+  .more,
+  .iconOnly {
+    width: 40px;
+    height: 40px;
+  }
+
+  .item {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  /* Màn hẹp: nút chính chỉ còn icon, nhãn vẫn có trong aria-label/title. */
+  .primaryBtn:has(i) .primaryLabel {
+    display: none;
+  }
+
+  .primaryBtn:has(i) {
+    padding: 4px;
+    width: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu {
+    animation: none;
+  }
+}

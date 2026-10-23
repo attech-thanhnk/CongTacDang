@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { Card, PageHeader, Pagination, usePagination } from "@/components/common";
+import { RowActions } from "@/components/common/RowActions";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { errorMessage, errorTitle, formatDateTime } from "@/components/admin/adminUtils";
@@ -478,7 +479,7 @@ export default function TemplatesPage() {
                         </td>
                         <td>
                           <div className="fw-semibold">{t.name}</div>
-                          <div className="text-secondary">{t.templateFileName}</div>
+                          <div className="text-secondary small">{t.templateFileName}</div>
                         </td>
                         <td className="text-nowrap">
                           {active ? (
@@ -488,7 +489,11 @@ export default function TemplatesPage() {
                           ) : (
                             <span className="status-badge tone-neutral">File gốc</span>
                           )}
-                          <div className="text-secondary mt-1">{t.versionCount} phiên bản đã tải lên</div>
+                          {t.versionCount > 0 && (
+                            <span className="text-secondary small ms-2" title="Số phiên bản đã tải lên">
+                              {t.versionCount} bản tải lên
+                            </span>
+                          )}
                           {active && t.activeMissingTags.length > 0 && (
                             <div className="text-warning-emphasis mt-1" title={t.activeMissingTags.join("\n")}>
                               <i className="bi bi-exclamation-triangle me-1" />
@@ -507,67 +512,61 @@ export default function TemplatesPage() {
                           )}
                         </td>
                         <td className="text-end">
-                          <div className="d-inline-flex flex-wrap gap-1 justify-content-end">
-                            <button
-                              type="button"
-                              className="btn btn-outline-secondary btn-sm"
-                              disabled={busy !== ""}
-                              onClick={() =>
-                                download(`cur-${t.code}`, () =>
-                                  templateService.downloadCurrent(
-                                    t.code,
-                                    active ? `${baseName(t.templateFileName)}_v${active.versionNumber}.docx` : t.templateFileName
-                                  )
-                                )
-                              }
-                            >
-                              <i className="bi bi-download me-1" />
-                              File đang dùng
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-outline-secondary btn-sm"
-                              disabled={busy !== ""}
-                              onClick={() => download(`org-${t.code}`, () => templateService.downloadOriginal(t.code, t.templateFileName))}
-                            >
-                              File gốc
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-primary btn-sm"
-                              disabled={busy !== ""}
-                              onClick={() => setDialog({ kind: "upload", template: t })}
-                            >
-                              <i className="bi bi-upload me-1" />
-                              Tải lên
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-outline-primary btn-sm"
-                              disabled={busy !== ""}
-                              onClick={() => setDialog({ kind: "history", template: t })}
-                            >
-                              Lịch sử
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-outline-secondary btn-sm"
-                              disabled={busy !== ""}
-                              onClick={() => setDialog({ kind: "tags", template: t })}
-                            >
-                              Tag
-                            </button>
-                            {active && (
-                              <button
-                                type="button"
-                                className="btn btn-outline-danger btn-sm"
-                                disabled={busy !== ""}
-                                onClick={() => handleUseOriginal(t)}
-                              >
-                                Dùng file gốc
-                              </button>
-                            )}
-                          </div>
+                          <RowActions
+                            itemLabel={t.name}
+                            disabled={busy !== ""}
+                            primaryVariant={["primary", "outline"]}
+                            primary={[
+                              {
+                                key: "upload",
+                                label: "Tải lên",
+                                title: "Tải lên phiên bản mới",
+                                icon: "bi-upload",
+                                onClick: () => setDialog({ kind: "upload", template: t }),
+                              },
+                              {
+                                key: "current",
+                                label: "Tải xuống",
+                                title: "Tải file đang dùng",
+                                icon: "bi-download",
+                                onClick: () =>
+                                  download(`cur-${t.code}`, () =>
+                                    templateService.downloadCurrent(
+                                      t.code,
+                                      active ? `${baseName(t.templateFileName)}_v${active.versionNumber}.docx` : t.templateFileName
+                                    )
+                                  ),
+                              },
+                            ]}
+                            menu={[
+                              {
+                                key: "original",
+                                label: "Tải file gốc",
+                                icon: "bi-file-earmark-word",
+                                onClick: () => download(`org-${t.code}`, () => templateService.downloadOriginal(t.code, t.templateFileName)),
+                              },
+                              {
+                                key: "history",
+                                label: "Lịch sử phiên bản",
+                                icon: "bi-clock-history",
+                                onClick: () => setDialog({ kind: "history", template: t }),
+                              },
+                              {
+                                key: "tags",
+                                label: "Danh mục tag",
+                                icon: "bi-tags",
+                                onClick: () => setDialog({ kind: "tags", template: t }),
+                              },
+                              {
+                                key: "use-original",
+                                label: "Dùng file gốc",
+                                icon: "bi-arrow-counterclockwise",
+                                danger: true,
+                                hidden: !active,
+                                onClick: () => handleUseOriginal(t),
+                              },
+                            ]}
+                          />
                         </td>
                       </tr>
                     );

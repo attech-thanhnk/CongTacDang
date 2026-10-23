@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { Card } from "@/components/common";
+import { RowActions } from "@/components/common/RowActions";
 import {
   CatalogItem,
   CatalogKind,
@@ -219,7 +220,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                 <th style={{ width: 140 }}>Loại</th>
                 <th className="text-center" style={{ width: 80 }}>Cán bộ</th>
                 <th style={{ width: 130 }}>Trạng thái</th>
-                {canManage && <th className="pe-3 text-end" style={{ width: 170 }}>Thao tác</th>}
+                {canManage && <th className="pe-3 text-end" style={{ width: 130 }}>Thao tác</th>}
               </tr>
             </thead>
             <tbody>
@@ -273,23 +274,20 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                     </td>
                     {canManage && (
                       <td className="pe-3 text-end text-nowrap">
-                        <button type="button" className="btn btn-sm btn-link p-1" title={`Thêm ${unit} cấp dưới`} onClick={() => openCreate(item)}>
-                          <i className="bi bi-diagram-2" />
-                        </button>
-                        <button type="button" className="btn btn-sm btn-link p-1" title="Sửa / đổi cấp trên" onClick={() => openEdit(item)}>
-                          <i className="bi bi-pencil-square" />
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-link p-1 text-warning"
-                          title={item.isActive ? "Ngừng hoạt động" : "Hoạt động lại"}
-                          onClick={() => toggleActive(item)}
-                        >
-                          <i className={`bi ${item.isActive ? "bi-pause-circle" : "bi-play-circle"}`} />
-                        </button>
-                        <button type="button" className="btn btn-sm btn-link p-1 text-danger" title="Xóa" onClick={() => handleDelete(item)}>
-                          <i className="bi bi-trash" />
-                        </button>
+                        <RowActions
+                          itemLabel={item.name}
+                          primary={[{ key: "edit", label: "Sửa", title: "Sửa / đổi cấp trên", icon: "bi-pencil-square", onClick: () => openEdit(item) }]}
+                          menu={[
+                            { key: "add-child", label: `Thêm ${unit} cấp dưới`, icon: "bi-diagram-2", onClick: () => openCreate(item) },
+                            {
+                              key: "toggle",
+                              label: item.isActive ? "Ngừng hoạt động" : "Hoạt động lại",
+                              icon: item.isActive ? "bi-pause-circle" : "bi-play-circle",
+                              onClick: () => toggleActive(item),
+                            },
+                            { key: "delete", label: "Xóa", icon: "bi-trash", danger: true, onClick: () => handleDelete(item) },
+                          ]}
+                        />
                       </td>
                     )}
                   </tr>

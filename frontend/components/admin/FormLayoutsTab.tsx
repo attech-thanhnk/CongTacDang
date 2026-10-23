@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
+import { RowActions } from "@/components/common/RowActions";
 import { Card } from "@/components/common";
 import {
   FORM_HEADER_STYLE_LABELS,
@@ -166,7 +167,7 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
                 <th>Trình bày</th>
                 <th className="text-center" style={{ width: 80 }}>Thứ tự</th>
                 <th className="text-center" style={{ width: 130 }}>Áp dụng</th>
-                {canManage && <th className="pe-3 text-end" style={{ width: 120 }}>Thao tác</th>}
+                {canManage && <th className="pe-3 text-end" style={{ width: 130 }}>Thao tác</th>}
               </tr>
             </thead>
             <tbody>
@@ -203,15 +204,14 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
                     </td>
                     {canManage && (
                       <td className="pe-3 text-end text-nowrap">
-                        <button type="button" className="btn btn-sm btn-link p-1" title="Sửa" onClick={() => openEdit(l)}>
-                          <i className="bi bi-pencil-square" />
-                        </button>
-                        <button type="button" className="btn btn-sm btn-link p-1" title="Nhân bản" onClick={() => openEdit(l, true)}>
-                          <i className="bi bi-copy" />
-                        </button>
-                        <button type="button" className="btn btn-sm btn-link p-1 text-danger" title="Xóa" onClick={() => handleDelete(l)}>
-                          <i className="bi bi-trash" />
-                        </button>
+                        <RowActions
+                          itemLabel={l.name}
+                          primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil-square", onClick: () => openEdit(l) }]}
+                          menu={[
+                            { key: "clone", label: "Nhân bản", icon: "bi-copy", onClick: () => openEdit(l, true) },
+                            { key: "delete", label: "Xóa", icon: "bi-trash", danger: true, onClick: () => handleDelete(l) },
+                          ]}
+                        />
                       </td>
                     )}
                   </tr>

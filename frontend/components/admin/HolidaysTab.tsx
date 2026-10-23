@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
+import { RowActions } from "@/components/common/RowActions";
 import { Card, Pagination, usePagination } from "@/components/common";
 import { Holiday, holidayService } from "@/services/holidayService";
 import { AdminModal } from "./AdminModal";
@@ -106,7 +107,7 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
                 <th className="ps-3" style={{ width: 140 }}>Ngày</th>
                 <th style={{ width: 120 }}>Thứ</th>
                 <th>Tên ngày nghỉ</th>
-                {canManage && <th className="pe-3 text-end" style={{ width: 100 }}>Thao tác</th>}
+                {canManage && <th className="pe-3 text-end" style={{ width: 130 }}>Thao tác</th>}
               </tr>
             </thead>
             <tbody>
@@ -122,12 +123,11 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
                     <td>{h.name}</td>
                     {canManage && (
                       <td className="pe-3 text-end text-nowrap">
-                        <button type="button" className="btn btn-sm btn-link p-1" title="Sửa" onClick={() => setForm({ id: h.id, date: h.date, endDate: "", name: h.name })}>
-                          <i className="bi bi-pencil-square" />
-                        </button>
-                        <button type="button" className="btn btn-sm btn-link p-1 text-danger" title="Xóa" onClick={() => handleDelete(h)}>
-                          <i className="bi bi-trash" />
-                        </button>
+                        <RowActions
+                          itemLabel={h.name}
+                          primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil-square", onClick: () => setForm({ id: h.id, date: h.date, endDate: "", name: h.name }) }]}
+                          menu={[{ key: "delete", label: "Xóa", icon: "bi-trash", danger: true, onClick: () => handleDelete(h) }]}
+                        />
                       </td>
                     )}
                   </tr>

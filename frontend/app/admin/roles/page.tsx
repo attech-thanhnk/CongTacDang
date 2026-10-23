@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { Card, PageHeader } from "@/components/common";
+import { RowActions } from "@/components/common/RowActions";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { RoleFormModal } from "@/components/admin/RoleFormModal";
 import { errorMessage, errorTitle } from "@/components/admin/adminUtils";
@@ -139,17 +140,22 @@ export default function AdminRolesPage() {
                       <td className="text-center">{role.permissionCodes.length}</td>
                       <td className="text-center">{role.assignmentCount}</td>
                       <td className="pe-3 text-end text-nowrap">
-                        <Link href={`/admin/roles/${role.id}`} className="btn btn-sm btn-link p-1" title="Quyền và người được gán">
-                          <i className="bi bi-shield-check" />
-                        </Link>
-                        <button type="button" className="btn btn-sm btn-link p-1" title="Đổi tên, mô tả" onClick={() => setForm({ role })}>
-                          <i className="bi bi-pencil-square" />
-                        </button>
-                        {!role.isProtected && (
-                          <button type="button" className="btn btn-sm btn-link p-1 text-danger" title="Xóa" onClick={() => handleDelete(role)}>
-                            <i className="bi bi-trash" />
-                          </button>
-                        )}
+                        <RowActions
+                          itemLabel={role.name}
+                          primary={[
+                            {
+                              key: "permissions",
+                              label: "Phân quyền",
+                              title: "Quyền và người được gán",
+                              icon: "bi-shield-check",
+                              onClick: () => router.push(`/admin/roles/${role.id}`),
+                            },
+                          ]}
+                          menu={[
+                            { key: "edit", label: "Đổi tên, mô tả", icon: "bi-pencil-square", onClick: () => setForm({ role }) },
+                            { key: "delete", label: "Xóa", icon: "bi-trash", danger: true, hidden: role.isProtected, onClick: () => handleDelete(role) },
+                          ]}
+                        />
                       </td>
                     </tr>
                   ))
