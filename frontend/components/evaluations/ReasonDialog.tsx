@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { STEP_NAMES, WorkflowStepCode } from "@/services/evaluationService";
+import { RecordActionDto, STEP_NAMES, WorkflowStepCode } from "@/services/evaluationService";
+import { formatDateTime } from "@/lib/dateFormat";
+
+/** Thông tin hạn mở riêng hồ sơ (kỳ khóa dữ liệu) lấy từ hành động máy chủ trả về. */
+export type UnlockDeadlineInfo = Pick<
+  RecordActionDto,
+  "requiresUnlockDeadline" | "unlockDeadlineSteps" | "currentUnlockedUntil" | "defaultUnlockDays" | "maxUnlockDays"
+>;
 
 interface Props {
   isOpen: boolean;
@@ -10,27 +17,67 @@ interface Props {
   confirmText: string;
   /** Với mở lại hồ sơ: các bước được chọn để quay về (do máy chủ trả về trong `actions`). */
   targetSteps?: WorkflowStepCode[] | null;
+  /** Hạn mở riêng hồ sơ khi kỳ khóa dữ liệu (do máy chủ báo trong `actions`). */
+  unlock?: UnlockDeadlineInfo | null;
   busy?: boolean;
   onCancel: () => void;
-  onConfirm: (reason: string, targetStep?: WorkflowStepCode) => void;
+  onConfirm: (reason: string, targetStep?: WorkflowStepCode, unlockUntil?: string) => void;
 }
 
-/** Hộp nhập lý do bắt buộc khi trả lại hoặc mở lại hồ sơ. */
-export function ReasonDialog({ isOpen, title, description, confirmText, targetSteps, busy, onCancel, onConfirm }: Props) {
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** Giá trị cho ô `datetime-local` (giờ máy người dùng). */
+function toLocalInput(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function defaultDeadline(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  date.setHours(17, 0, 0, 0);
+  return toLocalInput(date);
+}
+
+/** Cần nhập hạn mở riêng với bước quay về đang chọn. */
+function needsDeadline(unlock: UnlockDeadlineInfo | null | undefined, target: WorkflowStepCode | ""): boolean {
+  if (!unlock?.requiresUnlockDeadline) return false;
+  if (unlock.unlockDeadlineSteps && unlock.unlockDeadlineSteps.length > 0) return !!target && unlock.unlockDeadlineSteps.includes(target);
+  return true;
+}
+
+/** Hộp nhập lý do bắt buộc khi trả lại hoặc mở lại hồ sơ (kèm hạn mở riêng khi kỳ khóa dữ liệu). */
+export function ReasonDialog({ isOpen, title, description, confirmText, targetSteps, unlock, busy, onCancel, onConfirm }: Props) {
   const [reason, setReason] = useState("");
   const [target, setTarget] = useState<WorkflowStepCode | "">("");
+  const [deadline, setDeadline] = useState("");
   const [touched, setTouched] = useState(false);
+
+  const defaultDays = unlock?.defaultUnlockDays ?? 7;
+  const maxDays = unlock?.maxUnlockDays ?? 60;
 
   useEffect(() => {
     if (isOpen) {
       setReason("");
       setTouched(false);
       setTarget(targetSteps && targetSteps.length > 0 ? targetSteps[0] : "");
+      setDeadline(defaultDeadline(defaultDays));
     }
-  }, [isOpen, targetSteps]);
+  }, [isOpen, targetSteps, defaultDays]);
 
   if (!isOpen) return null;
   const missingReason = reason.trim().length === 0;
+  const showDeadline = needsDeadline(unlock, target);
+  const deadlineDate = deadline ? new Date(deadline) : null;
+  const maxDate = new Date(Date.now() + maxDays * 24 * 60 * 60 * 1000);
+  const deadlineError = !showDeadline
+    ? null
+    : !deadlineDate || Number.isNaN(deadlineDate.getTime())
+      ? "Hãy chọn hạn mở riêng hồ sơ."
+      : deadlineDate.getTime() <= Date.now()
+        ? "Hạn phải sau thời điểm hiện tại."
+        : deadlineDate > maxDate
+          ? `Hạn không được quá ${maxDays} ngày kể từ hôm nay.`
+          : null;
 
   return (
     <div className="modal fade show d-block" tabIndex={-1} role="dialog" aria-modal="true" style={{ backgroundColor: "rgba(15, 23, 42, 0.55)", zIndex: 1080 }}>
@@ -44,8 +91,8 @@ export function ReasonDialog({ isOpen, title, description, confirmText, targetSt
             onSubmit={(event) => {
               event.preventDefault();
               setTouched(true);
-              if (missingReason) return;
-              onConfirm(reason.trim(), target || undefined);
+              if (missingReason || deadlineError) return;
+              onConfirm(reason.trim(), target || undefined, showDeadline && deadlineDate ? deadlineDate.toISOString() : undefined);
             }}
           >
             <div className="modal-body px-4 py-3">
@@ -58,6 +105,26 @@ export function ReasonDialog({ isOpen, title, description, confirmText, targetSt
                       <option key={step} value={step}>{STEP_NAMES[step] || step}</option>
                     ))}
                   </select>
+                </div>
+              )}
+              {showDeadline && (
+                <div className="mb-3">
+                  <label className="form-label small fw-semibold" htmlFor="unlock-deadline">Mở riêng hồ sơ đến</label>
+                  <input
+                    id="unlock-deadline"
+                    type="datetime-local"
+                    className={`form-control form-control-sm ${touched && deadlineError ? "is-invalid" : ""}`}
+                    value={deadline}
+                    onChange={(e) => setDeadline(e.target.value)}
+                  />
+                  {touched && deadlineError ? (
+                    <div className="invalid-feedback">{deadlineError}</div>
+                  ) : (
+                    <div className="form-text">
+                      Kỳ đang khóa dữ liệu: chỉ hồ sơ này được thao tác lại đến hạn trên.
+                      {unlock?.currentUnlockedUntil ? ` Hạn hiện tại: ${formatDateTime(unlock.currentUnlockedUntil)}.` : ""}
+                    </div>
+                  )}
                 </div>
               )}
               <label className="form-label small fw-semibold" htmlFor="reason-text">Lý do (bắt buộc)</label>

@@ -343,6 +343,7 @@ public sealed class PostPublishUnitTests
         public Task<EvaluationRecordDto> RecordDecisionAsync(Guid recordId, DecisionRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<EvaluationRecordDto> PublishAsync(Guid recordId, WorkflowRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<EvaluationRecordDto> ReopenAsync(Guid recordId, ReopenRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<EvaluationRecordDto> ExtendUnlockAsync(Guid recordId, UnlockRecordRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<EvaluationRecordDto> RecordExternalResultAsync(Guid recordId, string step, ExternalResultRequestDto request, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<RecordActionsDto> GetActionsAsync(Guid recordId, CancellationToken ct = default) => throw new NotSupportedException();
     }

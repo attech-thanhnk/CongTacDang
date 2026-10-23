@@ -36,6 +36,8 @@ export type WorkflowActionCode =
   | "RecordDecision"
   | "Publish"
   | "Reopen"
+  /** Gia hạn mở riêng hồ sơ khi kỳ khóa dữ liệu. */
+  | "ExtendUnlock"
   /** Ghi nhận kết quả của bước do cấp trên thực hiện (bước ở trường `step`). */
   | "RecordExternal";
 
@@ -242,6 +244,12 @@ export interface EvaluationRecordDto {
   statusDisplayName: string;
   currentStep?: WorkflowStepCode | null;
   returnReason?: string | null;
+  /** Hạn mở riêng hồ sơ khi kỳ khóa dữ liệu (null = không mở riêng). */
+  unlockedUntil?: string | null;
+  /** Đang mở riêng còn hạn và kỳ đang khóa dữ liệu. */
+  unlockActive?: boolean;
+  unlockedByName?: string | null;
+  unlockReason?: string | null;
   progress: RecordStepProgressDto[];
 
   tasksApprovedByName?: string | null;
@@ -632,6 +640,14 @@ export interface RecordActionDto {
   reasonOptional: boolean;
   overdue: boolean;
   targetSteps?: WorkflowStepCode[] | null;
+  /** Phải nhập hạn mở riêng hồ sơ (kỳ khóa dữ liệu, hồ sơ quay về bước trước thẩm định). */
+  requiresUnlockDeadline?: boolean;
+  /** Với mở lại: các bước quay về cần hạn mở riêng. */
+  unlockDeadlineSteps?: WorkflowStepCode[] | null;
+  /** Hạn hiện tại khi hồ sơ đang được mở riêng. */
+  currentUnlockedUntil?: string | null;
+  defaultUnlockDays?: number | null;
+  maxUnlockDays?: number | null;
 }
 
 export interface RecordActionsDto {
@@ -1049,6 +1065,7 @@ const ACTION_PATH: Record<WorkflowActionCode, string> = {
   RecordDecision: "decision",
   Publish: "publish",
   Reopen: "reopen",
+  ExtendUnlock: "unlock/extend",
   RecordExternal: "external",
 };
 

@@ -74,7 +74,13 @@ public enum WorkflowAction
     SyncSnapshot = 10,
 
     /// <summary>Thu hồi duyệt danh mục B1 ngay sau khi duyệt nhầm, trước khi chủ hồ sơ tự chấm.</summary>
-    RevokeTaskApproval = 11
+    RevokeTaskApproval = 11,
+
+    /// <summary>Mở riêng hồ sơ (hoặc gia hạn) khi kỳ khóa dữ liệu: các bước trước thẩm định của hồ sơ thao tác được tới hạn.</summary>
+    GrantUnlock = 12,
+
+    /// <summary>Kết thúc mở riêng hồ sơ: hồ sơ đã tới bước được thao tác khi kỳ khóa dữ liệu.</summary>
+    ClearUnlock = 13
 }
 
 /// <summary>Thông tin tĩnh về các bước: thứ tự, trạng thái chờ tương ứng, bước bắt buộc, bước được trả lại.</summary>
@@ -141,6 +147,9 @@ public static class WorkflowSteps
 
     /// <summary>Bước đầu tiên được thao tác khi kỳ ở trạng thái "Khóa dữ liệu" (HD03 II.2).</summary>
     public const WorkflowStep FirstStepWhenLocked = WorkflowStep.B3B_APPRAISAL;
+
+    /// <summary>Bước bị chặn khi kỳ "Khóa dữ liệu" (trước <see cref="FirstStepWhenLocked"/>) — cần mở riêng hồ sơ để thao tác.</summary>
+    public static bool IsLockedStep(WorkflowStep step) => IndexOf(step) < IndexOf(FirstStepWhenLocked);
 
     /// <summary>Mã bước dạng chuỗi (khóa trong cấu hình JSON, giá trị trả về API).</summary>
     public static string Code(WorkflowStep step) => step.ToString();
@@ -241,6 +250,8 @@ public static class WorkflowSteps
         WorkflowAction.TaskChange => "Điều chỉnh việc trong quý",
         WorkflowAction.SyncSnapshot => "Cập nhật theo hồ sơ cán bộ",
         WorkflowAction.RevokeTaskApproval => "Thu hồi duyệt danh mục",
+        WorkflowAction.GrantUnlock => "Mở riêng hồ sơ",
+        WorkflowAction.ClearUnlock => "Kết thúc mở riêng hồ sơ",
         _ => action.ToString()
     };
 }

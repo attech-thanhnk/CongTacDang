@@ -294,6 +294,52 @@ public sealed class PostPublishIntegrationTests
             new { version = after.GetProperty("version").GetUInt32(), accepted = false, response = "Không chấp nhận: đúng quy định." }));
     }
 
+    [SkippableFact]
+    public async Task P2c_Appeal_ReopenToSelfScore_InClosedPeriod_RequiresUnlockDeadline_OwnerCanAct()
+    {
+        var w = await WorldAsync();
+        var owner = await _factory.CreateUserAsync(w.Dept1, w.Cell1, ApprovalAuthority.CoSo, $"KQ Chủ hồ sơ E {Guid.NewGuid().ToString("N")[..6]}");
+        await _factory.AssignAsync(owner.Id, await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA"), RoleScopeType.Global, null);
+        var ownerC = await _factory.LoginAsAsync(owner.Username, owner.Password, distinctClientIp: true);
+        var periodId = await World.OpenPeriodAsync(w.PeriodManagerC, owner.Id);
+        var recordId = (await World.RecordsAsync(w.PeriodManagerC, periodId))[owner.Id];
+        await _factory.WithDbAsync(async db =>
+        {
+            var record = await db.EvaluationRecords.FirstAsync(r => r.Id == recordId);
+            record.Status = RecordStatus.Published;
+            record.FinalGrade = EvaluationGrade.HoanThanh;
+            record.FinalScore = 71;
+            record.PublishedAt = DateTime.UtcNow;
+            var period = await db.EvaluationPeriods.FirstAsync(p => p.Id == periodId);
+            period.Status = PeriodStatus.Closed;
+            await db.SaveChangesAsync();
+        });
+
+        var appeal = await Data(await ownerC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appeals",
+            new { content = "Đề nghị bổ sung minh chứng tự chấm.", concernedSteps = new[] { "B3B_APPRAISAL" } }));
+        var appealId = appeal.GetProperty("id").GetGuid();
+        var review = await Data(await w.ResolverC.PostAsJsonAsync($"/api/appeals/{appealId}/start-review",
+            new { version = appeal.GetProperty("version").GetUInt32() }));
+        await Data(await w.ResolverC.PostAsJsonAsync($"/api/appeals/{appealId}/resolve",
+            new { version = review.GetProperty("version").GetUInt32(), accepted = true, response = "Chấp nhận bổ sung minh chứng." }));
+
+        var version = (await Data(w.ResolverC, $"/api/evaluations/records/{recordId}")).GetProperty("version").GetUInt32();
+        // Kỳ đã đóng → mở lại đưa kỳ về khóa dữ liệu: quay về tự chấm phải có hạn mở riêng; thiếu → 400, kiến nghị chưa ghi đã mở lại.
+        Assert.Equal(HttpStatusCode.BadRequest, (await w.ResolverC.PostAsJsonAsync($"/api/appeals/{appealId}/reopen",
+            new { recordVersion = version, targetStep = "B2_SELF_SCORE", reason = "Bổ sung minh chứng" })).StatusCode);
+        var reopened = await Data(await w.ResolverC.PostAsJsonAsync($"/api/appeals/{appealId}/reopen",
+            new { recordVersion = version, targetStep = "B2_SELF_SCORE", reason = "Bổ sung minh chứng", unlockUntil = DateTime.UtcNow.AddDays(7) }));
+        Assert.NotEqual(JsonValueKind.Null, reopened.GetProperty("reopenedAt").ValueKind);
+
+        var after = await Data(ownerC, $"/api/evaluations/records/{recordId}");
+        Assert.Equal("AwaitingSelfScore", after.GetProperty("status").GetString());
+        Assert.Equal("Locked", after.GetProperty("periodStatus").GetString());
+        Assert.True(after.GetProperty("unlockActive").GetBoolean());
+        var actions = (await Data(ownerC, $"/api/evaluations/records/{recordId}/actions")).GetProperty("actions").EnumerateArray()
+            .Select(a => a.GetProperty("action").GetString()).ToList();
+        Assert.Contains("SubmitSelfScore", actions);
+    }
+
     #endregion
 
     #region P3 — kế hoạch 30-60-90 ngày, Mẫu 17 (T-88)

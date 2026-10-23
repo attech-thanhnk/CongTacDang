@@ -249,8 +249,8 @@ export const postPublishService = {
     return post<AppealDto>(`/appeals/${appealId}/resolve`, { version, accepted, response });
   },
 
-  reopenFromAppeal(appealId: string, recordVersion: number, targetStep: string, reason: string): Promise<AppealDto> {
-    return post<AppealDto>(`/appeals/${appealId}/reopen`, { recordVersion, targetStep, reason });
+  reopenFromAppeal(appealId: string, recordVersion: number, targetStep: string, reason: string, unlockUntil?: string): Promise<AppealDto> {
+    return post<AppealDto>(`/appeals/${appealId}/reopen`, { recordVersion, targetStep, reason, unlockUntil });
   },
 
   getRecordPlan(recordId: string): Promise<RecordImprovementPlanDto> {
