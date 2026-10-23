@@ -92,11 +92,15 @@ export interface MenuTrail {
   isDetail: boolean;
 }
 
+// Trang không có trên menu nhưng vẫn cần đường dẫn.
+const EXTRA_PAGES: MenuItem[] = [{ title: "Tài khoản", href: "/account", icon: "bi-person" }];
+
 /** Mục menu ứng với đường dẫn hiện tại — dùng cho đường dẫn trên thanh đầu trang. */
 export function findMenuTrail(groups: MenuGroup[], pathname: string): MenuTrail | null {
   for (const group of groups) {
     const item = group.items.find((i) => isMenuItemActive(i, pathname));
     if (item) return { group: group.title ? group : undefined, item, isDetail: pathname !== item.href };
   }
-  return null;
+  const extra = EXTRA_PAGES.find((i) => isMenuItemActive(i, pathname));
+  return extra ? { item: extra, isDetail: pathname !== extra.href } : null;
 }
