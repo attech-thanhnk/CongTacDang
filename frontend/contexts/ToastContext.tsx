@@ -1,8 +1,16 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import toastStyles from "./toast.module.css";
 
 export type ToastType = "success" | "error" | "warning" | "info";
+
+const TOAST_ICON: Record<ToastType, string> = {
+  success: "bi-check-lg",
+  error: "bi-exclamation-lg",
+  warning: "bi-exclamation-lg",
+  info: "bi-info-lg",
+};
 
 export interface ToastItem {
   id: string;
@@ -103,63 +111,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
 
       {/* Toast góc trên phải */}
-      <div
-        className="position-fixed top-0 end-0 p-3"
-        style={{ zIndex: 1090, maxWidth: "380px", width: "100%", pointerEvents: "none" }}
-      >
-        <div className="d-flex flex-column gap-2">
-          {toasts.map((t) => {
-            const isSuccess = t.type === "success";
-            const isError = t.type === "error";
-            const isWarning = t.type === "warning";
-
-            const bgColor = isSuccess ? "#f0fdf4" : isError ? "#fef2f2" : isWarning ? "#fffbeb" : "#eff6ff";
-            const borderColor = isSuccess ? "#bbf7d0" : isError ? "#fecaca" : isWarning ? "#fde68a" : "#bfdbfe";
-            const textColor = isSuccess ? "#15803d" : isError ? "#b91c1c" : isWarning ? "#b45309" : "#1d4ed8";
-            const icon = isSuccess
-              ? "bi-check-circle-fill"
-              : isError
-              ? "bi-exclamation-octagon-fill"
-              : isWarning
-              ? "bi-exclamation-triangle-fill"
-              : "bi-info-circle-fill";
-
-            return (
-              <div
-                key={t.id}
-                className="toast show shadow-sm border rounded-3 p-3 transition"
-                style={{
-                  backgroundColor: bgColor,
-                  borderColor: borderColor,
-                  pointerEvents: "auto",
-                  animation: "slideInRight 0.22s ease-out",
-                }}
-              >
-                <div className="d-flex align-items-start gap-2.5">
-                  <i className={`bi ${icon} fs-5 flex-shrink-0`} style={{ color: textColor }}></i>
-                  <div className="flex-grow-1">
-                    {t.title && (
-                      <div className="fw-semibold text-dark small" style={{ fontSize: "13px" }}>
-                        {t.title}
-                      </div>
-                    )}
-                    <div className="text-secondary small mt-0.5" style={{ fontSize: "12px", lineHeight: "1.4" }}>
-                      {t.message}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeToast(t.id)}
-                    className="btn btn-sm btn-link text-muted p-0 ms-1"
-                    aria-label="Đóng"
-                  >
-                    <i className="bi bi-x-lg" style={{ fontSize: "11px" }}></i>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      <div className={toastStyles.stack} aria-live="polite">
+        {toasts.map((t) => (
+          <div key={t.id} className={`${toastStyles.toast} ${toastStyles[t.type] ?? ""}`} role={t.type === "error" ? "alert" : "status"}>
+            <span className={toastStyles.icon} aria-hidden="true">
+              <i className={`bi ${TOAST_ICON[t.type]}`} />
+            </span>
+            <div className={toastStyles.body}>
+              {t.title && <div className={toastStyles.title}>{t.title}</div>}
+              <div className={toastStyles.message}>{t.message}</div>
+            </div>
+            <button type="button" onClick={() => removeToast(t.id)} className={toastStyles.close} aria-label="Đóng">
+              <i className="bi bi-x-lg" />
+            </button>
+          </div>
+        ))}
       </div>
 
       {/* Hộp xác nhận */}
