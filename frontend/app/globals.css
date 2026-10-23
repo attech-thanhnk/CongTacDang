@@ -1465,6 +1465,12 @@ header.app-header {
   padding-right: 6px;
 }
 
+/* Nút menu ⋯ trên header giữ hình vuông, không theo padding nút chữ. */
+.page-header-actions .btn[aria-haspopup="menu"] {
+  width: 36px;
+  padding: 0;
+}
+
 .page-header-actions .form-select,
 .page-header-actions .form-control {
   padding-top: 6px;

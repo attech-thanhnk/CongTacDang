@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from "react";
 import toastStyles from "./toast.module.css";
 
 export type ToastType = "success" | "error" | "warning" | "info";
@@ -61,28 +61,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const toast = {
-    success: useCallback(
-      (message: string, title?: string, duration?: number) =>
+  // Ổn định qua các lần vẽ để dùng được trong deps của hook.
+  const toast = useMemo(
+    () => ({
+      success: (message: string, title?: string, duration?: number) =>
         addToast("success", message, title || "Thành công", duration),
-      [addToast]
-    ),
-    error: useCallback(
-      (message: string, title?: string, duration?: number) =>
+      error: (message: string, title?: string, duration?: number) =>
         addToast("error", message, title || "Lỗi thao tác", duration),
-      [addToast]
-    ),
-    warning: useCallback(
-      (message: string, title?: string, duration?: number) =>
+      warning: (message: string, title?: string, duration?: number) =>
         addToast("warning", message, title || "Cảnh báo", duration),
-      [addToast]
-    ),
-    info: useCallback(
-      (message: string, title?: string, duration?: number) =>
+      info: (message: string, title?: string, duration?: number) =>
         addToast("info", message, title || "Thông tin", duration),
-      [addToast]
-    ),
-  };
+    }),
+    [addToast]
+  );
 
   const confirm = useCallback((options: ConfirmOptions) => {
     setConfirmModal(options);
@@ -143,7 +135,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             className="position-fixed top-50 start-50 translate-middle w-100 p-3"
             style={{ zIndex: 1085, maxWidth: "420px" }}
           >
-            <div className="card shadow-lg border rounded-3 bg-white" style={{ borderColor: "#e2e8f0" }}>
+            <div className="card shadow-lg border rounded-3" style={{ background: "var(--paper)", borderColor: "var(--rule)" }}>
               <div className="card-body p-4">
                 <div className="d-flex align-items-center gap-2.5 mb-2.5">
                   <div
@@ -151,8 +143,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                     style={{
                       width: "36px",
                       height: "36px",
-                      backgroundColor: confirmModal.isDanger !== false ? "#fef2f2" : "#eff6ff",
-                      color: confirmModal.isDanger !== false ? "#b91c1c" : "#1e40af",
+                      backgroundColor: confirmModal.isDanger !== false ? "var(--bad-bg)" : "var(--info-bg)",
+                      color: confirmModal.isDanger !== false ? "var(--bad)" : "var(--info)",
                     }}
                   >
                     <i

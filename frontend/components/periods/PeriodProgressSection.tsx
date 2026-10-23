@@ -6,6 +6,7 @@ import { usePagination } from "@/components/common/usePagination";
 import Link from "next/link";
 import { formatDate } from "@/lib/dateFormat";
 import { PeriodParticipantDto } from "@/services/evaluationService";
+import styles from "./periods.module.css";
 
 /** Còn từ ngần này ngày trở xuống thì báo "sắp đến hạn". */
 const DUE_SOON_DAYS = 3;
@@ -87,30 +88,29 @@ export function PeriodProgressSection({ participants }: Props) {
 
   return (
     <section className="card">
-      <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <h2 className="mb-0">Tiến độ <span className="text-secondary fw-medium num">{rows.length}</span></h2>
-        <div className="d-flex flex-wrap align-items-center gap-2">
-          <select className="form-select form-select-sm w-auto" aria-label="Lọc theo Phòng" value={department} onChange={(e) => setDepartment(e.target.value)}>
-            <option value="">Tất cả Phòng</option>
-            {departments.map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
-          <select className="form-select form-select-sm w-auto" aria-label="Lọc theo Chi bộ" value={cell} onChange={(e) => setCell(e.target.value)}>
-            <option value="">Tất cả Chi bộ</option>
-            {cells.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select className="form-select form-select-sm w-auto" aria-label="Lọc theo bước" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">Tất cả các bước</option>
-            {steps.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-          </select>
-          <div className="form-check mb-0">
-            <input className="form-check-input" type="checkbox" id="progress-urgent" checked={onlyUrgent} onChange={(e) => setOnlyUrgent(e.target.checked)} />
-            <label className="form-check-label" htmlFor="progress-urgent">Chỉ hồ sơ quá hạn / sắp đến hạn</label>
-          </div>
+      <div className={`card-body ${styles.toolbar}`}>
+        <select className="form-select form-select-sm" aria-label="Lọc theo Phòng" value={department} onChange={(e) => setDepartment(e.target.value)}>
+          <option value="">Tất cả Phòng</option>
+          {departments.map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <select className="form-select form-select-sm" aria-label="Lọc theo Chi bộ" value={cell} onChange={(e) => setCell(e.target.value)}>
+          <option value="">Tất cả Chi bộ</option>
+          {cells.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <div className="form-check mb-0">
+          <input className="form-check-input" type="checkbox" id="progress-urgent" checked={onlyUrgent} onChange={(e) => setOnlyUrgent(e.target.checked)} />
+          <label className="form-check-label" htmlFor="progress-urgent">Chỉ quá hạn / sắp đến hạn</label>
         </div>
+        {(overdueCount > 0 || dueSoonCount > 0) && (
+          <span className={styles.toolbarEnd}>
+            {overdueCount > 0 && <span className="tag t-bad">Quá hạn <span className="num">{overdueCount}</span></span>}
+            {dueSoonCount > 0 && <span className="tag t-wait">Sắp đến hạn <span className="num">{dueSoonCount}</span></span>}
+          </span>
+        )}
       </div>
 
-      {base.length > 0 && (
-        <div className="card-body border-bottom d-flex flex-wrap align-items-center gap-2" role="group" aria-label="Số hồ sơ theo bước">
+      {(steps.length > 1 || status !== "") && (
+        <div className="card-body border-top d-flex flex-wrap align-items-center gap-2" role="group" aria-label="Lọc theo bước đang chờ">
           {steps.map((s) => {
             const active = status === s.key;
             return (
@@ -121,33 +121,39 @@ export function PeriodProgressSection({ participants }: Props) {
               </button>
             );
           })}
-          {(overdueCount > 0 || dueSoonCount > 0) && (
-            <span className="ms-auto d-flex gap-2">
-              {overdueCount > 0 && <span className="tag t-bad">Quá hạn <span className="num">{overdueCount}</span></span>}
-              {dueSoonCount > 0 && <span className="tag t-wait">Sắp đến hạn <span className="num">{dueSoonCount}</span></span>}
-            </span>
-          )}
         </div>
       )}
 
       {rows.length === 0 ? (
-        <div className="card-body text-secondary">Không có hồ sơ.</div>
+        <div className="card-body border-top text-secondary">Không có hồ sơ.</div>
       ) : (
         <>
         <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0">
+          <table className={`table table-hover align-middle mb-0 ${styles.compactTable}`}>
             <thead>
-              <tr><th>Cán bộ</th><th>Phòng</th><th>Chi bộ</th><th>Bước đang chờ</th><th>Hạn</th><th>Tình trạng hạn</th></tr>
+              <tr>
+                <th>Cán bộ</th>
+                <th className="d-none d-md-table-cell">Đơn vị</th>
+                <th>Bước đang chờ</th>
+                <th className="d-none d-md-table-cell">Hạn</th>
+                <th className="d-none d-sm-table-cell">Tình trạng hạn</th>
+              </tr>
             </thead>
             <tbody>
               {paging.pageItems.map((p) => (
                 <tr key={p.recordId}>
-                  <td><Link href={`/evaluations/${p.recordId}`} className="fw-semibold">{p.fullName}</Link></td>
-                  <td>{p.departmentName || "—"}</td>
-                  <td>{p.partyCellName || "—"}</td>
-                  <td>{p.currentStep ? p.statusDisplayName : <span className="tag t-ok">{p.statusDisplayName}</span>}</td>
-                  <td className="num">{p.currentStep ? formatDate(p.currentStepDeadline) : ""}</td>
-                  <td><DeadlineState participant={p} /></td>
+                  <td className={styles.nameCell}><Link href={`/evaluations/${p.recordId}`} className="fw-semibold">{p.fullName}</Link></td>
+                  <td className="d-none d-md-table-cell">{p.departmentName || "—"}<div className={styles.unitSub}>{p.partyCellName || "—"}</div></td>
+                  <td>
+                    {p.currentStep ? p.statusDisplayName : <span className="tag t-ok">{p.statusDisplayName}</span>}
+                    {p.currentStep && (
+                      <div className="d-md-none small text-secondary num">
+                        Hạn {formatDate(p.currentStepDeadline)} <span className="d-sm-none"><DeadlineState participant={p} /></span>
+                      </div>
+                    )}
+                  </td>
+                  <td className="d-none d-md-table-cell num text-nowrap">{p.currentStep ? formatDate(p.currentStepDeadline) : ""}</td>
+                  <td className="d-none d-sm-table-cell"><DeadlineState participant={p} /></td>
                 </tr>
               ))}
             </tbody>

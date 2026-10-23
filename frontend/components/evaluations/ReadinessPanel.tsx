@@ -23,39 +23,39 @@ interface Props {
 /** Bước kẹt vì không có tài khoản hoạt động (ngoài chủ hồ sơ) có quyền thực hiện; máy chủ tính. */
 export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
   return (
-    <section className="card border-0 shadow-sm">
+    <section className="card">
       <div className="card-body">
-        <div className="d-flex justify-content-between align-items-center mb-2">
-          <h2 className="h6 mb-0">Người thực hiện các bước</h2>
-          <button type="button" className="btn btn-outline-primary btn-sm" disabled={loading} onClick={onCheck}>
-            {loading ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-shield-check me-1" />}
+        <div className={`d-flex flex-wrap justify-content-between align-items-center gap-2 ${readiness && readiness.checkedRecords > 0 && !readiness.ready ? "mb-3" : ""}`}>
+          <div className="flex-grow-1">
+            {!readiness ? (
+              <span className="text-secondary">Chưa kiểm tra.</span>
+            ) : readiness.checkedRecords === 0 ? (
+              <span className="text-secondary">Chưa có người được đánh giá.</span>
+            ) : readiness.ready ? (
+              <span className="text-success"><i className="bi bi-check-circle-fill me-1" />Mọi bước đều có người thực hiện.</span>
+            ) : (
+              <span>
+                <i className="bi bi-exclamation-triangle-fill text-warning me-1" />
+                <span className="num">{readiness.issues.length}</span> bước chưa có người phụ trách.{" "}
+                <Link
+                  href={performersHref(
+                    new Set(readiness.issues.map((i) => i.departmentId || i.partyCellId || "")).size === 1
+                      ? { ...readiness.issues[0], permission: "" }
+                      : undefined
+                  )}
+                >
+                  Phân công người phụ trách
+                </Link>
+              </span>
+            )}
+          </div>
+          <button type="button" className="btn btn-outline-secondary btn-sm" disabled={loading} onClick={onCheck}>
+            {loading ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-arrow-clockwise me-1" />}
             Kiểm tra lại
           </button>
         </div>
-        {!readiness ? (
-          <div className="small text-secondary">Chưa kiểm tra.</div>
-        ) : readiness.checkedRecords === 0 ? (
-          <div className="small text-secondary">Chưa có người được đánh giá.</div>
-        ) : readiness.ready ? (
-          <div className="alert alert-success small mb-0">
-            <i className="bi bi-check-circle me-1" />
-            Mọi bước đều có người thực hiện ({readiness.checkedRecords} hồ sơ).
-          </div>
-        ) : (
+        {readiness && readiness.checkedRecords > 0 && !readiness.ready && (
           <>
-            <div className="alert alert-warning small">
-              <i className="bi bi-exclamation-triangle me-1" />
-              {readiness.issues.length} bước chưa có người phụ trách trong {readiness.checkedRecords} hồ sơ.
-              <Link
-                href={performersHref(
-                  new Set(readiness.issues.map((i) => i.departmentId || i.partyCellId || "")).size === 1
-                    ? { ...readiness.issues[0], permission: "" }
-                    : undefined
-                )}
-              >
-                Phân công người phụ trách
-              </Link> hoặc sửa bước này.
-            </div>
             <div className="table-responsive" style={{ maxHeight: 360, overflowY: "auto" }}>
               <table className="table table-sm align-middle small mb-0">
                 <thead>

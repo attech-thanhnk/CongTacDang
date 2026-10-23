@@ -14,6 +14,8 @@ import { useToast } from "@/contexts/ToastContext";
 import { EvaluationPeriodDto, evaluationService } from "@/services/evaluationService";
 import { scoringMethodLabel } from "@/services/criteriaService";
 import { errorMessage } from "@/components/admin/adminUtils";
+import { formatDate } from "@/lib/dateFormat";
+import styles from "@/components/periods/periods.module.css";
 
 /** Kỳ đánh giá: danh sách (mọi người đã đăng nhập) và tạo kỳ với bộ tiêu chí đã chọn (period.manage). */
 export default function PeriodsPage() {
@@ -29,7 +31,7 @@ export default function PeriodsPage() {
   useEffect(() => {
     evaluationService.getPeriods()
       .then(setPeriods)
-      .catch((err: unknown) => toast.error(errorMessage(err, "Không tải được danh sách kỳ.")))
+      .catch((err: unknown) => toast.error(errorMessage(err, "Tải danh sách kỳ không thành công.")))
       .finally(() => setLoading(false));
   }, [toast]);
   const paging = usePagination(periods, { storageKey: "periods" });
@@ -67,9 +69,16 @@ export default function PeriodsPage() {
               />
             ) : (
               <>
-              <div className="table-responsive"><table className="table table-hover align-middle mb-0 periods-table">
+              <div className="table-responsive"><table className={`table table-hover align-middle mb-0 periods-table ${styles.compactTable}`}>
                 <thead>
-                  <tr><th>Kỳ</th><th>Trạng thái</th><th>Bộ tiêu chí</th><th>Cách xét duyệt</th><th className="text-end">Người được đánh giá</th><th /></tr>
+                  <tr>
+                    <th>Kỳ</th>
+                    <th>Trạng thái</th>
+                    <th className="d-none d-md-table-cell">Bộ tiêu chí</th>
+                    <th className="d-none d-lg-table-cell">Cách xét duyệt</th>
+                    <th className="text-end d-none d-sm-table-cell">Người được đánh giá</th>
+                    <th className="text-end d-none d-sm-table-cell">Thao tác</th>
+                  </tr>
                 </thead>
                 <tbody>
                   {paging.pageItems.map((p) => (
@@ -77,13 +86,22 @@ export default function PeriodsPage() {
                       <td className="fw-semibold">
                         {p.name}
                         {p.isActive && <span className="tag t-ok ms-2">Hiện hành</span>}
-                        <div className="small text-secondary fw-normal">Quý {p.quarter}/{p.year}</div>
+                        <div className="small text-secondary fw-normal num">{formatDate(p.startDate)} – {formatDate(p.endDate)}</div>
                       </td>
                       <td><PeriodStatusBadge status={p.status} label={p.statusDisplayName} /></td>
-                      <td>{p.criteria ? <>{p.criteria.name}<div className="small text-secondary">{scoringMethodLabel(p.criteria.selfScoreForm)}</div></> : <span className="text-danger">Chưa chọn</span>}</td>
-                      <td>{p.settings?.profiles?.map((profile) => profile.name).join(", ") || "—"}</td>
-                      <td className="text-end num">{p.totalRecords}</td>
-                      <td className="text-end">
+                      <td className="d-none d-md-table-cell">
+                        {p.criteria ? (
+                          <>
+                            {p.criteria.name}
+                            {!p.criteria.name.startsWith(scoringMethodLabel(p.criteria.selfScoreForm)) && (
+                              <div className="small text-secondary">{scoringMethodLabel(p.criteria.selfScoreForm)}</div>
+                            )}
+                          </>
+                        ) : <span className="text-danger">Chưa chọn</span>}
+                      </td>
+                      <td className="d-none d-lg-table-cell"><ProfilesSummary names={p.settings?.profiles?.map((profile) => profile.name) ?? []} /></td>
+                      <td className="text-end num d-none d-sm-table-cell">{p.totalRecords}</td>
+                      <td className="text-end text-nowrap d-none d-sm-table-cell">
                         <Link className="btn btn-outline-secondary btn-sm" href={`/periods/${p.id}`} onClick={(e) => e.stopPropagation()}>{canManage ? "Cấu hình" : "Xem"}</Link>
                       </td>
                     </tr>
@@ -105,10 +123,22 @@ export default function PeriodsPage() {
 
       {creating && (
         <CreatePeriodModal
+          existing={periods}
           onClose={() => setCreating(false)}
           onCreated={(period) => router.push(`/periods/${period.id}`)}
         />
       )}
     </div>
+  );
+}
+
+/** Cách xét duyệt của kỳ: tên đầu tiên và số còn lại (đủ tên khi rê chuột) để cột không quá dài. */
+function ProfilesSummary({ names }: { names: string[] }) {
+  if (names.length === 0) return <>—</>;
+  return (
+    <span className={styles.profiles} title={names.join(", ")}>
+      {names[0]}
+      {names.length > 1 && <span className="text-secondary"> và <span className="num">{names.length - 1}</span> cách khác</span>}
+    </span>
   );
 }

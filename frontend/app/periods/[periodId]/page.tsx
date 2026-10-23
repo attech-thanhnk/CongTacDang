@@ -2,6 +2,8 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { RowActions } from "@/components/common/RowActions";
+import styles from "@/components/periods/periods.module.css";
 import { useParams } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
@@ -96,7 +98,7 @@ export default function PeriodDetailPage() {
         if (loaded.status === "Draft" || loaded.status === "Open" || loaded.status === "Locked") await checkReadiness();
       }
     } catch (err: unknown) {
-      setError(errorMessage(err, "Không tải được kỳ đánh giá."));
+      setError(errorMessage(err, "Tải kỳ đánh giá không thành công."));
     }
   }, [periodId, canManage, checkReadiness]);
 
@@ -127,11 +129,13 @@ export default function PeriodDetailPage() {
   const frameIssues = readiness?.issues.filter((i) => !i.permission) ?? [];
   const showProgress = canManage && (period.status === "Open" || period.status === "Locked");
   const overdueCount = participants.filter((p) => (p.daysOverdue ?? 0) > 0).length;
+  const openBlocker = !period.criteria ? "Chưa chọn bộ tiêu chí" : participants.length === 0 ? "Chưa có người được đánh giá" : null;
+  const unpublishedCount = participants.filter((p) => p.status !== "Published").length;
   const tabs: { key: PeriodTab; label: string; count?: number; warn?: boolean }[] = [
     ...(showProgress
       ? [{ key: "progress" as PeriodTab, label: "Tiến độ", count: overdueCount > 0 ? overdueCount : undefined, warn: true }]
       : []),
-    ...(canManage ? [{ key: "participants" as PeriodTab, label: "Người được đánh giá", count: participants.length }] : []),
+    ...(canManage ? [{ key: "participants" as PeriodTab, label: "Người được đánh giá", count: participants.length > 0 ? participants.length : undefined }] : []),
     ...(showReadiness
       ? [{ key: "readiness" as PeriodTab, label: "Người thực hiện các bước", count: stepIssues.length > 0 ? stepIssues.length : undefined, warn: true }]
       : []),
@@ -149,7 +153,7 @@ export default function PeriodDetailPage() {
         `BangTongHop_XepLoaiCanBo_{SHORT_NAME}_Quy ${quarter}-${period.year}.xlsx`,
       );
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Không xuất được bảng tổng hợp xếp loại."));
+      toast.error(errorMessage(err, "Xuất bảng tổng hợp xếp loại không thành công."));
     } finally {
       setDownloading(false);
     }
@@ -162,7 +166,7 @@ export default function PeriodDetailPage() {
       toast.success(success);
       await load();
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Không thực hiện được thao tác."));
+      toast.error(errorMessage(err, "Thao tác không thành công."));
       if (errorStatus(err) === 409) await load();
     } finally {
       setBusy(false);
@@ -170,11 +174,11 @@ export default function PeriodDetailPage() {
   };
 
   // Đổi trạng thái kỳ thì nạp lại ô chọn kỳ ở thanh bên.
-  const transition = (action: Transition, reason?: string) =>
+  const transition = (action: Transition, reason: string | undefined, success: string) =>
     run(async () => {
       await evaluationService.transitionPeriod(period.id, action, period.version, reason);
       reloadPeriods().catch(() => undefined);
-    }, "Đã cập nhật trạng thái kỳ.");
+    }, success);
 
   /** Mở kỳ: còn cảnh báo kẹt luồng → máy chủ trả 409 kèm danh sách; hiện bảng và đề nghị mở bắt buộc (có lý do). */
   const openPeriod = async (force = false, reason?: string) => {
@@ -193,7 +197,7 @@ export default function PeriodDetailPage() {
         toast.error(body.message || "Chưa mở được kỳ: còn bước chưa có người thực hiện.");
         setForceOpen(true);
       } else {
-        toast.error(errorMessage(err, "Không mở được kỳ."));
+        toast.error(errorMessage(err, "Mở kỳ không thành công."));
         if (errorStatus(err) === 409) await load();
       }
     } finally {
@@ -207,11 +211,25 @@ export default function PeriodDetailPage() {
       setDirtyState(false);
     }, "Đã lưu cấu hình kỳ.");
 
+  // Áp dụng quy tắc lưu ngay cả phần đang sửa nên hỏi lại trước.
   const applyRules = () =>
-    run(async () => {
-      await evaluationService.updatePeriod(period.id, period.version, { settings, applyDeadlineRules: true });
-      setDirtyState(false);
-    }, "Đã điền thời hạn theo quy tắc.");
+    confirm({
+      title: "Áp dụng quy tắc thời hạn",
+      message: "Thời hạn các bước đặt theo quy tắc sẽ được tính lại và lưu ngay cùng các thay đổi đang sửa.",
+      confirmText: "Áp dụng",
+      isDanger: false,
+      onConfirm: () =>
+        run(async () => {
+          await evaluationService.updatePeriod(period.id, period.version, { settings, applyDeadlineRules: true });
+          setDirtyState(false);
+        }, "Đã điền thời hạn theo quy tắc."),
+    });
+
+  // Bỏ phần đang sửa, quay về cấu hình đã lưu.
+  const discardSettings = () => {
+    setSettings(JSON.parse(JSON.stringify(period.settings)));
+    setDirtyState(false);
+  };
 
   const editSettings = (next: PeriodSettings) => {
     setSettings(next);
@@ -227,6 +245,11 @@ export default function PeriodDetailPage() {
     return run(() => evaluationService.updatePeriod(period.id, period.version, { criteriaSetId }), "Đã chọn bộ tiêu chí cho kỳ.");
   };
 
+  const missingDeadlines = period.settings.profiles.reduce(
+    (sum, profile) => sum + Object.values(profile.steps).filter((step) => step.mode !== "Off" && !step.deadline).length,
+    0,
+  );
+
   const checklist: { ok: boolean; text: string; action: string; go: () => void }[] = [
     {
       ok: !!period.criteria,
@@ -236,7 +259,7 @@ export default function PeriodDetailPage() {
     },
     {
       ok: participants.length > 0,
-      text: participants.length > 0 ? `${participants.length} người được đánh giá` : "Chưa có người được đánh giá",
+      text: participants.length > 0 ? "Đã có danh sách người được đánh giá" : "Chưa có người được đánh giá",
       action: "Thêm người",
       go: () => setTab("participants"),
     },
@@ -248,6 +271,13 @@ export default function PeriodDetailPage() {
           go: () => setTab("participants"),
         }]
       : []),
+    // Máy chủ không bắt buộc thời hạn khi mở kỳ, nhưng thiếu hạn thì không theo dõi được quá hạn.
+    {
+      ok: missingDeadlines === 0,
+      text: missingDeadlines === 0 ? "Các bước đã có thời hạn" : `${missingDeadlines} bước chưa có thời hạn`,
+      action: "Đặt thời hạn",
+      go: () => setTab("profiles"),
+    },
     ...(participants.length > 0
       ? [{
           ok: stepIssues.length === 0,
@@ -269,33 +299,51 @@ export default function PeriodDetailPage() {
         }
         actions={
           <>
-            <Link href="/periods" className="btn btn-outline-secondary"><i className="bi bi-arrow-left me-1" />Danh sách kỳ</Link>
             {hasPermission("report.export") && !isDraft && (
               <button type="button" className="btn btn-outline-secondary" disabled={downloading} onClick={downloadRatingSummary}>
-                <i className="bi bi-file-earmark-excel me-1" />
+                <i className="bi bi-download me-1" />
                 {downloading ? "Đang xuất..." : "Bảng tổng hợp xếp loại"}
               </button>
             )}
-            {canManage && period.status === "Draft" && (
-              <button type="button" className="btn btn-primary" disabled={busy}
+            {canManage && isDraft && (
+              <button type="button" className="btn btn-primary" disabled={busy || openBlocker !== null}
+                title={openBlocker ?? undefined}
                 onClick={() => confirm({ title: "Mở kỳ đánh giá", message: "Sau khi mở kỳ chỉ sửa được thời hạn các bước; không đổi được cách xét duyệt và bộ tiêu chí.", confirmText: "Mở kỳ", isDanger: false, onConfirm: () => openPeriod() })}>
-                Mở kỳ
+                <i className="bi bi-play-fill me-1" />Mở kỳ
               </button>
             )}
-            {canManage && period.status === "Open" && (
-              <button type="button" className="btn btn-primary" disabled={busy}
-                onClick={() => confirm({ title: "Khóa dữ liệu", message: "Chủ hồ sơ sẽ không sửa được; chỉ các bước từ thẩm định trở đi được thao tác.", confirmText: "Khóa dữ liệu", onConfirm: () => transition("lock") })}>
-                Khóa dữ liệu
-              </button>
-            )}
-            {canManage && period.status === "Locked" && (
-              <button type="button" className="btn btn-outline-secondary" disabled={busy} onClick={() => setUnlockOpen(true)}>Mở lại kỳ</button>
-            )}
-            {canManage && (period.status === "Open" || period.status === "Locked") && (
-              <button type="button" className="btn btn-outline-danger" disabled={busy}
-                onClick={() => confirm({ title: "Đóng kỳ", message: "Chỉ đóng được khi mọi hồ sơ đã công bố. Sau khi đóng chỉ còn mở lại hồ sơ để đính chính.", confirmText: "Đóng kỳ", isDanger: true, onConfirm: () => transition("close") })}>
-                Đóng kỳ
-              </button>
+            {canManage && !isDraft && period.status !== "Closed" && (
+              <span className={styles.headerMenu}>
+                <RowActions
+                  itemLabel={period.name}
+                  disabled={busy}
+                  menu={[
+                    { key: "unlock", label: "Mở lại kỳ", icon: "bi-unlock", hidden: period.status !== "Locked", onClick: () => setUnlockOpen(true) },
+                    {
+                      key: "lock", label: "Khóa dữ liệu", icon: "bi-lock", danger: true, hidden: period.status !== "Open",
+                      onClick: () => confirm({
+                        title: "Khóa dữ liệu kỳ",
+                        message: "Chủ hồ sơ sẽ không sửa được hồ sơ nữa; chỉ các bước từ thẩm định trở đi tiếp tục. Muốn mở lại phải ghi lý do.",
+                        confirmText: "Khóa dữ liệu",
+                        isDanger: true,
+                        onConfirm: () => transition("lock", undefined, "Đã khóa dữ liệu kỳ."),
+                      }),
+                    },
+                    {
+                      key: "close", label: "Đóng kỳ", icon: "bi-x-octagon", danger: true,
+                      disabled: unpublishedCount > 0,
+                      title: unpublishedCount > 0 ? `Còn ${unpublishedCount} hồ sơ chưa công bố` : undefined,
+                      onClick: () => confirm({
+                        title: "Đóng kỳ",
+                        message: "Sau khi đóng, kỳ chỉ còn để xem: không đổi được thời hạn, người được đánh giá hay trạng thái kỳ. Muốn sửa kết quả phải mở lại từng hồ sơ để đính chính.",
+                        confirmText: "Đóng kỳ",
+                        isDanger: true,
+                        onConfirm: () => transition("close", undefined, "Đã đóng kỳ."),
+                      }),
+                    },
+                  ]}
+                />
+              </span>
             )}
           </>
         }
@@ -332,7 +380,7 @@ export default function PeriodDetailPage() {
             </ul>
           </section>
         )}
-        <ul className="nav nav-tabs" role="tablist">
+        <ul className={`nav nav-tabs ${styles.tabs}`} role="tablist">
           {tabs.map((t) => (
             <li className="nav-item" key={t.key} role="presentation">
               <button
@@ -355,15 +403,6 @@ export default function PeriodDetailPage() {
 
         {tab === "profiles" && (
         <section className="card">
-          <div className="card-header d-flex justify-content-between align-items-center gap-2">
-            <h2 className="mb-0">Cách xét duyệt</h2>
-            {canManage && period.status !== "Closed" && (
-              <div className="d-flex align-items-center gap-2">
-                {dirty && <span className="text-warning small">Có thay đổi chưa lưu</span>}
-                <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={saveSettings}>Lưu cấu hình</button>
-              </div>
-            )}
-          </div>
           <div className="card-body">
             <WorkflowProfilesEditor
               settings={settings}
@@ -382,6 +421,13 @@ export default function PeriodDetailPage() {
               <label className="form-check-label" htmlFor="enforce">Chặn hoàn thành bước khi đã quá thời hạn</label>
             </div>
           </div>
+          {canManage && period.status !== "Closed" && (
+            <div className={`card-footer ${styles.formFooter}`}>
+              {dirty && <span className="text-secondary small me-auto">Có thay đổi chưa lưu</span>}
+              <button type="button" className="btn btn-outline-secondary" disabled={busy || !dirty} onClick={discardSettings}>Hủy</button>
+              <button type="button" className="btn btn-primary" disabled={busy || !dirty} onClick={saveSettings}>Lưu</button>
+            </div>
+          )}
         </section>
         )}
 
@@ -414,7 +460,7 @@ export default function PeriodDetailPage() {
         onCancel={() => setUnlockOpen(false)}
         onConfirm={async (reason) => {
           setUnlockOpen(false);
-          await transition("unlock", reason);
+          await transition("unlock", reason, "Đã mở lại kỳ.");
         }}
       />
 
@@ -442,17 +488,21 @@ interface ParticipantsProps {
 }
 
 function ParticipantsSection({ period, profiles, participants, departments, cells, busy, run }: ParticipantsProps) {
+  const { confirm } = useToast();
   const canAdd = period.status === "Draft" || period.status === "Open";
   const canChangeProfile = period.status !== "Closed";
+  const [adding, setAdding] = useState(period.status === "Draft" && participants.length === 0);
   const [departmentId, setDepartmentId] = useState("");
   const [cellId, setCellId] = useState("");
   const [query, setQuery] = useState("");
   const [addProfile, setAddProfile] = useState("");
-  const [candidates, setCandidates] = useState<ParticipantCandidateDto[]>([]);
+  const [candidates, setCandidates] = useState<ParticipantCandidateDto[] | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [editing, setEditing] = useState<PeriodParticipantDto | null>(null);
   const [profileTargets, setProfileTargets] = useState<PeriodParticipantDto[] | null>(null);
   const [checked, setChecked] = useState<string[]>([]);
+  // Danh sách người không thêm/đổi được cần đọc kỹ nên hiện trong hộp thoại thay vì toast.
+  const [skipped, setSkipped] = useState<{ title: string; items: string[] } | null>(null);
 
   const search = async () => {
     try {
@@ -466,88 +516,126 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
   const addByUnit = () =>
     run(async () => {
       const result = await evaluationService.addParticipants(period.id, { departmentId, partyCellId: cellId, workflowProfileCode: addProfile });
-      if (result.skipped.length > 0) alertSkipped(result.skipped);
+      if (result.skipped.length > 0) setSkipped({ title: `Đã thêm ${result.added} người. Một số người không được thêm:`, items: result.skipped });
     }, "Đã thêm người được đánh giá theo đơn vị.");
 
   const addSelected = () =>
     run(async () => {
       const result = await evaluationService.addParticipants(period.id, { memberIds: selected, workflowProfileCode: addProfile });
-      if (result.skipped.length > 0) alertSkipped(result.skipped);
+      if (result.skipped.length > 0) setSkipped({ title: `Đã thêm ${result.added} người. Một số người không được thêm:`, items: result.skipped });
       setSelected([]);
       await search();
     }, `Đã thêm ${selected.length} người được đánh giá.`);
 
+  const remove = (p: PeriodParticipantDto) =>
+    confirm({
+      title: "Bỏ khỏi kỳ",
+      message: `Bỏ ${p.fullName} khỏi danh sách người được đánh giá? Hồ sơ đánh giá của người này trong kỳ sẽ bị xóa.`,
+      confirmText: "Bỏ khỏi kỳ",
+      isDanger: true,
+      onConfirm: () => run(() => evaluationService.removeParticipant(period.id, p.recordId, p.version), "Đã bỏ khỏi danh sách."),
+    });
+
   const allChecked = participants.length > 0 && checked.length === participants.length;
   const paging = usePagination(participants, { storageKey: "period.participants" });
+  const showToolbar = (canAdd && !adding) || (canChangeProfile && checked.length > 0);
 
   return (
     <section className="card">
-      <div className="card-header">
-        <h2 className="mb-0">Người được đánh giá <span className="text-secondary fw-medium num">{participants.length}</span></h2>
-      </div>
-
-      {(canAdd || (canChangeProfile && checked.length > 0)) && (
-      <div className="card-body border-bottom">
-        {canAdd && (
-          <div>
-            <div className="row g-2 align-items-end">
-              <div className="col-md-3"><label className="form-label">Phòng</label>
-                <select className="form-select form-select-sm" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
-                  <option value="">— Tất cả —</option>
-                  {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
-              </div>
-              <div className="col-md-3"><label className="form-label">Chi bộ</label>
-                <select className="form-select form-select-sm" value={cellId} onChange={(e) => setCellId(e.target.value)}>
-                  <option value="">— Tất cả —</option>
-                  {cells.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div className="col-md-3"><label className="form-label">Tên / tài khoản</label><input className="form-control form-control-sm" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
-              <div className="col-md-3"><label className="form-label">Cách xét duyệt khi thêm</label>
-                <select className="form-select form-select-sm" value={addProfile} onChange={(e) => setAddProfile(e.target.value)}>
-                  <option value="">Mặc định theo cấp quyết định</option>
-                  {profiles.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
-                </select>
-              </div>
-              <div className="col-12 d-flex gap-2">
-                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={search}><i className="bi bi-search me-1" />Tìm cán bộ</button>
-                <button type="button" className="btn btn-outline-primary btn-sm" disabled={busy || (!departmentId && !cellId)} onClick={addByUnit}>Thêm cả đơn vị</button>
-              </div>
+      {showToolbar && (
+        <div className={`card-body ${styles.toolbar}`}>
+          {canChangeProfile && checked.length > 0 ? (
+            <>
+              <span className="text-secondary">Đã chọn <span className="num">{checked.length}</span> người</span>
+              <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy}
+                onClick={() => setProfileTargets(participants.filter((p) => checked.includes(p.recordId)))}>
+                Đổi cách xét duyệt
+              </button>
+              <button type="button" className="btn btn-link btn-sm" onClick={() => setChecked([])}>Bỏ chọn</button>
+            </>
+          ) : null}
+          {canAdd && !adding && (
+            <div className={styles.toolbarEnd}>
+              <button type="button" className="btn btn-primary btn-sm" aria-expanded={false} onClick={() => setAdding(true)}>
+                <i className="bi bi-plus-lg me-1" />Thêm người
+              </button>
             </div>
-            {candidates.length > 0 && (
-              <div className="mt-3">
-                <div className="border rounded-3 px-3 py-2" style={{ maxHeight: 220, overflowY: "auto" }}>
-                  {candidates.map((c) => (
-                    <div className="form-check small" key={c.memberId}>
-                      <input className="form-check-input" type="checkbox" id={`cand-${c.memberId}`} disabled={c.alreadyAdded} checked={selected.includes(c.memberId)}
-                        onChange={(e) => setSelected(e.target.checked ? [...selected, c.memberId] : selected.filter((id) => id !== c.memberId))} />
-                      <label className="form-check-label" htmlFor={`cand-${c.memberId}`}>
-                        {c.fullName} ({c.username}) · {c.departmentName || "—"} · {c.partyCellName || "—"}{c.alreadyAdded ? " — đã có" : ""}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-                <button type="button" className="btn btn-primary btn-sm mt-2" disabled={busy || selected.length === 0} onClick={addSelected}>Thêm {selected.length} người đã chọn</button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {canChangeProfile && checked.length > 0 && (
-          <div className={`d-flex justify-content-between align-items-center gap-2 ${canAdd ? "mt-3 pt-3 border-top" : ""}`}>
-            <span className="text-secondary">Đã chọn <span className="num">{checked.length}</span> người</span>
-            <button type="button" className="btn btn-outline-primary btn-sm" disabled={busy}
-              onClick={() => setProfileTargets(participants.filter((p) => checked.includes(p.recordId)))}>
-              Đổi cách xét duyệt hàng loạt
-            </button>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       )}
 
+      {canAdd && adding && (
+        <div className={`card-body ${styles.addPanel}`}>
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <h2 className="h6 mb-0">Thêm người được đánh giá</h2>
+            <button type="button" className="btn-close" aria-label="Đóng thêm người" title="Đóng" onClick={() => setAdding(false)} />
+          </div>
+          <div className="row g-2 align-items-end">
+            <div className="col-6 col-lg-3"><label className="form-label" htmlFor="add-dept">Phòng</label>
+              <select id="add-dept" className="form-select form-select-sm" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+                <option value="">Tất cả</option>
+                {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </div>
+            <div className="col-6 col-lg-3"><label className="form-label" htmlFor="add-cell">Chi bộ</label>
+              <select id="add-cell" className="form-select form-select-sm" value={cellId} onChange={(e) => setCellId(e.target.value)}>
+                <option value="">Tất cả</option>
+                {cells.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div className="col-6 col-lg-3"><label className="form-label" htmlFor="add-q">Tên / tài khoản</label>
+              <input id="add-q" className="form-control form-control-sm" value={query} onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); search(); } }} />
+            </div>
+            <div className="col-6 col-lg-3"><label className="form-label" htmlFor="add-profile">Cách xét duyệt</label>
+              <select id="add-profile" className="form-select form-select-sm" value={addProfile} onChange={(e) => setAddProfile(e.target.value)}>
+                <option value="">Theo cấp quyết định</option>
+                {profiles.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
+              </select>
+            </div>
+            <div className="col-12 d-flex flex-wrap gap-2">
+              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={search}><i className="bi bi-search me-1" />Tìm cán bộ</button>
+              <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy || (!departmentId && !cellId)}
+                title={!departmentId && !cellId ? "Chọn Phòng hoặc Chi bộ trước" : undefined} onClick={addByUnit}>
+                Thêm cả đơn vị
+              </button>
+            </div>
+          </div>
+          {candidates !== null && (
+            <div className="mt-3">
+              {candidates.length === 0 ? (
+                <div className="text-secondary small">Không tìm thấy cán bộ phù hợp.</div>
+              ) : (
+                <>
+                  <div className={styles.candidates}>
+                    {candidates.map((c) => (
+                      <div className="form-check small" key={c.memberId}>
+                        <input className="form-check-input" type="checkbox" id={`cand-${c.memberId}`} disabled={c.alreadyAdded} checked={selected.includes(c.memberId)}
+                          onChange={(e) => setSelected(e.target.checked ? [...selected, c.memberId] : selected.filter((id) => id !== c.memberId))} />
+                        <label className="form-check-label" htmlFor={`cand-${c.memberId}`}>
+                          {c.fullName} ({c.username}) · {c.departmentName || "—"} · {c.partyCellName || "—"}{c.alreadyAdded ? " — đã có" : ""}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="d-flex justify-content-end mt-2">
+                    <button type="button" className="btn btn-primary btn-sm" disabled={busy || selected.length === 0} onClick={addSelected}>
+                      <i className="bi bi-plus-lg me-1" />Thêm <span className="num">{selected.length}</span> người
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {participants.length === 0 ? (
+        <div className="card-body text-secondary border-top">Chưa có người được đánh giá.</div>
+      ) : (
+        <>
         <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0">
+          <table className={`table table-hover align-middle mb-0 ${styles.compactTable}`}>
             <thead>
               <tr>
                 {canChangeProfile && (
@@ -556,7 +644,13 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                       onChange={(e) => setChecked(e.target.checked ? participants.map((p) => p.recordId) : [])} />
                   </th>
                 )}
-                <th>Cán bộ</th><th>Phòng</th><th>Chi bộ</th><th>Khung tỷ trọng</th><th>Cấp quyết định</th><th>Cách xét duyệt</th><th>Trạng thái</th><th />
+                <th>Cán bộ</th>
+                <th className="d-none d-md-table-cell">Đơn vị</th>
+                <th className="d-none d-lg-table-cell" title="Khung tỷ trọng">Khung</th>
+                <th className="d-none d-lg-table-cell">Cấp quyết định</th>
+                <th className="d-none d-md-table-cell">Cách xét duyệt</th>
+                <th className="d-none d-md-table-cell">Trạng thái</th>
+                {canChangeProfile && <th className="text-end">Thao tác</th>}
               </tr>
             </thead>
             <tbody>
@@ -568,23 +662,29 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                         onChange={(e) => setChecked(e.target.checked ? [...checked, p.recordId] : checked.filter((id) => id !== p.recordId))} />
                     </td>
                   )}
-                  <td><Link href={`/evaluations/${p.recordId}`} className="fw-semibold">{p.fullName}</Link><div className="small text-secondary">{p.username}</div></td>
-                  <td>{p.departmentName || "—"}</td>
-                  <td>{p.partyCellName || "—"}</td>
-                  <td title={p.weightFrameName || undefined}>{p.weightFrameCode || "—"}{p.weightFrameCode && !p.weightFrameName && period.criteria?.selfScoreForm === "09A" && <i className="bi bi-exclamation-triangle text-danger ms-1" title="Khung không có trong bộ tiêu chí của kỳ" />}</td>
-                  <td>{p.approvalAuthority === "CapTren" ? "Cấp trên" : "Cơ sở"}</td>
-                  <td>{p.workflowProfileName || p.workflowProfileCode}</td>
-                  <td><RecordStatusBadge status={p.status} label={p.statusDisplayName} /></td>
-                  <td className="text-end text-nowrap">
-                    {canChangeProfile && <button type="button" className="btn btn-link btn-sm p-0 me-2" onClick={() => setProfileTargets([p])}>Đổi cách xét duyệt</button>}
-                    {canAdd && <button type="button" className="btn btn-link btn-sm p-0 me-2" onClick={() => setEditing(p)}>Sửa thông tin</button>}
-                    {canAdd && (
-                      <button type="button" className="btn btn-link btn-sm p-0 text-danger" disabled={busy}
-                        onClick={() => run(() => evaluationService.removeParticipant(period.id, p.recordId, p.version), "Đã bỏ khỏi danh sách.")}>
-                        Bỏ
-                      </button>
-                    )}
+                  <td className={styles.nameCell}><Link href={`/evaluations/${p.recordId}`} className="fw-semibold">{p.fullName}</Link><div className="small text-secondary">{p.username}</div>
+                    <div className="d-md-none mt-1"><RecordStatusBadge status={p.status} label={p.statusDisplayName} /></div>
                   </td>
+                  <td className="d-none d-md-table-cell">{p.departmentName || "—"}<div className={styles.unitSub}>{p.partyCellName || "—"}</div></td>
+                  <td className="d-none d-lg-table-cell" title={p.weightFrameName || undefined}>{p.weightFrameCode || "—"}{p.weightFrameCode && !p.weightFrameName && period.criteria?.selfScoreForm === "09A" && <i className="bi bi-exclamation-triangle text-danger ms-1" title="Khung không có trong bộ tiêu chí của kỳ" />}</td>
+                  <td className="d-none d-lg-table-cell text-nowrap">{p.approvalAuthority === "CapTren" ? "Cấp trên" : "Cơ sở"}</td>
+                  <td className="d-none d-md-table-cell">{p.workflowProfileName || p.workflowProfileCode}</td>
+                  <td className="d-none d-md-table-cell"><RecordStatusBadge status={p.status} label={p.statusDisplayName} /></td>
+                  {canChangeProfile && (
+                    <td className="text-end">
+                      <RowActions
+                        itemLabel={p.fullName}
+                        disabled={busy}
+                        primary={canAdd
+                          ? [{ key: "edit", label: "Sửa", icon: "bi-pencil", title: "Sửa thông tin", onClick: () => setEditing(p) }]
+                          : [{ key: "profile", label: "Đổi cách xét duyệt", icon: "bi-diagram-3", onClick: () => setProfileTargets([p]) }]}
+                        menu={canAdd ? [
+                          { key: "profile", label: "Đổi cách xét duyệt", icon: "bi-diagram-3", onClick: () => setProfileTargets([p]) },
+                          { key: "remove", label: "Bỏ khỏi kỳ", icon: "bi-trash", danger: true, onClick: () => remove(p) },
+                        ] : []}
+                      />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -597,6 +697,8 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
           onPageChange={paging.setPage}
           onPageSizeChange={paging.setPageSize}
         />
+        </>
+      )}
 
       {editing && (
         <SnapshotDialog
@@ -632,7 +734,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                   workflowProfileCode,
                   reason,
                 });
-                if (result.skipped.length > 0) alertSkipped(result.skipped, `Đã đổi ${result.updated} hồ sơ. Một số hồ sơ không đổi được:`);
+                if (result.skipped.length > 0) setSkipped({ title: `Đã đổi ${result.updated} hồ sơ. Một số hồ sơ không đổi được:`, items: result.skipped });
               }
               setProfileTargets(null);
               setChecked([]);
@@ -640,12 +742,21 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
           }
         />
       )}
+
+      {skipped && (
+        <AdminModal
+          title="Chưa xử lý hết"
+          onClose={() => setSkipped(null)}
+          footer={<button type="button" className="btn btn-primary btn-sm" onClick={() => setSkipped(null)}>Đóng</button>}
+        >
+          <p className="mb-2">{skipped.title}</p>
+          <ul className="small mb-0">
+            {skipped.items.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        </AdminModal>
+      )}
     </section>
   );
-}
-
-function alertSkipped(skipped: string[], title = "Một số người không được thêm:") {
-  if (typeof window !== "undefined") window.alert(title + "\n" + skipped.join("\n"));
 }
 
 interface ProfileDialogProps {
@@ -769,27 +880,30 @@ function CriteriaSection({ period, editable, busy, onChoose }: CriteriaSectionPr
 
   return (
     <section className="card">
-      <div className="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h2 className="mb-0">Bộ tiêu chí</h2>
-        <Link href="/criteria" className="btn btn-outline-secondary btn-sm">Quản lý bộ tiêu chí</Link>
-      </div>
       <div className="card-body">
         {criteria ? (
-          <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+          <div className={`d-flex flex-wrap align-items-center gap-2 ${editable || expanded ? "mb-3" : ""}`}>
             <strong>{criteria.name}</strong>
             <span className="text-secondary">{criteria.code}</span>
-            <span className="tag t-info">{scoringMethodLabel(criteria.selfScoreForm)}</span>
+            {!criteria.name.startsWith(scoringMethodLabel(criteria.selfScoreForm)) && (
+              <span className="tag t-info">{scoringMethodLabel(criteria.selfScoreForm)}</span>
+            )}
             <span className="text-secondary small num">
               {period.status === "Draft" ? "Chọn lúc" : "Chụp vào kỳ lúc"} {formatDateTime(criteria.takenAt)}
             </span>
-            <button type="button" className="btn btn-link btn-sm p-0 ms-auto" onClick={() => setExpanded(!expanded)}>{expanded ? "Ẩn nội dung" : "Xem nội dung"}</button>
+            <span className="ms-auto d-flex align-items-center gap-2">
+              <button type="button" className="btn btn-outline-secondary btn-sm" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+                <i className={`bi ${expanded ? "bi-chevron-up" : "bi-chevron-down"} me-1`} />{expanded ? "Ẩn nội dung" : "Xem nội dung"}
+              </button>
+              <Link href="/criteria" className="btn btn-outline-secondary btn-sm">Quản lý bộ tiêu chí</Link>
+            </span>
           </div>
         ) : (
-          <div className="alert alert-warning py-2">Kỳ chưa chọn bộ tiêu chí — chưa mở được kỳ.</div>
+          <div className="alert alert-warning py-2">Kỳ chưa chọn bộ tiêu chí — chưa mở được kỳ. <Link href="/criteria">Quản lý bộ tiêu chí</Link></div>
         )}
         {editable && (
           <div className="d-flex gap-2 align-items-end flex-wrap mb-2">
-            <div style={{ minWidth: 320 }}>
+            <div className="flex-grow-1" style={{ maxWidth: 420 }}>
               <label className="form-label" htmlFor="period-criteria-set">Chọn bộ đã xuất bản</label>
               <select id="period-criteria-set" className="form-select form-select-sm" value={choice} onChange={(e) => setChoice(e.target.value)}>
                 <option value="">— Chọn —</option>

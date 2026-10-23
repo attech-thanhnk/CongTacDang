@@ -45,15 +45,18 @@ export function AppSidebar() {
   const visibleGroups = buildMenu(user, hasPermission);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-  // Nhớ nhóm đã gập; mặc định gập nhóm Hệ thống.
+  // Nhớ nhóm đã gập; mặc định gập nhóm Hệ thống, trừ người chỉ làm quản trị hệ thống.
+  const onlySystemWork =
+    !!user && !user.permissions.some((code) => /^(evaluation.|period.|criteria.)/.test(code));
   useEffect(() => {
+    const fallback = { system: !onlySystemWork };
     try {
       const saved = localStorage.getItem(COLLAPSED_KEY);
-      setCollapsed(saved ? JSON.parse(saved) : { system: true });
+      setCollapsed(saved ? JSON.parse(saved) : fallback);
     } catch {
-      setCollapsed({ system: true });
+      setCollapsed(fallback);
     }
-  }, []);
+  }, [onlySystemWork]);
 
   const toggleGroup = (key: string) =>
     setCollapsed((prev) => {

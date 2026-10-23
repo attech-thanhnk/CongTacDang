@@ -46,7 +46,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       } else if (user?.mustChangePassword && !isChangePasswordPage) {
         router.replace("/change-password");
       } else if (user && isLoginPage && hadSessionOnLoginEntry.current) {
-        router.replace("/evaluations");
+        router.replace("/");
       }
     }
   }, [user, loading, isLoginPage, isChangePasswordPage, pathname, router]);
