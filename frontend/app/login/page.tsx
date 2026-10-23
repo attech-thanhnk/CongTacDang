@@ -107,15 +107,15 @@ const PANEL_CLASS = { center: styles.panelCenter, left: styles.panelLeft, right:
 export default function LoginPage() {
   const org = useOrganizationInfo();
   const imageUrl = org?.loginBackgroundUrl ? resolveApiUrl(org.loginBackgroundUrl) : null;
-  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState<{ url: string; width: number } | null>(null);
 
-  // Tải trước ảnh rồi mới hiện dần, tránh nền nhấp nháy khi ảnh lớn.
+  // Tải trước ảnh rồi mới hiện dần; lấy chiều rộng gốc để không phóng ảnh quá cỡ.
   useEffect(() => {
     if (!imageUrl) return;
     let active = true;
     const img = new window.Image();
     img.onload = () => {
-      if (active) setLoadedUrl(imageUrl);
+      if (active) setLoaded({ url: imageUrl, width: img.naturalWidth });
     };
     img.src = imageUrl;
     return () => {
@@ -123,6 +123,7 @@ export default function LoginPage() {
     };
   }, [imageUrl]);
 
+  const ready = !!imageUrl && loaded?.url === imageUrl;
   const screenClass = imageUrl
     ? `${styles.screen} ${styles.hasImage} ${PANEL_CLASS[org?.loginPanelPosition ?? "center"] ?? styles.panelCenter}`
     : styles.screen;
@@ -130,11 +131,16 @@ export default function LoginPage() {
   return (
     <div className={screenClass}>
       {imageUrl && (
-        <div
-          className={`${styles.backdrop} ${loadedUrl === imageUrl ? styles.backdropVisible : ""}`}
-          style={{ backgroundImage: `url("${imageUrl}")` }}
-          aria-hidden="true"
-        />
+        <>
+          <div
+            className={`${styles.backdrop} ${ready ? styles.backdropVisible : ""}`}
+            style={{ backgroundImage: `url("${imageUrl}")` }}
+            aria-hidden="true"
+          />
+          <div className={`${styles.photo} ${ready ? styles.backdropVisible : ""}`} aria-hidden="true">
+            {ready && <img src={imageUrl} alt="" style={{ maxWidth: `min(100vw, ${Math.round(loaded.width * 1.3)}px)` }} />}
+          </div>
+        </>
       )}
       <Suspense fallback={<div className="spinner-border text-primary" role="status" />}>
         <LoginForm />
