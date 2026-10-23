@@ -13,6 +13,18 @@ export interface AttachmentItem {
   checksum?: string;
 }
 
+/** Thao tác người dùng được làm với minh chứng của một hồ sơ (máy chủ tính theo quyền và giai đoạn của hồ sơ). */
+export interface EvidenceRights {
+  recordId: string;
+  /** Open — thêm/thay/gỡ; AddOnly — chỉ bổ sung; Locked — khóa. */
+  stage: "Open" | "AddOnly" | "Locked";
+  canAdd: boolean;
+  canReplace: boolean;
+  canRemove: boolean;
+  /** Lý do bị giới hạn (chỉ với chủ hồ sơ). */
+  reason?: string | null;
+}
+
 /** Loại đối tượng gắn tệp (khớp AttachmentOwnerTypes ở máy chủ). */
 export type AttachmentOwnerType = "EvaluationRecord" | "EvaluationTask" | "EvaluationAppeal" | "CollectiveEvaluationRecord";
 
@@ -51,6 +63,11 @@ export const attachmentService = {
   // Tệp (phiên bản hiện hành) của một đối tượng mà người dùng được xem
   async getByOwner(ownerType: AttachmentOwnerType, ownerId: string): Promise<AttachmentItem[]> {
     return request<AttachmentItem[]>(`/attachments?ownerType=${ownerType}&ownerId=${ownerId}`);
+  },
+
+  // Thao tác được làm với minh chứng của hồ sơ (thêm / thay / gỡ)
+  async getEvidenceRights(recordId: string): Promise<EvidenceRights> {
+    return request<EvidenceRights>(`/attachments/evidence-rights?recordId=${recordId}`);
   },
 
   // Tải tệp lên và gắn ngay vào một đối tượng (máy chủ kiểm tra quyền trên đối tượng)

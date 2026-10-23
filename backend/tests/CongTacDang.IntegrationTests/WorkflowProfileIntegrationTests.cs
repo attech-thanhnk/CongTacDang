@@ -557,18 +557,35 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Contains(seen.EnumerateArray(), f => f.GetProperty("formCode").GetString() == "MC-T1");
         Assert.Equal(HttpStatusCode.Forbidden, (await w.ManagerC.PostAsync("/api/attachments/upload", Form(recordId))).StatusCode);
 
-        // Gỡ: người khác không gỡ được; chủ hồ sơ gỡ được (cả khi đã nộp phiếu) — tệp không còn hiện nhưng vẫn lưu (xóa mềm).
+        // Trước khi nộp phiếu: người khác không gỡ được; chủ hồ sơ gỡ được — tệp không còn hiện nhưng vẫn lưu (xóa mềm).
         var fileId = uploaded.GetProperty("id").GetGuid();
+        var removable = (await Data(await w.StaffC.PostAsync("/api/attachments/upload", Form(recordId)))).GetProperty("id").GetGuid();
+        var rights = await Data(w.StaffC, $"/api/attachments/evidence-rights?recordId={recordId}");
+        Assert.True(rights.GetProperty("canAdd").GetBoolean() && rights.GetProperty("canReplace").GetBoolean() && rights.GetProperty("canRemove").GetBoolean());
         Assert.Equal(HttpStatusCode.Forbidden, (await w.ManagerC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
-        await StepAsync(w.StaffC, recordId, "self-score/submit", new { generalScores = General, axisScores = Axis }, "AwaitingCellConfirm");
-        Assert.Equal(HttpStatusCode.OK, (await w.StaffC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await w.StaffC.DeleteAsync($"/api/attachments/{removable}")).StatusCode);
         var after = await Data(w.ManagerC, $"/api/attachments?ownerType=EvaluationRecord&ownerId={recordId}");
-        Assert.DoesNotContain(after.EnumerateArray(), f => f.GetProperty("id").GetGuid() == fileId);
+        Assert.DoesNotContain(after.EnumerateArray(), f => f.GetProperty("id").GetGuid() == removable);
         await _factory.WithDbAsync(async db =>
         {
-            var stored = await db.TaskAttachments.IgnoreQueryFilters().FirstAsync(a => a.Id == fileId);
+            var stored = await db.TaskAttachments.IgnoreQueryFilters().FirstAsync(a => a.Id == removable);
             Assert.True(stored.IsDeleted);
         });
+
+        // Đã nộp phiếu tự chấm: chỉ bổ sung tệp mới; thay, gỡ tệp đã nộp → 409. Người xem khác không có thao tác nào.
+        await StepAsync(w.StaffC, recordId, "self-score/submit", new { generalScores = General, axisScores = Axis }, "AwaitingCellConfirm");
+        Assert.Equal(HttpStatusCode.Conflict, (await w.StaffC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await UploadAsync(w.StaffC, $"/api/attachments/{fileId}/versions")).StatusCode);
+        var added = await Data(await w.StaffC.PostAsync("/api/attachments/upload", Form(recordId)));
+        Assert.Equal(HttpStatusCode.Conflict, (await w.StaffC.DeleteAsync($"/api/attachments/{added.GetProperty("id").GetGuid()}")).StatusCode);
+        rights = await Data(w.StaffC, $"/api/attachments/evidence-rights?recordId={recordId}");
+        Assert.Equal("AddOnly", rights.GetProperty("stage").GetString());
+        Assert.True(rights.GetProperty("canAdd").GetBoolean());
+        Assert.False(rights.GetProperty("canReplace").GetBoolean() || rights.GetProperty("canRemove").GetBoolean());
+        var managerRights = await Data(w.ManagerC, $"/api/attachments/evidence-rights?recordId={recordId}");
+        Assert.False(managerRights.GetProperty("canAdd").GetBoolean());
+        var listed = await Data(w.ManagerC, $"/api/attachments?ownerType=EvaluationRecord&ownerId={recordId}");
+        Assert.Contains(listed.EnumerateArray(), f => f.GetProperty("id").GetGuid() == fileId);
     }
 
     private async Task<World> WorldAsync()

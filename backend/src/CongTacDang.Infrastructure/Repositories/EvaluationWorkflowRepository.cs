@@ -224,6 +224,14 @@ public sealed class EvaluationWorkflowRepository : IEvaluationWorkflowRepository
         _db.PartyCells.AnyAsync(c => c.Id == id, ct);
 
     /// <inheritdoc />
+    public Task<bool> IsDepartmentWithinAsync(Guid rootId, Guid unitId, CancellationToken ct = default) =>
+        OrgSubtreeQueries.IsDepartmentWithinAsync(_db, rootId, unitId, ct);
+
+    /// <inheritdoc />
+    public Task<bool> IsPartyCellWithinAsync(Guid rootId, Guid unitId, CancellationToken ct = default) =>
+        OrgSubtreeQueries.IsPartyCellWithinAsync(_db, rootId, unitId, ct);
+
+    /// <inheritdoc />
     public async Task<Dictionary<Guid, (Guid AttachmentId, string FileName)>> GetCurrentEvidenceAsync(
         IReadOnlyCollection<EvaluationTask> tasks,
         CancellationToken ct = default)

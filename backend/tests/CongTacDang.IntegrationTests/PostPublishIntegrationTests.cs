@@ -142,17 +142,27 @@ public sealed class PostPublishIntegrationTests
             .GetProperty("underReview").GetBoolean());
 
         // Tệp kèm kiến nghị gắn đối tượng EvaluationAppeal: chủ hồ sơ tải lên, người xử lý (xem được hồ sơ) xem được.
-        using (var form = new MultipartFormDataContent())
+        static MultipartFormDataContent EvidenceForm(string ownerType, Guid ownerId)
         {
-            form.Add(new ByteArrayContent(System.Text.Encoding.ASCII.GetBytes("%PDF-1.4 minh chung")), "file", "minh-chung.pdf");
-            form.Add(new StringContent("KN"), "formCode");
-            form.Add(new StringContent("EvaluationAppeal"), "ownerType");
-            form.Add(new StringContent(appealId.ToString()), "ownerId");
-            await Data(await w.OwnerAC.PostAsync("/api/attachments/upload", form));
+            var form = new MultipartFormDataContent
+            {
+                { new ByteArrayContent(System.Text.Encoding.ASCII.GetBytes("%PDF-1.4 minh chung")), "file", "minh-chung.pdf" },
+                { new StringContent("KN"), "formCode" },
+                { new StringContent(ownerType), "ownerType" },
+                { new StringContent(ownerId.ToString()), "ownerId" }
+            };
+            return form;
         }
+        var appealFile = await Data(await w.OwnerAC.PostAsync("/api/attachments/upload", EvidenceForm("EvaluationAppeal", appealId)));
         var files = await Data(w.ResolverC, $"/api/attachments?ownerType=EvaluationAppeal&ownerId={appealId}");
         Assert.Single(files.EnumerateArray());
         Assert.Empty((await Data(w.PlainC, $"/api/attachments?ownerType=EvaluationAppeal&ownerId={appealId}")).EnumerateArray());
+        // Hồ sơ đã công bố: minh chứng của hồ sơ đã khóa (bổ sung qua kiến nghị); tệp kèm kiến nghị không gỡ được.
+        var lockedUpload = await w.OwnerAC.PostAsync("/api/attachments/upload", EvidenceForm("EvaluationRecord", recordId));
+        Assert.Equal(HttpStatusCode.Conflict, lockedUpload.StatusCode);
+        Assert.Contains("kiến nghị", await MessageAsync(lockedUpload));
+        Assert.False((await Data(w.OwnerAC, $"/api/attachments/evidence-rights?recordId={recordId}")).GetProperty("canAdd").GetBoolean());
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.OwnerAC.DeleteAsync($"/api/attachments/{appealFile.GetProperty("id").GetGuid()}")).StatusCode);
 
         // Hàng đợi: người xử lý thấy nhóm "Kiến nghị chờ xử lý"; người có xung đột lợi ích (đã thẩm định) không thấy.
         Assert.Contains(await QueueRecordsAsync(w.ResolverC, "APPEALS"), id => id == recordId);
@@ -185,6 +195,9 @@ public sealed class PostPublishIntegrationTests
         Assert.Equal("Accepted", resolved.GetProperty("status").GetString());
         Assert.Equal("Chấp nhận: minh chứng bổ sung hợp lệ theo HD03 mục II.1.", resolved.GetProperty("response").GetString());
         Assert.True(resolved.GetProperty("canReopen").GetBoolean());
+        // Kiến nghị đã trả lời: không bổ sung tệp vào kiến nghị đó nữa.
+        Assert.False(resolved.GetProperty("canAttach").GetBoolean());
+        Assert.Equal(HttpStatusCode.Conflict, (await w.OwnerAC.PostAsync("/api/attachments/upload", EvidenceForm("EvaluationAppeal", appealId))).StatusCode);
 
         // Nhãn tắt sau khi trả lời; gửi kiến nghị mới được lại.
         var after = await Data(w.OwnerAC, $"/api/evaluations/records/{recordId}/appeals");

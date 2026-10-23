@@ -495,6 +495,8 @@ public sealed class EvaluationWorkflowServiceTests
         public Task<HashSet<Guid>> GetRecordIdsWithActionAsync(Guid periodId, WorkflowAction action, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> DepartmentExistsAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> PartyCellExistsAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<bool> IsDepartmentWithinAsync(Guid rootId, Guid unitId, CancellationToken ct = default) => Task.FromResult(rootId == unitId);
+        public Task<bool> IsPartyCellWithinAsync(Guid rootId, Guid unitId, CancellationToken ct = default) => Task.FromResult(rootId == unitId);
     }
 
     #endregion

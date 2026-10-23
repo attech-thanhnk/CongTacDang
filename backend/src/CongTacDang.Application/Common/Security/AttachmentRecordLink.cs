@@ -32,4 +32,7 @@ public sealed record CollectiveAttachmentOwner(System.Guid Id, System.Guid? Depa
 {
     /// <summary>Đối tượng kiểm tra quyền theo tổ chức của hồ sơ tập thể.</summary>
     public AccessTarget Target => new(DepartmentId: DepartmentId, PartyCellId: PartyCellId);
+
+    /// <summary>Đối tượng kiểm tra quyền khi tải lên/thay/gỡ tệp: mọi tổ chức của hồ sơ đều phải trong phạm vi.</summary>
+    public AccessTarget WriteTarget => Target.ForWrite();
 }

@@ -1215,9 +1215,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             throw new ValidationException("Biên bản thuộc kỳ đánh giá khác với hồ sơ.");
         if (meeting.Stage.HasValue && meeting.Stage.Value != stage)
             throw new ValidationException($"Biên bản đã chọn không dùng cho bước \"{WorkflowSteps.DisplayName(stage)}\".");
-        if ((meeting.PartyCellId.HasValue && meeting.PartyCellId != record.PartyCellId)
-            || (meeting.DepartmentId.HasValue && meeting.DepartmentId != record.DepartmentId))
-            throw new ValidationException("Hồ sơ không thuộc Phòng/Chi bộ của biên bản đã chọn.");
+        // Biên bản ở tổ chức cấp trên nhận hồ sơ của đơn vị/tổ chức cấp dưới (cây con); ngoài cây con thì từ chối.
+        if (!await OrgSubtreeRules.RecordWithinMeetingAsync(
+                _repo, meeting.DepartmentId, meeting.PartyCellId, record.DepartmentId, record.PartyCellId, ct))
+            throw new ValidationException("Hồ sơ không thuộc đơn vị/tổ chức Đảng của biên bản đã chọn hoặc đơn vị, tổ chức cấp dưới của nó.");
 
         if (votes == null)
             return;

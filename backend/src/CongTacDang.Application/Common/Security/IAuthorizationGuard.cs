@@ -23,6 +23,20 @@ public sealed record AccessTarget(
     /// <summary>Dựng đối tượng kiểm tra từ hồ sơ đánh giá (dùng các trường ảnh chụp trên hồ sơ).</summary>
     public static AccessTarget ForRecord(EvaluationRecord record) =>
         new(record.MemberId, record.DepartmentId, record.PartyCellId);
+
+    /// <summary>
+    /// Chế độ ghi: đối tượng được tạo/sửa gắn với nhiều đơn vị (ví dụ cả đơn vị chính quyền và tổ chức Đảng) thì
+    /// <b>mọi</b> đơn vị khác null đều phải nằm trong phạm vi của người thao tác (phạm vi đơn vị bao trùm cây con).
+    /// Mặc định (đọc) chỉ cần một đơn vị nằm trong phạm vi.
+    /// </summary>
+    public bool RequireAllUnits { get; init; }
+
+    /// <summary>Bản sao của đối tượng ở chế độ ghi (<see cref="RequireAllUnits"/>).</summary>
+    public AccessTarget ForWrite() => this with { RequireAllUnits = true };
+
+    /// <summary>Đối tượng gắn đơn vị chính quyền / tổ chức Đảng, kiểm tra ở chế độ ghi (tạo/sửa).</summary>
+    public static AccessTarget ForUnitsWrite(Guid? departmentId, Guid? partyCellId) =>
+        new AccessTarget(DepartmentId: departmentId, PartyCellId: partyCellId).ForWrite();
 }
 
 /// <summary>

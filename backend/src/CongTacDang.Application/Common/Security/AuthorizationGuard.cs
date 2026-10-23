@@ -83,6 +83,9 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
             return false;
 
         var appliesScope = PermissionCodes.Find(permission)?.AppliesScope ?? true;
+        if (target.RequireAllUnits)
+            return EvaluateAllUnits(permissions, permission, target, appliesScope);
+
         foreach (var grant in permissions.GrantsFor(permission))
         {
             switch (grant.ScopeType)
@@ -98,6 +101,26 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Chế độ ghi (<see cref="AccessTarget.RequireAllUnits"/>): phạm vi Global bao trùm mọi đối tượng; ngược lại mỗi đơn vị khác null
+    /// của đối tượng (đơn vị chính quyền, tổ chức Đảng) phải được một bản gán bao trùm — có thể là hai bản gán khác nhau.
+    /// Đối tượng không gắn đơn vị nào chỉ phạm vi Global làm được (như chế độ đọc).
+    /// </summary>
+    private static bool EvaluateAllUnits(EffectivePermissions permissions, string permission, AccessTarget target, bool appliesScope)
+    {
+        var grants = permissions.GrantsFor(permission).ToList();
+        if (grants.Any(g => g.ScopeType == ScopeType.Global))
+            return true;
+        if (!appliesScope || (!target.DepartmentId.HasValue && !target.PartyCellId.HasValue))
+            return false;
+
+        var departmentCovered = !target.DepartmentId.HasValue
+            || grants.Any(g => g.ScopeType == ScopeType.Department && g.ScopeId.HasValue && g.Covers(target.DepartmentId));
+        var cellCovered = !target.PartyCellId.HasValue
+            || grants.Any(g => g.ScopeType == ScopeType.PartyCell && g.ScopeId.HasValue && g.Covers(target.PartyCellId));
+        return departmentCovered && cellCovered;
     }
 
     /// <summary>Bộ lọc phạm vi trên tập quyền cho sẵn.</summary>
@@ -173,6 +196,13 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         {
             return new ForbiddenException(
                 $"Chỉ chủ hồ sơ mới được thực hiện \"{name}\". Bạn không thể thao tác trên hồ sơ của người khác.");
+        }
+
+        if (target.RequireAllUnits && target.DepartmentId.HasValue && target.PartyCellId.HasValue)
+        {
+            return new ForbiddenException(
+                $"Bạn cần quyền \"{name}\" trên cả đơn vị chính quyền và tổ chức Đảng đã chọn; ít nhất một nơi nằm ngoài phạm vi được giao. "
+                + "Hãy chọn đơn vị trong phạm vi hoặc liên hệ quản trị hệ thống nếu cần được cấp quyền.");
         }
 
         return new ForbiddenException(

@@ -389,9 +389,11 @@ const hasGrade = (grade?: string | null) => !!grade && grade !== "ChuaXepLoai";
 function RecordData({ record }: { record: EvaluationRecordDto }) {
   const { toast } = useToast();
   const { criteria } = useCriteria(record.periodId);
-  const evidence = useRecordEvidence(record.id);
+  const evidence = useRecordEvidence(record.id, record.version);
   const { user } = useAuth();
   const isOwner = !!user && user.id === record.memberId;
+  /** Thêm minh chứng: theo cờ máy chủ trả về (quyền + giai đoạn hồ sơ). */
+  const canAddEvidence = !!evidence.rights?.canAdd;
   const stepOf = (step: WorkflowStepCode) => record.progress.find((p) => p.step === step);
   const enabled = (step: WorkflowStepCode) => stepOf(step)?.enabled ?? true;
   /** Các bước áp dụng của một khối (khối "Danh mục" gồm B1 đăng ký + duyệt; "Quyết định và công bố" gồm B4 + B5). */
@@ -604,17 +606,18 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
             </ul>
           </div>
         )}
-        {(evidence.files.length > 0 || (isOwner && selfScored)) && (
+        {(evidence.files.length > 0 || (canAddEvidence && selfScored)) && (
           <div className={styles.subline}>
+            {isOwner && selfScored && evidence.rights?.reason && <div className="small text-secondary mb-1">{evidence.rights.reason}</div>}
             {[
               ...(criteria?.content.generalGroups ?? []).map((g) => ({ slot: evidenceSlot("group", g.code), label: `Nhóm ${g.code}` })),
               ...axes.map((a) => ({ slot: evidenceSlot("axis", a.code), label: a.code })),
             ]
-              .filter(({ slot }) => isOwner || evidence.files.some((f) => (f.formCode || "").toUpperCase() === slot))
+              .filter(({ slot }) => canAddEvidence || evidence.files.some((f) => (f.formCode || "").toUpperCase() === slot))
               .map(({ slot, label }) => (
                 <div key={slot} className="d-flex flex-wrap align-items-center gap-2">
                   <strong>{label}</strong>
-                  <EvidenceFiles recordId={record.id} slot={slot} label={label} files={evidence.files} editable={isOwner} onChanged={evidence.reload} />
+                  <EvidenceFiles recordId={record.id} slot={slot} label={label} files={evidence.files} rights={evidence.rights} onChanged={evidence.reload} />
                 </div>
               ))}
           </div>

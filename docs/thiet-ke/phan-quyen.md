@@ -85,6 +85,12 @@ Người dùng **được** thực hiện quyền `P` trên đối tượng `T` 
    - `Department(d)` (tên hiển thị "Đơn vị chính quyền") → `T.DepartmentId` là `d` **hoặc một đơn vị con cháu của `d`** trong cây đơn vị chính quyền;
    - `PartyCell(c)` (tên hiển thị "Tổ chức Đảng") → `T.PartyCellId` là `c` **hoặc một tổ chức con cháu của `c`** trong cây tổ chức Đảng;
    - không lan sang nhánh anh em hay lên cấp trên (gán ở Phòng → không có quyền ở Công ty).
+   - **Đọc** (mặc định): đối tượng gắn cả đơn vị chính quyền và tổ chức Đảng chỉ cần **một** trong hai nằm trong phạm vi.
+   - **Ghi** (`AccessTarget.ForWrite()` / `AccessTarget.ForUnitsWrite(...)`, cờ `RequireAllUnits`): khi tạo/sửa đối tượng gắn nhiều đơn vị,
+     **mọi** đơn vị khác null phải nằm trong phạm vi (có thể do hai bản gán khác nhau bao trùm); không gắn đơn vị nào → chỉ `Global`.
+     Áp dụng: tạo/sửa hồ sơ tập thể (Mẫu 06–08) và phụ lục của nó, tạo/sửa biên bản (Mẫu 12–13), tạo/sửa/chuyển tài khoản (kể cả
+     nhập Excel, chức vụ, kiểu trình bày), cờ `canManage` của tài khoản. Bước đánh giá trên hồ sơ cá nhân giữ luật đọc (quyền thực hiện
+     bước gắn với một cây).
    
    **và**
 3. Luật riêng theo mã (cố định trong code, lấy từ HD03):
@@ -93,9 +99,17 @@ Người dùng **được** thực hiện quyền `P` trên đối tượng `T` 
    - **Xung đột lợi ích** (HD03 tr.4): các quyền duyệt/xác nhận/ghi nhận/thẩm định/nhận xét/đề xuất/quyết định/công bố/mở lại (`evaluation.tasks.approve`, `cell.confirm`, `collective.record`, `appraise`, `director.review`, `unit.review`, `decide`, `external.record`, `publish`, `reopen`, `appeal.resolve`, `improvement.manage`) **không** áp dụng khi `T.OwnerId == user.Id`. Riêng kiến nghị: người đã thực hiện bước mà kiến nghị liên quan tới (chủ hồ sơ chọn khi gửi) cũng không xử lý được (service kiến nghị kiểm tra).
    - Guard **không** xét cấp quyết định (`ApprovalAuthority`). Bước nào làm trong hệ thống ("Nội bộ", với quyền thực hiện cấu hình được), bước nào do cấp trên thực hiện (ghi nhận bằng `evaluation.external.record`) hay không áp dụng là cấu hình **hồ sơ luồng** của hồ sơ (`docs/thiet-ke/luong-danh-gia.md`); service luồng kiểm tra chế độ bước (sai → 409) rồi mới gọi guard với quyền thực hiện của bước. Cấp quyết định chỉ dùng để chọn hồ sơ luồng mặc định khi thêm người vào kỳ.
    - Tệp đính kèm: mọi tệp gắn với một đối tượng (hồ sơ đánh giá, nhiệm vụ, kết quả bước do cấp trên thực hiện); không có tệp dùng chung, không có trang danh sách tệp riêng — tệp được nộp/xem ngay trong hồ sơ.
-     - Xem/tải: `evaluation.read` trên hồ sơ gắn tệp (chủ hồ sơ luôn xem được).
+     - Xem/tải: `evaluation.read` trên hồ sơ gắn tệp (chủ hồ sơ luôn xem được); tệp kèm kiến nghị thêm người có `evaluation.appeal.resolve` trong phạm vi hồ sơ.
      - Tải phiên bản mới: tệp của chủ hồ sơ theo `evaluation.self`; văn bản của cấp trên theo `evaluation.external.record`.
-     - Gỡ tệp (`DELETE /attachments/{id}`, xóa mềm cả nhóm phiên bản, ghi nhật ký): chỉ minh chứng chủ hồ sơ tự đính kèm vào hồ sơ của mình; tệp gắn nhiệm vụ / văn bản của cấp trên không gỡ qua đường này.
+     - Gỡ tệp (`DELETE /attachments/{id}`, xóa mềm cả nhóm phiên bản, ghi nhật ký): chỉ minh chứng chủ hồ sơ tự đính kèm vào hồ sơ của mình; tệp gắn nhiệm vụ / văn bản của cấp trên / tệp kèm kiến nghị không gỡ qua đường này.
+     - **Minh chứng của chủ hồ sơ theo giai đoạn** (`EvidenceRules`, kiểm tra sau quyền; sai → 409): trước khi nộp phiếu tự chấm
+       (`AwaitingRegistration`, `AwaitingTaskApproval`, `AwaitingSelfScore` — kể cả khi hồ sơ được trả lại / mở lại về các bước này) — thêm,
+       thay, gỡ tự do; đã nộp, chưa công bố — **chỉ bổ sung tệp mới**, không thay, không gỡ tệp đã nộp; hồ sơ `Published` hoặc kỳ không
+       `Open` (Dự thảo, Khóa dữ liệu, Đã đóng) — khóa (không thêm, thay, gỡ). Minh chứng bổ sung sau công bố gắn vào **kiến nghị**
+       (`ownerType` = `EvaluationAppeal`): chủ hồ sơ (`evaluation.self`) thêm tệp khi kiến nghị còn xử lý (`Submitted`/`UnderReview`), không
+       thay, không gỡ. Văn bản của cấp trên (người có `evaluation.external.record`) không theo luật này.
+       `GET /attachments/evidence-rights?recordId=` trả `{ stage, canAdd, canReplace, canRemove, reason }` cho người đang xem — giao diện hiện
+       nút theo các cờ này.
      - Tải lên: gắn đối tượng ngay (`ownerType` = `EvaluationRecord` | `EvaluationTask`) cần `evaluation.self` trên hồ sơ; hoặc tải lên trước rồi gắn qua `AttachmentId` của nhiệm vụ / kết quả của cấp trên — cần `evaluation.self` hoặc `evaluation.external.record`, tệp **chưa gắn** chỉ người tải lên thấy tới khi được gắn; khi gắn, service kiểm tra người gắn có quyền sửa tệp.
      - Phụ lục, báo cáo kèm hồ sơ tập thể (`ownerType` = `CollectiveEvaluationRecord`, Mẫu 06/07/08): tệp thuộc tập thể. Xem/tải — `evaluation.read` hoặc `collective.manage` trên tổ chức của hồ sơ (đơn vị / tổ chức Đảng); tải lên, thay bản mới, gỡ — `collective.manage` trên tổ chức đó và kỳ chưa đóng (không giới hạn người tải lên). Không gắn sang hồ sơ cá nhân qua `AttachmentId`.
 

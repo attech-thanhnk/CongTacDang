@@ -56,6 +56,17 @@ public class AttachmentController : ControllerBase
     }
 
     /// <summary>
+    /// Thao tác người dùng được làm với minh chứng cá nhân của hồ sơ (thêm / thay / gỡ) theo quyền và giai đoạn của hồ sơ.
+    /// </summary>
+    [HttpGet("evidence-rights")]
+    [Authorize] // Service: evaluation.read trên hồ sơ (chủ hồ sơ luôn xem được)
+    public async Task<IActionResult> GetEvidenceRights([FromQuery] Guid recordId)
+    {
+        var rights = await _attachmentService.GetEvidenceRightsAsync(recordId, GetCurrentUserId());
+        return Ok(ApiResponse<EvidenceRightsDto>.Ok(rights, "Lấy quyền với minh chứng của hồ sơ thành công."));
+    }
+
+    /// <summary>
     /// Tải lên tệp minh chứng (PDF, DOCX, XLSX, Ảnh). Truyền <c>ownerType</c>/<c>ownerId</c> để gắn tệp vào đối tượng
     /// (cần quyền cập nhật hồ sơ liên quan); một đối tượng có thể có nhiều tệp. Không truyền đối tượng: tệp chưa gắn,
     /// chỉ người tải lên thấy tới khi gắn vào nhiệm vụ / kết quả của cấp trên.

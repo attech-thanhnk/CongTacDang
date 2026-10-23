@@ -469,7 +469,7 @@ public sealed class PositionService : IPositionService
             throw new ForbiddenException(
                 "Bạn không thể tự thêm, sửa, kết thúc, xóa chức vụ hoặc đặt tay thẩm quyền phê duyệt của chính mình (xung đột lợi ích). "
                 + "Hãy nhờ người quản lý tài khoản khác thực hiện.");
-        _guard.Ensure(PermissionCodes.SystemUsersManage, TargetOf(member));
+        _guard.Ensure(PermissionCodes.SystemUsersManage, TargetOf(member).ForWrite());
     }
 
     /// <summary>Id kiểu trình bày từ chuỗi: rỗng → null; phải có trong danh mục.</summary>
