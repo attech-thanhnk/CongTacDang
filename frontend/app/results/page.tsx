@@ -85,7 +85,20 @@ export default function ResultsPage() {
           <div className="text-secondary loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
         ) : items.length === 0 ? (
           <section className="card">
-            <EmptyState icon="bi-award" title="Chưa có kết quả công bố" />
+            {departmentId || grade ? (
+              <EmptyState
+                icon="bi-funnel"
+                title="Không có kết quả phù hợp"
+                description="Thử chọn đơn vị hoặc mức xếp loại khác."
+                action={
+                  <button type="button" className="btn btn-outline-secondary" onClick={() => { setDepartmentId(""); setGrade(""); }}>
+                    Bỏ lọc
+                  </button>
+                }
+              />
+            ) : (
+              <EmptyState icon="bi-award" title="Chưa có kết quả công bố" description="Kết quả hiện ở đây sau khi kỳ đánh giá được công bố." />
+            )}
           </section>
         ) : (
           <section className="card">

@@ -1,0 +1,54 @@
+/* Điện thoại: mỗi lần đăng nhập thành thẻ hai hàng, không cuộn ngang. */
+@media (max-width: 760px) {
+  .table,
+  .table tbody {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tbody tr.row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "user result"
+      "time device";
+    gap: 4px 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  /* Lớp lặp để thắng quy tắc đệm cột đầu của bảng trong thẻ. */
+  .table.table tbody tr.row > td,
+  .table.table tbody tr.row > td:first-child {
+    border: 0;
+    padding: 0 !important;
+    background: transparent;
+  }
+
+  .time {
+    grid-area: time;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+
+  .user {
+    grid-area: user;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .result {
+    grid-area: result;
+    text-align: right;
+  }
+
+  .device {
+    grid-area: device;
+    text-align: right;
+  }
+}

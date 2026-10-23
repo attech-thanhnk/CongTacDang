@@ -85,9 +85,13 @@ export default function WorkQueuePage() {
             Đang tải...
           </div>
         ) : !queue || queue.total === 0 ? (
-          <EmptyState icon="bi-check2-circle" title="Không có việc nào đang chờ bạn" />
+          <EmptyState
+            icon="bi-check2-circle"
+            title="Không có việc nào đang chờ bạn"
+            description="Khi có hồ sơ cần bạn xử lý, chúng sẽ hiện ở đây."
+          />
         ) : groups.length === 0 ? (
-          <div className={styles.muted}>Không tìm thấy cán bộ phù hợp.</div>
+          <EmptyState icon="bi-search" title="Không tìm thấy cán bộ phù hợp" description="Thử từ khóa khác." compact />
         ) : (
           groups.map((group) => (
             <section key={group.step} className={styles.block}>

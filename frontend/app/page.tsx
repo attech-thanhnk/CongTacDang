@@ -101,9 +101,11 @@ export default function DashboardPage() {
           <EmptyState
             icon="bi-calendar-x"
             title="Chưa có kỳ đánh giá"
+            description="Khi có kỳ đánh giá, tiến độ và việc cần xử lý sẽ hiện ở đây."
             action={
               hasPermission("period.manage") ? (
-                <Link href="/periods" className="btn btn-primary btn-sm">
+                <Link href="/periods" className="btn btn-primary">
+                  <i className="bi bi-plus-lg me-1" />
                   Tạo kỳ đánh giá
                 </Link>
               ) : undefined

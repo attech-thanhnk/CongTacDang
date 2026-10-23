@@ -55,7 +55,16 @@ export default function PeriodsPage() {
             {loading ? (
               <div className="text-secondary p-3 loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
             ) : periods.length === 0 ? (
-              <EmptyState title="Chưa có kỳ đánh giá" />
+              <EmptyState
+                icon="bi-calendar-x"
+                title="Chưa có kỳ đánh giá"
+                description={canManage ? "Tạo kỳ đánh giá, sau đó chọn bộ tiêu chí và cách xét duyệt." : "Kỳ đánh giá hiện ở đây sau khi được tạo."}
+                action={canManage ? (
+                  <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
+                    <i className="bi bi-plus-lg me-1" />Tạo kỳ đánh giá
+                  </button>
+                ) : undefined}
+              />
             ) : (
               <>
               <div className="table-responsive"><table className="table table-hover align-middle mb-0 periods-table">

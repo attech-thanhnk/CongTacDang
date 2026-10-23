@@ -169,7 +169,12 @@ export default function EvaluationsPage() {
 
       <div className="page-body">
         {error && <div className="alert alert-danger mb-0">{error}</div>}
-        {!periodsLoading && periods.length === 0 && <EmptyState title="Chưa có kỳ đánh giá đang diễn ra" />}
+        {!periodsLoading && periods.length === 0 && <EmptyState
+            icon="bi-calendar-x"
+            title="Chưa có kỳ đánh giá đang diễn ra"
+            description="Hồ sơ đánh giá hiện ở đây khi kỳ đánh giá được mở."
+            action={hasPermission("period.manage") ? <Link href="/periods" className="btn btn-primary">Đến trang Kỳ đánh giá</Link> : undefined}
+          />}
 
         {myRecord && (
           <section className={styles.block}>
@@ -226,7 +231,30 @@ export default function EvaluationsPage() {
             {loading ? (
               <div className={`${styles.empty} loading-delay`}><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
             ) : filtered.length === 0 ? (
-              <EmptyState title="Không có hồ sơ" />
+              records.length > 0 ? (
+                <EmptyState
+                  icon="bi-funnel"
+                  title="Không có hồ sơ phù hợp"
+                  description="Thử đổi bộ lọc hoặc từ khóa tìm."
+                  compact
+                  action={
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => { setSearch(""); setStatusFilter(""); setDepartment(""); setPartyCell(""); }}
+                    >
+                      Bỏ lọc
+                    </button>
+                  }
+                />
+              ) : (
+                <EmptyState
+                  icon="bi-folder2-open"
+                  title="Chưa có hồ sơ"
+                  description="Hồ sơ trong phạm vi của bạn sẽ hiện ở đây khi kỳ có người được đánh giá."
+                  compact
+                />
+              )
             ) : (
               <>
               <div className={styles.tw}>

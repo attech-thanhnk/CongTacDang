@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePeriod } from "@/contexts/PeriodContext";
 import { formatDate } from "@/lib/dateFormat";
@@ -199,7 +200,14 @@ export default function CollectiveEvaluationsPage() {
       <div className="page-wrapper">
         {title}
         <div className="page-body">
-          <section className="card"><EmptyState icon="bi-calendar-x" title="Chưa có kỳ đánh giá" /></section>
+          <section className="card">
+            <EmptyState
+              icon="bi-calendar-x"
+              title="Chưa có kỳ đánh giá"
+              description="Hồ sơ tập thể và biên bản hội nghị hiện ở đây khi có kỳ đánh giá."
+              action={hasPermission("period.manage") ? <Link href="/periods" className="btn btn-primary">Đến trang Kỳ đánh giá</Link> : undefined}
+            />
+          </section>
         </div>
       </div>
     );
