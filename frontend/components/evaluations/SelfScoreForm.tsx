@@ -57,8 +57,8 @@ const LEAVE_MESSAGE = "Phiếu tự chấm có thay đổi chưa lưu. Rời tra
 const timeOf = (date: Date) => date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 
 /**
- * Cảnh báo khi rời trang lúc còn thay đổi chưa lưu: đóng/tải lại tab (`beforeunload`) và bấm liên kết nội bộ (chặn click trên thẻ
- * `<a>` ở pha capture, trước khi Next.js điều hướng). Không bắt được điều hướng bằng mã (`router.push`) hay nút Back của trình duyệt.
+ * Cảnh báo rời trang khi chưa lưu: `beforeunload` và click `<a>` ở pha capture (trước khi Next.js điều hướng).
+ * Không bắt được `router.push` hay nút Back.
  */
 function useLeaveGuard(dirty: boolean) {
   const dirtyRef = useRef(dirty);
@@ -92,12 +92,7 @@ function useLeaveGuard(dirty: boolean) {
   }, []);
 }
 
-/**
- * Phiếu tự chấm dựng động từ bộ tiêu chí của kỳ: tiêu chí con "Đảm bảo / Không đảm bảo / K/AD (lý do)" hoặc ô điểm (theo cách chấm
- * của nhóm), trục theo mã (Mẫu 09B) hoặc A-B-C-D theo khung tỷ trọng của hồ sơ (Mẫu 09A); tổng tạm tính — máy chủ tính lại.
- * Nhập kèm (khi kỳ áp dụng) Mẫu 09C — nhận xét chung và nhiệm vụ theo trục kèm mức — và Mẫu 9D — dòng tóm tắt mỗi trục — trên
- * cùng một khối theo trục, cùng phần tự luận theo trục của Mẫu 09B; nội dung đã lưu được nạp lại để sửa tiếp khi hồ sơ bị trả lại.
- */
+/** Phiếu tự chấm dựng từ bộ tiêu chí của kỳ, nhập kèm Mẫu 09C/9D khi kỳ áp dụng; tổng chỉ tạm tính, máy chủ tính lại. */
 export function SelfScoreForm({ record, criteria, busy, onSubmit }: Props) {
   if (!criteria) {
     return (
@@ -164,8 +159,8 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     Object.fromEntries(content.axes.map((a) => [a.code, { ...(record.axisNotes?.[a.code] ?? {}) }]))
   );
 
-  // Lưu nháp: theo dõi thay đổi chưa lưu bằng ảnh chụp nội dung phiếu; phiên bản hồ sơ sau lần lưu nháp gần nhất được dùng cho
-  // lần lưu/nộp tiếp theo (trang chưa tải lại hồ sơ) — trừ khi trang đã nạp hồ sơ mới.
+  // Thay đổi chưa lưu so với ảnh chụp phiếu; phiên bản sau lần lưu nháp dùng cho lần lưu/nộp tiếp theo
+  // (trang chưa tải lại hồ sơ), trừ khi trang đã nạp hồ sơ mới.
   const snapshot = JSON.stringify([general, axis, grade, ratios, selfAssessment, axisReports, groupNotes, axisNotes]);
   const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
   const [savedAt, setSavedAt] = useState<Date | null>(null);

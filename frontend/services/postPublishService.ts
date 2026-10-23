@@ -1,7 +1,6 @@
 import { apiClient, request } from "./apiClient";
 import { reportService, ReportFileFormat } from "./reportService";
 
-/** Tệp gắn kiến nghị (tóm tắt). */
 export interface AppealFileDto {
   id: string;
   fileName: string;
@@ -10,11 +9,9 @@ export interface AppealFileDto {
   uploadedBy: string;
 }
 
-// ---------------------------------------------------------------------------
-// Công khai kết quả (T-86)
-// ---------------------------------------------------------------------------
+// ----- Công khai kết quả -----
 
-/** Một dòng kết quả đã công bố — chỉ thông tin công khai (không có chi tiết hồ sơ, minh chứng, ý kiến). */
+/** Chỉ thông tin công khai (không có chi tiết hồ sơ, minh chứng, ý kiến). */
 export interface PublishedResultItemDto {
   /** Chỉ có khi người xem được xem hồ sơ (chủ hồ sơ / quyền xem hồ sơ trong phạm vi). */
   recordId?: string | null;
@@ -55,9 +52,7 @@ export interface PublishedResultsDto {
   showsScores: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// Kiến nghị (T-87)
-// ---------------------------------------------------------------------------
+// ----- Kiến nghị -----
 
 export type AppealStatus = "Submitted" | "UnderReview" | "Accepted" | "Rejected";
 
@@ -80,7 +75,7 @@ export interface AppealDto {
   reopenedAt?: string | null;
   canResolve: boolean;
   resolveBlockedReason?: string | null;
-  /** Cảnh báo khi gửi: không còn ai (ngoài người bị xung đột lợi ích) có quyền xử lý kiến nghị trong phạm vi. */
+  /** Không còn ai (ngoài người xung đột lợi ích) có quyền xử lý kiến nghị trong phạm vi. */
   resolverWarning?: string | null;
   canReopen: boolean;
   canAttach: boolean;
@@ -101,9 +96,7 @@ export interface RecordAppealsDto {
   appeals: AppealDto[];
 }
 
-// ---------------------------------------------------------------------------
-// Kế hoạch 30-60-90 ngày — Mẫu 17 (T-88)
-// ---------------------------------------------------------------------------
+// ----- Kế hoạch 30-60-90 ngày (Mẫu 17) -----
 
 export type ImprovementPlanStatus = "Draft" | "Approved" | "Acknowledged" | "Closed";
 export type MilestoneCode = "M30" | "M60" | "M90";
@@ -178,9 +171,7 @@ export function milestoneResultLabel(code: MilestoneCode, result: MilestoneResul
   return result === "Achieved" ? "Đạt yêu cầu" : "Chưa chuyển biến";
 }
 
-// ---------------------------------------------------------------------------
-// Nhắc việc (T-89)
-// ---------------------------------------------------------------------------
+// ----- Nhắc việc -----
 
 export interface NotificationItemDto {
   kind: "overdue" | "dueSoon" | "appeal" | "improvementPlan" | "acknowledge" | "pending" | string;
@@ -212,7 +203,6 @@ const query = (params: Record<string, string | undefined>): string => {
   return parts.length ? `?${parts.join("&")}` : "";
 };
 
-/** API sau công bố: kết quả, kiến nghị, kế hoạch 30-60-90 ngày, nhắc việc. */
 export const postPublishService = {
   getResults(filter: { periodId?: string; departmentId?: string; grade?: string }): Promise<PublishedResultsDto> {
     return request<PublishedResultsDto>(`/results${query(filter)}`);
@@ -226,7 +216,7 @@ export const postPublishService = {
     return post<AppealDto>(`/evaluations/records/${recordId}/appeals`, { content, concernedSteps });
   },
 
-  /** Tệp minh chứng gắn kiến nghị (đối tượng `EvaluationAppeal`) — chủ hồ sơ tải lên. */
+  /** Chủ hồ sơ tải lên, gắn vào đối tượng `EvaluationAppeal`. */
   uploadAppealFile(appealId: string, file: File): Promise<unknown> {
     const formData = new FormData();
     formData.append("file", file);
@@ -277,7 +267,7 @@ export const postPublishService = {
     return post<ImprovementPlanDto>(`/improvement-plans/${planId}/milestone-result`, { version, milestone, result, note });
   },
 
-  /** Tải Mẫu 17 (Word hoặc PDF do máy chủ chuyển). */
+  /** Word hoặc PDF do máy chủ chuyển. */
   async downloadMau17(planId: string, fullName: string, format: ReportFileFormat = "original"): Promise<void> {
     const safeName = (fullName || "CanBo").trim().replace(/\s+/g, "_");
     await reportService.downloadReport(`/improvement-plans/${planId}/mau-17`, `Mau_17_KeHoach_30_60_90_${safeName}.docx`, format);

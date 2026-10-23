@@ -1,9 +1,9 @@
 import { request } from "./apiClient";
 
-/** Loại danh mục tổ chức: đơn vị chính quyền (`departments`) hoặc tổ chức Đảng (`branches`). */
+/** `departments`: đơn vị chính quyền; `branches`: tổ chức Đảng. */
 export type CatalogKind = "departments" | "branches";
 
-/** Một nút cây đơn vị (đơn vị chính quyền hoặc tổ chức Đảng) — danh sách phẳng, máy chủ sắp sẵn theo cây. */
+/** Nút cây đơn vị; danh sách phẳng, máy chủ sắp sẵn theo cây. */
 export interface CatalogItem {
   id: string;
   code: string;
@@ -19,16 +19,13 @@ export interface CatalogItem {
   unitTypeName?: string | null;
   /** Độ sâu trong cây (gốc = 0). */
   depth: number;
-  /** Đường dẫn vật hóa `/id gốc/…/id/`. */
+  /** `/id gốc/…/id/` */
   path: string;
   /** Số đơn vị con trực tiếp. */
   childCount: number;
 }
 
-/**
- * Dữ liệu thêm mới / cập nhật; trường bỏ trống (undefined) khi cập nhật được giữ nguyên.
- * `parentId`: `EMPTY_GUID` = chuyển thành gốc; `unitTypeId`: `EMPTY_GUID` = bỏ loại.
- */
+/** undefined = giữ nguyên; `parentId` = `EMPTY_GUID`: thành gốc; `unitTypeId` = `EMPTY_GUID`: bỏ loại. */
 export interface SaveCatalogItemPayload {
   code?: string;
   name?: string;
@@ -39,7 +36,6 @@ export interface SaveCatalogItemPayload {
   unitTypeId?: string;
 }
 
-/** Bên của loại đơn vị. */
 export type OrgSide = "Party" | "Administrative";
 
 export const ORG_SIDE_LABELS: Record<OrgSide, string> = {
@@ -47,7 +43,6 @@ export const ORG_SIDE_LABELS: Record<OrgSide, string> = {
   Administrative: "Đơn vị chính quyền",
 };
 
-/** Loại đơn vị (Đảng ủy, Chi bộ, Công ty, Phòng…). */
 export interface OrgUnitType {
   id: string;
   name: string;
@@ -64,7 +59,6 @@ export interface SaveOrgUnitTypePayload {
   isActive?: boolean;
 }
 
-/** Bên của chức vụ. */
 export type PositionSide = "Party" | "Administrative" | "MassOrganization" | "Other";
 
 export const POSITION_SIDE_LABELS: Record<PositionSide, string> = {
@@ -82,7 +76,6 @@ export const APPROVAL_AUTHORITY_CODE_LABELS: Record<ApprovalAuthorityCode, strin
   CapTren: "Cấp ủy cấp trên quyết định",
 };
 
-/** Chức vụ trong danh mục. */
 export interface Position {
   id: string;
   name: string;
@@ -117,29 +110,26 @@ export interface SavePositionPayload {
 
 const base = (kind: CatalogKind) => `/organizations/${kind}`;
 
-/** Dịch vụ danh mục tổ chức (API `/api/organizations/*`, `/api/positions`). */
 export const catalogService = {
-  /** Danh sách (mọi người đã đăng nhập), sắp theo cây. */
+  /** Mọi người đã đăng nhập; sắp theo cây. */
   list(kind: CatalogKind): Promise<CatalogItem[]> {
     return request<CatalogItem[]>(base(kind));
   },
 
-  /** Thêm mới (quyền "Quản lý danh mục"). */
   create(kind: CatalogKind, payload: SaveCatalogItemPayload): Promise<CatalogItem> {
     return request<CatalogItem>(base(kind), { method: "POST", body: JSON.stringify(payload) });
   },
 
-  /** Cập nhật, kể cả đổi cha, ngừng hoạt động / hoạt động lại. */
+  /** Kể cả đổi cha, ngừng hoạt động / hoạt động lại. */
   update(kind: CatalogKind, id: string, payload: SaveCatalogItemPayload): Promise<CatalogItem> {
     return request<CatalogItem>(`${base(kind)}/${id}`, { method: "PUT", body: JSON.stringify(payload) });
   },
 
-  /** Xóa; máy chủ trả 409 kèm lý do khi còn đơn vị con, cán bộ, hồ sơ, bản gán, chức vụ. */
+  /** 409 kèm lý do khi còn đơn vị con, cán bộ, hồ sơ, bản gán, chức vụ. */
   remove(kind: CatalogKind, id: string): Promise<unknown> {
     return request(`${base(kind)}/${id}`, { method: "DELETE" });
   },
 
-  /** Danh mục loại đơn vị. */
   listUnitTypes(): Promise<OrgUnitType[]> {
     return request<OrgUnitType[]>("/organizations/unit-types");
   },
@@ -156,7 +146,6 @@ export const catalogService = {
     return request(`/organizations/unit-types/${id}`, { method: "DELETE" });
   },
 
-  /** Danh mục chức vụ. */
   listPositions(): Promise<Position[]> {
     return request<Position[]>("/positions");
   },
@@ -174,7 +163,6 @@ export const catalogService = {
   },
 };
 
-/** Nhãn hiển thị một nút cây trong ô chọn: thụt lề theo độ sâu. */
 export function treeLabel(item: CatalogItem): string {
   return `${"   ".repeat(item.depth)}${item.depth > 0 ? "└ " : ""}${item.name}`;
 }

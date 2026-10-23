@@ -3,10 +3,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AccessGrant, authService, UserSession } from "@/services/authService";
 
-/** Loại phạm vi của một quyền được cấp. */
 export type GrantScopeType = AccessGrant["scopeType"];
 
-/** Phiên đăng nhập: mã quyền (`permissions`) và quyền kèm phạm vi (`grants`) do máy chủ tính từ bản gán vai trò. */
+/** `permissions` và `grants` do máy chủ tính từ bản gán vai trò. */
 export type AuthUser = UserSession;
 
 interface AuthContextType {
@@ -14,12 +13,9 @@ interface AuthContextType {
   loading: boolean;
   login: (username: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
-  /** Có mã quyền ở bất kỳ phạm vi nào (dùng để ẩn/hiện menu, nút). Máy chủ luôn kiểm tra lại. */
+  /** Có mã quyền ở bất kỳ phạm vi nào; chỉ để ẩn/hiện, máy chủ luôn kiểm tra lại. */
   hasPermission: (permissionCode: string) => boolean;
-  /**
-   * Có mã quyền trong phạm vi chỉ định. Bản cấp phạm vi Toàn công ty bao trùm mọi phạm vi.
-   * Không truyền `scopeId` → có ở bất kỳ đối tượng nào thuộc loại phạm vi đó.
-   */
+  /** Toàn công ty bao trùm mọi phạm vi; không truyền `scopeId` → bất kỳ đối tượng nào thuộc loại phạm vi đó. */
   hasPermissionIn: (permissionCode: string, scopeType: GrantScopeType, scopeId?: string | null) => boolean;
   refreshUser: () => Promise<void>;
 }
@@ -38,11 +34,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Tăng mỗi lần đăng nhập: kết quả kiểm tra phiên ban đầu về muộn (sau khi người dùng đã đăng nhập) không được ghi đè phiên mới.
+  // Tăng mỗi lần đăng nhập: kết quả kiểm tra phiên ban đầu về muộn không được ghi đè phiên mới.
   const sessionGeneration = useRef(0);
 
   useEffect(() => {
-    // Chỉ kiểm tra phiên đăng nhập thực tế từ máy chủ qua HttpOnly Cookie
     const generation = sessionGeneration.current;
     authService
       .getMe()
@@ -67,8 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
-  // Chỉ kiểm tra mã quyền (danh mục PermissionCodes) — không có ngoại lệ theo tên vai trò.
-  // Phạm vi (đơn vị chính quyền / tổ chức Đảng, gồm cả cấp dưới) được máy chủ kiểm tra; ở đây chỉ để ẩn/hiện menu, nút.
+  // Không có ngoại lệ theo tên vai trò; phạm vi do máy chủ kiểm tra, ở đây chỉ để ẩn/hiện.
   const hasPermission = useCallback(
     (permissionCode: string): boolean => !!user && user.permissions.includes(permissionCode),
     [user]

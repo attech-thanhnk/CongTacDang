@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { request } from "./apiClient";
 
-/** Thông tin đơn vị dùng trên biểu mẫu, báo cáo, giao diện (API `/api/settings/organization`). */
+/** Thông tin đơn vị dùng trên biểu mẫu, báo cáo, giao diện. */
 export interface OrganizationSettings {
   partyCommitteeName: string;
   superiorPartyName: string;
@@ -29,12 +29,11 @@ const CHANGED_EVENT = "organization-settings:changed";
 let publicCache: Promise<PublicOrganizationInfo> | null = null;
 
 export const organizationSettingsService = {
-  /** Thông tin đơn vị (cần đăng nhập). */
   get(): Promise<OrganizationSettings> {
     return request<OrganizationSettings>("/settings/organization");
   },
 
-  /** Sửa thông tin đơn vị (quyền system.settings.manage); báo các thành phần đang hiển thị tải lại. */
+  /** Báo các thành phần đang hiển thị tải lại. */
   async update(payload: SaveOrganizationSettingsPayload): Promise<OrganizationSettings> {
     const saved = await request<OrganizationSettings>("/settings/organization", {
       method: "PUT",
@@ -45,7 +44,7 @@ export const organizationSettingsService = {
     return saved;
   },
 
-  /** Tên hệ thống, tên công ty (không cần đăng nhập) — dùng chung một lần gọi cho mọi thành phần. */
+  /** Không cần đăng nhập; mọi thành phần dùng chung một lần gọi. */
   getPublic(): Promise<PublicOrganizationInfo> {
     if (!publicCache) {
       publicCache = request<PublicOrganizationInfo>("/settings/organization/public").catch((err) => {
@@ -57,10 +56,7 @@ export const organizationSettingsService = {
   },
 };
 
-/**
- * Tên hệ thống / tên công ty để hiển thị (thanh bên, tiêu đề trang, trang đăng nhập). Trả về null khi chưa tải xong
- * hoặc không tải được — nơi dùng hiển thị chữ chung, không ghi cứng tên đơn vị.
- */
+/** null khi chưa tải xong hoặc lỗi — nơi dùng hiển thị chữ chung, không ghi cứng tên đơn vị. */
 export function useOrganizationInfo(): PublicOrganizationInfo | null {
   const [info, setInfo] = useState<PublicOrganizationInfo | null>(null);
 

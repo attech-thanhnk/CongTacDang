@@ -19,10 +19,7 @@ function fileName(code: string, fullName: string, format: ReportFileFormat): str
   return `Mau_${code}_${ascii || "CanBo"}.${format === "pdf" ? "pdf" : "docx"}`;
 }
 
-/**
- * Biểu mẫu cá nhân của hồ sơ theo bộ tiêu chí của kỳ (task 18): mỗi mẫu tải Word hoặc PDF từ
- * `GET /reports/docx/record/{recordId}/{mã}` — máy chủ kiểm tra quyền xem hồ sơ.
- */
+/** Biểu mẫu cá nhân áp dụng theo bộ tiêu chí của kỳ. */
 export function RecordFormsPanel({
   recordId,
   fullName,

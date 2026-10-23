@@ -2,13 +2,8 @@ import { ApiError, request } from "./apiClient";
 import type { CriteriaSnapshot, GeneralItemScore, WeightFrame } from "./criteriaService";
 import type { DeadlineRule } from "./deadlineRules";
 
-// ---------------------------------------------------------------------------
-// Kiểu dữ liệu — luồng đánh giá 9 bước theo cấu hình kỳ.
-// Frontend không tự suy luật: bước/nút hiển thị theo API `actions` và `work-queue`,
-// tiến trình theo trường `progress` do máy chủ tính.
-// ---------------------------------------------------------------------------
+// Không tự suy luật: bước/nút theo API `actions`, `work-queue`; tiến trình theo `progress` của máy chủ.
 
-/** Mã bước (cố định trong code, theo docs/thiet-ke/luong-danh-gia.md). */
 export type WorkflowStepCode =
   | "B1_REGISTER"
   | "B1_APPROVE"
@@ -41,20 +36,18 @@ export type WorkflowActionCode =
   /** Ghi nhận kết quả của bước do cấp trên thực hiện (bước ở trường `step`). */
   | "RecordExternal";
 
-/** Chế độ thực hiện một bước trong hồ sơ luồng. */
 export type StepMode = "Internal" | "External" | "Off";
 
-/** Cấu hình một bước trong hồ sơ luồng. */
 export interface ProfileStepSetting {
   mode: StepMode;
-  /** Mã quyền thực hiện khi `Internal` (bước của chủ hồ sơ luôn là evaluation.self; chế độ khác: null). */
+  /** Mã quyền khi `Internal`; chế độ khác: null. */
   permission?: string | null;
   deadline?: string | null;
   /** Quy tắc tính thời hạn theo quý (null = nhập tay). */
   rule?: DeadlineRule | null;
 }
 
-/** Hồ sơ luồng: cấu hình bước cho một nhóm đối tượng (ví dụ Diện Đảng ủy cơ sở). */
+/** Cấu hình bước cho một nhóm đối tượng. */
 export interface WorkflowProfile {
   code: string;
   name: string;
@@ -62,10 +55,7 @@ export interface WorkflowProfile {
   steps: Record<string, ProfileStepSetting>;
 }
 
-/**
- * Cấu hình kỳ (cột jsonb, schema 2): các hồ sơ luồng + hồ sơ luồng mặc định theo cấp quyết định. Mẫu tự chấm, tiêu chí và
- * tham số chấm điểm thuộc bộ tiêu chí của kỳ (`EvaluationPeriodDto.criteria`, task 16).
- */
+/** Cấu hình kỳ (jsonb); tiêu chí và tham số chấm nằm trong bộ tiêu chí của kỳ. */
 export interface PeriodSettings {
   schemaVersion: number;
   profiles: WorkflowProfile[];
@@ -74,7 +64,6 @@ export interface PeriodSettings {
   enforceDeadlines: boolean;
 }
 
-/** Thông tin kỳ đánh giá */
 export interface EvaluationPeriodDto {
   id: string;
   version?: number;
@@ -90,9 +79,8 @@ export interface EvaluationPeriodDto {
   totalRecords: number;
   isActive: boolean;
   settings: PeriodSettings;
-  /** Bộ tiêu chí đã chọn. */
   criteriaSetId?: string | null;
-  /** Ảnh chụp bộ tiêu chí của kỳ (null nếu chưa chọn) — form tự chấm/thẩm định dựng từ đây. */
+  /** Ảnh chụp bộ tiêu chí của kỳ; null nếu chưa chọn. */
   criteria?: CriteriaSnapshot | null;
 }
 
@@ -102,7 +90,7 @@ export interface CreatePeriodDto {
   name: string;
   startDate: string;
   endDate: string;
-  /** Bộ tiêu chí đã xuất bản (bắt buộc) — mẫu 09A có bước đăng ký, duyệt sản phẩm; 09B không có. */
+  /** Bộ tiêu chí đã xuất bản (bắt buộc). */
   criteriaSetId: string;
 }
 
@@ -130,7 +118,7 @@ export interface PeriodParticipantDto {
   /** Mã bước đang chờ; null khi đã công bố. */
   currentStep?: string | null;
   currentStepName?: string | null;
-  /** Hạn của bước đang chờ theo cách xét duyệt của hồ sơ (yyyy-MM-dd). */
+  /** yyyy-MM-dd */
   currentStepDeadline?: string | null;
   /** Số ngày quá hạn (≥ 1), tính theo giờ Việt Nam. */
   daysOverdue?: number | null;
@@ -185,10 +173,9 @@ export interface EvaluationTaskDto {
   isExceedStandard: boolean;
   /** Mức thẩm định 1/2/3 (sau khi thẩm định). */
   appraisalLevel?: number | null;
-  /** Nhận xét ngắn của cơ quan thẩm định về nhiệm vụ. */
   appraisalComment?: string | null;
   attachmentId?: string | null;
-  /** Tên tệp minh chứng theo phiên bản hiện hành (T-53). */
+  /** Theo phiên bản minh chứng hiện hành. */
   attachmentFileName?: string | null;
   attachmentOriginalName?: string | null;
 }
@@ -197,21 +184,16 @@ export interface RecordStepProgressDto {
   step: WorkflowStepCode;
   name: string;
   enabled: boolean;
-  /** Chế độ của bước trong hồ sơ luồng của hồ sơ. */
   mode: StepMode;
-  /** done | current | pending | skipped */
   state: "done" | "current" | "pending" | "skipped";
   deadline?: string | null;
   overdue: boolean;
-  /** Chủ thể thực hiện bước (máy chủ mô tả theo hồ sơ luồng và dữ liệu hồ sơ); máy chủ cũ có thể chưa trả. */
+  /** Máy chủ cũ có thể chưa trả. */
   actor?: string | null;
-  /** Thời điểm hoàn thành (bước đã xong). */
   doneAt?: string | null;
-  /** Người / cơ quan hoàn thành (bước đã xong). */
   doneByName?: string | null;
 }
 
-/** Hồ sơ đánh giá cá nhân */
 export interface EvaluationRecordDto {
   id: string;
   version?: number;
@@ -266,7 +248,6 @@ export interface EvaluationRecordDto {
   selfProposedGrade: string;
   selfScoredAt?: string | null;
 
-  /** Ý kiến xác nhận của Chi bộ */
   partyCellComment: string;
   cellConfirmedByName?: string | null;
   cellConfirmedAt?: string | null;
@@ -284,7 +265,7 @@ export interface EvaluationRecordDto {
   /** Điểm thẩm định nhóm kết quả thực hiện nhiệm vụ (null khi chỉ có điểm tổng). */
   appraisalTasksScore?: number | null;
   appraisalComment: string;
-  /** Nội dung giải trình/căn cứ khi chênh lệch tự chấm – thẩm định (B-09). */
+  /** Giải trình khi chênh lệch tự chấm – thẩm định. */
   appraisalExplanation?: string | null;
   appraisalProposedGrade: string;
   appraisedByName?: string | null;
@@ -313,7 +294,7 @@ export interface EvaluationRecordDto {
   externalResults: ExternalResultDto[];
 
   tasks: EvaluationTaskDto[];
-  /** Cảnh báo điều kiện xếp loại theo mức thẩm định từng nhiệm vụ (với mức hiện tại của hồ sơ). */
+  /** Cảnh báo điều kiện xếp loại theo mức thẩm định từng nhiệm vụ. */
   gradeWarnings?: string[];
   /** Tỷ lệ nhiệm vụ vượt chuẩn tối thiểu (0..1) của mức Xuất sắc theo bộ tiêu chí; null = không xét. */
   excellentMinExceedRatio?: number | null;
@@ -322,15 +303,13 @@ export interface EvaluationRecordDto {
   selfAssessment?: Record<string, string>;
   /** Nhiệm vụ (kèm mức) và kết quả theo trục, khóa = mã trục — mục I Mẫu 09C và Mẫu 9D. */
   axisReports?: Record<string, AxisReport>;
-  /** Mẫu 09B — nội dung tự luận theo trục, khóa = mã trục (task 18). */
+  /** Mẫu 09B — tự luận theo trục, khóa = mã trục. */
   axisNotes?: Record<string, AxisNote>;
   /** Nhận xét theo nhóm tiêu chí chung, khóa = mã nhóm (in ở dòng nhóm của phiếu tự chấm). */
   generalGroupNotes?: Record<string, string>;
 }
 
-// ---------------------------------------------------------------------------
-// Biểu mẫu cá nhân: 09C, 9D nhập cùng phiếu tự chấm (theo trục); xuất 01/02/09A/09B/09C/9D/10 theo bộ tiêu chí của kỳ.
-// ---------------------------------------------------------------------------
+// Biểu mẫu cá nhân: 09C, 9D nhập cùng phiếu tự chấm (theo trục).
 
 /** Ý con "+ …" của một nhiệm vụ (Mẫu 09C). */
 export interface AxisTaskItem {
@@ -369,10 +348,7 @@ const shortDate = (value: string) => {
   return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : value;
 };
 
-/**
- * Gợi ý nội dung Mẫu 09C/9D từ danh mục Mẫu 01. Chỉ bổ sung ô còn trống;
- * nội dung đã lưu của cá nhân luôn được giữ nguyên để người dùng tiếp tục chỉnh sửa.
- */
+/** Gợi ý Mẫu 09C/9D từ danh mục Mẫu 01: chỉ điền ô còn trống, giữ nguyên nội dung đã lưu. */
 export function prefillAxisReportsFromTasks(
   axes: { code: string }[],
   tasks: Pick<EvaluationTaskDto, "axisCode" | "taskName" | "targetOutput" | "deadline" | "productCode" | "changeStatus">[],
@@ -462,7 +438,7 @@ export interface TaskLevel {
   label: string;
 }
 
-/** Phần cấu hình biểu mẫu cá nhân trong nội dung bộ tiêu chí (`requiredForms`, mục 09C, mức nhiệm vụ). */
+/** Cấu hình biểu mẫu cá nhân trong nội dung bộ tiêu chí. */
 export interface IndividualFormConfig {
   requiredForms?: string[];
   selfAssessmentSections?: SelfAssessmentSection[];
@@ -477,7 +453,7 @@ export interface RecordFormDto {
   name: string;
 }
 
-/** Giới hạn nội dung theo trục (Mẫu 09C, 9D) và ô tự luận Mẫu 09B (khớp kiểm tra phía máy chủ). */
+/** Khớp giới hạn kiểm tra phía máy chủ. */
 export const AXIS_REPORT_LIMITS = { tasks: 30, items: 20, long: 2000, short: 500, axisNote: 4000 } as const;
 
 /** Bộ tiêu chí áp dụng biểu mẫu `code` (mẫu tự chấm theo `selfScoreForm` của bộ). */
@@ -503,11 +479,7 @@ const endSentence = (value: string) => {
   return t.length === 0 || ".!?;:".includes(t[t.length - 1]) ? t : `${t}.`;
 };
 
-/**
- * Dựng phần nhiệm vụ theo trục của mục I Mẫu 09C đúng như bản in (giống máy chủ): "n. Tên trục (trục n)", mỗi nhiệm vụ
- * "<tiền tố> nội dung. <câu nối mức>", ý con "+ nội dung. <câu nối mức>" (câu nối mức tách riêng để in nghiêng); trục không
- * có nhiệm vụ bị bỏ qua.
- */
+/** Dựng nhiệm vụ theo trục của Mẫu 09C giống bản in phía máy chủ; câu nối mức tách riêng để in nghiêng. */
 export function buildAxisTaskBlocks(
   axes: { code: string; name: string }[],
   reports: Record<string, AxisReport> | undefined,
@@ -569,18 +541,16 @@ export interface ReadinessIssueDto {
   mode: StepMode;
   permission: string;
   permissionName: string;
-  /** Các vai trò đang chứa quyền cần có — quản trị gán một trong các vai trò này. */
+  /** Vai trò đang chứa quyền cần có. */
   roleNames: string[];
   scope: string;
   /** Tên ngắn nơi cần gán (gán ở cấp trên hoặc Toàn công ty cũng được). */
   scopeName: string;
-  /** Đơn vị chính quyền / tổ chức Đảng của hồ sơ. */
   departmentId?: string | null;
   partyCellId?: string | null;
   message: string;
 }
 
-/** Kết quả kiểm tra kẹt luồng của kỳ. */
 export interface PeriodReadinessDto {
   periodId: string;
   ready: boolean;
@@ -590,7 +560,6 @@ export interface PeriodReadinessDto {
   dataReview?: DataReviewItemDto[];
 }
 
-/** Một mục rà soát dữ liệu: nội dung cần xem, người/hồ sơ liên quan và cách xử lý gợi ý. */
 export interface DataReviewItemDto {
   kind: string;
   title: string;
@@ -670,7 +639,6 @@ export interface WorkQueueItemDto {
   workflowProfileName: string;
   status: string;
   statusDisplayName: string;
-  /** Chế độ của bước đang chờ: Internal | External. */
   mode: StepMode;
   isOwnRecord: boolean;
   returnReason?: string | null;
@@ -697,7 +665,6 @@ export type TaskRole = "ChuTri" | "PhoiHop";
 export const TASK_KIND_LABELS: Record<TaskKind, string> = { TrongTam: "Trọng tâm", ThuongXuyen: "Thường xuyên", DotXuat: "Đột xuất" };
 export const TASK_ROLE_LABELS: Record<TaskRole, string> = { ChuTri: "Chủ trì", PhoiHop: "Phối hợp" };
 
-/** Mức thẩm định từng nhiệm vụ. */
 export const APPRAISAL_LEVELS: { value: number; label: string; hint: string }[] = [
   { value: 1, label: "Mức 1", hint: "Chủ động, có kết quả cụ thể, chất lượng cao" },
   { value: 2, label: "Mức 2", hint: "Cơ bản đáp ứng, còn hạn chế" },
@@ -709,10 +676,7 @@ const GRADE_CONDITION_NAMES: Record<string, string> = {
   KhongHoanThanh: "Không hoàn thành nhiệm vụ",
 };
 
-/**
- * Cảnh báo điều kiện xếp loại theo mức thẩm định từng nhiệm vụ — cùng quy tắc với máy chủ (`GradeConditions`), dùng để báo
- * ngay khi đổi mức; máy chủ trả lại `gradeWarnings` khi tải hồ sơ. Chỉ cảnh báo, không chặn.
- */
+/** Cùng quy tắc với `GradeConditions` của máy chủ, để báo ngay khi đổi mức; chỉ cảnh báo, không chặn. */
 export function gradeConditionWarnings(
   tasks: { kind?: TaskKind | null; appraisalLevel?: number | null; isExceedStandard: boolean }[],
   grade: string,
@@ -934,10 +898,6 @@ export interface SaveEvaluationMeetingRequestDto {
   voteSummaries: EvaluationMeetingVoteSummaryDto[];
 }
 
-// ---------------------------------------------------------------------------
-// Tên hiển thị
-// ---------------------------------------------------------------------------
-
 export const GRADE_OPTIONS: { value: string; label: string }[] = [
   { value: "HoanThanhXuatSac", label: "Hoàn thành xuất sắc nhiệm vụ" },
   { value: "HoanThanhTot", label: "Hoàn thành tốt nhiệm vụ" },
@@ -1006,10 +966,7 @@ export const STEP_ORDER: WorkflowStepCode[] = [
   "B5_PUBLISH",
 ];
 
-// ---------------------------------------------------------------------------
-// Cập nhật đồng thời (T-24): mọi hành động ghi gửi `version` đã đọc; 409 → phát sự kiện
-// để giao diện đề nghị tải lại, giữ nguyên thông báo của máy chủ (nêu rõ lý do).
-// ---------------------------------------------------------------------------
+// Lệnh ghi gửi `version` đã đọc; 409 → phát sự kiện để giao diện đề nghị tải lại.
 
 export const CONCURRENCY_CONFLICT_MESSAGE =
   "Dữ liệu đã được người khác cập nhật. Vui lòng tải lại để xem dữ liệu mới nhất — nội dung bạn đang nhập vẫn được giữ nguyên.";
@@ -1022,7 +979,6 @@ export interface EvaluationConflictDetail {
   message: string;
 }
 
-/** Lỗi có phải 409 (xung đột phiên bản / sai trạng thái) không. */
 export function isConcurrencyConflict(error: unknown): boolean {
   return error instanceof ApiError && error.status === 409;
 }
@@ -1049,7 +1005,6 @@ function post<T>(endpoint: string, body: unknown): Promise<T> {
   return request<T>(endpoint, { method: "POST", body: JSON.stringify(body ?? {}) });
 }
 
-/** Đường dẫn API của từng hành động. */
 const ACTION_PATH: Record<WorkflowActionCode, string> = {
   SubmitTasks: "tasks/submit",
   ApproveTasks: "tasks/approve",
@@ -1068,10 +1023,6 @@ const ACTION_PATH: Record<WorkflowActionCode, string> = {
   ExtendUnlock: "unlock/extend",
   RecordExternal: "external",
 };
-
-// ---------------------------------------------------------------------------
-// Dịch vụ
-// ---------------------------------------------------------------------------
 
 export const evaluationService = {
   // ----- Kỳ đánh giá -----
@@ -1104,10 +1055,7 @@ export const evaluationService = {
     );
   },
 
-  /**
-   * Chuyển trạng thái kỳ: open | lock | unlock | close. Mở kỳ còn cảnh báo kẹt luồng → 409 (`ApiError.data` = kết quả
-   * kiểm tra kẹt luồng); mở bắt buộc: `force = true` kèm lý do.
-   */
+  /** Mở kỳ còn kẹt luồng → 409 (`ApiError.data` = kết quả kiểm tra); mở bắt buộc: `force` kèm lý do. */
   async transitionPeriod(
     id: string,
     action: "open" | "lock" | "unlock" | "close",
@@ -1128,7 +1076,6 @@ export const evaluationService = {
     return request<PeriodReadinessDto>(`/evaluations/periods/${periodId}/readiness`);
   },
 
-  /** Mã quyền chọn được làm quyền thực hiện bước nội bộ. */
   async getStepPermissions(): Promise<StepPermissionOptionDto[]> {
     return request<StepPermissionOptionDto[]>("/evaluations/periods/step-permissions");
   },
@@ -1248,12 +1195,7 @@ export const evaluationService = {
     return request<ExcellentQuotaCheckDto>(`/evaluations/excellent-quotas?${query}`);
   },
 
-  /**
-   * Thực hiện một hành động theo bước. `version` là phiên bản hồ sơ đã đọc — bắt buộc (máy chủ trả 400 nếu thiếu).
-   * 409 (người khác đã cập nhật / hồ sơ đã sang bước khác) → phát sự kiện EVALUATION_CONFLICT_EVENT.
-   * `RecordExternal` cần `step` (bước do cấp trên thực hiện được ghi nhận). Biểu mẫu đã lưu nháp (phiên bản hồ sơ tăng mà trang
-   * chưa tải lại) gửi phiên bản mới trong `payload.version` — được ưu tiên hơn `version`.
-   */
+  /** `RecordExternal` cần `step`. Sau lưu nháp, trang gửi phiên bản mới trong `payload.version` — ưu tiên hơn `version`. */
   async performAction(
     recordId: string,
     action: WorkflowActionCode,
@@ -1266,15 +1208,14 @@ export const evaluationService = {
     return withConflictHandling(action, () => post<EvaluationRecordDto>(`/evaluations/records/${recordId}/${path}`, body));
   },
 
-  /** Lưu nháp phiếu tự chấm: lưu nội dung đang nhập, hồ sơ giữ nguyên bước; trả hồ sơ đã lưu (phiên bản mới). */
+  /** Hồ sơ giữ nguyên bước; trả hồ sơ với phiên bản mới. */
   async saveSelfScoreDraft(recordId: string, version: number, payload: Record<string, unknown>): Promise<EvaluationRecordDto> {
     return withConflictHandling("SaveSelfScoreDraft", () =>
       post<EvaluationRecordDto>(`/evaluations/records/${recordId}/self-score/draft`, { ...payload, version })
     );
   },
 
-  // ----- Biểu mẫu cá nhân của hồ sơ (task 18) -----
-  /** Biểu mẫu áp dụng cho hồ sơ theo bộ tiêu chí của kỳ. */
+  // ----- Biểu mẫu cá nhân của hồ sơ -----
   async getRecordForms(recordId: string): Promise<RecordFormDto[]> {
     return request<RecordFormDto[]>(`/reports/docx/record/${recordId}`);
   },

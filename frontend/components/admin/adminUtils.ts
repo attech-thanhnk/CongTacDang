@@ -25,7 +25,6 @@ export function errorTitle(error: unknown): string | undefined {
   }
 }
 
-// Định dạng ngày giờ hiển thị dùng chung (dd/MM/yyyy) — giữ tên cũ để các màn quản trị không phải đổi import.
 export { formatDate, formatDateTime } from "@/lib/dateFormat";
 
 /** Ngày thuần `yyyy-MM-dd` → `dd/MM/yyyy` (không qua múi giờ). */
@@ -53,9 +52,7 @@ export function startOfDayIso(dateInput: string): string | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
-/**
- * "Đến hết ngày" `yyyy-MM-dd` → ISO của 00:00 ngày hôm sau (máy chủ coi `validTo` là mốc không bao gồm).
- */
+/** "Đến hết ngày" `yyyy-MM-dd` → ISO 00:00 ngày hôm sau (máy chủ coi `validTo` là mốc không bao gồm). */
 export function endOfDayExclusiveIso(dateInput: string): string | undefined {
   if (!dateInput) return undefined;
   const date = new Date(`${dateInput}T00:00:00`);
@@ -73,10 +70,7 @@ export function exclusiveIsoToLastDayInput(value?: string | null): string {
   return toDateInput(date.toISOString());
 }
 
-/**
- * Sao chép văn bản. `navigator.clipboard` chỉ có trong ngữ cảnh an toàn (HTTPS/localhost) —
- * hệ thống chạy trong mạng LAN nội bộ có thể dùng HTTP nên có phương án dự phòng.
- */
+/** `navigator.clipboard` chỉ có trên HTTPS/localhost; LAN nội bộ có thể chạy HTTP nên cần dự phòng. */
 export async function copyText(text: string): Promise<boolean> {
   try {
     if (typeof navigator !== "undefined" && navigator.clipboard && window.isSecureContext) {

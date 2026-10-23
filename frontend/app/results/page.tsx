@@ -15,10 +15,7 @@ import { GRADE_OPTIONS } from "@/services/evaluationService";
 import { PublishedResultsDto, postPublishService } from "@/services/postPublishService";
 import { errorMessage } from "@/components/admin/adminUtils";
 
-/**
- * Kết quả đánh giá đã công bố (HD03 Bước 5) của kỳ đang chọn ở thanh bên. Chỉ họ tên, chức danh, đơn vị,
- * mức xếp loại chính thức (điểm khi bộ tiêu chí cho phép). Phạm vi xem do bản gán vai trò quyết định (máy chủ lọc).
- */
+/** Kết quả đã công bố: chỉ mức xếp loại (điểm khi bộ tiêu chí cho phép); máy chủ lọc theo phạm vi. */
 export default function ResultsPage() {
   const { hasPermission, loading: authLoading } = useAuth();
   const { periodId, loading: periodLoading } = usePeriod();

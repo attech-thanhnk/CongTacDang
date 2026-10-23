@@ -15,10 +15,7 @@ import { ScopeProgressSection, ScopeStats } from "@/components/dashboard/ScopePr
 import { AdminSection, AdminStats } from "@/components/dashboard/AdminSection";
 import styles from "@/components/dashboard/dashboard.module.css";
 
-/**
- * Tổng quan theo quyền: số liệu trong phạm vi (evaluation.read) → việc đang chờ tôi (mọi kỳ đang mở)
- * → tiến độ theo Chi bộ và hồ sơ của tôi (kỳ đang chọn) → quản trị.
- */
+/** Tổng quan theo quyền; việc chờ tôi lấy ở mọi kỳ đang mở, phần còn lại theo kỳ đang chọn. */
 export default function DashboardPage() {
   const { user, hasPermission } = useAuth();
   const { periods, periodId, loading: periodsLoading } = usePeriod();

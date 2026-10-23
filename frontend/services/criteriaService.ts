@@ -3,10 +3,7 @@ import type { SelfAssessmentSection, TaskLevel } from "./evaluationService";
 
 export type { SelfAssessmentSection, TaskLevel };
 
-// ---------------------------------------------------------------------------
-// Bộ tiêu chí và thang điểm theo phiên bản (task 16). Nội dung bộ khai báo được; cấu trúc công thức tính điểm cố định ở
-// máy chủ. Hàm tính "tạm tính" ở đây chỉ để hiển thị tức thì — máy chủ tính lại và là nguồn số liệu duy nhất.
-// ---------------------------------------------------------------------------
+// Hàm "tạm tính" ở đây chỉ để hiển thị tức thì; máy chủ tính lại và là nguồn số liệu duy nhất.
 
 export type CriteriaScoringMode = "Binary" | "Range";
 export type NotApplicableRule = "ExcludeAndRescale" | "GrantFull";
@@ -52,7 +49,7 @@ export interface ResultAxis {
   maxScore: number;
   /** Tiêu đề trục in ở cột "Nội dung tiêu chí" của Mẫu 09B (trống → dựng từ tên trục). */
   formTitle?: string | null;
-  /** Nội dung gợi ý in dưới tiêu đề trục trên Mẫu 09B, mỗi dòng một gạch đầu dòng (trống → nội dung áp dụng). */
+  /** In dưới tiêu đề trục trên Mẫu 09B, mỗi dòng một gạch đầu dòng (trống → nội dung áp dụng). */
   formGuidance?: string | null;
 }
 
@@ -102,9 +99,9 @@ export interface CriteriaParameters {
   rounding: { taskScore: RoundingRule; tasksTotal: RoundingRule; generalTotal: RoundingRule; total: RoundingRule };
   collectiveGeneralMaxScore: number;
   collectiveTaskMaxScore: number;
-  /** Task 20: công khai kèm điểm chính thức (mặc định chỉ công khai mức). */
+  /** Công khai kèm điểm chính thức (mặc định chỉ công khai mức). */
   publishScores?: boolean;
-  /** Task 20: mức chính thức bắt buộc lập kế hoạch 30-60-90 ngày (Mẫu 17); mặc định HoanThanh, KhongHoanThanh. */
+  /** Mức bắt buộc lập kế hoạch Mẫu 17; mặc định HoanThanh, KhongHoanThanh. */
   improvementPlanRequiredGrades?: string[];
   /** Cảnh báo "kế hoạch cần lập" còn xét kỳ đã đóng trong số ngày này (1–3650, mặc định 90). */
   improvementPlanAlertDays?: number;
@@ -119,9 +116,8 @@ export interface CriteriaSetContent {
   conversionScale: ConversionBand[];
   grades: GradeRule[];
   parameters: CriteriaParameters;
-  /** Biểu mẫu cá nhân áp dụng (mã theo `RECORD_FORMS`); mẫu tự chấm 09A/09B luôn theo mẫu tự chấm của bộ. */
+  /** Mã theo `RECORD_FORMS`; 09A/09B luôn theo mẫu tự chấm của bộ. */
   requiredForms: string[];
-  /** Các mục tự luận của Mẫu 09C. */
   selfAssessmentSections: SelfAssessmentSection[];
   /** Các mức tự đánh giá của từng nhiệm vụ (ô "Mức" ở Mẫu 9D); rỗng = không dùng. */
   taskLevels: TaskLevel[];
@@ -133,7 +129,7 @@ export interface CriteriaSetContent {
   collectiveGroups: CollectiveCriteriaGroup[];
 }
 
-/** Danh mục biểu mẫu cá nhân (HD03 mục 7) — khớp `RecordFormCodes` phía máy chủ. */
+/** Khớp `RecordFormCodes` phía máy chủ. */
 export const RECORD_FORMS: { code: string; name: string }[] = [
   { code: "01", name: "Mẫu 01 — Phiếu giao / đăng ký sản phẩm, công việc chuyên môn" },
   { code: "02", name: "Mẫu 02 — Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc" },
@@ -147,7 +143,6 @@ export const RECORD_FORMS: { code: string; name: string }[] = [
 /** Giới hạn cấu hình biểu mẫu (khớp kiểm tra phía máy chủ). */
 export const FORM_CONFIG_LIMITS = { sectionMin: 100, sectionMax: 20000, title: 500, guidance: 8000, alertDaysMax: 3650 } as const;
 
-/** Ảnh chụp bộ tiêu chí trong kỳ. */
 export interface CriteriaSnapshot {
   setId: string;
   code: string;
@@ -187,14 +182,13 @@ export interface WeightFrameOptions {
   frames: WeightFrame[];
 }
 
-/** Điểm một tiêu chí con trên hồ sơ. */
 export interface GeneralItemScore {
   score: number;
   notApplicable?: boolean;
   reason?: string | null;
 }
 
-/** Tên cách chấm hiển thị cho người dùng theo mẫu tự chấm của bộ tiêu chí (số mẫu chỉ dùng khi in biểu mẫu). */
+/** Tên cách chấm hiển thị cho người dùng (số mẫu chỉ dùng khi in). */
 export const SCORING_METHOD_LABELS: Record<string, string> = {
   "09A": "Chấm theo việc đã đăng ký",
   "09B": "Chấm theo 6 trục",
@@ -219,7 +213,7 @@ export const ROUNDING_LABELS: Record<ScoreRoundingMode, string> = {
   Truncate: "Cắt bỏ phần thừa",
 };
 
-/** Làm tròn hiển thị (tạm tính) — cùng quy tắc máy chủ. */
+/** Cùng quy tắc làm tròn với máy chủ. */
 export function roundScore(value: number, rule: RoundingRule): number {
   const factor = Math.pow(10, Math.min(4, Math.max(0, rule.decimals)));
   const scaled = Number((value * factor).toPrecision(15));
@@ -233,7 +227,7 @@ export function roundScore(value: number, rule: RoundingRule): number {
   return rounded / factor;
 }
 
-/** Tổng điểm nhóm tiêu chí chung tạm tính (có xử lý K/AD theo bộ). */
+/** Có xử lý K/AD theo bộ. */
 export function generalTotal(content: CriteriaSetContent, scores: Record<string, GeneralItemScore>): number {
   let achieved = 0;
   let applicable = 0;
@@ -275,19 +269,17 @@ export function requiresExplanation(content: CriteriaSetContent, self: number, a
   return p.explanationOnGradeChange && gradeByScore(content, self) !== gradeByScore(content, appraisal);
 }
 
-/** Tổng điểm tối đa các tiêu chí con của khung tập thể thuộc nhóm điểm `kind`. */
 export function collectiveTotal(content: CriteriaSetContent, kind: CollectiveScoreKind): number {
   return (content.collectiveGroups ?? [])
     .filter((g) => g.kind === kind)
     .reduce((s, g) => s + g.items.reduce((t, i) => t + (Number(i.maxScore) || 0), 0), 0);
 }
 
-/** Điểm tối đa của nhóm điểm `kind` trong hồ sơ tập thể theo tham số bộ. */
 export function collectiveMax(content: CriteriaSetContent, kind: CollectiveScoreKind): number {
   return kind === "General" ? content.parameters.collectiveGeneralMaxScore : content.parameters.collectiveTaskMaxScore;
 }
 
-/** Kiểm tra nhanh (tổng điểm) để báo tức thì khi sửa bản nháp; kiểm tra đầy đủ do máy chủ trả về khi lưu. */
+/** Kiểm tra nhanh để báo tức thì; kiểm tra đầy đủ do máy chủ trả về khi lưu. */
 export function quickChecks(content: CriteriaSetContent, form: string): string[] {
   const messages: string[] = [];
   const general = content.generalGroups.reduce((s, g) => s + g.items.reduce((t, i) => t + (Number(i.maxScore) || 0), 0), 0);

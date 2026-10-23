@@ -16,7 +16,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const isLoginPage = pathname === "/login";
   const isChangePasswordPage = pathname === "/change-password";
 
-  // Lắng nghe sự kiện hết hạn phiên làm việc từ apiClient để điều hướng mượt mà
+  // Sự kiện hết hạn phiên do apiClient phát.
   useEffect(() => {
     const handleSessionExpired = () => {
       // Trang đăng nhập: chưa có phiên để kết thúc; đăng xuất/chuyển trang lúc này sẽ xóa form hoặc hủy lần đăng nhập vừa xong.
@@ -44,12 +44,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, isLoginPage, isChangePasswordPage, pathname, router]);
 
-  // Nếu là trang đăng nhập: Render trực tiếp ngay lập tức, không để spinner che khuất
+  // Trang đăng nhập hiện ngay, không chờ nạp phiên.
   if (isLoginPage) {
     return <>{children}</>;
   }
 
-  // Nếu đang nạp phiên ở các trang nội bộ
   if (loading) {
     return (
       <div className="d-flex flex-column align-items-center justify-content-center min-vh-100 bg-light loading-delay">
@@ -63,17 +62,15 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Nếu chưa đăng nhập ở trang nội bộ: Không render layout làm việc
   if (!user) {
     return null;
   }
 
-  // Phải đổi mật khẩu: không render trang nghiệp vụ (tránh gọi API bị 403) trong lúc chờ chuyển sang /change-password
+  // Phải đổi mật khẩu: không render trang nghiệp vụ (tránh 403) trong lúc chờ chuyển trang.
   if (user.mustChangePassword && !isChangePasswordPage) {
     return null;
   }
 
-  // Đã xác thực: khung làm việc (thanh bên, thanh trên mảnh, vùng nội dung căn giữa).
   // Kỳ chung chỉ nạp khi không phải đổi mật khẩu (tài khoản đó chỉ được gọi API đổi mật khẩu).
   return (
     <LayoutProvider>

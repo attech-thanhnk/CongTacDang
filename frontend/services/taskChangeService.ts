@@ -11,7 +11,7 @@ export const TASK_CHANGE_TYPE_LABELS: Record<TaskChangeType, string> = {
   Urgent: "Việc đột xuất",
 };
 
-/** Nội dung đề nghị: điều chỉnh — trường để trống là giữ nguyên; việc đột xuất — toàn bộ việc mới. */
+/** Điều chỉnh: trường để trống là giữ nguyên; việc đột xuất: toàn bộ việc mới. */
 export interface TaskChangeProposal {
   taskName?: string | null;
   targetOutput?: string | null;
@@ -22,7 +22,6 @@ export interface TaskChangeProposal {
   exceedCriteria?: string | null;
   evidenceSource?: string | null;
   confirmer?: string | null;
-  /** Trọng số của việc đột xuất mới. */
   weight?: number | null;
 }
 
@@ -71,7 +70,7 @@ export interface CreateTaskChangeRequest {
   type: TaskChangeType;
   taskId?: string | null;
   proposal?: TaskChangeProposal;
-  /** Bảng trọng số sau điều chỉnh: id việc → trọng số. */
+  /** id việc → trọng số sau điều chỉnh. */
   weights: Record<string, number>;
   reason: string;
 }

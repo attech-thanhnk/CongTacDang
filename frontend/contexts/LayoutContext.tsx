@@ -11,11 +11,10 @@ interface LayoutContextType {
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
 
 export function LayoutProvider({ children }: { children: React.ReactNode }) {
-  // Mặc định: mở trên desktop (>= 768px), đóng trên mobile
+  // Mở trên desktop (>= 768px), đóng trên mobile
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
-    // Nếu màn hình nhỏ hơn 768px thì mặc định ẩn
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       setIsSidebarOpen(false);
     }

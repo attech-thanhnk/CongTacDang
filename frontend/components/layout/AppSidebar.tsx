@@ -24,7 +24,6 @@ interface MenuGroup {
   items: MenuItem[];
 }
 
-/** Chữ cái đầu của hai từ cuối trong họ tên. */
 /** Biểu tượng Đảng bộ: ngôi sao trong vòng tròn đỏ son. */
 function Emblem() {
   return (

@@ -40,10 +40,7 @@ const AUTHORITIES: { key: string; label: string }[] = [
   { key: "CapTren", label: "Người thuộc diện cấp trên quyết định" },
 ];
 
-/**
- * Cấu hình hồ sơ luồng của kỳ: mỗi hồ sơ luồng (nhóm đối tượng) có bảng bước × chế độ (nội bộ / cấp trên thực hiện /
- * không áp dụng) × quyền thực hiện × thời hạn; hồ sơ luồng mặc định theo cấp quyết định. Máy chủ kiểm tra lại toàn bộ khi lưu.
- */
+/** Hồ sơ luồng của kỳ: bước × chế độ × quyền thực hiện × thời hạn; máy chủ kiểm tra lại toàn bộ khi lưu. */
 export function WorkflowProfilesEditor({ settings, onChange, editable, deadlinesEditable, permissionOptions, savedCodes, onApplyRules, selfScoreForm }: Props) {
   const [selected, setSelected] = useState(settings.profiles[0]?.code ?? "");
   // Bước theo bộ tiêu chí: 09A luôn có bước đăng ký sản phẩm; 09B không có bước đăng ký, duyệt.

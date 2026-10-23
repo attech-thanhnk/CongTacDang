@@ -8,7 +8,7 @@ export const FORM_HEADER_STYLE_LABELS: Record<FormHeaderStyle, string> = {
   PartyCommittee: "Đảng bộ cấp trên / Đảng ủy",
 };
 
-/** Kiểu trình bày biểu mẫu tự đánh giá (Mẫu 09B, 09C, 9D). */
+/** Áp dụng cho Mẫu 09B, 09C, 9D. */
 export interface FormLayout {
   id: string;
   name: string;
@@ -37,7 +37,6 @@ export interface SaveFormLayoutPayload {
   sortOrder: number;
 }
 
-/** Kiểu trình bày của một cán bộ. */
 export interface MemberFormLayout {
   effectiveId?: string | null;
   effectiveName?: string | null;

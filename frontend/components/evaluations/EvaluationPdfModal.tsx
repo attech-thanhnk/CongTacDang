@@ -19,10 +19,7 @@ interface Props {
 
 const safeName = (value?: string | null) => (value ? value.trim().replace(/\s+/g, "_") : "CanBo");
 
-/**
- * Xem / tải bản PDF của biểu mẫu cá nhân — máy chủ sinh từ cùng template Word và dữ liệu đã lưu
- * (`GET /reports/docx/record/{recordId}/{mã}?format=pdf`, kiểm tra quyền xem hồ sơ). Chỉ các mẫu kỳ áp dụng.
- */
+/** PDF biểu mẫu cá nhân do máy chủ sinh từ cùng template Word. */
 export const EvaluationPdfModal: React.FC<Props> = ({ isOpen, onClose, record, forms, initialCode }) => {
   const [code, setCode] = useState(initialCode);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);

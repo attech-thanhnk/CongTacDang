@@ -1024,7 +1024,6 @@ header.app-header {
 }
 
 /* ── Page Header Bar ─────────────────────────────────────── */
-/* Bản mẫu .pagehead: tiêu đề 26px, dòng phụ ink-2, thao tác bên phải; không nền, không vạch dưới. */
 .page-header-bar {
   background: transparent;
   border: 0;
@@ -1532,10 +1531,7 @@ header.app-header {
   }
 }
 
-/*
- * Bleed helper: dùng khi muốn một phần tử phá ra ngoài padding page-body
- * (vd: step nav, table full-width...) nhưng vẫn nằm trong page-body
- */
+/* Phần tử tràn ra ngoài padding của page-body (bảng rộng, thanh bước). */
 .page-bleed {
   margin-left: calc(-1 * var(--page-px));
   margin-right: calc(-1 * var(--page-px));

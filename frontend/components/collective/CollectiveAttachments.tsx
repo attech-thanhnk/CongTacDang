@@ -16,11 +16,7 @@ interface Props {
   description?: string;
 }
 
-/**
- * Phụ lục, báo cáo kèm hồ sơ tập thể. Danh sách tệp chỉ tải khi người dùng mở phần này.
- * Người xem được hồ sơ tải được tệp; người có quyền đính kèm thêm, thay bản mới, gỡ tệp
- * (máy chủ vẫn lưu bản cũ và ghi người gỡ vào nhật ký).
- */
+/** Phụ lục, báo cáo kèm hồ sơ tập thể; danh sách tệp chỉ tải khi mở phần này. */
 export function CollectiveAttachments({ recordId, editable, formCode = "M07", description = "Phụ lục, báo cáo kèm theo" }: Props) {
   const { toast, confirm } = useToast();
   const [open, setOpen] = useState(false);

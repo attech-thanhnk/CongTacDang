@@ -52,7 +52,6 @@ export function DataTable<T>({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      {/* Toolbar: Tìm kiếm, Bộ lọc, Số lượng */}
       {hasToolbar && (
         <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
           <div className="d-flex align-items-center gap-2 w-100 w-sm-auto flex-wrap">
@@ -79,7 +78,6 @@ export function DataTable<T>({
         </div>
       )}
 
-      {/* Table Container */}
       <div className="table-responsive">
         <table className="table table-sm table-hover align-middle mb-0">
           <thead className="text-center">

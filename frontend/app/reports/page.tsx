@@ -16,7 +16,7 @@ import { errorMessage } from "@/components/admin/adminUtils";
 
 const ROMAN = ["", "I", "II", "III", "IV"];
 
-/** Nhãn kỳ trong tên tệp theo quy cách HD03 ("Quy III-2026"). */
+/** Nhãn kỳ trong tên tệp, vd. "Quy III-2026". */
 const periodLabel = (period?: EvaluationPeriodDto | null) =>
   period ? `Quy ${ROMAN[period.quarter] ?? period.quarter}-${period.year}` : "Ky bao cao";
 

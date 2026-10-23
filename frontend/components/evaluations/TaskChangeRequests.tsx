@@ -26,10 +26,7 @@ interface Props {
 
 type FormMode = "change" | "urgent";
 
-/**
- * Khối "Điều chỉnh việc trong quý": đề nghị điều chỉnh / chuyển tiếp / loại trừ việc, ghi nhận việc đột xuất, duyệt / không duyệt.
- * Hiện nút theo cờ máy chủ trả về; luật (tổng trọng số, số việc, quyền) do máy chủ kiểm tra.
- */
+/** Điều chỉnh việc trong quý: nút theo cờ máy chủ; luật (tổng trọng số, số việc, quyền) do máy chủ kiểm tra. */
 export function TaskChangeRequests({ record, onRecordChanged }: Props) {
   const { toast } = useToast();
   const [data, setData] = useState<RecordTaskChangesDto | null>(null);
@@ -117,7 +114,7 @@ export function TaskChangeRequests({ record, onRecordChanged }: Props) {
   );
 }
 
-/** Một đề nghị: loại, việc, nội dung mới, bảng trọng số trước/sau, lý do, trạng thái, người duyệt; nút duyệt khi được phép. */
+/** Một đề nghị điều chỉnh; nút duyệt khi được phép. */
 function RequestItem({
   item,
   busy,

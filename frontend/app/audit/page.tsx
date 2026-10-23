@@ -59,22 +59,19 @@ const ACTION_META: Record<string, { label: string; icon: string; tone: string }>
   UpdatePermissions: { label: "Cập nhật quyền", icon: "bi-shield-check", tone: "t-wait" },
 };
 
-/** Định dạng thời điểm audit theo locale tiếng Việt. */
 function formatDate(value: string) {
   return formatDateTime(value);
 }
 
-/** Trả về nhãn và màu hiển thị tương ứng với loại thao tác. */
 function actionMeta(action: string) {
   return ACTION_META[action] ?? { label: action, icon: "bi-dot", tone: "t-info" };
 }
 
-/** Chuyển tên CLR entity thành nhãn dễ đọc trên giao diện. */
 function entityLabel(entityType: string) {
   return ENTITY_LABELS[entityType] || entityType;
 }
 
-/** Parse snapshot JSON để hiển thị dễ đọc và an toàn khi dữ liệu lỗi. */
+/** JSON lỗi thì hiện nguyên chuỗi. */
 function parseSnapshot(value: string) {
   try {
     return JSON.stringify(JSON.parse(value), null, 2);
@@ -105,7 +102,6 @@ function AuditPageContent() {
   const [loading, setLoading] = useState(true);
   const canRead = hasPermission("system.audit.read");
 
-  /** Tải trang nhật ký theo bộ lọc đã áp dụng. */
   const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
@@ -152,7 +148,6 @@ function AuditPageContent() {
     setFilters({ ...draft, entityId: draft.entityId.trim() });
   };
 
-  /** Xóa toàn bộ bộ lọc và tải lại nhật ký mới nhất. */
   const clearFilters = () => {
     setDraft(EMPTY_FILTERS);
     setPage(1);
@@ -367,7 +362,6 @@ function AuditPageContent() {
   );
 }
 
-/** Route trang nhật ký hệ thống. */
 export default function AuditPage() {
   return <AuditPageContent />;
 }

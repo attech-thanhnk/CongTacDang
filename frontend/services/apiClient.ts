@@ -2,16 +2,12 @@ import axios, { AxiosInstance, AxiosResponse, AxiosError } from "axios";
 
 declare module "axios" {
   interface AxiosRequestConfig {
-    /** Trả nguyên AxiosResponse (giữ header, ví dụ Content-Disposition khi tải tệp) thay vì chỉ phần dữ liệu. */
+    /** Trả nguyên AxiosResponse để giữ header (ví dụ Content-Disposition khi tải tệp). */
     rawResponse?: boolean;
   }
 }
 
-/**
- * Cấu hình Endpoint Web API.
- * Mặc định sử dụng relative path `/api` được chuyển tiếp (reverse-proxy) an toàn qua Next.js rewrites,
- * giúp loại bỏ hoàn toàn các vấn đề CORS, bảo toàn Cookie HttpOnly và độc lập môi trường triển khai.
- */
+/** Mặc định `/api` qua Next.js rewrites: cùng origin nên không vướng CORS và giữ được cookie HttpOnly. */
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export interface ApiResponse<T = any> {
@@ -20,11 +16,11 @@ export interface ApiResponse<T = any> {
   data?: T;
   errors?: string[];
   timestamp?: string;
-  /** Mã lỗi máy đọc được (ví dụ PASSWORD_CHANGE_REQUIRED) */
+  /** Ví dụ PASSWORD_CHANGE_REQUIRED */
   code?: string;
 }
 
-/** Mã lỗi backend trả khi tài khoản còn dùng mật khẩu tạm (403). */
+/** Trả kèm 403 khi tài khoản còn dùng mật khẩu tạm. */
 export const PASSWORD_CHANGE_REQUIRED = "PASSWORD_CHANGE_REQUIRED";
 
 /** Chuyển tới trang đổi mật khẩu (không refresh, không đăng xuất). */
@@ -35,10 +31,7 @@ function redirectToChangePassword() {
   }
 }
 
-/**
- * Lớp ngoại lệ tiêu chuẩn cho các yêu cầu Web API trong hệ thống.
- * Bảo toàn mã trạng thái HTTP, danh sách lỗi chi tiết (RFC 7807 / Validation) và dữ liệu phản hồi từ máy chủ.
- */
+/** Giữ mã HTTP, lỗi chi tiết (ProblemDetails / validation) và dữ liệu phản hồi. */
 export class ApiError extends Error {
   public status?: number;
   public errors?: string[];
@@ -53,9 +46,6 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Khởi tạo Axios client chuyên dụng cho hệ thống Công tác Đảng
- */
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
@@ -65,7 +55,7 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Đảm bảo thông tin xác thực (HttpOnly Cookie) luôn được đính kèm vào mọi yêu cầu
+// Luôn gửi cookie HttpOnly
 apiClient.interceptors.request.use(
   (config) => {
     config.withCredentials = true;
@@ -74,7 +64,7 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Quản lý hàng đợi các yêu cầu đồng thời khi đang làm mới Token
+// Hàng đợi request chờ trong lúc đang làm mới token
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value?: unknown) => void;
@@ -92,12 +82,10 @@ const processQueue = (error: unknown = null) => {
   failedQueue = [];
 };
 
-// Xử lý và chuẩn hóa dữ liệu phản hồi, bắt lỗi HTTP tập trung
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     if (response.config.rawResponse) return response;
     const payload = response.data;
-    // Kiểm tra cấu trúc ApiResponse bọc chuẩn từ ASP.NET Core
     if (payload && typeof payload === "object" && "success" in payload) {
       if (!payload.success) {
         return Promise.reject(
@@ -118,19 +106,18 @@ apiClient.interceptors.response.use(
     if (error.response) {
       status = error.response.status;
 
-      // Trích xuất thông báo lỗi chính xác từ backend (RFC 7807 ProblemDetails hoặc ApiResponse)
+      // Thông báo lỗi từ ProblemDetails hoặc ApiResponse
       let parsedData = resData;
       if (typeof Blob !== "undefined" && resData instanceof Blob) {
         try {
           const text = await resData.text();
           parsedData = JSON.parse(text);
         } catch {
-          // Bỏ qua nếu không phải chuỗi JSON
+          // Không phải JSON
         }
       }
 
-      // Tiêu đề ProblemDetails mặc định của ASP.NET là tiếng Anh ("Not Found", "One or more validation errors occurred.")
-      // nên chỉ dùng khi mã trạng thái không có thông báo tiếng Việt dự phòng bên dưới.
+      // Tiêu đề ProblemDetails mặc định là tiếng Anh: chỉ dùng khi không có thông báo tiếng Việt dự phòng bên dưới.
       let problemTitle = "";
       if (parsedData && typeof parsedData === "object") {
         if (parsedData.message) {
@@ -157,14 +144,14 @@ apiClient.interceptors.response.use(
         message = parsedData;
       }
 
-      // Xử lý mã trạng thái 401 Unauthorized — Tự động Refresh Token ngầm
+      // 401: tự làm mới token ngầm
       if (status === 401) {
         const isAuthEndpoint =
           originalRequest?.url?.includes("/auth/login") ||
           originalRequest?.url?.includes("/auth/refresh-token") ||
           originalRequest?.url?.includes("/auth/logout");
 
-        // Nếu là endpoint xác thực hoặc request đã thử retry rồi mà vẫn 401 -> Hết phiên thật sự
+        // Endpoint xác thực, hoặc đã retry mà vẫn 401 → hết phiên thật
         if (isAuthEndpoint || originalRequest?._retry) {
           if (!isAuthEndpoint && typeof window !== "undefined") {
             window.dispatchEvent(new CustomEvent("auth:session-expired"));
@@ -174,7 +161,7 @@ apiClient.interceptors.response.use(
           );
         }
 
-        // Nếu đang có 1 request khác tiến hành làm mới token -> Xếp hàng đợi kết quả
+        // Request khác đang làm mới token → xếp hàng chờ kết quả
         if (isRefreshing) {
           return new Promise((resolve, reject) => {
             failedQueue.push({ resolve, reject });
@@ -208,7 +195,7 @@ apiClient.interceptors.response.use(
         });
       } else if (status === 403) {
         if (parsedData && typeof parsedData === "object" && parsedData.code === PASSWORD_CHANGE_REQUIRED) {
-          // Máy chủ chặn vì còn mật khẩu tạm: chuyển tới trang đổi mật khẩu, không làm mới phiên, không đăng xuất.
+          // Còn mật khẩu tạm: chuyển trang đổi mật khẩu, không làm mới phiên, không đăng xuất.
           redirectToChangePassword();
           return Promise.reject(
             new ApiError(message || "Bạn cần đổi mật khẩu tạm trước khi tiếp tục.", status, errors, parsedData)
@@ -236,9 +223,6 @@ apiClient.interceptors.response.use(
   }
 );
 
-/**
- * Hàm gọi API tổng quát tương thích linh hoạt cho các service tầng ứng dụng
- */
 export async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const method = (options?.method || "GET").toLowerCase();
   const headers = options?.headers as Record<string, string> | undefined;

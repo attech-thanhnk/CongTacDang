@@ -1,7 +1,6 @@
 import { apiClient, request } from "./apiClient";
 import { downloadFile } from "./download";
 
-/** Cột của file nhập. */
 export interface ImportColumn {
   key: string;
   header: string;
@@ -9,7 +8,6 @@ export interface ImportColumn {
   description: string;
 }
 
-/** Loại nhập người dùng được dùng. */
 export interface ImportKind {
   kind: string;
   name: string;
@@ -19,7 +17,6 @@ export interface ImportKind {
 
 export type ImportRowAction = "create" | "update" | "error";
 
-/** Một dòng xem trước. */
 export interface ImportPreviewRow {
   rowNumber: number;
   action: ImportRowAction;
@@ -28,7 +25,6 @@ export interface ImportPreviewRow {
   data: Record<string, string>;
 }
 
-/** Kết quả xem trước. */
 export interface ImportPreview {
   sessionId: string;
   kind: string;
@@ -39,7 +35,6 @@ export interface ImportPreview {
   summary: { total: number; create: number; update: number; error: number };
 }
 
-/** Kết quả nhập. */
 export interface ImportCommitResult {
   kind: string;
   total: number;
@@ -49,10 +44,9 @@ export interface ImportCommitResult {
   resultFileExpiresAt?: string | null;
 }
 
-/** Dung lượng tối đa (khớp máy chủ). */
+/** Khớp máy chủ. */
 export const IMPORT_MAX_FILE_BYTES = 5 * 1024 * 1024;
 
-/** Nhập dữ liệu từ Excel (API `/api/imports`, quyền system.import + quyền dữ liệu của từng loại). */
 export const importService = {
   kinds(): Promise<ImportKind[]> {
     return request<ImportKind[]>("/imports/kinds");
@@ -76,7 +70,7 @@ export const importService = {
     return apiClient.post(`/imports/sessions/${sessionId}/commit`, undefined, { timeout: 600000 }) as unknown as Promise<ImportCommitResult>;
   },
 
-  /** Tải file mật khẩu tạm — máy chủ chỉ cho tải một lần. */
+  /** Máy chủ chỉ cho tải một lần. */
   async downloadResult(token: string, fileName: string): Promise<void> {
     await downloadFile(`/imports/results/${encodeURIComponent(token)}`, fileName);
   },

@@ -3,20 +3,19 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { EvaluationPeriodDto, evaluationService } from "@/services/evaluationService";
 
-/** Khóa localStorage lưu kỳ đánh giá đang chọn (theo trình duyệt). */
+/** Khóa localStorage lưu kỳ đang chọn. */
 const STORAGE_KEY = "ctd.periodId";
 
 interface PeriodContextType {
-  /** Các kỳ đã mở trở đi (không gồm kỳ Nháp), thứ tự như API trả về. */
+  /** Không gồm kỳ Nháp; thứ tự như API trả về. */
   periods: EvaluationPeriodDto[];
-  /** Mã kỳ đang chọn; chuỗi rỗng khi chưa có kỳ nào. */
+  /** Chuỗi rỗng khi chưa có kỳ nào. */
   periodId: string;
   setPeriodId: (id: string) => void;
-  /** Kỳ đang chọn (null khi chưa nạp xong hoặc không có kỳ). */
+  /** null khi chưa nạp xong hoặc không có kỳ. */
   period: EvaluationPeriodDto | null;
-  /** Đang nạp danh sách kỳ lần đầu. */
   loading: boolean;
-  /** Nạp lại danh sách kỳ (sau khi tạo/mở/khóa kỳ). */
+  /** Gọi sau khi tạo/mở/khóa kỳ. */
   reload: () => Promise<void>;
 }
 
@@ -45,9 +44,7 @@ function pickPeriod(list: EvaluationPeriodDto[], preferred: string): string {
   return (list.find((p) => p.isActive) ?? list[0])?.id ?? "";
 }
 
-/**
- * Kỳ đánh giá chung của ứng dụng (ô chọn ở thanh bên). `enabled = false` (chưa đăng nhập, phải đổi mật khẩu) thì không gọi API.
- */
+/** `enabled = false` (chưa đăng nhập, phải đổi mật khẩu) thì không gọi API. */
 export function PeriodProvider({ enabled, children }: { enabled: boolean; children: React.ReactNode }) {
   const [periods, setPeriods] = useState<EvaluationPeriodDto[]>([]);
   const [periodId, setPeriodIdState] = useState("");

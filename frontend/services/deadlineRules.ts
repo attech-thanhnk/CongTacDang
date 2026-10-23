@@ -1,4 +1,4 @@
-// Quy tắc tính thời hạn bước theo quý. Ngày cụ thể do máy chủ tính (backend/src/CongTacDang.Domain/Evaluation/DeadlineRules.cs).
+// Quy tắc tính thời hạn bước theo quý; ngày cụ thể do máy chủ tính.
 
 export type DeadlineRuleKind = "WorkingDayOfQuarter" | "DayOfLastMonth" | "WorkingDaysBeforeQuarter";
 

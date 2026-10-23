@@ -33,10 +33,7 @@ function DeadlineCell({ task }: { task: TaskRow }) {
   );
 }
 
-/**
- * Bảng việc cần xử lý (Tổng quan và trang Việc cần xử lý): cán bộ, hạn, nút ghi đúng tên việc.
- * Việc thuộc kỳ khác kỳ đang chọn hiện thêm tên kỳ cạnh tên cán bộ.
- */
+/** Bảng việc cần xử lý; việc thuộc kỳ khác kỳ đang chọn hiện thêm tên kỳ. */
 export function TaskTable({
   tasks,
   periodId,

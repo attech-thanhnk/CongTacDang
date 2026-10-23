@@ -1,7 +1,6 @@
 import { apiClient, ApiError, request } from "./apiClient";
 import { downloadFile } from "./download";
 
-/** Một tag trong danh mục tag của biểu mẫu. */
 export interface TemplateTag {
   tag: string;
   kind: "field" | "repeat" | "if" | "ifnot";
@@ -10,7 +9,6 @@ export interface TemplateTag {
   isCommon: boolean;
 }
 
-/** Một phiên bản file mẫu đã tải lên. */
 export interface TemplateVersion {
   id: string;
   templateCode: string;
@@ -28,7 +26,6 @@ export interface TemplateVersion {
   activatedByName?: string | null;
 }
 
-/** Một biểu mẫu Word trong danh mục. */
 export interface TemplateSummary {
   code: string;
   name: string;
@@ -40,7 +37,6 @@ export interface TemplateSummary {
   tags: TemplateTag[];
 }
 
-/** Kết quả kiểm tra file mẫu. */
 export interface TemplateCheck {
   isValid: boolean;
   tags: string[];
@@ -51,7 +47,7 @@ export interface TemplateCheck {
   version?: TemplateVersion | null;
 }
 
-/** Dung lượng tối đa (khớp máy chủ). */
+/** Khớp máy chủ. */
 export const TEMPLATE_MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 function fileForm(file: File, fields: Record<string, string> = {}): FormData {
@@ -63,7 +59,6 @@ function fileForm(file: File, fields: Record<string, string> = {}): FormData {
 
 const base = (code: string) => `/templates/${encodeURIComponent(code)}`;
 
-/** Quản lý file mẫu Word (API `/api/templates`, quyền system.templates.manage). */
 export const templateService = {
   list(): Promise<TemplateSummary[]> {
     return request<TemplateSummary[]>("/templates");
@@ -73,7 +68,7 @@ export const templateService = {
     return request<TemplateVersion[]>(`${base(code)}/versions`);
   },
 
-  /** Kiểm tra tệp (không lưu). */
+  /** Không lưu. */
   check(code: string, file: File): Promise<TemplateCheck> {
     return apiClient.post(`${base(code)}/check`, fileForm(file), {
       headers: { "Content-Type": "multipart/form-data" },
@@ -81,10 +76,7 @@ export const templateService = {
     }) as unknown as Promise<TemplateCheck>;
   },
 
-  /**
-   * Tải lên phiên bản mới. Tệp có lỗi → máy chủ trả 400 kèm kết quả kiểm tra: trả về kết quả đó (isValid = false)
-   * thay vì ném lỗi, để giao diện hiện danh sách lỗi.
-   */
+  /** Tệp lỗi → 400 kèm kết quả kiểm tra: trả kết quả đó (isValid = false) thay vì ném lỗi, để hiện danh sách lỗi. */
   async upload(code: string, file: File, note: string, activate: boolean): Promise<TemplateCheck> {
     try {
       return (await apiClient.post(`${base(code)}/versions`, fileForm(file, { note, activate: String(activate) }), {

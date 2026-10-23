@@ -11,10 +11,7 @@ export interface TemporaryCredential {
   temporaryPassword: string;
 }
 
-/**
- * Hiện tên đăng nhập + mật khẩu tạm đúng một lần (sau khi tạo tài khoản / đặt lại mật khẩu).
- * Mật khẩu chỉ nằm trong state của hộp thoại; đóng là mất, không lưu ở đâu khác.
- */
+/** Hiện mật khẩu tạm đúng một lần: chỉ nằm trong state hộp thoại, đóng là mất. */
 export function TemporaryPasswordModal({ credential, onClose }: { credential: TemporaryCredential; onClose: () => void }) {
   const [copied, setCopied] = useState<"username" | "password" | "both" | null>(null);
   const [failed, setFailed] = useState(false);

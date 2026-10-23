@@ -42,10 +42,7 @@ type SortKey = "name" | "status";
 const RETURNED = "__returned";
 const OVERDUE = "__overdue";
 
-/**
- * Danh sách hồ sơ đánh giá của kỳ đang chọn: hồ sơ của tôi (nếu có) và các hồ sơ trong phạm vi được xem
- * (máy chủ lọc theo phạm vi). Thao tác trên hồ sơ thực hiện ở trang hồ sơ theo `actions`.
- */
+/** Hồ sơ của kỳ đang chọn: của tôi và trong phạm vi được xem (máy chủ lọc). */
 export default function EvaluationsPage() {
   const { hasPermission } = useAuth();
   const router = useRouter();

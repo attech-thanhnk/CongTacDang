@@ -13,10 +13,7 @@ import { errorMessage } from "@/components/admin/adminUtils";
 /** Hiện ô tìm khi danh sách dài hơn số này. */
 const SEARCH_THRESHOLD = 10;
 
-/**
- * Việc cần xử lý: hồ sơ đang chờ chính người dùng ở bước họ có quyền, trong phạm vi được gán (máy chủ lọc).
- * Gồm mọi kỳ đang mở (không lọc theo kỳ đang chọn); việc thuộc kỳ khác ghi thêm tên kỳ.
- */
+/** Gồm mọi kỳ đang mở (không lọc theo kỳ đang chọn); việc thuộc kỳ khác ghi thêm tên kỳ. */
 export default function WorkQueuePage() {
   const { periodId } = usePeriod();
   const [queue, setQueue] = useState<WorkQueueDto | null>(null);
