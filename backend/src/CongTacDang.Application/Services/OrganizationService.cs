@@ -12,78 +12,62 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>
-/// Giao diện xử lý nghiệp vụ mô hình tổ chức: cây tổ chức Đảng, cây đơn vị chính quyền và danh mục loại đơn vị.
-/// Lỗi nghiệp vụ ném <see cref="ValidationException"/> (400), <see cref="NotFoundException"/> (404),
-/// <see cref="ConflictException"/> (409) — middleware chuyển thành <c>ApiResponse</c>.
-/// </summary>
+/// <summary>Cây tổ chức Đảng, cây đơn vị chính quyền và danh mục loại đơn vị.</summary>
 public interface IOrganizationService
 {
-    /// <summary>Danh sách tổ chức Đảng (phẳng, sắp theo cây: cha trước, con sau).</summary>
+    /// <summary>Phẳng, sắp theo cây: cha trước, con sau.</summary>
     Task<List<BranchDto>> GetBranchesAsync();
 
-    /// <summary>Chi tiết tổ chức Đảng theo Id.</summary>
     Task<BranchDto?> GetBranchByIdAsync(Guid id);
 
-    /// <summary>Thêm tổ chức Đảng (có thể chọn tổ chức cha, loại đơn vị).</summary>
     Task<BranchDto> CreateBranchAsync(SaveCatalogItemDto input);
 
-    /// <summary>Cập nhật tổ chức Đảng (kể cả đổi cha — chặn tạo vòng).</summary>
+    /// <summary>Đổi cha được, chặn tạo vòng.</summary>
     Task<BranchDto> UpdateBranchAsync(Guid id, SaveCatalogItemDto input);
 
-    /// <summary>Xóa tổ chức Đảng (chặn khi còn tổ chức con, cán bộ, hồ sơ, bản gán, chức vụ đang hiệu lực).</summary>
+    /// <summary>Chặn khi còn tổ chức con, cán bộ, hồ sơ, bản gán, chức vụ đang hiệu lực.</summary>
     Task DeleteBranchAsync(Guid id);
 
-    /// <summary>Danh sách đơn vị chính quyền (phẳng, sắp theo cây).</summary>
+    /// <summary>Phẳng, sắp theo cây.</summary>
     Task<List<DepartmentDto>> GetDepartmentsAsync();
 
-    /// <summary>Chi tiết đơn vị chính quyền theo Id.</summary>
     Task<DepartmentDto?> GetDepartmentByIdAsync(Guid id);
 
-    /// <summary>Thêm đơn vị chính quyền.</summary>
     Task<DepartmentDto> CreateDepartmentAsync(SaveCatalogItemDto input);
 
-    /// <summary>Cập nhật đơn vị chính quyền (kể cả đổi cha — chặn tạo vòng).</summary>
+    /// <summary>Đổi cha được, chặn tạo vòng.</summary>
     Task<DepartmentDto> UpdateDepartmentAsync(Guid id, SaveCatalogItemDto input);
 
-    /// <summary>Xóa đơn vị chính quyền (chặn khi còn đơn vị con, cán bộ, hồ sơ, bản gán, chức vụ đang hiệu lực).</summary>
+    /// <summary>Chặn khi còn đơn vị con, cán bộ, hồ sơ, bản gán, chức vụ đang hiệu lực.</summary>
     Task DeleteDepartmentAsync(Guid id);
 
-    /// <summary>Danh mục loại đơn vị (cả hai bên).</summary>
     Task<List<OrgUnitTypeDto>> GetUnitTypesAsync();
 
-    /// <summary>Thêm loại đơn vị.</summary>
     Task<OrgUnitTypeDto> CreateUnitTypeAsync(SaveOrgUnitTypeDto input);
 
-    /// <summary>Sửa loại đơn vị.</summary>
     Task<OrgUnitTypeDto> UpdateUnitTypeAsync(Guid id, SaveOrgUnitTypeDto input);
 
-    /// <summary>Xóa loại đơn vị (409 khi còn đơn vị dùng).</summary>
+    /// <summary>409 khi còn đơn vị dùng.</summary>
     Task DeleteUnitTypeAsync(Guid id);
 }
 
-/// <summary>Quy tắc chung của mã/tên danh mục — dùng cho màn hình quản lý danh mục.</summary>
 public static class CatalogRules
 {
-    /// <summary>Độ dài tối đa của mã (khớp cấu hình cột).</summary>
+    /// <summary>Khớp cấu hình cột.</summary>
     public const int MaxCodeLength = 50;
 
-    /// <summary>Độ dài tối đa của tên (khớp cấu hình cột).</summary>
+    /// <summary>Khớp cấu hình cột.</summary>
     public const int MaxNameLength = 200;
 
-    /// <summary>Độ dài tối đa tên loại đơn vị.</summary>
     public const int MaxUnitTypeNameLength = 100;
 
-    /// <summary>Nhãn hiển thị bên Đảng.</summary>
     public const string PartyLabel = "tổ chức Đảng";
 
-    /// <summary>Nhãn hiển thị bên chính quyền.</summary>
     public const string AdministrativeLabel = "đơn vị";
 
-    /// <summary>Chuẩn hóa mã: cắt khoảng trắng hai đầu, chữ hoa.</summary>
     public static string NormalizeCode(string? code) => (code ?? string.Empty).Trim().ToUpperInvariant();
 
-    /// <summary>Kiểm tra mã đã chuẩn hóa; trả thông báo lỗi hoặc null nếu hợp lệ.</summary>
+    /// <summary>Trả thông báo lỗi hoặc null nếu hợp lệ.</summary>
     public static string? ValidateCode(string code, string label)
     {
         if (code.Length == 0)
@@ -95,7 +79,7 @@ public static class CatalogRules
         return null;
     }
 
-    /// <summary>Kiểm tra tên đã cắt khoảng trắng; trả thông báo lỗi hoặc null nếu hợp lệ.</summary>
+    /// <summary>Trả thông báo lỗi hoặc null nếu hợp lệ.</summary>
     public static string? ValidateName(string name, string label)
     {
         if (name.Length == 0)
@@ -105,18 +89,15 @@ public static class CatalogRules
         return null;
     }
 
-    /// <summary>Tên hiển thị của bên.</summary>
     public static string SideName(OrgSide side) => side == OrgSide.Party ? "Tổ chức Đảng" : "Đơn vị chính quyền";
 
-    /// <summary>Đọc bên từ chuỗi (<c>Party</c>/<c>Administrative</c>, không phân biệt hoa thường).</summary>
     public static bool TryParseSide(string? value, out OrgSide side)
         => Enum.TryParse(value?.Trim(), ignoreCase: true, out side) && Enum.IsDefined(side);
 }
 
 /// <summary>
-/// Nghiệp vụ mô hình tổ chức (task 14): mỗi bên là một cây (<c>ParentId</c> + đường dẫn vật hóa <c>Path</c>).
-/// Mỗi lần đổi cấu trúc cây, đường dẫn của toàn bộ bên đó được tính lại (<see cref="OrgTree.BuildPaths"/>) và cache quyền
-/// được xóa (phạm vi gán vai trò bao trùm cây con được tính theo đường dẫn).
+/// Mỗi bên là một cây (<c>ParentId</c> + <c>Path</c>). Đổi cấu trúc cây → tính lại Path cả bên và xóa cache quyền
+/// (phạm vi bao trùm cây con tính theo Path).
 /// </summary>
 public class OrganizationService : IOrganizationService
 {
@@ -138,8 +119,6 @@ public class OrganizationService : IOrganizationService
     }
 
     private DateTime Now => _time.GetUtcNow().UtcDateTime;
-
-    // ===================== Tổ chức Đảng =====================
 
     /// <inheritdoc />
     public async Task<List<BranchDto>> GetBranchesAsync()
@@ -231,8 +210,6 @@ public class OrganizationService : IOrganizationService
         _accessCache.InvalidateAll();
     }
 
-    // ===================== Đơn vị chính quyền =====================
-
     /// <inheritdoc />
     public async Task<List<DepartmentDto>> GetDepartmentsAsync()
     {
@@ -321,8 +298,6 @@ public class OrganizationService : IOrganizationService
         _accessCache.InvalidateAll();
     }
 
-    // ===================== Loại đơn vị =====================
-
     /// <inheritdoc />
     public async Task<List<OrgUnitTypeDto>> GetUnitTypesAsync()
     {
@@ -401,11 +376,7 @@ public class OrganizationService : IOrganizationService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    // ===================== Hỗ trợ cây =====================
-
-    /// <summary>
-    /// Đơn vị cha cho đơn vị mới: null/Empty = gốc (chỉ khi cây chưa có gốc — mỗi cây một gốc); phải tồn tại (chưa xóa) cùng bên.
-    /// </summary>
+    /// <summary>Null/Empty = gốc (chỉ khi cây chưa có gốc); cha phải tồn tại và cùng bên.</summary>
     private static Guid? ResolveNewParent<T>(Guid? parentId, IReadOnlyList<T> all, string label) where T : IOrgUnit
     {
         if (!parentId.HasValue || parentId.Value == Guid.Empty)
@@ -418,10 +389,7 @@ public class OrganizationService : IOrganizationService
         return parentId.Value;
     }
 
-    /// <summary>
-    /// Đổi cha (null = giữ nguyên, Empty = thành gốc); chặn chọn chính nó hoặc con cháu của nó (tạo vòng).
-    /// Trả true nếu cấu trúc cây thay đổi.
-    /// </summary>
+    /// <summary>Null = giữ nguyên, Empty = thành gốc; chặn tạo vòng. Trả true nếu cấu trúc cây thay đổi.</summary>
     private static bool ApplyParentChange<T>(T unit, Guid? requestedParent, List<T> all, string label) where T : IOrgUnit
     {
         if (!requestedParent.HasValue)
@@ -451,10 +419,7 @@ public class OrganizationService : IOrganizationService
         return true;
     }
 
-    /// <summary>
-    /// Mỗi cây (đơn vị chính quyền / tổ chức Đảng) chỉ có một gốc: chặn tạo gốc mới hoặc đưa đơn vị lên làm gốc khi cây đã có gốc khác
-    /// (chưa xóa). Dữ liệu cũ đã có nhiều gốc không bị sửa, chỉ không thêm gốc nữa.
-    /// </summary>
+    /// <summary>Mỗi cây chỉ một gốc; dữ liệu cũ đã có nhiều gốc không bị sửa, chỉ không thêm gốc nữa.</summary>
     private static void EnsureNoOtherRoot<T>(IReadOnlyList<T> all, Guid? selfId, string label) where T : IOrgUnit
     {
         var root = all.Where(u => u.ParentId == null && u.Id != selfId).OrderBy(u => u.Path, StringComparer.Ordinal).FirstOrDefault();
@@ -465,7 +430,7 @@ public class OrganizationService : IOrganizationService
         }
     }
 
-    /// <summary>Tính lại đường dẫn của mọi nút một bên; phát hiện vòng/thiếu cha → 400.</summary>
+    /// <summary>Phát hiện vòng/thiếu cha → 400.</summary>
     public static void RecomputePaths<T>(IReadOnlyList<T> all, string label) where T : IOrgUnit
     {
         var result = OrgTree.BuildPaths(all.Select(u => new OrgNodeLink(u.Id, u.ParentId)));
@@ -488,7 +453,7 @@ public class OrganizationService : IOrganizationService
         }
     }
 
-    /// <summary>Sắp phẳng theo cây: gốc trước (thứ tự, mã), mỗi nút theo sau là các con của nó.</summary>
+    /// <summary>Gốc trước (thứ tự, mã), mỗi nút theo sau là các con của nó.</summary>
     public static List<T> OrderAsTree<T>(IReadOnlyList<T> units) where T : IOrgUnit
     {
         var ids = new HashSet<Guid>(units.Select(u => u.Id));
@@ -523,9 +488,7 @@ public class OrganizationService : IOrganizationService
         };
     }
 
-    /// <summary>
-    /// Loại đơn vị bắt buộc: tạo mới phải chọn loại; khi sửa, không gửi = giữ nguyên (kể cả dữ liệu cũ chưa có loại), gửi rỗng = bỏ loại → 400.
-    /// </summary>
+    /// <summary>Tạo mới bắt buộc chọn loại; khi sửa không gửi = giữ nguyên, gửi rỗng → 400.</summary>
     private async Task<Guid?> ResolveUnitTypeAsync(Guid? requested, Guid? current, OrgSide side, bool isNew = false)
     {
         if (!requested.HasValue && !isNew)
@@ -579,8 +542,6 @@ public class OrganizationService : IOrganizationService
         return dto;
     }
 
-    // ===================== Hỗ trợ chung =====================
-
     private static void EnsureValid(params string?[] errors)
     {
         var first = errors.FirstOrDefault(e => e != null);
@@ -599,7 +560,6 @@ public class OrganizationService : IOrganizationService
     private static ConflictException DuplicateCode(string label, string code)
         => new($"Mã {label} \"{code}\" đã được dùng (kể cả cho {label} đã xóa). Hãy chọn mã khác.");
 
-    /// <summary>Thông báo 409 nêu số lượng dữ liệu còn tham chiếu và cách xử lý.</summary>
     public static string BuildInUseMessage(string label, string name, CatalogUsage usage, string moveTarget)
     {
         var parts = new List<string>();

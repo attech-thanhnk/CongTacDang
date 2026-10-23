@@ -12,35 +12,23 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>
-/// Màn hình "Người thực hiện": ai làm được việc gì của quy trình đánh giá tại một đơn vị
-/// (docs/thiet-ke/phan-quyen.md mục 5). Chỉ đọc — thêm/gỡ người dùng API gán vai trò sẵn có.
-/// </summary>
+/// <summary>Màn hình "Người thực hiện": ai làm được việc gì tại một đơn vị. Chỉ đọc; thêm/gỡ dùng API gán vai trò.</summary>
 public interface IPerformerService
 {
-    /// <summary>
-    /// Các việc trong quy trình đánh giá và người làm được từng việc tại đơn vị chính quyền <paramref name="departmentId"/>,
-    /// tổ chức Đảng <paramref name="partyCellId"/>, hoặc Toàn công ty (cả hai null).
-    /// </summary>
+    /// <summary>Cả hai đơn vị null = Toàn công ty.</summary>
     Task<UnitPerformersDto> GetAsync(Guid? departmentId, Guid? partyCellId, CancellationToken ct = default);
 
     /// <summary>
-    /// Bản gán đang hiệu lực (vai trò có quyền thực hiện bước, tài khoản đang hoạt động) cần xem lại: gán không thời hạn
-    /// tại đơn vị mà người được giao không giữ chức vụ cũng không thuộc đơn vị đó; hoặc giao tạm sắp hết hạn.
-    /// Lọc theo <paramref name="userId"/> nếu có.
+    /// Bản gán cần xem lại: gán không thời hạn tại đơn vị mà người được giao không giữ chức vụ cũng không thuộc đơn vị đó,
+    /// hoặc giao tạm sắp hết hạn.
     /// </summary>
     Task<List<PerformerReviewItemDto>> GetReviewAsync(Guid? userId, CancellationToken ct = default);
 }
 
-/// <summary>
-/// Triển khai <see cref="IPerformerService"/>. Quyền hiệu lực tính bằng <see cref="IPermissionResolver"/> và kiểm tra bằng
-/// <see cref="AuthorizationGuard.Evaluate"/> — cùng luật với kiểm tra thiếu người thực hiện của kỳ.
-/// </summary>
+/// <summary>Cùng luật với kiểm tra thiếu người thực hiện của kỳ (<see cref="AuthorizationGuard.Evaluate"/>).</summary>
 public sealed class PerformerService : IPerformerService
 {
-    /// <summary>
-    /// Các việc của quy trình (mã quyền thực hiện bước), theo thứ tự các bước; bước của chủ hồ sơ không thuộc màn hình này.
-    /// </summary>
+    /// <summary>Theo thứ tự các bước; bước của chủ hồ sơ không thuộc màn hình này.</summary>
     public static readonly IReadOnlyList<string> JobPermissions = new[]
     {
         WorkflowPermissions.TasksApprove,
@@ -62,16 +50,14 @@ public sealed class PerformerService : IPerformerService
     private readonly IPositionRepository _positions;
     private readonly TimeProvider _time;
 
-    /// <summary>Nhãn khi người được giao không giữ chức vụ nhưng là cán bộ của nơi giao (hoặc đơn vị con).</summary>
+    /// <summary>Người được giao không giữ chức vụ nhưng là cán bộ của nơi giao (hoặc đơn vị con).</summary>
     public const string MemberOfUnitText = "Cán bộ của đơn vị";
 
-    /// <summary>Số ngày trước khi hết hạn thì bản giao tạm được đưa vào danh sách cần xem lại.</summary>
+    /// <summary>Bản giao tạm còn ít ngày hơn số này thì cần xem lại.</summary>
     public const int ExpiringSoonDays = 7;
 
-    /// <summary>Lệch giờ Việt Nam so với UTC (hiển thị ngày trong lý do).</summary>
     private static readonly TimeSpan VietnamOffset = TimeSpan.FromHours(7);
 
-    /// <summary>Khởi tạo dịch vụ.</summary>
     public PerformerService(
         IEvaluationWorkflowRepository workflow,
         IRoleAssignmentRepository assignments,
@@ -137,9 +123,8 @@ public sealed class PerformerService : IPerformerService
             result.ScopeActive = await _assignments.ScopeExistsAsync((RoleScopeType)(int)scopeType, scopeId.Value, ct);
         }
 
-        // Đối tượng kiểm tra: "một hồ sơ bất kỳ thuộc đơn vị này" (không có chủ hồ sơ → không xét xung đột lợi ích).
-        // Hồ sơ mang cả Phòng lẫn Chi bộ của cán bộ: xem theo Phòng thì tính cả người giao ở Chi bộ của cán bộ trong Phòng
-        // (và ngược lại), để việc giao theo cây kia không hiện là "Chưa có người".
+        // "Một hồ sơ bất kỳ thuộc đơn vị" (không có chủ → không xét xung đột lợi ích). Hồ sơ mang cả Phòng lẫn Chi bộ,
+        // nên tính cả người giao theo cây kia để không hiện nhầm "Chưa có người".
         var targets = new List<AccessTarget>();
         switch (scopeType)
         {
@@ -161,10 +146,9 @@ public sealed class PerformerService : IPerformerService
         }
         bool Covers(EffectivePermissions p, string code) => targets.Any(t => AuthorizationGuard.Evaluate(p, code, t));
 
-        // Ứng viên: tài khoản đang hoạt động có bản gán hiệu lực mà vai trò chứa một trong các quyền; quyền + phạm vi tính bằng resolver.
         var now = _time.GetUtcNow().UtcDateTime;
 
-        // Người giữ chức vụ tại đúng đơn vị đang xem — gợi ý khi giao việc (quyền không tự đi theo chức vụ).
+        // Gợi ý khi giao việc: quyền không tự đi theo chức vụ.
         if (scopeId.HasValue)
         {
             result.Holders = (await _positions.ListActiveHoldingsAsync(null, departmentId, partyCellId, now, ct))
@@ -181,7 +165,6 @@ public sealed class PerformerService : IPerformerService
         foreach (var userId in candidateIds)
             effective.Add(await _resolver.GetAsync(userId, ct));
 
-        // Họ tên, tên đăng nhập, thời hạn theo bản gán đang hiệu lực.
         var activeAssignments = (await _assignments.QueryAsync(new RoleAssignmentFilter(ActiveOn: now), ct))
             .ToDictionary(a => a.Id);
         var grantScopes = effective.SelectMany(e => e.Grants).Where(g => g.ScopeId.HasValue).ToList();
@@ -204,7 +187,7 @@ public sealed class PerformerService : IPerformerService
 
             foreach (var permissions in effective.Where(p => Covers(p, code)))
             {
-                // Bản gán nào bao trùm đơn vị: kiểm tra từng bản cấp riêng bằng đúng luật của guard.
+                // Kiểm tra từng bản gán bằng đúng luật của guard.
                 var covering = permissions.GrantsFor(code)
                     .Where(g => Covers(new EffectivePermissions(permissions.UserId, new[] { g }), code))
                     .GroupBy(g => g.SourceAssignmentId)
@@ -236,8 +219,7 @@ public sealed class PerformerService : IPerformerService
                 .ThenBy(p => p.RoleName, StringComparer.CurrentCulture)
                 .ToList();
 
-            // Vai trò chọn được khi thêm người: có quyền này; gán tại một đơn vị thì không chứa quyền chỉ áp dụng Toàn công ty
-            // (cùng chốt với API gán vai trò).
+            // Gán tại một đơn vị thì không chứa quyền chỉ áp dụng Toàn công ty (cùng chốt với API gán vai trò).
             job.Roles = roles
                 .Where(r => r.Permissions.Any(p => p.Code == code))
                 .Where(r => scopeType == ScopeType.Global
@@ -249,7 +231,6 @@ public sealed class PerformerService : IPerformerService
             result.Jobs.Add(job);
         }
 
-        // Quan hệ của từng người được giao với nơi giao (chức vụ tại đó / cán bộ của đơn vị).
         var allPeople = result.Jobs.SelectMany(j => j.People).ToList();
         if (allPeople.Count > 0)
         {
@@ -328,10 +309,7 @@ public sealed class PerformerService : IPerformerService
             .ToList();
     }
 
-    /// <summary>
-    /// Quyền thực hiện bước mà các kỳ đang dự thảo/mở/khóa cần đến (theo hồ sơ luồng của kỳ); null khi không có kỳ nào
-    /// như vậy (coi mọi việc đều dùng). Kỳ có cấu hình lỗi bỏ qua.
-    /// </summary>
+    /// <summary>Quyền mà các kỳ dự thảo/mở/khóa cần đến; null khi không có kỳ nào (coi mọi việc đều dùng). Kỳ cấu hình lỗi bỏ qua.</summary>
     private async Task<HashSet<string>?> UsedPermissionsAsync(CancellationToken ct)
     {
         var current = (await _workflow.ListPeriodsAsync(ct))
@@ -367,7 +345,7 @@ public sealed class PerformerService : IPerformerService
     private static ScopeType ParseScope(string value)
         => Enum.TryParse<ScopeType>(value, out var scope) ? scope : ScopeType.Global;
 
-    /// <summary>Ngày cuối còn hiệu lực (giờ Việt Nam) của mốc hết hạn không bao gồm, dạng dd/MM/yyyy.</summary>
+    /// <summary>Mốc hết hạn không bao gồm → ngày cuối còn hiệu lực theo giờ Việt Nam.</summary>
     private static string LastDayText(DateTime validToExclusive)
     {
         var utc = validToExclusive.Kind == DateTimeKind.Unspecified
@@ -376,10 +354,7 @@ public sealed class PerformerService : IPerformerService
         return (utc.AddTicks(-1) + VietnamOffset).ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
     }
 
-    /// <summary>
-    /// Quan hệ giữa cán bộ và đơn vị: chức vụ đang giữ tại đơn vị hoặc đơn vị cấp trên của nó; nếu không có thì
-    /// cán bộ thuộc đơn vị đó (hoặc đơn vị con).
-    /// </summary>
+    /// <summary>Chức vụ tại đơn vị hoặc đơn vị cấp trên của nó; không có thì cán bộ thuộc đơn vị đó (hoặc đơn vị con).</summary>
     private sealed class ScopeRelations
     {
         private readonly ILookup<Guid, PositionHolding> _holdings;
@@ -402,7 +377,7 @@ public sealed class PerformerService : IPerformerService
             return new ScopeRelations(holdings.ToLookup(h => h.UserId), units, paths);
         }
 
-        /// <summary>Mô tả quan hệ; null khi bản gán Toàn công ty hoặc không có quan hệ nào.</summary>
+        /// <summary>Null khi bản gán Toàn công ty hoặc không có quan hệ nào.</summary>
         public string? Describe(Guid userId, ScopeType scopeType, Guid? scopeId)
         {
             if (scopeType == ScopeType.Global || !scopeId.HasValue)
@@ -410,7 +385,7 @@ public sealed class PerformerService : IPerformerService
             var isDepartment = scopeType == ScopeType.Department;
             var tree = isDepartment ? _paths.Departments : _paths.PartyCells;
 
-            // Đơn vị được giao và các đơn vị cấp trên (theo Path); đơn vị không còn trong cây: chỉ chính nó.
+            // Đơn vị không còn trong cây: chỉ chính nó.
             var chain = new HashSet<Guid> { scopeId.Value };
             if (tree.TryGetValue(scopeId.Value, out var scopePath))
             {

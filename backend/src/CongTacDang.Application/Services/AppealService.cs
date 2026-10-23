@@ -14,43 +14,32 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Kiến nghị sau công bố (task 20 — T-87, HD03 PL II mục III.2).</summary>
+/// <summary>Kiến nghị sau công bố.</summary>
 public interface IAppealService
 {
-    /// <summary>Khối "Kiến nghị" của hồ sơ: danh sách kiến nghị, có gửi được không, các bước chọn được.</summary>
     Task<RecordAppealsDto> GetRecordAppealsAsync(Guid recordId, CancellationToken ct = default);
 
-    /// <summary>Chủ hồ sơ gửi kiến nghị (hồ sơ đã công bố, không có kiến nghị khác đang xử lý).</summary>
+    /// <summary>Hồ sơ đã công bố, không có kiến nghị khác đang xử lý.</summary>
     Task<AppealDto> SubmitAsync(Guid recordId, SubmitAppealRequestDto request, CancellationToken ct = default);
 
-    /// <summary>Nhận xem xét kiến nghị (Submitted → UnderReview).</summary>
     Task<AppealDto> StartReviewAsync(Guid appealId, VersionedRequestDto request, CancellationToken ct = default);
 
-    /// <summary>Trả lời kiến nghị: chấp nhận / không chấp nhận, bắt buộc nêu căn cứ.</summary>
+    /// <summary>Bắt buộc nêu căn cứ.</summary>
     Task<AppealDto> ResolveAsync(Guid appealId, ResolveAppealRequestDto request, CancellationToken ct = default);
 
-    /// <summary>
-    /// Mở lại hồ sơ theo kiến nghị đã chấp nhận — gọi thao tác "Mở lại" hiện có (quyền <c>evaluation.reopen</c>, lý do ghi vào lịch sử
-    /// hồ sơ kèm dẫn chiếu kiến nghị); không tự động mở lại khi chấp nhận.
-    /// </summary>
+    /// <summary>Dùng thao tác "Mở lại" hiện có (<c>evaluation.reopen</c>); chấp nhận kiến nghị không tự mở lại hồ sơ.</summary>
     Task<AppealDto> ReopenRecordAsync(Guid appealId, ReopenFromAppealRequestDto request, CancellationToken ct = default);
 }
 
 /// <summary>
-/// Kiến nghị sau công bố. Quyền:
-/// <list type="bullet">
-/// <item>Gửi: <c>evaluation.appeal.submit</c> — chỉ chủ hồ sơ (guard), hồ sơ đã công bố, không trùng khi đang xử lý.</item>
-/// <item>Xem: chủ hồ sơ, <c>evaluation.appeal.resolve</c> hoặc <c>evaluation.read</c> trong phạm vi (hồ sơ kiến nghị là thành phần hồ sơ,
-/// PL II mục V).</item>
-/// <item>Xử lý: <c>evaluation.appeal.resolve</c> trong phạm vi; không xử lý kiến nghị của mình (xung đột lợi ích trong guard) và không xử lý
-/// kiến nghị liên quan tới bước mình đã thực hiện trên hồ sơ (PL II III.2: "người đó không chủ trì xử lý").</item>
-/// </list>
+/// Người xử lý cần <c>evaluation.appeal.resolve</c> trong phạm vi, không phải chủ kiến nghị
+/// và không xử lý kiến nghị liên quan tới bước mình đã thực hiện.
 /// </summary>
 public sealed class AppealService : IAppealService
 {
     private const int MaxContentLength = 4000;
 
-    /// <summary>Các bước có người thực hiện trên hồ sơ mà kiến nghị có thể liên quan tới (theo thứ tự luồng).</summary>
+    /// <summary>Theo thứ tự luồng.</summary>
     private static readonly WorkflowStep[] ConcernableSteps =
     {
         WorkflowStep.B1_APPROVE, WorkflowStep.B2_CELL_CONFIRM, WorkflowStep.B3A_COLLECTIVE,
@@ -143,15 +132,14 @@ public sealed class AppealService : IAppealService
             SubmittedAt = now,
             Content = content,
             ConcernedSteps = steps.OrderBy(WorkflowSteps.IndexOf).Select(WorkflowSteps.Code).ToList(),
-            // Chụp người thực hiện các bước bị kiến nghị tại thời điểm gửi (hồ sơ có thể được mở lại, thực hiện lại sau đó).
+            // Chụp người thực hiện tại thời điểm gửi vì hồ sơ có thể được mở lại, thực hiện lại sau đó.
             ConflictedUserIds = steps.Select(s => ActorOf(record, s).Id).OfType<Guid>().Where(id => id != userId).Distinct().ToList(),
             Status = AppealStatus.Submitted,
             CreatedAt = now
         };
         _repo.AddAppeal(appeal);
         await _unitOfWork.SaveChangesAsync(ct);
-        // Không đổi luật xung đột lợi ích: vẫn nhận kiến nghị, nhưng báo rõ khi không còn ai xử lý được để quản trị gán người
-        // (nhóm việc "Kiến nghị chưa có người xử lý" của người có quyền gán vai trò).
+        // Vẫn nhận kiến nghị, chỉ báo rõ khi không còn ai xử lý được để quản trị gán người.
         return ToDto(appeal, record, await ResolverWarningAsync(appeal, record, ct));
     }
 
@@ -211,12 +199,11 @@ public sealed class AppealService : IAppealService
         if (string.IsNullOrEmpty(reason))
             throw new ValidationException("Hãy nhập lý do mở lại hồ sơ (nội dung cần đính chính theo kiến nghị).");
 
-        // Thao tác "Mở lại" hiện có: kiểm tra quyền evaluation.reopen, xung đột lợi ích, trạng thái, phiên bản hồ sơ và ghi lịch sử.
+        // "Mở lại" đã kiểm tra quyền, xung đột lợi ích, trạng thái, phiên bản và ghi lịch sử.
         var resolvedAt = appeal.ResolvedAt.HasValue
             ? EvaluationMapping.Today(appeal.ResolvedAt.Value).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)
             : string.Empty;
-        // Mở lại hồ sơ và đánh dấu kiến nghị đã mở lại trong một transaction: không để hồ sơ đã mở lại mà kiến nghị chưa ghi nhận
-        // (mở lại lần nữa theo cùng kiến nghị) hoặc ngược lại.
+        // Cùng transaction: tránh hồ sơ đã mở lại mà kiến nghị chưa ghi nhận (hoặc ngược lại).
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             await _workflow.ReopenAsync(record.Id, new ReopenRequestDto
@@ -239,7 +226,7 @@ public sealed class AppealService : IAppealService
 
     #region Hỗ trợ
 
-    /// <summary>Khung chung cho thao tác xử lý: nạp → quyền xử lý → phiên bản → áp → lưu (xmin).</summary>
+    /// <summary>Nạp → quyền xử lý → phiên bản → áp → lưu (xmin).</summary>
     private async Task<AppealDto> ChangeAsync(Guid appealId, VersionedRequestDto request, Func<EvaluationAppeal, DateTime, Task> apply, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -262,7 +249,7 @@ public sealed class AppealService : IAppealService
         return ToDto(saved, saved.Record, await ResolverWarningAsync(saved, saved.Record, ct));
     }
 
-    /// <summary>Cảnh báo khi kiến nghị đang mở mà không còn ai xử lý được (null = có người xử lý hoặc kiến nghị đã đóng).</summary>
+    /// <summary>Null = có người xử lý hoặc kiến nghị đã đóng.</summary>
     private async Task<string?> ResolverWarningAsync(EvaluationAppeal appeal, EvaluationRecord record, CancellationToken ct) =>
         appeal.IsOpen && !await _resolverCheck.HasResolverAsync(appeal, record, ct) ? AppealResolverCheck.NoResolverWarning : null;
 
@@ -272,7 +259,7 @@ public sealed class AppealService : IAppealService
 
     private bool IsOwner(EvaluationRecord record) => _currentUser.UserId is { } id && record.MemberId == id;
 
-    /// <summary>Xem kiến nghị: chủ hồ sơ, người xử lý kiến nghị hoặc người xem hồ sơ trong phạm vi.</summary>
+    /// <summary>Chủ hồ sơ, người xử lý kiến nghị hoặc người xem hồ sơ trong phạm vi.</summary>
     private void EnsureCanView(EvaluationRecord record)
     {
         var target = AccessTarget.ForRecord(record);
@@ -283,7 +270,7 @@ public sealed class AppealService : IAppealService
             + $"\"{PermissionCodes.DisplayName(PermissionCodes.EvaluationAppealResolve)}\" trên hồ sơ này (ngoài phạm vi được gán).");
     }
 
-    /// <summary>Lý do không xử lý được kiến nghị; null = được.</summary>
+    /// <summary>Null = được.</summary>
     private string? ResolveBlockedReason(EvaluationAppeal appeal, EvaluationRecord record)
     {
         var userId = _currentUser.UserId;
@@ -311,7 +298,7 @@ public sealed class AppealService : IAppealService
             throw new ForbiddenException(reason);
     }
 
-    /// <summary>Lý do chủ hồ sơ chưa gửi được kiến nghị; null = gửi được.</summary>
+    /// <summary>Null = gửi được.</summary>
     private static string? SubmitBlockedReason(EvaluationRecord record, IReadOnlyCollection<EvaluationAppeal> appeals)
     {
         if (record.Status != RecordStatus.Published)
@@ -333,7 +320,7 @@ public sealed class AppealService : IAppealService
             })
             .ToList();
 
-    /// <summary>Người thực hiện bước trên hồ sơ (Id null với bước do cấp trên thực hiện — tên là cơ quan cấp trên).</summary>
+    /// <summary>Bước do cấp trên thực hiện: Id null, tên là cơ quan cấp trên.</summary>
     private static (Guid? Id, string? Name) ActorOf(EvaluationRecord record, WorkflowStep step) => step switch
     {
         WorkflowStep.B1_APPROVE => (record.TasksApprovedById, record.TasksApprovedByName),
@@ -352,7 +339,6 @@ public sealed class AppealService : IAppealService
         return string.IsNullOrWhiteSpace(name) ? _currentUser.UserName : name;
     }
 
-    /// <summary>Tên hiển thị trạng thái kiến nghị.</summary>
     public static string StatusName(AppealStatus status) => status switch
     {
         AppealStatus.Submitted => "Đã gửi, chờ xem xét",
@@ -391,7 +377,7 @@ public sealed class AppealService : IAppealService
             Response = appeal.Response,
             ReopenedAt = appeal.ReopenedAt,
             CanResolve = appeal.IsOpen && blocked == null,
-            // Chỉ báo lý do bị chặn cho người có quyền xử lý ở phạm vi nào đó (không lộ luật cho người chỉ xem).
+            // Không lộ luật cho người chỉ xem.
             ResolveBlockedReason = appeal.IsOpen && blocked != null && _guard.HasAny(PermissionCodes.EvaluationAppealResolve) ? blocked : null,
             CanReopen = canReopen,
             CanAttach = appeal.IsOpen && _guard.Can(PermissionCodes.EvaluationSelf, AccessTarget.ForRecord(record)),

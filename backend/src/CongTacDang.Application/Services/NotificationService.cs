@@ -10,22 +10,17 @@ namespace CongTacDang.Application.Services;
 /// <summary>Cấu hình nhắc việc (<c>Notifications:*</c>).</summary>
 public sealed class NotificationOptions
 {
-    /// <summary>Bước còn từ 0 tới số ngày này tới hạn thì báo "sắp tới hạn" (<c>Notifications:DueSoonDays</c>, mặc định 2).</summary>
+    /// <summary>Số ngày trước hạn bắt đầu báo "sắp tới hạn".</summary>
     public int DueSoonDays { get; set; } = 2;
 }
 
-/// <summary>Nhắc việc trong ứng dụng (task 20 — T-89): số việc trên chuông ở header, tính khi tải.</summary>
+/// <summary>Số việc trên chuông nhắc việc, tính khi tải.</summary>
 public interface INotificationService
 {
-    /// <summary>Tổng hợp việc đang chờ người dùng hiện tại.</summary>
     Task<NotificationSummaryDto> GetSummaryAsync(CancellationToken ct = default);
 }
 
-/// <summary>
-/// Tổng hợp từ danh sách việc cần xử lý (cùng một nguồn với trang "Việc cần xử lý", đã lọc quyền/phạm vi): hồ sơ chờ ở các bước,
-/// bước sắp tới hạn (theo hạn của bước trong hồ sơ luồng) và quá hạn, kiến nghị chờ xử lý, kế hoạch 30-60-90 ngày cần lập và
-/// kế hoạch chờ xác nhận. Không gửi email, không đẩy thời gian thực.
-/// </summary>
+/// <summary>Cùng nguồn với trang "Việc cần xử lý" (đã lọc quyền/phạm vi); không gửi email, không đẩy thời gian thực.</summary>
 public sealed class NotificationService : INotificationService
 {
     private const int MaxItems = 20;

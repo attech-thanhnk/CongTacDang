@@ -12,10 +12,8 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Triển khai <see cref="IRoleAssignmentService"/> kèm các chốt chặn quản trị (docs/thiet-ke/phan-quyen.md mục 5).</summary>
 public sealed class RoleAssignmentService : IRoleAssignmentService
 {
-    /// <summary>Tên phạm vi toàn công ty.</summary>
     public const string GlobalScopeName = "Toàn công ty";
 
     private const int MaxNoteLength = 1000;
@@ -29,7 +27,6 @@ public sealed class RoleAssignmentService : IRoleAssignmentService
     private readonly IPermissionResolver _resolver;
     private readonly TimeProvider _time;
 
-    /// <summary>Khởi tạo dịch vụ.</summary>
     public RoleAssignmentService(
         IRoleAssignmentRepository assignments,
         IRoleRepository roles,
@@ -85,7 +82,7 @@ public sealed class RoleAssignmentService : IRoleAssignmentService
         scopeId = await ValidateScopeAsync(domainScope, scopeId, ct);
         EnsureRoleFitsScope(role, domainScope);
 
-        // Trùng bản gán (cùng người – vai trò – phạm vi) chồng lấn thời gian.
+        // Trùng người – vai trò – phạm vi và chồng lấn thời gian.
         var existing = await _assignments.GetCurrentOrFutureForUserAsync(userId, now, ct);
         var overlap = existing.FirstOrDefault(a => a.RoleId == roleId
             && a.ScopeType == domainScope
@@ -306,7 +303,7 @@ public sealed class RoleAssignmentService : IRoleAssignmentService
         }
     }
 
-    /// <summary>Chốt "không tự nâng quyền": không tạo/sửa/thu hồi bản gán của chính mình.</summary>
+    /// <summary>Không tự nâng quyền: không tạo/sửa/thu hồi bản gán của chính mình.</summary>
     private void EnsureNotSelf(Guid userId, string action)
     {
         if (_currentUser.UserId.HasValue && _currentUser.UserId.Value == userId)
@@ -316,7 +313,7 @@ public sealed class RoleAssignmentService : IRoleAssignmentService
         }
     }
 
-    /// <summary>Chốt "luôn còn quản trị": từ chối (409) nếu thao tác làm mất người nắm quyền quản trị cuối cùng.</summary>
+    /// <summary>409 nếu thao tác làm mất người nắm quyền quản trị cuối cùng.</summary>
     private async Task EnsureAdministratorsRemainAsync(
         Func<IEnumerable<AdministratorGrantRow>, IEnumerable<AdministratorGrantRow>> apply,
         CancellationToken ct)
@@ -349,7 +346,7 @@ public sealed class RoleAssignmentService : IRoleAssignmentService
         return scopeId;
     }
 
-    /// <summary>Chốt "kiểm tra phạm vi hợp lệ": quyền không áp dụng phạm vi chỉ nằm trong vai trò được gán Global.</summary>
+    /// <summary>Quyền không áp dụng phạm vi chỉ nằm trong vai trò được gán Global.</summary>
     private static void EnsureRoleFitsScope(AppRole role, RoleScopeType scopeType)
     {
         if (scopeType == RoleScopeType.Global)
@@ -389,7 +386,7 @@ public sealed class RoleAssignmentService : IRoleAssignmentService
     private static bool Overlaps(DateTime aFrom, DateTime? aTo, DateTime bFrom, DateTime? bTo)
         => (aTo == null || bFrom < aTo.Value) && (bTo == null || aFrom < bTo.Value);
 
-    /// <summary>Chuẩn hóa thời điểm về UTC (không có múi giờ → coi là UTC).</summary>
+    /// <summary>Không có múi giờ → coi là UTC.</summary>
     private static DateTime? ToUtc(DateTime? value)
     {
         if (!value.HasValue)

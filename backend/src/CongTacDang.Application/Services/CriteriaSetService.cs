@@ -13,10 +13,7 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>
-/// Quản lý bộ tiêu chí và thang điểm theo phiên bản (task 16): danh sách, xem, tạo nháp, nhân bản, sửa nháp, xuất bản (kiểm tra
-/// đầy đủ), lưu trữ, xóa nháp. Xem: <c>criteria.manage</c> hoặc <c>period.manage</c>; ghi: <c>criteria.manage</c>.
-/// </summary>
+/// <summary>Bộ tiêu chí theo phiên bản. Xem: <c>criteria.manage</c> hoặc <c>period.manage</c>; ghi: <c>criteria.manage</c>.</summary>
 public interface ICriteriaSetService
 {
     Task<List<CriteriaSetListItemDto>> ListAsync(CancellationToken ct = default);
@@ -28,14 +25,13 @@ public interface ICriteriaSetService
     Task<CriteriaSetDto> ArchiveAsync(Guid id, CriteriaSetActionDto dto, CancellationToken ct = default);
     Task DeleteAsync(Guid id, CriteriaSetActionDto dto, CancellationToken ct = default);
 
-    /// <summary>Nội dung mặc định (theo bản trích xuất HD03) cho mẫu tự chấm — dùng khi tạo bộ mới.</summary>
+    /// <summary>Nội dung mặc định cho mẫu tự chấm, dùng khi tạo bộ mới.</summary>
     CriteriaSetContent DefaultContent(string selfScoreForm);
 
-    /// <summary>Khung tỷ trọng chọn được cho cán bộ: từ bộ của kỳ gần nhất đã chọn bộ, không có thì bộ đã xuất bản mới nhất.</summary>
+    /// <summary>Lấy từ bộ của kỳ gần nhất đã chọn bộ, không có thì bộ đã xuất bản mới nhất.</summary>
     Task<WeightFrameOptionsDto> GetWeightFrameOptionsAsync(CancellationToken ct = default);
 }
 
-/// <summary>Triển khai quản lý bộ tiêu chí.</summary>
 public sealed class CriteriaSetService : ICriteriaSetService
 {
     private const int MaxCodeLength = 50;
@@ -266,7 +262,6 @@ public sealed class CriteriaSetService : ICriteriaSetService
 
     #region Hỗ trợ
 
-    /// <summary>Tên hiển thị trạng thái.</summary>
     public static string StatusName(CriteriaSetStatus status) => status switch
     {
         CriteriaSetStatus.Draft => "Bản nháp",
@@ -316,7 +311,7 @@ public sealed class CriteriaSetService : ICriteriaSetService
         return dto;
     }
 
-    /// <summary>Đọc nội dung; lỗi định dạng → nội dung rỗng (hiển thị lỗi kiểm tra để sửa).</summary>
+    /// <summary>Lỗi định dạng → nội dung rỗng (để hiển thị lỗi kiểm tra và sửa).</summary>
     private static CriteriaSetContent SafeContent(CriteriaSet set)
     {
         try
@@ -329,7 +324,7 @@ public sealed class CriteriaSetService : ICriteriaSetService
         }
     }
 
-    /// <summary>Bản nháp được lưu dù chưa đầy đủ; chỉ chặn nội dung không đọc lại được (phiên bản schema lạ).</summary>
+    /// <summary>Nháp được lưu dù chưa đầy đủ; chỉ chặn nội dung không đọc lại được (phiên bản schema lạ).</summary>
     private static void EnsureStorable(CriteriaSetContent content)
     {
         if (content.SchemaVersion != CriteriaSetContent.CurrentSchemaVersion)

@@ -14,15 +14,9 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>
-/// Triển khai <see cref="IUserAccountService"/> (task 08): tên đăng nhập chuẩn hóa chữ thường, duy nhất kể cả tài khoản
-/// đã xóa; kiểm tra Phòng/Chi bộ; mật khẩu tạm ngẫu nhiên trả về một lần; khóa/xóa/đặt lại mật khẩu vô hiệu phiên ngay
-/// (đổi dấu bảo mật, thu hồi refresh token, xóa cache); chốt chặn tự khóa và quản trị viên cuối cùng.
-/// Quyền trên từng tài khoản kiểm tra qua <see cref="IAuthorizationGuard"/> theo Phòng/Chi bộ của tài khoản.
-/// </summary>
+/// <summary>Tên đăng nhập chữ thường, duy nhất kể cả tài khoản đã xóa; quyền kiểm tra theo Phòng/Chi bộ của tài khoản.</summary>
 public sealed class UserAccountService : IUserAccountService
 {
-    /// <summary>Độ dài tối đa tên đăng nhập.</summary>
     public const int MaxUsernameLength = AccountRules.UsernameMaxLength;
 
     private const int TemporaryPasswordLength = 12;
@@ -39,12 +33,9 @@ public sealed class UserAccountService : IUserAccountService
     private readonly IRoleAssignmentService? _roleAssignments;
     private readonly IAuthorizationGuard? _authz;
 
-    /// <summary>
-    /// Bản tối giản chỉ hỗ trợ <see cref="CreateAsync"/> (không kiểm tra danh mục/quyền) — dùng cho test đơn vị cũ.
-    /// </summary>
+    /// <summary>Chỉ hỗ trợ <see cref="CreateAsync"/>, không kiểm tra danh mục/quyền — dùng cho test đơn vị.</summary>
     public UserAccountService(IUserRepository users) => _users = users;
 
-    /// <summary>Khởi tạo dịch vụ đầy đủ (DI).</summary>
     public UserAccountService(
         IUserRepository users,
         IUserAccountRepository accounts,
@@ -79,7 +70,7 @@ public sealed class UserAccountService : IUserAccountService
         return new CreatedAccount(member.Id, member.Username, temporaryPassword);
     }
 
-    /// <summary>Kiểm tra dữ liệu, quyền, danh mục, trùng tên và dựng tài khoản mới (chưa đưa vào CSDL).</summary>
+    /// <summary>Chưa đưa vào CSDL.</summary>
     private async Task<(PartyMemberProfile Member, string TemporaryPassword)> BuildNewAccountAsync(
         CreateAccountCommand cmd, CancellationToken ct)
     {
@@ -98,8 +89,7 @@ public sealed class UserAccountService : IUserAccountService
         var partyCellId = cmd.PartyCellId == Guid.Empty ? null : cmd.PartyCellId;
         var weightFrameCode = NormalizeWeightFrameCode(cmd.WeightFrameCode);
 
-        // Tài khoản mới chưa có chức vụ → thẩm quyền suy ra = CoSo. Gửi đúng giá trị suy ra = không đặt tay; gửi khác = ghi đè,
-        // bắt buộc lý do như thao tác đặt tay thẩm quyền hiện có.
+        // Tài khoản mới chưa có chức vụ → suy ra CoSo; gửi khác giá trị này là ghi đè, bắt buộc lý do.
         const ApprovalAuthority derivedAuthority = ApprovalAuthority.CoSo;
         var authorityOverride = cmd.ApprovalAuthority is { } requested && requested != derivedAuthority ? requested : (ApprovalAuthority?)null;
         string? authorityReason = null;
@@ -181,7 +171,7 @@ public sealed class UserAccountService : IUserAccountService
         var member = await LoadAsync(id, ct);
         Authz.Ensure(PermissionCodes.SystemUsersRead, TargetOf(member.DepartmentId, member.PartyCellId));
         var dto = ToDto(member);
-        // Phạm vi bao trùm cây con chỉ máy chủ biết đầy đủ → trả sẵn cho giao diện hiển thị nút thao tác.
+        // Phạm vi bao trùm cây con chỉ máy chủ biết đầy đủ → trả sẵn cho giao diện.
         dto.CanManage = Authz.Can(PermissionCodes.SystemUsersManage, TargetOf(member.DepartmentId, member.PartyCellId).ForWrite())
             && (_currentUser?.UserId == null
                 || Authz.Can(PermissionCodes.SystemUsersManage, AccessTarget.None)
@@ -233,10 +223,10 @@ public sealed class UserAccountService : IUserAccountService
             : member.PartyCellId;
         if (newDepartment != member.DepartmentId || newCell != member.PartyCellId)
         {
-            // Xung đột lợi ích: đơn vị/tổ chức Đảng quyết định người duyệt và phạm vi đánh giá của chính mình.
+            // Xung đột lợi ích: đơn vị quyết định người duyệt và phạm vi đánh giá của chính mình.
             if (isSelf)
                 throw SelfChangeForbidden(newDepartment != member.DepartmentId ? "đơn vị chính quyền" : "tổ chức Đảng");
-            // Chuyển tài khoản sang Phòng/Chi bộ khác: người thao tác phải quản lý được cả nơi đến.
+            // Chuyển đơn vị: phải quản lý được cả nơi đến.
             EnsureCanManage(newDepartment, newCell);
             await EnsureCatalogAsync(
                 newDepartment != member.DepartmentId ? newDepartment : null,
@@ -245,7 +235,7 @@ public sealed class UserAccountService : IUserAccountService
             member.DepartmentId = newDepartment;
             member.PartyCellId = newCell;
         }
-        // Đảng viên: sinh hoạt ở một tổ chức Đảng hoặc có số thẻ đảng (số thẻ không bắt buộc).
+        // Số thẻ đảng không bắt buộc.
         member.IsPartyMember = member.PartyCardNumber != null || member.PartyCellId.HasValue;
 
         await Accounts.SaveChangesAsync(ct);
@@ -317,7 +307,7 @@ public sealed class UserAccountService : IUserAccountService
         InvalidateCaches(member.Id);
     }
 
-    /// <summary>Sinh mật khẩu tạm ngẫu nhiên an toàn, luôn có cả chữ và số, không dùng ký tự dễ nhầm (0/O, 1/l/I).</summary>
+    /// <summary>Luôn có cả chữ và số, không dùng ký tự dễ nhầm (0/O, 1/l/I).</summary>
     public static string GenerateTemporaryPassword()
     {
         const string alphabet = Letters + Digits;
@@ -325,7 +315,6 @@ public sealed class UserAccountService : IUserAccountService
         for (var i = 0; i < password.Length; i++)
             password[i] = alphabet[RandomNumberGenerator.GetInt32(alphabet.Length)];
 
-        // Bảo đảm có ít nhất một chữ và một số ở vị trí ngẫu nhiên khác nhau.
         var letterIndex = RandomNumberGenerator.GetInt32(password.Length);
         var digitIndex = (letterIndex + 1 + RandomNumberGenerator.GetInt32(password.Length - 1)) % password.Length;
         password[letterIndex] = Letters[RandomNumberGenerator.GetInt32(Letters.Length)];
@@ -333,13 +322,9 @@ public sealed class UserAccountService : IUserAccountService
         return new string(password);
     }
 
-    /// <summary>Dấu bảo mật mới (32 ký tự hex).</summary>
     public static string NewSecurityStamp() => Guid.NewGuid().ToString("N");
 
-    /// <summary>
-    /// Chuẩn hóa mã khung tỷ trọng mặc định: trống → null; sai định dạng → lỗi. Khung có trong bộ tiêu chí của kỳ hay không
-    /// được kiểm tra khi thêm vào kỳ / kiểm tra kẹt luồng (bộ tiêu chí thay đổi theo kỳ).
-    /// </summary>
+    /// <summary>Trống → null; sai định dạng → lỗi. Khung có trong bộ tiêu chí hay không được kiểm tra khi thêm vào kỳ.</summary>
     public static string? NormalizeWeightFrameCode(string? code)
     {
         var trimmed = code?.Trim();
@@ -350,7 +335,6 @@ public sealed class UserAccountService : IUserAccountService
         return trimmed;
     }
 
-    /// <summary>Ánh xạ tài khoản sang DTO danh sách.</summary>
     public static AccountListItemDto ToDto(PartyMemberProfile m) => new()
     {
         Id = m.Id,
@@ -416,22 +400,18 @@ public sealed class UserAccountService : IUserAccountService
                 "Chi bộ đã chọn không tồn tại hoặc đã ngừng hoạt động. Hãy chọn Chi bộ khác trong danh mục.");
     }
 
-    /// <summary>
-    /// Người thao tác phải có <c>system.users.manage</c> bao trùm Phòng/Chi bộ của tài khoản.
-    /// Bỏ qua khi không có người dùng đăng nhập (tác vụ hệ thống).
-    /// </summary>
+    /// <summary>Bỏ qua khi không có người dùng đăng nhập (tác vụ hệ thống).</summary>
     private void EnsureCanManage(Guid? departmentId, Guid? partyCellId)
     {
         if (_currentUser?.UserId == null)
             return;
-        // Ghi: tài khoản gắn cả đơn vị chính quyền và tổ chức Đảng → người thao tác phải quản lý được cả hai nơi.
+        // Tài khoản gắn cả hai cây → phải quản lý được cả hai nơi.
         Authz.Ensure(PermissionCodes.SystemUsersManage, TargetOf(departmentId, partyCellId).ForWrite());
     }
 
     /// <summary>
-    /// Quyền quản lý một tài khoản cụ thể: <c>system.users.manage</c> bao trùm Phòng/Chi bộ của tài khoản; tài khoản đặc quyền
-    /// (có bản gán phạm vi Toàn công ty hoặc giữ quyền quản trị hệ thống) chỉ người có <c>system.users.manage</c> phạm vi
-    /// Toàn công ty mới được sửa, khóa/mở, mở khóa, đặt lại mật khẩu, xóa — tránh quản trị cấp đơn vị chiếm tài khoản cấp trên.
+    /// Tài khoản đặc quyền chỉ người có <c>system.users.manage</c> phạm vi Toàn công ty mới được quản lý,
+    /// tránh quản trị cấp đơn vị chiếm tài khoản cấp trên.
     /// </summary>
     private async Task EnsureCanManageAccountAsync(PartyMemberProfile member, CancellationToken ct)
     {
@@ -447,7 +427,7 @@ public sealed class UserAccountService : IUserAccountService
         }
     }
 
-    /// <summary>Lỗi khi tự đổi thông tin quyết định việc đánh giá của chính mình (xung đột lợi ích).</summary>
+    /// <summary>Không tự đổi thông tin quyết định việc đánh giá của chính mình (xung đột lợi ích).</summary>
     private static ForbiddenException SelfChangeForbidden(string field) =>
         new($"Bạn không thể tự đổi {field} của chính mình (xung đột lợi ích). Hãy nhờ người quản lý tài khoản khác thực hiện.");
 
@@ -459,11 +439,7 @@ public sealed class UserAccountService : IUserAccountService
     private IAccessCacheInvalidator AccessCache => _accessCache ?? throw NotConfigured();
     private IRoleAssignmentService RoleAssignments => _roleAssignments ?? throw NotConfigured();
 
-    /// <summary>
-    /// Chốt chặn khi khóa/xóa (thiết kế phân quyền mục 5): không tự khóa/xóa chính mình (409); không làm hệ thống mất
-    /// tài khoản đang hoạt động cuối cùng giữ quyền quản trị — dùng chung một cơ chế với thu hồi bản gán
-    /// (<see cref="IRoleAssignmentService.EnsureAdministratorsRemainWithoutUserAsync"/>: bản gán Global đang hiệu lực).
-    /// </summary>
+    /// <summary>Không tự khóa/xóa mình (409); không làm mất tài khoản quản trị đang hoạt động cuối cùng.</summary>
     private async Task EnsureCanDisableAsync(Guid targetUserId, string actionName, CancellationToken ct)
     {
         if (_currentUser?.UserId == targetUserId)
@@ -472,7 +448,7 @@ public sealed class UserAccountService : IUserAccountService
         await RoleAssignments.EnsureAdministratorsRemainWithoutUserAsync(targetUserId, ct);
     }
 
-    /// <summary>Ngày hiện tại theo giờ máy chủ (dùng kiểm tra ngày sinh).</summary>
+    /// <summary>Theo giờ máy chủ (dùng kiểm tra ngày sinh).</summary>
     private static DateOnly Today() => DateOnly.FromDateTime(DateTime.Now);
 
     private static InvalidOperationException NotConfigured() =>

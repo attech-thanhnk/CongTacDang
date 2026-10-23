@@ -10,19 +10,12 @@ using CongTacDang.Domain.Entities;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>
-/// Tra cứu hồ sơ cán bộ. Vòng đời tài khoản (tạo, sửa, khóa, xóa, đặt lại mật khẩu) và danh sách tài khoản
-/// nằm ở <see cref="IUserAccountService"/>.
-/// </summary>
+/// <summary>Tra cứu hồ sơ cán bộ; vòng đời tài khoản ở <see cref="IUserAccountService"/>.</summary>
 public interface IUserService
 {
-    /// <summary>Lấy hồ sơ và quyền thật (từ <see cref="IPermissionResolver"/>) của người dùng theo Id.</summary>
     Task<UserProfileDto> GetProfileByIdAsync(Guid userId);
 
-    /// <summary>
-    /// Lấy hồ sơ theo yêu cầu của một người dùng: mặc định là hồ sơ của chính người yêu cầu;
-    /// hồ sơ người khác chỉ trả về khi người yêu cầu có quyền <c>system.users.read</c> bao trùm Phòng/Chi bộ của hồ sơ đó.
-    /// </summary>
+    /// <summary>Mặc định hồ sơ của chính mình; hồ sơ người khác cần <c>system.users.read</c> bao trùm đơn vị của hồ sơ đó.</summary>
     Task<UserProfileDto> GetProfileForRequesterAsync(Guid requesterId, string? username = null);
 }
 
@@ -51,7 +44,7 @@ public class UserService : IUserService
         return await MapToProfileDtoAsync(member);
     }
 
-    /// <summary>Lấy hồ sơ của chính người yêu cầu, hoặc hồ sơ người khác nếu được phép xem.</summary>
+    /// <inheritdoc />
     public async Task<UserProfileDto> GetProfileForRequesterAsync(Guid requesterId, string? username = null)
     {
         var requester = await _userRepo.GetWithOrganizationByIdAsync(requesterId)
@@ -67,7 +60,7 @@ public class UserService : IUserService
         var target = await _userRepo.GetByUsernameAsync(targetUsername);
         if (target == null)
         {
-            // Không tiết lộ tài khoản có tồn tại hay không: chỉ người xem được mọi hồ sơ (phạm vi Toàn công ty) nhận 404.
+            // Không tiết lộ tài khoản có tồn tại hay không: chỉ người có phạm vi toàn công ty nhận 404.
             if (!_guard.Can(PermissionCodes.SystemUsersRead, AccessTarget.None))
                 throw new ForbiddenException(ProfileForbiddenMessage);
             throw new KeyNotFoundException($"Không tìm thấy hồ sơ cán bộ với tên đăng nhập: {targetUsername}");
@@ -79,10 +72,7 @@ public class UserService : IUserService
         return await MapToProfileDtoAsync(target);
     }
 
-    /// <summary>
-    /// Ánh xạ hồ sơ sang DTO; tên vai trò/mã quyền lấy từ <see cref="IPermissionResolver"/> (bản gán đang hiệu lực —
-    /// người chưa được gán vai trò thì không có vai trò/quyền nào).
-    /// </summary>
+    /// <summary>Vai trò/quyền theo bản gán đang hiệu lực.</summary>
     private async Task<UserProfileDto> MapToProfileDtoAsync(PartyMemberProfile member)
     {
         var effective = await _permissions.GetAsync(member.Id);

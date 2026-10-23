@@ -12,26 +12,22 @@ using CongTacDang.Domain.Entities;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>
-/// Danh mục kiểu trình bày biểu mẫu tự đánh giá (quyền quản lý danh mục kiểm tra ở controller) và kiểu áp dụng cho cán bộ
-/// (theo chức vụ, đặt riêng được).
-/// </summary>
+/// <summary>Kiểu trình bày biểu mẫu tự đánh giá; áp dụng cho cán bộ theo chức vụ, đặt riêng được.</summary>
 public interface IFormLayoutService
 {
-    /// <summary>Danh mục kiểu (mọi người đã đăng nhập).</summary>
     Task<List<FormLayoutDto>> GetAllAsync(CancellationToken ct = default);
 
     Task<FormLayoutDto> CreateAsync(SaveFormLayoutDto input, CancellationToken ct = default);
 
     Task<FormLayoutDto> UpdateAsync(Guid id, SaveFormLayoutDto input, CancellationToken ct = default);
 
-    /// <summary>Xóa kiểu (409 khi còn chức vụ hoặc cán bộ dùng).</summary>
+    /// <summary>409 khi còn chức vụ hoặc cán bộ dùng.</summary>
     Task DeleteAsync(Guid id, CancellationToken ct = default);
 
-    /// <summary>Kiểu của cán bộ: đang áp dụng, suy ra, đặt riêng (<c>system.users.read</c> trong phạm vi của cán bộ).</summary>
+    /// <summary>Kiểu đang áp dụng, suy ra và đặt riêng của cán bộ.</summary>
     Task<MemberFormLayoutDto> GetMemberLayoutAsync(Guid userId, CancellationToken ct = default);
 
-    /// <summary>Đặt riêng / bỏ đặt riêng kiểu cho cán bộ (<c>system.users.manage</c> trong phạm vi của cán bộ).</summary>
+    /// <summary>Đặt riêng / bỏ đặt riêng kiểu cho cán bộ.</summary>
     Task<MemberFormLayoutDto> SetMemberLayoutAsync(Guid userId, SetMemberFormLayoutDto input, CancellationToken ct = default);
 }
 
@@ -113,7 +109,7 @@ public sealed class FormLayoutService : IFormLayoutService
     {
         ArgumentNullException.ThrowIfNull(input);
         var member = await LoadMemberAsync(userId, ct);
-        // Kiểu trình bày quyết định tiêu đề, cấp ký trên biểu mẫu của chính mình → không tự đặt (xung đột lợi ích).
+        // Kiểu quyết định tiêu đề, cấp ký trên biểu mẫu → không tự đặt cho mình (xung đột lợi ích).
         if (_currentUser?.UserId == member.Id)
             throw new ForbiddenException(
                 "Bạn không thể tự đặt kiểu trình bày biểu mẫu cho chính mình (xung đột lợi ích). Hãy nhờ người quản lý tài khoản khác thực hiện.");

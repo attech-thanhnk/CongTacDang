@@ -10,41 +10,28 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>
-/// Cấu hình tệp đính kèm (mục <c>Attachments</c> của appsettings).
-/// </summary>
 public sealed class AttachmentOptions
 {
-    /// <summary>
-    /// Số tệp tải lên chưa gắn đối tượng tối đa của mỗi người (<c>Attachments:MaxPendingUnlinkedPerUser</c>, mặc định 30; 0 = không giới hạn).
-    /// </summary>
+    /// <summary>Số tệp chưa gắn đối tượng tối đa mỗi người; 0 = không giới hạn.</summary>
     public int MaxPendingUnlinkedPerUser { get; set; } = 30;
 
-    /// <summary>Bật tác vụ nền dọn tệp chưa gắn (<c>Attachments:UnlinkedCleanup:Enabled</c>, mặc định bật).</summary>
     public bool CleanupEnabled { get; set; } = true;
 
-    /// <summary>Tệp chưa gắn quá số giờ này thì bị dọn (<c>Attachments:UnlinkedCleanup:RetentionHours</c>, mặc định 24).</summary>
+    /// <summary>Tệp chưa gắn quá số giờ này thì bị dọn.</summary>
     public int CleanupRetentionHours { get; set; } = 24;
 
-    /// <summary>Chu kỳ chạy dọn (<c>Attachments:UnlinkedCleanup:IntervalMinutes</c>, mặc định 60).</summary>
     public int CleanupIntervalMinutes { get; set; } = 60;
 }
 
-/// <summary>Dọn tệp tải lên chưa gắn đối tượng quá thời hạn.</summary>
 public interface IUnlinkedAttachmentCleaner
 {
     /// <summary>Dọn một lượt; trả số nhóm tệp đã dọn.</summary>
     Task<int> CleanupAsync(DateTime utcNow, CancellationToken ct = default);
 }
 
-/// <summary>
-/// Dọn tệp tải lên chưa gắn đối tượng (tải lên rồi không lưu nhiệm vụ / kết quả của cấp trên) quá
-/// <see cref="AttachmentOptions.CleanupRetentionHours"/> giờ: xóa bản ghi (xóa mềm, ghi nhật ký) rồi xóa tệp trên kho lưu trữ.
-/// Chỉ dọn nhóm tệp mà mọi phiên bản đều chưa gắn, không phiên bản nào được tham chiếu và đều quá hạn.
-/// </summary>
+/// <summary>Chỉ dọn nhóm tệp mà mọi phiên bản đều chưa gắn, không được tham chiếu và đều quá hạn.</summary>
 public sealed class UnlinkedAttachmentCleaner : IUnlinkedAttachmentCleaner
 {
-    /// <summary>Số nhóm tệp tối đa mỗi lượt.</summary>
     public const int BatchGroups = 500;
 
     private readonly IUnlinkedAttachmentRepository _repo;
@@ -52,7 +39,6 @@ public sealed class UnlinkedAttachmentCleaner : IUnlinkedAttachmentCleaner
     private readonly AttachmentOptions _options;
     private readonly ILogger<UnlinkedAttachmentCleaner> _logger;
 
-    /// <summary>Khởi tạo dịch vụ dọn tệp.</summary>
     public UnlinkedAttachmentCleaner(
         IUnlinkedAttachmentRepository repo,
         IFileStorageService storage,
@@ -65,10 +51,6 @@ public sealed class UnlinkedAttachmentCleaner : IUnlinkedAttachmentCleaner
         _logger = logger ?? NullLogger<UnlinkedAttachmentCleaner>.Instance;
     }
 
-    /// <summary>
-    /// Chọn các phiên bản cần dọn: theo nhóm, mọi phiên bản có loại sở hữu <see cref="AttachmentOwnerTypes.Unlinked"/>, không phiên bản nào
-    /// nằm trong <paramref name="referencedIds"/> và phiên bản mới nhất tải lên trước <paramref name="cutoff"/>.
-    /// </summary>
     public static List<UnlinkedAttachmentVersion> SelectForDeletion(
         IEnumerable<UnlinkedAttachmentVersion> versions, IReadOnlySet<Guid> referencedIds, DateTime cutoff)
     {

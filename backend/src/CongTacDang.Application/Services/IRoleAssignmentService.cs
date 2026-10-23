@@ -7,12 +7,6 @@ using CongTacDang.Application.DTOs;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Điều kiện tra cứu bản gán (API <c>GET /api/admin/assignments</c>).</summary>
-/// <param name="UserId">Lọc theo người.</param>
-/// <param name="RoleId">Lọc theo vai trò.</param>
-/// <param name="ScopeType">Lọc theo loại phạm vi.</param>
-/// <param name="ScopeId">Lọc theo Phòng/Chi bộ.</param>
-/// <param name="ActiveOn">Chỉ lấy bản gán hiệu lực tại thời điểm này.</param>
 public sealed record RoleAssignmentQuery(
     Guid? UserId = null,
     Guid? RoleId = null,
@@ -20,23 +14,12 @@ public sealed record RoleAssignmentQuery(
     Guid? ScopeId = null,
     DateTime? ActiveOn = null);
 
-/// <summary>
-/// Gán / sửa / kết thúc / xóa bản gán vai trò kèm phạm vi và thời hạn, tra cứu quyền hiệu lực
-/// (docs/thiet-ke/phan-quyen.md mục 2, 5). Mọi thay đổi xóa cache quyền của người liên quan ngay.
-/// <para>
-/// Lỗi nghiệp vụ: <see cref="Common.Exceptions.ValidationException"/> (400, thông báo tiếng Việt) cho dữ liệu không hợp lệ
-/// (vai trò/người/phạm vi không tồn tại, phạm vi sai, thời hạn sai, trùng bản gán);
-/// <see cref="Common.Exceptions.ForbiddenException"/> (403) khi tự gán cho chính mình hoặc thiếu quyền;
-/// <see cref="Common.Exceptions.ConflictException"/> (409) khi làm mất quản trị cuối cùng;
-/// <see cref="Common.Exceptions.NotFoundException"/> (404) khi không tìm thấy bản gán.
-/// </para>
-/// </summary>
+/// <summary>Bản gán vai trò kèm phạm vi và thời hạn; mọi thay đổi xóa ngay cache quyền của người liên quan.</summary>
 public interface IRoleAssignmentService
 {
     /// <summary>
-    /// Gán vai trò <paramref name="roleId"/> cho <paramref name="userId"/> ở phạm vi cho trước.
-    /// <paramref name="validFrom"/> null = ngay bây giờ; <paramref name="validTo"/> null = không thời hạn (không bao gồm mốc này).
-    /// Thời gian không có múi giờ được hiểu là UTC. Dùng được trong transaction của <c>IUnitOfWork</c>.
+    /// <paramref name="validFrom"/> null = ngay; <paramref name="validTo"/> null = không thời hạn (không bao gồm mốc này).
+    /// Thời gian không có múi giờ hiểu là UTC. Dùng được trong transaction của <c>IUnitOfWork</c>.
     /// </summary>
     Task<RoleAssignmentDto> AssignAsync(
         Guid userId,
@@ -48,34 +31,27 @@ public interface IRoleAssignmentService
         string? note,
         CancellationToken ct = default);
 
-    /// <summary>Sửa thời hạn và ghi chú của bản gán (<paramref name="validFrom"/> null = giữ nguyên).</summary>
+    /// <summary><paramref name="validFrom"/> null = giữ nguyên.</summary>
     Task<RoleAssignmentDto> UpdateAsync(Guid assignmentId, DateTime? validFrom, DateTime? validTo, string? note, CancellationToken ct = default);
 
-    /// <summary>Kết thúc bản gán ngay (đặt <c>ValidTo = now</c>).</summary>
     Task<RoleAssignmentDto> EndAsync(Guid assignmentId, CancellationToken ct = default);
 
-    /// <summary>Xóa mềm bản gán.</summary>
     Task DeleteAsync(Guid assignmentId, CancellationToken ct = default);
 
-    /// <summary>Tra cứu bản gán.</summary>
     Task<List<RoleAssignmentDto>> QueryAsync(RoleAssignmentQuery query, CancellationToken ct = default);
 
-    /// <summary>"Người X làm được gì": quyền hiệu lực + phạm vi (kèm tên) + vai trò/bản gán nguồn.</summary>
+    /// <summary>"Người X làm được gì": quyền hiệu lực, phạm vi và bản gán nguồn.</summary>
     Task<UserEffectivePermissionsDto> GetEffectivePermissionsAsync(Guid userId, CancellationToken ct = default);
 
-    /// <summary>Quyền kèm phạm vi của một người (cho trường <c>grants</c> của <c>/api/auth/me</c> và phản hồi đăng nhập).</summary>
+    /// <summary>Cho trường <c>grants</c> của <c>/api/auth/me</c> và phản hồi đăng nhập.</summary>
     Task<List<AccessGrantDto>> GetGrantsAsync(Guid userId, CancellationToken ct = default);
 
-    /// <summary>
-    /// Ném <see cref="Common.Exceptions.ConflictException"/> nếu vô hiệu hóa/xóa <paramref name="userId"/> sẽ làm mất
-    /// quản trị cuối cùng (dùng cho khóa/xóa tài khoản — task 08).
-    /// </summary>
+    /// <summary>409 nếu khóa/xóa <paramref name="userId"/> làm mất quản trị cuối cùng.</summary>
     Task EnsureAdministratorsRemainWithoutUserAsync(Guid userId, CancellationToken ct = default);
 
     /// <summary>
-    /// Tài khoản đặc quyền: có bản gán chưa hết hạn (đang hoặc sắp hiệu lực) ở phạm vi Toàn công ty, hoặc vai trò có quyền
-    /// quản trị hệ thống (<c>system.*</c>) ở bất kỳ phạm vi nào. Xét cả tài khoản đang bị khóa. Quản lý tài khoản đặc quyền
-    /// (sửa, khóa/mở, mở khóa đăng nhập, đặt lại mật khẩu, xóa) cần <c>system.users.manage</c> phạm vi Toàn công ty.
+    /// Có bản gán chưa hết hạn ở phạm vi Toàn công ty hoặc vai trò có quyền <c>system.*</c>; xét cả tài khoản đang khóa.
+    /// Quản lý tài khoản đặc quyền cần <c>system.users.manage</c> phạm vi Toàn công ty.
     /// </summary>
     Task<bool> IsPrivilegedAccountAsync(Guid userId, CancellationToken ct = default);
 }

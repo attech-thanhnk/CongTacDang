@@ -11,7 +11,6 @@ using CongTacDang.Domain.Entities;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Triển khai <see cref="IRoleService"/> kèm chốt chặn quản trị (docs/thiet-ke/phan-quyen.md mục 5).</summary>
 public sealed class RoleService : IRoleService
 {
     private const int MaxNameLength = 100;
@@ -36,7 +35,6 @@ public sealed class RoleService : IRoleService
     private readonly IAccessCacheInvalidator _cache;
     private readonly TimeProvider _time;
 
-    /// <summary>Khởi tạo dịch vụ.</summary>
     public RoleService(
         IRoleRepository roles,
         IRoleAssignmentRepository assignments,
@@ -141,7 +139,7 @@ public sealed class RoleService : IRoleService
         role.Name = name;
         role.Description = ValidateDescription(request.Description);
         await _roles.SaveChangesAsync(ct);
-        // Tên vai trò xuất hiện trong nguồn quyền (tra cứu "người X làm được gì").
+        // Tên vai trò nằm trong nguồn quyền đã cache.
         _cache.InvalidateAll();
         return Map(role, await _assignments.CountCurrentOrFutureByRoleAsync(role.Id, Now, ct));
     }
@@ -154,7 +152,7 @@ public sealed class RoleService : IRoleService
         var codes = ValidateCodes(permissionCodes);
         var now = Now;
 
-        // Chốt "không tự nâng quyền": không sửa quyền của vai trò mình đang được gán.
+        // Không tự nâng quyền: không sửa quyền của vai trò mình đang được gán.
         if (_currentUser.UserId.HasValue)
         {
             var mine = await _assignments.GetCurrentOrFutureForUserAsync(_currentUser.UserId.Value, now, ct);
@@ -166,7 +164,7 @@ public sealed class RoleService : IRoleService
             }
         }
 
-        // Chốt "vai trò bảo vệ": không gỡ được 2 quyền quản trị.
+        // Vai trò bảo vệ không gỡ được 2 quyền quản trị.
         if (role.IsProtected)
         {
             var missing = AdministratorInvariant.Codes.Where(c => !codes.Contains(c)).ToList();
@@ -178,7 +176,7 @@ public sealed class RoleService : IRoleService
             }
         }
 
-        // Chốt "kiểm tra phạm vi hợp lệ": vai trò đang được gán theo Phòng/Chi bộ không được nhận quyền chỉ áp dụng Toàn công ty.
+        // Vai trò đang gán theo Phòng/Chi bộ không được nhận quyền chỉ áp dụng Toàn công ty.
         var globalOnly = codes
             .Select(PermissionCodes.Find)
             .Where(d => d != null && !d.AppliesScope)
@@ -193,7 +191,7 @@ public sealed class RoleService : IRoleService
                 + string.Join(", ", addedGlobalOnly.Select(d => d.Name)) + "). Hãy tạo vai trò riêng cho các quyền này.");
         }
 
-        // Chốt "luôn còn quản trị".
+        // Luôn còn quản trị.
         var before = await _assignments.GetAdministratorGrantsAsync(now, ct);
         var after = before.Select(row => row.RoleId != roleId
             ? row
@@ -209,7 +207,7 @@ public sealed class RoleService : IRoleService
         var permissions = await _roles.GetPermissionsByCodesAsync(codes, ct);
         EnsurePermissionRowsExist(codes, permissions);
 
-        // Giữ lại mã không còn trong danh mục (không hiển thị, không có hiệu lực) để không mất dữ liệu cũ ngoài ý muốn.
+        // Giữ mã không còn trong danh mục (không có hiệu lực) để không mất dữ liệu cũ.
         var retainedUnknown = role.Permissions.Where(p => !PermissionCodes.IsDefined(p.Code)).ToList();
         role.Permissions.Clear();
         foreach (var permission in permissions.Concat(retainedUnknown))
@@ -247,7 +245,7 @@ public sealed class RoleService : IRoleService
 
     #region Hỗ trợ
 
-    /// <summary>Đọc vai trò / danh mục quyền: người quản lý vai trò hoặc người gán vai trò (cần chọn vai trò khi gán).</summary>
+    /// <summary>Người quản lý vai trò hoặc người gán vai trò (cần chọn vai trò khi gán).</summary>
     private void EnsureCanReadRoles()
     {
         if (!_guard.Can(PermissionCodes.SystemRolesManage, AccessTarget.None)
@@ -290,7 +288,7 @@ public sealed class RoleService : IRoleService
         return trimmed;
     }
 
-    /// <summary>Chuẩn hóa danh sách mã quyền; mã không có trong danh mục → 400.</summary>
+    /// <summary>Mã không có trong danh mục → 400.</summary>
     private static List<string> ValidateCodes(IEnumerable<string>? codes)
     {
         var list = (codes ?? Array.Empty<string>())

@@ -8,35 +8,27 @@ using CongTacDang.Application.Common.Security;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Kiểm tra phạm vi dữ liệu trước khi kết xuất biểu mẫu/báo cáo (qua <see cref="IAuthorizationGuard"/>).</summary>
+/// <summary>Kiểm tra phạm vi dữ liệu trước khi kết xuất biểu mẫu/báo cáo.</summary>
 public interface IReportAccessService
 {
-    /// <summary>Bảo đảm người yêu cầu được xuất biểu mẫu của một hồ sơ đánh giá cá nhân (Mẫu 01, 02, 10): quyền xem hồ sơ.</summary>
+    /// <summary>Cần quyền xem hồ sơ.</summary>
     Task EnsureCanExportRecordAsync(Guid requesterId, Guid recordId);
 
-    /// <summary>
-    /// Xác định Chi bộ được xuất biểu mẫu/báo cáo theo Chi bộ (Mẫu 11, 13, 14–16) theo phạm vi của một trong các quyền
-    /// <paramref name="permissions"/> (mặc định <c>report.export</c>). Trả về null khi được xuất toàn Đảng bộ và không chọn Chi bộ.
-    /// </summary>
+    /// <summary>Theo phạm vi một trong <paramref name="permissions"/> (mặc định <c>report.export</c>); null = toàn Đảng bộ.</summary>
     Task<Guid?> ResolveBranchExportScopeAsync(Guid requesterId, Guid? branchId, params string[] permissions);
 
-    /// <summary>Bảo đảm người yêu cầu được xuất báo cáo tổng hợp toàn Đảng bộ (<c>report.export</c> phạm vi Toàn công ty).</summary>
+    /// <summary>Cần <c>report.export</c> phạm vi Toàn công ty.</summary>
     Task EnsureCanExportOrganizationReportAsync(Guid requesterId);
 
-    /// <summary>Phạm vi danh sách cán bộ được xuất (T-61): theo phạm vi <c>report.export</c> (Toàn công ty / Phòng / Chi bộ).</summary>
     ScopeFilter GetCadreExportScope();
 
-    /// <summary>
-    /// Bảo đảm người yêu cầu được xuất Mẫu 07/08 của một hồ sơ tập thể: như quyền xem hồ sơ tập thể
-    /// (<c>evaluation.read</c> hoặc <c>collective.manage</c> trên tổ chức của hồ sơ).
-    /// </summary>
+    /// <summary>Như quyền xem hồ sơ tập thể: <c>evaluation.read</c> hoặc <c>collective.manage</c> trên tổ chức của hồ sơ.</summary>
     Task EnsureCanExportCollectiveAsync(Guid collectiveRecordId);
 
-    /// <summary>Bảo đảm người yêu cầu được xuất Mẫu 12 của một biên bản: <c>meeting.read</c> hoặc <c>meeting.manage</c> trên đơn vị của biên bản.</summary>
+    /// <summary>Cần <c>meeting.read</c> hoặc <c>meeting.manage</c> trên đơn vị của biên bản.</summary>
     Task EnsureCanExportMeetingAsync(Guid meetingId);
 }
 
-/// <summary>Triển khai kiểm tra phạm vi kết xuất dựa trên <see cref="IAuthorizationGuard"/>.</summary>
 public class ReportAccessService : IReportAccessService
 {
     private readonly IEvaluationRepository _evaluationRepo;

@@ -14,38 +14,35 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Điều chỉnh việc trong quý: đề nghị điều chỉnh, chuyển tiếp, loại trừ việc (Mẫu 04) và ghi nhận việc đột xuất (Mẫu 05).</summary>
+/// <summary>Điều chỉnh việc trong quý (Mẫu 04) và ghi nhận việc đột xuất (Mẫu 05).</summary>
 public interface ITaskChangeService
 {
-    /// <summary>Khối "Điều chỉnh việc trong quý" của hồ sơ (xem hồ sơ: <c>evaluation.read</c> trong phạm vi hoặc chủ hồ sơ).</summary>
+    /// <summary>Chủ hồ sơ hoặc <c>evaluation.read</c> trong phạm vi.</summary>
     Task<RecordTaskChangesDto> GetAsync(Guid recordId, CancellationToken ct = default);
 
-    /// <summary>Gửi đề nghị (Mẫu 04: chủ hồ sơ; Mẫu 05: chủ hồ sơ hoặc người duyệt danh sách việc của hồ sơ).</summary>
+    /// <summary>Mẫu 04: chủ hồ sơ; Mẫu 05: chủ hồ sơ hoặc người duyệt danh sách việc của hồ sơ.</summary>
     Task<RecordTaskChangesDto> CreateAsync(Guid recordId, CreateTaskChangeRequestDto request, CancellationToken ct = default);
 
-    /// <summary>Duyệt đề nghị — áp vào danh mục việc của hồ sơ trong cùng một lần lưu.</summary>
+    /// <summary>Áp vào danh mục việc của hồ sơ trong cùng một lần lưu.</summary>
     Task<RecordTaskChangesDto> ApproveAsync(Guid recordId, Guid requestId, DecideTaskChangeRequestDto request, CancellationToken ct = default);
 
-    /// <summary>Không duyệt đề nghị (bắt buộc lý do).</summary>
+    /// <summary>Bắt buộc lý do.</summary>
     Task<RecordTaskChangesDto> RejectAsync(Guid recordId, Guid requestId, DecideTaskChangeRequestDto request, CancellationToken ct = default);
 }
 
-/// <summary>Nhóm việc "Đề nghị điều chỉnh việc chờ duyệt" trong danh sách việc cần xử lý / nhắc việc.</summary>
+/// <summary>Nhóm việc "Đề nghị điều chỉnh việc chờ duyệt".</summary>
 public interface ITaskChangeWorkQueue
 {
-    /// <summary>Nhóm việc của người dùng hiện tại (rỗng thì không trả về).</summary>
+    /// <summary>Nhóm rỗng không trả về.</summary>
     Task<List<WorkQueueGroupDto>> GetGroupsAsync(Guid? periodId, CancellationToken ct = default);
 }
 
 /// <summary>
-/// Đề nghị thay đổi danh mục việc trong quý. Điều kiện: kỳ đang mở, hồ sơ đã qua duyệt danh sách việc và chưa nộp tự chấm
-/// (<see cref="RecordStatus.AwaitingSelfScore"/>), bộ tiêu chí chấm theo sản phẩm (09A) và cách xét duyệt có bước đăng ký sản phẩm.
-/// Mỗi hồ sơ tối đa một đề nghị đang chờ. Quyền duyệt = quyền thực hiện bước duyệt danh sách việc theo cách xét duyệt của hồ sơ
-/// (bước do cấp trên thực hiện → <c>evaluation.external.record</c>: ghi nhận quyết định của cấp trên); chủ hồ sơ không tự duyệt.
+/// Chỉ khi kỳ đang mở, hồ sơ đã duyệt danh sách việc và chưa nộp tự chấm, chấm theo sản phẩm (09A) có bước đăng ký sản phẩm.
+/// Mỗi hồ sơ tối đa một đề nghị đang chờ; chủ hồ sơ không tự duyệt.
 /// </summary>
 public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
 {
-    /// <summary>Mã nhóm việc trong danh sách việc cần xử lý.</summary>
     public const string WorkQueueGroup = "TASK_CHANGES";
 
     private const int MaxCommentLength = 4000;
@@ -121,7 +118,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
         var target = AccessTarget.ForRecord(record);
         if (type == TaskChangeType.Urgent)
         {
-            // Việc đột xuất: chủ hồ sơ hoặc người duyệt danh sách việc của hồ sơ (cấp giao việc).
+            // Việc đột xuất: chủ hồ sơ hoặc cấp giao việc.
             if (!_guard.Can(PermissionCodes.EvaluationSelf, target) && !CanDecide(record, context.Profile))
                 _guard.Ensure(IsOwner(record) ? PermissionCodes.EvaluationSelf : ApproverPermission(context.Profile), target);
         }
@@ -345,7 +342,6 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
 
     private sealed record ChangeContext(bool Applicable, WorkflowProfile Profile, CriteriaSnapshot? Criteria);
 
-    /// <summary>Cách xét duyệt và bộ tiêu chí của hồ sơ; chức năng áp dụng khi chấm theo sản phẩm và có bước đăng ký sản phẩm.</summary>
     private static ChangeContext Context(EvaluationRecord record)
     {
         PeriodSettings settings;
@@ -364,7 +360,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
         return new ChangeContext(applicable, profile, criteria);
     }
 
-    /// <summary>Kỳ đang mở và hồ sơ đã duyệt danh sách việc, chưa nộp tự chấm; null nếu được phép.</summary>
+    /// <summary>Null nếu được phép.</summary>
     private static string? StateBlockReason(EvaluationRecord record)
     {
         if (record.Period.Status != PeriodStatus.Open)
@@ -374,10 +370,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
         return null;
     }
 
-    /// <summary>
-    /// Quyền duyệt đề nghị: quyền thực hiện bước duyệt danh sách việc theo cách xét duyệt của hồ sơ; bước do cấp trên thực hiện →
-    /// quyền ghi nhận kết quả của cấp trên.
-    /// </summary>
+    /// <summary>Quyền thực hiện bước duyệt danh sách việc; bước do cấp trên thực hiện → quyền ghi nhận kết quả cấp trên.</summary>
     public static string ApproverPermission(WorkflowProfile profile) =>
         profile.Mode(WorkflowStep.B1_APPROVE) == StepMode.External
             ? PermissionCodes.EvaluationExternalRecord

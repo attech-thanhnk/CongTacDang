@@ -15,9 +15,7 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>
-/// Tra cứu hồ sơ đánh giá theo phạm vi của người dùng (đọc). Công thức tính điểm nằm ở <see cref="EvaluationScoring"/>.
-/// </summary>
+/// <summary>Tra cứu hồ sơ đánh giá theo phạm vi người dùng; công thức điểm ở <see cref="EvaluationScoring"/>.</summary>
 public class EvaluationService : IEvaluationService
 {
     private readonly IEvaluationWorkflowRepository _repo;
@@ -85,8 +83,7 @@ public class EvaluationService : IEvaluationService
     /// <inheritdoc />
     public async Task<List<EvaluationRecordDto>> GetRecordsByBranchAsync(Guid periodId, Guid? branchId, CancellationToken ct = default)
     {
-        // Danh sách lọc theo phạm vi evaluation.read (Global / đơn vị chính quyền / tổ chức Đảng gồm cấp dưới + hồ sơ của chính mình).
-        // Chọn Chi bộ ngoài phạm vi → chỉ còn hồ sơ của chính mình (nếu có), không lộ hồ sơ khác.
+        // Chọn Chi bộ ngoài phạm vi → chỉ còn hồ sơ của chính mình, không lộ hồ sơ khác.
         var scope = _guard.GetScope(PermissionCodes.EvaluationRead);
         var records = (await _repo.ListRecordsAsync(periodId, ct))
             .Where(record => branchId is null || branchId == Guid.Empty || record.PartyCellId == branchId)
@@ -106,7 +103,7 @@ public class EvaluationService : IEvaluationService
         var rule = EvaluationMapping.SafeCriteria(period)?.Content.Parameters.ExcellentQuota ?? new ExcellentQuotaRule();
         var cellId = partyCellId is { } id && id != Guid.Empty ? id : (Guid?)null;
 
-        // Đơn vị của hồ sơ lấy theo ảnh chụp trên hồ sơ (không theo nơi sinh hoạt hiện tại của cán bộ).
+        // Đơn vị theo ảnh chụp trên hồ sơ, không theo nơi sinh hoạt hiện tại.
         var records = (await _repo.ListRecordsAsync(periodId, ct))
             .Where(r => scope.Matches(r.MemberId, r.DepartmentId, r.PartyCellId))
             .ToList();

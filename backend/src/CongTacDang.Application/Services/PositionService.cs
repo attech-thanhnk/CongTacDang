@@ -13,52 +13,39 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>
-/// Danh mục chức vụ, chức vụ (kể cả kiêm nhiệm) của cán bộ và thẩm quyền phê duyệt suy ra (task 14).
-/// </summary>
+/// <summary>Danh mục chức vụ, chức vụ của cán bộ (kể cả kiêm nhiệm) và thẩm quyền phê duyệt suy ra.</summary>
 public interface IPositionService
 {
-    /// <summary>Danh mục chức vụ (mọi người đã đăng nhập).</summary>
     Task<List<PositionDto>> GetPositionsAsync(CancellationToken ct = default);
 
-    /// <summary>Thêm chức vụ (<c>catalog.manage</c> ở controller).</summary>
     Task<PositionDto> CreatePositionAsync(SavePositionDto input, CancellationToken ct = default);
 
-    /// <summary>Sửa chức vụ; đổi thẩm quyền mặc định → tính lại thẩm quyền của người đang giữ.</summary>
+    /// <summary>Đổi thẩm quyền mặc định → tính lại thẩm quyền của người đang giữ.</summary>
     Task<PositionDto> UpdatePositionAsync(Guid id, SavePositionDto input, CancellationToken ct = default);
 
-    /// <summary>Xóa chức vụ (409 khi đã có người được gán — hãy ngừng dùng).</summary>
+    /// <summary>409 khi đã có người được gán (hãy ngừng dùng).</summary>
     Task DeletePositionAsync(Guid id, CancellationToken ct = default);
 
-    /// <summary>Chức vụ của cán bộ (<c>system.users.read</c> trong phạm vi của cán bộ).</summary>
     Task<List<MemberPositionDto>> GetMemberPositionsAsync(Guid userId, CancellationToken ct = default);
 
-    /// <summary>Thêm chức vụ cho cán bộ (<c>system.users.manage</c> trong phạm vi của cán bộ).</summary>
     Task<MemberPositionDto> AddMemberPositionAsync(Guid userId, SaveMemberPositionDto input, CancellationToken ct = default);
 
-    /// <summary>Sửa chức vụ của cán bộ (đơn vị, chính/kiêm nhiệm, thời hạn, ghi chú).</summary>
     Task<MemberPositionDto> UpdateMemberPositionAsync(Guid userId, Guid id, SaveMemberPositionDto input, CancellationToken ct = default);
 
-    /// <summary>Kết thúc chức vụ ngay bây giờ (ValidTo = hiện tại).</summary>
     Task<MemberPositionDto> EndMemberPositionAsync(Guid userId, Guid id, CancellationToken ct = default);
 
-    /// <summary>Xóa (mềm) bản ghi chức vụ nhập nhầm.</summary>
+    /// <summary>Xóa mềm bản ghi nhập nhầm.</summary>
     Task DeleteMemberPositionAsync(Guid userId, Guid id, CancellationToken ct = default);
 
-    /// <summary>Thẩm quyền phê duyệt của cán bộ: đang áp dụng, suy ra, đặt tay, mã thống kê.</summary>
     Task<ApprovalAuthorityInfoDto> GetApprovalAuthorityAsync(Guid userId, CancellationToken ct = default);
 
-    /// <summary>Đặt tay (có lý do) hoặc bỏ đặt tay thẩm quyền phê duyệt.</summary>
+    /// <summary>Đặt tay (có lý do) hoặc bỏ đặt tay.</summary>
     Task<ApprovalAuthorityInfoDto> SetApprovalAuthorityOverrideAsync(Guid userId, SetApprovalAuthorityOverrideDto input, CancellationToken ct = default);
 
-    /// <summary>
-    /// Tính lại thẩm quyền đang áp dụng của mọi cán bộ có chức vụ và không đặt tay (chức vụ có thời hạn bắt đầu/kết thúc
-    /// theo thời gian). Trả số hồ sơ thay đổi. Dùng cho tác vụ nền, không kiểm tra quyền.
-    /// </summary>
+    /// <summary>Cho tác vụ nền (chức vụ bắt đầu/kết thúc theo thời gian), không kiểm tra quyền; trả số hồ sơ thay đổi.</summary>
     Task<int> RecomputeAllApprovalAuthoritiesAsync(CancellationToken ct = default);
 }
 
-/// <summary>Triển khai <see cref="IPositionService"/>.</summary>
 public sealed class PositionService : IPositionService
 {
     private const int MaxNoteLength = 1000;
@@ -68,7 +55,6 @@ public sealed class PositionService : IPositionService
     private readonly ICurrentUserService _currentUser;
     private readonly TimeProvider _time;
 
-    /// <summary>Khởi tạo dịch vụ.</summary>
     public PositionService(IPositionRepository repo, IAuthorizationGuard guard, ICurrentUserService currentUser, TimeProvider? time = null)
     {
         _repo = repo;
@@ -78,8 +64,6 @@ public sealed class PositionService : IPositionService
     }
 
     private DateTime Now => _time.GetUtcNow().UtcDateTime;
-
-    // ===================== Danh mục chức vụ =====================
 
     /// <inheritdoc />
     public async Task<List<PositionDto>> GetPositionsAsync(CancellationToken ct = default)
@@ -182,8 +166,6 @@ public sealed class PositionService : IPositionService
         _repo.RemovePosition(position);
         await _repo.SaveChangesAsync(ct);
     }
-
-    // ===================== Chức vụ của cán bộ =====================
 
     /// <inheritdoc />
     public async Task<List<MemberPositionDto>> GetMemberPositionsAsync(Guid userId, CancellationToken ct = default)
@@ -292,7 +274,7 @@ public sealed class PositionService : IPositionService
         if (entity.IsPrimary)
         {
             entity.IsPrimary = false;
-            // Chức vụ chính tiếp theo: chức vụ đang hiệu lực có thứ tự đứng trước.
+            // Chức vụ chính tiếp theo: chức vụ đang hiệu lực đứng trước.
             var next = all.Where(mp => mp.Id != entity.Id && mp.IsEffectiveAt(now))
                 .OrderBy(mp => mp.Position?.SortOrder ?? int.MaxValue).FirstOrDefault();
             if (next != null)
@@ -321,8 +303,6 @@ public sealed class PositionService : IPositionService
         Recompute(member, all);
         await _repo.SaveChangesAsync(ct);
     }
-
-    // ===================== Thẩm quyền phê duyệt =====================
 
     /// <inheritdoc />
     public async Task<ApprovalAuthorityInfoDto> GetApprovalAuthorityAsync(Guid userId, CancellationToken ct = default)
@@ -386,9 +366,7 @@ public sealed class PositionService : IPositionService
         return changed;
     }
 
-    // ===================== Hỗ trợ =====================
-
-    /// <summary>Tính lại thẩm quyền đang áp dụng từ các bản ghi chức vụ (đã theo dõi) của cán bộ.</summary>
+    /// <summary>Từ các bản ghi chức vụ đã theo dõi của cán bộ.</summary>
     private void Recompute(PartyMemberProfile member, IEnumerable<MemberPosition> all)
     {
         var now = Now;
@@ -398,11 +376,10 @@ public sealed class PositionService : IPositionService
     }
 
     /// <summary>
-    /// Chức vụ chính duy nhất: đặt <paramref name="entity"/> làm chính → bỏ cờ chính ở các bản ghi khác; chức danh hiển thị
-    /// (<see cref="PartyMemberProfile.PositionTitle"/>) theo chức vụ chính nếu đang để mặc định. Chức danh của chức vụ "Quyền"
-    /// là "Quyền " + tên chức vụ (<see cref="PositionRules.DisplayName(MemberPosition)"/>).
+    /// Chỉ một chức vụ chính; chức danh hiển thị theo chức vụ chính nếu đang để mặc định
+    /// (chức vụ "Quyền" → "Quyền " + tên chức vụ).
     /// </summary>
-    /// <param name="previousEntityTitle">Chức danh cũ của chính bản ghi (khi sửa, trước khi đổi cờ "Quyền").</param>
+    /// <param name="previousEntityTitle">Chức danh cũ của bản ghi, trước khi đổi cờ "Quyền".</param>
     private static void ApplyPrimary(PartyMemberProfile member, MemberPosition entity, IEnumerable<MemberPosition> all,
         string? previousEntityTitle = null)
     {
@@ -459,10 +436,7 @@ public sealed class PositionService : IPositionService
             throw new ValidationException("Ngày hết hiệu lực phải sau ngày bắt đầu. Hãy kiểm tra lại thời hạn giữ chức vụ.");
     }
 
-    /// <summary>
-    /// Quyền sửa chức vụ / thẩm quyền phê duyệt của cán bộ: <c>system.users.manage</c> bao trùm cán bộ, và không phải chính mình
-    /// (chức vụ quyết định thẩm quyền phê duyệt và người duyệt hồ sơ của mình — xung đột lợi ích).
-    /// </summary>
+    /// <summary>Không sửa cho chính mình: chức vụ quyết định thẩm quyền và người duyệt hồ sơ của mình.</summary>
     private void EnsureCanManage(PartyMemberProfile member)
     {
         if (_currentUser.UserId == null)
@@ -474,7 +448,7 @@ public sealed class PositionService : IPositionService
         _guard.Ensure(PermissionCodes.SystemUsersManage, TargetOf(member).ForWrite());
     }
 
-    /// <summary>Id kiểu trình bày từ chuỗi: rỗng → null; phải có trong danh mục.</summary>
+    /// <summary>Rỗng → null; phải có trong danh mục.</summary>
     private async Task<Guid?> ParseFormLayoutAsync(string? value, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -512,7 +486,7 @@ public sealed class PositionService : IPositionService
         }
     }
 
-    /// <summary>Đọc thẩm quyền: rỗng → null; <c>CoSo</c>/<c>CapTren</c> (không phân biệt hoa thường); khác → 400.</summary>
+    /// <summary>Rỗng → null; <c>CoSo</c>/<c>CapTren</c> không phân biệt hoa thường; khác → 400.</summary>
     public static ApprovalAuthority? ParseAuthority(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -522,7 +496,6 @@ public sealed class PositionService : IPositionService
         throw new ValidationException($"Thẩm quyền \"{value.Trim()}\" không hợp lệ. Chỉ nhận CoSo (Đảng ủy cơ sở) hoặc CapTren (cấp trên).");
     }
 
-    /// <summary>Đọc bên chức vụ (<c>Party</c>/<c>Administrative</c>/<c>MassOrganization</c>/<c>Other</c>).</summary>
     public static bool TryParseSide(string? value, out PositionSide side)
         => Enum.TryParse(value?.Trim(), ignoreCase: true, out side) && Enum.IsDefined(side);
 

@@ -10,10 +10,8 @@ using CongTacDang.Domain.Entities;
 namespace CongTacDang.Application.Services;
 
 /// <summary>
-/// Kiểm tra kiến nghị còn người xử lý được hay không — cùng cách với kiểm tra kẹt luồng khi mở kỳ: ứng viên là tài khoản đang
-/// hoạt động có vai trò chứa <c>evaluation.appeal.resolve</c>, quyền hiệu lực + phạm vi tính bằng resolver và guard; loại chủ hồ sơ,
-/// người gửi và người có xung đột lợi ích của kiến nghị (người đã thực hiện bước bị kiến nghị).
-/// Không đổi luật xử lý: kiến nghị vẫn được nhận, chỉ cảnh báo để quản trị gán thêm người xử lý.
+/// Kiến nghị còn người xử lý được không (cùng cách kiểm tra kẹt luồng khi mở kỳ); loại chủ hồ sơ, người gửi và người
+/// đã thực hiện bước bị kiến nghị. Chỉ cảnh báo, kiến nghị vẫn được nhận.
 /// </summary>
 public sealed class AppealResolverCheck
 {
@@ -34,7 +32,7 @@ public sealed class AppealResolverCheck
         _permissions = permissions;
     }
 
-    /// <summary>Kiến nghị có ít nhất một người được xử lý (không tính người bị chặn do xung đột lợi ích).</summary>
+    /// <summary>Không tính người bị chặn do xung đột lợi ích.</summary>
     public async Task<bool> HasResolverAsync(EvaluationAppeal appeal, EvaluationRecord record, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(appeal);

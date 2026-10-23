@@ -8,19 +8,14 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Ánh xạ hồ sơ/kỳ sang DTO và các tính toán hiển thị dùng chung (tiến trình, thời hạn).</summary>
 public static class EvaluationMapping
 {
-    /// <summary>Múi giờ nghiệp vụ (Việt Nam, UTC+7) để so thời hạn theo ngày.</summary>
+    /// <summary>Múi giờ nghiệp vụ (UTC+7) để so thời hạn theo ngày.</summary>
     public static readonly TimeSpan BusinessUtcOffset = TimeSpan.FromHours(7);
 
-    /// <summary>Ngày hiện tại theo giờ Việt Nam.</summary>
     public static DateOnly Today(DateTime utcNow) => DateOnly.FromDateTime(utcNow + BusinessUtcOffset);
 
-    /// <summary>
-    /// Khoảng cách tới thời hạn theo ngày: hôm nay sau ngày hạn → số ngày quá hạn (≥ 1); ngược lại → số ngày còn lại
-    /// (0 = hạn là hôm nay). Không có hạn → (null, null).
-    /// </summary>
+    /// <summary>Quá hạn → số ngày quá hạn (≥ 1); còn hạn → số ngày còn lại (0 = hôm nay); không có hạn → (null, null).</summary>
     public static (int? DaysOverdue, int? DaysLeft) DeadlineDistance(DateOnly? deadline, DateOnly today)
     {
         if (!deadline.HasValue)
@@ -29,10 +24,9 @@ public static class EvaluationMapping
         return diff < 0 ? (-diff, null) : (null, diff);
     }
 
-    /// <summary>Tên mức xếp loại (mã enum) — rỗng khi chưa xếp loại để frontend hiển thị "—".</summary>
     public static string GradeCode(EvaluationGrade grade) => grade.ToString();
 
-    /// <summary>Đọc mức xếp loại từ chuỗi (mã enum, không phân biệt hoa thường); null nếu không hợp lệ.</summary>
+    /// <summary>Không phân biệt hoa thường; null nếu không hợp lệ.</summary>
     public static EvaluationGrade? ParseGrade(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -40,14 +34,11 @@ public static class EvaluationMapping
         return Enum.TryParse<EvaluationGrade>(value.Trim(), true, out var grade) && Enum.IsDefined(grade) ? grade : null;
     }
 
-    /// <summary>Hồ sơ luồng áp dụng cho hồ sơ (theo mã đã lưu; không có → mặc định theo cấp quyết định).</summary>
+    /// <summary>Theo mã đã lưu; không có → mặc định theo cấp quyết định.</summary>
     public static WorkflowProfile ProfileOf(PeriodSettings settings, EvaluationRecord record) =>
         settings.ResolveProfile(record.WorkflowProfileCode, record.ApprovalAuthority);
 
-    /// <summary>
-    /// Tiến trình 9 bước của hồ sơ theo hồ sơ luồng của hồ sơ, kèm chủ thể thực hiện từng bước và người/thời điểm
-    /// hoàn thành của bước đã xong (lấy từ các trường …ByName/…At của hồ sơ hoặc kết quả do cấp trên thực hiện).
-    /// </summary>
+    /// <summary>Tiến trình 9 bước kèm chủ thể thực hiện và người/thời điểm hoàn thành từng bước.</summary>
     public static List<RecordStepProgressDto> Progress(EvaluationRecord record, WorkflowProfile profile, DateOnly today)
     {
         var result = Progress(record.Status, profile, today);
@@ -65,10 +56,7 @@ public static class EvaluationMapping
         return result;
     }
 
-    /// <summary>
-    /// Mô tả chủ thể thực hiện bước theo chế độ trong hồ sơ luồng và dữ liệu ảnh chụp của hồ sơ (Phòng, Chi bộ, cấp quyết định).
-    /// Không ghi cứng tên đơn vị — tên lấy từ dữ liệu.
-    /// </summary>
+    /// <summary>Tên chủ thể lấy từ ảnh chụp trên hồ sơ, không ghi cứng tên đơn vị.</summary>
     public static string StepActor(WorkflowStep step, WorkflowProfile profile, EvaluationRecord record)
     {
         var mode = profile.Mode(step);
@@ -100,10 +88,7 @@ public static class EvaluationMapping
         };
     }
 
-    /// <summary>
-    /// Thời điểm và người hoàn thành bước: bước cấp trên → kết quả ghi nhận (thời điểm ghi nhận, tên cơ quan);
-    /// bước nội bộ → các trường …At/…ByName của hồ sơ. Bước đăng ký sản phẩm không lưu thời điểm riêng → null.
-    /// </summary>
+    /// <summary>Bước cấp trên → kết quả ghi nhận; bước nội bộ → trường …At/…ByName; bước đăng ký sản phẩm → null.</summary>
     public static (DateTime? At, string? ByName) StepCompletion(WorkflowStep step, WorkflowProfile profile, EvaluationRecord record)
     {
         if (profile.Mode(step) == StepMode.External)
@@ -130,7 +115,7 @@ public static class EvaluationMapping
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    /// <summary>Tiến trình 9 bước theo trạng thái (chưa kèm chủ thể và người hoàn thành).</summary>
+    /// <summary>Chưa kèm chủ thể và người hoàn thành.</summary>
     public static List<RecordStepProgressDto> Progress(RecordStatus status, WorkflowProfile profile, DateOnly today)
     {
         var enabled = profile.ActiveSteps();
@@ -167,7 +152,7 @@ public static class EvaluationMapping
         return result;
     }
 
-    /// <summary>Ánh xạ hồ sơ sang DTO. <paramref name="evidence"/>: tệp minh chứng hiện hành theo Id nhiệm vụ (T-53).</summary>
+    /// <summary><paramref name="evidence"/>: tệp minh chứng hiện hành theo Id nhiệm vụ.</summary>
     public static EvaluationRecordDto ToDto(
         EvaluationRecord r,
         PeriodSettings settings,
@@ -283,10 +268,7 @@ public static class EvaluationMapping
         };
     }
 
-    /// <summary>
-    /// Cảnh báo điều kiện xếp loại của hồ sơ với mức <paramref name="grade"/> theo mức thẩm định từng nhiệm vụ — chỉ khi bộ
-    /// tiêu chí của kỳ chấm theo danh mục nhiệm vụ (09A); bộ chấm theo trục (09B) không có nhiệm vụ → rỗng.
-    /// </summary>
+    /// <summary>Chỉ áp dụng khi chấm theo danh mục nhiệm vụ (09A); chấm theo trục (09B) → rỗng.</summary>
     public static IReadOnlyList<string> GradeWarnings(EvaluationRecord r, EvaluationGrade grade, CriteriaSnapshot? criteria)
     {
         if (criteria is not { UsesAxisScoring: false } || r.Tasks == null)
@@ -298,7 +280,6 @@ public static class EvaluationMapping
         return GradeConditions.Check(tasks, grade, GradeConditions.ExcellentMinExceedRatio(criteria.Content));
     }
 
-    /// <summary>Ánh xạ nhiệm vụ; tên tệp minh chứng theo phiên bản hiện hành nếu có (T-53).</summary>
     public static EvaluationTaskDto ToTaskDto(EvaluationTask t, IReadOnlyDictionary<Guid, (Guid AttachmentId, string FileName)>? evidence)
     {
         (Guid AttachmentId, string FileName)? current = evidence != null && evidence.TryGetValue(t.Id, out var found) ? found : null;
@@ -338,7 +319,6 @@ public static class EvaluationMapping
         };
     }
 
-    /// <summary>Ánh xạ kết quả ghi nhận của bước do cấp trên thực hiện.</summary>
     public static ExternalResultDto ToExternalResultDto(EvaluationExternalResult x) => new()
     {
         Step = WorkflowSteps.Code(x.Step),
@@ -354,7 +334,6 @@ public static class EvaluationMapping
         RecordedAt = x.RecordedAt
     };
 
-    /// <summary>Ánh xạ lịch sử.</summary>
     public static EvaluationRecordHistoryDto ToHistoryDto(EvaluationRecordHistory x) => new()
     {
         Id = x.Id,
@@ -378,7 +357,7 @@ public static class EvaluationMapping
         CreatedAt = x.CreatedAt
     };
 
-    /// <summary>Ảnh chụp bộ tiêu chí của kỳ; null nếu chưa chọn hoặc lỗi định dạng (hiển thị không làm hỏng trang).</summary>
+    /// <summary>Null nếu chưa chọn hoặc lỗi định dạng (không làm hỏng trang).</summary>
     public static CriteriaSnapshot? SafeCriteria(EvaluationPeriod? period)
     {
         if (period == null)
@@ -417,7 +396,7 @@ public static class EvaluationMapping
         }
     }
 
-    /// <summary>Đọc nội dung biểu mẫu (jsonb) trên hồ sơ; lỗi định dạng → giá trị rỗng (hiển thị không làm hỏng trang).</summary>
+    /// <summary>Lỗi định dạng jsonb → giá trị rỗng (không làm hỏng trang).</summary>
     private static T SafeParse<T>(Func<T> parse, T fallback)
     {
         try
@@ -433,7 +412,6 @@ public static class EvaluationMapping
     private static string SafeStatusName(RecordStatus status) =>
         Enum.IsDefined(status) ? WorkflowSteps.StatusDisplayName(status) : $"Trạng thái cũ ({(int)status})";
 
-    /// <summary>Ánh xạ kỳ.</summary>
     public static EvaluationPeriodDto ToPeriodDto(EvaluationPeriod p, int totalRecords, Guid? activePeriodId)
     {
         PeriodSettings settings;
@@ -466,9 +444,7 @@ public static class EvaluationMapping
         };
     }
 
-    /// <summary>
-    /// Kỳ hiện hành = kỳ Đang mở/Khóa dữ liệu mới nhất (năm, quý, thời điểm tạo); không có thì null.
-    /// </summary>
+    /// <summary>Kỳ Đang mở/Khóa dữ liệu mới nhất; không có thì null.</summary>
     public static EvaluationPeriod? ActivePeriod(IEnumerable<EvaluationPeriod> periods) =>
         periods
             .Where(p => p.Status is PeriodStatus.Open or PeriodStatus.Locked)
