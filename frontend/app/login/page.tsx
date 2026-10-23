@@ -37,7 +37,7 @@ function LoginForm() {
       await login(username.trim(), password);
       router.replace(returnUrl);
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Tên đăng nhập hoặc mật khẩu không chính xác."), "Không đăng nhập được");
+      toast.error(errorMessage(err, "Tên đăng nhập hoặc mật khẩu không chính xác."), "Đăng nhập không thành công");
     } finally {
       setIsSubmitting(false);
     }
