@@ -16,6 +16,7 @@ import {
 } from "@/services/postPublishService";
 import { errorMessage } from "@/components/admin/adminUtils";
 import { DateField } from "./DateField";
+import { RowActions } from "@/components/common/RowActions";
 import styles from "./record.module.css";
 
 const MILESTONES: { code: MilestoneCode; name: string }[] = [
@@ -131,10 +132,11 @@ export function ImprovementPlanPanel({ record, onPendingChange }: { record: Eval
           {plan && <span className="tag t-info">{plan.statusName}</span>}
         </h2>
         {plan && (
-          <div className="btn-group btn-group-sm">
-            <button type="button" className="btn btn-outline-primary" onClick={() => download("original")}>Word</button>
-            <button type="button" className="btn btn-outline-primary" onClick={() => download("pdf")}>PDF</button>
-          </div>
+          <RowActions
+            itemLabel="Kế hoạch Mẫu 17"
+            primary={[{ key: "word", label: "Xuất Word", icon: "bi-download", onClick: () => download("original") }]}
+            menu={[{ key: "pdf", label: "Xuất PDF", icon: "bi-file-earmark-pdf", onClick: () => download("pdf") }]}
+          />
         )}
       </div>
       <div className="card-body d-flex flex-column gap-3">
