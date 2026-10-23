@@ -90,18 +90,20 @@
   color: var(--ink-3);
 }
 
-/* Ảnh nền đăng nhập: lớp nền cố định phía sau, hiện dần khi ảnh tải xong. */
+/* Ảnh nền đăng nhập: ảnh rõ nét đặt cạnh khung đăng nhập, phía sau là chính ảnh đó làm mờ để phủ kín màn hình. */
 .screen.hasImage {
   isolation: isolate;
+  overflow: hidden;
 }
 
 .backdrop {
   position: fixed;
-  inset: 0;
+  inset: -48px;
   z-index: -1;
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
+  /* Làm mờ để ảnh nhỏ phóng to không lộ vỡ hạt. */
+  filter: blur(28px) saturate(1.1);
   opacity: 0;
   transition: opacity 0.4s ease;
 }
@@ -110,47 +112,75 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.28);
+  background: rgba(10, 16, 28, 0.5);
 }
 
-.backdropVisible {
-  opacity: 1;
+.split {
+  width: min(1280px, 100%);
+  display: grid;
+  gap: 24px;
+  justify-items: center;
+  align-items: center;
+}
+
+.hero {
+  width: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.hero img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 32vh;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.visible {
+  opacity: 1 !important;
 }
 
 .hasImage .card {
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .backdrop {
+  .backdrop,
+  .hero img {
     transition: none;
   }
 }
 
+/* Màn hình rộng: ảnh và khung đăng nhập nằm cạnh nhau; "giữa" = ảnh ở trên, khung ở dưới. */
 @media (min-width: 992px) {
-  .panelCenter .backdrop::after {
-    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.08) 70%);
+  .panelLeft .split,
+  .panelRight .split {
+    gap: 48px;
   }
 
-  .panelLeft,
-  .panelRight {
-    align-items: start;
-    padding: 12vh 6vw 32px;
+  .panelRight .split {
+    grid-template-columns: minmax(0, 1fr) 400px;
   }
 
-  .panelLeft {
-    justify-items: start;
+  .panelLeft .split {
+    grid-template-columns: 400px minmax(0, 1fr);
   }
 
-  .panelRight {
-    justify-items: end;
+  .panelLeft .hero {
+    order: 2;
   }
 
-  .panelLeft .backdrop::after {
-    background: linear-gradient(to right, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.12) 45%, rgba(0, 0, 0, 0) 70%);
+  .panelLeft .hero img,
+  .panelRight .hero img {
+    max-height: 80vh;
   }
 
-  .panelRight .backdrop::after {
-    background: linear-gradient(to left, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.12) 45%, rgba(0, 0, 0, 0) 70%);
+  .panelCenter .hero img {
+    max-height: 40vh;
   }
 }

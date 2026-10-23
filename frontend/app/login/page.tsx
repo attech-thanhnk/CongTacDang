@@ -107,15 +107,15 @@ const PANEL_CLASS = { center: styles.panelCenter, left: styles.panelLeft, right:
 export default function LoginPage() {
   const org = useOrganizationInfo();
   const imageUrl = org?.loginBackgroundUrl ? resolveApiUrl(org.loginBackgroundUrl) : null;
-  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState<{ url: string; width: number } | null>(null);
 
-  // Tải trước ảnh rồi mới hiện dần, tránh nền nhấp nháy khi ảnh lớn.
+  // Tải trước ảnh rồi mới hiện dần; lấy chiều rộng gốc để không phóng ảnh quá cỡ.
   useEffect(() => {
     if (!imageUrl) return;
     let active = true;
     const img = new window.Image();
     img.onload = () => {
-      if (active) setLoadedUrl(imageUrl);
+      if (active) setLoaded({ url: imageUrl, width: img.naturalWidth });
     };
     img.src = imageUrl;
     return () => {
@@ -123,22 +123,35 @@ export default function LoginPage() {
     };
   }, [imageUrl]);
 
-  const screenClass = imageUrl
-    ? `${styles.screen} ${styles.hasImage} ${PANEL_CLASS[org?.loginPanelPosition ?? "center"] ?? styles.panelCenter}`
-    : styles.screen;
+  const form = (
+    <Suspense fallback={<div className="spinner-border text-primary" role="status" />}>
+      <LoginForm />
+    </Suspense>
+  );
+
+  if (!imageUrl) return <div className={styles.screen}>{form}</div>;
+
+  const ready = loaded?.url === imageUrl;
+  const panel = PANEL_CLASS[org?.loginPanelPosition ?? "center"] ?? styles.panelCenter;
 
   return (
-    <div className={screenClass}>
-      {imageUrl && (
-        <div
-          className={`${styles.backdrop} ${loadedUrl === imageUrl ? styles.backdropVisible : ""}`}
-          style={{ backgroundImage: `url("${imageUrl}")` }}
-          aria-hidden="true"
-        />
-      )}
-      <Suspense fallback={<div className="spinner-border text-primary" role="status" />}>
-        <LoginForm />
-      </Suspense>
+    <div className={`${styles.screen} ${styles.hasImage} ${panel}`}>
+      <div
+        className={`${styles.backdrop} ${ready ? styles.visible : ""}`}
+        style={{ backgroundImage: `url("${imageUrl}")` }}
+        aria-hidden="true"
+      />
+      <div className={styles.split}>
+        <div className={styles.hero}>
+          <img
+            src={imageUrl}
+            alt=""
+            className={ready ? styles.visible : undefined}
+            style={ready ? { maxWidth: Math.round(loaded.width * 1.25) } : undefined}
+          />
+        </div>
+        {form}
+      </div>
     </div>
   );
 }
