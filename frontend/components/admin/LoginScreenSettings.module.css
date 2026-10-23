@@ -1,0 +1,190 @@
+/* Bản thu nhỏ trang đăng nhập; kích thước theo % khung (coi khung là màn hình rộng 1440 px). */
+.previews {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-bottom: 4px;
+}
+
+.desktop {
+  position: relative;
+  container-type: inline-size;
+  width: min(100%, 440px);
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+
+/* Cùng nền trời sáng như trang đăng nhập có ảnh. */
+.sky {
+  background: linear-gradient(180deg, #cfe5f6 0%, #e8f2fb 45%, #f1f5f4 100%);
+}
+
+.photo {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.left .photo {
+  padding-left: 31%;
+}
+
+.right .photo {
+  padding-right: 31%;
+}
+
+.left {
+  justify-content: flex-start;
+  padding: 0 4%;
+}
+
+.right {
+  justify-content: flex-end;
+  padding: 0 4%;
+}
+
+.photo img,
+.phonePhoto img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  object-fit: contain;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent),
+    linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent),
+    linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent);
+  mask-composite: intersect;
+}
+
+/* Khung đăng nhập thu nhỏ: biểu tượng, hai ô nhập, nút. */
+.card {
+  position: relative;
+  width: 25%;
+  padding: 2.2cqw 2cqw 1.8cqw;
+  border-radius: 1cqw;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2cqw;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.42);
+  border-color: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(6px) saturate(1.3);
+  -webkit-backdrop-filter: blur(6px) saturate(1.3);
+  box-shadow: 0 4px 14px rgba(30, 60, 100, 0.16);
+}
+
+.emblem {
+  width: 3.4cqw;
+  height: 3.4cqw;
+  border-radius: 50%;
+  border: 1px solid var(--seal);
+}
+
+.line {
+  width: 60%;
+  height: 1cqw;
+  border-radius: 1cqw;
+  background: var(--ink-3);
+  opacity: 0.45;
+}
+
+.input {
+  width: 100%;
+  height: 2.6cqw;
+  border-radius: 0.6cqw;
+  border: 1px solid var(--rule-strong);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.button {
+  width: 100%;
+  height: 2.6cqw;
+  border-radius: 0.6cqw;
+  background: var(--primary);
+}
+
+/* Điện thoại: ảnh trên, khung dưới; padding/gap tính bằng px vì cqw ở đây sẽ lấy theo khung cha. */
+.phone {
+  container-type: inline-size;
+  width: 92px;
+  aspect-ratio: 9 / 19.5;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px;
+  background: var(--bg);
+}
+
+.phonePhoto {
+  width: 100%;
+  max-height: 38%;
+  display: grid;
+  place-items: center;
+}
+
+.phone .card {
+  width: 100%;
+  padding: 8cqw 7cqw 6cqw;
+  border-radius: 5cqw;
+  gap: 5cqw;
+}
+
+.phone .emblem {
+  width: 13cqw;
+  height: 13cqw;
+}
+
+.phone .line {
+  height: 4cqw;
+  border-radius: 4cqw;
+}
+
+.phone .input,
+.phone .button {
+  height: 10cqw;
+  border-radius: 2.5cqw;
+}
+
+.meta {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.warn {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--wait);
+}
+
+@media (max-width: 767.98px) {
+  .positionButton {
+    min-height: 40px;
+  }
+}

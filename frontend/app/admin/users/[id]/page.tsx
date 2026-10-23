@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { Card, PageHeader } from "@/components/common";
+import { Card, CardBody, PageHeader } from "@/components/common";
+import { InfoSection, InfoSections } from "@/components/account/InfoSections";
 import { AccountFormModal } from "@/components/admin/AccountFormModal";
 import { AccountStatusBadge } from "@/components/admin/AccountStatusBadge";
 import { AssignmentFormModal } from "@/components/admin/AssignmentFormModal";
@@ -27,8 +28,81 @@ import {
   UpdateAssignmentPayload,
   UserEffectivePermissions,
 } from "@/services/roleService";
+import styles from "./user-detail.module.css";
 
 type Tab = "info" | "positions" | "assignments" | "effective";
+
+interface MenuAction {
+  key: string;
+  label: string;
+  icon: string;
+  onClick: () => void;
+  danger?: boolean;
+  disabled?: boolean;
+  title?: string;
+}
+
+/** Menu ⋯ cho các thao tác ít dùng hoặc nguy hiểm; đóng khi bấm ra ngoài hoặc Esc. */
+function MoreActions({ actions }: { actions: MenuAction[] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="dropdown" ref={ref}>
+      <button
+        type="button"
+        className={`btn btn-outline-secondary ${styles.moreButton}`}
+        aria-label="Thao tác khác"
+        title="Thao tác khác"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <i className="bi bi-three-dots" />
+      </button>
+      {open && (
+        <ul className={`dropdown-menu dropdown-menu-end show ${styles.menu}`} role="menu">
+          {actions.map((a) => (
+            <li key={a.key} role="none">
+              {a.danger && <hr className="dropdown-divider" />}
+              <button
+                type="button"
+                role="menuitem"
+                className={`dropdown-item ${a.danger ? "text-danger" : ""}`}
+                disabled={a.disabled}
+                title={a.title}
+                onClick={() => {
+                  setOpen(false);
+                  a.onClick();
+                }}
+              >
+                <i className={`bi ${a.icon} me-2`} />
+                {a.label}
+              </button>
+              {a.disabled && a.title && <div className={styles.menuHint}>{a.title}</div>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 /** Chi tiết tài khoản: thông tin + thao tác quản trị, bản gán vai trò, quyền hiệu lực. */
 export default function AdminUserDetailPage({ params }: { params: { id: string } }) {
@@ -345,77 +419,94 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     );
   }
 
-  const infoRows: [string, React.ReactNode][] = [
-    ["Tên đăng nhập", <code key="u">{account.username}</code>],
-    ["Họ và tên", account.fullName],
-    ["Ngày sinh", formatDateOnly(account.dateOfBirth)],
-    ["Chức danh", account.positionTitle || "—"],
-    ["Khung tỷ trọng mặc định", account.weightFrameCode || "Mặc định của bộ tiêu chí"],
-    ["Email", account.email || "—"],
-    ["Số điện thoại", account.phoneNumber || "—"],
-    ["Đơn vị công tác chính", account.departmentName || "—"],
-    ["Nơi sinh hoạt Đảng", account.partyCellName || "—"],
-    ["Đảng viên", account.isPartyMember ? `Có (số thẻ ${account.partyCardNumber || "—"})` : "Không"],
-    [
-      "Cấp quyết định xếp loại",
-      `${APPROVAL_AUTHORITY_LABELS[account.approvalAuthority] ?? "—"} (${account.approvalAuthorityOverride ? "đặt riêng" : "theo chức vụ"})`,
-    ],
-    ["Khóa tạm đến", account.isLockedOut ? formatDateTime(account.lockoutEnd) : "—"],
-    ["Số lần nhập sai liên tiếp", account.failedLoginCount],
-    ["Đăng nhập cuối", account.lastLoginAt ? formatDateTime(account.lastLoginAt) : "Chưa đăng nhập"],
-    ["Ngày tạo", formatDateTime(account.createdAt)],
+  const infoSections: InfoSection[] = [
+    {
+      title: "Tài khoản",
+      icon: "bi-person",
+      items: [
+        { label: "Tên đăng nhập", value: <code>{account.username}</code> },
+        { label: "Họ và tên", value: account.fullName },
+        { label: "Ngày sinh", value: account.dateOfBirth ? formatDateOnly(account.dateOfBirth) : null },
+        { label: "Email", value: account.email },
+        { label: "Số điện thoại", value: account.phoneNumber },
+        { label: "Đăng nhập cuối", value: account.lastLoginAt ? formatDateTime(account.lastLoginAt) : "Chưa đăng nhập" },
+        { label: "Khóa tạm đến", value: account.isLockedOut ? formatDateTime(account.lockoutEnd) : null },
+        { label: "Số lần nhập sai liên tiếp", value: account.failedLoginCount },
+        { label: "Ngày tạo", value: formatDateTime(account.createdAt) },
+      ],
+    },
+    {
+      title: "Công tác",
+      icon: "bi-briefcase",
+      items: [
+        { label: "Chức danh", value: account.positionTitle },
+        { label: "Đơn vị công tác chính", value: account.departmentName },
+        { label: "Khung tỷ trọng mặc định", value: account.weightFrameCode || "Mặc định của bộ tiêu chí" },
+        {
+          label: "Cấp quyết định xếp loại",
+          value: `${APPROVAL_AUTHORITY_LABELS[account.approvalAuthority] ?? "—"} (${account.approvalAuthorityOverride ? "đặt riêng" : "theo chức vụ"})`,
+        },
+      ],
+    },
+    {
+      title: "Đảng",
+      icon: "bi-star",
+      items: [
+        { label: "Đảng viên", value: account.isPartyMember ? "Có" : "Không" },
+        { label: "Số thẻ đảng viên", value: account.isPartyMember ? account.partyCardNumber : null },
+        { label: "Nơi sinh hoạt Đảng", value: account.partyCellName, wide: true },
+      ],
+    },
+  ];
+
+  const moreActions: MenuAction[] = [
+    { key: "reset", label: "Đặt lại mật khẩu", icon: "bi-key", onClick: handleResetPassword },
+    {
+      key: "active",
+      label: account.isActive ? "Vô hiệu hóa" : "Mở lại tài khoản",
+      icon: account.isActive ? "bi-person-slash" : "bi-person-check",
+      onClick: toggleActive,
+      disabled: isSelf && account.isActive,
+      title: isSelf && account.isActive ? "Không thể tự vô hiệu hóa tài khoản của mình." : undefined,
+    },
+    {
+      key: "delete",
+      label: "Xóa tài khoản",
+      icon: "bi-trash",
+      onClick: handleDelete,
+      danger: true,
+      disabled: isSelf,
+      title: isSelf ? "Không thể tự xóa tài khoản của mình." : undefined,
+    },
   ];
 
   return (
     <div className="page-wrapper">
+      <div className={styles.back}>
+        <Link href="/admin/users">
+          <i className="bi bi-arrow-left" aria-hidden="true" />
+          Danh sách tài khoản
+        </Link>
+      </div>
       <PageHeader
         title={account.fullName}
         badge={<AccountStatusBadge account={account} />}
         actions={
-          <>
-          <Link href="/admin/users" className="btn btn-outline-secondary">
-            <i className="bi bi-arrow-left me-1" />
-            Danh sách
-          </Link>
-        {canManage && (
-          <>
-            <button type="button" className="btn btn-outline-secondary" onClick={() => setEditing(true)}>
-              <i className="bi bi-pencil-square me-1" />
-              Sửa thông tin
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline-secondary"
-              onClick={toggleActive}
-              disabled={isSelf && account.isActive}
-              title={isSelf && account.isActive ? "Không thể tự vô hiệu hóa tài khoản của mình." : undefined}
-            >
-              <i className={`bi ${account.isActive ? "bi-person-slash" : "bi-person-check"} me-1`} />
-              {account.isActive ? "Vô hiệu hóa" : "Mở lại tài khoản"}
-            </button>
-            {(account.isLockedOut || account.failedLoginCount > 0) && (
-              <button type="button" className="btn btn-outline-secondary" onClick={handleUnlock}>
-                <i className="bi bi-unlock me-1" />
-                Mở khóa đăng nhập
+          canManage ? (
+            <>
+              {(account.isLockedOut || account.failedLoginCount > 0) && (
+                <button type="button" className="btn btn-outline-secondary" onClick={handleUnlock}>
+                  <i className="bi bi-unlock me-1" />
+                  Mở khóa đăng nhập
+                </button>
+              )}
+              <button type="button" className="btn btn-primary" onClick={() => setEditing(true)}>
+                <i className="bi bi-pencil-square me-1" />
+                Sửa thông tin
               </button>
-            )}
-            <button type="button" className="btn btn-outline-secondary" onClick={handleResetPassword}>
-              <i className="bi bi-key me-1" />
-              Đặt lại mật khẩu
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline-danger"
-              onClick={handleDelete}
-              disabled={isSelf}
-              title={isSelf ? "Không thể tự xóa tài khoản của mình." : undefined}
-            >
-              <i className="bi bi-trash me-1" />
-              Xóa
-            </button>
-          </>
-        )}
-          </>
+              <MoreActions actions={moreActions} />
+            </>
+          ) : undefined
         }
       />
 
@@ -465,18 +556,9 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
 
         {tab === "info" && (
           <Card>
-            <table className="table mb-0">
-              <tbody>
-                {infoRows.map(([label, value]) => (
-                  <tr key={label}>
-                    <th className="text-secondary fw-normal" style={{ width: 240 }}>
-                      {label}
-                    </th>
-                    <td>{value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <CardBody>
+              <InfoSections sections={infoSections} className={styles.info} />
+            </CardBody>
           </Card>
         )}
 

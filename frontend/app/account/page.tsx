@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { ChangePasswordForm } from "@/components/account/ChangePasswordForm";
+import { InfoSection, InfoSections } from "@/components/account/InfoSections";
 import { initialsOf } from "@/components/layout/AccountMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { MyProfile, userService } from "@/services/userService";
@@ -40,12 +41,28 @@ export default function AccountPage() {
     if (typeof window !== "undefined") window.history.replaceState(null, "", `#${key}`);
   };
 
-  const rows: [string, React.ReactNode][] = [
-    ["Họ và tên", user.fullName],
-    ["Tên đăng nhập", user.userName],
-    ["Chức danh", profile?.adminTitle || "—"],
-    ["Phòng / đơn vị", profile?.adminDeptName || "—"],
-    ["Chi bộ", profile?.partyBranchName || "—"],
+  const sections: InfoSection[] = [
+    {
+      title: "Tài khoản",
+      icon: "bi-person",
+      items: [
+        { label: "Họ và tên", value: user.fullName },
+        { label: "Tên đăng nhập", value: <code>{user.userName}</code> },
+      ],
+    },
+    {
+      title: "Công tác",
+      icon: "bi-briefcase",
+      items: [
+        { label: "Chức danh", value: profile?.adminTitle },
+        { label: "Phòng / đơn vị", value: profile?.adminDeptName },
+      ],
+    },
+    {
+      title: "Đảng",
+      icon: "bi-star",
+      items: [{ label: "Chi bộ", value: profile?.partyBranchName, wide: true }],
+    },
   ];
 
   return (
@@ -73,19 +90,12 @@ export default function AccountPage() {
             <section>
               <div className={styles.who}>
                 <span className="initials" style={{ width: 56, height: 56, fontSize: 18 }}>{initialsOf(user.fullName)}</span>
-                <div>
+                <div className={styles.whoText}>
                   <div className={styles.name}>{user.fullName}</div>
                   <div className="text-secondary">{profile?.adminTitle || user.userName}</div>
                 </div>
               </div>
-              <dl className={styles.rows}>
-                {rows.map(([label, value]) => (
-                  <div key={label} className={styles.row}>
-                    <dt>{label}</dt>
-                    <dd>{value}</dd>
-                  </div>
-                ))}
-              </dl>
+              <InfoSections sections={sections} className={styles.info} />
             </section>
           )}
 

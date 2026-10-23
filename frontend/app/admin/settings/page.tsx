@@ -11,6 +11,7 @@ import {
   organizationSettingsService,
   SaveOrganizationSettingsPayload,
 } from "@/services/organizationSettingsService";
+import styles from "./settings.module.css";
 
 type TextPayload = Omit<SaveOrganizationSettingsPayload, "loginPanelPosition">;
 type FieldKey = keyof TextPayload;
@@ -118,6 +119,17 @@ export default function OrganizationSettingsPage() {
   const shortNameInvalid = form.shortName.trim().length > 0 && !/^[A-Za-z0-9_-]+$/.test(form.shortName.trim());
   const missing = FIELDS.filter((f) => !f.optional && form[f.key].trim().length === 0);
 
+  // Cảnh báo khi đóng/tải lại trang lúc còn thay đổi chưa lưu.
+  useEffect(() => {
+    if (!dirty || !canManage) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty, canManage]);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!canManage || missing.length > 0 || shortNameInvalid) return;
@@ -185,27 +197,31 @@ export default function OrganizationSettingsPage() {
                   })}
                 </div>
 
-                <div className="d-flex flex-wrap align-items-center gap-2 mt-4">
+                <div className={styles.footer}>
                   {canManage && (
                     <>
                       <button
                         type="submit"
-                        className="btn btn-primary btn-sm"
+                        className={`btn btn-primary btn-sm ${styles.action}`}
                         disabled={!dirty || saving || missing.length > 0 || shortNameInvalid}
                       >
                         {saving ? "Đang lưu…" : "Lưu thay đổi"}
                       </button>
                       <button
                         type="button"
-                        className="btn btn-outline-secondary btn-sm"
+                        className={`btn btn-outline-secondary btn-sm ${styles.action}`}
                         disabled={!dirty || saving}
                         onClick={() => settings && setForm(toPayload(settings))}
                       >
                         Hoàn tác
                       </button>
+                      <span className={`${styles.state} ${dirty ? styles.stateDirty : ""}`} role="status">
+                        <span className={styles.dot} aria-hidden="true" />
+                        {dirty ? "Có thay đổi chưa lưu" : "Chưa có thay đổi"}
+                      </span>
                     </>
                   )}
-                  <span className="text-secondary small ms-auto">
+                  <span className={styles.updated}>
                     {settings?.updatedAt
                       ? `Cập nhật lần cuối: ${formatDateTime(settings.updatedAt)}${settings.updatedByName ? ` — ${settings.updatedByName}` : ""}`
                       : "Đang dùng giá trị mặc định."}

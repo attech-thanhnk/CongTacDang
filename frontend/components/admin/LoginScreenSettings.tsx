@@ -13,6 +13,7 @@ import {
   resolveApiUrl,
   SaveOrganizationSettingsPayload,
 } from "@/services/organizationSettingsService";
+import styles from "./LoginScreenSettings.module.css";
 
 const POSITIONS: { value: LoginPanelPosition; label: string }[] = [
   { value: "center", label: "Giữa" },
@@ -22,6 +23,12 @@ const POSITIONS: { value: LoginPanelPosition; label: string }[] = [
 
 const ACCEPTED_TYPES = LOGIN_BACKGROUND_ACCEPT.split(",");
 const MAX_MB = LOGIN_BACKGROUND_MAX_BYTES / 1024 / 1024;
+// Ảnh hẹp hơn mức này bị phóng to và mờ trên màn hình máy tính.
+const MIN_GOOD_WIDTH = 1280;
+// Bản xem trước coi khung là màn hình rộng 1440 px / điện thoại rộng 390 px; trang đăng nhập phóng ảnh tối đa 1,3 lần.
+const DESKTOP_WIDTH = 1440;
+const PHONE_WIDTH = 390;
+const MAX_ZOOM = 1.3;
 
 interface Props {
   settings: OrganizationSettings;
@@ -43,14 +50,35 @@ function toPayload(settings: OrganizationSettings, position: LoginPanelPosition)
   };
 }
 
+function MiniCard({ glass }: { glass: boolean }) {
+  return (
+    <div className={`${styles.card} ${glass ? styles.glass : ""}`}>
+      <span className={styles.emblem} />
+      <span className={styles.line} />
+      <span className={styles.input} />
+      <span className={styles.input} />
+      <span className={styles.button} />
+    </div>
+  );
+}
+
 /** Ảnh nền và vị trí khung đăng nhập. */
 export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
   const { toast, confirm } = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [loaded, setLoaded] = useState<{ url: string; width: number; height: number } | null>(null);
 
   const imageUrl = settings.loginBackgroundUrl ? resolveApiUrl(settings.loginBackgroundUrl) : null;
   const position = settings.loginPanelPosition ?? "center";
+
+  // Cỡ ảnh gắn với đường dẫn để ảnh mới không dùng nhầm cỡ ảnh cũ.
+  const size = loaded && loaded.url === imageUrl ? loaded : null;
+
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    if (imageUrl) setLoaded({ url: imageUrl, width: naturalWidth, height: naturalHeight });
+  };
 
   const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -105,7 +133,10 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
     }
   };
 
-  const cardJustify = position === "left" ? "flex-start" : position === "right" ? "flex-end" : "center";
+  // Giới hạn cỡ ảnh như trang thật: không quá 1,3 lần cỡ gốc so với màn hình giả định.
+  const desktopMax = size ? `min(100%, ${((size.width * MAX_ZOOM) / DESKTOP_WIDTH) * 100}cqw)` : "100%";
+  const phoneMax = size ? `min(100%, ${((size.width * MAX_ZOOM) / PHONE_WIDTH) * 100}cqw)` : "100%";
+  const sideClass = imageUrl && position === "left" ? styles.left : imageUrl && position === "right" ? styles.right : "";
 
   return (
     <Card className="mt-3">
@@ -114,30 +145,50 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
       </div>
       <CardBody>
         <div className="row g-4">
-          <div className="col-12 col-lg-6">
-            <div
-              className="border rounded overflow-hidden d-flex"
-              style={{
-                aspectRatio: "16 / 9",
-                maxWidth: 420,
-                padding: "6% 5%",
-                alignItems: position === "center" ? "center" : "flex-start",
-                justifyContent: cardJustify,
-                background: imageUrl ? `center / cover no-repeat url("${imageUrl}")` : "var(--bg)",
-              }}
-              aria-label="Xem trước màn hình đăng nhập"
-            >
-              <div
-                className="rounded border"
-                style={{ width: "26%", aspectRatio: "3 / 4", background: "var(--paper)", boxShadow: "0 2px 8px rgba(0,0,0,.25)" }}
-              />
+          <div className="col-12 col-lg-7">
+            <div className={styles.previews} aria-label="Xem trước màn hình đăng nhập">
+              <div style={{ flex: "1 1 260px", maxWidth: 440 }}>
+                <div className={styles.label}>Máy tính</div>
+                <div className={`${styles.desktop} ${imageUrl ? styles.sky : ""} ${sideClass}`}>
+                  {imageUrl && (
+                    <div className={styles.photo}>
+                      <img src={imageUrl} alt="" onLoad={handleImageLoad} style={{ maxWidth: desktopMax }} />
+                    </div>
+                  )}
+                  <MiniCard glass={!!imageUrl} />
+                </div>
+              </div>
+              <div>
+                <div className={styles.label}>Điện thoại</div>
+                <div className={`${styles.phone} ${imageUrl ? styles.sky : ""}`}>
+                  {imageUrl && (
+                    <div className={styles.phonePhoto}>
+                      <img src={imageUrl} alt="" style={{ maxWidth: phoneMax }} />
+                    </div>
+                  )}
+                  <MiniCard glass={!!imageUrl} />
+                </div>
+              </div>
             </div>
-            <div className="form-text">
-              {settings.loginBackgroundFileName ?? "Chưa có ảnh nền — đang dùng nền mặc định."}
+            <div className={styles.meta}>
+              {imageUrl ? (
+                <>
+                  {settings.loginBackgroundFileName ?? "Ảnh nền"}
+                  {size && <span className="text-secondary"> · {size.width} × {size.height} px</span>}
+                </>
+              ) : (
+                "Chưa có ảnh nền — đang dùng nền mặc định."
+              )}
             </div>
+            {imageUrl && size && size.width < MIN_GOOD_WIDTH && (
+              <div className={styles.warn}>
+                <i className="bi bi-exclamation-triangle me-1" />
+                Ảnh rộng dưới {MIN_GOOD_WIDTH} px nên sẽ hiện nhỏ trên màn hình máy tính. Nên dùng ảnh rộng từ 1920 px.
+              </div>
+            )}
           </div>
 
-          <div className="col-12 col-lg-6">
+          <div className="col-12 col-lg-5">
             {canManage && (
               <div className="mb-3">
                 <div className="d-flex flex-wrap gap-2">
@@ -168,20 +219,27 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
               </div>
             )}
 
-            <label className="form-label" htmlFor="org-loginPanelPosition">Vị trí khung đăng nhập</label>
-            <select
-              id="org-loginPanelPosition"
-              className="form-select form-select-sm"
-              style={{ maxWidth: 220 }}
-              value={position}
-              disabled={!canManage || busy}
-              onChange={(e) => handlePosition(e.target.value as LoginPanelPosition)}
-            >
+            <div className="form-label" id="org-loginPanelPosition">Vị trí khung đăng nhập</div>
+            <div className="btn-group btn-group-sm" role="radiogroup" aria-labelledby="org-loginPanelPosition">
               {POSITIONS.map((p) => (
-                <option key={p.value} value={p.value}>{p.label}</option>
+                <button
+                  key={p.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={position === p.value}
+                  className={`btn ${position === p.value ? "btn-primary" : "btn-outline-secondary"} ${styles.positionButton}`}
+                  disabled={!canManage || busy}
+                  onClick={() => handlePosition(p.value)}
+                >
+                  {p.label}
+                </button>
               ))}
-            </select>
-            <div className="form-text">Trên màn hình hẹp, khung đăng nhập luôn ở giữa.</div>
+            </div>
+            <div className="form-text">
+              {imageUrl
+                ? "Bên trái/phải: ảnh dồn sang phía còn lại. Trên điện thoại, ảnh ở trên và khung ở dưới."
+                : "Chỉ áp dụng khi có ảnh nền."}
+            </div>
           </div>
         </div>
       </CardBody>

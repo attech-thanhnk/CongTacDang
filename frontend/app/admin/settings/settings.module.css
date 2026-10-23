@@ -1,0 +1,58 @@
+/* Hàng nút lưu: nút chỉ trông bấm được khi có thay đổi. */
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.action:disabled {
+  background: var(--tint);
+  border-color: var(--rule);
+  color: var(--ink-3);
+  opacity: 1;
+}
+
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--rule-strong);
+}
+
+.stateDirty {
+  color: var(--wait);
+  font-weight: 500;
+}
+
+.stateDirty .dot {
+  background: var(--wait);
+}
+
+.updated {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+@media (max-width: 767.98px) {
+  .action {
+    min-height: 40px;
+  }
+
+  .updated {
+    margin-left: 0;
+    width: 100%;
+  }
+}
