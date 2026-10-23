@@ -65,7 +65,7 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
     try {
       await logout();
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Đăng xuất thất bại."));
+      toast.error(errorMessage(err, "Đăng xuất không thành công."));
     }
   };
 
@@ -97,7 +97,7 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
       >
         <span className="initials">{initialsOf(user.fullName)}</span>
         <span className={styles.who}>
-          <b className="text-truncate">{user.fullName}</b>
+          <b className="text-truncate" title={user.fullName}>{user.fullName}</b>
           {title && <small className="text-truncate" title={title}>{title}</small>}
         </span>
         <i className={`bi bi-chevron-expand ${styles.chev}`} />

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,21 +8,7 @@ import { useLayout } from "@/contexts/LayoutContext";
 import { usePeriod } from "@/contexts/PeriodContext";
 import { useOrganizationInfo } from "@/services/organizationSettingsService";
 import { AccountMenu } from "./AccountMenu";
-
-interface MenuItem {
-  title: string;
-  href: string;
-  icon: string;
-  /** Mã quyền cần có (ở bất kỳ phạm vi nào). */
-  permission?: string;
-  /** Điều kiện tùy chỉnh (ưu tiên hơn `permission`). */
-  check?: () => boolean;
-}
-
-interface MenuGroup {
-  title?: string;
-  items: MenuItem[];
-}
+import { buildMenu, isMenuItemActive } from "./menu";
 
 /** Biểu tượng Đảng bộ: ngôi sao trong vòng tròn đỏ son. */
 function Emblem() {
@@ -34,6 +20,8 @@ function Emblem() {
     </div>
   );
 }
+
+const COLLAPSED_KEY = "sidebar-collapsed";
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -54,61 +42,34 @@ export function AppSidebar() {
 
   const showPeriodPicker = !!user && !user.mustChangePassword && pathname !== "/change-password";
 
-  // Menu chỉ hiện theo mã quyền — máy chủ luôn kiểm tra lại, kể cả phạm vi.
-  const hasAnyEvaluationAction = () =>
-    (user?.permissions ?? []).some((code) => code.startsWith("evaluation.") && code !== "evaluation.read");
+  const visibleGroups = buildMenu(user, hasPermission);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-  const menuGroups: MenuGroup[] = [
-    {
-      items: [
-        { title: "Tổng quan", href: "/", icon: "bi-house" },
-        { title: "Việc cần xử lý", href: "/work-queue", icon: "bi-inbox", check: hasAnyEvaluationAction },
-        {
-          title: "Đánh giá cán bộ",
-          href: "/evaluations",
-          icon: "bi-file-earmark-text",
-          check: () => hasPermission("evaluation.self") || hasPermission("evaluation.read"),
-        },
-        {
-          title: "Đánh giá tập thể",
-          href: "/collective-evaluations",
-          icon: "bi-people",
-          check: () =>
-            hasPermission("evaluation.read") ||
-            hasPermission("collective.manage") ||
-            hasPermission("meeting.read") ||
-            hasPermission("meeting.manage"),
-        },
-        { title: "Kết quả đánh giá", href: "/results", icon: "bi-trophy", permission: "evaluation.results.view" },
-        { title: "Báo cáo", href: "/reports", icon: "bi-bar-chart-line", permission: "report.export" },
-      ],
-    },
-    {
-      title: "Quản lý",
-      items: [
-        { title: "Kỳ đánh giá", href: "/periods", icon: "bi-calendar3", permission: "period.manage" },
-        { title: "Bộ tiêu chí", href: "/criteria", icon: "bi-list-check", permission: "criteria.manage" },
-        { title: "Người dùng", href: "/admin/users", icon: "bi-people", permission: "system.users.read" },
-        { title: "Vai trò", href: "/admin/roles", icon: "bi-shield-lock", permission: "system.roles.manage" },
-        { title: "Người thực hiện", href: "/admin/performers", icon: "bi-person-check", permission: "system.assignments.manage" },
-        { title: "Danh mục", href: "/catalog", icon: "bi-building", permission: "catalog.manage" },
-        { title: "Nhập dữ liệu", href: "/admin/imports", icon: "bi-file-earmark-arrow-up", permission: "system.import" },
-        { title: "Nhật ký", href: "/audit", icon: "bi-clock-history", permission: "system.audit.read" },
-        { title: "Thông tin đơn vị", href: "/admin/settings", icon: "bi-gear", permission: "system.settings.manage" },
-        { title: "Biểu mẫu Word", href: "/admin/templates", icon: "bi-file-earmark-word", permission: "system.templates.manage" },
-      ],
-    },
-  ];
+  // Nhớ nhóm đã gập; mặc định gập nhóm Hệ thống.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(COLLAPSED_KEY);
+      setCollapsed(saved ? JSON.parse(saved) : { system: true });
+    } catch {
+      setCollapsed({ system: true });
+    }
+  }, []);
 
-  const isVisible = (item: MenuItem) => {
-    if (item.check) return item.check();
-    if (item.permission) return hasPermission(item.permission);
-    return true;
-  };
+  const toggleGroup = (key: string) =>
+    setCollapsed((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try {
+        localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next));
+      } catch {
+        // Không lưu được thì chỉ nhớ trong phiên.
+      }
+      return next;
+    });
 
-  const visibleGroups = menuGroups
-    .map((group) => ({ ...group, items: group.items.filter(isVisible) }))
-    .filter((group) => group.items.length > 0);
+  // Mục đang mở có thể nằm dưới vùng nhìn thấy của menu.
+  useEffect(() => {
+    document.querySelector(".side-nav a.on")?.scrollIntoView({ block: "nearest" });
+  }, [pathname]);
 
   const closeOnMobile = () => {
     if (typeof window !== "undefined" && window.innerWidth < 768) closeSidebar();
@@ -151,27 +112,46 @@ export function AppSidebar() {
         )}
 
         <nav className="side-nav">
-          {visibleGroups.map((group, groupIndex) => (
-            <React.Fragment key={group.title ?? `group-${groupIndex}`}>
-              {group.title && <div className="side-grp">{group.title}</div>}
-              {group.items.map((item) => {
-                const isActive =
-                  pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={closeOnMobile}
-                    className={isActive ? "on" : undefined}
-                    aria-current={isActive ? "page" : undefined}
-                  >
-                    <i className={`bi ${item.icon}`} />
-                    <span>{item.title}</span>
-                  </Link>
-                );
-              })}
-            </React.Fragment>
-          ))}
+          {visibleGroups.map((group) => {
+            const hasActive = group.items.some((item) => isMenuItemActive(item, pathname));
+            // Nhóm chứa trang đang mở luôn mở.
+            const isOpen = !group.collapsible || hasActive || !collapsed[group.key];
+            return (
+              <React.Fragment key={group.key}>
+                {group.title &&
+                  (group.collapsible ? (
+                    <button
+                      type="button"
+                      className="side-grp side-grp-toggle"
+                      aria-expanded={isOpen}
+                      onClick={() => toggleGroup(group.key)}
+                      disabled={hasActive}
+                    >
+                      <span>{group.title}</span>
+                      <i className={`bi ${isOpen ? "bi-chevron-up" : "bi-chevron-down"}`} aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <div className="side-grp">{group.title}</div>
+                  ))}
+                {isOpen &&
+                  group.items.map((item) => {
+                    const isActive = isMenuItemActive(item, pathname);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={closeOnMobile}
+                        className={isActive ? "on" : undefined}
+                        aria-current={isActive ? "page" : undefined}
+                      >
+                        <i className={`bi ${item.icon}`} />
+                        <span>{item.title}</span>
+                      </Link>
+                    );
+                  })}
+              </React.Fragment>
+            );
+          })}
         </nav>
 
         <AccountMenu onNavigate={closeOnMobile} />
