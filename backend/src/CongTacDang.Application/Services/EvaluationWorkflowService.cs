@@ -130,7 +130,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 CriteriaB_Ratio = 1.0,
                 CriteriaC_Ratio = 1.0,
                 CriteriaD_Ratio = 1.0,
-                SelfScore = 0 // Chưa tự chấm: điểm 0 cho tới khi chủ hồ sơ nhập tỷ lệ A-B-C-D (không mặc định bằng trọng số)
+                SelfScore = 0 // Chưa tự chấm (TaskSelfScores.IsPending): phiếu để trống cho tới khi chủ hồ sơ nhập tỷ lệ A-B-C-D
             }).ToList();
             await _repo.ReplaceTasksAsync(ctx.Record.Id, newTasks, ct);
             ctx.Record.ReturnReason = null;
@@ -336,17 +336,18 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                     .Select(x => x.input!.AttachmentId);
                 await EnsureNewAttachmentsLinkableAsync(changed, new HashSet<Guid>());
 
-                // Nộp phiếu: mọi nhiệm vụ còn hiệu lực phải có tỷ lệ A-B-C-D (không lấy điểm đã lưu / điểm khởi tạo thay phần chưa chấm).
+                // Nộp phiếu: mọi nhiệm vụ còn hiệu lực phải gửi đủ bốn tỷ lệ A-B-C-D (không lấy điểm đã lưu / giá trị khởi tạo thay
+                // phần chưa nhập; tỷ lệ để trống = chưa nhập).
                 if (!draft)
                 {
                     var missing = tasks
                         .Where(TaskChangeRules.IsActive)
-                        .Where(t => request.TaskScores?.Any(s => s != null && s.TaskId == t.Id) != true)
+                        .Where(t => !IsComplete(request.TaskScores?.FirstOrDefault(s => s != null && s.TaskId == t.Id)))
                         .OrderBy(t => t.TaskOrder)
                         .Select(t => $"\"{t.TaskName}\"")
                         .ToList();
                     if (missing.Count > 0)
-                        throw new ValidationException($"Chưa chấm tỷ lệ A-B-C-D cho nhiệm vụ: {string.Join(", ", missing)}.");
+                        throw new ValidationException($"Chưa nhập đủ tỷ lệ A-B-C-D cho nhiệm vụ: {string.Join(", ", missing)}.");
                 }
 
                 foreach (var task in tasks)
@@ -359,10 +360,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                         continue;
                     }
                     var input = request.TaskScores?.FirstOrDefault(s => s != null && s.TaskId == task.Id);
-                    if (input == null)
-                        continue; // Chỉ xảy ra khi lưu nháp: giữ điểm đã lưu của nhiệm vụ chưa nhập.
-                    var scored = EvaluationScoring.ScoreTask(task.Weight, input.CriteriaA_Ratio, input.CriteriaB_Ratio,
-                        input.CriteriaC_Ratio, input.CriteriaD_Ratio, frame, rounding.TaskScore);
+                    if (!IsComplete(input))
+                        continue; // Chỉ xảy ra khi lưu nháp: giữ nội dung đã lưu của nhiệm vụ chưa nhập đủ.
+                    var scored = EvaluationScoring.ScoreTask(task.Weight, input!.CriteriaA_Ratio!.Value, input.CriteriaB_Ratio!.Value,
+                        input.CriteriaC_Ratio!.Value, input.CriteriaD_Ratio!.Value, frame, rounding.TaskScore);
                     task.CriteriaA_Ratio = scored.A;
                     task.CriteriaB_Ratio = scored.B;
                     task.CriteriaC_Ratio = scored.C;
@@ -371,6 +372,9 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                     task.AttachmentId = input.AttachmentId;
                     task.SelfScore = scored.Score;
                 }
+
+                if (!draft)
+                    await EnsureExceedEvidenceAsync(tasks, ct);
             }
 
             record.TasksScore = EvaluationScoring.TasksScore(tasks.Select(t => t.SelfScore), rounding.TasksTotal);
@@ -394,6 +398,35 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         }
 
         return ApplyIndividualForms(record, criteria, request, partial: draft);
+    }
+
+    /// <summary>Dòng tự chấm có đủ bốn tỷ lệ A-B-C-D (số hợp lệ); tỷ lệ không phải số → 400.</summary>
+    private static bool IsComplete(TaskScoreInputDto? input)
+    {
+        if (input == null)
+            return false;
+        var ratios = new[] { input.CriteriaA_Ratio, input.CriteriaB_Ratio, input.CriteriaC_Ratio, input.CriteriaD_Ratio };
+        if (ratios.Any(r => r.HasValue && !double.IsFinite(r.Value)))
+            throw new ValidationException("Tỷ lệ A-B-C-D phải là số.");
+        return ratios.All(r => r.HasValue);
+    }
+
+    /// <summary>
+    /// Nộp phiếu: nhiệm vụ đánh dấu vượt chuẩn phải có ít nhất một tệp minh chứng gắn với nhiệm vụ (tệp minh chứng của dòng nhiệm
+    /// vụ hoặc tệp đính kèm thuộc nhiệm vụ).
+    /// </summary>
+    private async Task EnsureExceedEvidenceAsync(IReadOnlyCollection<EvaluationTask> tasks, CancellationToken ct)
+    {
+        var exceed = tasks.Where(t => TaskChangeRules.IsActive(t) && t.IsExceedStandard).ToList();
+        if (exceed.Count == 0)
+            return;
+        var withEvidence = await _repo.GetTaskIdsWithEvidenceAsync(exceed, ct);
+        var missing = exceed.Where(t => !withEvidence.Contains(t.Id))
+            .OrderBy(t => t.TaskOrder)
+            .Select(t => $"\"{t.TaskName}\"")
+            .ToList();
+        if (missing.Count > 0)
+            throw new ValidationException($"Nhiệm vụ đánh dấu vượt chuẩn phải có minh chứng. Hãy đính kèm minh chứng cho: {string.Join(", ", missing)}.");
     }
 
     /// <summary>

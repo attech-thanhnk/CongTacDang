@@ -101,6 +101,20 @@ public static class RecordWeightFrames
         record.FrameD = null;
     }
 
+    /// <summary>Thông báo khi đổi khung tỷ trọng của hồ sơ đã qua bước tự chấm.</summary>
+    public const string LockedMessage = "Danh mục đã duyệt — trả hồ sơ về bước tự chấm trước khi đổi khung tỷ trọng.";
+
+    /// <summary>
+    /// Đổi được khung tỷ trọng (mã khung / tỷ lệ điều chỉnh) của hồ sơ: hồ sơ đang chờ bước tự chấm hoặc bước trước đó (chưa duyệt
+    /// danh mục, hoặc đã duyệt nhưng đang/được trả về bước tự chấm). Sau bước tự chấm, khung bị khóa.
+    /// </summary>
+    public static bool CanChangeFrame(EvaluationRecord record)
+    {
+        ArgumentNullException.ThrowIfNull(record);
+        return WorkflowSteps.StepOf(record.Status) is { } step
+            && WorkflowSteps.IndexOf(step) <= WorkflowSteps.IndexOf(WorkflowStep.B2_SELF_SCORE);
+    }
+
     /// <summary>Mô tả tỷ lệ của khung, ví dụ "A 30% · B 30% · C 20% · D 20%".</summary>
     public static string Describe(WeightFrame frame) =>
         Invariant($"A {frame.A * 100:0.##}% · B {frame.B * 100:0.##}% · C {frame.C * 100:0.##}% · D {frame.D * 100:0.##}%");

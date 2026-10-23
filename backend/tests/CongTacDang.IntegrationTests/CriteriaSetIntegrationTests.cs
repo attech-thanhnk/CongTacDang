@@ -230,13 +230,43 @@ public sealed class CriteriaSetIntegrationTests
         // Tự chấm A-B-C-D theo khung K2 của hồ sơ, làm tròn 1 chữ số (bộ mặc định): TC-1 dòng 1, 2, 4.
         var record = await Data(w.Owner1C, $"/api/evaluations/records/{r1}");
         var tasks = record.GetProperty("tasks").EnumerateArray().Select(t => t.GetProperty("id").GetGuid()).ToList();
-        var taskScores = new object[]
+        // Phiếu chưa nhập: tỷ lệ A-B-C-D để trống (không điền sẵn 100%).
+        Assert.All(record.GetProperty("tasks").EnumerateArray(), t =>
         {
-            new { taskId = tasks[0], criteriaA_Ratio = 1.0, criteriaB_Ratio = 0.95, criteriaC_Ratio = 1.0, criteriaD_Ratio = 1.0, isExceedStandard = true },
-            new { taskId = tasks[1], criteriaA_Ratio = 1.0, criteriaB_Ratio = 0.90, criteriaC_Ratio = 1.0, criteriaD_Ratio = 0.95, isExceedStandard = false },
-            new { taskId = tasks[2], criteriaA_Ratio = 1.0, criteriaB_Ratio = 0.95, criteriaC_Ratio = 1.0, criteriaD_Ratio = 0.90, isExceedStandard = false }
+            Assert.Equal(JsonValueKind.Null, t.GetProperty("criteriaA_Ratio").ValueKind);
+            Assert.False(t.GetProperty("selfScoreEntered").GetBoolean());
+        });
+
+        // Thiếu tỷ lệ của một nhiệm vụ → 400 nêu tên nhiệm vụ.
+        var incomplete = await PostAsync(w.Owner1C, r1, "self-score/submit", new
+        {
+            generalScores = CriteriaTestData.General(),
+            taskScores = new object[]
+            {
+                new { taskId = tasks[0], criteriaA_Ratio = 1.0, criteriaB_Ratio = 0.95, criteriaC_Ratio = 1.0, criteriaD_Ratio = 1.0 },
+                new { taskId = tasks[1], criteriaA_Ratio = 1.0, criteriaB_Ratio = 0.90, criteriaC_Ratio = (double?)null, criteriaD_Ratio = 0.95 },
+                new { taskId = tasks[2], criteriaA_Ratio = 1.0, criteriaB_Ratio = 0.95, criteriaC_Ratio = 1.0, criteriaD_Ratio = 0.90 }
+            }
+        }, await VersionAsync(w, r1));
+        Assert.Equal(HttpStatusCode.BadRequest, incomplete.StatusCode);
+        Assert.Contains("\"Sản phẩm 2\"", await MessageAsync(incomplete));
+
+        object[] TaskScores(Guid? evidence) => new object[]
+        {
+            new { taskId = tasks[0], criteriaA_Ratio = 1.0, criteriaB_Ratio = 0.95, criteriaC_Ratio = 1.0, criteriaD_Ratio = 1.0, isExceedStandard = true, attachmentId = evidence },
+            new { taskId = tasks[1], criteriaA_Ratio = 1.0, criteriaB_Ratio = 0.90, criteriaC_Ratio = 1.0, criteriaD_Ratio = 0.95, isExceedStandard = false, attachmentId = (Guid?)null },
+            new { taskId = tasks[2], criteriaA_Ratio = 1.0, criteriaB_Ratio = 0.95, criteriaC_Ratio = 1.0, criteriaD_Ratio = 0.90, isExceedStandard = false, attachmentId = (Guid?)null }
         };
-        var scored = await StepAsync(w, w.Owner1C, r1, "self-score/submit", new { generalScores = CriteriaTestData.General(), taskScores }, "AwaitingCellConfirm");
+
+        // Vượt chuẩn mà không có minh chứng → 400.
+        var noEvidence = await PostAsync(w.Owner1C, r1, "self-score/submit",
+            new { generalScores = CriteriaTestData.General(), taskScores = TaskScores(null) }, await VersionAsync(w, r1));
+        Assert.Equal(HttpStatusCode.BadRequest, noEvidence.StatusCode);
+        Assert.Contains("minh chứng", await MessageAsync(noEvidence));
+
+        var evidenceId = (await Data(await UploadAsync(w.Owner1C))).GetProperty("id").GetGuid();
+        var scored = await StepAsync(w, w.Owner1C, r1, "self-score/submit",
+            new { generalScores = CriteriaTestData.General(), taskScores = TaskScores(evidenceId) }, "AwaitingCellConfirm");
         var selfScores = scored.GetProperty("tasks").EnumerateArray().OrderBy(t => t.GetProperty("taskOrder").GetInt32())
             .Select(t => t.GetProperty("selfScore").GetDouble()).ToList();
         Assert.Equal(new[] { 29.3, 23.5, 14.3 }, selfScores); // 30×97,5% = 29,25→29,3; 25×94% = 23,5; 15×95,5% = 14,325→14,3
@@ -344,14 +374,31 @@ public sealed class CriteriaSetIntegrationTests
         await AssertDocxAsync(w.Manager, $"/api/reports/docx/mau-02/{r1}", "98,0%");
         await AssertDocxAsync(w.Manager, $"/api/reports/docx/mau-02/{r1}", "29,4");
 
-        // Sửa ảnh chụp sang khung khác → bỏ phần điều chỉnh.
+        // Đã nộp tự chấm (qua bước tự chấm): khung bị khóa → 409, danh sách báo khóa.
         var participant = Participant(await Data(w.Manager, $"/api/evaluations/periods/{periodId}/participants"), r1);
+        Assert.True(participant.GetProperty("weightFrameLocked").GetBoolean());
+        var locked = await w.Manager.PutAsJsonAsync($"/api/evaluations/periods/{periodId}/participants/{r1}/snapshot",
+            new { version = participant.GetProperty("version").GetUInt32(), weightFrameCode = "K1", reason = "Đổi lĩnh vực" });
+        Assert.Equal(HttpStatusCode.Conflict, locked.StatusCode);
+        Assert.Contains("trả hồ sơ về bước tự chấm", await MessageAsync(locked));
+
+        // Trả hồ sơ về bước tự chấm → đổi được khung: bỏ phần điều chỉnh, tính lại điểm nhiệm vụ đã chấm theo khung mới.
+        await StepAsync(w, w.CellSecC, r1, "cell/return", new { reason = "Đổi khung tỷ trọng" }, "AwaitingSelfScore");
+        participant = Participant(await Data(w.Manager, $"/api/evaluations/periods/{periodId}/participants"), r1);
+        Assert.False(participant.GetProperty("weightFrameLocked").GetBoolean());
         await Data(await w.Manager.PutAsJsonAsync($"/api/evaluations/periods/{periodId}/participants/{r1}/snapshot",
             new { version = participant.GetProperty("version").GetUInt32(), weightFrameCode = "K1", reason = "Đổi lĩnh vực" }));
         var after = await Data(w.Manager, $"/api/evaluations/records/{r1}");
         Assert.False(after.GetProperty("weightFrameAdjusted").GetBoolean());
         Assert.Equal(0.25, after.GetProperty("weightFrame").GetProperty("a").GetDouble(), 6);
         Assert.Equal(0.35, after.GetProperty("weightFrame").GetProperty("b").GetDouble(), 6);
+        var rescored = after.GetProperty("tasks").EnumerateArray().OrderBy(t => t.GetProperty("taskOrder").GetInt32()).ToList();
+        Assert.Equal(24.1, rescored[1].GetProperty("selfScore").GetDouble(), 6); // 25 × (25 + 35×0,9 + 20 + 20)% = 24,125
+        Assert.Equal(14.4, rescored[2].GetProperty("selfScore").GetDouble(), 6); // 15 × 96,25% = 14,4375
+        Assert.Equal(0.9, rescored[1].GetProperty("criteriaB_Ratio").GetDouble(), 6); // tỷ lệ đã nhập giữ nguyên
+        history = await Data(w.Manager, $"/api/evaluations/records/{r1}/history");
+        Assert.Contains(history.EnumerateArray(), h => (h.GetProperty("comment").GetString() ?? string.Empty)
+            .Contains("tính lại điểm tự chấm 3 nhiệm vụ theo khung mới"));
     }
 
     [SkippableFact]
@@ -550,6 +597,17 @@ public sealed class CriteriaSetIntegrationTests
     }
 
     private static async Task<JsonElement> Data(HttpClient client, string url) => await Data(await client.GetAsync(url));
+
+    /// <summary>Tải tệp minh chứng chưa gắn đối tượng (như hộp tải minh chứng nhiệm vụ trên phiếu tự chấm).</summary>
+    private static async Task<HttpResponseMessage> UploadAsync(HttpClient client)
+    {
+        using var content = new MultipartFormDataContent();
+        var file = new ByteArrayContent("%PDF-1.4 minh chung vuot chuan"u8.ToArray());
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        content.Add(file, "file", "minh-chung.pdf");
+        content.Add(new StringContent("MAU02"), "formCode");
+        return await client.PostAsync("/api/attachments/upload", content);
+    }
 
     private static async Task<string> MessageAsync(HttpResponseMessage response)
     {

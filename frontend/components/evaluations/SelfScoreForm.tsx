@@ -196,6 +196,11 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   }, [uses09B, axis, ratios, record.tasks, frame, p]);
   const total = roundScore(generalScore + tasksScore, p.rounding.total);
 
+  const activeTasks = record.tasks.filter((t) => !t.changeStatus);
+  const ratioKeys = ["a", "b", "c", "d"] as const;
+  const isComplete = (r: TaskRatio) => ratioKeys.every((k) => r[k] !== "");
+  const taskNames = (tasks: { taskName: string }[]) => tasks.map((t) => `"${t.taskName}"`).join(", ");
+
   const needsReason = (item: { maxScore: number }, s: GeneralItemScore) =>
     !!s.notApplicable || (p.deductionReasonMinPoints != null && item.maxScore - (Number(s.score) || 0) + 1e-6 >= p.deductionReasonMinPoints);
 
@@ -213,15 +218,16 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       );
       payload.axisNotes = axisNotes;
     } else {
-      payload.taskScores = record.tasks
-        .filter((t) => !t.changeStatus)
-        .filter((t) => !draft || (["a", "b", "c", "d"] as const).every((k) => ratios[t.id][k] !== ""))
+      // Ô để trống gửi null (chưa nhập) — máy chủ từ chối nộp khi còn thiếu, không tự coi là 0% hay 100%.
+      const ratioOf = (v: ScoreInput) => (v === "" ? null : (Number(v) || 0) / 100);
+      payload.taskScores = activeTasks
+        .filter((t) => !draft || isComplete(ratios[t.id]))
         .map((t) => ({
           taskId: t.id,
-          criteriaA_Ratio: (Number(ratios[t.id].a) || 0) / 100,
-          criteriaB_Ratio: (Number(ratios[t.id].b) || 0) / 100,
-          criteriaC_Ratio: (Number(ratios[t.id].c) || 0) / 100,
-          criteriaD_Ratio: (Number(ratios[t.id].d) || 0) / 100,
+          criteriaA_Ratio: ratioOf(ratios[t.id].a),
+          criteriaB_Ratio: ratioOf(ratios[t.id].b),
+          criteriaC_Ratio: ratioOf(ratios[t.id].c),
+          criteriaD_Ratio: ratioOf(ratios[t.id].d),
           isExceedStandard: ratios[t.id].exceed,
           attachmentId: ratios[t.id].attachmentId || null,
         }));
@@ -239,6 +245,11 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       const now = new Date();
       setSavedAt(now);
       toast.success(`Đã lưu nháp lúc ${timeOf(now)}.`);
+      if (!uses09B) {
+        // Nhiệm vụ mới nhập một phần A-B-C-D không được lưu (giữ nội dung đã lưu trước đó).
+        const partial = activeTasks.filter((t) => !isComplete(ratios[t.id]) && ratioKeys.some((k) => ratios[t.id][k] !== ""));
+        if (partial.length) toast.warning(`Chưa lưu tỷ lệ của nhiệm vụ nhập chưa đủ A-B-C-D: ${taskNames(partial)}.`);
+      }
     } catch (error: unknown) {
       if (!isConcurrencyConflict(error)) toast.error(errorMessage(error, "Không lưu được nháp."));
     } finally {
@@ -248,6 +259,20 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    let noEvidence: typeof activeTasks = [];
+    if (!uses09B) {
+      const incomplete = activeTasks.filter((t) => !isComplete(ratios[t.id]));
+      if (incomplete.length) {
+        toast.error(`Chưa nhập đủ tỷ lệ A-B-C-D cho nhiệm vụ: ${taskNames(incomplete)}.`);
+        return;
+      }
+      const exceedNoEvidence = activeTasks.filter((t) => ratios[t.id].exceed && !ratios[t.id].attachmentId);
+      if (exceedNoEvidence.length) {
+        toast.error(`Nhiệm vụ đánh dấu vượt chuẩn phải có minh chứng. Hãy đính kèm minh chứng cho: ${taskNames(exceedNoEvidence)}.`);
+        return;
+      }
+      noEvidence = activeTasks.filter((t) => !ratios[t.id].attachmentId);
+    }
     const payload = buildPayload(false);
     if (currentVersion !== record.version && currentVersion != null) payload.version = currentVersion;
     const gradeLabel = grade ? GRADE_LABELS[grade as keyof typeof GRADE_LABELS] : `${GRADE_LABELS[gradeByScore(content, total)]} (hệ thống gợi ý)`;
@@ -259,6 +284,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       title: "Nộp phiếu tự chấm",
       message: `Tổng điểm tự chấm ${fmt(total)}, mức tự đề xuất: ${gradeLabel}.`
         + (missing.length ? ` Chưa nhập ${missing.join(" và ")}.` : "")
+        + (noEvidence.length ? ` Nhiệm vụ chưa có minh chứng: ${taskNames(noEvidence)}.` : "")
         + " Sau khi nộp, bạn không sửa được trừ khi bị trả lại.",
       confirmText: "Nộp phiếu",
       isDanger: false,
@@ -417,12 +443,15 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                       <td className="small">{t.weight}</td>
                       {(["a", "b", "c", "d"] as const).map((k) => (
                         <td key={k}>
-                          <input type="number" min={0} max={100} step={1} className="form-control form-control-sm" value={r[k]} required title={band(Number(r[k]) || 0)?.label}
+                          <input type="number" min={0} max={100} step={1} className={`form-control form-control-sm${r[k] === "" ? " border-warning" : ""}`} value={r[k]} placeholder="%" title={r[k] === "" ? "Chưa nhập" : band(Number(r[k]) || 0)?.label}
                             onChange={(e) => setRatio(t.id, k, toInput(e.target.value))} aria-label={`Thành phần ${k.toUpperCase()} — ${t.taskName}`} />
                         </td>
                       ))}
-                      <td className="small fw-semibold">{fmt(taskScore(t.weight, r))}</td>
-                      <td className="text-center"><input type="checkbox" className="form-check-input" checked={r.exceed} onChange={(e) => setRatio(t.id, "exceed", e.target.checked)} aria-label="Vượt chuẩn" /></td>
+                      <td className="small fw-semibold">{isComplete(r) ? fmt(taskScore(t.weight, r)) : "—"}</td>
+                      <td className="text-center">
+                        <input type="checkbox" className="form-check-input" checked={r.exceed} onChange={(e) => setRatio(t.id, "exceed", e.target.checked)} aria-label="Vượt chuẩn" />
+                        {r.exceed && !r.attachmentId && <div className="small text-danger">Cần minh chứng</div>}
+                      </td>
                       <td className="small">
                         {r.attachmentName ? <span className="d-block text-truncate" style={{ maxWidth: 150 }} title={r.attachmentName}><i className="bi bi-paperclip me-1" />{r.attachmentName}</span> : <span className="text-secondary">Chưa có</span>}
                         <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setUploadFor(t.id)}>Đính kèm</button>

@@ -308,7 +308,11 @@ public static class TaskChangeRules
         {
             if (!resulting.TryGetValue(task.Id, out var weight) || Math.Abs(weight - task.Weight) < 0.0001)
                 continue;
+            // Việc chủ hồ sơ chưa nhập tỷ lệ A-B-C-D: chỉ đổi trọng số, giữ điểm 0 (vẫn là "chưa nhập", không thành 100%).
+            var pending = TaskSelfScores.IsPending(task);
             task.Weight = weight;
+            if (pending)
+                continue;
             task.SelfScore = frame != null
                 ? EvaluationScoring.ScoreTask(weight, task.CriteriaA_Ratio, task.CriteriaB_Ratio, task.CriteriaC_Ratio, task.CriteriaD_Ratio,
                     frame, criteria.Parameters.Rounding.TaskScore).Score
@@ -339,7 +343,7 @@ public static class TaskChangeRules
                 CriteriaB_Ratio = 1.0,
                 CriteriaC_Ratio = 1.0,
                 CriteriaD_Ratio = 1.0,
-                SelfScore = 0 // Chưa tự chấm (như nhiệm vụ đăng ký): nộp phiếu bắt buộc nhập tỷ lệ A-B-C-D cho việc này.
+                SelfScore = 0 // Chưa tự chấm (như nhiệm vụ đăng ký, xem TaskSelfScores.IsPending): nộp phiếu bắt buộc nhập tỷ lệ A-B-C-D.
             };
         }
 

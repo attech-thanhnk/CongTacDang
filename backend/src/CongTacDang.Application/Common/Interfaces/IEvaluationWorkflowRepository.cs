@@ -129,4 +129,10 @@ public interface IEvaluationWorkflowRepository
     /// (khóa = Id nhiệm vụ). Nhiệm vụ không có tệp hoặc tệp đã xóa không có trong kết quả.
     /// </summary>
     Task<Dictionary<Guid, (Guid AttachmentId, string FileName)>> GetCurrentEvidenceAsync(IReadOnlyCollection<EvaluationTask> tasks, CancellationToken ct = default);
+
+    /// <summary>
+    /// Id các nhiệm vụ có ít nhất một tệp minh chứng còn hiệu lực: tệp nhiệm vụ đang trỏ tới (<see cref="EvaluationTask.AttachmentId"/>,
+    /// theo phiên bản hiện hành của nhóm tệp) hoặc tệp đính kèm thuộc nhiệm vụ.
+    /// </summary>
+    Task<HashSet<Guid>> GetTaskIdsWithEvidenceAsync(IReadOnlyCollection<EvaluationTask> tasks, CancellationToken ct = default);
 }

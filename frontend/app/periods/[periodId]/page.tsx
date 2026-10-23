@@ -730,10 +730,13 @@ function SnapshotDialog({ participant, frames, departments, cells, busy, onCance
           </select>
         </div>
         <div className="col-6"><label className="form-label" htmlFor="snap-frame">Khung tỷ trọng A-B-C-D</label>
-          <select id="snap-frame" className="form-select" value={weightFrameCode} onChange={(e) => setWeightFrameCode(e.target.value)}>
+          <select id="snap-frame" className="form-select" value={weightFrameCode} disabled={!!participant.weightFrameLocked} onChange={(e) => setWeightFrameCode(e.target.value)}>
             {!frames.some((f) => f.code === weightFrameCode) && <option value={weightFrameCode}>{weightFrameCode || "— Chưa có —"} (không có trong bộ)</option>}
             {frames.map((f) => <option key={f.code} value={f.code}>{f.code} — {f.name}</option>)}
           </select>
+          {participant.weightFrameLocked && (
+            <div className="form-text">Danh mục đã duyệt — trả hồ sơ về bước tự chấm trước khi đổi khung tỷ trọng.</div>
+          )}
         </div>
         <div className="col-6"><label className="form-label" htmlFor="snap-authority">Cấp quyết định</label>
           <select id="snap-authority" className="form-select" value={authority} onChange={(e) => setAuthority(e.target.value)}>

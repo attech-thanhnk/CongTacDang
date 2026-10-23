@@ -60,10 +60,13 @@ public class EvaluationTaskDto
     public string? Confirmer { get; set; }
     /// <summary>Việc đã loại trừ / chuyển tiếp trong quý: <c>Excluded</c> / <c>CarriedOver</c>; null = còn hiệu lực.</summary>
     public string? ChangeStatus { get; set; }
-    public double CriteriaA_Ratio { get; set; }
-    public double CriteriaB_Ratio { get; set; }
-    public double CriteriaC_Ratio { get; set; }
-    public double CriteriaD_Ratio { get; set; }
+    /// <summary>Tỷ lệ A-B-C-D đã nhập (0..1); null khi chủ hồ sơ chưa nhập tỷ lệ cho nhiệm vụ (phiếu để trống, không điền sẵn 100%).</summary>
+    public double? CriteriaA_Ratio { get; set; }
+    public double? CriteriaB_Ratio { get; set; }
+    public double? CriteriaC_Ratio { get; set; }
+    public double? CriteriaD_Ratio { get; set; }
+    /// <summary>Chủ hồ sơ đã nhập tỷ lệ A-B-C-D cho nhiệm vụ (lưu nháp hoặc nộp).</summary>
+    public bool SelfScoreEntered { get; set; }
     public double SelfScore { get; set; }
     public double? SupervisorScore { get; set; }
     public bool IsExceedStandard { get; set; }
@@ -334,14 +337,17 @@ public class SubmitTasksRequestDto : WorkflowRequestDto
     public List<TaskInputDto> Tasks { get; set; } = new();
 }
 
-/// <summary>Kết quả tự chấm 4 tiêu chí A-B-C-D của một nhiệm vụ (Mẫu 02).</summary>
+/// <summary>
+/// Kết quả tự chấm 4 tiêu chí A-B-C-D của một nhiệm vụ (Mẫu 02), tỷ lệ 0..1. Không có giá trị mặc định: nộp phiếu phải gửi đủ bốn
+/// tỷ lệ; lưu nháp bỏ qua nhiệm vụ còn thiếu tỷ lệ (giữ nội dung đã lưu).
+/// </summary>
 public class TaskScoreInputDto
 {
     public Guid TaskId { get; set; }
-    public double CriteriaA_Ratio { get; set; } = 1.0;
-    public double CriteriaB_Ratio { get; set; } = 1.0;
-    public double CriteriaC_Ratio { get; set; } = 1.0;
-    public double CriteriaD_Ratio { get; set; } = 1.0;
+    public double? CriteriaA_Ratio { get; set; }
+    public double? CriteriaB_Ratio { get; set; }
+    public double? CriteriaC_Ratio { get; set; }
+    public double? CriteriaD_Ratio { get; set; }
     public bool IsExceedStandard { get; set; }
     public Guid? AttachmentId { get; set; }
 }
@@ -625,6 +631,8 @@ public class PeriodParticipantDto
     public string WeightFrameCode { get; set; } = string.Empty;
     /// <summary>Tên khung theo bộ tiêu chí của kỳ; null nếu khung không có trong bộ.</summary>
     public string? WeightFrameName { get; set; }
+    /// <summary>Khung tỷ trọng đã khóa (hồ sơ đã qua bước tự chấm): muốn đổi phải trả hồ sơ về bước tự chấm.</summary>
+    public bool WeightFrameLocked { get; set; }
     public string ApprovalAuthority { get; set; } = string.Empty;
     public string WorkflowProfileCode { get; set; } = string.Empty;
     public string WorkflowProfileName { get; set; } = string.Empty;

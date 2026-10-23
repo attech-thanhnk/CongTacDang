@@ -298,6 +298,8 @@ public static class EvaluationMapping
     public static EvaluationTaskDto ToTaskDto(EvaluationTask t, IReadOnlyDictionary<Guid, (Guid AttachmentId, string FileName)>? evidence)
     {
         (Guid AttachmentId, string FileName)? current = evidence != null && evidence.TryGetValue(t.Id, out var found) ? found : null;
+        // Chưa nhập tỷ lệ A-B-C-D: trả null để phiếu tự chấm để trống, không hiện thành 100%.
+        var entered = !TaskSelfScores.IsPending(t);
         return new EvaluationTaskDto
         {
             Id = t.Id,
@@ -316,10 +318,11 @@ public static class EvaluationMapping
             EvidenceSource = t.EvidenceSource,
             Confirmer = t.Confirmer,
             ChangeStatus = t.ChangeStatus?.ToString(),
-            CriteriaA_Ratio = t.CriteriaA_Ratio,
-            CriteriaB_Ratio = t.CriteriaB_Ratio,
-            CriteriaC_Ratio = t.CriteriaC_Ratio,
-            CriteriaD_Ratio = t.CriteriaD_Ratio,
+            CriteriaA_Ratio = entered ? t.CriteriaA_Ratio : null,
+            CriteriaB_Ratio = entered ? t.CriteriaB_Ratio : null,
+            CriteriaC_Ratio = entered ? t.CriteriaC_Ratio : null,
+            CriteriaD_Ratio = entered ? t.CriteriaD_Ratio : null,
+            SelfScoreEntered = entered,
             SelfScore = t.SelfScore,
             SupervisorScore = t.SupervisorScore,
             IsExceedStandard = t.IsExceedStandard,

@@ -470,7 +470,10 @@ public sealed class EvaluationWorkflowTests
         var snapshot = await w.Appraiser.PutAsJsonAsync($"/api/evaluations/periods/{periodId}/participants/{id}/snapshot", new
         {
             version = participant.GetProperty("version").GetUInt32(),
-            departmentId = w.Dept1, partyCellId = w.Cell1, weightFrameCode = "K1", reason = "Điều chỉnh khung tỷ trọng"
+            // Hồ sơ đã qua bước tự chấm: khung tỷ trọng khóa, sửa cấp quyết định.
+            departmentId = w.Dept1, partyCellId = w.Cell1,
+            approvalAuthority = participant.GetProperty("approvalAuthority").GetString() == "CoSo" ? "CapTren" : "CoSo",
+            reason = "Điều chỉnh cấp quyết định"
         });
         Assert.Equal(HttpStatusCode.OK, snapshot.StatusCode);
         var conflict = await PostAsync(w.Appraiser2C, id, "appraisal", new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 90.0, comment = "x", proposedGrade = "HoanThanhTot" }, stale);

@@ -257,4 +257,24 @@ public sealed class EvaluationWorkflowRepository : IEvaluationWorkflowRepository
 
         return result;
     }
+
+    /// <inheritdoc />
+    public async Task<HashSet<Guid>> GetTaskIdsWithEvidenceAsync(IReadOnlyCollection<EvaluationTask> tasks, CancellationToken ct = default)
+    {
+        var result = (await GetCurrentEvidenceAsync(tasks, ct)).Keys.ToHashSet();
+        var ids = tasks.Select(t => t.Id).Where(id => !result.Contains(id)).ToList();
+        if (ids.Count == 0)
+            return result;
+
+        // Tệp đính kèm thuộc nhiệm vụ (kể cả dữ liệu cũ chưa có OwnerType, gắn qua RelatedId).
+        var owners = await _db.TaskAttachments.AsNoTracking()
+            .Where(a => !a.IsSuperseded
+                && ((a.OwnerType == AttachmentOwnerTypes.EvaluationTask && a.OwnerId.HasValue && ids.Contains(a.OwnerId.Value))
+                    || (a.OwnerType == null && a.RecordId == null && a.RelatedId.HasValue && ids.Contains(a.RelatedId.Value))))
+            .Select(a => a.OwnerType != null ? a.OwnerId!.Value : a.RelatedId!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+        result.UnionWith(owners);
+        return result;
+    }
 }

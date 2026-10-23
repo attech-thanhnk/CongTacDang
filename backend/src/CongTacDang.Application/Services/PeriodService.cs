@@ -873,10 +873,16 @@ public sealed class PeriodService : IPeriodService
             var code = frame?.Code ?? UserAccountService.NormalizeWeightFrameCode(dto.WeightFrameCode)!;
             if (!string.Equals(code, record.WeightFrameCode, StringComparison.Ordinal))
             {
+                // Khung khóa sau bước tự chấm: chỉ đổi khi hồ sơ đang ở bước tự chấm hoặc trước đó.
+                if (!RecordWeightFrames.CanChangeFrame(record))
+                    throw new ConflictException(RecordWeightFrames.LockedMessage);
+
                 // Tỷ lệ đã điều chỉnh khi duyệt danh mục gắn với khung cũ → bỏ, hồ sơ dùng tỷ lệ của khung mới.
                 changes.Add(RecordWeightFrames.IsAdjusted(record) ? "khung tỷ trọng (bỏ tỷ lệ A-B-C-D đã điều chỉnh)" : "khung tỷ trọng");
                 record.WeightFrameCode = code;
                 RecordWeightFrames.Clear(record);
+                if (RescoreTasksForFrame(record, criteria) is > 0 and var rescored)
+                    changes.Add($"tính lại điểm tự chấm {rescored} nhiệm vụ theo khung mới");
             }
         }
         if (!string.IsNullOrWhiteSpace(dto.ApprovalAuthority))
@@ -1192,6 +1198,24 @@ public sealed class PeriodService : IPeriodService
     };
 
     /// <summary>
+    /// Sau khi đổi khung tỷ trọng (Mẫu 09A): tính lại điểm các nhiệm vụ đã nhập tỷ lệ A-B-C-D theo khung hiệu lực mới, cùng điểm
+    /// nhóm nhiệm vụ và tổng điểm tự chấm. Trả số nhiệm vụ đã tính lại (0 nếu chưa có nhiệm vụ nào được nhập).
+    /// </summary>
+    private static int RescoreTasksForFrame(EvaluationRecord record, CriteriaSnapshot? criteria)
+    {
+        if (criteria == null || criteria.UsesAxisScoring || RecordWeightFrames.Effective(record, criteria.Content) is not { } frame)
+            return 0;
+        var rounding = criteria.Content.Parameters.Rounding;
+        var tasks = record.Tasks.Where(t => !t.IsDeleted).ToList();
+        var count = TaskSelfScores.Rescore(tasks, frame, rounding.TaskScore);
+        if (count == 0)
+            return 0;
+        record.TasksScore = EvaluationScoring.TasksScore(tasks.Select(t => t.SelfScore), rounding.TasksTotal);
+        record.TotalSelfScore = EvaluationScoring.TotalScore(record.GeneralCriteriaScore, record.TasksScore, rounding.Total);
+        return count;
+    }
+
+    /// <summary>
     /// Một dòng danh sách người được đánh giá, kèm bước đang chờ và thời hạn của bước đó theo hồ sơ luồng của hồ sơ
     /// (hồ sơ đã công bố không còn bước chờ nên không tính hạn).
     /// </summary>
@@ -1214,6 +1238,7 @@ public sealed class PeriodService : IPeriodService
             PartyCellName = r.PartyCell?.Name,
             WeightFrameCode = r.WeightFrameCode,
             WeightFrameName = criteria?.Content.FindFrame(r.WeightFrameCode)?.Name,
+            WeightFrameLocked = !RecordWeightFrames.CanChangeFrame(r),
             ApprovalAuthority = r.ApprovalAuthority.ToString(),
             WorkflowProfileCode = profile.Code,
             WorkflowProfileName = profile.Name,

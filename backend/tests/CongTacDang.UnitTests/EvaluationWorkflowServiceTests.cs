@@ -86,6 +86,105 @@ public sealed class EvaluationWorkflowServiceTests
         Assert.Equal(1, h.Uow.Saves);
     }
 
+    [Fact]
+    public void PendingTask_NotEntered_DistinctFromEntered100Percent()
+    {
+        var h = new Harness(RecordStatus.AwaitingSelfScore);
+
+        // Việc 2, 3: vừa tạo (tỷ lệ khởi tạo, điểm 0) → chưa nhập, DTO để trống; Việc 1 đã lưu 100% → điểm = trọng số.
+        Assert.False(TaskSelfScores.IsPending(h.Tasks[0]));
+        Assert.True(TaskSelfScores.IsPending(h.Tasks[1]));
+        var pending = EvaluationMapping.ToTaskDto(h.Tasks[1], null);
+        Assert.Null(pending.CriteriaA_Ratio);
+        Assert.False(pending.SelfScoreEntered);
+        var entered = EvaluationMapping.ToTaskDto(h.Tasks[0], null);
+        Assert.Equal(1.0, entered.CriteriaA_Ratio);
+        Assert.True(entered.SelfScoreEntered);
+
+        // Nhập 0% vẫn là "đã nhập".
+        h.Tasks[2].CriteriaA_Ratio = 0;
+        Assert.False(TaskSelfScores.IsPending(h.Tasks[2]));
+    }
+
+    [Fact]
+    public async Task SubmitSelfScore_TaskWithEmptyRatio_Rejected_NamingTask()
+    {
+        var h = new Harness(RecordStatus.AwaitingSelfScore);
+        var request = h.SelfScoreRequest(h.Tasks[0], h.Tasks[1], h.Tasks[2]);
+        request.TaskScores[1].CriteriaC_Ratio = null;
+
+        var ex = await Assert.ThrowsAsync<ValidationException>(() => h.Service.SubmitSelfScoreAsync(h.Record.Id, request));
+
+        Assert.Contains("\"Việc 2\"", ex.Message);
+        Assert.Equal(0, h.Uow.Saves);
+    }
+
+    [Fact]
+    public async Task SaveSelfScoreDraft_RoundTripsEnteredValues_SkipsIncompleteTask()
+    {
+        var h = new Harness(RecordStatus.AwaitingSelfScore);
+        var request = h.SelfScoreRequest(h.Tasks[1], h.Tasks[2]);
+        request.GeneralScores = new Dictionary<string, GeneralItemScore>();
+        request.TaskScores[0].CriteriaB_Ratio = 0.5;
+        request.TaskScores[1].CriteriaD_Ratio = null; // Việc 3 chưa nhập đủ
+
+        await h.Service.SaveSelfScoreDraftAsync(h.Record.Id, request);
+
+        var saved = EvaluationMapping.ToTaskDto(h.Tasks[1], null);
+        Assert.Equal(0.5, saved.CriteriaB_Ratio);
+        Assert.True(saved.SelfScoreEntered);
+        Assert.True(TaskSelfScores.IsPending(h.Tasks[2]));
+        Assert.Null(EvaluationMapping.ToTaskDto(h.Tasks[2], null).CriteriaA_Ratio);
+    }
+
+    [Fact]
+    public async Task SubmitSelfScore_ExceedWithoutEvidence_Rejected_WithEvidence_Accepted()
+    {
+        var h = new Harness(RecordStatus.AwaitingSelfScore);
+        var request = h.SelfScoreRequest(h.Tasks[0], h.Tasks[1], h.Tasks[2]);
+        request.TaskScores[1].IsExceedStandard = true;
+
+        var ex = await Assert.ThrowsAsync<ValidationException>(() => h.Service.SubmitSelfScoreAsync(h.Record.Id, request));
+        Assert.Contains("\"Việc 2\"", ex.Message);
+        Assert.Contains("minh chứng", ex.Message);
+        Assert.Equal(0, h.Uow.Saves);
+
+        var ok = new Harness(RecordStatus.AwaitingSelfScore);
+        ok.Tasks[1].AttachmentId = Guid.NewGuid();
+        var okRequest = ok.SelfScoreRequest(ok.Tasks[0], ok.Tasks[1], ok.Tasks[2]);
+        okRequest.TaskScores[1].IsExceedStandard = true;
+        await ok.Service.SubmitSelfScoreAsync(ok.Record.Id, okRequest);
+        Assert.Equal(RecordStatus.AwaitingCellConfirm, ok.Record.Status);
+        Assert.True(ok.Tasks[1].IsExceedStandard);
+    }
+
+    [Theory]
+    [InlineData(RecordStatus.AwaitingRegistration, true)]
+    [InlineData(RecordStatus.AwaitingTaskApproval, true)]
+    [InlineData(RecordStatus.AwaitingSelfScore, true)]
+    [InlineData(RecordStatus.AwaitingCellConfirm, false)]
+    [InlineData(RecordStatus.AwaitingAppraisal, false)]
+    [InlineData(RecordStatus.Published, false)]
+    public void WeightFrame_LockedAfterSelfScoreStep(RecordStatus status, bool canChange)
+    {
+        Assert.Equal(canChange, RecordWeightFrames.CanChangeFrame(new EvaluationRecord { Status = status }));
+    }
+
+    [Fact]
+    public void Rescore_KeepsPendingTasks_RecomputesEntered()
+    {
+        var h = new Harness(RecordStatus.AwaitingSelfScore);
+        h.Tasks[0].CriteriaD_Ratio = 0; // đã nhập: A,B,C 100%, D 0%
+        var frame = new WeightFrame { Code = "X", Name = "X", A = 0.4, B = 0.3, C = 0.2, D = 0.1 };
+
+        var count = TaskSelfScores.Rescore(h.Tasks, frame, h.Content.Parameters.Rounding.TaskScore);
+
+        Assert.Equal(1, count);
+        Assert.Equal(27.0, h.Tasks[0].SelfScore, 6);
+        Assert.True(TaskSelfScores.IsPending(h.Tasks[1]));
+        Assert.Equal(0, h.Tasks[1].SelfScore);
+    }
+
     #endregion
 
     #region 2. "Chưa xếp loại" ở bước có xếp loại
@@ -400,7 +499,10 @@ public sealed class EvaluationWorkflowServiceTests
         {
             Version = Record.Version,
             GeneralScores = Content.AllItems.ToDictionary(x => x.Item.Code, x => new GeneralItemScore { Score = x.Item.MaxScore }),
-            TaskScores = scored.Select(t => new TaskScoreInputDto { TaskId = t.Id }).ToList(),
+            TaskScores = scored.Select(t => new TaskScoreInputDto
+            {
+                TaskId = t.Id, CriteriaA_Ratio = 1, CriteriaB_Ratio = 1, CriteriaC_Ratio = 1, CriteriaD_Ratio = 1, AttachmentId = t.AttachmentId
+            }).ToList(),
             SelfProposedGrade = "HoanThanhTot"
         };
 
@@ -472,6 +574,8 @@ public sealed class EvaluationWorkflowServiceTests
         public Task<string?> GetMemberNameAsync(Guid memberId, CancellationToken ct = default) => Task.FromResult<string?>("Người thao tác");
         public Task<Dictionary<Guid, (Guid AttachmentId, string FileName)>> GetCurrentEvidenceAsync(IReadOnlyCollection<EvaluationTask> tasks, CancellationToken ct = default) =>
             Task.FromResult(new Dictionary<Guid, (Guid AttachmentId, string FileName)>());
+        public Task<HashSet<Guid>> GetTaskIdsWithEvidenceAsync(IReadOnlyCollection<EvaluationTask> tasks, CancellationToken ct = default) =>
+            Task.FromResult(tasks.Where(t => t.AttachmentId.HasValue).Select(t => t.Id).ToHashSet());
         public Task<EvaluationMeeting?> FindMeetingAsync(Guid id, CancellationToken ct = default) => Task.FromResult<EvaluationMeeting?>(null);
         public void AddExternalResult(EvaluationExternalResult result) { }
         public void AddVoteSummary(EvaluationMeetingVoteSummary summary) { }

@@ -118,6 +118,8 @@ export interface PeriodParticipantDto {
   weightFrameCode: string;
   /** Tên khung theo bộ tiêu chí của kỳ; null nếu khung không có trong bộ. */
   weightFrameName?: string | null;
+  /** Khung tỷ trọng đã khóa (hồ sơ đã qua bước tự chấm). */
+  weightFrameLocked?: boolean;
   approvalAuthority: string;
   workflowProfileCode: string;
   workflowProfileName: string;
@@ -169,10 +171,13 @@ export interface EvaluationTaskDto {
   confirmer?: string | null;
   /** Việc đã loại trừ / chuyển tiếp trong quý (không chấm); null = còn hiệu lực. */
   changeStatus?: "Excluded" | "CarriedOver" | null;
-  criteriaA_Ratio: number;
-  criteriaB_Ratio: number;
-  criteriaC_Ratio: number;
-  criteriaD_Ratio: number;
+  /** Tỷ lệ A-B-C-D đã nhập (0..1); null khi chủ hồ sơ chưa nhập. */
+  criteriaA_Ratio: number | null;
+  criteriaB_Ratio: number | null;
+  criteriaC_Ratio: number | null;
+  criteriaD_Ratio: number | null;
+  /** Đã nhập tỷ lệ A-B-C-D (lưu nháp hoặc nộp). */
+  selfScoreEntered?: boolean;
   selfScore: number;
   supervisorScore?: number;
   isExceedStandard: boolean;

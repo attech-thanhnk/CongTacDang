@@ -55,6 +55,8 @@ public sealed class Mau02Data
             {
                 // Một nguồn số liệu (T-38): điểm đạt = SelfScore đã lưu (đã tính theo khung tỷ trọng của hồ sơ
                 // khi tự chấm). Kết quả SP (%) chỉ là cách viết khác của cùng giá trị: SelfScore / Trọng số.
+                // Nhiệm vụ chưa nhập tỷ lệ A-B-C-D: để trống, không in thành 100%.
+                var pending = TaskSelfScores.IsPending(t);
                 double? resultPct = t.Weight > 0 ? Math.Round(t.SelfScore / t.Weight * 100, 1) : null;
 
                 string? evidence = null;
@@ -66,10 +68,10 @@ public sealed class Mau02Data
                     Order = (index + 1).ToString(),
                     Name = t.TaskName,
                     Weight = FormText.Number(t.Weight, 1),
-                    CriteriaA = FormText.Percent(t.CriteriaA_Ratio),
-                    CriteriaB = FormText.Percent(t.CriteriaB_Ratio),
-                    CriteriaC = FormText.Percent(t.CriteriaC_Ratio),
-                    CriteriaD = FormText.Percent(t.CriteriaD_Ratio),
+                    CriteriaA = pending ? null : FormText.Percent(t.CriteriaA_Ratio),
+                    CriteriaB = pending ? null : FormText.Percent(t.CriteriaB_Ratio),
+                    CriteriaC = pending ? null : FormText.Percent(t.CriteriaC_Ratio),
+                    CriteriaD = pending ? null : FormText.Percent(t.CriteriaD_Ratio),
                     ResultPercent = resultPct.HasValue ? FormText.Number(resultPct.Value, 1) + "%" : "-",
                     Score = FormText.Number(t.SelfScore, scoreDecimals),
                     IsExceedStandard = t.IsExceedStandard,

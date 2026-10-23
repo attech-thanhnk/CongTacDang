@@ -109,9 +109,15 @@ public sealed class TaskChangeIntegrationTests
         Assert.Equal("DotXuat", tasks[3].GetProperty("kind").GetString());
         Assert.Equal(70.0, tasks.EnumerateArray().Sum(t => t.GetProperty("weight").GetDouble()), 6);
 
-        // 4. Tự chấm: gửi cả điểm của việc đã loại trừ → bỏ qua, điểm 0; tổng điểm nhiệm vụ chỉ tính việc còn hiệu lực.
+        // 4. Tự chấm: gửi cả điểm (và đánh dấu vượt chuẩn) của việc đã loại trừ → bỏ qua, điểm 0; tổng điểm nhiệm vụ chỉ tính việc
+        // còn hiệu lực. Việc đột xuất chưa tự chấm: phiếu để trống.
+        Assert.Equal(JsonValueKind.Null, tasks[3].GetProperty("criteriaA_Ratio").ValueKind);
         var taskScores = tasks.EnumerateArray()
-            .Select(t => new { taskId = t.GetProperty("id").GetGuid(), criteriaA_Ratio = 1.0, criteriaB_Ratio = 1.0, criteriaC_Ratio = 1.0, criteriaD_Ratio = 1.0, isExceedStandard = true })
+            .Select(t => new
+            {
+                taskId = t.GetProperty("id").GetGuid(), criteriaA_Ratio = 1.0, criteriaB_Ratio = 1.0, criteriaC_Ratio = 1.0, criteriaD_Ratio = 1.0,
+                isExceedStandard = t.GetProperty("changeStatus").ValueKind == JsonValueKind.String
+            })
             .ToArray();
         var scored = await Data(await Post(w.OwnerC, recordId, "self-score/submit",
             new { generalScores = CriteriaTestData.General(), taskScores }, await VersionAsync(w, recordId)));
