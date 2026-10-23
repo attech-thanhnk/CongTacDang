@@ -18,10 +18,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-/**
- * Mở khối có `anchorId` (nếu đang thu gọn), cuộn mượt tới khối và đặt focus vào tiêu đề.
- * Trả về false khi không có khối này trên trang.
- */
+/** Mở khối `anchorId`, cuộn tới và focus tiêu đề; false khi trang không có khối này. */
 export function revealSection(anchorId: string): boolean {
   const element = document.getElementById(anchorId);
   if (!element) return false;

@@ -21,8 +21,7 @@ const nextConfig = {
   // Tách cache dev khỏi production build để tránh mất chunk khi build lúc dev đang chạy.
   distDir: isDev ? '.next-dev' : '.next',
   output: 'standalone',
-  // rewrites được tính LÚC BUILD và ghi cố định vào bản build: BACKEND_INTERNAL_URL phải có khi chạy
-  // `npm run build` (Docker: build arg trong Dockerfile.frontend), đặt lúc chạy `next start` không có tác dụng.
+  // rewrites được tính lúc build: BACKEND_INTERNAL_URL phải có khi `npm run build`, đặt lúc `next start` không có tác dụng.
   async rewrites() {
     const backendUrl = process.env.BACKEND_INTERNAL_URL || 'http://localhost:5000';
     return [

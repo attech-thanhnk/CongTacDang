@@ -37,10 +37,7 @@ interface Props {
 
 const EMPTY_VOTES: VoteTallyDto = { votesExcellent: 0, votesGood: 0, votesSatisfactory: 0, votesUnsatisfactory: 0, votesNotRated: 0, invalidVotes: 0, notes: "" };
 
-/**
- * Khu vực thao tác của hồ sơ: chỉ hiển thị biểu mẫu/nút cho các hành động mà máy chủ trả về trong `actions`
- * (frontend không tự suy luật quyền hay thứ tự bước).
- */
+/** Chỉ hiện thao tác máy chủ trả trong `actions`, không tự suy luật quyền hay thứ tự bước. */
 export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }: Props) {
   const { criteria } = useCriteria(record.periodId);
   const [appraisal, setAppraisal] = useState<number | null>(null);
@@ -304,13 +301,9 @@ function GradeCommentForm({ record, busy, defaultGrade, submitText, extra, onSub
   );
 }
 
-/**
- * Thẩm định: chênh lệch |tự chấm − thẩm định| từ ngưỡng của bộ tiêu chí (hoặc làm đổi mức, nếu bộ bật) → bắt buộc nội dung
- * giải trình/căn cứ (máy chủ kiểm tra lại). Điểm tự chấm và chênh lệch hiện ở tiêu đề khu thao tác (`onScoreChange`).
- */
+/** Chênh lệch với tự chấm từ ngưỡng của bộ tiêu chí (hoặc làm đổi mức) → bắt buộc giải trình; máy chủ kiểm tra lại. */
 function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit }: { record: EvaluationRecordDto; criteria: CriteriaSnapshot | null; busy: boolean; extra?: React.ReactNode; onScoreChange?: (score: number | null) => void; onSubmit: (p: Record<string, unknown>) => void }) {
-  // Bộ chấm theo danh mục nhiệm vụ (09A): xếp Mức 1/2/3 cho từng nhiệm vụ; bộ chấm theo trục (09B) không có phần này.
-  // Việc đã loại trừ / chuyển tiếp trong quý không chấm, không xếp mức.
+  // Chỉ bộ 09A xếp Mức 1/2/3 từng nhiệm vụ; việc đã loại trừ / chuyển tiếp không chấm.
   const scoredTasks = record.tasks.filter((t) => !t.changeStatus);
   const usesTasks = record.selfScoreForm !== "09B" && scoredTasks.length > 0;
   const [general, setGeneral] = useState<string>(String(record.appraisalGeneralScore ?? record.generalCriteriaScore ?? ""));
@@ -557,10 +550,7 @@ function defaultAuthority(step: WorkflowStepCode, org: PublicOrganizationInfo): 
   }
 }
 
-/**
- * Ghi nhận kết quả của bước do cấp trên / cơ quan ngoài hệ thống thực hiện: cơ quan, số/ngày văn bản, nhận xét,
- * mức đề xuất/quyết định (bước có mức), điểm (tùy chọn), tệp đính kèm (tùy chọn).
- */
+/** Ghi nhận kết quả bước do cấp trên / cơ quan ngoài hệ thống thực hiện. */
 function ExternalResultForm({ record, step, busy, extra, onSubmit }: { record: EvaluationRecordDto; step: WorkflowStepCode; busy: boolean; extra?: React.ReactNode; onSubmit: (p: Record<string, unknown>) => void }) {
   const graded = GRADED_STEPS.includes(step);
   const withScore = step === "B3B_APPRAISAL" || step === "B4_DECISION";
@@ -759,7 +749,7 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
 
 export default RecordActionPanel;
 
-/** Cột 13 Mẫu 14 — "Đề xuất nội dung liên quan về công tác cán bộ (nếu có)" (tùy chọn, ghi ở bước quyết định). */
+/** Cột 13 Mẫu 14 (tùy chọn, ghi ở bước quyết định). */
 function CadreProposalInput({ id, value, onChange }: { id: string; value: string; onChange: (value: string) => void }) {
   return (
     <div className="col-12">

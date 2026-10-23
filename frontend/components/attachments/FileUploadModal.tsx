@@ -40,7 +40,6 @@ export function FileUploadModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Existing files in repository
   const [existingFiles, setExistingFiles] = useState<AttachmentItem[]>([]);
   const [loadingExisting, setLoadingExisting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -55,7 +54,6 @@ export function FileUploadModal({
       setErrorMsg(null);
       setActiveTab("upload");
 
-      // Load existing files
       setLoadingExisting(true);
       attachmentService.getAttachments()
         .then((list) => setExistingFiles(list))
@@ -144,7 +142,6 @@ export function FileUploadModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-150 font-sans">
       <div className="bg-white rounded-lg shadow-2xl border border-slate-300 w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 bg-slate-900 text-white">
           <div>
             <h3 className="font-bold text-sm">Đính kèm tài liệu</h3>
@@ -163,7 +160,6 @@ export function FileUploadModal({
           </button>
         </div>
 
-        {/* Tab switcher */}
         <div className="flex border-b border-slate-200 bg-slate-50 text-xs font-semibold">
           <button
             type="button"
@@ -189,7 +185,6 @@ export function FileUploadModal({
           </button>
         </div>
 
-        {/* Modal Body */}
         <div className="p-5 flex-1 overflow-y-auto">
           {errorMsg && (
             <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded text-xs text-rose-900 font-medium">
@@ -199,7 +194,6 @@ export function FileUploadModal({
 
           {activeTab === "upload" ? (
             <form onSubmit={handleUpload} className="space-y-4">
-              {/* Drag and drop zone */}
               <div
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -246,7 +240,6 @@ export function FileUploadModal({
                 )}
               </div>
 
-              {/* Form fields */}
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Phân loại minh chứng:</label>
@@ -275,7 +268,6 @@ export function FileUploadModal({
                 </div>
               </div>
 
-              {/* Actions */}
               <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">
                 <button
                   type="button"

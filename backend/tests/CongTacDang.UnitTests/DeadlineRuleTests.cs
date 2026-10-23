@@ -3,7 +3,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>Thời hạn bước tính tự động theo quy tắc quý (kế hoạch quý IV/2026 của Phòng TCCB-LĐ), sửa tay không bị ghi đè.</summary>
+/// <summary>Thời hạn bước tính tự động theo quy tắc quý; sửa tay không bị ghi đè.</summary>
 public class DeadlineRuleTests
 {
     private static DeadlineRule Wd(int n) => new() { Kind = DeadlineRuleKind.WorkingDayOfQuarter, Value = n };
@@ -13,14 +13,7 @@ public class DeadlineRuleTests
     [Fact]
     public void WorkingDaysBeforeQuarter_CountsBackwardsCorrectly()
     {
-        // Quý 4/2026 bắt đầu 01/10/2026 (thứ Năm).
-        // 1 ngày làm việc trước = 30/09/2026 (thứ Tư, ngày làm việc cuối cùng của quý trước).
-        // 2 ngày trước = 29/09 (thứ Ba, ngày cuối quý trước -1).
-        // 3 ngày trước = 28/09 (thứ Hai, ngày cuối quý trước -2).
-        // 27/09 (Chủ nhật), 26/09 (thứ Bảy) bỏ qua.
-        // 4 ngày trước = 25/09 (thứ Sáu, ngày cuối quý trước -3).
-        // 5 ngày trước = 24/09 (thứ Năm, ngày cuối quý trước -4).
-        // 6 ngày trước = 23/09 (thứ Tư, ngày cuối quý trước -5) - đúng kế hoạch KH DGCB_quy 4_2026_10_05_3rd.docx!
+        // Quý 4/2026 bắt đầu 01/10 (thứ Năm); đếm lùi ngày làm việc, bỏ qua 26–27/09 (cuối tuần).
         Assert.Equal(new DateOnly(2026, 9, 30), DeadlineCalculator.Compute(PrevWd(1), 2026, 4, null));
         Assert.Equal(new DateOnly(2026, 9, 29), DeadlineCalculator.Compute(PrevWd(2), 2026, 4, null));
         Assert.Equal(new DateOnly(2026, 9, 28), DeadlineCalculator.Compute(PrevWd(3), 2026, 4, null));

@@ -9,10 +9,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Mẫu 11 đủ cột như bảng tính Công ty dùng: cột (5)–(7) là mức đề xuất đã ghi nhận ở bước tập thể, thẩm định, cấp trực tiếp;
-/// danh sách chia mục I (thẩm quyền BTV Đảng ủy cấp trên) / II (đảng ủy cơ sở), mục rỗng không in. Mẫu 13 chia mục cùng quy tắc.
-/// </summary>
+/// <summary>Mẫu 11: cột (5)–(7) là mức đề xuất ở bước tập thể, thẩm định, cấp trực tiếp; chia mục I/II, mục rỗng không in.</summary>
 public class Mau11FormTests
 {
     private static readonly DateTime At = new(2026, 9, 20, 2, 0, 0, DateTimeKind.Utc);

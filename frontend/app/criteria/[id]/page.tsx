@@ -649,10 +649,7 @@ function RoundingModeSelect({ value, onChange }: { value: ScoreRoundingMode; onC
   );
 }
 
-/**
- * Khóa ổn định cho các dòng sửa trực tiếp (nhóm, tiêu chí): nội dung bộ tiêu chí không có id riêng,
- * dùng chỉ số mảng làm khóa sẽ lẫn ô nhập khi xóa/thêm dòng. Khi sửa một dòng, khóa được chuyển sang đối tượng mới.
- */
+/** Khóa ổn định cho dòng sửa trực tiếp: nội dung không có id, dùng chỉ số mảng sẽ lẫn ô nhập khi thêm/xóa dòng. */
 function useRowKeys() {
   const keys = useRef(new WeakMap<object, string>());
   const next = useRef(0);

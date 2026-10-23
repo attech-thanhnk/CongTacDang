@@ -8,10 +8,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// An toàn tài khoản: quản trị cấp đơn vị không quản lý được tài khoản đặc quyền; không tự đổi thông tin quyết định việc
-/// đánh giá của chính mình; đăng nhập khi đang khóa tạm thời không lộ tên đăng nhập.
-/// </summary>
+/// <summary>An toàn tài khoản: tài khoản đặc quyền, tự sửa thông tin của mình, đăng nhập khi đang khóa.</summary>
 [Collection(AccountCollection.Name)]
 public sealed class AccountSecurityTests
 {

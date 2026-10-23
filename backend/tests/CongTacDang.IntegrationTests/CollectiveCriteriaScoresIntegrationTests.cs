@@ -11,10 +11,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Hồ sơ tập thể Mẫu 06/07 chấm theo khung tiêu chí tập thể của bộ tiêu chí của kỳ: điểm từng tiêu chí, máy chủ tự cộng điểm
-/// nhóm; bộ không có khung thì nhập thẳng hai điểm nhóm; danh mục biểu mẫu theo kỳ trả khung.
-/// </summary>
+/// <summary>Hồ sơ tập thể Mẫu 06/07 chấm theo khung tiêu chí tập thể của bộ: máy chủ tự cộng điểm nhóm.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class CollectiveCriteriaScoresIntegrationTests
 {
@@ -90,7 +87,7 @@ public sealed class CollectiveCriteriaScoresIntegrationTests
         Assert.Equal(70, m08.GetProperty("totalScore").GetDouble());
         Assert.Empty(m08.GetProperty("criteriaScores").EnumerateObject());
 
-        // (c) Kỳ không có khung → nhập thẳng hai điểm như cũ; điểm từng tiêu chí gửi lên bị bỏ qua.
+        // (c) Kỳ không có khung → nhập thẳng hai điểm nhóm; điểm từng tiêu chí gửi lên bị bỏ qua.
         var plain = await DataAsync(await s.Client.PostAsJsonAsync("/api/evaluations/collective-records",
             Body(s, s.PlainPeriod, "M07", scores, general: 27, task: 63)));
         Assert.Equal(27, plain.GetProperty("generalCriteriaScore").GetDouble());

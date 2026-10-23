@@ -61,8 +61,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
   const [effectiveLoading, setEffectiveLoading] = useState(false);
   const [effectiveError, setEffectiveError] = useState<string | null>(null);
 
-  // Quyền quản lý tài khoản xét theo phạm vi đơn vị / tổ chức Đảng của chính tài khoản này. Phạm vi gán bao trùm cả
-  // cây con nên máy chủ tính sẵn (`canManage`); chỉ dự phòng tự xét khi máy chủ chưa trả trường này.
+  // Phạm vi bao trùm cây con nên máy chủ tính sẵn `canManage`; chỉ tự xét khi máy chủ chưa trả trường này.
   const canManage = useMemo(() => {
     if (!account) return false;
     if (typeof account.canManage === "boolean") return account.canManage;
@@ -108,7 +107,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     }
   }, [userId]);
 
-  // Bản gán của người này cần xem lại (không còn gắn với nơi giao / giao tạm sắp hết hạn) — hiện ngay sau khi đổi chức vụ.
+  // Bản gán cần xem lại (mất nơi giao / giao tạm sắp hết hạn); nạp lại sau khi đổi chức vụ.
   const loadReview = useCallback(async () => {
     if (!canAssign) return;
     try {

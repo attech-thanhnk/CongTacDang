@@ -36,7 +36,7 @@ export interface OrgTreeTabProps {
   unitTypes: OrgUnitType[];
 }
 
-/** Cây đơn vị một bên (đơn vị chính quyền / tổ chức Đảng): xem, thêm gốc/con, sửa (kể cả đổi cha), ngừng hoạt động, xóa. */
+/** Cây đơn vị chính quyền hoặc tổ chức Đảng. */
 export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps) {
   const { toast, confirm } = useToast();
   const side: OrgSide = kind === "branches" ? "Party" : "Administrative";

@@ -16,10 +16,7 @@ using WordTableCell = DocumentFormat.OpenXml.Wordprocessing.TableCell;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Đối chiếu Mẫu 14, 15A, 15B, 16 phần mềm xuất ra với kết quả thật Quý III/2026 của Công ty: cùng cơ cấu cán bộ (chức vụ,
-/// mã chức danh, diện) và cùng mức xếp loại (<see cref="Quarter3Structure"/>, tên giả) thì từng con số phải khớp bảng đã nộp.
-/// </summary>
+/// <summary>Đối chiếu Mẫu 14, 15A, 15B, 16 với kết quả thật Quý III/2026 (<see cref="Quarter3Structure"/>, tên giả): từng con số phải khớp.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class Quarter3ReportConformanceTests
 {

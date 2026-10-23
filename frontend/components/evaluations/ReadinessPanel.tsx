@@ -20,10 +20,7 @@ interface Props {
   onCheck: () => void;
 }
 
-/**
- * Bảng kiểm tra kẹt luồng: hồ sơ nào sẽ kẹt ở bước nào vì không có tài khoản đang hoạt động (ngoài chủ hồ sơ) có quyền
- * thực hiện bước trong phạm vi của hồ sơ. Kết quả do máy chủ tính (resolver + guard).
- */
+/** Bước kẹt vì không có tài khoản hoạt động (ngoài chủ hồ sơ) có quyền thực hiện; máy chủ tính. */
 export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
   return (
     <section className="card border-0 shadow-sm">

@@ -14,7 +14,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>Task 19 (T-84, T-85): template Mẫu 07, 08, 11, 12, 13, 16 dựng từ biểu mẫu gốc — khớp tag, sinh tài liệu hợp lệ, đúng số liệu.</summary>
+/// <summary>Template Mẫu 07, 08, 11, 12, 13, 16: khớp tag, sinh tài liệu hợp lệ, đúng số liệu.</summary>
 public class CollectiveFormsTemplateTests
 {
     private static readonly EvaluationPeriod Period = new() { Year = 2026, Quarter = EvaluationQuarter.Quy3, Name = "Quý III/2026" };

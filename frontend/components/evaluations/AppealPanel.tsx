@@ -22,11 +22,7 @@ interface Props {
   onRecordChanged?: () => void;
 }
 
-/**
- * Khối "Kiến nghị" trên trang hồ sơ (task 20 — T-87, HD03 PL II mục III.2): chủ hồ sơ gửi kiến nghị sau công bố (kèm tệp),
- * người có quyền xử lý nhận xem xét và trả lời có căn cứ; kiến nghị được chấp nhận → gợi ý mở lại hồ sơ bằng thao tác "Mở lại".
- * Quyền và luật (xung đột lợi ích, không trùng khi đang xử lý) do máy chủ quyết định.
- */
+/** Kiến nghị sau công bố; quyền và luật (xung đột lợi ích, không trùng khi đang xử lý) do máy chủ quyết định. */
 export function AppealPanel({ record, onRecordChanged }: Props) {
   const { toast } = useToast();
   const [data, setData] = useState<RecordAppealsDto | null>(null);

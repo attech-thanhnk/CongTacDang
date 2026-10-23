@@ -11,10 +11,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Tích hợp đợt 8: Mẫu 13 dựng lại đúng biểu mẫu gốc (tách mục I/II theo thẩm quyền, cột "Chưa đánh giá, xếp loại", Tổ kiểm
-/// phiếu, số phiếu), tham số cửa sổ cảnh báo kế hoạch Mẫu 17 của bộ tiêu chí.
-/// </summary>
+/// <summary>Mẫu 13 theo biểu mẫu gốc (mục I/II theo thẩm quyền, Tổ kiểm phiếu, số phiếu) và cửa sổ cảnh báo kế hoạch Mẫu 17.</summary>
 public class Wave8FormsTests
 {
     /// <summary>Dữ liệu Mẫu 13 mẫu: hồ sơ đầu thuộc thẩm quyền BTVĐUTCT, hồ sơ sau thuộc Đảng ủy cơ sở.</summary>
@@ -101,7 +98,7 @@ public class Wave8FormsTests
         Assert.Contains("Thành viên", text);
         Assert.Contains("Đảng ủy viên: Tổ trưởng", text);
         Assert.Contains("Hoàng Văn Ghi", text);
-        // Tiêu đề mục II: cấp ủy cơ sở thực tế (không còn "ĐẢNG ỦY/CHI ỦY CƠ SỞ…"); chữ ký chủ trì theo chức vụ đã lưu.
+        // Tiêu đề mục II: cấp ủy cơ sở thực tế; chữ ký chủ trì theo chức vụ đã lưu.
         Assert.Contains("PHÊ DUYỆT MỨC XẾP LOẠI CỦA ĐẢNG ỦY CÔNG TY A", text);
         Assert.DoesNotContain("ĐẢNG ỦY/CHI ỦY CƠ SỞ", text);
         Assert.Contains("CHỦ TRÌ HỘI NGHỊBÍ THƯ ĐẢNG ỦY(ký, ghi rõ họ tên, đóng dấu)", text);
@@ -183,7 +180,7 @@ public class Wave8FormsTests
     [Fact]
     public void DefaultCriteriaSets_RequiredForms_MatchHd03Q3Column()
     {
-        // HD03 mục 7–8: Q3/2026 dùng 09B, 09C, 9D (Mẫu 10 giữ theo quyết định task 18 — chờ nghiệp vụ xác nhận); từ 2027 đủ mẫu.
+        // Q3/2026 dùng 09B, 09C, 9D (Mẫu 10 chờ nghiệp vụ xác nhận); từ 2027 đủ mẫu.
         Assert.Equal(new[] { "09B", "09C", "9D", "10" }, CriteriaSetDefaults.Build09B().RequiredForms);
         Assert.Equal(new[] { "01", "02", "09A", "09C", "9D", "10" }, CriteriaSetDefaults.Build09A().RequiredForms);
     }

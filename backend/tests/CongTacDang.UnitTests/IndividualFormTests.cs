@@ -10,10 +10,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Task 18 (T-82, T-83): cấu hình biểu mẫu cá nhân trong bộ tiêu chí, kiểm tra nội dung Mẫu 09C/9D/phần tự luận 09B, template
-/// Mẫu 09A/09B/09C/9D dựng từ file biểu mẫu gốc (tag khớp lớp dữ liệu, xuất ra hợp lệ, có nội dung đã nhập).
-/// </summary>
+/// <summary>Biểu mẫu cá nhân trong bộ tiêu chí: kiểm tra nội dung 09C/9D/09B và template 09A/09B/09C/9D.</summary>
 public class IndividualFormTests
 {
     #region Bộ tiêu chí: danh sách biểu mẫu, mục 09C
@@ -692,7 +689,7 @@ public class IndividualFormTests
     [Fact]
     public void RealRecord_Q3_2026_ReproducesStandardDocuments()
     {
-        // Số liệu lấy từ Mẫu 9B/9C/9D thật trong docs/tai-lieu-chuan (quý III/2026): chung 30/30, trục 10+7+7+12+7+10 = 53, tổng 83.
+        // Số liệu Mẫu 9B/9C/9D thật quý III/2026: chung 30/30, trục 10+7+7+12+7+10 = 53, tổng 83.
         var criteria = CriteriaSetDefaults.Build09B();
         var general = criteria.AllItems.ToDictionary(x => x.Item.Code, x => new GeneralItemScore { Score = x.Item.MaxScore });
         var axes = new Dictionary<string, double> { ["T1"] = 10, ["T2"] = 7, ["T3"] = 7, ["T4"] = 12, ["T5"] = 7, ["T6"] = 10 };

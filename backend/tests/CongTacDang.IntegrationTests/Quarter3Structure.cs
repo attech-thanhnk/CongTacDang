@@ -2,17 +2,8 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Cơ cấu theo kết quả Quý III/2026, tên giả: 54 cán bộ (6 thuộc diện Ban Thường vụ Đảng ủy cấp trên, 48 thuộc diện Đảng ủy
-/// cơ sở) với chức vụ dạng chung chung, mã chức danh thống kê, điểm tự chấm và mức xếp loại đúng như bảng kết quả Công ty đã
-/// nộp. Dùng để đối chiếu Mẫu 14, 15A, 15B, 16 phần mềm xuất ra với số liệu thật.
-/// <para>
-/// Cách bảng kết quả đếm (công thức COUNTIF/COUNTIFS trên danh sách): mỗi người một mã hiệu (mã chức danh có thứ tự đứng trước
-/// khi kiêm nhiệm); Mẫu 15A đếm mã M1–M16 theo mức của cấp có thẩm quyền trực tiếp sử dụng cán bộ đề xuất (cấp trên chưa quyết
-/// định); Mẫu 15B đếm mã M17–M26 theo mức Đảng ủy cơ sở quyết định; tỷ lệ % = xuất sắc / (xuất sắc + tốt); Mẫu 16 mục I lấy
-/// từ 15B, mục II lấy từ 15A; Mẫu 14 chỉ lập cho diện Ban Thường vụ cấp trên.
-/// </para>
-/// </summary>
+/// <summary>Cơ cấu Quý III/2026 (tên giả): 54 cán bộ, mã chức danh, điểm và mức đúng bảng kết quả đã nộp.
+/// Mỗi người một mã (mã đứng trước khi kiêm nhiệm); 15A đếm M1–M16, 15B đếm M17–M26; tỷ lệ % = xuất sắc / (xuất sắc + tốt).</summary>
 internal static class Quarter3Structure
 {
     /// <summary>Chức vụ trong danh mục (dạng chung chung) — tên, mã thống kê, thẩm quyền mặc định, bên.</summary>

@@ -13,7 +13,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>Test đơn vị task 08: quy tắc tên đăng nhập/email/mật khẩu, chốt chặn quản trị, middleware đổi mật khẩu.</summary>
+/// <summary>Quy tắc tên đăng nhập/email/mật khẩu, chốt chặn quản trị, middleware đổi mật khẩu.</summary>
 public sealed class AccountUnitTests
 {
     #region Tên đăng nhập, email, mật khẩu
@@ -140,9 +140,7 @@ public sealed class AccountUnitTests
 
     #region Chốt chặn L9
 
-    // Đợt 4 (tích hợp): khóa/xóa tài khoản dùng chung chốt "luôn còn quản trị" với thu hồi bản gán
-    // (AdministratorInvariant trên bản gán Global đang hiệu lực của tài khoản đang hoạt động — lọc ở repository,
-    // kiểm chứng bằng AccountFlowTests.L9_*).
+    // Khóa/xóa tài khoản dùng chung chốt "luôn còn quản trị" với thu hồi bản gán (lọc ở repository).
 
     [Fact]
     public async Task AdminGuard_RejectsSelf()

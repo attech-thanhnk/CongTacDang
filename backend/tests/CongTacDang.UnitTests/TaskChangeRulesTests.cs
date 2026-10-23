@@ -5,10 +5,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Đề nghị điều chỉnh việc trong quý (Mẫu 04, 05): kiểm tra nội dung, tổng trọng số đúng 70 và số việc sau điều chỉnh (chỉ đếm việc còn
-/// hiệu lực), áp đề nghị vào danh mục (điều chỉnh, loại trừ, chuyển tiếp, việc đột xuất).
-/// </summary>
+/// <summary>Đề nghị điều chỉnh việc (Mẫu 04, 05): kiểm tra nội dung, tổng trọng số 70, áp đề nghị vào danh mục.</summary>
 public sealed class TaskChangeRulesTests
 {
     private static readonly CriteriaSetContent Criteria = CriteriaSetDefaults.Build09A();

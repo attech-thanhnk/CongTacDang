@@ -7,7 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { AuthGuard } from "@/components/layout/AuthGuard";
 
-// Font tải lúc build và phục vụ cùng ứng dụng (không cần Internet khi chạy trong LAN); fallback "Segoe UI", system-ui trong globals.css.
+// Font tải lúc build, phục vụ cùng ứng dụng: chạy trong LAN không cần Internet.
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin", "vietnamese"],
   weight: ["400", "500", "600", "700"],

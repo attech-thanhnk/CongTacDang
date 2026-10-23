@@ -45,10 +45,7 @@ import {
 import { formatDate, formatDateTime } from "@/lib/dateFormat";
 import { errorMessage } from "@/components/admin/adminUtils";
 
-/**
- * Trang hồ sơ đánh giá: đầu trang (cán bộ), tiến trình; cột trái là khu thao tác (theo `actions`) rồi dữ liệu từng bước
- * (thu gọn được), kiến nghị, kế hoạch Mẫu 17; cột phải là biểu mẫu, lịch sử, thông tin hồ sơ.
- */
+/** Cột trái: khu thao tác (theo `actions`) và dữ liệu từng bước; cột phải: biểu mẫu, lịch sử, thông tin hồ sơ. */
 export default function EvaluationRecordPage() {
   const params = useParams<{ recordId: string }>();
   const recordId = params?.recordId;
@@ -74,7 +71,7 @@ export default function EvaluationRecordPage() {
         evaluationService.getRecordHistory(recordId),
         evaluationService.getRecordForms(recordId).catch(() => [] as RecordFormDto[]),
       ]);
-      // Chờ bộ tiêu chí của kỳ (thường đã có trong bộ nhớ) để trang hiện đủ một lần, không dựng lại bố cục khi bộ tiêu chí về sau.
+      // Chờ bộ tiêu chí để trang hiện đủ một lần, không dựng lại bố cục.
       await loadCriteria(loadedRecord.periodId);
       setRecord(loadedRecord);
       setActions(loadedActions.actions);
@@ -92,7 +89,7 @@ export default function EvaluationRecordPage() {
     load();
   }, [load]);
 
-  // T-24: người khác đã cập nhật / hồ sơ đã sang bước khác → thông báo và đề nghị tải lại.
+  // Người khác đã cập nhật / hồ sơ đã sang bước khác → đề nghị tải lại.
   useEffect(() => {
     const handler = (event: Event) => {
       const detail = (event as CustomEvent<EvaluationConflictDetail>).detail;
@@ -297,10 +294,7 @@ function DueText({ item }: { item?: RecordStepProgressDto }) {
   );
 }
 
-/**
- * Dòng trạng thái dưới tên cán bộ: việc của người đang xem (theo `actions`) kèm nút tới khu thao tác;
- * nếu không có việc thì bước đang chờ và chủ thể thực hiện (máy chủ mô tả); hồ sơ đã công bố thì mức xếp loại.
- */
+/** Việc của người xem (theo `actions`); không có việc thì bước đang chờ; đã công bố thì mức xếp loại. */
 function RecordStatusLine({ record, actions, onGo }: { record: EvaluationRecordDto; actions: RecordActionDto[]; onGo: () => void }) {
   if (record.status === "Published") {
     return (
@@ -411,7 +405,7 @@ function RecordData({ record }: { record: EvaluationRecordDto }) {
   const itemsOf = (steps: WorkflowStepCode[]) =>
     steps.map(stepOf).filter((p): p is RecordStepProgressDto => !!p && p.state !== "skipped");
   const isCurrent = (steps: WorkflowStepCode[]) => itemsOf(steps).some((p) => p.state === "current");
-  /** Khối hiện khi bước đã xong / đang làm, hoặc còn dữ liệu cũ (sau khi mở lại); bước chưa tới chưa có dữ liệu thì ẩn. */
+  /** Hiện cả khi bước chưa tới nhưng còn dữ liệu cũ (sau khi mở lại). */
   const visible = (steps: WorkflowStepCode[], hasData: boolean) => {
     const items = itemsOf(steps);
     if (items.length === 0) return steps.every((s) => !stepOf(s)) || hasData;

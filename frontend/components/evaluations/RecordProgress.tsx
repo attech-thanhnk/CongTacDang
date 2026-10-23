@@ -47,11 +47,7 @@ export function describeStep(item: RecordStepProgressDto): string {
   return `${item.name}: ${state}${deadline}`;
 }
 
-/**
- * Tiến trình các bước của hồ sơ (vòng tròn nối nhau): bước xong tô đầy, bước hiện tại sáng kèm hạn (đỏ khi quá hạn);
- * bước không áp dụng cho hồ sơ luồng thì ẩn. Bước đã xong / đang làm bấm được để tới nội dung của bước.
- * Trạng thái do máy chủ tính.
- */
+/** Trạng thái bước do máy chủ tính; bước không áp dụng cho hồ sơ luồng thì ẩn. */
 export function RecordProgress({ progress, onSelect }: Props) {
   const steps = progress.filter((item) => item.state !== "skipped");
   const listRef = useRef<HTMLOListElement>(null);

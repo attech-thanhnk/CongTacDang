@@ -26,10 +26,7 @@ function Counter({ length, max, suffix }: { length: number; max: number; suffix?
   );
 }
 
-/**
- * Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân: một ô tự luận cho mỗi mục khai báo trong bộ tiêu chí của kỳ. Mục đầu tiên là
- * phần nhận xét chung, in trước các nhiệm vụ theo trục; số ký tự của mục tính cả phần nhiệm vụ (`firstSectionExtra`).
- */
+/** Mẫu 09C: mục đầu là nhận xét chung, số ký tự tính cả phần nhiệm vụ (`firstSectionExtra`). */
 export function SelfAssessmentInput({
   sections,
   value,
@@ -96,10 +93,7 @@ function LevelSelect({ levels, value, onChange, label }: { levels: TaskLevel[]; 
   );
 }
 
-/**
- * Nhập theo trục: các nhiệm vụ kèm mức tự đánh giá và ý con "+" (in ở mục I Mẫu 09C — `showTasks`) và dòng tóm
- * tắt "Trục n" của Mẫu 9D (`showSummary`).
- */
+/** Nhập theo trục: nhiệm vụ kèm mức của Mẫu 09C (`showTasks`), dòng tóm tắt trục của Mẫu 9D (`showSummary`). */
 export function AxisReportsInput({
   axes,
   value,

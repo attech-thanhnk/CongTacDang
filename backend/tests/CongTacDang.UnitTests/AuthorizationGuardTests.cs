@@ -10,10 +10,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Task 09 (T-55): resolver theo bản gán có phạm vi/thời hạn, guard (ma trận phạm vi × mã × chủ hồ sơ
-/// × hiệu lực thời gian, xung đột lợi ích) và các chốt chặn quản trị (docs/thiet-ke/phan-quyen.md mục 4, 5).
-/// </summary>
+/// <summary>Resolver theo bản gán có phạm vi/thời hạn, guard (phạm vi × mã × chủ hồ sơ × thời hạn) và chốt chặn quản trị.</summary>
 public class AuthorizationGuardTests
 {
     private static readonly DateTime Now = new(2026, 9, 28, 8, 0, 0, DateTimeKind.Utc);
@@ -213,11 +210,7 @@ public class AuthorizationGuardTests
         Assert.Equal(userId, AuthorizationGuard.BuildScope(none, PermissionCodes.EvaluationRead).OwnerId);
     }
 
-    /// <summary>
-    /// Guard không xét cấp quyết định: quyết định trong hệ thống (<c>evaluation.decide</c>) và ghi nhận kết quả của cấp trên
-    /// (<c>evaluation.external.record</c>) chỉ theo phạm vi gán + xung đột lợi ích; bước nào dùng quyền nào là cấu hình
-    /// hồ sơ luồng (service luồng kiểm tra chế độ bước trước guard).
-    /// </summary>
+    /// <summary>Guard không xét cấp quyết định: evaluation.decide / evaluation.external.record chỉ theo phạm vi gán + xung đột lợi ích.</summary>
     [Fact]
     public void Guard_DecideAndExternalRecord_ScopeOnly_NotBoundToApprovalAuthority()
     {
@@ -239,7 +232,7 @@ public class AuthorizationGuardTests
     {
         var userId = Guid.NewGuid();
         var codes = AuthorizationGuard.ConflictOfInterestCodes.ToList();
-        Assert.Equal(12, codes.Count); // task 20: + evaluation.appeal.resolve, evaluation.improvement.manage
+        Assert.Equal(12, codes.Count);
         Assert.Contains(PermissionCodes.EvaluationUnitReview, codes);
         Assert.Contains(PermissionCodes.EvaluationExternalRecord, codes);
         Assert.All(codes, c => Assert.True(PermissionCodes.IsDefined(c), c));

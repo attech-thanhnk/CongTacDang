@@ -7,10 +7,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Phạm vi ghi (mọi đơn vị của đối tượng phải trong phạm vi), luật minh chứng theo giai đoạn hồ sơ và luật hồ sơ thuộc
-/// tổ chức của biên bản theo cây con.
-/// </summary>
+/// <summary>Phạm vi ghi (mọi đơn vị phải trong phạm vi), minh chứng theo giai đoạn, hồ sơ thuộc tổ chức của biên bản theo cây con.</summary>
 public class WriteScopeAndEvidenceRulesTests
 {
     private static readonly Guid DeptA = Guid.NewGuid();

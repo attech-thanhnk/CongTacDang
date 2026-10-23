@@ -1,6 +1,5 @@
 import { request } from "./apiClient";
 
-/** Loại phạm vi của bản gán vai trò. */
 export type ScopeType = "Global" | "Department" | "PartyCell";
 
 export const SCOPE_TYPE_LABELS: Record<ScopeType, string> = {
@@ -9,10 +8,8 @@ export const SCOPE_TYPE_LABELS: Record<ScopeType, string> = {
   PartyCell: "Tổ chức Đảng",
 };
 
-/** Trạng thái bản gán tại thời điểm tra cứu. */
 export type AssignmentStatus = "Active" | "Future" | "Expired";
 
-/** Một mã quyền trong danh mục. */
 export interface PermissionDefinition {
   code: string;
   name: string;
@@ -23,14 +20,12 @@ export interface PermissionDefinition {
   sortOrder: number;
 }
 
-/** Nhóm quyền theo phân hệ (`GET /api/admin/permissions`). */
 export interface PermissionModule {
   module: string;
   moduleName: string;
   permissions: PermissionDefinition[];
 }
 
-/** Vai trò (`GET /api/admin/roles`). */
 export interface AdminRole {
   id: string;
   name: string;
@@ -48,7 +43,6 @@ export interface SaveRolePayload {
   description?: string;
 }
 
-/** Bản gán vai trò. */
 export interface RoleAssignment {
   id: string;
   userId: string;
@@ -126,7 +120,6 @@ function toQuery(params: Record<string, string | undefined>): string {
   return query ? `?${query}` : "";
 }
 
-/** Dịch vụ quản trị vai trò, quyền và bản gán (API task 09). */
 export const roleService = {
   listRoles(): Promise<AdminRole[]> {
     return request<AdminRole[]>("/admin/roles");
@@ -144,7 +137,6 @@ export const roleService = {
     return request<AdminRole>(`/admin/roles/${id}`, { method: "PUT", body: JSON.stringify(payload) });
   },
 
-  /** Đặt lại toàn bộ quyền của vai trò. */
   setRolePermissions(id: string, permissionCodes: string[]): Promise<AdminRole> {
     return request<AdminRole>(`/admin/roles/${id}/permissions`, {
       method: "PUT",
@@ -152,12 +144,11 @@ export const roleService = {
     });
   },
 
-  /** Xóa vai trò (409 khi vai trò bảo vệ hoặc còn bản gán). */
+  /** 409 khi vai trò bảo vệ hoặc còn bản gán. */
   deleteRole(id: string): Promise<void> {
     return request<void>(`/admin/roles/${id}`, { method: "DELETE" });
   },
 
-  /** Danh mục quyền nhóm theo phân hệ. */
   listPermissions(): Promise<PermissionModule[]> {
     return request<PermissionModule[]>("/admin/permissions");
   },
@@ -182,7 +173,7 @@ export const roleService = {
     return request<RoleAssignment>(`/admin/assignments/${id}`, { method: "PUT", body: JSON.stringify(payload) });
   },
 
-  /** Kết thúc bản gán ngay (validTo = bây giờ). */
+  /** validTo = bây giờ. */
   endAssignment(id: string): Promise<RoleAssignment> {
     return request<RoleAssignment>(`/admin/assignments/${id}/end`, { method: "POST" });
   },
@@ -202,7 +193,7 @@ export const roleService = {
     );
   },
 
-  /** Bản gán cần xem lại (không còn gắn với nơi giao / giao tạm sắp hết hạn); có `userId` = riêng một người. */
+  /** Bản gán không còn gắn với nơi giao / sắp hết hạn; có `userId` = riêng một người. */
   getPerformerReview(userId?: string): Promise<PerformerReviewItem[]> {
     return request<PerformerReviewItem[]>(`/admin/performers/review${toQuery({ userId })}`);
   },
@@ -214,7 +205,6 @@ export interface Performer {
   fullName: string;
   username: string;
   roleName: string;
-  /** Loại phạm vi của bản gán. */
   scopeType: ScopeType;
   scopeId?: string | null;
   /** Nơi gán ("Toàn công ty" hoặc tên đơn vị). */
@@ -223,7 +213,7 @@ export interface Performer {
   /** Gán tại đúng đơn vị đang xem (gỡ được tại màn hình này). */
   assignedHere: boolean;
   validTo?: string | null;
-  /** Chức vụ người này giữ tại nơi giao (hoặc đơn vị cấp trên), "Cán bộ của đơn vị", hoặc null nếu không liên quan. */
+  /** Chức vụ tại nơi giao (hoặc cấp trên), "Cán bộ của đơn vị", hoặc null nếu không liên quan. */
   positionAtScope?: string | null;
 }
 
@@ -235,7 +225,6 @@ export interface PositionHolder {
   positionName: string;
 }
 
-/** Bản gán cần xem lại (`GET /api/admin/performers/review`). */
 export interface PerformerReviewItem {
   assignmentId: string;
   userId: string;
@@ -266,7 +255,6 @@ export interface PerformerJob {
   roles: PerformerRoleOption[];
 }
 
-/** Người thực hiện theo đơn vị (`GET /api/admin/performers`). */
 export interface UnitPerformers {
   scopeType: ScopeType;
   scopeId?: string | null;

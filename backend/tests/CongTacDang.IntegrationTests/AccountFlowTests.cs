@@ -6,10 +6,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Luồng tài khoản & phiên L1–L7, L9 của task 08 trên PostgreSQL thật.
-/// Skip khi thiếu biến môi trường CONGTACDANG_TEST_PG.
-/// </summary>
+/// <summary>Luồng tài khoản và phiên trên PostgreSQL thật.</summary>
 [Collection(AccountCollection.Name)]
 public sealed class AccountFlowTests
 {
@@ -184,7 +181,7 @@ public sealed class AccountFlowTests
         Assert.Equal(HttpStatusCode.Unauthorized, (await session.GetAsync("/api/users/profile")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await session.PostAsync("/api/auth/refresh-token", null)).StatusCode);
 
-        // Mật khẩu cũ hết hiệu lực; mật khẩu tạm đăng nhập được và quay về L2.
+        // Mật khẩu cũ hết hiệu lực; mật khẩu tạm đăng nhập được và lại bị buộc đổi mật khẩu.
         var (oldClient, old) = await _fx.TryLoginAsync(target.Username, target.Password);
         oldClient.Dispose();
         Assert.Equal(HttpStatusCode.Unauthorized, old.StatusCode);

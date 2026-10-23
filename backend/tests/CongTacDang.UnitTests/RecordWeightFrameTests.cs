@@ -4,9 +4,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Điều chỉnh tỷ lệ A-B-C-D của khung cho từng hồ sơ (cấp giao nhiệm vụ, ±biên độ của bộ tiêu chí, tổng 100%) và khung hiệu lực.
-/// </summary>
+/// <summary>Điều chỉnh tỷ lệ A-B-C-D của khung cho từng hồ sơ (±biên độ của bộ, tổng 100%) và khung hiệu lực.</summary>
 public sealed class RecordWeightFrameTests
 {
     private static CriteriaSetContent Set09A() => CriteriaSetDefaults.Build09A();

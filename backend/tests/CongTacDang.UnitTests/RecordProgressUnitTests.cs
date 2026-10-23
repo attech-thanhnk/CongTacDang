@@ -6,10 +6,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Tiến trình hồ sơ: chủ thể thực hiện từng bước (theo chế độ bước và dữ liệu hồ sơ) và người/thời điểm hoàn thành
-/// của bước đã xong (trường …At/…ByName của hồ sơ hoặc kết quả do cấp trên thực hiện).
-/// </summary>
+/// <summary>Tiến trình hồ sơ: chủ thể từng bước và người/thời điểm hoàn thành bước đã xong.</summary>
 public sealed class RecordProgressUnitTests
 {
     private static readonly DateOnly Today = new(2026, 12, 1);

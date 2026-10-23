@@ -17,10 +17,7 @@ using Position = CongTacDang.Domain.Entities.Position;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Task 19 (T-84, T-85): xuất Mẫu 07, 08 (hồ sơ tập thể), 12 (biên bản), 16 (báo cáo Word + bản nháp nhập tay), số liệu Mẫu 14,
-/// 15A, 15B trên kỳ có hồ sơ đã công bố ở các mức khác nhau; phạm vi tổ chức Đảng; báo cáo cũ đã bỏ trả 404.
-/// </summary>
+/// <summary>Xuất Mẫu 07, 08, 12, 13, 16 và số liệu Mẫu 14, 15A, 15B trên kỳ đã công bố; phạm vi tổ chức Đảng.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class CollectiveFormsReportsIntegrationTests
 {
@@ -32,7 +29,7 @@ public sealed class CollectiveFormsReportsIntegrationTests
 
     private void SkipIfNoDatabase() => Skip.If(_factory.SkipReason != null, _factory.SkipReason);
 
-    // ===================== R1: Mẫu 15A/15B/14 — số đếm, tỷ lệ, bố cục HD03 =====================
+    // ===================== R1: Mẫu 15A/15B/14 — số đếm, tỷ lệ, bố cục =====================
 
     [SkippableFact]
     public async Task R1_Form15AB_And14_CountByStatCode_AndAuthority_WithHd03Layout()
@@ -85,7 +82,7 @@ public sealed class CollectiveFormsReportsIntegrationTests
             Assert.Equal("M22", a1.Cell(4).GetString());
             Assert.Equal("Hoàn thành xuất sắc nhiệm vụ", a1.Cell(11).GetString());
             Assert.Contains("Căn cứ xuất sắc", a1.Cell(12).GetString());
-            // Cột 13 (đợt 8): đề xuất nội dung liên quan về công tác cán bộ nhập ở bước quyết định.
+            // Cột 13: đề xuất về công tác cán bộ nhập ở bước quyết định.
             Assert.Equal("Đề xuất đưa vào quy hoạch cấp trên", a1.Cell(13).GetString());
             var capTren = book.Worksheet(2);
             Assert.Contains("BAN THƯỜNG VỤ ĐẢNG ỦY TỔNG CÔNG TY", capTren.Cell(6, 1).GetString());
@@ -205,7 +202,7 @@ public sealed class CollectiveFormsReportsIntegrationTests
         Assert.Contains("Đảm bảo an toàn bay", text08);
         Assert.Contains("Nhiệm vụ phát sinh, đột xuất theo Chỉ đạo, điều hành của cấp có thẩm quyền.", text08);
 
-        // Mẫu 08 bản Excel (đợt 8, HD03 V.1): đúng cột, 13 nhóm nội dung, dữ liệu như bản Word; tên tệp theo quy cách HD03.
+        // Mẫu 08 bản Excel: đúng cột, 13 nhóm nội dung, dữ liệu như bản Word; tên tệp đúng quy cách.
         using (var book08 = await WorkbookAsync(s.CellLeaderA, $"/api/reports/form-08/{id08}"))
         {
             var sheet = book08.Worksheet(1);
@@ -300,8 +297,7 @@ public sealed class CollectiveFormsReportsIntegrationTests
         Assert.Contains(m13Created.GetProperty("voteSummaries").EnumerateArray(), v => v.GetProperty("votesNotRated").GetInt32() == 1);
         Assert.Equal(HttpStatusCode.BadRequest, (await s.CellLeaderA.GetAsync($"/api/reports/docx/mau-12/{m13Id}")).StatusCode);
 
-        // Mẫu 13 (đợt 8): đúng biểu mẫu gốc — mục I (BTVĐUTCT) / mục II (Đảng ủy/Chi ủy cơ sở), cột "Chưa đánh giá, xếp loại",
-        // Tổ kiểm phiếu, số phiếu phát ra/thu về/hợp lệ/không hợp lệ.
+        // Mẫu 13: mục I (BTVĐUTCT) / mục II (cấp ủy cơ sở), cột "Chưa đánh giá, xếp loại", Tổ kiểm phiếu, số phiếu.
         var text13 = await DocxTextAsync(s.CellLeaderA, $"/api/reports/docx/mau-13/{m13Id}");
         Assert.Contains("BIÊN BẢN KIỂM PHIẾU", text13);
         Assert.Matches(@"chất lượng cán bộ quý III/\d{4}\. Cụ thể như sau:", text13);
@@ -312,7 +308,7 @@ public sealed class CollectiveFormsReportsIntegrationTests
         Assert.Contains("+ Số phiếu không hợp lệ:\t1 Phiếu.", text13);
         Assert.Contains("Chưa đánh giá, xếp loại", text13);
         var superiorAt = text13.IndexOf("CỦA BTVĐUTCT", StringComparison.Ordinal);
-        // Tiêu đề mục II ghi cấp ủy cơ sở thực tế (tổ chức Đảng của biên bản), không còn "ĐẢNG ỦY/CHI ỦY CƠ SỞ…".
+        // Tiêu đề mục II ghi cấp ủy cơ sở thực tế của biên bản.
         Assert.DoesNotContain("ĐẢNG ỦY/CHI ỦY CƠ SỞ", text13);
         var baseAt = text13.IndexOf("CỦA " + CollectiveFormText.CommitteeUpper(s.CellAName), StringComparison.Ordinal);
         Assert.True(superiorAt > 0 && baseAt > superiorAt);
@@ -362,7 +358,7 @@ public sealed class CollectiveFormsReportsIntegrationTests
         SkipIfNoDatabase();
         var s = await GetScenarioAsync();
 
-        // Danh sách hồ sơ bắt buộc chọn kỳ → 400 tiếng Việt (trước đây 200 rỗng).
+        // Danh sách hồ sơ bắt buộc chọn kỳ → 400 tiếng Việt.
         var records = await s.Committee.GetAsync("/api/evaluations/records");
         Assert.Equal(HttpStatusCode.BadRequest, records.StatusCode);
         using (var json = JsonDocument.Parse(await records.Content.ReadAsStringAsync()))

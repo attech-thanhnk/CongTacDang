@@ -23,10 +23,7 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: "holidays", label: "Ngày nghỉ", icon: "bi-calendar-x" },
 ];
 
-/**
- * Danh mục tổ chức (task 14): cây đơn vị chính quyền, cây tổ chức Đảng, loại đơn vị, chức vụ.
- * Xem: mọi người đã đăng nhập; sửa: quyền "Quản lý danh mục".
- */
+/** Danh mục tổ chức: mọi người đã đăng nhập xem được; sửa cần quyền "Quản lý danh mục". */
 export default function CatalogPage() {
   const { hasPermission } = useAuth();
   const { toast } = useToast();

@@ -6,13 +6,12 @@ import type {
   SaveEvaluationMeetingRequestDto,
 } from "./evaluationService";
 
-/** Một mục/nhóm nội dung của biểu mẫu tập thể (nguyên văn biểu mẫu HD03). */
+/** Mục/nhóm nội dung biểu mẫu tập thể (nguyên văn biểu mẫu gốc). */
 export interface CollectiveFormSection {
   code: string;
   title: string;
 }
 
-/** Một tiêu chí con của khung tiêu chí tập thể. */
 export interface CollectiveCriteriaItem {
   code: string;
   text: string;
@@ -22,7 +21,6 @@ export interface CollectiveCriteriaItem {
 /** Nhóm điểm mà tiêu chí con cộng vào: nhóm tiêu chí chung hoặc nhóm kết quả thực hiện nhiệm vụ. */
 export type CollectiveScoreKind = "General" | "Task";
 
-/** Một nhóm của khung tiêu chí tập thể theo bộ tiêu chí của kỳ. */
 export interface CollectiveCriteriaGroup {
   code: string;
   name: string;
@@ -40,19 +38,16 @@ export interface CollectiveFormCatalog {
   taskMaxScore: number;
 }
 
-/** Hồ sơ tập thể kèm các mục con theo mã (Mẫu 07: I.1–I.4). */
 export interface CollectiveRecord extends CollectiveEvaluationRecordDto {
   sections: Record<string, string>;
-  /** Điểm từng tiêu chí của khung tập thể theo mã tiêu chí con (rỗng = nhập thẳng hai điểm nhóm). */
+  /** Khóa = mã tiêu chí con; rỗng = nhập thẳng hai điểm nhóm. */
   criteriaScores: Record<string, number>;
-  /** Người xem được đính kèm / thay / gỡ tệp của hồ sơ (máy chủ tính theo quyền và trạng thái kỳ). */
+  /** Máy chủ tính theo quyền và trạng thái kỳ. */
   canAttach?: boolean;
 }
 
-/** Trạng thái tải khung tiêu chí tập thể của kỳ. */
 export type CatalogState = "loading" | "error" | "ready";
 
-/** Dữ liệu lưu hồ sơ tập thể (tạo hoặc sửa). */
 export interface SaveCollectiveRecord extends SaveCollectiveEvaluationRequestDto {
   sections: Record<string, string>;
   /** Gửi khi kỳ có khung tiêu chí tập thể (Mẫu 06, 07). */
@@ -81,18 +76,16 @@ export interface MeetingDetails {
   ballotsInvalid?: number | null;
 }
 
-/** Biên bản hội nghị kèm các mục Mẫu 12. */
 export interface MeetingRecord extends EvaluationMeetingDto {
   details: MeetingDetails;
 }
 
-/** Dữ liệu lưu biên bản (tạo hoặc sửa). */
 export interface SaveMeetingRecord extends SaveEvaluationMeetingRequestDto {
   details: MeetingDetails;
 }
 
 export const collectiveService = {
-  /** Danh mục mục nhập của Mẫu 07/08; có kỳ thì kèm khung tiêu chí tập thể của bộ tiêu chí của kỳ. */
+  /** Có kỳ thì kèm khung tiêu chí tập thể của kỳ. */
   getCatalog(periodId?: string): Promise<CollectiveFormCatalog> {
     const query = periodId ? `?periodId=${encodeURIComponent(periodId)}` : "";
     return request<CollectiveFormCatalog>(`/evaluations/collective-forms/catalog${query}`);

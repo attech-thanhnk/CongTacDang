@@ -15,10 +15,7 @@ export function evidenceSlot(kind: "axis" | "group", code: string): string {
   return `${EVIDENCE_PREFIX}${kind === "group" ? "N" : ""}${clean}`.slice(0, 20);
 }
 
-/**
- * Tệp minh chứng theo mục của một hồ sơ, nạp một lần cho cả phiếu, kèm thao tác được làm (thêm / thay / gỡ) do máy chủ
- * tính theo quyền và giai đoạn của hồ sơ. `revision` (ví dụ phiên bản hồ sơ) đổi → tải lại.
- */
+/** Nạp một lần cho cả phiếu kèm thao tác được làm (máy chủ tính); `revision` đổi → tải lại. */
 export function useRecordEvidence(recordId: string, revision?: string | number | null) {
   const [files, setFiles] = useState<AttachmentItem[]>([]);
   const [rights, setRights] = useState<EvidenceRights | null>(null);
@@ -47,10 +44,7 @@ interface Props {
   onChanged?: () => void;
 }
 
-/**
- * Tệp minh chứng (tùy chọn) của một mục trong phiếu tự chấm. Tệp gắn vào hồ sơ; người xem được hồ sơ tải được tệp.
- * Nút đính kèm, thay bản mới, gỡ tệp hiện theo `rights` do máy chủ trả về; máy chủ vẫn lưu bản cũ và ghi người gỡ vào nhật ký.
- */
+/** Tệp minh chứng của một mục; nút thao tác hiện theo `rights` máy chủ trả về. */
 export function EvidenceFiles({ recordId, slot, label, files, rights, onChanged }: Props) {
   const { toast, confirm } = useToast();
   const mine = files.filter((f) => (f.formCode || "").toUpperCase() === slot);

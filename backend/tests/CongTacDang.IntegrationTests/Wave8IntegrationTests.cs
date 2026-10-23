@@ -10,10 +10,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Tích hợp đợt 8: cảnh báo "Kế hoạch 30-60-90 ngày cần lập" chỉ xét kỳ đang mở/khóa dữ liệu và kỳ đã đóng trong số ngày cảnh báo
-/// của bộ tiêu chí (tham số <c>improvementPlanAlertDays</c>, mặc định 90) — không quét mọi kỳ cũ.
-/// </summary>
+/// <summary>Cảnh báo "Kế hoạch 30-60-90 ngày cần lập" chỉ xét kỳ đang mở/khóa và kỳ đóng trong <c>improvementPlanAlertDays</c> ngày.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class Wave8IntegrationTests
 {

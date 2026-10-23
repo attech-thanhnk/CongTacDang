@@ -4,7 +4,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>Kiểm tra khóa JWT / mật khẩu khi khởi động (T-28).</summary>
+/// <summary>Kiểm tra khóa JWT / mật khẩu khi khởi động.</summary>
 public class StartupSecretPolicyTests
 {
     // Giá trị ngẫu nhiên chỉ dùng trong test.

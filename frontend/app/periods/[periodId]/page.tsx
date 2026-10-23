@@ -37,10 +37,7 @@ import { errorMessage, errorStatus } from "@/components/admin/adminUtils";
 type Transition = "open" | "lock" | "unlock" | "close";
 type PeriodTab = "progress" | "profiles" | "criteria" | "readiness" | "participants";
 
-/**
- * Cấu hình kỳ: việc còn thiếu để mở kỳ, danh sách người được đánh giá, người thực hiện các bước, bộ tiêu chí (chọn khi dự thảo, xem
- * ảnh chụp), hồ sơ luồng (bước × chế độ × quyền thực hiện × thời hạn — hiển thị "Cách xét duyệt").
- */
+/** Cấu hình kỳ; hồ sơ luồng hiển thị với tên "Cách xét duyệt". */
 export default function PeriodDetailPage() {
   const params = useParams<{ periodId: string }>();
   const periodId = params?.periodId;

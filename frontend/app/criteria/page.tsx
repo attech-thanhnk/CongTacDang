@@ -23,10 +23,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
 
 const EMPTY_FORM = { code: "", name: "", selfScoreForm: "09A", notes: "" };
 
-/**
- * Bộ tiêu chí và thang điểm theo phiên bản: danh sách, tạo bản nháp, nhân bản, lưu trữ, xóa bản nháp.
- * Xem: criteria.manage hoặc period.manage (chọn bộ cho kỳ); ghi: criteria.manage.
- */
+/** Xem: criteria.manage hoặc period.manage (để chọn bộ cho kỳ); ghi: criteria.manage. */
 export default function CriteriaSetsPage() {
   const { hasPermission } = useAuth();
   const canManage = hasPermission("criteria.manage");

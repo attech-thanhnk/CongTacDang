@@ -12,11 +12,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Màn hình "Người thực hiện" (<c>GET /api/admin/performers</c>): ai làm được việc gì tại một đơn vị — gán ở đơn vị cha
-/// thấy ở đơn vị con, tài khoản bị khóa / bản gán hết hạn không hiện, gán ở cây kia chỉ hiện khi có cán bộ thuộc cả hai
-/// đơn vị, thiếu quyền gán vai trò → 403.
-/// </summary>
+/// <summary>Màn hình "Người thực hiện": ai làm được việc gì tại một đơn vị (gán ở đơn vị cha thấy ở đơn vị con).</summary>
 [Collection(ApiCollection.Name)]
 public sealed class PerformerApiTests
 {

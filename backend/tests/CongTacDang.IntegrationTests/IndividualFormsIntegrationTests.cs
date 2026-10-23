@@ -14,10 +14,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Task 18 (T-82, T-83): nhập Mẫu 09C + 9D (+ phần tự luận theo trục 09B) khi tự chấm → nộp → xuất 09B/09C/9D ra .docx hợp lệ
-/// (không còn tag, có nội dung đã nhập, tên đơn vị từ cài đặt); người ngoài phạm vi 403; trả lại → sửa được; khóa/công bố → không sửa.
-/// </summary>
+/// <summary>Nhập Mẫu 09C/9D khi tự chấm, xuất 09B/09C/9D; phạm vi, trả lại, khóa và công bố.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class IndividualFormsIntegrationTests
 {

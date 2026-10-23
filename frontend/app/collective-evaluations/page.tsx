@@ -149,7 +149,6 @@ export default function CollectiveEvaluationsPage() {
       hd03FileName(code, record.partyCellName || record.departmentName || shortName, periodLabel, ".docx"), format), "Không xuất được biểu mẫu.");
   };
 
-  /** Mẫu 08 bản Excel — HD03 V.1: hồ sơ lập trên file Excel (trừ Mẫu 07, 09C, 12, 13, 16). */
   const exportRecordExcel = (record: CollectiveRecord) =>
     run(`${record.id}-xlsx`, () => reportService.exportForm08Excel(record.id,
       hd03FileName("08", record.partyCellName || record.departmentName || shortName, periodLabel, ".xlsx")), "Không xuất được Mẫu 08 (Excel).");

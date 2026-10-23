@@ -16,11 +16,7 @@ const KIND_ICON: Record<string, { icon: string; color: string }> = {
   pending: { icon: "bi-inbox", color: "var(--ink-2)" },
 };
 
-/**
- * Chuông nhắc việc ở thanh trên (task 20 — T-89): số việc đang chờ, bước sắp tới hạn / quá hạn, kiến nghị mới, kế hoạch 30-60-90 ngày
- * cần lập hoặc chờ xác nhận. Tính khi tải trang và khi chuyển trang (API `GET /api/notifications/summary`), không đẩy thời gian thực.
- * Mỗi mục dẫn tới hồ sơ (`/evaluations/{id}`) hoặc trang liên quan do máy chủ trả về.
- */
+/** Chuông nhắc việc: tính lại khi tải và khi chuyển trang, không đẩy thời gian thực. */
 export function NotificationBell() {
   const pathname = usePathname();
   const [summary, setSummary] = useState<NotificationSummaryDto | null>(null);

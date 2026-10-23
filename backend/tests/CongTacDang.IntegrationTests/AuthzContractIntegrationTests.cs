@@ -7,10 +7,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Test tích hợp mẫu của task 07 (T-63): đăng nhập, phân quyền theo mã quyền đánh giá từ CSDL mỗi request.
-/// Skip khi thiếu biến môi trường CONGTACDANG_TEST_PG.
-/// </summary>
+/// <summary>Đăng nhập và phân quyền theo mã quyền đọc từ CSDL mỗi request.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class AuthzContractIntegrationTests
 {

@@ -7,10 +7,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Điều chỉnh việc trong quý (Mẫu 04, 05) trên PostgreSQL thật: gửi đề nghị, duyệt → danh mục việc thay đổi trong cùng một lần lưu;
-/// không duyệt thiếu lý do → 400; người không có quyền duyệt → 403; tự chấm bỏ qua việc đã loại trừ; bộ 09B không có chức năng.
-/// </summary>
+/// <summary>Điều chỉnh việc trong quý (Mẫu 04, 05): đề nghị, duyệt → danh mục việc thay đổi trong cùng một lần lưu.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class TaskChangeIntegrationTests
 {

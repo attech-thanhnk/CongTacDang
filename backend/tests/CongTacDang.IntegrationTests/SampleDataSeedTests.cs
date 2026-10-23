@@ -18,11 +18,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Dữ liệu mẫu (<c>Database:SeedSampleData=true</c>) trên CSDL trống: ứng dụng khởi động, tài khoản mẫu đăng nhập được
-/// (bắt buộc đổi mật khẩu) và thấy đúng <c>work-queue</c> theo vai trò/phạm vi được gán mẫu.
-/// Mỗi test dùng <see cref="ApiFactory"/> riêng (CSDL tạm riêng, chưa có tài khoản nào).
-/// </summary>
+/// <summary>Dữ liệu mẫu trên CSDL trống: tài khoản mẫu đăng nhập được và thấy đúng work-queue theo vai trò; mỗi test một CSDL riêng.</summary>
 public sealed class SampleDataSeedTests
 {
     private const string SamplePassword = "MauThu2026x";
@@ -85,7 +81,7 @@ public sealed class SampleDataSeedTests
             Assert.Empty(readiness.GetProperty("issues").EnumerateArray());
             Assert.Equal(5, readiness.GetProperty("checkedRecords").GetInt32()); // 6 hồ sơ, trừ hồ sơ Giám đốc đã công bố
 
-            // Kỳ mẫu gắn bộ "Chấm theo 6 trục (Quý III, IV/2026)" đã chụp (tích hợp đợt 7).
+            // Kỳ mẫu gắn bộ "Chấm theo 6 trục (Quý III, IV/2026)" đã chụp.
             var criteria = active.GetProperty("criteria");
             Assert.Equal(CriteriaSetDefaults.Code09B, criteria.GetProperty("code").GetString());
             Assert.Equal(CriteriaSetDefaults.Name09B, criteria.GetProperty("name").GetString());
@@ -156,11 +152,7 @@ public sealed class SampleDataSeedTests
         }
     }
 
-    /// <summary>
-    /// Mô hình tổ chức mẫu (task 14) khớp luồng mẫu (task 15): cây đơn vị hai cấp mỗi bên có loại đơn vị, mọi tài khoản có chức vụ
-    /// (một ca kiêm nhiệm), thẩm quyền suy ra từ chức vụ (Giám đốc → cấp trên), hồ sơ Giám đốc đi hồ sơ luồng cấp trên với
-    /// kết quả của cấp trên ở B3b/B3c/B4.
-    /// </summary>
+    /// <summary>Tổ chức mẫu khớp luồng mẫu: mọi tài khoản có chức vụ, thẩm quyền suy ra, Giám đốc đi luồng cấp trên.</summary>
     private static async Task AssertSampleOrganizationAsync(CongTacDangDbContext db, Guid periodId)
     {
         var departments = await db.AdministrativeDepartments.Include(d => d.UnitType).ToListAsync();
@@ -201,10 +193,7 @@ public sealed class SampleDataSeedTests
         Assert.All(records.Where(r => r.Id != directorRecord.Id), r => Assert.Equal("co-so", r.WorkflowProfileCode));
     }
 
-    /// <summary>
-    /// Dữ liệu chấm mẫu theo bộ tiêu chí của kỳ (đợt 7): kỳ có ảnh chụp bộ 09B mặc định; cán bộ mẫu có khung tỷ trọng mặc định,
-    /// hồ sơ chụp lại khung (có trong bộ); hồ sơ đã tự chấm có điểm theo đủ mã tiêu chí con và mã trục của bộ.
-    /// </summary>
+    /// <summary>Kỳ mẫu có ảnh chụp bộ 09B; hồ sơ đã tự chấm có điểm đủ mã tiêu chí con và mã trục.</summary>
     private static async Task AssertSampleCriteriaScoresAsync(CongTacDangDbContext db, Guid periodId)
     {
         var period = await db.EvaluationPeriods.SingleAsync(p => p.Id == periodId);
@@ -237,15 +226,10 @@ public sealed class SampleDataSeedTests
         }
     }
 
-    /// <summary>
-    /// Dữ liệu mẫu đủ thử chức năng đợt 8: hồ sơ cá nhân có 09C/9D (xuất được), hồ sơ tập thể Mẫu 07/08 có mục, biên bản Mẫu 12
-    /// có mục 3.2/chức vụ, biên bản kiểm phiếu Mẫu 13 (Tổ kiểm phiếu, số phiếu, mục I/II), hồ sơ công bố mức C có kế hoạch Mẫu 17
-    /// đang lập, một kiến nghị chờ xử lý, bản nháp Mẫu 16.
-    /// </summary>
+    /// <summary>Dữ liệu mẫu cho 09C/9D, 07/08, 12/13, kế hoạch Mẫu 17, kiến nghị và bản nháp Mẫu 16.</summary>
     private static async Task AssertWave8SampleAsync(WebApplicationFactory<Program> host, ApiFactory factory, Guid periodId)
     {
-        // Hồ sơ đã tự chấm có Mẫu 09C (nhận xét chung), nhiệm vụ và kết quả theo 6 trục (09C, 9D), phần tự luận theo trục 09B;
-        // xuất được 09C/9D.
+        // Hồ sơ đã tự chấm có 09C, 9D và phần tự luận theo trục 09B; xuất được 09C/9D.
         using var officer = await LoginAndChangePasswordAsync(host, "vanphong");
         var records = await DataAsync(await officer.GetAsync($"/api/evaluations/records?periodId={periodId}"));
         var hung = records.EnumerateArray().Single(r => r.GetProperty("fullName").GetString() == "Nguyễn Văn Hùng");

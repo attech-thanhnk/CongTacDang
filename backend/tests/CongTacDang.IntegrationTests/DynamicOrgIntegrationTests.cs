@@ -11,10 +11,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Test tích hợp task 14 (T-71, T-72, T-73): cây đơn vị dựng qua API danh mục, phạm vi gán vai trò bao trùm cây con,
-/// chức vụ kiêm nhiệm → thẩm quyền suy ra → ảnh chụp trên hồ sơ mới, Mẫu 15A/15B theo mã chức danh.
-/// </summary>
+/// <summary>Cây đơn vị qua API, phạm vi bao trùm cây con, kiêm nhiệm → thẩm quyền suy ra, Mẫu 15A/15B.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class DynamicOrgIntegrationTests
 {
@@ -139,7 +136,7 @@ public sealed class DynamicOrgIntegrationTests
         var y = await _factory.CreateUserAsync(deptId, cellId, fullName: $"Bí thư chi bộ {s}");
         var z = await _factory.CreateUserAsync(deptId, cellId, fullName: $"Phó phòng {s}");
 
-        // Chức vụ của cán bộ khai báo qua trang Tài khoản (danh mục chức vụ mặc định theo HD03).
+        // Chức vụ của cán bộ khai báo qua trang Tài khoản.
         var catalog = (await DataAsync(await admin.GetAsync("/api/positions"))).EnumerateArray()
             .ToDictionary(p => p.GetProperty("name").GetString()!, p => p.GetProperty("id").GetGuid());
         var from = new DateTime(2025, 12, 31, 17, 0, 0, DateTimeKind.Utc); // 01/01/2026 giờ Việt Nam
@@ -404,7 +401,7 @@ public sealed class DynamicOrgIntegrationTests
         var counts = new Dictionary<string, int>();
         foreach (var row in sheet.RowsUsed())
         {
-            // Task 19: bố cục Mẫu 15A/15B theo HD03 — cột 3 mã chức danh, cột 4 tổng số.
+            // Mẫu 15A/15B: cột 3 mã chức danh, cột 4 tổng số.
             var code = row.Cell(3).GetString();
             if (code.StartsWith('M') && int.TryParse(row.Cell(4).GetString(), out var total))
                 counts[code] = total;

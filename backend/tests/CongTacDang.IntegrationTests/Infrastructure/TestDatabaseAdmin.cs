@@ -2,18 +2,8 @@ using Npgsql;
 
 namespace CongTacDang.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Nơi duy nhất tạo/xóa CSDL tạm <c>ctd_it_*</c> của test tích hợp trên máy chủ PostgreSQL dùng chung.
-/// <list type="bullet">
-/// <item><c>CREATE DATABASE … TEMPLATE template0</c>: <c>template1</c> cho phép kết nối (autovacuum, công cụ quản trị, phiên của
-/// người khác trên máy chủ dùng chung), khi đó <c>CREATE DATABASE</c> mặc định báo lỗi 55006 "source database template1 is being
-/// accessed by other users" — nguyên nhân lỗi thoáng qua ở bước tạo CSDL. <c>template0</c> không nhận kết nối nên không bị chặn.</item>
-/// <item>Tạo/xóa trong một tiến trình được tuần tự hóa; lỗi tạm thời của máy chủ (đối tượng đang dùng, quá nhiều kết nối, hết thời gian
-/// kết nối…) được thử lại có giãn cách.</item>
-/// <item>Chuỗi kết nối bật <c>Include Error Detail</c> để lỗi của máy chủ hiện đủ chi tiết trong kết quả test.</item>
-/// <item>Xóa CSDL chỉ xóa pool kết nối của đúng CSDL đó (không <c>ClearAllPools</c> ảnh hưởng tới host/CSDL khác trong tiến trình).</item>
-/// </list>
-/// </summary>
+/// <summary>Nơi duy nhất tạo/xóa CSDL <c>ctd_it_*</c>. Tạo từ <c>template0</c> vì <c>template1</c> có thể đang bị kết nối (lỗi 55006);
+/// lỗi tạm thời được thử lại; xóa CSDL chỉ xóa pool kết nối của đúng CSDL đó.</summary>
 public static class TestDatabaseAdmin
 {
     private const int MaxAttempts = 5;
@@ -80,10 +70,7 @@ public static class TestDatabaseAdmin
         }
     }
 
-    /// <summary>
-    /// Xóa CSDL tạm khi dọn sau test: đã thử lại mà vẫn lỗi thì ghi rõ lỗi (SQLSTATE, chi tiết) và để lượt dọn CSDL sót lại
-    /// (quá 24 giờ) xóa sau — không làm hỏng kết quả của các test đã chạy xong.
-    /// </summary>
+    /// <summary>Xóa CSDL khi dọn sau test: vẫn lỗi sau khi thử lại thì chỉ ghi lỗi, để lượt dọn CSDL sót lại xử lý.</summary>
     public static async Task TryDropAsync(string adminConnectionString, string name)
     {
         try
@@ -109,12 +96,7 @@ public static class TestDatabaseAdmin
         return names;
     }
 
-    /// <summary>
-    /// Lỗi thử lại được khi tạo/xóa CSDL tạm của chính test (tên duy nhất) trên máy chủ dùng chung: mọi lỗi phía máy chủ
-    /// (đối tượng đang dùng, quá tải kết nối, khóa/deadlock, "tuple concurrently updated" khi phiên khác cùng sửa catalog dùng
-    /// chung <c>pg_database</c>…) và lỗi mạng/hết thời hạn — trừ lỗi cố định: cú pháp/quyền (lớp 42), xác thực (lớp 28),
-    /// CSDL không tồn tại (lớp 3D).
-    /// </summary>
+    /// <summary>Lỗi thử lại được: mọi lỗi phía máy chủ và mạng/hết thời hạn, trừ lớp 42 (cú pháp/quyền), 28 (xác thực), 3D (không có CSDL).</summary>
     public static bool IsTransient(Exception ex) => ex switch
     {
         PostgresException pg => !(pg.SqlState.StartsWith("42", StringComparison.Ordinal)

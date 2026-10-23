@@ -7,9 +7,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Dựng model EF (provider Npgsql, không kết nối CSDL) và bắt cảnh báo khi dựng model (T-70).
-/// </summary>
+/// <summary>Dựng model EF (Npgsql, không kết nối CSDL) và bắt cảnh báo khi dựng model.</summary>
 public class DbModelWarningTests
 {
     [Fact]

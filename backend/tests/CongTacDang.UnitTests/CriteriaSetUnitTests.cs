@@ -5,11 +5,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Task 16: bộ tiêu chí (kiểm tra nội dung, 2 bộ mặc định theo bản trích xuất HD03), tính điểm theo bộ (tiêu chí chung có K/AD,
-/// làm tròn theo từng kiểu, trục 09B, gợi ý mức, trần xuất sắc, giải trình chênh lệch), TC-1/TC-2 của trích xuất mục 9 và
-/// công thức A/B/C/D cho kết quả <b>bằng đúng</b> code trước khi có bộ tiêu chí (bản sao nguyên văn ở cuối file).
-/// </summary>
+/// <summary>Bộ tiêu chí: kiểm tra nội dung, bộ mặc định, tính điểm theo bộ; công thức A/B/C/D cho kết quả bằng đúng code cũ (bản sao ở cuối file).</summary>
 public sealed class CriteriaSetUnitTests
 {
     private static Dictionary<string, GeneralItemScore> AllAssured(CriteriaSetContent c) =>
@@ -25,7 +21,7 @@ public sealed class CriteriaSetUnitTests
         Assert.Empty(b.Validate(CriteriaSetContent.Form09B));
         Assert.Empty(a.Validate(CriteriaSetContent.Form09A));
 
-        // Trích xuất mục 3.2: 3 nhóm 18/4/8, 17 tiêu chí con, tổng 30.
+        // 3 nhóm 18/4/8, 17 tiêu chí con, tổng 30.
         Assert.Equal(new[] { 18.0, 4, 8 }, b.GeneralGroups.Select(g => g.MaxScore));
         Assert.Equal(17, b.AllItems.Count());
         Assert.Equal(new[] { "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "2.1", "2.2", "2.3", "2.4", "3.1", "3.2", "3.3", "3.4" },
@@ -33,7 +29,7 @@ public sealed class CriteriaSetUnitTests
         Assert.All(b.GeneralGroups, g => Assert.Equal(CriteriaScoringMode.Binary, g.ScoringMode));
         Assert.Equal(30.0, b.AllItems.Sum(x => x.Item.MaxScore));
 
-        // Mục 3.3 + 8.3: 6 trục, điểm tối đa 09B 15/10/10/15/10/10 = 70; bộ 09A trục không có điểm riêng.
+        // 6 trục, điểm tối đa 09B 15/10/10/15/10/10 = 70; bộ 09A trục không có điểm riêng.
         Assert.Equal(new[] { "T1", "T2", "T3", "T4", "T5", "T6" }, b.Axes.Select(x => x.Code));
         Assert.Equal(new[] { 15.0, 10, 10, 15, 10, 10 }, b.Axes.Select(x => x.MaxScore));
         Assert.All(a.Axes, x => Assert.Equal(0.0, x.MaxScore));
@@ -51,7 +47,7 @@ public sealed class CriteriaSetUnitTests
         Assert.Equal(axisNames, b.Axes.Select(x => x.Name));
         Assert.Equal(axisNames, a.Axes.Select(x => x.Name));
 
-        // Mục 3.6: 4 khung tỷ trọng; 3.7: 6 mức thang quy đổi; 4.1: ngưỡng 90/70/50/0, xuất sắc cần ≥ 30% vượt chuẩn.
+        // 4 khung tỷ trọng; 6 mức thang quy đổi; ngưỡng 90/70/50/0, xuất sắc cần ≥ 30% vượt chuẩn.
         Assert.Equal(new[] { "K1", "K2", "K3", "K4" }, a.WeightFrames.Select(f => f.Code));
         var k2 = a.FindFrame("k2")!;
         Assert.Equal((0.15, 0.50, 0.15, 0.20), (k2.A, k2.B, k2.C, k2.D));
@@ -149,7 +145,7 @@ public sealed class CriteriaSetUnitTests
         half["1.1"] = new GeneralItemScore { Score = 1, Reason = "x" };
         Assert.Contains("\"Đảm bảo\"", EvaluationScoring.ValidateGeneralScores(c, half));
 
-        // Khoản giảm ≥ 1 điểm phải có căn cứ (HD03 tr.10).
+        // Khoản giảm ≥ 1 điểm phải có căn cứ.
         var notAssured = AllAssured(c);
         notAssured["1.1"] = new GeneralItemScore { Score = 0 };
         Assert.Contains("căn cứ", EvaluationScoring.ValidateGeneralScores(c, notAssured));
@@ -240,10 +236,7 @@ public sealed class CriteriaSetUnitTests
 
     #region TC-1, TC-2 (trích xuất HD03 mục 9) với bộ mặc định
 
-    /// <summary>
-    /// TC-1 (PL II mục VI, Khung 2): với bộ mặc định (làm tròn điểm sản phẩm 1 chữ số nửa lên, cộng các điểm đã làm tròn) kết quả
-    /// <b>trùng văn bản</b>: 29,3 / 14,1 / 10,0 / 9,6 / 4,6 → 67,6; tổng 30 + 67,6 = 97,6; vượt chuẩn 2/5 = 40% ≥ 30% → HTXS.
-    /// </summary>
+    /// <summary>TC-1 (Khung 2): bộ mặc định cho kết quả trùng văn bản: 29,3 / 14,1 / 10,0 / 9,6 / 4,6 → 67,6; tổng 97,6 → HTXS.</summary>
     [Fact]
     public void TC1_DefaultSet_MatchesHd03Example()
     {
@@ -298,11 +291,8 @@ public sealed class CriteriaSetUnitTests
 
     #region Công thức A/B/C/D = code cũ
 
-    /// <summary>
-    /// Cấu trúc công thức giữ nguyên: với tỷ trọng khung bằng bảng cũ và làm tròn 2 chữ số nửa về chẵn, điểm sản phẩm, tổng nhiệm
-    /// vụ, tổng điểm <b>bằng đúng</b> code trước khi có bộ tiêu chí; tỷ lệ có trọng số trùng từng bit. Riêng phép làm tròn nửa về
-    /// chẵn nay tính trên giá trị thập phân (decimal) thay cho <c>Math.Round(double)</c> cũ (2,355 → 2,36, không phải 2,35).
-    /// </summary>
+    /// <summary>Cấu trúc công thức giữ nguyên: tỷ trọng bảng cũ + làm tròn 2 chữ số nửa về chẵn cho kết quả bằng đúng code cũ.
+    /// Làm tròn tính trên decimal thay cho <c>Math.Round(double)</c> (2,355 → 2,36, không phải 2,35).</summary>
     [Fact]
     public void AbcdFormula_WithOldWeightsAndRounding_IsIdenticalToOldCode_OnRandomInputs()
     {
@@ -371,7 +361,7 @@ public sealed class CriteriaSetUnitTests
         Assert.Equal(EvaluationGrade.HoanThanh, EvaluationScoring.SuggestGrade(c, 72, null));
     }
 
-    /// <summary>TC-3 (trích xuất mục 9): trần = làm tròn(20% × số "Hoàn thành tốt"), 0,5 lên 1.</summary>
+    /// <summary>TC-3: trần = làm tròn(20% × số "Hoàn thành tốt"), 0,5 lên 1.</summary>
     [Theory]
     [InlineData(7, 1)]
     [InlineData(8, 2)]
@@ -433,7 +423,7 @@ public sealed class CriteriaSetUnitTests
         Assert.Equal(0.20, new ExcellentQuotaRule { Ratio = double.NaN }.EffectiveRatio);
     }
 
-    /// <summary>TC-5 (trích xuất mục 9): chênh ≥ 5 hoặc làm đổi mức → bắt buộc giải trình.</summary>
+    /// <summary>TC-5: chênh ≥ 5 hoặc làm đổi mức → bắt buộc giải trình.</summary>
     [Fact]
     public void RequiresExplanation_Tc5()
     {
@@ -490,7 +480,7 @@ public sealed class CriteriaSetUnitTests
 
     #endregion
 
-    /// <summary>Bản sao nguyên văn công thức trước task 16 (EvaluationScoring/EvaluationParameters của task 12, commit d65d4df).</summary>
+    /// <summary>Bản sao nguyên văn công thức trước khi có bộ tiêu chí, dùng để đối chiếu.</summary>
     private static class Old
     {
         private static (double wa, double wb, double wc, double wd) Weights(int group) => group switch

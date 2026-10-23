@@ -47,10 +47,7 @@ const toDraft = (plan?: ImprovementPlanDto | null): Draft => ({
   }),
 });
 
-/**
- * Khối "Kế hoạch hỗ trợ, khắc phục 30-60-90 ngày" (Mẫu 17, task 20 — T-88) trên trang hồ sơ đã công bố: thủ trưởng đơn vị lập,
- * duyệt, ghi kết quả từng mốc; chủ hồ sơ xem và xác nhận cam kết; xuất Mẫu 17. Mức bắt buộc theo bộ tiêu chí của kỳ.
- */
+/** Kế hoạch 30-60-90 ngày (Mẫu 17) của hồ sơ đã công bố; mức bắt buộc theo bộ tiêu chí của kỳ. */
 export function ImprovementPlanPanel({ record }: { record: EvaluationRecordDto }) {
   const { toast } = useToast();
   const [data, setData] = useState<RecordImprovementPlanDto | null>(null);

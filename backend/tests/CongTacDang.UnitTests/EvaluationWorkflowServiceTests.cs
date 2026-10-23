@@ -10,10 +10,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>
-/// Luồng đánh giá ở tầng service với kho dữ liệu giả: bắt buộc chấm đủ nhiệm vụ khi nộp 09A, không nhận "Chưa xếp loại" ở bước
-/// có xếp loại, không công bố khi chưa có mức quyết định, bắt buộc điểm thẩm định, thu hồi duyệt danh mục (quyền theo hồ sơ luồng).
-/// </summary>
+/// <summary>Luồng đánh giá ở tầng service với kho dữ liệu giả.</summary>
 public sealed class EvaluationWorkflowServiceTests
 {
     /// <summary>Quyền thực hiện bước duyệt danh mục cấu hình trong hồ sơ luồng (khác quyền mặc định evaluation.tasks.approve).</summary>

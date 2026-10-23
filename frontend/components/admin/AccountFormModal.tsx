@@ -101,8 +101,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
   const currentFrameMissing = !!form.weightFrameCode && !frameOptions.some((f) => f.code === form.weightFrameCode);
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((prev) => ({ ...prev, [key]: value }));
 
-  // Người quản trị theo phạm vi chỉ chọn được đơn vị / tổ chức Đảng mình được giao; tài khoản phải thuộc phạm vi đó
-  // (đơn vị công tác hoặc nơi sinh hoạt Đảng nằm trong phạm vi) — kiểm tra trước khi gửi, không để máy chủ từ chối.
+  // Quản trị theo phạm vi: tài khoản phải thuộc phạm vi được giao — kiểm tra trước khi gửi.
   const scope = usePermissionScope("system.users.manage");
   const departmentIds = new Set(scope?.departmentIds ?? []);
   const partyCellIds = new Set(scope?.partyCellIds ?? []);

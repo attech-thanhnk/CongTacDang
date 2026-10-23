@@ -102,7 +102,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ toast, confirm }}>
       {children}
 
-      {/* Vị trí hiển thị Toast (Top-Right Floating Container) */}
+      {/* Toast góc trên phải */}
       <div
         className="position-fixed top-0 end-0 p-3"
         style={{ zIndex: 1090, maxWidth: "380px", width: "100%", pointerEvents: "none" }}
@@ -162,7 +162,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      {/* Modal Xác nhận (Confirm Dialog) */}
+      {/* Hộp xác nhận */}
       {confirmModal && (
         <>
           <div

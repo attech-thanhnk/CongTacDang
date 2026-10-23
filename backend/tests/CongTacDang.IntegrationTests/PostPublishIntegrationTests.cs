@@ -13,11 +13,8 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Task 20 — sau công bố trên PostgreSQL thật: công khai kết quả theo phạm vi (P1), kiến nghị + xung đột lợi ích + mở lại theo
-/// kiến nghị (P2), kế hoạch 30-60-90 ngày + xuất Mẫu 17 (P3), nhắc việc (P4). Kỳ tạo qua API (hồ sơ luồng thật), hồ sơ được đưa
-/// thẳng tới "Đã công bố" trong CSDL (luồng 9 bước có test riêng).
-/// </summary>
+/// <summary>Sau công bố: công khai kết quả, kiến nghị, kế hoạch 30-60-90 ngày (Mẫu 17), nhắc việc.
+/// Hồ sơ được đưa thẳng tới "Đã công bố" trong CSDL.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class PostPublishIntegrationTests
 {

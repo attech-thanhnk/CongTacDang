@@ -11,19 +11,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>
-/// Kịch bản go-live đầu-cuối (T-68) trên PostgreSQL thật, từ <b>CSDL trống</b> (collection riêng, CSDL tạm riêng),
-/// đúng thứ tự triển khai thật (docs/deployment.md mục go-live):
-/// <list type="number">
-/// <item>Khởi động với cấu hình <c>Seed:InitialAdmin:*</c> → tài khoản quản trị ban đầu → đăng nhập → bị buộc đổi mật khẩu → đổi.</item>
-/// <item>Khai báo qua API của các trang quản trị: Danh mục (Phòng → Chi bộ) → Tài khoản (nhận mật khẩu tạm) → gán vai trò
-/// (kể cả các trường hợp bị từ chối: tự gán, vai trò toàn công ty gán theo đơn vị, gán trùng).</item>
-/// <item>Một cán bộ đăng nhập bằng mật khẩu tạm → đổi mật khẩu → quyền + phạm vi đúng theo bản gán.</item>
-/// <item>Quản trị gỡ một bản gán → request kế tiếp của người đó bị 403 ở chức năng tương ứng.</item>
-/// <item>Cơ quan thẩm định tạo kỳ, thêm người được đánh giá, mở kỳ; quản trị không xem được hồ sơ (tách quản trị kỹ thuật).</item>
-/// <item>Hồ sơ đi hết các bước bật của kỳ tới <c>Published</c>, mỗi bước do đúng người có quyền.</item>
-/// </list>
-/// </summary>
+/// <summary>Kịch bản go-live từ CSDL trống: quản trị ban đầu → danh mục, tài khoản, gán vai trò → kỳ → hồ sơ tới Published.</summary>
 [Collection(GoLiveCollection.Name)]
 public sealed class GoLiveScenarioTests
 {
@@ -136,10 +124,10 @@ public sealed class GoLiveScenarioTests
         Assert.Equal(
             new[]
             {
-                // Task 20: "Người được đánh giá" có thêm xem kết quả, gửi kiến nghị; "Lãnh đạo Phòng" có thêm lập kế hoạch 30-60-90 ngày.
+                // "Người được đánh giá" có thêm xem kết quả, gửi kiến nghị; "Lãnh đạo Phòng" có thêm lập kế hoạch 30-60-90 ngày.
                 "collective.manage", "evaluation.appeal.submit", "evaluation.cell.confirm", "evaluation.improvement.manage",
                 "evaluation.read", "evaluation.results.view", "evaluation.self", "evaluation.tasks.approve",
-                "evaluation.unit.review", // task 15: vai trò mặc định Lãnh đạo Phòng có thêm "Lãnh đạo đơn vị đề xuất"
+                "evaluation.unit.review", // Lãnh đạo Phòng có thêm "Lãnh đạo đơn vị đề xuất"
                 "meeting.read", "report.export"
             },
             cadreCodes.OrderBy(c => c, StringComparer.Ordinal));
@@ -193,8 +181,7 @@ public sealed class GoLiveScenarioTests
         var periodId = period.GetProperty("id").GetGuid();
         Assert.Equal("Draft", period.GetProperty("status").GetString());
 
-        // Cấu hình kỳ (khi còn dự thảo): đơn vị chưa phân công thư ký tập thể và cấp trực tiếp sử dụng → tắt B3a, B3c.
-        // Task 15: cấu hình bước theo hồ sơ luồng — đặt "Không áp dụng" cho B3a, B3c ở mọi hồ sơ luồng.
+        // Đơn vị chưa phân công thư ký tập thể và cấp trực tiếp → tắt B3a, B3c ở mọi hồ sơ luồng.
         var settings = JsonNode.Parse(period.GetProperty("settings").GetRawText())!.AsObject();
         foreach (var profile in settings["profiles"]!.AsArray())
         {
@@ -208,8 +195,7 @@ public sealed class GoLiveScenarioTests
             new { memberIds = new[] { leVanCId } }));
         Assert.Equal(1, added.GetProperty("added").GetInt32());
         var draft = await GoLiveHttp.DataAsync(await appraiser.GetAsync($"/api/evaluations/periods/{periodId}"));
-        // Task 15: người ghi nhận quyết định/công bố được phân công ở bước 6 (sau khi mở kỳ) → kiểm tra kẹt luồng còn cảnh báo,
-        // mở bắt buộc kèm lý do.
+        // Người ghi nhận quyết định/công bố được phân công sau khi mở kỳ → còn cảnh báo kẹt luồng, mở bắt buộc kèm lý do.
         await GoLiveHttp.DataAsync(await appraiser.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open",
             new { version = draft.GetProperty("version").GetUInt32(), force = true, reason = "Phân công ghi nhận quyết định ngay sau khi mở kỳ" }));
         var recordId = (await GoLiveHttp.DataAsync(await appraiser.GetAsync($"/api/evaluations/periods/{periodId}/participants")))
@@ -257,10 +243,7 @@ public sealed class GoLiveScenarioTests
         Assert.Equal(new[] { "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3B_APPRAISAL", "B4_DECISION", "B5_PUBLISH" }, steps);
     }
 
-    /// <summary>
-    /// Khởi động host với cấu hình <c>Seed:InitialAdmin:*</c> (như biến môi trường <c>Seed__InitialAdmin__*</c> khi triển khai):
-    /// seeder tạo tài khoản quản trị ban đầu (bắt buộc đổi mật khẩu, vai trò quản trị được bảo vệ, phạm vi Toàn công ty).
-    /// </summary>
+    /// <summary>Khởi động host với <c>Seed:InitialAdmin:*</c> để seeder tạo tài khoản quản trị ban đầu.</summary>
     private async Task<Guid> BootstrapInitialAdministratorAsync()
     {
         await using (var host = _factory.WithWebHostBuilder(builder =>
@@ -300,7 +283,6 @@ public sealed class GoLiveScenarioTests
 [CollectionDefinition(Name)]
 public sealed class GoLiveCollection : ICollectionFixture<ApiFactory>
 {
-    /// <summary>Tên collection.</summary>
     public const string Name = "golive";
 }
 

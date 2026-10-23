@@ -1,7 +1,6 @@
 import { request } from "./apiClient";
 import type { PagedResult } from "./userService";
 
-/** Một bản ghi thao tác trong audit log tập trung. */
 export interface AuditLogDto {
   id: string;
   actorId?: string | null;
@@ -16,7 +15,6 @@ export interface AuditLogDto {
   createdAt: string;
 }
 
-/** Bộ lọc tra cứu audit log. */
 export interface AuditLogFilters {
   entityType?: string;
   entityId?: string;
@@ -25,14 +23,13 @@ export interface AuditLogFilters {
   pageSize?: number;
 }
 
-/** Một trang nhật ký thao tác kèm số đếm trên toàn bộ bản ghi khớp bộ lọc. */
+/** Số đếm tính trên toàn bộ bản ghi khớp bộ lọc. */
 export interface AuditLogPage extends PagedResult<AuditLogDto> {
   actionCounts: Record<string, number>;
   actorCount: number;
   entityTypes: string[];
 }
 
-/** Kết quả một lần đăng nhập. */
 export type LoginResult = "Success" | "InvalidPassword" | "UnknownUser" | "LockedOut" | "Disabled";
 
 export const LOGIN_RESULT_LABELS: Record<LoginResult, string> = {
@@ -43,7 +40,6 @@ export const LOGIN_RESULT_LABELS: Record<LoginResult, string> = {
   Disabled: "Tài khoản bị vô hiệu",
 };
 
-/** Một bản ghi nhật ký đăng nhập. */
 export interface LoginEventDto {
   id: string;
   userId?: string | null;
@@ -54,7 +50,7 @@ export interface LoginEventDto {
   createdAt: string;
 }
 
-/** Bộ lọc nhật ký đăng nhập (thời gian theo ISO, UTC). */
+/** Thời gian theo ISO, UTC. */
 export interface LoginEventFilters {
   userId?: string;
   from?: string;
@@ -64,9 +60,8 @@ export interface LoginEventFilters {
   pageSize?: number;
 }
 
-/** Dịch vụ truy vấn audit log, nhật ký đăng nhập và lịch sử quy trình đánh giá. */
 export const auditService = {
-  /** Nhật ký thao tác, mới nhất trước, phân trang phía máy chủ. */
+  /** Mới nhất trước, phân trang phía máy chủ. */
   async getLogs(filters: AuditLogFilters = {}): Promise<AuditLogPage> {
     const params = new URLSearchParams();
     if (filters.entityType) params.set("entityType", filters.entityType);
@@ -77,7 +72,7 @@ export const auditService = {
     return request<AuditLogPage>(`/admin/audit?${params.toString()}`);
   },
 
-  /** Nhật ký đăng nhập, mới nhất trước, phân trang phía máy chủ. */
+  /** Mới nhất trước, phân trang phía máy chủ. */
   async getLoginEvents(filters: LoginEventFilters = {}): Promise<PagedResult<LoginEventDto>> {
     const params = new URLSearchParams();
     if (filters.userId) params.set("userId", filters.userId);
