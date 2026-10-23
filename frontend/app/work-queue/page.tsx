@@ -6,8 +6,8 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { usePeriod } from "@/contexts/PeriodContext";
 import { useToast } from "@/contexts/ToastContext";
 import { WorkQueueDto, evaluationService } from "@/services/evaluationService";
-import { deadlineState, normalizeText, shortDate } from "@/components/dashboard/taskUtils";
-import { TaskTable } from "@/components/dashboard/TaskTable";
+import { commonDeadline, normalizeText, queueGroups } from "@/components/dashboard/taskUtils";
+import { GroupDeadline, TaskTable } from "@/components/dashboard/TaskTable";
 import styles from "@/components/dashboard/dashboard.module.css";
 import { errorMessage } from "@/components/admin/adminUtils";
 
@@ -41,16 +41,9 @@ export default function WorkQueuePage() {
   const showSearch = (queue?.total ?? 0) > SEARCH_THRESHOLD;
 
   const groups = useMemo(() => {
-    if (!queue) return [];
     const term = showSearch ? normalizeText(keyword) : "";
-    return queue.groups
-      .map((g) => ({
-        ...g,
-        items: (term ? g.items.filter((item) => normalizeText(item.fullName).includes(term)) : g.items).map((item) => ({
-          ...item,
-          step: g.step,
-        })),
-      }))
+    return queueGroups(queue)
+      .map((g) => (term ? { ...g, items: g.items.filter((item) => normalizeText(item.fullName).includes(term)) } : g))
       .filter((g) => g.items.length > 0);
   }, [queue, keyword, showSearch]);
 
@@ -83,7 +76,7 @@ export default function WorkQueuePage() {
             <span className="spinner-border spinner-border-sm me-2" />
             Đang tải...
           </div>
-        ) : !queue || queue.total === 0 ? (
+        ) : groups.length === 0 && !keyword ? (
           <EmptyState
             icon="bi-check2-circle"
             title="Không có việc nào đang chờ bạn"
@@ -94,21 +87,14 @@ export default function WorkQueuePage() {
         ) : (
           groups.map((group) => {
             // Cả nhóm cùng một hạn thì ghi hạn một lần ở tiêu đề.
-            const first = group.items[0];
-            const common = group.items.every((i) => i.deadline === first.deadline && i.overdue === first.overdue);
-            const state = deadlineState(first.deadline, first.overdue);
+            const common = commonDeadline(group.items);
             return (
-              <section key={group.step} className={styles.block}>
+              <section key={group.step} id={group.step} className={styles.block}>
                 <div className={styles.blockH}>
                   <h2>
                     {group.stepName} <span className={styles.count}>{group.items.length}</span>
                   </h2>
-                  {common && first.deadline && (
-                    <span className={`${styles.groupDue} num ${state === "overdue" ? styles.late : state === "soon" ? styles.soon : styles.muted}`}>
-                      Hạn {shortDate(first.deadline)}
-                      {state === "overdue" && " · quá hạn"}
-                    </span>
-                  )}
+                  {common && <GroupDeadline deadline={common.deadline} overdue={common.overdue} />}
                 </div>
                 <TaskTable tasks={group.items} periodId={periodId} pageKey="workQueue" resetKeys={[keyword]} showDeadline={!common} />
               </section>

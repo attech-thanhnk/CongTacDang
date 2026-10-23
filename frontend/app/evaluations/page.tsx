@@ -173,6 +173,34 @@ export default function EvaluationsPage() {
 
   const open = (id: string) => router.push(`/evaluations/${id}`);
 
+  // Người chỉ là người được đánh giá: trang danh sách không có gì ngoài hồ sơ của mình nên chuyển thẳng tới hồ sơ.
+  const redirectToMine = !canRead && !loading && !!myRecord;
+  useEffect(() => {
+    if (redirectToMine && myRecord) router.replace(`/evaluations/${myRecord.id}`);
+  }, [redirectToMine, myRecord, router]);
+
+  if (!canRead) {
+    return (
+      <div className="page-wrapper">
+        <PageHeader title="Hồ sơ đánh giá" />
+        <div className="page-body">
+          {loading || redirectToMine ? (
+            <div className="text-secondary loading-delay">
+              <span className="spinner-border spinner-border-sm me-2" />
+              Đang tải...
+            </div>
+          ) : (
+            <EmptyState
+              icon="bi-folder2-open"
+              title={periods.length === 0 ? "Chưa có kỳ đánh giá đang diễn ra" : "Bạn chưa có hồ sơ trong kỳ này"}
+              description="Hồ sơ của bạn hiện ở đây khi kỳ đánh giá có tên bạn."
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-wrapper">
       <PageHeader title="Hồ sơ đánh giá" />

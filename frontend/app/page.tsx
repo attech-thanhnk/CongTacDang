@@ -13,6 +13,7 @@ import { MyTasksSection } from "@/components/dashboard/MyTasksSection";
 import { MyRecordSection } from "@/components/dashboard/MyRecordSection";
 import { ScopeProgressSection } from "@/components/dashboard/ScopeProgressSection";
 import { AdminSection, AdminStats } from "@/components/dashboard/AdminSection";
+import { isWorkflowStep } from "@/components/dashboard/taskUtils";
 
 /** Tổng quan theo quyền; việc chờ tôi lấy ở mọi kỳ đang mở, phần còn lại theo kỳ đang chọn. */
 export default function DashboardPage() {
@@ -91,8 +92,9 @@ export default function DashboardPage() {
   }, [periodId, periodsLoading, user, canSelf, canReadRecords]);
 
   const noPeriod = !periodsLoading && periods.length === 0;
-  // Hồ sơ của tôi đã nằm trong danh sách việc thì không hiện thêm khối riêng.
-  const mineInQueue = !!myRecord && !!queue?.groups.some((g) => g.items.some((i) => i.recordId === myRecord.id));
+  // Hồ sơ của tôi đang chờ tôi ở một bước luồng thì không hiện thêm khối riêng; việc sau công bố (kế hoạch) vẫn cần thấy kết quả.
+  const mineInQueue =
+    !!myRecord && !!queue?.groups.some((g) => isWorkflowStep(g.step) && g.items.some((i) => i.recordId === myRecord.id));
   const showMine = canSelf && !loading && !queueLoading && !!myRecord && !mineInQueue;
 
   return (

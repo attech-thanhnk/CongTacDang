@@ -3,30 +3,41 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { WorkQueueItemDto, WorkflowStepCode } from "@/services/evaluationService";
 import { Pagination } from "@/components/common/Pagination";
 import { usePagination } from "@/components/common/usePagination";
 import styles from "./dashboard.module.css";
-import { deadlineState, initialsOf, shortDate, taskActionLabel } from "./taskUtils";
+import { TaskRow, deadlineState, initialsOf, isWorkflowStep, shortDate, taskActionLabel, taskHref } from "./taskUtils";
 
-export interface TaskRow extends WorkQueueItemDto {
-  step: WorkflowStepCode;
-}
+export type { TaskRow } from "./taskUtils";
 
-/** Hạn của việc: quá hạn đỏ, sắp hạn vàng. */
+/** Hạn của việc: quá hạn đỏ, sắp hạn vàng; không có hạn thì không hiện gì. */
 function Deadline({ task }: { task: TaskRow }) {
-  const state = deadlineState(task.deadline, task.overdue);
   const date = shortDate(task.deadline);
+  if (!date) return null;
+  const state = deadlineState(task.deadline, task.overdue);
   const cls = state === "overdue" ? styles.late : state === "soon" ? styles.soon : styles.muted;
   return (
-    <span className={cls}>
-      {date || "—"}
+    <span className={`${cls} num`}>
+      Hạn {date}
       {state === "overdue" && " · quá hạn"}
     </span>
   );
 }
 
-/** Bảng việc cần xử lý; việc thuộc kỳ khác kỳ đang chọn hiện thêm tên kỳ. */
+/** Hạn chung của nhóm ghi ở tiêu đề nhóm. */
+export function GroupDeadline({ deadline, overdue }: { deadline: string | null; overdue: boolean }) {
+  const date = shortDate(deadline);
+  if (!date) return null;
+  const state = deadlineState(deadline, overdue);
+  return (
+    <span className={`${styles.groupDue} num ${state === "overdue" ? styles.late : state === "soon" ? styles.soon : styles.muted}`}>
+      Hạn {date}
+      {state === "overdue" && " · quá hạn"}
+    </span>
+  );
+}
+
+/** Bảng việc của một nhóm; việc thuộc kỳ khác kỳ đang chọn hiện thêm tên kỳ. */
 export function TaskTable({
   tasks,
   periodId,
@@ -45,71 +56,65 @@ export function TaskTable({
   const paging = usePagination(tasks, { storageKey: pageKey, resetKeys });
   const rows = pageKey ? paging.pageItems : tasks;
   const router = useRouter();
+  const deadlineColumn = showDeadline && tasks.some((t) => !!shortDate(t.deadline));
   return (
     <>
-    <div className={styles.tw}>
-      <table className={`${styles.table} ${styles.taskTable}`}>
-        {showDeadline && (
-          <thead className={styles.deskOnly}>
-            <tr>
-              <th>Cán bộ</th>
-              <th>Hạn</th>
-              <th />
-            </tr>
-          </thead>
-        )}
-        <tbody>
-          {rows.map((task) => (
-            <tr key={`${task.recordId}-${task.step}`} className={styles.rowLink} onClick={() => router.push(`/evaluations/${task.recordId}`)}>
-              <td>
-                <div className={styles.person}>
-                  <div className="initials">{initialsOf(task.fullName)}</div>
-                  <div>
-                    <Link href={`/evaluations/${task.recordId}`} className={styles.name} onClick={(e) => e.stopPropagation()}>
-                      {task.fullName}
+      <div className={styles.tw}>
+        <table className={`${styles.table} ${styles.taskTable}`}>
+          <tbody>
+            {rows.map((task) => {
+              const href = taskHref(task);
+              // Nhóm ngoài luồng (kiến nghị, kế hoạch, điều chỉnh việc): máy chủ ghi tình trạng cụ thể của từng việc.
+              const detail = !isWorkflowStep(task.step) ? task.statusDisplayName : null;
+              return (
+                <tr key={`${task.recordId}-${task.step}`} className={styles.rowLink} onClick={() => router.push(href)}>
+                  <td>
+                    <div className={styles.person}>
+                      <div className="initials">{initialsOf(task.fullName)}</div>
+                      <div>
+                        <Link href={href} className={styles.name} onClick={(e) => e.stopPropagation()}>
+                          {task.fullName}
+                        </Link>
+                        {task.isOwnRecord && <span className={styles.hint}>Hồ sơ của tôi</span>}
+                        {periodId && task.periodId !== periodId && <span className={styles.hint}>{task.periodName}</span>}
+                        <span className={styles.sub}>
+                          {[task.departmentName, task.partyCellName].filter(Boolean).join(" · ") || "—"}
+                        </span>
+                        {detail && <span className={styles.sub}>{detail}</span>}
+                        {task.returnReason && <span className={styles.reason}>Bị trả lại: {task.returnReason}</span>}
+                        {deadlineColumn && shortDate(task.deadline) && (
+                          <span className={`${styles.sub} ${styles.mobileOnly}`}>
+                            <Deadline task={task} />
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  {deadlineColumn && (
+                    <td className={`${styles.nowrap} ${styles.deskOnly}`}>
+                      <Deadline task={task} />
+                    </td>
+                  )}
+                  <td className={styles.right}>
+                    <Link href={href} className={`btn btn-sm btn-primary ${styles.nowrap}`} onClick={(e) => e.stopPropagation()}>
+                      {taskActionLabel(task)}
                     </Link>
-                    {task.isOwnRecord && <span className={styles.hint}>Hồ sơ của tôi</span>}
-                    {periodId && task.periodId !== periodId && <span className={styles.hint}>{task.periodName}</span>}
-                    <span className={styles.sub}>
-                      {[task.departmentName, task.partyCellName].filter(Boolean).join(" · ") || "—"}
-                    </span>
-                    {task.returnReason && <span className={styles.reason}>Bị trả lại: {task.returnReason}</span>}
-                    {showDeadline && (
-                      <span className={`${styles.sub} ${styles.mobileOnly} num`}>
-                        Hạn <Deadline task={task} />
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </td>
-              {showDeadline && (
-                <td className={`${styles.nowrap} ${styles.deskOnly} num`}>
-                  <Deadline task={task} />
-                </td>
-              )}
-              <td className={styles.right}>
-                <Link
-                  href={`/evaluations/${task.recordId}`}
-                  className="btn btn-sm btn-primary"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {taskActionLabel(task)}
-                </Link>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-    {pageKey && (
-      <Pagination
-        page={paging.page}
-        pageSize={paging.pageSize}
-        total={paging.total}
-        onPageChange={paging.setPage}
-        onPageSizeChange={paging.setPageSize}
-      />
-    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {pageKey && (
+        <Pagination
+          page={paging.page}
+          pageSize={paging.pageSize}
+          total={paging.total}
+          onPageChange={paging.setPage}
+          onPageSizeChange={paging.setPageSize}
+        />
+      )}
     </>
   );
 }
