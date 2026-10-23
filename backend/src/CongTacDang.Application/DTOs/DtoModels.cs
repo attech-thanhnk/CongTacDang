@@ -93,6 +93,31 @@ public class DepartmentDto : OrgUnitDto
 {
 }
 
+/// <summary>
+/// Thao tác người xem được làm với minh chứng cá nhân của một hồ sơ (tệp chủ hồ sơ gắn vào hồ sơ / nhiệm vụ của mình),
+/// tính theo quyền và giai đoạn của hồ sơ — giao diện hiện nút theo các cờ này.
+/// </summary>
+public class EvidenceRightsDto
+{
+    /// <summary>Mã hồ sơ.</summary>
+    public Guid RecordId { get; set; }
+
+    /// <summary>Giai đoạn minh chứng: Open (thêm/thay/gỡ), AddOnly (chỉ bổ sung), Locked (khóa).</summary>
+    public string Stage { get; set; } = string.Empty;
+
+    /// <summary>Được bổ sung tệp mới.</summary>
+    public bool CanAdd { get; set; }
+
+    /// <summary>Được thay tệp bằng bản mới.</summary>
+    public bool CanReplace { get; set; }
+
+    /// <summary>Được gỡ tệp.</summary>
+    public bool CanRemove { get; set; }
+
+    /// <summary>Lý do bị giới hạn (chỉ với chủ hồ sơ; null khi được làm mọi thao tác).</summary>
+    public string? Reason { get; set; }
+}
+
 /// <summary>Thông tin tệp tin đính kèm và văn bản minh chứng</summary>
 public class AttachmentDto
 {

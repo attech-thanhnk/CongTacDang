@@ -76,6 +76,9 @@ public interface IAttachmentAccessReader
     /// </summary>
     Task<EvaluationRecord?> GetOwnerRecordAsync(string ownerType, Guid ownerId);
 
+    /// <summary>Kiến nghị <paramref name="appealId"/> còn đang xử lý (đã gửi / đang xem xét); null nếu không tìm thấy.</summary>
+    Task<bool?> IsAppealOpenAsync(Guid appealId);
+
     /// <summary>
     /// Lấy tổ chức (đơn vị, tổ chức Đảng) và trạng thái kỳ của các hồ sơ đánh giá tập thể sở hữu tệp
     /// (<see cref="AttachmentOwnerTypes.CollectiveEvaluationRecord"/>). Khóa là Id hồ sơ; hồ sơ không tồn tại / đã xóa không có trong kết quả.
@@ -239,7 +242,7 @@ public sealed record CatalogUsage(int Members, int EvaluationRecords, int Collec
 /// <summary>
 /// Giao diện repository quản lý kỳ đánh giá và bảng đánh giá cán bộ theo Hướng dẫn 03-HD/TVĐU
 /// </summary>
-public interface IEvaluationRepository
+public interface IEvaluationRepository : IOrgSubtreeReader
 {
     /// <summary>Lấy danh sách tất cả các kỳ đánh giá (sắp xếp giảm dần theo năm và quý)</summary>
     Task<List<EvaluationPeriod>> GetPeriodsAsync();

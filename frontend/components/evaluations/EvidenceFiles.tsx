@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { attachmentService, AttachmentItem } from "@/services/attachmentService";
+import { attachmentService, AttachmentItem, EvidenceRights } from "@/services/attachmentService";
 import { useToast } from "@/contexts/ToastContext";
 import { errorMessage } from "@/components/admin/adminUtils";
 
@@ -15,21 +15,25 @@ export function evidenceSlot(kind: "axis" | "group", code: string): string {
   return `${EVIDENCE_PREFIX}${kind === "group" ? "N" : ""}${clean}`.slice(0, 20);
 }
 
-/** Tệp minh chứng theo mục của một hồ sơ, nạp một lần cho cả phiếu. */
-export function useRecordEvidence(recordId: string) {
+/**
+ * Tệp minh chứng theo mục của một hồ sơ, nạp một lần cho cả phiếu, kèm thao tác được làm (thêm / thay / gỡ) do máy chủ
+ * tính theo quyền và giai đoạn của hồ sơ. `revision` (ví dụ phiên bản hồ sơ) đổi → tải lại.
+ */
+export function useRecordEvidence(recordId: string, revision?: string | number | null) {
   const [files, setFiles] = useState<AttachmentItem[]>([]);
+  const [rights, setRights] = useState<EvidenceRights | null>(null);
   const reload = useCallback(async () => {
-    try {
-      const list = await attachmentService.getByOwner("EvaluationRecord", recordId);
-      setFiles(list.filter((f) => (f.formCode || "").toUpperCase().startsWith(EVIDENCE_PREFIX)));
-    } catch {
-      setFiles([]);
-    }
+    const [list, loadedRights] = await Promise.all([
+      attachmentService.getByOwner("EvaluationRecord", recordId).catch(() => [] as AttachmentItem[]),
+      attachmentService.getEvidenceRights(recordId).catch(() => null),
+    ]);
+    setFiles(list.filter((f) => (f.formCode || "").toUpperCase().startsWith(EVIDENCE_PREFIX)));
+    setRights(loadedRights);
   }, [recordId]);
   useEffect(() => {
     reload();
-  }, [reload]);
-  return { files, reload };
+  }, [reload, revision]);
+  return { files, rights, reload };
 }
 
 interface Props {
@@ -38,34 +42,39 @@ interface Props {
   /** Tên mục hiển thị trong trích yếu mặc định, ví dụ "T1 — Nhiệm vụ chính trị…". */
   label: string;
   files: AttachmentItem[];
-  editable: boolean;
+  /** Thao tác được làm (từ máy chủ); null khi chưa tải được → chỉ xem. */
+  rights: EvidenceRights | null;
   onChanged?: () => void;
 }
 
 /**
  * Tệp minh chứng (tùy chọn) của một mục trong phiếu tự chấm. Tệp gắn vào hồ sơ; người xem được hồ sơ tải được tệp.
- * Chủ hồ sơ thay được tệp bằng bản mới hoặc gỡ tệp; máy chủ vẫn lưu bản cũ và ghi người gỡ vào nhật ký.
+ * Nút đính kèm, thay bản mới, gỡ tệp hiện theo `rights` do máy chủ trả về; máy chủ vẫn lưu bản cũ và ghi người gỡ vào nhật ký.
  */
-export function EvidenceFiles({ recordId, slot, label, files, editable, onChanged }: Props) {
+export function EvidenceFiles({ recordId, slot, label, files, rights, onChanged }: Props) {
   const { toast, confirm } = useToast();
   const mine = files.filter((f) => (f.formCode || "").toUpperCase() === slot);
   const addRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
   const [replacing, setReplacing] = useState<AttachmentItem | null>(null);
   const [busy, setBusy] = useState(false);
+  const canAdd = !!rights?.canAdd;
+  const canReplace = !!rights?.canReplace;
+  const canRemove = !!rights?.canRemove;
 
-  if (!editable && mine.length === 0) return null;
+  if (!canAdd && mine.length === 0) return null;
 
   const run = async (action: () => Promise<unknown>, done: string) => {
     setBusy(true);
     try {
       await action();
       toast.success(done);
-      onChanged?.();
     } catch (error: unknown) {
-      toast.error(errorMessage(error, "Không tải được tệp lên."));
+      toast.error(errorMessage(error, "Không thực hiện được thao tác với tệp."));
     } finally {
       setBusy(false);
+      // Tải lại cả danh sách tệp và thao tác được làm (giai đoạn hồ sơ có thể đã đổi).
+      onChanged?.();
     }
   };
 
@@ -95,35 +104,35 @@ export function EvidenceFiles({ recordId, slot, label, files, editable, onChange
           <button type="button" className="btn btn-link btn-sm p-0 text-truncate" style={{ maxWidth: 220 }} title={f.fileName} onClick={() => download(f)}>
             <i className="bi bi-paperclip me-1" />{f.fileName}
           </button>
-          {editable && (
-            <>
-              <button type="button" className="btn btn-link btn-sm p-0 text-secondary" disabled={busy} title="Thay bằng bản mới (bản cũ vẫn được lưu)"
-                aria-label={`Thay tệp ${f.fileName}`} onClick={() => { setReplacing(f); replaceRef.current?.click(); }}>
-                <i className="bi bi-arrow-repeat" />
-              </button>
-              <button type="button" className="btn btn-link btn-sm p-0 text-danger" disabled={busy} title="Gỡ tệp" aria-label={`Gỡ tệp ${f.fileName}`}
-                onClick={() => confirm({
-                  title: "Gỡ tệp minh chứng",
-                  message: `Gỡ tệp "${f.fileName}" khỏi hồ sơ?`,
-                  confirmText: "Gỡ tệp",
-                  isDanger: true,
-                  onConfirm: () => run(() => attachmentService.remove(f.id), "Đã gỡ tệp minh chứng."),
-                })}>
-                <i className="bi bi-x-lg" />
-              </button>
-            </>
+          {canReplace && (
+            <button type="button" className="btn btn-link btn-sm p-0 text-secondary" disabled={busy} title="Thay bằng bản mới (bản cũ vẫn được lưu)"
+              aria-label={`Thay tệp ${f.fileName}`} onClick={() => { setReplacing(f); replaceRef.current?.click(); }}>
+              <i className="bi bi-arrow-repeat" />
+            </button>
+          )}
+          {canRemove && (
+            <button type="button" className="btn btn-link btn-sm p-0 text-danger" disabled={busy} title="Gỡ tệp" aria-label={`Gỡ tệp ${f.fileName}`}
+              onClick={() => confirm({
+                title: "Gỡ tệp minh chứng",
+                message: `Gỡ tệp "${f.fileName}" khỏi hồ sơ?`,
+                confirmText: "Gỡ tệp",
+                isDanger: true,
+                onConfirm: () => run(() => attachmentService.remove(f.id), "Đã gỡ tệp minh chứng."),
+              })}>
+              <i className="bi bi-x-lg" />
+            </button>
           )}
         </span>
       ))}
-      {editable && (
+      {canAdd && (
         <>
           <button type="button" className="btn btn-link btn-sm p-0" disabled={busy} onClick={() => addRef.current?.click()}>
             {busy ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-plus-lg me-1" />}Đính kèm
           </button>
           <input ref={addRef} type="file" accept={ACCEPT} hidden onChange={onAdd} />
-          <input ref={replaceRef} type="file" accept={ACCEPT} hidden onChange={onReplace} />
         </>
       )}
+      {canReplace && <input ref={replaceRef} type="file" accept={ACCEPT} hidden onChange={onReplace} />}
     </div>
   );
 }

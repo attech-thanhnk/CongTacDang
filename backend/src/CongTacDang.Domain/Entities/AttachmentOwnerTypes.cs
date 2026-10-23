@@ -19,8 +19,8 @@ public static class AttachmentOwnerTypes
     public const string EvaluationTask = "EvaluationTask";
 
     /// <summary>
-    /// Kiến nghị sau công bố (<see cref="Entities.EvaluationAppeal"/>, task 20): tệp thuộc hồ sơ của kiến nghị — chủ hồ sơ tải lên,
-    /// người xem được hồ sơ xem được tệp.
+    /// Kiến nghị sau công bố (<see cref="Entities.EvaluationAppeal"/>, task 20): tệp thuộc hồ sơ của kiến nghị — chủ hồ sơ bổ sung tệp
+    /// khi kiến nghị còn xử lý (không thay, không gỡ); người xem được hồ sơ và người xử lý kiến nghị trong phạm vi xem được tệp.
     /// </summary>
     public const string EvaluationAppeal = "EvaluationAppeal";
 

@@ -117,7 +117,7 @@ public sealed class FormLayoutService : IFormLayoutService
         if (_currentUser?.UserId == member.Id)
             throw new ForbiddenException(
                 "Bạn không thể tự đặt kiểu trình bày biểu mẫu cho chính mình (xung đột lợi ích). Hãy nhờ người quản lý tài khoản khác thực hiện.");
-        _guard.Ensure(PermissionCodes.SystemUsersManage, TargetOf(member));
+        _guard.Ensure(PermissionCodes.SystemUsersManage, TargetOf(member).ForWrite());
         if (input.LayoutId.HasValue)
             member.FormLayoutOverride = await _repo.FindAsync(input.LayoutId.Value, ct)
                 ?? throw new ValidationException("Kiểu trình bày đã chọn không còn trong danh mục. Hãy tải lại trang.");

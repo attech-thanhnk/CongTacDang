@@ -111,7 +111,8 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         if (form == CollectiveEvaluationForm.M07 && (dto.PartyCellId is null || dto.PartyCellId == Guid.Empty || dto.DepartmentId.HasValue))
             throw new ArgumentException("Mẫu 07 là tự đánh giá của tập thể Đảng ủy, Chi ủy, Chi bộ: hãy chọn tổ chức Đảng.");
 
-        _guard.Ensure(PermissionCodes.CollectiveManage, new AccessTarget(DepartmentId: dto.DepartmentId, PartyCellId: dto.PartyCellId));
+        // Ghi: mọi đơn vị hồ sơ gắn với (đơn vị chính quyền và tổ chức Đảng) đều phải trong phạm vi.
+        _guard.Ensure(PermissionCodes.CollectiveManage, AccessTarget.ForUnitsWrite(dto.DepartmentId, dto.PartyCellId));
         // Điểm tối đa lấy từ tham số bộ tiêu chí của kỳ (mặc định 30 / 70).
         var period = await _evaluationRepo.GetPeriodByIdAsync(dto.PeriodId)
             ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {dto.PeriodId}");
@@ -148,7 +149,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     {
         var record = await _collectiveRepo.GetForUpdateAsync(id)
             ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ tập thể với Id: {id}");
-        _guard.Ensure(PermissionCodes.CollectiveManage, new AccessTarget(DepartmentId: record.DepartmentId, PartyCellId: record.PartyCellId));
+        _guard.Ensure(PermissionCodes.CollectiveManage, AccessTarget.ForUnitsWrite(record.DepartmentId, record.PartyCellId));
         if (record.Period.Status == PeriodStatus.Closed)
             throw new ConflictException($"Kỳ \"{record.Period.Name}\" đã đóng nên không sửa được hồ sơ tập thể. Hãy liên hệ người quản lý kỳ nếu cần mở lại.");
         if (string.IsNullOrWhiteSpace(dto.SubjectName))
@@ -424,7 +425,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         // Hội nghị quyết định mức xếp loại là hội nghị cấp ủy: tổ chức Đảng hoặc cấp Công ty, không phải Phòng / đơn vị.
         if (stage == WorkflowStep.B4_DECISION && departmentId.HasValue)
             throw new ArgumentException("Hội nghị quyết định mức xếp loại do cấp ủy tổ chức: chọn tổ chức Đảng hoặc Cấp Công ty, không chọn Phòng / đơn vị.");
-        _guard.Ensure(PermissionCodes.MeetingManage, new AccessTarget(DepartmentId: departmentId, PartyCellId: partyCellId));
+        _guard.Ensure(PermissionCodes.MeetingManage, AccessTarget.ForUnitsWrite(departmentId, partyCellId));
         if (dto.FormCode == "M13" && dto.VoteSummaries.Count == 0)
             throw new ArgumentException("Mẫu 13 phải có tổng hợp phiếu theo từng hồ sơ cán bộ.");
         if (dto.InvitedCount < 0 || dto.PresentCount < 0 || dto.AbsentCount < 0 || dto.PresentCount > dto.InvitedCount)
@@ -476,10 +477,12 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
 
                 var record = await _evaluationRepo.GetRecordByIdAsync(vote.RecordId)
                     ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {vote.RecordId}");
+                // Biên bản ở tổ chức cấp trên chứa được hồ sơ của đơn vị/tổ chức cấp dưới (cây con).
                 if (record.PeriodId != dto.PeriodId
-                    || (partyCellId.HasValue && record.PartyCellId != partyCellId)
-                    || (departmentId.HasValue && record.DepartmentId != departmentId))
-                    throw new ForbiddenException("Biên bản chỉ được chứa hồ sơ cùng kỳ và cùng Phòng/Chi bộ với biên bản.");
+                    || !await OrgSubtreeRules.RecordWithinMeetingAsync(
+                        _evaluationRepo, departmentId, partyCellId, record.DepartmentId, record.PartyCellId))
+                    throw new ForbiddenException(
+                        "Biên bản chỉ được chứa hồ sơ cùng kỳ, thuộc đơn vị/tổ chức Đảng của biên bản hoặc đơn vị, tổ chức cấp dưới của nó.");
 
                 meeting.VoteSummaries.Add(new EvaluationMeetingVoteSummary
                 {
@@ -508,7 +511,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     {
         var meeting = await _meetingRepo.GetForUpdateAsync(id)
             ?? throw new KeyNotFoundException($"Không tìm thấy biên bản hội nghị với Id: {id}");
-        _guard.Ensure(PermissionCodes.MeetingManage, new AccessTarget(DepartmentId: meeting.DepartmentId, PartyCellId: meeting.PartyCellId));
+        _guard.Ensure(PermissionCodes.MeetingManage, AccessTarget.ForUnitsWrite(meeting.DepartmentId, meeting.PartyCellId));
         if (meeting.Period.Status == PeriodStatus.Closed)
             throw new ConflictException($"Kỳ \"{meeting.Period.Name}\" đã đóng nên không sửa được biên bản. Hãy liên hệ người quản lý kỳ nếu cần mở lại.");
         if (dto.InvitedCount < 0 || dto.PresentCount < 0 || dto.AbsentCount < 0 || dto.PresentCount > dto.InvitedCount)
@@ -657,7 +660,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     /// </summary>
     private bool CanAttach(CollectiveEvaluationRecord record, bool periodClosed) =>
         !periodClosed && _guard.Can(PermissionCodes.CollectiveManage,
-            new CollectiveAttachmentOwner(record.Id, record.DepartmentId, record.PartyCellId, periodClosed).Target);
+            new CollectiveAttachmentOwner(record.Id, record.DepartmentId, record.PartyCellId, periodClosed).WriteTarget);
 
     /// <summary>Ánh xạ hồ sơ tập thể sang DTO.</summary>
     private CollectiveEvaluationRecordDto MapCollective(CollectiveEvaluationRecord record, bool periodClosed)

@@ -182,7 +182,7 @@ public sealed class UserAccountService : IUserAccountService
         Authz.Ensure(PermissionCodes.SystemUsersRead, TargetOf(member.DepartmentId, member.PartyCellId));
         var dto = ToDto(member);
         // Phạm vi bao trùm cây con chỉ máy chủ biết đầy đủ → trả sẵn cho giao diện hiển thị nút thao tác.
-        dto.CanManage = Authz.Can(PermissionCodes.SystemUsersManage, TargetOf(member.DepartmentId, member.PartyCellId))
+        dto.CanManage = Authz.Can(PermissionCodes.SystemUsersManage, TargetOf(member.DepartmentId, member.PartyCellId).ForWrite())
             && (_currentUser?.UserId == null
                 || Authz.Can(PermissionCodes.SystemUsersManage, AccessTarget.None)
                 || !await RoleAssignments.IsPrivilegedAccountAsync(member.Id, ct));
@@ -424,7 +424,8 @@ public sealed class UserAccountService : IUserAccountService
     {
         if (_currentUser?.UserId == null)
             return;
-        Authz.Ensure(PermissionCodes.SystemUsersManage, TargetOf(departmentId, partyCellId));
+        // Ghi: tài khoản gắn cả đơn vị chính quyền và tổ chức Đảng → người thao tác phải quản lý được cả hai nơi.
+        Authz.Ensure(PermissionCodes.SystemUsersManage, TargetOf(departmentId, partyCellId).ForWrite());
     }
 
     /// <summary>

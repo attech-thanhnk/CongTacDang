@@ -323,7 +323,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                       placeholder="Tóm tắt kết quả, minh chứng chung của nhóm (không bắt buộc)" aria-label={`Nhận xét nhóm ${group.code}`}
                       onChange={(e) => setGroupNotes({ ...groupNotes, [group.code]: e.target.value })} />
                     <EvidenceFiles recordId={record.id} slot={evidenceSlot("group", group.code)} label={`nhóm ${group.code} — ${group.name}`}
-                      files={evidence.files} editable onChanged={evidence.reload} />
+                      files={evidence.files} rights={evidence.rights} onChanged={evidence.reload} />
                   </td>
                 </tr>
                 {group.items.map((item) => {
@@ -402,7 +402,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                 </div>
                 <AxisNoteFields axisCode={a.code} value={axisNotes[a.code] ?? {}} onChange={(note) => setAxisNotes({ ...axisNotes, [a.code]: note })} />
                 <EvidenceFiles recordId={record.id} slot={evidenceSlot("axis", a.code)} label={`${a.code} — ${a.name}`}
-                  files={evidence.files} editable onChanged={evidence.reload} />
+                  files={evidence.files} rights={evidence.rights} onChanged={evidence.reload} />
               </div>
             ))}
             <div className="small text-secondary">Cộng các trục (tạm tính): <strong>{fmt(tasksScore)}</strong> / {fmt(p.totalTaskWeight)}</div>

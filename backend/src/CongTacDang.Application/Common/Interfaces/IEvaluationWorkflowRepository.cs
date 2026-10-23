@@ -35,7 +35,7 @@ public sealed record MemberSnapshotSource(
 /// Truy cập dữ liệu cho luồng đánh giá theo cấu hình kỳ (task 12). Các thao tác ghi chỉ đưa vào DbContext;
 /// lưu qua <see cref="IUnitOfWork.SaveChangesAsync"/>.
 /// </summary>
-public interface IEvaluationWorkflowRepository
+public interface IEvaluationWorkflowRepository : IOrgSubtreeReader
 {
     /// <summary>Kỳ theo Id (được theo dõi để cập nhật).</summary>
     Task<EvaluationPeriod?> FindPeriodAsync(Guid id, CancellationToken ct = default);

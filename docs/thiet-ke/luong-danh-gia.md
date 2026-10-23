@@ -63,6 +63,9 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 - Mọi chuyển trạng thái ghi `EvaluationRecordHistory`: người làm, thời điểm, bước, hành động (`complete/return/reopen`), lý do, ảnh chụp điểm/mức trước–sau.
 - Chuyển không hợp lệ → 409 với thông báo "Hồ sơ đang ở bước …, không thể …".
 - Mọi hành động dùng `version` (xmin) — thiếu `version` với hành động ghi → 400 (đóng T-24).
+- **Minh chứng của chủ hồ sơ** theo trạng thái (`EvidenceRules`): trước khi nộp phiếu tự chấm (gồm khi được trả lại / mở lại về bước của
+  chủ hồ sơ) thêm, thay, gỡ tự do; đã nộp — chỉ bổ sung tệp mới; `Published` hoặc kỳ không `Open` — khóa, bổ sung qua kiến nghị
+  (chi tiết: `phan-quyen.md` mục 4).
 
 ## 3. Kỳ đánh giá
 
@@ -156,6 +159,9 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 ## 4. Bỏ phiếu kín (B3a, B4)
 - Hệ thống **không** tổ chức bỏ phiếu điện tử và **không lưu phiếu của từng người**. Chỉ ghi **kết quả kiểm phiếu** (số phiếu mỗi mức, "Chưa đánh giá, xếp loại", phiếu không hợp lệ, số triệu tập/có mặt) do thư ký nhập, gắn với biên bản hội nghị (Mẫu 12/13).
 - Kiểm tra: tổng phiếu các mức + chưa đánh giá + không hợp lệ ≤ số có mặt; không âm.
+- Hồ sơ gắn vào biên bản (khi lập Mẫu 13 hoặc khi ghi nhận B3a/B4 kèm biên bản) phải cùng kỳ và thuộc đơn vị/tổ chức Đảng của biên bản
+  **hoặc đơn vị, tổ chức cấp dưới** (cây con theo `Path`) — biên bản Đảng ủy bộ phận chứa được hồ sơ các Chi bộ trực thuộc; biên bản
+  không gắn đơn vị (cấp Công ty) nhận mọi hồ sơ; hồ sơ ngoài cây con bị từ chối.
 - Biên bản lưu thêm (jsonb `Details`, đợt 8) Tổ kiểm phiếu (người đầu là Tổ trưởng) và số phiếu phát ra / thu về / hợp lệ / không
   hợp lệ (phát ra ≤ có mặt; thu về ≤ phát ra; hợp lệ + không hợp lệ = thu về). Mẫu 13 xuất **theo từng biên bản** có kết quả kiểm
   phiếu: cán bộ tách mục I (thẩm quyền BTVĐUTCT) / mục II (Đảng ủy/Chi ủy cơ sở) theo thẩm quyền ảnh chụp trên hồ sơ.

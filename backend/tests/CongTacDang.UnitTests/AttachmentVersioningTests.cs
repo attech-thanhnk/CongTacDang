@@ -5,6 +5,7 @@ using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.Services;
 using CongTacDang.Domain.Entities;
+using CongTacDang.Domain.Enums;
 using Xunit;
 
 namespace CongTacDang.UnitTests;
@@ -351,6 +352,95 @@ public class AttachmentVersioningTests
         Assert.All(_world.Files.Items, a => Assert.True(a.IsDeleted));
     }
 
+    /// <summary>
+    /// Minh chứng cá nhân theo giai đoạn: trước khi nộp phiếu tự chấm thêm/thay/gỡ tự do; sau khi nộp chỉ bổ sung (thay, gỡ → 409);
+    /// hồ sơ trả về bước tự chấm thì lại tự do; đã công bố hoặc kỳ khóa dữ liệu → khóa. Cờ cho giao diện khớp luật.
+    /// </summary>
+    [Fact]
+    public async Task OwnerEvidence_FollowsRecordStage()
+    {
+        var owner = _world.Cadre(CellA);
+        var (record, task) = _world.RecordWithTask(owner);
+        record.Status = RecordStatus.AwaitingSelfScore;
+        var first = await _world.Service.UploadAttachmentAsync(Pdf("1"), "a.pdf", 10, "MC-T1", "", "A", owner.Id,
+            AttachmentOwnerTypes.EvaluationRecord, record.Id);
+        var onTask = await _world.Service.UploadAttachmentAsync(Pdf("t"), "t.pdf", 10, "MAU02", "", "A", owner.Id,
+            AttachmentOwnerTypes.EvaluationTask, task.Id);
+        var rights = await _world.Service.GetEvidenceRightsAsync(record.Id, owner.Id);
+        Assert.True(rights.CanAdd && rights.CanReplace && rights.CanRemove);
+        Assert.Null(rights.Reason);
+
+        // Đã nộp phiếu tự chấm: chỉ bổ sung tệp mới.
+        record.Status = RecordStatus.AwaitingCellConfirm;
+        var added = await _world.Service.UploadAttachmentAsync(Pdf("2"), "b.pdf", 10, "MC-T1", "", "A", owner.Id,
+            AttachmentOwnerTypes.EvaluationRecord, record.Id);
+        await Assert.ThrowsAsync<ConflictException>(() => _world.Service.ReplaceAttachmentAsync(first.Id, Pdf("1b"), "a2.pdf", 10, "A", owner.Id));
+        await Assert.ThrowsAsync<ConflictException>(() => _world.Service.ReplaceAttachmentAsync(onTask.Id, Pdf("t2"), "t2.pdf", 10, "A", owner.Id));
+        await Assert.ThrowsAsync<ConflictException>(() => _world.Service.RemoveAttachmentAsync(added.Id, owner.Id));
+        Assert.DoesNotContain(_world.Files.Items, a => a.IsDeleted || a.IsSuperseded);
+        rights = await _world.Service.GetEvidenceRightsAsync(record.Id, owner.Id);
+        Assert.Equal("AddOnly", rights.Stage);
+        Assert.True(rights.CanAdd);
+        Assert.False(rights.CanReplace || rights.CanRemove);
+        Assert.NotNull(rights.Reason);
+        // Người xem khác (Bí thư) không có thao tác nào; vẫn bị 403 trước khi xét giai đoạn.
+        var secretary = _world.Secretary(CellA);
+        var seen = await _world.Service.GetEvidenceRightsAsync(record.Id, secretary.Id);
+        Assert.False(seen.CanAdd || seen.CanReplace || seen.CanRemove);
+        await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.RemoveAttachmentAsync(added.Id, secretary.Id));
+
+        // Trả lại về bước tự chấm: thay, gỡ lại được.
+        record.Status = RecordStatus.AwaitingSelfScore;
+        await _world.Service.ReplaceAttachmentAsync(first.Id, Pdf("1c"), "a3.pdf", 10, "A", owner.Id);
+        await _world.Service.RemoveAttachmentAsync(added.Id, owner.Id);
+
+        // Kỳ khóa dữ liệu / hồ sơ đã công bố: khóa minh chứng.
+        record.Period.Status = PeriodStatus.Locked;
+        await Assert.ThrowsAsync<ConflictException>(() => _world.Service.UploadAttachmentAsync(Pdf("3"), "c.pdf", 10, "MC-T1", "", "A", owner.Id,
+            AttachmentOwnerTypes.EvaluationRecord, record.Id));
+        record.Period.Status = PeriodStatus.Open;
+        record.Status = RecordStatus.Published;
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => _world.Service.UploadAttachmentAsync(Pdf("3"), "c.pdf", 10, "MC-T1", "", "A",
+            owner.Id, AttachmentOwnerTypes.EvaluationRecord, record.Id));
+        Assert.Contains("kiến nghị", ex.Message);
+        rights = await _world.Service.GetEvidenceRightsAsync(record.Id, owner.Id);
+        Assert.False(rights.CanAdd || rights.CanReplace || rights.CanRemove);
+    }
+
+    /// <summary>
+    /// Sau công bố, minh chứng bổ sung đi theo kiến nghị: chủ hồ sơ gắn tệp khi kiến nghị còn xử lý (không thay, không gỡ);
+    /// người xử lý kiến nghị trong phạm vi đọc được tệp; kiến nghị đã trả lời → không gắn thêm.
+    /// </summary>
+    [Fact]
+    public async Task AppealFiles_AddWhileOpen_ReadableByResolvers()
+    {
+        var owner = _world.Cadre(CellA);
+        var (record, _) = _world.RecordWithTask(owner);
+        record.Status = RecordStatus.Published;
+        record.Period.Status = PeriodStatus.Closed;
+        var appealId = Guid.NewGuid();
+        _world.Appeals[appealId] = (record.Id, true);
+
+        var file = await _world.Service.UploadAttachmentAsync(Pdf("kn"), "kn.pdf", 10, "KN", "", "A", owner.Id,
+            AttachmentOwnerTypes.EvaluationAppeal, appealId);
+        await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.UploadAttachmentAsync(Pdf("x"), "x.pdf", 10, "KN", "", "B",
+            _world.Cadre(CellA).Id, AttachmentOwnerTypes.EvaluationAppeal, appealId));
+        await Assert.ThrowsAsync<ConflictException>(() => _world.Service.ReplaceAttachmentAsync(file.Id, Pdf("kn2"), "kn2.pdf", 10, "A", owner.Id));
+
+        // Người xử lý kiến nghị (chỉ có evaluation.appeal.resolve trong phạm vi Chi bộ) đọc được; ngoài phạm vi thì không.
+        var resolver = _world.UserWithScope(PermissionCodes.EvaluationAppealResolve, ScopeType.PartyCell, CellA);
+        Assert.Single(await _world.Service.GetAttachmentsByOwnerAsync(AttachmentOwnerTypes.EvaluationAppeal, appealId, resolver.Id));
+        Assert.NotNull(await _world.Service.DownloadAttachmentAsync(file.Id, resolver.Id));
+        var outsider = _world.UserWithScope(PermissionCodes.EvaluationAppealResolve, ScopeType.PartyCell, CellB);
+        await Assert.ThrowsAsync<ForbiddenException>(() => _world.Service.DownloadAttachmentAsync(file.Id, outsider.Id));
+        // Quyền xử lý kiến nghị không cho đọc minh chứng của hồ sơ.
+        Assert.Empty(await _world.Service.GetAttachmentsByOwnerAsync(AttachmentOwnerTypes.EvaluationRecord, record.Id, resolver.Id));
+
+        _world.Appeals[appealId] = (record.Id, false);
+        await Assert.ThrowsAsync<ConflictException>(() => _world.Service.UploadAttachmentAsync(Pdf("kn3"), "kn3.pdf", 10, "KN", "", "A", owner.Id,
+            AttachmentOwnerTypes.EvaluationAppeal, appealId));
+    }
+
     #region Hỗ trợ
 
     private static MemoryStream Pdf(string content) => new(Encoding.ASCII.GetBytes("%PDF " + content));
@@ -370,6 +460,8 @@ public class AttachmentVersioningTests
         public Dictionary<Guid, EvaluationTask> Tasks { get; } = new();
         public Dictionary<Guid, List<PermissionGrant>> Grants { get; } = new();
         public Dictionary<Guid, CollectiveAttachmentOwner> Collectives { get; } = new();
+        /// <summary>Kiến nghị: Id → (hồ sơ, còn đang xử lý).</summary>
+        public Dictionary<Guid, (Guid RecordId, bool Open)> Appeals { get; } = new();
         public AttachmentService Service { get; }
 
         public World()
@@ -407,7 +499,11 @@ public class AttachmentVersioningTests
 
         public (EvaluationRecord Record, EvaluationTask Task) RecordWithTask(PartyMemberProfile owner)
         {
-            var record = new EvaluationRecord { Id = Guid.NewGuid(), MemberId = owner.Id, Member = owner, PartyCellId = owner.PartyCellId };
+            var record = new EvaluationRecord
+            {
+                Id = Guid.NewGuid(), MemberId = owner.Id, Member = owner, PartyCellId = owner.PartyCellId,
+                Period = new EvaluationPeriod { Status = PeriodStatus.Open }
+            };
             var task = new EvaluationTask { Id = Guid.NewGuid(), RecordId = record.Id, Record = record };
             record.Tasks.Add(task);
             Records[record.Id] = record;
@@ -446,10 +542,14 @@ public class AttachmentVersioningTests
             {
                 AttachmentOwnerTypes.EvaluationRecord => _world.Records.GetValueOrDefault(ownerId),
                 AttachmentOwnerTypes.EvaluationTask => _world.Tasks.TryGetValue(ownerId, out var t) ? _world.Records[t.RecordId] : null,
+                AttachmentOwnerTypes.EvaluationAppeal => _world.Appeals.TryGetValue(ownerId, out var a) ? _world.Records[a.RecordId] : null,
                 _ => null
             };
             return Task.FromResult(record);
         }
+
+        public Task<bool?> IsAppealOpenAsync(Guid appealId) =>
+            Task.FromResult(_world.Appeals.TryGetValue(appealId, out var a) ? a.Open : (bool?)null);
 
         public Task<Dictionary<Guid, CollectiveAttachmentOwner>> GetCollectiveOwnersAsync(IReadOnlyCollection<Guid> collectiveRecordIds) =>
             Task.FromResult(collectiveRecordIds

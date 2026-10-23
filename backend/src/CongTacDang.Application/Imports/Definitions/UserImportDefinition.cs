@@ -284,11 +284,11 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
 
             // Quyền quản lý tài khoản trên đơn vị/tổ chức Đảng của tài khoản (nơi hiện tại và nơi đến).
             if (existing is { IsDeleted: false }
-                && !_guard.Can(PermissionCodes.SystemUsersManage, new AccessTarget(DepartmentId: existing.DepartmentId, PartyCellId: existing.PartyCellId)))
+                && !_guard.Can(PermissionCodes.SystemUsersManage, AccessTarget.ForUnitsWrite(existing.DepartmentId, existing.PartyCellId)))
             {
                 row.Error("Bạn không có quyền quản lý tài khoản này (ngoài phạm vi được gán).");
             }
-            else if (!_guard.Can(PermissionCodes.SystemUsersManage, new AccessTarget(DepartmentId: data.DepartmentId, PartyCellId: data.PartyCellId)))
+            else if (!_guard.Can(PermissionCodes.SystemUsersManage, AccessTarget.ForUnitsWrite(data.DepartmentId, data.PartyCellId)))
             {
                 row.Error("Bạn không có quyền quản lý tài khoản ở đơn vị/tổ chức Đảng đã nhập (ngoài phạm vi được gán).");
             }

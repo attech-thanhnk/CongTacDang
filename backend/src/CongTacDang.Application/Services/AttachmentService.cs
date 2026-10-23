@@ -11,6 +11,8 @@ using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Domain.Entities;
+using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
@@ -75,7 +77,8 @@ public interface IAttachmentService
     Task<AttachmentDto> ReplaceAttachmentAsync(Guid id, Stream stream, string originalFileName, long size, string uploadedBy, Guid requesterId);
 
     /// <summary>
-    /// Gỡ tệp minh chứng chủ hồ sơ đã đính kèm vào hồ sơ của mình (mọi phiên bản; xóa mềm — tệp vẫn lưu, nhật ký ghi người gỡ).
+    /// Gỡ tệp minh chứng chủ hồ sơ đã đính kèm vào hồ sơ của mình (mọi phiên bản; xóa mềm — tệp vẫn lưu, nhật ký ghi người gỡ) —
+    /// chỉ trước khi nộp phiếu tự chấm (<see cref="EvidenceRules"/>; sau đó 409).
     /// Phụ lục, báo cáo của hồ sơ tập thể: người có <c>collective.manage</c> trên tổ chức của hồ sơ gỡ được khi kỳ chưa đóng.
     /// Không áp dụng cho tệp gắn nhiệm vụ hay văn bản của cấp trên.
     /// </summary>
@@ -86,6 +89,12 @@ public interface IAttachmentService
     /// (người tải lên, chủ hồ sơ đang gắn tệp hoặc quản trị). Báo 400 nếu tệp không tồn tại, 403 nếu không có quyền.
     /// </summary>
     Task EnsureCanLinkAttachmentsAsync(IReadOnlyCollection<Guid> attachmentIds, Guid requesterId);
+
+    /// <summary>
+    /// Thao tác người yêu cầu được làm với minh chứng cá nhân của hồ sơ <paramref name="recordId"/> (thêm / thay / gỡ) theo quyền
+    /// và giai đoạn của hồ sơ (<see cref="EvidenceRules"/>). Cần quyền xem hồ sơ.
+    /// </summary>
+    Task<EvidenceRightsDto> GetEvidenceRightsAsync(Guid recordId, Guid requesterId);
 }
 
 public class AttachmentService : IAttachmentService
@@ -294,6 +303,8 @@ public class AttachmentService : IAttachmentService
         if (current.EffectiveOwnerType != AttachmentOwnerTypes.EvaluationRecord || current.UploadedById != requesterId)
             throw new ForbiddenException("Chỉ gỡ được tệp minh chứng do chính bạn đính kèm vào hồ sơ của mình.");
         await EnsureAccessAsync(requesterId, current, FileOperation.Update, "Bạn không có quyền gỡ tệp đính kèm này.");
+        // Sau khi nộp phiếu tự chấm: chỉ bổ sung, không gỡ; đã công bố / kỳ khóa: khóa minh chứng (409).
+        await EnsureEvidenceChangeAllowedAsync(current, requesterId);
         await VersionRepo.RemoveGroupAsync(current.GroupId);
     }
 
@@ -302,6 +313,7 @@ public class AttachmentService : IAttachmentService
     {
         var current = await GetCurrentRequiredAsync(id);
         await EnsureAccessAsync(requesterId, current, FileOperation.Update, "Bạn không có quyền thay tệp đính kèm này.");
+        await EnsureEvidenceChangeAllowedAsync(current, requesterId);
 
         var versions = await VersionRepo.GetVersionsAsync(current.GroupId);
         var nextNumber = versions.Count == 0 ? current.VersionNumber + 1 : versions.Max(v => v.VersionNumber) + 1;
@@ -373,6 +385,36 @@ public class AttachmentService : IAttachmentService
         var allowed = await FilterAccessibleAsync(requesterId, attachments, FileOperation.Update);
         if (allowed.Count != attachments.Count)
             throw new ForbiddenException("Bạn không có quyền gắn tệp minh chứng này vào hồ sơ.");
+    }
+
+    /// <inheritdoc />
+    public async Task<EvidenceRightsDto> GetEvidenceRightsAsync(Guid recordId, Guid requesterId)
+    {
+        if (_accessReader == null || _resolver == null)
+            throw new InvalidOperationException("AttachmentService chưa được cấu hình kiểm tra quyền.");
+        var record = await _accessReader.GetOwnerRecordAsync(AttachmentOwnerTypes.EvaluationRecord, recordId)
+            ?? throw new KeyNotFoundException("Không tìm thấy hồ sơ đánh giá.");
+        var requester = await _resolver.GetAsync(requesterId);
+        var target = AccessTarget.ForRecord(record);
+        if (!AuthorizationGuard.Evaluate(requester, PermissionCodes.EvaluationRead, target))
+            throw new ForbiddenException("Bạn không có quyền xem hồ sơ đánh giá này.");
+
+        var (stage, recordStatus, periodStatus) = StageOf(record);
+        var isOwner = AuthorizationGuard.Evaluate(requester, PermissionCodes.EvaluationSelf, target);
+        var dto = new EvidenceRightsDto
+        {
+            RecordId = record.Id,
+            Stage = stage.ToString(),
+            CanAdd = isOwner && EvidenceRules.CanAdd(stage),
+            CanReplace = isOwner && EvidenceRules.CanReplace(stage),
+            CanRemove = isOwner && EvidenceRules.CanRemove(stage)
+        };
+        if (isOwner)
+        {
+            dto.Reason = EvidenceRules.AddBlockReason(stage, recordStatus, periodStatus)
+                ?? EvidenceRules.ChangeBlockReason(stage, recordStatus, periodStatus);
+        }
+        return dto;
     }
 
     #region Hỗ trợ
@@ -449,7 +491,7 @@ public class AttachmentService : IAttachmentService
                 throw new KeyNotFoundException("Không tìm thấy hồ sơ đánh giá tập thể cần gắn tệp.");
 
             var manager = await _resolver.GetAsync(uploadedById.Value);
-            if (!AuthorizationGuard.Evaluate(manager, PermissionCodes.CollectiveManage, collective.Target))
+            if (!AuthorizationGuard.Evaluate(manager, PermissionCodes.CollectiveManage, collective.WriteTarget))
             {
                 throw new ForbiddenException(
                     $"Bạn cần quyền \"{PermissionCodes.DisplayName(PermissionCodes.CollectiveManage)}\" trên tổ chức của hồ sơ tập thể để đính kèm tệp.");
@@ -468,6 +510,21 @@ public class AttachmentService : IAttachmentService
         {
             throw new ForbiddenException(
                 $"Chỉ chủ hồ sơ có quyền \"{PermissionCodes.DisplayName(PermissionCodes.EvaluationSelf)}\" mới được gắn tệp vào hồ sơ đánh giá này.");
+        }
+
+        if (normalizedType == AttachmentOwnerTypes.EvaluationAppeal)
+        {
+            // Minh chứng bổ sung sau công bố đi theo kiến nghị: chỉ khi kiến nghị còn đang xử lý.
+            if (await _accessReader.IsAppealOpenAsync(ownerId.Value) != true)
+                throw new ConflictException("Kiến nghị đã được trả lời nên không bổ sung tệp được nữa. Nếu cần, hãy gửi kiến nghị mới kèm tệp.");
+        }
+        else
+        {
+            // Minh chứng cá nhân: được bổ sung tới khi công bố, khi kỳ còn mở.
+            var (stage, recordStatus, periodStatus) = StageOf(record);
+            var reason = EvidenceRules.AddBlockReason(stage, recordStatus, periodStatus);
+            if (reason != null)
+                throw new ConflictException(reason);
         }
 
         return new OwnerInfo(normalizedType, ownerId.Value, record.Id);
@@ -515,6 +572,49 @@ public class AttachmentService : IAttachmentService
                 + (_options.CleanupEnabled && _options.CleanupRetentionHours > 0
                     ? $" Tệp chưa gắn quá {_options.CleanupRetentionHours} giờ sẽ được hệ thống tự xóa."
                     : string.Empty));
+        }
+    }
+
+    /// <summary>
+    /// Giai đoạn minh chứng của hồ sơ. Hồ sơ nạp thiếu kỳ (không xác định được trạng thái kỳ) coi như đã khóa.
+    /// </summary>
+    private static (EvidenceStage Stage, RecordStatus RecordStatus, PeriodStatus PeriodStatus) StageOf(EvaluationRecord record)
+    {
+        var periodStatus = record.Period?.Status ?? PeriodStatus.Closed;
+        return (EvidenceRules.StageOf(record.Status, periodStatus), record.Status, periodStatus);
+    }
+
+    /// <summary>
+    /// Thay / gỡ minh chứng của chủ hồ sơ theo giai đoạn (409 nếu không được): trước khi nộp phiếu tự chấm (hoặc khi hồ sơ được
+    /// trả về bước của chủ hồ sơ) — được; sau khi nộp — chỉ bổ sung tệp mới; đã công bố / kỳ không mở — khóa.
+    /// Tệp kèm kiến nghị không thay, không gỡ (chỉ bổ sung khi kiến nghị còn xử lý). Văn bản của cấp trên do người ghi nhận
+    /// (<c>evaluation.external.record</c>) quản lý, không theo luật này; phụ lục hồ sơ tập thể theo luật riêng.
+    /// </summary>
+    private async Task EnsureEvidenceChangeAllowedAsync(TaskAttachment current, Guid requesterId)
+    {
+        if (current.EffectiveOwnerType == AttachmentOwnerTypes.CollectiveEvaluationRecord)
+            return;
+        if (current.EffectiveOwnerType == AttachmentOwnerTypes.EvaluationAppeal)
+            throw new ConflictException("Tệp kèm kiến nghị đã gửi không thay hoặc gỡ được. Khi kiến nghị còn đang xử lý, hãy bổ sung tệp mới.");
+        if (_accessReader == null || _resolver == null)
+            throw new InvalidOperationException("AttachmentService chưa được cấu hình kiểm tra quyền.");
+
+        var links = (await _accessReader.GetRecordLinksAsync(new[] { current }))
+            .GetValueOrDefault(current.Id) ?? new List<AttachmentRecordLink>();
+        if (links.Count == 0)
+            return; // Tệp chưa gắn hồ sơ: chỉ người tải lên, chưa thuộc minh chứng của hồ sơ nào.
+
+        var requester = await _resolver.GetAsync(requesterId);
+        if (links.Any(link => link.Kind == AttachmentLinkKind.ExternalResult
+                && AuthorizationGuard.Evaluate(requester, PermissionCodes.EvaluationExternalRecord, AccessTarget.ForRecord(link.Record))))
+            return;
+
+        foreach (var link in links.Where(link => link.Kind != AttachmentLinkKind.ExternalResult))
+        {
+            var (stage, recordStatus, periodStatus) = StageOf(link.Record);
+            var reason = EvidenceRules.ChangeBlockReason(stage, recordStatus, periodStatus);
+            if (reason != null)
+                throw new ConflictException(reason);
         }
     }
 
@@ -652,7 +752,7 @@ public class AttachmentService : IAttachmentService
             return AuthorizationGuard.Evaluate(requester, PermissionCodes.EvaluationRead, owner.Target)
                 || AuthorizationGuard.Evaluate(requester, PermissionCodes.CollectiveManage, owner.Target);
         }
-        return !owner.PeriodClosed && AuthorizationGuard.Evaluate(requester, PermissionCodes.CollectiveManage, owner.Target);
+        return !owner.PeriodClosed && AuthorizationGuard.Evaluate(requester, PermissionCodes.CollectiveManage, owner.WriteTarget);
     }
 
     /// <summary>
@@ -680,12 +780,16 @@ public class AttachmentService : IAttachmentService
         {
             // Xem: ai xem được hồ sơ. Sửa (phiên bản mới, gắn tệp): tệp của chủ hồ sơ → evaluation.self; văn bản của cấp trên → người có quyền
             // ghi nhận kết quả của cấp trên trên hồ sơ (chủ hồ sơ không sửa được — xung đột lợi ích trong guard).
+            var isAppealFile = attachment.EffectiveOwnerType == AttachmentOwnerTypes.EvaluationAppeal;
             return effectiveLinks.Any(link => AuthorizationGuard.Evaluate(
-                requester,
-                operation == FileOperation.Read ? PermissionCodes.EvaluationRead
-                    : link.Kind == AttachmentLinkKind.ExternalResult ? PermissionCodes.EvaluationExternalRecord
-                    : PermissionCodes.EvaluationSelf,
-                AccessTarget.ForRecord(link.Record)));
+                    requester,
+                    operation == FileOperation.Read ? PermissionCodes.EvaluationRead
+                        : link.Kind == AttachmentLinkKind.ExternalResult ? PermissionCodes.EvaluationExternalRecord
+                        : PermissionCodes.EvaluationSelf,
+                    AccessTarget.ForRecord(link.Record))
+                // Tệp kèm kiến nghị: người xử lý kiến nghị trong phạm vi xem được (kể cả khi không có quyền xem hồ sơ).
+                || (operation == FileOperation.Read && isAppealFile
+                    && AuthorizationGuard.Evaluate(requester, PermissionCodes.EvaluationAppealResolve, AccessTarget.ForRecord(link.Record))));
         }
 
         // Tệp chưa gắn hồ sơ (minh chứng tải trước khi lưu nhiệm vụ, văn bản của cấp trên trước khi ghi nhận kết quả):

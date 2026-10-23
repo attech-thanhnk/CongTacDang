@@ -154,7 +154,7 @@ public sealed class Quarter4ScenarioTests
         var wrongMeeting = await Post(w.SecKt, id[w.Tp.Id], "collective",
             new { proposedGrade = "HoanThanhTot", meetingId = meetingTc, votes = Votes(4, 1) }, w.Tccb);
         Assert.Equal(HttpStatusCode.BadRequest, wrongMeeting.StatusCode);
-        Assert.Contains("Phòng/Chi bộ của biên bản", await Message(wrongMeeting));
+        Assert.Contains("đơn vị/tổ chức Đảng của biên bản", await Message(wrongMeeting));
 
         await Step(w.SecKt, id[w.Tp.Id], "collective",
             new { proposedGrade = "HoanThanhXuatSac", meetingId = meetingKt, votes = Votes(4, 1) }, "AwaitingAppraisal");

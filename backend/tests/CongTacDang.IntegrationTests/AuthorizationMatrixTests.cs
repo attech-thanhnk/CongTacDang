@@ -306,6 +306,91 @@ public sealed class AuthorizationMatrixTests
         Assert.Equal(HttpStatusCode.BadRequest, (await s.Office.GetAsync("/api/auth/scope?permission=khong.co")).StatusCode);
     }
 
+    /// <summary>
+    /// Tạo/sửa đối tượng gắn nhiều đơn vị: mọi đơn vị khác null đều phải trong phạm vi người thao tác (đọc vẫn theo luật "một trong").
+    /// </summary>
+    [SkippableFact]
+    public async Task WriteScope_EveryReferencedUnitMustBeInScope()
+    {
+        var s = await GetScenarioAsync();
+
+        // Chi ủy Chi bộ A (collective.manage phạm vi Chi bộ A) không tạo được Mẫu 06 gắn Chi bộ A + Phòng B (ngoài phạm vi).
+        object M06(Guid? dept, Guid? cell) => new
+        {
+            periodId = s.PeriodId, form = "M06", partyCellId = cell, departmentId = dept, subjectName = "Tập thể lãnh đạo",
+            generalCriteriaScore = 25.0, taskCriteriaScore = 60.0
+        };
+        var mixed = await s.CellSecA.PostAsJsonAsync("/api/evaluations/collective-records", M06(s.DeptB, s.CellA));
+        Assert.Equal(HttpStatusCode.Forbidden, mixed.StatusCode);
+        Assert.Contains("cả đơn vị chính quyền và tổ chức Đảng", await Message(mixed));
+
+        // Thư ký Phòng A (meeting.manage phạm vi Phòng A) không lập được biên bản gắn Phòng A + Chi bộ A; Văn phòng (toàn công ty) lập được.
+        object Meeting(Guid dept, Guid cell) => new
+        {
+            periodId = s.PeriodId, departmentId = dept, partyCellId = cell, stage = "B3A_COLLECTIVE", formCode = "M12",
+            meetingType = "Hội nghị", invitedCount = 3, presentCount = 3
+        };
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.DeptSecretaryA.PostAsJsonAsync("/api/evaluations/meetings", Meeting(s.DeptA, s.CellA))).StatusCode);
+        var created = await ReadData(await s.Office.PostAsJsonAsync("/api/evaluations/meetings", Meeting(s.DeptA, s.CellA)));
+        var meetingId = created.GetProperty("id").GetGuid();
+        // Biên bản đó: thư ký Phòng A vẫn đọc được (luật đọc "một trong") nhưng không sửa được.
+        Assert.Equal(HttpStatusCode.OK, (await s.DeptSecretaryA.GetAsync($"/api/evaluations/meetings/{meetingId}")).StatusCode);
+        var update = new
+        {
+            version = created.GetProperty("version").GetUInt32(), periodId = s.PeriodId, formCode = "M12", meetingType = "Hội nghị (sửa)",
+            invitedCount = 3, presentCount = 3
+        };
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.DeptSecretaryA.PutAsJsonAsync($"/api/evaluations/meetings/{meetingId}", update)).StatusCode);
+    }
+
+    /// <summary>
+    /// Biên bản ở tổ chức Đảng cấp trên chứa được kết quả kiểm phiếu của hồ sơ thuộc tổ chức cấp dưới (cây con);
+    /// hồ sơ ngoài cây con vẫn bị từ chối.
+    /// </summary>
+    [SkippableFact]
+    public async Task Meeting_AtParentOrg_AcceptsRecordsOfChildUnits()
+    {
+        var s = await GetScenarioAsync();
+        var suffix = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        Guid parentId = Guid.Empty, childId = Guid.Empty;
+        await _factory.WithDbAsync(async db =>
+        {
+            var parent = new PartyCell { Code = $"IT-DBBP-{suffix}", Name = $"Đảng bộ bộ phận {suffix}" };
+            var child = new PartyCell { Code = $"IT-CBC-{suffix}", Name = $"Chi bộ con {suffix}", ParentId = parent.Id };
+            parent.Path = $"/{parent.Id:D}/";
+            child.Path = $"{parent.Path}{child.Id:D}/";
+            db.AddRange(parent, child);
+            await db.SaveChangesAsync();
+            (parentId, childId) = (parent.Id, child.Id);
+        });
+        var member = await _factory.CreateUserAsync(s.DeptA, childId);
+        var childRecord = Guid.Empty;
+        await _factory.WithDbAsync(async db =>
+        {
+            var record = new EvaluationRecord
+            {
+                PeriodId = s.PeriodId, MemberId = member.Id, DepartmentId = s.DeptA, PartyCellId = childId,
+                ApprovalAuthority = ApprovalAuthority.CoSo, Status = RecordStatus.AwaitingRegistration, UpdatedAt = DateTime.UtcNow,
+                WeightFrameCode = "K2"
+            };
+            db.Add(record);
+            await db.SaveChangesAsync();
+            childRecord = record.Id;
+        });
+
+        object M13(Guid cellId, Guid recordId) => new
+        {
+            periodId = s.PeriodId, partyCellId = cellId, stage = "B4_DECISION", formCode = "M13", meetingType = "Hội nghị cấp ủy",
+            invitedCount = 5, presentCount = 5,
+            voteSummaries = new[] { new { recordId, votesExcellent = 0, votesGood = 5, votesSatisfactory = 0, votesUnsatisfactory = 0, votesNotRated = 0, invalidVotes = 0, notes = "" } }
+        };
+        var ok = await ReadData(await s.Office.PostAsJsonAsync("/api/evaluations/meetings", M13(parentId, childRecord)));
+        Assert.Equal(childRecord, ok.GetProperty("voteSummaries")[0].GetProperty("recordId").GetGuid());
+        // Hồ sơ Chi bộ B (ngoài cây con của tổ chức cấp trên) → từ chối; biên bản Chi bộ con không chứa hồ sơ của tổ chức cha.
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.Office.PostAsJsonAsync("/api/evaluations/meetings", M13(parentId, s.RecordB1))).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.Office.PostAsJsonAsync("/api/evaluations/meetings", M13(childId, s.RecordA1))).StatusCode);
+    }
+
     #endregion
 
     #region Tệp đính kèm

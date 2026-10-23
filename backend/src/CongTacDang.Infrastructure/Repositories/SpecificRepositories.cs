@@ -304,7 +304,19 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
         return await _db.EvaluationRecords
             .AsNoTracking()
             .Include(r => r.Member)
+            .Include(r => r.Period)
             .FirstOrDefaultAsync(r => r.Id == recordId.Value);
+    }
+
+    /// <summary>Kiến nghị còn đang xử lý hay không (null nếu không tìm thấy).</summary>
+    public async Task<bool?> IsAppealOpenAsync(Guid appealId)
+    {
+        var status = await _db.Set<EvaluationAppeal>()
+            .AsNoTracking()
+            .Where(a => a.Id == appealId)
+            .Select(a => (AppealStatus?)a.Status)
+            .FirstOrDefaultAsync();
+        return status.HasValue ? status is AppealStatus.Submitted or AppealStatus.UnderReview : null;
     }
 
     /// <summary>Lấy tổ chức và trạng thái kỳ của các hồ sơ tập thể sở hữu tệp (hồ sơ đã xóa mềm bị bộ lọc loại ra).</summary>
@@ -386,6 +398,7 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
         var records = await _db.EvaluationRecords
             .AsNoTracking()
             .Include(r => r.Member)
+            .Include(r => r.Period)
             .Where(r => recordIds.Contains(r.Id))
             .ToDictionaryAsync(r => r.Id);
 
@@ -682,6 +695,14 @@ public class EvaluationRepository : IEvaluationRepository
     {
         _db = db;
     }
+
+    /// <inheritdoc />
+    public Task<bool> IsDepartmentWithinAsync(Guid rootId, Guid unitId, CancellationToken ct = default) =>
+        OrgSubtreeQueries.IsDepartmentWithinAsync(_db, rootId, unitId, ct);
+
+    /// <inheritdoc />
+    public Task<bool> IsPartyCellWithinAsync(Guid rootId, Guid unitId, CancellationToken ct = default) =>
+        OrgSubtreeQueries.IsPartyCellWithinAsync(_db, rootId, unitId, ct);
 
     /// <summary>Lấy danh sách tất cả các kỳ đánh giá</summary>
     public async Task<List<EvaluationPeriod>> GetPeriodsAsync()
