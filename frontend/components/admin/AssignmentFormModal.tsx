@@ -57,7 +57,6 @@ export function AssignmentFormModal({
   const [validFrom, setValidFrom] = useState(isEdit ? toDateInput(assignment.validFrom) : "");
   const [validTo, setValidTo] = useState(isEdit ? exclusiveIsoToLastDayInput(assignment.validTo) : "");
   const [note, setNote] = useState(assignment?.note ?? "");
-  const [localError, setLocalError] = useState<string | null>(null);
 
   const role = fixedRole ?? roles.find((r) => r.id === roleId);
   const globalOnlyPermissions = useMemo(
@@ -66,14 +65,18 @@ export function AssignmentFormModal({
   );
   const mustBeGlobal = globalOnlyPermissions.length > 0;
   const scopeOptions = (scopeType === "Department" ? departments : partyCells).filter((item) => item.isActive);
+  const effectiveScope: ScopeType = mustBeGlobal ? "Global" : scopeType;
+  const dateError = !!validFrom && !!validTo && validTo < validFrom;
+  const changed = isEdit
+    ? validFrom !== toDateInput(assignment.validFrom) ||
+      validTo !== exclusiveIsoToLastDayInput(assignment.validTo) ||
+      note.trim() !== (assignment.note ?? "").trim()
+    : !!user && !!role && (effectiveScope === "Global" || !!scopeId);
+  const canSubmit = changed && !dateError && !saving;
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    setLocalError(null);
-    if (validFrom && validTo && validTo < validFrom) {
-      setLocalError("Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.");
-      return;
-    }
+    if (!canSubmit) return;
     if (isEdit) {
       // Ngày không đổi → gửi lại đúng mốc cũ (không làm tròn về 0 giờ).
       const fromUnchanged = validFrom === toDateInput(assignment.validFrom);
@@ -85,19 +88,7 @@ export function AssignmentFormModal({
       });
       return;
     }
-    if (!user) {
-      setLocalError("Hãy chọn người được gán.");
-      return;
-    }
-    if (!role) {
-      setLocalError("Hãy chọn vai trò.");
-      return;
-    }
-    const effectiveScope: ScopeType = mustBeGlobal ? "Global" : scopeType;
-    if (effectiveScope !== "Global" && !scopeId) {
-      setLocalError(`Hãy chọn ${effectiveScope === "Department" ? "đơn vị chính quyền" : "tổ chức Đảng"} áp dụng (gồm cả các đơn vị cấp dưới).`);
-      return;
-    }
+    if (!user || !role) return;
     onCreate?.({
       userId: user.id,
       roleId: role.id,
@@ -110,8 +101,24 @@ export function AssignmentFormModal({
   };
 
   return (
-    <AdminModal title={isEdit ? "Sửa thời hạn phân công" : "Phân công vai trò"} onClose={onClose} closeDisabled={saving} maxWidth={600}>
-      <form onSubmit={handleSubmit}>
+    <AdminModal
+      title={isEdit ? "Sửa thời hạn phân công" : "Phân công vai trò"}
+      onClose={onClose}
+      closeDisabled={saving}
+      maxWidth={600}
+      footer={
+        <>
+          <button type="button" className="btn btn-outline-secondary" onClick={onClose} disabled={saving}>
+            Hủy
+          </button>
+          <button type="submit" form="assignment-form" className="btn btn-primary" disabled={!canSubmit}>
+            {saving && <span className="spinner-border spinner-border-sm me-1" />}
+            {isEdit ? "Lưu" : "Phân công"}
+          </button>
+        </>
+      }
+    >
+      <form id="assignment-form" onSubmit={handleSubmit}>
         {isEdit ? (
           <div className="small mb-3 p-2 rounded border bg-light">
             <div>
@@ -199,8 +206,12 @@ export function AssignmentFormModal({
           </div>
           <div className="col-6">
             <label className="form-label">Đến hết ngày</label>
-            <input type="date" className="form-control form-control-sm" value={validTo} onChange={(e) => setValidTo(e.target.value)} />
-            <div className="form-text">Để trống = không thời hạn.</div>
+            <input type="date" className={`form-control form-control-sm${dateError ? " is-invalid" : ""}`} value={validTo} onChange={(e) => setValidTo(e.target.value)} />
+            {dateError ? (
+              <div className="invalid-feedback">Phải bằng hoặc sau ngày bắt đầu.</div>
+            ) : (
+              <div className="form-text">Để trống = không thời hạn.</div>
+            )}
           </div>
         </div>
         <div className="mb-2">
@@ -213,16 +224,6 @@ export function AssignmentFormModal({
             placeholder="VD: theo Quyết định số …"
             onChange={(e) => setNote(e.target.value)}
           />
-        </div>
-        {localError && <div className="alert alert-danger small py-2 mb-2">{localError}</div>}
-        <div className="d-flex justify-content-end gap-2 mt-3">
-          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={onClose} disabled={saving}>
-            Hủy
-          </button>
-          <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
-            {saving && <span className="spinner-border spinner-border-sm me-1" />}
-            {isEdit ? "Lưu" : "Phân công vai trò"}
-          </button>
         </div>
       </form>
     </AdminModal>

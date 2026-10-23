@@ -16,6 +16,7 @@ import {
 } from "@/services/catalogService";
 import { EMPTY_GUID } from "@/services/userService";
 import { AdminModal } from "./AdminModal";
+import { useFormDirty } from "./useFormDirty";
 import { errorMessage, errorTitle } from "./adminUtils";
 
 interface FormState {
@@ -46,6 +47,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [form, setForm] = useState<FormState | null>(null);
+  const formDirty = useFormDirty(form);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -187,22 +189,25 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setCollapsed(new Set())} disabled={!!search}>
-          <i className="bi bi-arrows-expand me-1" />
-          Mở rộng
-        </button>
-        <button
-          type="button"
-          className="btn btn-sm btn-outline-secondary"
-          onClick={() => setCollapsed(new Set(items.filter((i) => i.childCount > 0).map((i) => i.id)))}
-          disabled={!!search}
-        >
-          <i className="bi bi-arrows-collapse me-1" />
-          Thu gọn
-        </button>
-        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={load} disabled={loading}>
-          <i className="bi bi-arrow-clockwise me-1" />
-          Làm mới
+        {/* Một nút đảo: đang có nhánh thu gọn thì mở hết, ngược lại thu gọn hết. */}
+        {collapsed.size > 0 ? (
+          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setCollapsed(new Set())} disabled={!!search}>
+            <i className="bi bi-arrows-expand me-1" />
+            Mở rộng tất cả
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            onClick={() => setCollapsed(new Set(items.filter((i) => i.childCount > 0).map((i) => i.id)))}
+            disabled={!!search}
+          >
+            <i className="bi bi-arrows-collapse me-1" />
+            Thu gọn tất cả
+          </button>
+        )}
+        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={load} disabled={loading} aria-label="Làm mới" title="Làm mới">
+          <i className="bi bi-arrow-clockwise" />
         </button>
         {canManage && (
           <button type="button" className="btn btn-sm btn-primary ms-auto" onClick={() => openCreate()}>
@@ -212,14 +217,14 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
         )}
       </div>
         <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0">
+          <table className="table table-hover align-middle mb-0 table-fit">
             <thead>
               <tr>
                 <th className="ps-3">Tên</th>
-                <th style={{ width: 140 }}>Mã</th>
-                <th style={{ width: 140 }}>Loại</th>
-                <th className="text-center" style={{ width: 80 }}>Cán bộ</th>
-                <th style={{ width: 130 }}>Trạng thái</th>
+                <th className="d-none d-md-table-cell" style={{ width: 140 }}>Mã</th>
+                <th className="d-none d-md-table-cell" style={{ width: 140 }}>Loại</th>
+                <th className="text-center d-none d-md-table-cell" style={{ width: 80 }}>Cán bộ</th>
+                <th className="d-none d-md-table-cell" style={{ width: 130 }}>Trạng thái</th>
                 {canManage && <th className="pe-3 text-end" style={{ width: 130 }}>Thao tác</th>}
               </tr>
             </thead>
@@ -242,7 +247,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                 visible.map((item) => (
                   <tr key={item.id} style={{ opacity: item.isActive ? 1 : 0.6 }}>
                     <td className="ps-3">
-                      <div className="d-flex align-items-center" style={{ paddingLeft: search ? 0 : item.depth * 20 }}>
+                      <div className="d-flex align-items-center" style={{ paddingLeft: search ? 0 : Math.min(item.depth, 4) * 16 }}>
                         {!search && item.childCount > 0 ? (
                           <button
                             type="button"
@@ -256,16 +261,20 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                           <span className="me-1" style={{ display: "inline-block", width: 14 }} />
                         )}
                         <span className="fw-semibold text-dark">{item.name}</span>
-                        {item.childCount > 0 && <span className="status-badge tone-neutral ms-2">{item.childCount} cấp dưới</span>}
+                        {item.childCount > 0 && <span className="status-badge tone-neutral ms-2 d-none d-md-inline-flex">{item.childCount} cấp dưới</span>}
                       </div>
                       {search && item.parentName && <div className="small text-secondary">thuộc {item.parentName}</div>}
+                      {/* Màn hẹp ẩn cột Mã nên hiện mã dưới tên. */}
+                      <div className="d-md-none small" style={{ paddingLeft: (search ? 0 : Math.min(item.depth, 4) * 16) + 18 }}>
+                        <code>{item.code}</code>
+                      </div>
                     </td>
-                    <td>
+                    <td className="d-none d-md-table-cell">
                       <code className="fw-semibold">{item.code}</code>
                     </td>
-                    <td className="text-secondary small">{item.unitTypeName || "—"}</td>
-                    <td className="text-center">{item.memberCount}</td>
-                    <td>
+                    <td className="text-secondary small d-none d-md-table-cell">{item.unitTypeName || "—"}</td>
+                    <td className="text-center d-none d-md-table-cell">{item.memberCount}</td>
+                    <td className="d-none d-md-table-cell">
                       {item.isActive ? (
                         <span className="tag t-ok">Hoạt động</span>
                       ) : (
@@ -276,7 +285,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                       <td className="pe-3 text-end text-nowrap">
                         <RowActions
                           itemLabel={item.name}
-                          primary={[{ key: "edit", label: "Sửa", title: "Sửa / đổi cấp trên", icon: "bi-pencil-square", onClick: () => openEdit(item) }]}
+                          primary={[{ key: "edit", label: "Sửa", title: "Sửa / đổi cấp trên", icon: "bi-pencil", onClick: () => openEdit(item) }]}
                           menu={[
                             { key: "add-child", label: `Thêm ${unit} cấp dưới`, icon: "bi-diagram-2", onClick: () => openCreate(item) },
                             {
@@ -299,8 +308,20 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
       </Card>
 
       {form && (
-        <AdminModal title={form.id ? `Sửa ${unit}` : `Thêm ${unit}`} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={560}>
-          <form onSubmit={handleSave}>
+        <AdminModal title={form.id ? `Sửa ${unit}` : `Thêm ${unit}`} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={560}
+          footer={
+            <>
+            <button type="button" className="btn btn-outline-secondary" onClick={() => setForm(null)} disabled={saving}>
+              Hủy
+            </button>
+            <button type="submit" form="org-unit-form" className="btn btn-primary" disabled={saving || !formDirty}>
+              {saving && <span className="spinner-border spinner-border-sm me-1" />}
+              Lưu
+            </button>
+            </>
+          }
+        >
+          <form id="org-unit-form" onSubmit={handleSave}>
             <div className="row g-2">
               <div className="col-12 col-md-5">
                 <label className="form-label">
@@ -384,15 +405,6 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                   </label>
                 </div>
               </div>
-            </div>
-            <div className="d-flex justify-content-end gap-2 mt-3">
-              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setForm(null)} disabled={saving}>
-                Hủy
-              </button>
-              <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
-                {saving && <span className="spinner-border spinner-border-sm me-1" />}
-                Lưu
-              </button>
             </div>
           </form>
         </AdminModal>

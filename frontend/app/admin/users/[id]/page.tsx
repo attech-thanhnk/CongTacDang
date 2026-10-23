@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +13,8 @@ import { AssignmentFormModal } from "@/components/admin/AssignmentFormModal";
 import { AssignmentTable } from "@/components/admin/AssignmentTable";
 import { EffectivePermissionsPanel } from "@/components/admin/EffectivePermissionsPanel";
 import { MemberPositionsPanel } from "@/components/admin/MemberPositionsPanel";
+import { HeaderMenu } from "@/components/admin/HeaderMenu";
+import type { RowAction } from "@/components/common/RowActions";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { TemporaryCredential, TemporaryPasswordModal } from "@/components/admin/TemporaryPasswordModal";
 import { errorMessage, errorTitle, formatDateOnly, formatDateTime } from "@/components/admin/adminUtils";
@@ -31,78 +33,6 @@ import {
 import styles from "./user-detail.module.css";
 
 type Tab = "info" | "positions" | "assignments" | "effective";
-
-interface MenuAction {
-  key: string;
-  label: string;
-  icon: string;
-  onClick: () => void;
-  danger?: boolean;
-  disabled?: boolean;
-  title?: string;
-}
-
-/** Menu ⋯ cho các thao tác ít dùng hoặc nguy hiểm; đóng khi bấm ra ngoài hoặc Esc. */
-function MoreActions({ actions }: { actions: MenuAction[] }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  return (
-    <div className="dropdown" ref={ref}>
-      <button
-        type="button"
-        className={`btn btn-outline-secondary ${styles.moreButton}`}
-        aria-label="Thao tác khác"
-        title="Thao tác khác"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <i className="bi bi-three-dots" />
-      </button>
-      {open && (
-        <ul className={`dropdown-menu dropdown-menu-end show ${styles.menu}`} role="menu">
-          {actions.map((a) => (
-            <li key={a.key} role="none">
-              {a.danger && <hr className="dropdown-divider" />}
-              <button
-                type="button"
-                role="menuitem"
-                className={`dropdown-item ${a.danger ? "text-danger" : ""}`}
-                disabled={a.disabled}
-                title={a.title}
-                onClick={() => {
-                  setOpen(false);
-                  a.onClick();
-                }}
-              >
-                <i className={`bi ${a.icon} me-2`} />
-                {a.label}
-              </button>
-              {a.disabled && a.title && <div className={styles.menuHint}>{a.title}</div>}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
 
 /** Chi tiết tài khoản: thông tin + thao tác quản trị, bản gán vai trò, quyền hiệu lực. */
 export default function AdminUserDetailPage({ params }: { params: { id: string } }) {
@@ -425,7 +355,6 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       icon: "bi-person",
       items: [
         { label: "Tên đăng nhập", value: <code>{account.username}</code> },
-        { label: "Họ và tên", value: account.fullName },
         { label: "Ngày sinh", value: account.dateOfBirth ? formatDateOnly(account.dateOfBirth) : null },
         { label: "Email", value: account.email },
         { label: "Số điện thoại", value: account.phoneNumber },
@@ -459,7 +388,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     },
   ];
 
-  const moreActions: MenuAction[] = [
+  const moreActions: RowAction[] = [
     { key: "reset", label: "Đặt lại mật khẩu", icon: "bi-key", onClick: handleResetPassword },
     {
       key: "active",
@@ -482,12 +411,6 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
 
   return (
     <div className="page-wrapper">
-      <div className={styles.back}>
-        <Link href="/admin/users">
-          <i className="bi bi-arrow-left" aria-hidden="true" />
-          Danh sách tài khoản
-        </Link>
-      </div>
       <PageHeader
         title={account.fullName}
         badge={<AccountStatusBadge account={account} />}
@@ -501,10 +424,10 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                 </button>
               )}
               <button type="button" className="btn btn-primary" onClick={() => setEditing(true)}>
-                <i className="bi bi-pencil-square me-1" />
-                Sửa thông tin
+                <i className="bi bi-pencil me-1" />
+                Sửa
               </button>
-              <MoreActions actions={moreActions} />
+              <HeaderMenu actions={moreActions} itemLabel={account.fullName} />
             </>
           ) : undefined
         }
@@ -534,7 +457,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
             </ul>
           </div>
         )}
-        <ul className="nav nav-tabs">
+        <ul className="nav nav-tabs flex-nowrap" style={{ overflowX: "auto", overflowY: "hidden" }}>
           {(
             [
               { key: "info" as const, label: "Thông tin", icon: "bi-person-vcard", show: true },
@@ -546,7 +469,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
             .filter((t) => t.show)
             .map((t) => (
               <li className="nav-item" key={t.key}>
-                <button type="button" className={`nav-link ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>
+                <button type="button" className={`nav-link text-nowrap ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>
                   <i className={`bi ${t.icon} me-1`} />
                   {t.label}
                 </button>
@@ -584,7 +507,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                 <div className="d-flex align-items-center gap-2">
                   <button
                     type="button"
-                    className="btn btn-sm btn-primary"
+                    className="btn btn-sm btn-outline-secondary"
                     onClick={() => setAssignmentForm({})}
                     disabled={isSelf || roles.length === 0}
                     title={isSelf ? "Không thể tự phân công vai trò cho chính mình." : undefined}
@@ -611,18 +534,20 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                 />
               )}
             </Card>
-            <Card>
-              <div className="card-header">
-                <h2 className="mb-0">Lịch sử (đã hết hạn)</h2>
-              </div>
-              <AssignmentTable
-                assignments={history}
-                showRole
-                canManage={!isSelf}
-                emptyText="Chưa có phân công nào."
-                onDelete={handleDeleteAssignment}
-              />
-            </Card>
+            {history.length > 0 && (
+              <Card>
+                <div className="card-header">
+                  <h2 className="mb-0">Lịch sử (đã hết hạn)</h2>
+                </div>
+                <AssignmentTable
+                  assignments={history}
+                  showRole
+                  canManage={!isSelf}
+                  emptyText="Chưa có phân công nào."
+                  onDelete={handleDeleteAssignment}
+                />
+              </Card>
+            )}
           </div>
         )}
 

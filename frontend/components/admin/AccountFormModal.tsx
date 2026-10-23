@@ -113,9 +113,13 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
     && !(form.departmentId && departmentIds.has(form.departmentId))
     && !(form.partyCellId && partyCellIds.has(form.partyCellId));
 
+  // Sửa: chỉ bật Lưu khi có thay đổi so với lúc mở.
+  const [initial] = useState(() => JSON.stringify(initialState(account)));
+  const dirty = !isEdit || JSON.stringify(form) !== initial;
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (outOfScope) return;
+    if (outOfScope || !dirty) return;
     if (isEdit) {
       onUpdate?.({
         fullName: form.fullName.trim(),
@@ -152,8 +156,19 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
       onClose={onClose}
       closeDisabled={saving}
       maxWidth={640}
+      footer={
+        <>
+          <button type="button" className="btn btn-outline-secondary" onClick={onClose} disabled={saving}>
+            Hủy
+          </button>
+          <button type="submit" form="account-form" className="btn btn-primary" disabled={saving || outOfScope || !dirty}>
+            {saving && <span className="spinner-border spinner-border-sm me-1" />}
+            {isEdit ? "Lưu" : "Tạo tài khoản"}
+          </button>
+        </>
+      }
     >
-      <form onSubmit={handleSubmit}>
+      <form id="account-form" onSubmit={handleSubmit}>
         <div className="row g-2">
           <div className="col-12 col-md-6">
             <label className="form-label">
@@ -284,19 +299,10 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
           )}
         </div>
         {outOfScope && (
-          <div className="alert alert-warning py-2 small mt-3 mb-0">
+          <div className="small text-danger mt-2">
             Chọn đơn vị công tác hoặc nơi sinh hoạt Đảng thuộc phạm vi bạn được giao quản lý tài khoản.
           </div>
         )}
-        <div className="d-flex justify-content-end gap-2 mt-3">
-          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={onClose} disabled={saving}>
-            Hủy
-          </button>
-          <button type="submit" className="btn btn-sm btn-primary" disabled={saving || outOfScope}>
-            {saving && <span className="spinner-border spinner-border-sm me-1" />}
-            {isEdit ? "Lưu thay đổi" : "Tạo tài khoản"}
-          </button>
-        </div>
       </form>
     </AdminModal>
   );

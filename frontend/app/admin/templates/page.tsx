@@ -46,7 +46,10 @@ function CheckResult({ check }: { check: TemplateCheck }) {
           </ul>
         </div>
       ) : (
-        <div className="alert alert-success py-2 mb-2">Tệp hợp lệ.</div>
+        <div className="text-success fw-semibold mb-2">
+          <i className="bi bi-check-circle me-1" />
+          Tệp hợp lệ.
+        </div>
       )}
       {check.warnings.length > 0 && (
         <div className="alert alert-warning py-2 mb-2">
@@ -151,15 +154,15 @@ function UploadModal({
       maxWidth={720}
       footer={
         <>
-          <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onClose} disabled={busy !== ""}>
-            Đóng
+          <button type="button" className="btn btn-outline-secondary" onClick={onClose} disabled={busy !== ""}>
+            Hủy
           </button>
-          <button type="button" className="btn btn-outline-primary btn-sm" onClick={handleCheck} disabled={!file || busy !== ""}>
+          <button type="button" className="btn btn-outline-secondary" onClick={handleCheck} disabled={!file || busy !== ""}>
             {busy === "check" ? "Đang kiểm tra…" : "Kiểm tra"}
           </button>
           <button
             type="button"
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary"
             onClick={handleUpload}
             disabled={!file || busy !== "" || (check !== null && !check.isValid)}
           >
@@ -314,25 +317,15 @@ function HistoryModal({
                     )}
                   </td>
                   <td className="text-end text-nowrap">
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary btn-sm me-1"
-                      onClick={() => handleDownload(v)}
+                    <RowActions
+                      itemLabel={`v${v.versionNumber}`}
                       disabled={busy !== ""}
-                      title="Tải tệp"
-                    >
-                      <i className="bi bi-download" />
-                    </button>
-                    {!v.isActive && (
-                      <button
-                        type="button"
-                        className="btn btn-outline-primary btn-sm"
-                        onClick={() => handleActivate(v)}
-                        disabled={busy !== ""}
-                      >
-                        {busy === v.id ? "Đang kích hoạt…" : "Kích hoạt"}
-                      </button>
-                    )}
+                      primary={[
+                        { key: "activate", label: "Kích hoạt", icon: "bi-check2-circle", hidden: v.isActive, onClick: () => handleActivate(v) },
+                        { key: "download", label: "Tải xuống", icon: "bi-download", onClick: () => handleDownload(v) },
+                      ]}
+                      iconOnly
+                    />
                   </td>
                 </tr>
               ))}
@@ -452,20 +445,19 @@ export default function TemplatesPage() {
       <div className="page-body">
         <Card>
           <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
+            <table className="table table-hover align-middle mb-0 table-fit">
               <thead>
                 <tr>
-                  <th>Mã</th>
-                  <th>Biểu mẫu</th>
-                  <th>Đang dùng</th>
-                  <th>Cập nhật</th>
-                  <th className="text-end">Thao tác</th>
+                  <th className="ps-3">Biểu mẫu</th>
+                  <th className="d-none d-md-table-cell">Đang dùng</th>
+                  <th className="d-none d-md-table-cell">Cập nhật</th>
+                  <th className="text-end pe-3">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="text-center text-secondary py-4 loading-delay">
+                    <td colSpan={4} className="text-center text-secondary py-4 loading-delay">
                       Đang tải…
                     </td>
                   </tr>
@@ -474,14 +466,15 @@ export default function TemplatesPage() {
                     const active = t.activeVersion;
                     return (
                       <tr key={t.code}>
-                        <td className="text-nowrap">
-                          <code>{t.code}</code>
-                        </td>
-                        <td>
+                        <td className="ps-3">
                           <div className="fw-semibold">{t.name}</div>
-                          <div className="text-secondary small">{t.templateFileName}</div>
+                          <div className="text-secondary small text-break">{t.templateFileName}</div>
+                          {/* Màn hẹp ẩn cột phụ nên hiện bản đang dùng ngay dưới tên. */}
+                          <div className="d-md-none mt-1">
+                            {active ? <span className="tag t-info">Phiên bản {active.versionNumber}</span> : <span className="status-badge tone-neutral">File gốc</span>}
+                          </div>
                         </td>
-                        <td className="text-nowrap">
+                        <td className="text-nowrap d-none d-md-table-cell">
                           {active ? (
                             <span className="tag t-info">
                               Phiên bản {active.versionNumber}
@@ -501,7 +494,7 @@ export default function TemplatesPage() {
                             </div>
                           )}
                         </td>
-                        <td className="text-nowrap">
+                        <td className="text-nowrap d-none d-md-table-cell">
                           {active ? (
                             <>
                               <div>{formatDateTime(active.activatedAt ?? active.uploadedAt)}</div>
@@ -511,11 +504,10 @@ export default function TemplatesPage() {
                             <span className="text-secondary">—</span>
                           )}
                         </td>
-                        <td className="text-end">
+                        <td className="text-end pe-3">
                           <RowActions
                             itemLabel={t.name}
                             disabled={busy !== ""}
-                            primaryVariant={["primary", "outline"]}
                             primary={[
                               {
                                 key: "upload",

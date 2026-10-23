@@ -54,10 +54,10 @@ export default function CatalogPage() {
 
       <div className="page-body">
         <div className="d-flex flex-column gap-3">
-        <ul className="nav nav-tabs">
+        <ul className="nav nav-tabs flex-nowrap" style={{ overflowX: "auto", overflowY: "hidden" }}>
           {TABS.map((t) => (
             <li className="nav-item" key={t.key}>
-              <button type="button" className={`nav-link ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>
+              <button type="button" className={`nav-link text-nowrap ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>
                 <i className={`bi ${t.icon} me-1`} />
                 {t.label}
               </button>

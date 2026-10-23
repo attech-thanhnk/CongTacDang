@@ -12,6 +12,7 @@ import {
   SaveFormLayoutPayload,
 } from "@/services/formLayoutService";
 import { AdminModal } from "./AdminModal";
+import { useFormDirty } from "./useFormDirty";
 import { errorMessage, errorTitle } from "./adminUtils";
 
 interface FormState {
@@ -56,6 +57,7 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
   const [layouts, setLayouts] = useState<FormLayout[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<FormState | null>(null);
+  const formDirty = useFormDirty(form);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -206,7 +208,7 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
                       <td className="pe-3 text-end text-nowrap">
                         <RowActions
                           itemLabel={l.name}
-                          primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil-square", onClick: () => openEdit(l) }]}
+                          primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil", onClick: () => openEdit(l) }]}
                           menu={[
                             { key: "clone", label: "Nhân bản", icon: "bi-copy", onClick: () => openEdit(l, true) },
                             { key: "delete", label: "Xóa", icon: "bi-trash", danger: true, onClick: () => handleDelete(l) },
@@ -223,8 +225,20 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
       </Card>
 
       {form && (
-        <AdminModal title={form.id ? "Sửa kiểu trình bày" : "Thêm kiểu trình bày"} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={560}>
-          <form onSubmit={handleSave}>
+        <AdminModal title={form.id ? "Sửa kiểu trình bày" : "Thêm kiểu trình bày"} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={560}
+          footer={
+            <>
+            <button type="button" className="btn btn-outline-secondary" onClick={() => setForm(null)} disabled={saving}>
+              Hủy
+            </button>
+            <button type="submit" form="form-layout-form" className="btn btn-primary" disabled={saving || !formDirty}>
+              {saving && <span className="spinner-border spinner-border-sm me-1" />}
+              Lưu
+            </button>
+            </>
+          }
+        >
+          <form id="form-layout-form" onSubmit={handleSave}>
             <div className="row g-2">
               <div className="col-12">
                 <label className="form-label">
@@ -288,15 +302,6 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
                 />
               </div>
               <div className="col-12">{check("layout-default", "Kiểu mặc định (cán bộ có chức vụ chưa gắn kiểu)", "isDefault")}</div>
-            </div>
-            <div className="d-flex justify-content-end gap-2 mt-3">
-              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setForm(null)} disabled={saving}>
-                Hủy
-              </button>
-              <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
-                {saving && <span className="spinner-border spinner-border-sm me-1" />}
-                Lưu
-              </button>
             </div>
           </form>
         </AdminModal>

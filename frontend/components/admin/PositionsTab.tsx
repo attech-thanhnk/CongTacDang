@@ -14,6 +14,7 @@ import {
 } from "@/services/catalogService";
 import { FormLayout, formLayoutService } from "@/services/formLayoutService";
 import { AdminModal } from "./AdminModal";
+import { useFormDirty } from "./useFormDirty";
 import { errorMessage, errorTitle } from "./adminUtils";
 
 interface FormState {
@@ -50,6 +51,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
   const [search, setSearch] = useState("");
   const [sideFilter, setSideFilter] = useState<"" | PositionSide>("");
   const [form, setForm] = useState<FormState | null>(null);
+  const formDirty = useFormDirty(form);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -227,7 +229,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                     </td>
                     {canManage && (
                       <td className="pe-3 text-end text-nowrap">
-                        <RowActions itemLabel={p.name} primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil-square", onClick: () => openEdit(p) }]} menu={[{ key: "delete", label: "Xóa", icon: "bi-trash", danger: true, onClick: () => handleDelete(p) }]} />
+                        <RowActions itemLabel={p.name} primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil", onClick: () => openEdit(p) }]} menu={[{ key: "delete", label: "Xóa", icon: "bi-trash", danger: true, onClick: () => handleDelete(p) }]} />
                       </td>
                     )}
                   </tr>
@@ -246,8 +248,20 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
       </Card>
 
       {form && (
-        <AdminModal title={form.id ? "Sửa chức vụ" : "Thêm chức vụ"} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={520}>
-          <form onSubmit={handleSave}>
+        <AdminModal title={form.id ? "Sửa chức vụ" : "Thêm chức vụ"} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={520}
+          footer={
+            <>
+            <button type="button" className="btn btn-outline-secondary" onClick={() => setForm(null)} disabled={saving}>
+              Hủy
+            </button>
+            <button type="submit" form="position-form" className="btn btn-primary" disabled={saving || !formDirty}>
+              {saving && <span className="spinner-border spinner-border-sm me-1" />}
+              Lưu
+            </button>
+            </>
+          }
+        >
+          <form id="position-form" onSubmit={handleSave}>
             <div className="row g-2">
               <div className="col-12">
                 <label className="form-label">
@@ -355,15 +369,6 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                   </label>
                 </div>
               </div>
-            </div>
-            <div className="d-flex justify-content-end gap-2 mt-3">
-              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setForm(null)} disabled={saving}>
-                Hủy
-              </button>
-              <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
-                {saving && <span className="spinner-border spinner-border-sm me-1" />}
-                Lưu
-              </button>
             </div>
           </form>
         </AdminModal>

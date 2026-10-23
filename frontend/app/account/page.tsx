@@ -43,14 +43,6 @@ export default function AccountPage() {
 
   const sections: InfoSection[] = [
     {
-      title: "Tài khoản",
-      icon: "bi-person",
-      items: [
-        { label: "Họ và tên", value: user.fullName },
-        { label: "Tên đăng nhập", value: <code>{user.userName}</code> },
-      ],
-    },
-    {
       title: "Công tác",
       icon: "bi-briefcase",
       items: [
@@ -92,7 +84,7 @@ export default function AccountPage() {
                 <span className="initials" style={{ width: 56, height: 56, fontSize: 18 }}>{initialsOf(user.fullName)}</span>
                 <div className={styles.whoText}>
                   <div className={styles.name}>{user.fullName}</div>
-                  <div className="text-secondary">{profile?.adminTitle || user.userName}</div>
+                  <div className="text-secondary">{user.userName}</div>
                 </div>
               </div>
               <InfoSections sections={sections} className={styles.info} />

@@ -89,7 +89,7 @@ export default function AdminRolesPage() {
       <PageHeader
         title="Vai trò"
         actions={
-          <button type="button" className="btn btn-sm btn-primary" onClick={() => setForm({})}>
+          <button type="button" className="btn btn-primary" onClick={() => setForm({})}>
             <i className="bi bi-plus-lg me-1" />
             Tạo vai trò
           </button>
@@ -98,13 +98,13 @@ export default function AdminRolesPage() {
       <div className="page-body">
         <Card>
           <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
+            <table className="table table-hover align-middle mb-0 table-fit">
               <thead>
                 <tr>
                   <th className="ps-3">Vai trò</th>
-                  <th>Mô tả</th>
-                  <th className="text-center">Số quyền</th>
-                  <th className="text-center">Phân công đang hiệu lực</th>
+                  <th className="d-none d-md-table-cell">Mô tả</th>
+                  <th className="text-center d-none d-md-table-cell">Số quyền</th>
+                  <th className="text-center d-none d-md-table-cell">Phân công đang hiệu lực</th>
                   <th className="pe-3 text-end">Thao tác</th>
                 </tr>
               </thead>
@@ -136,9 +136,9 @@ export default function AdminRolesPage() {
                           </span>
                         )}
                       </td>
-                      <td className="small text-secondary">{role.description || "—"}</td>
-                      <td className="text-center">{role.permissionCodes.length}</td>
-                      <td className="text-center">{role.assignmentCount}</td>
+                      <td className="small text-secondary d-none d-md-table-cell">{role.description || "—"}</td>
+                      <td className="text-center d-none d-md-table-cell">{role.permissionCodes.length}</td>
+                      <td className="text-center d-none d-md-table-cell">{role.assignmentCount}</td>
                       <td className="pe-3 text-end text-nowrap">
                         <RowActions
                           itemLabel={role.name}
@@ -152,7 +152,7 @@ export default function AdminRolesPage() {
                             },
                           ]}
                           menu={[
-                            { key: "edit", label: "Đổi tên, mô tả", icon: "bi-pencil-square", onClick: () => setForm({ role }) },
+                            { key: "edit", label: "Sửa", icon: "bi-pencil", onClick: () => setForm({ role }) },
                             { key: "delete", label: "Xóa", icon: "bi-trash", danger: true, hidden: role.isProtected, onClick: () => handleDelete(role) },
                           ]}
                         />

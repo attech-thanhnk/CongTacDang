@@ -35,11 +35,11 @@ export function TemporaryPasswordModal({ credential, onClose }: { credential: Te
       maxWidth={500}
       footer={
         <>
-          <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => handleCopy("both")}>
+          <button type="button" className="btn btn-outline-secondary" onClick={() => handleCopy("both")}>
             <i className={`bi ${copied === "both" ? "bi-check2" : "bi-clipboard"} me-1`} />
             Sao chép cả hai
           </button>
-          <button type="button" className="btn btn-sm btn-primary" onClick={onClose}>
+          <button type="button" className="btn btn-primary" onClick={onClose}>
             Tôi đã lưu, đóng
           </button>
         </>

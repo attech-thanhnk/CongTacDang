@@ -142,7 +142,7 @@ export function LoginEventsTab() {
             <input id="login-to" type="date" className="form-control form-control-sm" value={draft.to} onChange={(e) => setDraft({ ...draft, to: e.target.value })} />
           </div>
           <div className="col-12 col-md-2 d-flex gap-1">
-            <button type="submit" className="btn btn-sm btn-primary flex-fill" disabled={loading}>
+            <button type="submit" className="btn btn-sm btn-outline-primary flex-fill" disabled={loading}>
               <i className="bi bi-search me-1" />
               Lọc
             </button>

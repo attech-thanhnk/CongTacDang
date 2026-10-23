@@ -25,13 +25,12 @@ export function ChangePasswordForm({
   // Ô mật khẩu ẩn ký tự nên khó thấy chỗ gõ sai (bộ gõ tiếng Việt, trình duyệt tự điền) — cho xem khi cần.
   const [showPasswords, setShowPasswords] = useState(false);
   const inputType = showPasswords ? "text" : "password";
+  const mismatch = confirmPassword.length > 0 && newPassword !== confirmPassword;
+  const canSubmit = !!currentPassword && newPassword.length >= 8 && newPassword === confirmPassword && !submitting;
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (newPassword !== confirmPassword) {
-      toast.error("Mật khẩu xác nhận không khớp. Bấm \"Hiện mật khẩu\" để kiểm tra; nếu đang bật bộ gõ tiếng Việt, hãy chuyển sang tiếng Anh rồi gõ lại.");
-      return;
-    }
+    if (!canSubmit) return;
 
     setSubmitting(true);
     try {
@@ -43,7 +42,7 @@ export function ChangePasswordForm({
       setConfirmPassword("");
       onSuccess?.();
     } catch (error: unknown) {
-      toast.error(errorMessage(error, "Không thể đổi mật khẩu."));
+      toast.error(errorMessage(error, "Đổi mật khẩu không thành công."));
     } finally {
       setSubmitting(false);
     }
@@ -62,14 +61,17 @@ export function ChangePasswordForm({
       </div>
       <div>
         <label className="form-label" htmlFor="cp-confirm">Xác nhận mật khẩu mới</label>
-        <input id="cp-confirm" className="form-control" type={inputType} autoComplete="new-password" minLength={8} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+        <input id="cp-confirm" className={`form-control${mismatch ? " is-invalid" : ""}`} type={inputType} autoComplete="new-password" minLength={8} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+        {mismatch && (
+          <div className="invalid-feedback">Chưa khớp mật khẩu mới. Bấm &quot;Hiện mật khẩu&quot; để kiểm tra; nếu đang bật bộ gõ tiếng Việt, hãy chuyển sang tiếng Anh rồi gõ lại.</div>
+        )}
       </div>
       <div className="form-check">
         <input id="cp-show" className="form-check-input" type="checkbox" checked={showPasswords} onChange={(event) => setShowPasswords(event.target.checked)} />
         <label className="form-check-label" htmlFor="cp-show">Hiện mật khẩu</label>
       </div>
       <div>
-        <button className={submitClassName} type="submit" disabled={submitting}>
+        <button className={submitClassName} type="submit" disabled={!canSubmit}>
           {submitting ? "Đang cập nhật..." : "Đổi mật khẩu"}
         </button>
       </div>

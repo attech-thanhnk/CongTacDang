@@ -16,6 +16,8 @@ import {
 import { ApprovalAuthorityInfo, MemberPosition, SaveMemberPositionPayload, userService } from "@/services/userService";
 import { FormLayout, formLayoutService, MemberFormLayout } from "@/services/formLayoutService";
 import { AdminModal } from "./AdminModal";
+import { useFormDirty } from "./useFormDirty";
+import { RowActions } from "@/components/common/RowActions";
 import {
   endOfDayExclusiveIso,
   errorMessage,
@@ -66,6 +68,9 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
   const [layouts, setLayouts] = useState<FormLayout[]>([]);
   const [layoutForm, setLayoutForm] = useState<{ value: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  const formDirty = useFormDirty(form);
+  const layoutDirty = useFormDirty(layoutForm);
+  const overrideDirty = useFormDirty(overrideForm);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -271,19 +276,15 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
                 <td>{i.validTo ? formatDate(exclusiveIsoToLastDayInput(i.validTo)) : "Không thời hạn"}</td>
                 {canManage && (
                   <td className="pe-3 text-end text-nowrap">
-                    {active && (
-                      <>
-                        <button type="button" className="btn btn-sm btn-link p-1" title="Sửa" onClick={() => openEdit(i)}>
-                          <i className="bi bi-pencil-square" />
-                        </button>
-                        <button type="button" className="btn btn-sm btn-link p-1 text-warning" title="Kết thúc" onClick={() => handleEnd(i)}>
-                          <i className="bi bi-stop-circle" />
-                        </button>
-                      </>
-                    )}
-                    <button type="button" className="btn btn-sm btn-link p-1 text-danger" title="Xóa (nhập nhầm)" onClick={() => handleDelete(i)}>
-                      <i className="bi bi-trash" />
-                    </button>
+                    <RowActions
+                      itemLabel={i.displayName}
+                      iconOnly
+                      primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil", hidden: !active, onClick: () => openEdit(i) }]}
+                      menu={[
+                        { key: "end", label: "Kết thúc", icon: "bi-stop-circle", danger: true, hidden: !active, onClick: () => handleEnd(i) },
+                        { key: "delete", label: "Xóa (nhập nhầm)", icon: "bi-trash", danger: true, onClick: () => handleDelete(i) },
+                      ]}
+                    />
                   </td>
                 )}
               </tr>
@@ -329,7 +330,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
               className="btn btn-sm btn-outline-secondary ms-auto"
               onClick={() => setOverrideForm({ value: authority.override ?? "", reason: authority.overrideReason ?? "" })}
             >
-              <i className="bi bi-pencil-square me-1" />
+              <i className="bi bi-pencil me-1" />
               Thay đổi
             </button>
           )}
@@ -350,7 +351,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
           </div>
           {canManage && memberLayout && (
             <button type="button" className="btn btn-sm btn-outline-secondary ms-auto" onClick={() => setLayoutForm({ value: memberLayout.overrideId ?? "" })}>
-              <i className="bi bi-pencil-square me-1" />
+              <i className="bi bi-pencil me-1" />
               Thay đổi
             </button>
           )}
@@ -361,7 +362,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
         <div className="card-header d-flex justify-content-between align-items-center gap-2">
           <h2 className="mb-0">Chức vụ đang giữ</h2>
           {canManage && (
-            <button type="button" className="btn btn-sm btn-primary" onClick={openCreate}>
+            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={openCreate}>
               <i className="bi bi-plus-lg me-1" />
               Thêm chức vụ
             </button>
@@ -376,16 +377,30 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
           renderTable(current, true)
         )}
       </Card>
-      <Card>
-        <div className="card-header">
-          <h2 className="mb-0">Đã kết thúc</h2>
-        </div>
-        {renderTable(history, false)}
-      </Card>
+      {history.length > 0 && (
+        <Card>
+          <div className="card-header">
+            <h2 className="mb-0">Đã kết thúc</h2>
+          </div>
+          {renderTable(history, false)}
+        </Card>
+      )}
 
       {form && (
-        <AdminModal title={form.id ? "Sửa chức vụ" : "Thêm chức vụ"} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={560}>
-          <form onSubmit={handleSave}>
+        <AdminModal title={form.id ? "Sửa chức vụ" : "Thêm chức vụ"} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={560}
+          footer={
+            <>
+            <button type="button" className="btn btn-outline-secondary" onClick={() => setForm(null)} disabled={saving}>
+              Hủy
+            </button>
+            <button type="submit" form="member-position-form" className="btn btn-primary" disabled={saving || !formDirty}>
+              {saving && <span className="spinner-border spinner-border-sm me-1" />}
+              Lưu
+            </button>
+            </>
+          }
+        >
+          <form id="member-position-form" onSubmit={handleSave}>
             <div className="mb-2">
               <label className="form-label">
                 Chức vụ <span className="text-danger">*</span>
@@ -471,22 +486,25 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
                 onChange={(e) => setForm({ ...form, note: e.target.value })}
               />
             </div>
-            <div className="d-flex justify-content-end gap-2 mt-3">
-              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setForm(null)} disabled={saving}>
-                Hủy
-              </button>
-              <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
-                {saving && <span className="spinner-border spinner-border-sm me-1" />}
-                Lưu
-              </button>
-            </div>
           </form>
         </AdminModal>
       )}
 
       {layoutForm && (
-        <AdminModal title="Kiểu trình bày biểu mẫu" onClose={() => setLayoutForm(null)} closeDisabled={saving} maxWidth={480}>
-          <form onSubmit={handleLayout}>
+        <AdminModal title="Kiểu trình bày biểu mẫu" onClose={() => setLayoutForm(null)} closeDisabled={saving} maxWidth={480}
+          footer={
+            <>
+            <button type="button" className="btn btn-outline-secondary" onClick={() => setLayoutForm(null)} disabled={saving}>
+              Hủy
+            </button>
+            <button type="submit" form="member-layout-form" className="btn btn-primary" disabled={saving || !layoutDirty}>
+              {saving && <span className="spinner-border spinner-border-sm me-1" />}
+              Lưu
+            </button>
+            </>
+          }
+        >
+          <form id="member-layout-form" onSubmit={handleLayout}>
             <label className="form-label">Kiểu trình bày Mẫu 09B, 09C, 9D</label>
             <select className="form-select form-select-sm" value={layoutForm.value} onChange={(e) => setLayoutForm({ value: e.target.value })}>
               <option value="">Theo chức vụ ({memberLayout?.derivedName ?? "Như biểu mẫu gốc"})</option>
@@ -496,22 +514,25 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
                 </option>
               ))}
             </select>
-            <div className="d-flex justify-content-end gap-2 mt-3">
-              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setLayoutForm(null)} disabled={saving}>
-                Hủy
-              </button>
-              <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
-                {saving && <span className="spinner-border spinner-border-sm me-1" />}
-                Lưu
-              </button>
-            </div>
           </form>
         </AdminModal>
       )}
 
       {overrideForm && (
-        <AdminModal title="Cấp quyết định xếp loại" onClose={() => setOverrideForm(null)} closeDisabled={saving} maxWidth={480}>
-          <form onSubmit={handleOverride}>
+        <AdminModal title="Cấp quyết định xếp loại" onClose={() => setOverrideForm(null)} closeDisabled={saving} maxWidth={480}
+          footer={
+            <>
+            <button type="button" className="btn btn-outline-secondary" onClick={() => setOverrideForm(null)} disabled={saving}>
+              Hủy
+            </button>
+            <button type="submit" form="member-authority-form" className="btn btn-primary" disabled={saving || !overrideDirty}>
+              {saving && <span className="spinner-border spinner-border-sm me-1" />}
+              Lưu
+            </button>
+            </>
+          }
+        >
+          <form id="member-authority-form" onSubmit={handleOverride}>
             <div className="mb-2">
               <label className="form-label">Cấp quyết định xếp loại</label>
               <select
@@ -544,15 +565,6 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
               </div>
             )}
             <div className="small text-secondary">Chỉ áp dụng cho hồ sơ đánh giá tạo sau.</div>
-            <div className="d-flex justify-content-end gap-2 mt-3">
-              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setOverrideForm(null)} disabled={saving}>
-                Hủy
-              </button>
-              <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
-                {saving && <span className="spinner-border spinner-border-sm me-1" />}
-                Lưu
-              </button>
-            </div>
           </form>
         </AdminModal>
       )}

@@ -8,6 +8,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { Card, PageHeader } from "@/components/common";
 import { AssignmentFormModal } from "@/components/admin/AssignmentFormModal";
 import { AssignmentTable } from "@/components/admin/AssignmentTable";
+import { HeaderMenu } from "@/components/admin/HeaderMenu";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { PermissionMatrix } from "@/components/admin/PermissionMatrix";
 import { RoleFormModal } from "@/components/admin/RoleFormModal";
@@ -246,36 +247,30 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
         }
         actions={
           <>
-            <Link href="/admin/roles" className="btn btn-outline-secondary">
-              <i className="bi bi-arrow-left me-1" />
-              Danh sách
-            </Link>
             <button type="button" className="btn btn-outline-secondary" onClick={() => setEditing(true)}>
-              <i className="bi bi-pencil-square me-1" />
-              Đổi tên, mô tả
+              <i className="bi bi-pencil me-1" />
+              Sửa
             </button>
-            {!role.isProtected && (
-              <button type="button" className="btn btn-outline-danger" onClick={handleDelete}>
-                <i className="bi bi-trash me-1" />
-                Xóa
-              </button>
-            )}
+            <HeaderMenu
+              itemLabel={role.name}
+              actions={[{ key: "delete", label: "Xóa vai trò", icon: "bi-trash", danger: true, hidden: role.isProtected, onClick: handleDelete }]}
+            />
           </>
         }
       />
 
       <div className="page-body">
         <div className="d-flex flex-column gap-3">
-        <ul className="nav nav-tabs">
+        <ul className="nav nav-tabs flex-nowrap" style={{ overflowX: "auto", overflowY: "hidden" }}>
           <li className="nav-item">
-            <button type="button" className={`nav-link ${tab === "permissions" ? "active" : ""}`} onClick={() => setTab("permissions")}>
+            <button type="button" className={`nav-link text-nowrap ${tab === "permissions" ? "active" : ""}`} onClick={() => setTab("permissions")}>
               <i className="bi bi-shield-check me-1" />
-              Ma trận quyền <span className="text-secondary fw-medium ms-1 num">{role.permissionCodes.length}</span>
+              Ma trận quyền
             </button>
           </li>
           {canAssign && (
             <li className="nav-item">
-              <button type="button" className={`nav-link ${tab === "assignments" ? "active" : ""}`} onClick={() => setTab("assignments")}>
+              <button type="button" className={`nav-link text-nowrap ${tab === "assignments" ? "active" : ""}`} onClick={() => setTab("assignments")}>
                 <i className="bi bi-people me-1" />
                 Người được gán <span className="text-secondary fw-medium ms-1 num">{role.assignmentCount}</span>
               </button>
@@ -354,7 +349,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
                   </label>
                 </div>
                 <button type="button" className="btn btn-sm btn-primary" onClick={() => setAssignmentForm({})}>
-                  <i className="bi bi-person-plus me-1" />
+                  <i className="bi bi-plus-lg me-1" />
                   Gán cho người
                 </button>
               </div>

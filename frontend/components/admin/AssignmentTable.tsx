@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { RowActions } from "@/components/common/RowActions";
 import Link from "next/link";
 import { Pagination } from "@/components/common/Pagination";
 import { usePagination } from "@/components/common/usePagination";
@@ -8,9 +9,9 @@ import type { AssignmentStatus, RoleAssignment } from "@/services/roleService";
 import { formatDateTime } from "./adminUtils";
 
 const STATUS_META: Record<AssignmentStatus, { label: string; className: string }> = {
-  Active: { label: "Đang hiệu lực", className: "bg-success-subtle text-success border border-success-subtle" },
-  Future: { label: "Sắp hiệu lực", className: "bg-info-subtle text-info-emphasis border border-info-subtle" },
-  Expired: { label: "Đã hết hạn", className: "bg-secondary-subtle text-secondary border" },
+  Active: { label: "Đang hiệu lực", className: "tone-success" },
+  Future: { label: "Sắp hiệu lực", className: "tone-info" },
+  Expired: { label: "Đã hết hạn", className: "tone-neutral" },
 };
 
 const SCOPE_ICON: Record<RoleAssignment["scopeType"], string> = {
@@ -99,28 +100,22 @@ export function AssignmentTable({
                     <div className="text-secondary">{a.validTo ? `Đến ${formatDateTime(a.validTo)}` : "Không thời hạn"}</div>
                   </td>
                   <td>
-                    <span className={`badge ${status.className}`}>{status.label}</span>
+                    <span className={`status-badge ${status.className}`}>{status.label}</span>
                   </td>
                   <td className="small text-secondary" style={{ maxWidth: 220 }}>
                     {a.note || "—"}
                   </td>
                   {canManage && (
                     <td className="pe-3 text-end text-nowrap">
-                      {a.status !== "Expired" && onEdit && (
-                        <button type="button" className="btn btn-sm btn-link p-1" title="Sửa thời hạn, ghi chú" onClick={() => onEdit(a)}>
-                          <i className="bi bi-pencil-square" />
-                        </button>
-                      )}
-                      {a.status === "Active" && onEnd && (
-                        <button type="button" className="btn btn-sm btn-link p-1 text-warning" title="Kết thúc ngay" onClick={() => onEnd(a)}>
-                          <i className="bi bi-stop-circle" />
-                        </button>
-                      )}
-                      {onDelete && (
-                        <button type="button" className="btn btn-sm btn-link p-1 text-danger" title="Xóa phân công" onClick={() => onDelete(a)}>
-                          <i className="bi bi-trash" />
-                        </button>
-                      )}
+                      <RowActions
+                        itemLabel={showUser ? a.fullName : a.roleName}
+                        iconOnly
+                        primary={[{ key: "edit", label: "Sửa thời hạn, ghi chú", icon: "bi-pencil", hidden: a.status === "Expired" || !onEdit, onClick: () => onEdit?.(a) }]}
+                        menu={[
+                          { key: "end", label: "Kết thúc ngay", icon: "bi-stop-circle", danger: true, hidden: a.status !== "Active" || !onEnd, onClick: () => onEnd?.(a) },
+                          { key: "delete", label: "Xóa phân công", icon: "bi-trash", danger: true, hidden: !onDelete, onClick: () => onDelete?.(a) },
+                        ]}
+                      />
                     </td>
                   )}
                 </tr>

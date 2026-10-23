@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Badge, BadgeTone } from "@/components/common/StatusBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { CriteriaSummary } from "@/components/evaluations/CriteriaSummary";
+import { HeaderMenu } from "@/components/admin/HeaderMenu";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { errorMessage, errorStatus } from "@/components/admin/adminUtils";
 import {
@@ -37,6 +37,18 @@ import {
 
 type Rounding = CriteriaSetContent["parameters"]["rounding"];
 
+type EditorSection = "info" | "personal" | "collective" | "forms" | "grading" | "params";
+
+// Trình soạn dài nên chia tab theo nhóm nội dung.
+const EDITOR_SECTIONS: { key: EditorSection; label: string }[] = [
+  { key: "info", label: "Thông tin chung" },
+  { key: "personal", label: "Tiêu chí cá nhân" },
+  { key: "collective", label: "Tiêu chí tập thể" },
+  { key: "forms", label: "Biểu mẫu" },
+  { key: "grading", label: "Tỷ trọng và xếp loại" },
+  { key: "params", label: "Tham số" },
+];
+
 const STATUS_TONE: Record<string, BadgeTone> = {
   Draft: "warning",
   Published: "success",
@@ -59,6 +71,8 @@ export default function CriteriaSetPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<string | null>(null);
+  const [editorTab, setEditorTab] = useState<EditorSection>("info");
+  const [saved, setSaved] = useState("");
 
   const load = useCallback(async () => {
     if (!id || !canView) return;
@@ -71,7 +85,9 @@ export default function CriteriaSetPage() {
       copy.taskLevels = copy.taskLevels ?? [];
       copy.collectiveGroups = copy.collectiveGroups ?? [];
       setContent(copy);
-      setInfo({ code: loaded.code, name: loaded.name, selfScoreForm: loaded.selfScoreForm, notes: loaded.notes || "" });
+      const loadedInfo = { code: loaded.code, name: loaded.name, selfScoreForm: loaded.selfScoreForm, notes: loaded.notes || "" };
+      setInfo(loadedInfo);
+      setSaved(JSON.stringify({ info: loadedInfo, content: copy }));
       setConflict(null);
     } catch (err: unknown) {
       setError(errorMessage(err, "Không tải được bộ tiêu chí."));
@@ -83,6 +99,7 @@ export default function CriteriaSetPage() {
   }, [load]);
 
   const checks = useMemo(() => (content ? quickChecks(content, info.selfScoreForm) : []), [content, info.selfScoreForm]);
+  const dirty = useMemo(() => !!content && JSON.stringify({ info, content }) !== saved, [info, content, saved]);
 
   if (!canView) return <NoAccess title="Bộ tiêu chí và thang điểm" permissionName="Quản lý bộ tiêu chí" />;
   if (error) return <div className="page-wrapper"><div className="alert alert-danger m-4">{error}</div></div>;
@@ -113,7 +130,7 @@ export default function CriteriaSetPage() {
   const publish = () =>
     confirm({
       title: "Xuất bản bộ tiêu chí",
-      message: "Sau khi xuất bản, bộ không sửa được nữa. Hãy lưu thay đổi trước khi xuất bản.",
+      message: "Sau khi xuất bản, bộ không sửa được nữa.",
       confirmText: "Xuất bản",
       isDanger: false,
       onConfirm: () => run(() => criteriaService.publish(set.id, set.version), "Đã xuất bản bộ tiêu chí."),
@@ -165,18 +182,37 @@ export default function CriteriaSetPage() {
           </span>
         }
         actions={
-          <>
-            <Link href="/criteria" className="btn btn-outline-secondary"><i className="bi bi-arrow-left me-1" />Danh sách</Link>
-            {canManage && <button type="button" className="btn btn-outline-secondary" disabled={busy} onClick={clone}><i className="bi bi-copy me-1" />Nhân bản</button>}
-            {canManage && set.status === "Published" && (
-              <button type="button" className="btn btn-outline-secondary" disabled={busy}
-                onClick={() => confirm({ title: "Lưu trữ", message: "Kỳ đã dùng bộ này không bị ảnh hưởng; bộ không chọn được cho kỳ mới.", confirmText: "Lưu trữ", onConfirm: () => run(() => criteriaService.archive(set.id, set.version), "Đã lưu trữ.") })}>
-                <i className="bi bi-archive me-1" />Lưu trữ
-              </button>
-            )}
-            {editable && <button type="button" className="btn btn-outline-primary" disabled={busy} onClick={save}>Lưu bản nháp</button>}
-            {editable && <button type="button" className="btn btn-primary" disabled={busy} onClick={publish}>Xuất bản</button>}
-          </>
+          canManage ? (
+            <>
+              {!editable && (
+                <button type="button" className="btn btn-outline-secondary" disabled={busy} onClick={clone}>
+                  <i className="bi bi-copy me-1" />Nhân bản
+                </button>
+              )}
+              {editable && (
+                <button type="button" className="btn btn-outline-secondary" disabled={busy || !dirty} onClick={save}>
+                  {busy ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-check2 me-1" />}Lưu
+                </button>
+              )}
+              {editable && (
+                <button type="button" className="btn btn-primary" disabled={busy || dirty} onClick={publish}
+                  title={dirty ? "Lưu thay đổi trước khi xuất bản" : undefined}>
+                  <i className="bi bi-send me-1" />Xuất bản
+                </button>
+              )}
+              <HeaderMenu
+                itemLabel={set.name}
+                disabled={busy}
+                actions={[
+                  { key: "clone", label: "Nhân bản", icon: "bi-copy", hidden: !editable, onClick: clone },
+                  {
+                    key: "archive", label: "Lưu trữ", icon: "bi-archive", danger: true, hidden: set.status !== "Published",
+                    onClick: () => confirm({ title: "Lưu trữ bộ tiêu chí", message: "Kỳ đã dùng bộ này không bị ảnh hưởng; bộ không chọn được cho kỳ mới.", confirmText: "Lưu trữ", isDanger: true, onConfirm: () => run(() => criteriaService.archive(set.id, set.version), "Đã lưu trữ bộ tiêu chí.") }),
+                  },
+                ]}
+              />
+            </>
+          ) : undefined
         }
       />
 
@@ -209,9 +245,20 @@ export default function CriteriaSetPage() {
         ) : (
           <>
             {checks.length > 0 && (
-              <div className="alert alert-danger small mb-0"><ul className="mb-0">{checks.map((c) => <li key={c}>{c}</li>)}</ul></div>
+              <div className="alert alert-warning small mb-0"><ul className="mb-0">{checks.map((c) => <li key={c}>{c}</li>)}</ul></div>
             )}
 
+            <ul className="nav nav-tabs flex-nowrap" style={{ overflowX: "auto", overflowY: "hidden" }}>
+              {EDITOR_SECTIONS.map((t) => (
+                <li className="nav-item" key={t.key}>
+                  <button type="button" className={`nav-link text-nowrap ${editorTab === t.key ? "active" : ""}`} onClick={() => setEditorTab(t.key)}>
+                    {t.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            {editorTab === "info" && (
             <section className="card">
               <div className="card-body row g-2">
                 <div className="col-md-3"><label className="form-label" htmlFor="cs-code">Mã bộ</label><input id="cs-code" className="form-control form-control-sm" maxLength={50} value={info.code} onChange={(e) => setInfo({ ...info, code: e.target.value })} /></div>
@@ -225,11 +272,13 @@ export default function CriteriaSetPage() {
                 <div className="col-12"><label className="form-label" htmlFor="cs-notes">Ghi chú</label><textarea id="cs-notes" className="form-control form-control-sm" rows={2} maxLength={4000} value={info.notes} onChange={(e) => setInfo({ ...info, notes: e.target.value })} /></div>
               </div>
             </section>
+            )}
 
+            {editorTab === "personal" && (
             <section className="card">
               <div className="card-header d-flex justify-content-between align-items-center gap-2">
                 <h2 className="mb-0">Nhóm tiêu chí chung — tổng <span className={Math.abs(generalTotal - p.generalMaxScore) > 1e-6 ? "text-danger" : "text-success"}>{fmt(generalTotal)}</span> / {fmt(p.generalMaxScore)}</h2>
-                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ generalGroups: [...content.generalGroups, { code: String(content.generalGroups.length + 1), name: "", scoringMode: "Binary", items: [] }] })}>Thêm nhóm</button>
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ generalGroups: [...content.generalGroups, { code: String(content.generalGroups.length + 1), name: "", scoringMode: "Binary", items: [] }] })}><i className="bi bi-plus-lg me-1" />Thêm nhóm</button>
               </div>
               <div className="card-body">
                 {content.generalGroups.map((g, gi) => (
@@ -267,12 +316,14 @@ export default function CriteriaSetPage() {
                         })}
                       </tbody>
                     </table></div>
-                    <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setGroup(gi, { items: [...g.items, { code: `${g.code}.${g.items.length + 1}`, text: "", maxScore: 1 }] })}>Thêm tiêu chí con</button>
+                    <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setGroup(gi, { items: [...g.items, { code: `${g.code}.${g.items.length + 1}`, text: "", maxScore: 1 }] })}><i className="bi bi-plus-lg me-1" />Thêm tiêu chí con</button>
                   </div>
                 ))}
               </div>
             </section>
+            )}
 
+            {editorTab === "collective" && (
             <section className="card">
               <div className="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
                 <h2 className="mb-0">Khung tiêu chí tập thể (Mẫu 06, 07)</h2>
@@ -337,16 +388,18 @@ export default function CriteriaSetPage() {
                         })}
                       </tbody>
                     </table></div>
-                    <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setCollective(gi, { items: [...g.items, { code: `${g.code}.${g.items.length + 1}`, text: "", maxScore: 1 }] })}>Thêm tiêu chí con</button>
+                    <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setCollective(gi, { items: [...g.items, { code: `${g.code}.${g.items.length + 1}`, text: "", maxScore: 1 }] })}><i className="bi bi-plus-lg me-1" />Thêm tiêu chí con</button>
                   </div>
                 ))}
               </div>
             </section>
+            )}
 
+            {editorTab === "personal" && (
             <section className="card">
               <div className="card-header d-flex justify-content-between align-items-center gap-2">
                 <h2 className="mb-0">Trục kết quả{info.selfScoreForm === "09B" && <> — tổng <span className={Math.abs(axisTotal - p.totalTaskWeight) > 1e-6 ? "text-danger" : "text-success"}>{fmt(axisTotal)}</span> / {fmt(p.totalTaskWeight)}</>}</h2>
-                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ axes: [...content.axes, { code: `T${content.axes.length + 1}`, name: "", description: "", maxScore: 0 }] })}>Thêm trục</button>
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ axes: [...content.axes, { code: `T${content.axes.length + 1}`, name: "", description: "", maxScore: 0 }] })}><i className="bi bi-plus-lg me-1" />Thêm trục</button>
               </div>
               <div className="card-body">
                 <div className="table-responsive"><table className="table table-sm mb-0">
@@ -380,7 +433,9 @@ export default function CriteriaSetPage() {
                 </table></div>
               </div>
             </section>
+            )}
 
+            {editorTab === "forms" && (
             <section className="card">
               <div className="card-header"><h2 className="mb-0">Biểu mẫu cá nhân áp dụng cho hồ sơ</h2></div>
               <div className="card-body">
@@ -456,11 +511,13 @@ export default function CriteriaSetPage() {
                 </div>
               </div>
             </section>
+            )}
 
+            {editorTab === "grading" && (
             <section className="card">
               <div className="card-header d-flex justify-content-between align-items-center gap-2">
                 <h2 className="mb-0">Khung tỷ trọng A-B-C-D (%, tổng 100)</h2>
-                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ weightFrames: [...content.weightFrames, { code: `K${content.weightFrames.length + 1}`, name: "", a: 0.25, b: 0.25, c: 0.25, d: 0.25 }] })}>Thêm khung</button>
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ weightFrames: [...content.weightFrames, { code: `K${content.weightFrames.length + 1}`, name: "", a: 0.25, b: 0.25, c: 0.25, d: 0.25 }] })}><i className="bi bi-plus-lg me-1" />Thêm khung</button>
               </div>
               <div className="card-body">
                 <div className="table-responsive"><table className="table table-sm mb-2">
@@ -494,11 +551,13 @@ export default function CriteriaSetPage() {
                 </div>
               </div>
             </section>
+            )}
 
+            {editorTab === "grading" && (
             <section className="card">
               <div className="card-header d-flex justify-content-between align-items-center gap-2">
                 <h2 className="mb-0">Thang quy đổi % A-B-C-D</h2>
-                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ conversionScale: [...content.conversionScale, { minPercent: 0, label: "", description: "" }] })}>Thêm mức</button>
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ conversionScale: [...content.conversionScale, { minPercent: 0, label: "", description: "" }] })}><i className="bi bi-plus-lg me-1" />Thêm mức</button>
               </div>
               <div className="card-body">
                 <div className="table-responsive"><table className="table table-sm mb-0">
@@ -519,7 +578,9 @@ export default function CriteriaSetPage() {
                 </table></div>
               </div>
             </section>
+            )}
 
+            {editorTab === "grading" && (
             <section className="card">
               <div className="card-header"><h2 className="mb-0">Mức xếp loại</h2></div>
               <div className="card-body">
@@ -543,7 +604,9 @@ export default function CriteriaSetPage() {
                 </table></div>
               </div>
             </section>
+            )}
 
+            {editorTab === "params" && (
             <section className="card">
               <div className="card-header"><h2 className="mb-0">Tham số</h2></div>
               <div className="card-body">
@@ -634,6 +697,7 @@ export default function CriteriaSetPage() {
                 </div>
               </div>
             </section>
+            )}
           </>
         )}
       </div>

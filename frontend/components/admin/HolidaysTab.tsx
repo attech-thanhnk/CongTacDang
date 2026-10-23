@@ -6,6 +6,7 @@ import { RowActions } from "@/components/common/RowActions";
 import { Card, Pagination, usePagination } from "@/components/common";
 import { Holiday, holidayService } from "@/services/holidayService";
 import { AdminModal } from "./AdminModal";
+import { useFormDirty } from "./useFormDirty";
 import { errorMessage, errorTitle } from "./adminUtils";
 
 interface FormState {
@@ -27,6 +28,7 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
   const [items, setItems] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<FormState | null>(null);
+  const formDirty = useFormDirty(form);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -125,7 +127,7 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
                       <td className="pe-3 text-end text-nowrap">
                         <RowActions
                           itemLabel={h.name}
-                          primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil-square", onClick: () => setForm({ id: h.id, date: h.date, endDate: "", name: h.name }) }]}
+                          primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil", onClick: () => setForm({ id: h.id, date: h.date, endDate: "", name: h.name }) }]}
                           menu={[{ key: "delete", label: "Xóa", icon: "bi-trash", danger: true, onClick: () => handleDelete(h) }]}
                         />
                       </td>
@@ -146,8 +148,15 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
       </Card>
 
       {form && (
-        <AdminModal title={form.id ? "Sửa ngày nghỉ" : "Thêm ngày nghỉ"} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={460}>
-          <form onSubmit={handleSave}>
+        <AdminModal title={form.id ? "Sửa ngày nghỉ" : "Thêm ngày nghỉ"} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={460}
+          footer={
+            <>
+            <button type="button" className="btn btn-outline-secondary" disabled={saving} onClick={() => setForm(null)}>Hủy</button>
+            <button type="submit" form="holiday-form" className="btn btn-primary" disabled={saving || !formDirty}>{saving ? "Đang lưu…" : "Lưu"}</button>
+            </>
+          }
+        >
+          <form id="holiday-form" onSubmit={handleSave}>
             <div className="mb-2">
               <label className="form-label">Tên ngày nghỉ <span className="text-danger">*</span></label>
               <input className="form-control form-control-sm" value={form.name} maxLength={200} required placeholder="VD: Quốc khánh, Tết Nguyên đán"
@@ -164,10 +173,6 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
                   <input type="date" className="form-control form-control-sm" value={form.endDate} min={form.date} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
                 </div>
               )}
-            </div>
-            <div className="d-flex justify-content-end gap-2 mt-3">
-              <button type="button" className="btn btn-sm btn-outline-secondary" disabled={saving} onClick={() => setForm(null)}>Hủy</button>
-              <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>{saving ? "Đang lưu…" : "Lưu"}</button>
             </div>
           </form>
         </AdminModal>

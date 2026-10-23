@@ -41,7 +41,7 @@
 }
 
 .updated {
-  margin-left: auto;
+  margin-right: auto;
   font-size: 13px;
   color: var(--ink-3);
 }
@@ -52,7 +52,7 @@
   }
 
   .updated {
-    margin-left: 0;
+    margin-right: 0;
     width: 100%;
   }
 }

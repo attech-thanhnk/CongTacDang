@@ -109,8 +109,8 @@ export default function AdminUsersPage() {
         title="Người dùng"
         actions={
           canManage ? (
-            <button type="button" className="btn btn-sm btn-primary" onClick={() => setCreating(true)}>
-              <i className="bi bi-person-plus me-1" />
+            <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
+              <i className="bi bi-plus-lg me-1" />
               Tạo tài khoản
             </button>
           ) : undefined
@@ -185,7 +185,7 @@ export default function AdminUsersPage() {
                 </select>
               </div>
               <div className="col-6 col-md-3 col-xl-2 d-flex gap-1">
-                <button type="submit" className="btn btn-sm btn-primary flex-fill" disabled={loading}>
+                <button type="submit" className="btn btn-sm btn-outline-primary flex-fill" disabled={loading}>
                   <i className="bi bi-search me-1" />
                   Lọc
                 </button>

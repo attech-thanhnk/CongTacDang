@@ -51,7 +51,7 @@ const ENTITY_LABELS: Record<string, string> = {
 /** Nhãn và màu của loại thao tác. */
 const ACTION_META: Record<string, { label: string; icon: string; tone: string }> = {
   Create: { label: "Tạo mới", icon: "bi-plus-lg", tone: "t-ok" },
-  Update: { label: "Cập nhật", icon: "bi-pencil-square", tone: "t-info" },
+  Update: { label: "Cập nhật", icon: "bi-pencil", tone: "t-info" },
   Delete: { label: "Xóa mềm", icon: "bi-archive", tone: "t-bad" },
   Import: { label: "Nhập dữ liệu", icon: "bi-file-earmark-arrow-up", tone: "t-wait" },
   Approve: { label: "Phê duyệt", icon: "bi-check2-circle", tone: "t-ok" },

@@ -198,34 +198,36 @@ export default function OrganizationSettingsPage() {
                 </div>
 
                 <div className={styles.footer}>
-                  {canManage && (
-                    <>
-                      <button
-                        type="submit"
-                        className={`btn btn-primary btn-sm ${styles.action}`}
-                        disabled={!dirty || saving || missing.length > 0 || shortNameInvalid}
-                      >
-                        {saving ? "Đang lưu…" : "Lưu thay đổi"}
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn btn-outline-secondary btn-sm ${styles.action}`}
-                        disabled={!dirty || saving}
-                        onClick={() => settings && setForm(toPayload(settings))}
-                      >
-                        Hoàn tác
-                      </button>
-                      <span className={`${styles.state} ${dirty ? styles.stateDirty : ""}`} role="status">
-                        <span className={styles.dot} aria-hidden="true" />
-                        {dirty ? "Có thay đổi chưa lưu" : "Chưa có thay đổi"}
-                      </span>
-                    </>
-                  )}
                   <span className={styles.updated}>
                     {settings?.updatedAt
                       ? `Cập nhật lần cuối: ${formatDateTime(settings.updatedAt)}${settings.updatedByName ? ` — ${settings.updatedByName}` : ""}`
                       : "Đang dùng giá trị mặc định."}
                   </span>
+                  {canManage && (
+                    <>
+                      {dirty && (
+                        <span className={`${styles.state} ${styles.stateDirty}`} role="status">
+                          <span className={styles.dot} aria-hidden="true" />
+                          Có thay đổi chưa lưu
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        className={`btn btn-outline-secondary ${styles.action}`}
+                        disabled={!dirty || saving}
+                        onClick={() => settings && setForm(toPayload(settings))}
+                      >
+                        Hoàn tác
+                      </button>
+                      <button
+                        type="submit"
+                        className={`btn btn-primary ${styles.action}`}
+                        disabled={!dirty || saving || missing.length > 0 || shortNameInvalid}
+                      >
+                        {saving ? "Đang lưu…" : "Lưu"}
+                      </button>
+                    </>
+                  )}
                 </div>
               </form>
             )}

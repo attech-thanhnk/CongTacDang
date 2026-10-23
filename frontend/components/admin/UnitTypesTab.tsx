@@ -6,6 +6,7 @@ import { RowActions } from "@/components/common/RowActions";
 import { Card } from "@/components/common";
 import { catalogService, ORG_SIDE_LABELS, OrgSide, OrgUnitType } from "@/services/catalogService";
 import { AdminModal } from "./AdminModal";
+import { useFormDirty } from "./useFormDirty";
 import { errorMessage, errorTitle } from "./adminUtils";
 
 interface FormState {
@@ -27,6 +28,7 @@ export interface UnitTypesTabProps {
 export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitTypesTabProps) {
   const { toast, confirm } = useToast();
   const [form, setForm] = useState<FormState | null>(null);
+  const formDirty = useFormDirty(form);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async (event: React.FormEvent) => {
@@ -128,7 +130,7 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
                       <td className="pe-3 text-end text-nowrap">
                         <RowActions
                           itemLabel={t.name}
-                          primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil-square", onClick: () => setForm({ id: t.id, name: t.name, side: t.side, sortOrder: String(t.sortOrder), isActive: t.isActive }) }]}
+                          primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil", onClick: () => setForm({ id: t.id, name: t.name, side: t.side, sortOrder: String(t.sortOrder), isActive: t.isActive }) }]}
                           menu={[{ key: "delete", label: "Xóa", icon: "bi-trash", danger: true, onClick: () => handleDelete(t) }]}
                         />
                       </td>
@@ -142,8 +144,20 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
       </Card>
 
       {form && (
-        <AdminModal title={form.id ? "Sửa loại đơn vị" : "Thêm loại đơn vị"} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={460}>
-          <form onSubmit={handleSave}>
+        <AdminModal title={form.id ? "Sửa loại đơn vị" : "Thêm loại đơn vị"} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={460}
+          footer={
+            <>
+            <button type="button" className="btn btn-outline-secondary" onClick={() => setForm(null)} disabled={saving}>
+              Hủy
+            </button>
+            <button type="submit" form="unit-type-form" className="btn btn-primary" disabled={saving || !formDirty}>
+              {saving && <span className="spinner-border spinner-border-sm me-1" />}
+              Lưu
+            </button>
+            </>
+          }
+        >
+          <form id="unit-type-form" onSubmit={handleSave}>
             <div className="mb-2">
               <label className="form-label">
                 Tên loại <span className="text-danger">*</span>
@@ -192,15 +206,6 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
                   </label>
                 </div>
               </div>
-            </div>
-            <div className="d-flex justify-content-end gap-2 mt-3">
-              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setForm(null)} disabled={saving}>
-                Hủy
-              </button>
-              <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
-                {saving && <span className="spinner-border spinner-border-sm me-1" />}
-                Lưu
-              </button>
             </div>
           </form>
         </AdminModal>

@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { Pagination } from "@/components/common/Pagination";
 import { usePagination } from "@/components/common/usePagination";
 import { Badge, BadgeTone } from "@/components/common/StatusBadge";
+import { RowActions } from "@/components/common/RowActions";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { useAuth } from "@/contexts/AuthContext";
@@ -96,14 +97,11 @@ export default function CriteriaSetsPage() {
       <PageHeader
         title="Bộ tiêu chí và thang điểm"
         actions={
-          <>
-            <Link href="/periods" className="btn btn-outline-secondary"><i className="bi bi-calendar3 me-1" />Kỳ đánh giá</Link>
-            {canManage && (
-              <button type="button" className="btn btn-primary" onClick={() => { setForm(EMPTY_FORM); setShowCreate(true); }}>
-                <i className="bi bi-plus-lg me-1" />Tạo bộ tiêu chí
-              </button>
-            )}
-          </>
+          canManage ? (
+            <button type="button" className="btn btn-primary" onClick={() => { setForm(EMPTY_FORM); setShowCreate(true); }}>
+              <i className="bi bi-plus-lg me-1" />Tạo bộ tiêu chí
+            </button>
+          ) : undefined
         }
       />
       <div className="page-body">
@@ -116,10 +114,10 @@ export default function CriteriaSetsPage() {
             ) : (
               <>
               <div className="table-responsive">
-                <table className="table table-hover align-middle mb-0">
+                <table className="table table-hover align-middle mb-0 table-fit">
                   <thead>
                     <tr>
-                      <th>Bộ tiêu chí</th><th>Trạng thái</th><th>Mẫu</th><th>Nội dung</th><th>Kỳ đang dùng</th><th />
+                      <th>Bộ tiêu chí</th><th>Trạng thái</th><th className="d-none d-md-table-cell">Mẫu</th><th className="d-none d-md-table-cell">Nội dung</th><th className="d-none d-md-table-cell">Kỳ đang dùng</th><th className="text-end pe-3">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -130,24 +128,30 @@ export default function CriteriaSetsPage() {
                           <div className="small text-secondary">{s.code}</div>
                         </td>
                         <td className="text-nowrap"><Badge tone={STATUS_TONE[s.status] ?? "neutral"}>{s.statusDisplayName}</Badge></td>
-                        <td className="text-nowrap"><span className="tag t-info">{scoringMethodLabel(s.selfScoreForm)}</span></td>
-                        <td className="num">{s.generalItemCount} tiêu chí con · {s.axisCount} trục · {s.weightFrameCount} khung</td>
-                        <td>{s.usedByPeriods.length > 0 ? s.usedByPeriods.join(", ") : "—"}</td>
-                        <td className="text-end text-nowrap">
-                          <Link href={`/criteria/${s.id}`} className="btn btn-link btn-sm p-0 me-3">{canManage && s.status === "Draft" ? "Sửa" : "Xem"}</Link>
-                          {canManage && <button type="button" className="btn btn-link btn-sm p-0 me-3" disabled={busy} onClick={() => clone(s)}>Nhân bản</button>}
-                          {canManage && s.status === "Published" && (
-                            <button type="button" className="btn btn-link btn-sm p-0 me-3 text-warning" disabled={busy}
-                              onClick={() => confirm({ title: "Lưu trữ bộ tiêu chí", message: `Kỳ đã dùng "${s.name}" không bị ảnh hưởng; bộ không chọn được cho kỳ mới.`, confirmText: "Lưu trữ", onConfirm: () => run(() => criteriaService.archive(s.id, s.version), "Đã lưu trữ bộ tiêu chí.") })}>
-                              Lưu trữ
-                            </button>
-                          )}
-                          {canManage && s.status === "Draft" && (
-                            <button type="button" className="btn btn-link btn-sm p-0 text-danger" disabled={busy}
-                              onClick={() => confirm({ title: "Xóa bản nháp", message: `Xóa hẳn bản nháp "${s.name}"?`, confirmText: "Xóa", isDanger: true, onConfirm: () => run(() => criteriaService.remove(s.id, s.version), "Đã xóa bản nháp.") })}>
-                              Xóa
-                            </button>
-                          )}
+                        <td className="text-nowrap d-none d-md-table-cell"><span className="tag t-info">{scoringMethodLabel(s.selfScoreForm)}</span></td>
+                        <td className="num d-none d-md-table-cell">{s.generalItemCount} tiêu chí con · {s.axisCount} trục · {s.weightFrameCount} khung</td>
+                        <td className="d-none d-md-table-cell">{s.usedByPeriods.length > 0 ? s.usedByPeriods.join(", ") : "—"}</td>
+                        <td className="text-end text-nowrap pe-3">
+                          <RowActions
+                            itemLabel={s.name}
+                            disabled={busy}
+                            primary={[
+                              canManage && s.status === "Draft"
+                                ? { key: "edit", label: "Sửa", icon: "bi-pencil", onClick: () => router.push(`/criteria/${s.id}`) }
+                                : { key: "view", label: "Xem", icon: "bi-eye", onClick: () => router.push(`/criteria/${s.id}`) },
+                            ]}
+                            menu={[
+                              { key: "clone", label: "Nhân bản", icon: "bi-copy", hidden: !canManage, onClick: () => clone(s) },
+                              {
+                                key: "archive", label: "Lưu trữ", icon: "bi-archive", danger: true, hidden: !canManage || s.status !== "Published",
+                                onClick: () => confirm({ title: "Lưu trữ bộ tiêu chí", message: `Kỳ đã dùng "${s.name}" không bị ảnh hưởng; bộ không chọn được cho kỳ mới.`, confirmText: "Lưu trữ", isDanger: true, onConfirm: () => run(() => criteriaService.archive(s.id, s.version), "Đã lưu trữ bộ tiêu chí.") }),
+                              },
+                              {
+                                key: "delete", label: "Xóa bản nháp", icon: "bi-trash", danger: true, hidden: !canManage || s.status !== "Draft",
+                                onClick: () => confirm({ title: "Xóa bản nháp", message: `Xóa hẳn bản nháp "${s.name}"?`, confirmText: "Xóa", isDanger: true, onConfirm: () => run(() => criteriaService.remove(s.id, s.version), "Đã xóa bản nháp.") }),
+                              },
+                            ]}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -175,7 +179,7 @@ export default function CriteriaSetsPage() {
           footer={
             <>
               <button type="button" className="btn btn-outline-secondary" disabled={busy} onClick={() => setShowCreate(false)}>Hủy</button>
-              <button type="submit" form="criteria-create-form" className="btn btn-primary" disabled={busy}>Tạo bản nháp</button>
+              <button type="submit" form="criteria-create-form" className="btn btn-primary" disabled={busy || !form.code.trim() || !form.name.trim()}>Tạo bản nháp</button>
             </>
           }
         >

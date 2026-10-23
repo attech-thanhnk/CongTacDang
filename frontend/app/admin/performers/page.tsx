@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { Card, CardBody, PageHeader } from "@/components/common";
+import { RowActions } from "@/components/common/RowActions";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { UserPicker, PickedUser } from "@/components/admin/UserPicker";
@@ -225,7 +226,7 @@ function PerformersContent() {
                 </select>
               </div>
               {kind !== "Global" && (
-                <div className="col-12 col-md-8">
+                <div className="col-12 col-md-5">
                   <label className="form-label small mb-1">{kind === "Department" ? "Đơn vị chính quyền" : "Tổ chức Đảng"}</label>
                   <select
                     className="form-select form-select-sm"
@@ -243,6 +244,17 @@ function PerformersContent() {
                   </select>
                 </div>
               )}
+              {data && !waitingForUnit && (
+                <div className="col-12 col-md-auto ms-md-auto d-flex flex-wrap align-items-center gap-2 pb-1">
+                  {missing > 0 ? (
+                    <span className="status-badge tone-danger">{missing} việc chưa có người</span>
+                  ) : (
+                    <span className="status-badge tone-success">Mọi việc đều có người</span>
+                  )}
+                  {!data.scopeActive && <span className="status-badge tone-neutral">Đơn vị đã ngừng hoạt động</span>}
+                  {loading && <span className="spinner-border spinner-border-sm text-secondary" />}
+                </div>
+              )}
             </div>
             {catalogError && <div className="small text-danger mt-2">{catalogError}</div>}
           </CardBody>
@@ -257,16 +269,6 @@ function PerformersContent() {
           </div>
         ) : data ? (
           <>
-            <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
-              <h2 className="h6 mb-0">{data.scopeName}</h2>
-              {missing > 0 ? (
-                <span className="badge bg-danger-subtle text-danger-emphasis">{missing} việc chưa có người</span>
-              ) : (
-                <span className="badge bg-success-subtle text-success-emphasis">Mọi việc đều có người</span>
-              )}
-              {!data.scopeActive && <span className="badge bg-secondary">Đơn vị đã ngừng hoạt động</span>}
-              {loading && <span className="spinner-border spinner-border-sm text-secondary" />}
-            </div>
             {data.scopeType !== "Global" && <HoldersLine holders={data.holders} />}
             <div className="d-flex flex-column gap-2">
               {data.jobs.map((job) => (
@@ -278,6 +280,7 @@ function PerformersContent() {
                   canViewUsers={canViewUsers}
                   onAdd={() => setAdding(job)}
                   onRemove={(person) => handleRemove(job, person)}
+                  onViewUser={(person) => router.push(`/admin/users/${person.userId}`)}
                 />
               ))}
             </div>
@@ -314,7 +317,7 @@ function isExpiringSoon(validTo: string): boolean {
 function TemporaryBadge({ validTo }: { validTo: string }) {
   const soon = isExpiringSoon(validTo);
   return (
-    <span className={`badge ${soon ? "bg-warning-subtle text-warning-emphasis" : "bg-info-subtle text-info-emphasis"}`}>
+    <span className={`status-badge ${soon ? "tone-warning" : "tone-info"}`}>
       <i className="bi bi-clock me-1" />
       Giao tạm đến {lastDay(validTo)}
     </span>
@@ -367,26 +370,25 @@ function ReviewCard({
         {open && (
           <ul className="list-unstyled small mb-0 mt-2">
             {items.map((item) => (
-              <li key={item.assignmentId} className="d-flex flex-wrap align-items-center gap-2 py-1 border-top">
+              <li key={item.assignmentId} className="d-flex align-items-center gap-2 py-1 border-top">
+                <div className="d-flex flex-wrap align-items-center gap-2 flex-grow-1" style={{ minWidth: 0 }}>
                 <span className="fw-semibold">{item.fullName}</span>
                 <span className="text-secondary">({item.username})</span>
                 <span className="text-secondary">
                   — vai trò {item.roleName}, giao tại {item.scopeText}
                 </span>
                 <span
-                  className={`badge ${
-                    item.reasonCode === "ExpiringSoon" ? "bg-info-subtle text-info-emphasis" : "bg-warning-subtle text-warning-emphasis"
-                  }`}
+                  className={`status-badge ${item.reasonCode === "ExpiringSoon" ? "tone-info" : "tone-warning"}`}
                 >
                   {item.reason}
                 </span>
-                <span className="ms-auto d-flex gap-3">
-                  <button type="button" className="btn btn-sm btn-link p-0" onClick={() => onViewUnit(item)}>
-                    Xem đơn vị
-                  </button>
-                  <button type="button" className="btn btn-sm btn-link text-danger p-0" onClick={() => onRemove(item)}>
-                    Gỡ
-                  </button>
+                </div>
+                <span className="ms-auto flex-shrink-0">
+                  <RowActions
+                    itemLabel={item.fullName}
+                    primary={[{ key: "view", label: "Xem đơn vị", icon: "bi-eye", onClick: () => onViewUnit(item) }]}
+                    menu={[{ key: "remove", label: "Gỡ phân công", icon: "bi-person-dash", danger: true, onClick: () => onRemove(item) }]}
+                  />
                 </span>
               </li>
             ))}
@@ -404,6 +406,7 @@ function JobCard({
   canViewUsers,
   onAdd,
   onRemove,
+  onViewUser,
 }: {
   job: PerformerJob;
   focused: boolean;
@@ -411,6 +414,7 @@ function JobCard({
   canViewUsers: boolean;
   onAdd: () => void;
   onRemove: (person: Performer) => void;
+  onViewUser: (person: Performer) => void;
 }) {
   const empty = job.people.length === 0;
   const missing = empty && job.inUse;
@@ -420,23 +424,25 @@ function JobCard({
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
           <div className="fw-semibold">
             {job.permissionName}
-            {missing && <span className="badge bg-danger ms-2">Chưa có người</span>}
-            {!job.inUse && <span className="badge bg-secondary-subtle text-secondary-emphasis ms-2">Kỳ hiện tại không dùng</span>}
+            {missing && <span className="status-badge tone-danger ms-2">Chưa có người</span>}
+            {!job.inUse && <span className="status-badge tone-neutral ms-2">Kỳ hiện tại không dùng</span>}
           </div>
-          <button type="button" className="btn btn-sm btn-outline-primary" disabled={!canAdd} onClick={onAdd}>
-            <i className="bi bi-person-plus me-1" />
+          <button type="button" className="btn btn-sm btn-outline-secondary" disabled={!canAdd} onClick={onAdd}>
+            <i className="bi bi-plus-lg me-1" />
             Thêm người
           </button>
         </div>
         {!empty && (
           <ul className="list-unstyled small mb-0 mt-2">
             {job.people.map((person) => (
-              <li key={`${person.userId}-${person.assignmentId}`} className="d-flex flex-wrap align-items-center gap-2 py-1 border-top">
+              <li key={`${person.userId}-${person.assignmentId}`} className="d-flex align-items-center gap-2 py-1 border-top">
+                <div className="d-flex flex-wrap align-items-center gap-2 flex-grow-1" style={{ minWidth: 0 }}>
                 <span className="fw-semibold">{person.fullName}</span>
                 <span className="text-secondary">({person.username})</span>
                 {person.positionAtScope && <span className="text-body">· {person.positionAtScope}</span>}
                 <span className="text-secondary">
-                  — vai trò {person.roleName}, giao tại {person.scopeText}
+                  — vai trò {person.roleName}
+                  {!person.assignedHere && <>, giao tại {person.scopeText}</>}
                 </span>
                 {person.validTo ? (
                   <TemporaryBadge validTo={person.validTo} />
@@ -444,7 +450,7 @@ function JobCard({
                   person.scopeType !== "Global" &&
                   !person.positionAtScope && (
                     <span
-                      className="badge bg-warning-subtle text-warning-emphasis"
+                      className="status-badge tone-warning"
                       title="Nếu đã luân chuyển thì gỡ; nếu là phụ trách tạm thì đặt thời hạn."
                     >
                       <i className="bi bi-exclamation-triangle me-1" />
@@ -452,16 +458,15 @@ function JobCard({
                     </span>
                   )
                 )}
-                <span className="ms-auto">
-                  {person.assignedHere ? (
-                    <button type="button" className="btn btn-sm btn-link text-danger p-0" onClick={() => onRemove(person)}>
-                      Gỡ
-                    </button>
-                  ) : canViewUsers ? (
-                    <Link href={`/admin/users/${person.userId}`} className="btn btn-sm btn-link p-0">
-                      Xem tài khoản
-                    </Link>
-                  ) : null}
+                </div>
+                <span className="ms-auto flex-shrink-0">
+                  <RowActions
+                    itemLabel={person.fullName}
+                    menu={[
+                      { key: "user", label: "Xem tài khoản", icon: "bi-person", hidden: !canViewUsers, onClick: () => onViewUser(person) },
+                      { key: "remove", label: "Gỡ khỏi việc này", icon: "bi-person-dash", danger: true, hidden: !person.assignedHere, onClick: () => onRemove(person) },
+                    ]}
+                  />
                 </span>
               </li>
             ))}
@@ -493,24 +498,35 @@ function AddPerformerModal({
   const [roleId, setRoleId] = useState(job.roles.length === 1 ? job.roles[0].id : "");
   const [validTo, setValidTo] = useState("");
   const [note, setNote] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const role = job.roles.find((r) => r.id === roleId);
+  const canSubmit = !!user && !!roleId && !saving;
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!user) {
-      setError("Hãy chọn người.");
-      return;
-    }
-    if (!roleId) {
-      setError("Hãy chọn vai trò.");
-      return;
-    }
+    if (!user || !roleId || saving) return;
     onSubmit({ user, roleId, validTo, note });
   };
 
   return (
-    <AdminModal title="Thêm người thực hiện" onClose={onClose} closeDisabled={saving} maxWidth={560}>
+    <AdminModal
+      title="Thêm người thực hiện"
+      onClose={onClose}
+      closeDisabled={saving}
+      maxWidth={560}
+      footer={
+        <>
+          <button type="button" className="btn btn-outline-secondary" onClick={onClose} disabled={saving}>
+            Hủy
+          </button>
+          {job.roles.length > 0 && (
+            <button type="submit" form="performer-form" className="btn btn-primary" disabled={!canSubmit}>
+              {saving && <span className="spinner-border spinner-border-sm me-1" />}
+              Thêm
+            </button>
+          )}
+        </>
+      }
+    >
       <div className="small mb-3 p-2 rounded border bg-light">
         Việc <strong>{job.permissionName}</strong> tại <strong>{unitName}</strong>
       </div>
@@ -526,7 +542,7 @@ function AddPerformerModal({
           )}
         </div>
       ) : (
-        <form onSubmit={handleSubmit}>
+        <form id="performer-form" onSubmit={handleSubmit}>
           <div className="mb-2">
             <label className="form-label">
               Người thực hiện <span className="text-danger">*</span>
@@ -579,16 +595,6 @@ function AddPerformerModal({
               placeholder="VD: theo Quyết định số …"
               onChange={(e) => setNote(e.target.value)}
             />
-          </div>
-          {error && <div className="alert alert-danger small py-2 mb-2">{error}</div>}
-          <div className="d-flex justify-content-end gap-2 mt-3">
-            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={onClose} disabled={saving}>
-              Hủy
-            </button>
-            <button type="submit" className="btn btn-sm btn-primary" disabled={saving}>
-              {saving && <span className="spinner-border spinner-border-sm me-1" />}
-              Thêm
-            </button>
           </div>
         </form>
       )}
