@@ -10,19 +10,14 @@ using CongTacDang.Application.Common.Security;
 
 namespace CongTacDang.Application.Imports;
 
-/// <summary>
-/// Nhập dữ liệu từ Excel: tải file mẫu → tải file lên → xem trước từng dòng → xác nhận (ghi toàn bộ trong một transaction).
-/// Có dòng lỗi thì không cho xác nhận (không nhập một phần).
-/// </summary>
+/// <summary>Nhập dữ liệu từ Excel; có dòng lỗi thì không cho xác nhận (không nhập một phần).</summary>
 public interface IImportService
 {
-    /// <summary>Các loại nhập người dùng hiện tại được dùng.</summary>
     IReadOnlyList<ImportKindDto> GetKinds();
 
-    /// <summary>File mẫu của loại nhập.</summary>
     Task<ImportFile> GetTemplateAsync(string kind, CancellationToken ct = default);
 
-    /// <summary>Đọc, kiểm tra file và tạo phiên xem trước (hết hạn sau 30 phút).</summary>
+    /// <summary>Đọc, kiểm tra file và tạo phiên xem trước.</summary>
     Task<ImportPreviewDto> PreviewAsync(string kind, Stream content, string? fileName, long length, CancellationToken ct = default);
 
     /// <summary>Xác nhận phiên: kiểm tra lại với dữ liệu hiện tại rồi ghi trong một transaction. Chỉ người tạo phiên được xác nhận.</summary>
@@ -32,7 +27,6 @@ public interface IImportService
     ImportFile DownloadResult(string token);
 }
 
-/// <summary>Triển khai <see cref="IImportService"/>.</summary>
 public sealed class ImportService : IImportService
 {
     private readonly IReadOnlyList<IImportDefinition> _definitions;
@@ -43,7 +37,6 @@ public sealed class ImportService : IImportService
     private readonly ICurrentUserService _currentUser;
     private readonly IUnitOfWork _unitOfWork;
 
-    /// <summary>Khởi tạo.</summary>
     public ImportService(
         IEnumerable<IImportDefinition> definitions,
         IImportWorkbook workbook,
@@ -62,7 +55,6 @@ public sealed class ImportService : IImportService
         _unitOfWork = unitOfWork;
     }
 
-    /// <inheritdoc />
     public IReadOnlyList<ImportKindDto> GetKinds()
     {
         if (!_guard.HasAny(PermissionCodes.SystemImport))
@@ -79,7 +71,6 @@ public sealed class ImportService : IImportService
             .ToList();
     }
 
-    /// <inheritdoc />
     public async Task<ImportFile> GetTemplateAsync(string kind, CancellationToken ct = default)
     {
         var definition = Resolve(kind);
@@ -88,7 +79,6 @@ public sealed class ImportService : IImportService
         return new ImportFile(bytes, ImportLimits.XlsxContentType, $"mau-nhap-{definition.Kind}.xlsx");
     }
 
-    /// <inheritdoc />
     public async Task<ImportPreviewDto> PreviewAsync(string kind, Stream content, string? fileName, long length, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(content);
@@ -134,7 +124,6 @@ public sealed class ImportService : IImportService
         };
     }
 
-    /// <inheritdoc />
     public async Task<ImportCommitResultDto> CommitAsync(Guid sessionId, CancellationToken ct = default)
     {
         var ownerId = CurrentUserId();
@@ -198,7 +187,6 @@ public sealed class ImportService : IImportService
         }
     }
 
-    /// <inheritdoc />
     public ImportFile DownloadResult(string token)
     {
         var ownerId = CurrentUserId();

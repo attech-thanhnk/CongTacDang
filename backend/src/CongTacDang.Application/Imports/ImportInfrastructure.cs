@@ -12,16 +12,12 @@ namespace CongTacDang.Application.Imports;
 /// <summary>Đơn vị chính quyền / tổ chức Đảng (kể cả đã xóa) để đối chiếu mã khi nhập.</summary>
 public sealed record OrgUnitRef(Guid Id, string Code, string Name, Guid? ParentId, Guid? UnitTypeId, bool IsActive, bool IsDeleted);
 
-/// <summary>Loại đơn vị.</summary>
 public sealed record UnitTypeRef(Guid Id, string Name, OrgSide Side, bool IsActive);
 
-/// <summary>Chức vụ trong danh mục.</summary>
 public sealed record PositionRef(Guid Id, string Name, string? StatCode, PositionSide Side, bool IsActive);
 
-/// <summary>Kiểu trình bày biểu mẫu tự đánh giá.</summary>
 public sealed record FormLayoutRef(Guid Id, string Name);
 
-/// <summary>Vai trò kèm mã quyền.</summary>
 public sealed record RoleRef(Guid Id, string Code, string Name, IReadOnlyList<string> PermissionCodes);
 
 /// <summary>Tài khoản (kể cả đã xóa) kèm chức vụ đang giữ.</summary>
@@ -76,19 +72,17 @@ public interface IImportAuditWriter
 
 #region File Excel
 
-/// <summary>Đọc/ghi file Excel của chức năng nhập dữ liệu.</summary>
 public interface IImportWorkbook
 {
     /// <summary>
-    /// Đọc sheet dữ liệu: dòng 1 là tiêu đề (khớp theo <see cref="ImportColumn.Header"/>), bỏ dòng trống.
-    /// File không đọc được, thiếu cột bắt buộc, quá số dòng → <see cref="Common.Exceptions.ValidationException"/>.
+    /// Dòng 1 là tiêu đề, bỏ dòng trống. File hỏng, thiếu cột bắt buộc, quá số dòng → <see cref="Common.Exceptions.ValidationException"/>.
     /// </summary>
     IReadOnlyList<ImportRawRow> Read(Stream content, IReadOnlyList<ImportColumn> columns);
 
     /// <summary>Dựng file mẫu: sheet dữ liệu (tiêu đề cố định, danh sách chọn) và sheet Hướng dẫn.</summary>
     byte[] BuildTemplate(string title, string description, IReadOnlyList<ImportColumn> columns);
 
-    /// <summary>Dựng file bảng đơn giản (tiêu đề + dòng), chống chèn công thức.</summary>
+    /// <summary>Dựng file bảng đơn giản, chống chèn công thức.</summary>
     byte[] BuildTable(string sheetName, IReadOnlyList<string> headers, IEnumerable<IReadOnlyList<string>> rows);
 }
 
@@ -97,21 +91,14 @@ public interface IImportWorkbook
 #region Phiên nhập
 
 /// <summary>Phiên xem trước đang chờ xác nhận.</summary>
-/// <param name="Id">Mã phiên.</param>
-/// <param name="Kind">Loại nhập.</param>
-/// <param name="OwnerId">Người tải file lên (duy nhất được xác nhận).</param>
-/// <param name="FileName">Tên file.</param>
-/// <param name="Rows">Các dòng đã đọc (phân tích lại khi xác nhận).</param>
-/// <param name="ExpiresAt">Hết hạn (UTC).</param>
+/// <param name="OwnerId">Chỉ người tải lên được xác nhận.</param>
+/// <param name="Rows">Phân tích lại khi xác nhận.</param>
+/// <param name="ExpiresAt">UTC.</param>
 public sealed record ImportSession(Guid Id, string Kind, Guid OwnerId, string FileName, IReadOnlyList<ImportRawRow> Rows, DateTime ExpiresAt);
 
-/// <summary>
-/// Lưu tạm phiên xem trước và file kết quả (mật khẩu tạm) trong bộ nhớ máy chủ, hết hạn sau
-/// <see cref="ImportLimits.SessionLifetime"/>. Không ghi ra đĩa.
-/// </summary>
+/// <summary>Lưu tạm phiên xem trước và file kết quả trong bộ nhớ, không ghi ra đĩa.</summary>
 public interface IImportSessionStore
 {
-    /// <summary>Tạo phiên mới.</summary>
     ImportSession Create(string kind, Guid ownerId, string fileName, IReadOnlyList<ImportRawRow> rows);
 
     /// <summary>Lấy phiên chưa hết hạn; null nếu không có.</summary>

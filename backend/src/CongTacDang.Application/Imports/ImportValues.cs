@@ -9,16 +9,13 @@ namespace CongTacDang.Application.Imports;
 /// <summary>Đọc giá trị ô trong file nhập: ngày dd/MM/yyyy, Có/Không, danh sách phân tách bằng ";".</summary>
 public static class ImportValues
 {
-    /// <summary>Giá trị "Có".</summary>
     public const string Yes = "Có";
 
-    /// <summary>Giá trị "Không".</summary>
     public const string No = "Không";
 
-    /// <summary>Danh sách giá trị Có/Không.</summary>
     public static readonly IReadOnlyList<string> YesNo = new[] { Yes, No };
 
-    /// <summary>Lệch múi giờ Việt Nam (UTC+7, không đổi giờ) — ngày trong file hiểu theo giờ Việt Nam.</summary>
+    /// <summary>Ngày trong file hiểu theo giờ Việt Nam (UTC+7).</summary>
     public static readonly TimeSpan VietnamOffset = TimeSpan.FromHours(7);
 
     private static readonly string[] DateFormats = { "dd/MM/yyyy", "d/M/yyyy", "dd/M/yyyy", "d/MM/yyyy" };
@@ -40,9 +37,7 @@ public static class ImportValues
     public static DateTime StartOfDayUtc(DateOnly date)
         => DateTime.SpecifyKind(date.ToDateTime(TimeOnly.MinValue) - VietnamOffset, DateTimeKind.Utc);
 
-    /// <summary>
-    /// Đọc Có/Không (không phân biệt hoa thường, chấp nhận không dấu "co"/"khong"); trống → null, <paramref name="ok"/> = true.
-    /// </summary>
+    /// <summary>Chấp nhận không dấu "co"/"khong"; trống → null, <paramref name="ok"/> = true.</summary>
     public static bool? ParseYesNo(string value, out bool ok)
     {
         ok = true;

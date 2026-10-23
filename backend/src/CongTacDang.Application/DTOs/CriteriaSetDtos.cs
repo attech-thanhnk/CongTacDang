@@ -4,7 +4,6 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.DTOs;
 
-/// <summary>Một bộ tiêu chí trong danh sách.</summary>
 public class CriteriaSetListItemDto
 {
     public Guid Id { get; set; }
@@ -23,25 +22,20 @@ public class CriteriaSetListItemDto
     public DateTime? ArchivedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    /// <summary>Số tiêu chí con của nhóm tiêu chí chung.</summary>
     public int GeneralItemCount { get; set; }
-    /// <summary>Số trục kết quả.</summary>
     public int AxisCount { get; set; }
-    /// <summary>Số khung tỷ trọng.</summary>
     public int WeightFrameCount { get; set; }
     /// <summary>Tên các kỳ đang chọn bộ này.</summary>
     public List<string> UsedByPeriods { get; set; } = new();
 }
 
-/// <summary>Chi tiết bộ tiêu chí (kèm nội dung).</summary>
 public class CriteriaSetDto : CriteriaSetListItemDto
 {
     public CriteriaSetContent Content { get; set; } = new();
-    /// <summary>Lỗi kiểm tra nội dung hiện tại (rỗng = xuất bản được).</summary>
+    /// <summary>Rỗng = xuất bản được.</summary>
     public List<string> ValidationErrors { get; set; } = new();
 }
 
-/// <summary>Tạo bộ tiêu chí nháp.</summary>
 public class CreateCriteriaSetDto
 {
     public string? Code { get; set; }
@@ -49,7 +43,7 @@ public class CreateCriteriaSetDto
     /// <summary>09A / 09B.</summary>
     public string? SelfScoreForm { get; set; }
     public string? Notes { get; set; }
-    /// <summary>Nội dung; trống → nội dung mặc định theo bản trích xuất HD03 cho mẫu tự chấm đã chọn.</summary>
+    /// <summary>Trống → nội dung mặc định theo mẫu tự chấm đã chọn.</summary>
     public CriteriaSetContent? Content { get; set; }
 }
 
@@ -64,12 +58,11 @@ public class UpdateCriteriaSetDto
     public CriteriaSetContent? Content { get; set; }
 }
 
-/// <summary>Nhân bản bộ tiêu chí thành bản nháp mới.</summary>
 public class CloneCriteriaSetDto
 {
-    /// <summary>Mã bản nháp mới; trống → mã gốc + hậu tố.</summary>
+    /// <summary>Trống → mã gốc + hậu tố.</summary>
     public string? Code { get; set; }
-    /// <summary>Tên bản nháp mới; trống → tên gốc + " (bản nháp)".</summary>
+    /// <summary>Trống → tên gốc + " (bản nháp)".</summary>
     public string? Name { get; set; }
 }
 
@@ -90,10 +83,9 @@ public class WeightFrameOptionDto
     public double D { get; set; }
 }
 
-/// <summary>Danh mục khung tỷ trọng kèm nguồn.</summary>
 public class WeightFrameOptionsDto
 {
-    /// <summary>Tên bộ tiêu chí nguồn (kỳ gần nhất đã chọn bộ, hoặc bộ đã xuất bản mới nhất).</summary>
+    /// <summary>Kỳ gần nhất đã chọn bộ, hoặc bộ đã xuất bản mới nhất.</summary>
     public string? SourceName { get; set; }
     public List<WeightFrameOptionDto> Frames { get; set; } = new();
 }

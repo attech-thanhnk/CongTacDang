@@ -6,35 +6,29 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Application.Common.Security;
 
-/// <summary>
-/// Đối tượng cần kiểm tra quyền (docs/thiet-ke/phan-quyen.md mục 4).
-/// </summary>
-/// <param name="OwnerId">Chủ hồ sơ (người được đánh giá / người tải tệp / chủ tài khoản).</param>
-/// <param name="DepartmentId">Đơn vị chính quyền của đối tượng (với hồ sơ: ảnh chụp trên EvaluationRecord).</param>
-/// <param name="PartyCellId">Tổ chức Đảng của đối tượng.</param>
+/// <summary>Đối tượng cần kiểm tra quyền.</summary>
+/// <param name="OwnerId">Người được đánh giá / người tải tệp / chủ tài khoản.</param>
+/// <param name="DepartmentId">Với hồ sơ: ảnh chụp trên EvaluationRecord.</param>
 public sealed record AccessTarget(
     Guid? OwnerId = null,
     Guid? DepartmentId = null,
     Guid? PartyCellId = null)
 {
-    /// <summary>Không gắn đối tượng cụ thể (chỉ xét phạm vi Global).</summary>
+    /// <summary>Chỉ phạm vi Global thỏa.</summary>
     public static AccessTarget None { get; } = new();
 
-    /// <summary>Dựng đối tượng kiểm tra từ hồ sơ đánh giá (dùng các trường ảnh chụp trên hồ sơ).</summary>
+    /// <summary>Dùng các trường ảnh chụp trên hồ sơ.</summary>
     public static AccessTarget ForRecord(EvaluationRecord record) =>
         new(record.MemberId, record.DepartmentId, record.PartyCellId);
 
     /// <summary>
-    /// Chế độ ghi: đối tượng được tạo/sửa gắn với nhiều đơn vị (ví dụ cả đơn vị chính quyền và tổ chức Đảng) thì
-    /// <b>mọi</b> đơn vị khác null đều phải nằm trong phạm vi của người thao tác (phạm vi đơn vị bao trùm cây con).
-    /// Mặc định (đọc) chỉ cần một đơn vị nằm trong phạm vi.
+    /// Chế độ ghi: <b>mọi</b> đơn vị khác null phải nằm trong phạm vi người thao tác.
+    /// Mặc định (đọc) chỉ cần một đơn vị.
     /// </summary>
     public bool RequireAllUnits { get; init; }
 
-    /// <summary>Bản sao của đối tượng ở chế độ ghi (<see cref="RequireAllUnits"/>).</summary>
     public AccessTarget ForWrite() => this with { RequireAllUnits = true };
 
-    /// <summary>Đối tượng gắn đơn vị chính quyền / tổ chức Đảng, kiểm tra ở chế độ ghi (tạo/sửa).</summary>
     public static AccessTarget ForUnitsWrite(Guid? departmentId, Guid? partyCellId) =>
         new AccessTarget(DepartmentId: departmentId, PartyCellId: partyCellId).ForWrite();
 }
@@ -43,32 +37,24 @@ public sealed record AccessTarget(
 /// Bộ lọc phạm vi để service dựng điều kiện WHERE cho truy vấn danh sách:
 /// <c>IsGlobal</c> OR <c>DepartmentId IN DepartmentIds</c> OR <c>PartyCellId IN PartyCellIds</c> OR <c>OwnerId = OwnerId</c>.
 /// </summary>
-/// <param name="IsGlobal">Được thấy mọi đối tượng.</param>
-/// <param name="DepartmentIds">Các đơn vị chính quyền được thấy (đã mở rộng xuống mọi đơn vị con cháu của nút được gán).</param>
-/// <param name="PartyCellIds">Các tổ chức Đảng được thấy (đã mở rộng xuống mọi tổ chức con cháu của nút được gán).</param>
-/// <param name="OwnerId">Luôn thấy đối tượng của chủ này (vd. <c>evaluation.read</c>: chủ hồ sơ luôn xem được hồ sơ của mình).</param>
+/// <param name="DepartmentIds">Đã mở rộng xuống mọi đơn vị con cháu của nút được gán.</param>
+/// <param name="PartyCellIds">Đã mở rộng xuống mọi tổ chức con cháu của nút được gán.</param>
+/// <param name="OwnerId">Luôn thấy đối tượng của chủ này (vd. chủ hồ sơ luôn xem được hồ sơ của mình).</param>
 public sealed record ScopeFilter(
     bool IsGlobal,
     IReadOnlyList<Guid> DepartmentIds,
     IReadOnlyList<Guid> PartyCellIds,
     Guid? OwnerId = null)
 {
-    /// <summary>Không thấy gì.</summary>
     public static ScopeFilter None { get; } = new(false, Array.Empty<Guid>(), Array.Empty<Guid>());
 
-    /// <summary>Thấy mọi đối tượng.</summary>
     public static ScopeFilter Global { get; } = new(true, Array.Empty<Guid>(), Array.Empty<Guid>());
 
-    /// <summary>Chỉ thấy đối tượng của một chủ.</summary>
     public static ScopeFilter OwnerOnly(Guid ownerId) => new(false, Array.Empty<Guid>(), Array.Empty<Guid>(), ownerId);
 
-    /// <summary>Bộ lọc không cho thấy đối tượng nào.</summary>
     public bool IsEmpty => !IsGlobal && DepartmentIds.Count == 0 && PartyCellIds.Count == 0 && OwnerId == null;
 
-    /// <summary>
-    /// Đối tượng có chủ <paramref name="ownerId"/>, thuộc đơn vị chính quyền <paramref name="departmentId"/>, tổ chức Đảng <paramref name="partyCellId"/>
-    /// nằm trong bộ lọc hay không (dùng khi lọc danh sách trong bộ nhớ).
-    /// </summary>
+    /// <summary>Lọc danh sách trong bộ nhớ.</summary>
     public bool Matches(Guid? ownerId, Guid? departmentId, Guid? partyCellId)
     {
         if (IsGlobal)
@@ -80,7 +66,7 @@ public sealed record ScopeFilter(
         return partyCellId.HasValue && PartyCellIds.Contains(partyCellId.Value);
     }
 
-    /// <summary>Hợp của hai bộ lọc (thấy đối tượng thuộc ít nhất một bộ lọc). Chủ hồ sơ lấy theo bộ lọc đầu nếu có.</summary>
+    /// <summary>Hợp hai bộ lọc; chủ hồ sơ lấy theo bộ lọc đầu nếu có.</summary>
     public ScopeFilter Union(ScopeFilter other)
     {
         ArgumentNullException.ThrowIfNull(other);
@@ -93,21 +79,19 @@ public sealed record ScopeFilter(
 }
 
 /// <summary>
-/// Điểm kiểm tra quyền duy nhất theo đối tượng cho người dùng của request hiện tại
-/// (docs/thiet-ke/phan-quyen.md mục 4). Controller dùng [RequirePermission] = "có quyền ở phạm vi nào đó";
-/// service bắt buộc gọi <see cref="Ensure"/>/<see cref="GetScope"/> trên đối tượng cụ thể.
+/// Điểm kiểm tra quyền theo đối tượng cho người dùng của request hiện tại.
+/// [RequirePermission] chỉ xét "có quyền ở phạm vi nào đó"; service bắt buộc gọi <see cref="Ensure"/>/<see cref="GetScope"/>.
 /// </summary>
 public interface IAuthorizationGuard
 {
-    /// <summary>Người dùng hiện tại được thực hiện <paramref name="permission"/> trên <paramref name="target"/>.</summary>
     bool Can(string permission, AccessTarget target);
 
-    /// <summary>Như <see cref="Can"/> nhưng ném <see cref="Exceptions.ForbiddenException"/> (403) nếu không được phép.</summary>
+    /// <summary>Ném <see cref="Exceptions.ForbiddenException"/> (403) nếu không được phép.</summary>
     void Ensure(string permission, AccessTarget target);
 
-    /// <summary>Người dùng hiện tại có <paramref name="permission"/> ở phạm vi bất kỳ (dùng cho policy và menu).</summary>
+    /// <summary>Có quyền ở phạm vi bất kỳ (dùng cho policy và menu).</summary>
     bool HasAny(string permission);
 
-    /// <summary>Bộ lọc phạm vi của <paramref name="permission"/> cho truy vấn danh sách.</summary>
+    /// <summary>Bộ lọc cho truy vấn danh sách.</summary>
     ScopeFilter GetScope(string permission);
 }

@@ -12,16 +12,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace CongTacDang.Application.Common.Security;
 
 /// <summary>
-/// Tính quyền hiệu lực của người dùng từ các bản gán vai trò có phạm vi và thời hạn (docs/thiet-ke/phan-quyen.md mục 4, 7):
-/// <list type="bullet">
-/// <item>chỉ bản gán đang hiệu lực (<c>ValidFrom ≤ now &lt; ValidTo</c>), chưa xóa, vai trò chưa xóa;</item>
-/// <item>mã quyền không có trong <see cref="PermissionCodes.All"/> bị bỏ qua (ghi cảnh báo một lần cho mỗi mã);</item>
-/// <item>quyền "không áp dụng phạm vi" chỉ có hiệu lực khi được gán phạm vi Global;</item>
-/// <item>người dùng không tồn tại / đã xóa / vô hiệu hóa → <see cref="EffectivePermissions.Empty"/>;</item>
-/// <item>phạm vi đơn vị (Department/PartyCell) được mở rộng xuống mọi đơn vị con cháu theo cây đơn vị (repository tính sẵn
-/// <see cref="AssignmentGrantSource.CoveredScopeIds"/>); đổi cấu trúc cây → xóa toàn bộ cache.</item>
-/// </list>
-/// Kết quả được cache theo người dùng (TTL 5 phút, hết hạn sớm hơn khi có bản gán bắt đầu/kết thúc hiệu lực).
+/// Chỉ tính bản gán đang hiệu lực (<c>ValidFrom ≤ now &lt; ValidTo</c>); mã quyền lạ bị bỏ qua (cảnh báo một lần).
+/// Đổi cấu trúc cây đơn vị → phải xóa toàn bộ cache.
 /// </summary>
 public sealed class PermissionResolver : IPermissionResolver
 {
@@ -31,7 +23,6 @@ public sealed class PermissionResolver : IPermissionResolver
     private readonly PermissionCache _cache;
     private readonly ILogger<PermissionResolver> _logger;
 
-    /// <summary>Khởi tạo resolver dùng repository bản gán và cache dùng chung.</summary>
     public PermissionResolver(IRoleAssignmentRepository assignments, PermissionCache cache, ILogger<PermissionResolver>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(assignments);
@@ -40,7 +31,6 @@ public sealed class PermissionResolver : IPermissionResolver
         _logger = logger ?? NullLogger<PermissionResolver>.Instance;
     }
 
-    /// <inheritdoc />
     public async Task<EffectivePermissions> GetAsync(Guid userId, CancellationToken ct = default)
     {
         if (_cache.TryGet(userId, out var cached))
@@ -79,7 +69,7 @@ public sealed class PermissionResolver : IPermissionResolver
         return result;
     }
 
-    /// <summary>Dựng danh sách quyền kèm phạm vi từ các bản gán đang hiệu lực (loại mã lạ, loại gán sai phạm vi).</summary>
+    /// <summary>Loại mã lạ và quyền gán sai phạm vi.</summary>
     private IEnumerable<PermissionGrant> BuildGrants(IEnumerable<AssignmentGrantSource> assignments)
     {
         var grants = new List<PermissionGrant>();

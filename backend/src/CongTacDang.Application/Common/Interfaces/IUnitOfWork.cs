@@ -7,7 +7,6 @@ namespace CongTacDang.Application.Common.Interfaces;
 /// <summary>Điều phối lưu thay đổi và transaction cho một đơn vị nghiệp vụ.</summary>
 public interface IUnitOfWork
 {
-    /// <summary>Lưu toàn bộ thay đổi đang được theo dõi bởi DbContext.</summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Thực hiện một nhóm thao tác trong transaction có retry của provider.</summary>
@@ -16,6 +15,5 @@ public interface IUnitOfWork
     /// <summary>Đặt phiên bản đọc được làm giá trị OriginalValue cho optimistic concurrency; bỏ qua khi client không gửi version.</summary>
     void SetOriginalVersion(object entity, uint? version);
 
-    /// <summary>Đọc giá trị xmin hiện tại của entity.</summary>
     uint GetVersion(object entity);
 }

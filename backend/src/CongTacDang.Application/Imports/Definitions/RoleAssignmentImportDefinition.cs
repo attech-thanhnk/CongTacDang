@@ -21,7 +21,6 @@ public sealed class RoleAssignmentImportRow
     /// <summary>Mã hoặc tên vai trò như trong file.</summary>
     public string RoleText { get; init; } = string.Empty;
 
-    /// <summary>Loại phạm vi.</summary>
     public RoleScopeType ScopeType { get; init; }
 
     /// <summary>Mã đơn vị / tổ chức Đảng (chuẩn hóa chữ hoa).</summary>
@@ -30,34 +29,27 @@ public sealed class RoleAssignmentImportRow
     /// <summary>Hiệu lực từ (UTC); null = ngay khi nhập.</summary>
     public DateTime? ValidFrom { get; init; }
 
-    /// <summary>Hiệu lực đến (UTC, không bao gồm = 00:00 ngày sau "Đến ngày"); null = không thời hạn.</summary>
+    /// <summary>UTC, không bao gồm (00:00 ngày sau "Đến ngày"); null = không thời hạn.</summary>
     public DateTime? ValidTo { get; init; }
 
-    /// <summary>Ghi chú.</summary>
     public string? Note { get; init; }
 
-    /// <summary>Id người được gán.</summary>
     public Guid UserId { get; set; }
 
-    /// <summary>Id vai trò.</summary>
     public Guid RoleId { get; set; }
 
-    /// <summary>Id đơn vị / tổ chức Đảng của phạm vi.</summary>
     public Guid? ScopeId { get; set; }
 }
 
 /// <summary>
-/// Nhập bản gán vai trò (loại <c>role-assignments</c>): người, vai trò, phạm vi Toàn công ty / Đơn vị / Tổ chức Đảng, thời hạn.
-/// Kiểm tra trước: người/vai trò/phạm vi tồn tại, vai trò có quyền chỉ áp dụng toàn công ty thì chỉ gán Toàn công ty, không tự gán
-/// cho chính người đang nhập, trùng bản gán (trong file hoặc với bản gán đang/sắp hiệu lực). Ghi qua <see cref="IRoleAssignmentService"/>.
+/// Vai trò có quyền chỉ áp dụng toàn công ty thì chỉ gán Toàn công ty; không tự gán cho chính mình;
+/// chặn trùng trong file và với bản gán đang/sắp hiệu lực.
 /// </summary>
 public sealed class RoleAssignmentImportDefinition : ImportDefinition<RoleAssignmentImportRow>
 {
-    /// <summary>Khóa cột.</summary>
     public const string UsernameKey = "username", RoleKey = "role", ScopeTypeKey = "scopeType", ScopeCodeKey = "scopeCode",
         ValidFromKey = "validFrom", ValidToKey = "validTo", NoteKey = "note";
 
-    /// <summary>Nhãn loại phạm vi trong file.</summary>
     public const string GlobalLabel = "Toàn công ty", DepartmentLabel = "Đơn vị", PartyCellLabel = "Tổ chức Đảng";
 
     private const int MaxNoteLength = 1000;
@@ -67,7 +59,6 @@ public sealed class RoleAssignmentImportDefinition : ImportDefinition<RoleAssign
     private readonly ICurrentUserService _currentUser;
     private readonly TimeProvider _time;
 
-    /// <summary>Khởi tạo.</summary>
     public RoleAssignmentImportDefinition(IImportLookup lookup, IRoleAssignmentService assignments, ICurrentUserService currentUser,
         TimeProvider? time = null)
     {
@@ -77,22 +68,16 @@ public sealed class RoleAssignmentImportDefinition : ImportDefinition<RoleAssign
         _time = time ?? TimeProvider.System;
     }
 
-    /// <inheritdoc />
     public override string Kind => "role-assignments";
 
-    /// <inheritdoc />
     public override string Name => "Gán vai trò";
 
-    /// <inheritdoc />
     public override string Description => "Gán vai trò cho tài khoản đã có, kèm phạm vi và thời hạn. Mỗi dòng tạo một bản gán mới.";
 
-    /// <inheritdoc />
     public override int Order => 40;
 
-    /// <inheritdoc />
     public override IReadOnlyList<string> RequiredPermissions { get; } = new[] { PermissionCodes.SystemAssignmentsManage };
 
-    /// <inheritdoc />
     public override IReadOnlyList<ImportColumn> Columns { get; } = new ImportColumn[]
     {
         new(UsernameKey, "Tên đăng nhập", true, "Tên đăng nhập của tài khoản đã có.", Example: "nguyen.van.a"),
@@ -105,7 +90,6 @@ public sealed class RoleAssignmentImportDefinition : ImportDefinition<RoleAssign
         new(NoteKey, "Ghi chú", false, "Số quyết định… (tùy chọn).")
     };
 
-    /// <inheritdoc />
     public override async Task<IReadOnlyList<ImportColumn>> GetTemplateColumnsAsync(CancellationToken ct = default)
     {
         var roles = (await _lookup.GetRolesAsync(ct)).Select(r => r.Name).ToList();
@@ -121,7 +105,6 @@ public sealed class RoleAssignmentImportDefinition : ImportDefinition<RoleAssign
         _ => null
     };
 
-    /// <inheritdoc />
     protected override RoleAssignmentImportRow? ParseRow(ImportRawRow raw, ImportRowResult result)
     {
         var usernameText = raw.Get(UsernameKey);
@@ -177,7 +160,6 @@ public sealed class RoleAssignmentImportDefinition : ImportDefinition<RoleAssign
         };
     }
 
-    /// <inheritdoc />
     protected override async Task ValidateAsync(IReadOnlyList<ParsedImportRow<RoleAssignmentImportRow>> rows, CancellationToken ct)
     {
         var now = _time.GetUtcNow().UtcDateTime;
@@ -259,7 +241,6 @@ public sealed class RoleAssignmentImportDefinition : ImportDefinition<RoleAssign
         }
     }
 
-    /// <inheritdoc />
     protected override async Task<ImportCommitOutcome> CommitRowsAsync(IReadOnlyList<ParsedImportRow<RoleAssignmentImportRow>> rows, CancellationToken ct)
     {
         var outcome = new ImportCommitOutcome();

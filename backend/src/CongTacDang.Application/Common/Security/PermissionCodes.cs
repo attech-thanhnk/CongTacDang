@@ -4,154 +4,122 @@ using System.Linq;
 
 namespace CongTacDang.Application.Common.Security;
 
-/// <summary>
-/// Thông tin mô tả một mã quyền: dùng để seed bảng <c>permissions</c> và hiển thị trên giao diện quản trị.
-/// </summary>
-/// <param name="Code">Mã quyền (duy nhất, do code định nghĩa).</param>
-/// <param name="Name">Tên hiển thị tiếng Việt (dùng trong thông báo 403).</param>
-/// <param name="Module">Phân hệ (system, catalog, period, evaluation, collective, meeting, report, attachment).</param>
-/// <param name="Description">Mô tả chi tiết.</param>
-/// <param name="AppliesScope">
-/// true: quyền có nghĩa theo phạm vi gán (đơn vị chính quyền / tổ chức Đảng — gồm cả cấp dưới — hoặc toàn công ty);
-/// false: chỉ có nghĩa khi gán phạm vi Global (gán phạm vi khác sẽ bị API từ chối).
-/// </param>
+/// <summary>Dùng để seed bảng <c>permissions</c> và hiển thị trên giao diện quản trị.</summary>
+/// <param name="Name">Tên hiển thị, dùng cả trong thông báo 403.</param>
+/// <param name="AppliesScope">false: chỉ gán được ở phạm vi Global (API từ chối phạm vi khác).</param>
 public sealed record PermissionDefinition(string Code, string Name, string Module, string Description, bool AppliesScope);
 
-/// <summary>
-/// Danh mục mã quyền chuẩn theo thiết kế phân quyền động (docs/thiet-ke/phan-quyen.md, mục 3).
-/// Code chỉ kiểm tra theo mã quyền, không theo tên vai trò.
-/// </summary>
+/// <summary>Danh mục mã quyền chuẩn; code chỉ kiểm tra theo mã quyền, không theo tên vai trò.</summary>
 public static class PermissionCodes
 {
     #region Quản trị hệ thống
 
-    /// <summary>Tiền tố chung của các mã quyền quản trị hệ thống.</summary>
     public const string SystemPrefix = "system.";
 
-    /// <summary>Xem tài khoản, hồ sơ cán bộ (không gồm hồ sơ đánh giá).</summary>
+    /// <summary>Không gồm hồ sơ đánh giá.</summary>
     public const string SystemUsersRead = "system.users.read";
 
-    /// <summary>Quản lý tài khoản: tạo, sửa, khóa/mở, xóa, đặt lại mật khẩu, mở khóa đăng nhập.</summary>
     public const string SystemUsersManage = "system.users.manage";
 
-    /// <summary>Quản lý vai trò: tạo/sửa/xóa vai trò, chọn quyền cho vai trò.</summary>
     public const string SystemRolesManage = "system.roles.manage";
 
-    /// <summary>Gán/thu hồi vai trò kèm phạm vi, thời hạn.</summary>
     public const string SystemAssignmentsManage = "system.assignments.manage";
 
-    /// <summary>Xem nhật ký thao tác và nhật ký đăng nhập.</summary>
     public const string SystemAuditRead = "system.audit.read";
 
-    /// <summary>Sửa thông tin đơn vị dùng trên biểu mẫu, báo cáo, giao diện (task 17). Xem: mọi người đã đăng nhập.</summary>
+    /// <summary>Xem thông tin đơn vị: mọi người đã đăng nhập.</summary>
     public const string SystemSettingsManage = "system.settings.manage";
 
-    /// <summary>Quản lý file mẫu Word của biểu mẫu: tải lên phiên bản mới, kích hoạt, xem lịch sử (task 17).</summary>
     public const string SystemTemplatesManage = "system.templates.manage";
 
-    /// <summary>
-    /// Nhập dữ liệu từ Excel (đơn vị, tổ chức Đảng, cán bộ, gán vai trò). Chỉ mở chức năng; mỗi loại nhập còn đòi quyền dữ liệu
-    /// tương ứng (<see cref="CatalogManage"/>, <see cref="SystemUsersManage"/> theo phạm vi, <see cref="SystemAssignmentsManage"/>).
-    /// </summary>
+    /// <summary>Chỉ mở chức năng; mỗi loại nhập còn đòi quyền quản lý dữ liệu tương ứng.</summary>
     public const string SystemImport = "system.import";
 
     #endregion
 
     #region Danh mục, kỳ đánh giá
 
-    /// <summary>Quản lý danh mục đơn vị chính quyền, tổ chức Đảng, loại đơn vị, chức vụ. Xem danh mục: mọi người đã đăng nhập.</summary>
+    /// <summary>Xem danh mục: mọi người đã đăng nhập.</summary>
     public const string CatalogManage = "catalog.manage";
 
-    /// <summary>Quản lý kỳ đánh giá: tạo kỳ, cấu hình bước/thời hạn, chọn bộ tiêu chí, danh sách người được đánh giá, mở/khóa kỳ.</summary>
     public const string PeriodManage = "period.manage";
 
-    /// <summary>Quản lý bộ tiêu chí và thang điểm: tạo, nhân bản, sửa bản nháp, xuất bản, lưu trữ (task 16).</summary>
     public const string CriteriaManage = "criteria.manage";
 
     #endregion
 
     #region Đánh giá cá nhân
 
-    /// <summary>Tham gia đánh giá (bản thân) — chỉ trên hồ sơ của chính mình.</summary>
+    /// <summary>Chỉ trên hồ sơ của chính mình.</summary>
     public const string EvaluationSelf = "evaluation.self";
 
-    /// <summary>Xem hồ sơ đánh giá. Chủ hồ sơ luôn xem được hồ sơ của mình.</summary>
+    /// <summary>Chủ hồ sơ luôn xem được hồ sơ của mình.</summary>
     public const string EvaluationRead = "evaluation.read";
 
-    /// <summary>Duyệt danh mục sản phẩm (B1).</summary>
+    /// <summary>B1.</summary>
     public const string EvaluationTasksApprove = "evaluation.tasks.approve";
 
-    /// <summary>Chi bộ xác nhận phiếu tự chấm (B2).</summary>
+    /// <summary>B2.</summary>
     public const string EvaluationCellConfirm = "evaluation.cell.confirm";
 
-    /// <summary>Ghi nhận đề xuất của tập thể lãnh đạo (B3a).</summary>
+    /// <summary>B3a.</summary>
     public const string EvaluationCollectiveRecord = "evaluation.collective.record";
 
-    /// <summary>Thẩm định (B3b).</summary>
+    /// <summary>B3b.</summary>
     public const string EvaluationAppraise = "evaluation.appraise";
 
-    /// <summary>Nhận xét, đề xuất của cấp trực tiếp sử dụng (B3c).</summary>
+    /// <summary>B3c.</summary>
     public const string EvaluationDirectorReview = "evaluation.director.review";
 
-    /// <summary>
-    /// Lãnh đạo đơn vị (Trưởng phòng) đề xuất mức — dùng làm quyền thực hiện B3c trong hồ sơ luồng
-    /// "Bí thư/Phó bí thư Chi bộ là nhân viên" (HD03 PL III ví dụ 3).
-    /// </summary>
+    /// <summary>Trưởng phòng đề xuất mức — quyền thực hiện B3c khi Bí thư/Phó bí thư Chi bộ là nhân viên.</summary>
     public const string EvaluationUnitReview = "evaluation.unit.review";
 
-    /// <summary>Ghi nhận quyết định của Đảng ủy cơ sở (B4) — quyền mặc định của B4 khi hồ sơ luồng đặt bước này làm trong hệ thống.</summary>
+    /// <summary>B4 khi hồ sơ luồng đặt bước này làm trong hệ thống.</summary>
     public const string EvaluationDecide = "evaluation.decide";
 
-    /// <summary>
-    /// Ghi nhận kết quả của bước do cấp trên / cơ quan ngoài hệ thống thực hiện (chế độ "Cấp trên thực hiện" trong hồ sơ luồng):
-    /// cơ quan, số/ngày văn bản, nhận xét, mức đề xuất/quyết định, tệp đính kèm.
-    /// </summary>
+    /// <summary>Ghi nhận kết quả bước ở chế độ "Cấp trên thực hiện".</summary>
     public const string EvaluationExternalRecord = "evaluation.external.record";
 
-    /// <summary>Công bố, khóa kết quả (B5).</summary>
+    /// <summary>B5.</summary>
     public const string EvaluationPublish = "evaluation.publish";
 
-    /// <summary>Mở lại hồ sơ đã khóa để đính chính (bắt buộc lý do).</summary>
+    /// <summary>Bắt buộc lý do.</summary>
     public const string EvaluationReopen = "evaluation.reopen";
 
     #endregion
 
-    #region Sau công bố (task 20)
+    #region Sau công bố
 
-    /// <summary>
-    /// Xem danh sách kết quả đánh giá đã công bố (họ tên, chức danh, đơn vị, mức chính thức; điểm khi bộ tiêu chí cho phép) trong
-    /// phạm vi gán — không gồm chi tiết hồ sơ, minh chứng, ý kiến (HD03 II.2). Phạm vi công khai = phạm vi của bản gán.
-    /// </summary>
+    /// <summary>Chỉ danh sách mức (điểm khi bộ tiêu chí cho phép), không chi tiết hồ sơ; phạm vi công khai = phạm vi bản gán.</summary>
     public const string EvaluationResultsView = "evaluation.results.view";
 
-    /// <summary>Gửi kiến nghị về kết quả đã công bố — chỉ trên hồ sơ của chính mình (như <see cref="EvaluationSelf"/>).</summary>
+    /// <summary>Chỉ trên hồ sơ của chính mình.</summary>
     public const string EvaluationAppealSubmit = "evaluation.appeal.submit";
 
-    /// <summary>Xem xét, trả lời kiến nghị sau công bố (HD03 PL II III.2) — không xử lý kiến nghị của mình hay kiến nghị liên quan tới mình.</summary>
+    /// <summary>Không xử lý kiến nghị của mình hay kiến nghị liên quan tới mình.</summary>
     public const string EvaluationAppealResolve = "evaluation.appeal.resolve";
 
-    /// <summary>Lập, duyệt, ghi kết quả kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17) — thủ trưởng đơn vị.</summary>
+    /// <summary>Kế hoạch khắc phục 30-60-90 ngày (Mẫu 17).</summary>
     public const string EvaluationImprovementManage = "evaluation.improvement.manage";
 
     #endregion
 
     #region Tập thể, hội nghị, báo cáo
 
-    /// <summary>Lập hồ sơ tự đánh giá tập thể (Mẫu 06–08).</summary>
+    /// <summary>Mẫu 06–08.</summary>
     public const string CollectiveManage = "collective.manage";
 
-    /// <summary>Xem biên bản hội nghị, kiểm phiếu (Mẫu 12–13).</summary>
+    /// <summary>Mẫu 12–13.</summary>
     public const string MeetingRead = "meeting.read";
 
-    /// <summary>Lập biên bản hội nghị, kiểm phiếu.</summary>
     public const string MeetingManage = "meeting.manage";
 
-    /// <summary>Xuất báo cáo tổng hợp (Mẫu 14–16, danh sách cán bộ) — lọc theo phạm vi.</summary>
+    /// <summary>Mẫu 14–16, danh sách cán bộ; lọc theo phạm vi.</summary>
     public const string ReportExport = "report.export";
 
     #endregion
 
-    /// <summary>Metadata của toàn bộ mã quyền, theo thứ tự hiển thị (SortOrder = chỉ số trong danh sách).</summary>
+    /// <summary>Theo thứ tự hiển thị (SortOrder = chỉ số trong danh sách).</summary>
     public static readonly IReadOnlyList<PermissionDefinition> Definitions = new PermissionDefinition[]
     {
         new(SystemUsersRead, "Xem tài khoản, hồ sơ cán bộ", "system", "Xem danh sách tài khoản và hồ sơ cán bộ; không gồm hồ sơ đánh giá.", true),
@@ -187,18 +155,15 @@ public static class PermissionCodes
         new(ReportExport, "Xuất báo cáo tổng hợp", "report", "Xuất báo cáo tổng hợp (Mẫu 14–16, danh sách cán bộ), lọc theo phạm vi.", true),
     };
 
-    /// <summary>Tất cả mã quyền chuẩn.</summary>
     public static readonly string[] All = Definitions.Select(d => d.Code).ToArray();
 
     private static readonly Dictionary<string, PermissionDefinition> ByCode =
         Definitions.ToDictionary(d => d.Code, StringComparer.Ordinal);
 
-    /// <summary>Mã có thuộc danh mục chuẩn hay không.</summary>
     public static bool IsDefined(string code) => ByCode.ContainsKey(code);
 
-    /// <summary>Tra metadata theo mã; null nếu mã không thuộc danh mục chuẩn.</summary>
     public static PermissionDefinition? Find(string code) => ByCode.TryGetValue(code, out var d) ? d : null;
 
-    /// <summary>Tên hiển thị của quyền (dùng cho thông báo lỗi); trả lại chính mã nếu không tìm thấy.</summary>
+    /// <summary>Trả lại chính mã nếu không tìm thấy.</summary>
     public static string DisplayName(string code) => Find(code)?.Name ?? code;
 }

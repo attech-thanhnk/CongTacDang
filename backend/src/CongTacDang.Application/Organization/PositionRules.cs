@@ -8,30 +8,18 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Application.Organization;
 
-/// <summary>Chức vụ đang hiệu lực của một người — dữ liệu tối thiểu để suy ra thẩm quyền và mã thống kê.</summary>
-/// <param name="PositionName">Tên chức vụ.</param>
-/// <param name="StatCode">Mã chức danh thống kê (M1…M26) của chức vụ.</param>
-/// <param name="DefaultApprovalAuthority">Thẩm quyền mặc định của chức vụ.</param>
-/// <param name="IsHead">Chức vụ người đứng đầu (không tính vào trần tỷ lệ Hoàn thành xuất sắc).</param>
+/// <summary>Chức vụ đang hiệu lực của một người — đủ để suy ra thẩm quyền và mã thống kê.</summary>
+/// <param name="IsHead">Không tính vào trần Hoàn thành xuất sắc.</param>
 public sealed record HeldPosition(string PositionName, string? StatCode, ApprovalAuthority? DefaultApprovalAuthority, bool IsHead = false);
 
-/// <summary>
-/// Quy tắc suy ra từ chức vụ (HD03):
-/// <list type="bullet">
-/// <item>Thẩm quyền phê duyệt: <c>CapTren</c> khi ít nhất một chức vụ đang hiệu lực có thẩm quyền mặc định <c>CapTren</c>,
-/// ngược lại <c>CoSo</c> (tr.6: "giữ 2 chức danh … thì cấp ủy cấp trên quyết định cuối cùng").</item>
-/// <item>Mã thống kê của người (Mẫu 15A/15B): mã nhỏ nhất trong các chức vụ đang hiệu lực
-/// (tr.74: "ưu tiên thống kê theo nhóm chức danh có thứ tự đứng trước").</item>
-/// </list>
-/// </summary>
+/// <summary>Quy tắc suy ra từ chức vụ: thẩm quyền phê duyệt, mã thống kê, chức danh hiển thị.</summary>
 public static class PositionRules
 {
-    /// <summary>Độ dài tối đa tên chức vụ.</summary>
     public const int MaxNameLength = 200;
 
     private static readonly Regex StatCodePattern = new("^M([0-9]{1,3})$", RegexOptions.CultureInvariant);
 
-    /// <summary>Thẩm quyền suy ra từ các chức vụ đang hiệu lực.</summary>
+    /// <summary><c>CapTren</c> nếu có chức vụ đang hiệu lực mặc định <c>CapTren</c> (giữ nhiều chức danh), ngược lại <c>CoSo</c>.</summary>
     public static ApprovalAuthority DeriveApprovalAuthority(IEnumerable<HeldPosition> activePositions)
         => activePositions.Any(p => p.DefaultApprovalAuthority == ApprovalAuthority.CapTren)
             ? ApprovalAuthority.CapTren
@@ -58,10 +46,7 @@ public static class PositionRules
         return match.Success ? int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture) : null;
     }
 
-    /// <summary>
-    /// Chuẩn hóa mã thống kê (cắt khoảng trắng, chữ hoa); rỗng → null. Sai dạng → <see cref="ArgumentException"/>
-    /// với thông báo tiếng Việt.
-    /// </summary>
+    /// <summary>Chuẩn hóa mã thống kê (chữ hoa); rỗng → null; sai dạng → <see cref="ArgumentException"/>.</summary>
     public static string? NormalizeStatCode(string? code)
     {
         if (string.IsNullOrWhiteSpace(code))
@@ -77,8 +62,7 @@ public static class PositionRules
     public const string ActingPrefix = "Quyền ";
 
     /// <summary>
-    /// Chức danh hiển thị của một chức vụ đang giữ: <c>isActing</c> → "Quyền " + tên chức vụ (giữ nguyên chữ đầu của tên,
-    /// ví dụ "Quyền Trưởng trung tâm"); ngược lại là tên chức vụ. Mọi nơi ghép tên chức vụ thành chức danh của người đều dùng hàm này.
+    /// Chức danh hiển thị: <c>isActing</c> → "Quyền " + tên chức vụ. Mọi nơi ghép chức danh của người đều phải dùng hàm này.
     /// </summary>
     public static string DisplayName(string positionName, bool isActing)
     {
@@ -90,17 +74,12 @@ public static class PositionRules
     public static string DisplayName(MemberPosition memberPosition)
         => DisplayName(memberPosition.Position?.Name ?? string.Empty, memberPosition.IsActing);
 
-    /// <summary>
-    /// Dữ liệu suy ra của bản ghi chức vụ: chức vụ "Quyền" có mã thống kê, thẩm quyền như chính chức vụ đó; tên là chức danh hiển thị.
-    /// </summary>
+    /// <summary>Chức vụ "Quyền" có mã thống kê, thẩm quyền như chính chức vụ; tên là chức danh hiển thị.</summary>
     public static HeldPosition Held(MemberPosition memberPosition)
         => new(DisplayName(memberPosition), memberPosition.Position?.StatCode, memberPosition.Position?.DefaultApprovalAuthority,
             memberPosition.Position?.IsHead ?? false);
 
-    /// <summary>
-    /// Tách tiền tố "Quyền " / "Q. " (không phân biệt hoa thường) khỏi chức vụ ghi dạng chữ (nhập Excel):
-    /// trả về true và phần tên chức vụ còn lại khi có tiền tố; ngược lại false và chuỗi đã cắt khoảng trắng.
-    /// </summary>
+    /// <summary>Tách tiền tố "Quyền " / "Q. " (không phân biệt hoa thường) khỏi chức vụ nhập dạng chữ.</summary>
     public static bool TryStripActingPrefix(string text, out string positionName)
     {
         var value = (text ?? string.Empty).Normalize(System.Text.NormalizationForm.FormC).Trim();
@@ -120,7 +99,6 @@ public static class PositionRules
         return false;
     }
 
-    /// <summary>Tên hiển thị của bên chức vụ.</summary>
     public static string SideName(PositionSide side) => side switch
     {
         PositionSide.Party => "Đảng",
@@ -129,7 +107,6 @@ public static class PositionRules
         _ => "Khác"
     };
 
-    /// <summary>Tên hiển thị của thẩm quyền.</summary>
     public static string AuthorityName(ApprovalAuthority authority) => authority == ApprovalAuthority.CapTren
         ? "Cấp ủy cấp trên quyết định"
         : "Đảng ủy cơ sở quyết định";

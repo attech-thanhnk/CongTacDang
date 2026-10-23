@@ -4,28 +4,23 @@ using System.Linq;
 
 namespace CongTacDang.Application.Organization;
 
-/// <summary>Một nút cây đơn vị dùng để tính đường dẫn (Id + Id cha).</summary>
-/// <param name="Id">Đơn vị.</param>
-/// <param name="ParentId">Đơn vị cha (null = gốc).</param>
+/// <summary>Một nút cây đơn vị; ParentId null = gốc.</summary>
 public readonly record struct OrgNodeLink(Guid Id, Guid? ParentId);
 
 /// <summary>Kết quả dựng đường dẫn cây.</summary>
-/// <param name="Paths">Đường dẫn vật hóa của mọi nút hợp lệ.</param>
-/// <param name="CycleNodes">Các nút nằm trên (hoặc treo dưới) một vòng lặp cha–con.</param>
-/// <param name="MissingParentNodes">Các nút có cha không tồn tại trong tập nút.</param>
+/// <param name="CycleNodes">Nút nằm trên (hoặc treo dưới) một vòng lặp cha–con.</param>
+/// <param name="MissingParentNodes">Nút có cha không tồn tại trong tập nút.</param>
 public sealed record OrgTreeBuildResult(
     IReadOnlyDictionary<Guid, string> Paths,
     IReadOnlyCollection<Guid> CycleNodes,
     IReadOnlyCollection<Guid> MissingParentNodes)
 {
-    /// <summary>Không có vòng và không thiếu cha.</summary>
     public bool IsValid => CycleNodes.Count == 0 && MissingParentNodes.Count == 0;
 }
 
 /// <summary>
-/// Quy tắc cây đơn vị (tổ chức Đảng / đơn vị chính quyền) theo đường dẫn vật hóa <c>/&lt;id gốc&gt;/…/&lt;id nút&gt;/</c>.
-/// Mọi thay đổi cha được tính lại trên toàn bộ tập nút (cây nhỏ — vài chục đến vài trăm đơn vị) để không cần
-/// cập nhật tiền tố từng phần và phát hiện vòng lặp chắc chắn.
+/// Cây đơn vị theo đường dẫn vật hóa <c>/&lt;id gốc&gt;/…/&lt;id nút&gt;/</c>. Mỗi thay đổi cha tính lại toàn bộ tập nút
+/// (cây nhỏ) để khỏi cập nhật tiền tố từng phần và phát hiện vòng chắc chắn.
 /// </summary>
 public static class OrgTree
 {

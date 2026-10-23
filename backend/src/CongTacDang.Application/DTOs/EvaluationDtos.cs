@@ -6,7 +6,6 @@ namespace CongTacDang.Application.DTOs;
 
 #region Hồ sơ đánh giá cá nhân
 
-/// <summary>Lịch sử chuyển trạng thái hồ sơ đánh giá.</summary>
 public class EvaluationRecordHistoryDto
 {
     public Guid Id { get; set; }
@@ -32,7 +31,6 @@ public class EvaluationRecordHistoryDto
     public DateTime CreatedAt { get; set; }
 }
 
-/// <summary>Thông tin công việc chuyên môn đăng ký và đánh giá (Mẫu 01 & Mẫu 02)</summary>
 public class EvaluationTaskDto
 {
     public Guid Id { get; set; }
@@ -44,67 +42,57 @@ public class EvaluationTaskDto
     public string TargetOutput { get; set; } = string.Empty;
     public double Weight { get; set; }
     public DateTime Deadline { get; set; }
-    /// <summary>Mã trục kết quả (Mẫu 01).</summary>
     public string? AxisCode { get; set; }
-    /// <summary>Mã sản phẩm (Mẫu 01).</summary>
     public string? ProductCode { get; set; }
-    /// <summary>Loại sản phẩm: <c>TrongTam</c> / <c>ThuongXuyen</c> / <c>DotXuat</c>; null với dữ liệu cũ.</summary>
+    /// <summary><c>TrongTam</c> / <c>ThuongXuyen</c> / <c>DotXuat</c>; null với dữ liệu cũ.</summary>
     public string? Kind { get; set; }
-    /// <summary>Vai trò: <c>ChuTri</c> / <c>PhoiHop</c>; null với dữ liệu cũ.</summary>
+    /// <summary><c>ChuTri</c> / <c>PhoiHop</c>; null với dữ liệu cũ.</summary>
     public string? Role { get; set; }
-    /// <summary>Tiêu chí vượt chuẩn (Mẫu 01).</summary>
     public string? ExceedCriteria { get; set; }
-    /// <summary>Nguồn dữ liệu / minh chứng (Mẫu 01).</summary>
     public string? EvidenceSource { get; set; }
-    /// <summary>Thẩm quyền xác nhận (Mẫu 01).</summary>
     public string? Confirmer { get; set; }
-    /// <summary>Việc đã loại trừ / chuyển tiếp trong quý: <c>Excluded</c> / <c>CarriedOver</c>; null = còn hiệu lực.</summary>
+    /// <summary><c>Excluded</c> / <c>CarriedOver</c>; null = còn hiệu lực.</summary>
     public string? ChangeStatus { get; set; }
-    /// <summary>Tỷ lệ A-B-C-D đã nhập (0..1); null khi chủ hồ sơ chưa nhập tỷ lệ cho nhiệm vụ (phiếu để trống, không điền sẵn 100%).</summary>
+    /// <summary>Tỷ lệ 0..1; null = chủ hồ sơ chưa nhập (không điền sẵn 100%).</summary>
     public double? CriteriaA_Ratio { get; set; }
     public double? CriteriaB_Ratio { get; set; }
     public double? CriteriaC_Ratio { get; set; }
     public double? CriteriaD_Ratio { get; set; }
-    /// <summary>Chủ hồ sơ đã nhập tỷ lệ A-B-C-D cho nhiệm vụ (lưu nháp hoặc nộp).</summary>
+    /// <summary>Chủ hồ sơ đã nhập tỷ lệ A-B-C-D (nháp hoặc nộp).</summary>
     public bool SelfScoreEntered { get; set; }
     public double SelfScore { get; set; }
     public double? SupervisorScore { get; set; }
     public bool IsExceedStandard { get; set; }
-    /// <summary>Mức thẩm định 1/2/3 do cơ quan thẩm định xếp; null khi chưa thẩm định.</summary>
+    /// <summary>Mức 1/2/3; null = chưa thẩm định.</summary>
     public int? AppraisalLevel { get; set; }
-    /// <summary>Nhận xét ngắn của cơ quan thẩm định về nhiệm vụ.</summary>
     public string? AppraisalComment { get; set; }
-    /// <summary>Id tệp minh chứng (phiên bản hiện hành của nhóm tệp — T-53).</summary>
+    /// <summary>Tệp minh chứng: phiên bản hiện hành của nhóm tệp.</summary>
     public Guid? AttachmentId { get; set; }
-    /// <summary>Tên tệp minh chứng theo phiên bản hiện hành (T-53).</summary>
     public string? AttachmentFileName { get; set; }
-    /// <summary>Tên gốc tệp minh chứng theo phiên bản hiện hành (T-53).</summary>
     public string? AttachmentOriginalName { get; set; }
 }
 
-/// <summary>Một bước trên thanh tiến trình của hồ sơ (tính ở backend — frontend không tự suy luật).</summary>
+/// <summary>Một bước trên thanh tiến trình; tính ở backend, frontend không tự suy luật.</summary>
 public class RecordStepProgressDto
 {
     public string Step { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    /// <summary>Bước có áp dụng cho hồ sơ (chế độ khác "Không áp dụng" trong hồ sơ luồng).</summary>
+    /// <summary>Chế độ của bước khác Off.</summary>
     public bool Enabled { get; set; }
-    /// <summary>Chế độ của bước trong hồ sơ luồng: Internal | External | Off.</summary>
+    /// <summary>Internal | External | Off.</summary>
     public string Mode { get; set; } = nameof(StepMode.Internal);
     /// <summary>done | current | pending | skipped.</summary>
     public string State { get; set; } = string.Empty;
     public DateOnly? Deadline { get; set; }
-    /// <summary>Đã quá thời hạn mà bước chưa xong.</summary>
     public bool Overdue { get; set; }
-    /// <summary>Chủ thể thực hiện bước (tên chủ hồ sơ, Chi bộ, tập thể lãnh đạo đơn vị…; bước cấp trên: "Cấp trên thực hiện").</summary>
+    /// <summary>Bước cấp trên: "Cấp trên thực hiện".</summary>
     public string Actor { get; set; } = string.Empty;
-    /// <summary>Thời điểm hoàn thành bước (chỉ với bước đã xong và có dữ liệu thời điểm).</summary>
+    /// <summary>Chỉ có với bước đã xong và có dữ liệu thời điểm.</summary>
     public DateTime? DoneAt { get; set; }
-    /// <summary>Người / cơ quan đã hoàn thành bước (chỉ với bước đã xong).</summary>
+    /// <summary>Chỉ có với bước đã xong.</summary>
     public string? DoneByName { get; set; }
 }
 
-/// <summary>Thông tin Hồ sơ Đánh giá Cán bộ</summary>
 public class EvaluationRecordDto
 {
     public Guid Id { get; set; }
@@ -113,47 +101,45 @@ public class EvaluationRecordDto
     public Guid PeriodId { get; set; }
     public string PeriodName { get; set; } = string.Empty;
     public string PeriodStatus { get; set; } = string.Empty;
-    /// <summary>Mẫu tự chấm theo bộ tiêu chí của kỳ (09A/09B); rỗng nếu kỳ chưa chọn bộ.</summary>
+    /// <summary>09A/09B; rỗng nếu kỳ chưa chọn bộ tiêu chí.</summary>
     public string SelfScoreForm { get; set; } = string.Empty;
     public Guid MemberId { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string? PartyCardNumber { get; set; }
     public string PositionTitle { get; set; } = string.Empty;
-    /// <summary>Chi bộ ảnh chụp trên hồ sơ.</summary>
+    /// <summary>Ảnh chụp trên hồ sơ.</summary>
     public string? PartyCellName { get; set; }
     public Guid? PartyCellId { get; set; }
-    /// <summary>Phòng ảnh chụp trên hồ sơ.</summary>
+    /// <summary>Ảnh chụp trên hồ sơ.</summary>
     public Guid? DepartmentId { get; set; }
     public string? DepartmentName { get; set; }
-    /// <summary>Mã khung tỷ trọng A-B-C-D (ảnh chụp).</summary>
+    /// <summary>Ảnh chụp trên hồ sơ.</summary>
     public string WeightFrameCode { get; set; } = string.Empty;
-    /// <summary>Khung gốc trong bộ tiêu chí của kỳ (null nếu không có).</summary>
+    /// <summary>Khung gốc trong bộ tiêu chí của kỳ; null nếu không có.</summary>
     public RecordWeightFrameDto? BaseWeightFrame { get; set; }
-    /// <summary>Khung hiệu lực dùng để chấm: khung gốc với tỷ trọng đã điều chỉnh (nếu có).</summary>
+    /// <summary>Khung dùng để chấm: khung gốc đã áp tỷ trọng điều chỉnh (nếu có).</summary>
     public RecordWeightFrameDto? WeightFrame { get; set; }
-    /// <summary>Tỷ trọng đã được cấp giao nhiệm vụ điều chỉnh khi duyệt danh mục.</summary>
+    /// <summary>Cấp giao nhiệm vụ đã điều chỉnh tỷ trọng khi duyệt danh mục.</summary>
     public bool WeightFrameAdjusted { get; set; }
-    /// <summary>Biên độ điều chỉnh (điểm phần trăm) của bộ tiêu chí; null = không cho điều chỉnh.</summary>
+    /// <summary>Điểm phần trăm; null = không cho điều chỉnh.</summary>
     public double? FrameAdjustLimit { get; set; }
     public string ApprovalAuthority { get; set; } = string.Empty;
-    /// <summary>Hồ sơ luồng (nhóm đối tượng) của hồ sơ.</summary>
     public string WorkflowProfileCode { get; set; } = string.Empty;
     public string WorkflowProfileName { get; set; } = string.Empty;
 
     /// <summary>Trạng thái = bước đang chờ (AwaitingRegistration … Published).</summary>
     public string Status { get; set; } = string.Empty;
     public string StatusDisplayName { get; set; } = string.Empty;
-    /// <summary>Mã bước đang chờ (null khi đã công bố).</summary>
+    /// <summary>null khi đã công bố.</summary>
     public string? CurrentStep { get; set; }
-    /// <summary>Lý do trả lại gần nhất (còn hiệu lực đến khi chủ hồ sơ nộp lại).</summary>
+    /// <summary>Còn hiệu lực đến khi chủ hồ sơ nộp lại.</summary>
     public string? ReturnReason { get; set; }
-    /// <summary>Hạn mở riêng hồ sơ khi kỳ khóa dữ liệu (UTC; null = không mở riêng).</summary>
+    /// <summary>UTC; null = không mở riêng.</summary>
     public DateTime? UnlockedUntil { get; set; }
-    /// <summary>Mở riêng còn hạn và kỳ đang khóa dữ liệu (các bước trước thẩm định của hồ sơ thao tác được).</summary>
+    /// <summary>Mở riêng còn hạn trong khi kỳ khóa dữ liệu.</summary>
     public bool UnlockActive { get; set; }
     public string? UnlockedByName { get; set; }
     public string? UnlockReason { get; set; }
-    /// <summary>Tiến trình 9 bước.</summary>
     public List<RecordStepProgressDto> Progress { get; set; } = new();
 
     // B1
@@ -162,26 +148,25 @@ public class EvaluationRecordDto
     public string? TasksApprovalComment { get; set; }
 
     // B2 — tự chấm
-    /// <summary>Điểm từng tiêu chí con (khóa = mã tiêu chí con của bộ tiêu chí của kỳ).</summary>
+    /// <summary>Khóa = mã tiêu chí con của bộ tiêu chí của kỳ.</summary>
     public Dictionary<string, GeneralItemScore> GeneralScores { get; set; } = new();
     public double GeneralCriteriaScore { get; set; }
     public double TasksScore { get; set; }
-    /// <summary>Điểm theo trục (Mẫu 09B, khóa = mã trục); null nếu chưa chấm theo trục.</summary>
+    /// <summary>Mẫu 09B, khóa = mã trục; null nếu chưa chấm theo trục.</summary>
     public Dictionary<string, double>? AxisScores { get; set; }
     public double TotalSelfScore { get; set; }
     public string SelfProposedGrade { get; set; } = string.Empty;
     public DateTime? SelfScoredAt { get; set; }
-    /// <summary>Mẫu 09C — nội dung tự đánh giá theo mã mục của bộ tiêu chí (mục I: phần nhận xét chung).</summary>
+    /// <summary>Mẫu 09C, khóa = mã mục của bộ tiêu chí.</summary>
     public Dictionary<string, string> SelfAssessment { get; set; } = new();
-    /// <summary>Nhiệm vụ (kèm mức) và kết quả theo trục — mục I Mẫu 09C và Mẫu 9D (khóa = mã trục).</summary>
+    /// <summary>Mẫu 09C/9D, khóa = mã trục.</summary>
     public Dictionary<string, AxisReport> AxisReports { get; set; } = new();
-    /// <summary>Mẫu 09B — nội dung tự luận theo trục (khóa = mã trục; task 18).</summary>
+    /// <summary>Mẫu 09B, khóa = mã trục.</summary>
     public Dictionary<string, AxisNote> AxisNotes { get; set; } = new();
-    /// <summary>Nhận xét theo nhóm tiêu chí chung (khóa = mã nhóm), in ở dòng nhóm của phiếu tự chấm.</summary>
+    /// <summary>Khóa = mã nhóm; in ở dòng nhóm của phiếu tự chấm.</summary>
     public Dictionary<string, string> GeneralGroupNotes { get; set; } = new();
 
     // B2 — Chi bộ xác nhận
-    /// <summary>Ý kiến xác nhận của Chi bộ trên phiếu tự chấm.</summary>
     public string PartyCellComment { get; set; } = string.Empty;
     public string? CellConfirmedByName { get; set; }
     public DateTime? CellConfirmedAt { get; set; }
@@ -194,14 +179,14 @@ public class EvaluationRecordDto
     public DateTime? CollectiveRecordedAt { get; set; }
 
     // B3b
-    /// <summary>Tổng điểm thẩm định = nhóm tiêu chí chung + nhóm kết quả thực hiện nhiệm vụ.</summary>
+    /// <summary>= điểm nhóm tiêu chí chung + điểm nhóm kết quả thực hiện nhiệm vụ.</summary>
     public double? AppraisalScore { get; set; }
-    /// <summary>Điểm thẩm định nhóm tiêu chí chung; null khi chỉ có điểm tổng.</summary>
+    /// <summary>null khi chỉ có điểm tổng.</summary>
     public double? AppraisalGeneralScore { get; set; }
-    /// <summary>Điểm thẩm định nhóm kết quả thực hiện nhiệm vụ; null khi chỉ có điểm tổng.</summary>
+    /// <summary>null khi chỉ có điểm tổng.</summary>
     public double? AppraisalTasksScore { get; set; }
     public string AppraisalComment { get; set; } = string.Empty;
-    /// <summary>Nội dung giải trình/căn cứ khi chênh lệch tự chấm – thẩm định (B-09).</summary>
+    /// <summary>Giải trình khi chênh lệch tự chấm – thẩm định.</summary>
     public string? AppraisalExplanation { get; set; }
     public string AppraisalProposedGrade { get; set; } = string.Empty;
     public string? AppraisedByName { get; set; }
@@ -219,7 +204,7 @@ public class EvaluationRecordDto
     public string? DecisionDocumentNumber { get; set; }
     public DateTime? DecisionDocumentDate { get; set; }
     public string? DecisionAuthorityName { get; set; }
-    /// <summary>Đề xuất nội dung liên quan về công tác cán bộ (cột 13 Mẫu 14).</summary>
+    /// <summary>Cột 13 Mẫu 14.</summary>
     public string? CadreWorkProposal { get; set; }
     public Guid? DecisionMeetingId { get; set; }
     public string? DecisionRecordedByName { get; set; }
@@ -229,86 +214,70 @@ public class EvaluationRecordDto
     public string? PublishedByName { get; set; }
     public DateTime? PublishedAt { get; set; }
 
-    /// <summary>Kết quả ghi nhận của các bước do cấp trên thực hiện.</summary>
+    /// <summary>Kết quả các bước do cấp trên thực hiện.</summary>
     public List<ExternalResultDto> ExternalResults { get; set; } = new();
 
     public List<EvaluationTaskDto> Tasks { get; set; } = new();
 
-    /// <summary>
-    /// Cảnh báo điều kiện xếp loại theo mức thẩm định từng nhiệm vụ (<see cref="GradeConditions"/>) với mức hiệu lực hiện tại
-    /// của hồ sơ — chỉ cảnh báo, không chặn.
-    /// </summary>
+    /// <summary>Cảnh báo điều kiện xếp loại theo mức thẩm định từng nhiệm vụ; không chặn.</summary>
     public List<string> GradeWarnings { get; set; } = new();
 
-    /// <summary>Tỷ lệ nhiệm vụ vượt chuẩn tối thiểu (0..1) của mức Xuất sắc theo bộ tiêu chí của kỳ; null = không xét.</summary>
+    /// <summary>Tỷ lệ nhiệm vụ vượt chuẩn tối thiểu để đạt Xuất sắc (0..1); null = không xét.</summary>
     public double? ExcellentMinExceedRatio { get; set; }
 }
 
-/// <summary>
-/// Kiểm soát trần tỷ lệ Hoàn thành xuất sắc của kỳ (<c>GET /api/evaluations/excellent-quotas</c>): theo nhóm chức danh trong
-/// từng cấp quyết định cuối cùng, trên các hồ sơ trong phạm vi được xem. Chỉ cảnh báo, không chặn.
-/// </summary>
+/// <summary>Trần tỷ lệ Xuất sắc theo nhóm chức danh trong từng cấp quyết định; chỉ cảnh báo, không chặn.</summary>
 public class ExcellentQuotaCheckDto
 {
-    /// <summary>Kỳ đánh giá.</summary>
     public Guid PeriodId { get; set; }
 
-    /// <summary>Tỷ lệ trần áp dụng (0,20..0,25) theo bộ tiêu chí của kỳ.</summary>
+    /// <summary>0,20..0,25 theo bộ tiêu chí của kỳ.</summary>
     public double Ratio { get; set; }
 
-    /// <summary>Tổ chức Đảng được chọn làm phạm vi tính (gồm tổ chức con); null = toàn bộ hồ sơ được xem.</summary>
+    /// <summary>Phạm vi tính (gồm tổ chức con); null = mọi hồ sơ được xem.</summary>
     public Guid? PartyCellId { get; set; }
 
-    /// <summary>
-    /// Số liệu tính trên toàn bộ hồ sơ của kỳ (người xem có phạm vi toàn Đảng bộ và không chọn tổ chức Đảng). false = chỉ
-    /// phần hồ sơ trong phạm vi được xem/được chọn.
-    /// </summary>
+    /// <summary>Tính trên toàn bộ hồ sơ của kỳ; false = chỉ hồ sơ trong phạm vi được xem/được chọn.</summary>
     public bool IsFullScope { get; set; }
 
-    /// <summary>Số nhóm vượt trần.</summary>
     public int ExceedingGroupCount { get; set; }
 
-    /// <summary>Các nhóm (cấp trên trước, theo thứ tự mã chức danh).</summary>
+    /// <summary>Cấp trên trước, theo thứ tự mã chức danh.</summary>
     public List<ExcellentQuotaGroupDto> Groups { get; set; } = new();
 }
 
-/// <summary>Trần tỷ lệ Hoàn thành xuất sắc của một nhóm chức danh trong một cấp quyết định.</summary>
+/// <summary>Một nhóm chức danh trong một cấp quyết định.</summary>
 public class ExcellentQuotaGroupDto
 {
-    /// <summary>Cấp quyết định: <c>CoSo</c> / <c>CapTren</c>.</summary>
+    /// <summary><c>CoSo</c> / <c>CapTren</c>.</summary>
     public string ApprovalAuthority { get; set; } = string.Empty;
 
-    /// <summary>Tên cấp quyết định.</summary>
     public string AuthorityName { get; set; } = string.Empty;
 
-    /// <summary>Mã chức danh thống kê (null = cán bộ chưa có mã).</summary>
+    /// <summary>null = cán bộ chưa có mã.</summary>
     public string? StatCode { get; set; }
 
-    /// <summary>Tên nhóm chức danh.</summary>
     public string GroupName { get; set; } = string.Empty;
 
-    /// <summary>Tổng số hồ sơ của nhóm (kể cả người đứng đầu).</summary>
+    /// <summary>Kể cả người đứng đầu.</summary>
     public int TotalCadres { get; set; }
 
-    /// <summary>Số người đứng đầu (không tính vào trần).</summary>
+    /// <summary>Không tính vào trần.</summary>
     public int HeadCount { get; set; }
 
-    /// <summary>Số "Hoàn thành tốt nhiệm vụ" (không kể người đứng đầu).</summary>
+    /// <summary>Không kể người đứng đầu.</summary>
     public int GoodCount { get; set; }
 
-    /// <summary>Số "Hoàn thành xuất sắc nhiệm vụ" (không kể người đứng đầu).</summary>
+    /// <summary>Không kể người đứng đầu.</summary>
     public int ExcellentCount { get; set; }
 
-    /// <summary>Số Xuất sắc tối đa.</summary>
     public int MaxExcellentAllowed { get; set; }
 
-    /// <summary>Tỷ lệ % Xuất sắc trên số "Hoàn thành tốt"; null khi chưa có ai "Hoàn thành tốt".</summary>
+    /// <summary>% Xuất sắc trên số Hoàn thành tốt; null khi chưa có ai Hoàn thành tốt.</summary>
     public double? ExcellentPercentOfGood { get; set; }
 
-    /// <summary>Vượt trần (cảnh báo).</summary>
     public bool IsExceedingQuota { get; set; }
 
-    /// <summary>Số Xuất sắc vượt trần.</summary>
     public int ExcessCount { get; set; }
 }
 
@@ -316,7 +285,7 @@ public class ExcellentQuotaGroupDto
 
 #region Hành động theo bước (request)
 
-/// <summary>Phần chung của mọi hành động ghi: phiên bản hồ sơ đã đọc (bắt buộc — thiếu → 400).</summary>
+/// <summary>Phần chung của mọi hành động ghi; thiếu Version → 400.</summary>
 public class WorkflowRequestDto
 {
     /// <summary>Phiên bản xmin của hồ sơ khi đọc.</summary>
@@ -327,10 +296,8 @@ public class WorkflowRequestDto
 public class ReturnRecordRequestDto : WorkflowRequestDto
 {
     public string? Reason { get; set; }
-    /// <summary>
-    /// Hạn mở riêng hồ sơ (UTC) — bắt buộc khi kỳ đang khóa dữ liệu và hồ sơ quay về bước trước thẩm định
-    /// (<see cref="RecordActionDto.RequiresUnlockDeadline"/>), trừ khi hồ sơ đang được mở riêng còn hạn (giữ hạn cũ).
-    /// </summary>
+    /// <summary>UTC; bắt buộc khi kỳ khóa dữ liệu và hồ sơ về bước trước thẩm định,
+    /// trừ khi hồ sơ đang được mở riêng còn hạn (giữ hạn cũ).</summary>
     public DateTime? UnlockUntil { get; set; }
 }
 
@@ -338,7 +305,7 @@ public class ReturnRecordRequestDto : WorkflowRequestDto
 public class UnlockRecordRequestDto : WorkflowRequestDto
 {
     public string? Reason { get; set; }
-    /// <summary>Hạn mới (UTC).</summary>
+    /// <summary>UTC.</summary>
     public DateTime? UnlockUntil { get; set; }
 }
 
@@ -348,10 +315,10 @@ public class CommentRequestDto : WorkflowRequestDto
     public string? Comment { get; set; }
 }
 
-/// <summary>Duyệt danh mục sản phẩm (B1_APPROVE): ý kiến + điều chỉnh tỷ lệ A-B-C-D tùy chọn.</summary>
+/// <summary>B1_APPROVE: ý kiến + điều chỉnh tỷ lệ A-B-C-D tùy chọn.</summary>
 public class ApproveTasksRequestDto : CommentRequestDto
 {
-    /// <summary>Tỷ lệ A-B-C-D (phần trăm) điều chỉnh cho hồ sơ; null = giữ nguyên tỷ lệ đang áp dụng.</summary>
+    /// <summary>null = giữ tỷ lệ đang áp dụng.</summary>
     public FrameAdjustmentDto? FrameAdjustment { get; set; }
 }
 
@@ -374,47 +341,42 @@ public class RecordWeightFrameDto
     public double C { get; set; }
     public double D { get; set; }
 
-    /// <summary>Ánh xạ từ khung của bộ tiêu chí.</summary>
     public static RecordWeightFrameDto? From(CongTacDang.Domain.Evaluation.WeightFrame? frame) => frame == null
         ? null
         : new RecordWeightFrameDto { Code = frame.Code, Name = frame.Name, A = frame.A, B = frame.B, C = frame.C, D = frame.D };
 }
 
-/// <summary>Dữ liệu một nhiệm vụ khi đăng ký (Mẫu 01).</summary>
 public class TaskInputDto
 {
     public string? TaskName { get; set; }
-    /// <summary>Chuẩn đạt (Mẫu 01) — bắt buộc.</summary>
+    /// <summary>Chuẩn đạt; bắt buộc.</summary>
     public string? TargetOutput { get; set; }
     public double Weight { get; set; }
     public DateTime? Deadline { get; set; }
     public Guid? AttachmentId { get; set; }
-    /// <summary>Mã trục kết quả (thuộc bộ tiêu chí của kỳ) — bắt buộc khi bộ có trục.</summary>
+    /// <summary>Thuộc bộ tiêu chí của kỳ; bắt buộc khi bộ có trục.</summary>
     public string? AxisCode { get; set; }
-    /// <summary>Mã sản phẩm — không bắt buộc.</summary>
+    /// <summary>Không bắt buộc.</summary>
     public string? ProductCode { get; set; }
-    /// <summary>Loại sản phẩm khi đăng ký: <c>TrongTam</c> hoặc <c>ThuongXuyen</c> — bắt buộc.</summary>
+    /// <summary><c>TrongTam</c> / <c>ThuongXuyen</c>; bắt buộc.</summary>
     public string? Kind { get; set; }
-    /// <summary>Vai trò: <c>ChuTri</c> hoặc <c>PhoiHop</c> — bắt buộc.</summary>
+    /// <summary><c>ChuTri</c> / <c>PhoiHop</c>; bắt buộc.</summary>
     public string? Role { get; set; }
-    /// <summary>Tiêu chí vượt chuẩn — bắt buộc.</summary>
+    /// <summary>Bắt buộc.</summary>
     public string? ExceedCriteria { get; set; }
-    /// <summary>Nguồn dữ liệu / minh chứng — bắt buộc.</summary>
+    /// <summary>Bắt buộc.</summary>
     public string? EvidenceSource { get; set; }
-    /// <summary>Thẩm quyền xác nhận — bắt buộc.</summary>
+    /// <summary>Bắt buộc.</summary>
     public string? Confirmer { get; set; }
 }
 
-/// <summary>B1_REGISTER: nộp danh mục sản phẩm (Mẫu 01).</summary>
+/// <summary>B1_REGISTER.</summary>
 public class SubmitTasksRequestDto : WorkflowRequestDto
 {
     public List<TaskInputDto> Tasks { get; set; } = new();
 }
 
-/// <summary>
-/// Kết quả tự chấm 4 tiêu chí A-B-C-D của một nhiệm vụ (Mẫu 02), tỷ lệ 0..1. Không có giá trị mặc định: nộp phiếu phải gửi đủ bốn
-/// tỷ lệ; lưu nháp bỏ qua nhiệm vụ còn thiếu tỷ lệ (giữ nội dung đã lưu).
-/// </summary>
+/// <summary>Tỷ lệ 0..1, không có mặc định: nộp phải đủ bốn tỷ lệ; lưu nháp bỏ qua nhiệm vụ còn thiếu.</summary>
 public class TaskScoreInputDto
 {
     public Guid TaskId { get; set; }
@@ -426,100 +388,92 @@ public class TaskScoreInputDto
     public Guid? AttachmentId { get; set; }
 }
 
-/// <summary>B2_SELF_SCORE: nộp phiếu tự chấm theo bộ tiêu chí của kỳ (09A: theo nhiệm vụ; 09B: theo trục).</summary>
+/// <summary>B2_SELF_SCORE: 09A chấm theo nhiệm vụ, 09B chấm theo trục.</summary>
 public class SubmitSelfScoreRequestDto : WorkflowRequestDto
 {
-    /// <summary>Điểm từng tiêu chí con của nhóm tiêu chí chung (khóa = mã tiêu chí con), có "K/AD" kèm lý do.</summary>
+    /// <summary>Khóa = mã tiêu chí con; "K/AD" phải kèm lý do.</summary>
     public Dictionary<string, GeneralItemScore> GeneralScores { get; set; } = new();
-    /// <summary>Mẫu 09A: tự chấm A-B-C-D từng nhiệm vụ.</summary>
+    /// <summary>Mẫu 09A.</summary>
     public List<TaskScoreInputDto> TaskScores { get; set; } = new();
-    /// <summary>Mẫu 09B: điểm theo trục (khóa = mã trục).</summary>
+    /// <summary>Mẫu 09B, khóa = mã trục.</summary>
     public Dictionary<string, double>? AxisScores { get; set; }
-    /// <summary>Mức tự đề xuất; trống → gợi ý theo tổng điểm.</summary>
+    /// <summary>Trống → gợi ý theo tổng điểm.</summary>
     public string? SelfProposedGrade { get; set; }
-    /// <summary>Mẫu 09C (khi kỳ áp dụng): nội dung theo mã mục; null = giữ nội dung đã lưu (task 18).</summary>
+    /// <summary>Mẫu 09C; null = giữ nội dung đã lưu.</summary>
     public Dictionary<string, string?>? SelfAssessment { get; set; }
-    /// <summary>
-    /// Nhiệm vụ và kết quả theo trục (khóa = mã trục; khi kỳ áp dụng Mẫu 09C và/hoặc 9D); null = giữ nội dung đã lưu.
-    /// </summary>
+    /// <summary>Mẫu 09C/9D, khóa = mã trục; null = giữ nội dung đã lưu.</summary>
     public Dictionary<string, AxisReport?>? AxisReports { get; set; }
-    /// <summary>Mẫu 09B: nội dung tự luận theo trục (khóa = mã trục); null = giữ nội dung đã lưu (task 18).</summary>
+    /// <summary>Mẫu 09B, khóa = mã trục; null = giữ nội dung đã lưu.</summary>
     public Dictionary<string, AxisNote?>? AxisNotes { get; set; }
-    /// <summary>Nhận xét theo nhóm tiêu chí chung (khóa = mã nhóm); null = giữ nội dung đã lưu.</summary>
+    /// <summary>Khóa = mã nhóm; null = giữ nội dung đã lưu.</summary>
     public Dictionary<string, string?>? GeneralGroupNotes { get; set; }
 }
 
-/// <summary>Kết quả kiểm phiếu tổng hợp của một hồ sơ (không có thông tin người bỏ phiếu).</summary>
+/// <summary>Kiểm phiếu tổng hợp của một hồ sơ, không có thông tin người bỏ phiếu.</summary>
 public class VoteTallyDto
 {
     public int VotesExcellent { get; set; }
     public int VotesGood { get; set; }
     public int VotesSatisfactory { get; set; }
     public int VotesUnsatisfactory { get; set; }
-    /// <summary>Số phiếu "Chưa đánh giá, xếp loại" (cột 8 Mẫu 13).</summary>
+    /// <summary>Phiếu "Chưa đánh giá, xếp loại".</summary>
     public int VotesNotRated { get; set; }
     public int InvalidVotes { get; set; }
     public string? Notes { get; set; }
 }
 
-/// <summary>B3A_COLLECTIVE: ghi nhận đề xuất của tập thể lãnh đạo.</summary>
+/// <summary>B3A_COLLECTIVE.</summary>
 public class CollectiveProposalRequestDto : WorkflowRequestDto
 {
     public string? ProposedGrade { get; set; }
     public string? Comment { get; set; }
-    /// <summary>Biên bản (Mẫu 12/13) ghi kết quả kiểm phiếu — bắt buộc khi có <see cref="Votes"/>.</summary>
+    /// <summary>Biên bản Mẫu 12/13; bắt buộc khi có <see cref="Votes"/>.</summary>
     public Guid? MeetingId { get; set; }
     public VoteTallyDto? Votes { get; set; }
 }
 
-/// <summary>B3B_APPRAISAL: thẩm định.</summary>
+/// <summary>B3B_APPRAISAL.</summary>
 public class AppraisalRequestDto : WorkflowRequestDto
 {
-    /// <summary>Điểm thẩm định nhóm tiêu chí chung (gửi cùng <see cref="TasksScore"/>; tổng do máy chủ tính).</summary>
+    /// <summary>Gửi cùng <see cref="TasksScore"/>; tổng do máy chủ tính.</summary>
     public double? GeneralScore { get; set; }
-    /// <summary>Điểm thẩm định nhóm kết quả thực hiện nhiệm vụ (gửi cùng <see cref="GeneralScore"/>).</summary>
+    /// <summary>Gửi cùng <see cref="GeneralScore"/>.</summary>
     public double? TasksScore { get; set; }
-    /// <summary>
-    /// Tổng điểm thẩm định — chỉ dùng khi không gửi điểm theo nhóm (client cũ); có điểm theo nhóm thì bị bỏ qua.
-    /// </summary>
+    /// <summary>Chỉ dùng khi không gửi điểm theo nhóm; có điểm theo nhóm thì bị bỏ qua.</summary>
     public double? AppraisalScore { get; set; }
-    /// <summary>Mức thẩm định từng nhiệm vụ — bắt buộc đủ mọi nhiệm vụ khi bộ tiêu chí chấm theo danh mục nhiệm vụ (09A).</summary>
+    /// <summary>Bắt buộc đủ mọi nhiệm vụ khi bộ tiêu chí chấm theo nhiệm vụ (09A).</summary>
     public List<AppraisalTaskLevelDto>? TaskLevels { get; set; }
     public string? Comment { get; set; }
     public string? ProposedGrade { get; set; }
-    /// <summary>
-    /// Nội dung giải trình/căn cứ — bắt buộc khi |tự chấm − thẩm định| ≥ ngưỡng của bộ tiêu chí (hoặc chênh lệch làm đổi mức).
-    /// </summary>
+    /// <summary>Bắt buộc khi |tự chấm − thẩm định| ≥ ngưỡng của bộ tiêu chí hoặc chênh lệch làm đổi mức.</summary>
     public string? Explanation { get; set; }
 }
 
-/// <summary>Mức thẩm định một nhiệm vụ.</summary>
 public class AppraisalTaskLevelDto
 {
     public Guid TaskId { get; set; }
-    /// <summary>Mức 1 / 2 / 3.</summary>
+    /// <summary>1 / 2 / 3.</summary>
     public int? Level { get; set; }
-    /// <summary>Nhận xét ngắn (không bắt buộc).</summary>
     public string? Comment { get; set; }
 }
 
-/// <summary>B3C_DIRECTOR: nhận xét, đề xuất của cấp trực tiếp sử dụng.</summary>
+/// <summary>B3C_DIRECTOR.</summary>
 public class DirectorReviewRequestDto : WorkflowRequestDto
 {
     public string? Comment { get; set; }
     public string? ProposedGrade { get; set; }
 }
 
-/// <summary>B4_DECISION: ghi nhận quyết định mức xếp loại.</summary>
+/// <summary>B4_DECISION.</summary>
 public class DecisionRequestDto : WorkflowRequestDto
 {
     public string? FinalGrade { get; set; }
-    /// <summary>Điểm chính thức; trống → điểm thẩm định (hoặc điểm tự chấm).</summary>
+    /// <summary>Trống → điểm thẩm định (hoặc điểm tự chấm).</summary>
     public double? FinalScore { get; set; }
     public string? DocumentNumber { get; set; }
     public DateTime? DocumentDate { get; set; }
     public string? AuthorityName { get; set; }
-    /// <summary>Đề xuất nội dung liên quan về công tác cán bộ (tùy chọn, cột 13 Mẫu 14).</summary>
+    /// <summary>Tùy chọn; cột 13 Mẫu 14.</summary>
     public string? CadreWorkProposal { get; set; }
     public Guid? MeetingId { get; set; }
     public VoteTallyDto? Votes { get; set; }
@@ -529,12 +483,9 @@ public class DecisionRequestDto : WorkflowRequestDto
 public class ReopenRequestDto : WorkflowRequestDto
 {
     public string? Reason { get; set; }
-    /// <summary>Bước quay về (mã bước, không sớm hơn B2_SELF_SCORE).</summary>
+    /// <summary>Mã bước, không sớm hơn B2_SELF_SCORE.</summary>
     public string? TargetStep { get; set; }
-    /// <summary>
-    /// Hạn mở riêng hồ sơ (UTC) — bắt buộc khi kỳ đang khóa dữ liệu / đã đóng và bước quay về nằm trong
-    /// <see cref="RecordActionDto.UnlockDeadlineSteps"/>.
-    /// </summary>
+    /// <summary>UTC; bắt buộc khi kỳ khóa dữ liệu/đã đóng và bước quay về thuộc <see cref="RecordActionDto.UnlockDeadlineSteps"/>.</summary>
     public DateTime? UnlockUntil { get; set; }
 }
 
@@ -542,7 +493,7 @@ public class ReopenRequestDto : WorkflowRequestDto
 
 #region Hành động được phép, việc cần xử lý
 
-/// <summary>Một hành động người hiện tại được làm trên hồ sơ (thiết kế mục 5).</summary>
+/// <summary>Một hành động người hiện tại được làm trên hồ sơ.</summary>
 public class RecordActionDto
 {
     /// <summary>Mã hành động: SubmitTasks, ApproveTasks, ReturnTasks, SubmitSelfScore, ConfirmByCell, ReturnByCell,
@@ -552,18 +503,15 @@ public class RecordActionDto
     public string Label { get; set; } = string.Empty;
     public bool RequiresReason { get; set; }
     public bool ReasonOptional { get; set; }
-    /// <summary>Đã quá thời hạn của bước (chỉ cảnh báo khi kỳ không bật chặn theo thời hạn).</summary>
+    /// <summary>Chỉ cảnh báo khi kỳ không bật chặn theo thời hạn.</summary>
     public bool Overdue { get; set; }
-    /// <summary>Với Reopen: các bước được chọn để quay về.</summary>
+    /// <summary>Reopen: các bước được chọn để quay về.</summary>
     public List<string>? TargetSteps { get; set; }
-    /// <summary>
-    /// Phải nhập hạn mở riêng hồ sơ (kỳ khóa dữ liệu, hồ sơ quay về bước trước thẩm định). Với Reopen: đúng khi một trong
-    /// các bước quay về cần hạn — xem <see cref="UnlockDeadlineSteps"/>.
-    /// </summary>
+    /// <summary>Phải nhập hạn mở riêng hồ sơ; với Reopen xem <see cref="UnlockDeadlineSteps"/>.</summary>
     public bool RequiresUnlockDeadline { get; set; }
-    /// <summary>Với Reopen: các bước quay về cần nhập hạn mở riêng hồ sơ.</summary>
+    /// <summary>Reopen: các bước quay về cần nhập hạn mở riêng.</summary>
     public List<string>? UnlockDeadlineSteps { get; set; }
-    /// <summary>Hạn hiện tại khi hồ sơ đang được mở riêng (để trống hạn mới thì giữ hạn này — trừ gia hạn).</summary>
+    /// <summary>Hạn mở riêng hiện tại; để trống hạn mới thì giữ hạn này (trừ gia hạn).</summary>
     public DateTime? CurrentUnlockedUntil { get; set; }
     /// <summary>Số ngày gợi ý / tối đa của hạn mở riêng.</summary>
     public int? DefaultUnlockDays { get; set; }
@@ -579,7 +527,6 @@ public class RecordActionsDto
     public List<RecordActionDto> Actions { get; set; } = new();
 }
 
-/// <summary>Một hồ sơ trong danh sách việc cần xử lý.</summary>
 public class WorkQueueItemDto
 {
     public Guid RecordId { get; set; }
@@ -602,7 +549,6 @@ public class WorkQueueItemDto
     public bool Overdue { get; set; }
 }
 
-/// <summary>Nhóm việc theo bước.</summary>
 public class WorkQueueGroupDto
 {
     public string Step { get; set; } = string.Empty;
@@ -622,7 +568,6 @@ public class WorkQueueDto
 
 #region Kỳ đánh giá
 
-/// <summary>Thông tin Kỳ đánh giá.</summary>
 public class EvaluationPeriodDto
 {
     public Guid Id { get; set; }
@@ -637,18 +582,16 @@ public class EvaluationPeriodDto
     public string Status { get; set; } = string.Empty;
     public string StatusDisplayName { get; set; } = string.Empty;
     public string? StatusReason { get; set; }
-    /// <summary>Số người được đánh giá.</summary>
     public int TotalRecords { get; set; }
-    /// <summary>Là kỳ hiện hành (kỳ Open/Locked mới nhất).</summary>
+    /// <summary>Kỳ Open/Locked mới nhất.</summary>
     public bool IsActive { get; set; }
     public PeriodSettings Settings { get; set; } = new();
-    /// <summary>Bộ tiêu chí đã chọn.</summary>
     public Guid? CriteriaSetId { get; set; }
-    /// <summary>Ảnh chụp bộ tiêu chí của kỳ (null nếu chưa chọn) — form tự chấm/thẩm định dựng từ đây.</summary>
+    /// <summary>Ảnh chụp bộ tiêu chí của kỳ; null nếu chưa chọn.</summary>
     public CriteriaSnapshot? Criteria { get; set; }
 }
 
-/// <summary>Tạo kỳ (dự thảo) với bộ tiêu chí đã chọn; hồ sơ luồng lấy theo cấu hình mặc định.</summary>
+/// <summary>Tạo kỳ dự thảo; hồ sơ luồng lấy theo cấu hình mặc định.</summary>
 public class CreatePeriodDto
 {
     public int Year { get; set; }
@@ -656,9 +599,8 @@ public class CreatePeriodDto
     public string? Name { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
-    /// <summary>
-    /// Bộ tiêu chí đã xuất bản (bắt buộc). Mẫu tự chấm của bộ quyết định bước đăng ký, duyệt sản phẩm: 09A có, 09B không.
-    /// </summary>
+    /// <summary>Bộ đã xuất bản, bắt buộc. Mẫu tự chấm của bộ quyết định có bước đăng ký, duyệt sản phẩm
+    /// (09A có, 09B không).</summary>
     public Guid? CriteriaSetId { get; set; }
 }
 
@@ -670,22 +612,19 @@ public class UpdatePeriodDto
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public PeriodSettings? Settings { get; set; }
-    /// <summary>Điền thời hạn các bước theo quy tắc (cần gửi kèm <see cref="Settings"/>); ngày sau đó vẫn sửa tự do.</summary>
+    /// <summary>Điền thời hạn các bước theo quy tắc (cần gửi kèm <see cref="Settings"/>).</summary>
     public bool ApplyDeadlineRules { get; set; }
-    /// <summary>
-    /// Đổi bộ tiêu chí (chỉ khi kỳ dự thảo; chỉ bộ đã xuất bản); trống = giữ nguyên. Đổi bộ thì bước đăng ký, duyệt sản phẩm của
-    /// mọi hồ sơ luồng đặt lại theo mẫu tự chấm của bộ mới.
-    /// </summary>
+    /// <summary>Chỉ khi kỳ dự thảo và bộ đã xuất bản; trống = giữ nguyên. Đổi bộ thì bước đăng ký, duyệt sản phẩm
+    /// của mọi hồ sơ luồng đặt lại theo bộ mới.</summary>
     public Guid? CriteriaSetId { get; set; }
 }
 
-/// <summary>Chuyển trạng thái kỳ.</summary>
 public class PeriodTransitionDto
 {
     public uint? Version { get; set; }
-    /// <summary>Bắt buộc khi Khóa dữ liệu → Đang mở, và khi mở kỳ bắt buộc (<see cref="Force"/>) còn cảnh báo kẹt luồng.</summary>
+    /// <summary>Bắt buộc khi Locked → Open, và khi mở kỳ bằng <see cref="Force"/>.</summary>
     public string? Reason { get; set; }
-    /// <summary>Mở kỳ dù kiểm tra kẹt luồng còn lỗi (bắt buộc lý do, ghi vào kỳ).</summary>
+    /// <summary>Mở kỳ dù kiểm tra kẹt luồng còn lỗi.</summary>
     public bool Force { get; set; }
 }
 
@@ -695,18 +634,16 @@ public class AddParticipantsDto
     public List<Guid> MemberIds { get; set; } = new();
     public Guid? DepartmentId { get; set; }
     public Guid? PartyCellId { get; set; }
-    /// <summary>Hồ sơ luồng gán cho người được thêm; bỏ trống → mặc định theo cấp quyết định của từng người.</summary>
+    /// <summary>Trống → mặc định theo cấp quyết định của từng người.</summary>
     public string? WorkflowProfileCode { get; set; }
 }
 
-/// <summary>Kết quả thêm người được đánh giá.</summary>
 public class AddParticipantsResultDto
 {
     public int Added { get; set; }
     public List<string> Skipped { get; set; } = new();
 }
 
-/// <summary>Một người trong danh sách được đánh giá.</summary>
 public class PeriodParticipantDto
 {
     public Guid RecordId { get; set; }
@@ -718,11 +655,11 @@ public class PeriodParticipantDto
     public string? DepartmentName { get; set; }
     public Guid? PartyCellId { get; set; }
     public string? PartyCellName { get; set; }
-    /// <summary>Mã khung tỷ trọng A-B-C-D (ảnh chụp).</summary>
+    /// <summary>Ảnh chụp trên hồ sơ.</summary>
     public string WeightFrameCode { get; set; } = string.Empty;
-    /// <summary>Tên khung theo bộ tiêu chí của kỳ; null nếu khung không có trong bộ.</summary>
+    /// <summary>null nếu khung không có trong bộ tiêu chí của kỳ.</summary>
     public string? WeightFrameName { get; set; }
-    /// <summary>Khung tỷ trọng đã khóa (hồ sơ đã qua bước tự chấm): muốn đổi phải trả hồ sơ về bước tự chấm.</summary>
+    /// <summary>Hồ sơ đã qua bước tự chấm: muốn đổi phải trả hồ sơ về bước tự chấm.</summary>
     public bool WeightFrameLocked { get; set; }
     public string ApprovalAuthority { get; set; } = string.Empty;
     public string WorkflowProfileCode { get; set; } = string.Empty;
@@ -730,23 +667,21 @@ public class PeriodParticipantDto
     public string Status { get; set; } = string.Empty;
     public string StatusDisplayName { get; set; } = string.Empty;
 
-    /// <summary>Mã bước đang chờ; null khi hồ sơ đã công bố.</summary>
+    /// <summary>null khi đã công bố.</summary>
     public string? CurrentStep { get; set; }
 
-    /// <summary>Tên bước đang chờ.</summary>
     public string? CurrentStepName { get; set; }
 
-    /// <summary>Thời hạn của bước đang chờ theo hồ sơ luồng của hồ sơ; null khi bước không đặt hạn hoặc hồ sơ đã công bố.</summary>
+    /// <summary>Theo hồ sơ luồng; null khi bước không đặt hạn hoặc đã công bố.</summary>
     public DateOnly? CurrentStepDeadline { get; set; }
 
-    /// <summary>Số ngày đã quá hạn (≥ 1), tính theo ngày giờ Việt Nam; null khi chưa quá hạn hoặc không có hạn.</summary>
+    /// <summary>≥ 1, theo giờ Việt Nam; null khi chưa quá hạn hoặc không có hạn.</summary>
     public int? DaysOverdue { get; set; }
 
-    /// <summary>Số ngày còn lại tới hạn (0 = hạn là hôm nay); null khi đã quá hạn hoặc không có hạn.</summary>
+    /// <summary>0 = hạn là hôm nay; null khi đã quá hạn hoặc không có hạn.</summary>
     public int? DaysLeft { get; set; }
 }
 
-/// <summary>Cán bộ có thể thêm vào kỳ.</summary>
 public class ParticipantCandidateDto
 {
     public Guid MemberId { get; set; }
@@ -763,7 +698,7 @@ public class UpdateSnapshotDto
     public uint? Version { get; set; }
     public Guid? DepartmentId { get; set; }
     public Guid? PartyCellId { get; set; }
-    /// <summary>Mã khung tỷ trọng (phải có trong bộ tiêu chí của kỳ); trống = giữ nguyên.</summary>
+    /// <summary>Phải có trong bộ tiêu chí của kỳ; trống = giữ nguyên.</summary>
     public string? WeightFrameCode { get; set; }
     public string? ApprovalAuthority { get; set; }
     public string? Reason { get; set; }
@@ -773,7 +708,7 @@ public class UpdateSnapshotDto
 
 #region Hồ sơ tập thể, biên bản
 
-/// <summary>Dòng nội dung chi tiết của hồ sơ tập thể Mẫu 06 hoặc Mẫu 08.</summary>
+/// <summary>Dòng chi tiết của Mẫu 06/08.</summary>
 public class CollectiveEvaluationItemDto
 {
     public Guid Id { get; set; }
@@ -792,9 +727,7 @@ public class CollectiveEvaluationRecordDto
     public Guid Id { get; set; }
     public uint Version { get; set; }
 
-    /// <summary>
-    /// Người dùng hiện tại được tải lên, thay, gỡ tệp đính kèm của hồ sơ (collective.manage bao trùm tổ chức của hồ sơ, kỳ chưa đóng).
-    /// </summary>
+    /// <summary>Được tải lên, thay, gỡ tệp đính kèm (có quyền trên tổ chức của hồ sơ, kỳ chưa đóng).</summary>
     public bool CanAttach { get; set; }
     public Guid PeriodId { get; set; }
     public string Form { get; set; } = string.Empty;
@@ -814,17 +747,16 @@ public class CollectiveEvaluationRecordDto
     public string RemediationPlan { get; set; } = string.Empty;
     public double GeneralCriteriaScore { get; set; }
     public double TaskCriteriaScore { get; set; }
-    /// <summary>Điểm từng tiêu chí của khung tiêu chí tập thể theo mã tiêu chí con (rỗng = nhập thẳng hai điểm nhóm).</summary>
+    /// <summary>Khóa = mã tiêu chí con; rỗng = nhập thẳng hai điểm nhóm.</summary>
     public Dictionary<string, double> CriteriaScores { get; set; } = new();
     public double TotalScore { get; set; }
     public string SelfProposedGrade { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
-    /// <summary>Nội dung các mục con theo mã mục của biểu mẫu (Mẫu 07: I.1–I.4).</summary>
+    /// <summary>Khóa = mã mục của biểu mẫu (Mẫu 07: I.1–I.4).</summary>
     public Dictionary<string, string> Sections { get; set; } = new();
     public List<CollectiveEvaluationItemDto> Items { get; set; } = new();
 }
 
-/// <summary>Dữ liệu tạo hồ sơ tập thể.</summary>
 public class SaveCollectiveEvaluationRequestDto
 {
     public uint? Version { get; set; }
@@ -844,18 +776,15 @@ public class SaveCollectiveEvaluationRequestDto
     public double GeneralCriteriaScore { get; set; }
     public double TaskCriteriaScore { get; set; }
     public string SelfProposedGrade { get; set; } = "HoanThanhTot";
-    /// <summary>
-    /// Điểm từng tiêu chí khi bộ tiêu chí của kỳ có khung tập thể (mã tiêu chí con → điểm); khi đó máy chủ tự cộng ra
-    /// <see cref="GeneralCriteriaScore"/>, <see cref="TaskCriteriaScore"/> và bỏ qua hai giá trị gửi lên.
-    /// </summary>
+    /// <summary>Khi bộ tiêu chí có khung tập thể: máy chủ tự cộng ra hai điểm nhóm, bỏ qua giá trị gửi lên.</summary>
     public Dictionary<string, double>? CriteriaScores { get; set; }
-    /// <summary>Nội dung các mục con theo mã mục của biểu mẫu (Mẫu 07: I.1–I.4; mã khác bị từ chối).</summary>
+    /// <summary>Khóa = mã mục (Mẫu 07: I.1–I.4); mã khác bị từ chối.</summary>
     public Dictionary<string, string> Sections { get; set; } = new();
-    /// <summary>Mẫu 08: mỗi dòng một nhiệm vụ, <see cref="CollectiveEvaluationItemDto.Category"/> là mã nhóm nội dung 1–13.</summary>
+    /// <summary>Mẫu 08: <see cref="CollectiveEvaluationItemDto.Category"/> là mã nhóm nội dung 1–13.</summary>
     public List<CollectiveEvaluationItemDto> Items { get; set; } = new();
 }
 
-/// <summary>Thông tin hội nghị và biên bản Mẫu 12, 13.</summary>
+/// <summary>Hội nghị và biên bản Mẫu 12, 13.</summary>
 public class EvaluationMeetingDto
 {
     public Guid Id { get; set; }
@@ -865,7 +794,7 @@ public class EvaluationMeetingDto
     public string? PartyCellName { get; set; }
     public Guid? DepartmentId { get; set; }
     public string? DepartmentName { get; set; }
-    /// <summary>B3A_COLLECTIVE / B4_DECISION (null: không gắn bước cụ thể).</summary>
+    /// <summary>B3A_COLLECTIVE / B4_DECISION; null = không gắn bước.</summary>
     public string? Stage { get; set; }
     public string FormCode { get; set; } = string.Empty;
     public string MeetingType { get; set; } = string.Empty;
@@ -883,7 +812,7 @@ public class EvaluationMeetingDto
     public string MinutesContent { get; set; } = string.Empty;
     public string OutcomeContent { get; set; } = string.Empty;
     public string VoteCountingContent { get; set; } = string.Empty;
-    /// <summary>Các mục của biên bản Mẫu 12 chưa có cột riêng.</summary>
+    /// <summary>Các mục biên bản Mẫu 12 chưa có cột riêng.</summary>
     public MeetingDetailsDto Details { get; set; } = new();
     public List<EvaluationMeetingVoteSummaryDto> VoteSummaries { get; set; } = new();
 }
@@ -898,22 +827,21 @@ public class EvaluationMeetingVoteSummaryDto
     public int VotesGood { get; set; }
     public int VotesSatisfactory { get; set; }
     public int VotesUnsatisfactory { get; set; }
-    /// <summary>Số phiếu "Chưa đánh giá, xếp loại" (cột 8 Mẫu 13).</summary>
+    /// <summary>Phiếu "Chưa đánh giá, xếp loại".</summary>
     public int VotesNotRated { get; set; }
     public int InvalidVotes { get; set; }
     public string Notes { get; set; } = string.Empty;
 }
 
-/// <summary>Dữ liệu tạo biên bản hội nghị và kiểm phiếu.</summary>
 public class SaveEvaluationMeetingRequestDto
 {
     public uint? Version { get; set; }
     public Guid PeriodId { get; set; }
-    /// <summary>Hội nghị của Chi bộ (tùy chọn).</summary>
+    /// <summary>Hội nghị Chi bộ (tùy chọn).</summary>
     public Guid? PartyCellId { get; set; }
-    /// <summary>Hội nghị tập thể lãnh đạo cấp Phòng (tùy chọn). Không có cả hai = cấp Công ty.</summary>
+    /// <summary>Hội nghị cấp Phòng (tùy chọn); không có cả hai = cấp Công ty.</summary>
     public Guid? DepartmentId { get; set; }
-    /// <summary>B3A_COLLECTIVE hoặc B4_DECISION (tùy chọn).</summary>
+    /// <summary>B3A_COLLECTIVE / B4_DECISION (tùy chọn).</summary>
     public string? Stage { get; set; }
     public string FormCode { get; set; } = "M12";
     public string MeetingType { get; set; } = string.Empty;
@@ -931,7 +859,7 @@ public class SaveEvaluationMeetingRequestDto
     public string MinutesContent { get; set; } = string.Empty;
     public string OutcomeContent { get; set; } = string.Empty;
     public string VoteCountingContent { get; set; } = string.Empty;
-    /// <summary>Các mục của biên bản Mẫu 12 chưa có cột riêng (null = để trống).</summary>
+    /// <summary>Các mục biên bản Mẫu 12 chưa có cột riêng; null = để trống.</summary>
     public MeetingDetailsDto? Details { get; set; }
     public List<EvaluationMeetingVoteSummaryDto> VoteSummaries { get; set; } = new();
 }

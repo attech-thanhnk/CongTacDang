@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace CongTacDang.Application.DTOs;
 
-/// <summary>Một người dự hội nghị ở mục 3.2 của Mẫu 12 (cán bộ được cử ghi chép, báo cáo, phục vụ hội nghị).</summary>
+/// <summary>Người dự hội nghị (mục 3.2 Mẫu 12).</summary>
 public class MeetingAttendeeDto
 {
     public string Name { get; set; } = string.Empty;
@@ -12,101 +12,94 @@ public class MeetingAttendeeDto
     public string Title { get; set; } = string.Empty;
 }
 
-/// <summary>Các mục của biên bản hội nghị Mẫu 12 chưa có cột riêng (lưu jsonb theo mã mục).</summary>
+/// <summary>Các mục biên bản Mẫu 12 chưa có cột riêng (jsonb theo mã mục).</summary>
 public class MeetingDetailsDto
 {
-    /// <summary>"Căn cứ Quy chế làm việc của … nhiệm kỳ …" — phần sau chữ "của".</summary>
+    /// <summary>Phần sau chữ "của" trong "Căn cứ Quy chế làm việc của … nhiệm kỳ …".</summary>
     public string? WorkingRules { get; set; }
 
-    /// <summary>Cơ quan, đơn vị, tổ chức báo cáo tình hình thực hiện nhiệm vụ trọng tâm (mục II).</summary>
+    /// <summary>Đơn vị báo cáo tình hình thực hiện nhiệm vụ trọng tâm (mục II).</summary>
     public string? ReportingUnit { get; set; }
 
-    /// <summary>Chức vụ Đảng, chính quyền của chủ trì hội nghị.</summary>
     public string? ChairTitle { get; set; }
 
-    /// <summary>Chức vụ Đảng, chính quyền của thư ký hội nghị.</summary>
     public string? SecretaryTitle { get; set; }
 
-    /// <summary>Mục 3.2: cán bộ, đảng viên khác được cử tham dự để ghi chép, báo cáo, phục vụ hội nghị.</summary>
+    /// <summary>Mục 3.2: người được cử ghi chép, báo cáo, phục vụ hội nghị.</summary>
     public List<MeetingAttendeeDto> Attendees { get; set; } = new();
 
-    /// <summary>Mẫu 13 mục II: Tổ kiểm phiếu do hội nghị bầu — người đầu tiên là Tổ trưởng, những người sau là Thành viên.</summary>
+    /// <summary>Mẫu 13: người đầu tiên là Tổ trưởng, những người sau là Thành viên.</summary>
     public List<MeetingAttendeeDto> CountingCommittee { get; set; } = new();
 
-    /// <summary>Mẫu 13: tổng số phiếu phát ra (null = chưa ghi).</summary>
+    /// <summary>Mẫu 13; null = chưa ghi.</summary>
     public int? BallotsIssued { get; set; }
 
-    /// <summary>Mẫu 13: tổng số phiếu thu về.</summary>
     public int? BallotsCollected { get; set; }
 
-    /// <summary>Mẫu 13: số phiếu hợp lệ.</summary>
     public int? BallotsValid { get; set; }
 
-    /// <summary>Mẫu 13: số phiếu không hợp lệ.</summary>
     public int? BallotsInvalid { get; set; }
 }
 
-/// <summary>Một mục/nhóm nội dung của biểu mẫu tập thể (đúng nguyên văn biểu mẫu gốc HD03).</summary>
+/// <summary>Nguyên văn biểu mẫu gốc.</summary>
 public class CollectiveFormSectionDto
 {
     public string Code { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
 }
 
-/// <summary>Danh mục mục nhập của Mẫu 07 và nhóm nội dung của Mẫu 08 (để trang nhập liệu hiển thị đúng biểu mẫu).</summary>
+/// <summary>Mục nhập Mẫu 07 và nhóm nội dung Mẫu 08.</summary>
 public class CollectiveFormCatalogDto
 {
-    /// <summary>Mẫu 07, mục I "Ưu điểm, kết quả đạt được": 4 nội dung (mã I.1–I.4).</summary>
+    /// <summary>Mẫu 07 mục I: 4 nội dung (I.1–I.4).</summary>
     public List<CollectiveFormSectionDto> Form07Strengths { get; set; } = new();
 
-    /// <summary>Mẫu 08: 13 nhóm nội dung công việc (mã 1–13).</summary>
+    /// <summary>Mẫu 08: 13 nhóm (mã 1–13).</summary>
     public List<CollectiveFormSectionDto> Form08Categories { get; set; } = new();
 
-    /// <summary>
-    /// Khung tiêu chí tập thể của bộ tiêu chí của kỳ (chỉ có khi gọi kèm <c>periodId</c>); rỗng = nhập thẳng hai điểm nhóm.
-    /// </summary>
+    /// <summary>Chỉ có khi gọi kèm <c>periodId</c>; rỗng = nhập thẳng hai điểm nhóm.</summary>
     public List<CollectiveCriteriaGroupDto> CollectiveGroups { get; set; } = new();
 
-    /// <summary>Điểm tối đa hai nhóm điểm của hồ sơ tập thể theo bộ tiêu chí của kỳ (mặc định 30 / 70).</summary>
+    /// <summary>Theo bộ tiêu chí của kỳ (mặc định 30 / 70).</summary>
     public double GeneralMaxScore { get; set; } = 30;
     public double TaskMaxScore { get; set; } = 70;
 }
 
-/// <summary>Phần nhập tay của báo cáo Mẫu 16 (bản nháp theo kỳ + tổ chức Đảng). Trường để trống → giữ chữ mẫu của biểu mẫu.</summary>
+/// <summary>Phần nhập tay của Mẫu 16 (nháp theo kỳ + tổ chức Đảng); trường trống → giữ chữ mẫu.</summary>
 public class Form16DraftContentDto
 {
-    /// <summary>Số văn bản, ví dụ "Số 15-BC/ĐU".</summary>
+    /// <summary>Vd. "Số 15-BC/ĐU".</summary>
     public string? DocumentNumber { get; set; }
 
-    /// <summary>Nơi gửi ("Kính gửi: …", "Kính trình …").</summary>
+    /// <summary>"Kính gửi: …", "Kính trình …".</summary>
     public string? Recipient { get; set; }
 
-    /// <summary>"Căn cứ Quy chế làm việc của … nhiệm kỳ …" — phần sau chữ "của".</summary>
+    /// <summary>Phần sau chữ "của" trong "Căn cứ Quy chế làm việc của … nhiệm kỳ …".</summary>
     public string? WorkingRules { get; set; }
 
-    /// <summary>Ngày tổ chức hội nghị (chữ, ví dụ "15/9/2026"); để trống → lấy ngày hội nghị quyết định mới nhất đã ghi.</summary>
+    /// <summary>Dạng chữ, vd. "15/9/2026"; trống → ngày hội nghị quyết định mới nhất đã ghi.</summary>
     public string? MeetingDate { get; set; }
 
-    /// <summary>Tổ chức Đảng tổ chức hội nghị; để trống → tên tổ chức Đảng của báo cáo.</summary>
+    /// <summary>Trống → tên tổ chức Đảng của báo cáo.</summary>
     public string? Organizer { get; set; }
 
-    /// <summary>Mục III "Đề xuất của …"; để trống → tên tổ chức Đảng của báo cáo.</summary>
+    /// <summary>Mục III "Đề xuất của …"; trống → tên tổ chức Đảng của báo cáo.</summary>
     public string? Proposer { get; set; }
 
-    /// <summary>Mục III.1 (thay đoạn mẫu "Kính đề nghị … xem xét, quyết định đánh giá, xếp loại …").</summary>
+    /// <summary>Mục III.1.</summary>
     public string? Proposal1 { get; set; }
 
-    /// <summary>Mục III.2 (điều chuyển, bố trí công tác khác đối với cán bộ vi phạm…).</summary>
+    /// <summary>Mục III.2.</summary>
     public string? Proposal2 { get; set; }
 
-    /// <summary>Mục III.3 (ý kiến đề xuất khác).</summary>
+    /// <summary>Mục III.3.</summary>
     public string? Proposal3 { get; set; }
 
-    /// <summary>Họ tên Bí thư ký báo cáo.</summary>
+    /// <summary>Bí thư ký báo cáo.</summary>
     public string? SignerName { get; set; }
 }
 
-/// <summary>Một dòng số liệu tổng hợp của Mẫu 16 (theo nhóm chức danh).</summary>
+/// <summary>Dòng tổng hợp Mẫu 16 theo nhóm chức danh.</summary>
 public class Form16SummaryRowDto
 {
     public string? StatCode { get; set; }
@@ -118,19 +111,17 @@ public class Form16SummaryRowDto
     public int Unsatisfactory { get; set; }
     public int NotRated { get; set; }
 
-    /// <summary>Tỷ lệ % xếp loại xuất sắc trong số xếp loại tốt trở lên; null khi không có ai tốt trở lên.</summary>
+    /// <summary>% Xuất sắc trong số tốt trở lên; null khi không có ai tốt trở lên.</summary>
     public double? ExcellentPercent { get; set; }
 
-    /// <summary>
-    /// Số Xuất sắc tối đa của nhóm chức danh trong cấp quyết định (trần tỷ lệ; không tính người đứng đầu); null với dòng "Tổng cộng".
-    /// </summary>
+    /// <summary>Trần Xuất sắc của nhóm (không tính người đứng đầu); null với dòng "Tổng cộng".</summary>
     public int? MaxExcellentAllowed { get; set; }
 
-    /// <summary>Nhóm vượt trần Xuất sắc (chỉ cảnh báo khi xem trước, không in lên biểu mẫu).</summary>
+    /// <summary>Chỉ cảnh báo khi xem trước, không in lên biểu mẫu.</summary>
     public bool IsExceedingQuota { get; set; }
 }
 
-/// <summary>Bản nháp Mẫu 16 kèm số liệu tổng hợp tự động (xem trước trước khi xuất).</summary>
+/// <summary>Nháp Mẫu 16 kèm số liệu tổng hợp tự động.</summary>
 public class Form16DraftDto
 {
     public Guid PeriodId { get; set; }
@@ -138,41 +129,39 @@ public class Form16DraftDto
     public Guid? PartyCellId { get; set; }
     public string PartyOrganizationName { get; set; } = string.Empty;
 
-    /// <summary>Phiên bản bản nháp (null = chưa lưu lần nào).</summary>
+    /// <summary>null = chưa lưu lần nào.</summary>
     public uint? Version { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public Form16DraftContentDto Content { get; set; } = new();
 
-    /// <summary>Mục I — thuộc thẩm quyền đảng ủy, chi ủy cơ sở (dòng cuối là "Tổng cộng").</summary>
+    /// <summary>Mục I — thẩm quyền cơ sở; dòng cuối là "Tổng cộng".</summary>
     public List<Form16SummaryRowDto> BaseRows { get; set; } = new();
 
-    /// <summary>Mục II — thuộc thẩm quyền Ban Thường vụ Đảng ủy Tổng công ty (dòng cuối là "Tổng cộng").</summary>
+    /// <summary>Mục II — thẩm quyền cấp trên; dòng cuối là "Tổng cộng".</summary>
     public List<Form16SummaryRowDto> SuperiorRows { get; set; } = new();
 
-    /// <summary>Ngày hội nghị quyết định mới nhất đã ghi trong phạm vi (gợi ý cho "Ngày…").</summary>
+    /// <summary>Ngày hội nghị quyết định mới nhất đã ghi trong phạm vi.</summary>
     public string? SuggestedMeetingDate { get; set; }
 }
 
-/// <summary>Lưu bản nháp Mẫu 16.</summary>
 public class SaveForm16DraftDto
 {
     public uint? Version { get; set; }
     public Form16DraftContentDto Content { get; set; } = new();
 }
 
-/// <summary>Một nhóm của khung tiêu chí tập thể (HD03 Phụ lục I) để trang nhập hiển thị và chấm từng tiêu chí.</summary>
+/// <summary>Nhóm của khung tiêu chí tập thể.</summary>
 public class CollectiveCriteriaGroupDto
 {
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>"General" (cộng vào nhóm tiêu chí chung) hoặc "Task" (cộng vào nhóm kết quả thực hiện nhiệm vụ).</summary>
+    /// <summary>"General" (nhóm tiêu chí chung) | "Task" (nhóm kết quả thực hiện nhiệm vụ).</summary>
     public string Kind { get; set; } = "General";
 
     public List<CollectiveCriteriaItemDto> Items { get; set; } = new();
 }
 
-/// <summary>Một tiêu chí con của khung tiêu chí tập thể.</summary>
 public class CollectiveCriteriaItemDto
 {
     public string Code { get; set; } = string.Empty;
