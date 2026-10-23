@@ -105,6 +105,28 @@
   color: var(--ink);
 }
 
+/* Thanh thời gian còn lại, co dần từ phải sang trái. */
+.progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--accent);
+  opacity: 0.55;
+  transform-origin: left;
+  animation: countdown linear forwards;
+}
+
+@keyframes countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;

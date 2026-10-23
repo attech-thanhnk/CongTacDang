@@ -124,6 +124,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <button type="button" onClick={() => removeToast(t.id)} className={toastStyles.close} aria-label="Đóng">
               <i className="bi bi-x-lg" />
             </button>
+            {!!t.duration && t.duration > 0 && (
+              <span className={toastStyles.progress} style={{ animationDuration: `${t.duration}ms` }} aria-hidden="true" />
+            )}
           </div>
         ))}
       </div>
