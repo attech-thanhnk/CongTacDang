@@ -8,7 +8,7 @@ import { useLayout } from "@/contexts/LayoutContext";
 import { NotificationBell } from "./NotificationBell";
 import { buildMenu, findMenuTrail } from "./menu";
 
-/** Thanh trên cùng: nút mở menu (màn hẹp), đường dẫn trang hiện tại và chuông nhắc việc. */
+/** Thanh trên cùng: nút mở menu (màn hẹp), đường dẫn về danh sách (trang chi tiết) và chuông nhắc việc. */
 export function AppHeader() {
   const { user, hasPermission } = useAuth();
   const { toggleSidebar } = useLayout();
@@ -20,23 +20,12 @@ export function AppHeader() {
       <button type="button" onClick={toggleSidebar} className="app-header-menu d-md-none" aria-label="Mở menu">
         <i className="bi bi-list" />
       </button>
-      {trail && (
+      {/* Chỉ trang chi tiết mới cần đường dẫn về danh sách; trang danh sách đã có tiêu đề riêng. */}
+      {trail?.isDetail && (
         <nav className="app-crumbs" aria-label="Đường dẫn">
-          {trail.group && (
-            <>
-              <span className="app-crumb-group">{trail.group.title}</span>
-              <i className="bi bi-chevron-right app-crumb-sep app-crumb-group" aria-hidden="true" />
-            </>
-          )}
-          {trail.isDetail ? (
-            <>
-              <Link href={trail.item.href}>{trail.item.title}</Link>
-              <i className="bi bi-chevron-right app-crumb-sep" aria-hidden="true" />
-              <span aria-current="page">Chi tiết</span>
-            </>
-          ) : (
-            <span aria-current="page">{trail.item.title}</span>
-          )}
+          <Link href={trail.item.href}>{trail.item.title}</Link>
+          <i className="bi bi-chevron-right app-crumb-sep" aria-hidden="true" />
+          <span aria-current="page">Chi tiết</span>
         </nav>
       )}
       <div className="app-header-right">

@@ -639,12 +639,6 @@ header.app-header {
   font-size: 10px;
 }
 
-@media (max-width: 575.98px) {
-  .app-crumb-group {
-    display: none;
-  }
-}
-
 .app-header-right {
   margin-left: auto;
   display: flex;
