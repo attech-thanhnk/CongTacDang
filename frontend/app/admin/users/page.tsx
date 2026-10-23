@@ -13,6 +13,7 @@ import { errorMessage, errorTitle, formatDateTime } from "@/components/admin/adm
 import { useCatalogOptions } from "@/components/admin/useCatalogOptions";
 import { AccountListItem, CreateAccountPayload, PagedResult, userService } from "@/services/userService";
 import { treeLabel } from "@/services/catalogService";
+import styles from "./users.module.css";
 
 type StatusFilter = "" | "active" | "inactive";
 
@@ -119,72 +120,102 @@ export default function AdminUsersPage() {
       <div className="page-body">
         <Card>
           <div className="card-header">
-          <form className="row g-2 align-items-end" onSubmit={applyFilters}>
-            <div className="col-12 col-md-6 col-xl-4">
-              <label className="form-label">Tìm kiếm</label>
-              <input
-                className="form-control form-control-sm"
-                placeholder="Tên đăng nhập, họ tên, email, số thẻ Đảng…"
-                value={draft.q}
-                onChange={(e) => setDraft({ ...draft, q: e.target.value })}
-              />
-            </div>
-            <div className="col-6 col-md-3 col-xl-2">
-              <label className="form-label">Đơn vị</label>
-              <select className="form-select form-select-sm" value={draft.departmentId} onChange={(e) => setDraft({ ...draft, departmentId: e.target.value })}>
-                <option value="">Tất cả</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {treeLabel(d)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="col-6 col-md-3 col-xl-2">
-              <label className="form-label">Tổ chức Đảng</label>
-              <select className="form-select form-select-sm" value={draft.partyCellId} onChange={(e) => setDraft({ ...draft, partyCellId: e.target.value })}>
-                <option value="">Tất cả</option>
-                {partyCells.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {treeLabel(c)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="col-6 col-md-3 col-xl-2">
-              <label className="form-label">Trạng thái</label>
-              <select
-                className="form-select form-select-sm"
-                value={draft.status}
-                onChange={(e) => setDraft({ ...draft, status: e.target.value as StatusFilter })}
-              >
-                <option value="">Tất cả</option>
-                <option value="active">Đang hoạt động</option>
-                <option value="inactive">Vô hiệu</option>
-              </select>
-            </div>
-            <div className="col-6 col-md-3 col-xl-2 d-flex gap-1">
-              <button type="submit" className="btn btn-sm btn-primary flex-fill" disabled={loading}>
-                <i className="bi bi-search me-1" />
-                Lọc
-              </button>
-              <button type="button" className="btn btn-sm btn-outline-secondary" title="Xóa bộ lọc" onClick={clearFilters}>
-                <i className="bi bi-x-lg" />
-              </button>
-            </div>
-          </form>
+            <form className={`row g-2 align-items-end ${styles.filters}`} onSubmit={applyFilters}>
+              <div className="col-12 col-md-6 col-xl-4">
+                <label className="form-label" htmlFor="users-q">
+                  Tìm kiếm
+                </label>
+                <input
+                  id="users-q"
+                  className="form-control form-control-sm"
+                  placeholder="Tên đăng nhập, họ tên, email, số thẻ Đảng…"
+                  value={draft.q}
+                  onChange={(e) => setDraft({ ...draft, q: e.target.value })}
+                />
+              </div>
+              <div className="col-12 col-sm-6 col-md-3 col-xl-2">
+                <label className="form-label" htmlFor="users-dept">
+                  Đơn vị
+                </label>
+                <select
+                  id="users-dept"
+                  className="form-select form-select-sm"
+                  value={draft.departmentId}
+                  onChange={(e) => setDraft({ ...draft, departmentId: e.target.value })}
+                >
+                  <option value="">Tất cả</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {treeLabel(d)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-12 col-sm-6 col-md-3 col-xl-2">
+                <label className="form-label" htmlFor="users-cell">
+                  Tổ chức Đảng
+                </label>
+                <select
+                  id="users-cell"
+                  className="form-select form-select-sm"
+                  value={draft.partyCellId}
+                  onChange={(e) => setDraft({ ...draft, partyCellId: e.target.value })}
+                >
+                  <option value="">Tất cả</option>
+                  {partyCells.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {treeLabel(c)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-6 col-md-3 col-xl-2">
+                <label className="form-label" htmlFor="users-status">
+                  Trạng thái
+                </label>
+                <select
+                  id="users-status"
+                  className="form-select form-select-sm"
+                  value={draft.status}
+                  onChange={(e) => setDraft({ ...draft, status: e.target.value as StatusFilter })}
+                >
+                  <option value="">Tất cả</option>
+                  <option value="active">Đang hoạt động</option>
+                  <option value="inactive">Vô hiệu</option>
+                </select>
+              </div>
+              <div className="col-6 col-md-3 col-xl-2 d-flex gap-1">
+                <button type="submit" className="btn btn-sm btn-primary flex-fill" disabled={loading}>
+                  <i className="bi bi-search me-1" />
+                  Lọc
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm btn-outline-secondary ${styles.clearBtn}`}
+                  title="Xóa bộ lọc"
+                  aria-label="Xóa bộ lọc"
+                  onClick={clearFilters}
+                >
+                  <i className="bi bi-x-lg" />
+                </button>
+              </div>
+            </form>
           </div>
-          <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
+
+          {/* Màn rộng: bảng. */}
+          <div className="table-responsive d-none d-md-block">
+            <table className={`table table-hover align-middle mb-0 ${styles.table}`}>
               <thead>
                 <tr>
-                  <th>Cán bộ</th>
-                  <th>Chức danh</th>
-                  <th>Đơn vị</th>
-                  <th>Tổ chức Đảng</th>
-                  <th>Trạng thái</th>
-                  <th>Đăng nhập cuối</th>
-                  <th className="text-end" />
+                  <th className={styles.colName}>Cán bộ</th>
+                  <th className={styles.colPosition}>Chức danh</th>
+                  <th className={styles.colUnit}>Đơn vị</th>
+                  <th className={styles.colUnit}>Tổ chức Đảng</th>
+                  <th className={styles.colStatus}>Trạng thái</th>
+                  <th className={styles.colLogin}>Đăng nhập cuối</th>
+                  <th className={`text-end ${styles.colAction}`}>
+                    <span className="visually-hidden">Thao tác</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -205,20 +236,22 @@ export default function AdminUsersPage() {
                 ) : (
                   items.map((account) => (
                     <tr key={account.id} style={{ opacity: loading ? 0.6 : 1 }}>
-                      <td>
+                      <td className={styles.colName}>
                         <Link href={`/admin/users/${account.id}`} className="fw-semibold text-decoration-none">
                           {account.fullName}
                         </Link>
-                        <div className="small text-secondary">{account.username}</div>
+                        <div className={styles.username}>{account.username}</div>
                       </td>
                       <td>{account.positionTitle || "—"}</td>
                       <td>{account.departmentName || "—"}</td>
                       <td>{account.partyCellName || "—"}</td>
-                      <td>
-                        <AccountStatusBadge account={account} />
+                      <td className={styles.colStatus}>
+                        <AccountStatusBadge account={account} compact />
                       </td>
-                      <td className="text-nowrap">{account.lastLoginAt ? formatDateTime(account.lastLoginAt) : "Chưa đăng nhập"}</td>
-                      <td className="text-end text-nowrap">
+                      <td className={styles.colLogin}>
+                        {account.lastLoginAt ? formatDateTime(account.lastLoginAt) : <span className="text-secondary">Chưa đăng nhập</span>}
+                      </td>
+                      <td className={`text-end ${styles.colAction}`}>
                         <Link href={`/admin/users/${account.id}`} className="btn btn-sm btn-outline-primary">
                           Chi tiết
                         </Link>
@@ -228,6 +261,57 @@ export default function AdminUsersPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Điện thoại: mỗi tài khoản một thẻ để tên và đơn vị không bị bóp. */}
+          <div className="d-md-none">
+            {loading && !result ? (
+              <div className={`${styles.empty} loading-delay`}>
+                <span className="spinner-border spinner-border-sm me-2" />
+                Đang tải…
+              </div>
+            ) : items.length === 0 ? (
+              <div className={styles.empty}>
+                <i className="bi bi-inbox fs-3 d-block mb-2" />
+                Không có tài khoản phù hợp.
+              </div>
+            ) : (
+              <ul className={styles.cards} style={{ opacity: loading ? 0.6 : 1 }}>
+                {items.map((account) => (
+                  <li key={account.id} className={styles.cardItem}>
+                    <div className={styles.cardHead}>
+                      <div className={styles.cardName}>
+                        <Link href={`/admin/users/${account.id}`} className="text-decoration-none">
+                          {account.fullName}
+                        </Link>
+                        <div className={styles.username}>{account.username}</div>
+                      </div>
+                      <AccountStatusBadge account={account} compact />
+                    </div>
+                    {(account.positionTitle || account.departmentName) && (
+                      <div className={styles.cardMeta}>
+                        <i className="bi bi-briefcase" aria-hidden="true" />
+                        {[account.positionTitle, account.departmentName].filter(Boolean).join(" · ")}
+                      </div>
+                    )}
+                    {account.partyCellName && (
+                      <div className={styles.cardMeta}>
+                        <i className="bi bi-flag" aria-hidden="true" />
+                        {account.partyCellName}
+                      </div>
+                    )}
+                    <div className={styles.cardFoot}>
+                      <span className={styles.lastLogin}>
+                        {account.lastLoginAt ? `Đăng nhập ${formatDateTime(account.lastLoginAt)}` : "Chưa đăng nhập"}
+                      </span>
+                      <Link href={`/admin/users/${account.id}`} className="btn btn-sm btn-outline-primary">
+                        Chi tiết
+                      </Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           {result && (
             <Pagination

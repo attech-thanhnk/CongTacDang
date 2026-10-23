@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { Card, PageHeader, Pagination, usePagination } from "@/components/common";
+import { FileDropZone } from "@/components/common/FileDropZone";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { errorMessage, errorTitle, formatDateTime } from "@/components/admin/adminUtils";
 import {
@@ -36,7 +37,6 @@ export default function ImportsPage() {
   const [onlyErrors, setOnlyErrors] = useState(false);
   const [result, setResult] = useState<ImportCommitResult | null>(null);
   const [resultDownloaded, setResultDownloaded] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!canImport) {
@@ -73,7 +73,6 @@ export default function ImportsPage() {
     setResult(null);
     setResultDownloaded(false);
     setOnlyErrors(false);
-    if (fileInput.current) fileInput.current.value = "";
   };
 
   const chooseKind = (value: string) => {
@@ -100,13 +99,11 @@ export default function ImportsPage() {
     if (picked && !picked.name.toLowerCase().endsWith(".xlsx")) {
       toast.error("Chỉ nhận file Excel .xlsx.");
       setFile(null);
-      if (fileInput.current) fileInput.current.value = "";
       return;
     }
     if (picked && picked.size > IMPORT_MAX_FILE_BYTES) {
       toast.error("File lớn quá 5 MB. Hãy chia thành nhiều file nhỏ hơn.");
       setFile(null);
-      if (fileInput.current) fileInput.current.value = "";
       return;
     }
     setFile(picked);
@@ -146,7 +143,6 @@ export default function ImportsPage() {
           setResultDownloaded(false);
           setPreview(null);
           setFile(null);
-          if (fileInput.current) fileInput.current.value = "";
           toast.success(`Đã nhập ${data.total} dòng.`);
         } catch (err) {
           toast.error(errorMessage(err, "Không nhập được dữ liệu."), errorTitle(err));
@@ -185,66 +181,70 @@ export default function ImportsPage() {
               <div className="text-secondary">Bạn chưa được giao quyền nhập loại dữ liệu nào.</div>
             ) : (
               <>
-                <div className="row g-3 align-items-end">
-                  <div className="col-12 col-md-4">
+                <div className="row g-4">
+                  <div className="col-12 col-lg-5">
                     <label className="form-label fw-semibold" htmlFor="import-kind">
                       Loại dữ liệu
                     </label>
-                    <select
-                      id="import-kind"
-                      className="form-select"
-                      value={kind}
-                      disabled={busy !== ""}
-                      onChange={(e) => chooseKind(e.target.value)}
-                    >
-                      {kinds.map((k) => (
-                        <option key={k.kind} value={k.kind}>
-                          {k.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-12 col-md-auto">
-                    <button type="button" className="btn btn-outline-secondary" disabled={!selected || busy !== ""} onClick={downloadTemplate}>
-                      <i className="bi bi-download me-1" />
-                      {busy === "template" ? "Đang tải…" : "Tải file mẫu"}
-                    </button>
-                  </div>
-                  <div className="col-12 col-md">
-                    <label className="form-label fw-semibold" htmlFor="import-file">
-                      File dữ liệu (.xlsx)
-                    </label>
-                    <input
-                      id="import-file"
-                      ref={fileInput}
-                      type="file"
-                      accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                      className="form-control"
-                      disabled={busy !== ""}
-                      onChange={(e) => chooseFile(e.target.files?.[0] ?? null)}
-                    />
-                  </div>
-                  <div className="col-12 col-md-auto">
-                    <button type="button" className="btn btn-primary" disabled={!file || busy !== ""} onClick={runPreview}>
-                      <i className="bi bi-search me-1" />
-                      {busy === "preview" ? "Đang kiểm tra…" : "Kiểm tra file"}
-                    </button>
-                  </div>
-                </div>
+                    <div className="d-flex flex-column flex-sm-row gap-2">
+                      <select
+                        id="import-kind"
+                        className="form-select"
+                        value={kind}
+                        disabled={busy !== ""}
+                        onChange={(e) => chooseKind(e.target.value)}
+                      >
+                        {kinds.map((k) => (
+                          <option key={k.kind} value={k.kind}>
+                            {k.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary text-nowrap flex-shrink-0"
+                        disabled={!selected || busy !== ""}
+                        onClick={downloadTemplate}
+                      >
+                        <i className="bi bi-download me-1" />
+                        {busy === "template" ? "Đang tải…" : "Tải file mẫu"}
+                      </button>
+                    </div>
 
-                {selected && (
-                  <div className="mt-3 small">
-                    <div className="text-secondary mb-2">{selected.description}</div>
-                    <div className="d-flex flex-wrap gap-1">
-                      {selected.columns.map((c) => (
-                        <span key={c.key} className={`tag ${c.required ? "t-wait" : "t-info"}`} title={c.description}>
-                          {c.header}
-                          {c.required ? " *" : ""}
-                        </span>
-                      ))}
+                    {selected && (
+                      <div className="mt-3 small">
+                        <div className="text-secondary mb-2">{selected.description}</div>
+                        <div className="d-flex flex-wrap gap-1">
+                          {selected.columns.map((c) => (
+                            <span key={c.key} className={`tag ${c.required ? "t-wait" : "t-info"}`} title={c.description}>
+                              {c.header}
+                              {c.required ? " *" : ""}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="col-12 col-lg-7">
+                    <div className="form-label fw-semibold">File dữ liệu</div>
+                    <FileDropZone
+                      id="import-file"
+                      ariaLabel="Chọn file dữ liệu .xlsx"
+                      file={file}
+                      onChange={chooseFile}
+                      extensions={[".xlsx"]}
+                      accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      maxBytes={IMPORT_MAX_FILE_BYTES}
+                      disabled={busy !== ""}
+                    />
+                    <div className="d-grid d-sm-flex justify-content-sm-end mt-3">
+                      <button type="button" className="btn btn-primary px-4" disabled={!file || busy !== ""} onClick={runPreview}>
+                        <i className="bi bi-search me-1" />
+                        {busy === "preview" ? "Đang kiểm tra…" : "Kiểm tra file"}
+                      </button>
                     </div>
                   </div>
-                )}
+                </div>
               </>
             )}
           </div>
