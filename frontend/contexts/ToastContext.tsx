@@ -55,15 +55,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       const newToast: ToastItem = { id, type, message, title, duration };
 
+      // Tự đóng khi thanh thời gian chạy hết (xem onAnimationEnd), nên rê chuột vào là tạm dừng.
       setToasts((prev) => [...prev, newToast]);
-
-      if (duration > 0) {
-        setTimeout(() => {
-          removeToast(id);
-        }, duration);
-      }
     },
-    [removeToast]
+    []
   );
 
   const toast = {
@@ -125,7 +120,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <i className="bi bi-x-lg" />
             </button>
             {!!t.duration && t.duration > 0 && (
-              <span className={toastStyles.progress} style={{ animationDuration: `${t.duration}ms` }} aria-hidden="true" />
+              <span
+                className={toastStyles.progress}
+                style={{ animationDuration: `${t.duration}ms` }}
+                onAnimationEnd={() => removeToast(t.id)}
+                aria-hidden="true"
+              />
             )}
           </div>
         ))}

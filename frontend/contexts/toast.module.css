@@ -118,6 +118,11 @@
   animation: countdown linear forwards;
 }
 
+.toast:hover .progress,
+.toast:focus-within .progress {
+  animation-play-state: paused;
+}
+
 @keyframes countdown {
   from {
     transform: scaleX(1);
