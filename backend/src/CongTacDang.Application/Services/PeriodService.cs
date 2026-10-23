@@ -14,9 +14,7 @@ using CongTacDang.Domain.Evaluation;
 namespace CongTacDang.Application.Services;
 
 /// <summary>
-/// Quản lý kỳ đánh giá (docs/thiet-ke/luong-danh-gia.md mục 3): tạo với bộ tiêu chí đã chọn (sinh sẵn các hồ sơ luồng, bước đăng ký sản phẩm theo bộ), sửa cấu hình
-/// (chỉ khi dự thảo — riêng thời hạn sửa được khi đang mở/khóa dữ liệu), danh sách người được đánh giá và hồ sơ luồng của từng
-/// người, kiểm tra kẹt luồng, chuyển trạng thái kỳ. Quyền <c>period.manage</c>.
+/// Quản lý kỳ đánh giá (<c>period.manage</c>). Cấu hình chỉ sửa khi dự thảo, riêng thời hạn sửa được khi đang mở/khóa dữ liệu.
 /// </summary>
 public interface IPeriodService
 {
@@ -24,15 +22,15 @@ public interface IPeriodService
     Task<EvaluationPeriodDto?> GetActivePeriodAsync(CancellationToken ct = default);
     Task<EvaluationPeriodDto> GetPeriodAsync(Guid id, CancellationToken ct = default);
 
-    /// <summary>Mã quyền chọn được làm quyền thực hiện bước nội bộ trong hồ sơ luồng.</summary>
+    /// <summary>Quyền chọn được làm quyền thực hiện bước nội bộ.</summary>
     IReadOnlyList<StepPermissionOptionDto> GetStepPermissions();
 
     Task<EvaluationPeriodDto> CreatePeriodAsync(CreatePeriodDto dto, CancellationToken ct = default);
     Task<EvaluationPeriodDto> UpdatePeriodAsync(Guid id, UpdatePeriodDto dto, CancellationToken ct = default);
 
     /// <summary>
-    /// Dự thảo → Đang mở. Còn cảnh báo kẹt luồng và không mở bắt buộc → không mở, trả kết quả kiểm tra (controller trả 409).
-    /// Mở bắt buộc khi còn cảnh báo → bắt buộc lý do (ghi vào kỳ).
+    /// Còn cảnh báo kẹt luồng mà không mở bắt buộc → không mở, trả kết quả kiểm tra (409).
+    /// Mở bắt buộc khi còn cảnh báo → bắt buộc lý do.
     /// </summary>
     Task<OpenPeriodOutcome> OpenAsync(Guid id, PeriodTransitionDto dto, CancellationToken ct = default);
     Task<EvaluationPeriodDto> LockAsync(Guid id, PeriodTransitionDto dto, CancellationToken ct = default);
@@ -40,9 +38,8 @@ public interface IPeriodService
     Task<EvaluationPeriodDto> CloseAsync(Guid id, PeriodTransitionDto dto, CancellationToken ct = default);
 
     /// <summary>
-    /// Kiểm tra kẹt luồng: với mỗi hồ sơ chưa công bố và mỗi bước còn phía trước (nội bộ hoặc cấp trên thực hiện), có ít nhất
-    /// một tài khoản đang hoạt động (không phải chủ hồ sơ; bước của chủ hồ sơ thì chính chủ hồ sơ) có quyền thực hiện bước
-    /// trong phạm vi bao trùm hồ sơ (tính bằng resolver + guard).
+    /// Mỗi hồ sơ chưa công bố, mỗi bước còn phía trước phải có ít nhất một tài khoản đang hoạt động (không phải chủ hồ sơ,
+    /// trừ bước của chủ hồ sơ) có quyền thực hiện trong phạm vi bao trùm hồ sơ.
     /// </summary>
     Task<PeriodReadinessDto> GetReadinessAsync(Guid periodId, CancellationToken ct = default);
 
@@ -53,14 +50,13 @@ public interface IPeriodService
     Task RemoveParticipantAsync(Guid periodId, Guid recordId, uint? version, CancellationToken ct = default);
     Task<PeriodParticipantDto> UpdateSnapshotAsync(Guid periodId, Guid recordId, UpdateSnapshotDto dto, CancellationToken ct = default);
 
-    /// <summary>Đổi hồ sơ luồng của một hồ sơ (có lý do; chỉ khi hồ sơ chưa qua bước bị ảnh hưởng).</summary>
+    /// <summary>Bắt buộc lý do; chỉ khi hồ sơ chưa qua bước bị ảnh hưởng.</summary>
     Task<PeriodParticipantDto> ChangeProfileAsync(Guid periodId, Guid recordId, ChangeProfileDto dto, CancellationToken ct = default);
 
-    /// <summary>Đổi hồ sơ luồng hàng loạt: hồ sơ không đổi được được liệt kê lý do, các hồ sơ còn lại vẫn đổi.</summary>
+    /// <summary>Hồ sơ không đổi được thì liệt kê lý do, các hồ sơ còn lại vẫn đổi.</summary>
     Task<BulkChangeProfileResultDto> BulkChangeProfileAsync(Guid periodId, BulkChangeProfileDto dto, CancellationToken ct = default);
 }
 
-/// <summary>Triển khai quản lý kỳ đánh giá.</summary>
 public sealed class PeriodService : IPeriodService
 {
     private const int MaxReasonLength = 1000;
@@ -158,7 +154,7 @@ public sealed class PeriodService : IPeriodService
             throw new ValidationException("Hãy chọn bộ tiêu chí cho kỳ.");
         var set = await LoadPublishedSetAsync(setId, ct);
 
-        // Cấu hình mặc định; bước đăng ký, duyệt sản phẩm theo mẫu tự chấm của bộ tiêu chí.
+        // Bước đăng ký, duyệt sản phẩm theo mẫu tự chấm của bộ tiêu chí.
         var now = DateTime.UtcNow;
         var period = new EvaluationPeriod
         {
@@ -197,7 +193,7 @@ public sealed class PeriodService : IPeriodService
             var set = await LoadPublishedSetAsync(dto.CriteriaSetId.Value, ct);
             AttachCriteria(period, set, DateTime.UtcNow);
             form = set.SelfScoreForm;
-            // Bước đăng ký, duyệt sản phẩm đi theo bộ mới (cả khi gửi kèm cấu hình).
+            // Bước đăng ký, duyệt sản phẩm đi theo bộ mới, kể cả khi gửi kèm cấu hình.
             dto.Settings ??= current.Clone();
             dto.Settings.AlignWithCriteria(form);
         }
@@ -208,7 +204,7 @@ public sealed class PeriodService : IPeriodService
             var next = dto.Settings.Normalize();
             if (dto.ApplyDeadlineRules)
             {
-                // Ngày nghỉ lấy từ danh mục chung; lấy rộng hơn quý vì "ngày làm việc thứ N" và ngày rơi vào ngày nghỉ có thể lùi sang sau.
+                // Lấy ngày nghỉ rộng hơn quý vì hạn rơi vào ngày nghỉ có thể lùi sang sau.
                 var quarterStart = new DateOnly(period.Year, ((int)period.Quarter - 1) * 3 + 1, 1);
                 var holidays = (await _holidays.ListAsync(quarterStart, quarterStart.AddMonths(3).AddDays(60), ct)).Select(h => h.Date).ToList();
                 next.ApplyDeadlineRules(period.Year, (int)period.Quarter, holidays);
@@ -246,7 +242,7 @@ public sealed class PeriodService : IPeriodService
                 throw new ValidationException("Ngày kết thúc phải sau ngày bắt đầu.");
         }
 
-        // Kỳ dự thảo đổi cấu hình bước → trạng thái đầu của hồ sơ tính lại theo hồ sơ luồng của từng hồ sơ.
+        // Đổi cấu hình bước khi dự thảo → tính lại trạng thái đầu của hồ sơ.
         if (settingsChanged && period.Status == PeriodStatus.Draft)
             await RecalculateInitialStatusAsync(period, ct);
 
@@ -255,7 +251,7 @@ public sealed class PeriodService : IPeriodService
         return await GetPeriodAsync(period.Id, ct);
     }
 
-    /// <summary>Không được xóa hồ sơ luồng đang được hồ sơ đánh giá dùng (hãy chuyển hồ sơ sang hồ sơ luồng khác trước).</summary>
+    /// <summary>Hồ sơ luồng đang được hồ sơ dùng thì không xóa được (chuyển hồ sơ sang hồ sơ luồng khác trước).</summary>
     private async Task EnsureProfilesInUseKeptAsync(Guid periodId, PeriodSettings next, CancellationToken ct)
     {
         var missing = (await _repo.ListRecordsAsync(periodId, ct))
@@ -291,8 +287,8 @@ public sealed class PeriodService : IPeriodService
         if (errors.Count > 0)
             throw new ValidationException("Cấu hình kỳ chưa hợp lệ, chưa mở được kỳ: " + string.Join(" ", errors));
 
-        // Đồng bộ ảnh chụp hồ sơ, kiểm tra và chuyển trạng thái trong một transaction: lỗi kiểm tra phía sau hoặc chỉ trả cảnh báo
-        // (chưa mở kỳ) thì bỏ cả phần đồng bộ và lịch sử "Cập nhật theo hồ sơ cán bộ khi mở kỳ" — không để lại thay đổi dở dang.
+        // Một transaction: lỗi kiểm tra hoặc chỉ trả cảnh báo (chưa mở) thì bỏ cả phần đồng bộ ảnh chụp và lịch sử,
+        // không để lại thay đổi dở dang.
         OpenPeriodOutcome? outcome = null;
         try
         {
@@ -305,21 +301,20 @@ public sealed class PeriodService : IPeriodService
         }
         catch (OpenAbortedException)
         {
-            // Chỉ trả cảnh báo thiếu người thực hiện: transaction đã hủy.
+            // Chỉ có cảnh báo: transaction đã hủy.
         }
         return outcome!;
     }
 
-    /// <summary>Tín hiệu hủy transaction mở kỳ khi chỉ trả cảnh báo (không phải lỗi).</summary>
+    /// <summary>Hủy transaction mở kỳ khi chỉ trả cảnh báo (không phải lỗi).</summary>
     private sealed class OpenAbortedException : Exception
     {
     }
 
-    /// <summary>Phần mở kỳ chạy trong transaction: đồng bộ ảnh chụp hồ sơ, kiểm tra khung tỷ trọng, kẹt luồng, chuyển trạng thái.</summary>
     private async Task<OpenPeriodOutcome> OpenInTransactionAsync(
         EvaluationPeriod period, PeriodSettings settings, CriteriaSet set, PeriodTransitionDto? dto, CancellationToken ct)
     {
-        // Ảnh chụp Phòng/Chi bộ/cấp quyết định lấy theo hồ sơ cán bộ hiện tại tại thời điểm mở kỳ (trừ hồ sơ đã sửa tay).
+        // Ảnh chụp theo hồ sơ cán bộ tại thời điểm mở kỳ (trừ hồ sơ đã sửa tay).
         if (await StageDraftSnapshotSyncAsync(period, settings, ct) > 0)
             await _unitOfWork.SaveChangesAsync(ct);
 
@@ -330,7 +325,7 @@ public sealed class PeriodService : IPeriodService
         // Chụp nguyên bộ vào kỳ (bất biến cho kỳ này).
         AttachCriteria(period, set, DateTime.UtcNow);
 
-        // Khung tỷ trọng sai là lỗi dữ liệu (không tự chấm được theo Mẫu 09A), không phải cảnh báo thiếu người thực hiện: "mở bắt buộc" không bỏ qua được.
+        // Khung tỷ trọng sai là lỗi dữ liệu, không phải cảnh báo: "mở bắt buộc" không bỏ qua được.
         var frameErrors = WeightFrameErrors(ReadCriteria(period), records.Where(r => r.Status != RecordStatus.Published));
         if (frameErrors.Count > 0)
         {
@@ -408,9 +403,7 @@ public sealed class PeriodService : IPeriodService
         return await GetPeriodAsync(period.Id, ct);
     }
 
-    /// <summary>
-    /// Hồ sơ còn ở trạng thái đầu (chưa ai thao tác) → đặt theo bước áp dụng đầu tiên của hồ sơ luồng của hồ sơ.
-    /// </summary>
+    /// <summary>Hồ sơ còn ở trạng thái đầu → đặt theo bước áp dụng đầu tiên của hồ sơ luồng.</summary>
     private async Task RecalculateInitialStatusAsync(EvaluationPeriod period, CancellationToken ct)
     {
         var settings = ReadSettings(period);
@@ -454,7 +447,6 @@ public sealed class PeriodService : IPeriodService
             return result;
         }
 
-        // Các bước còn phía trước của từng hồ sơ và quyền thực hiện theo hồ sơ luồng của hồ sơ.
         var pending = records.SelectMany(record =>
         {
             var profile = EvaluationMapping.ProfileOf(settings, record);
@@ -466,7 +458,6 @@ public sealed class PeriodService : IPeriodService
                 .Select(x => (x.record, x.profile, x.step, x.action, permission: WorkflowActions.PermissionFor(x.action!, x.profile)));
         }).ToList();
 
-        // Ứng viên: tài khoản đang hoạt động có vai trò chứa quyền cần; quyền hiệu lực + phạm vi tính bằng resolver, kiểm tra bằng guard.
         var codes = pending.Select(x => x.permission).Where(c => c != PermissionCodes.EvaluationSelf).Distinct().ToList();
         var candidateIds = codes.Count == 0
             ? new List<Guid>()
@@ -476,7 +467,7 @@ public sealed class PeriodService : IPeriodService
             effective[userId] = await _permissions.GetAsync(userId, ct);
 
         var roleNames = await _repo.GetRoleNamesByPermissionAsync(codes, ct);
-        // Bước chỉ có đúng một người làm được (kể cả chủ hồ sơ): người đó vắng, hoặc chính họ được đánh giá, là hồ sơ kẹt.
+        // Bước chỉ có đúng một người làm được: người đó vắng, hoặc chính họ được đánh giá, là hồ sơ kẹt.
         var singles = new Dictionary<(string Step, string Scope, Guid UserId), int>();
 
         foreach (var (record, profile, step, _, permission) in pending)
@@ -532,7 +523,7 @@ public sealed class PeriodService : IPeriodService
             });
         }
 
-        // Khung tỷ trọng của hồ sơ phải có trong bộ tiêu chí của kỳ (Mẫu 09A tính A-B-C-D theo khung).
+        // Mẫu 09A tính A-B-C-D theo khung nên khung phải có trong bộ tiêu chí của kỳ.
         var criteria = ReadCriteria(period);
         if (criteria is { UsesAxisScoring: false })
         {
@@ -568,8 +559,7 @@ public sealed class PeriodService : IPeriodService
     }
 
     /// <summary>
-    /// Rà soát dữ liệu (không chặn mở kỳ): cán bộ ghi thẳng vào Đảng bộ / Đảng bộ bộ phận thay vì chi bộ nơi sinh hoạt, hồ sơ thiếu
-    /// Phòng hoặc Chi bộ, bước chỉ có một người làm được.
+    /// Không chặn mở kỳ: cán bộ ghi thẳng vào Đảng bộ thay vì chi bộ, hồ sơ thiếu Phòng/Chi bộ, bước chỉ có một người làm được.
     /// </summary>
     private async Task<List<DataReviewItemDto>> BuildDataReviewAsync(IReadOnlyCollection<EvaluationRecord> records,
         IReadOnlyDictionary<(string Step, string Scope, Guid UserId), int> singles, CancellationToken ct)
@@ -623,10 +613,7 @@ public sealed class PeriodService : IPeriodService
         return items;
     }
 
-    /// <summary>
-    /// "Tên (khung "X")" / "Tên (chưa có khung)" của hồ sơ có khung tỷ trọng không có trong bộ tiêu chí — chỉ với bộ tính A-B-C-D theo
-    /// khung (Mẫu 09A); bộ chấm theo trục không dùng khung.
-    /// </summary>
+    /// <summary>Chỉ với bộ tính A-B-C-D theo khung (09A); bộ chấm theo trục không dùng khung.</summary>
     private static List<string> WeightFrameErrors(CriteriaSnapshot? criteria, IEnumerable<EvaluationRecord> records)
     {
         if (criteria is not { UsesAxisScoring: false })
@@ -642,7 +629,7 @@ public sealed class PeriodService : IPeriodService
     private static string FrameList(CriteriaSnapshot criteria) =>
         criteria.Content.WeightFrames.Count == 0 ? "không có khung nào" : string.Join(", ", criteria.Content.WeightFrames.Select(f => f.Code));
 
-    /// <summary>Tên ngắn của nơi cần gán: tổ chức Đảng và/hoặc đơn vị chính quyền của hồ sơ.</summary>
+    /// <summary>Tên ngắn của nơi cần gán.</summary>
     private static string ScopeName(EvaluationRecord record)
     {
         var parts = new[] { record.PartyCell?.Name, record.Department?.Name }.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
@@ -651,7 +638,7 @@ public sealed class PeriodService : IPeriodService
 
     private static string ScopeText(EvaluationRecord record)
     {
-        // Phạm vi gán bao trùm cây con: bản gán ở đơn vị của hồ sơ, ở đơn vị cấp trên của nó hoặc Toàn công ty đều đủ.
+        // Gán ở đơn vị của hồ sơ, đơn vị cấp trên hoặc Toàn công ty đều đủ.
         var parts = new List<string>();
         if (record.Department != null)
             parts.Add($"đơn vị chính quyền \"{record.Department.Name}\"");
@@ -729,8 +716,8 @@ public sealed class PeriodService : IPeriodService
     }
 
     /// <summary>
-    /// Thêm người vào kỳ nhưng <b>không lưu</b> (người gọi lưu). Trả số hồ sơ tạo mới và danh sách lý do bỏ qua.
-    /// <paramref name="profileByMember"/>: hồ sơ luồng chỉ định cho từng người (không có → mặc định theo cấp quyết định).
+    /// <b>Không lưu</b> (người gọi lưu). <paramref name="profileByMember"/>: hồ sơ luồng chỉ định từng người
+    /// (không có → mặc định theo cấp quyết định).
     /// </summary>
     private async Task<AddParticipantsResultDto> StageParticipantsAsync(Guid periodId, IReadOnlyCollection<Guid> memberIds, string source,
         CancellationToken ct, IReadOnlyDictionary<Guid, string>? profileByMember)
@@ -748,7 +735,7 @@ public sealed class PeriodService : IPeriodService
                     + string.Join(", ", settings.Profiles.Select(p => $"{p.Code} ({p.Name})")) + ".");
         }
 
-        // Khung tỷ trọng: khung mặc định của cán bộ; cán bộ chưa có → khung mặc định của bộ tiêu chí của kỳ (nếu có).
+        // Khung mặc định của cán bộ; chưa có → khung mặc định của bộ tiêu chí của kỳ.
         var defaultFrame = ReadCriteria(period)?.Content.Parameters.DefaultWeightFrameCode;
         var existing = await _repo.GetParticipantIdsAsync(periodId, ct);
         var members = (await _repo.GetMembersAsync(memberIds, ct)).ToDictionary(m => m.Id);
@@ -778,7 +765,7 @@ public sealed class PeriodService : IPeriodService
                 : settings.ResolveProfile(null, member.ApprovalAuthority);
             var initial = RecordStateMachine.Initial(profile.ActiveSteps());
 
-            // Hồ sơ đã bị bỏ khỏi danh sách trước đó (xóa mềm) → khôi phục thay vì tạo mới (unique kỳ + cán bộ).
+            // Hồ sơ đã bị bỏ (xóa mềm) → khôi phục thay vì tạo mới (unique kỳ + cán bộ).
             var record = await _repo.FindRecordIncludingDeletedAsync(periodId, id, ct);
             var isNew = record == null;
             record ??= new EvaluationRecord { Id = Guid.NewGuid(), PeriodId = periodId, MemberId = id, CreatedAt = now };
@@ -873,11 +860,11 @@ public sealed class PeriodService : IPeriodService
             var code = frame?.Code ?? UserAccountService.NormalizeWeightFrameCode(dto.WeightFrameCode)!;
             if (!string.Equals(code, record.WeightFrameCode, StringComparison.Ordinal))
             {
-                // Khung khóa sau bước tự chấm: chỉ đổi khi hồ sơ đang ở bước tự chấm hoặc trước đó.
+                // Khung khóa sau bước tự chấm.
                 if (!RecordWeightFrames.CanChangeFrame(record))
                     throw new ConflictException(RecordWeightFrames.LockedMessage);
 
-                // Tỷ lệ đã điều chỉnh khi duyệt danh mục gắn với khung cũ → bỏ, hồ sơ dùng tỷ lệ của khung mới.
+                // Tỷ lệ đã điều chỉnh gắn với khung cũ → bỏ.
                 changes.Add(RecordWeightFrames.IsAdjusted(record) ? "khung tỷ trọng (bỏ tỷ lệ A-B-C-D đã điều chỉnh)" : "khung tỷ trọng");
                 record.WeightFrameCode = code;
                 RecordWeightFrames.Clear(record);
@@ -975,9 +962,8 @@ public sealed class PeriodService : IPeriodService
     }
 
     /// <summary>
-    /// Đổi hồ sơ luồng của một hồ sơ (được theo dõi). Chỉ khi kỳ chưa đóng và hồ sơ chưa qua bước nào mà hai hồ sơ luồng
-    /// khác nhau (chế độ hoặc quyền thực hiện); bước đang chờ không còn áp dụng → chuyển tới bước áp dụng kế tiếp.
-    /// Trả ngoại lệ mô tả lý do không đổi được (không ném) để dùng chung cho đổi hàng loạt.
+    /// Chỉ khi kỳ chưa đóng và hồ sơ chưa qua bước nào mà hai hồ sơ luồng khác nhau. Trả (không ném) ngoại lệ mô tả lý do
+    /// để dùng chung cho đổi hàng loạt.
     /// </summary>
     private AppException? ApplyProfileChange(EvaluationRecord record, uint? version, string profileCode, string reason)
     {
@@ -1020,12 +1006,10 @@ public sealed class PeriodService : IPeriodService
         return null;
     }
 
-    /// <summary>Hồ sơ có ảnh chụp khác hồ sơ cán bộ hiện tại, kèm thông tin hiện tại và nội dung khác.</summary>
     private sealed record SnapshotDrift(EvaluationRecord Record, MemberSnapshotSource Member, List<string> Changes);
 
     /// <summary>
-    /// Kỳ còn dự thảo: ảnh chụp Phòng, Chi bộ, cấp quyết định của hồ sơ đi theo hồ sơ cán bộ hiện tại — trừ hồ sơ đã sửa tay ảnh chụp
-    /// (giữ giá trị đã sửa). Kỳ đã mở: ảnh chụp cố định, điều chuyển trong kỳ sửa bằng "Sửa thông tin".
+    /// Kỳ dự thảo: ảnh chụp đi theo hồ sơ cán bộ hiện tại, trừ hồ sơ đã sửa tay. Kỳ đã mở: ảnh chụp cố định.
     /// </summary>
     private async Task<List<SnapshotDrift>> FindDraftSnapshotDriftAsync(EvaluationPeriod period, IReadOnlyCollection<EvaluationRecord> records, CancellationToken ct)
     {
@@ -1055,8 +1039,7 @@ public sealed class PeriodService : IPeriodService
     }
 
     /// <summary>
-    /// Đặt ảnh chụp theo hồ sơ cán bộ. Đổi cấp quyết định thì hồ sơ đang theo cách xét duyệt mặc định của cấp cũ chuyển sang mặc định
-    /// của cấp mới (cách xét duyệt đã chọn riêng giữ nguyên). <paramref name="withNames"/>: gắn tên Phòng/Chi bộ cho bản chỉ đọc.
+    /// Đổi cấp quyết định → hồ sơ đang dùng cách xét duyệt mặc định của cấp cũ chuyển sang mặc định của cấp mới.
     /// </summary>
     private static void ApplySnapshot(EvaluationRecord record, MemberSnapshotSource member, PeriodSettings settings, bool withNames)
     {
@@ -1079,14 +1062,14 @@ public sealed class PeriodService : IPeriodService
             record.WorkflowProfileCode = settings.ResolveProfile(null, member.ApprovalAuthority).Code;
     }
 
-    /// <summary>Bản chỉ đọc của kỳ dự thảo: hiện ảnh chụp theo hồ sơ cán bộ hiện tại (sẽ được lưu khi mở kỳ).</summary>
+    /// <summary>Bản chỉ đọc của kỳ dự thảo: hiện ảnh chụp sẽ được lưu khi mở kỳ.</summary>
     private async Task OverlayDraftSnapshotsAsync(EvaluationPeriod period, PeriodSettings settings, IReadOnlyCollection<EvaluationRecord> records, CancellationToken ct)
     {
         foreach (var drift in await FindDraftSnapshotDriftAsync(period, records, ct))
             ApplySnapshot(drift.Record, drift.Member, settings, withNames: true);
     }
 
-    /// <summary>Lưu ảnh chụp theo hồ sơ cán bộ hiện tại cho các hồ sơ đã khác (kỳ dự thảo); ghi lịch sử từng hồ sơ. Không lưu DbContext.</summary>
+    /// <summary>Ghi lịch sử từng hồ sơ; không lưu DbContext.</summary>
     private async Task<int> StageDraftSnapshotSyncAsync(EvaluationPeriod period, PeriodSettings settings, CancellationToken ct)
     {
         var drifts = await FindDraftSnapshotDriftAsync(period, await _repo.ListRecordsAsync(period.Id, ct), ct);
@@ -1119,14 +1102,11 @@ public sealed class PeriodService : IPeriodService
 
     private void EnsureManage() => _guard.Ensure(PermissionCodes.PeriodManage, AccessTarget.None);
 
-    /// <summary>
-    /// Kiểm tra cấu hình kỳ, kể cả quyền thực hiện bước nội bộ phải là quyền đánh giá trong danh mục; bộ tiêu chí 09A cần bước
-    /// đăng ký sản phẩm ở mọi hồ sơ luồng.
-    /// </summary>
+    /// <summary>Bộ tiêu chí 09A cần bước đăng ký sản phẩm ở mọi hồ sơ luồng.</summary>
     private static List<string> ValidateSettings(PeriodSettings settings, string? selfScoreForm) =>
         settings.Validate(WorkflowActions.IsAssignableStepPermission, selfScoreForm);
 
-    /// <summary>Bộ tiêu chí theo Id — phải đã xuất bản (bản nháp/lưu trữ không chọn được cho kỳ).</summary>
+    /// <summary>Bản nháp/lưu trữ không chọn được cho kỳ.</summary>
     private async Task<CriteriaSet> LoadPublishedSetAsync(Guid id, CancellationToken ct)
     {
         var set = await _criteriaSets.FindAsync(id, ct)
@@ -1137,14 +1117,12 @@ public sealed class PeriodService : IPeriodService
         return set;
     }
 
-    /// <summary>Gắn bộ tiêu chí vào kỳ và chụp nguyên bộ.</summary>
     private static void AttachCriteria(EvaluationPeriod period, CriteriaSet set, DateTime now)
     {
         period.CriteriaSetId = set.Id;
         period.CriteriaSnapshot = set.TakeSnapshot(now).ToJson();
     }
 
-    /// <summary>Ảnh chụp bộ tiêu chí của kỳ (null nếu chưa chọn).</summary>
     private static CriteriaSnapshot? ReadCriteria(EvaluationPeriod period)
     {
         try
@@ -1197,10 +1175,7 @@ public sealed class PeriodService : IPeriodService
         CreatedAt = DateTime.UtcNow
     };
 
-    /// <summary>
-    /// Sau khi đổi khung tỷ trọng (Mẫu 09A): tính lại điểm các nhiệm vụ đã nhập tỷ lệ A-B-C-D theo khung hiệu lực mới, cùng điểm
-    /// nhóm nhiệm vụ và tổng điểm tự chấm. Trả số nhiệm vụ đã tính lại (0 nếu chưa có nhiệm vụ nào được nhập).
-    /// </summary>
+    /// <summary>Sau khi đổi khung: tính lại điểm nhiệm vụ đã nhập tỷ lệ và tổng điểm tự chấm; trả số nhiệm vụ đã tính lại.</summary>
     private static int RescoreTasksForFrame(EvaluationRecord record, CriteriaSnapshot? criteria)
     {
         if (criteria == null || criteria.UsesAxisScoring || RecordWeightFrames.Effective(record, criteria.Content) is not { } frame)
@@ -1215,10 +1190,7 @@ public sealed class PeriodService : IPeriodService
         return count;
     }
 
-    /// <summary>
-    /// Một dòng danh sách người được đánh giá, kèm bước đang chờ và thời hạn của bước đó theo hồ sơ luồng của hồ sơ
-    /// (hồ sơ đã công bố không còn bước chờ nên không tính hạn).
-    /// </summary>
+    /// <summary>Hồ sơ đã công bố không còn bước chờ nên không tính hạn.</summary>
     private static PeriodParticipantDto ToParticipant(EvaluationRecord r, PeriodSettings settings, CriteriaSnapshot? criteria, DateOnly today)
     {
         var profile = EvaluationMapping.ProfileOf(settings, r);

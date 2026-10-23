@@ -10,13 +10,12 @@ using CongTacDang.Domain.Entities;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Danh mục ngày nghỉ dùng chung (quyền quản lý danh mục kiểm tra ở controller).</summary>
+/// <summary>Danh mục ngày nghỉ (quyền kiểm tra ở controller).</summary>
 public interface IHolidayService
 {
-    /// <summary>Ngày nghỉ của một năm.</summary>
     Task<List<HolidayDto>> GetByYearAsync(int year, CancellationToken ct = default);
 
-    /// <summary>Thêm một ngày hoặc một khoảng ngày; trả các ngày đã thêm.</summary>
+    /// <summary>Thêm một ngày hoặc một khoảng ngày.</summary>
     Task<List<HolidayDto>> CreateAsync(SaveHolidayDto input, CancellationToken ct = default);
 
     Task<HolidayDto> UpdateAsync(Guid id, SaveHolidayDto input, CancellationToken ct = default);

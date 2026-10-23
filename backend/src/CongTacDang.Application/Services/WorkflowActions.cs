@@ -7,20 +7,12 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Định nghĩa một hành động của luồng đánh giá.</summary>
-/// <param name="Code">Mã hành động (trả về trong API actions).</param>
-/// <param name="Step">Bước thực hiện.</param>
-/// <param name="Kind">Hoàn thành / trả lại / mở lại / ghi nhận kết quả của cấp trên.</param>
-/// <param name="Label">Nhãn nút.</param>
 public sealed record WorkflowActionDefinition(string Code, WorkflowStep Step, WorkflowAction Kind, string Label)
 {
-    /// <summary>Hành động làm bước tiến lên (hoàn thành trong hệ thống hoặc ghi nhận kết quả của cấp trên).</summary>
+    /// <summary>Hoàn thành trong hệ thống hoặc ghi nhận kết quả của cấp trên.</summary>
     public bool Advances => Kind is WorkflowAction.Complete or WorkflowAction.RecordExternal;
 }
 
-/// <summary>
-/// Danh mục hành động và luật cố định (quyền theo bước của hồ sơ luồng, luật trạng thái kỳ, chế độ bước).
-/// </summary>
 public static class WorkflowActions
 {
     public const string SubmitTasks = "SubmitTasks";
@@ -38,10 +30,10 @@ public static class WorkflowActions
     public const string Publish = "Publish";
     public const string Reopen = "Reopen";
 
-    /// <summary>Ghi nhận kết quả của bước do cấp trên thực hiện (một mã cho mọi bước; bước nằm ở trường <c>step</c>).</summary>
+    /// <summary>Một mã cho mọi bước; bước nằm ở trường <c>step</c>.</summary>
     public const string RecordExternal = "RecordExternal";
 
-    /// <summary>Hành động trong hệ thống theo thứ tự bước.</summary>
+    /// <summary>Theo thứ tự bước.</summary>
     public static readonly IReadOnlyList<WorkflowActionDefinition> All = new[]
     {
         new WorkflowActionDefinition(SubmitTasks, WorkflowStep.B1_REGISTER, WorkflowAction.Complete, "Nộp danh mục sản phẩm"),
@@ -60,23 +52,20 @@ public static class WorkflowActions
         new WorkflowActionDefinition(Reopen, WorkflowStep.B5_PUBLISH, WorkflowAction.Reopen, "Mở lại hồ sơ")
     };
 
-    /// <summary>Tra định nghĩa hành động trong hệ thống theo mã.</summary>
     public static WorkflowActionDefinition Get(string code) =>
         All.FirstOrDefault(a => a.Code == code) ?? throw new ArgumentOutOfRangeException(nameof(code), code, null);
 
-    /// <summary>Hành động hoàn thành (trong hệ thống) của một bước.</summary>
     public static WorkflowActionDefinition CompleteOf(WorkflowStep step) =>
         All.First(a => a.Step == step && a.Kind == WorkflowAction.Complete);
 
-    /// <summary>Hành động trả lại của một bước (null nếu bước không trả lại được).</summary>
+    /// <summary>Null nếu bước không trả lại được.</summary>
     public static WorkflowActionDefinition? ReturnOf(WorkflowStep step) =>
         All.FirstOrDefault(a => a.Step == step && a.Kind == WorkflowAction.Return);
 
-    /// <summary>Hành động ghi nhận kết quả của cấp trên cho một bước.</summary>
     public static WorkflowActionDefinition ExternalOf(WorkflowStep step) =>
         new(RecordExternal, step, WorkflowAction.RecordExternal, "Ghi nhận kết quả của cấp trên");
 
-    /// <summary>Hành động làm bước tiến lên theo chế độ của bước trong hồ sơ luồng (null khi bước không áp dụng).</summary>
+    /// <summary>Theo chế độ của bước trong hồ sơ luồng; null khi bước không áp dụng.</summary>
     public static WorkflowActionDefinition? AdvanceOf(WorkflowStep step, WorkflowProfile profile) => profile.Mode(step) switch
     {
         StepMode.Internal => CompleteOf(step),
@@ -85,9 +74,8 @@ public static class WorkflowActions
     };
 
     /// <summary>
-    /// Mã quyền cần có để thực hiện hành động trên hồ sơ dùng hồ sơ luồng <paramref name="profile"/>: mở lại →
-    /// <c>evaluation.reopen</c>; ghi nhận kết quả của cấp trên → <c>evaluation.external.record</c>; bước của chủ hồ sơ →
-    /// <c>evaluation.self</c>; bước nội bộ → quyền thực hiện cấu hình trong hồ sơ luồng.
+    /// Mở lại → <c>evaluation.reopen</c>; ghi nhận cấp trên → <c>evaluation.external.record</c>; bước của chủ hồ sơ →
+    /// <c>evaluation.self</c>; bước nội bộ → quyền cấu hình trong hồ sơ luồng.
     /// </summary>
     public static string PermissionFor(WorkflowActionDefinition action, WorkflowProfile profile)
     {
@@ -96,18 +84,14 @@ public static class WorkflowActions
             return PermissionCodes.EvaluationReopen;
         if (action.Kind == WorkflowAction.RecordExternal)
             return PermissionCodes.EvaluationExternalRecord;
-        // Thu hồi duyệt danh mục (bước B1_APPROVE) dùng chung quyền thực hiện bước duyệt theo hồ sơ luồng (nhánh cuối).
+        // Thu hồi duyệt danh mục dùng chung quyền bước duyệt theo hồ sơ luồng (nhánh cuối).
         if (WorkflowSteps.OwnerSteps.Contains(action.Step))
             return PermissionCodes.EvaluationSelf;
         var setting = profile.Step(action.Step);
         return string.IsNullOrWhiteSpace(setting.Permission) ? WorkflowPermissions.DefaultFor(action.Step) : setting.Permission;
     }
 
-    /// <summary>
-    /// Hành động có khớp chế độ của bước trong hồ sơ luồng không. Trả thông báo lỗi (409) hoặc null nếu khớp:
-    /// bước nội bộ chỉ nhận hành động trong hệ thống; bước cấp trên thực hiện chỉ nhận ghi nhận kết quả; bước không áp dụng
-    /// không nhận hành động nào.
-    /// </summary>
+    /// <summary>Bước nội bộ chỉ nhận hành động trong hệ thống, bước cấp trên chỉ nhận ghi nhận kết quả; null nếu khớp.</summary>
     public static string? ModeBlockReason(WorkflowActionDefinition action, WorkflowProfile profile)
     {
         ArgumentNullException.ThrowIfNull(profile);
@@ -130,18 +114,12 @@ public static class WorkflowActions
     }
 
     /// <summary>
-    /// Luật trạng thái kỳ (thiết kế mục 3.1). Trả thông báo lỗi (409) hoặc null nếu được phép:
-    /// Dự thảo — chưa ai thao tác; Đang mở — mọi bước; Khóa dữ liệu — chỉ từ thẩm định trở đi và mở lại;
-    /// Đã đóng — chỉ mở lại.
+    /// Dự thảo: chưa ai thao tác; Đang mở: mọi bước; Khóa dữ liệu: từ thẩm định trở đi và mở lại; Đã đóng: chỉ mở lại.
     /// </summary>
     public static string? PeriodBlockReason(PeriodStatus status, WorkflowActionDefinition action) =>
         PeriodBlockReason(status, action, null, DateTime.UtcNow);
 
-    /// <summary>
-    /// Luật trạng thái kỳ có xét mở riêng hồ sơ: kỳ "Khóa dữ liệu" nhưng hồ sơ được mở riêng còn hạn
-    /// (<paramref name="unlockedUntil"/> &gt; <paramref name="utcNow"/>) → các bước của hồ sơ không bị chặn (trừ thu hồi duyệt danh mục).
-    /// Hết hạn → chặn như hồ sơ khác, thông báo kèm hạn đã hết.
-    /// </summary>
+    /// <summary>Hồ sơ được mở riêng còn hạn khi kỳ khóa dữ liệu → không bị chặn (trừ thu hồi duyệt danh mục).</summary>
     public static string? PeriodBlockReason(PeriodStatus status, WorkflowActionDefinition action, DateTime? unlockedUntil, DateTime utcNow)
     {
         if (status == PeriodStatus.Locked && action.Kind != WorkflowAction.RevokeTaskApproval
@@ -157,13 +135,13 @@ public static class WorkflowActions
     /// <summary>Số ngày mở riêng hồ sơ gợi ý trên giao diện.</summary>
     public const int DefaultUnlockDays = 7;
 
-    /// <summary>Số ngày mở riêng hồ sơ tối đa tính từ lúc mở / gia hạn.</summary>
+    /// <summary>Tính từ lúc mở / gia hạn.</summary>
     public const int MaxUnlockDays = 60;
 
-    /// <summary>Mã hành động mở riêng / gia hạn mở riêng hồ sơ (không thuộc bước nào của luồng).</summary>
+    /// <summary>Không thuộc bước nào của luồng.</summary>
     public const string ExtendUnlock = "ExtendUnlock";
 
-    /// <summary>Hiển thị thời điểm UTC theo giờ Việt Nam (dd/MM/yyyy HH:mm).</summary>
+    /// <summary>Theo giờ Việt Nam (dd/MM/yyyy HH:mm).</summary>
     public static string FormatLocal(DateTime utc) =>
         (utc + EvaluationMapping.BusinessUtcOffset).ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);
 
@@ -192,12 +170,12 @@ public static class WorkflowActions
         }
     }
 
-    /// <summary>Mã quyền được chọn làm quyền thực hiện bước nội bộ (không phải bước của chủ hồ sơ).</summary>
+    /// <summary>Không gồm quyền của bước chủ hồ sơ.</summary>
     public static bool IsAssignableStepPermission(string code) =>
         PermissionCodes.Find(code) is { Module: "evaluation" } definition
         && definition.Code is not (PermissionCodes.EvaluationSelf or PermissionCodes.EvaluationRead or PermissionCodes.EvaluationReopen);
 
-    /// <summary>Danh sách mã quyền được chọn làm quyền thực hiện bước (theo thứ tự danh mục).</summary>
+    /// <summary>Theo thứ tự danh mục.</summary>
     public static IReadOnlyList<PermissionDefinition> AssignableStepPermissions() =>
         PermissionCodes.Definitions.Where(d => IsAssignableStepPermission(d.Code)).ToList();
 }

@@ -6,33 +6,22 @@ using CongTacDang.Application.DTOs;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>
-/// Tra cứu hồ sơ đánh giá (đọc). Các hành động ghi theo bước nằm ở <see cref="IEvaluationWorkflowService"/>,
-/// quản lý kỳ ở <see cref="IPeriodService"/> (task 12).
-/// </summary>
+/// <summary>Tra cứu hồ sơ đánh giá; thao tác ghi ở <see cref="IEvaluationWorkflowService"/>.</summary>
 public interface IEvaluationService
 {
-    /// <summary>
-    /// Hồ sơ của chính người dùng trong kỳ (null nếu người dùng không có trong danh sách được đánh giá); <c>Guid.Empty</c> → kỳ đang
-    /// hoạt động, không có kỳ đang hoạt động → 404.
-    /// </summary>
+    /// <summary>Null nếu người dùng không được đánh giá trong kỳ; <c>Guid.Empty</c> → kỳ đang hoạt động (không có → 404).</summary>
     Task<EvaluationRecordDto?> GetMyRecordAsync(Guid periodId, CancellationToken ct = default);
 
-    /// <summary>Chi tiết hồ sơ (evaluation.read trên hồ sơ; chủ hồ sơ luôn xem được).</summary>
+    /// <summary>Chủ hồ sơ luôn xem được.</summary>
     Task<EvaluationRecordDto> GetRecordByIdAsync(Guid recordId, CancellationToken ct = default);
 
-    /// <summary>Lịch sử của hồ sơ (cùng quyền xem hồ sơ).</summary>
     Task<List<EvaluationRecordHistoryDto>> GetRecordHistoryAsync(Guid recordId, CancellationToken ct = default);
 
-    /// <summary>Hồ sơ trong kỳ theo phạm vi evaluation.read (kèm hồ sơ của chính mình); thiếu kỳ (<c>Guid.Empty</c>) → 400.</summary>
+    /// <summary>Theo phạm vi evaluation.read, kèm hồ sơ của chính mình; <c>Guid.Empty</c> → 400.</summary>
     Task<List<EvaluationRecordDto>> GetRecordsByPeriodAsync(Guid periodId, CancellationToken ct = default);
 
-    /// <summary>Hồ sơ của một Chi bộ trong kỳ, lọc theo phạm vi evaluation.read.</summary>
     Task<List<EvaluationRecordDto>> GetRecordsByBranchAsync(Guid periodId, Guid? branchId, CancellationToken ct = default);
 
-    /// <summary>
-    /// Kiểm soát trần Hoàn thành xuất sắc theo nhóm chức danh trong từng cấp quyết định, trên hồ sơ trong phạm vi evaluation.read
-    /// (tùy chọn thu hẹp theo tổ chức Đảng <paramref name="partyCellId"/> và tổ chức con, theo ảnh chụp trên hồ sơ).
-    /// </summary>
+    /// <summary>Kiểm soát trần Hoàn thành xuất sắc theo nhóm chức danh trong từng cấp quyết định.</summary>
     Task<ExcellentQuotaCheckDto> CheckExcellentQuotasAsync(Guid periodId, Guid? partyCellId, CancellationToken ct = default);
 }

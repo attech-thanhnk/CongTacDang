@@ -13,63 +13,47 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Kế hoạch hỗ trợ, khắc phục và phát triển 30-60-90 ngày — Mẫu 17 (task 20 — T-88).</summary>
+/// <summary>Kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17).</summary>
 public interface IImprovementPlanService
 {
-    /// <summary>Khối "Kế hoạch 30-60-90 ngày" của hồ sơ: có bắt buộc không, kế hoạch (nếu có), quyền của người hiện tại.</summary>
+    /// <summary>Có bắt buộc không, kế hoạch (nếu có) và quyền của người hiện tại.</summary>
     Task<RecordImprovementPlanDto> GetRecordPlanAsync(Guid recordId, CancellationToken ct = default);
 
-    /// <summary>Lập kế hoạch (hồ sơ đã công bố, chưa có kế hoạch).</summary>
+    /// <summary>Hồ sơ đã công bố, chưa có kế hoạch.</summary>
     Task<ImprovementPlanDto> CreateAsync(Guid recordId, SaveImprovementPlanRequestDto request, CancellationToken ct = default);
 
-    /// <summary>Sửa kế hoạch đang lập.</summary>
     Task<ImprovementPlanDto> UpdateAsync(Guid planId, SaveImprovementPlanRequestDto request, CancellationToken ct = default);
 
-    /// <summary>Thủ trưởng đơn vị duyệt kế hoạch (đủ các mục bắt buộc) → chờ cá nhân xác nhận.</summary>
+    /// <summary>Đủ các mục bắt buộc → chờ cá nhân xác nhận.</summary>
     Task<ImprovementPlanDto> ApproveAsync(Guid planId, VersionedRequestDto request, CancellationToken ct = default);
 
-    /// <summary>Cá nhân (chủ hồ sơ) xác nhận cam kết khắc phục.</summary>
     Task<ImprovementPlanDto> AcknowledgeAsync(Guid planId, AcknowledgePlanRequestDto request, CancellationToken ct = default);
 
-    /// <summary>Ghi kết quả một mốc; ghi mốc 90 ngày thì đóng kế hoạch.</summary>
+    /// <summary>Ghi mốc 90 ngày thì đóng kế hoạch.</summary>
     Task<ImprovementPlanDto> RecordResultAsync(Guid planId, MilestoneResultRequestDto request, CancellationToken ct = default);
 
-    /// <summary>Kế hoạch kèm hồ sơ để xuất Mẫu 17 (kiểm tra quyền xem).</summary>
+    /// <summary>Kiểm tra quyền xem.</summary>
     Task<(ImprovementPlan Plan, EvaluationRecord Record)> GetForExportAsync(Guid planId, CancellationToken ct = default);
 }
 
-/// <summary>Xuất Mẫu 17 từ file mẫu Word (Infrastructure — <c>Mau17Data</c>, template <c>Mau_17_KeHoachHoTro.docx</c>).</summary>
 public interface IImprovementPlanDocument
 {
-    /// <summary>Điền kế hoạch vào Mẫu 17 (thông tin đơn vị qua tag <c>ORG_*</c>); <paramref name="format"/> PDF → chuyển phía máy chủ.</summary>
+    /// <summary><paramref name="format"/> PDF → chuyển phía máy chủ.</summary>
     Task<ReportFileResult> RenderMau17Async(ImprovementPlan plan, EvaluationRecord record, ReportFormat format, CancellationToken ct = default);
 }
 
 /// <summary>
-/// Kế hoạch 30-60-90 ngày. Bắt buộc khi mức chính thức của hồ sơ thuộc <c>ImprovementPlanRequiredGrades</c> của bộ tiêu chí của kỳ
-/// (mặc định Hoàn thành nhiệm vụ — Mức C, Không hoàn thành nhiệm vụ — Mức D, theo chữ in trên Mẫu 17); hồ sơ công bố khác vẫn lập
-/// được (không bắt buộc). Quyền:
-/// <list type="bullet">
-/// <item>Lập, sửa, duyệt, ghi kết quả: <c>evaluation.improvement.manage</c> trong phạm vi (thủ trưởng đơn vị), không trên hồ sơ của mình.</item>
-/// <item>Xác nhận cam kết: chủ hồ sơ (<c>evaluation.self</c>).</item>
-/// <item>Xem, xuất Mẫu 17: chủ hồ sơ, người có <c>evaluation.improvement.manage</c> hoặc <c>evaluation.read</c> trong phạm vi
-/// (Mẫu 18: "Đơn vị, Cá nhân").</item>
-/// </list>
+/// Bắt buộc khi mức chính thức thuộc <c>ImprovementPlanRequiredGrades</c> của bộ tiêu chí; hồ sơ công bố khác vẫn lập được.
+/// Lập/sửa/duyệt/ghi kết quả: <c>evaluation.improvement.manage</c>, không trên hồ sơ của mình; xác nhận: chủ hồ sơ.
 /// </summary>
 public sealed class ImprovementPlanService : IImprovementPlanService
 {
     private const int MaxCommentLength = 2000;
 
-    /// <summary>
-    /// Ngày bắt đầu kế hoạch sớm nhất: ngày công bố kết quả trừ số ngày này (cho phép ghi nhận kế hoạch đã bắt đầu ngay sau hội nghị,
-    /// trước khi công bố trên hệ thống). Giá trị tạm — chờ nghiệp vụ xác nhận.
-    /// </summary>
+    /// <summary>Ngày bắt đầu sớm nhất = ngày công bố trừ số ngày này. Giá trị tạm, chờ nghiệp vụ xác nhận.</summary>
     public const int MaxStartDaysBeforePublish = 30;
 
-    /// <summary>
-    /// Ngày bắt đầu kế hoạch muộn nhất: ngày công bố kết quả cộng số ngày này (khoảng hai quý — kế hoạch khắc phục phải bắt đầu trong
-    /// thời gian còn ý nghĩa với kết quả được công bố). Giá trị tạm — chờ nghiệp vụ xác nhận.
-    /// </summary>
+    /// <summary>Ngày bắt đầu muộn nhất = ngày công bố cộng số ngày này. Giá trị tạm, chờ nghiệp vụ xác nhận.</summary>
     public const int MaxStartDaysAfterPublish = 180;
 
     private readonly IPostPublishRepository _repo;
@@ -85,7 +69,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
         _currentUser = currentUser;
     }
 
-    /// <summary>Mức bắt buộc lập kế hoạch theo bộ tiêu chí của kỳ (kỳ chưa có bộ / lỗi ảnh chụp → mặc định của tham số).</summary>
+    /// <summary>Kỳ chưa có bộ / lỗi ảnh chụp → mặc định của tham số.</summary>
     public static IReadOnlyList<EvaluationGrade> RequiredGrades(EvaluationPeriod period)
     {
         try
@@ -96,15 +80,11 @@ public sealed class ImprovementPlanService : IImprovementPlanService
         }
         catch (FormatException)
         {
-            // Ảnh chụp lỗi: dùng mặc định bên dưới.
         }
         return new CriteriaParameters().ImprovementPlanRequiredGrades;
     }
 
-    /// <summary>
-    /// Kỳ còn trong cửa sổ cảnh báo "kế hoạch cần lập": đang mở hoặc khóa dữ liệu; đã đóng chưa quá
-    /// <see cref="CriteriaParameters.ImprovementPlanAlertDays"/> ngày (tham số bộ tiêu chí của kỳ, mặc định 90) tính từ lúc đóng.
-    /// </summary>
+    /// <summary>Đang mở/khóa dữ liệu, hoặc đã đóng chưa quá <see cref="CriteriaParameters.ImprovementPlanAlertDays"/> ngày.</summary>
     public static bool InAlertWindow(EvaluationPeriod period, DateTime utcNow)
     {
         if (period.Status is PeriodStatus.Open or PeriodStatus.Locked)
@@ -124,7 +104,6 @@ public sealed class ImprovementPlanService : IImprovementPlanService
         return closedAt >= utcNow.AddDays(-days);
     }
 
-    /// <summary>Hồ sơ đã công bố có mức chính thức thuộc nhóm bắt buộc lập kế hoạch.</summary>
     public static bool IsRequired(EvaluationRecord record) =>
         record.Status == RecordStatus.Published
         && record.FinalGrade != EvaluationGrade.ChuaXepLoai
@@ -247,8 +226,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
                 throw new ValidationException($"Ghi chú kết quả dài tối đa {ImprovementPlanContent.MaxTextLength} ký tự.");
 
             var content = ImprovementPlanContent.Parse(plan.Content);
-            // Ghi kết quả theo thứ tự mốc (không ghi mốc sau khi mốc trước chưa có kết quả). Không chặn theo ngày đến hạn —
-            // việc ghi sớm/muộn so với hạn mốc do nghiệp vụ quyết định.
+            // Ghi theo thứ tự mốc; không chặn theo ngày đến hạn (ghi sớm/muộn do nghiệp vụ quyết định).
             var missingEarlier = ImprovementPlanContent.Milestones
                 .TakeWhile(m => m.Code != code)
                 .Where(m => content.Stage(m.Code).Result == null)
@@ -266,7 +244,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
             stage.ResultRecordedAt = now;
             plan.Content = content.ToJson();
 
-            // Mẫu 17: mốc 90 ngày "Đạt (Đóng kế hoạch)" / "Không đạt (Xem xét nhân sự)" — cả hai đều kết thúc kế hoạch.
+            // Mốc 90 ngày: cả "Đạt" và "Không đạt" đều kết thúc kế hoạch.
             if (code == ImprovementPlanContent.M90)
             {
                 plan.Status = ImprovementPlanStatus.Closed;
@@ -318,10 +296,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
         return ToDto(saved);
     }
 
-    /// <summary>
-    /// Ngày bắt đầu (nếu có) nằm trong khoảng [ngày công bố − <see cref="MaxStartDaysBeforePublish"/>, ngày công bố +
-    /// <see cref="MaxStartDaysAfterPublish"/>]; hồ sơ không có ngày công bố → không kiểm tra.
-    /// </summary>
+    /// <summary>Hồ sơ không có ngày công bố → không kiểm tra.</summary>
     private static void EnsureStartDate(EvaluationRecord record, DateOnly? startDate)
     {
         if (startDate is not { } start || record.PublishedAt is not { } publishedAt)
@@ -343,7 +318,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
         await _repo.FindRecordAsync(recordId, ct)
         ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
 
-    /// <summary>Xem kế hoạch: chủ hồ sơ, người lập kế hoạch hoặc người xem hồ sơ trong phạm vi.</summary>
+    /// <summary>Chủ hồ sơ, người lập kế hoạch hoặc người xem hồ sơ trong phạm vi.</summary>
     private void EnsureCanView(EvaluationRecord record)
     {
         var target = AccessTarget.ForRecord(record);
@@ -354,7 +329,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
             + $"\"{PermissionCodes.DisplayName(PermissionCodes.EvaluationImprovementManage)}\" trên hồ sơ này (ngoài phạm vi được gán).");
     }
 
-    /// <summary>Áp nội dung gửi lên vào nội dung kế hoạch (chỉ các mục nội dung; kết quả mốc không đổi) và kiểm tra độ dài.</summary>
+    /// <summary>Chỉ các mục nội dung; kết quả mốc không đổi.</summary>
     private static ImprovementPlanContent BuildContent(ImprovementPlanContent content, SaveImprovementPlanRequestDto request)
     {
         content.SupporterName = request.SupporterName;
@@ -384,7 +359,6 @@ public sealed class ImprovementPlanService : IImprovementPlanService
         return string.IsNullOrWhiteSpace(name) ? _currentUser.UserName : name;
     }
 
-    /// <summary>Tên hiển thị trạng thái kế hoạch.</summary>
     public static string StatusName(ImprovementPlanStatus status) => status switch
     {
         ImprovementPlanStatus.Draft => "Đang lập",
@@ -394,7 +368,6 @@ public sealed class ImprovementPlanService : IImprovementPlanService
         _ => status.ToString()
     };
 
-    /// <summary>Chuyển kế hoạch sang DTO.</summary>
     public static ImprovementPlanDto ToDto(ImprovementPlan plan)
     {
         ImprovementPlanContent content;

@@ -13,21 +13,16 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Công khai kết quả đánh giá đã công bố (task 20 — T-86, HD03 Bước 5).</summary>
+/// <summary>Công khai kết quả đánh giá đã công bố.</summary>
 public interface IPublishedResultService
 {
-    /// <summary>
-    /// Danh sách kết quả đã công bố trong phạm vi <c>evaluation.results.view</c> của người dùng (và kết quả của chính mình), lọc theo
-    /// kỳ, đơn vị chính quyền (gồm đơn vị con), mức.
-    /// </summary>
+    /// <summary>Theo phạm vi <c>evaluation.results.view</c> và kết quả của chính mình; lọc đơn vị gồm đơn vị con.</summary>
     Task<PublishedResultsDto> GetResultsAsync(Guid? periodId, Guid? departmentId, string? grade, CancellationToken ct = default);
 }
 
 /// <summary>
-/// Công khai kết quả: chỉ họ tên, chức danh, đơn vị, mức chính thức (và điểm khi bộ tiêu chí của kỳ bật <c>publishScores</c>).
-/// Phạm vi công khai do bản gán vai trò quyết định (Global = toàn công ty; đơn vị/tổ chức Đảng = đơn vị đó và đơn vị con) —
-/// không cứng trong code. Không trả chi tiết hồ sơ, minh chứng, ý kiến (HD03 II.2: "công khai kết quả" không đồng nghĩa công bố
-/// toàn bộ hồ sơ). Kết quả đang có kiến nghị chưa trả lời được ghi chú "đang xem xét" (PL II III.2).
+/// Chỉ trả họ tên, chức danh, đơn vị, mức (và điểm khi bộ tiêu chí bật <c>publishScores</c>) — không trả chi tiết hồ sơ.
+/// Kết quả có kiến nghị chưa trả lời ghi chú "đang xem xét".
 /// </summary>
 public sealed class PublishedResultService : IPublishedResultService
 {
@@ -54,13 +49,13 @@ public sealed class PublishedResultService : IPublishedResultService
         }
 
         var scope = _guard.GetScope(PermissionCodes.EvaluationResultsView);
-        // Quyền được biết: chủ hồ sơ luôn thấy kết quả của mình.
+        // Chủ hồ sơ luôn thấy kết quả của mình.
         if (_currentUser.UserId is { } userId)
             scope = scope.Union(ScopeFilter.OwnerOnly(userId));
         if (scope.IsEmpty)
             return new PublishedResultsDto();
 
-        // Ô chọn kỳ: chỉ đọc danh sách kỳ trong phạm vi; hồ sơ chỉ nạp cho kỳ đang chọn (lọc kỳ và phạm vi trong truy vấn).
+        // Hồ sơ chỉ nạp cho kỳ đang chọn (lọc kỳ và phạm vi trong truy vấn).
         var periods = await _repo.ListPublishedPeriodsAsync(scope, ct);
         var result = new PublishedResultsDto
         {
@@ -84,7 +79,6 @@ public sealed class PublishedResultService : IPublishedResultService
 
         if (departmentId.HasValue && departmentId.Value != Guid.Empty)
         {
-            // Lọc theo đơn vị gồm cả đơn vị con (Path của cây đơn vị chứa Id đơn vị cha).
             var key = $"/{departmentId.Value:D}/";
             records = records
                 .Where(r => r.DepartmentId == departmentId.Value
@@ -134,7 +128,7 @@ public sealed class PublishedResultService : IPublishedResultService
         return result;
     }
 
-    /// <summary>Cờ công khai điểm của bộ tiêu chí của kỳ; kỳ chưa có / lỗi ảnh chụp → chỉ công khai mức.</summary>
+    /// <summary>Kỳ chưa có / lỗi ảnh chụp bộ tiêu chí → chỉ công khai mức.</summary>
     private static bool PublishScores(EvaluationPeriod period)
     {
         try

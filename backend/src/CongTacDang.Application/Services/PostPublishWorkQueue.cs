@@ -12,32 +12,22 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>
-/// Nhóm việc sau công bố trong danh sách việc cần xử lý (task 20): kiến nghị chờ xử lý, kế hoạch 30-60-90 ngày cần lập/duyệt,
-/// kế hoạch chờ chính người dùng xác nhận.
-/// </summary>
+/// <summary>Nhóm việc sau công bố: kiến nghị, kế hoạch 30-60-90 ngày cần lập/duyệt/xác nhận.</summary>
 public interface IPostPublishWorkQueue
 {
-    /// <summary>Các nhóm việc sau công bố của người dùng hiện tại (nhóm rỗng không trả về).</summary>
+    /// <summary>Nhóm rỗng không trả về.</summary>
     Task<List<WorkQueueGroupDto>> GetGroupsAsync(Guid? periodId, CancellationToken ct = default);
 }
 
-/// <summary>Triển khai nhóm việc sau công bố — lọc bằng guard trên từng hồ sơ.</summary>
 public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
 {
-    /// <summary>Mã nhóm "Kiến nghị chờ xử lý".</summary>
     public const string AppealsGroup = "APPEALS";
 
-    /// <summary>Mã nhóm "Kế hoạch 30-60-90 ngày cần lập / duyệt".</summary>
     public const string ImprovementPlansGroup = "IMPROVEMENT_PLANS";
 
-    /// <summary>Mã nhóm "Kế hoạch 30-60-90 ngày chờ bạn xác nhận".</summary>
     public const string PlanAcknowledgementGroup = "IMPROVEMENT_PLAN_ACK";
 
-    /// <summary>
-    /// Mã nhóm "Kiến nghị chưa có người xử lý" — cho người có quyền gán vai trò: kiến nghị đang mở mà không còn ai (ngoài người có
-    /// xung đột lợi ích) có quyền xử lý trong phạm vi hồ sơ, cần gán vai trò cho người phù hợp.
-    /// </summary>
+    /// <summary>Kiến nghị không còn ai xử lý được, hiện cho người gán vai trò.</summary>
     public const string UnassignedAppealsGroup = "APPEALS_UNASSIGNED";
 
     private readonly IPostPublishRepository _repo;
@@ -68,7 +58,7 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
 
         if (_guard.HasAny(PermissionCodes.EvaluationAppealResolve))
         {
-            // Người xử lý: có quyền trên hồ sơ, không phải chủ hồ sơ/người gửi, không thuộc người có xung đột lợi ích của kiến nghị.
+            // Loại chủ hồ sơ, người gửi và người có xung đột lợi ích của kiến nghị.
             var appeals = (await _repo.ListOpenAppealsAsync(period, ct))
                 .Where(a => a.SubmittedById != userId && !a.ConflictedUserIds.Contains(userId))
                 .Where(a => _guard.Can(PermissionCodes.EvaluationAppealResolve, AccessTarget.ForRecord(a.Record)))
@@ -79,8 +69,7 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
 
         if (_guard.HasAny(PermissionCodes.SystemAssignmentsManage))
         {
-            // Người gán vai trò (quyền không áp dụng phạm vi): kiến nghị không còn ai xử lý được — tính lại mỗi lần tải nên nhóm tự
-            // hết khi đã gán người xử lý.
+            // Tính lại mỗi lần tải nên nhóm tự hết khi đã gán người xử lý.
             var unassigned = new List<EvaluationAppeal>();
             foreach (var appeal in await _repo.ListOpenAppealsAsync(period, ct))
             {
@@ -95,7 +84,7 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
 
         if (_guard.HasAny(PermissionCodes.EvaluationImprovementManage))
         {
-            // Chỉ kỳ đang mở/khóa dữ liệu và kỳ đã đóng trong số ngày cảnh báo của bộ tiêu chí (không quét mọi kỳ cũ).
+            // Chỉ kỳ đang mở/khóa dữ liệu và kỳ vừa đóng trong số ngày cảnh báo, không quét mọi kỳ cũ.
             var now = DateTime.UtcNow;
             var alertPeriods = (await _repo.ListPlanAlertPeriodsAsync(period, ct))
                 .Where(p => ImprovementPlanService.InAlertWindow(p, now))

@@ -14,41 +14,31 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Quản lý hồ sơ đánh giá tập thể và biên bản hội nghị theo các Mẫu 06-08, 12-13.</summary>
+/// <summary>Hồ sơ đánh giá tập thể (Mẫu 06–08) và biên bản hội nghị (Mẫu 12–13).</summary>
 public interface ICollectiveEvaluationService
 {
-    /// <summary>Lấy hồ sơ tập thể trong phạm vi của người dùng.</summary>
     Task<List<CollectiveEvaluationRecordDto>> GetCollectiveRecordsAsync(Guid periodId, Guid requesterId, string? form = null);
 
-    /// <summary>Lấy một hồ sơ tập thể trong phạm vi của người dùng.</summary>
     Task<CollectiveEvaluationRecordDto> GetCollectiveRecordAsync(Guid id, Guid requesterId);
 
-    /// <summary>Tạo hồ sơ tập thể mới.</summary>
     Task<CollectiveEvaluationRecordDto> CreateCollectiveRecordAsync(Guid requesterId, SaveCollectiveEvaluationRequestDto dto);
 
-    /// <summary>Sửa nội dung hồ sơ tập thể (không đổi kỳ, biểu mẫu, tổ chức) — kiểm tra phiên bản.</summary>
+    /// <summary>Không đổi kỳ, biểu mẫu, tổ chức; kiểm tra phiên bản.</summary>
     Task<CollectiveEvaluationRecordDto> UpdateCollectiveRecordAsync(Guid id, Guid requesterId, SaveCollectiveEvaluationRequestDto dto);
 
-    /// <summary>
-    /// Danh mục mục nhập Mẫu 07 và nhóm nội dung Mẫu 08 (nguyên văn biểu mẫu gốc); có <paramref name="periodId"/> thì kèm khung
-    /// tiêu chí tập thể và điểm tối đa hai nhóm theo bộ tiêu chí của kỳ.
-    /// </summary>
+    /// <summary>Có <paramref name="periodId"/> thì kèm khung tiêu chí tập thể và điểm tối đa theo bộ tiêu chí của kỳ.</summary>
     Task<CollectiveFormCatalogDto> GetFormCatalogAsync(Guid? periodId = null);
 
-    /// <summary>Sửa thông tin biên bản (không đổi kỳ, tổ chức, biểu mẫu, kết quả kiểm phiếu) — kiểm tra phiên bản.</summary>
+    /// <summary>Không đổi kỳ, tổ chức, biểu mẫu, kết quả kiểm phiếu; kiểm tra phiên bản.</summary>
     Task<EvaluationMeetingDto> UpdateMeetingAsync(Guid id, Guid requesterId, SaveEvaluationMeetingRequestDto dto);
 
-    /// <summary>Lấy biên bản hội nghị trong phạm vi của người dùng.</summary>
     Task<List<EvaluationMeetingDto>> GetMeetingsAsync(Guid periodId, Guid requesterId, Guid? partyCellId = null);
 
-    /// <summary>Lấy một biên bản hội nghị trong phạm vi của người dùng.</summary>
     Task<EvaluationMeetingDto> GetMeetingAsync(Guid id, Guid requesterId);
 
-    /// <summary>Tạo biên bản hội nghị hoặc biên bản kiểm phiếu.</summary>
     Task<EvaluationMeetingDto> CreateMeetingAsync(Guid requesterId, SaveEvaluationMeetingRequestDto dto);
 }
 
-/// <summary>Triển khai nghiệp vụ hồ sơ tập thể và hội nghị đánh giá.</summary>
 public class CollectiveEvaluationService : ICollectiveEvaluationService
 {
     private readonly ICollectiveEvaluationRepository _collectiveRepo;
@@ -74,7 +64,6 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         _guard = guard;
     }
 
-    /// <summary>Lấy hồ sơ tập thể theo kỳ, biểu mẫu và phạm vi người dùng.</summary>
     public async Task<List<CollectiveEvaluationRecordDto>> GetCollectiveRecordsAsync(Guid periodId, Guid requesterId, string? form = null)
     {
         var scope = CollectiveReadScope();
@@ -88,7 +77,6 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return visible.Select(record => MapCollective(record, periodClosed)).ToList();
     }
 
-    /// <summary>Lấy một hồ sơ tập thể và kiểm tra phạm vi tổ chức.</summary>
     public async Task<CollectiveEvaluationRecordDto> GetCollectiveRecordAsync(Guid id, Guid requesterId)
     {
         var record = await _collectiveRepo.GetByIdAsync(id)
@@ -100,27 +88,24 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return MapCollective(record, record.Period?.Status == PeriodStatus.Closed);
     }
 
-    /// <summary>Tạo hồ sơ Mẫu 06, 07 hoặc 08 sau khi kiểm tra phạm vi tổ chức.</summary>
     public async Task<CollectiveEvaluationRecordDto> CreateCollectiveRecordAsync(Guid requesterId, SaveCollectiveEvaluationRequestDto dto)
     {
         var form = ParseCollectiveForm(dto.Form)
             ?? throw new ArgumentException("Hồ sơ tập thể phải có mã M06, M07 hoặc M08.");
         if (string.IsNullOrWhiteSpace(dto.SubjectName))
             throw new ArgumentException("Tên tập thể hoặc lĩnh vực đánh giá không được để trống.");
-        // Mẫu 07 là báo cáo tự đánh giá của tập thể cấp ủy: gắn tổ chức Đảng, không gắn Phòng / đơn vị.
+        // Mẫu 07 là báo cáo của tập thể cấp ủy: gắn tổ chức Đảng, không gắn Phòng.
         if (form == CollectiveEvaluationForm.M07 && (dto.PartyCellId is null || dto.PartyCellId == Guid.Empty || dto.DepartmentId.HasValue))
             throw new ArgumentException("Mẫu 07 là tự đánh giá của tập thể Đảng ủy, Chi ủy, Chi bộ: hãy chọn tổ chức Đảng.");
 
-        // Ghi: mọi đơn vị hồ sơ gắn với (đơn vị chính quyền và tổ chức Đảng) đều phải trong phạm vi.
+        // Mọi đơn vị hồ sơ gắn với đều phải trong phạm vi.
         _guard.Ensure(PermissionCodes.CollectiveManage, AccessTarget.ForUnitsWrite(dto.DepartmentId, dto.PartyCellId));
-        // Điểm tối đa lấy từ tham số bộ tiêu chí của kỳ (mặc định 30 / 70).
         var period = await _evaluationRepo.GetPeriodByIdAsync(dto.PeriodId)
             ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {dto.PeriodId}");
-        // Cùng luật với sửa hồ sơ: kỳ đã đóng thì không thêm hồ sơ tập thể.
         if (period.Status == PeriodStatus.Closed)
             throw new ConflictException($"Kỳ \"{period.Name}\" đã đóng nên không tạo được hồ sơ tập thể. Hãy liên hệ người quản lý kỳ nếu cần mở lại.");
         var scores = ResolveScores(period, form, dto);
-        // Mỗi kỳ, mỗi biểu mẫu chỉ một hồ sơ cho một tổ chức (CSDL cũng chặn bằng chỉ mục duy nhất).
+        // CSDL cũng chặn bằng chỉ mục duy nhất.
         var existing = await _collectiveRepo.GetByPeriodAsync(dto.PeriodId, form);
         var duplicate = existing.FirstOrDefault(r => r.PartyCellId == dto.PartyCellId && r.DepartmentId == dto.DepartmentId);
         if (duplicate != null)
@@ -144,7 +129,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return MapCollective(saved, periodClosed: false);
     }
 
-    /// <summary>Sửa nội dung hồ sơ tập thể; kỳ đã đóng thì không sửa được.</summary>
+    /// <summary>Kỳ đã đóng thì không sửa được.</summary>
     public async Task<CollectiveEvaluationRecordDto> UpdateCollectiveRecordAsync(Guid id, Guid requesterId, SaveCollectiveEvaluationRequestDto dto)
     {
         var record = await _collectiveRepo.GetForUpdateAsync(id)
@@ -154,7 +139,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             throw new ConflictException($"Kỳ \"{record.Period.Name}\" đã đóng nên không sửa được hồ sơ tập thể. Hãy liên hệ người quản lý kỳ nếu cần mở lại.");
         if (string.IsNullOrWhiteSpace(dto.SubjectName))
             throw new ArgumentException("Tên tập thể hoặc lĩnh vực đánh giá không được để trống.");
-        // Bắt buộc phiên bản để không ghi đè thay đổi của người khác (thiếu phiên bản = bỏ qua kiểm tra đồng thời).
+        // Bắt buộc phiên bản: thiếu phiên bản sẽ bỏ qua kiểm tra đồng thời.
         if (dto.Version is null)
             throw new ValidationException("Thiếu phiên bản hồ sơ tập thể (version). Hãy tải lại hồ sơ rồi lưu lại.");
 
@@ -169,7 +154,6 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return MapCollective(saved, periodClosed: false);
     }
 
-    /// <summary>Danh mục mục nhập Mẫu 07 và nhóm nội dung Mẫu 08; có kỳ thì kèm khung tiêu chí tập thể của bộ tiêu chí của kỳ.</summary>
     public async Task<CollectiveFormCatalogDto> GetFormCatalogAsync(Guid? periodId = null)
     {
         var catalog = new CollectiveFormCatalogDto
@@ -203,12 +187,11 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return catalog;
     }
 
-    /// <summary>Điểm hồ sơ tập thể đã kiểm tra: hai điểm nhóm và điểm từng tiêu chí (JSON) để lưu.</summary>
     private sealed record CollectiveScores(double General, double Task, string CriteriaScoresJson);
 
     /// <summary>
-    /// Kiểm tra và tính điểm hồ sơ tập thể. Bộ tiêu chí của kỳ có khung tập thể và mẫu là M06/M07 → chấm từng tiêu chí, điểm
-    /// nhóm là tổng điểm tiêu chí theo nhóm điểm (bỏ qua hai điểm nhóm gửi lên). Ngược lại → nhập thẳng hai điểm nhóm.
+    /// Bộ có khung tập thể và mẫu M06/M07 → chấm từng tiêu chí, điểm nhóm là tổng theo nhóm (bỏ qua điểm nhóm gửi lên);
+    /// ngược lại nhập thẳng hai điểm nhóm.
     /// </summary>
     private static CollectiveScores ResolveScores(EvaluationPeriod period, CollectiveEvaluationForm form, SaveCollectiveEvaluationRequestDto dto)
     {
@@ -263,7 +246,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return new CollectiveScores(Math.Round(general, 2), Math.Round(task, 2), JsonSerializer.Serialize(clean));
     }
 
-    /// <summary>Đọc điểm từng tiêu chí đã lưu (dữ liệu hỏng → rỗng).</summary>
+    /// <summary>Dữ liệu hỏng → rỗng.</summary>
     public static Dictionary<string, double> DeserializeCriteriaScores(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -278,7 +261,6 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         }
     }
 
-    /// <summary>Gán nội dung tự đánh giá, điểm và các mục con từ yêu cầu (dùng chung cho tạo và sửa).</summary>
     private static void ApplyContent(CollectiveEvaluationRecord record, SaveCollectiveEvaluationRequestDto dto, CollectiveScores scores, Guid requesterId)
     {
         record.HeadId = dto.HeadId;
@@ -300,7 +282,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         record.UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>Độ dài tối đa của một nội dung tự luận (khoảng 3–4 trang A4).</summary>
+    /// <summary>Khoảng 3–4 trang A4.</summary>
     private const int MaxTextLength = 20000;
 
     private static string Limit(string? value, int max, string name)
@@ -311,7 +293,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return text;
     }
 
-    /// <summary>Kiểm tra và lưu các mục con theo mã (chỉ nhận mã có trong biểu mẫu).</summary>
+    /// <summary>Chỉ nhận mã có trong biểu mẫu.</summary>
     private static string SerializeSections(CollectiveEvaluationForm form, Dictionary<string, string>? sections)
     {
         var allowed = form == CollectiveEvaluationForm.M07
@@ -329,7 +311,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return JsonSerializer.Serialize(clean);
     }
 
-    /// <summary>Đọc các mục con đã lưu (dữ liệu hỏng → rỗng).</summary>
+    /// <summary>Dữ liệu hỏng → rỗng.</summary>
     public static Dictionary<string, string> DeserializeSections(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -344,7 +326,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         }
     }
 
-    /// <summary>Dòng nội dung chi tiết: Mẫu 08 bắt buộc mã nhóm nội dung 1–13 và tên nhiệm vụ hoặc kết quả.</summary>
+    /// <summary>Mẫu 08 bắt buộc mã nhóm nội dung 1–13 và tên nhiệm vụ hoặc kết quả.</summary>
     private static List<CollectiveEvaluationItem> BuildItems(CollectiveEvaluationForm form, IEnumerable<CollectiveEvaluationItemDto>? items)
     {
         var list = (items ?? Enumerable.Empty<CollectiveEvaluationItemDto>()).ToList();
@@ -377,10 +359,9 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return result;
     }
 
-    /// <summary>Lấy danh sách biên bản hội nghị theo kỳ và Chi bộ.</summary>
     public async Task<List<EvaluationMeetingDto>> GetMeetingsAsync(Guid periodId, Guid requesterId, Guid? partyCellId = null)
     {
-        // T-45: chỉ thấy biên bản thuộc phạm vi meeting.read/meeting.manage được gán; không có phạm vi phù hợp → danh sách rỗng.
+        // Không có phạm vi phù hợp → danh sách rỗng.
         var scope = _guard.GetScope(PermissionCodes.MeetingRead).Union(_guard.GetScope(PermissionCodes.MeetingManage));
         if (scope.IsEmpty)
             return new List<EvaluationMeetingDto>();
@@ -392,7 +373,6 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             .ToList();
     }
 
-    /// <summary>Lấy biên bản hội nghị và kiểm tra phạm vi Chi bộ.</summary>
     public async Task<EvaluationMeetingDto> GetMeetingAsync(Guid id, Guid requesterId)
     {
         var meeting = await _meetingRepo.GetByIdAsync(id)
@@ -406,8 +386,8 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     }
 
     /// <summary>
-    /// Tạo biên bản Mẫu 12 hoặc Mẫu 13, chỉ lưu tổng hợp phiếu không định danh. Biên bản gắn Chi bộ, Phòng (hội nghị tập thể
-    /// lãnh đạo cấp Phòng — task 12) hoặc không gắn (cấp Công ty, chỉ phạm vi Toàn công ty).
+    /// Chỉ lưu tổng hợp phiếu không định danh. Biên bản gắn Chi bộ, Phòng, hoặc không gắn
+    /// (cấp Công ty, chỉ phạm vi Toàn công ty).
     /// </summary>
     public async Task<EvaluationMeetingDto> CreateMeetingAsync(Guid requesterId, SaveEvaluationMeetingRequestDto dto)
     {
@@ -422,7 +402,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             if (stage is not (WorkflowStep.B3A_COLLECTIVE or WorkflowStep.B4_DECISION))
                 throw new ArgumentException("Biên bản chỉ dùng cho bước đề xuất của tập thể lãnh đạo (B3A_COLLECTIVE) hoặc quyết định (B4_DECISION).");
         }
-        // Hội nghị quyết định mức xếp loại là hội nghị cấp ủy: tổ chức Đảng hoặc cấp Công ty, không phải Phòng / đơn vị.
+        // Hội nghị quyết định mức là hội nghị cấp ủy, không phải Phòng.
         if (stage == WorkflowStep.B4_DECISION && departmentId.HasValue)
             throw new ArgumentException("Hội nghị quyết định mức xếp loại do cấp ủy tổ chức: chọn tổ chức Đảng hoặc Cấp Công ty, không chọn Phòng / đơn vị.");
         _guard.Ensure(PermissionCodes.MeetingManage, AccessTarget.ForUnitsWrite(departmentId, partyCellId));
@@ -477,7 +457,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
 
                 var record = await _evaluationRepo.GetRecordByIdAsync(vote.RecordId)
                     ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {vote.RecordId}");
-                // Biên bản ở tổ chức cấp trên chứa được hồ sơ của đơn vị/tổ chức cấp dưới (cây con).
+                // Biên bản ở tổ chức cấp trên chứa được hồ sơ của cây con.
                 if (record.PeriodId != dto.PeriodId
                     || !await OrgSubtreeRules.RecordWithinMeetingAsync(
                         _evaluationRepo, departmentId, partyCellId, record.DepartmentId, record.PartyCellId))
@@ -503,10 +483,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return MapMeeting(saved);
     }
 
-    /// <summary>
-    /// Sửa thông tin biên bản: thời gian, địa điểm, thành phần, chủ trì/thư ký, nội dung và các mục của Mẫu 12.
-    /// Kỳ, tổ chức, biểu mẫu, bước và kết quả kiểm phiếu (đã dùng để ghi nhận kết quả hồ sơ) không đổi.
-    /// </summary>
+    /// <summary>Kỳ, tổ chức, biểu mẫu, bước và kết quả kiểm phiếu (đã dùng ghi nhận kết quả hồ sơ) không đổi.</summary>
     public async Task<EvaluationMeetingDto> UpdateMeetingAsync(Guid id, Guid requesterId, SaveEvaluationMeetingRequestDto dto)
     {
         var meeting = await _meetingRepo.GetForUpdateAsync(id)
@@ -547,13 +524,12 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return MapMeeting(saved);
     }
 
-    /// <summary>Số phiếu lớn nhất đã ghi cho một hồ sơ trong biên bản kiểm phiếu.</summary>
     private static int MaxBallots(EvaluationMeeting meeting) =>
         meeting.VoteSummaries.Count == 0 ? 0 : meeting.VoteSummaries.Max(v => v.TotalBallots);
 
     private static readonly JsonSerializerOptions DetailsJson = new(JsonSerializerDefaults.Web);
 
-    /// <summary>Kiểm tra và lưu các mục của Mẫu 12, 13 (jsonb theo mã mục).</summary>
+    /// <summary>Jsonb theo mã mục.</summary>
     private static string SerializeDetails(MeetingDetailsDto? details, int presentCount)
     {
         var value = details ?? new MeetingDetailsDto();
@@ -592,7 +568,6 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         return JsonSerializer.Serialize(clean, DetailsJson);
     }
 
-    /// <summary>Danh sách người (họ tên + chức vụ) đã bỏ dòng trống và kiểm tra độ dài.</summary>
     private static List<MeetingAttendeeDto> CleanPeople(IEnumerable<MeetingAttendeeDto>? people, string label) =>
         (people ?? Enumerable.Empty<MeetingAttendeeDto>())
             .Where(a => a != null && !string.IsNullOrWhiteSpace(a.Name))
@@ -603,7 +578,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             })
             .ToList();
 
-    /// <summary>Đọc các mục của Mẫu 12 đã lưu (dữ liệu hỏng → rỗng).</summary>
+    /// <summary>Dữ liệu hỏng → rỗng.</summary>
     public static MeetingDetailsDto DeserializeDetails(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -620,16 +595,13 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
 
     private static string? TrimOrNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    /// <summary>
-    /// Phạm vi đọc hồ sơ tập thể: hợp phạm vi <c>evaluation.read</c> (không tính luật chủ hồ sơ) và <c>collective.manage</c>.
-    /// </summary>
+    /// <summary>Hợp phạm vi <c>evaluation.read</c> (không tính luật chủ hồ sơ) và <c>collective.manage</c>.</summary>
     private ScopeFilter CollectiveReadScope()
     {
         var read = _guard.GetScope(PermissionCodes.EvaluationRead) with { OwnerId = null };
         return read.Union(_guard.GetScope(PermissionCodes.CollectiveManage));
     }
 
-    /// <summary>Chuyển mã Mẫu 06-08 sang enum nghiệp vụ.</summary>
     private static CollectiveEvaluationForm? ParseCollectiveForm(string? form)
     {
         if (string.IsNullOrWhiteSpace(form)) return null;
@@ -639,14 +611,12 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         throw new ArgumentException("Hồ sơ tập thể chỉ hỗ trợ M06, M07 hoặc M08.");
     }
 
-    /// <summary>Kiểm tra giới hạn điểm của nhóm tiêu chí.</summary>
     private static void ValidateScore(double score, double maximum, string name)
     {
         if (score < 0 || score > maximum)
             throw new ArgumentException($"{name} phải từ 0 đến {maximum} điểm.");
     }
 
-    /// <summary>Chuyển chuỗi xếp loại sang enum an toàn.</summary>
     private static EvaluationGrade ParseGrade(string? value)
     {
         return Enum.TryParse<EvaluationGrade>(value, true, out var grade)
@@ -654,15 +624,11 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             : EvaluationGrade.ChuaXepLoai;
     }
 
-    /// <summary>
-    /// Người dùng hiện tại được tải lên, thay, gỡ tệp đính kèm của hồ sơ tập thể: cùng luật với AttachmentService cho loại chủ sở
-    /// hữu hồ sơ tập thể — <c>collective.manage</c> bao trùm tổ chức của hồ sơ và kỳ chưa đóng.
-    /// </summary>
+    /// <summary>Cùng luật với AttachmentService: <c>collective.manage</c> bao trùm tổ chức của hồ sơ và kỳ chưa đóng.</summary>
     private bool CanAttach(CollectiveEvaluationRecord record, bool periodClosed) =>
         !periodClosed && _guard.Can(PermissionCodes.CollectiveManage,
             new CollectiveAttachmentOwner(record.Id, record.DepartmentId, record.PartyCellId, periodClosed).WriteTarget);
 
-    /// <summary>Ánh xạ hồ sơ tập thể sang DTO.</summary>
     private CollectiveEvaluationRecordDto MapCollective(CollectiveEvaluationRecord record, bool periodClosed)
     {
         return new CollectiveEvaluationRecordDto
@@ -707,7 +673,6 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         };
     }
 
-    /// <summary>Ánh xạ biên bản hội nghị sang DTO.</summary>
     private EvaluationMeetingDto MapMeeting(EvaluationMeeting meeting)
     {
         return new EvaluationMeetingDto

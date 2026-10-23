@@ -16,52 +16,38 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>
-/// Kết quả luồng dữ liệu tệp tin phục vụ tải về
-/// </summary>
 public class AttachmentDownloadResult
 {
-    /// <summary>Luồng dữ liệu đọc tệp</summary>
     public Stream Stream { get; set; } = Stream.Null;
 
-    /// <summary>Định dạng MIME của tệp</summary>
     public string ContentType { get; set; } = "application/octet-stream";
 
-    /// <summary>Tên tệp tin đính kèm</summary>
     public string FileName { get; set; } = string.Empty;
 }
 
 /// <summary>
-/// Giao diện xử lý nghiệp vụ tệp đính kèm văn bản và minh chứng.
-/// Một tệp gắn với một đối tượng (<see cref="AttachmentOwnerTypes"/>), có nhiều phiên bản; mọi thao tác kiểm tra quyền qua
-/// <see cref="IAuthorizationGuard"/>: quyền trên tệp = quyền trên hồ sơ gắn tệp (<c>evaluation.read</c> / <c>evaluation.self</c>;
-/// văn bản của cấp trên: <c>evaluation.external.record</c>; phụ lục của hồ sơ tập thể: <c>evaluation.read</c> / <c>collective.manage</c> trên tổ chức).
-/// Không có tệp dùng chung: tệp chưa gắn đối tượng (tải lên trước khi gắn vào nhiệm vụ / kết quả của cấp trên) chỉ người tải lên thấy.
+/// Tệp gắn một đối tượng (<see cref="AttachmentOwnerTypes"/>), nhiều phiên bản; quyền trên tệp = quyền trên đối tượng gắn tệp.
+/// Không có tệp dùng chung: tệp chưa gắn đối tượng chỉ người tải lên thấy.
 /// </summary>
 public interface IAttachmentService
 {
-    /// <summary>Lấy danh sách tệp (phiên bản hiện hành) mà người yêu cầu được xem</summary>
+    /// <summary>Phiên bản hiện hành mà người yêu cầu được xem.</summary>
     Task<List<AttachmentDto>> GetAttachmentsAsync(Guid requesterId);
 
-    /// <summary>Lấy danh sách tệp (phiên bản hiện hành) của một đối tượng mà người yêu cầu được xem</summary>
+    /// <summary>Phiên bản hiện hành mà người yêu cầu được xem.</summary>
     Task<List<AttachmentDto>> GetAttachmentsByOwnerAsync(string ownerType, Guid ownerId, Guid requesterId);
 
-    /// <summary>Lấy chi tiết thông tin một phiên bản tệp theo Id (kiểm tra quyền xem)</summary>
     Task<AttachmentDto?> GetAttachmentByIdAsync(Guid id, Guid requesterId);
 
-    /// <summary>Lấy lịch sử phiên bản của tệp chứa phiên bản <paramref name="id"/> (kiểm tra quyền xem)</summary>
+    /// <summary>Lịch sử phiên bản của tệp chứa phiên bản <paramref name="id"/>.</summary>
     Task<List<AttachmentDto>> GetVersionsAsync(Guid id, Guid requesterId);
 
-    /// <summary>Tải phiên bản hiện hành của tệp chứa phiên bản <paramref name="id"/> (kiểm tra quyền xem)</summary>
+    /// <summary>Phiên bản hiện hành của tệp chứa phiên bản <paramref name="id"/>.</summary>
     Task<AttachmentDownloadResult> DownloadAttachmentAsync(Guid id, Guid requesterId);
 
-    /// <summary>Tải một phiên bản cụ thể của tệp chứa phiên bản <paramref name="id"/> (kiểm tra quyền xem)</summary>
     Task<AttachmentDownloadResult> DownloadVersionAsync(Guid id, int versionNumber, Guid requesterId);
 
-    /// <summary>
-    /// Tải lên tệp mới, tính mã băm SHA-256 và lưu metadata kèm người tải lên.
-    /// Truyền <paramref name="ownerType"/>/<paramref name="ownerId"/> để gắn tệp vào một đối tượng (cần quyền cập nhật đối tượng).
-    /// </summary>
+    /// <summary>Truyền <paramref name="ownerType"/>/<paramref name="ownerId"/> để gắn vào đối tượng (cần quyền cập nhật đối tượng).</summary>
     Task<AttachmentDto> UploadAttachmentAsync(
         Stream stream,
         string originalFileName,
@@ -73,27 +59,19 @@ public interface IAttachmentService
         string? ownerType = null,
         Guid? ownerId = null);
 
-    /// <summary>Thay tệp bằng phiên bản mới; phiên bản cũ được giữ lại, đánh dấu không hiện hành (kiểm tra quyền cập nhật)</summary>
+    /// <summary>Phiên bản cũ được giữ lại, đánh dấu không hiện hành.</summary>
     Task<AttachmentDto> ReplaceAttachmentAsync(Guid id, Stream stream, string originalFileName, long size, string uploadedBy, Guid requesterId);
 
     /// <summary>
-    /// Gỡ tệp minh chứng chủ hồ sơ đã đính kèm vào hồ sơ của mình (mọi phiên bản; xóa mềm — tệp vẫn lưu, nhật ký ghi người gỡ) —
-    /// chỉ trước khi nộp phiếu tự chấm (<see cref="EvidenceRules"/>; sau đó 409).
-    /// Phụ lục, báo cáo của hồ sơ tập thể: người có <c>collective.manage</c> trên tổ chức của hồ sơ gỡ được khi kỳ chưa đóng.
+    /// Gỡ (xóa mềm mọi phiên bản) minh chứng của chủ hồ sơ trước khi nộp tự chấm, hoặc phụ lục hồ sơ tập thể khi kỳ chưa đóng.
     /// Không áp dụng cho tệp gắn nhiệm vụ hay văn bản của cấp trên.
     /// </summary>
     Task RemoveAttachmentAsync(Guid id, Guid requesterId);
 
-    /// <summary>
-    /// Bảo đảm các tệp client gửi kèm (ví dụ <c>EvaluationTask.AttachmentId</c>) tồn tại và người gửi có quyền cập nhật trên tệp
-    /// (người tải lên, chủ hồ sơ đang gắn tệp hoặc quản trị). Báo 400 nếu tệp không tồn tại, 403 nếu không có quyền.
-    /// </summary>
+    /// <summary>Tệp client gửi kèm phải tồn tại (400) và người gửi có quyền cập nhật trên tệp (403).</summary>
     Task EnsureCanLinkAttachmentsAsync(IReadOnlyCollection<Guid> attachmentIds, Guid requesterId);
 
-    /// <summary>
-    /// Thao tác người yêu cầu được làm với minh chứng cá nhân của hồ sơ <paramref name="recordId"/> (thêm / thay / gỡ) theo quyền
-    /// và giai đoạn của hồ sơ (<see cref="EvidenceRules"/>). Cần quyền xem hồ sơ.
-    /// </summary>
+    /// <summary>Thêm / thay / gỡ minh chứng cá nhân theo quyền và giai đoạn hồ sơ (<see cref="EvidenceRules"/>).</summary>
     Task<EvidenceRightsDto> GetEvidenceRightsAsync(Guid recordId, Guid requesterId);
 }
 
@@ -110,20 +88,13 @@ public class AttachmentService : IAttachmentService
     private const long MaxFileSize = 25 * 1024 * 1024; // 25 MB
     private const string DefaultUploaderName = "Cán bộ quản trị";
 
-    /// <summary>
-    /// Khởi tạo chỉ với repository và storage — chỉ dùng cho kiểm tra hợp lệ khi tải lên (unit test).
-    /// Các thao tác cần kiểm tra quyền sẽ báo lỗi khi dùng constructor này.
-    /// </summary>
+    /// <summary>Chỉ cho unit test kiểm tra hợp lệ khi tải lên; thao tác cần kiểm tra quyền sẽ báo lỗi.</summary>
     public AttachmentService(IAttachmentRepository attachmentRepo, IFileStorageService fileStorage)
     {
         _attachmentRepo = attachmentRepo;
         _fileStorage = fileStorage;
     }
 
-    /// <summary>
-    /// Khởi tạo đầy đủ, dùng khi chạy ứng dụng. Quyền được đánh giá cho người yêu cầu truyền vào mỗi thao tác
-    /// bằng luật duy nhất của guard (<see cref="AuthorizationGuard.Evaluate"/>) trên tập quyền từ <see cref="IPermissionResolver"/>.
-    /// </summary>
     public AttachmentService(
         IAttachmentRepository attachmentRepo,
         IFileStorageService fileStorage,
@@ -141,13 +112,10 @@ public class AttachmentService : IAttachmentService
         _options = options ?? new AttachmentOptions();
     }
 
-    /// <summary>
-    /// Lấy danh sách tệp đính kèm (phiên bản hiện hành) mà người yêu cầu được xem
-    /// </summary>
+    /// <inheritdoc />
     public async Task<List<AttachmentDto>> GetAttachmentsAsync(Guid requesterId)
     {
-        // Đọc theo từng trang (mới nhất trước) và lọc quyền từng trang; dừng khi đủ ListLimit tệp hoặc đã xét MaxScanned tệp —
-        // không nạp toàn bộ bảng tệp vào bộ nhớ.
+        // Đọc và lọc quyền theo trang, dừng khi đủ ListLimit hoặc đã xét MaxScanned — không nạp toàn bộ bảng tệp.
         var result = new List<TaskAttachment>();
         for (var skip = 0; result.Count < ListLimit && skip < MaxScanned; skip += ListBatchSize)
         {
@@ -161,16 +129,14 @@ public class AttachmentService : IAttachmentService
         return result.Take(ListLimit).Select(a => ToDto(a)).ToList();
     }
 
-    /// <summary>Số tệp tối đa trả về ở danh sách tệp người dùng được xem (chọn lại minh chứng).</summary>
+    /// <summary>Số tệp tối đa trả về (chọn lại minh chứng).</summary>
     public const int ListLimit = 200;
 
-    /// <summary>Số tệp đọc mỗi lần khi dựng danh sách.</summary>
     private const int ListBatchSize = 500;
 
-    /// <summary>Số tệp xét tối đa khi dựng danh sách.</summary>
     private const int MaxScanned = 5000;
 
-    /// <summary>Lấy danh sách tệp hiện hành của một đối tượng mà người yêu cầu được xem</summary>
+    /// <inheritdoc />
     public async Task<List<AttachmentDto>> GetAttachmentsByOwnerAsync(string ownerType, Guid ownerId, Guid requesterId)
     {
         var normalizedType = AttachmentOwnerTypes.Normalize(ownerType)
@@ -181,9 +147,7 @@ public class AttachmentService : IAttachmentService
         return list.Select(a => ToDto(a)).ToList();
     }
 
-    /// <summary>
-    /// Lấy chi tiết thông tin một phiên bản tệp kèm link tải phiên bản hiện hành
-    /// </summary>
+    /// <inheritdoc />
     public async Task<AttachmentDto?> GetAttachmentByIdAsync(Guid id, Guid requesterId)
     {
         var a = await _attachmentRepo.GetByIdAsync(id);
@@ -194,7 +158,7 @@ public class AttachmentService : IAttachmentService
         return ToDto(a, await _fileStorage.GetDownloadUrlAsync(a.Id));
     }
 
-    /// <summary>Lấy lịch sử phiên bản của tệp</summary>
+    /// <inheritdoc />
     public async Task<List<AttachmentDto>> GetVersionsAsync(Guid id, Guid requesterId)
     {
         var current = await GetCurrentRequiredAsync(id);
@@ -207,9 +171,7 @@ public class AttachmentService : IAttachmentService
             .ToList();
     }
 
-    /// <summary>
-    /// Đọc luồng dữ liệu phiên bản hiện hành của tệp phục vụ tải về trực tiếp
-    /// </summary>
+    /// <inheritdoc />
     public async Task<AttachmentDownloadResult> DownloadAttachmentAsync(Guid id, Guid requesterId)
     {
         var current = await GetCurrentRequiredAsync(id);
@@ -217,11 +179,11 @@ public class AttachmentService : IAttachmentService
         return await OpenAsync(current);
     }
 
-    /// <summary>Đọc luồng dữ liệu của một phiên bản cụ thể</summary>
+    /// <inheritdoc />
     public async Task<AttachmentDownloadResult> DownloadVersionAsync(Guid id, int versionNumber, Guid requesterId)
     {
         var current = await GetCurrentRequiredAsync(id);
-        // Quyền trên mọi phiên bản bằng quyền trên phiên bản hiện hành của tệp.
+        // Quyền trên mọi phiên bản bằng quyền trên phiên bản hiện hành.
         await EnsureAccessAsync(requesterId, current, FileOperation.Read, "Bạn không có quyền xem tệp đính kèm này.");
 
         var versions = await VersionRepo.GetVersionsAsync(current.GroupId);
@@ -230,9 +192,7 @@ public class AttachmentService : IAttachmentService
         return await OpenAsync(version);
     }
 
-    /// <summary>
-    /// Tải tệp mới lên kho lưu trữ, kiểm tra định dạng/dung lượng, tính SHA-256 và lưu metadata
-    /// </summary>
+    /// <inheritdoc />
     public async Task<AttachmentDto> UploadAttachmentAsync(
         Stream stream,
         string originalFileName,
@@ -267,14 +227,14 @@ public class AttachmentService : IAttachmentService
             IsActive = true,
             OwnerType = owner.Type,
             OwnerId = owner.Id,
-            // Giữ các cột cũ để các truy vấn/kiểm tra quyền hiện có vẫn nhận ra liên kết hồ sơ.
+            // Giữ các cột cũ để truy vấn/kiểm tra quyền hiện có vẫn nhận ra liên kết hồ sơ.
             RecordId = owner.RecordId,
             RelatedId = owner.Type == AttachmentOwnerTypes.EvaluationTask ? owner.Id : null,
             FileGroupId = stored.FileId,
             VersionNumber = 1
         };
 
-        // Rollback tệp trên storage nếu lưu database thất bại
+        // Lưu CSDL lỗi thì xóa tệp đã ghi trên storage.
         try
         {
             await _attachmentRepo.AddAsync(attachment);
@@ -294,7 +254,7 @@ public class AttachmentService : IAttachmentService
         var current = await GetCurrentRequiredAsync(id);
         if (current.EffectiveOwnerType == AttachmentOwnerTypes.CollectiveEvaluationRecord)
         {
-            // Tệp thuộc tập thể: không giới hạn người tải lên — quyền cập nhật = collective.manage trên tổ chức, kỳ chưa đóng.
+            // Tệp tập thể: không giới hạn người tải lên; quyền theo collective.manage trên tổ chức, kỳ chưa đóng.
             await EnsureAccessAsync(requesterId, current, FileOperation.Update, "Bạn không có quyền gỡ tệp đính kèm của hồ sơ tập thể này.");
             await VersionRepo.RemoveGroupAsync(current.GroupId);
             return;
@@ -303,12 +263,12 @@ public class AttachmentService : IAttachmentService
         if (current.EffectiveOwnerType != AttachmentOwnerTypes.EvaluationRecord || current.UploadedById != requesterId)
             throw new ForbiddenException("Chỉ gỡ được tệp minh chứng do chính bạn đính kèm vào hồ sơ của mình.");
         await EnsureAccessAsync(requesterId, current, FileOperation.Update, "Bạn không có quyền gỡ tệp đính kèm này.");
-        // Sau khi nộp phiếu tự chấm: chỉ bổ sung, không gỡ; đã công bố / kỳ khóa: khóa minh chứng (409).
+        // Sau khi nộp tự chấm chỉ bổ sung, không gỡ; đã công bố / kỳ khóa → 409.
         await EnsureEvidenceChangeAllowedAsync(current, requesterId);
         await VersionRepo.RemoveGroupAsync(current.GroupId);
     }
 
-    /// <summary>Thay tệp bằng phiên bản mới, giữ phiên bản cũ</summary>
+    /// <inheritdoc />
     public async Task<AttachmentDto> ReplaceAttachmentAsync(Guid id, Stream stream, string originalFileName, long size, string uploadedBy, Guid requesterId)
     {
         var current = await GetCurrentRequiredAsync(id);
@@ -363,7 +323,7 @@ public class AttachmentService : IAttachmentService
         return ToDto(next);
     }
 
-    /// <summary>Kiểm tra tệp gắn vào dữ liệu nghiệp vụ (T-47)</summary>
+    /// <inheritdoc />
     public async Task EnsureCanLinkAttachmentsAsync(IReadOnlyCollection<Guid> attachmentIds, Guid requesterId)
     {
         var ids = attachmentIds.Where(id => id != Guid.Empty).Distinct().ToList();
@@ -376,7 +336,7 @@ public class AttachmentService : IAttachmentService
             var attachment = await _attachmentRepo.GetByIdAsync(id)
                 ?? throw new ValidationException("Tệp minh chứng đính kèm không tồn tại hoặc đã bị xóa.");
             var current = await GetCurrentOrSelfAsync(attachment);
-            // Phụ lục của hồ sơ tập thể chỉ thuộc hồ sơ đó, không gắn sang hồ sơ cá nhân.
+            // Phụ lục hồ sơ tập thể không gắn sang hồ sơ cá nhân.
             if (current.EffectiveOwnerType == AttachmentOwnerTypes.CollectiveEvaluationRecord)
                 throw new ValidationException("Tệp đính kèm của hồ sơ tập thể không gắn được vào hồ sơ đánh giá cá nhân.");
             attachments.Add(current);
@@ -422,7 +382,7 @@ public class AttachmentService : IAttachmentService
     private IAttachmentVersionRepository VersionRepo => _versionRepo
         ?? throw new InvalidOperationException("AttachmentService chưa được cấu hình kho phiên bản tệp.");
 
-    /// <summary>Phiên bản hiện hành của nhóm chứa <paramref name="id"/>; báo 404 nếu không có.</summary>
+    /// <summary>404 nếu không có.</summary>
     private async Task<TaskAttachment> GetCurrentRequiredAsync(Guid id)
     {
         if (_versionRepo == null)
@@ -459,8 +419,8 @@ public class AttachmentService : IAttachmentService
     private sealed record OwnerInfo(string Type, Guid? Id, Guid? RecordId);
 
     /// <summary>
-    /// Kiểm tra đối tượng sở hữu khi tải lên: gắn hồ sơ → <c>evaluation.self</c> trên hồ sơ đó (chỉ chủ hồ sơ);
-    /// chưa gắn đối tượng → chỉ để gắn ngay sau đó vào nhiệm vụ / kết quả của cấp trên (xem <see cref="EnsureCanUploadUnlinkedAsync"/>).
+    /// Gắn hồ sơ → <c>evaluation.self</c> trên hồ sơ (chỉ chủ hồ sơ); chưa gắn → để gắn ngay sau đó
+    /// (<see cref="EnsureCanUploadUnlinkedAsync"/>).
     /// </summary>
     private async Task<OwnerInfo> ResolveOwnerAsync(string? ownerType, Guid? ownerId, Guid? uploadedById)
     {
@@ -514,13 +474,13 @@ public class AttachmentService : IAttachmentService
 
         if (normalizedType == AttachmentOwnerTypes.EvaluationAppeal)
         {
-            // Minh chứng bổ sung sau công bố đi theo kiến nghị: chỉ khi kiến nghị còn đang xử lý.
+            // Minh chứng sau công bố đi theo kiến nghị: chỉ khi kiến nghị còn đang xử lý.
             if (await _accessReader.IsAppealOpenAsync(ownerId.Value) != true)
                 throw new ConflictException("Kiến nghị đã được trả lời nên không bổ sung tệp được nữa. Nếu cần, hãy gửi kiến nghị mới kèm tệp.");
         }
         else
         {
-            // Minh chứng cá nhân: được bổ sung tới khi công bố, khi kỳ còn mở.
+            // Minh chứng cá nhân: bổ sung được tới khi công bố, khi kỳ còn mở.
             var (stage, recordStatus, periodStatus) = StageOf(record);
             var reason = EvidenceRules.AddBlockReason(stage, recordStatus, periodStatus);
             if (reason != null)
@@ -531,13 +491,11 @@ public class AttachmentService : IAttachmentService
     }
 
     /// <summary>
-    /// Tải tệp chưa gắn đối tượng: chỉ người có <c>evaluation.self</c> (minh chứng của mình, gắn vào nhiệm vụ khi lưu phiếu)
-    /// hoặc <c>evaluation.external.record</c> (văn bản của cấp trên, gắn vào kết quả khi ghi nhận) —
-    /// chỉ người tải lên thấy tới khi tệp được gắn vào hồ sơ.
+    /// Chỉ người có <c>evaluation.self</c> hoặc <c>evaluation.external.record</c>; tệp chỉ người tải lên thấy tới khi được gắn.
     /// </summary>
     private async Task EnsureCanUploadUnlinkedAsync(Guid? uploadedById)
     {
-        // Constructor chỉ dùng kiểm tra hợp lệ tệp (unit test) không có nguồn quyền — giữ hành vi cũ.
+        // Constructor cho unit test không có nguồn quyền.
         if (_resolver == null)
             return;
         if (!uploadedById.HasValue)
@@ -554,10 +512,7 @@ public class AttachmentService : IAttachmentService
         }
     }
 
-    /// <summary>
-    /// Giới hạn số tệp tải lên chưa gắn đối tượng của mỗi người (<see cref="AttachmentOptions.MaxPendingUnlinkedPerUser"/>): tệp chưa
-    /// gắn chiếm dung lượng tới khi được gắn hoặc bị dọn tự động.
-    /// </summary>
+    /// <summary>Tệp chưa gắn chiếm dung lượng tới khi được gắn hoặc bị dọn tự động.</summary>
     private async Task EnsurePendingUnlinkedLimitAsync(Guid? uploadedById)
     {
         var max = _options.MaxPendingUnlinkedPerUser;
@@ -575,9 +530,7 @@ public class AttachmentService : IAttachmentService
         }
     }
 
-    /// <summary>
-    /// Giai đoạn minh chứng của hồ sơ. Hồ sơ nạp thiếu kỳ (không xác định được trạng thái kỳ) coi như đã khóa.
-    /// </summary>
+    /// <summary>Hồ sơ nạp thiếu kỳ coi như đã khóa.</summary>
     private static (EvidenceStage Stage, RecordStatus RecordStatus, PeriodStatus PeriodStatus) StageOf(EvaluationRecord record)
     {
         var periodStatus = record.Period?.Status ?? PeriodStatus.Closed;
@@ -585,10 +538,8 @@ public class AttachmentService : IAttachmentService
     }
 
     /// <summary>
-    /// Thay / gỡ minh chứng của chủ hồ sơ theo giai đoạn (409 nếu không được): trước khi nộp phiếu tự chấm (hoặc khi hồ sơ được
-    /// trả về bước của chủ hồ sơ) — được; sau khi nộp — chỉ bổ sung tệp mới; đã công bố / kỳ không mở — khóa.
-    /// Tệp kèm kiến nghị không thay, không gỡ (chỉ bổ sung khi kiến nghị còn xử lý). Văn bản của cấp trên do người ghi nhận
-    /// (<c>evaluation.external.record</c>) quản lý, không theo luật này; phụ lục hồ sơ tập thể theo luật riêng.
+    /// Trước khi nộp tự chấm (hoặc khi bị trả về bước của chủ hồ sơ): được; sau khi nộp: chỉ bổ sung; đã công bố / kỳ không mở: khóa.
+    /// Tệp kèm kiến nghị không thay, không gỡ. Văn bản cấp trên và phụ lục tập thể theo luật riêng.
     /// </summary>
     private async Task EnsureEvidenceChangeAllowedAsync(TaskAttachment current, Guid requesterId)
     {
@@ -628,7 +579,7 @@ public class AttachmentService : IAttachmentService
 
     private sealed record StoredFile(Guid FileId, string ObjectKey, string Checksum, string ContentType, long Size);
 
-    /// <summary>Kiểm tra dung lượng, phần mở rộng, magic bytes rồi ghi tệp vào storage (băm SHA-256 khi ghi).</summary>
+    /// <summary>Kiểm tra dung lượng, phần mở rộng, magic bytes rồi ghi tệp (băm SHA-256 khi ghi).</summary>
     private async Task<StoredFile> ValidateAndStoreAsync(Stream stream, string originalFileName, long size, string formCode)
     {
         if (size > MaxFileSize)
@@ -654,10 +605,10 @@ public class AttachmentService : IAttachmentService
 
         var contentType = GetContentType(ext);
 
-        // Băm theo từng đoạn dữ liệu trong lúc storage ghi file, không giữ toàn bộ tệp trong RAM.
+        // Băm theo từng đoạn trong lúc ghi, không giữ toàn bộ tệp trong RAM.
         using var hashingStream = new HashingReadStream(stream);
 
-        // Sinh ObjectKey phân cấp: {formCode}/{yyyyMM}/{fileId}_{fileName}.ext
+        // {formCode}/{yyyyMM}/{fileId}_{fileName}.ext
         var fileId = Guid.NewGuid();
         var cleanCode = formCode.ToLowerInvariant();
         var dateFolder = DateTime.UtcNow.ToString("yyyyMM");
@@ -692,7 +643,6 @@ public class AttachmentService : IAttachmentService
         SupersededById = a.SupersededById
     };
 
-    /// <summary>Kiểm tra quyền trên một tệp, báo 403 nếu không được phép.</summary>
     private async Task EnsureAccessAsync(Guid requesterId, TaskAttachment attachment, FileOperation operation, string message)
     {
         var allowed = await FilterAccessibleAsync(requesterId, new List<TaskAttachment> { attachment }, operation);
@@ -700,7 +650,7 @@ public class AttachmentService : IAttachmentService
             throw new ForbiddenException(message);
     }
 
-    /// <summary>Lọc các tệp người yêu cầu được thao tác (luật của <see cref="AuthorizationGuard.Evaluate"/>).</summary>
+    /// <summary>Theo luật của <see cref="AuthorizationGuard.Evaluate"/>.</summary>
     private async Task<List<TaskAttachment>> FilterAccessibleAsync(Guid requesterId, List<TaskAttachment> attachments, FileOperation operation)
     {
         if (_accessReader == null || _resolver == null)
@@ -712,7 +662,7 @@ public class AttachmentService : IAttachmentService
         if (attachments.Count == 0)
             return attachments;
 
-        // Phụ lục của hồ sơ tập thể: quyền theo tổ chức của hồ sơ tập thể, không qua hồ sơ cá nhân.
+        // Phụ lục hồ sơ tập thể: quyền theo tổ chức của hồ sơ tập thể.
         var collectiveIds = attachments
             .Where(a => a.EffectiveOwnerType == AttachmentOwnerTypes.CollectiveEvaluationRecord && a.EffectiveOwnerId.HasValue)
             .Select(a => a.EffectiveOwnerId!.Value)
@@ -739,9 +689,8 @@ public class AttachmentService : IAttachmentService
     }
 
     /// <summary>
-    /// Quyền trên phụ lục, báo cáo của hồ sơ tập thể (như quyền trên hồ sơ tập thể): xem — <c>evaluation.read</c> hoặc
-    /// <c>collective.manage</c> trên tổ chức của hồ sơ; cập nhật (tải lên, thay, gỡ) — <c>collective.manage</c> và kỳ chưa đóng.
-    /// Hồ sơ không còn (đã xóa) → không ai thao tác được.
+    /// Xem: <c>evaluation.read</c> hoặc <c>collective.manage</c> trên tổ chức; cập nhật: <c>collective.manage</c> và kỳ chưa đóng.
+    /// Hồ sơ đã xóa → không ai thao tác được.
     /// </summary>
     private static bool CanAccessCollectiveAttachment(EffectivePermissions requester, CollectiveAttachmentOwner? owner, FileOperation operation)
     {
@@ -755,11 +704,7 @@ public class AttachmentService : IAttachmentService
         return !owner.PeriodClosed && AuthorizationGuard.Evaluate(requester, PermissionCodes.CollectiveManage, owner.WriteTarget);
     }
 
-    /// <summary>
-    /// Quyền trên một tệp: tệp gắn hồ sơ → quyền trên hồ sơ (<c>evaluation.read</c> để xem, <c>evaluation.self</c> để sửa (phiên bản mới, gắn tệp);
-    /// văn bản của cấp trên gắn vào kết quả bước do cấp trên thực hiện: <c>evaluation.external.record</c> để sửa (phiên bản mới, gắn tệp));
-    /// tệp chưa gắn hồ sơ → chỉ người tải lên. Không có tệp công khai cho mọi người.
-    /// </summary>
+    /// <summary>Tệp gắn hồ sơ → quyền trên hồ sơ; tệp chưa gắn → chỉ người tải lên. Không có tệp công khai.</summary>
     private static bool CanAccessAttachment(
         EffectivePermissions requester,
         TaskAttachment attachment,
@@ -768,8 +713,8 @@ public class AttachmentService : IAttachmentService
     {
         var requesterId = requester.UserId;
 
-        // Liên kết qua nhiệm vụ do người dùng tự khai báo AttachmentId, nên chỉ được tính khi tệp là của
-        // chính chủ hồ sơ (hoặc dữ liệu cũ chưa có người tải lên) — tránh gắn tệp của người khác vào hồ sơ mình để đọc.
+        // AttachmentId trên nhiệm vụ do người dùng tự khai, nên chỉ tính khi tệp là của chủ hồ sơ (hoặc dữ liệu cũ
+        // chưa có người tải lên) — tránh gắn tệp người khác vào hồ sơ mình để đọc.
         var effectiveLinks = links
             .Where(link => link.Kind != AttachmentLinkKind.Task
                 || !attachment.UploadedById.HasValue
@@ -778,8 +723,7 @@ public class AttachmentService : IAttachmentService
 
         if (effectiveLinks.Count > 0)
         {
-            // Xem: ai xem được hồ sơ. Sửa (phiên bản mới, gắn tệp): tệp của chủ hồ sơ → evaluation.self; văn bản của cấp trên → người có quyền
-            // ghi nhận kết quả của cấp trên trên hồ sơ (chủ hồ sơ không sửa được — xung đột lợi ích trong guard).
+            // Sửa: tệp của chủ hồ sơ → evaluation.self; văn bản cấp trên → quyền ghi nhận kết quả cấp trên (chủ hồ sơ không sửa được).
             var isAppealFile = attachment.EffectiveOwnerType == AttachmentOwnerTypes.EvaluationAppeal;
             return effectiveLinks.Any(link => AuthorizationGuard.Evaluate(
                     requester,
@@ -787,17 +731,15 @@ public class AttachmentService : IAttachmentService
                         : link.Kind == AttachmentLinkKind.ExternalResult ? PermissionCodes.EvaluationExternalRecord
                         : PermissionCodes.EvaluationSelf,
                     AccessTarget.ForRecord(link.Record))
-                // Tệp kèm kiến nghị: người xử lý kiến nghị trong phạm vi xem được (kể cả khi không có quyền xem hồ sơ).
+                // Người xử lý kiến nghị xem được tệp kèm kiến nghị kể cả khi không có quyền xem hồ sơ.
                 || (operation == FileOperation.Read && isAppealFile
                     && AuthorizationGuard.Evaluate(requester, PermissionCodes.EvaluationAppealResolve, AccessTarget.ForRecord(link.Record))));
         }
 
-        // Tệp chưa gắn hồ sơ (minh chứng tải trước khi lưu nhiệm vụ, văn bản của cấp trên trước khi ghi nhận kết quả):
-        // chỉ người tải lên.
+        // Tệp chưa gắn hồ sơ: chỉ người tải lên.
         return attachment.UploadedById.HasValue && attachment.UploadedById == requesterId;
     }
 
-    /// <summary>Thao tác trên tệp.</summary>
     private enum FileOperation
     {
         Read,

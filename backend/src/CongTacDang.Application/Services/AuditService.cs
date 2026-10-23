@@ -10,17 +10,14 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Dịch vụ tra cứu nhật ký thao tác và nhật ký đăng nhập cho quản trị hệ thống.</summary>
 public interface IAuditService
 {
-    /// <summary>Tra cứu nhật ký thao tác (mới nhất trước), có phân trang và số đếm trên toàn bộ kết quả lọc.</summary>
+    /// <summary>Mới nhất trước; số đếm tính trên toàn bộ kết quả lọc.</summary>
     Task<AuditLogPageDto> GetAuditLogsAsync(AuditLogQuery query, CancellationToken ct = default);
 
-    /// <summary>Tra cứu nhật ký đăng nhập (mới nhất trước), có phân trang.</summary>
     Task<PagedResult<LoginEventDto>> GetLoginEventsAsync(LoginEventQuery query, CancellationToken ct = default);
 }
 
-/// <summary>Tham số tra cứu nhật ký thao tác.</summary>
 public sealed record AuditLogQuery(
     string? EntityType = null,
     string? EntityId = null,
@@ -28,7 +25,6 @@ public sealed record AuditLogQuery(
     int? Page = null,
     int? PageSize = null);
 
-/// <summary>Tham số tra cứu nhật ký đăng nhập.</summary>
 public sealed record LoginEventQuery(
     Guid? UserId = null,
     DateTime? From = null,
@@ -37,13 +33,11 @@ public sealed record LoginEventQuery(
     int? Page = null,
     int? PageSize = null);
 
-/// <summary>Triển khai mapping audit entity sang DTO.</summary>
 public class AuditService : IAuditService
 {
     private readonly IAuditRepository _auditRepository;
     private readonly ILoginEventRepository? _loginEvents;
 
-    /// <summary>Khởi tạo dịch vụ audit.</summary>
     public AuditService(IAuditRepository auditRepository, ILoginEventRepository? loginEvents = null)
     {
         _auditRepository = auditRepository;

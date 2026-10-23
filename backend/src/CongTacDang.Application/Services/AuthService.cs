@@ -12,16 +12,10 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>
-/// Dịch vụ xử lý nghiệp vụ xác thực đăng nhập, xoay vòng Refresh Token và quản lý phiên làm việc.
-/// Mỗi lần đăng nhập (thành công hoặc thất bại) được ghi vào nhật ký đăng nhập.
-/// </summary>
 public class AuthService : IAuthService
 {
-    /// <summary>Số lần nhập sai liên tiếp trước khi khóa tạm thời.</summary>
     public const int MaxFailedLogins = 5;
 
-    /// <summary>Thời gian khóa tạm thời.</summary>
     public static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
 
     private const string DummyPasswordHash = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
@@ -40,10 +34,7 @@ public class AuthService : IAuthService
     private readonly PasswordPolicy _passwordPolicy;
     private readonly IRoleAssignmentService? _roleAssignments;
 
-    /// <summary>
-    /// Khởi tạo dịch vụ. Các phụ thuộc tùy chọn (nhật ký đăng nhập, cache, chính sách mật khẩu) luôn được DI cung cấp;
-    /// để trống chỉ dùng trong test đơn vị.
-    /// </summary>
+    /// <summary>Phụ thuộc tùy chọn luôn được DI cung cấp; để trống chỉ dùng trong test đơn vị.</summary>
     public AuthService(
         IUserRepository userRepo,
         IRefreshTokenRepository refreshTokenRepo,
@@ -68,7 +59,7 @@ public class AuthService : IAuthService
         _roleAssignments = roleAssignments;
     }
 
-    /// <summary>Xác thực đăng nhập người dùng bằng BCrypt hash, ghi nhật ký và cấp cặp Access/Refresh Token</summary>
+    /// <inheritdoc />
     public async Task<AuthResultDto> LoginAsync(LoginRequestDto request, string? ipAddress = null, string? userAgent = null)
     {
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
@@ -93,9 +84,8 @@ public class AuthService : IAuthService
 
         var now = DateTime.UtcNow;
 
-        // Đang khóa tạm thời: luôn từ chối và không tăng bộ đếm (không kéo dài khóa). Mật khẩu sai → báo lỗi chung như tài khoản
-        // không tồn tại, để người ngoài không dò được tên đăng nhập có thật hay bị khóa; chỉ người nhập đúng mật khẩu mới biết
-        // tài khoản đang bị khóa và còn bao lâu.
+        // Đang khóa: không tăng bộ đếm (không kéo dài khóa). Sai mật khẩu → lỗi chung như tài khoản không tồn tại,
+        // chỉ người nhập đúng mật khẩu mới biết tài khoản đang bị khóa.
         if (member.LockoutEnd.HasValue && member.LockoutEnd.Value > now)
         {
             await RecordAsync(member.Id, username, LoginResult.LockedOut, ipAddress, userAgent);
@@ -111,7 +101,6 @@ public class AuthService : IAuthService
         {
             if (member.LockoutEnd.HasValue)
             {
-                // Hết thời gian khóa: bắt đầu đếm lại.
                 member.FailedLoginCount = 0;
                 member.LockoutEnd = null;
             }
@@ -143,7 +132,7 @@ public class AuthService : IAuthService
         return await IssueAsync(member, refreshToken.Token, refreshToken.ExpiresAt);
     }
 
-    /// <summary>Làm mới phiên làm việc qua Refresh Token (áp dụng kỹ thuật xoay vòng Token Rotation và phát hiện gian lận)</summary>
+    /// <inheritdoc />
     public async Task<AuthResultDto> RefreshTokenAsync(string refreshTokenValue, string? ipAddress = null)
     {
         if (string.IsNullOrWhiteSpace(refreshTokenValue))
@@ -154,7 +143,7 @@ public class AuthService : IAuthService
         if (tokenRecord == null)
             throw new UnauthorizedAccessException("Phiên đăng nhập không còn hiệu lực. Vui lòng đăng nhập lại.");
 
-        // Kiểm tra phát hiện tái sử dụng token (Token Reuse Detection)
+        // Token đã thu hồi bị dùng lại → nghi bị lộ.
         if (tokenRecord.IsRevoked)
         {
             if (!string.IsNullOrEmpty(tokenRecord.ReplacedByTokenHash) &&
@@ -178,10 +167,9 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Tài khoản đã bị khóa hoặc không còn tồn tại. Hãy liên hệ quản trị hệ thống.");
         }
 
-        // 1. Sinh Refresh Token mới (Token Rotation)
         var newRefreshToken = _jwtService.GenerateRefreshToken(user.Id, ipAddress);
 
-        // 2. Thu hồi token cũ và thêm token mới trong một lần SaveChanges.
+        // Thu hồi token cũ và thêm token mới trong một lần SaveChanges.
         if (!await _refreshTokenRepo.RotateAsync(refreshTokenValue, newRefreshToken))
         {
             var latestRecord = await _refreshTokenRepo.GetByTokenWithUserAsync(refreshTokenValue);
@@ -241,7 +229,7 @@ public class AuthService : IAuthService
         return await IssueAsync(member, replacement.Token, replacement.ExpiresAt);
     }
 
-    /// <summary>Đăng xuất phiên làm việc và thu hồi Refresh Token</summary>
+    /// <inheritdoc />
     public async Task LogoutAsync(string? refreshTokenValue)
     {
         if (!string.IsNullOrWhiteSpace(refreshTokenValue))
@@ -258,7 +246,7 @@ public class AuthService : IAuthService
 
     private async Task<AuthResultDto> IssueAsync(PartyMemberProfile member, string refreshToken, DateTime refreshExpiresAt)
     {
-        // Quyền lấy từ nguồn quyền duy nhất (IPermissionResolver); JWT chỉ chứa danh tính.
+        // JWT chỉ chứa danh tính; quyền lấy từ IPermissionResolver.
         var effective = await _permissionResolver.GetAsync(member.Id);
         var grants = _roleAssignments != null
             ? await _roleAssignments.GetGrantsAsync(member.Id)

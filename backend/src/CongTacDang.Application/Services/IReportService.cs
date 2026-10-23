@@ -4,62 +4,44 @@ using CongTacDang.Application.DTOs;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>
-/// Kết quả xuất file báo cáo nhị phân (Excel)
-/// </summary>
 public class ReportFileResult
 {
-    /// <summary>Mảng byte nội dung file</summary>
     public byte[] FileBytes { get; set; } = System.Array.Empty<byte>();
 
-    /// <summary>Định dạng MIME của file</summary>
     public string ContentType { get; set; } = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-    /// <summary>Tên file xuất ra kèm phần mở rộng (.xlsx)</summary>
     public string FileName { get; set; } = string.Empty;
 }
 
-/// <summary>Lập được Quyết định xếp loại chưa (kiểm tra trước khi bấm xuất).</summary>
+/// <summary>Kiểm tra trước khi bấm xuất Quyết định xếp loại.</summary>
 public class DecisionReadinessDto
 {
-    /// <summary>Đủ điều kiện lập Quyết định.</summary>
     public bool Ready { get; set; }
 
-    /// <summary>Lý do chưa lập được (Ready = false).</summary>
     public string? Message { get; set; }
 }
 
-/// <summary>Định dạng tệp xuất.</summary>
 public enum ReportFormat
 {
-    /// <summary>Định dạng gốc của biểu mẫu: Word (.docx) hoặc Excel (.xlsx).</summary>
+    /// <summary>Word (.docx) hoặc Excel (.xlsx).</summary>
     Original = 0,
 
-    /// <summary>PDF chuyển phía máy chủ từ định dạng gốc.</summary>
+    /// <summary>Chuyển phía máy chủ từ định dạng gốc.</summary>
     Pdf = 1
 }
 
-/// <summary>
-/// Giao diện dịch vụ kết xuất biểu mẫu HD03 và báo cáo nội bộ. Phạm vi dữ liệu đã được kiểm tra quyền
-/// (<see cref="IReportAccessService"/>) trước khi gọi.
-/// </summary>
+/// <summary>Kết xuất biểu mẫu và báo cáo; phạm vi đã được <see cref="IReportAccessService"/> kiểm tra trước khi gọi.</summary>
 public interface IReportService
 {
     #region Báo cáo nội bộ (không mang số mẫu HD03)
 
-    /// <summary>
-    /// Danh sách cán bộ (nội bộ) — chỉ cán bộ trong <paramref name="scope"/> (phạm vi <c>report.export</c> của người yêu cầu, T-61).
-    /// </summary>
+    /// <summary>Chỉ cán bộ trong <paramref name="scope"/>.</summary>
     Task<ReportFileResult> ExportCadresReportAsync(CongTacDang.Application.Common.Security.ScopeFilter scope);
 
-    /// <summary>Báo cáo nội bộ — kiểm soát tỷ lệ Hoàn thành xuất sắc theo tổ chức Đảng (trần của bộ tiêu chí của kỳ).</summary>
+    /// <summary>Kiểm soát tỷ lệ Hoàn thành xuất sắc theo tổ chức Đảng.</summary>
     Task<ReportFileResult> ExportExcellentQuotaReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
 
-    /// <summary>
-    /// Bảng tổng hợp xếp loại cán bộ của kỳ (nội bộ): hai khối theo cấp quyết định (cấp trên / cơ sở), 13 cột — mã hiệu, chức vụ,
-    /// điểm tự chấm, mức của từng bước, hồ sơ kèm theo. Chỉ hồ sơ trong <paramref name="viewerScope"/> (phạm vi <c>report.export</c>
-    /// của người xem); <paramref name="partyCellId"/> thu hẹp thêm theo tổ chức Đảng (gồm tổ chức con).
-    /// </summary>
+    /// <summary>Bảng tổng hợp xếp loại theo cấp quyết định; chỉ hồ sơ trong <paramref name="viewerScope"/>.</summary>
     Task<ReportFileResult> ExportRatingSummaryAsync(Guid? periodId, Guid? partyCellId,
         CongTacDang.Application.Common.Security.ScopeFilter viewerScope, ReportFormat format = ReportFormat.Original);
 
@@ -67,66 +49,62 @@ public interface IReportService
 
     #region Hồ sơ nộp theo HD03 — bảng tính (periodId null = kỳ đang hoạt động; partyCellId null = toàn Đảng bộ)
 
-    /// <summary>Mẫu 14 — Danh sách đánh giá và đề xuất xếp loại (mỗi cấp quyết định một trang tính).</summary>
+    /// <summary>Mẫu 14 — mỗi cấp quyết định một trang tính.</summary>
     Task<ReportFileResult> ExportForm14ReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
 
-    /// <summary>Mẫu 15A — Tổng hợp kết quả đánh giá, xếp loại (đối tượng đề nghị BTV Đảng ủy Tổng công ty quyết định, mã M1–M16).</summary>
+    /// <summary>Mẫu 15A — đối tượng cấp trên quyết định (M1–M16).</summary>
     Task<ReportFileResult> ExportForm15AReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
 
-    /// <summary>Mẫu 15B — Tổng hợp kết quả đánh giá, xếp loại (đối tượng thuộc diện Đảng ủy/Chi ủy cơ sở quyết định, mã M17–M26).</summary>
+    /// <summary>Mẫu 15B — đối tượng cơ sở quyết định (M17–M26).</summary>
     Task<ReportFileResult> ExportForm15BReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original);
 
     #endregion
 
     #region Hồ sơ nộp theo HD03 — văn bản Word
 
-    /// <summary>Mẫu 16 — Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý (Word).</summary>
+    /// <summary>Mẫu 16 — báo cáo kết quả xếp loại quý.</summary>
     Task<ReportFileResult> ExportMau16DocxAsync(Guid periodId, Guid? partyCellId, ReportFormat format = ReportFormat.Original);
 
     /// <summary>
-    /// Quyết định xếp loại cán bộ quý của Đảng ủy (Chi ủy) kèm Phụ lục (Word): các hồ sơ của kỳ trong phạm vi tổ chức Đảng thuộc
-    /// diện tổ chức Đảng cơ sở quyết định, bước quyết định thực hiện trong hệ thống. Không có hồ sơ nào, hoặc còn hồ sơ chưa ghi
-    /// quyết định → <see cref="ArgumentException"/>.
+    /// Quyết định xếp loại kèm Phụ lục cho hồ sơ diện cơ sở quyết định; không có hồ sơ hoặc còn hồ sơ chưa ghi quyết định
+    /// → <see cref="ArgumentException"/>.
     /// </summary>
     Task<ReportFileResult> ExportDecisionDocxAsync(Guid periodId, Guid? partyCellId, ReportFormat format = ReportFormat.Original);
 
-    /// <summary>Kiểm tra trước điều kiện lập Quyết định xếp loại (cùng quy tắc với <see cref="ExportDecisionDocxAsync"/>).</summary>
+    /// <summary>Cùng quy tắc với <see cref="ExportDecisionDocxAsync"/>.</summary>
     Task<DecisionReadinessDto> GetDecisionReadinessAsync(Guid periodId, Guid? partyCellId);
 
-    /// <summary>Bản nháp phần nhập tay Mẫu 16 kèm số liệu tổng hợp tự động.</summary>
+    /// <summary>Phần nhập tay Mẫu 16 kèm số liệu tổng hợp tự động.</summary>
     Task<Form16DraftDto> GetForm16DraftAsync(Guid periodId, Guid? partyCellId);
 
-    /// <summary>Lưu bản nháp phần nhập tay Mẫu 16 (kiểm tra phiên bản).</summary>
+    /// <summary>Kiểm tra phiên bản.</summary>
     Task<Form16DraftDto> SaveForm16DraftAsync(Guid periodId, Guid? partyCellId, Guid requesterId, SaveForm16DraftDto dto);
 
-    /// <summary>Mẫu 07 — Báo cáo tự đánh giá, xếp loại chất lượng của tập thể (từ hồ sơ tập thể M07).</summary>
+    /// <summary>Mẫu 07 — từ hồ sơ tập thể.</summary>
     Task<ReportFileResult> ExportMau07DocxAsync(Guid collectiveRecordId, ReportFormat format = ReportFormat.Original);
 
-    /// <summary>Mẫu 08 — Báo cáo tổng hợp kết quả thực hiện các nhiệm vụ của cơ quan, đơn vị (từ hồ sơ tập thể M08).</summary>
+    /// <summary>Mẫu 08 — từ hồ sơ tập thể.</summary>
     Task<ReportFileResult> ExportMau08DocxAsync(Guid collectiveRecordId, ReportFormat format = ReportFormat.Original);
 
-    /// <summary>
-    /// Mẫu 08 bản Excel (HD03 V.1: hồ sơ, biểu mẫu lập trên file Excel trừ Mẫu 07, 09C, 12, 13, 16) — cùng dữ liệu bản Word,
-    /// đúng cột và 13 nhóm nội dung của biểu mẫu gốc.
-    /// </summary>
+    /// <summary>Mẫu 08 bản Excel, cùng dữ liệu bản Word, đúng cột của biểu mẫu gốc.</summary>
     Task<ReportFileResult> ExportForm08ExcelAsync(Guid collectiveRecordId, ReportFormat format = ReportFormat.Original);
 
-    /// <summary>Mẫu 12 — Biên bản hội nghị (từ biên bản đã lập).</summary>
+    /// <summary>Mẫu 12 — Biên bản hội nghị.</summary>
     Task<ReportFileResult> ExportMau12DocxAsync(Guid meetingId, ReportFormat format = ReportFormat.Original);
 
-    /// <summary>Xuất Mẫu 01: Phiếu giao/đăng ký sản phẩm, công việc chuyên môn (.docx)</summary>
+    /// <summary>Mẫu 01 — Phiếu giao/đăng ký sản phẩm.</summary>
     Task<ReportFileResult> ExportMau01DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original);
 
-    /// <summary>Xuất Mẫu 02: Phiếu tự đánh giá kết quả thực hiện sản phẩm (.docx)</summary>
+    /// <summary>Mẫu 02 — Phiếu tự đánh giá.</summary>
     Task<ReportFileResult> ExportMau02DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original);
 
-    /// <summary>Xuất Mẫu 10: Phiếu thẩm định, nhận xét, ghi nhận giải trình (.docx)</summary>
+    /// <summary>Mẫu 10 — Phiếu thẩm định.</summary>
     Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original);
 
-    /// <summary>Xuất Mẫu 11: Phiếu đánh giá, xếp loại cán bộ quý bỏ phiếu kín (.docx)</summary>
+    /// <summary>Mẫu 11 — Phiếu bỏ phiếu kín.</summary>
     Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original);
 
-    /// <summary>Xuất Mẫu 13: Biên bản kiểm phiếu đánh giá, xếp loại cán bộ quý (.docx)</summary>
+    /// <summary>Mẫu 13 — Biên bản kiểm phiếu.</summary>
     Task<ReportFileResult> ExportMau13DocxAsync(Guid meetingId, ReportFormat format = ReportFormat.Original);
 
     #endregion

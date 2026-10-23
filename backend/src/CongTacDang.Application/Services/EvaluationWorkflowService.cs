@@ -15,9 +15,8 @@ using CongTacDang.Domain.Evaluation;
 namespace CongTacDang.Application.Services;
 
 /// <summary>
-/// Luồng đánh giá 9 bước theo cấu hình kỳ (docs/thiet-ke/luong-danh-gia.md). Mỗi hành động một phương thức; tất cả đi qua
-/// cùng một trình tự: nạp hồ sơ → <c>guard.Ensure</c> → kiểm phiên bản → kiểm trạng thái kỳ + máy trạng thái → áp dữ liệu →
-/// ghi lịch sử → <c>SaveChanges</c> với <c>version</c> (xmin).
+/// Luồng đánh giá theo cấu hình kỳ. Mọi hành động: nạp hồ sơ → <c>guard.Ensure</c> → phiên bản → trạng thái kỳ + máy trạng thái
+/// → áp dữ liệu → lịch sử → <c>SaveChanges</c> (xmin).
 /// </summary>
 public interface IEvaluationWorkflowService
 {
@@ -28,8 +27,7 @@ public interface IEvaluationWorkflowService
     Task<EvaluationRecordDto> SubmitSelfScoreAsync(Guid recordId, SubmitSelfScoreRequestDto request, CancellationToken ct = default);
 
     /// <summary>
-    /// Lưu nháp phiếu tự chấm: cùng điều kiện quyền/bước/khóa kỳ/phiên bản như nộp phiếu nhưng không chuyển trạng thái, không ghi
-    /// thời điểm nộp và không ghi lịch sử hồ sơ; chỉ kiểm định dạng, không bắt buộc nhập đủ.
+    /// Cùng điều kiện như nộp phiếu nhưng không chuyển trạng thái, không ghi lịch sử; chỉ kiểm định dạng, không bắt buộc nhập đủ.
     /// </summary>
     Task<EvaluationRecordDto> SaveSelfScoreDraftAsync(Guid recordId, SubmitSelfScoreRequestDto request, CancellationToken ct = default);
 
@@ -44,25 +42,19 @@ public interface IEvaluationWorkflowService
     Task<EvaluationRecordDto> ReopenAsync(Guid recordId, ReopenRequestDto request, CancellationToken ct = default);
 
     /// <summary>
-    /// Gia hạn mở riêng hồ sơ khi kỳ khóa dữ liệu (hồ sơ đã được mở riêng, chưa tới bước thẩm định): quyền
-    /// <c>evaluation.reopen</c> hoặc quyền thực hiện bước thẩm định của hồ sơ; bắt buộc lý do và hạn mới.
+    /// Kỳ khóa dữ liệu, hồ sơ đã mở riêng và chưa tới thẩm định: <c>evaluation.reopen</c> hoặc quyền bước thẩm định; bắt buộc lý do.
     /// </summary>
     Task<EvaluationRecordDto> ExtendUnlockAsync(Guid recordId, UnlockRecordRequestDto request, CancellationToken ct = default);
 
-    /// <summary>
-    /// Ghi nhận kết quả của bước do cấp trên thực hiện (chế độ "Cấp trên thực hiện" trong hồ sơ luồng của hồ sơ) —
-    /// quyền <c>evaluation.external.record</c>; hồ sơ chuyển sang bước áp dụng kế tiếp.
-    /// </summary>
+    /// <summary>Bước do cấp trên thực hiện: <c>evaluation.external.record</c>; hồ sơ sang bước áp dụng kế tiếp.</summary>
     Task<EvaluationRecordDto> RecordExternalResultAsync(Guid recordId, string step, ExternalResultRequestDto request, CancellationToken ct = default);
 
-    /// <summary>Hành động người hiện tại được làm trên hồ sơ (thiết kế mục 5).</summary>
     Task<RecordActionsDto> GetActionsAsync(Guid recordId, CancellationToken ct = default);
 
-    /// <summary>Hồ sơ đang chờ người hiện tại xử lý, nhóm theo bước (lọc bằng phạm vi guard).</summary>
+    /// <summary>Nhóm theo bước, lọc bằng phạm vi guard.</summary>
     Task<WorkQueueDto> GetWorkQueueAsync(Guid? periodId, CancellationToken ct = default);
 }
 
-/// <summary>Triển khai luồng đánh giá theo cấu hình kỳ.</summary>
 public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 {
     private const int MaxReasonLength = 2000;
@@ -109,7 +101,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 throw new ValidationException(error);
             ValidateTaskRows(tasks, criteria.Content);
 
-            // T-47: tệp minh chứng mới gắn vào nhiệm vụ phải tồn tại và thuộc quyền người gửi.
+            // Tệp minh chứng mới gắn vào nhiệm vụ phải tồn tại và thuộc quyền người gửi.
             var existing = (await _repo.GetTasksAsync(ctx.Record.Id, ct))
                 .Where(t => t.AttachmentId.HasValue).Select(t => t.AttachmentId!.Value).ToHashSet();
             await EnsureNewAttachmentsLinkableAsync(tasks.Select(t => t.AttachmentId), existing);
@@ -150,7 +142,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             var comment = Trim(request.Comment, MaxCommentLength, "Ý kiến");
             var history = "Duyệt danh mục sản phẩm.";
 
-            // Cấp giao nhiệm vụ điều chỉnh tỷ lệ A-B-C-D của khung cho hồ sơ (đầu kỳ, trong biên độ của bộ tiêu chí).
+            // Cấp giao nhiệm vụ điều chỉnh tỷ lệ A-B-C-D của khung (trong biên độ của bộ tiêu chí).
             if (request.FrameAdjustment is { } adjust)
             {
                 var content = RequireCriteria(ctx).Content;
@@ -210,7 +202,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             || latest.ToStatus != RecordStatus.AwaitingSelfScore)
             throw new ConflictException("Hồ sơ đã có thao tác khác sau khi duyệt; không thể thu hồi tự động.");
 
-        // Cùng mã quyền với API actions: quyền thực hiện bước duyệt danh mục theo hồ sơ luồng của hồ sơ.
+        // Cùng mã quyền với API actions.
         var permission = WorkflowActions.PermissionFor(revokeAction, profile);
         if (IsConflictOfInterest(revokeAction, record))
             throw new ForbiddenException("Người được đánh giá không được thu hồi duyệt trên hồ sơ của chính mình.");
@@ -286,10 +278,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         }, ct, draft: true);
 
     /// <summary>
-    /// Áp nội dung phiếu tự chấm vào hồ sơ: điểm tiêu chí chung, điểm theo trục (09B) hoặc A-B-C-D từng nhiệm vụ (09A), tổng
-    /// điểm, mức tự đề xuất và biểu mẫu cá nhân nhập kèm. <paramref name="draft"/> = lưu nháp: chỉ kiểm định dạng (không bắt buộc
-    /// đủ tiêu chí/trục, lý do, mục bắt buộc 09C); điểm tổng tính trên phần đã nhập (thiếu = 0); mức để trống thì giữ "chưa xếp
-    /// loại" thay vì gợi ý. Trả danh sách biểu mẫu có nội dung thay đổi (ghi lịch sử khi nộp).
+    /// <paramref name="draft"/> = lưu nháp: chỉ kiểm định dạng, tổng tính trên phần đã nhập, mức trống giữ "chưa xếp loại".
+    /// Trả các biểu mẫu có nội dung thay đổi (ghi lịch sử khi nộp).
     /// </summary>
     private async Task<List<string>> ApplySelfScoreAsync(ActionContext ctx, SubmitSelfScoreRequestDto request, bool draft, CancellationToken ct)
     {
@@ -320,8 +310,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         }
         else
         {
-            // Lưu nháp khi hồ sơ chưa có khung / chưa có danh mục: giữ nguyên điểm nhiệm vụ, vẫn lưu các phần còn lại.
-            // Khung hiệu lực: khung gốc với tỷ lệ A-B-C-D đã được điều chỉnh khi duyệt danh mục (nếu có).
+            // Lưu nháp khi chưa có khung / danh mục: giữ nguyên điểm nhiệm vụ, vẫn lưu phần còn lại.
             var frame = RecordWeightFrames.Effective(record, content);
             if (frame == null && !draft)
                 throw new ValidationException(string.IsNullOrEmpty(record.WeightFrameCode)
@@ -335,15 +324,14 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
             if (frame != null)
             {
-                // T-47: tệp minh chứng mới gắn vào nhiệm vụ phải tồn tại và thuộc quyền người gửi.
+                // Tệp minh chứng mới gắn vào nhiệm vụ phải tồn tại và thuộc quyền người gửi.
                 var changed = tasks
                     .Select(task => (task, input: request.TaskScores?.FirstOrDefault(s => s.TaskId == task.Id)))
                     .Where(x => x.input != null && x.input.AttachmentId != x.task.AttachmentId)
                     .Select(x => x.input!.AttachmentId);
                 await EnsureNewAttachmentsLinkableAsync(changed, new HashSet<Guid>());
 
-                // Nộp phiếu: mọi nhiệm vụ còn hiệu lực phải gửi đủ bốn tỷ lệ A-B-C-D (không lấy điểm đã lưu / giá trị khởi tạo thay
-                // phần chưa nhập; tỷ lệ để trống = chưa nhập).
+                // Nộp phiếu: mọi nhiệm vụ còn hiệu lực phải đủ bốn tỷ lệ; không lấy giá trị đã lưu/khởi tạo thay phần chưa nhập.
                 if (!draft)
                 {
                     var missing = tasks
@@ -358,7 +346,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
                 foreach (var task in tasks)
                 {
-                    // Việc đã loại trừ / chuyển tiếp hợp lệ (Mẫu 04): không chấm, điểm 0, không tính vượt chuẩn.
+                    // Việc đã loại trừ / chuyển tiếp (Mẫu 04): không chấm, điểm 0.
                     if (!TaskChangeRules.IsActive(task))
                     {
                         task.SelfScore = 0;
@@ -406,7 +394,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         return ApplyIndividualForms(record, criteria, request, partial: draft);
     }
 
-    /// <summary>Dòng tự chấm có đủ bốn tỷ lệ A-B-C-D (số hợp lệ); tỷ lệ không phải số → 400.</summary>
+    /// <summary>Tỷ lệ không phải số → 400.</summary>
     private static bool IsComplete(TaskScoreInputDto? input)
     {
         if (input == null)
@@ -417,10 +405,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         return ratios.All(r => r.HasValue);
     }
 
-    /// <summary>
-    /// Nộp phiếu: nhiệm vụ đánh dấu vượt chuẩn phải có ít nhất một tệp minh chứng gắn với nhiệm vụ (tệp minh chứng của dòng nhiệm
-    /// vụ hoặc tệp đính kèm thuộc nhiệm vụ).
-    /// </summary>
+    /// <summary>Nhiệm vụ vượt chuẩn phải có ít nhất một tệp minh chứng gắn với nhiệm vụ.</summary>
     private async Task EnsureExceedEvidenceAsync(IReadOnlyCollection<EvaluationTask> tasks, CancellationToken ct)
     {
         var exceed = tasks.Where(t => TaskChangeRules.IsActive(t) && t.IsExceedStandard).ToList();
@@ -436,10 +421,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     }
 
     /// <summary>
-    /// Lưu nội dung biểu mẫu cá nhân nhập cùng phiếu tự chấm (khi kỳ áp dụng theo bộ tiêu chí): nhiệm vụ và kết quả theo trục
-    /// (nhiệm vụ kèm mức cho mục I Mẫu 09C, phần tóm tắt trục cho Mẫu 9D), nhận xét chung Mẫu 09C, phần tự luận theo trục của
-    /// Mẫu 09B. Trường null trong yêu cầu = giữ nội dung đã lưu. Trả danh sách biểu mẫu có nội dung thay đổi (ghi lịch sử).
-    /// <paramref name="partial"/> = lưu nháp: không bắt buộc mục 09C, bỏ qua dòng nhiệm vụ/ý con chưa có nội dung.
+    /// Trường null = giữ nội dung đã lưu; trả các biểu mẫu có nội dung thay đổi. <paramref name="partial"/> = lưu nháp:
+    /// không bắt buộc mục 09C, bỏ qua dòng chưa có nội dung.
     /// </summary>
     private static List<string> ApplyIndividualForms(EvaluationRecord record, CriteriaSnapshot criteria, SubmitSelfScoreRequestDto request,
         bool partial = false)
@@ -469,7 +452,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
         if (uses09C)
         {
-            // Mục I in kèm các nhiệm vụ theo trục: giới hạn ký tự và mục bắt buộc tính trên nội dung sẽ in (gửi lên hoặc đang lưu).
+            // Giới hạn ký tự và mục bắt buộc tính trên nội dung sẽ in (gửi lên hoặc đang lưu).
             var sections = request.SelfAssessment
                 ?? RecordFormContent.ParseSelfAssessment(record.SelfAssessment).ToDictionary(kv => kv.Key, kv => (string?)kv.Value);
             var error = RecordFormContent.ValidateSelfAssessment(content, sections, ParseAxisReportsOrEmpty(record.AxisReports), partial);
@@ -521,7 +504,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         }
     }
 
-    /// <summary>Tách nội dung theo trục thành phần nhiệm vụ (Mẫu 09C) và phần tóm tắt (Mẫu 9D) để ghi lịch sử phần nào thay đổi.</summary>
+    /// <summary>Tách phần nhiệm vụ (09C) và tóm tắt (9D) để ghi lịch sử phần nào thay đổi.</summary>
     private static (string Tasks, string Summary) AxisReportParts(CriteriaSetContent content, string? json)
     {
         var input = ParseAxisReportsOrEmpty(json).ToDictionary(kv => kv.Key, kv => (AxisReport?)kv.Value);
@@ -569,7 +552,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             var criteria = RequireCriteria(ctx);
             var (general, tasksScore, total) = AppraisalScores(request, criteria.Content);
 
-            // B-09: chênh lệch tự chấm – thẩm định (theo tổng) từ ngưỡng của bộ tiêu chí (hoặc làm đổi mức) → bắt buộc giải trình/căn cứ.
+            // Chênh lệch tự chấm – thẩm định vượt ngưỡng (hoặc làm đổi mức) → bắt buộc giải trình.
             var explanation = Trim(request.Explanation, MaxCommentLength, "Nội dung giải trình");
             if (explanation == null && EvaluationScoring.RequiresExplanation(criteria.Content, ctx.Record.TotalSelfScore, total))
             {
@@ -580,7 +563,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                     $"Điểm thẩm định {total:0.##} chênh lệch {diff:0.##} điểm so với điểm tự chấm {ctx.Record.TotalSelfScore:0.##} (ngưỡng {p.ExplanationThreshold:0.##} điểm{gradeChange}): hãy nhập nội dung giải trình, căn cứ."));
             }
 
-            // Bộ chấm theo danh mục nhiệm vụ (09A): bắt buộc xếp mức 1/2/3 cho mọi nhiệm vụ; bộ chấm theo trục (09B) bỏ qua.
+            // Chấm theo nhiệm vụ (09A): bắt buộc xếp mức mọi nhiệm vụ; chấm theo trục bỏ qua.
             if (!criteria.UsesAxisScoring)
                 ApplyTaskLevels(await _repo.GetTasksAsync(ctx.Record.Id, ct), request.TaskLevels);
 
@@ -597,10 +580,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         }, ct);
 
     /// <summary>
-    /// Điểm thẩm định: theo nhóm (tiêu chí chung + kết quả thực hiện nhiệm vụ, mỗi nhóm 0..điểm tối đa nhóm của bộ, làm tròn theo
-    /// quy tắc của nhóm), tổng = chung + nhiệm vụ làm tròn theo quy tắc "tổng điểm". Không gửi điểm nhóm → dùng tổng
-    /// <see cref="AppraisalRequestDto.AppraisalScore"/> (client cũ): 0..tổng điểm tối đa của bộ, làm tròn theo quy tắc "tổng điểm".
-    /// Bước thẩm định nội bộ bắt buộc có điểm (để kiểm chênh lệch với tự chấm theo ngưỡng giải trình) → không có điểm nào: 400.
+    /// Theo nhóm (chung + nhiệm vụ), làm tròn theo quy tắc từng nhóm; không gửi điểm nhóm → dùng tổng (client cũ).
+    /// Thẩm định nội bộ bắt buộc có điểm để kiểm chênh lệch với tự chấm.
     /// </summary>
     private static (double? General, double? Tasks, double Total) AppraisalScores(AppraisalRequestDto request, CriteriaSetContent criteria)
     {
@@ -629,10 +610,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         return (roundedGeneral, roundedTasks, EvaluationScoring.TotalScore(roundedGeneral, roundedTasks, p.Rounding.Total));
     }
 
-    /// <summary>
-    /// Ghi mức thẩm định (1/2/3) và nhận xét ngắn cho từng nhiệm vụ của hồ sơ: bắt buộc đủ mọi nhiệm vụ, không nhận nhiệm vụ
-    /// của hồ sơ khác, mỗi nhiệm vụ một dòng (trừ việc đã loại trừ / chuyển tiếp).
-    /// </summary>
+    /// <summary>Bắt buộc đủ mọi nhiệm vụ của hồ sơ (trừ việc đã loại trừ / chuyển tiếp), mỗi nhiệm vụ một dòng.</summary>
     private static void ApplyTaskLevels(IReadOnlyList<EvaluationTask> tasks, IReadOnlyList<AppraisalTaskLevelDto>? levels)
     {
         levels ??= Array.Empty<AppraisalTaskLevelDto>();
@@ -650,7 +628,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 throw new ValidationException($"Mức thẩm định của nhiệm vụ \"{task.TaskName}\" chỉ là Mức 1, Mức 2 hoặc Mức 3.");
         }
 
-        // Việc đã loại trừ / chuyển tiếp hợp lệ (Mẫu 04) không chấm nên không bắt buộc xếp mức.
+        // Việc đã loại trừ / chuyển tiếp không chấm nên không bắt buộc xếp mức.
         var missing = tasks
             .Where(TaskChangeRules.IsActive)
             .Where(t => levels.FirstOrDefault(l => l != null && l.TaskId == t.Id)?.Level is null)
@@ -714,7 +692,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     public Task<EvaluationRecordDto> PublishAsync(Guid recordId, WorkflowRequestDto request, CancellationToken ct = default) =>
         ExecuteAsync(recordId, request, WorkflowActions.Publish, null, ctx =>
         {
-            // Bước quyết định luôn áp dụng (nội bộ hoặc cấp trên): chỉ công bố khi đã có mức được quyết định.
+            // Chỉ công bố khi đã có mức được quyết định.
             if (ctx.Record.FinalGrade == EvaluationGrade.ChuaXepLoai)
                 throw new ConflictException(ctx.Record.DecisionRecordedAt == null
                     ? "Hồ sơ chưa có quyết định mức xếp loại nên chưa công bố được."
@@ -732,12 +710,12 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             ?? throw new ValidationException("Hãy chọn bước mà hồ sơ quay về khi mở lại.");
         return ExecuteAsync(recordId, request, WorkflowActions.Reopen, request.Reason, async ctx =>
         {
-            // Giữ dữ liệu các bước sau để đối chiếu (lịch sử ghi điểm/mức trước–sau); chỉ gỡ dấu công bố.
+            // Giữ dữ liệu các bước sau để đối chiếu; chỉ gỡ dấu công bố.
             ctx.Record.PublishedById = null;
             ctx.Record.PublishedByName = null;
             ctx.Record.PublishedAt = null;
 
-            // Kỳ đã đóng → quay về "Khóa dữ liệu" để các bước sau khi mở lại thao tác được (ghi vào kỳ, có lý do).
+            // Kỳ đã đóng → về "Khóa dữ liệu" để các bước sau thao tác được.
             var period = ctx.Record.Period;
             if (period.Status == PeriodStatus.Closed)
             {
@@ -854,8 +832,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     }
 
     /// <summary>
-    /// Chép kết quả của cấp trên vào các trường của bước trên hồ sơ để báo cáo, biểu mẫu, mức hiệu lực dùng chung
-    /// một nguồn với bước làm trong hệ thống. Người/đơn vị thực hiện = cơ quan cấp trên; người ghi nhận lưu ở bản ghi kết quả.
+    /// Chép vào các trường của bước để báo cáo, biểu mẫu, mức hiệu lực dùng chung một nguồn với bước làm trong hệ thống.
     /// </summary>
     private static void ApplyExternalResultToRecord(EvaluationRecord record, EvaluationExternalResult result, ActionContext ctx)
     {
@@ -939,14 +916,13 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     public async Task<WorkQueueDto> GetWorkQueueAsync(Guid? periodId, CancellationToken ct = default)
     {
         var queue = await GetStepQueueAsync(periodId, ct);
-        // Task 20: nhóm việc sau công bố (kiến nghị chờ xử lý, kế hoạch 30-60-90 ngày) — cả với kỳ đã đóng.
+        // Nhóm việc sau công bố, kể cả với kỳ đã đóng.
         if (_postPublish != null)
         {
             var extra = await _postPublish.GetGroupsAsync(periodId, ct);
             queue.Groups.AddRange(extra);
             queue.Total += extra.Sum(g => g.Count);
         }
-        // Đề nghị điều chỉnh việc trong quý (Mẫu 04, 05) chờ người hiện tại duyệt.
         if (_taskChanges != null)
         {
             var changes = await _taskChanges.GetGroupsAsync(periodId, ct);
@@ -956,7 +932,6 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         return queue;
     }
 
-    /// <summary>Hồ sơ đang chờ người dùng hiện tại ở các bước của luồng đánh giá.</summary>
     private async Task<WorkQueueDto> GetStepQueueAsync(Guid? periodId, CancellationToken ct)
     {
         var periods = await _repo.ListPeriodsAsync(ct);
@@ -968,8 +943,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
         var settingsByPeriod = targetPeriods.ToDictionary(p => p.Id, ReadSettings);
 
-        // Lọc sơ bộ: chỉ các bước mà ở hồ sơ luồng nào đó quyền thực hiện là quyền người dùng có ở phạm vi nào đó;
-        // sau đó kiểm tra chính xác từng hồ sơ theo hồ sơ luồng của hồ sơ.
+        // Lọc sơ bộ theo quyền có ở phạm vi nào đó; sau đó kiểm tra chính xác từng hồ sơ.
         var steps = settingsByPeriod.Values
             .SelectMany(s => s.Profiles)
             .SelectMany(profile => WorkflowSteps.Ordered
@@ -1045,10 +1019,6 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         return new WorkQueueDto { Total = items.Count, Groups = groups };
     }
 
-    /// <summary>
-    /// Người dùng hiện tại thực hiện được hành động trên hồ sơ: không xung đột lợi ích (bước không phải của chủ hồ sơ thì chủ hồ sơ
-    /// không làm được) và guard cho phép quyền thực hiện của bước theo hồ sơ luồng.
-    /// </summary>
     private bool CanPerform(WorkflowActionDefinition action, WorkflowProfile profile, EvaluationRecord record) =>
         (action.Kind != WorkflowAction.RevokeTaskApproval || CanRevokeTaskApproval(record, profile))
         && (action.Kind != WorkflowAction.RevokeTaskApproval || record.TasksApprovedById == _currentUser.UserId)
@@ -1063,15 +1033,12 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         && !record.SelfScoredAt.HasValue;
 
     /// <summary>
-    /// Xung đột lợi ích (HD03 tr.4): mọi bước không phải của chủ hồ sơ (duyệt, xác nhận, ghi nhận, thẩm định, nhận xét, đề xuất,
-    /// quyết định, công bố, mở lại) không áp dụng trên hồ sơ của chính mình — kể cả khi quyền thực hiện bước được cấu hình
-    /// bằng mã quyền khác mặc định.
+    /// Mọi bước không phải của chủ hồ sơ không áp dụng trên hồ sơ của chính mình, kể cả khi quyền bước cấu hình bằng mã khác mặc định.
     /// </summary>
     private bool IsConflictOfInterest(WorkflowActionDefinition action, EvaluationRecord record) =>
         (action.Kind == WorkflowAction.Reopen || !WorkflowSteps.OwnerSteps.Contains(action.Step))
         && _currentUser.UserId is { } userId && record.MemberId == userId;
 
-    /// <summary>Tính các hành động được phép trên hồ sơ (theo hồ sơ luồng của hồ sơ).</summary>
     private IEnumerable<RecordActionDto> AvailableActions(EvaluationRecord record, PeriodSettings settings, DateOnly today)
     {
         var profile = EvaluationMapping.ProfileOf(settings, record);
@@ -1143,7 +1110,6 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             };
         }
 
-        // Gia hạn mở riêng hồ sơ (kỳ khóa dữ liệu, hồ sơ đã được mở riêng và chưa tới bước thẩm định).
         if (IsExtendableUnlock(record) && CanExtendUnlock(record, profile))
         {
             yield return new RecordActionDto
@@ -1165,7 +1131,6 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
     #region Khung thực thi chung
 
-    /// <summary>Ngữ cảnh của một hành động đang thực hiện.</summary>
     private sealed record ActionContext(
         EvaluationRecord Record, PeriodSettings Settings, WorkflowProfile Profile, Guid? ActorId, string ActorName, DateTime Now,
         CriteriaSnapshot? Criteria);
@@ -1183,11 +1148,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         ExecuteAsync(recordId, request, WorkflowActions.Get(actionCode), reason, apply, ct, reopenTarget, draft, unlockUntil);
 
     /// <summary>
-    /// Trình tự chung: phiên bản bắt buộc → nạp hồ sơ → chế độ bước theo hồ sơ luồng → xung đột lợi ích → guard (quyền thực hiện
-    /// của bước theo hồ sơ luồng) → so phiên bản → luật kỳ + thời hạn → lý do → máy trạng thái → áp dữ liệu → lịch sử → lưu (xmin).
-    /// <paramref name="draft"/> = lưu nháp dữ liệu của bước: kiểm như hành động (máy trạng thái phải cho phép hoàn thành bước,
-    /// tức hồ sơ đang ở bước này) nhưng không chuyển trạng thái, không ghi lịch sử hồ sơ (mỗi lần lưu nháp đã có audit log tự động)
-    /// và không chặn theo thời hạn của bước (không đưa hồ sơ đi tiếp).
+    /// Thứ tự kiểm tra: phiên bản → nạp → chế độ bước → xung đột lợi ích → guard → so phiên bản → luật kỳ + hạn → lý do → máy trạng thái.
+    /// <paramref name="draft"/>: kiểm như hành động nhưng không chuyển trạng thái, không ghi lịch sử, không chặn theo hạn.
     /// </summary>
     private async Task<EvaluationRecordDto> ExecuteAsync(
         Guid recordId,
@@ -1202,7 +1164,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        // T-24: mọi hành động ghi phải gửi phiên bản đã đọc.
+        // Mọi hành động ghi phải gửi phiên bản đã đọc.
         if (request.Version is null)
             throw new ValidationException("Thiếu phiên bản dữ liệu (version) của hồ sơ. Hãy tải lại hồ sơ rồi thực hiện lại.");
 
@@ -1213,7 +1175,6 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         var settings = ReadSettings(period);
         var profile = EvaluationMapping.ProfileOf(settings, record);
 
-        // Bước không áp dụng / do cấp trên thực hiện cho nhóm đối tượng này → hành động không khớp chế độ bước (409).
         var modeBlock = WorkflowActions.ModeBlockReason(action, profile);
         if (modeBlock != null)
             throw new ConflictException(modeBlock);
@@ -1260,8 +1221,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         if (!transition.Succeeded)
             throw new ConflictException(transition.Error!);
 
-        // Kỳ khóa dữ liệu (hoặc mở lại khi kỳ đã đóng → kỳ về khóa dữ liệu) mà hồ sơ quay về bước trước thẩm định: mở riêng hồ sơ
-        // tới hạn người trả lại / mở lại chọn — không mở lại cả kỳ. Hồ sơ đang mở riêng còn hạn mà không chọn hạn mới → giữ hạn cũ.
+        // Kỳ khóa mà hồ sơ quay về trước thẩm định: chỉ mở riêng hồ sơ tới hạn được chọn, không mở lại cả kỳ.
+        // Không chọn hạn mới khi đang mở riêng còn hạn → giữ hạn cũ.
         DateTime? grantUntil = null;
         if (!draft && UnlockDeadlineNeeded(period.Status, action, reopenTarget))
         {
@@ -1321,9 +1282,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         return await LoadDtoAsync(record, ct);
     }
 
-    /// <summary>
-    /// Bước mà hồ sơ quay về khi trả lại / mở lại (null với hành động khác).
-    /// </summary>
+    /// <summary>Null với hành động không phải trả lại / mở lại.</summary>
     private static WorkflowStep? BackwardTarget(WorkflowActionDefinition action, WorkflowStep? reopenTarget) => action.Kind switch
     {
         WorkflowAction.Return => WorkflowSteps.ReturnTargets.TryGetValue(action.Step, out var target) ? target : null,
@@ -1331,17 +1290,14 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         _ => null
     };
 
-    /// <summary>
-    /// Trả lại / mở lại cần hạn mở riêng hồ sơ: kỳ đang khóa dữ liệu (mở lại khi kỳ đã đóng cũng đưa kỳ về khóa dữ liệu) và
-    /// bước quay về nằm trước bước đầu tiên được thao tác khi kỳ khóa.
-    /// </summary>
+    /// <summary>Kỳ khóa dữ liệu (kể cả mở lại khi kỳ đã đóng) và bước quay về nằm trước bước đầu tiên được thao tác khi kỳ khóa.</summary>
     private static bool UnlockDeadlineNeeded(PeriodStatus status, WorkflowActionDefinition action, WorkflowStep? reopenTarget)
     {
         var lockedAfter = status == PeriodStatus.Locked || (status == PeriodStatus.Closed && action.Kind == WorkflowAction.Reopen);
         return lockedAfter && BackwardTarget(action, reopenTarget) is { } target && WorkflowSteps.IsLockedStep(target);
     }
 
-    /// <summary>Kiểm hạn mở riêng hồ sơ: sau thời điểm hiện tại, không quá <see cref="WorkflowActions.MaxUnlockDays"/> ngày.</summary>
+    /// <summary>Sau hiện tại, không quá <see cref="WorkflowActions.MaxUnlockDays"/> ngày.</summary>
     private static DateTime? ValidateUnlockUntil(DateTime? value, DateTime now)
     {
         if (value is not { } raw)
@@ -1359,7 +1315,6 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         return until;
     }
 
-    /// <summary>Mở riêng / gia hạn mở riêng hồ sơ và ghi lịch sử.</summary>
     private void GrantUnlock(EvaluationRecord record, DateTime until, string? reason, Guid? actorId, string actorName, DateTime at)
     {
         var extended = record.UnlockedUntil.HasValue;
@@ -1387,7 +1342,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         });
     }
 
-    /// <summary>Kết thúc mở riêng hồ sơ (hồ sơ đã tới bước được thao tác khi kỳ khóa) và ghi lịch sử.</summary>
+    /// <summary>Hồ sơ đã tới bước được thao tác khi kỳ khóa.</summary>
     private void ClearUnlock(EvaluationRecord record, Guid? actorId, string actorName, DateTime at)
     {
         record.UnlockedUntil = null;
@@ -1413,16 +1368,13 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         });
     }
 
-    /// <summary>Hồ sơ đã được mở riêng (còn hạn hoặc hết hạn), kỳ đang khóa dữ liệu và hồ sơ chưa tới bước thẩm định.</summary>
+    /// <summary>Đã mở riêng (còn hoặc hết hạn), kỳ đang khóa dữ liệu, chưa tới bước thẩm định.</summary>
     private static bool IsExtendableUnlock(EvaluationRecord record) =>
         record.UnlockedUntil.HasValue
         && record.Period.Status == PeriodStatus.Locked
         && WorkflowSteps.StepOf(record.Status) is { } step && WorkflowSteps.IsLockedStep(step);
 
-    /// <summary>
-    /// Người hiện tại gia hạn được: quyền <c>evaluation.reopen</c> hoặc quyền thực hiện bước thẩm định (bước trả lại về chủ hồ sơ
-    /// khi kỳ khóa) trên hồ sơ; không phải hồ sơ của chính mình.
-    /// </summary>
+    /// <summary><c>evaluation.reopen</c> hoặc quyền bước thẩm định trên hồ sơ; không phải hồ sơ của chính mình.</summary>
     private bool CanExtendUnlock(EvaluationRecord record, WorkflowProfile profile)
     {
         if (_currentUser.UserId is { } userId && record.MemberId == userId)
@@ -1437,7 +1389,6 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     private static string Truncate(string value, int maxLength) =>
         value.Length > maxLength ? value[..maxLength] : value;
 
-    /// <summary>Nạp lại hồ sơ vừa lưu (phiên bản mới) và chuyển sang DTO.</summary>
     private async Task<EvaluationRecordDto> LoadDtoAsync(EvaluationRecord record, CancellationToken ct)
     {
         var saved = await _repo.FindRecordAsync(record.Id, ct) ?? record;
@@ -1446,8 +1397,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     }
 
     /// <summary>
-    /// Gắn kết quả kiểm phiếu (chỉ tổng hợp) của hồ sơ vào biên bản: biên bản cùng kỳ, đúng bước, hồ sơ thuộc đơn vị của
-    /// biên bản; tổng phiếu các mức + không hợp lệ ≤ số có mặt; không âm (thiết kế mục 4).
+    /// Chỉ lưu tổng hợp: biên bản cùng kỳ, đúng bước, hồ sơ thuộc đơn vị của biên bản; tổng phiếu ≤ số có mặt, không âm.
     /// </summary>
     private async Task AttachVotesAsync(EvaluationRecord record, Guid? meetingId, VoteTallyDto? votes, WorkflowStep stage, CancellationToken ct)
     {
@@ -1464,7 +1414,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             throw new ValidationException("Biên bản thuộc kỳ đánh giá khác với hồ sơ.");
         if (meeting.Stage.HasValue && meeting.Stage.Value != stage)
             throw new ValidationException($"Biên bản đã chọn không dùng cho bước \"{WorkflowSteps.DisplayName(stage)}\".");
-        // Biên bản ở tổ chức cấp trên nhận hồ sơ của đơn vị/tổ chức cấp dưới (cây con); ngoài cây con thì từ chối.
+        // Biên bản ở tổ chức cấp trên nhận hồ sơ của cây con; ngoài cây con thì từ chối.
         if (!await OrgSubtreeRules.RecordWithinMeetingAsync(
                 _repo, meeting.DepartmentId, meeting.PartyCellId, record.DepartmentId, record.PartyCellId, ct))
             throw new ValidationException("Hồ sơ không thuộc đơn vị/tổ chức Đảng của biên bản đã chọn hoặc đơn vị, tổ chức cấp dưới của nó.");
@@ -1532,14 +1482,11 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         }
     }
 
-    /// <summary>Bộ tiêu chí của kỳ — bắt buộc cho các bước có chấm điểm.</summary>
+    /// <summary>Bắt buộc cho các bước có chấm điểm.</summary>
     private static CriteriaSnapshot RequireCriteria(ActionContext ctx) =>
         ctx.Criteria ?? throw new ConflictException("Kỳ đánh giá chưa có bộ tiêu chí nên chưa chấm điểm được. Hãy liên hệ người quản lý kỳ để chọn bộ tiêu chí.");
 
-    /// <summary>
-    /// Mức xếp loại bắt buộc của bước có xếp loại: phải là mức hợp lệ, không nhận "Chưa xếp loại" (giá trị chỉ dành cho hồ sơ
-    /// chưa có mức).
-    /// </summary>
+    /// <summary>Không nhận "Chưa xếp loại".</summary>
     private static EvaluationGrade RequireGrade(string? value, string message) =>
         EvaluationMapping.ParseGrade(value) is { } grade && grade != EvaluationGrade.ChuaXepLoai
             ? grade
@@ -1556,10 +1503,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     }
 
     /// <summary>
-    /// Kiểm tra từng dòng danh mục (Mẫu 01): đủ các cột Hướng dẫn 03 yêu cầu ("mỗi sản phẩm tối thiểu có: tên và đầu ra; trục;
-    /// vai trò chủ trì/phối hợp; trọng số; chuẩn đạt; dấu hiệu vượt chuẩn; thời hạn; minh chứng; thẩm quyền xác nhận"), loại việc
-    /// khi đăng ký chỉ là trọng tâm / thường xuyên (đột xuất ghi nhận trong kỳ), trục thuộc bộ tiêu chí của kỳ. Mã SP, thời hạn
-    /// không bắt buộc (thời hạn trống = ngày cuối kỳ).
+    /// Đủ các cột bắt buộc của Mẫu 01; loại việc khi đăng ký chỉ trọng tâm / thường xuyên; trục thuộc bộ tiêu chí của kỳ.
+    /// Mã SP, thời hạn không bắt buộc (trống = ngày cuối kỳ).
     /// </summary>
     private static void ValidateTaskRows(IReadOnlyList<TaskInputDto> tasks, CriteriaSetContent criteria)
     {
