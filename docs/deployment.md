@@ -106,6 +106,10 @@ Dấu `__` trong tên biến môi trường tương ứng với `:` trong `appse
 | `Security__Password__MinLength` | `8` | Độ dài tối thiểu mật khẩu (giá trị < 8 bị nâng lên 8; luôn yêu cầu có chữ và số). |
 | `Security__RateLimit__Auth__PermitLimit` | `10` | Số lần gọi `/api/auth/login`, `/api/auth/refresh-token` mỗi cửa sổ trên mỗi địa chỉ IP. |
 | `Security__RateLimit__Auth__WindowSeconds` | `60` | Độ dài cửa sổ giới hạn (giây). |
+| `Attachments__MaxPendingUnlinkedPerUser` | `30` | Số tệp tải lên chưa gắn vào đâu tối đa của mỗi người; `0` = không giới hạn. |
+| `Attachments__UnlinkedCleanup__Enabled` | `true` | Bật tác vụ nền dọn tệp chưa gắn quá hạn (xóa mềm bản ghi, xóa tệp trên đĩa). |
+| `Attachments__UnlinkedCleanup__RetentionHours` | `24` | Tệp chưa gắn quá số giờ này thì bị dọn. |
+| `Attachments__UnlinkedCleanup__IntervalMinutes` | `60` | Chu kỳ chạy tác vụ dọn (phút). |
 | `Database__AutoMigrate` | `true` ở Development, `false` ở Production | Tự áp dụng migration khi khởi động (xem `docs/database-migrations.md`). |
 | `Database__SeedSampleData` | `false` | Tạo dữ liệu mẫu — **chỉ môi trường thử nghiệm**, không bật trên CSDL thật. |
 | `Seed__SamplePassword` | rỗng | Mật khẩu tạm chung của tài khoản mẫu; rỗng → sinh ngẫu nhiên. Chỉ dùng khi bật dữ liệu mẫu. |
