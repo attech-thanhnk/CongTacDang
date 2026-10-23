@@ -106,6 +106,7 @@ public sealed class PositionService : IPositionService
             StatCode = ParseStatCode(input.StatCode),
             DefaultApprovalAuthority = ParseAuthority(input.DefaultApprovalAuthority),
             IsLeadership = input.IsLeadership ?? false,
+            IsHead = input.IsHead ?? false,
             FormLayoutId = await ParseFormLayoutAsync(input.FormLayoutId, ct),
             SortOrder = input.SortOrder ?? 0,
             IsActive = input.IsActive ?? true
@@ -147,6 +148,7 @@ public sealed class PositionService : IPositionService
             position.DefaultApprovalAuthority = authority;
         }
         if (input.IsLeadership.HasValue) position.IsLeadership = input.IsLeadership.Value;
+        if (input.IsHead.HasValue) position.IsHead = input.IsHead.Value;
         if (input.FormLayoutId != null)
         {
             var layoutId = await ParseFormLayoutAsync(input.FormLayoutId, ct);
@@ -556,6 +558,7 @@ public sealed class PositionService : IPositionService
         StatCode = p.StatCode,
         DefaultApprovalAuthority = p.DefaultApprovalAuthority?.ToString(),
         IsLeadership = p.IsLeadership,
+        IsHead = p.IsHead,
         FormLayoutId = p.FormLayoutId,
         FormLayoutName = p.FormLayout?.Name,
         SortOrder = p.SortOrder,

@@ -235,17 +235,72 @@ public class EvaluationRecordDto
     public double? ExcellentMinExceedRatio { get; set; }
 }
 
-/// <summary>Báo cáo kiểm soát tỷ lệ trần Hoàn thành xuất sắc theo từng Chi bộ (Mẫu 15)</summary>
-public class BranchQuotaCheckDto
+/// <summary>
+/// Kiểm soát trần tỷ lệ Hoàn thành xuất sắc của kỳ (<c>GET /api/evaluations/excellent-quotas</c>): theo nhóm chức danh trong
+/// từng cấp quyết định cuối cùng, trên các hồ sơ trong phạm vi được xem. Chỉ cảnh báo, không chặn.
+/// </summary>
+public class ExcellentQuotaCheckDto
 {
-    public Guid BranchId { get; set; }
-    public string BranchName { get; set; } = string.Empty;
+    /// <summary>Kỳ đánh giá.</summary>
+    public Guid PeriodId { get; set; }
+
+    /// <summary>Tỷ lệ trần áp dụng (0,20..0,25) theo bộ tiêu chí của kỳ.</summary>
+    public double Ratio { get; set; }
+
+    /// <summary>Tổ chức Đảng được chọn làm phạm vi tính (gồm tổ chức con); null = toàn bộ hồ sơ được xem.</summary>
+    public Guid? PartyCellId { get; set; }
+
+    /// <summary>
+    /// Số liệu tính trên toàn bộ hồ sơ của kỳ (người xem có phạm vi toàn Đảng bộ và không chọn tổ chức Đảng). false = chỉ
+    /// phần hồ sơ trong phạm vi được xem/được chọn.
+    /// </summary>
+    public bool IsFullScope { get; set; }
+
+    /// <summary>Số nhóm vượt trần.</summary>
+    public int ExceedingGroupCount { get; set; }
+
+    /// <summary>Các nhóm (cấp trên trước, theo thứ tự mã chức danh).</summary>
+    public List<ExcellentQuotaGroupDto> Groups { get; set; } = new();
+}
+
+/// <summary>Trần tỷ lệ Hoàn thành xuất sắc của một nhóm chức danh trong một cấp quyết định.</summary>
+public class ExcellentQuotaGroupDto
+{
+    /// <summary>Cấp quyết định: <c>CoSo</c> / <c>CapTren</c>.</summary>
+    public string ApprovalAuthority { get; set; } = string.Empty;
+
+    /// <summary>Tên cấp quyết định.</summary>
+    public string AuthorityName { get; set; } = string.Empty;
+
+    /// <summary>Mã chức danh thống kê (null = cán bộ chưa có mã).</summary>
+    public string? StatCode { get; set; }
+
+    /// <summary>Tên nhóm chức danh.</summary>
+    public string GroupName { get; set; } = string.Empty;
+
+    /// <summary>Tổng số hồ sơ của nhóm (kể cả người đứng đầu).</summary>
     public int TotalCadres { get; set; }
-    public int GoodOrBetterCount { get; set; }
+
+    /// <summary>Số người đứng đầu (không tính vào trần).</summary>
+    public int HeadCount { get; set; }
+
+    /// <summary>Số "Hoàn thành tốt nhiệm vụ" (không kể người đứng đầu).</summary>
+    public int GoodCount { get; set; }
+
+    /// <summary>Số "Hoàn thành xuất sắc nhiệm vụ" (không kể người đứng đầu).</summary>
+    public int ExcellentCount { get; set; }
+
+    /// <summary>Số Xuất sắc tối đa.</summary>
     public int MaxExcellentAllowed { get; set; }
-    public int ProposedExcellentCount { get; set; }
-    public double ActualExcellentPercentage { get; set; }
+
+    /// <summary>Tỷ lệ % Xuất sắc trên số "Hoàn thành tốt"; null khi chưa có ai "Hoàn thành tốt".</summary>
+    public double? ExcellentPercentOfGood { get; set; }
+
+    /// <summary>Vượt trần (cảnh báo).</summary>
     public bool IsExceedingQuota { get; set; }
+
+    /// <summary>Số Xuất sắc vượt trần.</summary>
+    public int ExcessCount { get; set; }
 }
 
 #endregion

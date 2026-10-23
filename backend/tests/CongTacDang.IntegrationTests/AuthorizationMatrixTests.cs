@@ -110,8 +110,8 @@ public sealed class AuthorizationMatrixTests
         var mine = await Data(s.OwnerA1, $"/api/evaluations/my-record?periodId={s.PeriodId}");
         Assert.Equal(s.RecordA1, mine.GetProperty("id").GetGuid());
 
-        Assert.Equal(HttpStatusCode.OK, (await s.Appraiser.GetAsync($"/api/evaluations/branch-quotas?periodId={s.PeriodId}")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerA1.GetAsync($"/api/evaluations/branch-quotas?periodId={s.PeriodId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await s.Appraiser.GetAsync($"/api/evaluations/excellent-quotas?periodId={s.PeriodId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerA1.GetAsync($"/api/evaluations/excellent-quotas?periodId={s.PeriodId}")).StatusCode);
     }
 
     #endregion

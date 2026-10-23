@@ -465,7 +465,7 @@ public static class DataSeeder
     };
 
     /// <summary>Một chức vụ mặc định.</summary>
-    private sealed record DefaultPosition(string Name, PositionSide Side, string? StatCode, ApprovalAuthority? Authority, bool IsLeadership);
+    private sealed record DefaultPosition(string Name, PositionSide Side, string? StatCode, ApprovalAuthority? Authority, bool IsLeadership, bool IsHead = false);
 
     /// <summary>
     /// Danh mục chức vụ mặc định — ĐỀ XUẤT theo bản trích xuất HD03 (mục 1.4 bảng thẩm quyền, mục 7 mã M1–M26), CHỜ XÁC NHẬN.
@@ -474,21 +474,21 @@ public static class DataSeeder
     private static readonly DefaultPosition[] DefaultPositions =
     {
         // Mẫu 15A — cấp ủy cấp trên quyết định (M1–M16).
-        new("Bí thư Đảng ủy Tổng công ty", PositionSide.Party, "M1", ApprovalAuthority.CapTren, true),
+        new("Bí thư Đảng ủy Tổng công ty", PositionSide.Party, "M1", ApprovalAuthority.CapTren, true, IsHead: true),
         new("Phó Bí thư Đảng ủy Tổng công ty", PositionSide.Party, "M2", ApprovalAuthority.CapTren, true),
         new("Thành viên Hội đồng thành viên Tổng công ty", PositionSide.Administrative, "M3", ApprovalAuthority.CapTren, true),
         new("Phó Tổng giám đốc Tổng công ty", PositionSide.Administrative, "M4", ApprovalAuthority.CapTren, true),
         new("Ủy viên Ban Thường vụ Đảng ủy Tổng công ty", PositionSide.Party, "M5", ApprovalAuthority.CapTren, true),
         new("Ủy viên Ban Chấp hành Đảng bộ Tổng công ty", PositionSide.Party, "M6", ApprovalAuthority.CapTren, true),
         new("Ủy viên Ủy ban Kiểm tra Đảng ủy Tổng công ty", PositionSide.Party, "M7", ApprovalAuthority.CapTren, true),
-        new("Bí thư Đảng ủy", PositionSide.Party, "M8", ApprovalAuthority.CapTren, true),
+        new("Bí thư Đảng ủy", PositionSide.Party, "M8", ApprovalAuthority.CapTren, true, IsHead: true),
         new("Phó Bí thư Đảng ủy", PositionSide.Party, "M9", ApprovalAuthority.CapTren, true),
-        new("Bí thư Chi bộ trực thuộc Đảng ủy bộ phận Văn phòng Tổng công ty", PositionSide.Party, "M10", ApprovalAuthority.CapTren, true),
+        new("Bí thư Chi bộ trực thuộc Đảng ủy bộ phận Văn phòng Tổng công ty", PositionSide.Party, "M10", ApprovalAuthority.CapTren, true, IsHead: true),
         new("Phó Bí thư Chi bộ trực thuộc Đảng ủy bộ phận Văn phòng Tổng công ty", PositionSide.Party, "M11", ApprovalAuthority.CapTren, true),
         new("Trưởng, phó cơ quan tham mưu, giúp việc Đảng ủy Tổng công ty", PositionSide.Party, "M12", ApprovalAuthority.CapTren, true),
         new("Kế toán trưởng Tổng công ty", PositionSide.Administrative, "M13", ApprovalAuthority.CapTren, true),
-        new("Chủ tịch Công ty", PositionSide.Administrative, "M14", ApprovalAuthority.CapTren, true),
-        new("Giám đốc", PositionSide.Administrative, "M14", ApprovalAuthority.CapTren, true),
+        new("Chủ tịch Công ty", PositionSide.Administrative, "M14", ApprovalAuthority.CapTren, true, IsHead: true),
+        new("Giám đốc", PositionSide.Administrative, "M14", ApprovalAuthority.CapTren, true, IsHead: true),
         new("Phó Giám đốc", PositionSide.Administrative, "M14", ApprovalAuthority.CapTren, true),
         new("Kiểm soát viên", PositionSide.Administrative, "M15", ApprovalAuthority.CapTren, true),
         new("Bí thư Đoàn Thanh niên Tổng công ty", PositionSide.MassOrganization, "M16", ApprovalAuthority.CapTren, true),
@@ -496,31 +496,31 @@ public static class DataSeeder
         new("Ủy viên Ban Thường vụ Đảng ủy", PositionSide.Party, "M17", ApprovalAuthority.CoSo, true),
         new("Đảng ủy viên", PositionSide.Party, "M18", ApprovalAuthority.CoSo, true),
         new("Ủy viên Ủy ban Kiểm tra Đảng ủy", PositionSide.Party, "M19", ApprovalAuthority.CoSo, true),
-        new("Bí thư Đảng bộ bộ phận", PositionSide.Party, "M20", ApprovalAuthority.CoSo, true),
+        new("Bí thư Đảng bộ bộ phận", PositionSide.Party, "M20", ApprovalAuthority.CoSo, true, IsHead: true),
         new("Phó Bí thư Đảng bộ bộ phận", PositionSide.Party, "M21", ApprovalAuthority.CoSo, true),
-        new("Bí thư Chi bộ", PositionSide.Party, "M22", ApprovalAuthority.CoSo, true),
+        new("Bí thư Chi bộ", PositionSide.Party, "M22", ApprovalAuthority.CoSo, true, IsHead: true),
         new("Phó Bí thư Chi bộ", PositionSide.Party, "M23", ApprovalAuthority.CoSo, true),
-        new("Bí thư Chi bộ trực thuộc Đảng bộ bộ phận", PositionSide.Party, "M24", ApprovalAuthority.CoSo, true),
+        new("Bí thư Chi bộ trực thuộc Đảng bộ bộ phận", PositionSide.Party, "M24", ApprovalAuthority.CoSo, true, IsHead: true),
         new("Phó Bí thư Chi bộ trực thuộc Đảng bộ bộ phận", PositionSide.Party, "M25", ApprovalAuthority.CoSo, true),
-        new("Trưởng phòng", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        new("Trưởng phòng", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true, IsHead: true),
         new("Phó Trưởng phòng", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
-        new("Trưởng trung tâm", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        new("Trưởng trung tâm", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true, IsHead: true),
         new("Phó Trưởng trung tâm", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
-        new("Quản đốc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        new("Quản đốc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true, IsHead: true),
         new("Phó Quản đốc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
         // Lãnh đạo đơn vị trực thuộc Công ty (xí nghiệp, chi nhánh, ban quản lý dự án) và Văn phòng: tương đương trưởng, phó
         // phòng (M26, Đảng ủy cơ sở quyết định) — khác "Giám đốc", "Phó Giám đốc" của Công ty (M14, cấp trên quyết định).
-        new("Giám đốc đơn vị trực thuộc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        new("Giám đốc đơn vị trực thuộc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true, IsHead: true),
         new("Phó Giám đốc đơn vị trực thuộc", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
-        new("Chánh Văn phòng", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
+        new("Chánh Văn phòng", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true, IsHead: true),
         new("Phó Chánh Văn phòng", PositionSide.Administrative, "M26", ApprovalAuthority.CoSo, true),
         new("Chủ nhiệm Ủy ban Kiểm tra Đảng ủy", PositionSide.Party, "M19", ApprovalAuthority.CoSo, true),
         new("Phó Chủ nhiệm Ủy ban Kiểm tra Đảng ủy", PositionSide.Party, "M19", ApprovalAuthority.CoSo, true),
         // Chức vụ thường gặp chưa xác định mã thống kê/thẩm quyền (chờ xác nhận).
         new("Kế toán trưởng", PositionSide.Administrative, null, null, true),
-        new("Đội trưởng", PositionSide.Administrative, null, null, true),
-        new("Đài trưởng", PositionSide.Administrative, null, null, true),
-        new("Trạm trưởng", PositionSide.Administrative, null, null, true),
+        new("Đội trưởng", PositionSide.Administrative, null, null, true, IsHead: true),
+        new("Đài trưởng", PositionSide.Administrative, null, null, true, IsHead: true),
+        new("Trạm trưởng", PositionSide.Administrative, null, null, true, IsHead: true),
         new("Ủy viên Ban Chấp hành Đảng bộ bộ phận", PositionSide.Party, null, null, true),
         new("Chi ủy viên", PositionSide.Party, null, null, true),
         new("Chủ tịch Công đoàn Công ty", PositionSide.MassOrganization, null, null, true),
@@ -560,6 +560,7 @@ public static class DataSeeder
                 StatCode = p.StatCode,
                 DefaultApprovalAuthority = p.Authority,
                 IsLeadership = p.IsLeadership,
+                IsHead = p.IsHead,
                 SortOrder = (i + 1) * 10
             }));
             await context.SaveChangesAsync();

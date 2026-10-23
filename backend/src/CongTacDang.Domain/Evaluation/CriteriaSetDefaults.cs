@@ -162,7 +162,7 @@ public static partial class CriteriaSetDefaults
                 DeductionReasonMinPoints = 1,
                 ExplanationThreshold = 5,
                 ExplanationOnGradeChange = true,
-                ExcellentQuota = new ExcellentQuotaRule { Ratio = 0.20, Denominator = QuotaDenominator.GoodOnly, Rounding = ScoreRoundingMode.HalfUp },
+                ExcellentQuota = new ExcellentQuotaRule { Ratio = ExcellentQuotaRule.DefaultRatio },
                 Rounding = new RoundingSettings
                 {
                     TaskScore = new RoundingRule(1, ScoreRoundingMode.HalfUp),

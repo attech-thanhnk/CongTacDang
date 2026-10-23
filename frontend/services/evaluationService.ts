@@ -757,16 +757,33 @@ export interface VoteTallyDto {
   notes?: string;
 }
 
-/** Kiểm soát trần tỷ lệ theo Chi bộ (Mẫu 15) */
-export interface BranchQuotaCheckDto {
-  branchId: string;
-  branchName: string;
+/** Trần Hoàn thành xuất sắc của một nhóm chức danh trong một cấp quyết định. */
+export interface ExcellentQuotaGroupDto {
+  approvalAuthority: "CoSo" | "CapTren";
+  authorityName: string;
+  statCode?: string | null;
+  groupName: string;
   totalCadres: number;
-  goodOrBetterCount: number;
+  /** Người đứng đầu — không tính vào trần. */
+  headCount: number;
+  goodCount: number;
+  excellentCount: number;
   maxExcellentAllowed: number;
-  proposedExcellentCount: number;
-  actualExcellentPercentage: number;
+  excellentPercentOfGood?: number | null;
   isExceedingQuota: boolean;
+  excessCount: number;
+}
+
+/** Kiểm soát trần Hoàn thành xuất sắc của kỳ (chỉ cảnh báo). */
+export interface ExcellentQuotaCheckDto {
+  periodId: string;
+  /** Tỷ lệ trần (0,20..0,25). */
+  ratio: number;
+  partyCellId?: string | null;
+  /** false = số liệu chỉ trong phạm vi được xem/được chọn. */
+  isFullScope: boolean;
+  exceedingGroupCount: number;
+  groups: ExcellentQuotaGroupDto[];
 }
 
 export interface CollectiveEvaluationItemDto {
@@ -1203,8 +1220,10 @@ export const evaluationService = {
     return request<EvaluationRecordDto[]>(`/evaluations/branch-records?${query}`);
   },
 
-  async checkBranchQuotas(periodId: string): Promise<BranchQuotaCheckDto[]> {
-    return request<BranchQuotaCheckDto[]>(`/evaluations/branch-quotas?periodId=${periodId}`);
+  /** Trần Hoàn thành xuất sắc theo nhóm chức danh trong từng cấp quyết định (hồ sơ trong phạm vi được xem). */
+  async checkExcellentQuotas(periodId: string, partyCellId?: string): Promise<ExcellentQuotaCheckDto> {
+    const query = partyCellId ? `periodId=${periodId}&partyCellId=${partyCellId}` : `periodId=${periodId}`;
+    return request<ExcellentQuotaCheckDto>(`/evaluations/excellent-quotas?${query}`);
   },
 
   /**

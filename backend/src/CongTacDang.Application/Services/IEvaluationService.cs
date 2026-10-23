@@ -30,6 +30,9 @@ public interface IEvaluationService
     /// <summary>Hồ sơ của một Chi bộ trong kỳ, lọc theo phạm vi evaluation.read.</summary>
     Task<List<EvaluationRecordDto>> GetRecordsByBranchAsync(Guid periodId, Guid? branchId, CancellationToken ct = default);
 
-    /// <summary>Kiểm tra trần Hoàn thành xuất sắc theo Chi bộ (Mẫu 15) trong phạm vi người dùng.</summary>
-    Task<List<BranchQuotaCheckDto>> CheckBranchQuotasAsync(Guid periodId, CancellationToken ct = default);
+    /// <summary>
+    /// Kiểm soát trần Hoàn thành xuất sắc theo nhóm chức danh trong từng cấp quyết định, trên hồ sơ trong phạm vi evaluation.read
+    /// (tùy chọn thu hẹp theo tổ chức Đảng <paramref name="partyCellId"/> và tổ chức con, theo ảnh chụp trên hồ sơ).
+    /// </summary>
+    Task<ExcellentQuotaCheckDto> CheckExcellentQuotasAsync(Guid periodId, Guid? partyCellId, CancellationToken ct = default);
 }

@@ -13,7 +13,7 @@ import { initialsOf } from "@/components/dashboard/taskUtils";
 import styles from "@/components/dashboard/dashboard.module.css";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePeriod } from "@/contexts/PeriodContext";
-import { BranchQuotaCheckDto, EvaluationRecordDto, evaluationService } from "@/services/evaluationService";
+import { EvaluationRecordDto, ExcellentQuotaCheckDto, evaluationService } from "@/services/evaluationService";
 import { errorMessage } from "@/components/admin/adminUtils";
 
 /** Thứ tự trạng thái theo luồng (để sắp xếp và xếp nút lọc). */
@@ -53,7 +53,7 @@ export default function EvaluationsPage() {
   const { periods, periodId, loading: periodsLoading } = usePeriod();
   const [myRecord, setMyRecord] = useState<EvaluationRecordDto | null>(null);
   const [records, setRecords] = useState<EvaluationRecordDto[]>([]);
-  const [quotas, setQuotas] = useState<BranchQuotaCheckDto[]>([]);
+  const [quotas, setQuotas] = useState<ExcellentQuotaCheckDto | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [department, setDepartment] = useState("");
@@ -66,7 +66,7 @@ export default function EvaluationsPage() {
     if (!periodId) {
       setMyRecord(null);
       setRecords([]);
-      setQuotas([]);
+      setQuotas(null);
       setLoading(periodsLoading);
       return;
     }
@@ -79,13 +79,13 @@ export default function EvaluationsPage() {
     Promise.all([
       evaluationService.getMyRecord(periodId).catch(() => null),
       canRead ? evaluationService.getRecordsByPeriod(periodId) : Promise.resolve([] as EvaluationRecordDto[]),
-      canRead ? evaluationService.checkBranchQuotas(periodId).catch(() => []) : Promise.resolve([] as BranchQuotaCheckDto[]),
+      canRead ? evaluationService.checkExcellentQuotas(periodId).catch(() => null) : Promise.resolve(null),
     ])
       .then(([mine, list, quota]) => {
         if (!mounted) return;
         setMyRecord(mine);
         setRecords(list);
-        setQuotas(quota.filter((q) => q.totalCadres > 0));
+        setQuotas(quota);
       })
       .catch((err: unknown) => mounted && setError(errorMessage(err, "Không tải được hồ sơ đánh giá.")))
       .finally(() => mounted && setLoading(false));
@@ -283,31 +283,42 @@ export default function EvaluationsPage() {
           </section>
         )}
 
-        {canRead && quotas.length > 0 && (
+        {canRead && quotas && quotas.groups.length > 0 && (
           <section className={styles.block}>
-            <div className={styles.blockH}><h2>Trần Hoàn thành xuất sắc theo Chi bộ (Mẫu 15)</h2></div>
+            <div className={styles.blockH}>
+              <h2>Trần Hoàn thành xuất sắc theo nhóm chức danh</h2>
+            </div>
+            <p className="small text-secondary mb-2">
+              Tối đa {Math.round(quotas.ratio * 100)}% số &quot;Hoàn thành tốt&quot; của nhóm, làm tròn từ 0,5 trở lên thành 1; không tính người đứng đầu.
+              Mức dùng: mức quyết định, chưa có thì mức đề xuất gần nhất.
+              {!quotas.isFullScope && " Số liệu chỉ gồm hồ sơ trong phạm vi bạn được xem."}
+            </p>
             <div className={styles.tw}>
               <table className={`${styles.table} ${styles.mid}`}>
                 <thead>
                   <tr>
-                    <th>Chi bộ</th>
+                    <th>Cấp quyết định</th>
+                    <th>Nhóm chức danh</th>
                     <th className={styles.right}>Số hồ sơ</th>
-                    <th className={styles.right}>HT tốt trở lên</th>
+                    <th className={styles.right}>Người đứng đầu</th>
+                    <th className={styles.right}>HT tốt</th>
                     <th className={styles.right}>Tối đa XS</th>
-                    <th className={styles.right}>Đề xuất XS</th>
+                    <th className={styles.right}>XS</th>
                     <th />
                   </tr>
                 </thead>
                 <tbody>
-                  {quotas.map((q) => (
-                    <tr key={q.branchId}>
-                      <td>{q.branchName}</td>
+                  {quotas.groups.map((q) => (
+                    <tr key={`${q.approvalAuthority}-${q.statCode ?? "none"}`}>
+                      <td>{q.authorityName}</td>
+                      <td>{q.statCode ? `${q.statCode} — ${q.groupName}` : q.groupName}</td>
                       <td className={`${styles.right} num`}>{q.totalCadres}</td>
-                      <td className={`${styles.right} num`}>{q.goodOrBetterCount}</td>
+                      <td className={`${styles.right} num`}>{q.headCount}</td>
+                      <td className={`${styles.right} num`}>{q.goodCount}</td>
                       <td className={`${styles.right} num`}>{q.maxExcellentAllowed}</td>
-                      <td className={`${styles.right} num`}>{q.proposedExcellentCount}</td>
+                      <td className={`${styles.right} num`}>{q.excellentCount}</td>
                       <td className={styles.right}>
-                        {q.isExceedingQuota ? <span className="tag t-bad">Vượt trần</span> : <span className="tag t-ok">Đạt</span>}
+                        {q.isExceedingQuota ? <span className="tag t-bad">Vượt trần {q.excessCount}</span> : <span className="tag t-ok">Đạt</span>}
                       </td>
                     </tr>
                   ))}

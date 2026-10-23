@@ -129,7 +129,7 @@ export function CriteriaSummary({ content, form }: { content: CriteriaSetContent
           <li>Số sản phẩm {p.minTasks}–{p.maxTasks}; tổng trọng số / điểm tối đa nhóm nhiệm vụ {fmt(p.totalTaskWeight)} (sai số {fmt(p.taskWeightTolerance)}).</li>
           <li>Không áp dụng (K/AD): {p.allowNotApplicable ? (p.notApplicableRule === "GrantFull" ? "được phép, tính như đạt tối đa" : "được phép, bỏ khỏi mẫu số rồi quy đổi") : "không được phép"}; giảm từ {p.deductionReasonMinPoints != null ? `${fmt(p.deductionReasonMinPoints)} điểm phải nêu lý do` : "không bắt buộc nêu lý do"}.</li>
           <li>Giải trình khi chênh lệch tự chấm – thẩm định từ {fmt(p.explanationThreshold)} điểm{p.explanationOnGradeChange ? " hoặc làm đổi mức" : ""}.</li>
-          <li>Trần xuất sắc {fmt(p.excellentQuota.ratio * 100)}% số {p.excellentQuota.denominator === "GoodOnly" ? "\"Hoàn thành tốt\"" : "\"Hoàn thành tốt\" trở lên"}, làm tròn: {ROUNDING_LABELS[p.excellentQuota.rounding]}.</li>
+          <li>Trần xuất sắc {fmt(p.excellentQuota.ratio * 100)}% số &quot;Hoàn thành tốt&quot; của từng nhóm chức danh, làm tròn từ 0,5 trở lên thành 1, không tính người đứng đầu.</li>
           <li>
             Làm tròn — điểm sản phẩm: {p.rounding.taskScore.decimals} chữ số, {ROUNDING_LABELS[p.rounding.taskScore.mode]}; tổng nhiệm vụ: {p.rounding.tasksTotal.decimals}, {ROUNDING_LABELS[p.rounding.tasksTotal.mode]};
             tiêu chí chung: {p.rounding.generalTotal.decimals}, {ROUNDING_LABELS[p.rounding.generalTotal.mode]}; tổng điểm: {p.rounding.total.decimals}, {ROUNDING_LABELS[p.rounding.total.mode]}.

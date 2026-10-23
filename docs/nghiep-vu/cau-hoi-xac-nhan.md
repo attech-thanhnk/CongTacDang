@@ -287,9 +287,9 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 ### E7. [Ưu tiên] Trần tỷ lệ Hoàn thành xuất sắc
 - **Câu hỏi:** Trần 20% tính trên số người "Hoàn thành tốt" hay "Hoàn thành tốt trở lên", và tính theo nhóm nào?
 - **Căn cứ:** Mục III.6 (tr.15–16): "20% tổng số… Hoàn thành tốt… trong từng nhóm chức danh"; Mẫu 15A/15B/16: "trong số xếp loại tốt trở lên".
-- **Hệ thống đang làm (mặc định):** 20% số người "Hoàn thành tốt", làm tròn từ 0,5 lên 1 (8 người → 2). Tính theo từng Chi bộ. Chỉ cảnh báo trên báo cáo, không chặn.
-- **Phương án khác:** Tính trên số "tốt trở lên"; tính theo nhóm chức danh (mã M) toàn Đảng bộ; chặn khi vượt trần.
-- **Ảnh hưởng nếu đổi:** Tỷ lệ, cách tính mẫu số, làm tròn: cấu hình trên giao diện (Bộ tiêu chí). Nhóm tính, chặn: cần sửa phần mềm.
+- **Hệ thống đang làm (đã thống nhất):** Số Xuất sắc tối đa = tỷ lệ × số người "Hoàn thành tốt nhiệm vụ" (chỉ mức Hoàn thành tốt, theo câu chữ III.6), làm tròn từ 0,5 trở lên thành 1 (8 người × 20% → 2). Tính theo **nhóm chức danh** (mã M1–M26 của người, giữ nhiều chức vụ thì lấy mã đứng trước) trong **từng cấp quyết định cuối cùng** (Đảng ủy cơ sở / cấp trên) trên toàn Đảng bộ, không chia theo Chi bộ; người chỉ có phạm vi một đơn vị xem số liệu trong phạm vi của mình. Đơn vị của hồ sơ lấy theo ảnh chụp trên hồ sơ. Mức dùng: mức quyết định nếu đã quyết định, chưa có thì mức đề xuất gần nhất (cấp trực tiếp sử dụng → thẩm định → tập thể lãnh đạo → cá nhân tự đề xuất). Chỉ cảnh báo "vượt trần" trên trang Đánh giá, báo cáo nội bộ kiểm soát tỷ lệ, ghi chú Mẫu 15A/15B và phần xem trước Mẫu 16; không chặn. Cột "Tỷ lệ % xuất sắc trong số tốt trở lên" của Mẫu 15A/15B/16 vẫn tính đúng nhãn cột của biểu mẫu.
+- **Phương án khác:** Tính trên số "tốt trở lên"; chặn khi vượt trần.
+- **Ảnh hưởng nếu đổi:** Tỷ lệ (20%–25%): cấu hình trên giao diện (Bộ tiêu chí). Mẫu số, làm tròn, nhóm tính, chặn: cần sửa phần mềm.
 
 ### E8. [Ưu tiên] Giải trình khi tự chấm và thẩm định chênh lệch
 - **Câu hỏi:** Ngưỡng bắt buộc giải trình và người nhập giải trình như dưới đây có đúng không?
@@ -308,9 +308,9 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 ### E10. Người đứng đầu và mức nâng trần 25%
 - **Câu hỏi:** Người đứng đầu có bị loại khỏi phép tính trần Xuất sắc không? Đảng ủy ATTECH có tự nâng trần lên 25% được không?
 - **Căn cứ:** Mục III.6 (tr.16): người đứng đầu "không tính vào tỷ lệ xuất sắc của các thành viên khác"; "cấp có thẩm quyền" được nâng tới 25%.
-- **Hệ thống đang làm (mặc định):** Vẫn đếm người đứng đầu. Tỷ lệ 20% áp chung cho cả kỳ.
-- **Phương án khác:** Loại người đứng đầu khỏi phép tính; nâng 25% cho kỳ hoặc đơn vị cụ thể, có căn cứ.
-- **Ảnh hưởng nếu đổi:** Nâng 25% cho cả kỳ: cấu hình trên giao diện (Bộ tiêu chí). Loại người đứng đầu, nâng theo đơn vị: cần sửa phần mềm.
+- **Hệ thống đang làm (đã thống nhất):** Người đứng đầu không tính vào trần (cả số Xuất sắc và số Hoàn thành tốt). Người đứng đầu xác định theo chức vụ: danh mục chức vụ có ô "Người đứng đầu" (danh mục mặc định đánh dấu Bí thư Đảng ủy/Chi bộ/Đảng bộ bộ phận, Chủ tịch Công ty, Giám đốc, Trưởng phòng, Trưởng trung tâm, Quản đốc, Giám đốc đơn vị trực thuộc, Chánh Văn phòng, Đội trưởng, Đài trưởng, Trạm trưởng; dữ liệu đang dùng cần quản trị đánh dấu). Tỷ lệ đặt trong bộ tiêu chí, chỉ được từ 20% đến 25%, mặc định 20%, áp chung cho cả kỳ.
+- **Phương án khác:** Nâng 25% cho từng đơn vị cụ thể, có căn cứ.
+- **Ảnh hưởng nếu đổi:** Nâng 25% cho cả kỳ: cấu hình trên giao diện (Bộ tiêu chí). Người đứng đầu: đánh dấu trong danh mục chức vụ. Nâng theo đơn vị: cần sửa phần mềm.
 
 ### E11. Liên kết kết quả tập thể với người đứng đầu
 - **Câu hỏi:** Hệ thống có cần tự áp hai quy tắc: tập thể hoàn thành dưới 70% nhiệm vụ thì người đứng đầu "Không hoàn thành"; người đứng đầu không được xếp cao hơn tập thể?

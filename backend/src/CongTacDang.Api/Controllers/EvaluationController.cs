@@ -90,13 +90,16 @@ public class EvaluationController : ControllerBase
         return Ok(ApiResponse<List<EvaluationRecordDto>>.Ok(records, "Lấy danh sách hồ sơ Chi bộ thành công."));
     }
 
-    /// <summary>Kiểm tra trần tỷ lệ Hoàn thành xuất sắc theo Chi bộ (hiển thị trên trang Đánh giá; không phải biểu mẫu HD03).</summary>
-    [HttpGet("branch-quotas")]
+    /// <summary>
+    /// Kiểm soát trần tỷ lệ Hoàn thành xuất sắc theo nhóm chức danh trong từng cấp quyết định (hiển thị trên trang Đánh giá;
+    /// chỉ cảnh báo). <c>partyCellId</c> (tùy chọn) thu hẹp theo tổ chức Đảng và tổ chức con.
+    /// </summary>
+    [HttpGet("excellent-quotas")]
     [RequirePermission(PermissionCodes.EvaluationRead)]
-    public async Task<IActionResult> CheckBranchQuotas([FromQuery] Guid periodId, CancellationToken ct)
+    public async Task<IActionResult> CheckExcellentQuotas([FromQuery] Guid periodId, [FromQuery] Guid? partyCellId, CancellationToken ct)
     {
-        var quotas = await _evaluations.CheckBranchQuotasAsync(periodId, ct);
-        return Ok(ApiResponse<List<BranchQuotaCheckDto>>.Ok(quotas, "Kiểm tra trần tỷ lệ theo Chi bộ thành công."));
+        var quotas = await _evaluations.CheckExcellentQuotasAsync(periodId, partyCellId, ct);
+        return Ok(ApiResponse<ExcellentQuotaCheckDto>.Ok(quotas, "Kiểm soát trần tỷ lệ Hoàn thành xuất sắc thành công."));
     }
 
     #endregion

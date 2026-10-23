@@ -121,17 +121,18 @@ public partial class ReportService : IReportService
     }
 
     /// <summary>
-    /// Báo cáo nội bộ — kiểm soát tỷ lệ Hoàn thành xuất sắc theo tổ chức Đảng (trần theo bộ tiêu chí của kỳ, HD03 mục III.6).
-    /// Không phải biểu mẫu HD03 (trước đây mang nhầm tên "Mẫu 15").
+    /// Báo cáo nội bộ — kiểm soát tỷ lệ Hoàn thành xuất sắc theo nhóm chức danh trong từng cấp quyết định
+    /// (<see cref="ExcellentQuotaCalculator"/>; tỷ lệ theo bộ tiêu chí của kỳ). Phạm vi: toàn Đảng bộ hoặc tổ chức Đảng được chọn
+    /// (gồm tổ chức con, theo ảnh chụp trên hồ sơ). Không phải biểu mẫu HD03.
     /// </summary>
     public async Task<ReportFileResult> ExportExcellentQuotaReportAsync(Guid? periodId = null, Guid? partyCellId = null, ReportFormat format = ReportFormat.Original)
     {
         var (activePeriod, records, scopeCell) = await LoadExcelScopeAsync(periodId, partyCellId);
-        var cells = (await _orgRepo.GetPartyCellsWithMembersAsync())
-            .Where(c => scopeCell == null || c.Id == scopeCell.Id)
-            .ToList();
+        var rule = QuotaRule(activePeriod);
+        var groups = await QuotaGroupsAsync(activePeriod, records);
         var org = await _orgSettings.GetAsync();
 
+        const int last = 11;
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Kiểm soát tỷ lệ xuất sắc");
         ws.Cell("A1").Value = org.SuperiorPartyName;
@@ -139,15 +140,16 @@ public partial class ReportService : IReportService
         ws.Cell("A1").Style.Font.Bold = true;
         ws.Cell("A2").Style.Font.Bold = true;
 
-        ws.Cell("A4").Value = $"BÁO CÁO NỘI BỘ — KIỂM SOÁT TỶ LỆ HOÀN THÀNH XUẤT SẮC NHIỆM VỤ THEO TỔ CHỨC ĐẢNG ({ExcelTitleSuffix(activePeriod, scopeCell)})";
-        ws.Range("A4:H4").Merge().Style.Font.SetBold(true).Font.SetFontSize(13).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-        ws.Cell("A5").Value = "(Không thuộc danh mục biểu mẫu HD03. Trần tỷ lệ theo bộ tiêu chí của kỳ — HD03 mục III.6.)";
-        ws.Range("A5:H5").Merge().Style.Font.SetItalic(true).Font.SetFontSize(10).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+        ws.Cell("A4").Value = $"BÁO CÁO NỘI BỘ — KIỂM SOÁT TỶ LỆ HOÀN THÀNH XUẤT SẮC NHIỆM VỤ THEO NHÓM CHỨC DANH ({ExcelTitleSuffix(activePeriod, scopeCell)})";
+        ws.Range(4, 1, 4, last).Merge().Style.Font.SetBold(true).Font.SetFontSize(13).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+        ws.Cell("A5").Value = $"(Số Xuất sắc tối đa = {FormText.Number(rule.EffectiveRatio * 100, 0)}% số \"Hoàn thành tốt nhiệm vụ\" của nhóm chức danh, "
+            + "làm tròn từ 0,5 trở lên thành 1; không tính người đứng đầu. Vượt trần chỉ để cảnh báo.)";
+        ws.Range(5, 1, 5, last).Merge().Style.Font.SetItalic(true).Font.SetFontSize(10).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
 
         var headers = new[]
         {
-            "STT", "Tổ chức Đảng", "Tổng số cán bộ", "Số hoàn thành tốt trở lên", "Số xuất sắc tối đa",
-            "Đề xuất xuất sắc", "Tỷ lệ thực tế (%)", "Kết luận"
+            "STT", "Cấp quyết định", "Mã chức danh", "Nhóm chức danh", "Tổng số hồ sơ", "Người đứng đầu (không tính)",
+            "Hoàn thành tốt", "Hoàn thành xuất sắc", "Xuất sắc tối đa", "Tỷ lệ xuất sắc / hoàn thành tốt (%)", "Kết luận"
         };
         for (var i = 0; i < headers.Length; i++)
         {
@@ -156,40 +158,46 @@ public partial class ReportService : IReportService
             cell.Style.Font.Bold = true;
             cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#E2E8F0");
             cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            cell.Style.Alignment.WrapText = true;
             cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
         }
 
         var row = 8;
         var stt = 1;
-        foreach (var c in cells)
+        foreach (var g in groups)
         {
-            var cellRecords = records.Where(r => r.Member?.PartyCellId == c.Id || r.PartyCellId == c.Id).ToList();
-            var total = cellRecords.Count > 0 ? cellRecords.Count : c.Members.Count;
-            var goodOrBetter = cellRecords.Count(IsGoodOrBetter);
-            var proposedExcellent = cellRecords.Count(IsProposedExcellent);
-            var maxAllowed = EvaluationScoring.ExcellentQuota(goodOrBetter, proposedExcellent, QuotaRule(activePeriod));
-            var actualPercent = goodOrBetter > 0 ? Math.Round((double)proposedExcellent / goodOrBetter * 100.0, 1) : 0.0;
-            var isExceeding = proposedExcellent > maxAllowed;
-
             ws.Cell(row, 1).Value = stt++;
-            ws.Cell(row, 2).Value = c.Name;
-            ws.Cell(row, 3).Value = total;
-            ws.Cell(row, 4).Value = goodOrBetter;
-            ws.Cell(row, 5).Value = maxAllowed;
-            ws.Cell(row, 6).Value = proposedExcellent;
-            ws.Cell(row, 7).Value = $"{actualPercent}%";
-            ws.Cell(row, 8).Value = isExceeding ? "Vượt trần" : "Trong giới hạn";
-            if (isExceeding)
+            ws.Cell(row, 2).Value = PositionRules.AuthorityName(g.Authority);
+            ws.Cell(row, 3).Value = g.StatCode ?? string.Empty;
+            ws.Cell(row, 4).Value = ExcellentQuotaCalculator.GroupName(g.StatCode);
+            ws.Cell(row, 5).Value = g.Total;
+            ws.Cell(row, 6).Value = g.Heads;
+            ws.Cell(row, 7).Value = g.Good;
+            ws.Cell(row, 8).Value = g.Excellent;
+            ws.Cell(row, 9).Value = g.MaxExcellent;
+            ws.Cell(row, 10).Value = g.ExcellentPercentOfGood is { } pct ? FormText.Number(pct, 1) + "%" : string.Empty;
+            ws.Cell(row, 11).Value = g.IsExceeding ? $"Vượt trần {g.Excess} người" : "Trong giới hạn";
+            if (g.IsExceeding)
             {
-                ws.Cell(row, 8).Style.Font.FontColor = XLColor.Red;
-                ws.Cell(row, 8).Style.Font.Bold = true;
+                ws.Cell(row, 11).Style.Font.FontColor = XLColor.Red;
+                ws.Cell(row, 11).Style.Font.Bold = true;
             }
-            for (var col = 1; col <= 8; col++)
+            ws.Cell(row, 4).Style.Alignment.WrapText = true;
+            for (var col = 1; col <= last; col++)
                 ws.Cell(row, col).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             row++;
         }
+        if (groups.Count == 0)
+            ws.Cell(row, 1).Value = "Kỳ chưa có hồ sơ trong phạm vi báo cáo.";
 
-        ws.Columns().AdjustToContents();
+        ws.Column(1).Width = 5;
+        ws.Column(2).Width = 26;
+        ws.Column(3).Width = 9;
+        ws.Column(4).Width = 50;
+        for (var c = 5; c <= 10; c++)
+            ws.Column(c).Width = 13;
+        ws.Column(11).Width = 18;
+        ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
         return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("BaoCaoNoiBo_KiemSoatTyLeXuatSac", activePeriod, scopeCell), format);
@@ -341,6 +349,8 @@ public partial class ReportService : IReportService
             .Select(r => (Record: r, Order: PositionRules.StatCodeOrder(statCodes.GetValueOrDefault(r.MemberId))))
             .ToList();
         var inForm = coded.Where(x => x.Order >= firstCode && x.Order <= lastCode).ToList();
+        // Cảnh báo vượt trần Xuất sắc ở cột "Ghi chú" của dòng mã chức danh (trần tính theo nhóm chức danh trong cấp quyết định).
+        var quotaGroups = await QuotaGroupsAsync(period, records);
 
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add($"Mẫu {formName}");
@@ -387,6 +397,12 @@ public partial class ReportService : IReportService
             ws.Cell(row, 9).Value = counts.NotRated;
             if (counts.ExcellentPercent is { } pct)
                 ws.Cell(row, 10).Value = FormText.Number(pct, 1) + "%";
+            if (code.Length > 0 && QuotaWarning(quotaGroups.Where(g => g.StatCode == code)) is { } warning)
+            {
+                ws.Cell(row, 11).Value = warning;
+                ws.Cell(row, 11).Style.Font.FontColor = XLColor.Red;
+                ws.Cell(row, 11).Style.Alignment.WrapText = true;
+            }
             var range = ws.Range(row, 1, row, last);
             range.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             range.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
@@ -541,6 +557,7 @@ public partial class ReportService : IReportService
             .OrderByDescending(m => m.StartedAt)
             .Select(m => (DateTime?)m.StartedAt)
             .FirstOrDefaultAsync();
+        var quotaGroups = await QuotaGroupsAsync(period, records);
 
         return new Form16DraftDto
         {
@@ -551,8 +568,10 @@ public partial class ReportService : IReportService
             Version = draft?.Version,
             UpdatedAt = draft?.UpdatedAt ?? draft?.CreatedAt,
             Content = ReadDraft(draft?.Content),
-            BaseRows = Summarize(records.Where(r => r.ApprovalAuthority == ApprovalAuthority.CoSo), statCodes),
-            SuperiorRows = Summarize(records.Where(r => r.ApprovalAuthority == ApprovalAuthority.CapTren), statCodes),
+            BaseRows = Summarize(records.Where(r => r.ApprovalAuthority == ApprovalAuthority.CoSo), statCodes,
+                quotaGroups.Where(g => g.Authority == ApprovalAuthority.CoSo).ToList()),
+            SuperiorRows = Summarize(records.Where(r => r.ApprovalAuthority == ApprovalAuthority.CapTren), statCodes,
+                quotaGroups.Where(g => g.Authority == ApprovalAuthority.CapTren).ToList()),
             SuggestedMeetingDate = latestDecision.HasValue ? CollectiveFormText.Date(latestDecision.Value) : null
         };
     }
@@ -731,8 +750,12 @@ public partial class ReportService : IReportService
 
     #region Mẫu 16 — số liệu tổng hợp
 
-    /// <summary>Số liệu Mẫu 16 theo nhóm chức danh (mã thống kê); dòng cuối "Tổng cộng".</summary>
-    private static List<Form16SummaryRowDto> Summarize(IEnumerable<EvaluationRecord> records, IReadOnlyDictionary<Guid, string?> statCodes)
+    /// <summary>
+    /// Số liệu Mẫu 16 theo nhóm chức danh (mã thống kê) của một cấp quyết định; dòng cuối "Tổng cộng". Mỗi dòng mã kèm trần
+    /// Xuất sắc của nhóm (<paramref name="quotaGroups"/> — cùng cấp quyết định) để cảnh báo khi xem trước.
+    /// </summary>
+    private static List<Form16SummaryRowDto> Summarize(IEnumerable<EvaluationRecord> records, IReadOnlyDictionary<Guid, string?> statCodes,
+        IReadOnlyCollection<ExcellentQuotaGroup> quotaGroups)
     {
         var list = records.ToList();
         var rows = list
@@ -740,13 +763,14 @@ public partial class ReportService : IReportService
             .OrderBy(g => PositionRules.StatCodeOrder(g.Key) ?? int.MaxValue)
             .Select(g => ToSummaryRow(g.Key, g.Key == null
                 ? Hd03FormCatalog.NoStatCodeSubject
-                : Hd03FormCatalog.StatCodeSubjects.GetValueOrDefault(g.Key) ?? g.Key, g.ToList()))
+                : Hd03FormCatalog.StatCodeSubjects.GetValueOrDefault(g.Key) ?? g.Key, g.ToList(),
+                quotaGroups.FirstOrDefault(q => PositionRules.StatCodeOrder(q.StatCode) == PositionRules.StatCodeOrder(g.Key))))
             .ToList();
-        rows.Add(ToSummaryRow(null, "Tổng cộng", list));
+        rows.Add(ToSummaryRow(null, "Tổng cộng", list, null));
         return rows;
     }
 
-    private static Form16SummaryRowDto ToSummaryRow(string? code, string subject, IReadOnlyCollection<EvaluationRecord> group)
+    private static Form16SummaryRowDto ToSummaryRow(string? code, string subject, IReadOnlyCollection<EvaluationRecord> group, ExcellentQuotaGroup? quota)
     {
         var c = CountGrades(group);
         return new Form16SummaryRowDto
@@ -759,7 +783,9 @@ public partial class ReportService : IReportService
             Satisfactory = c.Satisfactory,
             Unsatisfactory = c.Unsatisfactory,
             NotRated = c.NotRated,
-            ExcellentPercent = c.ExcellentPercent
+            ExcellentPercent = c.ExcellentPercent,
+            MaxExcellentAllowed = quota?.MaxExcellent,
+            IsExceedingQuota = quota?.IsExceeding ?? false
         };
     }
 
@@ -847,13 +873,28 @@ public partial class ReportService : IReportService
     /// <summary>
     /// Thời điểm xét chức vụ đang hiệu lực cho báo cáo của kỳ: cuối kỳ nếu kỳ đã kết thúc, ngược lại hiện tại.
     /// </summary>
-    private static DateTime PositionDate(EvaluationPeriod? period)
+    private static DateTime PositionDate(EvaluationPeriod? period) => ExcellentQuotaCalculator.PositionDate(period, DateTime.UtcNow);
+
+    /// <summary>
+    /// Trần Hoàn thành xuất sắc theo nhóm chức danh trong từng cấp quyết định trên các hồ sơ của phạm vi báo cáo
+    /// (<see cref="ExcellentQuotaCalculator"/>); mã chức danh và người đứng đầu theo chức vụ đang giữ tại thời điểm xét của kỳ.
+    /// </summary>
+    private async Task<List<ExcellentQuotaGroup>> QuotaGroupsAsync(EvaluationPeriod? period, IReadOnlyCollection<EvaluationRecord> records)
     {
-        var now = DateTime.UtcNow;
-        if (period == null || period.EndDate == default)
-            return now;
-        var end = DateTime.SpecifyKind(period.EndDate, DateTimeKind.Utc);
-        return end < now ? end : now;
+        var held = await HeldPositionsAsync(records.Select(r => r.MemberId), PositionDate(period));
+        return ExcellentQuotaCalculator.Compute(
+            records.Select(r => ExcellentQuotaCalculator.EntryFor(r,
+                held.TryGetValue(r.MemberId, out var positions) ? positions.Select(PositionRules.Held).ToList() : null)),
+            QuotaRule(period).EffectiveRatio);
+    }
+
+    /// <summary>Chữ cảnh báo vượt trần của một mã chức danh (gộp các cấp quyết định); null nếu không vượt.</summary>
+    private static string? QuotaWarning(IEnumerable<ExcellentQuotaGroup> groups)
+    {
+        var list = groups.ToList();
+        return list.Any(g => g.IsExceeding)
+            ? $"Vượt trần Xuất sắc (tối đa {list.Sum(g => g.MaxExcellent).ToString(CultureInfo.InvariantCulture)})"
+            : null;
     }
 
     /// <summary>Chức vụ đang hiệu lực của các cán bộ (kèm chức vụ trong danh mục; chức danh qua <see cref="PositionRules.DisplayName(MemberPosition)"/>).</summary>
@@ -937,9 +978,11 @@ public partial class ReportService : IReportService
             : new List<EvaluationRecord>();
         if (cell != null)
         {
+            // Tổ chức Đảng của hồ sơ theo ảnh chụp trên hồ sơ; chỉ hồ sơ cũ chưa có ảnh chụp mới dùng nơi sinh hoạt của cán bộ.
             var cellIds = (await SubtreeCellIdsAsync(cell))!;
-            records = records.Where(r => (r.PartyCellId.HasValue && cellIds.Contains(r.PartyCellId.Value))
-                || (r.Member?.PartyCellId is { } memberCell && cellIds.Contains(memberCell))).ToList();
+            records = records.Where(r => r.PartyCellId is { } recordCell
+                ? cellIds.Contains(recordCell)
+                : r.Member?.PartyCellId is { } memberCell && cellIds.Contains(memberCell)).ToList();
         }
 
         return (period, records, cell);
@@ -1003,17 +1046,6 @@ public partial class ReportService : IReportService
     /// <summary>Quy tắc trần tỷ lệ Hoàn thành xuất sắc theo bộ tiêu chí của kỳ (kỳ chưa chọn bộ → mặc định của bộ tiêu chí).</summary>
     private static ExcellentQuotaRule QuotaRule(EvaluationPeriod? period) =>
         (EvaluationMapping.SafeCriteria(period)?.Content.Parameters ?? new CriteriaParameters()).ExcellentQuota;
-
-    private static bool IsGoodOrBetter(EvaluationRecord record) =>
-        IsGrade(record.AppraisalProposedGrade, EvaluationGrade.HoanThanhTot) ||
-        IsGrade(record.CollectiveProposedGrade, EvaluationGrade.HoanThanhTot);
-
-    private static bool IsProposedExcellent(EvaluationRecord record) =>
-        record.AppraisalProposedGrade == EvaluationGrade.HoanThanhXuatSac ||
-        (record.AppraisalProposedGrade == EvaluationGrade.ChuaXepLoai && record.CollectiveProposedGrade == EvaluationGrade.HoanThanhXuatSac);
-
-    private static bool IsGrade(EvaluationGrade grade, EvaluationGrade minimum) =>
-        grade == EvaluationGrade.HoanThanhXuatSac || grade == minimum;
 
     #endregion
 
