@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useLayoutEffect, useState, Suspense } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -17,6 +17,12 @@ function safeReturnUrl(value: string | null): string {
   return value;
 }
 
+const SUCCESS_DELAY_MS = 600;
+
+function prefersReducedMotion() {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 function LoginForm() {
   const { login } = useAuth();
   const { toast } = useToast();
@@ -24,29 +30,48 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = safeReturnUrl(searchParams.get("returnUrl"));
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [succeeded, setSucceeded] = useState(false);
+  const [shaking, setShaking] = useState(false);
+  const [entered, setEntered] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      await login(username.trim(), password);
-      router.replace(returnUrl);
+      const session = await login(username.trim(), password);
+      // Phải đổi mật khẩu: AuthGuard tự chuyển sang trang đổi mật khẩu.
+      if (session.mustChangePassword) return;
+      setSucceeded(true);
+      setTimeout(() => router.replace(returnUrl), prefersReducedMotion() ? 0 : SUCCESS_DELAY_MS);
     } catch (err: unknown) {
       toast.error(errorMessage(err, "Tên đăng nhập hoặc mật khẩu không chính xác."), "Đăng nhập không thành công");
+      setPassword("");
+      setShaking(true);
+      passwordRef.current?.focus();
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Gỡ lớp hiệu ứng khi chạy xong để lắc báo lỗi không phát lại hiệu ứng vào trang.
+  const handleAnimationEnd = (e: React.AnimationEvent) => {
+    if (e.animationName.includes("cardIn")) setEntered(true);
+    if (e.animationName.includes("shake")) setShaking(false);
+  };
+
   const footer = org ? [org.companyName, org.parentCompanyName].filter(Boolean).join(" · ") : "";
+  const cardClass = [styles.card, entered ? "" : styles.enter, shaking ? styles.shake : "", succeeded ? styles.leave : ""]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div className={styles.card}>
+    <div className={cardClass} onAnimationEnd={handleAnimationEnd}>
       <AuthBrand title="Đăng nhập" />
 
       <form onSubmit={handleSubmit} className={styles.form}>
@@ -68,6 +93,7 @@ function LoginForm() {
         <div>
           <label className="form-label" htmlFor="login-password">Mật khẩu</label>
           <input
+            ref={passwordRef}
             id="login-password"
             type="password"
             required
@@ -85,9 +111,15 @@ function LoginForm() {
           </label>
         </div>
 
-        <Button type="submit" variant="primary" loading={isSubmitting} loadingText="Đang xác thực..." className={styles.submit}>
-          Đăng nhập
-        </Button>
+        {succeeded ? (
+          <Button type="button" variant="success" disabled className={`${styles.submit} ${styles.done}`}>
+            Đăng nhập thành công
+          </Button>
+        ) : (
+          <Button type="submit" variant="primary" loading={isSubmitting} loadingText="Đang xác thực..." className={styles.submit}>
+            Đăng nhập
+          </Button>
+        )}
       </form>
 
       {footer && <div className={styles.foot}>{footer}</div>}

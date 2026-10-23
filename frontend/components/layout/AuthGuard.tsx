@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { LayoutProvider } from "@/contexts/LayoutContext";
@@ -15,6 +15,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   const isLoginPage = pathname === "/login";
   const isChangePasswordPage = pathname === "/change-password";
+  // Có phiên sẵn lúc mở trang đăng nhập thì chuyển đi; đăng nhập xong thì để trang đăng nhập tự chuyển sau hiệu ứng.
+  const hadSessionOnLoginEntry = useRef<boolean | null>(null);
 
   // Sự kiện hết hạn phiên do apiClient phát.
   useEffect(() => {
@@ -33,12 +35,17 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [logout, pathname, router, isLoginPage]);
 
   useEffect(() => {
+    if (!isLoginPage) hadSessionOnLoginEntry.current = null;
+  }, [isLoginPage]);
+
+  useEffect(() => {
     if (!loading) {
+      if (isLoginPage && hadSessionOnLoginEntry.current === null) hadSessionOnLoginEntry.current = !!user;
       if (!user && !isLoginPage) {
         router.replace(`/login?returnUrl=${encodeURIComponent(pathname)}`);
       } else if (user?.mustChangePassword && !isChangePasswordPage) {
         router.replace("/change-password");
-      } else if (user && isLoginPage) {
+      } else if (user && isLoginPage && hadSessionOnLoginEntry.current) {
         router.replace("/evaluations");
       }
     }
