@@ -98,6 +98,11 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
         "B3C_DIRECTOR":    { "mode": "Internal", "permission": "evaluation.director.review", "deadline": "2026-12-14" },
         "B4_DECISION":     { "mode": "Internal", "permission": "evaluation.decide", "deadline": "2026-12-14" },
         "B5_PUBLISH":      { "mode": "Internal", "permission": "evaluation.publish", "deadline": null }
+      },
+      "gates": {
+        "CROSSCHECK":  { "mode": "Optional" },
+        "CALIBRATION": { "mode": "Required" },
+        "CONTROL":     { "mode": "Required" }
       }
     },
     { "code": "cap-tren", "name": "Diện BTV Đảng ủy Tổng công ty", "steps": { "B3B_APPRAISAL": { "mode": "External" }, "…": "…" } }
@@ -106,11 +111,13 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
   "enforceDeadlines": false
 }
 ```
-- `profiles[].steps[].mode`: `Internal` | `External` | `Off` (mục 1.1). `permission` chỉ có nghĩa khi `Internal` và bước không phải của chủ hồ sơ; bỏ trống → quyền mặc định của bước. Máy chủ kiểm tra mã quyền thuộc danh mục (module `evaluation`, trừ `self`, `read`, `reopen`).
+- `profiles[].steps[].mode`: `Internal` | `External` | `Off` (mục 1.1). `permission` chỉ có nghĩa khi `Internal` và bước không phải của chủ hồ sơ; bỏ trống → quyền mặc định của bước. Máy chủ kiểm tra mã quyền thuộc danh mục (module `evaluation`, trừ `self`, `read`, `reopen` và 7 quyền phiếu Mẫu 03, 19, 20).
+- `profiles[].gates` (từ schema 3): cổng kiểm soát quanh bước quyết định, khóa = mã cổng (`WorkflowGates`). `CALIBRATION` (biên bản hiệu chuẩn Mẫu 20) và `CONTROL` (phiếu kiểm soát Mẫu 19): `Required` (chặn hành động B4 cho tới khi cổng được đáp ứng) | `Recorded` (không chặn, chỉ cảnh báo và ghi nhận thiếu) | `Off`. `CROSSCHECK` (đối soát chuyên ngành Mẫu 03): `Optional` | `Off`. Cổng thiếu được điền mặc định theo chế độ bước `B4_DECISION` của hồ sơ luồng: `Required` khi bước làm trong hệ thống, `Recorded` khi cấp trên thực hiện (`CROSSCHECK` luôn `Optional`). Mã cổng lạ hoặc chế độ không thuộc tập cho phép của cổng bị từ chối khi lưu. Cùng quy tắc với cấu hình bước: chỉ đổi được khi kỳ `Draft` (kỳ `Open`/`Locked` chỉ sửa được thời hạn). Hiện cấu hình chưa chặn hành động nào; việc chặn thực hiện ở các task cổng B4.
 - `defaultProfiles`: hồ sơ luồng gán khi thêm người vào kỳ, theo `ApprovalAuthority` ảnh chụp (`CoSo`, `CapTren` — cả hai bắt buộc).
 - `deadline` theo từng bước **của từng hồ sơ luồng**: hiển thị và cảnh báo; chỉ chặn khi `enforceDeadlines = true`.
 - **Quy tắc điền thời hạn:** mỗi bước có thể kèm `rule` = `{ "kind": "WorkingDayOfQuarter" | "BeforeDayOfLastMonth" | "DayOfLastMonth" | "WorkingDaysBeforeQuarter", "value": N }` ("ngày làm việc thứ N đầu quý" / "trước ngày D tháng cuối quý" = ngày làm việc cuối cùng trước ngày D / "ngày D tháng cuối quý", rơi vào ngày nghỉ thì dời sang ngày làm việc kế tiếp / "N ngày làm việc trước đầu quý") và danh mục **Ngày nghỉ** chung (bảng `holidays`, API `/api/holidays`, quản trị ở Danh mục → Ngày nghỉ, quyền `catalog.manage`; thứ Bảy, Chủ nhật đã loại sẵn). Quy tắc chỉ là công cụ điền ngày: khi tạo kỳ máy chủ điền sẵn `deadline` theo quy tắc mặc định; `PUT` kỳ kèm `applyDeadlineRules = true` thì máy chủ ghi `deadline` cho các bước có quy tắc (`PeriodSettings.ApplyDeadlineRules`); mọi lúc khác `deadline` chỉ là dữ liệu, sửa tự do, không bị tính lại ngầm. Quy tắc mặc định theo HD03 mục V.2 (`PeriodSettings.Default`): đăng ký, duyệt sản phẩm — ngày làm việc thứ 5 đầu quý; tự chấm, Chi bộ xác nhận — trước ngày 12; tập thể — trước ngày 12 (diện cơ sở) / 15 (diện cấp trên, Phó Giám đốc); thẩm định — trước ngày 14 / 16; nhận xét — trước ngày 15 (diện cấp trên: 20); quyết định — trước ngày 15 / 20; công bố không có hạn. Kỳ đã mở vẫn sửa được `rule` và `deadline`.
 - Cấu hình kỳ không có `parameters` (task 16): mọi hằng số nghiệp vụ thuộc **bộ tiêu chí** của kỳ (mục 3.5). Khóa cũ trong JSON bị bỏ qua khi đọc. Điểm tính trên danh mục sản phẩm đăng ký nên `B1_REGISTER` luôn áp dụng ở mọi hồ sơ luồng (`WorkflowSteps.Mandatory`, cùng `B2_SELF_SCORE`, `B4_DECISION`, `B5_PUBLISH`); `B1_APPROVE` tùy chọn chế độ. Đổi bộ tiêu chí không làm đổi cấu hình kỳ.
+- Đọc được cấu hình schema 2 (chưa có `gates`): khi đọc được nâng lên schema 3 và điền cổng mặc định, không cần migration dữ liệu.
 - Cấu hình **cũ** (schema 1, bước cấp kỳ) không còn được hỗ trợ (chưa có CSDL cần giữ — người điều phối sinh lại `InitialCreate`).
 - Kỳ `Draft`: sửa mọi thứ (thêm/sửa/xóa hồ sơ luồng — không xóa được hồ sơ luồng đang được hồ sơ đánh giá dùng, 409). Kỳ `Open`/`Locked`: chỉ sửa thời hạn.
 

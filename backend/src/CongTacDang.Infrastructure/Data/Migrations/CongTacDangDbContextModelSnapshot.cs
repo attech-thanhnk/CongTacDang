@@ -617,6 +617,46 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.ToTable("evaluation_external_results", (string)null);
                 });
 
+            modelBuilder.Entity("CongTacDang.Domain.Entities.EvaluationFormHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Action")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ByUserName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("FormId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("FormType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Snapshot")
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FormType", "FormId", "At");
+
+                    b.ToTable("evaluation_form_history", (string)null);
+                });
+
             modelBuilder.Entity("CongTacDang.Domain.Entities.EvaluationMeeting", b =>
                 {
                     b.Property<Guid>("Id")

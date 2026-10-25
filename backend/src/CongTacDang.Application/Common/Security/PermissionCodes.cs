@@ -104,6 +104,38 @@ public static class PermissionCodes
 
     #endregion
 
+    #region Đối soát, hiệu chuẩn, kiểm soát
+
+    /// <summary>Mẫu 03: yêu cầu đối soát trên hồ sơ; không áp dụng khi là chủ hồ sơ.</summary>
+    public const string EvaluationCrosscheckRequest = "evaluation.crosscheck.request";
+
+    /// <summary>Mẫu 03: phạm vi kiểm tra là đơn vị đối soát của phiếu.</summary>
+    public const string EvaluationCrosscheckRespond = "evaluation.crosscheck.respond";
+
+    /// <summary>Mẫu 03: phạm vi kiểm tra là đơn vị đối soát của phiếu; khác người lập.</summary>
+    public const string EvaluationCrosscheckConfirm = "evaluation.crosscheck.confirm";
+
+    /// <summary>Mẫu 20: kiểm tra trên từng hồ sơ trong biên bản.</summary>
+    public const string EvaluationCalibrationManage = "evaluation.calibration.manage";
+
+    /// <summary>Mẫu 20: khác người lập biên bản.</summary>
+    public const string EvaluationCalibrationConclude = "evaluation.calibration.conclude";
+
+    /// <summary>Mẫu 19: kiểm tra trên từng hồ sơ trong phiếu.</summary>
+    public const string EvaluationControlPerform = "evaluation.control.perform";
+
+    /// <summary>Mẫu 19: khác người lập phiếu.</summary>
+    public const string EvaluationControlConfirm = "evaluation.control.confirm";
+
+    /// <summary>Không dùng làm quyền thực hiện bước của hồ sơ luồng.</summary>
+    public static readonly IReadOnlySet<string> FormPermissions = new HashSet<string>(StringComparer.Ordinal)
+    {
+        EvaluationCrosscheckRequest, EvaluationCrosscheckRespond, EvaluationCrosscheckConfirm,
+        EvaluationCalibrationManage, EvaluationCalibrationConclude, EvaluationControlPerform, EvaluationControlConfirm
+    };
+
+    #endregion
+
     #region Tập thể, hội nghị, báo cáo
 
     /// <summary>Mẫu 06–08.</summary>
@@ -149,6 +181,13 @@ public static class PermissionCodes
         new(EvaluationAppealSubmit, "Gửi kiến nghị về kết quả", "evaluation", "Gửi kiến nghị xem xét lại kết quả đã công bố, kèm tệp minh chứng — chỉ trên hồ sơ của mình (phạm vi gán được bỏ qua).", true),
         new(EvaluationAppealResolve, "Xử lý kiến nghị về kết quả", "evaluation", "Xem xét, trả lời (bắt buộc nêu căn cứ) kiến nghị sau công bố trong phạm vi được gán; không xử lý kiến nghị của mình hoặc kiến nghị liên quan tới bước mình đã thực hiện.", true),
         new(EvaluationImprovementManage, "Lập kế hoạch khắc phục 30-60-90 ngày", "evaluation", "Lập, duyệt và ghi kết quả từng mốc của kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17) cho cán bộ trong phạm vi được gán; không áp dụng trên hồ sơ của mình.", true),
+        new(EvaluationCrosscheckRequest, "Yêu cầu đối soát chuyên ngành (Mẫu 03)", "evaluation", "Yêu cầu cơ quan chuyên môn đối soát dữ liệu tự khai của cán bộ trong phạm vi được gán, nhập các dòng cần đối soát, hủy yêu cầu (nêu lý do); không áp dụng trên hồ sơ của mình.", true),
+        new(EvaluationCrosscheckRespond, "Lập phiếu đối soát chuyên ngành", "evaluation", "Cơ quan chuyên môn điền kết quả đối soát với dữ liệu gốc, đề xuất tăng/giảm điểm kèm căn cứ; phạm vi gán là đơn vị đối soát. Không cần quyền xem hồ sơ đánh giá.", true),
+        new(EvaluationCrosscheckConfirm, "Xác nhận phiếu đối soát chuyên ngành", "evaluation", "Lãnh đạo cơ quan chuyên môn xác nhận hoặc trả lại phiếu đối soát; phạm vi gán là đơn vị đối soát; khác người lập phiếu.", true),
+        new(EvaluationCalibrationManage, "Lập biên bản hiệu chuẩn (Mẫu 20)", "evaluation", "Tạo biên bản hiệu chuẩn cho nhóm hồ sơ tương đồng, nhập thành phần, trường hợp thảo luận; kiểm tra trên từng hồ sơ trong biên bản, không áp dụng trên hồ sơ của mình.", true),
+        new(EvaluationCalibrationConclude, "Chốt biên bản hiệu chuẩn", "evaluation", "Chốt hoặc mở lại biên bản hiệu chuẩn (bắt buộc ghi lý do khi mở lại); khác người lập biên bản.", true),
+        new(EvaluationControlPerform, "Lập phiếu kiểm soát (Mẫu 19)", "evaluation", "Lập phiếu kiểm soát tính hợp lệ, công bằng và nhất quán trước khi trình phê duyệt; kiểm tra trên từng hồ sơ trong phiếu, không áp dụng trên hồ sơ của mình.", true),
+        new(EvaluationControlConfirm, "Xác nhận phiếu kiểm soát", "evaluation", "Xác nhận hoặc trả lại phiếu kiểm soát; khác người lập phiếu.", true),
         new(CollectiveManage, "Lập hồ sơ tự đánh giá tập thể", "collective", "Lập hồ sơ tự đánh giá của tập thể (Mẫu 06–08).", true),
         new(MeetingRead, "Xem biên bản hội nghị", "meeting", "Xem biên bản hội nghị, biên bản kiểm phiếu (Mẫu 12–13).", true),
         new(MeetingManage, "Lập biên bản hội nghị", "meeting", "Lập biên bản hội nghị, biên bản kiểm phiếu.", true),

@@ -210,7 +210,7 @@ public sealed class WorkflowProfileUnitTests
     public void Json_RoundTrip_ModeAsString_EmptyMeansDefault()
     {
         var json = PeriodSettings.Default().ToJson();
-        Assert.Contains("\"schemaVersion\":2", json);
+        Assert.Contains("\"schemaVersion\":3", json);
         Assert.Contains("\"mode\":\"External\"", json);
         Assert.Contains("\"mode\":\"Off\"", json);
         Assert.Contains("\"defaultProfiles\":{\"CoSo\":\"co-so\",\"CapTren\":\"cap-tren\"}", json);
@@ -221,7 +221,7 @@ public sealed class WorkflowProfileUnitTests
 
         // Bước thiếu được bổ sung (nội bộ, quyền mặc định); khóa bước, khóa cấp quyết định không phân biệt hoa thường.
         var partial = PeriodSettings.Parse(
-            "{\"schemaVersion\":2,\"profiles\":[{\"code\":\"A\",\"name\":\"Nhóm A\",\"steps\":{\"b1_register\":{\"deadline\":\"2026-10-05\"},"
+            "{\"schemaVersion\":3,\"profiles\":[{\"code\":\"A\",\"name\":\"Nhóm A\",\"steps\":{\"b1_register\":{\"deadline\":\"2026-10-05\"},"
             + "\"b1_approve\":{\"mode\":\"Off\"}}}],\"defaultProfiles\":{\"coso\":\"a\",\"CAPTREN\":\"A\"}}");
         var a = partial.FindProfile("a")!;
         Assert.Equal(9, a.Steps.Count);

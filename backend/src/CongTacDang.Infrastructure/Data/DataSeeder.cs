@@ -54,6 +54,7 @@ public static class DataSeeder
         public const string DirectSupervisor = "CAP_TRUC_TIEP_SU_DUNG";
         public const string PartyCommitteeMember = "CAP_UY_VIEN";
         public const string PartyOffice = "VAN_PHONG_DANG_UY";
+        public const string ExpertAgency = "CO_QUAN_CHUYEN_MON_DOI_SOAT";
         public const string Administrator = "QUAN_TRI_HE_THONG";
     }
 
@@ -77,7 +78,8 @@ public static class DataSeeder
             new[]
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationAppraise, PermissionCodes.PeriodManage,
-                PermissionCodes.CriteriaManage, PermissionCodes.ReportExport, PermissionCodes.SystemUsersRead
+                PermissionCodes.CriteriaManage, PermissionCodes.ReportExport, PermissionCodes.SystemUsersRead,
+                PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCalibrationManage, PermissionCodes.EvaluationControlPerform
             }),
         new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Nhận xét, đề xuất mức; lập kế hoạch 30-60-90 ngày (Mẫu 17).",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport, PermissionCodes.EvaluationImprovementManage }),
@@ -88,8 +90,11 @@ public static class DataSeeder
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationExternalRecord,
                 PermissionCodes.EvaluationPublish, PermissionCodes.EvaluationReopen, PermissionCodes.MeetingRead,
-                PermissionCodes.MeetingManage, PermissionCodes.ReportExport, PermissionCodes.EvaluationAppealResolve
+                PermissionCodes.MeetingManage, PermissionCodes.ReportExport, PermissionCodes.EvaluationAppealResolve,
+                PermissionCodes.EvaluationControlConfirm, PermissionCodes.EvaluationCalibrationConclude
             }),
+        new(RoleCodes.ExpertAgency, "Cơ quan chuyên môn đối soát", "Lập và xác nhận phiếu đối soát dữ liệu chuyên ngành gửi tới đơn vị mình; gán theo đơn vị của từng Ban.",
+            new[] { PermissionCodes.EvaluationCrosscheckRespond, PermissionCodes.EvaluationCrosscheckConfirm }),
         new(RoleCodes.Administrator, "Quản trị hệ thống", "Quản trị kỹ thuật: tài khoản, vai trò, gán vai trò, nhật ký, danh mục, thông tin đơn vị, file mẫu biểu mẫu Word. "
             + "Không xem nội dung đánh giá (Mẫu 18).",
             AdministratorPermissionCodes, IsProtected: true)

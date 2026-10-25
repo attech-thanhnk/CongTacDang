@@ -40,6 +40,7 @@ namespace CongTacDang.Infrastructure.Data
         public DbSet<EvaluationRecord> EvaluationRecords => Set<EvaluationRecord>();
         public DbSet<EvaluationTask> EvaluationTasks => Set<EvaluationTask>();
         public DbSet<EvaluationRecordHistory> EvaluationRecordHistories => Set<EvaluationRecordHistory>();
+        public DbSet<EvaluationFormHistory> EvaluationFormHistories => Set<EvaluationFormHistory>();
         public DbSet<CollectiveEvaluationRecord> CollectiveEvaluationRecords => Set<CollectiveEvaluationRecord>();
         public DbSet<CollectiveEvaluationItem> CollectiveEvaluationItems => Set<CollectiveEvaluationItem>();
         public DbSet<EvaluationMeeting> EvaluationMeetings => Set<EvaluationMeeting>();
@@ -179,7 +180,7 @@ namespace CongTacDang.Infrastructure.Data
 
             foreach (var entry in ChangeTracker.Entries().ToList())
             {
-                if (entry.Entity is AuditLog || entry.Entity is EvaluationRecordHistory)
+                if (entry.Entity is AuditLog || entry.Entity is EvaluationRecordHistory || entry.Entity is EvaluationFormHistory)
                     continue;
 
                 if (entry.Entity is ISoftDeletable softDelete && entry.State == EntityState.Deleted)

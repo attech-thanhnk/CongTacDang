@@ -82,6 +82,15 @@ public sealed class WorkflowProfile
     public Dictionary<string, ProfileStepSetting> Steps { get; set; } =
         WorkflowSteps.Ordered.ToDictionary(WorkflowSteps.Code, s => new ProfileStepSetting { Permission = WorkflowPermissions.DefaultFor(s) });
 
+    /// <summary>Khóa = mã cổng (<see cref="WorkflowGates"/>); cổng thiếu lấy mặc định theo chế độ bước quyết định.</summary>
+    public Dictionary<string, GateSetting> Gates { get; set; } = new(StringComparer.Ordinal);
+
+    /// <summary>Cổng chưa cấu hình trả mặc định theo chế độ bước quyết định.</summary>
+    public GateMode GateModeOf(string gate) =>
+        Gates != null && Gates.TryGetValue(gate, out var setting) && setting != null
+            ? setting.Mode
+            : WorkflowGates.DefaultMode(gate, Mode(WorkflowStep.B4_DECISION));
+
     /// <summary>Thiếu thì trả mặc định: nội bộ, quyền mặc định.</summary>
     public ProfileStepSetting Step(WorkflowStep step) =>
         Steps.TryGetValue(WorkflowSteps.Code(step), out var setting) && setting != null
@@ -155,6 +164,17 @@ public sealed class WorkflowProfile
             steps.TryAdd(key, value);
 
         Steps = steps;
+
+        // Mã cổng lạ giữ nguyên để Validate báo lỗi; cổng thiếu được điền mặc định để đọc được cấu hình cũ chưa có cổng.
+        var gates = new Dictionary<string, GateSetting>(StringComparer.Ordinal);
+        foreach (var (key, value) in Gates ?? new Dictionary<string, GateSetting>())
+            gates.TryAdd(key?.Trim().ToUpperInvariant() ?? string.Empty, value ?? new GateSetting());
+        foreach (var gate in WorkflowGates.Ordered)
+        {
+            if (!gates.ContainsKey(gate))
+                gates[gate] = new GateSetting { Mode = WorkflowGates.DefaultMode(gate, Mode(WorkflowStep.B4_DECISION)) };
+        }
+        Gates = gates;
         return this;
     }
 
@@ -180,8 +200,11 @@ public sealed class WorkflowProfile
 /// tham số chấm điểm thuộc bộ tiêu chí của kỳ (<see cref="CriteriaSnapshot"/>).</summary>
 public sealed class PeriodSettings
 {
-    /// <summary>Bản 1 (theo bước cấp kỳ) không còn được hỗ trợ.</summary>
-    public const int CurrentSchemaVersion = 2;
+    /// <summary>Bản 1 (theo bước cấp kỳ) không còn được hỗ trợ; bản 2 (chưa có cổng) được đọc rồi nâng lên bản 3.</summary>
+    public const int CurrentSchemaVersion = 3;
+
+    /// <summary>Bản cũ nhất còn đọc được.</summary>
+    public const int MinSchemaVersion = 2;
 
     public const int MaxProfiles = 20;
 
@@ -330,6 +353,9 @@ public sealed class PeriodSettings
     /// <summary>Hồ sơ luồng đủ 9 bước, khóa cấp quyết định đúng tên.</summary>
     public PeriodSettings Normalize()
     {
+        if (SchemaVersion >= MinSchemaVersion && SchemaVersion < CurrentSchemaVersion)
+            SchemaVersion = CurrentSchemaVersion;
+
         Profiles = (Profiles ?? new List<WorkflowProfile>()).Where(p => p != null).Select(p => p.Normalize()).ToList();
 
         var defaults = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -382,7 +408,7 @@ public sealed class PeriodSettings
     {
         var errors = new List<string>();
         if (SchemaVersion != CurrentSchemaVersion)
-            errors.Add($"Phiên bản cấu hình {SchemaVersion} không được hỗ trợ (chỉ hỗ trợ phiên bản {CurrentSchemaVersion} — cấu hình theo cách xét duyệt).");
+            errors.Add($"Phiên bản cấu hình {SchemaVersion} không được hỗ trợ (chỉ hỗ trợ phiên bản {MinSchemaVersion} trở lên — cấu hình theo cách xét duyệt).");
 
         var profiles = Profiles ?? new List<WorkflowProfile>();
         if (profiles.Count == 0)
@@ -447,6 +473,14 @@ public sealed class PeriodSettings
             if (setting.Mode == StepMode.Internal && !WorkflowSteps.OwnerSteps.Contains(step) && isAllowedPermission != null
                 && (string.IsNullOrWhiteSpace(setting.Permission) || !isAllowedPermission(setting.Permission)))
                 yield return $"Cách xét duyệt \"{label}\": quyền thực hiện bước \"{name}\" (\"{setting.Permission}\") không hợp lệ — hãy chọn một quyền đánh giá trong danh mục quyền.";
+        }
+
+        foreach (var (gate, gateSetting) in profile.Gates ?? new Dictionary<string, GateSetting>())
+        {
+            if (!WorkflowGates.IsKnown(gate))
+                yield return $"Cách xét duyệt \"{label}\": mã cổng \"{gate}\" không tồn tại.";
+            else if (gateSetting == null || !Enum.IsDefined(gateSetting.Mode) || !WorkflowGates.IsAllowed(gate, gateSetting.Mode))
+                yield return $"Cách xét duyệt \"{label}\": chế độ của cổng \"{WorkflowGates.DisplayName(gate)}\" không hợp lệ.";
         }
 
         if (profile.IsActive(WorkflowStep.B1_APPROVE) && !profile.IsActive(WorkflowStep.B1_REGISTER))

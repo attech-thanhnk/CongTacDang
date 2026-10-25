@@ -261,3 +261,18 @@ public sealed class EvaluationMeetingVoteSummaryConfiguration : IEntityTypeConfi
         entity.HasQueryFilter(e => !e.Meeting.IsDeleted);
     }
 }
+
+public sealed class EvaluationFormHistoryConfiguration : IEntityTypeConfiguration<EvaluationFormHistory>
+{
+    public void Configure(EntityTypeBuilder<EvaluationFormHistory> entity)
+    {
+        entity.ToTable("evaluation_form_history");
+        entity.HasKey(e => e.Id);
+        entity.HasIndex(e => new { e.FormType, e.FormId, e.At });
+        entity.Property(e => e.FormType).HasConversion<int>();
+        entity.Property(e => e.Action).HasConversion<int>();
+        entity.Property(e => e.ByUserName).HasMaxLength(200).IsRequired();
+        entity.Property(e => e.Reason).HasMaxLength(2000);
+        entity.Property(e => e.Snapshot).HasColumnType("jsonb");
+    }
+}

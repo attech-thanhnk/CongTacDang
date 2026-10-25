@@ -173,7 +173,8 @@ public static class WorkflowActions
     /// <summary>Không gồm quyền của bước chủ hồ sơ.</summary>
     public static bool IsAssignableStepPermission(string code) =>
         PermissionCodes.Find(code) is { Module: "evaluation" } definition
-        && definition.Code is not (PermissionCodes.EvaluationSelf or PermissionCodes.EvaluationRead or PermissionCodes.EvaluationReopen);
+        && definition.Code is not (PermissionCodes.EvaluationSelf or PermissionCodes.EvaluationRead or PermissionCodes.EvaluationReopen)
+        && !PermissionCodes.FormPermissions.Contains(definition.Code);
 
     /// <summary>Theo thứ tự danh mục.</summary>
     public static IReadOnlyList<PermissionDefinition> AssignableStepPermissions() =>
