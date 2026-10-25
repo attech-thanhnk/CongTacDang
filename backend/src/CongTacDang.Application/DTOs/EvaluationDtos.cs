@@ -194,6 +194,18 @@ public class EvaluationRecordDto
     public string? DirectorReviewedByName { get; set; }
     public DateTime? DirectorReviewedAt { get; set; }
 
+    // Hiệu chuẩn (Mẫu 20)
+    /// <summary>Điểm sau hiệu chuẩn; null = chưa hiệu chuẩn.</summary>
+    public double? CalibratedScore { get; set; }
+    /// <summary>Mức sau hiệu chuẩn; rỗng = chưa hiệu chuẩn.</summary>
+    public string CalibratedGrade { get; set; } = string.Empty;
+    public Guid? CalibrationSessionId { get; set; }
+    public DateTime? CalibratedAt { get; set; }
+    /// <summary>Điểm thẩm định, thay bằng điểm sau hiệu chuẩn nếu có: mặc định cho B3c, B4.</summary>
+    public double? ReviewedScore { get; set; }
+    /// <summary>Mức thẩm định, thay bằng mức sau hiệu chuẩn nếu có.</summary>
+    public string ReviewedGrade { get; set; } = string.Empty;
+
     // B4
     public double FinalScore { get; set; }
     public string FinalGrade { get; set; } = string.Empty;

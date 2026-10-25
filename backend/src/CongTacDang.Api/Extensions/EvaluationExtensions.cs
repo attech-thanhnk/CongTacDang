@@ -27,6 +27,8 @@ public static class EvaluationExtensions
         services.AddScoped<IExpertCrosscheckService>(sp => sp.GetRequiredService<ExpertCrosscheckService>());
         services.AddScoped<IExpertCrosscheckGate>(sp => sp.GetRequiredService<ExpertCrosscheckService>());
         services.AddScoped<ICrosscheckWorkQueue>(sp => sp.GetRequiredService<ExpertCrosscheckService>());
+        services.AddScoped<ICalibrationRepository, CalibrationRepository>();
+        services.AddScoped<ICalibrationService, CalibrationService>();
         return services;
     }
 }

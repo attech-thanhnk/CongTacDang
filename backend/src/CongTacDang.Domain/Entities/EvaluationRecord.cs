@@ -186,6 +186,36 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 
     #endregion
 
+    #region Hiệu chuẩn kết quả (Mẫu 20)
+
+    /// <summary>Điểm sau hiệu chuẩn; null = chưa hiệu chuẩn.</summary>
+    public double? CalibratedScore { get; set; }
+
+    /// <summary>Mức sau hiệu chuẩn; null = chưa hiệu chuẩn.</summary>
+    public EvaluationGrade? CalibratedGrade { get; set; }
+
+    /// <summary>Biên bản đã chốt cho ra kết quả sau hiệu chuẩn (tham chiếu mềm).</summary>
+    public Guid? CalibrationSessionId { get; set; }
+
+    public DateTime? CalibratedAt { get; set; }
+
+    /// <summary>Điểm thẩm định, thay bằng điểm sau hiệu chuẩn nếu có; mặc định cho B3c và B4.</summary>
+    public double? ReviewedScore() => CalibratedScore ?? AppraisalScore;
+
+    /// <summary>Mức thẩm định, thay bằng mức sau hiệu chuẩn nếu có; <see cref="EvaluationGrade.ChuaXepLoai"/> khi chưa có.</summary>
+    public EvaluationGrade ReviewedGrade() => CalibratedGrade ?? AppraisalProposedGrade;
+
+    /// <summary>Hết hiệu lực khi thẩm định lại hoặc hồ sơ quay về trước cấp trực tiếp sử dụng.</summary>
+    public void ClearCalibration()
+    {
+        CalibratedScore = null;
+        CalibratedGrade = null;
+        CalibrationSessionId = null;
+        CalibratedAt = null;
+    }
+
+    #endregion
+
     #region B3c: Nhận xét, đề xuất của cấp trực tiếp sử dụng (Mẫu 10)
 
     public string? DirectorComment { get; set; }
@@ -254,16 +284,22 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Kết quả các bước do cấp trên thực hiện, mỗi bước một bản ghi.</summary>
     public ICollection<EvaluationExternalResult> ExternalResults { get; set; } = new List<EvaluationExternalResult>();
 
-    /// <summary>Quyết định → thẩm định → tự chấm (chỉ khi đã nộp phiếu).</summary>
+    /// <summary>Quyết định → hiệu chuẩn → thẩm định → tự chấm (chỉ khi đã nộp phiếu).</summary>
     public double EffectiveScore() =>
-        FinalGrade != EvaluationGrade.ChuaXepLoai && FinalScore > 0 ? FinalScore : AppraisalScore ?? (SelfScoredAt.HasValue ? TotalSelfScore : 0);
+        FinalGrade != EvaluationGrade.ChuaXepLoai && FinalScore > 0 ? FinalScore : ReviewedScore() ?? (SelfScoredAt.HasValue ? TotalSelfScore : 0);
 
-    /// <summary>Quyết định → cấp trực tiếp sử dụng → thẩm định → tập thể → tự đề xuất.</summary>
+    /// <summary>Quyết định → cấp trực tiếp sử dụng và hiệu chuẩn (cái nào sau) → thẩm định → tập thể → tự đề xuất.</summary>
     public EvaluationGrade EffectiveGrade()
     {
         // Mức tự đề xuất chỉ tính khi đã nộp phiếu tự chấm (bản nháp không tính).
         var self = SelfScoredAt.HasValue ? SelfProposedGrade : EvaluationGrade.ChuaXepLoai;
-        foreach (var grade in new[] { FinalGrade, DirectorProposedGrade, AppraisalProposedGrade, CollectiveProposedGrade, self })
+        var calibrated = CalibratedGrade ?? EvaluationGrade.ChuaXepLoai;
+        var calibratedIsLater = calibrated != EvaluationGrade.ChuaXepLoai
+            && (DirectorReviewedAt is null || (CalibratedAt is { } at && at > DirectorReviewedAt));
+        var ordered = calibratedIsLater
+            ? new[] { FinalGrade, calibrated, DirectorProposedGrade, AppraisalProposedGrade, CollectiveProposedGrade, self }
+            : new[] { FinalGrade, DirectorProposedGrade, calibrated, AppraisalProposedGrade, CollectiveProposedGrade, self };
+        foreach (var grade in ordered)
         {
             if (grade != EvaluationGrade.ChuaXepLoai)
                 return grade;

@@ -565,6 +565,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             ApplyTaskLevels(await _repo.GetTasksAsync(ctx.Record.Id, ct), request.TaskLevels);
 
             ctx.Record.AppraisalScore = total;
+            ctx.Record.ClearCalibration();
             ctx.Record.AppraisalGeneralScore = general;
             ctx.Record.AppraisalTasksScore = tasksScore;
             ctx.Record.AppraisalExplanation = explanation;
@@ -655,7 +656,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             var grade = RequireGrade(request.ProposedGrade, "Hãy chọn mức xếp loại do cấp trực tiếp sử dụng đề xuất.");
             var comment = Trim(request.Comment, MaxCommentLength, "Nhận xét");
             if (ctx.Criteria is { } criteria && GradeProposalRules.HasScore(ctx.Record))
-                GradeProposalRules.EnsureExplained(criteria.Content, WorkflowStep.B3C_DIRECTOR, grade, ctx.Record.AppraisalScore ?? ctx.Record.TotalSelfScore,
+                GradeProposalRules.EnsureExplained(criteria.Content, WorkflowStep.B3C_DIRECTOR, grade, ctx.Record.ReviewedScore() ?? ctx.Record.TotalSelfScore,
                     GradeProposalRules.ExceedRatio(ctx.Record, criteria), comment, "\"Nhận xét\"");
             ctx.Record.DirectorComment = comment;
             ctx.Record.DirectorProposedGrade = grade;
@@ -674,7 +675,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 throw new ValidationException("Điểm chính thức phải từ 0 đến 100.");
             await AttachVotesAsync(ctx.Record, request.MeetingId, request.Votes, WorkflowStep.B4_DECISION, ct);
 
-            var finalScore = request.FinalScore ?? ctx.Record.AppraisalScore ?? ctx.Record.TotalSelfScore;
+            var finalScore = request.FinalScore ?? ctx.Record.ReviewedScore() ?? ctx.Record.TotalSelfScore;
             var explanation = Trim(request.Explanation, MaxCommentLength, "Căn cứ quyết định mức");
             if (ctx.Criteria is { } criteria && (request.FinalScore.HasValue || GradeProposalRules.HasScore(ctx.Record)))
                 GradeProposalRules.EnsureExplained(criteria.Content, WorkflowStep.B4_DECISION, grade, finalScore,
@@ -868,6 +869,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 break;
             case WorkflowStep.B3B_APPRAISAL:
                 record.AppraisalScore = result.Score;
+                record.ClearCalibration();
                 record.AppraisalGeneralScore = null;
                 record.AppraisalTasksScore = null;
                 record.AppraisalComment = result.Comment ?? string.Empty;
@@ -885,7 +887,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 break;
             case WorkflowStep.B4_DECISION:
                 record.FinalGrade = result.Grade;
-                record.FinalScore = result.Score ?? record.AppraisalScore ?? record.TotalSelfScore;
+                record.FinalScore = result.Score ?? record.ReviewedScore() ?? record.TotalSelfScore;
                 record.DecisionDocumentNumber = result.DocumentNumber;
                 record.DecisionDocumentDate = result.DocumentDate;
                 record.DecisionAuthorityName = result.AuthorityName;
@@ -1270,6 +1272,9 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         if (action.Kind == WorkflowAction.Return)
             record.ReturnReason = cleanReason;
         record.Status = transition.Status;
+        // Kết quả hiệu chuẩn chỉ đúng khi hồ sơ còn ở sau bước thẩm định.
+        if (action.Kind is WorkflowAction.Return or WorkflowAction.Reopen && record.Status < RecordStatus.AwaitingDirectorReview)
+            record.ClearCalibration();
 
         _repo.AddHistory(new EvaluationRecordHistory
         {
