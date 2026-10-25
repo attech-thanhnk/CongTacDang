@@ -19,6 +19,7 @@ public static class WordFormCatalog
     {
         new WordFormDefinition("MAU_01", "Mẫu 01 — Phiếu giao / đăng ký sản phẩm, công việc chuyên môn hằng quý", Mau01Data.TemplateFileName, typeof(Mau01Data)),
         new WordFormDefinition("MAU_02", "Mẫu 02 — Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc", Mau02Data.TemplateFileName, typeof(Mau02Data)),
+        new WordFormDefinition("MAU_03", "Mẫu 03 — Phiếu ý kiến chuyên môn độc lập / đối soát dữ liệu chuyên ngành", Mau03Data.TemplateFileName, typeof(Mau03Data)),
         new WordFormDefinition("MAU_06", "Mẫu 06 — Báo cáo kết quả tập thể / lĩnh vực phục vụ liên kết trách nhiệm cán bộ lãnh đạo", Mau06Data.TemplateFileName, typeof(Mau06Data)),
         new WordFormDefinition("MAU_04", "Mẫu 04 — Phiếu đề nghị điều chỉnh, chuyển tiếp, loại trừ việc", Mau04Data.TemplateFileName, typeof(Mau04Data)),
         new WordFormDefinition("MAU_05", "Mẫu 05 — Phiếu ghi nhận nhiệm vụ bổ sung, khẩn cấp, đột xuất", Mau05Data.TemplateFileName, typeof(Mau05Data)),
@@ -32,6 +33,8 @@ public static class WordFormCatalog
         new WordFormDefinition("MAU_12", "Mẫu 12 — Biên bản hội nghị đánh giá, xếp loại chất lượng cán bộ quý", Mau12Data.TemplateFileName, typeof(Mau12Data)),
         new WordFormDefinition("MAU_13", "Mẫu 13 — Biên bản kiểm phiếu hội nghị đánh giá, xếp loại chất lượng cán bộ quý", Mau13Data.TemplateFileName, typeof(Mau13Data)),
         new WordFormDefinition("MAU_16", "Mẫu 16 — Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý", Mau16Data.TemplateFileName, typeof(Mau16Data)),
+        new WordFormDefinition("MAU_19", "Mẫu 19 — Phiếu kiểm soát tính hợp lệ, công bằng và nhất quán", Mau19Data.TemplateFileName, typeof(Mau19Data)),
+        new WordFormDefinition("MAU_20", "Mẫu 20 — Biên bản hiệu chuẩn kết quả đánh giá", Mau20Data.TemplateFileName, typeof(Mau20Data)),
         new WordFormDefinition("MAU_QD", "Quyết định xếp loại cán bộ quý của Đảng ủy (Chi ủy) kèm Phụ lục kết quả", MauQdData.TemplateFileName, typeof(MauQdData)),
         new WordFormDefinition("MAU_17", "Mẫu 17 — Kế hoạch hỗ trợ, khắc phục và phát triển 30-60-90 ngày", Mau17Data.TemplateFileName, typeof(Mau17Data))
     };
