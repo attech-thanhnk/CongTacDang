@@ -18,6 +18,11 @@ public static class EvaluationExtensions
         services.AddScoped<TaskChangeService>();
         services.AddScoped<ITaskChangeService>(sp => sp.GetRequiredService<TaskChangeService>());
         services.AddScoped<ITaskChangeWorkQueue>(sp => sp.GetRequiredService<TaskChangeService>());
+        services.AddScoped<IExpertCrosscheckRepository, ExpertCrosscheckRepository>();
+        services.AddScoped<ExpertCrosscheckService>();
+        services.AddScoped<IExpertCrosscheckService>(sp => sp.GetRequiredService<ExpertCrosscheckService>());
+        services.AddScoped<IExpertCrosscheckGate>(sp => sp.GetRequiredService<ExpertCrosscheckService>());
+        services.AddScoped<ICrosscheckWorkQueue>(sp => sp.GetRequiredService<ExpertCrosscheckService>());
         return services;
     }
 }

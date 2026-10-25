@@ -27,7 +27,8 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         PermissionCodes.EvaluationPublish,
         PermissionCodes.EvaluationReopen,
         PermissionCodes.EvaluationAppealResolve,
-        PermissionCodes.EvaluationImprovementManage
+        PermissionCodes.EvaluationImprovementManage,
+        PermissionCodes.EvaluationCrosscheckRequest
     };
 
     private readonly ICurrentUserService _currentUser;
