@@ -216,6 +216,276 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.ToTable("audit_logs", (string)null);
                 });
 
+            modelBuilder.Entity("CongTacDang.Domain.Entities.CalibrationAttendee", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Capacity")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("DissentNote")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("MemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId", "Order");
+
+                    b.ToTable("calibration_attendees", (string)null);
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.CalibrationCase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Basis")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("Clarification")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<int?>("GradeAfter")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GradeBefore")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("RecordId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ResponsibleMemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResponsibleName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<double?>("ScoreAfter")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("ScoreBefore")
+                        .HasColumnType("double precision");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId", "Order");
+
+                    b.ToTable("calibration_cases", (string)null);
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.CalibrationRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("GradeBefore")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("RecordId")
+                        .HasColumnType("uuid");
+
+                    b.Property<double?>("ScoreBefore")
+                        .HasColumnType("double precision");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecordId")
+                        .IsUnique()
+                        .HasFilter("\"IsActive\" = true");
+
+                    b.HasIndex("SessionId");
+
+                    b.ToTable("calibration_records", (string)null);
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.CalibrationSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ChairMemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ChairName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("ConcludedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ConcludedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConcludedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ExtraConclusion")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("GroupName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime?>("HeldAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("PartyCellId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PeriodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("PreparedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PreparedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PreparedByName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ReopenReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ScopeNote")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<Guid?>("SecretaryMemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SecretaryName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<string>("VoidReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("PartyCellId");
+
+                    b.HasIndex("PeriodId", "Status");
+
+                    b.ToTable("calibration_sessions", (string)null);
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.CalibrationSummaryRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("GradeCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("NotableDifference")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("PreliminaryConclusion")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId", "GradeCode")
+                        .IsUnique();
+
+                    b.ToTable("calibration_summary_rows", (string)null);
+                });
+
             modelBuilder.Entity("CongTacDang.Domain.Entities.CollectiveEvaluationItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -956,6 +1226,18 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<DateTime?>("CalibratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CalibratedGrade")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("CalibratedScore")
+                        .HasColumnType("double precision");
+
+                    b.Property<Guid?>("CalibrationSessionId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("CellConfirmedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1181,6 +1463,8 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CalibrationSessionId");
 
                     b.HasIndex("DepartmentId");
 
@@ -2636,6 +2920,83 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Navigation("UnitType");
                 });
 
+            modelBuilder.Entity("CongTacDang.Domain.Entities.CalibrationAttendee", b =>
+                {
+                    b.HasOne("CongTacDang.Domain.Entities.CalibrationSession", "Session")
+                        .WithMany("Attendees")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.CalibrationCase", b =>
+                {
+                    b.HasOne("CongTacDang.Domain.Entities.CalibrationSession", "Session")
+                        .WithMany("Cases")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.CalibrationRecord", b =>
+                {
+                    b.HasOne("CongTacDang.Domain.Entities.EvaluationRecord", "Record")
+                        .WithMany()
+                        .HasForeignKey("RecordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CongTacDang.Domain.Entities.CalibrationSession", "Session")
+                        .WithMany("Records")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Record");
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.CalibrationSession", b =>
+                {
+                    b.HasOne("CongTacDang.Domain.Entities.AdministrativeDepartment", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CongTacDang.Domain.Entities.PartyCell", "PartyCell")
+                        .WithMany()
+                        .HasForeignKey("PartyCellId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CongTacDang.Domain.Entities.EvaluationPeriod", "Period")
+                        .WithMany()
+                        .HasForeignKey("PeriodId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Department");
+
+                    b.Navigation("PartyCell");
+
+                    b.Navigation("Period");
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.CalibrationSummaryRow", b =>
+                {
+                    b.HasOne("CongTacDang.Domain.Entities.CalibrationSession", "Session")
+                        .WithMany("SummaryRows")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
             modelBuilder.Entity("CongTacDang.Domain.Entities.CollectiveEvaluationItem", b =>
                 {
                     b.HasOne("CongTacDang.Domain.Entities.CollectiveEvaluationRecord", "CollectiveRecord")
@@ -3001,6 +3362,17 @@ namespace CongTacDang.Infrastructure.Data.Migrations
             modelBuilder.Entity("CongTacDang.Domain.Entities.AdministrativeDepartment", b =>
                 {
                     b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.CalibrationSession", b =>
+                {
+                    b.Navigation("Attendees");
+
+                    b.Navigation("Cases");
+
+                    b.Navigation("Records");
+
+                    b.Navigation("SummaryRows");
                 });
 
             modelBuilder.Entity("CongTacDang.Domain.Entities.CollectiveEvaluationRecord", b =>

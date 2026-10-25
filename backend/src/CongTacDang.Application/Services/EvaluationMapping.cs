@@ -239,6 +239,13 @@ public static class EvaluationMapping
             DirectorReviewedByName = r.DirectorReviewedByName,
             DirectorReviewedAt = r.DirectorReviewedAt,
 
+            CalibratedScore = r.CalibratedScore,
+            CalibratedGrade = r.CalibratedGrade is { } calibratedGrade ? GradeCode(calibratedGrade) : string.Empty,
+            CalibrationSessionId = r.CalibrationSessionId,
+            CalibratedAt = r.CalibratedAt,
+            ReviewedScore = r.ReviewedScore(),
+            ReviewedGrade = GradeCode(r.ReviewedGrade()),
+
             FinalScore = r.FinalScore,
             FinalGrade = GradeCode(r.FinalGrade),
             DecisionExplanation = r.DecisionExplanation,

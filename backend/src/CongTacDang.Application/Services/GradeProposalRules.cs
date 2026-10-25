@@ -52,12 +52,13 @@ public static class GradeProposalRules
             return result;
         var ratio = ExceedRatio(r, criteria);
         var latestScore = r.AppraisalScore ?? r.TotalSelfScore;
+        var reviewedScore = r.ReviewedScore() ?? r.TotalSelfScore;
         var steps = new (WorkflowStep Step, EvaluationGrade Grade, double Score, string? Explanation)[]
         {
             (WorkflowStep.B2_SELF_SCORE, r.SelfScoredAt.HasValue ? r.SelfProposedGrade : EvaluationGrade.ChuaXepLoai, r.TotalSelfScore, r.SelfGradeExplanation),
             (WorkflowStep.B3A_COLLECTIVE, r.CollectiveProposedGrade, r.TotalSelfScore, r.CollectiveComment),
             (WorkflowStep.B3B_APPRAISAL, r.AppraisalProposedGrade, latestScore, r.AppraisalExplanation),
-            (WorkflowStep.B3C_DIRECTOR, r.DirectorProposedGrade, latestScore, r.DirectorComment),
+            (WorkflowStep.B3C_DIRECTOR, r.DirectorProposedGrade, reviewedScore, r.DirectorComment),
             (WorkflowStep.B4_DECISION, r.FinalGrade, r.FinalScore, r.DecisionExplanation)
         };
         foreach (var (step, grade, score, explanation) in steps)

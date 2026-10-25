@@ -75,7 +75,10 @@ public enum WorkflowAction
     GrantUnlock = 12,
 
     /// <summary>Hồ sơ đã tới bước được thao tác khi kỳ khóa, hết mở riêng.</summary>
-    ClearUnlock = 13
+    ClearUnlock = 13,
+
+    /// <summary>Áp hoặc hủy áp kết quả hiệu chuẩn (Mẫu 20) vào hồ sơ.</summary>
+    Calibrate = 14
 }
 
 public static class WorkflowSteps
@@ -236,6 +239,7 @@ public static class WorkflowSteps
         WorkflowAction.RevokeTaskApproval => "Thu hồi duyệt danh mục",
         WorkflowAction.GrantUnlock => "Mở riêng hồ sơ",
         WorkflowAction.ClearUnlock => "Kết thúc mở riêng hồ sơ",
+        WorkflowAction.Calibrate => "Hiệu chuẩn kết quả",
         _ => action.ToString()
     };
 }

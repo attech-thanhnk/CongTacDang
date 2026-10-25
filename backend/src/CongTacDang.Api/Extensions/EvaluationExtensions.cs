@@ -18,6 +18,8 @@ public static class EvaluationExtensions
         services.AddScoped<TaskChangeService>();
         services.AddScoped<ITaskChangeService>(sp => sp.GetRequiredService<TaskChangeService>());
         services.AddScoped<ITaskChangeWorkQueue>(sp => sp.GetRequiredService<TaskChangeService>());
+        services.AddScoped<ICalibrationRepository, CalibrationRepository>();
+        services.AddScoped<ICalibrationService, CalibrationService>();
         return services;
     }
 }
