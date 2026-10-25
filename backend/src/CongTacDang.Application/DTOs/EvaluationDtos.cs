@@ -530,6 +530,8 @@ public class RecordActionsDto
 public class WorkQueueItemDto
 {
     public Guid RecordId { get; set; }
+    /// <summary>Id phiếu khi việc là phiếu Mẫu 03 (nhóm <c>CROSSCHECKS</c>); các nhóm khác để trống.</summary>
+    public Guid? FormId { get; set; }
     public uint Version { get; set; }
     public Guid PeriodId { get; set; }
     public string PeriodName { get; set; } = string.Empty;

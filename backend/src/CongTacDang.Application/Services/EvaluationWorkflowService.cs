@@ -69,6 +69,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     private readonly IAttachmentService _attachments;
     private readonly IPostPublishWorkQueue? _postPublish;
     private readonly ITaskChangeWorkQueue? _taskChanges;
+    private readonly IExpertCrosscheckGate? _crosscheckGate;
+    private readonly ICrosscheckWorkQueue? _crosscheckQueue;
 
     public EvaluationWorkflowService(
         IEvaluationWorkflowRepository repo,
@@ -77,9 +79,13 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         ICurrentUserService currentUser,
         IAttachmentService attachments,
         IPostPublishWorkQueue? postPublish = null,
-        ITaskChangeWorkQueue? taskChanges = null)
+        ITaskChangeWorkQueue? taskChanges = null,
+        IExpertCrosscheckGate? crosscheckGate = null,
+        ICrosscheckWorkQueue? crosscheckQueue = null)
     {
         _taskChanges = taskChanges;
+        _crosscheckGate = crosscheckGate;
+        _crosscheckQueue = crosscheckQueue;
         _repo = repo;
         _unitOfWork = unitOfWork;
         _guard = guard;
@@ -931,6 +937,12 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             queue.Groups.AddRange(changes);
             queue.Total += changes.Sum(g => g.Count);
         }
+        if (_crosscheckQueue != null)
+        {
+            var crosschecks = await _crosscheckQueue.GetGroupsAsync(periodId, ct);
+            queue.Groups.AddRange(crosschecks);
+            queue.Total += crosschecks.Sum(g => g.Count);
+        }
         return queue;
     }
 
@@ -1232,6 +1244,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             if (grantUntil == null && !record.IsUnlockedAt(now))
                 throw new ValidationException("Kỳ đánh giá đang khóa dữ liệu: hãy chọn hạn mở riêng hồ sơ để các bước trước thẩm định thao tác được.");
         }
+
+        // Yêu cầu đối soát chuyên ngành còn mở thì chưa hoàn thành thẩm định.
+        if (!draft && action.Advances && action.Step == WorkflowStep.B3B_APPRAISAL && _crosscheckGate != null)
+            await _crosscheckGate.EnsureNoOpenAsync(record, profile, ct);
 
         var actorId = _currentUser.UserId;
         var actorName = actorId.HasValue

@@ -413,6 +413,26 @@ public sealed class EvaluationWorkflowServiceTests
 
     #endregion
 
+    [Fact]
+    public async Task Appraise_OpenCrosscheckGate_BlocksCompletion_NothingSaved()
+    {
+        var h = new Harness(RecordStatus.AwaitingAppraisal);
+        var service = new EvaluationWorkflowService(new FakeRepository(h), h.Uow, h.Guard, h.User, null!, crosscheckGate: new ThrowingCrosscheckGate());
+        var request = h.AppraisalRequest("HoanThanhTot", 20, 60);
+
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => service.AppraiseAsync(h.Record.Id, request));
+
+        Assert.Contains("phiếu đối soát", ex.Message);
+        Assert.Equal(RecordStatus.AwaitingAppraisal, h.Record.Status);
+        Assert.Equal(0, h.Uow.Saves);
+    }
+
+    private sealed class ThrowingCrosscheckGate : IExpertCrosscheckGate
+    {
+        public Task EnsureNoOpenAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct = default) =>
+            throw new ConflictException("Còn 1 phiếu đối soát chuyên ngành chờ xác nhận.");
+    }
+
     #region Kho dữ liệu giả
 
     private sealed class Harness
