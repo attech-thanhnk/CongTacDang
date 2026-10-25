@@ -62,6 +62,26 @@ public sealed class CalibrationRepository : ICalibrationRepository
     }
 
     /// <inheritdoc />
+    public Task<List<CalibrationRecord>> ListActiveRowsAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken ct = default)
+    {
+        var ids = recordIds.ToList();
+        return _db.Set<CalibrationRecord>().AsNoTracking()
+            .Include(r => r.Session).ThenInclude(s => s.Records)
+            .Where(r => r.IsActive && ids.Contains(r.RecordId))
+            .AsSplitQuery()
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public Task<List<EvaluationRecordHistory>> ListRecordHistorySinceAsync(IReadOnlyCollection<Guid> recordIds, DateTime since, CancellationToken ct = default)
+    {
+        var ids = recordIds.ToList();
+        return _db.EvaluationRecordHistories.AsNoTracking()
+            .Where(h => ids.Contains(h.RecordId) && h.CreatedAt > since)
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
     public Task<List<EvaluationRecord>> GetRecordsAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken ct = default)
     {
         var ids = recordIds.ToList();

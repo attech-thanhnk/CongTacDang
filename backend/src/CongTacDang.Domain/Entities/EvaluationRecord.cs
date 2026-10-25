@@ -288,14 +288,18 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     public double EffectiveScore() =>
         FinalGrade != EvaluationGrade.ChuaXepLoai && FinalScore > 0 ? FinalScore : ReviewedScore() ?? (SelfScoredAt.HasValue ? TotalSelfScore : 0);
 
+    /// <summary>Có mức sau hiệu chuẩn và nó đến sau nhận xét của cấp trực tiếp sử dụng (hoặc cấp đó chưa nhận xét).</summary>
+    public bool CalibratedSupersedesDirector() =>
+        CalibratedGrade is { } grade && grade != EvaluationGrade.ChuaXepLoai
+        && (DirectorReviewedAt is null || (CalibratedAt is { } at && at > DirectorReviewedAt));
+
     /// <summary>Quyết định → cấp trực tiếp sử dụng và hiệu chuẩn (cái nào sau) → thẩm định → tập thể → tự đề xuất.</summary>
     public EvaluationGrade EffectiveGrade()
     {
         // Mức tự đề xuất chỉ tính khi đã nộp phiếu tự chấm (bản nháp không tính).
         var self = SelfScoredAt.HasValue ? SelfProposedGrade : EvaluationGrade.ChuaXepLoai;
         var calibrated = CalibratedGrade ?? EvaluationGrade.ChuaXepLoai;
-        var calibratedIsLater = calibrated != EvaluationGrade.ChuaXepLoai
-            && (DirectorReviewedAt is null || (CalibratedAt is { } at && at > DirectorReviewedAt));
+        var calibratedIsLater = CalibratedSupersedesDirector();
         var ordered = calibratedIsLater
             ? new[] { FinalGrade, calibrated, DirectorProposedGrade, AppraisalProposedGrade, CollectiveProposedGrade, self }
             : new[] { FinalGrade, DirectorProposedGrade, calibrated, AppraisalProposedGrade, CollectiveProposedGrade, self };

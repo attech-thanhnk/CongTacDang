@@ -433,6 +433,188 @@ public sealed class EvaluationWorkflowServiceTests
             throw new ConflictException("Còn 1 phiếu đối soát chuyên ngành chờ xác nhận.");
     }
 
+    #region Cổng hiệu chuẩn và kiểm soát trước quyết định
+
+    [Fact]
+    public async Task Decision_ControlRequired_NoCheck_Refused_NothingSaved()
+    {
+        var h = new Harness(RecordStatus.AwaitingDecision);
+        var control = new StubControlGate(ControlGateState.NoCheck);
+
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => h.ServiceWith(null, control).RecordDecisionAsync(h.Record.Id, h.DecisionRequest()));
+
+        Assert.Contains("không thành công", ex.Message);
+        Assert.Contains("phiếu kiểm soát", ex.Message);
+        Assert.Equal(RecordStatus.AwaitingDecision, h.Record.Status);
+        Assert.Equal(0, h.Uow.Saves);
+    }
+
+    [Theory]
+    [InlineData(ControlGateState.Pending)]
+    [InlineData(ControlGateState.NeedsWork)]
+    [InlineData(ControlGateState.Stale)]
+    public async Task Decision_ControlRequired_NotSatisfied_Refused(ControlGateState state)
+    {
+        var h = new Harness(RecordStatus.AwaitingDecision);
+
+        await Assert.ThrowsAsync<ConflictException>(() => h.ServiceWith(null, new StubControlGate(state)).RecordDecisionAsync(h.Record.Id, h.DecisionRequest()));
+
+        Assert.Equal(RecordStatus.AwaitingDecision, h.Record.Status);
+    }
+
+    [Fact]
+    public async Task Decision_ControlRequired_Satisfied_Accepted()
+    {
+        var h = new Harness(RecordStatus.AwaitingDecision);
+
+        await h.ServiceWith(null, new StubControlGate(ControlGateState.Satisfied)).RecordDecisionAsync(h.Record.Id, h.DecisionRequest());
+
+        Assert.Equal(RecordStatus.AwaitingPublish, h.Record.Status);
+    }
+
+    [Fact]
+    public async Task Decision_ControlRecorded_NoCheck_PassesAndNotesMissing()
+    {
+        var h = new Harness(RecordStatus.AwaitingDecision);
+        h.SetGate(WorkflowGates.Control, GateMode.Recorded);
+
+        await h.ServiceWith(null, new StubControlGate(ControlGateState.NoCheck)).RecordDecisionAsync(h.Record.Id, h.DecisionRequest());
+
+        Assert.Equal(RecordStatus.AwaitingPublish, h.Record.Status);
+        Assert.Contains("Ghi nhận thiếu", h.Histories.Last().Comment);
+        Assert.Contains("phiếu kiểm soát", h.Histories.Last().Comment);
+    }
+
+    [Fact]
+    public async Task Decision_GatesOff_NotQueried()
+    {
+        var h = new Harness(RecordStatus.AwaitingDecision);
+        h.SetGate(WorkflowGates.Control, GateMode.Off);
+        h.SetGate(WorkflowGates.Calibration, GateMode.Off);
+        var control = new StubControlGate(ControlGateState.NoCheck);
+        var calibration = new StubCalibrationGate(CalibrationGateState.NoSession);
+
+        await h.ServiceWith(calibration, control).RecordDecisionAsync(h.Record.Id, h.DecisionRequest());
+
+        Assert.Equal(RecordStatus.AwaitingPublish, h.Record.Status);
+        Assert.Equal(0, control.Calls + calibration.Calls);
+    }
+
+    [Theory]
+    [InlineData(CalibrationGateState.NoSession)]
+    [InlineData(CalibrationGateState.Pending)]
+    [InlineData(CalibrationGateState.Stale)]
+    public async Task Decision_CalibrationRequired_NotSatisfied_RefusedBeforeControl(CalibrationGateState state)
+    {
+        var h = new Harness(RecordStatus.AwaitingDecision);
+
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => h.ServiceWith(new StubCalibrationGate(state), new StubControlGate(ControlGateState.NoCheck))
+            .RecordDecisionAsync(h.Record.Id, h.DecisionRequest()));
+
+        Assert.Contains("iên bản hiệu chuẩn", ex.Message);
+        Assert.DoesNotContain("phiếu kiểm soát", ex.Message);
+    }
+
+    [Fact]
+    public async Task Decision_CalibrationSatisfied_ControlMissing_RefusedByControl()
+    {
+        var h = new Harness(RecordStatus.AwaitingDecision);
+
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => h.ServiceWith(new StubCalibrationGate(CalibrationGateState.Satisfied), new StubControlGate(ControlGateState.NoCheck))
+            .RecordDecisionAsync(h.Record.Id, h.DecisionRequest()));
+
+        Assert.Contains("phiếu kiểm soát", ex.Message);
+    }
+
+    [Fact]
+    public async Task ExternalDecision_ControlRequired_NoCheck_Refused_ButRecordedPasses()
+    {
+        var required = new Harness(RecordStatus.AwaitingDecision);
+        required.MakeDecisionExternal(GateMode.Required);
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => required.ServiceWith(null, new StubControlGate(ControlGateState.NoCheck))
+            .RecordExternalResultAsync(required.Record.Id, "B4_DECISION", required.ExternalRequest()));
+        Assert.Contains("phiếu kiểm soát", ex.Message);
+        Assert.Equal(RecordStatus.AwaitingDecision, required.Record.Status);
+
+        var recorded = new Harness(RecordStatus.AwaitingDecision);
+        recorded.MakeDecisionExternal(GateMode.Recorded);
+        await recorded.ServiceWith(null, new StubControlGate(ControlGateState.NoCheck))
+            .RecordExternalResultAsync(recorded.Record.Id, "B4_DECISION", recorded.ExternalRequest());
+        Assert.Equal(RecordStatus.AwaitingPublish, recorded.Record.Status);
+    }
+
+    [Fact]
+    public async Task Actions_AwaitingDecision_ReportBlockedByInOrder()
+    {
+        var h = new Harness(RecordStatus.AwaitingDecision);
+
+        var both = await h.ServiceWith(new StubCalibrationGate(CalibrationGateState.NoSession), new StubControlGate(ControlGateState.NoCheck)).GetActionsAsync(h.Record.Id);
+        var calibrationFirst = both.Actions.Single(a => a.Action == WorkflowActions.RecordDecision);
+        Assert.Equal(ApprovalGateCodes.CalibrationRequired, calibrationFirst.BlockedBy);
+        Assert.Contains("biên bản hiệu chuẩn", calibrationFirst.BlockedReason);
+
+        var controlOnly = await h.ServiceWith(new StubCalibrationGate(CalibrationGateState.Satisfied), new StubControlGate(ControlGateState.Stale)).GetActionsAsync(h.Record.Id);
+        Assert.Equal(ApprovalGateCodes.ControlRequired, controlOnly.Actions.Single(a => a.Action == WorkflowActions.RecordDecision).BlockedBy);
+
+        var open = await h.ServiceWith(new StubCalibrationGate(CalibrationGateState.Satisfied), new StubControlGate(ControlGateState.Satisfied)).GetActionsAsync(h.Record.Id);
+        var free = open.Actions.Single(a => a.Action == WorkflowActions.RecordDecision);
+        Assert.Null(free.BlockedBy);
+        Assert.Null(free.BlockedReason);
+    }
+
+    [Fact]
+    public async Task Actions_Recorded_WarnsWithoutBlocking()
+    {
+        var h = new Harness(RecordStatus.AwaitingDecision);
+        h.SetGate(WorkflowGates.Control, GateMode.Recorded);
+
+        var actions = await h.ServiceWith(new StubCalibrationGate(CalibrationGateState.Satisfied), new StubControlGate(ControlGateState.NoCheck)).GetActionsAsync(h.Record.Id);
+
+        var decision = actions.Actions.Single(a => a.Action == WorkflowActions.RecordDecision);
+        Assert.Null(decision.BlockedBy);
+        Assert.Single(decision.Warnings!);
+    }
+
+    [Fact]
+    public async Task Actions_OtherSteps_NotGated()
+    {
+        var h = new Harness(RecordStatus.AwaitingPublish);
+
+        var actions = await h.ServiceWith(new StubCalibrationGate(CalibrationGateState.NoSession), new StubControlGate(ControlGateState.NoCheck)).GetActionsAsync(h.Record.Id);
+
+        Assert.All(actions.Actions, a => Assert.Null(a.BlockedBy));
+    }
+
+    private sealed class StubControlGate : IControlCheckGate
+    {
+        private readonly ControlGateState _state;
+        public int Calls { get; private set; }
+        public StubControlGate(ControlGateState state) => _state = state;
+        public Task<ControlGateResult> EvaluateAsync(Guid recordId, CancellationToken ct = default)
+        {
+            Calls++;
+            return Task.FromResult(new ControlGateResult(_state, null));
+        }
+        public Task<IReadOnlyDictionary<Guid, ControlGateResult>> EvaluateManyAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class StubCalibrationGate : ICalibrationGate
+    {
+        private readonly CalibrationGateState _state;
+        public int Calls { get; private set; }
+        public StubCalibrationGate(CalibrationGateState state) => _state = state;
+        public Task<CalibrationGateResult> EvaluateAsync(Guid recordId, CancellationToken ct = default)
+        {
+            Calls++;
+            return Task.FromResult(new CalibrationGateResult(_state, null));
+        }
+        public Task<IReadOnlyDictionary<Guid, CalibrationGateResult>> EvaluateManyAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+    }
+
+    #endregion
+
     #region Kho dữ liệu giả
 
     private sealed class Harness
@@ -511,6 +693,39 @@ public sealed class EvaluationWorkflowServiceTests
 
         public EvaluationWorkflowService Service =>
             new(new FakeRepository(this), Uow, Guard, User, null!);
+
+        public EvaluationWorkflowService ServiceWith(ICalibrationGate? calibration, IControlCheckGate? control) =>
+            new(new FakeRepository(this), Uow, Guard, User, null!, calibrationGate: calibration, controlGate: control);
+
+        public DecisionRequestDto DecisionRequest() => new() { Version = Record.Version, FinalGrade = "HoanThanhTot", Explanation = "Căn cứ kiểm thử" };
+
+        public ExternalResultRequestDto ExternalRequest() => new()
+        {
+            Version = Record.Version, AuthorityName = "Cấp trên", Grade = "HoanThanhTot", Comment = "Kết quả cấp trên"
+        };
+
+        /// <summary>Đặt chế độ một cổng cho mọi hồ sơ luồng của kỳ.</summary>
+        public void SetGate(string gate, GateMode mode)
+        {
+            var settings = Period.GetSettings();
+            foreach (var profile in settings.Profiles)
+                profile.Gates[gate] = new GateSetting { Mode = mode };
+            Period.Settings = settings.ToJson();
+        }
+
+        /// <summary>Bước quyết định do cấp trên thực hiện; cổng kiểm soát đặt theo <paramref name="control"/>.</summary>
+        public void MakeDecisionExternal(GateMode control)
+        {
+            var settings = Period.GetSettings();
+            foreach (var profile in settings.Profiles)
+            {
+                profile.Step(WorkflowStep.B4_DECISION).Mode = StepMode.External;
+                profile.Gates[WorkflowGates.Control] = new GateSetting { Mode = control };
+                profile.Gates[WorkflowGates.Calibration] = new GateSetting { Mode = GateMode.Off };
+            }
+            Period.Settings = settings.ToJson();
+            Guard.Granted.Add(PermissionCodes.EvaluationExternalRecord);
+        }
 
         public SubmitSelfScoreRequestDto SelfScoreRequest(params EvaluationTask[] scored) => new()
         {

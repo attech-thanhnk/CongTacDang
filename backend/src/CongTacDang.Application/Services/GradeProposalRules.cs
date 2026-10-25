@@ -73,11 +73,13 @@ public static class GradeProposalRules
         return result;
     }
 
-    /// <summary>Bước cho mức hiệu lực (<see cref="EvaluationRecord.EffectiveGrade"/>); chưa có mức → null.</summary>
+    /// <summary>Bước cho mức hiệu lực (<see cref="EvaluationRecord.EffectiveGrade"/>); mức sau hiệu chuẩn tính là bước thẩm định; chưa có mức → null.</summary>
     public static WorkflowStep? EffectiveStep(EvaluationRecord r)
     {
         if (r.FinalGrade != EvaluationGrade.ChuaXepLoai)
             return WorkflowStep.B4_DECISION;
+        if (r.CalibratedSupersedesDirector())
+            return WorkflowStep.B3B_APPRAISAL;
         if (r.DirectorProposedGrade != EvaluationGrade.ChuaXepLoai)
             return WorkflowStep.B3C_DIRECTOR;
         if (r.AppraisalProposedGrade != EvaluationGrade.ChuaXepLoai)

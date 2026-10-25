@@ -677,6 +677,7 @@ public sealed class PostPublishIntegrationTests
                 startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
             }));
             var periodId = created.GetProperty("id").GetGuid();
+            await PeriodGates.DisableAsync(manager, periodId);
             await Data(await manager.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = members }));
             var period = await Data(manager, $"/api/evaluations/periods/{periodId}");
             await Data(await manager.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open",

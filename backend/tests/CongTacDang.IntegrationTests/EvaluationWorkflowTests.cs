@@ -878,7 +878,10 @@ public sealed class EvaluationWorkflowTests
             name = $"Kỳ W {Guid.NewGuid().ToString("N")[..8]}",
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         };
-        return await Data(await w.Appraiser.PostAsJsonAsync("/api/evaluations/periods", body));
+        var created = await Data(await w.Appraiser.PostAsJsonAsync("/api/evaluations/periods", body));
+        var id = created.GetProperty("id").GetGuid();
+        await PeriodGates.DisableAsync(w.Appraiser, id);
+        return await Data(w.Appraiser, $"/api/evaluations/periods/{id}");
     }
 
     private static async Task<Guid> AddParticipantAsync(World w, Guid periodId, Guid memberId)

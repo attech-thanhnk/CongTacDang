@@ -18,6 +18,12 @@ public interface ICalibrationRepository
     /// <summary>Hồ sơ đang thuộc biên bản còn hiệu lực (không hủy), khác <paramref name="exceptSessionId"/>: Id hồ sơ → Id biên bản.</summary>
     Task<Dictionary<Guid, Guid>> GetActiveSessionByRecordAsync(IReadOnlyCollection<Guid> recordIds, Guid? exceptSessionId, CancellationToken ct = default);
 
+    /// <summary>Dòng hồ sơ còn hiệu lực của các hồ sơ, kèm biên bản và các dòng hồ sơ của biên bản; không theo dõi.</summary>
+    Task<List<CalibrationRecord>> ListActiveRowsAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken ct = default);
+
+    /// <summary>Lịch sử hồ sơ sau mốc thời gian; không theo dõi.</summary>
+    Task<List<EvaluationRecordHistory>> ListRecordHistorySinceAsync(IReadOnlyCollection<Guid> recordIds, DateTime since, CancellationToken ct = default);
+
     /// <summary>Kèm kỳ, cán bộ, đơn vị, Chi bộ; được theo dõi.</summary>
     Task<List<EvaluationRecord>> GetRecordsAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken ct = default);
 

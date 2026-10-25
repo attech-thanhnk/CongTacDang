@@ -4,6 +4,7 @@ using System.Text.Json;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.Services;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 using CongTacDang.IntegrationTests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -138,6 +139,29 @@ public sealed class ControlCheckIntegrationTests
         Assert.Contains(list.EnumerateArray(), c => c.GetProperty("id").GetGuid() == thirdId);
     }
 
+    [SkippableFact]
+    public async Task Readiness_RequiredGates_ReportMissingPreparerOrConfirmer()
+    {
+        var w = await WorldAsync();
+        var body = new
+        {
+            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter,
+            criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(w.ManagerC),
+            name = $"Kỳ KS cổng {Guid.NewGuid().ToString("N")[..8]}",
+            startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
+        };
+        var periodId = (await Data(await w.ManagerC.PostAsJsonAsync("/api/evaluations/periods", body))).GetProperty("id").GetGuid();
+        await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { w.Owner.Id } }));
+
+        var readiness = await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}/readiness");
+        var permissions = readiness.GetProperty("issues").EnumerateArray().Select(i => i.GetProperty("permission").GetString()).ToList();
+
+        // Kiểm soát đã có người lập và người xác nhận là hai tài khoản khác nhau; hiệu chuẩn chưa ai được gán.
+        Assert.DoesNotContain(PermissionCodes.EvaluationControlPerform, permissions);
+        Assert.DoesNotContain(PermissionCodes.EvaluationControlConfirm, permissions);
+        Assert.Contains(PermissionCodes.EvaluationCalibrationManage, permissions);
+    }
+
     #region Hỗ trợ
 
     private static readonly SemaphoreSlim Gate = new(1, 1);
@@ -221,6 +245,7 @@ public sealed class ControlCheckIntegrationTests
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         };
         var periodId = (await Data(await w.ManagerC.PostAsJsonAsync("/api/evaluations/periods", body))).GetProperty("id").GetGuid();
+        await PeriodGates.DisableAsync(w.ManagerC, periodId, WorkflowGates.Calibration);
         await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { w.Owner.Id } }));
         var period = await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}");
         await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open",

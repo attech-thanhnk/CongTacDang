@@ -47,7 +47,7 @@ public interface ICalibrationService
 /// Chỉ lập khi kỳ đang mở, hồ sơ đã thẩm định và chưa ghi nhận quyết định; mỗi hồ sơ thuộc tối đa một biên bản còn hiệu lực.
 /// Người lập khác người chốt; chủ hồ sơ không lập, chốt hay xem biên bản có hồ sơ của mình.
 /// </summary>
-public sealed class CalibrationService : ICalibrationService
+public sealed class CalibrationService : ICalibrationService, ICalibrationGate
 {
     private const int MaxReasonLength = 2000;
 
@@ -760,6 +760,57 @@ public sealed class CalibrationService : ICalibrationService
 
     private static string GradeOrEmpty(EvaluationGrade grade) =>
         grade == EvaluationGrade.ChuaXepLoai ? string.Empty : EvaluationMapping.GradeCode(grade);
+
+    #endregion
+
+    #region Cổng hiệu chuẩn
+
+    /// <inheritdoc />
+    public async Task<CalibrationGateResult> EvaluateAsync(Guid recordId, CancellationToken ct = default)
+    {
+        var all = await EvaluateManyAsync(new[] { recordId }, ct);
+        return all[recordId];
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<Guid, CalibrationGateResult>> EvaluateManyAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken ct = default)
+    {
+        var result = recordIds.Distinct().ToDictionary(id => id, _ => new CalibrationGateResult(CalibrationGateState.NoSession, null));
+        if (result.Count == 0)
+            return result;
+
+        var rows = await _repo.ListActiveRowsAsync(result.Keys.ToList(), ct);
+        var concluded = rows.Select(r => r.Session)
+            .Where(s => s.Status == CalibrationStatus.Concluded && s.ConcludedAt.HasValue)
+            .DistinctBy(s => s.Id).ToList();
+        var stale = new HashSet<Guid>();
+        if (concluded.Count > 0)
+        {
+            var since = concluded.Min(s => s.ConcludedAt!.Value);
+            var histories = await _repo.ListRecordHistorySinceAsync(
+                concluded.SelectMany(s => s.Records.Select(r => r.RecordId)).Distinct().ToList(), since, ct);
+            var byRecord = histories.ToLookup(h => h.RecordId);
+            foreach (var session in concluded)
+            {
+                var own = session.Records.SelectMany(r => byRecord[r.RecordId]);
+                if (CalibrationRules.IsStale(session.ConcludedAt!.Value, own))
+                    stale.Add(session.Id);
+            }
+        }
+
+        foreach (var row in rows)
+        {
+            var session = row.Session;
+            var state = session.Status switch
+            {
+                CalibrationStatus.Concluded => stale.Contains(session.Id) ? CalibrationGateState.Stale : CalibrationGateState.Satisfied,
+                CalibrationStatus.Draft => CalibrationGateState.Pending,
+                _ => CalibrationGateState.NoSession
+            };
+            result[row.RecordId] = new CalibrationGateResult(state, session.Id);
+        }
+        return result;
+    }
 
     #endregion
 
