@@ -155,6 +155,9 @@ public sealed class PeriodService : IPeriodService
             throw new ValidationException("Hãy chọn bộ tiêu chí cho kỳ.");
         var set = await LoadPublishedSetAsync(setId, ct);
 
+        // Kỳ mới có sẵn thời hạn theo quy tắc mặc định; người quản lý sửa ngày khi cần.
+        var settings = PeriodSettings.Default().ApplyDeadlineRules(dto.Year, dto.Quarter, await ListHolidaysAsync(dto.Year, dto.Quarter, ct));
+
         // Bước đăng ký, duyệt sản phẩm theo mẫu tự chấm của bộ tiêu chí.
         var now = DateTime.UtcNow;
         var period = new EvaluationPeriod
@@ -166,7 +169,7 @@ public sealed class PeriodService : IPeriodService
             StartDate = DateTime.SpecifyKind(dto.StartDate, DateTimeKind.Utc),
             EndDate = DateTime.SpecifyKind(dto.EndDate, DateTimeKind.Utc),
             Status = PeriodStatus.Draft,
-            Settings = PeriodSettings.Default().ToJson(),
+            Settings = settings.ToJson(),
             CreatedAt = now
         };
         AttachCriteria(period, set, now);
@@ -199,12 +202,7 @@ public sealed class PeriodService : IPeriodService
         {
             var next = dto.Settings.Normalize();
             if (dto.ApplyDeadlineRules)
-            {
-                // Lấy ngày nghỉ rộng hơn quý vì hạn rơi vào ngày nghỉ có thể lùi sang sau.
-                var quarterStart = new DateOnly(period.Year, ((int)period.Quarter - 1) * 3 + 1, 1);
-                var holidays = (await _holidays.ListAsync(quarterStart, quarterStart.AddMonths(3).AddDays(60), ct)).Select(h => h.Date).ToList();
-                next.ApplyDeadlineRules(period.Year, (int)period.Quarter, holidays);
-            }
+                next.ApplyDeadlineRules(period.Year, (int)period.Quarter, await ListHolidaysAsync(period.Year, (int)period.Quarter, ct));
             var errors = ValidateSettings(next);
             if (errors.Count > 0)
                 throw new ValidationException("Cấu hình kỳ chưa hợp lệ: " + string.Join(" ", errors));
@@ -1139,6 +1137,13 @@ public sealed class PeriodService : IPeriodService
 
     private static List<string> ValidateSettings(PeriodSettings settings) =>
         settings.Validate(WorkflowActions.IsAssignableStepPermission);
+
+    // Lấy ngày nghỉ rộng hơn quý vì hạn rơi vào ngày nghỉ có thể dời sang trước hoặc sau.
+    private async Task<List<DateOnly>> ListHolidaysAsync(int year, int quarter, CancellationToken ct)
+    {
+        var quarterStart = new DateOnly(year, (quarter - 1) * 3 + 1, 1);
+        return (await _holidays.ListAsync(quarterStart.AddMonths(-1), quarterStart.AddMonths(3).AddDays(60), ct)).Select(h => h.Date).ToList();
+    }
 
     /// <summary>Bản nháp/lưu trữ không chọn được cho kỳ.</summary>
     private async Task<CriteriaSet> LoadPublishedSetAsync(Guid id, CancellationToken ct)

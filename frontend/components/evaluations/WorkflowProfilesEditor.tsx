@@ -227,7 +227,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
 
           {deadlinesEditable && onApplyRules && (
             <div className="d-flex justify-content-end align-items-center mb-2">
-              <button type="button" className="btn btn-outline-primary btn-sm" onClick={onApplyRules}>Áp dụng quy tắc</button>
+              <button type="button" className="btn btn-outline-primary btn-sm" onClick={onApplyRules}>Tính lại thời hạn</button>
             </div>
           )}
 

@@ -15,7 +15,10 @@ public enum DeadlineRuleKind
     DayOfLastMonth = 1,
 
     /// <summary>N ngày làm việc trước đầu quý (1 = ngày làm việc cuối của quý trước).</summary>
-    WorkingDaysBeforeQuarter = 2
+    WorkingDaysBeforeQuarter = 2,
+
+    /// <summary>Ngày làm việc cuối cùng trước ngày D của tháng cuối quý ("trước ngày D").</summary>
+    BeforeDayOfLastMonth = 3
 }
 
 /// <summary>Quy tắc tính thời hạn của một bước theo quý.</summary>
@@ -34,6 +37,7 @@ public sealed class DeadlineRule
         DeadlineRuleKind.WorkingDayOfQuarter when Value is < 1 or > MaxWorkingDay =>
             $"ngày làm việc thứ N phải từ 1 đến {MaxWorkingDay}.",
         DeadlineRuleKind.DayOfLastMonth when Value is < 1 or > 28 => "ngày trong tháng cuối quý phải từ 1 đến 28.",
+        DeadlineRuleKind.BeforeDayOfLastMonth when Value is < 2 or > 28 => "ngày trong tháng cuối quý phải từ 2 đến 28.",
         DeadlineRuleKind.WorkingDaysBeforeQuarter when Value is < 1 or > MaxWorkingDay =>
             $"số ngày làm việc trước quý phải từ 1 đến {MaxWorkingDay}.",
         _ => null
@@ -45,6 +49,14 @@ public static class DeadlineCalculator
 {
     public static bool IsWorkingDay(DateOnly date, IReadOnlyCollection<DateOnly>? holidays) =>
         date.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday) && (holidays == null || !holidays.Contains(date));
+
+    /// <summary>Kể cả chính ngày đó; lùi về trước.</summary>
+    public static DateOnly PreviousWorkingDay(DateOnly date, IReadOnlyCollection<DateOnly>? holidays)
+    {
+        for (var i = 0; i < 366 && !IsWorkingDay(date, holidays); i++)
+            date = date.AddDays(-1);
+        return date;
+    }
 
     /// <summary>Kể cả chính ngày đó.</summary>
     public static DateOnly NextWorkingDay(DateOnly date, IReadOnlyCollection<DateOnly>? holidays)
@@ -85,6 +97,8 @@ public static class DeadlineCalculator
                 }
                 return day;
             }
+            case DeadlineRuleKind.BeforeDayOfLastMonth:
+                return PreviousWorkingDay(new DateOnly(year, quarter * 3, Math.Clamp(rule.Value, 2, 28)).AddDays(-1), holidays);
             default:
                 return NextWorkingDay(new DateOnly(year, quarter * 3, Math.Clamp(rule.Value, 1, 28)), holidays);
         }

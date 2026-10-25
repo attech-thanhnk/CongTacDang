@@ -62,8 +62,8 @@ public sealed class ProfileStepSetting
     /// <summary>Chỉ cảnh báo; chỉ chặn khi <see cref="PeriodSettings.EnforceDeadlines"/>.</summary>
     public DateOnly? Deadline { get; set; }
 
-    /// <summary>Quy tắc điền ngày hạn theo quý (null = nhập tay). Chỉ ghi vào <see cref="Deadline"/> khi người dùng
-    /// yêu cầu (<see cref="PeriodSettings.ApplyDeadlineRules"/>), không tự tính lại.</summary>
+    /// <summary>Quy tắc điền ngày hạn theo quý (null = nhập tay). Chỉ ghi vào <see cref="Deadline"/> khi tạo kỳ hoặc khi
+    /// người dùng yêu cầu (<see cref="PeriodSettings.ApplyDeadlineRules"/>), không tự tính lại.</summary>
     public DeadlineRule? Rule { get; set; }
 }
 
@@ -274,7 +274,34 @@ public sealed class PeriodSettings
                 [nameof(ApprovalAuthority.CapTren)] = ProfileUpper
             }
         };
+        foreach (var profile in settings.Profiles)
+        {
+            var upper = profile.Code is ProfileUpper or ProfileDeputyDirector;
+            SetDefaultRules(profile, collective: upper ? 15 : 12, appraisal: upper ? 16 : 14,
+                review: profile.Code == ProfileUpper ? 20 : 15, decision: upper ? 20 : 15);
+        }
         return settings;
+    }
+
+    // Thời hạn mặc định theo HD03 mục V.2; giá trị là "trước ngày D tháng cuối quý".
+    private static void SetDefaultRules(WorkflowProfile profile, int collective, int appraisal, int review, int decision)
+    {
+        var rules = new Dictionary<WorkflowStep, DeadlineRule>
+        {
+            [WorkflowStep.B1_REGISTER] = new() { Kind = DeadlineRuleKind.WorkingDayOfQuarter, Value = 5 },
+            [WorkflowStep.B1_APPROVE] = new() { Kind = DeadlineRuleKind.WorkingDayOfQuarter, Value = 5 },
+            [WorkflowStep.B2_SELF_SCORE] = new() { Kind = DeadlineRuleKind.BeforeDayOfLastMonth, Value = 12 },
+            [WorkflowStep.B2_CELL_CONFIRM] = new() { Kind = DeadlineRuleKind.BeforeDayOfLastMonth, Value = 12 },
+            [WorkflowStep.B3A_COLLECTIVE] = new() { Kind = DeadlineRuleKind.BeforeDayOfLastMonth, Value = collective },
+            [WorkflowStep.B3B_APPRAISAL] = new() { Kind = DeadlineRuleKind.BeforeDayOfLastMonth, Value = appraisal },
+            [WorkflowStep.B3C_DIRECTOR] = new() { Kind = DeadlineRuleKind.BeforeDayOfLastMonth, Value = review },
+            [WorkflowStep.B4_DECISION] = new() { Kind = DeadlineRuleKind.BeforeDayOfLastMonth, Value = decision }
+        };
+        foreach (var (step, rule) in rules)
+        {
+            if (profile.IsActive(step))
+                profile.Step(step).Rule = rule;
+        }
     }
 
     #endregion

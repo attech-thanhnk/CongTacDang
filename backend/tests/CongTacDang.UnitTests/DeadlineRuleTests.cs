@@ -45,9 +45,25 @@ public class DeadlineRuleTests
         Assert.Equal(new DateOnly(2026, 3, 16), DeadlineCalculator.Compute(Day(15), 2026, 1, null));
     }
 
+    [Fact]
+    public void BeforeDayOfLastMonth_TakesLastWorkingDayBeforeThatDay()
+    {
+        var before12 = new DeadlineRule { Kind = DeadlineRuleKind.BeforeDayOfLastMonth, Value = 12 };
+        // 11/12/2026 là thứ Sáu.
+        Assert.Equal(new DateOnly(2026, 12, 11), DeadlineCalculator.Compute(before12, 2026, 4, null));
+        // 11/09/2026 là thứ Sáu nghỉ → thứ Năm 10/09; không dời sang sau ngày 12.
+        Assert.Equal(new DateOnly(2026, 9, 10), DeadlineCalculator.Compute(before12, 2026, 3, new[] { new DateOnly(2026, 9, 11) }));
+        // 14/03/2027 là Chủ nhật → thứ Sáu 12/03.
+        Assert.Equal(new DateOnly(2027, 3, 12),
+            DeadlineCalculator.Compute(new DeadlineRule { Kind = DeadlineRuleKind.BeforeDayOfLastMonth, Value = 15 }, 2027, 1, null));
+        Assert.NotNull(new DeadlineRule { Kind = DeadlineRuleKind.BeforeDayOfLastMonth, Value = 1 }.Validate());
+    }
+
     private static PeriodSettings WithRules()
     {
         var settings = PeriodSettings.Default();
+        foreach (var s in settings.Profiles.SelectMany(p => p.Steps.Values))
+            s.Rule = null;
         var p = settings.Profiles[0];
         p.Step(WorkflowStep.B2_SELF_SCORE).Rule = Day(9);
         p.Step(WorkflowStep.B4_DECISION).Rule = Day(14);
@@ -55,14 +71,41 @@ public class DeadlineRuleTests
     }
 
     [Fact]
-    public void Default_CarriesNoHardcodedDeadlines()
+    public void Default_HasRulesForEveryActiveStepExceptPublish_ButNoDates()
     {
         var settings = PeriodSettings.Default();
-        Assert.All(settings.Profiles.SelectMany(p => p.Steps.Values), s =>
+        foreach (var profile in settings.Profiles)
         {
-            Assert.Null(s.Rule);
-            Assert.Null(s.Deadline);
-        });
+            foreach (var step in WorkflowSteps.Ordered)
+            {
+                var s = profile.Step(step);
+                Assert.Null(s.Deadline);
+                if (step == WorkflowStep.B5_PUBLISH || s.Mode == StepMode.Off)
+                    Assert.Null(s.Rule);
+                else
+                    Assert.NotNull(s.Rule);
+            }
+        }
+    }
+
+    [Fact]
+    public void Default_Quarter1Of2027_MatchesGuideDeadlines()
+    {
+        var settings = PeriodSettings.Default().ApplyDeadlineRules(2027, 1, new[] { new DateOnly(2027, 1, 1) });
+        var coSo = settings.FindProfile(PeriodSettings.ProfileBase)!;
+        var capTren = settings.FindProfile(PeriodSettings.ProfileUpper)!;
+
+        // 05 ngày làm việc đầu quý: 04–08/01 (01/01 nghỉ, 02–03/01 cuối tuần).
+        Assert.Equal(new DateOnly(2027, 1, 8), coSo.Deadline(WorkflowStep.B1_REGISTER));
+        Assert.Equal(new DateOnly(2027, 3, 11), coSo.Deadline(WorkflowStep.B2_SELF_SCORE));
+        Assert.Equal(new DateOnly(2027, 3, 11), coSo.Deadline(WorkflowStep.B3A_COLLECTIVE));
+        Assert.Equal(new DateOnly(2027, 3, 12), coSo.Deadline(WorkflowStep.B3B_APPRAISAL)); // trước 14 (CN 14/03)
+        Assert.Equal(new DateOnly(2027, 3, 12), coSo.Deadline(WorkflowStep.B4_DECISION));
+        Assert.Null(coSo.Deadline(WorkflowStep.B5_PUBLISH));
+
+        Assert.Equal(new DateOnly(2027, 3, 12), capTren.Deadline(WorkflowStep.B3A_COLLECTIVE));
+        Assert.Equal(new DateOnly(2027, 3, 15), capTren.Deadline(WorkflowStep.B3B_APPRAISAL));
+        Assert.Equal(new DateOnly(2027, 3, 19), capTren.Deadline(WorkflowStep.B4_DECISION));
     }
 
     [Fact]

@@ -212,18 +212,18 @@ export default function PeriodDetailPage() {
       setDirtyState(false);
     }, "Đã lưu cấu hình kỳ.");
 
-  // Áp dụng quy tắc lưu ngay cả phần đang sửa nên hỏi lại trước.
+  // Tính lại lưu ngay cả phần đang sửa nên hỏi lại trước.
   const applyRules = () =>
     confirm({
-      title: "Áp dụng quy tắc thời hạn",
-      message: "Thời hạn các bước đặt theo quy tắc sẽ được tính lại và lưu ngay cùng các thay đổi đang sửa.",
-      confirmText: "Áp dụng",
+      title: "Tính lại thời hạn",
+      message: "Ngày hạn của các bước có quy tắc sẽ được tính lại (ngày đã sửa tay bị thay) và lưu ngay cùng các thay đổi đang sửa.",
+      confirmText: "Tính lại",
       isDanger: false,
       onConfirm: () =>
         run(async () => {
           await evaluationService.updatePeriod(period.id, period.version, { settings, applyDeadlineRules: true });
           setDirtyState(false);
-        }, "Đã điền thời hạn theo quy tắc."),
+        }, "Đã tính lại thời hạn."),
     });
 
   // Bỏ phần đang sửa, quay về cấu hình đã lưu.
