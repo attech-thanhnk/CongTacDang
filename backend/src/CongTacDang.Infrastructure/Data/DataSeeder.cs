@@ -615,6 +615,10 @@ public static class DataSeeder
             "Trưởng phòng Tổ chức cán bộ - Lao động", "K1",
             new[] { (RoleCodes.Evaluatee, RoleScopeType.Global), (RoleCodes.Appraisal, RoleScopeType.Global) },
             RecordStatus.AwaitingDirectorReview),
+        // Người thứ hai của Phòng TCCB-LĐ để hồ sơ của Trưởng phòng vẫn có người lập phiếu khác chủ hồ sơ ở các cổng bắt buộc.
+        new("chuyenvien.tccb", "Lê Thị Thu", "PH-TCCB", "CB-VP", new[] { new SamplePosition("Chuyên viên", "PH-TCCB", true) },
+            "Chuyên viên Phòng Tổ chức cán bộ - Lao động", "K2",
+            new[] { (RoleCodes.Appraisal, RoleScopeType.Global) }, null),
         new("truongphong.kt", "Nguyễn Văn Hùng", "PH-KT", "CB-KT",
             new[] { new SamplePosition("Trưởng phòng", "PH-KT", true), new SamplePosition("Chi ủy viên", "CB-KT", false) },
             "Trưởng phòng Kỹ thuật", "K2",
