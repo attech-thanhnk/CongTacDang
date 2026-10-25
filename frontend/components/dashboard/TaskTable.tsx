@@ -67,7 +67,7 @@ export function TaskTable({
               // Nhóm ngoài luồng (kiến nghị, kế hoạch, điều chỉnh việc): máy chủ ghi tình trạng cụ thể của từng việc.
               const detail = !isWorkflowStep(task.step) ? task.statusDisplayName : null;
               return (
-                <tr key={`${task.recordId}-${task.step}`} className={styles.rowLink} onClick={() => router.push(href)}>
+                <tr key={`${task.recordId}-${task.step}-${task.formId ?? ""}`} className={styles.rowLink} onClick={() => router.push(href)}>
                   <td>
                     <div className={styles.person}>
                       <div className="initials">{initialsOf(task.fullName)}</div>

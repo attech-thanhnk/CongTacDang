@@ -15,6 +15,7 @@ import { EvaluationPdfModal } from "@/components/evaluations/EvaluationPdfModal"
 import { RecordFormsPanel } from "@/components/evaluations/RecordFormsPanel";
 import { RecordHistory } from "@/components/evaluations/RecordHistory";
 import { TaskChangeMark, TaskChangeRequests } from "@/components/evaluations/TaskChangeRequests";
+import { CrosscheckPanel } from "@/components/evaluations/CrosscheckPanel";
 import { CollapsibleSection, revealSection } from "@/components/evaluations/CollapsibleSection";
 import { AxisSummaryView, SelfAssessmentView } from "@/components/evaluations/IndividualFormInputs";
 import { loadCriteria, useCriteria } from "@/components/evaluations/useCriteria";
@@ -209,6 +210,7 @@ export default function EvaluationRecordPage() {
               { key: "plan", rank: planPending ? 1 : 5, node: <ImprovementPlanPanel record={record} onPendingChange={setPlanPending} /> },
               { key: "data", rank: 3, node: <RecordData record={record} reviewing={actions.length > 0} /> },
               { key: "changes", rank: 3, node: <TaskChangeRequests record={record} onRecordChanged={load} /> },
+              { key: "crosschecks", rank: 3, node: <CrosscheckPanel record={record} onRecordChanged={load} /> },
             ])}
           </div>
           <div className={`${styles.stack} ${styles.side}`}>

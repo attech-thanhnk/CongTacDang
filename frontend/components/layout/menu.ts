@@ -47,6 +47,15 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
             hasPermission("meeting.manage") ||
             hasPermission("evaluation.collective.record"),
         },
+        {
+          title: "Đối soát chuyên ngành",
+          href: "/crosschecks",
+          icon: "bi-patch-check",
+          check: () =>
+            hasPermission("evaluation.crosscheck.request") ||
+            hasPermission("evaluation.crosscheck.respond") ||
+            hasPermission("evaluation.crosscheck.confirm"),
+        },
         { title: "Kết quả đánh giá", href: "/results", icon: "bi-trophy", permission: "evaluation.results.view" },
         { title: "Báo cáo", href: "/reports", icon: "bi-bar-chart-line", permission: "report.export" },
       ],
