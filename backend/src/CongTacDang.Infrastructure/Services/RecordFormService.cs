@@ -69,6 +69,8 @@ public sealed class RecordFormService : IRecordFormService
         var criteria = ReadCriteria(record.Period);
         if (!Available(criteria).Contains(code))
         {
+            if (!RecordFormCodes.Exportable.Contains(code))
+                throw new ConflictException($"{RecordFormCodes.DisplayName(code)} chưa có chức năng xuất trên hồ sơ.");
             throw new ConflictException(
                 $"Kỳ \"{record.Period.Name}\" không áp dụng {RecordFormCodes.DisplayName(code)} (theo bộ tiêu chí của kỳ). "
                 + "Hãy chọn biểu mẫu khác hoặc liên hệ người quản lý kỳ.");
@@ -127,7 +129,7 @@ public sealed class RecordFormService : IRecordFormService
 
     /// <summary>Mẫu theo bộ tiêu chí của kỳ.</summary>
     private static IReadOnlyList<string> Available(CriteriaSnapshot? criteria) =>
-        criteria?.ApplicableForms().ToList() ?? new List<string>();
+        criteria?.ApplicableForms().Where(RecordFormCodes.Exportable.Contains).ToList() ?? new List<string>();
 
     private static CriteriaSnapshot? ReadCriteria(EvaluationPeriod period)
     {

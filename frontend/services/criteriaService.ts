@@ -113,6 +113,10 @@ export interface CriteriaSetContent {
   parameters: CriteriaParameters;
   /** Mã theo `RECORD_FORMS`; Mẫu 09A luôn áp dụng. */
   requiredForms: string[];
+  /** Biểu mẫu cấp tập thể áp dụng (06, 07, 08, 12, 13). */
+  requiredCollectiveForms?: string[];
+  /** Biểu mẫu tổng hợp, báo cáo, kiểm soát áp dụng (14, 15A, 15B, 16, 19, 20). */
+  requiredSummaryForms?: string[];
   selfAssessmentSections: SelfAssessmentSection[];
   /** Các mức tự đánh giá của từng nhiệm vụ (ô "Mức" ở Mẫu 9D); rỗng = không dùng. */
   taskLevels: TaskLevel[];
@@ -128,10 +132,15 @@ export interface CriteriaSetContent {
 export const RECORD_FORMS: { code: string; name: string }[] = [
   { code: "01", name: "Mẫu 01 — Phiếu giao / đăng ký sản phẩm, công việc chuyên môn" },
   { code: "02", name: "Mẫu 02 — Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc" },
+  { code: "03", name: "Mẫu 03 — Phiếu ý kiến chuyên môn độc lập / đối soát dữ liệu chuyên ngành" },
+  { code: "04", name: "Mẫu 04 — Phiếu đề nghị điều chỉnh, chuyển tiếp, loại trừ / ngoại lệ sản phẩm" },
+  { code: "05", name: "Mẫu 05 — Phiếu ghi nhận nhiệm vụ bổ sung, khẩn cấp, đột xuất trong kỳ" },
   { code: "09A", name: "Mẫu 09A — Phiếu tự chấm điểm" },
   { code: "09C", name: "Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân" },
   { code: "9D", name: "Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ trong quý" },
   { code: "10", name: "Mẫu 10 — Phiếu thẩm định, nhận xét, đề xuất xếp loại" },
+  { code: "11", name: "Mẫu 11 — Phiếu đánh giá, xếp loại cán bộ (phiếu kín)" },
+  { code: "17", name: "Mẫu 17 — Kế hoạch hỗ trợ, khắc phục và phát triển 30-60-90 ngày" },
 ];
 
 /** Giới hạn cấu hình biểu mẫu (khớp kiểm tra phía máy chủ). */

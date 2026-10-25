@@ -16,7 +16,7 @@ public class EvaluationPeriod : IAuditableEntity, ISoftDeletable, IVersioned
 
     public EvaluationQuarter Quarter { get; set; }
 
-    /// <summary>Ví dụ "Đánh giá, xếp loại cán bộ Quý III/2026".</summary>
+    /// <summary>Ví dụ "Đánh giá, xếp loại cán bộ Quý IV/2026".</summary>
     public string Name { get; set; } = string.Empty;
 
     public DateTime StartDate { get; set; }

@@ -176,14 +176,15 @@ sắp xếp như Mẫu 14 (theo họ tên), chức vụ in như Mẫu 14 (chức
 
 ### Toàn bộ biểu mẫu HD03: nơi nhập → nơi xuất → định dạng
 
-Cột "Áp dụng" theo bộ tiêu chí mặc định và `docs/nghiep-vu/hd03-trich-xuat.md` mục 7–8. Mẫu cá nhân áp dụng cho hồ sơ do **bộ tiêu chí của kỳ** quyết định
-(`requiredForms`, sửa ở trang Bộ tiêu chí). PDF: thêm `?format=pdf` vào endpoint (máy chủ chuyển bằng LibreOffice).
+Cột "Áp dụng" theo bộ tiêu chí mặc định (áp dụng đầy đủ mọi biểu mẫu) và `docs/nghiep-vu/hd03-trich-xuat.md` mục 7. Mẫu cá nhân áp dụng cho hồ sơ do **bộ tiêu chí của kỳ** quyết định
+(`requiredForms`; tập thể `requiredCollectiveForms`; tổng hợp `requiredSummaryForms` — sửa ở trang Bộ tiêu chí). Mẫu khai báo mà chưa có chức năng xuất file chỉ chưa hiện nút xuất, không phải lỗi cấu hình. PDF: thêm `?format=pdf` vào endpoint (máy chủ chuyển bằng LibreOffice).
 
 | Mẫu | Áp dụng | Nơi nhập dữ liệu | Nơi xuất (trang → endpoint) | Định dạng | Quyền / phạm vi |
 |---|---|---|---|---|---|
 | 01 — Phiếu giao / đăng ký sản phẩm | Áp dụng | Hồ sơ cá nhân — bước B1 (đăng ký nhiệm vụ) | Hồ sơ → "Biểu mẫu của hồ sơ": `GET /api/reports/docx/record/{recordId}/01` | Word/PDF | xem hồ sơ (`evaluation.read` trong phạm vi, chủ hồ sơ) |
 | 02 — Phiếu tự đánh giá sản phẩm | Áp dụng | Hồ sơ cá nhân — bước B2 (tự chấm nhiệm vụ) | Hồ sơ: `…/record/{recordId}/02` | Word/PDF | như Mẫu 01 |
-| 03, 06 | Chưa áp dụng | — (chưa số hóa) | — | — | — |
+| 03 — Phiếu ý kiến chuyên môn độc lập / đối soát dữ liệu chuyên ngành | Áp dụng (khi cơ quan thẩm định yêu cầu) | Khai báo trong bộ tiêu chí; phần nhập và xuất file đang bổ sung | — | — | — |
+| 06 — Báo cáo kết quả tập thể / lĩnh vực | Áp dụng | Khai báo trong bộ tiêu chí; phần nhập và xuất file đang bổ sung | — | — | — |
 | 04 — Đề nghị điều chỉnh, chuyển tiếp, loại trừ / ngoại lệ sản phẩm | Áp dụng (khi có đề nghị) | Hồ sơ cá nhân — khối "Điều chỉnh việc trong quý" (sau duyệt danh sách việc, trước tự chấm): chủ hồ sơ đề nghị, người duyệt danh sách việc duyệt (`/api/evaluations/records/{recordId}/task-changes`) | — (chưa có file mẫu Word; nội dung xem trên trang hồ sơ và lịch sử) | — | đề nghị: `evaluation.self`; duyệt: quyền bước duyệt danh sách việc theo cách xét duyệt |
 | 05 — Ghi nhận nhiệm vụ bổ sung, khẩn cấp, đột xuất | Áp dụng (khi có việc đột xuất) | Hồ sơ cá nhân — "Ghi nhận việc đột xuất" (chủ hồ sơ hoặc người duyệt danh sách việc); duyệt như Mẫu 04 → thêm việc loại đột xuất | — (chưa có file mẫu Word) | — | như Mẫu 04 |
 | 07 — Báo cáo tự đánh giá của tập thể | Áp dụng | Tập thể & Hội nghị → hồ sơ tập thể M07 (mục I.1–I.4, II–VI, điểm B) | Tập thể & Hội nghị (từng hồ sơ): `GET /api/reports/docx/mau-07/{collectiveRecordId}` | Word/PDF | `evaluation.read` hoặc `collective.manage` trên tổ chức của hồ sơ |
@@ -191,16 +192,18 @@ Cột "Áp dụng" theo bộ tiêu chí mặc định và `docs/nghiep-vu/hd03-t
 | 09A — Phiếu tự chấm | Áp dụng (luôn) | Hồ sơ — bước B2 (phiếu tự chấm: tiêu chí chung + điểm nhiệm vụ theo Mẫu 02) | Hồ sơ: `…/record/{recordId}/09A` | Word/PDF | như Mẫu 01 |
 | 09C — Bản tự đánh giá của cá nhân | Áp dụng | Hồ sơ — bước B2 (nhận xét chung; nhiệm vụ theo trục kèm mức, ý con) | Hồ sơ: `…/record/{recordId}/09C` | Word/PDF | như Mẫu 01 |
 | 9D — Phụ lục kết quả nhiệm vụ | Áp dụng | Hồ sơ — bước B2 (dòng tóm tắt mỗi trục) | Hồ sơ: `…/record/{recordId}/9D` | Word/PDF | như Mẫu 01 |
-| 10 — Phiếu thẩm định | Không nêu (bộ mặc định có — chờ xác nhận) | Hồ sơ — bước B3b (thẩm định, giải trình chênh lệch) | Hồ sơ: `…/record/{recordId}/10` | Word/PDF | như Mẫu 01 |
-| 11 — Phiếu đánh giá, xếp loại (phiếu kín) | Chưa áp dụng | — (phiếu trắng theo danh sách hồ sơ) | Báo cáo: `GET /api/reports/docx/mau-11?periodId&branchId` | Word/PDF | `meeting.read` hoặc `report.export` (phạm vi tổ chức Đảng) |
+| 10 — Phiếu thẩm định | Áp dụng | Hồ sơ — bước B3b (thẩm định, giải trình chênh lệch) | Hồ sơ: `…/record/{recordId}/10` | Word/PDF | như Mẫu 01 |
+| 11 — Phiếu đánh giá, xếp loại (phiếu kín) | Áp dụng | — (phiếu trắng theo danh sách hồ sơ) | Báo cáo: `GET /api/reports/docx/mau-11?periodId&branchId` | Word/PDF | `meeting.read` hoặc `report.export` (phạm vi tổ chức Đảng) |
 | 12 — Biên bản hội nghị | Áp dụng | Tập thể & Hội nghị → biên bản M12 (thời gian, thành phần, mục 3.2, chủ trì/thư ký, nội dung) | Tập thể & Hội nghị (từng biên bản M12): `GET /api/reports/docx/mau-12/{meetingId}` | Word/PDF | `meeting.read`/`meeting.manage` trên đơn vị của biên bản |
 | 13 — Biên bản kiểm phiếu | Áp dụng | Tập thể & Hội nghị → biên bản (Tổ kiểm phiếu, số phiếu phát ra/thu về/hợp lệ/không hợp lệ) + kết quả kiểm phiếu từng hồ sơ (lập biên bản M13 hoặc ghi khi ghi nhận B3a/B4, gồm cột "Chưa đánh giá, xếp loại") | Tập thể & Hội nghị (biên bản đã có kết quả kiểm phiếu): `GET /api/reports/docx/mau-13/{meetingId}` — chưa có kết quả → 400 | Word/PDF | như Mẫu 12 |
 | 14 — Danh sách đánh giá và đề xuất xếp loại | Áp dụng | Dữ liệu các bước của hồ sơ; cột 13 "Đề xuất nội dung liên quan về công tác cán bộ" nhập ở bước B4 (quyết định nội bộ hoặc ghi nhận cấp trên) | Báo cáo: `GET /api/reports/form-14?periodId&branchId` (mỗi cấp quyết định một trang tính) | Excel/PDF | `report.export` (phạm vi tổ chức Đảng) |
 | 15A, 15B — Tổng hợp theo mã chức danh | Áp dụng | Tự động từ mức của hồ sơ và mã chức danh | Báo cáo: `GET /api/reports/form-15a`, `form-15b` `?periodId&branchId` | Excel/PDF | `report.export` |
 | 16 — Báo cáo kết quả đánh giá, xếp loại | Áp dụng | Số liệu tự động; phần nhập tay lưu nháp theo kỳ + tổ chức Đảng (`GET/PUT /api/reports/mau-16/draft`) | Báo cáo ("Soạn báo cáo"): `GET /api/reports/docx/mau-16?periodId&branchId` | Word/PDF | `report.export` |
 | Quyết định xếp loại kèm Phụ lục (văn bản của Đảng ủy/Chi ủy cơ sở, không mang số mẫu HD03) | Áp dụng | Tự động: hồ sơ của kỳ trong phạm vi thuộc diện tổ chức Đảng cơ sở quyết định (thẩm quyền ảnh chụp "cơ sở" và bước quyết định của cách xét duyệt thực hiện trong hệ thống), mức từng bước, mức quyết định; số/ngày văn bản và hội nghị quyết định ghi ở bước B4 | Báo cáo (dòng "Quyết định", cạnh Mẫu 16): `GET /api/reports/docx/decision?periodId&branchId` — không có hồ sơ diện cơ sở hoặc còn hồ sơ chưa ghi quyết định → 400 (nêu tên) | Word/PDF | `report.export` (phạm vi tổ chức Đảng như Mẫu 16) |
-| 17 — Kế hoạch hỗ trợ, khắc phục 30-60-90 ngày | Không nêu (bắt buộc theo mức trong bộ tiêu chí, mặc định C, D) | Hồ sơ đã công bố → khối "Kế hoạch 30-60-90 ngày" (lập, duyệt, xác nhận, kết quả mốc) | Hồ sơ: `GET /api/improvement-plans/{id}/mau-17` | Word/PDF | `evaluation.improvement.manage` hoặc xem hồ sơ |
-| 18, 19, 20 | Không nêu | — (chưa số hóa) | — | — | — |
+| 17 — Kế hoạch hỗ trợ, khắc phục 30-60-90 ngày | Áp dụng (bắt buộc theo mức trong bộ tiêu chí, mặc định C, D) | Hồ sơ đã công bố → khối "Kế hoạch 30-60-90 ngày" (lập, duyệt, xác nhận, kết quả mốc) | Hồ sơ: `GET /api/improvement-plans/{id}/mau-17` | Word/PDF | `evaluation.improvement.manage` hoặc xem hồ sơ |
+| 18 — Bảng kiểm hồ sơ, quyền truy cập và quản lý phiên bản | Lập ngoài hệ thống | — | — | — | — |
+| 19 — Phiếu kiểm soát tính hợp lệ, công bằng và nhất quán | Áp dụng (trước khi trình phê duyệt) | Khai báo trong bộ tiêu chí; phần nhập và xuất file đang bổ sung | — | — | — |
+| 20 — Biên bản hiệu chuẩn kết quả đánh giá | Áp dụng (nhóm chức danh tương đồng, trước khi phê duyệt) | Khai báo trong bộ tiêu chí; phần nhập và xuất file đang bổ sung | — | — | — |
 | Hồ sơ kiến nghị (V.1 "hồ sơ giải quyết khiếu nại, kiến nghị") | — | Hồ sơ đã công bố → khối "Kiến nghị" (gửi, xem xét, trả lời có căn cứ, tệp gắn) | Trên trang hồ sơ (không có biểu mẫu HD03 riêng) | — | chủ hồ sơ / `evaluation.appeal.resolve` |
 | Báo cáo nội bộ — Danh sách cán bộ | — | Danh mục cán bộ | Báo cáo (nhóm nội bộ): `GET /api/reports/cadres` | Excel | `report.export` (lọc theo phạm vi) |
 | Báo cáo nội bộ — Kiểm soát tỷ lệ Hoàn thành xuất sắc | — | Tự động | Báo cáo (nhóm nội bộ): `GET /api/reports/internal/excellent-quota?periodId&branchId` | Excel/PDF | `report.export` |
@@ -282,9 +285,9 @@ ghi log lỗi và xuất theo file gốc.
 
 ## 8. Biểu mẫu cá nhân theo bộ tiêu chí của kỳ (Mẫu 09A, 09C, 9D — task 18)
 
-- **Mẫu áp dụng** khai báo trong nội dung bộ tiêu chí: `requiredForms` (mã `01`, `02`, `09A`, `09C`, `9D`, `10`) — sửa trên
+- **Mẫu áp dụng** khai báo trong nội dung bộ tiêu chí: `requiredForms` (mã `01`–`05`, `09A`, `09C`, `9D`, `10`, `11`, `17`), `requiredCollectiveForms` (`06`, `07`, `08`, `12`, `13`) và `requiredSummaryForms` (`14`, `15A`, `15B`, `16`, `19`, `20`) — sửa trên
   trang **Bộ tiêu chí** (bản nháp) ở khối "Biểu mẫu cá nhân áp dụng". Mẫu 09A (phiếu tự chấm) luôn áp dụng. Bộ mặc định:
-  `01, 02, 09A, 09C, 9D, 10` (Mẫu 10 giữ theo quyết định task 18 — văn bản không nói rõ, chờ nghiệp vụ xác nhận).
+  đủ cả ba danh sách trên. Nút xuất trên hồ sơ chỉ hiện với mẫu đã có file xuất (01, 02, 09A, 09C, 9D, 10).
 - **Trục kết quả** của bộ (`axes[]`: mã, tên, nội dung áp dụng) dùng để phân loại nhiệm vụ: cột trục của Mẫu 01, nhóm nhiệm vụ
   theo trục ở Mẫu 09C, một dòng mỗi trục ở Mẫu 9D.
 - **Mục Mẫu 09C** khai báo trong `selfAssessmentSections` (mã, tiêu đề, câu dẫn, lưu ý, số ký tự tối đa, bắt buộc); nội dung hồ sơ

@@ -1,3 +1,5 @@
+> **Phạm vi áp dụng của hệ thống:** phần mềm theo chuẩn đánh giá áp dụng đầy đủ (đủ biểu mẫu 01–20, cách chấm theo sản phẩm đăng ký). Các đoạn nêu quy định riêng cho kỳ chuyển tiếp trong bản trích xuất dưới đây là nguyên văn HD03 để đối chiếu, hệ thống không áp dụng.
+>
 > **Trạng thái: CHƯA XÁC NHẬN.** Trích xuất tự động từ PDF Hướng dẫn 03-HD/TVĐU (82 trang, bản scan) ngày 2026-09-28 để tham khảo. Chưa được TCCB-LĐ / Đảng ủy ATTECH xác nhận; không dùng làm căn cứ code cho tới khi chốt nghiệp vụ.
 
 # HD 03-HD/TVĐU — Bộ quy tắc trích xuất phục vụ thiết kế phần mềm đánh giá cán bộ (Đảng bộ Công ty ATTECH)

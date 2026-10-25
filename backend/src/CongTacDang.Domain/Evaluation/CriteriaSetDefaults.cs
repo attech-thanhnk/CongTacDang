@@ -76,6 +76,8 @@ public static partial class CriteriaSetDefaults
             },
             Axes = axes,
             RequiredForms = new List<string>(RequiredForms),
+            RequiredCollectiveForms = new List<string>(RequiredCollectiveForms),
+            RequiredSummaryForms = new List<string>(RequiredSummaryForms),
             SelfAssessmentSections = SelfAssessmentSections(),
             TaskLevels = TaskLevels(),
             TaskLineLabel = TaskLineLabel,

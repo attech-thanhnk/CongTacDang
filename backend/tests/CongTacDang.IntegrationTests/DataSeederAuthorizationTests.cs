@@ -56,7 +56,7 @@ public sealed class DataSeederAuthorizationTests
                 Assert.All(users, u => Assert.True(u.MustChangePassword));
                 Assert.All(users, u => Assert.True(BCrypt.Net.BCrypt.Verify(SamplePassword, u.PasswordHash)));
 
-                // Kỳ mẫu Quý III/2026 (đang mở) với hồ sơ ở nhiều bước.
+                // Kỳ mẫu (đang mở) với hồ sơ ở nhiều bước.
                 var period = await db.EvaluationPeriods.SingleAsync();
                 Assert.Equal(PeriodStatus.Open, period.Status);
                 Assert.Equal(CriteriaSetDefaults.Code, period.GetCriteria()!.Code);
