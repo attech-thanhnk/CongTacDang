@@ -94,13 +94,15 @@ const EXTERNAL_ACTIONS: Record<string, string> = {
 };
 
 export function taskActionLabel(task: { step: string; mode: string; status: string }): string {
+  if (task.step === "CROSSCHECKS") return task.status === "Submitted" ? "Xác nhận" : "Lập phiếu";
   if (task.step === "IMPROVEMENT_PLANS") return task.status === "PlanMissing" ? "Lập kế hoạch" : "Duyệt kế hoạch";
   if (task.mode === "External" && EXTERNAL_ACTIONS[task.step]) return EXTERNAL_ACTIONS[task.step];
   return STEP_ACTIONS[task.step] ?? "Mở hồ sơ";
 }
 
 /** Kiến nghị chưa có người xử lý: người gán vai trò có thể không xem được hồ sơ nên dẫn tới trang tài khoản. */
-export function taskHref(task: { step: string; recordId: string }): string {
+export function taskHref(task: { step: string; recordId: string; formId?: string | null }): string {
+  if (task.step === "CROSSCHECKS" && task.formId) return `/crosschecks/${task.formId}`;
   return task.step === "APPEALS_UNASSIGNED" ? "/admin/users" : `/evaluations/${task.recordId}`;
 }
 

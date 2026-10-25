@@ -635,6 +635,8 @@ export interface RecordActionsDto {
 
 export interface WorkQueueItemDto {
   recordId: string;
+  /** Id phiếu khi việc là phiếu (nhóm CROSSCHECKS); các nhóm khác để trống. */
+  formId?: string | null;
   version: number;
   periodId: string;
   periodName: string;
