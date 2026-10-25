@@ -200,7 +200,8 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 - API: `GET /api/evaluations/records/{id}/task-changes` (danh sách + cờ `canRequestChange`, `canRecordUrgent`, `requests[].canDecide`),
   `POST …/task-changes`, `POST …/task-changes/{changeId}/approve`, `POST …/task-changes/{changeId}/reject`. Việc cần xử lý / chuông: nhóm
   `TASK_CHANGES` "Duyệt đề nghị điều chỉnh việc".
-- Chưa làm: xuất Word Mẫu 04/05 (chưa có template), tệp minh chứng gắn đề nghị, tạo việc chuyển tiếp ở kỳ quý sau.
+- Xuất Word/PDF: khối "Biểu mẫu" của hồ sơ có một phiếu cho mỗi đề nghị (Mẫu 04 cho Adjust/Carryover/Exclude, Mẫu 05 cho Urgent) — `GET /api/reports/docx/record/{id}/requests` và `…/{04|05}/{requestId}`.
+- Chưa làm: tệp minh chứng gắn đề nghị, tạo việc chuyển tiếp ở kỳ quý sau.
 
 ## 5. API hành động (để frontend không tự suy luật)
 - `GET /api/evaluations/records/{id}/actions` → danh sách hành động người hiện tại được làm trên hồ sơ, mỗi mục: `{ action, step, label, requiresReason, reasonOptional, overdue, targetSteps? }`. Tính từ: trạng thái hồ sơ + **hồ sơ luồng của hồ sơ** (chế độ + quyền thực hiện của bước) + trạng thái kỳ + xung đột lợi ích + `IAuthorizationGuard`. Bước cấp trên thực hiện → hành động `RecordExternal` (bước ở trường `step`).

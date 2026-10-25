@@ -28,6 +28,22 @@ public class RecordFormsController : ControllerBase
         return Ok(ApiResponse<List<RecordFormDto>>.Ok(forms, "Lấy danh sách biểu mẫu của hồ sơ thành công."));
     }
 
+    /// <summary>Mẫu 04/05 của hồ sơ: mỗi đề nghị thay đổi việc một phiếu.</summary>
+    [HttpGet("{recordId:guid}/requests")]
+    public async Task<IActionResult> GetRequestForms(Guid recordId, CancellationToken ct)
+    {
+        var forms = await _forms.GetRequestFormsAsync(recordId, ct);
+        return Ok(ApiResponse<List<RecordFormDto>>.Ok(forms, "Lấy danh sách phiếu đề nghị thay đổi việc của hồ sơ thành công."));
+    }
+
+    /// <summary>Xuất Mẫu 04 hoặc 05 của một đề nghị (formCode: 04, 05).</summary>
+    [HttpGet("{recordId:guid}/{formCode}/{requestId:guid}")]
+    public async Task<IActionResult> ExportRequestForm(Guid recordId, string formCode, Guid requestId, [FromQuery] string? format, CancellationToken ct)
+    {
+        var result = await _forms.ExportRequestFormAsync(recordId, formCode, requestId, ParseFormat(format), ct);
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
     /// <summary>Xuất một biểu mẫu (formCode: 01, 02, 09A, 09C, 9D, 10).</summary>
     [HttpGet("{recordId:guid}/{formCode}")]
     public async Task<IActionResult> Export(Guid recordId, string formCode, [FromQuery] string? format, CancellationToken ct)

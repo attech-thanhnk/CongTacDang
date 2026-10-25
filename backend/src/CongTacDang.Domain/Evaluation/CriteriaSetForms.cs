@@ -39,11 +39,13 @@ public static class RecordFormCodes
 
     /// <summary>Kế hoạch hỗ trợ, khắc phục và phát triển 30-60-90 ngày (cán bộ xếp mức C, D).</summary>
     public const string Form17 = "17";
+    /// <summary>Mẫu xuất theo từng đề nghị thay đổi việc.</summary>
+    public static IReadOnlyList<string> RequestForms { get; } = new[] { Form04, Form05 };
 
     /// <summary>Theo thứ tự hiển thị.</summary>
     public static IReadOnlyList<string> All { get; } = new[]
     {
-        Form01, Form02, Form03, Form04, Form05, Form09A, Form09C, Form9D, Form10, Form11, Form17
+        Form01, Form02, Form03, Form09A, Form09C, Form9D, Form10, Form11, Form17
     };
 
     /// <summary>Mẫu có xuất file trên hồ sơ; mẫu khai báo mà chưa có ở đây chỉ chưa hiện nút xuất, không phải lỗi cấu hình.</summary>
@@ -63,7 +65,7 @@ public static class RecordFormCodes
         }
         if (value == "09D")
             value = Form9D;
-        return All.FirstOrDefault(c => c == value) ?? (code ?? string.Empty).Trim();
+        return All.Concat(RequestForms).FirstOrDefault(c => c == value) ?? (code ?? string.Empty).Trim();
     }
 
     public static bool IsKnown(string? code) => All.Contains(code);

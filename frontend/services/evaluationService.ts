@@ -456,6 +456,8 @@ export interface IndividualFormConfig {
 export interface RecordFormDto {
   code: string;
   name: string;
+  /** Đề nghị thay đổi việc của Mẫu 04/05; các mẫu còn lại không có. */
+  requestId?: string | null;
 }
 
 /** Khớp giới hạn kiểm tra phía máy chủ. */
@@ -1246,6 +1248,16 @@ export const evaluationService = {
   // ----- Biểu mẫu cá nhân của hồ sơ -----
   async getRecordForms(recordId: string): Promise<RecordFormDto[]> {
     return request<RecordFormDto[]>(`/reports/docx/record/${recordId}`);
+  },
+
+  /** Mẫu 04/05: mỗi đề nghị thay đổi việc của hồ sơ một phiếu. */
+  async getRecordRequestForms(recordId: string): Promise<RecordFormDto[]> {
+    return request<RecordFormDto[]>(`/reports/docx/record/${recordId}/requests`);
+  },
+
+  /** Đường dẫn API xuất Mẫu 04/05 của một đề nghị. */
+  recordRequestFormEndpoint(recordId: string, code: string, requestId: string): string {
+    return `/reports/docx/record/${recordId}/${encodeURIComponent(code)}/${requestId}`;
   },
 
   /** Đường dẫn API xuất một biểu mẫu của hồ sơ (dùng với `reportService.downloadReport`, định dạng docx/pdf). */
