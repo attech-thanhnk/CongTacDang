@@ -3,6 +3,13 @@
 import React, { useEffect, useState } from "react";
 import {
   DEFAULT_STEP_PERMISSIONS,
+  GATE_ALLOWED_MODES,
+  GATE_CODES,
+  GATE_MODE_LABELS,
+  GATE_NAMES,
+  GateCode,
+  GateMode,
+  defaultGateMode,
   MANDATORY_STEPS,
   NEVER_EXTERNAL_STEPS,
   OWNER_STEPS,
@@ -90,6 +97,16 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
       profiles: settings.profiles.map((p) => (p.code === profile.code ? { ...p, code } : p)),
     });
     setSelected(code);
+  };
+
+  const gateMode = (gate: GateCode): GateMode => {
+    const set = profile?.gates?.[gate]?.mode;
+    return set && GATE_ALLOWED_MODES[gate].includes(set) ? set : defaultGateMode(gate, profile?.steps.B4_DECISION?.mode ?? "Internal");
+  };
+
+  const setGate = (gate: GateCode, mode: GateMode) => {
+    if (!profile) return;
+    updateProfile(profile.code, (p) => ({ ...p, gates: { ...(p.gates ?? {}), [gate]: { mode } } }));
   };
 
   const setRule = (step: WorkflowStepCode, kind: DeadlineRuleKind | "") => {
@@ -223,6 +240,21 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
                 })}
               </tbody>
             </table>
+          </div>
+
+          <div className="mb-3">
+            <div className="fw-semibold mb-1" style={{ fontSize: 14 }}>Cổng kiểm soát trước quyết định</div>
+            <div className="row g-2">
+              {GATE_CODES.map((gate) => (
+                <div className="col-12 col-md-4" key={gate}>
+                  <label className="form-label mb-0" style={{ fontSize: 13 }} htmlFor={`gate-${gate}`}>{GATE_NAMES[gate]}</label>
+                  <select id={`gate-${gate}`} className="form-select form-select-sm" value={gateMode(gate)} disabled={!editable}
+                    onChange={(e) => setGate(gate, e.target.value as GateMode)}>
+                    {GATE_ALLOWED_MODES[gate].map((m) => <option key={m} value={m}>{GATE_MODE_LABELS[m]}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
           </div>
 
           {deadlinesEditable && onApplyRules && (

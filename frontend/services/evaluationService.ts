@@ -53,6 +53,43 @@ export interface WorkflowProfile {
   name: string;
   description?: string | null;
   steps: Record<string, ProfileStepSetting>;
+  /** Cổng kiểm soát (CROSSCHECK / CALIBRATION / CONTROL); cổng thiếu lấy mặc định ở máy chủ. */
+  gates?: Record<string, GateSetting>;
+}
+
+export type GateMode = "Required" | "Recorded" | "Off" | "Optional";
+
+export interface GateSetting {
+  mode: GateMode;
+}
+
+export const GATE_CODES = ["CROSSCHECK", "CALIBRATION", "CONTROL"] as const;
+export type GateCode = (typeof GATE_CODES)[number];
+
+export const GATE_NAMES: Record<GateCode, string> = {
+  CROSSCHECK: "Đối soát chuyên ngành",
+  CALIBRATION: "Hiệu chuẩn kết quả",
+  CONTROL: "Kiểm soát trước phê duyệt",
+};
+
+export const GATE_MODE_LABELS: Record<GateMode, string> = {
+  Required: "Bắt buộc",
+  Recorded: "Chỉ ghi nhận",
+  Off: "Tắt",
+  Optional: "Tùy chọn",
+};
+
+/** Đối soát chỉ Tùy chọn / Tắt; hiệu chuẩn và kiểm soát chỉ Bắt buộc / Chỉ ghi nhận / Tắt (giống máy chủ). */
+export const GATE_ALLOWED_MODES: Record<GateCode, GateMode[]> = {
+  CROSSCHECK: ["Optional", "Off"],
+  CALIBRATION: ["Required", "Recorded", "Off"],
+  CONTROL: ["Required", "Recorded", "Off"],
+};
+
+/** Chế độ mặc định khi cổng chưa cấu hình: theo chế độ bước quyết định. */
+export function defaultGateMode(gate: GateCode, decisionMode: StepMode): GateMode {
+  if (gate === "CROSSCHECK") return "Optional";
+  return decisionMode === "Internal" ? "Required" : "Recorded";
 }
 
 /** Cấu hình kỳ (jsonb); tiêu chí và tham số chấm nằm trong bộ tiêu chí của kỳ. */
@@ -285,6 +322,15 @@ export interface EvaluationRecordDto {
   directorProposedGrade: string;
   directorReviewedByName?: string | null;
   directorReviewedAt?: string | null;
+
+  /** Điểm/mức sau hiệu chuẩn; rỗng khi chưa hiệu chuẩn. */
+  calibratedScore?: number | null;
+  calibratedGrade?: string;
+  calibrationSessionId?: string | null;
+  calibratedAt?: string | null;
+  /** Điểm/mức thẩm định, thay bằng kết quả sau hiệu chuẩn nếu có. */
+  reviewedScore?: number | null;
+  reviewedGrade?: string;
 
   finalScore: number;
   finalGrade: string;
@@ -624,6 +670,12 @@ export interface RecordActionDto {
   currentUnlockedUntil?: string | null;
   defaultUnlockDays?: number | null;
   maxUnlockDays?: number | null;
+  /** Hành động bị khóa bởi cổng: CALIBRATION_REQUIRED | CONTROL_CHECK_REQUIRED. */
+  blockedBy?: "CALIBRATION_REQUIRED" | "CONTROL_CHECK_REQUIRED" | string | null;
+  /** Lý do khóa bằng tiếng Việt, hiển thị nguyên văn. */
+  blockedReason?: string | null;
+  /** Cổng ở chế độ ghi nhận chưa đạt: không khóa, chỉ cảnh báo. */
+  warnings?: string[] | null;
 }
 
 export interface RecordActionsDto {

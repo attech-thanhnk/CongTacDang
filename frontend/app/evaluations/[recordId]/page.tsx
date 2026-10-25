@@ -138,6 +138,10 @@ export default function EvaluationRecordPage() {
     revealSection(STEP_SECTION[item.step]);
   };
 
+  // Hành động bị cổng khóa vẫn có trong danh sách: chỉ hiện lý do máy chủ trả về, không tự suy luật.
+  const blockedActions = actions.filter((a) => !!a.blockedBy && !!a.blockedReason);
+  const gateWarnings = Array.from(new Set(actions.flatMap((a) => a.warnings ?? [])));
+
   if (loading) {
     return <div className="page-wrapper"><div className="text-secondary p-4 loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải hồ sơ...</div></div>;
   }
@@ -186,6 +190,17 @@ export default function EvaluationRecordPage() {
             {record.unlockActive
               ? `Hồ sơ được mở riêng đến ${formatDateTime(record.unlockedUntil)}.`
               : `Thời hạn mở riêng hồ sơ đã hết lúc ${formatDateTime(record.unlockedUntil)}.`}
+          </div>
+        )}
+
+        {blockedActions.map((a) => (
+          <div key={a.action + a.step} className="alert alert-warning mb-0" role="alert">
+            <i className="bi bi-lock me-2" aria-hidden="true" /><strong>{a.label}:</strong> {a.blockedReason}
+          </div>
+        ))}
+        {gateWarnings.length > 0 && (
+          <div className="alert alert-info mb-0" role="status">
+            {gateWarnings.map((w) => <div key={w}>{w}</div>)}
           </div>
         )}
 
@@ -618,6 +633,11 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
               ["Người / cơ quan thẩm định", record.appraisedByName],
               ["Ý kiến", record.appraisalComment],
               ["Giải trình chênh lệch", record.appraisalExplanation],
+              ["Mức sau hiệu chuẩn", hasGrade(record.calibratedGrade) ? <GradeBadge grade={record.calibratedGrade} /> : null],
+              ["Điểm sau hiệu chuẩn", hasGrade(record.calibratedGrade) ? record.calibratedScore : null],
+              ["Biên bản hiệu chuẩn", record.calibrationSessionId && hasGrade(record.calibratedGrade)
+                ? <Link href={`/quality-control/calibrations/${record.calibrationSessionId}`}>Xem biên bản{record.calibratedAt ? ` (${formatDate(record.calibratedAt)})` : ""}</Link>
+                : null],
               ...externalItems("B3B_APPRAISAL"),
             ]}
           />

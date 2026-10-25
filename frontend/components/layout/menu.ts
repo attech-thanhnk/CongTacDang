@@ -56,6 +56,16 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
             hasPermission("evaluation.crosscheck.respond") ||
             hasPermission("evaluation.crosscheck.confirm"),
         },
+        {
+          title: "Kiểm soát chất lượng",
+          href: "/quality-control",
+          icon: "bi-shield-check",
+          check: () =>
+            hasPermission("evaluation.calibration.manage") ||
+            hasPermission("evaluation.calibration.conclude") ||
+            hasPermission("evaluation.control.perform") ||
+            hasPermission("evaluation.control.confirm"),
+        },
         { title: "Kết quả đánh giá", href: "/results", icon: "bi-trophy", permission: "evaluation.results.view" },
         { title: "Báo cáo", href: "/reports", icon: "bi-bar-chart-line", permission: "report.export" },
       ],

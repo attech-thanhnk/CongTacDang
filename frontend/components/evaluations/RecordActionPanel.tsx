@@ -117,8 +117,9 @@ export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }:
                 criteria={criteria}
                 action={action.action}
                 step={action.step}
-                busy={busy}
-                onSubmit={onSubmit}
+                // Hành động bị cổng khóa: vô hiệu hóa nút gửi, lý do hiện ở dải thông báo của hồ sơ.
+                busy={busy || !!action.blockedBy}
+                onSubmit={(...args) => { if (!action.blockedBy) onSubmit(...args); }}
                 extra={index === 0 && reasonsInForm ? reasonButtons : null}
                 onAppraisalChange={setAppraisal}
               />
