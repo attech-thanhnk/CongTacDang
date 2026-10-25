@@ -133,8 +133,6 @@ export const RECORD_FORMS: { code: string; name: string }[] = [
   { code: "01", name: "Mẫu 01 — Phiếu giao / đăng ký sản phẩm, công việc chuyên môn" },
   { code: "02", name: "Mẫu 02 — Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc" },
   { code: "03", name: "Mẫu 03 — Phiếu ý kiến chuyên môn độc lập / đối soát dữ liệu chuyên ngành" },
-  { code: "04", name: "Mẫu 04 — Phiếu đề nghị điều chỉnh, chuyển tiếp, loại trừ / ngoại lệ sản phẩm" },
-  { code: "05", name: "Mẫu 05 — Phiếu ghi nhận nhiệm vụ bổ sung, khẩn cấp, đột xuất trong kỳ" },
   { code: "09A", name: "Mẫu 09A — Phiếu tự chấm điểm" },
   { code: "09C", name: "Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân" },
   { code: "9D", name: "Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ trong quý" },
