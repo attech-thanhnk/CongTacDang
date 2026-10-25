@@ -73,7 +73,7 @@ Bấm vào tên của bạn ở góc dưới thanh bên trái → **Tài khoản
 
 ### 2.3 Chọn kỳ đánh giá
 
-Ô **Kỳ đánh giá** ở đầu thanh bên trái (ví dụ "Quý III/2026"). Mọi trang (Tổng quan, Việc cần xử lý, Đánh giá cán bộ, Báo cáo…) hiển thị dữ liệu của kỳ đang chọn. Kỳ không ở trạng thái Đang mở có ghi kèm trạng thái, ví dụ "(Khóa dữ liệu)".
+Ô **Kỳ đánh giá** ở đầu thanh bên trái (ví dụ "Quý IV/2026"). Mọi trang (Tổng quan, Việc cần xử lý, Đánh giá cán bộ, Báo cáo…) hiển thị dữ liệu của kỳ đang chọn. Kỳ không ở trạng thái Đang mở có ghi kèm trạng thái, ví dụ "(Khóa dữ liệu)".
 
 ### 2.4 Tổng quan
 

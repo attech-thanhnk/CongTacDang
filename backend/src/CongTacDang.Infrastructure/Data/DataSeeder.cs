@@ -765,7 +765,7 @@ public static class DataSeeder
         {
             Year = 2026,
             Quarter = EvaluationQuarter.Quy3,
-            Name = "Đánh giá, xếp loại cán bộ Quý III/2026",
+            Name = "Đánh giá, xếp loại cán bộ kỳ mẫu",
             StartDate = new DateTime(2026, 7, 1, 0, 0, 0, DateTimeKind.Utc),
             EndDate = new DateTime(2026, 9, 30, 0, 0, 0, DateTimeKind.Utc),
             Status = PeriodStatus.Open,
@@ -936,7 +936,7 @@ public static class DataSeeder
             PresentCount = 4,
             ChairName = members["truongphong.kt"].FullName,
             SecretaryName = members["thuky.kt"].FullName,
-            MinutesContent = "Hội nghị nghe báo cáo kết quả thực hiện nhiệm vụ trọng tâm quý III/2026, thảo luận, nhận xét từng cán bộ (dữ liệu mẫu).",
+            MinutesContent = "Hội nghị nghe báo cáo kết quả thực hiện nhiệm vụ trọng tâm trong kỳ, thảo luận, nhận xét từng cán bộ (dữ liệu mẫu).",
             OutcomeContent = "Hội nghị thống nhất đề xuất mức xếp loại theo kết quả kiểm phiếu (dữ liệu mẫu).",
             Details = Details(new
             {

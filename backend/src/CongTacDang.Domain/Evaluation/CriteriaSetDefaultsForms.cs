@@ -6,10 +6,14 @@ namespace CongTacDang.Domain.Evaluation;
 /// <summary>Nội dung biểu mẫu cá nhân của bộ mặc định, chép nguyên văn từ file biểu mẫu gốc trong <c>docs/</c>.</summary>
 public static partial class CriteriaSetDefaults
 {
-    public static IReadOnlyList<string> RequiredForms { get; } = new[]
-    {
-        RecordFormCodes.Form01, RecordFormCodes.Form02, RecordFormCodes.Form09A, RecordFormCodes.Form09C, RecordFormCodes.Form9D, RecordFormCodes.Form10
-    };
+    /// <summary>Biểu mẫu cá nhân áp dụng đầy đủ: 01–05, 09A, 09C, 9D, 10, 11, 17.</summary>
+    public static IReadOnlyList<string> RequiredForms { get; } = RecordFormCodes.All;
+
+    /// <summary>Biểu mẫu cấp tập thể: 06, 07, 08, 12, 13.</summary>
+    public static IReadOnlyList<string> RequiredCollectiveForms { get; } = CollectiveFormCodes.All;
+
+    /// <summary>Biểu mẫu tổng hợp, báo cáo, kiểm soát: 14, 15A, 15B, 16, 19, 20.</summary>
+    public static IReadOnlyList<string> RequiredSummaryForms { get; } = SummaryFormCodes.All;
 
     /// <summary>Ba mức kết luận chất lượng nhiệm vụ trọng tâm.</summary>
     public static List<TaskLevel> TaskLevels() => new()

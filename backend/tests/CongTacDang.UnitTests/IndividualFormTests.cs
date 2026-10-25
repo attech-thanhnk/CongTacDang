@@ -19,7 +19,7 @@ public class IndividualFormTests
     public void Defaults_DeclareRequiredForms_And09CSection_FromOriginalForms()
     {
         var a = CriteriaSetDefaults.Build();
-        Assert.Equal(new[] { "01", "02", "09A", "09C", "9D", "10" }, a.RequiredForms);
+        Assert.Equal(new[] { "01", "02", "03", "04", "05", "09A", "09C", "9D", "10", "11", "17" }, a.RequiredForms);
 
         var section = Assert.Single(a.SelfAssessmentSections);
         Assert.Equal("I", section.Code);
@@ -59,7 +59,7 @@ public class IndividualFormTests
         var content = CriteriaSetDefaults.Build();
         var snapshot = new CriteriaSnapshot { Content = content };
 
-        Assert.Equal(new[] { "01", "02", "09A", "09C", "9D", "10" }, snapshot.ApplicableForms());
+        Assert.Equal(RecordFormCodes.All, snapshot.ApplicableForms());
         Assert.True(snapshot.AppliesForm("mau 09d"));
 
         // Mẫu 09A luôn áp dụng dù bộ không ghi trong danh sách.
@@ -77,7 +77,7 @@ public class IndividualFormTests
         Assert.Equal(content.ToJson(), parsed.ToJson());
         Assert.Equal(content.RequiredForms, parsed.RequiredForms);
         Assert.Equal(content.SelfAssessmentSections[0].Note, parsed.SelfAssessmentSections[0].Note);
-        Assert.Contains("\"requiredForms\":[\"01\",\"02\",\"09A\",\"09C\",\"9D\",\"10\"]", content.ToJson());
+        Assert.Contains("\"requiredForms\":[\"01\",\"02\",\"03\",\"04\",\"05\",\"09A\",\"09C\",\"9D\",\"10\",\"11\",\"17\"]", content.ToJson());
     }
 
     #endregion

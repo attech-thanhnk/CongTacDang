@@ -321,6 +321,12 @@ public sealed class CriteriaSetContent
     /// (<see cref="CriteriaSnapshot.ApplicableForms"/>).</summary>
     public List<string> RequiredForms { get; set; } = new();
 
+    /// <summary>Biểu mẫu cấp tập thể áp dụng (<see cref="CollectiveFormCodes"/>).</summary>
+    public List<string> RequiredCollectiveForms { get; set; } = new();
+
+    /// <summary>Biểu mẫu tổng hợp, báo cáo, kiểm soát áp dụng (<see cref="SummaryFormCodes"/>).</summary>
+    public List<string> RequiredSummaryForms { get; set; } = new();
+
     /// <summary>Khung tiêu chí tập thể; rỗng = hồ sơ tập thể nhập thẳng hai điểm nhóm.</summary>
     public List<CollectiveCriteriaGroup> CollectiveGroups { get; set; } = new();
 
@@ -414,6 +420,8 @@ public sealed class CriteriaSetContent
             axis.Description = string.IsNullOrWhiteSpace(axis.Description) ? null : axis.Description.Trim();
         }
         RequiredForms = (RequiredForms ?? new()).Where(c => !string.IsNullOrWhiteSpace(c)).Select(RecordFormCodes.Normalize).ToList();
+        RequiredCollectiveForms = (RequiredCollectiveForms ?? new()).Where(c => !string.IsNullOrWhiteSpace(c)).Select(CollectiveFormCodes.Normalize).ToList();
+        RequiredSummaryForms = (RequiredSummaryForms ?? new()).Where(c => !string.IsNullOrWhiteSpace(c)).Select(SummaryFormCodes.Normalize).ToList();
         SelfAssessmentSections = (SelfAssessmentSections ?? new()).Where(s => s != null).ToList();
         foreach (var section in SelfAssessmentSections)
         {
@@ -505,6 +513,12 @@ public sealed class CriteriaSetContent
         foreach (var code in RequiredForms.Where(c => !RecordFormCodes.IsKnown(c)))
             errors.Add($"Biểu mẫu \"{code}\" không có trong danh mục biểu mẫu cá nhân ({string.Join(", ", RecordFormCodes.All)}).");
         foreach (var dup in RequiredForms.GroupBy(c => c).Where(g => g.Count() > 1))
+            errors.Add($"Biểu mẫu \"{dup.Key}\" được khai báo nhiều lần trong danh sách biểu mẫu áp dụng.");
+        foreach (var code in RequiredCollectiveForms.Where(c => !CollectiveFormCodes.All.Contains(c)))
+            errors.Add($"Biểu mẫu tập thể \"{code}\" không có trong danh mục ({string.Join(", ", CollectiveFormCodes.All)}).");
+        foreach (var code in RequiredSummaryForms.Where(c => !SummaryFormCodes.All.Contains(c)))
+            errors.Add($"Biểu mẫu tổng hợp \"{code}\" không có trong danh mục ({string.Join(", ", SummaryFormCodes.All)}).");
+        foreach (var dup in RequiredCollectiveForms.GroupBy(c => c).Concat(RequiredSummaryForms.GroupBy(c => c)).Where(g => g.Count() > 1))
             errors.Add($"Biểu mẫu \"{dup.Key}\" được khai báo nhiều lần trong danh sách biểu mẫu áp dụng.");
 
         if (RequiredForms.Contains(RecordFormCodes.Form09C) && SelfAssessmentSections.Count == 0)

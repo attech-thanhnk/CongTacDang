@@ -9,7 +9,7 @@ quyết, đội phát triển đã chọn tạm một phương án. Tài liệu 
 - **Đồng ý** — giữ phương án "Hệ thống đang làm"; hoặc
 - **Phương án khác: …** — chọn một phương án trong danh sách hoặc ghi phương án riêng, kèm căn cứ (nếu có).
 
-Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Quý III/2026**, vì ảnh hưởng tới kết quả xếp loại hoặc hồ sơ phải nộp.
+Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đánh giá đầu tiên**, vì ảnh hưởng tới kết quả xếp loại hoặc hồ sơ phải nộp.
 
 **Ghi chú.**
 - Các phương án mặc định lấy theo **bản trích xuất Hướng dẫn 03-HD/TVĐU** (ký ngày 10/9/2026), bản trích xuất chưa được xác nhận.
@@ -23,8 +23,8 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 
 ## A. Phạm vi áp dụng & đối tượng
 
-### A1. [Ưu tiên] Những ai phải đánh giá trong kỳ Quý III/2026?
-- **Câu hỏi:** Kỳ Q3/2026 gồm cán bộ từ Phó Trưởng phòng và tương đương trở lên cộng Bí thư, Phó Bí thư Chi bộ là nhân viên. Có thêm đối tượng nào khác không (Chi ủy viên, Kế toán trưởng…)?
+### A1. [Ưu tiên] Những ai phải đánh giá trong mỗi kỳ?
+- **Câu hỏi:** Mỗi kỳ gồm cán bộ từ Phó Trưởng phòng và tương đương trở lên cộng Bí thư, Phó Bí thư Chi bộ là nhân viên. Có thêm đối tượng nào khác không (Chi ủy viên, Kế toán trưởng…)?
 - **Căn cứ:** Mục I.4 (tr.5), bảng thẩm quyền I.5 (tr.6), IV.3c dòng 7 (tr.20).
 - **Hệ thống đang làm (mặc định):** Chỉ người được đưa vào danh sách của kỳ mới có hồ sơ. Người quản lý kỳ chọn từng người hoặc chọn theo Phòng/Chi bộ. Hệ thống không tự lấy theo chức vụ.
 - **Phương án khác:** Tự đưa vào kỳ mọi người đang giữ chức vụ lãnh đạo, quản lý trong danh mục.
@@ -143,8 +143,8 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 - **Phương án khác:** Chốt mã chức danh vào hồ sơ khi đưa vào kỳ hoặc khi công bố.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
-### C7. Khung tỷ trọng mặc định (áp dụng từ 2027)
-- **Câu hỏi:** Từ Q1/2027 (Mẫu 09A), cán bộ chưa khai báo khung tỷ trọng A-B-C-D thì dùng Khung 2 hay bắt buộc khai báo?
+### C7. Khung tỷ trọng mặc định
+- **Câu hỏi:** Với Mẫu 09A, cán bộ chưa khai báo khung tỷ trọng A-B-C-D thì dùng Khung 2 hay bắt buộc khai báo?
 - **Căn cứ:** Mục III.3.d (tr.12) có 4 khung nhưng không quy định khung mặc định.
 - **Hệ thống đang làm (mặc định):** Dùng Khung 2 "An toàn/tuân thủ/khai thác/kỹ thuật" (15/50/15/20%).
 - **Phương án khác:** Dùng khung khác; bắt buộc chọn khung trước khi mở kỳ.
@@ -161,14 +161,14 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 - **Phương án khác:** Thêm luồng riêng cho Phó Giám đốc (Chủ tịch đề xuất, dòng 4b), Kiểm soát viên (dòng 5).
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Kỳ đánh giá).
 
-### D2. Các bước áp dụng trong Q3/2026
+### D2. Các bước áp dụng
 - **Không còn áp dụng** (đã bỏ cách chấm theo trục): bước đăng ký sản phẩm luôn bật; duyệt danh mục, Chi bộ xác nhận, 3a, 3b, 3c
   bật/tắt theo nhóm đối tượng (D1).
 
-### D3. [Ưu tiên] Bước 3a phiếu kín khi Mẫu 11 chưa áp dụng
-- **Câu hỏi:** Trong Q3/2026, tập thể lãnh đạo vẫn bỏ phiếu kín và nhập kết quả vào hệ thống dù chưa dùng phiếu Mẫu 11, đúng không?
-- **Căn cứ:** IV.3a (tr.18) "phiếu kín (theo Mẫu số 11)" nhưng VI.4 (tr.23) chưa áp dụng Mẫu 11; Mẫu 12, 13 vẫn áp dụng.
-- **Hệ thống đang làm (mặc định):** Có nhập. Hệ thống không tổ chức bỏ phiếu điện tử, không lưu phiếu của từng người. Thư ký nhập số phiếu từng mức, mức đề xuất và xuất Biên bản 12, 13.
+### D3. [Ưu tiên] Bước 3a phiếu kín và Mẫu 11
+- **Câu hỏi:** Tập thể lãnh đạo bỏ phiếu kín (phiếu Mẫu 11) và thư ký nhập kết quả vào hệ thống, đúng không?
+- **Căn cứ:** IV.3a (tr.18) "phiếu kín (theo Mẫu số 11)"; Mẫu 12, 13 là biên bản hội nghị và kiểm phiếu.
+- **Hệ thống đang làm (mặc định):** Có nhập. Hệ thống xuất phiếu Mẫu 11 để bỏ phiếu giấy, không tổ chức bỏ phiếu điện tử, không lưu phiếu của từng người. Thư ký nhập số phiếu từng mức, mức đề xuất và xuất Biên bản 12, 13.
 - **Phương án khác:** Bỏ bước 3a trên hệ thống, chỉ lưu biên bản giấy.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Kỳ đánh giá).
 
@@ -179,9 +179,9 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 - **Phương án khác:** Hai bước này cũng chỉ ghi nhận kết quả; tắt hai bước này.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Kỳ đánh giá).
 
-### D5. [Ưu tiên] Thời hạn từng bước của kỳ Q3/2026
-- **Câu hỏi:** Hạn thực tế của từng bước kỳ Q3/2026 là ngày nào?
-- **Căn cứ:** Mục V.2 (tr.21–22): ngày 12, 14, 15, 16, 20 tháng cuối quý "hoặc theo yêu cầu của BTV". ATTECH nhận văn bản ngày 11/9/2026 nên các mốc này đã qua.
+### D5. [Ưu tiên] Thời hạn từng bước của kỳ
+- **Câu hỏi:** Hạn thực tế của từng bước trong kỳ là ngày nào?
+- **Căn cứ:** Mục V.2 (tr.21–22): ngày 12, 14, 15, 16, 20 tháng cuối quý "hoặc theo yêu cầu của BTV".
 - **Hệ thống đang làm (mặc định):** Kỳ dựng sẵn chưa có hạn. Người quản lý kỳ nhập hạn cho từng bước của từng luồng. Hạn chỉ dùng để nhắc việc và đánh dấu quá hạn.
 - **Phương án khác:** Không có; chỉ cần cung cấp ngày.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Kỳ đánh giá; sửa được cả khi kỳ đã mở).
@@ -330,12 +330,12 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 
 ## F. Biểu mẫu
 
-### F1. [Ưu tiên] Danh mục biểu mẫu lập và nộp trong Q3/2026
-- **Câu hỏi:** Q3/2026 lập và nộp các mẫu dưới đây, đúng không?
-- **Căn cứ:** Mục VI.4 (tr.23) chưa áp dụng Mẫu 01–06, 09A, 11; V.1 (tr.20–21).
-- **Hệ thống đang làm (mặc định):** Cá nhân: 01, 02, 09A, 09C, 9D, 10 (Mẫu 04, 05 khi điều chỉnh việc trong quý). Tập thể và hội nghị: 07, 08, 12, 13. Tổng hợp: 14, 15A, 15B, 16. Mẫu 17 cho người xếp mức C, D. Không có 03, 06, 11.
-- **Phương án khác:** Có lập Mẫu 06 không (IV.2 và V.1 vẫn nêu Mẫu 06).
-- **Ảnh hưởng nếu đổi:** Mẫu cá nhân: cấu hình trên giao diện (Bộ tiêu chí). Thêm Mẫu 06: cần sửa phần mềm.
+### F1. [Ưu tiên] Danh mục biểu mẫu lập và nộp
+- **Câu hỏi:** Mỗi kỳ lập và nộp đủ các mẫu dưới đây, đúng không?
+- **Căn cứ:** Mục IV.1–IV.4 (tr.17–20), V.1 (tr.20–21), Mẫu 18 (tr.80).
+- **Hệ thống đang làm (mặc định):** Cá nhân: 01, 02, 03, 04, 05, 09A, 09C, 9D, 10, 11 và Mẫu 17 cho người xếp mức C, D. Tập thể và hội nghị: 06, 07, 08, 12, 13. Tổng hợp, kiểm soát: 14, 15A, 15B, 16, 19, 20. Các mẫu 03, 06, 19, 20 đã khai báo trong bộ tiêu chí; phần nhập và xuất file đang được bổ sung.
+- **Phương án khác:** Bỏ bớt mẫu không cần lập (Mẫu 03 chỉ khi cơ quan thẩm định yêu cầu xác nhận dữ liệu chuyên môn).
+- **Ảnh hưởng nếu đổi:** Mẫu cá nhân: cấu hình trên giao diện (Bộ tiêu chí). Bỏ bớt mẫu: cấu hình trên giao diện (Bộ tiêu chí).
 
 ### F2. [Ưu tiên] Nộp bản Excel theo mục V.1
 - **Câu hỏi:** Mẫu 01, 02, 09A, 9D (và Mẫu 10) có phải nộp bản Excel không?
@@ -344,12 +344,12 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 - **Phương án khác:** Thêm bản Excel cho 01, 02, 09A, 9D, 10.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
-### F3. [Ưu tiên] Mẫu 10 trong Q3/2026
-- **Câu hỏi:** Phiếu thẩm định Mẫu 10 có dùng trong Q3/2026 không? Nếu có, có cần ghi điểm thẩm định theo từng nhóm không?
-- **Căn cứ:** Mục VI.4 không nhắc Mẫu 10; Mẫu 18 (tr.80) coi Mẫu 10 là thành phần hồ sơ; Mẫu 10 (tr.66) có cột theo từng nhóm.
-- **Hệ thống đang làm (mặc định):** Có dùng. Hệ thống chỉ lưu tổng điểm thẩm định nên ô điểm và chênh lệch từng nhóm để trống.
-- **Phương án khác:** Bỏ Mẫu 10 trong Q3/2026; nhập điểm thẩm định theo từng tiêu chí, từng sản phẩm.
-- **Ảnh hưởng nếu đổi:** Bỏ Mẫu 10: cấu hình trên giao diện (Bộ tiêu chí). Điểm theo nhóm: cần sửa phần mềm.
+### F3. [Ưu tiên] Mẫu 10: điểm thẩm định theo nhóm
+- **Câu hỏi:** Phiếu thẩm định Mẫu 10 là biểu mẫu bắt buộc của hồ sơ; có cần ghi điểm thẩm định theo từng nhóm không?
+- **Căn cứ:** Mẫu 18 (tr.80) coi Mẫu 10 là thành phần hồ sơ; Mẫu 10 (tr.66) có cột theo từng nhóm.
+- **Hệ thống đang làm (mặc định):** Hệ thống chỉ lưu tổng điểm thẩm định nên ô điểm và chênh lệch từng nhóm để trống.
+- **Phương án khác:** Nhập điểm thẩm định theo từng tiêu chí, từng sản phẩm.
+- **Ảnh hưởng nếu đổi:** Điểm theo nhóm: cần sửa phần mềm.
 
 ### F4. [Ưu tiên] Mẫu 09C: bắt buộc nhập và độ dài
 - **Câu hỏi:** Bản tự đánh giá Mẫu 09C có bắt buộc nhập mới cho nộp không? Giới hạn 6.000 ký tự (khoảng 02 trang A4) có phù hợp không?
@@ -372,11 +372,11 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ Qu�
 - **Phương án khác:** Đặt tên tự động đúng quy cách, lấy tên viết tắt đơn vị trong trang Cài đặt.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
-### F7. Mẫu 03–06 và 18–20
-- **Câu hỏi:** Từ Q1/2027 có cần số hóa Mẫu 03, 04, 05, 06 và Mẫu 18, 19, 20 không?
-- **Căn cứ:** Mục VI.4 (tr.23) "từ Quý I/2027 áp dụng đầy đủ"; Mục IV, V không nhắc Mẫu 03, 04, 05, 18, 19, 20.
-- **Hệ thống đang làm (mặc định):** Chưa có các mẫu này; lập ngoài hệ thống nếu cần.
-- **Phương án khác:** Số hóa từng mẫu theo thứ tự ưu tiên do nghiệp vụ chọn.
+### F7. Số hóa Mẫu 03, 06, 19, 20
+- **Câu hỏi:** Số hóa đủ Mẫu 03, 06, 19, 20 (Mẫu 04, 05 đã có; Mẫu 18 lập ngoài hệ thống), đúng không?
+- **Căn cứ:** Mục VI.4 (tr.23) "tất cả các biểu mẫu được áp dụng đầy đủ theo quy định".
+- **Hệ thống đang làm (mặc định):** Số hóa đủ Mẫu 03, 06, 19, 20; Mẫu 18 lập ngoài hệ thống.
+- **Phương án khác:** Số hóa cả Mẫu 18 hoặc đổi thứ tự ưu tiên các mẫu do nghiệp vụ chọn.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
 ---

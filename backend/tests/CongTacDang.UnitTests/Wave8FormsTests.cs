@@ -180,6 +180,9 @@ public class Wave8FormsTests
     [Fact]
     public void DefaultCriteriaSet_RequiredForms_MatchHd03()
     {
-        Assert.Equal(new[] { "01", "02", "09A", "09C", "9D", "10" }, CriteriaSetDefaults.Build().RequiredForms);
+        var content = CriteriaSetDefaults.Build();
+        Assert.Equal(new[] { "01", "02", "03", "04", "05", "09A", "09C", "9D", "10", "11", "17" }, content.RequiredForms);
+        Assert.Equal(new[] { "06", "07", "08", "12", "13" }, content.RequiredCollectiveForms);
+        Assert.Equal(new[] { "14", "15A", "15B", "16", "19", "20" }, content.RequiredSummaryForms);
     }
 }
