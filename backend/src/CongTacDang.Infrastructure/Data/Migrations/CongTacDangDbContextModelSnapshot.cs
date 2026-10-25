@@ -388,6 +388,172 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.ToTable("collective_evaluation_records", (string)null);
                 });
 
+            modelBuilder.Entity("CongTacDang.Domain.Entities.ControlCheck", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("Conclusion")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ConfirmedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConfirmedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("GroupName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("ItemsVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NeedsWorkContent")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<Guid?>("PartyCellId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("PerformedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PerformedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PerformedByName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("PeriodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReturnReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("PartyCellId");
+
+                    b.HasIndex("PeriodId", "Status");
+
+                    b.ToTable("control_checks", (string)null);
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.ControlCheckItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CheckId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Evidence")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("ItemCode")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("ItemText")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("Result")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CheckId", "ItemCode")
+                        .IsUnique();
+
+                    b.ToTable("control_check_items", (string)null);
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.ControlCheckRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CheckId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("GradeAtCheck")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsCurrent")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("RecordId")
+                        .HasColumnType("uuid");
+
+                    b.Property<double>("ScoreAtCheck")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecordId")
+                        .IsUnique()
+                        .HasFilter("\"IsCurrent\"");
+
+                    b.HasIndex("CheckId", "RecordId")
+                        .IsUnique();
+
+                    b.ToTable("control_check_records", (string)null);
+                });
+
             modelBuilder.Entity("CongTacDang.Domain.Entities.CriteriaSet", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2679,6 +2845,47 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Navigation("Period");
                 });
 
+            modelBuilder.Entity("CongTacDang.Domain.Entities.ControlCheck", b =>
+                {
+                    b.HasOne("CongTacDang.Domain.Entities.EvaluationPeriod", "Period")
+                        .WithMany()
+                        .HasForeignKey("PeriodId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Period");
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.ControlCheckItem", b =>
+                {
+                    b.HasOne("CongTacDang.Domain.Entities.ControlCheck", "Check")
+                        .WithMany("Items")
+                        .HasForeignKey("CheckId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Check");
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.ControlCheckRecord", b =>
+                {
+                    b.HasOne("CongTacDang.Domain.Entities.ControlCheck", "Check")
+                        .WithMany("Records")
+                        .HasForeignKey("CheckId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CongTacDang.Domain.Entities.EvaluationRecord", "Record")
+                        .WithMany()
+                        .HasForeignKey("RecordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Check");
+
+                    b.Navigation("Record");
+                });
+
             modelBuilder.Entity("CongTacDang.Domain.Entities.EvaluationAppeal", b =>
                 {
                     b.HasOne("CongTacDang.Domain.Entities.EvaluationRecord", "Record")
@@ -3006,6 +3213,13 @@ namespace CongTacDang.Infrastructure.Data.Migrations
             modelBuilder.Entity("CongTacDang.Domain.Entities.CollectiveEvaluationRecord", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("CongTacDang.Domain.Entities.ControlCheck", b =>
+                {
+                    b.Navigation("Items");
+
+                    b.Navigation("Records");
                 });
 
             modelBuilder.Entity("CongTacDang.Domain.Entities.EvaluationMeeting", b =>
