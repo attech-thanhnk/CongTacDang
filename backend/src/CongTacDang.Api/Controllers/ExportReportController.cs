@@ -260,6 +260,34 @@ public class ExportReportController : ControllerBase
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
+    /// <summary>Xuất Word Mẫu 03 (phiếu đối soát chuyên ngành); service kiểm quyền xem phiếu.</summary>
+    [HttpGet("docx/mau-03/{crosscheckId}")]
+    [RequireAnyPermission(PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCrosscheckRequest,
+        PermissionCodes.EvaluationCrosscheckRespond, PermissionCodes.EvaluationCrosscheckConfirm)]
+    public async Task<IActionResult> ExportMau03Docx(Guid crosscheckId, [FromQuery] string? format = null)
+    {
+        var result = await _reportService.ExportMau03DocxAsync(crosscheckId, ParseFormat(format));
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
+    /// <summary>Xuất Word Mẫu 19 (phiếu kiểm soát); service kiểm quyền xem phiếu.</summary>
+    [HttpGet("docx/mau-19/{controlCheckId}")]
+    [RequireAnyPermission(PermissionCodes.EvaluationControlPerform, PermissionCodes.EvaluationControlConfirm, PermissionCodes.EvaluationRead)]
+    public async Task<IActionResult> ExportMau19Docx(Guid controlCheckId, [FromQuery] string? format = null)
+    {
+        var result = await _reportService.ExportMau19DocxAsync(controlCheckId, ParseFormat(format));
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
+    /// <summary>Xuất Word Mẫu 20 (biên bản hiệu chuẩn); service kiểm quyền xem biên bản.</summary>
+    [HttpGet("docx/mau-20/{calibrationSessionId}")]
+    [RequireAnyPermission(PermissionCodes.EvaluationCalibrationManage, PermissionCodes.EvaluationCalibrationConclude, PermissionCodes.EvaluationRead)]
+    public async Task<IActionResult> ExportMau20Docx(Guid calibrationSessionId, [FromQuery] string? format = null)
+    {
+        var result = await _reportService.ExportMau20DocxAsync(calibrationSessionId, ParseFormat(format));
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
     #endregion
     #region Biểu mẫu Word (.docx) Chuẩn Hướng dẫn 03-HD/TVĐU
 

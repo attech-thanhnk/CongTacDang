@@ -113,5 +113,14 @@ public interface IReportService
     /// <summary>Mẫu 13 — Biên bản kiểm phiếu.</summary>
     Task<ReportFileResult> ExportMau13DocxAsync(Guid meetingId, ReportFormat format = ReportFormat.Original);
 
+    /// <summary>Mẫu 03 — Phiếu đối soát chuyên ngành; quyền xem theo <c>IExpertCrosscheckService.GetAsync</c>.</summary>
+    Task<ReportFileResult> ExportMau03DocxAsync(Guid crosscheckId, ReportFormat format = ReportFormat.Original);
+
+    /// <summary>Mẫu 19 — Phiếu kiểm soát; quyền xem theo <c>IControlCheckService.GetAsync</c>.</summary>
+    Task<ReportFileResult> ExportMau19DocxAsync(Guid controlCheckId, ReportFormat format = ReportFormat.Original);
+
+    /// <summary>Mẫu 20 — Biên bản hiệu chuẩn; quyền xem theo <c>ICalibrationService.GetAsync</c>.</summary>
+    Task<ReportFileResult> ExportMau20DocxAsync(Guid calibrationSessionId, ReportFormat format = ReportFormat.Original);
+
     #endregion
 }

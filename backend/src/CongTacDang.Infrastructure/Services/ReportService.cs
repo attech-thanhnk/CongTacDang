@@ -33,6 +33,9 @@ public partial class ReportService : IReportService
     private readonly IPdfConverter _pdfConverter;
     private readonly IOrganizationSettingsService _orgSettings;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IExpertCrosscheckService _crosschecks;
+    private readonly IControlCheckService _controlChecks;
+    private readonly ICalibrationService _calibrations;
 
     public ReportService(
         CongTacDangDbContext db,
@@ -42,7 +45,10 @@ public partial class ReportService : IReportService
         IWordTemplateStore templates,
         IPdfConverter pdfConverter,
         IOrganizationSettingsService orgSettings,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IExpertCrosscheckService crosschecks,
+        IControlCheckService controlChecks,
+        ICalibrationService calibrations)
     {
         _db = db;
         _userRepo = userRepo;
@@ -52,6 +58,9 @@ public partial class ReportService : IReportService
         _pdfConverter = pdfConverter;
         _orgSettings = orgSettings;
         _unitOfWork = unitOfWork;
+        _crosschecks = crosschecks;
+        _controlChecks = controlChecks;
+        _calibrations = calibrations;
     }
 
     private static readonly CultureInfo Vietnamese = CultureInfo.GetCultureInfo("vi-VN");
@@ -1150,6 +1159,58 @@ public partial class ReportService : IReportService
         var partyName = CollectiveFormText.PartyCommitteeInSentence(org);
         return (PartyHeader.Of(org.SuperiorPartyName, org.PartyCommitteeName, partyName), meeting.Department?.Name ?? partyName,
             partyName, unitForFile);
+    }
+
+    /// <inheritdoc />
+    public async Task<ReportFileResult> ExportMau03DocxAsync(Guid crosscheckId, ReportFormat format = ReportFormat.Original)
+    {
+        // GetAsync kiểm quyền xem phiếu; chức vụ và đơn vị công tác lấy từ hồ sơ được đối soát.
+        var crosscheck = await _crosschecks.GetAsync(crosscheckId);
+        var record = await LoadRecordAsync(crosscheck.RecordId);
+        var held = await HeldPositionsAsync(new[] { record.MemberId }, PositionDate(record.Period));
+        var positionDept = PositionAndUnit(record, held.GetValueOrDefault(record.MemberId) ?? new List<MemberPosition>());
+        var bytes = await RenderWordAsync(Mau03Data.TemplateFileName, Mau03Data.From(crosscheck, positionDept));
+        return await ToResultAsync(bytes, DocxMimeType, $"Mau_03_PhieuDoiSoat_{SafeName(crosscheck.MemberFullName, "CanBo")}.docx", format);
+    }
+
+    /// <inheritdoc />
+    public async Task<ReportFileResult> ExportMau19DocxAsync(Guid controlCheckId, ReportFormat format = ReportFormat.Original)
+    {
+        var check = await _controlChecks.GetAsync(controlCheckId);
+        var period = await _db.EvaluationPeriods.AsNoTracking().FirstOrDefaultAsync(p => p.Id == check.PeriodId);
+        var org = await _orgSettings.GetAsync();
+        var (unitName, cell) = await CheckUnitAsync(check.DepartmentId, check.PartyCellId);
+        var bytes = await RenderWordAsync(Mau19Data.TemplateFileName,
+            Mau19Data.From(check, unitName ?? FormText.OrNull(org.CompanyName), period?.StartDate, period?.EndDate));
+        return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("19", org.ShortName, cell, period, ".docx"), format);
+    }
+
+    /// <inheritdoc />
+    public async Task<ReportFileResult> ExportMau20DocxAsync(Guid calibrationSessionId, ReportFormat format = ReportFormat.Original)
+    {
+        var session = await _calibrations.GetAsync(calibrationSessionId);
+        var period = await _db.EvaluationPeriods.AsNoTracking().FirstOrDefaultAsync(p => p.Id == session.PeriodId);
+        var org = await _orgSettings.GetAsync();
+        var cell = session.PartyCellId is { } cellId ? await _db.PartyCells.AsNoTracking().FirstOrDefaultAsync(c => c.Id == cellId) : null;
+        var bytes = await RenderWordAsync(Mau20Data.TemplateFileName, Mau20Data.From(session));
+        return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("20", org.ShortName, cell, period, ".docx"), format);
+    }
+
+    /// <summary>Tên đơn vị của phiếu: tổ chức Đảng, không có thì đơn vị chính quyền.</summary>
+    private async Task<(string? Name, PartyCell? Cell)> CheckUnitAsync(Guid? departmentId, Guid? partyCellId)
+    {
+        if (partyCellId is { } cellId)
+        {
+            var cell = await _db.PartyCells.AsNoTracking().FirstOrDefaultAsync(c => c.Id == cellId);
+            if (cell != null)
+                return (cell.Name, cell);
+        }
+        if (departmentId is { } id)
+        {
+            var name = await _db.AdministrativeDepartments.AsNoTracking().Where(d => d.Id == id).Select(d => d.Name).FirstOrDefaultAsync();
+            return (name, null);
+        }
+        return (null, null);
     }
 
     /// <inheritdoc />
