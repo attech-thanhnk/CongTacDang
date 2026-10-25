@@ -368,6 +368,8 @@ public sealed class WorkflowProfileIntegrationTests
             .First(p => p["code"]!.GetValue<string>() == code)["steps"]!.AsObject();
         Steps("cap-tren")["B2_SELF_SCORE"]!["deadline"] = yesterday;
         Steps("cap-tren")["B5_PUBLISH"]!["deadline"] = yesterday;
+        // Kỳ mới đã điền sẵn hạn mọi bước; bỏ hạn bước xác nhận để kiểm tra trường hợp không đặt hạn.
+        Steps("cap-tren")["B2_CELL_CONFIRM"]!["deadline"] = null;
         Steps("co-so")["B2_SELF_SCORE"]!["deadline"] = today.AddDays(2).ToString("yyyy-MM-dd");
         await Data(await w.ManagerC.PutAsJsonAsync($"/api/evaluations/periods/{periodId}",
             new { version = current.GetProperty("version").GetUInt32(), settings }));

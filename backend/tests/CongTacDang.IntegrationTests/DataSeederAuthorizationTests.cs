@@ -87,7 +87,7 @@ public sealed class DataSeederAuthorizationTests
                 Assert.Equal(new[] { PermissionCodes.MeetingRead }, evaluatee.Permissions.Select(p => p.Code).ToArray());
                 Assert.Equal(10, await db.Roles.CountAsync());
                 Assert.Equal(1, await db.EvaluationPeriods.CountAsync());
-                Assert.Equal(10, await db.PartyMemberProfiles.CountAsync());
+                Assert.Equal(11, await db.PartyMemberProfiles.CountAsync());
             }
 
             // Tên đăng nhập duy nhất không phân biệt hoa thường (index lower("Username") trong migration).

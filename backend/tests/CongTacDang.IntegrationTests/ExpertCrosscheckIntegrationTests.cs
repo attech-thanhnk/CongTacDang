@@ -53,9 +53,9 @@ public sealed class ExpertCrosscheckIntegrationTests
             && g.GetProperty("items").EnumerateArray().Any(i => i.GetProperty("formId").GetGuid() == id));
 
         // Thẩm định bị chặn khi còn yêu cầu mở.
-        var blocked = await w.ManagerC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appraise", await AppraiseBodyAsync(w, recordId));
+        var blocked = await w.ManagerC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appraisal", await AppraiseBodyAsync(w, recordId));
         Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
-        Assert.Contains("phiếu đối soát", await blocked.Content.ReadAsStringAsync());
+        Assert.Contains("phiếu đối soát", await MessageAsync(blocked));
 
         // Lập → gửi; người lập không tự xác nhận; người xác nhận khác đơn vị bị chặn.
         var detail = await Data(w.ResponderC, $"/api/crosschecks/{id}");
@@ -91,8 +91,8 @@ public sealed class ExpertCrosscheckIntegrationTests
         var confirmedVersion = confirmed.GetProperty("version").GetUInt32();
         Assert.Equal(HttpStatusCode.Conflict, (await w.ResponderC.PutAsJsonAsync($"/api/crosschecks/{id}/response", new { version = confirmedVersion, items })).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await w.ManagerC.PostAsJsonAsync($"/api/crosschecks/{id}/cancel", new { version = confirmedVersion, reason = "x" })).StatusCode);
-        var afterConfirm = await w.ManagerC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appraise", await AppraiseBodyAsync(w, recordId));
-        Assert.DoesNotContain("phiếu đối soát", await afterConfirm.Content.ReadAsStringAsync());
+        var afterConfirm = await w.ManagerC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appraisal", await AppraiseBodyAsync(w, recordId));
+        Assert.DoesNotContain("phiếu đối soát", await MessageAsync(afterConfirm));
     }
 
     [SkippableFact]
@@ -110,8 +110,8 @@ public sealed class ExpertCrosscheckIntegrationTests
         var cancelled = await Data(await w.ManagerC.PostAsJsonAsync($"/api/crosschecks/{id}/cancel", new { version, reason = "Đã có văn bản giấy" }));
         Assert.Equal("Cancelled", cancelled.GetProperty("status").GetString());
 
-        var response = await w.ManagerC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appraise", await AppraiseBodyAsync(w, recordId));
-        Assert.DoesNotContain("phiếu đối soát", await response.Content.ReadAsStringAsync());
+        var response = await w.ManagerC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appraisal", await AppraiseBodyAsync(w, recordId));
+        Assert.DoesNotContain("phiếu đối soát", await MessageAsync(response));
     }
 
     #region Hỗ trợ
@@ -211,10 +211,20 @@ public sealed class ExpertCrosscheckIntegrationTests
         items = new object[] { new { itemName = "Số sự cố nghiêm trọng", selfData = "0" } }
     };
 
-    private static async Task<object> AppraiseBodyAsync(World w, Guid recordId)
+    private static async Task<string> MessageAsync(HttpResponseMessage response)
+    {
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return json.RootElement.TryGetProperty("message", out var message) ? message.GetString() ?? string.Empty : string.Empty;
+    }
+
+    private static async Task<System.Text.Json.Nodes.JsonObject> AppraiseBodyAsync(World w, Guid recordId)
     {
         var record = await Data(w.ManagerC, $"/api/evaluations/records/{recordId}");
-        return new { version = record.GetProperty("version").GetUInt32(), proposedGrade = "HoanThanhTot", generalScore = 1.0, tasksScore = 1.0 };
+        return await AppraisalTestData.BodyAsync(w.ManagerC, recordId, new
+        {
+            version = record.GetProperty("version").GetUInt32(), explanation = "Căn cứ thẩm định", appraisalScore = 90.0,
+            comment = "Đạt", proposedGrade = "HoanThanhTot"
+        });
     }
 
     private static async Task<JsonElement> Data(HttpResponseMessage response)

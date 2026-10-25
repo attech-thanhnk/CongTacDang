@@ -109,13 +109,14 @@ public sealed class TaskChangeIntegrationTests
 
         // Xuất Mẫu 04/05 theo từng đề nghị: mỗi đề nghị một phiếu, sai mẫu so với loại đề nghị → 409.
         var requestForms = (await Data(w.OwnerC, $"/api/reports/docx/record/{recordId}/requests")).EnumerateArray().ToList();
-        Assert.Equal(new[] { "04", "04", "05", "04" }, requestForms.Select(f => f.GetProperty("code").GetString()));
+        // Theo thời điểm lập đề nghị: điều chỉnh, đột xuất, loại trừ (không duyệt), loại trừ (duyệt).
+        Assert.Equal(new[] { "04", "05", "04", "04" }, requestForms.Select(f => f.GetProperty("code").GetString()));
         var adjustForm = requestForms[0];
         var adjustText = await DocxTextAsync(w.OwnerC, $"/api/reports/docx/record/{recordId}/04/{adjustForm.GetProperty("requestId").GetGuid()}");
         Assert.Contains("PHIẾU ĐỀ NGHỊ ĐIỀU CHỈNH, CHUYỂN TIẾP, LOẠI TRỪ", adjustText);
         Assert.Contains("Sản phẩm 1 (điều chỉnh)", adjustText);
         Assert.Contains("Đổi chỉ tiêu theo chỉ đạo", adjustText);
-        var urgentText = await DocxTextAsync(w.OwnerC, $"/api/reports/docx/record/{recordId}/05/{requestForms[2].GetProperty("requestId").GetGuid()}");
+        var urgentText = await DocxTextAsync(w.OwnerC, $"/api/reports/docx/record/{recordId}/05/{requestForms[1].GetProperty("requestId").GetGuid()}");
         Assert.Contains("Xử lý sự cố đột xuất", urgentText);
         Assert.Contains("Khắc phục trong 10 ngày", urgentText);
         Assert.Equal(HttpStatusCode.Conflict, (await w.OwnerC.GetAsync($"/api/reports/docx/record/{recordId}/05/{adjustForm.GetProperty("requestId").GetGuid()}")).StatusCode);

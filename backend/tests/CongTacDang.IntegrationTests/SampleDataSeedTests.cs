@@ -143,7 +143,7 @@ public sealed class SampleDataSeedTests
                 Assert.DoesNotContain(again.Messages, m => m.Text.Contains("Mật khẩu tạm chung"));
             }
 
-            await factory.WithDbAsync(async db => Assert.Equal(10, await db.PartyMemberProfiles.CountAsync()));
+            await factory.WithDbAsync(async db => Assert.Equal(11, await db.PartyMemberProfiles.CountAsync()));
         }
         finally
         {

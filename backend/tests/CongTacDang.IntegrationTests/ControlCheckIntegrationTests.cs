@@ -140,7 +140,7 @@ public sealed class ControlCheckIntegrationTests
     }
 
     [SkippableFact]
-    public async Task Readiness_RequiredGates_ReportMissingPreparerOrConfirmer()
+    public async Task Readiness_RequiredGates_NoIssueWhenPreparerAndConfirmerExist()
     {
         var w = await WorldAsync();
         var body = new
@@ -155,11 +155,11 @@ public sealed class ControlCheckIntegrationTests
 
         var readiness = await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}/readiness");
         var permissions = readiness.GetProperty("issues").EnumerateArray().Select(i => i.GetProperty("permission").GetString()).ToList();
-
-        // Kiểm soát đã có người lập và người xác nhận là hai tài khoản khác nhau; hiệu chuẩn chưa ai được gán.
+        // Cơ sở dữ liệu kiểm thử dùng chung nên chỉ khẳng định được phía đã có người: người lập, người xác nhận kiểm soát và người lập hiệu chuẩn đều khác chủ hồ sơ.
+        // Kiểm soát đã có người lập và người xác nhận là hai tài khoản khác nhau; hiệu chuẩn đã có người lập (vai trò thẩm định) nhưng chưa ai được gán quyền chốt.
         Assert.DoesNotContain(PermissionCodes.EvaluationControlPerform, permissions);
         Assert.DoesNotContain(PermissionCodes.EvaluationControlConfirm, permissions);
-        Assert.Contains(PermissionCodes.EvaluationCalibrationManage, permissions);
+        Assert.DoesNotContain(PermissionCodes.EvaluationCalibrationManage, permissions);
     }
 
     #region Hỗ trợ
@@ -213,7 +213,7 @@ public sealed class ControlCheckIntegrationTests
 
             w.OwnerC = await _factory.LoginAsAsync(w.Owner.Username, w.Owner.Password, distinctClientIp: true);
             w.ManagerC = await _factory.LoginAsAsync(manager.Username, manager.Password, distinctClientIp: true);
-            w.BothC = await _factory.LoginAsAsync(performer.Username, performer.Password, distinctClientIp: true);
+            w.PerformerC = await _factory.LoginAsAsync(performer.Username, performer.Password, distinctClientIp: true);
             w.ConfirmerC = await _factory.LoginAsAsync(confirmer.Username, confirmer.Password, distinctClientIp: true);
             w.BothC = await _factory.LoginAsAsync(both.Username, both.Password, distinctClientIp: true);
             Worlds[_factory.DatabaseName] = w;
