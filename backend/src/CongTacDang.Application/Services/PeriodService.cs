@@ -452,7 +452,20 @@ public sealed class PeriodService : IPeriodService
                 .Select(x => (x.record, x.profile, x.step, x.action, permission: WorkflowActions.PermissionFor(x.action!, x.profile)));
         }).ToList();
 
-        var codes = pending.Select(x => x.permission).Where(c => c != PermissionCodes.EvaluationSelf).Distinct().ToList();
+        // Cổng bắt buộc cần người lập và người xác nhận/chốt khác nhau, không phải chủ hồ sơ.
+        var gateChecks = records.SelectMany(record =>
+        {
+            var profile = EvaluationMapping.ProfileOf(settings, record);
+            var list = new List<(EvaluationRecord Record, WorkflowProfile Profile, string Prepare, string Approve)>();
+            if (profile.GateModeOf(WorkflowGates.Calibration) == GateMode.Required)
+                list.Add((record, profile, PermissionCodes.EvaluationCalibrationManage, PermissionCodes.EvaluationCalibrationConclude));
+            if (profile.GateModeOf(WorkflowGates.Control) == GateMode.Required)
+                list.Add((record, profile, PermissionCodes.EvaluationControlPerform, PermissionCodes.EvaluationControlConfirm));
+            return list;
+        }).ToList();
+
+        var codes = pending.Select(x => x.permission).Concat(gateChecks.SelectMany(g => new[] { g.Prepare, g.Approve }))
+            .Where(c => c != PermissionCodes.EvaluationSelf).Distinct().ToList();
         var candidateIds = codes.Count == 0
             ? new List<Guid>()
             : await _repo.ListActiveUserIdsWithAnyPermissionAsync(codes, DateTime.UtcNow, ct);
@@ -514,6 +527,43 @@ public sealed class PeriodService : IPeriodService
                 DepartmentId = record.DepartmentId,
                 PartyCellId = record.PartyCellId,
                 Message = message
+            });
+        }
+
+        foreach (var (record, profile, prepare, approve) in gateChecks)
+        {
+            var target = AccessTarget.ForRecord(record);
+            var preparers = candidateIds.Where(u => u != record.MemberId && AuthorizationGuard.Evaluate(effective[u], prepare, target)).ToList();
+            var approvers = candidateIds.Where(u => u != record.MemberId && AuthorizationGuard.Evaluate(effective[u], approve, target)).ToList();
+            if (ApprovalGatePolicy.HasDistinctPair(preparers, approvers))
+                continue;
+
+            var missingPermission = preparers.Count == 0 ? prepare : approve;
+            var permissionName = PermissionCodes.DisplayName(missingPermission);
+            var fullName = record.Member?.FullName ?? string.Empty;
+            var gateName = prepare == PermissionCodes.EvaluationControlPerform
+                ? WorkflowGates.DisplayName(WorkflowGates.Control)
+                : WorkflowGates.DisplayName(WorkflowGates.Calibration);
+            result.Issues.Add(new ReadinessIssueDto
+            {
+                RecordId = record.Id,
+                MemberId = record.MemberId,
+                FullName = fullName,
+                WorkflowProfileCode = profile.Code,
+                WorkflowProfileName = profile.Name,
+                Step = WorkflowSteps.Code(WorkflowStep.B4_DECISION),
+                StepName = WorkflowSteps.DisplayName(WorkflowStep.B4_DECISION),
+                Mode = profile.Mode(WorkflowStep.B4_DECISION).ToString(),
+                Permission = missingPermission,
+                PermissionName = permissionName,
+                RoleNames = roleNames.GetValueOrDefault(missingPermission) ?? new List<string>(),
+                Scope = ScopeText(record),
+                ScopeName = ScopeName(record),
+                DepartmentId = record.DepartmentId,
+                PartyCellId = record.PartyCellId,
+                Message = $"Hồ sơ của {fullName} ({profile.Name}) sẽ kẹt trước bước \"{WorkflowSteps.DisplayName(WorkflowStep.B4_DECISION)}\" vì cổng \"{gateName}\" bắt buộc "
+                    + $"nhưng không có hai tài khoản đang hoạt động khác nhau (ngoài chủ hồ sơ) để lập và xác nhận; thiếu quyền \"{permissionName}\" trong phạm vi {ScopeText(record)}. "
+                    + "Hãy gán vai trò có quyền này hoặc đổi chế độ cổng của cách xét duyệt."
             });
         }
 

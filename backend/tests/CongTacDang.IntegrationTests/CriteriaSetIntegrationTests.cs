@@ -512,8 +512,13 @@ public sealed class CriteriaSetIntegrationTests
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         });
 
-    private static async Task<JsonElement> CreatePeriodAsync(World w, Guid criteriaSetId) =>
-        await Data(await PostPeriodAsync(w, criteriaSetId));
+    private static async Task<JsonElement> CreatePeriodAsync(World w, Guid criteriaSetId)
+    {
+        var created = await Data(await PostPeriodAsync(w, criteriaSetId));
+        var id = created.GetProperty("id").GetGuid();
+        await PeriodGates.DisableAsync(w.Manager, id);
+        return await Data(w.Manager, $"/api/evaluations/periods/{id}");
+    }
 
     private static async Task<Guid> AddParticipantAsync(World w, Guid periodId, Guid memberId)
     {

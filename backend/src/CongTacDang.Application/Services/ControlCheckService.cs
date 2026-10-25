@@ -97,19 +97,22 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthorizationGuard _guard;
     private readonly ICurrentUserService _currentUser;
+    private readonly ICalibrationGate? _calibrationGate;
 
     public ControlCheckService(
         IEvaluationWorkflowRepository records,
         IControlCheckRepository repo,
         IUnitOfWork unitOfWork,
         IAuthorizationGuard guard,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        ICalibrationGate? calibrationGate = null)
     {
         _records = records;
         _repo = repo;
         _unitOfWork = unitOfWork;
         _guard = guard;
         _currentUser = currentUser;
+        _calibrationGate = calibrationGate;
     }
 
     #region Đọc
@@ -331,6 +334,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
             check.Items.Select(i => (i.ItemCode, i.Result, i.Evidence)).ToList(), check.Conclusion, check.NeedsWorkContent);
         if (error != null)
             throw new ValidationException(error);
+        await EnsureCalibratedAsync(check, "Gửi xác nhận", ct);
 
         var now = DateTime.UtcNow;
         var actorName = await ActorNameAsync(ct);
@@ -364,6 +368,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
             throw new ForbiddenException("Người xác nhận phải khác người lập phiếu kiểm soát.");
         if (check.Records.Any(r => !r.IsCurrent))
             throw new ConflictException("Phiếu có hồ sơ đã thuộc phiếu kiểm soát khác. Hãy trả lại phiếu để người lập gỡ hồ sơ đó.");
+        await EnsureCalibratedAsync(check, "Xác nhận phiếu", ct);
 
         var now = DateTime.UtcNow;
         var actorName = await ActorNameAsync(ct);
@@ -465,6 +470,31 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
     }
 
     #endregion
+
+    /// <summary>Hồ sơ luồng bắt buộc hiệu chuẩn thì mọi hồ sơ trong phiếu phải thuộc biên bản hiệu chuẩn đã chốt.</summary>
+    private async Task EnsureCalibratedAsync(ControlCheck check, string action, CancellationToken ct)
+    {
+        if (_calibrationGate == null || check.Records.Count == 0)
+            return;
+        var period = await _records.FindPeriodAsync(check.PeriodId, ct)
+            ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {check.PeriodId}.");
+        PeriodSettings settings;
+        try
+        {
+            settings = period.GetSettings();
+        }
+        catch (FormatException)
+        {
+            throw new ConflictException("Cấu hình của kỳ đánh giá bị lỗi định dạng. Hãy liên hệ người quản lý kỳ để sửa cấu hình.");
+        }
+
+        var current = check.Records.Where(r => r.IsCurrent).Select(r => r.Record).ToList();
+        var results = await _calibrationGate.EvaluateManyAsync(current.Select(r => r.Id).ToList(), ct);
+        var missing = ApprovalGatePolicy.Uncalibrated(settings, current, results)
+            .Select(r => r.Member?.FullName ?? r.Id.ToString()).ToList();
+        if (missing.Count > 0)
+            throw new ConflictException($"{action} không thành công: hồ sơ của {string.Join(", ", missing)} chưa thuộc biên bản hiệu chuẩn đã chốt còn hiệu lực.");
+    }
 
     #region Cổng kiểm soát
 

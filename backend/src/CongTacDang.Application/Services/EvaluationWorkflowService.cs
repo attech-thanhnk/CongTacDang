@@ -71,6 +71,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     private readonly ITaskChangeWorkQueue? _taskChanges;
     private readonly IExpertCrosscheckGate? _crosscheckGate;
     private readonly ICrosscheckWorkQueue? _crosscheckQueue;
+    private readonly ICalibrationGate? _calibrationGate;
+    private readonly IControlCheckGate? _controlGate;
 
     public EvaluationWorkflowService(
         IEvaluationWorkflowRepository repo,
@@ -81,11 +83,15 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         IPostPublishWorkQueue? postPublish = null,
         ITaskChangeWorkQueue? taskChanges = null,
         IExpertCrosscheckGate? crosscheckGate = null,
-        ICrosscheckWorkQueue? crosscheckQueue = null)
+        ICrosscheckWorkQueue? crosscheckQueue = null,
+        ICalibrationGate? calibrationGate = null,
+        IControlCheckGate? controlGate = null)
     {
         _taskChanges = taskChanges;
         _crosscheckGate = crosscheckGate;
         _crosscheckQueue = crosscheckQueue;
+        _calibrationGate = calibrationGate;
+        _controlGate = controlGate;
         _repo = repo;
         _unitOfWork = unitOfWork;
         _guard = guard;
@@ -912,7 +918,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
         var settings = ReadSettings(record.Period);
         var today = EvaluationMapping.Today(DateTime.UtcNow);
-        var actions = AvailableActions(record, settings, today).ToList();
+        var gates = record.Status == RecordStatus.AwaitingDecision
+            ? await EvaluateApprovalGatesAsync(record, EvaluationMapping.ProfileOf(settings, record), ct)
+            : new List<GateOutcome>();
+        var actions = AvailableActions(record, settings, today, gates).ToList();
         return new RecordActionsDto
         {
             RecordId = record.Id,
@@ -1035,6 +1044,22 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         return new WorkQueueDto { Total = items.Count, Groups = groups };
     }
 
+    /// <summary>Cổng hiệu chuẩn, kiểm soát chưa đạt của hồ sơ theo chế độ hồ sơ luồng; cổng Off không được truy vấn.</summary>
+    private async Task<List<GateOutcome>> EvaluateApprovalGatesAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct)
+    {
+        CalibrationGateResult? calibration = null;
+        ControlGateResult? control = null;
+        if (_calibrationGate != null && profile.GateModeOf(WorkflowGates.Calibration) != GateMode.Off)
+            calibration = await _calibrationGate.EvaluateAsync(record.Id, ct);
+        if (_controlGate != null && profile.GateModeOf(WorkflowGates.Control) != GateMode.Off)
+            control = await _controlGate.EvaluateAsync(record.Id, ct);
+
+        // Cổng không có bộ kiểm tra thì coi như đã đạt.
+        calibration ??= new CalibrationGateResult(CalibrationGateState.Satisfied, null);
+        control ??= new ControlGateResult(ControlGateState.Satisfied, null);
+        return ApprovalGatePolicy.Evaluate(profile, calibration, control);
+    }
+
     private bool CanPerform(WorkflowActionDefinition action, WorkflowProfile profile, EvaluationRecord record) =>
         (action.Kind != WorkflowAction.RevokeTaskApproval || CanRevokeTaskApproval(record, profile))
         && (action.Kind != WorkflowAction.RevokeTaskApproval || record.TasksApprovedById == _currentUser.UserId)
@@ -1055,7 +1080,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         (action.Kind == WorkflowAction.Reopen || !WorkflowSteps.OwnerSteps.Contains(action.Step))
         && _currentUser.UserId is { } userId && record.MemberId == userId;
 
-    private IEnumerable<RecordActionDto> AvailableActions(EvaluationRecord record, PeriodSettings settings, DateOnly today)
+    private IEnumerable<RecordActionDto> AvailableActions(EvaluationRecord record, PeriodSettings settings, DateOnly today, IReadOnlyList<GateOutcome> gates)
     {
         var profile = EvaluationMapping.ProfileOf(settings, record);
         var active = profile.ActiveSteps();
@@ -1108,9 +1133,14 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 _ => new List<WorkflowStep>()
             };
             var requiresUnlock = unlockSteps.Count > 0;
+            var gated = action.Advances && action.Step == WorkflowStep.B4_DECISION;
+            var block = gated ? ApprovalGatePolicy.FirstBlock(gates) : null;
 
             yield return new RecordActionDto
             {
+                BlockedBy = block?.Code,
+                BlockedReason = block?.Reason,
+                Warnings = gated && gates.Any(g => !g.Blocks) ? gates.Where(g => !g.Blocks).Select(g => g.Reason).ToList() : null,
                 Action = action.Code,
                 Step = WorkflowSteps.Code(action.Step),
                 Label = action.Label,
@@ -1251,6 +1281,16 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         if (!draft && action.Advances && action.Step == WorkflowStep.B3B_APPRAISAL && _crosscheckGate != null)
             await _crosscheckGate.EnsureNoOpenAsync(record, profile, ct);
 
+        // Cổng hiệu chuẩn rồi kiểm soát chặn ghi nhận quyết định theo chế độ của hồ sơ luồng; Recorded chỉ ghi nhận thiếu.
+        var gateWarnings = new List<GateOutcome>();
+        if (!draft && action.Advances && action.Step == WorkflowStep.B4_DECISION)
+        {
+            var outcomes = await EvaluateApprovalGatesAsync(record, profile, ct);
+            if (ApprovalGatePolicy.FirstBlock(outcomes) is { } block)
+                throw new ConflictException($"{action.Label} không thành công: {block.Reason}");
+            gateWarnings.AddRange(outcomes);
+        }
+
         var actorId = _currentUser.UserId;
         var actorName = actorId.HasValue
             ? await _repo.GetMemberNameAsync(actorId.Value, ct) ?? _currentUser.UserName
@@ -1260,6 +1300,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         var fromStatus = record.Status;
 
         var comment = await apply(new ActionContext(record, settings, profile, actorId, actorName, now, ReadCriteria(period)));
+        if (gateWarnings.Count > 0)
+            comment = $"{comment ?? action.Label} Ghi nhận thiếu: {string.Join(" ", gateWarnings.Select(w => w.Reason))}";
 
         record.UpdatedAt = now;
         if (draft)

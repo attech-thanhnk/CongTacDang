@@ -528,6 +528,12 @@ public class RecordActionDto
     /// <summary>Số ngày gợi ý / tối đa của hạn mở riêng.</summary>
     public int? DefaultUnlockDays { get; set; }
     public int? MaxUnlockDays { get; set; }
+    /// <summary>Hành động bị khóa bởi cổng: <c>CALIBRATION_REQUIRED</c> hoặc <c>CONTROL_CHECK_REQUIRED</c>; null khi không bị khóa.</summary>
+    public string? BlockedBy { get; set; }
+    /// <summary>Lý do khóa bằng tiếng Việt, hiển thị nguyên văn.</summary>
+    public string? BlockedReason { get; set; }
+    /// <summary>Cổng ở chế độ ghi nhận chưa đạt: không khóa, chỉ cảnh báo.</summary>
+    public List<string>? Warnings { get; set; }
 }
 
 /// <summary>Kết quả <c>GET records/{id}/actions</c>.</summary>

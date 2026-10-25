@@ -179,6 +179,7 @@ public sealed class IndividualFormsIntegrationTests
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         };
         var periodId = (await Data(await w.Manager.PostAsJsonAsync("/api/evaluations/periods", body))).GetProperty("id").GetGuid();
+        await PeriodGates.DisableAsync(w.Manager, periodId);
         await Data(await w.Manager.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { w.OwnerId } }));
         await TransitionAsync(w.Manager, periodId, "open");
         var recordId = (await Data(w.Manager, $"/api/evaluations/periods/{periodId}/participants")).EnumerateArray()

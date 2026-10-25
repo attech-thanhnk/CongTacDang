@@ -273,6 +273,73 @@ public sealed class CalibrationServiceTests
         Assert.Empty(await h.Service.ListCandidatesAsync(h.Period.Id, null, null));
     }
 
+    #region Cổng hiệu chuẩn
+
+    [Fact]
+    public async Task Gate_NoSession_Draft_Concluded_FollowSessionState()
+    {
+        var h = new Harness();
+        var record = h.Records[0];
+        var gate = (ICalibrationGate)h.Service;
+
+        Assert.Equal(CalibrationGateState.NoSession, (await gate.EvaluateAsync(record.Id)).State);
+
+        var saved = await h.SavedAsync(changeFirst: true);
+        Assert.Equal(CalibrationGateState.Pending, (await gate.EvaluateAsync(record.Id)).State);
+
+        h.SwitchToConcluder();
+        await h.Service.ConcludeAsync(saved.Id, new ConcludeCalibrationDto { Version = saved.Version });
+        var result = await gate.EvaluateAsync(record.Id);
+        Assert.True(result.IsSatisfied);
+        Assert.Null(result.Reason);
+        Assert.Equal(saved.Id, result.SessionId);
+        // Việc áp dụng của chính biên bản không làm biên bản hết hiệu lực.
+        Assert.True((await gate.EvaluateAsync(h.Records[1].Id)).IsSatisfied);
+    }
+
+    [Theory]
+    [InlineData(WorkflowAction.Return)]
+    [InlineData(WorkflowAction.Reopen)]
+    [InlineData(WorkflowAction.Complete)]
+    [InlineData(WorkflowAction.RecordExternal)]
+    [InlineData(WorkflowAction.Calibrate)]
+    public async Task Gate_RecordChangedAfterConclude_IsStale(WorkflowAction action)
+    {
+        var h = new Harness();
+        var saved = await h.SavedAsync();
+        h.SwitchToConcluder();
+        var concluded = await h.Service.ConcludeAsync(saved.Id, new ConcludeCalibrationDto { Version = saved.Version });
+        h.Histories.Add(new EvaluationRecordHistory
+        {
+            RecordId = h.Records[1].Id, Action = action, CreatedAt = concluded.ConcludedAt!.Value.AddSeconds(1)
+        });
+
+        var gate = (ICalibrationGate)h.Service;
+
+        // Một hồ sơ trong biên bản đổi thì cả biên bản hết hiệu lực.
+        Assert.Equal(CalibrationGateState.Stale, (await gate.EvaluateAsync(h.Records[0].Id)).State);
+        Assert.Equal(CalibrationGateState.Stale, (await gate.EvaluateAsync(h.Records[1].Id)).State);
+    }
+
+    [Fact]
+    public async Task Gate_ReopenedOrVoided_NotSatisfied()
+    {
+        var h = new Harness();
+        var saved = await h.SavedAsync();
+        h.SwitchToConcluder();
+        var concluded = await h.Service.ConcludeAsync(saved.Id, new ConcludeCalibrationDto { Version = saved.Version });
+        var reopened = await h.Service.ReopenAsync(saved.Id, new CalibrationReasonDto { Version = concluded.Version, Reason = "Bổ sung minh chứng" });
+        var gate = (ICalibrationGate)h.Service;
+
+        Assert.Equal(CalibrationGateState.Pending, (await gate.EvaluateAsync(h.Records[0].Id)).State);
+
+        h.Guard.Granted.Add(PermissionCodes.EvaluationCalibrationManage);
+        await h.Service.VoidAsync(saved.Id, new CalibrationReasonDto { Version = reopened.Version, Reason = "Lập nhầm nhóm" });
+        Assert.Equal(CalibrationGateState.NoSession, (await gate.EvaluateAsync(h.Records[0].Id)).State);
+    }
+
+    #endregion
+
     #region Hỗ trợ
 
     private sealed class Harness
@@ -420,6 +487,12 @@ public sealed class CalibrationServiceTests
             Task.FromResult(Sessions.SelectMany(s => s.Records)
                 .Where(r => r.IsActive && recordIds.Contains(r.RecordId) && r.SessionId != exceptSessionId)
                 .ToDictionary(r => r.RecordId, r => r.SessionId));
+
+        public Task<List<CalibrationRecord>> ListActiveRowsAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken ct = default) =>
+            Task.FromResult(Sessions.SelectMany(s => s.Records).Where(r => r.IsActive && recordIds.Contains(r.RecordId)).ToList());
+
+        public Task<List<EvaluationRecordHistory>> ListRecordHistorySinceAsync(IReadOnlyCollection<Guid> recordIds, DateTime since, CancellationToken ct = default) =>
+            Task.FromResult(_h.Histories.Where(x => recordIds.Contains(x.RecordId) && x.CreatedAt > since).ToList());
 
         public Task<List<EvaluationRecord>> GetRecordsAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken ct = default) =>
             Task.FromResult(_h.Records.Where(r => recordIds.Contains(r.Id)).ToList());

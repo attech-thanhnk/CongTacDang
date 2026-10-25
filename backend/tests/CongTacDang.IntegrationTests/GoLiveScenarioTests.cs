@@ -189,6 +189,7 @@ public sealed class GoLiveScenarioTests
             profile["steps"]!["B3A_COLLECTIVE"]!["mode"] = "Off";
             profile["steps"]!["B3C_DIRECTOR"]!["mode"] = "Off";
         }
+        PeriodGates.DisableIn(settings);
         await GoLiveHttp.DataAsync(await appraiser.PutAsJsonAsync($"/api/evaluations/periods/{periodId}",
             new { version = period.GetProperty("version").GetUInt32(), settings }));
 

@@ -112,7 +112,7 @@ public partial class ReportService
                     selfScored ? r.TotalSelfScore : null,
                     GradeOrBlank(r.SelfProposedGrade),
                     GradeOrBlank(r.CollectiveProposedGrade),
-                    GradeOrBlank(r.AppraisalProposedGrade),
+                    GradeOrBlank(r.ReviewedGrade()),
                     GradeOrBlank(r.DirectorProposedGrade),
                     r.DecisionRecordedAt != null ? FormText.Grade(r.FinalGrade) : GradeOrBlank(r.FinalGrade),
                     count > 0 ? $"{count} tệp đính kèm" : null

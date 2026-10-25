@@ -268,7 +268,7 @@ public partial class ReportService : IReportService
                     r.SelfScoredAt.HasValue ? r.TasksScore : null,
                     GradeOrBlank(r.SelfProposedGrade),
                     GradeOrBlank(r.CollectiveProposedGrade),
-                    GradeOrBlank(r.AppraisalProposedGrade),
+                    GradeOrBlank(r.ReviewedGrade()),
                     GradeOrBlank(r.DirectorProposedGrade),
                     r.DecisionRecordedAt != null ? FormText.Grade(r.FinalGrade) : GradeOrBlank(r.FinalGrade),
                     Rationale(r),
@@ -675,7 +675,7 @@ public partial class ReportService : IReportService
             PositionAndUnit(r, held.GetValueOrDefault(r.MemberId) ?? new List<MemberPosition>()),
             r.SelfProposedGrade,
             r.CollectiveProposedGrade,
-            r.AppraisalProposedGrade,
+            r.ReviewedGrade(),
             r.DirectorProposedGrade,
             r.FinalGrade));
 
@@ -834,7 +834,10 @@ public partial class ReportService : IReportService
     {
         if (record.DecisionRecordedAt != null)
             return record.FinalGrade;
-        foreach (var grade in new[] { record.FinalGrade, record.DirectorProposedGrade, record.AppraisalProposedGrade, record.CollectiveProposedGrade })
+        var ordered = record.CalibratedSupersedesDirector()
+            ? new[] { record.FinalGrade, record.ReviewedGrade(), record.DirectorProposedGrade, record.CollectiveProposedGrade }
+            : new[] { record.FinalGrade, record.DirectorProposedGrade, record.ReviewedGrade(), record.CollectiveProposedGrade };
+        foreach (var grade in ordered)
         {
             if (grade != EvaluationGrade.ChuaXepLoai)
                 return grade;

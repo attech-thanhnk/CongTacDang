@@ -84,7 +84,7 @@ public sealed class Mau11Data
             TasksScore = scored ? CollectiveFormText.Score(r.TasksScore) : string.Empty,
             SelfGrade = scored ? FormText.Grade(r.SelfProposedGrade) : string.Empty,
             CollectiveGrade = Recorded(r.CollectiveRecordedAt, r.CollectiveProposedGrade),
-            AppraisalGrade = Recorded(r.AppraisedAt, r.AppraisalProposedGrade),
+            AppraisalGrade = Recorded(r.AppraisedAt, r.ReviewedGrade()),
             DirectorGrade = Recorded(r.DirectorReviewedAt, r.DirectorProposedGrade)
         };
     }

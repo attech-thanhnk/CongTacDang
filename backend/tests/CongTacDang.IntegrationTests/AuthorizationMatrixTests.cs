@@ -648,7 +648,7 @@ public sealed class AuthorizationMatrixTests
                 {
                     Year = 2030, Quarter = EvaluationQuarter.Quy1, Name = $"Kỳ ma trận {suffix}",
                     StartDate = DateTime.UtcNow.AddDays(-10), EndDate = DateTime.UtcNow.AddDays(80),
-                    Status = PeriodStatus.Open,
+                    Status = PeriodStatus.Open, Settings = PeriodGates.DefaultSettingsGatesOff(),
                     // Kỳ mở phải có ảnh chụp bộ tiêu chí (kiểu kỳ "Đầy đủ" → Mẫu 09A).
                     CriteriaSnapshot = CriteriaTestData.Snapshot()
                 };

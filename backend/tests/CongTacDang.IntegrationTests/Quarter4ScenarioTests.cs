@@ -70,6 +70,7 @@ public sealed class Quarter4ScenarioTests
         SetDeadlines(settings, "bi-thu-nhan-vien", ("B2_SELF_SCORE", 9), ("B3A_COLLECTIVE", 10), ("B3B_APPRAISAL", 11), ("B3C_DIRECTOR", 14), ("B4_DECISION", 14));
         SetDeadlines(settings, "cap-tren", ("B2_SELF_SCORE", 9), ("B3A_COLLECTIVE", 14), ("B3B_APPRAISAL", 15), ("B3C_DIRECTOR", 17), ("B4_DECISION", 18));
         SetDeadlines(settings, "pho-giam-doc", ("B2_SELF_SCORE", 9), ("B3A_COLLECTIVE", 14), ("B3C_DIRECTOR", 14), ("B4_DECISION", 18));
+        PeriodGates.DisableIn(settings);
         await Data(await w.Tccb.PutAsJsonAsync($"/api/evaluations/periods/{periodId}",
             new { version = created.GetProperty("version").GetUInt32(), settings }));
 
