@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using CongTacDang.Domain.Enums;
 using CongTacDang.IntegrationTests.Infrastructure;
+using DocumentFormat.OpenXml.Packaging;
 using Xunit;
 
 namespace CongTacDang.IntegrationTests;
@@ -105,6 +106,21 @@ public sealed class TaskChangeIntegrationTests
         Assert.Equal(0, tasks[1].GetProperty("weight").GetDouble());
         Assert.Equal("DotXuat", tasks[3].GetProperty("kind").GetString());
         Assert.Equal(70.0, tasks.EnumerateArray().Sum(t => t.GetProperty("weight").GetDouble()), 6);
+
+        // Xuất Mẫu 04/05 theo từng đề nghị: mỗi đề nghị một phiếu, sai mẫu so với loại đề nghị → 409.
+        var requestForms = (await Data(w.OwnerC, $"/api/reports/docx/record/{recordId}/requests")).EnumerateArray().ToList();
+        Assert.Equal(new[] { "04", "04", "05", "04" }, requestForms.Select(f => f.GetProperty("code").GetString()));
+        var adjustForm = requestForms[0];
+        var adjustText = await DocxTextAsync(w.OwnerC, $"/api/reports/docx/record/{recordId}/04/{adjustForm.GetProperty("requestId").GetGuid()}");
+        Assert.Contains("PHIẾU ĐỀ NGHỊ ĐIỀU CHỈNH, CHUYỂN TIẾP, LOẠI TRỪ", adjustText);
+        Assert.Contains("Sản phẩm 1 (điều chỉnh)", adjustText);
+        Assert.Contains("Đổi chỉ tiêu theo chỉ đạo", adjustText);
+        var urgentText = await DocxTextAsync(w.OwnerC, $"/api/reports/docx/record/{recordId}/05/{requestForms[2].GetProperty("requestId").GetGuid()}");
+        Assert.Contains("Xử lý sự cố đột xuất", urgentText);
+        Assert.Contains("Khắc phục trong 10 ngày", urgentText);
+        Assert.Equal(HttpStatusCode.Conflict, (await w.OwnerC.GetAsync($"/api/reports/docx/record/{recordId}/05/{adjustForm.GetProperty("requestId").GetGuid()}")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await w.OwnerC.GetAsync($"/api/reports/docx/record/{recordId}/09A/{adjustForm.GetProperty("requestId").GetGuid()}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await w.OwnerC.GetAsync($"/api/reports/docx/record/{recordId}/04/{Guid.NewGuid()}")).StatusCode);
 
         // 4. Tự chấm: gửi cả điểm (và đánh dấu vượt chuẩn) của việc đã loại trừ → bỏ qua, điểm 0; tổng điểm nhiệm vụ chỉ tính việc
         // còn hiệu lực. Việc đột xuất chưa tự chấm: phiếu để trống.
@@ -242,6 +258,14 @@ public sealed class TaskChangeIntegrationTests
         Assert.True(response.IsSuccessStatusCode, $"{(int)response.StatusCode} {response.RequestMessage?.RequestUri}: {text}");
         using var json = JsonDocument.Parse(text);
         return json.RootElement.GetProperty("data").Clone();
+    }
+
+    private static async Task<string> DocxTextAsync(HttpClient client, string url)
+    {
+        var response = await client.GetAsync(url);
+        Assert.True(response.StatusCode == HttpStatusCode.OK, $"{(int)response.StatusCode} {url}: {await response.Content.ReadAsStringAsync()}");
+        using var doc = WordprocessingDocument.Open(new MemoryStream(await response.Content.ReadAsByteArrayAsync()), false);
+        return doc.MainDocumentPart!.Document!.Body!.InnerText;
     }
 
     private static async Task<JsonElement> Data(HttpClient client, string url) => await Data(await client.GetAsync(url));

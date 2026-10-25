@@ -25,6 +25,15 @@ public static class RecordFormCodes
     /// <summary>Phiếu thẩm định, nhận xét, đề xuất xếp loại.</summary>
     public const string Form10 = "10";
 
+    /// <summary>Phiếu đề nghị điều chỉnh, chuyển tiếp, loại trừ việc; xuất theo từng đề nghị, không nằm trong bộ tiêu chí.</summary>
+    public const string Form04 = "04";
+
+    /// <summary>Phiếu ghi nhận việc đột xuất; xuất theo từng đề nghị, không nằm trong bộ tiêu chí.</summary>
+    public const string Form05 = "05";
+
+    /// <summary>Mẫu xuất theo từng đề nghị thay đổi việc.</summary>
+    public static IReadOnlyList<string> RequestForms { get; } = new[] { Form04, Form05 };
+
     /// <summary>Theo thứ tự hiển thị.</summary>
     public static IReadOnlyList<string> All { get; } = new[] { Form01, Form02, Form09A, Form09C, Form9D, Form10 };
 
@@ -42,7 +51,7 @@ public static class RecordFormCodes
         }
         if (value == "09D")
             value = Form9D;
-        return All.FirstOrDefault(c => c == value) ?? (code ?? string.Empty).Trim();
+        return All.Concat(RequestForms).FirstOrDefault(c => c == value) ?? (code ?? string.Empty).Trim();
     }
 
     public static bool IsKnown(string? code) => All.Contains(code);
@@ -51,6 +60,8 @@ public static class RecordFormCodes
     {
         Form01 => "Mẫu 01 — Phiếu giao / đăng ký sản phẩm, công việc chuyên môn",
         Form02 => "Mẫu 02 — Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc",
+        Form04 => "Mẫu 04 — Phiếu đề nghị điều chỉnh, chuyển tiếp, loại trừ việc",
+        Form05 => "Mẫu 05 — Phiếu ghi nhận nhiệm vụ bổ sung, khẩn cấp, đột xuất",
         Form09A => "Mẫu 09A — Phiếu tự chấm điểm",
         Form09C => "Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân",
         Form9D => "Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ trong quý",

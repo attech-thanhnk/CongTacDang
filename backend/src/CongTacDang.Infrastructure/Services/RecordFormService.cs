@@ -20,7 +20,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Services;
 
-/// <summary>Xuất biểu mẫu cá nhân: 09A/09C/9D từ template Word, 01/02/10 dùng bộ xuất có sẵn.</summary>
+/// <summary>Xuất biểu mẫu cá nhân: 04/05/09A/09C/9D từ template Word, 01/02/10 dùng bộ xuất có sẵn.</summary>
 public sealed class RecordFormService : IRecordFormService
 {
     private const string DocxMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -95,11 +95,57 @@ public sealed class RecordFormService : IRecordFormService
             _ => (Mau9DData.TemplateFileName, (object)Mau9DData.From(source))
         };
 
+        return await RenderAsync(templateFileName, data, FileName(code, record), format, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<RecordFormDto>> GetRequestFormsAsync(Guid recordId, CancellationToken ct = default)
+    {
+        await LoadAsync(recordId, ct);
+        var requests = await _db.Set<TaskChangeRequest>().AsNoTracking()
+            .Where(r => r.RecordId == recordId)
+            .OrderBy(r => r.RequestedAt)
+            .ToListAsync(ct);
+        return requests.Select(r =>
+        {
+            var code = FormCodeOf(r.Type);
+            var task = string.IsNullOrWhiteSpace(r.TaskNameSnapshot) ? string.Empty : $" ({r.TaskNameSnapshot.Trim()})";
+            return new RecordFormDto { Code = code, Name = RecordFormCodes.DisplayName(code) + task, RequestId = r.Id };
+        }).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<ReportFileResult> ExportRequestFormAsync(Guid recordId, string formCode, Guid requestId, ReportFormat format, CancellationToken ct = default)
+    {
+        var code = RecordFormCodes.Normalize(formCode);
+        if (!RecordFormCodes.RequestForms.Contains(code))
+            throw new ValidationException($"Không có biểu mẫu đề nghị thay đổi việc \"{formCode}\". Các mẫu: {string.Join(", ", RecordFormCodes.RequestForms)}.");
+
+        var record = await LoadAsync(recordId, ct);
+        var request = await _db.Set<TaskChangeRequest>().AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == requestId && r.RecordId == recordId, ct)
+            ?? throw new NotFoundException($"Không tìm thấy đề nghị thay đổi việc với Id: {requestId}.");
+        if (FormCodeOf(request.Type) != code)
+        {
+            throw new ConflictException(
+                $"Đề nghị \"{TaskChangeRules.TypeName(request.Type)}\" dùng {RecordFormCodes.DisplayName(FormCodeOf(request.Type))}, không dùng {RecordFormCodes.DisplayName(code)}.");
+        }
+
+        var source = new TaskChangeFormSource(record, request, (await PositionsAsync(record, ct)).All());
+        var (templateFileName, data) = code == RecordFormCodes.Form05
+            ? (Mau05Data.TemplateFileName, (object)Mau05Data.From(source))
+            : (Mau04Data.TemplateFileName, Mau04Data.From(source));
+        return await RenderAsync(templateFileName, data, FileName(code, record), format, ct);
+    }
+
+    private static string FormCodeOf(TaskChangeType type) => type == TaskChangeType.Urgent ? RecordFormCodes.Form05 : RecordFormCodes.Form04;
+
+    private async Task<ReportFileResult> RenderAsync(string templateFileName, object data, string fileName, ReportFormat format, CancellationToken ct)
+    {
         var template = await _templates.LoadAsync(templateFileName, ct);
         var org = OrganizationSettingsService.ToTemplateFields(await _orgSettings.GetAsync(ct));
         var bound = TemplateDataBinder.Bind(data);
         var bytes = DocxTemplateEngine.Render(template, bound.WithShared(TemplateDataBinder.Bind(org))).Content;
-        var fileName = FileName(code, record);
 
         if (format != ReportFormat.Pdf)
             return new ReportFileResult { FileBytes = bytes, ContentType = DocxMimeType, FileName = fileName };

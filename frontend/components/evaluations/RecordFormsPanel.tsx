@@ -25,21 +25,27 @@ export function RecordFormsPanel({
   recordId,
   fullName,
   forms,
+  requestForms = [],
   onPreview,
 }: {
   recordId: string;
   fullName: string;
   forms: RecordFormDto[];
+  /** Mẫu 04/05 theo từng đề nghị thay đổi việc; không có đề nghị thì không hiện. */
+  requestForms?: RecordFormDto[];
   /** Mở bản in (PDF) xem trước trong hộp thoại. */
   onPreview?: () => void;
 }) {
   const { toast } = useToast();
   const [busy, setBusy] = useState<string | null>(null);
 
-  const download = async (code: string, format: ReportFileFormat) => {
-    setBusy(`${code}-${format}`);
+  const download = async (code: string, format: ReportFileFormat, requestId?: string | null) => {
+    setBusy(`${requestId ?? code}-${format}`);
     try {
-      await reportService.downloadReport(evaluationService.recordFormEndpoint(recordId, code), fileName(code, fullName, format), format);
+      const endpoint = requestId
+        ? evaluationService.recordRequestFormEndpoint(recordId, code, requestId)
+        : evaluationService.recordFormEndpoint(recordId, code);
+      await reportService.downloadReport(endpoint, fileName(code, fullName, format), format);
     } catch (error: unknown) {
       toast.error(errorMessage(error, "Xuất biểu mẫu không thành công."));
     } finally {
@@ -60,12 +66,14 @@ export function RecordFormsPanel({
           </span>
         )}
       </div>
-      {forms.length === 0 ? (
+      {forms.length === 0 && requestForms.length === 0 ? (
         <div className={`${styles.body} ${styles.small}`}>Kỳ đánh giá chưa có bộ tiêu chí.</div>
       ) : (
         <ul className={styles.files}>
-          {forms.map((form) => (
-            <li key={form.code}>
+          {[...forms, ...requestForms].map((form) => {
+            const key = form.requestId ?? form.code;
+            return (
+            <li key={key}>
               <span>{form.name.replace(" — ", " · ")}</span>
               <RowActions
                 itemLabel={form.name}
@@ -73,15 +81,16 @@ export function RecordFormsPanel({
                 primary={[
                   {
                     key: "word",
-                    label: busy === `${form.code}-original` ? "Đang xuất..." : "Xuất Word",
+                    label: busy === `${key}-original` ? "Đang xuất..." : "Xuất Word",
                     icon: "bi-download",
-                    onClick: () => download(form.code, "original"),
+                    onClick: () => download(form.code, "original", form.requestId),
                   },
                 ]}
-                menu={[{ key: "pdf", label: "Xuất PDF", icon: "bi-file-earmark-pdf", onClick: () => download(form.code, "pdf") }]}
+                menu={[{ key: "pdf", label: "Xuất PDF", icon: "bi-file-earmark-pdf", onClick: () => download(form.code, "pdf", form.requestId) }]}
               />
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </section>

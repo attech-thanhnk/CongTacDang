@@ -60,6 +60,7 @@ export default function EvaluationRecordPage() {
   const [reasonAction, setReasonAction] = useState<RecordActionDto | null>(null);
   const [pdf, setPdf] = useState<string | null>(null);
   const [forms, setForms] = useState<RecordFormDto[]>([]);
+  const [requestForms, setRequestForms] = useState<RecordFormDto[]>([]);
   // Kiến nghị / kế hoạch đang chờ chính người xem: đưa lên ngay dưới tiến trình.
   const [appealPending, setAppealPending] = useState(false);
   const [planPending, setPlanPending] = useState(false);
@@ -68,11 +69,12 @@ export default function EvaluationRecordPage() {
     if (!recordId) return;
     setLoadError(null);
     try {
-      const [loadedRecord, loadedActions, loadedHistory, loadedForms] = await Promise.all([
+      const [loadedRecord, loadedActions, loadedHistory, loadedForms, loadedRequestForms] = await Promise.all([
         evaluationService.getRecordById(recordId),
         evaluationService.getRecordActions(recordId),
         evaluationService.getRecordHistory(recordId),
         evaluationService.getRecordForms(recordId).catch(() => [] as RecordFormDto[]),
+        evaluationService.getRecordRequestForms(recordId).catch(() => [] as RecordFormDto[]),
       ]);
       // Chờ bộ tiêu chí để trang hiện đủ một lần, không dựng lại bố cục.
       await loadCriteria(loadedRecord.periodId);
@@ -214,6 +216,7 @@ export default function EvaluationRecordPage() {
               recordId={record.id}
               fullName={record.fullName}
               forms={forms}
+              requestForms={requestForms}
               onPreview={forms.length > 0 ? () => setPdf(forms[0].code) : undefined}
             />
             <RecordHistory history={history} />
