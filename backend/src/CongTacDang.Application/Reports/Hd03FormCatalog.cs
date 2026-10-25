@@ -40,6 +40,24 @@ public static class Hd03FormCatalog
         new Hd03FormSection("13", "Nhiệm vụ phát sinh, đột xuất theo Chỉ đạo, điều hành của cấp có thẩm quyền.")
     };
 
+    /// <summary>Mã mục nhập Mẫu 06 (lưu trong Sections của hồ sơ tập thể): bốn số nhiệm vụ, hai nội dung văn bản, người đứng đầu.</summary>
+    public const string Form06AssignedCode = "T.ASSIGNED", Form06OnTimeCode = "T.ONTIME", Form06LateCode = "T.LATE",
+        Form06ObjectiveCode = "T.OBJECTIVE", Form06SafetyCode = "S.SAFETY", Form06PartyCode = "S.PARTY",
+        Form06HeadNameCode = "H.NAME", Form06HeadTitleCode = "H.TITLE";
+
+    /// <summary>Mẫu 06 — mục nhập của mục I và phần người đứng đầu.</summary>
+    public static IReadOnlyList<Hd03FormSection> Form06Fields { get; } = new[]
+    {
+        new Hd03FormSection(Form06HeadNameCode, "Họ và tên người đứng đầu"),
+        new Hd03FormSection(Form06HeadTitleCode, "Chức vụ"),
+        new Hd03FormSection(Form06AssignedCode, "Tổng số nhiệm vụ được giao trong kỳ"),
+        new Hd03FormSection(Form06OnTimeCode, "Số nhiệm vụ hoàn thành đúng hạn, đạt chất lượng"),
+        new Hd03FormSection(Form06LateCode, "Số nhiệm vụ chậm tiến độ do nguyên nhân chủ quan"),
+        new Hd03FormSection(Form06ObjectiveCode, "Số nhiệm vụ chưa hoàn thành do nguyên nhân khách quan (được cấp thẩm quyền chấp thuận)"),
+        new Hd03FormSection(Form06SafetyCode, "Công tác bảo đảm an toàn hoạt động bay, an ninh hàng không"),
+        new Hd03FormSection(Form06PartyCode, "Công tác xây dựng Đảng, đoàn kết nội bộ, kỷ luật")
+    };
+
     /// <summary>Khoảng mã chức danh của Mẫu 15A (đối tượng đề nghị BTV Đảng ủy Tổng công ty quyết định).</summary>
     public const int Form15AFirstCode = 1, Form15ALastCode = 16;
 

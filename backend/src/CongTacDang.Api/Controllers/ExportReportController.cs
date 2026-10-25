@@ -191,6 +191,16 @@ public class ExportReportController : ControllerBase
 
     #region Mẫu 07, 08 (hồ sơ tập thể), Mẫu 12 (biên bản hội nghị)
 
+    /// <summary>Xuất Word Mẫu 06 (hồ sơ tập thể M06).</summary>
+    [HttpGet("docx/mau-06/{collectiveRecordId}")]
+    [RequireAnyPermission(PermissionCodes.EvaluationRead, PermissionCodes.CollectiveManage)]
+    public async Task<IActionResult> ExportMau06Docx(Guid collectiveRecordId, [FromQuery] string? format = null)
+    {
+        await _reportAccess.EnsureCanExportCollectiveAsync(collectiveRecordId);
+        var result = await _reportService.ExportMau06DocxAsync(collectiveRecordId, ParseFormat(format));
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
     /// <summary>Xuất Word Mẫu 07 (hồ sơ tập thể).</summary>
     [HttpGet("docx/mau-07/{collectiveRecordId}")]
     [RequireAnyPermission(PermissionCodes.EvaluationRead, PermissionCodes.CollectiveManage)]
@@ -232,6 +242,15 @@ public class ExportReportController : ControllerBase
     }
 
     /// <summary>Xuất Word Mẫu 13 — biên bản kiểm phiếu; chưa có kết quả kiểm phiếu → 400.</summary>
+    [HttpGet("docx/mau-11/meeting/{meetingId}")]
+    [RequireAnyPermission(PermissionCodes.MeetingRead, PermissionCodes.MeetingManage)]
+    public async Task<IActionResult> ExportMau11MeetingDocx(Guid meetingId, [FromQuery] string? format = null)
+    {
+        await _reportAccess.EnsureCanExportMeetingAsync(meetingId);
+        var result = await _reportService.ExportMau11MeetingDocxAsync(meetingId, ParseFormat(format));
+        return File(result.FileBytes, result.ContentType, result.FileName);
+    }
+
     [HttpGet("docx/mau-13/{meetingId}")]
     [RequireAnyPermission(PermissionCodes.MeetingRead, PermissionCodes.MeetingManage)]
     public async Task<IActionResult> ExportMau13Docx(Guid meetingId, [FromQuery] string? format = null)

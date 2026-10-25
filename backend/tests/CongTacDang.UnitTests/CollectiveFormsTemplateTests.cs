@@ -22,6 +22,7 @@ public class CollectiveFormsTemplateTests
 
     public static IEnumerable<object[]> Forms()
     {
+        yield return new object[] { Mau06Data.TemplateFileName, Mau06Sample() };
         yield return new object[] { Mau07Data.TemplateFileName, Mau07Sample() };
         yield return new object[] { Mau08Data.TemplateFileName, Mau08Sample() };
         yield return new object[] { Mau12Data.TemplateFileName, Mau12Sample(withAttendees: true) };
@@ -86,6 +87,53 @@ public class CollectiveFormsTemplateTests
         Assert.Contains("T/M ĐẢNG ỦY (CHI BỘ)", text);
         // Dòng địa danh – ngày: địa danh từ cài đặt đơn vị, ngày lập = lần cập nhật hồ sơ (giờ Việt Nam).
         Assert.Contains("Hà Nội, ngày 21 tháng 09 năm 2026", text);
+    }
+
+    [Fact]
+    public void Mau06_FillsCountsPercentsAndGradeBox_KeepsPrintedText()
+    {
+        var text = BodyText(Render(Mau06Data.TemplateFileName, Mau06Sample()).Content);
+
+        Assert.Contains("ĐẢNG BỘ CÔNG TY A", text);
+        Assert.Contains("CHI BỘ KỸ THUẬT", text);
+        Assert.Contains("Hà Nội, ngày 21 tháng 09 năm 2026", text);
+        Assert.Contains("Kỳ đánh giá: Quý III / Năm 2026", text);
+        Assert.Contains("Họ và tên người đứng đầu: Nguyễn Văn A", text);
+        Assert.Contains("1. Tổng số nhiệm vụ được giao trong kỳ: 8 nhiệm vụ.", text);
+        Assert.Contains("2. Số nhiệm vụ hoàn thành đúng hạn, đạt chất lượng: 6 nhiệm vụ (đạt tỷ lệ: 75,0%).", text);
+        Assert.Contains("3. Số nhiệm vụ chậm tiến độ do nguyên nhân chủ quan: 1 nhiệm vụ (tỷ lệ: 12,5%).", text);
+        Assert.Contains("4. Số nhiệm vụ chưa hoàn thành do nguyên nhân khách quan (được cấp thẩm quyền chấp thuận): 1 nhiệm vụ.", text);
+        Assert.Contains("Tổng điểm tự chấm: 90,5 / 100 điểm.", text);
+        Assert.Contains("☒ Hoàn thành tốt nhiệm vụ", text);
+        Assert.Contains("☐ Không hoàn thành nhiệm vụ", text);
+        Assert.Contains("II. TỰ ĐÁNH GIÁ MỨC XẾP LOẠI CỦA TẬP THỂ", text);
+    }
+
+    [Fact]
+    public void Mau06_NoCountsEntered_KeepsDotLines()
+    {
+        var record = new CollectiveEvaluationRecord { Period = Period, Form = CollectiveEvaluationForm.M06, SubjectName = "Chi bộ Kỹ thuật" };
+        var text = BodyText(Render(Mau06Data.TemplateFileName, Mau06Data.From(record, Header, new Dictionary<string, string>())).Content);
+
+        Assert.Contains("1. Tổng số nhiệm vụ được giao trong kỳ: …… nhiệm vụ.", text);
+        Assert.Contains("(đạt tỷ lệ: ……%)", text);
+        Assert.DoesNotContain("☒", text);
+    }
+
+    private static Mau06Data Mau06Sample()
+    {
+        var record = new CollectiveEvaluationRecord
+        {
+            Period = Period, Form = CollectiveEvaluationForm.M06, SubjectName = "Chi bộ Kỹ thuật",
+            GeneralCriteriaScore = 27.5, TaskCriteriaScore = 63, TotalScore = 90.5, SelfProposedGrade = EvaluationGrade.HoanThanhTot,
+            UpdatedAt = new DateTime(2026, 9, 21, 2, 0, 0, DateTimeKind.Utc)
+        };
+        var sections = new Dictionary<string, string>
+        {
+            ["T.ASSIGNED"] = "8", ["T.ONTIME"] = "6", ["T.LATE"] = "1", ["T.OBJECTIVE"] = "1",
+            ["S.SAFETY"] = "Không có sự cố", ["S.PARTY"] = "Đoàn kết tốt", ["H.NAME"] = "Nguyễn Văn A", ["H.TITLE"] = "Bí thư"
+        };
+        return Mau06Data.From(record, Header, sections);
     }
 
     [Fact]

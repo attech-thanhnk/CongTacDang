@@ -54,6 +54,9 @@ public class CollectiveFormCatalogDto
     /// <summary>Mẫu 07 mục I: 4 nội dung (I.1–I.4).</summary>
     public List<CollectiveFormSectionDto> Form07Strengths { get; set; } = new();
 
+    /// <summary>Mẫu 06: số nhiệm vụ, nội dung văn bản và người đứng đầu (mã T.*, S.*, H.*).</summary>
+    public List<CollectiveFormSectionDto> Form06Fields { get; set; } = new();
+
     /// <summary>Mẫu 08: 13 nhóm (mã 1–13).</summary>
     public List<CollectiveFormSectionDto> Form08Categories { get; set; } = new();
 
