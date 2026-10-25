@@ -31,6 +31,8 @@ export interface CollectiveCriteriaGroup {
 /** Danh mục mục nhập Mẫu 07 (I.1–I.4), nhóm nội dung Mẫu 08 (1–13) và khung tiêu chí tập thể của kỳ. */
 export interface CollectiveFormCatalog {
   form07Strengths: CollectiveFormSection[];
+  /** Mẫu 06: mã T.* là số nhiệm vụ, S.* là nội dung văn bản, H.* là người đứng đầu. */
+  form06Fields: CollectiveFormSection[];
   form08Categories: CollectiveFormSection[];
   /** Rỗng = bộ tiêu chí của kỳ không có khung tập thể (nhập thẳng hai điểm nhóm). */
   collectiveGroups: CollectiveCriteriaGroup[];

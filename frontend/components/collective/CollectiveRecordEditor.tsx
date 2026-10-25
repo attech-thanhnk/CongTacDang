@@ -239,7 +239,7 @@ export function CollectiveRecordEditor({ periodId, catalog, catalogState, branch
       taskCriteriaScore: form === "M08" ? Number(task) : taskScore,
       ...(criteriaScores ? { criteriaScores } : {}),
       selfProposedGrade: grade,
-      sections: form === "M07" ? sections : {},
+      sections: form === "M07" || form === "M06" ? sections : {},
       items: form === "M08" ? items.map((item, index) => ({ ...item, itemOrder: index + 1 })) : [],
     };
     try {
@@ -334,6 +334,26 @@ export function CollectiveRecordEditor({ periodId, catalog, catalogState, branch
         <section className={styles.section}>
           <h3 className={styles.legend}>Nội dung đánh giá</h3>
           <div className="row g-2">
+            {(catalog?.form06Fields ?? []).map((field) => {
+              const value = sections[field.code] || "";
+              const onChange = (next: string) => setSections({ ...sections, [field.code]: next });
+              if (field.code.startsWith("S.")) return textArea(`s-${field.code}`, field.title, value, onChange, 2);
+              const numeric = field.code.startsWith("T.");
+              return (
+                <div className="col-12 col-md-6" key={field.code}>
+                  <label className="form-label" htmlFor={`cr-${field.code}`}>{field.title}</label>
+                  <input
+                    id={`cr-${field.code}`}
+                    className="form-control form-control-sm"
+                    type={numeric ? "number" : "text"}
+                    min={numeric ? 0 : undefined}
+                    step={numeric ? 1 : undefined}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                  />
+                </div>
+              );
+            })}
             {textArea("strengths", "Ưu điểm, kết quả đạt được", text.strengths, (v) => setText({ ...text, strengths: v }))}
             {textArea("limitations", "Hạn chế, khuyết điểm", text.limitations, (v) => setText({ ...text, limitations: v }))}
             {textArea("causes", "Nguyên nhân", text.causes, (v) => setText({ ...text, causes: v }))}

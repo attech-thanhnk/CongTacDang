@@ -80,6 +80,9 @@ public interface IReportService
     /// <summary>Kiểm tra phiên bản.</summary>
     Task<Form16DraftDto> SaveForm16DraftAsync(Guid periodId, Guid? partyCellId, Guid requesterId, SaveForm16DraftDto dto);
 
+    /// <summary>Mẫu 06 — từ hồ sơ tập thể.</summary>
+    Task<ReportFileResult> ExportMau06DocxAsync(Guid collectiveRecordId, ReportFormat format = ReportFormat.Original);
+
     /// <summary>Mẫu 07 — từ hồ sơ tập thể.</summary>
     Task<ReportFileResult> ExportMau07DocxAsync(Guid collectiveRecordId, ReportFormat format = ReportFormat.Original);
 
@@ -103,6 +106,9 @@ public interface IReportService
 
     /// <summary>Mẫu 11 — Phiếu bỏ phiếu kín.</summary>
     Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original);
+
+    /// <summary>Mẫu 11 phiếu trắng của một hội nghị: cán bộ có kết quả kiểm phiếu trong biên bản, chưa có thì cán bộ của tổ chức trong kỳ.</summary>
+    Task<ReportFileResult> ExportMau11MeetingDocxAsync(Guid meetingId, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Mẫu 13 — Biên bản kiểm phiếu.</summary>
     Task<ReportFileResult> ExportMau13DocxAsync(Guid meetingId, ReportFormat format = ReportFormat.Original);

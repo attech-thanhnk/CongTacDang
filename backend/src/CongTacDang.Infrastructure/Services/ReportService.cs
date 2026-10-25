@@ -1040,9 +1040,16 @@ public partial class ReportService : IReportService
         // Xuất toàn Đảng bộ: dòng tổ chức Đảng lập phiếu là tên Đảng bộ (cài đặt đơn vị).
         var issuer = branch?.Name ?? (await _orgSettings.GetAsync()).PartyCommitteeName;
 
-        // Thứ tự theo mã chức danh rồi họ tên (như Mẫu 13).
+        var lines = await Mau11LinesAsync(period, records);
+        var bytes = await RenderWordAsync(Mau11Data.TemplateFileName, Mau11Data.From(period, lines, issuer));
+        return await ToResultAsync(bytes, DocxMimeType, $"Mau_11_PhieuBoPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx", format);
+    }
+
+    /// <summary>Thứ tự theo mã chức danh rồi họ tên (như Mẫu 13).</summary>
+    private async Task<List<Mau11Line>> Mau11LinesAsync(EvaluationPeriod period, IReadOnlyCollection<EvaluationRecord> records)
+    {
         var held = await HeldPositionsAsync(records.Select(r => r.MemberId), PositionDate(period));
-        var lines = records
+        return records
             .Select(r =>
             {
                 var positions = held.GetValueOrDefault(r.MemberId) ?? new List<MemberPosition>();
@@ -1053,9 +1060,40 @@ public partial class ReportService : IReportService
             .ThenBy(x => x.Line.Record.Member?.FullName, StringComparer.Create(new CultureInfo("vi-VN"), true))
             .Select(x => x.Line)
             .ToList();
+    }
 
-        var bytes = await RenderWordAsync(Mau11Data.TemplateFileName, Mau11Data.From(period, lines, issuer));
-        return await ToResultAsync(bytes, DocxMimeType, $"Mau_11_PhieuBoPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx", format);
+    /// <inheritdoc />
+    public async Task<ReportFileResult> ExportMau11MeetingDocxAsync(Guid meetingId, ReportFormat format = ReportFormat.Original)
+    {
+        var meeting = await _db.EvaluationMeetings.AsNoTracking()
+            .Include(m => m.Period)
+            .Include(m => m.PartyCell)
+            .Include(m => m.Department)
+            .Include(m => m.VoteSummaries)
+            .FirstOrDefaultAsync(m => m.Id == meetingId)
+            ?? throw new KeyNotFoundException($"Không tìm thấy biên bản hội nghị với Id: {meetingId}");
+
+        // Biên bản đã có kết quả kiểm phiếu → đúng các cán bộ đó; chưa có → cán bộ của tổ chức hội nghị trong kỳ.
+        var voted = meeting.VoteSummaries.Select(v => v.RecordId).ToList();
+        var query = _db.EvaluationRecords.AsNoTracking()
+            .Include(r => r.Period)
+            .Include(r => r.Member).ThenInclude(m => m.Department)
+            .Include(r => r.Department)
+            .Include(r => r.PartyCell)
+            .Where(r => r.PeriodId == meeting.PeriodId);
+        if (voted.Count > 0)
+            query = query.Where(r => voted.Contains(r.Id));
+        else if (meeting.PartyCellId.HasValue)
+            query = query.Where(r => r.PartyCellId == meeting.PartyCellId || r.Member.PartyCellId == meeting.PartyCellId);
+        else if (meeting.DepartmentId.HasValue)
+            query = query.Where(r => r.DepartmentId == meeting.DepartmentId);
+        var records = await query.ToListAsync();
+
+        var org = await _orgSettings.GetAsync();
+        var (_, unit, _, unitForFile) = await MeetingUnitAsync(meeting, org);
+        var lines = await Mau11LinesAsync(meeting.Period, records);
+        var bytes = await RenderWordAsync(Mau11Data.TemplateFileName, Mau11Data.From(meeting.Period, lines, unit));
+        return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("11", org.ShortName, unitForFile, meeting.Period, ".docx"), format);
     }
 
     /// <inheritdoc />
@@ -1112,6 +1150,17 @@ public partial class ReportService : IReportService
         var partyName = CollectiveFormText.PartyCommitteeInSentence(org);
         return (PartyHeader.Of(org.SuperiorPartyName, org.PartyCommitteeName, partyName), meeting.Department?.Name ?? partyName,
             partyName, unitForFile);
+    }
+
+    /// <inheritdoc />
+    public async Task<ReportFileResult> ExportMau06DocxAsync(Guid collectiveRecordId, ReportFormat format = ReportFormat.Original)
+    {
+        var record = await LoadCollectiveAsync(collectiveRecordId, CollectiveEvaluationForm.M06);
+        var header = await CollectiveHeaderAsync(record.PartyCell);
+        var sections = CollectiveEvaluationService.DeserializeSections(record.Sections);
+        var org = await _orgSettings.GetAsync();
+        var bytes = await RenderWordAsync(Mau06Data.TemplateFileName, Mau06Data.From(record, header, sections));
+        return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("06", org.ShortName, record.PartyCell, record.Period, ".docx"), format);
     }
 
     /// <inheritdoc />

@@ -152,6 +152,46 @@ public sealed class CollectiveFormsReportsIntegrationTests
         Assert.Equal(HttpStatusCode.Forbidden, (await s.CellLeaderA.PutAsJsonAsync($"/api/reports/mau-16/draft?periodId={s.PeriodId}&branchId={s.CellB}", new { content = new { } })).StatusCode);
     }
 
+    [SkippableFact]
+    public async Task R3_CollectiveRecord_Form06_SavesCounts_ExportsWord_RejectsBadCounts()
+    {
+        SkipIfNoDatabase();
+        var s = await GetScenarioAsync();
+
+        Dictionary<string, object?> Body(Dictionary<string, string> sections) => new()
+        {
+            ["periodId"] = s.PeriodId, ["form"] = "M06", ["partyCellId"] = s.CellA, ["subjectName"] = "Tập thể " + s.CellAName,
+            ["generalCriteriaScore"] = 27, ["taskCriteriaScore"] = 63, ["selfProposedGrade"] = "HoanThanhTot", ["sections"] = sections
+        };
+
+        // Số nhiệm vụ không phải số nguyên, hoặc tổng các nhóm vượt tổng được giao → 400.
+        Assert.Equal(HttpStatusCode.BadRequest, (await s.CellLeaderA.PostAsJsonAsync("/api/evaluations/collective-records",
+            Body(new() { ["T.ASSIGNED"] = "abc" }))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await s.CellLeaderA.PostAsJsonAsync("/api/evaluations/collective-records",
+            Body(new() { ["T.ASSIGNED"] = "5", ["T.ONTIME"] = "4", ["T.LATE"] = "2" }))).StatusCode);
+
+        var created = await DataAsync(await s.CellLeaderA.PostAsJsonAsync("/api/evaluations/collective-records",
+            Body(new()
+            {
+                ["T.ASSIGNED"] = "10", ["T.ONTIME"] = "8", ["T.LATE"] = "1", ["T.OBJECTIVE"] = "1",
+                ["S.SAFETY"] = "Không để xảy ra sự cố", ["H.NAME"] = "Nguyễn Người Đứng Đầu", ["H.TITLE"] = "Trưởng phòng"
+            })));
+        var id = created.GetProperty("id").GetGuid();
+
+        var text = await DocxTextAsync(s.CellLeaderA, $"/api/reports/docx/mau-06/{id}");
+        Assert.Contains("1. Tổng số nhiệm vụ được giao trong kỳ: 10 nhiệm vụ.", text);
+        Assert.Contains("(đạt tỷ lệ: 80,0%)", text);
+        Assert.Contains("chậm tiến độ do nguyên nhân chủ quan: 1 nhiệm vụ (tỷ lệ: 10,0%)", text);
+        Assert.Contains("Không để xảy ra sự cố", text);
+        Assert.Contains("Nguyễn Người Đứng Đầu", text);
+        Assert.Contains("Tổng điểm tự chấm: 90 / 100 điểm.", text);
+        Assert.Contains("☒ Hoàn thành tốt nhiệm vụ", text);
+        Assert.Contains("☐ Hoàn thành xuất sắc nhiệm vụ", text);
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.CellLeaderB.GetAsync($"/api/reports/docx/mau-06/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await s.CellLeaderA.GetAsync($"/api/reports/docx/mau-07/{id}")).StatusCode);
+    }
+
     // ===================== R3: Mẫu 07, 08 — hồ sơ tập thể =====================
 
     [SkippableFact]
@@ -277,6 +317,12 @@ public sealed class CollectiveFormsReportsIntegrationTests
 
         Assert.Equal(HttpStatusCode.Forbidden, (await s.CellLeaderB.GetAsync($"/api/reports/docx/mau-12/{meetingId}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await s.CellLeaderB.PutAsJsonAsync($"/api/evaluations/meetings/{meetingId}", request)).StatusCode);
+
+        // Mẫu 11 phiếu trắng theo hội nghị: tổ chức lập phiếu là Chi bộ của hội nghị; Chi bộ khác 403.
+        var ballot = await DocxTextAsync(s.CellLeaderA, $"/api/reports/docx/mau-11/meeting/{meetingId}");
+        Assert.Contains("PHIẾU ĐÁNH GIÁ, XẾP LOẠI CÁN BỘ QUÝ III NĂM", ballot);
+        Assert.Contains(s.CellAName.ToUpperInvariant(), ballot);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.CellLeaderB.GetAsync($"/api/reports/docx/mau-11/meeting/{meetingId}")).StatusCode);
 
         // Biên bản kiểm phiếu (M13) không xuất theo Mẫu 12.
         var m13 = new Dictionary<string, object?>(request) { ["formCode"] = "M13", ["version"] = null };

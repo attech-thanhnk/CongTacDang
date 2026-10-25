@@ -159,6 +159,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         var catalog = new CollectiveFormCatalogDto
         {
             Form07Strengths = Hd03FormCatalog.Form07Strengths.Select(s => new CollectiveFormSectionDto { Code = s.Code, Title = s.Title }).ToList(),
+            Form06Fields = Hd03FormCatalog.Form06Fields.Select(s => new CollectiveFormSectionDto { Code = s.Code, Title = s.Title }).ToList(),
             Form08Categories = Hd03FormCatalog.Form08Categories.Select(s => new CollectiveFormSectionDto { Code = s.Code, Title = s.Title }).ToList()
         };
         if (!periodId.HasValue)
@@ -296,9 +297,12 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     /// <summary>Chỉ nhận mã có trong biểu mẫu.</summary>
     private static string SerializeSections(CollectiveEvaluationForm form, Dictionary<string, string>? sections)
     {
-        var allowed = form == CollectiveEvaluationForm.M07
-            ? Hd03FormCatalog.Form07Strengths.ToDictionary(s => s.Code, s => s.Title)
-            : new Dictionary<string, string>();
+        var allowed = form switch
+        {
+            CollectiveEvaluationForm.M07 => Hd03FormCatalog.Form07Strengths.ToDictionary(s => s.Code, s => s.Title),
+            CollectiveEvaluationForm.M06 => Hd03FormCatalog.Form06Fields.ToDictionary(s => s.Code, s => s.Title),
+            _ => new Dictionary<string, string>()
+        };
         var clean = new SortedDictionary<string, string>(StringComparer.Ordinal);
         foreach (var (code, text) in sections ?? new Dictionary<string, string>())
         {
@@ -308,7 +312,26 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             if (!string.IsNullOrWhiteSpace(text))
                 clean[code!.Trim()] = Limit(text, MaxTextLength, $"Mục {code} — {title}");
         }
+        if (form == CollectiveEvaluationForm.M06)
+            ValidateForm06Counts(clean);
         return JsonSerializer.Serialize(clean);
+    }
+
+    /// <summary>Bốn số nhiệm vụ của Mẫu 06 là số nguyên không âm; tổng các nhóm không vượt số nhiệm vụ được giao.</summary>
+    private static void ValidateForm06Counts(IReadOnlyDictionary<string, string> sections)
+    {
+        var counts = new Dictionary<string, int>();
+        foreach (var code in new[] { Hd03FormCatalog.Form06AssignedCode, Hd03FormCatalog.Form06OnTimeCode, Hd03FormCatalog.Form06LateCode, Hd03FormCatalog.Form06ObjectiveCode })
+        {
+            if (!sections.TryGetValue(code, out var raw))
+                continue;
+            if (!int.TryParse(raw.Trim(), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var value) || value > 100000)
+                throw new ArgumentException($"\"{Hd03FormCatalog.Form06Fields.First(f => f.Code == code).Title}\" phải là số nguyên không âm.");
+            counts[code] = value;
+        }
+        if (counts.TryGetValue(Hd03FormCatalog.Form06AssignedCode, out var assigned)
+            && counts.Where(c => c.Key != Hd03FormCatalog.Form06AssignedCode).Sum(c => c.Value) > assigned)
+            throw new ArgumentException("Tổng số nhiệm vụ đúng hạn, chậm tiến độ và chưa hoàn thành vượt tổng số nhiệm vụ được giao. Hãy kiểm tra lại.");
     }
 
     /// <summary>Dữ liệu hỏng → rỗng.</summary>

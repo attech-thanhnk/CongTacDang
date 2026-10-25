@@ -27,6 +27,10 @@ export interface ReportDefinition {
 
 export const REPORTS: ReportDefinition[] = [
   {
+    id: "mau-06", code: "Mẫu 06", group: "hd03", scope: "collective", fileType: "DOCX", fileCode: "06",
+    title: "Báo cáo kết quả tập thể / lĩnh vực phục vụ liên kết trách nhiệm cán bộ lãnh đạo",
+  },
+  {
     id: "mau-07", code: "Mẫu 07", group: "hd03", scope: "collective", fileType: "DOCX", fileCode: "07",
     title: "Báo cáo tự đánh giá, xếp loại chất lượng của tập thể Đảng ủy (Chi ủy, Chi bộ)",
   },
@@ -225,8 +229,8 @@ export const reportService = {
     });
   },
 
-  async exportCollective(form: "M07" | "M08", recordId: string, fileName: string, format: ReportFileFormat = "original"): Promise<void> {
-    const code = form === "M07" ? "mau-07" : "mau-08";
+  async exportCollective(form: "M06" | "M07" | "M08", recordId: string, fileName: string, format: ReportFileFormat = "original"): Promise<void> {
+    const code = form === "M06" ? "mau-06" : form === "M07" ? "mau-07" : "mau-08";
     return this.downloadReport(`/reports/docx/${code}/${recordId}`, fileName, format);
   },
 
@@ -236,7 +240,7 @@ export const reportService = {
   },
 
   /** Mẫu 12 (biên bản hội nghị) hoặc Mẫu 13 (biên bản kiểm phiếu). */
-  async exportMeeting(meetingId: string, form: "12" | "13", fileName: string, format: ReportFileFormat = "original"): Promise<void> {
-    return this.downloadReport(`/reports/docx/mau-${form}/${meetingId}`, fileName, format);
+  async exportMeeting(meetingId: string, form: "11" | "12" | "13", fileName: string, format: ReportFileFormat = "original"): Promise<void> {
+    return this.downloadReport(form === "11" ? `/reports/docx/mau-11/meeting/${meetingId}` : `/reports/docx/mau-${form}/${meetingId}`, fileName, format);
   },
 };

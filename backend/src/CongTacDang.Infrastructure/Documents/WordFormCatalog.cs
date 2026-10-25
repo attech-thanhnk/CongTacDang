@@ -19,6 +19,7 @@ public static class WordFormCatalog
     {
         new WordFormDefinition("MAU_01", "Mẫu 01 — Phiếu giao / đăng ký sản phẩm, công việc chuyên môn hằng quý", Mau01Data.TemplateFileName, typeof(Mau01Data)),
         new WordFormDefinition("MAU_02", "Mẫu 02 — Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc", Mau02Data.TemplateFileName, typeof(Mau02Data)),
+        new WordFormDefinition("MAU_06", "Mẫu 06 — Báo cáo kết quả tập thể / lĩnh vực phục vụ liên kết trách nhiệm cán bộ lãnh đạo", Mau06Data.TemplateFileName, typeof(Mau06Data)),
         new WordFormDefinition("MAU_07", "Mẫu 07 — Báo cáo tự đánh giá, xếp loại chất lượng của tập thể Đảng ủy (Chi ủy, Chi bộ)", Mau07Data.TemplateFileName, typeof(Mau07Data)),
         new WordFormDefinition("MAU_08", "Mẫu 08 — Báo cáo tổng hợp kết quả thực hiện các nhiệm vụ của cơ quan, đơn vị", Mau08Data.TemplateFileName, typeof(Mau08Data)),
         new WordFormDefinition("MAU_09A", "Mẫu 09A — Phiếu tự chấm điểm đánh giá, xếp loại", Mau09AData.TemplateFileName, typeof(Mau09AData)),
