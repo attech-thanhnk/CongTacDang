@@ -239,6 +239,11 @@ export const reportService = {
     return this.downloadReport(`/reports/form-08/${recordId}`, fileName, format);
   },
 
+  /** Mẫu 03 (phiếu đối soát), 19 (phiếu kiểm soát) hoặc 20 (biên bản hiệu chuẩn) theo mã phiếu. */
+  async exportQualityForm(form: "03" | "19" | "20", formId: string, fileName: string, format: ReportFileFormat = "original"): Promise<void> {
+    return this.downloadReport(`/reports/docx/mau-${form}/${formId}`, fileName, format);
+  },
+
   /** Mẫu 12 (biên bản hội nghị) hoặc Mẫu 13 (biên bản kiểm phiếu). */
   async exportMeeting(meetingId: string, form: "11" | "12" | "13", fileName: string, format: ReportFileFormat = "original"): Promise<void> {
     return this.downloadReport(form === "11" ? `/reports/docx/mau-11/meeting/${meetingId}` : `/reports/docx/mau-${form}/${meetingId}`, fileName, format);

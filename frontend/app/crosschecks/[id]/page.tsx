@@ -12,6 +12,7 @@ import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
 import { CrosscheckRequestForm } from "@/components/crosschecks/CrosscheckRequestForm";
 import { errorMessage } from "@/components/admin/adminUtils";
 import { useToast } from "@/contexts/ToastContext";
+import { reportService } from "@/services/reportService";
 import { formatDate, formatDateTime } from "@/lib/dateFormat";
 import {
   CROSSCHECK_ADJUSTMENT_LABELS,
@@ -24,9 +25,6 @@ import {
   SaveCrosscheckRequest,
   crosscheckService,
 } from "@/services/crosscheckService";
-
-/** Xuất Word Mẫu 03: bật khi máy chủ có endpoint xuất; nút nằm sẵn trong menu ⋯ của trang. */
-const WORD_EXPORT_AVAILABLE = false;
 
 interface DraftItem {
   id: string;
@@ -98,6 +96,15 @@ export default function CrosscheckDetailPage() {
   const dirty = useMemo(() => !!data && !!draft && JSON.stringify(draft) !== JSON.stringify(toDraft(data)), [data, draft]);
 
   /** Chạy lệnh ghi; lỗi (kể cả lệch phiên bản) hiện qua toast và tải lại phiếu. */
+  const exportWord = async () => {
+    if (!data) return;
+    try {
+      await reportService.exportQualityForm("03", data.id, `Mau_03_${data.id}.docx`);
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Xuất phiếu đối soát không thành công."));
+    }
+  };
+
   const run = async (work: () => Promise<CrosscheckDto>, success: string, failure: string): Promise<boolean> => {
     setBusy(true);
     try {
@@ -234,7 +241,7 @@ export default function CrosscheckDetailPage() {
               disabled={busy}
               actions={[
                 { key: "edit", label: "Sửa yêu cầu", icon: "bi-pencil-square", hidden: !data.canEditRequest || editingRequest, onClick: () => setEditingRequest(true) },
-                { key: "word", label: "Xuất Word", icon: "bi-download", hidden: !WORD_EXPORT_AVAILABLE, onClick: () => undefined },
+                { key: "word", label: "Xuất Word", icon: "bi-download", onClick: exportWord },
                 { key: "return", label: "Trả lại", icon: "bi-arrow-return-left", hidden: !data.canReturn, onClick: () => setDialog("return") },
                 { key: "cancel", label: "Hủy yêu cầu", icon: "bi-x-circle", danger: true, hidden: !data.canCancel, onClick: () => setDialog("cancel") },
               ]}
