@@ -54,7 +54,7 @@ public sealed class CalibrationRepository : ICalibrationRepository
         CancellationToken ct = default)
     {
         var ids = recordIds.ToList();
-        var rows = await _db.Set<CalibrationRecord>().AsNoTracking()
+        var rows = await _db.Set<CalibrationRecord>().AsNoTrackingWithIdentityResolution()
             .Where(r => r.IsActive && ids.Contains(r.RecordId) && (exceptSessionId == null || r.SessionId != exceptSessionId))
             .Select(r => new { r.RecordId, r.SessionId })
             .ToListAsync(ct);
@@ -65,7 +65,7 @@ public sealed class CalibrationRepository : ICalibrationRepository
     public Task<List<CalibrationRecord>> ListActiveRowsAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken ct = default)
     {
         var ids = recordIds.ToList();
-        return _db.Set<CalibrationRecord>().AsNoTracking()
+        return _db.Set<CalibrationRecord>().AsNoTrackingWithIdentityResolution()
             .Include(r => r.Session).ThenInclude(s => s.Records)
             .Where(r => r.IsActive && ids.Contains(r.RecordId))
             .AsSplitQuery()
