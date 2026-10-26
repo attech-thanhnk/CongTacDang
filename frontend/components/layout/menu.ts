@@ -51,7 +51,9 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
           title: "Đối soát chuyên ngành",
           href: "/crosschecks",
           icon: "bi-patch-check",
+          // Người xem hồ sơ đánh giá cũng xem được danh sách phiếu (API cho phép).
           check: () =>
+            hasPermission("evaluation.read") ||
             hasPermission("evaluation.crosscheck.request") ||
             hasPermission("evaluation.crosscheck.respond") ||
             hasPermission("evaluation.crosscheck.confirm"),
@@ -67,7 +69,13 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
             hasPermission("evaluation.control.confirm"),
         },
         { title: "Kết quả đánh giá", href: "/results", icon: "bi-trophy", permission: "evaluation.results.view" },
-        { title: "Báo cáo", href: "/reports", icon: "bi-bar-chart-line", permission: "report.export" },
+        {
+          title: "Báo cáo",
+          href: "/reports",
+          icon: "bi-bar-chart-line",
+          // Người chỉ có quyền xem hội nghị dùng trang này để xuất bảng phiếu kín (Mẫu 11).
+          check: () => hasPermission("report.export") || hasPermission("meeting.read"),
+        },
       ],
     },
     {

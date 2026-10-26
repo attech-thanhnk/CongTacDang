@@ -16,6 +16,7 @@ import { organizationSettingsService } from "@/services/organizationSettingsServ
 import { usePermissionScope, withinScope } from "@/services/authService";
 import { REPORTS, ReportDefinition, ReportFileFormat, hd03FileName, internalFileName, reportService, scopedFileName, withQuery } from "@/services/reportService";
 import { errorMessage } from "@/components/admin/adminUtils";
+import { NoAccess } from "@/components/admin/NoAccess";
 
 const ROMAN = ["", "I", "II", "III", "IV"];
 
@@ -27,7 +28,7 @@ const periodLabel = (period?: EvaluationPeriodDto | null) =>
 const BRANCH_REPORTS = new Set(["mau-11", "mau-14", "mau-15a", "mau-15b", "mau-16", "decision", "excellent-quota"]);
 
 export default function ReportsPage() {
-  const { hasPermission } = useAuth();
+  const { hasPermission, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const { periodId, period } = usePeriod();
   const [branches, setBranches] = useState<BranchItem[]>([]);
@@ -213,6 +214,9 @@ export default function ReportsPage() {
       </section>
     );
   };
+
+  if (authLoading) return null;
+  if (!canExport && !canMeeting) return <NoAccess title="Báo cáo" permissionName="Xuất báo cáo hoặc xem hội nghị" />;
 
   return (
     <div className="page-wrapper">
