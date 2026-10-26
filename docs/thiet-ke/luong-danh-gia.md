@@ -1,6 +1,6 @@
 # Thiết kế luồng đánh giá 5 bước và cấu hình kỳ
 
-> **Trạng thái:** thiết kế kỹ thuật để triển khai (task 12; luồng theo nhóm đối tượng — task 15). Thứ tự bước và tác nhân theo bản trích xuất HD03 (`docs/nghiep-vu/hd03-trich-xuat.md`, mục 1.4, 1.6, 6, Phụ lục III) — **chưa xác nhận**; vì vậy bước nào áp dụng cho nhóm đối tượng nào, do ai (trong hệ thống hay cấp trên) thực hiện, tham số bao nhiêu đều là **cấu hình**, không cứng trong code.
+> **Trạng thái:** thiết kế kỹ thuật để triển khai (task 12; luồng theo diện quyết định — task 15). Thứ tự bước và tác nhân theo bản trích xuất HD03 (`docs/nghiep-vu/hd03-trich-xuat.md`, mục 1.4, 1.6, 6, Phụ lục III) — **chưa xác nhận**; vì vậy bước nào áp dụng cho diện quyết định nào, do ai (trong hệ thống hay cấp trên) thực hiện, tham số bao nhiêu đều là **cấu hình**, không cứng trong code.
 > **Cấu trúc công thức tính điểm giữ nguyên** (B-04 vẫn `deferred`); nội dung chấm (tiêu chí, trục kết quả phân loại sản phẩm, khung tỷ trọng, thang quy đổi, ngưỡng mức, tham số, làm tròn) lấy từ **bộ tiêu chí** của kỳ (mục 3.5, task 16).
 
 ## 1. Danh mục bước (mã cố định trong code)
@@ -15,16 +15,16 @@
 | `B3B_APPRAISAL` | Thẩm định, đề xuất mức | `evaluation.appraise` | 10, 03, 19, 20 | mọi chế độ |
 | `B3C_DIRECTOR` | Nhận xét, đề xuất của cấp trực tiếp sử dụng (hoặc lãnh đạo đơn vị — ví dụ 3) | `evaluation.director.review` | 10 | mọi chế độ |
 | `B4_DECISION` | Ghi nhận quyết định mức xếp loại (kèm đề xuất về công tác cán bộ — cột 13 Mẫu 14, tùy chọn) | `evaluation.decide` | 12, 13, 14, 15A/15B | Nội bộ / Cấp trên (**không** "Không áp dụng") |
-| `B5_PUBLISH` | Công bố, khóa hồ sơ | `evaluation.publish` | 16 | **chỉ Nội bộ** |
+| `B5_PUBLISH` | Công bố và lưu trữ kết quả (khóa hồ sơ) | `evaluation.publish` | 16 | **chỉ Nội bộ** |
 
 Mẫu cá nhân áp dụng cho hồ sơ (nút xuất trên trang hồ sơ, phần nhập 09C/9D ở `B2_SELF_SCORE`) theo **bộ tiêu chí của kỳ**
 (`requiredForms`, mục 3.5) — không cố định theo bước.
 
 Thứ tự cố định: `B1_REGISTER → B1_APPROVE → B2_SELF_SCORE → B2_CELL_CONFIRM → B3A_COLLECTIVE → B3B_APPRAISAL → B3C_DIRECTOR → B4_DECISION → B5_PUBLISH`.
 
-### 1.1 Chế độ bước và hồ sơ luồng (task 15)
+### 1.1 Chế độ bước và diện quyết định (task 15)
 
-Mỗi bước trong một **hồ sơ luồng** (nhóm đối tượng) có một chế độ:
+Mỗi bước trong một **diện quyết định** (diện quyết định) có một chế độ:
 
 | Chế độ | Ý nghĩa | Ai thao tác |
 |---|---|---|
@@ -33,8 +33,8 @@ Mỗi bước trong một **hồ sơ luồng** (nhóm đối tượng) có một
 | `Off` (Không áp dụng) | Bước không áp dụng cho nhóm này | — (bỏ qua khi tính bước kế tiếp) |
 
 - Bước bắt buộc (không `Off`): `B2_SELF_SCORE`, `B4_DECISION`, `B5_PUBLISH`. Không `External`: `B1_REGISTER`, `B2_SELF_SCORE`, `B5_PUBLISH`.
-- Trước khi ghi nhận B4 (nội bộ hoặc cấp trên) hồ sơ qua hai cổng theo thứ tự: hiệu chuẩn (Mẫu 20) rồi kiểm soát (Mẫu 19), theo chế độ cổng của hồ sơ luồng (mục 3.2). Hồ sơ vẫn vào `AwaitingDecision` bình thường. Sau hiệu chuẩn, mức/điểm hiển thị ở Mẫu 14, 16, QĐ, 11 và nhãn bước mức hiệu lực lấy giá trị sau hiệu chuẩn (`ReviewedGrade`/`ReviewedScore`).
-- Mỗi hồ sơ đánh giá lưu `WorkflowProfileCode` (ảnh chụp khi thêm vào kỳ; mặc định theo `ApprovalAuthority`). Máy trạng thái, API `actions`, `work-queue`, kiểm tra quyền dùng **cấu hình bước của hồ sơ luồng của hồ sơ**; không còn cấu hình bước cấp kỳ.
+- Trước khi ghi nhận B4 (nội bộ hoặc cấp trên) hồ sơ qua hai cổng theo thứ tự: hiệu chuẩn (Mẫu 20) rồi kiểm soát (Mẫu 19), theo chế độ cổng của diện quyết định (mục 3.2). Hồ sơ vẫn vào `AwaitingDecision` bình thường. Sau hiệu chuẩn, mức/điểm hiển thị ở Mẫu 14, 16, QĐ, 11 và nhãn bước mức hiệu lực lấy giá trị sau hiệu chuẩn (`ReviewedGrade`/`ReviewedScore`).
+- Mỗi hồ sơ đánh giá lưu `WorkflowProfileCode` (ảnh chụp khi thêm vào kỳ; mặc định theo `ApprovalAuthority`). Máy trạng thái, API `actions`, `work-queue`, kiểm tra quyền dùng **cấu hình bước của diện quyết định của hồ sơ**; không còn cấu hình bước cấp kỳ.
 - Kết quả ghi nhận của bước cấp trên lưu ở `evaluation_external_results` (mỗi hồ sơ × bước một dòng; ghi lại sau khi mở lại hồ sơ thì cập nhật dòng cũ) và được chép vào các trường của bước trên hồ sơ (mức/nhận xét/điểm; "người thực hiện" = tên cơ quan cấp trên) để báo cáo, biểu mẫu dùng chung một nguồn.
 - **Xung đột lợi ích**: mọi bước không phải của chủ hồ sơ (kể cả khi quyền thực hiện được cấu hình khác mặc định, và ghi nhận kết quả của cấp trên) không áp dụng trên hồ sơ của chính mình — kiểm tra trong `EvaluationWorkflowService` trước `IAuthorizationGuard`.
 
@@ -56,9 +56,9 @@ Trạng thái = **bước đang chờ** (thay enum `RecordStatus` hiện tại):
 | `Published` | Đã công bố — **khóa**, mọi sửa đổi phải qua `Reopen` |
 
 Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit test):
-- **Hoàn thành bước** (làm trong hệ thống, hoặc ghi nhận kết quả của cấp trên) → trạng thái của bước áp dụng kế tiếp theo hồ sơ luồng của hồ sơ.
+- **Hoàn thành bước** (làm trong hệ thống, hoặc ghi nhận kết quả của cấp trên) → trạng thái của bước áp dụng kế tiếp theo diện quyết định của hồ sơ.
 - **Trả lại** (chỉ từ `B1_APPROVE`, `B2_CELL_CONFIRM`, `B3B_APPRAISAL` khi bước ở chế độ Nội bộ) → về bước của chủ hồ sơ tương ứng (`AwaitingRegistration` hoặc `AwaitingSelfScore`); **bắt buộc lý do**.
-- **Đổi hồ sơ luồng** (`period.manage`, bắt buộc lý do, ghi lịch sử `ChangeProfile`): chỉ khi kỳ chưa đóng và hồ sơ **chưa qua** bước nào mà hai hồ sơ luồng khác nhau (chế độ hoặc quyền thực hiện); bước đang chờ không còn áp dụng → chuyển tới bước áp dụng kế tiếp.
+- **Đổi diện quyết định** (`period.manage`, bắt buộc lý do, ghi lịch sử `ChangeProfile`): chỉ khi kỳ chưa đóng và hồ sơ **chưa qua** bước nào mà hai diện quyết định khác nhau (chế độ hoặc quyền thực hiện); bước đang chờ không còn áp dụng → chuyển tới bước áp dụng kế tiếp.
 - Hành động không khớp chế độ bước (gọi API bước nội bộ khi bước do cấp trên thực hiện, ghi nhận kết quả khi bước nội bộ, bước không áp dụng) → 409.
 - **Mở lại** (`evaluation.reopen`, từ `Published`) → về bước người mở lại chọn (không sớm hơn `AwaitingSelfScore`); **bắt buộc lý do**; giữ dữ liệu các bước sau để đối chiếu (ghi lịch sử).
 - Mọi chuyển trạng thái ghi `EvaluationRecordHistory`: người làm, thời điểm, bước, hành động (`complete/return/reopen`), lý do, ảnh chụp điểm/mức trước–sau.
@@ -113,18 +113,18 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 }
 ```
 - `profiles[].steps[].mode`: `Internal` | `External` | `Off` (mục 1.1). `permission` chỉ có nghĩa khi `Internal` và bước không phải của chủ hồ sơ; bỏ trống → quyền mặc định của bước. Máy chủ kiểm tra mã quyền thuộc danh mục (module `evaluation`, trừ `self`, `read`, `reopen` và 7 quyền phiếu Mẫu 03, 19, 20).
-- `profiles[].gates` (từ schema 3): cổng kiểm soát quanh bước quyết định, khóa = mã cổng (`WorkflowGates`). `CALIBRATION` (biên bản hiệu chuẩn Mẫu 20) và `CONTROL` (phiếu kiểm soát Mẫu 19): `Required` (chặn hành động B4 cho tới khi cổng được đáp ứng) | `Recorded` (không chặn, chỉ cảnh báo và ghi nhận thiếu) | `Off`. `CROSSCHECK` (đối soát chuyên ngành Mẫu 03): `Optional` | `Off`. Cổng thiếu được điền mặc định theo chế độ bước `B4_DECISION` của hồ sơ luồng: `Required` khi bước làm trong hệ thống, `Recorded` khi cấp trên thực hiện (`CROSSCHECK` luôn `Optional`). Mã cổng lạ hoặc chế độ không thuộc tập cho phép của cổng bị từ chối khi lưu. Cùng quy tắc với cấu hình bước: chỉ đổi được khi kỳ `Draft` (kỳ `Open`/`Locked` chỉ sửa được thời hạn). Cổng `CROSSCHECK` đã áp dụng: còn phiếu đối soát chưa xác nhận, chưa hủy thì không hoàn thành được thẩm định (B3b, kể cả ghi nhận kết quả cấp trên); `Off` ẩn tính năng. Cổng `CALIBRATION`, `CONTROL` chặn hành động B4 (`decision` và `external/B4_DECISION`, hiệu chuẩn xét trước kiểm soát): `Required` → 409 nếu hồ sơ chưa thuộc biên bản Mẫu 20 đã chốt / phiếu Mẫu 19 đã xác nhận Đủ điều kiện còn hiệu lực (hết hiệu lực khi hồ sơ trong biên bản/phiếu đổi bước, điểm hoặc mức sau lúc chốt/xác nhận); `Recorded` → cho qua, ghi "Ghi nhận thiếu" vào lịch sử hồ sơ và trả cảnh báo ở `actions`; `Off` → không truy vấn. Mẫu 19 chỉ gửi xác nhận/xác nhận được khi cổng `CALIBRATION` của hồ sơ luồng là `Required` thì mọi hồ sơ trong phiếu đã thuộc biên bản đã chốt (409).
-- `defaultProfiles`: hồ sơ luồng gán khi thêm người vào kỳ, theo `ApprovalAuthority` ảnh chụp (`CoSo`, `CapTren` — cả hai bắt buộc).
-- `deadline` theo từng bước **của từng hồ sơ luồng**: hiển thị và cảnh báo; chỉ chặn khi `enforceDeadlines = true`.
+- `profiles[].gates` (từ schema 3): cổng kiểm soát quanh bước quyết định, khóa = mã cổng (`WorkflowGates`). `CALIBRATION` (biên bản hiệu chuẩn Mẫu 20) và `CONTROL` (phiếu kiểm soát Mẫu 19): `Required` (chặn hành động B4 cho tới khi cổng được đáp ứng) | `Recorded` (không chặn, chỉ cảnh báo và ghi nhận thiếu) | `Off`. `CROSSCHECK` (đối soát chuyên ngành Mẫu 03): `Optional` | `Off`. Cổng thiếu được điền mặc định theo chế độ bước `B4_DECISION` của diện quyết định: `Required` khi bước làm trong hệ thống, `Recorded` khi cấp trên thực hiện (`CROSSCHECK` luôn `Optional`). Mã cổng lạ hoặc chế độ không thuộc tập cho phép của cổng bị từ chối khi lưu. Cùng quy tắc với cấu hình bước: chỉ đổi được khi kỳ `Draft` (kỳ `Open`/`Locked` chỉ sửa được thời hạn). Cổng `CROSSCHECK` đã áp dụng: còn phiếu đối soát chưa xác nhận, chưa hủy thì không hoàn thành được thẩm định (B3b, kể cả ghi nhận kết quả cấp trên); `Off` ẩn tính năng. Cổng `CALIBRATION`, `CONTROL` chặn hành động B4 (`decision` và `external/B4_DECISION`, hiệu chuẩn xét trước kiểm soát): `Required` → 409 nếu hồ sơ chưa thuộc biên bản Mẫu 20 đã chốt / phiếu Mẫu 19 đã xác nhận Đủ điều kiện còn hiệu lực (hết hiệu lực khi hồ sơ trong biên bản/phiếu đổi bước, điểm hoặc mức sau lúc chốt/xác nhận); `Recorded` → cho qua, ghi "Ghi nhận thiếu" vào lịch sử hồ sơ và trả cảnh báo ở `actions`; `Off` → không truy vấn. Mẫu 19 chỉ gửi xác nhận/xác nhận được khi cổng `CALIBRATION` của diện quyết định là `Required` thì mọi hồ sơ trong phiếu đã thuộc biên bản đã chốt (409).
+- `defaultProfiles`: diện quyết định gán khi thêm người vào kỳ, theo `ApprovalAuthority` ảnh chụp (`CoSo`, `CapTren` — cả hai bắt buộc).
+- `deadline` theo từng bước **của từng diện quyết định**: hiển thị và cảnh báo; chỉ chặn khi `enforceDeadlines = true`.
 - **Quy tắc điền thời hạn:** mỗi bước có thể kèm `rule` = `{ "kind": "WorkingDayOfQuarter" | "BeforeDayOfLastMonth" | "DayOfLastMonth" | "WorkingDaysBeforeQuarter", "value": N }` ("ngày làm việc thứ N đầu quý" / "trước ngày D tháng cuối quý" = ngày làm việc cuối cùng trước ngày D / "ngày D tháng cuối quý", rơi vào ngày nghỉ thì dời sang ngày làm việc kế tiếp / "N ngày làm việc trước đầu quý") và danh mục **Ngày nghỉ** chung (bảng `holidays`, API `/api/holidays`, quản trị ở Danh mục → Ngày nghỉ, quyền `catalog.manage`; thứ Bảy, Chủ nhật đã loại sẵn). Quy tắc chỉ là công cụ điền ngày: khi tạo kỳ máy chủ điền sẵn `deadline` theo quy tắc mặc định; `PUT` kỳ kèm `applyDeadlineRules = true` thì máy chủ ghi `deadline` cho các bước có quy tắc (`PeriodSettings.ApplyDeadlineRules`); mọi lúc khác `deadline` chỉ là dữ liệu, sửa tự do, không bị tính lại ngầm. Quy tắc mặc định theo HD03 mục V.2 (`PeriodSettings.Default`): đăng ký, duyệt sản phẩm — ngày làm việc thứ 5 đầu quý; tự chấm, Chi bộ xác nhận — trước ngày 12; tập thể — trước ngày 12 (diện cơ sở) / 15 (diện cấp trên, Phó Giám đốc); thẩm định — trước ngày 14 / 16; nhận xét — trước ngày 15 (diện cấp trên: 20); quyết định — trước ngày 15 / 20; công bố không có hạn. Kỳ đã mở vẫn sửa được `rule` và `deadline`.
-- Cấu hình kỳ không có `parameters` (task 16): mọi hằng số nghiệp vụ thuộc **bộ tiêu chí** của kỳ (mục 3.5). Khóa cũ trong JSON bị bỏ qua khi đọc. Điểm tính trên danh mục sản phẩm đăng ký nên `B1_REGISTER` luôn áp dụng ở mọi hồ sơ luồng (`WorkflowSteps.Mandatory`, cùng `B2_SELF_SCORE`, `B4_DECISION`, `B5_PUBLISH`); `B1_APPROVE` tùy chọn chế độ. Đổi bộ tiêu chí không làm đổi cấu hình kỳ.
+- Cấu hình kỳ không có `parameters` (task 16): mọi hằng số nghiệp vụ thuộc **bộ tiêu chí** của kỳ (mục 3.5). Khóa cũ trong JSON bị bỏ qua khi đọc. Điểm tính trên danh mục sản phẩm đăng ký nên `B1_REGISTER` luôn áp dụng ở mọi diện quyết định (`WorkflowSteps.Mandatory`, cùng `B2_SELF_SCORE`, `B4_DECISION`, `B5_PUBLISH`); `B1_APPROVE` tùy chọn chế độ. Đổi bộ tiêu chí không làm đổi cấu hình kỳ.
 - Đọc được cấu hình schema 2 (chưa có `gates`): khi đọc được nâng lên schema 3 và điền cổng mặc định, không cần migration dữ liệu.
 - Cấu hình **cũ** (schema 1, bước cấp kỳ) không còn được hỗ trợ (chưa có CSDL cần giữ — người điều phối sinh lại `InitialCreate`).
-- Kỳ `Draft`: sửa mọi thứ (thêm/sửa/xóa hồ sơ luồng — không xóa được hồ sơ luồng đang được hồ sơ đánh giá dùng, 409). Kỳ `Open`/`Locked`: chỉ sửa thời hạn.
+- Kỳ `Draft`: sửa mọi thứ (thêm/sửa/xóa diện quyết định — không xóa được diện quyết định đang được hồ sơ đánh giá dùng, 409). Kỳ `Open`/`Locked`: chỉ sửa thời hạn.
 
-**Tạo kỳ** (`POST /api/evaluations/periods`): năm, quý, tên, thời gian và **bộ tiêu chí đã xuất bản (bắt buộc)**; không có "kiểu kỳ". Kỳ mới nhận 3 hồ sơ luồng mặc định (`PeriodSettings.Default`) — cấu hình mặc định **chờ nghiệp vụ xác nhận**, sửa được trong giao diện kỳ:
+**Tạo kỳ** (`POST /api/evaluations/periods`): năm, quý, tên, thời gian và **bộ tiêu chí đã xuất bản (bắt buộc)**; không có "kiểu kỳ". Kỳ mới nhận 3 diện quyết định mặc định (`PeriodSettings.Default`) — cấu hình mặc định **chờ nghiệp vụ xác nhận**, sửa được trong giao diện kỳ:
 
-| Hồ sơ luồng (mã) | Căn cứ | B1 đăng ký/duyệt | B2 tự chấm | B2 Chi bộ | B3a tập thể | B3b thẩm định | B3c | B4 quyết định | B5 |
+| Diện quyết định (mã) | Căn cứ | B1 đăng ký/duyệt | B2 tự chấm | B2 Chi bộ | B3a tập thể | B3b thẩm định | B3c | B4 quyết định | B5 |
 |---|---|---|---|---|---|---|---|---|---|
 | Diện Đảng ủy cơ sở (`co-so`) — mặc định `CoSo` | PL III ví dụ 1 | Nội bộ | Nội bộ | Nội bộ | Nội bộ (tập thể lãnh đạo Phòng) | Nội bộ (Phòng TCCB-LĐ) | Nội bộ — `evaluation.director.review` (Giám đốc) | Nội bộ — `evaluation.decide` (Đảng ủy) | Nội bộ |
 | Diện BTV Đảng ủy Tổng công ty (`cap-tren`) — mặc định `CapTren` | PL III ví dụ 2; Chủ tịch, Giám đốc, Kiểm soát viên | Đăng ký nội bộ; **duyệt: Cấp trên** (HĐTV Tổng công ty) | Nội bộ | Nội bộ | Nội bộ (tập thể lãnh đạo Công ty) | **Cấp trên** (Ban TCĐU) | **Cấp trên** (HĐTV) | **Cấp trên** (BTV ĐUTCT) | Nội bộ |
@@ -133,17 +133,17 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 
 
 ### 3.3 Danh sách người được đánh giá
-- Tạo `EvaluationRecord` ngay khi thêm người: kỳ + người. Thêm người = tạo hồ sơ ở bước áp dụng đầu tiên của hồ sơ luồng, **ảnh chụp** `DepartmentId`, `PartyCellId`, `WeightFrameCode` (khung tỷ trọng mặc định của cán bộ; cán bộ chưa chọn → khung mặc định của bộ tiêu chí của kỳ), `ApprovalAuthority` từ hồ sơ cán bộ và `WorkflowProfileCode` (chọn khi thêm, hoặc mặc định theo `ApprovalAuthority`); `period.manage` sửa được ảnh chụp khi kỳ còn `Draft`/`Open` (có lý do, ghi lịch sử — sửa cấp quyết định **không** tự đổi hồ sơ luồng).
-- Đổi hồ sơ luồng từng người / hàng loạt: mục 2.
+- Tạo `EvaluationRecord` ngay khi thêm người: kỳ + người. Thêm người = tạo hồ sơ ở bước áp dụng đầu tiên của diện quyết định, **ảnh chụp** `DepartmentId`, `PartyCellId`, `WeightFrameCode` (khung tỷ trọng mặc định của cán bộ; cán bộ chưa chọn → khung mặc định của bộ tiêu chí của kỳ), `ApprovalAuthority` từ hồ sơ cán bộ và `WorkflowProfileCode` (chọn khi thêm, hoặc mặc định theo `ApprovalAuthority`); `period.manage` sửa được ảnh chụp khi kỳ còn `Draft`/`Open` (có lý do, ghi lịch sử — sửa cấp quyết định **không** tự đổi diện quyết định).
+- Đổi diện quyết định từng người / hàng loạt: mục 2.
 - Chỉ người trong danh sách mới có hồ sơ; `evaluation.self` không tự tạo hồ sơ.
-- Thêm theo: chọn tay hoặc theo Phòng/Chi bộ, có thể chỉ định hồ sơ luồng (mã; bỏ trống = mặc định theo cấp quyết định).
-- **Theo dõi tiến độ:** `GET /api/evaluations/periods/{id}/participants` (`period.manage`) trả thêm cho từng hồ sơ `currentStep` / `currentStepName` (bước đang chờ, `WorkflowSteps.StepOf(status)`), `currentStepDeadline` (= `deadline` của bước đó trong hồ sơ luồng của hồ sơ), `daysOverdue` (≥ 1 khi hôm nay sau ngày hạn) và `daysLeft` (≥ 0, 0 = hạn hôm nay); "hôm nay" theo giờ Việt Nam (`EvaluationMapping.Today`). Hồ sơ `Published` không còn bước chờ → các trường này `null`. Trang kỳ (tab Tiến độ, khi kỳ `Open`/`Locked`) báo "sắp đến hạn" khi `daysLeft ≤ 3`.
+- Thêm theo: chọn tay hoặc theo Phòng/Chi bộ, có thể chỉ định diện quyết định (mã; bỏ trống = mặc định theo cấp quyết định).
+- **Theo dõi tiến độ:** `GET /api/evaluations/periods/{id}/participants` (`period.manage`) trả thêm cho từng hồ sơ `currentStep` / `currentStepName` (bước đang chờ, `WorkflowSteps.StepOf(status)`), `currentStepDeadline` (= `deadline` của bước đó trong diện quyết định của hồ sơ), `daysOverdue` (≥ 1 khi hôm nay sau ngày hạn) và `daysLeft` (≥ 0, 0 = hạn hôm nay); "hôm nay" theo giờ Việt Nam (`EvaluationMapping.Today`). Hồ sơ `Published` không còn bước chờ → các trường này `null`. Trang kỳ (tab Tiến độ, khi kỳ `Open`/`Locked`) báo "sắp đến hạn" khi `daysLeft ≤ 3`.
 
 ### 3.4 Kiểm tra kẹt luồng (task 15)
 - `GET /api/evaluations/periods/{id}/readiness` (`period.manage`): với mỗi hồ sơ chưa công bố và mỗi bước **còn phía trước** (kể cả bước đang chờ) có chế độ Nội bộ hoặc Cấp trên, cần **ít nhất một** tài khoản đang hoạt động — không phải chủ hồ sơ — có quyền thực hiện bước (Cấp trên: `evaluation.external.record`) với phạm vi bao trùm hồ sơ. Bước của chủ hồ sơ: chính chủ hồ sơ phải còn hoạt động và có `evaluation.self`. Quyền tính bằng `IPermissionResolver` + `AuthorizationGuard.Evaluate` (không tự suy luật).
 - Kết quả: `{ ready, checkedRecords, issues: [{ recordId, fullName, workflowProfileName, step, stepName, mode, permission, permissionName, scope, message }] }`.
 - Hồ sơ có khung tỷ trọng không thuộc bộ tiêu chí của kỳ → cảnh báo ở bước `B2_SELF_SCORE` (sửa ảnh chụp khung hoặc khung mặc định của cán bộ).
-- Cổng bắt buộc (mục 3.2): với hồ sơ luồng có `gates.CALIBRATION = Required` cần tài khoản đang hoạt động có `evaluation.calibration.manage` **và** tài khoản khác có `evaluation.calibration.conclude`; có `gates.CONTROL = Required` cần `evaluation.control.perform` **và** tài khoản khác có `evaluation.control.confirm`; cả hai bao trùm hồ sơ và không phải chủ hồ sơ. Thiếu → cảnh báo ở bước `B4_DECISION` (cùng cấu trúc `issues`, `permission` là quyền còn thiếu); mở kỳ vẫn cần `force` + lý do.
+- Cổng bắt buộc (mục 3.2): với diện quyết định có `gates.CALIBRATION = Required` cần tài khoản đang hoạt động có `evaluation.calibration.manage` **và** tài khoản khác có `evaluation.calibration.conclude`; có `gates.CONTROL = Required` cần `evaluation.control.perform` **và** tài khoản khác có `evaluation.control.confirm`; cả hai bao trùm hồ sơ và không phải chủ hồ sơ. Thiếu → cảnh báo ở bước `B4_DECISION` (cùng cấu trúc `issues`, `permission` là quyền còn thiếu); mở kỳ vẫn cần `force` + lý do.
 - Mở kỳ (`Draft → Open`) khi còn cảnh báo → **409**, `code = PERIOD_NOT_READY`, `data` = kết quả kiểm tra, `errors` = danh sách thông báo. Mở bắt buộc: `{ version, force: true, reason }` (lý do bắt buộc) → lý do được ghi vào `StatusReason` của kỳ (có audit).
 ### 3.5 Bộ tiêu chí và thang điểm (task 16)
 - Bảng `criteria_sets`: mã, tên, trạng thái `Draft | Published | Archived`, nội dung `jsonb` có `schemaVersion`: nhóm tiêu chí chung + tiêu chí con (`Binary` "Đảm bảo/Không đảm bảo" hoặc `Range`), K/AD có lý do và quy tắc xử lý, trục kết quả (mã, tên, nội dung — phân loại sản phẩm đăng ký), khung tỷ trọng A/B/C/D, thang quy đổi, 4 mức xếp loại (ngưỡng + điều kiện), tham số (số sản phẩm, tổng trọng số, ngưỡng giải trình, trần Xuất sắc, làm tròn từng loại điểm…). Quản lý qua `/criteria`, quyền `criteria.manage`.
@@ -198,7 +198,7 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
   việc còn hiệu lực), `WeightsBefore`, `Reason`, `Status` = `Pending / Approved / Rejected`, người đề nghị / quyết định, thời điểm, ý kiến.
 - Áp dụng khi: kỳ **Đang mở**, hồ sơ ở `AwaitingSelfScore` (đã duyệt danh sách việc, chưa nộp tự chấm), kỳ đã có bộ tiêu chí. Mỗi hồ sơ tối đa **một** đề nghị chờ duyệt.
 - Quyền: Mẫu 04 — chủ hồ sơ (`evaluation.self`); Mẫu 05 — chủ hồ sơ hoặc người duyệt danh sách việc. Duyệt / không duyệt — quyền thực hiện
-  `B1_APPROVE` theo cách xét duyệt của hồ sơ (`WorkflowActions.PermissionFor`; bước do cấp trên thực hiện → `evaluation.external.record`),
+  `B1_APPROVE` theo diện quyết định của hồ sơ (`WorkflowActions.PermissionFor`; bước do cấp trên thực hiện → `evaluation.external.record`),
   `IAuthorizationGuard.Ensure` với `AccessTarget.ForRecord`; chủ hồ sơ không tự duyệt; không duyệt bắt buộc lý do.
 - Duyệt: kiểm lại trên danh mục hiện tại (`TaskChangeRules.Validate` → `EvaluationScoring.ValidateTaskRegistration`, **chỉ đếm việc còn
   hiệu lực**) rồi áp vào `evaluation_tasks` trong cùng một lần lưu: Adjust → sửa việc; Exclude/Carryover → `ChangeStatus` = `Excluded` /
@@ -213,19 +213,19 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 - Chưa làm: tệp minh chứng gắn đề nghị, tạo việc chuyển tiếp ở kỳ quý sau.
 
 ## 5. API hành động (để frontend không tự suy luật)
-- `GET /api/evaluations/records/{id}/actions` → danh sách hành động người hiện tại được làm trên hồ sơ, mỗi mục: `{ action, step, label, requiresReason, reasonOptional, overdue, targetSteps?, blockedBy?, blockedReason?, warnings? }`. Hành động B4 (`RecordDecision`, `RecordExternal` ở `B4_DECISION`) bị cổng chặn vẫn được trả về với `blockedBy` = `CALIBRATION_REQUIRED` hoặc `CONTROL_CHECK_REQUIRED` (cổng đầu tiên chưa đạt, hiệu chuẩn trước) và `blockedReason` tiếng Việt; cổng `Recorded` chưa đạt chỉ có `warnings`. Frontend chỉ hiển thị, không tự suy luật. Tính từ: trạng thái hồ sơ + **hồ sơ luồng của hồ sơ** (chế độ + quyền thực hiện của bước) + trạng thái kỳ + xung đột lợi ích + `IAuthorizationGuard`. Bước cấp trên thực hiện → hành động `RecordExternal` (bước ở trường `step`).
+- `GET /api/evaluations/records/{id}/actions` → danh sách hành động người hiện tại được làm trên hồ sơ, mỗi mục: `{ action, step, label, requiresReason, reasonOptional, overdue, targetSteps?, blockedBy?, blockedReason?, warnings? }`. Hành động B4 (`RecordDecision`, `RecordExternal` ở `B4_DECISION`) bị cổng chặn vẫn được trả về với `blockedBy` = `CALIBRATION_REQUIRED` hoặc `CONTROL_CHECK_REQUIRED` (cổng đầu tiên chưa đạt, hiệu chuẩn trước) và `blockedReason` tiếng Việt; cổng `Recorded` chưa đạt chỉ có `warnings`. Frontend chỉ hiển thị, không tự suy luật. Tính từ: trạng thái hồ sơ + **diện quyết định của hồ sơ** (chế độ + quyền thực hiện của bước) + trạng thái kỳ + xung đột lợi ích + `IAuthorizationGuard`. Bước cấp trên thực hiện → hành động `RecordExternal` (bước ở trường `step`).
 - `POST /api/evaluations/records/{id}/external/{step}` (`evaluation.external.record`) → ghi nhận kết quả của bước do cấp trên thực hiện: `{ version, authorityName, documentNumber?, documentDate?, comment?, grade?, score?, attachmentId?, cadreWorkProposal? }` (`cadreWorkProposal` — cột 13 Mẫu 14 — chỉ nhận ở `B4_DECISION`, bước khác → 400). Quyết định nội bộ (`decision`) nhận cùng trường.
-- Các API bước nội bộ (`tasks/approve`, `cell/confirm`, `collective`, `appraisal`, `director-review`, `decision`, `publish`, …) chỉ yêu cầu đăng nhập ở controller (quyền thực hiện cấu hình theo hồ sơ luồng); service kiểm tra chế độ bước, xung đột lợi ích và `IAuthorizationGuard.Ensure` với đúng mã quyền của bước (403 nêu tên quyền).
-- `GET /api/evaluations/work-queue?periodId=` → hồ sơ đang chờ **người hiện tại** xử lý, nhóm theo bước (theo hồ sơ luồng của từng hồ sơ; mục có `mode`, `workflowProfileName`).
+- Các API bước nội bộ (`tasks/approve`, `cell/confirm`, `collective`, `appraisal`, `director-review`, `decision`, `publish`, …) chỉ yêu cầu đăng nhập ở controller (quyền thực hiện cấu hình theo diện quyết định); service kiểm tra chế độ bước, xung đột lợi ích và `IAuthorizationGuard.Ensure` với đúng mã quyền của bước (403 nêu tên quyền).
+- `GET /api/evaluations/work-queue?periodId=` → hồ sơ đang chờ **người hiện tại** xử lý, nhóm theo bước (theo diện quyết định của từng hồ sơ; mục có `mode`, `workflowProfileName`).
 - Frontend hiển thị bước/nút **chỉ** theo các API trên; tiến trình hồ sơ (`progress[].mode`) hiện "Do cấp trên thực hiện — ghi nhận kết quả" / "Không áp dụng cho nhóm này".
 
 ## 6. Câu hỏi cần nghiệp vụ xác nhận (không chặn việc code)
 1. B3a: có cần ghi nhận kết quả bỏ phiếu kín trên hệ thống (phiếu Mẫu 11 xuất từ hệ thống, kết quả do thư ký nhập) không (trích xuất mục 10)?
-2. ~~B3c có áp dụng cho mọi đối tượng không?~~ → cấu hình theo hồ sơ luồng (task 15). Còn chờ xác nhận: ví dụ 3 "Trưởng Phòng đề xuất" là bước riêng thay B3c (như cấu hình mặc định) hay gộp vào B3a?
+2. ~~B3c có áp dụng cho mọi đối tượng không?~~ → cấu hình theo diện quyết định (task 15). Còn chờ xác nhận: ví dụ 3 "Trưởng Phòng đề xuất" là bước riêng thay B3c (như cấu hình mặc định) hay gộp vào B3a?
 3. ~~Ai nhập kết quả quyết định của BTV Đảng ủy Tổng công ty?~~ → người có `evaluation.external.record` (mặc định vai trò Văn phòng Đảng ủy). Còn chờ xác nhận: ai ghi nhận kết quả thẩm định (Ban TCĐU) và nhận xét (HĐTV) của cấp trên — cùng Văn phòng Đảng ủy hay đơn vị khác?
 4. Có chặn cứng theo thời hạn không (`enforceDeadlines`)?
 5. ~~Kiến nghị/khiếu nại sau công bố: chỉ cần `Reopen` có lý do, hay cần luồng riêng?~~ → luồng kiến nghị riêng + `Reopen` (mục 4a, task 20). Còn chờ xác nhận: hạn gửi/trả lời kiến nghị (HD03 không quy định), ai xử lý (mặc định Văn phòng Đảng ủy).
-6. Ba hồ sơ luồng dựng sẵn (mục 3.2) có đúng và đủ nhóm đối tượng của ATTECH không (ví dụ Phó Giám đốc — IV.3c dòng 4b; Kiểm soát viên — dòng 5; kiêm nhiệm hai cấp — mục 1.5)?
+6. Ba diện quyết định dựng sẵn (mục 3.2) có đúng và đủ diện quyết định của ATTECH không (ví dụ Phó Giám đốc — IV.3c dòng 4b; Kiểm soát viên — dòng 5; kiêm nhiệm hai cấp — mục 1.5)?
 7. Diện BTV ĐUTCT: B2 "Chi bộ xác nhận" và B3a "tập thể lãnh đạo Công ty" có làm trong hệ thống như cấu hình mặc định không?
 8. Điều kiện xếp loại theo mức thẩm định nhiệm vụ: có chặn cứng (không cho chọn mức trái điều kiện) hay chỉ cảnh báo như hiện tại? Câu "tỷ lệ nhiệm vụ trọng tâm Mức 2 từ 20%" áp dụng cho mức nào, tính trên tổng nhiệm vụ hay nhiệm vụ trọng tâm — chưa kiểm tra cho đến khi được xác nhận.
 9. ~~Thẩm định trả lại: hồ sơ nộp lại đi thẳng tới thẩm định hay đi lại từ Chi bộ?~~ → **đi lại từ Chi bộ** (Chi bộ xác nhận và tập thể đề xuất lại), giữ như hiện tại (xác nhận 23/10/2026).
