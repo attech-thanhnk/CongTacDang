@@ -76,7 +76,7 @@ Giao diện luôn viết đủ tên mức, không dùng chữ viết tắt. Các
 
 ## 4. Vai trò
 
-Tên vai trò là dữ liệu trong CSDL, quản trị sửa được ở Quản trị, Vai trò. **Mã vai trò không đổi.** Tên gọi tương ứng trong Mẫu 18 (cột "Phân quyền truy cập") ghi ở cột 3.
+Tên vai trò là dữ liệu trong CSDL, quản trị sửa được ở menu Hệ thống, Vai trò. **Mã vai trò không đổi.** Tên gọi tương ứng trong Mẫu 18 (cột "Phân quyền truy cập") ghi ở cột 3.
 Cột "Tên trên CSDL hiện tại" là tên đang dùng trên hệ thống đã vận hành; cột "Đề xuất" là tên nên đổi sang (quản trị đổi trên giao diện, hệ thống không tự đổi).
 
 | Mã | Tên trên CSDL hiện tại | Tên trong Mẫu 18 / tài liệu gốc | Đề xuất |
