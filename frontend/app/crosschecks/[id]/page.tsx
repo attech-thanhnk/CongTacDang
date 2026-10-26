@@ -10,7 +10,7 @@ import { Badge } from "@/components/common/StatusBadge";
 import { DateField } from "@/components/evaluations/DateField";
 import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
 import { CrosscheckRequestForm } from "@/components/crosschecks/CrosscheckRequestForm";
-import { errorMessage } from "@/components/admin/adminUtils";
+import { errorMessage, errorStatus } from "@/components/admin/adminUtils";
 import { useToast } from "@/contexts/ToastContext";
 import { reportService } from "@/services/reportService";
 import { formatDate, formatDateTime } from "@/lib/dateFormat";
@@ -95,7 +95,6 @@ export default function CrosscheckDetailPage() {
 
   const dirty = useMemo(() => !!data && !!draft && JSON.stringify(draft) !== JSON.stringify(toDraft(data)), [data, draft]);
 
-  /** Chạy lệnh ghi; lỗi (kể cả lệch phiên bản) hiện qua toast và tải lại phiếu. */
   const exportWord = async () => {
     if (!data) return;
     try {
@@ -105,6 +104,7 @@ export default function CrosscheckDetailPage() {
     }
   };
 
+  /** Chạy lệnh ghi; lỗi hiện qua toast. Lỗi dữ liệu nhập (400) giữ nguyên phần đang nhập, các lỗi khác tải lại phiếu. */
   const run = async (work: () => Promise<CrosscheckDto>, success: string, failure: string): Promise<boolean> => {
     setBusy(true);
     try {
@@ -113,7 +113,7 @@ export default function CrosscheckDetailPage() {
       return true;
     } catch (err: unknown) {
       toast.error(errorMessage(err, failure));
-      await load();
+      if (errorStatus(err) !== 400) await load();
       return false;
     } finally {
       setBusy(false);
@@ -151,10 +151,12 @@ export default function CrosscheckDetailPage() {
         let version = data.version;
         if (dirty) {
           try {
-            version = (await crosscheckService.saveResponse(data.id, responseBody(data.version))).version;
+            const saved = await crosscheckService.saveResponse(data.id, responseBody(data.version));
+            apply(saved);
+            version = saved.version;
           } catch (err: unknown) {
             toast.error(errorMessage(err, "Lưu kết quả đối soát không thành công."));
-            await load();
+            if (errorStatus(err) !== 400) await load();
             return;
           }
         }

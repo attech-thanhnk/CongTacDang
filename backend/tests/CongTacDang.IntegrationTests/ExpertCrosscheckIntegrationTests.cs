@@ -130,7 +130,144 @@ public sealed class ExpertCrosscheckIntegrationTests
         Assert.DoesNotContain("phiếu đối soát", await MessageAsync(response));
     }
 
+    [SkippableFact]
+    public async Task Crosscheck_BodiesLikeUi_CreateEditRespondSubmitConfirm()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var w = await WorldAsync();
+        var recordId = await AppraisalRecordAsync(w);
+        Guid taskId = Guid.Empty;
+        await _factory.WithDbAsync(async db =>
+        {
+            var task = new EvaluationTask { RecordId = recordId, TaskOrder = 1, TaskName = "Sản phẩm đối soát", Weight = 10, SelfScore = 10, Deadline = DateTime.UtcNow };
+            db.EvaluationTasks.Add(task);
+            await db.SaveChangesAsync();
+            taskId = task.Id;
+        });
+
+        // Khối hồ sơ: người yêu cầu thấy nút yêu cầu, chưa có phiếu.
+        var panel = await Data(w.ManagerC, $"/api/evaluations/records/{recordId}/crosschecks");
+        Assert.True(panel.GetProperty("applicable").GetBoolean());
+        Assert.True(panel.GetProperty("canRequest").GetBoolean());
+
+        // Nội dung như CrosscheckRequestForm gửi: không có version, cơ quan ngoài hệ thống null, dòng sản phẩm kèm taskId, ô trống thành null.
+        var create = await UiAsync(w.ManagerC, HttpMethod.Post, $"/api/evaluations/records/{recordId}/crosschecks", new
+        {
+            expertDepartmentId = w.ExpertDept, expertAgencyName = (string?)null, fields = new[] { "SAFETY_QUALITY", "FINANCE" },
+            addresseeName = "", requestReason = "Đối soát số liệu quý",
+            items = new object[]
+            {
+                new { taskId, itemName = "Sản phẩm đối soát", selfData = (string?)null },
+                new { taskId = (Guid?)null, itemName = "Dòng tự do", selfData = "12 sự cố" }
+            }
+        });
+        var created = await Data(create);
+        var id = created.GetProperty("id").GetGuid();
+        Assert.Equal(2, created.GetProperty("items").GetArrayLength());
+        Assert.Equal(taskId, created.GetProperty("items")[0].GetProperty("taskId").GetGuid());
+        Assert.True(created.GetProperty("canEditRequest").GetBoolean());
+
+        // Sửa yêu cầu: gửi lại version và các dòng như form sửa (dòng sản phẩm giữ taskId).
+        var edited = await Data(await UiAsync(w.ManagerC, HttpMethod.Put, $"/api/crosschecks/{id}", new
+        {
+            version = created.GetProperty("version").GetUInt32(), expertDepartmentId = w.ExpertDept, expertAgencyName = (string?)null,
+            fields = new[] { "SAFETY_QUALITY" }, addresseeName = "Ban chuyên môn", requestReason = "Đối soát số liệu quý (sửa)",
+            items = new object[]
+            {
+                new { taskId, itemName = "Sản phẩm đối soát", selfData = "ghi chú" },
+                new { taskId = (Guid?)null, itemName = "Dòng tự do", selfData = "12 sự cố" }
+            }
+        }));
+        Assert.Equal("Ban chuyên môn", edited.GetProperty("addresseeName").GetString());
+
+        // Lưu nháp như trang phiếu: mọi trường có mặt, ô trống là chuỗi rỗng hoặc null, dòng không áp dụng.
+        var rows = edited.GetProperty("items").EnumerateArray().Select(i => i.GetProperty("id").GetGuid()).ToArray();
+        object Row(Guid rowId, string src, string? result, string adj, double? points, string basis, string? docDate, bool na) => new
+        {
+            id = rowId, sourceData = src, result, adjustmentType = adj, adjustmentPoints = points, basisText = basis,
+            basisDocNumber = "", basisDocDate = docDate, basisAgency = "", notApplicable = na
+        };
+        var draft = await Data(await UiAsync(w.ResponderC, HttpMethod.Put, $"/api/crosschecks/{id}/response", new
+        {
+            version = edited.GetProperty("version").GetUInt32(), issuedDate = (string?)null,
+            items = new[] { Row(rows[0], "", null, "None", null, "", null, false), Row(rows[1], "", null, "None", null, "", null, true) }
+        }));
+        Assert.Equal("InProgress", draft.GetProperty("status").GetString());
+        Assert.True(draft.GetProperty("canSubmit").GetBoolean());
+
+        // Gửi khi dòng đầu còn thiếu kết luận: thông báo nêu rõ cần nhập gì.
+        var early = await UiAsync(w.ResponderC, HttpMethod.Post, $"/api/crosschecks/{id}/submit", new { version = draft.GetProperty("version").GetUInt32() });
+        Assert.Equal(HttpStatusCode.BadRequest, early.StatusCode);
+        Assert.Contains("kết luận", await MessageAsync(early));
+
+        // Nhập đủ: vượt chuẩn ghi nhận, ngày văn bản dạng yyyy-MM-dd, ngày lập phiếu.
+        var full = await Data(await UiAsync(w.ResponderC, HttpMethod.Put, $"/api/crosschecks/{id}/response", new
+        {
+            version = draft.GetProperty("version").GetUInt32(), issuedDate = "2026-10-26",
+            items = new[] { Row(rows[0], "Khớp", "Exceed", "RecognizeExceed", null, "Báo cáo", "2026-10-05", false), Row(rows[1], "", null, "None", null, "", null, true) }
+        }));
+        Assert.Equal("2026-10-26", full.GetProperty("issuedDate").GetString());
+        Assert.Equal("K/AD", full.GetProperty("items")[1].GetProperty("adjustmentText").GetString());
+        var submitted = await Data(await UiAsync(w.ResponderC, HttpMethod.Post, $"/api/crosschecks/{id}/submit", new { version = full.GetProperty("version").GetUInt32() }));
+        Assert.Equal("Submitted", submitted.GetProperty("status").GetString());
+
+        // Người xác nhận thấy cờ đúng; trả lại thì người lập lập lại được.
+        var asConfirmer = await Data(w.ConfirmerC, $"/api/crosschecks/{id}");
+        Assert.True(asConfirmer.GetProperty("canConfirm").GetBoolean());
+        Assert.True(asConfirmer.GetProperty("canReturn").GetBoolean());
+        Assert.False(asConfirmer.GetProperty("canCancel").GetBoolean());
+        var returned = await Data(await UiAsync(w.ConfirmerC, HttpMethod.Post, $"/api/crosschecks/{id}/return", new { version = asConfirmer.GetProperty("version").GetUInt32(), reason = "Bổ sung" }));
+        Assert.True((await Data(w.ResponderC, $"/api/crosschecks/{id}")).GetProperty("canSubmit").GetBoolean());
+        Assert.False(returned.GetProperty("canConfirm").GetBoolean());
+    }
+
+    [SkippableFact]
+    public async Task Crosscheck_ExternalAgency_RequesterEntersResultOnBehalf()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var w = await WorldAsync();
+        var recordId = await AppraisalRecordAsync(w);
+
+        var created = await Data(await UiAsync(w.ManagerC, HttpMethod.Post, $"/api/evaluations/records/{recordId}/crosschecks", new
+        {
+            expertDepartmentId = (Guid?)null, expertAgencyName = "Cục Hàng không", fields = new[] { "ATM" },
+            addresseeName = "", requestReason = "Xác nhận số liệu",
+            items = new[] { new { taskId = (Guid?)null, itemName = "Chỉ tiêu ngoài", selfData = (string?)null } }
+        }));
+        var id = created.GetProperty("id").GetGuid();
+        Assert.True(created.GetProperty("enteredOnBehalf").GetBoolean());
+        Assert.True(created.GetProperty("canRespond").GetBoolean());
+        Assert.Equal("Cục Hàng không", created.GetProperty("expertUnitName").GetString());
+
+        // Người yêu cầu nhập thay và gửi; phiếu chờ người khác có quyền xác nhận ở đơn vị của hồ sơ.
+        var rowId = created.GetProperty("items")[0].GetProperty("id").GetGuid();
+        var saved = await Data(await UiAsync(w.ManagerC, HttpMethod.Put, $"/api/crosschecks/{id}/response", new
+        {
+            version = created.GetProperty("version").GetUInt32(), issuedDate = (string?)null,
+            items = new[] { new { id = rowId, sourceData = "Khớp văn bản", result = (string?)"Pass", adjustmentType = "None", adjustmentPoints = (double?)null,
+                basisText = "", basisDocNumber = "", basisDocDate = (string?)null, basisAgency = "", notApplicable = false } }
+        }));
+        var submitted = await Data(await UiAsync(w.ManagerC, HttpMethod.Post, $"/api/crosschecks/{id}/submit", new { version = saved.GetProperty("version").GetUInt32() }));
+        Assert.False(submitted.GetProperty("canConfirm").GetBoolean());
+
+        var confirmRole = (await _factory.CreateRoleAsync(PermissionCodes.EvaluationCrosscheckConfirm)).Id;
+        var leader = await _factory.CreateUserAsync(w.Dept, null);
+        await _factory.AssignAsync(leader.Id, confirmRole, RoleScopeType.Department, w.Dept);
+        var leaderC = await _factory.LoginAsAsync(leader.Username, leader.Password, distinctClientIp: true);
+        var seen = await Data(leaderC, $"/api/crosschecks/{id}");
+        Assert.True(seen.GetProperty("canConfirm").GetBoolean());
+        var confirmed = await Data(await UiAsync(leaderC, HttpMethod.Post, $"/api/crosschecks/{id}/confirm", new { version = seen.GetProperty("version").GetUInt32() }));
+        Assert.Equal("Confirmed", confirmed.GetProperty("status").GetString());
+    }
+
     #region Hỗ trợ
+
+    /// <summary>Gửi đúng chuỗi JSON như axios của giao diện (giá trị null giữ nguyên, trường undefined bị bỏ).</summary>
+    private static Task<HttpResponseMessage> UiAsync(HttpClient client, HttpMethod method, string url, object body) =>
+        client.SendAsync(new HttpRequestMessage(method, url)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(body), System.Text.Encoding.UTF8, "application/json")
+        });
 
     private sealed class World
     {

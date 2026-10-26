@@ -111,7 +111,7 @@ export function CrosscheckRequestForm({ crosscheck, tasks = [], busy, submitLabe
         <div className="col-12 col-md-6">
           <label className="form-label small mb-1" htmlFor="cc-unit">Đơn vị đối soát</label>
           {form.external ? (
-            <input id="cc-unit" className="form-control form-control-sm" maxLength={300} placeholder="Tên cơ quan ngoài hệ thống"
+            <input id="cc-unit" className="form-control form-control-sm" maxLength={500} placeholder="Tên cơ quan ngoài hệ thống"
               value={form.agencyName} onChange={(e) => patch({ agencyName: e.target.value })} />
           ) : (
             <select id="cc-unit" className="form-select form-select-sm" value={form.departmentId} onChange={(e) => patch({ departmentId: e.target.value })}>
@@ -127,7 +127,7 @@ export function CrosscheckRequestForm({ crosscheck, tasks = [], busy, submitLabe
         </div>
         <div className="col-12 col-md-6">
           <label className="form-label small mb-1" htmlFor="cc-addressee">Kính gửi</label>
-          <input id="cc-addressee" className="form-control form-control-sm" maxLength={300} value={form.addresseeName}
+          <input id="cc-addressee" className="form-control form-control-sm" maxLength={500} value={form.addresseeName}
             onChange={(e) => patch({ addresseeName: e.target.value })} />
         </div>
       </div>
@@ -174,7 +174,7 @@ export function CrosscheckRequestForm({ crosscheck, tasks = [], busy, submitLabe
           <div key={r.key} className="border rounded p-2 row g-2 mx-0">
             <div className="col-12 col-md-5">
               <label className="form-label small mb-1" htmlFor={`cc-n-${r.key}`}>Dòng {index + 1}: tên chỉ tiêu / nhiệm vụ</label>
-              <input id={`cc-n-${r.key}`} className="form-control form-control-sm" maxLength={1000} value={r.itemName}
+              <input id={`cc-n-${r.key}`} className="form-control form-control-sm" maxLength={500} value={r.itemName}
                 readOnly={!!r.taskId} onChange={(e) => setRow(r.key, { itemName: e.target.value })} />
             </div>
             <div className="col-12 col-md-6">
