@@ -287,6 +287,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
             throw new ConflictException("Chỉ lập phiếu kiểm soát khi kỳ đánh giá đang mở.");
         EnsureNotOwner(records);
         EnsureAll(PermissionCodes.EvaluationControlPerform, records);
+        EnsureAwaitingDecision(records);
 
         await ReleaseOrRejectAsync(records, null, ct);
 
@@ -686,6 +687,14 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         row.ScoreAtCheck = record.EffectiveScore();
     }
 
+    /// <summary>Phiếu kiểm soát chỉ lập cho hồ sơ đã tới bước quyết định, khớp danh sách hồ sơ ứng viên.</summary>
+    private static void EnsureAwaitingDecision(IEnumerable<EvaluationRecord> records)
+    {
+        var early = records.FirstOrDefault(r => r.Status != RecordStatus.AwaitingDecision);
+        if (early != null)
+            throw new ConflictException($"Lập phiếu kiểm soát không thành công: hồ sơ của {early.Member?.FullName ?? "cán bộ"} chưa tới bước chờ quyết định.");
+    }
+
     /// <summary>Hồ sơ đang thuộc phiếu khác: nhả nếu phiếu đó đã hết hiệu lực, ngược lại báo lỗi.</summary>
     private async Task ReleaseOrRejectAsync(IReadOnlyCollection<EvaluationRecord> records, Guid? exceptCheckId, CancellationToken ct)
     {
@@ -720,6 +729,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
             throw new ValidationException("Mọi hồ sơ trong phiếu phải thuộc kỳ đánh giá của phiếu.");
         EnsureNotOwner(addedRecords);
         EnsureAll(PermissionCodes.EvaluationControlPerform, addedRecords);
+        EnsureAwaitingDecision(addedRecords);
 
         foreach (var row in check.Records.Where(r => !ids.Contains(r.RecordId)).ToList())
         {
