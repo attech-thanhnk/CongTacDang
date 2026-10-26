@@ -679,7 +679,7 @@ public sealed class UiContractIntegrationTests
         {
             expertDepartmentId = w.ExpertDept,
             fields = new[] { "SAFETY_QUALITY" },
-            addresseeName = "Ban chuyên môn",
+            addresseeName = "Phòng chuyên môn",
             requestReason = "Xác nhận số liệu sự cố trong quý",
             items = new object[] { new { itemName = "Số sự cố nghiêm trọng", selfData = "0" } }
         }));
@@ -829,7 +829,7 @@ public sealed class UiContractIntegrationTests
                 await db.SaveChangesAsync();
                 w.Dept = dept.Id;
                 w.Cell = cell.Id;
-                var expert = new AdministrativeDepartment { Code = $"UI-E-{suffix}", Name = $"Ban chuyên môn UI {suffix}" };
+                var expert = new AdministrativeDepartment { Code = $"UI-E-{suffix}", Name = $"Phòng chuyên môn UI {suffix}" };
                 db.Add(expert);
                 await db.SaveChangesAsync();
                 w.ExpertDept = expert.Id;

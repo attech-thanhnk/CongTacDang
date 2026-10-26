@@ -477,7 +477,7 @@ public sealed class ExpertCrosscheckServiceTests
         {
             ExpertDepartmentId = ExpertDepartment,
             Fields = new List<string> { CrosscheckFields.SafetyQuality, CrosscheckFields.Atm },
-            AddresseeName = "Ban An toàn - Chất lượng",
+            AddresseeName = "Phòng Kỹ thuật - An toàn - Chất lượng",
             RequestReason = "Xác nhận số liệu sự cố trong quý",
             Items = new List<CrosscheckRequestItemDto>
             {
@@ -556,7 +556,7 @@ public sealed class ExpertCrosscheckServiceTests
             Task.FromResult(Items.Count(c => c.RecordId == recordId && CrosscheckRules.IsOpen(c.Status)));
 
         public Task<string?> GetDepartmentNameAsync(Guid departmentId, CancellationToken ct = default) =>
-            Task.FromResult<string?>(departmentId == _h.ExpertDepartment ? "Ban An toàn - Chất lượng" : null);
+            Task.FromResult<string?>(departmentId == _h.ExpertDepartment ? "Phòng Kỹ thuật - An toàn - Chất lượng" : null);
 
         public Task<List<EvaluationFormHistory>> ListHistoryAsync(Guid crosscheckId, CancellationToken ct = default) =>
             Task.FromResult(Histories.Where(x => x.FormId == crosscheckId).ToList());
@@ -565,7 +565,7 @@ public sealed class ExpertCrosscheckServiceTests
         {
             crosscheck.Record = _h.Record;
             if (crosscheck.ExpertDepartmentId == _h.ExpertDepartment)
-                crosscheck.ExpertDepartment = new AdministrativeDepartment { Id = _h.ExpertDepartment, Name = "Ban An toàn - Chất lượng" };
+                crosscheck.ExpertDepartment = new AdministrativeDepartment { Id = _h.ExpertDepartment, Name = "Phòng Kỹ thuật - An toàn - Chất lượng" };
             Items.Add(crosscheck);
         }
 

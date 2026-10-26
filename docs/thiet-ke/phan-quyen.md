@@ -62,7 +62,7 @@ Trường bổ sung (task 07, sửa ở task 14):
 | `evaluation.improvement.manage` | Lập kế hoạch khắc phục 30-60-90 ngày | có | Task 20: lập, duyệt, ghi kết quả mốc Mẫu 17 (thủ trưởng đơn vị); không trên hồ sơ của mình |
 | `evaluation.crosscheck.request` | Yêu cầu đối soát chuyên ngành (Mẫu 03) | có | Trên hồ sơ cần đối soát; yêu cầu, nhập dòng đối soát, hủy (có lý do); không trên hồ sơ của mình |
 | `evaluation.crosscheck.respond` | Lập phiếu đối soát chuyên ngành | có | Phạm vi kiểm tra = **đơn vị đối soát** của phiếu (không phải đơn vị của hồ sơ); không cần `evaluation.read` |
-| `evaluation.crosscheck.confirm` | Xác nhận phiếu đối soát chuyên ngành | có | Phạm vi = đơn vị đối soát; khác người lập |
+| `evaluation.crosscheck.confirm` | Xác nhận phiếu đối soát chuyên ngành | có | Phạm vi = đơn vị đối soát; khác người lập. Phiếu cơ quan ngoài hệ thống (người yêu cầu nhập thay) kiểm tra trên đơn vị của hồ sơ, nên cần bản gán bao trùm đơn vị đó (mặc định Văn phòng Đảng ủy, Toàn công ty) |
 | `evaluation.calibration.manage` | Lập biên bản hiệu chuẩn (Mẫu 20) | có | Kiểm tra trên từng hồ sơ trong biên bản; không trên hồ sơ của mình |
 | `evaluation.calibration.conclude` | Chốt biên bản hiệu chuẩn | có | Chốt/mở lại (lý do bắt buộc khi mở lại); khác người lập |
 | `evaluation.control.perform` | Lập phiếu kiểm soát (Mẫu 19) | có | Kiểm tra trên từng hồ sơ trong phiếu; không trên hồ sơ của mình |
@@ -167,8 +167,8 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
 | Phòng TCCB-LĐ (mở kỳ, thẩm định) | `evaluation.read`, `evaluation.appraise`, `period.manage`, `criteria.manage`, `report.export`, `system.users.read`, `evaluation.crosscheck.request`, `evaluation.calibration.manage`, `evaluation.control.perform` | Global | IV.1 (rà soát), IV.3b |
 | Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch) | `evaluation.read`, `evaluation.director.review`, `report.export`, `evaluation.improvement.manage` | Global | IV.3c; Mẫu 17 |
 | Cấp ủy viên Đảng ủy | `evaluation.read`, `meeting.read`, `report.export` | Global | IV.4; Mẫu 18 |
-| Cơ quan chuyên môn | `evaluation.crosscheck.respond`, `evaluation.crosscheck.confirm` | Department (Ban chuyên môn) | Mẫu 03, 18 |
-| Văn phòng Đảng ủy (quyết định, công bố) | `evaluation.read`, `evaluation.decide`, `evaluation.external.record`, `evaluation.publish`, `evaluation.reopen`, `meeting.read`, `meeting.manage`, `report.export`, `evaluation.appeal.resolve`, `evaluation.control.confirm`, `evaluation.calibration.conclude` | Global | IV.4, IV.5; PL II III.2; Mẫu 19, 20 |
+| Cơ quan chuyên môn | `evaluation.crosscheck.respond`, `evaluation.crosscheck.confirm` | Department (phòng, đơn vị chuyên môn của ATTECH) | Mẫu 03, 18 |
+| Văn phòng Đảng ủy (quyết định, công bố) | `evaluation.read`, `evaluation.decide`, `evaluation.external.record`, `evaluation.publish`, `evaluation.reopen`, `meeting.read`, `meeting.manage`, `report.export`, `evaluation.appeal.resolve`, `evaluation.control.confirm`, `evaluation.calibration.conclude`, `evaluation.crosscheck.confirm` | Global | IV.4, IV.5; PL II III.2; Mẫu 19, 20; Mẫu 03 (cơ quan ngoài hệ thống) |
 | Quản trị hệ thống (`IsProtected`) | `system.*` (gồm `system.settings.manage`, `system.templates.manage`, `system.import`), `catalog.manage` | Global | Mẫu 18 (đầu mối IT) |
 
 Vai trò "Cơ quan chuyên môn" (mã `CO_QUAN_CHUYEN_MON`) chỉ được tạo khi CSDL chưa có vai trò mang mã đó (kể cả đã xóa); trên CSDL đã có, mã quyền mới được thêm một lần vào vai trò mặc định có sẵn và quản trị tự tạo vai trò mới qua giao diện. Vai trò quản trị hệ thống không có các quyền Mẫu 03, 19, 20.

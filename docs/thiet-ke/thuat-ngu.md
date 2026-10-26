@@ -124,7 +124,20 @@ Quyền theo cặp lập và xác nhận: **Lập** phiếu/biên bản và **X�
 
 Menu: **Hiệu chuẩn và kiểm soát** (biên bản hiệu chuẩn, phiếu kiểm soát) và **Đối soát chuyên ngành** (phiếu đối soát).
 
-## 7. Khái niệm khác
+## 7. Tên trong biểu mẫu gốc và đơn vị tại ATTECH
+
+Hướng dẫn 03-HD/TVĐU và biểu mẫu gốc viết cho Tổng công ty; các "Ban" trong đó là cơ quan của Tổng công ty, không phải của ATTECH (ATTECH không có "Ban An toàn"). Chữ in sẵn trong file Word mẫu giữ nguyên theo biểu mẫu gốc; giao diện và tài liệu gọi đúng đơn vị tại ATTECH. Đơn vị cụ thể lấy theo cây đơn vị trong cài đặt, không ghi cứng trong code.
+
+| Tên trong biểu mẫu gốc | Tại ATTECH |
+|---|---|
+| Ban TCCB-LĐ (Ban Tổ chức cán bộ - Lao động) | Phòng Tổ chức cán bộ - Lao động (cơ quan thẩm định) |
+| Ban chuyên môn / đơn vị đối soát (Mẫu 03) | Phòng, đơn vị chuyên môn, ví dụ Phòng Kỹ thuật - An toàn - Chất lượng, Phòng Tài chính - Kế toán, Phòng Kế hoạch - Kinh doanh, Phòng Nghiên cứu - Phát triển, Ban Quản lý dự án ĐT&XDCN, các Trung tâm, Văn phòng Công ty |
+| Lãnh đạo Ban chuyên môn (ô xác nhận Mẫu 03) | Lãnh đạo phòng, đơn vị chuyên môn |
+| Ban Tổ chức Đảng ủy Tổng công ty (Ban TCĐU), Thường vụ Đảng ủy Tổng công ty, HĐTV | Cấp trên, ngoài hệ thống; ATTECH chỉ ghi nhận kết quả của cấp trên (bước chế độ "Cấp trên thực hiện") |
+
+Vai trò "Cơ quan chuyên môn" giữ nguyên tên; mô tả của vai trò nêu rõ là phòng, đơn vị chuyên môn của ATTECH.
+
+## 8. Khái niệm khác
 
 | Khái niệm | Tên trong tài liệu gốc | Tên trên giao diện | Mã trong code |
 |---|---|---|---|

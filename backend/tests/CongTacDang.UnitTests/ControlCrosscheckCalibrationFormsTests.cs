@@ -18,7 +18,7 @@ public class ControlCrosscheckCalibrationFormsTests
     private static ExpertCrosscheckDto Crosscheck() => new()
     {
         MemberFullName = "Nguyễn Văn A",
-        ExpertUnitName = "Ban An toàn Chất lượng",
+        ExpertUnitName = "Phòng Kỹ thuật - An toàn - Chất lượng",
         AddresseeName = "Ban Tổ chức cán bộ - Lao động",
         Fields = new List<string> { CrosscheckFields.SafetyQuality, CrosscheckFields.Finance },
         RequestedAt = new DateTime(2026, 9, 1, 3, 0, 0, DateTimeKind.Utc),
@@ -32,7 +32,7 @@ public class ControlCrosscheckCalibrationFormsTests
                 Order = 1, ItemName = "Tỷ lệ sự cố kỹ thuật", SelfData = "0 sự cố", SourceData = "1 sự cố nhỏ",
                 Result = nameof(CrosscheckResult.Defect), AdjustmentType = nameof(CrosscheckAdjustment.Decrease),
                 AdjustmentPoints = 1.5, AdjustmentText = "−1,5đ",
-                BasisText = "Sự cố ghi nhận ngày 3/8", BasisDocNumber = "12/BC-ATCL", BasisDocDate = new DateOnly(2026, 8, 5), BasisAgency = "Ban An toàn Chất lượng"
+                BasisText = "Sự cố ghi nhận ngày 3/8", BasisDocNumber = "12/BC-ATCL", BasisDocDate = new DateOnly(2026, 8, 5), BasisAgency = "Phòng Kỹ thuật - An toàn - Chất lượng"
             },
             new ExpertCrosscheckItemDto
             {
@@ -184,10 +184,10 @@ public class ControlCrosscheckCalibrationFormsTests
         var text = BodyText(Render(Mau03Data.TemplateFileName, Mau03Data.From(Crosscheck(), "Trưởng phòng Kỹ thuật — Phòng Kỹ thuật")));
 
         Assert.Contains("TỔNG CÔNG TY B", text);
-        Assert.Contains("BAN AN TOÀN CHẤT LƯỢNG", text);
+        Assert.Contains("PHÒNG KỸ THUẬT - AN TOÀN - CHẤT LƯỢNG", text);
         Assert.Contains("Hà Nội, ngày 12 tháng 09 năm 2026", text);
         Assert.Contains("Kính gửi: Ban Tổ chức cán bộ - Lao động", text);
-        Assert.Contains("Cơ quan/Đơn vị đối soát: Ban An toàn Chất lượng", text);
+        Assert.Contains("Cơ quan/Đơn vị đối soát: Phòng Kỹ thuật - An toàn - Chất lượng", text);
         Assert.Contains("Họ tên cán bộ được đối soát: Nguyễn Văn A", text);
         Assert.Contains("Chức vụ/Đơn vị: Trưởng phòng Kỹ thuật — Phòng Kỹ thuật", text);
         Assert.Contains("☒ An toàn - Chất lượng", text);
@@ -202,7 +202,7 @@ public class ControlCrosscheckCalibrationFormsTests
         Assert.Contains("−1,5đ", text);
         Assert.Contains("+ ghi nhận vượt chuẩn", text);
         Assert.Contains("Sự cố ghi nhận ngày 3/8", text);
-        Assert.Contains("số 12/BC-ATCL ngày 05/08/2026 của Ban An toàn Chất lượng", text);
+        Assert.Contains("số 12/BC-ATCL ngày 05/08/2026 của Phòng Kỹ thuật - An toàn - Chất lượng", text);
         Assert.Contains("K/AD", text);
         Assert.Contains("Lê Văn C", text);
         Assert.Contains("Trần Thị B", text);
