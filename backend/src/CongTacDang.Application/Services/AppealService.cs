@@ -231,7 +231,7 @@ public sealed class AppealService : IAppealService
     {
         ArgumentNullException.ThrowIfNull(request);
         if (request.Version is null)
-            throw new ValidationException("Thiếu phiên bản dữ liệu (version) của kiến nghị. Hãy tải lại trang rồi thực hiện lại.");
+            throw new ValidationException("Thiếu phiên bản dữ liệu của kiến nghị. Hãy tải lại trang rồi thực hiện lại.");
 
         var appeal = await _repo.FindAppealAsync(appealId, ct)
             ?? throw new NotFoundException("Không tìm thấy kiến nghị.");

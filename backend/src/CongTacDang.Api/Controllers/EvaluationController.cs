@@ -103,7 +103,7 @@ public class EvaluationController : ControllerBase
 
     #region Hành động theo bước
 
-    // Mã quyền của từng bước cấu hình theo hồ sơ luồng nên controller chỉ yêu cầu đăng nhập;
+    // Mã quyền của từng bước cấu hình theo diện quyết định nên controller chỉ yêu cầu đăng nhập;
     // service kiểm tra chế độ bước, xung đột lợi ích và quyền của bước trên hồ sơ.
 
     /// <summary>B1_REGISTER — chủ hồ sơ nộp danh mục sản phẩm (Mẫu 01).</summary>

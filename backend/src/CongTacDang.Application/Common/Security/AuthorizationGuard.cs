@@ -8,7 +8,7 @@ using CongTacDang.Domain.Enums;
 namespace CongTacDang.Application.Common.Security;
 
 /// <summary>
-/// Không xét cấp quyết định hay chế độ bước — service luồng kiểm tra hồ sơ luồng trước khi gọi guard.
+/// Không xét cấp quyết định hay chế độ bước — service luồng kiểm tra diện quyết định trước khi gọi guard.
 /// Scoped: tập quyền nạp một lần mỗi request.
 /// </summary>
 public sealed class AuthorizationGuard : IAuthorizationGuard

@@ -10,7 +10,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>Mức đề xuất so với mức theo điểm, mức theo kết quả kiểm phiếu, hồ sơ luồng gợi ý theo chức vụ, người lập kế hoạch.</summary>
+/// <summary>Mức đề xuất so với mức theo điểm, mức theo kết quả kiểm phiếu, diện quyết định gợi ý theo chức vụ, người lập kế hoạch.</summary>
 public sealed class GradeProposalAndVoteRulesTests
 {
     private static CriteriaSetContent Content(bool explanationOnGradeChange = true)
@@ -115,7 +115,7 @@ public sealed class GradeProposalAndVoteRulesTests
 
     #endregion
 
-    #region Hồ sơ luồng gợi ý theo chức vụ
+    #region Diện quyết định gợi ý theo chức vụ
 
     private static HeldPosition Held(string name, string? stat, ApprovalAuthority? authority, string? profile = null, bool primary = false) =>
         new(name, stat, authority, false, profile, primary);
@@ -128,7 +128,7 @@ public sealed class GradeProposalAndVoteRulesTests
         // Lỗi cũ: chỉ theo thẩm quyền → cap-tren.
         Assert.Equal(PeriodSettings.ProfileUpper, settings.ResolveProfile(null, ApprovalAuthority.CapTren).Code);
         Assert.Equal(PeriodSettings.ProfileDeputyDirector, PositionRules.DefaultProfile(settings, ApprovalAuthority.CapTren, held).Code);
-        // Không có chức vụ gắn hồ sơ luồng → theo thẩm quyền như cũ.
+        // Không có chức vụ gắn diện quyết định → theo thẩm quyền như cũ.
         Assert.Equal(PeriodSettings.ProfileUpper,
             PositionRules.DefaultProfile(settings, ApprovalAuthority.CapTren, new[] { Held("Giám đốc", "M14", ApprovalAuthority.CapTren) }).Code);
         Assert.Equal(PeriodSettings.ProfileBase, PositionRules.DefaultProfile(settings, ApprovalAuthority.CoSo, null).Code);

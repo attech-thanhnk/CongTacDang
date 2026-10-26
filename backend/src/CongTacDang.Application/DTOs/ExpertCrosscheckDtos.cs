@@ -97,7 +97,7 @@ public class ExpertCrosscheckDto : ExpertCrosscheckSummaryDto
 public class RecordCrosschecksDto
 {
     public Guid RecordId { get; set; }
-    /// <summary>Hồ sơ luồng của hồ sơ có dùng đối soát (cổng khác Off).</summary>
+    /// <summary>Diện quyết định của hồ sơ có dùng đối soát (cổng khác Off).</summary>
     public bool Applicable { get; set; }
     public bool CanRequest { get; set; }
     /// <summary>Lý do chưa yêu cầu được (kỳ chưa mở, hồ sơ chưa ở giai đoạn thẩm định...).</summary>

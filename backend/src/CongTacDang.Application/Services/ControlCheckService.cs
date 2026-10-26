@@ -480,7 +480,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
 
     #endregion
 
-    /// <summary>Hồ sơ luồng bắt buộc hiệu chuẩn thì mọi hồ sơ trong phiếu phải thuộc biên bản hiệu chuẩn đã chốt.</summary>
+    /// <summary>Diện quyết định bắt buộc hiệu chuẩn thì mọi hồ sơ trong phiếu phải thuộc biên bản hiệu chuẩn đã chốt.</summary>
     private async Task EnsureCalibratedAsync(ControlCheck check, string action, CancellationToken ct)
     {
         if (_calibrationGate == null || check.Records.Count == 0)
@@ -686,7 +686,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
     private void RequireVersion(uint? version)
     {
         if (version is null)
-            throw new ValidationException("Thiếu phiên bản dữ liệu (version) của phiếu. Hãy tải lại phiếu rồi thực hiện lại.");
+            throw new ValidationException("Thiếu phiên bản dữ liệu của phiếu. Hãy tải lại phiếu rồi thực hiện lại.");
     }
 
     private void CheckVersion(ControlCheck check, uint? version)

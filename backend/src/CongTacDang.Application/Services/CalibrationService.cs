@@ -429,7 +429,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
             if (!CalibrationRules.HasAppraisal(record) || CalibrationRules.Before(record).Grade == EvaluationGrade.ChuaXepLoai)
                 throw new ConflictException($"Đưa hồ sơ vào biên bản không thành công: hồ sơ của {NameOf(record)} chưa có kết quả thẩm định.");
             if (EvaluationMapping.ProfileOf(settings, record).GateModeOf(WorkflowGates.Calibration) == GateMode.Off)
-                throw new ConflictException($"Đưa hồ sơ vào biên bản không thành công: hồ sơ luồng của {NameOf(record)} không dùng bước hiệu chuẩn.");
+                throw new ConflictException($"Đưa hồ sơ vào biên bản không thành công: diện quyết định của {NameOf(record)} không dùng bước hiệu chuẩn.");
         }
 
         var taken = await _repo.GetActiveSessionByRecordAsync(ids, session.Id, ct);
@@ -853,7 +853,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
     }
 
     private static uint RequireVersion(uint? version) =>
-        version ?? throw new ValidationException("Thiếu phiên bản dữ liệu (version) của biên bản. Hãy tải lại biên bản rồi thực hiện lại.");
+        version ?? throw new ValidationException("Thiếu phiên bản dữ liệu của biên bản. Hãy tải lại biên bản rồi thực hiện lại.");
 
     private static void EnsureVersion(CalibrationSession session, uint version)
     {

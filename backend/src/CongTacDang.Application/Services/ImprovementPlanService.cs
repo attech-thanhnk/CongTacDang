@@ -288,7 +288,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
     {
         ArgumentNullException.ThrowIfNull(request);
         if (request.Version is null)
-            throw new ValidationException("Thiếu phiên bản dữ liệu (version) của kế hoạch. Hãy tải lại trang rồi thực hiện lại.");
+            throw new ValidationException("Thiếu phiên bản dữ liệu của kế hoạch. Hãy tải lại trang rồi thực hiện lại.");
 
         var plan = await _repo.FindPlanAsync(planId, ct)
             ?? throw new NotFoundException("Không tìm thấy kế hoạch 30-60-90 ngày.");

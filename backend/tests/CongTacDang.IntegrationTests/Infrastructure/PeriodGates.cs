@@ -10,7 +10,7 @@ namespace CongTacDang.IntegrationTests.Infrastructure;
 /// <summary>Kịch bản không kiểm thử cổng hiệu chuẩn / kiểm soát tắt hai cổng này để đi thẳng tới quyết định.</summary>
 public static class PeriodGates
 {
-    /// <summary>Cài đặt kỳ mặc định, mọi hồ sơ luồng tắt hai cổng; cho kỳ dựng thẳng vào CSDL.</summary>
+    /// <summary>Cài đặt kỳ mặc định, mọi diện quyết định tắt hai cổng; cho kỳ dựng thẳng vào CSDL.</summary>
     public static string DefaultSettingsGatesOff()
     {
         var settings = PeriodSettings.Default();
@@ -19,7 +19,7 @@ public static class PeriodGates
         return settings.ToJson();
     }
 
-    /// <summary>Tắt cổng (mặc định cả hai) của mọi hồ sơ luồng qua API; chỉ làm được khi kỳ còn dự thảo.</summary>
+    /// <summary>Tắt cổng (mặc định cả hai) của mọi diện quyết định qua API; chỉ làm được khi kỳ còn dự thảo.</summary>
     public static async Task DisableAsync(HttpClient manager, Guid periodId, params string[] gates)
     {
         var get = await manager.GetAsync($"/api/evaluations/periods/{periodId}");

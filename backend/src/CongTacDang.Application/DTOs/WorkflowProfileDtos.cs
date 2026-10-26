@@ -38,7 +38,7 @@ public class ExternalResultRequestDto : WorkflowRequestDto
     public string? CadreWorkProposal { get; set; }
 }
 
-/// <summary>Đổi hồ sơ luồng của một hồ sơ.</summary>
+/// <summary>Đổi diện quyết định của một hồ sơ.</summary>
 public class ChangeProfileDto
 {
     public uint? Version { get; set; }

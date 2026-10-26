@@ -181,7 +181,7 @@ public sealed class GoLiveScenarioTests
         var periodId = period.GetProperty("id").GetGuid();
         Assert.Equal("Draft", period.GetProperty("status").GetString());
 
-        // Đơn vị chưa phân công người duyệt danh mục, thư ký tập thể và cấp trực tiếp → tắt B1 duyệt, B3a, B3c ở mọi hồ sơ luồng.
+        // Đơn vị chưa phân công người duyệt danh mục, thư ký tập thể và cấp trực tiếp → tắt B1 duyệt, B3a, B3c ở mọi diện quyết định.
         var settings = JsonNode.Parse(period.GetProperty("settings").GetRawText())!.AsObject();
         foreach (var profile in settings["profiles"]!.AsArray())
         {

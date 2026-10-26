@@ -9,9 +9,9 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Organization;
 
-/// <summary>Chức vụ đang hiệu lực của một người — đủ để suy ra thẩm quyền, mã thống kê và hồ sơ luồng gợi ý.</summary>
+/// <summary>Chức vụ đang hiệu lực của một người — đủ để suy ra thẩm quyền, mã thống kê và diện quyết định gợi ý.</summary>
 /// <param name="IsHead">Không tính vào trần Hoàn thành xuất sắc.</param>
-/// <param name="DefaultWorkflowProfileCode">Mã hồ sơ luồng gợi ý của chức vụ (null = theo thẩm quyền).</param>
+/// <param name="DefaultWorkflowProfileCode">Mã diện quyết định gợi ý của chức vụ (null = theo thẩm quyền).</param>
 public sealed record HeldPosition(string PositionName, string? StatCode, ApprovalAuthority? DefaultApprovalAuthority, bool IsHead = false,
     string? DefaultWorkflowProfileCode = null, bool IsPrimary = false);
 
@@ -29,8 +29,8 @@ public static class PositionRules
             : ApprovalAuthority.CoSo;
 
     /// <summary>
-    /// Hồ sơ luồng gợi ý theo chức vụ, null nếu không có. Chỉ xét chức vụ có mã hồ sơ luồng mà kỳ có
-    /// (<paramref name="profileExists"/>) và thẩm quyền mặc định trống hoặc trùng thẩm quyền của người (hồ sơ luồng phải khớp cấp
+    /// Diện quyết định gợi ý theo chức vụ, null nếu không có. Chỉ xét chức vụ có mã diện quyết định mà kỳ có
+    /// (<paramref name="profileExists"/>) và thẩm quyền mặc định trống hoặc trùng thẩm quyền của người (diện quyết định phải khớp cấp
     /// quyết định). Nhiều chức vụ: mã thống kê thứ tự nhỏ nhất (chức danh cao nhất), rồi chức vụ chính, rồi tên.
     /// </summary>
     public static HeldPosition? SuggestWorkflowProfile(IEnumerable<HeldPosition>? activePositions, ApprovalAuthority authority,
@@ -46,7 +46,7 @@ public static class PositionRules
             .FirstOrDefault();
     }
 
-    /// <summary>Hồ sơ luồng mặc định khi thêm người vào kỳ: theo chức vụ nếu có gợi ý hợp lệ, ngược lại theo cấp quyết định.</summary>
+    /// <summary>Diện quyết định mặc định khi thêm người vào kỳ: theo chức vụ nếu có gợi ý hợp lệ, ngược lại theo cấp quyết định.</summary>
     public static WorkflowProfile DefaultProfile(PeriodSettings settings, ApprovalAuthority authority, IEnumerable<HeldPosition>? activePositions)
     {
         ArgumentNullException.ThrowIfNull(settings);

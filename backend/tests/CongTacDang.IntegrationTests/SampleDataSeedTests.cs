@@ -70,7 +70,7 @@ public sealed class SampleDataSeedTests
             var active = await DataAsync(await owner.GetAsync("/api/evaluations/periods/active"));
             Assert.Equal("Open", active.GetProperty("status").GetString());
 
-            // Kỳ mẫu theo kiểu kỳ dựng sẵn đủ hồ sơ luồng; kiểm tra kẹt luồng sạch (mọi bước còn lại đều có người thực hiện).
+            // Kỳ mẫu theo kiểu kỳ dựng sẵn đủ diện quyết định; kiểm tra kẹt luồng sạch (mọi bước còn lại đều có người thực hiện).
             var profiles = active.GetProperty("settings").GetProperty("profiles").EnumerateArray()
                 .Select(p => p.GetProperty("code").GetString()).ToList();
             Assert.Equal(new[] { "co-so", "cap-tren", "bi-thu-nhan-vien", "pho-giam-doc" }, profiles);

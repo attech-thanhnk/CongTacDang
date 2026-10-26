@@ -185,7 +185,7 @@ public sealed class RecordFormService : IRecordFormService
         }
         catch (FormatException)
         {
-            throw new ConflictException("Ảnh chụp bộ tiêu chí của kỳ bị lỗi định dạng. Hãy liên hệ người quản lý kỳ.");
+            throw new ConflictException("Bộ tiêu chí đã lưu trong kỳ bị lỗi định dạng. Hãy liên hệ người quản lý kỳ.");
         }
     }
 

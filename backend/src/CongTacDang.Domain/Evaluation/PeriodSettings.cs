@@ -8,7 +8,7 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>Chế độ thực hiện một bước trong hồ sơ luồng.</summary>
+/// <summary>Chế độ thực hiện một bước trong diện quyết định.</summary>
 [JsonConverter(typeof(JsonStringEnumConverter<StepMode>))]
 public enum StepMode
 {
@@ -67,7 +67,7 @@ public sealed class ProfileStepSetting
     public DeadlineRule? Rule { get; set; }
 }
 
-/// <summary>Cấu hình bước cho một nhóm đối tượng (ví dụ Diện Đảng ủy cơ sở). Hồ sơ đánh giá lưu mã hồ sơ luồng
+/// <summary>Cấu hình bước cho một diện quyết định (ví dụ Diện Đảng ủy cơ sở). Hồ sơ đánh giá lưu mã diện quyết định
 /// của mình (ảnh chụp khi thêm vào kỳ).</summary>
 public sealed class WorkflowProfile
 {
@@ -121,7 +121,7 @@ public sealed class WorkflowProfile
 
     public DateOnly? Deadline(WorkflowStep step) => Step(step).Deadline;
 
-    /// <summary>Các bước khác chế độ hoặc quyền (không xét thời hạn); chỉ đổi hồ sơ luồng được khi hồ sơ
+    /// <summary>Các bước khác chế độ hoặc quyền (không xét thời hạn); chỉ đổi diện quyết định được khi hồ sơ
     /// chưa qua bước bị ảnh hưởng.</summary>
     public IReadOnlyList<WorkflowStep> DifferingSteps(WorkflowProfile other)
     {
@@ -235,7 +235,7 @@ public sealed class PeriodSettings
 
     public List<WorkflowProfile> Profiles { get; set; } = new();
 
-    /// <summary>Khóa = <see cref="ApprovalAuthority"/> (<c>CoSo</c>, <c>CapTren</c>), giá trị = mã hồ sơ luồng; dùng khi thêm người vào kỳ.</summary>
+    /// <summary>Khóa = <see cref="ApprovalAuthority"/> (<c>CoSo</c>, <c>CapTren</c>), giá trị = mã diện quyết định; dùng khi thêm người vào kỳ.</summary>
     public Dictionary<string, string> DefaultProfiles { get; set; } = new(StringComparer.Ordinal);
 
     /// <summary>Chặn hoàn thành bước khi đã quá hạn.</summary>
@@ -254,7 +254,7 @@ public sealed class PeriodSettings
 
     #region Cấu hình mặc định
 
-    /// <summary>Cấu hình kỳ mới: 4 hồ sơ luồng mặc định, chờ nghiệp vụ xác nhận; sửa được trong giao diện kỳ.</summary>
+    /// <summary>Cấu hình kỳ mới: 4 diện quyết định mặc định, chờ nghiệp vụ xác nhận; sửa được trong giao diện kỳ.</summary>
     public static PeriodSettings Default()
     {
         var settings = new PeriodSettings
@@ -350,7 +350,7 @@ public sealed class PeriodSettings
         return (settings ?? Default()).Normalize();
     }
 
-    /// <summary>Hồ sơ luồng đủ 9 bước, khóa cấp quyết định đúng tên.</summary>
+    /// <summary>Diện quyết định đủ 9 bước, khóa cấp quyết định đúng tên.</summary>
     public PeriodSettings Normalize()
     {
         if (SchemaVersion >= MinSchemaVersion && SchemaVersion < CurrentSchemaVersion)
@@ -383,11 +383,11 @@ public sealed class PeriodSettings
             ? null
             : Profiles.FirstOrDefault(p => string.Equals(p.Code, code.Trim(), StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>Null nếu chưa cấu hình hoặc hồ sơ luồng không tồn tại.</summary>
+    /// <summary>Null nếu chưa cấu hình hoặc diện quyết định không tồn tại.</summary>
     public string? DefaultProfileCode(ApprovalAuthority authority) =>
         DefaultProfiles.TryGetValue(authority.ToString(), out var code) && FindProfile(code) != null ? FindProfile(code)!.Code : null;
 
-    /// <summary>Theo mã đã lưu → mặc định theo cấp quyết định → hồ sơ luồng đầu tiên → luồng nội bộ đủ bước
+    /// <summary>Theo mã đã lưu → mặc định theo cấp quyết định → diện quyết định đầu tiên → luồng nội bộ đủ bước
     /// (phòng lỗi dữ liệu).</summary>
     public WorkflowProfile ResolveProfile(string? code, ApprovalAuthority authority) =>
         FindProfile(code)
@@ -395,7 +395,7 @@ public sealed class PeriodSettings
         ?? Profiles.FirstOrDefault()
         ?? WorkflowProfile.Create("mac-dinh", "Mặc định", null);
 
-    /// <summary>Mặc định khi thêm người vào kỳ: hồ sơ luồng gợi ý theo chức vụ nếu kỳ có, ngược lại theo cấp quyết định.</summary>
+    /// <summary>Mặc định khi thêm người vào kỳ: diện quyết định gợi ý theo chức vụ nếu kỳ có, ngược lại theo cấp quyết định.</summary>
     public WorkflowProfile ResolveDefaultProfile(ApprovalAuthority authority, string? positionProfileCode) =>
         FindProfile(positionProfileCode) ?? ResolveProfile(null, authority);
 
@@ -408,16 +408,16 @@ public sealed class PeriodSettings
     {
         var errors = new List<string>();
         if (SchemaVersion != CurrentSchemaVersion)
-            errors.Add($"Phiên bản cấu hình {SchemaVersion} không được hỗ trợ (chỉ hỗ trợ phiên bản {MinSchemaVersion} trở lên — cấu hình theo cách xét duyệt).");
+            errors.Add($"Phiên bản cấu hình {SchemaVersion} không được hỗ trợ (chỉ hỗ trợ phiên bản {MinSchemaVersion} trở lên — cấu hình theo diện quyết định).");
 
         var profiles = Profiles ?? new List<WorkflowProfile>();
         if (profiles.Count == 0)
-            errors.Add("Kỳ phải có ít nhất một cách xét duyệt.");
+            errors.Add("Kỳ phải có ít nhất một diện quyết định.");
         if (profiles.Count > MaxProfiles)
-            errors.Add($"Một kỳ có tối đa {MaxProfiles} cách xét duyệt.");
+            errors.Add($"Một kỳ có tối đa {MaxProfiles} diện quyết định.");
 
         foreach (var duplicate in profiles.GroupBy(p => p.Code, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
-            errors.Add($"Mã cách xét duyệt \"{duplicate.Key}\" bị trùng.");
+            errors.Add($"Mã diện quyết định \"{duplicate.Key}\" bị trùng.");
 
         foreach (var profile in profiles)
             errors.AddRange(ValidateProfile(profile, isAllowedPermission));
@@ -426,9 +426,9 @@ public sealed class PeriodSettings
         {
             var label = authority == ApprovalAuthority.CoSo ? "Đảng ủy cơ sở quyết định" : "cấp trên quyết định";
             if (!DefaultProfiles.TryGetValue(authority.ToString(), out var code) || string.IsNullOrWhiteSpace(code))
-                errors.Add($"Hãy chọn cách xét duyệt mặc định cho người thuộc diện {label}.");
+                errors.Add($"Hãy chọn diện quyết định mặc định cho người thuộc diện {label}.");
             else if (FindProfile(code) == null)
-                errors.Add($"Cách xét duyệt mặc định \"{code}\" (diện {label}) không tồn tại.");
+                errors.Add($"Diện quyết định mặc định \"{code}\" (diện {label}) không tồn tại.");
         }
         foreach (var key in DefaultProfiles.Keys.Where(k => !Enum.TryParse<ApprovalAuthority>(k, false, out _)))
             errors.Add($"Cấp quyết định \"{key}\" không hợp lệ (chỉ CoSo hoặc CapTren).");
@@ -440,22 +440,22 @@ public sealed class PeriodSettings
     {
         var label = string.IsNullOrWhiteSpace(profile.Name) ? profile.Code : profile.Name;
         if (!CodePattern.IsMatch(profile.Code ?? string.Empty))
-            yield return $"Mã cách xét duyệt \"{profile.Code}\" không hợp lệ: chỉ gồm chữ thường không dấu, số, gạch nối (tối đa 50 ký tự).";
+            yield return $"Mã diện quyết định \"{profile.Code}\" không hợp lệ: chỉ gồm chữ thường không dấu, số, gạch nối (tối đa 50 ký tự).";
         if (string.IsNullOrWhiteSpace(profile.Name))
-            yield return $"Cách xét duyệt \"{profile.Code}\" chưa có tên.";
+            yield return $"Diện quyết định \"{profile.Code}\" chưa có tên.";
         else if (profile.Name.Length > 200)
-            yield return $"Tên cách xét duyệt \"{profile.Code}\" không được dài quá 200 ký tự.";
+            yield return $"Tên diện quyết định \"{profile.Code}\" không được dài quá 200 ký tự.";
         if (profile.Description is { Length: > 1000 })
-            yield return $"Mô tả cách xét duyệt \"{label}\" không được dài quá 1000 ký tự.";
+            yield return $"Mô tả diện quyết định \"{label}\" không được dài quá 1000 ký tự.";
 
         foreach (var (stepKey, stepSetting) in profile.Steps ?? new Dictionary<string, ProfileStepSetting>())
         {
             if (stepSetting?.Rule?.Validate() is { } ruleError)
-                yield return $"Cách xét duyệt \"{label}\": quy tắc thời hạn của bước \"{stepKey}\" không hợp lệ — {ruleError}";
+                yield return $"Diện quyết định \"{label}\": quy tắc thời hạn của bước \"{stepKey}\" không hợp lệ — {ruleError}";
         }
 
         foreach (var key in (profile.Steps ?? new Dictionary<string, ProfileStepSetting>()).Keys.Where(k => WorkflowSteps.Parse(k) == null))
-            yield return $"Cách xét duyệt \"{label}\": mã bước \"{key}\" không tồn tại.";
+            yield return $"Diện quyết định \"{label}\": mã bước \"{key}\" không tồn tại.";
 
         foreach (var step in WorkflowSteps.Ordered)
         {
@@ -463,28 +463,28 @@ public sealed class PeriodSettings
             var name = WorkflowSteps.DisplayName(step);
             if (!Enum.IsDefined(setting.Mode))
             {
-                yield return $"Cách xét duyệt \"{label}\": chế độ của bước \"{name}\" không hợp lệ.";
+                yield return $"Diện quyết định \"{label}\": chế độ của bước \"{name}\" không hợp lệ.";
                 continue;
             }
             if (setting.Mode == StepMode.Off && WorkflowSteps.Mandatory.Contains(step))
-                yield return $"Cách xét duyệt \"{label}\": bước \"{name}\" là bước bắt buộc, không đặt \"Không áp dụng\" được.";
+                yield return $"Diện quyết định \"{label}\": bước \"{name}\" là bước bắt buộc, không đặt \"Không áp dụng\" được.";
             if (setting.Mode == StepMode.External && WorkflowSteps.NeverExternal.Contains(step))
-                yield return $"Cách xét duyệt \"{label}\": bước \"{name}\" không giao cho cấp trên thực hiện được.";
+                yield return $"Diện quyết định \"{label}\": bước \"{name}\" không giao cho cấp trên thực hiện được.";
             if (setting.Mode == StepMode.Internal && !WorkflowSteps.OwnerSteps.Contains(step) && isAllowedPermission != null
                 && (string.IsNullOrWhiteSpace(setting.Permission) || !isAllowedPermission(setting.Permission)))
-                yield return $"Cách xét duyệt \"{label}\": quyền thực hiện bước \"{name}\" (\"{setting.Permission}\") không hợp lệ — hãy chọn một quyền đánh giá trong danh mục quyền.";
+                yield return $"Diện quyết định \"{label}\": quyền thực hiện bước \"{name}\" (\"{setting.Permission}\") không hợp lệ — hãy chọn một quyền đánh giá trong danh mục quyền.";
         }
 
         foreach (var (gate, gateSetting) in profile.Gates ?? new Dictionary<string, GateSetting>())
         {
             if (!WorkflowGates.IsKnown(gate))
-                yield return $"Cách xét duyệt \"{label}\": mã cổng \"{gate}\" không tồn tại.";
+                yield return $"Diện quyết định \"{label}\": mã cổng \"{gate}\" không tồn tại.";
             else if (gateSetting == null || !Enum.IsDefined(gateSetting.Mode) || !WorkflowGates.IsAllowed(gate, gateSetting.Mode))
-                yield return $"Cách xét duyệt \"{label}\": chế độ của cổng \"{WorkflowGates.DisplayName(gate)}\" không hợp lệ.";
+                yield return $"Diện quyết định \"{label}\": chế độ của cổng \"{WorkflowGates.DisplayName(gate)}\" không hợp lệ.";
         }
 
         if (profile.IsActive(WorkflowStep.B1_APPROVE) && !profile.IsActive(WorkflowStep.B1_REGISTER))
-            yield return $"Cách xét duyệt \"{label}\": không thể áp dụng bước duyệt danh mục sản phẩm khi bước đăng ký sản phẩm không áp dụng.";
+            yield return $"Diện quyết định \"{label}\": không thể áp dụng bước duyệt danh mục sản phẩm khi bước đăng ký sản phẩm không áp dụng.";
     }
 
     /// <summary>Kỳ đã mở chỉ được sửa thời hạn.</summary>

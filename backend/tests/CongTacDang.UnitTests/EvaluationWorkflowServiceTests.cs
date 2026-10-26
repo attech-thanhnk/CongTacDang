@@ -14,7 +14,7 @@ namespace CongTacDang.UnitTests;
 /// <summary>Luồng đánh giá ở tầng service với kho dữ liệu giả.</summary>
 public sealed class EvaluationWorkflowServiceTests
 {
-    /// <summary>Quyền thực hiện bước duyệt danh mục cấu hình trong hồ sơ luồng (khác quyền mặc định evaluation.tasks.approve).</summary>
+    /// <summary>Quyền thực hiện bước duyệt danh mục cấu hình trong diện quyết định (khác quyền mặc định evaluation.tasks.approve).</summary>
     private const string ApprovePermission = WorkflowPermissions.UnitReview;
 
     #region 1. Tự chấm 09A
@@ -289,7 +289,7 @@ public sealed class EvaluationWorkflowServiceTests
         var actions = await h.Service.GetActionsAsync(h.Record.Id);
         Assert.Contains(actions.Actions, a => a.Action == WorkflowActions.RevokeTaskApproval);
 
-        // Chỉ có quyền mặc định evaluation.tasks.approve (không phải quyền của bước theo hồ sơ luồng) → không có nút, không thu hồi được.
+        // Chỉ có quyền mặc định evaluation.tasks.approve (không phải quyền của bước theo diện quyết định) → không có nút, không thu hồi được.
         h.Guard.Granted.Remove(ApprovePermission);
         h.Guard.Granted.Add(PermissionCodes.EvaluationTasksApprove);
         actions = await h.Service.GetActionsAsync(h.Record.Id);
@@ -707,7 +707,7 @@ public sealed class EvaluationWorkflowServiceTests
             Version = Record.Version, AuthorityName = "Cấp trên", Grade = "HoanThanhTot", Comment = "Kết quả cấp trên"
         };
 
-        /// <summary>Đặt chế độ một cổng cho mọi hồ sơ luồng của kỳ.</summary>
+        /// <summary>Đặt chế độ một cổng cho mọi diện quyết định của kỳ.</summary>
         public void SetGate(string gate, GateMode mode)
         {
             var settings = Period.GetSettings();

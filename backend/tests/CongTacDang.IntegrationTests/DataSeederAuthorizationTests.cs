@@ -131,14 +131,14 @@ public sealed class DataSeederAuthorizationTests
             // CSDL cũ chưa có vai trò cơ quan chuyên môn: khởi động lại phải tạo kèm quyền.
             await using (var db = NewContext(options))
             {
-                await db.Database.ExecuteSqlRawAsync("DELETE FROM role_permissions WHERE role_id IN (SELECT \"Id\" FROM roles WHERE \"Code\" = {0})", "CO_QUAN_CHUYEN_MON_DOI_SOAT");
-                await db.Database.ExecuteSqlRawAsync("DELETE FROM roles WHERE \"Code\" = {0}", "CO_QUAN_CHUYEN_MON_DOI_SOAT");
+                await db.Database.ExecuteSqlRawAsync("DELETE FROM role_permissions WHERE role_id IN (SELECT \"Id\" FROM roles WHERE \"Code\" = {0})", "CO_QUAN_CHUYEN_MON");
+                await db.Database.ExecuteSqlRawAsync("DELETE FROM roles WHERE \"Code\" = {0}", "CO_QUAN_CHUYEN_MON");
             }
 
             await using (var db = NewContext(options))
             {
                 await DataSeeder.SeedAsync(db);
-                var role = await db.Roles.Include(r => r.Permissions).SingleAsync(r => r.Code == "CO_QUAN_CHUYEN_MON_DOI_SOAT");
+                var role = await db.Roles.Include(r => r.Permissions).SingleAsync(r => r.Code == "CO_QUAN_CHUYEN_MON");
                 Assert.True(role.IsSystem);
                 Assert.Contains(role.Permissions, p => p.Code == PermissionCodes.EvaluationCrosscheckRespond);
                 Assert.Contains(role.Permissions, p => p.Code == PermissionCodes.EvaluationCrosscheckConfirm);
@@ -147,7 +147,7 @@ public sealed class DataSeederAuthorizationTests
             // Quản trị đã xóa thì không tạo lại ở những lần khởi động sau.
             await using (var db = NewContext(options))
             {
-                var role = await db.Roles.SingleAsync(r => r.Code == "CO_QUAN_CHUYEN_MON_DOI_SOAT");
+                var role = await db.Roles.SingleAsync(r => r.Code == "CO_QUAN_CHUYEN_MON");
                 db.Roles.Remove(role);
                 await db.SaveChangesAsync();
             }
@@ -155,8 +155,8 @@ public sealed class DataSeederAuthorizationTests
             await using (var db = NewContext(options))
             {
                 await DataSeeder.SeedAsync(db);
-                Assert.Equal(0, await db.Roles.CountAsync(r => r.Code == "CO_QUAN_CHUYEN_MON_DOI_SOAT"));
-                Assert.Equal(1, await db.Roles.IgnoreQueryFilters().CountAsync(r => r.Code == "CO_QUAN_CHUYEN_MON_DOI_SOAT"));
+                Assert.Equal(0, await db.Roles.CountAsync(r => r.Code == "CO_QUAN_CHUYEN_MON"));
+                Assert.Equal(1, await db.Roles.IgnoreQueryFilters().CountAsync(r => r.Code == "CO_QUAN_CHUYEN_MON"));
             }
         });
     }

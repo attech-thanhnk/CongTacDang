@@ -26,7 +26,7 @@ public sealed record TransitionResult(bool Succeeded, RecordStatus Status, strin
 /// <summary>Máy trạng thái thuần của hồ sơ cá nhân; không đọc CSDL, không kiểm tra quyền.</summary>
 public static class RecordStateMachine
 {
-    /// <summary>Theo các bước áp dụng của hồ sơ luồng.</summary>
+    /// <summary>Theo các bước áp dụng của diện quyết định.</summary>
     public static RecordStatus Initial(IReadOnlySet<WorkflowStep> enabledSteps)
     {
         ArgumentNullException.ThrowIfNull(enabledSteps);
@@ -48,7 +48,7 @@ public static class RecordStateMachine
         return RecordStatus.Published;
     }
 
-    /// <summary>Khi đổi hồ sơ luồng: bước đang chờ không còn áp dụng thì chuyển tới bước áp dụng kế tiếp, không lùi.</summary>
+    /// <summary>Khi đổi diện quyết định: bước đang chờ không còn áp dụng thì chuyển tới bước áp dụng kế tiếp, không lùi.</summary>
     public static RecordStatus Realign(RecordStatus current, IReadOnlySet<WorkflowStep> activeSteps)
     {
         ArgumentNullException.ThrowIfNull(activeSteps);
@@ -78,7 +78,7 @@ public static class RecordStateMachine
                 var step = command.Step;
                 var name = WorkflowSteps.DisplayName(step);
                 if (!enabledSteps.Contains(step))
-                    return TransitionResult.Fail(current, $"Bước \"{name}\" không áp dụng cho nhóm đối tượng của hồ sơ này.");
+                    return TransitionResult.Fail(current, $"Bước \"{name}\" không áp dụng cho diện quyết định của hồ sơ này.");
                 if (current != WorkflowSteps.StatusOf(step))
                     return TransitionResult.Fail(current, $"Hồ sơ đang ở bước \"{where}\", không thể thực hiện \"{name}\".");
                 return TransitionResult.Ok(NextAfter(step, enabledSteps));
@@ -90,11 +90,11 @@ public static class RecordStateMachine
                 if (!WorkflowSteps.ReturnTargets.TryGetValue(step, out var target))
                     return TransitionResult.Fail(current, $"Không thể trả lại hồ sơ ở bước \"{name}\".");
                 if (!enabledSteps.Contains(step))
-                    return TransitionResult.Fail(current, $"Bước \"{name}\" không áp dụng cho nhóm đối tượng của hồ sơ này.");
+                    return TransitionResult.Fail(current, $"Bước \"{name}\" không áp dụng cho diện quyết định của hồ sơ này.");
                 if (current != WorkflowSteps.StatusOf(step))
                     return TransitionResult.Fail(current, $"Hồ sơ đang ở bước \"{where}\", không thể trả lại tại bước \"{name}\".");
                 if (!enabledSteps.Contains(target))
-                    return TransitionResult.Fail(current, $"Bước \"{WorkflowSteps.DisplayName(target)}\" không áp dụng cho nhóm đối tượng của hồ sơ này nên không thể trả lại.");
+                    return TransitionResult.Fail(current, $"Bước \"{WorkflowSteps.DisplayName(target)}\" không áp dụng cho diện quyết định của hồ sơ này nên không thể trả lại.");
                 return TransitionResult.Ok(WorkflowSteps.StatusOf(target));
             }
             case WorkflowAction.Reopen:

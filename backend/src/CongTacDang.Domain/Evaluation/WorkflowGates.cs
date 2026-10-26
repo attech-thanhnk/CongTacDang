@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>Chế độ của một cổng kiểm soát trong hồ sơ luồng.</summary>
+/// <summary>Chế độ của một cổng kiểm soát trong diện quyết định.</summary>
 [JsonConverter(typeof(JsonStringEnumConverter<GateMode>))]
 public enum GateMode
 {
@@ -20,7 +20,7 @@ public enum GateMode
     Optional = 3
 }
 
-/// <summary>Cấu hình một cổng trong hồ sơ luồng.</summary>
+/// <summary>Cấu hình một cổng trong diện quyết định.</summary>
 public sealed class GateSetting
 {
     public GateMode Mode { get; set; } = GateMode.Required;

@@ -19,8 +19,8 @@ public class Position : IAuditableEntity, ISoftDeletable
     /// <summary>Thẩm quyền xếp loại mặc định của người giữ chức vụ; null = không ảnh hưởng tới suy ra thẩm quyền.</summary>
     public ApprovalAuthority? DefaultApprovalAuthority { get; set; }
 
-    /// <summary>Mã hồ sơ luồng (cách xét duyệt) gợi ý cho người giữ chức vụ khi thêm vào kỳ; null = theo thẩm quyền.
-    /// Chỉ dùng khi kỳ có hồ sơ luồng mã này.</summary>
+    /// <summary>Mã diện quyết định gợi ý cho người giữ chức vụ khi thêm vào kỳ; null = theo thẩm quyền.
+    /// Chỉ dùng khi kỳ có diện quyết định mã này.</summary>
     public string? DefaultWorkflowProfileCode { get; set; }
 
     public bool IsLeadership { get; set; }

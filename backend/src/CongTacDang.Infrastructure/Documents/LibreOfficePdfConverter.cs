@@ -180,7 +180,7 @@ public sealed class LibreOfficePdfConverter : IPdfConverter, IDisposable
         catch (Win32Exception)
         {
             throw new ServiceUnavailableException(
-                "Không chạy được LibreOffice (soffice) trên máy chủ nên chưa xuất được PDF. Kiểm tra cấu hình Documents:Pdf:SofficePath.");
+                "Chạy LibreOffice (soffice) trên máy chủ không thành công nên chưa xuất được PDF. Kiểm tra cấu hình Documents:Pdf:SofficePath.");
         }
     }
 

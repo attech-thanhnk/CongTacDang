@@ -19,7 +19,7 @@ public interface IPositionService
 {
     Task<List<PositionDto>> GetPositionsAsync(CancellationToken ct = default);
 
-    /// <summary>Cách xét duyệt (hồ sơ luồng) của cấu hình kỳ mặc định, để gắn gợi ý cho chức vụ.</summary>
+    /// <summary>Diện quyết định của cấu hình kỳ mặc định, để gắn gợi ý cho chức vụ.</summary>
     List<WorkflowProfileOptionDto> GetWorkflowProfileOptions();
 
     Task<PositionDto> CreatePositionAsync(SavePositionDto input, CancellationToken ct = default);
@@ -507,14 +507,14 @@ public sealed class PositionService : IPositionService
         throw new ValidationException($"Thẩm quyền \"{value.Trim()}\" không hợp lệ. Chỉ nhận CoSo (Đảng ủy cơ sở) hoặc CapTren (cấp trên).");
     }
 
-    /// <summary>Rỗng → null; chỉ kiểm định dạng vì mỗi kỳ có bộ cách xét duyệt riêng.</summary>
+    /// <summary>Rỗng → null; chỉ kiểm định dạng vì mỗi kỳ có bộ diện quyết định riêng.</summary>
     public static string? ParseWorkflowProfileCode(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
             return null;
         var code = value.Trim().ToLowerInvariant();
         if (!PeriodSettings.IsValidProfileCode(code))
-            throw new ValidationException($"Mã cách xét duyệt \"{value.Trim()}\" không hợp lệ: chỉ gồm chữ thường không dấu, số, dấu gạch nối, tối đa 50 ký tự.");
+            throw new ValidationException($"Mã diện quyết định \"{value.Trim()}\" không hợp lệ: chỉ gồm chữ thường không dấu, số, dấu gạch nối, tối đa 50 ký tự.");
         return code;
     }
 

@@ -74,7 +74,7 @@ public static class PermissionCodes
     /// <summary>Trưởng phòng đề xuất mức — quyền thực hiện B3c khi Bí thư/Phó bí thư Chi bộ là nhân viên.</summary>
     public const string EvaluationUnitReview = "evaluation.unit.review";
 
-    /// <summary>B4 khi hồ sơ luồng đặt bước này làm trong hệ thống.</summary>
+    /// <summary>B4 khi diện quyết định đặt bước này làm trong hệ thống.</summary>
     public const string EvaluationDecide = "evaluation.decide";
 
     /// <summary>Ghi nhận kết quả bước ở chế độ "Cấp trên thực hiện".</summary>
@@ -127,7 +127,7 @@ public static class PermissionCodes
     /// <summary>Mẫu 19: khác người lập phiếu.</summary>
     public const string EvaluationControlConfirm = "evaluation.control.confirm";
 
-    /// <summary>Không dùng làm quyền thực hiện bước của hồ sơ luồng.</summary>
+    /// <summary>Không dùng làm quyền thực hiện bước của diện quyết định.</summary>
     public static readonly IReadOnlySet<string> FormPermissions = new HashSet<string>(StringComparer.Ordinal)
     {
         EvaluationCrosscheckRequest, EvaluationCrosscheckRespond, EvaluationCrosscheckConfirm,
@@ -172,10 +172,10 @@ public static class PermissionCodes
         new(EvaluationCollectiveRecord, "Ghi nhận đề xuất của tập thể lãnh đạo", "evaluation", "Ghi kết quả kiểm phiếu đề xuất của tập thể lãnh đạo (bước 3a), không ghi phiếu từng người.", true),
         new(EvaluationAppraise, "Thẩm định", "evaluation", "Thẩm định hồ sơ đánh giá (bước 3b).", true),
         new(EvaluationDirectorReview, "Nhận xét của cấp trực tiếp sử dụng", "evaluation", "Nhận xét, đề xuất của cấp trực tiếp sử dụng cán bộ (bước 3c).", true),
-        new(EvaluationUnitReview, "Lãnh đạo đơn vị đề xuất", "evaluation", "Trưởng phòng (lãnh đạo đơn vị) đề xuất mức xếp loại thay cấp trực tiếp sử dụng — dùng làm quyền thực hiện bước 3c trong cách xét duyệt được cấu hình.", true),
-        new(EvaluationDecide, "Ghi nhận quyết định của Đảng ủy cơ sở", "evaluation", "Ghi nhận quyết định xếp loại của Đảng ủy cơ sở (bước 4) khi cách xét duyệt đặt bước này làm trong hệ thống; bước do cấp trên quyết định dùng quyền Ghi nhận kết quả của cấp trên.", true),
+        new(EvaluationUnitReview, "Lãnh đạo đơn vị đề xuất", "evaluation", "Trưởng phòng (lãnh đạo đơn vị) đề xuất mức xếp loại thay cấp trực tiếp sử dụng — dùng làm quyền thực hiện bước 3c trong diện quyết định được cấu hình.", true),
+        new(EvaluationDecide, "Ghi nhận quyết định của Đảng ủy cơ sở", "evaluation", "Ghi nhận quyết định xếp loại của Đảng ủy cơ sở (bước 4) khi diện quyết định đặt bước này làm trong hệ thống; bước do cấp trên quyết định dùng quyền Ghi nhận kết quả của cấp trên.", true),
         new(EvaluationExternalRecord, "Ghi nhận kết quả của cấp trên", "evaluation", "Ghi nhận kết quả của bước do cấp trên / cơ quan ngoài hệ thống thực hiện (thẩm định, nhận xét, quyết định…): cơ quan, số/ngày văn bản, nhận xét, mức, tệp đính kèm.", true),
-        new(EvaluationPublish, "Công bố, khóa kết quả", "evaluation", "Công bố và khóa kết quả đánh giá (bước 5).", true),
+        new(EvaluationPublish, "Công bố và lưu trữ kết quả", "evaluation", "Công bố và khóa kết quả đánh giá (bước 5).", true),
         new(EvaluationReopen, "Mở lại hồ sơ đã khóa", "evaluation", "Mở lại hồ sơ đã khóa để đính chính; bắt buộc ghi lý do.", true),
         new(EvaluationResultsView, "Xem kết quả đánh giá đã công bố", "evaluation", "Xem danh sách kết quả đã công bố (họ tên, chức danh, đơn vị, mức xếp loại chính thức; điểm nếu bộ tiêu chí cho phép) trong phạm vi được gán — không xem chi tiết hồ sơ, minh chứng, ý kiến.", true),
         new(EvaluationAppealSubmit, "Gửi kiến nghị về kết quả", "evaluation", "Gửi kiến nghị xem xét lại kết quả đã công bố, kèm tệp minh chứng — chỉ trên hồ sơ của mình (phạm vi gán được bỏ qua).", true),

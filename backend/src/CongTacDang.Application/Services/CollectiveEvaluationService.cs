@@ -141,7 +141,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             throw new ArgumentException("Tên tập thể hoặc lĩnh vực đánh giá không được để trống.");
         // Bắt buộc phiên bản: thiếu phiên bản sẽ bỏ qua kiểm tra đồng thời.
         if (dto.Version is null)
-            throw new ValidationException("Thiếu phiên bản hồ sơ tập thể (version). Hãy tải lại hồ sơ rồi lưu lại.");
+            throw new ValidationException("Thiếu phiên bản hồ sơ tập thể. Hãy tải lại hồ sơ rồi lưu lại.");
 
         var scores = ResolveScores(record.Period, record.Form, dto);
 

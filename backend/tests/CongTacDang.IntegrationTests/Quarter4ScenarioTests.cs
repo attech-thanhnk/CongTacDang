@@ -13,7 +13,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>Trọn một kỳ Quý IV/2026 với đủ 4 cách xét duyệt, đi hết các bước, xuất mọi biểu mẫu.
+/// <summary>Trọn một kỳ Quý IV/2026 với đủ 4 diện quyết định, đi hết các bước, xuất mọi biểu mẫu.
 /// Chạy trên CSDL tạm riêng để kỳ đúng năm 2026, quý IV.</summary>
 [Collection(Quarter4Collection.Name)]
 public sealed class Quarter4ScenarioTests
@@ -74,7 +74,7 @@ public sealed class Quarter4ScenarioTests
         await Data(await w.Tccb.PutAsJsonAsync($"/api/evaluations/periods/{periodId}",
             new { version = created.GetProperty("version").GetUInt32(), settings }));
 
-        // ============ 2. Thêm người; Bí thư Chi bộ là nhân viên thêm kèm cách xét duyệt; Phó Giám đốc tự theo pho-giam-doc (chức vụ) ============
+        // ============ 2. Thêm người; Bí thư Chi bộ là nhân viên thêm kèm diện quyết định; Phó Giám đốc tự theo pho-giam-doc (chức vụ) ============
         var main = new[] { w.Tp, w.Ptp, w.Ct, w.Gd, w.Ksv, w.Pgd };
         Assert.Equal(6, (await Data(await w.Tccb.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
             new { memberIds = main.Select(p => p.Id) }))).GetProperty("added").GetInt32());

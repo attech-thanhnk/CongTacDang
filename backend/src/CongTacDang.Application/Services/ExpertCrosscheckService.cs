@@ -49,7 +49,7 @@ public interface IExpertCrosscheckService
 /// <summary>Chặn hoàn thành thẩm định (B3b) khi còn yêu cầu đối soát đang mở.</summary>
 public interface IExpertCrosscheckGate
 {
-    /// <summary>Ném <see cref="ConflictException"/> khi cổng đối soát của hồ sơ luồng không tắt và còn phiếu chưa xác nhận, chưa hủy.</summary>
+    /// <summary>Ném <see cref="ConflictException"/> khi cổng đối soát của diện quyết định không tắt và còn phiếu chưa xác nhận, chưa hủy.</summary>
     Task EnsureNoOpenAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct = default);
 
     /// <summary>Lý do cổng đối soát đang chặn thẩm định; null khi không chặn.</summary>
@@ -107,7 +107,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
 
         var profile = ProfileOf(record);
         var applicable = profile.GateModeOf(WorkflowGates.Crosscheck) != GateMode.Off;
-        var blocked = applicable ? StateBlockReason(record) : "Hồ sơ luồng của hồ sơ này không dùng đối soát chuyên ngành.";
+        var blocked = applicable ? StateBlockReason(record) : "Diện quyết định của hồ sơ này không dùng đối soát chuyên ngành.";
         return new RecordCrosschecksDto
         {
             RecordId = record.Id,
@@ -155,7 +155,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
         _guard.Ensure(PermissionCodes.EvaluationCrosscheckRequest, AccessTarget.ForRecord(record));
 
         if (ProfileOf(record).GateModeOf(WorkflowGates.Crosscheck) == GateMode.Off)
-            throw new ConflictException("Hồ sơ luồng của hồ sơ này không dùng đối soát chuyên ngành.");
+            throw new ConflictException("Diện quyết định của hồ sơ này không dùng đối soát chuyên ngành.");
         var blocked = StateBlockReason(record);
         if (blocked != null)
             throw new ConflictException(blocked);
@@ -674,7 +674,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
     private static void EnsureVersion(ExpertCrosscheck crosscheck, uint? version)
     {
         if (version is null)
-            throw new ValidationException("Thiếu phiên bản dữ liệu (version) của phiếu. Hãy tải lại phiếu rồi thực hiện lại.");
+            throw new ValidationException("Thiếu phiên bản dữ liệu của phiếu. Hãy tải lại phiếu rồi thực hiện lại.");
         if (crosscheck.Version != version.Value)
             throw new ConflictException("Phiếu đã được người khác cập nhật sau khi bạn mở. Hãy tải lại phiếu để xem dữ liệu mới nhất rồi thực hiện lại.");
     }

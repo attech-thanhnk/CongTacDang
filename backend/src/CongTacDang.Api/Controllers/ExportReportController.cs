@@ -43,7 +43,7 @@ public class ExportReportController : ControllerBase
     {
         var sub = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var userId))
-            throw new UnauthorizedAccessException("Không xác thực được danh tính người dùng hiện tại.");
+            throw new UnauthorizedAccessException("Xác thực danh tính người dùng hiện tại không thành công.");
         return userId;
     }
 

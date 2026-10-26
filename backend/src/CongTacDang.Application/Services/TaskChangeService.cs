@@ -109,7 +109,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
     {
         ArgumentNullException.ThrowIfNull(request);
         if (request.Version is null)
-            throw new ValidationException("Thiếu phiên bản dữ liệu (version) của hồ sơ. Hãy tải lại hồ sơ rồi thực hiện lại.");
+            throw new ValidationException("Thiếu phiên bản dữ liệu của hồ sơ. Hãy tải lại hồ sơ rồi thực hiện lại.");
         if (!Enum.TryParse<TaskChangeType>(request.Type?.Trim(), true, out var type) || !Enum.IsDefined(type))
             throw new ValidationException("Hãy chọn loại đề nghị: điều chỉnh, chuyển tiếp, loại trừ hoặc việc đột xuất.");
 
@@ -192,7 +192,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
     {
         ArgumentNullException.ThrowIfNull(request);
         if (request.Version is null)
-            throw new ValidationException("Thiếu phiên bản dữ liệu (version) của đề nghị. Hãy tải lại hồ sơ rồi thực hiện lại.");
+            throw new ValidationException("Thiếu phiên bản dữ liệu của đề nghị. Hãy tải lại hồ sơ rồi thực hiện lại.");
 
         var record = await RequireRecordAsync(recordId, ct);
         var change = await _repo.FindAsync(requestId, ct);
@@ -232,7 +232,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
             var content = context.Criteria!.Content;
             var (error, created) = TaskChangeRules.Apply(change, tasks, content, record.Period.EndDate, RecordWeightFrames.Effective(record, content));
             if (error != null)
-                throw new ValidationException($"Không áp được đề nghị vào danh mục hiện tại: {error}");
+                throw new ValidationException($"Áp đề nghị vào danh mục hiện tại không thành công: {error}");
             if (created != null)
             {
                 _repo.AddTask(created);

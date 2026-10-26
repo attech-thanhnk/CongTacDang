@@ -5,7 +5,7 @@ using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>Mã bước cố định trong code; chế độ, người làm, thời hạn cấu hình theo hồ sơ luồng (<see cref="WorkflowProfile"/>).</summary>
+/// <summary>Mã bước cố định trong code; chế độ, người làm, thời hạn cấu hình theo diện quyết định (<see cref="WorkflowProfile"/>).</summary>
 public enum WorkflowStep
 {
     /// <summary>Đăng ký sản phẩm (Mẫu 01); luôn bật.</summary>
@@ -56,7 +56,7 @@ public enum WorkflowAction
     /// <summary>Kỳ dự thảo đổi cấu hình → tính lại trạng thái đầu của hồ sơ.</summary>
     Recalculate = 6,
 
-    /// <summary>Đổi hồ sơ luồng; bắt buộc lý do.</summary>
+    /// <summary>Đổi diện quyết định; bắt buộc lý do.</summary>
     ChangeProfile = 7,
 
     /// <summary>Ghi nhận kết quả bước do cấp trên thực hiện.</summary>
@@ -196,7 +196,7 @@ public static class WorkflowSteps
         WorkflowStep.B3B_APPRAISAL => "Thẩm định",
         WorkflowStep.B3C_DIRECTOR => "Nhận xét của cấp trực tiếp sử dụng",
         WorkflowStep.B4_DECISION => "Quyết định mức xếp loại",
-        WorkflowStep.B5_PUBLISH => "Công bố, khóa kết quả",
+        WorkflowStep.B5_PUBLISH => "Công bố và lưu trữ kết quả",
         _ => step.ToString()
     };
 
@@ -230,9 +230,9 @@ public static class WorkflowSteps
         WorkflowAction.Return => "Trả lại",
         WorkflowAction.Reopen => "Mở lại",
         WorkflowAction.Create => "Thêm vào danh sách",
-        WorkflowAction.EditSnapshot => "Sửa thông tin ảnh chụp",
+        WorkflowAction.EditSnapshot => "Sửa thông tin hồ sơ trong kỳ",
         WorkflowAction.Recalculate => "Tính lại theo cấu hình kỳ",
-        WorkflowAction.ChangeProfile => "Đổi cách xét duyệt",
+        WorkflowAction.ChangeProfile => "Đổi diện quyết định",
         WorkflowAction.RecordExternal => "Ghi nhận kết quả của cấp trên",
         WorkflowAction.TaskChange => "Điều chỉnh việc trong quý",
         WorkflowAction.SyncSnapshot => "Cập nhật theo hồ sơ cán bộ",

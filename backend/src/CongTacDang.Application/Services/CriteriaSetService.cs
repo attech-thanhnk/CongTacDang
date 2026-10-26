@@ -240,10 +240,10 @@ public sealed class CriteriaSetService : ICriteriaSetService
         EnsureManage();
         var set = await LoadForWriteAsync(id, dto?.Version, ct);
         if (set.Status != CriteriaSetStatus.Draft)
-            throw new ConflictException($"Không xóa được bộ \"{set.Name}\" vì đã xuất bản. Bộ không còn dùng thì lưu trữ.");
+            throw new ConflictException($"Xóa bộ \"{set.Name}\" không thành công: bộ đã xuất bản. Bộ không còn dùng thì hãy lưu trữ.");
         var usedBy = (await _repo.ListUsagesAsync(ct)).Where(u => u.CriteriaSetId == set.Id).Select(u => u.PeriodName).ToList();
         if (usedBy.Count > 0)
-            throw new ConflictException($"Không xóa được bộ \"{set.Name}\" vì đang được kỳ {string.Join(", ", usedBy)} dùng.");
+            throw new ConflictException($"Xóa bộ \"{set.Name}\" không thành công: đang được kỳ {string.Join(", ", usedBy)} dùng. Hãy đổi bộ tiêu chí của kỳ trước.");
 
         _repo.Remove(set);
         _unitOfWork.SetOriginalVersion(set, dto?.Version);
@@ -325,7 +325,7 @@ public sealed class CriteriaSetService : ICriteriaSetService
     private async Task<CriteriaSet> LoadForWriteAsync(Guid id, uint? version, CancellationToken ct)
     {
         if (version is null)
-            throw new ValidationException("Thiếu phiên bản dữ liệu (version) của bộ tiêu chí. Hãy tải lại trang rồi thực hiện lại.");
+            throw new ValidationException("Thiếu phiên bản dữ liệu của bộ tiêu chí. Hãy tải lại trang rồi thực hiện lại.");
         var set = await _repo.FindAsync(id, ct) ?? throw NotFound(id);
         if (set.Version != version)
             throw new ConflictException("Bộ tiêu chí đã được người khác cập nhật. Hãy tải lại trang để xem dữ liệu mới nhất.");
@@ -353,7 +353,7 @@ public sealed class CriteriaSetService : ICriteriaSetService
             if (!await _repo.CodeExistsAsync(candidate, null, ct))
                 return candidate;
         }
-        throw new ConflictException("Không sinh được mã cho bản nháp mới. Hãy nhập mã.");
+        throw new ConflictException("Sinh mã cho bản nháp mới không thành công. Hãy nhập mã.");
     }
 
     private static string ValidateName(string? name)

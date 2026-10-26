@@ -611,7 +611,7 @@ public class EvaluationPeriodDto
     public CriteriaSnapshot? Criteria { get; set; }
 }
 
-/// <summary>Tạo kỳ dự thảo; hồ sơ luồng lấy theo cấu hình mặc định.</summary>
+/// <summary>Tạo kỳ dự thảo; diện quyết định lấy theo cấu hình mặc định.</summary>
 public class CreatePeriodDto
 {
     public int Year { get; set; }
@@ -634,7 +634,7 @@ public class UpdatePeriodDto
     /// <summary>Điền thời hạn các bước theo quy tắc (cần gửi kèm <see cref="Settings"/>).</summary>
     public bool ApplyDeadlineRules { get; set; }
     /// <summary>Chỉ khi kỳ dự thảo và bộ đã xuất bản; trống = giữ nguyên. Đổi bộ thì bước đăng ký, duyệt sản phẩm
-    /// của mọi hồ sơ luồng đặt lại theo bộ mới.</summary>
+    /// của mọi diện quyết định đặt lại theo bộ mới.</summary>
     public Guid? CriteriaSetId { get; set; }
 }
 
@@ -691,7 +691,7 @@ public class PeriodParticipantDto
 
     public string? CurrentStepName { get; set; }
 
-    /// <summary>Theo hồ sơ luồng; null khi bước không đặt hạn hoặc đã công bố.</summary>
+    /// <summary>Theo diện quyết định; null khi bước không đặt hạn hoặc đã công bố.</summary>
     public DateOnly? CurrentStepDeadline { get; set; }
 
     /// <summary>≥ 1, theo giờ Việt Nam; null khi chưa quá hạn hoặc không có hạn.</summary>

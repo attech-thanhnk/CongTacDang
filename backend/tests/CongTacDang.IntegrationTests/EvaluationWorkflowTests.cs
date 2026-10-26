@@ -27,7 +27,7 @@ public sealed class EvaluationWorkflowTests
     {
         var w = await WorldAsync();
 
-        // Tạo kỳ → dự thảo, mọi hồ sơ luồng có bước đăng ký sản phẩm.
+        // Tạo kỳ → dự thảo, mọi diện quyết định có bước đăng ký sản phẩm.
         var period = await CreatePeriodAsync(w);
         Assert.Equal("Draft", period.GetProperty("status").GetString());
         Assert.All(period.GetProperty("settings").GetProperty("profiles").EnumerateArray(), p =>
@@ -687,7 +687,7 @@ public sealed class EvaluationWorkflowTests
 
     #endregion
 
-    #region Mức đề xuất so với mức theo điểm, kiểm phiếu, cách xét duyệt theo chức vụ
+    #region Mức đề xuất so với mức theo điểm, kiểm phiếu, diện quyết định theo chức vụ
 
     [SkippableFact]
     public async Task W20_ProposalAboveScoreGrade_EveryStep_RequiresReason_ReturnsWarnings()
@@ -821,7 +821,7 @@ public sealed class EvaluationWorkflowTests
         var clean = await Data(w.Appraiser, $"/api/evaluations/periods/{periodId}/readiness");
         Assert.DoesNotContain(clean.GetProperty("dataReview").EnumerateArray(), i => i.GetProperty("kind").GetString() == "ProfileMismatch");
 
-        // Đổi tay sang cách xét duyệt khác → kiểm tra sẵn sàng nhắc (không chặn mở kỳ).
+        // Đổi tay sang diện quyết định khác → kiểm tra sẵn sàng nhắc (không chặn mở kỳ).
         await Data(await w.Appraiser.PutAsJsonAsync($"/api/evaluations/periods/{periodId}/participants/{deputyRow.GetProperty("recordId").GetGuid()}/profile",
             new { version = deputyRow.GetProperty("version").GetUInt32(), workflowProfileCode = "cap-tren", reason = "Kiểm thử cảnh báo" }));
         var readiness = await Data(w.Appraiser, $"/api/evaluations/periods/{periodId}/readiness");

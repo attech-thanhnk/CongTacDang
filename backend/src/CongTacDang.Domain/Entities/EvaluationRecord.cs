@@ -47,7 +47,7 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Ảnh chụp từ hồ sơ cán bộ lúc thêm vào kỳ.</summary>
     public ApprovalAuthority ApprovalAuthority { get; set; } = ApprovalAuthority.CoSo;
 
-    /// <summary>Hồ sơ luồng trong cấu hình kỳ, quyết định bước, hành động và quyền. Mặc định theo cấp quyết định;
+    /// <summary>Diện quyết định trong cấu hình kỳ, quyết định bước, hành động và quyền. Mặc định theo cấp quyết định;
     /// đổi được (có lý do).</summary>
     public string WorkflowProfileCode { get; set; } = string.Empty;
 

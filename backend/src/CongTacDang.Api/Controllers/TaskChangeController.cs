@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CongTacDang.Api.Controllers;
 
 /// <summary>
-/// Điều chỉnh việc trong quý (Mẫu 04, 05). Quyền duyệt cấu hình theo hồ sơ luồng nên controller chỉ yêu cầu đăng nhập;
+/// Điều chỉnh việc trong quý (Mẫu 04, 05). Quyền duyệt cấu hình theo diện quyết định nên controller chỉ yêu cầu đăng nhập;
 /// service kiểm tra quyền trên hồ sơ.
 /// </summary>
 [ApiController]

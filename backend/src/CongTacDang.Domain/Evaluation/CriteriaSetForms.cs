@@ -72,15 +72,15 @@ public static class RecordFormCodes
 
     public static string DisplayName(string code) => code switch
     {
-        Form01 => "Mẫu 01 — Phiếu giao / đăng ký sản phẩm, công việc chuyên môn",
-        Form02 => "Mẫu 02 — Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc",
+        Form01 => "Mẫu 01 — Phiếu giao / đăng ký sản phẩm, công việc chuyên môn hằng quý",
+        Form02 => "Mẫu 02 — Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc hằng quý",
         Form03 => "Mẫu 03 — Phiếu ý kiến chuyên môn độc lập / đối soát dữ liệu chuyên ngành",
         Form04 => "Mẫu 04 — Phiếu đề nghị điều chỉnh, chuyển tiếp, loại trừ / ngoại lệ sản phẩm",
         Form05 => "Mẫu 05 — Phiếu ghi nhận nhiệm vụ bổ sung, khẩn cấp, đột xuất trong kỳ",
-        Form09A => "Mẫu 09A — Phiếu tự chấm điểm",
+        Form09A => "Mẫu 09A — Phiếu tự chấm điểm đánh giá, xếp loại chất lượng hằng quý",
         Form09C => "Mẫu 09C — Bản tự đánh giá, xếp loại của cá nhân",
-        Form9D => "Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ trong quý",
-        Form10 => "Mẫu 10 — Phiếu thẩm định, nhận xét, đề xuất xếp loại",
+        Form9D => "Mẫu 9D — Phụ lục kết quả thực hiện nhiệm vụ, công việc được giao trong quý",
+        Form10 => "Mẫu 10 — Phiếu thẩm định, nhận xét, đề xuất xếp loại và ghi nhận giải trình",
         Form11 => "Mẫu 11 — Phiếu đánh giá, xếp loại cán bộ (phiếu kín)",
         Form17 => "Mẫu 17 — Kế hoạch hỗ trợ, khắc phục và phát triển 30-60-90 ngày",
         _ => "Mẫu " + code

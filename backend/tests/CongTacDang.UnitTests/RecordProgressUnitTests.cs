@@ -47,7 +47,7 @@ public sealed class RecordProgressUnitTests
         Assert.Equal("Cấp trên thực hiện", EvaluationMapping.StepActor(WorkflowStep.B3B_APPRAISAL, upper, record));
         Assert.Equal("Cấp trên thực hiện", EvaluationMapping.StepActor(WorkflowStep.B4_DECISION, upper, record));
 
-        // Hồ sơ luồng nội bộ nhưng cấp quyết định là cấp trên.
+        // Diện quyết định nội bộ nhưng cấp quyết định là cấp trên.
         Assert.Equal("Cấp trên có thẩm quyền quyết định", EvaluationMapping.StepActor(WorkflowStep.B4_DECISION, Profile("co-so"), record));
         // Ví dụ 3: B3c do lãnh đạo đơn vị thực hiện.
         Assert.Equal("Lãnh đạo Phòng Kỹ thuật", EvaluationMapping.StepActor(WorkflowStep.B3C_DIRECTOR, Profile("bi-thu-nhan-vien"), record));

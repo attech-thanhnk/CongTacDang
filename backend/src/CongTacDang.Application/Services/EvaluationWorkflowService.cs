@@ -193,7 +193,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     {
         ArgumentNullException.ThrowIfNull(request);
         if (request.Version is null)
-            throw new ValidationException("Thiếu phiên bản dữ liệu (version) của hồ sơ. Hãy tải lại hồ sơ rồi thử lại.");
+            throw new ValidationException("Thiếu phiên bản dữ liệu của hồ sơ. Hãy tải lại hồ sơ rồi thử lại.");
 
         var record = await _repo.FindRecordAsync(recordId, ct)
             ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
@@ -715,7 +715,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             ctx.Record.PublishedById = ctx.ActorId;
             ctx.Record.PublishedByName = ctx.ActorName;
             ctx.Record.PublishedAt = ctx.Now;
-            return Task.FromResult<string?>("Công bố, khóa kết quả.");
+            return Task.FromResult<string?>("Công bố và lưu trữ kết quả.");
         }, ct);
 
     /// <inheritdoc />
@@ -750,7 +750,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     {
         ArgumentNullException.ThrowIfNull(request);
         if (request.Version is null)
-            throw new ValidationException("Thiếu phiên bản dữ liệu (version) của hồ sơ. Hãy tải lại hồ sơ rồi thực hiện lại.");
+            throw new ValidationException("Thiếu phiên bản dữ liệu của hồ sơ. Hãy tải lại hồ sơ rồi thực hiện lại.");
 
         var record = await _repo.FindRecordAsync(recordId, ct)
             ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
@@ -1047,7 +1047,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         return new WorkQueueDto { Total = items.Count, Groups = groups };
     }
 
-    /// <summary>Cổng hiệu chuẩn, kiểm soát chưa đạt của hồ sơ theo chế độ hồ sơ luồng; cổng Off không được truy vấn.</summary>
+    /// <summary>Cổng hiệu chuẩn, kiểm soát chưa đạt của hồ sơ theo chế độ diện quyết định; cổng Off không được truy vấn.</summary>
     private async Task<List<GateOutcome>> EvaluateApprovalGatesAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct)
     {
         CalibrationGateResult? calibration = null;
@@ -1217,7 +1217,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
         // Mọi hành động ghi phải gửi phiên bản đã đọc.
         if (request.Version is null)
-            throw new ValidationException("Thiếu phiên bản dữ liệu (version) của hồ sơ. Hãy tải lại hồ sơ rồi thực hiện lại.");
+            throw new ValidationException("Thiếu phiên bản dữ liệu của hồ sơ. Hãy tải lại hồ sơ rồi thực hiện lại.");
 
         var record = await _repo.FindRecordAsync(recordId, ct)
             ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
@@ -1286,7 +1286,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         if (!draft && action.Advances && action.Step == WorkflowStep.B3B_APPRAISAL && _crosscheckGate != null)
             await _crosscheckGate.EnsureNoOpenAsync(record, profile, ct);
 
-        // Cổng hiệu chuẩn rồi kiểm soát chặn ghi nhận quyết định theo chế độ của hồ sơ luồng; Recorded chỉ ghi nhận thiếu.
+        // Cổng hiệu chuẩn rồi kiểm soát chặn ghi nhận quyết định theo chế độ của diện quyết định; Recorded chỉ ghi nhận thiếu.
         var gateWarnings = new List<GateOutcome>();
         if (!draft && action.Advances && action.Step == WorkflowStep.B4_DECISION)
         {
@@ -1557,7 +1557,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         }
         catch (FormatException)
         {
-            throw new ConflictException("Ảnh chụp bộ tiêu chí của kỳ bị lỗi định dạng. Hãy liên hệ người quản lý kỳ.");
+            throw new ConflictException("Bộ tiêu chí đã lưu trong kỳ bị lỗi định dạng. Hãy liên hệ người quản lý kỳ.");
         }
     }
 

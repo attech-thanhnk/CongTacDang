@@ -493,7 +493,7 @@ public sealed class PostPublishIntegrationTests
         using var anonymous = _factory.CreateClient();
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/notifications/summary")).StatusCode);
 
-        // Chủ hồ sơ C đang ở bước tự chấm (hồ sơ luồng kỳ chuyển tiếp) → 1 việc; tổng = hàng đợi.
+        // Chủ hồ sơ C đang ở bước tự chấm (diện quyết định kỳ chuyển tiếp) → 1 việc; tổng = hàng đợi.
         var summary = await Data(w.OwnerCC, "/api/notifications/summary");
         var queue = await Data(w.OwnerCC, "/api/evaluations/work-queue");
         Assert.Equal(queue.GetProperty("total").GetInt32(), summary.GetProperty("total").GetInt32());

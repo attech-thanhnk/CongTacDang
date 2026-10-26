@@ -35,7 +35,7 @@ public class UserController : ControllerBase
         try
         {
             var requesterId = User.GetUserId()
-                ?? throw new UnauthorizedAccessException("Không xác thực được danh tính người dùng hiện tại.");
+                ?? throw new UnauthorizedAccessException("Xác thực danh tính người dùng hiện tại không thành công.");
 
             var profile = await _userService.GetProfileForRequesterAsync(requesterId, username);
             return Ok(ApiResponse<UserProfileDto>.Ok(profile, "Lấy thông tin hồ sơ cán bộ thành công."));

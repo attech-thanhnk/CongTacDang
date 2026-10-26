@@ -11,7 +11,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>Luồng theo hồ sơ luồng: Giám đốc ghi nhận kết quả cấp trên, Bí thư Chi bộ là nhân viên, kẹt luồng khi mở kỳ.</summary>
+/// <summary>Luồng theo diện quyết định: Giám đốc ghi nhận kết quả cấp trên, Bí thư Chi bộ là nhân viên, kẹt luồng khi mở kỳ.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class WorkflowProfileIntegrationTests
 {
@@ -113,7 +113,7 @@ public sealed class WorkflowProfileIntegrationTests
     {
         var w = await WorldAsync();
         var periodId = (await CreatePeriodAsync(w)).GetProperty("id").GetGuid();
-        // Thêm người kèm hồ sơ luồng chỉ định.
+        // Thêm người kèm diện quyết định chỉ định.
         var added = await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
             new { memberIds = new[] { w.Staff.Id }, workflowProfileCode = "bi-thu-nhan-vien" }));
         Assert.Equal(1, added.GetProperty("added").GetInt32());
@@ -143,7 +143,7 @@ public sealed class WorkflowProfileIntegrationTests
 
         await StepAsync(w.Lead1C, id, "director-review", new { comment = "Trưởng phòng đề xuất HTT", proposedGrade = "HoanThanhTot" }, "AwaitingDecision");
 
-        // Đã qua B3c (bước khác nhau giữa hai hồ sơ luồng) → không đổi sang hồ sơ luồng cơ sở được.
+        // Đã qua B3c (bước khác nhau giữa hai diện quyết định) → không đổi sang diện quyết định cơ sở được.
         var participant = await ParticipantAsync(w, periodId, id);
         var change = await w.ManagerC.PutAsJsonAsync($"/api/evaluations/periods/{periodId}/participants/{id}/profile",
             new { version = participant.GetProperty("version").GetUInt32(), workflowProfileCode = "co-so", reason = "Nhầm nhóm" });
@@ -217,7 +217,7 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Contains(options.EnumerateArray(), o => o.GetProperty("code").GetString() == "evaluation.unit.review");
         Assert.DoesNotContain(options.EnumerateArray(), o => o.GetProperty("code").GetString() == "evaluation.self");
 
-        // Cấu hình không hợp lệ qua API → 400; xóa hồ sơ luồng đang dùng → 409.
+        // Cấu hình không hợp lệ qua API → 400; xóa diện quyết định đang dùng → 409.
         async Task<HttpResponseMessage> PutSettings(Action<JsonObject> edit)
         {
             var current = await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}");
@@ -245,7 +245,7 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Equal(HttpStatusCode.Conflict, removeUsed.StatusCode);
         Assert.Contains("cap-tren", await MessageAsync(removeUsed));
 
-        // Thêm hồ sơ luồng mới (sao chép "co-so", thẩm định không áp dụng) khi kỳ còn dự thảo.
+        // Thêm diện quyết định mới (sao chép "co-so", thẩm định không áp dụng) khi kỳ còn dự thảo.
         Assert.Equal(HttpStatusCode.OK, (await PutSettings(s =>
         {
             var copy = JsonNode.Parse(ProfileNode(s, "co-so").ToJsonString())!.AsObject();
@@ -255,7 +255,7 @@ public sealed class WorkflowProfileIntegrationTests
             s["profiles"]!.AsArray().Add(copy);
         })).StatusCode);
 
-        // Đổi hồ sơ luồng: thiếu lý do → 400; không tồn tại → 400; hàng loạt (1 hồ sơ sai phiên bản bị bỏ qua).
+        // Đổi diện quyết định: thiếu lý do → 400; không tồn tại → 400; hàng loạt (1 hồ sơ sai phiên bản bị bỏ qua).
         var staffRecord = participants.EnumerateArray().First(p => p.GetProperty("memberId").GetGuid() == w.Staff.Id);
         var directorRecord = participants.EnumerateArray().First(p => p.GetProperty("memberId").GetGuid() == w.Director.Id);
         var staffId = staffRecord.GetProperty("recordId").GetGuid();
@@ -286,7 +286,7 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Contains(history.EnumerateArray(), h => h.GetProperty("action").GetString() == "ChangeProfile"
             && h.GetProperty("reason").GetString() == "Nhóm không qua thẩm định");
 
-        // Thêm người được đánh giá kèm hồ sơ luồng chỉ định; mã không có trong kỳ → 400, không thêm ai.
+        // Thêm người được đánh giá kèm diện quyết định chỉ định; mã không có trong kỳ → 400, không thêm ai.
         var bad = await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
             new { memberIds = new[] { w.Staff3.Id }, workflowProfileCode = "khong-co" });
         Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
@@ -300,7 +300,7 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Equal("bi-thu-nhan-vien", added[w.Staff3.Id]);
         Assert.Equal("co-so", added[w.Other.Id]);
 
-        // Kỳ đã mở: chỉ sửa được thời hạn (kể cả thời hạn theo hồ sơ luồng); đổi chế độ bước → 409.
+        // Kỳ đã mở: chỉ sửa được thời hạn (kể cả thời hạn theo diện quyết định); đổi chế độ bước → 409.
         await OpenAsync(w, periodId);
         Assert.Equal(HttpStatusCode.OK,
             (await PutSettings(s => ProfileNode(s, "cap-tren")["steps"]!["B4_DECISION"]!["deadline"] = "2026-12-20")).StatusCode);
@@ -349,7 +349,7 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Equal(HttpStatusCode.OK, (await w.Lead1C.GetAsync($"/api/attachments/{v2.GetProperty("id").GetGuid()}/download")).StatusCode);
     }
 
-    /// <summary>Theo dõi tiến độ: bước đang chờ và số ngày quá hạn/còn lại theo hồ sơ luồng; hồ sơ đã công bố không tính hạn.</summary>
+    /// <summary>Theo dõi tiến độ: bước đang chờ và số ngày quá hạn/còn lại theo diện quyết định; hồ sơ đã công bố không tính hạn.</summary>
     [SkippableFact]
     public async Task G6_Participants_CurrentStepDeadline_OverdueAndDueSoon_PublishedNotCounted()
     {
@@ -616,7 +616,7 @@ public sealed class WorkflowProfileIntegrationTests
     {
         var period = await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}");
         await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open",
-            new { version = period.GetProperty("version").GetUInt32(), force = true, reason = "Kiểm thử hồ sơ luồng" }));
+            new { version = period.GetProperty("version").GetUInt32(), force = true, reason = "Kiểm thử diện quyết định" }));
     }
 
     private static async Task<Guid> OpenPeriodAsync(World w, params Guid[] members)

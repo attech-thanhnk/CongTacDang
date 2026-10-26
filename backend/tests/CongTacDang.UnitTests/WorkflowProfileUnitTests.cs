@@ -6,7 +6,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>Hồ sơ luồng (Internal / External / Off): cấu hình mặc định, kiểm tra, JSON, máy trạng thái, quyền thực hiện bước.</summary>
+/// <summary>Diện quyết định (Internal / External / Off): cấu hình mặc định, kiểm tra, JSON, máy trạng thái, quyền thực hiện bước.</summary>
 public sealed class WorkflowProfileUnitTests
 {
     private static List<string> Validate(PeriodSettings settings) => settings.Validate(WorkflowActions.IsAssignableStepPermission);
@@ -57,7 +57,7 @@ public sealed class WorkflowProfileUnitTests
         Assert.Equal(StepMode.Internal, deputy.Mode(WorkflowStep.B3C_DIRECTOR));
         Assert.Equal(StepMode.External, deputy.Mode(WorkflowStep.B4_DECISION));
 
-        // Đăng ký sản phẩm luôn do chủ hồ sơ thực hiện ở mọi cách xét duyệt.
+        // Đăng ký sản phẩm luôn do chủ hồ sơ thực hiện ở mọi diện quyết định.
         Assert.All(full.Profiles, p => Assert.Equal(StepMode.Internal, p.Mode(WorkflowStep.B1_REGISTER)));
     }
 
@@ -137,7 +137,7 @@ public sealed class WorkflowProfileUnitTests
 
         var oldVersion = PeriodSettings.Parse("{\"schemaVersion\":1,\"steps\":{\"B1_REGISTER\":{\"enabled\":true}}}");
         Assert.Contains(Validate(oldVersion), e => e.Contains("Phiên bản cấu hình 1", StringComparison.Ordinal));
-        Assert.Contains(Validate(oldVersion), e => e.Contains("ít nhất một cách xét duyệt", StringComparison.Ordinal));
+        Assert.Contains(Validate(oldVersion), e => e.Contains("ít nhất một diện quyết định", StringComparison.Ordinal));
 
         var unknownStep = PeriodSettings.Default();
         Profile(unknownStep, "co-so").Steps["B9_UNKNOWN"] = new ProfileStepSetting();
@@ -165,7 +165,7 @@ public sealed class WorkflowProfileUnitTests
 
         var empty = PeriodSettings.Default();
         empty.Profiles.Clear();
-        Assert.Contains(Validate(empty), e => e.Contains("ít nhất một cách xét duyệt", StringComparison.Ordinal));
+        Assert.Contains(Validate(empty), e => e.Contains("ít nhất một diện quyết định", StringComparison.Ordinal));
     }
 
     [Theory]
@@ -285,7 +285,7 @@ public sealed class WorkflowProfileUnitTests
 
     #endregion
 
-    #region Máy trạng thái theo hồ sơ luồng
+    #region Máy trạng thái theo diện quyết định
 
     [Fact]
     public void StateMachine_ExternalStepsAreActive_OffStepsAreSkipped()

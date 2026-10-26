@@ -48,7 +48,7 @@ public static class WorkflowActions
         new WorkflowActionDefinition(ReturnByAppraiser, WorkflowStep.B3B_APPRAISAL, WorkflowAction.Return, "Trả lại để chủ hồ sơ sửa"),
         new WorkflowActionDefinition(DirectorReview, WorkflowStep.B3C_DIRECTOR, WorkflowAction.Complete, "Nhận xét, đề xuất"),
         new WorkflowActionDefinition(RecordDecision, WorkflowStep.B4_DECISION, WorkflowAction.Complete, "Ghi nhận quyết định"),
-        new WorkflowActionDefinition(Publish, WorkflowStep.B5_PUBLISH, WorkflowAction.Complete, "Công bố, khóa kết quả"),
+        new WorkflowActionDefinition(Publish, WorkflowStep.B5_PUBLISH, WorkflowAction.Complete, "Công bố kết quả"),
         new WorkflowActionDefinition(Reopen, WorkflowStep.B5_PUBLISH, WorkflowAction.Reopen, "Mở lại hồ sơ")
     };
 
@@ -65,7 +65,7 @@ public static class WorkflowActions
     public static WorkflowActionDefinition ExternalOf(WorkflowStep step) =>
         new(RecordExternal, step, WorkflowAction.RecordExternal, "Ghi nhận kết quả của cấp trên");
 
-    /// <summary>Theo chế độ của bước trong hồ sơ luồng; null khi bước không áp dụng.</summary>
+    /// <summary>Theo chế độ của bước trong diện quyết định; null khi bước không áp dụng.</summary>
     public static WorkflowActionDefinition? AdvanceOf(WorkflowStep step, WorkflowProfile profile) => profile.Mode(step) switch
     {
         StepMode.Internal => CompleteOf(step),
@@ -75,7 +75,7 @@ public static class WorkflowActions
 
     /// <summary>
     /// Mở lại → <c>evaluation.reopen</c>; ghi nhận cấp trên → <c>evaluation.external.record</c>; bước của chủ hồ sơ →
-    /// <c>evaluation.self</c>; bước nội bộ → quyền cấu hình trong hồ sơ luồng.
+    /// <c>evaluation.self</c>; bước nội bộ → quyền cấu hình trong diện quyết định.
     /// </summary>
     public static string PermissionFor(WorkflowActionDefinition action, WorkflowProfile profile)
     {
@@ -84,7 +84,7 @@ public static class WorkflowActions
             return PermissionCodes.EvaluationReopen;
         if (action.Kind == WorkflowAction.RecordExternal)
             return PermissionCodes.EvaluationExternalRecord;
-        // Thu hồi duyệt danh mục dùng chung quyền bước duyệt theo hồ sơ luồng (nhánh cuối).
+        // Thu hồi duyệt danh mục dùng chung quyền bước duyệt theo diện quyết định (nhánh cuối).
         if (WorkflowSteps.OwnerSteps.Contains(action.Step))
             return PermissionCodes.EvaluationSelf;
         var setting = profile.Step(action.Step);
@@ -104,11 +104,11 @@ public static class WorkflowActions
         return (profile.Mode(action.Step), action.Kind) switch
         {
             (StepMode.Off, _) =>
-                $"Bước \"{name}\" không áp dụng cho nhóm đối tượng của hồ sơ này (cách xét duyệt \"{profile.Name}\").",
+                $"Bước \"{name}\" không áp dụng cho diện quyết định của hồ sơ này (diện quyết định \"{profile.Name}\").",
             (StepMode.External, not WorkflowAction.RecordExternal) =>
-                $"Bước \"{name}\" do cấp trên thực hiện đối với cách xét duyệt \"{profile.Name}\": hãy dùng chức năng \"Ghi nhận kết quả của cấp trên\".",
+                $"Bước \"{name}\" do cấp trên thực hiện đối với diện quyết định \"{profile.Name}\": hãy dùng chức năng \"Ghi nhận kết quả của cấp trên\".",
             (StepMode.Internal, WorkflowAction.RecordExternal) =>
-                $"Bước \"{name}\" được thực hiện trong hệ thống đối với cách xét duyệt \"{profile.Name}\", không ghi nhận kết quả của cấp trên được.",
+                $"Bước \"{name}\" được thực hiện trong hệ thống đối với diện quyết định \"{profile.Name}\", không ghi nhận kết quả của cấp trên được.",
             _ => null
         };
     }

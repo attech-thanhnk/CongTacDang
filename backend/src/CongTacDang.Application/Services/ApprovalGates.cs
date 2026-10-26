@@ -59,7 +59,7 @@ public static class ApprovalGateCodes
 /// <summary>Một cổng chưa đạt: chặn (Required) hoặc chỉ cảnh báo (Recorded).</summary>
 public sealed record GateOutcome(string Code, string Reason, bool Blocks);
 
-/// <summary>Quy tắc thuần ghép chế độ cổng trong hồ sơ luồng với kết quả kiểm tra; hiệu chuẩn xét trước kiểm soát.</summary>
+/// <summary>Quy tắc thuần ghép chế độ cổng trong diện quyết định với kết quả kiểm tra; hiệu chuẩn xét trước kiểm soát.</summary>
 public static class ApprovalGatePolicy
 {
     public static List<GateOutcome> Evaluate(WorkflowProfile profile, CalibrationGateResult? calibration, ControlGateResult? control)
@@ -80,7 +80,7 @@ public static class ApprovalGatePolicy
     /// <summary>Cổng chặn đầu tiên theo thứ tự hiệu chuẩn rồi kiểm soát; null nếu không bị chặn.</summary>
     public static GateOutcome? FirstBlock(IEnumerable<GateOutcome> outcomes) => outcomes.FirstOrDefault(o => o.Blocks);
 
-    /// <summary>Hồ sơ luồng bắt buộc hiệu chuẩn mà chưa thuộc biên bản đã chốt còn hiệu lực; dùng cho điều kiện thứ tự của phiếu kiểm soát.</summary>
+    /// <summary>Diện quyết định bắt buộc hiệu chuẩn mà chưa thuộc biên bản đã chốt còn hiệu lực; dùng cho điều kiện thứ tự của phiếu kiểm soát.</summary>
     public static List<EvaluationRecord> Uncalibrated(
         PeriodSettings settings, IEnumerable<EvaluationRecord> records, IReadOnlyDictionary<Guid, CalibrationGateResult> results) =>
         records
