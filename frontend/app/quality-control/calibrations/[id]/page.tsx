@@ -264,6 +264,7 @@ export default function CalibrationDetailPage() {
           name: r.fullName,
           detail: [r.departmentName, r.partyCellName, `Trước hiệu chuẩn: ${gradeLabel(r.gradeBefore)}`].filter(Boolean).join(" · "),
           group: r.workflowProfileName,
+          unit: r.departmentName || r.partyCellName || undefined,
         }))
       );
     } catch (err: unknown) {
@@ -597,7 +598,12 @@ export default function CalibrationDetailPage() {
               const rec = recordById(c.recordId);
               const dto = caseDto(c.recordId);
               const key = `cal-case-${i}`;
-              const changed = c.gradeAfter !== "" || c.scoreAfter.trim() !== "";
+              const beforeGrade = rec?.gradeBefore ?? dto?.gradeBefore;
+              const beforeScore = rec?.scoreBefore ?? dto?.scoreBefore;
+              // Cùng cách tính với máy chủ: chỉ coi là điều chỉnh khi mức hoặc điểm sau khác trước.
+              const changed =
+                (c.gradeAfter !== "" && c.gradeAfter !== beforeGrade) ||
+                (c.scoreAfter.trim() !== "" && (beforeScore == null || Math.abs(Number(c.scoreAfter) - beforeScore) >= 0.0001));
               return (
                 <div key={c.recordId} className="border rounded p-3 d-flex flex-column gap-2">
                   <div className="d-flex justify-content-between align-items-start gap-2 flex-wrap">
@@ -630,7 +636,7 @@ export default function CalibrationDetailPage() {
                     </div>
                     <div className="col-6 col-md-3">
                       <label className="form-label small mb-1" htmlFor={`${key}-sc`}>Điểm sau</label>
-                      <input id={`${key}-sc`} type="number" step={0.1} min={0} className="form-control form-control-sm text-end" value={c.scoreAfter} disabled={ro}
+                      <input id={`${key}-sc`} type="number" step={0.1} min={0} max={100} className="form-control form-control-sm text-end" value={c.scoreAfter} disabled={ro}
                         onChange={(e) => setCase(c.recordId, { scoreAfter: e.target.value })} />
                     </div>
                     <div className="col-6 col-md-4">

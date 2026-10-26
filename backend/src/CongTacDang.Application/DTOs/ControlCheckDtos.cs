@@ -80,6 +80,20 @@ public class ControlCheckDto : ControlCheckSummaryDto
     public bool CanCancel { get; set; }
 }
 
+/// <summary>Hồ sơ có thể đưa vào phiếu kiểm soát mới.</summary>
+public class ControlCheckCandidateDto
+{
+    public Guid RecordId { get; set; }
+    public Guid MemberId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string? DepartmentName { get; set; }
+    public string? PartyCellName { get; set; }
+    public string WorkflowProfileCode { get; set; } = string.Empty;
+    public string WorkflowProfileName { get; set; } = string.Empty;
+    public string Grade { get; set; } = string.Empty;
+    public double Score { get; set; }
+}
+
 public class CreateControlCheckDto
 {
     public Guid PeriodId { get; set; }

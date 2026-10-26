@@ -8,6 +8,8 @@ export interface PickerRow {
   detail?: string;
   /** Nhóm lọc (ví dụ diện quyết định); để trống nếu không lọc. */
   group?: string;
+  /** Đơn vị của hồ sơ; một biên bản hay phiếu nên gồm hồ sơ cùng đơn vị. */
+  unit?: string;
 }
 
 interface Props {
@@ -29,18 +31,21 @@ interface Props {
 export function RecordPickerDialog({ isOpen, title, confirmText, rows, loading, busy, askGroupName, groupNameRequired, emptyText, onCancel, onConfirm }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [group, setGroup] = useState("");
+  const [unitFilter, setUnitFilter] = useState("");
   const [groupName, setGroupName] = useState("");
 
   useEffect(() => {
     if (isOpen) {
       setSelected(new Set());
       setGroup("");
+      setUnitFilter("");
       setGroupName("");
     }
   }, [isOpen]);
 
   const groups = useMemo(() => Array.from(new Set(rows.map((r) => r.group).filter((g): g is string => !!g))), [rows]);
-  const visible = useMemo(() => rows.filter((r) => !group || r.group === group), [rows, group]);
+  const units = useMemo(() => Array.from(new Set(rows.map((r) => r.unit).filter((u): u is string => !!u))), [rows]);
+  const visible = useMemo(() => rows.filter((r) => (!group || r.group === group) && (!unitFilter || r.unit === unitFilter)), [rows, group, unitFilter]);
 
   if (!isOpen) return null;
 
@@ -79,6 +84,12 @@ export function RecordPickerDialog({ isOpen, title, confirmText, rows, loading, 
               <select className="form-select form-select-sm" aria-label="Lọc theo diện quyết định" value={group} onChange={(e) => setGroup(e.target.value)}>
                 <option value="">Mọi diện quyết định</option>
                 {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+              </select>
+            )}
+            {units.length > 1 && (
+              <select className="form-select form-select-sm" aria-label="Lọc theo đơn vị" value={unitFilter} onChange={(e) => setUnitFilter(e.target.value)}>
+                <option value="">Mọi đơn vị</option>
+                {units.map((u) => <option key={u} value={u}>{u}</option>)}
               </select>
             )}
             {loading ? (

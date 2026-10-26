@@ -8,9 +8,11 @@ import { HeaderMenu } from "@/components/common/HeaderMenu";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Badge, GradeBadge } from "@/components/common/StatusBadge";
 import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
+import { RecordPickerDialog, PickerRow } from "@/components/quality/RecordPickerDialog";
 import { errorMessage } from "@/components/admin/adminUtils";
 import { useToast } from "@/contexts/ToastContext";
 import { formatDateTime } from "@/lib/dateFormat";
+import { gradeLabel } from "@/services/evaluationService";
 import { reportService } from "@/services/reportService";
 import {
   CONTROL_ACTION_LABELS,
@@ -23,8 +25,19 @@ import {
   controlCheckService,
 } from "@/services/controlCheckService";
 
+interface RecRow {
+  recordId: string;
+  fullName: string;
+  unit: string;
+  grade: string;
+  score: number;
+  isCurrent: boolean;
+  isStale: boolean;
+}
+
 interface Draft {
   groupName: string;
+  records: RecRow[];
   conclusion: ControlCheckConclusion | "";
   needsWorkContent: string;
   items: { itemCode: string; result: ControlCheckResult | ""; evidence: string }[];
@@ -32,6 +45,15 @@ interface Draft {
 
 const toDraft = (c: ControlCheckDto): Draft => ({
   groupName: c.groupName ?? "",
+  records: c.records.map((r) => ({
+    recordId: r.recordId,
+    fullName: r.fullName,
+    unit: [r.departmentName, r.partyCellName].filter(Boolean).join(" · "),
+    grade: r.gradeAtCheck,
+    score: r.scoreAtCheck,
+    isCurrent: r.isCurrent,
+    isStale: r.isStale,
+  })),
   conclusion: c.conclusion ?? "",
   needsWorkContent: c.needsWorkContent ?? "",
   items: c.items.map((i) => ({ itemCode: i.itemCode, result: i.result ?? "", evidence: i.evidence ?? "" })),
@@ -54,6 +76,10 @@ export default function ControlCheckDetailPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [adding, setAdding] = useState(false);
+  const [pickerRows, setPickerRows] = useState<PickerRow[]>([]);
+  const [pickerLoading, setPickerLoading] = useState(false);
+  const [candidateInfo, setCandidateInfo] = useState<Record<string, RecRow>>({});
 
   const apply = useCallback((c: ControlCheckDto) => {
     setData(c);
@@ -79,10 +105,11 @@ export default function ControlCheckDetailPage() {
 
   const body = (version: number) => ({
     version,
-    groupName: draft?.groupName.trim() || null,
+    groupName: draft?.groupName.trim() ?? "",
+    recordIds: (draft?.records ?? []).map((r) => r.recordId),
     items: (draft?.items ?? []).map((i) => ({ itemCode: i.itemCode, result: i.result || null, evidence: i.evidence.trim() || null })),
     conclusion: draft?.conclusion ?? "",
-    needsWorkContent: draft?.needsWorkContent.trim() || null,
+    needsWorkContent: draft?.needsWorkContent.trim() ?? "",
   });
 
   /** Chạy lệnh ghi; lỗi (kể cả lệch phiên bản) hiện qua toast và tải lại phiếu. */
@@ -159,6 +186,48 @@ export default function ControlCheckDetailPage() {
     }
   };
 
+  const openPicker = async () => {
+    if (!data || !draft) return;
+    setAdding(true);
+    setPickerLoading(true);
+    setPickerRows([]);
+    try {
+      const rows = await controlCheckService.candidates(data.periodId);
+      const taken = new Set(draft.records.map((r) => r.recordId));
+      const free = rows.filter((r) => !taken.has(r.recordId));
+      setCandidateInfo(
+        Object.fromEntries(
+          free.map((r) => [
+            r.recordId,
+            {
+              recordId: r.recordId,
+              fullName: r.fullName,
+              unit: [r.departmentName, r.partyCellName].filter(Boolean).join(" · "),
+              grade: r.grade,
+              score: r.score,
+              isCurrent: true,
+              isStale: false,
+            } as RecRow,
+          ])
+        )
+      );
+      setPickerRows(
+        free.map((r) => ({
+          id: r.recordId,
+          name: r.fullName,
+          detail: [r.departmentName, r.partyCellName, `Mức hiện tại: ${gradeLabel(r.grade)} (${r.score})`].filter(Boolean).join(" · "),
+          group: r.workflowProfileName,
+          unit: r.departmentName || r.partyCellName || undefined,
+        }))
+      );
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Tải danh sách hồ sơ không thành công."));
+      setAdding(false);
+    } finally {
+      setPickerLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="page-wrapper">
@@ -182,6 +251,12 @@ export default function ControlCheckDetailPage() {
 
   const ro = !data.canEdit;
   const primary = data.canConfirm ? { label: "Xác nhận", onClick: confirmIt } : data.canSubmit ? { label: "Gửi xác nhận", onClick: submit } : null;
+  const addRecords = (ids: string[]) => {
+    const rows = ids.map((i) => candidateInfo[i]).filter((r): r is RecRow => !!r);
+    setDraft({ ...draft, records: [...draft.records, ...rows] });
+    setAdding(false);
+  };
+  const removeRecord = (rid: string) => setDraft({ ...draft, records: draft.records.filter((r) => r.recordId !== rid) });
   const setItem = (code: string, patch: Partial<Draft["items"][number]>) =>
     setDraft((d) => (d ? { ...d, items: d.items.map((i) => (i.itemCode === code ? { ...i, ...patch } : i)) } : d));
 
@@ -253,17 +328,26 @@ export default function ControlCheckDetailPage() {
               {data.confirmedByName ? ` · Xác nhận: ${data.confirmedByName}${data.confirmedAt ? ` · ${formatDateTime(data.confirmedAt)}` : ""}` : ""}
             </div>
             <div>
-              <div className="fw-semibold small mb-1">Hồ sơ trong phiếu ({data.records.length})</div>
+              <div className="d-flex justify-content-between align-items-center gap-2 mb-1">
+                <div className="fw-semibold small">Hồ sơ trong phiếu ({draft.records.length})</div>
+                {!ro && <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy} onClick={openPicker}>Thêm hồ sơ</button>}
+              </div>
               <div className="d-flex flex-column gap-1">
-                {data.records.map((r) => (
+                {draft.records.map((r) => (
                   <div key={r.recordId} className="d-flex flex-wrap justify-content-between gap-2 small border rounded px-2 py-1" style={r.isCurrent ? undefined : { opacity: 0.6 }}>
                     <span>
                       <Link href={`/evaluations/${r.recordId}`} className="fw-semibold text-decoration-none">{r.fullName}</Link>
-                      <span className="text-secondary"> · {[r.departmentName, r.partyCellName].filter(Boolean).join(" · ") || "—"}</span>
+                      <span className="text-secondary"> · {r.unit || "—"}</span>
                       {!r.isCurrent && <span className="text-secondary"> · đã chuyển sang phiếu khác</span>}
                       {r.isCurrent && r.isStale && <span className="ms-2"><Badge tone="danger">Hết hiệu lực</Badge></span>}
                     </span>
-                    <span className="d-inline-flex gap-2 align-items-center"><GradeBadge grade={r.gradeAtCheck} /><span className="num">{r.scoreAtCheck}</span></span>
+                    <span className="d-inline-flex gap-2 align-items-center">
+                      <GradeBadge grade={r.grade} />
+                      <span className="num">{r.score}</span>
+                      {!ro && draft.records.length > 1 && (
+                        <button type="button" className="btn btn-link btn-sm text-danger p-0" disabled={busy} onClick={() => removeRecord(r.recordId)}>Gỡ</button>
+                      )}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -338,6 +422,17 @@ export default function ControlCheckDetailPage() {
           </section>
         )}
       </div>
+
+      <RecordPickerDialog
+        isOpen={adding}
+        title="Thêm hồ sơ vào phiếu"
+        confirmText="Thêm hồ sơ"
+        rows={pickerRows}
+        loading={pickerLoading}
+        emptyText="Không còn hồ sơ nào có thể thêm."
+        onCancel={() => setAdding(false)}
+        onConfirm={(ids) => addRecords(ids)}
+      />
 
       <ReasonDialog
         isOpen={dialog !== null}

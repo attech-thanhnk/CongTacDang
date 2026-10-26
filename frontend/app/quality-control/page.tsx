@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePeriod } from "@/contexts/PeriodContext";
 import { useToast } from "@/contexts/ToastContext";
 import { formatDate } from "@/lib/dateFormat";
-import { evaluationService, gradeLabel } from "@/services/evaluationService";
+import { gradeLabel } from "@/services/evaluationService";
 import {
   CALIBRATION_STATUS_LABELS,
   CALIBRATION_STATUS_TONES,
@@ -123,6 +123,11 @@ export default function QualityControlPage() {
       toast.error("Hãy chọn một kỳ đánh giá trước khi lập.");
       return;
     }
+    const selected = periods.find((p) => p.id === periodFilter);
+    if (selected && selected.status !== "Open") {
+      toast.error("Chỉ lập khi kỳ đánh giá đang mở. Hãy chọn kỳ đang mở.");
+      return;
+    }
     setPickerOpen(true);
     setPickerLoading(true);
     setPickerRows([]);
@@ -135,19 +140,19 @@ export default function QualityControlPage() {
             name: r.fullName,
             detail: [r.departmentName, r.partyCellName, `Trước hiệu chuẩn: ${gradeLabel(r.gradeBefore)}${r.scoreBefore != null ? ` (${r.scoreBefore})` : ""}`].filter(Boolean).join(" · "),
             group: r.workflowProfileName,
+            unit: r.departmentName || r.partyCellName || undefined,
           }))
         );
       } else {
-        const rows = await evaluationService.getRecordsByPeriod(periodFilter);
+        const rows = await controlCheckService.candidates(periodFilter);
         setPickerRows(
-          rows
-            .filter((r) => r.status === "AwaitingDecision")
-            .map((r) => ({
-              id: r.id,
-              name: r.fullName,
-              detail: [r.departmentName, r.partyCellName, `Mức hiện tại: ${gradeLabel(r.reviewedGrade || r.appraisalProposedGrade)}`].filter(Boolean).join(" · "),
-              group: r.workflowProfileName,
-            }))
+          rows.map((r) => ({
+            id: r.recordId,
+            name: r.fullName,
+            detail: [r.departmentName, r.partyCellName, `Mức hiện tại: ${gradeLabel(r.grade)} (${r.score})`].filter(Boolean).join(" · "),
+            group: r.workflowProfileName,
+            unit: r.departmentName || r.partyCellName || undefined,
+          }))
         );
       }
     } catch (err: unknown) {
