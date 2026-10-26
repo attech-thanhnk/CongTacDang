@@ -85,15 +85,16 @@ public static class DataSeeder
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport, PermissionCodes.EvaluationImprovementManage }),
         new(RoleCodes.PartyCommitteeMember, "Cấp ủy viên Đảng ủy", "Xem hồ sơ, biên bản, báo cáo.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.MeetingRead, PermissionCodes.ReportExport }),
-        new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy (quyết định, công bố)", "Ghi nhận quyết định và kết quả của cấp trên, công bố, mở lại hồ sơ, xử lý kiến nghị.",
+        new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy (quyết định, công bố)", "Ghi nhận quyết định và kết quả của cấp trên, công bố, mở lại hồ sơ, xử lý kiến nghị; xác nhận phiếu đối soát do cơ quan ngoài hệ thống (người yêu cầu nhập thay).",
             new[]
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationExternalRecord,
                 PermissionCodes.EvaluationPublish, PermissionCodes.EvaluationReopen, PermissionCodes.MeetingRead,
                 PermissionCodes.MeetingManage, PermissionCodes.ReportExport, PermissionCodes.EvaluationAppealResolve,
-                PermissionCodes.EvaluationControlConfirm, PermissionCodes.EvaluationCalibrationConclude
+                PermissionCodes.EvaluationControlConfirm, PermissionCodes.EvaluationCalibrationConclude,
+                PermissionCodes.EvaluationCrosscheckConfirm
             }),
-        new(RoleCodes.ExpertAgency, "Cơ quan chuyên môn", "Lập và xác nhận Phiếu đối soát dữ liệu chuyên ngành (Mẫu 03) gửi tới đơn vị mình; gán theo đơn vị của từng Ban.",
+        new(RoleCodes.ExpertAgency, "Cơ quan chuyên môn", "Phòng, đơn vị chuyên môn của ATTECH (ví dụ Phòng Kỹ thuật - An toàn - Chất lượng, Phòng Tài chính - Kế toán): lập và xác nhận Phiếu đối soát dữ liệu chuyên ngành (Mẫu 03) gửi tới đơn vị mình; gán theo đơn vị của từng phòng, đơn vị.",
             new[] { PermissionCodes.EvaluationCrosscheckRespond, PermissionCodes.EvaluationCrosscheckConfirm }),
         new(RoleCodes.Administrator, "Quản trị hệ thống", "Quản trị kỹ thuật: tài khoản, vai trò, gán vai trò, nhật ký, danh mục, thông tin đơn vị, file mẫu biểu mẫu Word. "
             + "Không xem nội dung đánh giá (Mẫu 18).",

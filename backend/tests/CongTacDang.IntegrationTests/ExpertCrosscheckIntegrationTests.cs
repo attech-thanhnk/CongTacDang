@@ -171,14 +171,14 @@ public sealed class ExpertCrosscheckIntegrationTests
         var edited = await Data(await UiAsync(w.ManagerC, HttpMethod.Put, $"/api/crosschecks/{id}", new
         {
             version = created.GetProperty("version").GetUInt32(), expertDepartmentId = w.ExpertDept, expertAgencyName = (string?)null,
-            fields = new[] { "SAFETY_QUALITY" }, addresseeName = "Ban chuyên môn", requestReason = "Đối soát số liệu quý (sửa)",
+            fields = new[] { "SAFETY_QUALITY" }, addresseeName = "Phòng chuyên môn", requestReason = "Đối soát số liệu quý (sửa)",
             items = new object[]
             {
                 new { taskId, itemName = "Sản phẩm đối soát", selfData = "ghi chú" },
                 new { taskId = (Guid?)null, itemName = "Dòng tự do", selfData = "12 sự cố" }
             }
         }));
-        Assert.Equal("Ban chuyên môn", edited.GetProperty("addresseeName").GetString());
+        Assert.Equal("Phòng chuyên môn", edited.GetProperty("addresseeName").GetString());
 
         // Lưu nháp như trang phiếu: mọi trường có mặt, ô trống là chuỗi rỗng hoặc null, dòng không áp dụng.
         var rows = edited.GetProperty("items").EnumerateArray().Select(i => i.GetProperty("id").GetGuid()).ToArray();
@@ -260,6 +260,49 @@ public sealed class ExpertCrosscheckIntegrationTests
         Assert.Equal("Confirmed", confirmed.GetProperty("status").GetString());
     }
 
+    [SkippableFact]
+    public async Task Crosscheck_ExternalAgency_PartyOfficeConfirms_ButNotOwnRecord()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var w = await WorldAsync();
+        var office = await _factory.CreateUserAsync(w.Dept, w.Cell, ApprovalAuthority.CoSo, "DS Văn phòng Đảng ủy");
+        await _factory.AssignAsync(office.Id, await _factory.GetRoleIdAsync("VAN_PHONG_DANG_UY"), RoleScopeType.Global, null);
+        var officeC = await _factory.LoginAsAsync(office.Username, office.Password, distinctClientIp: true);
+
+        // Phiếu của cán bộ khác: người yêu cầu nhập thay và gửi, Văn phòng Đảng ủy xác nhận.
+        var id = await SubmittedExternalAsync(w, await AppraisalRecordAsync(w));
+        var seen = await Data(officeC, $"/api/crosschecks/{id}");
+        Assert.True(seen.GetProperty("canConfirm").GetBoolean());
+        var confirmed = await Data(await UiAsync(officeC, HttpMethod.Post, $"/api/crosschecks/{id}/confirm", new { version = seen.GetProperty("version").GetUInt32() }));
+        Assert.Equal("Confirmed", confirmed.GetProperty("status").GetString());
+
+        // Phiếu về hồ sơ của chính người này: không thấy, không xác nhận được.
+        var ownId = await SubmittedExternalAsync(w, await AppraisalRecordAsync(w, office.Id));
+        Assert.Equal(HttpStatusCode.Forbidden, (await officeC.GetAsync($"/api/crosschecks/{ownId}")).StatusCode);
+        var denied = await UiAsync(officeC, HttpMethod.Post, $"/api/crosschecks/{ownId}/confirm", new { version = 1u });
+        Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+    }
+
+    private static async Task<Guid> SubmittedExternalAsync(World w, Guid recordId)
+    {
+        var created = await Data(await UiAsync(w.ManagerC, HttpMethod.Post, $"/api/evaluations/records/{recordId}/crosschecks", new
+        {
+            expertDepartmentId = (Guid?)null, expertAgencyName = "Cục Hàng không", fields = new[] { "ATM" },
+            addresseeName = "", requestReason = "Xác nhận số liệu",
+            items = new[] { new { taskId = (Guid?)null, itemName = "Chỉ tiêu ngoài", selfData = (string?)null } }
+        }));
+        var id = created.GetProperty("id").GetGuid();
+        var rowId = created.GetProperty("items")[0].GetProperty("id").GetGuid();
+        var saved = await Data(await UiAsync(w.ManagerC, HttpMethod.Put, $"/api/crosschecks/{id}/response", new
+        {
+            version = created.GetProperty("version").GetUInt32(), issuedDate = (string?)null,
+            items = new[] { new { id = rowId, sourceData = "Khớp văn bản", result = (string?)"Pass", adjustmentType = "None", adjustmentPoints = (double?)null,
+                basisText = "", basisDocNumber = "", basisDocDate = (string?)null, basisAgency = "", notApplicable = false } }
+        }));
+        await Data(await UiAsync(w.ManagerC, HttpMethod.Post, $"/api/crosschecks/{id}/submit", new { version = saved.GetProperty("version").GetUInt32() }));
+        return id;
+    }
+
     #region Hỗ trợ
 
     /// <summary>Gửi đúng chuỗi JSON như axios của giao diện (giá trị null giữ nguyên, trường undefined bị bỏ).</summary>
@@ -271,7 +314,7 @@ public sealed class ExpertCrosscheckIntegrationTests
 
     private sealed class World
     {
-        public Guid Dept, ExpertDept, OtherExpertDept;
+        public Guid Dept, ExpertDept, OtherExpertDept, Cell;
         public TestUser Owner = null!;
         public HttpClient OwnerC = null!, ManagerC = null!, ResponderC = null!, ConfirmerC = null!, OtherExpertC = null!;
     }
@@ -293,12 +336,13 @@ public sealed class ExpertCrosscheckIntegrationTests
             await _factory.WithDbAsync(async db =>
             {
                 var d = new AdministrativeDepartment { Code = $"DS-P-{suffix}", Name = $"Phòng DS {suffix}" };
-                var e1 = new AdministrativeDepartment { Code = $"DS-E1-{suffix}", Name = $"Ban chuyên môn {suffix}" };
-                var e2 = new AdministrativeDepartment { Code = $"DS-E2-{suffix}", Name = $"Ban khác {suffix}" };
+                var e1 = new AdministrativeDepartment { Code = $"DS-E1-{suffix}", Name = $"Phòng chuyên môn {suffix}" };
+                var e2 = new AdministrativeDepartment { Code = $"DS-E2-{suffix}", Name = $"Phòng khác {suffix}" };
                 var c = new PartyCell { Code = $"DS-C-{suffix}", Name = $"Chi bộ DS {suffix}" };
                 db.AddRange(d, e1, e2, c);
                 await db.SaveChangesAsync();
                 (w.Dept, w.ExpertDept, w.OtherExpertDept, cell) = (d.Id, e1.Id, e2.Id, c.Id);
+                w.Cell = c.Id;
             });
 
             w.Owner = await _factory.CreateUserAsync(w.Dept, cell, ApprovalAuthority.CoSo, $"DS Chủ hồ sơ {suffix}");
@@ -330,7 +374,7 @@ public sealed class ExpertCrosscheckIntegrationTests
     }
 
     /// <summary>Kỳ mới mở, hồ sơ của chủ hồ sơ được đặt thẳng ở bước thẩm định để thử phiếu.</summary>
-    private async Task<Guid> AppraisalRecordAsync(World w)
+    private async Task<Guid> AppraisalRecordAsync(World w, Guid? ownerId = null)
     {
         var body = new
         {
@@ -340,12 +384,12 @@ public sealed class ExpertCrosscheckIntegrationTests
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         };
         var periodId = (await Data(await w.ManagerC.PostAsJsonAsync("/api/evaluations/periods", body))).GetProperty("id").GetGuid();
-        await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { w.Owner.Id } }));
+        await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { ownerId ?? w.Owner.Id } }));
         var period = await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}");
         await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open",
             new { version = period.GetProperty("version").GetUInt32(), reason = "Kiểm thử đối soát", force = true }));
         var recordId = (await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}/participants")).EnumerateArray()
-            .First(p => p.GetProperty("memberId").GetGuid() == w.Owner.Id).GetProperty("recordId").GetGuid();
+            .First(p => p.GetProperty("memberId").GetGuid() == (ownerId ?? w.Owner.Id)).GetProperty("recordId").GetGuid();
         await _factory.WithDbAsync(async db =>
         {
             var record = db.Set<EvaluationRecord>().Single(r => r.Id == recordId);
@@ -359,7 +403,7 @@ public sealed class ExpertCrosscheckIntegrationTests
     {
         expertDepartmentId = w.ExpertDept,
         fields = new[] { "SAFETY_QUALITY" },
-        addresseeName = "Ban chuyên môn",
+        addresseeName = "Phòng chuyên môn",
         requestReason = "Xác nhận số liệu sự cố trong quý",
         items = new object[] { new { itemName = "Số sự cố nghiêm trọng", selfData = "0" } }
     };

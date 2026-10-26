@@ -6,6 +6,8 @@ using CongTacDang.Domain.Evaluation;
 using CongTacDang.Infrastructure.Data;
 using CongTacDang.IntegrationTests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql;
 using Xunit;
 
@@ -157,6 +159,52 @@ public sealed class DataSeederAuthorizationTests
                 await DataSeeder.SeedAsync(db);
                 Assert.Equal(0, await db.Roles.CountAsync(r => r.Code == "CO_QUAN_CHUYEN_MON"));
                 Assert.Equal(1, await db.Roles.IgnoreQueryFilters().CountAsync(r => r.Code == "CO_QUAN_CHUYEN_MON"));
+            }
+        });
+    }
+
+    [SkippableFact]
+    public async Task VanPhongDangUy_HasCrosscheckConfirm_OldDatabaseGrantedOnceByMigration()
+    {
+        await WithDatabaseAsync(async options =>
+        {
+            await using (var db = NewContext(options))
+                await DataSeeder.SeedAsync(db);
+
+            await using (var db = NewContext(options))
+            {
+                var role = await db.Roles.Include(r => r.Permissions).SingleAsync(r => r.Code == "VAN_PHONG_DANG_UY");
+                Assert.Single(role.Permissions, p => p.Code == PermissionCodes.EvaluationCrosscheckConfirm);
+
+                // Giả lập CSDL cũ: vai trò chưa có quyền xác nhận phiếu đối soát.
+                role.Permissions.Remove(role.Permissions.Single(p => p.Code == PermissionCodes.EvaluationCrosscheckConfirm));
+                await db.SaveChangesAsync();
+            }
+
+            for (var round = 0; round < 2; round++)
+            {
+                await using var db = NewContext(options);
+                var migrator = db.GetService<IMigrator>();
+                await migrator.MigrateAsync("20261025114627_ThemPhieuMau03Mau19Mau20");
+                await migrator.MigrateAsync();
+
+                var count = await db.Database
+                    .SqlQuery<int>($"""
+                        SELECT COUNT(*)::int AS "Value" FROM role_permissions rp
+                        JOIN roles r ON r."Id" = rp.role_id JOIN permissions p ON p."Id" = rp.permission_id
+                        WHERE r."Code" = 'VAN_PHONG_DANG_UY' AND p."Code" = 'evaluation.crosscheck.confirm'
+                        """)
+                    .SingleAsync();
+                Assert.Equal(1, count);
+            }
+
+            // Chỉ cặp vai trò - quyền này được cấp, vai trò khác không đổi.
+            await using (var db = NewContext(options))
+            {
+                var expert = await db.Roles.Include(r => r.Permissions).SingleAsync(r => r.Code == "CO_QUAN_CHUYEN_MON");
+                Assert.Equal(2, expert.Permissions.Count);
+                var office = await db.Roles.Include(r => r.Permissions).SingleAsync(r => r.Code == "VAN_PHONG_DANG_UY");
+                Assert.Equal(12, office.Permissions.Count);
             }
         });
     }
