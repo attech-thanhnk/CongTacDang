@@ -1,10 +1,21 @@
-# Triển khai CongTacDang
+# Triển khai CongTacDang (tài liệu tham chiếu)
 
-Tài liệu này là tài liệu triển khai duy nhất của hệ thống. Hệ thống chạy trong mạng LAN nội bộ bằng Docker Compose, gồm frontend Next.js, backend ASP.NET Core và PostgreSQL. File đính kèm lưu trên đĩa (volume `backend-uploads`). pgAdmin là công cụ tùy chọn, không chạy mặc định.
+Hệ thống chạy trong mạng LAN nội bộ bằng Docker Compose, gồm frontend Next.js, backend ASP.NET Core và PostgreSQL. File đính kèm lưu trên đĩa (volume `attech-dangbo-backend-uploads`). pgAdmin là công cụ tùy chọn, không chạy mặc định.
+
+Tài liệu này là **tham chiếu chi tiết**: biến cấu hình, chính sách secret, LibreOffice, sao lưu, khôi phục, log, đổi khóa. Muốn làm việc gì thì bắt đầu từ tài liệu sau:
+
+| Việc cần làm | Đọc |
+|---|---|
+| Cài hệ thống lên một máy mới tinh, từ đầu đến chạy được | [Triển khai trên máy mới](trien-khai-may-moi.md) |
+| Nâng cấp lên phiên bản mới, hoặc quay lại bản cũ | [Nâng cấp phiên bản](nang-cap-phien-ban.md) |
+| Thay máy đang chạy bản cũ (chỉ chuyển dữ liệu gốc) | [Chuyển dữ liệu gốc từ máy cũ](chuyen-du-lieu-goc.md) |
+| Đưa vào sử dụng: khai báo đơn vị, tài khoản, vai trò, mở kỳ | [Hướng dẫn bàn giao](huong-dan-ban-giao.md) |
+| Cách dùng từng màn hình | [Hướng dẫn sử dụng](huong-dan-su-dung.md) |
+| Migration CSDL | [database-migrations.md](database-migrations.md) |
 
 ## Yêu cầu
 
-- Ubuntu có Docker Engine và Docker Compose v2.
+- Ubuntu có Docker Engine và Docker Compose v2 (cách cài và cấu hình máy: [Triển khai trên máy mới](trien-khai-may-moi.md#1-chuẩn-bị)).
 - DNS hoặc địa chỉ IP nội bộ trỏ tới máy chạy frontend.
 - Không mở trực tiếp cổng backend ra mạng LAN nếu không có nhu cầu vận hành cụ thể.
 
@@ -18,11 +29,11 @@ cp .env.example .env
 chmod 600 .env
 ```
 
-Thay các giá trị `CHANGE_ME_*` trong `docker/.env`, tối thiểu:
+Thay các giá trị `CHANGE_ME_*` trong `docker/.env`, tối thiểu (bảng giải thích từng biến: [Triển khai trên máy mới, bước 4](trien-khai-may-moi.md#4-tạo-file-cấu-hình-dockerenv)):
 
-- `POSTGRES_PASSWORD`: mật khẩu PostgreSQL.
+- `POSTGRES_PASSWORD`: mật khẩu PostgreSQL (chỉ có tác dụng khi tạo CSDL lần đầu).
 - `Jwt__Secret`: khóa ký JWT, ít nhất 32 byte (`openssl rand -base64 48`). Thiếu hoặc quá ngắn thì backend dừng khi khởi động.
-- `PGADMIN_DEFAULT_PASSWORD`: chỉ cần khi bật profile `tools`.
+- `PGADMIN_DEFAULT_PASSWORD`: chỉ dùng khi bật profile `tools`, nhưng Compose vẫn đòi biến này có giá trị (thiếu thì `docker compose config` và `up` báo `required variable ... is missing a value`), nên đừng xóa dòng này.
 
 Khi chạy thật (mọi môi trường trừ `Development` và `Testing`; Compose đặt `ASPNETCORE_ENVIRONMENT=Production`) backend **từ chối khởi động** và ghi lý do vào log (`docker compose logs backend`, dòng `[LỖI CẤU HÌNH]`) nếu:
 
@@ -38,7 +49,7 @@ Sinh mật khẩu ngẫu nhiên trên Linux:
 openssl rand -base64 32
 ```
 
-Compose mặc định chỉ publish frontend ở `127.0.0.1:3001` và PostgreSQL ở `127.0.0.1:5434`. Backend chỉ có `expose: 5000` trong mạng Docker. Nếu cần debug backend cục bộ, tạo `docker/docker-compose.debug.yml` (không commit):
+Compose mặc định chỉ publish frontend ở `127.0.0.1:3001` và PostgreSQL ở `127.0.0.1:5434`. Địa chỉ và cổng giao diện đặt bằng `FRONTEND_BIND_IP` (mặc định `127.0.0.1`) và `FRONTEND_PORT` (mặc định `3001`) trong `docker/.env`; muốn người dùng trong LAN vào được, đặt `FRONTEND_BIND_IP` là IP của máy trong LAN (hoặc `0.0.0.0`) rồi `docker compose up -d`. Cổng do Docker công bố không bị `ufw` chặn, nên giới hạn thật nằm ở biến này. Backend chỉ có `expose: 5000` trong mạng Docker. Nếu cần debug backend cục bộ, tạo `docker/docker-compose.debug.yml` (không commit):
 
 ```yaml
 services:
@@ -86,17 +97,20 @@ docker compose --env-file docker/.env -f docker/docker-compose.yml up -d
 docker compose --env-file docker/.env -f docker/docker-compose.yml ps
 ```
 
-Truy cập frontend tại `http://127.0.0.1:3001` hoặc địa chỉ reverse proxy nội bộ. Kiểm tra healthcheck:
+Truy cập frontend tại `http://<FRONTEND_BIND_IP>:<FRONTEND_PORT>` (mặc định `http://127.0.0.1:3001`) hoặc địa chỉ reverse proxy nội bộ. Kiểm tra sức khỏe:
 
 ```bash
-curl --fail http://127.0.0.1:3001/api/healthz
+docker compose --env-file docker/.env -f docker/docker-compose.yml exec backend curl --fail --silent http://localhost:5000/healthz
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3001/login
 ```
 
-Backend `/healthz` được container kiểm tra nội bộ; health check gồm cả kết nối CSDL (DbContext).
+Lệnh đầu in `Healthy` (health check gồm cả kết nối CSDL), lệnh sau in `200`. Container cũng tự kiểm tra `/healthz` của backend. Đường `/api/healthz` qua giao diện **không** dùng được: `/api/*` được chuyển nguyên đường dẫn tới backend, mà backend chỉ có `/healthz`.
 
 ## Biến cấu hình tài khoản, bảo mật và dữ liệu khởi tạo
 
 Dấu `__` trong tên biến môi trường tương ứng với `:` trong `appsettings.json`. `docker-compose.yml` truyền vào container các biến `Jwt__Secret`, `Database__AutoMigrate` (mặc định `true` trong Compose), `Database__SeedSampleData`, `Seed__*`, `Security__*`, `Organization__*` và `Notifications__*` đặt trong `docker/.env`. Khi chạy trực tiếp ngoài Docker, đặt bằng biến môi trường hoặc `user-secrets`.
+
+**Lưu ý khi chạy bằng Compose:** chỉ các biến kể trên được chuyển vào container. Các biến `Attachments__*`, `Database__ResetRolePermissions`, `Documents__Pdf__*` và `Swagger__Enabled` ghi trong `docker/.env` **không có tác dụng** vì `docker-compose.yml` không chuyển chúng; muốn dùng, thêm vào mục `environment` của dịch vụ `backend` (hoặc dùng tệp ghi đè riêng, không commit), ví dụ `Database__ResetRolePermissions: ${Database__ResetRolePermissions:-false}`, rồi `docker compose up -d`. Hai biến `FRONTEND_BIND_IP`, `FRONTEND_PORT` (không có trong `.env.example`) do Compose đọc cho cổng giao diện, không vào container.
 
 | Biến môi trường | Mặc định | Ý nghĩa |
 |---|---|---|
@@ -110,7 +124,7 @@ Dấu `__` trong tên biến môi trường tương ứng với `:` trong `appse
 | `Attachments__UnlinkedCleanup__Enabled` | `true` | Bật tác vụ nền dọn tệp chưa gắn quá hạn (xóa mềm bản ghi, xóa tệp trên đĩa). |
 | `Attachments__UnlinkedCleanup__RetentionHours` | `24` | Tệp chưa gắn quá số giờ này thì bị dọn. |
 | `Attachments__UnlinkedCleanup__IntervalMinutes` | `60` | Chu kỳ chạy tác vụ dọn (phút). |
-| `Database__AutoMigrate` | `true` ở Development, `false` ở Production | Tự áp dụng migration khi khởi động (xem `docs/database-migrations.md`). |
+| `Database__AutoMigrate` | trong ứng dụng: `true` ở Development, `false` ở Production; **Compose đặt `true`** | Tự áp dụng migration khi khởi động (xem `docs/database-migrations.md`). |
 | `Database__SeedSampleData` | `false` | Tạo dữ liệu mẫu — **chỉ môi trường thử nghiệm**, không bật trên CSDL thật. |
 | `Seed__SamplePassword` | rỗng | Mật khẩu tạm chung của tài khoản mẫu; rỗng → sinh ngẫu nhiên. Chỉ dùng khi bật dữ liệu mẫu. |
 | `Database__ResetRolePermissions` | `false` | Đặt lại quyền của các vai trò mặc định về cấu hình mặc định ở lần khởi động này; tắt lại ngay sau khi dùng. |
@@ -150,6 +164,8 @@ Khi `Database__SeedSampleData=true` và CSDL **chưa có** tài khoản, đơn v
 Mật khẩu tạm chung: lấy từ `Seed__SamplePassword` nếu có (phải đạt chính sách mật khẩu, sai → không tạo dữ liệu mẫu, log Error); nếu không, hệ thống sinh ngẫu nhiên 12 ký tự và ghi **một lần** vào log mức Warning ngay khi tạo ("Mật khẩu tạm chung …"). Khởi động lại không tạo lại dữ liệu mẫu và không ghi lại mật khẩu.
 
 ## Go-live (CSDL thật)
+
+Danh sách rút gọn, dễ làm theo hơn dành cho người quản trị: [Hướng dẫn bàn giao](huong-dan-ban-giao.md), mục 3. Mục này giữ đầy đủ chi tiết kỹ thuật và căn cứ kiểm thử.
 
 Các bước 1–5 được kiểm tra tự động bởi `GoLiveScenarioTests` (khai báo đơn vị, tổ chức Đảng, tài khoản, gán vai trò qua API của các trang quản trị, mở kỳ); cây đơn vị nhiều cấp, danh mục chức vụ và chức vụ của cán bộ được kiểm bởi `DynamicOrgIntegrationTests`, thêm người được đánh giá kèm diện quyết định chỉ định bởi `WorkflowProfileIntegrationTests`.
 
@@ -201,7 +217,7 @@ Dữ liệu nền khai báo trực tiếp trên giao diện, hoặc nhập hàng
 Biểu mẫu Word/Excel được chuyển sang PDF ngay trên máy chủ bằng LibreOffice headless (không gọi dịch vụ bên ngoài). Thiếu LibreOffice thì API xuất PDF (`?format=pdf`) trả **503** kèm thông báo; xuất Word/Excel vẫn hoạt động bình thường.
 
 - **Docker:** image backend (`docker/Dockerfile.backend`) đã cài `libreoffice-writer-nogui`, `libreoffice-calc-nogui` và font `fonts-liberation` (Liberation Serif tương thích kích thước với Times New Roman, đủ dấu tiếng Việt), `fonts-dejavu-core`.
-- **Font gốc cho PDF (làm một lần trên máy dựng image):** biểu mẫu dùng Times New Roman, bảng tính dùng Calibri — font bản quyền Microsoft nên không có trong git. Chép 8 tệp từ `C:WindowsFonts` của một máy Windows bất kỳ vào `docker/fonts/` trên máy chủ (Linux hay Windows đều được, font nằm trong container) rồi dựng lại image backend:
+- **Font gốc cho PDF (làm một lần trên máy dựng image):** biểu mẫu dùng Times New Roman, bảng tính dùng Calibri — font bản quyền Microsoft nên không có trong git. Chép 8 tệp từ `C:\Windows\Fonts` của một máy Windows bất kỳ vào `docker/fonts/` trên máy chủ (Linux hay Windows đều được, font nằm trong container) rồi dựng lại image backend:
 
   ```bash
   # tệp cần chép: times.ttf timesbd.ttf timesi.ttf timesbi.ttf calibri.ttf calibrib.ttf calibrii.ttf calibriz.ttf
@@ -268,6 +284,8 @@ Biến môi trường tùy chọn: `BACKUP_DIR`, `BACKUP_KEEP`, `ENV_FILE` (mặ
 
 ### Lịch sao lưu khuyến nghị
 
+Từng bước đặt cron, kiểm tra và chép ra máy khác: [Triển khai trên máy mới, bước 10](trien-khai-may-moi.md#10-sao-lưu-định-kỳ). Quy trình sao lưu trước nâng cấp: [Nâng cấp phiên bản](nang-cap-phien-ban.md).
+
 - Hằng ngày lúc 02:00, giữ 14 bản; trước mỗi lần nâng cấp/triển khai chạy thêm một bản thủ công.
 - Sao chép thư mục sao lưu sang máy/ổ khác (NAS, ổ ngoài) — bản sao lưu nằm cùng máy chủ không bảo vệ được khi hỏng đĩa.
 - Trong kỳ đánh giá cao điểm (cuối quý) có thể tăng lên 2 lần/ngày.
@@ -275,7 +293,7 @@ Biến môi trường tùy chọn: `BACKUP_DIR`, `BACKUP_KEEP`, `ENV_FILE` (mặ
 Ví dụ crontab (`crontab -e` của user vận hành):
 
 ```cron
-0 2 * * * /opt/congtacdang/docker/backup.sh >> /var/log/congtacdang-backup.log 2>&1
+0 2 * * * /opt/congtacdang/docker/backup.sh >> /var/backups/congtacdang/backup.log 2>&1
 ```
 
 ### Kiểm tra bản sao lưu
@@ -330,9 +348,11 @@ docker/restore.sh --no-start <thư-mục>
 
 Kịch bản tự động: `--yes` bỏ các bước gõ xác nhận; nếu bản sao lưu cũ hơn mã nguồn phải kèm `--allow-upgrade`, không thì script dừng. `--no-safety-backup` bỏ bước sao lưu dự phòng — chỉ dùng khi vừa chạy `backup.sh` thủ công.
 
+**Giới hạn cần biết:** `pg_restore --clean` chỉ xóa các bảng có trong bản sao lưu. Khôi phục bản cũ lên CSDL đã chạy bản **mới hơn** thì bảng do migration mới tạo vẫn còn sót lại và lần nâng cấp sau báo lỗi `already exists`. Trường hợp này (quay lại bản cũ) làm theo [Nâng cấp phiên bản, mục 4](nang-cap-phien-ban.md#4-quay-lại-bản-cũ-khi-có-sự-cố): sao lưu hiện trạng, làm sạch schema `public`, rồi khôi phục. Khôi phục lên cùng phiên bản hoặc lên CSDL của bản cũ hơn thì không gặp vấn đề này.
+
 Nếu chạy với `Database__AutoMigrate=false`, sau khi khôi phục bản cũ hơn phải áp dụng migration thủ công (`docs/database-migrations.md`) trước khi dùng.
 
-Sau khi khôi phục: kiểm tra `/api/healthz`, đăng nhập, mở một hồ sơ có minh chứng, xuất một biểu mẫu. Khôi phục nhầm → khôi phục lại từ bản trong `truoc-khoi-phuc/` bằng chính `restore.sh`.
+Sau khi khôi phục: kiểm tra `docker compose ps` (ba container `healthy`) và `/healthz` của backend (mục [Khởi động Compose](#khởi-động-compose)), đăng nhập, mở một hồ sơ có minh chứng, xuất một biểu mẫu. Khôi phục nhầm → khôi phục lại từ bản trong `truoc-khoi-phuc/` bằng chính `restore.sh`.
 
 ## Log
 
@@ -403,7 +423,7 @@ Các lệnh dưới đây chạy trên máy chủ, tại thư mục gốc của 
    ```bash
    docker compose --env-file docker/.env -f docker/docker-compose.yml up -d --force-recreate backend
    docker compose --env-file docker/.env -f docker/docker-compose.yml logs --tail=50 backend   # không có [LỖI CẤU HÌNH]
-   curl --fail http://127.0.0.1:3001/api/healthz
+   docker compose --env-file docker/.env -f docker/docker-compose.yml exec backend curl --fail --silent http://localhost:5000/healthz
    ```
 
 6. **Buộc mọi người đăng nhập lại.** Khóa JWT mới làm mọi access token cũ mất hiệu lực ngay, nhưng refresh token (lưu trong CSDL) vẫn có thể cấp access token mới. Thu hồi toàn bộ refresh token để mọi phiên cũ (kể cả phiên có thể đã bị lộ) phải đăng nhập lại:
