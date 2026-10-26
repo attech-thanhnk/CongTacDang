@@ -130,7 +130,14 @@ export default function PeriodDetailPage() {
   const frameIssues = readiness?.issues.filter((i) => !i.permission) ?? [];
   const showProgress = canManage && (period.status === "Open" || period.status === "Locked");
   const overdueCount = participants.filter((p) => (p.daysOverdue ?? 0) > 0).length;
-  const openBlocker = !period.criteria ? "Chưa chọn bộ tiêu chí" : participants.length === 0 ? "Chưa có người được đánh giá" : null;
+  // Mở kỳ dùng cấu hình đã lưu: thay đổi đang sửa dở phải lưu hoặc bỏ trước.
+  const openBlocker = !period.criteria
+    ? "Chưa chọn bộ tiêu chí"
+    : participants.length === 0
+      ? "Chưa có người được đánh giá"
+      : dirty
+        ? "Diện quyết định có thay đổi chưa lưu"
+        : null;
   const unpublishedCount = participants.filter((p) => p.status !== "Published").length;
   const tabs: { key: PeriodTab; label: string; count?: number; warn?: boolean }[] = [
     ...(showProgress

@@ -1,4 +1,4 @@
-import { OWNER_STEPS, STEP_NAMES } from "@/services/evaluationService";
+import { OWNER_STEPS, STEP_NAMES, latestProposedGrade } from "@/services/evaluationService";
 import type { EvaluationRecordDto, RecordStepProgressDto, WorkQueueDto, WorkQueueItemDto } from "@/services/evaluationService";
 
 /** Số ngày trước hạn coi là "sắp hạn". */
@@ -138,6 +138,5 @@ export function ownerCurrentStep(record: EvaluationRecordDto): RecordStepProgres
 export function latestGrade(record: EvaluationRecordDto): { grade: string | null; final: boolean } {
   const set = (g?: string | null) => !!g && g !== "ChuaXepLoai";
   if (set(record.finalGrade)) return { grade: record.finalGrade, final: true };
-  const proposed = [record.directorProposedGrade, record.appraisalProposedGrade, record.collectiveProposedGrade, record.selfProposedGrade].find(set);
-  return { grade: proposed ?? null, final: false };
+  return { grade: latestProposedGrade(record) || null, final: false };
 }

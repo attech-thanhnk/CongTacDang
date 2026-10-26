@@ -158,7 +158,7 @@ public sealed class LibreOfficePdfConverter : IPdfConverter, IDisposable
             if (process.ExitCode != 0 || !File.Exists(outputPath))
             {
                 throw new ServiceUnavailableException(
-                    $"LibreOffice không chuyển được tài liệu sang PDF (mã thoát {process.ExitCode}). Vui lòng tải bản Word/Excel.");
+                    $"Chuyển tài liệu sang PDF bằng LibreOffice không thành công (mã thoát {process.ExitCode}). Vui lòng tải bản Word/Excel.");
             }
 
             return await File.ReadAllBytesAsync(outputPath, cancellationToken);
@@ -175,7 +175,7 @@ public sealed class LibreOfficePdfConverter : IPdfConverter, IDisposable
         try
         {
             return Process.Start(startInfo)
-                ?? throw new ServiceUnavailableException("Không khởi động được LibreOffice để xuất PDF.");
+                ?? throw new ServiceUnavailableException("Khởi động LibreOffice để xuất PDF không thành công. Vui lòng tải bản Word/Excel.");
         }
         catch (Win32Exception)
         {

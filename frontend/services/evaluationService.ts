@@ -990,6 +990,20 @@ export const GRADE_OPTIONS: { value: string; label: string }[] = [
   { value: "ChuaXepLoai", label: "Chưa xếp loại" },
 ];
 
+/** Mức đề xuất gần nhất trước quyết định, cùng thứ tự với `EffectiveGrade` của máy chủ (hiệu chuẩn đến sau nhận xét thì thắng). */
+export function latestProposedGrade(record: EvaluationRecordDto): string {
+  const set = (grade?: string | null) => !!grade && grade !== "ChuaXepLoai";
+  const calibrated = record.calibratedGrade;
+  // Mức tự đề xuất chỉ tính khi đã nộp phiếu (bản nháp không tính).
+  const self = record.selfScoredAt ? record.selfProposedGrade : undefined;
+  const calibratedLater = set(calibrated)
+    && (!record.directorReviewedAt || (!!record.calibratedAt && new Date(record.calibratedAt) > new Date(record.directorReviewedAt)));
+  const ordered = calibratedLater
+    ? [calibrated, record.directorProposedGrade, record.appraisalProposedGrade, record.collectiveProposedGrade, self]
+    : [record.directorProposedGrade, calibrated, record.appraisalProposedGrade, record.collectiveProposedGrade, self];
+  return ordered.find(set) ?? "";
+}
+
 export function gradeLabel(value?: string | null): string {
   if (!value || value === "ChuaXepLoai") return "—";
   return GRADE_OPTIONS.find((g) => g.value === value)?.label || value;

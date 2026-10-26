@@ -83,6 +83,7 @@ export default function EvaluationRecordPage() {
       setActions(loadedActions.actions);
       setHistory(loadedHistory);
       setForms(loadedForms);
+      setRequestForms(loadedRequestForms);
       setConflict(null);
     } catch (error: unknown) {
       setLoadError(errorMessage(error, "Tải hồ sơ không thành công."));
@@ -104,6 +105,11 @@ export default function EvaluationRecordPage() {
     window.addEventListener(EVALUATION_CONFLICT_EVENT, handler);
     return () => window.removeEventListener(EVALUATION_CONFLICT_EVENT, handler);
   }, []);
+
+  // Lỗi 409 hiện ở dải đầu trang, trong khi người dùng đang ở biểu mẫu phía dưới: đưa dải vào tầm nhìn.
+  useEffect(() => {
+    if (conflict) document.getElementById(CONFLICT_ANCHOR)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [conflict]);
 
   const perform = async (action: WorkflowActionCode, payload: Record<string, unknown>, step?: WorkflowStepCode) => {
     if (!record) return;
@@ -173,7 +179,7 @@ export default function EvaluationRecordPage() {
         </div>
 
         {conflict && (
-          <div className="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mb-0" role="alert">
+          <div id={CONFLICT_ANCHOR} className="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mb-0" role="alert">
             <span>{conflict}</span>
             <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => load()}>
               <i className="bi bi-arrow-clockwise me-1" aria-hidden="true" />Tải lại
@@ -294,6 +300,7 @@ const ACTION_CONFIRMATIONS: Partial<Record<WorkflowActionCode, string>> = {
 
 /** Id khu thao tác và khối nội dung của từng bước (cuộn tới từ dòng trạng thái / thanh tiến trình). */
 const ACTIONS_ANCHOR = "record-actions";
+const CONFLICT_ANCHOR = "record-conflict";
 const STEP_SECTION: Record<WorkflowStepCode, string> = {
   B1_REGISTER: "step-b1",
   B1_APPROVE: "step-b1",
@@ -361,6 +368,12 @@ function Fields({ items, empty = "Chưa có dữ liệu." }: { items: FieldItem[
 }
 
 const hasGrade = (grade?: string | null) => !!grade && grade !== "ChuaXepLoai";
+
+/** Số văn bản và ngày (một trong hai có thể để trống). */
+const documentText = (number?: string | null, date?: string | null): string | null => {
+  if (number) return date ? `${number} (${formatDate(date)})` : number;
+  return date ? `Ngày ${formatDate(date)}` : null;
+};
 
 /** Mô tả ngắn bước đã xong cho title của nhãn khối gộp. */
 const doneText = (p: RecordStepProgressDto) => `${p.name}: ${[p.doneByName, formatShortDateTime(p.doneAt)].filter(Boolean).join(" ")}`;
@@ -440,9 +453,7 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
         <i className="bi bi-paperclip me-1" aria-hidden="true" />Tệp đính kèm
       </button>
     );
-    const doc = withDocument && result.documentNumber
-      ? `${result.documentNumber}${result.documentDate ? ` (${formatDate(result.documentDate)})` : ""}`
-      : null;
+    const doc = withDocument ? documentText(result.documentNumber, result.documentDate) : null;
     return [
       [withDocument ? "Văn bản" : "Văn bản đính kèm", doc || file ? <>{doc}{doc && file ? " · " : null}{file}</> : null],
       ["Ghi nhận", withRecorder ? [result.recordedByName, formatDateTime(result.recordedAt, "")].filter(Boolean).join(" · ") : null],
@@ -669,7 +680,7 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
               ["Mức xếp loại", hasGrade(record.finalGrade) && record.status !== "Published" ? <GradeBadge grade={record.finalGrade} /> : null],
               ["Điểm chính thức", hasGrade(record.finalGrade) ? record.finalScore : null],
               ["Căn cứ quyết định mức", record.decisionExplanation],
-              ["Văn bản", record.decisionDocumentNumber ? `${record.decisionDocumentNumber} (${formatDate(record.decisionDocumentDate)})` : null],
+              ["Văn bản", documentText(record.decisionDocumentNumber, record.decisionDocumentDate)],
               // Kết luận của cấp trên ở bước quyết định chưa có trường riêng trên hồ sơ.
               ["Nội dung kết luận", externalOf("B4_DECISION")?.comment],
               ["Cơ quan quyết định", record.decisionAuthorityName],

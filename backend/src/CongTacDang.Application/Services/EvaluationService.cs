@@ -38,7 +38,7 @@ public class EvaluationService : IEvaluationService
     /// <inheritdoc />
     public async Task<EvaluationRecordDto?> GetMyRecordAsync(Guid periodId, CancellationToken ct = default)
     {
-        var userId = _currentUser.UserId ?? throw new ForbiddenException("Không xác định được người dùng hiện tại.");
+        var userId = _currentUser.UserId ?? throw new ForbiddenException("Xác định người dùng hiện tại không thành công.");
         if (periodId == Guid.Empty)
         {
             // Không truyền kỳ → kỳ đang hoạt động (Đang mở/Khóa dữ liệu mới nhất).
