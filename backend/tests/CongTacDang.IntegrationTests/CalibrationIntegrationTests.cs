@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using CongTacDang.Application.Common.Security;
+using CongTacDang.Application.Services;
+using Microsoft.Extensions.DependencyInjection;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.Domain.Evaluation;
@@ -107,6 +109,102 @@ public sealed class CalibrationIntegrationTests
         await Data(await w.PreparerC.PostAsJsonAsync("/api/calibrations", Create(w, w.RecordA, w.RecordB)));
     }
 
+    [SkippableFact]
+    public async Task Decision_OfOneRecord_DoesNotLockOthers_ReopenAllowedAfterSomeRecordsDecided()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var w = await SetupAsync(decisionReady: true);
+        var decider = await _factory.CreateUserWithPermissionsAsync(WorkflowPermissions.Decide, PermissionCodes.EvaluationRead);
+        var deciderC = await _factory.LoginAsAsync(decider.Username, decider.Password, distinctClientIp: true);
+
+        var created = await Data(await w.PreparerC.PostAsJsonAsync("/api/calibrations", Create(w, w.RecordA, w.RecordB, w.RecordC)));
+        var id = created.GetProperty("id").GetGuid();
+        object Save(uint version, Guid[] recordIds, object[] cases, string? extra) => new
+        {
+            version, groupName = "Nhóm kiểm thử", heldAt = DateTime.UtcNow, location = "Phòng họp",
+            chairName = "Chủ trì họp", secretaryName = "Thư ký họp", recordIds, extraConclusion = extra,
+            attendees = new[] { new { fullName = "Thành viên 1", capacity = "Ủy viên", dissentNote = (string?)null } },
+            summary = Array.Empty<object>(), cases
+        };
+        var changeA = new
+        {
+            recordId = w.RecordA, clarification = "Đã đối chiếu minh chứng", gradeAfter = "HoanThanh", scoreAfter = (double?)78.0,
+            basis = "Biên bản kiểm tra thực tế", responsibleName = "Chủ trì họp", responsibleMemberId = (Guid?)null
+        };
+        var saved = await Data(await w.PreparerC.PutAsJsonAsync($"/api/calibrations/{id}",
+            Save(created.GetProperty("version").GetUInt32(), new[] { w.RecordA, w.RecordB, w.RecordC }, new object[] { changeA }, null)));
+        await Data(await w.ConcluderC.PostAsJsonAsync($"/api/calibrations/{id}/conclude", new { version = saved.GetProperty("version").GetUInt32() }));
+
+        async Task<HttpResponseMessage> Decide(Guid recordId, double score, string grade)
+        {
+            var record = await Data(deciderC, $"/api/evaluations/records/{recordId}");
+            return await deciderC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/decision",
+                new { version = record.GetProperty("version").GetUInt32(), finalScore = score, finalGrade = grade, explanation = "Căn cứ kiểm thử" });
+        }
+
+        // Quyết định lần lượt từng hồ sơ trong cùng biên bản đều thành công.
+        await Data(await Decide(w.RecordA, 78, "HoanThanh"));
+        Assert.Equal(CalibrationGateState.Satisfied, (await GateAsync(w.RecordB)).State);
+        await Data(await Decide(w.RecordB, 72, "HoanThanh"));
+        Assert.Equal(CalibrationGateState.Satisfied, (await GateAsync(w.RecordC)).State);
+
+        // Hồ sơ còn lại bị trả về thẩm định: chỉ cổng của hồ sơ đó khóa.
+        await _factory.WithDbAsync(async db =>
+        {
+            var record = db.Set<EvaluationRecord>().Single(r => r.Id == w.RecordC);
+            record.Status = RecordStatus.AwaitingDirectorReview;
+            db.Set<EvaluationRecordHistory>().Add(new EvaluationRecordHistory
+            {
+                RecordId = record.Id, FromStatus = RecordStatus.AwaitingDecision, ToStatus = RecordStatus.AwaitingDirectorReview,
+                Step = WorkflowStep.B3C_DIRECTOR, Action = WorkflowAction.Return, Reason = "Bổ sung", ActorName = "Kiểm thử",
+                CreatedAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync();
+        });
+        Assert.Equal(CalibrationGateState.Satisfied, (await GateAsync(w.RecordA)).State);
+        Assert.Equal(CalibrationGateState.Satisfied, (await GateAsync(w.RecordB)).State);
+        Assert.Equal(CalibrationGateState.Stale, (await GateAsync(w.RecordC)).State);
+
+        // Mở lại được dù hai hồ sơ đã quyết định; kết quả đã áp cho hồ sơ đã quyết định được giữ nguyên.
+        var current = await Data(w.ConcluderC, $"/api/calibrations/{id}");
+        var reopened = await Data(await w.ConcluderC.PostAsJsonAsync($"/api/calibrations/{id}/reopen",
+            new { version = current.GetProperty("version").GetUInt32(), reason = "Hồ sơ trả lại thẩm định" }));
+        Assert.Equal("Draft", reopened.GetProperty("status").GetString());
+        Assert.Equal("HoanThanh", (await Data(w.PreparerC, $"/api/evaluations/records/{w.RecordA}")).GetProperty("calibratedGrade").GetString());
+
+        // Còn hồ sơ đã quyết định trong biên bản thì chưa chốt lại được; gỡ chúng ra rồi chốt.
+        Assert.Equal(HttpStatusCode.Conflict, (await w.ConcluderC.PostAsJsonAsync($"/api/calibrations/{id}/conclude",
+            new { version = reopened.GetProperty("version").GetUInt32() })).StatusCode);
+        var trimmed = await Data(await w.PreparerC.PutAsJsonAsync($"/api/calibrations/{id}",
+            Save(reopened.GetProperty("version").GetUInt32(), new[] { w.RecordC }, Array.Empty<object>(), "Không có nhóm tương đồng")));
+        Assert.Equal(1, trimmed.GetProperty("records").GetArrayLength());
+        await Data(await w.ConcluderC.PostAsJsonAsync($"/api/calibrations/{id}/conclude", new { version = trimmed.GetProperty("version").GetUInt32() }));
+        Assert.Equal(CalibrationGateState.Satisfied, (await GateAsync(w.RecordC)).State);
+    }
+
+    [SkippableFact]
+    public async Task RecordOwner_IsRefusedOnEveryWrite()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var w = await SetupAsync();
+        var created = await Data(await w.PreparerC.PostAsJsonAsync("/api/calibrations", Create(w, w.RecordA, w.RecordB)));
+        var id = created.GetProperty("id").GetGuid();
+        var version = created.GetProperty("version").GetUInt32();
+
+        // Chủ hồ sơ A có quyền lập: mọi thao tác ghi trên biên bản chứa hồ sơ của mình đều bị chặn.
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.OwnerManagerC.PutAsJsonAsync($"/api/calibrations/{id}",
+            new { version, groupName = "Đổi", recordIds = new[] { w.RecordA, w.RecordB } })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.OwnerManagerC.PostAsJsonAsync($"/api/calibrations/{id}/conclude", new { version })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.OwnerManagerC.PostAsJsonAsync($"/api/calibrations/{id}/reopen", new { version, reason = "Lý do" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.OwnerManagerC.PostAsJsonAsync($"/api/calibrations/{id}/void", new { version, reason = "Lý do" })).StatusCode);
+    }
+
+    private async Task<CalibrationGateResult> GateAsync(Guid recordId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<ICalibrationGate>().EvaluateAsync(recordId);
+    }
+
     #region Hỗ trợ
 
     private static object Create(World w, params Guid[] recordIds) => new
@@ -120,7 +218,7 @@ public sealed class CalibrationIntegrationTests
         public HttpClient PreparerC = null!, ConcluderC = null!, OwnerManagerC = null!, NobodyC = null!;
     }
 
-    private async Task<World> SetupAsync()
+    private async Task<World> SetupAsync(bool decisionReady = false)
     {
         var w = new World();
         var suffix = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
@@ -134,7 +232,7 @@ public sealed class CalibrationIntegrationTests
             {
                 Year = 2100 + Random.Shared.Next(0, 800), Quarter = EvaluationQuarter.Quy2, Name = $"Kỳ HC {suffix}",
                 StartDate = DateTime.UtcNow.AddDays(-30), EndDate = DateTime.UtcNow.AddDays(30), Status = PeriodStatus.Open,
-                Settings = PeriodSettings.Default().ToJson(), CriteriaSnapshot = CriteriaTestData.Snapshot(collectiveFramework: false)
+                Settings = SettingsFor(decisionReady), CriteriaSnapshot = CriteriaTestData.Snapshot(collectiveFramework: false)
             };
             db.AddRange(dept, period);
             await db.SaveChangesAsync();
@@ -144,7 +242,7 @@ public sealed class CalibrationIntegrationTests
             var records = owners.Select((o, i) => new EvaluationRecord
             {
                 PeriodId = period.Id, MemberId = o.Id, DepartmentId = dept.Id, ApprovalAuthority = ApprovalAuthority.CoSo, WeightFrameCode = "K2",
-                Status = RecordStatus.AwaitingDirectorReview, AppraisalProposedGrade = grades[i].Item1, AppraisalScore = grades[i].Item2,
+                Status = decisionReady ? RecordStatus.AwaitingDecision : RecordStatus.AwaitingDirectorReview, AppraisalProposedGrade = grades[i].Item1, AppraisalScore = grades[i].Item2,
                 AppraisedAt = DateTime.UtcNow.AddHours(-1), SelfScoredAt = DateTime.UtcNow.AddDays(-1), TotalSelfScore = grades[i].Item2
             }).ToList();
             db.AddRange(records);
@@ -168,6 +266,16 @@ public sealed class CalibrationIntegrationTests
         w.OwnerManagerC = await _factory.LoginAsAsync(owners[0].Username, owners[0].Password, distinctClientIp: true);
         w.NobodyC = await _factory.LoginAsAsync(nobody.Username, nobody.Password, distinctClientIp: true);
         return w;
+    }
+
+    /// <summary>Kỳ kiểm thử ghi nhận quyết định tắt cổng kiểm soát để chỉ xét cổng hiệu chuẩn.</summary>
+    private static string SettingsFor(bool controlOff)
+    {
+        var settings = PeriodSettings.Default();
+        if (controlOff)
+            foreach (var profile in settings.Profiles)
+                profile.Gates[WorkflowGates.Control] = new GateSetting { Mode = GateMode.Off };
+        return settings.ToJson();
     }
 
     private static async Task<JsonElement> Data(HttpResponseMessage response)

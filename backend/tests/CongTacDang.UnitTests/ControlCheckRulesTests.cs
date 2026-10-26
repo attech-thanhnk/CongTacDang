@@ -104,6 +104,21 @@ public sealed class ControlCheckRulesTests
     }
 
     [Fact]
+    public void Stale_NotWhenDecisionOrLaterStepRecorded()
+    {
+        var confirmed = new DateTime(2026, 10, 1, 8, 0, 0, DateTimeKind.Utc);
+        var decision = History(confirmed.AddMinutes(1), WorkflowAction.Complete);
+        decision.FromStatus = RecordStatus.AwaitingDecision;
+        var external = History(confirmed.AddMinutes(1), WorkflowAction.RecordExternal);
+        external.FromStatus = RecordStatus.AwaitingDecision;
+        var returned = History(confirmed.AddMinutes(1), WorkflowAction.Return);
+        returned.FromStatus = RecordStatus.AwaitingDecision;
+
+        Assert.False(ControlCheckRules.IsStale(confirmed, new[] { decision, external }));
+        Assert.True(ControlCheckRules.IsStale(confirmed, new[] { returned }));
+    }
+
+    [Fact]
     public void Stale_WhenScoreOrGradeChanges_NotForNeutralActions()
     {
         var confirmed = new DateTime(2026, 10, 1, 8, 0, 0, DateTimeKind.Utc);

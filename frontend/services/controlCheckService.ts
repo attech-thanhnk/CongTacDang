@@ -44,6 +44,8 @@ export interface ControlCheckRecordDto {
   departmentName?: string | null;
   partyCellName?: string | null;
   isCurrent: boolean;
+  /** Hồ sơ này đã đổi sau lúc xác nhận nên cổng của riêng hồ sơ đang khóa. */
+  isStale: boolean;
   gradeAtCheck: string;
   scoreAtCheck: number;
 }

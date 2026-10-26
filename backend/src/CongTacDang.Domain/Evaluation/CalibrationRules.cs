@@ -112,10 +112,11 @@ public static class CalibrationRules
 
     /// <summary>
     /// Phiếu/biên bản đã chốt hết hiệu lực khi hồ sơ có thay đổi bước, điểm hoặc mức sau lúc chốt;
-    /// việc áp dụng của chính biên bản được ghi cùng thời điểm chốt nên không tính.
+    /// việc áp dụng của chính biên bản và việc ghi nhận quyết định của hồ sơ không tính.
     /// </summary>
     public static bool IsStale(DateTime concludedAt, IEnumerable<EvaluationRecordHistory> recordHistory) =>
         recordHistory.Any(h => h.CreatedAt > concludedAt
+            && !GateHistory.IsDecisionOrLater(h)
             && h.Action is WorkflowAction.Complete or WorkflowAction.Return or WorkflowAction.Reopen
                 or WorkflowAction.RecordExternal or WorkflowAction.Calibrate);
 }

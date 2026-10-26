@@ -23,6 +23,8 @@ public class ControlCheckRecordDto
     public string? PartyCellName { get; set; }
     /// <summary>Còn thuộc phiếu hiệu lực; false khi hồ sơ đã chuyển sang phiếu mới.</summary>
     public bool IsCurrent { get; set; }
+    /// <summary>Hồ sơ này đã đổi kết quả hoặc bước sau lúc xác nhận nên cổng của riêng hồ sơ đang khóa.</summary>
+    public bool IsStale { get; set; }
     /// <summary>Mức/điểm lúc kiểm soát (làm mới khi gửi xác nhận).</summary>
     public string GradeAtCheck { get; set; } = string.Empty;
     public double ScoreAtCheck { get; set; }

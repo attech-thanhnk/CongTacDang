@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.Services;
+using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.Domain.Evaluation;
 using CongTacDang.IntegrationTests.Infrastructure;
@@ -140,6 +141,112 @@ public sealed class ControlCheckIntegrationTests
     }
 
     [SkippableFact]
+    public async Task RecordOwner_IsRefusedOnEveryWrite_EvenWithControlPermissions()
+    {
+        var w = await WorldAsync();
+        var other = await _factory.CreateUserAsync(w.Dept, null, ApprovalAuthority.CoSo, "KS Chủ hồ sơ thứ hai");
+        var role = await _factory.CreateRoleAsync(PermissionCodes.EvaluationControlPerform, PermissionCodes.EvaluationControlConfirm, PermissionCodes.EvaluationRead);
+        await _factory.AssignAsync(other.Id, await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA"), RoleScopeType.Global, null);
+        await _factory.AssignAsync(other.Id, role.Id, RoleScopeType.Global, null);
+        var otherC = await _factory.LoginAsAsync(other.Username, other.Password, distinctClientIp: true);
+        var periodId = await OpenPeriodAsync(w, other.Id);
+        var own = await RecordOfAsync(w, periodId, other.Id);
+        var foreign = await RecordOfAsync(w, periodId, w.Owner.Id);
+
+        // Lập phiếu có hồ sơ của chính mình bị chặn dù có quyền lập.
+        Assert.Equal(HttpStatusCode.Forbidden, (await otherC.PostAsJsonAsync("/api/control-checks",
+            new { periodId, groupName = "Nhóm", recordIds = new[] { own, foreign } })).StatusCode);
+
+        // Phiếu do người khác lập và gửi xác nhận, chứa hồ sơ của người này.
+        var created = await Data(await w.BothC.PostAsJsonAsync("/api/control-checks",
+            new { periodId, groupName = "Nhóm chéo", recordIds = new[] { own, foreign } }));
+        var id = created.GetProperty("id").GetGuid();
+        var allPass = Codes().Select(c => new { itemCode = c, result = "Pass", evidence = (string?)null }).ToList();
+        var ready = await Data(await w.BothC.PutAsJsonAsync($"/api/control-checks/{id}",
+            new { version = created.GetProperty("version").GetUInt32(), items = allPass, conclusion = "Eligible" }));
+        await Data(await Act(w.BothC, id, "submit", ready.GetProperty("version").GetUInt32()));
+
+        // Mọi thao tác ghi đều bị chặn với chủ hồ sơ trong phiếu.
+        var version = await VersionOf(w, id);
+        Assert.Equal(HttpStatusCode.Forbidden, (await otherC.PutAsJsonAsync($"/api/control-checks/{id}", new { version, groupName = "Đổi" })).StatusCode);
+        foreach (var action in new[] { "submit", "confirm", "return", "reopen", "cancel" })
+            Assert.Equal(HttpStatusCode.Forbidden, (await Act(otherC, id, action, version, "Lý do")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await otherC.GetAsync($"/api/control-checks/{id}")).StatusCode);
+
+        // Người khác có quyền vẫn xác nhận bình thường: phiếu không bị hỏng bởi các lần thử trên.
+        var confirmed = await Data(await Act(w.ConfirmerC, id, "confirm", version));
+        Assert.Equal("Confirmed", confirmed.GetProperty("status").GetString());
+        Assert.Equal(HttpStatusCode.Forbidden, (await Act(otherC, id, "reopen", await VersionOf(w, id), "Lý do")).StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task Decision_OfOneRecord_DoesNotLockOthers_ReturnLocksOnlyThatRecord()
+    {
+        var w = await WorldAsync();
+        var members = new List<TestUser>();
+        for (var i = 0; i < 3; i++)
+            members.Add(await _factory.CreateUserAsync(w.Dept, null, ApprovalAuthority.CoSo, $"KS Nhóm quyết định {i + 1}"));
+        var decider = await _factory.CreateUserWithPermissionsAsync(WorkflowPermissions.Decide, PermissionCodes.EvaluationRead);
+        var deciderC = await _factory.LoginAsAsync(decider.Username, decider.Password, distinctClientIp: true);
+        var periodId = await OpenPeriodAsync(w, members.Select(m => m.Id).ToArray());
+        var records = new List<Guid>();
+        foreach (var m in members)
+            records.Add(await RecordOfAsync(w, periodId, m.Id));
+        await _factory.WithDbAsync(async db =>
+        {
+            foreach (var record in db.Set<EvaluationRecord>().Where(r => records.Contains(r.Id)))
+            {
+                record.Status = RecordStatus.AwaitingDecision;
+                record.AppraisalProposedGrade = EvaluationGrade.HoanThanhTot;
+                record.AppraisalScore = 85;
+                record.AppraisedAt = DateTime.UtcNow.AddHours(-1);
+                record.SelfScoredAt = DateTime.UtcNow.AddDays(-1);
+                record.TotalSelfScore = 85;
+            }
+            await db.SaveChangesAsync();
+        });
+
+        var created = await Data(await w.BothC.PostAsJsonAsync("/api/control-checks",
+            new { periodId, groupName = "Nhóm ba hồ sơ", recordIds = records }));
+        var id = created.GetProperty("id").GetGuid();
+        var allPass = Codes().Select(c => new { itemCode = c, result = "Pass", evidence = (string?)null }).ToList();
+        var ready = await Data(await w.BothC.PutAsJsonAsync($"/api/control-checks/{id}",
+            new { version = created.GetProperty("version").GetUInt32(), items = allPass, conclusion = "Eligible" }));
+        await Data(await Act(w.BothC, id, "submit", ready.GetProperty("version").GetUInt32()));
+        await Data(await Act(w.ConfirmerC, id, "confirm", await VersionOf(w, id)));
+
+        async Task<HttpResponseMessage> Decide(Guid recordId) => await deciderC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/decision",
+            new { version = await RecordVersionAsync(w, recordId), finalScore = 85.0, finalGrade = "HoanThanhTot", explanation = "Căn cứ kiểm thử" });
+
+        // Quyết định lần lượt từng hồ sơ trong cùng phiếu đều thành công.
+        await Ok(await Decide(records[0]));
+        Assert.Equal(ControlGateState.Satisfied, (await GateAsync(records[1])).State);
+        await Ok(await Decide(records[1]));
+        Assert.False((await Data(w.ConfirmerC, $"/api/control-checks/{id}")).GetProperty("isStale").GetBoolean());
+
+        // Hồ sơ còn lại bị trả về thẩm định: chỉ cổng của hồ sơ đó khóa.
+        await _factory.WithDbAsync(async db =>
+        {
+            var record = db.Set<EvaluationRecord>().Single(r => r.Id == records[2]);
+            record.Status = RecordStatus.AwaitingAppraisal;
+            db.Set<EvaluationRecordHistory>().Add(new EvaluationRecordHistory
+            {
+                RecordId = record.Id, FromStatus = RecordStatus.AwaitingDecision, ToStatus = RecordStatus.AwaitingAppraisal,
+                Step = WorkflowStep.B3B_APPRAISAL, Action = WorkflowAction.Return, Reason = "Bổ sung", ActorName = "Kiểm thử",
+                CreatedAt = DateTime.UtcNow.AddSeconds(1)
+            });
+            await db.SaveChangesAsync();
+        });
+        Assert.Equal(ControlGateState.Satisfied, (await GateAsync(records[0])).State);
+        Assert.Equal(ControlGateState.Satisfied, (await GateAsync(records[1])).State);
+        Assert.Equal(ControlGateState.Stale, (await GateAsync(records[2])).State);
+        var detail = await Data(w.ConfirmerC, $"/api/control-checks/{id}");
+        Assert.True(detail.GetProperty("isStale").GetBoolean());
+        var staleRows = detail.GetProperty("records").EnumerateArray().Where(r => r.GetProperty("isStale").GetBoolean()).ToList();
+        Assert.Equal(records[2], Assert.Single(staleRows).GetProperty("recordId").GetGuid());
+    }
+
+    [SkippableFact]
     public async Task Readiness_RequiredGates_NoIssueWhenPreparerAndConfirmerExist()
     {
         var w = await WorldAsync();
@@ -235,7 +342,7 @@ public sealed class ControlCheckIntegrationTests
         }
     };
 
-    private static async Task<Guid> OpenPeriodAsync(World w)
+    private static async Task<Guid> OpenPeriodAsync(World w, params Guid[] extraMembers)
     {
         var body = new
         {
@@ -246,7 +353,7 @@ public sealed class ControlCheckIntegrationTests
         };
         var periodId = (await Data(await w.ManagerC.PostAsJsonAsync("/api/evaluations/periods", body))).GetProperty("id").GetGuid();
         await PeriodGates.DisableAsync(w.ManagerC, periodId, WorkflowGates.Calibration);
-        await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { w.Owner.Id } }));
+        await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { w.Owner.Id }.Concat(extraMembers).ToArray() }));
         var period = await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}");
         await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open",
             new { version = period.GetProperty("version").GetUInt32(), reason = "Kiểm thử phiếu kiểm soát", force = true }));

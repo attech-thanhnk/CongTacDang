@@ -921,7 +921,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         var gates = record.Status == RecordStatus.AwaitingDecision
             ? await EvaluateApprovalGatesAsync(record, EvaluationMapping.ProfileOf(settings, record), ct)
             : new List<GateOutcome>();
-        var actions = AvailableActions(record, settings, today, gates).ToList();
+        string? crosscheckBlock = null;
+        if (record.Status == RecordStatus.AwaitingAppraisal && _crosscheckGate != null)
+            crosscheckBlock = await _crosscheckGate.OpenBlockReasonAsync(record, EvaluationMapping.ProfileOf(settings, record), ct);
+        var actions = AvailableActions(record, settings, today, gates, crosscheckBlock).ToList();
         return new RecordActionsDto
         {
             RecordId = record.Id,
@@ -1080,7 +1083,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         (action.Kind == WorkflowAction.Reopen || !WorkflowSteps.OwnerSteps.Contains(action.Step))
         && _currentUser.UserId is { } userId && record.MemberId == userId;
 
-    private IEnumerable<RecordActionDto> AvailableActions(EvaluationRecord record, PeriodSettings settings, DateOnly today, IReadOnlyList<GateOutcome> gates)
+    private IEnumerable<RecordActionDto> AvailableActions(EvaluationRecord record, PeriodSettings settings, DateOnly today, IReadOnlyList<GateOutcome> gates, string? crosscheckBlock = null)
     {
         var profile = EvaluationMapping.ProfileOf(settings, record);
         var active = profile.ActiveSteps();
@@ -1135,6 +1138,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             var requiresUnlock = unlockSteps.Count > 0;
             var gated = action.Advances && action.Step == WorkflowStep.B4_DECISION;
             var block = gated ? ApprovalGatePolicy.FirstBlock(gates) : null;
+            if (action.Advances && action.Step == WorkflowStep.B3B_APPRAISAL && crosscheckBlock != null)
+                block = new GateOutcome(ApprovalGateCodes.CrosscheckOpen, crosscheckBlock, true);
 
             yield return new RecordActionDto
             {

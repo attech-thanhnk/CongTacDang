@@ -129,7 +129,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
             .Where(c => scope.Matches(null, c.DepartmentId, c.PartyCellId) && !HasOwnRecord(c, me))
             .ToList();
         var stale = await StaleSetAsync(visible, ct);
-        return visible.Select(c => ToSummary(c, new ControlCheckSummaryDto(), stale.Contains(c.Id))).ToList();
+        return visible.Select(c => ToSummary(c, new ControlCheckSummaryDto(), stale.Any(x => x.CheckId == c.Id))).ToList();
     }
 
     /// <inheritdoc />
@@ -142,7 +142,8 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
 
     private async Task<ControlCheckDto> BuildAsync(ControlCheck check, CancellationToken ct)
     {
-        var stale = (await StaleSetAsync(new[] { check }, ct)).Contains(check.Id);
+        var staleRows = await StaleSetAsync(new[] { check }, ct);
+        var stale = staleRows.Count > 0;
         var history = await _repo.ListHistoryAsync(check.Id, ct);
         var dto = ToSummary(check, new ControlCheckDto(), stale);
         dto.ItemsVersion = check.ItemsVersion;
@@ -164,6 +165,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
             DepartmentName = r.Record.Department?.Name,
             PartyCellName = r.Record.PartyCell?.Name,
             IsCurrent = r.IsCurrent,
+            IsStale = staleRows.Contains((check.Id, r.RecordId)),
             GradeAtCheck = r.GradeAtCheck.ToString(),
             ScoreAtCheck = r.ScoreAtCheck
         }).ToList();
@@ -231,6 +233,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
             throw new ValidationException("Mọi hồ sơ trong phiếu phải thuộc kỳ đánh giá đã chọn.");
         if (records[0].Period.Status != PeriodStatus.Open)
             throw new ConflictException("Chỉ lập phiếu kiểm soát khi kỳ đánh giá đang mở.");
+        EnsureNotOwner(records);
         EnsureAll(PermissionCodes.EvaluationControlPerform, records);
 
         await ReleaseOrRejectAsync(records, null, ct);
@@ -265,6 +268,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
     {
         ArgumentNullException.ThrowIfNull(request);
         var check = await RequireAsync(id, ct);
+        EnsureNoOwnRecord(check);
         RequireVersion(request.Version);
         if (check.Status != ControlCheckStatus.Draft)
             throw new ConflictException("Chỉ sửa được phiếu đang soạn. Hãy trả lại hoặc mở lại phiếu trước khi sửa.");
@@ -318,6 +322,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
     {
         ArgumentNullException.ThrowIfNull(request);
         var check = await RequireAsync(id, ct);
+        EnsureNoOwnRecord(check);
         RequireVersion(request.Version);
         if (check.Status != ControlCheckStatus.Draft)
             throw new ConflictException("Chỉ gửi xác nhận được phiếu đang soạn.");
@@ -359,6 +364,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
     {
         ArgumentNullException.ThrowIfNull(request);
         var check = await RequireAsync(id, ct);
+        EnsureNoOwnRecord(check);
         RequireVersion(request.Version);
         EnsureAll(PermissionCodes.EvaluationControlConfirm, check.Records.Select(r => r.Record));
         CheckVersion(check, request.Version);
@@ -388,6 +394,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
     {
         ArgumentNullException.ThrowIfNull(request);
         var check = await RequireAsync(id, ct);
+        EnsureNoOwnRecord(check);
         RequireVersion(request.Version);
         EnsureAll(PermissionCodes.EvaluationControlConfirm, check.Records.Select(r => r.Record));
         CheckVersion(check, request.Version);
@@ -411,6 +418,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
     {
         ArgumentNullException.ThrowIfNull(request);
         var check = await RequireAsync(id, ct);
+        EnsureNoOwnRecord(check);
         RequireVersion(request.Version);
         EnsureAll(PermissionCodes.EvaluationControlConfirm, check.Records.Select(r => r.Record));
         CheckVersion(check, request.Version);
@@ -448,6 +456,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
     {
         ArgumentNullException.ThrowIfNull(request);
         var check = await RequireAsync(id, ct);
+        EnsureNoOwnRecord(check);
         RequireVersion(request.Version);
         var records = check.Records.Select(r => r.Record).ToList();
         if (!CanAll(PermissionCodes.EvaluationControlPerform, records))
@@ -521,7 +530,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
             var state = check.Status switch
             {
                 ControlCheckStatus.Confirmed when check.Conclusion == ControlConclusion.Eligible =>
-                    stale.Contains(check.Id) ? ControlGateState.Stale : ControlGateState.Satisfied,
+                    stale.Contains((check.Id, row.RecordId)) ? ControlGateState.Stale : ControlGateState.Satisfied,
                 ControlCheckStatus.Confirmed => ControlGateState.NeedsWork,
                 ControlCheckStatus.Draft or ControlCheckStatus.Submitted => ControlGateState.Pending,
                 _ => ControlGateState.NoCheck
@@ -531,11 +540,11 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         return result;
     }
 
-    /// <summary>Tập Id phiếu đã xác nhận nhưng hết hiệu lực.</summary>
-    private async Task<HashSet<Guid>> StaleSetAsync(IEnumerable<ControlCheck> checks, CancellationToken ct)
+    /// <summary>Cặp (phiếu, hồ sơ) của phiếu đã xác nhận mà hồ sơ đó đã đổi sau lúc xác nhận; xét riêng từng hồ sơ để hồ sơ khác được quyết định không khóa cả phiếu.</summary>
+    private async Task<HashSet<(Guid CheckId, Guid RecordId)>> StaleSetAsync(IEnumerable<ControlCheck> checks, CancellationToken ct)
     {
         var confirmed = checks.Where(c => c.Status == ControlCheckStatus.Confirmed && c.ConfirmedAt.HasValue).ToList();
-        var stale = new HashSet<Guid>();
+        var stale = new HashSet<(Guid CheckId, Guid RecordId)>();
         if (confirmed.Count == 0)
             return stale;
 
@@ -544,11 +553,9 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
             confirmed.SelectMany(c => c.Records.Select(r => r.RecordId)).Distinct().ToList(), since, ct);
         var byRecord = histories.ToLookup(h => h.RecordId);
         foreach (var check in confirmed)
-        {
-            var own = check.Records.SelectMany(r => byRecord[r.RecordId]);
-            if (ControlCheckRules.IsStale(check.ConfirmedAt!.Value, own))
-                stale.Add(check.Id);
-        }
+            foreach (var row in check.Records)
+                if (ControlCheckRules.IsStale(check.ConfirmedAt!.Value, byRecord[row.RecordId]))
+                    stale.Add((check.Id, row.RecordId));
         return stale;
     }
 
@@ -571,6 +578,19 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
 
     private async Task<EvaluationRecord> RequireRecordAsync(Guid id, CancellationToken ct) =>
         await _records.FindRecordAsync(id, ct) ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {id}.");
+
+    /// <summary>Chủ của bất kỳ hồ sơ nào trong phiếu không được thao tác trên phiếu (xung đột lợi ích).</summary>
+    private void EnsureNoOwnRecord(ControlCheck check)
+    {
+        if (HasOwnRecord(check, _currentUser.UserId))
+            throw new ForbiddenException("Bạn không được thao tác trên phiếu kiểm soát có hồ sơ của chính mình (xung đột lợi ích).");
+    }
+
+    private void EnsureNotOwner(IEnumerable<EvaluationRecord> records)
+    {
+        if (_currentUser.UserId is { } me && records.Any(r => r.MemberId == me))
+            throw new ForbiddenException("Bạn không được lập phiếu kiểm soát có hồ sơ của chính mình (xung đột lợi ích).");
+    }
 
     private void EnsureCanView(ControlCheck check)
     {
@@ -623,7 +643,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
             return;
 
         var stale = await StaleSetAsync(rows.Select(r => r.Check).DistinctBy(c => c.Id).ToList(), ct);
-        var blocked = rows.Where(r => !stale.Contains(r.CheckId)).ToList();
+        var blocked = rows.Where(r => !stale.Contains((r.CheckId, r.RecordId))).ToList();
         if (blocked.Count > 0)
         {
             var names = blocked.Select(r => records.First(x => x.Id == r.RecordId).Member?.FullName ?? r.RecordId.ToString());
@@ -646,6 +666,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         var addedRecords = await LoadRecordsAsync(added, ct);
         if (addedRecords.Any(r => r.PeriodId != check.PeriodId))
             throw new ValidationException("Mọi hồ sơ trong phiếu phải thuộc kỳ đánh giá của phiếu.");
+        EnsureNotOwner(addedRecords);
         EnsureAll(PermissionCodes.EvaluationControlPerform, addedRecords);
 
         foreach (var row in check.Records.Where(r => !ids.Contains(r.RecordId)).ToList())

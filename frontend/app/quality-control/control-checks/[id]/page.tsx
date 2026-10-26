@@ -226,7 +226,7 @@ export default function ControlCheckDetailPage() {
 
         {data.isStale && (
           <div className="alert alert-danger small mb-0" role="alert">
-            Phiếu hết hiệu lực: hồ sơ trong phiếu đã đổi kết quả hoặc bước sau khi xác nhận. Hãy mở lại phiếu và xác nhận lại.
+            Phiếu hết hiệu lực với các hồ sơ có nhãn "Hết hiệu lực" bên dưới: hồ sơ đó đã đổi kết quả hoặc bước sau khi xác nhận. Hãy mở lại phiếu và xác nhận lại; hồ sơ đã ghi nhận quyết định không bị ảnh hưởng.
           </div>
         )}
         {data.returnReason && data.status === "Draft" && <div className="alert alert-warning small mb-0">Phiếu bị trả lại: {data.returnReason}</div>}
@@ -261,6 +261,7 @@ export default function ControlCheckDetailPage() {
                       <Link href={`/evaluations/${r.recordId}`} className="fw-semibold text-decoration-none">{r.fullName}</Link>
                       <span className="text-secondary"> · {[r.departmentName, r.partyCellName].filter(Boolean).join(" · ") || "—"}</span>
                       {!r.isCurrent && <span className="text-secondary"> · đã chuyển sang phiếu khác</span>}
+                      {r.isCurrent && r.isStale && <span className="ms-2"><Badge tone="danger">Hết hiệu lực</Badge></span>}
                     </span>
                     <span className="d-inline-flex gap-2 align-items-center"><GradeBadge grade={r.gradeAtCheck} /><span className="num">{r.scoreAtCheck}</span></span>
                   </div>

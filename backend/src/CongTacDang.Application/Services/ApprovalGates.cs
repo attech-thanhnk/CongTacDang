@@ -52,6 +52,8 @@ public static class ApprovalGateCodes
     public const string ControlRequired = "CONTROL_CHECK_REQUIRED";
 
     public const string CalibrationRequired = "CALIBRATION_REQUIRED";
+
+    public const string CrosscheckOpen = "CROSSCHECK_OPEN";
 }
 
 /// <summary>Một cổng chưa đạt: chặn (Required) hoặc chỉ cảnh báo (Recorded).</summary>
