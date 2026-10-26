@@ -1,0 +1,48 @@
+# Phân loại bảng CSDL cho chuyen-du-lieu-goc.sh, kiem-tra-sau-chuyen.sh và test PhanLoaiBangDuLieuGocTests.
+# Dạng: LOAI|ten_bang|ly_do. LOAI = GOC (chép sang) / VAN_HANH (không chép) / HE_THONG (không chép).
+# Thứ tự các dòng GOC là thứ tự phụ thuộc khóa ngoại (bảng cha trước); chép theo thứ tự này, xóa theo thứ tự ngược lại.
+# Thêm bảng mới vào DbContext thì phải thêm một dòng ở đây, nếu không test PhanLoaiBangDuLieuGocTests không đạt.
+GOC|org_unit_types|Loại đơn vị (danh mục tổ chức)
+GOC|administrative_departments|Cây đơn vị chính quyền
+GOC|party_cells|Cây tổ chức Đảng
+GOC|form_layouts|Bố cục biểu mẫu; chức vụ và tài khoản tham chiếu
+GOC|positions|Danh mục chức vụ
+GOC|roles|Vai trò do quản trị đặt
+GOC|permissions|Danh mục quyền; chép từ máy cũ để role_permissions khớp khóa, mã quyền mới do khởi động lại bổ sung và gán cho vai trò mặc định
+GOC|role_permissions|Quyền của từng vai trò
+GOC|party_member_profiles|Tài khoản cán bộ kèm mật khẩu băm
+GOC|member_positions|Chức vụ của từng cán bộ (kiêm nhiệm)
+GOC|user_role_assignments|Bản gán vai trò: người, vai trò, phạm vi, thời hạn
+GOC|organization_settings|Thông tin đơn vị
+GOC|criteria_sets|Bộ tiêu chí và các phiên bản
+GOC|holidays|Ngày nghỉ lễ, ngày làm việc
+GOC|word_template_versions|Phiên bản file mẫu Word; tệp nằm ở thư mục word-templates trên đĩa
+VAN_HANH|evaluation_periods|Kỳ đánh giá
+VAN_HANH|evaluation_records|Hồ sơ đánh giá
+VAN_HANH|evaluation_tasks|Nhiệm vụ của hồ sơ
+VAN_HANH|evaluation_record_histories|Lịch sử hồ sơ
+VAN_HANH|evaluation_form_history|Lịch sử biểu mẫu của hồ sơ
+VAN_HANH|evaluation_external_results|Kết quả do cấp trên ghi nhận
+VAN_HANH|evaluation_appeals|Kiến nghị về kết quả
+VAN_HANH|improvement_plans|Kế hoạch 30-60-90 ngày
+VAN_HANH|task_change_requests|Đề nghị điều chỉnh việc
+VAN_HANH|task_attachments|Tệp đính kèm hồ sơ; không chuyển tệp trên đĩa
+VAN_HANH|collective_evaluation_records|Hồ sơ tập thể
+VAN_HANH|collective_evaluation_items|Dòng của hồ sơ tập thể
+VAN_HANH|evaluation_meetings|Biên bản hội nghị
+VAN_HANH|evaluation_meeting_vote_summaries|Kết quả kiểm phiếu hội nghị
+VAN_HANH|expert_crosschecks|Phiếu đối soát chuyên ngành (Mẫu 03)
+VAN_HANH|expert_crosscheck_items|Dòng của phiếu đối soát
+VAN_HANH|control_checks|Phiếu kiểm soát (Mẫu 19)
+VAN_HANH|control_check_items|Dòng của phiếu kiểm soát
+VAN_HANH|control_check_records|Hồ sơ gắn với phiếu kiểm soát
+VAN_HANH|calibration_sessions|Biên bản hiệu chuẩn (Mẫu 20)
+VAN_HANH|calibration_attendees|Thành phần dự hiệu chuẩn
+VAN_HANH|calibration_cases|Trường hợp hiệu chuẩn
+VAN_HANH|calibration_records|Hồ sơ gắn với biên bản hiệu chuẩn
+VAN_HANH|calibration_summary_rows|Dòng tổng hợp của biên bản hiệu chuẩn
+VAN_HANH|report_drafts|Bản nháp báo cáo
+VAN_HANH|audit_logs|Nhật ký audit; máy mới bắt đầu nhật ký riêng, nhật ký máy cũ giữ trong bản sao lưu
+VAN_HANH|login_events|Lịch sử đăng nhập
+VAN_HANH|refresh_tokens|Phiên đăng nhập; người dùng đăng nhập lại sau khi chuyển
+HE_THONG|__EFMigrationsHistory|Lịch sử migration của EF; do migration của bản mới sinh ra
