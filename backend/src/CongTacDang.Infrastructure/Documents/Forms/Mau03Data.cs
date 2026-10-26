@@ -35,7 +35,7 @@ public sealed class Mau03Data
     [TemplateCondition("FIELD_FINANCE")] public bool FieldFinance { get; init; }
     [TemplateCondition("FIELD_LEGAL")] public bool FieldLegal { get; init; }
 
-    /// <summary>Người xác nhận phiếu (lãnh đạo Ban chuyên môn); chưa xác nhận → trống.</summary>
+    /// <summary>Người xác nhận phiếu (lãnh đạo đơn vị chuyên môn); chưa xác nhận → trống.</summary>
     [TemplateField("LEADER_NAME")] public string? LeaderName { get; init; }
 
     /// <summary>Người lập phiếu (cán bộ đối soát dữ liệu); chưa gửi → trống.</summary>
