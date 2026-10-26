@@ -22,6 +22,9 @@ public interface IControlCheckService
 
     Task<ControlCheckDto> GetAsync(Guid id, CancellationToken ct = default);
 
+    /// <summary>Hồ sơ chờ quyết định, chưa thuộc phiếu còn hiệu lực nào, trong phạm vi lập phiếu.</summary>
+    Task<List<ControlCheckCandidateDto>> ListCandidatesAsync(Guid periodId, CancellationToken ct = default);
+
     /// <summary>Lập phiếu nháp với đủ mười mục chưa chọn kết quả.</summary>
     Task<ControlCheckDto> CreateAsync(CreateControlCheckDto request, CancellationToken ct = default);
 
@@ -138,6 +141,55 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         var check = await RequireAsync(id, ct);
         EnsureCanView(check);
         return await BuildAsync(check, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<ControlCheckCandidateDto>> ListCandidatesAsync(Guid periodId, CancellationToken ct = default)
+    {
+        var period = await _records.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
+        if (period.Status != PeriodStatus.Open)
+            return new List<ControlCheckCandidateDto>();
+
+        PeriodSettings settings;
+        try
+        {
+            settings = period.GetSettings();
+        }
+        catch (FormatException)
+        {
+            throw new ConflictException("Cấu hình của kỳ đánh giá bị lỗi định dạng. Hãy liên hệ người quản lý kỳ để sửa cấu hình.");
+        }
+
+        var scope = _guard.GetScope(PermissionCodes.EvaluationControlPerform);
+        var records = await _records.ListRecordsByStatusAsync(new[] { periodId }, new[] { RecordStatus.AwaitingDecision }, ct);
+        var me = _currentUser.UserId;
+        var rows = await _repo.ListCurrentRowsAsync(records.Select(r => r.Id).ToList(), ct);
+        // Phiếu đã hết hiệu lực nhả hồ sơ khi lập phiếu mới nên hồ sơ đó vẫn là ứng viên.
+        var stale = await StaleSetAsync(rows.Select(r => r.Check).DistinctBy(c => c.Id).ToList(), ct);
+        var taken = rows.Where(r => !stale.Contains((r.CheckId, r.RecordId))).Select(r => r.RecordId).ToHashSet();
+
+        var result = new List<ControlCheckCandidateDto>();
+        foreach (var r in records.OrderBy(r => r.Member?.FullName, StringComparer.CurrentCulture))
+        {
+            if (r.MemberId == me || taken.Contains(r.Id) || !scope.Matches(null, r.DepartmentId, r.PartyCellId))
+                continue;
+            var profile = EvaluationMapping.ProfileOf(settings, r);
+            if (profile.GateModeOf(WorkflowGates.Control) == GateMode.Off)
+                continue;
+            result.Add(new ControlCheckCandidateDto
+            {
+                RecordId = r.Id,
+                MemberId = r.MemberId,
+                FullName = r.Member?.FullName ?? string.Empty,
+                DepartmentName = r.Department?.Name,
+                PartyCellName = r.PartyCell?.Name,
+                WorkflowProfileCode = r.WorkflowProfileCode,
+                WorkflowProfileName = profile.Name,
+                Grade = r.EffectiveGrade().ToString(),
+                Score = r.EffectiveScore()
+            });
+        }
+        return result;
     }
 
     private async Task<ControlCheckDto> BuildAsync(ControlCheck check, CancellationToken ct)

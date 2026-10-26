@@ -35,6 +35,15 @@ public class ControlCheckController : ControllerBase
         return Ok(ApiResponse<List<ControlCheckSummaryDto>>.Ok(data, "Lấy danh sách phiếu kiểm soát thành công."));
     }
 
+    /// <summary>Hồ sơ chờ quyết định, chưa thuộc phiếu còn hiệu lực nào, người dùng lập được.</summary>
+    [HttpGet("candidates")]
+    [RequirePermission(PermissionCodes.EvaluationControlPerform)]
+    public async Task<IActionResult> Candidates([FromQuery] Guid periodId, CancellationToken ct)
+    {
+        var data = await _checks.ListCandidatesAsync(periodId, ct);
+        return Ok(ApiResponse<List<ControlCheckCandidateDto>>.Ok(data, "Lấy danh sách hồ sơ có thể kiểm soát thành công."));
+    }
+
     [HttpGet("{id:guid}")]
     [RequireAnyPermission(PermissionCodes.EvaluationControlPerform, PermissionCodes.EvaluationControlConfirm, PermissionCodes.EvaluationRead)]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct)

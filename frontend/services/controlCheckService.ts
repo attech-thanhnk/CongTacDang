@@ -94,6 +94,18 @@ export interface ControlCheckDto extends ControlCheckSummaryDto {
   canCancel: boolean;
 }
 
+export interface ControlCheckCandidateDto {
+  recordId: string;
+  memberId: string;
+  fullName: string;
+  departmentName?: string | null;
+  partyCellName?: string | null;
+  workflowProfileCode: string;
+  workflowProfileName: string;
+  grade: string;
+  score: number;
+}
+
 export interface CreateControlCheckRequest {
   periodId: string;
   groupName: string;
@@ -118,6 +130,10 @@ const send = <T>(endpoint: string, method: "POST" | "PUT", body: unknown): Promi
 export const controlCheckService = {
   list(periodId?: string): Promise<ControlCheckSummaryDto[]> {
     return request<ControlCheckSummaryDto[]>(`/control-checks${periodId ? `?periodId=${encodeURIComponent(periodId)}` : ""}`);
+  },
+
+  candidates(periodId: string): Promise<ControlCheckCandidateDto[]> {
+    return request<ControlCheckCandidateDto[]>(`/control-checks/candidates?periodId=${encodeURIComponent(periodId)}`);
   },
 
   get(id: string): Promise<ControlCheckDto> {
