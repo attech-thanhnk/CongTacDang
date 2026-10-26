@@ -29,7 +29,7 @@ export default function AdminRolesPage() {
     try {
       setRoles(await roleService.listRoles());
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được danh sách vai trò."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải danh sách vai trò không thành công."), errorTitle(err));
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,7 @@ export default function AdminRolesPage() {
         router.push(`/admin/roles/${created.id}`);
       }
     } catch (err) {
-      toast.error(errorMessage(err, "Không lưu được vai trò."), errorTitle(err), 8000);
+      toast.error(errorMessage(err, "Lưu vai trò không thành công."), errorTitle(err), 8000);
     } finally {
       setSaving(false);
     }
@@ -77,7 +77,7 @@ export default function AdminRolesPage() {
           await load();
         } catch (err) {
           // 409: vai trò bảo vệ, hoặc "đang có N bản gán" — hiện đúng thông báo máy chủ.
-          toast.error(errorMessage(err, "Không xóa được vai trò."), errorTitle(err), 10000);
+          toast.error(errorMessage(err, "Xóa vai trò không thành công."), errorTitle(err), 10000);
         }
       },
     });
@@ -130,7 +130,7 @@ export default function AdminRolesPage() {
                           {role.name}
                         </Link>
                         {role.isProtected && (
-                          <span className="status-badge tone-neutral ms-2" title="Không xóa được, không gỡ được quyền quản trị">
+                          <span className="status-badge tone-neutral ms-2" title="Vai trò được bảo vệ: không xóa, không gỡ quyền quản trị">
                             <i className="bi bi-lock-fill me-1" />
                             Bảo vệ
                           </span>

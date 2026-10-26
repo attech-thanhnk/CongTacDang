@@ -40,45 +40,45 @@ export const REPORTS: ReportDefinition[] = [
   },
   {
     id: "mau-11", code: "Mẫu 11", group: "hd03", scope: "period", fileType: "DOCX", fileCode: "11",
-    title: "Phiếu đánh giá, xếp loại cán bộ", endpoint: "/reports/docx/mau-11",
+    title: "Phiếu đánh giá, xếp loại cán bộ (phiếu kín)", endpoint: "/reports/docx/mau-11",
   },
   {
     id: "mau-12", code: "Mẫu 12", group: "hd03", scope: "meeting", fileType: "DOCX", fileCode: "12",
-    title: "Biên bản Hội nghị tập thể lãnh đạo, quản lý hoặc Hội nghị Đảng ủy/Chi ủy cơ sở về việc đánh giá, xếp loại chất lượng cán bộ quý",
+    title: "Biên bản hội nghị đánh giá, xếp loại chất lượng cán bộ quý",
   },
   {
     id: "mau-13", code: "Mẫu 13", group: "hd03", scope: "meeting", fileType: "DOCX", fileCode: "13",
-    title: "Biên bản kiểm phiếu Hội nghị tập thể lãnh đạo, quản lý hoặc Hội nghị Đảng ủy/Chi ủy cơ sở về việc đánh giá, xếp loại chất lượng cán bộ quý",
+    title: "Biên bản kiểm phiếu hội nghị đánh giá, xếp loại chất lượng cán bộ quý",
   },
   {
     id: "mau-14", code: "Mẫu 14", group: "hd03", scope: "period", fileType: "XLSX", fileCode: "14",
-    title: "Danh sách đánh giá và đề xuất xếp loại quý … năm … đối với cán bộ thuộc diện … quyết định, phê duyệt mức xếp loại",
+    title: "Danh sách đánh giá và đề xuất xếp loại",
     endpoint: "/reports/form-14",
   },
   {
     id: "mau-15a", code: "Mẫu 15A", group: "hd03", scope: "period", fileType: "XLSX", fileCode: "15A",
-    title: "Tổng hợp kết quả đánh giá, xếp loại cán bộ quý … năm … (Đối tượng đề nghị BTVĐUTCT quyết định, phê duyệt mức xếp loại)",
+    title: "Tổng hợp kết quả đánh giá, xếp loại cán bộ (đối tượng đề nghị cấp trên quyết định)",
     endpoint: "/reports/form-15a",
   },
   {
     id: "mau-15b", code: "Mẫu 15B", group: "hd03", scope: "period", fileType: "XLSX", fileCode: "15B",
-    title: "Tổng hợp kết quả đánh giá, xếp loại cán bộ quý … năm … (Đối tượng thuộc diện Đảng ủy/Chi ủy cơ sở quyết định, phê duyệt mức xếp loại)",
+    title: "Tổng hợp kết quả đánh giá, xếp loại cán bộ (đối tượng thuộc diện Đảng ủy/Chi ủy cơ sở quyết định)",
     endpoint: "/reports/form-15b",
   },
   {
     id: "mau-16", code: "Mẫu 16", group: "hd03", scope: "period", fileType: "DOCX", fileCode: "16",
-    title: "Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý … năm …",
+    title: "Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý",
     endpoint: "/reports/docx/mau-16",
   },
   {
     id: "decision", code: "Quyết định", group: "hd03", scope: "period", fileType: "DOCX", fileCode: "QD",
     filePrefix: "Quyet dinh xep loai",
-    title: "Quyết định xếp loại cán bộ quý … năm … thuộc thẩm quyền quyết định của Đảng ủy (Chi ủy), kèm Phụ lục kết quả",
+    title: "Quyết định xếp loại cán bộ quý của Đảng ủy (Chi ủy), kèm Phụ lục kết quả",
     endpoint: "/reports/docx/decision",
   },
   {
     id: "cadres", code: "Nội bộ", group: "internal", scope: "none", fileType: "XLSX", fileCode: "DanhSachCanBo",
-    title: "Danh sách cán bộ (nội bộ)", endpoint: "/reports/cadres",
+    title: "Danh sách cán bộ", endpoint: "/reports/cadres",
   },
   {
     id: "rating-summary", code: "Nội bộ", group: "internal", scope: "period", fileType: "XLSX", fileCode: "BangTongHop_XepLoaiCanBo",
@@ -86,7 +86,7 @@ export const REPORTS: ReportDefinition[] = [
   },
   {
     id: "excellent-quota", code: "Nội bộ", group: "internal", scope: "period", fileType: "XLSX", fileCode: "KiemSoatTyLeXuatSac",
-    title: "Báo cáo nội bộ — Kiểm soát tỷ lệ Hoàn thành xuất sắc nhiệm vụ theo tổ chức Đảng",
+    title: "Kiểm soát tỷ lệ Hoàn thành xuất sắc nhiệm vụ theo tổ chức Đảng",
     endpoint: "/reports/internal/excellent-quota",
   },
 ];

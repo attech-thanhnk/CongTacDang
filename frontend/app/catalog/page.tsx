@@ -37,7 +37,7 @@ export default function CatalogPage() {
     try {
       setUnitTypes(await catalogService.listUnitTypes());
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được danh mục loại đơn vị."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải danh mục loại đơn vị không thành công."), errorTitle(err));
     } finally {
       setTypesLoading(false);
     }

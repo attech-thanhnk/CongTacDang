@@ -45,7 +45,7 @@ export function UserPicker({
           }
         })
         .catch((err: unknown) => {
-          if (!cancelled) setError(errorMessage(err, "Không tìm được tài khoản."));
+          if (!cancelled) setError(errorMessage(err, "Tìm tài khoản không thành công."));
         })
         .finally(() => {
           if (!cancelled) setLoading(false);

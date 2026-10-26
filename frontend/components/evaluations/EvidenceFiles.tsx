@@ -66,7 +66,7 @@ export function EvidenceFiles({ recordId, slot, label, files, rights, onChanged,
       await action();
       toast.success(done);
     } catch (error: unknown) {
-      toast.error(errorMessage(error, "Không thực hiện được thao tác với tệp."));
+      toast.error(errorMessage(error, "Thực hiện thao tác với tệp không thành công."));
     } finally {
       setBusy(false);
       // Tải lại cả danh sách tệp và thao tác được làm (giai đoạn hồ sơ có thể đã đổi).
@@ -89,7 +89,7 @@ export function EvidenceFiles({ recordId, slot, label, files, rights, onChanged,
   };
 
   const download = (f: AttachmentItem) =>
-    attachmentService.downloadAttachment(f.id, f.fileName).catch((error: unknown) => toast.error(errorMessage(error, "Không tải được tệp.")));
+    attachmentService.downloadAttachment(f.id, f.fileName).catch((error: unknown) => toast.error(errorMessage(error, "Tải tệp không thành công.")));
 
   return (
     <div className={`d-flex flex-wrap align-items-center gap-2 small ${hideLabel ? "" : "mt-1"}`}>

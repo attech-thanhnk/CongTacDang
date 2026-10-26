@@ -110,7 +110,7 @@ export default function OrganizationSettingsPage() {
         setSettings(data);
         setForm(toPayload(data));
       })
-      .catch((err) => toast.error(errorMessage(err, "Không tải được thông tin đơn vị."), errorTitle(err)))
+      .catch((err) => toast.error(errorMessage(err, "Tải thông tin đơn vị không thành công."), errorTitle(err)))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -143,7 +143,7 @@ export default function OrganizationSettingsPage() {
       setForm(toPayload(saved));
       toast.success("Đã cập nhật thông tin đơn vị.");
     } catch (err) {
-      toast.error(errorMessage(err, "Không lưu được thông tin đơn vị."), errorTitle(err), 8000);
+      toast.error(errorMessage(err, "Lưu thông tin đơn vị không thành công."), errorTitle(err), 8000);
     } finally {
       setSaving(false);
     }

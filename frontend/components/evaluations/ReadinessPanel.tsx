@@ -59,7 +59,7 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
             <div className="table-responsive" style={{ maxHeight: 360, overflowY: "auto" }}>
               <table className="table table-sm align-middle small mb-0">
                 <thead>
-                  <tr className="text-secondary"><th>Hồ sơ</th><th>Cách xét duyệt</th><th>Bước chưa có người phụ trách</th><th>Vai trò</th><th>Nơi phân công</th></tr>
+                  <tr className="text-secondary"><th>Hồ sơ</th><th>Diện quyết định</th><th>Bước chưa có người phụ trách</th><th>Vai trò</th><th>Nơi phân công</th></tr>
                 </thead>
                 <tbody>
                   {readiness.issues.map((issue) => (

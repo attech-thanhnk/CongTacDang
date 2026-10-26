@@ -42,7 +42,7 @@ export default function CriteriaSetsPage() {
     try {
       setSets(await criteriaService.list());
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Không tải được danh sách bộ tiêu chí."));
+      toast.error(errorMessage(err, "Tải danh sách bộ tiêu chí không thành công."));
     } finally {
       setLoading(false);
     }
@@ -59,7 +59,7 @@ export default function CriteriaSetsPage() {
       toast.success(success);
       await load();
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Không thực hiện được thao tác."));
+      toast.error(errorMessage(err, "Thực hiện thao tác không thành công."));
       if (errorStatus(err) === 409) await load();
     } finally {
       setBusy(false);
@@ -74,7 +74,7 @@ export default function CriteriaSetsPage() {
       toast.success("Đã tạo bản nháp.");
       router.push(`/criteria/${created.id}`);
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Không tạo được bộ tiêu chí."));
+      toast.error(errorMessage(err, "Tạo bộ tiêu chí không thành công."));
     } finally {
       setBusy(false);
     }
@@ -89,13 +89,13 @@ export default function CriteriaSetsPage() {
   const paging = usePagination(sets, { storageKey: "criteriaSets" });
 
   if (!canView) {
-    return <NoAccess title="Bộ tiêu chí và thang điểm" permissionName="Quản lý bộ tiêu chí" />;
+    return <NoAccess title="Bộ tiêu chí" permissionName="Quản lý bộ tiêu chí" />;
   }
 
   return (
     <div className="page-wrapper">
       <PageHeader
-        title="Bộ tiêu chí và thang điểm"
+        title="Bộ tiêu chí"
         actions={
           canManage ? (
             <button type="button" className="btn btn-primary" onClick={() => { setForm(EMPTY_FORM); setShowCreate(true); }}>

@@ -70,7 +70,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
       setLayouts(layoutItems);
       setProfiles(profileItems);
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được danh mục chức vụ."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải danh mục chức vụ không thành công."), errorTitle(err));
     } finally {
       setLoading(false);
     }
@@ -136,7 +136,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
       setForm(null);
       await load();
     } catch (err) {
-      toast.error(errorMessage(err, "Không lưu được chức vụ."), errorTitle(err), 8000);
+      toast.error(errorMessage(err, "Lưu chức vụ không thành công."), errorTitle(err), 8000);
     } finally {
       setSaving(false);
     }
@@ -154,7 +154,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
           toast.success(`Đã xóa chức vụ "${p.name}".`);
           await load();
         } catch (err) {
-          toast.error(errorMessage(err, "Không xóa được chức vụ."), errorTitle(err), 10000);
+          toast.error(errorMessage(err, "Xóa chức vụ không thành công."), errorTitle(err), 10000);
         }
       },
     });
@@ -231,7 +231,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                     <td className="small">
                       {p.defaultApprovalAuthority ? APPROVAL_AUTHORITY_CODE_LABELS[p.defaultApprovalAuthority] : <span className="text-secondary">Không xác định</span>}
                       {p.defaultWorkflowProfileCode && (
-                        <div className="text-secondary">Cách xét duyệt: {profileName(p.defaultWorkflowProfileCode)}</div>
+                        <div className="text-secondary">Diện quyết định: {profileName(p.defaultWorkflowProfileCode)}</div>
                       )}
                     </td>
                     <td className="small">{p.formLayoutName ?? <span className="text-secondary">Mặc định</span>}</td>
@@ -327,7 +327,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                 </select>
               </div>
               <div className="col-12">
-                <label className="form-label" htmlFor="pos-workflow-profile">Cách xét duyệt khi thêm vào kỳ</label>
+                <label className="form-label" htmlFor="pos-workflow-profile">Diện quyết định khi thêm vào kỳ</label>
                 <select
                   id="pos-workflow-profile"
                   className="form-select form-select-sm"
@@ -344,7 +344,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                     <option value={form.defaultWorkflowProfileCode}>{form.defaultWorkflowProfileCode}</option>
                   )}
                 </select>
-                <div className="form-text">Chỉ áp dụng khi kỳ có cách xét duyệt này và thẩm quyền của người khớp thẩm quyền của chức vụ.</div>
+                <div className="form-text">Chỉ áp dụng khi kỳ có diện quyết định này và thẩm quyền của người khớp thẩm quyền của chức vụ.</div>
               </div>
               <div className="col-12">
                 <label className="form-label">Kiểu trình bày biểu mẫu tự đánh giá</label>

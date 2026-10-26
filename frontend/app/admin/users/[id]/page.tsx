@@ -82,7 +82,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       setAccount(await userService.get(userId));
       setLoadError(null);
     } catch (err) {
-      setLoadError(errorMessage(err, "Không tải được tài khoản."));
+      setLoadError(errorMessage(err, "Tải tài khoản không thành công."));
     }
   }, [userId]);
 
@@ -92,7 +92,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     try {
       setAssignments(await roleService.listAssignments({ userId }));
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được phân công vai trò."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải phân công vai trò không thành công."), errorTitle(err));
     } finally {
       setAssignmentsLoading(false);
     }
@@ -105,7 +105,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       setEffective(await roleService.getEffectivePermissions(userId));
       setEffectiveError(null);
     } catch (err) {
-      setEffectiveError(errorMessage(err, "Không tải được quyền hiệu lực."));
+      setEffectiveError(errorMessage(err, "Tải quyền hiệu lực không thành công."));
     } finally {
       setEffectiveLoading(false);
     }
@@ -142,7 +142,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
         setRoles(roleList);
         setModules(moduleList);
       })
-      .catch((err: unknown) => setRolesError(errorMessage(err, "Không tải được danh sách vai trò.")));
+      .catch((err: unknown) => setRolesError(errorMessage(err, "Tải danh sách vai trò không thành công.")));
   }, [canAssign]);
 
   const globalOnlyCodes = useMemo(
@@ -173,7 +173,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       setEditing(false);
       toast.success("Đã cập nhật thông tin tài khoản.");
     } catch (err) {
-      toast.error(errorMessage(err, "Không cập nhật được tài khoản."), errorTitle(err), 8000);
+      toast.error(errorMessage(err, "Cập nhật tài khoản không thành công."), errorTitle(err), 8000);
     } finally {
       setSaving(false);
     }
@@ -188,7 +188,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
         confirmText: "Vô hiệu hóa",
         isDanger: true,
         onConfirm: async () => {
-          if (await run(() => userService.deactivate(userId), "Đã vô hiệu hóa tài khoản.", "Không vô hiệu hóa được tài khoản.")) await loadAccount();
+          if (await run(() => userService.deactivate(userId), "Đã vô hiệu hóa tài khoản.", "Vô hiệu hóa tài khoản không thành công.")) await loadAccount();
         },
       });
     } else {
@@ -198,7 +198,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
         confirmText: "Mở lại",
         isDanger: false,
         onConfirm: async () => {
-          if (await run(() => userService.activate(userId), "Đã mở lại tài khoản.", "Không mở lại được tài khoản.")) await loadAccount();
+          if (await run(() => userService.activate(userId), "Đã mở lại tài khoản.", "Mở lại tài khoản không thành công.")) await loadAccount();
         },
       });
     }
@@ -235,7 +235,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
           });
           await loadAccount();
         } catch (err) {
-          toast.error(errorMessage(err, "Không đặt lại được mật khẩu."), errorTitle(err), 10000);
+          toast.error(errorMessage(err, "Đặt lại mật khẩu không thành công."), errorTitle(err), 10000);
         }
       },
     });
@@ -249,7 +249,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       confirmText: "Xóa tài khoản",
       isDanger: true,
       onConfirm: async () => {
-        if (await run(() => userService.remove(userId), "Đã xóa tài khoản.", "Không xóa được tài khoản.")) router.push("/admin/users");
+        if (await run(() => userService.remove(userId), "Đã xóa tài khoản.", "Xóa tài khoản không thành công.")) router.push("/admin/users");
       },
     });
   };
@@ -268,7 +268,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       toast.success("Đã phân công vai trò.");
       await afterAssignmentChange();
     } catch (err) {
-      toast.error(errorMessage(err, "Không phân công được vai trò."), errorTitle(err), 10000);
+      toast.error(errorMessage(err, "Phân công vai trò không thành công."), errorTitle(err), 10000);
     } finally {
       setSaving(false);
     }
@@ -282,7 +282,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       toast.success("Đã cập nhật phân công.");
       await afterAssignmentChange();
     } catch (err) {
-      toast.error(errorMessage(err, "Không cập nhật được phân công."), errorTitle(err), 10000);
+      toast.error(errorMessage(err, "Cập nhật phân công không thành công."), errorTitle(err), 10000);
     } finally {
       setSaving(false);
     }
@@ -295,7 +295,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       confirmText: "Kết thúc",
       isDanger: true,
       onConfirm: async () => {
-        if (await run(() => roleService.endAssignment(a.id), "Đã kết thúc phân công.", "Không kết thúc được phân công.")) await afterAssignmentChange();
+        if (await run(() => roleService.endAssignment(a.id), "Đã kết thúc phân công.", "Kết thúc phân công không thành công.")) await afterAssignmentChange();
       },
     });
 
@@ -306,7 +306,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       confirmText: "Gỡ",
       isDanger: true,
       onConfirm: async () => {
-        if (await run(() => roleService.endAssignment(item.assignmentId), "Đã gỡ phân công.", "Không gỡ được phân công.")) await afterAssignmentChange();
+        if (await run(() => roleService.endAssignment(item.assignmentId), "Đã gỡ phân công.", "Gỡ phân công không thành công.")) await afterAssignmentChange();
       },
     });
 
@@ -317,7 +317,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       confirmText: "Xóa",
       isDanger: true,
       onConfirm: async () => {
-        if (await run(() => roleService.deleteAssignment(a.id), "Đã xóa phân công.", "Không xóa được phân công.")) await afterAssignmentChange();
+        if (await run(() => roleService.deleteAssignment(a.id), "Đã xóa phân công.", "Xóa phân công không thành công.")) await afterAssignmentChange();
       },
     });
 

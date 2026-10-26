@@ -55,7 +55,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
     try {
       setItems(await catalogService.list(kind));
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được danh mục."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải danh mục không thành công."), errorTitle(err));
     } finally {
       setLoading(false);
     }
@@ -143,7 +143,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
       setForm(null);
       await load();
     } catch (err) {
-      toast.error(errorMessage(err, "Không lưu được."), errorTitle(err), 8000);
+      toast.error(errorMessage(err, "Lưu không thành công."), errorTitle(err), 8000);
     } finally {
       setSaving(false);
     }
@@ -155,7 +155,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
       toast.success(item.isActive ? `Đã ngừng hoạt động "${item.name}".` : `Đã cho "${item.name}" hoạt động trở lại.`);
       await load();
     } catch (err) {
-      toast.error(errorMessage(err, "Không cập nhật được trạng thái."), errorTitle(err), 8000);
+      toast.error(errorMessage(err, "Cập nhật trạng thái không thành công."), errorTitle(err), 8000);
     }
   };
 
@@ -171,7 +171,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
           toast.success(`Đã xóa ${unit} "${item.name}".`);
           await load();
         } catch (err) {
-          toast.error(errorMessage(err, "Không xóa được."), errorTitle(err), 10000);
+          toast.error(errorMessage(err, "Xóa không thành công."), errorTitle(err), 10000);
         }
       },
     });

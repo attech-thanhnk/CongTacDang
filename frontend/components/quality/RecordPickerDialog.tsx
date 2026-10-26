@@ -6,7 +6,7 @@ export interface PickerRow {
   id: string;
   name: string;
   detail?: string;
-  /** Nhóm lọc (ví dụ nhóm đối tượng); để trống nếu không lọc. */
+  /** Nhóm lọc (ví dụ diện quyết định); để trống nếu không lọc. */
   group?: string;
 }
 
@@ -76,8 +76,8 @@ export function RecordPickerDialog({ isOpen, title, confirmText, rows, loading, 
               </div>
             )}
             {groups.length > 1 && (
-              <select className="form-select form-select-sm" aria-label="Lọc theo nhóm đối tượng" value={group} onChange={(e) => setGroup(e.target.value)}>
-                <option value="">Mọi nhóm đối tượng</option>
+              <select className="form-select form-select-sm" aria-label="Lọc theo diện quyết định" value={group} onChange={(e) => setGroup(e.target.value)}>
+                <option value="">Mọi diện quyết định</option>
                 {groups.map((g) => <option key={g} value={g}>{g}</option>)}
               </select>
             )}

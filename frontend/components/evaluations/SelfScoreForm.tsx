@@ -254,7 +254,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       const partial = activeTasks.filter((t) => !isComplete(ratios[t.id]) && ratioKeys.some((k) => ratios[t.id][k] !== ""));
       if (partial.length) toast.warning(`Chưa lưu tỷ lệ của nhiệm vụ nhập chưa đủ A-B-C-D: ${taskNames(partial)}.`);
     } catch (error: unknown) {
-      if (!isConcurrencyConflict(error)) toast.error(errorMessage(error, "Không lưu được nháp."));
+      if (!isConcurrencyConflict(error)) toast.error(errorMessage(error, "Lưu nháp không thành công."));
     } finally {
       setSaving(false);
     }

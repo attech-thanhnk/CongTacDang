@@ -65,7 +65,7 @@ export function ImprovementPlanPanel({ record, onPendingChange }: { record: Eval
       setData(await postPublishService.getRecordPlan(record.id));
       setError(null);
     } catch (err: unknown) {
-      setError(errorMessage(err, "Không tải được kế hoạch 30-60-90 ngày."));
+      setError(errorMessage(err, "Tải kế hoạch 30-60-90 ngày không thành công."));
     }
   }, [record.id]);
 
@@ -92,7 +92,7 @@ export function ImprovementPlanPanel({ record, onPendingChange }: { record: Eval
       await load();
       return true;
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Không thực hiện được thao tác."));
+      toast.error(errorMessage(err, "Thực hiện thao tác không thành công."));
       await load();
       return false;
     } finally {
@@ -118,7 +118,7 @@ export function ImprovementPlanPanel({ record, onPendingChange }: { record: Eval
   const download = (format: "original" | "pdf") => {
     if (!plan) return;
     postPublishService.downloadMau17(plan.id, record.fullName, format)
-      .catch((err: unknown) => toast.error(errorMessage(err, "Không xuất được Mẫu 17.")));
+      .catch((err: unknown) => toast.error(errorMessage(err, "Xuất Mẫu 17 không thành công.")));
   };
 
   const updateMilestone = (code: MilestoneCode, key: keyof Omit<MilestoneInput, "code">, value: string) =>

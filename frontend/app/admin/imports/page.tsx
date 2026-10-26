@@ -49,7 +49,7 @@ export default function ImportsPage() {
         setKinds(list);
         setKind((current) => current || list[0]?.kind || "");
       })
-      .catch((err) => toast.error(errorMessage(err, "Không tải được danh sách loại dữ liệu."), errorTitle(err)))
+      .catch((err) => toast.error(errorMessage(err, "Tải danh sách loại dữ liệu không thành công."), errorTitle(err)))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canImport]);
@@ -86,7 +86,7 @@ export default function ImportsPage() {
     try {
       await importService.downloadTemplate(selected.kind);
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được file mẫu."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải file mẫu không thành công."), errorTitle(err));
     } finally {
       setBusy("");
     }
@@ -119,7 +119,7 @@ export default function ImportsPage() {
       setResult(null);
     } catch (err) {
       setPreview(null);
-      toast.error(errorMessage(err, "Không đọc được file."), errorTitle(err));
+      toast.error(errorMessage(err, "Đọc file không thành công."), errorTitle(err));
     } finally {
       setBusy("");
     }
@@ -145,7 +145,7 @@ export default function ImportsPage() {
           setFile(null);
           toast.success(`Đã nhập ${data.total} dòng.`);
         } catch (err) {
-          toast.error(errorMessage(err, "Không nhập được dữ liệu."), errorTitle(err));
+          toast.error(errorMessage(err, "Nhập dữ liệu không thành công."), errorTitle(err));
         } finally {
           setBusy("");
         }
@@ -161,7 +161,7 @@ export default function ImportsPage() {
       setResultDownloaded(true);
     } catch (err) {
       setResultDownloaded(true);
-      toast.error(errorMessage(err, "Không tải được file mật khẩu tạm."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải file mật khẩu tạm không thành công."), errorTitle(err));
     } finally {
       setBusy("");
     }

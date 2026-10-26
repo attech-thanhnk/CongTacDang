@@ -84,7 +84,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
       setAuthority(info);
       setMemberLayout(layout);
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được chức vụ của cán bộ."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải chức vụ của cán bộ không thành công."), errorTitle(err));
     } finally {
       setLoading(false);
     }
@@ -100,11 +100,11 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
     catalogService
       .listPositions()
       .then(setPositions)
-      .catch((err: unknown) => toast.error(errorMessage(err, "Không tải được danh mục chức vụ."), errorTitle(err)));
+      .catch((err: unknown) => toast.error(errorMessage(err, "Tải danh mục chức vụ không thành công."), errorTitle(err)));
     formLayoutService
       .list()
       .then(setLayouts)
-      .catch((err: unknown) => toast.error(errorMessage(err, "Không tải được danh mục kiểu trình bày."), errorTitle(err)));
+      .catch((err: unknown) => toast.error(errorMessage(err, "Tải danh mục kiểu trình bày không thành công."), errorTitle(err)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canManage]);
 
@@ -167,7 +167,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
       setForm(null);
       await afterChange();
     } catch (err) {
-      toast.error(errorMessage(err, "Không lưu được chức vụ."), errorTitle(err), 10000);
+      toast.error(errorMessage(err, "Lưu chức vụ không thành công."), errorTitle(err), 10000);
     } finally {
       setSaving(false);
     }
@@ -185,7 +185,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
           toast.success("Đã kết thúc chức vụ.");
           await afterChange();
         } catch (err) {
-          toast.error(errorMessage(err, "Không kết thúc được chức vụ."), errorTitle(err), 10000);
+          toast.error(errorMessage(err, "Kết thúc chức vụ không thành công."), errorTitle(err), 10000);
         }
       },
     });
@@ -202,7 +202,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
           toast.success("Đã xóa chức vụ.");
           await afterChange();
         } catch (err) {
-          toast.error(errorMessage(err, "Không xóa được chức vụ."), errorTitle(err), 10000);
+          toast.error(errorMessage(err, "Xóa chức vụ không thành công."), errorTitle(err), 10000);
         }
       },
     });
@@ -217,7 +217,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
       setOverrideForm(null);
       onChanged?.();
     } catch (err) {
-      toast.error(errorMessage(err, "Không cập nhật được thẩm quyền."), errorTitle(err), 10000);
+      toast.error(errorMessage(err, "Cập nhật thẩm quyền không thành công."), errorTitle(err), 10000);
     } finally {
       setSaving(false);
     }
@@ -232,7 +232,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
       toast.success(layoutForm.value ? "Đã đặt riêng kiểu trình bày." : "Đã bỏ đặt riêng — kiểu trình bày theo chức vụ.");
       setLayoutForm(null);
     } catch (err) {
-      toast.error(errorMessage(err, "Không cập nhật được kiểu trình bày."), errorTitle(err), 10000);
+      toast.error(errorMessage(err, "Cập nhật kiểu trình bày không thành công."), errorTitle(err), 10000);
     } finally {
       setSaving(false);
     }

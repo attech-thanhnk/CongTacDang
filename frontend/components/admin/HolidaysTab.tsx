@@ -36,7 +36,7 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
     try {
       setItems(await holidayService.listByYear(year));
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được danh mục ngày nghỉ."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải danh mục ngày nghỉ không thành công."), errorTitle(err));
     } finally {
       setLoading(false);
     }
@@ -62,7 +62,7 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
       setForm(null);
       await load();
     } catch (err) {
-      toast.error(errorMessage(err, "Không lưu được ngày nghỉ."), errorTitle(err), 8000);
+      toast.error(errorMessage(err, "Lưu ngày nghỉ không thành công."), errorTitle(err), 8000);
     } finally {
       setSaving(false);
     }
@@ -80,7 +80,7 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
           toast.success("Đã xóa ngày nghỉ.");
           await load();
         } catch (err) {
-          toast.error(errorMessage(err, "Không xóa được ngày nghỉ."), errorTitle(err), 8000);
+          toast.error(errorMessage(err, "Xóa ngày nghỉ không thành công."), errorTitle(err), 8000);
         }
       },
     });

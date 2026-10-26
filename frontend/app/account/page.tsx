@@ -59,7 +59,7 @@ export default function AccountPage() {
 
   return (
     <div className="page-wrapper">
-      <PageHeader title="Tài khoản" />
+      <PageHeader title="Tài khoản của tôi" />
       <div className="page-body">
       <div className={styles.layout}>
         <nav className={styles.nav} aria-label="Mục tài khoản">

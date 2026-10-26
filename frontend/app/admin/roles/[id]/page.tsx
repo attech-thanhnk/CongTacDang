@@ -61,7 +61,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
       setSelected(new Set(roleData.permissionCodes));
       setLoadError(null);
     } catch (err) {
-      setLoadError(errorMessage(err, "Không tải được vai trò."));
+      setLoadError(errorMessage(err, "Tải vai trò không thành công."));
     }
   }, [roleId]);
 
@@ -70,7 +70,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
     try {
       setAssignments(await roleService.listAssignments({ roleId }));
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được danh sách người được gán."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải danh sách người được gán không thành công."), errorTitle(err));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roleId, canAssign]);
@@ -117,7 +117,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
       setSelected(new Set(updated.permissionCodes));
       toast.success(`Đã lưu quyền của vai trò "${updated.name}".`);
     } catch (err) {
-      toast.error(errorMessage(err, "Không lưu được quyền."), errorTitle(err), 10000);
+      toast.error(errorMessage(err, "Lưu quyền không thành công."), errorTitle(err), 10000);
     } finally {
       setSaving(false);
     }
@@ -131,7 +131,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
       setEditing(false);
       toast.success("Đã cập nhật vai trò.");
     } catch (err) {
-      toast.error(errorMessage(err, "Không lưu được vai trò."), errorTitle(err), 8000);
+      toast.error(errorMessage(err, "Lưu vai trò không thành công."), errorTitle(err), 8000);
     } finally {
       setSaving(false);
     }
@@ -153,7 +153,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
           toast.success(`Đã xóa vai trò "${role.name}".`);
           router.push("/admin/roles");
         } catch (err) {
-          toast.error(errorMessage(err, "Không xóa được vai trò."), errorTitle(err), 10000);
+          toast.error(errorMessage(err, "Xóa vai trò không thành công."), errorTitle(err), 10000);
         }
       },
     });
@@ -182,7 +182,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
       toast.success("Đã phân công vai trò.");
       await afterAssignmentChange();
     } catch (err) {
-      toast.error(errorMessage(err, "Không phân công được vai trò."), errorTitle(err), 10000);
+      toast.error(errorMessage(err, "Phân công vai trò không thành công."), errorTitle(err), 10000);
     } finally {
       setSaving(false);
     }
@@ -196,7 +196,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
       toast.success("Đã cập nhật phân công.");
       await afterAssignmentChange();
     } catch (err) {
-      toast.error(errorMessage(err, "Không cập nhật được phân công."), errorTitle(err), 10000);
+      toast.error(errorMessage(err, "Cập nhật phân công không thành công."), errorTitle(err), 10000);
     } finally {
       setSaving(false);
     }
@@ -367,7 +367,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
                     message: `Kết thúc ngay vai trò "${a.roleName}" (${a.scopeName}) của ${a.fullName}?`,
                     confirmText: "Kết thúc",
                     isDanger: true,
-                    onConfirm: () => runAssignment(() => roleService.endAssignment(a.id), "Đã kết thúc phân công.", "Không kết thúc được phân công."),
+                    onConfirm: () => runAssignment(() => roleService.endAssignment(a.id), "Đã kết thúc phân công.", "Kết thúc phân công không thành công."),
                   })
                 }
                 onDelete={(a) =>
@@ -376,7 +376,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
                     message: `Xóa phân công vai trò "${a.roleName}" (${a.scopeName}) của ${a.fullName}? Nên dùng "Kết thúc" để giữ lịch sử; chỉ xóa khi phân công nhầm.`,
                     confirmText: "Xóa",
                     isDanger: true,
-                    onConfirm: () => runAssignment(() => roleService.deleteAssignment(a.id), "Đã xóa phân công.", "Không xóa được phân công."),
+                    onConfirm: () => runAssignment(() => roleService.deleteAssignment(a.id), "Đã xóa phân công.", "Xóa phân công không thành công."),
                   })
                 }
               />

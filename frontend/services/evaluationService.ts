@@ -47,7 +47,7 @@ export interface ProfileStepSetting {
   rule?: DeadlineRule | null;
 }
 
-/** Cấu hình bước cho một nhóm đối tượng. */
+/** Cấu hình bước cho một diện quyết định. */
 export interface WorkflowProfile {
   code: string;
   name: string;
@@ -96,7 +96,7 @@ export function defaultGateMode(gate: GateCode, decisionMode: StepMode): GateMod
 export interface PeriodSettings {
   schemaVersion: number;
   profiles: WorkflowProfile[];
-  /** Khóa: "CoSo" | "CapTren" → mã hồ sơ luồng. */
+  /** Khóa: "CoSo" | "CapTren" → mã diện quyết định. */
   defaultProfiles: Record<string, string>;
   enforceDeadlines: boolean;
 }
@@ -1004,7 +1004,7 @@ export const STEP_NAMES: Record<WorkflowStepCode, string> = {
   B3B_APPRAISAL: "Thẩm định",
   B3C_DIRECTOR: "Nhận xét của cấp trực tiếp sử dụng",
   B4_DECISION: "Quyết định mức xếp loại",
-  B5_PUBLISH: "Công bố, khóa kết quả",
+  B5_PUBLISH: "Công bố và lưu trữ kết quả",
 };
 
 /** Bước bắt buộc (không đặt "Không áp dụng") — chỉ để khóa ô chọn; máy chủ kiểm tra lại. */
@@ -1164,7 +1164,7 @@ export const evaluationService = {
     return request<StepPermissionOptionDto[]>("/evaluations/periods/step-permissions");
   },
 
-  /** Đổi hồ sơ luồng của một người được đánh giá (bắt buộc lý do). */
+  /** Đổi diện quyết định của một người được đánh giá (bắt buộc lý do). */
   async changeProfile(
     periodId: string,
     recordId: string,
@@ -1178,7 +1178,7 @@ export const evaluationService = {
     );
   },
 
-  /** Đổi hồ sơ luồng hàng loạt; hồ sơ không đổi được trả về trong `skipped` kèm lý do. */
+  /** Đổi diện quyết định hàng loạt; hồ sơ không đổi được trả về trong `skipped` kèm lý do. */
   async bulkChangeProfile(
     periodId: string,
     payload: { items: { recordId: string; version: number }[]; workflowProfileCode: string; reason: string }

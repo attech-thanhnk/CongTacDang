@@ -44,7 +44,7 @@ export function AppealPanel({ record, onRecordChanged, onPendingChange }: Props)
       setData(await postPublishService.getRecordAppeals(record.id));
       setError(null);
     } catch (err: unknown) {
-      setError(errorMessage(err, "Không tải được kiến nghị."));
+      setError(errorMessage(err, "Tải kiến nghị không thành công."));
     }
   }, [record.id]);
 
@@ -73,7 +73,7 @@ export function AppealPanel({ record, onRecordChanged, onPendingChange }: Props)
       await load();
       return true;
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Không thực hiện được thao tác."));
+      toast.error(errorMessage(err, "Thực hiện thao tác không thành công."));
       await load();
       return false;
     } finally {
@@ -113,7 +113,7 @@ export function AppealPanel({ record, onRecordChanged, onPendingChange }: Props)
       setReopenUnlock(reopen);
       setReopenAppeal(appeal);
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Không tải được thao tác của hồ sơ."));
+      toast.error(errorMessage(err, "Tải thao tác của hồ sơ không thành công."));
     }
   };
 
@@ -249,7 +249,7 @@ function AppealItem({
           {files.map((f) => (
             <li key={f.id}>
               <button type="button" className="btn btn-link btn-sm p-0 small"
-                onClick={() => attachmentService.downloadAttachment(f.id, f.fileName).catch((err: unknown) => toast.error(errorMessage(err, "Không tải được tệp.")))}>
+                onClick={() => attachmentService.downloadAttachment(f.id, f.fileName).catch((err: unknown) => toast.error(errorMessage(err, "Tải tệp không thành công.")))}>
                 <i className="bi bi-paperclip me-1" />{f.fileName}
               </button>
             </li>

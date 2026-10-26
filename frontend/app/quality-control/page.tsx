@@ -36,7 +36,7 @@ type Tab = "calibration" | "control";
 const CAL_STATUSES = Object.keys(CALIBRATION_STATUS_LABELS) as CalibrationStatus[];
 const CTL_STATUSES = Object.keys(CONTROL_STATUS_LABELS) as ControlCheckStatus[];
 
-/** Kiểm soát chất lượng kết quả đánh giá: biên bản hiệu chuẩn và phiếu kiểm soát, theo kỳ đang chọn. */
+/** Hiệu chuẩn và kiểm soát kết quả đánh giá: biên bản hiệu chuẩn và phiếu kiểm soát, theo kỳ đang chọn. */
 export default function QualityControlPage() {
   const { hasPermission, loading: authLoading } = useAuth();
   const { periods, periodId } = usePeriod();
@@ -178,7 +178,7 @@ export default function QualityControlPage() {
   };
 
   if (authLoading) return null;
-  if (!canCal && !canCtl) return <NoAccess title="Kiểm soát chất lượng" permissionName="Kiểm soát chất lượng" />;
+  if (!canCal && !canCtl) return <NoAccess title="Hiệu chuẩn và kiểm soát" permissionName="Lập biên bản hiệu chuẩn, phiếu kiểm soát" />;
 
   const canCreate = active === "calibration" ? canCreateCal : canCreateCtl;
   const unit = (a?: string | null, b?: string | null) => [a, b].filter(Boolean).join(" · ");
@@ -191,7 +191,7 @@ export default function QualityControlPage() {
   return (
     <div className="page-wrapper">
       <PageHeader
-        title="Kiểm soát chất lượng"
+        title="Hiệu chuẩn và kiểm soát"
         actions={
           <div className="d-flex gap-2 flex-wrap align-items-center">
             <select className="form-select form-select-sm" aria-label="Lọc theo kỳ" value={periodFilter} onChange={(e) => setPeriod(e.target.value)}>

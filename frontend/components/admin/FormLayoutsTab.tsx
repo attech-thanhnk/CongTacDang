@@ -53,7 +53,7 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
     try {
       setLayouts(await formLayoutService.list());
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được danh mục kiểu trình bày."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải danh mục kiểu trình bày không thành công."), errorTitle(err));
     } finally {
       setLoading(false);
     }
@@ -101,7 +101,7 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
       setForm(null);
       await load();
     } catch (err) {
-      toast.error(errorMessage(err, "Không lưu được kiểu trình bày."), errorTitle(err), 8000);
+      toast.error(errorMessage(err, "Lưu kiểu trình bày không thành công."), errorTitle(err), 8000);
     } finally {
       setSaving(false);
     }
@@ -119,7 +119,7 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
           toast.success(`Đã xóa kiểu "${l.name}".`);
           await load();
         } catch (err) {
-          toast.error(errorMessage(err, "Không xóa được kiểu trình bày."), errorTitle(err), 10000);
+          toast.error(errorMessage(err, "Xóa kiểu trình bày không thành công."), errorTitle(err), 10000);
         }
       },
     });

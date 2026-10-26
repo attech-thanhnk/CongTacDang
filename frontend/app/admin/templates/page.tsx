@@ -38,7 +38,7 @@ function CheckResult({ check }: { check: TemplateCheck }) {
     <div className="small">
       {check.errors.length > 0 ? (
         <div className="alert alert-danger py-2 mb-2">
-          <div className="fw-semibold mb-1">Không dùng được tệp này ({check.errors.length} lỗi):</div>
+          <div className="fw-semibold mb-1">Kiểm tra tệp không thành công ({check.errors.length} lỗi):</div>
           <ul className="mb-0 ps-3">
             {check.errors.map((e) => (
               <li key={e}>{e}</li>
@@ -117,7 +117,7 @@ function UploadModal({
     try {
       setCheck(await templateService.check(template.code, file));
     } catch (err) {
-      toast.error(errorMessage(err, "Không kiểm tra được tệp."), errorTitle(err), 8000);
+      toast.error(errorMessage(err, "Kiểm tra tệp không thành công."), errorTitle(err), 8000);
     } finally {
       setBusy("");
     }
@@ -140,7 +140,7 @@ function UploadModal({
       );
       onUploaded();
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải lên được file mẫu."), errorTitle(err), 8000);
+      toast.error(errorMessage(err, "Tải lên file mẫu không thành công."), errorTitle(err), 8000);
     } finally {
       setBusy("");
     }
@@ -225,7 +225,7 @@ function HistoryModal({
     try {
       setVersions(await templateService.versions(template.code));
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được lịch sử phiên bản."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải lịch sử phiên bản không thành công."), errorTitle(err));
       setVersions([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -249,7 +249,7 @@ function HistoryModal({
           await load();
           onChanged();
         } catch (err) {
-          toast.error(errorMessage(err, "Không kích hoạt được phiên bản."), errorTitle(err), 8000);
+          toast.error(errorMessage(err, "Kích hoạt phiên bản không thành công."), errorTitle(err), 8000);
         } finally {
           setBusy("");
         }
@@ -261,7 +261,7 @@ function HistoryModal({
     try {
       await templateService.downloadVersion(template.code, version, `${baseName(template.templateFileName)}_v${version.versionNumber}.docx`);
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được tệp."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải tệp không thành công."), errorTitle(err));
     } finally {
       setBusy("");
     }
@@ -392,7 +392,7 @@ export default function TemplatesPage() {
     try {
       setTemplates(await templateService.list());
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được danh mục biểu mẫu."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải danh mục biểu mẫu không thành công."), errorTitle(err));
     } finally {
       setLoading(false);
     }
@@ -411,7 +411,7 @@ export default function TemplatesPage() {
     try {
       await action();
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được tệp."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải tệp không thành công."), errorTitle(err));
     } finally {
       setBusy("");
     }
@@ -430,7 +430,7 @@ export default function TemplatesPage() {
           toast.success("Đã chuyển về file mẫu gốc.");
           await load();
         } catch (err) {
-          toast.error(errorMessage(err, "Không chuyển được về file mẫu gốc."), errorTitle(err));
+          toast.error(errorMessage(err, "Chuyển về file mẫu gốc không thành công."), errorTitle(err));
         } finally {
           setBusy("");
         }

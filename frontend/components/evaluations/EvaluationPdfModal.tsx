@@ -79,7 +79,7 @@ export const EvaluationPdfModal: React.FC<Props> = ({ isOpen, onClose, record, f
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setError(errorMessage(err, "Không tải được bản PDF từ máy chủ."));
+        setError(errorMessage(err, "Tải bản PDF từ máy chủ không thành công."));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

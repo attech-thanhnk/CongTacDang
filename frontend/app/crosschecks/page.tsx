@@ -61,7 +61,7 @@ export default function CrosschecksPage() {
   const paging = usePagination(items, { storageKey: "crosschecks", resetKeys: [periodFilter, status] });
 
   if (authLoading) return null;
-  if (!canUse) return <NoAccess title="Đối soát chuyên ngành" permissionName="Đối soát chuyên ngành" />;
+  if (!canUse) return <NoAccess title="Đối soát chuyên ngành" permissionName="Yêu cầu, lập hoặc xác nhận phiếu đối soát" />;
 
   const unit = (c: CrosscheckSummaryDto) => [c.departmentName, c.partyCellName].filter(Boolean).join(" · ");
 

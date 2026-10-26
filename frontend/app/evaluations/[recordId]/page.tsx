@@ -85,7 +85,7 @@ export default function EvaluationRecordPage() {
       setForms(loadedForms);
       setConflict(null);
     } catch (error: unknown) {
-      setLoadError(errorMessage(error, "Không tải được hồ sơ."));
+      setLoadError(errorMessage(error, "Tải hồ sơ không thành công."));
     } finally {
       setLoading(false);
     }
@@ -319,7 +319,7 @@ function goToActions() {
   (first ?? area).focus({ preventScroll: true });
 }
 
-/** Thông tin hồ sơ: kỳ, Chi bộ, thẩm quyền, hồ sơ luồng (chức vụ, phòng đã ở đầu trang). */
+/** Thông tin hồ sơ: kỳ, Chi bộ, thẩm quyền, diện quyết định (chức vụ, phòng đã ở đầu trang). */
 function RecordInfo({ record }: { record: EvaluationRecordDto }) {
   return (
     <section className={styles.block}>
@@ -332,7 +332,7 @@ function RecordInfo({ record }: { record: EvaluationRecordDto }) {
             ["Kỳ", record.periodName],
             ["Chi bộ", record.partyCellName],
             ["Thẩm quyền", record.approvalAuthority === "CapTren" ? "Cấp trên quyết định" : "Đảng ủy cơ sở quyết định"],
-            ["Cách xét duyệt", record.workflowProfileName || record.workflowProfileCode],
+            ["Diện quyết định", record.workflowProfileName || record.workflowProfileCode],
           ]}
         />
       </div>

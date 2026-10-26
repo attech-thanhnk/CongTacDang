@@ -40,7 +40,7 @@ import { errorMessage, errorStatus } from "@/components/admin/adminUtils";
 type Transition = "open" | "lock" | "unlock" | "close";
 type PeriodTab = "progress" | "profiles" | "criteria" | "readiness" | "participants";
 
-/** Cấu hình kỳ; hồ sơ luồng hiển thị với tên "Cách xét duyệt". */
+/** Cấu hình kỳ; diện quyết định hiển thị với tên "Diện quyết định". */
 export default function PeriodDetailPage() {
   const params = useParams<{ periodId: string }>();
   const periodId = params?.periodId;
@@ -62,7 +62,7 @@ export default function PeriodDetailPage() {
   const [forceOpen, setForceOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<PeriodTab>(canManage ? "participants" : "criteria");
-  // Cấu hình cách xét duyệt đang sửa dở: nạp lại kỳ (sau thêm người, đổi trạng thái…) không ghi đè lên.
+  // Cấu hình diện quyết định đang sửa dở: nạp lại kỳ (sau thêm người, đổi trạng thái…) không ghi đè lên.
   const dirtyRef = useRef(false);
   // Lần nạp đầu: kỳ Đang mở / Khóa dữ liệu thì mở sẵn tab Tiến độ.
   const initialTabRef = useRef(false);
@@ -141,7 +141,7 @@ export default function PeriodDetailPage() {
       ? [{ key: "readiness" as PeriodTab, label: "Người thực hiện các bước", count: stepIssues.length > 0 ? stepIssues.length : undefined, warn: true }]
       : []),
     { key: "criteria", label: "Bộ tiêu chí" },
-    { key: "profiles", label: dirty ? "Cách xét duyệt •" : "Cách xét duyệt" },
+    { key: "profiles", label: dirty ? "Diện quyết định •" : "Diện quyết định" },
   ];
 
   // Bảng tổng hợp xếp loại cán bộ của kỳ (Excel, theo phạm vi xuất báo cáo được giao).
@@ -237,16 +237,16 @@ export default function PeriodDetailPage() {
     setDirtyState(true);
   };
 
-  // Đổi bộ tiêu chí thì máy chủ đặt lại bước đăng ký sản phẩm của mọi cách xét duyệt — lưu phần đang sửa trước.
+  // Đổi bộ tiêu chí thì máy chủ đặt lại bước đăng ký sản phẩm của mọi diện quyết định — lưu phần đang sửa trước.
   const chooseCriteria = (criteriaSetId: string) => {
     if (dirtyRef.current) {
-      toast.error("Cách xét duyệt đang có thay đổi chưa lưu. Hãy lưu cấu hình trước khi đổi bộ tiêu chí.");
+      toast.error("Diện quyết định đang có thay đổi chưa lưu. Hãy lưu cấu hình trước khi đổi bộ tiêu chí.");
       return;
     }
     return run(() => evaluationService.updatePeriod(period.id, period.version, { criteriaSetId }), "Đã chọn bộ tiêu chí cho kỳ.");
   };
 
-  // Chỉ xét cách xét duyệt đang có người dùng; đếm theo bước (không cộng dồn qua các cách xét duyệt).
+  // Chỉ xét diện quyết định đang có người dùng; đếm theo bước (không cộng dồn qua các diện quyết định).
   const usedProfileCodes = new Set(participants.map((p) => p.workflowProfileCode));
   const deadlineProfiles = period.settings.profiles.filter((p) => usedProfileCodes.size === 0 || usedProfileCodes.has(p.code));
   const missingDeadlineSteps = new Set(
@@ -313,7 +313,7 @@ export default function PeriodDetailPage() {
             {canManage && isDraft && (
               <button type="button" className="btn btn-primary" disabled={busy || openBlocker !== null}
                 title={openBlocker ?? undefined}
-                onClick={() => confirm({ title: "Mở kỳ đánh giá", message: "Sau khi mở kỳ chỉ sửa được thời hạn các bước; không đổi được cách xét duyệt và bộ tiêu chí.", confirmText: "Mở kỳ", isDanger: false, onConfirm: () => openPeriod() })}>
+                onClick={() => confirm({ title: "Mở kỳ đánh giá", message: "Sau khi mở kỳ chỉ sửa được thời hạn các bước; không đổi được diện quyết định và bộ tiêu chí.", confirmText: "Mở kỳ", isDanger: false, onConfirm: () => openPeriod() })}>
                 <i className="bi bi-play-fill me-1" />Mở kỳ
               </button>
             )}
@@ -551,7 +551,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
               <span className="text-secondary">Đã chọn <span className="num">{checked.length}</span> người</span>
               <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy}
                 onClick={() => setProfileTargets(participants.filter((p) => checked.includes(p.recordId)))}>
-                Đổi cách xét duyệt
+                Đổi diện quyết định
               </button>
               <button type="button" className="btn btn-link btn-sm" onClick={() => setChecked([])}>Bỏ chọn</button>
             </>
@@ -589,7 +589,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
               <input id="add-q" className="form-control form-control-sm" value={query} onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); search(); } }} />
             </div>
-            <div className="col-6 col-lg-3"><label className="form-label" htmlFor="add-profile">Cách xét duyệt</label>
+            <div className="col-6 col-lg-3"><label className="form-label" htmlFor="add-profile">Diện quyết định</label>
               <select id="add-profile" className="form-select form-select-sm" value={addProfile} onChange={(e) => setAddProfile(e.target.value)}>
                 <option value="">Theo cấp quyết định</option>
                 {profiles.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
@@ -650,7 +650,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                 <th className="d-none d-md-table-cell">Đơn vị</th>
                 <th className="d-none d-lg-table-cell" title="Khung tỷ trọng">Khung</th>
                 <th className="d-none d-lg-table-cell">Cấp quyết định</th>
-                <th className="d-none d-md-table-cell">Cách xét duyệt</th>
+                <th className="d-none d-md-table-cell">Diện quyết định</th>
                 <th className="d-none d-md-table-cell">Trạng thái</th>
                 {canChangeProfile && <th className="text-end">Thao tác</th>}
               </tr>
@@ -679,9 +679,9 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                         disabled={busy}
                         primary={canAdd
                           ? [{ key: "edit", label: "Sửa", icon: "bi-pencil", title: "Sửa thông tin", onClick: () => setEditing(p) }]
-                          : [{ key: "profile", label: "Đổi cách xét duyệt", icon: "bi-diagram-3", onClick: () => setProfileTargets([p]) }]}
+                          : [{ key: "profile", label: "Đổi diện quyết định", icon: "bi-diagram-3", onClick: () => setProfileTargets([p]) }]}
                         menu={canAdd ? [
-                          { key: "profile", label: "Đổi cách xét duyệt", icon: "bi-diagram-3", onClick: () => setProfileTargets([p]) },
+                          { key: "profile", label: "Đổi diện quyết định", icon: "bi-diagram-3", onClick: () => setProfileTargets([p]) },
                           { key: "remove", label: "Bỏ khỏi kỳ", icon: "bi-trash", danger: true, onClick: () => remove(p) },
                         ] : []}
                       />
@@ -740,7 +740,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
               }
               setProfileTargets(null);
               setChecked([]);
-            }, "Đã đổi cách xét duyệt.")
+            }, "Đã đổi diện quyết định.")
           }
         />
       )}
@@ -769,23 +769,23 @@ interface ProfileDialogProps {
   onSave: (workflowProfileCode: string, reason: string) => void;
 }
 
-/** Đổi hồ sơ luồng (một hoặc nhiều người): bắt buộc lý do; máy chủ chỉ đổi hồ sơ chưa qua bước bị ảnh hưởng. */
+/** Đổi diện quyết định (một hoặc nhiều người): bắt buộc lý do; máy chủ chỉ đổi hồ sơ chưa qua bước bị ảnh hưởng. */
 function ProfileDialog({ targets, profiles, busy, onCancel, onSave }: ProfileDialogProps) {
   const [code, setCode] = useState(targets.length === 1 ? targets[0].workflowProfileCode : "");
   const [reason, setReason] = useState("");
   return (
     <AdminModal
-      title={`Đổi cách xét duyệt — ${targets.length === 1 ? targets[0].fullName : `${targets.length} người`}`}
+      title={`Đổi diện quyết định — ${targets.length === 1 ? targets[0].fullName : `${targets.length} người`}`}
       onClose={onCancel}
       footer={
         <>
           <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onCancel}>Hủy</button>
-          <button type="submit" form="profile-dialog-form" className="btn btn-primary btn-sm" disabled={busy || !code || !reason.trim()}>Đổi cách xét duyệt</button>
+          <button type="submit" form="profile-dialog-form" className="btn btn-primary btn-sm" disabled={busy || !code || !reason.trim()}>Đổi diện quyết định</button>
         </>
       }
     >
       <form id="profile-dialog-form" className="d-flex flex-column gap-3" onSubmit={(e) => { e.preventDefault(); onSave(code, reason.trim()); }}>
-        <div><label className="form-label" htmlFor="profile-target">Cách xét duyệt mới</label>
+        <div><label className="form-label" htmlFor="profile-target">Diện quyết định mới</label>
           <select id="profile-target" className="form-select" required value={code} onChange={(e) => setCode(e.target.value)}>
             <option value="">— Chọn —</option>
             {profiles.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}

@@ -258,7 +258,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
                 <option value={form.weightFrameCode}>{form.weightFrameCode} (không có trong bộ tiêu chí hiện hành)</option>
               )}
             </select>
-            {framesError && <div className="form-text">Không tải được danh sách khung tỷ trọng.</div>}
+            {framesError && <div className="form-text">Tải danh sách khung tỷ trọng không thành công.</div>}
           </div>
           {isEdit ? (
             <div className="col-12 form-text mt-1">

@@ -89,7 +89,7 @@ export default function CriteriaSetPage() {
       setSaved(JSON.stringify({ info: loadedInfo, content: copy }));
       setConflict(null);
     } catch (err: unknown) {
-      setError(errorMessage(err, "Không tải được bộ tiêu chí."));
+      setError(errorMessage(err, "Tải bộ tiêu chí không thành công."));
     }
   }, [id, canView]);
 
@@ -100,7 +100,7 @@ export default function CriteriaSetPage() {
   const checks = useMemo(() => (content ? quickChecks(content) : []), [content]);
   const dirty = useMemo(() => !!content && JSON.stringify({ info, content }) !== saved, [info, content, saved]);
 
-  if (!canView) return <NoAccess title="Bộ tiêu chí và thang điểm" permissionName="Quản lý bộ tiêu chí" />;
+  if (!canView) return <NoAccess title="Bộ tiêu chí" permissionName="Quản lý bộ tiêu chí" />;
   if (error) return <div className="page-wrapper"><div className="alert alert-danger m-4">{error}</div></div>;
   if (!set || !content) return <div className="page-wrapper"><div className="text-secondary p-4 loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div></div>;
 
@@ -114,7 +114,7 @@ export default function CriteriaSetPage() {
       toast.success(success);
       await load();
     } catch (err: unknown) {
-      const message = errorMessage(err, "Không thực hiện được thao tác.");
+      const message = errorMessage(err, "Thực hiện thao tác không thành công.");
       // Xung đột: giữ nguyên nội dung đang sửa, để người dùng chủ động tải lại.
       if (errorStatus(err) === 409) setConflict(message);
       else toast.error(message);
@@ -160,7 +160,7 @@ export default function CriteriaSetPage() {
       const groups = await criteriaService.defaultCollectiveGroups();
       update({ collectiveGroups: groups });
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Không tải được khung tiêu chí tập thể mặc định."));
+      toast.error(errorMessage(err, "Tải khung tiêu chí tập thể mặc định không thành công."));
     } finally {
       setBusy(false);
     }

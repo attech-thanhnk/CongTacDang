@@ -59,7 +59,7 @@ export default function PeriodsPage() {
               <EmptyState
                 icon="bi-calendar-x"
                 title="Chưa có kỳ đánh giá"
-                description={canManage ? "Tạo kỳ đánh giá, sau đó chọn bộ tiêu chí và cách xét duyệt." : "Kỳ đánh giá hiện ở đây sau khi được tạo."}
+                description={canManage ? "Tạo kỳ đánh giá, sau đó chọn bộ tiêu chí và diện quyết định." : "Kỳ đánh giá hiện ở đây sau khi được tạo."}
                 action={canManage ? (
                   <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
                     <i className="bi bi-plus-lg me-1" />Tạo kỳ đánh giá
@@ -74,7 +74,7 @@ export default function PeriodsPage() {
                     <th>Kỳ</th>
                     <th>Trạng thái</th>
                     <th className="d-none d-md-table-cell">Bộ tiêu chí</th>
-                    <th className="d-none d-lg-table-cell">Cách xét duyệt</th>
+                    <th className="d-none d-lg-table-cell">Diện quyết định</th>
                     <th className="text-end d-none d-sm-table-cell">Người được đánh giá</th>
                     <th className="text-end d-none d-sm-table-cell">Thao tác</th>
                   </tr>
@@ -124,7 +124,7 @@ export default function PeriodsPage() {
   );
 }
 
-/** Cách xét duyệt của kỳ: tên đầu tiên và số còn lại (đủ tên khi rê chuột) để cột không quá dài. */
+/** Diện quyết định của kỳ: tên đầu tiên và số còn lại (đủ tên khi rê chuột) để cột không quá dài. */
 function ProfilesSummary({ names }: { names: string[] }) {
   if (names.length === 0) return <>—</>;
   return (

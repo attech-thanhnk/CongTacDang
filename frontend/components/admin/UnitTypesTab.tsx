@@ -48,7 +48,7 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
       setForm(null);
       await onChanged();
     } catch (err) {
-      toast.error(errorMessage(err, "Không lưu được loại đơn vị."), errorTitle(err), 8000);
+      toast.error(errorMessage(err, "Lưu loại đơn vị không thành công."), errorTitle(err), 8000);
     } finally {
       setSaving(false);
     }
@@ -57,7 +57,7 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
   const handleDelete = (type: OrgUnitType) =>
     confirm({
       title: "Xóa loại đơn vị",
-      message: `Xóa loại "${type.name}"? Không xóa được khi còn đơn vị thuộc loại này — khi đó hãy chuyển sang "Ngừng dùng".`,
+      message: `Xóa loại "${type.name}"? Loại còn đơn vị thì không xóa được: hãy chuyển sang "Ngừng dùng".`,
       confirmText: "Xóa",
       isDanger: true,
       onConfirm: async () => {
@@ -66,7 +66,7 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
           toast.success(`Đã xóa loại "${type.name}".`);
           await onChanged();
         } catch (err) {
-          toast.error(errorMessage(err, "Không xóa được loại đơn vị."), errorTitle(err), 10000);
+          toast.error(errorMessage(err, "Xóa loại đơn vị không thành công."), errorTitle(err), 10000);
         }
       },
     });

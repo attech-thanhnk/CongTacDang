@@ -209,10 +209,10 @@ export default function CollectiveEvaluationsPage() {
 
   if (authLoading) return null;
   if (!canUseModule) {
-    return <NoAccess title="Đánh giá tập thể & Hội nghị" permissionName="Xem hồ sơ tập thể / biên bản hội nghị" />;
+    return <NoAccess title="Đánh giá tập thể" permissionName="Xem hồ sơ tập thể / biên bản hội nghị" />;
   }
 
-  const pageTitle = "Đánh giá tập thể & Hội nghị";
+  const pageTitle = "Đánh giá tập thể";
 
   if (loading || periodLoading) {
     return (

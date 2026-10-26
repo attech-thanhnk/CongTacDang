@@ -83,7 +83,7 @@ export interface Position {
   /** Mã chức danh Mẫu 15A/15B (M1…M26). */
   statCode?: string | null;
   defaultApprovalAuthority?: ApprovalAuthorityCode | null;
-  /** Mã cách xét duyệt gợi ý khi thêm người giữ chức vụ vào kỳ; trống = theo thẩm quyền. */
+  /** Mã diện quyết định gợi ý khi thêm người giữ chức vụ vào kỳ; trống = theo thẩm quyền. */
   defaultWorkflowProfileCode?: string | null;
   isLeadership: boolean;
   /** Người đứng đầu — không tính vào trần tỷ lệ Hoàn thành xuất sắc. */
@@ -96,7 +96,7 @@ export interface Position {
   holderCount: number;
 }
 
-/** Cách xét duyệt gắn được cho chức vụ. */
+/** Diện quyết định gắn được cho chức vụ. */
 export interface WorkflowProfileOption {
   code: string;
   name: string;

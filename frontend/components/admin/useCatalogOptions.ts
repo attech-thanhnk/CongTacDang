@@ -18,7 +18,7 @@ export function useCatalogOptions() {
         setPartyCells(cells);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Không tải được danh mục tổ chức.");
+        if (!cancelled) setError(err instanceof Error ? err.message : "Tải danh mục tổ chức không thành công.");
       });
     return () => {
       cancelled = true;

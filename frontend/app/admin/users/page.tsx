@@ -57,7 +57,7 @@ export default function AdminUsersPage() {
       });
       setResult(data);
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải được danh sách tài khoản."), errorTitle(err));
+      toast.error(errorMessage(err, "Tải danh sách tài khoản không thành công."), errorTitle(err));
     } finally {
       setLoading(false);
     }
@@ -93,20 +93,20 @@ export default function AdminUsersPage() {
       });
       await load();
     } catch (err) {
-      toast.error(errorMessage(err, "Không tạo được tài khoản."), errorTitle(err), 8000);
+      toast.error(errorMessage(err, "Tạo tài khoản không thành công."), errorTitle(err), 8000);
     } finally {
       setSaving(false);
     }
   };
 
-  if (!canRead) return <NoAccess title="Người dùng" permissionName="Xem tài khoản, hồ sơ cán bộ" />;
+  if (!canRead) return <NoAccess title="Tài khoản" permissionName="Xem tài khoản, hồ sơ cán bộ" />;
 
   const items = result?.items ?? [];
 
   return (
     <div className="page-wrapper">
       <PageHeader
-        title="Người dùng"
+        title="Tài khoản"
         actions={
           canManage ? (
             <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>

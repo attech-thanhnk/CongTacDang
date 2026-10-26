@@ -97,7 +97,7 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
       onSaved(await organizationSettingsService.uploadLoginBackground(file));
       toast.success("Đã cập nhật ảnh nền màn hình đăng nhập.");
     } catch (err) {
-      toast.error(errorMessage(err, "Không tải lên được ảnh nền."), errorTitle(err), 8000);
+      toast.error(errorMessage(err, "Tải lên ảnh nền không thành công."), errorTitle(err), 8000);
     } finally {
       setBusy(false);
     }
@@ -114,7 +114,7 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
           onSaved(await organizationSettingsService.removeLoginBackground());
           toast.success("Đã bỏ ảnh nền màn hình đăng nhập.");
         } catch (err) {
-          toast.error(errorMessage(err, "Không bỏ được ảnh nền."), errorTitle(err), 8000);
+          toast.error(errorMessage(err, "Bỏ ảnh nền không thành công."), errorTitle(err), 8000);
           throw err;
         }
       },
@@ -127,7 +127,7 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
       onSaved(await organizationSettingsService.update(toPayload(settings, value)));
       toast.success("Đã lưu vị trí khung đăng nhập.");
     } catch (err) {
-      toast.error(errorMessage(err, "Không lưu được vị trí khung đăng nhập."), errorTitle(err), 8000);
+      toast.error(errorMessage(err, "Lưu vị trí khung đăng nhập không thành công."), errorTitle(err), 8000);
     } finally {
       setBusy(false);
     }

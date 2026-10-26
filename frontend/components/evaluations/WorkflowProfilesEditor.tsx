@@ -28,13 +28,13 @@ import { DEADLINE_RULE_LABELS, DEADLINE_RULE_LIMITS, DeadlineRuleKind } from "@/
 interface Props {
   settings: PeriodSettings;
   onChange: (settings: PeriodSettings) => void;
-  /** Sửa hồ sơ luồng, chế độ, quyền (chỉ khi kỳ còn dự thảo). */
+  /** Sửa diện quyết định, chế độ, quyền (chỉ khi kỳ còn dự thảo). */
   editable: boolean;
   /** Sửa thời hạn (kỳ chưa đóng). */
   deadlinesEditable: boolean;
   /** Mã quyền chọn được làm quyền thực hiện bước nội bộ (từ máy chủ). */
   permissionOptions: StepPermissionOptionDto[];
-  /** Mã hồ sơ luồng đã lưu (không đổi mã được vì hồ sơ đánh giá có thể đang tham chiếu). */
+  /** Mã diện quyết định đã lưu (không đổi mã được vì hồ sơ đánh giá có thể đang tham chiếu). */
   savedCodes: string[];
   /** Điền thời hạn các bước theo quy tắc (máy chủ tính và lưu); ngày sau đó vẫn sửa tự do. */
   onApplyRules?: () => void;
@@ -45,7 +45,7 @@ const AUTHORITIES: { key: string; label: string }[] = [
   { key: "CapTren", label: "Người thuộc diện cấp trên quyết định" },
 ];
 
-/** Hồ sơ luồng của kỳ: bước × chế độ × quyền thực hiện × thời hạn; máy chủ kiểm tra lại toàn bộ khi lưu. */
+/** Diện quyết định của kỳ: bước × chế độ × quyền thực hiện × thời hạn; máy chủ kiểm tra lại toàn bộ khi lưu. */
 export function WorkflowProfilesEditor({ settings, onChange, editable, deadlinesEditable, permissionOptions, savedCodes, onApplyRules }: Props) {
   const [selected, setSelected] = useState(settings.profiles[0]?.code ?? "");
 
@@ -77,7 +77,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
     while (settings.profiles.some((p) => p.code === code)) code = `nhom-${++index}`;
     const copy: WorkflowProfile = base
       ? { ...JSON.parse(JSON.stringify(base)), code, name: `${base.name} (bản sao)` }
-      : { code, name: "Cách xét duyệt mới", description: null, steps: {} };
+      : { code, name: "Diện quyết định mới", description: null, steps: {} };
     onChange({ ...settings, profiles: [...settings.profiles, copy] });
     setSelected(code);
   };
@@ -132,7 +132,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
       <div className="row g-2">
         {AUTHORITIES.map((a) => (
           <div className="col-md-6" key={a.key}>
-            <label className="form-label mb-0" style={{ fontSize: 13 }} htmlFor={`default-${a.key}`}>Cách xét duyệt mặc định — {a.label}</label>
+            <label className="form-label mb-0" style={{ fontSize: 13 }} htmlFor={`default-${a.key}`}>Diện quyết định mặc định — {a.label}</label>
             <select id={`default-${a.key}`} className="form-select form-select-sm" value={settings.defaultProfiles[a.key] || ""} disabled={!editable}
               onChange={(e) => onChange({ ...settings, defaultProfiles: { ...settings.defaultProfiles, [a.key]: e.target.value } })}>
               <option value="">— Chọn —</option>
@@ -142,7 +142,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
         ))}
       </div>
 
-      <div className="d-flex flex-wrap gap-2 align-items-center border-bottom pb-2" role="tablist" aria-label="Cách xét duyệt">
+      <div className="d-flex flex-wrap gap-2 align-items-center border-bottom pb-2" role="tablist" aria-label="Diện quyết định">
         {settings.profiles.map((p) => (
           <button key={p.code} type="button" role="tab" aria-selected={p.code === selected}
             className={`btn btn-sm rounded-pill px-3 ${p.code === selected ? "btn-primary" : "btn-outline-primary"}`} onClick={() => setSelected(p.code)}>
@@ -151,7 +151,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
         ))}
         {editable && (
           <button type="button" className="btn btn-sm btn-outline-success" onClick={addProfile}>
-            <i className="bi bi-plus-lg me-1" />Thêm cách xét duyệt (sao chép)
+            <i className="bi bi-plus-lg me-1" />Thêm diện quyết định (sao chép)
           </button>
         )}
       </div>
@@ -165,7 +165,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
                 disabled={!editable || savedCodes.includes(profile.code)} onChange={(e) => renameCode(e.target.value)} />
             </div>
             <div className="col-md-4">
-              <label className="form-label mb-0" style={{ fontSize: 13 }} htmlFor="profile-name">Tên nhóm đối tượng</label>
+              <label className="form-label mb-0" style={{ fontSize: 13 }} htmlFor="profile-name">Tên diện quyết định</label>
               <input id="profile-name" className="form-control form-control-sm" value={profile.name} maxLength={200} disabled={!editable}
                 onChange={(e) => updateProfile(profile.code, (p) => ({ ...p, name: e.target.value }))} />
             </div>
@@ -266,8 +266,8 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
           {editable && (
             <div className="d-flex justify-content-end align-items-center">
               <button type="button" className="btn btn-outline-danger btn-sm" disabled={settings.profiles.length <= 1 || usedAsDefault}
-                title={usedAsDefault ? "Đang là cách xét duyệt mặc định — hãy đổi mặc định trước" : undefined} onClick={removeProfile}>
-                Xóa cách xét duyệt
+                title={usedAsDefault ? "Đang là diện quyết định mặc định — hãy đổi mặc định trước" : undefined} onClick={removeProfile}>
+                Xóa diện quyết định
               </button>
             </div>
           )}

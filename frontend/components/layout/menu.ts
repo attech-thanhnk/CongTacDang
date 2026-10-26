@@ -30,7 +30,7 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
         { title: "Tổng quan", href: "/", icon: "bi-house" },
         { title: "Việc cần xử lý", href: "/work-queue", icon: "bi-inbox", check: hasAnyEvaluationAction },
         {
-          title: "Đánh giá cán bộ",
+          title: "Hồ sơ đánh giá",
           href: "/evaluations",
           icon: "bi-file-earmark-text",
           // Người chỉ tự đánh giá mở hồ sơ của mình từ Tổng quan; mục này dành cho người xem hồ sơ người khác.
@@ -57,7 +57,7 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
             hasPermission("evaluation.crosscheck.confirm"),
         },
         {
-          title: "Kiểm soát chất lượng",
+          title: "Hiệu chuẩn và kiểm soát",
           href: "/quality-control",
           icon: "bi-shield-check",
           check: () =>
@@ -76,7 +76,7 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
       items: [
         { title: "Kỳ đánh giá", href: "/periods", icon: "bi-calendar3", permission: "period.manage" },
         { title: "Bộ tiêu chí", href: "/criteria", icon: "bi-list-check", permission: "criteria.manage" },
-        { title: "Danh mục", href: "/catalog", icon: "bi-building", permission: "catalog.manage" },
+        { title: "Danh mục tổ chức", href: "/catalog", icon: "bi-building", permission: "catalog.manage" },
       ],
     },
     {
@@ -84,11 +84,11 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
       title: "Hệ thống",
       collapsible: true,
       items: [
-        { title: "Người dùng", href: "/admin/users", icon: "bi-people", permission: "system.users.read" },
+        { title: "Tài khoản", href: "/admin/users", icon: "bi-people", permission: "system.users.read" },
         { title: "Vai trò", href: "/admin/roles", icon: "bi-shield-lock", permission: "system.roles.manage" },
         { title: "Người thực hiện", href: "/admin/performers", icon: "bi-person-check", permission: "system.assignments.manage" },
         { title: "Nhập dữ liệu", href: "/admin/imports", icon: "bi-file-earmark-arrow-up", permission: "system.import" },
-        { title: "Nhật ký", href: "/audit", icon: "bi-clock-history", permission: "system.audit.read" },
+        { title: "Nhật ký hệ thống", href: "/audit", icon: "bi-clock-history", permission: "system.audit.read" },
         { title: "Thông tin đơn vị", href: "/admin/settings", icon: "bi-gear", permission: "system.settings.manage" },
         { title: "Biểu mẫu Word", href: "/admin/templates", icon: "bi-file-earmark-word", permission: "system.templates.manage" },
       ],
