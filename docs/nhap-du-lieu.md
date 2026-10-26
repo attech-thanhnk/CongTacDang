@@ -1,6 +1,6 @@
 # Nhập dữ liệu từ Excel
 
-Trang **Quản lý → Nhập dữ liệu** (`/admin/imports`). Quyền `system.import` (chỉ gán phạm vi Toàn công ty) mở chức năng; mỗi loại nhập còn cần quyền dữ liệu tương ứng. Danh sách loại hiện trên trang lấy từ máy chủ theo quyền của người dùng.
+Trang **Hệ thống → Nhập dữ liệu** (`/admin/imports`). Quyền `system.import` (chỉ gán phạm vi Toàn công ty) mở chức năng; mỗi loại nhập còn cần quyền dữ liệu tương ứng. Danh sách loại hiện trên trang lấy từ máy chủ theo quyền của người dùng.
 
 ## Quy trình
 
