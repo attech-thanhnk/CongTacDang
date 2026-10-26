@@ -418,3 +418,5 @@ Các lệnh dưới đây chạy trên máy chủ, tại thư mục gốc của 
 **Hậu quả:** mọi người dùng bị đăng xuất và phải đăng nhập lại (mật khẩu tài khoản không đổi); thao tác đang mở dở chưa lưu bị mất — nên làm ngoài giờ làm việc và báo trước. Đổi mật khẩu CSDL làm backend mất kết nối từ lúc chạy `ALTER USER` tới khi khởi động lại ở bước 5, nên làm liền các bước 3–5. Bản sao lưu cũ vẫn khôi phục được (mật khẩu CSDL không nằm trong bản dump).
 
 Khi chạy API ngoài Docker, cập nhật `Jwt:Secret` và chuỗi kết nối bằng `dotnet user-secrets` (mục [Secret backend khi chạy trực tiếp](#secret-backend-khi-chạy-trực-tiếp)) rồi khởi động lại.
+
+Thay máy cũ bằng bản mới trên CSDL sạch (chỉ chép dữ liệu gốc, không mang dữ liệu vận hành): xem [Chuyển dữ liệu gốc sang bản mới](chuyen-du-lieu-goc.md).
