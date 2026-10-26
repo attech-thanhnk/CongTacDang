@@ -342,7 +342,7 @@ export default function QualityControlPage() {
         loading={pickerLoading}
         busy={creating}
         askGroupName
-        groupNameRequired={active === "control"}
+        groupNameRequired
         emptyText={active === "calibration" ? "Chưa có hồ sơ đã thẩm định để hiệu chuẩn." : "Chưa có hồ sơ chờ quyết định để kiểm soát."}
         onCancel={() => setPickerOpen(false)}
         onConfirm={create}

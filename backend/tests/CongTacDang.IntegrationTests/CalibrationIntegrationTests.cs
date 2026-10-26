@@ -205,6 +205,23 @@ public sealed class CalibrationIntegrationTests
         return await scope.ServiceProvider.GetRequiredService<ICalibrationGate>().EvaluateAsync(recordId);
     }
 
+    [SkippableFact]
+    public async Task Create_WithoutUnit_TakesCommonUnitOfRecords_AsTheUiDoes()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var w = await SetupAsync();
+
+        // Giao diện chỉ gửi kỳ, tên nhóm và hồ sơ: đơn vị lấy từ các hồ sơ đã chọn.
+        var created = await Data(await w.PreparerC.PostAsJsonAsync("/api/calibrations",
+            new { periodId = w.PeriodId, groupName = "Nhóm không chọn đơn vị", recordIds = new[] { w.RecordA, w.RecordB } }));
+        Assert.Equal(w.DepartmentId, created.GetProperty("departmentId").GetGuid());
+
+        // Thiếu tên nhóm vẫn bị từ chối rõ ràng.
+        var noName = await w.PreparerC.PostAsJsonAsync("/api/calibrations",
+            new { periodId = w.PeriodId, recordIds = new[] { w.RecordC } });
+        Assert.Equal(HttpStatusCode.BadRequest, noName.StatusCode);
+    }
+
     #region Hỗ trợ
 
     private static object Create(World w, params Guid[] recordIds) => new

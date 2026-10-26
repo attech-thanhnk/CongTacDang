@@ -183,13 +183,25 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
             ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {request.PeriodId}.");
         if (period.Status != PeriodStatus.Open)
             throw new ConflictException("Chỉ lập biên bản hiệu chuẩn khi kỳ đánh giá đang mở.");
-        if (request.DepartmentId is null && request.PartyCellId is null)
-            throw new ValidationException("Hãy chọn đơn vị lập biên bản.");
-        if (request.DepartmentId is { } d && !await _records.DepartmentExistsAsync(d, ct))
+        var departmentId = request.DepartmentId;
+        var partyCellId = request.PartyCellId;
+        if (departmentId is null && partyCellId is null)
+        {
+            // Giao diện không chọn đơn vị: lấy đơn vị chung của các hồ sơ đã chọn.
+            var picked = (request.RecordIds ?? new List<Guid>()).Where(i => i != Guid.Empty).Distinct().ToList();
+            if (picked.Count == 0)
+                throw new ValidationException("Hãy chọn ít nhất một hồ sơ cho biên bản.");
+            var chosen = await _repo.GetRecordsAsync(picked, ct);
+            departmentId = Common(chosen.Select(r => r.DepartmentId));
+            partyCellId = Common(chosen.Select(r => r.PartyCellId));
+            if (departmentId is null && partyCellId is null)
+                throw new ValidationException("Lập biên bản không thành công: các hồ sơ đã chọn không cùng một đơn vị hay tổ chức Đảng. Hãy chọn hồ sơ của cùng một đơn vị.");
+        }
+        if (departmentId is { } d && !await _records.DepartmentExistsAsync(d, ct))
             throw new ValidationException("Đơn vị lập biên bản không tồn tại.");
-        if (request.PartyCellId is { } c && !await _records.PartyCellExistsAsync(c, ct))
+        if (partyCellId is { } c && !await _records.PartyCellExistsAsync(c, ct))
             throw new ValidationException("Tổ chức Đảng lập biên bản không tồn tại.");
-        _guard.Ensure(PermissionCodes.EvaluationCalibrationManage, AccessTarget.ForUnitsWrite(request.DepartmentId, request.PartyCellId));
+        _guard.Ensure(PermissionCodes.EvaluationCalibrationManage, AccessTarget.ForUnitsWrite(departmentId, partyCellId));
 
         var groupName = Required(request.GroupName, CalibrationRules.MaxNameLength + 100, "Tên nhóm chức danh/công việc tương đồng");
         var now = DateTime.UtcNow;
@@ -197,8 +209,8 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
         var session = new CalibrationSession
         {
             PeriodId = period.Id,
-            DepartmentId = request.DepartmentId,
-            PartyCellId = request.PartyCellId,
+            DepartmentId = departmentId,
+            PartyCellId = partyCellId,
             GroupName = groupName,
             Status = CalibrationStatus.Draft,
             PreparedById = _currentUser.UserId,
@@ -439,6 +451,12 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
             throw new ConflictException($"Đưa hồ sơ vào biên bản không thành công: hồ sơ của {names} đã thuộc một biên bản hiệu chuẩn khác.");
         }
         return records.OrderBy(NameOf, StringComparer.CurrentCulture).ToList();
+    }
+
+    private static Guid? Common(IEnumerable<Guid?> values)
+    {
+        var distinct = values.Distinct().ToList();
+        return distinct.Count == 1 ? distinct[0] : null;
     }
 
     private static CalibrationRecord NewCalibrationRecord(Guid sessionId, EvaluationRecord record)
