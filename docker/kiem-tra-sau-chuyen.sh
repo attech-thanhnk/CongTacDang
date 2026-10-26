@@ -14,7 +14,7 @@
 #   --tai-khoan TEN     tên đăng nhập thử; mật khẩu lấy từ biến CTD_MAT_KHAU (hoặc --mat-khau, không khuyến nghị vì lộ ở dòng lệnh)
 #   --repo-dir DIR      thư mục mã nguồn (mặc định: thư mục cha của docker/), dùng để so migration và danh sách vai trò mặc định
 #   -h, --help          xem hướng dẫn
-# Biến môi trường: PG_CONTAINER (mặc định attech-dangbo-postgres).
+# Biến môi trường: PG_CONTAINER (mặc định attech-dangbo-postgres), API_CONTAINER (mặc định attech-dangbo-api).
 # =============================================================================
 set -euo pipefail
 
@@ -118,8 +118,13 @@ for path in /healthz /api/healthz; do
     body="$(curl -s -m 10 "$API_URL$path" 2>/dev/null || true)"
     if [ "$body" = "Healthy" ]; then HEALTH="$path"; break; fi
 done
-if [ -n "$HEALTH" ]; then ok "Backend khỏe ($API_URL$HEALTH trả Healthy)"
-else ko "Backend không trả Healthy tại $API_URL/healthz hoặc $API_URL/api/healthz. Khởi động backend trên đích rồi xem log."; fi
+# Qua cổng giao diện (3001) backend không có /healthz công khai; hỏi thẳng container backend.
+if [ -z "$HEALTH" ]; then
+    body="$(docker exec "${API_CONTAINER:-attech-dangbo-api}" curl --fail --silent -m 10 http://localhost:5000/healthz 2>/dev/null || true)"
+    [ "$body" = "Healthy" ] && HEALTH="container ${API_CONTAINER:-attech-dangbo-api}"
+fi
+if [ -n "$HEALTH" ]; then ok "Backend khỏe (/healthz trả Healthy: $HEALTH)"
+else ko "Backend không trả Healthy (đã thử $API_URL/healthz, $API_URL/api/healthz và container backend). Khởi động backend trên đích rồi xem log."; fi
 
 # 5. Đăng nhập bằng mật khẩu băm đã chuyển.
 if [ -n "$ACCOUNT" ] && [ -n "$PASSWORD" ]; then

@@ -6,6 +6,7 @@ Tài liệu liên quan:
 
 - [Nâng cấp phiên bản về sau](nang-cap-phien-ban.md): mỗi lần có bản mới.
 - [Chuyển dữ liệu gốc từ máy cũ](chuyen-du-lieu-goc.md): khi thay máy đang chạy bản cũ.
+- [Thay thế tại chỗ máy đang chạy bản cũ](thay-the-may-cu.md): quy trình từng bước, đường lui, làm sạch.
 - [Triển khai (tham chiếu)](deployment.md): chi tiết biến cấu hình, LibreOffice, sao lưu, khôi phục, log.
 - [Hướng dẫn bàn giao](huong-dan-ban-giao.md): đưa hệ thống vào sử dụng sau khi máy chạy.
 
@@ -245,6 +246,8 @@ Mong đợi: lệnh đầu in `0` (không còn giá trị giữ chỗ); lệnh s
 
 ## 5. Tài khoản quản trị ban đầu
 
+Nếu sẽ chuyển dữ liệu gốc từ máy cũ (mục 13) thì bỏ qua mục này.
+
 CSDL mới chưa có ai đăng nhập được. Vì vậy trước lần khởi động đầu, khai báo quản trị ban đầu trong `docker/.env`:
 
 ```bash
@@ -289,6 +292,8 @@ Thoát xem log bằng `Ctrl+C` (không làm dừng container). Chờ tự độn
 ```bash
 timeout 300 sh -c 'until [ "$(docker inspect -f "{{.State.Health.Status}}" attech-dangbo-web)" = healthy ]; do sleep 5; done' && echo GIAO_DIEN_KHOE
 ```
+
+Log lần đầu trên CSDL trống có một dòng mức Error về câu lệnh đọc `__EFMigrationsHistory` (bảng chưa có): bình thường, chỉ lo khi có `Critical` hoặc `[LỖI CẤU HÌNH]`.
 
 Mong đợi: sau 1 đến 2 phút in `GIAO_DIEN_KHOE`; `docker compose ps` cột `STATUS` của cả ba container có `(healthy)`. Trong log backend lần đầu có các dòng áp dụng migration và tạo dữ liệu nền (danh mục quyền, vai trò mặc định, bộ tiêu chí mặc định, quản trị ban đầu).
 
@@ -513,7 +518,7 @@ Máy đã chạy. Việc tiếp theo là khai báo dữ liệu gốc: thông tin
 
 ## 13. Nếu đã có dữ liệu gốc từ máy cũ
 
-Khi máy mới thay cho máy đang chạy bản cũ, không khai báo tay lại từ đầu mà chuyển dữ liệu gốc (không chuyển hồ sơ đánh giá). Làm theo [Chuyển dữ liệu gốc từ máy cũ](chuyen-du-lieu-goc.md), thực hiện **sau** bước 8 (máy mới đã chạy và quản trị đã đổi mật khẩu) và **trước** bước 12.
+Khi máy mới thay cho máy đang chạy bản cũ, không khai báo tay lại từ đầu mà chuyển dữ liệu gốc (không chuyển hồ sơ đánh giá). Làm theo [Chuyển dữ liệu gốc từ máy cũ](chuyen-du-lieu-goc.md), **sau** bước 7 và **trước** bước 12. Khi có chuyển dữ liệu thì **bỏ bước 5 và bước 8**: tài khoản quản trị lấy từ máy cũ, nên không đặt `Seed__InitialAdmin__*` (backend vẫn khởi động trên CSDL trống, chỉ cảnh báo chưa có quản trị), và việc chuyển yêu cầu CSDL đích chưa có người dùng. Thay ngay trên máy đang chạy bản cũ (cùng thư mục, cùng tên CSDL): [Thay thế tại chỗ](thay-the-may-cu.md).
 
 ---
 

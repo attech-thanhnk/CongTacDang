@@ -23,6 +23,7 @@ Quy ước: mã nguồn ở `/opt/congtacdang`; mọi lệnh `docker compose` ch
 - **Đường lui duy nhất đáng tin là khôi phục bản sao lưu.** Phần `Down` của migration chỉ thêm lại cột, không khôi phục dữ liệu đã bị xóa. Một số bản có migration xóa dữ liệu (xem bước 3.4).
 - Làm ngoài giờ dùng; báo người dùng trước. Gián đoạn khoảng 1 đến 3 phút khi tạo lại container; người đang mở trang sẽ phải tải lại. Phiên đăng nhập vẫn giữ.
 - Dựng image **trước** khi dừng dịch vụ: dựng lỗi thì hệ thống cũ vẫn chạy bình thường.
+- Gắn nhãn ảnh đang chạy trước khi dựng để còn ảnh quay lại nhanh: `docker tag docker-backend:latest docker-backend:truoc-nang-cap` (tương tự `docker-frontend`); quay lại bằng cách gắn lại nhãn `latest` rồi `docker compose up -d --no-build`. Đã diễn tập trong [thay-the-may-cu.md](thay-the-may-cu.md#61-quay-về-bản-cũ-sau-khi-đã-chuyển-bản-mới-có-sự-cố).
 
 ---
 

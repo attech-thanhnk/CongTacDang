@@ -439,4 +439,4 @@ Các lệnh dưới đây chạy trên máy chủ, tại thư mục gốc của 
 
 Khi chạy API ngoài Docker, cập nhật `Jwt:Secret` và chuỗi kết nối bằng `dotnet user-secrets` (mục [Secret backend khi chạy trực tiếp](#secret-backend-khi-chạy-trực-tiếp)) rồi khởi động lại.
 
-Thay máy cũ bằng bản mới trên CSDL sạch (chỉ chép dữ liệu gốc, không mang dữ liệu vận hành): xem [Chuyển dữ liệu gốc sang bản mới](chuyen-du-lieu-goc.md).
+Thay máy cũ bằng bản mới trên CSDL sạch (chỉ chép dữ liệu gốc, không mang dữ liệu vận hành): xem [Chuyển dữ liệu gốc sang bản mới](chuyen-du-lieu-goc.md). Thay ngay trên máy đang chạy: [Thay thế tại chỗ](thay-the-may-cu.md).

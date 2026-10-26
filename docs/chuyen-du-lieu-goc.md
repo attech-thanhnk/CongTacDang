@@ -1,5 +1,7 @@
 # Chuyển dữ liệu gốc sang bản mới
 
+Thay tại chỗ ngay trên máy đang chạy (đổi tên CSDL cũ, đường lui, làm sạch): làm theo [Thay thế tại chỗ máy đang chạy bản cũ](thay-the-may-cu.md), tài liệu này là phần tham chiếu cho công cụ chuyển.
+
 Khi thay một máy đang chạy bản cũ bằng bản mới, không khôi phục nguyên CSDL cũ (`restore.sh` mang cả dữ liệu vận hành và nâng cấp schema tại chỗ). Cách làm ở đây: dựng **CSDL mới, sạch** đúng cấu trúc bản mới, rồi chỉ chép **dữ liệu gốc** từ bản sao lưu của máy cũ. Quy trình giống nhau cho máy thay thế và cho máy mới hoàn toàn.
 
 | Công cụ | Việc làm |
@@ -13,7 +15,7 @@ Khi thay một máy đang chạy bản cũ bằng bản mới, không khôi ph�
 Việc của người vận hành đánh dấu **(tay)**.
 
 1. **(tay) Máy cũ**: chạy `docker/backup.sh`, chép cả thư mục `congtacdang-YYYYMMDD-HHMMSS` (gồm `db.dump`, `uploads.tar.gz`, `SHA256SUMS`) sang máy mới, ví dụ `scp -r`.
-2. **(tay) Máy mới**: lấy mã nguồn bản mới, tạo `docker/.env` mới (secret mới), chạy `docker/deploy-ubuntu.sh`. Backend khởi động trên CSDL trống, tự migrate đủ schema và tạo dữ liệu mặc định. Không cần đặt `Seed__InitialAdmin__*` (tài khoản quản trị lấy từ máy cũ); không bật `Database__SeedSampleData`.
+2. **(tay) Máy mới**: lấy mã nguồn bản mới, tạo `docker/.env` mới (secret mới), dựng ảnh và khởi động bằng `docker compose build` rồi `docker compose up -d` (không dùng `deploy-ubuntu.sh`: nó dừng cả hệ thống và dựng lại không có bộ nhớ đệm). Backend khởi động trên CSDL trống, tự migrate đủ schema và tạo dữ liệu mặc định; dòng log mức Error về `__EFMigrationsHistory` ở lần đầu là bình thường. Không cần đặt `Seed__InitialAdmin__*` (tài khoản quản trị lấy từ máy cũ); không bật `Database__SeedSampleData`.
 3. **(tay) Dừng backend và frontend** để không còn kết nối vào CSDL đích:
    `docker compose --env-file docker/.env -f docker/docker-compose.yml stop frontend backend`
 4. **Chạy thử** (chạy đủ các bước rồi hoàn tác, không ghi gì):
@@ -22,7 +24,7 @@ Việc của người vận hành đánh dấu **(tay)**.
    `docker/chuyen-du-lieu-goc.sh /đường/dẫn/congtacdang-YYYYMMDD-HHMMSS`
    Bảng đối chiếu cuối cùng phải ghi **khớp** ở mọi dòng.
 6. **(tay) Khởi động lại**: `docker compose --env-file docker/.env -f docker/docker-compose.yml up -d backend frontend`. Seeder bổ sung phần mới (xem mục "Sau khi khởi động lại").
-7. **Kiểm tra**: `CTD_MAT_KHAU='<mật khẩu>' docker/kiem-tra-sau-chuyen.sh --tai-khoan <tên đăng nhập>`. Kết luận phải là ĐẠT.
+7. **Kiểm tra**: `CTD_MAT_KHAU='<mật khẩu>' docker/kiem-tra-sau-chuyen.sh --tai-khoan <tên đăng nhập>`. Kết luận phải là ĐẠT.  Chạy qua cổng giao diện (mặc định `http://127.0.0.1:3001`) cũng được: mục kiểm tra backend khỏe hỏi thẳng container `attech-dangbo-api` (đổi bằng `API_CONTAINER`).
 8. **(tay) Giao diện**: đăng nhập, mở các trang Người dùng, Vai trò, Đơn vị; kiểm tra thông tin đơn vị và bộ tiêu chí.
 
 Tham số của `chuyen-du-lieu-goc.sh`: `--kiem-tra`, `--dich-csdl TEN` (mặc định CSDL của container), `--nguon-csdl TEN` (nguồn là CSDL có sẵn trong cùng container, đọc ở phiên chỉ đọc), `--uploads FILE`, `--thu-muc-upload DIR` hoặc `--volume-upload TEN`, `--repo-dir`, `--giu-csdl-tam`, `-h`. Script chạy được bằng Git Bash trên Windows vì mọi thao tác CSDL đi qua `docker exec` vào container `attech-dangbo-postgres` (đổi bằng `PG_CONTAINER`); mật khẩu CSDL không đi qua dòng lệnh.
@@ -203,3 +205,9 @@ Nguồn: thư mục `backup.sh` thật (`db.dump`, `uploads.tar.gz`, `SHA256SUMS
 - Đích dựng ở môi trường Development có dữ liệu mẫu bật sẵn nên không sạch: đặt `Database__SeedSampleData=false` khi dựng đích (Compose Production mặc định đã tắt).
 - Tài khoản nguồn có `MustChangePassword = true` nên API trả `PASSWORD_CHANGE_REQUIRED` khi thử: đúng hành vi (cờ được chép nguyên); trên bản sao nguồn đặt lại cờ để thử.
 - Đường dẫn nguồn không tồn tại báo lỗi `cd` khó hiểu: đã thêm kiểm tra riêng.
+
+### Lượt 3: thay tại chỗ bằng bộ Compose thật
+
+Diễn tập trọn quy trình [Thay thế tại chỗ](thay-the-may-cu.md) (đổi tên CSDL cũ, đích trống, chuyển từ bản sao lưu thật, quay lại bản cũ và tiến lại): `--kiem-tra` 44 giây, chuyển thật 47 giây, bảng đối chiếu khớp như lượt 2, băm mật khẩu 55 tài khoản trùng nguồn. `--kiem-tra` không để lại dấu (không có `ctd_nguon_tam`, không có dấu đã chuyển, số tài khoản vẫn 0). Bản dump cắt cụt bị chặn ở bước 1, đích giữ nguyên.
+
+Lỗi gặp và cách xử lý: `kiem-tra-sau-chuyen.sh` mặc định gọi qua cổng giao diện 3001 nhưng cổng này không có `/healthz` (trả 307) và `/api/healthz` (trả 404) nên mục "Backend khỏe" luôn không đạt; script nay hỏi thẳng container backend khi hai đường đó không trả `Healthy`.
