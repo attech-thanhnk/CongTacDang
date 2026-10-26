@@ -63,7 +63,7 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
                 </thead>
                 <tbody>
                   {readiness.issues.map((issue) => (
-                    <tr key={`${issue.recordId}-${issue.step}`} title={issue.message}>
+                    <tr key={`${issue.recordId}-${issue.step}-${issue.permission}`} title={issue.message}>
                       <td><Link href={`/evaluations/${issue.recordId}`}>{issue.fullName}</Link></td>
                       <td>{issue.workflowProfileName}</td>
                       <td>{issue.stepName}{issue.mode === "External" && <div className="text-secondary">{STEP_MODE_LABELS.External}</div>}</td>

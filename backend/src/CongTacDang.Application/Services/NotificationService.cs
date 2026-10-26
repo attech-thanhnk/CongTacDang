@@ -105,7 +105,8 @@ public sealed class NotificationService : INotificationService
         Kind = kind,
         Title = title,
         Detail = detail ?? $"{item.FullName}{(item.IsOwnRecord ? " (hồ sơ của bạn)" : string.Empty)} · {item.PeriodName}",
-        Link = $"/evaluations/{item.RecordId}",
+        // Việc là phiếu (đối soát): người làm có thể không xem được hồ sơ nên dẫn thẳng tới phiếu.
+        Link = item.FormId is { } formId ? $"/crosschecks/{formId}" : $"/evaluations/{item.RecordId}",
         Deadline = item.Deadline
     };
 }

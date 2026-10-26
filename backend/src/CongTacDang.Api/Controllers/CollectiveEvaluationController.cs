@@ -110,7 +110,7 @@ public class CollectiveEvaluationController : ControllerBase
     {
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!Guid.TryParse(value, out var id))
-            throw new UnauthorizedAccessException("Không xác định được người dùng hiện tại.");
+            throw new UnauthorizedAccessException("Xác định người dùng hiện tại không thành công.");
         return id;
     }
 }

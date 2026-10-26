@@ -17,6 +17,7 @@ import {
   WorkflowStepCode,
   evaluationService,
   gradeConditionWarnings,
+  latestProposedGrade,
   votePassedGrade,
 } from "@/services/evaluationService";
 import { FileUploadModal } from "@/components/attachments/FileUploadModal";
@@ -191,7 +192,7 @@ function ActionForm({ record, criteria, action, step, busy, onSubmit, extra, onA
     case "Appraise":
       return <AppraisalForm record={record} criteria={criteria} busy={busy} extra={extra} onScoreChange={onAppraisalChange} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "DirectorReview":
-      return <GradeCommentForm record={record} criteria={criteria} busy={busy} extra={extra} defaultGrade={record.appraisalProposedGrade} submitText="Ghi nhận nhận xét" onSubmit={(payload) => onSubmit(action, payload)} />;
+      return <GradeCommentForm record={record} criteria={criteria} busy={busy} extra={extra} defaultGrade={record.reviewedGrade || record.appraisalProposedGrade} submitText="Ghi nhận nhận xét" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "RecordDecision":
       return <ProposalForm record={record} criteria={criteria} busy={busy} extra={extra} stage="B4_DECISION" submitText="Ghi nhận quyết định" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "Publish":
@@ -332,7 +333,8 @@ function GradeCommentForm({ record, criteria, busy, defaultGrade, submitText, ex
   const [grade, setGrade] = useState(initialGrade(defaultGrade));
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const check = proposalCheck(record, criteria, grade, record.appraisalScore ?? record.totalSelfScore);
+  // Điểm thẩm định, thay bằng điểm sau hiệu chuẩn nếu có (cùng nguồn với máy chủ).
+  const check = proposalCheck(record, criteria, grade, record.reviewedScore ?? record.appraisalScore ?? record.totalSelfScore);
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (check?.required && !comment.trim()) {
@@ -493,7 +495,7 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
   const isDecision = stage === "B4_DECISION";
   const [grade, setGrade] = useState(
     isDecision
-      ? initialGrade(record.directorProposedGrade) || initialGrade(record.appraisalProposedGrade)
+      ? initialGrade(latestProposedGrade(record))
       : initialGrade(record.selfProposedGrade)
   );
   const [comment, setComment] = useState("");
@@ -526,7 +528,7 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
   // Kiểm phiếu đã có: mức ghi nhận của tập thể phải là mức đạt quá nửa số có mặt (máy chủ kiểm lại).
   const voteResult = !isDecision && meetingId && withVotes ? votePassedGrade(votes, selectedMeeting?.presentCount ?? 0) : null;
   const voteMismatch = !!voteResult && voteResult.grade !== grade;
-  const scoreForCheck = isDecision ? (finalScore === "" ? record.appraisalScore ?? record.totalSelfScore : Number(finalScore)) : record.totalSelfScore;
+  const scoreForCheck = isDecision ? (finalScore === "" ? record.reviewedScore ?? record.totalSelfScore : Number(finalScore)) : record.totalSelfScore;
   const check = proposalCheck(record, criteria, grade, scoreForCheck);
   const reason = isDecision ? explanation : comment;
 
@@ -578,7 +580,7 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
       {isDecision ? (
         <>
           {/* Để trống: máy chủ lấy điểm thẩm định. */}
-          <div className="col-md-3"><label className="form-label small text-nowrap" htmlFor={`${stage}-score`}>Điểm chính thức</label><input id={`${stage}-score`} type="number" min={0} max={100} step={0.1} className="form-control form-control-sm num" value={finalScore} onChange={(e) => setFinalScore(e.target.value)} placeholder={record.appraisalScore != null ? `Thẩm định: ${fmt(record.appraisalScore)}` : "Theo thẩm định"} title="Để trống sẽ lấy điểm thẩm định" /></div>
+          <div className="col-md-3"><label className="form-label small text-nowrap" htmlFor={`${stage}-score`}>Điểm chính thức</label><input id={`${stage}-score`} type="number" min={0} max={100} step={0.1} className="form-control form-control-sm num" value={finalScore} onChange={(e) => setFinalScore(e.target.value)} placeholder={(record.reviewedScore ?? record.appraisalScore) != null ? `Thẩm định: ${fmt((record.reviewedScore ?? record.appraisalScore) as number)}` : "Theo thẩm định"} title="Để trống sẽ lấy điểm thẩm định" /></div>
           <div className="col-md-4"><label className="form-label small" htmlFor={`${stage}-authority`}>Cơ quan quyết định</label><input id={`${stage}-authority`} className="form-control form-control-sm" value={authorityName} maxLength={300} onChange={(e) => setAuthorityName(e.target.value)} title={authorityName} /></div>
           <div className="col-md-5"><label className="form-label small" htmlFor={`${stage}-docno`}>Số văn bản</label><input id={`${stage}-docno`} className="form-control form-control-sm" value={documentNumber} maxLength={100} onChange={(e) => setDocumentNumber(e.target.value)} /></div>
           <div className="col-md-4"><label className="form-label small" htmlFor={`${stage}-docdate`}>Ngày văn bản</label><DateField id={`${stage}-docdate`} value={documentDate} onChange={setDocumentDate} /></div>
@@ -670,8 +672,7 @@ function ExternalResultForm({ record, step, busy, extra, onSubmit }: { record: E
   const [documentDate, setDocumentDate] = useState(previous?.documentDate?.substring(0, 10) || "");
   const [comment, setComment] = useState(previous?.comment || "");
   const [grade, setGrade] = useState(
-    initialGrade(previous?.grade) || initialGrade(record.directorProposedGrade) || initialGrade(record.appraisalProposedGrade)
-      || initialGrade(record.collectiveProposedGrade) || initialGrade(record.selfProposedGrade)
+    initialGrade(previous?.grade) || initialGrade(latestProposedGrade(record))
   );
   const [score, setScore] = useState(previous?.score != null ? String(previous.score) : "");
   const [cadreWorkProposal, setCadreWorkProposal] = useState(record.cadreWorkProposal || "");

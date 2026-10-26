@@ -58,7 +58,7 @@ export function TaskChangeRequests({ record, onRecordChanged }: Props) {
       onRecordChanged?.();
       return true;
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Không thực hiện được thao tác."));
+      toast.error(errorMessage(err, "Thao tác không thành công."));
       await load();
       return false;
     } finally {
