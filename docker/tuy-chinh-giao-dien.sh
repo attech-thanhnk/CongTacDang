@@ -51,6 +51,9 @@ DB_NAME="${DB_NAME:-$(docker exec "$PG_CONTAINER" sh -c 'printf %s "$POSTGRES_DB
 [ -n "$DB_NAME" ] || die "Không xác định được tên CSDL. Đặt DB_NAME."
 [[ "$DB_NAME" =~ ^[A-Za-z0-9_]+$ ]] || die "Tên CSDL '$DB_NAME' có ký tự không hợp lệ."
 
+# Git Bash trên Windows: docker.exe cần đường dẫn dạng C:/...; Linux giữ nguyên.
+hp() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf %s "$1"; fi; }
+
 pg() { docker exec -i "$PG_CONTAINER" sh -c 'exec psql -U "$POSTGRES_USER" -X -w -q -v ON_ERROR_STOP=1 "$@"' sh -d "$DB_NAME" "$@"; }
 
 case "$CMD" in
@@ -70,7 +73,7 @@ xuat)
     rm -f "$DIR"/anh-nen.*
     if [ -n "$KEY" ]; then
         EXT="${KEY##*.}"
-        docker cp "$API_CONTAINER:$UPLOAD_DIR/$KEY" "$DIR/anh-nen.$EXT" >/dev/null 2>&1 \
+        docker cp "$API_CONTAINER:$UPLOAD_DIR/$KEY" "$(hp "$DIR")/anh-nen.$EXT" >/dev/null 2>&1 \
             || die "Không chép được ảnh nền '$KEY' từ container $API_CONTAINER (kiểm tra tệp có trong $UPLOAD_DIR)."
         log "Đã xuất ảnh nền: $DIR/anh-nen.$EXT ($(wc -c < "$DIR/anh-nen.$EXT") byte)"
     else
@@ -105,7 +108,7 @@ ap-dung)
 
     if [ -n "$KEY" ]; then
         docker exec -u root "$API_CONTAINER" sh -c "mkdir -p '$UPLOAD_DIR/login-background'"
-        docker cp "$IMG" "$API_CONTAINER:$UPLOAD_DIR/$KEY" >/dev/null
+        docker cp "$(hp "$IMG")" "$API_CONTAINER:$UPLOAD_DIR/$KEY" >/dev/null
         docker exec -u root "$API_CONTAINER" sh -c "chown -R appuser:appuser '$UPLOAD_DIR/login-background' && chmod 644 '$UPLOAD_DIR/$KEY'"
         log "Đã chép ảnh nền vào $UPLOAD_DIR/$KEY"
         pg -v pos="$POS" -v key="$KEY" -v fname="$FNAME" -v ctype="$CTYPE" <<'SQL'
