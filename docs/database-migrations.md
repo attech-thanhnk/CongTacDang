@@ -53,4 +53,4 @@ dotnet ef migrations script -p backend/src/CongTacDang.Infrastructure -s backend
 
 ## Khôi phục bản sao lưu
 
-Khi `Database:AutoMigrate=true`, khôi phục bản sao lưu của phiên bản cũ rồi khởi động bản mới sẽ tự nâng cấp schema; bản sao lưu mới hơn mã nguồn thì mã nguồn không chạy được. `docker/restore.sh` so sánh `__EFMigrationsHistory` trong bản sao lưu với migration của mã nguồn trước khi ghi đè — xem `docs/deployment.md`, mục "Khôi phục sao lưu".
+Khi `Database:AutoMigrate=true`, khôi phục bản sao lưu của phiên bản cũ rồi khởi động bản mới sẽ tự nâng cấp schema; bản sao lưu mới hơn mã nguồn thì mã nguồn không chạy được. `docker/restore.sh` so sánh `__EFMigrationsHistory` trong bản sao lưu với migration của mã nguồn trước khi thay CSDL. Script khôi phục vào CSDL tạm rồi đổi tên, giữ CSDL cũ dưới tên `<POSTGRES_DB>_truoc_khoi_phuc_<ngày_giờ>`, nên quay lại bản cũ không sót bảng của migration mới — xem `docs/deployment.md`, mục "Khôi phục sao lưu".

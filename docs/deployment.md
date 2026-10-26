@@ -264,7 +264,7 @@ Dùng hai script trong `docker/` (chạy trên máy chủ Docker, bằng user c�
 | Script | Việc làm |
 |---|---|
 | `docker/backup.sh` | `pg_dump --format=custom` CSDL + nén volume `attech-dangbo-backend-uploads` (file đính kèm và file mẫu Word tải lên), ghi `SHA256SUMS` và `manifest.txt` (commit mã nguồn, migration mới nhất), giữ `N` bản gần nhất |
-| `docker/restore.sh` | Kiểm tra checksum, so sánh migration của bản sao lưu với mã nguồn đang triển khai, xác nhận, dừng frontend/backend, sao lưu dự phòng hiện trạng, `pg_restore --clean --if-exists --single-transaction`, thay nội dung volume upload, khởi động lại — xem [Khôi phục sao lưu](#khôi-phục-sao-lưu) |
+| `docker/restore.sh` | Kiểm tra checksum, so sánh migration của bản sao lưu với mã nguồn đang triển khai, xác nhận, dừng frontend/backend, sao lưu dự phòng hiện trạng, khôi phục vào CSDL tạm rồi đổi tên thay CSDL hiện tại, thay nội dung volume upload, khởi động lại — xem [Khôi phục sao lưu](#khôi-phục-sao-lưu) |
 
 Mật khẩu CSDL không đi qua dòng lệnh: `pg_dump`/`pg_restore` chạy bên trong container `postgres` bằng biến môi trường của container.
 
@@ -329,7 +329,7 @@ Quy trình của `restore.sh`:
 3. Xác nhận (`NANG CAP` nếu bản sao lưu cũ hơn, rồi `KHOI PHUC`).
 4. **Dừng frontend và backend** (không ai ghi dữ liệu, backend không tự migrate giữa chừng); giữ `postgres` chạy.
 5. **Sao lưu dự phòng hiện trạng** (CSDL + upload) bằng `backup.sh` vào `<thư mục cha của bản sao lưu>/truoc-khoi-phuc/` (giữ 10 bản; đổi bằng `--safety-dir`). Sao lưu dự phòng lỗi → dừng, dữ liệu giữ nguyên.
-6. `pg_restore --clean --if-exists --single-transaction`: lỗi giữa chừng thì CSDL giữ nguyên.
+6. Tạo CSDL tạm `<POSTGRES_DB>_khoi_phuc`, `pg_restore --no-owner --single-transaction` vào đó, rồi đổi tên trong một giao dịch: CSDL hiện tại → `<POSTGRES_DB>_truoc_khoi_phuc_<ngày_giờ>`, CSDL tạm → `<POSTGRES_DB>` (ngắt kết nối còn lại trước khi đổi). Lỗi ở bất kỳ bước nào trước khi đổi tên: CSDL hiện tại giữ nguyên, CSDL tạm bị xóa, mã thoát khác 0. CSDL cũ được giữ lại, script không tự xóa.
 7. Thay toàn bộ nội dung volume upload (bỏ qua với `--skip-uploads`).
 8. Khởi động lại backend/frontend (giữ dừng với `--no-start`). Bản sao lưu cũ hơn → backend nâng cấp schema khi khởi động; theo dõi `docker compose ... logs -f backend`.
 
@@ -348,11 +348,11 @@ docker/restore.sh --no-start <thư-mục>
 
 Kịch bản tự động: `--yes` bỏ các bước gõ xác nhận; nếu bản sao lưu cũ hơn mã nguồn phải kèm `--allow-upgrade`, không thì script dừng. `--no-safety-backup` bỏ bước sao lưu dự phòng — chỉ dùng khi vừa chạy `backup.sh` thủ công.
 
-**Giới hạn cần biết:** `pg_restore --clean` chỉ xóa các bảng có trong bản sao lưu. Khôi phục bản cũ lên CSDL đã chạy bản **mới hơn** thì bảng do migration mới tạo vẫn còn sót lại và lần nâng cấp sau báo lỗi `already exists`. Trường hợp này (quay lại bản cũ) làm theo [Nâng cấp phiên bản, mục 4](nang-cap-phien-ban.md#4-quay-lại-bản-cũ-khi-có-sự-cố): sao lưu hiện trạng, làm sạch schema `public`, rồi khôi phục. Khôi phục lên cùng phiên bản hoặc lên CSDL của bản cũ hơn thì không gặp vấn đề này.
+**CSDL sau khôi phục đúng như bản sao lưu:** vì khôi phục vào CSDL mới hoàn toàn nên bảng, cột do migration mới hơn không còn sót lại; quay lại bản cũ không cần làm sạch schema thủ công (xem [Nâng cấp phiên bản, mục 4](nang-cap-phien-ban.md#4-quay-lại-bản-cũ-khi-có-sự-cố)). Dữ liệu trước khôi phục nằm ở CSDL `<POSTGRES_DB>_truoc_khoi_phuc_<ngày_giờ>` (cần thêm dung lượng đĩa bằng một CSDL). Mỗi lần khôi phục để lại một CSDL như vậy; khi đã yên tâm, xóa bằng lệnh script in ở cuối:```bashdocker compose --env-file docker/.env -f docker/docker-compose.yml exec postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "DROP DATABASE \"<tên CSDL cũ>\";"'```Xem danh sách CSDL cũ: `docker compose ... exec postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -l'`. Khôi phục nhầm: có thể đổi tên ngược lại bằng `ALTER DATABASE` (dừng backend trước), hoặc khôi phục từ bản trong `truoc-khoi-phuc/`.
 
 Nếu chạy với `Database__AutoMigrate=false`, sau khi khôi phục bản cũ hơn phải áp dụng migration thủ công (`docs/database-migrations.md`) trước khi dùng.
 
-Sau khi khôi phục: kiểm tra `docker compose ps` (ba container `healthy`) và `/healthz` của backend (mục [Khởi động Compose](#khởi-động-compose)), đăng nhập, mở một hồ sơ có minh chứng, xuất một biểu mẫu. Khôi phục nhầm → khôi phục lại từ bản trong `truoc-khoi-phuc/` bằng chính `restore.sh`.
+Sau khi khôi phục: kiểm tra `docker compose ps` (ba container `healthy`), `/healthz` của backend (in `Healthy`) và `curl http://127.0.0.1:${FRONTEND_PORT:-3001}/login` (200) như mục [Khởi động Compose](#khởi-động-compose) (không dùng `/api/healthz`), đăng nhập, mở một hồ sơ có minh chứng, xuất một biểu mẫu. Khôi phục nhầm → khôi phục lại từ bản trong `truoc-khoi-phuc/` bằng chính `restore.sh`.
 
 ## Log
 

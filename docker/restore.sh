@@ -21,8 +21,11 @@
 #
 # Quy trình: kiểm tra checksum → so sánh migration trong bản sao lưu với migration của mã nguồn
 #   (bản sao lưu MỚI hơn mã nguồn → dừng, không khôi phục) → xác nhận → dừng frontend/backend
-#   → sao lưu dự phòng hiện trạng (backup.sh) → pg_restore --clean --if-exists --single-transaction
+#   → sao lưu dự phòng hiện trạng (backup.sh) → khôi phục vào CSDL tạm <POSTGRES_DB>_khoi_phuc
+#   (pg_restore --no-owner vào CSDL mới hoàn toàn, nên không sót đối tượng của phiên bản mới hơn)
+#   → thành công mới đổi tên: CSDL hiện tại → <POSTGRES_DB>_truoc_khoi_phuc_<ngày_giờ>, CSDL tạm → <POSTGRES_DB>
 #   → thay nội dung volume upload → khởi động lại backend/frontend (AutoMigrate nâng cấp schema nếu bản cũ hơn).
+#   Lỗi trước khi đổi tên: CSDL hiện tại giữ nguyên, CSDL tạm bị xóa. Script KHÔNG tự xóa CSDL cũ được giữ lại.
 # Biến môi trường: ENV_FILE, COMPOSE_FILE, UPLOAD_VOLUME, HELPER_IMAGE, PG_IMAGE, APP_UID, SAFETY_DIR, REPO_DIR.
 # =============================================================================
 set -euo pipefail
@@ -46,7 +49,7 @@ SAFETY_BACKUP=1
 SOURCE=""
 
 usage() {
-    sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 while [ $# -gt 0 ]; do
@@ -167,7 +170,7 @@ echo "  Mã nguồn: commit $CODE_COMMIT, $(printf '%s\n' "$CODE_MIGRATIONS" | g
 echo "  Bản sao lưu: commit ${BACKUP_COMMIT:-không rõ}, $(printf '%s\n' "$BACKUP_MIGRATIONS" | grep -c . || true) migration, mới nhất: $(printf '%s\n' "$BACKUP_MIGRATIONS" | tail -n 1)"
 if postgres_running; then
     CURRENT_LAST="$(current_db_migrations | tail -n 1)"
-    echo "  CSDL hiện tại (sẽ bị ghi đè): migration mới nhất ${CURRENT_LAST:-không có}"
+    echo "  CSDL hiện tại (được giữ lại dưới tên khác): migration mới nhất ${CURRENT_LAST:-không có}"
 fi
 
 if [ -z "$BACKUP_MIGRATIONS" ]; then
@@ -203,8 +206,8 @@ if [ "$CHECK_ONLY" -eq 1 ]; then
 fi
 
 log "[3/7] Xác nhận"
-echo "Thao tác này sẽ GHI ĐÈ toàn bộ CSDL hiện tại$([ "$SKIP_UPLOADS" -eq 0 ] && echo " và volume $UPLOAD_VOLUME")"
-echo "bằng bản sao lưu: $SOURCE"
+echo "Thao tác này thay CSDL hiện tại bằng bản sao lưu: $SOURCE"
+echo "CSDL hiện tại được đổi tên và giữ lại (script không tự xóa)$([ "$SKIP_UPLOADS" -eq 0 ] && echo "; volume $UPLOAD_VOLUME bị GHI ĐÈ")."
 if [ "$SAFETY_BACKUP" -eq 1 ]; then
     echo "Hiện trạng được sao lưu dự phòng trước vào: $SAFETY_DIR"
 else
@@ -217,7 +220,7 @@ if [ -n "$PENDING_UPGRADE" ]; then
     fi
     confirm "NANG CAP" "Bản sao lưu cũ hơn mã nguồn và sẽ được nâng cấp schema khi khởi động"
 fi
-confirm "KHOI PHUC" "Ghi đè dữ liệu hiện tại"
+confirm "KHOI PHUC" "Thay dữ liệu hiện tại bằng bản sao lưu"
 
 log "[4/7] Dừng frontend và backend (tránh ghi dữ liệu và tự migrate trong lúc khôi phục)"
 run compose stop frontend backend
@@ -253,16 +256,60 @@ else
     log "[5/7] Bỏ qua sao lưu dự phòng (--no-safety-backup)"
 fi
 
-# Lỗi giữa chừng: pg_restore chạy trong một transaction nên CSDL giữ nguyên; vẫn khởi động lại ứng dụng.
+# Lỗi giữa chừng: CSDL hiện tại chưa bị đụng tới; vẫn khởi động lại ứng dụng.
 trap start_app EXIT
 
-log "[6/7] Khôi phục PostgreSQL (pg_restore --clean --if-exists --single-transaction)"
 if [ "$DRY_RUN" -eq 1 ]; then
-    echo "  (chạy khô) compose exec -T postgres pg_restore -U \$POSTGRES_USER -d \$POSTGRES_DB --clean --if-exists --no-owner --single-transaction < $SOURCE/db.dump"
+    DB_NAME='<POSTGRES_DB>'
 else
-    compose exec -T postgres sh -c \
-        'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner --no-password --single-transaction' \
-        < "$SOURCE/db.dump"
+    DB_NAME="$(compose exec -T postgres sh -c 'printf %s "$POSTGRES_DB"')"
+    if ! [[ "$DB_NAME" =~ ^[A-Za-z0-9_]+$ ]]; then
+        echo "[LỖI] Tên CSDL '$DB_NAME' có ký tự ngoài chữ, số, gạch dưới — đặt lại POSTGRES_DB trong $ENV_FILE rồi chạy lại. Dữ liệu giữ nguyên." >&2
+        exit 1
+    fi
+fi
+TMP_DB="${DB_NAME}_khoi_phuc"
+OLD_DB="${DB_NAME}_truoc_khoi_phuc_$(date +%Y%m%d_%H%M%S)"
+
+# Chạy SQL (đọc từ stdin) trên CSDL quản trị `postgres` trong container.
+admin_sql() {
+    compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 -q --no-password'
+}
+
+drop_tmp_db() {
+    printf 'DROP DATABASE IF EXISTS "%s";\n' "$TMP_DB" | admin_sql >/dev/null 2>&1 || true
+}
+
+log "[6/7] Khôi phục PostgreSQL vào CSDL tạm $TMP_DB rồi đổi tên thay $DB_NAME"
+if [ "$DRY_RUN" -eq 1 ]; then
+    echo "  (chạy khô) psql -d postgres: DROP DATABASE IF EXISTS \"$TMP_DB\"; CREATE DATABASE \"$TMP_DB\""
+    echo "  (chạy khô) compose exec -T postgres pg_restore -U \$POSTGRES_USER -d $TMP_DB --no-owner --single-transaction --exit-on-error < $SOURCE/db.dump"
+    echo "  (chạy khô) psql -d postgres: ngắt kết nối còn lại; ALTER DATABASE \"$DB_NAME\" RENAME TO \"$OLD_DB\"; ALTER DATABASE \"$TMP_DB\" RENAME TO \"$DB_NAME\""
+else
+    if ! printf 'SET client_min_messages = warning;\nDROP DATABASE IF EXISTS "%s";\nCREATE DATABASE "%s";\n' "$TMP_DB" "$TMP_DB" | admin_sql; then
+        drop_tmp_db
+        echo "[LỖI] Tạo CSDL tạm $TMP_DB không thành công — CSDL $DB_NAME giữ nguyên. Kiểm tra quyền của POSTGRES_USER và dung lượng đĩa rồi chạy lại." >&2
+        exit 1
+    fi
+    if ! compose exec -T postgres sh -c \
+        'pg_restore -U "$POSTGRES_USER" -d "$1" --no-owner --no-password --single-transaction --exit-on-error' _ "$TMP_DB" \
+        < "$SOURCE/db.dump"; then
+        drop_tmp_db
+        echo "[LỖI] Khôi phục vào CSDL tạm không thành công (bản dump hỏng hoặc thiếu) — đã xóa CSDL tạm, CSDL $DB_NAME giữ nguyên. Dùng bản sao lưu khác hoặc kiểm tra lại db.dump." >&2
+        exit 1
+    fi
+    # Hai lệnh đổi tên nằm trong một giao dịch: hoặc đổi cả hai, hoặc không đổi gì.
+    if ! printf '%s\n' \
+        "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname IN ('$DB_NAME', '$TMP_DB') AND pid <> pg_backend_pid();" \
+        "BEGIN;" \
+        "ALTER DATABASE \"$DB_NAME\" RENAME TO \"$OLD_DB\";" \
+        "ALTER DATABASE \"$TMP_DB\" RENAME TO \"$DB_NAME\";" \
+        "COMMIT;" | admin_sql >/dev/null; then
+        drop_tmp_db
+        echo "[LỖI] Đổi tên CSDL không thành công (có thể còn kết nối tới $DB_NAME) — đã xóa CSDL tạm, $DB_NAME giữ nguyên. Dừng ứng dụng đang kết nối rồi chạy lại." >&2
+        exit 1
+    fi
+    log "Đã thay CSDL: $DB_NAME là dữ liệu của bản sao lưu; dữ liệu trước khôi phục còn ở CSDL $OLD_DB."
 fi
 
 if [ "$SKIP_UPLOADS" -eq 0 ]; then
@@ -284,5 +331,12 @@ start_app
 if [ -n "$PENDING_UPGRADE" ] && [ "$NO_START" -eq 0 ]; then
     log "Backend đang nâng cấp schema khi khởi động — theo dõi: docker compose --env-file $ENV_FILE -f $COMPOSE_FILE logs -f backend"
 fi
-log "Khôi phục hoàn tất. Kiểm tra: /api/healthz, đăng nhập, mở một hồ sơ có minh chứng."
+log "Khôi phục hoàn tất. Kiểm tra sau khi container healthy:"
+echo "  docker compose --env-file $ENV_FILE -f $COMPOSE_FILE exec backend curl --fail --silent http://localhost:5000/healthz   (in Healthy)"
+echo "  curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:\${FRONTEND_PORT:-3001}/login   (in 200)"
+echo "  rồi đăng nhập và mở một hồ sơ có minh chứng."
+if [ "$DRY_RUN" -eq 0 ]; then
+    log "CSDL trước khôi phục được giữ lại: $OLD_DB. Khi đã yên tâm, xóa để lấy lại dung lượng:"
+    echo "  docker compose --env-file $ENV_FILE -f $COMPOSE_FILE exec postgres sh -c 'psql -U \"\$POSTGRES_USER\" -d postgres -c \"DROP DATABASE \\\"$OLD_DB\\\";\"'"
+fi
 log "Bản dự phòng hiện trạng trước khôi phục (nếu có): $SAFETY_DIR"

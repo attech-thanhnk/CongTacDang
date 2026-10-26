@@ -237,27 +237,23 @@ Mong đợi: checksum `OK`; dòng `Migration của bản sao lưu khớp mã ngu
 docker compose stop frontend backend
 ```
 
-4. Làm sạch cấu trúc CSDL. Bước này cần vì `restore.sh` chỉ xóa các bảng có trong bản sao lưu; bảng do migration mới tạo sẽ còn sót lại và làm lần nâng cấp sau lỗi `already exists`. Chỉ chạy sau khi bước 3 báo `Hoàn tất`:
-
-```bash
-docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"'
-```
-
-Mong đợi: `DROP SCHEMA` và `CREATE SCHEMA`. CSDL lúc này trống, **không** chạy backend cho tới khi xong bước 5.
-
-5. Khôi phục (gõ `KHOI PHUC` khi được hỏi). Bước sao lưu dự phòng đã làm ở bước 3 nên bỏ qua ở đây (CSDL đang trống):
+4. Khôi phục (gõ `NANG CAP` nếu được hỏi, rồi `KHOI PHUC`). Script khôi phục vào một CSDL tạm mới rồi đổi tên thay CSDL hiện tại, nên không cần làm sạch schema thủ công và không sót bảng của bản mới. Bước 3 đã sao lưu hiện trạng nên bỏ qua sao lưu dự phòng ở đây:
 
 ```bash
 /opt/congtacdang/docker/restore.sh --no-safety-backup /var/backups/congtacdang/truoc-nang-cap/congtacdang-YYYYMMDD-HHMMSS
 ```
 
-Mong đợi: script khôi phục CSDL và tệp đính kèm, rồi khởi động lại backend và giao diện; dòng cuối `Khôi phục hoàn tất`.
+Mong đợi: script khôi phục CSDL và tệp đính kèm, rồi khởi động lại backend và giao diện; cuối cùng in `Khôi phục hoàn tất` và tên CSDL cũ được giữ lại (dạng `<POSTGRES_DB>_truoc_khoi_phuc_<ngày_giờ>`, chứa dữ liệu của bản mới).
 
-6. Kiểm tra như bước 3.8: ba container `(healthy)`, migration mới nhất là của bản cũ, đăng nhập và mở hồ sơ thấy dữ liệu như trước nâng cấp.
+5. Kiểm tra như bước 3.8: ba container `(healthy)`, migration mới nhất là của bản cũ, đăng nhập và mở hồ sơ thấy dữ liệu như trước nâng cấp.
 
-7. Báo nhóm phát triển: gửi `docker compose logs --tail=200 backend` của lần nâng cấp lỗi và nội dung bản sao lưu ở `truoc-quay-lai/` nếu được yêu cầu. Không nâng cấp lại cho tới khi có hướng dẫn.
+6. Báo nhóm phát triển: gửi `docker compose logs --tail=200 backend` của lần nâng cấp lỗi và nội dung bản sao lưu ở `truoc-quay-lai/` nếu được yêu cầu. Không nâng cấp lại cho tới khi có hướng dẫn.
 
-Khôi phục bị lỗi giữa chừng: CSDL chạy trong một giao dịch nên giữ nguyên trạng thái trước lệnh; bản sao lưu ở `truoc-quay-lai` vẫn còn để khôi phục lại trạng thái bản mới. Không xóa các thư mục sao lưu cho tới khi hệ thống ổn định.
+Khôi phục bị lỗi giữa chừng: CSDL hiện tại giữ nguyên (script khôi phục vào CSDL tạm và xóa CSDL tạm khi lỗi); bản sao lưu ở `truoc-quay-lai` vẫn còn để khôi phục lại trạng thái bản mới. Không xóa các thư mục sao lưu và CSDL `*_truoc_khoi_phuc_*` cho tới khi hệ thống ổn định. Khi đã yên tâm, xóa CSDL cũ (script không tự xóa) bằng lệnh `DROP DATABASE` mà `restore.sh` in ở cuối, dạng:
+
+```bash
+docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "DROP DATABASE \"<POSTGRES_DB>_truoc_khoi_phuc_YYYYMMDD_HHMMSS\";"'
+```
 
 ---
 
