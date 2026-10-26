@@ -670,8 +670,8 @@ export interface RecordActionDto {
   currentUnlockedUntil?: string | null;
   defaultUnlockDays?: number | null;
   maxUnlockDays?: number | null;
-  /** Hành động bị khóa bởi cổng: CALIBRATION_REQUIRED | CONTROL_CHECK_REQUIRED. */
-  blockedBy?: "CALIBRATION_REQUIRED" | "CONTROL_CHECK_REQUIRED" | string | null;
+  /** Hành động bị khóa bởi cổng: CALIBRATION_REQUIRED | CONTROL_CHECK_REQUIRED | CROSSCHECK_OPEN. */
+  blockedBy?: "CALIBRATION_REQUIRED" | "CONTROL_CHECK_REQUIRED" | "CROSSCHECK_OPEN" | string | null;
   /** Lý do khóa bằng tiếng Việt, hiển thị nguyên văn. */
   blockedReason?: string | null;
   /** Cổng ở chế độ ghi nhận chưa đạt: không khóa, chỉ cảnh báo. */

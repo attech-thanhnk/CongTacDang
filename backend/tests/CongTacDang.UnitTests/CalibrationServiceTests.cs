@@ -316,9 +316,27 @@ public sealed class CalibrationServiceTests
 
         var gate = (ICalibrationGate)h.Service;
 
-        // Một hồ sơ trong biên bản đổi thì cả biên bản hết hiệu lực.
-        Assert.Equal(CalibrationGateState.Stale, (await gate.EvaluateAsync(h.Records[0].Id)).State);
+        // Chỉ hồ sơ đã đổi bị khóa; hồ sơ còn lại trong biên bản vẫn đạt cổng.
+        Assert.Equal(CalibrationGateState.Satisfied, (await gate.EvaluateAsync(h.Records[0].Id)).State);
         Assert.Equal(CalibrationGateState.Stale, (await gate.EvaluateAsync(h.Records[1].Id)).State);
+    }
+
+    [Fact]
+    public async Task Gate_DecisionOfOneRecord_DoesNotStaleOthers()
+    {
+        var h = new Harness();
+        var saved = await h.SavedAsync();
+        h.SwitchToConcluder();
+        var concluded = await h.Service.ConcludeAsync(saved.Id, new ConcludeCalibrationDto { Version = saved.Version });
+        h.Histories.Add(new EvaluationRecordHistory
+        {
+            RecordId = h.Records[1].Id, Action = WorkflowAction.Complete, FromStatus = RecordStatus.AwaitingDecision,
+            CreatedAt = concluded.ConcludedAt!.Value.AddSeconds(1)
+        });
+
+        var gate = (ICalibrationGate)h.Service;
+        Assert.Equal(CalibrationGateState.Satisfied, (await gate.EvaluateAsync(h.Records[0].Id)).State);
+        Assert.Equal(CalibrationGateState.Satisfied, (await gate.EvaluateAsync(h.Records[1].Id)).State);
     }
 
     [Fact]

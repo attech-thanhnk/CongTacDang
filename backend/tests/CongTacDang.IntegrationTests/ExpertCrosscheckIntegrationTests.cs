@@ -56,6 +56,22 @@ public sealed class ExpertCrosscheckIntegrationTests
         var blocked = await w.ManagerC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appraisal", await AppraiseBodyAsync(w, recordId));
         Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
         Assert.Contains("phiếu đối soát", await MessageAsync(blocked));
+        // Danh sách hành động báo khóa thẩm định đúng như lúc ghi nhận bị từ chối.
+        var actions = await Data(w.ManagerC, $"/api/evaluations/records/{recordId}/actions");
+        var appraise = actions.GetProperty("actions").EnumerateArray().Single(a => a.GetProperty("action").GetString() == "Appraise");
+        Assert.Equal("CROSSCHECK_OPEN", appraise.GetProperty("blockedBy").GetString());
+        Assert.Contains("phiếu đối soát", appraise.GetProperty("blockedReason").GetString());
+
+        // Chủ hồ sơ có đủ quyền đối soát vẫn không thao tác được phiếu về mình.
+        var ownerRole = await _factory.CreateRoleAsync(PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCrosscheckRespond, PermissionCodes.EvaluationCrosscheckConfirm);
+        await _factory.AssignAsync(w.Owner.Id, ownerRole.Id, RoleScopeType.Global, null);
+        var ownerVersion = created.GetProperty("version").GetUInt32();
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.OwnerC.PostAsJsonAsync(url, body)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.OwnerC.PutAsJsonAsync($"/api/crosschecks/{id}", new { version = ownerVersion })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.OwnerC.PostAsJsonAsync($"/api/crosschecks/{id}/cancel", new { version = ownerVersion, reason = "x" })).StatusCode);
+        foreach (var action in new[] { "submit", "confirm", "return" })
+            Assert.Equal(HttpStatusCode.Forbidden, (await w.OwnerC.PostAsJsonAsync($"/api/crosschecks/{id}/{action}", new { version = ownerVersion, reason = "x" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.OwnerC.PutAsJsonAsync($"/api/crosschecks/{id}/response", new { version = ownerVersion, items = Array.Empty<object>() })).StatusCode);
 
         // Lập → gửi; người lập không tự xác nhận; người xác nhận khác đơn vị bị chặn.
         var detail = await Data(w.ResponderC, $"/api/crosschecks/{id}");

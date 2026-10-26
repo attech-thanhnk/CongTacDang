@@ -342,9 +342,9 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
             throw new ConflictException($"Mở lại biên bản không thành công: biên bản đang ở trạng thái \"{StatusName(session.Status)}\", chỉ mở lại được biên bản đã chốt.");
         EnsureOpenPeriod(session);
 
-        var records = await _repo.GetRecordsAsync(session.Records.Select(r => r.RecordId).ToList(), ct);
-        foreach (var record in records)
-            EnsureStillEligible(record, "Mở lại biên bản");
+        // Hồ sơ đã sang bước sau không còn cần hiệu chuẩn: giữ nguyên kết quả đã áp, chỉ thu hồi ở hồ sơ còn chờ quyết định.
+        var records = (await _repo.GetRecordsAsync(session.Records.Select(r => r.RecordId).ToList(), ct))
+            .Where(r => CalibrationRules.IsEligibleStatus(r.Status)).ToList();
 
         var now = DateTime.UtcNow;
         var actorName = await ActorNameAsync(ct);
@@ -783,7 +783,8 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
         var concluded = rows.Select(r => r.Session)
             .Where(s => s.Status == CalibrationStatus.Concluded && s.ConcludedAt.HasValue)
             .DistinctBy(s => s.Id).ToList();
-        var stale = new HashSet<Guid>();
+        // Hết hiệu lực xét riêng từng hồ sơ để hồ sơ khác trong biên bản được quyết định không khóa cả nhóm.
+        var stale = new HashSet<(Guid SessionId, Guid RecordId)>();
         if (concluded.Count > 0)
         {
             var since = concluded.Min(s => s.ConcludedAt!.Value);
@@ -791,11 +792,9 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
                 concluded.SelectMany(s => s.Records.Select(r => r.RecordId)).Distinct().ToList(), since, ct);
             var byRecord = histories.ToLookup(h => h.RecordId);
             foreach (var session in concluded)
-            {
-                var own = session.Records.SelectMany(r => byRecord[r.RecordId]);
-                if (CalibrationRules.IsStale(session.ConcludedAt!.Value, own))
-                    stale.Add(session.Id);
-            }
+                foreach (var row in session.Records)
+                    if (CalibrationRules.IsStale(session.ConcludedAt!.Value, byRecord[row.RecordId]))
+                        stale.Add((session.Id, row.RecordId));
         }
 
         foreach (var row in rows)
@@ -803,7 +802,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
             var session = row.Session;
             var state = session.Status switch
             {
-                CalibrationStatus.Concluded => stale.Contains(session.Id) ? CalibrationGateState.Stale : CalibrationGateState.Satisfied,
+                CalibrationStatus.Concluded => stale.Contains((session.Id, row.RecordId)) ? CalibrationGateState.Stale : CalibrationGateState.Satisfied,
                 CalibrationStatus.Draft => CalibrationGateState.Pending,
                 _ => CalibrationGateState.NoSession
             };

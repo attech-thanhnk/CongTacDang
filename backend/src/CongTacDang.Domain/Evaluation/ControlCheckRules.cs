@@ -85,6 +85,8 @@ public static class ControlCheckRules
     public static bool InvalidatesCheck(EvaluationRecordHistory history)
     {
         ArgumentNullException.ThrowIfNull(history);
+        if (GateHistory.IsDecisionOrLater(history))
+            return false;
         switch (history.Action)
         {
             case WorkflowAction.Complete:

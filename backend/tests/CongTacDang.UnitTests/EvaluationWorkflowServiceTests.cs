@@ -431,6 +431,9 @@ public sealed class EvaluationWorkflowServiceTests
     {
         public Task EnsureNoOpenAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct = default) =>
             throw new ConflictException("Còn 1 phiếu đối soát chuyên ngành chờ xác nhận.");
+
+        public Task<string?> OpenBlockReasonAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct = default) =>
+            Task.FromResult<string?>("Còn 1 phiếu đối soát chuyên ngành chờ xác nhận.");
     }
 
     #region Cổng hiệu chuẩn và kiểm soát trước quyết định

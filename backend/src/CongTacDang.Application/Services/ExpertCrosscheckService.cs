@@ -51,6 +51,9 @@ public interface IExpertCrosscheckGate
 {
     /// <summary>Ném <see cref="ConflictException"/> khi cổng đối soát của hồ sơ luồng không tắt và còn phiếu chưa xác nhận, chưa hủy.</summary>
     Task EnsureNoOpenAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct = default);
+
+    /// <summary>Lý do cổng đối soát đang chặn thẩm định; null khi không chặn.</summary>
+    Task<string?> OpenBlockReasonAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct = default);
 }
 
 /// <summary>Nhóm việc "Phiếu đối soát chờ lập / xác nhận".</summary>
@@ -148,6 +151,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
     {
         ArgumentNullException.ThrowIfNull(request);
         var record = await RequireRecordAsync(recordId, ct);
+        EnsureNotOwner(record, "yêu cầu đối soát chuyên ngành");
         _guard.Ensure(PermissionCodes.EvaluationCrosscheckRequest, AccessTarget.ForRecord(record));
 
         if (ProfileOf(record).GateModeOf(WorkflowGates.Crosscheck) == GateMode.Off)
@@ -199,6 +203,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
     {
         ArgumentNullException.ThrowIfNull(request);
         var crosscheck = await RequireAsync(id, ct);
+        EnsureNotOwner(crosscheck.Record, "sửa yêu cầu đối soát chuyên ngành");
         _guard.Ensure(PermissionCodes.EvaluationCrosscheckRequest, AccessTarget.ForRecord(crosscheck.Record));
         EnsureVersion(crosscheck, request.Version);
         if (crosscheck.Status != CrosscheckStatus.Requested)
@@ -236,6 +241,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
     {
         ArgumentNullException.ThrowIfNull(request);
         var crosscheck = await RequireAsync(id, ct);
+        EnsureNotOwner(crosscheck.Record, "hủy yêu cầu đối soát chuyên ngành");
         _guard.Ensure(PermissionCodes.EvaluationCrosscheckRequest, AccessTarget.ForRecord(crosscheck.Record));
         EnsureVersion(crosscheck, request.Version);
         if (!CrosscheckRules.IsOpen(crosscheck.Status))
@@ -380,14 +386,21 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
     /// <inheritdoc />
     public async Task EnsureNoOpenAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct = default)
     {
+        if (await OpenBlockReasonAsync(record, profile, ct) is { } reason)
+            throw new ConflictException(reason);
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> OpenBlockReasonAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct = default)
+    {
         ArgumentNullException.ThrowIfNull(record);
         ArgumentNullException.ThrowIfNull(profile);
         if (profile.GateModeOf(WorkflowGates.Crosscheck) == GateMode.Off)
-            return;
+            return null;
         var open = await _repo.CountOpenAsync(record.Id, ct);
-        if (open > 0)
-            throw new ConflictException(
-                $"Còn {open} phiếu đối soát chuyên ngành chờ lập hoặc xác nhận. Hãy chờ phiếu được xác nhận hoặc hủy yêu cầu (nêu lý do) trước khi hoàn thành thẩm định.");
+        return open > 0
+            ? $"Còn {open} phiếu đối soát chuyên ngành chờ lập hoặc xác nhận. Hãy chờ phiếu được xác nhận hoặc hủy yêu cầu (nêu lý do) trước khi hoàn thành thẩm định."
+            : null;
     }
 
     /// <inheritdoc />
@@ -483,6 +496,12 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
             || CanRequestSide(c)
             || _guard.Can(PermissionCodes.EvaluationCrosscheckRespond, ExpertTarget(c))
             || _guard.Can(PermissionCodes.EvaluationCrosscheckConfirm, ExpertTarget(c)));
+
+    private void EnsureNotOwner(EvaluationRecord record, string action)
+    {
+        if (IsOwner(record))
+            throw new ForbiddenException($"Bạn không được {action} về hồ sơ của chính mình (xung đột lợi ích).");
+    }
 
     private void EnsureCanView(ExpertCrosscheck c)
     {
