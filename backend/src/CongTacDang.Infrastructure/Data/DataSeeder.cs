@@ -328,14 +328,16 @@ public static class DataSeeder
         logger?.LogInformation("Đã thêm quyền mới vào vai trò mặc định: {Grants}", string.Join("; ", granted));
     }
 
-    /// <summary>Chỉ khi chưa có vai trò nào (kể cả đã xóa); không ghi đè vai trò đã tồn tại.</summary>
+    /// <summary>Tạo vai trò mặc định chưa từng có (kể cả đã xóa mềm); không ghi đè hay tạo lại vai trò quản trị đã sửa hoặc xóa.</summary>
     private static async Task SeedDefaultRolesAsync(CongTacDangDbContext context, ILogger? logger)
     {
-        if (await context.Roles.IgnoreQueryFilters().AnyAsync())
+        var existingCodes = await context.Roles.IgnoreQueryFilters().Select(r => r.Code).ToListAsync();
+        var missing = DefaultRoles.Where(d => !existingCodes.Contains(d.Code)).ToList();
+        if (missing.Count == 0)
             return;
 
         var permissions = await context.Permissions.ToDictionaryAsync(p => p.Code);
-        foreach (var definition in DefaultRoles)
+        foreach (var definition in missing)
         {
             context.Roles.Add(new AppRole
             {
@@ -349,7 +351,7 @@ public static class DataSeeder
         }
 
         await context.SaveChangesAsync();
-        logger?.LogInformation("Đã tạo vai trò mặc định: {Roles}", string.Join(", ", DefaultRoles.Select(r => r.Name)));
+        logger?.LogInformation("Đã tạo vai trò mặc định: {Roles}", string.Join(", ", missing.Select(r => r.Name)));
     }
 
     /// <summary>Chỉ khi bật Database:ResetRolePermissions.</summary>

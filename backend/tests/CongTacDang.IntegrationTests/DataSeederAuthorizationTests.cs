@@ -120,6 +120,47 @@ public sealed class DataSeederAuthorizationTests
         });
     }
 
+    [SkippableFact]
+    public async Task DefaultRoles_MissingRoleCreatedOnExistingDatabase_DeletedRoleNeverRecreated()
+    {
+        await WithDatabaseAsync(async options =>
+        {
+            await using (var db = NewContext(options))
+                await DataSeeder.SeedAsync(db);
+
+            // CSDL cũ chưa có vai trò cơ quan chuyên môn: khởi động lại phải tạo kèm quyền.
+            await using (var db = NewContext(options))
+            {
+                await db.Database.ExecuteSqlRawAsync("DELETE FROM role_permissions WHERE role_id IN (SELECT \"Id\" FROM roles WHERE \"Code\" = {0})", "CO_QUAN_CHUYEN_MON_DOI_SOAT");
+                await db.Database.ExecuteSqlRawAsync("DELETE FROM roles WHERE \"Code\" = {0}", "CO_QUAN_CHUYEN_MON_DOI_SOAT");
+            }
+
+            await using (var db = NewContext(options))
+            {
+                await DataSeeder.SeedAsync(db);
+                var role = await db.Roles.Include(r => r.Permissions).SingleAsync(r => r.Code == "CO_QUAN_CHUYEN_MON_DOI_SOAT");
+                Assert.True(role.IsSystem);
+                Assert.Contains(role.Permissions, p => p.Code == PermissionCodes.EvaluationCrosscheckRespond);
+                Assert.Contains(role.Permissions, p => p.Code == PermissionCodes.EvaluationCrosscheckConfirm);
+            }
+
+            // Quản trị đã xóa thì không tạo lại ở những lần khởi động sau.
+            await using (var db = NewContext(options))
+            {
+                var role = await db.Roles.SingleAsync(r => r.Code == "CO_QUAN_CHUYEN_MON_DOI_SOAT");
+                db.Roles.Remove(role);
+                await db.SaveChangesAsync();
+            }
+
+            await using (var db = NewContext(options))
+            {
+                await DataSeeder.SeedAsync(db);
+                Assert.Equal(0, await db.Roles.CountAsync(r => r.Code == "CO_QUAN_CHUYEN_MON_DOI_SOAT"));
+                Assert.Equal(1, await db.Roles.IgnoreQueryFilters().CountAsync(r => r.Code == "CO_QUAN_CHUYEN_MON_DOI_SOAT"));
+            }
+        });
+    }
+
     #region Hỗ trợ
 
     private static CongTacDangDbContext NewContext(DbContextOptions<CongTacDangDbContext> options) => new(options, new SeederUser());
