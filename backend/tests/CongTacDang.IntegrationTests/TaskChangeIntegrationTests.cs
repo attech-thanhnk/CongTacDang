@@ -116,6 +116,16 @@ public sealed class TaskChangeIntegrationTests
         Assert.Contains("PHIẾU ĐỀ NGHỊ ĐIỀU CHỈNH, CHUYỂN TIẾP, LOẠI TRỪ", adjustText);
         Assert.Contains("Sản phẩm 1 (điều chỉnh)", adjustText);
         Assert.Contains("Đổi chỉ tiêu theo chỉ đạo", adjustText);
+        // "Trước" là nội dung và trọng số lúc lập đề nghị, dù duyệt đã ghi đè việc.
+        Assert.Contains("Mục tiêu: Kết quả 1", adjustText);
+        Assert.Contains("Mục tiêu: Kết quả 1 mới", adjustText);
+        Assert.Contains("Trọng số: 30 điểm", adjustText);
+        Assert.Contains("Trọng số: 25 điểm", adjustText);
+        var adjustUrl = $"/api/reports/docx/record/{recordId}/04/{adjustForm.GetProperty("requestId").GetGuid()}";
+        var adjustFile = await w.OwnerC.GetAsync(adjustUrl);
+        var adjustName = adjustFile.Content.Headers.ContentDisposition?.FileNameStar ?? adjustFile.Content.Headers.ContentDisposition?.FileName?.Trim('"');
+        Assert.Matches(@"^Mau 04_[A-Za-z0-9-]+_.+_Quy (I|II|III|IV)-\d{4}\.docx$", adjustName);
+        Assert.DoesNotContain(adjustName!, c => c > 127);
         var urgentText = await DocxTextAsync(w.OwnerC, $"/api/reports/docx/record/{recordId}/05/{requestForms[1].GetProperty("requestId").GetGuid()}");
         Assert.Contains("Xử lý sự cố đột xuất", urgentText);
         Assert.Contains("Khắc phục trong 10 ngày", urgentText);

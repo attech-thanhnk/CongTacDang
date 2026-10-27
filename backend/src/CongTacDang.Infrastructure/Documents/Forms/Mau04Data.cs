@@ -59,7 +59,7 @@ public sealed class Mau04Data
         var name = FormText.OrNull(request.TaskNameSnapshot ?? target?.TaskName);
         var code = FormText.OrNull(target?.ProductCode);
         var weightChanged = source.WeightsChanged;
-        var fieldLines = FieldLines(source.Proposal);
+        var fieldLines = FieldLines(source.Proposal, source.Proposal);
 
         return new Mau04Data
         {
@@ -83,14 +83,20 @@ public sealed class Mau04Data
         };
     }
 
-    // Điều chỉnh đã duyệt đã ghi đè nội dung việc nên chỉ trọng số còn giá trị cũ.
+    // Bản chụp lúc lập đề nghị giữ nội dung cũ kể cả sau khi duyệt ghi đè; đề nghị cũ chưa có bản chụp thì chỉ còn trọng số cũ.
     private static string? Before(TaskChangeFormSource source, EvaluationTask? target)
     {
         if (target == null)
             return null;
         var lines = new List<string>();
-        var contentKept = !(source.Request.Type == TaskChangeType.Adjust && source.Request.Status == TaskChangeStatus.Approved);
-        if (contentKept)
+        var snapshot = source.TaskBefore;
+        var approvedAdjust = source.Request.Type == TaskChangeType.Adjust && source.Request.Status == TaskChangeStatus.Approved;
+        if (snapshot != null)
+        {
+            var changed = FieldLines(snapshot, source.Proposal);
+            lines.AddRange(changed.Count > 0 ? changed : FieldLines(snapshot, new TaskChangeProposal { TargetOutput = "-", Deadline = DateTime.MinValue }));
+        }
+        else if (!approvedAdjust)
         {
             if (!string.IsNullOrWhiteSpace(target.TargetOutput))
                 lines.Add("Mục tiêu: " + target.TargetOutput.Trim());
@@ -122,23 +128,27 @@ public sealed class Mau04Data
         return lines.Count == 0 ? null : string.Join("\n", lines);
     }
 
-    private static List<string> FieldLines(TaskChangeProposal p)
+    // Dòng "Nhãn: giá trị" của các trường mà `mask` có giá trị; trường trống ở `p` in "chưa có".
+    private static List<string> FieldLines(TaskChangeProposal p, TaskChangeProposal mask)
     {
         var lines = new List<string>();
-        void Add(string label, string? value)
+        void Add(string label, string? value, bool inMask)
         {
-            if (!string.IsNullOrWhiteSpace(value))
-                lines.Add($"{label}: {value.Trim()}");
+            if (!inMask)
+                return;
+            lines.Add($"{label}: {(string.IsNullOrWhiteSpace(value) ? "chưa có" : value.Trim())}");
         }
-        Add("Tên việc", p.TaskName);
-        Add("Mục tiêu", p.TargetOutput);
-        Add("Thời hạn", p.Deadline.HasValue ? FormText.Date(p.Deadline.Value) : null);
-        Add("Trục kết quả", p.AxisCode);
-        Add("Mã sản phẩm", p.ProductCode);
-        Add("Vai trò", TaskChangeRules.ParseRole(p.Role) switch { TaskRole.ChuTri => "Chủ trì", TaskRole.PhoiHop => "Phối hợp", _ => null });
-        Add("Tiêu chí vượt chuẩn", p.ExceedCriteria);
-        Add("Nguồn minh chứng", p.EvidenceSource);
-        Add("Thẩm quyền xác nhận", p.Confirmer);
+        bool Has(string? v) => !string.IsNullOrWhiteSpace(v);
+        string? RoleText(string? role) => TaskChangeRules.ParseRole(role) switch { TaskRole.ChuTri => "Chủ trì", TaskRole.PhoiHop => "Phối hợp", _ => null };
+        Add("Tên việc", p.TaskName, Has(mask.TaskName));
+        Add("Mục tiêu", p.TargetOutput, Has(mask.TargetOutput));
+        Add("Thời hạn", p.Deadline.HasValue ? FormText.Date(p.Deadline.Value) : null, mask.Deadline.HasValue);
+        Add("Trục kết quả", p.AxisCode, Has(mask.AxisCode));
+        Add("Mã sản phẩm", p.ProductCode, Has(mask.ProductCode));
+        Add("Vai trò", RoleText(p.Role), RoleText(mask.Role) != null);
+        Add("Tiêu chí vượt chuẩn", p.ExceedCriteria, Has(mask.ExceedCriteria));
+        Add("Nguồn minh chứng", p.EvidenceSource, Has(mask.EvidenceSource));
+        Add("Thẩm quyền xác nhận", p.Confirmer, Has(mask.Confirmer));
         return lines;
     }
 

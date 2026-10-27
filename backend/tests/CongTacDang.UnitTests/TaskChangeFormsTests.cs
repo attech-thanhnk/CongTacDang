@@ -154,6 +154,63 @@ public class TaskChangeFormsTests
         Assert.Equal("Nguyễn Văn A", data.RequesterSign);
     }
 
+
+    [Fact]
+    public void Mau04_ApprovedAdjust_WithSnapshot_PrintsOldContentAndOldWeight()
+    {
+        var (source, record) = Source(TaskChangeType.Adjust);
+        var target = record.Tasks.OrderBy(t => t.TaskOrder).First();
+        var oldDeadline = target.Deadline;
+        source.Request.TaskBefore = TaskChangeRules.TaskSnapshotToJson(target);
+        // Duyệt đã ghi đè việc.
+        target.TargetOutput = "Radar hoạt động 98%";
+        target.Deadline = new DateTime(2026, 10, 15);
+
+        var data = Mau04Data.From(source);
+
+        Assert.Contains("Mục tiêu: Radar hoạt động 99%", data.ContentBefore);
+        Assert.Contains($"Thời hạn: {oldDeadline:dd/MM/yyyy}", data.ContentBefore);
+        Assert.Contains("Trọng số: 30 điểm", data.ContentBefore);
+        Assert.Contains("Mục tiêu: Radar hoạt động 98%", data.ContentAfter);
+        Assert.Contains("Thời hạn: 15/10/2026", data.ContentAfter);
+        Assert.Contains("Trọng số: 25 điểm", data.ContentAfter);
+    }
+
+    [Fact]
+    public void Mau04_Snapshot_PrintsOnlyFieldsTheRequestChanges()
+    {
+        var (source, record) = Source(TaskChangeType.Adjust);
+        var target = record.Tasks.OrderBy(t => t.TaskOrder).First();
+        target.ProductCode = null;
+        source.Request.TaskBefore = TaskChangeRules.TaskSnapshotToJson(target);
+        source.Request.Proposal = TaskChangeRules.ProposalToJson(new TaskChangeProposal { ProductCode = "SP-09" });
+
+        var data = Mau04Data.From(source);
+
+        Assert.Contains("Mã sản phẩm: chưa có", data.ContentBefore);
+        Assert.DoesNotContain("Mục tiêu", data.ContentBefore);
+        Assert.Contains("Mã sản phẩm: SP-09", data.ContentAfter);
+    }
+
+    [Fact]
+    public void Mau04_ApprovedAdjust_WithoutSnapshot_FallsBackToOldWeightOnly()
+    {
+        var (source, _) = Source(TaskChangeType.Adjust);
+        Assert.Null(source.Request.TaskBefore);
+
+        var data = Mau04Data.From(source);
+
+        Assert.DoesNotContain("Mục tiêu", data.ContentBefore);
+        Assert.Equal("Trọng số: 30 điểm", data.ContentBefore);
+    }
+
+    [Fact]
+    public void TaskSnapshot_BrokenJson_ReadsAsNull()
+    {
+        Assert.Null(TaskChangeRules.TaskSnapshotFromJson("{không phải json"));
+        Assert.Null(TaskChangeRules.TaskSnapshotFromJson(null));
+    }
+
     [Theory]
     [InlineData(TaskChangeType.Exclude, "☒ Loại trừ trách nhiệm", "Loại trừ, trọng số 0")]
     [InlineData(TaskChangeType.Carryover, "☒ Chuyển tiếp sang quý sau", "Chuyển sang quý sau")]

@@ -3063,6 +3063,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
+                    b.Property<string>("TaskBefore")
+                        .HasColumnType("jsonb");
+
                     b.Property<Guid?>("TaskId")
                         .HasColumnType("uuid");
 

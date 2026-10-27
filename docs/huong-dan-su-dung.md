@@ -179,6 +179,8 @@ Sau khi danh mục đã được duyệt và **trước khi nộp phiếu tự c
 
 Mỗi hồ sơ chỉ có một đề nghị chờ duyệt tại một thời điểm. Bảng việc hiện nhãn **Đã loại trừ**, **Chuyển tiếp**, **Đột xuất**; khi tự chấm, việc đã loại trừ hoặc chuyển tiếp không có ô chấm. Mọi đề nghị và quyết định được ghi vào **Lịch sử** của hồ sơ.
 
+Phiếu Mẫu 04 của đề nghị điều chỉnh in nội dung việc **trước** (lúc gửi đề nghị) và **sau** điều chỉnh, kể cả khi đề nghị đã được duyệt. Đề nghị gửi từ phiên bản cũ của hệ thống chưa lưu nội dung trước nên chỉ in được trọng số cũ.
+
 ### 3.4 Tự chấm điểm
 
 Khung **Nộp phiếu tự chấm** gồm các phần sau.
@@ -225,7 +227,9 @@ Nếu hệ thống báo hồ sơ đã bị thay đổi ở nơi khác (ví dụ 
 
 Khối **Biểu mẫu** ở cột phải liệt kê các mẫu áp dụng cho hồ sơ (ví dụ Mẫu 01, 02, 09A, 09C, 9D, 10). Bấm **Xuất Word** để tải tệp .docx (sửa, in được). Bản PDF ở menu ⋯ cạnh nút, mục **Xuất PDF**. Nút **Xem bản in** mở bản xem trước ngay trên màn hình.
 
-Thông tin trên biểu mẫu (họ tên, ngày sinh, chức vụ Đảng / chính quyền / đoàn thể, đơn vị) lấy từ hồ sơ cán bộ. Thiếu hoặc sai: xem [Câu hỏi thường gặp](#13-câu-hỏi-thường-gặp).
+Thông tin trên biểu mẫu (họ tên, ngày sinh, chức vụ Đảng / chính quyền / đoàn thể, đơn vị) lấy từ hồ sơ cán bộ; Mẫu 09A và 09C đều in ngày sinh, chưa nhập thì giữ dòng chấm. Thiếu hoặc sai: xem [Câu hỏi thường gặp](#13-câu-hỏi-thường-gặp).
+
+Tệp tải về được đặt tên không dấu theo quy cách nộp báo cáo: `Mau <mã>_<tên viết tắt đơn vị>_Quy <số La Mã>-<năm>`, ví dụ `Mau 16_QLBMB_Quy III-2026.docx`. Phiếu của một cán bộ có thêm họ tên sau tên viết tắt, ví dụ `Mau 09A_ATTECH_Nguyen Van A_Quy III-2026.docx`. Tên viết tắt lấy từ **Cài đặt đơn vị**; chưa nhập thì tên tệp ghi `DonVi`.
 
 ### 3.6 Khi hồ sơ bị trả lại
 

@@ -67,6 +67,9 @@ public class TaskChangeRequest : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>jsonb: Id việc → trọng số lúc đề nghị, để đối chiếu trước/sau.</summary>
     public string WeightsBefore { get; set; } = "{}";
 
+    /// <summary>jsonb <c>TaskChangeProposal</c>: nội dung việc đích lúc đề nghị, để in Mẫu 04 khi đã duyệt và ghi đè; null với đề nghị lập trước khi lưu bản chụp.</summary>
+    public string? TaskBefore { get; set; }
+
     /// <summary>Lý do, căn cứ.</summary>
     public string Reason { get; set; } = string.Empty;
 

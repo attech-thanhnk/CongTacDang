@@ -88,7 +88,12 @@ public sealed class IndividualFormsIntegrationTests
             Assert.Equal(0, doc.TaggedControls);
             Assert.Empty(doc.ValidationErrors);
         }
-        Assert.StartsWith("Mau_09A_", a.FileName);
+        // Ngày sinh từ hồ sơ cán bộ; tên tệp theo quy cách HD03: Mau 09A_<viết tắt>_<họ tên>_Quy <số La Mã>-<năm>.
+        Assert.Contains("Ngày sinh: 07/03/1985", a.Text);
+        Assert.Contains("07/03/1985", c.Text);
+        Assert.Matches(@"^Mau 09A_[A-Za-z0-9-]+_J Chu ho so \S+_Quy (I|II|III|IV)-\d{4}\.docx$", a.FileName);
+        Assert.StartsWith("Mau 09C_", c.FileName);
+        Assert.StartsWith("Mau 9D_", d.FileName);
 
         // Mã không có (kể cả 09B) → 400.
         Assert.Equal(HttpStatusCode.BadRequest, (await w.Owner.GetAsync($"/api/reports/docx/record/{recordId}/07")).StatusCode);
@@ -280,6 +285,11 @@ public sealed class IndividualFormsIntegrationTests
             w.OwnerName = $"J Chủ hồ sơ {w.Suffix}";
             var owner = await factory.CreateUserAsync(dept1, cell1, ApprovalAuthority.CoSo, w.OwnerName);
             w.OwnerId = owner.Id;
+            await factory.WithDbAsync(async db =>
+            {
+                (await db.PartyMemberProfiles.FirstAsync(m => m.Id == owner.Id)).DateOfBirth = new DateOnly(1985, 3, 7);
+                await db.SaveChangesAsync();
+            });
             w.PositionName = $"Bí thư Chi bộ J {w.Suffix}";
             await factory.WithDbAsync(async db =>
             {

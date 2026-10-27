@@ -24,6 +24,9 @@ public sealed class Mau09AData
     [TemplateField("QUARTER")] public string? Quarter { get; init; }
     [TemplateField("YEAR")] public string? Year { get; init; }
     [TemplateField("FULL_NAME")] public string? FullName { get; init; }
+
+    /// <summary>dd/MM/yyyy; hồ sơ chưa có ngày sinh thì giữ dòng chấm.</summary>
+    [TemplateField("DATE_OF_BIRTH")] public string? DateOfBirth { get; init; }
     [TemplateField("PARTY_POSITION")] public string? PartyPosition { get; init; }
 
     /// <summary>Không có chức vụ nào trong danh mục thì lấy chức danh trên hồ sơ cán bộ.</summary>
@@ -67,6 +70,7 @@ public sealed class Mau09AData
             Quarter = FormText.Spaced(Mau09Shared.Quarter(record)),
             Year = Mau09Shared.Year(record),
             FullName = FormText.OrNull(record.Member?.FullName),
+            DateOfBirth = Mau09Shared.DateOfBirth(record),
             PartyPosition = positions.Party,
             AdministrativePosition = noPositions ? FormText.OrNull(record.Member?.PositionTitle) : positions.Administrative,
             MassPosition = positions.MassOrganization,

@@ -18,6 +18,9 @@ public sealed record TaskChangeFormSource(EvaluationRecord Record, TaskChangeReq
     /// <summary>Trọng số từng việc lúc gửi đề nghị.</summary>
     public Dictionary<Guid, double> Before => TaskChangeRules.WeightsFromJson(Request.WeightsBefore);
 
+    /// <summary>Nội dung việc đích lúc lập đề nghị; null với đề nghị lập trước khi có bản chụp.</summary>
+    public TaskChangeProposal? TaskBefore => TaskChangeRules.TaskSnapshotFromJson(Request.TaskBefore);
+
     public EvaluationTask? Target => Request.TaskId is { } id ? Record.Tasks.FirstOrDefault(t => t.Id == id) : null;
 
     /// <summary>Có việc đổi trọng số (kể cả việc bị loại trừ / chuyển tiếp về 0).</summary>

@@ -151,7 +151,7 @@ public partial class ReportService
 
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
-        return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("BangTongHop_XepLoaiCanBo", period, scopeCell), format);
+        return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("Bang tong hop xep loai can bo", (await _orgSettings.GetAsync()).ShortName, period, scopeCell), format);
     }
 
     /// <summary>Cột (4): chức vụ Đảng, chính quyền, đoàn thể kèm đơn vị công tác; chưa khai báo → chức danh trên hồ sơ cán bộ.</summary>

@@ -361,14 +361,14 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 ### F5. Thông tin đang để trống trên biểu mẫu
 - **Câu hỏi:** Có cần hệ thống tự điền ngày sinh cán bộ (09A, 09C) và dòng "Căn cứ Hướng dẫn số …-HD/TVĐU ngày …" (07, 12, 13, 16) không?
 - **Căn cứ:** Các biểu mẫu gốc có các ô này.
-- **Hệ thống đang làm (mặc định):** Để trống như biểu mẫu gốc, người dùng tự điền sau khi xuất. Riêng Mẫu 14 in sẵn "Hướng dẫn số 03-HD/TVĐU ngày 10/9/2026".
+- **Hệ thống đang làm (mặc định):** Ngày sinh lấy từ hồ sơ cán bộ và in trên Mẫu 09A, 09C (chưa nhập thì để trống). Dòng "Căn cứ Hướng dẫn số …" để trống như biểu mẫu gốc, người dùng tự điền sau khi xuất. Riêng Mẫu 14 in sẵn "Hướng dẫn số 03-HD/TVĐU ngày 10/9/2026".
 - **Phương án khác:** Thêm ngày sinh vào hồ sơ cán bộ; thêm số, ngày văn bản hướng dẫn vào trang Cài đặt.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
 ### F6. Tên tệp nộp theo quy cách
 - **Câu hỏi:** Tệp xuất ra có cần đặt tên đúng quy cách "Mau 16_QLBMB_Quy III-2026" không?
 - **Căn cứ:** Mục V.1 (tr.21): "Mau bao cao_Ten viet tat co quan, don vi_Ky bao cao", viết không dấu.
-- **Hệ thống đang làm (mặc định):** Tên tệp theo mẫu riêng của hệ thống (ví dụ "Mau_15A_TongHopTheoChucDanh…"), người dùng tự đổi tên trước khi nộp.
+- **Hệ thống đang làm (mặc định):** Tên tệp tự đặt đúng quy cách, không dấu, ví dụ "Mau 16_QLBMB_Quy III-2026"; phần đơn vị lấy mã tổ chức Đảng hoặc tên viết tắt trong trang Cài đặt, phiếu của một cán bộ thêm họ tên sau phần đơn vị.
 - **Phương án khác:** Đặt tên tự động đúng quy cách, lấy tên viết tắt đơn vị trong trang Cài đặt.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
