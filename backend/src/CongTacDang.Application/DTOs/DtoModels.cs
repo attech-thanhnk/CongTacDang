@@ -35,6 +35,9 @@ public abstract class OrgUnitDto
 
     public string Code { get; set; } = string.Empty;
 
+    /// <summary>null = chưa nhập.</summary>
+    public string? ShortName { get; set; }
+
     public string Name { get; set; } = string.Empty;
 
     public string Description { get; set; } = string.Empty;

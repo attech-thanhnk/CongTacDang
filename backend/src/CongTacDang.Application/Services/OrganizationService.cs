@@ -59,11 +59,23 @@ public static class CatalogRules
     /// <summary>Khớp cấu hình cột.</summary>
     public const int MaxNameLength = 200;
 
+    /// <summary>Khớp cấu hình cột.</summary>
+    public const int MaxShortNameLength = CatalogShortName.MaxLength;
+
     public const int MaxUnitTypeNameLength = 100;
 
     public const string PartyLabel = "tổ chức Đảng";
 
     public const string AdministrativeLabel = "đơn vị";
+
+    /// <summary>Rỗng → null.</summary>
+    public static string? NormalizeShortName(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    /// <summary>Trả thông báo lỗi hoặc null nếu hợp lệ.</summary>
+    public static string? ValidateShortName(string? shortName, string label) =>
+        shortName != null && shortName.Length > MaxShortNameLength
+            ? $"Tên viết tắt của {label} dài quá {MaxShortNameLength} ký tự. Hãy rút ngắn tên viết tắt."
+            : null;
 
     public static string NormalizeCode(string? code) => (code ?? string.Empty).Trim().ToUpperInvariant();
 
@@ -141,7 +153,8 @@ public class OrganizationService : IOrganizationService
             ? $"CB-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}"
             : CatalogRules.NormalizeCode(input.Code);
         var name = input.Name?.Trim() ?? string.Empty;
-        EnsureValid(CatalogRules.ValidateCode(code, BranchLabel), CatalogRules.ValidateName(name, BranchLabel));
+        var shortName = CatalogRules.NormalizeShortName(input.ShortName);
+        EnsureValid(CatalogRules.ValidateCode(code, BranchLabel), CatalogRules.ValidateName(name, BranchLabel), CatalogRules.ValidateShortName(shortName, BranchLabel));
 
         if (await _orgRepo.PartyCellCodeExistsAsync(code))
             throw DuplicateCode(BranchLabel, code);
@@ -150,6 +163,7 @@ public class OrganizationService : IOrganizationService
         var cell = new PartyCell
         {
             Code = code,
+            ShortName = shortName,
             Name = name,
             Description = input.Description?.Trim() ?? string.Empty,
             SortOrder = input.SortOrder ?? 0,
@@ -175,13 +189,15 @@ public class OrganizationService : IOrganizationService
 
         var code = input.Code == null ? cell.Code : CatalogRules.NormalizeCode(input.Code);
         var name = input.Name == null ? cell.Name : input.Name.Trim();
-        EnsureValid(CatalogRules.ValidateCode(code, BranchLabel), CatalogRules.ValidateName(name, BranchLabel));
+        var shortName = input.ShortName == null ? cell.ShortName : CatalogRules.NormalizeShortName(input.ShortName);
+        EnsureValid(CatalogRules.ValidateCode(code, BranchLabel), CatalogRules.ValidateName(name, BranchLabel), CatalogRules.ValidateShortName(shortName, BranchLabel));
 
         if (!string.Equals(code, cell.Code, StringComparison.OrdinalIgnoreCase)
             && await _orgRepo.PartyCellCodeExistsAsync(code, cell.Id))
             throw DuplicateCode(BranchLabel, code);
 
         cell.Code = code;
+        cell.ShortName = shortName;
         cell.Name = name;
         if (input.Description != null) cell.Description = input.Description.Trim();
         if (input.SortOrder.HasValue) cell.SortOrder = input.SortOrder.Value;
@@ -229,7 +245,8 @@ public class OrganizationService : IOrganizationService
         ArgumentNullException.ThrowIfNull(input);
         var code = CatalogRules.NormalizeCode(input.Code);
         var name = input.Name?.Trim() ?? string.Empty;
-        EnsureValid(CatalogRules.ValidateCode(code, DepartmentLabel), CatalogRules.ValidateName(name, DepartmentLabel));
+        var shortName = CatalogRules.NormalizeShortName(input.ShortName);
+        EnsureValid(CatalogRules.ValidateCode(code, DepartmentLabel), CatalogRules.ValidateName(name, DepartmentLabel), CatalogRules.ValidateShortName(shortName, DepartmentLabel));
 
         if (await _orgRepo.DepartmentCodeExistsAsync(code))
             throw DuplicateCode(DepartmentLabel, code);
@@ -238,6 +255,7 @@ public class OrganizationService : IOrganizationService
         var department = new AdministrativeDepartment
         {
             Code = code,
+            ShortName = shortName,
             Name = name,
             Description = input.Description?.Trim() ?? string.Empty,
             SortOrder = input.SortOrder ?? 0,
@@ -263,13 +281,15 @@ public class OrganizationService : IOrganizationService
 
         var code = input.Code == null ? department.Code : CatalogRules.NormalizeCode(input.Code);
         var name = input.Name == null ? department.Name : input.Name.Trim();
-        EnsureValid(CatalogRules.ValidateCode(code, DepartmentLabel), CatalogRules.ValidateName(name, DepartmentLabel));
+        var shortName = input.ShortName == null ? department.ShortName : CatalogRules.NormalizeShortName(input.ShortName);
+        EnsureValid(CatalogRules.ValidateCode(code, DepartmentLabel), CatalogRules.ValidateName(name, DepartmentLabel), CatalogRules.ValidateShortName(shortName, DepartmentLabel));
 
         if (!string.Equals(code, department.Code, StringComparison.OrdinalIgnoreCase)
             && await _orgRepo.DepartmentCodeExistsAsync(code, department.Id))
             throw DuplicateCode(DepartmentLabel, code);
 
         department.Code = code;
+        department.ShortName = shortName;
         department.Name = name;
         if (input.Description != null) department.Description = input.Description.Trim();
         if (input.SortOrder.HasValue) department.SortOrder = input.SortOrder.Value;
@@ -529,11 +549,13 @@ public class OrganizationService : IOrganizationService
         switch (unit)
         {
             case PartyCell c:
+                dto.ShortName = c.ShortName;
                 dto.Description = c.Description;
                 dto.SortOrder = c.SortOrder;
                 dto.IsActive = c.IsActive;
                 break;
             case AdministrativeDepartment d:
+                dto.ShortName = d.ShortName;
                 dto.Description = d.Description;
                 dto.SortOrder = d.SortOrder;
                 dto.IsActive = d.IsActive;

@@ -13,6 +13,9 @@ public interface IOrgUnit
 
     string Name { get; }
 
+    /// <summary>Tên viết tắt dùng đặt tên tệp xuất; null = chưa nhập.</summary>
+    string? ShortName { get; }
+
     /// <summary>Null = nút gốc.</summary>
     Guid? ParentId { get; set; }
 
@@ -27,6 +30,9 @@ public class PartyCell : IAuditableEntity, ISoftDeletable, IOrgUnit
 
     /// <summary>Ví dụ DU-CT, CB-KT.</summary>
     public string Code { get; set; } = string.Empty;
+
+    /// <summary>Tên viết tắt dùng đặt tên tệp xuất; null = dùng mã.</summary>
+    public string? ShortName { get; set; }
 
     public string Name { get; set; } = string.Empty;
 
@@ -68,6 +74,9 @@ public class AdministrativeDepartment : IAuditableEntity, ISoftDeletable, IOrgUn
 
     /// <summary>Ví dụ CT, PH-KT.</summary>
     public string Code { get; set; } = string.Empty;
+
+    /// <summary>Tên viết tắt dùng đặt tên tệp xuất; null = dùng mã.</summary>
+    public string? ShortName { get; set; }
 
     public string Name { get; set; } = string.Empty;
 
@@ -143,4 +152,10 @@ public class Holiday : IAuditableEntity, ISoftDeletable
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedBy { get; set; }
+}
+
+/// <summary>Quy ước chung cho tên viết tắt của đơn vị / tổ chức Đảng.</summary>
+public static class CatalogShortName
+{
+    public const int MaxLength = 30;
 }

@@ -230,7 +230,7 @@ public sealed class RecordFormService : IRecordFormService
     /// <summary>Tên tệp không dấu, ví dụ <c>Mau 09A_ATTECH_Nguyen Van A_Quy III-2026.docx</c>.</summary>
     private async Task<string> FileNameAsync(string code, EvaluationRecord record, CancellationToken ct)
     {
-        var shortName = (await _orgSettings.GetAsync(ct)).ShortName;
+        var shortName = ExportFileName.PersonalUnit(record.PartyCell, record.Department, (await _orgSettings.GetAsync(ct)).ShortName);
         var fullName = string.IsNullOrWhiteSpace(record.Member?.FullName) ? "CanBo" : record.Member!.FullName;
         return ExportFileName.Build($"Mau {code}", shortName, fullName, record.Period == null ? null : (int)record.Period.Quarter, record.Period?.Year, ".docx");
     }

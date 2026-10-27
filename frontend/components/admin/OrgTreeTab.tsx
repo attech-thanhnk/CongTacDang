@@ -23,6 +23,7 @@ interface FormState {
   id?: string;
   code: string;
   name: string;
+  shortName: string;
   description: string;
   sortOrder: string;
   isActive: boolean;
@@ -72,7 +73,11 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
     const term = search.trim().toLowerCase();
     if (term) {
       return items.filter(
-        (i) => i.code.toLowerCase().includes(term) || i.name.toLowerCase().includes(term) || (i.description || "").toLowerCase().includes(term)
+        (i) =>
+          i.code.toLowerCase().includes(term) ||
+          i.name.toLowerCase().includes(term) ||
+          (i.shortName || "").toLowerCase().includes(term) ||
+          (i.description || "").toLowerCase().includes(term)
       );
     }
     // Ẩn nút có tổ tiên đang thu gọn.
@@ -88,13 +93,14 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
     });
 
   const openCreate = (parent?: CatalogItem) =>
-    setForm({ code: "", name: "", description: "", sortOrder: "0", isActive: true, parentId: parent?.id ?? "", unitTypeId: "" });
+    setForm({ code: "", name: "", shortName: "", description: "", sortOrder: "0", isActive: true, parentId: parent?.id ?? "", unitTypeId: "" });
 
   const openEdit = (item: CatalogItem) =>
     setForm({
       id: item.id,
       code: item.code,
       name: item.name,
+      shortName: item.shortName || "",
       description: item.description || "",
       sortOrder: String(item.sortOrder ?? 0),
       isActive: item.isActive,
@@ -125,6 +131,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
     const payload: SaveCatalogItemPayload = {
       code: form.code.trim(),
       name: form.name.trim(),
+      shortName: form.shortName.trim(),
       description: form.description.trim(),
       sortOrder,
       isActive: form.isActive,
@@ -185,7 +192,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
         <input
           className="form-control form-control-sm"
           style={{ maxWidth: 320 }}
-          placeholder="Tìm theo mã, tên, mô tả…"
+          placeholder="Tìm theo mã, tên, tên viết tắt, mô tả…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -381,6 +388,16 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                 />
               </div>
+              <div className="col-7">
+                <label className="form-label" htmlFor={`org-short-name-${kind}`}>Tên viết tắt</label>
+                <input
+                  id={`org-short-name-${kind}`}
+                  className="form-control form-control-sm"
+                  value={form.shortName}
+                  maxLength={30}
+                  onChange={(e) => setForm({ ...form, shortName: e.target.value })}
+                />
+              </div>
               <div className="col-5">
                 <label className="form-label">Thứ tự trong cùng cấp</label>
                 <input
@@ -391,7 +408,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                   onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
                 />
               </div>
-              <div className="col-7 d-flex align-items-end">
+              <div className="col-12">
                 <div className="form-check mb-1">
                   <input
                     id={`org-active-${kind}`}

@@ -19,6 +19,9 @@ public sealed class OrgUnitImportRow
 
     public string Name { get; init; } = string.Empty;
 
+    /// <summary>Tên viết tắt; null = để trống / giữ nguyên.</summary>
+    public string? ShortName { get; init; }
+
     /// <summary>Mã cấp trên (đã chuẩn hóa); rỗng = gốc (tạo mới) hoặc giữ nguyên (cập nhật).</summary>
     public string ParentCode { get; init; } = string.Empty;
 
@@ -46,6 +49,8 @@ public abstract class OrgUnitImportDefinition : ImportDefinition<OrgUnitImportRo
     public const string CodeKey = "code";
 
     public const string NameKey = "name";
+
+    public const string ShortNameKey = "shortName";
 
     public const string ParentKey = "parentCode";
 
@@ -88,6 +93,10 @@ public abstract class OrgUnitImportDefinition : ImportDefinition<OrgUnitImportRo
         if (name.Length > 0 && CatalogRules.ValidateName(name, Label) is { } nameError)
             result.AddError(nameError);
 
+        var shortName = CatalogRules.NormalizeShortName(raw.Get(ShortNameKey));
+        if (CatalogRules.ValidateShortName(shortName, Label) is { } shortNameError)
+            result.AddError(shortNameError);
+
         var parent = CatalogRules.NormalizeCode(raw.Get(ParentKey));
         var sortOrder = ImportValues.ParseInt(raw.Get(SortOrderKey), out var sortOk);
         if (!sortOk)
@@ -100,6 +109,7 @@ public abstract class OrgUnitImportDefinition : ImportDefinition<OrgUnitImportRo
         {
             Code = code,
             Name = name,
+            ShortName = shortName,
             ParentCode = parent,
             UnitTypeName = raw.Get(UnitTypeKey).Trim(),
             SortOrder = sortOrder,
@@ -236,6 +246,7 @@ public abstract class OrgUnitImportDefinition : ImportDefinition<OrgUnitImportRo
             var input = new SaveCatalogItemDto
             {
                 Name = data.Name,
+                ShortName = data.ShortName,
                 Description = data.Description,
                 SortOrder = data.SortOrder,
                 UnitTypeId = data.UnitTypeId,
@@ -304,6 +315,7 @@ public sealed class DepartmentImportDefinition : OrgUnitImportDefinition
     {
         new(CodeKey, "Mã đơn vị", true, "Mã duy nhất, không có khoảng trắng (ví dụ PH-KT). Mã đã có thì dòng này cập nhật đơn vị đó.", Example: "PH-KT"),
         new(NameKey, "Tên đơn vị", true, "Tên đầy đủ.", Example: "Phòng Kỹ thuật"),
+        new(ShortNameKey, "Tên viết tắt", false, "Tối đa 30 ký tự, dùng đặt tên tệp xuất. Để trống: tạo mới thì không có, cập nhật thì giữ nguyên.", Example: "KT"),
         new(ParentKey, "Mã đơn vị cấp trên", false,
             "Mã đơn vị cấp trên (đã có hoặc có trong file). Để trống: tạo đơn vị gốc (khi chưa có gốc) hoặc giữ nguyên cấp trên khi cập nhật.",
             Example: "CTY"),
@@ -343,6 +355,7 @@ public sealed class PartyCellImportDefinition : OrgUnitImportDefinition
     {
         new(CodeKey, "Mã tổ chức Đảng", true, "Mã duy nhất, không có khoảng trắng (ví dụ CB-KT). Mã đã có thì dòng này cập nhật tổ chức đó.", Example: "CB-KT"),
         new(NameKey, "Tên tổ chức Đảng", true, "Tên đầy đủ.", Example: "Chi bộ Kỹ thuật"),
+        new(ShortNameKey, "Tên viết tắt", false, "Tối đa 30 ký tự, dùng đặt tên tệp xuất. Để trống: tạo mới thì không có, cập nhật thì giữ nguyên.", Example: "CB-KT"),
         new(ParentKey, "Mã tổ chức cấp trên", false,
             "Mã tổ chức Đảng cấp trên (đã có hoặc có trong file). Để trống: tạo tổ chức gốc (khi chưa có gốc) hoặc giữ nguyên cấp trên khi cập nhật.",
             Example: "DU"),
