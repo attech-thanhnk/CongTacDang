@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 
 namespace CongTacDang.Application.Services;
@@ -86,9 +87,9 @@ public sealed class NotificationService : INotificationService
                 items.AddRange(group.Items.Select(i =>
                 {
                     var item = StepItem(kind, group, i, group.StepName, $"{i.FullName} · {i.StatusDisplayName}");
-                    // Người gán vai trò có thể không xem được hồ sơ: dẫn tới trang tài khoản (gán vai trò theo từng người).
+                    // Người gán vai trò có thể không xem được hồ sơ và tài khoản: dẫn tới trang Người thực hiện của việc xử lý kiến nghị.
                     if (code == PostPublishWorkQueue.UnassignedAppealsGroup)
-                        item.Link = "/admin/users";
+                        item.Link = "/admin/performers?permission=" + PermissionCodes.EvaluationAppealResolve;
                     return item;
                 }));
             }

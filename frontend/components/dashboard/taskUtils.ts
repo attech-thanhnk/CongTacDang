@@ -100,10 +100,10 @@ export function taskActionLabel(task: { step: string; mode: string; status: stri
   return STEP_ACTIONS[task.step] ?? "Mở hồ sơ";
 }
 
-/** Kiến nghị chưa có người xử lý: người gán vai trò có thể không xem được hồ sơ nên dẫn tới trang tài khoản. */
+/** Kiến nghị chưa có người xử lý: người gán vai trò có thể không xem được hồ sơ nên dẫn tới trang Người thực hiện (không cần quyền xem tài khoản). */
 export function taskHref(task: { step: string; recordId: string; formId?: string | null }): string {
   if (task.step === "CROSSCHECKS" && task.formId) return `/crosschecks/${task.formId}`;
-  return task.step === "APPEALS_UNASSIGNED" ? "/admin/users" : `/evaluations/${task.recordId}`;
+  return task.step === "APPEALS_UNASSIGNED" ? "/admin/performers?permission=evaluation.appeal.resolve" : `/evaluations/${task.recordId}`;
 }
 
 /** Chữ cái đầu của hai từ cuối trong họ tên. */

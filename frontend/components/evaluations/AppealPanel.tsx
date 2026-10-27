@@ -87,11 +87,22 @@ export function AppealPanel({ record, onRecordChanged, onPendingChange }: Props)
       return;
     }
     let resolverWarning: string | null | undefined;
+    const failedFiles: string[] = [];
+    // Kiến nghị đã gửi thì đóng biểu mẫu; tệp lỗi báo riêng để bổ sung sau, tránh gửi lặp.
     const ok = await run(async () => {
       const appeal = await postPublishService.submitAppeal(record.id, content.trim(), steps);
       resolverWarning = appeal.resolverWarning;
-      for (const file of files) await postPublishService.uploadAppealFile(appeal.id, file);
+      for (const file of files) {
+        try {
+          await postPublishService.uploadAppealFile(appeal.id, file);
+        } catch {
+          failedFiles.push(file.name);
+        }
+      }
     }, "Đã gửi kiến nghị. Kết quả được ghi chú \"đang xem xét\" tới khi có trả lời.");
+    if (ok && failedFiles.length > 0) {
+      toast.warning(`Tải lên không thành công: ${failedFiles.join(", ")}. Hãy dùng mục "Bổ sung tệp" của kiến nghị để tải lại.`, "Kiến nghị đã gửi, thiếu tệp", 12000);
+    }
     if (ok && resolverWarning) toast.warning(resolverWarning, "Kiến nghị chưa có người xử lý", 12000);
     if (ok) {
       setShowForm(false);

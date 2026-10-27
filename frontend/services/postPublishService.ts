@@ -176,7 +176,7 @@ export function milestoneResultLabel(code: MilestoneCode, result: MilestoneResul
 // ----- Nhắc việc -----
 
 export interface NotificationItemDto {
-  kind: "overdue" | "dueSoon" | "appeal" | "improvementPlan" | "acknowledge" | "pending" | string;
+  kind: "overdue" | "dueSoon" | "appealUnassigned" | "appeal" | "improvementPlan" | "acknowledge" | "pending" | string;
   title: string;
   detail?: string | null;
   link: string;
@@ -191,6 +191,7 @@ export interface NotificationSummaryDto {
   appeals: number;
   improvementPlans: number;
   plansToAcknowledge: number;
+  unassignedAppeals: number;
   dueSoonDays: number;
   items: NotificationItemDto[];
 }

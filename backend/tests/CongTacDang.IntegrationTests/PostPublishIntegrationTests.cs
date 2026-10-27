@@ -281,6 +281,9 @@ public sealed class PostPublishIntegrationTests
             var summary = await Data(assignmentManagerC, "/api/notifications/summary");
             Assert.True(summary.GetProperty("unassignedAppeals").GetInt32() >= 1);
             Assert.Contains(summary.GetProperty("items").EnumerateArray(), i => i.GetProperty("kind").GetString() == "appealUnassigned");
+            // Người gán vai trò có thể không có quyền xem tài khoản: việc dẫn tới trang Người thực hiện của việc xử lý kiến nghị.
+            var unassignedItem = summary.GetProperty("items").EnumerateArray().First(i => i.GetProperty("kind").GetString() == "appealUnassigned");
+            Assert.Equal("/admin/performers?permission=evaluation.appeal.resolve", unassignedItem.GetProperty("link").GetString());
             // Người không có quyền gán vai trò không thấy nhóm này.
             Assert.Empty(await QueueRecordsAsync(ownerC, "APPEALS_UNASSIGNED"));
         }
