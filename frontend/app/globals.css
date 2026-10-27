@@ -104,7 +104,8 @@
 
   /* Khung */
   --sidebar-w: 232px;
-  --header-h:  48px;
+  --sidebar-rail-w: 64px;
+  --header-h:  52px;
   --content-max: 1600px;
 
   /* Transitions */
@@ -312,7 +313,7 @@ aside.app-sidebar {
   height: 100vh;
   z-index: 1045;
   padding: 20px 12px 12px;
-  transition: transform var(--transition-slow);
+  transition: transform var(--transition-slow), width var(--transition-slow), min-width var(--transition-slow), padding var(--transition-slow);
 }
 
 .side-brand {
@@ -366,41 +367,6 @@ aside.app-sidebar {
   padding: 4px;
   line-height: 1;
   cursor: pointer;
-}
-
-.side-period {
-  padding: 0 6px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.side-period label {
-  font-size: 12.5px;
-  color: var(--ink-3);
-}
-
-.side-period select {
-  width: 100%;
-  border: 1px solid var(--rule-strong);
-  border-radius: 10px;
-  padding: 7px 30px 7px 10px;
-  background-color: var(--paper);
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%238a98a6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 12px 9px;
-  appearance: none;
-  -webkit-appearance: none;
-  color: var(--ink);
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.side-period select:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
 }
 
 .side-nav {
@@ -459,6 +425,10 @@ aside.app-sidebar {
   flex: none;
 }
 
+.side-nav a.grp-closed {
+  display: none;
+}
+
 .side-grp {
   font-size: 12.5px;
   color: var(--ink-3);
@@ -493,15 +463,6 @@ aside.app-sidebar {
   visibility: hidden;
 }
 
-.side-me {
-  margin-top: 12px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  padding: 12px 4px 4px 8px;
-  border-top: 1px solid var(--rule);
-}
-
 .initials {
   width: 32px;
   height: 32px;
@@ -516,42 +477,60 @@ aside.app-sidebar {
   border: 1px solid var(--rule);
 }
 
-.side-me-text {
-  flex: 1;
-  min-width: 0;
-  line-height: 1.35;
-}
+/* Nhãn mục chỉ ẩn bằng cách thu nhỏ, vẫn nằm trong cây truy cập. */
+@media (min-width: 768px) {
+  aside.app-sidebar.sidebar-rail {
+    width: var(--sidebar-rail-w);
+    min-width: var(--sidebar-rail-w);
+    padding: 20px 8px 12px;
+  }
 
-.side-me-text b {
-  display: block;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--ink);
-}
+  .sidebar-rail .side-brand {
+    justify-content: center;
+    padding: 0 0 18px;
+  }
 
-.side-me-text small {
-  display: block;
-  color: var(--ink-2);
-  font-size: 12px;
-}
+  .sidebar-rail .side-brand-text,
+  .sidebar-rail .side-grp-toggle i {
+    display: none;
+  }
 
-.side-logout {
-  background: transparent;
-  border: 0;
-  border-radius: 8px;
-  color: var(--ink-3);
-  font-size: 16px;
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  flex: none;
-}
+  .sidebar-rail .side-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
 
-.side-logout:hover {
-  background: var(--bad-bg);
-  color: var(--bad);
+  .sidebar-rail .side-nav a {
+    justify-content: center;
+    padding: 9px 0;
+  }
+
+  .sidebar-rail .side-nav a.grp-closed {
+    display: flex;
+  }
+
+  .sidebar-rail .side-nav a i {
+    font-size: 18px;
+    width: auto;
+  }
+
+  /* Tiêu đề nhóm thu thành đường kẻ mảnh. */
+  .sidebar-rail .side-grp {
+    height: 0;
+    padding: 0;
+    margin: 8px 6px;
+    border-top: 1px solid var(--rule);
+    pointer-events: none;
+  }
+
+  .sidebar-rail .side-grp-toggle {
+    width: auto;
+    border-radius: 0;
+  }
 }
 
 .side-backdrop {
@@ -585,10 +564,10 @@ header.app-header {
   border-bottom: 1px solid var(--rule);
   position: relative;
   z-index: 1030;
-  padding: 0 20px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex: none;
 }
 
@@ -610,6 +589,7 @@ header.app-header {
 }
 
 .app-crumbs {
+  flex: 0 1 auto;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -620,6 +600,8 @@ header.app-header {
 }
 
 .app-crumbs a {
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--ink-2);
   text-decoration: none;
 }
@@ -643,7 +625,65 @@ header.app-header {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  flex: none;
+}
+
+.app-header-help {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+  font-size: 18px;
+  text-decoration: none;
+}
+
+.app-header-help:hover {
+  background: var(--tint);
+  color: var(--ink);
+}
+
+.app-header-help:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Chọn kỳ đánh giá trên thanh trên: nhãn ngắn và ô chọn gọn. */
+.hdr-period {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 0 1 auto;
+  font-size: 13.5px;
+  color: var(--ink-3);
+}
+
+.hdr-period select {
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  padding: 5px 28px 5px 10px;
+  background-color: var(--paper);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%238a98a6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  background-size: 12px 9px;
+  appearance: none;
+  -webkit-appearance: none;
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
+.hdr-period select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 /* Chuông nhắc việc */
@@ -2553,11 +2593,17 @@ textarea.form-control {
   }
 
   header.app-header {
-    padding: 0 12px;
+    padding: 0 8px;
+    gap: 6px;
+  }
+
+  .app-header-right {
+    gap: 0;
   }
 
   /* Vùng chạm tối thiểu 40px */
   .app-header-menu,
+  .app-header-help,
   .bell-btn {
     width: 40px;
     height: 40px;
@@ -2583,5 +2629,24 @@ textarea.form-control {
   .form-select-sm {
     font-size: 16px;
     min-height: 40px;
+  }
+}
+
+/* Điện thoại: thanh trên giữ vừa một hàng. */
+@media (max-width: 575.98px) {
+  .hdr-period > span,
+  .app-crumbs .app-crumb-sep,
+  .app-crumbs [aria-current="page"] {
+    display: none;
+  }
+
+  .hdr-period select {
+    max-width: 140px;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .app-header-help {
+    display: none;
   }
 }

@@ -46,9 +46,9 @@ test.describe('Đăng nhập và menu', () => {
   test('đăng nhập đúng rồi đăng xuất quay về trang đăng nhập', async ({ page }) => {
     await dangNhapBangGiaoDien(page, 'loan.ctp', MAT_KHAU);
     await expect(page).not.toHaveURL(/\/login/);
-    await expect(page.getByText('Chu Thị Phương Loan').first()).toBeVisible();
-
+    // Menu tài khoản ở thanh trên: họ tên đầy đủ hiện trong hộp thả xuống.
     await page.getByRole('button', { name: /Chu Thị Phương Loan/ }).click();
+    await expect(page.getByRole('menu').getByText('Chu Thị Phương Loan')).toBeVisible();
     await page.getByRole('menuitem', { name: 'Đăng xuất' }).click();
     await expect(page).toHaveURL(/\/login/);
 
@@ -87,7 +87,7 @@ test.describe('Đăng nhập và menu', () => {
     },
     {
       ten: 'trung.nb', mo_ta: 'cán bộ được đánh giá',
-      co: ['Việc cần xử lý', 'Kết quả đánh giá', 'Hướng dẫn'],
+      co: ['Việc cần xử lý', 'Kết quả đánh giá'],
       khong: ['Hồ sơ đánh giá', 'Duyệt kết quả', 'Kỳ đánh giá', 'Báo cáo', 'Vai trò'],
     },
   ];

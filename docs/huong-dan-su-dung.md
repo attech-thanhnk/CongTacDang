@@ -1,6 +1,6 @@
 # Hướng dẫn sử dụng — Hệ thống đánh giá, xếp loại cán bộ
 
-Mục Hướng dẫn trong menu hiển thị cùng nội dung này.
+Nút Hướng dẫn (dấu ?) ở góc trên bên phải hiển thị cùng nội dung này.
 
 Tài liệu dành cho người dùng: cán bộ được đánh giá, người duyệt các bước (Lãnh đạo đơn vị, Chi bộ, thư ký hội nghị, cấp trực tiếp sử dụng), cơ quan thẩm định, cơ quan chuyên môn, Văn phòng Đảng ủy và quản trị hệ thống.
 
@@ -47,19 +47,19 @@ Khi một nút không bấm được hoặc không thấy nút cần dùng: xem 
 
 ### 1.1 Menu
 
-Menu bên trái hiện theo quyền được giao:
+Menu bên trái hiện theo quyền được giao. Bấm nút ☰ ở đầu thanh trên để thu menu thành cột biểu tượng (trỏ chuột vào biểu tượng để xem tên mục) hoặc mở rộng lại; hệ thống nhớ lựa chọn của bạn. Trên điện thoại, bấm ☰ để mở menu.
 
 | Nhóm | Mục menu | Dành cho |
 |---|---|---|
 | (đầu menu) | **Tổng quan** | mọi người |
 | | **Việc cần xử lý** | người có việc trong luồng đánh giá, kể cả cán bộ tự chấm |
-| | **Hồ sơ đánh giá** | người được xem hồ sơ của người khác (danh sách hồ sơ trong phạm vi) |
+| **Đánh giá** | **Hồ sơ đánh giá** | người được xem hồ sơ của người khác (danh sách hồ sơ trong phạm vi) |
 | | **Đánh giá tập thể** | người lập hồ sơ tập thể, biên bản hội nghị hoặc ghi nhận đề xuất tập thể |
 | | **Xác nhận số liệu** | người xem hồ sơ đánh giá (xem danh sách phiếu trong phạm vi), người yêu cầu, lập hoặc xác nhận phiếu xác nhận số liệu (Mẫu 03) |
 | | **Duyệt kết quả** | người lập hoặc chốt biên bản họp thống nhất (Mẫu 20), lập hoặc xác nhận phiếu kiểm tra (Mẫu 19) |
-| | **Kết quả đánh giá** | người được xem kết quả đã công bố |
+| **Kết quả** | **Kết quả đánh giá** | người được xem kết quả đã công bố |
 | | **Báo cáo** | người được xuất báo cáo; người chỉ được xem hội nghị dùng mục này để xuất bảng phiếu kín (Mẫu 11) |
-| **Quản lý** | **Kỳ đánh giá**, **Bộ tiêu chí**, **Danh mục tổ chức** | người quản lý kỳ, bộ tiêu chí, danh mục |
+| **Thiết lập** | **Kỳ đánh giá**, **Bộ tiêu chí**, **Danh mục tổ chức** | người quản lý kỳ, bộ tiêu chí, danh mục |
 | **Hệ thống** | **Tài khoản**, **Vai trò**, **Người thực hiện**, **Nhập dữ liệu**, **Nhật ký hệ thống**, **Thông tin đơn vị**, **Biểu mẫu Word** | quản trị hệ thống |
 
 Cán bộ thường chỉ thấy **Tổng quan**, **Việc cần xử lý** và **Kết quả đánh giá**; hồ sơ của mình mở từ Tổng quan.
@@ -105,7 +105,7 @@ Nhập sai mật khẩu 5 lần liên tiếp, tài khoản bị khóa tạm 15 p
 
 ### 2.2 Đổi mật khẩu và xem thông tin tài khoản
 
-Bấm vào tên của bạn ở góc dưới thanh bên trái, chọn **Tài khoản**. Trang "Tài khoản của tôi" có ba phần:
+Bấm vào tên của bạn ở góc trên bên phải, chọn **Tài khoản**. Trang "Tài khoản của tôi" có ba phần:
 
 - **Thông tin cá nhân**: họ tên, tên đăng nhập, chức danh, phòng, Chi bộ (chỉ xem; cần sửa thì báo quản trị).
 - **Vai trò**: vai trò bạn đang được giao và phạm vi.
@@ -115,7 +115,7 @@ Bấm vào tên của bạn ở góc dưới thanh bên trái, chọn **Tài kho
 
 ### 2.3 Chọn kỳ đánh giá
 
-Ô **Kỳ đánh giá** ở đầu thanh bên trái. Mọi trang (Tổng quan, Hồ sơ đánh giá, Báo cáo, Kết quả đánh giá…) hiển thị dữ liệu của kỳ đang chọn. Kỳ không ở trạng thái Đang mở có ghi kèm trạng thái.
+Ô **Kỳ** (Kỳ đánh giá) ở thanh trên, cạnh nút ☰. Mọi trang (Tổng quan, Hồ sơ đánh giá, Báo cáo, Kết quả đánh giá…) hiển thị dữ liệu của kỳ đang chọn. Kỳ không ở trạng thái Đang mở có ghi kèm trạng thái.
 
 ### 2.4 Tổng quan
 
@@ -541,7 +541,7 @@ Bắt buộc với cán bộ có mức xếp loại theo quy định của bộ 
 
 ## 8. Quản lý kỳ đánh giá
 
-Dành cho người được giao quản lý kỳ. Menu **Quản lý**, mục **Kỳ đánh giá**: danh sách kỳ với nút **Tạo kỳ** và, ở mỗi dòng, **Cấu hình** (người không quản lý kỳ chỉ có **Xem**).
+Dành cho người được giao quản lý kỳ. Menu **Thiết lập**, mục **Kỳ đánh giá**: danh sách kỳ với nút **Tạo kỳ** và, ở mỗi dòng, **Cấu hình** (người không quản lý kỳ chỉ có **Xem**).
 
 ### 8.1 Tạo kỳ
 
@@ -615,7 +615,7 @@ Khi kỳ **Đang mở** hoặc **Khóa dữ liệu**, thẻ **Tiến độ** cho
 
 ## 9. Bộ tiêu chí
 
-Menu **Quản lý**, mục **Bộ tiêu chí**. Bộ tiêu chí chứa toàn bộ nội dung chấm: tiêu chí chung, tiêu chí tập thể, trục kết quả, khung tỷ trọng, thang quy đổi, mức xếp loại, tham số và biểu mẫu áp dụng.
+Menu **Thiết lập**, mục **Bộ tiêu chí**. Bộ tiêu chí chứa toàn bộ nội dung chấm: tiêu chí chung, tiêu chí tập thể, trục kết quả, khung tỷ trọng, thang quy đổi, mức xếp loại, tham số và biểu mẫu áp dụng.
 
 - Danh sách hiện trạng thái (*Bản nháp*, *Đã xuất bản*, *Lưu trữ*) và kỳ đang dùng. Bấm **Tạo bộ tiêu chí** (nhập **Mã bộ**, **Tên bộ**, rồi **Tạo bản nháp**) hoặc **Nhân bản** một bộ có sẵn.
 - Bộ **đã xuất bản không sửa được**. Muốn thay đổi: **Nhân bản** để có bản nháp mới. **Lưu trữ** ẩn bộ không dùng nữa (kỳ đang dùng bộ không bị ảnh hưởng). **Xóa bản nháp** bỏ hẳn một bản nháp.
@@ -664,7 +664,7 @@ Mẫu 15A, 15B thống kê theo mã chức danh. Cán bộ chưa có mã chức 
 
 ## 11. Quản trị hệ thống
 
-Các mục ở menu **Hệ thống** và **Quản lý**. Trình tự khai báo khi đưa hệ thống vào sử dụng nằm ở [Hướng dẫn bàn giao](huong-dan-ban-giao.md).
+Các mục ở menu **Hệ thống** và **Thiết lập**. Trình tự khai báo khi đưa hệ thống vào sử dụng nằm ở [Hướng dẫn bàn giao](huong-dan-ban-giao.md).
 
 ### 11.1 Tài khoản
 
@@ -710,7 +710,7 @@ Menu **Hệ thống**, mục **Người thực hiện** (cần quyền Gán vai 
 
 ### 11.4 Danh mục tổ chức
 
-Menu **Quản lý**, mục **Danh mục tổ chức** (mọi người xem được; sửa cần quyền Quản lý danh mục), gồm các thẻ:
+Menu **Thiết lập**, mục **Danh mục tổ chức** (mọi người xem được; sửa cần quyền Quản lý danh mục), gồm các thẻ:
 
 - **Đơn vị chính quyền**, **Tổ chức Đảng**: hai cây nhiều cấp, mỗi nút có **Tên viết tắt** (tùy chọn, dùng đặt tên tệp xuất). **Thêm … gốc**, thêm đơn vị con (menu hàng), **Sửa** (đổi cấp trên), ngừng hoạt động. **Mở rộng tất cả** / **Thu gọn tất cả** để xem cây.
 - **Loại đơn vị**: Công ty, Phòng, Chi bộ… (**Thêm loại đơn vị**).

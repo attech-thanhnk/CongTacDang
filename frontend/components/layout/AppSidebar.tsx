@@ -5,9 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
-import { usePeriod } from "@/contexts/PeriodContext";
 import { useOrganizationInfo } from "@/services/organizationSettingsService";
-import { AccountMenu } from "./AccountMenu";
 import { buildMenu, isMenuItemActive } from "./menu";
 
 /** Biểu tượng Đảng bộ: ngôi sao trong vòng tròn đỏ son. */
@@ -26,8 +24,7 @@ const COLLAPSED_KEY = "sidebar-collapsed";
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, hasPermission } = useAuth();
-  const { isSidebarOpen, closeSidebar } = useLayout();
-  const { periods, periodId, setPeriodId } = usePeriod();
+  const { isSidebarOpen, isSidebarCollapsed, closeSidebar } = useLayout();
   const org = useOrganizationInfo();
 
   // Tên hiển thị lấy từ cài đặt đơn vị: dòng lớn là tên viết tắt, dòng nhỏ là phần còn lại của tên hệ thống.
@@ -43,10 +40,9 @@ export function AppSidebar() {
   const visibleGroups = buildMenu(user, hasPermission);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-  // Người chỉ làm quản trị hệ thống: không làm việc theo kỳ, nhóm Hệ thống mở sẵn.
+  // Người chỉ làm quản trị hệ thống: nhóm Hệ thống mở sẵn.
   const onlySystemWork =
     !!user && !user.permissions.some((code) => /^(evaluation|period|criteria)\./.test(code));
-  const showPeriodPicker = !!user && !user.mustChangePassword && pathname !== "/change-password" && !onlySystemWork;
 
   // Nhớ nhóm đã gập; mặc định gập nhóm Hệ thống.
   useEffect(() => {
@@ -83,7 +79,7 @@ export function AppSidebar() {
     <>
       {isSidebarOpen && <div onClick={closeSidebar} className="side-backdrop d-md-none" />}
 
-      <aside className={`app-sidebar ${isSidebarOpen ? "sidebar-visible" : "sidebar-hidden"}`}>
+      <aside className={`app-sidebar ${isSidebarOpen ? "sidebar-visible" : "sidebar-hidden"}${isSidebarCollapsed ? " sidebar-rail" : ""}`}>
         <div className="side-brand">
           <Emblem />
           <div className="side-brand-text">
@@ -94,26 +90,6 @@ export function AppSidebar() {
             <i className="bi bi-x-lg" />
           </button>
         </div>
-
-        {showPeriodPicker && (
-          <div className="side-period">
-            <label htmlFor="global-period">Kỳ đánh giá</label>
-            <select
-              id="global-period"
-              value={periodId}
-              onChange={(e) => setPeriodId(e.target.value)}
-              disabled={periods.length === 0}
-            >
-              {periods.length === 0 && <option value="">Chưa có kỳ</option>}
-              {periods.map((p) => (
-                <option key={p.id} value={p.id} title={p.name}>
-                  Quý {["I", "II", "III", "IV"][p.quarter - 1] ?? p.quarter}/{p.year}
-                  {p.status === "Open" ? "" : ` (${p.statusDisplayName})`}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
 
         <nav className="side-nav">
           {visibleGroups.map((group) => {
@@ -131,25 +107,25 @@ export function AppSidebar() {
                       onClick={() => toggleGroup(group.key)}
                       disabled={hasActive}
                     >
-                      <span>{group.title}</span>
+                      <span className="side-label">{group.title}</span>
                       <i className={`bi ${isOpen ? "bi-chevron-up" : "bi-chevron-down"}`} aria-hidden="true" />
                     </button>
                   ) : (
-                    <div className="side-grp">{group.title}</div>
+                    <div className="side-grp"><span className="side-label">{group.title}</span></div>
                   ))}
-                {isOpen &&
-                  group.items.map((item) => {
+                {group.items.map((item) => {
                     const isActive = isMenuItemActive(item, pathname);
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
                         onClick={closeOnMobile}
-                        className={isActive ? "on" : undefined}
+                        className={[isActive ? "on" : "", isOpen ? "" : "grp-closed"].filter(Boolean).join(" ") || undefined}
                         aria-current={isActive ? "page" : undefined}
+                        title={isSidebarCollapsed ? item.title : undefined}
                       >
                         <i className={`bi ${item.icon}`} />
-                        <span>{item.title}</span>
+                        <span className="side-label">{item.title}</span>
                       </Link>
                     );
                   })}
@@ -157,8 +133,6 @@ export function AppSidebar() {
             );
           })}
         </nav>
-
-        <AccountMenu onNavigate={closeOnMobile} />
       </aside>
     </>
   );

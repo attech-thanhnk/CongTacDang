@@ -61,14 +61,14 @@ Mức độ bắt buộc của từng cổng đặt theo **diện quyết địn
 
 | Việc | Người thực hiện (vai trò mặc định) | Quyền cần có | Làm ở đâu |
 |---|---|---|---|
-| Tạo kỳ, cấu hình, mở kỳ, khóa dữ liệu, đóng kỳ | Cơ quan thẩm định | Quản lý kỳ đánh giá | Menu "Quản lý", "Kỳ đánh giá" |
-| Quản lý bộ tiêu chí | Cơ quan thẩm định | Quản lý bộ tiêu chí | Menu "Quản lý", "Bộ tiêu chí" |
+| Tạo kỳ, cấu hình, mở kỳ, khóa dữ liệu, đóng kỳ | Cơ quan thẩm định | Quản lý kỳ đánh giá | Menu "Thiết lập", "Kỳ đánh giá" |
+| Quản lý bộ tiêu chí | Cơ quan thẩm định | Quản lý bộ tiêu chí | Menu "Thiết lập", "Bộ tiêu chí" |
 | Mở lại hồ sơ đã công bố | Văn phòng Đảng ủy | Mở lại hồ sơ đã khóa | Mở hồ sơ, nút "Mở lại hồ sơ" (nhập lý do) |
 | Gửi kiến nghị về kết quả | Chính cán bộ | Gửi kiến nghị về kết quả | Hồ sơ đã công bố, khối "Kiến nghị" |
 | Xử lý kiến nghị | Văn phòng Đảng ủy | Xử lý kiến nghị về kết quả | "Việc cần xử lý", nhóm "Kiến nghị chờ xử lý" |
 | Lập, duyệt kế hoạch 30-60-90 ngày | Lãnh đạo đơn vị, Cấp trực tiếp sử dụng | Lập kế hoạch khắc phục 30-60-90 ngày | Hồ sơ đã công bố, khối "Kế hoạch 30-60-90 ngày (Mẫu 17)" |
 | Xuất báo cáo | Cơ quan thẩm định, Cấp trực tiếp sử dụng, Cấp ủy viên, Văn phòng Đảng ủy | Xuất báo cáo tổng hợp | Menu "Báo cáo" |
-| Quản trị tài khoản, vai trò, danh mục, thông tin đơn vị, biểu mẫu Word | Quản trị hệ thống | các quyền "Quản trị hệ thống" và "Quản lý danh mục" | Menu "Hệ thống" và "Quản lý" |
+| Quản trị tài khoản, vai trò, danh mục, thông tin đơn vị, biểu mẫu Word | Quản trị hệ thống | các quyền "Quản trị hệ thống" và "Quản lý danh mục" | Menu "Hệ thống" và "Thiết lập" |
 
 ---
 
@@ -121,7 +121,7 @@ Làm theo đúng thứ tự: bước sau dùng dữ liệu của bước trướ
 
 - [ ] Kiểm tra và sửa: "Tên tổ chức Đảng cấp trên", "Tên Đảng bộ", "Tên đầy đủ của công ty", "Tên đơn vị chủ quản cấp trên", "Tên viết tắt", "Địa danh", "Cơ quan thẩm định", "Tên hiển thị của hệ thống", "Số văn bản hướng dẫn", "Ngày văn bản hướng dẫn". Bấm "Lưu". Thông tin này in trên mọi biểu mẫu và hiện trên giao diện, nên làm trước khi xuất bất kỳ biểu mẫu nào.
 
-**2. Cây đơn vị và tổ chức Đảng** (menu "Quản lý", "Danh mục tổ chức")
+**2. Cây đơn vị và tổ chức Đảng** (menu "Thiết lập", "Danh mục tổ chức")
 
 - [ ] Thẻ "Loại đơn vị": rà các loại có sẵn (Đảng ủy, Đảng bộ bộ phận, Chi bộ; Công ty, Đơn vị, Phòng, Trung tâm, Xưởng, Đội, Đài, Trạm), thêm hoặc sửa cho đúng cơ cấu.
 - [ ] Thẻ "Đơn vị chính quyền" rồi thẻ "Tổ chức Đảng": bấm "Thêm … gốc" trước, sau đó thêm đơn vị cấp dưới (chọn cấp trên và loại). Nhập "Tên viết tắt" nếu muốn tên tệp xuất ghi tên đó thay cho mã. Kiểm tra cây ở từng thẻ. Có nhiều đơn vị thì dùng "Nhập dữ liệu" (Excel): [Nhập dữ liệu từ Excel](nhap-du-lieu.md).
@@ -145,7 +145,7 @@ Làm theo đúng thứ tự: bước sau dùng dữ liệu của bước trướ
 - [ ] Menu "Hệ thống", "Người thực hiện": chọn đơn vị để thấy từng việc của luồng đã có người chưa (nhãn "Chưa có người"), và dùng "Thêm người" để giao nhanh. Trang này **không** có việc Mẫu 03, 19, 20: phân công các vai trò đó ở "Tài khoản" hoặc "Vai trò".
 - [ ] Kiểm tra vài người tiêu biểu (Bí thư Chi bộ, Lãnh đạo đơn vị, cơ quan thẩm định, Văn phòng Đảng ủy, Cơ quan chuyên môn): mở chi tiết "Tài khoản", thẻ "Người này làm được gì".
 
-**6. Bộ tiêu chí** (menu "Quản lý", "Bộ tiêu chí")
+**6. Bộ tiêu chí** (menu "Thiết lập", "Bộ tiêu chí")
 
 - [ ] Hệ thống có sẵn một bộ mặc định đã xuất bản. Rà nội dung (tiêu chí chung, trục kết quả, khung tỷ trọng, mức xếp loại, tham số). Cần điều chỉnh: "Nhân bản", sửa bản nháp, "Lưu", "Xuất bản". Bộ đã xuất bản không sửa được. Nghiệp vụ nên xác nhận nội dung trước khi mở kỳ.
 
@@ -153,7 +153,7 @@ Làm theo đúng thứ tự: bước sau dùng dữ liệu của bước trướ
 
 - [ ] Kiểm tra từng biểu mẫu đang dùng file gốc hay phiên bản đã tải lên; tải thử một vài mẫu. Cần sửa bố cục: tải file đang dùng về, sửa trong Word giữ nguyên các ô dữ liệu (tag), "Kiểm tra", "Tải lên".
 
-**8. Tạo kỳ** (menu "Quản lý", "Kỳ đánh giá")
+**8. Tạo kỳ** (menu "Thiết lập", "Kỳ đánh giá")
 
 - [ ] Bấm "Tạo kỳ": năm, quý, từ ngày, đến ngày, tên kỳ, bộ tiêu chí đã xuất bản. Kỳ ở trạng thái Dự thảo.
 
@@ -247,7 +247,7 @@ Trước hết mở hồ sơ, đọc thanh tiến trình: bước đang chờ v�
 | Báo "Bạn không được thực hiện "…" trên hồ sơ của chính mình (xung đột lợi ích)" | Người dùng đang làm bước xét duyệt trên hồ sơ của mình | Không xử lý được bằng quyền; người khác làm bước đó |
 | Báo "Bạn chưa được cấp quyền "…". Hãy liên hệ quản trị hệ thống" (màn hình "Không có quyền truy cập") | Trang yêu cầu quyền người dùng chưa có | Phân công vai trò có quyền đó |
 | Không thấy mục menu cần dùng | Menu hiện theo quyền ([hướng dẫn sử dụng, mục 1.1](huong-dan-su-dung.md#11-menu)) | Kiểm tra "Người này làm được gì". Vừa phân công mà menu chưa đổi: tải lại trang hoặc đăng xuất rồi đăng nhập lại |
-| Cán bộ không thấy hồ sơ của mình | Chưa được thêm vào kỳ, hoặc đang chọn nhầm kỳ ở ô "Kỳ đánh giá" | Thẻ "Người được đánh giá" của kỳ, "Thêm người"; hoặc chọn đúng kỳ |
+| Cán bộ không thấy hồ sơ của mình | Chưa được thêm vào kỳ, hoặc đang chọn nhầm kỳ ở ô chọn kỳ trên thanh trên | Thẻ "Người được đánh giá" của kỳ, "Thêm người"; hoặc chọn đúng kỳ |
 | Tải PDF báo "Máy chủ chưa cài LibreOffice nên chưa xuất được PDF…" (lỗi 503) | Máy chủ chưa có LibreOffice | Người dùng tải bản Word hoặc Excel; CNTT cài LibreOffice theo mục "LibreOffice (xuất PDF)" của [Triển khai](deployment.md) |
 | Biểu mẫu thiếu hoặc sai họ tên, ngày sinh, chức vụ, tên Đảng bộ | Dữ liệu nguồn thiếu | Ngày sinh, chức vụ: sửa ở chi tiết "Tài khoản". Tên Đảng bộ, công ty, địa danh: sửa ở "Thông tin đơn vị" |
 | Biểu mẫu Word báo "Thiếu n tag so với file gốc" | File mẫu đang dùng thiếu ô dữ liệu | "Biểu mẫu Word": tải file gốc, sửa lại rồi tải lên; hoặc "Dùng file gốc" |

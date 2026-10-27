@@ -29,6 +29,12 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
       items: [
         { title: "Tổng quan", href: "/", icon: "bi-house" },
         { title: "Việc cần xử lý", href: "/work-queue", icon: "bi-inbox", check: hasAnyEvaluationAction },
+      ],
+    },
+    {
+      key: "evaluate",
+      title: "Đánh giá",
+      items: [
         {
           title: "Hồ sơ đánh giá",
           href: "/evaluations",
@@ -68,6 +74,12 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
             hasPermission("evaluation.control.perform") ||
             hasPermission("evaluation.control.confirm"),
         },
+      ],
+    },
+    {
+      key: "results",
+      title: "Kết quả",
+      items: [
         { title: "Kết quả đánh giá", href: "/results", icon: "bi-trophy", permission: "evaluation.results.view" },
         {
           title: "Báo cáo",
@@ -76,12 +88,11 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
           // Người chỉ có quyền xem hội nghị dùng trang này để xuất bảng phiếu kín (Mẫu 11).
           check: () => hasPermission("report.export") || hasPermission("meeting.read"),
         },
-        { title: "Hướng dẫn", href: "/help", icon: "bi-question-circle" },
       ],
     },
     {
-      key: "manage",
-      title: "Quản lý",
+      key: "setup",
+      title: "Thiết lập",
       items: [
         { title: "Kỳ đánh giá", href: "/periods", icon: "bi-calendar3", permission: "period.manage" },
         { title: "Bộ tiêu chí", href: "/criteria", icon: "bi-list-check", permission: "criteria.manage" },

@@ -8,13 +8,13 @@ test.describe('Trang Hướng dẫn', () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test('cán bộ thường mở từ menu: có mục lục, bảng và đúng tên mới', async ({ mo }) => {
+  test('cán bộ thường mở từ nút ? ở thanh trên: có mục lục, bảng và đúng tên mới', async ({ mo }) => {
     const page = await mo('trung.nb');
     await page.goto('/');
-    await page.locator('aside').getByRole('link', { name: 'Hướng dẫn' }).click();
+    await page.locator('header').getByRole('link', { name: 'Hướng dẫn' }).click();
     await expect(page).toHaveURL(/\/help$/);
     await expect(page.getByRole('heading', { name: 'Hướng dẫn sử dụng', level: 1 })).toBeVisible();
-    await expect(page.getByText('Mục Hướng dẫn trong menu hiển thị cùng nội dung này.')).toBeVisible();
+    await expect(page.getByText('Nút Hướng dẫn (dấu ?) ở góc trên bên phải hiển thị cùng nội dung này.')).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Mục lục hướng dẫn' }).getByRole('link', { name: /Xác nhận số liệu và duyệt kết quả/ })).toBeVisible();
     await expect(page.locator('article table').first()).toBeVisible();
     // Tên cũ không còn trong hướng dẫn.

@@ -5,10 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
+import { AccountMenu } from "./AccountMenu";
 import { NotificationBell } from "./NotificationBell";
+import { PeriodPicker } from "./PeriodPicker";
 import { buildMenu, findMenuTrail } from "./menu";
 
-/** Thanh trên cùng: nút mở menu (màn hẹp), đường dẫn về danh sách (trang chi tiết) và chuông nhắc việc. */
+/** Thanh trên cùng: nút menu, đường dẫn, chọn kỳ; bên phải là hướng dẫn, chuông nhắc việc và tài khoản. */
 export function AppHeader() {
   const { user, hasPermission } = useAuth();
   const { toggleSidebar } = useLayout();
@@ -17,7 +19,12 @@ export function AppHeader() {
 
   return (
     <header className="app-header">
-      <button type="button" onClick={toggleSidebar} className="app-header-menu d-md-none" aria-label="Mở menu">
+      <button
+        type="button"
+        onClick={toggleSidebar}
+        className="app-header-menu"
+        aria-label="Mở menu"
+      >
         <i className="bi bi-list" />
       </button>
       {/* Chỉ trang chi tiết mới cần đường dẫn về danh sách; trang danh sách đã có tiêu đề riêng. */}
@@ -28,9 +35,16 @@ export function AppHeader() {
           <span aria-current="page">Chi tiết</span>
         </nav>
       )}
+      <PeriodPicker />
       <div className="app-header-right">
+        {user && !user.mustChangePassword && (
+          <Link href="/help" className="app-header-help" aria-label="Hướng dẫn" title="Hướng dẫn">
+            <i className="bi bi-question-circle" />
+          </Link>
+        )}
         {/* Tài khoản phải đổi mật khẩu chỉ được gọi API đổi mật khẩu — không nạp chuông nhắc việc (tránh 403). */}
         {user && !user.mustChangePassword && <NotificationBell />}
+        <AccountMenu />
       </div>
     </header>
   );
