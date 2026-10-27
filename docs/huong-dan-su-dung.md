@@ -461,6 +461,16 @@ Hồ sơ đã ghi nhận quyết định thì không bị ảnh hưởng. Hiệu
 
 **Biên bản hiệu chuẩn.** Biên bản không có nhãn "Hết hiệu lực". Khi hồ sơ trong biên bản đổi sau lúc chốt, dải vàng của hồ sơ ghi "Hồ sơ đã thay đổi sau khi biên bản hiệu chuẩn được chốt; cần chốt lại biên bản.", và dòng của hồ sơ trong biên bản có chữ đỏ "Điểm hoặc mức của hồ sơ đã đổi: lưu biên bản để cập nhật." Làm gì tiếp: **Mở lại** biên bản (lý do), **Lưu** để cập nhật mốc trước hiệu chuẩn, rà lại các trường hợp, rồi **Chốt biên bản** lại. Sau khi hiệu chuẩn thay đổi, phiếu kiểm soát đã xác nhận của các hồ sơ đó cũng có thể hết hiệu lực và cần xác nhận lại.
 
+### 5.5a Đính kèm căn cứ, minh chứng vào phiếu và biên bản
+
+Trang phiếu đối soát (Mẫu 03), phiếu kiểm soát (Mẫu 19) và biên bản hiệu chuẩn (Mẫu 20) có khối **Tệp đính kèm** (PDF, DOCX, XLSX, JPG, PNG; tối đa 25 MB mỗi tệp).
+
+- **Tải lên:** bấm **Tải lên** rồi chọn tệp. Nút chỉ hiện với người đang sửa được phiếu: người yêu cầu hoặc cơ quan đối soát khi phiếu đối soát còn "Chờ lập phiếu" hoặc "Đang lập phiếu"; người lập phiếu kiểm soát hoặc biên bản khi còn "Đang soạn". Kỳ đánh giá phải đang mở.
+- **Thay bằng bản mới** (biểu tượng mũi tên vòng) giữ lại bản cũ; **Gỡ tệp** (dấu x) hỏi xác nhận.
+- **Các phiên bản** (biểu tượng đồng hồ, hiện khi tệp có từ hai phiên bản): liệt kê từng phiên bản kèm người tải, thời điểm, dung lượng; bấm **Tải xuống** để lấy phiên bản cũ.
+- Mọi người xem được phiếu đều xem và tải được tệp. Chủ hồ sơ có trong phiếu không xem được phiếu nên cũng không thấy tệp.
+- Phiếu đã gửi xác nhận, đã xác nhận hoặc đã chốt thì khóa tải lên, thay, gỡ; mở lại hoặc trả lại phiếu về trạng thái sửa được thì đính kèm tiếp được.
+
 ### 5.6 Xuất Word, PDF
 
 Trang phiếu và biên bản có **Xuất Word** ở menu ⋯ cạnh nút chính. Màn hình hiện chỉ có Word cho ba biểu mẫu này. Các biểu mẫu khác (Mẫu 01, 02, 09A…) xuất Word hoặc PDF ở khối **Biểu mẫu** của hồ sơ. Xuất PDF báo lỗi: xem [Câu hỏi thường gặp](#13-câu-hỏi-thường-gặp).

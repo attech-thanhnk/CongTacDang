@@ -105,6 +105,8 @@ export interface CrosscheckDto extends CrosscheckSummaryDto {
   items: CrosscheckItemDto[];
   history: CrosscheckHistoryDto[];
   canEditRequest: boolean;
+  /** Tải lên / thay / gỡ tệp đính kèm. */
+  canAttach: boolean;
   canRespond: boolean;
   canSubmit: boolean;
   canConfirm: boolean;

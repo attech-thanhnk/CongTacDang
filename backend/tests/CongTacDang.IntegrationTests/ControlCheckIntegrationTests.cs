@@ -328,6 +328,8 @@ public sealed class ControlCheckIntegrationTests
             Assert.Equal(HttpStatusCode.Forbidden, (await FormAttachmentClient.UploadAsync(client, type, id)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await FormAttachmentClient.UploadAsync(w.PerformerC, type, Guid.NewGuid())).StatusCode);
 
+        Assert.True((await Data(w.PerformerC, $"/api/control-checks/{id}")).GetProperty("canAttach").GetBoolean());
+        Assert.False((await Data(w.ConfirmerC, $"/api/control-checks/{id}")).GetProperty("canAttach").GetBoolean());
         foreach (var client in new[] { w.PerformerC, w.ConfirmerC, w.BothC })
             await FormAttachmentClient.AssertCanReadAsync(client, type, id, fileId);
         foreach (var client in new[] { w.OwnerC, memberC })

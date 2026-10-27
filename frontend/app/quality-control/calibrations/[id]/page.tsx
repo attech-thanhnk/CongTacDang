@@ -10,6 +10,7 @@ import { Badge, GradeBadge } from "@/components/common/StatusBadge";
 import { DateField } from "@/components/evaluations/DateField";
 import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
 import { RecordPickerDialog, PickerRow } from "@/components/quality/RecordPickerDialog";
+import { OwnerAttachments } from "@/components/attachments/OwnerAttachments";
 import { errorMessage } from "@/components/admin/adminUtils";
 import { useToast } from "@/contexts/ToastContext";
 import { formatDate, formatDateTime } from "@/lib/dateFormat";
@@ -662,6 +663,12 @@ export default function CalibrationDetailPage() {
             <label className="visually-hidden" htmlFor="cal-extra">Kết luận bổ sung</label>
             <textarea id="cal-extra" className="form-control form-control-sm" rows={3} maxLength={4000} value={draft.extraConclusion} disabled={ro}
               onChange={(e) => set({ extraConclusion: e.target.value })} />
+          </div>
+        </section>
+
+        <section className="card">
+          <div className="card-body">
+            <OwnerAttachments ownerType="CalibrationSession" ownerId={data.id} editable={data.canAttach} formCode="M20" subject="biên bản" description="Căn cứ, tài liệu kèm biên bản" defaultOpen />
           </div>
         </section>
 

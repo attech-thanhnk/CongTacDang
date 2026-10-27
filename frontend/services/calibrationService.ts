@@ -117,6 +117,8 @@ export interface CalibrationSessionDto {
   summary: CalibrationSummaryRowDto[];
   cases: CalibrationCaseDto[];
   canEdit: boolean;
+  /** Tải lên / thay / gỡ tệp đính kèm. */
+  canAttach: boolean;
   canConclude: boolean;
   canReopen: boolean;
   canVoid: boolean;

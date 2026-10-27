@@ -238,6 +238,8 @@ public sealed class CalibrationIntegrationTests
             Assert.Equal(HttpStatusCode.Forbidden, (await FormAttachmentClient.UploadAsync(client, type, id)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await FormAttachmentClient.UploadAsync(w.PreparerC, type, Guid.NewGuid())).StatusCode);
 
+        Assert.True((await Data(w.PreparerC, $"/api/calibrations/{id}")).GetProperty("canAttach").GetBoolean());
+        Assert.False((await Data(w.ConcluderC, $"/api/calibrations/{id}")).GetProperty("canAttach").GetBoolean());
         foreach (var client in new[] { w.PreparerC, w.ConcluderC })
             await FormAttachmentClient.AssertCanReadAsync(client, type, id, fileId);
         foreach (var client in new[] { w.OwnerManagerC, w.NobodyC })

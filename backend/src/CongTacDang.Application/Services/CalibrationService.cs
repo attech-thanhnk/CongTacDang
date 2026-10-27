@@ -742,6 +742,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
                 Changed = CalibrationRules.IsChanged(c)
             }).ToList(),
             CanEdit = editable && _guard.Can(PermissionCodes.EvaluationCalibrationManage, target),
+            CanAttach = editable && _guard.Can(PermissionCodes.EvaluationCalibrationManage, target),
             CanVoid = editable && _guard.Can(PermissionCodes.EvaluationCalibrationManage, target),
             CanConclude = canConclude && !isPreparer,
             CanReopen = s.Status == CalibrationStatus.Concluded && s.Period.Status == PeriodStatus.Open

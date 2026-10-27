@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { Badge, GradeBadge } from "@/components/common/StatusBadge";
 import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
 import { RecordPickerDialog, PickerRow } from "@/components/quality/RecordPickerDialog";
+import { OwnerAttachments } from "@/components/attachments/OwnerAttachments";
 import { errorMessage } from "@/components/admin/adminUtils";
 import { useToast } from "@/contexts/ToastContext";
 import { formatDateTime } from "@/lib/dateFormat";
@@ -406,6 +407,12 @@ export default function ControlCheckDetailPage() {
             )}
           </div>
         </section>
+        <section className="card">
+          <div className="card-body">
+            <OwnerAttachments ownerType="ControlCheck" ownerId={data.id} editable={data.canAttach} formCode="M19" subject="phiếu kiểm soát" description="Căn cứ, minh chứng kiểm soát" defaultOpen />
+          </div>
+        </section>
+
 
         {data.history.length > 0 && (
           <section className="card">

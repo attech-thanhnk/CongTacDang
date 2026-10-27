@@ -87,6 +87,8 @@ export interface ControlCheckDto extends ControlCheckSummaryDto {
   records: ControlCheckRecordDto[];
   history: ControlCheckHistoryDto[];
   canEdit: boolean;
+  /** Tải lên / thay / gỡ tệp đính kèm. */
+  canAttach: boolean;
   canSubmit: boolean;
   canConfirm: boolean;
   canReturn: boolean;

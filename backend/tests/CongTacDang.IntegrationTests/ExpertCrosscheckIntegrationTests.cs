@@ -325,6 +325,11 @@ public sealed class ExpertCrosscheckIntegrationTests
             Assert.Equal(HttpStatusCode.Forbidden, (await FormAttachmentClient.UploadAsync(client, type, id)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await FormAttachmentClient.UploadAsync(w.ManagerC, type, Guid.NewGuid())).StatusCode);
 
+        // Cờ canAttach của phiếu khớp quyền tải lên.
+        Assert.True((await Data(w.ManagerC, $"/api/crosschecks/{id}")).GetProperty("canAttach").GetBoolean());
+        Assert.True((await Data(w.ResponderC, $"/api/crosschecks/{id}")).GetProperty("canAttach").GetBoolean());
+        Assert.False((await Data(w.ConfirmerC, $"/api/crosschecks/{id}")).GetProperty("canAttach").GetBoolean());
+
         // Xem/tải: người xem được phiếu; cơ quan khác và chủ hồ sơ không thấy.
         foreach (var client in new[] { w.ManagerC, w.ResponderC, w.ConfirmerC })
             await FormAttachmentClient.AssertCanReadAsync(client, type, id, fileId);
@@ -349,6 +354,7 @@ public sealed class ExpertCrosscheckIntegrationTests
         var saved = await Data(await w.ResponderC.PutAsJsonAsync($"/api/crosschecks/{id}/response",
             new { version = detail.GetProperty("version").GetUInt32(), items }));
         var submitted = await Data(await w.ResponderC.PostAsJsonAsync($"/api/crosschecks/{id}/submit", new { version = saved.GetProperty("version").GetUInt32() }));
+        Assert.False((await Data(w.ResponderC, $"/api/crosschecks/{id}")).GetProperty("canAttach").GetBoolean());
         Assert.Equal(HttpStatusCode.Conflict, (await FormAttachmentClient.UploadAsync(w.ResponderC, type, id)).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await FormAttachmentClient.ReplaceAsync(w.ResponderC, fileId)).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await w.ResponderC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
