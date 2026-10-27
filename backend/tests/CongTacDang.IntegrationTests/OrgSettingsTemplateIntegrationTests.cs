@@ -132,6 +132,38 @@ public sealed class OrgSettingsTemplateIntegrationTests
         Assert.NotEqual("A/B", after.GetProperty("shortName").GetString());
     }
 
+    [SkippableFact]
+    public async Task S3_GuideDocument_SavedReadBackAndValidated()
+    {
+        SkipIfNoDatabase();
+        var manager = await ManagerAsync();
+        var d = DataSeeder.DefaultOrganizationSettings();
+        object Body(string? number, string? date) => new
+        {
+            d.PartyCommitteeName, d.SuperiorPartyName, d.CompanyName, d.ParentCompanyName, d.ShortName, d.Location, d.SystemName,
+            d.AppraisalUnitName, guideDocumentNumber = number, guideDocumentDate = date
+        };
+        try
+        {
+            var saved = await DataAsync(await manager.PutAsJsonAsync("/api/settings/organization", Body("77-HD/TVĐU", "2026-12-01")));
+            Assert.Equal("77-HD/TVĐU", saved.GetProperty("guideDocumentNumber").GetString());
+            Assert.Equal("2026-12-01", saved.GetProperty("guideDocumentDate").GetString());
+
+            var tooLong = await manager.PutAsJsonAsync("/api/settings/organization", Body(new string('9', 51), null));
+            Assert.Equal(HttpStatusCode.BadRequest, tooLong.StatusCode);
+            var message = JsonDocument.Parse(await tooLong.Content.ReadAsStringAsync()).RootElement.GetProperty("message").GetString();
+            Assert.Contains("Số văn bản hướng dẫn", message);
+
+            var cleared = await DataAsync(await manager.PutAsJsonAsync("/api/settings/organization", Body("  ", null)));
+            Assert.Equal(JsonValueKind.Null, cleared.GetProperty("guideDocumentNumber").ValueKind);
+            Assert.Equal(JsonValueKind.Null, cleared.GetProperty("guideDocumentDate").ValueKind);
+        }
+        finally
+        {
+            await RestoreDefaultSettingsAsync(manager);
+        }
+    }
+
     // ===================== T1–T4: file mẫu Word theo phiên bản =====================
 
     [SkippableFact]
@@ -282,7 +314,8 @@ public sealed class OrgSettingsTemplateIntegrationTests
         var d = DataSeeder.DefaultOrganizationSettings();
         var response = await client.PutAsJsonAsync("/api/settings/organization", new
         {
-            d.PartyCommitteeName, d.SuperiorPartyName, d.CompanyName, d.ParentCompanyName, d.ShortName, d.Location, d.SystemName
+            d.PartyCommitteeName, d.SuperiorPartyName, d.CompanyName, d.ParentCompanyName, d.ShortName, d.Location, d.SystemName,
+            d.AppraisalUnitName, d.GuideDocumentNumber, d.GuideDocumentDate
         });
         Assert.True(response.StatusCode == HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
     }

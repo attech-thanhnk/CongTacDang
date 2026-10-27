@@ -385,6 +385,143 @@ public sealed class CollectiveFormsReportsIntegrationTests
 
     // ===================== R5: báo cáo cũ đã bỏ; báo cáo nội bộ =====================
 
+    // ===================== G1: số, ngày văn bản hướng dẫn trên Mẫu 07, 12, 13, 16 =====================
+
+    [SkippableFact]
+    public async Task G1_GuideReference_PrintedOnForms07_12_13_16_DotsKeptWhenEmpty()
+    {
+        SkipIfNoDatabase();
+        var s = await GetScenarioAsync();
+        var admin = await LoginAdminAsync();
+
+        var id07 = await Ensure07Async(s);
+        var meeting = new Dictionary<string, object?>
+        {
+            ["periodId"] = s.PeriodId, ["partyCellId"] = s.CellA, ["stage"] = "B4_DECISION", ["formCode"] = "M12",
+            ["meetingType"] = "Hội nghị đánh giá", ["location"] = "Hội trường",
+            ["startedAt"] = new DateTime(2026, 9, 15, 1, 0, 0, DateTimeKind.Utc), ["endedAt"] = new DateTime(2026, 9, 15, 3, 0, 0, DateTimeKind.Utc),
+            ["invitedCount"] = 7, ["presentCount"] = 6, ["absentCount"] = 1, ["chairName"] = "Nguyễn Chủ Trì", ["secretaryName"] = "Trần Thư Ký",
+            ["outcomeContent"] = "Thống nhất", ["details"] = new { workingRules = "Quy chế", chairTitle = "Bí thư", secretaryTitle = "Chi ủy viên" }
+        };
+        var id12 = (await DataAsync(await s.CellLeaderA.PostAsJsonAsync("/api/evaluations/meetings", meeting))).GetProperty("id").GetGuid();
+        var meeting13 = new Dictionary<string, object?>(meeting) { ["formCode"] = "M13", ["startedAt"] = new DateTime(2026, 9, 16, 1, 0, 0, DateTimeKind.Utc), ["endedAt"] = new DateTime(2026, 9, 16, 3, 0, 0, DateTimeKind.Utc) };
+        meeting13["details"] = new { workingRules = "Quy chế", chairTitle = "Bí thư", ballotsIssued = 6, ballotsCollected = 6, ballotsValid = 5, ballotsInvalid = 1 };
+        meeting13["voteSummaries"] = new object[]
+        {
+            new { recordId = s.RecordA1, votesExcellent = 5, votesGood = 0, votesSatisfactory = 0, votesUnsatisfactory = 0, votesNotRated = 0, invalidVotes = 1, notes = "" }
+        };
+        var id13 = (await DataAsync(await s.CellLeaderA.PostAsJsonAsync("/api/evaluations/meetings", meeting13))).GetProperty("id").GetGuid();
+
+        var urls = new[]
+        {
+            $"/api/reports/docx/mau-07/{id07}", $"/api/reports/docx/mau-12/{id12}",
+            $"/api/reports/docx/mau-13/{id13}", $"/api/reports/docx/mau-16?periodId={s.PeriodId}"
+        };
+        try
+        {
+            await SetGuideAsync(admin, "55-HD/TVĐU", "2026-11-05");
+            foreach (var url in urls)
+            {
+                var text = await DocxTextAsync(s.CellLeaderA, url);
+                Assert.Contains("55-HD/TVĐU ngày 05/11/2026", text);
+            }
+
+            await SetGuideAsync(admin, null, null);
+            foreach (var url in urls)
+            {
+                var text = await DocxTextAsync(s.CellLeaderA, url);
+                Assert.DoesNotContain("55-HD/TVĐU", text);
+                Assert.Matches("Hướng dẫn số ?[….]+-HD/TVĐU ngày ?[….]", text);
+            }
+        }
+        finally
+        {
+            await SetGuideAsync(admin, "03-HD/TVĐU", "2026-09-10");
+        }
+    }
+
+    [SkippableFact]
+    public async Task G2_UnitShortName_ReadWrite_FirstChoiceInExportFileName()
+    {
+        SkipIfNoDatabase();
+        var s = await GetScenarioAsync();
+        var user = await _factory.CreateUserWithPermissionsAsync(PermissionCodes.CatalogManage);
+        var catalog = await _factory.LoginAsAsync(user.Username, user.Password, distinctClientIp: true);
+        var id07 = await Ensure07Async(s);
+
+        async Task<string> FileNameAsync()
+        {
+            var response = await s.CellLeaderA.GetAsync($"/api/reports/docx/mau-07/{id07}");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            return response.Content.Headers.ContentDisposition?.FileNameStar ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? string.Empty;
+        }
+
+        var cells = await DataAsync(await catalog.GetAsync("/api/organizations/branches"));
+        var code = cells.EnumerateArray().Single(c => c.GetProperty("id").GetGuid() == s.CellA).GetProperty("code").GetString()!;
+        try
+        {
+            // Chưa có tên viết tắt: dùng mã tổ chức Đảng.
+            Assert.StartsWith($"Mau 07_{code}_", await FileNameAsync());
+
+            var update = await catalog.PutAsJsonAsync($"/api/organizations/branches/{s.CellA}", new { shortName = " Chi bo A " });
+            Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+            Assert.Equal("Chi bo A", (await DataAsync(update)).GetProperty("shortName").GetString());
+            Assert.StartsWith("Mau 07_ChiboA_Quy III-", await FileNameAsync());
+
+            // Quá 30 ký tự: từ chối, giữ giá trị cũ.
+            var tooLong = await catalog.PutAsJsonAsync($"/api/organizations/branches/{s.CellA}", new { shortName = new string('A', 31) });
+            Assert.Equal(HttpStatusCode.BadRequest, tooLong.StatusCode);
+            Assert.Contains("Tên viết tắt", JsonDocument.Parse(await tooLong.Content.ReadAsStringAsync()).RootElement.GetProperty("message").GetString());
+            var again = await DataAsync(await catalog.GetAsync($"/api/organizations/branches/{s.CellA}"));
+            Assert.Equal("Chi bo A", again.GetProperty("shortName").GetString());
+
+            // Không gửi shortName: giữ nguyên; gửi rỗng: xóa, quay về mã.
+            await catalog.PutAsJsonAsync($"/api/organizations/branches/{s.CellA}", new { description = "mô tả" });
+            Assert.Equal("Chi bo A", (await DataAsync(await catalog.GetAsync($"/api/organizations/branches/{s.CellA}"))).GetProperty("shortName").GetString());
+            await catalog.PutAsJsonAsync($"/api/organizations/branches/{s.CellA}", new { shortName = "" });
+            Assert.Equal(JsonValueKind.Null, (await DataAsync(await catalog.GetAsync($"/api/organizations/branches/{s.CellA}"))).GetProperty("shortName").ValueKind);
+            Assert.StartsWith($"Mau 07_{code}_", await FileNameAsync());
+        }
+        finally
+        {
+            await catalog.PutAsJsonAsync($"/api/organizations/branches/{s.CellA}", new { shortName = "" });
+        }
+    }
+
+    /// <summary>Mỗi tổ chức một hồ sơ Mẫu 07 trong kỳ: đã có (do test khác tạo) thì lấy lại.</summary>
+    private static async Task<Guid> Ensure07Async(Scenario s)
+    {
+        var response = await s.CellLeaderA.PostAsJsonAsync("/api/evaluations/collective-records",
+            Collective07(s, new Dictionary<string, string> { ["I.1"] = "Chấp hành tốt" }));
+        if (response.StatusCode == HttpStatusCode.Conflict)
+        {
+            var list = await DataAsync(await s.CellLeaderA.GetAsync($"/api/evaluations/collective-records?periodId={s.PeriodId}&form=M07"));
+            return list.EnumerateArray().First(r => r.GetProperty("partyCellId").GetGuid() == s.CellA).GetProperty("id").GetGuid();
+        }
+        return (await DataAsync(response)).GetProperty("id").GetGuid();
+    }
+
+    private async Task<HttpClient> LoginAdminAsync()
+    {
+        var user = await _factory.CreateUserWithPermissionsAsync(PermissionCodes.SystemSettingsManage);
+        return await _factory.LoginAsAsync(user.Username, user.Password, distinctClientIp: true);
+    }
+
+    /// <summary>Giữ nguyên các trường khác của cài đặt, chỉ đổi số và ngày văn bản hướng dẫn.</summary>
+    private static async Task SetGuideAsync(HttpClient admin, string? number, string? date)
+    {
+        var current = await DataAsync(await admin.GetAsync("/api/settings/organization"));
+        string Text(string name) => current.GetProperty(name).GetString() ?? string.Empty;
+        var response = await admin.PutAsJsonAsync("/api/settings/organization", new
+        {
+            partyCommitteeName = Text("partyCommitteeName"), superiorPartyName = Text("superiorPartyName"),
+            companyName = Text("companyName"), parentCompanyName = Text("parentCompanyName"), shortName = Text("shortName"),
+            location = Text("location"), appraisalUnitName = Text("appraisalUnitName"), systemName = Text("systemName"),
+            guideDocumentNumber = number, guideDocumentDate = date
+        });
+        Assert.True(response.StatusCode == HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+    }
+
     [SkippableFact]
     public async Task R5_RemovedReports_Return404_InternalReportsRemain()
     {

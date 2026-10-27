@@ -69,6 +69,10 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<string>("ShortName")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 
@@ -2388,6 +2392,13 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<DateOnly?>("GuideDocumentDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("GuideDocumentNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -2496,6 +2507,10 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ShortName")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");

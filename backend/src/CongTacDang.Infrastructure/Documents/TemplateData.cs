@@ -232,11 +232,18 @@ public sealed class OrganizationTemplateFields
     /// <summary>Tiêu đề trái Mẫu 10.</summary>
     [TemplateField("ORG_APPRAISAL_UNIT_UPPER")] public string? AppraisalUnitNameUpper { get; init; }
 
+    /// <summary>Số văn bản hướng dẫn ở dòng "Căn cứ Hướng dẫn số …"; trống → giữ dòng chấm.</summary>
+    [TemplateField("ORG_GUIDE_NO")] public string? GuideNumber { get; init; }
+
+    /// <summary>Ngày văn bản hướng dẫn dạng dd/MM/yyyy; trống → giữ dòng chấm.</summary>
+    [TemplateField("ORG_GUIDE_DATE")] public string? GuideDate { get; init; }
+
     public static IReadOnlyList<TemplateTagInfo> Tags { get; } = TemplateTagCatalog.Describe(typeof(OrganizationTemplateFields));
 
     public static OrganizationTemplateFields From(
         string? partyCommitteeName, string? superiorPartyName, string? companyName,
-        string? parentCompanyName, string? shortName, string? location, string? appraisalUnitName = null) => new()
+        string? parentCompanyName, string? shortName, string? location, string? appraisalUnitName = null,
+        string? guideNumber = null, DateOnly? guideDate = null) => new()
     {
         PartyCommitteeName = OrNull(partyCommitteeName),
         SuperiorPartyName = OrNull(superiorPartyName),
@@ -246,7 +253,9 @@ public sealed class OrganizationTemplateFields
         ParentCompanyNameUpper = OrNull(parentCompanyName)?.ToUpper(Vietnamese),
         ShortName = OrNull(shortName),
         Location = OrNull(location),
-        AppraisalUnitNameUpper = OrNull(appraisalUnitName)?.ToUpper(Vietnamese)
+        AppraisalUnitNameUpper = OrNull(appraisalUnitName)?.ToUpper(Vietnamese),
+        GuideNumber = OrNull(guideNumber),
+        GuideDate = guideDate?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)
     };
 
     private static string? OrNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

@@ -11,9 +11,10 @@ import {
   organizationSettingsService,
   SaveOrganizationSettingsPayload,
 } from "@/services/organizationSettingsService";
+import { DateField } from "@/components/evaluations/DateField";
 import styles from "./settings.module.css";
 
-type TextPayload = Omit<SaveOrganizationSettingsPayload, "loginPanelPosition">;
+type TextPayload = Omit<SaveOrganizationSettingsPayload, "loginPanelPosition" | "guideDocumentNumber" | "guideDocumentDate">;
 type FieldKey = keyof TextPayload;
 
 interface FieldMeta {
@@ -102,6 +103,8 @@ export default function OrganizationSettingsPage() {
   const [form, setForm] = useState<TextPayload>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [guideNumber, setGuideNumber] = useState("");
+  const [guideDate, setGuideDate] = useState("");
 
   useEffect(() => {
     organizationSettingsService
@@ -109,13 +112,19 @@ export default function OrganizationSettingsPage() {
       .then((data) => {
         setSettings(data);
         setForm(toPayload(data));
+        setGuideNumber(data.guideDocumentNumber ?? "");
+        setGuideDate(data.guideDocumentDate ?? "");
       })
       .catch((err) => toast.error(errorMessage(err, "Tải thông tin đơn vị không thành công."), errorTitle(err)))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const dirty = settings !== null && FIELDS.some((f) => form[f.key] !== settings[f.key]);
+  const dirty =
+    settings !== null &&
+    (FIELDS.some((f) => form[f.key] !== settings[f.key]) ||
+      guideNumber !== (settings.guideDocumentNumber ?? "") ||
+      guideDate !== (settings.guideDocumentDate ?? ""));
   const shortNameInvalid = form.shortName.trim().length > 0 && !/^[A-Za-z0-9_-]+$/.test(form.shortName.trim());
   const missing = FIELDS.filter((f) => !f.optional && form[f.key].trim().length === 0);
 
@@ -138,9 +147,16 @@ export default function OrganizationSettingsPage() {
       const trimmed = Object.fromEntries(
         FIELDS.map((f) => [f.key, form[f.key].trim()])
       ) as TextPayload;
-      const saved = await organizationSettingsService.update({ ...trimmed, loginPanelPosition: settings?.loginPanelPosition ?? "center" });
+      const saved = await organizationSettingsService.update({
+        ...trimmed,
+        guideDocumentNumber: guideNumber.trim() || null,
+        guideDocumentDate: guideDate || null,
+        loginPanelPosition: settings?.loginPanelPosition ?? "center",
+      });
       setSettings(saved);
       setForm(toPayload(saved));
+      setGuideNumber(saved.guideDocumentNumber ?? "");
+      setGuideDate(saved.guideDocumentDate ?? "");
       toast.success("Đã cập nhật thông tin đơn vị.");
     } catch (err) {
       toast.error(errorMessage(err, "Lưu thông tin đơn vị không thành công."), errorTitle(err), 8000);
@@ -195,6 +211,21 @@ export default function OrganizationSettingsPage() {
                       </div>
                     );
                   })}
+                  <div className="col-12 col-lg-6">
+                    <label className="form-label" htmlFor="org-guideDocumentNumber">Số văn bản hướng dẫn</label>
+                    <input
+                      id="org-guideDocumentNumber"
+                      className="form-control form-control-sm"
+                      value={guideNumber}
+                      maxLength={50}
+                      disabled={!canManage || saving}
+                      onChange={(e) => setGuideNumber(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-12 col-lg-6">
+                    <label className="form-label" htmlFor="org-guideDocumentDate">Ngày văn bản hướng dẫn</label>
+                    <DateField id="org-guideDocumentDate" value={guideDate} disabled={!canManage || saving} onChange={setGuideDate} />
+                  </div>
                 </div>
 
                 <div className={styles.footer}>
@@ -215,7 +246,12 @@ export default function OrganizationSettingsPage() {
                         type="button"
                         className={`btn btn-outline-secondary ${styles.action}`}
                         disabled={!dirty || saving}
-                        onClick={() => settings && setForm(toPayload(settings))}
+                        onClick={() => {
+                          if (!settings) return;
+                          setForm(toPayload(settings));
+                          setGuideNumber(settings.guideDocumentNumber ?? "");
+                          setGuideDate(settings.guideDocumentDate ?? "");
+                        }}
                       >
                         Hoàn tác
                       </button>

@@ -13,6 +13,10 @@ export interface OrganizationSettings {
   location: string;
   appraisalUnitName: string;
   systemName: string;
+  /** Số văn bản hướng dẫn in ở dòng "Căn cứ Hướng dẫn số …"; null = để dòng chấm. */
+  guideDocumentNumber?: string | null;
+  /** yyyy-MM-dd; null = để dòng chấm. */
+  guideDocumentDate?: string | null;
   loginPanelPosition: LoginPanelPosition;
   loginBackgroundUrl?: string | null;
   loginBackgroundFileName?: string | null;

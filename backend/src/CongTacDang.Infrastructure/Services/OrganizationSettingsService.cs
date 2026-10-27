@@ -115,6 +115,11 @@ public sealed class OrganizationSettingsService : IOrganizationSettingsService
             errors.Add($"Cơ quan thẩm định không được dài quá {OrganizationSettings.MaxNameLength} ký tự.");
         if (shortName.Length > 0 && !ShortNamePattern.IsMatch(shortName))
             errors.Add("Tên viết tắt chỉ gồm chữ không dấu, số, dấu gạch ngang hoặc gạch dưới (dùng trong tên tệp tải xuống), ví dụ \"ABC-CORP\".");
+        var guideNumber = request.GuideDocumentNumber?.Trim();
+        if (string.IsNullOrEmpty(guideNumber))
+            guideNumber = null;
+        else if (guideNumber.Length > OrganizationSettings.MaxGuideNumberLength)
+            errors.Add($"Số văn bản hướng dẫn dài tối đa {OrganizationSettings.MaxGuideNumberLength} ký tự.");
         var panelPosition = request.LoginPanelPosition?.Trim().ToLowerInvariant();
         if (panelPosition != null && !OrganizationSettings.LoginPanelPositions.Contains(panelPosition))
             errors.Add("Vị trí khung đăng nhập chỉ nhận một trong các giá trị: giữa, bên trái, bên phải.");
@@ -131,6 +136,8 @@ public sealed class OrganizationSettingsService : IOrganizationSettingsService
         entity.Location = location;
         entity.AppraisalUnitName = appraisalUnit;
         entity.SystemName = systemName;
+        entity.GuideDocumentNumber = guideNumber;
+        entity.GuideDocumentDate = request.GuideDocumentDate;
         if (panelPosition != null)
             entity.LoginPanelPosition = panelPosition;
         entity.UpdatedAt = DateTime.UtcNow;
@@ -269,7 +276,8 @@ public sealed class OrganizationSettingsService : IOrganizationSettingsService
     /// <summary>Thông tin đơn vị dạng tag dùng chung cho biểu mẫu Word.</summary>
     public static OrganizationTemplateFields ToTemplateFields(OrganizationSettingsDto settings) =>
         OrganizationTemplateFields.From(settings.PartyCommitteeName, settings.SuperiorPartyName, settings.CompanyName,
-            settings.ParentCompanyName, settings.ShortName, settings.Location, settings.AppraisalUnitName);
+            settings.ParentCompanyName, settings.ShortName, settings.Location, settings.AppraisalUnitName,
+            settings.GuideDocumentNumber, settings.GuideDocumentDate);
 
     private async Task<OrganizationSettingsDto> ToDtoAsync(OrganizationSettings entity, CancellationToken ct)
     {
@@ -290,6 +298,8 @@ public sealed class OrganizationSettingsService : IOrganizationSettingsService
             Location = entity.Location,
             AppraisalUnitName = entity.AppraisalUnitName,
             SystemName = entity.SystemName,
+            GuideDocumentNumber = entity.GuideDocumentNumber,
+            GuideDocumentDate = entity.GuideDocumentDate,
             LoginBackgroundUrl = entity.LoginBackgroundKey != null && entity.LoginBackgroundUpdatedAt is { } version
                 ? $"{LoginBackgroundPath}?v={version.Ticks}"
                 : null,
