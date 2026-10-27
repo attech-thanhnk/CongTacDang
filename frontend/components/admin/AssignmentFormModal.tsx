@@ -13,6 +13,7 @@ import {
 import { AdminModal } from "./AdminModal";
 import { UserPicker, PickedUser } from "./UserPicker";
 import { endOfDayExclusiveIso, exclusiveIsoToLastDayInput, startOfDayIso, toDateInput } from "./adminUtils";
+import { DateField } from "@/components/evaluations/DateField";
 
 export interface AssignmentFormModalProps {
   /** Sửa bản gán (chỉ thời hạn + ghi chú). Không truyền → tạo mới. */
@@ -201,14 +202,14 @@ export function AssignmentFormModal({
         <div className="row g-2 mb-2">
           <div className="col-6">
             <label className="form-label">Hiệu lực từ ngày</label>
-            <input type="date" className="form-control form-control-sm" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
+            <DateField value={validFrom} onChange={setValidFrom} aria-label="Hiệu lực từ ngày" />
             <div className="form-text">{isEdit ? "Để trống = giữ nguyên." : "Để trống = ngay bây giờ."}</div>
           </div>
           <div className="col-6">
             <label className="form-label">Đến hết ngày</label>
-            <input type="date" className={`form-control form-control-sm${dateError ? " is-invalid" : ""}`} value={validTo} onChange={(e) => setValidTo(e.target.value)} />
+            <DateField value={validTo} onChange={setValidTo} invalid={!!dateError} aria-label="Đến hết ngày" />
             {dateError ? (
-              <div className="invalid-feedback">Phải bằng hoặc sau ngày bắt đầu.</div>
+              <div className="invalid-feedback d-block">Phải bằng hoặc sau ngày bắt đầu.</div>
             ) : (
               <div className="form-text">Để trống = không thời hạn.</div>
             )}

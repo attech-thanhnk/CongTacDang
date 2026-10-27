@@ -231,7 +231,7 @@ Khối **Biểu mẫu** ở cột phải liệt kê các mẫu áp dụng cho h�
 
 Thông tin trên biểu mẫu (họ tên, ngày sinh, chức vụ Đảng / chính quyền / đoàn thể, đơn vị) lấy từ hồ sơ cán bộ; Mẫu 09A và 09C đều in ngày sinh, chưa nhập thì giữ dòng chấm. Thiếu hoặc sai: xem [Câu hỏi thường gặp](#13-câu-hỏi-thường-gặp).
 
-Tệp tải về được đặt tên không dấu theo quy cách nộp báo cáo: `Mau <mã>_<tên viết tắt đơn vị>_Quy <số La Mã>-<năm>`, ví dụ `Mau 16_QLBMB_Quy III-2026.docx`. Phiếu của một cán bộ có thêm họ tên sau tên viết tắt, ví dụ `Mau 09A_ATTECH_Nguyen Van A_Quy III-2026.docx`. Tên viết tắt lấy từ **Cài đặt đơn vị**; chưa nhập thì tên tệp ghi `DonVi`.
+Tệp tải về được đặt tên không dấu theo quy cách nộp báo cáo: `Mau <mã>_<tên viết tắt đơn vị>_Quy <số La Mã>-<năm>`, ví dụ `Mau 16_QLBMB_Quy III-2026.docx`. Phiếu của một cán bộ có thêm họ tên sau tên viết tắt, ví dụ `Mau 09A_ATTECH_Nguyen Van A_Quy III-2026.docx`. Phần đơn vị lấy từ **Tên viết tắt** của tổ chức Đảng hoặc đơn vị (Danh mục tổ chức), chưa có thì mã của tổ chức đó, rồi đến tên viết tắt trong **Thông tin đơn vị**; không có gì thì ghi `DonVi`.
 
 ### 3.6 Khi hồ sơ bị trả lại
 
@@ -712,7 +712,7 @@ Menu **Hệ thống**, mục **Người thực hiện** (cần quyền Gán vai 
 
 Menu **Quản lý**, mục **Danh mục tổ chức** (mọi người xem được; sửa cần quyền Quản lý danh mục), gồm các thẻ:
 
-- **Đơn vị chính quyền**, **Tổ chức Đảng**: hai cây nhiều cấp. **Thêm … gốc**, thêm đơn vị con (menu hàng), **Sửa** (đổi cấp trên), ngừng hoạt động. **Mở rộng tất cả** / **Thu gọn tất cả** để xem cây.
+- **Đơn vị chính quyền**, **Tổ chức Đảng**: hai cây nhiều cấp, mỗi nút có **Tên viết tắt** (tùy chọn, dùng đặt tên tệp xuất). **Thêm … gốc**, thêm đơn vị con (menu hàng), **Sửa** (đổi cấp trên), ngừng hoạt động. **Mở rộng tất cả** / **Thu gọn tất cả** để xem cây.
 - **Loại đơn vị**: Công ty, Phòng, Chi bộ… (**Thêm loại đơn vị**).
 - **Chức vụ**: tên, bên (Đảng / chính quyền / đoàn thể), **Mã chức danh**, thẩm quyền quyết định xếp loại mặc định, kiểu trình bày biểu mẫu. Chức vụ đã từng gán cho cán bộ không xóa được, chỉ chuyển sang ngừng dùng.
 - **Kiểu trình bày biểu mẫu**: cách in Mẫu 09C, 9D (chức vụ một dòng hay 3 dòng, dòng ngày, chữ ghi khi không có chức vụ). Cán bộ giữ nhiều chức vụ khác kiểu thì dùng kiểu có thứ tự nhỏ hơn. **Nhân bản** để tạo kiểu mới từ kiểu có sẵn.
@@ -724,7 +724,7 @@ Menu **Hệ thống**, mục **Nhập dữ liệu**: chọn loại dữ liệu, 
 
 ### 11.6 Thông tin đơn vị
 
-Menu **Hệ thống**, mục **Thông tin đơn vị**. Sửa **Tên tổ chức Đảng cấp trên**, **Tên Đảng bộ**, **Tên đầy đủ của công ty**, **Tên đơn vị chủ quản cấp trên**, **Tên viết tắt**, **Địa danh**, **Cơ quan thẩm định** (in dưới tên công ty trên Phiếu thẩm định, Mẫu 10), **Tên hiển thị của hệ thống**. Các thông tin này in trên mọi biểu mẫu, báo cáo và hiện trên giao diện. Bấm **Lưu** (hoặc **Hoàn tác**). Cùng trang có khối **Màn hình đăng nhập** (ảnh nền, vị trí khung đăng nhập).
+Menu **Hệ thống**, mục **Thông tin đơn vị**. Sửa **Tên tổ chức Đảng cấp trên**, **Tên Đảng bộ**, **Tên đầy đủ của công ty**, **Tên đơn vị chủ quản cấp trên**, **Tên viết tắt**, **Địa danh**, **Cơ quan thẩm định** (in dưới tên công ty trên Phiếu thẩm định, Mẫu 10), **Tên hiển thị của hệ thống**, **Số văn bản hướng dẫn** và **Ngày văn bản hướng dẫn** (in ở dòng "Căn cứ Hướng dẫn số … ngày …" trên Mẫu 07, 12, 13, 16 và Quyết định; để trống thì giữ dòng chấm). Các thông tin này in trên mọi biểu mẫu, báo cáo và hiện trên giao diện. Bấm **Lưu** (hoặc **Hoàn tác**). Cùng trang có khối **Màn hình đăng nhập** (ảnh nền, vị trí khung đăng nhập).
 
 ### 11.7 Biểu mẫu Word
 

@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Text;
+using CongTacDang.Domain.Entities;
 
 namespace CongTacDang.Application.Common;
 
@@ -38,6 +39,26 @@ public static class ExportFileName
         }
         return builder.ToString().Trim('-', ' ');
     }
+
+    /// <summary>
+    /// Phần đơn vị của tên tệp: tên viết tắt của đơn vị / tổ chức Đảng, rồi mã, rồi tên viết tắt trong cài đặt đơn vị.
+    /// </summary>
+    public static string? Unit(string? unitShortName, string? unitCode, string? orgShortName)
+    {
+        foreach (var candidate in new[] { unitShortName, unitCode, orgShortName })
+        {
+            if (!string.IsNullOrWhiteSpace(candidate))
+                return candidate.Trim();
+        }
+        return null;
+    }
+
+    /// <inheritdoc cref="Unit(string?, string?, string?)"/>
+    public static string? Unit(IOrgUnit? unit, string? orgShortName) => Unit(unit?.ShortName, unit?.Code, orgShortName);
+
+    /// <summary>Phiếu cá nhân: tên viết tắt của tổ chức Đảng, rồi của đơn vị chính quyền của hồ sơ; không có thì tên viết tắt trong cài đặt đơn vị (không dùng mã).</summary>
+    public static string? PersonalUnit(IOrgUnit? partyCell, IOrgUnit? department, string? orgShortName) =>
+        Unit(partyCell?.ShortName ?? department?.ShortName, null, orgShortName);
 
     /// <summary>"Quy III-2026"; thiếu quý hoặc năm thì null.</summary>
     public static string? Period(int? quarter, int? year)

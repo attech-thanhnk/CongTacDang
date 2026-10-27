@@ -23,6 +23,7 @@ Giới hạn: file `.xlsx` ≤ 5 MB, ≤ 2.000 dòng dữ liệu (dòng trống 
 |---|---|---|
 | Mã đơn vị | Có | Không khoảng trắng; chuẩn hóa chữ hoa. Mã đã có → **Cập nhật**, chưa có → **Tạo mới**. Mã của đơn vị đã xóa → lỗi |
 | Tên đơn vị | Có | ≤ 200 ký tự |
+| Tên viết tắt | Không | ≤ 30 ký tự, dùng đặt tên tệp xuất. Trống: tạo mới → không có; cập nhật → giữ nguyên |
 | Mã đơn vị cấp trên | Không | Mã đã có hoặc có trong cùng file (thứ tự dòng tùy ý). Trống: tạo mới → đơn vị gốc (chỉ khi cây chưa có gốc); cập nhật → giữ nguyên cấp trên |
 | Loại đơn vị | Có | Tên trong danh mục loại đơn vị bên chính quyền, đang dùng |
 | Thứ tự | Không | Số nguyên |
@@ -32,7 +33,7 @@ Kiểm tra: trùng mã trong file, cấp trên không tồn tại/đã xóa, m�
 
 ### 2. Tổ chức Đảng (`party-cells`) — cần `catalog.manage`
 
-Như đơn vị chính quyền với các cột: **Mã tổ chức Đảng**, **Tên tổ chức Đảng**, **Mã tổ chức cấp trên**, **Loại tổ chức** (danh mục loại đơn vị bên Đảng), Thứ tự, Mô tả.
+Như đơn vị chính quyền với các cột: **Mã tổ chức Đảng**, **Tên tổ chức Đảng**, **Tên viết tắt** (tùy chọn, như đơn vị chính quyền), **Mã tổ chức cấp trên**, **Loại tổ chức** (danh mục loại đơn vị bên Đảng), Thứ tự, Mô tả.
 
 ### 3. Cán bộ và tài khoản (`users`) — cần `system.users.manage`
 

@@ -70,6 +70,27 @@ public class ImportTests
     }
 
     [Fact]
+    public async Task Departments_ShortName_OptionalAndLimitedTo30Characters()
+    {
+        var definition = new DepartmentImportDefinition(OrgLookup(), null!);
+        var columns = await definition.GetTemplateColumnsAsync();
+        var shortName = columns.Single(c => c.Key == "shortName");
+        Assert.Equal("Tên viết tắt", shortName.Header);
+        Assert.False(shortName.Required);
+
+        var analysis = await definition.AnalyzeAsync(new[]
+        {
+            Row(2, ("code", "PH-TC"), ("name", "Phòng Tài chính"), ("parentCode", "CTY"), ("unitType", "Phòng"), ("shortName", "TC")),
+            Row(3, ("code", "PH-NS"), ("name", "Phòng Nhân sự"), ("parentCode", "CTY"), ("unitType", "Phòng"), ("shortName", new string('A', 31))),
+            Dept(4, "PH-KH", "Phòng Kế hoạch", "CTY", "Phòng"),
+        });
+
+        Assert.True(analysis.Rows.Single(r => r.RowNumber == 2).IsValid);
+        Assert.Contains(analysis.Rows.Single(r => r.RowNumber == 3).Errors, e => e.Contains("Tên viết tắt") && e.Contains("30"));
+        Assert.True(analysis.Rows.Single(r => r.RowNumber == 4).IsValid);
+    }
+
+    [Fact]
     public async Task Departments_DetectCycleInFile()
     {
         var definition = new DepartmentImportDefinition(OrgLookup(), null!);

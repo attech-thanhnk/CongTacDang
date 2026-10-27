@@ -34,6 +34,40 @@ public class OrgSettingsTemplateTests
     }
 
     [Fact]
+    public void DefaultSettings_HaveGuideNumberAndDate()
+    {
+        var defaults = DataSeeder.DefaultOrganizationSettings();
+
+        Assert.Equal("03-HD/TVĐU", defaults.GuideDocumentNumber);
+        Assert.Equal(new DateOnly(2026, 9, 10), defaults.GuideDocumentDate);
+        var fields = OrganizationTemplateFields.From(defaults.PartyCommitteeName, defaults.SuperiorPartyName, defaults.CompanyName,
+            defaults.ParentCompanyName, defaults.ShortName, defaults.Location, defaults.AppraisalUnitName,
+            defaults.GuideDocumentNumber, defaults.GuideDocumentDate);
+        Assert.Equal("03-HD/TVĐU", fields.GuideNumber);
+        Assert.Equal("10/09/2026", fields.GuideDate);
+    }
+
+    public static IEnumerable<object[]> GuideForms() =>
+        new[] { "MAU_07", "MAU_12", "MAU_13", "MAU_16", "MAU_QD" }.Select(code => new object[] { code });
+
+    [Theory]
+    [MemberData(nameof(GuideForms))]
+    public void GuideReference_Printed_WhenSet_AndDotsKept_WhenEmpty(string code)
+    {
+        var form = WordFormCatalog.Find(code)!;
+        var template = Bundled.Load(form.TemplateFileName);
+
+        var filled = OrganizationTemplateFields.From("A", "B", "C", "D", "E", "F", null, "55-HD/TVĐU", new DateOnly(2026, 11, 5));
+        var text = BodyText(DocxTemplateEngine.Render(template, TemplateDataBinder.Bind(filled)).Content);
+        Assert.Contains("55-HD/TVĐU ngày 05/11/2026", text);
+
+        var empty = OrganizationTemplateFields.From("A", "B", "C", "D", "E", "F");
+        var emptyText = BodyText(DocxTemplateEngine.Render(template, TemplateDataBinder.Bind(empty)).Content);
+        Assert.DoesNotContain("55-HD/TVĐU", emptyText);
+        Assert.Matches("Hướng dẫn số ?[….]+-HD/TVĐU ngày ?[….]", emptyText);
+    }
+
+    [Fact]
     public void Mau10_HeaderIsCompanyAndAppraisalUnit_EmptyUnitKeepsFormText()
     {
         var (_, records) = DocumentTemplateTests.SampleData();

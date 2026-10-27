@@ -10,6 +10,12 @@ interface Props {
   onChange: (value: string) => void;
   required?: boolean;
   disabled?: boolean;
+  /** yyyy-MM-dd; ngày nhỏ hơn bị coi là không hợp lệ. */
+  min?: string;
+  /** yyyy-MM-dd; ngày lớn hơn bị coi là không hợp lệ. */
+  max?: string;
+  /** Viền đỏ do lỗi của form cha (thông báo do form cha hiển thị). */
+  invalid?: boolean;
   "aria-label"?: string;
 }
 
@@ -40,12 +46,16 @@ function mask(raw: string): string {
 }
 
 /** Ô ngày luôn hiển thị dd/MM/yyyy (ô date gốc theo ngôn ngữ trình duyệt có thể ra mm/dd/yyyy); nút lịch mở bộ chọn ngày của trình duyệt. */
-export function DateField({ id, value, onChange, required, disabled, "aria-label": ariaLabel }: Props) {
+export function DateField({ id, value, onChange, required, disabled, min, max, invalid: invalidFromParent, "aria-label": ariaLabel }: Props) {
   const [text, setText] = useState(toDisplay(value));
   const [touched, setTouched] = useState(false);
   const picker = useRef<HTMLInputElement>(null);
   const input = useRef<HTMLInputElement>(null);
-  const invalid = text !== "" && toIso(text) === "";
+  const iso = toIso(text);
+  const badFormat = text !== "" && iso === "";
+  const outOfRange = iso !== "" && ((!!min && iso < min) || (!!max && iso > max));
+  const invalid = badFormat || outOfRange;
+  const message = badFormat ? "Ngày theo dạng dd/mm/yyyy." : "Ngày ngoài khoảng cho phép.";
 
   // Giá trị đổi từ ngoài (chọn trên lịch, đặt lại form) thì hiện lại; đang gõ dở thì giữ nguyên.
   useEffect(() => {
@@ -53,8 +63,8 @@ export function DateField({ id, value, onChange, required, disabled, "aria-label
   }, [value]);
 
   useEffect(() => {
-    input.current?.setCustomValidity(invalid ? "Ngày theo dạng dd/mm/yyyy." : "");
-  }, [invalid]);
+    input.current?.setCustomValidity(invalid ? message : "");
+  }, [invalid, message]);
 
   const openPicker = () => {
     const el = picker.current;
@@ -77,7 +87,7 @@ export function DateField({ id, value, onChange, required, disabled, "aria-label
           autoComplete="off"
           placeholder="dd/mm/yyyy"
           maxLength={10}
-          className={`form-control form-control-sm ${touched && invalid ? "is-invalid" : ""}`}
+          className={`form-control form-control-sm ${(touched && invalid) || invalidFromParent ? "is-invalid" : ""}`}
           value={text}
           required={required}
           disabled={disabled}
@@ -93,7 +103,7 @@ export function DateField({ id, value, onChange, required, disabled, "aria-label
         <button type="button" className="btn btn-outline-secondary" disabled={disabled} onClick={openPicker} aria-label="Chọn ngày" title="Chọn ngày">
           <i className="bi bi-calendar3" aria-hidden="true" />
         </button>
-      {touched && invalid && <div className="invalid-feedback">Ngày theo dạng dd/mm/yyyy.</div>}
+      {touched && invalid && <div className="invalid-feedback">{message}</div>}
       </div>
       {/* Ô date ẩn chỉ để mở bộ chọn ngày gốc. */}
       <input
@@ -104,6 +114,8 @@ export function DateField({ id, value, onChange, required, disabled, "aria-label
         className="position-absolute bottom-0 end-0 opacity-0 border-0 p-0"
         style={{ width: 1, height: 1, pointerEvents: "none" }}
         value={value}
+        min={min}
+        max={max}
         onChange={(e) => onChange(e.target.value)}
       />
     </div>

@@ -395,7 +395,9 @@ public static class DataSeeder
         ShortName = "ATTECH",
         Location = "Hà Nội",
         AppraisalUnitName = "Phòng Tổ chức cán bộ - Lao động",
-        SystemName = "Đảng bộ ATTECH"
+        SystemName = "Đảng bộ ATTECH",
+        GuideDocumentNumber = "03-HD/TVĐU",
+        GuideDocumentDate = new DateOnly(2026, 9, 10)
     };
 
     /// <summary>Không ghi đè giá trị quản trị đã sửa.</summary>

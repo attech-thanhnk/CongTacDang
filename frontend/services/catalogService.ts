@@ -8,6 +8,8 @@ export interface CatalogItem {
   id: string;
   code: string;
   name: string;
+  /** Tên viết tắt dùng đặt tên tệp xuất; null = chưa nhập. */
+  shortName?: string | null;
   description?: string;
   sortOrder: number;
   isActive: boolean;
@@ -29,6 +31,8 @@ export interface CatalogItem {
 export interface SaveCatalogItemPayload {
   code?: string;
   name?: string;
+  /** Rỗng = xóa tên viết tắt. */
+  shortName?: string;
   description?: string;
   sortOrder?: number;
   isActive?: boolean;

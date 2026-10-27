@@ -14,6 +14,7 @@ import {
 import { AdminModal } from "./AdminModal";
 import { usePermissionScope } from "@/services/authService";
 import { toDateInput } from "./adminUtils";
+import { DateField } from "@/components/evaluations/DateField";
 
 interface FormState {
   username: string;
@@ -194,14 +195,12 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
           </div>
           <div className="col-12 col-md-6">
             <label className="form-label" htmlFor="account-date-of-birth">Ngày sinh</label>
-            <input
+            <DateField
               id="account-date-of-birth"
-              type="date"
-              className="form-control form-control-sm"
               value={form.dateOfBirth}
               min={minBirthDate}
               max={maxBirthDate}
-              onChange={(e) => set("dateOfBirth", e.target.value)}
+              onChange={(value) => set("dateOfBirth", value)}
             />
           </div>
           <div className="col-12 col-md-6">

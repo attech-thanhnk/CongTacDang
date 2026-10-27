@@ -17,6 +17,8 @@ public class OrganizationSettings : IAuditableEntity
 
     public const int MaxFileNameLength = 255;
 
+    public const int MaxGuideNumberLength = 50;
+
     public const string PanelCenter = "center";
     public const string PanelLeft = "left";
     public const string PanelRight = "right";
@@ -47,6 +49,12 @@ public class OrganizationSettings : IAuditableEntity
 
     /// <summary>Dòng thứ hai tiêu đề trái Mẫu 10; rỗng thì giữ chữ "CƠ QUAN THẨM ĐỊNH" của biểu mẫu.</summary>
     public string AppraisalUnitName { get; set; } = string.Empty;
+
+    /// <summary>Số văn bản hướng dẫn in ở dòng "Căn cứ Hướng dẫn số …" (ví dụ "03-HD/TVĐU"); null = để dòng chấm.</summary>
+    public string? GuideDocumentNumber { get; set; }
+
+    /// <summary>Ngày văn bản hướng dẫn; null = để dòng chấm.</summary>
+    public DateOnly? GuideDocumentDate { get; set; }
 
     /// <summary>Tên hệ thống trên giao diện.</summary>
     public string SystemName { get; set; } = string.Empty;

@@ -21,6 +21,7 @@ public sealed class PartyCellConfiguration : IEntityTypeConfiguration<PartyCell>
         entity.HasIndex(e => e.ParentId);
         entity.HasIndex(e => e.Path);
         entity.Property(e => e.Code).HasMaxLength(50).IsRequired();
+        entity.Property(e => e.ShortName).HasMaxLength(CatalogShortName.MaxLength);
         entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
         entity.Property(e => e.Path).HasMaxLength(OrganizationColumns.PathMaxLength).IsRequired();
         entity.HasQueryFilter(e => !e.IsDeleted);
@@ -48,6 +49,7 @@ public sealed class AdministrativeDepartmentConfiguration : IEntityTypeConfigura
         entity.HasIndex(e => e.ParentId);
         entity.HasIndex(e => e.Path);
         entity.Property(e => e.Code).HasMaxLength(50).IsRequired();
+        entity.Property(e => e.ShortName).HasMaxLength(CatalogShortName.MaxLength);
         entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
         entity.Property(e => e.Path).HasMaxLength(OrganizationColumns.PathMaxLength).IsRequired();
         entity.HasQueryFilter(e => !e.IsDeleted);

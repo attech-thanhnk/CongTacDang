@@ -27,6 +27,11 @@ public sealed class OrganizationSettingsDto
 
     public string SystemName { get; set; } = string.Empty;
 
+    /// <summary>Số văn bản hướng dẫn in trên biểu mẫu; null = để dòng chấm.</summary>
+    public string? GuideDocumentNumber { get; set; }
+
+    public DateOnly? GuideDocumentDate { get; set; }
+
     /// <summary>URL tương đối kèm <c>?v=</c>; null = không có ảnh nền đăng nhập.</summary>
     public string? LoginBackgroundUrl { get; set; }
 
@@ -69,6 +74,11 @@ public sealed class UpdateOrganizationSettingsDto
     public string? Location { get; set; }
     public string? AppraisalUnitName { get; set; }
     public string? SystemName { get; set; }
+
+    /// <summary>Rỗng/null = bỏ số văn bản (để dòng chấm).</summary>
+    public string? GuideDocumentNumber { get; set; }
+
+    public DateOnly? GuideDocumentDate { get; set; }
 
     /// <summary>null = giữ nguyên.</summary>
     public string? LoginPanelPosition { get; set; }

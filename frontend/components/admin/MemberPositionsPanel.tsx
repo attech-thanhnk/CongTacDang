@@ -27,6 +27,7 @@ import {
   startOfDayIso,
   toDateInput,
 } from "./adminUtils";
+import { DateField } from "@/components/evaluations/DateField";
 
 interface PositionForm {
   id?: string;
@@ -441,12 +442,12 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
             <div className="row g-2 mb-2">
               <div className="col-6">
                 <label className="form-label">Từ ngày</label>
-                <input type="date" className="form-control form-control-sm" value={form.validFrom} onChange={(e) => setForm({ ...form, validFrom: e.target.value })} />
+                <DateField value={form.validFrom} onChange={(value) => setForm({ ...form, validFrom: value })} aria-label="Từ ngày" />
                 <div className="form-text">{form.id ? "Để trống = giữ nguyên." : "Để trống = hôm nay."}</div>
               </div>
               <div className="col-6">
                 <label className="form-label">Đến hết ngày</label>
-                <input type="date" className="form-control form-control-sm" value={form.validTo} onChange={(e) => setForm({ ...form, validTo: e.target.value })} />
+                <DateField value={form.validTo} onChange={(value) => setForm({ ...form, validTo: value })} aria-label="Đến hết ngày" />
                 <div className="form-text">Để trống = không thời hạn.</div>
               </div>
             </div>

@@ -36,7 +36,7 @@ public sealed class ImprovementPlanDocumentService : IImprovementPlanDocument
         var bytes = DocxTemplateEngine.Render(template, data).Content;
 
         var fullName = string.IsNullOrWhiteSpace(record.Member?.FullName) ? "CanBo" : record.Member!.FullName;
-        var fileName = ExportFileName.Build("Mau 17", (await _orgSettings.GetAsync(ct)).ShortName, fullName, record.Period == null ? null : (int)record.Period.Quarter, record.Period?.Year, ".docx");
+        var fileName = ExportFileName.Build("Mau 17", ExportFileName.PersonalUnit(record.PartyCell, record.Department, (await _orgSettings.GetAsync(ct)).ShortName), fullName, record.Period == null ? null : (int)record.Period.Quarter, record.Period?.Year, ".docx");
         if (format != ReportFormat.Pdf)
             return new ReportFileResult { FileBytes = bytes, ContentType = DocxMimeType, FileName = fileName };
 

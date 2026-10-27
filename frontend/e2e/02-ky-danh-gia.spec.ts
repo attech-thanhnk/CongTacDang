@@ -49,7 +49,7 @@ test.describe.serial('Kỳ đánh giá', () => {
     const datThoiHan = page.getByRole('button', { name: 'Đặt thời hạn' });
     if (await datThoiHan.isVisible()) {
       await datThoiHan.click();
-      await page.getByLabel('Thời hạn — Công bố và lưu trữ kết quả', { exact: true }).fill('2026-12-31');
+      await page.getByLabel('Thời hạn — Công bố và lưu trữ kết quả', { exact: true }).fill('31/12/2026');
       await page.getByRole('button', { name: 'Lưu', exact: true }).click();
       await expect(thongBao(page, 'Đã lưu cấu hình kỳ.')).toBeVisible();
     }

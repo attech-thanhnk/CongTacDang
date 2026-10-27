@@ -1,4 +1,5 @@
 using CongTacDang.Application.Common;
+using CongTacDang.Domain.Entities;
 using Xunit;
 
 namespace CongTacDang.UnitTests;
@@ -54,6 +55,42 @@ public class ExportFileNameTests
     [InlineData(2, "Quy II-2026")]
     [InlineData(4, "Quy IV-2026")]
     public void Period_UsesRomanQuarter(int quarter, string expected) => Assert.Equal(expected, ExportFileName.Period(quarter, 2026));
+
+    [Theory]
+    [InlineData("KT", "PH-KT", "ATTECH", "KT")]
+    [InlineData(null, "PH-KT", "ATTECH", "PH-KT")]
+    [InlineData("  ", "PH-KT", "ATTECH", "PH-KT")]
+    [InlineData(null, "", "ATTECH", "ATTECH")]
+    public void Unit_PrefersUnitShortName_ThenCode_ThenOrganizationShortName(string? unitShort, string? code, string? org, string expected) =>
+        Assert.Equal(expected, ExportFileName.Unit(unitShort, code, org));
+
+    [Fact]
+    public void Unit_NothingAvailable_IsNull() => Assert.Null(ExportFileName.Unit(null, null, " "));
+
+    [Fact]
+    public void Unit_FromOrgUnit_UsesShortNameThenCode()
+    {
+        var withShort = new PartyCell { Code = "CB-KT", ShortName = "CBKT" };
+        var withoutShort = new AdministrativeDepartment { Code = "PH-KT" };
+
+        Assert.Equal("CBKT", ExportFileName.Unit(withShort, "ATTECH"));
+        Assert.Equal("PH-KT", ExportFileName.Unit(withoutShort, "ATTECH"));
+        Assert.Equal("ATTECH", ExportFileName.Unit(null, "ATTECH"));
+        Assert.Equal("Mau 16_CBKT_Quy III-2026.docx", ExportFileName.Build("Mau 16", ExportFileName.Unit(withShort, "ATTECH"), null, 3, 2026, ".docx"));
+    }
+
+    [Fact]
+    public void PersonalUnit_UsesShortNameOnly_NeverCode()
+    {
+        var cell = new PartyCell { Code = "CB-KT", ShortName = "CBKT" };
+        var cellNoShort = new PartyCell { Code = "CB-KT" };
+        var department = new AdministrativeDepartment { Code = "PH-KT", ShortName = "KT" };
+
+        Assert.Equal("CBKT", ExportFileName.PersonalUnit(cell, department, "ATTECH"));
+        Assert.Equal("KT", ExportFileName.PersonalUnit(cellNoShort, department, "ATTECH"));
+        Assert.Equal("ATTECH", ExportFileName.PersonalUnit(cellNoShort, new AdministrativeDepartment { Code = "PH-KT" }, "ATTECH"));
+        Assert.Equal("ATTECH", ExportFileName.PersonalUnit(null, null, "ATTECH"));
+    }
 
     [Fact]
     public void Period_MissingPart_IsNull()

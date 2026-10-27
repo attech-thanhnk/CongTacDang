@@ -7,6 +7,9 @@ public class SaveCatalogItemDto
     /// Thêm Chi bộ để trống → tự sinh; thêm Phòng bắt buộc nhập.</summary>
     public string? Code { get; set; }
 
+    /// <summary>Tên viết tắt (tối đa 30 ký tự), dùng đặt tên tệp xuất. Cập nhật: null = giữ nguyên, rỗng = xóa.</summary>
+    public string? ShortName { get; set; }
+
     /// <summary>Bắt buộc khi thêm mới.</summary>
     public string? Name { get; set; }
 

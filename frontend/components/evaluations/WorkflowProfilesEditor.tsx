@@ -24,6 +24,7 @@ import {
   WorkflowStepCode,
 } from "@/services/evaluationService";
 import { DEADLINE_RULE_LABELS, DEADLINE_RULE_LIMITS, DeadlineRuleKind } from "@/services/deadlineRules";
+import { DateField } from "@/components/evaluations/DateField";
 
 interface Props {
   settings: PeriodSettings;
@@ -231,9 +232,9 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
                                 onChange={(e) => setRuleValue(step, Number(e.target.value))} />
                             )}
                           </div>
-                          <input type="date" className="form-control form-control-sm" value={setting.deadline || ""}
+                          <DateField value={setting.deadline || ""}
                             disabled={!deadlinesEditable || setting.mode === "Off"} aria-label={`Thời hạn — ${STEP_NAMES[step]}`}
-                            onChange={(e) => setStep(step, { deadline: e.target.value || null })} />                        </div>
+                            onChange={(value) => setStep(step, { deadline: value || null })} />                        </div>
                       </td>
                     </tr>
                   );

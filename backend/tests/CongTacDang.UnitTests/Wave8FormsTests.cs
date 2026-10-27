@@ -61,7 +61,8 @@ public class Wave8FormsTests
     {
         var (period, records) = DocumentTemplateTests.SampleData();
         var template = new FileWordTemplateStore().Load(Mau13Data.TemplateFileName);
-        var data = TemplateDataBinder.Bind(Mau13Sample(period, records));
+        var org = OrganizationTemplateFields.From("A", "B", "C", "D", "E", "F");
+        var data = TemplateDataBinder.Bind(Mau13Sample(period, records)).WithShared(TemplateDataBinder.Bind(org));
 
         var result = DocxTemplateEngine.Render(template, data);
 

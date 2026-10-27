@@ -981,21 +981,24 @@ public partial class ReportService : IReportService
         return cell != null ? $"{periodTitle} - {cell.Name.ToUpper(Vietnamese)}" : periodTitle;
     }
 
-    private static string ExcelFileName(string baseName, string? shortName, EvaluationPeriod? period, PartyCell? cell) =>
+    private static string ExcelFileName(string baseName, string? shortName, EvaluationPeriod? period, IOrgUnit? cell) =>
         ScopedFileName(baseName, shortName, cell, period, ".xlsx");
 
     /// <summary>Tên tệp không dấu "Mau bao cao_Ten viet tat_Ky bao cao", ví dụ "Mau 16_QLBMB_Quy III-2026".</summary>
-    private static string Hd03FileName(string formCode, string? shortName, PartyCell? cell, EvaluationPeriod? period, string extension)
+    private static string Hd03FileName(string formCode, string? shortName, IOrgUnit? cell, EvaluationPeriod? period, string extension)
         => ScopedFileName($"Mau {formCode}", shortName, cell, period, extension);
 
-    /// <summary>Tổ chức Đảng thì lấy mã tổ chức (viết tắt), không thì tên viết tắt trong cài đặt đơn vị.</summary>
-    private static string ScopedFileName(string prefix, string? shortName, PartyCell? cell, EvaluationPeriod? period, string extension)
+    /// <summary>Đơn vị / tổ chức Đảng: tên viết tắt rồi mã; không có thì tên viết tắt trong cài đặt đơn vị.</summary>
+    private static string ScopedFileName(string prefix, string? shortName, IOrgUnit? cell, EvaluationPeriod? period, string extension)
     {
-        var unit = cell == null ? shortName : string.IsNullOrWhiteSpace(cell.Code) ? cell.Name : cell.Code;
+        var unit = ExportFileName.Unit(cell, shortName);
         return ExportFileName.Build(prefix, unit, null, period == null ? null : (int)period.Quarter, period?.Year, extension);
     }
 
-    /// <summary>Phiếu của một cán bộ: thêm họ tên sau tên viết tắt để các tệp cùng kỳ không trùng nhau.</summary>
+    /// <summary>Phiếu của một cán bộ: thêm họ tên sau tên viết tắt để các tệp cùng kỳ không trùng nhau; có tên viết tắt của tổ chức Đảng / đơn vị của hồ sơ thì dùng tên đó.</summary>
+    private static string PersonalFileName(string formCode, string? shortName, string? fullName, EvaluationRecord record, string extension) =>
+        PersonalFileName(formCode, ExportFileName.PersonalUnit(record.PartyCell, record.Department, shortName), fullName, record.Period, extension);
+
     private static string PersonalFileName(string formCode, string? shortName, string? fullName, EvaluationPeriod? period, string extension) =>
         ExportFileName.Build($"Mau {formCode}", shortName, string.IsNullOrWhiteSpace(fullName) ? "CanBo" : fullName, period == null ? null : (int)period.Quarter, period?.Year, extension);
 
@@ -1015,7 +1018,7 @@ public partial class ReportService : IReportService
     {
         var record = await LoadRecordAsync(recordId);
         var bytes = await RenderWordAsync(Mau01Data.TemplateFileName, Mau01Data.From(record));
-        return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("01", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record.Period, ".docx"), format);
+        return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("01", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record, ".docx"), format);
     }
 
     public async Task<ReportFileResult> ExportMau02DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
@@ -1023,14 +1026,14 @@ public partial class ReportService : IReportService
         var record = await LoadRecordAsync(recordId);
         var evidenceNames = await GetEvidenceNamesAsync(record.Tasks);
         var bytes = await RenderWordAsync(Mau02Data.TemplateFileName, Mau02Data.From(record, evidenceNames));
-        return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("02", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record.Period, ".docx"), format);
+        return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("02", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record, ".docx"), format);
     }
 
     public async Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
     {
         var record = await LoadRecordAsync(recordId);
         var bytes = await RenderWordAsync(Mau10Data.TemplateFileName, Mau10Data.From(record));
-        return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("10", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record.Period, ".docx"), format);
+        return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("10", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record, ".docx"), format);
     }
 
     public async Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original)
@@ -1139,12 +1142,12 @@ public partial class ReportService : IReportService
         code != null && code.StartsWith('M') && int.TryParse(code[1..], NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : int.MaxValue;
 
     /// <summary>Tổ chức đứng tên biên bản: hội nghị của tổ chức Đảng → tổ chức đó; cấp Phòng / Công ty → Đảng bộ.</summary>
-    private async Task<(PartyHeader Header, string? Unit, string? Archive, PartyCell? UnitForFile)> MeetingUnitAsync(
+    private async Task<(PartyHeader Header, string? Unit, string? Archive, IOrgUnit? UnitForFile)> MeetingUnitAsync(
         EvaluationMeeting meeting, OrganizationSettingsDto org)
     {
         if (meeting.PartyCell != null)
             return (await CollectiveHeaderAsync(meeting.PartyCell), meeting.PartyCell.Name, meeting.PartyCell.Name, meeting.PartyCell);
-        var unitForFile = meeting.Department != null ? new PartyCell { Name = meeting.Department.Name } : null;
+        IOrgUnit? unitForFile = meeting.Department;
         // Tên Đảng bộ trong cài đặt viết HOA (dòng tiêu đề) — giữa câu dùng dạng thường.
         var partyName = CollectiveFormText.PartyCommitteeInSentence(org);
         return (PartyHeader.Of(org.SuperiorPartyName, org.PartyCommitteeName, partyName), meeting.Department?.Name ?? partyName,
@@ -1160,7 +1163,7 @@ public partial class ReportService : IReportService
         var held = await HeldPositionsAsync(new[] { record.MemberId }, PositionDate(record.Period));
         var positionDept = PositionAndUnit(record, held.GetValueOrDefault(record.MemberId) ?? new List<MemberPosition>());
         var bytes = await RenderWordAsync(Mau03Data.TemplateFileName, Mau03Data.From(crosscheck, positionDept));
-        return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("03", (await _orgSettings.GetAsync()).ShortName, crosscheck.MemberFullName, record.Period, ".docx"), format);
+        return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("03", (await _orgSettings.GetAsync()).ShortName, crosscheck.MemberFullName, record, ".docx"), format);
     }
 
     /// <inheritdoc />
@@ -1187,7 +1190,7 @@ public partial class ReportService : IReportService
     }
 
     /// <summary>Tên đơn vị của phiếu: tổ chức Đảng, không có thì đơn vị chính quyền.</summary>
-    private async Task<(string? Name, PartyCell? Cell)> CheckUnitAsync(Guid? departmentId, Guid? partyCellId)
+    private async Task<(string? Name, IOrgUnit? Cell)> CheckUnitAsync(Guid? departmentId, Guid? partyCellId)
     {
         if (partyCellId is { } cellId)
         {
@@ -1197,8 +1200,8 @@ public partial class ReportService : IReportService
         }
         if (departmentId is { } id)
         {
-            var name = await _db.AdministrativeDepartments.AsNoTracking().Where(d => d.Id == id).Select(d => d.Name).FirstOrDefaultAsync();
-            return (name, null);
+            var department = await _db.AdministrativeDepartments.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id);
+            return (department?.Name, department);
         }
         return (null, null);
     }

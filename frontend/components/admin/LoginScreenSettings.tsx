@@ -46,6 +46,8 @@ function toPayload(settings: OrganizationSettings, position: LoginPanelPosition)
     location: settings.location,
     appraisalUnitName: settings.appraisalUnitName,
     systemName: settings.systemName,
+    guideDocumentNumber: settings.guideDocumentNumber ?? null,
+    guideDocumentDate: settings.guideDocumentDate ?? null,
     loginPanelPosition: position,
   };
 }

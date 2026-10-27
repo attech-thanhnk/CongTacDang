@@ -119,12 +119,12 @@ Làm theo đúng thứ tự: bước sau dùng dữ liệu của bước trướ
 
 **1. Thông tin đơn vị** (menu "Hệ thống", "Thông tin đơn vị")
 
-- [ ] Kiểm tra và sửa: "Tên tổ chức Đảng cấp trên", "Tên Đảng bộ", "Tên đầy đủ của công ty", "Tên đơn vị chủ quản cấp trên", "Tên viết tắt", "Địa danh", "Cơ quan thẩm định", "Tên hiển thị của hệ thống". Bấm "Lưu". Thông tin này in trên mọi biểu mẫu và hiện trên giao diện, nên làm trước khi xuất bất kỳ biểu mẫu nào.
+- [ ] Kiểm tra và sửa: "Tên tổ chức Đảng cấp trên", "Tên Đảng bộ", "Tên đầy đủ của công ty", "Tên đơn vị chủ quản cấp trên", "Tên viết tắt", "Địa danh", "Cơ quan thẩm định", "Tên hiển thị của hệ thống", "Số văn bản hướng dẫn", "Ngày văn bản hướng dẫn". Bấm "Lưu". Thông tin này in trên mọi biểu mẫu và hiện trên giao diện, nên làm trước khi xuất bất kỳ biểu mẫu nào.
 
 **2. Cây đơn vị và tổ chức Đảng** (menu "Quản lý", "Danh mục tổ chức")
 
 - [ ] Thẻ "Loại đơn vị": rà các loại có sẵn (Đảng ủy, Đảng bộ bộ phận, Chi bộ; Công ty, Đơn vị, Phòng, Trung tâm, Xưởng, Đội, Đài, Trạm), thêm hoặc sửa cho đúng cơ cấu.
-- [ ] Thẻ "Đơn vị chính quyền" rồi thẻ "Tổ chức Đảng": bấm "Thêm … gốc" trước, sau đó thêm đơn vị cấp dưới (chọn cấp trên và loại). Kiểm tra cây ở từng thẻ. Có nhiều đơn vị thì dùng "Nhập dữ liệu" (Excel): [Nhập dữ liệu từ Excel](nhap-du-lieu.md).
+- [ ] Thẻ "Đơn vị chính quyền" rồi thẻ "Tổ chức Đảng": bấm "Thêm … gốc" trước, sau đó thêm đơn vị cấp dưới (chọn cấp trên và loại). Nhập "Tên viết tắt" nếu muốn tên tệp xuất ghi tên đó thay cho mã. Kiểm tra cây ở từng thẻ. Có nhiều đơn vị thì dùng "Nhập dữ liệu" (Excel): [Nhập dữ liệu từ Excel](nhap-du-lieu.md).
 - [ ] Thẻ "Ngày nghỉ": khai báo ngày lễ, Tết, nghỉ bù của năm (dùng khi tính thời hạn các bước).
 
 **3. Danh mục chức vụ** (cùng trang, thẻ "Chức vụ")
