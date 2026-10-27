@@ -22,7 +22,7 @@ export function initialsOf(fullName?: string): string {
 
 /** Tên gọi ngắn: từ cuối của họ tên. */
 function shortNameOf(fullName?: string): string {
-  return fullName?.trim().split(/s+/).pop() ?? "";
+  return fullName?.trim().split(/\s+/).pop() ?? "";
 }
 
 /** Menu tài khoản ở góc phải thanh trên: bấm mở họ tên đầy đủ, chức danh và các mục (Tài khoản, Đăng xuất). */
