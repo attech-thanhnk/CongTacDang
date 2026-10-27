@@ -378,7 +378,10 @@ aside.app-sidebar {
 .side-nav {
   flex: 1;
   min-height: 0;
+  /* Chỉ cuộn dọc; ẩn thanh cuộn để cột biểu tượng không lệch giữa hai trạng thái. */
+  overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-width: none;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -391,7 +394,7 @@ aside.app-sidebar {
 }
 
 .side-nav::-webkit-scrollbar {
-  width: 3px;
+  display: none;
 }
 
 .side-nav a {
