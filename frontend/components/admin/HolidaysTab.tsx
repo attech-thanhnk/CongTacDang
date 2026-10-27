@@ -8,6 +8,7 @@ import { Holiday, holidayService } from "@/services/holidayService";
 import { AdminModal } from "./AdminModal";
 import { useFormDirty } from "./useFormDirty";
 import { errorMessage, errorTitle } from "./adminUtils";
+import { DateField } from "@/components/evaluations/DateField";
 
 interface FormState {
   id?: string;
@@ -165,12 +166,12 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
             <div className="row g-2 mb-2">
               <div className="col-6">
                 <label className="form-label">{form.id ? "Ngày" : "Từ ngày"} <span className="text-danger">*</span></label>
-                <input type="date" className="form-control form-control-sm" value={form.date} required onChange={(e) => setForm({ ...form, date: e.target.value })} />
+                <DateField value={form.date} required onChange={(value) => setForm({ ...form, date: value })} aria-label={form.id ? "Ngày" : "Từ ngày"} />
               </div>
               {!form.id && (
                 <div className="col-6">
                   <label className="form-label">Đến ngày (nghỉ nhiều ngày)</label>
-                  <input type="date" className="form-control form-control-sm" value={form.endDate} min={form.date} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+                  <DateField value={form.endDate} min={form.date || undefined} onChange={(value) => setForm({ ...form, endDate: value })} aria-label="Đến ngày" />
                 </div>
               )}
             </div>

@@ -10,6 +10,7 @@ import type { PagedResult } from "@/services/userService";
 import { PickedUser, UserPicker } from "./UserPicker";
 import styles from "./LoginEventsTab.module.css";
 import { endOfDayExclusiveIso, errorMessage, errorTitle, formatDateTime, startOfDayIso } from "./adminUtils";
+import { DateField } from "@/components/evaluations/DateField";
 
 const RESULT_CLASS: Record<LoginResult, string> = {
   Success: "tag t-ok",
@@ -135,11 +136,11 @@ export function LoginEventsTab() {
           </div>
           <div className="col-6 col-md-2">
             <label className="form-label" htmlFor="login-from">Từ ngày</label>
-            <input id="login-from" type="date" className="form-control form-control-sm" value={draft.from} onChange={(e) => setDraft({ ...draft, from: e.target.value })} />
+            <DateField id="login-from" value={draft.from} onChange={(value) => setDraft({ ...draft, from: value })} />
           </div>
           <div className="col-6 col-md-2">
             <label className="form-label" htmlFor="login-to">Đến hết ngày</label>
-            <input id="login-to" type="date" className="form-control form-control-sm" value={draft.to} onChange={(e) => setDraft({ ...draft, to: e.target.value })} />
+            <DateField id="login-to" value={draft.to} onChange={(value) => setDraft({ ...draft, to: value })} />
           </div>
           <div className="col-12 col-md-2 d-flex gap-1">
             <button type="submit" className="btn btn-sm btn-outline-primary flex-fill" disabled={loading}>

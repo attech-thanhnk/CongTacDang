@@ -28,6 +28,7 @@ import {
   ScopeType,
   UnitPerformers,
 } from "@/services/roleService";
+import { DateField } from "@/components/evaluations/DateField";
 
 type UnitKind = ScopeType;
 
@@ -581,7 +582,7 @@ function AddPerformerModal({
           <div className="row g-2 mb-2">
             <div className="col-12 col-md-6">
               <label className="form-label">Đến hết ngày</label>
-              <input type="date" className="form-control form-control-sm" value={validTo} onChange={(e) => setValidTo(e.target.value)} />
+              <DateField value={validTo} onChange={setValidTo} aria-label="Đến hết ngày" />
               <div className="form-text">Để trống = không thời hạn.</div>
             </div>
           </div>

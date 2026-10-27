@@ -15,6 +15,7 @@ import {
 } from "@/services/taskChangeService";
 import { useCriteria } from "./useCriteria";
 import { errorMessage } from "@/components/admin/adminUtils";
+import { DateField } from "@/components/evaluations/DateField";
 
 const STATUS_CLASS: Record<string, string> = { Pending: "t-wait", Approved: "t-ok", Rejected: "t-bad" };
 
@@ -342,7 +343,7 @@ function TaskChangeForm({
           </div>
           <div className="col-6 col-md-3">
             <label className="form-label small mb-1">Thời hạn</label>
-            <input type="date" className="form-control form-control-sm" value={proposal.deadline?.slice(0, 10) ?? ""} onChange={(e) => set("deadline", e.target.value)} />
+            <DateField value={proposal.deadline?.slice(0, 10) ?? ""} onChange={(value) => set("deadline", value)} aria-label="Thời hạn" />
           </div>
           {type === "Urgent" && (
             <div className="col-6 col-md-3">

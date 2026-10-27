@@ -7,6 +7,7 @@ import { usePeriod } from "@/contexts/PeriodContext";
 import { EvaluationPeriodDto, evaluationService } from "@/services/evaluationService";
 import { CriteriaSetListItem, criteriaService } from "@/services/criteriaService";
 import { errorMessage } from "@/components/admin/adminUtils";
+import { DateField } from "@/components/evaluations/DateField";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -110,12 +111,12 @@ export function CreatePeriodModal({ onClose, onCreated, existing = [] }: Props) 
         {duplicate && <div className="col-12 mt-1"><div className="invalid-feedback d-block mt-0">Quý này đã có kỳ “{duplicate.name}”.</div></div>}
         <div className="col-6 col-md-3">
           <label className="form-label" htmlFor="cp-start">Từ ngày</label>
-          <input id="cp-start" type="date" className="form-control form-control-sm" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+          <DateField id="cp-start" value={form.startDate} onChange={(value) => setForm({ ...form, startDate: value })} />
         </div>
         <div className="col-6 col-md-3">
           <label className="form-label" htmlFor="cp-end">Đến ngày</label>
-          <input id="cp-end" type="date" className={`form-control form-control-sm ${dateError ? "is-invalid" : ""}`} value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
-          {dateError && <div className="invalid-feedback">{dateError}</div>}
+          <DateField id="cp-end" value={form.endDate} invalid={!!dateError} onChange={(value) => setForm({ ...form, endDate: value })} />
+          {dateError && <div className="invalid-feedback d-block">{dateError}</div>}
         </div>
         <div className="col-12">
           <label className="form-label" htmlFor="cp-name">Tên kỳ</label>
