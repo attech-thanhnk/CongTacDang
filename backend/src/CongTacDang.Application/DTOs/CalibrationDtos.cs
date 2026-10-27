@@ -5,7 +5,7 @@ namespace CongTacDang.Application.DTOs;
 
 #region Đọc
 
-/// <summary>Dòng danh sách biên bản hiệu chuẩn.</summary>
+/// <summary>Dòng danh sách biên bản họp thống nhất.</summary>
 public class CalibrationSessionListItemDto
 {
     public Guid Id { get; set; }
@@ -36,7 +36,7 @@ public class CalibrationRecordDto
     /// <summary>Bước hiện tại của hồ sơ (RecordStatus).</summary>
     public string RecordStatus { get; set; } = string.Empty;
 
-    /// <summary>Mốc trước hiệu chuẩn đã chụp vào biên bản.</summary>
+    /// <summary>Mốc trước họp thống nhất đã chụp vào biên bản.</summary>
     public string GradeBefore { get; set; } = string.Empty;
     public double? ScoreBefore { get; set; }
 
@@ -50,7 +50,7 @@ public class CalibrationRecordDto
     public double? CalibratedScore { get; set; }
     public string CalibratedGrade { get; set; } = string.Empty;
 
-    /// <summary>Mốc trước hiệu chuẩn trên hồ sơ đã khác ảnh chụp: lưu lại biên bản để cập nhật.</summary>
+    /// <summary>Mốc trước họp thống nhất trên hồ sơ đã khác ảnh chụp: lưu lại biên bản để cập nhật.</summary>
     public bool SnapshotOutdated { get; set; }
 }
 
@@ -64,7 +64,7 @@ public class CalibrationAttendeeDto
     public string? DissentNote { get; set; }
 }
 
-/// <summary>Dòng "Kết quả rà soát chung"; số lượng, tỷ lệ tính từ hồ sơ, chỉ hiển thị, không so với chỉ tiêu.</summary>
+/// <summary>Dòng "Kết quả chung"; số lượng, tỷ lệ tính từ hồ sơ, chỉ hiển thị, không so với chỉ tiêu.</summary>
 public class CalibrationSummaryRowDto
 {
     /// <summary>Tên EvaluationGrade; "TOTAL" cho dòng tổng.</summary>

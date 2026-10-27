@@ -73,7 +73,7 @@ public static class ControlCheckRules
         }
 
         if (conclusion == null)
-            return "Hãy chọn kết luận kiểm soát.";
+            return "Hãy chọn kết luận kiểm tra.";
         if (conclusion == ControlConclusion.Eligible && items.Any(i => i.Result == ControlItemResult.Fail))
             return "Còn mục chưa đạt nên không thể kết luận đủ điều kiện trình phê duyệt.";
         if (conclusion == ControlConclusion.NeedsWork && string.IsNullOrWhiteSpace(needsWorkContent))

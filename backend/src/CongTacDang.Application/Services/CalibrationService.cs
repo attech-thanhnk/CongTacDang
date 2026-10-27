@@ -15,7 +15,7 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Biên bản hiệu chuẩn kết quả đánh giá (Mẫu 20).</summary>
+/// <summary>Biên bản họp thống nhất kết quả đánh giá (Mẫu 20).</summary>
 public interface ICalibrationService
 {
     /// <summary>Biên bản trong phạm vi lập/chốt/xem của người dùng, không có hồ sơ của chính họ.</summary>
@@ -28,7 +28,7 @@ public interface ICalibrationService
 
     Task<CalibrationSessionDto> CreateAsync(CreateCalibrationSessionDto request, CancellationToken ct = default);
 
-    /// <summary>Lưu toàn bộ bản nháp (hồ sơ, thành phần, tổng hợp, trường hợp); cập nhật lại mốc trước hiệu chuẩn của hồ sơ.</summary>
+    /// <summary>Lưu toàn bộ bản nháp (hồ sơ, thành phần, tổng hợp, trường hợp); cập nhật lại mốc trước họp thống nhất của hồ sơ.</summary>
     Task<CalibrationSessionDto> UpdateAsync(Guid id, UpdateCalibrationSessionDto request, CancellationToken ct = default);
 
     /// <summary>Chốt: khác người lập; áp <c>Calibrated*</c> lên các hồ sơ có điều chỉnh và ghi lịch sử hồ sơ.</summary>
@@ -182,7 +182,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
         var period = await _records.FindPeriodAsync(request.PeriodId, ct)
             ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {request.PeriodId}.");
         if (period.Status != PeriodStatus.Open)
-            throw new ConflictException("Chỉ lập biên bản hiệu chuẩn khi kỳ đánh giá đang mở.");
+            throw new ConflictException("Chỉ lập biên bản họp thống nhất khi kỳ đánh giá đang mở.");
         var departmentId = request.DepartmentId;
         var partyCellId = request.PartyCellId;
         if (departmentId is null && partyCellId is null)
@@ -311,7 +311,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
             var (grade, score) = CalibrationRules.Before(record);
             if (grade != row.GradeBefore || !CalibrationRules.SameScore(score, row.ScoreBefore))
                 throw new ConflictException($"Chốt biên bản không thành công: kết quả thẩm định của {NameOf(record)} đã thay đổi sau khi đưa vào biên bản. "
-                    + "Hãy lưu lại biên bản để cập nhật mốc trước hiệu chuẩn rồi chốt lại.");
+                    + "Hãy lưu lại biên bản để cập nhật mốc trước họp thống nhất rồi chốt lại.");
         }
 
         var now = DateTime.UtcNow;
@@ -333,7 +333,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
         session.UpdatedAt = now;
         AddFormHistory(session, EvaluationFormAction.Conclude, actorName, now, null, null);
         if (applied > 0)
-            AddFormHistory(session, EvaluationFormAction.Apply, actorName, now.AddMilliseconds(1), $"Áp kết quả hiệu chuẩn cho {applied} hồ sơ.", null);
+            AddFormHistory(session, EvaluationFormAction.Apply, actorName, now.AddMilliseconds(1), $"Áp kết quả họp thống nhất cho {applied} hồ sơ.", null);
 
         _unitOfWork.SetOriginalVersion(session, version);
         await _unitOfWork.SaveChangesAsync(ct);
@@ -441,14 +441,14 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
             if (!CalibrationRules.HasAppraisal(record) || CalibrationRules.Before(record).Grade == EvaluationGrade.ChuaXepLoai)
                 throw new ConflictException($"Đưa hồ sơ vào biên bản không thành công: hồ sơ của {NameOf(record)} chưa có kết quả thẩm định.");
             if (EvaluationMapping.ProfileOf(settings, record).GateModeOf(WorkflowGates.Calibration) == GateMode.Off)
-                throw new ConflictException($"Đưa hồ sơ vào biên bản không thành công: diện quyết định của {NameOf(record)} không dùng bước hiệu chuẩn.");
+                throw new ConflictException($"Đưa hồ sơ vào biên bản không thành công: diện quyết định của {NameOf(record)} không dùng bước họp thống nhất.");
         }
 
         var taken = await _repo.GetActiveSessionByRecordAsync(ids, session.Id, ct);
         if (taken.Count > 0)
         {
             var names = string.Join(", ", records.Where(r => taken.ContainsKey(r.Id)).Select(NameOf));
-            throw new ConflictException($"Đưa hồ sơ vào biên bản không thành công: hồ sơ của {names} đã thuộc một biên bản hiệu chuẩn khác.");
+            throw new ConflictException($"Đưa hồ sơ vào biên bản không thành công: hồ sơ của {names} đã thuộc một biên bản họp thống nhất khác.");
         }
         return records.OrderBy(NameOf, StringComparer.CurrentCulture).ToList();
     }
@@ -469,7 +469,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
     {
         if (!CalibrationRules.IsEligibleStatus(record.Status))
             throw new ConflictException($"{action} không thành công: hồ sơ của {NameOf(record)} đang ở bước \"{WorkflowSteps.StatusDisplayName(record.Status)}\". "
-                + "Chỉ hiệu chuẩn hồ sơ đã thẩm định và chưa ghi nhận quyết định.");
+                + "Chỉ đưa vào họp thống nhất hồ sơ đã thẩm định và chưa ghi nhận quyết định.");
     }
 
     #endregion
@@ -563,11 +563,11 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
             {
                 var parsed = EvaluationMapping.ParseGrade(item.GradeAfter);
                 if (parsed is not { } g || g == EvaluationGrade.ChuaXepLoai)
-                    throw new ValidationException($"Mức sau hiệu chuẩn của trường hợp thứ {index + 1} không hợp lệ.");
+                    throw new ValidationException($"Mức sau họp thống nhất của trường hợp thứ {index + 1} không hợp lệ.");
                 gradeAfter = g;
             }
             if (item.ScoreAfter is { } score && (double.IsNaN(score) || score < 0 || score > 100))
-                throw new ValidationException($"Điểm sau hiệu chuẩn của trường hợp thứ {index + 1} phải từ 0 đến 100.");
+                throw new ValidationException($"Điểm sau họp thống nhất của trường hợp thứ {index + 1} phải từ 0 đến 100.");
 
             rows.Add(new CalibrationCase
             {
@@ -606,7 +606,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
         var change = string.Create(CultureInfo.InvariantCulture,
             $"{CriteriaSetContent.GradeName(item.GradeBefore)} ({FormatScore(item.ScoreBefore)}) → {CriteriaSetContent.GradeName(CalibrationRules.GradeAfterOf(item))} ({FormatScore(CalibrationRules.ScoreAfterOf(item))})");
         AddRecordHistory(record, Truncate(item.Basis, MaxReasonLength), scoreBefore, gradeBefore,
-            $"Hiệu chuẩn theo biên bản nhóm \"{session.GroupName}\": {change}. Người chịu trách nhiệm: {item.ResponsibleName}.", actorName, now);
+            $"Họp thống nhất theo biên bản nhóm \"{session.GroupName}\": {change}. Người chịu trách nhiệm: {item.ResponsibleName}.", actorName, now);
     }
 
     private void RevokeFromRecord(CalibrationSession session, EvaluationRecord record, string reason, string actorName, DateTime now)
@@ -616,7 +616,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
         record.ClearCalibration();
         record.UpdatedAt = now;
         AddRecordHistory(record, reason, scoreBefore, gradeBefore,
-            $"Hủy kết quả hiệu chuẩn do mở lại biên bản nhóm \"{session.GroupName}\".", actorName, now);
+            $"Hủy kết quả họp thống nhất do mở lại biên bản nhóm \"{session.GroupName}\".", actorName, now);
     }
 
     private void AddRecordHistory(EvaluationRecord record, string? reason, double scoreBefore, EvaluationGrade gradeBefore, string comment,
@@ -709,7 +709,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
             SecretaryName = s.SecretaryName,
             SecretaryMemberId = s.SecretaryMemberId,
             ScopeNote = s.ScopeNote,
-            ScopeSuggestion = $"Rà soát {total} hồ sơ thuộc nhóm \"{s.GroupName}\", {s.Period.Name}.",
+            ScopeSuggestion = $"Kiểm tra {total} hồ sơ thuộc nhóm \"{s.GroupName}\", {s.Period.Name}.",
             ExtraConclusion = s.ExtraConclusion,
             Status = s.Status.ToString(),
             StatusName = StatusName(s.Status),
@@ -841,7 +841,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
     private void EnsureNoOwnRecord(CalibrationSession session)
     {
         if (HasOwnRecord(session))
-            throw new ForbiddenException("Bạn không được thao tác trên biên bản hiệu chuẩn có hồ sơ của chính mình (xung đột lợi ích).");
+            throw new ForbiddenException("Bạn không được thao tác trên biên bản họp thống nhất có hồ sơ của chính mình (xung đột lợi ích).");
     }
 
     private void EnsureCanView(CalibrationSession session)
@@ -889,7 +889,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
     private static void EnsureOpenPeriod(CalibrationSession session)
     {
         if (session.Period.Status != PeriodStatus.Open)
-            throw new ConflictException("Chỉ thao tác trên biên bản hiệu chuẩn khi kỳ đánh giá đang mở.");
+            throw new ConflictException("Chỉ thao tác trên biên bản họp thống nhất khi kỳ đánh giá đang mở.");
     }
 
     private static void EnsureEditable(CalibrationSession session)
@@ -944,7 +944,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
         });
 
     private async Task<CalibrationSession> RequireSessionAsync(Guid id, CancellationToken ct) =>
-        await _repo.FindAsync(id, ct) ?? throw new NotFoundException($"Không tìm thấy biên bản hiệu chuẩn với Id: {id}.");
+        await _repo.FindAsync(id, ct) ?? throw new NotFoundException($"Không tìm thấy biên bản họp thống nhất với Id: {id}.");
 
     private async Task<CalibrationSessionDto> ReloadAsync(Guid id, CancellationToken ct) => BuildDto(await RequireSessionAsync(id, ct));
 
@@ -969,7 +969,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
         EvaluationFormAction.Conclude => "Chốt biên bản",
         EvaluationFormAction.Reopen => "Mở lại biên bản",
         EvaluationFormAction.Cancel => "Hủy biên bản",
-        EvaluationFormAction.Apply => "Áp kết quả hiệu chuẩn",
+        EvaluationFormAction.Apply => "Áp kết quả họp thống nhất",
         _ => action.ToString()
     };
 

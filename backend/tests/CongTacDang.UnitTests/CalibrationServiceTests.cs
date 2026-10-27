@@ -62,7 +62,7 @@ public sealed class CalibrationServiceTests
 
         var ex = await Assert.ThrowsAsync<ConflictException>(() => h.Service.CreateAsync(h.CreateRequest()));
 
-        Assert.Contains("biên bản hiệu chuẩn khác", ex.Message);
+        Assert.Contains("biên bản họp thống nhất khác", ex.Message);
     }
 
     [Fact]
@@ -197,7 +197,7 @@ public sealed class CalibrationServiceTests
         var ex = await Assert.ThrowsAsync<ConflictException>(() =>
             h.Service.ConcludeAsync(saved.Id, new ConcludeCalibrationDto { Version = saved.Version }));
 
-        Assert.Contains("mốc trước hiệu chuẩn", ex.Message);
+        Assert.Contains("mốc trước họp thống nhất", ex.Message);
     }
 
     [Fact]

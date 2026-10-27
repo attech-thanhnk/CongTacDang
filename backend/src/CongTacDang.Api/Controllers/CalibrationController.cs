@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CongTacDang.Api.Controllers;
 
 /// <summary>
-/// Biên bản hiệu chuẩn kết quả đánh giá (Mẫu 20). Service kiểm tra quyền trên từng hồ sơ trong biên bản
+/// Biên bản họp thống nhất kết quả đánh giá (Mẫu 20). Service kiểm tra quyền trên từng hồ sơ trong biên bản
 /// bằng <see cref="IAuthorizationGuard"/>.
 /// </summary>
 [ApiController]
@@ -32,7 +32,7 @@ public class CalibrationController : ControllerBase
     public async Task<IActionResult> List([FromQuery] Guid? periodId, CancellationToken ct)
     {
         var data = await _calibrations.ListAsync(periodId, ct);
-        return Ok(ApiResponse<List<CalibrationSessionListItemDto>>.Ok(data, "Lấy danh sách biên bản hiệu chuẩn thành công."));
+        return Ok(ApiResponse<List<CalibrationSessionListItemDto>>.Ok(data, "Lấy danh sách biên bản họp thống nhất thành công."));
     }
 
     /// <summary>Hồ sơ đã thẩm định, chưa thuộc biên bản nào, người dùng lập được.</summary>
@@ -42,7 +42,7 @@ public class CalibrationController : ControllerBase
         CancellationToken ct)
     {
         var data = await _calibrations.ListCandidatesAsync(periodId, departmentId, workflowProfileCode, ct);
-        return Ok(ApiResponse<List<CalibrationCandidateDto>>.Ok(data, "Lấy danh sách hồ sơ có thể hiệu chuẩn thành công."));
+        return Ok(ApiResponse<List<CalibrationCandidateDto>>.Ok(data, "Lấy danh sách hồ sơ có thể đưa vào họp thống nhất thành công."));
     }
 
     [HttpGet("{id:guid}")]
@@ -50,7 +50,7 @@ public class CalibrationController : ControllerBase
     public async Task<IActionResult> Get(Guid id, CancellationToken ct)
     {
         var data = await _calibrations.GetAsync(id, ct);
-        return Ok(ApiResponse<CalibrationSessionDto>.Ok(data, "Lấy biên bản hiệu chuẩn thành công."));
+        return Ok(ApiResponse<CalibrationSessionDto>.Ok(data, "Lấy biên bản họp thống nhất thành công."));
     }
 
     [HttpGet("{id:guid}/history")]
@@ -58,7 +58,7 @@ public class CalibrationController : ControllerBase
     public async Task<IActionResult> History(Guid id, CancellationToken ct)
     {
         var data = await _calibrations.GetHistoryAsync(id, ct);
-        return Ok(ApiResponse<List<CalibrationHistoryDto>>.Ok(data, "Lấy lịch sử biên bản hiệu chuẩn thành công."));
+        return Ok(ApiResponse<List<CalibrationHistoryDto>>.Ok(data, "Lấy lịch sử biên bản họp thống nhất thành công."));
     }
 
     /// <summary>Lập biên bản nháp với các hồ sơ đã chọn.</summary>
@@ -67,7 +67,7 @@ public class CalibrationController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateCalibrationSessionDto dto, CancellationToken ct)
     {
         var data = await _calibrations.CreateAsync(dto, ct);
-        return Ok(ApiResponse<CalibrationSessionDto>.Ok(data, "Đã lập biên bản hiệu chuẩn."));
+        return Ok(ApiResponse<CalibrationSessionDto>.Ok(data, "Đã lập biên bản họp thống nhất."));
     }
 
     /// <summary>Lưu bản nháp (version = phiên bản biên bản).</summary>
@@ -76,16 +76,16 @@ public class CalibrationController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCalibrationSessionDto dto, CancellationToken ct)
     {
         var data = await _calibrations.UpdateAsync(id, dto, ct);
-        return Ok(ApiResponse<CalibrationSessionDto>.Ok(data, "Đã lưu biên bản hiệu chuẩn."));
+        return Ok(ApiResponse<CalibrationSessionDto>.Ok(data, "Đã lưu biên bản họp thống nhất."));
     }
 
-    /// <summary>Chốt biên bản và áp kết quả sau hiệu chuẩn lên hồ sơ.</summary>
+    /// <summary>Chốt biên bản và áp kết quả sau họp thống nhất lên hồ sơ.</summary>
     [HttpPost("{id:guid}/conclude")]
     [RequirePermission(PermissionCodes.EvaluationCalibrationConclude)]
     public async Task<IActionResult> Conclude(Guid id, [FromBody] ConcludeCalibrationDto dto, CancellationToken ct)
     {
         var data = await _calibrations.ConcludeAsync(id, dto, ct);
-        return Ok(ApiResponse<CalibrationSessionDto>.Ok(data, "Đã chốt biên bản hiệu chuẩn."));
+        return Ok(ApiResponse<CalibrationSessionDto>.Ok(data, "Đã chốt biên bản họp thống nhất."));
     }
 
     /// <summary>Mở lại biên bản đã chốt (bắt buộc lý do); hủy kết quả đã áp lên hồ sơ.</summary>
@@ -94,7 +94,7 @@ public class CalibrationController : ControllerBase
     public async Task<IActionResult> Reopen(Guid id, [FromBody] CalibrationReasonDto dto, CancellationToken ct)
     {
         var data = await _calibrations.ReopenAsync(id, dto, ct);
-        return Ok(ApiResponse<CalibrationSessionDto>.Ok(data, "Đã mở lại biên bản hiệu chuẩn."));
+        return Ok(ApiResponse<CalibrationSessionDto>.Ok(data, "Đã mở lại biên bản họp thống nhất."));
     }
 
     /// <summary>Hủy bản nháp (bắt buộc lý do).</summary>
@@ -103,6 +103,6 @@ public class CalibrationController : ControllerBase
     public async Task<IActionResult> Void(Guid id, [FromBody] CalibrationReasonDto dto, CancellationToken ct)
     {
         var data = await _calibrations.VoidAsync(id, dto, ct);
-        return Ok(ApiResponse<CalibrationSessionDto>.Ok(data, "Đã hủy biên bản hiệu chuẩn."));
+        return Ok(ApiResponse<CalibrationSessionDto>.Ok(data, "Đã hủy biên bản họp thống nhất."));
     }
 }
