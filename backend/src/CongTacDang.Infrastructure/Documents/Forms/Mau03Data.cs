@@ -41,6 +41,9 @@ public sealed class Mau03Data
     /// <summary>Người lập phiếu (cán bộ đối soát dữ liệu); chưa gửi → trống.</summary>
     [TemplateField("REVIEWER_NAME")] public string? ReviewerName { get; init; }
 
+    /// <summary>Chưa xác nhận thì phiếu in dòng cảnh báo bản nháp ở đầu văn bản.</summary>
+    [TemplateCondition("DRAFT")] public bool Draft { get; init; }
+
     [TemplateCollection("ITEMS")] public List<Mau03Row> Items { get; init; } = new();
 
     public static Mau03Data From(ExpertCrosscheckDto crosscheck, string? positionDept)
@@ -66,6 +69,7 @@ public sealed class Mau03Data
             FieldLegal = Has(CrosscheckFields.LegalInspectionAudit),
             LeaderName = FormText.OrNull(crosscheck.ConfirmedByName),
             ReviewerName = FormText.OrNull(crosscheck.SubmittedByName),
+            Draft = crosscheck.Status != nameof(CrosscheckStatus.Confirmed),
             Items = crosscheck.Items.OrderBy(i => i.Order).Select((item, index) => Mau03Row.From(item, index + 1)).ToList()
         };
     }

@@ -38,6 +38,9 @@ public sealed class Mau19Data
     /// <summary>Nội dung cần hoàn thiện (nếu có).</summary>
     [TemplateField("TO_COMPLETE")] public string? ToComplete { get; init; }
 
+    /// <summary>Chưa xác nhận thì phiếu in dòng cảnh báo bản nháp ở đầu văn bản.</summary>
+    [TemplateCondition("DRAFT")] public bool Draft { get; init; }
+
     [TemplateCollection("ITEMS")] public List<Mau19Row> Items { get; init; } = new();
 
     public static Mau19Data From(ControlCheckDto check, string? unitName, DateTime? periodStart, DateTime? periodEnd)
@@ -57,6 +60,7 @@ public sealed class Mau19Data
             ConclusionEligible = check.Conclusion == nameof(ControlConclusion.Eligible),
             ConclusionNeedsWork = check.Conclusion == nameof(ControlConclusion.NeedsWork),
             ToComplete = FormText.OrNull(check.NeedsWorkContent?.Trim()),
+            Draft = check.Status != nameof(ControlCheckStatus.Confirmed),
             Items = check.Items.OrderBy(i => i.ItemCode, StringComparer.Ordinal)
                 .Select((item, index) => Mau19Row.From(item, index + 1)).ToList()
         };
