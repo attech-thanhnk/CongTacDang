@@ -118,3 +118,9 @@
   background: var(--rule);
   margin: 4px 0;
 }
+
+.version {
+  padding: 6px 10px 2px;
+  font-size: 11px;
+  color: var(--ink-3);
+}

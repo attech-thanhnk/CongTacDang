@@ -147,7 +147,7 @@ git -C /opt/congtacdang status --short
 
 Dòng đầu là mã commit, ngày và nội dung. Lệnh thứ hai phải **không in gì** (không có sửa đổi tại chỗ). Có in ra thì ai đó đã sửa file trong thư mục cài đặt: hỏi lại trước khi tiếp tục.
 
-Ứng dụng hiện chưa có trang hay lệnh hiển thị số phiên bản. Phiên bản đang chạy xác định bằng:
+Phiên bản đang chạy xem được ngay trên ứng dụng: dòng "Phiên bản <mã commit>" ở chân trang đăng nhập và cuối menu tài khoản (bấm tên ở góc dưới thanh bên), hoặc bằng lệnh `curl -s http://127.0.0.1:3001/api/version` (in mã commit, thời điểm dựng, môi trường). Mã này chỉ có khi image được dựng bằng lệnh ở bước 6 (có `APP_VERSION=...` đứng trước `docker compose build`); dựng không kèm hai biến đó thì ứng dụng hiện "chưa rõ". Giao diện và backend ghi mã riêng; hai mã lệch nhau nghĩa là mới dựng lại một trong hai, dòng phiên bản sẽ ghi thêm "(giao diện <mã>)". Ngoài ra còn các cách:
 
 - `git -C /opt/congtacdang log -1` (mã nguồn đã dựng);
 - file `manifest.txt` trong mỗi bản sao lưu (dòng `git_commit` và `last_migration`);
@@ -267,10 +267,10 @@ Kiểm tra: `grep '^Seed__InitialAdmin__Username=' .env` in ra tên đăng nhậ
 Trong `/opt/congtacdang/docker`:
 
 ```bash
-docker compose build
+APP_VERSION=$(git rev-parse --short HEAD) APP_BUILD_TIME=$(date -u +%FT%TZ) docker compose build
 ```
 
-Lần đầu mất khoảng 10 đến 20 phút (tải image nền, cài LibreOffice, `npm ci`, biên dịch). Mong đợi: kết thúc không có chữ `ERROR`, cuối cùng in `Built` hoặc tên hai image. Nếu lỗi tải gói giữa chừng: kiểm tra Internet rồi chạy lại đúng lệnh đó (phần đã xong được dùng lại).
+Hai biến đầu lệnh ghi mã commit và thời điểm dựng vào image để ứng dụng hiển thị phiên bản (mục 3.2 bên dưới). Lần đầu mất khoảng 10 đến 20 phút (tải image nền, cài LibreOffice, `npm ci`, biên dịch). Mong đợi: kết thúc không có chữ `ERROR`, cuối cùng in `Built` hoặc tên hai image. Nếu lỗi tải gói giữa chừng: kiểm tra Internet rồi chạy lại đúng lệnh đó (phần đã xong được dùng lại).
 
 Khởi động:
 
@@ -343,11 +343,12 @@ Mong đợi: dòng đầu in `LibreOffice 7.x` hoặc cao hơn. Dòng hai in `Li
 **7.7 Đúng phiên bản:**
 
 ```bash
+curl -s http://127.0.0.1:3001/api/version
 git -C /opt/congtacdang log -1 --format='%h %s'
 docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA -c "SELECT max(\"MigrationId\") FROM \"__EFMigrationsHistory\""'
 ```
 
-Mong đợi: mã commit đúng bản đã chọn ở bước 3; migration mới nhất khớp tên file mới nhất trong `backend/src/CongTacDang.Infrastructure/Data/Migrations/`.
+Mong đợi: `commit` ở lệnh đầu và mã commit lệnh `git log` đều là bản đã chọn ở bước 3; migration mới nhất khớp tên file mới nhất trong `backend/src/CongTacDang.Infrastructure/Data/Migrations/`.
 
 ---
 

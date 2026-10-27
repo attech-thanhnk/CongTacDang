@@ -23,6 +23,11 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
+# Mã commit và thời điểm dựng để ứng dụng hiển thị phiên bản (ngoài thư mục git thì hiện "chưa rõ")
+APP_VERSION="$(git -C .. rev-parse --short HEAD 2>/dev/null || echo "chưa rõ")"
+APP_BUILD_TIME="$(date -u +%FT%TZ)"
+export APP_VERSION APP_BUILD_TIME
+
 echo "[1/3] Đang xây dựng và khởi động các container..."
 docker compose --env-file .env down --remove-orphans || true
 docker compose --env-file .env build --no-cache

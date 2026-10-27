@@ -43,11 +43,12 @@ In ra, đánh dấu từng dòng, ghi ngày và người làm.
 | Trước | Đã đọc ghi chú migration (có xóa dữ liệu không?) và thay đổi `.env.example` | Bước 3.4, 3.5 | Đã đọc, đã chấp thuận. |
 | **Trong** | Lấy mã nguồn mới | `git fetch --all --tags` rồi `git checkout --detach <phiên-bản-mới>` | `git status --short` không in gì. |
 | Trong | Bổ sung biến mới vào `docker/.env` (nếu có) | Bước 3.5 | `docker compose config --quiet` không lỗi. |
-| Trong | Dựng image | `docker compose build` | Không có `ERROR`. |
+| Trong | Dựng image | `APP_VERSION=$(git rev-parse --short HEAD) APP_BUILD_TIME=$(date -u +%FT%TZ) docker compose build` | Không có `ERROR`. |
 | Trong | Khởi động bản mới | `docker compose up -d` | Container được tạo lại. |
 | Trong | Theo dõi migration | `docker compose logs -f backend` | Không có `Critical`, `[LỖI CẤU HÌNH]`. |
 | **Sau** | Ba container khỏe | `docker compose ps` | Cả ba `(healthy)`. |
 | Sau | Backend khỏe | `docker compose exec backend curl --fail --silent http://localhost:5000/healthz` | In `Healthy`. |
+| Sau | Ứng dụng báo đúng phiên bản mới | `curl -s http://127.0.0.1:3001/api/version` | `commit` là mã bản mới (cũng hiện ở chân trang đăng nhập). |
 | Sau | Migration đã áp dụng | Bước 3.8 | Migration mới nhất khớp mã nguồn. |
 | Sau | Đăng nhập, trang chủ, mở một hồ sơ | Trình duyệt | Hiện đúng. |
 | Sau | Mở tệp đính kèm, xuất một biểu mẫu Word, xem PDF | Trình duyệt | Mở được. |
@@ -140,8 +141,10 @@ Mong đợi: `CAU_HINH_HOP_LE` và `0`.
 
 ```bash
 cd /opt/congtacdang/docker
-docker compose build
+APP_VERSION=$(git rev-parse --short HEAD) APP_BUILD_TIME=$(date -u +%FT%TZ) docker compose build
 ```
+
+Hai biến đầu lệnh ghi mã commit và thời điểm dựng vào image, để ứng dụng tự báo bản đang chạy (mục 3.8). Bỏ hai biến thì ứng dụng hiện "chưa rõ".
 
 Mong đợi: 5 đến 15 phút, kết thúc không có `ERROR`. Lỗi: hệ thống cũ chưa bị ảnh hưởng; kiểm tra Internet và dung lượng ổ đĩa, chạy lại. Không giải quyết được: quay mã về bản cũ (`git checkout --detach <phiên-bản-cũ>`) và báo nhóm phát triển.
 
@@ -173,6 +176,8 @@ docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -
 ls /opt/congtacdang/backend/src/CongTacDang.Infrastructure/Data/Migrations | grep -v Designer | grep -v Snapshot | tail -n 1
 ```
 
+Biết ứng dụng đang chạy bản nào: chạy `curl -s http://127.0.0.1:3001/api/version` (in `commit`, `buildTime`, `environment`) hoặc nhìn dòng "Phiên bản <mã>" ở chân trang đăng nhập và cuối menu tài khoản. `commit` phải là mã bản mới đã chọn ở bước 3.1; còn mã cũ hay "chưa rõ" nghĩa là chưa dựng lại đúng cách (dựng lại bằng lệnh bước 3.6). Giao diện và backend ghi mã riêng, lệch nhau thì dòng phiên bản ghi thêm "(giao diện <mã>)".
+
 Mong đợi: ba container `(healthy)`; `Healthy`; hai dòng cuối cho cùng một tên migration (dòng thứ tư có thêm đuôi `.cs`).
 
 Trên trình duyệt (làm đúng trong phiếu kiểm): đăng nhập; trang chủ và Việc cần xử lý hiện đúng; mở một hồ sơ cũ thấy đủ dữ liệu; mở một tệp đính kèm; xuất một biểu mẫu Word và xem PDF; trang **Hệ thống → Nhật ký** ghi nhận thao tác mới.
@@ -200,7 +205,7 @@ CSDL không đổi cấu trúc, chỉ cần quay mã nguồn và dựng lại:
 cd /opt/congtacdang
 git checkout --detach <phiên-bản-cũ>
 cd docker
-docker compose build
+APP_VERSION=$(git rev-parse --short HEAD) APP_BUILD_TIME=$(date -u +%FT%TZ) docker compose build
 docker compose up -d
 ```
 
@@ -218,7 +223,7 @@ Chạy lần lượt:
 cd /opt/congtacdang
 git checkout --detach <phiên-bản-cũ>
 cd docker
-docker compose build
+APP_VERSION=$(git rev-parse --short HEAD) APP_BUILD_TIME=$(date -u +%FT%TZ) docker compose build
 ```
 
 Phải dựng xong trước khi khôi phục, vì `restore.sh` khởi động lại bằng image đang có.
