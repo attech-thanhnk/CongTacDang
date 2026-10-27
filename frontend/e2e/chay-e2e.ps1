@@ -54,7 +54,8 @@ function Invoke-Psql([string]$database, [string]$sql) {
 }
 
 $script:procs = @()
-function Stop-Tree($p) { if ($p -and -not $p.HasExited) { & taskkill /T /F /PID $p.Id *> $null } }
+function Stop-ProcessId($id) { cmd.exe /c "taskkill /T /F /PID $id >nul 2>&1" }
+function Stop-Tree($p) { if ($p -and -not $p.HasExited) { Stop-ProcessId $p.Id } }
 function Cleanup([bool]$dropDb) {
     Write-Step 'Dọn dẹp'
     foreach ($p in $script:procs) { Stop-Tree $p }
@@ -76,7 +77,7 @@ function Wait-Url([string]$url, [int]$timeoutSec, [string]$name) {
 
 if ($Down) {
     foreach ($port in @($BackendPort, $WebPort)) {
-        Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | ForEach-Object { & taskkill /T /F /PID $_.OwningProcess *> $null }
+        Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-ProcessId $_.OwningProcess }
     }
     Invoke-Psql 'postgres' "DROP DATABASE IF EXISTS $Db WITH (FORCE);"
     Write-Host 'Đã dừng môi trường thử và xóa ctd_e2e.'

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useId } from "react";
 
 export interface AdminModalProps {
   title: React.ReactNode;
@@ -14,12 +14,13 @@ export interface AdminModalProps {
 
 /** Hộp thoại Bootstrap dùng chung cho các trang quản trị. */
 export function AdminModal({ title, onClose, children, footer, maxWidth = 560, closeDisabled }: AdminModalProps) {
+  const titleId = useId();
   return (
-    <div className="modal show d-block bg-dark bg-opacity-50" tabIndex={-1} role="dialog" aria-modal="true">
+    <div className="modal show d-block bg-dark bg-opacity-50" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable" style={{ maxWidth }}>
         <div className="modal-content shadow border-0">
           <div className="modal-header py-2 px-3">
-            <h6 className="modal-title fw-bold mb-0">{title}</h6>
+            <h6 id={titleId} className="modal-title fw-bold mb-0">{title}</h6>
             <button type="button" className="btn-close" aria-label="Đóng" onClick={onClose} disabled={closeDisabled} />
           </div>
           <div className="modal-body p-3">{children}</div>

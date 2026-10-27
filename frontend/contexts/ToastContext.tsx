@@ -134,6 +134,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             className="position-fixed top-50 start-50 translate-middle w-100 p-3"
             style={{ zIndex: 1085, maxWidth: "420px" }}
+            role="dialog"
+            aria-modal="true"
+            aria-label={confirmModal.title || "Xác nhận thao tác"}
           >
             <div className="card shadow-lg border rounded-3" style={{ background: "var(--paper)", borderColor: "var(--rule)" }}>
               <div className="card-body p-4">
