@@ -303,6 +303,77 @@ public sealed class ExpertCrosscheckIntegrationTests
         return id;
     }
 
+    /// <summary>Tệp đính kèm phiếu đối soát: lập phiếu tải lên/thay/gỡ, người xem được chỉ xem, chủ hồ sơ bị chặn, phiếu đã gửi/xác nhận hoặc kỳ đóng thì khóa.</summary>
+    [SkippableFact]
+    public async Task Crosscheck_Attachments_ScopeOwnerAndLocking()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var w = await WorldAsync();
+        var recordId = await AppraisalRecordAsync(w);
+        const string type = "ExpertCrosscheck";
+        var created = await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/crosschecks", Request(w)));
+        var id = created.GetProperty("id").GetGuid();
+
+        // Chủ hồ sơ có đủ quyền đối soát vẫn bị chặn như khi xem phiếu.
+        var ownerRole = await _factory.CreateRoleAsync(PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCrosscheckRespond, PermissionCodes.EvaluationRead);
+        await _factory.AssignAsync(w.Owner.Id, ownerRole.Id, RoleScopeType.Global, null);
+
+        // Tải lên: người yêu cầu và cơ quan đối soát được; cơ quan khác, người xác nhận (chỉ xem), chủ hồ sơ → 403; phiếu không có → 404.
+        var fileId = await FormAttachmentClient.UploadOkAsync(w.ResponderC, type, id);
+        var byManager = await FormAttachmentClient.UploadOkAsync(w.ManagerC, type, id);
+        foreach (var client in new[] { w.OtherExpertC, w.ConfirmerC, w.OwnerC })
+            Assert.Equal(HttpStatusCode.Forbidden, (await FormAttachmentClient.UploadAsync(client, type, id)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await FormAttachmentClient.UploadAsync(w.ManagerC, type, Guid.NewGuid())).StatusCode);
+
+        // Xem/tải: người xem được phiếu; cơ quan khác và chủ hồ sơ không thấy.
+        foreach (var client in new[] { w.ManagerC, w.ResponderC, w.ConfirmerC })
+            await FormAttachmentClient.AssertCanReadAsync(client, type, id, fileId);
+        foreach (var client in new[] { w.OtherExpertC, w.OwnerC })
+            await FormAttachmentClient.AssertCannotReadAsync(client, type, id, fileId);
+
+        // Thay bản mới / gỡ: chỉ người sửa được phiếu.
+        Assert.Equal(HttpStatusCode.Forbidden, (await FormAttachmentClient.ReplaceAsync(w.ConfirmerC, fileId)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.ConfirmerC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.OwnerC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await FormAttachmentClient.ReplaceAsync(w.ResponderC, fileId)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await w.ManagerC.DeleteAsync($"/api/attachments/{byManager}")).StatusCode);
+        Assert.DoesNotContain(byManager, await FormAttachmentClient.ListAsync(w.ManagerC, type, id));
+
+        // Đã gửi xác nhận: xem được nhưng khóa tải lên/thay/gỡ.
+        var detail = await Data(w.ResponderC, $"/api/crosschecks/{id}");
+        var items = detail.GetProperty("items").EnumerateArray().Select(i => new
+        {
+            id = i.GetProperty("id").GetGuid(), sourceData = "Khớp hệ thống", result = "Pass", adjustmentType = "None",
+            adjustmentPoints = (double?)null, basisText = "", basisDocNumber = "", basisAgency = ""
+        }).ToArray();
+        var saved = await Data(await w.ResponderC.PutAsJsonAsync($"/api/crosschecks/{id}/response",
+            new { version = detail.GetProperty("version").GetUInt32(), items }));
+        var submitted = await Data(await w.ResponderC.PostAsJsonAsync($"/api/crosschecks/{id}/submit", new { version = saved.GetProperty("version").GetUInt32() }));
+        Assert.Equal(HttpStatusCode.Conflict, (await FormAttachmentClient.UploadAsync(w.ResponderC, type, id)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await FormAttachmentClient.ReplaceAsync(w.ResponderC, fileId)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await w.ResponderC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        await FormAttachmentClient.AssertCanReadAsync(w.ConfirmerC, type, id, fileId);
+
+        // Đã xác nhận vẫn khóa.
+        await Data(await w.ConfirmerC.PostAsJsonAsync($"/api/crosschecks/{id}/confirm", new { version = submitted.GetProperty("version").GetUInt32() }));
+        Assert.Equal(HttpStatusCode.Conflict, (await FormAttachmentClient.UploadAsync(w.ManagerC, type, id)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await w.ManagerC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+
+        // Kỳ không mở: phiếu đang mở nhưng kỳ đóng thì khóa.
+        var otherRecord = await AppraisalRecordAsync(w);
+        var openCheck = (await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/records/{otherRecord}/crosschecks", Request(w)))).GetProperty("id").GetGuid();
+        var openFile = await FormAttachmentClient.UploadOkAsync(w.ManagerC, type, openCheck);
+        await _factory.WithDbAsync(async db =>
+        {
+            var periodId = db.Set<EvaluationRecord>().Single(r => r.Id == otherRecord).PeriodId;
+            db.Set<EvaluationPeriod>().Single(p => p.Id == periodId).Status = PeriodStatus.Closed;
+            await db.SaveChangesAsync();
+        });
+        Assert.Equal(HttpStatusCode.Conflict, (await FormAttachmentClient.UploadAsync(w.ManagerC, type, openCheck)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await w.ManagerC.DeleteAsync($"/api/attachments/{openFile}")).StatusCode);
+        await FormAttachmentClient.AssertCanReadAsync(w.ManagerC, type, openCheck, openFile);
+    }
+
     #region Hỗ trợ
 
     /// <summary>Gửi đúng chuỗi JSON như axios của giao diện (giá trị null giữ nguyên, trường undefined bị bỏ).</summary>

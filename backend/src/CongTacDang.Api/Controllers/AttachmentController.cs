@@ -64,7 +64,7 @@ public class AttachmentController : ControllerBase
     /// Tải lên minh chứng. Không truyền ownerType/ownerId: tệp chưa gắn, chỉ người tải lên thấy tới khi được gắn.
     /// </summary>
     [HttpPost("upload")]
-    [Authorize] // Service: evaluation.self (tệp của mình), evaluation.external.record (văn bản của cấp trên), collective.manage (hồ sơ tập thể)
+    [Authorize] // Service: evaluation.self (tệp của mình), evaluation.external.record (văn bản của cấp trên), collective.manage (hồ sơ tập thể), quyền sửa phiếu/biên bản (Mẫu 03/19/20)
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> UploadFile(
         [FromForm] IFormFile file,
@@ -94,7 +94,7 @@ public class AttachmentController : ControllerBase
 
     /// <summary>Thay tệp bằng phiên bản mới (phiên bản cũ được giữ lại trong lịch sử)</summary>
     [HttpPost("{id}/versions")]
-    [Authorize] // Service: evaluation.self (tệp của mình), evaluation.external.record (văn bản của cấp trên), collective.manage (hồ sơ tập thể)
+    [Authorize] // Service: evaluation.self (tệp của mình), evaluation.external.record (văn bản của cấp trên), collective.manage (hồ sơ tập thể), quyền sửa phiếu/biên bản (Mẫu 03/19/20)
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> UploadNewVersion(Guid id, [FromForm] IFormFile file)
     {
