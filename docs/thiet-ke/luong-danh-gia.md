@@ -187,7 +187,7 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
   bắt buộc khi mức chính thức thuộc `improvementPlanRequiredGrades` của bộ tiêu chí; người có `evaluation.improvement.manage` (không
   trên hồ sơ của mình) lập, sửa khi đang lập, duyệt, ghi kết quả từng mốc; chủ hồ sơ xác nhận cam kết; mốc 90 ngày ghi kết quả → đóng.
   Xuất Word/PDF Mẫu 17 từ file mẫu dựng theo biểu mẫu gốc.
-- **Việc cần xử lý / chuông nhắc việc**: nhóm "Kiến nghị chờ xử lý", "Kế hoạch 30-60-90 ngày cần lập / duyệt" (chỉ hồ sơ của kỳ đang
+- **Việc cần xử lý / chuông nhắc việc**: nhóm "Kiến nghị chờ xử lý", "Kế hoạch 30-60-90 ngày" (chỉ hồ sơ của kỳ đang
   mở/khóa dữ liệu và kỳ đã đóng trong `improvementPlanAlertDays` ngày gần nhất, tính từ lúc đóng kỳ), "Kế hoạch chờ bạn xác nhận";
   `GET /api/notifications/summary` đếm tổng việc, bước quá hạn, sắp tới hạn (`Notifications:DueSoonDays`, mặc định 2).
 
@@ -208,7 +208,7 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 - Tự chấm (B2): việc đã loại trừ / chuyển tiếp bị bỏ qua (điểm 0, không tính vào tỷ lệ vượt chuẩn) — công thức không đổi.
 - API: `GET /api/evaluations/records/{id}/task-changes` (danh sách + cờ `canRequestChange`, `canRecordUrgent`, `requests[].canDecide`),
   `POST …/task-changes`, `POST …/task-changes/{changeId}/approve`, `POST …/task-changes/{changeId}/reject`. Việc cần xử lý / chuông: nhóm
-  `TASK_CHANGES` "Duyệt đề nghị điều chỉnh việc".
+  `TASK_CHANGES` "Duyệt điều chỉnh việc".
 - Xuất Word/PDF: khối "Biểu mẫu" của hồ sơ có một phiếu cho mỗi đề nghị (Mẫu 04 cho Adjust/Carryover/Exclude, Mẫu 05 cho Urgent) — `GET /api/reports/docx/record/{id}/requests` và `…/{04|05}/{requestId}`.
 - Chưa làm: tệp minh chứng gắn đề nghị, tạo việc chuyển tiếp ở kỳ quý sau.
 

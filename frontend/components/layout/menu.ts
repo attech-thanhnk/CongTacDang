@@ -48,7 +48,7 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
             hasPermission("evaluation.collective.record"),
         },
         {
-          title: "Đối soát chuyên ngành",
+          title: "Xác nhận số liệu",
           href: "/crosschecks",
           icon: "bi-patch-check",
           // Người xem hồ sơ đánh giá cũng xem được danh sách phiếu (API cho phép).
@@ -59,7 +59,7 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
             hasPermission("evaluation.crosscheck.confirm"),
         },
         {
-          title: "Hiệu chuẩn và kiểm soát",
+          title: "Rà soát",
           href: "/quality-control",
           icon: "bi-shield-check",
           check: () =>

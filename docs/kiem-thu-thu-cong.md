@@ -2,7 +2,7 @@
 
 Hướng dẫn tự mở hệ thống lên và dùng thử như người dùng thật. Làm trên **bản sao** của dữ liệu thật để không làm bẩn dữ liệu đang dùng.
 
-Phần lặp lại được (đăng nhập, menu, kỳ, luồng hồ sơ, hiệu chuẩn, kiểm soát, đối soát, xuất Word, điện thoại) đã có bộ kiểm thử giao diện tự động: xem [kiem-thu-tu-dong.md](kiem-thu-tu-dong.md). Kiểm thử thủ công dành cho phần cần mắt người.
+Phần lặp lại được (đăng nhập, menu, kỳ, luồng hồ sơ, họp thống nhất, kiểm tra, xác nhận số liệu, tải Word, điện thoại) đã có bộ kiểm thử giao diện tự động: xem [kiem-thu-tu-dong.md](kiem-thu-tu-dong.md). Kiểm thử thủ công dành cho phần cần mắt người.
 
 ## 1. Chuẩn bị bản sao dữ liệu để thử
 
@@ -60,10 +60,10 @@ Kỳ thử trong bản sao đang ở trạng thái Dự thảo với ba hồ sơ
 | 7 | `loan.ctp` thẩm định Trung và Đào; `loan.ttp` thẩm định Duy | Nhập điểm và mức thẩm định | Chuyển sang nhận xét |
 | 8 | `giang.nh` | Nhận xét cấp trực tiếp sử dụng | Chuyển sang chờ quyết định |
 | 9 | `hung.dt` | Mở hồ sơ, thử bấm nút quyết định | **Nút bị khóa**, hiện lý do "chưa thuộc biên bản hiệu chuẩn nào còn hiệu lực" |
-| 10 | `loan.ctp` | Menu "Hiệu chuẩn và kiểm soát" → tab Hiệu chuẩn → lập biên bản cho ba hồ sơ, nhập tên nhóm, chủ trì, thư ký, thành phần, một trường hợp điều chỉnh mức kèm căn cứ → lưu | Biên bản ở trạng thái nháp |
+| 10 | `loan.ctp` | Menu "Rà soát" → tab Họp thống nhất → lập biên bản cho ba hồ sơ, nhập tên nhóm, chủ trì, thư ký, thành phần, một trường hợp điều chỉnh mức kèm căn cứ → lưu | Biên bản ở trạng thái nháp |
 | 11 | `long.nc` | Mở biên bản → chốt | Chốt thành công. Hồ sơ bị điều chỉnh hiện kết quả sau hiệu chuẩn |
 | 12 | `hung.dt` | Mở hồ sơ | Nút quyết định vẫn khóa, lý do chuyển sang "phiếu kiểm soát" |
-| 13 | `loan.ttp` | Tab Kiểm soát → lập phiếu cho ba hồ sơ → điền 10 mục (có thể để một mục "K/AD" kèm lý do) → kết luận "Đủ điều kiện" → gửi xác nhận | Phiếu chờ xác nhận |
+| 13 | `loan.ttp` | Tab Kiểm tra → lập phiếu cho ba hồ sơ → điền 10 mục (có thể để một mục "K/AD" kèm lý do) → kết luận "Đủ điều kiện" → gửi xác nhận | Phiếu chờ xác nhận |
 | 14 | `loan.ttp` | Thử tự xác nhận phiếu của mình | **Bị từ chối** (người xác nhận phải khác người lập) |
 | 15 | `hung.dt` | Xác nhận phiếu | Nút quyết định mở khóa |
 | 16 | `hung.dt`, `thao.nt`, `long.nc` | Ghi nhận quyết định, rồi công bố | Hồ sơ chuyển sang đã công bố. Quyết định lần lượt từng hồ sơ đều thành công |
@@ -72,12 +72,12 @@ Kỳ thử trong bản sao đang ở trạng thái Dự thảo với ba hồ sơ
 
 Mỗi tình huống ghi kết quả mong đợi.
 
-1. **Phiếu đối soát (Mẫu 03).** `loan.ctp` mở hồ sơ ở bước thẩm định → khối "Đối soát chuyên ngành" → yêu cầu đối soát, chọn đơn vị chuyên môn (ví dụ Phòng Kỹ thuật - An toàn - Chất lượng). Trong lúc phiếu còn mở, nút thẩm định bị khóa và hiện lý do. Hủy phiếu (kèm lý do) hoặc hoàn tất phiếu thì nút mở lại.
+1. **Phiếu xác nhận số liệu (Mẫu 03).** `loan.ctp` mở hồ sơ ở bước thẩm định → khối "Xác nhận số liệu" → yêu cầu xác nhận, chọn đơn vị chuyên môn (ví dụ Phòng Kỹ thuật - An toàn - Chất lượng). Trong lúc phiếu còn mở, nút thẩm định bị khóa và hiện lý do. Hủy phiếu (kèm lý do) hoặc hoàn tất phiếu thì nút mở lại.
 2. **Cơ quan ngoài hệ thống.** Như trên nhưng chọn "cơ quan ngoài hệ thống": `loan.ctp` nhập hộ kết quả và gửi, rồi `hung.dt` (Văn phòng Đảng ủy) xác nhận.
 3. **Chủ hồ sơ không tự xử lý phiếu của mình.** Đăng nhập `dao.nta`, thử mở hoặc xác nhận phiếu có hồ sơ của Đào. Phải bị từ chối hoặc không thấy.
 4. **Hết hiệu lực.** Sau bước 15, trả lại thẩm định một hồ sơ, thẩm định lại. Cổng của hồ sơ đó khóa lại, phiếu hiện nhãn "Hết hiệu lực" cạnh hồ sơ đó (các hồ sơ khác không bị ảnh hưởng).
 5. **Kỳ khóa dữ liệu.** `loan.ctp` khóa kỳ trước khi lập xong biên bản hiệu chuẩn. Kiểm tra thông báo khi lập biên bản mới, rồi "Mở lại kỳ".
-6. **Xuất biểu mẫu.** Ở hồ sơ, phiếu và biên bản: "Xuất Word" cho Mẫu 01, 02, 03, 06, 10, 11, 19, 20. Mở file bằng Word: kiểm tên người, tên đơn vị, số liệu, không còn ô trống kiểu `«…»` hay `{{…}}`. Xuất PDF báo "chưa cài LibreOffice" là bình thường trên máy phát triển.
+6. **Tải biểu mẫu.** Ở hồ sơ, phiếu và biên bản: "Tải Word" cho Mẫu 01, 02, 03, 06, 10, 11, 19, 20. Mở file bằng Word: kiểm tên người, tên đơn vị, số liệu, không còn ô trống kiểu `«…»` hay `{{…}}`. Tải PDF báo "chưa cài LibreOffice" là bình thường trên máy phát triển.
 7. **Phân quyền menu.** Đăng nhập một cán bộ thường (ví dụ `canbo` bất kỳ): chỉ thấy "Hồ sơ của tôi" và các mục dành cho mình. Đăng nhập `quantri`: thấy quản trị nhưng không xem được nội dung đánh giá.
 8. **Điện thoại.** Thu nhỏ cửa sổ trình duyệt hoặc dùng chế độ giả lập điện thoại: các danh sách chuyển sang dạng thẻ, không bị cuộn ngang.
 

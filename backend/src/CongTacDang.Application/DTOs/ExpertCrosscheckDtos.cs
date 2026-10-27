@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace CongTacDang.Application.DTOs;
 
-/// <summary>Một dòng chỉ tiêu của phiếu đối soát.</summary>
+/// <summary>Một dòng chỉ tiêu của phiếu xác nhận số liệu.</summary>
 public class ExpertCrosscheckItemDto
 {
     public Guid Id { get; set; }
@@ -12,7 +12,7 @@ public class ExpertCrosscheckItemDto
     public string ItemName { get; set; } = string.Empty;
     /// <summary>Dữ liệu cá nhân tự khai.</summary>
     public string SelfData { get; set; } = string.Empty;
-    /// <summary>Kết quả đối soát với dữ liệu gốc.</summary>
+    /// <summary>Kết quả xác nhận với dữ liệu gốc.</summary>
     public string SourceData { get; set; } = string.Empty;
     /// <summary><c>Pass</c> / <c>Exceed</c> / <c>Defect</c>; null khi chưa lập.</summary>
     public string? Result { get; set; }
@@ -51,7 +51,7 @@ public class ExpertCrosscheckSummaryDto
     public string? DepartmentName { get; set; }
     public string? PartyCellName { get; set; }
     public Guid? ExpertDepartmentId { get; set; }
-    /// <summary>Tên đơn vị đối soát trong danh mục hoặc tên cơ quan ngoài hệ thống.</summary>
+    /// <summary>Tên đơn vị xác nhận trong danh mục hoặc tên cơ quan ngoài hệ thống.</summary>
     public string ExpertUnitName { get; set; } = string.Empty;
     public List<string> Fields { get; set; } = new();
     public List<string> FieldNames { get; set; } = new();
@@ -82,11 +82,11 @@ public class ExpertCrosscheckDto : ExpertCrosscheckSummaryDto
     public List<ExpertCrosscheckItemDto> Items { get; set; } = new();
     public List<ExpertCrosscheckHistoryDto> History { get; set; } = new();
 
-    /// <summary>Sửa được nội dung yêu cầu (lĩnh vực, lý do, các dòng cần đối soát): có <c>crosscheck.request</c>, phiếu chưa được lập.</summary>
+    /// <summary>Sửa được nội dung yêu cầu (lĩnh vực, lý do, các dòng cần xác nhận): có <c>crosscheck.request</c>, phiếu chưa được lập.</summary>
     public bool CanEditRequest { get; set; }
     /// <summary>Tải lên / thay / gỡ tệp đính kèm: người sửa được phiếu, phiếu chưa gửi và kỳ đang mở.</summary>
     public bool CanAttach { get; set; }
-    /// <summary>Nhập kết quả đối soát.</summary>
+    /// <summary>Nhập kết quả xác nhận.</summary>
     public bool CanRespond { get; set; }
     /// <summary>Gửi xác nhận.</summary>
     public bool CanSubmit { get; set; }
@@ -95,7 +95,7 @@ public class ExpertCrosscheckDto : ExpertCrosscheckSummaryDto
     public bool CanCancel { get; set; }
 }
 
-/// <summary>Khối "Đối soát chuyên ngành" trên trang hồ sơ.</summary>
+/// <summary>Khối "Xác nhận số liệu" trên trang hồ sơ.</summary>
 public class RecordCrosschecksDto
 {
     public Guid RecordId { get; set; }
@@ -118,12 +118,12 @@ public class CrosscheckRequestItemDto
     public string? SelfData { get; set; }
 }
 
-/// <summary>Yêu cầu đối soát (tạo) hoặc sửa yêu cầu khi phiếu chưa được lập.</summary>
+/// <summary>Yêu cầu xác nhận (tạo) hoặc sửa yêu cầu khi phiếu chưa được lập.</summary>
 public class SaveCrosscheckRequestDto
 {
     /// <summary>Phiên bản phiếu đã đọc; bắt buộc khi sửa, bỏ qua khi tạo.</summary>
     public uint? Version { get; set; }
-    /// <summary>Đơn vị đối soát trong danh mục; bỏ trống khi dùng <see cref="ExpertAgencyName"/>.</summary>
+    /// <summary>Đơn vị xác nhận trong danh mục; bỏ trống khi dùng <see cref="ExpertAgencyName"/>.</summary>
     public Guid? ExpertDepartmentId { get; set; }
     /// <summary>Cơ quan ngoài hệ thống; người yêu cầu nhập thay kết quả.</summary>
     public string? ExpertAgencyName { get; set; }

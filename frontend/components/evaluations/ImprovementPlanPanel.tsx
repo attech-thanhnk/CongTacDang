@@ -118,7 +118,7 @@ export function ImprovementPlanPanel({ record, onPendingChange }: { record: Eval
   const download = (format: "original" | "pdf") => {
     if (!plan) return;
     postPublishService.downloadMau17(plan.id, record.fullName, format)
-      .catch((err: unknown) => toast.error(errorMessage(err, "Xuất Mẫu 17 không thành công.")));
+      .catch((err: unknown) => toast.error(errorMessage(err, "Tải Mẫu 17 không thành công.")));
   };
 
   const updateMilestone = (code: MilestoneCode, key: keyof Omit<MilestoneInput, "code">, value: string) =>
@@ -134,8 +134,8 @@ export function ImprovementPlanPanel({ record, onPendingChange }: { record: Eval
         {plan && (
           <RowActions
             itemLabel="Kế hoạch Mẫu 17"
-            primary={[{ key: "word", label: "Xuất Word", icon: "bi-download", onClick: () => download("original") }]}
-            menu={[{ key: "pdf", label: "Xuất PDF", icon: "bi-file-earmark-pdf", onClick: () => download("pdf") }]}
+            primary={[{ key: "word", label: "Tải Word", icon: "bi-download", onClick: () => download("original") }]}
+            menu={[{ key: "pdf", label: "Tải PDF", icon: "bi-file-earmark-pdf", onClick: () => download("pdf") }]}
           />
         )}
       </div>

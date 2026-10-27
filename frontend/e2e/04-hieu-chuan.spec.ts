@@ -15,10 +15,10 @@ test.describe.serial('Hiệu chuẩn kết quả (Mẫu 20)', () => {
   test('lập biên bản: chọn hồ sơ, nhập tên nhóm', async ({ mo }) => {
     const page = await mo('loan.ctp');
     await page.goto('/quality-control');
-    await expect(page.getByRole('tab', { name: 'Hiệu chuẩn' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: 'Họp thống nhất' })).toHaveAttribute('aria-selected', 'true');
     await page.getByRole('button', { name: 'Lập biên bản' }).click();
 
-    const hop = page.getByRole('dialog', { name: 'Lập biên bản hiệu chuẩn' });
+    const hop = page.getByRole('dialog', { name: 'Lập biên bản' });
     const lap = hop.getByRole('button', { name: 'Lập biên bản' });
     // Chưa nhập tên nhóm và chưa chọn hồ sơ thì chưa lập được.
     await expect(lap).toBeDisabled();
@@ -27,7 +27,7 @@ test.describe.serial('Hiệu chuẩn kết quả (Mẫu 20)', () => {
     await expect(lap).toBeEnabled();
     await lap.click();
 
-    await expect(thongBao(page, 'Đã lập biên bản hiệu chuẩn.')).toBeVisible();
+    await expect(thongBao(page, 'Đã lập biên bản.')).toBeVisible();
     await expect(page).toHaveURL(/\/quality-control\/calibrations\/[0-9a-f-]{36}$/);
     ghiTrangThai({ bienBan20: new URL(page.url()).pathname });
     await expect(page.getByRole('heading', { name: 'Biên bản hiệu chuẩn' })).toBeVisible();

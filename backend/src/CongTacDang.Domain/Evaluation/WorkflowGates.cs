@@ -42,9 +42,9 @@ public static class WorkflowGates
 
     public static string DisplayName(string gate) => gate switch
     {
-        Crosscheck => "Đối soát chuyên ngành",
-        Calibration => "Hiệu chuẩn kết quả",
-        Control => "Kiểm soát trước phê duyệt",
+        Crosscheck => "Xác nhận số liệu",
+        Calibration => "Họp thống nhất",
+        Control => "Kiểm tra trước quyết định",
         _ => gate
     };
 

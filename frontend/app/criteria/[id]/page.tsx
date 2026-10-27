@@ -411,7 +411,7 @@ export default function CriteriaSetPage() {
 
             {editorTab === "forms" && (
             <section className="card">
-              <div className="card-header"><h2 className="mb-0">Biểu mẫu cá nhân áp dụng cho hồ sơ</h2></div>
+              <div className="card-header"><h2 className="mb-0">Biểu mẫu cá nhân</h2></div>
               <div className="card-body">
                 <div className="d-flex flex-column gap-1 mb-3">
                   {RECORD_FORMS.map((form) => {

@@ -55,12 +55,12 @@ public sealed class ExpertCrosscheckIntegrationTests
         // Thẩm định bị chặn khi còn yêu cầu mở.
         var blocked = await w.ManagerC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appraisal", await AppraiseBodyAsync(w, recordId));
         Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
-        Assert.Contains("phiếu đối soát", await MessageAsync(blocked));
+        Assert.Contains("phiếu xác nhận số liệu", await MessageAsync(blocked));
         // Danh sách hành động báo khóa thẩm định đúng như lúc ghi nhận bị từ chối.
         var actions = await Data(w.ManagerC, $"/api/evaluations/records/{recordId}/actions");
         var appraise = actions.GetProperty("actions").EnumerateArray().Single(a => a.GetProperty("action").GetString() == "Appraise");
         Assert.Equal("CROSSCHECK_OPEN", appraise.GetProperty("blockedBy").GetString());
-        Assert.Contains("phiếu đối soát", appraise.GetProperty("blockedReason").GetString());
+        Assert.Contains("phiếu xác nhận số liệu", appraise.GetProperty("blockedReason").GetString());
 
         // Chủ hồ sơ có đủ quyền đối soát vẫn không thao tác được phiếu về mình.
         var ownerRole = await _factory.CreateRoleAsync(PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCrosscheckRespond, PermissionCodes.EvaluationCrosscheckConfirm);
@@ -108,7 +108,7 @@ public sealed class ExpertCrosscheckIntegrationTests
         Assert.Equal(HttpStatusCode.Conflict, (await w.ResponderC.PutAsJsonAsync($"/api/crosschecks/{id}/response", new { version = confirmedVersion, items })).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await w.ManagerC.PostAsJsonAsync($"/api/crosschecks/{id}/cancel", new { version = confirmedVersion, reason = "x" })).StatusCode);
         var afterConfirm = await w.ManagerC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appraisal", await AppraiseBodyAsync(w, recordId));
-        Assert.DoesNotContain("phiếu đối soát", await MessageAsync(afterConfirm));
+        Assert.DoesNotContain("phiếu xác nhận số liệu", await MessageAsync(afterConfirm));
     }
 
     [SkippableFact]
@@ -127,7 +127,7 @@ public sealed class ExpertCrosscheckIntegrationTests
         Assert.Equal("Cancelled", cancelled.GetProperty("status").GetString());
 
         var response = await w.ManagerC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appraisal", await AppraiseBodyAsync(w, recordId));
-        Assert.DoesNotContain("phiếu đối soát", await MessageAsync(response));
+        Assert.DoesNotContain("phiếu xác nhận số liệu", await MessageAsync(response));
     }
 
     [SkippableFact]

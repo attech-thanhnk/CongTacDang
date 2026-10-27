@@ -83,7 +83,7 @@ export default function ReportsPage() {
   const download = async (report: ReportDefinition, format: ReportFileFormat) => {
     if (!report.endpoint) return;
     if (report.scope === "period" && !periodId) {
-      toast.error("Hãy chọn kỳ đánh giá trước khi xuất.");
+      toast.error("Hãy chọn kỳ đánh giá trước khi tải.");
       return;
     }
     setBusy(`${report.id}-${format}`);
@@ -99,9 +99,9 @@ export default function ReportsPage() {
             ? internalFileName(report.fileCode, unit, periodLabel(period), extension)
             : hd03FileName(report.fileCode, unit, periodLabel(period), extension);
       await reportService.downloadReport(endpoint, fileName, format);
-      toast.success(`Đã xuất ${report.code === "Nội bộ" ? report.title : report.code}.`);
+      toast.success(`Đã tải ${report.code === "Nội bộ" ? report.title : report.code}.`);
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Xuất báo cáo không thành công."));
+      toast.error(errorMessage(err, "Tải báo cáo không thành công."));
     } finally {
       setBusy(null);
     }
@@ -135,7 +135,7 @@ export default function ReportsPage() {
     const reason = blockedReason(report);
     const exportWord: RowAction = {
       key: "original",
-      label: `Xuất ${fileLabel(report)}`,
+      label: `Tải ${fileLabel(report)}`,
       icon: "bi-download",
       disabled: !!reason,
       title: reason ?? undefined,
@@ -143,7 +143,7 @@ export default function ReportsPage() {
     };
     const exportPdf: RowAction = {
       key: "pdf",
-      label: "Xuất PDF",
+      label: "Tải PDF",
       icon: "bi-filetype-pdf",
       disabled: !!reason,
       hidden: report.scope === "none",
@@ -191,7 +191,7 @@ export default function ReportsPage() {
                       <td className="fw-semibold">
                         {report.title}
                         {exporting && (
-                          <div className={styles.note}><span className="spinner-border spinner-border-sm me-1" />Đang xuất{busy?.endsWith("-pdf") ? " PDF" : ""}…</div>
+                          <div className={styles.note}><span className="spinner-border spinner-border-sm me-1" />Đang tải{busy?.endsWith("-pdf") ? " PDF" : ""}…</div>
                         )}
                         {!exporting && reason && <div className={`${styles.note} ${styles.noteWarn}`}>{reason}</div>}
                       </td>
@@ -237,7 +237,7 @@ export default function ReportsPage() {
         {renderGroup("Báo cáo nội bộ", REPORTS.filter((r) => r.group === "internal"), false)}
         {!REPORTS.some(visible) && (
           <section className="card">
-            <EmptyState icon="bi-file-earmark-bar-graph" title="Không có báo cáo để xuất" description="Tài khoản chưa được giao quyền xuất báo cáo." />
+            <EmptyState icon="bi-file-earmark-bar-graph" title="Không có báo cáo để tải" description="Tài khoản chưa được giao quyền xuất báo cáo." />
           </section>
         )}
       </div>

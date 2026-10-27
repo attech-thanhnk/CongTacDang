@@ -17,11 +17,11 @@ interface Props {
   onRecordChanged?: () => void;
 }
 
-/** Đối soát chuyên ngành: danh sách phiếu của hồ sơ và nút yêu cầu; nút theo cờ máy chủ. */
+/** Xác nhận số liệu: danh sách phiếu của hồ sơ và nút yêu cầu; nút theo cờ máy chủ. */
 export function CrosscheckPanel({ record, onRecordChanged }: Props) {
   const { toast } = useToast();
   const { user, hasPermission } = useAuth();
-  // Chủ hồ sơ không xem được phiếu đối soát của chính mình (máy chủ trả 403): không gọi API.
+  // Chủ hồ sơ không xem được phiếu xác nhận số liệu của chính mình (máy chủ trả 403): không gọi API.
   const isOwner = !!user && user.id === record.memberId;
   const canView = !isOwner && ["evaluation.read", "evaluation.crosscheck.request", "evaluation.crosscheck.respond", "evaluation.crosscheck.confirm"].some(hasPermission);
   const [data, setData] = useState<RecordCrosschecksDto | null>(null);
@@ -48,12 +48,12 @@ export function CrosscheckPanel({ record, onRecordChanged }: Props) {
     setBusy(true);
     try {
       await crosscheckService.create(record.id, body);
-      toast.success("Đã gửi yêu cầu đối soát.");
+      toast.success("Đã gửi yêu cầu xác nhận.");
       setForm(false);
       await load();
       onRecordChanged?.();
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Gửi yêu cầu đối soát không thành công."));
+      toast.error(errorMessage(err, "Gửi yêu cầu xác nhận không thành công."));
     } finally {
       setBusy(false);
     }
@@ -64,10 +64,10 @@ export function CrosscheckPanel({ record, onRecordChanged }: Props) {
   return (
     <section className="card">
       <div className="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
-        <h2 className="mb-0">Đối soát chuyên ngành</h2>
+        <h2 className="mb-0">Xác nhận số liệu</h2>
         {!form && data.canRequest && (
           <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setForm(true)}>
-            Yêu cầu đối soát
+            Yêu cầu xác nhận
           </button>
         )}
       </div>

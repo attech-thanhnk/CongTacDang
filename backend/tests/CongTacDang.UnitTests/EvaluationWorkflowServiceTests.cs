@@ -422,7 +422,7 @@ public sealed class EvaluationWorkflowServiceTests
 
         var ex = await Assert.ThrowsAsync<ConflictException>(() => service.AppraiseAsync(h.Record.Id, request));
 
-        Assert.Contains("phiếu đối soát", ex.Message);
+        Assert.Contains("phiếu xác nhận số liệu", ex.Message);
         Assert.Equal(RecordStatus.AwaitingAppraisal, h.Record.Status);
         Assert.Equal(0, h.Uow.Saves);
     }
@@ -430,10 +430,10 @@ public sealed class EvaluationWorkflowServiceTests
     private sealed class ThrowingCrosscheckGate : IExpertCrosscheckGate
     {
         public Task EnsureNoOpenAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct = default) =>
-            throw new ConflictException("Còn 1 phiếu đối soát chuyên ngành chờ xác nhận.");
+            throw new ConflictException("Còn 1 phiếu xác nhận số liệu chờ xác nhận.");
 
         public Task<string?> OpenBlockReasonAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct = default) =>
-            Task.FromResult<string?>("Còn 1 phiếu đối soát chuyên ngành chờ xác nhận.");
+            Task.FromResult<string?>("Còn 1 phiếu xác nhận số liệu chờ xác nhận.");
     }
 
     #region Cổng hiệu chuẩn và kiểm soát trước quyết định

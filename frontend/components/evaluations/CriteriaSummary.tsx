@@ -32,7 +32,7 @@ export function CriteriaSummary({ content, navigation = false }: CriteriaSummary
     if (collectiveGroups.length > 0) entries.push({ id: sid("collective"), label: "Tiêu chí tập thể" });
     entries.push(
       { id: sid("axes"), label: "Trục kết quả" },
-      { id: sid("forms"), label: "Biểu mẫu áp dụng" },
+      { id: sid("forms"), label: "Biểu mẫu" },
       { id: sid("frames"), label: "Tỷ trọng và quy đổi" },
       { id: sid("grades"), label: "Mức xếp loại" },
       { id: sid("params"), label: "Tham số" }
@@ -109,7 +109,7 @@ export function CriteriaSummary({ content, navigation = false }: CriteriaSummary
 
       <section id={sid("forms")} className={styles.block}>
         <header className={styles.blockHead}>
-          <h3 className={styles.blockTitle}>Biểu mẫu cá nhân áp dụng</h3>
+          <h3 className={styles.blockTitle}>Biểu mẫu cá nhân</h3>
         </header>
         <div className={styles.blockBody}>
           <ul className={styles.formList}>

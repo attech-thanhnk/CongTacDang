@@ -47,7 +47,7 @@ export function RecordFormsPanel({
         : evaluationService.recordFormEndpoint(recordId, code);
       await reportService.downloadReport(endpoint, fileName(code, fullName, format), format);
     } catch (error: unknown) {
-      toast.error(errorMessage(error, "Xuất biểu mẫu không thành công."));
+      toast.error(errorMessage(error, "Tải biểu mẫu không thành công."));
     } finally {
       setBusy(null);
     }
@@ -81,12 +81,12 @@ export function RecordFormsPanel({
                 primary={[
                   {
                     key: "word",
-                    label: busy === `${key}-original` ? "Đang xuất..." : "Xuất Word",
+                    label: busy === `${key}-original` ? "Đang tải..." : "Tải Word",
                     icon: "bi-download",
                     onClick: () => download(form.code, "original", form.requestId),
                   },
                 ]}
-                menu={[{ key: "pdf", label: "Xuất PDF", icon: "bi-file-earmark-pdf", onClick: () => download(form.code, "pdf", form.requestId) }]}
+                menu={[{ key: "pdf", label: "Tải PDF", icon: "bi-file-earmark-pdf", onClick: () => download(form.code, "pdf", form.requestId) }]}
               />
             </li>
             );

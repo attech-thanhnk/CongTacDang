@@ -183,7 +183,7 @@ export default function ControlCheckDetailPage() {
     try {
       await reportService.exportQualityForm("19", data.id, `Mau_19_${data.id}.docx`, format);
     } catch (err: unknown) {
-      toast.error(errorMessage(err, format === "pdf" ? "Xuất PDF không thành công. Hãy tải bản Word hoặc liên hệ quản trị hệ thống." : "Xuất phiếu kiểm soát không thành công."));
+      toast.error(errorMessage(err, format === "pdf" ? "Tải PDF không thành công. Hãy tải bản Word hoặc liên hệ quản trị hệ thống." : "Tải phiếu kiểm soát không thành công."));
     }
   };
 
@@ -283,8 +283,8 @@ export default function ControlCheckDetailPage() {
               itemLabel="phiếu kiểm soát"
               disabled={busy}
               actions={[
-                { key: "word", label: "Xuất Word", icon: "bi-download", onClick: () => exportForm("original") },
-                { key: "pdf", label: "Xuất PDF", icon: "bi-filetype-pdf", onClick: () => exportForm("pdf") },
+                { key: "word", label: "Tải Word", icon: "bi-download", onClick: () => exportForm("original") },
+                { key: "pdf", label: "Tải PDF", icon: "bi-filetype-pdf", onClick: () => exportForm("pdf") },
                 { key: "return", label: "Trả lại", icon: "bi-arrow-return-left", hidden: !data.canReturn, onClick: () => setDialog("return") },
                 { key: "reopen", label: "Mở lại", icon: "bi-arrow-counterclockwise", hidden: !data.canReopen, onClick: () => setDialog("reopen") },
                 { key: "cancel", label: "Hủy phiếu", icon: "bi-x-circle", danger: true, hidden: !data.canCancel, onClick: () => setDialog("cancel") },

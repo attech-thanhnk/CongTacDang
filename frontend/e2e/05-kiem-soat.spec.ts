@@ -8,15 +8,15 @@ test.describe.serial('Kiểm soát (Mẫu 19)', () => {
   test('lập phiếu kiểm soát cho hồ sơ đã hiệu chuẩn', async ({ mo }) => {
     const page = await mo('loan.ttp');
     await page.goto('/quality-control?tab=control');
-    await expect(page.getByRole('tab', { name: 'Kiểm soát' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: 'Kiểm tra' })).toHaveAttribute('aria-selected', 'true');
     await page.getByRole('button', { name: 'Lập phiếu' }).click();
 
-    const hop = page.getByRole('dialog', { name: 'Lập phiếu kiểm soát' });
+    const hop = page.getByRole('dialog', { name: 'Lập phiếu' });
     await hop.getByLabel(/Nhóm chức danh \/ phạm vi/).fill(TEN_NHOM);
     await hop.getByRole('checkbox', { name: new RegExp(TRUNG.hoTen) }).check();
     await hop.getByRole('button', { name: 'Lập phiếu' }).click();
 
-    await expect(thongBao(page, 'Đã lập phiếu kiểm soát.')).toBeVisible();
+    await expect(thongBao(page, 'Đã lập phiếu.')).toBeVisible();
     await expect(page).toHaveURL(/\/quality-control\/control-checks\/[0-9a-f-]{36}$/);
     ghiTrangThai({ phieu19: new URL(page.url()).pathname });
     await expect(page.getByText('Đang soạn', { exact: true }).first()).toBeVisible();

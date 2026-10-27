@@ -20,7 +20,7 @@ Tìm đúng tài liệu theo việc bạn cần làm. Mọi liên kết là đư
 | Nhà phát triển thêm migration CSDL | [database-migrations.md](database-migrations.md) | Quy tắc tạo, kiểm tra và áp dụng migration. |
 | Nhà phát triển hiểu phân quyền | [thiet-ke/phan-quyen.md](thiet-ke/phan-quyen.md) | Vai trò, quyền, phạm vi, bản gán và cách tính quyền. |
 | Nhà phát triển hiểu luồng đánh giá | [thiet-ke/luong-danh-gia.md](thiet-ke/luong-danh-gia.md) | Năm bước, trạng thái, hồ sơ luồng, kiểm tra kẹt luồng. |
-| Nhà phát triển hiểu phiếu đối soát, kiểm soát, hiệu chuẩn | [thiet-ke/mau-03-19-20.md](thiet-ke/mau-03-19-20.md) | Thiết kế Mẫu 03, 19, 20 và các cổng trước quyết định. |
+| Nhà phát triển hiểu phiếu xác nhận số liệu (đối soát), kiểm tra (kiểm soát), họp thống nhất (hiệu chuẩn) | [thiet-ke/mau-03-19-20.md](thiet-ke/mau-03-19-20.md) | Thiết kế Mẫu 03, 19, 20 và các cổng trước quyết định. |
 | Kiểm thử thủ công một kỳ đi hết luồng | [kiem-thu-thu-cong.md](kiem-thu-thu-cong.md) | Dựng bản sao thử và các kịch bản kèm kết quả mong đợi. |
 | Chạy kiểm thử giao diện tự động | [kiem-thu-tu-dong.md](kiem-thu-tu-dong.md) | Dựng môi trường thử riêng và chạy Playwright. |
 | Tra thuật ngữ, tên vai trò, tên mức xếp loại | [thiet-ke/thuat-ngu.md](thiet-ke/thuat-ngu.md) | Bảng tên gọi thống nhất cho giao diện, vai trò, quyền, biểu mẫu. |

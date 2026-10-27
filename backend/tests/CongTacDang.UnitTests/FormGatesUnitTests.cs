@@ -116,15 +116,15 @@ public sealed class FormGatesUnitTests
 
         var optionalOnControl = PeriodSettings.Default();
         optionalOnControl.FindProfile("co-so")!.Gates[WorkflowGates.Control].Mode = GateMode.Optional;
-        Assert.Contains(Validate(optionalOnControl.Normalize()), e => e.Contains("Kiểm soát trước phê duyệt", StringComparison.Ordinal));
+        Assert.Contains(Validate(optionalOnControl.Normalize()), e => e.Contains("Kiểm tra trước quyết định", StringComparison.Ordinal));
 
         var requiredOnCrosscheck = PeriodSettings.Default();
         requiredOnCrosscheck.FindProfile("co-so")!.Gates[WorkflowGates.Crosscheck].Mode = GateMode.Required;
-        Assert.Contains(Validate(requiredOnCrosscheck.Normalize()), e => e.Contains("Đối soát chuyên ngành", StringComparison.Ordinal));
+        Assert.Contains(Validate(requiredOnCrosscheck.Normalize()), e => e.Contains("Xác nhận số liệu", StringComparison.Ordinal));
 
         var undefined = PeriodSettings.Default();
         undefined.FindProfile("co-so")!.Gates[WorkflowGates.Calibration].Mode = (GateMode)99;
-        Assert.Contains(Validate(undefined.Normalize()), e => e.Contains("Hiệu chuẩn kết quả", StringComparison.Ordinal));
+        Assert.Contains(Validate(undefined.Normalize()), e => e.Contains("Họp thống nhất", StringComparison.Ordinal));
 
         var allowed = PeriodSettings.Default();
         allowed.FindProfile("co-so")!.Gates[WorkflowGates.Crosscheck].Mode = GateMode.Off;

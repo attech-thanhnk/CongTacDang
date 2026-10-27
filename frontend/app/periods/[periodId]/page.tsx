@@ -161,7 +161,7 @@ export default function PeriodDetailPage() {
         `BangTongHop_XepLoaiCanBo_{SHORT_NAME}_Quy ${quarter}-${period.year}.xlsx`,
       );
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Xuất bảng tổng hợp xếp loại không thành công."));
+      toast.error(errorMessage(err, "Tải bảng tổng hợp xếp loại không thành công."));
     } finally {
       setDownloading(false);
     }
@@ -315,7 +315,7 @@ export default function PeriodDetailPage() {
             {hasPermission("report.export") && !isDraft && (
               <button type="button" className="btn btn-outline-secondary" disabled={downloading} onClick={downloadRatingSummary}>
                 <i className="bi bi-download me-1" />
-                {downloading ? "Đang xuất..." : "Bảng tổng hợp xếp loại"}
+                {downloading ? "Đang tải..." : "Bảng tổng hợp xếp loại"}
               </button>
             )}
             {canManage && isDraft && (

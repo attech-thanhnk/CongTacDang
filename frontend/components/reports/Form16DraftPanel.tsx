@@ -143,7 +143,7 @@ export function Form16DraftPanel({ periodId, branchId, periodLabel, shortName }:
         format
       );
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Xuất Mẫu 16 không thành công."));
+      toast.error(errorMessage(err, "Tải Mẫu 16 không thành công."));
     } finally {
       setExporting(null);
     }
@@ -163,13 +163,13 @@ export function Form16DraftPanel({ periodId, branchId, periodLabel, shortName }:
           {draft.updatedAt ? ` · Lưu nháp lúc ${formatDateTime(draft.updatedAt)}` : " · Chưa lưu nháp"}
         </div>
         <div className={styles.panelActions}>
-          <Button size="sm" variant="outline-secondary" icon="bi-download" disabled={dirty || exporting !== null} title={dirty ? "Lưu nháp trước khi xuất" : undefined}
-            loading={exporting === "original"} loadingText="Đang xuất..." onClick={() => exportFile("original")}>
-            Xuất Word
+          <Button size="sm" variant="outline-secondary" icon="bi-download" disabled={dirty || exporting !== null} title={dirty ? "Lưu nháp trước khi tải" : undefined}
+            loading={exporting === "original"} loadingText="Đang tải..." onClick={() => exportFile("original")}>
+            Tải Word
           </Button>
-          <Button size="sm" variant="outline-secondary" icon="bi-filetype-pdf" disabled={dirty || exporting !== null} title={dirty ? "Lưu nháp trước khi xuất" : undefined}
-            loading={exporting === "pdf"} loadingText="Đang xuất..." onClick={() => exportFile("pdf")}>
-            Xuất PDF
+          <Button size="sm" variant="outline-secondary" icon="bi-filetype-pdf" disabled={dirty || exporting !== null} title={dirty ? "Lưu nháp trước khi tải" : undefined}
+            loading={exporting === "pdf"} loadingText="Đang tải..." onClick={() => exportFile("pdf")}>
+            Tải PDF
           </Button>
           <Button size="sm" variant="primary" icon="bi-check-lg" disabled={!dirty} title={!dirty ? "Chưa có thay đổi" : undefined}
             loading={saving} loadingText="Đang lưu..." onClick={save}>

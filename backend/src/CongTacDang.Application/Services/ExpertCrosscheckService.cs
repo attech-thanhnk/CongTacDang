@@ -17,10 +17,10 @@ namespace CongTacDang.Application.Services;
 /// <summary>Phiếu ý kiến chuyên môn độc lập / đối soát dữ liệu chuyên ngành (Mẫu 03).</summary>
 public interface IExpertCrosscheckService
 {
-    /// <summary>Khối trên trang hồ sơ: người có <c>evaluation.read</c> (không phải chủ hồ sơ) thấy mọi phiếu; cơ quan đối soát chỉ thấy phiếu gửi đến mình.</summary>
+    /// <summary>Khối trên trang hồ sơ: người có <c>evaluation.read</c> (không phải chủ hồ sơ) thấy mọi phiếu; cơ quan xác nhận chỉ thấy phiếu gửi đến mình.</summary>
     Task<RecordCrosschecksDto> GetByRecordAsync(Guid recordId, CancellationToken ct = default);
 
-    /// <summary>Phiếu trong phạm vi xem của người hiện tại, kể cả phiếu gửi đến đơn vị đối soát mà người đó được gán.</summary>
+    /// <summary>Phiếu trong phạm vi xem của người hiện tại, kể cả phiếu gửi đến đơn vị xác nhận mà người đó được gán.</summary>
     Task<List<ExpertCrosscheckSummaryDto>> ListAsync(Guid? periodId, string? status, CancellationToken ct = default);
 
     Task<ExpertCrosscheckDto> GetAsync(Guid id, CancellationToken ct = default);
@@ -28,10 +28,10 @@ public interface IExpertCrosscheckService
     /// <summary>Người có <c>evaluation.crosscheck.request</c> trên hồ sơ, khi kỳ đang mở và hồ sơ ở giai đoạn thẩm định hoặc nhận xét.</summary>
     Task<ExpertCrosscheckDto> CreateAsync(Guid recordId, SaveCrosscheckRequestDto request, CancellationToken ct = default);
 
-    /// <summary>Sửa nội dung yêu cầu khi cơ quan đối soát chưa lập.</summary>
+    /// <summary>Sửa nội dung yêu cầu khi cơ quan xác nhận chưa lập.</summary>
     Task<ExpertCrosscheckDto> UpdateRequestAsync(Guid id, SaveCrosscheckRequestDto request, CancellationToken ct = default);
 
-    /// <summary>Lưu kết quả đối soát; chưa gửi xác nhận.</summary>
+    /// <summary>Lưu kết quả xác nhận; chưa gửi xác nhận.</summary>
     Task<ExpertCrosscheckDto> SaveResponseAsync(Guid id, SaveCrosscheckResponseDto request, CancellationToken ct = default);
 
     Task<ExpertCrosscheckDto> SubmitAsync(Guid id, CrosscheckActionDto request, CancellationToken ct = default);
@@ -46,7 +46,7 @@ public interface IExpertCrosscheckService
     Task<ExpertCrosscheckDto> CancelAsync(Guid id, CrosscheckActionDto request, CancellationToken ct = default);
 }
 
-/// <summary>Chặn hoàn thành thẩm định (B3b) khi còn yêu cầu đối soát đang mở.</summary>
+/// <summary>Chặn hoàn thành thẩm định (B3b) khi còn yêu cầu xác nhận đang mở.</summary>
 public interface IExpertCrosscheckGate
 {
     /// <summary>Ném <see cref="ConflictException"/> khi cổng đối soát của diện quyết định không tắt và còn phiếu chưa xác nhận, chưa hủy.</summary>
@@ -56,7 +56,7 @@ public interface IExpertCrosscheckGate
     Task<string?> OpenBlockReasonAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct = default);
 }
 
-/// <summary>Nhóm việc "Phiếu đối soát chờ lập / xác nhận".</summary>
+/// <summary>Nhóm việc "Phiếu xác nhận số liệu chờ lập / xác nhận".</summary>
 public interface ICrosscheckWorkQueue
 {
     /// <summary>Nhóm rỗng không trả về.</summary>
@@ -64,7 +64,7 @@ public interface ICrosscheckWorkQueue
 }
 
 /// <summary>
-/// Phiếu tùy chọn và chỉ để tham khảo: không tự đổi điểm. Quyền lập, xác nhận kiểm theo đơn vị đối soát (không cần quyền xem hồ sơ);
+/// Phiếu tùy chọn và chỉ để tham khảo: không tự đổi điểm. Quyền lập, xác nhận kiểm theo đơn vị xác nhận (không cần quyền xem hồ sơ);
 /// chủ hồ sơ không xem và không thao tác phiếu về mình. Cơ quan ngoài hệ thống: người có quyền yêu cầu nhập thay.
 /// </summary>
 public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertCrosscheckGate, ICrosscheckWorkQueue
@@ -98,16 +98,16 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
     {
         var record = await RequireRecordAsync(recordId, ct);
         if (IsOwner(record))
-            throw new ForbiddenException("Phiếu đối soát chuyên ngành về hồ sơ của chính bạn chỉ dành cho người xử lý hồ sơ.");
+            throw new ForbiddenException("Phiếu xác nhận số liệu về hồ sơ của chính bạn chỉ dành cho người xử lý hồ sơ.");
 
         var all = await _repo.ListByRecordAsync(record.Id, ct);
         var visible = all.Where(CanView).ToList();
         if (visible.Count == 0 && !CanReadRecord(record) && !_guard.Can(PermissionCodes.EvaluationCrosscheckRequest, AccessTarget.ForRecord(record)))
-            throw new ForbiddenException("Bạn không có quyền xem phiếu đối soát chuyên ngành của hồ sơ này (ngoài phạm vi được gán).");
+            throw new ForbiddenException("Bạn không có quyền xem phiếu xác nhận số liệu của hồ sơ này (ngoài phạm vi được gán).");
 
         var profile = ProfileOf(record);
         var applicable = profile.GateModeOf(WorkflowGates.Crosscheck) != GateMode.Off;
-        var blocked = applicable ? StateBlockReason(record) : "Diện quyết định của hồ sơ này không dùng đối soát chuyên ngành.";
+        var blocked = applicable ? StateBlockReason(record) : "Diện quyết định của hồ sơ này không dùng xác nhận số liệu.";
         return new RecordCrosschecksDto
         {
             RecordId = record.Id,
@@ -126,7 +126,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
         if (!string.IsNullOrWhiteSpace(status))
         {
             if (!Enum.TryParse<CrosscheckStatus>(status.Trim(), true, out var s) || !Enum.IsDefined(s))
-                throw new ValidationException("Trạng thái phiếu đối soát không hợp lệ.");
+                throw new ValidationException("Trạng thái phiếu xác nhận số liệu không hợp lệ.");
             parsed = s;
         }
 
@@ -151,11 +151,11 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
     {
         ArgumentNullException.ThrowIfNull(request);
         var record = await RequireRecordAsync(recordId, ct);
-        EnsureNotOwner(record, "yêu cầu đối soát chuyên ngành");
+        EnsureNotOwner(record, "yêu cầu xác nhận số liệu");
         _guard.Ensure(PermissionCodes.EvaluationCrosscheckRequest, AccessTarget.ForRecord(record));
 
         if (ProfileOf(record).GateModeOf(WorkflowGates.Crosscheck) == GateMode.Off)
-            throw new ConflictException("Diện quyết định của hồ sơ này không dùng đối soát chuyên ngành.");
+            throw new ConflictException("Diện quyết định của hồ sơ này không dùng xác nhận số liệu.");
         var blocked = StateBlockReason(record);
         if (blocked != null)
             throw new ConflictException(blocked);
@@ -163,7 +163,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
         var content = await ValidateRequestAsync(record, request, ct);
         var existing = await _repo.ListByRecordAsync(record.Id, ct);
         if (existing.Any(c => CrosscheckRules.IsOpen(c.Status) && SameExpert(c, content) && CrosscheckRules.FieldsOverlap(c.Fields, content.FieldsJson)))
-            throw new ConflictException("Hồ sơ đã có yêu cầu đối soát đang mở gửi tới cùng đơn vị ở lĩnh vực này. Hãy xử lý hoặc hủy yêu cầu đó trước.");
+            throw new ConflictException("Hồ sơ đã có yêu cầu xác nhận đang mở gửi tới cùng đơn vị ở lĩnh vực này. Hãy xử lý hoặc hủy yêu cầu đó trước.");
 
         var now = DateTime.UtcNow;
         var actorName = await ActorNameAsync(ct);
@@ -203,16 +203,16 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
     {
         ArgumentNullException.ThrowIfNull(request);
         var crosscheck = await RequireAsync(id, ct);
-        EnsureNotOwner(crosscheck.Record, "sửa yêu cầu đối soát chuyên ngành");
+        EnsureNotOwner(crosscheck.Record, "sửa yêu cầu xác nhận số liệu");
         _guard.Ensure(PermissionCodes.EvaluationCrosscheckRequest, AccessTarget.ForRecord(crosscheck.Record));
         EnsureVersion(crosscheck, request.Version);
         if (crosscheck.Status != CrosscheckStatus.Requested)
-            throw new ConflictException("Chỉ sửa được yêu cầu khi cơ quan đối soát chưa lập phiếu.");
+            throw new ConflictException("Chỉ sửa được yêu cầu khi cơ quan xác nhận chưa lập phiếu.");
 
         var content = await ValidateRequestAsync(crosscheck.Record, request, ct);
         var others = (await _repo.ListByRecordAsync(crosscheck.RecordId, ct)).Where(c => c.Id != crosscheck.Id);
         if (others.Any(c => CrosscheckRules.IsOpen(c.Status) && SameExpert(c, content) && CrosscheckRules.FieldsOverlap(c.Fields, content.FieldsJson)))
-            throw new ConflictException("Hồ sơ đã có yêu cầu đối soát đang mở gửi tới cùng đơn vị ở lĩnh vực này. Hãy xử lý hoặc hủy yêu cầu đó trước.");
+            throw new ConflictException("Hồ sơ đã có yêu cầu xác nhận đang mở gửi tới cùng đơn vị ở lĩnh vực này. Hãy xử lý hoặc hủy yêu cầu đó trước.");
 
         var now = DateTime.UtcNow;
         crosscheck.ExpertDepartmentId = content.ExpertDepartmentId;
@@ -241,12 +241,12 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
     {
         ArgumentNullException.ThrowIfNull(request);
         var crosscheck = await RequireAsync(id, ct);
-        EnsureNotOwner(crosscheck.Record, "hủy yêu cầu đối soát chuyên ngành");
+        EnsureNotOwner(crosscheck.Record, "hủy yêu cầu xác nhận số liệu");
         _guard.Ensure(PermissionCodes.EvaluationCrosscheckRequest, AccessTarget.ForRecord(crosscheck.Record));
         EnsureVersion(crosscheck, request.Version);
         if (!CrosscheckRules.IsOpen(crosscheck.Status))
             throw new ConflictException($"Phiếu đã ở trạng thái \"{CrosscheckRules.StatusName(crosscheck.Status)}\" nên không còn hủy yêu cầu.");
-        var reason = RequireReason(request.Reason, "Hãy nhập lý do hủy yêu cầu đối soát.");
+        var reason = RequireReason(request.Reason, "Hãy nhập lý do hủy yêu cầu xác nhận.");
 
         var now = DateTime.UtcNow;
         var actorName = await ActorNameAsync(ct);
@@ -274,7 +274,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
         EnsureCanRespond(crosscheck);
         EnsureVersion(crosscheck, request.Version);
         if (crosscheck.Status is not (CrosscheckStatus.Requested or CrosscheckStatus.InProgress))
-            throw new ConflictException($"Phiếu đang ở trạng thái \"{CrosscheckRules.StatusName(crosscheck.Status)}\" nên đã khóa sửa kết quả đối soát.");
+            throw new ConflictException($"Phiếu đang ở trạng thái \"{CrosscheckRules.StatusName(crosscheck.Status)}\" nên đã khóa sửa kết quả xác nhận.");
 
         var byId = crosscheck.Items.ToDictionary(i => i.Id);
         var seen = new HashSet<Guid>();
@@ -283,7 +283,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
             if (input == null)
                 continue;
             if (!byId.TryGetValue(input.Id, out var item))
-                throw new ValidationException("Có dòng không thuộc phiếu đối soát. Hãy tải lại phiếu rồi nhập lại.");
+                throw new ValidationException("Có dòng không thuộc phiếu xác nhận số liệu. Hãy tải lại phiếu rồi nhập lại.");
             if (!seen.Add(input.Id))
                 throw new ValidationException($"Dòng \"{item.ItemName}\" được nhập nhiều lần.");
             ApplyResponse(item, input);
@@ -308,7 +308,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
         if (crosscheck.Status is not (CrosscheckStatus.Requested or CrosscheckStatus.InProgress))
             throw new ConflictException($"Phiếu đang ở trạng thái \"{CrosscheckRules.StatusName(crosscheck.Status)}\" nên không còn gửi xác nhận.");
         if (crosscheck.Items.Count == 0)
-            throw new ValidationException("Phiếu chưa có dòng nào cần đối soát.");
+            throw new ValidationException("Phiếu chưa có dòng nào cần xác nhận.");
         foreach (var item in crosscheck.Items.OrderBy(i => i.Order))
         {
             var error = CrosscheckRules.ValidateItemForSubmit(item);
@@ -363,7 +363,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
         EnsureVersion(crosscheck, request.Version);
         if (crosscheck.Status != CrosscheckStatus.Submitted)
             throw new ConflictException("Chỉ trả lại được phiếu đã gửi xác nhận.");
-        var reason = RequireReason(request.Reason, "Hãy nhập lý do trả lại để cơ quan đối soát biết cần sửa gì.");
+        var reason = RequireReason(request.Reason, "Hãy nhập lý do trả lại để cơ quan xác nhận biết cần sửa gì.");
 
         var now = DateTime.UtcNow;
         var actorName = await ActorNameAsync(ct);
@@ -399,7 +399,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
             return null;
         var open = await _repo.CountOpenAsync(record.Id, ct);
         return open > 0
-            ? $"Còn {open} phiếu đối soát chuyên ngành chờ lập hoặc xác nhận. Hãy chờ phiếu được xác nhận hoặc hủy yêu cầu (nêu lý do) trước khi hoàn thành thẩm định."
+            ? $"Còn {open} phiếu xác nhận số liệu chờ lập hoặc xác nhận. Hãy chờ phiếu được xác nhận hoặc hủy yêu cầu (nêu lý do) trước khi hoàn thành thẩm định."
             : null;
     }
 
@@ -454,7 +454,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
             new()
             {
                 Step = WorkQueueGroup,
-                StepName = "Phiếu đối soát chuyên ngành chờ lập, xác nhận",
+                StepName = "Phiếu xác nhận số liệu chờ lập, xác nhận",
                 Count = items.Count,
                 Items = items.OrderBy(i => i.PeriodName).ThenBy(i => i.FullName).ToList()
             }
@@ -470,7 +470,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
     private bool CanReadRecord(EvaluationRecord record) =>
         !IsOwner(record) && _guard.Can(PermissionCodes.EvaluationRead, AccessTarget.ForRecord(record));
 
-    /// <summary>Đơn vị đối soát trong danh mục; cơ quan ngoài hệ thống dùng đơn vị của hồ sơ.</summary>
+    /// <summary>Đơn vị xác nhận trong danh mục; cơ quan ngoài hệ thống dùng đơn vị của hồ sơ.</summary>
     private static AccessTarget ExpertTarget(ExpertCrosscheck c) => c.ExpertDepartmentId.HasValue
         ? new AccessTarget(DepartmentId: c.ExpertDepartmentId)
         : new AccessTarget(DepartmentId: c.DepartmentId, PartyCellId: c.PartyCellId);
@@ -506,15 +506,15 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
     private void EnsureCanView(ExpertCrosscheck c)
     {
         if (IsOwner(c.Record))
-            throw new ForbiddenException("Phiếu đối soát chuyên ngành về hồ sơ của chính bạn chỉ dành cho người xử lý hồ sơ.");
+            throw new ForbiddenException("Phiếu xác nhận số liệu về hồ sơ của chính bạn chỉ dành cho người xử lý hồ sơ.");
         if (!CanView(c))
-            throw new ForbiddenException("Bạn không có quyền xem phiếu đối soát chuyên ngành này (ngoài phạm vi được gán).");
+            throw new ForbiddenException("Bạn không có quyền xem phiếu xác nhận số liệu này (ngoài phạm vi được gán).");
     }
 
     private void EnsureCanRespond(ExpertCrosscheck c)
     {
         if (IsOwner(c.Record))
-            throw new ForbiddenException("Bạn không được lập phiếu đối soát chuyên ngành về hồ sơ của chính mình (xung đột lợi ích).");
+            throw new ForbiddenException("Bạn không được lập phiếu xác nhận số liệu về hồ sơ của chính mình (xung đột lợi ích).");
         if (c.ExpertDepartmentId.HasValue)
             _guard.Ensure(PermissionCodes.EvaluationCrosscheckRespond, ExpertTarget(c));
         else
@@ -524,7 +524,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
     private void EnsureCanConfirm(ExpertCrosscheck c)
     {
         if (IsOwner(c.Record))
-            throw new ForbiddenException("Bạn không được xác nhận phiếu đối soát chuyên ngành về hồ sơ của chính mình (xung đột lợi ích).");
+            throw new ForbiddenException("Bạn không được xác nhận phiếu số liệu về hồ sơ của chính mình (xung đột lợi ích).");
         _guard.Ensure(PermissionCodes.EvaluationCrosscheckConfirm, ExpertTarget(c));
         if (c.SubmittedById.HasValue && c.SubmittedById == _currentUser.UserId)
             throw new ForbiddenException("Người lập phiếu không được tự xác nhận hoặc trả lại phiếu của mình.");
@@ -547,24 +547,24 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
         if (string.IsNullOrEmpty(agency))
             agency = null;
         if (departmentId == null && agency == null)
-            throw new ValidationException("Hãy chọn đơn vị đối soát trong danh mục hoặc nhập tên cơ quan đối soát.");
+            throw new ValidationException("Hãy chọn đơn vị xác nhận trong danh mục hoặc nhập tên cơ quan xác nhận.");
         if (departmentId != null && agency != null)
-            throw new ValidationException("Chỉ chọn đơn vị đối soát trong danh mục hoặc nhập tên cơ quan ngoài hệ thống, không dùng cả hai.");
+            throw new ValidationException("Chỉ chọn đơn vị xác nhận trong danh mục hoặc nhập tên cơ quan ngoài hệ thống, không dùng cả hai.");
         if (agency is { Length: > CrosscheckRules.MaxNameLength })
-            throw new ValidationException($"Tên cơ quan đối soát không được dài quá {CrosscheckRules.MaxNameLength} ký tự.");
+            throw new ValidationException($"Tên cơ quan xác nhận không được dài quá {CrosscheckRules.MaxNameLength} ký tự.");
         if (departmentId != null && await _repo.GetDepartmentNameAsync(departmentId.Value, ct) == null)
-            throw new ValidationException("Đơn vị đối soát không tồn tại. Hãy chọn lại.");
+            throw new ValidationException("Đơn vị xác nhận không tồn tại. Hãy chọn lại.");
 
         var fields = (request.Fields ?? new List<string>()).Select(f => f?.Trim() ?? string.Empty).Distinct().ToList();
         if (fields.Count == 0)
-            throw new ValidationException("Hãy chọn ít nhất một lĩnh vực chuyên môn cần đối soát.");
+            throw new ValidationException("Hãy chọn ít nhất một lĩnh vực chuyên môn cần xác nhận.");
         var unknown = fields.FirstOrDefault(f => !CrosscheckFields.IsKnown(f));
         if (unknown != null)
             throw new ValidationException($"Lĩnh vực chuyên môn \"{unknown}\" không hợp lệ.");
 
         var reason = request.RequestReason?.Trim();
         if (string.IsNullOrEmpty(reason))
-            throw new ValidationException("Hãy nhập lý do, nội dung yêu cầu đối soát.");
+            throw new ValidationException("Hãy nhập lý do, nội dung yêu cầu xác nhận.");
         if (reason.Length > CrosscheckRules.MaxTextLength)
             throw new ValidationException($"Lý do yêu cầu không được dài quá {CrosscheckRules.MaxTextLength} ký tự.");
         var addressee = request.AddresseeName?.Trim() ?? string.Empty;
@@ -573,7 +573,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
 
         var rows = request.Items ?? new List<CrosscheckRequestItemDto>();
         if (rows.Count == 0)
-            throw new ValidationException("Hãy nhập ít nhất một chỉ tiêu, nhiệm vụ cần đối soát.");
+            throw new ValidationException("Hãy nhập ít nhất một chỉ tiêu, nhiệm vụ cần xác nhận.");
         if (rows.Count > CrosscheckRules.MaxItems)
             throw new ValidationException($"Mỗi phiếu có tối đa {CrosscheckRules.MaxItems} dòng.");
 
@@ -596,7 +596,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
             if (string.IsNullOrEmpty(name))
                 name = task?.TaskName;
             if (string.IsNullOrEmpty(name))
-                throw new ValidationException("Mỗi dòng cần đối soát phải có tên chỉ tiêu, nhiệm vụ.");
+                throw new ValidationException("Mỗi dòng cần xác nhận phải có tên chỉ tiêu, nhiệm vụ.");
             if (name.Length > CrosscheckRules.MaxNameLength)
                 throw new ValidationException($"Tên chỉ tiêu không được dài quá {CrosscheckRules.MaxNameLength} ký tự.");
             var self = row.SelfData?.Trim() ?? string.Empty;
@@ -627,7 +627,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
             return;
         }
 
-        item.SourceData = Limit(input.SourceData, CrosscheckRules.MaxTextLength, $"Kết quả đối soát của \"{item.ItemName}\"");
+        item.SourceData = Limit(input.SourceData, CrosscheckRules.MaxTextLength, $"Kết quả xác nhận của \"{item.ItemName}\"");
         if (string.IsNullOrWhiteSpace(input.Result))
         {
             item.Result = null;
@@ -683,9 +683,9 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
     private static string? StateBlockReason(EvaluationRecord record)
     {
         if (record.Period.Status != PeriodStatus.Open)
-            return "Chỉ yêu cầu đối soát khi kỳ đánh giá đang mở.";
+            return "Chỉ yêu cầu xác nhận khi kỳ đánh giá đang mở.";
         if (record.Status is not (RecordStatus.AwaitingAppraisal or RecordStatus.AwaitingDirectorReview))
-            return "Chỉ yêu cầu đối soát khi hồ sơ đang ở bước thẩm định hoặc nhận xét, đề xuất.";
+            return "Chỉ yêu cầu xác nhận khi hồ sơ đang ở bước thẩm định hoặc nhận xét, đề xuất.";
         return null;
     }
 
@@ -734,7 +734,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
 
     private async Task<ExpertCrosscheck> RequireAsync(Guid id, CancellationToken ct) =>
         await _repo.FindAsync(id, ct)
-        ?? throw new NotFoundException($"Không tìm thấy phiếu đối soát chuyên ngành với Id: {id}.");
+        ?? throw new NotFoundException($"Không tìm thấy phiếu xác nhận số liệu với Id: {id}.");
 
     private async Task<ExpertCrosscheckDto> ReloadAsync(Guid id, CancellationToken ct) =>
         await BuildAsync(await RequireAsync(id, ct), ct);
@@ -788,7 +788,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
 
     private static string ActionName(EvaluationFormAction action) => action switch
     {
-        EvaluationFormAction.Create => "Yêu cầu đối soát",
+        EvaluationFormAction.Create => "Yêu cầu xác nhận",
         EvaluationFormAction.Submit => "Gửi xác nhận",
         EvaluationFormAction.Confirm => "Xác nhận",
         EvaluationFormAction.Return => "Trả lại",

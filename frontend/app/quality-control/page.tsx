@@ -36,7 +36,7 @@ type Tab = "calibration" | "control";
 const CAL_STATUSES = Object.keys(CALIBRATION_STATUS_LABELS) as CalibrationStatus[];
 const CTL_STATUSES = Object.keys(CONTROL_STATUS_LABELS) as ControlCheckStatus[];
 
-/** Hiệu chuẩn và kiểm soát kết quả đánh giá: biên bản hiệu chuẩn và phiếu kiểm soát, theo kỳ đang chọn. */
+/** Rà soát kết quả đánh giá (họp thống nhất và kiểm tra): biên bản hiệu chuẩn và phiếu kiểm soát, theo kỳ đang chọn. */
 export default function QualityControlPage() {
   const { hasPermission, loading: authLoading } = useAuth();
   const { periods, periodId } = usePeriod();
@@ -168,35 +168,35 @@ export default function QualityControlPage() {
     try {
       if (active === "calibration") {
         const created = await calibrationService.create({ periodId: periodFilter, groupName: groupName || null, recordIds });
-        toast.success("Đã lập biên bản hiệu chuẩn.");
+        toast.success("Đã lập biên bản.");
         router.push(`/quality-control/calibrations/${created.id}`);
       } else {
         const created = await controlCheckService.create({ periodId: periodFilter, groupName, recordIds });
-        toast.success("Đã lập phiếu kiểm soát.");
+        toast.success("Đã lập phiếu.");
         router.push(`/quality-control/control-checks/${created.id}`);
       }
     } catch (err: unknown) {
-      toast.error(errorMessage(err, active === "calibration" ? "Lập biên bản hiệu chuẩn không thành công." : "Lập phiếu kiểm soát không thành công."));
+      toast.error(errorMessage(err, active === "calibration" ? "Lập biên bản không thành công." : "Lập phiếu không thành công."));
     } finally {
       setCreating(false);
     }
   };
 
   if (authLoading) return null;
-  if (!canCal && !canCtl) return <NoAccess title="Hiệu chuẩn và kiểm soát" permissionName="Lập biên bản hiệu chuẩn, phiếu kiểm soát" />;
+  if (!canCal && !canCtl) return <NoAccess title="Rà soát" permissionName="Lập biên bản hiệu chuẩn, phiếu kiểm soát" />;
 
   const canCreate = active === "calibration" ? canCreateCal : canCreateCtl;
   const unit = (a?: string | null, b?: string | null) => [a, b].filter(Boolean).join(" · ");
   const tabs: { key: Tab; label: string; show: boolean }[] = [
-    { key: "calibration", label: "Hiệu chuẩn", show: canCal },
-    { key: "control", label: "Kiểm soát", show: canCtl },
+    { key: "calibration", label: "Họp thống nhất", show: canCal },
+    { key: "control", label: "Kiểm tra", show: canCtl },
   ];
   const statuses = active === "calibration" ? CAL_STATUSES.map((s) => ({ v: s, l: CALIBRATION_STATUS_LABELS[s] })) : CTL_STATUSES.map((s) => ({ v: s, l: CONTROL_STATUS_LABELS[s] }));
 
   return (
     <div className="page-wrapper">
       <PageHeader
-        title="Hiệu chuẩn và kiểm soát"
+        title="Rà soát"
         actions={
           <div className="d-flex gap-2 flex-wrap align-items-center">
             <select className="form-select form-select-sm" aria-label="Lọc theo kỳ" value={periodFilter} onChange={(e) => setPeriod(e.target.value)}>
@@ -341,14 +341,14 @@ export default function QualityControlPage() {
 
       <RecordPickerDialog
         isOpen={pickerOpen}
-        title={active === "calibration" ? "Lập biên bản hiệu chuẩn" : "Lập phiếu kiểm soát"}
+        title={active === "calibration" ? "Lập biên bản" : "Lập phiếu"}
         confirmText={active === "calibration" ? "Lập biên bản" : "Lập phiếu"}
         rows={pickerRows}
         loading={pickerLoading}
         busy={creating}
         askGroupName
         groupNameRequired
-        emptyText={active === "calibration" ? "Chưa có hồ sơ đã thẩm định để hiệu chuẩn." : "Chưa có hồ sơ chờ quyết định để kiểm soát."}
+        emptyText={active === "calibration" ? "Chưa có hồ sơ đã thẩm định để họp thống nhất." : "Chưa có hồ sơ chờ quyết định để kiểm tra."}
         onCancel={() => setPickerOpen(false)}
         onConfirm={create}
       />

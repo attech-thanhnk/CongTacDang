@@ -64,7 +64,7 @@ const toDraft = (c: CrosscheckDto): Draft => ({
 
 type Dialog = "return" | "cancel" | null;
 
-/** Phiếu đối soát chuyên ngành: xem, sửa yêu cầu, nhập kết quả và xử lý; nút theo cờ do máy chủ trả về. */
+/** Phiếu xác nhận số liệu: xem, sửa yêu cầu, nhập kết quả và xử lý; nút theo cờ do máy chủ trả về. */
 export default function CrosscheckDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { toast, confirm } = useToast();
@@ -85,7 +85,7 @@ export default function CrosscheckDetailPage() {
     try {
       apply(await crosscheckService.get(id));
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Tải phiếu đối soát không thành công."));
+      toast.error(errorMessage(err, "Tải phiếu xác nhận số liệu không thành công."));
       setData(null);
     } finally {
       setLoading(false);
@@ -103,7 +103,7 @@ export default function CrosscheckDetailPage() {
     try {
       await reportService.exportQualityForm("03", data.id, `Mau_03_${data.id}.docx`, format);
     } catch (err: unknown) {
-      toast.error(errorMessage(err, format === "pdf" ? "Xuất PDF không thành công. Hãy tải bản Word hoặc liên hệ quản trị hệ thống." : "Xuất phiếu đối soát không thành công."));
+      toast.error(errorMessage(err, format === "pdf" ? "Tải PDF không thành công. Hãy tải bản Word hoặc liên hệ quản trị hệ thống." : "Tải phiếu xác nhận số liệu không thành công."));
     }
   };
 
@@ -141,13 +141,13 @@ export default function CrosscheckDetailPage() {
   });
 
   const saveResponse = () =>
-    data && run(() => crosscheckService.saveResponse(data.id, responseBody(data.version)), "Đã lưu kết quả đối soát.", "Lưu kết quả đối soát không thành công.");
+    data && run(() => crosscheckService.saveResponse(data.id, responseBody(data.version)), "Đã lưu kết quả xác nhận.", "Lưu kết quả xác nhận không thành công.");
 
   const submit = () => {
     if (!data) return;
     confirm({
       title: "Gửi xác nhận",
-      message: "Phiếu sẽ chuyển cho lãnh đạo đơn vị đối soát xác nhận.",
+      message: "Phiếu sẽ chuyển cho lãnh đạo đơn vị để xác nhận.",
       confirmText: "Gửi xác nhận",
       isDanger: false,
       onConfirm: async () => {
@@ -158,7 +158,7 @@ export default function CrosscheckDetailPage() {
             apply(saved);
             version = saved.version;
           } catch (err: unknown) {
-            toast.error(errorMessage(err, "Lưu kết quả đối soát không thành công."));
+            toast.error(errorMessage(err, "Lưu kết quả xác nhận không thành công."));
             if (errorStatus(err) !== 400) await load();
             return;
           }
@@ -176,7 +176,7 @@ export default function CrosscheckDetailPage() {
       confirmText: "Xác nhận",
       isDanger: false,
       onConfirm: async () => {
-        await run(() => crosscheckService.confirm(data.id, data.version), "Đã xác nhận phiếu đối soát.", "Xác nhận phiếu không thành công.");
+        await run(() => crosscheckService.confirm(data.id, data.version), "Đã xác nhận phiếu số liệu.", "Xác nhận phiếu không thành công.");
       },
     });
   };
@@ -196,7 +196,7 @@ export default function CrosscheckDetailPage() {
 
   const saveRequest = async (body: SaveCrosscheckRequest) => {
     if (!data) return;
-    if (await run(() => crosscheckService.updateRequest(data.id, body), "Đã cập nhật yêu cầu đối soát.", "Cập nhật yêu cầu không thành công.")) {
+    if (await run(() => crosscheckService.updateRequest(data.id, body), "Đã cập nhật yêu cầu xác nhận.", "Cập nhật yêu cầu không thành công.")) {
       setEditingRequest(false);
     }
   };
@@ -207,7 +207,7 @@ export default function CrosscheckDetailPage() {
     const ok =
       kind === "return"
         ? await run(() => crosscheckService.returnBack(data.id, data.version, reason), "Đã trả lại phiếu.", "Trả lại phiếu không thành công.")
-        : await run(() => crosscheckService.cancel(data.id, data.version, reason), "Đã hủy yêu cầu đối soát.", "Hủy yêu cầu không thành công.");
+        : await run(() => crosscheckService.cancel(data.id, data.version, reason), "Đã hủy yêu cầu xác nhận.", "Hủy yêu cầu không thành công.");
     if (ok) setDialog(null);
   };
 
@@ -224,7 +224,7 @@ export default function CrosscheckDetailPage() {
   if (!data || !draft) {
     return (
       <div className="page-wrapper">
-        <PageHeader title="Phiếu đối soát chuyên ngành" />
+        <PageHeader title="Phiếu xác nhận số liệu" />
         <div className="page-body">
           <EmptyState icon="bi-file-earmark-x" title="Chưa mở được phiếu" description="Phiếu không tồn tại hoặc bạn không có quyền xem." />
         </div>
@@ -244,7 +244,7 @@ export default function CrosscheckDetailPage() {
   return (
     <div className="page-wrapper">
       <PageHeader
-        title="Phiếu đối soát chuyên ngành"
+        title="Phiếu xác nhận số liệu"
         subTitle={`${data.memberFullName} · ${data.periodName}`}
         badge={<Badge tone={CROSSCHECK_STATUS_TONES[data.status] ?? "neutral"}>{data.statusName}</Badge>}
         actions={
@@ -255,12 +255,12 @@ export default function CrosscheckDetailPage() {
               </button>
             )}
             <HeaderMenu
-              itemLabel="phiếu đối soát"
+              itemLabel="phiếu xác nhận số liệu"
               disabled={busy}
               actions={[
                 { key: "edit", label: "Sửa yêu cầu", icon: "bi-pencil-square", hidden: !data.canEditRequest || editingRequest, onClick: startEditRequest },
-                { key: "word", label: "Xuất Word", icon: "bi-download", onClick: () => exportForm("original") },
-                { key: "pdf", label: "Xuất PDF", icon: "bi-filetype-pdf", onClick: () => exportForm("pdf") },
+                { key: "word", label: "Tải Word", icon: "bi-download", onClick: () => exportForm("original") },
+                { key: "pdf", label: "Tải PDF", icon: "bi-filetype-pdf", onClick: () => exportForm("pdf") },
                 { key: "return", label: "Trả lại", icon: "bi-arrow-return-left", hidden: !data.canReturn, onClick: () => setDialog("return") },
                 { key: "cancel", label: "Hủy yêu cầu", icon: "bi-x-circle", danger: true, hidden: !data.canCancel, onClick: () => setDialog("cancel") },
               ]}
@@ -283,7 +283,7 @@ export default function CrosscheckDetailPage() {
 
         <section className="card">
           <div className="card-header">
-            <h2 className="mb-0">Yêu cầu đối soát</h2>
+            <h2 className="mb-0">Yêu cầu xác nhận</h2>
           </div>
           <div className="card-body">
             {editingRequest ? (
@@ -296,7 +296,7 @@ export default function CrosscheckDetailPage() {
                     <span className="text-secondary"> · {[data.departmentName, data.partyCellName].filter(Boolean).join(" · ")}</span>
                   )}
                 </Info>
-                <Info label="Đơn vị đối soát">
+                <Info label="Đơn vị xác nhận">
                   {data.expertUnitName}
                   {data.enteredOnBehalf && <span className="text-secondary"> (người yêu cầu nhập kết quả thay)</span>}
                 </Info>
@@ -313,7 +313,7 @@ export default function CrosscheckDetailPage() {
 
         <section className="card">
           <div className="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
-            <h2 className="mb-0">Kết quả đối soát</h2>
+            <h2 className="mb-0">Kết quả xác nhận</h2>
             {data.canRespond && (
               <div className="d-flex gap-2">
                 <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy || !dirty} onClick={() => setDraft(toDraft(data))}>
@@ -347,7 +347,7 @@ export default function CrosscheckDetailPage() {
 
         <section className="card">
           <div className="card-body">
-            <OwnerAttachments ownerType="ExpertCrosscheck" ownerId={data.id} editable={data.canAttach} formCode="M03" subject="phiếu đối soát" description="Căn cứ, minh chứng đối soát" defaultOpen />
+            <OwnerAttachments ownerType="ExpertCrosscheck" ownerId={data.id} editable={data.canAttach} formCode="M03" subject="phiếu xác nhận số liệu" description="Căn cứ, minh chứng" defaultOpen />
           </div>
         </section>
 
@@ -371,7 +371,7 @@ export default function CrosscheckDetailPage() {
 
       <ReasonDialog
         isOpen={dialog !== null}
-        title={dialog === "return" ? "Trả lại phiếu" : "Hủy yêu cầu đối soát"}
+        title={dialog === "return" ? "Trả lại phiếu" : "Hủy yêu cầu xác nhận"}
         description={dialog === "return" ? "Phiếu quay về người lập để lập lại." : "Yêu cầu sẽ không còn chặn việc hoàn thành thẩm định."}
         confirmText={dialog === "return" ? "Trả lại" : "Hủy yêu cầu"}
         busy={busy}
@@ -391,7 +391,7 @@ function Info({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-/** Một dòng chỉ tiêu: dữ liệu tự khai (chỉ xem) và kết quả đối soát (nhập khi được phép). */
+/** Một dòng chỉ tiêu: dữ liệu tự khai (chỉ xem) và kết quả xác nhận (nhập khi được phép). */
 function ItemCard({
   index,
   item,
@@ -421,7 +421,7 @@ function ItemCard({
       {editable ? (
         <div className="row g-2">
           <div className="col-12">
-            <label className="form-label small mb-1" htmlFor={`${key}-src`}>Kết quả đối soát dữ liệu gốc</label>
+            <label className="form-label small mb-1" htmlFor={`${key}-src`}>Số liệu gốc xác nhận</label>
             <textarea id={`${key}-src`} className="form-control form-control-sm" rows={2} maxLength={4000} value={draft.sourceData} disabled={disabled}
               onChange={(e) => onChange({ sourceData: e.target.value })} />
           </div>
@@ -476,7 +476,7 @@ function ItemCard({
         </div>
       ) : (
         <dl className="small mb-0 row">
-          <Info label="Kết quả đối soát dữ liệu gốc"><span style={{ whiteSpace: "pre-wrap" }}>{item.sourceData || "—"}</span></Info>
+          <Info label="Số liệu gốc xác nhận"><span style={{ whiteSpace: "pre-wrap" }}>{item.sourceData || "—"}</span></Info>
           {item.notApplicable ? (
             <Info label="Kết quả">Không áp dụng</Info>
           ) : (

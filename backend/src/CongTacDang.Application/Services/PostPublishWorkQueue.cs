@@ -77,7 +77,7 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
                     unassigned.Add(appeal);
             }
             var permissionName = PermissionCodes.DisplayName(PermissionCodes.EvaluationAppealResolve);
-            AddGroup(groups, UnassignedAppealsGroup, "Kiến nghị chưa có người xử lý (cần gán vai trò)", unassigned.Select(a => Item(a.Record, userId,
+            AddGroup(groups, UnassignedAppealsGroup, "Kiến nghị chưa có người xử lý", unassigned.Select(a => Item(a.Record, userId,
                 a.Status.ToString(), $"Không còn ai có quyền \"{permissionName}\" trong phạm vi hồ sơ (ngoài người có xung đột lợi ích) — "
                     + "hãy gán vai trò có quyền này cho người phù hợp")));
         }
@@ -96,7 +96,7 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
                 .Where(x => x.Plan == null || !ImprovementPlanService.IsPreparer(x.Plan, userId))
                 .Where(x => _guard.Can(PermissionCodes.EvaluationImprovementManage, AccessTarget.ForRecord(x.Record)))
                 .ToList();
-            AddGroup(groups, ImprovementPlansGroup, "Kế hoạch 30-60-90 ngày cần lập / duyệt (Mẫu 17)", needing.Select(x => Item(x.Record, userId,
+            AddGroup(groups, ImprovementPlansGroup, "Kế hoạch 30-60-90 ngày", needing.Select(x => Item(x.Record, userId,
                 x.Plan == null ? "PlanMissing" : "PlanDraft",
                 x.Plan == null
                     ? $"Chưa có kế hoạch — bắt buộc với mức \"{CriteriaSetContent.GradeName(x.Record.FinalGrade)}\""
@@ -104,7 +104,7 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
         }
 
         var toAcknowledge = await _repo.ListPlansAwaitingAcknowledgementAsync(userId, period, ct);
-        AddGroup(groups, PlanAcknowledgementGroup, "Kế hoạch 30-60-90 ngày chờ bạn xác nhận", toAcknowledge.Select(p => Item(p.Record, userId,
+        AddGroup(groups, PlanAcknowledgementGroup, "Kế hoạch chờ bạn xác nhận", toAcknowledge.Select(p => Item(p.Record, userId,
             p.Status.ToString(), $"Đã duyệt bởi {p.ApprovedByName} — hãy đọc và xác nhận cam kết khắc phục")));
 
         return groups;

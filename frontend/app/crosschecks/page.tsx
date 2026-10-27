@@ -18,7 +18,7 @@ import { CROSSCHECK_STATUS_LABELS, CROSSCHECK_STATUS_TONES, CrosscheckStatus, Cr
 
 const STATUSES = Object.keys(CROSSCHECK_STATUS_LABELS) as CrosscheckStatus[];
 
-/** Phiếu đối soát chuyên ngành trong phạm vi được xem; mặc định theo kỳ đang chọn. */
+/** Phiếu xác nhận số liệu trong phạm vi được xem; mặc định theo kỳ đang chọn. */
 export default function CrosschecksPage() {
   const { hasPermission, loading: authLoading } = useAuth();
   const { periods, periodId } = usePeriod();
@@ -51,7 +51,7 @@ export default function CrosschecksPage() {
         if (seq.current === mine) setItems(rows);
       })
       .catch((err: unknown) => {
-        if (seq.current === mine) toast.error(errorMessage(err, "Tải danh sách phiếu đối soát không thành công."));
+        if (seq.current === mine) toast.error(errorMessage(err, "Tải danh sách phiếu xác nhận số liệu không thành công."));
       })
       .finally(() => {
         if (seq.current === mine) setLoading(false);
@@ -61,14 +61,14 @@ export default function CrosschecksPage() {
   const paging = usePagination(items, { storageKey: "crosschecks", resetKeys: [periodFilter, status] });
 
   if (authLoading) return null;
-  if (!canUse) return <NoAccess title="Đối soát chuyên ngành" permissionName="Yêu cầu, lập hoặc xác nhận phiếu đối soát" />;
+  if (!canUse) return <NoAccess title="Xác nhận số liệu" permissionName="Yêu cầu, lập hoặc xác nhận phiếu số liệu" />;
 
   const unit = (c: CrosscheckSummaryDto) => [c.departmentName, c.partyCellName].filter(Boolean).join(" · ");
 
   return (
     <div className="page-wrapper">
       <PageHeader
-        title="Đối soát chuyên ngành"
+        title="Xác nhận số liệu"
         actions={
           <div className="d-flex gap-2 flex-wrap">
             <select className="form-select form-select-sm" aria-label="Lọc theo kỳ" value={periodFilter} onChange={(e) => setPeriod(e.target.value)}>
@@ -89,7 +89,7 @@ export default function CrosschecksPage() {
             Đang tải...
           </div>
         ) : items.length === 0 ? (
-          <EmptyState icon="bi-patch-check" title="Chưa có phiếu đối soát" description="Phiếu gửi tới bạn hoặc do bạn yêu cầu sẽ hiện ở đây." />
+          <EmptyState icon="bi-patch-check" title="Chưa có phiếu xác nhận số liệu" description="Phiếu gửi tới bạn hoặc do bạn yêu cầu sẽ hiện ở đây." />
         ) : (
           <>
             <div className="table-responsive d-none d-md-block">
@@ -97,7 +97,7 @@ export default function CrosschecksPage() {
                 <thead>
                   <tr>
                     <th>Cán bộ</th>
-                    <th>Đơn vị đối soát</th>
+                    <th>Đơn vị xác nhận</th>
                     <th>Lĩnh vực</th>
                     <th className="text-end">Chỉ tiêu</th>
                     <th>Ngày yêu cầu</th>

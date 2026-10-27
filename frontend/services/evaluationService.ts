@@ -67,9 +67,9 @@ export const GATE_CODES = ["CROSSCHECK", "CALIBRATION", "CONTROL"] as const;
 export type GateCode = (typeof GATE_CODES)[number];
 
 export const GATE_NAMES: Record<GateCode, string> = {
-  CROSSCHECK: "Đối soát chuyên ngành",
-  CALIBRATION: "Hiệu chuẩn kết quả",
-  CONTROL: "Kiểm soát trước phê duyệt",
+  CROSSCHECK: "Xác nhận số liệu",
+  CALIBRATION: "Họp thống nhất",
+  CONTROL: "Kiểm tra trước quyết định",
 };
 
 export const GATE_MODE_LABELS: Record<GateMode, string> = {

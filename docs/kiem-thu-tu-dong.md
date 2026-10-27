@@ -81,8 +81,8 @@ Mọi thứ nằm trong `frontend/e2e-ket-qua/` (đã loại khỏi git):
 | `03-luong-ho-so` | Hai hồ sơ đi qua luồng bằng giao diện: đăng ký danh mục, duyệt, tự chấm, Chi bộ xác nhận, đề xuất của tập thể, thẩm định, nhận xét; một hồ sơ tới "chờ quyết định", một hồ sơ dừng ở thẩm định |
 | `04-hieu-chuan` | Nút quyết định khóa trước hiệu chuẩn; lập biên bản (Mẫu 20); điền chủ trì, thư ký, thành phần, một ca điều chỉnh; lưu và tải lại; người lập không tự chốt, người khác chốt |
 | `05-kiem-soat` | Phiếu kiểm soát (Mẫu 19): lập, 10 mục, kết luận, gửi; người lập không tự xác nhận; người khác xác nhận thì nút quyết định mở; ghi nhận quyết định và công bố |
-| `06-doi-soat` | Phiếu đối soát (Mẫu 03) từ hồ sơ ở bước thẩm định: yêu cầu, thẩm định bị chặn khi còn phiếu mở, lập và gửi, xác nhận từ "Việc cần xử lý", yêu cầu thứ hai rồi hủy |
-| `07-xuat-word` | Xuất Word biên bản hiệu chuẩn, phiếu kiểm soát, phiếu đối soát, Mẫu 01 và Mẫu 02: tệp tải về là `.docx` hợp lệ (đủ lớn, đầu tệp `PK`, có nội dung đúng, không còn thẻ chưa điền) |
+| `06-doi-soat` | Phiếu xác nhận số liệu (Mẫu 03) từ hồ sơ ở bước thẩm định: yêu cầu, thẩm định bị chặn khi còn phiếu mở, lập và gửi, xác nhận từ "Việc cần xử lý", yêu cầu thứ hai rồi hủy |
+| `07-xuat-word` | Tải Word biên bản hiệu chuẩn (tab Họp thống nhất), phiếu kiểm soát (tab Kiểm tra), phiếu xác nhận số liệu, Mẫu 01 và Mẫu 02: tệp tải về là `.docx` hợp lệ (đủ lớn, đầu tệp `PK`, có nội dung đúng, không còn thẻ chưa điền) |
 | `08-dien-thoai` | Khung 390 px: các trang chính và trang chi tiết mở được, trang không cuộn ngang, danh sách chuyển sang thẻ, menu mở bằng nút |
 | `09-ca-trang` | Mở lần lượt các trang của từng vai ở màn hình máy tính, cả trang chi tiết (kỳ, hồ sơ, biên bản, phiếu, người dùng, vai trò) |
 
@@ -109,7 +109,7 @@ Một kịch bản đạt mà không có khẳng định nào là vô nghĩa: n�
 ## 6. Giới hạn hiện tại
 
 - Chạy trên `next dev` nên lần mở trang đầu tiên chậm; script đã mở trước các trang chính.
-- Chưa có kịch bản cho: phiếu đối soát do cơ quan chuyên môn trong hệ thống lập (bản sao dữ liệu chưa gán vai trò đó cho ai; kịch bản dùng đường "cơ quan ngoài hệ thống, người yêu cầu nhập hộ"), xuất PDF, đính kèm tệp, kiến nghị và kế hoạch sau công bố, nhập dữ liệu, chế độ kỳ khóa dữ liệu.
+- Chưa có kịch bản cho: phiếu xác nhận số liệu do cơ quan chuyên môn trong hệ thống lập (bản sao dữ liệu chưa gán vai trò đó cho ai; kịch bản dùng đường "cơ quan ngoài hệ thống, người yêu cầu nhập hộ"), xuất PDF, đính kèm tệp, kiến nghị và kế hoạch sau công bố, nhập dữ liệu, chế độ kỳ khóa dữ liệu.
 - Kịch bản phụ thuộc dữ liệu của `congtacdang_db` (tài khoản, phòng, vai trò). Dữ liệu thật đổi nhiều thì cập nhật kịch bản.
 - Chỉ chạy Chromium, máy tính 1366 px và điện thoại 390 px.
 

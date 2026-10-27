@@ -182,7 +182,7 @@ public sealed class ExpertCrosscheckServiceTests
             profile.Gates[WorkflowGates.Crosscheck] = new GateSetting { Mode = GateMode.Off };
         h.Period.Settings = settings.ToJson();
         var ex = await Assert.ThrowsAsync<ConflictException>(() => h.Service.CreateAsync(h.Record.Id, h.Request()));
-        Assert.Contains("không dùng đối soát", ex.Message);
+        Assert.Contains("không dùng xác nhận số liệu", ex.Message);
     }
 
     [Fact]
@@ -364,7 +364,7 @@ public sealed class ExpertCrosscheckServiceTests
 
         var created = await h.Service.CreateAsync(h.Record.Id, h.Request());
         var ex = await Assert.ThrowsAsync<ConflictException>(() => h.Service.EnsureNoOpenAsync(h.Record, profile));
-        Assert.Contains("1 phiếu đối soát", ex.Message);
+        Assert.Contains("1 phiếu xác nhận số liệu", ex.Message);
 
         var settings = h.Period.GetSettings();
         foreach (var p in settings.Profiles)

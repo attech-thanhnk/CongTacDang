@@ -64,7 +64,7 @@ test.describe('Đăng nhập và menu', () => {
     for (const can of ['Tài khoản', 'Vai trò', 'Người thực hiện', 'Nhật ký hệ thống', 'Thông tin đơn vị', 'Biểu mẫu Word', 'Danh mục tổ chức']) {
       expect(muc, `quantri phải thấy "${can}"`).toContain(can);
     }
-    for (const khong of ['Việc cần xử lý', 'Hồ sơ đánh giá', 'Đánh giá tập thể', 'Hiệu chuẩn và kiểm soát', 'Kỳ đánh giá', 'Kết quả đánh giá', 'Báo cáo']) {
+    for (const khong of ['Việc cần xử lý', 'Hồ sơ đánh giá', 'Đánh giá tập thể', 'Rà soát', 'Kỳ đánh giá', 'Kết quả đánh giá', 'Báo cáo']) {
       expect(muc, `quantri không được thấy "${khong}"`).not.toContain(khong);
     }
   });
@@ -72,23 +72,23 @@ test.describe('Đăng nhập và menu', () => {
   const THEO_VAI: { ten: string; mo_ta: string; co: string[]; khong: string[] }[] = [
     {
       ten: 'loan.ctp', mo_ta: 'Phòng TCCB-LĐ (cơ quan thẩm định)',
-      co: ['Việc cần xử lý', 'Hồ sơ đánh giá', 'Đối soát chuyên ngành', 'Hiệu chuẩn và kiểm soát', 'Kỳ đánh giá', 'Bộ tiêu chí', 'Báo cáo'],
+      co: ['Việc cần xử lý', 'Hồ sơ đánh giá', 'Xác nhận số liệu', 'Rà soát', 'Kỳ đánh giá', 'Bộ tiêu chí', 'Báo cáo'],
       khong: ['Vai trò', 'Nhập dữ liệu', 'Nhật ký hệ thống'],
     },
     {
       ten: 'hung.dt', mo_ta: 'Văn phòng Đảng ủy',
-      co: ['Việc cần xử lý', 'Hồ sơ đánh giá', 'Hiệu chuẩn và kiểm soát', 'Kết quả đánh giá', 'Báo cáo'],
+      co: ['Việc cần xử lý', 'Hồ sơ đánh giá', 'Rà soát', 'Kết quả đánh giá', 'Báo cáo'],
       khong: ['Kỳ đánh giá', 'Bộ tiêu chí', 'Vai trò'],
     },
     {
       ten: 'giang.nh', mo_ta: 'cấp trực tiếp sử dụng',
       co: ['Việc cần xử lý', 'Hồ sơ đánh giá', 'Đánh giá tập thể', 'Kết quả đánh giá'],
-      khong: ['Hiệu chuẩn và kiểm soát', 'Kỳ đánh giá', 'Vai trò'],
+      khong: ['Rà soát', 'Kỳ đánh giá', 'Vai trò'],
     },
     {
       ten: 'trung.nb', mo_ta: 'cán bộ được đánh giá',
       co: ['Việc cần xử lý', 'Kết quả đánh giá'],
-      khong: ['Hồ sơ đánh giá', 'Hiệu chuẩn và kiểm soát', 'Kỳ đánh giá', 'Báo cáo', 'Vai trò'],
+      khong: ['Hồ sơ đánh giá', 'Rà soát', 'Kỳ đánh giá', 'Báo cáo', 'Vai trò'],
     },
   ];
   for (const vai of THEO_VAI) {

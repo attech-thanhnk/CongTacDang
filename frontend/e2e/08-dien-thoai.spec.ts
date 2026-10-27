@@ -83,7 +83,7 @@ test.describe('Giao diện điện thoại 390px', () => {
     await page.goto('/');
     await expect(page.locator('aside').getByRole('link', { name: 'Kỳ đánh giá' })).not.toBeInViewport();
     await page.getByRole('button', { name: 'Mở menu' }).click();
-    await page.locator('aside').getByRole('link', { name: 'Hiệu chuẩn và kiểm soát' }).click();
+    await page.locator('aside').getByRole('link', { name: 'Rà soát' }).click();
     await expect(page).toHaveURL(/\/quality-control/);
     await expect(page.locator('aside').getByRole('link', { name: 'Kỳ đánh giá' })).not.toBeInViewport();
   });

@@ -239,7 +239,7 @@ public static class WorkflowSteps
         WorkflowAction.RevokeTaskApproval => "Thu hồi duyệt danh mục",
         WorkflowAction.GrantUnlock => "Mở riêng hồ sơ",
         WorkflowAction.ClearUnlock => "Kết thúc mở riêng hồ sơ",
-        WorkflowAction.Calibrate => "Hiệu chuẩn kết quả",
+        WorkflowAction.Calibrate => "Họp thống nhất",
         _ => action.ToString()
     };
 }

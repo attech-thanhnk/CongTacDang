@@ -6,7 +6,7 @@ import { useFormDirty } from "@/components/admin/useFormDirty";
 import { organizationService, DepartmentItem } from "@/services/organizationService";
 import { CROSSCHECK_FIELDS, CrosscheckDto, SaveCrosscheckRequest } from "@/services/crosscheckService";
 
-/** Sản phẩm đăng ký của hồ sơ có thể chọn làm dòng cần đối soát. */
+/** Sản phẩm đăng ký của hồ sơ có thể chọn làm dòng cần xác nhận. */
 export interface CrosscheckTaskOption {
   id: string;
   taskName: string;
@@ -57,7 +57,7 @@ function initialState(c?: CrosscheckDto | null): FormState {
   };
 }
 
-/** Nội dung yêu cầu đối soát: đơn vị, lĩnh vực, lý do và các dòng cần đối soát. */
+/** Nội dung yêu cầu xác nhận: đơn vị, lĩnh vực, lý do và các dòng cần xác nhận. */
 export function CrosscheckRequestForm({ crosscheck, tasks = [], busy, submitLabel, onCancel, onSubmit }: Props) {
   const { toast } = useToast();
   const [form, setForm] = useState<FormState>(() => initialState(crosscheck));
@@ -79,7 +79,7 @@ export function CrosscheckRequestForm({ crosscheck, tasks = [], busy, submitLabe
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     if (form.external ? !form.agencyName.trim() : !form.departmentId) {
-      toast.error("Hãy chọn đơn vị đối soát.");
+      toast.error("Hãy chọn đơn vị xác nhận.");
       return;
     }
     if (form.fields.length === 0) {
@@ -91,7 +91,7 @@ export function CrosscheckRequestForm({ crosscheck, tasks = [], busy, submitLabe
       return;
     }
     if (form.rows.length === 0 || form.rows.some((r) => !r.taskId && !r.itemName.trim())) {
-      toast.error("Hãy nhập tên chỉ tiêu cho mọi dòng cần đối soát.");
+      toast.error("Hãy nhập tên chỉ tiêu cho mọi dòng cần xác nhận.");
       return;
     }
     onSubmit({
@@ -109,7 +109,7 @@ export function CrosscheckRequestForm({ crosscheck, tasks = [], busy, submitLabe
     <form className="border rounded p-3 d-flex flex-column gap-3" onSubmit={submit}>
       <div className="row g-2">
         <div className="col-12 col-md-6">
-          <label className="form-label small mb-1" htmlFor="cc-unit">Đơn vị đối soát</label>
+          <label className="form-label small mb-1" htmlFor="cc-unit">Đơn vị xác nhận</label>
           {form.external ? (
             <input id="cc-unit" className="form-control form-control-sm" maxLength={500} placeholder="Tên cơ quan ngoài hệ thống"
               value={form.agencyName} onChange={(e) => patch({ agencyName: e.target.value })} />
@@ -152,7 +152,7 @@ export function CrosscheckRequestForm({ crosscheck, tasks = [], busy, submitLabe
 
       <div className="d-flex flex-column gap-2">
         <div className="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-          <span className="small fw-semibold">Chỉ tiêu cần đối soát</span>
+          <span className="small fw-semibold">Chỉ tiêu cần xác nhận</span>
           <div className="d-flex gap-2">
             {freeTasks.length > 0 && (
               <select className="form-select form-select-sm" aria-label="Thêm từ sản phẩm đăng ký" value=""

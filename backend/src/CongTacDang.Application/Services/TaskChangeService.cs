@@ -325,7 +325,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
             new()
             {
                 Step = WorkQueueGroup,
-                StepName = "Duyệt đề nghị điều chỉnh việc",
+                StepName = "Duyệt điều chỉnh việc",
                 Count = items.Count,
                 Items = items.OrderBy(i => i.PeriodName).ThenBy(i => i.FullName).ToList()
             }

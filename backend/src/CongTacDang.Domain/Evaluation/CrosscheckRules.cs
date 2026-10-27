@@ -7,7 +7,7 @@ using CongTacDang.Domain.Entities;
 
 namespace CongTacDang.Domain.Evaluation;
 
-/// <summary>Mã lĩnh vực chuyên môn trên phiếu đối soát.</summary>
+/// <summary>Mã lĩnh vực chuyên môn trên phiếu xác nhận số liệu.</summary>
 public static class CrosscheckFields
 {
     public const string SafetyQuality = "SAFETY_QUALITY";
@@ -36,7 +36,7 @@ public static class CrosscheckFields
     public static bool IsKnown(string? code) => code != null && All.Contains(code);
 }
 
-/// <summary>Quy tắc thuần của phiếu đối soát chuyên ngành (Mẫu 03).</summary>
+/// <summary>Quy tắc thuần của phiếu xác nhận số liệu (Mẫu 03).</summary>
 public static class CrosscheckRules
 {
     public const int MaxNameLength = 500;
@@ -106,9 +106,9 @@ public static class CrosscheckRules
         if (item.NotApplicable)
             return null;
         if (item.Result is null)
-            return $"Hãy chọn kết luận đối soát (đạt chuẩn, vượt chuẩn hoặc có khiếm khuyết) cho {label}.";
+            return $"Hãy chọn kết luận xác nhận (đạt chuẩn, vượt chuẩn hoặc có khiếm khuyết) cho {label}.";
         if (string.IsNullOrWhiteSpace(item.SourceData))
-            return $"Hãy nhập kết quả đối soát với dữ liệu gốc cho {label}.";
+            return $"Hãy nhập kết quả xác nhận với dữ liệu gốc cho {label}.";
         if (item.AdjustmentType == CrosscheckAdjustment.Decrease && item.AdjustmentPoints is not > 0)
             return $"Hãy nhập số điểm đề xuất giảm cho {label}.";
         if (item.AdjustmentType != CrosscheckAdjustment.Decrease && item.AdjustmentPoints.HasValue)

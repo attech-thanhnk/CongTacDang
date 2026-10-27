@@ -1,8 +1,8 @@
 # Thuật ngữ thống nhất
 
 Một khái niệm chỉ có một tên gọi. Tên gốc lấy từ Hướng dẫn 03-HD/TVĐU và biểu mẫu gốc
-(`docs/2.03-HD.TVDU … (Bieu mau).docx`, trích tại `docs/nghiep-vu/hd03-trich-xuat.md`); giao diện, tên vai trò/quyền, tên file xuất,
-thông báo và tài liệu dùng đúng tên ở cột "Tên trên giao diện". Mã trong code **không đổi** khi đổi tên hiển thị.
+(`docs/2.03-HD.TVDU … (Bieu mau).docx`, trích tại `docs/nghiep-vu/hd03-trich-xuat.md`); giao diện, tên file xuất,
+thông báo và tài liệu dùng đúng tên ở cột "Tên trên giao diện". Tên trên giao diện ưu tiên **ngắn (1–3 từ), nói đúng việc cần làm**; tiêu đề in trong file Word giữ theo biểu mẫu gốc. Mã trong code **không đổi** khi đổi tên hiển thị.
 
 ## 1. Biểu mẫu
 
@@ -12,7 +12,7 @@ Tên biểu mẫu trên giao diện và file xuất có dạng "Mẫu NN — tê
 |---|---|---|---|
 | 01 | Phiếu giao / đăng ký sản phẩm, công việc chuyên môn hằng quý | Phiếu giao / đăng ký sản phẩm, công việc chuyên môn hằng quý | `01`, `MAU_01` |
 | 02 | Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc hằng quý | Phiếu tự đánh giá kết quả thực hiện sản phẩm, công việc hằng quý | `02`, `MAU_02` |
-| 03 | Phiếu ý kiến chuyên môn độc lập / đối soát dữ liệu chuyên ngành | Phiếu ý kiến chuyên môn độc lập / đối soát dữ liệu chuyên ngành; gọi ngắn: **phiếu đối soát** | `03`, `MAU_03` |
+| 03 | Phiếu ý kiến chuyên môn độc lập / đối soát dữ liệu chuyên ngành | Phiếu xác nhận số liệu (tiêu đề đầy đủ in trên phiếu Word) | `03`, `MAU_03` |
 | 04 | Phiếu đề nghị điều chỉnh, chuyển tiếp, loại trừ / ngoại lệ sản phẩm | giữ nguyên | `04`, `MAU_04` |
 | 05 | Phiếu ghi nhận nhiệm vụ bổ sung, khẩn cấp, đột xuất trong kỳ | giữ nguyên | `05`, `MAU_05` |
 | 06 | Báo cáo kết quả tập thể / lĩnh vực phục vụ liên kết trách nhiệm cán bộ lãnh đạo | giữ nguyên | `06`, `MAU_06` |
@@ -60,7 +60,7 @@ Hành động trên hồ sơ: Duyệt danh mục, Trả lại, Nộp phiếu t�
 
 Trạng thái kỳ đánh giá: **Dự thảo** (cấu hình) → **Đang mở** → **Khóa dữ liệu** (sau điểm chốt dữ liệu; chỉ các bước từ thẩm định trở đi) → **Đã đóng** (`Draft`, `Open`, `Locked`, `Closed`).
 
-Trạng thái phiếu: phiếu đối soát — Chờ lập phiếu, Đang lập phiếu, Chờ xác nhận, Đã xác nhận, Đã hủy; phiếu kiểm soát — Đang soạn, Chờ xác nhận, Đã xác nhận, Đã hủy; biên bản hiệu chuẩn — Đang soạn, Đã chốt, Đã hủy.
+Trạng thái phiếu: phiếu xác nhận số liệu (Mẫu 03) — Chờ lập phiếu, Đang lập phiếu, Chờ xác nhận, Đã xác nhận, Đã hủy; phiếu kiểm soát — Đang soạn, Chờ xác nhận, Đã xác nhận, Đã hủy; biên bản hiệu chuẩn — Đang soạn, Đã chốt, Đã hủy.
 
 ## 3. Mức xếp loại
 
@@ -105,7 +105,7 @@ Quyền hiển thị theo nhóm (phân hệ) và tên bên dưới; **mã quyề
 | `catalog` | Danh mục | đơn vị chính quyền, tổ chức Đảng, loại đơn vị, chức vụ |
 | `period` | Kỳ đánh giá | tạo kỳ, cấu hình, mở/khóa kỳ |
 | `criteria` | Bộ tiêu chí | bộ tiêu chí và thang điểm |
-| `evaluation` | Đánh giá cá nhân | các bước trên hồ sơ, kiến nghị, kế hoạch 30-60-90 ngày, phiếu đối soát (Mẫu 03), biên bản hiệu chuẩn (Mẫu 20), phiếu kiểm soát (Mẫu 19) |
+| `evaluation` | Đánh giá cá nhân | các bước trên hồ sơ, kiến nghị, kế hoạch 30-60-90 ngày, phiếu xác nhận số liệu (Mẫu 03), biên bản hiệu chuẩn (Mẫu 20), phiếu kiểm soát (Mẫu 19) |
 | `collective` | Đánh giá tập thể | hồ sơ tập thể (Mẫu 06–08) |
 | `meeting` | Hội nghị, kiểm phiếu | biên bản hội nghị, kiểm phiếu (Mẫu 12–13) |
 | `report` | Báo cáo | xuất báo cáo tổng hợp (Mẫu 14–16) |
@@ -114,15 +114,15 @@ Quyền theo cặp lập và xác nhận: **Lập** phiếu/biên bản và **X�
 
 ## 6. Cổng trước quyết định
 
-Đặt theo diện quyết định; thứ tự kiểm tra: hiệu chuẩn, kiểm soát. Đối soát chỉ chặn thẩm định khi còn phiếu đang mở.
+Đặt theo diện quyết định; thứ tự kiểm tra: họp thống nhất, kiểm tra. Xác nhận số liệu chỉ chặn thẩm định khi còn phiếu đang mở.
 
 | Cổng | Biểu mẫu (tài liệu gốc) | Tên trên giao diện | Chế độ | Mã |
 |---|---|---|---|---|
-| Hiệu chuẩn | Mẫu 20 — Biên bản hiệu chuẩn kết quả đánh giá ("trước khi phê duyệt") | Hiệu chuẩn kết quả | Bắt buộc / Chỉ ghi nhận / Tắt | `CALIBRATION` |
-| Kiểm soát | Mẫu 19 — Phiếu kiểm soát tính hợp lệ, công bằng và nhất quán ("trước khi trình phê duyệt") | Kiểm soát trước phê duyệt | Bắt buộc / Chỉ ghi nhận / Tắt | `CONTROL` |
-| Đối soát | Mẫu 03 — Phiếu ý kiến chuyên môn độc lập / đối soát dữ liệu chuyên ngành ("khi cần") | Đối soát chuyên ngành | Tùy chọn / Tắt | `CROSSCHECK` |
+| Hiệu chuẩn | Mẫu 20 — Biên bản hiệu chuẩn kết quả đánh giá ("trước khi phê duyệt") | Họp thống nhất | Bắt buộc / Chỉ ghi nhận / Tắt | `CALIBRATION` |
+| Kiểm soát | Mẫu 19 — Phiếu kiểm soát tính hợp lệ, công bằng và nhất quán ("trước khi trình phê duyệt") | Kiểm tra trước quyết định | Bắt buộc / Chỉ ghi nhận / Tắt | `CONTROL` |
+| Đối soát | Mẫu 03 — Phiếu ý kiến chuyên môn độc lập / đối soát dữ liệu chuyên ngành ("khi cần") | Xác nhận số liệu | Tùy chọn / Tắt | `CROSSCHECK` |
 
-Menu: **Hiệu chuẩn và kiểm soát** (biên bản hiệu chuẩn, phiếu kiểm soát) và **Đối soát chuyên ngành** (phiếu đối soát).
+Menu: **Rà soát** (hai thẻ: **Họp thống nhất** cho biên bản hiệu chuẩn, **Kiểm tra** cho phiếu kiểm soát) và **Xác nhận số liệu** (phiếu xác nhận số liệu, Mẫu 03).
 
 ## 7. Tên trong biểu mẫu gốc và đơn vị tại ATTECH
 
