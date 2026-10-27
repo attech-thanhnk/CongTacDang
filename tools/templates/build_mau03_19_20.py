@@ -278,6 +278,23 @@ def build(label, end_label, dst_name, tag_fn):
     print('OK', dst)
 
 
+def add_draft_banner(part):
+    """Dòng cảnh báo đầu văn bản, chỉ in khi phiếu/biên bản chưa được xác nhận (if:DRAFT)."""
+    p = el('p')
+    ppr = etree.SubElement(p, W + 'pPr')
+    etree.SubElement(ppr, W + 'jc').set(W + 'val', 'center')
+    rpr = el('rPr')
+    rpr.append(el('b'))
+    rpr.append(el('color', val='C00000'))
+    rpr.append(el('sz', val='24'))
+    r = el('r')
+    r.append(rpr)
+    t = etree.SubElement(r, W + 't')
+    t.text = 'BẢN NHÁP — CHƯA XÁC NHẬN'
+    p.append(r)
+    part.insert(0, sdt('if:DRAFT', [p]))
+
+
 def find_p(part, pred):
     for e in part:
         if e.tag == W + 'p' and pred(text_of(e)):
@@ -317,6 +334,11 @@ def party_header(part):
 
 # --- Mẫu 03
 def tag_mau03(part):
+    tag_mau03_body(part)
+    add_draft_banner(part)
+
+
+def tag_mau03_body(part):
     tbl = part[1]
     assert tbl.tag == W + 'tbl'
     ps = list(tbl.iter(W + 'p'))
@@ -367,6 +389,11 @@ def tag_mau03(part):
 
 # --- Mẫu 19
 def tag_mau19(part):
+    tag_mau19_body(part)
+    add_draft_banner(part)
+
+
+def tag_mau19_body(part):
     party_header(part)
     info = find_tbl(part, 'Cơ quan/đơn vị:')
     tag_whole(cell_p(info, 0, 1), 'UNIT_NAME')
@@ -411,6 +438,11 @@ def tag_mau19(part):
 
 # --- Mẫu 20
 def tag_mau20(part):
+    tag_mau20_body(part)
+    add_draft_banner(part)
+
+
+def tag_mau20_body(part):
     party_header(part)
     info = find_tbl(part, 'Thời gian, địa điểm:')
     for row, tag in ((0, 'MEETING_TIME_PLACE'), (1, 'CHAIR'), (2, 'ATTENDEES'), (3, 'SCOPE_TEXT')):
@@ -419,6 +451,21 @@ def tag_mau20(part):
     summary = find_tbl(part, 'Nhóm/mức xếp loại')
     for col, tag in enumerate(('S_GROUP', 'S_COUNT', 'S_PCT', 'S_DIFF', 'S_CONCLUSION')):
         fill_empty(cell_p(summary, 1, col), tag)
+    # Biên bản đã chốt: thêm số liệu sau hiệu chuẩn ngay sau số liệu gốc, chữ in sẵn của ô giữ nguyên.
+    for col, tag in ((1, 'S_COUNT_AFTER'), (2, 'S_PCT_AFTER')):
+        cp = cell_p(summary, 1, col)
+        rpr = el('rPr')
+        rpr.append(el('sz', val='20'))
+
+        def after_run(text, rpr=rpr):
+            r = el('r')
+            r.append(copy.deepcopy(rpr))
+            t = etree.SubElement(r, W + 't')
+            t.set(XML_SPACE, 'preserve')
+            t.text = text
+            return r
+
+        cp.append(sdt('if:S_HAS_AFTER', [after_run(' (sau hiệu chuẩn: '), sdt(tag, [blank_run(rpr)]), after_run(')')]))
     repeat_row(summary, 1, 'SUMMARY', drop_rows=(2, 3, 4))
 
     cases = find_tbl(part, 'Họ tên/Mã hồ sơ')

@@ -9,10 +9,11 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { Badge } from "@/components/common/StatusBadge";
 import { DateField } from "@/components/evaluations/DateField";
 import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
-import { CrosscheckRequestForm } from "@/components/crosschecks/CrosscheckRequestForm";
+import { CrosscheckRequestForm, CrosscheckTaskOption } from "@/components/crosschecks/CrosscheckRequestForm";
 import { errorMessage, errorStatus } from "@/components/admin/adminUtils";
 import { useToast } from "@/contexts/ToastContext";
 import { reportService } from "@/services/reportService";
+import { evaluationService } from "@/services/evaluationService";
 import { formatDate, formatDateTime } from "@/lib/dateFormat";
 import {
   CROSSCHECK_ADJUSTMENT_LABELS,
@@ -72,6 +73,7 @@ export default function CrosscheckDetailPage() {
   const [editingRequest, setEditingRequest] = useState(false);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [tasks, setTasks] = useState<CrosscheckTaskOption[]>([]);
 
   const apply = useCallback((c: CrosscheckDto) => {
     setData(c);
@@ -95,12 +97,12 @@ export default function CrosscheckDetailPage() {
 
   const dirty = useMemo(() => !!data && !!draft && JSON.stringify(draft) !== JSON.stringify(toDraft(data)), [data, draft]);
 
-  const exportWord = async () => {
+  const exportForm = async (format: "original" | "pdf") => {
     if (!data) return;
     try {
-      await reportService.exportQualityForm("03", data.id, `Mau_03_${data.id}.docx`);
+      await reportService.exportQualityForm("03", data.id, `Mau_03_${data.id}.docx`, format);
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Xuất phiếu đối soát không thành công."));
+      toast.error(errorMessage(err, format === "pdf" ? "Xuất PDF không thành công. Hãy tải bản Word hoặc liên hệ quản trị hệ thống." : "Xuất phiếu đối soát không thành công."));
     }
   };
 
@@ -178,6 +180,19 @@ export default function CrosscheckDetailPage() {
     });
   };
 
+  // Sản phẩm đăng ký chỉ cần khi sửa yêu cầu; không tải được thì vẫn thêm được dòng tự do.
+  const startEditRequest = async () => {
+    if (data) {
+      try {
+        const record = await evaluationService.getRecordById(data.recordId);
+        setTasks(record.tasks.filter((t) => !t.changeStatus).map((t) => ({ id: t.id, taskName: t.taskName })));
+      } catch {
+        setTasks([]);
+      }
+    }
+    setEditingRequest(true);
+  };
+
   const saveRequest = async (body: SaveCrosscheckRequest) => {
     if (!data) return;
     if (await run(() => crosscheckService.updateRequest(data.id, body), "Đã cập nhật yêu cầu đối soát.", "Cập nhật yêu cầu không thành công.")) {
@@ -242,8 +257,9 @@ export default function CrosscheckDetailPage() {
               itemLabel="phiếu đối soát"
               disabled={busy}
               actions={[
-                { key: "edit", label: "Sửa yêu cầu", icon: "bi-pencil-square", hidden: !data.canEditRequest || editingRequest, onClick: () => setEditingRequest(true) },
-                { key: "word", label: "Xuất Word", icon: "bi-download", onClick: exportWord },
+                { key: "edit", label: "Sửa yêu cầu", icon: "bi-pencil-square", hidden: !data.canEditRequest || editingRequest, onClick: startEditRequest },
+                { key: "word", label: "Xuất Word", icon: "bi-download", onClick: () => exportForm("original") },
+                { key: "pdf", label: "Xuất PDF", icon: "bi-filetype-pdf", onClick: () => exportForm("pdf") },
                 { key: "return", label: "Trả lại", icon: "bi-arrow-return-left", hidden: !data.canReturn, onClick: () => setDialog("return") },
                 { key: "cancel", label: "Hủy yêu cầu", icon: "bi-x-circle", danger: true, hidden: !data.canCancel, onClick: () => setDialog("cancel") },
               ]}
@@ -270,7 +286,7 @@ export default function CrosscheckDetailPage() {
           </div>
           <div className="card-body">
             {editingRequest ? (
-              <CrosscheckRequestForm crosscheck={data} busy={busy} submitLabel="Lưu yêu cầu" onCancel={() => setEditingRequest(false)} onSubmit={saveRequest} />
+              <CrosscheckRequestForm crosscheck={data} tasks={tasks} busy={busy} submitLabel="Lưu yêu cầu" onCancel={() => setEditingRequest(false)} onSubmit={saveRequest} />
             ) : (
               <dl className="small mb-0 row">
                 <Info label="Hồ sơ">

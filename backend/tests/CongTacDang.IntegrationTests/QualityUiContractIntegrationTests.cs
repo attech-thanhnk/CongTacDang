@@ -77,6 +77,11 @@ public sealed class QualityUiContractIntegrationTests
         Assert.Equal("TOTAL", summaryRows.Last().GetProperty("gradeCode").GetString());
         Assert.Equal("Chênh lệch", summaryRows.Single(r => r.GetProperty("gradeCode").GetString() == "HoanThanhTot").GetProperty("notableDifference").GetString());
 
+        // Chưa chốt: bản Word chỉ có số liệu gốc và dòng bản nháp.
+        var draftText = await DocxTextAsync(w.PreparerC, $"/api/reports/docx/mau-20/{id}");
+        Assert.Contains("BẢN NHÁP — CHƯA XÁC NHẬN", draftText);
+        Assert.DoesNotContain("sau hiệu chuẩn", draftText);
+
         // Người lập thấy lý do không tự chốt, không có cờ chốt; người chốt chốt bằng phiên bản vừa nhận.
         Assert.False(saved2.GetProperty("canConclude").GetBoolean());
         var asConcluder = await Data(w.ConcluderC, $"/api/calibrations/{id}");
@@ -86,6 +91,12 @@ public sealed class QualityUiContractIntegrationTests
         var concluded = await Data(await Raw(w.ConcluderC, HttpMethod.Post, $"/api/calibrations/{id}/conclude", $$"""{"version":{{v3}}}"""));
         Assert.Equal("Concluded", concluded.GetProperty("status").GetString());
         Assert.True(concluded.GetProperty("canReopen").GetBoolean());
+
+        // Đã chốt: bỏ dòng bản nháp, thêm số liệu sau hiệu chuẩn; PDF xuất được hoặc báo rõ thiếu LibreOffice.
+        var concludedText = await DocxTextAsync(w.ConcluderC, $"/api/reports/docx/mau-20/{id}");
+        Assert.DoesNotContain("BẢN NHÁP", concludedText);
+        Assert.Contains("(sau hiệu chuẩn: ", concludedText);
+        await AssertPdfOrUnavailableAsync(w.ConcluderC, $"/api/reports/docx/mau-20/{id}?format=pdf");
 
         var reopened = await Data(await Raw(w.ConcluderC, HttpMethod.Post, $"/api/calibrations/{id}/reopen",
             $$"""{"version":{{concluded.GetProperty("version").GetUInt32()}},"reason":"Bổ sung"}"""));
@@ -184,11 +195,14 @@ public sealed class QualityUiContractIntegrationTests
         var submitted = await Data(await Raw(w.ControlPerformerOnlyC, HttpMethod.Post, $"/api/control-checks/{id}/submit",
             $$"""{"version":{{cleared.GetProperty("version").GetUInt32()}}}"""));
         Assert.Equal("Submitted", submitted.GetProperty("status").GetString());
+        Assert.Contains("BẢN NHÁP — CHƯA XÁC NHẬN", await DocxTextAsync(w.ControlConfirmerC, $"/api/reports/docx/mau-19/{id}"));
         var asConfirmer = await Data(w.ControlConfirmerC, $"/api/control-checks/{id}");
         Assert.True(asConfirmer.GetProperty("canConfirm").GetBoolean());
         var confirmed = await Data(await Raw(w.ControlConfirmerC, HttpMethod.Post, $"/api/control-checks/{id}/confirm",
             $$"""{"version":{{asConfirmer.GetProperty("version").GetUInt32()}}}"""));
         Assert.Equal("Confirmed", confirmed.GetProperty("status").GetString());
+        Assert.DoesNotContain("BẢN NHÁP", await DocxTextAsync(w.ControlConfirmerC, $"/api/reports/docx/mau-19/{id}"));
+        await AssertPdfOrUnavailableAsync(w.ControlConfirmerC, $"/api/reports/docx/mau-19/{id}?format=pdf");
 
         // Trả lại, mở lại và hủy đều nhận {version, reason}.
         var reopened = await Data(await Raw(w.ControlConfirmerC, HttpMethod.Post, $"/api/control-checks/{id}/reopen",
@@ -204,6 +218,29 @@ public sealed class QualityUiContractIntegrationTests
     }
 
     #region Hỗ trợ
+
+    /// <summary>Tải bản Word và trả toàn bộ chữ trong thân văn bản.</summary>
+    private static async Task<string> DocxTextAsync(HttpClient client, string url)
+    {
+        var response = await client.GetAsync(url);
+        Assert.True(response.StatusCode == HttpStatusCode.OK, $"{(int)response.StatusCode} {url}: {await response.Content.ReadAsStringAsync()}");
+        using var zip = new System.IO.Compression.ZipArchive(new MemoryStream(await response.Content.ReadAsByteArrayAsync()));
+        using var reader = new StreamReader(zip.GetEntry("word/document.xml")!.Open());
+        return System.Text.RegularExpressions.Regex.Replace(await reader.ReadToEndAsync(), "<[^>]+>", string.Empty);
+    }
+
+    /// <summary>Máy chủ không có LibreOffice thì 503 kèm thông báo tiếng Việt cho giao diện hiện.</summary>
+    private static async Task AssertPdfOrUnavailableAsync(HttpClient client, string url)
+    {
+        var response = await client.GetAsync(url);
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            Assert.Equal("application/pdf", response.Content.Headers.ContentType?.MediaType);
+            return;
+        }
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Contains("PDF", await response.Content.ReadAsStringAsync());
+    }
 
     private enum AwaitingStatus { DirectorReview, Decision }
 

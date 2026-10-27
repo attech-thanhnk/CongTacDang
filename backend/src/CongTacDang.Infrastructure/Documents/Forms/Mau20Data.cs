@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Application.Services;
+using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
@@ -37,6 +38,9 @@ public sealed class Mau20Data
 
     [TemplateCondition("HAS_MEMBERS")] public bool HasMembers { get; init; }
 
+    /// <summary>Chưa chốt thì biên bản in dòng cảnh báo bản nháp ở đầu văn bản.</summary>
+    [TemplateCondition("DRAFT")] public bool Draft { get; init; }
+
     [TemplateCollection("SUMMARY")] public List<Mau20SummaryRow> Summary { get; init; } = new();
 
     [TemplateCollection("CASES")] public List<Mau20CaseRow> Cases { get; init; } = new();
@@ -48,6 +52,7 @@ public sealed class Mau20Data
         ArgumentNullException.ThrowIfNull(session);
         var held = session.HeldAt;
         var extra = FormText.OrNull(session.ExtraConclusion?.Trim());
+        var concluded = session.Status == nameof(CalibrationStatus.Concluded);
         return new Mau20Data
         {
             DateLine = CollectiveFormText.DateLine(held ?? session.ConcludedAt ?? session.PreparedAt),
@@ -60,8 +65,9 @@ public sealed class Mau20Data
             ChairName = FormText.OrNull(session.ChairName?.Trim()),
             SecretaryName = FormText.OrNull(session.SecretaryName?.Trim()),
             HasMembers = session.Attendees.Count > 0,
-            // Mục 1 là kết quả rà soát chung, trước khi điều chỉnh từng trường hợp.
-            Summary = session.Summary.Select(Mau20SummaryRow.From).ToList(),
+            // Mục 1: số liệu gốc trước hiệu chuẩn; biên bản đã chốt kèm số liệu sau hiệu chuẩn.
+            Draft = !concluded,
+            Summary = session.Summary.Select(r => Mau20SummaryRow.From(r, concluded)).ToList(),
             Cases = session.Cases.OrderBy(c => c.Order).Select((c, index) => Mau20CaseRow.From(c, index + 1)).ToList(),
             Members = session.Attendees.OrderBy(a => a.Order).Select(Mau20MemberRow.From).ToList()
         };
@@ -98,13 +104,21 @@ public sealed class Mau20SummaryRow
     [TemplateField("S_DIFF")] public string? Difference { get; init; }
     [TemplateField("S_CONCLUSION")] public string? Conclusion { get; init; }
 
-    public static Mau20SummaryRow From(CalibrationSummaryRowDto row) => new()
+    /// <summary>Biên bản đã chốt thì kèm số liệu sau hiệu chuẩn.</summary>
+    [TemplateCondition("S_HAS_AFTER")] public bool HasAfter { get; init; }
+    [TemplateField("S_COUNT_AFTER")] public string? CountAfter { get; init; }
+    [TemplateField("S_PCT_AFTER")] public string? PercentAfter { get; init; }
+
+    public static Mau20SummaryRow From(CalibrationSummaryRowDto row, bool concluded) => new()
     {
         Group = row.GradeName,
         Count = row.CountBefore.ToString(CultureInfo.InvariantCulture),
         Percent = row.PercentBefore.HasValue ? FormText.Number(row.PercentBefore.Value, 1) : string.Empty,
         Difference = row.NotableDifference?.Trim() ?? string.Empty,
-        Conclusion = row.PreliminaryConclusion?.Trim() ?? string.Empty
+        Conclusion = row.PreliminaryConclusion?.Trim() ?? string.Empty,
+        HasAfter = concluded,
+        CountAfter = row.CountAfter.ToString(CultureInfo.InvariantCulture),
+        PercentAfter = FormText.Number(row.PercentAfter ?? 0, 1)
     };
 }
 

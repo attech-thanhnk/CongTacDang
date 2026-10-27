@@ -17,6 +17,7 @@ public class ControlCrosscheckCalibrationFormsTests
 
     private static ExpertCrosscheckDto Crosscheck() => new()
     {
+        Status = nameof(CrosscheckStatus.Confirmed),
         MemberFullName = "Nguyễn Văn A",
         ExpertUnitName = "Phòng Kỹ thuật - An toàn - Chất lượng",
         AddresseeName = "Ban Tổ chức cán bộ - Lao động",
@@ -56,6 +57,7 @@ public class ControlCrosscheckCalibrationFormsTests
         var check = new ControlCheckDto
         {
             GroupName = "Nhóm kỹ thuật CNS",
+            Status = nameof(ControlCheckStatus.Confirmed),
             PerformedByName = "Phạm Văn D",
             PerformedAt = new DateTime(2026, 9, 20, 2, 0, 0, DateTimeKind.Utc),
             ConfirmedByName = "Hoàng Thị E",
@@ -78,6 +80,7 @@ public class ControlCrosscheckCalibrationFormsTests
 
     private static CalibrationSessionDto Calibration() => new()
     {
+        Status = nameof(CalibrationStatus.Concluded),
         GroupName = "Trưởng phòng kỹ thuật",
         HeldAt = new DateTime(2026, 9, 25, 1, 30, 0, DateTimeKind.Utc),
         Location = "Phòng họp số 2",
@@ -295,6 +298,48 @@ public class ControlCrosscheckCalibrationFormsTests
         Assert.Contains("Đỗ Thị G", text);
         // Chữ cố định của biên bản giữ nguyên.
         Assert.Contains("Việc hiệu chuẩn chỉ nhằm bảo đảm cùng tiêu chuẩn", text);
+    }
+
+    [Fact]
+    public void Mau20_Concluded_AddsAfterCalibrationNumbersBesideOriginal()
+    {
+        var text = BodyText(Render(Mau20Data.TemplateFileName, Mau20Data.From(Calibration())));
+
+        Assert.Contains("(sau hiệu chuẩn: 0)", text);
+        Assert.Contains("(sau hiệu chuẩn: 2)", text);
+        Assert.Contains("(sau hiệu chuẩn: 100,0)", text);
+        Assert.Contains("(sau hiệu chuẩn: 0,0)", text);
+        Assert.DoesNotContain("BẢN NHÁP", text);
+    }
+
+    [Fact]
+    public void Mau20_NotConcluded_OnlyOriginalNumbersAndDraftBanner()
+    {
+        var session = Calibration();
+        session.Status = nameof(CalibrationStatus.Draft);
+        var text = BodyText(Render(Mau20Data.TemplateFileName, Mau20Data.From(session)));
+
+        Assert.DoesNotContain("sau hiệu chuẩn", text);
+        Assert.Contains("50,0", text);
+        Assert.Contains("BẢN NHÁP — CHƯA XÁC NHẬN", text);
+    }
+
+    [Fact]
+    public void Mau03_NotConfirmed_PrintsDraftBanner()
+    {
+        var draft = Crosscheck();
+        draft.Status = nameof(CrosscheckStatus.Submitted);
+        Assert.Contains("BẢN NHÁP — CHƯA XÁC NHẬN", BodyText(Render(Mau03Data.TemplateFileName, Mau03Data.From(draft, null))));
+        Assert.DoesNotContain("BẢN NHÁP", BodyText(Render(Mau03Data.TemplateFileName, Mau03Data.From(Crosscheck(), null))));
+    }
+
+    [Fact]
+    public void Mau19_NotConfirmed_PrintsDraftBanner()
+    {
+        var draft = ControlCheck();
+        draft.Status = nameof(ControlCheckStatus.Submitted);
+        Assert.Contains("BẢN NHÁP — CHƯA XÁC NHẬN", BodyText(Render(Mau19Data.TemplateFileName, Mau19Data.From(draft, null, null, null))));
+        Assert.DoesNotContain("BẢN NHÁP", BodyText(Render(Mau19Data.TemplateFileName, Mau19Data.From(ControlCheck(), null, null, null))));
     }
 
     [Fact]
