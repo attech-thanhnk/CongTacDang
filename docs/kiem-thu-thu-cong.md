@@ -47,7 +47,7 @@ Mở http://localhost:3001. Tất cả tài khoản dùng mật khẩu `Thu12345
 
 ## 3. Kịch bản chính: một kỳ đi hết luồng
 
-Kỳ **Quý IV/2026** đang ở trạng thái Dự thảo với ba hồ sơ của Phòng Kế hoạch - Kinh doanh: Lê Mai Duy (`duy.lm`), Nguyễn Bình Trung (`trung.nb`), Nguyễn Thị Anh Đào (`dao.nta`).
+Kỳ thử trong bản sao đang ở trạng thái Dự thảo với ba hồ sơ của Phòng Kế hoạch - Kinh doanh: Lê Mai Duy (`duy.lm`), Nguyễn Bình Trung (`trung.nb`), Nguyễn Thị Anh Đào (`dao.nta`).
 
 | Bước | Tài khoản | Làm gì | Kết quả mong đợi |
 |---|---|---|---|

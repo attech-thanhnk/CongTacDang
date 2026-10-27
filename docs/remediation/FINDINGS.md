@@ -57,6 +57,14 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 **Đợt 6 (2026-09-29)** — task 14 (tổ chức động), task 15 (luồng theo nhóm đối tượng) và tích hợp đã merge (`07106a7`). Người điều phối kiểm lại: build 0 lỗi 0 warning, unit 228/229 (1 skip PDF), integration 89/89 trên PostgreSQL, `tsc` pass, grep không còn enum chức vụ / mã quyền cũ. Migration gộp lại một `InitialCreate` mới → **CSDL cũ phải tạo lại**. Đổi tiêu đề cột import sang "Mã/Tên đơn vị", "Mã/Tên tổ chức Đảng", "Mã đơn vị công tác" (file mẫu cũ không dùng được). Loại đơn vị khai báo trên giao diện (chưa có import).
 - Cần nghiệp vụ xác nhận thêm: danh mục chức vụ mặc định và mã M1–M26 (Chủ tịch/Giám đốc có xếp M14, Kế toán trưởng, Chi ủy viên), 3 hồ sơ luồng mặc định và 6 câu hỏi trong `reports/15-workflow-profiles.md`.
 
+**Đợt hoàn thiện (2026-10-27)** — đoạn này do người điều phối giao thêm, là ngoại lệ của quy tắc "Agent không sửa file này". Đối chiếu các mục còn `open`/`partial` với code và lịch sử git; chỉ đổi trạng thái khi có bằng chứng.
+- T-54 `open` → `done`: khối "Tệp đính kèm" và lịch sử phiên bản file đã có trên trang phiếu, biên bản (`frontend/components/attachments/OwnerAttachments.tsx`, commit `2f3d8e6`).
+- T-22 giữ `partial`: `package.json` còn Bootstrap và PrimeReact cùng bộ icon riêng; chưa gộp.
+- T-28 giữ `partial`: phần tài liệu đổi khóa và mật khẩu đã có (`54e1b91`); việc đổi khóa thật trên môi trường triển khai do người vận hành làm.
+- B-06 giữ `deferred`, chờ nghiệp vụ: ai được xóa file đính kèm.
+- B-07 giữ `partial`; B-08 giữ `partial`, chờ nghiệp vụ xác nhận công thức; B-09 giữ `partial`, chờ nghiệp vụ về mở lại hồ sơ trong kỳ đã đóng; B-10 giữ `open`, chờ nghiệp vụ xác nhận cấu hình mặc định.
+- Đã có thêm, không thuộc mã lỗi nào: kiểm thử giao diện tự động 79 kịch bản (`docs/kiem-thu-tu-dong.md`, `frontend/e2e/`); phiên bản ứng dụng `GET /api/version` (`e4c9b17`); đặt lại mật khẩu quản trị bằng `docker/dat-lai-mat-khau.sh` (`216f3a6`); `restore.sh` khôi phục vào CSDL tạm rồi đổi tên nên không sót đối tượng của bản mới hơn (`4d9076f`); mục lục tài liệu `docs/README.md`.
+
 ## T — Kỹ thuật
 
 | Mã | Mức | Vấn đề | Vị trí chính | Owner | Trạng thái |
@@ -115,7 +123,7 @@ Agent **không sửa file này**. Người điều phối cập nhật trạng t
 | T-51 | ⚪ | Tài liệu hướng dẫn seed sẵn (không có người tải lên, không gắn hồ sơ) sau T-31 chỉ quản trị hệ thống xem được — cần quyết định cách phân loại "văn bản chung" | `DataSeeder.cs`, `AccessPolicy.cs` | — | done |
 | T-52 | 🟡 | `TaskAttachment.TaskId` và `FilePath` là alias nhưng EF ánh xạ thành cột trùng lặp | `TaskAttachment.cs`, `CongTacDangDbContext.cs` | — | done |
 | T-53 | ⚪ | `MapToRecordDto` hiển thị tên file của phiên bản đầu tiên thay vì phiên bản hiện hành | `EvaluationService.cs` | 12 | done |
-| T-54 | ⚪ | Chưa có giao diện xem lịch sử phiên bản file (API đã có) | `frontend/components/attachments/` | — | open |
+| T-54 | ⚪ | Giao diện xem lịch sử phiên bản file (đã làm, xem Đợt hoàn thiện 2026-10-27) | `frontend/components/attachments/` | — | done |
 | T-55 | 🔴 | Phân quyền gắn tên vai trò cứng trong code (`AppRoles`, `IsInRole`), không có phạm vi khi gán, không tạo/xóa được vai trò; quyền nằm trong JWT → đổi quyền chậm tới 15 phút. Vai trò không khớp tác nhân HD03 (Chi bộ làm việc của tập thể lãnh đạo Phòng; thiếu lãnh đạo trực tiếp, cấp trực tiếp sử dụng; BTV ĐUTCT là cấp ngoài) | `AppRoles.cs`, `AccessPolicy.cs`, `Program.cs`, `DataSeeder.cs` | 07, 09 | done |
 | T-56 | 🟠 | Tạo tài khoản sinh username ngẫu nhiên `cb_xxxxxxxx`, mật khẩu tạm bị bỏ đi, không gán quyền → tài khoản mới không dùng được | `UserService.CreateUserAsync` | 08 | done |
 | T-57 | 🟠 | Khóa / xóa / đặt lại mật khẩu không vô hiệu access token đang dùng (còn hiệu lực ≤ 15 phút) | `AuthService`, `JwtService`, `Program.cs` | 08 | done |

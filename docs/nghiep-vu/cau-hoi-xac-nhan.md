@@ -51,21 +51,21 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 ### B1. [Ưu tiên] Bộ vai trò mặc định
 - **Câu hỏi:** 9 vai trò mặc định dưới đây có đúng và đủ người thực hiện ở ATTECH không?
 - **Căn cứ:** Mục IV.1–IV.5 (tr.18–20); Phụ lục II mục II (tr.30–31); Mẫu 18 (tr.80).
-- **Hệ thống đang làm (mặc định):** Người được đánh giá; Lãnh đạo Phòng; Thư ký tập thể lãnh đạo; Chi ủy/Bí thư Chi bộ; Cơ quan thẩm định (Phòng TCCB-LĐ, đồng thời quản lý kỳ và bộ tiêu chí); Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch); Cấp ủy viên (xem, xuất báo cáo); Văn phòng Đảng ủy; Quản trị hệ thống (IT, không xem nội dung đánh giá).
+- **Hệ thống đang làm (mặc định):** Người được đánh giá; Lãnh đạo đơn vị; Thư ký hội nghị; Chi bộ; Cơ quan thẩm định (Phòng TCCB-LĐ, đồng thời quản lý kỳ và bộ tiêu chí); Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch); Cấp ủy viên (xem, xuất báo cáo); Văn phòng Đảng ủy; Quản trị hệ thống (IT, không xem nội dung đánh giá).
 - **Phương án khác:** Thêm, bớt, đổi tên vai trò hoặc đổi quyền của vai trò.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (trang Vai trò).
 
 ### B2. [Ưu tiên] Ai thao tác "Xác nhận của Chi bộ" trên phiếu tự chấm?
 - **Câu hỏi:** Việc xác nhận phiếu tự chấm (09A, 09C, 9D) trên hệ thống do Bí thư Chi bộ làm hay cả Chi ủy?
 - **Căn cứ:** Mẫu 09C, 9D (tr.63–65), ô "XÁC NHẬN CỦA CHI BỘ".
-- **Hệ thống đang làm (mặc định):** Vai trò "Chi ủy / Bí thư Chi bộ" được gán theo từng Chi bộ, được xác nhận hoặc trả lại phiếu (bắt buộc lý do). Áp dụng cho cả cán bộ diện Ban Thường vụ Đảng ủy Tổng công ty (BTV ĐUTCT).
+- **Hệ thống đang làm (mặc định):** Vai trò "Chi bộ" được gán theo từng Chi bộ, được xác nhận hoặc trả lại phiếu (bắt buộc lý do). Áp dụng cho cả cán bộ diện Ban Thường vụ Đảng ủy Tổng công ty (BTV ĐUTCT).
 - **Phương án khác:** Chỉ Bí thư Chi bộ xác nhận; bỏ bước này trên hệ thống, chỉ ký trên giấy.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Vai trò; bật/tắt bước ở Kỳ đánh giá).
 
 ### B3. [Ưu tiên] Ai nhập kết quả phiếu kín của tập thể lãnh đạo (Bước 3a)?
 - **Câu hỏi:** Ai nhập kết quả kiểm phiếu và mức đề xuất của tập thể lãnh đạo Phòng và tập thể lãnh đạo Công ty?
 - **Căn cứ:** Mục IV.3a (tr.18); Mẫu 12, 13 (tr.68–71).
-- **Hệ thống đang làm (mặc định):** Vai trò "Thư ký tập thể lãnh đạo" nhập số phiếu từng mức và mức đề xuất, lập Biên bản 12, 13. Thư ký được gán theo một Phòng, riêng thư ký tập thể lãnh đạo Công ty được gán toàn công ty.
+- **Hệ thống đang làm (mặc định):** Vai trò "Thư ký hội nghị" nhập số phiếu từng mức và mức đề xuất, lập Biên bản 12, 13. Thư ký được gán theo một Phòng, riêng thư ký tập thể lãnh đạo Công ty được gán toàn công ty.
 - **Phương án khác:** Chi ủy/Bí thư Chi bộ nhập; Phòng TCCB-LĐ nhập tập trung.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Vai trò).
 
@@ -86,7 +86,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 ### B6. Ai được xem chi tiết hồ sơ của người khác?
 - **Câu hỏi:** Ai được xem toàn bộ hồ sơ (điểm, bản tự đánh giá, minh chứng, ý kiến các cấp) của người khác?
 - **Căn cứ:** Phụ lục II mục V.3 (tr.34) "xem trong phạm vi nhiệm vụ"; Mẫu 18 (tr.80): phiếu tự chấm chỉ "Cá nhân, Thẩm định".
-- **Hệ thống đang làm (mặc định):** Chủ hồ sơ; Lãnh đạo Phòng và Thư ký trong Phòng mình; Chi ủy trong Chi bộ mình; Phòng TCCB-LĐ, Cấp trực tiếp sử dụng, Cấp ủy viên, Văn phòng Đảng ủy trên toàn công ty.
+- **Hệ thống đang làm (mặc định):** Chủ hồ sơ; Lãnh đạo đơn vị và Thư ký hội nghị trong đơn vị mình; Chi bộ trong Chi bộ mình; Phòng TCCB-LĐ, Cấp trực tiếp sử dụng, Cấp ủy viên, Văn phòng Đảng ủy trên toàn công ty.
 - **Phương án khác:** Thu hẹp theo Mẫu 18 (ví dụ Cấp ủy viên chỉ xem biên bản và báo cáo).
 - **Ảnh hưởng nếu đổi:** Theo vai trò: cấu hình trên giao diện (Vai trò). Xem riêng theo từng loại biểu mẫu: cần sửa phần mềm.
 
@@ -196,7 +196,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 ### D7. Trưởng phòng đề xuất cho Bí thư Chi bộ là nhân viên (Phụ lục III ví dụ 3)
 - **Câu hỏi:** "Trưởng Phòng đề xuất mức xếp loại" là một bước riêng thay Giám đốc, hay là một phần của cuộc họp tập thể lãnh đạo Phòng?
 - **Căn cứ:** Phụ lục III ví dụ 3 (tr.39); IV.3c dòng 7 (tr.20).
-- **Hệ thống đang làm (mặc định):** Là bước riêng, do Lãnh đạo Phòng làm, nằm ở vị trí bước "cấp trực tiếp sử dụng".
+- **Hệ thống đang làm (mặc định):** Là bước riêng, do Lãnh đạo đơn vị làm, nằm ở vị trí bước "cấp trực tiếp sử dụng".
 - **Phương án khác:** Gộp vào bước 3a và tắt bước riêng.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Kỳ đánh giá).
 
@@ -425,7 +425,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 ### H5. Mẫu 17: ai lập, ai duyệt
 - **Câu hỏi:** Kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17) do ai lập và ai duyệt?
 - **Căn cứ:** Mẫu 17 (tr.79): chữ ký Thủ trưởng đơn vị, Người trực tiếp hỗ trợ, Cá nhân.
-- **Hệ thống đang làm (mặc định):** Lãnh đạo Phòng (trong Phòng mình) và Cấp trực tiếp sử dụng (toàn công ty) lập, duyệt, ghi kết quả từng mốc. Cá nhân xác nhận cam kết. Không ai lập kế hoạch cho chính mình.
+- **Hệ thống đang làm (mặc định):** Lãnh đạo đơn vị (trong đơn vị mình) và Cấp trực tiếp sử dụng (toàn công ty) lập, duyệt, ghi kết quả từng mốc. Cá nhân xác nhận cam kết. Không ai lập kế hoạch cho chính mình.
 - **Phương án khác:** Tách người lập và người duyệt; Phòng TCCB-LĐ theo dõi kết quả các mốc.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Vai trò). Tách hẳn quyền lập và quyền duyệt: cần sửa phần mềm.
 
