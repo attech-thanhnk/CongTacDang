@@ -471,3 +471,22 @@ Khác biệt cần nhớ:
 | `deploy-ubuntu.sh` | Không dùng | Không dùng (dừng cả hệ thống, dựng lại không có bộ nhớ đệm) |
 
 Chưa kiểm chứng được: chạy trên Ubuntu thật (quyền tệp, `sudo`, thời gian dựng từ đầu), làm sạch thư mục tệp ở 4.2, các lệnh mục 7 (chưa chạy vì chưa có xác nhận), tải file mẫu Word từ bản sao lưu có `word-templates` trên bản sao lưu thật (bản sao lưu thật không có), và thử đăng nhập bằng mật khẩu thật.
+
+## 9. Ghi chú từ lần thay thế thật trên máy chủ
+
+Lần thay thế thật chạy đúng trình tự ở trên. Số liệu và các điểm khác diễn tập:
+
+| Mục | Kết quả |
+|---|---|
+| Build ảnh mới trên máy chủ (không có bộ nhớ đệm) | 4 phút 17 giây, không lỗi |
+| Thời gian ngừng dịch vụ | khoảng 3 phút (từ lúc dừng đến lúc giao diện khỏe lại, gồm cả áp dụng ảnh nền đăng nhập) |
+| Chuyển dữ liệu gốc | 15 bảng, số dòng khớp từng bảng; chạy thử 6 giây, chuyển thật 3 giây |
+| Kiểm tra tự động sau chuyển | đạt mọi mục; mục đăng nhập ghi "CHƯA KIỂM" vì không có mật khẩu thật |
+
+Điểm khác với diễn tập:
+
+1. **Bản clone trên máy chủ chỉ lấy một thẻ.** `git fetch` không lấy được nhánh nào vì cấu hình `remote.origin.fetch` của bản clone cũ chỉ có một thẻ. Sửa một lần: `git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'` rồi `git fetch origin`. Kiểm bằng `git config --get-all remote.origin.fetch` trước khi nâng cấp.
+2. **Quyền chạy script.** Script tạo trên Windows có thể thiếu quyền thực thi trên Linux (`Permission denied`). Chạy bằng `bash docker/<tên>.sh` hoặc đặt quyền trong git (`git update-index --chmod=+x`), không `chmod` trên máy chủ vì làm `git status` báo thay đổi.
+3. **Thư mục sao lưu.** Tài khoản vận hành thường không ghi được `/var/backups`; dùng thư mục trong thư mục cá nhân (ví dụ `~/backups/...`) và chép bản sao ra khỏi máy.
+4. **Tùy chỉnh trang đăng nhập** (ảnh nền, vị trí khung) không nằm trong dữ liệu gốc được chuyển. Mang theo bằng `docker/tuy-chinh-giao-dien.sh`: `xuat` trên máy có tùy chỉnh, `ap-dung` trên máy đích sau khi bản mới đã khởi động.
+5. **Lịch sao lưu tự động (cron)** là bước người vận hành cài tay trên máy chủ (`crontab -e`); công cụ tự động không được phép cài tác vụ chạy lâu dài. Dòng cron mẫu có ở mục 5.4.
