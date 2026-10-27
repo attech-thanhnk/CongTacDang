@@ -96,7 +96,7 @@ test.describe.serial('Luồng hồ sơ qua giao diện', () => {
     await guiThaoTac(page, vung.getByRole('button', { name: 'Ghi nhận nhận xét' }));
 
     await page.goto(duongDanHoSo('trung'));
-    await expect(page.getByText('Chờ quyết định').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /Quyết định mức xếp loại: Chờ/ })).toBeVisible();
     const ban = await page.request.get('/api/evaluations/records/' + duongDanHoSo('trung').split('/').pop());
     expect((await ban.json()).data.status).toBe('AwaitingDecision');
   });

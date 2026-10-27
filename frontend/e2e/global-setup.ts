@@ -3,5 +3,5 @@ import path from 'node:path';
 
 // Xóa trạng thái chia sẻ của lần chạy trước để không lẫn kỳ/hồ sơ cũ.
 export default function globalSetup() {
-  fs.rmSync(path.join(__dirname, '..', 'e2e-ket-qua', 'trang-thai.json'), { force: true });
+  if (!process.env.E2E_GIU_TRANG_THAI) fs.rmSync(path.join(__dirname, '..', 'e2e-ket-qua', 'trang-thai.json'), { force: true });
 }
