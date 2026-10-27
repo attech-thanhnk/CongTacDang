@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using CongTacDang.Application.Common;
 using CongTacDang.Application.Common.Exceptions;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
@@ -97,7 +98,7 @@ public sealed class RecordFormService : IRecordFormService
             _ => (Mau9DData.TemplateFileName, (object)Mau9DData.From(source))
         };
 
-        return await RenderAsync(templateFileName, data, FileName(code, record), format, ct);
+        return await RenderAsync(templateFileName, data, await FileNameAsync(code, record, ct), format, ct);
     }
 
     /// <inheritdoc />
@@ -137,7 +138,7 @@ public sealed class RecordFormService : IRecordFormService
         var (templateFileName, data) = code == RecordFormCodes.Form05
             ? (Mau05Data.TemplateFileName, (object)Mau05Data.From(source))
             : (Mau04Data.TemplateFileName, Mau04Data.From(source));
-        return await RenderAsync(templateFileName, data, FileName(code, record), format, ct);
+        return await RenderAsync(templateFileName, data, await FileNameAsync(code, record, ct), format, ct);
     }
 
     private static string FormCodeOf(TaskChangeType type) => type == TaskChangeType.Urgent ? RecordFormCodes.Form05 : RecordFormCodes.Form04;
@@ -226,26 +227,11 @@ public sealed class RecordFormService : IRecordFormService
             layouts.FirstOrDefault(l => l.IsDefault));
     }
 
-    /// <summary>Tên tệp không dấu, ví dụ <c>Mau_09A_Nguyen_Van_A_Q1-2027.docx</c>.</summary>
-    private static string FileName(string code, EvaluationRecord record)
+    /// <summary>Tên tệp không dấu, ví dụ <c>Mau 09A_ATTECH_Nguyen Van A_Quy III-2026.docx</c>.</summary>
+    private async Task<string> FileNameAsync(string code, EvaluationRecord record, CancellationToken ct)
     {
-        var name = Ascii(record.Member?.FullName);
-        var period = record.Period != null ? $"_Q{(int)record.Period.Quarter}-{record.Period.Year}" : string.Empty;
-        return $"Mau_{code}_{(string.IsNullOrEmpty(name) ? "CanBo" : name)}{period}.docx";
-    }
-
-    private static string Ascii(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return string.Empty;
-        var normalized = value.Trim().Replace('đ', 'd').Replace('Đ', 'D').Normalize(NormalizationForm.FormD);
-        var builder = new StringBuilder();
-        foreach (var ch in normalized)
-        {
-            if (CharUnicodeInfo.GetUnicodeCategory(ch) == UnicodeCategory.NonSpacingMark)
-                continue;
-            builder.Append(char.IsLetterOrDigit(ch) && ch < 128 ? ch : '_');
-        }
-        return string.Join("_", builder.ToString().Split('_', StringSplitOptions.RemoveEmptyEntries));
+        var shortName = (await _orgSettings.GetAsync(ct)).ShortName;
+        var fullName = string.IsNullOrWhiteSpace(record.Member?.FullName) ? "CanBo" : record.Member!.FullName;
+        return ExportFileName.Build($"Mau {code}", shortName, fullName, record.Period == null ? null : (int)record.Period.Quarter, record.Period?.Year, ".docx");
     }
 }

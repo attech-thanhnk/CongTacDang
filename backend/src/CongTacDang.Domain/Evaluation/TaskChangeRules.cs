@@ -83,6 +83,29 @@ public static class TaskChangeRules
         }
     }
 
+    /// <summary>Bản chụp nội dung việc đích lúc lập đề nghị điều chỉnh.</summary>
+    public static string TaskSnapshotToJson(EvaluationTask task) => ProposalToJson(new TaskChangeProposal
+    {
+        TaskName = task.TaskName, TargetOutput = task.TargetOutput, Deadline = task.Deadline, AxisCode = task.AxisCode,
+        ProductCode = task.ProductCode, Role = task.Role?.ToString(), ExceedCriteria = task.ExceedCriteria,
+        EvidenceSource = task.EvidenceSource, Confirmer = task.Confirmer, Weight = task.Weight
+    });
+
+    /// <summary>Null khi đề nghị lập trước khi có bản chụp hoặc JSON hỏng.</summary>
+    public static TaskChangeProposal? TaskSnapshotFromJson(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+        try
+        {
+            return JsonSerializer.Deserialize<TaskChangeProposal>(json, JsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
     public static string WeightsToJson(IReadOnlyDictionary<Guid, double> weights) =>
         JsonSerializer.Serialize(weights.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value), JsonOptions);
 

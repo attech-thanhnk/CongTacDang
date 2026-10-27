@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using CongTacDang.Application.Common;
 using CongTacDang.Application.Services;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Infrastructure.Documents;
@@ -34,8 +35,8 @@ public sealed class ImprovementPlanDocumentService : IImprovementPlanDocument
         var data = TemplateDataBinder.Bind(Mau17Data.From(plan, record)).WithShared(TemplateDataBinder.Bind(org));
         var bytes = DocxTemplateEngine.Render(template, data).Content;
 
-        var name = string.IsNullOrWhiteSpace(record.Member?.FullName) ? "CanBo" : record.Member!.FullName.Trim().Replace(" ", "_");
-        var fileName = $"Mau_17_KeHoach_30_60_90_{name}.docx";
+        var fullName = string.IsNullOrWhiteSpace(record.Member?.FullName) ? "CanBo" : record.Member!.FullName;
+        var fileName = ExportFileName.Build("Mau 17", (await _orgSettings.GetAsync(ct)).ShortName, fullName, record.Period == null ? null : (int)record.Period.Quarter, record.Period?.Year, ".docx");
         if (format != ReportFormat.Pdf)
             return new ReportFileResult { FileBytes = bytes, ContentType = DocxMimeType, FileName = fileName };
 

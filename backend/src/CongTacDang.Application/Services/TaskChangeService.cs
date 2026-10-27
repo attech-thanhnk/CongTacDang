@@ -163,6 +163,8 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
             Proposal = TaskChangeRules.ProposalToJson(Normalize(type, proposal)),
             Weights = TaskChangeRules.WeightsToJson(TaskChangeRules.ResultingWeights(type, targetTask?.Id, proposal, weights, tasks)),
             WeightsBefore = TaskChangeRules.WeightsToJson(tasks.Where(TaskChangeRules.IsActive).ToDictionary(t => t.Id, t => t.Weight)),
+            // Duyệt sẽ ghi đè việc nên chụp nội dung cũ ngay lúc lập để in Mẫu 04.
+            TaskBefore = type == TaskChangeType.Adjust && targetTask != null ? TaskChangeRules.TaskSnapshotToJson(targetTask) : null,
             Reason = reason,
             Status = TaskChangeStatus.Pending,
             RequestedById = _currentUser.UserId,

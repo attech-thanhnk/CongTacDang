@@ -18,6 +18,7 @@ public sealed class TaskChangeRequestConfiguration : IEntityTypeConfiguration<Ta
         entity.Property(e => e.Proposal).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb").IsRequired();
         entity.Property(e => e.Weights).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb").IsRequired();
         entity.Property(e => e.WeightsBefore).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb").IsRequired();
+        entity.Property(e => e.TaskBefore).HasColumnType("jsonb");
         entity.Property(e => e.Reason).HasMaxLength(4000).IsRequired();
         entity.Property(e => e.RequestedByName).HasMaxLength(200).IsRequired();
         entity.Property(e => e.DecidedByName).HasMaxLength(200);

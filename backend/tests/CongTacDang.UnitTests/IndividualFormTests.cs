@@ -311,6 +311,19 @@ public class IndividualFormTests
     }
 
     [Fact]
+    public void Mau09A_FillsDateOfBirth_AndKeepsDefaultWhenMissing()
+    {
+        var source = Source();
+        source.Record.Member!.DateOfBirth = new DateOnly(1973, 10, 21);
+        var text = Render(Mau09AData.TemplateFileName, Mau09AData.From(source), out _);
+        Assert.Contains("Ngày sinh: 21/10/1973", text);
+
+        source.Record.Member.DateOfBirth = null;
+        Assert.Null(Mau09AData.From(source).DateOfBirth);
+        Assert.Contains("Ngày sinh: ……/……/…………", Render(Mau09AData.TemplateFileName, Mau09AData.From(source), out _));
+    }
+
+    [Fact]
     public void Mau09A_ShowsGroupNotes_AndOriginalItemWording()
     {
         var source = Source();

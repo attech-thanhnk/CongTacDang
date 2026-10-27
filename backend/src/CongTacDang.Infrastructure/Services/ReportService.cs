@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ClosedXML.Excel;
+using CongTacDang.Application.Common;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Application.Organization;
@@ -202,7 +203,7 @@ public partial class ReportService : IReportService
         ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
-        return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("BaoCaoNoiBo_KiemSoatTyLeXuatSac", activePeriod, scopeCell), format);
+        return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("Bao cao noi bo - Kiem soat ty le Xuat sac", (await _orgSettings.GetAsync()).ShortName, activePeriod, scopeCell), format);
     }
 
     #endregion
@@ -976,41 +977,23 @@ public partial class ReportService : IReportService
         return cell != null ? $"{periodTitle} - {cell.Name.ToUpper(Vietnamese)}" : periodTitle;
     }
 
-    private static string ExcelFileName(string baseName, EvaluationPeriod? period, PartyCell? cell)
-    {
-        var scope = cell != null ? "_" + SafeName(cell.Name, "ChiBo") : "_ToanDangBo";
-        var periodPart = period != null ? $"_Q{(int)period.Quarter}_{period.Year}" : string.Empty;
-        return $"{baseName}{scope}{periodPart}.xlsx";
-    }
+    private static string ExcelFileName(string baseName, string? shortName, EvaluationPeriod? period, PartyCell? cell) =>
+        ScopedFileName(baseName, shortName, cell, period, ".xlsx");
 
     /// <summary>Tên tệp không dấu "Mau bao cao_Ten viet tat_Ky bao cao", ví dụ "Mau 16_QLBMB_Quy III-2026".</summary>
     private static string Hd03FileName(string formCode, string? shortName, PartyCell? cell, EvaluationPeriod? period, string extension)
         => ScopedFileName($"Mau {formCode}", shortName, cell, period, extension);
 
-    /// <summary>Tên tệp "Tiền tố_Ten viet tat_Quy III-2026" (không dấu).</summary>
+    /// <summary>Tổ chức Đảng thì lấy mã tổ chức (viết tắt), không thì tên viết tắt trong cài đặt đơn vị.</summary>
     private static string ScopedFileName(string prefix, string? shortName, PartyCell? cell, EvaluationPeriod? period, string extension)
     {
-        var unit = cell != null ? Ascii(cell.Name).Replace(" ", string.Empty) : Ascii(shortName ?? string.Empty).Replace(" ", string.Empty);
-        if (string.IsNullOrEmpty(unit))
-            unit = "DonVi";
-        var periodPart = period != null ? $"Quy {CollectiveFormText.RomanQuarter(period.Quarter)}-{period.Year}" : "Ky bao cao";
-        return $"{prefix}_{unit}_{periodPart}{extension}";
+        var unit = cell == null ? shortName : string.IsNullOrWhiteSpace(cell.Code) ? cell.Name : cell.Code;
+        return ExportFileName.Build(prefix, unit, null, period == null ? null : (int)period.Quarter, period?.Year, extension);
     }
 
-    /// <summary>Bỏ dấu tiếng Việt và ký tự không hợp lệ trong tên tệp.</summary>
-    private static string Ascii(string value)
-    {
-        var normalized = value.Replace('đ', 'd').Replace('Đ', 'D').Normalize(NormalizationForm.FormD);
-        var sb = new StringBuilder();
-        foreach (var ch in normalized)
-        {
-            if (CharUnicodeInfo.GetUnicodeCategory(ch) == UnicodeCategory.NonSpacingMark)
-                continue;
-            if (char.IsLetterOrDigit(ch) || ch is ' ' or '-')
-                sb.Append(ch);
-        }
-        return sb.ToString().Trim();
-    }
+    /// <summary>Phiếu của một cán bộ: thêm họ tên sau tên viết tắt để các tệp cùng kỳ không trùng nhau.</summary>
+    private static string PersonalFileName(string formCode, string? shortName, string? fullName, EvaluationPeriod? period, string extension) =>
+        ExportFileName.Build($"Mau {formCode}", shortName, string.IsNullOrWhiteSpace(fullName) ? "CanBo" : fullName, period == null ? null : (int)period.Quarter, period?.Year, extension);
 
     /// <summary>Quy tắc trần Xuất sắc theo bộ tiêu chí của kỳ (chưa chọn bộ → mặc định).</summary>
     private static ExcellentQuotaRule QuotaRule(EvaluationPeriod? period) =>
@@ -1028,7 +1011,7 @@ public partial class ReportService : IReportService
     {
         var record = await LoadRecordAsync(recordId);
         var bytes = await RenderWordAsync(Mau01Data.TemplateFileName, Mau01Data.From(record));
-        return await ToResultAsync(bytes, DocxMimeType, $"Mau_01_DangKyNhiemVu_{SafeName(record.Member?.FullName, "CanBo")}.docx", format);
+        return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("01", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record.Period, ".docx"), format);
     }
 
     public async Task<ReportFileResult> ExportMau02DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
@@ -1036,14 +1019,14 @@ public partial class ReportService : IReportService
         var record = await LoadRecordAsync(recordId);
         var evidenceNames = await GetEvidenceNamesAsync(record.Tasks);
         var bytes = await RenderWordAsync(Mau02Data.TemplateFileName, Mau02Data.From(record, evidenceNames));
-        return await ToResultAsync(bytes, DocxMimeType, $"Mau_02_TuDanhGia_{SafeName(record.Member?.FullName, "CanBo")}.docx", format);
+        return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("02", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record.Period, ".docx"), format);
     }
 
     public async Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
     {
         var record = await LoadRecordAsync(recordId);
         var bytes = await RenderWordAsync(Mau10Data.TemplateFileName, Mau10Data.From(record));
-        return await ToResultAsync(bytes, DocxMimeType, $"Mau_10_PhieuThamDinh_{SafeName(record.Member?.FullName, "CanBo")}.docx", format);
+        return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("10", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record.Period, ".docx"), format);
     }
 
     public async Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original)
@@ -1054,7 +1037,7 @@ public partial class ReportService : IReportService
 
         var lines = await Mau11LinesAsync(period, records);
         var bytes = await RenderWordAsync(Mau11Data.TemplateFileName, Mau11Data.From(period, lines, issuer));
-        return await ToResultAsync(bytes, DocxMimeType, $"Mau_11_PhieuBoPhieu_{SafeName(branch?.Name, "ToanDangBo")}_Q{(int)period.Quarter}_{period.Year}.docx", format);
+        return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("11", (await _orgSettings.GetAsync()).ShortName, branch, period, ".docx"), format);
     }
 
     /// <summary>Thứ tự theo mã chức danh rồi họ tên (như Mẫu 13).</summary>
@@ -1173,7 +1156,7 @@ public partial class ReportService : IReportService
         var held = await HeldPositionsAsync(new[] { record.MemberId }, PositionDate(record.Period));
         var positionDept = PositionAndUnit(record, held.GetValueOrDefault(record.MemberId) ?? new List<MemberPosition>());
         var bytes = await RenderWordAsync(Mau03Data.TemplateFileName, Mau03Data.From(crosscheck, positionDept));
-        return await ToResultAsync(bytes, DocxMimeType, $"Mau_03_PhieuDoiSoat_{SafeName(crosscheck.MemberFullName, "CanBo")}.docx", format);
+        return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("03", (await _orgSettings.GetAsync()).ShortName, crosscheck.MemberFullName, record.Period, ".docx"), format);
     }
 
     /// <inheritdoc />
@@ -1385,8 +1368,11 @@ public partial class ReportService : IReportService
         };
     }
 
-    private static string SafeName(string? name, string fallback) =>
-        string.IsNullOrWhiteSpace(name) ? fallback : name.Trim().Replace(" ", "_");
+    private static string SafeName(string? name, string fallback)
+    {
+        var ascii = ExportFileName.Ascii(name).Replace(' ', '_');
+        return ascii.Length == 0 ? fallback : ascii;
+    }
 
     private async Task<EvaluationRecord> LoadRecordAsync(Guid recordId)
     {
