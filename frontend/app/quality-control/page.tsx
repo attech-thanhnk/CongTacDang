@@ -36,7 +36,7 @@ type Tab = "calibration" | "control";
 const CAL_STATUSES = Object.keys(CALIBRATION_STATUS_LABELS) as CalibrationStatus[];
 const CTL_STATUSES = Object.keys(CONTROL_STATUS_LABELS) as ControlCheckStatus[];
 
-/** Rà soát kết quả đánh giá (họp thống nhất và kiểm tra): biên bản hiệu chuẩn và phiếu kiểm soát, theo kỳ đang chọn. */
+/** Duyệt kết quả đánh giá (họp thống nhất và kiểm tra): biên bản họp thống nhất và phiếu kiểm tra, theo kỳ đang chọn. */
 export default function QualityControlPage() {
   const { hasPermission, loading: authLoading } = useAuth();
   const { periods, periodId } = usePeriod();
@@ -103,7 +103,7 @@ export default function QualityControlPage() {
         if (seq.current === mine) setCtlItems(rows);
       }
     } catch (err: unknown) {
-      if (seq.current === mine) toast.error(errorMessage(err, tab === "calibration" ? "Tải danh sách biên bản hiệu chuẩn không thành công." : "Tải danh sách phiếu kiểm soát không thành công."));
+      if (seq.current === mine) toast.error(errorMessage(err, tab === "calibration" ? "Tải danh sách biên bản họp thống nhất không thành công." : "Tải danh sách phiếu kiểm tra không thành công."));
     } finally {
       if (seq.current === mine) setLoading(false);
     }
@@ -138,7 +138,7 @@ export default function QualityControlPage() {
           rows.map((r) => ({
             id: r.recordId,
             name: r.fullName,
-            detail: [r.departmentName, r.partyCellName, `Trước hiệu chuẩn: ${gradeLabel(r.gradeBefore)}${r.scoreBefore != null ? ` (${r.scoreBefore})` : ""}`].filter(Boolean).join(" · "),
+            detail: [r.departmentName, r.partyCellName, `Trước họp thống nhất: ${gradeLabel(r.gradeBefore)}${r.scoreBefore != null ? ` (${r.scoreBefore})` : ""}`].filter(Boolean).join(" · "),
             group: r.workflowProfileName,
             unit: r.departmentName || r.partyCellName || undefined,
           }))
@@ -183,7 +183,7 @@ export default function QualityControlPage() {
   };
 
   if (authLoading) return null;
-  if (!canCal && !canCtl) return <NoAccess title="Rà soát" permissionName="Lập biên bản hiệu chuẩn, phiếu kiểm soát" />;
+  if (!canCal && !canCtl) return <NoAccess title="Duyệt kết quả" permissionName="Lập biên bản họp thống nhất, phiếu kiểm tra" />;
 
   const canCreate = active === "calibration" ? canCreateCal : canCreateCtl;
   const unit = (a?: string | null, b?: string | null) => [a, b].filter(Boolean).join(" · ");
@@ -196,7 +196,7 @@ export default function QualityControlPage() {
   return (
     <div className="page-wrapper">
       <PageHeader
-        title="Rà soát"
+        title="Duyệt kết quả"
         actions={
           <div className="d-flex gap-2 flex-wrap align-items-center">
             <select className="form-select form-select-sm" aria-label="Lọc theo kỳ" value={periodFilter} onChange={(e) => setPeriod(e.target.value)}>
@@ -233,7 +233,7 @@ export default function QualityControlPage() {
           </div>
         ) : active === "calibration" ? (
           calShown.length === 0 ? (
-            <EmptyState icon="bi-sliders" title="Chưa có biên bản hiệu chuẩn" description="Biên bản trong phạm vi của bạn sẽ hiện ở đây." />
+            <EmptyState icon="bi-sliders" title="Chưa có biên bản họp thống nhất" description="Biên bản trong phạm vi của bạn sẽ hiện ở đây." />
           ) : (
             <>
               <div className="table-responsive d-none d-md-block">
@@ -283,7 +283,7 @@ export default function QualityControlPage() {
             </>
           )
         ) : ctlShown.length === 0 ? (
-          <EmptyState icon="bi-shield-check" title="Chưa có phiếu kiểm soát" description="Phiếu trong phạm vi của bạn sẽ hiện ở đây." />
+          <EmptyState icon="bi-shield-check" title="Chưa có phiếu kiểm tra" description="Phiếu trong phạm vi của bạn sẽ hiện ở đây." />
         ) : (
           <>
             <div className="table-responsive d-none d-md-block">

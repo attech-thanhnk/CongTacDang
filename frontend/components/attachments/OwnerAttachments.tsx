@@ -17,7 +17,7 @@ interface Props {
   /** Mã mẫu, ví dụ "M07" — lưu làm mã phân loại tệp. */
   formCode: string;
   description?: string;
-  /** Tên đối tượng trong câu xác nhận gỡ tệp, ví dụ "phiếu kiểm soát". */
+  /** Tên đối tượng trong câu xác nhận gỡ tệp, ví dụ "phiếu kiểm tra". */
   subject?: string;
   /** Mở sẵn danh sách (khối riêng trên trang chi tiết); mặc định thu gọn, chỉ tải khi mở. */
   defaultOpen?: boolean;

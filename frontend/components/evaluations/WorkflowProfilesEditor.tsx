@@ -243,7 +243,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
           </div>
 
           <div className="mb-3">
-            <div className="fw-semibold mb-1" style={{ fontSize: 14 }}>Cổng kiểm soát trước quyết định</div>
+            <div className="fw-semibold mb-1" style={{ fontSize: 14 }}>Kiểm tra trước quyết định</div>
             <div className="row g-2">
               {GATE_CODES.map((gate) => (
                 <div className="col-12 col-md-4" key={gate}>

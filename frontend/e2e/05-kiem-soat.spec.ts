@@ -5,7 +5,7 @@ import { docTrangThai, ghiTrangThai } from './du-lieu';
 const TEN_NHOM = 'Phiếu kiểm soát Phòng Kế hoạch - Kinh doanh';
 
 test.describe.serial('Kiểm soát (Mẫu 19)', () => {
-  test('lập phiếu kiểm soát cho hồ sơ đã hiệu chuẩn', async ({ mo }) => {
+  test('lập phiếu kiểm tra cho hồ sơ đã hiệu chuẩn', async ({ mo }) => {
     const page = await mo('loan.ttp');
     await page.goto('/quality-control?tab=control');
     await expect(page.getByRole('tab', { name: 'Kiểm tra' })).toHaveAttribute('aria-selected', 'true');
@@ -36,7 +36,7 @@ test.describe.serial('Kiểm soát (Mẫu 19)', () => {
     }
     await page.getByRole('radiogroup', { name: 'Kết luận' }).getByLabel('Đủ điều kiện trình phê duyệt').check();
     await page.getByRole('button', { name: 'Lưu', exact: true }).click();
-    await expect(thongBao(page, 'Đã lưu phiếu kiểm soát.')).toBeVisible();
+    await expect(thongBao(page, 'Đã lưu phiếu kiểm tra.')).toBeVisible();
 
     await page.reload();
     await expect(page.getByRole('radiogroup', { name: 'Kết luận' }).getByLabel('Đủ điều kiện trình phê duyệt')).toBeChecked();
@@ -84,7 +84,7 @@ test.describe.serial('Kiểm soát (Mẫu 19)', () => {
     await vung.locator('#B4_DECISION-grade').selectOption({ label: 'Hoàn thành nhiệm vụ' });
     await vung.locator('#B4_DECISION-docno').fill('01-QĐ/ĐU');
     const lyDo = vung.locator('#B4_DECISION-reason');
-    if (await lyDo.isVisible()) await lyDo.fill('Theo biên bản hiệu chuẩn và phiếu kiểm soát.');
+    if (await lyDo.isVisible()) await lyDo.fill('Theo biên bản họp thống nhất và phiếu kiểm tra.');
     await vung.getByRole('button', { name: 'Ghi nhận quyết định' }).click();
     await dongY(page);
     await expect(thongBao(page, 'Đã lưu thao tác trên hồ sơ.')).toBeVisible();

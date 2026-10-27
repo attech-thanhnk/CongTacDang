@@ -378,7 +378,7 @@ export default function PeriodDetailPage() {
                   <details>
                     <summary className="d-flex align-items-center gap-2" style={{ cursor: "pointer" }}>
                       <i className="bi bi-info-circle-fill text-info" />
-                      <span className="flex-grow-1">Rà soát: {item.title}</span>
+                      <span className="flex-grow-1">Kiểm tra dữ liệu: {item.title}</span>
                       <span className="small text-secondary">Xem</span>
                     </summary>
                     <ul className="small mt-2 mb-1">

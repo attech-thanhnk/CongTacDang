@@ -8,7 +8,7 @@ const THEO_VAI: Record<string, string[]> = {
   'hung.dt': ['/', '/work-queue', '/evaluations', '/quality-control', '/results', '/reports'],
   'giang.nh': ['/', '/work-queue', '/evaluations', '/collective-evaluations', '/results'],
   'dao.nta': ['/', '/work-queue', '/collective-evaluations', '/results'],
-  'trung.nb': ['/', '/work-queue', '/results', '/account'],
+  'trung.nb': ['/', '/work-queue', '/results', '/account', '/help'],
   quantri: ['/', '/catalog', '/admin/users', '/admin/roles', '/admin/performers', '/admin/imports', '/admin/settings', '/admin/templates', '/audit', '/account'],
 };
 
