@@ -105,6 +105,9 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 UPDATE party_member_profiles
    SET "PasswordHash" = crypt('$Password', gen_salt('bf', 10)),
        "MustChangePassword" = false, "FailedLoginCount" = 0, "LockoutEnd" = NULL;
+-- Tệp ảnh nền đăng nhập nằm ở nơi lưu của máy chủ thật, không có trong môi trường này.
+UPDATE organization_settings
+   SET "LoginBackgroundFileName" = NULL, "LoginBackgroundKey" = NULL, "LoginBackgroundContentType" = NULL, "LoginBackgroundUpdatedAt" = NULL;
 "@
     Write-Host ($out -join ' ')
 

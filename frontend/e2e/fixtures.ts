@@ -6,12 +6,12 @@ export const MAT_KHAU = process.env.E2E_PASSWORD || 'Thu12345a';
 const CONSOLE_BO_QUA = [/Failed to load resource: the server responded with a status of 4\d\d/];
 
 export interface LoiTrang {
-  loai: 'console' | 'pageerror' | 'api5xx';
+  loai: 'console' | 'pageerror' | 'api5xx' | 'api403404';
   noiDung: string;
 }
 
-/** Gắn bộ thu lỗi JS và phản hồi 5xx của /api vào một trang. */
-export function thuLoi(page: Page, ds: LoiTrang[]) {
+/** Gắn bộ thu lỗi JS và phản hồi 5xx/403/404 của /api vào một trang. `phep`: mẫu đường dẫn /api được phép trả 403/404 trong kịch bản (kiểm thử chủ ý bị chặn). */
+export function thuLoi(page: Page, ds: LoiTrang[], phep: RegExp[] = []) {
   page.on('console', (m) => {
     if (m.type() !== 'error') return;
     const text = m.text();
@@ -20,14 +20,21 @@ export function thuLoi(page: Page, ds: LoiTrang[]) {
   });
   page.on('pageerror', (e) => ds.push({ loai: 'pageerror', noiDung: `${e.message} @ ${page.url()}` }));
   page.on('response', (r) => {
-    if (r.status() >= 500 && new URL(r.url()).pathname.startsWith('/api/')) {
-      ds.push({ loai: 'api5xx', noiDung: `${r.status()} ${r.request().method()} ${new URL(r.url()).pathname}` });
+    const duongDan = new URL(r.url()).pathname;
+    if (!duongDan.startsWith('/api/')) return;
+    const mo = `${r.status()} ${r.request().method()} ${duongDan}`;
+    if (r.status() >= 500) ds.push({ loai: 'api5xx', noiDung: mo });
+    // Giao diện gọi API mà người dùng không có quyền hoặc đối tượng không tồn tại là lỗi nối giao diện - API.
+    else if ((r.status() === 403 || r.status() === 404) && r.request().method() === 'GET' && !phep.some((re) => re.test(duongDan))) {
+      ds.push({ loai: 'api403404', noiDung: mo });
     }
   });
 }
 
 interface Fixtures {
   loi: LoiTrang[];
+  /** Đường dẫn /api được phép trả 403/404 ở kịch bản hiện tại. */
+  cho4xx: RegExp[];
   /** Mở trang đã đăng nhập sẵn bằng tài khoản thật (cùng bộ thu lỗi). */
   mo: (tenDangNhap: string, tuyChon?: { viewport?: { width: number; height: number } }) => Promise<Page>;
 }
@@ -37,19 +44,22 @@ export const test = base.extend<Fixtures>({
   loi: async ({}, use) => {
     const ds: LoiTrang[] = [];
     await use(ds);
-    expect(ds, 'Lỗi JavaScript hoặc phản hồi 5xx từ /api').toEqual([]);
+    expect(ds, 'Lỗi JavaScript, phản hồi 5xx hoặc 403/404 không chủ ý từ /api').toEqual([]);
   },
-  page: async ({ page, loi }, use) => {
-    thuLoi(page, loi);
+  cho4xx: async ({}, use) => {
+    await use([]);
+  },
+  page: async ({ page, loi, cho4xx }, use) => {
+    thuLoi(page, loi, cho4xx);
     await use(page);
   },
-  mo: async ({ browser, loi }, use) => {
+  mo: async ({ browser, loi, cho4xx }, use) => {
     const contexts: BrowserContext[] = [];
     await use(async (tenDangNhap, tuyChon) => {
       const ctx = await taoNguoiDung(browser, tenDangNhap, tuyChon?.viewport);
       contexts.push(ctx);
       const page = await ctx.newPage();
-      thuLoi(page, loi);
+      thuLoi(page, loi, cho4xx);
       return page;
     });
     for (const c of contexts) await c.close();
