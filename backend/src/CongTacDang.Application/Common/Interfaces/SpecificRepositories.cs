@@ -65,6 +65,9 @@ public interface IAttachmentAccessReader
 
     /// <summary>Tổ chức và trạng thái kỳ của hồ sơ tập thể, theo Id hồ sơ; hồ sơ không tồn tại/đã xóa bị bỏ qua.</summary>
     Task<Dictionary<Guid, CollectiveAttachmentOwner>> GetCollectiveOwnersAsync(IReadOnlyCollection<Guid> collectiveRecordIds);
+
+    /// <summary>Phiếu đối soát / phiếu kiểm soát / biên bản hiệu chuẩn (<paramref name="ownerType"/>) theo Id; phiếu không tồn tại hoặc đã xóa bị bỏ qua.</summary>
+    Task<Dictionary<Guid, FormAttachmentOwner>> GetFormOwnersAsync(string ownerType, IReadOnlyCollection<Guid> ownerIds);
 }
 
 public interface IAuditRepository

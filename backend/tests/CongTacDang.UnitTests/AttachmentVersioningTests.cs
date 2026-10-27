@@ -536,6 +536,9 @@ public class AttachmentVersioningTests
             return Task.FromResult(record);
         }
 
+        public Task<Dictionary<Guid, FormAttachmentOwner>> GetFormOwnersAsync(string ownerType, IReadOnlyCollection<Guid> ownerIds) =>
+            Task.FromResult(new Dictionary<Guid, FormAttachmentOwner>());
+
         public Task<bool?> IsAppealOpenAsync(Guid appealId) =>
             Task.FromResult(_world.Appeals.TryGetValue(appealId, out var a) ? a.Open : (bool?)null);
 
