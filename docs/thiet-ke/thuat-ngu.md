@@ -77,11 +77,11 @@ Giao diện luôn viết đủ tên mức, không dùng chữ viết tắt. Các
 ## 4. Vai trò
 
 Tên vai trò là dữ liệu trong CSDL, quản trị sửa được ở menu Hệ thống, Vai trò. **Mã vai trò không đổi.** Tên gọi tương ứng trong Mẫu 18 (cột "Phân quyền truy cập") ghi ở cột 3.
-Cột "Tên trên CSDL hiện tại" là tên đang dùng trên hệ thống đã vận hành; cột "Đề xuất" là tên nên đổi sang (quản trị đổi trên giao diện, hệ thống không tự đổi).
+Cột "Tên mặc định hiện hành" là tên các vai trò mặc định mang trên CSDL mới; cột "Tên cũ" là tên các bản trước đây dùng. CSDL đã vận hành được đổi sang tên mới bằng migration `DoiTenVaiTroMacDinhTheoThuatNgu` khi nâng cấp: chỉ đổi vai trò còn đúng tên cũ mặc định (vai trò quản trị đã tự đổi tên giữ nguyên), bỏ qua nếu tên mới đã có vai trò khác dùng, và chỉ đổi mô tả khi còn đúng mô tả cũ mặc định.
 
-| Mã | Tên trên CSDL hiện tại | Tên trong Mẫu 18 / tài liệu gốc | Đề xuất |
+| Mã | Tên cũ | Tên trong Mẫu 18 / tài liệu gốc | Tên mặc định hiện hành |
 |---|---|---|---|
-| `NGUOI_DUOC_DANH_GIA` | Người được đánh giá | Cá nhân | giữ nguyên |
+| `NGUOI_DUOC_DANH_GIA` | Người được đánh giá | Cá nhân | Người được đánh giá |
 | `LANH_DAO_PHONG` | Lãnh đạo Phòng | Lãnh đạo; thủ trưởng đơn vị | Lãnh đạo đơn vị |
 | `THU_KY_TAP_THE` | Thư ký tập thể lãnh đạo | Thư ký (Mẫu 12) | Thư ký hội nghị |
 | `CHI_UY_CHI_BO` | Chi ủy / Bí thư Chi bộ | Chi bộ (xác nhận của Chi bộ) | Chi bộ |
@@ -89,10 +89,10 @@ Cột "Tên trên CSDL hiện tại" là tên đang dùng trên hệ thống đ�
 | `CAP_TRUC_TIEP_SU_DUNG` | Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch) | Cấp trực tiếp sử dụng cán bộ | Cấp trực tiếp sử dụng |
 | `CAP_UY_VIEN` | Cấp ủy viên Đảng ủy | Cấp ủy viên | Cấp ủy viên |
 | `VAN_PHONG_DANG_UY` | Văn phòng Đảng ủy (quyết định, công bố) | BTV Đảng ủy (quyết định) | Văn phòng Đảng ủy |
-| `CO_QUAN_CHUYEN_MON` | Cơ quan chuyên môn (vai trò mới, không có trong CSDL cũ) | Cơ quan chuyên môn | giữ nguyên |
-| `QUAN_TRI_HE_THONG` | Quản trị hệ thống | Đầu mối quản trị dữ liệu / IT | giữ nguyên |
+| `CO_QUAN_CHUYEN_MON` | (chưa có trong CSDL cũ) | Cơ quan chuyên môn | Cơ quan chuyên môn |
+| `QUAN_TRI_HE_THONG` | Quản trị hệ thống | Đầu mối quản trị dữ liệu / IT | Quản trị hệ thống |
 
-Phần trong ngoặc của tên (mở kỳ, thẩm định; quyết định, công bố; Giám đốc/Chủ tịch) là mô tả chức năng, nằm ở mục "Mô tả" của vai trò, không nằm trong tên.
+Phần trong ngoặc của tên cũ (mở kỳ, thẩm định; quyết định, công bố; Giám đốc/Chủ tịch) nay nằm ở mục "Mô tả" của vai trò, không nằm trong tên.
 Mã cũ `CO_QUAN_CHUYEN_MON_DOI_SOAT` chưa từng có trên CSDL nào; mã `CO_QUAN_CHUYEN_MON` là mã duy nhất.
 
 ## 5. Quyền

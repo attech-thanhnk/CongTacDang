@@ -146,11 +146,11 @@ Khi `Database__SeedSampleData=true` và CSDL **chưa có** tài khoản, đơn v
   |---|---|---|---|
   | `admin` | Chuyên viên (PH-KH) | Quản trị hệ thống (Toàn công ty) | — |
   | `giamdoc` | Giám đốc (ATTECH), kiêm Bí thư Đảng ủy (DU-ATTECH) | Người được đánh giá, Cấp trực tiếp sử dụng (Toàn công ty) | Đã công bố — diện quyết định "Diện BTV Đảng ủy Tổng công ty", B3b/B3c/B4 là kết quả của cấp trên |
-  | `vanphong` | Chuyên viên (PH-KH) | Văn phòng Đảng ủy, Cấp ủy viên Đảng ủy (Toàn công ty) | — |
+  | `vanphong` | Chuyên viên (PH-KH) | Văn phòng Đảng ủy, Cấp ủy viên (Toàn công ty) | — |
   | `thamdinh` | Trưởng phòng (PH-TCCB), kiêm Đảng ủy viên | Người được đánh giá, Cơ quan thẩm định (Toàn công ty) | Chờ cấp trực tiếp sử dụng |
-  | `truongphong.kt` | Trưởng phòng (PH-KT), kiêm Chi ủy viên (CB-KT) | Người được đánh giá (Toàn công ty), Lãnh đạo Phòng (Phòng Kỹ thuật) | Chờ thẩm định |
-  | `bithu.kt` | Phó Trưởng phòng (PH-KT), kiêm Bí thư Chi bộ (CB-KT) | Người được đánh giá (Toàn công ty), Chi ủy / Bí thư Chi bộ (Chi bộ Khối Kỹ thuật) | Chờ ghi nhận đề xuất tập thể |
-  | `thuky.kt` | Chuyên viên (PH-KT) | Thư ký tập thể lãnh đạo (Phòng Kỹ thuật) | — |
+  | `truongphong.kt` | Trưởng phòng (PH-KT), kiêm Chi ủy viên (CB-KT) | Người được đánh giá (Toàn công ty), Lãnh đạo đơn vị (Phòng Kỹ thuật) | Chờ thẩm định |
+  | `bithu.kt` | Phó Trưởng phòng (PH-KT), kiêm Bí thư Chi bộ (CB-KT) | Người được đánh giá (Toàn công ty), Chi bộ (Chi bộ Khối Kỹ thuật) | Chờ ghi nhận đề xuất tập thể |
+  | `thuky.kt` | Chuyên viên (PH-KT) | Thư ký hội nghị (Phòng Kỹ thuật) | — |
   | `canbo.kt1` | Phó Trưởng phòng (PH-KT) | Người được đánh giá (Toàn công ty) | Chờ tự chấm |
   | `canbo.kt2` | Phó Trưởng phòng (PH-KT) | Người được đánh giá (Toàn công ty) | Chờ Chi bộ xác nhận |
   | `canbo.kh` | Phó Trưởng phòng (PH-KH) | Người được đánh giá (Toàn công ty) | Đã công bố **Mức C** (Hoàn thành nhiệm vụ) — có kế hoạch 30-60-90 ngày (Mẫu 17) đang lập và một kiến nghị chờ xử lý |
@@ -191,7 +191,7 @@ Dữ liệu nền khai báo trực tiếp trên giao diện, hoặc nhập hàng
 - [ ] c. **Danh mục chức vụ** (nếu cần; trang **Danh mục tổ chức**, tab **Chức vụ**): tên, bên, mã thống kê M1–M26, thẩm quyền mặc định CoSo/CapTren, lãnh đạo/quản lý. Thẩm quyền mặc định của chức vụ quyết định thẩm quyền phê duyệt suy ra của cán bộ.
 - [ ] d. **Cán bộ và tài khoản** (trang **Hệ thống → Tài khoản** → **Tạo tài khoản**): tên đăng nhập, họ tên, đơn vị chính quyền, tổ chức Đảng; thẩm quyền phê duyệt để trống = suy ra từ chức vụ; khung tỷ trọng (ví dụ `K2`, theo bộ tiêu chí) để trống = dùng khung mặc định của bộ tiêu chí của kỳ. Sau khi tạo, hệ thống hiển thị **mật khẩu tạm một lần** — ghi lại ngay để giao cho người đó.
 - [ ] e. **Chức vụ của cán bộ** (trang chi tiết tài khoản, tab **Chức vụ** → **Thêm chức vụ**): chức vụ, đơn vị giữ chức vụ, chính/kiêm nhiệm, từ ngày, đến ngày. Nhiều chức vụ = kiêm nhiệm. Kiểm tra thẩm quyền suy ra (Giám đốc/Bí thư Đảng ủy… → cấp trên quyết định) và mã thống kê ở cùng tab.
-- [ ] f. **Gán vai trò** (trang chi tiết tài khoản, tab **Vai trò & phạm vi** → **Phân công vai trò**): vai trò (danh sách ở trang **Hệ thống → Vai trò**), loại phạm vi Toàn công ty / Đơn vị chính quyền / Tổ chức Đảng, đơn vị, thời hạn, ghi chú. Phạm vi đơn vị **gồm cả mọi đơn vị cấp dưới** của đơn vị được gán. Vai trò có quyền quản trị/quản lý kỳ chỉ gán được phạm vi Toàn công ty; không tự gán cho chính mình. Kiểm tra tab **Người này làm được gì** của vài người tiêu biểu (Bí thư Chi bộ, Lãnh đạo Phòng, Cơ quan thẩm định, Văn phòng Đảng ủy).
+- [ ] f. **Gán vai trò** (trang chi tiết tài khoản, tab **Vai trò & phạm vi** → **Phân công vai trò**): vai trò (danh sách ở trang **Hệ thống → Vai trò**), loại phạm vi Toàn công ty / Đơn vị chính quyền / Tổ chức Đảng, đơn vị, thời hạn, ghi chú. Phạm vi đơn vị **gồm cả mọi đơn vị cấp dưới** của đơn vị được gán. Vai trò có quyền quản trị/quản lý kỳ chỉ gán được phạm vi Toàn công ty; không tự gán cho chính mình. Kiểm tra tab **Người này làm được gì** của vài người tiêu biểu (Bí thư Chi bộ, Lãnh đạo đơn vị, Cơ quan thẩm định, Văn phòng Đảng ủy).
 - [ ] g. **Người được đánh giá của kỳ** — làm ở bước 5 sau khi đã tạo kỳ (trang **Kỳ đánh giá** → chi tiết kỳ).
 
 **3. Giao tài khoản**

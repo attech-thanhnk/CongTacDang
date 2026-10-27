@@ -32,12 +32,12 @@ Một người **không** xét duyệt, lập hoặc xác nhận được trên 
 | Bước | Người thực hiện (vai trò mặc định) | Quyền cần có | Làm ở đâu | Kết quả |
 |---|---|---|---|---|
 | Đăng ký sản phẩm, nhiệm vụ | Chính cán bộ (Người được đánh giá) | Tham gia đánh giá (bản thân) | "Việc cần xử lý" hoặc "Tổng quan", mở hồ sơ, nút "Nộp danh mục" | Chờ duyệt danh mục |
-| Duyệt danh mục sản phẩm | Lãnh đạo Phòng | Duyệt danh mục sản phẩm | Mở hồ sơ, nút "Duyệt" (hoặc "Trả lại danh mục") | Chờ tự chấm |
+| Duyệt danh mục sản phẩm | Lãnh đạo đơn vị | Duyệt danh mục sản phẩm | Mở hồ sơ, nút "Duyệt" (hoặc "Trả lại danh mục") | Chờ tự chấm |
 | Tự chấm điểm, đề xuất mức | Chính cán bộ | Tham gia đánh giá (bản thân) | Mở hồ sơ, "Lưu nháp", "Nộp phiếu" | Chờ Chi bộ xác nhận |
-| Chi bộ xác nhận phiếu tự chấm | Chi ủy / Bí thư Chi bộ | Chi bộ xác nhận phiếu tự chấm | Mở hồ sơ, nút "Xác nhận" (hoặc "Trả lại phiếu tự chấm") | Chờ đề xuất tập thể |
-| Đề xuất của tập thể lãnh đạo | Thư ký tập thể lãnh đạo | Ghi nhận đề xuất của tập thể lãnh đạo | Mở hồ sơ, nút "Ghi nhận đề xuất" (nên lập biên bản ở menu "Đánh giá tập thể" trước) | Chờ thẩm định |
+| Chi bộ xác nhận phiếu tự chấm | Chi bộ | Chi bộ xác nhận phiếu tự chấm | Mở hồ sơ, nút "Xác nhận" (hoặc "Trả lại phiếu tự chấm") | Chờ đề xuất tập thể |
+| Đề xuất của tập thể lãnh đạo | Thư ký hội nghị | Ghi nhận đề xuất của tập thể lãnh đạo | Mở hồ sơ, nút "Ghi nhận đề xuất" (nên lập biên bản ở menu "Đánh giá tập thể" trước) | Chờ thẩm định |
 | Thẩm định | Cơ quan thẩm định | Thẩm định | Mở hồ sơ, nút "Ghi nhận thẩm định" (hoặc "Trả lại để chủ hồ sơ sửa") | Chờ nhận xét của cấp trực tiếp sử dụng |
-| Nhận xét của cấp trực tiếp sử dụng | Cấp trực tiếp sử dụng (Giám đốc, Chủ tịch). Diện nhân viên: Lãnh đạo Phòng | Nhận xét của cấp trực tiếp sử dụng (diện nhân viên: Lãnh đạo đơn vị đề xuất) | Mở hồ sơ, nút "Ghi nhận nhận xét" | Chờ quyết định |
+| Nhận xét của cấp trực tiếp sử dụng | Cấp trực tiếp sử dụng (Giám đốc, Chủ tịch). Diện nhân viên: Lãnh đạo đơn vị | Nhận xét của cấp trực tiếp sử dụng (diện nhân viên: Lãnh đạo đơn vị đề xuất) | Mở hồ sơ, nút "Ghi nhận nhận xét" | Chờ quyết định |
 | Quyết định mức xếp loại | Văn phòng Đảng ủy | Ghi nhận quyết định của Đảng ủy cơ sở. Bước do cấp trên làm: Ghi nhận kết quả của cấp trên | Mở hồ sơ, nút "Ghi nhận quyết định" (hoặc "Ghi nhận kết quả") | Chờ công bố |
 | Công bố và lưu trữ kết quả | Văn phòng Đảng ủy | Công bố và lưu trữ kết quả | Mở hồ sơ, nút "Công bố" | Đã công bố (khóa hồ sơ) |
 
@@ -66,7 +66,7 @@ Mức độ bắt buộc của từng cổng đặt theo **diện quyết địn
 | Mở lại hồ sơ đã công bố | Văn phòng Đảng ủy | Mở lại hồ sơ đã khóa | Mở hồ sơ, nút "Mở lại hồ sơ" (nhập lý do) |
 | Gửi kiến nghị về kết quả | Chính cán bộ | Gửi kiến nghị về kết quả | Hồ sơ đã công bố, khối "Kiến nghị" |
 | Xử lý kiến nghị | Văn phòng Đảng ủy | Xử lý kiến nghị về kết quả | "Việc cần xử lý", nhóm "Kiến nghị chờ xử lý" |
-| Lập, duyệt kế hoạch 30-60-90 ngày | Lãnh đạo Phòng, Cấp trực tiếp sử dụng | Lập kế hoạch khắc phục 30-60-90 ngày | Hồ sơ đã công bố, khối "Kế hoạch 30-60-90 ngày (Mẫu 17)" |
+| Lập, duyệt kế hoạch 30-60-90 ngày | Lãnh đạo đơn vị, Cấp trực tiếp sử dụng | Lập kế hoạch khắc phục 30-60-90 ngày | Hồ sơ đã công bố, khối "Kế hoạch 30-60-90 ngày (Mẫu 17)" |
 | Xuất báo cáo | Cơ quan thẩm định, Cấp trực tiếp sử dụng, Cấp ủy viên, Văn phòng Đảng ủy | Xuất báo cáo tổng hợp | Menu "Báo cáo" |
 | Quản trị tài khoản, vai trò, danh mục, thông tin đơn vị, biểu mẫu Word | Quản trị hệ thống | các quyền "Quản trị hệ thống" và "Quản lý danh mục" | Menu "Hệ thống" và "Quản lý" |
 
@@ -81,13 +81,13 @@ Một **phân công** gồm: người, vai trò, phạm vi (Toàn công ty / Đ�
 | Vai trò (tên khi mới cài) | Quyền chính | Việc điển hình | Gán cho ai, phạm vi | Tối thiểu |
 |---|---|---|---|---|
 | Người được đánh giá | Tham gia đánh giá (bản thân); xem kết quả đã công bố; gửi kiến nghị | Đăng ký sản phẩm, tự chấm, xem kết quả, kiến nghị | Mọi cán bộ có hồ sơ trong kỳ; Toàn công ty | Mọi người được đánh giá |
-| Lãnh đạo Phòng | Xem hồ sơ; duyệt danh mục sản phẩm; lãnh đạo đơn vị đề xuất; lập kế hoạch 30-60-90 ngày | Duyệt danh mục, đề xuất mức, lập kế hoạch khắc phục | Trưởng phòng, Phó Trưởng phòng; phạm vi Đơn vị chính quyền là Phòng đó | 2 người mỗi Phòng |
-| Thư ký tập thể lãnh đạo | Xem hồ sơ; ghi nhận đề xuất tập thể; lập biên bản hội nghị | Ghi nhận kết quả hội nghị, lập Mẫu 12, 13 | Chuyên viên giữ vai trò thư ký; phạm vi Phòng (hoặc đơn vị tổ chức hội nghị) | 1 người mỗi nơi tổ chức hội nghị, nên thêm 1 dự phòng |
-| Chi ủy / Bí thư Chi bộ | Xem hồ sơ; Chi bộ xác nhận phiếu tự chấm; lập hồ sơ tập thể | Xác nhận phiếu tự chấm, lập Mẫu 07 | Bí thư, Phó Bí thư Chi bộ; phạm vi Tổ chức Đảng là Chi bộ | 2 người mỗi Chi bộ |
-| Phòng TCCB-LĐ (mở kỳ, thẩm định) — cơ quan thẩm định | Xem hồ sơ; thẩm định; quản lý kỳ; quản lý bộ tiêu chí; xuất báo cáo; xem tài khoản; yêu cầu đối soát; lập biên bản hiệu chuẩn; lập phiếu kiểm soát | Mở kỳ, thẩm định, yêu cầu Mẫu 03, lập Mẫu 20 và Mẫu 19 | Cán bộ Phòng Tổ chức cán bộ - Lao động; chỉ gán được **Toàn công ty** (vì có quyền quản lý kỳ) | 2 người |
-| Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch) | Xem hồ sơ; nhận xét, đề xuất mức; xuất báo cáo; lập kế hoạch 30-60-90 ngày | Nhận xét ở bước 7, lập kế hoạch khắc phục | Giám đốc, Chủ tịch (và người thay thế); Toàn công ty | 1 người; thêm người dự phòng nếu có |
-| Cấp ủy viên Đảng ủy | Xem hồ sơ, biên bản; xuất báo cáo | Theo dõi, không có bước bắt buộc | Các Đảng ủy viên cần xem; Toàn công ty | Không bắt buộc |
-| Văn phòng Đảng ủy (quyết định, công bố) | Xem hồ sơ; ghi nhận quyết định; ghi nhận kết quả của cấp trên; công bố; mở lại hồ sơ; xử lý kiến nghị; chốt biên bản hiệu chuẩn; xác nhận phiếu kiểm soát; xác nhận phiếu đối soát do cơ quan ngoài hệ thống; xuất báo cáo; lập biên bản hội nghị | Ghi nhận quyết định, công bố, chốt Mẫu 20, xác nhận Mẫu 19, xác nhận Mẫu 03 của cơ quan ngoài hệ thống | Cán bộ Văn phòng Đảng ủy; Toàn công ty | 2 người |
+| Lãnh đạo đơn vị | Xem hồ sơ; duyệt danh mục sản phẩm; lãnh đạo đơn vị đề xuất; lập kế hoạch 30-60-90 ngày | Duyệt danh mục, đề xuất mức, lập kế hoạch khắc phục | Trưởng phòng, Phó Trưởng phòng; phạm vi Đơn vị chính quyền là Phòng đó | 2 người mỗi Phòng |
+| Thư ký hội nghị | Xem hồ sơ; ghi nhận đề xuất tập thể; lập biên bản hội nghị | Ghi nhận kết quả hội nghị, lập Mẫu 12, 13 | Chuyên viên giữ vai trò thư ký; phạm vi Phòng (hoặc đơn vị tổ chức hội nghị) | 1 người mỗi nơi tổ chức hội nghị, nên thêm 1 dự phòng |
+| Chi bộ | Xem hồ sơ; Chi bộ xác nhận phiếu tự chấm; lập hồ sơ tập thể | Xác nhận phiếu tự chấm, lập Mẫu 07 | Bí thư, Phó Bí thư Chi bộ; phạm vi Tổ chức Đảng là Chi bộ | 2 người mỗi Chi bộ |
+| Cơ quan thẩm định | Xem hồ sơ; thẩm định; quản lý kỳ; quản lý bộ tiêu chí; xuất báo cáo; xem tài khoản; yêu cầu đối soát; lập biên bản hiệu chuẩn; lập phiếu kiểm soát | Mở kỳ, thẩm định, yêu cầu Mẫu 03, lập Mẫu 20 và Mẫu 19 | Cán bộ Phòng Tổ chức cán bộ - Lao động; chỉ gán được **Toàn công ty** (vì có quyền quản lý kỳ) | 2 người |
+| Cấp trực tiếp sử dụng | Xem hồ sơ; nhận xét, đề xuất mức; xuất báo cáo; lập kế hoạch 30-60-90 ngày | Nhận xét ở bước 7, lập kế hoạch khắc phục | Giám đốc, Chủ tịch (và người thay thế); Toàn công ty | 1 người; thêm người dự phòng nếu có |
+| Cấp ủy viên | Xem hồ sơ, biên bản; xuất báo cáo | Theo dõi, không có bước bắt buộc | Các Đảng ủy viên cần xem; Toàn công ty | Không bắt buộc |
+| Văn phòng Đảng ủy | Xem hồ sơ; ghi nhận quyết định; ghi nhận kết quả của cấp trên; công bố; mở lại hồ sơ; xử lý kiến nghị; chốt biên bản hiệu chuẩn; xác nhận phiếu kiểm soát; xác nhận phiếu đối soát do cơ quan ngoài hệ thống; xuất báo cáo; lập biên bản hội nghị | Ghi nhận quyết định, công bố, chốt Mẫu 20, xác nhận Mẫu 19, xác nhận Mẫu 03 của cơ quan ngoài hệ thống | Cán bộ Văn phòng Đảng ủy; Toàn công ty | 2 người |
 | Cơ quan chuyên môn | Lập phiếu đối soát chuyên ngành; xác nhận phiếu đối soát chuyên ngành | Lập và xác nhận phiếu Mẫu 03 gửi tới đơn vị mình | Cán bộ các phòng, đơn vị chuyên môn của ATTECH được yêu cầu đối soát (ví dụ Phòng Kỹ thuật - An toàn - Chất lượng, Phòng Tài chính - Kế toán); phạm vi Đơn vị chính quyền là **đơn vị đối soát** của từng phòng, đơn vị | 2 người mỗi đơn vị đối soát (người lập khác người xác nhận) |
 | Quản trị hệ thống | Quản trị tài khoản, vai trò, phân công, nhật ký, thông tin đơn vị, biểu mẫu Word, nhập dữ liệu; quản lý danh mục | Khai báo và vận hành kỹ thuật; **không** xem nội dung đánh giá | Cán bộ CNTT; Toàn công ty | 2 người |
 
@@ -97,12 +97,12 @@ Vai trò "Cơ quan chuyên môn" không có quyền xem hồ sơ đánh giá: ng
 
 Các quy tắc sau là nguyên nhân kẹt hồ sơ thường gặp nhất. Hệ thống kiểm tra trước khi mở kỳ ([mục 3, bước 12](#3-danh-sách-việc-khi-đưa-vào-sử-dụng)), nhưng nên chuẩn bị đúng ngay từ khi phân công.
 
-1. **Người duyệt khác chủ hồ sơ.** Trưởng phòng cũng là người được đánh giá, nên không duyệt danh mục của chính mình. Mỗi hồ sơ cần ít nhất một người *khác* có quyền ở bước đó trong phạm vi hồ sơ. Vì vậy mỗi Phòng nên có Trưởng phòng và Phó Trưởng phòng cùng giữ vai trò Lãnh đạo Phòng; mỗi Chi bộ nên có cả Bí thư và Phó Bí thư giữ vai trò Chi ủy / Bí thư Chi bộ.
+1. **Người duyệt khác chủ hồ sơ.** Trưởng phòng cũng là người được đánh giá, nên không duyệt danh mục của chính mình. Mỗi hồ sơ cần ít nhất một người *khác* có quyền ở bước đó trong phạm vi hồ sơ. Vì vậy mỗi Phòng nên có Trưởng phòng và Phó Trưởng phòng cùng giữ vai trò Lãnh đạo đơn vị; mỗi Chi bộ nên có cả Bí thư và Phó Bí thư giữ vai trò Chi bộ.
 2. **Cơ quan thẩm định cần từ 2 người.** Nếu người đứng đầu cơ quan thẩm định cũng là người được đánh giá, hồ sơ của họ phải do người khác thẩm định.
 3. **Người lập khác người xác nhận hoặc chốt.** Với Mẫu 19 và Mẫu 20 ở chế độ Bắt buộc, cần ít nhất **hai tài khoản khác nhau**: một người có quyền lập (mặc định cơ quan thẩm định), một người có quyền xác nhận hoặc chốt (mặc định Văn phòng Đảng ủy). Cả hai không phải chủ hồ sơ. Nếu cùng một người giữ cả hai vai trò mà không còn ai khác thì không qua được cổng.
 4. **Mẫu 03 cũng cần hai người ở cơ quan chuyên môn:** người lập khác người xác nhận. Nếu đối soát với cơ quan ngoài hệ thống, người yêu cầu nhập kết quả thay và **Văn phòng Đảng ủy xác nhận** (vai trò này có sẵn quyền xác nhận phiếu đối soát ở phạm vi Toàn công ty). Người xác nhận khác người nhập thay và không phải chủ hồ sơ.
 5. **Người dự phòng.** Bước chỉ có một người làm được sẽ dừng khi người đó vắng. Hệ thống nhắc ở mục "Rà soát" khi kiểm tra sẵn sàng. Nên gán thêm người dự phòng, hoặc giao tạm có thời hạn (ô "Đến hết ngày").
-6. **Quyền đúng phạm vi.** Quyền chỉ có tác dụng trong phạm vi được phân công. Người giữ vai trò Lãnh đạo Phòng ở Phòng A không duyệt được hồ sơ của Phòng B.
+6. **Quyền đúng phạm vi.** Quyền chỉ có tác dụng trong phạm vi được phân công. Người giữ vai trò Lãnh đạo đơn vị ở Phòng A không duyệt được hồ sơ của Phòng B.
 7. **Vai trò có quyền quản lý kỳ, quản trị chỉ gán ở phạm vi Toàn công ty.**
 
 ---
@@ -143,7 +143,7 @@ Làm theo đúng thứ tự: bước sau dùng dữ liệu của bước trướ
 - [ ] Vai trò **"Cơ quan chuyên môn"** (cho Mẫu 03) tự có khi backend khởi động, không cần tạo. Phân công theo từng đơn vị đối soát (từng Ban).
 - [ ] Phân công vai trò cho từng người bằng một trong ba cách: (a) trang chi tiết "Tài khoản", thẻ "Vai trò & phạm vi", nút "Phân công vai trò"; (b) trang chi tiết "Vai trò", thẻ "Người được gán", nút "Gán cho người"; (c) hàng loạt qua "Nhập dữ liệu", loại "Gán vai trò". Chọn "Loại phạm vi" và đơn vị đúng ([mục 2](#2-vai-trò-mặc-định-và-cần-bao-nhiêu-người)).
 - [ ] Menu "Hệ thống", "Người thực hiện": chọn đơn vị để thấy từng việc của luồng đã có người chưa (nhãn "Chưa có người"), và dùng "Thêm người" để giao nhanh. Trang này **không** có việc Mẫu 03, 19, 20: phân công các vai trò đó ở "Tài khoản" hoặc "Vai trò".
-- [ ] Kiểm tra vài người tiêu biểu (Bí thư Chi bộ, Lãnh đạo Phòng, cơ quan thẩm định, Văn phòng Đảng ủy, Cơ quan chuyên môn): mở chi tiết "Tài khoản", thẻ "Người này làm được gì".
+- [ ] Kiểm tra vài người tiêu biểu (Bí thư Chi bộ, Lãnh đạo đơn vị, cơ quan thẩm định, Văn phòng Đảng ủy, Cơ quan chuyên môn): mở chi tiết "Tài khoản", thẻ "Người này làm được gì".
 
 **6. Bộ tiêu chí** (menu "Quản lý", "Bộ tiêu chí")
 
@@ -242,6 +242,7 @@ Trước hết mở hồ sơ, đọc thanh tiến trình: bước đang chờ v�
 | Báo "Tài khoản đã bị khóa bởi quản trị hệ thống…" | Tài khoản bị vô hiệu hóa | Quản trị mở chi tiết "Tài khoản", menu ⋯, "Mở lại tài khoản" |
 | Người dùng quên mật khẩu | | Quản trị mở chi tiết "Tài khoản", menu ⋯, "Đặt lại mật khẩu": hệ thống hiện mật khẩu tạm **một lần**, ghi lại và giao cho người đó |
 | Mật khẩu tạm không dùng được, hoặc bị buộc đổi mật khẩu | Mật khẩu tạm chỉ dùng cho lần đăng nhập đầu; sau đó hệ thống bắt đổi (tối thiểu 8 ký tự, có cả chữ và số) | Đăng nhập bằng mật khẩu tạm, đặt mật khẩu mới ở trang "Đổi mật khẩu". Mất mật khẩu tạm thì "Đặt lại mật khẩu" lần nữa |
+| Mất mật khẩu quản trị, không còn quản trị nào đăng nhập được | Mật khẩu đã đổi không còn ai nhớ và không có quản trị thứ hai | Người vận hành chạy trên máy chủ: `cd /opt/congtacdang/docker && ./dat-lai-mat-khau.sh <tên-đăng-nhập>`. Script in mật khẩu tạm **một lần**, bắt đổi mật khẩu ở lần đăng nhập đầu, mở khóa đăng nhập và đăng xuất mọi phiên của đúng tài khoản đó (hiệu lực trong vòng một phút), rồi ghi một dòng vào nhật ký. Thử trước bằng `--kiem-tra` (không đổi gì). Tài khoản bị tắt thì script cảnh báo và không bật lại. Chi tiết: [trien-khai-may-moi.md](trien-khai-may-moi.md#đặt-lại-mật-khẩu-quản-trị-bằng-dòng-lệnh) |
 | Báo "Bạn không có quyền … trên đối tượng này (ngoài phạm vi được gán)" hoặc "Bạn không có quyền … để thực hiện thao tác này" (403) | Người dùng thiếu quyền, hoặc có quyền nhưng ở phạm vi khác đơn vị của hồ sơ | Quản trị mở chi tiết "Tài khoản", thẻ "Người này làm được gì", đối chiếu; phân công vai trò đúng phạm vi |
 | Báo "Bạn không được thực hiện "…" trên hồ sơ của chính mình (xung đột lợi ích)" | Người dùng đang làm bước xét duyệt trên hồ sơ của mình | Không xử lý được bằng quyền; người khác làm bước đó |
 | Báo "Bạn chưa được cấp quyền "…". Hãy liên hệ quản trị hệ thống" (màn hình "Không có quyền truy cập") | Trang yêu cầu quyền người dùng chưa có | Phân công vai trò có quyền đó |

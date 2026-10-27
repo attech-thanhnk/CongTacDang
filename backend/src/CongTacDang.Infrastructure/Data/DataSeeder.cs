@@ -65,27 +65,27 @@ public static class DataSeeder
 
     private static readonly RoleDefinition[] DefaultRoles =
     {
-        // ĐỀ XUẤT, chờ nghiệp vụ xác nhận.
+        // Tên theo thuật ngữ gốc (thuat-ngu.md mục 4); quyền mặc định là đề xuất, chờ nghiệp vụ xác nhận.
         new(RoleCodes.Evaluatee, "Người được đánh giá", "Tự chấm, xem kết quả đã công bố, gửi kiến nghị về kết quả của mình.",
             new[] { PermissionCodes.EvaluationSelf, PermissionCodes.EvaluationResultsView, PermissionCodes.EvaluationAppealSubmit }),
-        new(RoleCodes.DepartmentLeader, "Lãnh đạo Phòng", "Duyệt danh mục sản phẩm, đề xuất mức, lập kế hoạch 30-60-90 ngày (Mẫu 17) cho cán bộ của Phòng.",
+        new(RoleCodes.DepartmentLeader, "Lãnh đạo đơn vị", "Duyệt danh mục sản phẩm, đề xuất mức, lập kế hoạch 30-60-90 ngày (Mẫu 17) cho cán bộ của đơn vị.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksApprove, PermissionCodes.EvaluationUnitReview, PermissionCodes.EvaluationImprovementManage }),
-        new(RoleCodes.CollectiveSecretary, "Thư ký tập thể lãnh đạo", "Ghi nhận đề xuất của tập thể lãnh đạo, lập biên bản hội nghị.",
+        new(RoleCodes.CollectiveSecretary, "Thư ký hội nghị", "Ghi nhận đề xuất của tập thể lãnh đạo, lập biên bản hội nghị.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.MeetingRead, PermissionCodes.MeetingManage }),
-        new(RoleCodes.CellCommittee, "Chi ủy / Bí thư Chi bộ", "Xác nhận phiếu tự chấm, lập hồ sơ tập thể của Chi bộ.",
+        new(RoleCodes.CellCommittee, "Chi bộ", "Chi ủy, Bí thư Chi bộ: xác nhận phiếu tự chấm, lập hồ sơ tập thể của Chi bộ.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCellConfirm, PermissionCodes.CollectiveManage, PermissionCodes.MeetingRead }),
-        new(RoleCodes.Appraisal, "Phòng TCCB-LĐ (mở kỳ, thẩm định)", "Thẩm định hồ sơ, quản lý kỳ đánh giá và bộ tiêu chí.",
+        new(RoleCodes.Appraisal, "Cơ quan thẩm định", "Mở kỳ và thẩm định hồ sơ, quản lý kỳ đánh giá và bộ tiêu chí.",
             new[]
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationAppraise, PermissionCodes.PeriodManage,
                 PermissionCodes.CriteriaManage, PermissionCodes.ReportExport, PermissionCodes.SystemUsersRead,
                 PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCalibrationManage, PermissionCodes.EvaluationControlPerform
             }),
-        new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Nhận xét, đề xuất mức; lập kế hoạch 30-60-90 ngày (Mẫu 17).",
+        new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng", "Giám đốc, Chủ tịch: nhận xét, đề xuất mức; lập kế hoạch 30-60-90 ngày (Mẫu 17).",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport, PermissionCodes.EvaluationImprovementManage }),
-        new(RoleCodes.PartyCommitteeMember, "Cấp ủy viên Đảng ủy", "Xem hồ sơ, biên bản, báo cáo.",
+        new(RoleCodes.PartyCommitteeMember, "Cấp ủy viên", "Cấp ủy viên Đảng ủy: xem hồ sơ, biên bản, báo cáo.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.MeetingRead, PermissionCodes.ReportExport }),
-        new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy (quyết định, công bố)", "Ghi nhận quyết định và kết quả của cấp trên, công bố, mở lại hồ sơ, xử lý kiến nghị; xác nhận phiếu đối soát do cơ quan ngoài hệ thống (người yêu cầu nhập thay).",
+        new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy", "Quyết định, công bố: ghi nhận quyết định và kết quả của cấp trên, công bố, mở lại hồ sơ, xử lý kiến nghị; xác nhận phiếu đối soát do cơ quan ngoài hệ thống (người yêu cầu nhập thay).",
             new[]
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationExternalRecord,

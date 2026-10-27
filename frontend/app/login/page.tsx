@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { Button } from "@/components/common";
 import { LoginPanelPosition, resolveApiUrl, useOrganizationInfo } from "@/services/organizationSettingsService";
+import { useAppVersion, versionLabel } from "@/services/versionService";
 import { AuthBrand } from "./AuthBrand";
 import styles from "./auth.module.css";
 import { errorMessage } from "@/components/admin/adminUtils";
@@ -27,6 +28,7 @@ function LoginForm() {
   const { login } = useAuth();
   const { toast } = useToast();
   const org = useOrganizationInfo();
+  const version = useAppVersion();
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = safeReturnUrl(searchParams.get("returnUrl"));
@@ -123,6 +125,7 @@ function LoginForm() {
       </form>
 
       {footer && <div className={styles.foot}>{footer}</div>}
+      {version && <div className={styles.version} title={`Dựng lúc ${version.buildTime}`}>{versionLabel(version)}</div>}
     </div>
   );
 }

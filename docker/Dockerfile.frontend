@@ -19,6 +19,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # đặt biến lúc chạy container không có tác dụng — phải truyền qua build arg.
 ARG BACKEND_INTERNAL_URL=http://backend:5000
 ENV BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL}
+# Mã commit khi dựng, ghi vào bản build để giao diện đối chiếu với backend
+ARG APP_VERSION="chưa rõ"
+ENV NEXT_PUBLIC_APP_VERSION=${APP_VERSION}
 RUN npm run build
 
 FROM node:20-alpine AS runner

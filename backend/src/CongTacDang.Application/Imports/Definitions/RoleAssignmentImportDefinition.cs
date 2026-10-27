@@ -81,7 +81,7 @@ public sealed class RoleAssignmentImportDefinition : ImportDefinition<RoleAssign
     public override IReadOnlyList<ImportColumn> Columns { get; } = new ImportColumn[]
     {
         new(UsernameKey, "Tên đăng nhập", true, "Tên đăng nhập của tài khoản đã có.", Example: "nguyen.van.a"),
-        new(RoleKey, "Vai trò", true, "Tên hoặc mã vai trò.", Example: "Lãnh đạo Phòng"),
+        new(RoleKey, "Vai trò", true, "Tên hoặc mã vai trò.", Example: "Lãnh đạo đơn vị"),
         new(ScopeTypeKey, "Loại phạm vi", true, "Toàn công ty, Đơn vị hoặc Tổ chức Đảng. Phạm vi gồm cả các đơn vị cấp dưới.",
             new[] { GlobalLabel, DepartmentLabel, PartyCellLabel }, Example: DepartmentLabel),
         new(ScopeCodeKey, "Mã đơn vị/tổ chức Đảng", false, "Bắt buộc khi phạm vi là Đơn vị hoặc Tổ chức Đảng; để trống khi Toàn công ty.", Example: "PH-KT"),

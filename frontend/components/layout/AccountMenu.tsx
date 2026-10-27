@@ -7,6 +7,7 @@ import { userService } from "@/services/userService";
 import { useToast } from "@/contexts/ToastContext";
 import styles from "./SidebarAccount.module.css";
 import { errorMessage } from "@/components/admin/adminUtils";
+import { useAppVersion, versionLabel } from "@/services/versionService";
 
 export function initialsOf(fullName?: string): string {
   if (!fullName) return "?";
@@ -25,6 +26,7 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
+  const version = useAppVersion();
 
   // Dòng dưới tên: chức vụ của cán bộ (không phải vai trò trong hệ thống).
   useEffect(() => {
@@ -86,6 +88,7 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
             <i className="bi bi-box-arrow-right" />
             Đăng xuất
           </button>
+          {version && <div className={styles.version} title={`Dựng lúc ${version.buildTime}`}>{versionLabel(version)}</div>}
         </div>
       )}
       <button

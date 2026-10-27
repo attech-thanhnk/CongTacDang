@@ -278,7 +278,7 @@ public class ImportTests
         lookup.Users.Add(new UserRef(me, "toi", "Tôi", false, null, null, Array.Empty<Guid>()));
         var readRole = Guid.NewGuid();
         var adminRole = Guid.NewGuid();
-        lookup.Roles.Add(new RoleRef(readRole, "LANH_DAO_PHONG", "Lãnh đạo Phòng", new[] { PermissionCodes.EvaluationRead }));
+        lookup.Roles.Add(new RoleRef(readRole, "LANH_DAO_PHONG", "Lãnh đạo đơn vị", new[] { PermissionCodes.EvaluationRead }));
         lookup.Roles.Add(new RoleRef(adminRole, "QUAN_TRI", "Quản trị hệ thống", new[] { PermissionCodes.SystemRolesManage }));
         lookup.Assignments.Add(new AssignmentRef(target, readRole, RoleScopeType.Department, deptId, DateTime.UtcNow.AddDays(-10), null));
         return (lookup, me, target, readRole, adminRole);
@@ -294,18 +294,18 @@ public class ImportTests
         var definition = new RoleAssignmentImportDefinition(lookup, null!, new FakeCurrentUser(me));
         var analysis = await definition.AnalyzeAsync(new[]
         {
-            Assign(2, "da.co", "Lãnh đạo Phòng", "Tổ chức Đảng", "CB-KT", "01/10/2026", "31/12/2026"),
+            Assign(2, "da.co", "Lãnh đạo đơn vị", "Tổ chức Đảng", "CB-KT", "01/10/2026", "31/12/2026"),
             Assign(3, "da.co", "LANH_DAO_PHONG", "to chuc dang", "CB-KT"),             // trùng dòng 2 (thời gian chồng lấn)
-            Assign(4, "da.co", "Lãnh đạo Phòng", "Đơn vị", "PH-KT"),                   // trùng bản gán đang hiệu lực
-            Assign(5, "toi", "Lãnh đạo Phòng", "Toàn công ty"),                        // tự gán cho mình
-            Assign(6, "khong.co", "Lãnh đạo Phòng", "Toàn công ty"),                   // người không có
+            Assign(4, "da.co", "Lãnh đạo đơn vị", "Đơn vị", "PH-KT"),                   // trùng bản gán đang hiệu lực
+            Assign(5, "toi", "Lãnh đạo đơn vị", "Toàn công ty"),                        // tự gán cho mình
+            Assign(6, "khong.co", "Lãnh đạo đơn vị", "Toàn công ty"),                   // người không có
             Assign(7, "da.co", "Vai trò lạ", "Toàn công ty"),                          // vai trò không có
             Assign(8, "da.co", "Quản trị hệ thống", "Đơn vị", "PH-KT"),                // quyền chỉ áp dụng toàn công ty
-            Assign(9, "da.co", "Lãnh đạo Phòng", "Đơn vị"),                            // thiếu mã phạm vi
-            Assign(10, "da.co", "Lãnh đạo Phòng", "Toàn công ty", "PH-KT"),            // toàn công ty kèm mã
-            Assign(11, "da.co", "Lãnh đạo Phòng", "Phòng ban"),                        // loại phạm vi sai
-            Assign(12, "da.co", "Lãnh đạo Phòng", "Toàn công ty", "", "2026-10-01"),   // ngày sai định dạng
-            Assign(13, "da.co", "Lãnh đạo Phòng", "Đơn vị", "PH-KHONG"),               // mã đơn vị không có
+            Assign(9, "da.co", "Lãnh đạo đơn vị", "Đơn vị"),                            // thiếu mã phạm vi
+            Assign(10, "da.co", "Lãnh đạo đơn vị", "Toàn công ty", "PH-KT"),            // toàn công ty kèm mã
+            Assign(11, "da.co", "Lãnh đạo đơn vị", "Phòng ban"),                        // loại phạm vi sai
+            Assign(12, "da.co", "Lãnh đạo đơn vị", "Toàn công ty", "", "2026-10-01"),   // ngày sai định dạng
+            Assign(13, "da.co", "Lãnh đạo đơn vị", "Đơn vị", "PH-KHONG"),               // mã đơn vị không có
             Assign(14, "da.co", "Quản trị hệ thống", "Toàn công ty")                   // hợp lệ
         });
 

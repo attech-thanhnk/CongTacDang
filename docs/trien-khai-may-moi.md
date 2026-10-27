@@ -147,7 +147,7 @@ git -C /opt/congtacdang status --short
 
 Dòng đầu là mã commit, ngày và nội dung. Lệnh thứ hai phải **không in gì** (không có sửa đổi tại chỗ). Có in ra thì ai đó đã sửa file trong thư mục cài đặt: hỏi lại trước khi tiếp tục.
 
-Ứng dụng hiện chưa có trang hay lệnh hiển thị số phiên bản. Phiên bản đang chạy xác định bằng:
+Phiên bản đang chạy xem được ngay trên ứng dụng: dòng "Phiên bản <mã commit>" ở chân trang đăng nhập và cuối menu tài khoản (bấm tên ở góc dưới thanh bên), hoặc bằng lệnh `curl -s http://127.0.0.1:3001/api/version` (in mã commit, thời điểm dựng, môi trường). Mã này chỉ có khi image được dựng bằng lệnh ở bước 6 (có `APP_VERSION=...` đứng trước `docker compose build`); dựng không kèm hai biến đó thì ứng dụng hiện "chưa rõ". Giao diện và backend ghi mã riêng; hai mã lệch nhau nghĩa là mới dựng lại một trong hai, dòng phiên bản sẽ ghi thêm "(giao diện <mã>)". Ngoài ra còn các cách:
 
 - `git -C /opt/congtacdang log -1` (mã nguồn đã dựng);
 - file `manifest.txt` trong mỗi bản sao lưu (dòng `git_commit` và `last_migration`);
@@ -267,10 +267,10 @@ Kiểm tra: `grep '^Seed__InitialAdmin__Username=' .env` in ra tên đăng nhậ
 Trong `/opt/congtacdang/docker`:
 
 ```bash
-docker compose build
+APP_VERSION=$(git rev-parse --short HEAD) APP_BUILD_TIME=$(date -u +%FT%TZ) docker compose build
 ```
 
-Lần đầu mất khoảng 10 đến 20 phút (tải image nền, cài LibreOffice, `npm ci`, biên dịch). Mong đợi: kết thúc không có chữ `ERROR`, cuối cùng in `Built` hoặc tên hai image. Nếu lỗi tải gói giữa chừng: kiểm tra Internet rồi chạy lại đúng lệnh đó (phần đã xong được dùng lại).
+Hai biến đầu lệnh ghi mã commit và thời điểm dựng vào image để ứng dụng hiển thị phiên bản (mục 3.2 bên dưới). Lần đầu mất khoảng 10 đến 20 phút (tải image nền, cài LibreOffice, `npm ci`, biên dịch). Mong đợi: kết thúc không có chữ `ERROR`, cuối cùng in `Built` hoặc tên hai image. Nếu lỗi tải gói giữa chừng: kiểm tra Internet rồi chạy lại đúng lệnh đó (phần đã xong được dùng lại).
 
 Khởi động:
 
@@ -343,11 +343,12 @@ Mong đợi: dòng đầu in `LibreOffice 7.x` hoặc cao hơn. Dòng hai in `Li
 **7.7 Đúng phiên bản:**
 
 ```bash
+curl -s http://127.0.0.1:3001/api/version
 git -C /opt/congtacdang log -1 --format='%h %s'
 docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA -c "SELECT max(\"MigrationId\") FROM \"__EFMigrationsHistory\""'
 ```
 
-Mong đợi: mã commit đúng bản đã chọn ở bước 3; migration mới nhất khớp tên file mới nhất trong `backend/src/CongTacDang.Infrastructure/Data/Migrations/`.
+Mong đợi: `commit` ở lệnh đầu và mã commit lệnh `git log` đều là bản đã chọn ở bước 3; migration mới nhất khớp tên file mới nhất trong `backend/src/CongTacDang.Infrastructure/Data/Migrations/`.
 
 ---
 
@@ -555,9 +556,26 @@ Mọi lệnh chạy trong `/opt/congtacdang/docker`.
 | Log backend có `[LỖI CẤU HÌNH]`, backend tự dừng | Secret yếu hoặc còn giá trị mẫu (xem [bước 4.2](#42-quy-tắc-backend-từ-chối-giá-trị-yếu-hoặc-mẫu)). | Sinh lại bằng `openssl rand -base64 48` (`Jwt__Secret`) hoặc `openssl rand -hex 32` (`POSTGRES_PASSWORD`). Sửa `.env`, rồi `docker compose up -d --force-recreate backend`. Nếu CSDL đã được tạo với mật khẩu cũ thì đổi `POSTGRES_PASSWORD` phải kèm `ALTER USER` (xem [deployment.md](deployment.md#đổi-khóa-và-mật-khẩu-trước-khi-chạy-thật)). Máy mới chưa có dữ liệu thì có thể xóa volume CSDL và tạo lại: `docker compose down` rồi `docker volume rm attech-dangbo-postgres-data` rồi `up -d` (**mất toàn bộ dữ liệu CSDL**, chỉ làm khi chắc chắn chưa có dữ liệu thật). |
 | Log backend báo lỗi kết nối CSDL, `password authentication failed`, hoặc Critical khi migrate | Mật khẩu trong `.env` khác mật khẩu đã lưu trong CSDL (`POSTGRES_PASSWORD` chỉ có tác dụng ở lần tạo đầu); hoặc PostgreSQL chưa khỏe. | `docker compose ps` xem `postgres` có `(healthy)`. `docker compose logs --tail=50 postgres`. Sai mật khẩu: đặt lại mật khẩu bằng `ALTER USER` cho khớp `.env` (xem [deployment.md](deployment.md#đổi-khóa-và-mật-khẩu-trước-khi-chạy-thật)) hoặc trả `.env` về mật khẩu cũ. |
 | Không đăng nhập được quản trị ban đầu | Quản trị chỉ được tạo khi chưa có quản trị nào hoạt động; hoặc mật khẩu bị từ chối vì yếu. | Xem log backend, tìm dòng nhắc `Seed:InitialAdmin`. Sửa mật khẩu trong `.env` đạt chính sách (từ 8 ký tự, có chữ và số), tạo lại backend. Nếu quản trị đã được tạo trước đó thì dùng mật khẩu đã đổi. |
-| Quên mật khẩu quản trị | Mật khẩu đã đổi ở bước 8 không còn ai nhớ. | Còn quản trị khác: người đó vào trang **Hệ thống → Tài khoản** và dùng "Đặt lại mật khẩu". Chỉ có một quản trị duy nhất: ứng dụng chưa có lệnh đặt lại mật khẩu bằng dòng lệnh, liên hệ nhóm phát triển; trong lúc chờ, có thể khôi phục một bản sao lưu trước đó mà quản trị còn nhớ mật khẩu (xem [deployment.md](deployment.md#khôi-phục-sao-lưu)). |
+| Quên mật khẩu quản trị | Mật khẩu đã đổi ở bước 8 không còn ai nhớ. | Còn quản trị khác: người đó vào trang **Hệ thống → Tài khoản** và dùng "Đặt lại mật khẩu". Chỉ có một quản trị duy nhất: dùng lệnh đặt lại mật khẩu ở [mục dưới đây](#đặt-lại-mật-khẩu-quản-trị-bằng-dòng-lệnh). |
 | Hết ổ đĩa (`no space left on device`, container dừng, sao lưu lỗi) | Ổ đầy do image/bộ nhớ đệm dựng cũ, log, hoặc quá nhiều bản sao lưu. | `df -h` và `docker system df` để xem ai chiếm. Dọn bộ nhớ đệm dựng và image không dùng: `docker builder prune -f` và `docker image prune -f` (an toàn, không xóa dữ liệu). **Không** chạy `docker volume prune` hay `docker system prune --volumes` (xóa dữ liệu). Giảm `--keep` của sao lưu hoặc chép bản cũ ra máy khác rồi xóa. Sau khi có chỗ trống: `docker compose up -d`. |
 | Cổng bị chiếm: `bind: address already in use` | Cổng 3001 (hoặc 5434) đã có chương trình khác dùng. | `sudo ss -ltnp \| grep ':3001'` xem chương trình nào. Dừng nó, hoặc đặt `FRONTEND_PORT` (hoặc `POSTGRES_PORT`) khác trong `.env` rồi `docker compose up -d`. Nhớ báo người dùng địa chỉ mới. |
 | Mở `http://<IP>:3001` từ máy khác không được nhưng trên máy chủ mở được | `FRONTEND_BIND_IP` còn mặc định `127.0.0.1`; hoặc tường lửa của mạng chặn. | Đặt `FRONTEND_BIND_IP` (xem [bước 4.1](#41-bảng-biến)), `docker compose up -d`; kiểm tra bằng `sudo ss -ltnp \| grep 3001`. |
 | Xuất PDF báo lỗi 503 | LibreOffice trong container không chạy được. | `docker compose exec backend soffice --version`. Xem [deployment.md](deployment.md#libreoffice-xuất-pdf). Xuất Word/Excel vẫn dùng bình thường. |
 | Máy chạy chậm, container bị tắt đột ngột | Thiếu RAM. | `free -h`, `docker stats --no-stream`. Tăng RAM lên mức khuyến nghị. |
+
+### Đặt lại mật khẩu quản trị bằng dòng lệnh
+
+Dùng khi không còn quản trị nào đăng nhập được (quên mật khẩu, không có quản trị thứ hai). Chạy trên máy chủ, cần quyền dùng `docker`:
+
+```bash
+cd /opt/congtacdang/docker
+./dat-lai-mat-khau.sh <tên-đăng-nhập> --kiem-tra   # chỉ kiểm tra, không đổi gì
+./dat-lai-mat-khau.sh <tên-đăng-nhập>
+```
+
+Mong đợi: lệnh đầu in họ tên tài khoản và dòng `Chưa thay đổi gì`. Lệnh sau in `Đã đặt lại mật khẩu` và một dòng `Mật khẩu tạm (chỉ hiện lần này, ...)`: chép lại ngay. Đăng nhập bằng mật khẩu đó, hệ thống chuyển sang trang **Đổi mật khẩu**; đặt mật khẩu mới rồi đăng nhập lại.
+
+- Chỉ đổi đúng tài khoản được nêu: mật khẩu, bắt đổi mật khẩu ở lần đăng nhập đầu, mở khóa đăng nhập, đăng xuất mọi phiên của tài khoản đó (hiệu lực trong vòng một phút), và ghi một dòng vào nhật ký (**Hệ thống → Nhật ký**, người thực hiện `dat-lai-mat-khau.sh`). Không gán thêm quyền hay vai trò nào.
+- Tên đăng nhập không có: script báo lỗi và không đổi gì. Tài khoản đã xóa: từ chối. Tài khoản đang bị tắt: đặt lại nhưng không bật lại, cần quản trị khác bật.
+- `--mat-khau-tam GIÁ_TRỊ` đặt mật khẩu tạm theo ý (từ 8 ký tự, có chữ và số); nên bỏ trống để script sinh ngẫu nhiên, vì giá trị gõ trên dòng lệnh còn lại trong lịch sử shell.
+- Container khác tên mặc định: đặt `PG_CONTAINER=<tên>` trước lệnh.

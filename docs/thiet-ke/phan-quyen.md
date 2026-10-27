@@ -161,14 +161,14 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
 | Vai trò | Quyền | Phạm vi gán điển hình | Căn cứ HD03 (bản trích xuất) |
 |---|---|---|---|
 | Người được đánh giá | `evaluation.self`, `evaluation.results.view`, `evaluation.appeal.submit` | Global (phạm vi của bản gán = phạm vi công khai kết quả) | IV.1, IV.2; Bước 5; PL II III.2 |
-| Lãnh đạo Phòng | `evaluation.read`, `evaluation.tasks.approve`, `evaluation.unit.review`, `evaluation.improvement.manage` | Department | IV.1; PL II mục II; PL III ví dụ 3; Mẫu 17 |
-| Thư ký tập thể lãnh đạo | `evaluation.read`, `evaluation.collective.record`, `meeting.read`, `meeting.manage` | Department hoặc Global (cấp Công ty) | IV.3a; Mẫu 11–13 |
-| Chi ủy / Bí thư Chi bộ | `evaluation.read`, `evaluation.cell.confirm`, `collective.manage`, `meeting.read` | PartyCell | Mẫu 09A–9D "xác nhận của Chi bộ"; Mẫu 07 |
-| Phòng TCCB-LĐ (mở kỳ, thẩm định) | `evaluation.read`, `evaluation.appraise`, `period.manage`, `criteria.manage`, `report.export`, `system.users.read`, `evaluation.crosscheck.request`, `evaluation.calibration.manage`, `evaluation.control.perform` | Global | IV.1 (rà soát), IV.3b |
-| Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch) | `evaluation.read`, `evaluation.director.review`, `report.export`, `evaluation.improvement.manage` | Global | IV.3c; Mẫu 17 |
-| Cấp ủy viên Đảng ủy | `evaluation.read`, `meeting.read`, `report.export` | Global | IV.4; Mẫu 18 |
+| Lãnh đạo đơn vị | `evaluation.read`, `evaluation.tasks.approve`, `evaluation.unit.review`, `evaluation.improvement.manage` | Department | IV.1; PL II mục II; PL III ví dụ 3; Mẫu 17 |
+| Thư ký hội nghị | `evaluation.read`, `evaluation.collective.record`, `meeting.read`, `meeting.manage` | Department hoặc Global (cấp Công ty) | IV.3a; Mẫu 11–13 |
+| Chi bộ | `evaluation.read`, `evaluation.cell.confirm`, `collective.manage`, `meeting.read` | PartyCell | Mẫu 09A–9D "xác nhận của Chi bộ"; Mẫu 07 |
+| Cơ quan thẩm định | `evaluation.read`, `evaluation.appraise`, `period.manage`, `criteria.manage`, `report.export`, `system.users.read`, `evaluation.crosscheck.request`, `evaluation.calibration.manage`, `evaluation.control.perform` | Global | IV.1 (rà soát), IV.3b |
+| Cấp trực tiếp sử dụng | `evaluation.read`, `evaluation.director.review`, `report.export`, `evaluation.improvement.manage` | Global | IV.3c; Mẫu 17 |
+| Cấp ủy viên | `evaluation.read`, `meeting.read`, `report.export` | Global | IV.4; Mẫu 18 |
 | Cơ quan chuyên môn | `evaluation.crosscheck.respond`, `evaluation.crosscheck.confirm` | Department (phòng, đơn vị chuyên môn của ATTECH) | Mẫu 03, 18 |
-| Văn phòng Đảng ủy (quyết định, công bố) | `evaluation.read`, `evaluation.decide`, `evaluation.external.record`, `evaluation.publish`, `evaluation.reopen`, `meeting.read`, `meeting.manage`, `report.export`, `evaluation.appeal.resolve`, `evaluation.control.confirm`, `evaluation.calibration.conclude`, `evaluation.crosscheck.confirm` | Global | IV.4, IV.5; PL II III.2; Mẫu 19, 20; Mẫu 03 (cơ quan ngoài hệ thống) |
+| Văn phòng Đảng ủy | `evaluation.read`, `evaluation.decide`, `evaluation.external.record`, `evaluation.publish`, `evaluation.reopen`, `meeting.read`, `meeting.manage`, `report.export`, `evaluation.appeal.resolve`, `evaluation.control.confirm`, `evaluation.calibration.conclude`, `evaluation.crosscheck.confirm` | Global | IV.4, IV.5; PL II III.2; Mẫu 19, 20; Mẫu 03 (cơ quan ngoài hệ thống) |
 | Quản trị hệ thống (`IsProtected`) | `system.*` (gồm `system.settings.manage`, `system.templates.manage`, `system.import`), `catalog.manage` | Global | Mẫu 18 (đầu mối IT) |
 
 Vai trò "Cơ quan chuyên môn" (mã `CO_QUAN_CHUYEN_MON`) chỉ được tạo khi CSDL chưa có vai trò mang mã đó (kể cả đã xóa); trên CSDL đã có, mã quyền mới được thêm một lần vào vai trò mặc định có sẵn và quản trị tự tạo vai trò mới qua giao diện. Vai trò quản trị hệ thống không có các quyền Mẫu 03, 19, 20.

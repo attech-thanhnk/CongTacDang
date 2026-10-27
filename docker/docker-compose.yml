@@ -25,6 +25,10 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.backend
+      args:
+        # Đặt lúc dựng: APP_VERSION=$(git rev-parse --short HEAD) APP_BUILD_TIME=$(date -u +%FT%TZ) docker compose build
+        APP_VERSION: ${APP_VERSION:-chưa rõ}
+        APP_BUILD_TIME: ${APP_BUILD_TIME:-chưa rõ}
     container_name: attech-dangbo-api
     restart: unless-stopped
     environment:
@@ -73,6 +77,7 @@ services:
       args:
         # Proxy /api/* được ghi cố định lúc build; đổi địa chỉ backend phải build lại image.
         BACKEND_INTERNAL_URL: http://backend:5000
+        APP_VERSION: ${APP_VERSION:-chưa rõ}
     container_name: attech-dangbo-web
     restart: unless-stopped
     environment:

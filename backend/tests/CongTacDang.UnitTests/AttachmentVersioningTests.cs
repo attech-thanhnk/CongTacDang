@@ -475,7 +475,7 @@ public class AttachmentVersioningTests
         public PartyMemberProfile Secretary(Guid? cellId) =>
             User(cellId,
                 new PermissionGrant(PermissionCodes.EvaluationSelf, ScopeType.Global, null, Guid.NewGuid(), "Người được đánh giá"),
-                new PermissionGrant(PermissionCodes.EvaluationRead, ScopeType.PartyCell, cellId, Guid.NewGuid(), "Chi ủy / Bí thư Chi bộ"));
+                new PermissionGrant(PermissionCodes.EvaluationRead, ScopeType.PartyCell, cellId, Guid.NewGuid(), "Chi bộ"));
 
         /// <summary>Người dùng có các quyền cho trước, phạm vi Toàn công ty.</summary>
         public PartyMemberProfile UserWith(params string[] codes) =>
