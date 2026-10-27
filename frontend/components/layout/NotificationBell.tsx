@@ -40,6 +40,7 @@ export function NotificationBell() {
     ? [
         { label: "Quá hạn", value: summary.overdue, tone: "bad" },
         { label: `Sắp tới hạn (≤ ${summary.dueSoonDays} ngày)`, value: summary.dueSoon, tone: "wait" },
+        { label: "Kiến nghị chưa có người xử lý", value: summary.unassignedAppeals, tone: "bad" },
         { label: "Kiến nghị", value: summary.appeals, tone: "info" },
         { label: "Kế hoạch cần lập/duyệt", value: summary.improvementPlans, tone: "info" },
         { label: "Kế hoạch chờ xác nhận", value: summary.plansToAcknowledge, tone: "info" },

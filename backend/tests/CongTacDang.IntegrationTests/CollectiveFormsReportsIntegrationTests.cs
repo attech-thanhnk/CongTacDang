@@ -122,6 +122,9 @@ public sealed class CollectiveFormsReportsIntegrationTests
             content = new { documentNumber = "Số 7-BC/ĐU", recipient = "Ban Thường vụ Đảng ủy cấp trên", proposal3 = "Đề xuất khác của Đảng ủy", signerName = "Bí thư Test" }
         }));
         var version = saved.GetProperty("version").GetUInt32();
+        // Bản nháp đã có người lưu mà thân yêu cầu không có phiên bản (giao diện mở lúc chưa có bản nháp): 409, không ghi đè.
+        var noVersion = await s.Committee.PutAsJsonAsync($"/api/reports/mau-16/draft?periodId={s.PeriodId}", new { content = new { documentNumber = "Ghi đè" } });
+        Assert.Equal(HttpStatusCode.Conflict, noVersion.StatusCode);
         var second = await s.Committee.PutAsJsonAsync($"/api/reports/mau-16/draft?periodId={s.PeriodId}",
             new { version, content = new { documentNumber = "Số 8-BC/ĐU", recipient = "Ban Thường vụ Đảng ủy cấp trên", signerName = "Bí thư Test" } });
         Assert.Equal(HttpStatusCode.OK, second.StatusCode);

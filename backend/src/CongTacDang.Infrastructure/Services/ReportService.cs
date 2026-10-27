@@ -598,6 +598,10 @@ public partial class ReportService : IReportService
         }
         else
         {
+            // Không gửi phiên bản mà đã có bản nháp: người khác vừa lưu, ghi đè sẽ mất nội dung của họ.
+            if (!dto.Version.HasValue)
+                throw new CongTacDang.Application.Common.Exceptions.ConflictException(
+                    "Bản nháp Mẫu 16 vừa được người khác lưu. Hãy tải lại trang để xem nội dung mới nhất rồi nhập lại phần của bạn.");
             draft.Content = json;
             draft.UpdatedBy = requesterId;
             draft.UpdatedAt = DateTime.UtcNow;
