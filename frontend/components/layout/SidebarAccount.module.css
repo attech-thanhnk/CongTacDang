@@ -21,9 +21,6 @@
   font-weight: 600;
   color: var(--ink);
   white-space: nowrap;
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .trigger:hover,
@@ -80,12 +77,12 @@
 }
 
 /* Hướng dẫn có nút riêng ở thanh trên; chỉ màn rất hẹp mới đưa vào menu này. */
-.helpItem {
+.menu .helpItem {
   display: none;
 }
 
 @media (max-width: 479.98px) {
-  .helpItem {
+  .menu .helpItem {
     display: flex;
   }
 
