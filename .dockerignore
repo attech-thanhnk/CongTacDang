@@ -9,3 +9,5 @@ docs
 **/obj
 **/publish*
 backend/tests
+
+frontend/e2e-ket-qua

@@ -2,6 +2,8 @@
 
 Hướng dẫn tự mở hệ thống lên và dùng thử như người dùng thật. Làm trên **bản sao** của dữ liệu thật để không làm bẩn dữ liệu đang dùng.
 
+Phần lặp lại được (đăng nhập, menu, kỳ, luồng hồ sơ, hiệu chuẩn, kiểm soát, đối soát, xuất Word, điện thoại) đã có bộ kiểm thử giao diện tự động: xem [kiem-thu-tu-dong.md](kiem-thu-tu-dong.md). Kiểm thử thủ công dành cho phần cần mắt người.
+
 ## 1. Chuẩn bị bản sao dữ liệu để thử
 
 Bật Docker Desktop, rồi chạy trong PowerShell (thư mục gốc dự án). Thay `<USER>` và `<MẬT KHẨU>` bằng `POSTGRES_USER` và `POSTGRES_PASSWORD` trong `docker/.env`.
