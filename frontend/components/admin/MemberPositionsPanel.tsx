@@ -113,7 +113,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
     onChanged?.();
   };
 
-  const current = items.filter((i) => i.isEffective || (i.validTo == null && new Date(i.validFrom) > new Date()));
+  const current = items.filter((i) => i.isEffective || new Date(i.validFrom) > new Date());
   const history = items.filter((i) => !current.includes(i));
 
   const selectedPosition = useMemo(() => positions.find((p) => p.id === form?.positionId), [positions, form?.positionId]);
