@@ -573,17 +573,63 @@ aside.app-sidebar {
    HEADER — thanh trên mảnh: nút menu (màn hẹp) + chuông
    ============================================================ */
 header.app-header {
-  height: var(--header-h);
   min-height: var(--header-h);
   background: var(--bg);
   border-bottom: 1px solid var(--rule);
   position: relative;
   z-index: 1030;
-  padding: 0 16px;
+  padding: 6px 16px;
+  /* Trái: ☰, quay lại, tiêu đề; giữa: chọn kỳ; phải: hướng dẫn, chuông, tài khoản. Hai bên chia đều để ô kỳ nằm giữa. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(min-content, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  flex: none;
+}
+
+.hdr-left {
+  grid-column: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hdr-title {
+  margin: 0;
+  min-width: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.hdr-back {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  padding: 5px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hdr-back:hover {
+  background: var(--tint);
+  color: var(--ink);
+}
+
+.hdr-back:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .app-header-menu {
@@ -603,41 +649,9 @@ header.app-header {
   background: var(--tint);
 }
 
-.app-crumbs {
-  flex: 0 1 auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  font-size: 13.5px;
-  color: var(--ink-3);
-  white-space: nowrap;
-}
-
-.app-crumbs a {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--ink-2);
-  text-decoration: none;
-}
-
-.app-crumbs a:hover {
-  color: var(--primary);
-}
-
-.app-crumbs [aria-current="page"] {
-  color: var(--ink);
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.app-crumb-sep {
-  font-size: 10px;
-}
-
 .app-header-right {
-  margin-left: auto;
+  grid-column: 3;
+  justify-self: end;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -667,6 +681,8 @@ header.app-header {
 
 /* Chọn kỳ đánh giá trên thanh trên: nhãn ngắn và ô chọn gọn. */
 .hdr-period {
+  grid-column: 2;
+  justify-self: center;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2648,15 +2664,47 @@ textarea.form-control {
 }
 
 /* Điện thoại: thanh trên giữ vừa một hàng. */
-@media (max-width: 575.98px) {
-  .hdr-period > span,
-  .app-crumbs .app-crumb-sep,
-  .app-crumbs [aria-current="page"] {
+@media (max-width: 899.98px) {
+  .hdr-period > span {
     display: none;
+  }
+}
+
+/* Điện thoại: hàng 1 = ☰, tiêu đề, chuông, tài khoản; ô chọn kỳ xuống hàng 2. */
+@media (max-width: 575.98px) {
+  header.app-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 4px;
+    padding: 6px 8px;
+  }
+
+  .hdr-left {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .app-header-right {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .hdr-period {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: stretch;
   }
 
   .hdr-period select {
-    max-width: 140px;
+    flex: 1;
+    max-width: none;
+  }
+
+  .hdr-back span {
+    display: none;
+  }
+
+  .hdr-back {
+    padding: 5px 8px;
   }
 }
 

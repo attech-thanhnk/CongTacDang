@@ -133,7 +133,10 @@ export interface MenuTrail {
 }
 
 // Trang không có trên menu nhưng vẫn cần đường dẫn.
-const EXTRA_PAGES: MenuItem[] = [{ title: "Tài khoản", href: "/account", icon: "bi-person" }];
+const EXTRA_PAGES: MenuItem[] = [
+  { title: "Tài khoản", href: "/account", icon: "bi-person" },
+  { title: "Hướng dẫn", href: "/help", icon: "bi-question-circle" },
+];
 
 /** Mục menu ứng với đường dẫn hiện tại — dùng cho đường dẫn trên thanh đầu trang. */
 export function findMenuTrail(groups: MenuGroup[], pathname: string): MenuTrail | null {
