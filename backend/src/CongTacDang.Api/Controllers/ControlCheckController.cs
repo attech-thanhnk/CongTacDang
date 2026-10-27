@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CongTacDang.Api.Controllers;
 
 /// <summary>
-/// Phiếu kiểm soát tính hợp lệ, công bằng và nhất quán (Mẫu 19). Controller chỉ yêu cầu có quyền ở phạm vi nào đó;
+/// Phiếu kiểm tra tính hợp lệ, công bằng và nhất quán (Mẫu 19). Controller chỉ yêu cầu có quyền ở phạm vi nào đó;
 /// service kiểm tra quyền trên từng hồ sơ trong phiếu.
 /// </summary>
 [ApiController]
@@ -32,7 +32,7 @@ public class ControlCheckController : ControllerBase
     public async Task<IActionResult> List([FromQuery] Guid? periodId, CancellationToken ct)
     {
         var data = await _checks.ListAsync(periodId, ct);
-        return Ok(ApiResponse<List<ControlCheckSummaryDto>>.Ok(data, "Lấy danh sách phiếu kiểm soát thành công."));
+        return Ok(ApiResponse<List<ControlCheckSummaryDto>>.Ok(data, "Lấy danh sách phiếu kiểm tra thành công."));
     }
 
     /// <summary>Hồ sơ chờ quyết định, chưa thuộc phiếu còn hiệu lực nào, người dùng lập được.</summary>
@@ -41,7 +41,7 @@ public class ControlCheckController : ControllerBase
     public async Task<IActionResult> Candidates([FromQuery] Guid periodId, CancellationToken ct)
     {
         var data = await _checks.ListCandidatesAsync(periodId, ct);
-        return Ok(ApiResponse<List<ControlCheckCandidateDto>>.Ok(data, "Lấy danh sách hồ sơ có thể kiểm soát thành công."));
+        return Ok(ApiResponse<List<ControlCheckCandidateDto>>.Ok(data, "Lấy danh sách hồ sơ có thể kiểm tra thành công."));
     }
 
     [HttpGet("{id:guid}")]
@@ -49,7 +49,7 @@ public class ControlCheckController : ControllerBase
     public async Task<IActionResult> Get(Guid id, CancellationToken ct)
     {
         var data = await _checks.GetAsync(id, ct);
-        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Lấy phiếu kiểm soát thành công."));
+        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Lấy phiếu kiểm tra thành công."));
     }
 
     /// <summary>Lập phiếu nháp cho một nhóm hồ sơ.</summary>
@@ -58,7 +58,7 @@ public class ControlCheckController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateControlCheckDto dto, CancellationToken ct)
     {
         var data = await _checks.CreateAsync(dto, ct);
-        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Đã lập phiếu kiểm soát."));
+        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Đã lập phiếu kiểm tra."));
     }
 
     /// <summary>Lưu bản nháp (version = phiên bản phiếu).</summary>
@@ -67,7 +67,7 @@ public class ControlCheckController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateControlCheckDto dto, CancellationToken ct)
     {
         var data = await _checks.UpdateAsync(id, dto, ct);
-        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Đã lưu phiếu kiểm soát."));
+        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Đã lưu phiếu kiểm tra."));
     }
 
     [HttpPost("{id:guid}/submit")]
@@ -75,7 +75,7 @@ public class ControlCheckController : ControllerBase
     public async Task<IActionResult> Submit(Guid id, [FromBody] ControlCheckActionDto dto, CancellationToken ct)
     {
         var data = await _checks.SubmitAsync(id, dto, ct);
-        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Đã gửi phiếu kiểm soát chờ xác nhận."));
+        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Đã gửi phiếu kiểm tra chờ xác nhận."));
     }
 
     [HttpPost("{id:guid}/confirm")]
@@ -83,7 +83,7 @@ public class ControlCheckController : ControllerBase
     public async Task<IActionResult> Confirm(Guid id, [FromBody] ControlCheckActionDto dto, CancellationToken ct)
     {
         var data = await _checks.ConfirmAsync(id, dto, ct);
-        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Đã xác nhận phiếu kiểm soát."));
+        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Đã xác nhận phiếu kiểm tra."));
     }
 
     [HttpPost("{id:guid}/return")]
@@ -91,7 +91,7 @@ public class ControlCheckController : ControllerBase
     public async Task<IActionResult> Return(Guid id, [FromBody] ControlCheckActionDto dto, CancellationToken ct)
     {
         var data = await _checks.ReturnAsync(id, dto, ct);
-        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Đã trả lại phiếu kiểm soát."));
+        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Đã trả lại phiếu kiểm tra."));
     }
 
     [HttpPost("{id:guid}/reopen")]
@@ -99,7 +99,7 @@ public class ControlCheckController : ControllerBase
     public async Task<IActionResult> Reopen(Guid id, [FromBody] ControlCheckActionDto dto, CancellationToken ct)
     {
         var data = await _checks.ReopenAsync(id, dto, ct);
-        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Đã mở lại phiếu kiểm soát."));
+        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Đã mở lại phiếu kiểm tra."));
     }
 
     [HttpPost("{id:guid}/cancel")]
@@ -107,6 +107,6 @@ public class ControlCheckController : ControllerBase
     public async Task<IActionResult> Cancel(Guid id, [FromBody] ControlCheckActionDto dto, CancellationToken ct)
     {
         var data = await _checks.CancelAsync(id, dto, ct);
-        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Đã hủy phiếu kiểm soát."));
+        return Ok(ApiResponse<ControlCheckDto>.Ok(data, "Đã hủy phiếu kiểm tra."));
     }
 }

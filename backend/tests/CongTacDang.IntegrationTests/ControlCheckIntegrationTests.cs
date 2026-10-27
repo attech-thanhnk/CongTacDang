@@ -31,7 +31,7 @@ public sealed class ControlCheckIntegrationTests
 
         var refused = await w.BothC.PostAsJsonAsync("/api/control-checks", new { periodId, groupName = "Nhóm", recordIds = new[] { notYet } });
         Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
-        Assert.Equal("Lập phiếu kiểm soát không thành công: hồ sơ của KS Hồ sơ chưa tới quyết định chưa tới bước chờ quyết định.", await MessageOf(refused));
+        Assert.Equal("Lập phiếu kiểm tra không thành công: hồ sơ của KS Hồ sơ chưa tới quyết định chưa tới bước chờ quyết định.", await MessageOf(refused));
 
         var created = await Data(await w.BothC.PostAsJsonAsync("/api/control-checks", new { periodId, groupName = "Nhóm", recordIds = new[] { ready } }));
         var id = created.GetProperty("id").GetGuid();

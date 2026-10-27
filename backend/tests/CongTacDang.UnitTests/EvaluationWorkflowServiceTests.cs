@@ -447,7 +447,7 @@ public sealed class EvaluationWorkflowServiceTests
         var ex = await Assert.ThrowsAsync<ConflictException>(() => h.ServiceWith(null, control).RecordDecisionAsync(h.Record.Id, h.DecisionRequest()));
 
         Assert.Contains("không thành công", ex.Message);
-        Assert.Contains("phiếu kiểm soát", ex.Message);
+        Assert.Contains("phiếu kiểm tra", ex.Message);
         Assert.Equal(RecordStatus.AwaitingDecision, h.Record.Status);
         Assert.Equal(0, h.Uow.Saves);
     }
@@ -485,7 +485,7 @@ public sealed class EvaluationWorkflowServiceTests
 
         Assert.Equal(RecordStatus.AwaitingPublish, h.Record.Status);
         Assert.Contains("Ghi nhận thiếu", h.Histories.Last().Comment);
-        Assert.Contains("phiếu kiểm soát", h.Histories.Last().Comment);
+        Assert.Contains("phiếu kiểm tra", h.Histories.Last().Comment);
     }
 
     [Fact]
@@ -514,8 +514,8 @@ public sealed class EvaluationWorkflowServiceTests
         var ex = await Assert.ThrowsAsync<ConflictException>(() => h.ServiceWith(new StubCalibrationGate(state), new StubControlGate(ControlGateState.NoCheck))
             .RecordDecisionAsync(h.Record.Id, h.DecisionRequest()));
 
-        Assert.Contains("iên bản hiệu chuẩn", ex.Message);
-        Assert.DoesNotContain("phiếu kiểm soát", ex.Message);
+        Assert.Contains("iên bản họp thống nhất", ex.Message);
+        Assert.DoesNotContain("phiếu kiểm tra", ex.Message);
     }
 
     [Fact]
@@ -526,7 +526,7 @@ public sealed class EvaluationWorkflowServiceTests
         var ex = await Assert.ThrowsAsync<ConflictException>(() => h.ServiceWith(new StubCalibrationGate(CalibrationGateState.Satisfied), new StubControlGate(ControlGateState.NoCheck))
             .RecordDecisionAsync(h.Record.Id, h.DecisionRequest()));
 
-        Assert.Contains("phiếu kiểm soát", ex.Message);
+        Assert.Contains("phiếu kiểm tra", ex.Message);
     }
 
     [Fact]
@@ -536,7 +536,7 @@ public sealed class EvaluationWorkflowServiceTests
         required.MakeDecisionExternal(GateMode.Required);
         var ex = await Assert.ThrowsAsync<ConflictException>(() => required.ServiceWith(null, new StubControlGate(ControlGateState.NoCheck))
             .RecordExternalResultAsync(required.Record.Id, "B4_DECISION", required.ExternalRequest()));
-        Assert.Contains("phiếu kiểm soát", ex.Message);
+        Assert.Contains("phiếu kiểm tra", ex.Message);
         Assert.Equal(RecordStatus.AwaitingDecision, required.Record.Status);
 
         var recorded = new Harness(RecordStatus.AwaitingDecision);
@@ -554,7 +554,7 @@ public sealed class EvaluationWorkflowServiceTests
         var both = await h.ServiceWith(new StubCalibrationGate(CalibrationGateState.NoSession), new StubControlGate(ControlGateState.NoCheck)).GetActionsAsync(h.Record.Id);
         var calibrationFirst = both.Actions.Single(a => a.Action == WorkflowActions.RecordDecision);
         Assert.Equal(ApprovalGateCodes.CalibrationRequired, calibrationFirst.BlockedBy);
-        Assert.Contains("biên bản hiệu chuẩn", calibrationFirst.BlockedReason);
+        Assert.Contains("biên bản họp thống nhất", calibrationFirst.BlockedReason);
 
         var controlOnly = await h.ServiceWith(new StubCalibrationGate(CalibrationGateState.Satisfied), new StubControlGate(ControlGateState.Stale)).GetActionsAsync(h.Record.Id);
         Assert.Equal(ApprovalGateCodes.ControlRequired, controlOnly.Actions.Single(a => a.Action == WorkflowActions.RecordDecision).BlockedBy);

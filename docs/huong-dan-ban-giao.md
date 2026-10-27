@@ -50,10 +50,10 @@ Với bước do **cấp trên thực hiện** (ví dụ Diện BTV Đảng ủy
 | Yêu cầu xác nhận số liệu (Mẫu 03) | Cơ quan thẩm định | Yêu cầu đối soát chuyên ngành (Mẫu 03) | Mở hồ sơ, khối "Xác nhận số liệu", nút "Yêu cầu xác nhận" | Phiếu "Chờ lập phiếu"; nút "Thẩm định" bị khóa tới khi phiếu xong hoặc bị hủy |
 | Lập phiếu xác nhận số liệu (Mẫu 03) | Cơ quan chuyên môn | Lập phiếu đối soát chuyên ngành | Menu "Xác nhận số liệu", mở phiếu, "Lưu kết quả", "Gửi xác nhận" | Phiếu "Chờ xác nhận" |
 | Xác nhận phiếu số liệu (Mẫu 03) | Cơ quan chuyên môn (người khác người lập) | Xác nhận phiếu đối soát chuyên ngành | Mở phiếu, nút "Xác nhận" (hoặc "Trả lại" ở menu ⋯) | Phiếu "Đã xác nhận" |
-| Lập biên bản hiệu chuẩn (Mẫu 20) | Cơ quan thẩm định | Lập biên bản hiệu chuẩn (Mẫu 20) | Menu "Rà soát", thẻ "Họp thống nhất", nút "Lập biên bản", "Lưu" | Biên bản "Đang soạn" |
-| Chốt biên bản hiệu chuẩn (Mẫu 20) | Văn phòng Đảng ủy (người khác người lập) | Chốt biên bản hiệu chuẩn | Mở biên bản, nút "Chốt biên bản" | Biên bản "Đã chốt"; kết quả hiệu chuẩn áp vào hồ sơ |
-| Lập phiếu kiểm soát (Mẫu 19) | Cơ quan thẩm định | Lập phiếu kiểm soát (Mẫu 19) | Menu "Rà soát", thẻ "Kiểm tra", nút "Lập phiếu", "Lưu", "Gửi xác nhận" | Phiếu "Chờ xác nhận" |
-| Xác nhận phiếu kiểm soát (Mẫu 19) | Văn phòng Đảng ủy (người khác người lập) | Xác nhận phiếu kiểm soát | Mở phiếu, nút "Xác nhận" (hoặc "Trả lại", "Mở lại" ở menu ⋯) | Phiếu "Đã xác nhận"; cổng thông qua nếu kết luận "Đủ điều kiện trình phê duyệt" |
+| Lập biên bản họp thống nhất (Mẫu 20) | Cơ quan thẩm định | Lập biên bản họp thống nhất (Mẫu 20) | Menu "Duyệt kết quả", thẻ "Họp thống nhất", nút "Lập biên bản", "Lưu" | Biên bản "Đang soạn" |
+| Chốt biên bản họp thống nhất (Mẫu 20) | Văn phòng Đảng ủy (người khác người lập) | Chốt biên bản họp thống nhất | Mở biên bản, nút "Chốt biên bản" | Biên bản "Đã chốt"; kết quả họp thống nhất áp vào hồ sơ |
+| Lập phiếu kiểm tra (Mẫu 19) | Cơ quan thẩm định | Lập phiếu kiểm tra (Mẫu 19) | Menu "Duyệt kết quả", thẻ "Kiểm tra", nút "Lập phiếu", "Lưu", "Gửi xác nhận" | Phiếu "Chờ xác nhận" |
+| Xác nhận phiếu kiểm tra (Mẫu 19) | Văn phòng Đảng ủy (người khác người lập) | Xác nhận phiếu kiểm tra | Mở phiếu, nút "Xác nhận" (hoặc "Trả lại", "Mở lại" ở menu ⋯) | Phiếu "Đã xác nhận"; cổng thông qua nếu kết luận "Đủ điều kiện trình phê duyệt" |
 
 Mức độ bắt buộc của từng cổng đặt theo **diện quyết định** của kỳ (Bắt buộc / Chỉ ghi nhận / Tắt; xác nhận số liệu Tùy chọn / Tắt). Khi chưa chỉnh, họp thống nhất và kiểm tra là **Bắt buộc** với diện có bước Quyết định làm trong hệ thống, và **Chỉ ghi nhận** với diện do cấp trên quyết định. Cách chỉnh: [mục 3, bước 10](#3-danh-sách-việc-khi-đưa-vào-sử-dụng).
 
@@ -84,10 +84,10 @@ Một **phân công** gồm: người, vai trò, phạm vi (Toàn công ty / Đ�
 | Lãnh đạo đơn vị | Xem hồ sơ; duyệt danh mục sản phẩm; lãnh đạo đơn vị đề xuất; lập kế hoạch 30-60-90 ngày | Duyệt danh mục, đề xuất mức, lập kế hoạch khắc phục | Trưởng phòng, Phó Trưởng phòng; phạm vi Đơn vị chính quyền là Phòng đó | 2 người mỗi Phòng |
 | Thư ký hội nghị | Xem hồ sơ; ghi nhận đề xuất tập thể; lập biên bản hội nghị | Ghi nhận kết quả hội nghị, lập Mẫu 12, 13 | Chuyên viên giữ vai trò thư ký; phạm vi Phòng (hoặc đơn vị tổ chức hội nghị) | 1 người mỗi nơi tổ chức hội nghị, nên thêm 1 dự phòng |
 | Chi bộ | Xem hồ sơ; Chi bộ xác nhận phiếu tự chấm; lập hồ sơ tập thể | Xác nhận phiếu tự chấm, lập Mẫu 07 | Bí thư, Phó Bí thư Chi bộ; phạm vi Tổ chức Đảng là Chi bộ | 2 người mỗi Chi bộ |
-| Cơ quan thẩm định | Xem hồ sơ; thẩm định; quản lý kỳ; quản lý bộ tiêu chí; xuất báo cáo; xem tài khoản; yêu cầu đối soát; lập biên bản hiệu chuẩn; lập phiếu kiểm soát | Mở kỳ, thẩm định, yêu cầu Mẫu 03, lập Mẫu 20 và Mẫu 19 | Cán bộ Phòng Tổ chức cán bộ - Lao động; chỉ gán được **Toàn công ty** (vì có quyền quản lý kỳ) | 2 người |
+| Cơ quan thẩm định | Xem hồ sơ; thẩm định; quản lý kỳ; quản lý bộ tiêu chí; xuất báo cáo; xem tài khoản; yêu cầu đối soát; lập biên bản họp thống nhất; lập phiếu kiểm tra | Mở kỳ, thẩm định, yêu cầu Mẫu 03, lập Mẫu 20 và Mẫu 19 | Cán bộ Phòng Tổ chức cán bộ - Lao động; chỉ gán được **Toàn công ty** (vì có quyền quản lý kỳ) | 2 người |
 | Cấp trực tiếp sử dụng | Xem hồ sơ; nhận xét, đề xuất mức; xuất báo cáo; lập kế hoạch 30-60-90 ngày | Nhận xét ở bước 7, lập kế hoạch khắc phục | Giám đốc, Chủ tịch (và người thay thế); Toàn công ty | 1 người; thêm người dự phòng nếu có |
 | Cấp ủy viên | Xem hồ sơ, biên bản; xuất báo cáo | Theo dõi, không có bước bắt buộc | Các Đảng ủy viên cần xem; Toàn công ty | Không bắt buộc |
-| Văn phòng Đảng ủy | Xem hồ sơ; ghi nhận quyết định; ghi nhận kết quả của cấp trên; công bố; mở lại hồ sơ; xử lý kiến nghị; chốt biên bản hiệu chuẩn; xác nhận phiếu kiểm soát; xác nhận phiếu đối soát do cơ quan ngoài hệ thống; xuất báo cáo; lập biên bản hội nghị | Ghi nhận quyết định, công bố, chốt Mẫu 20, xác nhận Mẫu 19, xác nhận Mẫu 03 của cơ quan ngoài hệ thống | Cán bộ Văn phòng Đảng ủy; Toàn công ty | 2 người |
+| Văn phòng Đảng ủy | Xem hồ sơ; ghi nhận quyết định; ghi nhận kết quả của cấp trên; công bố; mở lại hồ sơ; xử lý kiến nghị; chốt biên bản họp thống nhất; xác nhận phiếu kiểm tra; xác nhận phiếu đối soát do cơ quan ngoài hệ thống; xuất báo cáo; lập biên bản hội nghị | Ghi nhận quyết định, công bố, chốt Mẫu 20, xác nhận Mẫu 19, xác nhận Mẫu 03 của cơ quan ngoài hệ thống | Cán bộ Văn phòng Đảng ủy; Toàn công ty | 2 người |
 | Cơ quan chuyên môn | Lập phiếu đối soát chuyên ngành; xác nhận phiếu đối soát chuyên ngành | Lập và xác nhận phiếu Mẫu 03 gửi tới đơn vị mình | Cán bộ các phòng, đơn vị chuyên môn của ATTECH được yêu cầu đối soát (ví dụ Phòng Kỹ thuật - An toàn - Chất lượng, Phòng Tài chính - Kế toán); phạm vi Đơn vị chính quyền là **đơn vị đối soát** của từng phòng, đơn vị | 2 người mỗi đơn vị đối soát (người lập khác người xác nhận) |
 | Quản trị hệ thống | Quản trị tài khoản, vai trò, phân công, nhật ký, thông tin đơn vị, biểu mẫu Word, nhập dữ liệu; quản lý danh mục | Khai báo và vận hành kỹ thuật; **không** xem nội dung đánh giá | Cán bộ CNTT; Toàn công ty | 2 người |
 
@@ -101,7 +101,7 @@ Các quy tắc sau là nguyên nhân kẹt hồ sơ thường gặp nhất. Hệ
 2. **Cơ quan thẩm định cần từ 2 người.** Nếu người đứng đầu cơ quan thẩm định cũng là người được đánh giá, hồ sơ của họ phải do người khác thẩm định.
 3. **Người lập khác người xác nhận hoặc chốt.** Với Mẫu 19 và Mẫu 20 ở chế độ Bắt buộc, cần ít nhất **hai tài khoản khác nhau**: một người có quyền lập (mặc định cơ quan thẩm định), một người có quyền xác nhận hoặc chốt (mặc định Văn phòng Đảng ủy). Cả hai không phải chủ hồ sơ. Nếu cùng một người giữ cả hai vai trò mà không còn ai khác thì không qua được cổng.
 4. **Mẫu 03 cũng cần hai người ở cơ quan chuyên môn:** người lập khác người xác nhận. Nếu xác nhận với cơ quan ngoài hệ thống, người yêu cầu nhập kết quả thay và **Văn phòng Đảng ủy xác nhận** (vai trò này có sẵn quyền xác nhận phiếu đối soát ở phạm vi Toàn công ty). Người xác nhận khác người nhập thay và không phải chủ hồ sơ.
-5. **Người dự phòng.** Bước chỉ có một người làm được sẽ dừng khi người đó vắng. Hệ thống nhắc ở mục "Rà soát" khi kiểm tra sẵn sàng. Nên gán thêm người dự phòng, hoặc giao tạm có thời hạn (ô "Đến hết ngày").
+5. **Người dự phòng.** Bước chỉ có một người làm được sẽ dừng khi người đó vắng. Hệ thống nhắc ở mục "Kiểm tra dữ liệu" trên trang kỳ khi kiểm tra sẵn sàng. Nên gán thêm người dự phòng, hoặc giao tạm có thời hạn (ô "Đến hết ngày").
 6. **Quyền đúng phạm vi.** Quyền chỉ có tác dụng trong phạm vi được phân công. Người giữ vai trò Lãnh đạo đơn vị ở Phòng A không duyệt được hồ sơ của Phòng B.
 7. **Vai trò có quyền quản lý kỳ, quản trị chỉ gán ở phạm vi Toàn công ty.**
 
@@ -165,7 +165,7 @@ Làm theo đúng thứ tự: bước sau dùng dữ liệu của bước trướ
 
 - [ ] Hai ô "Diện quyết định mặc định": chọn diện cho người thuộc diện Đảng ủy cơ sở quyết định và diện cấp trên quyết định.
 - [ ] Kỳ mới có sẵn bốn diện: "Diện Đảng ủy cơ sở", "Diện BTV Đảng ủy Tổng công ty", "Bí thư/Phó bí thư Chi bộ là nhân viên", "Phó Giám đốc". Với mỗi diện: chế độ từng bước ("Nội bộ", "Cấp trên thực hiện", "Không áp dụng"), quyền thực hiện, thời hạn.
-- [ ] Khối "Cổng kiểm soát trước quyết định": chọn chế độ cho từng diện.
+- [ ] Khối "Kiểm tra trước quyết định": chọn chế độ cho từng diện.
   - "Xác nhận số liệu": "Tùy chọn" hoặc "Tắt".
   - "Họp thống nhất" và "Kiểm tra trước quyết định": "Bắt buộc", "Chỉ ghi nhận" hoặc "Tắt".
   - Chọn "Bắt buộc" chỉ khi đã có đủ người lập và người xác nhận ([mục 2.1](#21-để-luồng-không-bị-kẹt)). Chưa sẵn sàng thì để "Chỉ ghi nhận": hồ sơ không bị chặn nhưng vẫn hiện nhắc.
@@ -187,10 +187,10 @@ Làm theo đúng thứ tự: bước sau dùng dữ liệu của bước trướ
 | "… vì tài khoản của chủ hồ sơ không hoạt động hoặc không có quyền "Tham gia đánh giá (bản thân)"" | Chủ hồ sơ không đăng nhập được hoặc thiếu vai trò Người được đánh giá | Mở "Mở lại tài khoản" nếu bị vô hiệu hóa; phân công vai trò Người được đánh giá |
 | "… sẽ kẹt trước bước "Quyết định mức xếp loại" vì cổng "…" bắt buộc nhưng không có hai tài khoản đang hoạt động khác nhau (ngoài chủ hồ sơ) để lập và xác nhận…" | Cổng Bắt buộc mà chỉ có 0 hoặc 1 người làm được (hoặc một người giữ cả hai việc) | Phân công thêm người cho quyền còn thiếu; hoặc đổi cổng sang "Chỉ ghi nhận" |
 | "… chưa có khung tỷ trọng A-B-C-D …" hoặc "Khung tỷ trọng "…" không có trong bộ tiêu chí …" | Hồ sơ không có khung hợp lệ nên không tự chấm được | Thẻ "Người được đánh giá", "Sửa", chọn khung. **Lỗi này chặn mở kỳ, kể cả "Mở kỳ bắt buộc"** |
-| "N hồ sơ dùng diện quyết định khác diện gợi ý theo chức vụ" (mục "Rà soát") | Chỉ nhắc, không chặn | Xem danh sách; đổi diện quyết định nếu nhầm |
-| "N người đang ghi là sinh hoạt thẳng ở Đảng bộ / Đảng bộ bộ phận, không thuộc chi bộ nào" ("Rà soát") | Chỉ nhắc | Sửa "Nơi sinh hoạt Đảng" ở chi tiết "Tài khoản" (hồ sơ tự cập nhật khi kỳ còn Dự thảo) |
-| "N hồ sơ thiếu Phòng hoặc Chi bộ" ("Rà soát") | Chỉ nhắc; thiếu đơn vị thì quyền theo đơn vị khó áp đúng | Bổ sung "Đơn vị công tác chính" hoặc "Nơi sinh hoạt Đảng" ở "Tài khoản" |
-| "N bước chỉ có một người làm được" ("Rà soát") | Người đó vắng thì hồ sơ phải chờ | Gán thêm người dự phòng (ví dụ Phó Bí thư Chi bộ) |
+| "N hồ sơ dùng diện quyết định khác diện gợi ý theo chức vụ" (mục "Kiểm tra dữ liệu") | Chỉ nhắc, không chặn | Xem danh sách; đổi diện quyết định nếu nhầm |
+| "N người đang ghi là sinh hoạt thẳng ở Đảng bộ / Đảng bộ bộ phận, không thuộc chi bộ nào" ("Kiểm tra dữ liệu") | Chỉ nhắc | Sửa "Nơi sinh hoạt Đảng" ở chi tiết "Tài khoản" (hồ sơ tự cập nhật khi kỳ còn Dự thảo) |
+| "N hồ sơ thiếu Phòng hoặc Chi bộ" ("Kiểm tra dữ liệu") | Chỉ nhắc; thiếu đơn vị thì quyền theo đơn vị khó áp đúng | Bổ sung "Đơn vị công tác chính" hoặc "Nơi sinh hoạt Đảng" ở "Tài khoản" |
+| "N bước chỉ có một người làm được" ("Kiểm tra dữ liệu") | Người đó vắng thì hồ sơ phải chờ | Gán thêm người dự phòng (ví dụ Phó Bí thư Chi bộ) |
 | "N bước chưa có thời hạn" | Không chặn mở kỳ, nhưng không theo dõi được quá hạn | Thẻ "Diện quyết định", đặt thời hạn và "Lưu" |
 
 **13. Mở kỳ**
@@ -201,7 +201,7 @@ Làm theo đúng thứ tự: bước sau dùng dữ liệu của bước trướ
 
 **14. Trong và cuối kỳ**
 
-- [ ] Hoàn tất biên bản hiệu chuẩn (Mẫu 20) và phiếu kiểm soát (Mẫu 19) **khi kỳ còn Đang mở**, trước khi "Khóa dữ liệu" ở menu ⋯ của trang kỳ. Khi kỳ đã khóa, biên bản hiệu chuẩn không lập hoặc chốt được; cần "Mở lại kỳ" (nhập lý do).
+- [ ] Hoàn tất biên bản họp thống nhất (Mẫu 20) và phiếu kiểm tra (Mẫu 19) **khi kỳ còn Đang mở**, trước khi "Khóa dữ liệu" ở menu ⋯ của trang kỳ. Khi kỳ đã khóa, biên bản họp thống nhất không lập hoặc chốt được; cần "Mở lại kỳ" (nhập lý do).
 - [ ] "Đóng kỳ" chỉ được khi mọi hồ sơ đã công bố.
 - [ ] Kiểm tra sau cùng: xuất thử "Mẫu 14" và "Danh sách cán bộ" ở menu "Báo cáo", và một biểu mẫu của hồ sơ; tên Đảng bộ, công ty, địa danh, tên tệp đúng "Thông tin đơn vị".
 
@@ -226,9 +226,9 @@ Trước hết mở hồ sơ, đọc thanh tiến trình: bước đang chờ v�
 | Bước quá hạn bị chặn ("Chặn hoàn thành bước khi đã quá thời hạn" đang bật) | Thẻ "Diện quyết định", đặt lại thời hạn của bước, "Lưu" (sửa được sau khi mở kỳ). Ô chặn chỉ đổi được khi kỳ còn Dự thảo | Người quản lý kỳ |
 | Nút "Ghi nhận quyết định" bị khóa vì Mẫu 20 hoặc Mẫu 19 | Xem bảng [mục 12.1 của hướng dẫn sử dụng](huong-dan-su-dung.md#121-nút-có-nhưng-không-bấm-được-dải-vàng-có-biểu-tượng-khóa); lập, chốt, xác nhận hoặc mở lại phiếu theo lý do ghi | Cơ quan thẩm định, Văn phòng Đảng ủy |
 | Người lập Mẫu 20 hoặc Mẫu 19 là người duy nhất có quyền xác nhận hoặc chốt | Phân công quyền xác nhận hoặc chốt cho người thứ hai (phạm vi bao trùm các hồ sơ trong biên bản hoặc phiếu). Tạm thời có thể đổi cổng sang "Chỉ ghi nhận" nếu kỳ còn Dự thảo | Quản trị hệ thống; người quản lý kỳ |
-| Phiếu hoặc biên bản của người đã nghỉ còn dở | Biên bản "Đang soạn": người khác có quyền lập mở và sửa tiếp (người chốt vẫn phải khác người đã lập ban đầu); không cần thì "Hủy biên bản". Phiếu kiểm soát: "Hủy phiếu" rồi lập phiếu mới | Cơ quan thẩm định |
+| Phiếu hoặc biên bản của người đã nghỉ còn dở | Biên bản "Đang soạn": người khác có quyền lập mở và sửa tiếp (người chốt vẫn phải khác người đã lập ban đầu); không cần thì "Hủy biên bản". Phiếu kiểm tra: "Hủy phiếu" rồi lập phiếu mới | Cơ quan thẩm định |
 | Phiếu xác nhận số liệu chờ mãi, cơ quan chuyên môn không phản hồi | Người yêu cầu mở phiếu, menu ⋯, "Hủy yêu cầu", nhập lý do: nút "Thẩm định" mở lại | Cơ quan thẩm định |
-| Phiếu kiểm soát hoặc biên bản bị "Hết hiệu lực" sau khi hồ sơ đổi | Mở lại, kiểm lại, xác nhận hoặc chốt lại (hướng dẫn sử dụng, [mục 5.5](huong-dan-su-dung.md#55-hết-hiệu-lực-nghĩa-là-gì-và-làm-gì-tiếp)) | Người lập và người xác nhận |
+| Phiếu kiểm tra hoặc biên bản bị "Hết hiệu lực" sau khi hồ sơ đổi | Mở lại, kiểm lại, xác nhận hoặc chốt lại (hướng dẫn sử dụng, [mục 5.5](huong-dan-su-dung.md#55-hết-hiệu-lực-nghĩa-là-gì-và-làm-gì-tiếp)) | Người lập và người xác nhận |
 | Tài khoản người làm bước bị vô hiệu hóa hoặc bị khóa | "Tài khoản", mở chi tiết, "Mở lại tài khoản" hoặc "Mở khóa đăng nhập" | Quản trị hệ thống |
 | Cần xem ai làm gì, lúc nào | Trang hồ sơ, khối "Lịch sử"; hoặc "Nhật ký hệ thống" | Người có quyền xem |
 

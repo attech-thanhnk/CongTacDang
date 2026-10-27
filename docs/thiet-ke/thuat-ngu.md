@@ -32,8 +32,8 @@ Tên biểu mẫu trên giao diện và file xuất có dạng "Mẫu NN — tê
 | 16 | Báo cáo về kết quả đánh giá, xếp loại chất lượng cán bộ quý | giữ nguyên | `16`, `MAU_16` |
 | 17 | Kế hoạch hỗ trợ, khắc phục và phát triển 30-60-90 ngày | giữ nguyên | `17`, `MAU_17` |
 | 18 | Bảng kiểm hồ sơ, quyền truy cập và quản lý phiên bản | Không xuất thành file; ma trận quyền truy cập thể hiện bằng vai trò và quyền (mục 4, 5) | — |
-| 19 | Phiếu kiểm soát tính hợp lệ, công bằng và nhất quán | Phiếu kiểm soát (gọi đầy đủ ở tiêu đề phiếu) | `19`, `MAU_19` |
-| 20 | Biên bản hiệu chuẩn kết quả đánh giá | Biên bản hiệu chuẩn | `20`, `MAU_20` |
+| 19 | Phiếu kiểm soát tính hợp lệ, công bằng và nhất quán | Phiếu kiểm tra (tiêu đề đầy đủ in trên phiếu Word) | `19`, `MAU_19` |
+| 20 | Biên bản hiệu chuẩn kết quả đánh giá | Biên bản họp thống nhất (tiêu đề đầy đủ in trên file Word) | `20`, `MAU_20` |
 | — | Quyết định xếp loại (kèm Phụ lục kết quả) | Quyết định xếp loại cán bộ quý của Đảng ủy (Chi ủy), kèm Phụ lục kết quả | `MAU_QD` |
 
 Ở "Tên trên giao diện", **phiếu** = các mẫu "Phiếu …"; **biên bản** = Mẫu 12, 13, 20; **báo cáo** = Mẫu 06, 07, 08, 16.
@@ -60,7 +60,7 @@ Hành động trên hồ sơ: Duyệt danh mục, Trả lại, Nộp phiếu t�
 
 Trạng thái kỳ đánh giá: **Dự thảo** (cấu hình) → **Đang mở** → **Khóa dữ liệu** (sau điểm chốt dữ liệu; chỉ các bước từ thẩm định trở đi) → **Đã đóng** (`Draft`, `Open`, `Locked`, `Closed`).
 
-Trạng thái phiếu: phiếu xác nhận số liệu (Mẫu 03) — Chờ lập phiếu, Đang lập phiếu, Chờ xác nhận, Đã xác nhận, Đã hủy; phiếu kiểm soát — Đang soạn, Chờ xác nhận, Đã xác nhận, Đã hủy; biên bản hiệu chuẩn — Đang soạn, Đã chốt, Đã hủy.
+Trạng thái phiếu: phiếu xác nhận số liệu (Mẫu 03) — Chờ lập phiếu, Đang lập phiếu, Chờ xác nhận, Đã xác nhận, Đã hủy; phiếu kiểm tra — Đang soạn, Chờ xác nhận, Đã xác nhận, Đã hủy; biên bản họp thống nhất — Đang soạn, Đã chốt, Đã hủy.
 
 ## 3. Mức xếp loại
 
@@ -105,7 +105,7 @@ Quyền hiển thị theo nhóm (phân hệ) và tên bên dưới; **mã quyề
 | `catalog` | Danh mục | đơn vị chính quyền, tổ chức Đảng, loại đơn vị, chức vụ |
 | `period` | Kỳ đánh giá | tạo kỳ, cấu hình, mở/khóa kỳ |
 | `criteria` | Bộ tiêu chí | bộ tiêu chí và thang điểm |
-| `evaluation` | Đánh giá cá nhân | các bước trên hồ sơ, kiến nghị, kế hoạch 30-60-90 ngày, phiếu xác nhận số liệu (Mẫu 03), biên bản hiệu chuẩn (Mẫu 20), phiếu kiểm soát (Mẫu 19) |
+| `evaluation` | Đánh giá cá nhân | các bước trên hồ sơ, kiến nghị, kế hoạch 30-60-90 ngày, phiếu xác nhận số liệu (Mẫu 03), biên bản họp thống nhất (Mẫu 20), phiếu kiểm tra (Mẫu 19) |
 | `collective` | Đánh giá tập thể | hồ sơ tập thể (Mẫu 06–08) |
 | `meeting` | Hội nghị, kiểm phiếu | biên bản hội nghị, kiểm phiếu (Mẫu 12–13) |
 | `report` | Báo cáo | xuất báo cáo tổng hợp (Mẫu 14–16) |
@@ -116,13 +116,13 @@ Quyền theo cặp lập và xác nhận: **Lập** phiếu/biên bản và **X�
 
 Đặt theo diện quyết định; thứ tự kiểm tra: họp thống nhất, kiểm tra. Xác nhận số liệu chỉ chặn thẩm định khi còn phiếu đang mở.
 
-| Cổng | Biểu mẫu (tài liệu gốc) | Tên trên giao diện | Chế độ | Mã |
+| Cổng (tên cũ trong tài liệu gốc) | Biểu mẫu (tài liệu gốc) | Tên trên giao diện | Chế độ | Mã |
 |---|---|---|---|---|
 | Hiệu chuẩn | Mẫu 20 — Biên bản hiệu chuẩn kết quả đánh giá ("trước khi phê duyệt") | Họp thống nhất | Bắt buộc / Chỉ ghi nhận / Tắt | `CALIBRATION` |
 | Kiểm soát | Mẫu 19 — Phiếu kiểm soát tính hợp lệ, công bằng và nhất quán ("trước khi trình phê duyệt") | Kiểm tra trước quyết định | Bắt buộc / Chỉ ghi nhận / Tắt | `CONTROL` |
 | Đối soát | Mẫu 03 — Phiếu ý kiến chuyên môn độc lập / đối soát dữ liệu chuyên ngành ("khi cần") | Xác nhận số liệu | Tùy chọn / Tắt | `CROSSCHECK` |
 
-Menu: **Rà soát** (hai thẻ: **Họp thống nhất** cho biên bản hiệu chuẩn, **Kiểm tra** cho phiếu kiểm soát) và **Xác nhận số liệu** (phiếu xác nhận số liệu, Mẫu 03).
+Menu: **Duyệt kết quả** (hai thẻ: **Họp thống nhất** cho biên bản họp thống nhất, **Kiểm tra** cho phiếu kiểm tra) và **Xác nhận số liệu** (phiếu xác nhận số liệu, Mẫu 03).
 
 ## 7. Tên trong biểu mẫu gốc và đơn vị tại ATTECH
 

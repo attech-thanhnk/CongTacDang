@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/chep-huong-dan.mjs",
     "dev": "next dev -p 3001",
+    "prebuild": "node scripts/chep-huong-dan.mjs",
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "next lint",
@@ -18,7 +20,9 @@
     "primeicons": "^7.0.0",
     "primereact": "^10.8.2",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-markdown": "9.0.1",
+    "remark-gfm": "4.0.0"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",

@@ -10,6 +10,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY frontend/ ./
+# Nguồn duy nhất của trang /help; scripts/chep-huong-dan.mjs (prebuild) đọc ../docs.
+COPY docs/huong-dan-su-dung.md /docs/huong-dan-su-dung.md
 
 # Đảm bảo thư mục public luôn tồn tại để tránh lỗi COPY khi build
 RUN mkdir -p /app/public

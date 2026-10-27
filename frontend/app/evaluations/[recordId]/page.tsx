@@ -644,9 +644,9 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
               ["Người / cơ quan thẩm định", record.appraisedByName],
               ["Ý kiến", record.appraisalComment],
               ["Giải trình chênh lệch", record.appraisalExplanation],
-              ["Mức sau hiệu chuẩn", hasGrade(record.calibratedGrade) ? <GradeBadge grade={record.calibratedGrade} /> : null],
-              ["Điểm sau hiệu chuẩn", hasGrade(record.calibratedGrade) ? record.calibratedScore : null],
-              ["Biên bản hiệu chuẩn", record.calibrationSessionId && hasGrade(record.calibratedGrade)
+              ["Mức sau họp thống nhất", hasGrade(record.calibratedGrade) ? <GradeBadge grade={record.calibratedGrade} /> : null],
+              ["Điểm sau họp thống nhất", hasGrade(record.calibratedGrade) ? record.calibratedScore : null],
+              ["Biên bản họp thống nhất", record.calibrationSessionId && hasGrade(record.calibratedGrade)
                 ? <Link href={`/quality-control/calibrations/${record.calibrationSessionId}`}>Xem biên bản{record.calibratedAt ? ` (${formatDate(record.calibratedAt)})` : ""}</Link>
                 : null],
               ...externalItems("B3B_APPRAISAL"),

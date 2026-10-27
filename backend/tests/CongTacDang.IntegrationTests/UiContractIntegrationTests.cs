@@ -98,7 +98,7 @@ public sealed class UiContractIntegrationTests
         Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
         var message = await MessageAsync(refused);
         Assert.Contains("không thành công", message);
-        Assert.Contains("biên bản hiệu chuẩn", message);
+        Assert.Contains("biên bản họp thống nhất", message);
         // Việc vẫn nằm trong danh sách việc của người quyết định để họ biết cần làm gì.
         await blocked.AssertQueueAsync(w.Office, "B4_DECISION");
 

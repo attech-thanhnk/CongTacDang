@@ -59,7 +59,7 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
             hasPermission("evaluation.crosscheck.confirm"),
         },
         {
-          title: "Rà soát",
+          title: "Duyệt kết quả",
           href: "/quality-control",
           icon: "bi-shield-check",
           check: () =>
@@ -76,6 +76,7 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
           // Người chỉ có quyền xem hội nghị dùng trang này để xuất bảng phiếu kín (Mẫu 11).
           check: () => hasPermission("report.export") || hasPermission("meeting.read"),
         },
+        { title: "Hướng dẫn", href: "/help", icon: "bi-question-circle" },
       ],
     },
     {

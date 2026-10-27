@@ -323,12 +323,12 @@ export interface EvaluationRecordDto {
   directorReviewedByName?: string | null;
   directorReviewedAt?: string | null;
 
-  /** Điểm/mức sau hiệu chuẩn; rỗng khi chưa hiệu chuẩn. */
+  /** Điểm/mức sau họp thống nhất; rỗng khi chưa hiệu chuẩn. */
   calibratedScore?: number | null;
   calibratedGrade?: string;
   calibrationSessionId?: string | null;
   calibratedAt?: string | null;
-  /** Điểm/mức thẩm định, thay bằng kết quả sau hiệu chuẩn nếu có. */
+  /** Điểm/mức thẩm định, thay bằng kết quả sau họp thống nhất nếu có. */
   reviewedScore?: number | null;
   reviewedGrade?: string;
 

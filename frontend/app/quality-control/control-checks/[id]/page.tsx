@@ -68,7 +68,7 @@ const DIALOGS: Record<Exclude<Dialog, null>, { title: string; description: strin
   cancel: { title: "Hủy phiếu", description: "Các hồ sơ trong phiếu được giải phóng để lập phiếu khác.", confirmText: "Hủy phiếu" },
 };
 
-/** Phiếu kiểm soát tính hợp lệ, công bằng và nhất quán: soạn, gửi xác nhận, xác nhận; nút theo cờ do máy chủ trả về. */
+/** Phiếu kiểm tra tính hợp lệ, công bằng và nhất quán: soạn, gửi xác nhận, xác nhận; nút theo cờ do máy chủ trả về. */
 export default function ControlCheckDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { toast, confirm } = useToast();
@@ -91,7 +91,7 @@ export default function ControlCheckDetailPage() {
     try {
       apply(await controlCheckService.get(id));
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Tải phiếu kiểm soát không thành công."));
+      toast.error(errorMessage(err, "Tải phiếu kiểm tra không thành công."));
       setData(null);
     } finally {
       setLoading(false);
@@ -129,7 +129,7 @@ export default function ControlCheckDetailPage() {
     }
   };
 
-  const save = () => data && run(() => controlCheckService.update(data.id, body(data.version)), "Đã lưu phiếu kiểm soát.", "Lưu phiếu kiểm soát không thành công.");
+  const save = () => data && run(() => controlCheckService.update(data.id, body(data.version)), "Đã lưu phiếu kiểm tra.", "Lưu phiếu kiểm tra không thành công.");
 
   const submit = () => {
     if (!data) return;
@@ -144,7 +144,7 @@ export default function ControlCheckDetailPage() {
           try {
             version = (await controlCheckService.update(data.id, body(data.version))).version;
           } catch (err: unknown) {
-            toast.error(errorMessage(err, "Lưu phiếu kiểm soát không thành công."));
+            toast.error(errorMessage(err, "Lưu phiếu kiểm tra không thành công."));
             await load();
             return;
           }
@@ -162,7 +162,7 @@ export default function ControlCheckDetailPage() {
       confirmText: "Xác nhận",
       isDanger: false,
       onConfirm: async () => {
-        await run(() => controlCheckService.confirm(data.id, data.version), "Đã xác nhận phiếu kiểm soát.", "Xác nhận phiếu không thành công.");
+        await run(() => controlCheckService.confirm(data.id, data.version), "Đã xác nhận phiếu kiểm tra.", "Xác nhận phiếu không thành công.");
       },
     });
   };
@@ -183,7 +183,7 @@ export default function ControlCheckDetailPage() {
     try {
       await reportService.exportQualityForm("19", data.id, `Mau_19_${data.id}.docx`, format);
     } catch (err: unknown) {
-      toast.error(errorMessage(err, format === "pdf" ? "Tải PDF không thành công. Hãy tải bản Word hoặc liên hệ quản trị hệ thống." : "Tải phiếu kiểm soát không thành công."));
+      toast.error(errorMessage(err, format === "pdf" ? "Tải PDF không thành công. Hãy tải bản Word hoặc liên hệ quản trị hệ thống." : "Tải phiếu kiểm tra không thành công."));
     }
   };
 
@@ -242,7 +242,7 @@ export default function ControlCheckDetailPage() {
   if (!data || !draft) {
     return (
       <div className="page-wrapper">
-        <PageHeader title="Phiếu kiểm soát" />
+        <PageHeader title="Phiếu kiểm tra" />
         <div className="page-body">
           <EmptyState icon="bi-file-earmark-x" title="Chưa mở được phiếu" description="Phiếu không tồn tại hoặc bạn không có quyền xem." />
         </div>
@@ -264,7 +264,7 @@ export default function ControlCheckDetailPage() {
   return (
     <div className="page-wrapper">
       <PageHeader
-        title="Phiếu kiểm soát"
+        title="Phiếu kiểm tra"
         subTitle={`${data.groupName || "—"} · ${data.periodName}`}
         badge={
           <span className="d-inline-flex gap-1">
@@ -280,7 +280,7 @@ export default function ControlCheckDetailPage() {
               </button>
             )}
             <HeaderMenu
-              itemLabel="phiếu kiểm soát"
+              itemLabel="phiếu kiểm tra"
               disabled={busy}
               actions={[
                 { key: "word", label: "Tải Word", icon: "bi-download", onClick: () => exportForm("original") },
@@ -320,7 +320,7 @@ export default function ControlCheckDetailPage() {
           <div className="card-header"><h2 className="mb-0">Phạm vi</h2></div>
           <div className="card-body d-flex flex-column gap-3">
             <div>
-              <label className="form-label small mb-1" htmlFor="cc19-group">Nhóm chức danh / phạm vi rà soát</label>
+              <label className="form-label small mb-1" htmlFor="cc19-group">Nhóm chức danh / phạm vi kiểm tra</label>
               <input id="cc19-group" className="form-control form-control-sm" maxLength={300} value={draft.groupName} disabled={ro}
                 onChange={(e) => setDraft({ ...draft, groupName: e.target.value })} />
             </div>
@@ -358,7 +358,7 @@ export default function ControlCheckDetailPage() {
         </section>
 
         <section className="card">
-          <div className="card-header"><h2 className="mb-0">Nội dung kiểm soát</h2></div>
+          <div className="card-header"><h2 className="mb-0">Nội dung kiểm tra</h2></div>
           <div className="card-body d-flex flex-column gap-3">
             {data.items.map((item, index) => {
               const d = draft.items.find((x) => x.itemCode === item.itemCode);
@@ -410,7 +410,7 @@ export default function ControlCheckDetailPage() {
         </section>
         <section className="card">
           <div className="card-body">
-            <OwnerAttachments ownerType="ControlCheck" ownerId={data.id} editable={data.canAttach} formCode="M19" subject="phiếu kiểm soát" description="Căn cứ, minh chứng kiểm soát" defaultOpen />
+            <OwnerAttachments ownerType="ControlCheck" ownerId={data.id} editable={data.canAttach} formCode="M19" subject="phiếu kiểm tra" description="Căn cứ, minh chứng kiểm soát" defaultOpen />
           </div>
         </section>
 

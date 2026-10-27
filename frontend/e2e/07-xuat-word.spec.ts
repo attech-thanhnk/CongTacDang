@@ -6,8 +6,8 @@ import { kiemTraDocx, tai } from './xuat-tep';
 // Tải Word bằng nút trên giao diện: tệp tải về phải là .docx hợp lệ, có nội dung và không còn thẻ chưa điền.
 test.describe('Tải Word từ giao diện', () => {
   for (const mau of [
-    { ten: 'biên bản hiệu chuẩn (Mẫu 20)', khoa: 'bienBan20', nguoi: 'loan.ctp', can: [TRUNG.hoTen] },
-    { ten: 'phiếu kiểm soát (Mẫu 19)', khoa: 'phieu19', nguoi: 'loan.ttp', can: ['Trần Thị Phương Loan', 'Phòng Kế hoạch - Kinh doanh'] },
+    { ten: 'biên bản họp thống nhất (Mẫu 20)', khoa: 'bienBan20', nguoi: 'loan.ctp', can: [TRUNG.hoTen] },
+    { ten: 'phiếu kiểm tra (Mẫu 19)', khoa: 'phieu19', nguoi: 'loan.ttp', can: ['Trần Thị Phương Loan', 'Phòng Kế hoạch - Kinh doanh'] },
     { ten: 'phiếu xác nhận số liệu (Mẫu 03)', khoa: 'phieu03', nguoi: 'loan.ctp', can: [DAO.hoTen] },
   ]) {
     test(`xuất ${mau.ten}`, async ({ mo }) => {

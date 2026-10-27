@@ -13,7 +13,7 @@ public enum CalibrationGateState
     /// <summary>Hồ sơ thuộc biên bản đã chốt, còn hiệu lực.</summary>
     Satisfied = 0,
 
-    /// <summary>Hồ sơ chưa thuộc biên bản hiệu chuẩn nào còn hiệu lực.</summary>
+    /// <summary>Hồ sơ chưa thuộc biên bản họp thống nhất nào còn hiệu lực.</summary>
     NoSession = 1,
 
     /// <summary>Biên bản còn đang soạn.</summary>
@@ -31,9 +31,9 @@ public sealed record CalibrationGateResult(CalibrationGateState State, Guid? Ses
     /// <summary>Lý do hiển thị khi chưa đạt; null khi đạt.</summary>
     public string? Reason => State switch
     {
-        CalibrationGateState.NoSession => "Hồ sơ chưa thuộc biên bản hiệu chuẩn nào còn hiệu lực.",
-        CalibrationGateState.Pending => "Biên bản hiệu chuẩn của hồ sơ chưa được chốt.",
-        CalibrationGateState.Stale => "Hồ sơ đã thay đổi sau khi biên bản hiệu chuẩn được chốt; cần chốt lại biên bản.",
+        CalibrationGateState.NoSession => "Hồ sơ chưa thuộc biên bản họp thống nhất nào còn hiệu lực.",
+        CalibrationGateState.Pending => "Biên bản họp thống nhất của hồ sơ chưa được chốt.",
+        CalibrationGateState.Stale => "Hồ sơ đã thay đổi sau khi biên bản họp thống nhất được chốt; cần chốt lại biên bản.",
         _ => null
     };
 }
@@ -80,7 +80,7 @@ public static class ApprovalGatePolicy
     /// <summary>Cổng chặn đầu tiên theo thứ tự hiệu chuẩn rồi kiểm soát; null nếu không bị chặn.</summary>
     public static GateOutcome? FirstBlock(IEnumerable<GateOutcome> outcomes) => outcomes.FirstOrDefault(o => o.Blocks);
 
-    /// <summary>Diện quyết định bắt buộc hiệu chuẩn mà chưa thuộc biên bản đã chốt còn hiệu lực; dùng cho điều kiện thứ tự của phiếu kiểm soát.</summary>
+    /// <summary>Diện quyết định bắt buộc hiệu chuẩn mà chưa thuộc biên bản đã chốt còn hiệu lực; dùng cho điều kiện thứ tự của phiếu kiểm tra.</summary>
     public static List<EvaluationRecord> Uncalibrated(
         PeriodSettings settings, IEnumerable<EvaluationRecord> records, IReadOnlyDictionary<Guid, CalibrationGateResult> results) =>
         records

@@ -136,7 +136,7 @@ const GRADES = GRADE_OPTIONS.filter((g) => g.value !== "ChuaXepLoai");
 
 type Dialog = "reopen" | "void" | null;
 
-/** Biên bản hiệu chuẩn: soạn, chốt, mở lại, hủy; nút theo cờ do máy chủ trả về. */
+/** Biên bản họp thống nhất: soạn, chốt, mở lại, hủy; nút theo cờ do máy chủ trả về. */
 export default function CalibrationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { toast, confirm } = useToast();
@@ -161,7 +161,7 @@ export default function CalibrationDetailPage() {
     try {
       apply(await calibrationService.get(id));
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Tải biên bản hiệu chuẩn không thành công."));
+      toast.error(errorMessage(err, "Tải biên bản họp thống nhất không thành công."));
       setData(null);
     } finally {
       setLoading(false);
@@ -191,13 +191,13 @@ export default function CalibrationDetailPage() {
   };
 
   const save = () =>
-    data && draft && run(() => calibrationService.update(data.id, toRequest(draft, data.version)), "Đã lưu biên bản hiệu chuẩn.", "Lưu biên bản hiệu chuẩn không thành công.");
+    data && draft && run(() => calibrationService.update(data.id, toRequest(draft, data.version)), "Đã lưu biên bản họp thống nhất.", "Lưu biên bản họp thống nhất không thành công.");
 
   const conclude = () => {
     if (!data || !draft) return;
     confirm({
       title: "Chốt biên bản",
-      message: "Kết quả sau hiệu chuẩn sẽ được áp vào các hồ sơ trong biên bản.",
+      message: "Kết quả sau họp thống nhất sẽ được áp vào các hồ sơ trong biên bản.",
       confirmText: "Chốt biên bản",
       isDanger: false,
       onConfirm: async () => {
@@ -206,12 +206,12 @@ export default function CalibrationDetailPage() {
           try {
             version = (await calibrationService.update(data.id, toRequest(draft, data.version))).version;
           } catch (err: unknown) {
-            toast.error(errorMessage(err, "Lưu biên bản hiệu chuẩn không thành công."));
+            toast.error(errorMessage(err, "Lưu biên bản họp thống nhất không thành công."));
             await load();
             return;
           }
         }
-        await run(() => calibrationService.conclude(data.id, version), "Đã chốt biên bản hiệu chuẩn.", "Chốt biên bản không thành công.");
+        await run(() => calibrationService.conclude(data.id, version), "Đã chốt biên bản họp thống nhất.", "Chốt biên bản không thành công.");
       },
     });
   };
@@ -230,7 +230,7 @@ export default function CalibrationDetailPage() {
     try {
       await reportService.exportQualityForm("20", data.id, `Mau_20_${data.id}.docx`, format);
     } catch (err: unknown) {
-      toast.error(errorMessage(err, format === "pdf" ? "Tải PDF không thành công. Hãy tải bản Word hoặc liên hệ quản trị hệ thống." : "Tải biên bản hiệu chuẩn không thành công."));
+      toast.error(errorMessage(err, format === "pdf" ? "Tải PDF không thành công. Hãy tải bản Word hoặc liên hệ quản trị hệ thống." : "Tải biên bản họp thống nhất không thành công."));
     }
   };
 
@@ -263,7 +263,7 @@ export default function CalibrationDetailPage() {
         free.map((r) => ({
           id: r.recordId,
           name: r.fullName,
-          detail: [r.departmentName, r.partyCellName, `Trước hiệu chuẩn: ${gradeLabel(r.gradeBefore)}`].filter(Boolean).join(" · "),
+          detail: [r.departmentName, r.partyCellName, `Trước họp thống nhất: ${gradeLabel(r.gradeBefore)}`].filter(Boolean).join(" · "),
           group: r.workflowProfileName,
           unit: r.departmentName || r.partyCellName || undefined,
         }))
@@ -289,7 +289,7 @@ export default function CalibrationDetailPage() {
   if (!data || !draft) {
     return (
       <div className="page-wrapper">
-        <PageHeader title="Biên bản hiệu chuẩn" />
+        <PageHeader title="Biên bản họp thống nhất" />
         <div className="page-body">
           <EmptyState icon="bi-file-earmark-x" title="Chưa mở được biên bản" description="Biên bản không tồn tại hoặc bạn không có quyền xem." />
         </div>
@@ -320,7 +320,7 @@ export default function CalibrationDetailPage() {
   return (
     <div className="page-wrapper">
       <PageHeader
-        title="Biên bản hiệu chuẩn"
+        title="Biên bản họp thống nhất"
         subTitle={`${data.groupName || "—"} · ${data.periodName}`}
         badge={<Badge tone={CALIBRATION_STATUS_TONES[data.status] ?? "neutral"}>{data.statusName}</Badge>}
         actions={
@@ -331,7 +331,7 @@ export default function CalibrationDetailPage() {
               </button>
             )}
             <HeaderMenu
-              itemLabel="biên bản hiệu chuẩn"
+              itemLabel="biên bản họp thống nhất"
               disabled={busy}
               actions={[
                 { key: "word", label: "Tải Word", icon: "bi-download", onClick: () => exportForm("original") },
@@ -408,7 +408,7 @@ export default function CalibrationDetailPage() {
 
         <section className="card">
           <div className="card-header d-flex justify-content-between align-items-center gap-2">
-            <h2 className="mb-0">Hồ sơ hiệu chuẩn</h2>
+            <h2 className="mb-0">Hồ sơ trong biên bản</h2>
             {!ro && <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy} onClick={openPicker}>Thêm hồ sơ</button>}
           </div>
           <div className="card-body">
@@ -423,7 +423,7 @@ export default function CalibrationDetailPage() {
                         <th>Cán bộ</th>
                         <th>Mức trước</th>
                         <th className="text-end">Điểm trước</th>
-                        <th>Sau hiệu chuẩn</th>
+                        <th>Sau họp thống nhất</th>
                         {!ro && <th />}
                       </tr>
                     </thead>
@@ -511,7 +511,7 @@ export default function CalibrationDetailPage() {
         </section>
 
         <section className="card">
-          <div className="card-header"><h2 className="mb-0">Kết quả rà soát chung</h2></div>
+          <div className="card-header"><h2 className="mb-0">Kết quả chung</h2></div>
           <div className="card-body">
             <div className="table-responsive d-none d-md-block">
               <table className="table table-sm align-middle mb-0">
@@ -630,7 +630,7 @@ export default function CalibrationDetailPage() {
                         onChange={(e) => setCase(c.recordId, { clarification: e.target.value })} />
                     </div>
                     <div className="col-12 col-md-5">
-                      <label className="form-label small mb-1" htmlFor={`${key}-gr`}>Mức sau hiệu chuẩn</label>
+                      <label className="form-label small mb-1" htmlFor={`${key}-gr`}>Mức sau họp thống nhất</label>
                       <select id={`${key}-gr`} className="form-select form-select-sm" value={c.gradeAfter} disabled={ro} onChange={(e) => setCase(c.recordId, { gradeAfter: e.target.value })}>
                         <option value="">Giữ mức trước</option>
                         {GRADES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}

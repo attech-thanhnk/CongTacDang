@@ -333,7 +333,7 @@ function GradeCommentForm({ record, criteria, busy, defaultGrade, submitText, ex
   const [grade, setGrade] = useState(initialGrade(defaultGrade));
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
-  // Điểm thẩm định, thay bằng điểm sau hiệu chuẩn nếu có (cùng nguồn với máy chủ).
+  // Điểm thẩm định, thay bằng điểm sau họp thống nhất nếu có (cùng nguồn với máy chủ).
   const check = proposalCheck(record, criteria, grade, record.reviewedScore ?? record.appraisalScore ?? record.totalSelfScore);
   const submit = (e: React.FormEvent) => {
     e.preventDefault();

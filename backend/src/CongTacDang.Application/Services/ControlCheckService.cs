@@ -14,7 +14,7 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
-/// <summary>Phiếu kiểm soát tính hợp lệ, công bằng và nhất quán (Mẫu 19).</summary>
+/// <summary>Phiếu kiểm tra tính hợp lệ, công bằng và nhất quán (Mẫu 19).</summary>
 public interface IControlCheckService
 {
     /// <summary>Phiếu trong phạm vi người xem; chủ hồ sơ không thấy phiếu chứa hồ sơ của mình.</summary>
@@ -73,10 +73,10 @@ public sealed record ControlGateResult(ControlGateState State, Guid? CheckId)
     /// <summary>Lý do hiển thị khi chưa đạt; null khi đạt.</summary>
     public string? Reason => State switch
     {
-        ControlGateState.NoCheck => "Hồ sơ chưa thuộc phiếu kiểm soát nào còn hiệu lực.",
-        ControlGateState.Pending => "Phiếu kiểm soát của hồ sơ chưa được xác nhận.",
-        ControlGateState.NeedsWork => "Phiếu kiểm soát kết luận cần hoàn thiện trước khi trình.",
-        ControlGateState.Stale => "Hồ sơ đã thay đổi sau khi phiếu kiểm soát được xác nhận; cần xác nhận lại phiếu.",
+        ControlGateState.NoCheck => "Hồ sơ chưa thuộc phiếu kiểm tra nào còn hiệu lực.",
+        ControlGateState.Pending => "Phiếu kiểm tra của hồ sơ chưa được xác nhận.",
+        ControlGateState.NeedsWork => "Phiếu kiểm tra kết luận cần hoàn thiện trước khi trình.",
+        ControlGateState.Stale => "Hồ sơ đã thay đổi sau khi phiếu kiểm tra được xác nhận; cần xác nhận lại phiếu.",
         _ => null
     };
 }
@@ -274,18 +274,18 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         ArgumentNullException.ThrowIfNull(request);
         var groupName = request.GroupName?.Trim();
         if (string.IsNullOrEmpty(groupName))
-            throw new ValidationException("Hãy nhập nhóm chức danh/phạm vi rà soát.");
+            throw new ValidationException("Hãy nhập nhóm chức danh/phạm vi kiểm tra.");
         if (groupName.Length > ControlCheckRules.MaxGroupNameLength)
-            throw new ValidationException($"Nhóm chức danh/phạm vi rà soát không được dài quá {ControlCheckRules.MaxGroupNameLength} ký tự.");
+            throw new ValidationException($"Nhóm chức danh/phạm vi kiểm tra không được dài quá {ControlCheckRules.MaxGroupNameLength} ký tự.");
         var ids = (request.RecordIds ?? new List<Guid>()).Distinct().ToList();
         if (ids.Count == 0)
-            throw new ValidationException("Hãy chọn ít nhất một hồ sơ cho phiếu kiểm soát.");
+            throw new ValidationException("Hãy chọn ít nhất một hồ sơ cho phiếu kiểm tra.");
 
         var records = await LoadRecordsAsync(ids, ct);
         if (records.Any(r => r.PeriodId != request.PeriodId))
             throw new ValidationException("Mọi hồ sơ trong phiếu phải thuộc kỳ đánh giá đã chọn.");
         if (records[0].Period.Status != PeriodStatus.Open)
-            throw new ConflictException("Chỉ lập phiếu kiểm soát khi kỳ đánh giá đang mở.");
+            throw new ConflictException("Chỉ lập phiếu kiểm tra khi kỳ đánh giá đang mở.");
         EnsureNotOwner(records);
         EnsureAll(PermissionCodes.EvaluationControlPerform, records);
         EnsureAwaitingDecision(records);
@@ -337,9 +337,9 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         {
             var groupName = request.GroupName.Trim();
             if (groupName.Length == 0)
-                throw new ValidationException("Hãy nhập nhóm chức danh/phạm vi rà soát.");
+                throw new ValidationException("Hãy nhập nhóm chức danh/phạm vi kiểm tra.");
             if (groupName.Length > ControlCheckRules.MaxGroupNameLength)
-                throw new ValidationException($"Nhóm chức danh/phạm vi rà soát không được dài quá {ControlCheckRules.MaxGroupNameLength} ký tự.");
+                throw new ValidationException($"Nhóm chức danh/phạm vi kiểm tra không được dài quá {ControlCheckRules.MaxGroupNameLength} ký tự.");
             check.GroupName = groupName;
         }
 
@@ -347,7 +347,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         {
             var item = check.Items.FirstOrDefault(i => i.ItemCode == input.ItemCode?.Trim());
             if (item == null)
-                throw new ValidationException($"Mục kiểm soát \"{input.ItemCode}\" không tồn tại.");
+                throw new ValidationException($"Mục kiểm tra \"{input.ItemCode}\" không tồn tại.");
             var evidence = input.Evidence?.Trim();
             if (evidence is { Length: > ControlCheckRules.MaxTextLength })
                 throw new ValidationException($"Minh chứng/biện pháp của mục {item.ItemCode} không được dài quá {ControlCheckRules.MaxTextLength} ký tự.");
@@ -388,7 +388,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
             throw new ValidationException("Phiếu chưa có hồ sơ nào.");
         var released = check.Records.Where(r => !r.IsCurrent).Select(r => r.Record.Member?.FullName).ToList();
         if (released.Count > 0)
-            throw new ConflictException($"Hồ sơ đã thuộc phiếu kiểm soát khác: {string.Join(", ", released)}. Hãy gỡ khỏi phiếu này.");
+            throw new ConflictException($"Hồ sơ đã thuộc phiếu kiểm tra khác: {string.Join(", ", released)}. Hãy gỡ khỏi phiếu này.");
         var error = ControlCheckRules.ValidateForSubmit(
             check.Items.Select(i => (i.ItemCode, i.Result, i.Evidence)).ToList(), check.Conclusion, check.NeedsWorkContent);
         if (error != null)
@@ -425,9 +425,9 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         if (check.Status != ControlCheckStatus.Submitted)
             throw new ConflictException("Chỉ xác nhận được phiếu đang chờ xác nhận.");
         if (_currentUser.UserId is null || _currentUser.UserId == check.PerformedById)
-            throw new ForbiddenException("Người xác nhận phải khác người lập phiếu kiểm soát.");
+            throw new ForbiddenException("Người xác nhận phải khác người lập phiếu kiểm tra.");
         if (check.Records.Any(r => !r.IsCurrent))
-            throw new ConflictException("Phiếu có hồ sơ đã thuộc phiếu kiểm soát khác. Hãy trả lại phiếu để người lập gỡ hồ sơ đó.");
+            throw new ConflictException("Phiếu có hồ sơ đã thuộc phiếu kiểm tra khác. Hãy trả lại phiếu để người lập gỡ hồ sơ đó.");
         await EnsureCalibratedAsync(check, "Xác nhận phiếu", ct);
 
         var now = DateTime.UtcNow;
@@ -534,7 +534,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
 
     #endregion
 
-    /// <summary>Diện quyết định bắt buộc hiệu chuẩn thì mọi hồ sơ trong phiếu phải thuộc biên bản hiệu chuẩn đã chốt.</summary>
+    /// <summary>Diện quyết định bắt buộc hiệu chuẩn thì mọi hồ sơ trong phiếu phải thuộc biên bản họp thống nhất đã chốt.</summary>
     private async Task EnsureCalibratedAsync(ControlCheck check, string action, CancellationToken ct)
     {
         if (_calibrationGate == null || check.Records.Count == 0)
@@ -556,7 +556,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         var missing = ApprovalGatePolicy.Uncalibrated(settings, current, results)
             .Select(r => r.Member?.FullName ?? r.Id.ToString()).ToList();
         if (missing.Count > 0)
-            throw new ConflictException($"{action} không thành công: hồ sơ của {string.Join(", ", missing)} chưa thuộc biên bản hiệu chuẩn đã chốt còn hiệu lực.");
+            throw new ConflictException($"{action} không thành công: hồ sơ của {string.Join(", ", missing)} chưa thuộc biên bản họp thống nhất đã chốt còn hiệu lực.");
     }
 
     #region Cổng kiểm soát
@@ -618,7 +618,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
     #region Hỗ trợ
 
     private async Task<ControlCheck> RequireAsync(Guid id, CancellationToken ct) =>
-        await _repo.FindAsync(id, ct) ?? throw new NotFoundException($"Không tìm thấy phiếu kiểm soát với Id: {id}.");
+        await _repo.FindAsync(id, ct) ?? throw new NotFoundException($"Không tìm thấy phiếu kiểm tra với Id: {id}.");
 
     private async Task<ControlCheckDto> ReloadAsync(Guid id, CancellationToken ct) => await BuildAsync(await RequireAsync(id, ct), ct);
 
@@ -637,24 +637,24 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
     private void EnsureNoOwnRecord(ControlCheck check)
     {
         if (HasOwnRecord(check, _currentUser.UserId))
-            throw new ForbiddenException("Bạn không được thao tác trên phiếu kiểm soát có hồ sơ của chính mình (xung đột lợi ích).");
+            throw new ForbiddenException("Bạn không được thao tác trên phiếu kiểm tra có hồ sơ của chính mình (xung đột lợi ích).");
     }
 
     private void EnsureNotOwner(IEnumerable<EvaluationRecord> records)
     {
         if (_currentUser.UserId is { } me && records.Any(r => r.MemberId == me))
-            throw new ForbiddenException("Bạn không được lập phiếu kiểm soát có hồ sơ của chính mình (xung đột lợi ích).");
+            throw new ForbiddenException("Bạn không được lập phiếu kiểm tra có hồ sơ của chính mình (xung đột lợi ích).");
     }
 
     private void EnsureCanView(ControlCheck check)
     {
         if (HasOwnRecord(check, _currentUser.UserId))
-            throw new ForbiddenException("Bạn không được xem phiếu kiểm soát có hồ sơ của chính mình.");
+            throw new ForbiddenException("Bạn không được xem phiếu kiểm tra có hồ sơ của chính mình.");
         var target = new AccessTarget(null, check.DepartmentId, check.PartyCellId);
         if (!_guard.Can(PermissionCodes.EvaluationControlPerform, target)
             && !_guard.Can(PermissionCodes.EvaluationControlConfirm, target)
             && !_guard.Can(PermissionCodes.EvaluationRead, target))
-            throw new ForbiddenException("Bạn không có quyền xem phiếu kiểm soát này.");
+            throw new ForbiddenException("Bạn không có quyền xem phiếu kiểm tra này.");
     }
 
     private static bool HasOwnRecord(ControlCheck check, Guid? me) =>
@@ -688,12 +688,12 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         row.ScoreAtCheck = record.EffectiveScore();
     }
 
-    /// <summary>Phiếu kiểm soát chỉ lập cho hồ sơ đã tới bước quyết định, khớp danh sách hồ sơ ứng viên.</summary>
+    /// <summary>Phiếu kiểm tra chỉ lập cho hồ sơ đã tới bước quyết định, khớp danh sách hồ sơ ứng viên.</summary>
     private static void EnsureAwaitingDecision(IEnumerable<EvaluationRecord> records)
     {
         var early = records.FirstOrDefault(r => r.Status != RecordStatus.AwaitingDecision);
         if (early != null)
-            throw new ConflictException($"Lập phiếu kiểm soát không thành công: hồ sơ của {early.Member?.FullName ?? "cán bộ"} chưa tới bước chờ quyết định.");
+            throw new ConflictException($"Lập phiếu kiểm tra không thành công: hồ sơ của {early.Member?.FullName ?? "cán bộ"} chưa tới bước chờ quyết định.");
     }
 
     /// <summary>Hồ sơ đang thuộc phiếu khác: nhả nếu phiếu đó đã hết hiệu lực, ngược lại báo lỗi.</summary>
@@ -710,7 +710,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         {
             var names = blocked.Select(r => records.First(x => x.Id == r.RecordId).Member?.FullName ?? r.RecordId.ToString());
             throw new ConflictException(
-                $"Hồ sơ đã thuộc phiếu kiểm soát khác còn hiệu lực: {string.Join(", ", names)}. Hãy hủy hoặc gỡ hồ sơ khỏi phiếu đó trước.");
+                $"Hồ sơ đã thuộc phiếu kiểm tra khác còn hiệu lực: {string.Join(", ", names)}. Hãy hủy hoặc gỡ hồ sơ khỏi phiếu đó trước.");
         }
 
         foreach (var row in rows)
