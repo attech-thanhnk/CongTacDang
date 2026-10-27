@@ -42,7 +42,7 @@ test.describe('Mở các trang chính theo từng vai', () => {
     await quanTri.waitForLoadState('networkidle');
 
     await quanTri.goto('/admin/roles');
-    await quanTri.getByRole('link', { name: /Lãnh đạo Phòng/ }).first().click();
+    await quanTri.getByRole('link', { name: /Lãnh đạo đơn vị/ }).first().click();
     await expect(quanTri).toHaveURL(/\/admin\/roles\/[0-9a-f-]{36}/);
     await expect(quanTri.locator('h1').first()).toBeVisible();
     await quanTri.waitForLoadState('networkidle');
