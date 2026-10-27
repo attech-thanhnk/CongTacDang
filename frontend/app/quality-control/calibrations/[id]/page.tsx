@@ -224,12 +224,12 @@ export default function CalibrationDetailPage() {
     if (ok) setDialog(null);
   };
 
-  const exportWord = async () => {
+  const exportForm = async (format: "original" | "pdf") => {
     if (!data) return;
     try {
-      await reportService.exportQualityForm("20", data.id, `Mau_20_${data.id}.docx`);
+      await reportService.exportQualityForm("20", data.id, `Mau_20_${data.id}.docx`, format);
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Xuất biên bản hiệu chuẩn không thành công."));
+      toast.error(errorMessage(err, format === "pdf" ? "Xuất PDF không thành công. Hãy tải bản Word hoặc liên hệ quản trị hệ thống." : "Xuất biên bản hiệu chuẩn không thành công."));
     }
   };
 
@@ -333,7 +333,8 @@ export default function CalibrationDetailPage() {
               itemLabel="biên bản hiệu chuẩn"
               disabled={busy}
               actions={[
-                { key: "word", label: "Xuất Word", icon: "bi-download", onClick: exportWord },
+                { key: "word", label: "Xuất Word", icon: "bi-download", onClick: () => exportForm("original") },
+                { key: "pdf", label: "Xuất PDF", icon: "bi-filetype-pdf", onClick: () => exportForm("pdf") },
                 { key: "reopen", label: "Mở lại", icon: "bi-arrow-counterclockwise", hidden: !data.canReopen, onClick: () => setDialog("reopen") },
                 { key: "void", label: "Hủy biên bản", icon: "bi-x-circle", danger: true, hidden: !data.canVoid, onClick: () => setDialog("void") },
               ]}
