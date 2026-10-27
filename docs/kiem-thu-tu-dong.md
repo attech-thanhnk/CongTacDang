@@ -34,7 +34,7 @@ powershell -File frontend/e2e/chay-e2e.ps1 -Up                # chỉ dựng mô
 powershell -File frontend/e2e/chay-e2e.ps1 -Down              # dừng môi trường dựng bằng -Up, xóa CSDL thử
 ```
 
-Lần chạy đầy đủ mất khoảng 5 đến 6 phút (dựng môi trường khoảng 30 giây, các kịch bản khoảng 4 phút). Mã thoát của script là mã thoát của Playwright (0 là đạt hết).
+Lần chạy đầy đủ mất khoảng 5 phút (dựng môi trường khoảng 30 giây, 79 kịch bản khoảng 4 phút). Mã thoát của script là mã thoát của Playwright (0 là đạt hết).
 
 Script làm lần lượt:
 

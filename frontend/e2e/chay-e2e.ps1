@@ -148,11 +148,11 @@ UPDATE organization_settings
     Write-Step 'Chạy Playwright'
     $env:E2E_BASE_URL = "http://localhost:$WebPort"
     $env:E2E_PASSWORD = $Password
-    $args = @('playwright', 'test')
-    if ($Grep) { $args += @('--grep', $Grep) }
-    if ($Headed) { $args += '--headed' }
+    $pwArgs = @('playwright', 'test')
+    if ($Grep) { $pwArgs += @('--grep', $Grep) }
+    if ($Headed) { $pwArgs += '--headed' }
     Push-Location $frontendDir
-    try { & npx @args; $exit = $LASTEXITCODE } finally { Pop-Location }
+    try { & npx.cmd @pwArgs; $exit = $LASTEXITCODE } finally { Pop-Location }
 }
 catch {
     Write-Host "LỖI: $_" -ForegroundColor Red
