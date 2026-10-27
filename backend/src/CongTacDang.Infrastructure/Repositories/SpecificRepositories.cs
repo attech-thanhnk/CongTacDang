@@ -511,19 +511,19 @@ public class AuditRepository : IAuditRepository
         _db = db;
     }
 
-    /// <summary>Số đếm tính trên toàn bộ bản ghi khớp bộ lọc.</summary>
+    /// <summary>Tổng và số người thao tác tính trên bản ghi khớp mọi bộ lọc; số đếm theo thao tác bỏ qua bộ lọc thao tác.</summary>
     public async Task<AuditLogSearchResult> SearchAuditLogsAsync(AuditLogCriteria criteria, CancellationToken ct = default)
     {
         var all = _db.AuditLogs.AsNoTracking();
-        var query = all;
+        var scoped = all;
         if (!string.IsNullOrWhiteSpace(criteria.EntityType))
-            query = query.Where(x => x.EntityType == criteria.EntityType);
+            scoped = scoped.Where(x => x.EntityType == criteria.EntityType);
         if (!string.IsNullOrWhiteSpace(criteria.EntityId))
-            query = query.Where(x => x.EntityId == criteria.EntityId);
-        if (!string.IsNullOrWhiteSpace(criteria.Action))
-            query = query.Where(x => x.Action == criteria.Action);
+            scoped = scoped.Where(x => x.EntityId == criteria.EntityId);
+        var query = string.IsNullOrWhiteSpace(criteria.Action) ? scoped : scoped.Where(x => x.Action == criteria.Action);
 
-        var actionCounts = await query
+        // Số đếm theo thao tác không áp bộ lọc thao tác, để ô số liệu và danh sách thao tác vẫn đủ khi đang lọc một loại.
+        var actionCounts = await scoped
             .GroupBy(x => x.Action)
             .Select(g => new { Action = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Action, x => x.Count, ct);
@@ -542,7 +542,7 @@ public class AuditRepository : IAuditRepository
         return new AuditLogSearchResult
         {
             Items = items,
-            TotalCount = actionCounts.Values.Sum(),
+            TotalCount = await query.CountAsync(ct),
             ActionCounts = actionCounts,
             ActorCount = actorCount,
             EntityTypes = entityTypes
