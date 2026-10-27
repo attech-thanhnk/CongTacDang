@@ -105,6 +105,7 @@
   /* Khung */
   --sidebar-w: 232px;
   --sidebar-rail-w: 64px;
+  --side-t: 0.2s ease;
   --header-h:  52px;
   --content-max: 1600px;
 
@@ -313,14 +314,18 @@ aside.app-sidebar {
   height: 100vh;
   z-index: 1045;
   padding: 20px 12px 12px;
-  transition: transform var(--transition-slow), width var(--transition-slow), min-width var(--transition-slow), padding var(--transition-slow);
+  overflow-x: hidden;
+  will-change: width;
+  transition: transform var(--transition-slow), width var(--side-t), min-width var(--side-t);
 }
 
 .side-brand {
   display: flex;
   gap: 10px;
   align-items: center;
-  padding: 0 8px 18px;
+  /* Biểu tượng nằm giữa cột 64px ở cả hai trạng thái. */
+  padding: 0 1px 18px;
+  overflow: hidden;
 }
 
 .side-emblem {
@@ -341,8 +346,9 @@ aside.app-sidebar {
 }
 
 .side-brand-text {
-  flex: 1;
-  min-width: 0;
+  flex: none;
+  width: 157px;
+  transition: opacity var(--side-t);
 }
 
 .side-brand-text .t1 {
@@ -391,9 +397,10 @@ aside.app-sidebar {
 .side-nav a {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 10px;
+  gap: 0;
+  padding: 7px 0;
   border-radius: 10px;
+  overflow: hidden;
   color: var(--ink-2);
   text-decoration: none;
   font-weight: 500;
@@ -418,9 +425,15 @@ aside.app-sidebar {
   outline-offset: 2px;
 }
 
+.side-label {
+  white-space: nowrap;
+  padding-left: 2px;
+  transition: opacity var(--side-t), transform var(--side-t);
+}
+
 .side-nav a i {
   font-size: 16px;
-  width: 18px;
+  width: 40px;
   text-align: center;
   flex: none;
 }
@@ -430,14 +443,31 @@ aside.app-sidebar {
 }
 
 .side-grp {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  height: 36px;
   font-size: 12.5px;
   color: var(--ink-3);
-  padding: 14px 10px 5px;
+  padding: 0 10px 6px;
+  white-space: nowrap;
+}
+
+/* Đường kẻ mảnh hiện thay tiêu đề khi thu gọn. */
+.side-grp::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 12px;
+  border-top: 1px solid var(--rule);
+  opacity: 0;
+  transition: opacity var(--side-t);
 }
 
 .side-grp-toggle {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   width: 100%;
   border: 0;
@@ -457,6 +487,7 @@ aside.app-sidebar {
 
 .side-grp-toggle i {
   font-size: 11px;
+  transition: opacity var(--side-t);
 }
 
 .side-grp-toggle:disabled i {
@@ -477,59 +508,43 @@ aside.app-sidebar {
   border: 1px solid var(--rule);
 }
 
-/* Nhãn mục chỉ ẩn bằng cách thu nhỏ, vẫn nằm trong cây truy cập. */
+/* Thu gọn (từ 768px): chỉ đổi độ rộng, độ mờ của nhãn và đường kẻ; biểu tượng đứng yên. Nhãn vẫn nằm trong cây truy cập. */
 @media (min-width: 768px) {
   aside.app-sidebar.sidebar-rail {
     width: var(--sidebar-rail-w);
     min-width: var(--sidebar-rail-w);
-    padding: 20px 8px 12px;
-  }
-
-  .sidebar-rail .side-brand {
-    justify-content: center;
-    padding: 0 0 18px;
   }
 
   .sidebar-rail .side-brand-text,
+  .sidebar-rail .side-label,
   .sidebar-rail .side-grp-toggle i {
-    display: none;
+    opacity: 0;
+    pointer-events: none;
   }
 
   .sidebar-rail .side-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
+    transform: translateX(-6px);
   }
 
-  .sidebar-rail .side-nav a {
-    justify-content: center;
-    padding: 9px 0;
+  .sidebar-rail .side-grp::before {
+    opacity: 1;
   }
 
   .sidebar-rail .side-nav a.grp-closed {
     display: flex;
   }
 
-  .sidebar-rail .side-nav a i {
-    font-size: 18px;
-    width: auto;
-  }
-
-  /* Tiêu đề nhóm thu thành đường kẻ mảnh. */
-  .sidebar-rail .side-grp {
-    height: 0;
-    padding: 0;
-    margin: 8px 6px;
-    border-top: 1px solid var(--rule);
+  .sidebar-rail .side-grp-toggle {
     pointer-events: none;
   }
+}
 
-  .sidebar-rail .side-grp-toggle {
-    width: auto;
-    border-radius: 0;
+@media (prefers-reduced-motion: reduce) {
+  aside.app-sidebar,
+  .side-brand-text,
+  .side-label,
+  .side-grp::before {
+    transition: none !important;
   }
 }
 
