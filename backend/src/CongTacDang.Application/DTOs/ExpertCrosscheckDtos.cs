@@ -84,6 +84,8 @@ public class ExpertCrosscheckDto : ExpertCrosscheckSummaryDto
 
     /// <summary>Sửa được nội dung yêu cầu (lĩnh vực, lý do, các dòng cần đối soát): có <c>crosscheck.request</c>, phiếu chưa được lập.</summary>
     public bool CanEditRequest { get; set; }
+    /// <summary>Tải lên / thay / gỡ tệp đính kèm: người sửa được phiếu, phiếu chưa gửi và kỳ đang mở.</summary>
+    public bool CanAttach { get; set; }
     /// <summary>Nhập kết quả đối soát.</summary>
     public bool CanRespond { get; set; }
     /// <summary>Gửi xác nhận.</summary>

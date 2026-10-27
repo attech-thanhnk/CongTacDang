@@ -322,6 +322,101 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
         return rows.ToDictionary(r => r.Id, r => new CollectiveAttachmentOwner(r.Id, r.DepartmentId, r.PartyCellId, r.Closed));
     }
 
+    /// <summary>Quy tắc xem/sửa dựng theo cùng điều kiện với service của từng phiếu; phiếu đã xóa mềm bị bộ lọc toàn cục loại ra.</summary>
+    public async Task<Dictionary<Guid, FormAttachmentOwner>> GetFormOwnersAsync(string ownerType, IReadOnlyCollection<Guid> ownerIds)
+    {
+        var result = new Dictionary<Guid, FormAttachmentOwner>();
+        if (ownerIds.Count == 0)
+            return result;
+        var ids = ownerIds.Distinct().ToList();
+
+        if (ownerType == AttachmentOwnerTypes.ExpertCrosscheck)
+        {
+            var rows = await _db.Set<ExpertCrosscheck>().AsNoTracking()
+                .Include(c => c.Record)
+                .Where(c => ids.Contains(c.Id))
+                .ToListAsync();
+            var open = await OpenPeriodIdsAsync(rows.Select(c => c.PeriodId));
+            foreach (var c in rows)
+            {
+                var record = AccessTarget.ForRecord(c.Record);
+                var expert = c.ExpertDepartmentId.HasValue
+                    ? new AccessTarget(DepartmentId: c.ExpertDepartmentId)
+                    : new AccessTarget(DepartmentId: c.DepartmentId, PartyCellId: c.PartyCellId);
+                var view = new List<AttachmentPermissionRule>
+                {
+                    new(PermissionCodes.EvaluationRead, new[] { record }),
+                    new(PermissionCodes.EvaluationCrosscheckRequest, new[] { record }),
+                    new(PermissionCodes.EvaluationCrosscheckRespond, new[] { expert }),
+                    new(PermissionCodes.EvaluationCrosscheckConfirm, new[] { expert })
+                };
+                // Cơ quan ngoài hệ thống do người yêu cầu nhập thay nên không có quyền lập riêng.
+                var edit = new List<AttachmentPermissionRule> { new(PermissionCodes.EvaluationCrosscheckRequest, new[] { record }) };
+                if (c.ExpertDepartmentId.HasValue)
+                    edit.Add(new(PermissionCodes.EvaluationCrosscheckRespond, new[] { expert }));
+                result[c.Id] = new FormAttachmentOwner(
+                    c.Id, ownerType, new[] { c.Record.MemberId },
+                    (c.Status is CrosscheckStatus.Requested or CrosscheckStatus.InProgress) && open.Contains(c.PeriodId),
+                    view, edit);
+            }
+        }
+        else if (ownerType == AttachmentOwnerTypes.ControlCheck)
+        {
+            var rows = await _db.Set<ControlCheck>().AsNoTracking()
+                .Include(c => c.Records).ThenInclude(r => r.Record)
+                .Where(c => ids.Contains(c.Id))
+                .ToListAsync();
+            var open = await OpenPeriodIdsAsync(rows.Select(c => c.PeriodId));
+            foreach (var c in rows)
+            {
+                var unit = new AccessTarget(DepartmentId: c.DepartmentId, PartyCellId: c.PartyCellId);
+                var records = c.Records.Select(r => r.Record).ToList();
+                result[c.Id] = new FormAttachmentOwner(
+                    c.Id, ownerType, records.Select(r => r.MemberId).ToList(),
+                    c.Status == ControlCheckStatus.Draft && open.Contains(c.PeriodId),
+                    ViewRules(unit, PermissionCodes.EvaluationControlPerform, PermissionCodes.EvaluationControlConfirm),
+                    new List<AttachmentPermissionRule>
+                    {
+                        new(PermissionCodes.EvaluationControlPerform, records.Select(r => AccessTarget.ForRecord(r).ForWrite()).ToList())
+                    });
+            }
+        }
+        else if (ownerType == AttachmentOwnerTypes.CalibrationSession)
+        {
+            var rows = await _db.Set<CalibrationSession>().AsNoTracking()
+                .Include(s => s.Records).ThenInclude(r => r.Record)
+                .Where(s => ids.Contains(s.Id))
+                .ToListAsync();
+            var open = await OpenPeriodIdsAsync(rows.Select(s => s.PeriodId));
+            foreach (var s in rows)
+            {
+                var unit = new AccessTarget(DepartmentId: s.DepartmentId, PartyCellId: s.PartyCellId);
+                result[s.Id] = new FormAttachmentOwner(
+                    s.Id, ownerType, s.Records.Select(r => r.Record.MemberId).ToList(),
+                    s.Status == CalibrationStatus.Draft && open.Contains(s.PeriodId),
+                    ViewRules(unit, PermissionCodes.EvaluationCalibrationManage, PermissionCodes.EvaluationCalibrationConclude),
+                    new List<AttachmentPermissionRule>
+                    {
+                        new(PermissionCodes.EvaluationCalibrationManage, new[] { AccessTarget.ForUnitsWrite(s.DepartmentId, s.PartyCellId) })
+                    });
+            }
+        }
+        return result;
+    }
+
+    private static List<AttachmentPermissionRule> ViewRules(AccessTarget unit, params string[] permissions) =>
+        permissions.Append(PermissionCodes.EvaluationRead).Select(p => new AttachmentPermissionRule(p, new[] { unit })).ToList();
+
+    private async Task<HashSet<Guid>> OpenPeriodIdsAsync(IEnumerable<Guid> periodIds)
+    {
+        var ids = periodIds.Distinct().ToList();
+        var open = await _db.Set<EvaluationPeriod>().AsNoTracking()
+            .Where(p => ids.Contains(p.Id) && p.Status == PeriodStatus.Open)
+            .Select(p => p.Id)
+            .ToListAsync();
+        return open.ToHashSet();
+    }
+
     /// <summary>Qua RecordId hoặc qua nhiệm vụ.</summary>
     public async Task<Dictionary<Guid, List<AttachmentRecordLink>>> GetRecordLinksAsync(IReadOnlyCollection<TaskAttachment> attachments)
     {

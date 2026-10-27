@@ -19,17 +19,21 @@ public static class AttachmentOwnerTypes
     /// <summary>Hồ sơ tập thể (Mẫu 06/07/08); tải lên/thay/gỡ cần <c>collective.manage</c> và kỳ chưa đóng.</summary>
     public const string CollectiveEvaluationRecord = "CollectiveEvaluationRecord";
 
-    /// <summary>Phiếu đối soát chuyên ngành (Mẫu 03); chưa cho client truyền tới khi service phiếu có quy tắc phạm vi.</summary>
+    /// <summary>Phiếu đối soát chuyên ngành (Mẫu 03); xem theo quyền xem phiếu, sửa khi phiếu còn sửa được.</summary>
     public const string ExpertCrosscheck = "ExpertCrosscheck";
 
-    /// <summary>Phiếu kiểm soát (Mẫu 19); chưa cho client truyền tới khi service phiếu có quy tắc phạm vi.</summary>
+    /// <summary>Phiếu kiểm soát (Mẫu 19); xem theo quyền xem phiếu, sửa khi phiếu còn sửa được.</summary>
     public const string ControlCheck = "ControlCheck";
 
-    /// <summary>Biên bản hiệu chuẩn (Mẫu 20); chưa cho client truyền tới khi service biên bản có quy tắc phạm vi.</summary>
+    /// <summary>Biên bản hiệu chuẩn (Mẫu 20); xem theo quyền xem biên bản, sửa khi biên bản còn sửa được.</summary>
     public const string CalibrationSession = "CalibrationSession";
 
     /// <summary>Các loại client được truyền.</summary>
-    public static readonly string[] All = { EvaluationRecord, EvaluationTask, EvaluationAppeal, CollectiveEvaluationRecord };
+    public static readonly string[] All = { EvaluationRecord, EvaluationTask, EvaluationAppeal, CollectiveEvaluationRecord, ExpertCrosscheck, ControlCheck, CalibrationSession };
+
+    /// <summary>Phiếu/biên bản của luồng thẩm định; quyền theo phiếu, không theo hồ sơ cá nhân.</summary>
+    public static bool IsForm(string? ownerType) =>
+        ownerType is ExpertCrosscheck or ControlCheck or CalibrationSession;
 
     /// <summary>Không phân biệt hoa thường; null nếu không hỗ trợ.</summary>
     public static string? Normalize(string? ownerType)

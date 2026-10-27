@@ -134,6 +134,8 @@ public class CalibrationSessionDto
 
     /// <summary>Cờ hành động cho người xem; giao diện hiện nút theo cờ, không tự suy luật.</summary>
     public bool CanEdit { get; set; }
+    /// <summary>Tải lên / thay / gỡ tệp đính kèm: người lập biên bản khi còn bản nháp và kỳ đang mở.</summary>
+    public bool CanAttach { get; set; }
     public bool CanConclude { get; set; }
     public bool CanReopen { get; set; }
     public bool CanVoid { get; set; }

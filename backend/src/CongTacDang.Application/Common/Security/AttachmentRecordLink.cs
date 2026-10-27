@@ -27,3 +27,19 @@ public sealed record CollectiveAttachmentOwner(System.Guid Id, System.Guid? Depa
     /// <summary>Tải lên/thay/gỡ tệp: mọi tổ chức của hồ sơ đều phải trong phạm vi.</summary>
     public AccessTarget WriteTarget => Target.ForWrite();
 }
+
+/// <summary>Một điều kiện quyền: có <paramref name="Permission"/> trên mọi đích trong <paramref name="Targets"/>.</summary>
+public sealed record AttachmentPermissionRule(string Permission, System.Collections.Generic.IReadOnlyList<AccessTarget> Targets);
+
+/// <summary>Phiếu đối soát / phiếu kiểm soát / biên bản hiệu chuẩn sở hữu tệp — dữ liệu kiểm tra quyền.</summary>
+/// <param name="RecordMemberIds">Chủ của các hồ sơ trong phiếu; những người này bị chặn như khi xem phiếu.</param>
+/// <param name="Editable">Phiếu còn sửa được và kỳ đang mở; false thì khóa tải lên/thay/gỡ.</param>
+/// <param name="ViewRules">Thỏa một điều kiện là xem/tải được.</param>
+/// <param name="EditRules">Thỏa một điều kiện là tải lên/thay/gỡ được (khi <paramref name="Editable"/>).</param>
+public sealed record FormAttachmentOwner(
+    System.Guid Id,
+    string OwnerType,
+    System.Collections.Generic.IReadOnlyCollection<System.Guid> RecordMemberIds,
+    bool Editable,
+    System.Collections.Generic.IReadOnlyList<AttachmentPermissionRule> ViewRules,
+    System.Collections.Generic.IReadOnlyList<AttachmentPermissionRule> EditRules);

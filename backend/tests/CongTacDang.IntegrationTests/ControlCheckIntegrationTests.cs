@@ -305,6 +305,70 @@ public sealed class ControlCheckIntegrationTests
         Assert.DoesNotContain(PermissionCodes.EvaluationCalibrationManage, permissions);
     }
 
+    /// <summary>Tệp đính kèm phiếu kiểm soát: người lập tải lên/thay/gỡ, người xác nhận chỉ xem, chủ hồ sơ trong phiếu bị chặn, gửi/xác nhận hoặc kỳ đóng thì khóa.</summary>
+    [SkippableFact]
+    public async Task ControlCheck_Attachments_ScopeOwnerAndLocking()
+    {
+        var w = await WorldAsync();
+        const string type = "ControlCheck";
+        var member = await _factory.CreateUserAsync(w.Dept, null, ApprovalAuthority.CoSo, "KS Chủ hồ sơ đính kèm");
+        var memberRole = (await _factory.CreateRoleAsync(PermissionCodes.EvaluationControlPerform, PermissionCodes.EvaluationControlConfirm, PermissionCodes.EvaluationRead)).Id;
+        await _factory.AssignAsync(member.Id, memberRole, RoleScopeType.Global, null);
+        var memberC = await _factory.LoginAsAsync(member.Username, member.Password, distinctClientIp: true);
+
+        var periodId = await OpenPeriodAsync(w, member.Id);
+        var recordId = await RecordAwaitingDecisionAsync(w, periodId, w.Owner.Id);
+        var memberRecord = await RecordAwaitingDecisionAsync(w, periodId, member.Id);
+        var created = await Data(await w.BothC.PostAsJsonAsync("/api/control-checks",
+            new { periodId, groupName = "Nhóm đính kèm", recordIds = new[] { recordId, memberRecord } }));
+        var id = created.GetProperty("id").GetGuid();
+
+        var fileId = await FormAttachmentClient.UploadOkAsync(w.PerformerC, type, id);
+        foreach (var client in new[] { w.ConfirmerC, w.OwnerC, memberC })
+            Assert.Equal(HttpStatusCode.Forbidden, (await FormAttachmentClient.UploadAsync(client, type, id)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await FormAttachmentClient.UploadAsync(w.PerformerC, type, Guid.NewGuid())).StatusCode);
+
+        Assert.True((await Data(w.PerformerC, $"/api/control-checks/{id}")).GetProperty("canAttach").GetBoolean());
+        Assert.False((await Data(w.ConfirmerC, $"/api/control-checks/{id}")).GetProperty("canAttach").GetBoolean());
+        foreach (var client in new[] { w.PerformerC, w.ConfirmerC, w.BothC })
+            await FormAttachmentClient.AssertCanReadAsync(client, type, id, fileId);
+        foreach (var client in new[] { w.OwnerC, memberC })
+            await FormAttachmentClient.AssertCannotReadAsync(client, type, id, fileId);
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await FormAttachmentClient.ReplaceAsync(w.ConfirmerC, fileId)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.ConfirmerC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await memberC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        var second = await FormAttachmentClient.UploadOkAsync(w.BothC, type, id);
+        Assert.Equal(HttpStatusCode.OK, (await FormAttachmentClient.ReplaceAsync(w.PerformerC, fileId)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await w.BothC.DeleteAsync($"/api/attachments/{second}")).StatusCode);
+        Assert.DoesNotContain(second, await FormAttachmentClient.ListAsync(w.BothC, type, id));
+
+        // Đã gửi xác nhận: khóa tải lên/thay/gỡ, vẫn xem được.
+        var items = Codes().Select(c => new { itemCode = c, result = "Pass", evidence = (string?)null }).ToList();
+        var ready = await Data(await w.BothC.PutAsJsonAsync($"/api/control-checks/{id}",
+            new { version = await VersionOf(w, id), items, conclusion = "Eligible" }));
+        var submitted = await Data(await Act(w.BothC, id, "submit", ready.GetProperty("version").GetUInt32()));
+        Assert.Equal(HttpStatusCode.Conflict, (await FormAttachmentClient.UploadAsync(w.PerformerC, type, id)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await FormAttachmentClient.ReplaceAsync(w.PerformerC, fileId)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await w.PerformerC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        await FormAttachmentClient.AssertCanReadAsync(w.ConfirmerC, type, id, fileId);
+
+        // Đã xác nhận vẫn khóa; mở lại về nháp thì sửa được, nhưng kỳ đóng thì khóa lại.
+        var confirmed = await Data(await Act(w.ConfirmerC, id, "confirm", submitted.GetProperty("version").GetUInt32()));
+        Assert.Equal(HttpStatusCode.Conflict, (await FormAttachmentClient.UploadAsync(w.PerformerC, type, id)).StatusCode);
+        var reopened = await Data(await Act(w.ConfirmerC, id, "reopen", confirmed.GetProperty("version").GetUInt32(), "Bổ sung căn cứ"));
+        Assert.Equal("Draft", reopened.GetProperty("status").GetString());
+        await FormAttachmentClient.UploadOkAsync(w.PerformerC, type, id);
+        await _factory.WithDbAsync(async db =>
+        {
+            db.Set<EvaluationPeriod>().Single(p => p.Id == periodId).Status = PeriodStatus.Closed;
+            await db.SaveChangesAsync();
+        });
+        Assert.Equal(HttpStatusCode.Conflict, (await FormAttachmentClient.UploadAsync(w.PerformerC, type, id)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await w.PerformerC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        await FormAttachmentClient.AssertCanReadAsync(w.PerformerC, type, id, fileId);
+    }
+
     #region Hỗ trợ
 
     private static readonly SemaphoreSlim Gate = new(1, 1);

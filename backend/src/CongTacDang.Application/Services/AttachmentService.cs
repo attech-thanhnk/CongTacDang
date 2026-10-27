@@ -260,6 +260,15 @@ public class AttachmentService : IAttachmentService
             return;
         }
 
+        if (AttachmentOwnerTypes.IsForm(current.EffectiveOwnerType))
+        {
+            // Tệp của phiếu/biên bản: người đang sửa được phiếu gỡ, phiếu còn sửa được.
+            await EnsureAccessAsync(requesterId, current, FileOperation.Update, "Bạn không có quyền gỡ tệp đính kèm của phiếu này.");
+            await EnsureEvidenceChangeAllowedAsync(current, requesterId);
+            await VersionRepo.RemoveGroupAsync(current.GroupId);
+            return;
+        }
+
         if (current.EffectiveOwnerType != AttachmentOwnerTypes.EvaluationRecord || current.UploadedById != requesterId)
             throw new ForbiddenException("Chỉ gỡ được tệp minh chứng do chính bạn đính kèm vào hồ sơ của mình.");
         await EnsureAccessAsync(requesterId, current, FileOperation.Update, "Bạn không có quyền gỡ tệp đính kèm này.");
@@ -339,6 +348,8 @@ public class AttachmentService : IAttachmentService
             // Phụ lục hồ sơ tập thể không gắn sang hồ sơ cá nhân.
             if (current.EffectiveOwnerType == AttachmentOwnerTypes.CollectiveEvaluationRecord)
                 throw new ValidationException("Tệp đính kèm của hồ sơ tập thể không gắn được vào hồ sơ đánh giá cá nhân.");
+            if (AttachmentOwnerTypes.IsForm(current.EffectiveOwnerType))
+                throw new ValidationException("Tệp đính kèm của phiếu hoặc biên bản không gắn được vào hồ sơ đánh giá cá nhân.");
             attachments.Add(current);
         }
 
@@ -462,6 +473,21 @@ public class AttachmentService : IAttachmentService
             return new OwnerInfo(normalizedType, ownerId.Value, null);
         }
 
+        if (AttachmentOwnerTypes.IsForm(normalizedType))
+        {
+            var forms = await _accessReader.GetFormOwnersAsync(normalizedType, new[] { ownerId.Value });
+            if (!forms.TryGetValue(ownerId.Value, out var form))
+                throw new KeyNotFoundException("Không tìm thấy phiếu hoặc biên bản cần gắn tệp.");
+
+            var editor = await _resolver.GetAsync(uploadedById.Value);
+            if (!CanAccessFormAttachment(editor, form, FileOperation.Update))
+                throw new ForbiddenException("Bạn không có quyền đính kèm tệp vào phiếu hoặc biên bản này.");
+            if (!form.Editable)
+                throw new ConflictException(FormLockedMessage);
+
+            return new OwnerInfo(normalizedType, ownerId.Value, null);
+        }
+
         var record = await _accessReader.GetOwnerRecordAsync(normalizedType, ownerId.Value)
             ?? throw new KeyNotFoundException("Không tìm thấy đối tượng cần gắn tệp.");
 
@@ -543,6 +569,13 @@ public class AttachmentService : IAttachmentService
     /// </summary>
     private async Task EnsureEvidenceChangeAllowedAsync(TaskAttachment current, Guid requesterId)
     {
+        if (AttachmentOwnerTypes.IsForm(current.EffectiveOwnerType))
+        {
+            var forms = await _accessReader!.GetFormOwnersAsync(current.EffectiveOwnerType, new[] { current.EffectiveOwnerId ?? Guid.Empty });
+            if (!forms.TryGetValue(current.EffectiveOwnerId ?? Guid.Empty, out var form) || !form.Editable)
+                throw new ConflictException(FormLockedMessage);
+            return;
+        }
         if (current.EffectiveOwnerType == AttachmentOwnerTypes.CollectiveEvaluationRecord)
             return;
         if (current.EffectiveOwnerType == AttachmentOwnerTypes.EvaluationAppeal)
@@ -669,13 +702,27 @@ public class AttachmentService : IAttachmentService
             .Distinct()
             .ToList();
         var collectiveOwners = await _accessReader.GetCollectiveOwnersAsync(collectiveIds);
+        var formOwners = new Dictionary<(string Type, Guid Id), FormAttachmentOwner>();
+        foreach (var group in attachments
+            .Where(a => AttachmentOwnerTypes.IsForm(a.EffectiveOwnerType) && a.EffectiveOwnerId.HasValue)
+            .GroupBy(a => a.EffectiveOwnerType))
+        {
+            var found = await _accessReader.GetFormOwnersAsync(group.Key, group.Select(a => a.EffectiveOwnerId!.Value).Distinct().ToList());
+            foreach (var (id, owner) in found)
+                formOwners[(group.Key, id)] = owner;
+        }
         var personal = attachments
-            .Where(a => a.EffectiveOwnerType != AttachmentOwnerTypes.CollectiveEvaluationRecord)
+            .Where(a => a.EffectiveOwnerType != AttachmentOwnerTypes.CollectiveEvaluationRecord && !AttachmentOwnerTypes.IsForm(a.EffectiveOwnerType))
             .ToList();
         var links = await _accessReader.GetRecordLinksAsync(personal);
 
         return attachments
-            .Where(a => a.EffectiveOwnerType == AttachmentOwnerTypes.CollectiveEvaluationRecord
+            .Where(a => AttachmentOwnerTypes.IsForm(a.EffectiveOwnerType)
+                ? CanAccessFormAttachment(
+                    requester,
+                    a.EffectiveOwnerId.HasValue && formOwners.TryGetValue((a.EffectiveOwnerType, a.EffectiveOwnerId.Value), out var form) ? form : null,
+                    operation)
+                : a.EffectiveOwnerType == AttachmentOwnerTypes.CollectiveEvaluationRecord
                 ? CanAccessCollectiveAttachment(
                     requester,
                     a.EffectiveOwnerId.HasValue && collectiveOwners.TryGetValue(a.EffectiveOwnerId.Value, out var owner) ? owner : null,
@@ -702,6 +749,21 @@ public class AttachmentService : IAttachmentService
                 || AuthorizationGuard.Evaluate(requester, PermissionCodes.CollectiveManage, owner.Target);
         }
         return !owner.PeriodClosed && AuthorizationGuard.Evaluate(requester, PermissionCodes.CollectiveManage, owner.WriteTarget);
+    }
+
+    private const string FormLockedMessage = "Phiếu hoặc biên bản đã gửi, xác nhận, chốt hoặc kỳ đánh giá không còn mở nên tệp đính kèm bị khóa. Hãy mở lại phiếu (nếu được phép) rồi thực hiện lại.";
+
+    /// <summary>
+    /// Xem: một điều kiện xem phiếu; sửa: một điều kiện sửa phiếu (trạng thái khóa kiểm riêng để trả 409).
+    /// Chủ của hồ sơ trong phiếu bị chặn cả hai (xung đột lợi ích).
+    /// </summary>
+    private static bool CanAccessFormAttachment(EffectivePermissions requester, FormAttachmentOwner? owner, FileOperation operation)
+    {
+        if (owner == null || owner.RecordMemberIds.Contains(requester.UserId))
+            return false;
+        var rules = operation == FileOperation.Read ? owner.ViewRules : owner.EditRules;
+        return rules.Any(rule => rule.Targets.Count > 0
+            && rule.Targets.All(target => AuthorizationGuard.Evaluate(requester, rule.Permission, target)));
     }
 
     /// <summary>Tệp gắn hồ sơ → quyền trên hồ sơ; tệp chưa gắn → chỉ người tải lên. Không có tệp công khai.</summary>

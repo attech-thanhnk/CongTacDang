@@ -10,6 +10,7 @@ import { Badge } from "@/components/common/StatusBadge";
 import { DateField } from "@/components/evaluations/DateField";
 import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
 import { CrosscheckRequestForm, CrosscheckTaskOption } from "@/components/crosschecks/CrosscheckRequestForm";
+import { OwnerAttachments } from "@/components/attachments/OwnerAttachments";
 import { errorMessage, errorStatus } from "@/components/admin/adminUtils";
 import { useToast } from "@/contexts/ToastContext";
 import { reportService } from "@/services/reportService";
@@ -341,6 +342,12 @@ export default function CrosscheckDetailPage() {
                 <ItemCard key={item.id} index={index} item={item} draft={d} editable={data.canRespond} disabled={busy} onChange={(p) => setItem(item.id, p)} />
               ) : null;
             })}
+          </div>
+        </section>
+
+        <section className="card">
+          <div className="card-body">
+            <OwnerAttachments ownerType="ExpertCrosscheck" ownerId={data.id} editable={data.canAttach} formCode="M03" subject="phiếu đối soát" description="Căn cứ, minh chứng đối soát" defaultOpen />
           </div>
         </section>
 

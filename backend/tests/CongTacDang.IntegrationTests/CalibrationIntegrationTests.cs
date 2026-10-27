@@ -222,6 +222,69 @@ public sealed class CalibrationIntegrationTests
         Assert.Equal(HttpStatusCode.BadRequest, noName.StatusCode);
     }
 
+    /// <summary>Tệp đính kèm biên bản hiệu chuẩn: người lập tải lên/thay/gỡ, người chỉ chốt chỉ xem, chủ hồ sơ bị chặn, chốt hoặc kỳ đóng thì khóa.</summary>
+    [SkippableFact]
+    public async Task Calibration_Attachments_ScopeOwnerAndLocking()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var w = await SetupAsync();
+        const string type = "CalibrationSession";
+        var created = await Data(await w.PreparerC.PostAsJsonAsync("/api/calibrations", Create(w, w.RecordA, w.RecordB)));
+        var id = created.GetProperty("id").GetGuid();
+
+        // Tải lên: người có quyền lập; người chỉ chốt, chủ hồ sơ trong biên bản (dù có quyền lập), người không quyền → 403.
+        var fileId = await FormAttachmentClient.UploadOkAsync(w.PreparerC, type, id);
+        foreach (var client in new[] { w.ConcluderC, w.OwnerManagerC, w.NobodyC })
+            Assert.Equal(HttpStatusCode.Forbidden, (await FormAttachmentClient.UploadAsync(client, type, id)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await FormAttachmentClient.UploadAsync(w.PreparerC, type, Guid.NewGuid())).StatusCode);
+
+        Assert.True((await Data(w.PreparerC, $"/api/calibrations/{id}")).GetProperty("canAttach").GetBoolean());
+        Assert.False((await Data(w.ConcluderC, $"/api/calibrations/{id}")).GetProperty("canAttach").GetBoolean());
+        foreach (var client in new[] { w.PreparerC, w.ConcluderC })
+            await FormAttachmentClient.AssertCanReadAsync(client, type, id, fileId);
+        foreach (var client in new[] { w.OwnerManagerC, w.NobodyC })
+            await FormAttachmentClient.AssertCannotReadAsync(client, type, id, fileId);
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await FormAttachmentClient.ReplaceAsync(w.ConcluderC, fileId)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.ConcluderC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.OwnerManagerC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        var second = await FormAttachmentClient.UploadOkAsync(w.PreparerC, type, id);
+        Assert.Equal(HttpStatusCode.OK, (await FormAttachmentClient.ReplaceAsync(w.PreparerC, fileId)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await w.PreparerC.DeleteAsync($"/api/attachments/{second}")).StatusCode);
+
+        // Đã chốt: khóa; mở lại thì sửa được; kỳ đóng thì khóa lại.
+        var save = new
+        {
+            version = created.GetProperty("version").GetUInt32(), groupName = "Nhóm kiểm thử", heldAt = DateTime.UtcNow, location = "Phòng họp",
+            chairName = "Chủ trì họp", secretaryName = "Thư ký họp", recordIds = new[] { w.RecordA, w.RecordB },
+            attendees = new[] { new { fullName = "Thành viên 1", capacity = "Ủy viên", dissentNote = (string?)null } },
+            summary = new[] { new { gradeCode = "HoanThanhTot", notableDifference = "Chênh lệch", preliminaryConclusion = "Rà soát lại" } },
+            cases = new[]
+            {
+                new { recordId = w.RecordA, clarification = "Đã đối chiếu", gradeAfter = "HoanThanh", scoreAfter = (double?)78.0,
+                      basis = "Biên bản kiểm tra", responsibleName = "Chủ trì họp", responsibleMemberId = (Guid?)null }
+            }
+        };
+        var saved = await Data(await w.PreparerC.PutAsJsonAsync($"/api/calibrations/{id}", save));
+        var concluded = await Data(await w.ConcluderC.PostAsJsonAsync($"/api/calibrations/{id}/conclude", new { version = saved.GetProperty("version").GetUInt32() }));
+        Assert.Equal(HttpStatusCode.Conflict, (await FormAttachmentClient.UploadAsync(w.PreparerC, type, id)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await FormAttachmentClient.ReplaceAsync(w.PreparerC, fileId)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await w.PreparerC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        await FormAttachmentClient.AssertCanReadAsync(w.ConcluderC, type, id, fileId);
+
+        await Data(await w.ConcluderC.PostAsJsonAsync($"/api/calibrations/{id}/reopen",
+            new { version = concluded.GetProperty("version").GetUInt32(), reason = "Bổ sung căn cứ" }));
+        await FormAttachmentClient.UploadOkAsync(w.PreparerC, type, id);
+        await _factory.WithDbAsync(async db =>
+        {
+            db.Set<EvaluationPeriod>().Single(p => p.Id == w.PeriodId).Status = PeriodStatus.Closed;
+            await db.SaveChangesAsync();
+        });
+        Assert.Equal(HttpStatusCode.Conflict, (await FormAttachmentClient.UploadAsync(w.PreparerC, type, id)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await w.PreparerC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
+        await FormAttachmentClient.AssertCanReadAsync(w.PreparerC, type, id, fileId);
+    }
+
     #region Hỗ trợ
 
     private static object Create(World w, params Guid[] recordIds) => new

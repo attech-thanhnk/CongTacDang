@@ -774,6 +774,8 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
                 Reason = h.Reason
             }).ToList(),
             CanEditRequest = c.Status == CrosscheckStatus.Requested && CanRequestSide(c),
+            CanAttach = c.Status is CrosscheckStatus.Requested or CrosscheckStatus.InProgress && c.Record.Period?.Status == PeriodStatus.Open
+                && !IsOwner(c.Record) && (CanRequestSide(c) || (c.ExpertDepartmentId.HasValue && CanRespondNow(c))),
             CanRespond = canRespond,
             CanSubmit = canRespond,
             CanConfirm = canConfirm,

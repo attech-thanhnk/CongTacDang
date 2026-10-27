@@ -11,6 +11,9 @@ export interface AttachmentItem {
   formCode: string;
   description: string;
   checksum?: string;
+  fileGroupId?: string;
+  versionNumber?: number;
+  isCurrent?: boolean;
 }
 
 /** Máy chủ tính theo quyền và giai đoạn của hồ sơ. */
@@ -26,7 +29,14 @@ export interface EvidenceRights {
 }
 
 /** Khớp AttachmentOwnerTypes ở máy chủ. */
-export type AttachmentOwnerType = "EvaluationRecord" | "EvaluationTask" | "EvaluationAppeal" | "CollectiveEvaluationRecord";
+export type AttachmentOwnerType =
+  | "EvaluationRecord"
+  | "EvaluationTask"
+  | "EvaluationAppeal"
+  | "CollectiveEvaluationRecord"
+  | "ExpertCrosscheck"
+  | "ControlCheck"
+  | "CalibrationSession";
 
 // Tệp luôn gắn với một đối tượng; quyền xem tệp = quyền trên đối tượng.
 export const attachmentService = {
@@ -98,6 +108,15 @@ export const attachmentService = {
   // Tệp vẫn được lưu, nhật ký ghi người gỡ
   async remove(id: string): Promise<void> {
     await request<void>(`/attachments/${id}`, { method: "DELETE" });
+  },
+
+  // Mới nhất trước
+  async getVersions(id: string): Promise<AttachmentItem[]> {
+    return request<AttachmentItem[]>(`/attachments/${id}/versions`);
+  },
+
+  async downloadVersion(id: string, versionNumber: number, fileName?: string): Promise<void> {
+    await downloadFile(`/attachments/${id}/versions/${versionNumber}/download`, fileName || "tep-dinh-kem");
   },
 
   // Tên tệp theo máy chủ, không có thì dùng tên đã biết

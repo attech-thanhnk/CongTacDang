@@ -73,6 +73,8 @@ public class ControlCheckDto : ControlCheckSummaryDto
     public List<ControlCheckRecordDto> Records { get; set; } = new();
     public List<ControlCheckHistoryDto> History { get; set; } = new();
     public bool CanEdit { get; set; }
+    /// <summary>Tải lên / thay / gỡ tệp đính kèm: người lập phiếu khi phiếu đang soạn và kỳ đang mở.</summary>
+    public bool CanAttach { get; set; }
     public bool CanSubmit { get; set; }
     public bool CanConfirm { get; set; }
     public bool CanReturn { get; set; }

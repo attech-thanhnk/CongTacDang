@@ -231,6 +231,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         var canPerform = CanAll(PermissionCodes.EvaluationControlPerform, records);
         var canConfirm = CanAll(PermissionCodes.EvaluationControlConfirm, records);
         dto.CanEdit = check.Status == ControlCheckStatus.Draft && canPerform;
+        dto.CanAttach = dto.CanEdit && records.Count > 0 && check.Period?.Status == PeriodStatus.Open;
         dto.CanSubmit = dto.CanEdit;
         dto.CanConfirm = check.Status == ControlCheckStatus.Submitted && canConfirm && me != check.PerformedById;
         dto.CanReturn = check.Status == ControlCheckStatus.Submitted && canConfirm;
