@@ -607,19 +607,19 @@ public sealed class Quarter4ScenarioTests
 
             foreach (var p in w.All)
                 await Assign(p.Id, "Người được đánh giá", "Global", null);
-            await Assign(tccb.User.Id, "Phòng TCCB-LĐ (mở kỳ, thẩm định)", "Global", null);
-            await Assign(w.Bt.Id, "Chi ủy / Bí thư Chi bộ", "PartyCell", w.CellKt);
-            await Assign(cellKtDeputy.User.Id, "Chi ủy / Bí thư Chi bộ", "PartyCell", w.CellKt);
-            await Assign(cellVp.User.Id, "Chi ủy / Bí thư Chi bộ", "PartyCell", w.CellVpId);
-            await Assign(secKt.User.Id, "Thư ký tập thể lãnh đạo", "Department", w.DeptKt);
-            await Assign(secTc.User.Id, "Thư ký tập thể lãnh đạo", "Department", w.DeptTc);
-            await Assign(secBgd.User.Id, "Thư ký tập thể lãnh đạo", "Department", w.DeptBgd);
+            await Assign(tccb.User.Id, "Cơ quan thẩm định", "Global", null);
+            await Assign(w.Bt.Id, "Chi bộ", "PartyCell", w.CellKt);
+            await Assign(cellKtDeputy.User.Id, "Chi bộ", "PartyCell", w.CellKt);
+            await Assign(cellVp.User.Id, "Chi bộ", "PartyCell", w.CellVpId);
+            await Assign(secKt.User.Id, "Thư ký hội nghị", "Department", w.DeptKt);
+            await Assign(secTc.User.Id, "Thư ký hội nghị", "Department", w.DeptTc);
+            await Assign(secBgd.User.Id, "Thư ký hội nghị", "Department", w.DeptBgd);
             // Cấp trực tiếp: Giám đốc cho các Phòng; Chủ tịch cho Ban Giám đốc (Phó Giám đốc); Trưởng phòng (Lãnh đạo Phòng).
-            await Assign(w.Gd.Id, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Department", w.DeptKt);
-            await Assign(w.Gd.Id, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Department", w.DeptTc);
-            await Assign(w.Ct.Id, "Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch)", "Department", w.DeptBgd);
-            await Assign(w.Tp.Id, "Lãnh đạo Phòng", "Department", w.DeptKt);
-            await Assign(office.User.Id, "Văn phòng Đảng ủy (quyết định, công bố)", "Global", null);
+            await Assign(w.Gd.Id, "Cấp trực tiếp sử dụng", "Department", w.DeptKt);
+            await Assign(w.Gd.Id, "Cấp trực tiếp sử dụng", "Department", w.DeptTc);
+            await Assign(w.Ct.Id, "Cấp trực tiếp sử dụng", "Department", w.DeptBgd);
+            await Assign(w.Tp.Id, "Lãnh đạo đơn vị", "Department", w.DeptKt);
+            await Assign(office.User.Id, "Văn phòng Đảng ủy", "Global", null);
 
             w.Tccb = tccb.Client;
             w.CellKtDeputy = cellKtDeputy.Client;

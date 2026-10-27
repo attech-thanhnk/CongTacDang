@@ -1,6 +1,6 @@
 # Hướng dẫn sử dụng — Hệ thống đánh giá, xếp loại cán bộ
 
-Tài liệu dành cho người dùng: cán bộ được đánh giá, người duyệt các bước (Lãnh đạo Phòng, Chi ủy / Bí thư Chi bộ, thư ký tập thể lãnh đạo, cấp trực tiếp sử dụng), cơ quan thẩm định, cơ quan chuyên môn, Văn phòng Đảng ủy và quản trị hệ thống.
+Tài liệu dành cho người dùng: cán bộ được đánh giá, người duyệt các bước (Lãnh đạo đơn vị, Chi bộ, thư ký hội nghị, cấp trực tiếp sử dụng), cơ quan thẩm định, cơ quan chuyên môn, Văn phòng Đảng ủy và quản trị hệ thống.
 
 Tên nút và tên menu trong tài liệu được đặt trong dấu ngoặc kép, đúng như trên màn hình. Việc đưa hệ thống vào sử dụng (khai báo đơn vị, tài khoản, vai trò, mở kỳ) xem thêm [Hướng dẫn bàn giao](huong-dan-ban-giao.md).
 
@@ -11,7 +11,7 @@ Chọn nhóm của bạn, đọc các mục được chỉ dẫn. Các mục cò
 | Bạn là | Việc thường làm | Đọc mục |
 |---|---|---|
 | **Cán bộ được đánh giá** | Đăng ký sản phẩm đầu kỳ, tự chấm điểm, xem kết quả, gửi kiến nghị | [2](#2-thao-tác-chung), [3](#3-cán-bộ-được-đánh-giá), [7](#7-sau-khi-công-bố-kiến-nghị-và-kế-hoạch-30-60-90-ngày) |
-| **Người duyệt** (Lãnh đạo Phòng, Chi ủy / Bí thư Chi bộ, thư ký tập thể lãnh đạo, cấp trực tiếp sử dụng) | Duyệt danh mục, xác nhận phiếu tự chấm, ghi nhận đề xuất tập thể, nhận xét | [2.5](#25-việc-cần-xử-lý), [4.0 đến 4.2 và 4.4](#4-các-bước-xét-duyệt), [6](#6-đánh-giá-tập-thể-và-biên-bản-hội-nghị), [12](#12-vì-sao-nút-bị-khóa) |
+| **Người duyệt** (Lãnh đạo đơn vị, Chi bộ, thư ký hội nghị, cấp trực tiếp sử dụng) | Duyệt danh mục, xác nhận phiếu tự chấm, ghi nhận đề xuất tập thể, nhận xét | [2.5](#25-việc-cần-xử-lý), [4.0 đến 4.2 và 4.4](#4-các-bước-xét-duyệt), [6](#6-đánh-giá-tập-thể-và-biên-bản-hội-nghị), [12](#12-vì-sao-nút-bị-khóa) |
 | **Cơ quan thẩm định** | Thẩm định, yêu cầu đối soát, lập biên bản hiệu chuẩn và phiếu kiểm soát, quản lý kỳ | [4.3](#43-thẩm-định), [5](#5-đối-soát-chuyên-ngành-hiệu-chuẩn-và-kiểm-soát), [8](#8-quản-lý-kỳ-đánh-giá), [12](#12-vì-sao-nút-bị-khóa) |
 | **Cơ quan chuyên môn** (đối soát Mẫu 03): phòng, đơn vị chuyên môn của ATTECH, ví dụ Phòng Kỹ thuật - An toàn - Chất lượng | Lập phiếu đối soát, xác nhận phiếu | [5.2](#52-phiếu-đối-soát-chuyên-ngành-mẫu-03) |
 | **Văn phòng Đảng ủy** | Chốt biên bản hiệu chuẩn, xác nhận phiếu kiểm soát, xác nhận phiếu đối soát của cơ quan ngoài hệ thống, ghi nhận quyết định, công bố, xử lý kiến nghị, xuất báo cáo | [4.5 đến 4.7](#45-quyết-định-mức-xếp-loại), [5.3](#53-biên-bản-hiệu-chuẩn-mẫu-20), [5.4](#54-phiếu-kiểm-soát-mẫu-19), [7](#7-sau-khi-công-bố-kiến-nghị-và-kế-hoạch-30-60-90-ngày), [10](#10-báo-cáo) |
@@ -69,12 +69,12 @@ Một hồ sơ đi lần lượt qua các bước dưới đây. Tùy **diện q
 | # | Bước | Ai làm |
 |---|---|---|
 | 1 | Đăng ký sản phẩm, nhiệm vụ | Chính cán bộ |
-| 2 | Duyệt danh mục sản phẩm | Lãnh đạo có quyền duyệt (thường là Lãnh đạo Phòng) |
+| 2 | Duyệt danh mục sản phẩm | Lãnh đạo có quyền duyệt (thường là Lãnh đạo đơn vị) |
 | 3 | Tự chấm điểm, đề xuất mức | Chính cán bộ |
-| 4 | Chi bộ xác nhận phiếu tự chấm | Chi ủy / Bí thư Chi bộ |
-| 5 | Đề xuất của tập thể lãnh đạo | Thư ký tập thể lãnh đạo ghi nhận kết quả hội nghị |
+| 4 | Chi bộ xác nhận phiếu tự chấm | Chi bộ |
+| 5 | Đề xuất của tập thể lãnh đạo | Thư ký hội nghị ghi nhận kết quả hội nghị |
 | 6 | Thẩm định | Cơ quan thẩm định, hoặc cấp trên |
-| 7 | Nhận xét của cấp trực tiếp sử dụng | Giám đốc (hoặc Lãnh đạo Phòng, tùy diện quyết định), hoặc cấp trên |
+| 7 | Nhận xét của cấp trực tiếp sử dụng | Giám đốc (hoặc Lãnh đạo đơn vị, tùy diện quyết định), hoặc cấp trên |
 | 8 | Quyết định mức xếp loại | Văn phòng Đảng ủy ghi nhận quyết định, hoặc kết quả của cấp trên |
 | 9 | Công bố và lưu trữ kết quả | Văn phòng Đảng ủy |
 
@@ -288,7 +288,7 @@ Hệ thống không tổ chức bỏ phiếu điện tử. Thư ký ghi lại **
 
 ### 4.4 Nhận xét của cấp trực tiếp sử dụng
 
-Chọn **Mức đề xuất** (điền sẵn theo mức thẩm định), nhập **Nhận xét**, bấm **Ghi nhận nhận xét**. Với diện quyết định mà Lãnh đạo Phòng đề xuất thay Giám đốc, Lãnh đạo Phòng làm bước này theo cách tương tự.
+Chọn **Mức đề xuất** (điền sẵn theo mức thẩm định), nhập **Nhận xét**, bấm **Ghi nhận nhận xét**. Với diện quyết định mà Lãnh đạo đơn vị đề xuất thay Giám đốc, Lãnh đạo đơn vị làm bước này theo cách tương tự.
 
 ### 4.5 Quyết định mức xếp loại
 

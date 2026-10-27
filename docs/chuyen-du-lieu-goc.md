@@ -59,6 +59,7 @@ Migration của bản mới không chạy trên dữ liệu chép sang, nên scr
 | `20261023020159_AddPositionIsHead` | Đánh dấu `IsHead` cho các chức vụ cấp trưởng của danh mục mặc định |
 | `20261023091047_PositionDefaultWorkflowProfile` | `DefaultWorkflowProfileCode = 'pho-giam-doc'` cho chức vụ Phó Giám đốc |
 | `20261026081315_ChoVanPhongDangUyXacNhanPhieuDoiSoat` | Gán quyền xác nhận phiếu đối soát cho Văn phòng Đảng ủy nếu mã quyền đã có trong nguồn |
+| `20261027025334_DoiTenVaiTroMacDinhTheoThuatNgu` | Đổi tên 7 vai trò mặc định sang tên theo thuật ngữ gốc (mục 4 của [thuat-ngu.md](thiet-ke/thuat-ngu.md#4-vai-trò)), chỉ khi tên còn đúng tên cũ mặc định; tên quản trị đã sửa và tên trùng vai trò khác được giữ nguyên |
 
 Thêm migration mới chạm dữ liệu gốc thì thêm bản vá tương ứng vào `PATCH_SQL` của script.
 

@@ -83,8 +83,8 @@ public sealed class GoLiveScenarioTests
         var todayVn = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7));
         // Hết hiệu lực hết ngày 31/12 năm sau (giờ Việt Nam) = 00:00 ngày 01/01 năm kế tiếp, lưu theo UTC.
         var endOfNextYearUtc = new DateTime(todayVn.Year + 2, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7);
-        var evaluatedRole = await RoleIdByNameAsync("Người được đánh giá");
-        var adminRole = await RoleIdByNameAsync("Quản trị hệ thống");
+        var evaluatedRole = await RoleIdByCodeAsync("NGUOI_DUOC_DANH_GIA");
+        var adminRole = await RoleIdByCodeAsync("QUAN_TRI_HE_THONG");
 
         // Gán sai: tự gán cho mình (403), vai trò quản trị gán theo đơn vị (400), gán trùng (400) → không ghi gì thêm.
         var self = await admin.PostAsJsonAsync("/api/admin/assignments", new { userId = adminId, roleId = evaluatedRole, scopeType = "Global" });
@@ -102,12 +102,12 @@ public sealed class GoLiveScenarioTests
             Assert.Equal(2, await db.Set<UserRoleAssignment>().CountAsync())); // quản trị ban đầu + le.van.c
 
         await GoLiveHttp.AssignAsync(admin, cadreId, evaluatedRole, "Global", null);
-        await GoLiveHttp.AssignAsync(admin, cadreId, await RoleIdByNameAsync("Chi ủy / Bí thư Chi bộ"), "PartyCell", cellKt,
+        await GoLiveHttp.AssignAsync(admin, cadreId, await RoleIdByCodeAsync("CHI_UY_CHI_BO"), "PartyCell", cellKt,
             validTo: endOfNextYearUtc, note: "Nghị quyết Chi bộ số 01");
-        await GoLiveHttp.AssignAsync(admin, cadreId, await RoleIdByNameAsync("Lãnh đạo Phòng"), "Department", deptKt);
-        await GoLiveHttp.AssignAsync(admin, cadreId, await RoleIdByNameAsync("Cấp ủy viên Đảng ủy"), "Global", null);
+        await GoLiveHttp.AssignAsync(admin, cadreId, await RoleIdByCodeAsync("LANH_DAO_PHONG"), "Department", deptKt);
+        await GoLiveHttp.AssignAsync(admin, cadreId, await RoleIdByCodeAsync("CAP_UY_VIEN"), "Global", null);
         await GoLiveHttp.AssignAsync(admin, appraiserId, evaluatedRole, "Global", null);
-        await GoLiveHttp.AssignAsync(admin, appraiserId, await RoleIdByNameAsync("Phòng TCCB-LĐ (mở kỳ, thẩm định)"), "Global", null);
+        await GoLiveHttp.AssignAsync(admin, appraiserId, await RoleIdByCodeAsync("CO_QUAN_THAM_DINH"), "Global", null);
 
         await _factory.WithDbAsync(async db =>
             Assert.Equal(8, await db.Set<UserRoleAssignment>().CountAsync()));
@@ -124,10 +124,10 @@ public sealed class GoLiveScenarioTests
         Assert.Equal(
             new[]
             {
-                // "Người được đánh giá" có thêm xem kết quả, gửi kiến nghị; "Lãnh đạo Phòng" có thêm lập kế hoạch 30-60-90 ngày.
+                // "Người được đánh giá" có thêm xem kết quả, gửi kiến nghị; "Lãnh đạo đơn vị" có thêm lập kế hoạch 30-60-90 ngày.
                 "collective.manage", "evaluation.appeal.submit", "evaluation.cell.confirm", "evaluation.improvement.manage",
                 "evaluation.read", "evaluation.results.view", "evaluation.self", "evaluation.tasks.approve",
-                "evaluation.unit.review", // Lãnh đạo Phòng có thêm "Lãnh đạo đơn vị đề xuất"
+                "evaluation.unit.review", // Lãnh đạo đơn vị có thêm "Lãnh đạo đơn vị đề xuất"
                 "meeting.read", "report.export"
             },
             cadreCodes.OrderBy(c => c, StringComparer.Ordinal));
@@ -142,19 +142,19 @@ public sealed class GoLiveScenarioTests
                 p => p.GetProperty("sources").EnumerateArray()
                     .Select(s => $"{s.GetProperty("scopeType").GetString()}:{s.GetProperty("scopeName").GetString()}:{s.GetProperty("roleName").GetString()}")
                     .OrderBy(s => s, StringComparer.Ordinal).ToList());
-        Assert.Equal(new[] { "PartyCell:Chi bộ Kỹ thuật:Chi ủy / Bí thư Chi bộ" }, sources["evaluation.cell.confirm"]);
-        Assert.Equal(new[] { "Department:Phòng Kỹ thuật:Lãnh đạo Phòng" }, sources["evaluation.tasks.approve"]);
-        Assert.Equal(new[] { "Global:Toàn công ty:Cấp ủy viên Đảng ủy" }, sources["report.export"]);
+        Assert.Equal(new[] { "PartyCell:Chi bộ Kỹ thuật:Chi bộ" }, sources["evaluation.cell.confirm"]);
+        Assert.Equal(new[] { "Department:Phòng Kỹ thuật:Lãnh đạo đơn vị" }, sources["evaluation.tasks.approve"]);
+        Assert.Equal(new[] { "Global:Toàn công ty:Cấp ủy viên" }, sources["report.export"]);
         Assert.Equal(3, sources["evaluation.read"].Count);
         var cellAssignment = effective.GetProperty("assignments").EnumerateArray()
-            .Single(a => a.GetProperty("roleName").GetString() == "Chi ủy / Bí thư Chi bộ");
+            .Single(a => a.GetProperty("roleName").GetString() == "Chi bộ");
         Assert.Equal("Nghị quyết Chi bộ số 01", cellAssignment.GetProperty("note").GetString());
         Assert.Equal(endOfNextYearUtc, cellAssignment.GetProperty("validTo").GetDateTime().ToUniversalTime());
 
         // ============ Bước 4: gỡ một bản gán → request kế tiếp bị 403 ============
         Assert.Equal(HttpStatusCode.OK, (await cadre.GetAsync("/api/reports/cadres")).StatusCode);
         var committeeAssignmentId = effective.GetProperty("assignments").EnumerateArray()
-            .Single(a => a.GetProperty("roleName").GetString() == "Cấp ủy viên Đảng ủy")
+            .Single(a => a.GetProperty("roleName").GetString() == "Cấp ủy viên")
             .GetProperty("id").GetGuid();
         var removed = await admin.DeleteAsync($"/api/admin/assignments/{committeeAssignmentId}");
         Assert.True(removed.IsSuccessStatusCode, await removed.Content.ReadAsStringAsync());
@@ -212,7 +212,7 @@ public sealed class GoLiveScenarioTests
 
         // ============ Bước 6: hồ sơ đi hết các bước bật tới Published ============
         // Quản trị giao thêm vai trò ghi nhận quyết định/công bố cho nguyen.van.a qua API gán vai trò.
-        var officeRoleId = await RoleIdByNameAsync("Văn phòng Đảng ủy (quyết định, công bố)");
+        var officeRoleId = await RoleIdByCodeAsync("VAN_PHONG_DANG_UY");
         await GoLiveHttp.DataAsync(await admin.PostAsJsonAsync("/api/admin/assignments",
             new { userId = cadreId, roleId = officeRoleId, scopeType = "Global", note = "Phân công ghi nhận quyết định kỳ go-live" }));
 
@@ -266,10 +266,10 @@ public sealed class GoLiveScenarioTests
         new[] { "B1_REGISTER", "B1_APPROVE", "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3A_COLLECTIVE", "B3B_APPRAISAL", "B3C_DIRECTOR", "B4_DECISION", "B5_PUBLISH" },
         step);
 
-    private async Task<Guid> RoleIdByNameAsync(string name)
+    private async Task<Guid> RoleIdByCodeAsync(string code)
     {
         var id = Guid.Empty;
-        await _factory.WithDbAsync(async db => id = await db.Roles.Where(r => r.Name == name).Select(r => r.Id).SingleAsync());
+        await _factory.WithDbAsync(async db => id = await db.Roles.Where(r => r.Code == code).Select(r => r.Id).SingleAsync());
         return id;
     }
 
