@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useId, useMemo, useState } from "react";
 
 export interface PickerRow {
   id: string;
@@ -29,6 +29,7 @@ interface Props {
 
 /** Chọn hồ sơ để lập biên bản/phiếu mới; chỉ bật nút khi đã chọn ít nhất một hồ sơ. */
 export function RecordPickerDialog({ isOpen, title, confirmText, rows, loading, busy, askGroupName, groupNameRequired, emptyText, onCancel, onConfirm }: Props) {
+  const titleId = useId();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [group, setGroup] = useState("");
   const [unitFilter, setUnitFilter] = useState("");
@@ -66,11 +67,11 @@ export function RecordPickerDialog({ isOpen, title, confirmText, rows, loading, 
   const missingName = !!groupNameRequired && groupName.trim() === "";
 
   return (
-    <div className="modal fade show d-block" tabIndex={-1} role="dialog" aria-modal="true" style={{ backgroundColor: "rgba(15, 23, 42, 0.55)", zIndex: 1080 }}>
+    <div className="modal fade show d-block" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} style={{ backgroundColor: "rgba(15, 23, 42, 0.55)", zIndex: 1080 }}>
       <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable" style={{ maxWidth: 640 }}>
         <div className="modal-content border-0 shadow-lg" style={{ borderRadius: 14 }}>
           <div className="modal-header px-4 py-3">
-            <h2 className="modal-title fs-6 fw-bold mb-0">{title}</h2>
+            <h2 id={titleId} className="modal-title fs-6 fw-bold mb-0">{title}</h2>
             <button type="button" className="btn-close" aria-label="Đóng" onClick={onCancel} disabled={busy} />
           </div>
           <div className="modal-body px-4 py-3 d-flex flex-column gap-2">

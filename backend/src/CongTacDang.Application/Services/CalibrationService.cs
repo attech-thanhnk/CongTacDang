@@ -957,7 +957,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
 
     private static string StatusName(CalibrationStatus status) => status switch
     {
-        CalibrationStatus.Draft => "Bản nháp",
+        CalibrationStatus.Draft => "Đang soạn",
         CalibrationStatus.Concluded => "Đã chốt",
         CalibrationStatus.Void => "Đã hủy",
         _ => status.ToString()

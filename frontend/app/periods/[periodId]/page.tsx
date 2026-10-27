@@ -275,7 +275,8 @@ export default function PeriodDetailPage() {
       action: "Thêm người",
       go: () => setTab("participants"),
     },
-    ...((period.criteria?.content.weightFrames.length ?? 0) > 0 && participants.length > 0
+    // Kết luận từ máy chủ chưa về thì chưa hiện dấu xanh.
+    ...((period.criteria?.content.weightFrames.length ?? 0) > 0 && participants.length > 0 && readiness
       ? [{
           ok: frameIssues.length === 0,
           text: frameIssues.length === 0 ? "Mọi người đã có khung tỷ trọng" : `${frameIssues.length} người chưa có khung tỷ trọng hợp lệ`,
@@ -290,7 +291,7 @@ export default function PeriodDetailPage() {
       action: "Đặt thời hạn",
       go: () => setTab("profiles"),
     },
-    ...(participants.length > 0
+    ...(participants.length > 0 && readiness
       ? [{
           ok: stepIssues.length === 0,
           text: stepIssues.length === 0 ? "Mọi bước đều có người thực hiện" : `${stepIssues.length} bước chưa có người thực hiện`,

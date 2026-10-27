@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useId, useState } from "react";
 import { RecordActionDto, STEP_NAMES, WorkflowStepCode } from "@/services/evaluationService";
 import { formatDateTime } from "@/lib/dateFormat";
 
@@ -47,6 +47,7 @@ function needsDeadline(unlock: UnlockDeadlineInfo | null | undefined, target: Wo
 
 /** Hộp nhập lý do bắt buộc khi trả lại hoặc mở lại hồ sơ (kèm hạn mở riêng khi kỳ khóa dữ liệu). */
 export function ReasonDialog({ isOpen, title, description, confirmText, targetSteps, unlock, busy, onCancel, onConfirm }: Props) {
+  const titleId = useId();
   const [reason, setReason] = useState("");
   const [target, setTarget] = useState<WorkflowStepCode | "">("");
   const [deadline, setDeadline] = useState("");
@@ -80,11 +81,11 @@ export function ReasonDialog({ isOpen, title, description, confirmText, targetSt
           : null;
 
   return (
-    <div className="modal fade show d-block" tabIndex={-1} role="dialog" aria-modal="true" style={{ backgroundColor: "rgba(15, 23, 42, 0.55)", zIndex: 1080 }}>
+    <div className="modal fade show d-block" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} style={{ backgroundColor: "rgba(15, 23, 42, 0.55)", zIndex: 1080 }}>
       <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 520 }}>
         <div className="modal-content border-0 shadow-lg" style={{ borderRadius: 14 }}>
           <div className="modal-header px-4 py-3">
-            <h2 className="modal-title fs-6 fw-bold mb-0">{title}</h2>
+            <h2 id={titleId} className="modal-title fs-6 fw-bold mb-0">{title}</h2>
             <button type="button" className="btn-close" aria-label="Đóng" onClick={onCancel} disabled={busy} />
           </div>
           <form

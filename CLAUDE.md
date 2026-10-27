@@ -27,6 +27,7 @@ frontend/
                 catalog, criteria, admin (users, roles, performers, imports, settings, templates), audit,
                 account, login, change-password
   components/   admin, account, evaluations, collective, periods, reports, dashboard, attachments, layout, common
+  e2e/          Kịch bản giao diện Playwright + chay-e2e.ps1 (môi trường thử riêng, xem docs/kiem-thu-tu-dong.md)
   services/     apiClient.ts + service theo module
   contexts/     AuthContext (permissions + grants), PeriodContext, LayoutContext, ToastContext
 docker/         Dockerfile.backend, Dockerfile.frontend, docker-compose.yml, backup/restore
@@ -46,6 +47,7 @@ dotnet ef migrations add <Ten> -p backend/src/CongTacDang.Infrastructure -s back
 cd frontend && npm run dev          # cổng 3001
 cd frontend && npx tsc --noEmit
 cd frontend && npm run build
+cd frontend && npm run test:e2e   # kịch bản giao diện (Playwright); cần backend + giao diện đang chạy, thường chạy qua frontend/e2e/chay-e2e.ps1 (xem docs/kiem-thu-tu-dong.md)
 docker compose -f docker/docker-compose.yml config
 ```
 

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { Badge } from "@/components/common/StatusBadge";
 import { CrosscheckRequestForm } from "@/components/crosschecks/CrosscheckRequestForm";
@@ -19,17 +20,22 @@ interface Props {
 /** Đối soát chuyên ngành: danh sách phiếu của hồ sơ và nút yêu cầu; nút theo cờ máy chủ. */
 export function CrosscheckPanel({ record, onRecordChanged }: Props) {
   const { toast } = useToast();
+  const { user, hasPermission } = useAuth();
+  // Chủ hồ sơ không xem được phiếu đối soát của chính mình (máy chủ trả 403): không gọi API.
+  const isOwner = !!user && user.id === record.memberId;
+  const canView = !isOwner && ["evaluation.read", "evaluation.crosscheck.request", "evaluation.crosscheck.respond", "evaluation.crosscheck.confirm"].some(hasPermission);
   const [data, setData] = useState<RecordCrosschecksDto | null>(null);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState(false);
 
   const load = useCallback(async () => {
+    if (!canView) return;
     try {
       setData(await crosscheckService.getByRecord(record.id));
     } catch {
       setData(null);
     }
-  }, [record.id]);
+  }, [record.id, canView]);
 
   useEffect(() => {
     load();
