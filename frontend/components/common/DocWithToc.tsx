@@ -80,6 +80,22 @@ export function DocWithToc({ entries, ariaLabel, header, collapsible = false, ex
     return chapter;
   }, [entries, active]);
 
+  // Neo # trên địa chỉ luôn cuộn tới đúng mục: lúc mở trang, khi đổi hash cùng trang và khi Back/Forward
+  // (lần cuộn mượt đang dở bị lần cuộn mới thay thế).
+  useEffect(() => {
+    const go = () => {
+      const id = decodeURIComponent(window.location.hash.slice(1));
+      if (id) document.getElementById(id)?.scrollIntoView({ block: "start" });
+    };
+    window.addEventListener("hashchange", go);
+    window.addEventListener("popstate", go);
+    if (window.location.hash) requestAnimationFrame(go);
+    return () => {
+      window.removeEventListener("hashchange", go);
+      window.removeEventListener("popstate", go);
+    };
+  }, []);
+
   // Đổi mục lớn đang đọc thì bỏ các lựa chọn mở/đóng tay.
   useEffect(() => setManual(new Set()), [activeChapter]);
 

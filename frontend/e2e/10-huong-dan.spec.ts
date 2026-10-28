@@ -56,6 +56,7 @@ test.describe('Trang Hướng dẫn', () => {
     await page.goto('/help');
     const muc = page.getByRole('navigation', { name: 'Mục lục hướng dẫn' });
     const o = muc.getByRole('searchbox', { name: 'Tìm trong hướng dẫn' });
+    await expect(muc.getByRole('link').first()).toBeVisible();
     const tong = await muc.getByRole('link').count();
     await o.fill('chuông');
     await expect(muc.getByRole('status')).toContainText(/[0-9]+ kết quả/);
