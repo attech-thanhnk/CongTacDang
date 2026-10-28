@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
-import { useActionsSlotSetter, usePageTitle } from "@/contexts/PageTitleContext";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 import { AccountMenu } from "./AccountMenu";
 import { NotificationBell } from "./NotificationBell";
 import { PeriodPicker } from "./PeriodPicker";
@@ -17,7 +17,6 @@ export function AppHeader() {
   const { user, hasPermission } = useAuth();
   const { toggleSidebar } = useLayout();
   const pageTitle = usePageTitle();
-  const setSlot = useActionsSlotSetter();
   const pathname = usePathname();
   const trail = user ? findMenuTrail(buildMenu(user, hasPermission), pathname) : null;
 
@@ -40,7 +39,6 @@ export function AppHeader() {
       </div>
       <PeriodPicker />
       <div className="app-header-right">
-        <div className="hdr-actions" ref={setSlot} />
         {user && !user.mustChangePassword && (
           <Link href="/help" className="app-header-help" aria-label="Hướng dẫn" title="Hướng dẫn">
             <i className="bi bi-question-circle" />
