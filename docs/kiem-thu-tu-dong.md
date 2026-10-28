@@ -41,7 +41,7 @@ Script làm lần lượt:
 1. Tạo CSDL `ctd_e2e` bằng `pg_dump | pg_restore` từ `congtacdang_db` ngay trong container Postgres. CSDL nguồn **chỉ được đọc**, không bị sửa. Đổi nguồn bằng `-SourceDb`.
 2. Đặt mật khẩu thử cho mọi tài khoản trong `ctd_e2e` (pgcrypto) và bỏ ảnh nền đăng nhập của bản sao (tệp ảnh nằm ở máy chủ thật).
 3. Chạy backend từ thư mục làm việc ở cổng **5400** (`ASPNETCORE_ENVIRONMENT=Development`, chuỗi kết nối trỏ `ctd_e2e`, khóa JWT sinh ngẫu nhiên mỗi lần, giới hạn đăng nhập nới rộng).
-4. Chạy giao diện `next dev` ở cổng **3400**, `BACKEND_INTERNAL_URL=http://localhost:5400`.
+4. Dựng giao diện bản production (`npm run build`, `BACKEND_INTERNAL_URL=http://localhost:5400` đặt lúc build) rồi chạy `next start` ở cổng **3400**; thời gian dựng được in ra log.
 5. Chạy Playwright với `E2E_BASE_URL=http://localhost:3400` và `E2E_PASSWORD` (mật khẩu thử).
 6. Dừng tiến trình đã khởi động và xóa `ctd_e2e` (trừ khi dùng `-Up`).
 
@@ -108,7 +108,7 @@ Một kịch bản đạt mà không có khẳng định nào là vô nghĩa: n�
 
 ## 6. Giới hạn hiện tại
 
-- Chạy trên `next dev` nên lần mở trang đầu tiên chậm; script đã mở trước các trang chính.
+- Mỗi lần chạy phải dựng lại giao diện (`next build`, khoảng một đến hai phút) và ghi đè thư mục `.next` của `frontend`.
 - Chưa có kịch bản cho: phiếu xác nhận số liệu do cơ quan chuyên môn trong hệ thống lập (bản sao dữ liệu chưa gán vai trò đó cho ai; kịch bản dùng đường "cơ quan ngoài hệ thống, người yêu cầu nhập hộ"), xuất PDF, đính kèm tệp, kiến nghị và kế hoạch sau công bố, nhập dữ liệu, chế độ kỳ khóa dữ liệu.
 - Kịch bản phụ thuộc dữ liệu của `congtacdang_db` (tài khoản, phòng, vai trò). Dữ liệu thật đổi nhiều thì cập nhật kịch bản.
 - Chỉ chạy Chromium, máy tính 1366 px và điện thoại 390 px.
@@ -126,7 +126,7 @@ docker exec -e PGPASSWORD=<MẬT KHẨU> attech-dangbo-postgres sh -c "pg_dump -
 ASPNETCORE_ENVIRONMENT=Development ConnectionStrings__Default='Host=localhost;Port=5434;Database=ctd_e2e;Username=<USER>;Password=<MẬT KHẨU>' \
   Jwt__Secret="$(openssl rand -base64 48)" Security__RateLimit__Auth__PermitLimit=1000 \
   dotnet run --project backend/src/CongTacDang.Api --no-launch-profile --urls http://localhost:5400 &
-cd frontend && BACKEND_INTERNAL_URL=http://localhost:5400 npx next dev -p 3400 &
+cd frontend && BACKEND_INTERNAL_URL=http://localhost:5400 npm run build && npx next start -p 3400 &
 # 4. kịch bản
 E2E_BASE_URL=http://localhost:3400 E2E_PASSWORD=Thu12345a npx playwright test
 ```

@@ -127,18 +127,21 @@ UPDATE organization_settings
     $script:procs += $be
     Wait-Url "http://localhost:$BackendPort/healthz" 240 'Backend'
 
-    Write-Step "Chạy giao diện cổng $WebPort"
+    Write-Step "Dựng giao diện bản production (BACKEND_INTERNAL_URL tính lúc build)"
     $env:BACKEND_INTERNAL_URL = "http://localhost:$BackendPort"
     $env:NEXT_TELEMETRY_DISABLED = '1'
+    $sw = [Diagnostics.Stopwatch]::StartNew()
+    Push-Location $frontendDir
+    try { & npm.cmd run build *> (Join-Path $resultDir 'frontend-build.log'); $buildExit = $LASTEXITCODE } finally { Pop-Location }
+    Write-Host ("Dựng giao diện mất {0:N0} giây" -f $sw.Elapsed.TotalSeconds)
+    if ($buildExit -ne 0) { throw "next build không thành công (xem e2e-ket-qua/frontend-build.log)" }
+
+    Write-Step "Chạy giao diện (next start) cổng $WebPort"
     $fe = Start-Process -FilePath 'cmd.exe' -PassThru -NoNewWindow -WorkingDirectory $frontendDir `
-        -ArgumentList @('/c', "npx next dev -p $WebPort") `
+        -ArgumentList @('/c', "npx next start -p $WebPort") `
         -RedirectStandardOutput (Join-Path $resultDir 'frontend.log') -RedirectStandardError (Join-Path $resultDir 'frontend.err.log')
     $script:procs += $fe
     Wait-Url "http://localhost:$WebPort/login" 240 'Giao diện'
-    # Biên dịch sẵn các trang chính để lần mở đầu trong kịch bản không bị chậm
-    foreach ($p in '/work-queue', '/periods', '/quality-control', '/evaluations') {
-        try { Invoke-WebRequest -Uri "http://localhost:$WebPort$p" -UseBasicParsing -TimeoutSec 120 -MaximumRedirection 0 | Out-Null } catch { }
-    }
 
     if ($Up) {
         Write-Host "Môi trường sẵn sàng: http://localhost:$WebPort (mật khẩu thử $Password). Dừng bằng -Down." -ForegroundColor Green
