@@ -58,8 +58,8 @@ test.describe('Trang Hướng dẫn', () => {
     const o = muc.getByRole('searchbox', { name: 'Tìm trong hướng dẫn' });
     const tong = await muc.getByRole('link').count();
     await o.fill('chuông');
-    await expect(muc.getByRole('status')).toContainText(/d+ kết quả/);
-    await expect(muc.getByRole('link', { name: /Nhắc việc (chuông)/ })).toBeVisible();
+    await expect(muc.getByRole('status')).toContainText(/[0-9]+ kết quả/);
+    await expect(muc.getByRole('link', { name: /Nhắc việc [(]chuông[)]/ })).toBeVisible();
     expect(await muc.getByRole('link').count()).toBeLessThan(tong);
     await o.press('Escape');
     await expect(o).toHaveValue('');
