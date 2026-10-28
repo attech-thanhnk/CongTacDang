@@ -2723,3 +2723,30 @@ textarea.form-control {
     display: none;
   }
 }
+
+/* Nút thao tác chính của trang nằm trên thanh trên, trước nút ?. */
+.hdr-actions {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.hdr-actions .page-header-actions {
+  flex-wrap: nowrap;
+  width: auto;
+  margin: 0 8px 0 0;
+  white-space: nowrap;
+}
+
+/* Trang chi tiết: quay lại, huy hiệu và phụ đề trên một dòng mỏng. */
+.page-header-bar .page-header-content {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.page-header-bar:has(> .back-btn) {
+  min-height: 36px;
+  margin-bottom: 12px;
+}
