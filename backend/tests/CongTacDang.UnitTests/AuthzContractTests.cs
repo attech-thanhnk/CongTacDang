@@ -117,7 +117,7 @@ public class AuthzContractTests
             // Sau công bố.
             "evaluation.results.view", "evaluation.appeal.submit", "evaluation.appeal.resolve", "evaluation.improvement.manage",
             "evaluation.crosscheck.request", "evaluation.crosscheck.respond", "evaluation.crosscheck.confirm",
-            "evaluation.calibration.manage", "evaluation.calibration.conclude", "evaluation.control.perform", "evaluation.control.confirm",
+            "evaluation.calibration.manage", "evaluation.calibration.conclude", "evaluation.control.perform", "evaluation.control.confirm", "evaluation.opinion.record",
             "collective.manage", "meeting.read", "meeting.manage",
             "report.export"
         };

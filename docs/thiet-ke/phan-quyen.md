@@ -67,6 +67,7 @@ Trường bổ sung (task 07, sửa ở task 14):
 | `evaluation.calibration.conclude` | Chốt biên bản hiệu chuẩn | có | Chốt/mở lại (lý do bắt buộc khi mở lại); khác người lập |
 | `evaluation.control.perform` | Lập phiếu kiểm soát (Mẫu 19) | có | Kiểm tra trên từng hồ sơ trong phiếu; không trên hồ sơ của mình |
 | `evaluation.control.confirm` | Xác nhận phiếu kiểm soát | có | Khác người lập; Mẫu 19 chỉ xác nhận khi cổng hiệu chuẩn Required đã đạt |
+| `evaluation.opinion.record` | Ghi ý kiến trước phê duyệt | có | Họp rà soát danh mục, rà soát hợp lệ, Phó Giám đốc phụ trách; không ghi trên hồ sơ của mình, không chặn bước nào; vai mặc định "Phó Giám đốc phụ trách" gán theo đơn vị |
 | `collective.manage` | Lập hồ sơ tự đánh giá tập thể (Mẫu 06–08) | có | Xuất Mẫu 07, 08 (Word, Excel) của hồ sơ trong phạm vi (hoặc `evaluation.read`) |
 | `meeting.read` | Xem biên bản hội nghị, kiểm phiếu (Mẫu 12–13) | có | Xuất Mẫu 12, 13 theo từng biên bản trên đơn vị của biên bản (hoặc `meeting.manage`) |
 | `meeting.manage` | Lập biên bản hội nghị, kiểm phiếu | có | |

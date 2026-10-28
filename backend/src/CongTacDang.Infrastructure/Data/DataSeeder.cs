@@ -55,6 +55,7 @@ public static class DataSeeder
         public const string PartyCommitteeMember = "CAP_UY_VIEN";
         public const string PartyOffice = "VAN_PHONG_DANG_UY";
         public const string ExpertAgency = "CO_QUAN_CHUYEN_MON";
+        public const string DeputyInCharge = "PHO_GIAM_DOC_PHU_TRACH";
         public const string Administrator = "QUAN_TRI_HE_THONG";
     }
 
@@ -69,9 +70,11 @@ public static class DataSeeder
         new(RoleCodes.Evaluatee, "Người được đánh giá", "Tự chấm, xem kết quả đã công bố, gửi kiến nghị về kết quả của mình.",
             new[] { PermissionCodes.EvaluationSelf, PermissionCodes.EvaluationResultsView, PermissionCodes.EvaluationAppealSubmit }),
         new(RoleCodes.DepartmentLeader, "Lãnh đạo đơn vị", "Duyệt danh mục sản phẩm, đề xuất mức, lập kế hoạch 30-60-90 ngày (Mẫu 17) cho cán bộ của đơn vị.",
-            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksApprove, PermissionCodes.EvaluationUnitReview, PermissionCodes.EvaluationImprovementManage }),
+            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksApprove, PermissionCodes.EvaluationUnitReview, PermissionCodes.EvaluationImprovementManage, PermissionCodes.EvaluationOpinionRecord }),
         new(RoleCodes.CollectiveSecretary, "Thư ký hội nghị", "Ghi nhận đề xuất của tập thể lãnh đạo, lập biên bản hội nghị.",
-            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.MeetingRead, PermissionCodes.MeetingManage }),
+            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.MeetingRead, PermissionCodes.MeetingManage, PermissionCodes.EvaluationOpinionRecord }),
+        new(RoleCodes.DeputyInCharge, "Phó Giám đốc phụ trách", "Phó Giám đốc phụ trách phòng, đơn vị: xem hồ sơ và ghi ý kiến trước khi Giám đốc phê duyệt danh mục và nhận xét; gán theo đơn vị phụ trách.",
+            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationOpinionRecord }),
         new(RoleCodes.CellCommittee, "Chi bộ", "Chi ủy, Bí thư Chi bộ: xác nhận phiếu tự chấm, lập hồ sơ tập thể của Chi bộ.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCellConfirm, PermissionCodes.CollectiveManage, PermissionCodes.MeetingRead }),
         new(RoleCodes.Appraisal, "Cơ quan thẩm định", "Mở kỳ và thẩm định hồ sơ, quản lý kỳ đánh giá và bộ tiêu chí.",
@@ -79,7 +82,8 @@ public static class DataSeeder
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationAppraise, PermissionCodes.PeriodManage,
                 PermissionCodes.CriteriaManage, PermissionCodes.ReportExport, PermissionCodes.SystemUsersRead,
-                PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCalibrationManage, PermissionCodes.EvaluationControlPerform
+                PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCalibrationManage, PermissionCodes.EvaluationControlPerform,
+                PermissionCodes.EvaluationOpinionRecord
             }),
         new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng", "Giám đốc, Chủ tịch: nhận xét, đề xuất mức; lập kế hoạch 30-60-90 ngày (Mẫu 17).",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport, PermissionCodes.EvaluationImprovementManage }),

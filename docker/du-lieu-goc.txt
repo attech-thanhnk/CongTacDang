@@ -26,6 +26,7 @@ VAN_HANH|evaluation_external_results|Kết quả do cấp trên ghi nhận
 VAN_HANH|evaluation_appeals|Kiến nghị về kết quả
 VAN_HANH|improvement_plans|Kế hoạch 30-60-90 ngày
 VAN_HANH|task_change_requests|Đề nghị điều chỉnh việc
+VAN_HANH|record_opinions|Ý kiến ghi nhận trước phê duyệt
 VAN_HANH|task_attachments|Tệp đính kèm hồ sơ; không chuyển tệp trên đĩa
 VAN_HANH|collective_evaluation_records|Hồ sơ tập thể
 VAN_HANH|collective_evaluation_items|Dòng của hồ sơ tập thể

@@ -32,7 +32,7 @@ public sealed class DataSeederAuthorizationTests
             await using (var db = NewContext(options))
             {
                 var roles = await db.Roles.Include(r => r.Permissions).ToListAsync();
-                Assert.Equal(10, roles.Count);
+                Assert.Equal(11, roles.Count);
                 var adminRole = Assert.Single(roles, r => r.IsProtected);
                 Assert.Contains(adminRole.Permissions, p => p.Code == PermissionCodes.SystemRolesManage);
                 Assert.DoesNotContain(adminRole.Permissions, p => p.Code == PermissionCodes.EvaluationRead); // tách quản trị kỹ thuật
@@ -87,7 +87,7 @@ public sealed class DataSeederAuthorizationTests
                 Assert.True(await db.Set<UserRoleAssignment>().IgnoreQueryFilters().AnyAsync(a => a.Id == adminAssignmentId && a.IsDeleted));
                 var evaluatee = await db.Roles.Include(r => r.Permissions).SingleAsync(r => r.Code == "NGUOI_DUOC_DANH_GIA");
                 Assert.Equal(new[] { PermissionCodes.MeetingRead }, evaluatee.Permissions.Select(p => p.Code).ToArray());
-                Assert.Equal(10, await db.Roles.CountAsync());
+                Assert.Equal(11, await db.Roles.CountAsync());
                 Assert.Equal(1, await db.EvaluationPeriods.CountAsync());
                 Assert.Equal(11, await db.PartyMemberProfiles.CountAsync());
             }
@@ -115,7 +115,7 @@ public sealed class DataSeederAuthorizationTests
 
             await using (var db = NewContext(options))
             {
-                Assert.Equal(10, await db.Roles.CountAsync());
+                Assert.Equal(11, await db.Roles.CountAsync());
                 Assert.Equal(0, await db.PartyMemberProfiles.IgnoreQueryFilters().CountAsync());
                 Assert.Equal(0, await db.EvaluationPeriods.CountAsync());
             }

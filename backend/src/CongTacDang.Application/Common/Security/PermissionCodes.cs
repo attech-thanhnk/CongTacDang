@@ -127,11 +127,15 @@ public static class PermissionCodes
     /// <summary>Mẫu 19: khác người lập phiếu.</summary>
     public const string EvaluationControlConfirm = "evaluation.control.confirm";
 
+    /// <summary>Ý kiến ghi nhận trước phê duyệt danh mục và trước nhận xét: họp rà soát, rà soát hợp lệ, Phó Giám đốc phụ trách.</summary>
+    public const string EvaluationOpinionRecord = "evaluation.opinion.record";
+
     /// <summary>Không dùng làm quyền thực hiện bước của diện quyết định.</summary>
     public static readonly IReadOnlySet<string> FormPermissions = new HashSet<string>(StringComparer.Ordinal)
     {
         EvaluationCrosscheckRequest, EvaluationCrosscheckRespond, EvaluationCrosscheckConfirm,
-        EvaluationCalibrationManage, EvaluationCalibrationConclude, EvaluationControlPerform, EvaluationControlConfirm
+        EvaluationCalibrationManage, EvaluationCalibrationConclude, EvaluationControlPerform, EvaluationControlConfirm,
+        EvaluationOpinionRecord
     };
 
     #endregion
@@ -188,6 +192,7 @@ public static class PermissionCodes
         new(EvaluationCalibrationConclude, "Chốt biên bản họp thống nhất", "evaluation", "Chốt hoặc mở lại biên bản họp thống nhất (bắt buộc ghi lý do khi mở lại); khác người lập biên bản.", true),
         new(EvaluationControlPerform, "Lập phiếu kiểm tra (Mẫu 19)", "evaluation", "Lập phiếu kiểm tra tính hợp lệ, công bằng và nhất quán trước khi trình phê duyệt; kiểm tra trên từng hồ sơ trong phiếu, không áp dụng trên hồ sơ của mình.", true),
         new(EvaluationControlConfirm, "Xác nhận phiếu kiểm tra", "evaluation", "Xác nhận hoặc trả lại phiếu kiểm tra; khác người lập phiếu.", true),
+        new(EvaluationOpinionRecord, "Ghi nhận ý kiến trước phê duyệt", "evaluation", "Ghi kết quả họp rà soát danh mục, kết quả rà soát hợp lệ và ý kiến của Phó Giám đốc phụ trách trên hồ sơ trong phạm vi được gán; không áp dụng cho hồ sơ của mình.", true),
         new(CollectiveManage, "Lập hồ sơ tự đánh giá tập thể", "collective", "Lập hồ sơ tự đánh giá của tập thể (Mẫu 06–08).", true),
         new(MeetingRead, "Xem biên bản hội nghị", "meeting", "Xem biên bản hội nghị, biên bản kiểm phiếu (Mẫu 12–13).", true),
         new(MeetingManage, "Lập biên bản hội nghị", "meeting", "Lập biên bản hội nghị, biên bản kiểm phiếu.", true),

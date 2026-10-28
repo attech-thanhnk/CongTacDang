@@ -12,7 +12,7 @@ public sealed class FormGatesUnitTests
     {
         "evaluation.crosscheck.request", "evaluation.crosscheck.respond", "evaluation.crosscheck.confirm",
         "evaluation.calibration.manage", "evaluation.calibration.conclude",
-        "evaluation.control.perform", "evaluation.control.confirm"
+        "evaluation.control.perform", "evaluation.control.confirm", "evaluation.opinion.record"
     };
 
     private static List<string> Validate(PeriodSettings s) => s.Validate(WorkflowActions.IsAssignableStepPermission);

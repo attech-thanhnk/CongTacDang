@@ -125,7 +125,7 @@ public sealed class GoLiveScenarioTests
             new[]
             {
                 // "Người được đánh giá" có thêm xem kết quả, gửi kiến nghị; "Lãnh đạo đơn vị" có thêm lập kế hoạch 30-60-90 ngày.
-                "collective.manage", "evaluation.appeal.submit", "evaluation.cell.confirm", "evaluation.improvement.manage",
+                "collective.manage", "evaluation.appeal.submit", "evaluation.cell.confirm", "evaluation.improvement.manage", "evaluation.opinion.record",
                 "evaluation.read", "evaluation.results.view", "evaluation.self", "evaluation.tasks.approve",
                 "evaluation.unit.review", // Lãnh đạo đơn vị có thêm "Lãnh đạo đơn vị đề xuất"
                 "meeting.read", "report.export"

@@ -155,6 +155,35 @@ public sealed class WorkflowProfileIntegrationTests
     }
 
     [SkippableFact]
+    public async Task G2b_Opinions_RecordedByScopeHolder_NotByOwnerOrOtherUnit_DoNotBlockFlow()
+    {
+        var w = await WorldAsync();
+        var periodId = (await CreatePeriodAsync(w)).GetProperty("id").GetGuid();
+        await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { w.Staff.Id } });
+        await OpenAsync(w, periodId);
+        var id = await RecordOfAsync(w, periodId, w.Staff.Id);
+        var url = $"/api/evaluations/records/{id}/opinions";
+
+        var created = await Data(w.Lead1C, url);
+        Assert.True(created.GetProperty("canRecord").GetBoolean());
+        var saved = await w.Lead1C.PostAsJsonAsync(url, new { kind = "ListMeeting", content = "Đã thống nhất danh mục 5 sản phẩm" });
+        Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+        Assert.Equal("Kết quả họp rà soát danh mục", (await Data(w.Lead1C, url)).GetProperty("items")[0].GetProperty("kindName").GetString());
+
+        // Chủ hồ sơ xem được nhưng không ghi; Lãnh đạo Phòng khác không xem, không ghi.
+        Assert.False((await Data(w.StaffC, url)).GetProperty("canRecord").GetBoolean());
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.StaffC.PostAsJsonAsync(url, new { kind = "ListCheck", content = "x" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.Lead2C.PostAsJsonAsync(url, new { kind = "ListCheck", content = "x" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.Lead2C.GetAsync(url)).StatusCode);
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await w.Lead1C.PostAsJsonAsync(url, new { kind = "ListMeeting", content = "  " })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await w.Lead1C.PostAsJsonAsync(url, new { kind = "khong-co", content = "x" })).StatusCode);
+
+        // Ghi ý kiến không đổi trạng thái hồ sơ.
+        Assert.Equal("AwaitingRegistration", (await Data(w.StaffC, $"/api/evaluations/records/{id}")).GetProperty("status").GetString());
+    }
+
+    [SkippableFact]
     public async Task G3_Readiness_DetectsStuckRecord_OpenReturns409_ForceNeedsReason()
     {
         var w = await WorldAsync();
