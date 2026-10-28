@@ -608,7 +608,11 @@ header.app-header {
   overflow-wrap: anywhere;
 }
 
-.hdr-back {
+.page-header-bar:empty {
+  display: none;
+}
+
+.back-btn {
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -625,12 +629,12 @@ header.app-header {
   cursor: pointer;
 }
 
-.hdr-back:hover {
+.back-btn:hover {
   background: var(--tint);
   color: var(--ink);
 }
 
-.hdr-back:focus-visible {
+.back-btn:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
@@ -2702,12 +2706,15 @@ textarea.form-control {
     max-width: none;
   }
 
-  .hdr-back span {
-    display: none;
+  .back-btn {
+    max-width: 70%;
+    padding: 5px 8px;
   }
 
-  .hdr-back {
-    padding: 5px 8px;
+  .back-btn span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 

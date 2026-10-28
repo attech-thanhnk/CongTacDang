@@ -2,6 +2,7 @@
 
 import React, { useLayoutEffect } from "react";
 import { usePageTitleSetter } from "@/contexts/PageTitleContext";
+import { BackButton } from "./BackButton";
 
 export interface PageHeaderProps {
   title: string;
@@ -28,10 +29,11 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   }, [setTitle, title]);
 
   const inBar = !!setTitle;
-  if (inBar && !subTitle && !badge && !actions) return null;
+  const back = inBar ? <BackButton /> : null;
 
   return (
     <div className={`page-header-bar ${className}`}>
+      {back}
       {(!inBar || subTitle || badge) && (
         <div className="page-header-content">
           <div className="page-header-title-row">

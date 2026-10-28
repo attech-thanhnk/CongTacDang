@@ -19,6 +19,7 @@ import { CrosscheckPanel } from "@/components/evaluations/CrosscheckPanel";
 import { CollapsibleSection, revealSection } from "@/components/evaluations/CollapsibleSection";
 import { AxisSummaryView, SelfAssessmentView } from "@/components/evaluations/IndividualFormInputs";
 import { loadCriteria, useCriteria } from "@/components/evaluations/useCriteria";
+import { BackButton } from "@/components/common/BackButton";
 import { initialsOf } from "@/components/dashboard/taskUtils";
 import styles from "@/components/evaluations/record.module.css";
 import { attachmentService } from "@/services/attachmentService";
@@ -165,6 +166,7 @@ export default function EvaluationRecordPage() {
   return (
     <div className="page-wrapper">
       <div className="page-body">
+        <div><BackButton /></div>
         <div className={styles.head}>
           <div className={`initials ${styles.bigInitials}`} aria-hidden="true">{initialsOf(record.fullName)}</div>
           <div className={styles.headMain}>
