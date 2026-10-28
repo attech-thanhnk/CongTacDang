@@ -158,19 +158,27 @@ export default function CalibrationDetailPage() {
     calibrationService.history(s.id).then(setHistory).catch(() => setHistory([]));
   }, []);
 
-  const load = useCallback(async () => {
+  // `isAlive`: bỏ kết quả của lần tải đã bị hủy (dev chạy hai lần) để không ghi đè phần người dùng đang nhập.
+  const load = useCallback(async (isAlive: () => boolean = () => true) => {
     try {
-      apply(await calibrationService.get(id));
+      const loaded = await calibrationService.get(id);
+      if (isAlive()) apply(loaded);
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Tải biên bản họp thống nhất không thành công."));
-      setData(null);
+      if (isAlive()) {
+        toast.error(errorMessage(err, "Tải biên bản họp thống nhất không thành công."));
+        setData(null);
+      }
     } finally {
-      setLoading(false);
+      if (isAlive()) setLoading(false);
     }
   }, [id, apply, toast]);
 
   useEffect(() => {
-    load();
+    let alive = true;
+    load(() => alive);
+    return () => {
+      alive = false;
+    };
   }, [load]);
 
   const dirty = useMemo(() => !!data && !!draft && JSON.stringify(draft) !== JSON.stringify(toDraft(data)), [data, draft]);

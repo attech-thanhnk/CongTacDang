@@ -107,16 +107,22 @@ export default function OrganizationSettingsPage() {
   const [guideDate, setGuideDate] = useState("");
 
   useEffect(() => {
+    // Bỏ kết quả của lần tải cũ (chạy hai lần ở chế độ dev) để không ghi đè phần người dùng đang nhập.
+    let alive = true;
     organizationSettingsService
       .get()
       .then((data) => {
+        if (!alive) return;
         setSettings(data);
         setForm(toPayload(data));
         setGuideNumber(data.guideDocumentNumber ?? "");
         setGuideDate(data.guideDocumentDate ?? "");
       })
-      .catch((err) => toast.error(errorMessage(err, "Tải thông tin đơn vị không thành công."), errorTitle(err)))
-      .finally(() => setLoading(false));
+      .catch((err) => alive && toast.error(errorMessage(err, "Tải thông tin đơn vị không thành công."), errorTitle(err)))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
