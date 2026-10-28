@@ -291,7 +291,7 @@ export default function CalibrationDetailPage() {
       <div className="page-wrapper">
         <PageHeader title="Biên bản họp thống nhất" />
         <div className="page-body">
-          <EmptyState icon="bi-file-earmark-x" title="Chưa mở được biên bản" description="Biên bản không tồn tại hoặc bạn không có quyền xem." />
+          <EmptyState card icon="bi-file-earmark-x" title="Chưa mở được biên bản" description="Biên bản không tồn tại hoặc bạn không có quyền xem." />
         </div>
       </div>
     );

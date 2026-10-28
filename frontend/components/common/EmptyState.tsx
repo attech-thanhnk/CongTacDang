@@ -12,6 +12,8 @@ export interface EmptyStateProps {
   /** Thu nhỏ khoảng đệm khi đặt trong khối đã có tiêu đề riêng. */
   compact?: boolean;
   className?: string;
+  /** Tự bọc trong một thẻ khi đứng riêng, không nằm trong khối nào. */
+  card?: boolean;
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
@@ -21,10 +23,13 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   action,
   compact = false,
   className = "",
+  card = false,
 }) => {
-  return (
+  // Nội dung luôn bắt đầu ở trên, chiều cao vừa phải, không theo chiều cao màn hình.
+  const body = (
     <div
-      className={`d-flex flex-column align-items-center justify-content-center text-center ${compact ? "px-3 py-4" : "p-5"} ${className}`}
+      className={`d-flex flex-column align-items-center text-center ${className}`}
+      style={{ padding: compact ? "24px 16px" : "36px 16px" }}
     >
       <div
         className="rounded-circle d-flex align-items-center justify-content-center mb-3"
@@ -50,6 +55,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       {action && <div className="mt-3 d-flex flex-wrap justify-content-center gap-2">{action}</div>}
     </div>
   );
+  return card ? <section className="card">{body}</section> : body;
 };
 
 export default EmptyState;

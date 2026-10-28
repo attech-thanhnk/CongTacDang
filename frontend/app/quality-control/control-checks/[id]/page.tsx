@@ -244,7 +244,7 @@ export default function ControlCheckDetailPage() {
       <div className="page-wrapper">
         <PageHeader title="Phiếu kiểm tra" />
         <div className="page-body">
-          <EmptyState icon="bi-file-earmark-x" title="Chưa mở được phiếu" description="Phiếu không tồn tại hoặc bạn không có quyền xem." />
+          <EmptyState card icon="bi-file-earmark-x" title="Chưa mở được phiếu" description="Phiếu không tồn tại hoặc bạn không có quyền xem." />
         </div>
       </div>
     );

@@ -233,7 +233,7 @@ export default function QualityControlPage() {
           </div>
         ) : active === "calibration" ? (
           calShown.length === 0 ? (
-            <EmptyState icon="bi-sliders" title="Chưa có biên bản họp thống nhất" description="Biên bản trong phạm vi của bạn sẽ hiện ở đây." />
+            <EmptyState card icon="bi-sliders" title="Chưa có biên bản họp thống nhất" description="Biên bản trong phạm vi của bạn sẽ hiện ở đây." />
           ) : (
             <>
               <div className="table-responsive d-none d-md-block">
@@ -283,7 +283,7 @@ export default function QualityControlPage() {
             </>
           )
         ) : ctlShown.length === 0 ? (
-          <EmptyState icon="bi-shield-check" title="Chưa có phiếu kiểm tra" description="Phiếu trong phạm vi của bạn sẽ hiện ở đây." />
+          <EmptyState card icon="bi-shield-check" title="Chưa có phiếu kiểm tra" description="Phiếu trong phạm vi của bạn sẽ hiện ở đây." />
         ) : (
           <>
             <div className="table-responsive d-none d-md-block">
