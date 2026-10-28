@@ -128,12 +128,13 @@ public sealed class Quarter4ScenarioTests
         Assert.Equal(HttpStatusCode.Forbidden,
             (await Post(w.CellVp, id[w.Tp.Id], "cell/confirm", new { comment = "Sai Chi bộ" }, w.Tccb)).StatusCode);
         await Step(w.Bt.Client, id[w.Tp.Id], "cell/confirm", new { comment = "Chi bộ Kỹ thuật xác nhận" }, "AwaitingCollective");
-        await Step(w.CellKtDeputy, id[w.Bt.Id], "cell/confirm", new { comment = "Phó Bí thư xác nhận" }, "AwaitingCollective");
+        // Bí thư Chi bộ là nhân viên không họp bỏ phiếu: sang thẩm định.
+        await Step(w.CellKtDeputy, id[w.Bt.Id], "cell/confirm", new { comment = "Phó Bí thư xác nhận" }, "AwaitingAppraisal");
         foreach (var p in new[] { w.Ptp, w.Ct, w.Gd, w.Ksv, w.Pgd })
             await Step(w.CellVp, id[p.Id], "cell/confirm", new { comment = "Chi bộ Văn phòng xác nhận" }, "AwaitingCollective");
 
         // ============ 5. Bước 3a: tập thể lãnh đạo bỏ phiếu kín (biên bản kiểm phiếu Mẫu 13) ============
-        var meetingKt = await CreateBallotMeetingAsync(w.SecKt, periodId, w.DeptKt, null, "B3A_COLLECTIVE", "Hội nghị tập thể lãnh đạo Phòng Kỹ thuật", 5, (id[w.Tp.Id], 4, 1), (id[w.Bt.Id], 0, 5));
+        var meetingKt = await CreateBallotMeetingAsync(w.SecKt, periodId, w.DeptKt, null, "B3A_COLLECTIVE", "Hội nghị tập thể lãnh đạo Phòng Kỹ thuật", 5, (id[w.Tp.Id], 4, 1));
         var meetingTc = await CreateBallotMeetingAsync(w.SecTc, periodId, w.DeptTc, null, "B3A_COLLECTIVE", "Hội nghị tập thể lãnh đạo Phòng TCCB-LĐ", 4, (id[w.Ptp.Id], 0, 4));
         var meetingBgd = await CreateBallotMeetingAsync(w.SecBgd, periodId, w.DeptBgd, null, "B3A_COLLECTIVE", "Hội nghị tập thể lãnh đạo Công ty", 7, (id[w.Ct.Id], 1, 6), (id[w.Gd.Id], 1, 6), (id[w.Ksv.Id], 1, 6), (id[w.Pgd.Id], 0, 7));
         // Thư ký Phòng khác không ghi nhận được đề xuất của tập thể Phòng Kỹ thuật.
@@ -147,8 +148,6 @@ public sealed class Quarter4ScenarioTests
 
         await Step(w.SecKt, id[w.Tp.Id], "collective",
             new { proposedGrade = "HoanThanhXuatSac", meetingId = meetingKt, votes = Votes(4, 1) }, "AwaitingAppraisal");
-        await Step(w.SecKt, id[w.Bt.Id], "collective",
-            new { proposedGrade = "HoanThanhTot", comment = "Theo kết quả biểu quyết", meetingId = meetingKt, votes = Votes(0, 5) }, "AwaitingAppraisal");
         await Step(w.SecTc, id[w.Ptp.Id], "collective",
             new { proposedGrade = "HoanThanhTot", comment = "Theo kết quả biểu quyết", meetingId = meetingTc, votes = Votes(0, 4) }, "AwaitingAppraisal");
         // Diện cấp trên: B3b do Ban TCĐU thực hiện → chờ ghi nhận thẩm định; Phó Giám đốc không có thẩm định → chờ Chủ tịch.

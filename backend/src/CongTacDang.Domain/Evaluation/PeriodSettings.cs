@@ -275,8 +275,12 @@ public sealed class PeriodSettings
                         [WorkflowStep.B4_DECISION] = StepMode.External
                     }),
                 WorkflowProfile.Create(ProfileCellSecretaryStaff, "Bí thư/Phó bí thư Chi bộ là nhân viên",
-                    "Tập thể lãnh đạo Phòng đề xuất, Trưởng phòng đề xuất mức (thay Giám đốc), "
+                    "Không họp bỏ phiếu: Trưởng phòng đề xuất mức (thay Giám đốc) trên ý kiến của Phó trưởng phòng, "
                     + "Phòng TCCB-LĐ thẩm định, Đảng ủy cơ sở quyết định.",
+                    modes: new Dictionary<WorkflowStep, StepMode>
+                    {
+                        [WorkflowStep.B3A_COLLECTIVE] = StepMode.Off
+                    },
                     permissions: new Dictionary<WorkflowStep, string>
                     {
                         [WorkflowStep.B3C_DIRECTOR] = WorkflowPermissions.UnitReview

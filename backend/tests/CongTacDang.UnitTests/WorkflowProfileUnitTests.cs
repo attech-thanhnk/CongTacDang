@@ -278,7 +278,7 @@ public sealed class WorkflowProfileUnitTests
         var baseProfile = Profile(settings, "co-so");
         Assert.Equal(new[] { WorkflowStep.B1_APPROVE, WorkflowStep.B3B_APPRAISAL, WorkflowStep.B3C_DIRECTOR, WorkflowStep.B4_DECISION },
             baseProfile.DifferingSteps(Profile(settings, "cap-tren")));
-        Assert.Equal(new[] { WorkflowStep.B3C_DIRECTOR }, baseProfile.DifferingSteps(Profile(settings, "bi-thu-nhan-vien")));
+        Assert.Equal(new[] { WorkflowStep.B3A_COLLECTIVE, WorkflowStep.B3C_DIRECTOR }, baseProfile.DifferingSteps(Profile(settings, "bi-thu-nhan-vien")));
 
         var withDeadline = PeriodSettings.Default();
         Profile(withDeadline, "co-so").Step(WorkflowStep.B2_SELF_SCORE).Deadline = new DateOnly(2026, 12, 11);

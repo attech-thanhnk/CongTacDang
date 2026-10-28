@@ -124,8 +124,8 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Equal("bi-thu-nhan-vien", (await Data(w.StaffC, $"/api/evaluations/records/{id}")).GetProperty("workflowProfileCode").GetString());
 
         await StepAsync(w.StaffC, id, "self-score/submit", new { generalScores = General, taskScores = await RegistrationTestData.RegisterAsync(_factory, id, 62.0 / 70) }, "AwaitingCellConfirm");
-        await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
-        await StepAsync(w.SecretaryC, id, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
+        // Nhóm này không họp bỏ phiếu: sau Chi bộ xác nhận là thẩm định.
+        await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingAppraisal");
         await StepAsync(w.ManagerC, id, "appraisal", new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 87.0, comment = "Đạt", proposedGrade = "HoanThanhTot" }, "AwaitingDirectorReview");
 
         // B3c của nhóm này do Lãnh đạo đơn vị (evaluation.unit.review) thực hiện, không phải Giám đốc.
