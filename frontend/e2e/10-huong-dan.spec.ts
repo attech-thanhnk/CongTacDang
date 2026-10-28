@@ -50,4 +50,23 @@ test.describe('Trang Hướng dẫn', () => {
     await muc.getByText('Mục lục', { exact: true }).click();
     await expect(muc.getByRole('link', { name: /Báo cáo/ }).first()).toBeVisible();
   });
+
+  test('ô tìm kiếm lọc mục lục theo tiêu đề và nội dung; Esc và nút × xóa', async ({ mo }) => {
+    const page = await mo('trung.nb');
+    await page.goto('/help');
+    const muc = page.getByRole('navigation', { name: 'Mục lục hướng dẫn' });
+    const o = muc.getByRole('searchbox', { name: 'Tìm trong hướng dẫn' });
+    const tong = await muc.getByRole('link').count();
+    await o.fill('chuông');
+    await expect(muc.getByRole('status')).toContainText(/d+ kết quả/);
+    await expect(muc.getByRole('link', { name: /Nhắc việc (chuông)/ })).toBeVisible();
+    expect(await muc.getByRole('link').count()).toBeLessThan(tong);
+    await o.press('Escape');
+    await expect(o).toHaveValue('');
+    await expect.poll(() => muc.getByRole('link').count()).toBe(tong);
+    await o.fill('khongcochuoinaoten');
+    await expect(muc.getByRole('status')).toHaveText('Không có kết quả');
+    await muc.getByRole('button', { name: 'Xóa tìm kiếm' }).click();
+    await expect(o).toHaveValue('');
+  });
 });

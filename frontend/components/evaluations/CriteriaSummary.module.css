@@ -1,5 +1,4 @@
 .root {
-  --cs-sticky-top: 0px;
   min-width: 0;
   font-size: var(--fs-base);
   color: var(--ink);
@@ -17,7 +16,6 @@
   background: var(--paper);
   border: 1px solid var(--rule);
   border-radius: 12px;
-  scroll-margin-top: calc(var(--cs-sticky-top) + 12px);
 }
 
 .blockHead {
@@ -81,13 +79,9 @@
   border-bottom: 1px solid var(--rule);
 }
 
-.group {
-  scroll-margin-top: calc(var(--cs-sticky-top) + 4px);
-}
-
 .groupHead {
   position: sticky;
-  top: var(--cs-sticky-top);
+  top: 0;
   z-index: 2;
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr) 72px;
@@ -351,134 +345,6 @@
   border-bottom: 0;
 }
 
-/* Mục lục */
-.toc ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.toc a {
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-  padding: 6px 10px;
-  border-radius: 8px;
-  color: var(--ink-2);
-  font-size: 13.5px;
-  line-height: 1.4;
-  text-decoration: none;
-}
-
-.toc a:hover {
-  background: var(--tint);
-  color: var(--ink);
-}
-
-.toc a.tocActive {
-  background: var(--primary-tint);
-  color: var(--primary-ink);
-  font-weight: 600;
-}
-
-.tocTitle {
-  padding: 0 10px 6px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--ink-3);
-}
-
-.tocCode {
-  flex: none;
-  min-width: 18px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.tocLabel {
-  min-width: 0;
-}
-
-@media (min-width: 1200px) {
-  .withNav {
-    display: grid;
-    grid-template-columns: 230px minmax(0, 1fr);
-    gap: 24px;
-    align-items: start;
-  }
-
-  .withNav .toc {
-    position: sticky;
-    top: 0;
-    max-height: calc(100vh - 96px);
-    overflow-y: auto;
-    padding: 12px 6px;
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    background: var(--paper);
-  }
-
-  .tocChild a {
-    padding-left: 22px;
-  }
-
-  .tocChild .tocLabel {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-}
-
-/* Màn hẹp: mục lục thành thanh nhảy nhanh dính trên đầu, cuộn ngang */
-@media (max-width: 1199.98px) {
-  .withNav {
-    --cs-sticky-top: 56px;
-  }
-
-  .withNav .toc {
-    position: sticky;
-    top: 0;
-    z-index: 4;
-    margin-bottom: 12px;
-    padding: 8px 0;
-    background: var(--bg);
-    border-bottom: 1px solid var(--rule);
-  }
-
-  .tocTitle {
-    display: none;
-  }
-
-  .toc ul {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .toc li {
-    flex: none;
-  }
-
-  .toc a {
-    min-height: 36px;
-    align-items: center;
-    padding: 6px 12px;
-    border: 1px solid var(--rule);
-    border-radius: 999px;
-    background: var(--paper);
-    white-space: nowrap;
-  }
-
-  /* Nhóm con chỉ hiện mã để thanh ngắn gọn */
-  .tocChild .tocLabel {
-    display: none;
-  }
-}
-
 @media (max-width: 767.98px) {
   .blockHead,
   .blockBody,
@@ -575,7 +441,4 @@
     display: block;
   }
 
-  .withNav .toc a {
-    min-height: 40px;
-  }
 }
