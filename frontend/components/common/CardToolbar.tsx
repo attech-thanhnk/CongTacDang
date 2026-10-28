@@ -3,10 +3,11 @@
 import React from "react";
 
 /** Đầu thẻ nội dung chính: bộ lọc/ô tìm bên trái, nút thao tác chính căn phải, cùng một hàng. */
-export function CardToolbar({ children, actions }: { children?: React.ReactNode; actions?: React.ReactNode }) {
+/** `alignEnd`: bộ lọc có nhãn trên ô nhập — nút căn đáy để cùng tâm với ô nhập, không theo nhãn. */
+export function CardToolbar({ children, actions, alignEnd = false }: { children?: React.ReactNode; actions?: React.ReactNode; alignEnd?: boolean }) {
   if (!children && !actions) return null;
   return (
-    <div className="card-header card-toolbar">
+    <div className={`card-header card-toolbar${alignEnd ? " card-toolbar-end" : ""}`}>
       {children && <div className="card-toolbar-main">{children}</div>}
       {actions && <div className="card-toolbar-actions">{actions}</div>}
     </div>

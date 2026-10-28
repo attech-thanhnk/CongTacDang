@@ -112,7 +112,7 @@ export default function AdminUsersPage() {
 
       <div className="page-body">
         <Card>
-          <CardToolbar actions={canManage ? (
+          <CardToolbar alignEnd actions={canManage ? (
             <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
               <i className="bi bi-plus-lg me-1" />
               Tạo tài khoản
