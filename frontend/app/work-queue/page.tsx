@@ -52,18 +52,16 @@ export default function WorkQueuePage() {
       <PageHeader
         title="Việc cần xử lý"
         actions={
-          <div className={styles.headerTools}>
-            {showSearch && (
-              <input
-                type="search"
-                className={`form-control form-control-sm ${styles.search}`}
-                placeholder="Tìm theo tên cán bộ"
-                aria-label="Tìm theo tên cán bộ"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-              />
-            )}
-          </div>
+          showSearch ? (
+            <input
+              type="search"
+              className={`form-control form-control-sm ${styles.search}`}
+              placeholder="Tìm theo tên cán bộ"
+              aria-label="Tìm theo tên cán bộ"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+            />
+          ) : undefined
         }
       />
 

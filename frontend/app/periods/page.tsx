@@ -43,14 +43,14 @@ export default function PeriodsPage() {
       />
       <div className="page-body">
         <section className="card">
-          <CardToolbar actions={<>
+          {periods.length > 0 && <CardToolbar actions={<>
             {canSeeCriteria && <Link href="/criteria" className="btn btn-outline-secondary"><i className="bi bi-list-check me-1" />Bộ tiêu chí</Link>}
             {canManage && (
               <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
                 <i className="bi bi-plus-lg me-1" />Tạo kỳ
               </button>
             )}
-          </>} />
+          </>} />}
           <div className="card-body p-0">
             {loading ? (
               <div className="text-secondary p-3 loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>

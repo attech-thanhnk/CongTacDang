@@ -2733,7 +2733,7 @@ textarea.form-control {
 }
 
 .card-toolbar-main {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
 }
 
@@ -2806,4 +2806,10 @@ textarea.form-control {
 .page-header-bar:has(> .back-btn) {
   min-height: 36px;
   margin-bottom: 12px;
+}
+
+@media (max-width: 1099.98px) {
+  .card-toolbar-main {
+    flex-basis: 100%;
+  }
 }

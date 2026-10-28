@@ -198,25 +198,23 @@ export default function QualityControlPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Duyệt kết quả"
-        actions={
-          <div className="d-flex gap-2 flex-wrap align-items-center">
-            <select className="form-select form-select-sm" aria-label="Lọc theo kỳ" value={periodFilter} onChange={(e) => setPeriod(e.target.value)}>
+      />
+      <div className="page-body d-flex flex-column gap-3">
+        <TabsRow actions={<>
+            <select className="form-select form-select-sm w-auto" aria-label="Lọc theo kỳ" value={periodFilter} onChange={(e) => setPeriod(e.target.value)}>
               <option value="">Tất cả kỳ</option>
               {periods.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            <select className="form-select form-select-sm" aria-label="Lọc theo trạng thái" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <select className="form-select form-select-sm w-auto" aria-label="Lọc theo trạng thái" value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="">Mọi trạng thái</option>
               {statuses.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}
             </select>
-          </div>
-        }
-      />
-      <div className="page-body d-flex flex-column gap-3">
-        <TabsRow actions={canCreate ? (
+          {canCreate && (
           <button type="button" className="btn btn-primary btn-sm" onClick={openPicker}>
             {active === "calibration" ? "Lập biên bản" : "Lập phiếu"}
           </button>
-        ) : undefined}>
+        )}
+          </>}>
         <ul className="nav nav-tabs flex-nowrap" role="tablist" style={{ overflowX: "auto", overflowY: "hidden" }}>
           {tabs.filter((t) => t.show).map((t) => (
             <li className="nav-item" key={t.key}>

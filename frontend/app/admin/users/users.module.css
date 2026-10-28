@@ -109,3 +109,30 @@
     min-width: 40px;
   }
 }
+
+/* Bộ lọc co giãn: ô tìm rộng, các ô chọn hẹp, để nút Tạo tài khoản cùng hàng. */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 0;
+}
+
+.filters > div {
+  width: auto;
+  max-width: none;
+  padding: 0;
+  margin: 0;
+  flex: 0 1 150px;
+  min-width: 120px;
+}
+
+.filters > div:first-child {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+
+.filters > div:last-child {
+  flex: none;
+}

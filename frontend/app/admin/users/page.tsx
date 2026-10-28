@@ -118,7 +118,7 @@ export default function AdminUsersPage() {
               Tạo tài khoản
             </button>
           ) : undefined}>
-            <form className={`row g-2 align-items-end ${styles.filters}`} onSubmit={applyFilters}>
+            <form className={styles.filters} onSubmit={applyFilters}>
               <div className="col-12 col-md-6 col-xl-4">
                 <label className="form-label" htmlFor="users-q">
                   Tìm kiếm
