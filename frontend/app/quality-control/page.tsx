@@ -197,7 +197,7 @@ export default function QualityControlPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Duyệt kết quả"
-        actions={
+        toolbar={
           <div className="d-flex gap-2 flex-wrap align-items-center">
             <select className="form-select form-select-sm" aria-label="Lọc theo kỳ" value={periodFilter} onChange={(e) => setPeriod(e.target.value)}>
               <option value="">Tất cả kỳ</option>
@@ -207,12 +207,14 @@ export default function QualityControlPage() {
               <option value="">Mọi trạng thái</option>
               {statuses.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}
             </select>
-            {canCreate && (
-              <button type="button" className="btn btn-primary" onClick={openPicker}>
-                {active === "calibration" ? "Lập biên bản" : "Lập phiếu"}
-              </button>
-            )}
           </div>
+        }
+        actions={
+          canCreate ? (
+            <button type="button" className="btn btn-primary" onClick={openPicker}>
+              {active === "calibration" ? "Lập biên bản" : "Lập phiếu"}
+            </button>
+          ) : undefined
         }
       />
       <div className="page-body d-flex flex-column gap-3">
