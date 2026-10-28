@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { CardToolbar, TabsRow, StickyActionBar } from "@/components/common/CardToolbar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -207,15 +208,15 @@ export default function QualityControlPage() {
               <option value="">Mọi trạng thái</option>
               {statuses.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}
             </select>
-            {canCreate && (
-              <button type="button" className="btn btn-primary" onClick={openPicker}>
-                {active === "calibration" ? "Lập biên bản" : "Lập phiếu"}
-              </button>
-            )}
           </div>
         }
       />
       <div className="page-body d-flex flex-column gap-3">
+        <TabsRow actions={canCreate ? (
+          <button type="button" className="btn btn-primary btn-sm" onClick={openPicker}>
+            {active === "calibration" ? "Lập biên bản" : "Lập phiếu"}
+          </button>
+        ) : undefined}>
         <ul className="nav nav-tabs flex-nowrap" role="tablist" style={{ overflowX: "auto", overflowY: "hidden" }}>
           {tabs.filter((t) => t.show).map((t) => (
             <li className="nav-item" key={t.key}>
@@ -225,6 +226,7 @@ export default function QualityControlPage() {
             </li>
           ))}
         </ul>
+        </TabsRow>
 
         {loading || tab === null ? (
           <div className="text-secondary loading-delay">

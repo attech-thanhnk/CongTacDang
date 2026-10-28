@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { StickyActionBar } from "@/components/common/CardToolbar";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -345,12 +346,6 @@ export default function CalibrationDetailPage() {
       />
 
       <div className="page-body d-flex flex-column gap-3">
-        <div>
-          <Link href="/quality-control?tab=calibration" className="small text-decoration-none">
-            <i className="bi bi-chevron-left" aria-hidden="true" /> Danh sách biên bản
-          </Link>
-        </div>
-
         {data.status === "Draft" && data.concludeBlockedReason && (
           <div className="alert alert-warning small mb-0" role="status">{data.concludeBlockedReason}</div>
         )}
@@ -364,14 +359,6 @@ export default function CalibrationDetailPage() {
           <div className="alert alert-success small mb-0">
             Đã chốt{data.concludedByName ? ` bởi ${data.concludedByName}` : ""}
             {data.concludedAt ? ` lúc ${formatDateTime(data.concludedAt)}` : ""}.
-          </div>
-        )}
-
-        {!ro && (
-          <div className="d-flex justify-content-end align-items-center gap-2">
-            {dirty && <span className="text-secondary small me-auto">Có thay đổi chưa lưu</span>}
-            <button type="button" className="btn btn-outline-secondary" disabled={busy || !dirty} onClick={() => setDraft(toDraft(data))}>Hủy</button>
-            <button type="button" className="btn btn-outline-primary" disabled={busy || !dirty} onClick={save}>{busy ? "Đang lưu..." : "Lưu"}</button>
           </div>
         )}
 
@@ -688,6 +675,13 @@ export default function CalibrationDetailPage() {
           </section>
         )}
         <div className="small text-secondary">Lập bởi {data.preparedByName} · {formatDate(data.preparedAt)} · lần {data.revision}</div>
+        {!ro && (
+          <StickyActionBar>
+            {dirty && <span className="hint">Có thay đổi chưa lưu</span>}
+            <button type="button" className="btn btn-outline-secondary" disabled={busy || !dirty} onClick={() => setDraft(toDraft(data))}>Hủy</button>
+            <button type="button" className="btn btn-outline-primary" disabled={busy || !dirty} onClick={save}>{busy ? "Đang lưu..." : "Lưu"}</button>
+          </StickyActionBar>
+        )}
       </div>
 
       <ReasonDialog

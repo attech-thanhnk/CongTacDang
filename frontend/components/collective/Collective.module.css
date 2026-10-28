@@ -39,8 +39,13 @@
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 24px;
-  padding-top: 16px;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--rule);
+  /* Thanh Lưu/Hủy dính đáy khung nội dung. */
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  background: var(--paper);
 }
 
 .footerHint {

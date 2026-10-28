@@ -63,9 +63,6 @@ export default function WorkQueuePage() {
                 onChange={(e) => setKeyword(e.target.value)}
               />
             )}
-            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => load()} aria-label="Làm mới" title="Làm mới">
-              <i className="bi bi-arrow-clockwise" />
-            </button>
           </div>
         }
       />
@@ -85,7 +82,7 @@ export default function WorkQueuePage() {
         ) : groups.length === 0 ? (
           <EmptyState card icon="bi-search" title="Không tìm thấy cán bộ phù hợp" description="Thử từ khóa khác." compact />
         ) : (
-          groups.map((group) => {
+          groups.map((group, index) => {
             // Cả nhóm cùng một hạn thì ghi hạn một lần ở tiêu đề.
             const common = commonDeadline(group.items);
             return (
@@ -95,6 +92,11 @@ export default function WorkQueuePage() {
                     {group.stepName} <span className={styles.count}>{group.items.length}</span>
                   </h2>
                   {common && <GroupDeadline deadline={common.deadline} overdue={common.overdue} />}
+                  {index === 0 && (
+                    <button type="button" className="btn btn-outline-secondary btn-sm ms-auto" onClick={() => load()} aria-label="Làm mới" title="Làm mới">
+                      <i className="bi bi-arrow-clockwise" />
+                    </button>
+                  )}
                 </div>
                 <TaskTable tasks={group.items} periodId={periodId} pageKey="workQueue" resetKeys={[keyword]} showDeadline={!common} />
               </section>

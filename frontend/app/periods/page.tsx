@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { CardToolbar, TabsRow, StickyActionBar } from "@/components/common/CardToolbar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -39,19 +40,17 @@ export default function PeriodsPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Kỳ đánh giá"
-        actions={
-          <div className="d-flex flex-wrap gap-2">
+      />
+      <div className="page-body">
+        <section className="card">
+          <CardToolbar actions={<>
             {canSeeCriteria && <Link href="/criteria" className="btn btn-outline-secondary"><i className="bi bi-list-check me-1" />Bộ tiêu chí</Link>}
             {canManage && (
               <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
                 <i className="bi bi-plus-lg me-1" />Tạo kỳ
               </button>
             )}
-          </div>
-        }
-      />
-      <div className="page-body">
-        <section className="card">
+          </>} />
           <div className="card-body p-0">
             {loading ? (
               <div className="text-secondary p-3 loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
