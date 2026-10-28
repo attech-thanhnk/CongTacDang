@@ -47,3 +47,21 @@ export function buildToc(markdown: string): TocItem[] {
   }
   return items;
 }
+
+const DAU = new RegExp("\\p{M}", "gu");
+
+/** Bỏ dấu và chữ hoa để so khớp khi tìm kiếm. */
+export function foldText(text: string): string {
+  return text.normalize("NFD").replace(DAU, "").replace(/đ/g, "d").replace(/Đ/g, "d").toLowerCase();
+}
+
+/** Chữ (đã bỏ dấu) của tiêu đề và phần nội dung dưới nó, theo từng mục của mục lục. */
+export function buildSearchText(markdown: string, toc: TocItem[]): Map<string, string> {
+  const lines = markdown.split(/\r?\n/);
+  const out = new Map<string, string>();
+  toc.forEach((item, i) => {
+    const end = i + 1 < toc.length ? toc[i + 1].line - 1 : lines.length;
+    out.set(item.id, foldText(`${item.text} ${lines.slice(item.line, end).join(" ")}`));
+  });
+  return out;
+}

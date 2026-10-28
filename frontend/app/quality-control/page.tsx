@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { CardToolbar, TabsRow, StickyActionBar } from "@/components/common/CardToolbar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -197,25 +198,23 @@ export default function QualityControlPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Duyệt kết quả"
-        actions={
-          <div className="d-flex gap-2 flex-wrap align-items-center">
-            <select className="form-select form-select-sm" aria-label="Lọc theo kỳ" value={periodFilter} onChange={(e) => setPeriod(e.target.value)}>
+      />
+      <div className="page-body d-flex flex-column gap-3">
+        <TabsRow actions={<>
+            <select className="form-select form-select-sm w-auto" aria-label="Lọc theo kỳ" value={periodFilter} onChange={(e) => setPeriod(e.target.value)}>
               <option value="">Tất cả kỳ</option>
               {periods.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            <select className="form-select form-select-sm" aria-label="Lọc theo trạng thái" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <select className="form-select form-select-sm w-auto" aria-label="Lọc theo trạng thái" value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="">Mọi trạng thái</option>
               {statuses.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}
             </select>
-            {canCreate && (
-              <button type="button" className="btn btn-primary" onClick={openPicker}>
-                {active === "calibration" ? "Lập biên bản" : "Lập phiếu"}
-              </button>
-            )}
-          </div>
-        }
-      />
-      <div className="page-body d-flex flex-column gap-3">
+          {canCreate && (
+          <button type="button" className="btn btn-primary btn-sm" onClick={openPicker}>
+            {active === "calibration" ? "Lập biên bản" : "Lập phiếu"}
+          </button>
+        )}
+          </>}>
         <ul className="nav nav-tabs flex-nowrap" role="tablist" style={{ overflowX: "auto", overflowY: "hidden" }}>
           {tabs.filter((t) => t.show).map((t) => (
             <li className="nav-item" key={t.key}>
@@ -225,6 +224,7 @@ export default function QualityControlPage() {
             </li>
           ))}
         </ul>
+        </TabsRow>
 
         {loading || tab === null ? (
           <div className="text-secondary loading-delay">
@@ -233,7 +233,7 @@ export default function QualityControlPage() {
           </div>
         ) : active === "calibration" ? (
           calShown.length === 0 ? (
-            <EmptyState icon="bi-sliders" title="Chưa có biên bản họp thống nhất" description="Biên bản trong phạm vi của bạn sẽ hiện ở đây." />
+            <EmptyState card icon="bi-sliders" title="Chưa có biên bản họp thống nhất" description="Biên bản trong phạm vi của bạn sẽ hiện ở đây." />
           ) : (
             <>
               <div className="table-responsive d-none d-md-block">
@@ -283,7 +283,7 @@ export default function QualityControlPage() {
             </>
           )
         ) : ctlShown.length === 0 ? (
-          <EmptyState icon="bi-shield-check" title="Chưa có phiếu kiểm tra" description="Phiếu trong phạm vi của bạn sẽ hiện ở đây." />
+          <EmptyState card icon="bi-shield-check" title="Chưa có phiếu kiểm tra" description="Phiếu trong phạm vi của bạn sẽ hiện ở đây." />
         ) : (
           <>
             <div className="table-responsive d-none d-md-block">

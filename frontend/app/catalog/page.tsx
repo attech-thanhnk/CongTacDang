@@ -65,8 +65,12 @@ export default function CatalogPage() {
           ))}
         </ul>
 
-        {tab === "departments" && <OrgTreeTab key="departments" kind="departments" unit="đơn vị" canManage={canManage} unitTypes={unitTypes} />}
-        {tab === "branches" && <OrgTreeTab key="branches" kind="branches" unit="tổ chức Đảng" canManage={canManage} unitTypes={unitTypes} />}
+        {/* Cây đơn vị cần danh sách loại đơn vị để chọn "Loại" khi sửa; chưa tải xong thì chưa cho thao tác. */}
+        {(tab === "departments" || tab === "branches") && typesLoading && (
+          <div className="text-secondary loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
+        )}
+        {tab === "departments" && !typesLoading && <OrgTreeTab key="departments" kind="departments" unit="đơn vị" canManage={canManage} unitTypes={unitTypes} />}
+        {tab === "branches" && !typesLoading && <OrgTreeTab key="branches" kind="branches" unit="tổ chức Đảng" canManage={canManage} unitTypes={unitTypes} />}
         {tab === "unit-types" && <UnitTypesTab unitTypes={unitTypes} loading={typesLoading} canManage={canManage} onChanged={loadUnitTypes} />}
         {tab === "positions" && <PositionsTab canManage={canManage} />}
         {tab === "form-layouts" && <FormLayoutsTab canManage={canManage} />}

@@ -1,0 +1,164 @@
+/* Nội dung có mục lục: dùng chung cho Hướng dẫn và chi tiết bộ tiêu chí. */
+.root {
+  --doc-sticky-h: 0px;
+  min-width: 0;
+}
+
+.main {
+  min-width: 0;
+}
+
+/* Mọi mục có id chừa chỗ cho thanh dính phía trên khi cuộn tới. */
+.main :global([id]) {
+  scroll-margin-top: calc(var(--doc-sticky-h) + 16px);
+}
+
+.toc {
+  min-width: 0;
+  margin-bottom: 12px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+}
+
+.tocToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tocBody {
+  display: none;
+  padding: 0 6px 8px;
+}
+
+.tocOpen .tocBody {
+  display: block;
+}
+
+.toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.toc li {
+  position: relative;
+}
+
+.toc li a {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 30px 6px 10px;
+  border-radius: 8px;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  line-height: 1.4;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.toc li a:hover {
+  background: var(--tint);
+  color: var(--ink);
+}
+
+.toc li a.active {
+  background: var(--primary-tint);
+  color: var(--primary-ink);
+  font-weight: 600;
+}
+
+.toc li a:focus-visible,
+.chev:focus-visible,
+.tocToggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.child a {
+  padding-left: 22px;
+  font-size: 13px;
+}
+
+.chev {
+  position: absolute;
+  top: 3px;
+  right: 2px;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.chev:hover {
+  background: var(--tint);
+}
+
+.code {
+  flex: none;
+  min-width: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  min-width: 0;
+}
+
+.child .label {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (min-width: 1200px) {
+  .root {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* Dính ở 16px tính từ mép trên vùng cuộn (.app-main), cao tối đa bằng vùng nhìn thấy. */
+  .toc {
+    position: sticky;
+    top: 16px;
+    margin-bottom: 0;
+    max-height: calc(100dvh - var(--header-h) - 32px);
+    overflow-y: auto;
+  }
+
+  .tocToggle {
+    min-height: 0;
+    padding: 12px 16px 6px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-3);
+    pointer-events: none;
+  }
+
+  .tocToggle i {
+    display: none;
+  }
+
+  .tocBody {
+    display: block;
+  }
+}

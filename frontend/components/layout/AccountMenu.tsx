@@ -20,7 +20,12 @@ export function initialsOf(fullName?: string): string {
     .toUpperCase();
 }
 
-/** Khu tài khoản cuối thanh bên: bấm mở menu (Tài khoản, Đăng xuất). */
+/** Tên gọi ngắn: từ cuối của họ tên. */
+function shortNameOf(fullName?: string): string {
+  return fullName?.trim().split(/\s+/).pop() ?? "";
+}
+
+/** Menu tài khoản ở góc phải thanh trên: bấm mở họ tên đầy đủ, chức danh và các mục (Tài khoản, Đăng xuất). */
 export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
   const { toast } = useToast();
@@ -73,15 +78,32 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className={styles.root} ref={rootRef}>
+      <button
+        type="button"
+        className={styles.trigger}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={user.fullName}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="initials">{initialsOf(user.fullName)}</span>
+        <span className={styles.short}>{shortNameOf(user.fullName)}</span>
+        <i className={`bi bi-chevron-down ${styles.chev}`} aria-hidden="true" />
+      </button>
       {open && (
         <div className={styles.menu} role="menu">
           <div className={styles.menuHead}>
-            <b className="text-truncate">{user.fullName}</b>
-            <small className="text-truncate">{user.userName}</small>
+            <b>{user.fullName}</b>
+            {title && <span>{title}</span>}
+            <small>{user.userName}</small>
           </div>
           <Link href="/account" role="menuitem" className={styles.item} onClick={go}>
             <i className="bi bi-person-gear" />
             Tài khoản
+          </Link>
+          <Link href="/help" role="menuitem" className={`${styles.item} ${styles.helpItem}`} onClick={go}>
+            <i className="bi bi-question-circle" />
+            Hướng dẫn
           </Link>
           <div className={styles.sep} />
           <button type="button" role="menuitem" className={`${styles.item} ${styles.danger}`} onClick={handleLogout}>
@@ -91,20 +113,6 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
           {version && <div className={styles.version} title={`Dựng lúc ${version.buildTime}`}>{versionLabel(version)}</div>}
         </div>
       )}
-      <button
-        type="button"
-        className={styles.trigger}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <span className="initials">{initialsOf(user.fullName)}</span>
-        <span className={styles.who}>
-          <b className="text-truncate" title={user.fullName}>{user.fullName}</b>
-          {title && <small className="text-truncate" title={title}>{title}</small>}
-        </span>
-        <i className={`bi bi-chevron-expand ${styles.chev}`} />
-      </button>
     </div>
   );
 }

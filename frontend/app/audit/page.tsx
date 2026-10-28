@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { CardToolbar, TabsRow, StickyActionBar } from "@/components/common/CardToolbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { auditService, AuditLogDto, AuditLogPage } from "@/services/auditService";
@@ -255,18 +256,16 @@ function AuditPageContent() {
     <div className="page-wrapper">
       <PageHeader
         title="Nhật ký hệ thống"
-        actions={
-          tab === "actions" && (
-            <button type="button" className="btn btn-outline-secondary" onClick={() => loadLogs()} disabled={loading}>
-              <i className={`bi ${loading ? "bi-arrow-repeat" : "bi-arrow-clockwise"} me-1`} />
-              Làm mới
-            </button>
-          )
-        }
       />
 
       <div className="page-body">
         <div className="d-flex flex-column gap-3">
+          <TabsRow actions={tab === "actions" ? (
+            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => loadLogs()} disabled={loading}>
+              <i className={`bi ${loading ? "bi-arrow-repeat" : "bi-arrow-clockwise"} me-1`} />
+              Làm mới
+            </button>
+          ) : undefined}>
           <ul className="nav nav-tabs">
             {[
               { key: "actions" as const, label: "Nhật ký thao tác", icon: "bi-activity" },
@@ -280,6 +279,7 @@ function AuditPageContent() {
               </li>
             ))}
           </ul>
+          </TabsRow>
 
           {tab === "logins" && <LoginEventsTab />}
 

@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { LayoutProvider } from "@/contexts/LayoutContext";
+import { PageTitleProvider } from "@/contexts/PageTitleContext";
 import { PeriodProvider } from "@/contexts/PeriodContext";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -82,6 +83,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   return (
     <LayoutProvider>
       <PeriodProvider enabled={!user.mustChangePassword && !isChangePasswordPage}>
+        <PageTitleProvider>
         <div className="app-shell">
           <AppSidebar />
           <div className="app-content">
@@ -91,6 +93,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             </main>
           </div>
         </div>
+        </PageTitleProvider>
       </PeriodProvider>
     </LayoutProvider>
   );

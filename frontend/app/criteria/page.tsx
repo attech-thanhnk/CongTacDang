@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import { CardToolbar, TabsRow, StickyActionBar } from "@/components/common/CardToolbar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -96,16 +97,14 @@ export default function CriteriaSetsPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Bộ tiêu chí"
-        actions={
-          canManage ? (
-            <button type="button" className="btn btn-primary" onClick={() => { setForm(EMPTY_FORM); setShowCreate(true); }}>
-              <i className="bi bi-plus-lg me-1" />Tạo bộ tiêu chí
-            </button>
-          ) : undefined
-        }
       />
       <div className="page-body">
         <section className="card">
+          {canManage && <CardToolbar actions={
+            <button type="button" className="btn btn-primary" onClick={() => { setForm(EMPTY_FORM); setShowCreate(true); }}>
+              <i className="bi bi-plus-lg me-1" />Tạo bộ tiêu chí
+            </button>
+          } />}
           <div className="card-body p-0">
             {loading ? (
               <div className="text-secondary p-3 loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>

@@ -52,21 +52,16 @@ export default function WorkQueuePage() {
       <PageHeader
         title="Việc cần xử lý"
         actions={
-          <div className={styles.headerTools}>
-            {showSearch && (
-              <input
-                type="search"
-                className={`form-control form-control-sm ${styles.search}`}
-                placeholder="Tìm theo tên cán bộ"
-                aria-label="Tìm theo tên cán bộ"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-              />
-            )}
-            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => load()} aria-label="Làm mới" title="Làm mới">
-              <i className="bi bi-arrow-clockwise" />
-            </button>
-          </div>
+          showSearch ? (
+            <input
+              type="search"
+              className={`form-control form-control-sm ${styles.search}`}
+              placeholder="Tìm theo tên cán bộ"
+              aria-label="Tìm theo tên cán bộ"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+            />
+          ) : undefined
         }
       />
 
@@ -77,15 +72,15 @@ export default function WorkQueuePage() {
             Đang tải...
           </div>
         ) : groups.length === 0 && !keyword ? (
-          <EmptyState
+          <EmptyState card
             icon="bi-check2-circle"
             title="Không có việc nào đang chờ bạn"
             description="Khi có hồ sơ cần bạn xử lý, chúng sẽ hiện ở đây."
           />
         ) : groups.length === 0 ? (
-          <EmptyState icon="bi-search" title="Không tìm thấy cán bộ phù hợp" description="Thử từ khóa khác." compact />
+          <EmptyState card icon="bi-search" title="Không tìm thấy cán bộ phù hợp" description="Thử từ khóa khác." compact />
         ) : (
-          groups.map((group) => {
+          groups.map((group, index) => {
             // Cả nhóm cùng một hạn thì ghi hạn một lần ở tiêu đề.
             const common = commonDeadline(group.items);
             return (
@@ -95,6 +90,11 @@ export default function WorkQueuePage() {
                     {group.stepName} <span className={styles.count}>{group.items.length}</span>
                   </h2>
                   {common && <GroupDeadline deadline={common.deadline} overdue={common.overdue} />}
+                  {index === 0 && (
+                    <button type="button" className="btn btn-outline-secondary btn-sm ms-auto" onClick={() => load()} aria-label="Làm mới" title="Làm mới">
+                      <i className="bi bi-arrow-clockwise" />
+                    </button>
+                  )}
                 </div>
                 <TaskTable tasks={group.items} periodId={periodId} pageKey="workQueue" resetKeys={[keyword]} showDeadline={!common} />
               </section>

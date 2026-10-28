@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { StickyActionBar } from "@/components/common/CardToolbar";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -87,19 +88,27 @@ export default function ControlCheckDetailPage() {
     setDraft(toDraft(c));
   }, []);
 
-  const load = useCallback(async () => {
+  // `isAlive`: bỏ kết quả của lần tải đã bị hủy (dev chạy hai lần) để không ghi đè phần người dùng đang nhập.
+  const load = useCallback(async (isAlive: () => boolean = () => true) => {
     try {
-      apply(await controlCheckService.get(id));
+      const loaded = await controlCheckService.get(id);
+      if (isAlive()) apply(loaded);
     } catch (err: unknown) {
-      toast.error(errorMessage(err, "Tải phiếu kiểm tra không thành công."));
-      setData(null);
+      if (isAlive()) {
+        toast.error(errorMessage(err, "Tải phiếu kiểm tra không thành công."));
+        setData(null);
+      }
     } finally {
-      setLoading(false);
+      if (isAlive()) setLoading(false);
     }
   }, [id, apply, toast]);
 
   useEffect(() => {
-    load();
+    let alive = true;
+    load(() => alive);
+    return () => {
+      alive = false;
+    };
   }, [load]);
 
   const dirty = useMemo(() => !!data && !!draft && JSON.stringify(draft) !== JSON.stringify(toDraft(data)), [data, draft]);
@@ -244,7 +253,7 @@ export default function ControlCheckDetailPage() {
       <div className="page-wrapper">
         <PageHeader title="Phiếu kiểm tra" />
         <div className="page-body">
-          <EmptyState icon="bi-file-earmark-x" title="Chưa mở được phiếu" description="Phiếu không tồn tại hoặc bạn không có quyền xem." />
+          <EmptyState card icon="bi-file-earmark-x" title="Chưa mở được phiếu" description="Phiếu không tồn tại hoặc bạn không có quyền xem." />
         </div>
       </div>
     );
@@ -295,26 +304,12 @@ export default function ControlCheckDetailPage() {
       />
 
       <div className="page-body d-flex flex-column gap-3">
-        <div>
-          <Link href="/quality-control?tab=control" className="small text-decoration-none">
-            <i className="bi bi-chevron-left" aria-hidden="true" /> Danh sách phiếu
-          </Link>
-        </div>
-
         {data.isStale && (
           <div className="alert alert-danger small mb-0" role="alert">
             Phiếu hết hiệu lực với các hồ sơ có nhãn "Hết hiệu lực" bên dưới: hồ sơ đó đã đổi kết quả hoặc bước sau khi xác nhận. Hãy mở lại phiếu và xác nhận lại; hồ sơ đã ghi nhận quyết định không bị ảnh hưởng.
           </div>
         )}
         {data.returnReason && data.status === "Draft" && <div className="alert alert-warning small mb-0">Phiếu bị trả lại: {data.returnReason}</div>}
-
-        {!ro && (
-          <div className="d-flex justify-content-end align-items-center gap-2">
-            {dirty && <span className="text-secondary small me-auto">Có thay đổi chưa lưu</span>}
-            <button type="button" className="btn btn-outline-secondary" disabled={busy || !dirty} onClick={() => setDraft(toDraft(data))}>Hủy</button>
-            <button type="button" className="btn btn-outline-primary" disabled={busy || !dirty} onClick={save}>{busy ? "Đang lưu..." : "Lưu"}</button>
-          </div>
-        )}
 
         <section className="card">
           <div className="card-header"><h2 className="mb-0">Phạm vi</h2></div>
@@ -428,6 +423,13 @@ export default function ControlCheckDetailPage() {
               ))}
             </ul>
           </section>
+        )}
+        {!ro && (
+          <StickyActionBar>
+            {dirty && <span className="hint">Có thay đổi chưa lưu</span>}
+            <button type="button" className="btn btn-outline-secondary" disabled={busy || !dirty} onClick={() => setDraft(toDraft(data))}>Hủy</button>
+            <button type="button" className="btn btn-outline-primary" disabled={busy || !dirty} onClick={save}>{busy ? "Đang lưu..." : "Lưu"}</button>
+          </StickyActionBar>
         )}
       </div>
 

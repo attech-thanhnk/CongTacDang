@@ -8,13 +8,13 @@ test.describe('Trang Hướng dẫn', () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test('cán bộ thường mở từ menu: có mục lục, bảng và đúng tên mới', async ({ mo }) => {
+  test('cán bộ thường mở từ nút ? ở thanh trên: có mục lục, bảng và đúng tên mới', async ({ mo }) => {
     const page = await mo('trung.nb');
     await page.goto('/');
-    await page.locator('aside').getByRole('link', { name: 'Hướng dẫn' }).click();
+    await page.locator('header').getByRole('link', { name: 'Hướng dẫn' }).click();
     await expect(page).toHaveURL(/\/help$/);
     await expect(page.getByRole('heading', { name: 'Hướng dẫn sử dụng', level: 1 })).toBeVisible();
-    await expect(page.getByText('Mục Hướng dẫn trong menu hiển thị cùng nội dung này.')).toBeVisible();
+    await expect(page.getByText('Nút Hướng dẫn (dấu ?) ở góc trên bên phải hiển thị cùng nội dung này.')).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Mục lục hướng dẫn' }).getByRole('link', { name: /Xác nhận số liệu và duyệt kết quả/ })).toBeVisible();
     await expect(page.locator('article table').first()).toBeVisible();
     // Tên cũ không còn trong hướng dẫn.
@@ -49,5 +49,25 @@ test.describe('Trang Hướng dẫn', () => {
     await expect(muc.getByRole('link', { name: /Báo cáo/ }).first()).toBeHidden();
     await muc.getByText('Mục lục', { exact: true }).click();
     await expect(muc.getByRole('link', { name: /Báo cáo/ }).first()).toBeVisible();
+  });
+
+  test('ô tìm kiếm lọc mục lục theo tiêu đề và nội dung; Esc và nút × xóa', async ({ mo }) => {
+    const page = await mo('trung.nb');
+    await page.goto('/help');
+    const muc = page.getByRole('navigation', { name: 'Mục lục hướng dẫn' });
+    const o = muc.getByRole('searchbox', { name: 'Tìm trong hướng dẫn' });
+    await expect(muc.getByRole('link').first()).toBeVisible();
+    const tong = await muc.getByRole('link').count();
+    await o.fill('chuông');
+    await expect(muc.getByRole('status')).toContainText(/[0-9]+ kết quả/);
+    await expect(muc.getByRole('link', { name: /Nhắc việc [(]chuông[)]/ })).toBeVisible();
+    expect(await muc.getByRole('link').count()).toBeLessThan(tong);
+    await o.press('Escape');
+    await expect(o).toHaveValue('');
+    await expect.poll(() => muc.getByRole('link').count()).toBe(tong);
+    await o.fill('khongcochuoinaoten');
+    await expect(muc.getByRole('status')).toHaveText('Không có kết quả');
+    await muc.getByRole('button', { name: 'Xóa tìm kiếm' }).click();
+    await expect(o).toHaveValue('');
   });
 });

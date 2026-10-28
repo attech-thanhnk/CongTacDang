@@ -190,7 +190,7 @@ export default function EvaluationsPage() {
               Đang tải...
             </div>
           ) : (
-            <EmptyState
+            <EmptyState card
               icon="bi-folder2-open"
               title={periods.length === 0 ? "Chưa có kỳ đánh giá đang diễn ra" : "Bạn chưa có hồ sơ trong kỳ này"}
               description="Hồ sơ của bạn hiện ở đây khi kỳ đánh giá có tên bạn."
@@ -206,7 +206,7 @@ export default function EvaluationsPage() {
       <PageHeader title="Hồ sơ đánh giá" />
 
       <div className="page-body">
-        {!periodsLoading && periods.length === 0 && <EmptyState
+        {!periodsLoading && periods.length === 0 && <EmptyState card
             icon="bi-calendar-x"
             title="Chưa có kỳ đánh giá đang diễn ra"
             description="Hồ sơ đánh giá hiện ở đây khi kỳ đánh giá được mở."
@@ -215,7 +215,7 @@ export default function EvaluationsPage() {
 
         {myRecord && <MyRecordSection record={myRecord} />}
 
-        {canRead && (
+        {canRead && !(!periodsLoading && periods.length === 0) && (
           <section className={styles.block}>
             <div className={`${styles.blockH} ${styles.filters}`}>
               <input

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useId, useMemo, useRef, useState } from "react";
+import React, { useId, useMemo } from "react";
+import { DocWithToc } from "@/components/common/DocWithToc";
 import { COLLECTIVE_KIND_LABELS, CriteriaSetContent, GRADE_LABELS, RECORD_FORMS, ROUNDING_LABELS, fmt } from "@/services/criteriaService";
 import styles from "./CriteriaSummary.module.css";
 
@@ -40,18 +41,6 @@ export function CriteriaSummary({ content, navigation = false }: CriteriaSummary
     return entries;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content, prefix]);
-
-  const active = useActiveSection(navigation ? nav.map((n) => n.id) : []);
-  const tocList = useRef<HTMLUListElement>(null);
-
-  // Thanh nhảy nhanh cuộn ngang: giữ mục đang xem trong tầm nhìn (chỉ cuộn thanh, không cuộn trang).
-  useEffect(() => {
-    const list = tocList.current;
-    const link = list?.querySelector<HTMLElement>("[aria-current]");
-    if (!list || !link || list.scrollWidth <= list.clientWidth) return;
-    const left = link.offsetLeft - list.offsetLeft;
-    if (left < list.scrollLeft || left + link.offsetWidth > list.scrollLeft + list.clientWidth) list.scrollLeft = left - 16;
-  }, [active]);
 
   const body = (
     <div className={styles.blocks}>
@@ -277,22 +266,12 @@ export function CriteriaSummary({ content, navigation = false }: CriteriaSummary
   if (!navigation) return <div className={styles.root}>{body}</div>;
 
   return (
-    <div className={`${styles.root} ${styles.withNav}`}>
-      <nav className={styles.toc} aria-label="Mục lục bộ tiêu chí">
-        <div className={styles.tocTitle}>Mục lục</div>
-        <ul ref={tocList}>
-          {nav.map((n) => (
-            <li key={n.id} className={n.child ? styles.tocChild : undefined}>
-              <a href={`#${n.id}`} className={active === n.id ? styles.tocActive : undefined} aria-current={active === n.id ? "location" : undefined} onClick={(e) => jump(e, n.id)}>
-                {n.code && <span className={styles.tocCode}>{n.code}</span>}
-                <span className={styles.tocLabel}>{n.label}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      {body}
-    </div>
+    <DocWithToc
+      ariaLabel="Mục lục bộ tiêu chí"
+      entries={nav.map((n) => ({ id: n.id, label: n.label, code: n.code, level: n.child ? 2 : 1 }))}
+    >
+      <div className={styles.root}>{body}</div>
+    </DocWithToc>
   );
 }
 
@@ -330,37 +309,6 @@ function CriteriaGroups({ groups }: { groups: { id: string; code: string; name: 
       ))}
     </div>
   );
-}
-
-/** Cuộn mượt tới mục mà không đổi hash trên địa chỉ trang. */
-function jump(e: React.MouseEvent, id: string) {
-  const target = document.getElementById(id);
-  if (!target) return;
-  e.preventDefault();
-  target.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-/** Mục đang xem: mục cuối cùng đã cuộn qua mép trên vùng nội dung. */
-function useActiveSection(ids: string[]) {
-  const [active, setActive] = useState<string | null>(null);
-  const key = ids.join("|");
-  useEffect(() => {
-    if (!ids.length) return;
-    const scroller = document.querySelector(".app-main") ?? window;
-    const update = () => {
-      let current: string | null = ids[0];
-      for (const id of ids) {
-        const el = document.getElementById(id);
-        if (el && el.getBoundingClientRect().top <= 140) current = id;
-      }
-      setActive(current);
-    };
-    update();
-    scroller.addEventListener("scroll", update, { passive: true });
-    return () => scroller.removeEventListener("scroll", update);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-  return active;
 }
 
 export default CriteriaSummary;

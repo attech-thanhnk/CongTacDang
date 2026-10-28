@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CardToolbar, TabsRow, StickyActionBar } from "@/components/common/CardToolbar";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePeriod } from "@/contexts/PeriodContext";
@@ -318,12 +319,13 @@ export default function CollectiveEvaluationsPage() {
 
   return (
     <div className="page-wrapper">
-      <PageHeader title={pageTitle} actions={headerAction || undefined} />
+      <PageHeader title={pageTitle} />
 
       <div className="page-body">
         <div className="d-flex flex-column gap-3">
-          {showTabs && (
-            <ul className="nav nav-tabs" role="tablist">
+          {(showTabs || headerAction) && (
+            <TabsRow actions={headerAction || undefined}>
+            {showTabs ? <ul className="nav nav-tabs" role="tablist">
               {([
                 ["records", "Hồ sơ tập thể", records.length],
                 ["meetings", "Biên bản hội nghị", meetings.length],
@@ -334,7 +336,8 @@ export default function CollectiveEvaluationsPage() {
                   </button>
                 </li>
               ))}
-            </ul>
+            </ul> : <span />}
+            </TabsRow>
           )}
 
           {activeTab === "records" && (

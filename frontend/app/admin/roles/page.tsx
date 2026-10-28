@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import { CardToolbar, TabsRow, StickyActionBar } from "@/components/common/CardToolbar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -88,15 +89,15 @@ export default function AdminRolesPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Vai trò"
-        actions={
-          <button type="button" className="btn btn-primary" onClick={() => setForm({})}>
-            <i className="bi bi-plus-lg me-1" />
-            Tạo vai trò
-          </button>
-        }
       />
       <div className="page-body">
         <Card>
+          <CardToolbar actions={
+            <button type="button" className="btn btn-primary" onClick={() => setForm({})}>
+              <i className="bi bi-plus-lg me-1" />
+              Tạo vai trò
+            </button>
+          } />
           <div className="table-responsive">
             <table className="table table-hover align-middle mb-0 table-fit">
               <thead>

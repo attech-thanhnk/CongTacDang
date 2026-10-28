@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { StickyActionBar } from "@/components/common/CardToolbar";
 import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Badge, BadgeTone } from "@/components/common/StatusBadge";
@@ -180,11 +181,6 @@ export default function CriteriaSetPage() {
               {!editable && (
                 <button type="button" className="btn btn-outline-secondary" disabled={busy} onClick={clone}>
                   <i className="bi bi-copy me-1" />Nhân bản
-                </button>
-              )}
-              {editable && (
-                <button type="button" className="btn btn-outline-secondary" disabled={busy || !dirty} onClick={save}>
-                  {busy ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-check2 me-1" />}Lưu
                 </button>
               )}
               {editable && (
@@ -672,6 +668,14 @@ export default function CriteriaSetPage() {
             </section>
             )}
           </>
+        )}
+        {canManage && editable && (
+          <StickyActionBar>
+            {dirty && <span className="hint">Có thay đổi chưa lưu</span>}
+            <button type="button" className="btn btn-outline-secondary" disabled={busy || !dirty} onClick={save}>
+              {busy ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-check2 me-1" />}Lưu
+            </button>
+          </StickyActionBar>
         )}
       </div>
     </div>

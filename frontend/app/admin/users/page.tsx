@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import { CardToolbar, TabsRow, StickyActionBar } from "@/components/common/CardToolbar";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -107,20 +108,17 @@ export default function AdminUsersPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Tài khoản"
-        actions={
-          canManage ? (
-            <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
-              <i className="bi bi-plus-lg me-1" />
-              Tạo tài khoản
-            </button>
-          ) : undefined
-        }
       />
 
       <div className="page-body">
         <Card>
-          <div className="card-header">
-            <form className={`row g-2 align-items-end ${styles.filters}`} onSubmit={applyFilters}>
+          <CardToolbar alignEnd actions={canManage ? (
+            <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
+              <i className="bi bi-plus-lg me-1" />
+              Tạo tài khoản
+            </button>
+          ) : undefined}>
+            <form className={styles.filters} onSubmit={applyFilters}>
               <div className="col-12 col-md-6 col-xl-4">
                 <label className="form-label" htmlFor="users-q">
                   Tìm kiếm
@@ -200,7 +198,7 @@ export default function AdminUsersPage() {
                 </button>
               </div>
             </form>
-          </div>
+          </CardToolbar>
 
           {/* Màn rộng: bảng. */}
           <div className="table-responsive d-none d-md-block">
