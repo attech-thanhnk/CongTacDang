@@ -86,7 +86,8 @@ export function HelpView({ markdown }: { markdown: string }) {
           header={
             <div className={styles.search}>
               <input
-                type="search"
+                type="text"
+                role="searchbox"
                 className="form-control form-control-sm"
                 placeholder="Tìm trong hướng dẫn"
                 aria-label="Tìm trong hướng dẫn"
