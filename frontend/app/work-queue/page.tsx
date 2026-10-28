@@ -51,8 +51,9 @@ export default function WorkQueuePage() {
     <div className="page-wrapper">
       <PageHeader
         title="Việc cần xử lý"
-        toolbar={
-          showSearch ? (
+        actions={
+          <div className={styles.headerTools}>
+            {showSearch && (
               <input
                 type="search"
                 className={`form-control form-control-sm ${styles.search}`}
@@ -61,12 +62,11 @@ export default function WorkQueuePage() {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
               />
-          ) : undefined
-        }
-        actions={
-          <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => load()} aria-label="Làm mới" title="Làm mới">
-            <i className="bi bi-arrow-clockwise" />
-          </button>
+            )}
+            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => load()} aria-label="Làm mới" title="Làm mới">
+              <i className="bi bi-arrow-clockwise" />
+            </button>
+          </div>
         }
       />
 

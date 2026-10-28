@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { TopBarActions } from "@/components/common/TopBarActions";
 import { useToast } from "@/contexts/ToastContext";
 import { RowActions } from "@/components/common/RowActions";
 import { Card } from "@/components/common";
@@ -76,16 +75,16 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
     <>
       <Card>
       {canManage && (
-        <TopBarActions>
+        <div className="card-header d-flex">
           <button
             type="button"
-            className="btn btn-sm btn-primary"
+            className="btn btn-sm btn-primary ms-auto"
             onClick={() => setForm({ name: "", side: "Administrative", sortOrder: "0", isActive: true })}
           >
             <i className="bi bi-plus-lg me-1" />
             Thêm loại đơn vị
           </button>
-        </TopBarActions>
+        </div>
       )}
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">

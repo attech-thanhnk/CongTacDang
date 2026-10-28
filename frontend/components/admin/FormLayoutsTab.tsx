@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { TopBarActions } from "@/components/common/TopBarActions";
 import { useToast } from "@/contexts/ToastContext";
 import { RowActions } from "@/components/common/RowActions";
 import { Card } from "@/components/common";
@@ -139,12 +138,12 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
     <>
       <Card>
         {canManage && (
-          <TopBarActions>
-            <button type="button" className="btn btn-sm btn-primary" onClick={() => setForm({ ...EMPTY_FORM })}>
+          <div className="card-header d-flex flex-wrap align-items-center gap-2">
+            <button type="button" className="btn btn-sm btn-primary ms-auto" onClick={() => setForm({ ...EMPTY_FORM })}>
               <i className="bi bi-plus-lg me-1" />
               Thêm kiểu
             </button>
-          </TopBarActions>
+          </div>
         )}
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">

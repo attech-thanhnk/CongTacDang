@@ -69,7 +69,7 @@ export default function CrosschecksPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Xác nhận số liệu"
-        toolbar={
+        actions={
           <div className="d-flex gap-2 flex-wrap">
             <select className="form-select form-select-sm" aria-label="Lọc theo kỳ" value={periodFilter} onChange={(e) => setPeriod(e.target.value)}>
               <option value="">Tất cả kỳ</option>

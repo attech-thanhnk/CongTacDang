@@ -67,8 +67,9 @@ export default function ResultsPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Kết quả đánh giá"
-        toolbar={
-          showFilters ? (
+        actions={
+          <>
+            {showFilters && (
               <>
                 <select className="form-select w-auto" aria-label="Đơn vị" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
                   <option value="">Tất cả đơn vị</option>
@@ -79,12 +80,11 @@ export default function ResultsPage() {
                   {GRADE_OPTIONS.filter((g) => g.value !== "ChuaXepLoai").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
                 </select>
               </>
-          ) : undefined
-        }
-        actions={
-          <button type="button" className="btn btn-outline-secondary" onClick={() => load()} aria-label="Làm mới" title="Làm mới">
-            <i className="bi bi-arrow-clockwise" />
-          </button>
+            )}
+            <button type="button" className="btn btn-outline-secondary" onClick={() => load()} aria-label="Làm mới" title="Làm mới">
+              <i className="bi bi-arrow-clockwise" />
+            </button>
+          </>
         }
       />
 

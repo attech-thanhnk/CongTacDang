@@ -222,7 +222,7 @@ export default function ReportsPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Báo cáo"
-        toolbar={
+        actions={
           <select className="form-select w-auto" style={{ minWidth: 240 }} aria-label="Phạm vi tổ chức Đảng" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
             {(canWholeParty || scopedBranches.length === 0) && <option value="">{canWholeParty ? "Toàn Đảng bộ" : "Theo phạm vi được giao"}</option>}
             {scopedBranches.map((b) => (

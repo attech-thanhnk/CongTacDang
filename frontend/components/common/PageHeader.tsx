@@ -1,19 +1,30 @@
 "use client";
 
-import React, { useLayoutEffect } from "react";
+import React, { useLayoutEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useActionsSlot, usePageTitleSetter } from "@/contexts/PageTitleContext";
 import { BackButton } from "./BackButton";
-import { usePhone } from "./usePhone";
 
 export interface PageHeaderProps {
   title: string;
   subTitle?: string;
   badge?: React.ReactNode;
   actions?: React.ReactNode;
-  /** Bộ lọc/ô tìm của trang: ở thân trang, không lên thanh trên. */
-  toolbar?: React.ReactNode;
   className?: string;
+}
+
+const PHONE = "(max-width: 575.98px)";
+
+function usePhone(): boolean {
+  return useSyncExternalStore(
+    (notify) => {
+      const mq = window.matchMedia(PHONE);
+      mq.addEventListener("change", notify);
+      return () => mq.removeEventListener("change", notify);
+    },
+    () => window.matchMedia(PHONE).matches,
+    () => false,
+  );
 }
 
 /** Tiêu đề trang đăng ký lên thanh trên (h1 duy nhất); nút thao tác chính cũng lên thanh trên (điện thoại: giữ ở thân trang). */
@@ -22,7 +33,6 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   subTitle,
   badge,
   actions,
-  toolbar,
   className = "",
 }) => {
   const setTitle = usePageTitleSetter();
@@ -54,7 +64,6 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           </div>
         )}
 
-        {toolbar && <div className="page-header-actions">{toolbar}</div>}
         {actions && !toTopBar && <div className="page-header-actions">{actions}</div>}
       </div>
     </>

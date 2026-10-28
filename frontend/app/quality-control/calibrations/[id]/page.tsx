@@ -325,12 +325,6 @@ export default function CalibrationDetailPage() {
         badge={<Badge tone={CALIBRATION_STATUS_TONES[data.status] ?? "neutral"}>{data.statusName}</Badge>}
         actions={
           <div className="d-flex gap-2 align-items-center">
-            {!ro && (
-              <>
-                {dirty && <span className="text-secondary small">Có thay đổi chưa lưu</span>}
-                <button type="button" className="btn btn-outline-primary" disabled={busy || !dirty} onClick={save}>{busy ? "Đang lưu..." : "Lưu"}</button>
-              </>
-            )}
             {data.canConclude && (
               <button type="button" className="btn btn-primary" disabled={busy || blockedNow} onClick={conclude}>
                 Chốt biên bản
@@ -340,7 +334,6 @@ export default function CalibrationDetailPage() {
               itemLabel="biên bản họp thống nhất"
               disabled={busy}
               actions={[
-                { key: "discard", label: "Hủy thay đổi", icon: "bi-x-lg", hidden: ro || !dirty, onClick: () => setDraft(toDraft(data)) },
                 { key: "word", label: "Tải Word", icon: "bi-download", onClick: () => exportForm("original") },
                 { key: "pdf", label: "Tải PDF", icon: "bi-filetype-pdf", onClick: () => exportForm("pdf") },
                 { key: "reopen", label: "Mở lại", icon: "bi-arrow-counterclockwise", hidden: !data.canReopen, onClick: () => setDialog("reopen") },
@@ -352,6 +345,12 @@ export default function CalibrationDetailPage() {
       />
 
       <div className="page-body d-flex flex-column gap-3">
+        <div>
+          <Link href="/quality-control?tab=calibration" className="small text-decoration-none">
+            <i className="bi bi-chevron-left" aria-hidden="true" /> Danh sách biên bản
+          </Link>
+        </div>
+
         {data.status === "Draft" && data.concludeBlockedReason && (
           <div className="alert alert-warning small mb-0" role="status">{data.concludeBlockedReason}</div>
         )}
@@ -365,6 +364,14 @@ export default function CalibrationDetailPage() {
           <div className="alert alert-success small mb-0">
             Đã chốt{data.concludedByName ? ` bởi ${data.concludedByName}` : ""}
             {data.concludedAt ? ` lúc ${formatDateTime(data.concludedAt)}` : ""}.
+          </div>
+        )}
+
+        {!ro && (
+          <div className="d-flex justify-content-end align-items-center gap-2">
+            {dirty && <span className="text-secondary small me-auto">Có thay đổi chưa lưu</span>}
+            <button type="button" className="btn btn-outline-secondary" disabled={busy || !dirty} onClick={() => setDraft(toDraft(data))}>Hủy</button>
+            <button type="button" className="btn btn-outline-primary" disabled={busy || !dirty} onClick={save}>{busy ? "Đang lưu..." : "Lưu"}</button>
           </div>
         )}
 

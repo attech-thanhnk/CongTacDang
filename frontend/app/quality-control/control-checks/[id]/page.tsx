@@ -274,12 +274,6 @@ export default function ControlCheckDetailPage() {
         }
         actions={
           <div className="d-flex gap-2 align-items-center">
-            {!ro && (
-              <>
-                {dirty && <span className="text-secondary small">Có thay đổi chưa lưu</span>}
-                <button type="button" className="btn btn-outline-primary" disabled={busy || !dirty} onClick={save}>{busy ? "Đang lưu..." : "Lưu"}</button>
-              </>
-            )}
             {primary && (
               <button type="button" className="btn btn-primary" disabled={busy} onClick={primary.onClick}>
                 {primary.label}
@@ -289,7 +283,6 @@ export default function ControlCheckDetailPage() {
               itemLabel="phiếu kiểm tra"
               disabled={busy}
               actions={[
-                { key: "discard", label: "Hủy thay đổi", icon: "bi-x-lg", hidden: ro || !dirty, onClick: () => setDraft(toDraft(data)) },
                 { key: "word", label: "Tải Word", icon: "bi-download", onClick: () => exportForm("original") },
                 { key: "pdf", label: "Tải PDF", icon: "bi-filetype-pdf", onClick: () => exportForm("pdf") },
                 { key: "return", label: "Trả lại", icon: "bi-arrow-return-left", hidden: !data.canReturn, onClick: () => setDialog("return") },
@@ -302,12 +295,26 @@ export default function ControlCheckDetailPage() {
       />
 
       <div className="page-body d-flex flex-column gap-3">
+        <div>
+          <Link href="/quality-control?tab=control" className="small text-decoration-none">
+            <i className="bi bi-chevron-left" aria-hidden="true" /> Danh sách phiếu
+          </Link>
+        </div>
+
         {data.isStale && (
           <div className="alert alert-danger small mb-0" role="alert">
             Phiếu hết hiệu lực với các hồ sơ có nhãn "Hết hiệu lực" bên dưới: hồ sơ đó đã đổi kết quả hoặc bước sau khi xác nhận. Hãy mở lại phiếu và xác nhận lại; hồ sơ đã ghi nhận quyết định không bị ảnh hưởng.
           </div>
         )}
         {data.returnReason && data.status === "Draft" && <div className="alert alert-warning small mb-0">Phiếu bị trả lại: {data.returnReason}</div>}
+
+        {!ro && (
+          <div className="d-flex justify-content-end align-items-center gap-2">
+            {dirty && <span className="text-secondary small me-auto">Có thay đổi chưa lưu</span>}
+            <button type="button" className="btn btn-outline-secondary" disabled={busy || !dirty} onClick={() => setDraft(toDraft(data))}>Hủy</button>
+            <button type="button" className="btn btn-outline-primary" disabled={busy || !dirty} onClick={save}>{busy ? "Đang lưu..." : "Lưu"}</button>
+          </div>
+        )}
 
         <section className="card">
           <div className="card-header"><h2 className="mb-0">Phạm vi</h2></div>
