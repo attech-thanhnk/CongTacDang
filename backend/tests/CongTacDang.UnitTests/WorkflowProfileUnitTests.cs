@@ -209,7 +209,9 @@ public sealed class WorkflowProfileUnitTests
     [Fact]
     public void Json_RoundTrip_ModeAsString_EmptyMeansDefault()
     {
-        var json = PeriodSettings.Default().ToJson();
+        var withOff = PeriodSettings.Default();
+        Profile(withOff, "co-so").Step(WorkflowStep.B3C_DIRECTOR).Mode = StepMode.Off;
+        var json = withOff.Normalize().ToJson();
         Assert.Contains("\"schemaVersion\":3", json);
         Assert.Contains("\"mode\":\"External\"", json);
         Assert.Contains("\"mode\":\"Off\"", json);

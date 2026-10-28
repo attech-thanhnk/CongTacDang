@@ -281,7 +281,8 @@ public sealed class PeriodSettings
                     {
                         [WorkflowStep.B3C_DIRECTOR] = WorkflowPermissions.UnitReview
                     }),
-                // Không có bước thẩm định riêng: Ban TCĐU thẩm định ở cấp trên, kết quả ghi nhận cùng bước quyết định.
+                // Chủ tịch nhận xét (ngày 14) trước khi Ban TCĐU thẩm định (ngày 15), mà bước thẩm định luôn đứng trước
+                // bước nhận xét nên thẩm định được ghi nhận cùng quyết định của BTV.
                 WorkflowProfile.Create(ProfileDeputyDirector, "Phó Giám đốc",
                     "Chủ tịch duyệt danh mục sản phẩm; tập thể lãnh đạo Công ty đề xuất, Chủ tịch nhận xét, đề xuất trong hệ thống; "
                     + "thẩm định (Ban TCĐU) và quyết định (BTV Đảng ủy Tổng công ty) do cấp trên thực hiện — hệ thống ghi nhận kết quả.",
@@ -299,26 +300,36 @@ public sealed class PeriodSettings
         };
         foreach (var profile in settings.Profiles)
         {
-            var upper = profile.Code is ProfileUpper or ProfileDeputyDirector;
-            SetDefaultRules(profile, collective: upper ? 15 : 12, appraisal: upper ? 16 : 14,
-                review: profile.Code == ProfileUpper ? 20 : 15, decision: upper ? 20 : 15);
+            // Diện Phó Giám đốc và diện cấp trên làm đăng ký/duyệt ngay đầu quý; diện cơ sở làm trước quý.
+            var companyLevel = profile.Code is ProfileUpper or ProfileDeputyDirector;
+            SetDefaultRules(profile, companyLevel
+                ? new DeadlineSet(Quarter(1), Quarter(5), 9, 14, 15, profile.Code == ProfileUpper ? 17 : 14, 18)
+                : new DeadlineSet(BeforeQuarter(6), BeforeQuarter(2), 9, 10, 11, 14, 14));
         }
         return settings;
     }
 
-    // Thời hạn mặc định theo HD03 mục V.2; giá trị là "trước ngày D tháng cuối quý".
-    private static void SetDefaultRules(WorkflowProfile profile, int collective, int appraisal, int review, int decision)
+    private static DeadlineRule Quarter(int workingDay) => new() { Kind = DeadlineRuleKind.WorkingDayOfQuarter, Value = workingDay };
+
+    // "Ngày làm việc cuối quý trước − k" trong kế hoạch là lùi k ngày làm việc kể từ ngày cuối đó.
+    private static DeadlineRule BeforeQuarter(int workingDays) => new() { Kind = DeadlineRuleKind.WorkingDaysBeforeQuarter, Value = workingDays };
+
+    private sealed record DeadlineSet(DeadlineRule Register, DeadlineRule Approve, int SelfScore, int Collective, int Appraisal, int Review, int Decision);
+
+    // Thời hạn mặc định theo kế hoạch đánh giá quý của Phòng TCCB-LĐ; chi bộ xác nhận cùng ngày tự chấm.
+    private static void SetDefaultRules(WorkflowProfile profile, DeadlineSet set)
     {
+        static DeadlineRule Day(int day) => new() { Kind = DeadlineRuleKind.DayOfLastMonth, Value = day };
         var rules = new Dictionary<WorkflowStep, DeadlineRule>
         {
-            [WorkflowStep.B1_REGISTER] = new() { Kind = DeadlineRuleKind.WorkingDayOfQuarter, Value = 5 },
-            [WorkflowStep.B1_APPROVE] = new() { Kind = DeadlineRuleKind.WorkingDayOfQuarter, Value = 5 },
-            [WorkflowStep.B2_SELF_SCORE] = new() { Kind = DeadlineRuleKind.BeforeDayOfLastMonth, Value = 12 },
-            [WorkflowStep.B2_CELL_CONFIRM] = new() { Kind = DeadlineRuleKind.BeforeDayOfLastMonth, Value = 12 },
-            [WorkflowStep.B3A_COLLECTIVE] = new() { Kind = DeadlineRuleKind.BeforeDayOfLastMonth, Value = collective },
-            [WorkflowStep.B3B_APPRAISAL] = new() { Kind = DeadlineRuleKind.BeforeDayOfLastMonth, Value = appraisal },
-            [WorkflowStep.B3C_DIRECTOR] = new() { Kind = DeadlineRuleKind.BeforeDayOfLastMonth, Value = review },
-            [WorkflowStep.B4_DECISION] = new() { Kind = DeadlineRuleKind.BeforeDayOfLastMonth, Value = decision }
+            [WorkflowStep.B1_REGISTER] = set.Register,
+            [WorkflowStep.B1_APPROVE] = set.Approve,
+            [WorkflowStep.B2_SELF_SCORE] = Day(set.SelfScore),
+            [WorkflowStep.B2_CELL_CONFIRM] = Day(set.SelfScore),
+            [WorkflowStep.B3A_COLLECTIVE] = Day(set.Collective),
+            [WorkflowStep.B3B_APPRAISAL] = Day(set.Appraisal),
+            [WorkflowStep.B3C_DIRECTOR] = Day(set.Review),
+            [WorkflowStep.B4_DECISION] = Day(set.Decision)
         };
         foreach (var (step, rule) in rules)
         {

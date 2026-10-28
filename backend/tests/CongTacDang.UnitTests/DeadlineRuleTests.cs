@@ -95,17 +95,23 @@ public class DeadlineRuleTests
         var coSo = settings.FindProfile(PeriodSettings.ProfileBase)!;
         var capTren = settings.FindProfile(PeriodSettings.ProfileUpper)!;
 
-        // 05 ngày làm việc đầu quý: 04–08/01 (01/01 nghỉ, 02–03/01 cuối tuần).
-        Assert.Equal(new DateOnly(2027, 1, 8), coSo.Deadline(WorkflowStep.B1_REGISTER));
-        Assert.Equal(new DateOnly(2027, 3, 11), coSo.Deadline(WorkflowStep.B2_SELF_SCORE));
-        Assert.Equal(new DateOnly(2027, 3, 11), coSo.Deadline(WorkflowStep.B3A_COLLECTIVE));
-        Assert.Equal(new DateOnly(2027, 3, 12), coSo.Deadline(WorkflowStep.B3B_APPRAISAL)); // trước 14 (CN 14/03)
-        Assert.Equal(new DateOnly(2027, 3, 12), coSo.Deadline(WorkflowStep.B4_DECISION));
+        // Diện cơ sở: đăng ký lùi 5 ngày làm việc từ ngày làm việc cuối quý trước (31/12 là ngày thứ 1); duyệt lùi 1 ngày.
+        Assert.Equal(new DateOnly(2026, 12, 24), coSo.Deadline(WorkflowStep.B1_REGISTER));
+        Assert.Equal(new DateOnly(2026, 12, 30), coSo.Deadline(WorkflowStep.B1_APPROVE));
+        Assert.Equal(new DateOnly(2027, 3, 9), coSo.Deadline(WorkflowStep.B2_SELF_SCORE));
+        Assert.Equal(new DateOnly(2027, 3, 9), coSo.Deadline(WorkflowStep.B2_CELL_CONFIRM));
+        Assert.Equal(new DateOnly(2027, 3, 10), coSo.Deadline(WorkflowStep.B3A_COLLECTIVE));
+        Assert.Equal(new DateOnly(2027, 3, 11), coSo.Deadline(WorkflowStep.B3B_APPRAISAL));
+        Assert.Equal(new DateOnly(2027, 3, 15), coSo.Deadline(WorkflowStep.B4_DECISION)); // ngày 14 là Chủ nhật
         Assert.Null(coSo.Deadline(WorkflowStep.B5_PUBLISH));
 
-        Assert.Equal(new DateOnly(2027, 3, 12), capTren.Deadline(WorkflowStep.B3A_COLLECTIVE));
+        // Diện cấp trên: ngày làm việc thứ 1 và 5 đầu quý (04/01 và 08/01; 01/01 nghỉ, 02–03/01 cuối tuần).
+        Assert.Equal(new DateOnly(2027, 1, 4), capTren.Deadline(WorkflowStep.B1_REGISTER));
+        Assert.Equal(new DateOnly(2027, 1, 8), capTren.Deadline(WorkflowStep.B1_APPROVE));
+        Assert.Equal(new DateOnly(2027, 3, 15), capTren.Deadline(WorkflowStep.B3A_COLLECTIVE));
         Assert.Equal(new DateOnly(2027, 3, 15), capTren.Deadline(WorkflowStep.B3B_APPRAISAL));
-        Assert.Equal(new DateOnly(2027, 3, 19), capTren.Deadline(WorkflowStep.B4_DECISION));
+        Assert.Equal(new DateOnly(2027, 3, 17), capTren.Deadline(WorkflowStep.B3C_DIRECTOR));
+        Assert.Equal(new DateOnly(2027, 3, 18), capTren.Deadline(WorkflowStep.B4_DECISION));
     }
 
     [Fact]
