@@ -175,7 +175,7 @@ export function ImprovementPlanPanel({ record, onPendingChange }: { record: Eval
             )}
             {data?.canAcknowledge && (
               <>
-                <input className="form-control form-control-sm w-auto flex-grow-1" placeholder="Ý kiến của cá nhân (tùy chọn)" maxLength={2000}
+                <input className="form-control form-control-sm w-auto flex-grow-1" placeholder="Ý kiến" maxLength={2000}
                   value={ackComment} onChange={(e) => setAckComment(e.target.value)} aria-label="Ý kiến khi xác nhận" />
                 <button type="button" className="btn btn-primary btn-sm" disabled={busy}
                   onClick={() => run(() => postPublishService.acknowledgePlan(plan.id, plan.version, ackComment || undefined), "Đã xác nhận cam kết khắc phục.")}>
@@ -307,7 +307,7 @@ function MilestoneResultCell({
               <option key={r} value={r}>{milestoneResultLabel(milestone.code, r)}</option>
             ))}
           </select>
-          <input className="form-control form-control-sm" placeholder="Ghi chú, minh chứng" maxLength={2000} value={note}
+          <input className="form-control form-control-sm" placeholder="Ghi chú" maxLength={2000} value={note}
             onChange={(e) => setNote(e.target.value)} aria-label={`Ghi chú ${milestone.name}`} />
           <button type="button" className="btn btn-outline-primary btn-sm" disabled={busy || !result}
             onClick={() => result && onRecord(milestone.code, result, note || undefined)}>

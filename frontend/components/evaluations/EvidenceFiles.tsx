@@ -101,7 +101,7 @@ export function EvidenceFiles({ recordId, slot, label, files, rights, onChanged,
             <i className="bi bi-paperclip me-1" />{f.fileName}
           </button>
           {canReplace && (
-            <button type="button" className="btn btn-link btn-sm p-0 text-secondary" disabled={busy} title="Thay bằng bản mới (bản cũ vẫn được lưu)"
+            <button type="button" className="btn btn-link btn-sm p-0 text-secondary" disabled={busy} title="Thay bằng bản mới"
               aria-label={`Thay tệp ${f.fileName}`} onClick={() => { setReplacing(f); replaceRef.current?.click(); }}>
               <i className="bi bi-arrow-repeat" />
             </button>

@@ -122,8 +122,7 @@ export function ReasonDialog({ isOpen, title, description, confirmText, targetSt
                     <div className="invalid-feedback">{deadlineError}</div>
                   ) : (
                     <div className="form-text">
-                      Kỳ đang khóa dữ liệu: chỉ hồ sơ này được thao tác lại đến hạn trên.
-                      {unlock?.currentUnlockedUntil ? ` Hạn hiện tại: ${formatDateTime(unlock.currentUnlockedUntil)}.` : ""}
+                      {unlock?.currentUnlockedUntil ? `Hạn hiện tại: ${formatDateTime(unlock.currentUnlockedUntil)}.` : ""}
                     </div>
                   )}
                 </div>

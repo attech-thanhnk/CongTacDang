@@ -221,7 +221,7 @@ export default function EvaluationsPage() {
               <input
                 type="search"
                 className={`form-control form-control-sm ${styles.filterSearch}`}
-                placeholder="Tìm tên, Phòng, Chi bộ, trạng thái"
+                placeholder="Tìm hồ sơ"
                 aria-label="Tìm hồ sơ"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -285,7 +285,7 @@ export default function EvaluationsPage() {
                         <button type="button" className={styles.sortBtn} onClick={() => toggleSort("status")}>Trạng thái{sortIcon("status")}</button>
                       </th>
                       <th className={styles.right}>Tự chấm</th>
-                      <th title="Mức quyết định; chưa có thì mức đề xuất gần nhất">Mức</th>
+                      <th>Mức</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -336,7 +336,7 @@ export default function EvaluationsPage() {
               <i className={`bi bi-chevron-down ${styles.foldIcon}`} aria-hidden="true" />
             </summary>
             <p className={`small text-secondary mb-0 ${styles.foldNote}`}>
-              Tối đa {Math.round(quotas.ratio * 100)}% số &quot;Hoàn thành tốt&quot; của nhóm, làm tròn từ 0,5 trở lên thành 1; không tính người đứng đầu.
+              Tối đa {Math.round(quotas.ratio * 100)}% số &quot;Hoàn thành tốt&quot; của nhóm.
               {!quotas.isFullScope && " Chỉ gồm hồ sơ trong phạm vi bạn được xem."}
             </p>
             <div className={styles.tw}>

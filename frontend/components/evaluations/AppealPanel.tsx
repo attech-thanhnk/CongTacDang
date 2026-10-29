@@ -149,7 +149,6 @@ export function AppealPanel({ record, onRecordChanged, onPendingChange }: Props)
           <div className="border rounded p-3 d-flex flex-column gap-2">
             <label className="form-label small fw-semibold mb-0" htmlFor="appeal-content">Nội dung kiến nghị</label>
             <textarea id="appeal-content" className="form-control form-control-sm" rows={4} maxLength={4000} value={content}
-              placeholder="Điểm/mức nào cần xem xét lại, căn cứ và minh chứng kèm theo."
               onChange={(e) => setContent(e.target.value)} />
             {data.stepOptions.length > 0 && (
               <div>
@@ -187,7 +186,6 @@ export function AppealPanel({ record, onRecordChanged, onPendingChange }: Props)
       <ReasonDialog
         isOpen={!!reopenAppeal}
         title="Mở lại hồ sơ theo kiến nghị"
-        description="Kiến nghị đã được chấp nhận. Hồ sơ quay về bước được chọn để đính chính."
         confirmText="Mở lại hồ sơ"
         targetSteps={reopenTargets}
         unlock={reopenUnlock}
@@ -311,7 +309,6 @@ function AppealItem({
             </label>
           </div>
           <textarea className="form-control form-control-sm" rows={3} maxLength={4000} value={response}
-            placeholder="Nội dung trả lời — bắt buộc nêu căn cứ chấp nhận hoặc không chấp nhận."
             onChange={(e) => setResponse(e.target.value)} aria-label="Nội dung trả lời" />
           <div className="d-flex gap-2 justify-content-end">
             <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy} onClick={() => setResolving(false)}>Hủy</button>
