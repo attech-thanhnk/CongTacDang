@@ -174,7 +174,7 @@ Làm theo đúng thứ tự: bước sau dùng dữ liệu của bước trướ
 
 **11. Người được đánh giá** (thẻ "Người được đánh giá")
 
-- [ ] Bấm "Thêm người": thêm cả đơn vị ("Thêm cả đơn vị") hoặc từng người ("Tìm cán bộ"). Để trống "Diện quyết định" là hệ thống chọn theo cấp quyết định (và gợi ý theo chức vụ).
+- [ ] Bấm "Thêm người": thêm cả đơn vị ("Thêm cả đơn vị") hoặc từng người (lọc theo "Đơn vị", "Chi bộ" hoặc gõ tên; danh sách chỉ có người thuộc diện đánh giá, tích "Hiện cả người ngoài diện" nếu cần thêm người khác). Để trống "Diện quyết định" là hệ thống chọn theo cấp quyết định (và gợi ý theo chức vụ).
 - [ ] Kiểm tra cột "Khung" và "Diện quyết định" từng người; nút "Sửa" để chỉnh Phòng, Chi bộ, khung tỷ trọng, cấp quyết định (bắt buộc lý do), "Đổi diện quyết định" để đổi diện.
 
 **12. Kiểm tra sẵn sàng**

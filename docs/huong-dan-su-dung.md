@@ -362,7 +362,7 @@ Trình tự: Thẩm định (có thể kèm xác nhận số liệu) → Nhận 
 | Tùy chọn (chỉ với xác nhận số liệu) | Dùng khi cần; chỉ chặn Thẩm định khi còn phiếu đang mở. |
 | Tắt | Bỏ qua cổng này. Không lập được biên bản họp thống nhất hay yêu cầu xác nhận cho hồ sơ thuộc diện đó. |
 
-Khi chưa chỉnh gì, cổng Họp thống nhất và Kiểm tra trước quyết định là **Bắt buộc** nếu bước Quyết định làm trong hệ thống, **Chỉ ghi nhận** nếu bước Quyết định do cấp trên thực hiện; cổng Xác nhận số liệu là **Tùy chọn**.
+Khi chưa chỉnh gì, cổng Họp thống nhất (Mẫu 20) là **Bắt buộc** nếu bước Quyết định làm trong hệ thống (diện Đảng ủy cơ sở, diện Bí thư/Phó bí thư Chi bộ là nhân viên) và **Chỉ ghi nhận** nếu cấp trên thực hiện. Cổng Kiểm tra trước quyết định (Mẫu 19) luôn là **Chỉ ghi nhận**. Cổng Xác nhận số liệu là **Tùy chọn**.
 
 **Lưu ý về trạng thái kỳ.** Biên bản họp thống nhất chỉ lập, sửa, chốt, mở lại được khi kỳ **Đang mở**. Phiếu kiểm tra mới và yêu cầu xác nhận mới cũng chỉ lập được khi kỳ Đang mở. Vì vậy hoàn tất Mẫu 20 và Mẫu 19 trước khi bấm **Khóa dữ liệu**; nếu đã khóa mà còn thiếu thì người quản lý kỳ phải **Mở lại kỳ**.
 
@@ -597,7 +597,9 @@ Chọn bộ ở ô **Chọn bộ đã xuất bản** rồi bấm **Dùng bộ n�
 
 ### 8.4 Người được đánh giá (thẻ "Người được đánh giá")
 
-- Bấm **Thêm người**. Thêm theo đơn vị: chọn **Phòng** hoặc **Chi bộ**, chọn **Diện quyết định** (hoặc *Theo cấp quyết định*), bấm **Thêm cả đơn vị**. Thêm từng người: nhập **Tên / tài khoản**, bấm **Tìm cán bộ**, tích người cần thêm, bấm **Thêm … người**.
+- Bấm **Thêm người**. Thêm theo đơn vị: chọn **Đơn vị** hoặc **Chi bộ**, chọn **Diện quyết định** (hoặc *Theo cấp quyết định*), bấm **Thêm cả đơn vị**. Thêm từng người: chọn bộ lọc hoặc gõ **Tên / tài khoản**; danh sách tự tìm ngay. Danh sách là bảng Cán bộ, Chức vụ, Đơn vị, Chi bộ. Tích người cần thêm (hoặc **Chọn tất cả cán bộ**), bấm **Thêm … người** ở đầu danh sách.
+- Danh sách chỉ hiện người thuộc diện đánh giá: người giữ chức vụ thuộc diện hoặc là người đứng đầu. Chuyên viên, nhân viên, đảng viên thường và tài khoản quản trị không thuộc diện. Cần thêm họ thì tích **Hiện cả người ngoài diện** rồi chọn tay. **Thêm cả đơn vị** cũng chỉ lấy người thuộc diện.
+- Thứ tự từ cấp trên xuống: lãnh đạo Công ty, rồi từng đơn vị, Trưởng trước Phó. Người đã có trong kỳ nằm cuối, mờ, ghi **Đã có**.
 - Bảng liệt kê Cán bộ, Đơn vị, Khung, Cấp quyết định, Diện quyết định, Trạng thái. Trên từng dòng:
   - **Đổi diện quyết định** (bắt buộc lý do; khi kỳ chưa đóng). Tích nhiều dòng để đổi hàng loạt. Chỉ đổi được khi hồ sơ chưa qua bước bị ảnh hưởng.
   - **Sửa** (khi kỳ Dự thảo hoặc Đang mở): sửa Phòng, Chi bộ, Khung tỷ trọng A-B-C-D, Cấp quyết định của hồ sơ trong kỳ (bắt buộc lý do).

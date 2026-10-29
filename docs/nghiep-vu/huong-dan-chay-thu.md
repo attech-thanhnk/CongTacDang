@@ -20,9 +20,9 @@ Dành cho người chạy thử trên máy dev. Mỗi người chỉ làm phần
 
 ## Bước 1. Tạo kỳ mới và thêm người (`loan.ttp`)
 
-1. Vào **Kỳ đánh giá**, bấm **Tạo kỳ đánh giá**. Chọn năm 2027 và một quý chưa có kỳ. Kỳ cũ đang có mang cấu hình cũ nên không dùng để thử hạn mới.
+1. Vào **Kỳ đánh giá**, bấm **Tạo kỳ đánh giá**. Chọn năm và quý chưa có kỳ. Kỳ cũ đang có mang cấu hình cũ nên không dùng để thử hạn mới.
 2. Mở kỳ vừa tạo. Ở thẻ **Diện quyết định**, xem hạn từng bước (đăng ký và duyệt 5 ngày làm việc đầu quý, tự chấm ngày 9 tháng cuối quý…).
-3. Ở thẻ người được đánh giá, chọn một Phòng rồi bấm **Thêm cả đơn vị**.
+3. Ở thẻ người được đánh giá, chọn một **Đơn vị** rồi bấm **Thêm cả đơn vị**. Danh sách thêm người chỉ có người thuộc diện đánh giá, xếp từ cấp trên xuống.
 4. Xem khối **Chuẩn bị mở kỳ**. Bấm **Kiểm tra lại**. Phải báo "Mọi bước đều có người thực hiện". Nếu có bước chưa có người, ghi lại tên bước.
 5. Bấm **Mở kỳ**.
 
