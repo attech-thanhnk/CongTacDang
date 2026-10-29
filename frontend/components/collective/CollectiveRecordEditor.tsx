@@ -502,13 +502,13 @@ export function CollectiveRecordEditor({ periodId, catalog, catalogState, branch
                   <input className="form-control form-control-sm" placeholder="Nhiệm vụ" aria-label="Nhiệm vụ" value={item.taskName} onChange={(e) => setItem(index, { taskName: e.target.value })} />
                 </div>
                 <div className="col-md-6">
-                  <textarea className="form-control form-control-sm" rows={2} placeholder="Kế hoạch hoặc sự chỉ đạo, yêu cầu của lãnh đạo" aria-label="Kế hoạch hoặc sự chỉ đạo" value={item.planOrDirection} onChange={(e) => setItem(index, { planOrDirection: e.target.value })} />
+                  <textarea className="form-control form-control-sm" rows={2} placeholder="Kế hoạch hoặc chỉ đạo" aria-label="Kế hoạch hoặc sự chỉ đạo" value={item.planOrDirection} onChange={(e) => setItem(index, { planOrDirection: e.target.value })} />
                 </div>
                 <div className="col-md-6">
-                  <textarea className="form-control form-control-sm" rows={2} placeholder="Kết quả thực hiện trong kỳ đánh giá" aria-label="Kết quả thực hiện" value={item.result} onChange={(e) => setItem(index, { result: e.target.value })} />
+                  <textarea className="form-control form-control-sm" rows={2} placeholder="Kết quả thực hiện" aria-label="Kết quả thực hiện" value={item.result} onChange={(e) => setItem(index, { result: e.target.value })} />
                 </div>
                 <div className="col-md-8">
-                  <input className="form-control form-control-sm" placeholder="Tồn tại, hạn chế hoặc thành tích được ghi nhận" aria-label="Tồn tại, hạn chế hoặc thành tích" value={item.limitations} onChange={(e) => setItem(index, { limitations: e.target.value })} />
+                  <input className="form-control form-control-sm" placeholder="Tồn tại, hạn chế hoặc thành tích" aria-label="Tồn tại, hạn chế hoặc thành tích" value={item.limitations} onChange={(e) => setItem(index, { limitations: e.target.value })} />
                 </div>
                 <div className="col-md-4">
                   <input className="form-control form-control-sm" placeholder="Ghi chú" aria-label="Ghi chú" value={item.notes} onChange={(e) => setItem(index, { notes: e.target.value })} />
