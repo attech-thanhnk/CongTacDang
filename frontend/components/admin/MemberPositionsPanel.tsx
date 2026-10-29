@@ -443,12 +443,10 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
               <div className="col-6">
                 <label className="form-label">Từ ngày</label>
                 <DateField value={form.validFrom} onChange={(value) => setForm({ ...form, validFrom: value })} aria-label="Từ ngày" />
-                <div className="form-text">{form.id ? "Để trống = giữ nguyên." : "Để trống = hôm nay."}</div>
               </div>
               <div className="col-6">
                 <label className="form-label">Đến hết ngày</label>
                 <DateField value={form.validTo} onChange={(value) => setForm({ ...form, validTo: value })} aria-label="Đến hết ngày" />
-                <div className="form-text">Để trống = không thời hạn.</div>
               </div>
             </div>
             <div className="mb-2">
@@ -483,7 +481,6 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
                 className="form-control form-control-sm"
                 maxLength={1000}
                 value={form.note}
-                placeholder="VD: Quyết định bổ nhiệm số …"
                 onChange={(e) => setForm({ ...form, note: e.target.value })}
               />
             </div>
@@ -560,12 +557,10 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
                   required
                   maxLength={1000}
                   value={overrideForm.reason}
-                  placeholder="Căn cứ văn bản phân cấp…"
                   onChange={(e) => setOverrideForm({ ...overrideForm, reason: e.target.value })}
                 />
               </div>
             )}
-            <div className="small text-secondary">Chỉ áp dụng cho hồ sơ đánh giá tạo sau.</div>
           </form>
         </AdminModal>
       )}

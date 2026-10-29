@@ -166,7 +166,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
         <input
           className="form-control form-control-sm"
           style={{ maxWidth: 300 }}
-          placeholder="Tìm theo tên, mã chức danh…"
+          placeholder="Tìm kiếm"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -344,7 +344,6 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                     <option value={form.defaultWorkflowProfileCode}>{form.defaultWorkflowProfileCode}</option>
                   )}
                 </select>
-                <div className="form-text">Chỉ áp dụng khi kỳ có diện quyết định này và thẩm quyền của người khớp thẩm quyền của chức vụ.</div>
               </div>
               <div className="col-12">
                 <label className="form-label">Kiểu trình bày biểu mẫu tự đánh giá</label>

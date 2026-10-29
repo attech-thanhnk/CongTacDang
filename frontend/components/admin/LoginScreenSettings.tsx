@@ -217,7 +217,7 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
                   className="d-none"
                   onChange={handleFile}
                 />
-                <div className="form-text">JPG, PNG hoặc WEBP, tối đa {MAX_MB} MB. Nên dùng ảnh ngang, rộng từ 1920 px.</div>
+                <div className="form-text">JPG, PNG hoặc WEBP, tối đa {MAX_MB} MB.</div>
               </div>
             )}
 
@@ -236,11 +236,6 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
                   {p.label}
                 </button>
               ))}
-            </div>
-            <div className="form-text">
-              {imageUrl
-                ? "Bên trái/phải: ảnh dồn sang phía còn lại. Trên điện thoại, ảnh ở trên và khung ở dưới."
-                : "Chỉ áp dụng khi có ảnh nền."}
             </div>
           </div>
         </div>

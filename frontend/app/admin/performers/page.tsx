@@ -452,7 +452,6 @@ function JobCard({
                   !person.positionAtScope && (
                     <span
                       className="status-badge tone-warning"
-                      title="Nếu đã luân chuyển thì gỡ; nếu là phụ trách tạm thì đặt thời hạn."
                     >
                       <i className="bi bi-exclamation-triangle me-1" />
                       Không giữ chức vụ ở nơi giao
@@ -577,13 +576,11 @@ function AddPerformerModal({
                 </option>
               ))}
             </select>
-            {role?.description && <div className="form-text">{role.description}</div>}
           </div>
           <div className="row g-2 mb-2">
             <div className="col-12 col-md-6">
               <label className="form-label">Đến hết ngày</label>
               <DateField value={validTo} onChange={setValidTo} aria-label="Đến hết ngày" />
-              <div className="form-text">Để trống = không thời hạn.</div>
             </div>
           </div>
           <div className="mb-2">
@@ -593,7 +590,6 @@ function AddPerformerModal({
               rows={2}
               maxLength={1000}
               value={note}
-              placeholder="VD: theo Quyết định số …"
               onChange={(e) => setNote(e.target.value)}
             />
           </div>

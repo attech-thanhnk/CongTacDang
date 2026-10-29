@@ -126,7 +126,7 @@ export default function AdminUsersPage() {
                 <input
                   id="users-q"
                   className="form-control form-control-sm"
-                  placeholder="Tên đăng nhập, họ tên, email, số thẻ Đảng…"
+                  placeholder="Tìm kiếm"
                   value={draft.q}
                   onChange={(e) => setDraft({ ...draft, q: e.target.value })}
                 />
