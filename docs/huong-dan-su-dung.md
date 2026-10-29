@@ -4,7 +4,7 @@ Nút Hướng dẫn (dấu ?) ở góc trên bên phải hiển thị cùng nộ
 
 Tài liệu dành cho người dùng: cán bộ được đánh giá, người duyệt các bước (Lãnh đạo đơn vị, Chi bộ, thư ký hội nghị, cấp trực tiếp sử dụng), cơ quan thẩm định, cơ quan chuyên môn, Văn phòng Đảng ủy và quản trị hệ thống.
 
-Tên nút và tên menu trong tài liệu được đặt trong dấu ngoặc kép, đúng như trên màn hình. Việc đưa hệ thống vào sử dụng (khai báo đơn vị, tài khoản, vai trò, mở kỳ) xem thêm [Hướng dẫn bàn giao](huong-dan-ban-giao.md).
+Tên nút, menu, thẻ và ô nhập được in đậm, đúng chữ trên màn hình. Thông báo của hệ thống đặt trong dấu ngoặc kép. Việc đưa hệ thống vào sử dụng (khai báo đơn vị, tài khoản, vai trò, mở kỳ) xem thêm [Hướng dẫn bàn giao](huong-dan-ban-giao.md).
 
 ## Bắt đầu nhanh
 
@@ -98,7 +98,7 @@ Trước bước 8 có tối đa ba **cổng** (xác nhận số liệu, họp t
 ### 2.1 Đăng nhập
 
 1. Mở địa chỉ hệ thống do Văn phòng Đảng ủy hoặc bộ phận CNTT cung cấp.
-2. Nhập **Tên đăng nhập** (hoặc email) và **Mật khẩu**, bấm **Đăng nhập**. Chọn "Ghi nhớ phiên làm việc trên thiết bị này" nếu là máy của bạn.
+2. Nhập **Tên đăng nhập** (hoặc email) và **Mật khẩu**, bấm **Đăng nhập**. Tích **Ghi nhớ phiên làm việc trên thiết bị này** nếu là máy của bạn.
 3. Lần đầu đăng nhập, hoặc sau khi được đặt lại mật khẩu, hệ thống yêu cầu đổi mật khẩu ngay.
 
 Nhập sai mật khẩu 5 lần liên tiếp, tài khoản bị khóa tạm 15 phút. Chờ hết thời gian khóa hoặc nhờ quản trị mở khóa.
@@ -128,7 +128,7 @@ Trang đầu tiên sau khi đăng nhập. Tùy quyền, trang có:
 
 ### 2.5 Việc cần xử lý
 
-Menu **Việc cần xử lý** liệt kê mọi hồ sơ đang chờ chính bạn, nhóm theo bước (ví dụ "Tự chấm điểm, đề xuất mức", "Đề xuất của tập thể lãnh đạo", "Phiếu xác nhận số liệu chờ lập, xác nhận", "Kiến nghị chờ xử lý", "Kế hoạch 30-60-90 ngày"). Cột hạn hiện thời hạn của bước; quá hạn hiện màu đỏ. Mỗi dòng có nút theo việc: **Đăng ký**, **Duyệt**, **Tự chấm**, **Xác nhận**, **Đề xuất**, **Thẩm định**, **Nhận xét**, **Quyết định**, **Công bố**, **Lập phiếu**… Bấm nút hoặc bấm vào dòng để mở hồ sơ. Việc do cấp trên thực hiện có nút **Ghi nhận …** tương ứng (ví dụ **Ghi nhận thẩm định**).
+Menu **Việc cần xử lý** liệt kê mọi hồ sơ đang chờ chính bạn, nhóm theo bước (ví dụ "Tự chấm điểm, đề xuất mức", "Đề xuất của tập thể lãnh đạo", "Phiếu xác nhận số liệu chờ lập, xác nhận", "Kiến nghị chờ xử lý", "Kế hoạch 30-60-90 ngày"). Cột hạn hiện thời hạn của bước; quá hạn hiện màu đỏ. Mỗi dòng có nút theo việc: **Đăng ký**, **Duyệt**, **Tự chấm**, **Xác nhận**, **Đề xuất**, **Thẩm định**, **Nhận xét**, **Quyết định**, **Công bố**, **Lập phiếu**, **Duyệt điều chỉnh**, **Xử lý kiến nghị**, **Lập kế hoạch**, **Duyệt kế hoạch**, **Xác nhận kế hoạch**. Bấm nút để mở hồ sơ hoặc phiếu. Việc do cấp trên thực hiện có nút **Ghi nhận …** tương ứng (ví dụ **Ghi nhận thẩm định**).
 
 Có hơn 10 việc thì có ô tìm theo tên cán bộ. Bấm biểu tượng làm mới (mũi tên tròn) để tải lại danh sách.
 
@@ -161,10 +161,10 @@ Từ trên xuống:
 
 Trong thời hạn của bước (xem **Hạn** ở thanh tiến trình của hồ sơ):
 
-1. Mở hồ sơ, khung **Đăng ký sản phẩm, nhiệm vụ**. Mỗi sản phẩm là một khung riêng ("Sản phẩm 1", "Sản phẩm 2"…).
+1. Mở hồ sơ, khung **Nộp danh mục sản phẩm** (bước "Đăng ký sản phẩm, nhiệm vụ"). Mỗi sản phẩm là một khung riêng ("Sản phẩm 1", "Sản phẩm 2"…).
 2. Nhập đủ các ô như phiếu giấy: **Tên sản phẩm, công việc**, **Mã SP (nếu có)**, **Loại việc** (Trọng tâm / Thường xuyên), **Vai trò** (Chủ trì / Phối hợp), **Trục kết quả**, **Trọng số (điểm)**, **Thời hạn / mốc quý** (để trống là ngày cuối kỳ), **Chuẩn đạt**, **Tiêu chí vượt chuẩn**, **Nguồn dữ liệu / minh chứng**, **Thẩm quyền xác nhận**.
 3. Bấm **Thêm dòng** hoặc **Xóa** để đủ số sản phẩm theo bộ tiêu chí (bộ mặc định: 3 đến 7 sản phẩm, tổng trọng số 70). Dòng **Tổng trọng số** chuyển đỏ khi chưa đủ.
-4. Bấm **Nộp danh mục**, xác nhận. Thiếu ô nào, hệ thống báo đúng chỗ đó.
+4. Bấm **Nộp danh mục**, xác nhận. Ô nào thiếu, hệ thống báo đúng chỗ đó.
 
 Việc đột xuất giao thêm trong quý không đăng ký ở đây (xem mục 3.3a).
 
@@ -231,14 +231,14 @@ Khối **Biểu mẫu** ở cột phải liệt kê các mẫu áp dụng cho h�
 
 Thông tin trên biểu mẫu (họ tên, ngày sinh, chức vụ Đảng / chính quyền / đoàn thể, đơn vị) lấy từ hồ sơ cán bộ; Mẫu 09A và 09C đều in ngày sinh, chưa nhập thì giữ dòng chấm. Thiếu hoặc sai: xem [Câu hỏi thường gặp](#13-câu-hỏi-thường-gặp).
 
-Tệp tải về được đặt tên không dấu theo quy cách nộp báo cáo: `Mau <mã>_<tên viết tắt đơn vị>_Quy <số La Mã>-<năm>`, ví dụ `Mau 16_QLBMB_Quy III-2026.docx`. Phiếu của một cán bộ có thêm họ tên sau tên viết tắt, ví dụ `Mau 09A_ATTECH_Nguyen Van A_Quy III-2026.docx`. Phần đơn vị lấy từ **Tên viết tắt** của tổ chức Đảng hoặc đơn vị (Danh mục tổ chức), chưa có thì mã của tổ chức đó, rồi đến tên viết tắt trong **Thông tin đơn vị**; không có gì thì ghi `DonVi`.
+Tệp tải về được đặt tên không dấu theo quy cách nộp báo cáo: `Mau <mã>_<tên viết tắt đơn vị>_Quy <số La Mã>-<năm>`, ví dụ `Mau 16_QLBMB_Quy <số La Mã>-<năm>.docx`. Phiếu của một cán bộ có thêm họ tên sau tên viết tắt, ví dụ `Mau 09A_ATTECH_Nguyen Van A_Quy <số La Mã>-<năm>.docx`. Phần đơn vị lấy từ **Tên viết tắt** của tổ chức Đảng hoặc đơn vị (Danh mục tổ chức), chưa có thì mã của tổ chức đó, rồi đến tên viết tắt trong **Thông tin đơn vị**; không có gì thì ghi `DonVi`.
 
 ### 3.6 Khi hồ sơ bị trả lại
 
 Chi bộ (khi xác nhận) hoặc cơ quan thẩm định có thể trả lại phiếu kèm lý do. Khi đó:
 
 - Đầu trang hồ sơ hiện khung đỏ **"Bị trả lại: …"** với lý do.
-- Hồ sơ quay về bước tự chấm; trong **Việc cần xử lý** hồ sơ có dòng **Bị trả lại** kèm lý do.
+- Hồ sơ quay về bước tự chấm; trong **Việc cần xử lý** dòng của hồ sơ ghi "Bị trả lại: …" kèm lý do.
 - Sửa theo lý do rồi nộp phiếu tự chấm lại.
 
 ### 3.7 Sau khi công bố
@@ -409,7 +409,7 @@ Với cơ quan ngoài hệ thống, người yêu cầu tự nhập kết quả 
 
 **Kết quả dùng làm gì.** Nội dung phiếu là căn cứ cho người thẩm định. Hệ thống không tự đổi điểm theo phiếu; người thẩm định tự nhập điểm. Phiếu đã xác nhận không có chức năng mở lại.
 
-**Tải Word:** menu ⋯ trên trang phiếu, **Tải Word**.
+**Tải về:** menu ⋯ trên trang phiếu, **Tải Word** hoặc **Tải PDF**.
 
 ### 5.3 Biên bản họp thống nhất (Mẫu 20)
 
@@ -418,7 +418,7 @@ Với cơ quan ngoài hệ thống, người yêu cầu tự nhập kết quả 
 **a) Cơ quan thẩm định lập biên bản**
 
 1. Menu **Duyệt kết quả**, thẻ **Họp thống nhất**. Chọn kỳ ở ô chọn kỳ phía trên bảng (mặc định là kỳ đang chọn).
-2. Bấm **Lập biên bản**. Trong hộp "Lập biên bản": nhập **Nhóm chức danh / phạm vi** (tên nhóm cán bộ cùng chức danh hoặc công việc tương đồng), tích chọn các hồ sơ (có **Chọn tất cả**; lọc được theo diện quyết định), bấm **Lập biên bản**. Danh sách chỉ gồm hồ sơ đã thẩm định, chưa ghi nhận quyết định, chưa thuộc biên bản khác, thuộc diện có dùng hiệu chuẩn và trong phạm vi của bạn. Không có hồ sơ nào thì hộp ghi "Chưa có hồ sơ đã thẩm định để hiệu chuẩn."
+2. Bấm **Lập biên bản**. Trong hộp "Lập biên bản": nhập **Nhóm chức danh / phạm vi** (tên nhóm cán bộ cùng chức danh hoặc công việc tương đồng), tích chọn các hồ sơ (có **Chọn tất cả**; lọc được theo diện quyết định), bấm **Lập biên bản**. Danh sách chỉ gồm hồ sơ đã thẩm định, chưa ghi nhận quyết định, chưa thuộc biên bản khác, thuộc diện có dùng hiệu chuẩn và trong phạm vi của bạn. Không có hồ sơ nào thì hộp ghi "Chưa có hồ sơ đã thẩm định để họp thống nhất."
 3. Mỗi biên bản chỉ gồm hồ sơ của **một đơn vị hoặc một tổ chức Đảng**. Hồ sơ thuộc đơn vị khác thì lập biên bản riêng cho đơn vị đó (chọn hồ sơ lẫn nhiều đơn vị, hệ thống báo "Lập biên bản không thành công: các hồ sơ đã chọn không cùng một đơn vị hay tổ chức Đảng.").
 4. Trang biên bản mở ra, trạng thái "Đang soạn". Điền các khối:
    - **Cuộc họp**: nhóm chức danh / công việc tương đồng, **Ngày họp**, **Địa điểm**, **Chủ trì**, **Thư ký**, **Phạm vi, số lượng hồ sơ**.
@@ -434,12 +434,12 @@ Với cơ quan ngoài hệ thống, người yêu cầu tự nhập kết quả 
 **c) Người có quyền chốt** (khác người lập; mặc định Văn phòng Đảng ủy)
 
 - Bấm **Chốt biên bản** ở đầu trang, xác nhận ("Kết quả sau họp thống nhất sẽ được áp vào các hồ sơ trong biên bản"). Biên bản chuyển "Đã chốt". Mức và điểm sau họp thống nhất của các trường hợp có điều chỉnh được áp vào hồ sơ; xem ở khối Thẩm định của hồ sơ (dòng **Mức sau họp thống nhất**, **Biên bản họp thống nhất**).
-- Nếu bạn chính là người lập, nút bị khóa và dải vàng ghi "Người chốt biên bản phải khác người lập biên bản."
+- Nếu bạn là người lập, nút **Chốt biên bản** không hiện; dải vàng ghi "Người chốt biên bản phải khác người lập biên bản." Nếu biên bản còn thiếu nội dung, nút mờ và dải vàng liệt kê phần thiếu.
 - Biên bản đã chốt mà cần sửa: menu ⋯, **Mở lại**, nhập lý do. Kết quả đã áp vào các hồ sơ chưa ghi quyết định bị hủy, biên bản về "Đang soạn". Sửa, **Lưu**, rồi chốt lại.
 
 **d) Hủy.** Menu ⋯, **Hủy biên bản**, nhập lý do. Chỉ hủy được biên bản "Đang soạn" (đã chốt thì **Mở lại** trước). Các hồ sơ được giải phóng để đưa vào biên bản khác.
 
-**e) Tải Word:** menu ⋯, **Tải Word**.
+**e) Tải về:** menu ⋯, **Tải Word** hoặc **Tải PDF**.
 
 ### 5.4 Phiếu kiểm tra (Mẫu 19)
 
@@ -463,7 +463,7 @@ Với cơ quan ngoài hệ thống, người yêu cầu tự nhập kết quả 
 
 **d) Hủy.** Menu ⋯, **Hủy phiếu**, nhập lý do (người lập hoặc người xác nhận; phiếu "Đang soạn", "Chờ xác nhận" hay "Đã xác nhận" đều hủy được). Các hồ sơ được giải phóng để lập phiếu khác.
 
-**e) Tải Word:** menu ⋯, **Tải Word**.
+**e) Tải về:** menu ⋯, **Tải Word** hoặc **Tải PDF**.
 
 ### 5.5 "Hết hiệu lực" nghĩa là gì và làm gì tiếp
 
@@ -491,15 +491,15 @@ Trang phiếu xác nhận số liệu (Mẫu 03), phiếu kiểm tra (Mẫu 19) 
 
 ### 5.6 Tải Word, PDF
 
-Trang phiếu và biên bản có **Tải Word** ở menu ⋯ cạnh nút chính. Màn hình hiện chỉ có Word cho ba biểu mẫu này. Các biểu mẫu khác (Mẫu 01, 02, 09A…) xuất Word hoặc PDF ở khối **Biểu mẫu** của hồ sơ. Tải PDF báo lỗi: xem [Câu hỏi thường gặp](#13-câu-hỏi-thường-gặp).
+Trang phiếu và biên bản có **Tải Word** và **Tải PDF** ở menu ⋯ cạnh nút chính. Các biểu mẫu khác (Mẫu 01, 02, 09A…) xuất Word hoặc PDF ở khối **Biểu mẫu** của hồ sơ. Tải PDF báo lỗi: xem [Câu hỏi thường gặp](#13-câu-hỏi-thường-gặp).
 
 ---
 
 ## 6. Đánh giá tập thể và biên bản hội nghị
 
-Menu **Đánh giá tập thể**. Mỗi người chỉ thấy phần được giao. Hai thẻ: **Hồ sơ tập thể** và **Biên bản hội nghị**; nút ở đầu trang đổi theo thẻ: **Lập hồ sơ**, **Lập biên bản**.
+Menu **Đánh giá tập thể**. Mỗi người chỉ thấy phần được giao. Ba thẻ: **Hồ sơ tập thể**, **Theo dõi** (chỉ hiện với người xem hồ sơ tập thể) và **Biên bản hội nghị**. Nút ở đầu trang đổi theo thẻ: **Lập hồ sơ**, **Lập biên bản**.
 
-**Theo dõi.** Thẻ **Theo dõi** cho biết trong kỳ đang chọn, tổ chức Đảng nào đã lập hồ sơ tự đánh giá (Mẫu 06, 07, 08). Mỗi dòng là một tổ chức Đảng có cán bộ trong kỳ, kèm số cán bộ, trạng thái từng mẫu (**Chưa lập**, **Nháp**, **Đã nộp**), thời điểm **Cập nhật** và cột **Hạn**. Hạn là ngày 8 của tháng cuối quý; chưa nộp đủ ba mẫu sau hạn thì hiện **Quá hạn**. Thẻ chỉ để xem, không chặn bước nào của hồ sơ cán bộ.
+**Thẻ Theo dõi** cho biết tổ chức Đảng nào đã lập hồ sơ tự đánh giá (Mẫu 06, 07, 08) trong kỳ đang chọn. Mỗi dòng là một tổ chức Đảng có cán bộ trong kỳ, gồm số cán bộ, trạng thái từng mẫu (**Chưa lập**, **Nháp**, **Đã nộp**), thời điểm **Cập nhật** và cột **Hạn**. Hạn là ngày 8 của tháng cuối quý. Cột **Hạn** hiện **Đủ** khi đã nộp đủ ba mẫu, **Quá hạn** khi quá hạn mà chưa đủ. Thẻ chỉ để xem, không chặn bước nào của hồ sơ cán bộ.
 
 ### 6.1 Hồ sơ tự đánh giá tập thể (Mẫu 07, 08)
 
@@ -515,10 +515,10 @@ Menu **Đánh giá tập thể**. Mỗi người chỉ thấy phần được gi
 2. Chọn **Biểu mẫu**: *Mẫu 12 — Biên bản hội nghị* hoặc *Mẫu 13 — Biên bản kiểm phiếu*. Chọn **Hội nghị**: *Tập thể lãnh đạo, quản lý (đề xuất)* hoặc *Đảng ủy/Chi ủy cơ sở (quyết định)*, và **Đơn vị tổ chức** (Tổ chức Đảng, Phòng / đơn vị hoặc Cấp Công ty). Danh sách chỉ hiện nơi bạn được giao lập biên bản.
 3. Nhập **Bắt đầu**, **Kết thúc**, **Địa điểm**, số **Triệu tập**, **Có mặt**, **Vắng mặt** và lý do, **Chủ trì hội nghị**, **Thư ký hội nghị** (kèm chức vụ), người dự khác (**Thêm người dự**).
 4. Phần **Nội dung**: **Diễn biến hội nghị**, **Kết quả hội nghị**.
-5. Phần **Kiểm phiếu**: **Thêm thành viên** Tổ kiểm phiếu (người đầu tiên là Tổ trưởng), nhập *Phiếu phát ra*, *Phiếu thu về*, *Phiếu hợp lệ*, *Không hợp lệ* (hợp lệ cộng không hợp lệ phải bằng thu về). Với Mẫu 13 khi lập mới, nhập luôn **Số phiếu theo từng hồ sơ**.
+5. Phần **Kiểm phiếu**: **Thêm thành viên** Tổ kiểm phiếu (người đầu tiên là Tổ trưởng), nhập *Phiếu phát ra*, *Phiếu thu về*, *Phiếu hợp lệ*, *Không hợp lệ* (hợp lệ cộng không hợp lệ phải bằng thu về). Với Mẫu 13 khi lập mới, nhập luôn **Số phiếu theo từng hồ sơ** (các ô Xuất sắc, Tốt, Hoàn thành, Không HT, Chưa ĐG, Không hợp lệ).
 6. Bấm **Lưu**.
 7. Ghi kết quả kiểm phiếu của từng cán bộ vào hồ sơ của người đó ở bước đề xuất tập thể hoặc quyết định (xem [mục 4.2](#42-đề-xuất-của-tập-thể-lãnh-đạo-thư-ký-ghi-nhận)).
-8. Trong danh sách **Biên bản hội nghị**: **Sửa**, và ở menu ⋯ các mục **Xuất Mẫu 12 (Word)**, **Xuất Mẫu 12 (PDF)**, **Xuất Mẫu 11 phiếu trắng (Word / PDF)**; biên bản Mẫu 13 có **Xuất Mẫu 13 (Word / PDF)**.
+8. Trong danh sách **Biên bản hội nghị**: **Sửa**, và ở menu ⋯ các mục **Tải Mẫu 12 (Word)**, **Tải Mẫu 12 (PDF)**, **Tải Mẫu 11 phiếu trắng (Word)**, **Tải Mẫu 11 phiếu trắng (PDF)**; biên bản có kết quả kiểm phiếu thêm **Tải Mẫu 13 (Word)**, **Tải Mẫu 13 (PDF)**.
 
 ---
 
@@ -564,7 +564,7 @@ Dành cho người được giao quản lý kỳ. Menu **Thiết lập**, mục 
 3. **Bộ tiêu chí**: chọn một bộ đã xuất bản. Chưa có bộ nào thì xuất bản ở **Bộ tiêu chí** trước.
 4. Bấm **Tạo kỳ**. Kỳ mới ở trạng thái Dự thảo; trang cấu hình kỳ mở ra.
 
-Trên trang kỳ, khối **Chuẩn bị mở kỳ** (khi Dự thảo) là danh sách việc cần xong trước khi mở: chọn bộ tiêu chí, thêm người được đánh giá, mọi người có khung tỷ trọng, các bước có thời hạn, mọi bước có người thực hiện. Mục chưa xong có nút đi thẳng tới nơi xử lý (**Chọn bộ tiêu chí**, **Thêm người**, **Sửa thông tin**, **Đặt thời hạn**, **Xem chi tiết**). Mục "Duyệt kết quả: …" chỉ nhắc, không chặn mở kỳ.
+Trên trang kỳ, khối **Chuẩn bị mở kỳ** (khi Dự thảo) là danh sách việc cần xong trước khi mở: chọn bộ tiêu chí, thêm người được đánh giá, mọi người có khung tỷ trọng, các bước có thời hạn, mọi bước có người thực hiện. Mục chưa xong có nút đi thẳng tới nơi xử lý (**Chọn bộ tiêu chí**, **Thêm người**, **Sửa thông tin**, **Đặt thời hạn**, **Xem chi tiết**). Mục "Kiểm tra dữ liệu: …" chỉ nhắc (bấm **Xem** để biết danh sách), không chặn mở kỳ.
 
 Các thẻ của trang kỳ: **Tiến độ** (khi Đang mở hoặc Khóa dữ liệu), **Người được đánh giá**, **Người thực hiện các bước**, **Bộ tiêu chí**, **Diện quyết định**.
 
@@ -586,10 +586,10 @@ Thẻ **Diện quyết định**. Mỗi **diện quyết định** là bộ cấ
   | Kiểm tra trước quyết định | Bắt buộc / Chỉ ghi nhận / Tắt |
 
   Ý nghĩa từng lựa chọn: [5.1](#51-tổng-quan-và-trình-tự).
-- Ô tích **Chặn hoàn thành bước khi đã quá thời hạn**: bật thì hết hạn sẽ không làm được bước; tắt thì chỉ cảnh báo.
+- Ô tích **Chặn hoàn thành bước khi đã quá thời hạn**: bật thì quá hạn không làm được bước; tắt thì chỉ cảnh báo. Ô này chỉ đổi được khi kỳ còn Dự thảo.
 - Bấm **Lưu** (hoặc **Hủy** để bỏ thay đổi). Dòng "Có thay đổi chưa lưu" nhắc khi chưa lưu.
 
-**Chỉ sửa được khi kỳ còn Dự thảo:** chế độ bước, quyền thực hiện, ba cổng, diện mặc định, thêm/xóa/đổi tên diện. **Sau khi mở kỳ chỉ sửa được thời hạn** (cho tới khi kỳ đóng).
+**Chỉ sửa được khi kỳ còn Dự thảo:** chế độ bước, quyền thực hiện, ba cổng, diện mặc định, thêm/xóa/đổi tên diện, ô chặn quá thời hạn. **Sau khi mở kỳ chỉ sửa được thời hạn** (cho tới khi kỳ đóng).
 
 ### 8.3 Bộ tiêu chí của kỳ (thẻ "Bộ tiêu chí")
 
@@ -794,7 +794,7 @@ Nếu cổng ở chế độ **Chỉ ghi nhận**, các lý do trên hiện ở 
 | Kỳ ở trạng thái **Khóa dữ liệu**, bước trước Thẩm định | Chỉ các bước từ Thẩm định trở đi còn làm được; chủ hồ sơ không sửa được | **Mở lại kỳ** (lý do), hoặc trả hồ sơ về bước trước và đặt **Mở riêng hồ sơ đến** | Người quản lý kỳ; người có quyền trả lại hoặc mở lại hồ sơ |
 | Hồ sơ đã mở riêng nhưng hết thời hạn | Thời hạn **Mở riêng hồ sơ** đã hết | **Gia hạn mở riêng hồ sơ** | Người có quyền trả lại hoặc mở lại hồ sơ (không phải chủ hồ sơ) |
 | Kỳ **Đã đóng** | Chỉ còn mở lại hồ sơ để đính chính | **Mở lại hồ sơ** (lý do, chọn bước) | Văn phòng Đảng ủy |
-| Bước quá hạn, kỳ bật "Chặn hoàn thành bước khi đã quá thời hạn" | Hết thời hạn của bước | Gia hạn thời hạn ở thẻ **Diện quyết định** (vẫn sửa được sau khi mở kỳ) hoặc tắt ô chặn khi kỳ còn Dự thảo | Người quản lý kỳ |
+| Bước quá hạn, kỳ bật "Chặn hoàn thành bước khi đã quá thời hạn" | Hết thời hạn của bước | Gia hạn thời hạn ở thẻ **Diện quyết định** (sửa được cả sau khi mở kỳ). Ô chặn chỉ đổi được khi kỳ còn Dự thảo | Người quản lý kỳ |
 | Bước ghi "cấp trên thực hiện" | Bước làm ngoài hệ thống; chỉ có nút **Ghi nhận kết quả của cấp trên** cho người được giao quyền đó | Người ghi nhận kết quả nhập kết quả ([4.6](#46-bước-do-cấp-trên-thực-hiện)) | Văn phòng Đảng ủy |
 | Bước không có trong thanh tiến trình | Bước không áp dụng cho diện quyết định của hồ sơ | Không cần làm; muốn đổi thì đổi diện quyết định của hồ sơ | Người quản lý kỳ |
 
@@ -802,13 +802,13 @@ Nếu cổng ở chế độ **Chỉ ghi nhận**, các lý do trên hiện ở 
 
 | Dấu hiệu | Nguyên nhân | Cách xử lý | Ai xử lý |
 |---|---|---|---|
-| **Chốt biên bản** mờ, dải vàng "Người chốt biên bản phải khác người lập biên bản." | Bạn là người lập biên bản | Nhờ người khác có quyền chốt | Văn phòng Đảng ủy hoặc người có quyền chốt khác |
-| Dải vàng liệt kê "Chưa nhập thời gian họp.", "Chưa nhập chủ trì.", "Trường hợp 1: chưa nhập nội dung làm rõ."… | Biên bản thiếu nội dung bắt buộc | Điền đủ, **Lưu**, rồi chốt | Người lập |
+| Không thấy **Chốt biên bản**, dải vàng "Người chốt biên bản phải khác người lập biên bản." | Bạn là người lập biên bản | Nhờ người khác có quyền chốt | Văn phòng Đảng ủy hoặc người có quyền chốt khác |
+| **Chốt biên bản** mờ, dải vàng liệt kê "Chưa nhập thời gian họp.", "Chưa nhập chủ trì.", "Trường hợp 1: chưa nhập nội dung làm rõ."… | Biên bản thiếu nội dung bắt buộc | Điền đủ, **Lưu**, rồi chốt | Người lập |
 | Không thấy **Chốt biên bản**, **Xác nhận**, **Gửi xác nhận** | Thiếu quyền, kỳ không còn Đang mở (với biên bản), hoặc biên bản/phiếu có hồ sơ của chính bạn | Kiểm tra quyền (**Người này làm được gì**) và trạng thái kỳ | Quản trị; người quản lý kỳ |
 | Gửi xác nhận / xác nhận phiếu kiểm tra báo "… chưa thuộc biên bản họp thống nhất đã chốt còn hiệu lực." | Cổng Họp thống nhất Bắt buộc, hồ sơ trong phiếu chưa họp thống nhất | Hoàn tất biên bản họp thống nhất trước | Cơ quan thẩm định; người chốt |
 | Lập phiếu báo "Hồ sơ đã thuộc phiếu kiểm tra khác còn hiệu lực" | Hồ sơ đang ở phiếu khác | **Hủy phiếu** đó hoặc gỡ hồ sơ khỏi phiếu | Người lập hoặc người xác nhận phiếu cũ |
 | Danh sách chọn hồ sơ trống | Hồ sơ chưa thẩm định / chưa tới bước chờ quyết định, đã thuộc biên bản khác, ngoài phạm vi của bạn, hoặc kỳ không Đang mở | Kiểm tra từng điều kiện | Cơ quan thẩm định |
-| Nút **Xác nhận** trên phiếu số liệu không hiện, báo "Người lập phiếu không được tự xác nhận hoặc trả lại phiếu của mình." | Người lập phiếu không tự xác nhận | Nhờ người khác có quyền xác nhận | Cơ quan chuyên môn |
+| Không thấy nút **Xác nhận** trên phiếu số liệu hoặc phiếu kiểm tra | Người lập phiếu không tự xác nhận hay trả lại phiếu của mình | Nhờ người khác có quyền xác nhận | Cơ quan chuyên môn |
 | **Mở kỳ** mờ | Chưa chọn bộ tiêu chí, hoặc chưa có người được đánh giá | Làm theo khối **Chuẩn bị mở kỳ** | Người quản lý kỳ |
 | **Đóng kỳ** mờ | Còn hồ sơ chưa công bố | Công bố hết hồ sơ | Văn phòng Đảng ủy |
 
