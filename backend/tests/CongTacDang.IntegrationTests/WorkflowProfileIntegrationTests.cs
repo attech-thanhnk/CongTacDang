@@ -170,8 +170,8 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
         Assert.Equal("Kết quả họp rà soát danh mục", (await Data(w.Lead1C, url)).GetProperty("items")[0].GetProperty("kindName").GetString());
 
-        // Chủ hồ sơ xem được nhưng không ghi; Lãnh đạo Phòng khác không xem, không ghi.
-        Assert.False((await Data(w.StaffC, url)).GetProperty("canRecord").GetBoolean());
+        // Chủ hồ sơ không xem, không ghi; Lãnh đạo Phòng khác không xem, không ghi.
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.StaffC.GetAsync(url)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await w.StaffC.PostAsJsonAsync(url, new { kind = "ListCheck", content = "x" })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await w.Lead2C.PostAsJsonAsync(url, new { kind = "ListCheck", content = "x" })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await w.Lead2C.GetAsync(url)).StatusCode);

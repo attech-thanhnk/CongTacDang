@@ -58,6 +58,9 @@ public sealed class RecordOpinionService : IRecordOpinionService
     public async Task<RecordOpinionsDto> GetAsync(Guid recordId, CancellationToken ct = default)
     {
         var record = await RequireRecordAsync(recordId, ct);
+        // Ý kiến nội bộ trước phê duyệt không hiện cho chính người được đánh giá.
+        if (IsOwner(record))
+            throw new ForbiddenException("Bạn không xem ý kiến trước phê duyệt trên hồ sơ của chính mình.");
         _guard.Ensure(PermissionCodes.EvaluationRead, AccessTarget.ForRecord(record));
         return await BuildAsync(record, ct);
     }
