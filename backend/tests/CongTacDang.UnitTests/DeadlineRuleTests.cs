@@ -95,9 +95,9 @@ public class DeadlineRuleTests
         var coSo = settings.FindProfile(PeriodSettings.ProfileBase)!;
         var capTren = settings.FindProfile(PeriodSettings.ProfileUpper)!;
 
-        // Diện cơ sở: đăng ký lùi 5 ngày làm việc từ ngày làm việc cuối quý trước (31/12 là ngày thứ 1); duyệt lùi 1 ngày.
-        Assert.Equal(new DateOnly(2026, 12, 24), coSo.Deadline(WorkflowStep.B1_REGISTER));
-        Assert.Equal(new DateOnly(2026, 12, 30), coSo.Deadline(WorkflowStep.B1_APPROVE));
+        // Diện cơ sở: 5 ngày làm việc đầu quý (04–08/01; 01/01 nghỉ, 02–03/01 cuối tuần).
+        Assert.Equal(new DateOnly(2027, 1, 8), coSo.Deadline(WorkflowStep.B1_REGISTER));
+        Assert.Equal(new DateOnly(2027, 1, 8), coSo.Deadline(WorkflowStep.B1_APPROVE));
         Assert.Equal(new DateOnly(2027, 3, 9), coSo.Deadline(WorkflowStep.B2_SELF_SCORE));
         Assert.Equal(new DateOnly(2027, 3, 9), coSo.Deadline(WorkflowStep.B2_CELL_CONFIRM));
         Assert.Equal(new DateOnly(2027, 3, 10), coSo.Deadline(WorkflowStep.B3A_COLLECTIVE));

@@ -308,19 +308,16 @@ public sealed class PeriodSettings
             profile.Gates[WorkflowGates.Calibration] = new GateSetting { Mode = GateMode.Recorded };
             profile.Gates[WorkflowGates.Control] = new GateSetting { Mode = GateMode.Recorded };
 
-            // Diện Phó Giám đốc và diện cấp trên làm đăng ký/duyệt ngay đầu quý; diện cơ sở làm trước quý.
+            // Đăng ký và duyệt danh mục: 5 ngày làm việc đầu quý (Hướng dẫn 03); diện Phó Giám đốc và cấp trên làm sớm hơn.
             var companyLevel = profile.Code is ProfileUpper or ProfileDeputyDirector;
             SetDefaultRules(profile, companyLevel
                 ? new DeadlineSet(Quarter(1), Quarter(5), 9, 14, 15, profile.Code == ProfileUpper ? 17 : 14, 18)
-                : new DeadlineSet(BeforeQuarter(6), BeforeQuarter(2), 9, 10, 11, 14, 14));
+                : new DeadlineSet(Quarter(5), Quarter(5), 9, 10, 11, 14, 14));
         }
         return settings;
     }
 
     private static DeadlineRule Quarter(int workingDay) => new() { Kind = DeadlineRuleKind.WorkingDayOfQuarter, Value = workingDay };
-
-    // "Ngày làm việc cuối quý trước − k" trong kế hoạch là lùi k ngày làm việc kể từ ngày cuối đó.
-    private static DeadlineRule BeforeQuarter(int workingDays) => new() { Kind = DeadlineRuleKind.WorkingDaysBeforeQuarter, Value = workingDays };
 
     private sealed record DeadlineSet(DeadlineRule Register, DeadlineRule Approve, int SelfScore, int Collective, int Appraisal, int Review, int Decision);
 
