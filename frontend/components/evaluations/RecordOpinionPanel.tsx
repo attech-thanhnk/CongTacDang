@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { errorMessage } from "@/components/admin/adminUtils";
 import { formatDateTime } from "@/lib/dateFormat";
@@ -10,6 +11,9 @@ import { RECORD_OPINION_KINDS, RecordOpinionKind, RecordOpinionsDto, recordOpini
 /** Ý kiến trước phê duyệt: họp rà soát, rà soát hợp lệ, Phó Giám đốc phụ trách. Không chặn bước nào. */
 export function RecordOpinionPanel({ record }: { record: EvaluationRecordDto }) {
   const { toast } = useToast();
+  const { user } = useAuth();
+  // Chủ hồ sơ không xem được ý kiến nội bộ (máy chủ trả 403): không gọi API.
+  const isOwner = !!user && user.id === record.memberId;
   const [data, setData] = useState<RecordOpinionsDto | null>(null);
   const [adding, setAdding] = useState(false);
   const [kind, setKind] = useState<RecordOpinionKind>(RECORD_OPINION_KINDS[0].value);
@@ -17,12 +21,13 @@ export function RecordOpinionPanel({ record }: { record: EvaluationRecordDto }) 
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
+    if (isOwner) return;
     try {
       setData(await recordOpinionService.get(record.id));
     } catch {
       setData(null);
     }
-  }, [record.id]);
+  }, [record.id, isOwner]);
 
   useEffect(() => {
     load();
