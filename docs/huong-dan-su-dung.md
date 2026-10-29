@@ -74,7 +74,7 @@ Một hồ sơ đi lần lượt qua các bước dưới đây. Tùy **diện q
 | 2 | Duyệt danh mục sản phẩm | Lãnh đạo có quyền duyệt (thường là Lãnh đạo đơn vị) |
 | 3 | Tự chấm điểm, đề xuất mức | Chính cán bộ |
 | 4 | Chi bộ xác nhận phiếu tự chấm | Chi bộ |
-| 5 | Đề xuất của tập thể lãnh đạo | Thư ký hội nghị ghi nhận kết quả hội nghị |
+| 5 | Đề xuất của tập thể lãnh đạo | Thư ký hội nghị ghi nhận kết quả hội nghị (diện Bí thư/Phó bí thư Chi bộ là nhân viên không có bước này) |
 | 6 | Thẩm định | Cơ quan thẩm định, hoặc cấp trên |
 | 7 | Nhận xét của cấp trực tiếp sử dụng | Giám đốc (hoặc Lãnh đạo đơn vị, tùy diện quyết định), hoặc cấp trên |
 | 8 | Quyết định mức xếp loại | Văn phòng Đảng ủy ghi nhận quyết định, hoặc kết quả của cấp trên |
@@ -159,7 +159,7 @@ Từ trên xuống:
 
 ### 3.3 Đăng ký sản phẩm đầu quý (Mẫu 01)
 
-Trong thời hạn của bước (mặc định 5 ngày làm việc đầu quý):
+Trong thời hạn của bước (xem **Hạn** ở thanh tiến trình của hồ sơ):
 
 1. Mở hồ sơ, khung **Đăng ký sản phẩm, nhiệm vụ**. Mỗi sản phẩm là một khung riêng ("Sản phẩm 1", "Sản phẩm 2"…).
 2. Nhập đủ các ô như phiếu giấy: **Tên sản phẩm, công việc**, **Mã SP (nếu có)**, **Loại việc** (Trọng tâm / Thường xuyên), **Vai trò** (Chủ trì / Phối hợp), **Trục kết quả**, **Trọng số (điểm)**, **Thời hạn / mốc quý** (để trống là ngày cuối kỳ), **Chuẩn đạt**, **Tiêu chí vượt chuẩn**, **Nguồn dữ liệu / minh chứng**, **Thẩm quyền xác nhận**.
@@ -282,6 +282,8 @@ Hệ thống không tổ chức bỏ phiếu điện tử. Thư ký ghi lại **
 3. Ô **Biên bản hội nghị (Mẫu 12/13)** chọn biên bản đã lập (hoặc "— Không gắn biên bản —"). Khi đã chọn biên bản, tích **Ghi kết quả kiểm phiếu của hồ sơ này** rồi nhập số phiếu Xuất sắc, Tốt, Hoàn thành, Không HT, Chưa đánh giá, Không hợp lệ. Tổng số phiếu không vượt số người có mặt; mức ghi nhận phải là mức đạt quá nửa số có mặt.
 4. Bấm **Ghi nhận đề xuất**.
 
+Diện *Bí thư/Phó bí thư Chi bộ là nhân viên* không có bước này (không họp bỏ phiếu): hồ sơ đi thẳng sang thẩm định.
+
 ### 4.3 Thẩm định
 
 - Với kỳ chấm theo danh mục sản phẩm: bảng liệt kê từng nhiệm vụ (loại, tỷ lệ tự chấm, vượt chuẩn). Chọn **Mức thẩm định** Mức 1 / Mức 2 / Mức 3 cho từng nhiệm vụ (bắt buộc đủ), có thể ghi nhận xét ngắn.
@@ -294,7 +296,17 @@ Hệ thống không tổ chức bỏ phiếu điện tử. Thư ký ghi lại **
 
 ### 4.4 Nhận xét của cấp trực tiếp sử dụng
 
-Chọn **Mức đề xuất** (điền sẵn theo mức thẩm định), nhập **Nhận xét**, bấm **Ghi nhận nhận xét**. Với diện quyết định mà Lãnh đạo đơn vị đề xuất thay Giám đốc, Lãnh đạo đơn vị làm bước này theo cách tương tự.
+Chọn **Mức đề xuất** (điền sẵn theo mức thẩm định), nhập **Nhận xét**, bấm **Ghi nhận nhận xét**. Với diện quyết định mà Lãnh đạo đơn vị đề xuất thay Giám đốc (Trưởng phòng đề xuất mức trên ý kiến của Phó trưởng phòng), Lãnh đạo đơn vị làm bước này theo cách tương tự.
+
+### 4.4a Ý kiến trước phê duyệt
+
+Khối **Ý kiến trước phê duyệt** nằm ở trang chi tiết hồ sơ. Khối này không chặn bước nào. Người có quyền ghi ý kiến thấy nút **Ghi ý kiến**:
+
+1. Bấm **Ghi ý kiến**.
+2. Chọn loại ý kiến: *Kết quả họp rà soát danh mục*, *Kết quả rà soát hợp lệ*, *Ý kiến Phó Giám đốc phụ trách về danh mục* hoặc *Ý kiến Phó Giám đốc phụ trách về đề xuất mức*.
+3. Nhập nội dung, bấm **Lưu**.
+
+Bạn không ghi ý kiến được trên hồ sơ của chính mình. Vai trò *Phó Giám đốc phụ trách* chỉ xem hồ sơ và ghi ý kiến.
 
 ### 4.5 Quyết định mức xếp loại
 

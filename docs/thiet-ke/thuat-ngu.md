@@ -84,6 +84,7 @@ Cột "Tên mặc định hiện hành" là tên các vai trò mặc định man
 | `NGUOI_DUOC_DANH_GIA` | Người được đánh giá | Cá nhân | Người được đánh giá |
 | `LANH_DAO_PHONG` | Lãnh đạo Phòng | Lãnh đạo; thủ trưởng đơn vị | Lãnh đạo đơn vị |
 | `THU_KY_TAP_THE` | Thư ký tập thể lãnh đạo | Thư ký (Mẫu 12) | Thư ký hội nghị |
+| `PHO_GIAM_DOC_PHU_TRACH` | (mới) | Phó Giám đốc phụ trách | Phó Giám đốc phụ trách |
 | `CHI_UY_CHI_BO` | Chi ủy / Bí thư Chi bộ | Chi bộ (xác nhận của Chi bộ) | Chi bộ |
 | `CO_QUAN_THAM_DINH` | Phòng TCCB-LĐ (mở kỳ, thẩm định) | Thẩm định; TCCB; cơ quan thẩm định | Cơ quan thẩm định |
 | `CAP_TRUC_TIEP_SU_DUNG` | Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch) | Cấp trực tiếp sử dụng cán bộ | Cấp trực tiếp sử dụng |
