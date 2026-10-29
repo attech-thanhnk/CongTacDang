@@ -21,6 +21,9 @@ public interface ICollectiveEvaluationService
 
     Task<CollectiveEvaluationRecordDto> GetCollectiveRecordAsync(Guid id, Guid requesterId);
 
+    /// <summary>Chỉ hiển thị: tổ chức Đảng trong phạm vi đã lập Mẫu 06/07/08 của kỳ hay chưa.</summary>
+    Task<CollectiveTrackingDto> GetTrackingAsync(Guid periodId);
+
     Task<CollectiveEvaluationRecordDto> CreateCollectiveRecordAsync(Guid requesterId, SaveCollectiveEvaluationRequestDto dto);
 
     /// <summary>Không đổi kỳ, biểu mẫu, tổ chức; kiểm tra phiên bản.</summary>
@@ -75,6 +78,18 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         var period = await _evaluationRepo.GetPeriodByIdAsync(periodId);
         var periodClosed = period?.Status == PeriodStatus.Closed;
         return visible.Select(record => MapCollective(record, periodClosed)).ToList();
+    }
+
+    public async Task<CollectiveTrackingDto> GetTrackingAsync(Guid periodId)
+    {
+        var period = await _evaluationRepo.GetPeriodByIdAsync(periodId)
+            ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+        var scope = CollectiveReadScope();
+        var cells = await _collectiveRepo.GetPartyCellsWithRecordsAsync(periodId);
+        var records = await _collectiveRepo.GetByPeriodAsync(periodId);
+        // Giờ Việt Nam: hạn tính theo ngày địa phương.
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        return CollectiveTrackingBuilder.Build(period, cells, records, scope, today);
     }
 
     public async Task<CollectiveEvaluationRecordDto> GetCollectiveRecordAsync(Guid id, Guid requesterId)

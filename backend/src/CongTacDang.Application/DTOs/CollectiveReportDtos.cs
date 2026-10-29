@@ -171,3 +171,46 @@ public class CollectiveCriteriaItemDto
     public string Text { get; set; } = string.Empty;
     public double MaxScore { get; set; }
 }
+
+/// <summary>Theo dõi hồ sơ tập thể của kỳ: tổ chức Đảng có cán bộ trong kỳ đã lập Mẫu 06/07/08 hay chưa.</summary>
+public class CollectiveTrackingDto
+{
+    /// <summary>Hạn lập hồ sơ tập thể (yyyy-MM-dd); chỉ để hiện cờ quá hạn.</summary>
+    public string Deadline { get; set; } = string.Empty;
+
+    public List<CollectiveTrackingRowDto> Rows { get; set; } = new();
+}
+
+public class CollectiveTrackingRowDto
+{
+    public Guid PartyCellId { get; set; }
+    public string PartyCellName { get; set; } = string.Empty;
+
+    /// <summary>Số cán bộ của tổ chức trong kỳ.</summary>
+    public int MemberCount { get; set; }
+
+    /// <summary>Luôn đủ ba mẫu M06, M07, M08, theo thứ tự.</summary>
+    public List<CollectiveTrackingFormDto> Forms { get; set; } = new();
+
+    /// <summary>Đã lập đủ cả ba mẫu (trạng thái đã nộp).</summary>
+    public bool Complete { get; set; }
+
+    /// <summary>Quá hạn mà chưa lập đủ.</summary>
+    public bool Overdue { get; set; }
+
+    /// <summary>Lần cập nhật gần nhất của các hồ sơ đã lập.</summary>
+    public DateTime? LastUpdatedAt { get; set; }
+}
+
+public class CollectiveTrackingFormDto
+{
+    public string Form { get; set; } = string.Empty;
+
+    /// <summary>Null = chưa lập hồ sơ.</summary>
+    public Guid? RecordId { get; set; }
+
+    /// <summary>"Draft" | "Submitted"; null = chưa lập.</summary>
+    public string? Status { get; set; }
+
+    public DateTime? UpdatedAt { get; set; }
+}

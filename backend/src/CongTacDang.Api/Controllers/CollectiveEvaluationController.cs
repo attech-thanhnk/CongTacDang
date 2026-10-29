@@ -34,6 +34,15 @@ public class CollectiveEvaluationController : ControllerBase
         return Ok(ApiResponse<List<CollectiveEvaluationRecordDto>>.Ok(records, "Lấy hồ sơ tập thể thành công."));
     }
 
+    /// <summary>Theo dõi tổ chức Đảng đã/chưa lập Mẫu 06, 07, 08 trong kỳ (chỉ hiển thị).</summary>
+    [HttpGet("collective-records/tracking")]
+    [RequireAnyPermission(PermissionCodes.EvaluationRead, PermissionCodes.CollectiveManage)]
+    public async Task<IActionResult> GetCollectiveTracking([FromQuery] Guid periodId)
+    {
+        var tracking = await _service.GetTrackingAsync(periodId);
+        return Ok(ApiResponse<CollectiveTrackingDto>.Ok(tracking, "Lấy theo dõi hồ sơ tập thể thành công."));
+    }
+
     /// <summary>Lấy chi tiết một hồ sơ tập thể.</summary>
     [HttpGet("collective-records/{id}")]
     [RequireAnyPermission(PermissionCodes.EvaluationRead, PermissionCodes.CollectiveManage)]

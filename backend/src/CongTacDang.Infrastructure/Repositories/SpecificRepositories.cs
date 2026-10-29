@@ -947,6 +947,23 @@ public class CollectiveEvaluationRepository : ICollectiveEvaluationRepository
         return await query.OrderBy(x => x.Form).ThenBy(x => x.SubjectName).ToListAsync();
     }
 
+    public async Task<List<PartyCellMemberCount>> GetPartyCellsWithRecordsAsync(Guid periodId)
+    {
+        var counts = await _db.EvaluationRecords
+            .AsNoTracking()
+            .Where(r => r.PeriodId == periodId && r.PartyCellId != null)
+            .GroupBy(r => r.PartyCellId!.Value)
+            .Select(g => new { Id = g.Key, Count = g.Count() })
+            .ToListAsync();
+        var ids = counts.Select(c => c.Id).ToList();
+        var names = await _db.PartyCells.AsNoTracking().Where(c => ids.Contains(c.Id)).ToDictionaryAsync(c => c.Id, c => c.Name);
+        return counts
+            .Where(c => names.ContainsKey(c.Id))
+            .Select(c => new PartyCellMemberCount(c.Id, names[c.Id], c.Count))
+            .OrderBy(c => c.Name)
+            .ToList();
+    }
+
     public async Task AddAsync(CollectiveEvaluationRecord record)
     {
         _db.CollectiveEvaluationRecords.Add(record);

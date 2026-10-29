@@ -75,6 +75,28 @@ public sealed class CollectiveIntegrityIntegrationTests
     };
 
     [SkippableFact]
+    public async Task CollectiveTracking_ListsCellsInScope_WithFormStatus_AndDoesNotBlock()
+    {
+        SkipIfNoDatabase();
+        var s = await CreateAsync();
+
+        var before = await DataAsync(await s.Reader.GetAsync($"/api/evaluations/collective-records/tracking?periodId={s.PeriodId}"));
+        var rowBefore = Assert.Single(before.GetProperty("rows").EnumerateArray());
+        Assert.Equal(s.CellId, rowBefore.GetProperty("partyCellId").GetGuid());
+        Assert.False(rowBefore.GetProperty("complete").GetBoolean());
+        // Kỳ ở tương lai nên chưa quá hạn (quá hạn đã kiểm ở test đơn vị).
+        Assert.False(rowBefore.GetProperty("overdue").GetBoolean());
+        Assert.All(rowBefore.GetProperty("forms").EnumerateArray(), f => Assert.Equal(JsonValueKind.Null, f.GetProperty("recordId").ValueKind));
+
+        Assert.Equal(HttpStatusCode.OK, (await s.Manager.PostAsJsonAsync("/api/evaluations/collective-records", Collective(s, "M07"))).StatusCode);
+
+        var after = await DataAsync(await s.Reader.GetAsync($"/api/evaluations/collective-records/tracking?periodId={s.PeriodId}"));
+        var forms = Assert.Single(after.GetProperty("rows").EnumerateArray()).GetProperty("forms").EnumerateArray().ToList();
+        Assert.Equal("Submitted", forms[1].GetProperty("status").GetString());
+        Assert.Equal(JsonValueKind.Null, forms[0].GetProperty("status").ValueKind);
+    }
+
+    [SkippableFact]
     public async Task CollectiveRecord_UniquePerOrg_VersionRequired_ClosedPeriodBlocked_CanAttachFollowsAttachmentRule()
     {
         SkipIfNoDatabase();
