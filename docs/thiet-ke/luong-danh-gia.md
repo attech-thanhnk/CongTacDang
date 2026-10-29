@@ -197,6 +197,10 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
   mở/khóa dữ liệu và kỳ đã đóng trong `improvementPlanAlertDays` ngày gần nhất, tính từ lúc đóng kỳ), "Kế hoạch chờ bạn xác nhận";
   `GET /api/notifications/summary` đếm tổng việc, bước quá hạn, sắp tới hạn (`Notifications:DueSoonDays`, mặc định 2).
 
+## 4c. Theo dõi hồ sơ tập thể (Mẫu 06, 07, 08)
+
+`GET /api/evaluations/collective-records/tracking?periodId=` — quyền `evaluation.read` hoặc `collective.manage`, lọc theo phạm vi như danh sách hồ sơ tập thể. Trả mỗi tổ chức Đảng có hồ sơ cán bộ trong kỳ (theo `PartyCellId` chụp lúc thêm vào kỳ): số cán bộ, trạng thái Mẫu 06/07/08 (chưa lập, nháp, đã nộp), `complete`, `overdue`, `lastUpdatedAt`, kèm `deadline` của kỳ. Hạn = ngày 8 của tháng cuối quý, dời sang ngày làm việc kế tiếp nếu rơi vào cuối tuần (chưa trừ ngày nghỉ khai báo). Quá hạn = qua hạn mà chưa nộp đủ ba mẫu. Chỉ để hiển thị: không chặn bước nào của luồng cán bộ. Mã: `CollectiveTrackingBuilder`.
+
 ## 4b. Điều chỉnh việc trong quý (Mẫu 04, 05)
 - Bảng `task_change_requests` (`TaskChangeRequest`, xmin, xóa mềm, audit): `Type` = `Adjust` (điều chỉnh nội dung/chỉ tiêu/thời hạn/trọng số
   một việc) / `Carryover` (chuyển tiếp sang quý sau) / `Exclude` (loại trừ, bất khả kháng) — Mẫu 04; `Urgent` (việc đột xuất) — Mẫu 05.

@@ -499,6 +499,8 @@ Trang phiếu và biên bản có **Tải Word** ở menu ⋯ cạnh nút chính
 
 Menu **Đánh giá tập thể**. Mỗi người chỉ thấy phần được giao. Hai thẻ: **Hồ sơ tập thể** và **Biên bản hội nghị**; nút ở đầu trang đổi theo thẻ: **Lập hồ sơ**, **Lập biên bản**.
 
+**Theo dõi.** Thẻ **Theo dõi** cho biết trong kỳ đang chọn, tổ chức Đảng nào đã lập hồ sơ tự đánh giá (Mẫu 06, 07, 08). Mỗi dòng là một tổ chức Đảng có cán bộ trong kỳ, kèm số cán bộ, trạng thái từng mẫu (**Chưa lập**, **Nháp**, **Đã nộp**), thời điểm **Cập nhật** và cột **Hạn**. Hạn là ngày 8 của tháng cuối quý; chưa nộp đủ ba mẫu sau hạn thì hiện **Quá hạn**. Thẻ chỉ để xem, không chặn bước nào của hồ sơ cán bộ.
+
 ### 6.1 Hồ sơ tự đánh giá tập thể (Mẫu 07, 08)
 
 1. Thẻ **Hồ sơ tập thể**, bấm **Lập hồ sơ**. Chọn **Biểu mẫu**:
