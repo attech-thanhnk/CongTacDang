@@ -256,9 +256,10 @@ export default function PeriodDetailPage() {
   // Chỉ xét diện quyết định đang có người dùng; đếm theo bước (không cộng dồn qua các diện quyết định).
   const usedProfileCodes = new Set(participants.map((p) => p.workflowProfileCode));
   const deadlineProfiles = period.settings.profiles.filter((p) => usedProfileCodes.size === 0 || usedProfileCodes.has(p.code));
+  // Công bố không có hạn cố định (làm sau khi có kết quả phê duyệt) nên không đếm là thiếu.
   const missingDeadlineSteps = new Set(
     deadlineProfiles.flatMap((profile) =>
-      Object.entries(profile.steps).filter(([, step]) => step.mode !== "Off" && !step.deadline).map(([code]) => code)),
+      Object.entries(profile.steps).filter(([code, step]) => code !== "B5_PUBLISH" && step.mode !== "Off" && !step.deadline).map(([code]) => code)),
   );
   const missingDeadlines = missingDeadlineSteps.size;
 
