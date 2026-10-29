@@ -304,8 +304,7 @@ public sealed class PeriodSettings
         };
         foreach (var profile in settings.Profiles)
         {
-            // Chưa chốt có làm Mẫu 19, 20 hay không nên mặc định chỉ ghi nhận, tránh kẹt hồ sơ ở bước quyết định.
-            profile.Gates[WorkflowGates.Calibration] = new GateSetting { Mode = GateMode.Recorded };
+            // Hiệu chuẩn (Mẫu 20) bắt buộc theo Hướng dẫn 03 khi quyết định làm trong hệ thống; phiếu kiểm tra (Mẫu 19) chỉ ghi nhận.
             profile.Gates[WorkflowGates.Control] = new GateSetting { Mode = GateMode.Recorded };
 
             // Đăng ký và duyệt danh mục: 5 ngày làm việc đầu quý (Hướng dẫn 03); diện Phó Giám đốc và cấp trên làm sớm hơn.

@@ -49,20 +49,21 @@ public sealed class FormGatesUnitTests
     #region Cổng trong cấu hình kỳ
 
     [Fact]
-    public void Default_HasGates_RecordedForMau19And20_OptionalForCrosscheck()
+    public void Default_HasGates_Mau20RequiredForInternalDecision_Mau19Recorded()
     {
         var settings = PeriodSettings.Default();
         Assert.Equal(3, settings.SchemaVersion);
         Assert.Empty(Validate(settings));
 
-        // Chưa chốt có làm Mẫu 19, 20 nên mặc định chỉ ghi nhận ở mọi diện.
+        // Hiệu chuẩn bắt buộc khi quyết định làm trong hệ thống, chỉ ghi nhận khi cấp trên quyết định; Mẫu 19 chỉ ghi nhận.
         foreach (var profile in settings.Profiles)
         {
+            var internalDecision = profile.Mode(WorkflowStep.B4_DECISION) == StepMode.Internal;
+            Assert.Equal(internalDecision ? GateMode.Required : GateMode.Recorded, profile.GateModeOf(WorkflowGates.Calibration));
             Assert.Equal(GateMode.Recorded, profile.GateModeOf(WorkflowGates.Control));
-            Assert.Equal(GateMode.Recorded, profile.GateModeOf(WorkflowGates.Calibration));
             Assert.Equal(GateMode.Optional, profile.GateModeOf(WorkflowGates.Crosscheck));
         }
-        Assert.Contains("\"gates\":{\"CROSSCHECK\":{\"mode\":\"Optional\"},\"CALIBRATION\":{\"mode\":\"Recorded\"},\"CONTROL\":{\"mode\":\"Recorded\"}}", settings.ToJson());
+        Assert.Contains("\"gates\":{\"CROSSCHECK\":{\"mode\":\"Optional\"},\"CALIBRATION\":{\"mode\":\"Required\"},\"CONTROL\":{\"mode\":\"Recorded\"}}", settings.ToJson());
     }
 
     [Fact]
