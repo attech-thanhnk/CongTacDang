@@ -228,6 +228,8 @@ public interface IEvaluationRepository : IOrgSubtreeReader
 }
 
 /// <summary>Hồ sơ đánh giá tập thể (Mẫu 06, 07, 08).</summary>
+public sealed record PartyCellMemberCount(Guid PartyCellId, string Name, int MemberCount);
+
 public interface ICollectiveEvaluationRepository
 {
     Task<CollectiveEvaluationRecord?> GetByIdAsync(Guid id);
@@ -240,6 +242,9 @@ public interface ICollectiveEvaluationRepository
 
     /// <summary>Được theo dõi, kèm các dòng nội dung; lưu bằng <c>IUnitOfWork</c>.</summary>
     Task<CollectiveEvaluationRecord?> GetForUpdateAsync(Guid id);
+
+    /// <summary>Tổ chức Đảng có hồ sơ cán bộ trong kỳ, kèm số hồ sơ.</summary>
+    Task<List<PartyCellMemberCount>> GetPartyCellsWithRecordsAsync(Guid periodId);
 
     /// <summary>Xóa dòng cũ, thêm dòng mới trên hồ sơ đang được theo dõi; lưu bằng <c>IUnitOfWork</c>.</summary>
     void ReplaceItems(CollectiveEvaluationRecord record, IEnumerable<CollectiveEvaluationItem> items);

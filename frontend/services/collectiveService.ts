@@ -48,6 +48,29 @@ export interface CollectiveRecord extends CollectiveEvaluationRecordDto {
   canAttach?: boolean;
 }
 
+export interface CollectiveTrackingForm {
+  form: "M06" | "M07" | "M08";
+  recordId: string | null;
+  status: "Draft" | "Submitted" | null;
+  updatedAt: string | null;
+}
+
+export interface CollectiveTrackingRow {
+  partyCellId: string;
+  partyCellName: string;
+  memberCount: number;
+  forms: CollectiveTrackingForm[];
+  complete: boolean;
+  overdue: boolean;
+  lastUpdatedAt: string | null;
+}
+
+export interface CollectiveTracking {
+  /** yyyy-MM-dd */
+  deadline: string;
+  rows: CollectiveTrackingRow[];
+}
+
 export type CatalogState = "loading" | "error" | "ready";
 
 export interface SaveCollectiveRecord extends SaveCollectiveEvaluationRequestDto {
@@ -95,6 +118,10 @@ export const collectiveService = {
 
   getRecords(periodId: string): Promise<CollectiveRecord[]> {
     return request<CollectiveRecord[]>(`/evaluations/collective-records?periodId=${encodeURIComponent(periodId)}`);
+  },
+
+  getTracking(periodId: string): Promise<CollectiveTracking> {
+    return request<CollectiveTracking>(`/evaluations/collective-records/tracking?periodId=${encodeURIComponent(periodId)}`);
   },
 
   createRecord(dto: SaveCollectiveRecord): Promise<CollectiveRecord> {

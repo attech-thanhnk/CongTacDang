@@ -15,10 +15,11 @@ import { RowActions, RowAction } from "@/components/common/RowActions";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { CollectiveRecordEditor } from "@/components/collective/CollectiveRecordEditor";
 import { MeetingEditor } from "@/components/collective/MeetingEditor";
+import { CollectiveTrackingTable } from "@/components/collective/CollectiveTrackingTable";
 import { CollectiveAttachments } from "@/components/collective/CollectiveAttachments";
 import styles from "@/components/collective/Collective.module.css";
 import { organizationService, BranchItem, DepartmentItem } from "@/services/organizationService";
-import { CatalogState, CollectiveFormCatalog, CollectiveRecord, MeetingRecord, collectiveService } from "@/services/collectiveService";
+import { CatalogState, CollectiveFormCatalog, CollectiveRecord, CollectiveTracking, MeetingRecord, collectiveService } from "@/services/collectiveService";
 import { fmt } from "@/services/criteriaService";
 import { errorMessage } from "@/components/admin/adminUtils";
 import { ReportFileFormat, hd03FileName, reportService } from "@/services/reportService";
@@ -35,7 +36,7 @@ const STAGE_NAMES: Record<string, string> = {
   B4_DECISION: "Cấp ủy quyết định",
 };
 
-type Tab = "records" | "meetings";
+type Tab = "records" | "tracking" | "meetings";
 /** Form đang mở: `null` trong `item` là lập mới. */
 type Editor<T> = { item: T | null } | null;
 
@@ -52,6 +53,7 @@ export default function CollectiveEvaluationsPage() {
   const [catalogState, setCatalogState] = useState<CatalogState>("loading");
   const [records, setRecords] = useState<CollectiveRecord[]>([]);
   const [meetings, setMeetings] = useState<MeetingRecord[]>([]);
+  const [tracking, setTracking] = useState<CollectiveTracking | null>(null);
   const [recordEditor, setRecordEditor] = useState<Editor<CollectiveRecord>>(null);
   const [meetingEditor, setMeetingEditor] = useState<Editor<MeetingRecord>>(null);
   const [tab, setTab] = useState<Tab>("records");
@@ -117,15 +119,18 @@ export default function CollectiveEvaluationsPage() {
   const reload = useCallback(async () => {
     if (!periodId) return;
     const requested = periodId;
-    const [recordsResult, meetingsResult] = await Promise.allSettled([
+    const [recordsResult, meetingsResult, trackingResult] = await Promise.allSettled([
       canReadRecords ? collectiveService.getRecords(requested) : Promise.resolve([] as CollectiveRecord[]),
       canReadMeetings ? collectiveService.getMeetings(requested) : Promise.resolve([] as MeetingRecord[]),
+      canReadRecords ? collectiveService.getTracking(requested) : Promise.resolve(null),
     ]);
     if (activePeriod.current !== requested) return;
     if (recordsResult.status === "fulfilled") setRecords(recordsResult.value);
     else showError(errorMessage(recordsResult.reason, "Tải hồ sơ tập thể không thành công."));
     if (meetingsResult.status === "fulfilled") setMeetings(meetingsResult.value);
     else showError(errorMessage(meetingsResult.reason, "Tải biên bản hội nghị không thành công."));
+    if (trackingResult.status === "fulfilled") setTracking(trackingResult.value);
+    else showError(errorMessage(trackingResult.reason, "Tải theo dõi hồ sơ tập thể không thành công."));
   }, [periodId, canReadRecords, canReadMeetings, showError]);
 
   useEffect(() => {
@@ -133,6 +138,7 @@ export default function CollectiveEvaluationsPage() {
     setMeetingEditor(null);
     setRecords([]);
     setMeetings([]);
+    setTracking(null);
     if (!periodId || !canUseModule) {
       activePeriod.current = null;
       return;
@@ -310,7 +316,9 @@ export default function CollectiveEvaluationsPage() {
   }
 
   const headerAction =
-    activeTab === "records"
+    activeTab === "tracking"
+      ? undefined
+      : activeTab === "records"
       ? canManageCollective && <Button icon="bi-plus-lg" onClick={() => setRecordEditor({ item: null })}>Lập hồ sơ</Button>
       : canManageMeeting && <Button icon="bi-plus-lg" onClick={() => setMeetingEditor({ item: null })}>Lập biên bản</Button>;
 
@@ -326,6 +334,7 @@ export default function CollectiveEvaluationsPage() {
             <ul className="nav nav-tabs" role="tablist">
               {([
                 ["records", "Hồ sơ tập thể", records.length],
+                ...(canReadRecords ? [["tracking", "Theo dõi", tracking?.rows.length ?? 0]] : []),
                 ["meetings", "Biên bản hội nghị", meetings.length],
               ] as [Tab, string, number][]).map(([key, label, count]) => (
                 <li className="nav-item" key={key} role="presentation">
@@ -384,6 +393,12 @@ export default function CollectiveEvaluationsPage() {
                 onPageChange={recordPaging.setPage}
                 onPageSizeChange={recordPaging.setPageSize}
               />
+            </section>
+          )}
+
+          {activeTab === "tracking" && (
+            <section className="card" aria-label="Theo dõi hồ sơ tập thể">
+              <CollectiveTrackingTable tracking={tracking} />
             </section>
           )}
 
