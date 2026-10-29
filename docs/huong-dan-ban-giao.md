@@ -35,7 +35,7 @@ Một người **không** xét duyệt, lập hoặc xác nhận được trên 
 | Duyệt danh mục sản phẩm | Lãnh đạo đơn vị | Duyệt danh mục sản phẩm | Mở hồ sơ, nút "Duyệt" (hoặc "Trả lại danh mục") | Chờ tự chấm |
 | Tự chấm điểm, đề xuất mức | Chính cán bộ | Tham gia đánh giá (bản thân) | Mở hồ sơ, "Lưu nháp", "Nộp phiếu" | Chờ Chi bộ xác nhận |
 | Chi bộ xác nhận phiếu tự chấm | Chi bộ | Chi bộ xác nhận phiếu tự chấm | Mở hồ sơ, nút "Xác nhận" (hoặc "Trả lại phiếu tự chấm") | Chờ đề xuất tập thể |
-| Đề xuất của tập thể lãnh đạo | Thư ký hội nghị | Ghi nhận đề xuất của tập thể lãnh đạo | Mở hồ sơ, nút "Ghi nhận đề xuất" (nên lập biên bản ở menu "Đánh giá tập thể" trước) | Chờ thẩm định |
+| Đề xuất của tập thể lãnh đạo (diện Bí thư/Phó bí thư Chi bộ là nhân viên không có bước này) | Thư ký hội nghị | Ghi nhận đề xuất của tập thể lãnh đạo | Mở hồ sơ, nút "Ghi nhận đề xuất" (nên lập biên bản ở menu "Đánh giá tập thể" trước) | Chờ thẩm định |
 | Thẩm định | Cơ quan thẩm định | Thẩm định | Mở hồ sơ, nút "Ghi nhận thẩm định" (hoặc "Trả lại để chủ hồ sơ sửa") | Chờ nhận xét của cấp trực tiếp sử dụng |
 | Nhận xét của cấp trực tiếp sử dụng | Cấp trực tiếp sử dụng (Giám đốc, Chủ tịch). Diện nhân viên: Lãnh đạo đơn vị | Nhận xét của cấp trực tiếp sử dụng (diện nhân viên: Lãnh đạo đơn vị đề xuất) | Mở hồ sơ, nút "Ghi nhận nhận xét" | Chờ quyết định |
 | Quyết định mức xếp loại | Văn phòng Đảng ủy | Ghi nhận quyết định của Đảng ủy cơ sở. Bước do cấp trên làm: Ghi nhận kết quả của cấp trên | Mở hồ sơ, nút "Ghi nhận quyết định" (hoặc "Ghi nhận kết quả") | Chờ công bố |
@@ -74,17 +74,18 @@ Mức độ bắt buộc của từng cổng đặt theo **diện quyết địn
 
 ## 2. Vai trò mặc định và cần bao nhiêu người
 
-Hệ thống tự tạo các vai trò dưới đây khi khởi động lần đầu (vai trò "Cơ quan chuyên môn" cũng được tự tạo nếu chưa có). Tên trong cột 1 là tên khi mới cài; quản trị có thể đổi tên ở "Vai trò", **Sửa** (đổi tên không ảnh hưởng việc phân quyền). Tên gọn khuyến nghị xem [thuật ngữ](thiet-ke/thuat-ngu.md), mục 4.
+Hệ thống tự tạo các vai trò dưới đây khi khởi động lần đầu (vai trò "Cơ quan chuyên môn" và "Phó Giám đốc phụ trách" cũng được tự tạo nếu chưa có). Tên trong cột 1 là tên khi mới cài; quản trị có thể đổi tên ở "Vai trò", **Sửa** (đổi tên không ảnh hưởng việc phân quyền). Tên gọn khuyến nghị xem [thuật ngữ](thiet-ke/thuat-ngu.md), mục 4.
 
 Một **phân công** gồm: người, vai trò, phạm vi (Toàn công ty / Đơn vị chính quyền / Tổ chức Đảng) và thời hạn. Phạm vi đơn vị gồm cả các đơn vị cấp dưới.
 
 | Vai trò (tên khi mới cài) | Quyền chính | Việc điển hình | Gán cho ai, phạm vi | Tối thiểu |
 |---|---|---|---|---|
 | Người được đánh giá | Tham gia đánh giá (bản thân); xem kết quả đã công bố; gửi kiến nghị | Đăng ký sản phẩm, tự chấm, xem kết quả, kiến nghị | Mọi cán bộ có hồ sơ trong kỳ; Toàn công ty | Mọi người được đánh giá |
-| Lãnh đạo đơn vị | Xem hồ sơ; duyệt danh mục sản phẩm; lãnh đạo đơn vị đề xuất; lập kế hoạch 30-60-90 ngày | Duyệt danh mục, đề xuất mức, lập kế hoạch khắc phục | Trưởng phòng, Phó Trưởng phòng; phạm vi Đơn vị chính quyền là Phòng đó | 2 người mỗi Phòng |
-| Thư ký hội nghị | Xem hồ sơ; ghi nhận đề xuất tập thể; lập biên bản hội nghị | Ghi nhận kết quả hội nghị, lập Mẫu 12, 13 | Chuyên viên giữ vai trò thư ký; phạm vi Phòng (hoặc đơn vị tổ chức hội nghị) | 1 người mỗi nơi tổ chức hội nghị, nên thêm 1 dự phòng |
+| Lãnh đạo đơn vị | Xem hồ sơ; duyệt danh mục sản phẩm; lãnh đạo đơn vị đề xuất; lập kế hoạch 30-60-90 ngày; ghi ý kiến trước phê duyệt | Duyệt danh mục, đề xuất mức, lập kế hoạch khắc phục | Trưởng phòng, Phó Trưởng phòng; phạm vi Đơn vị chính quyền là Phòng đó | 2 người mỗi Phòng |
+| Thư ký hội nghị | Xem hồ sơ; ghi nhận đề xuất tập thể; lập biên bản hội nghị; ghi ý kiến trước phê duyệt | Ghi nhận kết quả hội nghị, lập Mẫu 12, 13 | Chuyên viên giữ vai trò thư ký; phạm vi Phòng (hoặc đơn vị tổ chức hội nghị) | 1 người mỗi nơi tổ chức hội nghị, nên thêm 1 dự phòng |
+| Phó Giám đốc phụ trách | Xem hồ sơ; ghi ý kiến trước phê duyệt | Ghi ý kiến về danh mục và về đề xuất mức; không duyệt, không quyết định | Phó Giám đốc phụ trách phòng, đơn vị; phạm vi Đơn vị chính quyền là đơn vị phụ trách | Không bắt buộc |
 | Chi bộ | Xem hồ sơ; Chi bộ xác nhận phiếu tự chấm; lập hồ sơ tập thể | Xác nhận phiếu tự chấm, lập Mẫu 07 | Bí thư, Phó Bí thư Chi bộ; phạm vi Tổ chức Đảng là Chi bộ | 2 người mỗi Chi bộ |
-| Cơ quan thẩm định | Xem hồ sơ; thẩm định; quản lý kỳ; quản lý bộ tiêu chí; xuất báo cáo; xem tài khoản; yêu cầu đối soát; lập biên bản họp thống nhất; lập phiếu kiểm tra | Mở kỳ, thẩm định, yêu cầu Mẫu 03, lập Mẫu 20 và Mẫu 19 | Cán bộ Phòng Tổ chức cán bộ - Lao động; chỉ gán được **Toàn công ty** (vì có quyền quản lý kỳ) | 2 người |
+| Cơ quan thẩm định | Xem hồ sơ; thẩm định; quản lý kỳ; quản lý bộ tiêu chí; xuất báo cáo; xem tài khoản; yêu cầu đối soát; lập biên bản họp thống nhất; lập phiếu kiểm tra; ghi ý kiến trước phê duyệt | Mở kỳ, thẩm định, yêu cầu Mẫu 03, lập Mẫu 20 và Mẫu 19 | Cán bộ Phòng Tổ chức cán bộ - Lao động; chỉ gán được **Toàn công ty** (vì có quyền quản lý kỳ) | 2 người |
 | Cấp trực tiếp sử dụng | Xem hồ sơ; nhận xét, đề xuất mức; xuất báo cáo; lập kế hoạch 30-60-90 ngày | Nhận xét ở bước 7, lập kế hoạch khắc phục | Giám đốc, Chủ tịch (và người thay thế); Toàn công ty | 1 người; thêm người dự phòng nếu có |
 | Cấp ủy viên | Xem hồ sơ, biên bản; xuất báo cáo | Theo dõi, không có bước bắt buộc | Các Đảng ủy viên cần xem; Toàn công ty | Không bắt buộc |
 | Văn phòng Đảng ủy | Xem hồ sơ; ghi nhận quyết định; ghi nhận kết quả của cấp trên; công bố; mở lại hồ sơ; xử lý kiến nghị; chốt biên bản họp thống nhất; xác nhận phiếu kiểm tra; xác nhận phiếu đối soát do cơ quan ngoài hệ thống; xuất báo cáo; lập biên bản hội nghị | Ghi nhận quyết định, công bố, chốt Mẫu 20, xác nhận Mẫu 19, xác nhận Mẫu 03 của cơ quan ngoài hệ thống | Cán bộ Văn phòng Đảng ủy; Toàn công ty | 2 người |
@@ -164,7 +165,7 @@ Làm theo đúng thứ tự: bước sau dùng dữ liệu của bước trướ
 **10. Diện quyết định và cổng** (thẻ "Diện quyết định"; **chỉ sửa được khi kỳ còn Dự thảo**)
 
 - [ ] Hai ô "Diện quyết định mặc định": chọn diện cho người thuộc diện Đảng ủy cơ sở quyết định và diện cấp trên quyết định.
-- [ ] Kỳ mới có sẵn bốn diện: "Diện Đảng ủy cơ sở", "Diện BTV Đảng ủy Tổng công ty", "Bí thư/Phó bí thư Chi bộ là nhân viên", "Phó Giám đốc". Với mỗi diện: chế độ từng bước ("Nội bộ", "Cấp trên thực hiện", "Không áp dụng"), quyền thực hiện, thời hạn.
+- [ ] Kỳ mới có sẵn bốn diện (thời hạn đã điền theo kế hoạch của Phòng Tổ chức cán bộ - Lao động; sửa được): "Diện Đảng ủy cơ sở", "Diện BTV Đảng ủy Tổng công ty", "Bí thư/Phó bí thư Chi bộ là nhân viên", "Phó Giám đốc". Với mỗi diện: chế độ từng bước ("Nội bộ", "Cấp trên thực hiện", "Không áp dụng"), quyền thực hiện, thời hạn.
 - [ ] Khối "Kiểm tra trước quyết định": chọn chế độ cho từng diện.
   - "Xác nhận số liệu": "Tùy chọn" hoặc "Tắt".
   - "Họp thống nhất" và "Kiểm tra trước quyết định": "Bắt buộc", "Chỉ ghi nhận" hoặc "Tắt".

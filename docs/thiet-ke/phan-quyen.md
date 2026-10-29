@@ -163,10 +163,11 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
 | Vai trò | Quyền | Phạm vi gán điển hình | Căn cứ HD03 (bản trích xuất) |
 |---|---|---|---|
 | Người được đánh giá | `evaluation.self`, `evaluation.results.view`, `evaluation.appeal.submit` | Global (phạm vi của bản gán = phạm vi công khai kết quả) | IV.1, IV.2; Bước 5; PL II III.2 |
-| Lãnh đạo đơn vị | `evaluation.read`, `evaluation.tasks.approve`, `evaluation.unit.review`, `evaluation.improvement.manage` | Department | IV.1; PL II mục II; PL III ví dụ 3; Mẫu 17 |
-| Thư ký hội nghị | `evaluation.read`, `evaluation.collective.record`, `meeting.read`, `meeting.manage` | Department hoặc Global (cấp Công ty) | IV.3a; Mẫu 11–13 |
+| Lãnh đạo đơn vị | `evaluation.read`, `evaluation.tasks.approve`, `evaluation.unit.review`, `evaluation.improvement.manage`, `evaluation.opinion.record` | Department | IV.1; PL II mục II; PL III ví dụ 3; Mẫu 17 |
+| Thư ký hội nghị | `evaluation.read`, `evaluation.collective.record`, `meeting.read`, `meeting.manage`, `evaluation.opinion.record` | Department hoặc Global (cấp Công ty) | IV.3a; Mẫu 11–13 |
+| Phó Giám đốc phụ trách (`PHO_GIAM_DOC_PHU_TRACH`) | `evaluation.read`, `evaluation.opinion.record` | Department (đơn vị phụ trách) | Ý kiến trước phê duyệt |
 | Chi bộ | `evaluation.read`, `evaluation.cell.confirm`, `collective.manage`, `meeting.read` | PartyCell | Mẫu 09A–9D "xác nhận của Chi bộ"; Mẫu 07 |
-| Cơ quan thẩm định | `evaluation.read`, `evaluation.appraise`, `period.manage`, `criteria.manage`, `report.export`, `system.users.read`, `evaluation.crosscheck.request`, `evaluation.calibration.manage`, `evaluation.control.perform` | Global | IV.1 (rà soát), IV.3b |
+| Cơ quan thẩm định | `evaluation.read`, `evaluation.appraise`, `period.manage`, `criteria.manage`, `report.export`, `system.users.read`, `evaluation.crosscheck.request`, `evaluation.calibration.manage`, `evaluation.control.perform`, `evaluation.opinion.record` | Global | IV.1 (rà soát), IV.3b |
 | Cấp trực tiếp sử dụng | `evaluation.read`, `evaluation.director.review`, `report.export`, `evaluation.improvement.manage` | Global | IV.3c; Mẫu 17 |
 | Cấp ủy viên | `evaluation.read`, `meeting.read`, `report.export` | Global | IV.4; Mẫu 18 |
 | Cơ quan chuyên môn | `evaluation.crosscheck.respond`, `evaluation.crosscheck.confirm` | Department (phòng, đơn vị chuyên môn của ATTECH) | Mẫu 03, 18 |
