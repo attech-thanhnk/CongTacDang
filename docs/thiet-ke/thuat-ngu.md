@@ -19,7 +19,7 @@ Tên biểu mẫu trên giao diện và file xuất có dạng "Mẫu NN — tê
 | 07 | Báo cáo tự đánh giá, xếp loại chất lượng của tập thể Đảng ủy (Chi ủy, Chi bộ) | giữ nguyên | `07`, `MAU_07` |
 | 08 | Báo cáo tổng hợp kết quả thực hiện các nhiệm vụ của cơ quan, đơn vị | giữ nguyên | `08`, `MAU_08` |
 | 09A | Phiếu tự chấm điểm đánh giá, xếp loại chất lượng hằng quý (đối với cá nhân giữ chức vụ lãnh đạo, quản lý) | Phiếu tự chấm điểm đánh giá, xếp loại chất lượng hằng quý; gọi ngắn: **phiếu tự chấm** | `09A`, `MAU_09A` |
-| 09B | Cùng tên 09A, chỉ áp dụng Quý III/2026 thay 09A | Chưa có trong hệ thống (dùng 09A) | — |
+| 09B | Cùng tên 09A, dùng thay 09A trong một kỳ đặc biệt | Chưa có trong hệ thống (dùng 09A) | — |
 | 09C | Bản tự đánh giá, xếp loại của cá nhân | giữ nguyên | `09C`, `MAU_09C` |
 | 9D | Phụ lục kết quả thực hiện nhiệm vụ, công việc được giao trong quý | giữ nguyên | `9D`, `MAU_9D` |
 | 10 | Phiếu thẩm định, nhận xét, đề xuất xếp loại và ghi nhận giải trình | giữ nguyên | `10`, `MAU_10` |
