@@ -314,7 +314,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
           )}
           <div className="col-12">
             <label className="form-label" htmlFor="mt-rules">Căn cứ Quy chế làm việc của</label>
-            <input id="mt-rules" className="form-control form-control-sm" placeholder="… nhiệm kỳ …" value={workingRules} onChange={(e) => setWorkingRules(e.target.value)} />
+            <input id="mt-rules" className="form-control form-control-sm" value={workingRules} onChange={(e) => setWorkingRules(e.target.value)} />
           </div>
           <div className="col-md-6">
             <label className="form-label" htmlFor="mt-start">Bắt đầu</label>
@@ -354,19 +354,19 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
           <div className="col-md-6">
             <label className="form-label" htmlFor="mt-chair">Chủ trì hội nghị</label>
             <input id="mt-chair" className="form-control form-control-sm mb-1" placeholder="Họ và tên" value={chairName} onChange={(e) => setChairName(e.target.value)} />
-            <input className="form-control form-control-sm" placeholder="Chức vụ Đảng, chính quyền" aria-label="Chức vụ chủ trì" value={chairTitle} onChange={(e) => setChairTitle(e.target.value)} />
+            <input className="form-control form-control-sm" placeholder="Chức vụ" aria-label="Chức vụ chủ trì" value={chairTitle} onChange={(e) => setChairTitle(e.target.value)} />
           </div>
           <div className="col-md-6">
             <label className="form-label" htmlFor="mt-secretary">Thư ký hội nghị</label>
             <input id="mt-secretary" className="form-control form-control-sm mb-1" placeholder="Họ và tên" value={secretaryName} onChange={(e) => setSecretaryName(e.target.value)} />
-            <input className="form-control form-control-sm" placeholder="Chức vụ Đảng, chính quyền" aria-label="Chức vụ thư ký" value={secretaryTitle} onChange={(e) => setSecretaryTitle(e.target.value)} />
+            <input className="form-control form-control-sm" placeholder="Chức vụ" aria-label="Chức vụ thư ký" value={secretaryTitle} onChange={(e) => setSecretaryTitle(e.target.value)} />
           </div>
           <div className="col-12">
             <div className="form-label">Cán bộ, đảng viên khác được cử tham dự</div>
             {attendees.map((attendee, index) => (
               <div key={index} className={styles.repeatRow}>
                 <input className="form-control form-control-sm" placeholder="Họ và tên" aria-label="Họ và tên người dự" value={attendee.name} onChange={(e) => setAttendee(index, { name: e.target.value })} />
-                <input className="form-control form-control-sm" placeholder="Chức vụ Đảng, chính quyền" aria-label="Chức vụ người dự" value={attendee.title} onChange={(e) => setAttendee(index, { title: e.target.value })} />
+                <input className="form-control form-control-sm" placeholder="Chức vụ" aria-label="Chức vụ người dự" value={attendee.title} onChange={(e) => setAttendee(index, { title: e.target.value })} />
                 {removeButton("Bỏ người dự", () => setAttendees(attendees.filter((_, i) => i !== index)))}
               </div>
             ))}
@@ -382,7 +382,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
         <div className="row g-2">
           <div className="col-12">
             <label className="form-label" htmlFor="mt-reporting">Cơ quan, đơn vị báo cáo tình hình thực hiện nhiệm vụ trọng tâm</label>
-            <input id="mt-reporting" className="form-control form-control-sm" placeholder="Để trống: tên đơn vị tổ chức hội nghị" value={reportingUnit} onChange={(e) => setReportingUnit(e.target.value)} />
+            <input id="mt-reporting" className="form-control form-control-sm" value={reportingUnit} onChange={(e) => setReportingUnit(e.target.value)} />
           </div>
           <div className="col-12">
             <label className="form-label" htmlFor="mt-minutes">Diễn biến hội nghị</label>
@@ -404,7 +404,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
               <div key={index} className={styles.repeatRow}>
                 <span className={styles.repeatRole}>{index === 0 ? "Tổ trưởng" : "Thành viên"}</span>
                 <input className="form-control form-control-sm" placeholder="Họ và tên" aria-label="Họ và tên thành viên Tổ kiểm phiếu" value={member.name} onChange={(e) => setMember(index, { name: e.target.value })} />
-                <input className="form-control form-control-sm" placeholder="Chức vụ Đảng, chính quyền" aria-label="Chức vụ thành viên Tổ kiểm phiếu" value={member.title} onChange={(e) => setMember(index, { title: e.target.value })} />
+                <input className="form-control form-control-sm" placeholder="Chức vụ" aria-label="Chức vụ thành viên Tổ kiểm phiếu" value={member.title} onChange={(e) => setMember(index, { title: e.target.value })} />
                 {removeButton("Bỏ thành viên Tổ kiểm phiếu", () => setCommittee(committee.filter((_, i) => i !== index)))}
               </div>
             ))}
