@@ -560,7 +560,7 @@ Dành cho người được giao quản lý kỳ. Menu **Thiết lập**, mục 
 ### 8.1 Tạo kỳ
 
 1. Bấm **Tạo kỳ**.
-2. Nhập **Năm**, **Quý**, **Từ ngày**, **Đến ngày**, **Tên kỳ** (để trống: tự đặt theo quý và năm). Mỗi quý chỉ có một kỳ.
+2. Nhập **Năm**, **Quý**, **Từ ngày**, **Đến ngày**, **Tên kỳ** (tự điền sẵn theo quý và năm, sửa được). Mỗi quý chỉ có một kỳ.
 3. **Bộ tiêu chí**: chọn một bộ đã xuất bản. Chưa có bộ nào thì xuất bản ở **Bộ tiêu chí** trước.
 4. Bấm **Tạo kỳ**. Kỳ mới ở trạng thái Dự thảo; trang cấu hình kỳ mở ra.
 
