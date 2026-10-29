@@ -111,7 +111,7 @@ export function CrosscheckRequestForm({ crosscheck, tasks = [], busy, submitLabe
         <div className="col-12 col-md-6">
           <label className="form-label small mb-1" htmlFor="cc-unit">Đơn vị xác nhận</label>
           {form.external ? (
-            <input id="cc-unit" className="form-control form-control-sm" maxLength={500} placeholder="Tên cơ quan ngoài hệ thống"
+            <input id="cc-unit" className="form-control form-control-sm" maxLength={500}
               value={form.agencyName} onChange={(e) => patch({ agencyName: e.target.value })} />
           ) : (
             <select id="cc-unit" className="form-select form-select-sm" value={form.departmentId} onChange={(e) => patch({ departmentId: e.target.value })}>

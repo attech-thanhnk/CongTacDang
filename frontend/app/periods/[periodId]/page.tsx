@@ -384,7 +384,6 @@ export default function PeriodDetailPage() {
                     <ul className="small mt-2 mb-1">
                       {item.names.map((name) => <li key={name}>{name}</li>)}
                     </ul>
-                    <div className="small text-secondary">{item.hint}</div>
                   </details>
                 </li>
               ))}
@@ -463,7 +462,7 @@ export default function PeriodDetailPage() {
 
       <ReasonDialog
         isOpen={unlockOpen}
-        title="Mở lại kỳ (Khóa dữ liệu → Đang mở)"
+        title="Mở lại kỳ"
         description="Chủ hồ sơ sẽ sửa được hồ sơ trở lại."
         confirmText="Mở lại kỳ"
         busy={busy}

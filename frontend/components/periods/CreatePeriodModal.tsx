@@ -18,6 +18,9 @@ const quarterRange = (year: number, quarter: number) => {
   return { startDate: `${year}-${pad(firstMonth)}-01`, endDate: `${year}-${pad(firstMonth + 2)}-${pad(lastDay)}` };
 };
 
+const defaultName = (year: number, quarter: number) =>
+  `Đánh giá, xếp loại cán bộ Quý ${["I", "II", "III", "IV"][quarter - 1]}/${year}`;
+
 /** Quý hiện tại, nếu đã có kỳ thì lấy quý kế tiếp chưa có kỳ. */
 const firstFreeQuarter = (existing: Pick<EvaluationPeriodDto, "year" | "quarter">[]) => {
   const now = new Date();
@@ -45,11 +48,12 @@ export function CreatePeriodModal({ onClose, onCreated, existing = [] }: Props) 
   const [criteriaSets, setCriteriaSets] = useState<CriteriaSetListItem[] | null>(null);
   const [form, setForm] = useState(() => {
     const { year, quarter } = firstFreeQuarter(existing);
-    return { year, quarter, name: "", ...quarterRange(year, quarter), criteriaSetId: "" };
+    return { year, quarter, name: null as string | null, ...quarterRange(year, quarter), criteriaSetId: "" };
   });
   // Đổi năm/quý thì đặt lại ngày theo quý cho khớp.
   const setQuarter = (year: number, quarter: number) =>
     setForm((f) => ({ ...f, year, quarter, ...(year >= 2000 && year <= 2100 ? quarterRange(year, quarter) : {}) }));
+  const periodName = form.name ?? defaultName(form.year, form.quarter);
   const duplicate = existing.find((p) => p.year === form.year && p.quarter === form.quarter);
   const dateError = form.endDate && form.startDate && form.endDate < form.startDate ? "Đến ngày phải sau Từ ngày." : null;
 
@@ -71,7 +75,7 @@ export function CreatePeriodModal({ onClose, onCreated, existing = [] }: Props) 
     try {
       const period = await evaluationService.createPeriod({
         ...form,
-        name: form.name.trim() || `Đánh giá, xếp loại cán bộ Quý ${["I", "II", "III", "IV"][form.quarter - 1]}/${form.year}`,
+        name: periodName.trim() || defaultName(form.year, form.quarter),
       });
       toast.success("Đã tạo kỳ đánh giá (dự thảo).");
       reloadPeriods().catch(() => undefined);
@@ -120,7 +124,7 @@ export function CreatePeriodModal({ onClose, onCreated, existing = [] }: Props) 
         </div>
         <div className="col-12">
           <label className="form-label" htmlFor="cp-name">Tên kỳ</label>
-          <input id="cp-name" className="form-control form-control-sm" maxLength={200} placeholder="Để trống: tự đặt theo quý/năm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <input id="cp-name" className="form-control form-control-sm" maxLength={200} value={periodName} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         </div>
         <div className="col-12">
           <label className="form-label" htmlFor="cp-criteria">Bộ tiêu chí</label>
