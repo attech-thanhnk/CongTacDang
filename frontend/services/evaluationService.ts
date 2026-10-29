@@ -170,6 +170,7 @@ export interface ParticipantCandidateDto {
   departmentName?: string | null;
   partyCellName?: string | null;
   positionName?: string | null;
+  inScope: boolean;
   alreadyAdded: boolean;
 }
 

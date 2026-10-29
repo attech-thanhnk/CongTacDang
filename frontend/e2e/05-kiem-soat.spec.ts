@@ -9,9 +9,12 @@ test.describe.serial('Kiểm soát (Mẫu 19)', () => {
     const page = await mo('loan.ttp');
     await page.goto('/quality-control?tab=control');
     await expect(page.getByRole('tab', { name: 'Kiểm tra' })).toHaveAttribute('aria-selected', 'true');
-    await page.getByRole('button', { name: 'Lập phiếu' }).click();
-
     const hop = page.getByRole('dialog', { name: 'Lập phiếu' });
+    // Bấm quá sớm khi trang chưa nạp xong mã thì hộp thoại không mở: bấm lại cho tới khi mở.
+    await expect(async () => {
+      await page.getByRole('button', { name: 'Lập phiếu' }).first().click();
+      await expect(hop).toBeVisible({ timeout: 3000 });
+    }).toPass({ timeout: 20000 });
     await hop.getByLabel(/Nhóm chức danh \/ phạm vi/).fill(TEN_NHOM);
     await hop.getByRole('checkbox', { name: new RegExp(TRUNG.hoTen) }).check();
     await hop.getByRole('button', { name: 'Lập phiếu' }).click();

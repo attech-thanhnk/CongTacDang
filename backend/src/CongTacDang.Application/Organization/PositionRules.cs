@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -21,6 +21,28 @@ public static class PositionRules
     public const int MaxNameLength = 200;
 
     private static readonly Regex StatCodePattern = new("^M([0-9]{1,3})$", RegexOptions.CultureInvariant);
+
+    /// <summary>Thuộc diện đánh giá khi giữ chức vụ có mã thống kê hoặc là người đứng đầu; chuyên viên, nhân viên,
+    /// đảng viên thường và tài khoản không có chức vụ thì không.</summary>
+    public static bool IsEvaluable(IEnumerable<HeldPosition>? activePositions)
+        => activePositions != null && activePositions.Any(p => !string.IsNullOrWhiteSpace(p.StatCode) || p.IsHead);
+
+    /// <summary>Hạng chức vụ để sắp xếp từ cấp trên xuống (nhỏ hơn = cao hơn): theo mã thống kê M1–M26, người đứng đầu trước
+    /// phó; chức vụ không có mã nhưng đứng đầu (Đài trưởng) sau Trưởng phòng; còn lại cuối.</summary>
+    public static int SeniorityRank(IEnumerable<HeldPosition>? activePositions)
+    {
+        var best = 9999;
+        foreach (var p in activePositions ?? Enumerable.Empty<HeldPosition>())
+        {
+            var number = p.StatCode is { Length: > 1 } code && int.TryParse(code.AsSpan(1), out var n) ? n : (int?)null;
+            var rank = number.HasValue ? number.Value * 10 - (p.IsHead ? 5 : 0) : p.IsHead ? 258 : 9999;
+            best = Math.Min(best, rank);
+        }
+        return best;
+    }
+
+    /// <summary>Lãnh đạo cấp Công ty (hạng tới Kiểm soát viên) xếp thành nhóm đầu.</summary>
+    public const int CompanyLeadershipMaxRank = 150;
 
     /// <summary><c>CapTren</c> nếu có chức vụ đang hiệu lực mặc định <c>CapTren</c> (giữ nhiều chức danh), ngược lại <c>CoSo</c>.</summary>
     public static ApprovalAuthority DeriveApprovalAuthority(IEnumerable<HeldPosition> activePositions)

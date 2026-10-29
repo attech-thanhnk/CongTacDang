@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -518,6 +518,7 @@ public sealed class UiContractIntegrationTests
         var a = await w.NewOwnerAsync(_factory);
         var b = await w.NewOwnerAsync(_factory);
 
+        await _factory.GiveEvaluablePositionsAsync(w.Dept);
         // Tìm cán bộ: chỉ truyền tham số có giá trị.
         var candidates = await Data(w.Manager, $"/api/evaluations/periods/{periodId}/candidates?departmentId={w.Dept}");
         Assert.Contains(candidates.EnumerateArray(), c => c.GetProperty("memberId").GetGuid() == a.User.Id && !c.GetProperty("alreadyAdded").GetBoolean());

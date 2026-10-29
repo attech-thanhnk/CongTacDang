@@ -712,6 +712,9 @@ public class ParticipantCandidateDto
     /// <summary>Các chức vụ đang giữ, chức vụ chính trước; trống nếu chưa khai.</summary>
     public string? PositionName { get; set; }
 
+    /// <summary>Giữ chức vụ thuộc diện đánh giá.</summary>
+    public bool InScope { get; set; }
+
     public bool AlreadyAdded { get; set; }
 }
 

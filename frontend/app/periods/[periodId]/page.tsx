@@ -508,6 +508,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
   const [addProfile, setAddProfile] = useState("");
   const [candidates, setCandidates] = useState<ParticipantCandidateDto[] | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+  const [showAll, setShowAll] = useState(false);
   const [editing, setEditing] = useState<PeriodParticipantDto | null>(null);
   const [profileTargets, setProfileTargets] = useState<PeriodParticipantDto[] | null>(null);
   const [checked, setChecked] = useState<string[]>([]);
@@ -531,10 +532,13 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canAdd, adding, departmentId, cellId, query]);
 
-  const selectable = (candidates ?? []).filter((c) => !c.alreadyAdded);
-  const allSelectable = selectable.length > 0 && selected.length === selectable.length;
+  // Mặc định chỉ hiện người thuộc diện đánh giá (có chức vụ lãnh đạo, quản lý); bật ô dưới để thấy cả người khác.
+  const shown = (candidates ?? []).filter((c) => showAll || c.inScope);
+  const hiddenCount = (candidates ?? []).length - shown.length;
+  const selectable = shown.filter((c) => !c.alreadyAdded);
+  const allSelectable = selectable.length > 0 && selectable.every((c) => selected.includes(c.memberId));
   // Người chưa có trong kỳ lên trước, người đã có xuống cuối.
-  const orderedCandidates = [...(candidates ?? [])].sort((x, y) => Number(x.alreadyAdded) - Number(y.alreadyAdded));
+  const orderedCandidates = [...shown].sort((x, y) => Number(x.alreadyAdded) - Number(y.alreadyAdded));
 
   const addByUnit = () =>
     run(async () => {
@@ -625,14 +629,23 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
           </div>
           {candidates !== null && (
             <div className="mt-3">
-              {candidates.length === 0 ? (
-                <div className="text-secondary small">Không tìm thấy cán bộ phù hợp.</div>
+              {shown.length === 0 ? (
+                <div className="text-secondary small">
+                  Không tìm thấy cán bộ phù hợp.
+                  {hiddenCount > 0 && <button type="button" className="btn btn-link btn-sm py-0" onClick={() => setShowAll(true)}>Hiện cả {hiddenCount} người ngoài diện</button>}
+                </div>
               ) : (
                 <>
                   <div className="d-flex justify-content-between align-items-center mb-2 gap-2">
                     <span className="text-secondary small">
-                      <span className="num">{candidates.length}</span> cán bộ
+                      <span className="num">{shown.length}</span> cán bộ
                       {selected.length > 0 && <> · đã chọn <span className="num">{selected.length}</span></>}
+                      {(hiddenCount > 0 || showAll) && (
+                        <label className="ms-3 d-inline-flex align-items-center gap-1">
+                          <input type="checkbox" className="form-check-input mt-0" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
+                          Hiện cả người ngoài diện
+                        </label>
+                      )}
                     </span>
                     <button type="button" className="btn btn-primary btn-sm" disabled={busy || selected.length === 0} onClick={addSelected}>
                       <i className="bi bi-plus-lg me-1" />Thêm <span className="num">{selected.length}</span> người

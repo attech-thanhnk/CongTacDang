@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using CongTacDang.Domain.Entities;
@@ -38,6 +38,7 @@ public sealed class EvaluationWorkflowTests
         var manual = await Data(await w.Appraiser.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
             new { memberIds = new[] { w.Owner1.Id } }));
         Assert.Equal(1, manual.GetProperty("added").GetInt32());
+        await _factory.GiveEvaluablePositionsAsync(w.Dept1);
         var byDept = await Data(await w.Appraiser.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
             new { departmentId = w.Dept1 }));
         Assert.True(byDept.GetProperty("added").GetInt32() >= 2); // owner2 + lãnh đạo Phòng (đều thuộc Phòng 1)

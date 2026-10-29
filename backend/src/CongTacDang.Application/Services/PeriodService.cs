@@ -733,7 +733,16 @@ public sealed class PeriodService : IPeriodService
         var records = await _repo.ListRecordsAsync(periodId, ct);
         await OverlayDraftSnapshotsAsync(period, settings, records, ct);
         var today = EvaluationMapping.Today(DateTime.UtcNow);
-        return records.Select(r => ToParticipant(r, settings, criteria, today)).ToList();
+        // Cấp trên xuống: lãnh đạo Công ty, rồi từng đơn vị (Trưởng trước Phó), cuối cùng theo tên.
+        var held = await _repo.GetHeldPositionsAsync(records.Select(r => r.MemberId).ToList(), DateTime.UtcNow, ct);
+        return records
+            .Select(r => (Record: r, Rank: PositionRules.SeniorityRank(held.GetValueOrDefault(r.MemberId))))
+            .OrderBy(x => x.Rank <= PositionRules.CompanyLeadershipMaxRank ? 0 : 1)
+            .ThenBy(x => x.Rank <= PositionRules.CompanyLeadershipMaxRank ? string.Empty : x.Record.Department?.Name ?? string.Empty, StringComparer.CurrentCulture)
+            .ThenBy(x => x.Rank)
+            .ThenBy(x => x.Record.Member?.FullName ?? string.Empty, StringComparer.CurrentCulture)
+            .Select(x => ToParticipant(x.Record, settings, criteria, today))
+            .ToList();
     }
 
     /// <inheritdoc />
@@ -744,6 +753,13 @@ public sealed class PeriodService : IPeriodService
         var existing = await _repo.GetParticipantIdsAsync(periodId, ct);
         var members = await _repo.SearchMembersAsync(departmentId, partyCellId, query, ct);
         var held = await _repo.GetHeldPositionsAsync(members.Select(m => m.Id).ToList(), DateTime.UtcNow, ct);
+        // Cấp trên xuống: lãnh đạo Công ty, rồi từng đơn vị (Trưởng trước Phó), cuối cùng theo tên.
+        members = members
+            .OrderBy(m => PositionRules.SeniorityRank(held.GetValueOrDefault(m.Id)) <= PositionRules.CompanyLeadershipMaxRank ? 0 : 1)
+            .ThenBy(m => PositionRules.SeniorityRank(held.GetValueOrDefault(m.Id)) <= PositionRules.CompanyLeadershipMaxRank ? string.Empty : m.DepartmentName ?? string.Empty, StringComparer.CurrentCulture)
+            .ThenBy(m => PositionRules.SeniorityRank(held.GetValueOrDefault(m.Id)))
+            .ThenBy(m => m.FullName, StringComparer.CurrentCulture)
+            .ToList();
         return members.Select(m => new ParticipantCandidateDto
         {
             MemberId = m.Id,
@@ -754,6 +770,7 @@ public sealed class PeriodService : IPeriodService
             PositionName = held.TryGetValue(m.Id, out var positions) && positions.Count > 0
                 ? string.Join(", ", positions.OrderByDescending(p => p.IsPrimary).Select(p => p.PositionName).Distinct())
                 : null,
+            InScope = PositionRules.IsEvaluable(held.GetValueOrDefault(m.Id)),
             AlreadyAdded = existing.Contains(m.Id)
         }).ToList();
     }
@@ -774,7 +791,10 @@ public sealed class PeriodService : IPeriodService
                 throw new ValidationException("Phòng/đơn vị đã chọn không tồn tại.");
             if (dto.PartyCellId.HasValue && !await _repo.PartyCellExistsAsync(dto.PartyCellId.Value, ct))
                 throw new ValidationException("Chi bộ đã chọn không tồn tại.");
-            foreach (var member in await _repo.SearchMembersAsync(dto.DepartmentId, dto.PartyCellId, null, ct))
+            // Thêm cả đơn vị chỉ lấy người thuộc diện đánh giá; người ngoài diện chọn tay nếu cần.
+            var unitMembers = await _repo.SearchMembersAsync(dto.DepartmentId, dto.PartyCellId, null, ct);
+            var unitHeld = await _repo.GetHeldPositionsAsync(unitMembers.Select(m => m.Id).ToList(), DateTime.UtcNow, ct);
+            foreach (var member in unitMembers.Where(m => PositionRules.IsEvaluable(unitHeld.GetValueOrDefault(m.Id))))
                 ids.Add(member.Id);
             sources.Add(dto.DepartmentId.HasValue ? "theo Phòng" : "theo Chi bộ");
         }
