@@ -68,23 +68,9 @@ export default function ResultsPage() {
       <PageHeader
         title="Kết quả đánh giá"
         actions={
-          <>
-            {showFilters && (
-              <>
-                <select className="form-select w-auto" aria-label="Đơn vị" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
-                  <option value="">Tất cả đơn vị</option>
-                  {(data?.departments ?? []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
-                <select className="form-select w-auto" aria-label="Mức xếp loại" value={grade} onChange={(e) => setGrade(e.target.value)}>
-                  <option value="">Tất cả mức</option>
-                  {GRADE_OPTIONS.filter((g) => g.value !== "ChuaXepLoai").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-                </select>
-              </>
-            )}
-            <button type="button" className="btn btn-outline-secondary" onClick={() => load()} aria-label="Làm mới" title="Làm mới">
-              <i className="bi bi-arrow-clockwise" />
-            </button>
-          </>
+          <button type="button" className="btn btn-outline-secondary" onClick={() => load()} aria-label="Làm mới" title="Làm mới">
+            <i className="bi bi-arrow-clockwise" />
+          </button>
         }
       />
 
@@ -128,6 +114,18 @@ export default function ResultsPage() {
                   {g.gradeName} <strong className="num">{g.count}</strong>
                 </span>
               ))}
+              {showFilters && (
+                <div className="d-flex flex-wrap gap-2 ms-auto">
+                  <select className="form-select form-select-sm w-auto" aria-label="Đơn vị" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+                    <option value="">Tất cả đơn vị</option>
+                    {(data?.departments ?? []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                  <select className="form-select form-select-sm w-auto" aria-label="Mức xếp loại" value={grade} onChange={(e) => setGrade(e.target.value)}>
+                    <option value="">Tất cả mức</option>
+                    {GRADE_OPTIONS.filter((g) => g.value !== "ChuaXepLoai").map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                  </select>
+                </div>
+              )}
             </div>
             <div className="table-responsive">
               <table className={`table table-hover align-middle mb-0 ${styles.resultsTable}`}>
