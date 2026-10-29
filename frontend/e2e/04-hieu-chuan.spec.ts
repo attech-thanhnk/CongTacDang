@@ -16,9 +16,12 @@ test.describe.serial('Hiệu chuẩn kết quả (Mẫu 20)', () => {
     const page = await mo('loan.ctp');
     await page.goto('/quality-control');
     await expect(page.getByRole('tab', { name: 'Họp thống nhất' })).toHaveAttribute('aria-selected', 'true');
-    await page.getByRole('button', { name: 'Lập biên bản' }).click();
-
     const hop = page.getByRole('dialog', { name: 'Lập biên bản' });
+    // Bấm quá sớm khi trang chưa nạp xong mã thì hộp thoại không mở: bấm lại cho tới khi mở.
+    await expect(async () => {
+      await page.getByRole('button', { name: 'Lập biên bản' }).first().click();
+      await expect(hop).toBeVisible({ timeout: 3000 });
+    }).toPass({ timeout: 20000 });
     const lap = hop.getByRole('button', { name: 'Lập biên bản' });
     // Chưa nhập tên nhóm và chưa chọn hồ sơ thì chưa lập được.
     await expect(lap).toBeDisabled();
