@@ -169,6 +169,7 @@ export interface ParticipantCandidateDto {
   fullName: string;
   departmentName?: string | null;
   partyCellName?: string | null;
+  positionName?: string | null;
   alreadyAdded: boolean;
 }
 

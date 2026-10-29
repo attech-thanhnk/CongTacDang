@@ -52,7 +52,7 @@ test.describe.serial('Kỳ đánh giá', () => {
     const page = await mo('loan.ctp');
     await moKy(page);
 
-    await page.getByLabel('Phòng', { exact: true }).selectOption({ label: PHONG });
+    await page.getByLabel('Đơn vị', { exact: true }).selectOption({ label: PHONG });
     await page.getByRole('button', { name: 'Thêm cả đơn vị' }).click();
     await expect(thongBao(page, 'Đã thêm người được đánh giá theo đơn vị.')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Nguyễn Bình Trung' })).toBeVisible();

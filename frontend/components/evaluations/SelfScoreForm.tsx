@@ -486,7 +486,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
             ? <> · Mức theo điểm <strong className="text-body">{GRADE_LABELS[gradeByScore(content, total)]}</strong></>
             : " · chưa nhập đủ điểm"}
         </div>
-        <div className="col-md-5">
+        <div className="col-md-6">
           <label className="form-label small" htmlFor="self-grade">Mức tự đề xuất</label>
           <select id="self-grade" className="form-select form-select-sm" value={grade} onChange={(e) => setGrade(e.target.value)}>
             <option value="">— Hệ thống gợi ý —</option>

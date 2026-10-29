@@ -26,12 +26,19 @@
 }
 
 .candidates {
-  max-height: 240px;
+  max-height: 340px;
   overflow-y: auto;
   background: var(--paper);
   border: 1px solid var(--rule);
   border-radius: var(--radius-md);
-  padding: 8px 12px;
+  padding: 0 12px 4px;
+}
+
+.candidates thead th {
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  z-index: 1;
 }
 
 .nameCell {

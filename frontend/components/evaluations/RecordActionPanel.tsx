@@ -346,7 +346,7 @@ function GradeCommentForm({ record, criteria, busy, defaultGrade, submitText, ex
   };
   return (
     <form onSubmit={submit} className="row g-2">
-      <div className="col-md-5"><label className="form-label small" htmlFor="gc-grade">Mức đề xuất</label><GradeSelect id="gc-grade" value={grade} onChange={setGrade} /></div>
+      <div className="col-md-6"><label className="form-label small" htmlFor="gc-grade">Mức đề xuất</label><GradeSelect id="gc-grade" value={grade} onChange={setGrade} /></div>
       <GradeWarningList warnings={[...recordGradeWarnings(record, grade), ...(check ? [check.message] : [])]} />
       <ReasonField id="gc-comment" label="Nhận xét" rows={3} value={comment} required={!!check?.required} error={error}
         onChange={(v) => { setComment(v); setError(null); }} />
@@ -457,7 +457,7 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
       <div className="col-md-3"><label className="form-label small" htmlFor="ap-general">Tiêu chí chung</label><input id="ap-general" type="number" min={0} max={p?.generalMaxScore ?? 100} step={0.1} required className="form-control form-control-sm num" value={general} onChange={(e) => setGeneral(e.target.value)} /></div>
       <div className="col-md-3"><label className="form-label small" htmlFor="ap-tasks">Kết quả nhiệm vụ</label><input id="ap-tasks" type="number" min={0} max={p?.totalTaskWeight ?? 100} step={0.1} required className="form-control form-control-sm num" value={tasksScore} onChange={(e) => setTasksScore(e.target.value)} /></div>
       <div className="col-md-2"><span className="form-label small d-block">Tổng</span><b className="num">{appraisal != null ? fmt(appraisal) : "—"}</b></div>
-      <div className="col-md-4"><label className="form-label small" htmlFor="ap-grade">Mức đề xuất</label><GradeSelect id="ap-grade" value={grade} onChange={setGrade} /></div>
+      <div className="col-md-6"><label className="form-label small" htmlFor="ap-grade">Mức đề xuất</label><GradeSelect id="ap-grade" value={grade} onChange={setGrade} /></div>
       <GradeWarningList warnings={warnings} />
       <div className="col-12"><label className="form-label small" htmlFor="ap-comment">Ý kiến thẩm định</label><textarea id="ap-comment" className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
       <div className="col-12">
@@ -575,7 +575,7 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
 
   return (
     <form onSubmit={submit} className="row g-2">
-      <div className="col-md-5"><label className="form-label small" htmlFor={`${stage}-grade`}>{isDecision ? "Mức xếp loại được quyết định" : "Mức tập thể đề xuất"}</label><GradeSelect id={`${stage}-grade`} value={grade} onChange={setGrade} /></div>
+      <div className="col-md-6"><label className="form-label small" htmlFor={`${stage}-grade`}>{isDecision ? "Mức xếp loại được quyết định" : "Mức tập thể đề xuất"}</label><GradeSelect id={`${stage}-grade`} value={grade} onChange={setGrade} /></div>
       <GradeWarningList warnings={[...(isDecision ? recordGradeWarnings(record, grade) : []), ...(check ? [check.message] : [])]} />
       {isDecision ? (
         <>

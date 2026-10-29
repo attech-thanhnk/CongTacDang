@@ -523,6 +523,19 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
     }
   };
 
+  // Tìm ngay khi mở hoặc đổi bộ lọc; gõ tên thì chờ một chút cho đỡ gọi liên tục.
+  useEffect(() => {
+    if (!canAdd || !adding) return;
+    const timer = setTimeout(() => { search(); }, query ? 300 : 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canAdd, adding, departmentId, cellId, query]);
+
+  const selectable = (candidates ?? []).filter((c) => !c.alreadyAdded);
+  const allSelectable = selectable.length > 0 && selected.length === selectable.length;
+  // Người chưa có trong kỳ lên trước, người đã có xuống cuối.
+  const orderedCandidates = [...(candidates ?? [])].sort((x, y) => Number(x.alreadyAdded) - Number(y.alreadyAdded));
+
   const addByUnit = () =>
     run(async () => {
       const result = await evaluationService.addParticipants(period.id, { departmentId, partyCellId: cellId, workflowProfileCode: addProfile });
@@ -581,32 +594,31 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
             <button type="button" className="btn-close" aria-label="Đóng thêm người" title="Đóng" onClick={() => setAdding(false)} />
           </div>
           <div className="row g-2 align-items-end">
-            <div className="col-6 col-lg-3"><label className="form-label" htmlFor="add-dept">Phòng</label>
+            <div className="col-12 col-md-4"><label className="form-label" htmlFor="add-dept">Đơn vị</label>
               <select id="add-dept" className="form-select form-select-sm" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
                 <option value="">Tất cả</option>
                 {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
-            <div className="col-6 col-lg-3"><label className="form-label" htmlFor="add-cell">Chi bộ</label>
+            <div className="col-6 col-md-4"><label className="form-label" htmlFor="add-cell">Chi bộ</label>
               <select id="add-cell" className="form-select form-select-sm" value={cellId} onChange={(e) => setCellId(e.target.value)}>
                 <option value="">Tất cả</option>
                 {cells.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
-            <div className="col-6 col-lg-3"><label className="form-label" htmlFor="add-q">Tên / tài khoản</label>
-              <input id="add-q" className="form-control form-control-sm" value={query} onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); search(); } }} />
+            <div className="col-6 col-md-4"><label className="form-label" htmlFor="add-q">Tên / tài khoản</label>
+              <input id="add-q" className="form-control form-control-sm" value={query} onChange={(e) => setQuery(e.target.value)} />
             </div>
-            <div className="col-6 col-lg-3"><label className="form-label" htmlFor="add-profile">Diện quyết định</label>
+          </div>
+          <div className="row g-2 align-items-end mt-1">
+            <div className="col-12 col-md-4"><label className="form-label" htmlFor="add-profile">Diện quyết định</label>
               <select id="add-profile" className="form-select form-select-sm" value={addProfile} onChange={(e) => setAddProfile(e.target.value)}>
                 <option value="">Theo cấp quyết định</option>
                 {profiles.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
               </select>
             </div>
-            <div className="col-12 d-flex flex-wrap gap-2">
-              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={search}><i className="bi bi-search me-1" />Tìm cán bộ</button>
-              <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy || (!departmentId && !cellId)}
-                title={!departmentId && !cellId ? "Chọn Phòng hoặc Chi bộ trước" : undefined} onClick={addByUnit}>
+            <div className="col-12 col-md-8 d-flex flex-wrap gap-2 justify-content-md-end">
+              <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy || (!departmentId && !cellId)} onClick={addByUnit}>
                 Thêm cả đơn vị
               </button>
             </div>
@@ -617,21 +629,49 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                 <div className="text-secondary small">Không tìm thấy cán bộ phù hợp.</div>
               ) : (
                 <>
-                  <div className={styles.candidates}>
-                    {candidates.map((c) => (
-                      <div className="form-check small" key={c.memberId}>
-                        <input className="form-check-input" type="checkbox" id={`cand-${c.memberId}`} disabled={c.alreadyAdded} checked={selected.includes(c.memberId)}
-                          onChange={(e) => setSelected(e.target.checked ? [...selected, c.memberId] : selected.filter((id) => id !== c.memberId))} />
-                        <label className="form-check-label" htmlFor={`cand-${c.memberId}`}>
-                          {c.fullName} ({c.username}) · {c.departmentName || "—"} · {c.partyCellName || "—"}{c.alreadyAdded ? " — đã có" : ""}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="d-flex justify-content-end mt-2">
+                  <div className="d-flex justify-content-between align-items-center mb-2 gap-2">
+                    <span className="text-secondary small">
+                      <span className="num">{candidates.length}</span> cán bộ
+                      {selected.length > 0 && <> · đã chọn <span className="num">{selected.length}</span></>}
+                    </span>
                     <button type="button" className="btn btn-primary btn-sm" disabled={busy || selected.length === 0} onClick={addSelected}>
                       <i className="bi bi-plus-lg me-1" />Thêm <span className="num">{selected.length}</span> người
                     </button>
+                  </div>
+                  <div className={styles.candidates}>
+                    <table className="table table-sm align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th style={{ width: 28 }}>
+                            <input type="checkbox" className="form-check-input" aria-label="Chọn tất cả cán bộ" disabled={selectable.length === 0}
+                              checked={allSelectable} onChange={(e) => setSelected(e.target.checked ? selectable.map((c) => c.memberId) : [])} />
+                          </th>
+                          <th>Cán bộ</th>
+                          <th>Chức vụ</th>
+                          <th>Đơn vị</th>
+                          <th>Chi bộ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orderedCandidates.map((c) => (
+                          <tr key={c.memberId} className={c.alreadyAdded ? "text-secondary" : undefined}>
+                            <td>
+                              <input className="form-check-input" type="checkbox" id={`cand-${c.memberId}`} aria-label={c.fullName} disabled={c.alreadyAdded}
+                                checked={selected.includes(c.memberId)}
+                                onChange={(e) => setSelected(e.target.checked ? [...selected, c.memberId] : selected.filter((id) => id !== c.memberId))} />
+                            </td>
+                            <td className="text-nowrap">
+                              <label htmlFor={`cand-${c.memberId}`} className="mb-0">{c.fullName}</label>
+                              {c.alreadyAdded && <span className="tag t-wait ms-2">Đã có</span>}
+                              <div className="small text-secondary">{c.username}</div>
+                            </td>
+                            <td>{c.positionName || "—"}</td>
+                            <td>{c.departmentName || "—"}</td>
+                            <td>{c.partyCellName || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </>
               )}

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -743,6 +743,7 @@ public sealed class PeriodService : IPeriodService
         _ = await _repo.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
         var existing = await _repo.GetParticipantIdsAsync(periodId, ct);
         var members = await _repo.SearchMembersAsync(departmentId, partyCellId, query, ct);
+        var held = await _repo.GetHeldPositionsAsync(members.Select(m => m.Id).ToList(), DateTime.UtcNow, ct);
         return members.Select(m => new ParticipantCandidateDto
         {
             MemberId = m.Id,
@@ -750,6 +751,9 @@ public sealed class PeriodService : IPeriodService
             FullName = m.FullName,
             DepartmentName = m.DepartmentName,
             PartyCellName = m.PartyCellName,
+            PositionName = held.TryGetValue(m.Id, out var positions) && positions.Count > 0
+                ? string.Join(", ", positions.OrderByDescending(p => p.IsPrimary).Select(p => p.PositionName).Distinct())
+                : null,
             AlreadyAdded = existing.Contains(m.Id)
         }).ToList();
     }

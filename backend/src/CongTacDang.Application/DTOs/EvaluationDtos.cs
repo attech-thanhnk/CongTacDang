@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using CongTacDang.Domain.Evaluation;
 
@@ -708,6 +708,10 @@ public class ParticipantCandidateDto
     public string FullName { get; set; } = string.Empty;
     public string? DepartmentName { get; set; }
     public string? PartyCellName { get; set; }
+
+    /// <summary>Các chức vụ đang giữ, chức vụ chính trước; trống nếu chưa khai.</summary>
+    public string? PositionName { get; set; }
+
     public bool AlreadyAdded { get; set; }
 }
 
