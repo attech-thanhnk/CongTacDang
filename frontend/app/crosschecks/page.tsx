@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
+import { CardToolbar } from "@/components/common/CardToolbar";
 import { Pagination } from "@/components/common/Pagination";
 import { usePagination } from "@/components/common/usePagination";
 import { Badge } from "@/components/common/StatusBadge";
@@ -67,29 +68,26 @@ export default function CrosschecksPage() {
 
   return (
     <div className="page-wrapper">
-      <PageHeader
-        title="Xác nhận số liệu"
-        actions={
-          <div className="d-flex gap-2 flex-wrap">
-            <select className="form-select form-select-sm" aria-label="Lọc theo kỳ" value={periodFilter} onChange={(e) => setPeriod(e.target.value)}>
-              <option value="">Tất cả kỳ</option>
-              {periods.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            <select className="form-select form-select-sm" aria-label="Lọc theo trạng thái" value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="">Mọi trạng thái</option>
-              {STATUSES.map((s) => <option key={s} value={s}>{CROSSCHECK_STATUS_LABELS[s]}</option>)}
-            </select>
-          </div>
-        }
-      />
+      <PageHeader title="Xác nhận số liệu" />
       <div className="page-body">
+        <section className="card">
+        <CardToolbar>
+          <select className="form-select form-select-sm w-auto" aria-label="Lọc theo kỳ" value={periodFilter} onChange={(e) => setPeriod(e.target.value)}>
+            <option value="">Tất cả kỳ</option>
+            {periods.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <select className="form-select form-select-sm w-auto" aria-label="Lọc theo trạng thái" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">Mọi trạng thái</option>
+            {STATUSES.map((s) => <option key={s} value={s}>{CROSSCHECK_STATUS_LABELS[s]}</option>)}
+          </select>
+        </CardToolbar>
         {loading ? (
-          <div className="text-secondary loading-delay">
+          <div className="card-body text-secondary loading-delay">
             <span className="spinner-border spinner-border-sm me-2" />
             Đang tải...
           </div>
         ) : items.length === 0 ? (
-          <EmptyState card icon="bi-patch-check" title="Chưa có phiếu xác nhận số liệu" description="Phiếu gửi tới bạn hoặc do bạn yêu cầu sẽ hiện ở đây." />
+          <EmptyState icon="bi-patch-check" title="Chưa có phiếu xác nhận số liệu" description="Phiếu gửi tới bạn hoặc do bạn yêu cầu sẽ hiện ở đây." />
         ) : (
           <>
             <div className="table-responsive d-none d-md-block">
@@ -121,7 +119,7 @@ export default function CrosschecksPage() {
                 </tbody>
               </table>
             </div>
-            <div className="d-md-none d-flex flex-column gap-2">
+            <div className="d-md-none d-flex flex-column gap-2 p-2">
               {paging.pageItems.map((c) => (
                 <Link key={c.id} href={`/crosschecks/${c.id}`} className="card text-decoration-none text-reset">
                   <div className="card-body py-2 px-3 d-flex flex-column gap-1">
@@ -146,6 +144,7 @@ export default function CrosschecksPage() {
             />
           </>
         )}
+        </section>
       </div>
     </div>
   );

@@ -20,9 +20,12 @@ export function initialsOf(fullName?: string): string {
     .toUpperCase();
 }
 
-/** Tên gọi ngắn: từ cuối của họ tên. */
+/** Tên gọi ngắn: từ cuối của họ tên; tên tài khoản hệ thống ("… hệ thống") bỏ phần "hệ thống". */
 function shortNameOf(fullName?: string): string {
-  return fullName?.trim().split(/\s+/).pop() ?? "";
+  const name = fullName?.trim() ?? "";
+  const system = name.replace(/\s+hệ thống$/i, "");
+  if (system !== name && system) return system;
+  return name.split(/\s+/).pop() ?? "";
 }
 
 /** Menu tài khoản ở góc phải thanh trên: bấm mở họ tên đầy đủ, chức danh và các mục (Tài khoản, Đăng xuất). */

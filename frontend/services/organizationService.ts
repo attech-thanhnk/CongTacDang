@@ -13,6 +13,7 @@ export interface DepartmentItem {
   code: string;
   name: string;
   description?: string;
+  parentId?: string | null;
 }
 
 export const organizationService = {

@@ -162,13 +162,23 @@ export default function ReportsPage() {
     return <RowActions primary={[exportWord]} menu={[exportPdf]} itemLabel={report.code === "Nội bộ" ? report.title : report.code} disabled={busy !== null} />;
   };
 
-  const renderGroup = (title: string, reports: ReportDefinition[], showCode: boolean) => {
+  const scopeSelect = (
+    <select className="form-select form-select-sm w-auto" style={{ minWidth: 240 }} aria-label="Phạm vi tổ chức Đảng" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+      {(canWholeParty || scopedBranches.length === 0) && <option value="">{canWholeParty ? "Toàn Đảng bộ" : "Theo phạm vi được giao"}</option>}
+      {scopedBranches.map((b) => (
+        <option key={b.id} value={b.id}>{b.name}</option>
+      ))}
+    </select>
+  );
+
+  const renderGroup = (title: string, reports: ReportDefinition[], showCode: boolean, headerExtra?: React.ReactNode) => {
     const rows = reports.filter(visible);
     if (rows.length === 0) return null;
     return (
       <section className="card">
-        <div className="card-header">
+        <div className="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
           <h2 className="mb-0">{title}</h2>
+          {headerExtra}
         </div>
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0 report-table">
@@ -222,19 +232,11 @@ export default function ReportsPage() {
     <div className="page-wrapper">
       <PageHeader
         title="Báo cáo"
-        actions={
-          <select className="form-select w-auto" style={{ minWidth: 240 }} aria-label="Phạm vi tổ chức Đảng" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-            {(canWholeParty || scopedBranches.length === 0) && <option value="">{canWholeParty ? "Toàn Đảng bộ" : "Theo phạm vi được giao"}</option>}
-            {scopedBranches.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-        }
       />
 
       <div className="page-body">
-        {renderGroup("Biểu mẫu", REPORTS.filter((r) => r.group === "hd03"), true)}
-        {renderGroup("Báo cáo nội bộ", REPORTS.filter((r) => r.group === "internal"), false)}
+        {renderGroup("Biểu mẫu", REPORTS.filter((r) => r.group === "hd03"), true, scopeSelect)}
+        {renderGroup("Báo cáo nội bộ", REPORTS.filter((r) => r.group === "internal"), false, REPORTS.filter((r) => r.group === "hd03").some(visible) ? undefined : scopeSelect)}
         {!REPORTS.some(visible) && (
           <section className="card">
             <EmptyState icon="bi-file-earmark-bar-graph" title="Không có báo cáo để tải" description="Tài khoản chưa được giao quyền xuất báo cáo." />

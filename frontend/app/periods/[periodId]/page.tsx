@@ -597,7 +597,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
             <div className="col-12 col-md-4"><label className="form-label" htmlFor="add-dept">Đơn vị</label>
               <select id="add-dept" className="form-select form-select-sm" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
                 <option value="">Tất cả</option>
-                {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                {departments.map((d) => <option key={d.id} value={d.id}>{d.parentId ? d.name : "Lãnh đạo Công ty"}</option>)}
               </select>
             </div>
             <div className="col-6 col-md-4"><label className="form-label" htmlFor="add-cell">Chi bộ</label>
@@ -696,8 +696,8 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                 )}
                 <th>Cán bộ</th>
                 <th className="d-none d-md-table-cell">Đơn vị</th>
-                <th className="d-none d-lg-table-cell" title="Khung tỷ trọng">Khung</th>
-                <th className="d-none d-lg-table-cell">Cấp quyết định</th>
+                <th className="d-none d-lg-table-cell" style={{ width: 80 }} title="Khung tỷ trọng">Khung</th>
+                <th className="d-none d-lg-table-cell text-nowrap" style={{ width: 130 }}>Cấp quyết định</th>
                 <th className="d-none d-md-table-cell">Diện quyết định</th>
                 <th className="d-none d-md-table-cell">Trạng thái</th>
                 {canChangeProfile && <th className="text-end">Thao tác</th>}

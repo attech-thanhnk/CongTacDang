@@ -345,11 +345,11 @@ export default function EvaluationsPage() {
                   <tr>
                     <th>Cấp quyết định</th>
                     <th>Nhóm chức danh</th>
-                    <th className={styles.right}>Số hồ sơ</th>
-                    <th className={styles.right}>Người đứng đầu</th>
-                    <th className={styles.right}>HT tốt</th>
-                    <th className={styles.right}>Tối đa XS</th>
-                    <th className={styles.right}>XS</th>
+                    <th className={styles.right} style={{ width: 90, whiteSpace: "nowrap" }}>Số hồ sơ</th>
+                    <th className={styles.right} style={{ width: 130, whiteSpace: "nowrap" }}>Người đứng đầu</th>
+                    <th className={styles.right} style={{ width: 80, whiteSpace: "nowrap" }}>HT tốt</th>
+                    <th className={styles.right} style={{ width: 100, whiteSpace: "nowrap" }}>Tối đa XS</th>
+                    <th className={styles.right} style={{ width: 60, whiteSpace: "nowrap" }}>XS</th>
                     <th />
                   </tr>
                 </thead>
