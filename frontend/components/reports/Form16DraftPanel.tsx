@@ -26,16 +26,16 @@ interface Props {
   shortName: string;
 }
 
-const FIELDS: { key: keyof Form16DraftContent; label: string; placeholder: string; multiline?: boolean }[] = [
+const FIELDS: { key: keyof Form16DraftContent; label: string; placeholder?: string; multiline?: boolean }[] = [
   { key: "documentNumber", label: "Số văn bản", placeholder: "Số …..-BC/……" },
   { key: "recipient", label: "Kính gửi / Kính trình", placeholder: "Ban Thường vụ Đảng ủy TCT (hoặc Đảng ủy cơ sở…)" },
   { key: "workingRules", label: "Căn cứ Quy chế làm việc của", placeholder: "… nhiệm kỳ…" },
-  { key: "meetingDate", label: "Ngày tổ chức hội nghị", placeholder: "Để trống: lấy ngày hội nghị quyết định mới nhất" },
-  { key: "organizer", label: "Tổ chức Đảng tổ chức hội nghị", placeholder: "Để trống: tên tổ chức Đảng của báo cáo" },
-  { key: "proposer", label: "Mục III — Đề xuất của", placeholder: "Để trống: tên tổ chức Đảng của báo cáo" },
-  { key: "proposal1", label: "Mục III.1 — Đề nghị xem xét, quyết định đánh giá, xếp loại", placeholder: "Để trống: giữ đoạn mẫu của biểu mẫu", multiline: true },
-  { key: "proposal2", label: "Mục III.2 — Điều chuyển, bố trí công tác khác (nếu có)", placeholder: "Để trống: giữ đoạn mẫu của biểu mẫu", multiline: true },
-  { key: "proposal3", label: "Mục III.3 — Ý kiến đề xuất khác (nếu có)", placeholder: "Để trống: giữ đoạn mẫu của biểu mẫu", multiline: true },
+  { key: "meetingDate", label: "Ngày tổ chức hội nghị" },
+  { key: "organizer", label: "Tổ chức Đảng tổ chức hội nghị" },
+  { key: "proposer", label: "Mục III — Đề xuất của" },
+  { key: "proposal1", label: "Mục III.1 — Đề nghị xem xét, quyết định đánh giá, xếp loại", multiline: true },
+  { key: "proposal2", label: "Mục III.2 — Điều chuyển, bố trí công tác khác (nếu có)", multiline: true },
+  { key: "proposal3", label: "Mục III.3 — Ý kiến đề xuất khác (nếu có)", multiline: true },
   { key: "signerName", label: "Bí thư ký báo cáo", placeholder: "Họ và tên" },
 ];
 
@@ -190,14 +190,13 @@ export function Form16DraftPanel({ periodId, branchId, periodLabel, shortName }:
               <textarea
                 className="form-control form-control-sm"
                 rows={2}
-                placeholder={field.placeholder}
                 value={content[field.key] ?? ""}
                 onChange={(event) => setContent({ ...content, [field.key]: event.target.value })}
               />
             ) : (
               <input
                 className="form-control form-control-sm"
-                placeholder={field.key === "meetingDate" && draft.suggestedMeetingDate ? `${field.placeholder} (${draft.suggestedMeetingDate})` : field.placeholder}
+                placeholder={field.key === "meetingDate" ? draft.suggestedMeetingDate ?? undefined : field.placeholder}
                 value={content[field.key] ?? ""}
                 onChange={(event) => setContent({ ...content, [field.key]: event.target.value })}
               />

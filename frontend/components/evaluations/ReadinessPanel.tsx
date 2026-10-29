@@ -77,9 +77,6 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
                 </tbody>
               </table>
             </div>
-            <div className="small text-secondary mt-2">
-              Có thể phân công tại nơi ghi trong cột &quot;Nơi phân công&quot;, đơn vị cấp trên hoặc Toàn công ty. Không phân công cho chủ hồ sơ.
-            </div>
           </>
         )}
       </div>

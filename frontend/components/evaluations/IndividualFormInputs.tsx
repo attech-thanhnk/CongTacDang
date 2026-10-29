@@ -56,7 +56,6 @@ export function SelfAssessmentInput({
               id={id}
               className={`form-control form-control-sm ${length > section.maxLength ? "is-invalid" : ""}`}
               rows={index === 0 ? 4 : 8}
-              placeholder={index === 0 ? "Nhận xét chung" : undefined}
               required={section.required && extra === 0}
               value={text}
               onChange={(e) => onChange({ ...value, [section.code]: e.target.value })}
@@ -146,7 +145,7 @@ export function AxisReportsInput({
                       <div className="d-flex gap-2 align-items-start">
                         <span className="small fw-semibold text-nowrap pt-1" style={{ minWidth: 84 }}>{taskLabel.replace(/^[-–]\s*/, "").split("{n}").join(String(k + 1))}</span>
                         <textarea className="form-control form-control-sm" rows={2} maxLength={AXIS_REPORT_LIMITS.long} required value={task.content}
-                          placeholder="Nội dung nhiệm vụ, tình hình và kết quả thực hiện"
+                          placeholder="Nội dung nhiệm vụ"
                           aria-label={`Trục ${axisIndex + 1}, nhiệm vụ ${k + 1}`}
                           onChange={(e) => updateTask(axis.code, k, { content: e.target.value })} />
                         <LevelSelect levels={levels} value={task.level} label={`Mức tự đánh giá nhiệm vụ ${k + 1}`}

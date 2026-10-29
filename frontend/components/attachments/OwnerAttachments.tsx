@@ -152,7 +152,7 @@ export function OwnerAttachments({
                 )}
                 {editable && (
                   <>
-                    <button type="button" className={styles.fileBtn} disabled={busy} title="Thay bằng bản mới (bản cũ vẫn được lưu)"
+                    <button type="button" className={styles.fileBtn} disabled={busy} title="Thay bằng bản mới"
                       aria-label={`Thay tệp ${f.fileName}`} onClick={() => { setReplacing(f); replaceRef.current?.click(); }}>
                       <i className="bi bi-arrow-repeat" aria-hidden="true" />
                     </button>

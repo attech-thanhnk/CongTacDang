@@ -324,8 +324,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                 <tr className={`small ${styles.critNote}`}>
                   <td />
                   <td colSpan={4}>
-                    <textarea className="form-control form-control-sm" rows={1} maxLength={2000} value={groupNotes[group.code] ?? ""}
-                      placeholder="Tóm tắt kết quả, minh chứng chung của nhóm (không bắt buộc)" aria-label={`Nhận xét nhóm ${group.code}`}
+                    <textarea className="form-control form-control-sm" rows={1} maxLength={2000} value={groupNotes[group.code] ?? ""} aria-label={`Nhận xét nhóm ${group.code}`}
                       onChange={(e) => setGroupNotes({ ...groupNotes, [group.code]: e.target.value })} />
                     <EvidenceFiles recordId={record.id} slot={evidenceSlot("group", group.code)} label={`nhóm ${group.code} — ${group.name}`}
                       files={evidence.files} rights={evidence.rights} onChanged={evidence.reload} />
@@ -461,11 +460,6 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
           <h4 className="h6 small fw-bold text-secondary">
             {uses09C && uses9D ? "Nhiệm vụ và kết quả theo trục (Mẫu 09C, 9D)" : uses09C ? "Nhiệm vụ theo trục (Mẫu 09C)" : "Kết quả theo trục (Mẫu 9D)"}
           </h4>
-          {(initialAxisReports.taskCount > 0 || initialAxisReports.summaryFieldCount > 0) && (
-            <div className="small text-secondary mb-2">
-              <i className="bi bi-info-circle me-1" aria-hidden="true" />Đã lấy thông tin từ Mẫu 01. Bổ sung kết quả thực tế.
-            </div>
-          )}
           <div className="mb-2">
             <AxisReportsInput axes={content.axes} value={axisReports} onChange={setAxisReports} levels={taskLevels(criteria)}
               showTasks={uses09C} showSummary={uses9D} taskLabel={content.taskLineLabel || "Nhiệm vụ {n}:"} />

@@ -262,7 +262,7 @@ export function FileUploadModal({
                     type="text"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="VD: Quyết định, Báo cáo nghiệm thu, Kế hoạch..."
+                    placeholder="Tên tệp minh chứng"
                     className="w-full border border-slate-300 rounded p-2 focus:outline-none focus:border-rose-900"
                   />
                 </div>
@@ -291,7 +291,7 @@ export function FileUploadModal({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm kiếm tệp trong kho lưu trữ..."
+                placeholder="Tìm tệp"
                 className="w-full border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-rose-900"
               />
 
