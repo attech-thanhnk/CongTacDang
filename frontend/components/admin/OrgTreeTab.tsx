@@ -192,7 +192,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
         <input
           className="form-control form-control-sm"
           style={{ maxWidth: 320 }}
-          placeholder="Tìm theo mã, tên, tên viết tắt, mô tả…"
+          placeholder="Tìm kiếm"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -339,7 +339,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                   value={form.code}
                   maxLength={50}
                   required={kind === "departments"}
-                  placeholder={kind === "departments" ? "VD: PH-KH" : "Để trống để hệ thống tự sinh"}
+                  placeholder={kind === "departments" ? "VD: PH-KH" : "Tự sinh"}
                   onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
                 />
               </div>

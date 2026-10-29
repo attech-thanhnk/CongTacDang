@@ -256,7 +256,6 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
                   className="form-control form-control-sm"
                   value={form.emptyPositionText}
                   maxLength={50}
-                  placeholder="Để trống: giữ dòng chấm"
                   onChange={(e) => setForm({ ...form, emptyPositionText: e.target.value })}
                 />
               </div>

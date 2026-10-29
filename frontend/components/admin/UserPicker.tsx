@@ -74,7 +74,7 @@ export function UserPicker({
     <div>
       <input
         className="form-control form-control-sm"
-        placeholder="Nhập ít nhất 2 ký tự: tên đăng nhập, họ tên, email…"
+        placeholder="Tìm tài khoản"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         autoComplete="off"

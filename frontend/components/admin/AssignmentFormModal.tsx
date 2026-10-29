@@ -159,7 +159,6 @@ export function AssignmentFormModal({
                   ))}
                 </select>
               )}
-              {role?.description && <div className="form-text">{role.description}</div>}
             </div>
             <div className="row g-2 mb-2">
               <div className="col-12 col-md-5">
@@ -203,16 +202,13 @@ export function AssignmentFormModal({
           <div className="col-6">
             <label className="form-label">Hiệu lực từ ngày</label>
             <DateField value={validFrom} onChange={setValidFrom} aria-label="Hiệu lực từ ngày" />
-            <div className="form-text">{isEdit ? "Để trống = giữ nguyên." : "Để trống = ngay bây giờ."}</div>
           </div>
           <div className="col-6">
             <label className="form-label">Đến hết ngày</label>
             <DateField value={validTo} onChange={setValidTo} invalid={!!dateError} aria-label="Đến hết ngày" />
             {dateError ? (
               <div className="invalid-feedback d-block">Phải bằng hoặc sau ngày bắt đầu.</div>
-            ) : (
-              <div className="form-text">Để trống = không thời hạn.</div>
-            )}
+            ) : null}
           </div>
         </div>
         <div className="mb-2">
@@ -222,7 +218,6 @@ export function AssignmentFormModal({
             rows={2}
             maxLength={1000}
             value={note}
-            placeholder="VD: theo Quyết định số …"
             onChange={(e) => setNote(e.target.value)}
           />
         </div>

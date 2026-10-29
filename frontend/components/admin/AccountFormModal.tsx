@@ -185,7 +185,6 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
               autoComplete="off"
               onChange={(e) => set("username", e.target.value)}
             />
-            {!isEdit && <div className="form-text">3–50 ký tự a-z, 0-9, dấu . _ -</div>}
           </div>
           <div className="col-12 col-md-6">
             <label className="form-label">
@@ -218,7 +217,6 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
           <div className="col-12 col-md-6">
             <label className="form-label">Số thẻ Đảng viên</label>
             <input className="form-control form-control-sm" value={form.partyCardNumber} onChange={(e) => set("partyCardNumber", e.target.value)} />
-            <div className="form-text">Để trống nếu không phải Đảng viên.</div>
           </div>
           <div className="col-12 col-md-6">
             <label className="form-label">Đơn vị công tác chính</label>
@@ -279,7 +277,6 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
                     </option>
                   ))}
                 </select>
-                <div className="form-text">Chức vụ thêm sau khi tạo tài khoản, ở thẻ &quot;Chức vụ&quot;.</div>
               </div>
               {form.approvalAuthority !== "" && (
                 <div className="col-12 col-md-6">
@@ -289,7 +286,6 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
                     value={form.approvalAuthorityReason}
                     required
                     maxLength={1000}
-                    placeholder="Căn cứ văn bản phân cấp…"
                     onChange={(e) => set("approvalAuthorityReason", e.target.value)}
                   />
                 </div>
