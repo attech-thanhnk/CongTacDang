@@ -290,7 +290,7 @@ export default function CriteriaSetPage() {
                               <td>
                                 <textarea className="form-control form-control-sm" rows={1} value={item.text} aria-label="Nội dung tiêu chí con" onChange={(e) => setItem({ text: e.target.value })} />
                                 <textarea className="form-control form-control-sm mt-1" rows={1} maxLength={4000} value={item.formText ?? ""} aria-label="Nội dung in trên phiếu"
-                                  placeholder="Nội dung in trên phiếu (trống = in như trên)" onChange={(e) => setItem({ formText: e.target.value || null })} />
+                                  onChange={(e) => setItem({ formText: e.target.value || null })} />
                               </td>
                               <td><input type="number" min={0} step={0.5} className="form-control form-control-sm" aria-label="Điểm tối đa" value={item.maxScore} onChange={(e) => setItem({ maxScore: num(e.target.value) })} /></td>
                               <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa tiêu chí" onClick={() => setGroup(gi, { items: g.items.filter((_, i) => i !== ii) })}><i className="bi bi-x-lg" /></button></td>
@@ -362,7 +362,7 @@ export default function CriteriaSetPage() {
                               <td>
                                 <textarea className="form-control form-control-sm" rows={2} maxLength={2000} value={item.text} aria-label="Nội dung tiêu chí tập thể" onChange={(e) => setItem({ text: e.target.value })} />
                                 <textarea className="form-control form-control-sm mt-1" rows={1} maxLength={4000} value={item.formText ?? ""} aria-label="Nội dung in trên phiếu"
-                                  placeholder="Nội dung in trên phiếu (trống = in như trên)" onChange={(e) => setItem({ formText: e.target.value || null })} />
+                                  onChange={(e) => setItem({ formText: e.target.value || null })} />
                               </td>
                               <td><input type="number" min={0} max={100} step={0.5} className="form-control form-control-sm" aria-label="Điểm tối đa" value={item.maxScore} onChange={(e) => setItem({ maxScore: num(e.target.value) })} /></td>
                               <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa tiêu chí" onClick={() => setCollective(gi, { items: g.items.filter((_, i) => i !== ii) })}><i className="bi bi-x-lg" /></button></td>
@@ -562,7 +562,7 @@ export default function CriteriaSetPage() {
                         <tr key={g.grade}>
                           <td className="small">{GRADE_LABELS[g.grade] ?? g.grade}</td>
                           <td><input type="number" min={0} max={100} step={0.5} className="form-control form-control-sm" value={g.minScore} onChange={(e) => setGrade({ minScore: num(e.target.value) })} /></td>
-                          <td><input type="number" min={0} max={100} step={1} className="form-control form-control-sm" placeholder="Không đòi"
+                          <td><input type="number" min={0} max={100} step={1} className="form-control form-control-sm"
                             value={g.minExceedStandardRatio != null ? Math.round(g.minExceedStandardRatio * 100) : ""}
                             onChange={(e) => setGrade({ minExceedStandardRatio: e.target.value === "" ? null : num(e.target.value) / 100 })} /></td>
                           <td><textarea className="form-control form-control-sm" rows={2} value={g.conditions || ""} onChange={(e) => setGrade({ conditions: e.target.value })} /></td>
@@ -597,12 +597,12 @@ export default function CriteriaSetPage() {
                   ))}
                   <div className="col-6 col-md-3">
                     <label className="form-label mb-1">Giảm từ … điểm phải nêu lý do</label>
-                    <input type="number" step={0.5} min={0} className="form-control form-control-sm" placeholder="Không bắt buộc" value={p.deductionReasonMinPoints ?? ""}
+                    <input type="number" step={0.5} min={0} className="form-control form-control-sm" value={p.deductionReasonMinPoints ?? ""}
                       onChange={(e) => setParam("deductionReasonMinPoints", e.target.value === "" ? null : num(e.target.value))} />
                   </div>
                   <div className="col-6 col-md-3">
                     <label className="form-label small mb-0">Điều chỉnh tỷ lệ A-B-C-D (± điểm %)</label>
-                    <input type="number" step={1} min={0} max={MAX_FRAME_ADJUST_LIMIT} className="form-control form-control-sm" placeholder="Không cho điều chỉnh" value={p.frameAdjustLimit ?? ""}
+                    <input type="number" step={1} min={0} max={MAX_FRAME_ADJUST_LIMIT} className="form-control form-control-sm" value={p.frameAdjustLimit ?? ""}
                       onChange={(e) => setParam("frameAdjustLimit", e.target.value === "" ? null : num(e.target.value))} />
                   </div>
                   <div className="col-6 col-md-3 d-flex flex-column justify-content-end">
@@ -638,9 +638,9 @@ export default function CriteriaSetPage() {
                       className={`form-control form-control-sm${excellentQuotaInvalid(p.excellentQuota.ratio) ? " is-invalid" : ""}`}
                       value={Math.round(p.excellentQuota.ratio * 10000) / 100}
                       onChange={(e) => setParam("excellentQuota", { ...p.excellentQuota, ratio: num(e.target.value) / 100 })} />
-                    <div className={excellentQuotaInvalid(p.excellentQuota.ratio) ? "invalid-feedback d-block" : "form-text"}>
-                      Từ {EXCELLENT_QUOTA_PERCENT.min}% đến {EXCELLENT_QUOTA_PERCENT.max}%; làm tròn từ 0,5 trở lên thành 1; không tính người đứng đầu.
-                    </div>
+                    {excellentQuotaInvalid(p.excellentQuota.ratio) && (
+                      <div className="invalid-feedback d-block">Từ {EXCELLENT_QUOTA_PERCENT.min}% đến {EXCELLENT_QUOTA_PERCENT.max}%.</div>
+                    )}
                   </div>
                 </div>
                 <h3 className="form-label fw-semibold mt-3">Làm tròn theo loại điểm</h3>

@@ -490,7 +490,7 @@ export default function CalibrationDetailPage() {
                 <div className="col-12 col-md">
                   <label className="form-label small mb-1" htmlFor={`cal-dis-${i}`}>Ý kiến bảo lưu</label>
                   <input id={`cal-dis-${i}`} className="form-control form-control-sm" maxLength={2000} value={a.dissentNote} disabled={ro}
-                    placeholder="Để trống nếu thống nhất" onChange={(e) => setAtt(i, { dissentNote: e.target.value })} />
+                    onChange={(e) => setAtt(i, { dissentNote: e.target.value })} />
                 </div>
                 {!ro && (
                   <div className="col-auto">
@@ -569,7 +569,6 @@ export default function CalibrationDetailPage() {
                 );
               })}
             </div>
-            <div className="text-secondary small mt-2">Số lượng và tỷ lệ tính lại sau mỗi lần lưu.</div>
           </div>
         </section>
 
