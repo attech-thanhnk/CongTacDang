@@ -49,24 +49,20 @@ public sealed class FormGatesUnitTests
     #region Cổng trong cấu hình kỳ
 
     [Fact]
-    public void Default_HasGates_RequiredForInternalDecision_RecordedForExternal()
+    public void Default_HasGates_RecordedForMau19And20_OptionalForCrosscheck()
     {
         var settings = PeriodSettings.Default();
         Assert.Equal(3, settings.SchemaVersion);
         Assert.Empty(Validate(settings));
 
-        var baseProfile = settings.FindProfile("co-so")!;
-        Assert.Equal(GateMode.Required, baseProfile.GateModeOf(WorkflowGates.Control));
-        Assert.Equal(GateMode.Required, baseProfile.GateModeOf(WorkflowGates.Calibration));
-        Assert.Equal(GateMode.Optional, baseProfile.GateModeOf(WorkflowGates.Crosscheck));
-
-        foreach (var code in new[] { "cap-tren", "pho-giam-doc" })
+        // Chưa chốt có làm Mẫu 19, 20 nên mặc định chỉ ghi nhận ở mọi diện.
+        foreach (var profile in settings.Profiles)
         {
-            var profile = settings.FindProfile(code)!;
             Assert.Equal(GateMode.Recorded, profile.GateModeOf(WorkflowGates.Control));
             Assert.Equal(GateMode.Recorded, profile.GateModeOf(WorkflowGates.Calibration));
+            Assert.Equal(GateMode.Optional, profile.GateModeOf(WorkflowGates.Crosscheck));
         }
-        Assert.Contains("\"gates\":{\"CROSSCHECK\":{\"mode\":\"Optional\"},\"CALIBRATION\":{\"mode\":\"Required\"},\"CONTROL\":{\"mode\":\"Required\"}}", settings.ToJson());
+        Assert.Contains("\"gates\":{\"CROSSCHECK\":{\"mode\":\"Optional\"},\"CALIBRATION\":{\"mode\":\"Recorded\"},\"CONTROL\":{\"mode\":\"Recorded\"}}", settings.ToJson());
     }
 
     [Fact]

@@ -79,6 +79,8 @@ public sealed class ApprovalGatePolicyTests
     public void Uncalibrated_OnlyRequiredProfilesWithoutConcludedSession()
     {
         var settings = PeriodSettings.Default();
+        foreach (var profile in settings.Profiles)
+            profile.Gates[WorkflowGates.Calibration] = new GateSetting { Mode = GateMode.Required };
         var required = Record("A");
         var missing = Record("B");
         var results = new Dictionary<Guid, CalibrationGateResult>
@@ -87,7 +89,7 @@ public sealed class ApprovalGatePolicyTests
             [missing.Id] = new CalibrationGateResult(CalibrationGateState.Pending, null)
         };
 
-        // Mặc định bước quyết định nội bộ → cổng hiệu chuẩn Required.
+        // Cổng hiệu chuẩn Required.
         var list = ApprovalGatePolicy.Uncalibrated(settings, new[] { required, missing }, results);
         Assert.Equal(new[] { missing.Id }, list.Select(r => r.Id));
 

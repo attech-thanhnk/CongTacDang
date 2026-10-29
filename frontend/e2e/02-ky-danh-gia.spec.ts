@@ -12,6 +12,18 @@ async function moKy(page: Page) {
   await expect(page.getByRole('tab', { name: 'Diện quyết định' })).toBeVisible();
 }
 
+// Mặc định của kỳ mới là chỉ ghi nhận Mẫu 19, 20; các kịch bản sau kiểm tra hồ sơ bị khóa nên đặt hai cổng bắt buộc.
+async function datCongBatBuoc(page: Page) {
+  const id = new URL(page.url()).pathname.split('/').pop();
+  const ky = (await (await page.request.get(`/api/evaluations/periods/${id}`)).json()).data;
+  for (const profile of ky.settings.profiles) {
+    profile.gates.CALIBRATION = { mode: 'Required' };
+    profile.gates.CONTROL = { mode: 'Required' };
+  }
+  const luu = await page.request.put(`/api/evaluations/periods/${id}`, { data: { version: ky.version, settings: ky.settings } });
+  expect(luu.ok()).toBeTruthy();
+}
+
 test.describe.serial('Kỳ đánh giá', () => {
   test('tạo kỳ ở trạng thái dự thảo', async ({ mo }) => {
     const page = await mo('loan.ctp');
@@ -28,6 +40,8 @@ test.describe.serial('Kỳ đánh giá', () => {
     await expect(thongBao(page, 'Đã tạo kỳ đánh giá (dự thảo).')).toBeVisible();
     await expect(page).toHaveURL(/\/periods\/[0-9a-f-]{36}$/);
     luuDuongDanKy(new URL(page.url()).pathname);
+    await datCongBatBuoc(page);
+    await page.reload();
     await expect(page.getByRole('heading', { name: TEN_KY })).toBeVisible();
     await expect(page.getByText('Dự thảo', { exact: true }).first()).toBeVisible();
     // Chưa có người được đánh giá nên chưa mở được kỳ.

@@ -304,6 +304,10 @@ public sealed class PeriodSettings
         };
         foreach (var profile in settings.Profiles)
         {
+            // Chưa chốt có làm Mẫu 19, 20 hay không nên mặc định chỉ ghi nhận, tránh kẹt hồ sơ ở bước quyết định.
+            profile.Gates[WorkflowGates.Calibration] = new GateSetting { Mode = GateMode.Recorded };
+            profile.Gates[WorkflowGates.Control] = new GateSetting { Mode = GateMode.Recorded };
+
             // Diện Phó Giám đốc và diện cấp trên làm đăng ký/duyệt ngay đầu quý; diện cơ sở làm trước quý.
             var companyLevel = profile.Code is ProfileUpper or ProfileDeputyDirector;
             SetDefaultRules(profile, companyLevel

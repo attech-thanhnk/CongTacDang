@@ -87,8 +87,8 @@ public sealed class UiContractIntegrationTests
     {
         var w = await WorldAsync();
 
-        // Mặc định diện quyết định làm trong hệ thống: hiệu chuẩn và kiểm soát bắt buộc.
-        var blocked = await Scenario.StartAsync(w, _factory, gates: GateSet.Default);
+        // Đặt hiệu chuẩn và kiểm soát bắt buộc (mặc định của kỳ mới là chỉ ghi nhận).
+        var blocked = await Scenario.StartAsync(w, _factory, gates: GateSet.Required);
         await blocked.DriveToDecisionAsync();
         var actions = (await Data(w.Office, $"/api/evaluations/records/{blocked.RecordId}/actions")).GetProperty("actions").EnumerateArray().ToList();
         var decide = Assert.Single(actions, a => a.GetProperty("action").GetString() == "RecordDecision");
@@ -718,7 +718,7 @@ public sealed class UiContractIntegrationTests
         }
     }
 
-    private enum GateSet { Default, AllOff, Recorded }
+    private enum GateSet { Default, AllOff, Recorded, Required }
 
     /// <summary>Tạo kỳ như hộp thoại "Tạo kỳ" (ngày dạng yyyy-MM-dd), rồi lưu cấu hình cổng như bảng diện quyết định.</summary>
     private static async Task<Guid> CreatePeriodAsUiAsync(World w, GateSet gates)
@@ -739,7 +739,7 @@ public sealed class UiContractIntegrationTests
             return id;
 
         var settings = JsonNode.Parse(created.GetProperty("settings").GetRawText())!.AsObject();
-        var mode = gates == GateSet.AllOff ? "Off" : "Recorded";
+        var mode = gates switch { GateSet.AllOff => "Off", GateSet.Required => "Required", _ => "Recorded" };
         foreach (var profile in settings["profiles"]!.AsArray())
         {
             profile!["gates"]!["CALIBRATION"] = new JsonObject { ["mode"] = mode };

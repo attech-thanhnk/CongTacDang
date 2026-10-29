@@ -637,7 +637,12 @@ public sealed class EvaluationWorkflowServiceTests
             Content.RequiredForms = new List<string>();
             var settings = PeriodSettings.Default();
             foreach (var profile in settings.Profiles)
+            {
                 profile.Step(WorkflowStep.B1_APPROVE).Permission = ApprovePermission;
+                // Các kiểm thử cổng giả định cổng bắt buộc; mặc định của kỳ mới là chỉ ghi nhận.
+                profile.Gates[WorkflowGates.Calibration] = new GateSetting { Mode = GateMode.Required };
+                profile.Gates[WorkflowGates.Control] = new GateSetting { Mode = GateMode.Required };
+            }
             var snapshot = new CriteriaSnapshot { SetId = Guid.NewGuid(), Code = "IT", Name = "Bộ thử", Content = Content };
 
             Period = new EvaluationPeriod
