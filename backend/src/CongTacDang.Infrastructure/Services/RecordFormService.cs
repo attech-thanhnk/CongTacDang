@@ -21,10 +21,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CongTacDang.Infrastructure.Services;
 
-/// <summary>Xuất biểu mẫu cá nhân: 04/05/09A/09C/9D từ template Word, 01/02/10 dùng bộ xuất có sẵn.</summary>
+/// <summary>Xuất biểu mẫu cá nhân: 04/05/09A/09C/9D từ template Word, 01/02/10 dùng bộ xuất có sẵn; bản Excel cho 01/02/09A/9D/10.</summary>
 public sealed class RecordFormService : IRecordFormService
 {
     private const string DocxMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    private const string XlsxMimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     private const string PdfMimeType = "application/pdf";
 
     private readonly CongTacDangDbContext _db;
@@ -55,27 +56,19 @@ public sealed class RecordFormService : IRecordFormService
     {
         var record = await LoadAsync(recordId, ct);
         return Available(ReadCriteria(record.Period))
-            .Select(code => new RecordFormDto { Code = code, Name = RecordFormCodes.DisplayName(code) })
+            .Select(code => new RecordFormDto
+            {
+                Code = code,
+                Name = RecordFormCodes.DisplayName(code),
+                HasExcel = RecordFormCodes.ExcelExportable.Contains(code)
+            })
             .ToList();
     }
 
     /// <inheritdoc />
     public async Task<ReportFileResult> ExportAsync(Guid recordId, string formCode, ReportFormat format, CancellationToken ct = default)
     {
-        var code = RecordFormCodes.Normalize(formCode);
-        if (!RecordFormCodes.IsKnown(code))
-            throw new ValidationException($"Không có biểu mẫu cá nhân \"{formCode}\". Các mẫu: {string.Join(", ", RecordFormCodes.All)}.");
-
-        var record = await LoadAsync(recordId, ct);
-        var criteria = ReadCriteria(record.Period);
-        if (!Available(criteria).Contains(code))
-        {
-            if (!RecordFormCodes.Exportable.Contains(code))
-                throw new ConflictException($"{RecordFormCodes.DisplayName(code)} chưa có chức năng xuất trên hồ sơ.");
-            throw new ConflictException(
-                $"Kỳ \"{record.Period.Name}\" không áp dụng {RecordFormCodes.DisplayName(code)} (theo bộ tiêu chí của kỳ). "
-                + "Hãy chọn biểu mẫu khác hoặc liên hệ người quản lý kỳ.");
-        }
+        var (code, record, criteria) = await LoadApplicableAsync(recordId, formCode, ct);
 
         switch (code)
         {
@@ -99,6 +92,45 @@ public sealed class RecordFormService : IRecordFormService
         };
 
         return await RenderAsync(templateFileName, data, await FileNameAsync(code, record, ct), format, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<ReportFileResult> ExportExcelAsync(Guid recordId, string formCode, CancellationToken ct = default)
+    {
+        var (code, record, criteria) = await LoadApplicableAsync(recordId, formCode, ct);
+        if (!RecordFormCodes.ExcelExportable.Contains(code))
+            throw new ValidationException($"{RecordFormCodes.DisplayName(code)} chỉ có bản Word và PDF.");
+        if (code is not (RecordFormCodes.Form09A or RecordFormCodes.Form9D))
+            return await _reports.ExportPersonalFormExcelAsync(recordId, code);
+
+        if (criteria == null)
+            throw new ConflictException("Kỳ đánh giá chưa có bộ tiêu chí nên chưa xuất được biểu mẫu tự chấm. Hãy liên hệ người quản lý kỳ.");
+        var source = new IndividualFormSource(record, criteria.Content, await PositionsAsync(record, ct), await LayoutAsync(record, ct));
+        var org = OrganizationSettingsService.ToTemplateFields(await _orgSettings.GetAsync(ct));
+        var bytes = code == RecordFormCodes.Form09A
+            ? PersonalFormWorkbooks.Mau09A(Mau09AData.From(source), org)
+            : PersonalFormWorkbooks.Mau9D(Mau9DData.From(source), org);
+        return new ReportFileResult { FileBytes = bytes, ContentType = XlsxMimeType, FileName = await FileNameAsync(code, record, ct, ".xlsx") };
+    }
+
+    /// <summary>Mã hợp lệ, hồ sơ trong quyền xem và kỳ áp dụng mẫu theo bộ tiêu chí.</summary>
+    private async Task<(string Code, EvaluationRecord Record, CriteriaSnapshot? Criteria)> LoadApplicableAsync(Guid recordId, string formCode, CancellationToken ct)
+    {
+        var code = RecordFormCodes.Normalize(formCode);
+        if (!RecordFormCodes.IsKnown(code))
+            throw new ValidationException($"Không có biểu mẫu cá nhân \"{formCode}\". Các mẫu: {string.Join(", ", RecordFormCodes.All)}.");
+
+        var record = await LoadAsync(recordId, ct);
+        var criteria = ReadCriteria(record.Period);
+        if (!Available(criteria).Contains(code))
+        {
+            if (!RecordFormCodes.Exportable.Contains(code))
+                throw new ConflictException($"{RecordFormCodes.DisplayName(code)} chưa có chức năng xuất trên hồ sơ.");
+            throw new ConflictException(
+                $"Kỳ \"{record.Period.Name}\" không áp dụng {RecordFormCodes.DisplayName(code)} (theo bộ tiêu chí của kỳ). "
+                + "Hãy chọn biểu mẫu khác hoặc liên hệ người quản lý kỳ.");
+        }
+        return (code, record, criteria);
     }
 
     /// <inheritdoc />
@@ -228,10 +260,10 @@ public sealed class RecordFormService : IRecordFormService
     }
 
     /// <summary>Tên tệp không dấu, ví dụ <c>Mau 09A_ATTECH_Nguyen Van A_Quy III-2026.docx</c>.</summary>
-    private async Task<string> FileNameAsync(string code, EvaluationRecord record, CancellationToken ct)
+    private async Task<string> FileNameAsync(string code, EvaluationRecord record, CancellationToken ct, string extension = ".docx")
     {
         var shortName = ExportFileName.PersonalUnit(record.PartyCell, record.Department, (await _orgSettings.GetAsync(ct)).ShortName);
         var fullName = string.IsNullOrWhiteSpace(record.Member?.FullName) ? "CanBo" : record.Member!.FullName;
-        return ExportFileName.Build($"Mau {code}", shortName, fullName, record.Period == null ? null : (int)record.Period.Quarter, record.Period?.Year, ".docx");
+        return ExportFileName.Build($"Mau {code}", shortName, fullName, record.Period == null ? null : (int)record.Period.Quarter, record.Period?.Year, extension);
     }
 }

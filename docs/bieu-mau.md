@@ -15,6 +15,8 @@ Tài liệu dành cho người phát triển. Bộ sinh biểu mẫu nằm ở:
 | Chuyển DOCX/XLSX → PDF | `backend/src/CongTacDang.Infrastructure/Documents/LibreOfficePdfConverter.cs` |
 | Gọi xuất (dựng dữ liệu, điền, chuyển PDF) | `backend/src/CongTacDang.Infrastructure/Services/ReportService.cs` |
 | Endpoint | `backend/src/CongTacDang.Api/Controllers/ExportReportController.cs`; biểu mẫu cá nhân của hồ sơ (09A/09C/9D, mục 8): `RecordFormsController.cs` + `Infrastructure/Services/RecordFormService.cs` |
+| Bản Excel của phiếu cá nhân 01, 02, 09A, 9D, 10 (dựng từ cùng lớp `MauXXData` với bản Word) | `backend/src/CongTacDang.Infrastructure/Documents/Forms/PersonalFormWorkbooks.cs` |
+| Bố cục bảng tính dùng chung (tiêu đề hai bên, dòng tiêu đề, bảng, dòng ký; dùng cả cho Mẫu 08, 14, 15A, 15B) | `backend/src/CongTacDang.Infrastructure/Documents/ExcelFormLayout.cs` |
 
 Nguyên tắc:
 
@@ -124,6 +126,16 @@ Excel (Mẫu 14, 15A, 15B, báo cáo nội bộ) dùng cùng cài đặt: dòng 
 … năm …", tên tệp theo quy cách HD03 V.1 (xem "Tên tệp xuất" dưới đây) và tên tệp danh sách cán bộ
 (`DanhSach_CanBo_<tên viết tắt>.xlsx`).
 
+Bản Excel của phiếu cá nhân (Mẫu 01, 02, 09A, 9D, 10; `GET /api/reports/docx/record/{recordId}/{mã}?format=xlsx`, kiểm tra
+quyền như bản Word, Mẫu 09C → 400) lấy số liệu từ đúng lớp dữ liệu của bản Word nên hai bản luôn khớp. Tiêu đề trái theo bản
+Word: Mẫu 01, 02 — `ORG_COMPANY_NAME_UPPER` + đơn vị của hồ sơ; Mẫu 10 — `ORG_COMPANY_NAME_UPPER` + `ORG_APPRAISAL_UNIT_UPPER`;
+Mẫu 09A, 9D — `ORG_PARTY_NAME` + Chi bộ của hồ sơ. Dòng ngày dùng `ORG_LOCATION` và ngày của lớp dữ liệu (chưa có → dòng chấm).
+Điểm, trọng số, tỷ lệ % ghi thành ô số; tổng trọng số Mẫu 01, 02 là công thức `SUM`. Bố cục: Mẫu 01 — thông tin cán bộ, bảng
+11 cột sản phẩm, dòng CỘNG, bốn chỗ ký; Mẫu 02 — bảng 11 cột (A-B-C-D, kết quả %, điểm đạt, vượt chuẩn), dòng CỘNG (điểm, số SP
+vượt chuẩn), công thức tính, ba chỗ ký; Mẫu 09A — bảng nhóm/tiêu chí con (Đảm bảo/Không đảm bảo, điểm tối đa, điểm đạt, minh
+chứng), dòng Tổng, phần nhiệm vụ, bảng tổng hợp điểm và mức tự đề xuất, cam kết, hai chỗ ký; Mẫu 9D — bảng 7 cột, mỗi trục một
+dòng; Mẫu 10 — bảng tự chấm/thẩm định/chênh lệch theo nhóm, ý kiến các bên, mức đề xuất, ba chỗ ký. Tên tệp như bản Word, đuôi `.xlsx`.
+
 ### Danh mục tag từng mẫu
 
 Nguồn chính xác là lớp dữ liệu (`Documents/Forms/MauXXData.cs`); trang **Hệ thống → Biểu mẫu Word → Tag** hiển thị danh mục
@@ -189,18 +201,18 @@ Cột "Áp dụng" theo bộ tiêu chí mặc định (áp dụng đầy đủ m
 
 | Mẫu | Áp dụng | Nơi nhập dữ liệu | Nơi xuất (trang → endpoint) | Định dạng | Quyền / phạm vi |
 |---|---|---|---|---|---|
-| 01 — Phiếu giao / đăng ký sản phẩm | Áp dụng | Hồ sơ cá nhân — bước B1 (đăng ký nhiệm vụ) | Hồ sơ → "Biểu mẫu của hồ sơ": `GET /api/reports/docx/record/{recordId}/01` | Word/PDF | xem hồ sơ (`evaluation.read` trong phạm vi, chủ hồ sơ) |
-| 02 — Phiếu tự đánh giá sản phẩm | Áp dụng | Hồ sơ cá nhân — bước B2 (tự chấm nhiệm vụ) | Hồ sơ: `…/record/{recordId}/02` | Word/PDF | như Mẫu 01 |
+| 01 — Phiếu giao / đăng ký sản phẩm | Áp dụng | Hồ sơ cá nhân — bước B1 (đăng ký nhiệm vụ) | Hồ sơ → "Biểu mẫu của hồ sơ": `GET /api/reports/docx/record/{recordId}/01`; Excel `…/01?format=xlsx` (menu ⋯ → **Excel**) | Word/PDF/Excel | xem hồ sơ (`evaluation.read` trong phạm vi, chủ hồ sơ) |
+| 02 — Phiếu tự đánh giá sản phẩm | Áp dụng | Hồ sơ cá nhân — bước B2 (tự chấm nhiệm vụ) | Hồ sơ: `…/record/{recordId}/02` (Excel `?format=xlsx`) | Word/PDF/Excel | như Mẫu 01 |
 | 03 — Phiếu ý kiến chuyên môn độc lập / đối soát dữ liệu chuyên ngành | Áp dụng (khi cơ quan thẩm định yêu cầu) | Khối "Xác nhận số liệu" trên hồ sơ (`/api/evaluations/records/{recordId}/crosschecks`) và trang `/crosschecks` (menu "Đối soát chuyên ngành") của cơ quan chuyên môn (`/api/crosschecks`) | Trang phiếu `/crosschecks/[id]`: `GET /api/reports/docx/mau-03/{crosscheckId}` | Word/PDF | xem phiếu (`GetAsync`: `evaluation.read` trên hồ sơ hoặc `crosscheck.respond`/`confirm` trên đơn vị đối soát) |
 | 06 — Báo cáo kết quả tập thể / lĩnh vực phục vụ liên kết trách nhiệm cán bộ lãnh đạo | Áp dụng | Tập thể & Hội nghị → hồ sơ tập thể M06 (người đứng đầu, bốn số nhiệm vụ, an toàn bay, xây dựng Đảng, điểm tiêu chí, mức tự xếp loại) | Tập thể & Hội nghị (từng hồ sơ M06): `GET /api/reports/docx/mau-06/{collectiveRecordId}` | Word/PDF | như Mẫu 07 |
 | 04 — Đề nghị điều chỉnh, chuyển tiếp, loại trừ / ngoại lệ sản phẩm | Áp dụng (khi có đề nghị) | Hồ sơ cá nhân — khối "Điều chỉnh việc trong quý" (sau duyệt danh sách việc, trước tự chấm): chủ hồ sơ đề nghị, người duyệt danh sách việc duyệt (`/api/evaluations/records/{recordId}/task-changes`) | Hồ sơ → khối "Biểu mẫu" (mỗi đề nghị một phiếu, hiện khi hồ sơ có đề nghị): `GET /api/reports/docx/record/{recordId}/04/{requestId}`; danh sách phiếu: `GET …/record/{recordId}/requests` | Word/PDF | xem hồ sơ (`evaluation.read` trong phạm vi, chủ hồ sơ); đề nghị: `evaluation.self`; duyệt: quyền bước duyệt danh sách việc theo diện quyết định |
 | 05 — Ghi nhận nhiệm vụ bổ sung, khẩn cấp, đột xuất | Áp dụng (khi có việc đột xuất) | Hồ sơ cá nhân — "Ghi nhận việc đột xuất" (chủ hồ sơ hoặc người duyệt danh sách việc); duyệt như Mẫu 04 → thêm việc loại đột xuất | Như Mẫu 04: `…/record/{recordId}/05/{requestId}` (chỉ đề nghị loại việc đột xuất; sai mẫu so với loại đề nghị → 409) | Word/PDF | như Mẫu 04 |
 | 07 — Báo cáo tự đánh giá của tập thể | Áp dụng | Tập thể & Hội nghị → hồ sơ tập thể M07 (mục I.1–I.4, II–VI, điểm B) | Tập thể & Hội nghị (từng hồ sơ): `GET /api/reports/docx/mau-07/{collectiveRecordId}` | Word/PDF | `evaluation.read` hoặc `collective.manage` trên tổ chức của hồ sơ |
 | 08 — Tổng hợp kết quả nhiệm vụ của cơ quan, đơn vị | Áp dụng | Tập thể & Hội nghị → hồ sơ tập thể M08 (dòng nhiệm vụ theo nhóm nội dung 1–13) | Tập thể & Hội nghị: **Excel** `GET /api/reports/form-08/{collectiveRecordId}` (HD03 V.1); Word `GET /api/reports/docx/mau-08/{collectiveRecordId}` | Excel/Word/PDF | như Mẫu 07 |
-| 09A — Phiếu tự chấm | Áp dụng (luôn) | Hồ sơ — bước B2 (phiếu tự chấm: tiêu chí chung + điểm nhiệm vụ theo Mẫu 02) | Hồ sơ: `…/record/{recordId}/09A` | Word/PDF | như Mẫu 01 |
+| 09A — Phiếu tự chấm | Áp dụng (luôn) | Hồ sơ — bước B2 (phiếu tự chấm: tiêu chí chung + điểm nhiệm vụ theo Mẫu 02) | Hồ sơ: `…/record/{recordId}/09A` (Excel `?format=xlsx`) | Word/PDF/Excel | như Mẫu 01 |
 | 09C — Bản tự đánh giá của cá nhân | Áp dụng | Hồ sơ — bước B2 (nhận xét chung; nhiệm vụ theo trục kèm mức, ý con) | Hồ sơ: `…/record/{recordId}/09C` | Word/PDF | như Mẫu 01 |
-| 9D — Phụ lục kết quả nhiệm vụ | Áp dụng | Hồ sơ — bước B2 (dòng tóm tắt mỗi trục) | Hồ sơ: `…/record/{recordId}/9D` | Word/PDF | như Mẫu 01 |
-| 10 — Phiếu thẩm định | Áp dụng | Hồ sơ — bước B3b (thẩm định, giải trình chênh lệch) | Hồ sơ: `…/record/{recordId}/10` | Word/PDF | như Mẫu 01 |
+| 9D — Phụ lục kết quả nhiệm vụ | Áp dụng | Hồ sơ — bước B2 (dòng tóm tắt mỗi trục) | Hồ sơ: `…/record/{recordId}/9D` (Excel `?format=xlsx`) | Word/PDF/Excel | như Mẫu 01 |
+| 10 — Phiếu thẩm định | Áp dụng | Hồ sơ — bước B3b (thẩm định, giải trình chênh lệch) | Hồ sơ: `…/record/{recordId}/10` (Excel `?format=xlsx`) | Word/PDF/Excel | như Mẫu 01 |
 | 11 — Phiếu đánh giá, xếp loại (phiếu kín) | Áp dụng | — (phiếu trắng theo danh sách hồ sơ) | Báo cáo: `GET /api/reports/docx/mau-11?periodId&branchId`; Tập thể & Hội nghị (từng biên bản M12, menu ⋯): `GET /api/reports/docx/mau-11/meeting/{meetingId}` — cán bộ có kết quả kiểm phiếu trong biên bản, chưa có thì cán bộ của tổ chức hội nghị trong kỳ | Word/PDF | báo cáo: `meeting.read` hoặc `report.export` (phạm vi tổ chức Đảng); theo hội nghị: `meeting.read`/`meeting.manage` trên đơn vị của biên bản |
 | 12 — Biên bản hội nghị | Áp dụng | Tập thể & Hội nghị → biên bản M12 (thời gian, thành phần, mục 3.2, chủ trì/thư ký, nội dung) | Tập thể & Hội nghị (từng biên bản M12): `GET /api/reports/docx/mau-12/{meetingId}` | Word/PDF | `meeting.read`/`meeting.manage` trên đơn vị của biên bản |
 | 13 — Biên bản kiểm phiếu | Áp dụng | Tập thể & Hội nghị → biên bản (Tổ kiểm phiếu, số phiếu phát ra/thu về/hợp lệ/không hợp lệ) + kết quả kiểm phiếu từng hồ sơ (lập biên bản M13 hoặc ghi khi ghi nhận B3a/B4, gồm cột "Chưa đánh giá, xếp loại") | Tập thể & Hội nghị (biên bản đã có kết quả kiểm phiếu): `GET /api/reports/docx/mau-13/{meetingId}` — chưa có kết quả → 400 | Word/PDF | như Mẫu 12 |
@@ -295,7 +307,8 @@ ghi log lỗi và xuất theo file gốc.
 
 - **Mẫu áp dụng** khai báo trong nội dung bộ tiêu chí: `requiredForms` (mã `01`–`05`, `09A`, `09C`, `9D`, `10`, `11`, `17`), `requiredCollectiveForms` (`06`, `07`, `08`, `12`, `13`) và `requiredSummaryForms` (`14`, `15A`, `15B`, `16`, `19`, `20`) — sửa trên
   trang **Bộ tiêu chí** (bản nháp) ở khối "Biểu mẫu cá nhân áp dụng". Mẫu 09A (phiếu tự chấm) luôn áp dụng. Bộ mặc định:
-  đủ cả ba danh sách trên. Nút xuất trên hồ sơ chỉ hiện với mẫu đã có file xuất (01, 02, 09A, 09C, 9D, 10).
+  đủ cả ba danh sách trên. Nút xuất trên hồ sơ chỉ hiện với mẫu đã có file xuất (01, 02, 09A, 09C, 9D, 10);
+  mục **Excel** hiện với mẫu có bản Excel (`hasExcel` trong danh sách biểu mẫu của hồ sơ: 01, 02, 09A, 9D, 10).
 - **Trục kết quả** của bộ (`axes[]`: mã, tên, nội dung áp dụng) dùng để phân loại nhiệm vụ: cột trục của Mẫu 01, nhóm nhiệm vụ
   theo trục ở Mẫu 09C, một dòng mỗi trục ở Mẫu 9D.
 - **Mục Mẫu 09C** khai báo trong `selfAssessmentSections` (mã, tiêu đề, câu dẫn, lưu ý, số ký tự tối đa, bắt buộc); nội dung hồ sơ

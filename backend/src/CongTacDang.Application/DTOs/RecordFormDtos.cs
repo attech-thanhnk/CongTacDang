@@ -12,4 +12,7 @@ public class RecordFormDto
 
     /// <summary>Đề nghị thay đổi việc của Mẫu 04/05; null với các mẫu còn lại.</summary>
     public Guid? RequestId { get; set; }
+
+    /// <summary>Có bản Excel (<c>?format=xlsx</c>).</summary>
+    public bool HasExcel { get; set; }
 }

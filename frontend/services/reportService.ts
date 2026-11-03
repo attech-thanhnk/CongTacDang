@@ -91,8 +91,8 @@ export const REPORTS: ReportDefinition[] = [
   },
 ];
 
-/** Định dạng tệp xuất: gốc (Word/Excel) hoặc PDF do máy chủ chuyển. */
-export type ReportFileFormat = "original" | "pdf";
+/** Định dạng tệp xuất: gốc (Word/Excel), PDF do máy chủ chuyển, hoặc bản Excel của biểu mẫu hồ sơ có cả bản Word. */
+export type ReportFileFormat = "original" | "pdf" | "xlsx";
 
 /** Phần nhập tay của Mẫu 16 (để trống → giữ chữ mẫu của biểu mẫu). */
 export interface Form16DraftContent {
@@ -187,9 +187,9 @@ export function internalFileName(fileCode: string, unit: string, periodLabel: st
 }
 
 export const reportService = {
-  /** Trả nội dung và tên tệp máy chủ đặt; `format = "pdf"` để máy chủ chuyển sang PDF. */
+  /** Trả nội dung và tên tệp máy chủ đặt; `format = "pdf"` để máy chủ chuyển sang PDF, `"xlsx"` lấy bản Excel. */
   fetchReportFile(endpoint: string, format: ReportFileFormat = "original"): Promise<DownloadedFile> {
-    const url = format === "pdf" ? withQuery(endpoint, { format: "pdf" }) : endpoint;
+    const url = format === "original" ? endpoint : withQuery(endpoint, { format });
     // Chuyển PDF bằng LibreOffice có thể mất vài chục giây.
     return fetchFile(url, { timeout: format === "pdf" ? 120000 : undefined });
   },

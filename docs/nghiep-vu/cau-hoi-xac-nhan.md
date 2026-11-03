@@ -346,9 +346,9 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 ### F2. [Ưu tiên] Nộp bản Excel theo mục V.1
 - **Câu hỏi:** Mẫu 01, 02, 09A, 9D (và Mẫu 10) có phải nộp bản Excel không?
 - **Căn cứ:** Mục V.1 (tr.21): mọi biểu mẫu "lập trên file excel (trừ các Mẫu: 07, 09C, 12, 13, 16)".
-- **Hệ thống đang làm (mặc định):** 01, 02, 03, 04, 05, 06, 09A, 09C, 9D, 10, 11, 07, 12, 13, 16, 17, 19, 20 và Quyết định xuất Word/PDF. Mẫu 08 xuất cả Word và Excel. Mẫu 14, 15A, 15B và Bảng tổng hợp xếp loại cán bộ của kỳ xuất Excel.
-- **Phương án khác:** Thêm bản Excel cho 01, 02, 09A, 9D, 10.
-- **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
+- **Hệ thống đang làm (mặc định):** Mẫu 01, 02, 09A, 9D, 10 xuất Word, PDF và Excel (cùng số liệu với bản Word). Mẫu 08 xuất Word và Excel. Mẫu 14, 15A, 15B và Bảng tổng hợp xếp loại cán bộ của kỳ xuất Excel. Các mẫu còn lại (03, 04, 05, 06, 07, 09C, 11, 12, 13, 16, 17, 19, 20, Quyết định) xuất Word/PDF.
+- **Phương án khác:** Bỏ bản Excel của 01, 02, 09A, 9D, 10 (chỉ giữ Word/PDF).
+- **Ảnh hưởng nếu đổi:** Cần sửa phần mềm (ẩn mục Excel).
 - **Trả lời (03/11/2026):** Phương án khác — cần bản Excel cho Mẫu 01, 02, 09A, 9D, 10.
 
 ### F3. [Ưu tiên] Mẫu 10: điểm thẩm định theo nhóm và mức từng nhiệm vụ

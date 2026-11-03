@@ -17,7 +17,7 @@ function fileName(code: string, fullName: string, format: ReportFileFormat): str
     .replace(/Đ/g, "D")
     .replace(/[^A-Za-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
-  return `Mau_${code}_${ascii || "CanBo"}.${format === "pdf" ? "pdf" : "docx"}`;
+  return `Mau_${code}_${ascii || "CanBo"}.${format === "original" ? "docx" : format}`;
 }
 
 /** Biểu mẫu cá nhân áp dụng theo bộ tiêu chí của kỳ. */
@@ -86,7 +86,12 @@ export function RecordFormsPanel({
                     onClick: () => download(form.code, "original", form.requestId),
                   },
                 ]}
-                menu={[{ key: "pdf", label: "Tải PDF", icon: "bi-file-earmark-pdf", onClick: () => download(form.code, "pdf", form.requestId) }]}
+                menu={[
+                  { key: "pdf", label: "Tải PDF", icon: "bi-file-earmark-pdf", onClick: () => download(form.code, "pdf", form.requestId) },
+                  ...(form.hasExcel && !form.requestId
+                    ? [{ key: "xlsx", label: "Excel", icon: "bi-file-earmark-excel", onClick: () => download(form.code, "xlsx") }]
+                    : []),
+                ]}
               />
             </li>
             );

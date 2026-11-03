@@ -520,6 +520,8 @@ export interface RecordFormDto {
   name: string;
   /** Đề nghị thay đổi việc của Mẫu 04/05; các mẫu còn lại không có. */
   requestId?: string | null;
+  /** Có bản Excel (`?format=xlsx`). */
+  hasExcel?: boolean;
 }
 
 /** Khớp giới hạn kiểm tra phía máy chủ. */

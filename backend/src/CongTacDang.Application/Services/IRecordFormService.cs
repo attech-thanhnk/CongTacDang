@@ -20,4 +20,7 @@ public interface IRecordFormService
 
     /// <summary>Mẫu không áp dụng cho kỳ → 409, mã không có → 400.</summary>
     Task<ReportFileResult> ExportAsync(Guid recordId, string formCode, ReportFormat format, CancellationToken ct = default);
+
+    /// <summary>Bản Excel (.xlsx) của Mẫu 01, 02, 09A, 9D, 10; mẫu chỉ có bản Word → 400, kiểm tra như <see cref="ExportAsync"/>.</summary>
+    Task<ReportFileResult> ExportExcelAsync(Guid recordId, string formCode, CancellationToken ct = default);
 }

@@ -155,7 +155,7 @@ Từ trên xuống:
 - **Thanh tiến trình**: các bước đánh số; bước đã xong có dấu tích; bước đang làm sáng màu, ghi **"Chờ: …"** (đang chờ ai) và **Hạn** (đỏ khi quá hạn). Rê chuột vào một bước để xem ai làm, lúc nào. Bấm vào bước đã xong hoặc đang làm để nhảy tới nội dung của bước đó. Bước do cấp trên thực hiện có biểu tượng mũi tên ra ngoài.
 - **Khung thao tác**: chỉ hiện khi đến lượt bạn; tiêu đề khung là tên việc (ví dụ "Nộp phiếu tự chấm").
 - **Các khối nội dung** của từng bước: Danh mục sản phẩm (Mẫu 01), Phiếu tự chấm (Mẫu 09A), Xác nhận của Chi bộ, Đề xuất của tập thể lãnh đạo, Thẩm định, Nhận xét, Quyết định… Bấm tiêu đề để mở hoặc thu gọn. Các khối **Điều chỉnh việc trong quý**, **Xác nhận số liệu**, **Kiến nghị**, **Kế hoạch 30-60-90 ngày (Mẫu 17)** hiện khi áp dụng.
-- Cột bên phải: **Biểu mẫu** (tải Word/PDF), **Lịch sử** (ai làm gì, lúc nào, điểm và mức thay đổi ra sao), **Thông tin** (kỳ, Chi bộ, thẩm quyền, diện quyết định).
+- Cột bên phải: **Biểu mẫu** (tải Word/PDF/Excel), **Lịch sử** (ai làm gì, lúc nào, điểm và mức thay đổi ra sao), **Thông tin** (kỳ, Chi bộ, thẩm quyền, diện quyết định).
 
 ### 3.3 Đăng ký sản phẩm đầu quý (Mẫu 01)
 
@@ -227,7 +227,7 @@ Nếu hệ thống báo hồ sơ đã bị thay đổi ở nơi khác (ví dụ 
 
 ### 3.5 Tải biểu mẫu Word/PDF
 
-Khối **Biểu mẫu** ở cột phải liệt kê các mẫu áp dụng cho hồ sơ (ví dụ Mẫu 01, 02, 09A, 09C, 9D, 10). Bấm **Tải Word** để tải tệp .docx (sửa, in được). Bản PDF ở menu ⋯ cạnh nút, mục **Tải PDF**. Nút **Xem bản in** mở bản xem trước ngay trên màn hình.
+Khối **Biểu mẫu** ở cột phải liệt kê các mẫu áp dụng cho hồ sơ (ví dụ Mẫu 01, 02, 09A, 09C, 9D, 10). Bấm **Tải Word** để tải tệp .docx (sửa, in được). Bản PDF ở menu ⋯ cạnh nút, mục **Tải PDF**; Mẫu 01, 02, 09A, 9D, 10 có thêm mục **Excel** (tệp .xlsx cùng số liệu). Nút **Xem bản in** mở bản xem trước ngay trên màn hình.
 
 Thông tin trên biểu mẫu (họ tên, ngày sinh, chức vụ Đảng / chính quyền / đoàn thể, đơn vị) lấy từ hồ sơ cán bộ; Mẫu 09A và 09C đều in ngày sinh, chưa nhập thì giữ dòng chấm. Thiếu hoặc sai: xem [Câu hỏi thường gặp](#13-câu-hỏi-thường-gặp).
 
@@ -492,9 +492,9 @@ Trang phiếu xác nhận số liệu (Mẫu 03), phiếu kiểm tra (Mẫu 19) 
 - Mọi người xem được phiếu đều xem và tải được tệp. Chủ hồ sơ có trong phiếu không xem được phiếu nên cũng không thấy tệp.
 - Phiếu đã gửi xác nhận, đã xác nhận hoặc đã chốt thì khóa tải lên, thay, gỡ; mở lại hoặc trả lại phiếu về trạng thái sửa được thì đính kèm tiếp được.
 
-### 5.6 Tải Word, PDF
+### 5.6 Tải Word, PDF, Excel
 
-Trang phiếu và biên bản có **Tải Word** và **Tải PDF** ở menu ⋯ cạnh nút chính. Các biểu mẫu khác (Mẫu 01, 02, 09A…) xuất Word hoặc PDF ở khối **Biểu mẫu** của hồ sơ. Tải PDF báo lỗi: xem [Câu hỏi thường gặp](#13-câu-hỏi-thường-gặp).
+Trang phiếu và biên bản có **Tải Word** và **Tải PDF** ở menu ⋯ cạnh nút chính. Các biểu mẫu khác (Mẫu 01, 02, 09A…) xuất Word hoặc PDF ở khối **Biểu mẫu** của hồ sơ; Mẫu 01, 02, 09A, 9D, 10 tải thêm được bản Excel (mục **Excel** ở menu ⋯). Tải PDF báo lỗi: xem [Câu hỏi thường gặp](#13-câu-hỏi-thường-gặp).
 
 ---
 
@@ -669,7 +669,7 @@ Menu **Báo cáo**. Chọn phạm vi ở đầu trang (**Toàn Đảng bộ**, h
 | Kiểm soát tỷ lệ Hoàn thành xuất sắc theo tổ chức Đảng (nội bộ) | Excel, PDF |
 | Bảng tổng hợp xếp loại cán bộ (nội bộ) | Excel, PDF; cũng tải được bằng nút **Bảng tổng hợp xếp loại** trên trang kỳ |
 
-Mẫu 03, 19, 20 không nằm ở đây: xuất ở trang phiếu hoặc biên bản ([5.6](#56-xuất-word-pdf)).
+Mẫu 03, 19, 20 không nằm ở đây: xuất ở trang phiếu hoặc biên bản ([5.6](#56-tải-word-pdf-excel)).
 
 **Soạn Mẫu 16**: số liệu tự điền. Bạn nhập số văn bản, kính gửi, ngày hội nghị, các đề xuất mục III, người ký. Ô để trống sẽ dùng nội dung mẫu. Lưu bản nháp trước khi xuất.
 
