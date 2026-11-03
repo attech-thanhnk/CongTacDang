@@ -20,6 +20,7 @@ using CongTacDang.Domain.Evaluation;
 using CongTacDang.Infrastructure.Data;
 using CongTacDang.Infrastructure.Documents;
 using CongTacDang.Infrastructure.Documents.Forms;
+using static CongTacDang.Infrastructure.Documents.ExcelFormLayout;
 
 namespace CongTacDang.Infrastructure.Services;
 
@@ -446,58 +447,6 @@ public partial class ReportService : IReportService
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
         return await ToResultAsync(stream.ToArray(), XlsxMimeType, Hd03FileName(formName, org.ShortName, scopeCell, period, ".xlsx"), format);
-    }
-
-    /// <summary>Tiêu đề trái/phải dùng chung của biểu mẫu.</summary>
-    private static void WriteFormHeader(IXLWorksheet ws, int lastColumn, string formLabel, PartyHeader header, string location, int leftColumns)
-    {
-        ws.Cell(1, lastColumn).Value = formLabel;
-        ws.Cell(1, lastColumn).Style.Font.Bold = true;
-        ws.Cell(1, lastColumn).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
-
-        ws.Cell(2, 1).Value = header.Parent ?? "ĐẢNG BỘ …";
-        ws.Cell(3, 1).Value = header.Organization ?? "ĐẢNG ỦY (CHI BỘ) …";
-        ws.Range(2, 1, 2, leftColumns).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-        ws.Range(3, 1, 3, leftColumns).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center).Font.SetBold(true);
-
-        var rightStart = Math.Max(leftColumns + 2, lastColumn - 4);
-        ws.Cell(2, rightStart).Value = "ĐẢNG CỘNG SẢN VIỆT NAM";
-        ws.Cell(3, rightStart).Value = DateLine(location);
-        ws.Range(2, rightStart, 2, lastColumn).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center).Font.SetBold(true);
-        ws.Range(3, rightStart, 3, lastColumn).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center).Font.SetItalic(true);
-    }
-
-    private static void TitleRow(IXLWorksheet ws, int row, int lastColumn, string text, bool bold)
-    {
-        ws.Cell(row, 1).Value = text;
-        ws.Range(row, 1, row, lastColumn).Merge().Style
-            .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center)
-            .Font.SetBold(bold).Font.SetFontSize(bold ? 13 : 11);
-    }
-
-    private static void StyleHeader(IXLRange range)
-    {
-        range.Style.Font.Bold = true;
-        range.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        range.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-        range.Style.Alignment.WrapText = true;
-        range.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-        range.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-        range.LastRow().Style.Font.Bold = false;
-        range.LastRow().Style.Font.Italic = true;
-    }
-
-    private static void SignatureRow(IXLWorksheet ws, int row, int lastColumn, string left, string leftNote, string right, string rightNote)
-    {
-        var half = lastColumn / 2;
-        ws.Cell(row, 1).Value = left;
-        ws.Cell(row + 1, 1).Value = leftNote;
-        ws.Cell(row, half + 1).Value = right;
-        ws.Cell(row + 1, half + 1).Value = rightNote;
-        ws.Range(row, 1, row, half).Merge().Style.Font.SetBold(true).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-        ws.Range(row + 1, 1, row + 1, half).Merge().Style.Font.SetItalic(true).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-        ws.Range(row, half + 1, row, lastColumn).Merge().Style.Font.SetBold(true).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-        ws.Range(row + 1, half + 1, row + 1, lastColumn).Merge().Style.Font.SetItalic(true).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
     }
 
     /// <summary>Cột chức vụ Mẫu 11/13/14: chức vụ Đảng, chính quyền, đoàn thể (theo thứ tự danh mục), rồi đơn vị công tác.</summary>
@@ -966,10 +915,6 @@ public partial class ReportService : IReportService
         return (period, records, cell);
     }
 
-    /// <summary>Dòng "Địa danh, ngày … tháng … năm …" theo ngày hiện tại.</summary>
-    private static string DateLine(string location) =>
-        $"{location}, ngày {DateTime.Now:dd} tháng {DateTime.Now:MM} năm {DateTime.Now:yyyy}";
-
     /// <summary>"III NĂM 2026" (dấu phân cách tùy biểu mẫu); chưa có kỳ → "… NĂM …".</summary>
     private static string QuarterYear(EvaluationPeriod? period, string separator) =>
         period == null ? "…" + separator + "…" : CollectiveFormText.RomanQuarter(period.Quarter) + separator + FormText.Year(period.Year);
@@ -1034,6 +979,27 @@ public partial class ReportService : IReportService
         var record = await LoadRecordAsync(recordId);
         var bytes = await RenderWordAsync(Mau10Data.TemplateFileName, Mau10Data.From(record));
         return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("10", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record, ".docx"), format);
+    }
+
+    /// <inheritdoc />
+    public async Task<ReportFileResult> ExportPersonalFormExcelAsync(Guid recordId, string formCode)
+    {
+        var record = await LoadRecordAsync(recordId);
+        var org = await _orgSettings.GetAsync();
+        var fields = OrganizationSettingsService.ToTemplateFields(org);
+        var bytes = formCode switch
+        {
+            RecordFormCodes.Form01 => PersonalFormWorkbooks.Mau01(Mau01Data.From(record), fields),
+            RecordFormCodes.Form02 => PersonalFormWorkbooks.Mau02(Mau02Data.From(record, await GetEvidenceNamesAsync(record.Tasks)), fields),
+            RecordFormCodes.Form10 => PersonalFormWorkbooks.Mau10(Mau10Data.From(record), fields),
+            _ => throw new ArgumentException($"Mẫu {formCode} không xuất Excel theo cách này.")
+        };
+        return new ReportFileResult
+        {
+            FileBytes = bytes,
+            ContentType = XlsxMimeType,
+            FileName = PersonalFileName(formCode, org.ShortName, record.Member?.FullName, record, ".xlsx")
+        };
     }
 
     public async Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original)

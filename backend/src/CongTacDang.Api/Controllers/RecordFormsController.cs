@@ -44,11 +44,13 @@ public class RecordFormsController : ControllerBase
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
-    /// <summary>Xuất một biểu mẫu (formCode: 01, 02, 09A, 09C, 9D, 10).</summary>
+    /// <summary>Xuất một biểu mẫu (formCode: 01, 02, 09A, 09C, 9D, 10); <c>format=xlsx</c> lấy bản Excel (01, 02, 09A, 9D, 10).</summary>
     [HttpGet("{recordId:guid}/{formCode}")]
     public async Task<IActionResult> Export(Guid recordId, string formCode, [FromQuery] string? format, CancellationToken ct)
     {
-        var result = await _forms.ExportAsync(recordId, formCode, ParseFormat(format), ct);
+        var result = string.Equals(format?.Trim(), "xlsx", StringComparison.OrdinalIgnoreCase)
+            ? await _forms.ExportExcelAsync(recordId, formCode, ct)
+            : await _forms.ExportAsync(recordId, formCode, ParseFormat(format), ct);
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 

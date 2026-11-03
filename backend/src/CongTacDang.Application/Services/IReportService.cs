@@ -104,6 +104,9 @@ public interface IReportService
     /// <summary>Mẫu 10 — Phiếu thẩm định.</summary>
     Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original);
 
+    /// <summary>Bản Excel Mẫu 01, 02 hoặc 10 (cùng dữ liệu bản Word); mã khác → 400. Quyền kiểm tra ở nơi gọi.</summary>
+    Task<ReportFileResult> ExportPersonalFormExcelAsync(Guid recordId, string formCode);
+
     /// <summary>Mẫu 11 — Phiếu bỏ phiếu kín.</summary>
     Task<ReportFileResult> ExportMau11DocxAsync(Guid periodId, Guid? branchId, ReportFormat format = ReportFormat.Original);
 

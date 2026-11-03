@@ -51,6 +51,9 @@ public static class RecordFormCodes
     /// <summary>Mẫu có xuất file trên hồ sơ; mẫu khai báo mà chưa có ở đây chỉ chưa hiện nút xuất, không phải lỗi cấu hình.</summary>
     public static IReadOnlyList<string> Exportable { get; } = new[] { Form01, Form02, Form09A, Form09C, Form9D, Form10 };
 
+    /// <summary>Mẫu có thêm bản Excel (.xlsx) bên cạnh bản Word.</summary>
+    public static IReadOnlyList<string> ExcelExportable { get; } = new[] { Form01, Form02, Form09A, Form9D, Form10 };
+
     /// <summary>Bỏ khoảng trắng, tiền tố "MAU"/"MẪU"; "09D" = "9D". Mã lạ giữ nguyên để bộ kiểm tra báo lỗi.</summary>
     public static string Normalize(string? code)
     {

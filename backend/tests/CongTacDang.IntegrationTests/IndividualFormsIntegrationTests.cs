@@ -98,7 +98,7 @@ public sealed class IndividualFormsIntegrationTests
         // Mã không có (kể cả 09B) → 400.
         Assert.Equal(HttpStatusCode.BadRequest, (await w.Owner.GetAsync($"/api/reports/docx/record/{recordId}/07")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await w.Owner.GetAsync($"/api/reports/docx/record/{recordId}/09B")).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await w.Owner.GetAsync($"/api/reports/docx/record/{recordId}/09A?format=xlsx")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await w.Owner.GetAsync($"/api/reports/docx/record/{recordId}/09A?format=odt")).StatusCode);
 
         // Người ngoài phạm vi (xem hồ sơ Phòng 2) và người không có quyền → 403.
         Assert.Equal(HttpStatusCode.Forbidden, (await w.Outsider.GetAsync($"/api/reports/docx/record/{recordId}/09C")).StatusCode);
@@ -141,7 +141,94 @@ public sealed class IndividualFormsIntegrationTests
         Assert.Contains("khóa dữ liệu", await MessageAsync(locked));
     }
 
+    [SkippableFact]
+    public async Task F3_ExcelExport_MatchesRecordData_AndChecksAccess()
+    {
+        var w = await World.CreateAsync(_factory);
+        var (_, recordId) = await OpenRecordAsync(w);
+        await Data(await SubmitAsync(w, recordId, SelfScoreBody()));
+        var record = await Data(w.Manager, $"/api/evaluations/records/{recordId}");
+        var tasks = record.GetProperty("tasks").EnumerateArray().ToList();
+
+        // Mẫu có bản Excel được đánh dấu trong danh sách biểu mẫu của hồ sơ.
+        var forms = (await Data(w.Owner, $"/api/reports/docx/record/{recordId}")).EnumerateArray()
+            .ToDictionary(f => f.GetProperty("code").GetString()!, f => f.GetProperty("hasExcel").GetBoolean());
+        Assert.False(forms["09C"]);
+        Assert.All(new[] { "01", "02", "09A", "9D", "10" }, code => Assert.True(forms[code]));
+
+        var (m01, name01) = await XlsxAsync(w.Owner, $"/api/reports/docx/record/{recordId}/01?format=xlsx");
+        Assert.Matches(@"^Mau 01_[A-Za-z0-9-]+_J Chu ho so \S+_Quy (I|II|III|IV)-\d{4}\.xlsx$", name01);
+        using (m01)
+        {
+            var ws = m01.Worksheet(1);
+            Assert.Contains($"Họ và tên cán bộ: {w.OwnerName}", Cells(ws));
+            var first = Row(ws, "Tên sản phẩm/nhiệm vụ") + 1;
+            Assert.Equal(tasks[0].GetProperty("taskName").GetString(), ws.Cell(first, 2).GetString());
+            Assert.Equal(tasks[0].GetProperty("weight").GetDouble(), ws.Cell(first, 6).GetDouble(), 1);
+            Assert.Equal(tasks.Sum(t => t.GetProperty("weight").GetDouble()), ws.Cell(Row(ws, "CỘNG"), 6).GetDouble(), 1);
+        }
+
+        var (m02, _) = await XlsxAsync(w.Owner, $"/api/reports/docx/record/{recordId}/02?format=xlsx");
+        using (m02)
+        {
+            var ws = m02.Worksheet(1);
+            var first = Row(ws, "A. Khối lượng (%)") + 1;
+            Assert.Equal(tasks[0].GetProperty("selfScore").GetDouble(), ws.Cell(first, 9).GetDouble(), 2);
+            Assert.Equal(tasks.Sum(t => t.GetProperty("selfScore").GetDouble()), ws.Cell(Row(ws, "CỘNG"), 9).GetDouble(), 2);
+        }
+
+        var (m09A, name09A) = await XlsxAsync(w.CellSec, $"/api/reports/docx/record/{recordId}/09A?format=xlsx");
+        Assert.StartsWith("Mau 09A_", name09A);
+        using (m09A)
+        {
+            var ws = m09A.Worksheet(1);
+            Assert.Contains($"CHI BỘ 1 {w.Suffix}", Cells(ws));
+            Assert.Contains("Nhận xét nhóm 1 (IT)", Cells(ws));
+            Assert.Equal(record.GetProperty("generalCriteriaScore").GetDouble(), ws.Cell(Row(ws, "Tổng"), 6).GetDouble(), 1);
+            var summary = Row(ws, "TỔNG ĐIỂM (100)") + 1;
+            Assert.Equal(record.GetProperty("totalSelfScore").GetDouble(), ws.Cell(summary, 4).GetDouble(), 1);
+        }
+
+        var (m9D, _) = await XlsxAsync(w.Owner, $"/api/reports/docx/record/{recordId}/9D?format=xlsx");
+        using (m9D)
+        {
+            var ws = m9D.Worksheet(1);
+            var axis1 = Row(ws, "Trục 1");
+            Assert.Equal("- Việc T1 đã hoàn thành (IT)", ws.Cell(axis1, 4).GetString());
+            Assert.Equal("Đúng hạn", ws.Cell(axis1, 6).GetString());
+            Assert.Contains("Trục 6", Cells(ws));
+        }
+
+        var (m10, _) = await XlsxAsync(w.Owner, $"/api/reports/docx/record/{recordId}/10?format=xlsx");
+        using (m10)
+        {
+            var ws = m10.Worksheet(1);
+            Assert.Equal(record.GetProperty("totalSelfScore").GetDouble(), ws.Cell(Row(ws, "TỔNG ĐIỂM (100đ)"), 2).GetDouble(), 1);
+        }
+
+        // Mẫu chỉ có bản Word → 400; người ngoài phạm vi, người không có quyền → 403.
+        Assert.Equal(HttpStatusCode.BadRequest, (await w.Owner.GetAsync($"/api/reports/docx/record/{recordId}/09C?format=xlsx")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.Outsider.GetAsync($"/api/reports/docx/record/{recordId}/01?format=xlsx")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.Plain.GetAsync($"/api/reports/docx/record/{recordId}/09A?format=xlsx")).StatusCode);
+    }
+
     #region Hỗ trợ
+
+    private const string XlsxType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+    private static async Task<(ClosedXML.Excel.XLWorkbook Workbook, string FileName)> XlsxAsync(HttpClient client, string url)
+    {
+        var response = await client.GetAsync(url);
+        Assert.True(response.StatusCode == HttpStatusCode.OK, $"{(int)response.StatusCode} {url}: {await response.Content.ReadAsStringAsync()}");
+        Assert.Equal(XlsxType, response.Content.Headers.ContentType?.MediaType);
+        var workbook = new ClosedXML.Excel.XLWorkbook(new MemoryStream(await response.Content.ReadAsByteArrayAsync()));
+        return (workbook, response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? string.Empty);
+    }
+
+    private static List<string> Cells(ClosedXML.Excel.IXLWorksheet ws) => ws.CellsUsed().Select(c => c.GetString()).ToList();
+
+    private static int Row(ClosedXML.Excel.IXLWorksheet ws, string text) =>
+        ws.CellsUsed().First(c => c.GetString() == text).Address.RowNumber;
 
     private static object SelfScoreBody(string selfAssessment = "Tự đánh giá mục I — lần 1", string? extraAxis = null, bool withGroupNotes = true)
     {
