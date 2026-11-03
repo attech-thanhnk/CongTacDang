@@ -1532,6 +1532,23 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid>("MemberId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("NotRatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("NotRatedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("NotRatedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("NotRatedFromStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NotRatedReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<string>("PartyCellComment")
                         .IsRequired()
                         .HasColumnType("text");

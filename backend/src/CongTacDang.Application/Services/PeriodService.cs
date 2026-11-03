@@ -319,8 +319,9 @@ public sealed class PeriodService : IPeriodService
         // Chụp nguyên bộ vào kỳ (bất biến cho kỳ này).
         AttachCriteria(period, set, DateTime.UtcNow);
 
-        // Khung tỷ trọng sai là lỗi dữ liệu, không phải cảnh báo: "mở bắt buộc" không bỏ qua được.
-        var frameErrors = WeightFrameErrors(ReadCriteria(period), records.Where(r => r.Status != RecordStatus.Published));
+        // Khung tỷ trọng sai là lỗi dữ liệu, không phải cảnh báo: "mở bắt buộc" không bỏ qua được. Hồ sơ Chưa xếp loại không chấm nên bỏ qua.
+        var frameErrors = WeightFrameErrors(ReadCriteria(period),
+            records.Where(r => r.Status != RecordStatus.Published && !r.IsMarkedNotRated()));
         if (frameErrors.Count > 0)
         {
             var criteria = ReadCriteria(period)!;
@@ -452,8 +453,8 @@ public sealed class PeriodService : IPeriodService
                 .Select(x => (x.record, x.profile, x.step, x.action, permission: WorkflowActions.PermissionFor(x.action!, x.profile)));
         }).ToList();
 
-        // Cổng bắt buộc cần người lập và người xác nhận/chốt khác nhau, không phải chủ hồ sơ.
-        var gateChecks = records.SelectMany(record =>
+        // Cổng bắt buộc cần người lập và người xác nhận/chốt khác nhau, không phải chủ hồ sơ. Hồ sơ Chưa xếp loại không qua cổng.
+        var gateChecks = records.Where(r => !r.IsMarkedNotRated()).SelectMany(record =>
         {
             var profile = EvaluationMapping.ProfileOf(settings, record);
             var list = new List<(EvaluationRecord Record, WorkflowProfile Profile, string Prepare, string Approve)>();
@@ -571,7 +572,7 @@ public sealed class PeriodService : IPeriodService
         var criteria = ReadCriteria(period);
         if (criteria != null)
         {
-            foreach (var record in records.Where(r => criteria.Content.FindFrame(r.WeightFrameCode) == null))
+            foreach (var record in records.Where(r => !r.IsMarkedNotRated() && criteria.Content.FindFrame(r.WeightFrameCode) == null))
             {
                 var profile = EvaluationMapping.ProfileOf(settings, record);
                 var fullName = record.Member?.FullName ?? string.Empty;
@@ -741,8 +742,15 @@ public sealed class PeriodService : IPeriodService
             .ThenBy(x => x.Rank <= PositionRules.CompanyLeadershipMaxRank ? string.Empty : x.Record.Department?.Name ?? string.Empty, StringComparer.CurrentCulture)
             .ThenBy(x => x.Rank)
             .ThenBy(x => x.Record.Member?.FullName ?? string.Empty, StringComparer.CurrentCulture)
-            .Select(x => ToParticipant(x.Record, settings, criteria, today))
+            .Select(x => WithNotRatedActions(ToParticipant(x.Record, settings, criteria, today), x.Record, period.Status))
             .ToList();
+    }
+
+    private PeriodParticipantDto WithNotRatedActions(PeriodParticipantDto dto, EvaluationRecord record, PeriodStatus periodStatus)
+    {
+        dto.CanMarkNotRated = NotRatedAccess.Can(_guard, _currentUser.UserId, record, periodStatus, mark: true);
+        dto.CanUnmarkNotRated = NotRatedAccess.Can(_guard, _currentUser.UserId, record, periodStatus, mark: false);
+        return dto;
     }
 
     /// <inheritdoc />
@@ -1200,7 +1208,8 @@ public sealed class PeriodService : IPeriodService
     {
         var period = await _repo.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
         var saved = (await _repo.ListRecordsAsync(periodId, ct)).First(r => r.Id == recordId);
-        return ToParticipant(saved, ReadSettings(period), ReadCriteria(period), EvaluationMapping.Today(DateTime.UtcNow));
+        return WithNotRatedActions(ToParticipant(saved, ReadSettings(period), ReadCriteria(period), EvaluationMapping.Today(DateTime.UtcNow)),
+            saved, period.Status);
     }
 
     #endregion
@@ -1303,12 +1312,12 @@ public sealed class PeriodService : IPeriodService
         return count;
     }
 
-    /// <summary>Hồ sơ đã công bố không còn bước chờ nên không tính hạn.</summary>
+    /// <summary>Hồ sơ đã công bố không còn bước chờ nên không tính hạn; hồ sơ Chưa xếp loại không đi các bước nên cũng không tính.</summary>
     private static PeriodParticipantDto ToParticipant(EvaluationRecord r, PeriodSettings settings, CriteriaSnapshot? criteria, DateOnly today)
     {
         var profile = EvaluationMapping.ProfileOf(settings, r);
         var step = WorkflowSteps.StepOf(r.Status);
-        var deadline = step.HasValue ? profile.Deadline(step.Value) : null;
+        var deadline = step.HasValue && !r.IsMarkedNotRated() ? profile.Deadline(step.Value) : null;
         var (daysOverdue, daysLeft) = EvaluationMapping.DeadlineDistance(deadline, today);
         return new PeriodParticipantDto
         {
@@ -1333,7 +1342,8 @@ public sealed class PeriodService : IPeriodService
             CurrentStepName = step.HasValue ? WorkflowSteps.DisplayName(step.Value) : null,
             CurrentStepDeadline = deadline,
             DaysOverdue = daysOverdue,
-            DaysLeft = daysLeft
+            DaysLeft = daysLeft,
+            NotRatedReason = r.NotRatedReason
         };
     }
 

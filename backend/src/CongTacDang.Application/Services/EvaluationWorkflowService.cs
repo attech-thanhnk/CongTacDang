@@ -46,6 +46,12 @@ public interface IEvaluationWorkflowService
     /// </summary>
     Task<EvaluationRecordDto> ExtendUnlockAsync(Guid recordId, UnlockRecordRequestDto request, CancellationToken ct = default);
 
+    /// <summary><c>period.manage</c> trên hồ sơ; hồ sơ bỏ qua các bước, có quyết định "Chưa xếp loại" và chờ công bố.</summary>
+    Task<EvaluationRecordDto> MarkNotRatedAsync(Guid recordId, NotRatedRequestDto request, CancellationToken ct = default);
+
+    /// <summary><c>period.manage</c> trên hồ sơ; hồ sơ về trạng thái trước khi đánh dấu.</summary>
+    Task<EvaluationRecordDto> UnmarkNotRatedAsync(Guid recordId, NotRatedRequestDto request, CancellationToken ct = default);
+
     /// <summary>Bước do cấp trên thực hiện: <c>evaluation.external.record</c>; hồ sơ sang bước áp dụng kế tiếp.</summary>
     Task<EvaluationRecordDto> RecordExternalResultAsync(Guid recordId, string step, ExternalResultRequestDto request, CancellationToken ct = default);
 
@@ -707,8 +713,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     public Task<EvaluationRecordDto> PublishAsync(Guid recordId, WorkflowRequestDto request, CancellationToken ct = default) =>
         ExecuteAsync(recordId, request, WorkflowActions.Publish, null, ctx =>
         {
-            // Chỉ công bố khi đã có mức được quyết định.
-            if (ctx.Record.FinalGrade == EvaluationGrade.ChuaXepLoai)
+            // Chỉ công bố khi đã có mức được quyết định (hồ sơ Chưa xếp loại đã có quyết định từ lúc đánh dấu).
+            if (ctx.Record.FinalGrade == EvaluationGrade.ChuaXepLoai && !ctx.Record.IsMarkedNotRated())
                 throw new ConflictException(ctx.Record.DecisionRecordedAt == null
                     ? "Hồ sơ chưa có quyết định mức xếp loại nên chưa công bố được."
                     : "Hồ sơ chưa có mức xếp loại được quyết định nên chưa công bố được. Hãy ghi nhận lại quyết định mức xếp loại.");
@@ -729,6 +735,9 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             ctx.Record.PublishedById = null;
             ctx.Record.PublishedByName = null;
             ctx.Record.PublishedAt = null;
+            // Mở lại hồ sơ Chưa xếp loại là đánh giá lại theo các bước nên bỏ dấu và quyết định đi kèm.
+            if (ctx.Record.IsMarkedNotRated())
+                NotRatedRules.Clear(ctx.Record);
 
             // Kỳ đã đóng → về "Khóa dữ liệu" để các bước sau thao tác được.
             var period = ctx.Record.Period;
@@ -782,6 +791,81 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
         GrantUnlock(record, until, reason, actorId, actorName, now);
         record.UpdatedAt = now;
+        _unitOfWork.SetOriginalVersion(record, request.Version);
+        await _unitOfWork.SaveChangesAsync(ct);
+        return await LoadDtoAsync(record, ct);
+    }
+
+    /// <inheritdoc />
+    public Task<EvaluationRecordDto> MarkNotRatedAsync(Guid recordId, NotRatedRequestDto request, CancellationToken ct = default) =>
+        ChangeNotRatedAsync(recordId, request, mark: true, ct);
+
+    /// <inheritdoc />
+    public Task<EvaluationRecordDto> UnmarkNotRatedAsync(Guid recordId, NotRatedRequestDto request, CancellationToken ct = default) =>
+        ChangeNotRatedAsync(recordId, request, mark: false, ct);
+
+    private async Task<EvaluationRecordDto> ChangeNotRatedAsync(Guid recordId, NotRatedRequestDto request, bool mark, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (request.Version is null)
+            throw new ValidationException("Thiếu phiên bản dữ liệu của hồ sơ. Hãy tải lại hồ sơ rồi thực hiện lại.");
+
+        var record = await _repo.FindRecordAsync(recordId, ct)
+            ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
+        if (_currentUser.UserId is { } userId && record.MemberId == userId)
+            throw new ForbiddenException("Bạn không thể đánh dấu hoặc bỏ đánh dấu Chưa xếp loại trên hồ sơ của chính mình (xung đột lợi ích).");
+        _guard.Ensure(PermissionCodes.PeriodManage, AccessTarget.ForRecord(record));
+
+        if (record.Version != request.Version.Value)
+            throw new ConflictException("Hồ sơ đã được người khác cập nhật sau khi bạn mở. Hãy tải lại hồ sơ để xem dữ liệu mới nhất rồi thực hiện lại.");
+        var block = mark
+            ? NotRatedRules.MarkBlockReason(record, record.Period.Status)
+            : NotRatedRules.UnmarkBlockReason(record, record.Period.Status);
+        if (block != null)
+            throw new ConflictException(block);
+
+        var reason = request.Reason?.Trim();
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new ValidationException(mark ? "Hãy nhập lý do Chưa xếp loại." : "Hãy nhập lý do bỏ đánh dấu Chưa xếp loại.");
+        if (reason.Length > NotRatedRules.MaxReasonLength)
+            throw new ValidationException($"Lý do không được dài quá {NotRatedRules.MaxReasonLength} ký tự.");
+
+        var now = DateTime.UtcNow;
+        var actorId = _currentUser.UserId;
+        var actorName = Truncate(actorId.HasValue
+            ? await _repo.GetMemberNameAsync(actorId.Value, ct) ?? _currentUser.UserName
+            : _currentUser.UserName, 200);
+        var profile = EvaluationMapping.ProfileOf(ReadSettings(record.Period), record);
+        var fromStatus = record.Status;
+        var scoreBefore = record.EffectiveScore();
+        var gradeBefore = record.EffectiveGrade();
+
+        if (mark)
+            NotRatedRules.Mark(record, reason, actorId, actorName, now);
+        else
+            NotRatedRules.Unmark(record, profile.ActiveSteps());
+        record.UpdatedAt = now;
+
+        _repo.AddHistory(new EvaluationRecordHistory
+        {
+            RecordId = record.Id,
+            FromStatus = fromStatus,
+            ToStatus = record.Status,
+            Step = mark ? WorkflowStep.B4_DECISION : WorkflowSteps.StepOf(record.Status),
+            Action = mark ? WorkflowAction.MarkNotRated : WorkflowAction.UnmarkNotRated,
+            Reason = reason,
+            ScoreBefore = scoreBefore,
+            ScoreAfter = record.EffectiveScore(),
+            GradeBefore = gradeBefore,
+            GradeAfter = record.EffectiveGrade(),
+            ActorId = actorId,
+            ActorName = string.IsNullOrWhiteSpace(actorName) ? "system" : actorName,
+            Comment = mark ? "Không đánh giá, Chưa xếp loại; hồ sơ chờ công bố." : "Bỏ đánh dấu Chưa xếp loại; hồ sơ tiếp tục các bước.",
+            CreatedAt = now
+        });
+        if (record.UnlockedUntil.HasValue)
+            ClearUnlock(record, actorId, actorName, now.AddMilliseconds(1));
+
         _unitOfWork.SetOriginalVersion(record, request.Version);
         await _unitOfWork.SaveChangesAsync(ct);
         return await LoadDtoAsync(record, ct);
@@ -1174,6 +1258,20 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 CurrentUnlockedUntil = record.UnlockedUntil,
                 DefaultUnlockDays = WorkflowActions.DefaultUnlockDays,
                 MaxUnlockDays = WorkflowActions.MaxUnlockDays
+            };
+        }
+
+        foreach (var mark in new[] { true, false })
+        {
+            if (!NotRatedAccess.Can(_guard, _currentUser.UserId, record, record.Period.Status, mark))
+                continue;
+            yield return new RecordActionDto
+            {
+                Action = mark ? WorkflowActions.MarkNotRated : WorkflowActions.UnmarkNotRated,
+                Step = WorkflowSteps.Code(WorkflowStep.B4_DECISION),
+                Label = mark ? "Không đánh giá (Chưa xếp loại)" : "Bỏ đánh dấu Chưa xếp loại",
+                RequiresReason = true,
+                ReasonOptional = false
             };
         }
     }

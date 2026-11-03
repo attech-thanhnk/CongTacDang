@@ -141,6 +141,11 @@ public static class WorkflowActions
     /// <summary>Không thuộc bước nào của luồng.</summary>
     public const string ExtendUnlock = "ExtendUnlock";
 
+    /// <summary>Người quản lý kỳ đánh dấu hồ sơ Chưa xếp loại, không thuộc bước nào.</summary>
+    public const string MarkNotRated = "MarkNotRated";
+
+    public const string UnmarkNotRated = "UnmarkNotRated";
+
     /// <summary>Theo giờ Việt Nam (dd/MM/yyyy HH:mm).</summary>
     public static string FormatLocal(DateTime utc) =>
         (utc + EvaluationMapping.BusinessUtcOffset).ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);

@@ -56,6 +56,8 @@ public sealed class EvaluationRecordConfiguration : IEntityTypeConfiguration<Eva
         entity.Property(e => e.ReturnReason).HasMaxLength(2000);
         entity.Property(e => e.UnlockedByName).HasMaxLength(200);
         entity.Property(e => e.UnlockReason).HasMaxLength(2000);
+        entity.Property(e => e.NotRatedReason).HasMaxLength(2000);
+        entity.Property(e => e.NotRatedByName).HasMaxLength(200);
         entity.Property(e => e.WeightFrameCode).HasMaxLength(20).IsRequired();
         entity.Property(e => e.GeneralScores).HasColumnType("jsonb").IsRequired();
         entity.Property(e => e.SelfAssessment).HasColumnType("jsonb").IsRequired();

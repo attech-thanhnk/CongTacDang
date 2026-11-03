@@ -604,6 +604,8 @@ Chọn bộ ở ô **Chọn bộ đã xuất bản** rồi bấm **Dùng bộ n�
   - **Đổi diện quyết định** (bắt buộc lý do; khi kỳ chưa đóng). Tích nhiều dòng để đổi hàng loạt. Chỉ đổi được khi hồ sơ chưa qua bước bị ảnh hưởng.
   - **Sửa** (khi kỳ Dự thảo hoặc Đang mở): sửa Phòng, Chi bộ, Khung tỷ trọng A-B-C-D, Cấp quyết định của hồ sơ trong kỳ (bắt buộc lý do).
   - **Bỏ khỏi kỳ** (menu của dòng, khi kỳ Dự thảo hoặc Đang mở): bỏ người khỏi kỳ; hồ sơ đánh giá của người đó trong kỳ bị xóa.
+  - **Không đánh giá (Chưa xếp loại)** (menu của dòng hoặc khu Thao tác trên trang hồ sơ, khi kỳ Dự thảo hoặc Đang mở và hồ sơ chưa có quyết định): dùng cho người đi đào tạo, nghỉ ốm, nghỉ thai sản từ 02 tháng, mới bổ nhiệm dưới 01 tháng hoặc đang bị kiểm tra dấu hiệu vi phạm. Nhập lý do, bấm **Đánh dấu**. Người đó không phải đăng ký, tự chấm; hồ sơ bỏ qua các bước, chuyển sang **Chờ công bố** và được công bố cùng mọi người với mức "Chưa xếp loại". Cột Trạng thái hiện nhãn **Chưa xếp loại** kèm lý do; báo cáo tính người này vào cột Chưa xếp loại.
+  - **Bỏ đánh dấu Chưa xếp loại** (khi đánh dấu nhầm, hồ sơ chưa công bố): nhập lý do; hồ sơ quay lại bước trước khi đánh dấu (thường là bước đăng ký sản phẩm). Hồ sơ đã công bố thì dùng **Mở lại hồ sơ**.
 
 ### 8.5 Người thực hiện các bước và mở kỳ
 

@@ -33,6 +33,9 @@ export type WorkflowActionCode =
   | "Reopen"
   /** Gia hạn mở riêng hồ sơ khi kỳ khóa dữ liệu. */
   | "ExtendUnlock"
+  /** Đánh dấu / bỏ đánh dấu hồ sơ Chưa xếp loại (không đi các bước). */
+  | "MarkNotRated"
+  | "UnmarkNotRated"
   /** Ghi nhận kết quả của bước do cấp trên thực hiện (bước ở trường `step`). */
   | "RecordExternal";
 
@@ -161,6 +164,11 @@ export interface PeriodParticipantDto {
   daysOverdue?: number | null;
   /** Số ngày còn lại tới hạn (0 = hạn hôm nay). */
   daysLeft?: number | null;
+  /** Lý do Chưa xếp loại; null = không đánh dấu. */
+  notRatedReason?: string | null;
+  /** Máy chủ cho phép đánh dấu / bỏ đánh dấu Chưa xếp loại. */
+  canMarkNotRated?: boolean;
+  canUnmarkNotRated?: boolean;
 }
 
 export interface ParticipantCandidateDto {
@@ -281,6 +289,10 @@ export interface EvaluationRecordDto {
   unlockActive?: boolean;
   unlockedByName?: string | null;
   unlockReason?: string | null;
+  /** Hồ sơ không đánh giá, Chưa xếp loại. */
+  notRatedReason?: string | null;
+  notRatedAt?: string | null;
+  notRatedByName?: string | null;
   progress: RecordStepProgressDto[];
 
   tasksApprovedByName?: string | null;
@@ -1121,6 +1133,8 @@ const ACTION_PATH: Record<WorkflowActionCode, string> = {
   Publish: "publish",
   Reopen: "reopen",
   ExtendUnlock: "unlock/extend",
+  MarkNotRated: "not-rated",
+  UnmarkNotRated: "not-rated/cancel",
   RecordExternal: "external",
 };
 

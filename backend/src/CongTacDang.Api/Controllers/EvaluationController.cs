@@ -190,6 +190,18 @@ public class EvaluationController : ControllerBase
     public Task<IActionResult> ExtendUnlock(Guid id, [FromBody] UnlockRecordRequestDto dto, CancellationToken ct) =>
         Run(() => _workflow.ExtendUnlockAsync(id, dto, ct), "Đã gia hạn mở riêng hồ sơ.");
 
+    /// <summary>Đánh dấu hồ sơ Chưa xếp loại (bắt buộc lý do): hồ sơ bỏ qua các bước, chờ công bố.</summary>
+    [HttpPost("records/{id:guid}/not-rated")]
+    [RequirePermission(PermissionCodes.PeriodManage)]
+    public Task<IActionResult> MarkNotRated(Guid id, [FromBody] NotRatedRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.MarkNotRatedAsync(id, dto, ct), "Đã đánh dấu Chưa xếp loại.");
+
+    /// <summary>Bỏ đánh dấu Chưa xếp loại (bắt buộc lý do).</summary>
+    [HttpPost("records/{id:guid}/not-rated/cancel")]
+    [RequirePermission(PermissionCodes.PeriodManage)]
+    public Task<IActionResult> UnmarkNotRated(Guid id, [FromBody] NotRatedRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.UnmarkNotRatedAsync(id, dto, ct), "Đã bỏ đánh dấu Chưa xếp loại.");
+
     /// <summary>Ghi nhận kết quả bước do cấp trên thực hiện (step = mã bước, ví dụ B4_DECISION).</summary>
     [HttpPost("records/{id:guid}/external/{step}")]
     [RequirePermission(PermissionCodes.EvaluationExternalRecord)]

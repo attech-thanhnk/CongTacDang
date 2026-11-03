@@ -138,6 +138,10 @@ public class EvaluationRecordDto
     public bool UnlockActive { get; set; }
     public string? UnlockedByName { get; set; }
     public string? UnlockReason { get; set; }
+    /// <summary>Hồ sơ không đánh giá, Chưa xếp loại; null = không đánh dấu.</summary>
+    public string? NotRatedReason { get; set; }
+    public DateTime? NotRatedAt { get; set; }
+    public string? NotRatedByName { get; set; }
     public List<RecordStepProgressDto> Progress { get; set; } = new();
 
     // B1
@@ -491,6 +495,12 @@ public class DecisionRequestDto : WorkflowRequestDto
     public string? Explanation { get; set; }
 }
 
+/// <summary>Đánh dấu / bỏ đánh dấu Chưa xếp loại (bắt buộc lý do).</summary>
+public class NotRatedRequestDto : WorkflowRequestDto
+{
+    public string? Reason { get; set; }
+}
+
 /// <summary>Mở lại hồ sơ đã công bố.</summary>
 public class ReopenRequestDto : WorkflowRequestDto
 {
@@ -699,6 +709,14 @@ public class PeriodParticipantDto
 
     /// <summary>0 = hạn là hôm nay; null khi đã quá hạn hoặc không có hạn.</summary>
     public int? DaysLeft { get; set; }
+
+    /// <summary>Lý do Chưa xếp loại; null = không đánh dấu.</summary>
+    public string? NotRatedReason { get; set; }
+
+    /// <summary>Người xem đánh dấu được Chưa xếp loại (theo quyền trên hồ sơ và trạng thái).</summary>
+    public bool CanMarkNotRated { get; set; }
+
+    public bool CanUnmarkNotRated { get; set; }
 }
 
 public class ParticipantCandidateDto

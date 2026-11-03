@@ -45,8 +45,9 @@ public sealed class WorkflowProfileIntegrationTests
         await StepAsync(w.CellSecC, id, "cell/confirm", new { comment = "Xác nhận" }, "AwaitingCollective");
         await StepAsync(w.SecretaryC, id, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
 
-        // B3b do cấp trên thực hiện: cơ quan thẩm định trong hệ thống không có thao tác, gọi API thẩm định → 409; không trả lại được.
-        await AssertActionsAsync(w.ManagerC, id);
+        // B3b do cấp trên thực hiện: cơ quan thẩm định trong hệ thống không có thao tác bước (chỉ còn đánh dấu Chưa xếp loại của người quản lý kỳ),
+        // gọi API thẩm định → 409; không trả lại được.
+        await AssertActionsAsync(w.ManagerC, id, "MarkNotRated");
         var internalAppraisal = await PostAsync(w.ManagerC, id, "appraisal", new { explanation = "Căn cứ thẩm định (test)", appraisalScore = 90.0, comment = "x", proposedGrade = "HoanThanhTot" }, await VersionAsync(w, id));
         Assert.Equal(HttpStatusCode.Conflict, internalAppraisal.StatusCode);
         Assert.Contains("cấp trên", await MessageAsync(internalAppraisal));

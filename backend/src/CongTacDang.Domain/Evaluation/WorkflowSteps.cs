@@ -78,7 +78,13 @@ public enum WorkflowAction
     ClearUnlock = 13,
 
     /// <summary>Áp hoặc hủy áp kết quả hiệu chuẩn (Mẫu 20) vào hồ sơ.</summary>
-    Calibrate = 14
+    Calibrate = 14,
+
+    /// <summary>Đánh dấu Chưa xếp loại: hồ sơ bỏ qua các bước, chờ công bố; bắt buộc lý do.</summary>
+    MarkNotRated = 15,
+
+    /// <summary>Bỏ đánh dấu Chưa xếp loại; bắt buộc lý do.</summary>
+    UnmarkNotRated = 16
 }
 
 public static class WorkflowSteps
@@ -240,6 +246,8 @@ public static class WorkflowSteps
         WorkflowAction.GrantUnlock => "Mở riêng hồ sơ",
         WorkflowAction.ClearUnlock => "Kết thúc mở riêng hồ sơ",
         WorkflowAction.Calibrate => "Họp thống nhất",
-        _ => action.ToString()
+        WorkflowAction.MarkNotRated => "Không đánh giá (Chưa xếp loại)",
+        WorkflowAction.UnmarkNotRated => "Bỏ đánh dấu Chưa xếp loại",
+        _ =>action.ToString()
     };
 }
