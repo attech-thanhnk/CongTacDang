@@ -366,6 +366,14 @@ public class DocumentTemplateTests
         Assert.DoesNotContain("Nhất trí…", mau10);
         Assert.DoesNotContain("(TC   /30đ)", mau10);
 
+        // Người quản lý trực tiếp: người duyệt danh mục trong hệ thống; cấp trên ghi nhận thì để ký tay.
+        record.TasksApprovedById = Guid.NewGuid();
+        record.TasksApprovedByName = "Nguyễn Văn Duyệt";
+        Assert.Contains("Nguyễn Văn Duyệt", Text(Mau01Data.TemplateFileName, Mau01Data.From(record)));
+        record.TasksApprovedById = null;
+        record.TasksApprovedByName = "Hội đồng thành viên Tổng công ty";
+        Assert.Null(Mau01Data.From(record).SupervisorName);
+
         // Chưa tới bước → giữ dòng chấm.
         record.TasksApprovedAt = null;
         record.AppraisedAt = null;
