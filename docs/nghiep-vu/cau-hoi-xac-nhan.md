@@ -33,7 +33,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 ### A2. [Ưu tiên] Xử lý trường hợp "Chưa xếp loại"
 - **Câu hỏi:** Người thuộc diện chưa xếp loại (đào tạo, nghỉ ốm, thai sản từ 02 tháng; mới bổ nhiệm dưới 01 tháng; đang bị kiểm tra dấu hiệu vi phạm) xử lý trên hệ thống thế nào?
 - **Căn cứ:** Mục III.9 (tr.17).
-- **Hệ thống đang làm (mặc định):** Người đó vẫn có hồ sơ và đi hết luồng. Ở bước quyết định, Đảng ủy cơ sở chọn được mức "Chưa xếp loại". Kết quả do cấp trên quyết định thì bắt buộc phải là một trong 4 mức.
+- **Hệ thống đang làm (đã chốt):** Người quản lý kỳ đánh dấu hồ sơ "Không đánh giá (Chưa xếp loại)" kèm lý do ngay từ đầu (khi kỳ dự thảo hoặc đang mở, hồ sơ chưa có quyết định). Người đó không đăng ký danh mục, không tự chấm; hồ sơ bỏ qua các bước, coi như đã có quyết định "Chưa xếp loại", chờ công bố cùng mọi người và được tính vào cột Chưa xếp loại trong Quyết định, Mẫu 14, 15A/15B, 16. Đánh dấu nhầm thì bỏ đánh dấu (bắt buộc lý do) khi chưa công bố. Kết quả do cấp trên quyết định thì bắt buộc phải là một trong 4 mức.
 - **Phương án khác:** Không đưa vào danh sách kỳ; đánh dấu "Chưa xếp loại" kèm lý do ngay từ đầu và bỏ qua các bước; cho cấp trên ghi "Chưa xếp loại".
 - **Ảnh hưởng nếu đổi:** Không đưa vào kỳ: cấu hình trên giao diện. Đánh dấu riêng hoặc cho cấp trên ghi "Chưa xếp loại": cần sửa phần mềm.
 - **Trả lời (03/11/2026):** Phương án khác — người không đánh giá trong quý thì không phải đăng ký, tự chấm: đánh dấu "Chưa xếp loại" kèm lý do ngay từ đầu, bỏ qua các bước.

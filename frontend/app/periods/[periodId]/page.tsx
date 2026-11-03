@@ -512,6 +512,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
   const [editing, setEditing] = useState<PeriodParticipantDto | null>(null);
   const [profileTargets, setProfileTargets] = useState<PeriodParticipantDto[] | null>(null);
   const [checked, setChecked] = useState<string[]>([]);
+  const [notRated, setNotRated] = useState<{ participant: PeriodParticipantDto; mark: boolean } | null>(null);
   // Danh sách người không thêm/đổi được cần đọc kỹ nên hiện trong hộp thoại thay vì toast.
   const [skipped, setSkipped] = useState<{ title: string; items: string[] } | null>(null);
 
@@ -732,7 +733,9 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                   <td className="d-none d-lg-table-cell" title={p.weightFrameName || undefined}>{p.weightFrameCode || "—"}{p.weightFrameCode && !p.weightFrameName && period.criteria && <i className="bi bi-exclamation-triangle text-danger ms-1" title="Khung không có trong bộ tiêu chí của kỳ" />}</td>
                   <td className="d-none d-lg-table-cell text-nowrap">{p.approvalAuthority === "CapTren" ? "Cấp trên" : "Cơ sở"}</td>
                   <td className="d-none d-md-table-cell">{p.workflowProfileName || p.workflowProfileCode}</td>
-                  <td className="d-none d-md-table-cell"><RecordStatusBadge status={p.status} label={p.statusDisplayName} /></td>
+                  <td className="d-none d-md-table-cell"><RecordStatusBadge status={p.status} label={p.statusDisplayName} />
+                    {p.notRatedReason && <div className="small text-secondary mt-1" title={p.notRatedReason}><span className="badge text-bg-secondary me-1">Chưa xếp loại</span>{p.notRatedReason}</div>}
+                  </td>
                   {canChangeProfile && (
                     <td className="text-end">
                       <RowActions
@@ -741,10 +744,12 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                         primary={canAdd
                           ? [{ key: "edit", label: "Sửa", icon: "bi-pencil", title: "Sửa thông tin", onClick: () => setEditing(p) }]
                           : [{ key: "profile", label: "Đổi diện quyết định", icon: "bi-diagram-3", onClick: () => setProfileTargets([p]) }]}
-                        menu={canAdd ? [
-                          { key: "profile", label: "Đổi diện quyết định", icon: "bi-diagram-3", onClick: () => setProfileTargets([p]) },
-                          { key: "remove", label: "Bỏ khỏi kỳ", icon: "bi-trash", danger: true, onClick: () => remove(p) },
-                        ] : []}
+                        menu={[
+                          ...(canAdd ? [{ key: "profile", label: "Đổi diện quyết định", icon: "bi-diagram-3", onClick: () => setProfileTargets([p]) }] : []),
+                          ...(p.canMarkNotRated ? [{ key: "not-rated", label: "Không đánh giá (Chưa xếp loại)", icon: "bi-slash-circle", onClick: () => setNotRated({ participant: p, mark: true }) }] : []),
+                          ...(p.canUnmarkNotRated ? [{ key: "not-rated-cancel", label: "Bỏ đánh dấu Chưa xếp loại", icon: "bi-arrow-counterclockwise", onClick: () => setNotRated({ participant: p, mark: false }) }] : []),
+                          ...(canAdd ? [{ key: "remove", label: "Bỏ khỏi kỳ", icon: "bi-trash", danger: true, onClick: () => remove(p) }] : []),
+                        ]}
                       />
                     </td>
                   )}
@@ -805,6 +810,23 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
           }
         />
       )}
+
+      <ReasonDialog
+        isOpen={!!notRated}
+        title={notRated?.mark ? `Không đánh giá: ${notRated.participant.fullName}` : `Bỏ đánh dấu Chưa xếp loại: ${notRated?.participant.fullName ?? ""}`}
+        description={notRated?.mark ? "Hồ sơ bỏ qua các bước, xếp loại \"Chưa xếp loại\" và chờ công bố." : "Hồ sơ quay lại các bước đánh giá."}
+        confirmText={notRated?.mark ? "Đánh dấu" : "Bỏ đánh dấu"}
+        busy={busy}
+        onCancel={() => setNotRated(null)}
+        onConfirm={(reason) => {
+          if (!notRated) return;
+          const { participant, mark } = notRated;
+          run(async () => {
+            await evaluationService.performAction(participant.recordId, mark ? "MarkNotRated" : "UnmarkNotRated", participant.version, { reason });
+            setNotRated(null);
+          }, mark ? "Đã đánh dấu Chưa xếp loại." : "Đã bỏ đánh dấu Chưa xếp loại.");
+        }}
+      />
 
       {skipped && (
         <AdminModal

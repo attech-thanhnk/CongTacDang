@@ -48,6 +48,14 @@ import {
 import { formatDate, formatDateTime } from "@/lib/dateFormat";
 import { errorMessage } from "@/components/admin/adminUtils";
 
+/** Chữ trên hộp nhập lý do theo thao tác; thao tác không có ở đây là trả lại hồ sơ. */
+const REASON_TEXT: Partial<Record<WorkflowActionCode, { description: string; confirm: string }>> = {
+  Reopen: { description: "Mở lại hồ sơ đã công bố để đính chính.", confirm: "Mở lại hồ sơ" },
+  ExtendUnlock: { description: "Gia hạn thời gian chủ hồ sơ và các bước trước thẩm định được thao tác trên hồ sơ này.", confirm: "Gia hạn" },
+  MarkNotRated: { description: "Hồ sơ bỏ qua các bước, xếp loại \"Chưa xếp loại\" và chờ công bố.", confirm: "Đánh dấu" },
+  UnmarkNotRated: { description: "Hồ sơ quay lại các bước đánh giá.", confirm: "Bỏ đánh dấu" },
+};
+
 /** Cột trái: tiến trình, khu thao tác (theo `actions`) và dữ liệu từng bước; cột phải: biểu mẫu, lịch sử, thông tin hồ sơ. */
 export default function EvaluationRecordPage() {
   const params = useParams<{ recordId: string }>();
@@ -194,6 +202,12 @@ export default function EvaluationRecordPage() {
             <i className="bi bi-arrow-return-left me-2" aria-hidden="true" /><strong>Bị trả lại:</strong> {record.returnReason}
           </div>
         )}
+        {record.notRatedReason && (
+          <div className="alert alert-secondary mb-0">
+            <i className="bi bi-slash-circle me-2" aria-hidden="true" /><strong>Chưa xếp loại:</strong> {record.notRatedReason}
+            {record.notRatedByName && <span className="text-secondary"> — {record.notRatedByName}{record.notRatedAt ? `, ${formatDateTime(record.notRatedAt)}` : ""}</span>}
+          </div>
+        )}
         {record.unlockedUntil && record.periodStatus === "Locked" && (
           <div className={`alert ${record.unlockActive ? "alert-info" : "alert-warning"} mb-0`}>
             {record.unlockActive
@@ -255,14 +269,8 @@ export default function EvaluationRecordPage() {
       <ReasonDialog
         isOpen={!!reasonAction}
         title={reasonAction?.label || ""}
-        description={
-          reasonAction?.action === "Reopen"
-            ? "Mở lại hồ sơ đã công bố để đính chính."
-            : reasonAction?.action === "ExtendUnlock"
-              ? "Gia hạn thời gian chủ hồ sơ và các bước trước thẩm định được thao tác trên hồ sơ này."
-              : "Hồ sơ sẽ quay về chủ hồ sơ để sửa."
-        }
-        confirmText={reasonAction?.action === "Reopen" ? "Mở lại hồ sơ" : reasonAction?.action === "ExtendUnlock" ? "Gia hạn" : "Trả lại"}
+        description={reasonAction ? REASON_TEXT[reasonAction.action]?.description ?? "Hồ sơ sẽ quay về chủ hồ sơ để sửa." : undefined}
+        confirmText={reasonAction ? REASON_TEXT[reasonAction.action]?.confirm ?? "Trả lại" : "Trả lại"}
         targetSteps={reasonAction?.targetSteps}
         unlock={reasonAction}
         busy={busy}

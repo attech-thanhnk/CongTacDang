@@ -68,10 +68,12 @@ export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }:
     withReason.length > 0 ? (
       <>
         {withReason.map((action) => {
-          const mild = action.action === "ExtendUnlock";
+          const mild = action.action === "ExtendUnlock" || action.action === "MarkNotRated" || action.action === "UnmarkNotRated";
+          const icon = action.action === "ExtendUnlock" ? "bi-clock-history" : action.action === "MarkNotRated" ? "bi-slash-circle"
+            : action.action === "UnmarkNotRated" ? "bi-arrow-counterclockwise" : "bi-arrow-return-left";
           return (
             <button key={action.action} type="button" className={`btn ${mild ? "btn-outline-secondary" : "btn-outline-danger"}`} disabled={busy} onClick={() => onReason(action)}>
-              <i className={`bi ${mild ? "bi-clock-history" : "bi-arrow-return-left"} me-1`} aria-hidden="true" />
+              <i className={`bi ${icon} me-1`} aria-hidden="true" />
               {action.label}
             </button>
           );

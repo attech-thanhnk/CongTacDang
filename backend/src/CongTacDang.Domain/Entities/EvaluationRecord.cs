@@ -264,6 +264,24 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 
     #endregion
 
+    #region Chưa xếp loại, không đi các bước
+
+    /// <summary>Lý do người quản lý kỳ đánh dấu hồ sơ không đánh giá (Chưa xếp loại); null = không đánh dấu.</summary>
+    public string? NotRatedReason { get; set; }
+
+    public DateTime? NotRatedAt { get; set; }
+
+    public Guid? NotRatedById { get; set; }
+
+    public string? NotRatedByName { get; set; }
+
+    /// <summary>Trạng thái lúc đánh dấu, để bỏ đánh dấu thì hồ sơ về đúng chỗ cũ.</summary>
+    public RecordStatus? NotRatedFromStatus { get; set; }
+
+    public bool IsMarkedNotRated() => NotRatedAt.HasValue;
+
+    #endregion
+
     #region B5: Công bố
 
     public Guid? PublishedById { get; set; }
@@ -290,7 +308,7 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 
     /// <summary>Quyết định → hiệu chuẩn → thẩm định → tự chấm (chỉ khi đã nộp phiếu).</summary>
     public double EffectiveScore() =>
-        FinalGrade != EvaluationGrade.ChuaXepLoai && FinalScore > 0 ? FinalScore : ReviewedScore() ?? (SelfScoredAt.HasValue ? TotalSelfScore : 0);
+        IsMarkedNotRated() ? 0 : FinalGrade != EvaluationGrade.ChuaXepLoai && FinalScore > 0 ? FinalScore : ReviewedScore() ?? (SelfScoredAt.HasValue ? TotalSelfScore : 0);
 
     /// <summary>Có mức sau hiệu chuẩn và nó đến sau nhận xét của cấp trực tiếp sử dụng (hoặc cấp đó chưa nhận xét).</summary>
     public bool CalibratedSupersedesDirector() =>
@@ -300,6 +318,9 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Quyết định → cấp trực tiếp sử dụng và hiệu chuẩn (cái nào sau) → thẩm định → tập thể → tự đề xuất.</summary>
     public EvaluationGrade EffectiveGrade()
     {
+        // Hồ sơ không đánh giá thì các mức đề xuất trước đó không còn hiệu lực.
+        if (IsMarkedNotRated())
+            return EvaluationGrade.ChuaXepLoai;
         // Mức tự đề xuất chỉ tính khi đã nộp phiếu tự chấm (bản nháp không tính).
         var self = SelfScoredAt.HasValue ? SelfProposedGrade : EvaluationGrade.ChuaXepLoai;
         var calibrated = CalibratedGrade ?? EvaluationGrade.ChuaXepLoai;

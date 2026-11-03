@@ -42,10 +42,29 @@ public static class EvaluationMapping
     public static List<RecordStepProgressDto> Progress(EvaluationRecord record, WorkflowProfile profile, DateOnly today)
     {
         var result = Progress(record.Status, profile, today);
+        // Hồ sơ Chưa xếp loại: bước chưa làm trước lúc đánh dấu là bỏ qua, bước quyết định do người đánh dấu.
+        var notRatedFrom = record.IsMarkedNotRated() && WorkflowSteps.StepOf(record.NotRatedFromStatus ?? RecordStatus.AwaitingRegistration) is { } from
+            ? WorkflowSteps.IndexOf(from)
+            : (int?)null;
         foreach (var item in result)
         {
             var step = WorkflowSteps.Parse(item.Step)!.Value;
             item.Actor = StepActor(step, profile, record);
+            if (notRatedFrom.HasValue && step == WorkflowStep.B4_DECISION && item.Enabled)
+            {
+                item.State = "done";
+                item.Overdue = false;
+                item.DoneAt = record.NotRatedAt;
+                item.DoneByName = Clean(record.NotRatedByName);
+                continue;
+            }
+            if (notRatedFrom is { } skipFrom && item.Enabled && WorkflowSteps.IndexOf(step) >= skipFrom
+                && WorkflowSteps.IndexOf(step) < WorkflowSteps.IndexOf(WorkflowStep.B4_DECISION))
+            {
+                item.State = "skipped";
+                item.Overdue = false;
+                continue;
+            }
             if (item.State != "done")
                 continue;
             var (at, by) = StepCompletion(step, profile, record);
@@ -200,6 +219,9 @@ public static class EvaluationMapping
             UnlockActive = r.Period?.Status == PeriodStatus.Locked && r.IsUnlockedAt(DateTime.UtcNow),
             UnlockedByName = r.UnlockedUntil.HasValue ? r.UnlockedByName : null,
             UnlockReason = r.UnlockedUntil.HasValue ? r.UnlockReason : null,
+            NotRatedReason = r.NotRatedReason,
+            NotRatedAt = r.NotRatedAt,
+            NotRatedByName = r.NotRatedByName,
             Progress = Progress(r, profile, today),
 
             TasksApprovedByName = r.TasksApprovedByName,

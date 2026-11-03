@@ -691,7 +691,8 @@ public partial class ReportService : IReportService
             r.CollectiveProposedGrade,
             r.ReviewedGrade(),
             r.DirectorProposedGrade,
-            r.FinalGrade));
+            r.FinalGrade,
+            r.IsMarkedNotRated() ? r.NotRatedReason : null));
 
         var data = MauQdData.From(period, header, superior, await DecisionInfoAsync(period.Id, partyCellId, decided), lines);
         var bytes = await RenderWordAsync(MauQdData.TemplateFileName, data);
