@@ -369,6 +369,13 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Phương án khác:** Để trống như biểu mẫu gốc, người dùng tự điền sau khi xuất.
 - **Ảnh hưởng nếu đổi:** Đổi trên giao diện (Thông tin đơn vị).
 
+### F5a. Mẫu 01: người quản lý trực tiếp ký phiếu
+- **Câu hỏi:** Người ký ô "Người quản lý trực tiếp" trên Mẫu 01 có phải là người duyệt danh mục sản phẩm không?
+- **Căn cứ:** Mẫu 01 (phiếu giao, đăng ký sản phẩm) có ô ký của người quản lý trực tiếp.
+- **Hệ thống đang làm (mặc định):** In tên người đã duyệt danh mục trong hệ thống (Lãnh đạo đơn vị; Chủ tịch với Phó Giám đốc). Danh mục do cấp trên duyệt (hệ thống chỉ ghi nhận) hoặc chưa duyệt thì để dòng chấm để ký tay.
+- **Phương án khác:** Luôn để trống để ký tay; hoặc in người khác (ví dụ cấp trưởng đơn vị dù người duyệt là cấp phó).
+- **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
+
 ### F6. Tên tệp nộp theo quy cách
 - **Câu hỏi:** Tệp xuất ra có cần đặt tên đúng quy cách "Mau 16_QLBMB_Quy III-2026" không?
 - **Căn cứ:** Mục V.1 (tr.21): "Mau bao cao_Ten viet tat co quan, don vi_Ky bao cao", viết không dấu.
