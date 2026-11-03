@@ -17,8 +17,8 @@ param(
     # Kỳ thử đã có hồ sơ: đẩy tiếp các hồ sơ đang có thay vì dừng
     [switch]$TiepTuc,
     [string]$ApiUrl = 'http://localhost:5000',
-    # Tài khoản được thử lần lượt cho mỗi bước (huyen.utt: Chi bộ Phòng Tài chính - Kế toán của thanh.nn)
-    [string[]]$TaiKhoan = @('giang.nh', 'thinh.lt', 'duy.lm', 'dao.nta', 'trung.nb', 'thanh.nn', 'loan.ttp', 'loan.ctp', 'long.nc', 'hung.dt', 'huyen.utt'),
+    # Thử lần lượt, cấp gần nhất trước để đúng thực tế (Trưởng phòng duyệt cho Phó phòng, thư ký Văn phòng ghi đề xuất); huyen.utt: Chi bộ của thanh.nn
+    [string[]]$TaiKhoan = @('duy.lm', 'dao.nta', 'trung.nb', 'huyen.utt', 'long.nc', 'loan.ttp', 'loan.ctp', 'hung.dt', 'giang.nh', 'thinh.lt', 'thanh.nn'),
     # Mật khẩu thử chỉ dùng trên máy phát triển
     [string]$MatKhau = 'Thu12345a',
     # CSDL mà backend dev đang dùng; -LamSach chỉ chạy trên CSDL thử
