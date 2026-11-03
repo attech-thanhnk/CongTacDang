@@ -92,3 +92,31 @@ Tắt hai cửa sổ chạy backend và giao diện (Ctrl+C), rồi xóa cơ s�
 docker exec attech-dangbo-postgres psql -U <USER> -d postgres -c "DROP DATABASE IF EXISTS ctd_thu;"
 ```
 Dữ liệu thật `congtacdang_dev` không bị thay đổi trong suốt quá trình này.
+
+## 7. Tạo nhanh dữ liệu thử bằng script
+
+Muốn bắt đầu thử từ giữa luồng mà không bấm lại các bước đầu: chạy `scripts/tao-du-lieu-thu.ps1` khi backend đang chạy (mặc định `http://localhost:5000`). Script chỉ gọi API nên đi qua đúng kiểm tra quyền và luật luồng; nên chạy trên bản sao dữ liệu ở mục 1.
+
+```powershell
+powershell -File scripts/tao-du-lieu-thu.ps1 -GiaiDoan tham-dinh
+powershell -File scripts/tao-du-lieu-thu.ps1 -GiaiDoan cong-bo -TiepTuc   # đẩy tiếp kỳ thử đã có
+powershell -File scripts/tao-du-lieu-thu.ps1 -LamSach
+```
+
+Script tạo kỳ Quý IV/2026 với bộ tiêu chí đã xuất bản đầu tiên, thêm `duy.lm`, `dao.nta`, `trung.nb` (Phòng Kế hoạch - Kinh doanh) và `thanh.nn` (Phó Giám đốc), dời hạn các bước để không bước nào quá hạn, mở kỳ rồi đẩy mọi hồ sơ tới giai đoạn chọn:
+
+| `-GiaiDoan` | Hồ sơ dừng ở |
+|---|---|
+| `dang-ky` | Chờ đăng ký sản phẩm (vừa mở kỳ) |
+| `tu-cham` | Chờ tự chấm (đã đăng ký, đã duyệt danh mục) |
+| `tap-the` | Chờ đề xuất tập thể (đã tự chấm, Chi bộ đã xác nhận) |
+| `tham-dinh` | Chờ thẩm định; diện không có bước này dừng ở bước kế |
+| `nhan-xet` | Chờ cấp trực tiếp sử dụng nhận xét |
+| `quyet-dinh` | Chờ quyết định; đã chốt biên bản họp thống nhất (Mẫu 20) và phiếu kiểm tra (Mẫu 19) nếu cổng Bắt buộc |
+| `cong-bo` | Chờ công bố (đã quyết định hoặc ghi nhận kết quả cấp trên) |
+
+Mỗi bước dùng tài khoản đầu tiên trong danh sách `-TaiKhoan` có nút trên hồ sơ, như trên giao diện. Cuối cùng script in bảng hồ sơ, trạng thái và tài khoản cần làm tiếp. Mật khẩu mặc định `Thu12345a` (đổi bằng `-MatKhau`).
+
+- Đã có kỳ quý đó với hồ sơ: script dừng. Dùng `-TiepTuc` để đẩy tiếp, hoặc `-LamSach`.
+- `-LamSach` chỉ bỏ được hồ sơ chưa có dữ liệu (API không có chức năng xóa kỳ). Kỳ không còn hồ sơ thì lần chạy sau dùng lại. Hồ sơ đã có dữ liệu thì phải bỏ bản sao dữ liệu thử và tạo lại (mục 1, mục 6).
+- Đăng nhập bị giới hạn 10 lần mỗi phút: script tự chờ khi gặp giới hạn.

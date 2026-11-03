@@ -24,6 +24,7 @@ Tìm đúng tài liệu theo việc bạn cần làm. Mọi liên kết là đư
 | Nhà phát triển hiểu luồng đánh giá | [thiet-ke/luong-danh-gia.md](thiet-ke/luong-danh-gia.md) | Năm bước, trạng thái, hồ sơ luồng, kiểm tra kẹt luồng. |
 | Nhà phát triển hiểu phiếu xác nhận số liệu (đối soát), kiểm tra (kiểm soát), họp thống nhất (hiệu chuẩn) | [thiet-ke/mau-03-19-20.md](thiet-ke/mau-03-19-20.md) | Thiết kế Mẫu 03, 19, 20 và các cổng trước quyết định. |
 | Kiểm thử thủ công một kỳ đi hết luồng | [kiem-thu-thu-cong.md](kiem-thu-thu-cong.md) | Dựng bản sao thử và các kịch bản kèm kết quả mong đợi. |
+| Tạo nhanh dữ liệu thử tới một giai đoạn của luồng (máy phát triển) | [kiem-thu-thu-cong.md](kiem-thu-thu-cong.md) | Mục 7: script `scripts/tao-du-lieu-thu.ps1`, các giai đoạn và cách làm sạch. |
 | Chạy kiểm thử giao diện tự động | [kiem-thu-tu-dong.md](kiem-thu-tu-dong.md) | Dựng môi trường thử riêng và chạy Playwright. |
 | Tra thuật ngữ, tên vai trò, tên mức xếp loại | [thiet-ke/thuat-ngu.md](thiet-ke/thuat-ngu.md) | Bảng tên gọi thống nhất cho giao diện, vai trò, quyền, biểu mẫu. |
 | Xem các điểm nghiệp vụ cần chốt | [nghiep-vu/cau-hoi-xac-nhan.md](nghiep-vu/cau-hoi-xac-nhan.md) | Câu hỏi, cách hệ thống đang làm và phương án khác. |
