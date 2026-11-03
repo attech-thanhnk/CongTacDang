@@ -36,7 +36,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Hệ thống đang làm (đã chốt):** Người quản lý kỳ đánh dấu hồ sơ "Không đánh giá (Chưa xếp loại)" kèm lý do ngay từ đầu (khi kỳ dự thảo hoặc đang mở, hồ sơ chưa có quyết định). Người đó không đăng ký danh mục, không tự chấm; hồ sơ bỏ qua các bước, coi như đã có quyết định "Chưa xếp loại", chờ công bố cùng mọi người và được tính vào cột Chưa xếp loại trong Quyết định, Mẫu 14, 15A/15B, 16. Đánh dấu nhầm thì bỏ đánh dấu (bắt buộc lý do) khi chưa công bố. Kết quả do cấp trên quyết định thì bắt buộc phải là một trong 4 mức.
 - **Phương án khác:** Không đưa vào danh sách kỳ; đánh dấu "Chưa xếp loại" kèm lý do ngay từ đầu và bỏ qua các bước; cho cấp trên ghi "Chưa xếp loại".
 - **Ảnh hưởng nếu đổi:** Không đưa vào kỳ: cấu hình trên giao diện. Đánh dấu riêng hoặc cho cấp trên ghi "Chưa xếp loại": cần sửa phần mềm.
-- **Trả lời (03/11/2026):** Phương án khác — người không đánh giá trong quý thì không phải đăng ký, tự chấm: đánh dấu "Chưa xếp loại" kèm lý do ngay từ đầu, bỏ qua các bước.
+- **Trả lời (03/11/2026), đã làm:** người không đánh giá trong quý thì không phải đăng ký, tự chấm: đánh dấu "Chưa xếp loại" kèm lý do ngay từ đầu, bỏ qua các bước.
 
 ### A3. Cán bộ chuyển đơn vị hoặc đổi chức vụ trong quý
 - **Câu hỏi:** Cán bộ chuyển đơn vị hoặc đổi chức vụ trong quý thì hồ sơ thuộc đơn vị nào?
@@ -349,7 +349,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Hệ thống đang làm (mặc định):** Mẫu 01, 02, 09A, 9D, 10 xuất Word, PDF và Excel (cùng số liệu với bản Word). Mẫu 08 xuất Word và Excel. Mẫu 14, 15A, 15B và Bảng tổng hợp xếp loại cán bộ của kỳ xuất Excel. Các mẫu còn lại (03, 04, 05, 06, 07, 09C, 11, 12, 13, 16, 17, 19, 20, Quyết định) xuất Word/PDF.
 - **Phương án khác:** Bỏ bản Excel của 01, 02, 09A, 9D, 10 (chỉ giữ Word/PDF).
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm (ẩn mục Excel).
-- **Trả lời (03/11/2026):** Phương án khác — cần bản Excel cho Mẫu 01, 02, 09A, 9D, 10.
+- **Trả lời (03/11/2026), đã làm:** cần bản Excel cho Mẫu 01, 02, 09A, 9D, 10.
 
 ### F3. [Ưu tiên] Mẫu 10: điểm thẩm định theo nhóm và mức từng nhiệm vụ
 - **Câu hỏi:** Cách chấm thẩm định theo nhóm tiêu chí, đánh giá Mức 1/2/3 từng nhiệm vụ và in trên Mẫu 10 dưới đây có đúng không?
@@ -357,7 +357,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Hệ thống đang làm (mặc định):** Khi thẩm định nội bộ, người thẩm định chấm Mức 1/2/3 cho từng nhiệm vụ (bắt buộc đủ) và cho điểm thẩm định hai nhóm. Nhóm tiêu chí chung (tối đa 30) chấm theo một trong hai cách, người thẩm định chọn trên từng hồ sơ: nhập một điểm cho cả nhóm, hoặc chấm từng tiêu chí con như phiếu tự chấm (cùng giới hạn điểm, K/AD, căn cứ giảm điểm) để hệ thống tự cộng ra điểm nhóm. Nhóm kết quả nhiệm vụ (tối đa 70) nhập tay (mức 1/2/3 của nhiệm vụ không quy ra điểm). Hệ thống tự tính tổng điểm thẩm định và in đầy đủ điểm thẩm định, độ chênh lệch của từng nhóm lên Mẫu 10.
 - **Phương án khác:** Chấm điểm thẩm định cho từng sản phẩm lẻ (quy điểm nhóm nhiệm vụ từ từng sản phẩm).
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
-- **Trả lời (03/11/2026):** Phương án khác — cho chọn cả hai cách: chấm theo nhóm hoặc chấm từng tiêu chí con.
+- **Trả lời (03/11/2026), đã làm:** cho chọn cả hai cách: chấm theo nhóm hoặc chấm từng tiêu chí con.
 
 ### F4. [Ưu tiên] Mẫu 09C: bắt buộc nhập và độ dài
 - **Câu hỏi:** Bản tự đánh giá Mẫu 09C có bắt buộc nhập mới cho nộp không? Giới hạn 6.000 ký tự (khoảng 02 trang A4) có phù hợp không?
