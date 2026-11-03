@@ -49,9 +49,10 @@ public sealed class WorkflowProfileUnitTests
         // Chủ tịch, Giám đốc, Kiểm soát viên: HĐTV Tổng công ty duyệt danh mục sản phẩm (cấp trên thực hiện).
         Assert.Equal(StepMode.External, upper.Mode(WorkflowStep.B1_APPROVE));
 
-        // Phó Giám đốc: tập thể Công ty, Chủ tịch nhận xét trong hệ thống; không có bước thẩm định riêng; BTV quyết định.
+        // Phó Giám đốc: Chủ tịch duyệt danh mục và nhận xét trong hệ thống; tập thể Công ty đề xuất; không có bước thẩm định riêng; BTV quyết định.
         var deputy = Profile(full, "pho-giam-doc");
         Assert.Equal(StepMode.Internal, deputy.Mode(WorkflowStep.B1_APPROVE));
+        Assert.Equal(PermissionCodes.EvaluationDirectorReview, deputy.PermissionFor(WorkflowStep.B1_APPROVE));
         Assert.Equal(StepMode.Internal, deputy.Mode(WorkflowStep.B3A_COLLECTIVE));
         Assert.Equal(StepMode.Off, deputy.Mode(WorkflowStep.B3B_APPRAISAL));
         Assert.Equal(StepMode.Internal, deputy.Mode(WorkflowStep.B3C_DIRECTOR));

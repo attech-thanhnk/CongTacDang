@@ -7,6 +7,7 @@ Tìm đúng tài liệu theo việc bạn cần làm. Mọi liên kết là đư
 | Bạn là ai / muốn làm gì | Đọc file | Nội dung |
 |---|---|---|
 | Cán bộ, người duyệt, cơ quan thẩm định dùng hệ thống hằng ngày | [huong-dan-su-dung.md](huong-dan-su-dung.md) | Từng màn hình và từng bước thao tác, kèm ảnh minh họa trong `huong-dan/anh/`. |
+| Tra cứu nhanh vai trò, công việc, 55 tài khoản ATTECH và cách xử lý khi luân chuyển / giao phụ trách cán bộ | [so-tay-phan-quyen-va-luan-chuyen.md](so-tay-phan-quyen-va-luan-chuyen.md) | Phân biệt Chức vụ vs Vai trò vs Diện quyết định, bảng 55 tài khoản hiện hành và 6 kịch bản điều động/phụ trách thực tế. |
 | Quản trị khai báo ban đầu (đơn vị, người dùng, vai trò, kỳ, bộ tiêu chí) | [huong-dan-ban-giao.md](huong-dan-ban-giao.md) | Ai làm gì ở bước nào, danh sách việc khi đưa vào sử dụng, xử lý hồ sơ kẹt. |
 | Nhập danh mục và người dùng từ Excel | [nhap-du-lieu.md](nhap-du-lieu.md) | Thứ tự nhập, các loại tệp nhập, cách thêm một loại nhập mới. |
 | Người vận hành dựng hệ thống trên máy mới | [trien-khai-may-moi.md](trien-khai-may-moi.md) | Các bước từ máy trống (Ubuntu) đến hệ thống chạy được. |

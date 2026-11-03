@@ -14,7 +14,7 @@ public enum DeadlineRuleKind
     /// <summary>Ngày D của tháng cuối quý; rơi vào ngày nghỉ thì lùi sang ngày làm việc kế tiếp.</summary>
     DayOfLastMonth = 1,
 
-    /// <summary>N ngày làm việc trước đầu quý (1 = ngày làm việc cuối của quý trước).</summary>
+    /// <summary>Ngày làm việc thứ N trước đầu quý (1 = ngày làm việc cuối của quý trước).</summary>
     WorkingDaysBeforeQuarter = 2,
 
     /// <summary>Ngày làm việc cuối cùng trước ngày D của tháng cuối quý ("trước ngày D").</summary>

@@ -71,7 +71,9 @@ public static class EvaluationMapping
         return step switch
         {
             WorkflowStep.B1_REGISTER or WorkflowStep.B2_SELF_SCORE => Clean(record.Member?.FullName) ?? "Chủ hồ sơ",
-            WorkflowStep.B1_APPROVE => unitLeaders,
+            WorkflowStep.B1_APPROVE => string.Equals(profile.PermissionFor(step), WorkflowPermissions.DirectorReview, StringComparison.Ordinal)
+                ? "Cấp trực tiếp sử dụng"
+                : unitLeaders,
             WorkflowStep.B2_CELL_CONFIRM => cell == null
                 ? "Chi bộ"
                 : cell.StartsWith("Chi bộ", StringComparison.OrdinalIgnoreCase) ? cell : $"Chi bộ {cell}",

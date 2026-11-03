@@ -290,10 +290,14 @@ public sealed class PeriodSettings
                 WorkflowProfile.Create(ProfileDeputyDirector, "Phó Giám đốc",
                     "Chủ tịch duyệt danh mục sản phẩm; tập thể lãnh đạo Công ty đề xuất, Chủ tịch nhận xét, đề xuất trong hệ thống; "
                     + "thẩm định (Ban TCĐU) và quyết định (BTV Đảng ủy Tổng công ty) do cấp trên thực hiện — hệ thống ghi nhận kết quả.",
-                    new Dictionary<WorkflowStep, StepMode>
+                    modes: new Dictionary<WorkflowStep, StepMode>
                     {
                         [WorkflowStep.B3B_APPRAISAL] = StepMode.Off,
                         [WorkflowStep.B4_DECISION] = StepMode.External
+                    },
+                    permissions: new Dictionary<WorkflowStep, string>
+                    {
+                        [WorkflowStep.B1_APPROVE] = WorkflowPermissions.DirectorReview
                     })
             },
             DefaultProfiles = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -307,14 +311,17 @@ public sealed class PeriodSettings
             // Hiệu chuẩn (Mẫu 20) bắt buộc theo Hướng dẫn 03 khi quyết định làm trong hệ thống; phiếu kiểm tra (Mẫu 19) chỉ ghi nhận.
             profile.Gates[WorkflowGates.Control] = new GateSetting { Mode = GateMode.Recorded };
 
-            // Đăng ký và duyệt danh mục: 5 ngày làm việc đầu quý (Hướng dẫn 03); diện Phó Giám đốc và cấp trên làm sớm hơn.
+            // Kế hoạch đánh giá quý: diện cơ sở đăng ký (ngày làm việc cuối quý trước -5) và duyệt (-1) trước đầu quý;
+            // diện Phó Giám đốc và cấp trên đăng ký ngày làm việc thứ 1, duyệt ngày làm việc thứ 5 đầu quý.
             var companyLevel = profile.Code is ProfileUpper or ProfileDeputyDirector;
             SetDefaultRules(profile, companyLevel
                 ? new DeadlineSet(Quarter(1), Quarter(5), 9, 14, 15, profile.Code == ProfileUpper ? 17 : 14, 18)
-                : new DeadlineSet(Quarter(5), Quarter(5), 9, 10, 11, 14, 14));
+                : new DeadlineSet(BeforeQuarter(6), BeforeQuarter(2), 9, 10, 11, 14, 14));
         }
         return settings;
     }
+
+    private static DeadlineRule BeforeQuarter(int workingDays) => new() { Kind = DeadlineRuleKind.WorkingDaysBeforeQuarter, Value = workingDays };
 
     private static DeadlineRule Quarter(int workingDay) => new() { Kind = DeadlineRuleKind.WorkingDayOfQuarter, Value = workingDay };
 

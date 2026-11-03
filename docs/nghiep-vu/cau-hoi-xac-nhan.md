@@ -26,9 +26,9 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 ### A1. [Ưu tiên] Những ai phải đánh giá trong mỗi kỳ?
 - **Câu hỏi:** Mỗi kỳ gồm cán bộ từ Phó Trưởng phòng và tương đương trở lên cộng Bí thư, Phó Bí thư Chi bộ là nhân viên. Có thêm đối tượng nào khác không (Chi ủy viên, Kế toán trưởng…)?
 - **Căn cứ:** Mục I.4 (tr.5), bảng thẩm quyền I.5 (tr.6), IV.3c dòng 7 (tr.20).
-- **Hệ thống đang làm (mặc định):** Chỉ người được đưa vào danh sách của kỳ mới có hồ sơ. Người quản lý kỳ chọn từng người hoặc chọn theo Phòng/Chi bộ. Hệ thống không tự lấy theo chức vụ.
-- **Phương án khác:** Tự đưa vào kỳ mọi người đang giữ chức vụ lãnh đạo, quản lý trong danh mục.
-- **Ảnh hưởng nếu đổi:** Chọn danh sách: cấu hình trên giao diện (Kỳ đánh giá). Tự lấy theo chức vụ: cần sửa phần mềm.
+- **Hệ thống đang làm (mặc định):** Danh sách thêm người vào kỳ chỉ hiển thị những người đang giữ chức vụ thuộc diện đánh giá (lãnh đạo Công ty, Trưởng/Phó phòng và tương đương, Bí thư/Phó Bí thư Chi bộ), sắp xếp từ cấp trên xuống và lọc được theo Đơn vị. Người quản lý kỳ chọn từng người hoặc bấm "Thêm cả đơn vị".
+- **Phương án khác:** Cho chọn cả người ngoài diện đánh giá; thêm chức vụ khác vào diện đánh giá.
+- **Ảnh hưởng nếu đổi:** Thêm chức vụ vào diện đánh giá: cấu hình trên giao diện (Danh mục chức vụ). Cho chọn người ngoài diện: cần sửa phần mềm.
 
 ### A2. [Ưu tiên] Xử lý trường hợp "Chưa xếp loại"
 - **Câu hỏi:** Người thuộc diện chưa xếp loại (đào tạo, nghỉ ốm, thai sản từ 02 tháng; mới bổ nhiệm dưới 01 tháng; đang bị kiểm tra dấu hiệu vi phạm) xử lý trên hệ thống thế nào?
@@ -49,9 +49,9 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 ## B. Vai trò, người thực hiện từng bước, phạm vi xem
 
 ### B1. [Ưu tiên] Bộ vai trò mặc định
-- **Câu hỏi:** 9 vai trò mặc định dưới đây có đúng và đủ người thực hiện ở ATTECH không?
+- **Câu hỏi:** 11 vai trò mặc định dưới đây có đúng và đủ người thực hiện ở ATTECH không?
 - **Căn cứ:** Mục IV.1–IV.5 (tr.18–20); Phụ lục II mục II (tr.30–31); Mẫu 18 (tr.80).
-- **Hệ thống đang làm (mặc định):** Người được đánh giá; Lãnh đạo đơn vị; Thư ký hội nghị; Chi bộ; Cơ quan thẩm định (Phòng TCCB-LĐ, đồng thời quản lý kỳ và bộ tiêu chí); Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch); Cấp ủy viên (xem, xuất báo cáo); Văn phòng Đảng ủy; Quản trị hệ thống (IT, không xem nội dung đánh giá).
+- **Hệ thống đang làm (mặc định):** Người được đánh giá; Lãnh đạo đơn vị; Thư ký hội nghị; Phó Giám đốc phụ trách (ghi ý kiến trước phê duyệt cho đơn vị phụ trách); Chi bộ; Cơ quan thẩm định (Phòng TCCB-LĐ, đồng thời quản lý kỳ và bộ tiêu chí); Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch); Cấp ủy viên (xem, xuất báo cáo); Cơ quan chuyên môn (phản hồi, xác nhận phiếu Mẫu 03); Văn phòng Đảng ủy; Quản trị hệ thống (IT, không xem nội dung đánh giá).
 - **Phương án khác:** Thêm, bớt, đổi tên vai trò hoặc đổi quyền của vai trò.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (trang Vai trò).
 
@@ -154,11 +154,11 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 
 ## D. Luồng đánh giá & hồ sơ luồng
 
-### D1. [Ưu tiên] Ba luồng dựng sẵn có đúng và đủ không?
-- **Câu hỏi:** Ba luồng dựng sẵn dưới đây có đúng và đủ cho các nhóm cán bộ ATTECH không?
-- **Căn cứ:** Phụ lục III ví dụ 1–3 (tr.39); IV.3c dòng 3b, 4b, 5, 6, 7 (tr.19–20).
-- **Hệ thống đang làm (mặc định):** (1) Diện Đảng ủy cơ sở: mọi bước làm trong hệ thống. (2) Diện BTV ĐUTCT: thẩm định, nhận xét, quyết định do cấp trên làm, hệ thống chỉ ghi nhận kết quả. (3) Bí thư/Phó Bí thư Chi bộ là nhân viên: Trưởng phòng đề xuất thay Giám đốc.
-- **Phương án khác:** Thêm luồng riêng cho Phó Giám đốc (Chủ tịch đề xuất, dòng 4b), Kiểm soát viên (dòng 5).
+### D1. [Ưu tiên] Bốn diện quyết định dựng sẵn có đúng và đủ không?
+- **Câu hỏi:** Bốn diện quyết định dựng sẵn dưới đây có đúng và đủ cho các nhóm cán bộ ATTECH không?
+- **Căn cứ:** Phụ lục III ví dụ 1–3 (tr.39); IV.3c dòng 3b, 4b, 5, 6, 7 (tr.19–20); Kế hoạch đánh giá quý của Phòng TCCB-LĐ.
+- **Hệ thống đang làm (mặc định):** (1) Diện Đảng ủy cơ sở (`co-so`): mọi bước làm trong hệ thống. (2) Diện BTV ĐUTCT (`cap-tren`, Chủ tịch, Giám đốc, Kiểm soát viên): duyệt danh mục, thẩm định, nhận xét, quyết định do cấp trên làm, hệ thống chỉ ghi nhận kết quả. (3) Bí thư/Phó Bí thư Chi bộ là nhân viên (`bi-thu-nhan-vien`): không họp bỏ phiếu tập thể (tắt bước 3a), Trưởng phòng đề xuất thay Giám đốc. (4) Phó Giám đốc (`pho-giam-doc`): Chủ tịch duyệt danh mục và nhận xét, tập thể lãnh đạo Công ty bỏ phiếu, không có bước thẩm định nội bộ, BTV ĐUTCT quyết định. Trước bước quyết định có hai cổng: Họp thống nhất (Mẫu 20 — mặc định Bắt buộc khi quyết định làm trong hệ thống, Chỉ ghi nhận khi cấp trên quyết định) và Phiếu kiểm tra (Mẫu 19 — mặc định Chỉ ghi nhận).
+- **Phương án khác:** Thêm, bớt diện quyết định hoặc đổi chế độ bước/cổng của từng diện.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Kỳ đánh giá).
 
 ### D2. Các bước áp dụng
@@ -180,10 +180,14 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Kỳ đánh giá).
 
 ### D5. [Ưu tiên] Thời hạn từng bước của kỳ
-- **Câu hỏi:** Hạn thực tế của từng bước trong kỳ là ngày nào?
-- **Căn cứ:** Mục V.2 (tr.21–22): ngày 12, 14, 15, 16, 20 tháng cuối quý "hoặc theo yêu cầu của BTV".
-- **Hệ thống đang làm (mặc định):** Kỳ dựng sẵn chưa có hạn. Người quản lý kỳ nhập hạn cho từng bước của từng luồng. Hạn chỉ dùng để nhắc việc và đánh dấu quá hạn.
-- **Phương án khác:** Không có; chỉ cần cung cấp ngày.
+- **Câu hỏi:** Hạn mặc định của từng bước theo kế hoạch Phòng TCCB-LĐ và Hướng dẫn 03 dưới đây có đúng không?
+- **Căn cứ:** Mục V.2 (tr.21–22); Kế hoạch đánh giá quý của Phòng TCCB-LĐ.
+- **Hệ thống đang làm (mặc định):** Khi tạo kỳ mới, hệ thống tự điền sẵn hạn các bước (tự dời sang ngày làm việc kế tiếp nếu rơi vào cuối tuần hoặc ngày nghỉ trong Danh mục → Ngày nghỉ):
+  - Diện cơ sở (và Bí thư/Phó Bí thư Chi bộ là nhân viên): đăng ký danh mục vào ngày làm việc cuối cùng của quý trước -5 và duyệt vào ngày làm việc cuối cùng của quý trước -1; tự chấm và Chi bộ xác nhận ngày 9; họp tập thể ngày 10; thẩm định ngày 11; nhận xét và quyết định ngày 14 tháng cuối quý.
+  - Diện BTV ĐUTCT: đăng ký ngày làm việc thứ 1, duyệt ngày làm việc thứ 5 đầu quý; tự chấm và Chi bộ xác nhận ngày 9; họp tập thể ngày 14; thẩm định ngày 15; nhận xét ngày 17; quyết định ngày 18 tháng cuối quý.
+  - Diện Phó Giám đốc: đăng ký ngày làm việc thứ 1, duyệt ngày làm việc thứ 5 đầu quý; tự chấm và Chi bộ xác nhận ngày 9; họp tập thể và nhận xét ngày 14; quyết định ngày 18 tháng cuối quý.
+  - Bước Công bố không đặt hạn. Người quản lý kỳ sửa được hạn từng bước bất cứ lúc nào.
+- **Phương án khác:** Đổi ngày hạn của từng bước.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Kỳ đánh giá; sửa được cả khi kỳ đã mở).
 
 ### D6. [Ưu tiên] Có chặn thao tác khi quá hạn không?
@@ -229,9 +233,9 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
 ### D12. Khóa dữ liệu và mở lại hồ sơ sau công bố
-- **Câu hỏi:** Cách khóa dữ liệu và đính chính sau công bố dưới đây có phù hợp không?
+- **Câu hỏi:** Cách khóa dữ liệu, mở riêng từng hồ sơ và đính chính sau công bố dưới đây có phù hợp không?
 - **Căn cứ:** Mục II.2 (tr.8) "điểm chốt dữ liệu", đính chính theo thủ tục; Phụ lục II V.4 (tr.34).
-- **Hệ thống đang làm (mặc định):** Khi kỳ "Khóa dữ liệu", cá nhân không sửa được, chỉ làm được các bước từ thẩm định trở đi. Mở lại hồ sơ đã công bố: bắt buộc lý do, về bước được chọn (không sớm hơn tự chấm), giữ lịch sử. Mở lại khi kỳ đã đóng thì kỳ tự về trạng thái "Khóa dữ liệu".
+- **Hệ thống đang làm (mặc định):** Khi kỳ "Khóa dữ liệu", cá nhân không sửa được, chỉ làm được các bước từ thẩm định trở đi. Nếu trả lại hoặc mở lại một hồ sơ về bước trước thẩm định khi kỳ đang khóa, hệ thống cấp hạn "mở riêng hồ sơ" (gợi ý 7 ngày, tối đa 60 ngày, gia hạn được) để riêng hồ sơ đó thao tác mà không mở khóa cả kỳ. Mở lại hồ sơ đã công bố: bắt buộc lý do, về bước được chọn (không sớm hơn tự chấm), giữ lịch sử; nếu kỳ đã đóng thì kỳ tự về trạng thái "Khóa dữ liệu".
 - **Phương án khác:** Không cho mở lại khi kỳ đã đóng; phải được duyệt trước khi mở lại.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
@@ -284,10 +288,10 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Phương án khác:** Tính trên số "tốt trở lên"; chặn khi vượt trần.
 - **Ảnh hưởng nếu đổi:** Tỷ lệ (20%–25%): cấu hình trên giao diện (Bộ tiêu chí). Mẫu số, làm tròn, nhóm tính, chặn: cần sửa phần mềm.
 
-### E8. [Ưu tiên] Giải trình khi tự chấm và thẩm định chênh lệch
+### E8. [Ưu tiên] Giải trình khi tự chấm và thẩm định chênh lệch, hoặc đề xuất mức lệch điểm
 - **Câu hỏi:** Ngưỡng bắt buộc giải trình và người nhập giải trình như dưới đây có đúng không?
 - **Căn cứ:** Phụ lục II III.1 (tr.31): chênh từ 5 điểm hoặc làm đổi mức thì "hồ sơ phải nêu căn cứ"; Mẫu 10 (tr.66): "giải trình của cá nhân".
-- **Hệ thống đang làm (mặc định):** Chênh lệch từ 5 điểm hoặc làm đổi mức → người thẩm định bắt buộc nhập căn cứ, giải trình, in ở Mẫu 10. Kết quả thẩm định do cấp trên thì không bắt buộc.
+- **Hệ thống đang làm (mặc định):** Chênh lệch từ 5 điểm hoặc làm đổi mức → người thẩm định bắt buộc nhập căn cứ, giải trình, in ở Mẫu 10 (kết quả thẩm định do cấp trên không bắt buộc). Ngoài ra, ở mọi bước đề xuất/quyết định, nếu mức chọn khác với mức suy ra từ điểm thì bắt buộc nhập nhận xét/lý do.
 - **Phương án khác:** Cá nhân nhập giải trình; lưu cả hai; bắt buộc cả với cấp trên.
 - **Ảnh hưởng nếu đổi:** Ngưỡng, điều kiện đổi mức: cấu hình trên giao diện (Bộ tiêu chí). Người nhập, áp cho cấp trên: cần sửa phần mềm.
 
@@ -333,23 +337,23 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 ### F1. [Ưu tiên] Danh mục biểu mẫu lập và nộp
 - **Câu hỏi:** Mỗi kỳ lập và nộp đủ các mẫu dưới đây, đúng không?
 - **Căn cứ:** Mục IV.1–IV.4 (tr.17–20), V.1 (tr.20–21), Mẫu 18 (tr.80).
-- **Hệ thống đang làm (mặc định):** Cá nhân: 01, 02, 03, 04, 05, 09A, 09C, 9D, 10, 11 và Mẫu 17 cho người xếp mức C, D. Tập thể và hội nghị: 06, 07, 08, 12, 13. Tổng hợp, kiểm soát: 14, 15A, 15B, 16, 19, 20. Các mẫu 03, 06, 19, 20 đã khai báo trong bộ tiêu chí; phần nhập và xuất file đang được bổ sung.
-- **Phương án khác:** Bỏ bớt mẫu không cần lập (Mẫu 03 chỉ khi cơ quan thẩm định yêu cầu xác nhận dữ liệu chuyên môn).
-- **Ảnh hưởng nếu đổi:** Mẫu cá nhân: cấu hình trên giao diện (Bộ tiêu chí). Bỏ bớt mẫu: cấu hình trên giao diện (Bộ tiêu chí).
+- **Hệ thống đang làm (mặc định):** Cá nhân: 01, 02, 03, 04, 05, 09A, 09C, 9D, 10, 11 và Mẫu 17 cho người xếp mức C, D. Tập thể và hội nghị: 06, 07, 08, 12, 13. Tổng hợp, kiểm soát và quyết định: 14, 15A, 15B, 16, 19, 20 và Quyết định xếp loại kèm Phụ lục (`MAU_QD`). Toàn bộ các mẫu trên đã có đủ chức năng nhập liệu và xuất file Word/PDF/Excel trên hệ thống.
+- **Phương án khác:** Bỏ bớt mẫu không cần lập (Mẫu 03 chỉ khi cơ quan thẩm định yêu cầu xác nhận số liệu).
+- **Ảnh hưởng nếu đổi:** Mẫu cá nhân: cấu hình trên giao diện (Bộ tiêu chí). Bỏ bớt mẫu: cấu hình trên giao diện (Bộ tiêu chí, Kỳ đánh giá).
 
 ### F2. [Ưu tiên] Nộp bản Excel theo mục V.1
 - **Câu hỏi:** Mẫu 01, 02, 09A, 9D (và Mẫu 10) có phải nộp bản Excel không?
 - **Căn cứ:** Mục V.1 (tr.21): mọi biểu mẫu "lập trên file excel (trừ các Mẫu: 07, 09C, 12, 13, 16)".
-- **Hệ thống đang làm (mặc định):** 01, 02, 09A, 09C, 9D, 10, 07, 12, 13, 16, 17 xuất Word/PDF. Mẫu 08 xuất cả Word và Excel. Mẫu 14, 15A, 15B xuất Excel.
+- **Hệ thống đang làm (mặc định):** 01, 02, 03, 04, 05, 06, 09A, 09C, 9D, 10, 11, 07, 12, 13, 16, 17, 19, 20 và Quyết định xuất Word/PDF. Mẫu 08 xuất cả Word và Excel. Mẫu 14, 15A, 15B và Bảng tổng hợp xếp loại cán bộ của kỳ xuất Excel.
 - **Phương án khác:** Thêm bản Excel cho 01, 02, 09A, 9D, 10.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
-### F3. [Ưu tiên] Mẫu 10: điểm thẩm định theo nhóm
-- **Câu hỏi:** Phiếu thẩm định Mẫu 10 là biểu mẫu bắt buộc của hồ sơ; có cần ghi điểm thẩm định theo từng nhóm không?
-- **Căn cứ:** Mẫu 18 (tr.80) coi Mẫu 10 là thành phần hồ sơ; Mẫu 10 (tr.66) có cột theo từng nhóm.
-- **Hệ thống đang làm (mặc định):** Hệ thống chỉ lưu tổng điểm thẩm định nên ô điểm và chênh lệch từng nhóm để trống.
-- **Phương án khác:** Nhập điểm thẩm định theo từng tiêu chí, từng sản phẩm.
-- **Ảnh hưởng nếu đổi:** Điểm theo nhóm: cần sửa phần mềm.
+### F3. [Ưu tiên] Mẫu 10: điểm thẩm định theo nhóm và mức từng nhiệm vụ
+- **Câu hỏi:** Cách chấm thẩm định theo nhóm tiêu chí, đánh giá Mức 1/2/3 từng nhiệm vụ và in trên Mẫu 10 dưới đây có đúng không?
+- **Căn cứ:** Mẫu 18 (tr.80) coi Mẫu 10 là thành phần hồ sơ; Mẫu 10 (tr.66) có cột điểm theo từng nhóm.
+- **Hệ thống đang làm (mặc định):** Khi thẩm định nội bộ, người thẩm định chấm Mức 1/2/3 cho từng nhiệm vụ (bắt buộc đủ) và nhập điểm thẩm định cho nhóm tiêu chí chung (tối đa 30) cùng nhóm kết quả nhiệm vụ (tối đa 70); hệ thống tự tính tổng điểm thẩm định và in đầy đủ điểm thẩm định, độ chênh lệch của từng nhóm lên Mẫu 10.
+- **Phương án khác:** Nhập điểm thẩm định chi tiết cho từng tiêu chí con, từng sản phẩm lẻ.
+- **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
 ### F4. [Ưu tiên] Mẫu 09C: bắt buộc nhập và độ dài
 - **Câu hỏi:** Bản tự đánh giá Mẫu 09C có bắt buộc nhập mới cho nộp không? Giới hạn 6.000 ký tự (khoảng 02 trang A4) có phù hợp không?
@@ -425,8 +429,8 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 ### H5. Mẫu 17: ai lập, ai duyệt
 - **Câu hỏi:** Kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17) do ai lập và ai duyệt?
 - **Căn cứ:** Mẫu 17 (tr.79): chữ ký Thủ trưởng đơn vị, Người trực tiếp hỗ trợ, Cá nhân.
-- **Hệ thống đang làm (mặc định):** Lãnh đạo đơn vị (trong đơn vị mình) và Cấp trực tiếp sử dụng (toàn công ty) lập, duyệt, ghi kết quả từng mốc. Cá nhân xác nhận cam kết. Không ai lập kế hoạch cho chính mình.
-- **Phương án khác:** Tách người lập và người duyệt; Phòng TCCB-LĐ theo dõi kết quả các mốc.
+- **Hệ thống đang làm (mặc định):** Lãnh đạo đơn vị (trong đơn vị mình) và Cấp trực tiếp sử dụng (toàn công ty) lập, duyệt, ghi kết quả từng mốc; người duyệt bắt buộc khác người lập kế hoạch. Cá nhân xác nhận cam kết. Không ai lập kế hoạch cho chính mình.
+- **Phương án khác:** Tách hẳn mã quyền lập và mã quyền duyệt; Phòng TCCB-LĐ theo dõi kết quả các mốc.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Vai trò). Tách hẳn quyền lập và quyền duyệt: cần sửa phần mềm.
 
 ### H6. Mẫu 17: mức bắt buộc và thời gian nhắc
@@ -467,8 +471,8 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 
 ### I4. Tập thể tự đánh giá trước cá nhân
-- **Câu hỏi:** Có bắt buộc tập thể (Mẫu 07, 08) hoàn thành tự đánh giá trước khi cá nhân tự chấm không?
+- **Câu hỏi:** Có bắt buộc tập thể (Mẫu 06, 07, 08) hoàn thành tự đánh giá trước khi cá nhân tự chấm không?
 - **Căn cứ:** Mục IV.2 (tr.18): "các cấp ủy, tổ chức Đảng tự đánh giá… trên cơ sở đó cá nhân tự chấm điểm".
-- **Hệ thống đang làm (mặc định):** Không ràng buộc thứ tự; hồ sơ tập thể và hồ sơ cá nhân làm độc lập.
-- **Phương án khác:** Cảnh báo, hoặc chặn cá nhân nộp khi tập thể chưa hoàn thành.
+- **Hệ thống đang làm (mặc định):** Trang Đánh giá tập thể có thẻ **Theo dõi** hiển thị danh sách tổ chức Đảng có cán bộ trong kỳ, trạng thái lập Mẫu 06/07/08 và cờ quá hạn (hạn mặc định ngày 8 tháng cuối quý), nhưng không chặn cá nhân tự chấm khi tập thể chưa nộp đủ.
+- **Phương án khác:** Chặn cá nhân nộp phiếu tự chấm khi tập thể chưa hoàn thành.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.

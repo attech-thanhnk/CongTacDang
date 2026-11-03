@@ -576,7 +576,7 @@ Thẻ **Diện quyết định**. Mỗi **diện quyết định** là bộ cấ
 - Bấm tên một diện (các nút tròn phía trên) để xem và sửa. Với mỗi bước:
   - **Chế độ**: *Nội bộ* (làm trong hệ thống), *Cấp trên thực hiện* (chỉ ghi nhận kết quả), *Không áp dụng*. Bước ghi "(bắt buộc)" không tắt được; có bước không giao cho cấp trên được.
   - **Người thực hiện (quyền)**: quyền mà người làm bước cần có (bước của chủ hồ sơ ghi "Chủ hồ sơ").
-  - **Thời hạn**: chọn *Nhập tay* rồi nhập ngày, hoặc chọn quy tắc (*Ngày làm việc thứ … đầu quý*, *Trước ngày … tháng cuối quý*, *Ngày … tháng cuối quý*, *… ngày làm việc trước đầu quý (cuối quý trước)*). Bấm **Tính lại thời hạn** để điền ngày theo quy tắc (thứ Bảy, Chủ nhật và ngày nghỉ khai báo trong *Danh mục tổ chức*, thẻ *Ngày nghỉ* được bỏ qua); sau đó vẫn sửa từng ngày được.
+  - **Thời hạn**: chọn *Nhập tay* rồi nhập ngày, hoặc chọn quy tắc (*Ngày làm việc thứ … đầu quý*, *Trước ngày … tháng cuối quý*, *Ngày … tháng cuối quý*, *Ngày làm việc thứ … trước quý*). Bấm **Tính lại thời hạn** để điền ngày theo quy tắc (thứ Bảy, Chủ nhật và ngày nghỉ khai báo trong *Danh mục tổ chức*, thẻ *Ngày nghỉ* được bỏ qua); sau đó vẫn sửa từng ngày được.
 - Khối **Kiểm tra trước quyết định** có ba ô chọn:
 
   | Ô | Các lựa chọn |

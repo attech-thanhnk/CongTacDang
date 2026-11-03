@@ -11,7 +11,7 @@ export const DEADLINE_RULE_LABELS: Record<DeadlineRuleKind, string> = {
   WorkingDayOfQuarter: "Ngày làm việc thứ … đầu quý",
   BeforeDayOfLastMonth: "Trước ngày … tháng cuối quý",
   DayOfLastMonth: "Ngày … tháng cuối quý",
-  WorkingDaysBeforeQuarter: "… ngày làm việc trước đầu quý (cuối quý trước)",
+  WorkingDaysBeforeQuarter: "Ngày làm việc thứ … trước quý",
 };
 
 export const DEADLINE_RULE_LIMITS: Record<DeadlineRuleKind, { min: number; max: number }> = {

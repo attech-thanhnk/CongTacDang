@@ -54,13 +54,16 @@ public sealed class Quarter4ScenarioTests
         var settings = JsonNode.Parse(created.GetProperty("settings").GetRawText())!.AsObject();
         var profileCodes = settings["profiles"]!.AsArray().Select(p => p!["code"]!.GetValue<string>()).ToList();
         Assert.Equal(new[] { "co-so", "cap-tren", "bi-thu-nhan-vien", "pho-giam-doc" }, profileCodes);
-        // Đăng ký sản phẩm luôn áp dụng; kịch bản ghi sẵn danh mục nên tắt bước duyệt danh mục.
+        // Đăng ký sản phẩm luôn áp dụng; kịch bản ghi sẵn danh mục nên tắt bước duyệt danh mục, trừ diện Phó Giám đốc (Chủ tịch duyệt).
         foreach (var profile in settings["profiles"]!.AsArray())
         {
             Assert.Equal("Internal", profile!["steps"]!["B1_REGISTER"]!["mode"]!.GetValue<string>());
-            profile["steps"]!["B1_APPROVE"]!["mode"] = "Off";
+            if (profile["code"]!.GetValue<string>() != "pho-giam-doc")
+                profile["steps"]!["B1_APPROVE"]!["mode"] = "Off";
         }
         var deputy = Profile(settings, "pho-giam-doc")["steps"]!;
+        Assert.Equal("Internal", deputy["B1_APPROVE"]!["mode"]!.GetValue<string>());
+        Assert.Equal("evaluation.director.review", deputy["B1_APPROVE"]!["permission"]!.GetValue<string>());
         Assert.Equal("Off", deputy["B3B_APPRAISAL"]!["mode"]!.GetValue<string>());
         Assert.Equal("Internal", deputy["B3C_DIRECTOR"]!["mode"]!.GetValue<string>());
         Assert.Equal("External", deputy["B4_DECISION"]!["mode"]!.GetValue<string>());
@@ -109,8 +112,30 @@ public sealed class Quarter4ScenarioTests
             var mine = await Data(p.Client, "/api/evaluations/my-record");
             Assert.Equal(id[p.Id], mine.GetProperty("id").GetGuid());
             Assert.Equal("AwaitingRegistration", mine.GetProperty("status").GetString());
-            taskScores[p.Id] = await RegistrationTestData.RegisterAsync(_factory, id[p.Id], 64.0 / 70);
+            if (p != w.Pgd)
+                taskScores[p.Id] = await RegistrationTestData.RegisterAsync(_factory, id[p.Id], 64.0 / 70);
         }
+
+        // Phó Giám đốc: Chủ tịch duyệt danh mục; Lãnh đạo đơn vị (Giám đốc tại Ban giám đốc) không duyệt được.
+        await Step(w.Pgd.Client, id[w.Pgd.Id], "tasks/submit", new
+        {
+            tasks = new[] { (Name: "Sản phẩm 1", Weight: 30.0, Kind: "TrongTam"), (Name: "Sản phẩm 2", Weight: 20.0, Kind: "TrongTam"), (Name: "Sản phẩm 3", Weight: 20.0, Kind: "ThuongXuyen") }
+                .Select(t => new { taskName = t.Name, targetOutput = $"Kết quả {t.Name}", weight = t.Weight, axisCode = "T1", kind = t.Kind, role = "ChuTri",
+                    exceedCriteria = "Vượt tiến độ", evidenceSource = "Biên bản nghiệm thu", confirmer = "Chủ tịch" })
+        }, "AwaitingTaskApproval");
+        await AssertActions(w.Gd.Client, id[w.Pgd.Id]);
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await Post(w.Gd.Client, id[w.Pgd.Id], "tasks/approve", new { comment = "Giám đốc duyệt" }, w.Tccb)).StatusCode);
+        await AssertActions(w.Ct.Client, id[w.Pgd.Id], "ApproveTasks", "ReturnTasks");
+        await Step(w.Ct.Client, id[w.Pgd.Id], "tasks/approve", new { comment = "Chủ tịch đồng ý" }, "AwaitingSelfScore");
+        var pgdTasks = await Data(w.Pgd.Client, $"/api/evaluations/records/{id[w.Pgd.Id]}");
+        taskScores[w.Pgd.Id] = pgdTasks.GetProperty("tasks").EnumerateArray()
+            .Select(t => (object)new
+            {
+                taskId = t.GetProperty("id").GetGuid(), criteriaA_Ratio = 64.0 / 70, criteriaB_Ratio = 64.0 / 70,
+                criteriaC_Ratio = 64.0 / 70, criteriaD_Ratio = 64.0 / 70, isExceedStandard = false
+            })
+            .ToArray();
         var forms = (await Data(w.Tp.Client, $"/api/reports/docx/record/{id[w.Tp.Id]}")).EnumerateArray().Select(f => f.GetProperty("code").GetString()).ToList();
         Assert.Equal(new[] { "01", "02", "09A", "09C", "9D", "10" }, forms);
 
@@ -230,7 +255,7 @@ public sealed class Quarter4ScenarioTests
         var steps = history.EnumerateArray().Where(h => h.GetProperty("step").ValueKind == JsonValueKind.String
                 && h.GetProperty("action").GetString() is "Complete" or "RecordExternal")
             .Select(h => h.GetProperty("step").GetString()).ToList();
-        Assert.Equal(new[] { "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3A_COLLECTIVE", "B3C_DIRECTOR", "B4_DECISION", "B5_PUBLISH" },
+        Assert.Equal(new[] { "B1_REGISTER", "B1_APPROVE", "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3A_COLLECTIVE", "B3C_DIRECTOR", "B4_DECISION", "B5_PUBLISH" },
             steps.OrderBy(StepOrder).ToList());
 
         // Công khai kết quả: người được đánh giá xem được mức của kỳ.
@@ -618,6 +643,7 @@ public sealed class Quarter4ScenarioTests
             await Assign(w.Gd.Id, "Cấp trực tiếp sử dụng", "Department", w.DeptTc);
             await Assign(w.Ct.Id, "Cấp trực tiếp sử dụng", "Department", w.DeptBgd);
             await Assign(w.Tp.Id, "Lãnh đạo đơn vị", "Department", w.DeptKt);
+            await Assign(w.Gd.Id, "Lãnh đạo đơn vị", "Department", w.DeptBgd);
             await Assign(office.User.Id, "Văn phòng Đảng ủy", "Global", null);
 
             w.Tccb = tccb.Client;
