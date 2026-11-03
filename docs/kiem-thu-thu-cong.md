@@ -118,5 +118,5 @@ Script tạo kỳ Quý IV/2026 với bộ tiêu chí đã xuất bản đầu ti
 Mỗi bước dùng tài khoản đầu tiên trong danh sách `-TaiKhoan` có nút trên hồ sơ, như trên giao diện. Cuối cùng script in bảng hồ sơ, trạng thái và tài khoản cần làm tiếp. Mật khẩu mặc định `Thu12345a` (đổi bằng `-MatKhau`).
 
 - Đã có kỳ quý đó với hồ sơ: script dừng. Dùng `-TiepTuc` để đẩy tiếp, hoặc `-LamSach`.
-- `-LamSach` chỉ bỏ được hồ sơ chưa có dữ liệu (API không có chức năng xóa kỳ). Kỳ không còn hồ sơ thì lần chạy sau dùng lại. Hồ sơ đã có dữ liệu thì phải bỏ bản sao dữ liệu thử và tạo lại (mục 1, mục 6).
+- `-LamSach` làm rỗng toàn bộ dữ liệu vận hành của CSDL dev (kỳ, hồ sơ, biên bản, phiếu, nhật ký) qua docker; tài khoản, danh mục, vai trò, bộ tiêu chí giữ nguyên. Chỉ chạy trên `congtacdang_dev` hoặc `ctd_*`.
 - Đăng nhập bị giới hạn 10 lần mỗi phút: script tự chờ khi gặp giới hạn.

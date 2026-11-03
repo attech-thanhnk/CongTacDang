@@ -8,7 +8,7 @@
   Giai đoạn (hồ sơ dừng ở bước này, chờ người làm tiếp):
     dang-ky, tu-cham, tap-the, tham-dinh, nhan-xet, quyet-dinh, cong-bo
   Mỗi bước dùng tài khoản đầu tiên trong -TaiKhoan có nút thao tác trên hồ sơ (theo API actions).
-  API không có chức năng xóa kỳ: -LamSach chỉ bỏ được hồ sơ chưa có dữ liệu; kỳ rỗng được dùng lại ở lần chạy sau.
+  -LamSach làm rỗng các bảng vận hành (kỳ, hồ sơ, biên bản, phiếu, nhật ký) của CSDL thử qua docker; tài khoản, danh mục giữ nguyên.
 #>
 param(
     [ValidateSet('dang-ky', 'tu-cham', 'tap-the', 'tham-dinh', 'nhan-xet', 'quyet-dinh', 'cong-bo')]
@@ -20,7 +20,10 @@ param(
     # Tài khoản được thử lần lượt cho mỗi bước (huyen.utt: Chi bộ Phòng Tài chính - Kế toán của thanh.nn)
     [string[]]$TaiKhoan = @('giang.nh', 'thinh.lt', 'duy.lm', 'dao.nta', 'trung.nb', 'thanh.nn', 'loan.ttp', 'loan.ctp', 'long.nc', 'hung.dt', 'huyen.utt'),
     # Mật khẩu thử chỉ dùng trên máy phát triển
-    [string]$MatKhau = 'Thu12345a'
+    [string]$MatKhau = 'Thu12345a',
+    # CSDL mà backend dev đang dùng; -LamSach chỉ chạy trên CSDL thử
+    [string]$CsdlDev = 'congtacdang_dev',
+    [string]$PgContainer = 'attech-dangbo-postgres'
 )
 $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
@@ -442,27 +445,24 @@ function Show-Summary($manager, $period) {
 }
 
 # ---------------------------------------------------------------- Làm sạch
-$manager = Get-Session $ManagerUser
 if ($LamSach) {
-    $period = Find-Period $manager
-    if (-not $period) { Write-Host "Không có kỳ quý $Quarter/$Year, không cần làm sạch."; exit 0 }
-    Write-Step "Làm sạch kỳ `"$($period.name)`" ($($period.statusDisplayName))"
-    $kept = @()
-    foreach ($p in (Get-Participants $manager $period.id)) {
-        $r = Invoke-Api $manager 'DELETE' "/api/evaluations/periods/$($period.id)/participants/$($p.recordId)?version=$($p.version)"
-        if ($r.Ok) { Write-Host "   Đã bỏ $($p.fullName) khỏi kỳ." }
-        elseif ($r.Status -eq 409) { $kept += $p }
-        else { Fail "Bỏ $($p.fullName) khỏi kỳ không thành công: HTTP $($r.Status) - $($r.Message)" }
-    }
-    if ($kept.Count -eq 0) {
-        Write-Host 'Kỳ không còn hồ sơ. Lần chạy sau sẽ dùng lại kỳ này (API không có chức năng xóa kỳ).' -ForegroundColor Green
-        exit 0
-    }
-    Write-Host "Còn $($kept.Count) hồ sơ đã có dữ liệu, API không cho bỏ khỏi kỳ và không có chức năng xóa kỳ:" -ForegroundColor Yellow
-    foreach ($p in $kept) { Write-Host "   - $($p.fullName): $($p.statusDisplayName)" -ForegroundColor Yellow }
-    Write-Host 'Cách xử lý: chạy tiếp bằng -TiepTuc để đẩy kỳ thử tới giai đoạn sau, hoặc làm việc trên bản sao CSDL (docs/kiem-thu-thu-cong.md, mục 1) rồi xóa bản sao.' -ForegroundColor Yellow
-    exit 2
+    # Không CASCADE để không lỡ xóa bảng gốc; API không xóa được kỳ nên làm rỗng thẳng các bảng vận hành (docker/du-lieu-goc.txt), giữ nguyên dữ liệu gốc.
+    if ($CsdlDev -ne 'congtacdang_dev' -and $CsdlDev -notlike 'ctd_*') { Fail "Chỉ làm sạch CSDL thử (congtacdang_dev hoặc ctd_*), không làm sạch '$CsdlDev'." }
+    $repoRoot = Split-Path $PSScriptRoot -Parent
+    $envFile = Join-Path $repoRoot 'docker/.env'
+    if (-not (Test-Path $envFile)) { Fail "Thiếu $envFile để lấy tài khoản CSDL." }
+    $pgUser = ((Get-Content $envFile | Where-Object { $_ -match '^POSTGRES_USER=' }) -replace '^POSTGRES_USER=', '').Trim()
+    $tables = Get-Content (Join-Path $repoRoot 'docker/du-lieu-goc.txt') -Encoding UTF8 |
+        Where-Object { $_ -like 'VAN_HANH|*' } | ForEach-Object { '"' + ($_.Split('|')[1]) + '"' }
+    if ($tables.Count -eq 0) { Fail 'Không đọc được danh sách bảng vận hành trong docker/du-lieu-goc.txt.' }
+    Write-Step "Làm sạch dữ liệu vận hành của CSDL $CsdlDev ($($tables.Count) bảng: kỳ, hồ sơ, biên bản, phiếu, nhật ký...)"
+    $sql = "TRUNCATE TABLE $($tables -join ', ') RESTART IDENTITY;"
+    & docker exec $PgContainer psql -U $pgUser -d $CsdlDev -v ON_ERROR_STOP=1 -c $sql
+    if ($LASTEXITCODE -ne 0) { Fail 'Làm sạch không thành công: lệnh psql báo lỗi.' }
+    Write-Host 'Đã làm sạch. Tài khoản, danh mục, vai trò, bộ tiêu chí giữ nguyên. Tải lại trang trên trình duyệt.' -ForegroundColor Green
+    exit 0
 }
+$manager = Get-Session $ManagerUser
 
 # ---------------------------------------------------------------- Tạo / dùng lại kỳ
 $target = $StageStep[$GiaiDoan]
