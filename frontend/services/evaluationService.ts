@@ -313,6 +313,8 @@ export interface EvaluationRecordDto {
   appraisalGeneralScore?: number | null;
   /** Điểm thẩm định nhóm kết quả thực hiện nhiệm vụ (null khi chỉ có điểm tổng). */
   appraisalTasksScore?: number | null;
+  /** Điểm thẩm định từng tiêu chí con; null khi thẩm định theo nhóm. */
+  appraisalGeneralScores?: Record<string, GeneralItemScore> | null;
   appraisalComment: string;
   /** Giải trình khi chênh lệch tự chấm – thẩm định. */
   appraisalExplanation?: string | null;

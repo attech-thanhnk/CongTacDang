@@ -552,7 +552,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         {
             var grade = RequireGrade(request.ProposedGrade, "Hãy chọn mức xếp loại do cơ quan thẩm định đề xuất.");
             var criteria = RequireCriteria(ctx);
-            var (general, tasksScore, total) = AppraisalScores(request, criteria.Content);
+            var (general, tasksScore, total, itemsJson) = AppraisalScores(request, criteria.Content);
 
             // Chênh lệch tự chấm – thẩm định vượt ngưỡng (hoặc làm đổi mức) → bắt buộc giải trình.
             var explanation = Trim(request.Explanation, MaxCommentLength, "Nội dung giải trình");
@@ -574,6 +574,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             ctx.Record.ClearCalibration();
             ctx.Record.AppraisalGeneralScore = general;
             ctx.Record.AppraisalTasksScore = tasksScore;
+            ctx.Record.AppraisalGeneralScores = itemsJson;
             ctx.Record.AppraisalExplanation = explanation;
             ctx.Record.AppraisalComment = Trim(request.Comment, MaxCommentLength, "Ý kiến thẩm định") ?? string.Empty;
             ctx.Record.AppraisalProposedGrade = grade;
@@ -585,11 +586,27 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
     /// <summary>
     /// Theo nhóm (chung + nhiệm vụ), làm tròn theo quy tắc từng nhóm; không gửi điểm nhóm → dùng tổng (client cũ).
+    /// Chấm từng tiêu chí con: điểm nhóm chung tính như phiếu tự chấm (K/AD, giới hạn, căn cứ giảm điểm của bộ).
     /// Thẩm định nội bộ bắt buộc có điểm để kiểm chênh lệch với tự chấm.
     /// </summary>
-    private static (double? General, double? Tasks, double Total) AppraisalScores(AppraisalRequestDto request, CriteriaSetContent criteria)
+    private static (double? General, double? Tasks, double Total, string? ItemsJson) AppraisalScores(AppraisalRequestDto request, CriteriaSetContent criteria)
     {
         var p = criteria.Parameters;
+        if (request.GeneralItemScores is { } items)
+        {
+            var itemError = EvaluationScoring.ValidateGeneralScores(criteria, items);
+            if (itemError != null)
+                throw new ValidationException($"Thẩm định từng tiêu chí: {itemError}");
+            if (items.Values.Any(s => s?.Reason is { Length: > MaxCommentLength }))
+                throw new ValidationException($"Lý do/căn cứ của tiêu chí không được dài quá {MaxCommentLength} ký tự.");
+            if (request.TasksScore is not { } itemTasks)
+                throw new ValidationException("Hãy nhập điểm thẩm định nhóm kết quả thực hiện nhiệm vụ.");
+            var itemGeneral = EvaluationScoring.GeneralCriteriaScore(criteria, items);
+            var tasksRounded = ValidateTasksScore(itemTasks, p);
+            return (itemGeneral, tasksRounded, EvaluationScoring.TotalScore(itemGeneral, tasksRounded, p.Rounding.Total),
+                EvaluationScoring.GeneralScoresToJson(criteria, items));
+        }
+
         if (request.GeneralScore is null && request.TasksScore is null)
         {
             if (request.AppraisalScore is not { } legacy)
@@ -597,7 +614,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             var max = p.GeneralMaxScore + p.TotalTaskWeight;
             if (double.IsNaN(legacy) || legacy < 0 || legacy > max + CriteriaSetContent.Epsilon)
                 throw new ValidationException(string.Create(CultureInfo.InvariantCulture, $"Điểm thẩm định phải từ 0 đến {max:0.##}."));
-            return (null, null, EvaluationScoring.Round(legacy, p.Rounding.Total));
+            return (null, null, EvaluationScoring.Round(legacy, p.Rounding.Total), null);
         }
 
         if (request.GeneralScore is not { } general || request.TasksScore is not { } tasks)
@@ -605,13 +622,19 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         if (double.IsNaN(general) || general < 0 || general > p.GeneralMaxScore + CriteriaSetContent.Epsilon)
             throw new ValidationException(string.Create(CultureInfo.InvariantCulture,
                 $"Điểm thẩm định nhóm tiêu chí chung phải từ 0 đến {p.GeneralMaxScore:0.##}."));
+
+        var roundedGeneral = EvaluationScoring.Round(general, p.Rounding.GeneralTotal);
+        var roundedTasks = ValidateTasksScore(tasks, p);
+        return (roundedGeneral, roundedTasks, EvaluationScoring.TotalScore(roundedGeneral, roundedTasks, p.Rounding.Total), null);
+    }
+
+    /// <summary>0..tổng trọng số nhiệm vụ, làm tròn theo quy tắc nhóm nhiệm vụ.</summary>
+    private static double ValidateTasksScore(double tasks, CriteriaParameters p)
+    {
         if (double.IsNaN(tasks) || tasks < 0 || tasks > p.TotalTaskWeight + CriteriaSetContent.Epsilon)
             throw new ValidationException(string.Create(CultureInfo.InvariantCulture,
                 $"Điểm thẩm định nhóm kết quả thực hiện nhiệm vụ phải từ 0 đến {p.TotalTaskWeight:0.##}."));
-
-        var roundedGeneral = EvaluationScoring.Round(general, p.Rounding.GeneralTotal);
-        var roundedTasks = EvaluationScoring.Round(tasks, p.Rounding.TasksTotal);
-        return (roundedGeneral, roundedTasks, EvaluationScoring.TotalScore(roundedGeneral, roundedTasks, p.Rounding.Total));
+        return EvaluationScoring.Round(tasks, p.Rounding.TasksTotal);
     }
 
     /// <summary>Bắt buộc đủ mọi nhiệm vụ của hồ sơ (trừ việc đã loại trừ / chuyển tiếp), mỗi nhiệm vụ một dòng.</summary>
@@ -878,6 +901,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 record.ClearCalibration();
                 record.AppraisalGeneralScore = null;
                 record.AppraisalTasksScore = null;
+                record.AppraisalGeneralScores = null;
                 record.AppraisalComment = result.Comment ?? string.Empty;
                 record.AppraisalProposedGrade = result.Grade;
                 record.AppraisedById = null;

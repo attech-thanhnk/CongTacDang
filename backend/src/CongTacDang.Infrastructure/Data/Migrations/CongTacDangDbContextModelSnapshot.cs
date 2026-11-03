@@ -1366,6 +1366,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<double?>("AppraisalGeneralScore")
                         .HasColumnType("double precision");
 
+                    b.Property<string>("AppraisalGeneralScores")
+                        .HasColumnType("jsonb");
+
                     b.Property<int>("AppraisalProposedGrade")
                         .HasColumnType("integer");
 

@@ -171,6 +171,10 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Null khi chỉ có điểm tổng.</summary>
     public double? AppraisalTasksScore { get; set; }
 
+    /// <summary>Chấm chi tiết nhóm tiêu chí chung: jsonb cùng dạng <see cref="GeneralScores"/>, <see cref="AppraisalGeneralScore"/>
+    /// tính từ đây; null = chấm theo nhóm.</summary>
+    public string? AppraisalGeneralScores { get; set; }
+
     public string AppraisalComment { get; set; } = string.Empty;
 
     /// <summary>Bắt buộc khi chênh lệch với tự chấm từ ngưỡng của bộ tiêu chí trở lên hoặc làm đổi mức.</summary>

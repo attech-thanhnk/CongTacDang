@@ -642,7 +642,9 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
           <Fields
             items={[
               ["Điểm thẩm định", record.appraisedAt || stepOf("B3B_APPRAISAL")?.state === "done" ? record.appraisalScore : null],
-              ["Tiêu chí chung", record.appraisalGeneralScore],
+              ["Tiêu chí chung", record.appraisalGeneralScores && record.appraisalGeneralScore != null
+                ? `${fmt(record.appraisalGeneralScore)} (chấm từng tiêu chí)`
+                : record.appraisalGeneralScore],
               ["Kết quả nhiệm vụ", record.appraisalTasksScore],
               ["Mức đề xuất", hasGrade(record.appraisalProposedGrade) ? <GradeBadge grade={record.appraisalProposedGrade} /> : null],
               ["Người / cơ quan thẩm định", record.appraisedByName],

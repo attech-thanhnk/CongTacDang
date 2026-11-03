@@ -287,7 +287,10 @@ Diện *Bí thư/Phó bí thư Chi bộ là nhân viên* không có bước này
 ### 4.3 Thẩm định
 
 - Với kỳ chấm theo danh mục sản phẩm: bảng liệt kê từng nhiệm vụ (loại, tỷ lệ tự chấm, vượt chuẩn). Chọn **Mức thẩm định** Mức 1 / Mức 2 / Mức 3 cho từng nhiệm vụ (bắt buộc đủ), có thể ghi nhận xét ngắn.
-- Nhập điểm thẩm định **Tiêu chí chung** và **Kết quả nhiệm vụ** (điền sẵn bằng điểm tự chấm); **Tổng** tự tính. Chọn **Mức đề xuất**, nhập **Ý kiến thẩm định**.
+- Chọn cách chấm tiêu chí chung ở dòng **Chấm tiêu chí chung**:
+  - **Theo nhóm** (mặc định): nhập điểm thẩm định **Tiêu chí chung** và **Kết quả nhiệm vụ** (điền sẵn bằng điểm tự chấm).
+  - **Từng tiêu chí**: bảng tiêu chí con hiện cột **Tự chấm** bên cạnh ô **Thẩm định** (điền sẵn bằng điểm tự chấm). Chấm như phiếu tự chấm: giảm điểm hoặc chọn Không áp dụng (K/AD) phải nêu lý do. Điểm **Tiêu chí chung** tự cộng theo quy tắc của bộ tiêu chí; vẫn nhập điểm **Kết quả nhiệm vụ**.
+- **Tổng** tự tính. Chọn **Mức đề xuất**, nhập **Ý kiến thẩm định**.
 - Mức đề xuất chưa đủ điều kiện theo mức của các nhiệm vụ: khung vàng cảnh báo; vẫn ghi nhận được.
 - Phần tiêu đề khung hiện độ chênh lệch so với điểm tự chấm. Chênh lệch từ ngưỡng quy định trở lên (hoặc làm đổi mức, nếu bộ tiêu chí quy định): bắt buộc nhập **Giải trình** (có dấu \*). Nội dung này in ở Mẫu 10.
 - Bấm **Ghi nhận thẩm định**. Nếu hồ sơ còn phiếu xác nhận số liệu chưa xong, nút bị khóa: xem [5.2](#52-phiếu-xác-nhận-số-liệu-mẫu-03).
