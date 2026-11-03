@@ -24,14 +24,17 @@ import { FileUploadModal } from "@/components/attachments/FileUploadModal";
 import { useCriteria } from "@/components/evaluations/useCriteria";
 import { SelfScoreForm } from "@/components/evaluations/SelfScoreForm";
 import { DateField } from "@/components/evaluations/DateField";
+import { AppraisalItemsTable, appraisalItemsPayload, initialAppraisalItems } from "@/components/evaluations/AppraisalItemsTable";
 import {
   CriteriaSnapshot,
   GRADE_LABELS,
+  GeneralItemScore,
   RankedGrade,
   WeightFrame,
   describeFrame,
   exceedRatioOf,
   fmt,
+  generalTotal,
   gradeProposalCheck,
   requiresExplanation,
   roundScore,
@@ -367,9 +370,18 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
   const [grade, setGrade] = useState(initialGrade(record.appraisalProposedGrade) || initialGrade(record.collectiveProposedGrade) || initialGrade(record.selfProposedGrade));
   const [comment, setComment] = useState(record.appraisalComment || "");
   const [explanation, setExplanation] = useState(record.appraisalExplanation || "");
-  const generalValue = general === "" ? null : Number(general);
+  const content = criteria?.content;
+  // Chấm từng tiêu chí con cần bộ tiêu chí của kỳ; mặc định theo cách đã lưu, chưa lưu thì theo nhóm.
+  const [byItems, setByItems] = useState(!!record.appraisalGeneralScores);
+  const [items, setItems] = useState<Record<string, GeneralItemScore>>(() =>
+    content ? initialAppraisalItems(content, record.appraisalGeneralScores, record.generalScores) : {});
+  useEffect(() => {
+    if (content) setItems((prev) => (Object.keys(prev).length ? prev : initialAppraisalItems(content, record.appraisalGeneralScores, record.generalScores)));
+  }, [content, record.appraisalGeneralScores, record.generalScores]);
+  const itemMode = byItems && !!content;
+  const generalValue = itemMode ? generalTotal(content, items) : general === "" ? null : Number(general);
   const tasksValue = tasksScore === "" ? null : Number(tasksScore);
-  const p = criteria?.content.parameters;
+  const p = content?.parameters;
   // Tổng tạm tính theo cùng quy tắc làm tròn của máy chủ (chung + nhiệm vụ).
   const appraisal = generalValue == null || tasksValue == null
     ? null
@@ -402,7 +414,8 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
       return;
     }
     onSubmit({
-      generalScore: generalValue,
+      generalScore: itemMode ? null : generalValue,
+      generalItemScores: itemMode ? appraisalItemsPayload(items) : null,
       tasksScore: tasksValue,
       proposedGrade: grade,
       comment,
@@ -454,7 +467,30 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
           </table></div>
         </div>
       )}
-      <div className="col-md-3"><label className="form-label small" htmlFor="ap-general">Tiêu chí chung</label><input id="ap-general" type="number" min={0} max={p?.generalMaxScore ?? 100} step={0.1} required className="form-control form-control-sm num" value={general} onChange={(e) => setGeneral(e.target.value)} /></div>
+      {content && (
+        <div className="col-12 d-flex flex-wrap gap-3 align-items-center small" role="radiogroup" aria-label="Cách chấm tiêu chí chung">
+          <span className="text-secondary">Chấm tiêu chí chung:</span>
+          <label className="form-check form-check-inline mb-0">
+            <input type="radio" className="form-check-input" name="ap-mode" checked={!byItems} onChange={() => setByItems(false)} />
+            <span className="form-check-label">Theo nhóm</span>
+          </label>
+          <label className="form-check form-check-inline mb-0">
+            <input type="radio" className="form-check-input" name="ap-mode" checked={byItems} onChange={() => setByItems(true)} />
+            <span className="form-check-label">Từng tiêu chí</span>
+          </label>
+        </div>
+      )}
+      {itemMode && content && (
+        <div className="col-12">
+          <AppraisalItemsTable content={content} selfScores={record.generalScores ?? {}} value={items} onChange={setItems} />
+        </div>
+      )}
+      <div className="col-md-3">
+        <label className="form-label small" htmlFor="ap-general">Tiêu chí chung</label>
+        {itemMode
+          ? <div id="ap-general" className="num fw-bold">{generalValue != null ? fmt(generalValue) : "—"}</div>
+          : <input id="ap-general" type="number" min={0} max={p?.generalMaxScore ?? 100} step={0.1} required className="form-control form-control-sm num" value={general} onChange={(e) => setGeneral(e.target.value)} />}
+      </div>
       <div className="col-md-3"><label className="form-label small" htmlFor="ap-tasks">Kết quả nhiệm vụ</label><input id="ap-tasks" type="number" min={0} max={p?.totalTaskWeight ?? 100} step={0.1} required className="form-control form-control-sm num" value={tasksScore} onChange={(e) => setTasksScore(e.target.value)} /></div>
       <div className="col-md-2"><span className="form-label small d-block">Tổng</span><b className="num">{appraisal != null ? fmt(appraisal) : "—"}</b></div>
       <div className="col-md-6"><label className="form-label small" htmlFor="ap-grade">Mức đề xuất</label><GradeSelect id="ap-grade" value={grade} onChange={setGrade} /></div>

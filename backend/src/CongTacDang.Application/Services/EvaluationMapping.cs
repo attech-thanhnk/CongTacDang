@@ -230,6 +230,7 @@ public static class EvaluationMapping
             AppraisalScore = r.AppraisalScore,
             AppraisalGeneralScore = r.AppraisalGeneralScore,
             AppraisalTasksScore = r.AppraisalTasksScore,
+            AppraisalGeneralScores = r.AppraisalGeneralScores == null ? null : SafeGeneralScores(r.AppraisalGeneralScores),
             AppraisalComment = r.AppraisalComment,
             AppraisalExplanation = r.AppraisalExplanation,
             AppraisalProposedGrade = GradeCode(r.AppraisalProposedGrade),

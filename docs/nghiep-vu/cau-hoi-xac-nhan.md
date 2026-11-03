@@ -354,8 +354,8 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 ### F3. [Ưu tiên] Mẫu 10: điểm thẩm định theo nhóm và mức từng nhiệm vụ
 - **Câu hỏi:** Cách chấm thẩm định theo nhóm tiêu chí, đánh giá Mức 1/2/3 từng nhiệm vụ và in trên Mẫu 10 dưới đây có đúng không?
 - **Căn cứ:** Mẫu 18 (tr.80) coi Mẫu 10 là thành phần hồ sơ; Mẫu 10 (tr.66) có cột điểm theo từng nhóm.
-- **Hệ thống đang làm (mặc định):** Khi thẩm định nội bộ, người thẩm định chấm Mức 1/2/3 cho từng nhiệm vụ (bắt buộc đủ) và nhập điểm thẩm định cho nhóm tiêu chí chung (tối đa 30) cùng nhóm kết quả nhiệm vụ (tối đa 70); hệ thống tự tính tổng điểm thẩm định và in đầy đủ điểm thẩm định, độ chênh lệch của từng nhóm lên Mẫu 10.
-- **Phương án khác:** Nhập điểm thẩm định chi tiết cho từng tiêu chí con, từng sản phẩm lẻ.
+- **Hệ thống đang làm (mặc định):** Khi thẩm định nội bộ, người thẩm định chấm Mức 1/2/3 cho từng nhiệm vụ (bắt buộc đủ) và cho điểm thẩm định hai nhóm. Nhóm tiêu chí chung (tối đa 30) chấm theo một trong hai cách, người thẩm định chọn trên từng hồ sơ: nhập một điểm cho cả nhóm, hoặc chấm từng tiêu chí con như phiếu tự chấm (cùng giới hạn điểm, K/AD, căn cứ giảm điểm) để hệ thống tự cộng ra điểm nhóm. Nhóm kết quả nhiệm vụ (tối đa 70) nhập tay (mức 1/2/3 của nhiệm vụ không quy ra điểm). Hệ thống tự tính tổng điểm thẩm định và in đầy đủ điểm thẩm định, độ chênh lệch của từng nhóm lên Mẫu 10.
+- **Phương án khác:** Chấm điểm thẩm định cho từng sản phẩm lẻ (quy điểm nhóm nhiệm vụ từ từng sản phẩm).
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
 - **Trả lời (03/11/2026):** Phương án khác — cho chọn cả hai cách: chấm theo nhóm hoặc chấm từng tiêu chí con.
 

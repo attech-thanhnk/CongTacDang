@@ -181,6 +181,8 @@ public class EvaluationRecordDto
     public double? AppraisalGeneralScore { get; set; }
     /// <summary>null khi chỉ có điểm tổng.</summary>
     public double? AppraisalTasksScore { get; set; }
+    /// <summary>Điểm thẩm định từng tiêu chí con; null = thẩm định theo nhóm.</summary>
+    public Dictionary<string, GeneralItemScore>? AppraisalGeneralScores { get; set; }
     public string AppraisalComment { get; set; } = string.Empty;
     /// <summary>Giải trình khi chênh lệch tự chấm – thẩm định.</summary>
     public string? AppraisalExplanation { get; set; }
@@ -449,6 +451,9 @@ public class AppraisalRequestDto : WorkflowRequestDto
     public double? GeneralScore { get; set; }
     /// <summary>Gửi cùng <see cref="GeneralScore"/>.</summary>
     public double? TasksScore { get; set; }
+    /// <summary>Có = chấm từng tiêu chí con (khóa = mã tiêu chí, cùng quy tắc tự chấm), điểm nhóm chung do máy chủ tính và
+    /// <see cref="GeneralScore"/> bị bỏ qua; null = chấm theo nhóm.</summary>
+    public Dictionary<string, GeneralItemScore>? GeneralItemScores { get; set; }
     /// <summary>Chỉ dùng khi không gửi điểm theo nhóm; có điểm theo nhóm thì bị bỏ qua.</summary>
     public double? AppraisalScore { get; set; }
     /// <summary>Bắt buộc đủ mọi nhiệm vụ khi bộ tiêu chí chấm theo nhiệm vụ (09A).</summary>

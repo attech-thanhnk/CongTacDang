@@ -686,6 +686,54 @@ public sealed class EvaluationWorkflowTests
         Assert.Contains("87,5", text);
     }
 
+    [SkippableFact]
+    public async Task Appraisal_ByItems_ComputesGeneralGroupLikeSelfScore_FillsMau10()
+    {
+        var w = await WorldAsync();
+        var periodId = await OpenPeriodAsync(w, w.Owner1.Id);
+        var id = await RecordOfAsync(w, periodId, w.Owner1.Id);
+        await StepAsync(w.Owner1C, id, "tasks/submit", Tasks(), "AwaitingTaskApproval");
+        await StepAsync(w.DeptLeadC, id, "tasks/approve", new { }, "AwaitingSelfScore");
+        await SelfScoreAsync(w, w.Owner1C, id);
+        await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
+        await StepAsync(w.SecretaryC, id, "collective", new { proposedGrade = "HoanThanhTot" }, "AwaitingAppraisal");
+        var levels = (await Data(w.AppraiserC, $"/api/evaluations/records/{id}")).GetProperty("tasks").EnumerateArray()
+            .Select(t => new { taskId = t.GetProperty("id").GetGuid(), level = 1 }).ToArray();
+
+        // Vượt điểm tối đa của tiêu chí → 400, không lưu.
+        var over = CriteriaTestData.General();
+        over["1.1"] = new CongTacDang.Domain.Evaluation.GeneralItemScore { Score = 3 };
+        var rejected = await PostAsync(w.AppraiserC, id, "appraisal", new
+        {
+            generalItemScores = over, tasksScore = 60.5, explanation = "Căn cứ", proposedGrade = "HoanThanhTot", taskLevels = levels
+        }, await VersionAsync(w, id));
+        Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+        Assert.Contains("1.1", await MessageAsync(rejected));
+
+        // 2.1 không đảm bảo, 1.3 K/AD: 27/28 × 30 = 28,93 → 28,9 (cùng quy tắc tự chấm); điểm nhóm gửi kèm bị bỏ qua.
+        var items = CriteriaTestData.General("2.1");
+        items["1.3"] = new CongTacDang.Domain.Evaluation.GeneralItemScore { NotApplicable = true, Reason = "Không phát sinh" };
+        var appraised = await StepAsync(w.AppraiserC, id, "appraisal", new
+        {
+            generalItemScores = items, generalScore = 10.0, tasksScore = 60.5, explanation = "Căn cứ thẩm định (test)",
+            proposedGrade = "HoanThanhTot", taskLevels = levels
+        }, "AwaitingDirectorReview");
+        Assert.Equal(28.9, appraised.GetProperty("appraisalGeneralScore").GetDouble(), 6);
+        Assert.Equal(89.4, appraised.GetProperty("appraisalScore").GetDouble(), 6);
+        var saved = appraised.GetProperty("appraisalGeneralScores");
+        Assert.True(saved.GetProperty("1.3").GetProperty("notApplicable").GetBoolean());
+        Assert.Equal(0, saved.GetProperty("2.1").GetProperty("score").GetDouble(), 6);
+
+        var docx = await w.AppraiserC.GetAsync($"/api/reports/docx/mau-10/{id}");
+        var bytes = await docx.Content.ReadAsByteArrayAsync();
+        Assert.True(docx.IsSuccessStatusCode, $"{(int)docx.StatusCode}: {System.Text.Encoding.UTF8.GetString(bytes)}");
+        using var zip = new System.IO.Compression.ZipArchive(new MemoryStream(bytes), System.IO.Compression.ZipArchiveMode.Read);
+        using var reader = new StreamReader(zip.GetEntry("word/document.xml")!.Open());
+        var text = System.Text.RegularExpressions.Regex.Replace(await reader.ReadToEndAsync(), "<[^>]+>", string.Empty);
+        Assert.Contains("28,9", text);
+        Assert.Contains("89,4", text);
+    }
+
     #endregion
 
     #region Mức đề xuất so với mức theo điểm, kiểm phiếu, diện quyết định theo chức vụ

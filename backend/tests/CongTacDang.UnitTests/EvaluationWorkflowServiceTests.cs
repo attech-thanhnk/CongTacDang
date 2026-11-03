@@ -278,6 +278,110 @@ public sealed class EvaluationWorkflowServiceTests
         Assert.Equal(RecordStatus.AwaitingDirectorReview, h.Record.Status);
     }
 
+    [Fact]
+    public async Task Appraise_ByItems_GeneralFromItems_WithNotApplicable_SameAsSelfScore()
+    {
+        var h = new Harness(RecordStatus.AwaitingAppraisal);
+        h.Record.TotalSelfScore = 90;
+        var items = h.FullItems();
+        items["1.3"] = new GeneralItemScore { NotApplicable = true, Reason = "Không phát sinh" };
+        items["2.1"] = new GeneralItemScore { Score = 0, Reason = "Chưa đạt" };
+        var request = h.AppraisalRequest("HoanThanhTot", 5, 61.25);
+        request.GeneralItemScores = items;
+        request.Explanation = "Căn cứ thẩm định";
+
+        await h.Service.AppraiseAsync(h.Record.Id, request);
+
+        // 27 / 28 × 30 = 28,93 → 28,9 (bỏ K/AD và quy đổi), điểm nhóm gửi kèm bị bỏ qua.
+        Assert.Equal(28.9, h.Record.AppraisalGeneralScore!.Value, 6);
+        Assert.Equal(EvaluationScoring.GeneralCriteriaScore(h.Content, items), h.Record.AppraisalGeneralScore!.Value, 6);
+        Assert.Equal(61.3, h.Record.AppraisalTasksScore!.Value, 6);
+        Assert.Equal(90.2, h.Record.AppraisalScore!.Value, 6);
+        var saved = EvaluationScoring.ParseGeneralScores(h.Record.AppraisalGeneralScores);
+        Assert.True(saved["1.3"].NotApplicable);
+        Assert.Equal(0, saved["2.1"].Score);
+    }
+
+    [Fact]
+    public async Task Appraise_ByItems_GrantFullRule_CountsNotApplicableAsMax()
+    {
+        var h = new Harness(RecordStatus.AwaitingAppraisal);
+        h.Content.Parameters.NotApplicableRule = NotApplicableRule.GrantFull;
+        h.ResetCriteria();
+        h.Record.TotalSelfScore = 95;
+        var items = h.FullItems();
+        items["1.3"] = new GeneralItemScore { NotApplicable = true, Reason = "Không phát sinh" };
+        items["2.1"] = new GeneralItemScore { Score = 0, Reason = "Chưa đạt" };
+        var request = h.AppraisalRequest("HoanThanhTot", null, 66);
+        request.GeneralItemScores = items;
+        request.Explanation = "Căn cứ thẩm định";
+
+        await h.Service.AppraiseAsync(h.Record.Id, request);
+
+        Assert.Equal(29, h.Record.AppraisalGeneralScore!.Value, 6);
+        Assert.Equal(95, h.Record.AppraisalScore!.Value, 6);
+    }
+
+    public static TheoryData<string, double, bool, string?, string> InvalidItems() => new()
+    {
+        { "1.1", 3, false, null, "1.1" },               // vượt điểm tối đa
+        { "1.1", 1, false, "Giảm một nửa", "Đảm bảo" }, // nhóm Đảm bảo/Không đảm bảo chỉ 0 hoặc tối đa
+        { "1.1", 0, false, null, "căn cứ giảm điểm" },  // giảm điểm phải nêu căn cứ
+        { "1.1", 0, true, null, "lý do" },              // K/AD phải nêu lý do
+        { "9.9", 1, false, null, "không có trong bộ" }  // tiêu chí lạ
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidItems))]
+    public async Task Appraise_ByItems_InvalidItem_Rejected_NothingSaved(string code, double score, bool notApplicable, string? reason, string expected)
+    {
+        var h = new Harness(RecordStatus.AwaitingAppraisal);
+        h.Record.TotalSelfScore = 96;
+        var items = h.FullItems();
+        items[code] = new GeneralItemScore { Score = score, NotApplicable = notApplicable, Reason = reason };
+        var request = h.AppraisalRequest("HoanThanhTot", null, 66);
+        request.GeneralItemScores = items;
+        request.Explanation = "Căn cứ";
+
+        var ex = await Assert.ThrowsAsync<ValidationException>(() => h.Service.AppraiseAsync(h.Record.Id, request));
+        Assert.Contains(expected, ex.Message);
+        Assert.Equal(0, h.Uow.Saves);
+        Assert.Null(h.Record.AppraisalGeneralScores);
+    }
+
+    [Fact]
+    public async Task Appraise_ByItems_MissingItemOrTasksScore_Rejected()
+    {
+        var h = new Harness(RecordStatus.AwaitingAppraisal);
+        h.Record.TotalSelfScore = 96;
+        var missingItem = h.FullItems();
+        missingItem.Remove("3.4");
+        var request = h.AppraisalRequest("HoanThanhTot", null, 66);
+        request.GeneralItemScores = missingItem;
+        Assert.Contains("3.4", (await Assert.ThrowsAsync<ValidationException>(() => h.Service.AppraiseAsync(h.Record.Id, request))).Message);
+
+        var noTasks = h.AppraisalRequest("HoanThanhTot", null, null);
+        noTasks.GeneralItemScores = h.FullItems();
+        Assert.Contains("nhóm kết quả thực hiện nhiệm vụ",
+            (await Assert.ThrowsAsync<ValidationException>(() => h.Service.AppraiseAsync(h.Record.Id, noTasks))).Message);
+        Assert.Equal(0, h.Uow.Saves);
+    }
+
+    [Fact]
+    public async Task Appraise_ByGroup_ClearsItemScores()
+    {
+        var h = new Harness(RecordStatus.AwaitingAppraisal);
+        h.Record.TotalSelfScore = 96;
+        h.Record.AppraisalGeneralScores = "{\"1.1\":{\"score\":2}}";
+        var request = h.AppraisalRequest("HoanThanhTot", 30, 66);
+        request.Explanation = "Căn cứ";
+
+        await h.Service.AppraiseAsync(h.Record.Id, request);
+
+        Assert.Null(h.Record.AppraisalGeneralScores);
+        Assert.Equal(30, h.Record.AppraisalGeneralScore!.Value, 6);
+    }
+
     #endregion
 
     #region 5. Thu hồi duyệt danh mục
@@ -746,6 +850,14 @@ public sealed class EvaluationWorkflowServiceTests
             SelfProposedGrade = "HoanThanhTot",
             SelfGradeExplanation = "Căn cứ kiểm thử"
         };
+
+        /// <summary>Mọi tiêu chí con đạt tối đa.</summary>
+        public Dictionary<string, GeneralItemScore> FullItems() =>
+            Content.AllItems.ToDictionary(x => x.Item.Code, x => new GeneralItemScore { Score = x.Item.MaxScore });
+
+        /// <summary>Chụp lại bộ tiêu chí vào kỳ sau khi sửa <see cref="Content"/>.</summary>
+        public void ResetCriteria() =>
+            Period.CriteriaSnapshot = new CriteriaSnapshot { SetId = Guid.NewGuid(), Code = "IT", Name = "Bộ thử", Content = Content }.ToJson();
 
         public AppraisalRequestDto AppraisalRequest(string grade, double? general, double? tasks) => new()
         {
