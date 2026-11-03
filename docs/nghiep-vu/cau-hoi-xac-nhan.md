@@ -36,6 +36,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Hệ thống đang làm (mặc định):** Người đó vẫn có hồ sơ và đi hết luồng. Ở bước quyết định, Đảng ủy cơ sở chọn được mức "Chưa xếp loại". Kết quả do cấp trên quyết định thì bắt buộc phải là một trong 4 mức.
 - **Phương án khác:** Không đưa vào danh sách kỳ; đánh dấu "Chưa xếp loại" kèm lý do ngay từ đầu và bỏ qua các bước; cho cấp trên ghi "Chưa xếp loại".
 - **Ảnh hưởng nếu đổi:** Không đưa vào kỳ: cấu hình trên giao diện. Đánh dấu riêng hoặc cho cấp trên ghi "Chưa xếp loại": cần sửa phần mềm.
+- **Trả lời (03/11/2026):** Phương án khác — người không đánh giá trong quý thì không phải đăng ký, tự chấm: đánh dấu "Chưa xếp loại" kèm lý do ngay từ đầu, bỏ qua các bước.
 
 ### A3. Cán bộ chuyển đơn vị hoặc đổi chức vụ trong quý
 - **Câu hỏi:** Cán bộ chuyển đơn vị hoặc đổi chức vụ trong quý thì hồ sơ thuộc đơn vị nào?
@@ -280,6 +281,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Hệ thống đang làm (mặc định):** Gợi ý mức theo tổng điểm. Điều kiện kèm theo (nhiệm vụ trọng tâm Mức 3 → chỉ Không hoàn thành; Hoàn thành xuất sắc cần không có nhiệm vụ trọng tâm Mức 2/3 và đủ tỷ lệ sản phẩm vượt chuẩn) chỉ cảnh báo, không chặn; người thẩm định, người quyết định tự xét và chọn mức.
 - **Phương án khác:** Chặn khi thiếu điều kiện; xét từ mức cao xuống, không đạt mức nào thì xếp Không hoàn thành.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
+- **Trả lời (03/11/2026):** Đồng ý — chỉ cảnh báo, người quyết định chọn mức.
 
 ### E7. [Ưu tiên] Trần tỷ lệ Hoàn thành xuất sắc
 - **Câu hỏi:** Trần 20% tính trên số người "Hoàn thành tốt" hay "Hoàn thành tốt trở lên", và tính theo nhóm nào?
@@ -347,6 +349,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Hệ thống đang làm (mặc định):** 01, 02, 03, 04, 05, 06, 09A, 09C, 9D, 10, 11, 07, 12, 13, 16, 17, 19, 20 và Quyết định xuất Word/PDF. Mẫu 08 xuất cả Word và Excel. Mẫu 14, 15A, 15B và Bảng tổng hợp xếp loại cán bộ của kỳ xuất Excel.
 - **Phương án khác:** Thêm bản Excel cho 01, 02, 09A, 9D, 10.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
+- **Trả lời (03/11/2026):** Phương án khác — cần bản Excel cho Mẫu 01, 02, 09A, 9D, 10.
 
 ### F3. [Ưu tiên] Mẫu 10: điểm thẩm định theo nhóm và mức từng nhiệm vụ
 - **Câu hỏi:** Cách chấm thẩm định theo nhóm tiêu chí, đánh giá Mức 1/2/3 từng nhiệm vụ và in trên Mẫu 10 dưới đây có đúng không?
@@ -354,6 +357,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Hệ thống đang làm (mặc định):** Khi thẩm định nội bộ, người thẩm định chấm Mức 1/2/3 cho từng nhiệm vụ (bắt buộc đủ) và nhập điểm thẩm định cho nhóm tiêu chí chung (tối đa 30) cùng nhóm kết quả nhiệm vụ (tối đa 70); hệ thống tự tính tổng điểm thẩm định và in đầy đủ điểm thẩm định, độ chênh lệch của từng nhóm lên Mẫu 10.
 - **Phương án khác:** Nhập điểm thẩm định chi tiết cho từng tiêu chí con, từng sản phẩm lẻ.
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
+- **Trả lời (03/11/2026):** Phương án khác — cho chọn cả hai cách: chấm theo nhóm hoặc chấm từng tiêu chí con.
 
 ### F4. [Ưu tiên] Mẫu 09C: bắt buộc nhập và độ dài
 - **Câu hỏi:** Bản tự đánh giá Mẫu 09C có bắt buộc nhập mới cho nộp không? Giới hạn 6.000 ký tự (khoảng 02 trang A4) có phù hợp không?
@@ -375,6 +379,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Hệ thống đang làm (mặc định):** In tên người đã duyệt danh mục trong hệ thống (Lãnh đạo đơn vị; Chủ tịch với Phó Giám đốc). Danh mục do cấp trên duyệt (hệ thống chỉ ghi nhận) hoặc chưa duyệt thì để dòng chấm để ký tay.
 - **Phương án khác:** Luôn để trống để ký tay; hoặc in người khác (ví dụ cấp trưởng đơn vị dù người duyệt là cấp phó).
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
+- **Trả lời (03/11/2026):** Đồng ý.
 
 ### F6. Tên tệp nộp theo quy cách
 - **Câu hỏi:** Tệp xuất ra có cần đặt tên đúng quy cách "Mau 16_QLBMB_Quy III-2026" không?
@@ -400,6 +405,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Hệ thống đang làm (mặc định):** Dùng mức quyết định; chưa có thì dùng mức đề xuất gần nhất (cấp trực tiếp sử dụng → thẩm định → tập thể lãnh đạo), không dùng mức cá nhân tự đề xuất; chưa có mức nào thì tính "Chưa xếp loại".
 - **Phương án khác:** Chỉ đếm hồ sơ đã có quyết định, còn lại tính "Chưa xếp loại".
 - **Ảnh hưởng nếu đổi:** Cần sửa phần mềm.
+- **Trả lời (03/11/2026):** Đồng ý — chưa có quyết định thì tính theo mức đề xuất gần nhất (như báo cáo quý III/2026 đã nộp).
 
 ---
 
