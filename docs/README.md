@@ -6,6 +6,7 @@ Tìm đúng tài liệu theo việc bạn cần làm. Mọi liên kết là đư
 
 | Bạn là ai / muốn làm gì | Đọc file | Nội dung |
 |---|---|---|
+| Lệnh chạy thử trên máy dev: đăng nhập, tạo dữ liệu tới một giai đoạn, làm sạch | [lenh-chay-thu.md](lenh-chay-thu.md) | Tài khoản thử, mật khẩu, các giai đoạn và ai làm tiếp, lệnh kiểm thử. |
 | Làm theo từng bước của một kỳ đánh giá: ai làm, vào đâu, bấm gì | [quy-trinh-thao-tac-chuan.md](quy-trinh-thao-tac-chuan.md) | Chuẩn bị ban đầu, lập và mở kỳ, đăng ký đến công bố, sau công bố, xử lý vướng mắc; kèm bảng hạn mặc định. |
 | Cán bộ, người duyệt, cơ quan thẩm định dùng hệ thống hằng ngày | [huong-dan-su-dung.md](huong-dan-su-dung.md) | Từng màn hình và từng bước thao tác, kèm ảnh minh họa trong `huong-dan/anh/`. |
 | Tra cứu nhanh vai trò, công việc, 55 tài khoản ATTECH và cách xử lý khi luân chuyển / giao phụ trách cán bộ | [so-tay-phan-quyen-va-luan-chuyen.md](so-tay-phan-quyen-va-luan-chuyen.md) | Phân biệt Chức vụ vs Vai trò vs Diện quyết định, bảng 55 tài khoản hiện hành và 6 kịch bản điều động/phụ trách thực tế. |
