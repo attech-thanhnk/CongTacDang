@@ -262,6 +262,12 @@ export default function PeriodDetailPage() {
       Object.entries(profile.steps).filter(([code, step]) => code !== "B5_PUBLISH" && step.mode !== "Off" && !step.deadline).map(([code]) => code)),
   );
   const missingDeadlines = missingDeadlineSteps.size;
+  // Hạn trước hôm nay làm mọi hồ sơ hiện quá hạn ngay khi mở kỳ (thường gặp khi lập kỳ muộn).
+  const todayIso = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+  const pastDeadlineSteps = new Set(
+    deadlineProfiles.flatMap((profile) =>
+      Object.entries(profile.steps).filter(([, step]) => step.mode !== "Off" && !!step.deadline && step.deadline.slice(0, 10) < todayIso).map(([code]) => code)),
+  );
 
   const checklist: { ok: boolean; text: string; action: string; go: () => void }[] = [
     {
@@ -292,6 +298,14 @@ export default function PeriodDetailPage() {
       action: "Đặt thời hạn",
       go: () => setTab("profiles"),
     },
+    ...(pastDeadlineSteps.size > 0
+      ? [{
+          ok: false,
+          text: `${pastDeadlineSteps.size} bước có thời hạn đã qua: hồ sơ sẽ hiện quá hạn ngay khi mở kỳ`,
+          action: "Sửa thời hạn",
+          go: () => setTab("profiles"),
+        }]
+      : []),
     ...(participants.length > 0 && readiness
       ? [{
           ok: stepIssues.length === 0,
@@ -382,6 +396,7 @@ export default function PeriodDetailPage() {
                       <span className="flex-grow-1">Kiểm tra dữ liệu: {item.title}</span>
                       <span className="small text-secondary">Xem</span>
                     </summary>
+                    {item.hint && <p className="small text-secondary mt-2 mb-0">{item.hint}</p>}
                     <ul className="small mt-2 mb-1">
                       {item.names.map((name) => <li key={name}>{name}</li>)}
                     </ul>
