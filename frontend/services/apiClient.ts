@@ -186,7 +186,7 @@ apiClient.interceptors.response.use(
                 window.dispatchEvent(new CustomEvent("auth:session-expired"));
               }
               reject(
-                new ApiError("Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.", 401, undefined, refreshErr?.response?.data)
+                new ApiError("Phiên làm việc đã hết hạn. Hãy đăng nhập lại.", 401, undefined, refreshErr?.response?.data)
               );
             })
             .finally(() => {
@@ -207,11 +207,11 @@ apiClient.interceptors.response.use(
       } else if (status === 400) {
         message = message || "Dữ liệu gửi lên chưa hợp lệ.";
       } else if (status >= 500) {
-        message = message || "Máy chủ gặp lỗi khi xử lý. Vui lòng thử lại hoặc báo Quản trị hệ thống.";
+        message = message || "Máy chủ gặp lỗi khi xử lý. Hãy thử lại hoặc báo Quản trị hệ thống.";
       }
       message = message || problemTitle || "Yêu cầu không thành công.";
     } else if (error.code === "ECONNABORTED") {
-      message = "Máy chủ phản hồi quá lâu. Vui lòng thử lại.";
+      message = "Máy chủ phản hồi quá lâu. Hãy thử lại.";
     } else if (error.code === "ERR_CANCELED") {
       message = "Yêu cầu đã bị hủy.";
     } else {

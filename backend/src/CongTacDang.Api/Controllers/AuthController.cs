@@ -83,7 +83,7 @@ public class AuthController : ControllerBase
     {
         if (!Request.Cookies.TryGetValue("refresh_token", out var tokenValue) || string.IsNullOrWhiteSpace(tokenValue))
         {
-            return Unauthorized(ApiResponse.Fail("Không tìm thấy phiên đăng nhập. Vui lòng đăng nhập lại."));
+            return Unauthorized(ApiResponse.Fail("Không tìm thấy phiên đăng nhập. Hãy đăng nhập lại."));
         }
 
         try
@@ -110,7 +110,7 @@ public class AuthController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null)
-            return Unauthorized(ApiResponse.Fail("Không xác định được tài khoản hiện tại. Vui lòng đăng nhập lại."));
+            return Unauthorized(ApiResponse.Fail("Không xác định được tài khoản hiện tại. Hãy đăng nhập lại."));
 
         Request.Cookies.TryGetValue("refresh_token", out var refreshToken);
         var result = await _authService.ChangePasswordAsync(
@@ -146,7 +146,7 @@ public class AuthController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null)
-            return Unauthorized(ApiResponse.Fail("Không xác định được tài khoản hiện tại. Vui lòng đăng nhập lại."));
+            return Unauthorized(ApiResponse.Fail("Không xác định được tài khoản hiện tại. Hãy đăng nhập lại."));
 
         var profile = await _userService.GetProfileByIdAsync(userId.Value);
         // Cùng nguồn với kiểm tra policy.

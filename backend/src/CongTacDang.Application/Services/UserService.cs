@@ -40,7 +40,7 @@ public class UserService : IUserService
     public async Task<UserProfileDto> GetProfileByIdAsync(Guid userId)
     {
         var member = await _userRepo.GetWithOrganizationByIdAsync(userId)
-            ?? throw new NotFoundException("Không tìm thấy hồ sơ của tài khoản đang đăng nhập (có thể đã bị xóa). Vui lòng đăng nhập lại.");
+            ?? throw new NotFoundException("Không tìm thấy hồ sơ của tài khoản đang đăng nhập. Hãy đăng nhập lại.");
         return await MapToProfileDtoAsync(member);
     }
 

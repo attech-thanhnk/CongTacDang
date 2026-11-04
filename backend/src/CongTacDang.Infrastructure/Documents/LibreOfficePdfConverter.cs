@@ -100,7 +100,7 @@ public sealed class LibreOfficePdfConverter : IPdfConverter, IDisposable
 
         var soffice = LibreOfficeLocator.Find(_options.SofficePath)
             ?? throw new ServiceUnavailableException(
-                "Máy chủ chưa cài LibreOffice nên chưa xuất được PDF. Vui lòng tải bản Word/Excel hoặc liên hệ quản trị hệ thống.");
+                "Máy chủ chưa cài LibreOffice nên chưa xuất được PDF. Hãy tải bản Word/Excel hoặc liên hệ quản trị hệ thống.");
 
         await _gate.WaitAsync(cancellationToken);
         var workRoot = string.IsNullOrWhiteSpace(_options.WorkDirectory)
@@ -150,7 +150,7 @@ public sealed class LibreOfficePdfConverter : IPdfConverter, IDisposable
                 if (cancellationToken.IsCancellationRequested)
                     throw;
                 throw new ServiceUnavailableException(
-                    $"Chuyển PDF quá thời gian cho phép ({_options.TimeoutSeconds} giây). Vui lòng thử lại hoặc tải bản Word/Excel.");
+                    $"Chuyển PDF quá thời gian cho phép ({_options.TimeoutSeconds} giây). Hãy thử lại hoặc tải bản Word/Excel.");
             }
 
             await Task.WhenAll(stdout, stderr);
@@ -158,7 +158,7 @@ public sealed class LibreOfficePdfConverter : IPdfConverter, IDisposable
             if (process.ExitCode != 0 || !File.Exists(outputPath))
             {
                 throw new ServiceUnavailableException(
-                    $"Chuyển tài liệu sang PDF bằng LibreOffice không thành công (mã thoát {process.ExitCode}). Vui lòng tải bản Word/Excel.");
+                    $"Chuyển tài liệu sang PDF bằng LibreOffice không thành công (mã thoát {process.ExitCode}). Hãy tải bản Word/Excel.");
             }
 
             return await File.ReadAllBytesAsync(outputPath, cancellationToken);
@@ -175,7 +175,7 @@ public sealed class LibreOfficePdfConverter : IPdfConverter, IDisposable
         try
         {
             return Process.Start(startInfo)
-                ?? throw new ServiceUnavailableException("Khởi động LibreOffice để xuất PDF không thành công. Vui lòng tải bản Word/Excel.");
+                ?? throw new ServiceUnavailableException("Khởi động LibreOffice để xuất PDF không thành công. Hãy tải bản Word/Excel.");
         }
         catch (Win32Exception)
         {

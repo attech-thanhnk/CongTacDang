@@ -63,7 +63,7 @@ public class GlobalExceptionMiddleware
                 when exception is not InvalidOperationException => exception.Message,
             _ => _env.IsDevelopment()
                 ? $"Lỗi máy chủ nội bộ: {exception.Message}"
-                : "Máy chủ gặp lỗi khi xử lý. Vui lòng thử lại hoặc báo Quản trị hệ thống."
+                : "Máy chủ gặp lỗi khi xử lý. Hãy thử lại hoặc báo Quản trị hệ thống."
         };
 
         // 4xx là lỗi nghiệp vụ bình thường → Warning không stack trace; chỉ 5xx ghi Error để không làm chìm lỗi thật.

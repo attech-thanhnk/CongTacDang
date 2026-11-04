@@ -141,7 +141,7 @@ public class AuthService : IAuthService
         var tokenRecord = await _refreshTokenRepo.GetByTokenWithUserAsync(refreshTokenValue);
 
         if (tokenRecord == null)
-            throw new UnauthorizedAccessException("Phiên đăng nhập không còn hiệu lực. Vui lòng đăng nhập lại.");
+            throw new UnauthorizedAccessException("Phiên đăng nhập không còn hiệu lực. Hãy đăng nhập lại.");
 
         // Token đã thu hồi bị dùng lại → nghi bị lộ.
         if (tokenRecord.IsRevoked)
@@ -154,11 +154,11 @@ public class AuthService : IAuthService
             if (!string.IsNullOrEmpty(tokenRecord.ReplacedByTokenHash))
                 await _refreshTokenRepo.RevokeAllUserTokensAsync(tokenRecord.UserId);
 
-            throw new UnauthorizedAccessException("Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại.");
+            throw new UnauthorizedAccessException("Phiên đăng nhập đã bị thu hồi. Hãy đăng nhập lại.");
         }
 
         if (tokenRecord.IsExpired)
-            throw new UnauthorizedAccessException("Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.");
+            throw new UnauthorizedAccessException("Phiên làm việc đã hết hạn. Hãy đăng nhập lại.");
 
         var user = tokenRecord.User;
         if (user == null || user.IsDeleted || !user.IsActive)
@@ -180,7 +180,7 @@ public class AuthService : IAuthService
             if (latestRecord?.ReplacedByTokenHash != null)
                 await _refreshTokenRepo.RevokeAllUserTokensAsync(tokenRecord.UserId);
 
-            throw new UnauthorizedAccessException("Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại.");
+            throw new UnauthorizedAccessException("Phiên đăng nhập đã bị thu hồi. Hãy đăng nhập lại.");
         }
 
         return await IssueAsync(user, newRefreshToken.Token, newRefreshToken.ExpiresAt);
@@ -194,7 +194,7 @@ public class AuthService : IAuthService
             ? await _accounts.FindByIdAsync(userId)
             : await _userRepo.GetByIdAsync(userId);
         if (member == null || !member.IsActive)
-            throw new UnauthorizedAccessException("Tài khoản không còn hiệu lực. Vui lòng đăng nhập lại.");
+            throw new UnauthorizedAccessException("Tài khoản không còn hiệu lực. Hãy đăng nhập lại.");
 
         // Sai mật khẩu hiện tại → 400 (không dùng 401 để giao diện không hiểu nhầm là hết phiên).
         if (string.IsNullOrEmpty(request.CurrentPassword) || string.IsNullOrWhiteSpace(member.PasswordHash) ||

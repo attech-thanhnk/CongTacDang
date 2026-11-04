@@ -1094,7 +1094,7 @@ export const STEP_ORDER: WorkflowStepCode[] = [
 // Lệnh ghi gửi `version` đã đọc; 409 → phát sự kiện để giao diện đề nghị tải lại.
 
 export const CONCURRENCY_CONFLICT_MESSAGE =
-  "Dữ liệu đã được người khác cập nhật. Vui lòng tải lại để xem dữ liệu mới nhất — nội dung bạn đang nhập vẫn được giữ nguyên.";
+  "Dữ liệu đã được người khác cập nhật. Hãy tải lại để xem dữ liệu mới nhất — nội dung bạn đang nhập vẫn được giữ nguyên.";
 
 /** Sự kiện `window` phát ra khi lệnh cập nhật bị từ chối (409). */
 export const EVALUATION_CONFLICT_EVENT = "evaluations:conflict";

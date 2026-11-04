@@ -102,8 +102,8 @@ public static class SecurityExtensions
                 context.Response.Headers.WWWAuthenticate = "Bearer";
                 context.Response.ContentType = "application/json";
                 var message = context.AuthenticateFailure != null
-                    ? "Phiên đăng nhập đã hết hạn hoặc đã bị thu hồi (tài khoản bị khóa, xóa hoặc đổi mật khẩu). Vui lòng đăng nhập lại."
-                    : "Bạn chưa đăng nhập. Vui lòng đăng nhập để tiếp tục.";
+                    ? "Phiên đăng nhập đã hết hạn hoặc bị thu hồi. Hãy đăng nhập lại."
+                    : "Hãy đăng nhập để tiếp tục.";
                 await context.Response.WriteAsync(JsonSerializer.Serialize(ApiResponse.Fail(message), JsonOptions));
             };
         });
