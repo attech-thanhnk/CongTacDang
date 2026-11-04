@@ -6,6 +6,7 @@ Tìm đúng tài liệu theo việc bạn cần làm. Mọi liên kết là đư
 
 | Bạn là ai / muốn làm gì | Đọc file | Nội dung |
 |---|---|---|
+| Cho người thật dùng thử: nhóm thử, lịch, đăng nhập, góp ý | [dung-thu/ke-hoach-dung-thu.md](dung-thu/ke-hoach-dung-thu.md) | Kèm phiếu góp ý Excel; hướng dẫn theo vai trò trong cùng thư mục. |
 | Lệnh chạy thử trên máy dev: đăng nhập, tạo dữ liệu tới một giai đoạn, làm sạch | [lenh-chay-thu.md](lenh-chay-thu.md) | Tài khoản thử, mật khẩu, các giai đoạn và ai làm tiếp, lệnh kiểm thử. |
 | Làm theo từng bước của một kỳ đánh giá: ai làm, vào đâu, bấm gì | [quy-trinh-thao-tac-chuan.md](quy-trinh-thao-tac-chuan.md) | Chuẩn bị ban đầu, lập và mở kỳ, đăng ký đến công bố, sau công bố, xử lý vướng mắc; kèm bảng hạn mặc định. |
 | Cán bộ, người duyệt, cơ quan thẩm định dùng hệ thống hằng ngày | [huong-dan-su-dung.md](huong-dan-su-dung.md) | Từng màn hình và từng bước thao tác, kèm ảnh minh họa trong `huong-dan/anh/`. |
