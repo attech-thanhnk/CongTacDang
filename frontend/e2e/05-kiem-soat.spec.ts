@@ -113,7 +113,7 @@ test.describe.serial('Kiểm soát (Mẫu 19)', () => {
     await expect(page.getByText(/Hồ sơ chưa thuộc/)).toHaveCount(0);
   });
 
-  test('ghi nhận quyết định rồi công bố kết quả bằng giao diện', async ({ mo }) => {
+  test('ghi nhận quyết định rồi công bố từ Việc cần xử lý (chọn hồ sơ, Công bố (N))', async ({ mo }) => {
     const page = await mo('hung.dt');
     await page.goto(duongDanHoSo(TRUNG.khoa));
     const vung = page.getByRole('region', { name: /Ghi nhận quyết định/ });
@@ -126,9 +126,16 @@ test.describe.serial('Kiểm soát (Mẫu 19)', () => {
     await expect(thongBao(page, 'Đã lưu thao tác trên hồ sơ.')).toBeVisible();
 
     await expect(page.getByRole('region', { name: /Công bố/ })).toBeVisible();
-    await page.getByRole('region', { name: /Công bố/ }).getByRole('button', { name: 'Công bố' }).click();
-    await dongY(page);
-    await expect(thongBao(page, 'Đã lưu thao tác trên hồ sơ.')).toBeVisible();
+
+    await page.goto('/work-queue');
+    const nhom = page.locator('section#B5_PUBLISH');
+    const nut = nhom.getByRole('button', { name: /^Công bố \(\d+\)$/ });
+    await expect(nut).toBeDisabled();
+    await nhom.getByRole('checkbox', { name: `Chọn ${TRUNG.hoTen}` }).check();
+    await expect(nut).toHaveText('Công bố (1)');
+    await nut.click();
+    await page.getByRole('dialog', { name: 'Công bố kết quả' }).getByRole('button', { name: 'Công bố' }).click();
+    await expect(thongBao(page, 'Đã công bố 1 hồ sơ.')).toBeVisible();
     const duongDan = '/api/evaluations/records/' + duongDanHoSo(TRUNG.khoa).split('/').pop();
     await expect.poll(async () => (await (await page.request.get(duongDan)).json()).data.status).toBe('Published');
   });

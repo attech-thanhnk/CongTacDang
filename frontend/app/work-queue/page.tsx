@@ -70,6 +70,7 @@ export default function WorkQueuePage() {
       title: "Công bố kết quả",
       message: `Công bố ${items.length} hồ sơ đã chọn?`,
       confirmText: "Công bố",
+      isDanger: false,
       onConfirm: async () => {
         setPublishing(true);
         try {
