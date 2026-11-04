@@ -137,7 +137,7 @@ function RequestItem({
     ["Thời hạn", p.deadline ? formatDate(p.deadline) : null],
     ["Trục", p.axisCode],
     ["Vai trò", p.role ? TASK_ROLE_LABELS[p.role as TaskRole] ?? p.role : null],
-    ["Mã SP", p.productCode],
+    ["Mã sản phẩm", p.productCode],
     ["Vượt chuẩn", p.exceedCriteria],
     ["Minh chứng", p.evidenceSource],
     ["Xác nhận", p.confirmer],

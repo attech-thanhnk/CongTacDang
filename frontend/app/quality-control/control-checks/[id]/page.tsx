@@ -306,7 +306,7 @@ export default function ControlCheckDetailPage() {
       <div className="page-body d-flex flex-column gap-3">
         {data.isStale && (
           <div className="alert alert-danger small mb-0" role="alert">
-            Phiếu hết hiệu lực với các hồ sơ có nhãn "Hết hiệu lực" bên dưới: hồ sơ đó đã đổi kết quả hoặc bước sau khi xác nhận. Hãy mở lại phiếu và xác nhận lại; hồ sơ đã ghi nhận quyết định không bị ảnh hưởng.
+            Phiếu hết hiệu lực với các hồ sơ có nhãn "Hết hiệu lực" (đã đổi kết quả hoặc bước sau khi xác nhận). Hãy mở lại phiếu và xác nhận lại.
           </div>
         )}
         {data.returnReason && data.status === "Draft" && <div className="alert alert-warning small mb-0">Phiếu bị trả lại: {data.returnReason}</div>}

@@ -139,7 +139,7 @@ export function ReasonDialog({ isOpen, title, description, confirmText, targetSt
                 onChange={(e) => setReason(e.target.value)}
                 autoFocus
               />
-              {touched && missingReason && <div className="invalid-feedback">Hãy nhập lý do để người liên quan biết cần làm gì.</div>}
+              {touched && missingReason && <div className="invalid-feedback">Hãy nhập lý do.</div>}
             </div>
             <div className="modal-footer px-4 py-3">
               <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onCancel} disabled={busy}>Hủy</button>

@@ -145,7 +145,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
   const handleDelete = (p: Position) =>
     confirm({
       title: "Xóa chức vụ",
-      message: `Xóa chức vụ "${p.name}"? Chức vụ đã từng gán cho cán bộ không xóa được (cần giữ lịch sử) — khi đó hãy chuyển sang "Ngừng dùng".`,
+      message: `Xóa chức vụ "${p.name}"?`,
       confirmText: "Xóa",
       isDanger: true,
       onConfirm: async () => {

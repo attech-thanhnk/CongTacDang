@@ -36,7 +36,7 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
             ) : (
               <span>
                 <i className="bi bi-exclamation-triangle-fill text-warning me-1" />
-                <span className="num">{readiness.issues.length}</span> bước chưa có người phụ trách.{" "}
+                <span className="num">{readiness.issues.length}</span> bước chưa có người thực hiện.{" "}
                 <Link
                   href={performersHref(
                     new Set(readiness.issues.map((i) => i.departmentId || i.partyCellId || "")).size === 1
@@ -44,7 +44,7 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
                       : undefined
                   )}
                 >
-                  Phân công người phụ trách
+                  Phân công người thực hiện
                 </Link>
               </span>
             )}
@@ -59,7 +59,7 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
             <div className="table-responsive" style={{ maxHeight: 360, overflowY: "auto" }}>
               <table className="table table-sm align-middle small mb-0">
                 <thead>
-                  <tr className="text-secondary"><th>Hồ sơ</th><th>Diện quyết định</th><th>Bước chưa có người phụ trách</th><th>Vai trò</th><th>Nơi phân công</th></tr>
+                  <tr className="text-secondary"><th>Hồ sơ</th><th>Diện quyết định</th><th>Bước chưa có người thực hiện</th><th>Vai trò</th><th>Nơi phân công</th></tr>
                 </thead>
                 <tbody>
                   {readiness.issues.map((issue) => (

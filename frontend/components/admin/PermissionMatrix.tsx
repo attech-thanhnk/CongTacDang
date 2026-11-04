@@ -104,7 +104,7 @@ function PermissionText({ permission, locked }: { permission: PermissionDefiniti
       <span className={styles.titleLine}>
         <span className={styles.name}>{permission.name}</span>
         {!permission.appliesScope && (
-          <span className="tag t-wait" title="Quyền này không áp dụng phạm vi: vai trò chứa quyền này chỉ gán được phạm vi Toàn công ty.">
+          <span className="tag t-wait" title="Vai trò có quyền này chỉ gán được phạm vi Toàn công ty">
             Chỉ Toàn công ty
           </span>
         )}

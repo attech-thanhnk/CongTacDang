@@ -110,7 +110,7 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
   const handleDelete = (l: FormLayout) =>
     confirm({
       title: "Xóa kiểu trình bày",
-      message: `Xóa kiểu "${l.name}"? Kiểu đang gắn cho chức vụ hoặc cán bộ thì không xóa được.`,
+      message: `Xóa kiểu "${l.name}"?`,
       confirmText: "Xóa",
       isDanger: true,
       onConfirm: async () => {

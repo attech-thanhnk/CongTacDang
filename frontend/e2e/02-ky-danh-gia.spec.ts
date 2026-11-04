@@ -70,7 +70,7 @@ test.describe.serial('Kỳ đánh giá', () => {
     await expect(page.getByText('Các bước đã có thời hạn')).toBeVisible();
   });
 
-  test('còn bước chưa có người phụ trách thì mở kỳ bị từ chối cho tới khi bỏ người đó khỏi kỳ', async ({ mo }) => {
+  test('còn bước chưa có người thực hiện thì mở kỳ bị từ chối cho tới khi bỏ người đó khỏi kỳ', async ({ mo }) => {
     const page = await mo('loan.ctp');
     await moKy(page);
     // Kết quả kiểm tra tải bất đồng bộ: chờ có dòng kết luận về người thực hiện.

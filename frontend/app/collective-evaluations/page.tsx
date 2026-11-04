@@ -241,7 +241,6 @@ export default function CollectiveEvaluationsPage() {
             <EmptyState
               icon="bi-calendar-x"
               title="Chưa có kỳ đánh giá"
-              description="Hồ sơ tập thể và biên bản hội nghị hiện ở đây khi có kỳ đánh giá."
               action={hasPermission("period.manage") ? <Link href="/periods" className="btn btn-primary">Đến trang Kỳ đánh giá</Link> : undefined}
             />
           </section>

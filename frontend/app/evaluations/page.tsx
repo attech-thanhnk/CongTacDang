@@ -193,7 +193,6 @@ export default function EvaluationsPage() {
             <EmptyState card
               icon="bi-folder2-open"
               title={periods.length === 0 ? "Chưa có kỳ đánh giá đang diễn ra" : "Bạn chưa có hồ sơ trong kỳ này"}
-              description="Hồ sơ của bạn hiện ở đây khi kỳ đánh giá có tên bạn."
             />
           )}
         </div>
@@ -209,7 +208,6 @@ export default function EvaluationsPage() {
         {!periodsLoading && periods.length === 0 && <EmptyState card
             icon="bi-calendar-x"
             title="Chưa có kỳ đánh giá đang diễn ra"
-            description="Hồ sơ đánh giá hiện ở đây khi kỳ đánh giá được mở."
             action={hasPermission("period.manage") ? <Link href="/periods" className="btn btn-primary">Đến trang Kỳ đánh giá</Link> : undefined}
           />}
 
@@ -267,7 +265,6 @@ export default function EvaluationsPage() {
                 <EmptyState
                   icon="bi-folder2-open"
                   title="Chưa có hồ sơ"
-                  description="Hồ sơ trong phạm vi của bạn sẽ hiện ở đây khi kỳ có người được đánh giá."
                   compact
                 />
               )
@@ -347,9 +344,9 @@ export default function EvaluationsPage() {
                     <th>Nhóm chức danh</th>
                     <th className={styles.right} style={{ width: 90, whiteSpace: "nowrap" }}>Số hồ sơ</th>
                     <th className={styles.right} style={{ width: 130, whiteSpace: "nowrap" }}>Người đứng đầu</th>
-                    <th className={styles.right} style={{ width: 80, whiteSpace: "nowrap" }}>HT tốt</th>
-                    <th className={styles.right} style={{ width: 100, whiteSpace: "nowrap" }}>Tối đa XS</th>
-                    <th className={styles.right} style={{ width: 60, whiteSpace: "nowrap" }}>XS</th>
+                    <th className={styles.right} style={{ width: 130, whiteSpace: "nowrap" }}>Hoàn thành tốt</th>
+                    <th className={styles.right} style={{ width: 130, whiteSpace: "nowrap" }}>Tối đa xuất sắc</th>
+                    <th className={styles.right} style={{ width: 80, whiteSpace: "nowrap" }}>Xuất sắc</th>
                     <th />
                   </tr>
                 </thead>

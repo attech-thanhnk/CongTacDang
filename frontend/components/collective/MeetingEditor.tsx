@@ -36,8 +36,8 @@ const VOTE_FIELDS: [keyof Vote, string][] = [
   ["votesExcellent", "Xuất sắc"],
   ["votesGood", "Tốt"],
   ["votesSatisfactory", "Hoàn thành"],
-  ["votesUnsatisfactory", "Không HT"],
-  ["votesNotRated", "Chưa ĐG"],
+  ["votesUnsatisfactory", "Không hoàn thành"],
+  ["votesNotRated", "Chưa xếp loại"],
   ["invalidVotes", "Không hợp lệ"],
 ];
 

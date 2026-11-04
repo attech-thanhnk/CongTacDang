@@ -268,7 +268,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
                   <span className="fw-semibold text-dark">{i.displayName}</span>
                   {i.isPrimary && active && <span className="tag t-info ms-2">Chính</span>}
                   {!i.isPrimary && active && <span className="status-badge tone-neutral ms-2">Kiêm nhiệm</span>}
-                  {i.defaultApprovalAuthority === "CapTren" && <span className="tag t-wait ms-1">Cấp trên QĐ</span>}
+                  {i.defaultApprovalAuthority === "CapTren" && <span className="tag t-wait ms-1">Cấp trên quyết định</span>}
                   <div className="small text-secondary">{POSITION_SIDE_LABELS[i.side as PositionSide] ?? i.side}{i.note ? ` · ${i.note}` : ""}</div>
                 </td>
                 <td>{unitName(i)}</td>

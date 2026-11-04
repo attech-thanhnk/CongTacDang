@@ -285,7 +285,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     }
     const payload = buildPayload(false);
     if (currentVersion !== record.version && currentVersion != null) payload.version = currentVersion;
-    const gradeLabel = grade ? GRADE_LABELS[grade as keyof typeof GRADE_LABELS] : `${GRADE_LABELS[gradeByScore(content, total)]} (hệ thống gợi ý)`;
+    const gradeLabel = grade ? GRADE_LABELS[grade as keyof typeof GRADE_LABELS] : `${GRADE_LABELS[gradeByScore(content, total)]} (theo điểm)`;
     const missing = [
       uses09C && !Object.values(selfAssessment).some((v) => v?.trim()) && blocks.length === 0 ? "bản tự đánh giá Mẫu 09C" : null,
       uses9D && !Object.values(axisReports).some((r) => r.status?.trim() || r.product?.trim() || r.progress?.trim()) ? "kết quả theo trục Mẫu 9D" : null,
@@ -394,7 +394,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       <h4 className="h6 small fw-bold text-secondary">II. Kết quả thực hiện sản phẩm (Mẫu 02) — % đạt từng thành phần A-B-C-D</h4>
       <div className="small text-secondary mb-1">
         {frame
-          ? <>Khung tỷ trọng của hồ sơ: <strong>{frame.code} — {frame.name}</strong>. Tỷ lệ 4 mặt: {describeFrame(frame)}{record.weightFrameAdjusted && <strong> (đã điều chỉnh)</strong>}</>
+          ? <>Khung tỷ trọng của hồ sơ: <strong>{frame.code} — {frame.name}</strong>. {describeFrame(frame)}{record.weightFrameAdjusted && <strong> (đã điều chỉnh)</strong>}</>
           : <span className="text-danger">Khung tỷ trọng "{record.weightFrameCode || "—"}" của hồ sơ không có trong bộ tiêu chí — liên hệ người quản lý kỳ.</span>}
       </div>
       <div className="table-responsive mb-2">

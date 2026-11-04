@@ -72,7 +72,7 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
   const handleDelete = (item: Holiday) =>
     confirm({
       title: "Xóa ngày nghỉ",
-      message: `Xóa ngày nghỉ ${formatDate(item.date)} (${item.name})? Thời hạn các bước đã điền không đổi; chỉ ảnh hưởng lần "Áp dụng quy tắc" sau.`,
+      message: `Xóa ngày nghỉ ${formatDate(item.date)} (${item.name})?`,
       confirmText: "Xóa",
       isDanger: true,
       onConfirm: async () => {

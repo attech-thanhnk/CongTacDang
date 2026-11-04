@@ -53,7 +53,7 @@ import { errorMessage } from "@/components/admin/adminUtils";
 /** Chữ trên hộp nhập lý do theo thao tác; thao tác không có ở đây là trả lại hồ sơ. */
 const REASON_TEXT: Partial<Record<WorkflowActionCode, { description: string; confirm: string }>> = {
   Reopen: { description: "Mở lại hồ sơ đã công bố để đính chính.", confirm: "Mở lại hồ sơ" },
-  ExtendUnlock: { description: "Gia hạn thời gian chủ hồ sơ và các bước trước thẩm định được thao tác trên hồ sơ này.", confirm: "Gia hạn" },
+  ExtendUnlock: { description: "Gia hạn thời gian mở riêng hồ sơ.", confirm: "Gia hạn" },
   MarkNotRated: { description: "Hồ sơ bỏ qua các bước, xếp loại \"Chưa xếp loại\" và chờ công bố.", confirm: "Đánh dấu" },
   UnmarkNotRated: { description: "Hồ sơ quay lại các bước đánh giá.", confirm: "Bỏ đánh dấu" },
 };
@@ -311,7 +311,7 @@ const ACTION_CONFIRMATIONS: Partial<Record<WorkflowActionCode, string>> = {
   Appraise: "Ghi nhận kết quả thẩm định?",
   DirectorReview: "Ghi nhận nhận xét và đề xuất?",
   RecordDecision: "Ghi nhận quyết định xếp loại?",
-  Publish: "Công bố và khóa kết quả? Sau đó chỉ có thể sửa bằng chức năng mở lại.",
+  Publish: "Công bố và khóa kết quả? Muốn sửa sau đó phải mở lại hồ sơ.",
   RecordExternal: "Ghi nhận kết quả của cấp trên?",
 };
 
@@ -533,7 +533,7 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
           )}
           {record.weightFrame && (
             <div className={styles.subline}>
-              Khung {record.weightFrame.code} · Tỷ lệ 4 mặt: {describeFrame(record.weightFrame)}{record.weightFrameAdjusted ? " (đã điều chỉnh)" : ""}
+              Khung {record.weightFrame.code} · {describeFrame(record.weightFrame)}{record.weightFrameAdjusted ? " (đã điều chỉnh)" : ""}
             </div>
           )}
           {record.tasksApprovedAt && (

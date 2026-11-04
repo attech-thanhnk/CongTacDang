@@ -100,7 +100,7 @@ export default function ResultsPage() {
                 }
               />
             ) : (
-              <EmptyState icon="bi-award" title="Chưa có kết quả công bố" description="Kết quả hiện ở đây sau khi kỳ đánh giá được công bố." />
+              <EmptyState icon="bi-award" title="Chưa có kết quả công bố" />
             )}
           </section>
         ) : (

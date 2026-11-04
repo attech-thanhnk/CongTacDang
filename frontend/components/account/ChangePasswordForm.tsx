@@ -63,7 +63,7 @@ export function ChangePasswordForm({
         <label className="form-label" htmlFor="cp-confirm">Xác nhận mật khẩu mới</label>
         <input id="cp-confirm" className={`form-control${mismatch ? " is-invalid" : ""}`} type={inputType} autoComplete="new-password" minLength={8} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
         {mismatch && (
-          <div className="invalid-feedback">Chưa khớp mật khẩu mới. Bấm &quot;Hiện mật khẩu&quot; để kiểm tra; nếu đang bật bộ gõ tiếng Việt, hãy chuyển sang tiếng Anh rồi gõ lại.</div>
+          <div className="invalid-feedback">Chưa khớp mật khẩu mới. Nếu đang bật bộ gõ tiếng Việt, hãy tắt rồi gõ lại.</div>
         )}
       </div>
       <div className="form-check">

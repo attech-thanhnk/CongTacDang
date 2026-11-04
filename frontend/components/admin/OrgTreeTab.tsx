@@ -169,7 +169,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
   const handleDelete = (item: CatalogItem) =>
     confirm({
       title: `Xóa ${unit}`,
-      message: `Xóa ${unit} "${item.name}" (${item.code})? Không thể xóa khi còn ${unit} cấp dưới, cán bộ, hồ sơ đánh giá, phân công vai trò hoặc chức vụ đang hiệu lực — khi đó hãy chuyển sang "Ngừng hoạt động".`,
+      message: `Xóa ${unit} "${item.name}" (${item.code})?`,
       confirmText: "Xóa",
       isDanger: true,
       onConfirm: async () => {

@@ -185,7 +185,7 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
             {imageUrl && size && size.width < MIN_GOOD_WIDTH && (
               <div className={styles.warn}>
                 <i className="bi bi-exclamation-triangle me-1" />
-                Ảnh rộng dưới {MIN_GOOD_WIDTH} px nên sẽ hiện nhỏ trên màn hình máy tính. Nên dùng ảnh rộng từ 1920 px.
+                Ảnh rộng dưới {MIN_GOOD_WIDTH} px. Nên dùng ảnh rộng từ 1920 px.
               </div>
             )}
           </div>

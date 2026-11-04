@@ -162,7 +162,7 @@ Từ trên xuống:
 Trong thời hạn của bước (xem **Hạn** ở thanh tiến trình của hồ sơ):
 
 1. Mở hồ sơ, khung **Nộp danh mục sản phẩm** (bước "Đăng ký sản phẩm, nhiệm vụ"). Mỗi sản phẩm là một khung riêng ("Sản phẩm 1", "Sản phẩm 2"…).
-2. Nhập đủ các ô như phiếu giấy: **Tên sản phẩm, công việc**, **Mã SP (nếu có)**, **Loại việc** (Trọng tâm / Thường xuyên), **Vai trò** (Chủ trì / Phối hợp), **Trục kết quả**, **Trọng số (điểm)**, **Thời hạn / mốc quý** (để trống là ngày cuối kỳ), **Chuẩn đạt**, **Tiêu chí vượt chuẩn**, **Nguồn dữ liệu / minh chứng**, **Thẩm quyền xác nhận**.
+2. Nhập đủ các ô như phiếu giấy: **Tên sản phẩm, công việc**, **Mã sản phẩm (nếu có)**, **Loại việc** (Trọng tâm / Thường xuyên), **Vai trò** (Chủ trì / Phối hợp), **Trục kết quả**, **Trọng số (điểm)**, **Thời hạn / mốc quý** (để trống là ngày cuối kỳ), **Chuẩn đạt**, **Tiêu chí vượt chuẩn**, **Nguồn dữ liệu / minh chứng**, **Thẩm quyền xác nhận**.
 3. Bấm **Thêm dòng** hoặc **Xóa** để đủ số sản phẩm theo bộ tiêu chí (bộ mặc định: 3 đến 7 sản phẩm, tổng trọng số 70). Dòng **Tổng trọng số** chuyển đỏ khi chưa đủ.
 4. Bấm **Nộp danh mục**, xác nhận. Ô nào thiếu, hệ thống báo đúng chỗ đó.
 
@@ -262,7 +262,7 @@ Nút **Trả lại …** (viền đỏ) nằm cùng chân khung. Bấm, nhập *
 ### 4.0 Duyệt danh mục sản phẩm
 
 - Xem danh mục sản phẩm cán bộ đăng ký, nhập **Ý kiến** (nếu có) rồi bấm **Duyệt**.
-- **Tỷ lệ 4 mặt chấm** (khi bộ tiêu chí cho phép): mở khối này để xem tỷ lệ A-B-C-D của khung và sửa cho riêng hồ sơ, mỗi mặt trong biên độ cho phép, tổng phải bằng 100%. Không sửa thì giữ nguyên. Bấm **Dùng tỷ lệ của khung** để quay về tỷ lệ gốc. Tỷ lệ đã sửa được dùng khi cán bộ tự chấm và hiện "(đã điều chỉnh)".
+- **Tỷ lệ A-B-C-D** (khi bộ tiêu chí cho phép): mở khối này để xem tỷ lệ A-B-C-D của khung và sửa cho riêng hồ sơ, mỗi thành phần trong biên độ cho phép, tổng phải bằng 100%. Không sửa thì giữ nguyên. Bấm **Dùng tỷ lệ của khung** để quay về tỷ lệ gốc. Tỷ lệ đã sửa được dùng khi cán bộ tự chấm và hiện "(đã điều chỉnh)".
 - **Trả lại danh mục**: bấm nút trả lại ở chân khung, nhập lý do.
 - Danh mục đã duyệt mà cán bộ chưa tự chấm: chính người đã duyệt có nút **Thu hồi duyệt** để đưa hồ sơ về bước đăng ký.
 
@@ -279,7 +279,7 @@ Hệ thống không tổ chức bỏ phiếu điện tử. Thư ký ghi lại **
 
 1. Nên lập trước **biên bản hội nghị** ở menu **Đánh giá tập thể** (xem [mục 6.2](#62-biên-bản-hội-nghị-và-kiểm-phiếu-mẫu-12-13)).
 2. Trong hồ sơ: chọn **Mức tập thể đề xuất**, nhập **Nhận xét của tập thể**.
-3. Ô **Biên bản hội nghị (Mẫu 12/13)** chọn biên bản đã lập (hoặc "— Không gắn biên bản —"). Khi đã chọn biên bản, tích **Ghi kết quả kiểm phiếu của hồ sơ này** rồi nhập số phiếu Xuất sắc, Tốt, Hoàn thành, Không HT, Chưa đánh giá, Không hợp lệ. Tổng số phiếu không vượt số người có mặt; mức ghi nhận phải là mức đạt quá nửa số có mặt.
+3. Ô **Biên bản hội nghị (Mẫu 12/13)** chọn biên bản đã lập (hoặc "— Không gắn biên bản —"). Khi đã chọn biên bản, tích **Ghi kết quả kiểm phiếu của hồ sơ này** rồi nhập số phiếu Xuất sắc, Tốt, Hoàn thành, Không hoàn thành, Chưa xếp loại, Không hợp lệ. Tổng số phiếu không vượt số người có mặt; mức ghi nhận phải là mức đạt quá nửa số có mặt.
 4. Bấm **Ghi nhận đề xuất**.
 
 Diện *Bí thư/Phó bí thư Chi bộ là nhân viên* không họp bỏ phiếu: bước này mang tên **Trưởng đơn vị đề xuất**, do Lãnh đạo đơn vị làm. Chọn **Mức Trưởng đơn vị đề xuất**, nhập **Nhận xét, ý kiến của các Phó**, bấm **Ghi nhận đề xuất** (không có ô biên bản, kiểm phiếu). Sau đó hồ sơ sang thẩm định.
@@ -518,7 +518,7 @@ Menu **Đánh giá tập thể**. Mỗi người chỉ thấy phần được gi
 2. Chọn **Biểu mẫu**: *Mẫu 12 — Biên bản hội nghị* hoặc *Mẫu 13 — Biên bản kiểm phiếu*. Chọn **Hội nghị**: *Tập thể lãnh đạo, quản lý (đề xuất)* hoặc *Đảng ủy/Chi ủy cơ sở (quyết định)*, và **Đơn vị tổ chức** (Tổ chức Đảng, Phòng / đơn vị hoặc Cấp Công ty). Danh sách chỉ hiện nơi bạn được giao lập biên bản.
 3. Nhập **Bắt đầu**, **Kết thúc**, **Địa điểm**, số **Triệu tập**, **Có mặt**, **Vắng mặt** và lý do, **Chủ trì hội nghị**, **Thư ký hội nghị** (kèm chức vụ), người dự khác (**Thêm người dự**).
 4. Phần **Nội dung**: **Diễn biến hội nghị**, **Kết quả hội nghị**.
-5. Phần **Kiểm phiếu**: **Thêm thành viên** Tổ kiểm phiếu (người đầu tiên là Tổ trưởng), nhập *Phiếu phát ra*, *Phiếu thu về*, *Phiếu hợp lệ*, *Không hợp lệ* (hợp lệ cộng không hợp lệ phải bằng thu về). Với Mẫu 13 khi lập mới, nhập luôn **Số phiếu theo từng hồ sơ** (các ô Xuất sắc, Tốt, Hoàn thành, Không HT, Chưa ĐG, Không hợp lệ).
+5. Phần **Kiểm phiếu**: **Thêm thành viên** Tổ kiểm phiếu (người đầu tiên là Tổ trưởng), nhập *Phiếu phát ra*, *Phiếu thu về*, *Phiếu hợp lệ*, *Không hợp lệ* (hợp lệ cộng không hợp lệ phải bằng thu về). Với Mẫu 13 khi lập mới, nhập luôn **Số phiếu theo từng hồ sơ** (các ô Xuất sắc, Tốt, Hoàn thành, Không hoàn thành, Chưa xếp loại, Không hợp lệ).
 6. Bấm **Lưu**.
 7. Ghi kết quả kiểm phiếu của từng cán bộ vào hồ sơ của người đó ở bước đề xuất tập thể hoặc quyết định (xem [mục 4.2](#42-đề-xuất-của-tập-thể-lãnh-đạo-thư-ký-ghi-nhận)).
 8. Trong danh sách **Biên bản hội nghị**: **Sửa**, và ở menu ⋯ các mục **Tải Mẫu 12 (Word)**, **Tải Mẫu 12 (PDF)**, **Tải Mẫu 11 phiếu trắng (Word)**, **Tải Mẫu 11 phiếu trắng (PDF)**; biên bản có kết quả kiểm phiếu thêm **Tải Mẫu 13 (Word)**, **Tải Mẫu 13 (PDF)**.
@@ -612,7 +612,7 @@ Chọn bộ ở ô **Chọn bộ đã xuất bản** rồi bấm **Dùng bộ n�
 
 ### 8.5 Người thực hiện các bước và mở kỳ
 
-- Thẻ **Người thực hiện các bước** liệt kê các bước **chưa có người phụ trách**: hồ sơ, diện quyết định, bước sẽ kẹt, vai trò cần có, nơi phân công. Bấm tên nơi phân công để mở màn hình **Người thực hiện** đúng đơn vị. Bấm **Kiểm tra lại** sau khi sửa. Cách sửa: nhờ quản trị phân công vai trò phù hợp, hoặc đổi diện quyết định của hồ sơ. Bảng này cũng báo cổng Bắt buộc mà không đủ hai người khác nhau để lập và xác nhận. Chi tiết các cảnh báo thường gặp: [Hướng dẫn bàn giao](huong-dan-ban-giao.md).
+- Thẻ **Người thực hiện các bước** liệt kê các bước **chưa có người thực hiện**: hồ sơ, diện quyết định, bước sẽ kẹt, vai trò cần có, nơi phân công. Bấm tên nơi phân công để mở màn hình **Người thực hiện** đúng đơn vị. Bấm **Kiểm tra lại** sau khi sửa. Cách sửa: nhờ quản trị phân công vai trò phù hợp, hoặc đổi diện quyết định của hồ sơ. Bảng này cũng báo cổng Bắt buộc mà không đủ hai người khác nhau để lập và xác nhận. Chi tiết các cảnh báo thường gặp: [Hướng dẫn bàn giao](huong-dan-ban-giao.md).
 - Bấm **Mở kỳ**, xác nhận. Nút mờ khi chưa chọn bộ tiêu chí hoặc chưa có người được đánh giá. Còn bước chưa có người thực hiện thì hệ thống không mở và chuyển sang thẻ trên; nếu vẫn cần mở, dùng **Mở kỳ bắt buộc** và nhập lý do. Riêng lỗi khung tỷ trọng thì mở bắt buộc cũng không được.
 
 ### 8.6 Khóa dữ liệu, mở lại kỳ, đóng kỳ

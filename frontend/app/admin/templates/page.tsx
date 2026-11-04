@@ -408,7 +408,7 @@ export default function TemplatesPage() {
   const handleUseOriginal = (template: TemplateSummary) =>
     confirm({
       title: "Dùng file mẫu gốc",
-      message: `${template.name} sẽ xuất theo file mẫu gốc đi kèm ứng dụng. Các phiên bản đã tải lên vẫn được giữ và kích hoạt lại được. Tiếp tục?`,
+      message: `${template.name} sẽ xuất theo file mẫu gốc. Các phiên bản đã tải lên vẫn được giữ. Tiếp tục?`,
       confirmText: "Dùng file gốc",
       isDanger: true,
       onConfirm: async () => {

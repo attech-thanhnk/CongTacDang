@@ -28,14 +28,14 @@ interface Props {
 
 const FIELDS: { key: keyof Form16DraftContent; label: string; placeholder?: string; multiline?: boolean }[] = [
   { key: "documentNumber", label: "Số văn bản", placeholder: "Số …..-BC/……" },
-  { key: "recipient", label: "Kính gửi / Kính trình", placeholder: "Ban Thường vụ Đảng ủy TCT (hoặc Đảng ủy cơ sở…)" },
+  { key: "recipient", label: "Kính gửi / Kính trình", placeholder: "Ban Thường vụ Đảng ủy Tổng công ty (hoặc Đảng ủy cơ sở…)" },
   { key: "workingRules", label: "Căn cứ Quy chế làm việc của", placeholder: "… nhiệm kỳ…" },
   { key: "meetingDate", label: "Ngày tổ chức hội nghị" },
   { key: "organizer", label: "Tổ chức Đảng tổ chức hội nghị" },
-  { key: "proposer", label: "Mục III — Đề xuất của" },
-  { key: "proposal1", label: "Mục III.1 — Đề nghị xem xét, quyết định đánh giá, xếp loại", multiline: true },
-  { key: "proposal2", label: "Mục III.2 — Điều chuyển, bố trí công tác khác (nếu có)", multiline: true },
-  { key: "proposal3", label: "Mục III.3 — Ý kiến đề xuất khác (nếu có)", multiline: true },
+  { key: "proposer", label: "Đề xuất của" },
+  { key: "proposal1", label: "Đề nghị xem xét, quyết định đánh giá, xếp loại", multiline: true },
+  { key: "proposal2", label: "Điều chuyển, bố trí công tác khác (nếu có)", multiline: true },
+  { key: "proposal3", label: "Ý kiến đề xuất khác (nếu có)", multiline: true },
   { key: "signerName", label: "Bí thư ký báo cáo", placeholder: "Họ và tên" },
 ];
 
@@ -56,10 +56,10 @@ function SummaryTable({ title, rows }: { title: string; rows: Form16SummaryRow[]
             <tr>
               <th>Đối tượng đánh giá, xếp loại</th>
               <th className="text-center">Tổng số</th>
-              <th className="text-center">HT xuất sắc NV</th>
-              <th className="text-center">HT tốt NV</th>
-              <th className="text-center">HTNV</th>
-              <th className="text-center">Không HTNV</th>
+              <th className="text-center">Hoàn thành xuất sắc</th>
+              <th className="text-center">Hoàn thành tốt</th>
+              <th className="text-center">Hoàn thành</th>
+              <th className="text-center">Không hoàn thành</th>
               <th className="text-center">Chưa xếp loại</th>
               <th className="text-center" style={{ whiteSpace: "normal", minWidth: 120 }}>Tỷ lệ % xuất sắc trong số tốt trở lên</th>
             </tr>

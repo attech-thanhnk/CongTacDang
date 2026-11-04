@@ -117,7 +117,7 @@ export function AppealPanel({ record, onRecordChanged, onPendingChange }: Props)
       const actions = await evaluationService.getRecordActions(record.id);
       const reopen = actions.actions.find((a) => a.action === "Reopen");
       if (!reopen?.targetSteps?.length) {
-        toast.error("Hiện không mở lại được hồ sơ này (kỳ hoặc trạng thái hồ sơ không cho phép).");
+        toast.error("Mở lại hồ sơ không thành công: kỳ hoặc trạng thái hồ sơ không cho phép.");
         return;
       }
       setReopenTargets(reopen.targetSteps);

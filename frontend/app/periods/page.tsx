@@ -58,7 +58,7 @@ export default function PeriodsPage() {
               <EmptyState
                 icon="bi-calendar-x"
                 title="Chưa có kỳ đánh giá"
-                description={canManage ? "Tạo kỳ đánh giá, sau đó chọn bộ tiêu chí và diện quyết định." : "Kỳ đánh giá hiện ở đây sau khi được tạo."}
+                description={canManage ? "Tạo kỳ đánh giá, sau đó chọn bộ tiêu chí và diện quyết định." : undefined}
                 action={canManage ? (
                   <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
                     <i className="bi bi-plus-lg me-1" />Tạo kỳ đánh giá

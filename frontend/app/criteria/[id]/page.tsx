@@ -224,7 +224,7 @@ export default function CriteriaSetPage() {
         {set.notes && !editable && <div className="alert alert-light border mb-0">{set.notes}</div>}
         {set.validationErrors.length > 0 && (
           <div className="alert alert-warning mb-0">
-            <div className="fw-semibold mb-1">Chưa xuất bản được — lỗi kiểm tra (theo lần lưu gần nhất):</div>
+            <div className="fw-semibold mb-1">Cần sửa trước khi xuất bản (theo lần lưu gần nhất):</div>
             <ul className="mb-0">{set.validationErrors.map((e) => <li key={e}>{e}</li>)}</ul>
           </div>
         )}

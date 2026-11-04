@@ -87,7 +87,7 @@ export default function CrosschecksPage() {
             Đang tải...
           </div>
         ) : items.length === 0 ? (
-          <EmptyState icon="bi-patch-check" title="Chưa có phiếu xác nhận số liệu" description="Phiếu gửi tới bạn hoặc do bạn yêu cầu sẽ hiện ở đây." />
+          <EmptyState icon="bi-patch-check" title="Chưa có phiếu xác nhận số liệu" />
         ) : (
           <>
             <div className="table-responsive d-none d-md-block">

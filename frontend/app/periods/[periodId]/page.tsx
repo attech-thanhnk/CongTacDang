@@ -202,7 +202,7 @@ export default function PeriodDetailPage() {
       if (errorStatus(err) === 409 && body?.code === "PERIOD_NOT_READY") {
         setReadiness(body.data as PeriodReadinessDto);
         setTab("readiness");
-        toast.error(body.message || "Chưa mở được kỳ: còn bước chưa có người thực hiện.");
+        toast.error(body.message || "Mở kỳ không thành công: còn bước chưa có người thực hiện.");
         setForceOpen(true);
       } else {
         toast.error(errorMessage(err, "Mở kỳ không thành công."));
@@ -223,7 +223,7 @@ export default function PeriodDetailPage() {
   const applyRules = () =>
     confirm({
       title: "Tính lại thời hạn",
-      message: "Ngày hạn của các bước có quy tắc sẽ được tính lại (ngày đã sửa tay bị thay) và lưu ngay cùng các thay đổi đang sửa.",
+      message: "Tính lại thời hạn các bước có quy tắc (kể cả ngày đã sửa tay) và lưu cùng các thay đổi đang sửa.",
       confirmText: "Tính lại",
       isDanger: false,
       onConfirm: () =>
@@ -350,7 +350,7 @@ export default function PeriodDetailPage() {
                       key: "lock", label: "Khóa dữ liệu", icon: "bi-lock", danger: true, hidden: period.status !== "Open",
                       onClick: () => confirm({
                         title: "Khóa dữ liệu kỳ",
-                        message: "Chủ hồ sơ sẽ không sửa được hồ sơ nữa; chỉ các bước từ thẩm định trở đi tiếp tục. Muốn mở lại phải ghi lý do.",
+                        message: "Chủ hồ sơ không sửa hồ sơ được nữa; chỉ các bước từ thẩm định trở đi tiếp tục.",
                         confirmText: "Khóa dữ liệu",
                         isDanger: true,
                         onConfirm: () => transition("lock", undefined, "Đã khóa dữ liệu kỳ."),
@@ -362,7 +362,7 @@ export default function PeriodDetailPage() {
                       title: unpublishedCount > 0 ? `Còn ${unpublishedCount} hồ sơ chưa công bố` : undefined,
                       onClick: () => confirm({
                         title: "Đóng kỳ",
-                        message: "Sau khi đóng, kỳ chỉ còn để xem: không đổi được thời hạn, người được đánh giá hay trạng thái kỳ. Muốn sửa kết quả phải mở lại từng hồ sơ để đính chính.",
+                        message: "Kỳ đã đóng chỉ còn để xem; sửa kết quả bằng cách mở lại từng hồ sơ.",
                         confirmText: "Đóng kỳ",
                         isDanger: true,
                         onConfirm: () => transition("close", undefined, "Đã đóng kỳ."),
@@ -492,7 +492,7 @@ export default function PeriodDetailPage() {
       <ReasonDialog
         isOpen={forceOpen}
         title="Mở kỳ bắt buộc"
-        description={`Còn ${readiness?.issues.length ?? 0} bước chưa có người thực hiện. Chỉ mở bắt buộc khi sẽ bổ sung người thực hiện kịp thời.`}
+        description={`Còn ${readiness?.issues.length ?? 0} bước chưa có người thực hiện.`}
         confirmText="Mở kỳ bắt buộc"
         busy={busy}
         onCancel={() => setForceOpen(false)}
@@ -996,7 +996,7 @@ function CriteriaSection({ period, editable, busy, onChoose }: CriteriaSectionPr
             </span>
           </div>
         ) : (
-          <div className="alert alert-warning py-2">Kỳ chưa chọn bộ tiêu chí — chưa mở được kỳ. <Link href="/criteria">Quản lý bộ tiêu chí</Link></div>
+          <div className="alert alert-warning py-2">Kỳ chưa chọn bộ tiêu chí. <Link href="/criteria">Quản lý bộ tiêu chí</Link></div>
         )}
         {editable && (
           <div className="d-flex gap-2 align-items-end flex-wrap mb-2">

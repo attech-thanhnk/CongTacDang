@@ -75,7 +75,6 @@ export default function WorkQueuePage() {
           <EmptyState card
             icon="bi-check2-circle"
             title="Không có việc nào đang chờ bạn"
-            description="Khi có hồ sơ cần bạn xử lý, chúng sẽ hiện ở đây."
           />
         ) : groups.length === 0 ? (
           <EmptyState card icon="bi-search" title="Không tìm thấy cán bộ phù hợp" description="Thử từ khóa khác." compact />

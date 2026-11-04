@@ -57,7 +57,7 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
   const handleDelete = (type: OrgUnitType) =>
     confirm({
       title: "Xóa loại đơn vị",
-      message: `Xóa loại "${type.name}"? Loại còn đơn vị thì không xóa được: hãy chuyển sang "Ngừng dùng".`,
+      message: `Xóa loại "${type.name}"?`,
       confirmText: "Xóa",
       isDanger: true,
       onConfirm: async () => {

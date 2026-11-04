@@ -235,7 +235,7 @@ const FRAME_PARTS = [
 type FramePercents = Record<(typeof FRAME_PARTS)[number]["key"], number>;
 const toPercents = (f: WeightFrame): FramePercents => ({ a: Math.round(f.a * 10000) / 100, b: Math.round(f.b * 10000) / 100, c: Math.round(f.c * 10000) / 100, d: Math.round(f.d * 10000) / 100 });
 
-/** Duyệt danh mục sản phẩm: ý kiến + điều chỉnh tỷ lệ 4 mặt chấm A-B-C-D trong biên độ của bộ tiêu chí (mặc định giữ nguyên). */
+/** Duyệt danh mục sản phẩm: ý kiến + điều chỉnh tỷ lệ A-B-C-D trong biên độ của bộ tiêu chí (mặc định giữ nguyên). */
 function ApproveTasksForm({ record, busy, extra, onSubmit }: { record: EvaluationRecordDto; busy: boolean; extra?: React.ReactNode; onSubmit: (p: Record<string, unknown>) => void }) {
   const [comment, setComment] = useState("");
   const id = useId();
@@ -270,11 +270,11 @@ function ApproveTasksForm({ record, busy, extra, onSubmit }: { record: Evaluatio
       {canAdjust && basePercents && (
         <details className="border rounded-2 px-2 py-1 mb-2 small" open={record.weightFrameAdjusted || changed}>
           <summary className="fw-semibold">
-            Tỷ lệ 4 mặt chấm: {describeFrame({ a: values.a / 100, b: values.b / 100, c: values.c / 100, d: values.d / 100 })}
+            Tỷ lệ A-B-C-D: {describeFrame({ a: values.a / 100, b: values.b / 100, c: values.c / 100, d: values.d / 100 })}
             {FRAME_PARTS.some((p) => Math.abs(values[p.key] - basePercents[p.key]) > 1e-6) && <span className="text-primary"> (đã điều chỉnh)</span>}
           </summary>
           <div className="text-secondary my-1">
-            Khung {base!.code}: {describeFrame(base!)}. Được điều chỉnh mỗi mặt ±{fmt(limit)} điểm %, tổng 100%.
+            Khung {base!.code}: {describeFrame(base!)}. Mỗi thành phần ±{fmt(limit)} điểm %, tổng 100%.
           </div>
           <div className="row g-2 align-items-end">
             {FRAME_PARTS.map((part) => (
@@ -663,8 +663,8 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
                 ["votesExcellent", "Xuất sắc"],
                 ["votesGood", "Tốt"],
                 ["votesSatisfactory", "Hoàn thành"],
-                ["votesUnsatisfactory", "Không HT"],
-                ["votesNotRated", "Chưa đánh giá"],
+                ["votesUnsatisfactory", "Không hoàn thành"],
+                ["votesNotRated", "Chưa xếp loại"],
                 ["invalidVotes", "Không hợp lệ"],
               ] as [keyof VoteTallyDto, string][]).map(([key, label]) => (
                 <div className="col" key={key}>
@@ -831,7 +831,7 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
                 <input id={`t${i}-name`} className="form-control form-control-sm" value={t.taskName} maxLength={500} required onChange={(e) => update(i, "taskName", e.target.value)} />
               </div>
               <div className="col-md-4">
-                <label className="form-label small mb-0" htmlFor={`t${i}-code`}>Mã SP (nếu có)</label>
+                <label className="form-label small mb-0" htmlFor={`t${i}-code`}>Mã sản phẩm (nếu có)</label>
                 <input id={`t${i}-code`} className="form-control form-control-sm" value={t.productCode || ""} maxLength={50} onChange={(e) => update(i, "productCode", e.target.value)} />
               </div>
               <div className="col-md-3">
