@@ -1,109 +1,169 @@
-/* Tệp đính kèm của đối tượng (hồ sơ tập thể, phiếu, biên bản) */
+/* Danh sách tệp đính kèm dùng chung (AttachmentList, OwnerAttachments) */
 .attach {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 8px;
-  margin-top: 8px;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
   font-size: 13px;
+  border-radius: 8px;
 }
 
-.attachToggle {
-  display: inline-flex;
-  align-items: center;
+.dragging {
+  outline: 2px dashed var(--primary);
+  outline-offset: 3px;
+  background: var(--primary-tint);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
   gap: 4px;
-  min-height: 32px;
-  padding: 0 4px 0 0;
-  border: 0;
-  background: none;
-  color: var(--ink-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.attachToggle:hover {
-  color: var(--ink);
+.item {
+  min-width: 0;
 }
 
-.fileChip {
-  display: inline-flex;
+.row {
+  display: flex;
   align-items: center;
-  max-width: 100%;
+  gap: 8px;
+  min-width: 0;
+  min-height: 36px;
+  padding: 3px 4px 3px 10px;
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--paper);
 }
 
-.fileName {
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 4px 8px;
-  border: 0;
-  background: none;
-  color: var(--primary-ink);
-  text-align: left;
+.row:hover {
+  border-color: var(--rule-strong);
 }
 
-.fileName:hover {
-  text-decoration: underline;
-}
-
-.fileBtn {
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-left: 1px solid var(--rule);
-  background: none;
+.icon {
+  flex: none;
+  font-size: 1.05rem;
+  line-height: 1;
   color: var(--ink-3);
 }
 
-.fileBtn:hover:not(:disabled) {
-  color: var(--ink);
-  background: var(--tint);
+.pdf { color: var(--bad); }
+.word { color: var(--primary); }
+.excel { color: var(--ok); }
+.image { color: var(--wait); }
+
+.name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary-ink);
+  font-weight: 500;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.fileBtnDanger:hover:not(:disabled) {
+button.name:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.nameStatic {
+  color: var(--ink);
+}
+
+.size {
+  flex: none;
+  color: var(--ink-3);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.act {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.act:hover:not(:disabled) {
+  background: var(--tint);
+  color: var(--ink);
+}
+
+.act:disabled {
+  opacity: 0.5;
+}
+
+.actDanger:hover:not(:disabled) {
+  background: var(--bad-bg);
   color: var(--bad);
 }
 
-@media (max-width: 767.98px) {
-  .attachToggle,
-  .fileBtn {
-    min-height: 40px;
-  }
+.addLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
 
-  .fileBtn {
-    width: 40px;
-  }
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 
-  .fileName {
-    max-width: 180px;
-  }
+.hint,
+.empty {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--bad-line);
+  border-radius: 6px;
+  background: var(--bad-bg);
+  color: var(--bad);
+  font-size: 12.5px;
+}
+
+.error i {
+  margin-top: 1px;
 }
 
 .versions {
-  flex-basis: 100%;
-  margin: 0;
-  padding: 4px 0;
+  margin: 4px 0 0 28px;
+  padding: 2px 0;
   list-style: none;
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  background: var(--paper);
+  border-left: 2px solid var(--rule);
 }
 
 .versionRow {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px 10px;
-  padding: 4px 10px;
-}
-
-.versionRow + .versionRow {
-  border-top: 1px solid var(--rule);
+  gap: 2px 8px;
+  padding: 2px 0 2px 10px;
 }
 
 .versionMeta {
@@ -116,20 +176,59 @@
   font-weight: 600;
 }
 
-.versionDownload {
+/* Khối tệp có thể thu gọn của OwnerAttachments */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
   min-height: 32px;
-  padding: 0 4px;
+  padding: 0;
   border: 0;
   background: none;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.toggle:hover {
   color: var(--primary-ink);
 }
 
-.versionDownload:hover {
-  text-decoration: underline;
+.count {
+  color: var(--ink-3);
+  font-weight: 400;
 }
 
 @media (max-width: 767.98px) {
-  .versionDownload {
-    min-height: 40px;
+  .row {
+    min-height: 44px;
+    gap: 6px;
   }
+
+  .act {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+  }
+
+  .actText {
+    display: none;
+  }
+
+  .hint {
+    flex-basis: 100%;
+  }
+}
+
+/* Ô bảng chỉ xem: tên tệp như liên kết, không khung */
+.inline .row {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.inline .name {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }

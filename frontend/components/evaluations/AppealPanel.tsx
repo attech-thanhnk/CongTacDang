@@ -3,7 +3,7 @@
 import { formatDateTime } from "@/lib/dateFormat";
 import React, { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
-import { attachmentService } from "@/services/attachmentService";
+import { AttachmentList } from "@/components/attachments/AttachmentList";
 import { EvaluationRecordDto, WorkflowStepCode, evaluationService } from "@/services/evaluationService";
 import { AppealDto, AppealFileDto, RecordAppealsDto, postPublishService } from "@/services/postPublishService";
 import { ReasonDialog, UnlockDeadlineInfo } from "./ReasonDialog";
@@ -163,9 +163,17 @@ export function AppealPanel({ record, onRecordChanged, onPendingChange }: Props)
               </div>
             )}
             <div>
-              <label className="form-label small fw-semibold mb-1" htmlFor="appeal-files">Tệp minh chứng (tùy chọn)</label>
-              <input id="appeal-files" type="file" multiple className="form-control form-control-sm" accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png"
-                onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
+              <div className="form-label small fw-semibold mb-1">Tệp minh chứng (tùy chọn)</div>
+              <AttachmentList
+                files={files.map((file, i) => ({ key: `${i}:${file.name}`, fileName: file.name, fileSize: file.size }))}
+                context="kiến nghị"
+                multiple
+                emptyText={null}
+                confirmRemove={false}
+                disabled={busy}
+                onAdd={(file) => setFiles((current) => [...current, file])}
+                onRemove={(entry) => setFiles((current) => current.filter((file, i) => `${i}:${file.name}` !== entry.key))}
+              />
             </div>
             <div className="d-flex gap-2 justify-content-end">
               <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy} onClick={() => setShowForm(false)}>Hủy</button>
@@ -219,7 +227,7 @@ function AppealItem({
   busy: boolean;
   onStartReview: () => void;
   onResolve: (accepted: boolean, response: string) => Promise<boolean>;
-  onAttach: (file: File) => void;
+  onAttach: (file: File) => Promise<unknown>;
   onReopen: () => void;
 }) {
   const { toast } = useToast();
@@ -228,9 +236,13 @@ function AppealItem({
   const [accepted, setAccepted] = useState<boolean | null>(null);
   const [response, setResponse] = useState("");
 
+  const loadFiles = useCallback(
+    () => postPublishService.getAppealFiles(appeal.id).then(setFiles).catch(() => setFiles([])),
+    [appeal.id]
+  );
   useEffect(() => {
-    postPublishService.getAppealFiles(appeal.id).then(setFiles).catch(() => setFiles([]));
-  }, [appeal.id, appeal.version]);
+    loadFiles();
+  }, [loadFiles, appeal.version]);
 
   const confirmResolve = async () => {
     if (accepted === null || !response.trim()) {
@@ -253,24 +265,14 @@ function AppealItem({
       {appeal.concernedStepNames.length > 0 && (
         <div className="small text-secondary">Liên quan tới: {appeal.concernedStepNames.join(", ")}</div>
       )}
-      {files.length > 0 && (
-        <ul className="list-unstyled small mb-0">
-          {files.map((f) => (
-            <li key={f.id}>
-              <button type="button" className="btn btn-link btn-sm p-0 small"
-                onClick={() => attachmentService.downloadAttachment(f.id, f.fileName).catch((err: unknown) => toast.error(errorMessage(err, "Tải tệp không thành công.")))}>
-                <i className="bi bi-paperclip me-1" />{f.fileName}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {appeal.canAttach && (
-        <label className="small mb-0">
-          <span className="text-secondary me-2">Bổ sung tệp:</span>
-          <input type="file" className="form-control form-control-sm d-inline-block w-auto" disabled={busy} accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png"
-            onChange={(e) => { const file = e.target.files?.[0]; if (file) onAttach(file); e.target.value = ""; }} />
-        </label>
+      {(files.length > 0 || appeal.canAttach) && (
+        <AttachmentList
+          files={files}
+          context="kiến nghị"
+          addLabel="Bổ sung tệp"
+          emptyText={null}
+          onAdd={appeal.canAttach ? async (file) => { await onAttach(file); await loadFiles(); } : undefined}
+        />
       )}
       {appeal.reviewStartedByName && appeal.status === "UnderReview" && (
         <div className="small text-secondary">Đang xem xét: {appeal.reviewStartedByName} ({formatDateTime(appeal.reviewStartedAt)})</div>

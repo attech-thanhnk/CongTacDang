@@ -186,8 +186,9 @@
   outline-offset: -2px;
 }
 
-.evidenceLabel {
-  min-width: 64px;
+.evidenceCell {
+  min-width: 110px;
+  max-width: 200px;
 }
 
 .sub2Body {
@@ -916,4 +917,35 @@ button.stepBtn:focus-visible {
   .dateGroup :global(.btn) {
     min-width: 40px;
   }
+}
+
+/* Minh chứng của từng nhiệm vụ trên phiếu tự chấm: dòng riêng dưới nhiệm vụ */
+.taskMain > td {
+  border-bottom-width: 0;
+}
+
+.taskEvidence > td {
+  padding-top: 0;
+  padding-bottom: 10px;
+}
+
+.taskEvidenceBody {
+  position: sticky;
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  max-width: min(100%, calc(100vw - 48px));
+}
+
+.taskEvidenceBody > :last-child {
+  flex: 1 1 260px;
+  max-width: 520px;
+}
+
+.taskEvidenceLabel {
+  color: var(--ink-3);
+  font-size: 12.5px;
+  min-width: 80px;
 }

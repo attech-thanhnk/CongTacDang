@@ -127,7 +127,7 @@ export function FileDropZone({
       {hiddenInput}
       {file ? (
         <div className={`${styles.selected} ${disabled ? styles.disabled : ""}`}>
-          <i className={`bi bi-file-earmark-spreadsheet ${styles.fileIcon}`} aria-hidden="true" />
+          <i className={`bi ${file.name.toLowerCase().endsWith(".docx") ? "bi-file-earmark-word" : "bi-file-earmark-spreadsheet"} ${styles.fileIcon}`} aria-hidden="true" />
           <div className={styles.fileInfo}>
             <div className={styles.fileName} title={file.name}>
               {file.name}

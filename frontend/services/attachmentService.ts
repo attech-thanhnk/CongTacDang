@@ -38,13 +38,20 @@ export type AttachmentOwnerType =
   | "ControlCheck"
   | "CalibrationSession";
 
+
+// Ghi đè Content-Type JSON mặc định của apiClient (nếu không axios đổi FormData thành JSON); trình duyệt tự thêm boundary.
+const postForm = <T>(url: string, form: FormData): Promise<T> =>
+  apiClient.post(url, form, { headers: { "Content-Type": "multipart/form-data" }, timeout: 120000 }) as unknown as Promise<T>;
+
+const fileForm = (file: File, fields: Record<string, string> = {}) => {
+  const form = new FormData();
+  form.append("file", file);
+  for (const [key, value] of Object.entries(fields)) form.append(key, value);
+  return form;
+};
+
 // Tệp luôn gắn với một đối tượng; quyền xem tệp = quyền trên đối tượng.
 export const attachmentService = {
-  // Tệp gắn hồ sơ trong phạm vi + tệp mình tải lên chưa gắn
-  async getAttachments(): Promise<AttachmentItem[]> {
-    return request<AttachmentItem[]>("/attachments/list");
-  },
-
   async getAttachment(id: string): Promise<AttachmentItem> {
     return request<AttachmentItem>(`/attachments/${id}`);
   },
@@ -54,18 +61,9 @@ export const attachmentService = {
     await attachmentService.downloadAttachment(id, info.fileName);
   },
 
-  // Tệp chưa gắn chỉ người tải lên thấy
+  // Tệp chưa gắn chỉ người tải lên thấy, tới khi được gắn qua attachmentId khi lưu phiếu / kết quả
   async uploadAttachment(file: File, formCode: string, description: string): Promise<AttachmentItem> {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("formCode", formCode);
-    formData.append("description", description);
-
-    return request<AttachmentItem>("/attachments/upload", {
-      method: "POST",
-      body: formData,
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    return postForm<AttachmentItem>("/attachments/upload", fileForm(file, { formCode, description }));
   },
 
   async getByOwner(ownerType: AttachmentOwnerType, ownerId: string): Promise<AttachmentItem[]> {
@@ -77,17 +75,7 @@ export const attachmentService = {
   },
 
   async uploadToOwner(ownerType: AttachmentOwnerType, ownerId: string, file: File, formCode: string, description: string): Promise<AttachmentItem> {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("formCode", formCode);
-    formData.append("description", description);
-    formData.append("ownerType", ownerType);
-    formData.append("ownerId", ownerId);
-    return request<AttachmentItem>("/attachments/upload", {
-      method: "POST",
-      body: formData,
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    return postForm<AttachmentItem>("/attachments/upload", fileForm(file, { formCode, description, ownerType, ownerId }));
   },
 
   async uploadToRecord(recordId: string, file: File, formCode: string, description: string): Promise<AttachmentItem> {
@@ -96,13 +84,7 @@ export const attachmentService = {
 
   // Phiên bản cũ vẫn được lưu
   async replaceVersion(id: string, file: File): Promise<AttachmentItem> {
-    const formData = new FormData();
-    formData.append("file", file);
-    return request<AttachmentItem>(`/attachments/${id}/versions`, {
-      method: "POST",
-      body: formData,
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    return postForm<AttachmentItem>(`/attachments/${id}/versions`, fileForm(file));
   },
 
   // Tệp vẫn được lưu, nhật ký ghi người gỡ
@@ -122,13 +104,5 @@ export const attachmentService = {
   // Tên tệp theo máy chủ, không có thì dùng tên đã biết
   async downloadAttachment(id: string, fileName?: string): Promise<void> {
     await downloadFile(`/attachments/${id}/download`, fileName || "tep-dinh-kem");
-  },
-
-  formatFileSize(bytes: number): string {
-    if (!bytes || bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   },
 };

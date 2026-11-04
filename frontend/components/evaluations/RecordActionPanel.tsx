@@ -20,7 +20,8 @@ import {
   latestProposedGrade,
   votePassedGrade,
 } from "@/services/evaluationService";
-import { FileUploadModal } from "@/components/attachments/FileUploadModal";
+import { AttachmentList } from "@/components/attachments/AttachmentList";
+import { attachmentService } from "@/services/attachmentService";
 import { useCriteria } from "@/components/evaluations/useCriteria";
 import { SelfScoreForm } from "@/components/evaluations/SelfScoreForm";
 import { DateField } from "@/components/evaluations/DateField";
@@ -720,10 +721,21 @@ function ExternalResultForm({ record, step, busy, extra, onSubmit }: { record: E
   );
   const [score, setScore] = useState(previous?.score != null ? String(previous.score) : "");
   const [cadreWorkProposal, setCadreWorkProposal] = useState(record.cadreWorkProposal || "");
-  const [attachment, setAttachment] = useState<{ id: string; name: string } | null>(
-    previous?.attachmentId ? { id: previous.attachmentId, name: "Tệp đã đính kèm" } : null
+  const [attachment, setAttachment] = useState<{ id: string; fileName: string; fileSize?: number } | null>(
+    previous?.attachmentId ? { id: previous.attachmentId, fileName: "Văn bản đã đính kèm" } : null
   );
-  const [uploading, setUploading] = useState(false);
+  // Kết quả chỉ lưu mã tệp: lấy tên, dung lượng để hiện trong danh sách.
+  useEffect(() => {
+    const id = previous?.attachmentId;
+    if (!id) return;
+    attachmentService.getAttachment(id)
+      .then((f) => setAttachment((current) => (current?.id === id ? { id, fileName: f.fileName, fileSize: f.fileSize } : current)))
+      .catch(() => undefined);
+  }, [previous?.attachmentId]);
+  const uploadDocument = async (file: File) => {
+    const created = await attachmentService.uploadAttachment(file, "CAPTREN", `Văn bản của cấp trên: ${STEP_NAMES[step]} — ${record.fullName}`.slice(0, 500));
+    setAttachment({ id: created.id, fileName: created.fileName, fileSize: created.fileSize });
+  };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -758,29 +770,21 @@ function ExternalResultForm({ record, step, busy, extra, onSubmit }: { record: E
       )}
       <div className="col-12"><label className="form-label small">Nhận xét / nội dung kết luận</label><textarea className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
       {step === "B4_DECISION" && <CadreProposalInput id={`ext-${step}-cadre`} value={cadreWorkProposal} onChange={setCadreWorkProposal} />}
-      <div className="col-12 small">
-        {attachment && (
-          <span className="me-2"><i className="bi bi-paperclip me-1" />{attachment.name}
-            <button type="button" className="btn btn-link btn-sm p-0 ms-2 text-danger" onClick={() => setAttachment(null)}>Bỏ tệp</button>
-          </span>
-        )}
-        <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setUploading(true)}>Đính kèm văn bản (tùy chọn)</button>
+      <div className="col-12 col-md-8">
+        <div className="form-label small">Văn bản đính kèm (tùy chọn)</div>
+        <AttachmentList
+          files={attachment ? [attachment] : []}
+          context={STEP_NAMES[step]}
+          max={1}
+          emptyText={null}
+          addLabel="Đính kèm văn bản"
+          confirmRemove={false}
+          onAdd={uploadDocument}
+          onReplace={(_, file) => uploadDocument(file)}
+          onRemove={() => setAttachment(null)}
+        />
       </div>
       <FormFoot row extra={extra}><button type="submit" className="btn btn-primary" disabled={busy || !authorityName.trim() || (graded && !grade)}>Ghi nhận kết quả</button></FormFoot>
-      {uploading && (
-        <FileUploadModal
-          isOpen
-          onClose={() => setUploading(false)}
-          formCode="CAPTREN"
-          targetTitle={`${STEP_NAMES[step]} — ${record.fullName}`}
-          defaultDescription={`Văn bản của cấp trên: ${STEP_NAMES[step]} — ${record.fullName}`}
-          currentAttachmentId={attachment?.id}
-          onUploadSuccess={(file) => {
-            setAttachment({ id: file.id, name: file.fileName });
-            setUploading(false);
-          }}
-        />
-      )}
     </form>
   );
 }

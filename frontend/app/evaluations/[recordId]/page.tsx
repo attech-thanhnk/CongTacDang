@@ -25,6 +25,7 @@ import { initialsOf } from "@/components/dashboard/taskUtils";
 import styles from "@/components/evaluations/record.module.css";
 import { attachmentService } from "@/services/attachmentService";
 import { EvidenceFiles, evidenceSlot, useRecordEvidence } from "@/components/evaluations/EvidenceFiles";
+import { AttachmentList } from "@/components/attachments/AttachmentList";
 import { describeFrame, fmt } from "@/services/criteriaService";
 import {
   EVALUATION_CONFLICT_EVENT,
@@ -520,7 +521,11 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
                         {t.appraisalComment && <span className={styles.sub}>{t.appraisalComment}</span>}
                       </td>
                     )}
-                    <td>{t.attachmentOriginalName || t.attachmentFileName || "—"}</td>
+                    <td className={styles.evidenceCell}>
+                      {t.attachmentId
+                        ? <AttachmentList inline files={[{ id: t.attachmentId, fileName: t.attachmentOriginalName || t.attachmentFileName || "Minh chứng" }]} />
+                        : "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -593,16 +598,16 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
               Minh chứng
               <span className={`tag ${styles.tNeutral} num ms-auto`}>{evidence.files.length} tệp</span>
             </summary>
-            <div className={`${styles.sub2Body} d-flex flex-column gap-1`}>
-            {isOwner && selfScored && evidence.rights?.reason && <div className="small text-secondary mb-1">{evidence.rights.reason}</div>}
+            <div className={`${styles.sub2Body} d-flex flex-column gap-3`}>
+            {isOwner && selfScored && evidence.rights?.reason && <div className="small text-secondary">{evidence.rights.reason}</div>}
             {[
               ...(criteria?.content.generalGroups ?? []).map((g) => ({ slot: evidenceSlot("group", g.code), label: `Nhóm ${g.code}` })),
             ]
               .filter(({ slot }) => canAddEvidence || evidence.files.some((f) => (f.formCode || "").toUpperCase() === slot))
               .map(({ slot, label }) => (
-                <div key={slot} className="d-flex flex-wrap align-items-center gap-2 small">
-                  <strong className={styles.evidenceLabel}>{label}</strong>
-                  <EvidenceFiles recordId={record.id} slot={slot} label={label} files={evidence.files} rights={evidence.rights} onChanged={evidence.reload} hideLabel />
+                <div key={slot} className="d-flex flex-column gap-1 small">
+                  <strong>{label}</strong>
+                  <EvidenceFiles recordId={record.id} slot={slot} label={label} files={evidence.files} rights={evidence.rights} onChanged={evidence.reload} />
                 </div>
               ))}
             </div>

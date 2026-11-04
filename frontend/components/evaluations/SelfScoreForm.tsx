@@ -26,7 +26,8 @@ import {
   gradeProposalCheck,
   roundScore,
 } from "@/services/criteriaService";
-import { FileUploadModal } from "@/components/attachments/FileUploadModal";
+import { AttachmentList } from "@/components/attachments/AttachmentList";
+import { attachmentService } from "@/services/attachmentService";
 import { AxisReportsInput, SelfAssessmentInput, SelfAssessmentPreview } from "@/components/evaluations/IndividualFormInputs";
 import { useToast } from "@/contexts/ToastContext";
 import { TaskChangeMark } from "@/components/evaluations/TaskChangeRequests";
@@ -157,7 +158,6 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       ])
     )
   );
-  const [uploadFor, setUploadFor] = useState<string | null>(null);
 
   // Biểu mẫu cá nhân nhập cùng phiếu tự chấm.
   const [selfAssessment, setSelfAssessment] = useState<Record<string, string>>(() => ({ ...(record.selfAssessment ?? {}) }));
@@ -188,6 +188,11 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   const toInput = (raw: string): ScoreInput => (raw === "" ? "" : Number(raw));
   const setRatio = (taskId: string, key: keyof TaskRatio, value: ScoreInput | boolean | string | null) =>
     setRatios({ ...ratios, [taskId]: { ...ratios[taskId], [key]: value } });
+  // Tệp tải lên chưa gắn; gắn vào nhiệm vụ khi lưu nháp hoặc nộp phiếu.
+  const setEvidence = (taskId: string, file: { id: string; fileName: string } | null) =>
+    setRatios((prev) => ({ ...prev, [taskId]: { ...prev[taskId], attachmentId: file?.id ?? null, attachmentName: file?.fileName ?? null } }));
+  const uploadEvidence = async (taskId: string, taskName: string, file: File) =>
+    setEvidence(taskId, await attachmentService.uploadAttachment(file, "MAU02", `Minh chứng nhiệm vụ: ${taskName}`.slice(0, 500)));
 
   const generalScore = useMemo(() => generalTotal(content, general), [content, general]);
   const taskScore = (weight: number, r: TaskRatio) => {
@@ -225,9 +230,9 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     if (uses09C) payload.selfAssessment = selfAssessment;
     if (uses09C || uses9D) payload.axisReports = axisReports;
     // Ô để trống gửi null (chưa nhập) — máy chủ từ chối nộp khi còn thiếu, không tự coi là 0% hay 100%.
+    // Lưu nháp vẫn gửi nhiệm vụ chưa đủ tỷ lệ để máy chủ gắn minh chứng đã chọn.
     const ratioOf = (v: ScoreInput) => (v === "" ? null : (Number(v) || 0) / 100);
     payload.taskScores = activeTasks
-      .filter((t) => !draft || isComplete(ratios[t.id]))
       .map((t) => ({
         taskId: t.id,
         criteriaA_Ratio: ratioOf(ratios[t.id].a),
@@ -396,7 +401,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
         <table className="table table-sm align-middle">
           <thead>
             <tr className="small text-secondary">
-              <th>Sản phẩm</th><th style={{ width: 55 }}>Trục</th><th style={{ width: 65 }}>Trọng số</th><th style={{ width: 75 }}>A %</th><th style={{ width: 75 }}>B %</th><th style={{ width: 75 }}>C %</th><th style={{ width: 75 }}>D %</th><th style={{ width: 70 }}>Điểm</th><th style={{ width: 55 }}>Vượt</th><th style={{ width: 160 }}>Minh chứng</th>
+              <th>Sản phẩm</th><th style={{ width: 55 }}>Trục</th><th style={{ width: 65 }}>Trọng số</th><th style={{ width: 75 }}>A %</th><th style={{ width: 75 }}>B %</th><th style={{ width: 75 }}>C %</th><th style={{ width: 75 }}>D %</th><th style={{ width: 70 }}>Điểm</th><th style={{ width: 55 }}>Vượt</th>
             </tr>
           </thead>
           <tbody>
@@ -408,12 +413,13 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                     <td><div className="small">{t.taskName}<TaskChangeMark task={t} /></div></td>
                     <td className="small">{t.axisCode || "—"}</td>
                     <td className="small">0</td>
-                    <td colSpan={7} />
+                    <td colSpan={6} />
                   </tr>
                 );
               }
               return (
-                <tr key={t.id}>
+                <React.Fragment key={t.id}>
+                <tr className={styles.taskMain}>
                   <td><div className="small fw-semibold">{t.taskName}</div><div className="small text-secondary">{t.targetOutput}</div></td>
                   <td className="small">{t.axisCode || "—"}</td>
                   <td className="small">{t.weight}</td>
@@ -426,13 +432,28 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                   <td className="small fw-semibold">{isComplete(r) ? fmt(taskScore(t.weight, r)) : "—"}</td>
                   <td className="text-center">
                     <input type="checkbox" className="form-check-input" checked={r.exceed} onChange={(e) => setRatio(t.id, "exceed", e.target.checked)} aria-label="Vượt chuẩn" />
-                    {r.exceed && !r.attachmentId && <div className="small text-danger">Cần minh chứng</div>}
-                  </td>
-                  <td className="small">
-                    {r.attachmentName ? <span className="d-block text-truncate" style={{ maxWidth: 150 }} title={r.attachmentName}><i className="bi bi-paperclip me-1" />{r.attachmentName}</span> : <span className="text-secondary">Chưa có</span>}
-                    <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setUploadFor(t.id)}>Đính kèm</button>
                   </td>
                 </tr>
+                <tr className={styles.taskEvidence}>
+                  <td colSpan={9}>
+                    <div className={styles.taskEvidenceBody}>
+                      <span className={styles.taskEvidenceLabel}>
+                        Minh chứng{r.exceed && !r.attachmentId ? <span className="text-danger"> · cần cho việc vượt chuẩn</span> : null}
+                      </span>
+                      <AttachmentList
+                        files={r.attachmentId ? [{ id: r.attachmentId, fileName: r.attachmentName || "Tệp minh chứng" }] : []}
+                        context={t.taskName}
+                        max={1}
+                        emptyText={null}
+                        confirmRemove={false}
+                        onAdd={(file) => uploadEvidence(t.id, t.taskName, file)}
+                        onReplace={(_, file) => uploadEvidence(t.id, t.taskName, file)}
+                        onRemove={() => setEvidence(t.id, null)}
+                      />
+                    </div>
+                  </td>
+                </tr>
+                </React.Fragment>
               );
             })}
           </tbody>
@@ -523,20 +544,6 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
           <button type="submit" className="btn btn-primary" disabled={busy || saving}><i className="bi bi-send me-1" aria-hidden="true" />Nộp phiếu</button>
         </div>
       </div>
-
-      {uploadFor && (
-        <FileUploadModal
-          isOpen
-          onClose={() => setUploadFor(null)}
-          formCode="MAU02"
-          taskTitle={record.tasks.find((t) => t.id === uploadFor)?.taskName}
-          currentAttachmentId={ratios[uploadFor]?.attachmentId}
-          onUploadSuccess={(attachment) => {
-            setRatios({ ...ratios, [uploadFor]: { ...ratios[uploadFor], attachmentId: attachment.id, attachmentName: attachment.fileName } });
-            setUploadFor(null);
-          }}
-        />
-      )}
     </form>
   );
 }

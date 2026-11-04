@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { Card, PageHeader, Pagination, usePagination } from "@/components/common";
 import { RowActions } from "@/components/common/RowActions";
 import { AdminModal } from "@/components/admin/AdminModal";
+import { FileDropZone } from "@/components/common/FileDropZone";
 import { NoAccess } from "@/components/admin/NoAccess";
 import { errorMessage, errorTitle, formatDateTime } from "@/components/admin/adminUtils";
 import {
@@ -86,28 +87,15 @@ function UploadModal({
   onUploaded: () => void;
 }) {
   const { toast } = useToast();
-  const input = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [note, setNote] = useState("");
   const [activate, setActivate] = useState(true);
   const [check, setCheck] = useState<TemplateCheck | null>(null);
   const [busy, setBusy] = useState<"" | "check" | "upload">("");
 
-  const handleFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = event.target.files?.[0] || null;
+  // Vùng chọn tệp đã kiểm tra phần mở rộng và dung lượng.
+  const handleFile = (selected: File | null) => {
     setCheck(null);
-    if (selected && !selected.name.toLowerCase().endsWith(".docx")) {
-      toast.error("Chỉ nhận tệp Word .docx.");
-      event.target.value = "";
-      setFile(null);
-      return;
-    }
-    if (selected && selected.size > TEMPLATE_MAX_FILE_BYTES) {
-      toast.error("Tệp vượt quá 10 MB. Hãy nén ảnh trong tài liệu rồi thử lại.");
-      event.target.value = "";
-      setFile(null);
-      return;
-    }
     setFile(selected);
   };
 
@@ -172,7 +160,7 @@ function UploadModal({
       }
     >
       <div className="mb-3">
-        <input ref={input} type="file" accept=".docx" className="form-control form-control-sm" onChange={handleFile} disabled={busy !== ""} />
+        <FileDropZone file={file} onChange={handleFile} extensions={[".docx"]} maxBytes={TEMPLATE_MAX_FILE_BYTES} disabled={busy !== ""} ariaLabel="Chọn file mẫu Word" />
       </div>
       <div className="mb-3">
         <label className="form-label" htmlFor="template-note">
