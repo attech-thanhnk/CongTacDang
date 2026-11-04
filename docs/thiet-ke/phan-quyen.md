@@ -145,6 +145,18 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
   có hiệu lực ở request kế tiếp.
 - Tra cứu "người X làm được gì" và danh sách `grants` của phiên hiển thị nút được gán (không liệt kê từng nút con).
 
+### 4.2 Người làm bước: cấp gần nhất
+
+- Áp dụng cho hoàn thành / trả lại ở bước **Nội bộ** (không phải bước của chủ hồ sơ) với quyền thực hiện của bước trong diện quyết định.
+  Không áp dụng cho ghi nhận kết quả của cấp trên, mở lại, thu hồi duyệt, quyền xem và ghi ý kiến.
+- Tập người làm được = người có quyền bao trùm hồ sơ theo guard, trừ chủ hồ sơ; trong đó chỉ giữ người có bản gán **gần hồ sơ nhất**:
+  khoảng cách = số cấp từ nút được gán xuống đơn vị của hồ sơ (0 = gán đúng đơn vị), `Global` xa nhất; người nhiều bản gán lấy bản gần nhất;
+  cùng khoảng cách thì đều làm được.
+- Một chỗ tính: `IStepPerformers` (`StepPerformerRule` cho thuật toán), cache theo request; dùng cho API `actions`, thực thi hành động
+  (403 nêu tên người làm), việc cần xử lý, tên người chờ ở tiến độ, kiểm tra kẹt luồng (mục "bước chỉ có một người làm được" tính theo
+  tập này), duyệt điều chỉnh việc trong quý và màn hình Người thực hiện (`isNearest = false`: cấp trên, chỉ làm hồ sơ của người gần nhất).
+- Người gần nhất vắng: giao tạm vai trò có thời hạn tại đúng đơn vị (hoặc gỡ bản gán của người vắng) — người ở cấp trên không tự làm thay.
+
 ## 5. Chốt chặn quản trị
 
 | Chốt | Hành vi |

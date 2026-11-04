@@ -315,6 +315,36 @@ public class WorkflowRequestDto
     public uint? Version { get; set; }
 }
 
+/// <summary>Công bố nhiều hồ sơ một lần; mỗi hồ sơ kèm phiên bản đã đọc.</summary>
+public class PublishManyRequestDto
+{
+    public List<PublishManyItemDto>? Items { get; set; }
+}
+
+public class PublishManyItemDto
+{
+    public Guid RecordId { get; set; }
+    public uint? Version { get; set; }
+}
+
+/// <summary>Kết quả từng hồ sơ; hồ sơ lỗi không làm dừng cả lô.</summary>
+public class PublishManyResultDto
+{
+    public int PublishedCount { get; set; }
+    public int FailedCount { get; set; }
+    public List<PublishManyItemResultDto> Items { get; set; } = new();
+}
+
+public class PublishManyItemResultDto
+{
+    public Guid RecordId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public bool Succeeded { get; set; }
+
+    /// <summary>Lý do không thành công; null khi thành công.</summary>
+    public string? Message { get; set; }
+}
+
 /// <summary>Trả lại hồ sơ (bắt buộc lý do).</summary>
 public class ReturnRecordRequestDto : WorkflowRequestDto
 {

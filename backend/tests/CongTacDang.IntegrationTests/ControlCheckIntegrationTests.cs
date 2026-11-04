@@ -177,6 +177,27 @@ public sealed class ControlCheckIntegrationTests
     }
 
     [SkippableFact]
+    public async Task OwnRecord_LeftOutSilently_WhenCreatingCheckForGroup()
+    {
+        var w = await WorldAsync();
+        var other = await _factory.CreateUserAsync(w.Dept, null, ApprovalAuthority.CoSo, "KS Người lập có hồ sơ");
+        var role = await _factory.CreateRoleAsync(PermissionCodes.EvaluationControlPerform, PermissionCodes.EvaluationRead);
+        await _factory.AssignAsync(other.Id, await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA"), RoleScopeType.Global, null);
+        await _factory.AssignAsync(other.Id, role.Id, RoleScopeType.Global, null);
+        var otherC = await _factory.LoginAsAsync(other.Username, other.Password, distinctClientIp: true);
+        var periodId = await OpenPeriodAsync(w, other.Id);
+        var own = await RecordAwaitingDecisionAsync(w, periodId, other.Id);
+        var foreign = await RecordAwaitingDecisionAsync(w, periodId, w.Owner.Id);
+
+        var candidates = await Data(await otherC.GetAsync($"/api/control-checks/candidates?periodId={periodId}"));
+        Assert.DoesNotContain(candidates.EnumerateArray(), c => c.GetProperty("recordId").GetGuid() == own);
+
+        var created = await Data(await otherC.PostAsJsonAsync("/api/control-checks",
+            new { periodId, groupName = "Cả nhóm", recordIds = new[] { own, foreign } }));
+        Assert.Equal(new[] { foreign }, created.GetProperty("records").EnumerateArray().Select(r => r.GetProperty("recordId").GetGuid()));
+    }
+
+    [SkippableFact]
     public async Task RecordOwner_IsRefusedOnEveryWrite_EvenWithControlPermissions()
     {
         var w = await WorldAsync();
@@ -189,9 +210,9 @@ public sealed class ControlCheckIntegrationTests
         var own = await RecordAwaitingDecisionAsync(w, periodId, other.Id);
         var foreign = await RecordAwaitingDecisionAsync(w, periodId, w.Owner.Id);
 
-        // Lập phiếu có hồ sơ của chính mình bị chặn dù có quyền lập.
-        Assert.Equal(HttpStatusCode.Forbidden, (await otherC.PostAsJsonAsync("/api/control-checks",
-            new { periodId, groupName = "Nhóm", recordIds = new[] { own, foreign } })).StatusCode);
+        // Hồ sơ của chính mình tự bỏ khỏi phiếu; chỉ chọn hồ sơ của mình thì không lập được.
+        Assert.Equal(HttpStatusCode.BadRequest, (await otherC.PostAsJsonAsync("/api/control-checks",
+            new { periodId, groupName = "Nhóm", recordIds = new[] { own } })).StatusCode);
 
         // Phiếu do người khác lập và gửi xác nhận, chứa hồ sơ của người này.
         var created = await Data(await w.BothC.PostAsJsonAsync("/api/control-checks",

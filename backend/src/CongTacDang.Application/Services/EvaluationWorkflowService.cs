@@ -39,6 +39,9 @@ public interface IEvaluationWorkflowService
     Task<EvaluationRecordDto> DirectorReviewAsync(Guid recordId, DirectorReviewRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> RecordDecisionAsync(Guid recordId, DecisionRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> PublishAsync(Guid recordId, WorkflowRequestDto request, CancellationToken ct = default);
+
+    /// <summary>Công bố từng hồ sơ như công bố lẻ (quyền, cổng, trạng thái, phiên bản); trả kết quả từng hồ sơ.</summary>
+    Task<PublishManyResultDto> PublishManyAsync(PublishManyRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> ReopenAsync(Guid recordId, ReopenRequestDto request, CancellationToken ct = default);
 
     /// <summary>
@@ -79,6 +82,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     private readonly ICrosscheckWorkQueue? _crosscheckQueue;
     private readonly ICalibrationGate? _calibrationGate;
     private readonly IControlCheckGate? _controlGate;
+    private readonly IStepPerformers? _stepPerformers;
 
     public EvaluationWorkflowService(
         IEvaluationWorkflowRepository repo,
@@ -91,8 +95,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         IExpertCrosscheckGate? crosscheckGate = null,
         ICrosscheckWorkQueue? crosscheckQueue = null,
         ICalibrationGate? calibrationGate = null,
-        IControlCheckGate? controlGate = null)
+        IControlCheckGate? controlGate = null,
+        IStepPerformers? stepPerformers = null)
     {
+        _stepPerformers = stepPerformers;
         _taskChanges = taskChanges;
         _crosscheckGate = crosscheckGate;
         _crosscheckQueue = crosscheckQueue;
@@ -759,6 +765,51 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             return Task.FromResult<string?>("Công bố và lưu trữ kết quả.");
         }, ct);
 
+    /// <summary>Giới hạn số hồ sơ mỗi lần công bố.</summary>
+    public const int MaxPublishBatch = 500;
+
+    /// <inheritdoc />
+    public async Task<PublishManyResultDto> PublishManyAsync(PublishManyRequestDto request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var items = (request.Items ?? new List<PublishManyItemDto>()).Where(i => i.RecordId != Guid.Empty)
+            .GroupBy(i => i.RecordId).Select(g => g.First()).ToList();
+        if (items.Count == 0)
+            throw new ValidationException("Hãy chọn ít nhất một hồ sơ để công bố.");
+        if (items.Count > MaxPublishBatch)
+            throw new ValidationException($"Mỗi lần công bố tối đa {MaxPublishBatch} hồ sơ.");
+
+        var result = new PublishManyResultDto();
+        foreach (var item in items)
+        {
+            ct.ThrowIfCancellationRequested();
+            var name = (await _repo.FindRecordAsync(item.RecordId, ct))?.Member?.FullName ?? string.Empty;
+            var row = new PublishManyItemResultDto { RecordId = item.RecordId, FullName = name };
+            try
+            {
+                await PublishAsync(item.RecordId, new WorkflowRequestDto { Version = item.Version }, ct);
+                row.Succeeded = true;
+            }
+            catch (AppException ex)
+            {
+                row.Message = ex.Message;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                row.Message = "Lưu không thành công: hồ sơ có thể vừa được người khác cập nhật. Hãy tải lại rồi thử lại.";
+            }
+            finally
+            {
+                // Mỗi hồ sơ một lần lưu độc lập: thay đổi dở của hồ sơ lỗi không được lưu kèm hồ sơ sau.
+                _unitOfWork.ClearTracked();
+            }
+            result.Items.Add(row);
+        }
+        result.PublishedCount = result.Items.Count(i => i.Succeeded);
+        result.FailedCount = result.Items.Count - result.PublishedCount;
+        return result;
+    }
+
     /// <inheritdoc />
     public Task<EvaluationRecordDto> ReopenAsync(Guid recordId, ReopenRequestDto request, CancellationToken ct = default)
     {
@@ -1044,7 +1095,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         string? crosscheckBlock = null;
         if (record.Status == RecordStatus.AwaitingAppraisal && _crosscheckGate != null)
             crosscheckBlock = await _crosscheckGate.OpenBlockReasonAsync(record, EvaluationMapping.ProfileOf(settings, record), ct);
-        var actions = AvailableActions(record, settings, today, gates, crosscheckBlock).ToList();
+        var profile = EvaluationMapping.ProfileOf(settings, record);
+        var farther = WorkflowSteps.StepOf(record.Status) is { } current && WorkflowActions.AdvanceOf(current, profile) is { } advance
+            && !await IsNearestPerformerAsync(advance, profile, record, ct);
+        var actions = AvailableActions(record, settings, today, gates, crosscheckBlock, farther).ToList();
         return new RecordActionsDto
         {
             RecordId = record.Id,
@@ -1126,7 +1180,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             var period = periodById[record.PeriodId];
             if (WorkflowActions.PeriodBlockReason(period.Status, advance, record.UnlockedUntil, now) != null)
                 continue;
-            if (!CanPerform(advance, profile, record))
+            if (!CanPerform(advance, profile, record) || !await IsNearestPerformerAsync(advance, profile, record, ct))
                 continue;
 
             var deadline = profile.Deadline(step.Value);
@@ -1190,6 +1244,33 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         && !IsConflictOfInterest(action, record)
         && _guard.Can(WorkflowActions.PermissionFor(action, profile), AccessTarget.ForRecord(record));
 
+    /// <summary>Hoàn thành/trả lại ở bước nội bộ không phải của chủ hồ sơ: chỉ người có phạm vi gần hồ sơ nhất làm.</summary>
+    private static bool UsesNearestRule(WorkflowActionDefinition action, WorkflowProfile profile) =>
+        action.Kind is WorkflowAction.Complete or WorkflowAction.Return
+        && !WorkflowSteps.OwnerSteps.Contains(action.Step)
+        && profile.Mode(action.Step) == StepMode.Internal;
+
+    private async Task<bool> IsNearestPerformerAsync(WorkflowActionDefinition action, WorkflowProfile profile, EvaluationRecord record, CancellationToken ct)
+    {
+        if (_stepPerformers == null || !UsesNearestRule(action, profile) || _currentUser.UserId is not { } userId)
+            return true;
+        return await _stepPerformers.IsPerformerAsync(userId, WorkflowActions.PermissionFor(action, profile), AccessTarget.ForRecord(record), ct);
+    }
+
+    /// <summary>403 kèm tên người làm bước để biết chuyển hồ sơ cho ai.</summary>
+    private async Task<ForbiddenException> NotNearestAsync(WorkflowActionDefinition action, WorkflowProfile profile, EvaluationRecord record, CancellationToken ct)
+    {
+        var ids = await _stepPerformers!.ListAsync(WorkflowActions.PermissionFor(action, profile), AccessTarget.ForRecord(record), ct);
+        var names = new List<string>();
+        foreach (var id in ids)
+        {
+            if (await _repo.GetMemberNameAsync(id, ct) is { Length: > 0 } name)
+                names.Add(name);
+        }
+        var who = names.Count > 0 ? string.Join(", ", names.OrderBy(n => n, StringComparer.CurrentCulture)) : "người phụ trách gần hơn";
+        return new ForbiddenException($"{action.Label} không thành công: bước \"{profile.StepDisplayName(action.Step)}\" của hồ sơ này do {who} thực hiện.");
+    }
+
     private static bool CanRevokeTaskApproval(EvaluationRecord record, WorkflowProfile profile) =>
         profile.Mode(WorkflowStep.B1_APPROVE) == StepMode.Internal
         && record.Status == RecordStatus.AwaitingSelfScore
@@ -1204,7 +1285,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         (action.Kind == WorkflowAction.Reopen || !WorkflowSteps.OwnerSteps.Contains(action.Step))
         && _currentUser.UserId is { } userId && record.MemberId == userId;
 
-    private IEnumerable<RecordActionDto> AvailableActions(EvaluationRecord record, PeriodSettings settings, DateOnly today, IReadOnlyList<GateOutcome> gates, string? crosscheckBlock = null)
+    private IEnumerable<RecordActionDto> AvailableActions(EvaluationRecord record, PeriodSettings settings, DateOnly today, IReadOnlyList<GateOutcome> gates, string? crosscheckBlock = null, bool fartherThanNearest = false)
     {
         var profile = EvaluationMapping.ProfileOf(settings, record);
         var active = profile.ActiveSteps();
@@ -1229,7 +1310,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         {
             if (WorkflowActions.PeriodBlockReason(record.Period.Status, action, record.UnlockedUntil, now) != null)
                 continue;
-            if (!CanPerform(action, profile, record))
+            if (!CanPerform(action, profile, record) || (fartherThanNearest && UsesNearestRule(action, profile)))
                 continue;
 
             var command = action.Kind switch
@@ -1374,6 +1455,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 $"Bạn không được thực hiện \"{PermissionCodes.DisplayName(permission)}\" trên hồ sơ của chính mình (xung đột lợi ích).");
         }
         _guard.Ensure(permission, AccessTarget.ForRecord(record));
+        if (!await IsNearestPerformerAsync(action, profile, record, ct))
+            throw await NotNearestAsync(action, profile, record, ct);
 
         if (record.Version != request.Version.Value)
             throw new ConflictException("Hồ sơ đã được người khác cập nhật sau khi bạn mở. Hãy tải lại hồ sơ để xem dữ liệu mới nhất rồi thực hiện lại.");

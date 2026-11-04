@@ -159,14 +159,9 @@ public class EvaluationService : IEvaluationService
         if (item == null || profile.Mode(step) != StepMode.Internal || WorkflowActions.AdvanceOf(step, profile) is not { } action)
             return;
 
-        var permission = WorkflowActions.PermissionFor(action, profile);
-        var target = AccessTarget.ForRecord(record);
-        var performers = new List<Guid>();
-        foreach (var userId in await _repo.ListActiveUserIdsWithAnyPermissionAsync(new[] { permission }, DateTime.UtcNow, ct))
-        {
-            if (userId != record.MemberId && AuthorizationGuard.Evaluate(await _permissions.GetAsync(userId, ct), permission, target))
-                performers.Add(userId);
-        }
+        // Cùng quy tắc gần nhất với API hành động.
+        var performers = (await new StepPerformers(_repo, _permissions, _positions)
+            .ListAsync(WorkflowActions.PermissionFor(action, profile), AccessTarget.ForRecord(record), ct)).ToList();
         if (performers.Count == 0)
             return;
         item.PerformerNames = (await _repo.GetMembersAsync(performers, ct))

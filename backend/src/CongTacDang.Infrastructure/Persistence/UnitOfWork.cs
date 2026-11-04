@@ -36,6 +36,9 @@ public sealed class UnitOfWork : IUnitOfWork, IAfterCommitActions
         return _db.SaveChangesAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
+    public void ClearTracked() => _db.ChangeTracker.Clear();
+
     public async Task ExecuteInTransactionAsync(
         Func<Task> operation,
         CancellationToken cancellationToken = default)

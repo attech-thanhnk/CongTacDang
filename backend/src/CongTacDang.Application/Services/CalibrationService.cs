@@ -191,7 +191,9 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
             var picked = (request.RecordIds ?? new List<Guid>()).Where(i => i != Guid.Empty).Distinct().ToList();
             if (picked.Count == 0)
                 throw new ValidationException("Hãy chọn ít nhất một hồ sơ cho biên bản.");
-            var chosen = await _repo.GetRecordsAsync(picked, ct);
+            var chosen = (await _repo.GetRecordsAsync(picked, ct)).Where(r => !IsOwn(r)).ToList();
+            if (chosen.Count == 0)
+                throw new ValidationException("Hãy chọn ít nhất một hồ sơ cho biên bản.");
             departmentId = Common(chosen.Select(r => r.DepartmentId));
             partyCellId = Common(chosen.Select(r => r.PartyCellId));
             if (departmentId is null && partyCellId is null)
@@ -429,13 +431,17 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
         if (records.Count != ids.Count)
             throw new NotFoundException("Có hồ sơ được chọn không tồn tại. Hãy tải lại danh sách hồ sơ rồi chọn lại.");
 
+        // Hồ sơ của chính người lập tự bỏ khỏi biên bản (xung đột lợi ích), không báo lỗi.
+        records = records.Where(r => !IsOwn(r)).ToList();
+        ids = records.Select(r => r.Id).ToList();
+        if (records.Count == 0)
+            throw new ValidationException("Hãy chọn ít nhất một hồ sơ cho biên bản.");
+
         var settings = ParseSettings(period);
         foreach (var record in records)
         {
             if (record.PeriodId != session.PeriodId)
                 throw new ValidationException($"Hồ sơ của {NameOf(record)} không thuộc kỳ của biên bản.");
-            if (IsOwn(record))
-                throw new ForbiddenException("Bạn không được lập biên bản có hồ sơ của chính mình (xung đột lợi ích).");
             _guard.Ensure(PermissionCodes.EvaluationCalibrationManage, AccessTarget.ForRecord(record).ForWrite());
             EnsureStillEligible(record, "Đưa hồ sơ vào biên bản");
             if (!CalibrationRules.HasAppraisal(record) || CalibrationRules.Before(record).Grade == EvaluationGrade.ChuaXepLoai)

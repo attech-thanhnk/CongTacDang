@@ -174,6 +174,7 @@ public sealed class PerformerService : IPerformerService
             ct);
 
         var roles = await _roles.GetAllRolesWithPermissionsAsync();
+        var orgPaths = await _positions.GetOrgPathsAsync(ct);
         var used = await UsedPermissionsAsync(ct);
 
         foreach (var code in JobPermissions)
@@ -185,6 +186,10 @@ public sealed class PerformerService : IPerformerService
                 InUse = used == null || used.Contains(code)
             };
 
+            // Bước nội bộ chỉ người gần đơn vị nhất làm; người ở cấp trên chỉ làm hồ sơ của chính người gần nhất.
+            var nearest = code == PermissionCodes.EvaluationExternalRecord
+                ? null
+                : targets.SelectMany(t => StepPerformerRule.Nearest(effective, code, t, orgPaths)).ToHashSet();
             foreach (var permissions in effective.Where(p => Covers(p, code)))
             {
                 // Kiểm tra từng bản gán bằng đúng luật của guard.
@@ -208,13 +213,15 @@ public sealed class PerformerService : IPerformerService
                             : scopeNames.TryGetValue(grant.ScopeId.Value, out var n) ? n : "(không xác định)",
                         AssignmentId = grant.SourceAssignmentId,
                         AssignedHere = grant.ScopeType == scopeType && grant.ScopeId == scopeId,
-                        ValidTo = assignment?.ValidTo
+                        ValidTo = assignment?.ValidTo,
+                        IsNearest = nearest == null || nearest.Contains(permissions.UserId)
                     });
                 }
             }
 
             job.People = job.People
-                .OrderByDescending(p => p.AssignedHere)
+                .OrderByDescending(p => p.IsNearest)
+                .ThenByDescending(p => p.AssignedHere)
                 .ThenBy(p => p.FullName, StringComparer.CurrentCulture)
                 .ThenBy(p => p.RoleName, StringComparer.CurrentCulture)
                 .ToList();

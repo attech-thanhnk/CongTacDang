@@ -281,12 +281,14 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         if (ids.Count == 0)
             throw new ValidationException("Hãy chọn ít nhất một hồ sơ cho phiếu kiểm tra.");
 
-        var records = await LoadRecordsAsync(ids, ct);
+        // Hồ sơ của chính người lập tự bỏ khỏi phiếu (xung đột lợi ích), không báo lỗi.
+        var records = WithoutOwn(await LoadRecordsAsync(ids, ct));
+        if (records.Count == 0)
+            throw new ValidationException("Hãy chọn ít nhất một hồ sơ cho phiếu kiểm tra.");
         if (records.Any(r => r.PeriodId != request.PeriodId))
             throw new ValidationException("Mọi hồ sơ trong phiếu phải thuộc kỳ đánh giá đã chọn.");
         if (records[0].Period.Status != PeriodStatus.Open)
             throw new ConflictException("Chỉ lập phiếu kiểm tra khi kỳ đánh giá đang mở.");
-        EnsureNotOwner(records);
         EnsureAll(PermissionCodes.EvaluationControlPerform, records);
         EnsureAwaitingDecision(records);
 
@@ -640,11 +642,8 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
             throw new ForbiddenException("Bạn không được thao tác trên phiếu kiểm tra có hồ sơ của chính mình (xung đột lợi ích).");
     }
 
-    private void EnsureNotOwner(IEnumerable<EvaluationRecord> records)
-    {
-        if (_currentUser.UserId is { } me && records.Any(r => r.MemberId == me))
-            throw new ForbiddenException("Bạn không được lập phiếu kiểm tra có hồ sơ của chính mình (xung đột lợi ích).");
-    }
+    private List<EvaluationRecord> WithoutOwn(IEnumerable<EvaluationRecord> records) =>
+        records.Where(r => _currentUser.UserId is not { } me || r.MemberId != me).ToList();
 
     private void EnsureCanView(ControlCheck check)
     {
@@ -725,10 +724,11 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
             throw new ValidationException("Phiếu phải có ít nhất một hồ sơ.");
         var existing = check.Records.Select(r => r.RecordId).ToHashSet();
         var added = ids.Where(id => !existing.Contains(id)).ToList();
-        var addedRecords = await LoadRecordsAsync(added, ct);
+        var addedRecords = WithoutOwn(await LoadRecordsAsync(added, ct));
+        if (ids.Count - (added.Count - addedRecords.Count) == 0)
+            throw new ValidationException("Phiếu phải có ít nhất một hồ sơ.");
         if (addedRecords.Any(r => r.PeriodId != check.PeriodId))
             throw new ValidationException("Mọi hồ sơ trong phiếu phải thuộc kỳ đánh giá của phiếu.");
-        EnsureNotOwner(addedRecords);
         EnsureAll(PermissionCodes.EvaluationControlPerform, addedRecords);
         EnsureAwaitingDecision(addedRecords);
 
