@@ -78,11 +78,11 @@ Mọi thứ nằm trong `frontend/e2e-ket-qua/` (đã loại khỏi git):
 |---|---|
 | `01-dang-nhap` | Trang đăng nhập; chuyển về đăng nhập khi chưa có phiên; mật khẩu sai báo lỗi; đăng nhập rồi đăng xuất; quản trị chỉ thấy menu quản trị; menu theo quyền của bốn vai (cơ quan thẩm định, Văn phòng Đảng ủy, cấp trực tiếp sử dụng, cán bộ); cán bộ mở thẳng trang quản trị bị chặn; ảnh nền đăng nhập (tải lên, hiển thị, bỏ) |
 | `02-ky-danh-gia` | Tạo kỳ; thêm người theo đơn vị; đặt thời hạn; mở kỳ khi còn bước chưa có người phụ trách bị từ chối kèm đề nghị mở bắt buộc; chỉnh chế độ ba cổng khi dự thảo, lưu, tải lại; mở kỳ |
-| `03-luong-ho-so` | Hai hồ sơ đi qua luồng bằng giao diện: đăng ký danh mục, duyệt, tự chấm, Chi bộ xác nhận, đề xuất của tập thể, thẩm định, nhận xét; một hồ sơ tới "chờ quyết định", một hồ sơ dừng ở thẩm định |
+| `03-luong-ho-so` | Hai hồ sơ đi qua luồng bằng giao diện: đăng ký danh mục, duyệt, tự chấm (kèm minh chứng nhiệm vụ và nhóm tiêu chí chung: chặn tệp sai định dạng, quá 25 MB, nội dung không khớp; thay, gỡ, lưu nháp rồi tải lại; người xem hồ sơ tải xuống được), Chi bộ xác nhận, đề xuất của tập thể, thẩm định, nhận xét; một hồ sơ tới "chờ quyết định", một hồ sơ dừng ở thẩm định |
 | `04-hieu-chuan` | Nút quyết định khóa trước họp thống nhất; lập biên bản (Mẫu 20); điền chủ trì, thư ký, thành phần, một ca điều chỉnh; lưu và tải lại; người lập không tự chốt, người khác chốt |
-| `05-kiem-soat` | Phiếu kiểm tra (Mẫu 19): lập, 10 mục, kết luận, gửi; người lập không tự xác nhận; người khác xác nhận thì nút quyết định mở; ghi nhận quyết định và công bố |
+| `05-kiem-soat` | Phiếu kiểm tra (Mẫu 19): lập, tệp đính kèm (chặn tệp sai, thêm, thay, tải bản cũ, gỡ), 10 mục, kết luận, gửi; người lập không tự xác nhận; người khác xác nhận thì nút quyết định mở; ghi nhận quyết định và công bố |
 | `06-doi-soat` | Phiếu xác nhận số liệu (Mẫu 03) từ hồ sơ ở bước thẩm định: yêu cầu, thẩm định bị chặn khi còn phiếu mở, lập và gửi, xác nhận từ "Việc cần xử lý", yêu cầu thứ hai rồi hủy |
-| `07-xuat-word` | Tải Word biên bản họp thống nhất (tab Họp thống nhất), phiếu kiểm tra (tab Kiểm tra), phiếu xác nhận số liệu, Mẫu 01 và Mẫu 02: tệp tải về là `.docx` hợp lệ (đủ lớn, đầu tệp `PK`, có nội dung đúng, không còn thẻ chưa điền) |
+| `07-xuat-word` | Tải Word biên bản họp thống nhất (tab Họp thống nhất), phiếu kiểm tra (tab Kiểm tra), phiếu xác nhận số liệu, Mẫu 01 và Mẫu 02 (có tên tệp minh chứng nhiệm vụ): tệp tải về là `.docx` hợp lệ (đủ lớn, đầu tệp `PK`, có nội dung đúng, không còn thẻ chưa điền) |
 | `08-dien-thoai` | Khung 390 px: các trang chính và trang chi tiết mở được, trang không cuộn ngang, danh sách chuyển sang thẻ, menu mở bằng nút |
 | `09-ca-trang` | Mở lần lượt các trang của từng vai ở màn hình máy tính, cả trang chi tiết (kỳ, hồ sơ, biên bản, phiếu, người dùng, vai trò) |
 
@@ -99,7 +99,7 @@ Hàm kiểm chung nằm trong `e2e/fixtures.ts` và gắn vào mọi trang mở 
 1. Tạo `frontend/e2e/NN-ten.spec.ts` (số `NN` quyết định thứ tự chạy). Import `test`, `expect` từ `./fixtures`, không import từ `@playwright/test`, để có kiểm tra chung.
 2. Mở trang đã đăng nhập sẵn: `const page = await mo('loan.ctp')`. Mỗi lần gọi `mo` là một người dùng, một phiên riêng; đăng nhập qua API cho nhanh. Kịch bản kiểm tra chính màn hình đăng nhập thì dùng `page` và đăng nhập bằng giao diện như `01-dang-nhap`.
 3. Ưu tiên bộ chọn theo vai trò và nhãn: `getByRole('button', { name: 'Lưu' })`, `getByLabel('Chủ trì')`, `getByRole('dialog', { name: '…' })`. Chỉ dùng `#id` khi nhãn không gắn với ô nhập. Thông báo kiểm bằng `thongBao(page, 'Đã lưu …')`.
-4. Dữ liệu chia sẻ giữa các tệp: `ghiTrangThai({ ... })` và `docTrangThai()` trong `e2e/du-lieu.ts`; các thao tác dùng chung về hồ sơ ở `e2e/luong.ts`; tải tệp ở `e2e/xuat-tep.ts`.
+4. Dữ liệu chia sẻ giữa các tệp: `ghiTrangThai({ ... })` và `docTrangThai()` trong `e2e/du-lieu.ts`; các thao tác dùng chung về hồ sơ ở `e2e/luong.ts`; tải tệp xuống ở `e2e/xuat-tep.ts`, đính kèm tệp ở `e2e/dinh-kem.ts`.
 5. Chỉ dùng tài khoản và tên đơn vị có thật trong bản sao dữ liệu; kịch bản phụ thuộc dữ liệu thì nêu rõ ở đầu tệp.
 6. Dùng đúng tên menu, nút, trạng thái theo `docs/thiet-ke/thuat-ngu.md`. Đổi tên trên giao diện thì sửa kịch bản cùng lúc.
 7. Chạy riêng bằng `-Grep`, sau đó chạy đầy đủ một lần trước khi commit.

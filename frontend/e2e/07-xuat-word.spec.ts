@@ -26,11 +26,11 @@ test.describe('Tải Word từ giao diện', () => {
   test('xuất Mẫu 01 và Mẫu 02 từ trang hồ sơ', async ({ mo }) => {
     const page = await mo('loan.ctp');
     await page.goto(duongDanHoSo(TRUNG.khoa));
-    for (const [ma, noiDung] of [['Mẫu 01', 'Trung sản phẩm 1'], ['Mẫu 02', 'Trung sản phẩm 1']]) {
+    for (const [ma, ...noiDung] of [['Mẫu 01', 'Trung sản phẩm 1'], ['Mẫu 02', 'Trung sản phẩm 1', 'minh-chung-sp1.pdf']]) {
       const dong = page.getByRole('listitem').filter({ hasText: new RegExp(`^${ma} ·`) });
       await expect(dong).toBeVisible();
       const tep = await tai(page, () => dong.getByRole('button', { name: 'Tải Word' }).click());
-      await kiemTraDocx(tep, { chua: [TRUNG.hoTen, noiDung] });
+      await kiemTraDocx(tep, { chua: [TRUNG.hoTen, ...noiDung] });
     }
   });
 });

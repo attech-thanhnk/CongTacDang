@@ -1,6 +1,7 @@
 import { test, expect, thongBao } from './fixtures';
 import { TRUNG, dongY, duongDanHoSo } from './luong';
 import { docTrangThai, ghiTrangThai } from './du-lieu';
+import { chonTep, nutTai, tepPdf } from './dinh-kem';
 
 const TEN_NHOM = 'Phiếu kiểm soát Phòng Kế hoạch - Kinh doanh';
 
@@ -23,6 +24,38 @@ test.describe.serial('Kiểm soát (Mẫu 19)', () => {
     await expect(page).toHaveURL(/\/quality-control\/control-checks\/[0-9a-f-]{36}$/);
     ghiTrangThai({ phieu19: new URL(page.url()).pathname });
     await expect(page.getByText('Đang soạn', { exact: true }).first()).toBeVisible();
+  });
+
+  test('đính kèm tệp vào phiếu kiểm tra: chặn tệp sai, thêm, thay, xem phiên bản, gỡ', async ({ mo }) => {
+    const { phieu19 } = docTrangThai();
+    const page = await mo('loan.ttp');
+    await page.goto(phieu19);
+    const them = page.getByRole('button', { name: 'Đính kèm tệp — phiếu kiểm tra' });
+    await expect(them).toBeVisible();
+
+    await chonTep(page, them, { name: 'ghi-chu.txt', mimeType: 'text/plain', buffer: Buffer.from('x') });
+    await expect(page.getByRole('alert').filter({ hasText: 'không đúng định dạng' })).toBeVisible();
+
+    await chonTep(page, them, tepPdf('can-cu-kiem-tra.pdf'));
+    await expect(thongBao(page, 'Đã đính kèm tệp "can-cu-kiem-tra.pdf".')).toBeVisible();
+    await chonTep(page, them, tepPdf('nhap.pdf'));
+    await expect(page.getByRole('button', { name: /^Tệp đính kèm/ })).toContainText('(2)');
+
+    await chonTep(page, page.getByRole('button', { name: 'Thay tệp can-cu-kiem-tra.pdf' }), tepPdf('can-cu-kiem-tra-v2.pdf'));
+    await expect(nutTai(page, 'can-cu-kiem-tra-v2.pdf')).toBeVisible();
+    await page.getByRole('button', { name: 'Các phiên bản của tệp can-cu-kiem-tra-v2.pdf' }).click();
+    const banCu = page.getByRole('button', { name: 'Tải xuống bản 1 của can-cu-kiem-tra-v2.pdf' });
+    const cho = page.waitForEvent('download');
+    await banCu.click();
+    expect((await cho).suggestedFilename()).toBe('can-cu-kiem-tra.pdf');
+
+    await page.getByRole('button', { name: 'Gỡ tệp nhap.pdf' }).click();
+    await page.getByRole('dialog', { name: 'Gỡ tệp đính kèm' }).getByRole('button', { name: 'Gỡ tệp' }).click();
+    await expect(nutTai(page, 'nhap.pdf')).toHaveCount(0);
+
+    await page.reload();
+    await expect(nutTai(page, 'can-cu-kiem-tra-v2.pdf')).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Tệp đính kèm/ })).toContainText('(1)');
   });
 
   test('điền 10 mục (một mục K/AD kèm lý do), kết luận Đủ điều kiện rồi gửi xác nhận', async ({ mo }) => {
