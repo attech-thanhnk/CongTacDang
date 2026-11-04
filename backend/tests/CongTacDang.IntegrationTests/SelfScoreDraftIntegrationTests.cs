@@ -89,7 +89,59 @@ public sealed class SelfScoreDraftIntegrationTests
         Assert.Equal("Tự đánh giá mục I (IT)", final.GetProperty("selfAssessment").GetProperty("I").GetString());
     }
 
+    [SkippableFact]
+    public async Task D2_Draft_KeepsTaskEvidence_EvenWithoutRatios()
+    {
+        var w = await World.CreateAsync(_factory);
+        var (recordId, _) = await OpenRecordAsync(w);
+        var taskIds = (await Data(w.Owner, $"/api/evaluations/records/{recordId}")).GetProperty("tasks").EnumerateArray()
+            .OrderBy(t => t.GetProperty("taskOrder").GetInt32()).Select(t => t.GetProperty("id").GetGuid()).ToList();
+        var fileId = await UploadUnlinkedAsync(w.Owner, "minh-chung-nv2.pdf");
+
+        // Nhiệm vụ 2 chưa nhập tỷ lệ nào nhưng đã chọn minh chứng: lưu nháp phải gắn tệp.
+        object Task(Guid id, double? ratio, Guid? attachmentId) => new
+        {
+            taskId = id, criteriaA_Ratio = ratio, criteriaB_Ratio = ratio, criteriaC_Ratio = ratio, criteriaD_Ratio = ratio,
+            isExceedStandard = false, attachmentId
+        };
+        await Data(await PostAsync(w.Owner, recordId, "self-score/draft",
+            new { taskScores = new[] { Task(taskIds[0], 0.9, null), Task(taskIds[1], null, fileId) } }, w.Manager));
+
+        var task2 = (await Data(w.Owner, $"/api/evaluations/records/{recordId}")).GetProperty("tasks").EnumerateArray()
+            .Single(t => t.GetProperty("id").GetGuid() == taskIds[1]);
+        Assert.Equal(fileId, task2.GetProperty("attachmentId").GetGuid());
+        Assert.Equal("minh-chung-nv2.pdf", task2.GetProperty("attachmentFileName").GetString());
+
+        // Đã gắn hồ sơ: người xem hồ sơ tải được, người ngoài hồ sơ không.
+        Assert.Equal(HttpStatusCode.OK, (await w.Manager.GetAsync($"/api/attachments/{fileId}/download")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.OtherSelf.GetAsync($"/api/attachments/{fileId}/download")).StatusCode);
+
+        // Không gắn được tệp chưa gắn của người khác vào hồ sơ mình.
+        var foreign = await UploadUnlinkedAsync(w.OtherSelf, "cua-nguoi-khac.pdf");
+        var stolen = await PostAsync(w.Owner, recordId, "self-score/draft",
+            new { taskScores = new[] { Task(taskIds[2], null, foreign) } }, w.Manager);
+        Assert.Equal(HttpStatusCode.Forbidden, stolen.StatusCode);
+
+        // Bỏ chọn minh chứng rồi lưu nháp: nhiệm vụ không còn tệp.
+        await Data(await PostAsync(w.Owner, recordId, "self-score/draft",
+            new { taskScores = new[] { Task(taskIds[1], null, null) } }, w.Manager));
+        task2 = (await Data(w.Owner, $"/api/evaluations/records/{recordId}")).GetProperty("tasks").EnumerateArray()
+            .Single(t => t.GetProperty("id").GetGuid() == taskIds[1]);
+        Assert.True(!task2.TryGetProperty("attachmentId", out var cleared) || cleared.ValueKind == JsonValueKind.Null);
+    }
+
     #region Hỗ trợ
+
+    /// <summary>Tải tệp chưa gắn như phiếu tự chấm (gắn qua attachmentId khi lưu).</summary>
+    private static async Task<Guid> UploadUnlinkedAsync(HttpClient client, string fileName)
+    {
+        using var content = new MultipartFormDataContent();
+        var file = new ByteArrayContent("%PDF-1.4 minh chung"u8.ToArray());
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        content.Add(file, "file", fileName);
+        content.Add(new StringContent("MAU02"), "formCode");
+        return (await Data(await client.PostAsync("/api/attachments/upload", content))).GetProperty("id").GetGuid();
+    }
 
     private static object FullBody(object[] taskScores) => new
     {

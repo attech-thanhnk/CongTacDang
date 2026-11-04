@@ -360,7 +360,12 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 }
                 var input = request.TaskScores?.FirstOrDefault(s => s != null && s.TaskId == task.Id);
                 if (!IsComplete(input))
-                    continue; // Chỉ xảy ra khi lưu nháp: giữ nội dung đã lưu của nhiệm vụ chưa nhập đủ.
+                {
+                    // Chỉ xảy ra khi lưu nháp: giữ tỷ lệ đã lưu nhưng nhận minh chứng đã chọn, để tệp vừa tải lên không bị mất.
+                    if (input != null)
+                        task.AttachmentId = input.AttachmentId is { } pending && pending != Guid.Empty ? pending : null;
+                    continue;
+                }
                 var scored = EvaluationScoring.ScoreTask(task.Weight, input!.CriteriaA_Ratio!.Value, input.CriteriaB_Ratio!.Value,
                     input.CriteriaC_Ratio!.Value, input.CriteriaD_Ratio!.Value, frame, rounding.TaskScore);
                 task.CriteriaA_Ratio = scored.A;
