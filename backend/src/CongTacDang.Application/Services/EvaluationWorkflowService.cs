@@ -39,6 +39,9 @@ public interface IEvaluationWorkflowService
     Task<EvaluationRecordDto> DirectorReviewAsync(Guid recordId, DirectorReviewRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> RecordDecisionAsync(Guid recordId, DecisionRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> PublishAsync(Guid recordId, WorkflowRequestDto request, CancellationToken ct = default);
+
+    /// <summary>Công bố từng hồ sơ như công bố lẻ (quyền, cổng, trạng thái, phiên bản); trả kết quả từng hồ sơ.</summary>
+    Task<PublishManyResultDto> PublishManyAsync(PublishManyRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> ReopenAsync(Guid recordId, ReopenRequestDto request, CancellationToken ct = default);
 
     /// <summary>
@@ -761,6 +764,51 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             ctx.Record.PublishedAt = ctx.Now;
             return Task.FromResult<string?>("Công bố và lưu trữ kết quả.");
         }, ct);
+
+    /// <summary>Giới hạn số hồ sơ mỗi lần công bố.</summary>
+    public const int MaxPublishBatch = 500;
+
+    /// <inheritdoc />
+    public async Task<PublishManyResultDto> PublishManyAsync(PublishManyRequestDto request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var items = (request.Items ?? new List<PublishManyItemDto>()).Where(i => i.RecordId != Guid.Empty)
+            .GroupBy(i => i.RecordId).Select(g => g.First()).ToList();
+        if (items.Count == 0)
+            throw new ValidationException("Hãy chọn ít nhất một hồ sơ để công bố.");
+        if (items.Count > MaxPublishBatch)
+            throw new ValidationException($"Mỗi lần công bố tối đa {MaxPublishBatch} hồ sơ.");
+
+        var result = new PublishManyResultDto();
+        foreach (var item in items)
+        {
+            ct.ThrowIfCancellationRequested();
+            var name = (await _repo.FindRecordAsync(item.RecordId, ct))?.Member?.FullName ?? string.Empty;
+            var row = new PublishManyItemResultDto { RecordId = item.RecordId, FullName = name };
+            try
+            {
+                await PublishAsync(item.RecordId, new WorkflowRequestDto { Version = item.Version }, ct);
+                row.Succeeded = true;
+            }
+            catch (AppException ex)
+            {
+                row.Message = ex.Message;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                row.Message = "Lưu không thành công: hồ sơ có thể vừa được người khác cập nhật. Hãy tải lại rồi thử lại.";
+            }
+            finally
+            {
+                // Mỗi hồ sơ một lần lưu độc lập: thay đổi dở của hồ sơ lỗi không được lưu kèm hồ sơ sau.
+                _unitOfWork.ClearTracked();
+            }
+            result.Items.Add(row);
+        }
+        result.PublishedCount = result.Items.Count(i => i.Succeeded);
+        result.FailedCount = result.Items.Count - result.PublishedCount;
+        return result;
+    }
 
     /// <inheritdoc />
     public Task<EvaluationRecordDto> ReopenAsync(Guid recordId, ReopenRequestDto request, CancellationToken ct = default)

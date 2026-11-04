@@ -44,6 +44,7 @@ export function TaskTable({
   pageKey,
   resetKeys,
   showDeadline = true,
+  selection,
 }: {
   tasks: TaskRow[];
   periodId?: string;
@@ -52,6 +53,8 @@ export function TaskTable({
   resetKeys?: readonly unknown[];
   /** Tắt khi mọi việc cùng một hạn và hạn đã ghi ở tiêu đề nhóm. */
   showDeadline?: boolean;
+  /** Có thì mỗi dòng có ô chọn (thao tác hàng loạt). */
+  selection?: { selected: ReadonlySet<string>; onToggle: (recordId: string) => void };
 }) {
   const paging = usePagination(tasks, { storageKey: pageKey, resetKeys });
   const rows = pageKey ? paging.pageItems : tasks;
@@ -70,6 +73,16 @@ export function TaskTable({
                 <tr key={`${task.recordId}-${task.step}-${task.formId ?? ""}`} className={styles.rowLink} onClick={() => router.push(href)}>
                   <td>
                     <div className={styles.person}>
+                      {selection && (
+                        <input
+                          type="checkbox"
+                          className={`form-check-input ${styles.pick}`}
+                          aria-label={`Chọn ${task.fullName}`}
+                          checked={selection.selected.has(task.recordId)}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={() => selection.onToggle(task.recordId)}
+                        />
+                      )}
                       <div className="initials">{initialsOf(task.fullName)}</div>
                       <div>
                         <Link href={href} className={styles.name} onClick={(e) => e.stopPropagation()}>

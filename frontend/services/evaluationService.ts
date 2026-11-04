@@ -729,6 +729,19 @@ export interface WorkQueueItemDto {
   overdue: boolean;
 }
 
+export interface PublishManyItemResultDto {
+  recordId: string;
+  fullName: string;
+  succeeded: boolean;
+  message?: string | null;
+}
+
+export interface PublishManyResultDto {
+  publishedCount: number;
+  failedCount: number;
+  items: PublishManyItemResultDto[];
+}
+
 export interface WorkQueueGroupDto {
   step: WorkflowStepCode;
   stepName: string;
@@ -1301,6 +1314,11 @@ export const evaluationService = {
 
   async getRecordActions(id: string): Promise<RecordActionsDto> {
     return request<RecordActionsDto>(`/evaluations/records/${id}/actions`);
+  },
+
+  /** Công bố nhiều hồ sơ; máy chủ kiểm tra từng hồ sơ và trả kết quả từng hồ sơ. */
+  async publishMany(items: { recordId: string; version: number }[]): Promise<PublishManyResultDto> {
+    return post<PublishManyResultDto>("/evaluations/records/publish-many", { items });
   },
 
   async getWorkQueue(periodId?: string): Promise<WorkQueueDto> {

@@ -16,4 +16,9 @@ public interface IUnitOfWork
     void SetOriginalVersion(object entity, uint? version);
 
     uint GetVersion(object entity);
+
+    /// <summary>Bỏ mọi thực thể đang theo dõi (thao tác hàng loạt: lỗi của một mục không lọt vào lần lưu sau).</summary>
+    void ClearTracked()
+    {
+    }
 }

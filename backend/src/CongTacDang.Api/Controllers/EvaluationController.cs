@@ -179,6 +179,14 @@ public class EvaluationController : ControllerBase
     public Task<IActionResult> Publish(Guid id, [FromBody] WorkflowRequestDto dto, CancellationToken ct) =>
         Run(() => _workflow.PublishAsync(id, dto, ct), "Đã công bố kết quả.");
 
+    /// <summary>Công bố nhiều hồ sơ; kiểm tra từng hồ sơ như công bố lẻ, hồ sơ lỗi không làm dừng cả lô.</summary>
+    [HttpPost("records/publish-many")]
+    public async Task<IActionResult> PublishMany([FromBody] PublishManyRequestDto dto, CancellationToken ct)
+    {
+        var result = await _workflow.PublishManyAsync(dto, ct);
+        return Ok(ApiResponse<PublishManyResultDto>.Ok(result, $"Đã công bố {result.PublishedCount} hồ sơ."));
+    }
+
     /// <summary>Mở lại hồ sơ đã công bố (bắt buộc lý do, chọn bước quay về).</summary>
     [HttpPost("records/{id:guid}/reopen")]
     [RequirePermission(PermissionCodes.EvaluationReopen)]

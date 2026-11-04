@@ -496,6 +496,36 @@ a.cellRow:hover {
   gap: 8px;
 }
 
+.pick {
+  flex-shrink: 0;
+  margin: 0;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.bulkBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--tint);
+  font-size: 13.5px;
+}
+
+.bulkFailed {
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 13.5px;
+}
+
+.bulkFailed ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
 .groupDue {
   margin-left: auto;
   font-size: 13.5px;
