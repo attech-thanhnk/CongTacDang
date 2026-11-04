@@ -10,9 +10,9 @@ const SELF_STAGE = new Set(["AwaitingRegistration", "AwaitingTaskApproval", "Awa
 
 type Stage = "self" | "review" | "returned" | "published";
 
-/** Thứ tự, nhãn và màu giai đoạn — ô số liệu dùng làm chú giải cho thanh tiến độ; "đang tự chấm" là phần nền chưa tô. */
+/** Thứ tự, nhãn và màu giai đoạn — ô số liệu dùng làm chú giải cho thanh tiến độ; "đang đăng ký, tự chấm" là phần nền chưa tô. */
 const STAGES: { key: Stage; label: string; color: string; href: string }[] = [
-  { key: "self", label: "Đang tự chấm", color: "var(--rule-strong)", href: "/evaluations" },
+  { key: "self", label: "Đang đăng ký, tự chấm", color: "var(--rule-strong)", href: "/evaluations" },
   { key: "review", label: "Đang xét duyệt", color: "var(--wait)", href: "/evaluations" },
   { key: "returned", label: "Bị trả lại", color: "var(--bad)", href: "/evaluations?status=__returned" },
   { key: "published", label: "Đã công bố", color: "var(--ok)", href: "/evaluations?status=Published" },

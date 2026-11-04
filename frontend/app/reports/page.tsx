@@ -107,7 +107,7 @@ export default function ReportsPage() {
     }
   };
 
-  /** Biểu mẫu lập theo từng hồ sơ/biên bản: xuất ở trang Tập thể & Hội nghị. */
+  /** Biểu mẫu lập theo từng hồ sơ/biên bản: xuất ở trang Đánh giá tập thể. */
   const isElsewhere = (report: ReportDefinition) => report.scope === "collective" || report.scope === "meeting";
 
   // Không có quyền thì không hiện dòng.
@@ -127,7 +127,7 @@ export default function ReportsPage() {
     if (isElsewhere(report)) {
       return (
         <Link href="/collective-evaluations" className={styles.navLink}>
-          Đến Tập thể & Hội nghị
+          Đến Đánh giá tập thể
           <i className="bi bi-arrow-right" aria-hidden="true" />
         </Link>
       );

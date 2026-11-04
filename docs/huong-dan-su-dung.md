@@ -123,7 +123,7 @@ Trang đầu tiên sau khi đăng nhập. Tùy quyền, trang có:
 
 - **Hồ sơ của tôi**: một dòng cho biết trạng thái, hạn của bước đang chờ bạn, điểm; bấm **Mở hồ sơ**. Khi hồ sơ của bạn đã nằm trong danh sách việc cần xử lý thì không hiện thêm khối này.
 - **Việc cần xử lý**: các hồ sơ đang chờ bạn ở mọi kỳ đang mở, nhóm theo loại việc, kèm hạn. Bấm **Xem tất cả** để mở danh sách đầy đủ.
-- **Hồ sơ trong phạm vi** (người xem được nhiều hồ sơ): số hồ sơ theo giai đoạn (Đang tự chấm, Đang xét duyệt, Bị trả lại, Đã công bố) và tiến độ từng tổ chức Đảng; bấm **Danh sách hồ sơ** để mở trang Hồ sơ đánh giá.
+- **Hồ sơ trong phạm vi** (người xem được nhiều hồ sơ): số hồ sơ theo giai đoạn (Đang đăng ký, tự chấm, Đang xét duyệt, Bị trả lại, Đã công bố) và tiến độ từng tổ chức Đảng; bấm **Danh sách hồ sơ** để mở trang Hồ sơ đánh giá.
 - **Quản trị** (quản trị hệ thống): số tài khoản, phòng/đơn vị, Chi bộ.
 
 ### 2.5 Việc cần xử lý
@@ -659,7 +659,7 @@ Menu **Báo cáo**. Chọn phạm vi ở đầu trang (**Toàn Đảng bộ**, h
 
 | Báo cáo | Lấy ở đâu |
 |---|---|
-| Mẫu 06, 07, 08, 12, 13 | Nút **Đến Tập thể & Hội nghị** dẫn sang menu *Đánh giá tập thể* (xuất theo từng hồ sơ hoặc biên bản) |
+| Mẫu 06, 07, 08, 12, 13 | Nút **Đến Đánh giá tập thể** dẫn sang menu *Đánh giá tập thể* (xuất theo từng hồ sơ hoặc biên bản) |
 | Mẫu 11 — Phiếu đánh giá, xếp loại cán bộ (phiếu kín) | Word, PDF |
 | Mẫu 14 — Danh sách đánh giá và đề xuất xếp loại | Excel, PDF |
 | Mẫu 15A, 15B — Tổng hợp kết quả theo diện quyết định | Excel, PDF |

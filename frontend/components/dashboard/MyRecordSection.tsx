@@ -37,6 +37,12 @@ export function MyRecordSection({ record }: { record: EvaluationRecordDto }) {
               </span>
             )}
           </>
+        ) : record.notRatedReason ? (
+          // Người không đánh giá trong quý cần biết ngay mình Chưa xếp loại, không chỉ thấy "Chờ công bố".
+          <>
+            <RecordTag status={record.status} label="Chưa xếp loại" />
+            <span className={styles.mineReason}>{record.notRatedReason}</span>
+          </>
         ) : (
           <>
             <RecordTag status={record.status} label={record.statusDisplayName} returned={!!record.returnReason} overdue={ownStep?.overdue} />
