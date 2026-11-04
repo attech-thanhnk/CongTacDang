@@ -328,9 +328,9 @@ public sealed class PeriodService : IPeriodService
         if (frameErrors.Count > 0)
         {
             var criteria = ReadCriteria(period)!;
-            throw new ValidationException($"Chưa mở được kỳ: khung tỷ trọng A-B-C-D của {frameErrors.Count} hồ sơ không có trong bộ tiêu chí "
-                + $"\"{criteria.Name}\" (có: {FrameList(criteria)}) nên không tự chấm được theo Mẫu 09A — " + string.Join("; ", frameErrors)
-                + ". Hãy sửa khung của hồ sơ trong danh sách người được đánh giá (mở bắt buộc không bỏ qua được lỗi này).");
+            throw new ValidationException($"Mở kỳ không thành công: khung tỷ trọng A-B-C-D của {frameErrors.Count} hồ sơ không có trong bộ tiêu chí "
+                + $"\"{criteria.Name}\" (có: {FrameList(criteria)}) — " + string.Join("; ", frameErrors)
+                + ". Hãy sửa khung của hồ sơ trong danh sách người được đánh giá.");
         }
 
         var readiness = await BuildReadinessAsync(period, ct);
@@ -383,7 +383,7 @@ public sealed class PeriodService : IPeriodService
         var records = await _repo.ListRecordsAsync(period.Id, ct);
         var pending = records.Count(r => r.Status != RecordStatus.Published);
         if (pending > 0)
-            throw new ConflictException($"Chưa đóng được kỳ vì còn {pending} hồ sơ chưa công bố. Hãy công bố toàn bộ hồ sơ trước.");
+            throw new ConflictException($"Đóng kỳ không thành công: còn {pending} hồ sơ chưa công bố.");
         return await TransitionAsync(period, PeriodStatus.Closed, dto?.Reason, dto?.Version, ct);
     }
 

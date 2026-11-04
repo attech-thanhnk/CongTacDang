@@ -66,8 +66,8 @@ public class PeriodController : ControllerBase
             {
                 Success = false,
                 Code = "PERIOD_NOT_READY",
-                Message = $"Chưa mở được kỳ: có {readiness.Issues.Count} cảnh báo thiếu người thực hiện (hồ sơ sẽ không có ai thực hiện được bước). "
-                    + "Hãy gán vai trò hoặc sửa cấu hình diện quyết định, hoặc mở bắt buộc kèm lý do.",
+                Message = $"Mở kỳ không thành công: còn {readiness.Issues.Count} bước chưa có người thực hiện. "
+                    + "Hãy gán vai trò, sửa diện quyết định hoặc mở bắt buộc kèm lý do.",
                 Data = readiness,
                 Errors = readiness.Issues.Select(i => i.Message).ToList()
             });

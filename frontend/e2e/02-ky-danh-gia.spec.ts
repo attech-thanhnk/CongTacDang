@@ -80,7 +80,7 @@ test.describe.serial('Kỳ đánh giá', () => {
       // Mở kỳ khi còn bước kẹt: máy chủ từ chối, giao diện chuyển sang bảng người cần phân công và đề nghị mở bắt buộc.
       await page.getByRole('button', { name: 'Mở kỳ' }).click();
       await page.getByRole('dialog', { name: 'Mở kỳ đánh giá' }).getByRole('button', { name: 'Mở kỳ' }).click();
-      await expect(thongBao(page, /Chưa mở được kỳ|chưa có người/)).toBeVisible();
+      await expect(thongBao(page, /Mở kỳ không thành công|chưa có người/)).toBeVisible();
       const batBuoc = page.getByRole('dialog', { name: 'Mở kỳ bắt buộc' });
       await expect(batBuoc).toBeVisible();
       await batBuoc.getByRole('button', { name: 'Hủy' }).click();
