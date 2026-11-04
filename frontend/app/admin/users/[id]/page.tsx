@@ -212,7 +212,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       confirmText: "Mở khóa",
       isDanger: false,
       onConfirm: async () => {
-        if (await run(() => userService.unlock(userId), "Đã mở khóa đăng nhập.", "Không mở khóa được.")) await loadAccount();
+        if (await run(() => userService.unlock(userId), "Đã mở khóa đăng nhập.", "Mở khóa đăng nhập không thành công.")) await loadAccount();
       },
     });
   };

@@ -212,7 +212,7 @@ public class WordTemplateController : ControllerBase
 
     private static string CheckMessage(WordTemplateCheckDto result) =>
         !result.IsValid
-            ? $"File mẫu có {result.Errors.Count} lỗi — không tải lên được."
+            ? $"Tải lên không thành công: file mẫu có {result.Errors.Count} lỗi."
             : result.Warnings.Count > 0
                 ? $"File mẫu hợp lệ, có {result.Warnings.Count} cảnh báo."
                 : "File mẫu hợp lệ.";

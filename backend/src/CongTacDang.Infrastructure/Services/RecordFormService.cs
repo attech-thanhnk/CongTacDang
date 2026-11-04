@@ -159,7 +159,7 @@ public sealed class RecordFormService : IRecordFormService
         var record = await LoadAsync(recordId, ct);
         var request = await _db.Set<TaskChangeRequest>().AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == requestId && r.RecordId == recordId, ct)
-            ?? throw new NotFoundException($"Không tìm thấy đề nghị thay đổi việc với Id: {requestId}.");
+            ?? throw new NotFoundException("Không tìm thấy đề nghị thay đổi việc.");
         if (FormCodeOf(request.Type) != code)
         {
             throw new ConflictException(
@@ -200,7 +200,7 @@ public sealed class RecordFormService : IRecordFormService
             .Include(r => r.PartyCell)
             .Include(r => r.Tasks)
             .FirstOrDefaultAsync(r => r.Id == recordId, ct)
-            ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
+            ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
 
         _guard.Ensure(PermissionCodes.EvaluationRead, AccessTarget.ForRecord(record));
         return record;

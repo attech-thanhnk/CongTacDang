@@ -19,7 +19,7 @@ export interface ReportDefinition {
   /** Định dạng gốc của biểu mẫu. */
   fileType: "XLSX" | "DOCX";
   endpoint?: string;
-  /** Mã mẫu trong tên tệp ("Mau 16_…_Quy III-2026"). */
+  /** Mã mẫu trong tên tệp ("Mau 16_…_Quy <số La Mã>-<năm>"). */
   fileCode: string;
   /** Thay cho "Mau <fileCode>" với văn bản không mang số mẫu. */
   filePrefix?: string;
@@ -169,18 +169,18 @@ export function asciiName(value: string): string {
     .trim();
 }
 
-/** "Mau 16_<tên viết tắt>_Quy III-2026". */
+/** "Mau 16_<tên viết tắt>_Quy <số La Mã>-<năm>". */
 export function hd03FileName(fileCode: string, unit: string, periodLabel: string, extension: string): string {
   return scopedFileName(`Mau ${fileCode}`, unit, periodLabel, extension);
 }
 
-/** "<phần đầu>_<tên viết tắt>_Quy III-2026" (không dấu). */
+/** "<phần đầu>_<tên viết tắt>_Quy <số La Mã>-<năm>" (không dấu). */
 export function scopedFileName(prefix: string, unit: string, periodLabel: string, extension: string): string {
   const unitPart = asciiName(unit).replace(/\s+/g, "") || "DonVi";
   return `${prefix}_${unitPart}_${asciiName(periodLabel)}${extension}`;
 }
 
-/** "<mã báo cáo>_<đơn vị>_Quy III-2026" (không dấu). */
+/** "<mã báo cáo>_<đơn vị>_Quy <số La Mã>-<năm>" (không dấu). */
 export function internalFileName(fileCode: string, unit: string, periodLabel: string, extension: string): string {
   const unitPart = asciiName(unit).replace(/\s+/g, "") || "DonVi";
   return `${fileCode}_${unitPart}_${asciiName(periodLabel)}${extension}`;

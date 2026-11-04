@@ -730,11 +730,11 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
 
     private async Task<EvaluationRecord> RequireRecordAsync(Guid recordId, CancellationToken ct) =>
         await _records.FindRecordAsync(recordId, ct)
-        ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
+        ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
 
     private async Task<ExpertCrosscheck> RequireAsync(Guid id, CancellationToken ct) =>
         await _repo.FindAsync(id, ct)
-        ?? throw new NotFoundException($"Không tìm thấy phiếu xác nhận số liệu với Id: {id}.");
+        ?? throw new NotFoundException("Không tìm thấy phiếu xác nhận số liệu.");
 
     private async Task<ExpertCrosscheckDto> ReloadAsync(Guid id, CancellationToken ct) =>
         await BuildAsync(await RequireAsync(id, ct), ct);

@@ -83,7 +83,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     public async Task<CollectiveTrackingDto> GetTrackingAsync(Guid periodId)
     {
         var period = await _evaluationRepo.GetPeriodByIdAsync(periodId)
-            ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+            ?? throw new KeyNotFoundException("Không tìm thấy kỳ đánh giá.");
         var scope = CollectiveReadScope();
         var cells = await _collectiveRepo.GetPartyCellsWithRecordsAsync(periodId);
         var records = await _collectiveRepo.GetByPeriodAsync(periodId);
@@ -95,7 +95,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     public async Task<CollectiveEvaluationRecordDto> GetCollectiveRecordAsync(Guid id, Guid requesterId)
     {
         var record = await _collectiveRepo.GetByIdAsync(id)
-            ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ tập thể với Id: {id}");
+            ?? throw new KeyNotFoundException("Không tìm thấy hồ sơ tập thể.");
 
         var target = new AccessTarget(DepartmentId: record.DepartmentId, PartyCellId: record.PartyCellId);
         if (!_guard.Can(PermissionCodes.EvaluationRead, target) && !_guard.Can(PermissionCodes.CollectiveManage, target))
@@ -116,7 +116,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         // Mọi đơn vị hồ sơ gắn với đều phải trong phạm vi.
         _guard.Ensure(PermissionCodes.CollectiveManage, AccessTarget.ForUnitsWrite(dto.DepartmentId, dto.PartyCellId));
         var period = await _evaluationRepo.GetPeriodByIdAsync(dto.PeriodId)
-            ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {dto.PeriodId}");
+            ?? throw new KeyNotFoundException("Không tìm thấy kỳ đánh giá.");
         if (period.Status == PeriodStatus.Closed)
             throw new ConflictException($"Kỳ \"{period.Name}\" đã đóng nên không tạo được hồ sơ tập thể. Hãy liên hệ người quản lý kỳ nếu cần mở lại.");
         var scores = ResolveScores(period, form, dto);
@@ -148,7 +148,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     public async Task<CollectiveEvaluationRecordDto> UpdateCollectiveRecordAsync(Guid id, Guid requesterId, SaveCollectiveEvaluationRequestDto dto)
     {
         var record = await _collectiveRepo.GetForUpdateAsync(id)
-            ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ tập thể với Id: {id}");
+            ?? throw new KeyNotFoundException("Không tìm thấy hồ sơ tập thể.");
         _guard.Ensure(PermissionCodes.CollectiveManage, AccessTarget.ForUnitsWrite(record.DepartmentId, record.PartyCellId));
         if (record.Period.Status == PeriodStatus.Closed)
             throw new ConflictException($"Kỳ \"{record.Period.Name}\" đã đóng nên không sửa được hồ sơ tập thể. Hãy liên hệ người quản lý kỳ nếu cần mở lại.");
@@ -181,7 +181,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
             return catalog;
 
         var period = await _evaluationRepo.GetPeriodByIdAsync(periodId.Value)
-            ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId.Value}");
+            ?? throw new KeyNotFoundException("Không tìm thấy kỳ đánh giá.");
         var content = EvaluationMapping.SafeCriteria(period)?.Content;
         var parameters = content?.Parameters ?? new CriteriaParameters();
         catalog.GeneralMaxScore = parameters.CollectiveGeneralMaxScore;
@@ -414,7 +414,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     public async Task<EvaluationMeetingDto> GetMeetingAsync(Guid id, Guid requesterId)
     {
         var meeting = await _meetingRepo.GetByIdAsync(id)
-            ?? throw new KeyNotFoundException($"Không tìm thấy biên bản hội nghị với Id: {id}");
+            ?? throw new KeyNotFoundException("Không tìm thấy biên bản hội nghị.");
 
         var target = new AccessTarget(DepartmentId: meeting.DepartmentId, PartyCellId: meeting.PartyCellId);
         if (!_guard.Can(PermissionCodes.MeetingRead, target) && !_guard.Can(PermissionCodes.MeetingManage, target))
@@ -432,13 +432,13 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         var partyCellId = dto.PartyCellId == Guid.Empty ? null : dto.PartyCellId;
         var departmentId = dto.DepartmentId == Guid.Empty ? null : dto.DepartmentId;
         if (dto.FormCode is not ("M12" or "M13"))
-            throw new ArgumentException("Biên bản chỉ hỗ trợ M12 hoặc M13.");
+            throw new ArgumentException("Biên bản chỉ dùng Mẫu 12 hoặc Mẫu 13.");
         WorkflowStep? stage = null;
         if (!string.IsNullOrWhiteSpace(dto.Stage))
         {
             stage = WorkflowSteps.Parse(dto.Stage);
             if (stage is not (WorkflowStep.B3A_COLLECTIVE or WorkflowStep.B4_DECISION))
-                throw new ArgumentException("Biên bản chỉ dùng cho bước đề xuất của tập thể lãnh đạo (B3A_COLLECTIVE) hoặc quyết định (B4_DECISION).");
+                throw new ArgumentException("Biên bản chỉ dùng cho bước đề xuất của tập thể lãnh đạo hoặc quyết định mức xếp loại.");
         }
         // Hội nghị quyết định mức là hội nghị cấp ủy, không phải Phòng.
         if (stage == WorkflowStep.B4_DECISION && departmentId.HasValue)
@@ -449,7 +449,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
         if (dto.InvitedCount < 0 || dto.PresentCount < 0 || dto.AbsentCount < 0 || dto.PresentCount > dto.InvitedCount)
             throw new ArgumentException("Số lượng triệu tập, có mặt, vắng mặt không hợp lệ: không âm và số có mặt không vượt số triệu tập.");
         _ = await _evaluationRepo.GetPeriodByIdAsync(dto.PeriodId)
-            ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {dto.PeriodId}");
+            ?? throw new KeyNotFoundException("Không tìm thấy kỳ đánh giá.");
 
         var meeting = new EvaluationMeeting
         {
@@ -494,7 +494,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
                     throw new ArgumentException("Mỗi hồ sơ chỉ có một dòng kết quả kiểm phiếu trong biên bản.");
 
                 var record = await _evaluationRepo.GetRecordByIdAsync(vote.RecordId)
-                    ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {vote.RecordId}");
+                    ?? throw new KeyNotFoundException("Không tìm thấy hồ sơ đánh giá.");
                 // Biên bản ở tổ chức cấp trên chứa được hồ sơ của cây con.
                 if (record.PeriodId != dto.PeriodId
                     || !await OrgSubtreeRules.RecordWithinMeetingAsync(
@@ -525,7 +525,7 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
     public async Task<EvaluationMeetingDto> UpdateMeetingAsync(Guid id, Guid requesterId, SaveEvaluationMeetingRequestDto dto)
     {
         var meeting = await _meetingRepo.GetForUpdateAsync(id)
-            ?? throw new KeyNotFoundException($"Không tìm thấy biên bản hội nghị với Id: {id}");
+            ?? throw new KeyNotFoundException("Không tìm thấy biên bản hội nghị.");
         _guard.Ensure(PermissionCodes.MeetingManage, AccessTarget.ForUnitsWrite(meeting.DepartmentId, meeting.PartyCellId));
         if (meeting.Period.Status == PeriodStatus.Closed)
             throw new ConflictException($"Kỳ \"{meeting.Period.Name}\" đã đóng nên không sửa được biên bản. Hãy liên hệ người quản lý kỳ nếu cần mở lại.");

@@ -28,7 +28,7 @@ public sealed class ExcelImportWorkbook : IImportWorkbook
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            throw new ValidationException("Không đọc được file. Hãy kiểm tra file là Excel .xlsx (không đặt mật khẩu) và tải lên lại.");
+            throw new ValidationException("Đọc tệp không thành công. Hãy kiểm tra tệp là Excel .xlsx (không đặt mật khẩu) rồi tải lên lại.");
         }
 
         using (workbook)

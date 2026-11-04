@@ -43,7 +43,7 @@ public static class CollectiveFormText
 
     private static readonly CultureInfo Vietnamese = CultureInfo.GetCultureInfo("vi-VN");
 
-    /// <summary>"Quý III/2026".</summary>
+    /// <summary>Dạng "Quý <số La Mã>/<năm>".</summary>
     public static string RomanQuarter(EvaluationQuarter quarter) => (int)quarter switch
     {
         1 => "I",

@@ -201,22 +201,22 @@ apiClient.interceptors.response.use(
             new ApiError(message || "Bạn cần đổi mật khẩu tạm trước khi tiếp tục.", status, errors, parsedData)
           );
         }
-        message = message || "Cán bộ không có thẩm quyền thực hiện thao tác này.";
+        message = message || "Bạn không có quyền thực hiện thao tác này.";
       } else if (status === 404) {
         message = message || "Không tìm thấy dữ liệu yêu cầu trên hệ thống.";
       } else if (status === 400) {
         message = message || "Dữ liệu gửi lên chưa hợp lệ.";
       } else if (status >= 500) {
-        message = message || "Lỗi xử lý nội bộ tại máy chủ. Vui lòng liên hệ Quản trị viên.";
+        message = message || "Máy chủ gặp lỗi khi xử lý. Vui lòng thử lại hoặc báo Quản trị hệ thống.";
       }
       message = message || problemTitle || "Yêu cầu không thành công.";
     } else if (error.code === "ECONNABORTED") {
-      message = "Yêu cầu máy chủ quá thời gian chờ (Timeout). Vui lòng thử lại.";
+      message = "Máy chủ phản hồi quá lâu. Vui lòng thử lại.";
     } else if (error.code === "ERR_CANCELED") {
       message = "Yêu cầu đã bị hủy.";
     } else {
       // Không có phản hồi (mất kết nối, máy chủ tắt): axios chỉ trả "Network Error" tiếng Anh.
-      message = "Không thể kết nối đến máy chủ Web API.";
+      message = "Kết nối máy chủ không thành công. Kiểm tra mạng rồi thử lại.";
     }
 
     return Promise.reject(new ApiError(message, status, errors, resData));

@@ -512,7 +512,7 @@ public partial class ReportService : IReportService
     public async Task<Form16DraftDto> GetForm16DraftAsync(Guid periodId, Guid? partyCellId)
     {
         var period = await _db.EvaluationPeriods.AsNoTracking().FirstOrDefaultAsync(p => p.Id == periodId)
-            ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+            ?? throw new KeyNotFoundException("Không tìm thấy kỳ đánh giá.");
         var (_, records, cell) = await LoadExcelScopeAsync(periodId, partyCellId);
         var draft = await _db.Set<ReportDraft>().AsNoTracking()
             .FirstOrDefaultAsync(d => d.PeriodId == periodId && d.PartyCellId == partyCellId && d.FormCode == Form16Code);
@@ -548,7 +548,7 @@ public partial class ReportService : IReportService
     {
         ArgumentNullException.ThrowIfNull(dto);
         _ = await _db.EvaluationPeriods.AsNoTracking().FirstOrDefaultAsync(p => p.Id == periodId)
-            ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+            ?? throw new KeyNotFoundException("Không tìm thấy kỳ đánh giá.");
         var content = CleanDraft(dto.Content ?? new Form16DraftContentDto());
         var json = JsonSerializer.Serialize(content, DraftJson);
 
@@ -589,7 +589,7 @@ public partial class ReportService : IReportService
     public async Task<ReportFileResult> ExportMau16DocxAsync(Guid periodId, Guid? partyCellId, ReportFormat format = ReportFormat.Original)
     {
         var period = await _db.EvaluationPeriods.AsNoTracking().FirstOrDefaultAsync(p => p.Id == periodId)
-            ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+            ?? throw new KeyNotFoundException("Không tìm thấy kỳ đánh giá.");
         var draft = await GetForm16DraftAsync(periodId, partyCellId);
         var cell = partyCellId.HasValue ? await _db.PartyCells.AsNoTracking().FirstOrDefaultAsync(c => c.Id == partyCellId.Value) : null;
         var header = await ReportHeaderAsync(cell);
@@ -615,7 +615,7 @@ public partial class ReportService : IReportService
         Guid periodId, Guid? partyCellId)
     {
         var (loadedPeriod, records, cell) = await LoadExcelScopeAsync(periodId, partyCellId);
-        var period = loadedPeriod ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+        var period = loadedPeriod ?? throw new KeyNotFoundException("Không tìm thấy kỳ đánh giá.");
         PeriodSettings settings;
         try
         {
@@ -914,7 +914,7 @@ public partial class ReportService : IReportService
         if (periodId.HasValue && periodId.Value != Guid.Empty)
         {
             period = await _evalRepo.GetPeriodByIdAsync(periodId.Value)
-                ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+                ?? throw new KeyNotFoundException("Không tìm thấy kỳ đánh giá.");
         }
         else
         {
@@ -925,7 +925,7 @@ public partial class ReportService : IReportService
         if (partyCellId.HasValue && partyCellId.Value != Guid.Empty)
         {
             cell = await _orgRepo.GetPartyCellByIdAsync(partyCellId.Value)
-                ?? throw new KeyNotFoundException($"Không tìm thấy tổ chức Đảng với Id: {partyCellId}");
+                ?? throw new KeyNotFoundException("Không tìm thấy tổ chức Đảng.");
         }
 
         var records = period != null
@@ -1067,7 +1067,7 @@ public partial class ReportService : IReportService
             .Include(m => m.Department)
             .Include(m => m.VoteSummaries)
             .FirstOrDefaultAsync(m => m.Id == meetingId)
-            ?? throw new KeyNotFoundException($"Không tìm thấy biên bản hội nghị với Id: {meetingId}");
+            ?? throw new KeyNotFoundException("Không tìm thấy biên bản hội nghị.");
 
         // Biên bản đã có kết quả kiểm phiếu → đúng các cán bộ đó; chưa có → cán bộ của tổ chức hội nghị trong kỳ.
         var voted = meeting.VoteSummaries.Select(v => v.RecordId).ToList();
@@ -1103,7 +1103,7 @@ public partial class ReportService : IReportService
             .Include(m => m.VoteSummaries).ThenInclude(v => v.Record).ThenInclude(r => r.Department)
             .AsSplitQuery()
             .FirstOrDefaultAsync(m => m.Id == meetingId)
-            ?? throw new KeyNotFoundException($"Không tìm thấy biên bản hội nghị với Id: {meetingId}");
+            ?? throw new KeyNotFoundException("Không tìm thấy biên bản hội nghị.");
         if (meeting.VoteSummaries.Count == 0)
             throw new ArgumentException(
                 "Biên bản chưa có kết quả kiểm phiếu của hồ sơ nào nên chưa lập được Mẫu 13. Hãy ghi kết quả kiểm phiếu khi ghi nhận đề xuất (B3a) hoặc quyết định (B4), hoặc nhập khi lập biên bản kiểm phiếu.");
@@ -1316,7 +1316,7 @@ public partial class ReportService : IReportService
             .Include(m => m.PartyCell)
             .Include(m => m.Department)
             .FirstOrDefaultAsync(m => m.Id == meetingId)
-            ?? throw new KeyNotFoundException($"Không tìm thấy biên bản hội nghị với Id: {meetingId}");
+            ?? throw new KeyNotFoundException("Không tìm thấy biên bản hội nghị.");
         if (meeting.FormCode != "M12")
             throw new ArgumentException("Biên bản này là biên bản kiểm phiếu (Mẫu 13). Mẫu 12 chỉ xuất từ biên bản hội nghị (M12).");
 
@@ -1336,9 +1336,9 @@ public partial class ReportService : IReportService
             .Include(r => r.Department)
             .Include(r => r.Items)
             .FirstOrDefaultAsync(r => r.Id == id)
-            ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ tập thể với Id: {id}");
+            ?? throw new KeyNotFoundException("Không tìm thấy hồ sơ tập thể.");
         if (record.Form != form)
-            throw new ArgumentException($"Hồ sơ tập thể này lập theo {record.Form}, không xuất được theo Mẫu {(int)form:00}.");
+            throw new ArgumentException($"Hồ sơ tập thể này lập theo Mẫu {(int)record.Form:00}, không xuất theo Mẫu {(int)form:00}.");
         return record;
     }
 
@@ -1385,13 +1385,13 @@ public partial class ReportService : IReportService
             .Include(r => r.PartyCell)
             .Include(r => r.Tasks)
             .FirstOrDefaultAsync(r => r.Id == recordId)
-            ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
+            ?? throw new KeyNotFoundException("Không tìm thấy hồ sơ đánh giá.");
     }
 
     private async Task<(EvaluationPeriod Period, List<EvaluationRecord> Records, PartyCell? Branch)> LoadPeriodRecordsAsync(Guid periodId, Guid? branchId)
     {
         var period = await _db.EvaluationPeriods.AsNoTracking().FirstOrDefaultAsync(p => p.Id == periodId)
-            ?? throw new KeyNotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}");
+            ?? throw new KeyNotFoundException("Không tìm thấy kỳ đánh giá.");
 
         var query = _db.EvaluationRecords
             .AsNoTracking()

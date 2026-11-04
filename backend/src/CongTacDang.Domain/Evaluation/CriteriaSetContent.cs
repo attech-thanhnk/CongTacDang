@@ -699,7 +699,7 @@ public sealed class CriteriaSetContent
     private void ValidateGrades(List<string> errors, CriteriaParameters p)
     {
         foreach (var grade in Grades.Where(g => !RankedGrades.Contains(g.Grade)))
-            errors.Add($"Mức xếp loại \"{grade.Grade}\" không dùng được trong bộ tiêu chí (chỉ 4 mức: xuất sắc, tốt, hoàn thành, không hoàn thành).");
+            errors.Add($"Mức xếp loại \"{GradeName(grade.Grade)}\" không dùng được trong bộ tiêu chí (chỉ 4 mức: xuất sắc, tốt, hoàn thành, không hoàn thành).");
         foreach (var dup in Grades.GroupBy(g => g.Grade).Where(g => g.Count() > 1))
             errors.Add($"Mức xếp loại \"{GradeName(dup.Key)}\" được khai báo nhiều lần.");
 

@@ -102,6 +102,6 @@ public class AdminAssignmentController : ControllerBase
         if (Enum.TryParse<ScopeType>(value.Trim(), ignoreCase: true, out var parsed) && Enum.IsDefined(parsed))
             return parsed;
 
-        throw new ValidationException("Loại phạm vi không hợp lệ. Chỉ nhận Global (Toàn công ty), Department (Đơn vị chính quyền) hoặc PartyCell (Tổ chức Đảng).");
+        throw new ValidationException("Loại phạm vi không hợp lệ: chọn Toàn công ty, Đơn vị chính quyền hoặc Tổ chức Đảng.");
     }
 }

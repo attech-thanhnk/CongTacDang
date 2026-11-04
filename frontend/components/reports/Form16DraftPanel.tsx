@@ -20,7 +20,7 @@ interface Props {
   periodId: string;
   /** Tổ chức Đảng được chọn; rỗng = phạm vi mặc định theo quyền (toàn Đảng bộ hoặc tổ chức duy nhất được giao). */
   branchId?: string;
-  /** Nhãn kỳ cho tên tệp ("Quy III-2026"). */
+  /** Nhãn kỳ cho tên tệp ("Quy <số La Mã>-<năm>"). */
   periodLabel: string;
   /** Tên viết tắt của đơn vị (tên tệp khi xuất toàn Đảng bộ). */
   shortName: string;

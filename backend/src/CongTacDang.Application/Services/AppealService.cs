@@ -255,7 +255,7 @@ public sealed class AppealService : IAppealService
 
     private async Task<EvaluationRecord> RequireRecordAsync(Guid recordId, CancellationToken ct) =>
         await _repo.FindRecordAsync(recordId, ct)
-        ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
+        ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
 
     private bool IsOwner(EvaluationRecord record) => _currentUser.UserId is { } id && record.MemberId == id;
 

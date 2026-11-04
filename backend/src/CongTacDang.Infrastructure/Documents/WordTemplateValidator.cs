@@ -35,7 +35,7 @@ public static class WordTemplateValidator
         }
         catch (Exception ex) when (ex is OpenXmlPackageException or InvalidDataException or FileFormatException or IOException or InvalidOperationException)
         {
-            result.Errors.Add("Không mở được tệp bằng OpenXML — tệp hỏng hoặc không phải tài liệu Word (.docx). Hãy mở và lưu lại bằng Word.");
+            result.Errors.Add("Mở tệp không thành công: tệp hỏng hoặc không phải tài liệu Word (.docx). Hãy mở và lưu lại bằng Word.");
         }
 
         if (result.Errors.Count > 0)
@@ -110,7 +110,7 @@ public static class WordTemplateValidator
         }
         catch (Exception ex) when (ex is OpenXmlPackageException or InvalidDataException or IOException)
         {
-            result.Errors.Add("Tài liệu sinh thử không mở lại được. Hãy mở và lưu lại file mẫu bằng Word.");
+            result.Errors.Add("Mở lại tài liệu sinh thử không thành công. Hãy mở và lưu lại file mẫu bằng Word.");
         }
     }
 }

@@ -20,7 +20,7 @@ import { NoAccess } from "@/components/admin/NoAccess";
 
 const ROMAN = ["", "I", "II", "III", "IV"];
 
-/** Nhãn kỳ trong tên tệp, vd. "Quy III-2026". */
+/** Nhãn kỳ trong tên tệp, dạng "Quy <số La Mã>-<năm>". */
 const periodLabel = (period?: EvaluationPeriodDto | null) =>
   period ? `Quy ${ROMAN[period.quarter] ?? period.quarter}-${period.year}` : "Ky bao cao";
 

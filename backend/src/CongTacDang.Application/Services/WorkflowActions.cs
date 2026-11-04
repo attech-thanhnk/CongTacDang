@@ -108,7 +108,7 @@ public static class WorkflowActions
             (StepMode.External, not WorkflowAction.RecordExternal) =>
                 $"Bước \"{name}\" do cấp trên thực hiện đối với diện quyết định \"{profile.Name}\": hãy dùng chức năng \"Ghi nhận kết quả của cấp trên\".",
             (StepMode.Internal, WorkflowAction.RecordExternal) =>
-                $"Bước \"{name}\" được thực hiện trong hệ thống đối với diện quyết định \"{profile.Name}\", không ghi nhận kết quả của cấp trên được.",
+                $"Bước \"{name}\" được thực hiện trong hệ thống đối với diện quyết định \"{profile.Name}\", không dùng chức năng ghi nhận kết quả của cấp trên.",
             _ => null
         };
     }

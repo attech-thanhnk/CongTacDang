@@ -52,7 +52,7 @@ public class ReportAccessService : IReportAccessService
     public async Task EnsureCanExportCollectiveAsync(Guid collectiveRecordId)
     {
         var record = await _collectiveRepo.GetByIdAsync(collectiveRecordId)
-            ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ tập thể với Id: {collectiveRecordId}");
+            ?? throw new KeyNotFoundException("Không tìm thấy hồ sơ tập thể.");
         var target = new AccessTarget(DepartmentId: record.DepartmentId, PartyCellId: record.PartyCellId);
         if (!_guard.Can(PermissionCodes.EvaluationRead, target) && !_guard.Can(PermissionCodes.CollectiveManage, target))
             throw new ForbiddenException(
@@ -64,7 +64,7 @@ public class ReportAccessService : IReportAccessService
     public async Task EnsureCanExportMeetingAsync(Guid meetingId)
     {
         var meeting = await _meetingRepo.GetByIdAsync(meetingId)
-            ?? throw new KeyNotFoundException($"Không tìm thấy biên bản hội nghị với Id: {meetingId}");
+            ?? throw new KeyNotFoundException("Không tìm thấy biên bản hội nghị.");
         var target = new AccessTarget(DepartmentId: meeting.DepartmentId, PartyCellId: meeting.PartyCellId);
         if (!_guard.Can(PermissionCodes.MeetingRead, target) && !_guard.Can(PermissionCodes.MeetingManage, target))
             throw new ForbiddenException(
@@ -75,7 +75,7 @@ public class ReportAccessService : IReportAccessService
     public async Task EnsureCanExportRecordAsync(Guid requesterId, Guid recordId)
     {
         var record = await _evaluationRepo.GetRecordByIdAsync(recordId)
-            ?? throw new KeyNotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}");
+            ?? throw new KeyNotFoundException("Không tìm thấy hồ sơ đánh giá.");
 
         _guard.Ensure(PermissionCodes.EvaluationRead, AccessTarget.ForRecord(record));
     }

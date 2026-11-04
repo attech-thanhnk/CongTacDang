@@ -423,7 +423,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
 
     private async Task<EvaluationRecord> RequireRecordAsync(Guid recordId, CancellationToken ct) =>
         await _records.FindRecordAsync(recordId, ct)
-        ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
+        ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
 
     private async Task<RecordTaskChangesDto> ReloadAsync(Guid recordId, CancellationToken ct)
     {

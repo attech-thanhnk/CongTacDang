@@ -378,7 +378,7 @@ public sealed class CriteriaSetService : ICriteriaSetService
 
     private static string Truncate(string value, int max) => value.Length <= max ? value : value[..max];
 
-    private static NotFoundException NotFound(Guid id) => new($"Không tìm thấy bộ tiêu chí với Id: {id}.");
+    private static NotFoundException NotFound(Guid id) => new("Không tìm thấy bộ tiêu chí.");
 
     #endregion
 }

@@ -113,7 +113,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
     public async Task<List<CalibrationCandidateDto>> ListCandidatesAsync(Guid periodId, Guid? departmentId, string? workflowProfileCode,
         CancellationToken ct = default)
     {
-        var period = await _records.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
+        var period = await _records.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException("Không tìm thấy kỳ đánh giá.");
         if (period.Status != PeriodStatus.Open)
             return new List<CalibrationCandidateDto>();
 
@@ -180,7 +180,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
     {
         ArgumentNullException.ThrowIfNull(request);
         var period = await _records.FindPeriodAsync(request.PeriodId, ct)
-            ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {request.PeriodId}.");
+            ?? throw new NotFoundException("Không tìm thấy kỳ đánh giá.");
         if (period.Status != PeriodStatus.Open)
             throw new ConflictException("Chỉ lập biên bản họp thống nhất khi kỳ đánh giá đang mở.");
         var departmentId = request.DepartmentId;
@@ -944,7 +944,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
         });
 
     private async Task<CalibrationSession> RequireSessionAsync(Guid id, CancellationToken ct) =>
-        await _repo.FindAsync(id, ct) ?? throw new NotFoundException($"Không tìm thấy biên bản họp thống nhất với Id: {id}.");
+        await _repo.FindAsync(id, ct) ?? throw new NotFoundException("Không tìm thấy biên bản họp thống nhất.");
 
     private async Task<CalibrationSessionDto> ReloadAsync(Guid id, CancellationToken ct) => BuildDto(await RequireSessionAsync(id, ct));
 

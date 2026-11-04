@@ -146,7 +146,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
     /// <inheritdoc />
     public async Task<List<ControlCheckCandidateDto>> ListCandidatesAsync(Guid periodId, CancellationToken ct = default)
     {
-        var period = await _records.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
+        var period = await _records.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException("Không tìm thấy kỳ đánh giá.");
         if (period.Status != PeriodStatus.Open)
             return new List<ControlCheckCandidateDto>();
 
@@ -540,7 +540,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         if (_calibrationGate == null || check.Records.Count == 0)
             return;
         var period = await _records.FindPeriodAsync(check.PeriodId, ct)
-            ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {check.PeriodId}.");
+            ?? throw new NotFoundException("Không tìm thấy kỳ đánh giá.");
         PeriodSettings settings;
         try
         {
@@ -618,7 +618,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
     #region Hỗ trợ
 
     private async Task<ControlCheck> RequireAsync(Guid id, CancellationToken ct) =>
-        await _repo.FindAsync(id, ct) ?? throw new NotFoundException($"Không tìm thấy phiếu kiểm tra với Id: {id}.");
+        await _repo.FindAsync(id, ct) ?? throw new NotFoundException("Không tìm thấy phiếu kiểm tra.");
 
     private async Task<ControlCheckDto> ReloadAsync(Guid id, CancellationToken ct) => await BuildAsync(await RequireAsync(id, ct), ct);
 
@@ -631,7 +631,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
     }
 
     private async Task<EvaluationRecord> RequireRecordAsync(Guid id, CancellationToken ct) =>
-        await _records.FindRecordAsync(id, ct) ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {id}.");
+        await _records.FindRecordAsync(id, ct) ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
 
     /// <summary>Chủ của bất kỳ hồ sơ nào trong phiếu không được thao tác trên phiếu (xung đột lợi ích).</summary>
     private void EnsureNoOwnRecord(ControlCheck check)

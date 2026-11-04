@@ -905,7 +905,7 @@ public static class DataSeeder
             PreviousRemediation = "Đã khắc phục hạn chế về sinh hoạt chuyên đề nêu ở kỳ trước (dữ liệu mẫu).",
             Explanation = "Không có nội dung cần giải trình thêm (dữ liệu mẫu).",
             Responsibilities = "Bí thư Chi bộ chịu trách nhiệm chính về hạn chế nêu trên (dữ liệu mẫu).",
-            RemediationPlan = "Quý IV: phân công đầu mối theo dõi báo cáo, kiểm tra hằng tháng (dữ liệu mẫu).",
+            RemediationPlan = "Quý tới: phân công đầu mối theo dõi báo cáo, kiểm tra hằng tháng (dữ liệu mẫu).",
             GeneralCriteriaScore = 27,
             TaskCriteriaScore = 63,
             TotalScore = 90,

@@ -117,7 +117,7 @@ builder.Services.AddControllers()
                         return raw;
                     var field = e.Key.TrimStart('$', '.');
                     return string.IsNullOrEmpty(field) || field.Equals("dto", StringComparison.OrdinalIgnoreCase) || field.Equals("request", StringComparison.OrdinalIgnoreCase)
-                        ? "Dữ liệu gửi lên không đúng định dạng JSON hoặc bị thiếu."
+                        ? "Dữ liệu gửi lên không đúng định dạng hoặc bị thiếu."
                         : $"Trường \"{field}\" có giá trị không đúng kiểu dữ liệu.";
                 }))
                 .Distinct()

@@ -326,7 +326,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
 
     private async Task<EvaluationRecord> RequireRecordAsync(Guid recordId, CancellationToken ct) =>
         await _repo.FindRecordAsync(recordId, ct)
-        ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
+        ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
 
     /// <summary>Chủ hồ sơ, người lập kế hoạch hoặc người xem hồ sơ trong phạm vi.</summary>
     private void EnsureCanView(EvaluationRecord record)

@@ -380,7 +380,7 @@ public sealed class WorkflowProfileUnitTests
         Assert.Null(WorkflowActions.ModeBlockReason(WorkflowActions.CompleteOf(WorkflowStep.B4_DECISION), baseProfile));
         Assert.Contains("do cấp trên thực hiện",
             WorkflowActions.ModeBlockReason(WorkflowActions.CompleteOf(WorkflowStep.B4_DECISION), upper));
-        Assert.Contains("không ghi nhận kết quả của cấp trên",
+        Assert.Contains("không dùng chức năng ghi nhận kết quả của cấp trên",
             WorkflowActions.ModeBlockReason(WorkflowActions.ExternalOf(WorkflowStep.B4_DECISION), baseProfile));
         Assert.Contains("không áp dụng",
             WorkflowActions.ModeBlockReason(WorkflowActions.CompleteOf(WorkflowStep.B1_APPROVE), baseProfile));

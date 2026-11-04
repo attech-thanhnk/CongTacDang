@@ -202,7 +202,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             throw new ValidationException("Thiếu phiên bản dữ liệu của hồ sơ. Hãy tải lại hồ sơ rồi thử lại.");
 
         var record = await _repo.FindRecordAsync(recordId, ct)
-            ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
+            ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
         var settings = ReadSettings(record.Period);
         var profile = EvaluationMapping.ProfileOf(settings, record);
         var revokeAction = WorkflowActions.Get(WorkflowActions.RevokeTaskApproval);
@@ -797,7 +797,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             throw new ValidationException("Thiếu phiên bản dữ liệu của hồ sơ. Hãy tải lại hồ sơ rồi thực hiện lại.");
 
         var record = await _repo.FindRecordAsync(recordId, ct)
-            ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
+            ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
         var profile = EvaluationMapping.ProfileOf(ReadSettings(record.Period), record);
 
         if (_currentUser.UserId is { } userId && record.MemberId == userId)
@@ -846,7 +846,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             throw new ValidationException("Thiếu phiên bản dữ liệu của hồ sơ. Hãy tải lại hồ sơ rồi thực hiện lại.");
 
         var record = await _repo.FindRecordAsync(recordId, ct)
-            ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
+            ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
         if (_currentUser.UserId is { } userId && record.MemberId == userId)
             throw new ForbiddenException("Bạn không thể đánh dấu hoặc bỏ đánh dấu Chưa xếp loại trên hồ sơ của chính mình (xung đột lợi ích).");
         _guard.Ensure(PermissionCodes.PeriodManage, AccessTarget.ForRecord(record));
@@ -1033,7 +1033,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     public async Task<RecordActionsDto> GetActionsAsync(Guid recordId, CancellationToken ct = default)
     {
         var record = await _repo.FindRecordAsync(recordId, ct)
-            ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
+            ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
         _guard.Ensure(PermissionCodes.EvaluationRead, AccessTarget.ForRecord(record));
 
         var settings = ReadSettings(record.Period);
@@ -1357,7 +1357,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             throw new ValidationException("Thiếu phiên bản dữ liệu của hồ sơ. Hãy tải lại hồ sơ rồi thực hiện lại.");
 
         var record = await _repo.FindRecordAsync(recordId, ct)
-            ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
+            ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
 
         var period = record.Period;
         var settings = ReadSettings(period);

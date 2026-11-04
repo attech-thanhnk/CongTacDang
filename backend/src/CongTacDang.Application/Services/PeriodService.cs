@@ -115,7 +115,7 @@ public sealed class PeriodService : IPeriodService
     {
         var periods = await _repo.ListPeriodsAsync(ct);
         var period = periods.FirstOrDefault(p => p.Id == id)
-            ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {id}.");
+            ?? throw new NotFoundException("Không tìm thấy kỳ đánh giá.");
         var counts = await _repo.CountRecordsByPeriodAsync(ct);
         return EvaluationMapping.ToPeriodDto(period, counts.GetValueOrDefault(id), EvaluationMapping.ActivePeriod(periods)?.Id);
     }
@@ -426,7 +426,7 @@ public sealed class PeriodService : IPeriodService
     {
         EnsureManage();
         var period = await _repo.FindPeriodAsync(periodId, ct)
-            ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
+            ?? throw new NotFoundException("Không tìm thấy kỳ đánh giá.");
         return await BuildReadinessAsync(period, ct);
     }
 
@@ -728,7 +728,7 @@ public sealed class PeriodService : IPeriodService
     public async Task<List<PeriodParticipantDto>> GetParticipantsAsync(Guid periodId, CancellationToken ct = default)
     {
         EnsureManage();
-        var period = await _repo.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
+        var period = await _repo.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException("Không tìm thấy kỳ đánh giá.");
         var settings = ReadSettings(period);
         var criteria = ReadCriteria(period);
         var records = await _repo.ListRecordsAsync(periodId, ct);
@@ -757,7 +757,7 @@ public sealed class PeriodService : IPeriodService
     public async Task<List<ParticipantCandidateDto>> GetCandidatesAsync(Guid periodId, Guid? departmentId, Guid? partyCellId, string? query, CancellationToken ct = default)
     {
         EnsureManage();
-        _ = await _repo.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
+        _ = await _repo.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException("Không tìm thấy kỳ đánh giá.");
         var existing = await _repo.GetParticipantIdsAsync(periodId, ct);
         var members = await _repo.SearchMembersAsync(departmentId, partyCellId, query, ct);
         var held = await _repo.GetHeldPositionsAsync(members.Select(m => m.Id).ToList(), DateTime.UtcNow, ct);
@@ -825,7 +825,7 @@ public sealed class PeriodService : IPeriodService
         CancellationToken ct, IReadOnlyDictionary<Guid, string>? profileByMember)
     {
         var period = await _repo.FindPeriodAsync(periodId, ct)
-            ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
+            ?? throw new NotFoundException("Không tìm thấy kỳ đánh giá.");
         if (period.Status is not (PeriodStatus.Draft or PeriodStatus.Open))
             throw new ConflictException("Chỉ thêm người được đánh giá khi kỳ còn dự thảo hoặc đang mở.");
 
@@ -978,7 +978,7 @@ public sealed class PeriodService : IPeriodService
         if (!string.IsNullOrWhiteSpace(dto.ApprovalAuthority))
         {
             if (!Enum.TryParse<ApprovalAuthority>(dto.ApprovalAuthority, true, out var authority) || !Enum.IsDefined(authority))
-                throw new ValidationException("Cấp quyết định phải là CoSo hoặc CapTren.");
+                throw new ValidationException("Cấp quyết định không hợp lệ: chọn Đảng ủy cơ sở quyết định hoặc Cấp ủy cấp trên quyết định.");
             if (authority != record.ApprovalAuthority)
             {
                 changes.Add("cấp quyết định (diện quyết định giữ nguyên — đổi riêng nếu cần)");
@@ -1206,7 +1206,7 @@ public sealed class PeriodService : IPeriodService
 
     private async Task<PeriodParticipantDto> ReloadParticipantAsync(Guid periodId, Guid recordId, CancellationToken ct)
     {
-        var period = await _repo.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
+        var period = await _repo.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException("Không tìm thấy kỳ đánh giá.");
         var saved = (await _repo.ListRecordsAsync(periodId, ct)).First(r => r.Id == recordId);
         return WithNotRatedActions(ToParticipant(saved, ReadSettings(period), ReadCriteria(period), EvaluationMapping.Today(DateTime.UtcNow)),
             saved, period.Status);
@@ -1262,7 +1262,7 @@ public sealed class PeriodService : IPeriodService
         if (version is null)
             throw new ValidationException("Thiếu phiên bản dữ liệu của kỳ. Hãy tải lại trang rồi thực hiện lại.");
         var period = await _repo.FindPeriodAsync(id, ct)
-            ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {id}.");
+            ?? throw new NotFoundException("Không tìm thấy kỳ đánh giá.");
         if (period.Version != version)
             throw new ConflictException("Kỳ đánh giá đã được người khác cập nhật. Hãy tải lại trang để xem dữ liệu mới nhất.");
         return period;
