@@ -131,7 +131,7 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 - Cấu hình **cũ** (schema 1, bước cấp kỳ) không còn được hỗ trợ (chưa có CSDL cần giữ — người điều phối sinh lại `InitialCreate`).
 - Kỳ `Draft`: sửa mọi thứ (thêm/sửa/xóa diện quyết định — không xóa được diện quyết định đang được hồ sơ đánh giá dùng, 409). Kỳ `Open`/`Locked`: chỉ sửa thời hạn.
 
-**Tạo kỳ** (`POST /api/evaluations/periods`): năm, quý, tên, thời gian và **bộ tiêu chí đã xuất bản (bắt buộc)**; không có "kiểu kỳ". Kỳ mới nhận 3 diện quyết định mặc định (`PeriodSettings.Default`) — cấu hình mặc định **chờ nghiệp vụ xác nhận**, sửa được trong giao diện kỳ:
+**Tạo kỳ** (`POST /api/evaluations/periods`): năm, quý, tên, thời gian và **bộ tiêu chí đã xuất bản (bắt buộc)**; không có "kiểu kỳ". Kỳ mới nhận 4 diện quyết định mặc định (`PeriodSettings.Default`) — cấu hình mặc định **chờ nghiệp vụ xác nhận**, sửa được trong giao diện kỳ:
 
 | Diện quyết định (mã) | Căn cứ | B1 đăng ký/duyệt | B2 tự chấm | B2 Chi bộ | B3a tập thể | B3b thẩm định | B3c | B4 quyết định | B5 |
 |---|---|---|---|---|---|---|---|---|---|
