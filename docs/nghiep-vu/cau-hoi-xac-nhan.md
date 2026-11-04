@@ -204,6 +204,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Hệ thống đang làm (mặc định):** Là bước riêng, do Lãnh đạo đơn vị làm, nằm ở vị trí bước "cấp trực tiếp sử dụng".
 - **Phương án khác:** Gộp vào bước 3a và tắt bước riêng.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Kỳ đánh giá).
+- **Trả lời (04/11/2026), đã làm:** theo kế hoạch đánh giá quý, Trưởng bộ phận/đơn vị đề xuất mức ở bước 3a (ngày 10) trên cơ sở ý kiến các Phó, không họp bỏ phiếu; sau đó Phòng TCCB-LĐ thẩm định (ngày 11), Đảng ủy quyết định (ngày 14). Bỏ bước nhận xét sau thẩm định của diện này. Diện mặc định đặt bước 3a quyền `evaluation.unit.review` (không nhận biên bản, kiểm phiếu), bước 3c không áp dụng; Mẫu 14 ghi đề xuất ở cột 8 kèm "(Trưởng đơn vị đề xuất)".
 
 ### D8. Quy tắc biểu quyết khi kiểm phiếu
 - **Câu hỏi:** Mức đề xuất (Bước 3a) và mức quyết định (Bước 4) xác định từ kết quả kiểm phiếu theo tỷ lệ nào?

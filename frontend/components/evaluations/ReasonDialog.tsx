@@ -17,6 +17,8 @@ interface Props {
   confirmText: string;
   /** Với mở lại hồ sơ: các bước được chọn để quay về (do máy chủ trả về trong `actions`). */
   targetSteps?: WorkflowStepCode[] | null;
+  /** Tên bước theo hồ sơ; mặc định tên chung của bước. */
+  stepName?: (step: WorkflowStepCode) => string;
   /** Hạn mở riêng hồ sơ khi kỳ khóa dữ liệu (do máy chủ báo trong `actions`). */
   unlock?: UnlockDeadlineInfo | null;
   busy?: boolean;
@@ -46,7 +48,7 @@ function needsDeadline(unlock: UnlockDeadlineInfo | null | undefined, target: Wo
 }
 
 /** Hộp nhập lý do bắt buộc khi trả lại hoặc mở lại hồ sơ (kèm hạn mở riêng khi kỳ khóa dữ liệu). */
-export function ReasonDialog({ isOpen, title, description, confirmText, targetSteps, unlock, busy, onCancel, onConfirm }: Props) {
+export function ReasonDialog({ isOpen, title, description, confirmText, targetSteps, stepName, unlock, busy, onCancel, onConfirm }: Props) {
   const titleId = useId();
   const [reason, setReason] = useState("");
   const [target, setTarget] = useState<WorkflowStepCode | "">("");
@@ -103,7 +105,7 @@ export function ReasonDialog({ isOpen, title, description, confirmText, targetSt
                   <label className="form-label small fw-semibold" htmlFor="reopen-target">Quay về bước</label>
                   <select id="reopen-target" className="form-select form-select-sm" value={target} onChange={(e) => setTarget(e.target.value as WorkflowStepCode)}>
                     {targetSteps.map((step) => (
-                      <option key={step} value={step}>{STEP_NAMES[step] || step}</option>
+                      <option key={step} value={step}>{stepName ? stepName(step) : STEP_NAMES[step] || step}</option>
                     ))}
                   </select>
                 </div>

@@ -308,17 +308,35 @@ public sealed class AppealService : IAppealService
         return null;
     }
 
-    private static List<AppealStepOptionDto> StepOptions(EvaluationRecord record) =>
-        ConcernableSteps
+    private static List<AppealStepOptionDto> StepOptions(EvaluationRecord record)
+    {
+        var profile = ProfileOrNull(record);
+        return ConcernableSteps
             .Select(step => (step, actor: ActorOf(record, step)))
             .Where(x => x.actor.Name != null)
             .Select(x => new AppealStepOptionDto
             {
                 Step = WorkflowSteps.Code(x.step),
-                StepName = WorkflowSteps.DisplayName(x.step),
+                StepName = profile?.StepDisplayName(x.step) ?? WorkflowSteps.DisplayName(x.step),
                 ActorName = x.actor.Name
             })
             .ToList();
+    }
+
+    /// <summary>Kỳ chưa nạp hoặc cấu hình lỗi định dạng → null (dùng tên bước chung).</summary>
+    private static WorkflowProfile? ProfileOrNull(EvaluationRecord record)
+    {
+        if (record.Period == null)
+            return null;
+        try
+        {
+            return EvaluationMapping.ProfileOf(record.Period.GetSettings(), record);
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>Bước do cấp trên thực hiện: Id null, tên là cơ quan cấp trên.</summary>
     private static (Guid? Id, string? Name) ActorOf(EvaluationRecord record, WorkflowStep step) => step switch

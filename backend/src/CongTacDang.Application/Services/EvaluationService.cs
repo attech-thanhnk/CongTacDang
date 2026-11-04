@@ -65,7 +65,8 @@ public class EvaluationService : IEvaluationService
             ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
         _guard.Ensure(PermissionCodes.EvaluationRead, AccessTarget.ForRecord(record));
         var history = await _repo.ListHistoryAsync(recordId, ct);
-        return history.Select(EvaluationMapping.ToHistoryDto).ToList();
+        var profile = EvaluationMapping.ProfileOf(SafeSettings(record.Period), record);
+        return history.Select(x => EvaluationMapping.ToHistoryDto(x, profile)).ToList();
     }
 
     /// <inheritdoc />

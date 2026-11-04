@@ -149,10 +149,10 @@ public class EvaluationController : ControllerBase
     public Task<IActionResult> ReturnByCell(Guid id, [FromBody] ReturnRecordRequestDto dto, CancellationToken ct) =>
         Run(() => _workflow.ReturnByCellAsync(id, dto, ct), "Chi bộ đã trả lại phiếu tự chấm.");
 
-    /// <summary>B3A_COLLECTIVE — ghi nhận đề xuất của tập thể lãnh đạo (kết quả kiểm phiếu tổng hợp).</summary>
+    /// <summary>B3A_COLLECTIVE — ghi nhận đề xuất của tập thể lãnh đạo (kết quả kiểm phiếu tổng hợp) hoặc của Trưởng đơn vị theo diện quyết định.</summary>
     [HttpPost("records/{id:guid}/collective")]
     public Task<IActionResult> RecordCollectiveProposal(Guid id, [FromBody] CollectiveProposalRequestDto dto, CancellationToken ct) =>
-        Run(() => _workflow.RecordCollectiveProposalAsync(id, dto, ct), "Đã ghi nhận đề xuất của tập thể lãnh đạo.");
+        Run(() => _workflow.RecordCollectiveProposalAsync(id, dto, ct), "Đã ghi nhận đề xuất mức xếp loại.");
 
     /// <summary>B3B_APPRAISAL — thẩm định.</summary>
     [HttpPost("records/{id:guid}/appraisal")]

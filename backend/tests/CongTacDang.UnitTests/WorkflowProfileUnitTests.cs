@@ -41,10 +41,19 @@ public sealed class WorkflowProfileUnitTests
         }
         Assert.Equal(StepMode.Internal, upper.Mode(WorkflowStep.B5_PUBLISH));
 
-        // Ví dụ 3: B3c do Lãnh đạo đơn vị (Trưởng phòng) thực hiện thay Giám đốc.
+        // Ví dụ 3: Trưởng đơn vị đề xuất ở bước 3a (không họp bỏ phiếu) trước thẩm định; không có bước nhận xét sau thẩm định.
         var staff = Profile(full, "bi-thu-nhan-vien");
-        Assert.Equal(StepMode.Internal, staff.Mode(WorkflowStep.B3C_DIRECTOR));
-        Assert.Equal(PermissionCodes.EvaluationUnitReview, staff.PermissionFor(WorkflowStep.B3C_DIRECTOR));
+        Assert.Equal(StepMode.Internal, staff.Mode(WorkflowStep.B3A_COLLECTIVE));
+        Assert.Equal(PermissionCodes.EvaluationUnitReview, staff.PermissionFor(WorkflowStep.B3A_COLLECTIVE));
+        Assert.Equal(StepMode.Off, staff.Mode(WorkflowStep.B3C_DIRECTOR));
+        Assert.True(staff.IsUnitLeaderProposal());
+        Assert.Equal("Trưởng đơn vị đề xuất", staff.StepDisplayName(WorkflowStep.B3A_COLLECTIVE));
+        Assert.Equal("Chờ Trưởng đơn vị đề xuất", staff.StatusDisplayName(RecordStatus.AwaitingCollective));
+        Assert.All(full.Profiles.Where(p => p.Code != "bi-thu-nhan-vien"), p => Assert.False(p.IsUnitLeaderProposal()));
+        Assert.Equal("Đề xuất của tập thể lãnh đạo", baseProfile.StepDisplayName(WorkflowStep.B3A_COLLECTIVE));
+        // Hạn mặc định như diện cơ sở: đề xuất ngày 10, thẩm định ngày 11.
+        Assert.Equal(10, staff.Step(WorkflowStep.B3A_COLLECTIVE).Rule!.Value);
+        Assert.Null(staff.Step(WorkflowStep.B3C_DIRECTOR).Rule);
 
         // Chủ tịch, Giám đốc, Kiểm soát viên: HĐTV Tổng công ty duyệt danh mục sản phẩm (cấp trên thực hiện).
         Assert.Equal(StepMode.External, upper.Mode(WorkflowStep.B1_APPROVE));
@@ -349,7 +358,8 @@ public sealed class WorkflowProfileUnitTests
         Assert.Equal(PermissionCodes.EvaluationDecide, WorkflowActions.PermissionFor(WorkflowActions.CompleteOf(WorkflowStep.B4_DECISION), baseProfile));
         Assert.Equal(PermissionCodes.EvaluationExternalRecord,
             WorkflowActions.PermissionFor(WorkflowActions.ExternalOf(WorkflowStep.B4_DECISION), upper));
-        Assert.Equal(PermissionCodes.EvaluationUnitReview, WorkflowActions.PermissionFor(WorkflowActions.CompleteOf(WorkflowStep.B3C_DIRECTOR), staff));
+        Assert.Equal(PermissionCodes.EvaluationUnitReview, WorkflowActions.PermissionFor(WorkflowActions.CompleteOf(WorkflowStep.B3A_COLLECTIVE), staff));
+        Assert.Null(WorkflowActions.AdvanceOf(WorkflowStep.B3C_DIRECTOR, staff));
         Assert.Equal(PermissionCodes.EvaluationSelf, WorkflowActions.PermissionFor(WorkflowActions.CompleteOf(WorkflowStep.B2_SELF_SCORE), staff));
         Assert.Equal(PermissionCodes.EvaluationReopen, WorkflowActions.PermissionFor(WorkflowActions.Get(WorkflowActions.Reopen), upper));
 

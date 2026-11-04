@@ -492,7 +492,7 @@ public sealed class PeriodService : IPeriodService
                 covered = performers.Any(userId => userId != record.MemberId);
                 if (performers.Count == 1 && performers[0] != record.MemberId)
                 {
-                    var key = (WorkflowSteps.DisplayName(step), ScopeName(record), performers[0]);
+                    var key = (profile.StepDisplayName(step), ScopeName(record), performers[0]);
                     singles[key] = singles.GetValueOrDefault(key) + 1;
                 }
             }
@@ -504,9 +504,9 @@ public sealed class PeriodService : IPeriodService
             var permissionName = PermissionCodes.DisplayName(permission);
             var fullName = record.Member?.FullName ?? string.Empty;
             var message = permission == PermissionCodes.EvaluationSelf
-                ? $"Hồ sơ của {fullName} ({profile.Name}) sẽ kẹt ở bước \"{WorkflowSteps.DisplayName(step)}\" vì tài khoản của chủ hồ sơ "
+                ? $"Hồ sơ của {fullName} ({profile.Name}) sẽ kẹt ở bước \"{profile.StepDisplayName(step)}\" vì tài khoản của chủ hồ sơ "
                   + $"không hoạt động hoặc không có quyền \"{permissionName}\". Hãy kiểm tra tài khoản và vai trò của người này."
-                : $"Hồ sơ của {fullName} ({profile.Name}) sẽ kẹt ở bước \"{WorkflowSteps.DisplayName(step)}\""
+                : $"Hồ sơ của {fullName} ({profile.Name}) sẽ kẹt ở bước \"{profile.StepDisplayName(step)}\""
                   + (mode == StepMode.External ? " (do cấp trên thực hiện)" : string.Empty)
                   + $" vì không có tài khoản đang hoạt động nào (ngoài chủ hồ sơ) có quyền \"{permissionName}\" trong phạm vi {scope}. "
                   + "Hãy gán vai trò có quyền này hoặc sửa cấu hình bước của diện quyết định.";
@@ -518,7 +518,7 @@ public sealed class PeriodService : IPeriodService
                 WorkflowProfileCode = profile.Code,
                 WorkflowProfileName = profile.Name,
                 Step = WorkflowSteps.Code(step),
-                StepName = WorkflowSteps.DisplayName(step),
+                StepName = profile.StepDisplayName(step),
                 Mode = mode.ToString(),
                 Permission = permission,
                 PermissionName = permissionName,
@@ -1337,9 +1337,9 @@ public sealed class PeriodService : IPeriodService
             WorkflowProfileCode = profile.Code,
             WorkflowProfileName = profile.Name,
             Status = r.Status.ToString(),
-            StatusDisplayName = WorkflowSteps.StatusDisplayName(r.Status),
+            StatusDisplayName = profile.StatusDisplayName(r.Status),
             CurrentStep = step.HasValue ? WorkflowSteps.Code(step.Value) : null,
-            CurrentStepName = step.HasValue ? WorkflowSteps.DisplayName(step.Value) : null,
+            CurrentStepName = step.HasValue ? profile.StepDisplayName(step.Value) : null,
             CurrentStepDeadline = deadline,
             DaysOverdue = daysOverdue,
             DaysLeft = daysLeft,

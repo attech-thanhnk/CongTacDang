@@ -121,6 +121,22 @@ public sealed class WorkflowProfile
 
     public DateOnly? Deadline(WorkflowStep step) => Step(step).Deadline;
 
+    /// <summary>Bước 3a làm trong hệ thống bằng quyền <c>evaluation.unit.review</c>: Trưởng đơn vị đề xuất mức trên ý kiến
+    /// các Phó, không họp tập thể bỏ phiếu.</summary>
+    public bool IsUnitLeaderProposal() =>
+        Mode(WorkflowStep.B3A_COLLECTIVE) == StepMode.Internal
+        && string.Equals(PermissionFor(WorkflowStep.B3A_COLLECTIVE), WorkflowPermissions.UnitReview, StringComparison.Ordinal);
+
+    /// <summary>Tên bước theo diện quyết định (bước 3a đổi tên khi Trưởng đơn vị đề xuất).</summary>
+    public string StepDisplayName(WorkflowStep step) =>
+        step == WorkflowStep.B3A_COLLECTIVE && IsUnitLeaderProposal() ? UnitLeaderProposalName : WorkflowSteps.DisplayName(step);
+
+    /// <summary>Tên trạng thái theo diện quyết định.</summary>
+    public string StatusDisplayName(RecordStatus status) =>
+        status == RecordStatus.AwaitingCollective && IsUnitLeaderProposal() ? "Chờ Trưởng đơn vị đề xuất" : WorkflowSteps.StatusDisplayName(status);
+
+    public const string UnitLeaderProposalName = "Trưởng đơn vị đề xuất";
+
     /// <summary>Các bước khác chế độ hoặc quyền (không xét thời hạn); chỉ đổi diện quyết định được khi hồ sơ
     /// chưa qua bước bị ảnh hưởng.</summary>
     public IReadOnlyList<WorkflowStep> DifferingSteps(WorkflowProfile other)
@@ -275,15 +291,15 @@ public sealed class PeriodSettings
                         [WorkflowStep.B4_DECISION] = StepMode.External
                     }),
                 WorkflowProfile.Create(ProfileCellSecretaryStaff, "Bí thư/Phó bí thư Chi bộ là nhân viên",
-                    "Không họp bỏ phiếu: Trưởng phòng đề xuất mức (thay Giám đốc) trên ý kiến của Phó trưởng phòng, "
-                    + "Phòng TCCB-LĐ thẩm định, Đảng ủy cơ sở quyết định.",
+                    "Chi bộ xác nhận; Trưởng bộ phận/đơn vị đề xuất mức trên cơ sở ý kiến các Phó (không họp bỏ phiếu), "
+                    + "Phòng TCCB-LĐ thẩm định, Đảng ủy cơ sở quyết định; không có bước nhận xét của cấp trực tiếp sử dụng.",
                     modes: new Dictionary<WorkflowStep, StepMode>
                     {
-                        [WorkflowStep.B3A_COLLECTIVE] = StepMode.Off
+                        [WorkflowStep.B3C_DIRECTOR] = StepMode.Off
                     },
                     permissions: new Dictionary<WorkflowStep, string>
                     {
-                        [WorkflowStep.B3C_DIRECTOR] = WorkflowPermissions.UnitReview
+                        [WorkflowStep.B3A_COLLECTIVE] = WorkflowPermissions.UnitReview
                     }),
                 // Chủ tịch nhận xét (ngày 14) trước khi Ban TCĐU thẩm định (ngày 15), mà bước thẩm định luôn đứng trước
                 // bước nhận xét nên thẩm định được ghi nhận cùng quyết định của BTV.

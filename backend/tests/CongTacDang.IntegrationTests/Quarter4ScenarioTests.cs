@@ -70,7 +70,7 @@ public sealed class Quarter4ScenarioTests
 
         // Thời hạn theo kế hoạch Quý IV của Phòng TCCB-LĐ (ngày của tháng cuối quý).
         SetDeadlines(settings, "co-so", ("B2_SELF_SCORE", 9), ("B3A_COLLECTIVE", 10), ("B3B_APPRAISAL", 11), ("B3C_DIRECTOR", 14), ("B4_DECISION", 14));
-        SetDeadlines(settings, "bi-thu-nhan-vien", ("B2_SELF_SCORE", 9), ("B3A_COLLECTIVE", 10), ("B3B_APPRAISAL", 11), ("B3C_DIRECTOR", 14), ("B4_DECISION", 14));
+        SetDeadlines(settings, "bi-thu-nhan-vien", ("B2_SELF_SCORE", 9), ("B3A_COLLECTIVE", 10), ("B3B_APPRAISAL", 11), ("B4_DECISION", 14));
         SetDeadlines(settings, "cap-tren", ("B2_SELF_SCORE", 9), ("B3A_COLLECTIVE", 14), ("B3B_APPRAISAL", 15), ("B3C_DIRECTOR", 17), ("B4_DECISION", 18));
         SetDeadlines(settings, "pho-giam-doc", ("B2_SELF_SCORE", 9), ("B3A_COLLECTIVE", 14), ("B3C_DIRECTOR", 14), ("B4_DECISION", 18));
         PeriodGates.DisableIn(settings);
@@ -153,8 +153,8 @@ public sealed class Quarter4ScenarioTests
         Assert.Equal(HttpStatusCode.Forbidden,
             (await Post(w.CellVp, id[w.Tp.Id], "cell/confirm", new { comment = "Sai Chi bộ" }, w.Tccb)).StatusCode);
         await Step(w.Bt.Client, id[w.Tp.Id], "cell/confirm", new { comment = "Chi bộ Kỹ thuật xác nhận" }, "AwaitingCollective");
-        // Bí thư Chi bộ là nhân viên không họp bỏ phiếu: sang thẩm định.
-        await Step(w.CellKtDeputy, id[w.Bt.Id], "cell/confirm", new { comment = "Phó Bí thư xác nhận" }, "AwaitingAppraisal");
+        // Bí thư Chi bộ là nhân viên: sau Chi bộ xác nhận là bước Trưởng phòng đề xuất (không họp bỏ phiếu).
+        await Step(w.CellKtDeputy, id[w.Bt.Id], "cell/confirm", new { comment = "Phó Bí thư xác nhận" }, "AwaitingCollective");
         foreach (var p in new[] { w.Ptp, w.Ct, w.Gd, w.Ksv, w.Pgd })
             await Step(w.CellVp, id[p.Id], "cell/confirm", new { comment = "Chi bộ Văn phòng xác nhận" }, "AwaitingCollective");
 
@@ -175,6 +175,14 @@ public sealed class Quarter4ScenarioTests
             new { proposedGrade = "HoanThanhXuatSac", meetingId = meetingKt, votes = Votes(4, 1) }, "AwaitingAppraisal");
         await Step(w.SecTc, id[w.Ptp.Id], "collective",
             new { proposedGrade = "HoanThanhTot", comment = "Theo kết quả biểu quyết", meetingId = meetingTc, votes = Votes(0, 4) }, "AwaitingAppraisal");
+        // Bí thư Chi bộ là nhân viên: Trưởng phòng đề xuất trên ý kiến các Phó (thư ký hội nghị, Giám đốc không làm thay), không gắn biên bản.
+        await AssertActions(w.SecKt, id[w.Bt.Id]);
+        await AssertActions(w.Gd.Client, id[w.Bt.Id]);
+        await AssertActions(w.Tp.Client, id[w.Bt.Id], "RecordCollectiveProposal");
+        Assert.Equal(HttpStatusCode.BadRequest, (await Post(w.Tp.Client, id[w.Bt.Id], "collective",
+            new { proposedGrade = "HoanThanhTot", meetingId = meetingKt }, w.Tccb)).StatusCode);
+        await Step(w.Tp.Client, id[w.Bt.Id], "collective",
+            new { proposedGrade = "HoanThanhTot", comment = "Trưởng phòng đề xuất trên ý kiến các Phó trưởng phòng" }, "AwaitingAppraisal");
         // Diện cấp trên: B3b do Ban TCĐU thực hiện → chờ ghi nhận thẩm định; Phó Giám đốc không có thẩm định → chờ Chủ tịch.
         foreach (var p in new[] { w.Ct, w.Gd, w.Ksv })
             await Step(w.SecBgd, id[p.Id], "collective",
@@ -187,21 +195,26 @@ public sealed class Quarter4ScenarioTests
         var upper = await Post(w.Tccb, id[w.Gd.Id], "appraisal",
             new { generalScore = 30.0, tasksScore = 60.0, comment = "x", proposedGrade = "HoanThanhTot", explanation = "x" }, w.Tccb);
         Assert.Equal(HttpStatusCode.Conflict, upper.StatusCode);
-        foreach (var (p, grade) in new[] { (w.Tp, "HoanThanhXuatSac"), (w.Bt, "HoanThanhTot"), (w.Ptp, "HoanThanhTot") })
+        foreach (var (p, grade) in new[] { (w.Tp, "HoanThanhXuatSac"), (w.Ptp, "HoanThanhTot") })
             await Step(w.Tccb, id[p.Id], "appraisal", new
             {
                 generalScore = 30.0, tasksScore = 60.0, comment = "Đủ minh chứng", proposedGrade = grade,
                 explanation = "Căn cứ thẩm định theo minh chứng nộp kèm phiếu"
             }, "AwaitingDirectorReview");
+        // Bí thư Chi bộ là nhân viên: không có bước nhận xét sau thẩm định.
+        await Step(w.Tccb, id[w.Bt.Id], "appraisal", new
+        {
+            generalScore = 30.0, tasksScore = 60.0, comment = "Đủ minh chứng", proposedGrade = "HoanThanhTot",
+            explanation = "Căn cứ thẩm định theo minh chứng nộp kèm phiếu"
+        }, "AwaitingDecision");
 
         // ============ 7. Bước 3c: cấp trực tiếp ============
-        // Trưởng phòng, Phó trưởng phòng → Giám đốc; Bí thư Chi bộ là nhân viên → Trưởng phòng; Phó Giám đốc → Chủ tịch.
+        // Trưởng phòng, Phó trưởng phòng → Giám đốc; Phó Giám đốc → Chủ tịch.
         await AssertActions(w.Gd.Client, id[w.Bt.Id]);
         await AssertActions(w.Gd.Client, id[w.Pgd.Id]);
         await AssertActions(w.Ct.Client, id[w.Tp.Id]);
         await AssertActions(w.Tp.Client, id[w.Ptp.Id]);
         await AssertActions(w.Gd.Client, id[w.Tp.Id], "DirectorReview");
-        await AssertActions(w.Tp.Client, id[w.Bt.Id], "DirectorReview");
         await AssertActions(w.Ct.Client, id[w.Pgd.Id], "DirectorReview");
         var gdQueue = await Data(w.Gd.Client, $"/api/evaluations/work-queue?periodId={periodId}");
         var gdB3c = gdQueue.GetProperty("groups").EnumerateArray().Single(g => g.GetProperty("step").GetString() == "B3C_DIRECTOR");
@@ -209,7 +222,6 @@ public sealed class Quarter4ScenarioTests
 
         await Step(w.Gd.Client, id[w.Tp.Id], "director-review", new { comment = "Giám đốc nhận xét: hoàn thành xuất sắc", proposedGrade = "HoanThanhXuatSac" }, "AwaitingDecision");
         await Step(w.Gd.Client, id[w.Ptp.Id], "director-review", new { comment = "Giám đốc nhận xét: hoàn thành tốt", proposedGrade = "HoanThanhTot" }, "AwaitingDecision");
-        await Step(w.Tp.Client, id[w.Bt.Id], "director-review", new { comment = "Trưởng phòng đề xuất hoàn thành tốt", proposedGrade = "HoanThanhTot" }, "AwaitingDecision");
         await Step(w.Ct.Client, id[w.Pgd.Id], "director-review", new { comment = "Chủ tịch nhận xét, đề xuất BTV hoàn thành tốt", proposedGrade = "HoanThanhTot" }, "AwaitingDecision");
 
         // Diện cấp trên: Văn phòng ghi nhận thẩm định (Ban TCĐU), nhận xét (HĐTV).
@@ -331,6 +343,10 @@ public sealed class Quarter4ScenarioTests
             Assert.Contains(name, m14.Sheets[0]);
         foreach (var name in new[] { w.Ct.Name, w.Gd.Name, w.Ksv.Name, w.Pgd.Name })
             Assert.Contains(name, m14.Sheets[1]);
+        // Bí thư Chi bộ là nhân viên: đề xuất của Trưởng phòng ở cột 8 (trước thẩm định) ghi rõ chủ thể; Mẫu 10 không in là ý kiến người trực tiếp sử dụng.
+        Assert.Contains("(Trưởng đơn vị đề xuất)", m14.Sheets[0]);
+        Assert.DoesNotContain("(Trưởng đơn vị đề xuất)", m14.Sheets[1]);
+        Assert.DoesNotContain("Trưởng phòng đề xuất trên ý kiến các Phó trưởng phòng", printed.Single(x => x.Name == $"10 {w.Bt.Name}").Text);
         Assert.DoesNotContain(w.Tp.Name, m14.Sheets[1]);
         Assert.DoesNotContain(w.Gd.Name, m14.Sheets[0]);
         using (var book15a = new XLWorkbook(new MemoryStream(m15a.Bytes)))

@@ -47,7 +47,7 @@ Hạn của từng bước hệ thống tự điền khi tạo kỳ; xem và s�
 | Cấp TTSD nhận xét | ngày 14 | ngày 14 | ngày 17 |
 | Quyết định | ngày 14 | ngày 18 | ngày 18 |
 
-Diện Bí thư/Phó Bí thư Chi bộ là nhân viên: như diện Đảng ủy cơ sở nhưng không có bước tập thể lãnh đạo; Trưởng phòng nhận xét thay Giám đốc.
+Diện Bí thư/Phó Bí thư Chi bộ là nhân viên: như diện Đảng ủy cơ sở, nhưng ở bước tập thể lãnh đạo đề xuất (ngày 10) Trưởng bộ phận/đơn vị đề xuất mức trên cơ sở ý kiến các Phó, không họp bỏ phiếu; không có bước cấp TTSD nhận xét sau thẩm định.
 
 ### B1. Lập kỳ — trước hạn đăng ký ít nhất 1 tuần
 
@@ -83,7 +83,7 @@ Diện Bí thư/Phó Bí thư Chi bộ là nhân viên: như diện Đảng ủy
 | 12 | Cán bộ | Hồ sơ → **Nộp phiếu tự chấm** | Chấm tiêu chí chung, % A-B-C-D từng sản phẩm, Mẫu 09C, 9D; đính kèm minh chứng → **Nộp phiếu**. Làm dở thì **Lưu nháp**. (HD 3.4) |
 | 13 | Chi bộ | **Việc cần xử lý → Xác nhận** | **Xác nhận**, hoặc **Trả lại phiếu tự chấm**. (HD 4.1) |
 | 14 | Thư ký | **Đánh giá tập thể → Biên bản hội nghị** | **Lập biên bản** Mẫu 12/13 của hội nghị tập thể lãnh đạo → **Lưu**. Tải **Mẫu 11 phiếu trắng** để in phiếu kín. (HD 6.2) |
-| 15 | Thư ký | **Việc cần xử lý → Đề xuất** | Chọn mức tập thể, gắn biên bản, nhập số phiếu → **Ghi nhận đề xuất**. (HD 4.2) |
+| 15 | Thư ký | **Việc cần xử lý → Đề xuất** | Chọn mức tập thể, gắn biên bản, nhập số phiếu → **Ghi nhận đề xuất**. (HD 4.2) Hồ sơ diện Bí thư/Phó Bí thư Chi bộ là nhân viên do Trưởng đơn vị ghi đề xuất (mức, ý kiến của các Phó; không gắn biên bản). |
 | 16 | TCCB | **Việc cần xử lý → Thẩm định** | Chấm Mức 1/2/3 từng nhiệm vụ; chọn **Theo nhóm** (nhập 2 điểm) hoặc **Từng tiêu chí**; chọn mức đề xuất; chênh lệch lớn thì nhập **Giải trình** → **Ghi nhận thẩm định**. (HD 4.3) |
 | 16a | TCCB → CQCM | Hồ sơ → **Xác nhận số liệu** | Chỉ khi cần kiểm tra số liệu: **Yêu cầu xác nhận**; CQCM **Lập phiếu** → **Gửi xác nhận** → người khác **Xác nhận**. (HD 5.2) |
 | 17 | Cấp TTSD (hoặc LĐĐV tùy diện) | **Việc cần xử lý → Nhận xét** | Chọn mức, nhập nhận xét → **Ghi nhận nhận xét**. (HD 4.4) |

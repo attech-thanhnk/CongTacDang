@@ -232,6 +232,7 @@ public partial class ReportService : IReportService
         var header = await ReportHeaderAsync(scopeCell);
         var org = await _orgSettings.GetAsync();
         var held = await HeldPositionsAsync(records.Select(r => r.MemberId), at);
+        var settings = SettingsOrNull(period);
 
         using var workbook = new XLWorkbook();
         foreach (var (authority, sheetName, decider) in new[]
@@ -278,7 +279,7 @@ public partial class ReportService : IReportService
                     r.SelfScoredAt.HasValue ? r.GeneralCriteriaScore : null,
                     r.SelfScoredAt.HasValue ? r.TasksScore : null,
                     GradeOrBlank(r.SelfProposedGrade),
-                    GradeOrBlank(r.CollectiveProposedGrade),
+                    CollectiveGradeText(r, settings),
                     GradeOrBlank(r.ReviewedGrade()),
                     GradeOrBlank(r.DirectorProposedGrade),
                     r.DecisionRecordedAt != null ? FormText.Grade(r.FinalGrade) : GradeOrBlank(r.FinalGrade),
@@ -475,6 +476,30 @@ public partial class ReportService : IReportService
 
     private static string? GradeOrBlank(EvaluationGrade grade) =>
         grade == EvaluationGrade.ChuaXepLoai ? null : FormText.Grade(grade);
+
+    /// <summary>Cột 8 Mẫu 14: diện Trưởng đơn vị đề xuất (không họp tập thể) ghi rõ chủ thể đề xuất.</summary>
+    private static string? CollectiveGradeText(EvaluationRecord record, PeriodSettings? settings)
+    {
+        var grade = GradeOrBlank(record.CollectiveProposedGrade);
+        return grade != null && settings != null && EvaluationMapping.ProfileOf(settings, record).IsUnitLeaderProposal()
+            ? $"{grade} ({WorkflowProfile.UnitLeaderProposalName})"
+            : grade;
+    }
+
+    /// <summary>Không có kỳ hoặc cấu hình lỗi định dạng → null (biểu mẫu vẫn in được).</summary>
+    private static PeriodSettings? SettingsOrNull(EvaluationPeriod? period)
+    {
+        if (period == null)
+            return null;
+        try
+        {
+            return period.GetSettings();
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+    }
 
     #endregion
 

@@ -172,6 +172,14 @@ public sealed class GradeProposalAndVoteRulesTests
     #endregion
 
     [Fact]
+    public void Label_CollectiveStep_NamesUnitLeader_WhenProfileUsesUnitLeaderProposal()
+    {
+        Assert.Equal("Mức tập thể lãnh đạo đề xuất", GradeProposalRules.Label(WorkflowStep.B3A_COLLECTIVE));
+        Assert.Equal("Mức Trưởng đơn vị đề xuất", GradeProposalRules.Label(WorkflowStep.B3A_COLLECTIVE, unitLeaderProposal: true));
+        Assert.Equal("Mức thẩm định đề xuất", GradeProposalRules.Label(WorkflowStep.B3B_APPRAISAL, unitLeaderProposal: true));
+    }
+
+    [Fact]
     public void ImprovementPlan_Preparer_IsDetected_LegacyPlanWithoutPreparer_NotBlocked()
     {
         var userId = Guid.NewGuid();

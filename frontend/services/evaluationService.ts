@@ -313,6 +313,8 @@ export interface EvaluationRecordDto {
   cellConfirmedByName?: string | null;
   cellConfirmedAt?: string | null;
 
+  /** Bước 3a do Trưởng đơn vị đề xuất (không họp, không biên bản, không kiểm phiếu) theo diện quyết định của hồ sơ. */
+  unitLeaderProposal: boolean;
   collectiveProposedGrade: string;
   collectiveComment?: string | null;
   collectiveMeetingId?: string | null;
@@ -1038,6 +1040,11 @@ export const STEP_NAMES: Record<WorkflowStepCode, string> = {
   B4_DECISION: "Quyết định mức xếp loại",
   B5_PUBLISH: "Công bố và lưu trữ kết quả",
 };
+
+/** Tên bước theo hồ sơ: bước 3a của diện Trưởng đơn vị đề xuất mang tên riêng. */
+export function recordStepName(step: WorkflowStepCode, record: Pick<EvaluationRecordDto, "unitLeaderProposal">): string {
+  return step === "B3A_COLLECTIVE" && record.unitLeaderProposal ? "Trưởng đơn vị đề xuất" : STEP_NAMES[step];
+}
 
 /** Bước bắt buộc (không đặt "Không áp dụng") — chỉ để khóa ô chọn; máy chủ kiểm tra lại. */
 export const MANDATORY_STEPS: WorkflowStepCode[] = ["B1_REGISTER", "B2_SELF_SCORE", "B4_DECISION", "B5_PUBLISH"];

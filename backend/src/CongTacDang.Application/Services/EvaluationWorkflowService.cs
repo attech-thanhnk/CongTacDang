@@ -532,8 +532,15 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     public Task<EvaluationRecordDto> RecordCollectiveProposalAsync(Guid recordId, CollectiveProposalRequestDto request, CancellationToken ct = default) =>
         ExecuteAsync(recordId, request, WorkflowActions.RecordCollectiveProposal, null, async ctx =>
         {
-            var grade = RequireGrade(request.ProposedGrade, "Hãy chọn mức xếp loại do tập thể lãnh đạo đề xuất.");
-            var summary = await AttachVotesAsync(ctx.Record, request.MeetingId, request.Votes, WorkflowStep.B3A_COLLECTIVE, ct);
+            var unitLeader = ctx.Profile.IsUnitLeaderProposal();
+            var grade = RequireGrade(request.ProposedGrade, unitLeader
+                ? "Hãy chọn mức xếp loại do Trưởng đơn vị đề xuất."
+                : "Hãy chọn mức xếp loại do tập thể lãnh đạo đề xuất.");
+            // Trưởng đơn vị đề xuất trên ý kiến các Phó, không họp bỏ phiếu nên không có biên bản, kiểm phiếu.
+            if (unitLeader && (request.MeetingId.HasValue || request.Votes != null))
+                throw new ValidationException("Ghi nhận đề xuất của Trưởng đơn vị không thành công: diện quyết định của hồ sơ "
+                    + "không họp bỏ phiếu, hãy bỏ chọn biên bản hội nghị và kết quả kiểm phiếu.");
+            var summary = unitLeader ? null : await AttachVotesAsync(ctx.Record, request.MeetingId, request.Votes, WorkflowStep.B3A_COLLECTIVE, ct);
             // Biên bản có kết quả kiểm phiếu của hồ sơ: mức ghi nhận phải là mức được biểu quyết quá bán.
             if (summary is { } tally && CollectiveVoteRules.Validate(grade, tally.Tally, tally.PresentCount) is { } voteError)
                 throw new ValidationException(voteError);
@@ -541,15 +548,15 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             var comment = Trim(request.Comment, MaxCommentLength, "Nhận xét");
             if (ctx.Criteria is { } criteria && GradeProposalRules.HasScore(ctx.Record))
                 GradeProposalRules.EnsureExplained(criteria.Content, WorkflowStep.B3A_COLLECTIVE, grade, ctx.Record.TotalSelfScore,
-                    GradeProposalRules.ExceedRatio(ctx.Record, criteria), comment, "\"Nhận xét\"");
+                    GradeProposalRules.ExceedRatio(ctx.Record, criteria), comment, "\"Nhận xét\"", unitLeader);
 
             ctx.Record.CollectiveProposedGrade = grade;
             ctx.Record.CollectiveComment = comment;
-            ctx.Record.CollectiveMeetingId = request.MeetingId;
+            ctx.Record.CollectiveMeetingId = unitLeader ? null : request.MeetingId;
             ctx.Record.CollectiveRecordedById = ctx.ActorId;
             ctx.Record.CollectiveRecordedByName = ctx.ActorName;
             ctx.Record.CollectiveRecordedAt = ctx.Now;
-            return "Ghi nhận đề xuất của tập thể lãnh đạo.";
+            return unitLeader ? "Trưởng đơn vị đề xuất mức xếp loại." : "Ghi nhận đề xuất của tập thể lãnh đạo.";
         }, ct);
 
     /// <inheritdoc />
@@ -1100,7 +1107,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         var today = EvaluationMapping.Today(now);
         var userId = _currentUser.UserId;
 
-        var items = new List<(WorkflowStep Step, WorkQueueItemDto Item)>();
+        var items = new List<(WorkflowStep Step, string StepName, WorkQueueItemDto Item)>();
         foreach (var record in records)
         {
             var step = WorkflowSteps.StepOf(record.Status);
@@ -1118,7 +1125,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 continue;
 
             var deadline = profile.Deadline(step.Value);
-            items.Add((step.Value, new WorkQueueItemDto
+            items.Add((step.Value, profile.StepDisplayName(step.Value), new WorkQueueItemDto
             {
                 RecordId = record.Id,
                 Version = record.Version,
@@ -1131,7 +1138,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 ApprovalAuthority = record.ApprovalAuthority.ToString(),
                 WorkflowProfileName = profile.Name,
                 Status = record.Status.ToString(),
-                StatusDisplayName = WorkflowSteps.StatusDisplayName(record.Status),
+                StatusDisplayName = profile.StatusDisplayName(record.Status),
                 Mode = profile.Mode(step.Value).ToString(),
                 IsOwnRecord = userId.HasValue && record.MemberId == userId.Value,
                 ReturnReason = record.ReturnReason,
@@ -1146,7 +1153,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             .Select(g => new WorkQueueGroupDto
             {
                 Step = WorkflowSteps.Code(g.Key),
-                StepName = WorkflowSteps.DisplayName(g.Key),
+                // Nhóm gộp diện quyết định khác nhau ở cùng bước thì dùng tên chung của bước.
+                StepName = g.Select(x => x.StepName).Distinct().Count() == 1 ? g.First().StepName : WorkflowSteps.DisplayName(g.Key),
                 Count = g.Count(),
                 Items = g.Select(x => x.Item).OrderBy(x => x.PeriodName).ThenBy(x => x.FullName).ToList()
             })
@@ -1256,7 +1264,9 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 Warnings = gated && gates.Any(g => !g.Blocks) ? gates.Where(g => !g.Blocks).Select(g => g.Reason).ToList() : null,
                 Action = action.Code,
                 Step = WorkflowSteps.Code(action.Step),
-                Label = action.Label,
+                Label = action.Code == WorkflowActions.RecordCollectiveProposal && profile.IsUnitLeaderProposal()
+                    ? "Ghi nhận đề xuất của Trưởng đơn vị"
+                    : action.Label,
                 RequiresReason = action.Kind is WorkflowAction.Return or WorkflowAction.Reopen,
                 ReasonOptional = false,
                 Overdue = overdue,
@@ -1371,7 +1381,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             && profile.Deadline(action.Step) is { } deadline && EvaluationMapping.Today(now) > deadline)
         {
             throw new ConflictException(
-                $"Đã quá thời hạn của bước \"{WorkflowSteps.DisplayName(action.Step)}\" ({deadline.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)}). "
+                $"Đã quá thời hạn của bước \"{profile.StepDisplayName(action.Step)}\" ({deadline.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)}). "
                 + "Liên hệ người quản lý kỳ để gia hạn.");
         }
 

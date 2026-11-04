@@ -74,9 +74,9 @@ Một hồ sơ đi lần lượt qua các bước dưới đây. Tùy **diện q
 | 2 | Duyệt danh mục sản phẩm | Lãnh đạo có quyền duyệt (thường là Lãnh đạo đơn vị) |
 | 3 | Tự chấm điểm, đề xuất mức | Chính cán bộ |
 | 4 | Chi bộ xác nhận phiếu tự chấm | Chi bộ |
-| 5 | Đề xuất của tập thể lãnh đạo | Thư ký hội nghị ghi nhận kết quả hội nghị (diện Bí thư/Phó bí thư Chi bộ là nhân viên không có bước này) |
+| 5 | Đề xuất của tập thể lãnh đạo | Thư ký hội nghị ghi nhận kết quả hội nghị (diện Bí thư/Phó bí thư Chi bộ là nhân viên: Trưởng đơn vị đề xuất) |
 | 6 | Thẩm định | Cơ quan thẩm định, hoặc cấp trên |
-| 7 | Nhận xét của cấp trực tiếp sử dụng | Giám đốc (hoặc Lãnh đạo đơn vị, tùy diện quyết định), hoặc cấp trên |
+| 7 | Nhận xét của cấp trực tiếp sử dụng | Giám đốc (Chủ tịch với Phó Giám đốc), hoặc cấp trên; diện Bí thư/Phó bí thư Chi bộ là nhân viên không có bước này |
 | 8 | Quyết định mức xếp loại | Văn phòng Đảng ủy ghi nhận quyết định, hoặc kết quả của cấp trên |
 | 9 | Công bố và lưu trữ kết quả | Văn phòng Đảng ủy |
 
@@ -282,7 +282,7 @@ Hệ thống không tổ chức bỏ phiếu điện tử. Thư ký ghi lại **
 3. Ô **Biên bản hội nghị (Mẫu 12/13)** chọn biên bản đã lập (hoặc "— Không gắn biên bản —"). Khi đã chọn biên bản, tích **Ghi kết quả kiểm phiếu của hồ sơ này** rồi nhập số phiếu Xuất sắc, Tốt, Hoàn thành, Không HT, Chưa đánh giá, Không hợp lệ. Tổng số phiếu không vượt số người có mặt; mức ghi nhận phải là mức đạt quá nửa số có mặt.
 4. Bấm **Ghi nhận đề xuất**.
 
-Diện *Bí thư/Phó bí thư Chi bộ là nhân viên* không có bước này (không họp bỏ phiếu): hồ sơ đi thẳng sang thẩm định.
+Diện *Bí thư/Phó bí thư Chi bộ là nhân viên* không họp bỏ phiếu: bước này mang tên **Trưởng đơn vị đề xuất**, do Lãnh đạo đơn vị làm. Chọn **Mức Trưởng đơn vị đề xuất**, nhập **Nhận xét, ý kiến của các Phó**, bấm **Ghi nhận đề xuất** (không có ô biên bản, kiểm phiếu). Sau đó hồ sơ sang thẩm định.
 
 ### 4.3 Thẩm định
 
@@ -299,7 +299,7 @@ Diện *Bí thư/Phó bí thư Chi bộ là nhân viên* không có bước này
 
 ### 4.4 Nhận xét của cấp trực tiếp sử dụng
 
-Chọn **Mức đề xuất** (điền sẵn theo mức thẩm định), nhập **Nhận xét**, bấm **Ghi nhận nhận xét**. Với diện quyết định mà Lãnh đạo đơn vị đề xuất thay Giám đốc (Trưởng phòng đề xuất mức trên ý kiến của Phó trưởng phòng), Lãnh đạo đơn vị làm bước này theo cách tương tự.
+Chọn **Mức đề xuất** (điền sẵn theo mức thẩm định), nhập **Nhận xét**, bấm **Ghi nhận nhận xét**. Diện Bí thư/Phó bí thư Chi bộ là nhân viên không có bước này (Trưởng đơn vị đã đề xuất trước thẩm định, xem [4.2](#42-đề-xuất-của-tập-thể-lãnh-đạo-thư-ký-ghi-nhận)).
 
 ### 4.4a Ý kiến trước phê duyệt
 

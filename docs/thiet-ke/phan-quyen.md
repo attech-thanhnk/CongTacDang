@@ -51,7 +51,7 @@ Trường bổ sung (task 07, sửa ở task 14):
 | `evaluation.collective.record` | Ghi nhận đề xuất của tập thể lãnh đạo (B3a) | có | Ghi kết quả kiểm phiếu, không ghi phiếu từng người |
 | `evaluation.appraise` | Thẩm định (B3b) | có | |
 | `evaluation.director.review` | Nhận xét, đề xuất của cấp trực tiếp sử dụng (B3c) | có | Quyền mặc định của B3c |
-| `evaluation.unit.review` | Lãnh đạo đơn vị đề xuất | có | Trưởng phòng đề xuất mức thay cấp trực tiếp sử dụng — đặt làm quyền thực hiện B3c trong diện quyết định được cấu hình (PL III ví dụ 3) |
+| `evaluation.unit.review` | Lãnh đạo đơn vị đề xuất | có | Trưởng bộ phận/đơn vị đề xuất mức trên cơ sở ý kiến các Phó, không họp bỏ phiếu — đặt làm quyền thực hiện B3a trong diện quyết định được cấu hình (diện `bi-thu-nhan-vien`, PL III ví dụ 3); B3a có quyền này thì không nhận biên bản, kiểm phiếu |
 | `evaluation.decide` | Ghi nhận quyết định của Đảng ủy cơ sở (B4) | có | Quyền mặc định của B4 khi diện quyết định đặt B4 "Nội bộ" |
 | `evaluation.external.record` | Ghi nhận kết quả của cấp trên | có | Ghi nhận kết quả mọi bước diện quyết định đặt "Cấp trên thực hiện" (thẩm định, nhận xét, quyết định…): cơ quan, số/ngày văn bản, nhận xét, mức, điểm, văn bản đính kèm; sửa/thay văn bản đính kèm đó |
 | `evaluation.publish` | Công bố và lưu trữ kết quả (B5) | có | |

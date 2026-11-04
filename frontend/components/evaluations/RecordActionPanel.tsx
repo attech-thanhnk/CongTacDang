@@ -528,9 +528,11 @@ function recordGradeWarnings(record: EvaluationRecordDto, grade: string): string
   return gradeConditionWarnings(record.tasks.filter((t) => !t.changeStatus), grade, record.excellentMinExceedRatio);
 }
 
-/** Ghi nhận đề xuất tập thể (B3a) hoặc quyết định (B4); kết quả kiểm phiếu (tùy chọn) gắn với biên bản. */
+/** Ghi nhận đề xuất tập thể hoặc Trưởng đơn vị (B3a) hoặc quyết định (B4); kết quả kiểm phiếu (tùy chọn) gắn với biên bản. */
 function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubmit }: { record: EvaluationRecordDto; criteria: CriteriaSnapshot | null; busy: boolean; stage: "B3A_COLLECTIVE" | "B4_DECISION"; submitText: string; extra?: React.ReactNode; onSubmit: (p: Record<string, unknown>) => void }) {
   const isDecision = stage === "B4_DECISION";
+  // Trưởng đơn vị đề xuất trên ý kiến các Phó, không họp nên không chọn biên bản, kiểm phiếu.
+  const unitLeader = !isDecision && record.unitLeaderProposal;
   const [grade, setGrade] = useState(
     isDecision
       ? initialGrade(latestProposedGrade(record))
@@ -555,11 +557,12 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
   const [votes, setVotes] = useState<VoteTallyDto>(EMPTY_VOTES);
 
   useEffect(() => {
+    if (unitLeader) return;
     evaluationService
       .getMeetings(record.periodId)
       .then((list) => setMeetings(list.filter((m) => !m.stage || m.stage === stage)))
       .catch(() => setMeetings([]));
-  }, [record.periodId, stage]);
+  }, [record.periodId, stage, unitLeader]);
 
   const selectedMeeting = meetings.find((m) => m.id === meetingId);
   const totalVotes = votes.votesExcellent + votes.votesGood + votes.votesSatisfactory + votes.votesUnsatisfactory + votes.votesNotRated + votes.invalidVotes;
@@ -591,7 +594,9 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
       document.getElementById(`${stage}-reason`)?.focus();
       return;
     }
-    const payload: Record<string, unknown> = { meetingId: meetingId || null, votes: withVotes && meetingId ? votes : null };
+    const payload: Record<string, unknown> = unitLeader
+      ? { meetingId: null, votes: null }
+      : { meetingId: meetingId || null, votes: withVotes && meetingId ? votes : null };
     if (isDecision) {
       Object.assign(payload, {
         finalGrade: grade,
@@ -613,7 +618,7 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
 
   return (
     <form onSubmit={submit} className="row g-2">
-      <div className="col-md-6"><label className="form-label small" htmlFor={`${stage}-grade`}>{isDecision ? "Mức xếp loại được quyết định" : "Mức tập thể đề xuất"}</label><GradeSelect id={`${stage}-grade`} value={grade} onChange={setGrade} /></div>
+      <div className="col-md-6"><label className="form-label small" htmlFor={`${stage}-grade`}>{isDecision ? "Mức xếp loại được quyết định" : unitLeader ? "Mức Trưởng đơn vị đề xuất" : "Mức tập thể đề xuất"}</label><GradeSelect id={`${stage}-grade`} value={grade} onChange={setGrade} /></div>
       <GradeWarningList warnings={[...(isDecision ? recordGradeWarnings(record, grade) : []), ...(check ? [check.message] : [])]} />
       {isDecision ? (
         <>
@@ -628,9 +633,10 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
           )}
         </>
       ) : (
-        <ReasonField id={`${stage}-reason`} label="Nhận xét của tập thể" value={comment} required={!!check?.required} error={reasonError}
+        <ReasonField id={`${stage}-reason`} label={unitLeader ? "Nhận xét, ý kiến của các Phó" : "Nhận xét của tập thể"} value={comment} required={!!check?.required} error={reasonError}
           onChange={(v) => { setComment(v); setReasonError(null); }} />
       )}
+      {!unitLeader && (
       <div className="col-md-8">
         <label className="form-label small">Biên bản hội nghị (Mẫu 12/13)</label>
         <select className="form-select form-select-sm" value={meetingId} onChange={(e) => setMeetingId(e.target.value)}>
@@ -642,6 +648,7 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
           ))}
         </select>
       </div>
+      )}
       {meetingId && (
         <div className="col-12">
           <div className="form-check">

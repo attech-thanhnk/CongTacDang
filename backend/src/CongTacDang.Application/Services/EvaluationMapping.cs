@@ -96,7 +96,9 @@ public static class EvaluationMapping
             WorkflowStep.B2_CELL_CONFIRM => cell == null
                 ? "Chi bộ"
                 : cell.StartsWith("Chi bộ", StringComparison.OrdinalIgnoreCase) ? cell : $"Chi bộ {cell}",
-            WorkflowStep.B3A_COLLECTIVE => department != null ? $"Tập thể lãnh đạo {department}" : "Tập thể lãnh đạo đơn vị",
+            WorkflowStep.B3A_COLLECTIVE => profile.IsUnitLeaderProposal()
+                ? unitLeaders
+                : department != null ? $"Tập thể lãnh đạo {department}" : "Tập thể lãnh đạo đơn vị",
             WorkflowStep.B3B_APPRAISAL => "Cơ quan thẩm định",
             WorkflowStep.B3C_DIRECTOR => string.Equals(profile.PermissionFor(step), WorkflowPermissions.UnitReview, StringComparison.Ordinal)
                 ? unitLeaders
@@ -161,7 +163,7 @@ public static class EvaluationMapping
             result.Add(new RecordStepProgressDto
             {
                 Step = WorkflowSteps.Code(step),
-                Name = WorkflowSteps.DisplayName(step),
+                Name = profile.StepDisplayName(step),
                 Enabled = enabled.Contains(step),
                 Mode = profile.Mode(step).ToString(),
                 State = state,
@@ -184,7 +186,7 @@ public static class EvaluationMapping
         criteria ??= SafeCriteria(r.Period);
         var currentStep = WorkflowSteps.StepOf(r.Status);
         var profile = ProfileOf(settings, r);
-        var deviations = GradeProposalRules.Deviations(r, criteria);
+        var deviations = GradeProposalRules.Deviations(r, criteria, profile.IsUnitLeaderProposal());
         var effectiveStep = GradeProposalRules.EffectiveStep(r);
 
         return new EvaluationRecordDto
@@ -212,7 +214,7 @@ public static class EvaluationMapping
             WorkflowProfileName = profile.Name,
 
             Status = r.Status.ToString(),
-            StatusDisplayName = WorkflowSteps.StatusDisplayName(r.Status),
+            StatusDisplayName = profile.StatusDisplayName(r.Status),
             CurrentStep = currentStep.HasValue ? WorkflowSteps.Code(currentStep.Value) : null,
             ReturnReason = r.ReturnReason,
             UnlockedUntil = r.UnlockedUntil,
@@ -243,6 +245,7 @@ public static class EvaluationMapping
             CellConfirmedByName = r.CellConfirmedByName,
             CellConfirmedAt = r.CellConfirmedAt,
 
+            UnitLeaderProposal = profile.IsUnitLeaderProposal(),
             CollectiveProposedGrade = GradeCode(r.CollectiveProposedGrade),
             CollectiveComment = r.CollectiveComment,
             CollectiveMeetingId = r.CollectiveMeetingId,
@@ -377,7 +380,8 @@ public static class EvaluationMapping
         RecordedAt = x.RecordedAt
     };
 
-    public static EvaluationRecordHistoryDto ToHistoryDto(EvaluationRecordHistory x) => new()
+    /// <param name="profile">Diện quyết định của hồ sơ để gọi tên bước đúng diện; null = tên chung.</param>
+    public static EvaluationRecordHistoryDto ToHistoryDto(EvaluationRecordHistory x, WorkflowProfile? profile = null) => new()
     {
         Id = x.Id,
         RecordId = x.RecordId,
@@ -386,7 +390,7 @@ public static class EvaluationMapping
         ToStatus = x.ToStatus.ToString(),
         ToStatusName = SafeStatusName(x.ToStatus),
         Step = x.Step.HasValue ? WorkflowSteps.Code(x.Step.Value) : null,
-        StepName = x.Step.HasValue ? WorkflowSteps.DisplayName(x.Step.Value) : null,
+        StepName = x.Step.HasValue ? profile?.StepDisplayName(x.Step.Value) ?? WorkflowSteps.DisplayName(x.Step.Value) : null,
         Action = x.Action.ToString(),
         ActionName = WorkflowSteps.ActionDisplayName(x.Action),
         Reason = x.Reason,

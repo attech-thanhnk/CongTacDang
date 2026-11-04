@@ -37,6 +37,7 @@ import {
   WorkflowActionCode,
   WorkflowStepCode,
   STEP_NAMES,
+  recordStepName,
   TASK_KIND_LABELS,
   TASK_ROLE_LABELS,
   criteriaAppliesForm,
@@ -136,7 +137,9 @@ export default function EvaluationRecordPage() {
         setBusy(false);
       }
     };
-    const confirmation = ACTION_CONFIRMATIONS[action];
+    const confirmation = action === "RecordCollectiveProposal" && record?.unitLeaderProposal
+      ? "Ghi nhận đề xuất của Trưởng đơn vị?"
+      : ACTION_CONFIRMATIONS[action];
     if (confirmation) {
       const danger = DANGER_ACTIONS.has(action);
       confirm({ title: "Xác nhận thao tác", message: confirmation, confirmText: danger ? "Thu hồi" : "Đồng ý", isDanger: danger, onConfirm: run });
@@ -272,6 +275,7 @@ export default function EvaluationRecordPage() {
         description={reasonAction ? REASON_TEXT[reasonAction.action]?.description ?? "Hồ sơ sẽ quay về chủ hồ sơ để sửa." : undefined}
         confirmText={reasonAction ? REASON_TEXT[reasonAction.action]?.confirm ?? "Trả lại" : "Trả lại"}
         targetSteps={reasonAction?.targetSteps}
+        stepName={record ? (step) => recordStepName(step, record) : undefined}
         unlock={reasonAction}
         busy={busy}
         onCancel={() => setReasonAction(null)}
@@ -634,11 +638,11 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
       )}
 
       {enabled("B3A_COLLECTIVE") && visible(["B3A_COLLECTIVE"], !!record.collectiveRecordedAt) && (
-        <CollapsibleSection title={STEP_NAMES.B3A_COLLECTIVE} {...section(["B3A_COLLECTIVE"])}>
+        <CollapsibleSection title={recordStepName("B3A_COLLECTIVE", record)} {...section(["B3A_COLLECTIVE"])}>
           <Fields
             items={[
               ["Mức đề xuất", hasGrade(record.collectiveProposedGrade) ? <GradeBadge grade={record.collectiveProposedGrade} /> : null],
-              ["Nhận xét", record.collectiveComment],
+              [record.unitLeaderProposal ? "Nhận xét, ý kiến của các Phó" : "Nhận xét", record.collectiveComment],
               ...externalItems("B3A_COLLECTIVE"),
             ]}
           />

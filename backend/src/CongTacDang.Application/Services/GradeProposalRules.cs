@@ -31,13 +31,13 @@ public static class GradeProposalRules
 
     /// <summary>Chưa nhập căn cứ khi bắt buộc → <see cref="ValidationException"/> nêu mức, điểm và ô cần nhập.</summary>
     public static void EnsureExplained(CriteriaSetContent criteria, WorkflowStep step, EvaluationGrade proposed, double score,
-        double? exceedRatio, string? explanation, string fieldName)
+        double? exceedRatio, string? explanation, string fieldName, bool unitLeaderProposal = false)
     {
         if (!string.IsNullOrWhiteSpace(explanation) || !EvaluationScoring.ProposalRequiresExplanation(criteria, proposed, score, exceedRatio))
             return;
         var direction = EvaluationScoring.CompareWithScoreGrade(criteria, proposed, score, exceedRatio);
         var scoreGrade = EvaluationScoring.SuggestGrade(criteria, score, exceedRatio);
-        throw new ValidationException($"{Message(step, proposed, scoreGrade, score, direction)}: hãy nhập {fieldName} "
+        throw new ValidationException($"{Message(step, proposed, scoreGrade, score, direction, unitLeaderProposal)}: hãy nhập {fieldName} "
             + (direction > 0 ? "nêu lý do đề xuất mức cao hơn." : "nêu căn cứ xếp mức thấp hơn."));
     }
 
@@ -45,7 +45,7 @@ public static class GradeProposalRules
     public static bool HasScore(EvaluationRecord r) => r.SelfScoredAt.HasValue || r.AppraisalScore.HasValue;
 
     /// <summary>Các bước đã có mức đề xuất mà khác mức theo điểm, theo thứ tự bước.</summary>
-    public static List<GradeDeviation> Deviations(EvaluationRecord r, CriteriaSnapshot? criteria)
+    public static List<GradeDeviation> Deviations(EvaluationRecord r, CriteriaSnapshot? criteria, bool unitLeaderProposal = false)
     {
         var result = new List<GradeDeviation>();
         if (criteria == null || !HasScore(r))
@@ -68,7 +68,7 @@ public static class GradeProposalRules
                 continue;
             var scoreGrade = EvaluationScoring.SuggestGrade(criteria.Content, score, ratio);
             result.Add(new GradeDeviation(step, grade, scoreGrade, score, direction, !string.IsNullOrWhiteSpace(explanation),
-                Message(step, grade, scoreGrade, score, direction)));
+                Message(step, grade, scoreGrade, score, direction, unitLeaderProposal)));
         }
         return result;
     }
@@ -89,18 +89,20 @@ public static class GradeProposalRules
         return r.SelfScoredAt.HasValue && r.SelfProposedGrade != EvaluationGrade.ChuaXepLoai ? WorkflowStep.B2_SELF_SCORE : null;
     }
 
-    public static string Label(WorkflowStep step) => step switch
+    /// <param name="unitLeaderProposal">Bước 3a do Trưởng đơn vị đề xuất (<see cref="WorkflowProfile.IsUnitLeaderProposal"/>).</param>
+    public static string Label(WorkflowStep step, bool unitLeaderProposal = false) => step switch
     {
         WorkflowStep.B2_SELF_SCORE => "Mức tự đề xuất",
-        WorkflowStep.B3A_COLLECTIVE => "Mức tập thể lãnh đạo đề xuất",
+        WorkflowStep.B3A_COLLECTIVE => unitLeaderProposal ? "Mức Trưởng đơn vị đề xuất" : "Mức tập thể lãnh đạo đề xuất",
         WorkflowStep.B3B_APPRAISAL => "Mức thẩm định đề xuất",
         WorkflowStep.B3C_DIRECTOR => "Mức cấp trực tiếp sử dụng đề xuất",
         WorkflowStep.B4_DECISION => "Mức được quyết định",
         _ => "Mức đề xuất"
     };
 
-    private static string Message(WorkflowStep step, EvaluationGrade proposed, EvaluationGrade scoreGrade, double score, int direction) =>
+    private static string Message(WorkflowStep step, EvaluationGrade proposed, EvaluationGrade scoreGrade, double score, int direction,
+        bool unitLeaderProposal) =>
         string.Create(CultureInfo.InvariantCulture,
-            $"{Label(step)} \"{CriteriaSetContent.GradeName(proposed)}\" {(direction > 0 ? "cao hơn" : "thấp hơn")} mức theo điểm "
+            $"{Label(step, unitLeaderProposal)}\"{CriteriaSetContent.GradeName(proposed)}\" {(direction > 0 ? "cao hơn" : "thấp hơn")} mức theo điểm "
             + $"({score:0.##} điểm → \"{CriteriaSetContent.GradeName(scoreGrade)}\")");
 }

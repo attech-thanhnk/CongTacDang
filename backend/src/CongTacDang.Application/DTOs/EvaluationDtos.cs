@@ -172,6 +172,8 @@ public class EvaluationRecordDto
     public DateTime? CellConfirmedAt { get; set; }
 
     // B3a
+    /// <summary>Bước 3a do Trưởng đơn vị đề xuất (không họp, không biên bản, không kiểm phiếu) theo diện quyết định của hồ sơ.</summary>
+    public bool UnitLeaderProposal { get; set; }
     public string CollectiveProposedGrade { get; set; } = string.Empty;
     public string? CollectiveComment { get; set; }
     public Guid? CollectiveMeetingId { get; set; }
