@@ -17,7 +17,7 @@ param(
     # Kỳ thử đã có hồ sơ: đẩy tiếp các hồ sơ đang có thay vì dừng
     [switch]$TiepTuc,
     [string]$ApiUrl = 'http://localhost:5000',
-    # Thử lần lượt: người trong đơn vị trước (Chi bộ, thư ký phòng), Văn phòng sau; huyen.utt: Chi bộ của thanh.nn
+    # Thử lần lượt, cấp gần nhất trước để đúng thực tế (Trưởng phòng duyệt cho Phó phòng, thư ký Văn phòng ghi đề xuất); huyen.utt: Chi bộ của thanh.nn
     [string[]]$TaiKhoan = @('duy.lm', 'dao.nta', 'trung.nb', 'huyen.utt', 'long.nc', 'loan.ttp', 'loan.ctp', 'hung.dt', 'giang.nh', 'thinh.lt', 'thanh.nn'),
     # Mật khẩu thử chỉ dùng trên máy phát triển
     [string]$MatKhau = 'Thu12345a',
@@ -177,13 +177,9 @@ function Get-Actions($session, $recordId) {
 }
 
 # Tài khoản đầu tiên (theo thứ tự danh sách) có nút cho bước; hệ thống tự loại chủ hồ sơ và xung đột lợi ích
-# Theo kế hoạch đánh giá quý: Giám đốc phê duyệt danh mục cho Trưởng, Phó phòng; Chủ tịch cho Phó Giám đốc
-$StepPreferred = @{ 'B1_APPROVE' = @('giang.nh', 'thinh.lt') }
-
 function Find-Performer($recordId, [string]$step) {
     $blocked = $null
-    $order = @(@($StepPreferred[$step]) + $Accounts | Where-Object { $_ -and $Accounts -contains $_ } | Select-Object -Unique)
-    foreach ($user in $order) {
+    foreach ($user in $Accounts) {
         $actions = Get-Actions (Get-Session $user) $recordId
         foreach ($a in $actions) {
             if ($a.step -ne $step) { continue }
