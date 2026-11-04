@@ -73,8 +73,8 @@ public sealed record ControlGateResult(ControlGateState State, Guid? CheckId)
     /// <summary>Lý do hiển thị khi chưa đạt; null khi đạt.</summary>
     public string? Reason => State switch
     {
-        ControlGateState.NoCheck => "Hồ sơ chưa thuộc phiếu kiểm tra nào còn hiệu lực.",
-        ControlGateState.Pending => "Phiếu kiểm tra của hồ sơ chưa được xác nhận.",
+        ControlGateState.NoCheck => "Hồ sơ chưa thuộc phiếu kiểm tra nào còn hiệu lực. Lập phiếu ở Duyệt kết quả → Kiểm tra.",
+        ControlGateState.Pending => "Phiếu kiểm tra của hồ sơ chưa được xác nhận. Mở phiếu ở Duyệt kết quả → Kiểm tra để xác nhận.",
         ControlGateState.NeedsWork => "Phiếu kiểm tra kết luận cần hoàn thiện trước khi trình.",
         ControlGateState.Stale => "Hồ sơ đã thay đổi sau khi phiếu kiểm tra được xác nhận; cần xác nhận lại phiếu.",
         _ => null

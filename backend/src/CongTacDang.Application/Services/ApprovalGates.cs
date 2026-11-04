@@ -31,8 +31,8 @@ public sealed record CalibrationGateResult(CalibrationGateState State, Guid? Ses
     /// <summary>Lý do hiển thị khi chưa đạt; null khi đạt.</summary>
     public string? Reason => State switch
     {
-        CalibrationGateState.NoSession => "Hồ sơ chưa thuộc biên bản họp thống nhất nào còn hiệu lực.",
-        CalibrationGateState.Pending => "Biên bản họp thống nhất của hồ sơ chưa được chốt.",
+        CalibrationGateState.NoSession => "Hồ sơ chưa thuộc biên bản họp thống nhất nào còn hiệu lực. Cần lập biên bản ở Duyệt kết quả → Họp thống nhất và chốt biên bản trước.",
+        CalibrationGateState.Pending => "Biên bản họp thống nhất của hồ sơ chưa được chốt. Mở biên bản ở Duyệt kết quả → Họp thống nhất để chốt.",
         CalibrationGateState.Stale => "Hồ sơ đã thay đổi sau khi biên bản họp thống nhất được chốt; cần chốt lại biên bản.",
         _ => null
     };
