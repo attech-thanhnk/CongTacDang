@@ -156,7 +156,7 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
 - Một chỗ tính: `IStepPerformers` (`StepPerformerRule` cho thuật toán), cache theo request; dùng cho việc cần xử lý (và số việc trên trang
   chủ/menu), tên người chờ ở tiến độ, việc duyệt điều chỉnh việc trong quý và màn hình Người thực hiện (`isNearest = false`: cấp trên).
   Kiểm tra kẹt luồng tính theo toàn bộ người có quyền.
-- Người gần nhất vắng: người ở cấp trên mở hồ sơ và làm thay, hoặc giao tạm vai trò có thời hạn tại đúng đơn vị để việc hiện đúng người.
+- Người gần nhất vắng: người ở cấp trên mở hồ sơ và thực hiện bước.
 
 ## 5. Chốt chặn quản trị
 

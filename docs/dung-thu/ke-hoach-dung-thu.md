@@ -16,7 +16,8 @@ Mục đích: một nhóm nhỏ dùng hệ thống đúng vai trò thật của 
 | | Lâm Văn Hiển, Đỗ Hùng Vương | `hien.lv`, `vuong.dh` | Phó Trưởng trung tâm: được đánh giá |
 | | Nguyễn Tuấn Cường | `cuong.nt` | Đội trưởng, Bí thư chi bộ: được đánh giá |
 | | Nguyễn Xuân Hưng | `hung.nx` | Đội trưởng, Phó Bí thư chi bộ: Chi bộ xác nhận cho Đội trưởng Cường |
-| Phòng TC-KT | Uông Thị Thu Huyền | `huyen.utt` | Chi bộ: xác nhận cho Phó Giám đốc Thành |
+| Phòng TC-KT | Nguyễn Phạm Quỳnh Trang | `trang.npq` | Trưởng phòng, Bí thư chi bộ: Chi bộ xác nhận cho Phó Giám đốc Thành |
+| | Uông Thị Thu Huyền | `huyen.utt` | Chi bộ: xác nhận cho Phó Giám đốc Thành |
 | Phòng TCCB-LĐ | Trần Thị Phương Loan, Chu Thị Phương Loan | `loan.ttp`, `loan.ctp` | Lập, mở kỳ; thẩm định; lập biên bản họp thống nhất, phiếu kiểm tra |
 | Văn phòng | Đinh Thế Hùng, Nguyễn Chí Long, Nguyễn Thanh Thảo | `hung.dt`, `long.nc`, `thao.nt` | Văn phòng Đảng ủy: chốt biên bản, quyết định, công bố, báo cáo; thư ký hội nghị |
 | CNTT | Quản trị | `quantri` | Cấp, mở khóa tài khoản; hỗ trợ người thử |
