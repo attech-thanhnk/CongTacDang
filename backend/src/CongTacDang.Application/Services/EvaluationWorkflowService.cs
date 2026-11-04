@@ -1095,10 +1095,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         string? crosscheckBlock = null;
         if (record.Status == RecordStatus.AwaitingAppraisal && _crosscheckGate != null)
             crosscheckBlock = await _crosscheckGate.OpenBlockReasonAsync(record, EvaluationMapping.ProfileOf(settings, record), ct);
-        var profile = EvaluationMapping.ProfileOf(settings, record);
-        var farther = WorkflowSteps.StepOf(record.Status) is { } current && WorkflowActions.AdvanceOf(current, profile) is { } advance
-            && !await IsNearestPerformerAsync(advance, profile, record, ct);
-        var actions = AvailableActions(record, settings, today, gates, crosscheckBlock, farther).ToList();
+        var actions = AvailableActions(record, settings, today, gates, crosscheckBlock).ToList();
         return new RecordActionsDto
         {
             RecordId = record.Id,
@@ -1180,6 +1177,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             var period = periodById[record.PeriodId];
             if (WorkflowActions.PeriodBlockReason(period.Status, advance, record.UnlockedUntil, now) != null)
                 continue;
+            // Cấp trên vẫn làm được khi mở hồ sơ, nhưng việc chỉ hiện cho người gần nhất.
             if (!CanPerform(advance, profile, record) || !await IsNearestPerformerAsync(advance, profile, record, ct))
                 continue;
 
@@ -1244,7 +1242,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         && !IsConflictOfInterest(action, record)
         && _guard.Can(WorkflowActions.PermissionFor(action, profile), AccessTarget.ForRecord(record));
 
-    /// <summary>Hoàn thành/trả lại ở bước nội bộ không phải của chủ hồ sơ: chỉ người có phạm vi gần hồ sơ nhất làm.</summary>
+    /// <summary>Hoàn thành/trả lại ở bước nội bộ không phải của chủ hồ sơ: việc chỉ giao cho người có phạm vi gần hồ sơ nhất.</summary>
     private static bool UsesNearestRule(WorkflowActionDefinition action, WorkflowProfile profile) =>
         action.Kind is WorkflowAction.Complete or WorkflowAction.Return
         && !WorkflowSteps.OwnerSteps.Contains(action.Step)
@@ -1255,20 +1253,6 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         if (_stepPerformers == null || !UsesNearestRule(action, profile) || _currentUser.UserId is not { } userId)
             return true;
         return await _stepPerformers.IsPerformerAsync(userId, WorkflowActions.PermissionFor(action, profile), AccessTarget.ForRecord(record), ct);
-    }
-
-    /// <summary>403 kèm tên người làm bước để biết chuyển hồ sơ cho ai.</summary>
-    private async Task<ForbiddenException> NotNearestAsync(WorkflowActionDefinition action, WorkflowProfile profile, EvaluationRecord record, CancellationToken ct)
-    {
-        var ids = await _stepPerformers!.ListAsync(WorkflowActions.PermissionFor(action, profile), AccessTarget.ForRecord(record), ct);
-        var names = new List<string>();
-        foreach (var id in ids)
-        {
-            if (await _repo.GetMemberNameAsync(id, ct) is { Length: > 0 } name)
-                names.Add(name);
-        }
-        var who = names.Count > 0 ? string.Join(", ", names.OrderBy(n => n, StringComparer.CurrentCulture)) : "người phụ trách gần hơn";
-        return new ForbiddenException($"{action.Label} không thành công: bước \"{profile.StepDisplayName(action.Step)}\" của hồ sơ này do {who} thực hiện.");
     }
 
     private static bool CanRevokeTaskApproval(EvaluationRecord record, WorkflowProfile profile) =>
@@ -1285,7 +1269,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         (action.Kind == WorkflowAction.Reopen || !WorkflowSteps.OwnerSteps.Contains(action.Step))
         && _currentUser.UserId is { } userId && record.MemberId == userId;
 
-    private IEnumerable<RecordActionDto> AvailableActions(EvaluationRecord record, PeriodSettings settings, DateOnly today, IReadOnlyList<GateOutcome> gates, string? crosscheckBlock = null, bool fartherThanNearest = false)
+    private IEnumerable<RecordActionDto> AvailableActions(EvaluationRecord record, PeriodSettings settings, DateOnly today, IReadOnlyList<GateOutcome> gates, string? crosscheckBlock = null)
     {
         var profile = EvaluationMapping.ProfileOf(settings, record);
         var active = profile.ActiveSteps();
@@ -1310,7 +1294,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         {
             if (WorkflowActions.PeriodBlockReason(record.Period.Status, action, record.UnlockedUntil, now) != null)
                 continue;
-            if (!CanPerform(action, profile, record) || (fartherThanNearest && UsesNearestRule(action, profile)))
+            if (!CanPerform(action, profile, record))
                 continue;
 
             var command = action.Kind switch
@@ -1455,8 +1439,6 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 $"Bạn không được thực hiện \"{PermissionCodes.DisplayName(permission)}\" trên hồ sơ của chính mình (xung đột lợi ích).");
         }
         _guard.Ensure(permission, AccessTarget.ForRecord(record));
-        if (!await IsNearestPerformerAsync(action, profile, record, ct))
-            throw await NotNearestAsync(action, profile, record, ct);
 
         if (record.Version != request.Version.Value)
             throw new ConflictException("Hồ sơ đã được người khác cập nhật sau khi bạn mở. Hãy tải lại hồ sơ để xem dữ liệu mới nhất rồi thực hiện lại.");

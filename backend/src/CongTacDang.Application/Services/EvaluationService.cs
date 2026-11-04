@@ -159,7 +159,7 @@ public class EvaluationService : IEvaluationService
         if (item == null || profile.Mode(step) != StepMode.Internal || WorkflowActions.AdvanceOf(step, profile) is not { } action)
             return;
 
-        // Cùng quy tắc gần nhất với API hành động.
+        // Cùng quy tắc gần nhất với việc cần xử lý.
         var performers = (await new StepPerformers(_repo, _permissions, _positions)
             .ListAsync(WorkflowActions.PermissionFor(action, profile), AccessTarget.ForRecord(record), ct)).ToList();
         if (performers.Count == 0)

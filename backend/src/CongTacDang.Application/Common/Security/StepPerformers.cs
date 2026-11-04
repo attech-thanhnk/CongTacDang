@@ -8,16 +8,16 @@ using CongTacDang.Application.Common.Interfaces;
 namespace CongTacDang.Application.Common.Security;
 
 /// <summary>
-/// Người làm bước nội bộ của luồng đánh giá trên một hồ sơ: có quyền của bước ở phạm vi bao trùm hồ sơ, không phải chủ hồ sơ,
-/// và có phạm vi gần hồ sơ nhất (sâu nhất trong cây; Toàn công ty xa nhất). Dùng chung cho hành động, việc cần xử lý,
-/// kiểm tra kẹt luồng, tiến độ và màn hình người thực hiện.
+/// Người được giao bước nội bộ của luồng đánh giá trên một hồ sơ: có quyền của bước ở phạm vi bao trùm hồ sơ, không phải chủ hồ sơ,
+/// và có phạm vi gần hồ sơ nhất (sâu nhất trong cây; Toàn công ty xa nhất). Chỉ quyết định việc giao cho ai (việc cần xử lý,
+/// tên người chờ ở tiến độ, màn hình người thực hiện); người có quyền ở cấp trên vẫn làm được bước.
 /// </summary>
 public interface IStepPerformers
 {
-    /// <summary>Tập người làm được bước, đã áp quy tắc gần nhất; rỗng khi không ai làm được.</summary>
+    /// <summary>Tập người được giao bước, đã áp quy tắc gần nhất; rỗng khi không ai làm được.</summary>
     Task<IReadOnlyList<Guid>> ListAsync(string permission, AccessTarget target, CancellationToken ct = default);
 
-    /// <summary>Người dùng có thuộc tập người làm được bước không.</summary>
+    /// <summary>Người dùng có thuộc tập người được giao bước không.</summary>
     Task<bool> IsPerformerAsync(Guid userId, string permission, AccessTarget target, CancellationToken ct = default);
 }
 

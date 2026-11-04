@@ -84,7 +84,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
     {
         var requests = await _repo.ListByRecordAsync(record.Id, ct);
         var context = Context(record);
-        var canDecide = context.Applicable && await CanDecideAsync(record, context.Profile, ct);
+        var canDecide = context.Applicable && CanDecide(record, context.Profile);
         var isOwnerWithSelf = _guard.Can(PermissionCodes.EvaluationSelf, AccessTarget.ForRecord(record));
         var hasPending = requests.Any(r => r.Status == TaskChangeStatus.Pending);
         var blocked = context.Applicable ? StateBlockReason(record) ?? (hasPending ? PendingBlockReason : null) : null;
@@ -122,7 +122,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
         if (type == TaskChangeType.Urgent)
         {
             // Việc đột xuất: chủ hồ sơ hoặc cấp giao việc.
-            if (!_guard.Can(PermissionCodes.EvaluationSelf, target) && !await CanDecideAsync(record, context.Profile, ct))
+            if (!_guard.Can(PermissionCodes.EvaluationSelf, target) && !CanDecide(record, context.Profile))
                 _guard.Ensure(IsOwner(record) ? PermissionCodes.EvaluationSelf : ApproverPermission(context.Profile), target);
         }
         else
@@ -209,8 +209,6 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
         if (IsOwner(record))
             throw new ForbiddenException("Bạn không được duyệt đề nghị điều chỉnh việc trên hồ sơ của chính mình (xung đột lợi ích).");
         _guard.Ensure(permission, AccessTarget.ForRecord(record));
-        if (!await IsNearestApproverAsync(record, context.Profile, ct))
-            throw new ForbiddenException("Duyệt đề nghị điều chỉnh việc không thành công: đề nghị này do người duyệt danh mục của hồ sơ xử lý.");
 
         if (change.Version != request.Version.Value)
             throw new ConflictException("Đề nghị đã được người khác cập nhật sau khi bạn mở. Hãy tải lại hồ sơ rồi thực hiện lại.");
@@ -303,7 +301,8 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
                 continue;
             }
             var profile = EvaluationMapping.ProfileOf(settings, record);
-            if (!await CanDecideAsync(record, profile, ct))
+            // Cấp trên vẫn duyệt được khi mở hồ sơ, nhưng việc chỉ hiện cho người gần nhất.
+            if (!CanDecide(record, profile) || !await IsNearestApproverAsync(record, profile, ct))
                 continue;
             items.Add(new WorkQueueItemDto
             {
@@ -383,11 +382,10 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
             ? PermissionCodes.EvaluationExternalRecord
             : WorkflowActions.PermissionFor(WorkflowActions.Get(WorkflowActions.ApproveTasks), profile);
 
-    private async Task<bool> CanDecideAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct) =>
-        !IsOwner(record) && _guard.Can(ApproverPermission(profile), AccessTarget.ForRecord(record))
-        && await IsNearestApproverAsync(record, profile, ct);
+    private bool CanDecide(EvaluationRecord record, WorkflowProfile profile) =>
+        !IsOwner(record) && _guard.Can(ApproverPermission(profile), AccessTarget.ForRecord(record));
 
-    /// <summary>Cùng quy tắc gần nhất với bước duyệt danh mục; bước do cấp trên thực hiện thì không áp dụng.</summary>
+    /// <summary>Việc cần xử lý chỉ giao cho người duyệt danh mục gần hồ sơ nhất; bước do cấp trên thực hiện thì không áp dụng.</summary>
     private async Task<bool> IsNearestApproverAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct) =>
         _stepPerformers == null
         || profile.Mode(WorkflowStep.B1_APPROVE) != StepMode.Internal

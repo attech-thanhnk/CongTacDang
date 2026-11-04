@@ -4,7 +4,7 @@ using Xunit;
 
 namespace CongTacDang.UnitTests;
 
-/// <summary>Quy tắc người gần hồ sơ nhất làm bước: Công ty → Trung tâm → Đội; Đảng bộ bộ phận → Chi bộ.</summary>
+/// <summary>Quy tắc giao bước cho người gần hồ sơ nhất: Công ty → Trung tâm → Đội; Đảng bộ bộ phận → Chi bộ.</summary>
 public sealed class StepPerformerRuleTests
 {
     private const string Approve = PermissionCodes.EvaluationTasksApprove;

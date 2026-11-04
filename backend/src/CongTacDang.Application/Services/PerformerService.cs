@@ -186,7 +186,7 @@ public sealed class PerformerService : IPerformerService
                 InUse = used == null || used.Contains(code)
             };
 
-            // Bước nội bộ chỉ người gần đơn vị nhất làm; người ở cấp trên chỉ làm hồ sơ của chính người gần nhất.
+            // Việc giao cho người gần đơn vị nhất; người ở cấp trên vẫn làm được.
             var nearest = code == PermissionCodes.EvaluationExternalRecord
                 ? null
                 : targets.SelectMany(t => StepPerformerRule.Nearest(effective, code, t, orgPaths)).ToHashSet();

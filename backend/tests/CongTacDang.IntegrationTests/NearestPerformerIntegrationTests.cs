@@ -1,4 +1,3 @@
-using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using CongTacDang.Application.Common.Security;
@@ -12,7 +11,7 @@ using Xunit;
 namespace CongTacDang.IntegrationTests;
 
 /// <summary>
-/// Bước nội bộ chỉ người có phạm vi gần hồ sơ nhất làm: Công ty → Phòng / Trung tâm → Đội; Đảng bộ bộ phận → Chi bộ.
+/// Việc của bước nội bộ giao cho người có phạm vi gần hồ sơ nhất, cấp trên vẫn làm được: Công ty → Phòng / Trung tâm → Đội; Đảng bộ bộ phận → Chi bộ.
 /// </summary>
 [Collection(ApiCollection.Name)]
 public sealed class NearestPerformerIntegrationTests
@@ -22,7 +21,7 @@ public sealed class NearestPerformerIntegrationTests
     public NearestPerformerIntegrationTests(ApiFactory factory) => _factory = factory;
 
     [SkippableFact]
-    public async Task StepPerformers_NearestScopeOnly_InActionsQueueProgressReadinessAndPerformers()
+    public async Task StepPerformers_QueueNearestOnly_UpperLevelStillPerforms()
     {
         Skip.If(_factory.SkipReason != null, _factory.SkipReason);
         var sfx = Guid.NewGuid().ToString("N")[..6];
@@ -111,7 +110,7 @@ public sealed class NearestPerformerIntegrationTests
         var participants = (await Data(managerC, $"/api/evaluations/periods/{periodId}/participants")).EnumerateArray().ToList();
         Guid RecordOf(TestUser u) => participants.First(p => p.GetProperty("memberId").GetGuid() == u.Id).GetProperty("recordId").GetGuid();
 
-        // Kiểm tra kẹt luồng: các bước theo đơn vị đều có người; hồ sơ của Trưởng phòng chuyển lên Giám đốc.
+        // Kiểm tra kẹt luồng: các bước theo đơn vị đều có người.
         var stepCodes = new[] { PermissionCodes.EvaluationTasksApprove, PermissionCodes.EvaluationCellConfirm, PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.EvaluationDirectorReview };
         var readiness = await Data(managerC, $"/api/evaluations/periods/{periodId}/readiness");
         Assert.DoesNotContain(readiness.GetProperty("issues").EnumerateArray(), i => members.Any(m => i.GetProperty("memberId").GetGuid() == m.Id)
@@ -129,24 +128,16 @@ public sealed class NearestPerformerIntegrationTests
             await db.SaveChangesAsync();
         });
 
-        // Duyệt danh mục.
+        // Duyệt danh mục: cấp trên vẫn thấy nút như người gần nhất.
         await SetStatus(RecordStatus.AwaitingTaskApproval);
         Assert.True(await CanAsync(headC, RecordOf(deputy), "ApproveTasks"));
-        Assert.False(await CanAsync(directorC, RecordOf(deputy), "ApproveTasks"));
+        Assert.True(await CanAsync(directorC, RecordOf(deputy), "ApproveTasks"));
         Assert.True(await CanAsync(directorC, RecordOf(head), "ApproveTasks"));
         Assert.True(await CanAsync(centerHeadC, RecordOf(teamHead), "ApproveTasks"));
-        Assert.False(await CanAsync(directorC, RecordOf(teamHead), "ApproveTasks"));
+        Assert.True(await CanAsync(directorC, RecordOf(teamHead), "ApproveTasks"));
         Assert.True(await CanAsync(directorC, RecordOf(centerHead), "ApproveTasks"));
 
-        // Máy chủ chặn người ở cấp xa hơn và nêu người làm.
-        var record = await Data(directorC, $"/api/evaluations/records/{RecordOf(deputy)}");
-        var denied = await directorC.PostAsJsonAsync($"/api/evaluations/records/{RecordOf(deputy)}/tasks/approve",
-            new { version = record.GetProperty("version").GetUInt32() });
-        Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
-        using (var body = JsonDocument.Parse(await denied.Content.ReadAsStringAsync()))
-            Assert.Contains($"N Trưởng phòng {sfx}", body.RootElement.GetProperty("message").GetString());
-
-        // Việc cần xử lý và tiến độ dùng cùng quy tắc.
+        // Việc cần xử lý và tên người chờ chỉ có người gần nhất.
         var queueIds = await QueueAsync(directorC);
         Assert.Contains(RecordOf(head), queueIds);
         Assert.DoesNotContain(RecordOf(deputy), queueIds);
@@ -155,26 +146,41 @@ public sealed class NearestPerformerIntegrationTests
         Assert.Equal(new[] { $"N Trưởng phòng {sfx}" }, await PerformerNamesAsync(managerC, RecordOf(deputy)));
         Assert.Equal(new[] { $"N Giám đốc {sfx}" }, await PerformerNamesAsync(managerC, RecordOf(head)));
 
-        // Chi bộ xác nhận: chi bộ, không phải Đảng bộ bộ phận.
+        // Giám đốc duyệt danh mục Phó phòng khi Trưởng phòng chưa duyệt; lịch sử ghi tên Giám đốc.
+        var record = await Data(directorC, $"/api/evaluations/records/{RecordOf(deputy)}");
+        var approved = await Data(await directorC.PostAsJsonAsync($"/api/evaluations/records/{RecordOf(deputy)}/tasks/approve",
+            new { version = record.GetProperty("version").GetUInt32() }));
+        Assert.Equal("AwaitingSelfScore", approved.GetProperty("status").GetString());
+        var history = await Data(managerC, $"/api/evaluations/records/{RecordOf(deputy)}/history");
+        Assert.Contains(history.EnumerateArray(), h => h.GetProperty("step").GetString() == "B1_APPROVE"
+            && h.GetProperty("action").GetString() == "Complete" && h.GetProperty("actorName").GetString() == $"N Giám đốc {sfx}");
+        Assert.DoesNotContain(RecordOf(deputy), await QueueAsync(headC));
+
+        // Chi bộ xác nhận: chi bộ được giao, Đảng bộ bộ phận vẫn làm được.
         await SetStatus(RecordStatus.AwaitingCellConfirm);
         Assert.True(await CanAsync(cellC, RecordOf(deputy), "ConfirmByCell"));
-        Assert.False(await CanAsync(bureauC, RecordOf(deputy), "ConfirmByCell"));
+        Assert.True(await CanAsync(bureauC, RecordOf(deputy), "ConfirmByCell"));
+        Assert.Contains(RecordOf(deputy), await QueueAsync(cellC));
+        Assert.DoesNotContain(RecordOf(deputy), await QueueAsync(bureauC));
 
-        // Thư ký: thư ký của Phòng thay cho thư ký Công ty; đơn vị không có thư ký riêng thì thư ký Công ty.
+        // Thư ký: thư ký của Phòng được giao, thư ký Công ty vẫn làm được; đơn vị không có thư ký riêng thì giao thư ký Công ty.
         await SetStatus(RecordStatus.AwaitingCollective);
         Assert.True(await CanAsync(salesSecC, RecordOf(deputy), "RecordCollectiveProposal"));
-        Assert.False(await CanAsync(companySecC, RecordOf(deputy), "RecordCollectiveProposal"));
+        Assert.True(await CanAsync(companySecC, RecordOf(deputy), "RecordCollectiveProposal"));
         Assert.True(await CanAsync(companySecC, RecordOf(teamHead), "RecordCollectiveProposal"));
+        Assert.DoesNotContain(RecordOf(deputy), await QueueAsync(companySecC));
+        Assert.Contains(RecordOf(teamHead), await QueueAsync(companySecC));
 
-        // Nhận xét: Giám đốc với Trưởng/Phó phòng, Chủ tịch với Phó Giám đốc (đơn vị Công ty).
+        // Nhận xét: việc của Trưởng/Phó phòng giao Giám đốc, Chủ tịch ở cấp trên vẫn làm được; Giám đốc không có phạm vi Công ty.
         await SetStatus(RecordStatus.AwaitingDirectorReview);
         Assert.True(await CanAsync(directorC, RecordOf(deputy), "DirectorReview"));
         Assert.True(await CanAsync(directorC, RecordOf(head), "DirectorReview"));
-        Assert.False(await CanAsync(chairmanC, RecordOf(head), "DirectorReview"));
+        Assert.True(await CanAsync(chairmanC, RecordOf(head), "DirectorReview"));
+        Assert.DoesNotContain(RecordOf(head), await QueueAsync(chairmanC));
         Assert.True(await CanAsync(chairmanC, RecordOf(deputyDirector), "DirectorReview"));
         Assert.False(await CanAsync(directorC, RecordOf(deputyDirector), "DirectorReview"));
 
-        // Người thực hiện tại Phòng: Trưởng phòng là người gần nhất, Giám đốc ở cấp trên.
+        // Người thực hiện tại Phòng: Trưởng phòng được giao, Giám đốc ở cấp trên.
         var performers = await Data(adminC, $"/api/admin/performers?departmentId={sales}");
         var approve = performers.GetProperty("jobs").EnumerateArray().Single(j => j.GetProperty("permission").GetString() == PermissionCodes.EvaluationTasksApprove);
         var people = approve.GetProperty("people").EnumerateArray().ToList();

@@ -215,7 +215,7 @@ export interface Performer {
   validTo?: string | null;
   /** Chức vụ tại nơi giao (hoặc cấp trên), "Cán bộ của đơn vị", hoặc null nếu không liên quan. */
   positionAtScope?: string | null;
-  /** false: cấp trên, chỉ làm hồ sơ của chính người gần đơn vị nhất. */
+  /** false: cấp trên — vẫn làm được, nhưng việc cần xử lý giao cho người gần đơn vị nhất. */
   isNearest: boolean;
 }
 

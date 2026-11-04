@@ -107,7 +107,7 @@ public class PerformerDto
     /// null nếu không có quan hệ hoặc bản gán Toàn công ty.</summary>
     public string? PositionAtScope { get; set; }
 
-    /// <summary>Có phạm vi gần đơn vị nhất nên làm bước cho hồ sơ của đơn vị; false = cấp trên, chỉ làm hồ sơ của người gần nhất.</summary>
+    /// <summary>Có phạm vi gần đơn vị nhất nên được giao việc của hồ sơ trong đơn vị; false = cấp trên, vẫn làm được.</summary>
     public bool IsNearest { get; set; } = true;
 }
 
