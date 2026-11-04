@@ -436,11 +436,12 @@ function JobCard({
         {!empty && (
           <ul className="list-unstyled small mb-0 mt-2">
             {job.people.map((person) => (
-              <li key={`${person.userId}-${person.assignmentId}`} className="d-flex align-items-center gap-2 py-1 border-top">
+              <li key={`${person.userId}-${person.assignmentId}`} className={`d-flex align-items-center gap-2 py-1 border-top ${person.isNearest ? "" : "text-secondary"}`}>
                 <div className="d-flex flex-wrap align-items-center gap-2 flex-grow-1" style={{ minWidth: 0 }}>
                 <span className="fw-semibold">{person.fullName}</span>
                 <span className="text-secondary">({person.username})</span>
                 {person.positionAtScope && <span className="text-body">· {person.positionAtScope}</span>}
+                {!person.isNearest && <span className="status-badge tone-neutral">Cấp trên</span>}
                 <span className="text-secondary">
                   — vai trò {person.roleName}
                   {!person.assignedHere && <>, giao tại {person.scopeText}</>}

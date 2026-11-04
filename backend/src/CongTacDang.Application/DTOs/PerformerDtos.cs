@@ -106,6 +106,9 @@ public class PerformerDto
     /// <summary>Chức vụ giữ tại nơi giao hoặc cấp trên (nối ", "); "Cán bộ của đơn vị" nếu chỉ thuộc nơi giao;
     /// null nếu không có quan hệ hoặc bản gán Toàn công ty.</summary>
     public string? PositionAtScope { get; set; }
+
+    /// <summary>Có phạm vi gần đơn vị nhất nên làm bước cho hồ sơ của đơn vị; false = cấp trên, chỉ làm hồ sơ của người gần nhất.</summary>
+    public bool IsNearest { get; set; } = true;
 }
 
 /// <summary>Vai trò chọn được khi thêm người cho một việc.</summary>

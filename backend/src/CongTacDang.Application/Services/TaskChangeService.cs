@@ -52,14 +52,17 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthorizationGuard _guard;
     private readonly ICurrentUserService _currentUser;
+    private readonly IStepPerformers? _stepPerformers;
 
     public TaskChangeService(
         IEvaluationWorkflowRepository records,
         ITaskChangeRepository repo,
         IUnitOfWork unitOfWork,
         IAuthorizationGuard guard,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IStepPerformers? stepPerformers = null)
     {
+        _stepPerformers = stepPerformers;
         _records = records;
         _repo = repo;
         _unitOfWork = unitOfWork;
@@ -81,7 +84,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
     {
         var requests = await _repo.ListByRecordAsync(record.Id, ct);
         var context = Context(record);
-        var canDecide = context.Applicable && CanDecide(record, context.Profile);
+        var canDecide = context.Applicable && await CanDecideAsync(record, context.Profile, ct);
         var isOwnerWithSelf = _guard.Can(PermissionCodes.EvaluationSelf, AccessTarget.ForRecord(record));
         var hasPending = requests.Any(r => r.Status == TaskChangeStatus.Pending);
         var blocked = context.Applicable ? StateBlockReason(record) ?? (hasPending ? PendingBlockReason : null) : null;
@@ -119,7 +122,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
         if (type == TaskChangeType.Urgent)
         {
             // Việc đột xuất: chủ hồ sơ hoặc cấp giao việc.
-            if (!_guard.Can(PermissionCodes.EvaluationSelf, target) && !CanDecide(record, context.Profile))
+            if (!_guard.Can(PermissionCodes.EvaluationSelf, target) && !await CanDecideAsync(record, context.Profile, ct))
                 _guard.Ensure(IsOwner(record) ? PermissionCodes.EvaluationSelf : ApproverPermission(context.Profile), target);
         }
         else
@@ -206,6 +209,8 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
         if (IsOwner(record))
             throw new ForbiddenException("Bạn không được duyệt đề nghị điều chỉnh việc trên hồ sơ của chính mình (xung đột lợi ích).");
         _guard.Ensure(permission, AccessTarget.ForRecord(record));
+        if (!await IsNearestApproverAsync(record, context.Profile, ct))
+            throw new ForbiddenException("Duyệt đề nghị điều chỉnh việc không thành công: đề nghị này do người duyệt danh mục của hồ sơ xử lý.");
 
         if (change.Version != request.Version.Value)
             throw new ConflictException("Đề nghị đã được người khác cập nhật sau khi bạn mở. Hãy tải lại hồ sơ rồi thực hiện lại.");
@@ -298,7 +303,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
                 continue;
             }
             var profile = EvaluationMapping.ProfileOf(settings, record);
-            if (!CanDecide(record, profile))
+            if (!await CanDecideAsync(record, profile, ct))
                 continue;
             items.Add(new WorkQueueItemDto
             {
@@ -378,8 +383,16 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
             ? PermissionCodes.EvaluationExternalRecord
             : WorkflowActions.PermissionFor(WorkflowActions.Get(WorkflowActions.ApproveTasks), profile);
 
-    private bool CanDecide(EvaluationRecord record, WorkflowProfile profile) =>
-        !IsOwner(record) && _guard.Can(ApproverPermission(profile), AccessTarget.ForRecord(record));
+    private async Task<bool> CanDecideAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct) =>
+        !IsOwner(record) && _guard.Can(ApproverPermission(profile), AccessTarget.ForRecord(record))
+        && await IsNearestApproverAsync(record, profile, ct);
+
+    /// <summary>Cùng quy tắc gần nhất với bước duyệt danh mục; bước do cấp trên thực hiện thì không áp dụng.</summary>
+    private async Task<bool> IsNearestApproverAsync(EvaluationRecord record, WorkflowProfile profile, CancellationToken ct) =>
+        _stepPerformers == null
+        || profile.Mode(WorkflowStep.B1_APPROVE) != StepMode.Internal
+        || _currentUser.UserId is not { } userId
+        || await _stepPerformers.IsPerformerAsync(userId, ApproverPermission(profile), AccessTarget.ForRecord(record), ct);
 
     private bool IsOwner(EvaluationRecord record) => _currentUser.UserId is { } id && record.MemberId == id;
 

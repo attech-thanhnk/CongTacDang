@@ -23,6 +23,7 @@ public static class AuthorizationExtensions
         services.AddScoped<IPermissionResolver, PermissionResolver>();
 
         services.AddScoped<IAuthorizationGuard, AuthorizationGuard>();
+        services.AddScoped<IStepPerformers, StepPerformers>();
 
         services.AddScoped<IRoleAssignmentService, RoleAssignmentService>();
         services.AddScoped<IPerformerService, PerformerService>();

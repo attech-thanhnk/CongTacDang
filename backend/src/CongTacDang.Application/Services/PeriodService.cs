@@ -69,6 +69,7 @@ public sealed class PeriodService : IPeriodService
     private readonly IPermissionResolver _permissions;
     private readonly ICriteriaSetRepository _criteriaSets;
     private readonly IHolidayRepository _holidays;
+    private readonly IPositionRepository? _positions;
 
     public PeriodService(
         IEvaluationWorkflowRepository repo,
@@ -77,8 +78,10 @@ public sealed class PeriodService : IPeriodService
         ICurrentUserService currentUser,
         IPermissionResolver permissions,
         ICriteriaSetRepository criteriaSets,
-        IHolidayRepository holidays)
+        IHolidayRepository holidays,
+        IPositionRepository? positions = null)
     {
+        _positions = positions;
         _repo = repo;
         _unitOfWork = unitOfWork;
         _guard = guard;
@@ -475,6 +478,7 @@ public sealed class PeriodService : IPeriodService
             effective[userId] = await _permissions.GetAsync(userId, ct);
 
         var roleNames = await _repo.GetRoleNamesByPermissionAsync(codes, ct);
+        var orgPaths = _positions == null ? null : await _positions.GetOrgPathsAsync(ct);
         // Bước chỉ có đúng một người làm được: người đó vắng, hoặc chính họ được đánh giá, là hồ sơ kẹt.
         var singles = new Dictionary<(string Step, string Scope, Guid UserId), int>();
 
@@ -488,9 +492,12 @@ public sealed class PeriodService : IPeriodService
             }
             else
             {
-                var performers = candidateIds.Where(userId => AuthorizationGuard.Evaluate(effective[userId], permission, target)).ToList();
-                covered = performers.Any(userId => userId != record.MemberId);
-                if (performers.Count == 1 && performers[0] != record.MemberId)
+                // Bước nội bộ chỉ người gần hồ sơ nhất làm được: người đó vắng là hồ sơ kẹt.
+                var performers = profile.Mode(step) == StepMode.Internal
+                    ? StepPerformerRule.Nearest(candidateIds.Select(u => effective[u]), permission, target, orgPaths).ToList()
+                    : candidateIds.Where(userId => userId != record.MemberId && AuthorizationGuard.Evaluate(effective[userId], permission, target)).ToList();
+                covered = performers.Count > 0;
+                if (performers.Count == 1)
                 {
                     var key = (profile.StepDisplayName(step), ScopeName(record), performers[0]);
                     singles[key] = singles.GetValueOrDefault(key) + 1;
