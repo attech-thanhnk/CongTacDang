@@ -34,13 +34,15 @@ public sealed class CalibrationServiceTests
     }
 
     [Fact]
-    public async Task Create_RecordOfCurrentUser_IsForbidden()
+    public async Task Create_RecordOfCurrentUser_IsLeftOut()
     {
         var h = new Harness();
         h.User.UserId = h.Records[0].MemberId;
 
-        await Assert.ThrowsAsync<ForbiddenException>(() => h.Service.CreateAsync(h.CreateRequest()));
-        Assert.Empty(h.Calibrations.Sessions);
+        // Hồ sơ của chính mình tự bỏ; chỉ còn hồ sơ đó thì không lập được.
+        var dto = await h.Service.CreateAsync(h.CreateRequest());
+        Assert.Equal(new[] { h.Records[1].Id }, dto.Records.Select(r => r.RecordId));
+        await Assert.ThrowsAsync<ValidationException>(() => h.Service.CreateAsync(h.CreateRequest(h.Records[0])));
     }
 
     [Fact]
