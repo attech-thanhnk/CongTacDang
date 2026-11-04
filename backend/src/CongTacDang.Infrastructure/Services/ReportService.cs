@@ -637,10 +637,12 @@ public partial class ReportService : IReportService
         var pending = decided.Where(r => r.DecisionRecordedAt == null).ToList();
         if (pending.Count > 0)
         {
-            var names = string.Join(", ", pending.Take(5).Select(r => r.Member?.FullName ?? r.MemberId.ToString()));
+            // Nêu tối đa 3 tên để thông báo gọn khi nhiều người; danh sách đủ xem ở Việc cần xử lý.
+            const int shown = 3;
+            var names = string.Join(", ", pending.Take(shown).Select(r => r.Member?.FullName ?? r.MemberId.ToString()));
+            var more = pending.Count > shown ? $" và {pending.Count - shown} người khác" : string.Empty;
             return (period, decided, cell,
-                $"Còn {pending.Count} hồ sơ chưa ghi quyết định mức xếp loại ({names}{(pending.Count > 5 ? ", …" : string.Empty)}). "
-                + "Hãy ghi quyết định cho đủ các hồ sơ rồi mới lập Quyết định.");
+                $"Còn {pending.Count} hồ sơ chưa ghi quyết định: {names}{more}. Ghi đủ quyết định rồi lập lại.");
         }
         return (period, decided, cell, null);
     }
