@@ -75,15 +75,13 @@ public static class CollectiveVoteRules
         var basis = Basis(tally, presentCount);
         var summary = string.Create(CultureInfo.InvariantCulture,
             $"Kết quả kiểm phiếu ({(presentCount > 0 ? $"{presentCount} người có mặt" : $"{basis} phiếu")}): Xuất sắc {tally.Excellent}, "
-            + $"Tốt {tally.Good}, Hoàn thành {tally.Satisfactory}, Không hoàn thành {tally.Unsatisfactory}, Chưa đánh giá {tally.NotRated}, "
+            + $"Tốt {tally.Good}, Hoàn thành {tally.Satisfactory}, Không hoàn thành {tally.Unsatisfactory}, Chưa xếp loại {tally.NotRated}, "
             + $"không hợp lệ {tally.Invalid}.");
         if (passed is not { } grade)
         {
-            return summary + $" Không mức nào đạt quá nửa ({basis / 2 + 1}/{basis}) kể cả khi cộng dồn phiếu từ mức cao xuống nên chưa ghi nhận "
-                + "được mức đề xuất. Hãy kiểm tra lại số phiếu hoặc tổ chức biểu quyết lại.";
+            return summary + $" Không mức nào đạt quá nửa ({basis / 2 + 1}/{basis}), kể cả khi cộng dồn từ mức cao. Hãy kiểm tra lại số phiếu.";
         }
-        return summary + $" Mức đạt quá nửa (cộng dồn phiếu từ mức cao xuống) là \"{CriteriaSetContent.GradeName(grade)}\" "
-            + $"({CumulativeVotes(tally, grade)}/{basis} phiếu); mức \"{CriteriaSetContent.GradeName(proposed)}\" "
-            + $"({CumulativeVotes(tally, proposed)}/{basis} phiếu) không khớp kết quả kiểm phiếu. Hãy ghi nhận đúng mức đã được biểu quyết.";
+        return summary + $" Mức đạt quá nửa: \"{CriteriaSetContent.GradeName(grade)}\" ({CumulativeVotes(tally, grade)}/{basis} phiếu); "
+            + $"mức \"{CriteriaSetContent.GradeName(proposed)}\" ({CumulativeVotes(tally, proposed)}/{basis} phiếu) không khớp kết quả kiểm phiếu.";
     }
 }

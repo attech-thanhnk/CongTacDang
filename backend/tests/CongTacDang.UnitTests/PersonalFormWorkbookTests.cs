@@ -140,6 +140,9 @@ public class PersonalFormWorkbookTests
         Assert.Equal(92, ws.Cell(total, 3).GetDouble());
         Assert.Contains("Kết luận của Cơ quan thẩm định: Nhất trí", Texts(ws));
         Assert.Contains(Texts(ws), t => t.Contains("☒ Hoàn thành tốt", StringComparison.Ordinal));
+        var levels = Find(ws, "3. Đánh giá 3 Mức chất lượng nhiệm vụ").Address.RowNumber;
+        Assert.Equal("", ws.Cell(levels, 2).GetString());
+        Assert.Equal(Mau10Data.From(record).TaskLevels ?? "Mức 1: … SP\nMức 2: … SP\nMức 3: … SP", ws.Cell(levels, 3).GetString());
     }
 
     [Fact]

@@ -334,6 +334,42 @@ public class DocumentTemplateTests
     }
 
     [Fact]
+    public void Mau10_CountsTasksByAppraisalLevel()
+    {
+        var (_, records) = SampleData();
+        var record = records[0];
+        foreach (var t in record.Tasks)
+            t.AppraisalLevel = null;
+        // Chưa thẩm định nhiệm vụ nào → giữ chữ mặc định của mẫu.
+        Assert.Null(Mau10Data.From(record).TaskLevels);
+
+        var tasks = record.Tasks.ToList();
+        tasks[0].AppraisalLevel = 1;
+        tasks[1].AppraisalLevel = 2;
+        var data = Mau10Data.From(record);
+        Assert.Equal("Mức 1: 1 SP\nMức 2: 1 SP\nMức 3: 0 SP", data.TaskLevels);
+
+        var result = DocxTemplateEngine.Render(new FileWordTemplateStore().Load(Mau10Data.TemplateFileName), TemplateDataBinder.Bind(data));
+        using var doc = Open(result.Content);
+        var text = BodyText(doc);
+        Assert.Contains("Mức 1: 1 SP", text);
+        Assert.Contains("Mức 3: 0 SP", text);
+        Assert.DoesNotContain("… SP", text);
+    }
+
+    [Fact]
+    public void Mau02_DepartmentHasNoTrailingDots()
+    {
+        var (_, records) = SampleData();
+        var data = Mau02Data.From(records[0]);
+        var result = DocxTemplateEngine.Render(new FileWordTemplateStore().Load(Mau02Data.TemplateFileName), TemplateDataBinder.Bind(data));
+        using var doc = Open(result.Content);
+        var line = doc.MainDocumentPart!.Document!.Body!.Descendants<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()
+            .Select(p => p.InnerText).First(t => t.StartsWith("Đơn vị công tác:", StringComparison.Ordinal));
+        Assert.Equal("Đơn vị công tác: " + data.Department, line);
+    }
+
+    [Fact]
     public void Mau01_02_10_FillDateLine_FromStoredStepDates()
     {
         var (_, records) = SampleData();

@@ -319,9 +319,13 @@ public static class PersonalFormWorkbooks
         ScoreRow("2. Nhóm sản phẩm chuyên môn (CV / 70đ)", data.TasksSelfScore, data.TasksAppraisalScore, data.TasksDiff);
         ScoreRow("TỔNG ĐIỂM (100đ)", data.TotalSelfScore, data.TotalAppraisalScore, data.TotalDiff);
         ws.Range(row - 1, 1, row - 1, last).Style.Font.Bold = true;
+        // Mức chất lượng chỉ có ở thẩm định nên cột tự chấm để trống.
+        ws.Cell(row, 1).Value = "3. Đánh giá 3 Mức chất lượng nhiệm vụ";
+        ws.Cell(row, 3).Value = data.TaskLevels ?? "Mức 1: … SP\nMức 2: … SP\nMức 3: … SP";
+        ws.Cell(row, 3).Style.Alignment.WrapText = true;
+        row++;
         foreach (var (title, value) in new[]
         {
-            ("3. Đánh giá 3 Mức chất lượng nhiệm vụ", "Mức 1: … SP"),
             ("4. Kiểm tra 5 Điều kiện Hoàn thành xuất sắc", "☐ Đạt  ☐ Không"),
             ("5. Trần xếp loại / điều kiện bắt buộc về an toàn bắt buộc", "Không vi phạm")
         })

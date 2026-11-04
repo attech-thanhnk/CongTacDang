@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 
@@ -42,6 +43,9 @@ public sealed class Mau10Data
     /// <summary>Điểm thẩm định − tổng điểm tự chấm.</summary>
     [TemplateField("TOTAL_DIFF")] public string? TotalDiff { get; init; }
 
+    /// <summary>Số sản phẩm theo mức thẩm định, mỗi mức một dòng; chưa thẩm định nhiệm vụ nào → giữ chữ mặc định.</summary>
+    [TemplateField("TASK_LEVELS")] public string? TaskLevels { get; init; }
+
     /// <summary>Nhận xét của cấp trực tiếp sử dụng (B3c); chưa có → giữ chữ mặc định.</summary>
     [TemplateField("SUPERVISOR_COMMENT")] public string? SupervisorComment { get; init; }
 
@@ -77,6 +81,7 @@ public sealed class Mau10Data
             TotalSelfScore = CollectiveFormText.Score(record.TotalSelfScore),
             TotalAppraisalScore = Score(record.AppraisalScore),
             TotalDiff = Diff(record.AppraisalScore, record.TotalSelfScore),
+            TaskLevels = TaskLevelText(record),
             SupervisorComment = FormText.OrNull(record.DirectorComment),
             AppraisalComment = FormText.OrNull(record.AppraisalComment),
             AppraisalExplanation = FormText.OrNull(record.AppraisalExplanation),
@@ -85,6 +90,14 @@ public sealed class Mau10Data
             CheckDone = Box(EvaluationGrade.HoanThanh),
             CheckFailed = Box(EvaluationGrade.KhongHoanThanh)
         };
+    }
+
+    private static string? TaskLevelText(EvaluationRecord record)
+    {
+        var levels = record.Tasks.Where(t => t.AppraisalLevel.HasValue).Select(t => t.AppraisalLevel!.Value).ToList();
+        if (levels.Count == 0)
+            return null;
+        return string.Join("\n", Enumerable.Range(1, 3).Select(level => $"Mức {level}: {levels.Count(l => l == level)} SP"));
     }
 
     private static string? Score(double? value) => value.HasValue ? CollectiveFormText.Score(value.Value) : null;
