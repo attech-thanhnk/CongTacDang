@@ -26,9 +26,9 @@ public sealed class CalibrationIntegrationTests
         Skip.If(_factory.SkipReason != null, _factory.SkipReason);
         var w = await SetupAsync();
 
-        // Người lập không có quyền chốt trên hồ sơ nào thì chỉ lập được; chủ hồ sơ có quyền lập vẫn không lập biên bản chứa hồ sơ mình.
-        var ownerAttempt = await w.OwnerManagerC.PostAsJsonAsync("/api/calibrations", Create(w, w.RecordA, w.RecordC));
-        Assert.Equal(HttpStatusCode.Forbidden, ownerAttempt.StatusCode);
+        // Người lập không có quyền chốt trên hồ sơ nào thì chỉ lập được; chủ hồ sơ có quyền lập: hồ sơ của mình tự bỏ, chỉ còn hồ sơ đó thì không lập được.
+        var ownerAttempt = await w.OwnerManagerC.PostAsJsonAsync("/api/calibrations", Create(w, w.RecordA));
+        Assert.Equal(HttpStatusCode.BadRequest, ownerAttempt.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await w.NobodyC.PostAsJsonAsync("/api/calibrations", Create(w, w.RecordA, w.RecordB))).StatusCode);
 
         var created = await Data(await w.PreparerC.PostAsJsonAsync("/api/calibrations", Create(w, w.RecordA, w.RecordB)));
@@ -283,6 +283,40 @@ public sealed class CalibrationIntegrationTests
         Assert.Equal(HttpStatusCode.Conflict, (await FormAttachmentClient.UploadAsync(w.PreparerC, type, id)).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await w.PreparerC.DeleteAsync($"/api/attachments/{fileId}")).StatusCode);
         await FormAttachmentClient.AssertCanReadAsync(w.PreparerC, type, id, fileId);
+    }
+
+    [SkippableFact]
+    public async Task OwnRecord_LeftOutSilently_WhenPreparerPicksWholeGroup_StillVisibleToOthers()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var w = await SetupAsync();
+
+        // Danh sách chọn của người có hồ sơ trong nhóm không có hồ sơ của họ; người khác vẫn thấy.
+        var mine = await Data(w.OwnerManagerC, $"/api/calibrations/candidates?periodId={w.PeriodId}");
+        Assert.DoesNotContain(mine.EnumerateArray(), c => c.GetProperty("recordId").GetGuid() == w.RecordA);
+        Assert.Contains(mine.EnumerateArray(), c => c.GetProperty("recordId").GetGuid() == w.RecordB);
+        var others = await Data(w.PreparerC, $"/api/calibrations/candidates?periodId={w.PeriodId}");
+        Assert.Contains(others.EnumerateArray(), c => c.GetProperty("recordId").GetGuid() == w.RecordA);
+
+        // Chọn cả nhóm (kể cả hồ sơ của mình): lập được, hồ sơ của mình tự bỏ.
+        var created = await Data(await w.OwnerManagerC.PostAsJsonAsync("/api/calibrations", new
+        {
+            periodId = w.PeriodId, groupName = "Cả nhóm", recordIds = new[] { w.RecordA, w.RecordB, w.RecordC }
+        }));
+        var ids = created.GetProperty("records").EnumerateArray().Select(r => r.GetProperty("recordId").GetGuid()).ToList();
+        Assert.Equal(new[] { w.RecordB, w.RecordC }.OrderBy(x => x), ids.OrderBy(x => x));
+
+        // Sửa biên bản thêm lại hồ sơ của mình: cũng tự bỏ.
+        var id = created.GetProperty("id").GetGuid();
+        var saved = await Data(await w.OwnerManagerC.PutAsJsonAsync($"/api/calibrations/{id}", new
+        {
+            version = created.GetProperty("version").GetUInt32(), groupName = "Cả nhóm", recordIds = new[] { w.RecordA, w.RecordB }
+        }));
+        Assert.Equal(new[] { w.RecordB }, saved.GetProperty("records").EnumerateArray().Select(r => r.GetProperty("recordId").GetGuid()));
+
+        // Hồ sơ đó vẫn vào biên bản của người khác bình thường.
+        var other = await Data(await w.PreparerC.PostAsJsonAsync("/api/calibrations", Create(w, w.RecordA)));
+        Assert.Single(other.GetProperty("records").EnumerateArray());
     }
 
     #region Hỗ trợ
