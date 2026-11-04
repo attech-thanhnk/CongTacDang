@@ -45,9 +45,20 @@ function dueOf(item: RecordStepProgressDto): { text: string; late: boolean } | n
   return { text: `Hạn ${formatDate(item.deadline)}${rest}`, late };
 }
 
+/** Số tên người hiện trong "Chờ: …"; còn lại ghi "và N người khác". */
+const MAX_NAMES = 3;
+
+/** Tên người làm được bước (máy chủ trả khi xem chi tiết) rõ hơn nhãn theo đơn vị. */
+export function performersText(item: RecordStepProgressDto): string {
+  const names = item.performerNames ?? [];
+  if (names.length === 0) return "";
+  const shown = names.slice(0, MAX_NAMES).join(", ");
+  return names.length > MAX_NAMES ? `${shown} và ${names.length - MAX_NAMES} người khác` : shown;
+}
+
 /** "Chờ: <ai>" của bước đang làm; bước cấp trên thì ghi rõ cấp trên thực hiện. */
 function waitingText(item: RecordStepProgressDto): string {
-  const actor = actorOf(item);
+  const actor = performersText(item) || actorOf(item);
   if (!actor) return "";
   return item.mode === "External" ? actor : `Chờ: ${actor}`;
 }
@@ -65,7 +76,8 @@ export function describeStep(item: RecordStepProgressDto): string {
     return `${item.name}: ${state}`;
   }
   if (item.state === "current") {
-    state = actor ? `Chờ ${external ? "cấp trên thực hiện" : actor}` : "Đang chờ xử lý";
+    const who = performersText(item) || actor;
+    state = who ? `Chờ ${external ? "cấp trên thực hiện" : who}` : "Đang chờ xử lý";
   } else {
     state = external ? "Cấp trên thực hiện" : actor ? `${actor} thực hiện` : "Chưa tới";
   }

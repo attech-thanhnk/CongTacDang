@@ -22,17 +22,20 @@ public class EvaluationService : IEvaluationService
     private readonly IPositionRepository _positions;
     private readonly ICurrentUserService _currentUser;
     private readonly IAuthorizationGuard _guard;
+    private readonly IPermissionResolver? _permissions;
 
     public EvaluationService(
         IEvaluationWorkflowRepository repo,
         IPositionRepository positions,
         ICurrentUserService currentUser,
-        IAuthorizationGuard guard)
+        IAuthorizationGuard guard,
+        IPermissionResolver? permissions = null)
     {
         _repo = repo;
         _positions = positions;
         _currentUser = currentUser;
         _guard = guard;
+        _permissions = permissions;
     }
 
     /// <inheritdoc />
@@ -53,16 +56,18 @@ public class EvaluationService : IEvaluationService
     public async Task<EvaluationRecordDto> GetRecordByIdAsync(Guid recordId, CancellationToken ct = default)
     {
         var record = await _repo.FindRecordAsync(recordId, ct)
-            ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
+            ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
         _guard.Ensure(PermissionCodes.EvaluationRead, AccessTarget.ForRecord(record));
-        return await MapAsync(record, ct);
+        var dto = await MapAsync(record, ct);
+        await FillPerformerNamesAsync(record, dto, ct);
+        return dto;
     }
 
     /// <inheritdoc />
     public async Task<List<EvaluationRecordHistoryDto>> GetRecordHistoryAsync(Guid recordId, CancellationToken ct = default)
     {
         var record = await _repo.FindRecordAsync(recordId, ct)
-            ?? throw new NotFoundException($"Không tìm thấy hồ sơ đánh giá với Id: {recordId}.");
+            ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
         _guard.Ensure(PermissionCodes.EvaluationRead, AccessTarget.ForRecord(record));
         var history = await _repo.ListHistoryAsync(recordId, ct);
         var profile = EvaluationMapping.ProfileOf(SafeSettings(record.Period), record);
@@ -100,7 +105,7 @@ public class EvaluationService : IEvaluationService
             throw new ValidationException("Hãy chọn kỳ đánh giá (tham số periodId).");
         var scope = _guard.GetScope(PermissionCodes.EvaluationRead);
         var period = await _repo.FindPeriodAsync(periodId, ct)
-            ?? throw new NotFoundException($"Không tìm thấy kỳ đánh giá với Id: {periodId}.");
+            ?? throw new NotFoundException("Không tìm thấy kỳ đánh giá.");
         var rule = EvaluationMapping.SafeCriteria(period)?.Content.Parameters.ExcellentQuota ?? new ExcellentQuotaRule();
         var cellId = partyCellId is { } id && id != Guid.Empty ? id : (Guid?)null;
 
@@ -139,6 +144,36 @@ public class EvaluationService : IEvaluationService
     {
         var evidence = await _repo.GetCurrentEvidenceAsync(record.Tasks.ToList(), ct);
         return EvaluationMapping.ToDto(record, SafeSettings(record.Period), EvaluationMapping.Today(DateTime.UtcNow), evidence);
+    }
+
+    /// <summary>
+    /// Tên người làm được bước đang chờ (trừ chủ hồ sơ): nhãn theo đơn vị như "Lãnh đạo Phòng X" dễ hiểu nhầm khi chính
+    /// chủ hồ sơ là lãnh đạo phòng hoặc đơn vị không có lãnh đạo, việc thực tế do cấp trên làm.
+    /// </summary>
+    private async Task FillPerformerNamesAsync(EvaluationRecord record, EvaluationRecordDto dto, CancellationToken ct)
+    {
+        if (_permissions == null || WorkflowSteps.StepOf(record.Status) is not { } step || WorkflowSteps.OwnerSteps.Contains(step))
+            return;
+        var item = dto.Progress.FirstOrDefault(p => p.State == "current" && p.Step == WorkflowSteps.Code(step));
+        var profile = EvaluationMapping.ProfileOf(SafeSettings(record.Period), record);
+        if (item == null || profile.Mode(step) != StepMode.Internal || WorkflowActions.AdvanceOf(step, profile) is not { } action)
+            return;
+
+        var permission = WorkflowActions.PermissionFor(action, profile);
+        var target = AccessTarget.ForRecord(record);
+        var performers = new List<Guid>();
+        foreach (var userId in await _repo.ListActiveUserIdsWithAnyPermissionAsync(new[] { permission }, DateTime.UtcNow, ct))
+        {
+            if (userId != record.MemberId && AuthorizationGuard.Evaluate(await _permissions.GetAsync(userId, ct), permission, target))
+                performers.Add(userId);
+        }
+        if (performers.Count == 0)
+            return;
+        item.PerformerNames = (await _repo.GetMembersAsync(performers, ct))
+            .Select(m => m.FullName)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .OrderBy(name => name, StringComparer.Create(new System.Globalization.CultureInfo("vi-VN"), false))
+            .ToList();
     }
 
     private async Task<List<EvaluationRecordDto>> MapManyAsync(List<EvaluationRecord> records, CancellationToken ct)

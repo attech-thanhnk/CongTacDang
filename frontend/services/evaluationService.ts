@@ -237,6 +237,8 @@ export interface RecordStepProgressDto {
   overdue: boolean;
   /** Máy chủ cũ có thể chưa trả. */
   actor?: string | null;
+  /** Bước nội bộ đang chờ: tên những người làm được bước, trừ chủ hồ sơ. */
+  performerNames?: string[];
   doneAt?: string | null;
   doneByName?: string | null;
 }

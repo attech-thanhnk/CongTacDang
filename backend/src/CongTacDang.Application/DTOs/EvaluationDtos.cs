@@ -87,6 +87,8 @@ public class RecordStepProgressDto
     public bool Overdue { get; set; }
     /// <summary>Bước cấp trên: "Cấp trên thực hiện".</summary>
     public string Actor { get; set; } = string.Empty;
+    /// <summary>Bước nội bộ đang chờ (xem chi tiết hồ sơ): tên những người làm được bước này, trừ chủ hồ sơ.</summary>
+    public List<string> PerformerNames { get; set; } = new();
     /// <summary>Chỉ có với bước đã xong và có dữ liệu thời điểm.</summary>
     public DateTime? DoneAt { get; set; }
     /// <summary>Chỉ có với bước đã xong.</summary>

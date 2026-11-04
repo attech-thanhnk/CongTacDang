@@ -19,7 +19,7 @@ test.describe.serial('Luồng hồ sơ qua giao diện', () => {
       await moTuViecCanXuLy(page, ho.hoTen, 'Đăng ký');
       luuHoSo(ho.khoa, page);
       await nopDanhMuc(page, ho.khoa === 'trung' ? 'Trung' : 'Dao');
-      await expect(page.getByText(/Chờ: .*Lãnh đạo Phòng/).first()).toBeVisible();
+      await expect(page.getByText(/Chờ: .*Lê Mai Duy/).first()).toBeVisible();
     });
   }
 
@@ -98,7 +98,7 @@ test.describe.serial('Luồng hồ sơ qua giao diện', () => {
       await page.getByRole('button', { name: 'Nộp phiếu', exact: true }).click();
       await page.getByRole('dialog', { name: 'Nộp phiếu tự chấm' }).getByRole('button', { name: 'Nộp phiếu' }).click();
       await daLuuThaoTac(page);
-      await expect(page.getByText(/Chờ: .*Chi bộ|Chờ Chi bộ/i).first()).toBeVisible();
+      await expect(page.getByText(/Chờ: .*Lê Mai Duy/).first()).toBeVisible();
     });
   }
 

@@ -138,6 +138,13 @@ public sealed class WorkflowProfileIntegrationTests
         var progress = confirmed.GetProperty("progress").EnumerateArray().ToDictionary(p => p.GetProperty("step").GetString()!);
         Assert.Equal("Trưởng đơn vị đề xuất", progress["B3A_COLLECTIVE"].GetProperty("name").GetString());
         Assert.Equal("skipped", progress["B3C_DIRECTOR"].GetProperty("state").GetString());
+        // Xem chi tiết: bước đang chờ nêu tên người làm được (Trưởng phòng đúng Phòng), không phải chủ hồ sơ hay Phòng khác.
+        var waiting = (await Data(w.StaffC, $"/api/evaluations/records/{id}")).GetProperty("progress").EnumerateArray()
+            .Single(p => p.GetProperty("step").GetString() == "B3A_COLLECTIVE").GetProperty("performerNames").EnumerateArray()
+            .Select(n => n.GetString()).ToList();
+        Assert.Contains(w.Lead1Name, waiting);
+        Assert.DoesNotContain(w.Lead2Name, waiting);
+        Assert.Empty(progress["B3A_COLLECTIVE"].GetProperty("performerNames").EnumerateArray());
 
         // Giám đốc, Thư ký tập thể (không có evaluation.unit.review), Lãnh đạo Phòng khác: không có thao tác bước 3a.
         await AssertActionsAsync(w.DirectorC, id);
@@ -765,6 +772,7 @@ public sealed class WorkflowProfileIntegrationTests
         public HttpClient Lead1C = null!, Lead2C = null!, DirectorC = null!, OfficeC = null!, AdminC = null!;
         public Guid Lead3Assignment;
         public string Dept3Name = string.Empty;
+        public string Lead1Name = string.Empty, Lead2Name = string.Empty;
 
         public static async Task<World> CreateAsync(ApiFactory factory)
         {
@@ -796,8 +804,10 @@ public sealed class WorkflowProfileIntegrationTests
             var cellSec3 = await factory.CreateUserAsync();
             var secretary = await factory.CreateUserAsync();
             var secretary3 = await factory.CreateUserAsync();
-            var lead1 = await factory.CreateUserAsync(d1);
-            var lead2 = await factory.CreateUserAsync(d2);
+            w.Lead1Name = $"G Trưởng phòng 1 {suffix}";
+            w.Lead2Name = $"G Trưởng phòng 2 {suffix}";
+            var lead1 = await factory.CreateUserAsync(d1, fullName: w.Lead1Name);
+            var lead2 = await factory.CreateUserAsync(d2, fullName: w.Lead2Name);
             var lead3 = await factory.CreateUserAsync(d3);
             var director = await factory.CreateUserAsync();
             var office = await factory.CreateUserAsync();
