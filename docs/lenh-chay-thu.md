@@ -60,10 +60,10 @@ Cuối lệnh in ra ai đăng nhập làm tiếp cho từng hồ sơ.
 | `quyet-dinh` | Chờ quyết định (đã chốt Mẫu 20) | `long.nc` |
 | `cong-bo` | Chờ công bố | `long.nc` |
 
-Đã có kỳ thử, muốn đẩy tiếp tới giai đoạn sau:
+Đã có kỳ thử thì lệnh đẩy tiếp các hồ sơ đang có tới giai đoạn chọn (phần đã làm tay được giữ):
 
 ```
-powershell -File scripts/tao-du-lieu-thu.ps1 -GiaiDoan cong-bo -TiepTuc
+powershell -File scripts/tao-du-lieu-thu.ps1 -GiaiDoan cong-bo
 ```
 
 ## Làm sạch để chạy lại từ đầu

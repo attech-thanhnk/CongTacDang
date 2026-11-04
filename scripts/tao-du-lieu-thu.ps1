@@ -3,7 +3,7 @@
   rồi dừng để tự thao tác tiếp trên giao diện. Chỉ gọi API (đi qua kiểm tra quyền và luật luồng), không ghi thẳng CSDL.
   Ví dụ:
     powershell -File scripts/tao-du-lieu-thu.ps1 -GiaiDoan tham-dinh
-    powershell -File scripts/tao-du-lieu-thu.ps1 -GiaiDoan cong-bo -TiepTuc     # đẩy tiếp kỳ thử đã có
+    powershell -File scripts/tao-du-lieu-thu.ps1 -GiaiDoan cong-bo     # đã có kỳ thử thì đẩy tiếp các hồ sơ đang có
     powershell -File scripts/tao-du-lieu-thu.ps1 -LamSach
   Giai đoạn (hồ sơ dừng ở bước này, chờ người làm tiếp):
     dang-ky, tu-cham, tap-the, tham-dinh, nhan-xet, quyet-dinh, cong-bo
@@ -14,8 +14,6 @@ param(
     [ValidateSet('dang-ky', 'tu-cham', 'tap-the', 'tham-dinh', 'nhan-xet', 'quyet-dinh', 'cong-bo')]
     [string]$GiaiDoan,
     [switch]$LamSach,
-    # Kỳ thử đã có hồ sơ: đẩy tiếp các hồ sơ đang có thay vì dừng
-    [switch]$TiepTuc,
     [string]$ApiUrl = 'http://localhost:5000',
     # Thử lần lượt, cấp gần nhất trước để đúng thực tế (Trưởng phòng duyệt cho Phó phòng, thư ký Văn phòng ghi đề xuất); tuan.nm: Trưởng trung tâm của cuong.nt; hung.nx: Chi bộ của cuong.nt; huyen.utt: Chi bộ của thanh.nn, da.dc
     [string[]]$TaiKhoan = @('duy.lm', 'dao.nta', 'trung.nb', 'tuan.nm', 'hung.nx', 'huyen.utt', 'long.nc', 'loan.ttp', 'loan.ctp', 'hung.dt', 'giang.nh', 'thinh.lt', 'thanh.nn'),
@@ -493,11 +491,6 @@ $targetIndex = [array]::IndexOf($Steps, $target)
 $period = Find-Period $manager
 if ($period) {
     $count = @(Get-Participants $manager $period.id).Count
-    if ($count -gt 0 -and -not $TiepTuc) {
-        Write-Host "Đã có kỳ `"$($period.name)`" ($($period.statusDisplayName), $count hồ sơ)." -ForegroundColor Yellow
-        Write-Host 'Chạy -LamSach để bỏ hồ sơ khỏi kỳ, hoặc thêm -TiepTuc để đẩy tiếp các hồ sơ đang có tới giai đoạn chọn.' -ForegroundColor Yellow
-        exit 2
-    }
     if ($period.status -notin @('Draft', 'Open')) { Fail "Kỳ `"$($period.name)`" đang ở trạng thái $($period.statusDisplayName), không dùng được để thử." }
     if ($count -eq 0) { Write-Step "Dùng lại kỳ `"$($period.name)`" (chưa có hồ sơ)" }
     else { Write-Step "Đẩy tiếp kỳ `"$($period.name)`" ($count hồ sơ)" }
