@@ -18,6 +18,11 @@ Chạy từ thư mục gốc repo (`D:\repos\CongTacDang`). Các bước làm tr
 | Phó phòng KH-KD, Phó Bí thư, thư ký phòng | `dao.nta` |
 | Phó phòng KH-KD | `trung.nb` |
 | Phó Giám đốc | `thanh.nn` |
+| Kiểm soát viên | `da.dc` |
+| Trưởng TT Bảo đảm kỹ thuật (duyệt, đề xuất cho Đội trưởng) | `tuan.nm` |
+| Đội trưởng, Bí thư chi bộ | `cuong.nt` |
+| Phó Bí thư chi bộ (xác nhận cho `cuong.nt`) | `hung.nx` |
+| Phó phòng KT-AT-CL (Chưa xếp loại) | `nghia.tv` |
 
 ## Khởi động
 
@@ -32,14 +37,25 @@ cd frontend && npm run dev
 powershell -File scripts/tao-du-lieu-thu.ps1 -GiaiDoan tham-dinh
 ```
 
-Tạo kỳ Quý IV/2026 với 4 hồ sơ: Lê Mai Duy (Trưởng phòng KH-KD), Nguyễn Thị Anh Đào và Nguyễn Bình Trung (Phó phòng), Nguyễn Như Thành (Phó Giám đốc, để thử nhánh Phó Giám đốc). Cuối lệnh in ra ai đăng nhập làm tiếp.
+Tạo kỳ Quý IV/2026 với 7 hồ sơ, đủ các trường hợp:
+
+| Người | Trường hợp (diện quyết định) | Luồng |
+|---|---|---|
+| Lê Mai Duy (`duy.lm`) | Trưởng phòng KH-KD — Đảng ủy cơ sở | Giám đốc duyệt danh mục, tập thể phòng đề xuất, thẩm định, Giám đốc nhận xét, Mẫu 20, Đảng ủy quyết định |
+| Nguyễn Thị Anh Đào (`dao.nta`), Nguyễn Bình Trung (`trung.nb`) | Phó phòng KH-KD — Đảng ủy cơ sở | Như trên, Trưởng phòng duyệt danh mục |
+| Nguyễn Tuấn Cường (`cuong.nt`) | Đội trưởng, Bí thư chi bộ là nhân viên | Trưởng trung tâm (`tuan.nm`) duyệt và đề xuất mức, thẩm định, Đảng ủy quyết định |
+| Nguyễn Như Thành (`thanh.nn`) | Phó Giám đốc | Chủ tịch duyệt, tập thể Công ty đề xuất, Chủ tịch nhận xét, cấp trên quyết định (Văn phòng ghi nhận) |
+| Đỗ Công Đà (`da.dc`) | Kiểm soát viên — BTV Đảng ủy Tổng công ty | Cấp trên duyệt, thẩm định, nhận xét, quyết định (Văn phòng ghi nhận); tập thể Công ty đề xuất |
+| Trịnh Văn Nghĩa (`nghia.tv`) | Chưa xếp loại | Đánh dấu ngay khi mở kỳ, chỉ còn chờ công bố |
+
+Cuối lệnh in ra ai đăng nhập làm tiếp cho từng hồ sơ.
 
 | `-GiaiDoan` | Hồ sơ dừng ở | Ai làm tiếp |
 |---|---|---|
 | `dang-ky` | Chờ đăng ký sản phẩm | Chính chủ hồ sơ |
 | `tu-cham` | Chờ tự chấm | Chính chủ hồ sơ |
-| `tap-the` | Chờ tập thể đề xuất | Thư ký: `dao.nta`, `long.nc` |
-| `tham-dinh` | Chờ thẩm định (Phó Giám đốc: chờ Chủ tịch nhận xét) | `loan.ttp`; `thinh.lt` |
+| `tap-the` | Chờ tập thể đề xuất (Đội trưởng: chờ Trưởng trung tâm đề xuất) | Thư ký: `dao.nta`, `long.nc`; `tuan.nm` |
+| `tham-dinh` | Chờ thẩm định (Phó Giám đốc: chờ Chủ tịch nhận xét; Kiểm soát viên: chờ ghi nhận thẩm định cấp trên) | `loan.ttp`; `thinh.lt`; `long.nc` |
 | `nhan-xet` | Chờ cấp trực tiếp sử dụng nhận xét | `giang.nh`; `thinh.lt` |
 | `quyet-dinh` | Chờ quyết định (đã chốt Mẫu 20) | `long.nc` |
 | `cong-bo` | Chờ công bố | `long.nc` |

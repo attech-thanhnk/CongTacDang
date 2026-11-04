@@ -1,5 +1,5 @@
 ﻿<#
-  Tạo nhanh dữ liệu thử trên máy phát triển: một kỳ Quý IV/2026 với 4 hồ sơ, đẩy mọi hồ sơ tới giai đoạn chọn
+  Tạo nhanh dữ liệu thử trên máy phát triển: một kỳ Quý IV/2026 với 7 hồ sơ (đủ các diện quyết định và một người Chưa xếp loại), đẩy mọi hồ sơ tới giai đoạn chọn
   rồi dừng để tự thao tác tiếp trên giao diện. Chỉ gọi API (đi qua kiểm tra quyền và luật luồng), không ghi thẳng CSDL.
   Ví dụ:
     powershell -File scripts/tao-du-lieu-thu.ps1 -GiaiDoan tham-dinh
@@ -17,8 +17,8 @@ param(
     # Kỳ thử đã có hồ sơ: đẩy tiếp các hồ sơ đang có thay vì dừng
     [switch]$TiepTuc,
     [string]$ApiUrl = 'http://localhost:5000',
-    # Thử lần lượt, cấp gần nhất trước để đúng thực tế (Trưởng phòng duyệt cho Phó phòng, thư ký Văn phòng ghi đề xuất); huyen.utt: Chi bộ của thanh.nn
-    [string[]]$TaiKhoan = @('duy.lm', 'dao.nta', 'trung.nb', 'huyen.utt', 'long.nc', 'loan.ttp', 'loan.ctp', 'hung.dt', 'giang.nh', 'thinh.lt', 'thanh.nn'),
+    # Thử lần lượt, cấp gần nhất trước để đúng thực tế (Trưởng phòng duyệt cho Phó phòng, thư ký Văn phòng ghi đề xuất); tuan.nm: Trưởng trung tâm của cuong.nt; hung.nx: Chi bộ của cuong.nt; huyen.utt: Chi bộ của thanh.nn, da.dc
+    [string[]]$TaiKhoan = @('duy.lm', 'dao.nta', 'trung.nb', 'tuan.nm', 'hung.nx', 'huyen.utt', 'long.nc', 'loan.ttp', 'loan.ctp', 'hung.dt', 'giang.nh', 'thinh.lt', 'thanh.nn'),
     # Mật khẩu thử chỉ dùng trên máy phát triển
     [string]$MatKhau = 'Thu12345a',
     # CSDL mà backend dev đang dùng; -LamSach chỉ chạy trên CSDL thử
@@ -38,7 +38,12 @@ $Quarter = 4
 $PeriodName = 'Đánh giá, xếp loại cán bộ Quý IV/2026'
 $ManagerUser = 'loan.ttp'
 $Accounts = $TaiKhoan
-$Evaluated = @('duy.lm', 'dao.nta', 'trung.nb', 'thanh.nn')
+# Mỗi diện quyết định một trường hợp: cơ sở (Trưởng, Phó phòng), Phó Giám đốc, Bí thư chi bộ là nhân viên, cấp trên; nghia.tv: Chưa xếp loại
+$Evaluated = [ordered]@{
+    'duy.lm' = 'co-so'; 'dao.nta' = 'co-so'; 'trung.nb' = 'co-so'; 'thanh.nn' = 'pho-giam-doc'
+    'cuong.nt' = 'bi-thu-nhan-vien'; 'da.dc' = 'cap-tren'; 'nghia.tv' = 'co-so'
+}
+$NotRated = @{ 'nghia.tv' = 'Đi đào tạo dài hạn trong quý' }
 $CalibrationPreparer = 'loan.ctp'
 $CalibrationConcluders = @('long.nc', 'hung.dt')
 $Steps = @('B1_REGISTER', 'B1_APPROVE', 'B2_SELF_SCORE', 'B2_CELL_CONFIRM', 'B3A_COLLECTIVE', 'B3B_APPRAISAL', 'B3C_DIRECTOR', 'B4_DECISION', 'B5_PUBLISH')
@@ -274,7 +279,10 @@ function New-StepBody([string]$step, [string]$action, $record, [string]$username
         'B1_APPROVE' { return @{ comment = 'Đồng ý danh mục sản phẩm đăng ký' } }
         'B2_SELF_SCORE' { return New-SelfScore $criteria $record $username }
         'B2_CELL_CONFIRM' { return @{ comment = 'Chi bộ xác nhận phiếu tự chấm' } }
-        'B3A_COLLECTIVE' { return @{ proposedGrade = 'HoanThanhTot'; comment = 'Tập thể lãnh đạo thống nhất đề xuất' } }
+        'B3A_COLLECTIVE' {
+            $text = if ($record.unitLeaderProposal) { 'Đề xuất trên cơ sở ý kiến các Phó trưởng đơn vị' } else { 'Tập thể lãnh đạo thống nhất đề xuất' }
+            return @{ proposedGrade = 'HoanThanhTot'; comment = $text }
+        }
         'B3B_APPRAISAL' {
             $levels = @(foreach ($t in @($record.tasks)) { [ordered]@{ taskId = $t.id; level = 1 } })
             return [ordered]@{
@@ -410,7 +418,7 @@ function Show-Readiness($readiness) {
 function Add-Evaluated($manager, $period) {
     $candidates = @(Invoke-ApiOk $manager 'GET' "/api/evaluations/periods/$($period.id)/candidates" $null 'Lấy danh sách cán bộ')
     $ids = @()
-    foreach ($u in $Evaluated) {
+    foreach ($u in $Evaluated.Keys) {
         $c = $candidates | Where-Object { $_.username -eq $u } | Select-Object -First 1
         if (-not $c) { Fail "Thêm người được đánh giá không thành công: không tìm thấy tài khoản $u trong danh sách cán bộ." }
         if (-not $c.alreadyAdded) { $ids += $c.memberId }
@@ -419,9 +427,23 @@ function Add-Evaluated($manager, $period) {
         $added = Invoke-ApiOk $manager 'POST' "/api/evaluations/periods/$($period.id)/participants" @{ memberIds = $ids } 'Thêm người được đánh giá'
         Write-Host "   Đã thêm $($added.added) người."
     }
-    $deputy = Get-Participants $manager $period.id | Where-Object { $_.username -eq 'thanh.nn' }
-    if ($deputy -and $deputy.workflowProfileCode -ne 'pho-giam-doc') {
-        Write-Host "   Lưu ý: thanh.nn nhận diện $($deputy.workflowProfileCode) theo chức vụ, không phải pho-giam-doc." -ForegroundColor DarkYellow
+    # Diện gán tự động theo chức vụ; lệch so với trường hợp muốn thử thì báo để kiểm tra danh mục chức vụ
+    foreach ($p in (Get-Participants $manager $period.id)) {
+        $want = $Evaluated[$p.username]
+        if ($want -and $p.workflowProfileCode -ne $want) {
+            Write-Host "   Lưu ý: $($p.username) nhận diện $($p.workflowProfileCode) theo chức vụ, không phải $want." -ForegroundColor DarkYellow
+        }
+    }
+}
+
+# Người không đánh giá trong quý: đánh dấu Chưa xếp loại ngay sau khi mở kỳ
+function Set-NotRated($manager, $period) {
+    foreach ($p in (Get-Participants $manager $period.id)) {
+        $reason = $NotRated[$p.username]
+        if (-not $reason -or $p.status -eq 'AwaitingPublish' -or $p.status -eq 'Published') { continue }
+        $record = Get-Record $manager $p.recordId
+        $result = Invoke-ApiOk $manager 'POST' "/api/evaluations/records/$($p.recordId)/not-rated" @{ version = $record.version; reason = $reason } "Đánh dấu Chưa xếp loại $($p.fullName)"
+        Write-Host (("   {0,-22} Chưa xếp loại    {1,-10} -> {2}" -f $p.fullName, $ManagerUser, $result.status))
     }
 }
 
@@ -509,6 +531,7 @@ if ($count -eq 0) {
 }
 $period = Invoke-ApiOk $manager 'GET' "/api/evaluations/periods/$($period.id)" $null 'Đọc kỳ'
 $script:Period = $period
+Set-NotRated $manager $period
 
 # ---------------------------------------------------------------- Đẩy hồ sơ tới giai đoạn chọn
 Write-Step "Đẩy hồ sơ tới giai đoạn $GiaiDoan"
