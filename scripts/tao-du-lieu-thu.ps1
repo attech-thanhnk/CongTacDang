@@ -37,13 +37,14 @@ $Year = 2026
 $Quarter = 4
 $PeriodName = 'Đánh giá, xếp loại cán bộ Quý IV/2026'
 $ManagerUser = 'loan.ttp'
-$Accounts = $TaiKhoan
 # Mỗi diện quyết định một trường hợp: cơ sở (Trưởng, Phó phòng), Phó Giám đốc, Bí thư chi bộ là nhân viên, cấp trên; nghia.tv: Chưa xếp loại
 $Evaluated = [ordered]@{
     'duy.lm' = 'co-so'; 'dao.nta' = 'co-so'; 'trung.nb' = 'co-so'; 'thanh.nn' = 'pho-giam-doc'
     'cuong.nt' = 'bi-thu-nhan-vien'; 'da.dc' = 'cap-tren'; 'nghia.tv' = 'co-so'
 }
 $NotRated = @{ 'nghia.tv' = 'Đi đào tạo dài hạn trong quý' }
+# Chủ hồ sơ tự đăng ký, tự chấm nên phải có trong danh sách tài khoản (trừ người Chưa xếp loại)
+$Accounts = @(@($TaiKhoan) + @($Evaluated.Keys | Where-Object { -not $NotRated.ContainsKey($_) }) | Select-Object -Unique)
 $CalibrationPreparer = 'loan.ctp'
 $CalibrationConcluders = @('long.nc', 'hung.dt')
 $Steps = @('B1_REGISTER', 'B1_APPROVE', 'B2_SELF_SCORE', 'B2_CELL_CONFIRM', 'B3A_COLLECTIVE', 'B3B_APPRAISAL', 'B3C_DIRECTOR', 'B4_DECISION', 'B5_PUBLISH')
