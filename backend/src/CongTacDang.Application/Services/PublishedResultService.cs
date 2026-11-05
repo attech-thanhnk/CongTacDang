@@ -66,8 +66,9 @@ public sealed class PublishedResultService : IPublishedResultService
         };
 
         var selectedPeriod = periodId.HasValue && periodId.Value != Guid.Empty ? periodId : null;
+        // Chưa xếp loại chỉ hiện cho chính chủ hồ sơ.
         var records = (await _repo.ListPublishedRecordsAsync(scope, selectedPeriod, ct))
-            .Where(r => r.FinalGrade != EvaluationGrade.ChuaXepLoai)
+            .Where(r => r.FinalGrade != EvaluationGrade.ChuaXepLoai || r.MemberId == _currentUser.UserId)
             .ToList();
 
         result.Departments = records
