@@ -10,7 +10,7 @@ Cột "Giai đoạn": giai đoạn của `tao-du-lieu-thu.ps1` mà hồ sơ đan
 |---|---|---|---|
 | can-bo-01-dang-nhap.png | Trang đăng nhập, đã gõ tên đăng nhập | (chưa đăng nhập) | bất kỳ |
 | can-bo-02-doi-mat-khau.png | Trang Đổi mật khẩu sau lần đăng nhập đầu | `hien.lv` (đặt "phải đổi mật khẩu" trong CSDL thử) | bất kỳ |
-| can-bo-03-tong-quan.png | Tổng quan, có dòng Hồ sơ của tôi | `trung.nb` | dang-ky |
+| can-bo-03-tong-quan.png | Tổng quan, thẻ Hồ sơ của tôi ở đầu trang | `trung.nb` | dang-ky |
 | can-bo-04-viec-can-xu-ly.png | Việc cần xử lý | `trung.nb` | dang-ky |
 | can-bo-05-dang-ky.png | Khung Nộp danh mục sản phẩm còn trống | `trung.nb` | dang-ky |
 | can-bo-06-dang-ky-nhap.png | Đang nhập sản phẩm, chân khung có Tổng trọng số | `trung.nb` | dang-ky (tay) |
