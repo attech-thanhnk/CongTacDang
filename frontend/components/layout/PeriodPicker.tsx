@@ -5,6 +5,18 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePeriod } from "@/contexts/PeriodContext";
 
+/** Trang xem dữ liệu theo kỳ đang chọn; trang khác không cần ô chọn kỳ. */
+const PERIOD_PAGES = [
+  "/",
+  "/work-queue",
+  "/evaluations",
+  "/collective-evaluations",
+  "/crosschecks",
+  "/quality-control",
+  "/results",
+  "/reports",
+];
+
 /** Ô chọn kỳ đánh giá đang làm việc, đặt ở thanh trên. */
 export function PeriodPicker() {
   const pathname = usePathname();
@@ -14,9 +26,8 @@ export function PeriodPicker() {
   // Người chỉ làm quản trị hệ thống không làm việc theo kỳ.
   const onlySystemWork =
     !!user && !user.permissions.some((code) => /^(evaluation|period|criteria)\./.test(code));
-  // Trang kỳ đánh giá tự chọn kỳ để xem (kể cả kỳ dự thảo): ô chọn kỳ chung dễ gây nhầm nên ẩn.
-  const periodPages = pathname === "/periods" || pathname?.startsWith("/periods/");
-  if (!user || user.mustChangePassword || pathname === "/change-password" || onlySystemWork || periodPages) return null;
+  // Trang chi tiết hồ sơ theo kỳ của chính hồ sơ nên chỉ khớp đúng đường dẫn danh sách.
+  if (!user || user.mustChangePassword || onlySystemWork || !PERIOD_PAGES.includes(pathname ?? "")) return null;
 
   return (
     <div className="hdr-period">
@@ -30,8 +41,8 @@ export function PeriodPicker() {
       >
         {periods.length === 0 && <option value="">Chưa có kỳ</option>}
         {periods.map((p) => (
-          <option key={p.id} value={p.id} title={p.name}>
-            Quý {["I", "II", "III", "IV"][p.quarter - 1] ?? p.quarter}/{p.year}
+          <option key={p.id} value={p.id}>
+            {p.name}
             {p.status === "Open" ? "" : ` (${p.statusDisplayName})`}
           </option>
         ))}

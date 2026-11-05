@@ -22,7 +22,7 @@ const STATUSES = Object.keys(CROSSCHECK_STATUS_LABELS) as CrosscheckStatus[];
 /** Phiếu xác nhận số liệu trong phạm vi được xem; mặc định theo kỳ đang chọn. */
 export default function CrosschecksPage() {
   const { hasPermission, loading: authLoading } = useAuth();
-  const { periods, periodId } = usePeriod();
+  const { periodId } = usePeriod();
   const { toast } = useToast();
   const router = useRouter();
   const canUse =
@@ -30,14 +30,13 @@ export default function CrosschecksPage() {
     hasPermission("evaluation.crosscheck.request") ||
     hasPermission("evaluation.crosscheck.respond") ||
     hasPermission("evaluation.crosscheck.confirm");
-  const [period, setPeriod] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const [items, setItems] = useState<CrosscheckSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const seq = useRef(0);
 
-  // Kỳ lọc theo kỳ đang chọn ở thanh bên cho tới khi người dùng tự chọn.
-  const periodFilter = period ?? periodId ?? "";
+  // Theo kỳ chọn ở thanh đầu trang.
+  const periodFilter = periodId ?? "";
 
   useEffect(() => {
     if (!canUse) {
@@ -72,10 +71,6 @@ export default function CrosschecksPage() {
       <div className="page-body">
         <section className="card">
         <CardToolbar>
-          <select className="form-select form-select-sm w-auto" aria-label="Lọc theo kỳ" value={periodFilter} onChange={(e) => setPeriod(e.target.value)}>
-            <option value="">Tất cả kỳ</option>
-            {periods.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
           <select className="form-select form-select-sm w-auto" aria-label="Lọc theo trạng thái" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">Mọi trạng thái</option>
             {STATUSES.map((s) => <option key={s} value={s}>{CROSSCHECK_STATUS_LABELS[s]}</option>)}

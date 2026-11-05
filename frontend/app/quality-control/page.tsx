@@ -50,7 +50,7 @@ export default function QualityControlPage() {
   const canCreateCtl = hasPermission("evaluation.control.perform");
 
   const [tab, setTab] = useState<Tab | null>(null);
-  const [period, setPeriod] = useState<string | null>(null);
+  const [candidateCount, setCandidateCount] = useState<number | null>(null);
   const [status, setStatus] = useState("");
   const [calItems, setCalItems] = useState<CalibrationSessionListItemDto[]>([]);
   const [ctlItems, setCtlItems] = useState<ControlCheckSummaryDto[]>([]);
@@ -74,7 +74,8 @@ export default function QualityControlPage() {
     setTab((cur) => cur ?? (wanted === "control" && canCtl ? "control" : wanted === "calibration" && canCal ? "calibration" : canCal ? "calibration" : "control"));
   }, [authLoading, canCal, canCtl]);
 
-  const periodFilter = period ?? periodId ?? "";
+  // Theo kỳ chọn ở thanh đầu trang.
+  const periodFilter = periodId ?? "";
   const active: Tab = tab ?? "calibration";
   const allowed = active === "calibration" ? canCal : canCtl;
 
@@ -113,6 +114,26 @@ export default function QualityControlPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const canCreateActive = active === "calibration" ? canCreateCal : canCreateCtl;
+  const periodOpen = periods.find((p) => p.id === periodFilter)?.status === "Open";
+
+  // Số hồ sơ chờ quyết định để làm mờ nút lập khi chưa có hồ sơ nào.
+  useEffect(() => {
+    setCandidateCount(null);
+    if (tab === null || !canCreateActive || !periodFilter || !periodOpen) return;
+    let alive = true;
+    (tab === "calibration" ? calibrationService.candidates(periodFilter) : controlCheckService.candidates(periodFilter))
+      .then((rows) => {
+        if (alive) setCandidateCount(rows.length);
+      })
+      .catch(() => {
+        if (alive) setCandidateCount(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [tab, canCreateActive, periodFilter, periodOpen]);
 
   const calShown = calItems.filter((c) => !status || c.status === status);
   const ctlShown = ctlItems.filter((c) => !status || c.status === status);
@@ -201,16 +222,18 @@ export default function QualityControlPage() {
       />
       <div className="page-body d-flex flex-column gap-3">
         <TabsRow actions={<>
-            <select className="form-select form-select-sm w-auto" aria-label="Lọc theo kỳ" value={periodFilter} onChange={(e) => setPeriod(e.target.value)}>
-              <option value="">Tất cả kỳ</option>
-              {periods.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
             <select className="form-select form-select-sm w-auto" aria-label="Lọc theo trạng thái" value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="">Mọi trạng thái</option>
               {statuses.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}
             </select>
           {canCreate && (
-          <button type="button" className="btn btn-primary btn-sm" onClick={openPicker}>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={openPicker}
+            disabled={candidateCount === 0}
+            title={candidateCount === 0 ? "Chưa có hồ sơ chờ quyết định" : undefined}
+          >
             {active === "calibration" ? "Lập biên bản" : "Lập phiếu"}
           </button>
         )}

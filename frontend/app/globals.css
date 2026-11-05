@@ -2771,6 +2771,39 @@ textarea.form-control {
   padding-bottom: 3px;
 }
 
+/* Điện thoại: tab một hàng riêng, ô lọc và nút chính xuống hàng dưới, nút rộng hết hàng. */
+@media (max-width: 767.98px) {
+  .tabs-row {
+    flex-wrap: wrap;
+    border-bottom: 0;
+    gap: 8px;
+  }
+
+  .tabs-row > .nav-tabs {
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .tabs-row-actions {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    padding-bottom: 0;
+  }
+
+  .tabs-row-actions > .form-select {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+  }
+
+  .tabs-row-actions > .btn {
+    flex: 1 1 100%;
+  }
+}
+
 /* Form dài: thanh Lưu/Hủy dính đáy vùng cuộn. */
 .sticky-action-bar {
   position: sticky;
