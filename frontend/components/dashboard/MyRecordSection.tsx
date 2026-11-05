@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import type { EvaluationRecordDto } from "@/services/evaluationService";
+import type { MyLastResultDto } from "@/services/dashboardService";
 import { fmt } from "@/services/criteriaService";
 import { GradeBadge } from "@/components/common/StatusBadge";
 import { actorOf, performersText } from "@/components/evaluations/RecordProgress";
@@ -15,7 +16,7 @@ const hasGrade = (grade?: string | null) => !!grade && grade !== "ChuaXepLoai";
 type Fact = { label: string; value: React.ReactNode; late?: boolean };
 
 /** Thẻ hồ sơ của người dùng trong kỳ đang chọn: trạng thái, bước đang chờ, ai làm, hạn; đã công bố thì kết quả chính thức. */
-export function MyRecordSection({ record }: { record: EvaluationRecordDto }) {
+export function MyRecordSection({ record, lastResult }: { record: EvaluationRecordDto; lastResult?: MyLastResultDto | null }) {
   const ownStep = ownerCurrentStep(record);
   const current = record.progress?.find((s) => s.state === "current") ?? null;
   const myTurn = !!ownStep || !!record.returnReason;
@@ -41,6 +42,8 @@ export function MyRecordSection({ record }: { record: EvaluationRecordDto }) {
   }
 
   const actionLabel = myTurn && current ? taskActionLabel({ step: current.step, mode: current.mode, status: record.status }) : "Mở hồ sơ";
+  const steps = (record.progress ?? []).filter((s) => s.enabled && s.state !== "skipped");
+  const doneCount = steps.filter((s) => s.state === "done").length;
 
   return (
     <section className={`${styles.block} ${styles.mine}`} aria-label="Hồ sơ của tôi">
@@ -65,6 +68,29 @@ export function MyRecordSection({ record }: { record: EvaluationRecordDto }) {
               </div>
             ))}
           </dl>
+        )}
+        {steps.length > 1 && !published && (
+          <div className={styles.mineProgress}>
+            <ol className={styles.mineSteps} aria-label={`Đã qua ${doneCount}/${steps.length} bước`}>
+              {steps.map((s) => (
+                <li
+                  key={s.step}
+                  className={s.state === "done" ? styles.msDone : s.state === "current" ? styles.msCurrent : undefined}
+                  title={`${s.name}${s.state === "done" ? " · đã xong" : s.state === "current" ? " · đang ở bước này" : ""}`}
+                />
+              ))}
+            </ol>
+            <span className={`${styles.muted} num`}>
+              {doneCount}/{steps.length} bước
+            </span>
+          </div>
+        )}
+        {lastResult && (
+          <Link href={`/evaluations/${lastResult.recordId}`} className={styles.mineLast}>
+            <span className={styles.muted}>Kết quả {lastResult.periodName}:</span>
+            {hasGrade(lastResult.grade) ? <GradeBadge grade={lastResult.grade} /> : <span>Chưa xếp loại</span>}
+            {hasGrade(lastResult.grade) && lastResult.score > 0 && <span className="num">{fmt(lastResult.score)} điểm</span>}
+          </Link>
         )}
         {record.notRatedReason && !published && <span className={styles.mineReason}>{record.notRatedReason}</span>}
         {record.returnReason && <span className={styles.mineReason}>Bị trả lại: {record.returnReason}</span>}

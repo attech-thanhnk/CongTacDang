@@ -60,9 +60,10 @@ public class UserController : ControllerBase
         [FromQuery] Guid? departmentId = null,
         [FromQuery] Guid? partyCellId = null,
         [FromQuery] bool? isActive = null,
+        [FromQuery] string? flag = null,
         CancellationToken ct = default)
     {
-        var result = await _accounts.SearchAsync(new AccountSearchQuery(page, pageSize, q, departmentId, partyCellId, isActive), ct);
+        var result = await _accounts.SearchAsync(new AccountSearchQuery(page, pageSize, q, departmentId, partyCellId, isActive, flag), ct);
         return Ok(ApiResponse<PagedResult<AccountListItemDto>>.Ok(result, "Lấy danh sách tài khoản thành công."));
     }
 

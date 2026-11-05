@@ -60,7 +60,20 @@ export interface AccountSearchParams {
   departmentId?: string;
   partyCellId?: string;
   isActive?: boolean;
+  /** Bộ lọc việc cần xử lý, xem ACCOUNT_FLAG_LABELS. */
+  flag?: string;
 }
+
+/** Bộ lọc tài khoản mở từ Tổng quan (mã khớp máy chủ). */
+export const ACCOUNT_FLAG_LABELS: Record<string, string> = {
+  locked: "Đang bị khóa",
+  neverLoggedIn: "Chưa đăng nhập lần nào",
+  recentLogin: "Đăng nhập trong 7 ngày",
+  roleExpiring: "Vai trò hết hạn trong 30 ngày tới",
+  noPartyCell: "Đảng viên chưa có tổ chức Đảng",
+  cellWithChildren: "Sinh hoạt tại tổ chức Đảng có tổ chức con",
+  noPosition: "Chưa có chức vụ",
+};
 
 export interface CreateAccountPayload {
   username: string;
@@ -194,6 +207,7 @@ export const userService = {
         departmentId: params.departmentId,
         partyCellId: params.partyCellId,
         isActive: params.isActive,
+        flag: params.flag,
       })}`
     );
   },

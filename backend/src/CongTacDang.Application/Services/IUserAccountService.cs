@@ -89,4 +89,5 @@ public sealed record AccountSearchQuery(
     string? Query = null,
     Guid? DepartmentId = null,
     Guid? PartyCellId = null,
-    bool? IsActive = null);
+    bool? IsActive = null,
+    string? Flag = null);

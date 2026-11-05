@@ -1,0 +1,172 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using CongTacDang.Application.Common.Security;
+using CongTacDang.Application.Organization;
+using CongTacDang.Domain.Entities;
+using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
+using CongTacDang.IntegrationTests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Xunit;
+
+namespace CongTacDang.IntegrationTests;
+
+/// <summary>Tổng quan: tiến độ chỉ trong phạm vi người xem, đếm quá hạn / sắp đến hạn theo bước hiện tại; việc quản trị theo quyền.</summary>
+[Collection(ApiCollection.Name)]
+public sealed class DashboardIntegrationTests
+{
+    private readonly ApiFactory _factory;
+
+    public DashboardIntegrationTests(ApiFactory factory) => _factory = factory;
+
+    [SkippableFact]
+    public async Task Overview_ScopeFilteredAndCountsOverdue()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var sfx = Guid.NewGuid().ToString("N")[..6];
+        Guid deptA = Guid.Empty, deptB = Guid.Empty, cellA = Guid.Empty, cellB = Guid.Empty;
+        await _factory.WithDbAsync(async db =>
+        {
+            var a = new AdministrativeDepartment { Code = $"D-A-{sfx}", Name = $"Phòng A {sfx}" };
+            a.Path = OrgTree.BuildPath(null, a.Id);
+            var b = new AdministrativeDepartment { Code = $"D-B-{sfx}", Name = $"Phòng B {sfx}" };
+            b.Path = OrgTree.BuildPath(null, b.Id);
+            var ca = new PartyCell { Code = $"D-CA-{sfx}", Name = $"Chi bộ A {sfx}" };
+            ca.Path = OrgTree.BuildPath(null, ca.Id);
+            var cb = new PartyCell { Code = $"D-CB-{sfx}", Name = $"Chi bộ B {sfx}" };
+            cb.Path = OrgTree.BuildPath(null, cb.Id);
+            db.AddRange(a, b, ca, cb);
+            await db.SaveChangesAsync();
+            (deptA, deptB, cellA, cellB) = (a.Id, b.Id, ca.Id, cb.Id);
+        });
+
+        var evaluatee = await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA");
+        var manager = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(manager.Id, await _factory.GetRoleIdAsync("CO_QUAN_THAM_DINH"), RoleScopeType.Global, null);
+        var readerRole = (await _factory.CreateRoleAsync(PermissionCodes.EvaluationRead)).Id;
+        var leader = await _factory.CreateUserAsync(deptA, null, ApprovalAuthority.CoSo, $"D Trưởng phòng {sfx}");
+        await _factory.AssignAsync(leader.Id, readerRole, RoleScopeType.Department, deptA);
+
+        var late = await _factory.CreateUserAsync(deptA, cellA, ApprovalAuthority.CoSo, $"D Chậm {sfx}");
+        var soon = await _factory.CreateUserAsync(deptA, cellA, ApprovalAuthority.CoSo, $"D Sắp hạn {sfx}");
+        var other = await _factory.CreateUserAsync(deptB, cellB, ApprovalAuthority.CoSo, $"D Phòng khác {sfx}");
+        var members = new[] { late, soon, other };
+        foreach (var m in members)
+            await _factory.AssignAsync(m.Id, evaluatee, RoleScopeType.Global, null);
+
+        using var managerC = await _factory.LoginAsAsync(manager.Username, manager.Password, distinctClientIp: true);
+        using var leaderC = await _factory.LoginAsAsync(leader.Username, leader.Password, distinctClientIp: true);
+        using var lateC = await _factory.LoginAsAsync(late.Username, late.Password, distinctClientIp: true);
+
+        var created = await Data(await managerC.PostAsJsonAsync("/api/evaluations/periods", new
+        {
+            year = TestPeriodSlots.NextYear(), quarter = TestPeriodSlots.Quarter, criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(managerC),
+            name = $"Kỳ tổng quan {sfx}", startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
+        }));
+        var periodId = created.GetProperty("id").GetGuid();
+        await PeriodGates.DisableAsync(managerC, periodId);
+        await Data(await managerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = members.Select(m => m.Id).ToArray() }));
+        var period = await Data(managerC, $"/api/evaluations/periods/{periodId}");
+        await Data(await managerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open",
+            new { version = period.GetProperty("version").GetUInt32(), force = true, reason = "Kiểm thử tổng quan" }));
+
+        // Hạn đăng ký đã qua 3 ngày, hạn tự chấm là hôm nay.
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        await _factory.WithDbAsync(async db =>
+        {
+            var p = await db.EvaluationPeriods.SingleAsync(x => x.Id == periodId);
+            var settings = p.GetSettings();
+            foreach (var profile in settings.Profiles)
+            {
+                foreach (var setting in profile.Steps.Values)
+                {
+                    setting.Rule = null;
+                    setting.Deadline = null;
+                }
+                profile.Step(WorkflowStep.B1_REGISTER).Deadline = today.AddDays(-3);
+                profile.Step(WorkflowStep.B2_SELF_SCORE).Deadline = today;
+                profile.Step(WorkflowStep.B5_PUBLISH).Deadline = today.AddDays(30);
+            }
+            p.Settings = settings.ToJson();
+            var ids = members.Select(m => m.Id).ToList();
+            foreach (var r in await db.EvaluationRecords.Where(r => r.PeriodId == periodId && ids.Contains(r.MemberId)).ToListAsync())
+                r.Status = r.MemberId == soon.Id ? RecordStatus.AwaitingSelfScore : RecordStatus.AwaitingRegistration;
+            await db.SaveChangesAsync();
+        });
+
+        // Trưởng phòng A: chỉ thấy hai hồ sơ của phòng A; một quá hạn, một đến hạn hôm nay.
+        var leaderView = await Data(leaderC, $"/api/dashboard/overview?periodId={periodId}");
+        var scope = leaderView.GetProperty("scope");
+        Assert.Equal(2, scope.GetProperty("total").GetInt32());
+        Assert.Equal(1, scope.GetProperty("overdue").GetInt32());
+        Assert.Equal(1, scope.GetProperty("dueSoon").GetInt32());
+        var steps = scope.GetProperty("steps").EnumerateArray().ToList();
+        Assert.Equal(new[] { "B1_REGISTER", "B2_SELF_SCORE" }, steps.Select(s => s.GetProperty("step").GetString()));
+        Assert.Equal(1, steps[0].GetProperty("overdue").GetInt32());
+        var lateRows = scope.GetProperty("late").EnumerateArray().ToList();
+        var lateRow = Assert.Single(lateRows);
+        Assert.Equal($"D Chậm {sfx}", lateRow.GetProperty("fullName").GetString());
+        Assert.Equal(3, lateRow.GetProperty("daysOverdue").GetInt32());
+        Assert.Equal($"D Chậm {sfx}", lateRow.GetProperty("performer").GetString());
+        var group = Assert.Single(scope.GetProperty("groups").EnumerateArray());
+        Assert.Equal(cellA, group.GetProperty("partyCellId").GetGuid());
+        Assert.Equal(1, group.GetProperty("overdue").GetInt32());
+
+        // Lịch kỳ: đăng ký đã qua, tự chấm đang diễn ra.
+        var timeline = leaderView.GetProperty("timeline").GetProperty("steps").EnumerateArray().ToList();
+        Assert.Equal("done", timeline.Single(s => s.GetProperty("step").GetString() == "B1_REGISTER").GetProperty("state").GetString());
+        Assert.Equal("current", timeline.Single(s => s.GetProperty("step").GetString() == "B2_SELF_SCORE").GetProperty("state").GetString());
+
+        // Toàn công ty thấy cả phòng B.
+        var managerScope = (await Data(managerC, $"/api/dashboard/overview?periodId={periodId}")).GetProperty("scope");
+        Assert.Equal(3, managerScope.GetProperty("total").GetInt32());
+        Assert.Equal(2, managerScope.GetProperty("overdue").GetInt32());
+        Assert.Equal(2, managerScope.GetProperty("groups").GetArrayLength());
+
+        // Cán bộ chỉ có hồ sơ của mình: có lịch kỳ, không có tiến độ phạm vi, không xem được việc quản trị.
+        var ownView = await Data(lateC, $"/api/dashboard/overview?periodId={periodId}");
+        Assert.Equal(JsonValueKind.Null, ownView.GetProperty("scope").ValueKind);
+        Assert.NotEqual(JsonValueKind.Null, ownView.GetProperty("timeline").ValueKind);
+        Assert.Equal(HttpStatusCode.Forbidden, (await lateC.GetAsync("/api/dashboard/admin")).StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task AdminSummary_CountsLockedAccounts_FilterMatchesUsersPage()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var admin = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(admin.Id, await _factory.GetAdministratorRoleIdAsync(), RoleScopeType.Global, null);
+        var locked = await _factory.CreateUserAsync();
+        await _factory.WithDbAsync(async db =>
+        {
+            var m = await db.PartyMemberProfiles.SingleAsync(x => x.Id == locked.Id);
+            m.LockoutEnd = DateTime.UtcNow.AddMinutes(30);
+            await db.SaveChangesAsync();
+        });
+
+        using var adminC = await _factory.LoginAsAsync(admin.Username, admin.Password, distinctClientIp: true);
+        var summary = await Data(adminC, "/api/dashboard/admin");
+        var item = summary.GetProperty("items").EnumerateArray().Single(i => i.GetProperty("code").GetString() == "locked");
+        Assert.True(item.GetProperty("count").GetInt32() >= 1);
+        Assert.Equal("/admin/users?flag=locked", item.GetProperty("link").GetString());
+        Assert.DoesNotContain(summary.GetProperty("items").EnumerateArray(), i => i.GetProperty("count").GetInt32() == 0);
+        var usage = summary.GetProperty("usage");
+        Assert.True(usage.GetProperty("recentLogins").GetInt32() >= 1);
+
+        var page = await Data(adminC, "/api/users?flag=locked&pageSize=200");
+        Assert.Equal(item.GetProperty("count").GetInt32(), page.GetProperty("totalCount").GetInt32());
+        Assert.Contains(page.GetProperty("items").EnumerateArray(), u => u.GetProperty("id").GetGuid() == locked.Id);
+        Assert.Equal(HttpStatusCode.BadRequest, (await adminC.GetAsync("/api/users?flag=khong-co")).StatusCode);
+    }
+
+    private static async Task<JsonElement> Data(HttpClient client, string url) => await Data(await client.GetAsync(url));
+
+    private static async Task<JsonElement> Data(HttpResponseMessage response)
+    {
+        var text = await response.Content.ReadAsStringAsync();
+        Assert.True(response.IsSuccessStatusCode, $"{(int)response.StatusCode} {response.RequestMessage?.RequestUri}: {text}");
+        using var json = JsonDocument.Parse(text);
+        return json.RootElement.GetProperty("data").Clone();
+    }
+}

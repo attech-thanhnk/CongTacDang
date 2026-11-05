@@ -12,7 +12,7 @@ import { NoAccess } from "@/components/admin/NoAccess";
 import { TemporaryCredential, TemporaryPasswordModal } from "@/components/admin/TemporaryPasswordModal";
 import { errorMessage, errorTitle, formatDateTime } from "@/components/admin/adminUtils";
 import { useCatalogOptions } from "@/components/admin/useCatalogOptions";
-import { AccountListItem, CreateAccountPayload, PagedResult, userService } from "@/services/userService";
+import { ACCOUNT_FLAG_LABELS, AccountListItem, CreateAccountPayload, PagedResult, userService } from "@/services/userService";
 import { treeLabel } from "@/services/catalogService";
 import styles from "./users.module.css";
 
@@ -23,9 +23,17 @@ interface Filters {
   departmentId: string;
   partyCellId: string;
   status: StatusFilter;
+  flag: string;
 }
 
-const EMPTY_FILTERS: Filters = { q: "", departmentId: "", partyCellId: "", status: "" };
+const EMPTY_FILTERS: Filters = { q: "", departmentId: "", partyCellId: "", status: "", flag: "" };
+
+// Bộ lọc mở sẵn từ đường dẫn (bấm mục cần xử lý ở Tổng quan).
+function initialFilters(): Filters {
+  if (typeof window === "undefined") return EMPTY_FILTERS;
+  const flag = new URLSearchParams(window.location.search).get("flag") ?? "";
+  return { ...EMPTY_FILTERS, flag: ACCOUNT_FLAG_LABELS[flag] ? flag : "" };
+}
 
 /** Quản trị tài khoản: danh sách phân trang phía máy chủ, tìm kiếm, lọc; tạo tài khoản. */
 export default function AdminUsersPage() {
@@ -35,8 +43,8 @@ export default function AdminUsersPage() {
   const canManage = hasPermission("system.users.manage");
   const { departments, partyCells } = useCatalogOptions();
 
-  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [draft, setDraft] = useState<Filters>(initialFilters);
+  const [filters, setFilters] = useState<Filters>(initialFilters);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = usePageSize("admin.users");
   const [result, setResult] = useState<PagedResult<AccountListItem> | null>(null);
@@ -55,6 +63,7 @@ export default function AdminUsersPage() {
         departmentId: filters.departmentId || undefined,
         partyCellId: filters.partyCellId || undefined,
         isActive: filters.status === "" ? undefined : filters.status === "active",
+        flag: filters.flag || undefined,
       });
       setResult(data);
     } catch (err) {
@@ -119,7 +128,7 @@ export default function AdminUsersPage() {
             </button>
           ) : undefined}>
             <form className={styles.filters} onSubmit={applyFilters}>
-              <div className="col-12 col-md-6 col-xl-4">
+              <div className="col-12 col-md-6 col-xl-2">
                 <label className="form-label" htmlFor="users-q">
                   Tìm kiếm
                 </label>
@@ -180,6 +189,24 @@ export default function AdminUsersPage() {
                   <option value="">Tất cả</option>
                   <option value="active">Đang hoạt động</option>
                   <option value="inactive">Vô hiệu</option>
+                </select>
+              </div>
+              <div className="col-6 col-md-3 col-xl-2">
+                <label className="form-label" htmlFor="users-flag">
+                  Cần xử lý
+                </label>
+                <select
+                  id="users-flag"
+                  className="form-select form-select-sm"
+                  value={draft.flag}
+                  onChange={(e) => setDraft({ ...draft, flag: e.target.value })}
+                >
+                  <option value="">Tất cả</option>
+                  {Object.entries(ACCOUNT_FLAG_LABELS).map(([code, label]) => (
+                    <option key={code} value={code}>
+                      {label}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="col-6 col-md-3 col-xl-2 d-flex gap-1">

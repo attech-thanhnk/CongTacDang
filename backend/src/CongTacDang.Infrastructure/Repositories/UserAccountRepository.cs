@@ -102,6 +102,8 @@ public sealed class UserAccountRepository : IUserAccountRepository
             query = query.Where(m => m.PartyCellId == criteria.PartyCellId);
         if (criteria.IsActive.HasValue)
             query = query.Where(m => m.IsActive == criteria.IsActive.Value);
+        if (criteria.Flag != null)
+            query = ApplyFlag(query, criteria.Flag, DateTime.UtcNow);
 
         var total = await query.CountAsync(ct);
         var items = await query
@@ -142,6 +144,27 @@ public sealed class UserAccountRepository : IUserAccountRepository
 
     private static string EscapeLike(string value) =>
         value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+
+    private IQueryable<PartyMemberProfile> ApplyFlag(IQueryable<PartyMemberProfile> query, string flag, DateTime now)
+    {
+        var active = query.Where(m => m.IsActive);
+        var recentFrom = now.AddDays(-AccountFlags.RecentLoginDays);
+        var expiringTo = now.AddDays(AccountFlags.RoleExpiringDays);
+        return flag switch
+        {
+            AccountFlags.Locked => active.Where(m => m.LockoutEnd != null && m.LockoutEnd > now),
+            AccountFlags.NeverLoggedIn => active.Where(m => m.LastLoginAt == null),
+            AccountFlags.RecentLogin => active.Where(m => m.LastLoginAt != null && m.LastLoginAt >= recentFrom),
+            AccountFlags.RoleExpiring => active.Where(m => _db.Set<UserRoleAssignment>()
+                .Any(a => a.UserId == m.Id && !a.IsDeleted && a.ValidTo != null && a.ValidTo > now && a.ValidTo <= expiringTo)),
+            AccountFlags.NoPartyCell => active.Where(m => m.IsPartyMember && m.PartyCellId == null),
+            AccountFlags.CellWithChildren => active.Where(m => m.PartyCellId != null
+                && _db.PartyCells.Any(c => c.ParentId == m.PartyCellId && c.IsActive)),
+            AccountFlags.NoPosition => active.Where(m => !_db.MemberPositions
+                .Any(p => p.UserId == m.Id && !p.IsDeleted && p.ValidFrom <= now && (p.ValidTo == null || p.ValidTo > now))),
+            _ => query
+        };
+    }
 }
 
 public sealed class LoginEventRepository : ILoginEventRepository

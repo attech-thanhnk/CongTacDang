@@ -56,7 +56,41 @@ public sealed record AccountSearchCriteria(
     Guid? DepartmentId = null,
     Guid? PartyCellId = null,
     bool? IsActive = null,
-    AccountScope? Scope = null);
+    AccountScope? Scope = null,
+    string? Flag = null);
+
+/// <summary>Bộ lọc tài khoản cần quản trị xử lý; mã dùng trên đường dẫn trang Tài khoản.</summary>
+public static class AccountFlags
+{
+    /// <summary>Đang hoạt động, bị khóa tạm do sai mật khẩu.</summary>
+    public const string Locked = "locked";
+
+    /// <summary>Đang hoạt động, chưa đăng nhập lần nào.</summary>
+    public const string NeverLoggedIn = "neverLoggedIn";
+
+    /// <summary>Đang hoạt động, đăng nhập trong <see cref="RecentLoginDays"/> ngày gần đây.</summary>
+    public const string RecentLogin = "recentLogin";
+
+    /// <summary>Có vai trò hết hạn trong <see cref="RoleExpiringDays"/> ngày tới.</summary>
+    public const string RoleExpiring = "roleExpiring";
+
+    /// <summary>Đảng viên đang hoạt động chưa có tổ chức Đảng.</summary>
+    public const string NoPartyCell = "noPartyCell";
+
+    /// <summary>Sinh hoạt tại tổ chức Đảng có tổ chức con.</summary>
+    public const string CellWithChildren = "cellWithChildren";
+
+    /// <summary>Đang hoạt động, chưa giữ chức vụ nào còn hiệu lực.</summary>
+    public const string NoPosition = "noPosition";
+
+    public const int RecentLoginDays = 7;
+    public const int RoleExpiringDays = 30;
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
+    {
+        Locked, NeverLoggedIn, RecentLogin, RoleExpiring, NoPartyCell, CellWithChildren, NoPosition
+    };
+}
 
 /// <summary>Tài khoản thuộc một trong các Phòng hoặc Chi bộ được phép.</summary>
 public sealed record AccountScope(IReadOnlyList<Guid> DepartmentIds, IReadOnlyList<Guid> PartyCellIds);

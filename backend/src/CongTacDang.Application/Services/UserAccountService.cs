@@ -149,13 +149,17 @@ public sealed class UserAccountService : IUserAccountService
         ArgumentNullException.ThrowIfNull(query);
         var (page, pageSize) = Paging.Normalize(query.Page, query.PageSize);
 
+        var flag = string.IsNullOrWhiteSpace(query.Flag) ? null : query.Flag.Trim();
+        if (flag != null && !AccountFlags.All.Contains(flag))
+            throw new ValidationException("Lọc tài khoản không thành công: bộ lọc không hợp lệ.");
+
         var scope = Authz.GetScope(PermissionCodes.SystemUsersRead);
         if (scope.IsEmpty)
             return new PagedResult<AccountListItemDto> { Page = page, PageSize = pageSize };
 
         var criteria = new AccountSearchCriteria(
             page, pageSize, query.Query, query.DepartmentId, query.PartyCellId, query.IsActive,
-            scope.IsGlobal ? null : new AccountScope(scope.DepartmentIds, scope.PartyCellIds));
+            scope.IsGlobal ? null : new AccountScope(scope.DepartmentIds, scope.PartyCellIds), flag);
         var result = await Accounts.SearchAsync(criteria, ct);
         return new PagedResult<AccountListItemDto>
         {

@@ -91,7 +91,10 @@ export default function PeriodDetailPage() {
       setPeriod(loaded);
       if (!initialTabRef.current) {
         initialTabRef.current = true;
-        if (canManage && (loaded.status === "Open" || loaded.status === "Locked")) setTab("progress");
+        // Mở từ Tổng quan (bước chưa có người thực hiện) thì vào thẳng tab Người thực hiện các bước.
+        const wanted = new URLSearchParams(window.location.search).get("tab");
+        if (canManage && wanted === "readiness" && loaded.status !== "Closed") setTab("readiness");
+        else if (canManage && (loaded.status === "Open" || loaded.status === "Locked")) setTab("progress");
       }
       if (!dirtyRef.current) setSettings(JSON.parse(JSON.stringify(loaded.settings)));
       if (canManage) {

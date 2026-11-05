@@ -392,35 +392,207 @@ a.name:hover {
   border-top: 1px solid var(--rule);
 }
 
-/* Lối tắt quản trị */
-.shortcuts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.shortcut {
+/* Hồ sơ của tôi: thanh tiến độ các bước và kết quả kỳ trước */
+.mineProgress {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 20px;
-  border-left: 1px solid var(--rule);
+  font-size: 12.5px;
+}
+
+.mineSteps {
+  display: flex;
+  gap: 3px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 0 1 320px;
+  min-width: 120px;
+}
+
+.mineSteps li {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--rule);
+}
+
+.mineSteps li.msDone {
+  background: var(--primary-line);
+}
+
+.mineSteps li.msCurrent {
+  background: var(--primary);
+}
+
+.mineLast {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
   color: var(--ink);
+  text-decoration: none;
+  align-self: flex-start;
+}
+
+.mineLast:hover {
+  color: var(--primary-ink);
+}
+
+/* Lịch kỳ: một dải ngang, màn hẹp cuộn ngang trong khối */
+.todayMark {
+  margin-left: auto;
+  font-size: 13px;
   font-weight: 500;
+  color: var(--primary-ink);
+}
+
+.timeline {
+  display: flex;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 12px 14px 14px;
+  overflow-x: auto;
+}
+
+.tlStep {
+  flex: 1 1 0;
+  min-width: 92px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.tlBar {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--rule);
+}
+
+.tlDone .tlBar {
+  background: var(--primary-line);
+}
+
+.tlCurrent {
+  background: var(--primary-tint);
+}
+
+.tlCurrent .tlBar {
+  background: var(--primary);
+}
+
+.tlName {
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--ink-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tlCurrent .tlName {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.tlDate {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.tlCurrent .tlDate {
+  color: var(--primary-ink);
+  font-weight: 600;
+}
+
+.tlNow {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--paper);
+  background: var(--primary);
+  border-radius: 4px;
+  padding: 0 5px;
+}
+
+/* Tiến độ trong phạm vi */
+.flagTag {
   text-decoration: none;
 }
 
-.shortcut:first-child {
-  border-left: 0;
+.flagTag b {
+  font-weight: 700;
+  margin-left: 2px;
 }
 
-.shortcut:hover {
+.stepCounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  padding: 12px 20px;
+  font-size: 13.5px;
+}
+
+.lateList {
+  border-top: 1px solid var(--rule);
+}
+
+.cellRow.cellRow4 {
+  grid-template-columns: minmax(0, 320px) 56px 64px minmax(120px, 1fr);
+}
+
+@media (max-width: 767.98px) {
+  .cellRow.cellRow4 {
+    grid-template-columns: minmax(0, 1fr) 40px 48px;
+    gap: 6px 12px;
+  }
+  .cellRow4 .seg {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Quản trị: việc cần xử lý, hoạt động gần đây */
+.usage {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.alerts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--rule);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.alert b {
+  color: var(--bad);
+  font-weight: 700;
+}
+
+.alert:hover {
   background: var(--tint);
   color: var(--primary-ink);
 }
 
-.shortcut > .bi:first-child {
-  color: var(--primary);
-  font-size: 17px;
+.alerts .alert:first-child {
+  border-top: 0;
 }
 
 .shortcutGo {
@@ -429,27 +601,45 @@ a.name:hover {
   font-size: 12px;
 }
 
-@media (max-width: 767.98px) {
-  .shortcuts {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .shortcut {
-    border-left: 0;
-    border-top: 1px solid var(--rule);
-  }
-  .shortcut:first-child {
-    border-top: 0;
-  }
+.activity {
+  list-style: none;
+  margin: 0;
+  padding: 0 20px 12px;
 }
 
-/* Dòng tóm tắt hồ sơ trong phạm vi: chỉ các giai đoạn có hồ sơ */
-.scopeSummary {
+.activity li {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 16px;
-  font-size: 13.5px;
-  color: var(--ink-2);
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 13px;
+  border-top: 1px solid var(--rule);
+}
+
+.activity li:first-child {
+  border-top: 0;
+}
+
+.activityTime {
+  flex: 0 0 auto;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.activityText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+  .activity li {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .activityText {
+    white-space: normal;
+  }
 }
 
 .scopeItem {
