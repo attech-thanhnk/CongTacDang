@@ -99,7 +99,7 @@ export function AppealPanel({ record, onRecordChanged, onPendingChange }: Props)
           failedFiles.push(file.name);
         }
       }
-    }, "Đã gửi kiến nghị. Kết quả được ghi chú \"đang xem xét\" tới khi có trả lời.");
+    }, "Đã gửi kiến nghị.");
     if (ok && failedFiles.length > 0) {
       toast.warning(`Tải lên không thành công: ${failedFiles.join(", ")}. Hãy dùng mục "Bổ sung tệp" của kiến nghị để tải lại.`, "Kiến nghị đã gửi, thiếu tệp", 12000);
     }
@@ -196,6 +196,8 @@ export function AppealPanel({ record, onRecordChanged, onPendingChange }: Props)
         title="Mở lại hồ sơ theo kiến nghị"
         confirmText="Mở lại hồ sơ"
         targetSteps={reopenTargets}
+        // Quay về bước sớm nhất mà kiến nghị nêu (thứ tự luồng).
+        defaultTargetStep={reopenTargets?.find((s) => reopenAppeal?.concernedSteps.includes(s)) ?? null}
         unlock={reopenUnlock}
         busy={busy}
         onCancel={() => setReopenAppeal(null)}
@@ -284,7 +286,7 @@ function AppealItem({
         </div>
       )}
       {appeal.reopenedAt && <div className="small text-secondary">Hồ sơ đã được mở lại theo kiến nghị lúc {formatDateTime(appeal.reopenedAt)}.</div>}
-      {appeal.resolveBlockedReason && <div className="small text-danger">{appeal.resolveBlockedReason}</div>}
+      {appeal.resolveBlockedReason && <div className="small text-secondary">{appeal.resolveBlockedReason}</div>}
 
       <div className="d-flex gap-2 flex-wrap">
         {appeal.canResolve && appeal.status === "Submitted" && (

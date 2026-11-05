@@ -7,6 +7,7 @@
     powershell -File scripts/tao-du-lieu-thu.ps1 -LamSach
   Giai đoạn (hồ sơ dừng ở bước này, chờ người làm tiếp):
     dang-ky, tu-cham, tap-the, tham-dinh, nhan-xet, quyet-dinh, cong-bo
+  Thử Mẫu 17: -MucQuyetDinh @{ 'trung.nb' = 'HoanThanh'; 'cuong.nt' = 'KhongHoanThanh' }
   Mỗi bước dùng tài khoản đầu tiên trong -TaiKhoan có nút thao tác trên hồ sơ (theo API actions).
   -LamSach làm rỗng các bảng vận hành (kỳ, hồ sơ, biên bản, phiếu, nhật ký) của CSDL thử qua docker; tài khoản, danh mục giữ nguyên.
 #>
@@ -21,7 +22,9 @@ param(
     [string]$MatKhau = 'Thu12345a',
     # CSDL mà backend dev đang dùng; -LamSach chỉ chạy trên CSDL thử
     [string]$CsdlDev = 'congtacdang_dev',
-    [string]$PgContainer = 'attech-dangbo-postgres'
+    [string]$PgContainer = 'attech-dangbo-postgres',
+    # Mức quyết định riêng theo tài khoản (mặc định HoanThanhTot), để thử Mẫu 17 với người xếp loại thấp
+    [hashtable]$MucQuyetDinh = @{}
 )
 $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
@@ -267,10 +270,12 @@ $ExternalAuthority = @{
 }
 
 function New-StepBody([string]$step, [string]$action, $record, [string]$username, $criteria) {
+    $decisionGrade = if ($MucQuyetDinh.ContainsKey($username)) { $MucQuyetDinh[$username] } else { 'HoanThanhTot' }
     if ($action -eq 'RecordExternal') {
+        $grade = if ($step -eq 'B4_DECISION') { $decisionGrade } else { 'HoanThanhTot' }
         return [ordered]@{
             authorityName = $ExternalAuthority[$step]; documentNumber = '01/TB-THU'; documentDate = $TodayIso
-            comment = 'Ghi nhận kết quả của cấp trên'; grade = 'HoanThanhTot'
+            comment = 'Ghi nhận kết quả của cấp trên'; grade = $grade
         }
     }
     switch ($step) {
@@ -295,7 +300,7 @@ function New-StepBody([string]$step, [string]$action, $record, [string]$username
         'B3C_DIRECTOR' { return @{ comment = 'Hoàn thành tốt nhiệm vụ được giao'; proposedGrade = 'HoanThanhTot' } }
         'B4_DECISION' {
             return [ordered]@{
-                finalGrade = 'HoanThanhTot'; documentNumber = '01-QĐ/ĐU'; documentDate = $TodayIso
+                finalGrade = $decisionGrade; documentNumber = '01-QĐ/ĐU'; documentDate = $TodayIso
                 explanation = 'Theo kết quả thẩm định và nhận xét'
             }
         }

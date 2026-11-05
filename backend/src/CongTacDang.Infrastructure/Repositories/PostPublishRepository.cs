@@ -81,7 +81,9 @@ public sealed class PostPublishRepository : IPostPublishRepository
             return new HashSet<Guid>();
         var ids = recordIds.ToList();
         return (await Appeals.AsNoTracking()
-            .Where(a => ids.Contains(a.RecordId) && (a.Status == AppealStatus.Submitted || a.Status == AppealStatus.UnderReview))
+            .Where(a => ids.Contains(a.RecordId)
+                && (a.Status == AppealStatus.Submitted || a.Status == AppealStatus.UnderReview
+                    || (a.Status == AppealStatus.Accepted && a.ReopenedAt == null && a.Record.Status == RecordStatus.Published)))
             .Select(a => a.RecordId)
             .Distinct()
             .ToListAsync(ct)).ToHashSet();
@@ -104,14 +106,22 @@ public sealed class PostPublishRepository : IPostPublishRepository
             .FirstOrDefaultAsync(a => a.Id == id, ct);
 
     /// <inheritdoc />
-    public Task<List<EvaluationAppeal>> ListOpenAppealsAsync(Guid? periodId, CancellationToken ct = default)
+    public Task<List<EvaluationAppeal>> ListOpenAppealsAsync(Guid? periodId, CancellationToken ct = default) =>
+        AppealsWithRecord(periodId, a => a.Status == AppealStatus.Submitted || a.Status == AppealStatus.UnderReview, ct);
+
+    /// <inheritdoc />
+    public Task<List<EvaluationAppeal>> ListAppealsAwaitingReopenAsync(Guid? periodId, CancellationToken ct = default) =>
+        AppealsWithRecord(periodId,
+            a => a.Status == AppealStatus.Accepted && a.ReopenedAt == null && a.Record.Status == RecordStatus.Published, ct);
+
+    private Task<List<EvaluationAppeal>> AppealsWithRecord(Guid? periodId, System.Linq.Expressions.Expression<Func<EvaluationAppeal, bool>> filter, CancellationToken ct)
     {
         var query = Appeals.AsNoTracking()
             .Include(a => a.Record).ThenInclude(r => r.Period)
             .Include(a => a.Record).ThenInclude(r => r.Member)
             .Include(a => a.Record).ThenInclude(r => r.Department)
             .Include(a => a.Record).ThenInclude(r => r.PartyCell)
-            .Where(a => a.Status == AppealStatus.Submitted || a.Status == AppealStatus.UnderReview);
+            .Where(filter);
         if (periodId.HasValue)
             query = query.Where(a => a.Record.PeriodId == periodId.Value);
         return query.OrderBy(a => a.SubmittedAt).ToListAsync(ct);

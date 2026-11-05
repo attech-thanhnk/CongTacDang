@@ -82,6 +82,8 @@ public sealed class CollectiveFormsReportsIntegrationTests
             Assert.Equal("M22", a1.Cell(4).GetString());
             Assert.Equal("Hoàn thành xuất sắc nhiệm vụ", a1.Cell(11).GetString());
             Assert.Contains("Căn cứ xuất sắc", a1.Cell(12).GetString());
+            // Lý do của cấp quyết định ghi trước ý kiến các cấp đề xuất.
+            Assert.StartsWith("Lý do quyết định: dẫn đầu khối", a1.Cell(12).GetString());
             // Cột 13: đề xuất về công tác cán bộ nhập ở bước quyết định.
             Assert.Equal("Đề xuất đưa vào quy hoạch cấp trên", a1.Cell(13).GetString());
             var capTren = book.Worksheet(2);
@@ -677,6 +679,7 @@ public sealed class CollectiveFormsReportsIntegrationTests
             var ra1 = Record(a1, s.CellA, ApprovalAuthority.CoSo, EvaluationGrade.HoanThanhXuatSac);
             ra1.AppraisalExplanation = "Căn cứ xuất sắc: vượt 3 sản phẩm";
             ra1.CadreWorkProposal = "Đề xuất đưa vào quy hoạch cấp trên";
+            ra1.DecisionExplanation = "Lý do quyết định: dẫn đầu khối";
             var rc1 = Record(c1, s.CellA, ApprovalAuthority.CapTren, EvaluationGrade.ChuaXepLoai);
             rc1.AppraisalProposedGrade = EvaluationGrade.HoanThanhTot;
             db.AddRange(

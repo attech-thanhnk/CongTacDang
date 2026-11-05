@@ -202,16 +202,18 @@ Duyệt danh mục (`B1_APPROVE`) của diện `co-so`, `bi-thu-nhan-vien` dùng
 ## 4a. Sau công bố (task 20, đợt 8)
 - **Công khai kết quả** (`GET /api/results`, trang Kết quả đánh giá, quyền `evaluation.results.view`): chỉ họ tên, chức danh, đơn vị,
   mức chính thức (điểm khi bộ tiêu chí bật `publishScores`), ghi chú "đang xem xét kiến nghị"; phạm vi = phạm vi bản gán, chủ hồ sơ
-  luôn thấy kết quả của mình. Không lộ chi tiết hồ sơ, minh chứng, ý kiến các cấp (HD03 II.2).
+  luôn thấy kết quả của mình (người Chưa xếp loại chỉ chính mình thấy dòng của mình). Không lộ chi tiết hồ sơ, minh chứng, ý kiến các cấp (HD03 II.2).
 - **Kiến nghị** (`EvaluationAppeal`, `Submitted → UnderReview → Accepted | Rejected`): chủ hồ sơ gửi sau công bố (`evaluation.appeal.submit`,
   không trùng khi đang xử lý, tệp gắn `EvaluationAppeal`); người có `evaluation.appeal.resolve` trong phạm vi nhận xem xét, trả lời
   bắt buộc căn cứ. Chặn xung đột lợi ích: chủ hồ sơ/người gửi và người đã thực hiện bước mà kiến nghị liên quan tới. Chấp nhận →
-  "Mở lại hồ sơ theo kiến nghị" dùng `Reopen` hiện có (quyền `evaluation.reopen`), lý do dẫn chiếu kiến nghị trong lịch sử.
+  "Mở lại hồ sơ theo kiến nghị" dùng `Reopen` hiện có (quyền `evaluation.reopen`), lý do dẫn chiếu kiến nghị trong lịch sử. Đã chấp nhận
+  mà chưa mở lại: kết quả vẫn ghi "đang xem xét", chưa gửi kiến nghị mới, việc nằm trong "Kiến nghị chờ xử lý" của người mở lại được.
 - **Kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17)** (`ImprovementPlan`, một kế hoạch/hồ sơ, `Draft → Approved → Acknowledged → Closed`):
   bắt buộc khi mức chính thức thuộc `improvementPlanRequiredGrades` của bộ tiêu chí; người có `evaluation.improvement.manage` (không
   trên hồ sơ của mình) lập, sửa khi đang lập, duyệt, ghi kết quả từng mốc; chủ hồ sơ xác nhận cam kết; mốc 90 ngày ghi kết quả → đóng.
   Xuất Word/PDF Mẫu 17 từ file mẫu dựng theo biểu mẫu gốc.
-- **Việc cần xử lý / chuông nhắc việc**: nhóm "Kiến nghị chờ xử lý", "Kế hoạch 30-60-90 ngày" (chỉ hồ sơ của kỳ đang
+- **Việc cần xử lý / chuông nhắc việc**: nhóm "Kiến nghị chờ xử lý", "Kế hoạch 30-60-90 ngày" (giao người gần nhất như các bước —
+  `IStepPerformers`, khi chờ duyệt bỏ người lập; chỉ hồ sơ của kỳ đang
   mở/khóa dữ liệu và kỳ đã đóng trong `improvementPlanAlertDays` ngày gần nhất, tính từ lúc đóng kỳ), "Kế hoạch chờ bạn xác nhận";
   `GET /api/notifications/summary` đếm tổng việc, bước quá hạn, sắp tới hạn (`Notifications:DueSoonDays`, mặc định 2).
 

@@ -155,7 +155,7 @@ export default function ResultsPage() {
                       <td>{item.departmentName || "—"}</td>
                       <td>
                         <div className="d-flex flex-wrap gap-1">
-                          <GradeBadge grade={item.finalGrade} />
+                          {item.finalGrade === "ChuaXepLoai" ? <Badge>Chưa xếp loại</Badge> : <GradeBadge grade={item.finalGrade} />}
                           {item.underReview && <Badge tone="warning">Đang xem xét kiến nghị</Badge>}
                         </div>
                       </td>
