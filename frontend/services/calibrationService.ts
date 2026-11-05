@@ -48,6 +48,8 @@ export interface CalibrationRecordDto {
   calibratedScore?: number | null;
   calibratedGrade: string;
   snapshotOutdated: boolean;
+  /** Đã có quyết định sau lần chốt trước: giữ nguyên, chốt lại không áp lại. */
+  kept: boolean;
 }
 
 export interface CalibrationAttendeeDto {

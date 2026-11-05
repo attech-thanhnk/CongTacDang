@@ -444,7 +444,7 @@ Với cơ quan ngoài hệ thống, người yêu cầu tự nhập kết quả 
 
 - Bấm **Chốt biên bản** ở đầu trang, xác nhận ("Kết quả sau họp thống nhất sẽ được áp vào các hồ sơ trong biên bản"). Biên bản chuyển "Đã chốt". Mức và điểm sau họp thống nhất của các trường hợp có điều chỉnh được áp vào hồ sơ; xem ở khối Thẩm định của hồ sơ (dòng **Mức sau họp thống nhất**, **Biên bản họp thống nhất**).
 - Nếu bạn là người lập, nút **Chốt biên bản** không hiện; dải vàng ghi "Người chốt biên bản phải khác người lập biên bản." Nếu biên bản còn thiếu nội dung, nút mờ và dải vàng liệt kê phần thiếu.
-- Biên bản đã chốt mà cần sửa: menu ⋯, **Mở lại**, nhập lý do. Kết quả đã áp vào các hồ sơ chưa ghi quyết định bị hủy, biên bản về "Đang soạn". Sửa, **Lưu**, rồi chốt lại.
+- Biên bản đã chốt mà cần sửa: menu ⋯, **Mở lại**, nhập lý do. Kết quả đã áp vào các hồ sơ chưa ghi quyết định bị hủy, biên bản về "Đang soạn". Hồ sơ đã có quyết định giữ nguyên dòng và kết quả, không cần gỡ ra. Sửa, **Lưu**, rồi chốt lại.
 
 **d) Hủy.** Menu ⋯, **Hủy biên bản**, nhập lý do. Chỉ hủy được biên bản "Đang soạn" (đã chốt thì **Mở lại** trước). Các hồ sơ được giải phóng để đưa vào biên bản khác.
 

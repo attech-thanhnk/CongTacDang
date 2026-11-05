@@ -87,6 +87,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     private readonly ICalibrationGate? _calibrationGate;
     private readonly IControlCheckGate? _controlGate;
     private readonly IStepPerformers? _stepPerformers;
+    private readonly ICalibrationWorkQueue? _calibrationQueue;
 
     public EvaluationWorkflowService(
         IEvaluationWorkflowRepository repo,
@@ -100,8 +101,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         ICrosscheckWorkQueue? crosscheckQueue = null,
         ICalibrationGate? calibrationGate = null,
         IControlCheckGate? controlGate = null,
-        IStepPerformers? stepPerformers = null)
+        IStepPerformers? stepPerformers = null,
+        ICalibrationWorkQueue? calibrationQueue = null)
     {
+        _calibrationQueue = calibrationQueue;
         _stepPerformers = stepPerformers;
         _taskChanges = taskChanges;
         _crosscheckGate = crosscheckGate;
@@ -1177,6 +1180,12 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             var crosschecks = await _crosscheckQueue.GetGroupsAsync(periodId, ct);
             queue.Groups.AddRange(crosschecks);
             queue.Total += crosschecks.Sum(g => g.Count);
+        }
+        if (_calibrationQueue != null)
+        {
+            var calibrations = await _calibrationQueue.GetGroupsAsync(periodId, ct);
+            queue.Groups.AddRange(calibrations);
+            queue.Total += calibrations.Sum(g => g.Count);
         }
         return queue;
     }

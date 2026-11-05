@@ -313,7 +313,9 @@ export default function CalibrationDetailPage() {
   const blockedNow = !dirty && !!data.concludeBlockedReason;
   const recordById = (rid: string) => draft.records.find((r) => r.recordId === rid);
   const caseIds = new Set(draft.cases.map((c) => c.recordId));
-  const freeForCase = draft.records.filter((r) => !caseIds.has(r.recordId));
+  // Hồ sơ đã có quyết định sau lần chốt trước: giữ nguyên dòng và trường hợp.
+  const kept = new Set(data.records.filter((r) => r.kept).map((r) => r.recordId));
+  const freeForCase = draft.records.filter((r) => !caseIds.has(r.recordId) && !kept.has(r.recordId));
 
   const removeRecord = (rid: string) =>
     set({ records: draft.records.filter((r) => r.recordId !== rid), cases: draft.cases.filter((c) => c.recordId !== rid) });
@@ -433,13 +435,16 @@ export default function CalibrationDetailPage() {
                               <Link href={`/evaluations/${r.recordId}`} className="fw-semibold text-decoration-none">{r.fullName}</Link>
                               <div className="small text-secondary">{r.unit || "—"}</div>
                               {r.outdated && <div className="small text-danger">Điểm hoặc mức của hồ sơ đã đổi: lưu biên bản để cập nhật.</div>}
+                              {kept.has(r.recordId) && <div className="small text-secondary">Đã có quyết định, giữ nguyên</div>}
                             </td>
                             <td><GradeBadge grade={r.gradeBefore} /></td>
                             <td className="text-end num">{score(r.scoreBefore)}</td>
                             <td>{full?.calibratedGrade ? <><GradeBadge grade={full.calibratedGrade} /> <span className="num small">{score(full.calibratedScore)}</span></> : "—"}</td>
                             {!ro && (
                               <td className="text-end">
-                                <button type="button" className="btn btn-link btn-sm text-danger p-0" disabled={busy} onClick={() => removeRecord(r.recordId)}>Gỡ</button>
+                                {!kept.has(r.recordId) && (
+                                  <button type="button" className="btn btn-link btn-sm text-danger p-0" disabled={busy} onClick={() => removeRecord(r.recordId)}>Gỡ</button>
+                                )}
                               </td>
                             )}
                           </tr>
@@ -453,11 +458,12 @@ export default function CalibrationDetailPage() {
                     <div key={r.recordId} className="border rounded p-2 small">
                       <div className="d-flex justify-content-between align-items-start gap-2">
                         <Link href={`/evaluations/${r.recordId}`} className="fw-semibold text-decoration-none">{r.fullName}</Link>
-                        {!ro && <button type="button" className="btn btn-link btn-sm text-danger p-0" disabled={busy} onClick={() => removeRecord(r.recordId)}>Gỡ</button>}
+                        {!ro && !kept.has(r.recordId) && <button type="button" className="btn btn-link btn-sm text-danger p-0" disabled={busy} onClick={() => removeRecord(r.recordId)}>Gỡ</button>}
                       </div>
                       <div className="text-secondary">{r.unit || "—"}</div>
                       <div className="d-flex gap-2 align-items-center mt-1"><GradeBadge grade={r.gradeBefore} /><span className="num">{score(r.scoreBefore)}</span></div>
                       {r.outdated && <div className="text-danger">Điểm hoặc mức của hồ sơ đã đổi: lưu biên bản để cập nhật.</div>}
+                      {kept.has(r.recordId) && <div className="text-secondary">Đã có quyết định, giữ nguyên</div>}
                     </div>
                   ))}
                 </div>
@@ -602,6 +608,7 @@ export default function CalibrationDetailPage() {
               const changed =
                 (c.gradeAfter !== "" && c.gradeAfter !== beforeGrade) ||
                 (c.scoreAfter.trim() !== "" && (beforeScore == null || Math.abs(Number(c.scoreAfter) - beforeScore) >= 0.0001));
+              const lock = ro || kept.has(c.recordId);
               return (
                 <div key={c.recordId} className="border rounded p-3 d-flex flex-column gap-2">
                   <div className="d-flex justify-content-between align-items-start gap-2 flex-wrap">
@@ -611,7 +618,7 @@ export default function CalibrationDetailPage() {
                     </div>
                     <div className="d-flex gap-2 align-items-center">
                       {changed ? <Badge tone="warning">Có điều chỉnh</Badge> : <Badge tone="neutral">Giữ nguyên</Badge>}
-                      {!ro && (
+                      {!lock && (
                         <button type="button" className="btn btn-outline-danger btn-sm" aria-label="Xóa trường hợp" disabled={busy}
                           onClick={() => set({ cases: draft.cases.filter((x) => x.recordId !== c.recordId) })}>
                           <i className="bi bi-trash" aria-hidden="true" />
@@ -622,29 +629,29 @@ export default function CalibrationDetailPage() {
                   <div className="row g-2">
                     <div className="col-12">
                       <label className="form-label small mb-1" htmlFor={`${key}-cl`}>Nội dung làm rõ <span className="text-danger">*</span></label>
-                      <textarea id={`${key}-cl`} className="form-control form-control-sm" rows={2} maxLength={4000} value={c.clarification} disabled={ro}
+                      <textarea id={`${key}-cl`} className="form-control form-control-sm" rows={2} maxLength={4000} value={c.clarification} disabled={lock}
                         onChange={(e) => setCase(c.recordId, { clarification: e.target.value })} />
                     </div>
                     <div className="col-12 col-md-5">
                       <label className="form-label small mb-1" htmlFor={`${key}-gr`}>Mức sau họp thống nhất</label>
-                      <select id={`${key}-gr`} className="form-select form-select-sm" value={c.gradeAfter} disabled={ro} onChange={(e) => setCase(c.recordId, { gradeAfter: e.target.value })}>
+                      <select id={`${key}-gr`} className="form-select form-select-sm" value={c.gradeAfter} disabled={lock} onChange={(e) => setCase(c.recordId, { gradeAfter: e.target.value })}>
                         <option value="">Giữ mức trước</option>
                         {GRADES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
                       </select>
                     </div>
                     <div className="col-6 col-md-3">
                       <label className="form-label small mb-1" htmlFor={`${key}-sc`}>Điểm sau</label>
-                      <input id={`${key}-sc`} type="number" step={0.1} min={0} max={100} className="form-control form-control-sm text-end" value={c.scoreAfter} disabled={ro}
+                      <input id={`${key}-sc`} type="number" step={0.1} min={0} max={100} className="form-control form-control-sm text-end" value={c.scoreAfter} disabled={lock}
                         onChange={(e) => setCase(c.recordId, { scoreAfter: e.target.value })} />
                     </div>
                     <div className="col-6 col-md-4">
                       <label className="form-label small mb-1" htmlFor={`${key}-rp`}>Người chịu trách nhiệm{changed && <span className="text-danger"> *</span>}</label>
-                      <input id={`${key}-rp`} className="form-control form-control-sm" maxLength={200} value={c.responsibleName} disabled={ro}
+                      <input id={`${key}-rp`} className="form-control form-control-sm" maxLength={200} value={c.responsibleName} disabled={lock}
                         onChange={(e) => setCase(c.recordId, { responsibleName: e.target.value, responsibleMemberId: null })} />
                     </div>
                     <div className="col-12">
                       <label className="form-label small mb-1" htmlFor={`${key}-ba`}>Căn cứ{changed && <span className="text-danger"> *</span>}</label>
-                      <textarea id={`${key}-ba`} className="form-control form-control-sm" rows={2} maxLength={4000} value={c.basis} disabled={ro}
+                      <textarea id={`${key}-ba`} className="form-control form-control-sm" rows={2} maxLength={4000} value={c.basis} disabled={lock}
                         onChange={(e) => setCase(c.recordId, { basis: e.target.value })} />
                     </div>
                   </div>
@@ -696,7 +703,7 @@ export default function CalibrationDetailPage() {
       <ReasonDialog
         isOpen={dialog !== null}
         title={dialog === "reopen" ? "Mở lại biên bản" : "Hủy biên bản"}
-        description={dialog === "reopen" ? "Kết quả đã áp lên hồ sơ sẽ bị hủy cho tới khi chốt lại." : "Biên bản bị hủy sẽ không còn hiệu lực với các hồ sơ."}
+        description={dialog === "reopen" ? "Kết quả đã áp lên hồ sơ chưa có quyết định sẽ bị hủy cho tới khi chốt lại." : "Biên bản bị hủy sẽ không còn hiệu lực với các hồ sơ."}
         confirmText={dialog === "reopen" ? "Mở lại" : "Hủy biên bản"}
         busy={busy}
         onCancel={() => setDialog(null)}

@@ -33,6 +33,7 @@ public static class EvaluationExtensions
         services.AddScoped<CalibrationService>();
         services.AddScoped<ICalibrationService>(sp => sp.GetRequiredService<CalibrationService>());
         services.AddScoped<ICalibrationGate>(sp => sp.GetRequiredService<CalibrationService>());
+        services.AddScoped<ICalibrationWorkQueue>(sp => sp.GetRequiredService<CalibrationService>());
         return services;
     }
 }

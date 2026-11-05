@@ -520,6 +520,10 @@ public sealed class CalibrationServiceTests
         public Task<List<CalibrationSession>> ListAsync(Guid? periodId, CancellationToken ct = default) =>
             Task.FromResult(Sessions.Where(s => periodId == null || s.PeriodId == periodId).ToList());
 
+        public Task<List<CalibrationSession>> ListForReconcludeAsync(IReadOnlyCollection<Guid> periodIds, CancellationToken ct = default) =>
+            Task.FromResult(Sessions.Where(s => periodIds.Contains(s.PeriodId)
+                && (s.Status == CalibrationStatus.Concluded || (s.Status == CalibrationStatus.Draft && s.Revision > 1))).ToList());
+
         public Task<Dictionary<Guid, Guid>> GetActiveSessionByRecordAsync(IReadOnlyCollection<Guid> recordIds, Guid? exceptSessionId, CancellationToken ct = default) =>
             Task.FromResult(Sessions.SelectMany(s => s.Records)
                 .Where(r => r.IsActive && recordIds.Contains(r.RecordId) && r.SessionId != exceptSessionId)
