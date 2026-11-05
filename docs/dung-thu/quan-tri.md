@@ -77,3 +77,5 @@ Dùng để kiểm tra mỗi việc ở một đơn vị đã có người làm,
 **Bỏ người khỏi một việc:** nút **⋯** cạnh tên người đó → **Gỡ khỏi việc này** → **Gỡ**. Chỉ gỡ được người được gán tại chính đơn vị đang xem.
 
 Khi mọi việc đều có người, trang ghi **Mọi việc đều có người**.
+
+Chế độ **Toàn công ty** chỉ liệt kê người được gán ở phạm vi Toàn công ty; việc chưa gán ở phạm vi này mang nhãn **Chưa gán Toàn công ty**, không có nghĩa là kỳ thiếu người. Đủ người hay chưa xem ở liên kết **Kiểm tra người thực hiện của kỳ**.
