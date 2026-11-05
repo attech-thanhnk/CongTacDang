@@ -381,16 +381,47 @@ function Get-ProfileSettings($period, [string]$code) {
     return @($period.settings.profiles) | Where-Object { $_.code -eq $code } | Select-Object -First 1
 }
 
-# Trước bước quyết định: làm các cổng Bắt buộc cho hồ sơ đang chờ quyết định trong hệ thống
+# Hồ sơ đã nằm trong biên bản họp thống nhất còn hiệu lực (lập tay hoặc lần chạy trước) -> trạng thái biên bản.
+# Không dựa vào calibrationSessionId của hồ sơ: trường đó chỉ có khi biên bản đã chốt điều chỉnh kết quả của hồ sơ.
+function Get-CalibratedRecords($manager, $period) {
+    $map = @{}
+    foreach ($s in @(Invoke-ApiOk $manager 'GET' "/api/calibrations?periodId=$($period.id)" $null 'Lấy danh sách biên bản họp thống nhất')) {
+        if ($s.status -eq 'Void') { continue }
+        $detail = Invoke-ApiOk $manager 'GET' "/api/calibrations/$($s.id)" $null 'Đọc biên bản họp thống nhất'
+        foreach ($r in @($detail.records)) { $map[[string]$r.recordId] = $s.status }
+    }
+    return $map
+}
+
+# Hồ sơ đã thuộc phiếu kiểm tra còn hiệu lực (chưa hủy) -> trạng thái phiếu.
+function Get-CheckedRecords($manager, $period) {
+    $map = @{}
+    foreach ($c in @(Invoke-ApiOk $manager 'GET' "/api/control-checks?periodId=$($period.id)" $null 'Lấy danh sách phiếu kiểm tra')) {
+        if ($c.status -eq 'Cancelled') { continue }
+        $detail = Invoke-ApiOk $manager 'GET' "/api/control-checks/$($c.id)" $null 'Đọc phiếu kiểm tra'
+        foreach ($r in @($detail.records | Where-Object { $_.isCurrent })) { $map[[string]$r.recordId] = $c.status }
+    }
+    return $map
+}
+
+# Trước bước quyết định: làm các cổng Bắt buộc cho hồ sơ đang chờ quyết định trong hệ thống, bỏ hồ sơ đã có biên bản, phiếu
 function Complete-Gates($manager, $period) {
     $waiting = @(Get-Participants $manager $period.id | Where-Object { $_.currentStep -eq 'B4_DECISION' })
+    $calibrated = Get-CalibratedRecords $manager $period
+    $checked = Get-CheckedRecords $manager $period
     $calibration = @(); $control = @()
     foreach ($p in $waiting) {
         $flow = Get-ProfileSettings $period $p.workflowProfileCode
         if ($flow.steps.B4_DECISION.mode -ne 'Internal') { continue }
-        $record = Get-Record $manager $p.recordId
-        if ($flow.gates.CALIBRATION.mode -eq 'Required' -and -not $record.calibrationSessionId) { $calibration += $p }
-        if ($flow.gates.CONTROL.mode -eq 'Required') { $control += $p }
+        $id = [string]$p.recordId
+        if ($flow.gates.CALIBRATION.mode -eq 'Required') {
+            if (-not $calibrated.ContainsKey($id)) { $calibration += $p }
+            elseif ($calibrated[$id] -ne 'Concluded') { Write-Host "   $($p.fullName): biên bản họp thống nhất chưa chốt, hãy chốt trên giao diện." -ForegroundColor DarkYellow }
+        }
+        if ($flow.gates.CONTROL.mode -eq 'Required') {
+            if (-not $checked.ContainsKey($id)) { $control += $p }
+            elseif ($checked[$id] -ne 'Confirmed') { Write-Host "   $($p.fullName): phiếu kiểm tra chưa xác nhận, hãy hoàn tất trên giao diện." -ForegroundColor DarkYellow }
+        }
     }
     Complete-Calibration $manager $period $calibration
     Complete-ControlCheck $manager $period $control
