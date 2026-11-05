@@ -132,6 +132,34 @@ const toRequest = (d: Draft, version: number): UpdateCalibrationRequest => ({
   })),
 });
 
+/** Lý do chưa chốt được tính trên bản đang nhập, cùng quy tắc và chữ với máy chủ; null = đủ nội dung. */
+const draftHint = (d: Draft): string | null => {
+  const missing = [
+    !d.groupName.trim() && "Nhóm chức danh",
+    !d.heldAt && "Ngày họp",
+    !d.chairName.trim() && "Chủ trì",
+    !d.secretaryName.trim() && "Thư ký",
+    !d.attendees.some((a) => a.fullName.trim()) && "Thành phần tham dự",
+  ].filter((x): x is string => !!x);
+  const parts: string[] = [];
+  if (missing.length > 0) parts.push(`Cần nhập ${missing.join(", ")}.`);
+  if (d.records.length === 0) parts.push("Cần thêm hồ sơ.");
+  else if (d.records.length === 1 && !d.extraConclusion.trim()) parts.push("Chỉ có một hồ sơ: ghi lý do ở Kết luận bổ sung.");
+  d.cases.forEach((c, i) => {
+    const before = d.records.find((r) => r.recordId === c.recordId);
+    const scoreAfter = c.scoreAfter.trim() === "" ? null : Number(c.scoreAfter.replace(",", "."));
+    const changed = (!!c.gradeAfter && c.gradeAfter !== before?.gradeBefore)
+      || (scoreAfter != null && (before?.scoreBefore == null || Math.abs(scoreAfter - before.scoreBefore) > 1e-9));
+    const need = [
+      !c.clarification.trim() && "nội dung làm rõ",
+      changed && !c.basis.trim() && "căn cứ",
+      changed && !c.responsibleName.trim() && "người chịu trách nhiệm",
+    ].filter((x): x is string => !!x);
+    if (need.length > 0) parts.push(`Trường hợp ${i + 1}: cần nhập ${need.join(", ")}.`);
+  });
+  return parts.length === 0 ? null : parts.join(" ");
+};
+
 // Máy chủ trả phần trăm 0–100 (đã làm tròn một chữ số), không nhân thêm.
 const pct = (v?: number | null) => (v == null ? "—" : `${fmt(v, 1)}%`);
 const score = (v?: number | null) => (v == null ? "—" : String(v));
@@ -310,7 +338,9 @@ export default function CalibrationDetailPage() {
 
   const ro = !data.canEdit;
   const set = (patch: Partial<Draft>) => setDraft((d) => (d ? { ...d, ...patch } : d));
-  const blockedNow = !dirty && !!data.concludeBlockedReason;
+  // Đang sửa: lý do tính trên bản đang nhập; đủ nội dung thì nhắc lưu (bấm Chốt sẽ lưu rồi chốt).
+  const pendingHint = dirty ? draftHint(draft) : null;
+  const blockedNow = dirty ? !!pendingHint : !!data.concludeBlockedReason;
   const recordById = (rid: string) => draft.records.find((r) => r.recordId === rid);
   const caseIds = new Set(draft.cases.map((c) => c.recordId));
   // Hồ sơ đã có quyết định sau lần chốt trước: giữ nguyên dòng và trường hợp.
@@ -358,8 +388,11 @@ export default function CalibrationDetailPage() {
       />
 
       <div className="page-body d-flex flex-column gap-3">
-        {data.status === "Draft" && data.concludeBlockedReason && (
+        {data.status === "Draft" && !dirty && data.concludeBlockedReason && (
           <div className="alert alert-warning small mb-0" role="status">{data.concludeBlockedReason}</div>
+        )}
+        {data.status === "Draft" && dirty && !ro && (
+          <div className={`alert ${pendingHint ? "alert-warning" : "alert-info"} small mb-0`} role="status">{pendingHint ?? "Lưu biên bản trước khi chốt."}</div>
         )}
         {data.status === "Void" && (
           <div className="alert alert-secondary small mb-0">Biên bản đã hủy{data.voidReason ? `: ${data.voidReason}` : "."}</div>
