@@ -22,7 +22,7 @@ Mục đích: một nhóm nhỏ dùng hệ thống đúng vai trò thật của 
 | Văn phòng | Đinh Thế Hùng, Nguyễn Chí Long, Nguyễn Thanh Thảo | `hung.dt`, `long.nc`, `thao.nt` | Văn phòng Đảng ủy: chốt biên bản, quyết định, công bố, báo cáo; thư ký hội nghị |
 | CNTT | Quản trị | `quantri` | Cấp, mở khóa tài khoản; hỗ trợ người thử |
 
-Mỗi người đọc **hướng dẫn theo vai trò** của mình trong thư mục này trước khi bắt đầu.
+Mỗi người đọc **hướng dẫn theo vai trò** của mình trước khi bắt đầu: tìm tên mình trong [bảng "tôi là ai, đọc tệp nào"](README.md).
 
 ## 2. Lịch đề xuất (khoảng 2 tuần)
 
