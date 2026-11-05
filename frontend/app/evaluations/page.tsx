@@ -226,8 +226,8 @@ export default function EvaluationsPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <select className="form-select form-select-sm" aria-label="Lọc theo Phòng" value={department} onChange={(e) => setDepartment(e.target.value)}>
-                <option value="">Tất cả Phòng</option>
+              <select className="form-select form-select-sm" aria-label="Lọc theo đơn vị" value={department} onChange={(e) => setDepartment(e.target.value)}>
+                <option value="">Tất cả đơn vị</option>
                 {departments.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
               <select className="form-select form-select-sm" aria-label="Lọc theo Chi bộ" value={partyCell} onChange={(e) => setPartyCell(e.target.value)}>
@@ -236,7 +236,8 @@ export default function EvaluationsPage() {
                 {partyCells.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            {records.length > 0 && (
+            {/* Chỉ một trạng thái thì nút lọc không có tác dụng. */}
+            {records.length > 0 && (statusChips.length > 1 || returnedCount > 0 || overdueCount > 0 || !!statusFilter) && (
               <div className={styles.chips} role="group" aria-label="Lọc theo trạng thái">
                 {chip("", "Tất cả", baseFiltered.length)}
                 {statusChips.map((s) => chip(s.status, s.label, s.count))}
@@ -279,7 +280,7 @@ export default function EvaluationsPage() {
                       <th aria-sort={ariaSort("name")}>
                         <button type="button" className={styles.sortBtn} onClick={() => toggleSort("name")}>Cán bộ{sortIcon("name")}</button>
                       </th>
-                      <th>Phòng / Chi bộ</th>
+                      <th>Đơn vị / Chi bộ</th>
                       <th aria-sort={ariaSort("status")}>
                         <button type="button" className={styles.sortBtn} onClick={() => toggleSort("status")}>Trạng thái{sortIcon("status")}</button>
                       </th>
@@ -328,7 +329,7 @@ export default function EvaluationsPage() {
         {canRead && quotas && quotas.groups.length > 0 && (
           <details className={`${styles.block} ${styles.fold}`}>
             <summary className={styles.blockH}>
-              <h2>Trần Hoàn thành xuất sắc theo nhóm chức danh</h2>
+              <h2>Giới hạn Hoàn thành xuất sắc theo nhóm chức danh</h2>
               {quotas.groups.some((q) => q.isExceedingQuota) && (
                 <span className="tag t-bad">Vượt trần {quotas.groups.filter((q) => q.isExceedingQuota).length} nhóm</span>
               )}
@@ -342,7 +343,7 @@ export default function EvaluationsPage() {
               <table className={`${styles.table} ${styles.mid}`}>
                 <thead>
                   <tr>
-                    <th>Cấp quyết định</th>
+                    <th>Thẩm quyền</th>
                     <th>Nhóm chức danh</th>
                     <th className={styles.right} style={{ width: 90, whiteSpace: "nowrap" }}>Số hồ sơ</th>
                     <th className={styles.right} style={{ width: 130, whiteSpace: "nowrap" }}>Người đứng đầu</th>
