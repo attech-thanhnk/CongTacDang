@@ -920,6 +920,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("OwnerSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("RecordId")
                         .HasColumnType("uuid");
 

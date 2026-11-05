@@ -30,6 +30,12 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
 
     public const string PlanAcknowledgementGroup = "IMPROVEMENT_PLAN_ACK";
 
+    /// <summary>Kiến nghị của chủ hồ sơ đã được trả lời hoặc đã xử lý xong, chủ hồ sơ chưa xem.</summary>
+    public const string AppealAnswersGroup = "APPEAL_ANSWERS";
+
+    /// <summary>Kiến nghị đã chấp nhận, hồ sơ đã mở lại và công bố lại.</summary>
+    public const string AppealDoneStatus = "Done";
+
     /// <summary>Kiến nghị không còn ai xử lý được, hiện cho người gán vai trò.</summary>
     public const string UnassignedAppealsGroup = "APPEALS_UNASSIGNED";
 
@@ -129,8 +135,25 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
         AddGroup(groups, PlanAcknowledgementGroup, "Kế hoạch chờ bạn xác nhận", toAcknowledge.Select(p => Item(p.Record, userId,
             p.Status.ToString(), $"Đã duyệt bởi {p.ApprovedByName} — hãy đọc và xác nhận cam kết khắc phục")));
 
+        // Tin cho chủ hồ sơ: chỉ kiến nghị mới nhất của mỗi hồ sơ, hết khi chủ hồ sơ mở xem.
+        var answered = (await _repo.ListAnsweredAppealsOfOwnerAsync(userId, period, ct))
+            .GroupBy(a => a.RecordId)
+            .Select(g => g.OrderByDescending(a => a.SubmittedAt).First())
+            .Where(a => a.HasUnseenNews(a.Record));
+        AddGroup(groups, AppealAnswersGroup, "Kiến nghị đã được trả lời", answered.Select(a =>
+        {
+            var (status, name) = OwnerNews(a);
+            return Item(a.Record, userId, status, name);
+        }));
+
         return groups;
     }
+
+    /// <summary>Mã và chữ của tin kiến nghị cho chủ hồ sơ.</summary>
+    public static (string Status, string Name) OwnerNews(EvaluationAppeal appeal) =>
+        appeal.IsDoneAfterReopen(appeal.Record) ? (AppealDoneStatus, "Đã xử lý xong, kết quả đã công bố lại")
+        : appeal.Status == AppealStatus.Accepted ? (nameof(AppealStatus.Accepted), "Chấp nhận")
+        : (nameof(AppealStatus.Rejected), "Không chấp nhận");
 
     /// <summary>
     /// Giao cho người gần hồ sơ nhất như các bước của luồng; kế hoạch đang lập thì bỏ người lập, không còn ai gần hơn

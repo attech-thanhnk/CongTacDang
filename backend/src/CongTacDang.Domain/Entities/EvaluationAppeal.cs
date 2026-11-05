@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CongTacDang.Domain.Enums;
 
 namespace CongTacDang.Domain.Entities;
 
@@ -67,11 +68,29 @@ public class EvaluationAppeal : IAuditableEntity, IVersioned
 
     public Guid? ReopenedById { get; set; }
 
+    /// <summary>Lần cuối chủ hồ sơ xem trả lời; chỉ tin mới hơn mốc này mới hiện trên chuông.</summary>
+    public DateTime? OwnerSeenAt { get; set; }
+
     /// <summary>Chưa trả lời.</summary>
     public bool IsOpen => Status is AppealStatus.Submitted or AppealStatus.UnderReview;
 
     /// <summary>Đã chấp nhận nhưng hồ sơ chưa được mở lại: kết quả công bố vẫn đang chờ xem xét lại.</summary>
     public bool AwaitingReopen => Status == AppealStatus.Accepted && ReopenedAt == null;
+
+    /// <summary>Đã chấp nhận, đã mở lại và hồ sơ đã công bố lại.</summary>
+    public bool IsDoneAfterReopen(EvaluationRecord record) =>
+        Status == AppealStatus.Accepted && ReopenedAt is { } reopened
+        && record.Status == RecordStatus.Published && record.PublishedAt is { } published && published > reopened;
+
+    /// <summary>Lúc có tin cho chủ hồ sơ (công bố lại sau khi mở lại, nếu không thì lúc trả lời); null = chưa trả lời.</summary>
+    public DateTime? OwnerNewsAt(EvaluationRecord record) =>
+        IsDoneAfterReopen(record) ? record.PublishedAt
+        : Status is AppealStatus.Accepted or AppealStatus.Rejected ? ResolvedAt
+        : null;
+
+    /// <summary>Chủ hồ sơ chưa xem tin mới nhất của kiến nghị.</summary>
+    public bool HasUnseenNews(EvaluationRecord record) =>
+        OwnerNewsAt(record) is { } news && (OwnerSeenAt is not { } seen || seen < news);
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Guid? CreatedBy { get; set; }

@@ -104,6 +104,8 @@ public class RecordAppealsDto
     public string? SubmitBlockedReason { get; set; }
     /// <summary>Bước đã có người thực hiện trên hồ sơ.</summary>
     public List<AppealStepOptionDto> StepOptions { get; set; } = new();
+    /// <summary>Chủ hồ sơ có trả lời kiến nghị chưa xem.</summary>
+    public bool HasUnseenAnswer { get; set; }
     public List<AppealDto> Appeals { get; set; } = new();
 }
 
@@ -279,6 +281,8 @@ public class NotificationSummaryDto
     public int PlansToAcknowledge { get; set; }
     /// <summary>Với người có quyền gán vai trò; cần gán người xử lý.</summary>
     public int UnassignedAppeals { get; set; }
+    /// <summary>Kiến nghị của chính người dùng đã được trả lời, chưa xem.</summary>
+    public int AppealAnswers { get; set; }
     /// <summary>Ngưỡng "sắp tới hạn" (ngày).</summary>
     public int DueSoonDays { get; set; }
     public List<NotificationItemDto> Items { get; set; } = new();

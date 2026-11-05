@@ -547,7 +547,96 @@ public sealed class PostPublishIntegrationTests
 
     #endregion
 
+    #region Tin kiến nghị cho chủ hồ sơ
+
+    [SkippableFact]
+    public async Task P2d_AppealAnswered_OwnerNotifiedUntilSeen_AndWhenDoneAfterRepublish()
+    {
+        var w = await WorldAsync();
+        var periodId = await World.OpenPeriodAsync(w.PeriodManagerC, w.OwnerB.Id);
+        var recordId = (await World.RecordsAsync(w.PeriodManagerC, periodId))[w.OwnerB.Id];
+        await PublishAsync(recordId);
+        var periodName = (await Data(w.OwnerBC, $"/api/evaluations/records/{recordId}")).GetProperty("periodName").GetString();
+
+        // Đang chờ trả lời: chủ hồ sơ chưa có tin.
+        var first = await Data(await w.OwnerBC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appeals", new { content = "Đề nghị xem xét lại mức" }));
+        Assert.Null(await AnswerItemAsync(w.OwnerBC, recordId));
+
+        // Không chấp nhận → tin trên chuông, bấm vào mở hồ sơ.
+        await Data(await w.ResolverC.PostAsJsonAsync($"/api/appeals/{first.GetProperty("id").GetGuid()}/resolve",
+            new { version = first.GetProperty("version").GetUInt32(), accepted = false, response = "Không có căn cứ mới" }));
+        Assert.Equal("Rejected", (await AnswerItemAsync(w.OwnerBC, recordId))?.GetProperty("status").GetString());
+        var bell = await Data(w.OwnerBC, "/api/notifications/summary");
+        Assert.True(bell.GetProperty("appealAnswers").GetInt32() >= 1);
+        var news = bell.GetProperty("items").EnumerateArray().Single(i => i.GetProperty("kind").GetString() == "appealAnswered"
+            && i.GetProperty("link").GetString() == $"/evaluations/{recordId}");
+        Assert.Equal($"Kiến nghị về hồ sơ {periodName} đã được trả lời", news.GetProperty("title").GetString());
+        Assert.Equal("Không chấp nhận", news.GetProperty("detail").GetString());
+
+        // Tin chỉ dành cho chủ hồ sơ; người khác không đánh dấu đã xem thay.
+        Assert.Null(await AnswerItemAsync(w.ResolverC, recordId));
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.ResolverC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appeals/seen", new { })).StatusCode);
+
+        // Chủ hồ sơ mở khối kiến nghị rồi đánh dấu đã xem: hết tin.
+        Assert.True((await Data(w.OwnerBC, $"/api/evaluations/records/{recordId}/appeals")).GetProperty("hasUnseenAnswer").GetBoolean());
+        await Data(await w.OwnerBC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appeals/seen", new { }));
+        Assert.False((await Data(w.OwnerBC, $"/api/evaluations/records/{recordId}/appeals")).GetProperty("hasUnseenAnswer").GetBoolean());
+        Assert.Null(await AnswerItemAsync(w.OwnerBC, recordId));
+
+        // Kiến nghị thứ hai được chấp nhận → tin "Chấp nhận"; xem rồi thì hết.
+        var second = await Data(await w.OwnerBC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appeals", new { content = "Bổ sung minh chứng" }));
+        var accepted = await Data(await w.ResolverC.PostAsJsonAsync($"/api/appeals/{second.GetProperty("id").GetGuid()}/resolve",
+            new { version = second.GetProperty("version").GetUInt32(), accepted = true, response = "Minh chứng hợp lệ" }));
+        Assert.Equal("Accepted", (await AnswerItemAsync(w.OwnerBC, recordId))?.GetProperty("status").GetString());
+        await Data(await w.OwnerBC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/appeals/seen", new { }));
+        Assert.Null(await AnswerItemAsync(w.OwnerBC, recordId));
+
+        // Mở lại theo kiến nghị: chưa xong nên chưa có tin; công bố lại → tin "đã xử lý xong".
+        var record = await Data(w.ResolverC, $"/api/evaluations/records/{recordId}");
+        await Data(await w.ResolverC.PostAsJsonAsync($"/api/appeals/{accepted.GetProperty("id").GetGuid()}/reopen", new
+        {
+            recordVersion = record.GetProperty("version").GetUInt32(), targetStep = "B4_DECISION", reason = "Đính chính theo kiến nghị"
+        }));
+        Assert.Null(await AnswerItemAsync(w.OwnerBC, recordId));
+        await PublishAsync(recordId);
+        Assert.Equal("Done", (await AnswerItemAsync(w.OwnerBC, recordId))?.GetProperty("status").GetString());
+        var done = (await Data(w.OwnerBC, "/api/notifications/summary")).GetProperty("items").EnumerateArray()
+            .Single(i => i.GetProperty("kind").GetString() == "appealAnswered" && i.GetProperty("link").GetString() == $"/evaluations/{recordId}");
+        Assert.Equal($"Kiến nghị về hồ sơ {periodName} đã xử lý xong", done.GetProperty("title").GetString());
+    }
+
+    #endregion
+
     #region Hỗ trợ
+
+    private async Task PublishAsync(Guid recordId)
+    {
+        await _factory.WithDbAsync(async db =>
+        {
+            var record = await db.EvaluationRecords.FirstAsync(r => r.Id == recordId);
+            record.Status = RecordStatus.Published;
+            record.FinalGrade = EvaluationGrade.HoanThanh;
+            record.FinalScore = 74;
+            record.TotalSelfScore = 79;
+            record.AppraisalScore = 74;
+            record.AppraisalProposedGrade = EvaluationGrade.HoanThanh;
+            record.DecisionRecordedAt = DateTime.UtcNow;
+            record.DecisionAuthorityName = "Đảng ủy (test)";
+            record.PublishedAt = DateTime.UtcNow;
+            record.PublishedByName = "Văn phòng (test)";
+            await db.SaveChangesAsync();
+        });
+    }
+
+    private static async Task<JsonElement?> AnswerItemAsync(HttpClient client, Guid recordId)
+    {
+        var queue = await Data(client, "/api/evaluations/work-queue");
+        return queue.GetProperty("groups").EnumerateArray()
+            .Where(g => g.GetProperty("step").GetString() == "APPEAL_ANSWERS")
+            .SelectMany(g => g.GetProperty("items").EnumerateArray())
+            .Cast<JsonElement?>()
+            .FirstOrDefault(i => i!.Value.GetProperty("recordId").GetGuid() == recordId);
+    }
 
     /// <summary>Trả trạng thái trước khi đặt.</summary>
     private async Task<RecordStatus> SetRecordCAsync(World w, RecordStatus status, EvaluationGrade grade)

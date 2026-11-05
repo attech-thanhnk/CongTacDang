@@ -29,6 +29,9 @@ public interface IAppealService
 
     /// <summary>Dùng thao tác "Mở lại" hiện có (<c>evaluation.reopen</c>); chấp nhận kiến nghị không tự mở lại hồ sơ.</summary>
     Task<AppealDto> ReopenRecordAsync(Guid appealId, ReopenFromAppealRequestDto request, CancellationToken ct = default);
+
+    /// <summary>Chủ hồ sơ đã xem trả lời: tin kiến nghị không còn hiện trên chuông.</summary>
+    Task MarkSeenAsync(Guid recordId, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -92,8 +95,24 @@ public sealed class AppealService : IAppealService
             CanSubmit = canSubmitPermission && blocked == null,
             SubmitBlockedReason = isOwner ? (canSubmitPermission ? blocked : $"Bạn chưa có quyền \"{PermissionCodes.DisplayName(PermissionCodes.EvaluationAppealSubmit)}\".") : null,
             StepOptions = isOwner ? StepOptions(record) : new List<AppealStepOptionDto>(),
+            HasUnseenAnswer = isOwner && appeals.Any(a => a.HasUnseenNews(record)),
             Appeals = items
         };
+    }
+
+    /// <inheritdoc />
+    public async Task MarkSeenAsync(Guid recordId, CancellationToken ct = default)
+    {
+        var record = await RequireRecordAsync(recordId, ct);
+        if (!IsOwner(record))
+            throw new ForbiddenException("Chỉ chủ hồ sơ đánh dấu đã xem trả lời kiến nghị.");
+        var now = DateTime.UtcNow;
+        var unseen = (await _repo.ListAppealsForUpdateAsync(recordId, ct)).Where(a => a.HasUnseenNews(record)).ToList();
+        if (unseen.Count == 0)
+            return;
+        foreach (var appeal in unseen)
+            appeal.OwnerSeenAt = now;
+        await _unitOfWork.SaveChangesAsync(ct);
     }
 
     /// <inheritdoc />

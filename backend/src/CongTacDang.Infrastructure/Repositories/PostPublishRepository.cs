@@ -114,6 +114,15 @@ public sealed class PostPublishRepository : IPostPublishRepository
         AppealsWithRecord(periodId,
             a => a.Status == AppealStatus.Accepted && a.ReopenedAt == null && a.Record.Status == RecordStatus.Published, ct);
 
+    /// <inheritdoc />
+    public Task<List<EvaluationAppeal>> ListAnsweredAppealsOfOwnerAsync(Guid ownerId, Guid? periodId, CancellationToken ct = default) =>
+        AppealsWithRecord(periodId,
+            a => a.Record.MemberId == ownerId && (a.Status == AppealStatus.Accepted || a.Status == AppealStatus.Rejected), ct);
+
+    /// <inheritdoc />
+    public Task<List<EvaluationAppeal>> ListAppealsForUpdateAsync(Guid recordId, CancellationToken ct = default) =>
+        Appeals.Where(a => a.RecordId == recordId).ToListAsync(ct);
+
     private Task<List<EvaluationAppeal>> AppealsWithRecord(Guid? periodId, System.Linq.Expressions.Expression<Func<EvaluationAppeal, bool>> filter, CancellationToken ct)
     {
         var query = Appeals.AsNoTracking()

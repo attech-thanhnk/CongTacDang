@@ -13,6 +13,7 @@ const KIND_ICON: Record<string, { icon: string; color: string }> = {
   appeal: { icon: "bi-chat-square-text", color: "var(--info)" },
   improvementPlan: { icon: "bi-clipboard2-pulse", color: "var(--info)" },
   acknowledge: { icon: "bi-pen", color: "var(--ok)" },
+  appealAnswered: { icon: "bi-chat-square-check", color: "var(--ok)" },
   pending: { icon: "bi-inbox", color: "var(--ink-2)" },
 };
 
@@ -44,6 +45,7 @@ export function NotificationBell() {
         { label: "Kiến nghị", value: summary.appeals, tone: "info" },
         { label: "Kế hoạch cần lập/duyệt", value: summary.improvementPlans, tone: "info" },
         { label: "Kế hoạch chờ xác nhận", value: summary.plansToAcknowledge, tone: "info" },
+        { label: "Kiến nghị đã trả lời", value: summary.appealAnswers, tone: "ok" },
       ].filter((s) => s.value > 0)
     : [];
 
