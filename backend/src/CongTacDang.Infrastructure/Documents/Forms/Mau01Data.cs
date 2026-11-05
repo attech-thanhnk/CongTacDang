@@ -19,8 +19,19 @@ public sealed class Mau01Data
     [TemplateField("FULL_NAME")] public string? FullName { get; init; }
     [TemplateField("POSITION")] public string? Position { get; init; }
 
-    /// <summary>Người duyệt danh mục trong hệ thống, in ở ô "Cấp có thẩm quyền phê duyệt"; cấp trên duyệt hoặc chưa duyệt → giữ dòng chấm để ký tay.</summary>
+    // Bốn ô ký: người chưa thực hiện, bước tắt/bỏ qua hoặc cấp trên thực hiện → giữ dòng chấm để ký tay.
+
+    /// <summary>Ô "Cá nhân đăng ký": chủ hồ sơ.</summary>
+    [TemplateField("REGISTRANT_NAME")] public string? RegistrantName { get; init; }
+
+    /// <summary>Ô "Người trực tiếp sử dụng": Trưởng đơn vị đã gửi danh mục.</summary>
     [TemplateField("SUPERVISOR_NAME")] public string? SupervisorName { get; init; }
+
+    /// <summary>Ô "Cơ quan tổ chức cán bộ": người rà soát, trình duyệt.</summary>
+    [TemplateField("HR_REVIEWER_NAME")] public string? HrReviewerName { get; init; }
+
+    /// <summary>Ô "Cấp có thẩm quyền phê duyệt": người duyệt danh mục.</summary>
+    [TemplateField("APPROVER_NAME")] public string? ApproverName { get; init; }
 
     [TemplateCollection("TASKS")] public List<Mau01TaskRow> Tasks { get; init; } = new();
 
@@ -35,7 +46,10 @@ public sealed class Mau01Data
             Year = record.Period != null ? FormText.Year(record.Period.Year) : null,
             FullName = FormText.OrNull(record.Member?.FullName),
             Position = FormText.OrNull(record.Member?.PositionTitle),
-            SupervisorName = record.TasksApprovedById != null ? FormText.OrNull(record.TasksApprovedByName) : null,
+            RegistrantName = FormText.OrNull(record.Member?.FullName),
+            SupervisorName = record.TasksForwardedById != null ? FormText.OrNull(record.TasksForwardedByName) : null,
+            HrReviewerName = record.TasksReviewedById != null ? FormText.OrNull(record.TasksReviewedByName) : null,
+            ApproverName = record.TasksApprovedById != null ? FormText.OrNull(record.TasksApprovedByName) : null,
             Tasks = tasks.Select((t, index) => new Mau01TaskRow
             {
                 Order = (index + 1).ToString(),

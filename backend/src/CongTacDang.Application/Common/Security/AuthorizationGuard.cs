@@ -16,6 +16,8 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
     /// <summary>Không áp dụng khi người thực hiện là chủ hồ sơ (xung đột lợi ích).</summary>
     public static readonly IReadOnlySet<string> ConflictOfInterestCodes = new HashSet<string>(StringComparer.Ordinal)
     {
+        PermissionCodes.EvaluationTasksForward,
+        PermissionCodes.EvaluationTasksReview,
         PermissionCodes.EvaluationTasksApprove,
         PermissionCodes.EvaluationCellConfirm,
         PermissionCodes.EvaluationCollectiveRecord,

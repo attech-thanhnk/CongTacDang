@@ -56,6 +56,12 @@ public static class PermissionCodes
     /// <summary>Chủ hồ sơ luôn xem được hồ sơ của mình.</summary>
     public const string EvaluationRead = "evaluation.read";
 
+    /// <summary>B1 — Trưởng đơn vị gửi danh mục.</summary>
+    public const string EvaluationTasksForward = "evaluation.tasks.forward";
+
+    /// <summary>B1 — rà soát hợp lệ, trình duyệt danh mục.</summary>
+    public const string EvaluationTasksReview = "evaluation.tasks.review";
+
     /// <summary>B1.</summary>
     public const string EvaluationTasksApprove = "evaluation.tasks.approve";
 
@@ -171,6 +177,8 @@ public static class PermissionCodes
         new(CriteriaManage, "Quản lý bộ tiêu chí", "criteria", "Tạo, nhân bản, sửa bản nháp, xuất bản, lưu trữ bộ tiêu chí và thang điểm (tiêu chí chung, trục kết quả, khung tỷ trọng, mức xếp loại, tham số).", false),
         new(EvaluationSelf, "Tham gia đánh giá (bản thân)", "evaluation", "Đăng ký sản phẩm, tự chấm, giải trình, nộp minh chứng — chỉ trên hồ sơ của mình (phạm vi gán được bỏ qua).", true),
         new(EvaluationRead, "Xem hồ sơ đánh giá", "evaluation", "Xem hồ sơ đánh giá trong phạm vi được gán; chủ hồ sơ luôn xem được hồ sơ của mình.", true),
+        new(EvaluationTasksForward, "Gửi danh mục sản phẩm của đơn vị", "evaluation", "Trưởng đơn vị gửi danh mục sản phẩm của cán bộ trong đơn vị về cơ quan tổ chức cán bộ, hoặc trả lại (bước 1).", true),
+        new(EvaluationTasksReview, "Rà soát, trình duyệt danh mục sản phẩm", "evaluation", "Rà soát hợp lệ danh mục sản phẩm, tổng hợp trình cấp có thẩm quyền phê duyệt, hoặc trả lại (bước 1).", true),
         new(EvaluationTasksApprove, "Duyệt danh mục sản phẩm", "evaluation", "Duyệt danh mục sản phẩm đăng ký đầu kỳ (bước 1).", true),
         new(EvaluationCellConfirm, "Chi bộ xác nhận phiếu tự chấm", "evaluation", "Chi bộ xác nhận phiếu tự chấm điểm (bước 2).", true),
         new(EvaluationCollectiveRecord, "Ghi nhận đề xuất của tập thể lãnh đạo", "evaluation", "Ghi kết quả kiểm phiếu đề xuất của tập thể lãnh đạo (bước 3a), không ghi phiếu từng người.", true),

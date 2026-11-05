@@ -33,7 +33,9 @@ public sealed class PerformerServiceUnitTests
     public void JobPermissions_FollowWorkflowOrder()
     {
         var jobs = PerformerService.JobPermissions;
-        Assert.Equal(PermissionCodes.EvaluationTasksApprove, jobs[0]);
+        Assert.Equal(PermissionCodes.EvaluationTasksForward, jobs[0]);
+        Assert.Equal(PermissionCodes.EvaluationTasksReview, jobs[1]);
+        Assert.Equal(PermissionCodes.EvaluationTasksApprove, jobs[2]);
         Assert.True(jobs.ToList().IndexOf(PermissionCodes.EvaluationAppraise) < jobs.ToList().IndexOf(PermissionCodes.EvaluationDecide));
         Assert.True(jobs.ToList().IndexOf(PermissionCodes.EvaluationDecide) < jobs.ToList().IndexOf(PermissionCodes.EvaluationPublish));
     }

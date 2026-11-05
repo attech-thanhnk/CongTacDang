@@ -75,7 +75,41 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 
     #endregion
 
-    #region B1: Duyệt danh mục sản phẩm (Mẫu 01)
+    #region B1: Gửi, rà soát, duyệt danh mục sản phẩm (Mẫu 01)
+
+    /// <summary>Trưởng đơn vị gửi danh mục; null khi bước không áp dụng hoặc bỏ qua.</summary>
+    public Guid? TasksForwardedById { get; set; }
+
+    public string? TasksForwardedByName { get; set; }
+
+    public DateTime? TasksForwardedAt { get; set; }
+
+    public string? TasksForwardComment { get; set; }
+
+    /// <summary>Cơ quan tổ chức cán bộ rà soát, trình duyệt.</summary>
+    public Guid? TasksReviewedById { get; set; }
+
+    public string? TasksReviewedByName { get; set; }
+
+    public DateTime? TasksReviewedAt { get; set; }
+
+    public string? TasksReviewComment { get; set; }
+
+    /// <summary>Xóa người gửi, người rà soát, người duyệt khi danh mục quay về chủ hồ sơ.</summary>
+    public void ClearTaskSignoffs()
+    {
+        TasksForwardedById = null;
+        TasksForwardedByName = null;
+        TasksForwardedAt = null;
+        TasksForwardComment = null;
+        TasksReviewedById = null;
+        TasksReviewedByName = null;
+        TasksReviewedAt = null;
+        TasksReviewComment = null;
+        TasksApprovedById = null;
+        TasksApprovedByName = null;
+        TasksApprovedAt = null;
+    }
 
     public Guid? TasksApprovedById { get; set; }
 

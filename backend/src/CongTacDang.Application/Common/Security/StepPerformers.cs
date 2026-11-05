@@ -19,6 +19,9 @@ public interface IStepPerformers
 
     /// <summary>Người dùng có thuộc tập người được giao bước không.</summary>
     Task<bool> IsPerformerAsync(Guid userId, string permission, AccessTarget target, CancellationToken ct = default);
+
+    /// <summary>Chủ hồ sơ giữ quyền của bước ở phạm vi gần hồ sơ hơn mọi người khác, xem <see cref="StepPerformerRule.OwnerIsNearest"/>.</summary>
+    Task<bool> OwnerIsNearestAsync(string permission, AccessTarget target, CancellationToken ct = default);
 }
 
 /// <summary>Thuật toán chọn người gần nhất, tách riêng để kiểm thử không cần CSDL.</summary>
@@ -73,6 +76,28 @@ public static class StepPerformerRule
         return scored.Where(x => x.Distance == min).Select(x => x.UserId).Distinct().ToList();
     }
 
+    /// <summary>
+    /// Chủ hồ sơ có quyền của bước (bỏ qua xung đột lợi ích) và không ai khác có quyền ở phạm vi gần bằng hoặc gần hơn —
+    /// tức chủ hồ sơ là người đứng đầu đơn vị đối với bước này.
+    /// </summary>
+    public static bool OwnerIsNearest(IEnumerable<EffectivePermissions> candidates, string permission, AccessTarget target, OrgPaths? paths)
+    {
+        ArgumentNullException.ThrowIfNull(candidates);
+        ArgumentNullException.ThrowIfNull(target);
+        if (target.OwnerId is not { } ownerId)
+            return false;
+        var list = candidates.ToList();
+        var owner = list.FirstOrDefault(p => p.UserId == ownerId);
+        if (owner == null || Distance(owner, permission, target with { OwnerId = null }, paths) is not { } own)
+            return false;
+        var others = list.Where(p => p.UserId != ownerId)
+            .Select(p => Distance(p, permission, target, paths))
+            .Where(d => d.HasValue)
+            .Select(d => d!.Value)
+            .ToList();
+        return others.Count == 0 || own < others.Min();
+    }
+
     private static int UnitDistance(Guid? scopeId, Guid? unitId, IReadOnlyDictionary<Guid, string>? tree)
     {
         if (!scopeId.HasValue || !unitId.HasValue)
@@ -113,6 +138,22 @@ public sealed class StepPerformers : IStepPerformers
         if (_results.TryGetValue(key, out var cached))
             return cached;
 
+        var effective = await CandidatesAsync(permission, ct);
+        var result = StepPerformerRule.Nearest(effective, permission, target with { RequireAllUnits = false }, _paths);
+        _results[key] = result;
+        return result;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> OwnerIsNearestAsync(string permission, AccessTarget target, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        var effective = await CandidatesAsync(permission, ct);
+        return StepPerformerRule.OwnerIsNearest(effective, permission, target with { RequireAllUnits = false }, _paths);
+    }
+
+    private async Task<List<EffectivePermissions>> CandidatesAsync(string permission, CancellationToken ct)
+    {
         if (!_candidates.TryGetValue(permission, out var ids))
         {
             ids = await _repo.ListActiveUserIdsWithAnyPermissionAsync(new[] { permission }, DateTime.UtcNow, ct);
@@ -129,10 +170,7 @@ public sealed class StepPerformers : IStepPerformers
             effective.Add(p);
         }
         _paths ??= await _positions.GetOrgPathsAsync(ct);
-
-        var result = StepPerformerRule.Nearest(effective, permission, target with { RequireAllUnits = false }, _paths);
-        _results[key] = result;
-        return result;
+        return effective;
     }
 
     /// <inheritdoc />

@@ -21,7 +21,7 @@ public static class NotRatedRules
             return $"Kỳ đang ở trạng thái \"{WorkflowSteps.PeriodStatusDisplayName(periodStatus)}\": chỉ đánh dấu Chưa xếp loại khi kỳ dự thảo hoặc đang mở.";
         if (record.IsMarkedNotRated())
             return "Hồ sơ đã được đánh dấu Chưa xếp loại.";
-        if (record.DecisionRecordedAt.HasValue || record.Status > RecordStatus.AwaitingDecision)
+        if (record.DecisionRecordedAt.HasValue || record.Status is RecordStatus.AwaitingPublish or RecordStatus.Published)
             return "Hồ sơ đã có quyết định mức xếp loại: chỉ đánh dấu Chưa xếp loại trước khi ghi nhận quyết định.";
         return null;
     }
@@ -66,10 +66,10 @@ public static class NotRatedRules
         ArgumentNullException.ThrowIfNull(record);
         ArgumentNullException.ThrowIfNull(activeSteps);
         var initial = RecordStateMachine.Initial(activeSteps);
-        var target = record.NotRatedFromStatus is { } from && from < RecordStatus.AwaitingPublish
+        var target = record.NotRatedFromStatus is { } from && WorkflowSteps.IsBefore(from, RecordStatus.AwaitingPublish)
             ? RecordStateMachine.Realign(from, activeSteps)
             : initial;
-        if (target >= RecordStatus.AwaitingPublish)
+        if (!WorkflowSteps.IsBefore(target, RecordStatus.AwaitingPublish))
             target = initial;
 
         Clear(record);

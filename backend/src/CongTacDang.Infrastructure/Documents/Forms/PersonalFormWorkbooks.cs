@@ -86,12 +86,13 @@ public static class PersonalFormWorkbooks
         row += 2;
         Signatures(ws, row, last, ("CẤP CÓ THẨM QUYỀN PHÊ DUYỆT", SignNote), ("CƠ QUAN TỔ CHỨC CÁN BỘ", SignNote),
             ("NGƯỜI TRỰC TIẾP SỬ DỤNG", SignNote), ("CÁ NHÂN ĐĂNG KÝ", SignNote));
-        // Dòng họ tên: người duyệt danh mục in ở ô cấp có thẩm quyền phê duyệt, các ô khác ký tay.
+        // Dòng họ tên theo thứ tự ô ký; người chưa thực hiện trong hệ thống để dòng chấm ký tay.
         var nameRow = row + 5;
+        var names = new[] { data.ApproverName, data.HrReviewerName, data.SupervisorName, data.RegistrantName };
         for (var i = 0; i < 4; i++)
         {
             var first = 1 + i * last / 4;
-            ws.Cell(nameRow, first).Value = i == 0 ? data.SupervisorName ?? Dots : Dots;
+            ws.Cell(nameRow, first).Value = names[i] ?? Dots;
             ws.Range(nameRow, first, nameRow, (i + 1) * last / 4).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
         }
 

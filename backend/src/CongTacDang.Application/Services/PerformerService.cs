@@ -31,6 +31,8 @@ public sealed class PerformerService : IPerformerService
     /// <summary>Theo thứ tự các bước; bước của chủ hồ sơ không thuộc màn hình này.</summary>
     public static readonly IReadOnlyList<string> JobPermissions = new[]
     {
+        WorkflowPermissions.TasksForward,
+        WorkflowPermissions.TasksReview,
         WorkflowPermissions.TasksApprove,
         WorkflowPermissions.CellConfirm,
         WorkflowPermissions.CollectiveRecord,

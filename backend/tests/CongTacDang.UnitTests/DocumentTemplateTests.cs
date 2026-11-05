@@ -402,18 +402,36 @@ public class DocumentTemplateTests
         Assert.DoesNotContain("Nhất trí…", mau10);
         Assert.DoesNotContain("(TC   /30đ)", mau10);
 
-        // Người duyệt danh mục in ở ô cấp có thẩm quyền phê duyệt; người quản lý trực tiếp, người trực tiếp sử dụng ký tay.
+        // Bốn ô ký theo thứ tự trên phiếu: phê duyệt, tổ chức cán bộ, người trực tiếp sử dụng, cá nhân đăng ký.
         record.TasksApprovedById = Guid.NewGuid();
         record.TasksApprovedByName = "Nguyễn Văn Duyệt";
+        record.TasksReviewedById = Guid.NewGuid();
+        record.TasksReviewedByName = "Lê Thị Rà Soát";
+        record.TasksForwardedById = Guid.NewGuid();
+        record.TasksForwardedByName = "Trần Văn Gửi";
         var mau01 = Text(Mau01Data.TemplateFileName, Mau01Data.From(record));
-        var approval = mau01.IndexOf("CẤP CÓ THẨM QUYỀN PHÊ DUYỆT", StringComparison.Ordinal);
-        var name = mau01.IndexOf("Nguyễn Văn Duyệt", StringComparison.Ordinal);
-        Assert.True(approval >= 0 && name > approval && name < mau01.IndexOf("CƠ QUAN TỔ CHỨC CÁN BỘ", StringComparison.Ordinal), mau01);
-        Assert.Equal(name, mau01.LastIndexOf("Nguyễn Văn Duyệt", StringComparison.Ordinal));
+        int At(string text) => mau01.IndexOf(text, StringComparison.Ordinal);
+        var signatures = mau01[At("CẤP CÓ THẨM QUYỀN PHÊ DUYỆT")..];
+        int Sig(string text) => signatures.IndexOf(text, StringComparison.Ordinal);
+        Assert.True(Sig("Nguyễn Văn Duyệt") > 0 && Sig("Nguyễn Văn Duyệt") < Sig("CƠ QUAN TỔ CHỨC CÁN BỘ"), mau01);
+        Assert.True(Sig("Lê Thị Rà Soát") > Sig("CƠ QUAN TỔ CHỨC CÁN BỘ") && Sig("Lê Thị Rà Soát") < Sig("NGƯỜI TRỰC TIẾP SỬ DỤNG"), mau01);
+        Assert.True(Sig("Trần Văn Gửi") > Sig("NGƯỜI TRỰC TIẾP SỬ DỤNG") && Sig("Trần Văn Gửi") < Sig("CÁ NHÂN ĐĂNG KÝ"), mau01);
+        Assert.True(Sig(record.Member!.FullName) > Sig("CÁ NHÂN ĐĂNG KÝ"), mau01);
+        Assert.Equal(At("Nguyễn Văn Duyệt"), mau01.LastIndexOf("Nguyễn Văn Duyệt", StringComparison.Ordinal));
         Assert.Contains("Người quản lý trực tiếp: ................................", mau01);
+
+        // Cấp trên duyệt, bước gửi tắt hoặc bỏ qua: ô tương ứng giữ dòng chấm.
         record.TasksApprovedById = null;
         record.TasksApprovedByName = "Hội đồng thành viên Tổng công ty";
-        Assert.Null(Mau01Data.From(record).SupervisorName);
+        record.TasksForwardedById = null;
+        record.TasksForwardedByName = null;
+        var external = Mau01Data.From(record);
+        Assert.Null(external.ApproverName);
+        Assert.Null(external.SupervisorName);
+        Assert.Equal("Lê Thị Rà Soát", external.HrReviewerName);
+        Assert.Equal(record.Member!.FullName, external.RegistrantName);
+        record.TasksReviewedById = null;
+        record.TasksReviewedByName = null;
 
         // Chưa tới bước → giữ dòng chấm.
         record.TasksApprovedAt = null;

@@ -90,6 +90,8 @@ public static class EvaluationMapping
         return step switch
         {
             WorkflowStep.B1_REGISTER or WorkflowStep.B2_SELF_SCORE => Clean(record.Member?.FullName) ?? "Chủ hồ sơ",
+            WorkflowStep.B1_UNIT_SUBMIT => department != null ? $"Trưởng {department}" : "Trưởng đơn vị",
+            WorkflowStep.B1_HR_REVIEW => "Cơ quan tổ chức cán bộ",
             WorkflowStep.B1_APPROVE => string.Equals(profile.PermissionFor(step), WorkflowPermissions.DirectorReview, StringComparison.Ordinal)
                 ? "Cấp trực tiếp sử dụng"
                 : unitLeaders,
@@ -124,6 +126,8 @@ public static class EvaluationMapping
         return step switch
         {
             WorkflowStep.B1_REGISTER => (null, Clean(record.Member?.FullName)),
+            WorkflowStep.B1_UNIT_SUBMIT => (record.TasksForwardedAt, Clean(record.TasksForwardedByName)),
+            WorkflowStep.B1_HR_REVIEW => (record.TasksReviewedAt, Clean(record.TasksReviewedByName)),
             WorkflowStep.B1_APPROVE => (record.TasksApprovedAt, Clean(record.TasksApprovedByName)),
             WorkflowStep.B2_SELF_SCORE => (record.SelfScoredAt, Clean(record.Member?.FullName)),
             WorkflowStep.B2_CELL_CONFIRM => (record.CellConfirmedAt, Clean(record.CellConfirmedByName)),

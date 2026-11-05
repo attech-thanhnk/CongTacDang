@@ -12,6 +12,6 @@ public static class GateHistory
     {
         ArgumentNullException.ThrowIfNull(history);
         return history.Action is WorkflowAction.Complete or WorkflowAction.RecordExternal
-            && history.FromStatus is { } from && from >= RecordStatus.AwaitingDecision;
+            && history.FromStatus is { } from && !WorkflowSteps.IsBefore(from, RecordStatus.AwaitingDecision);
     }
 }

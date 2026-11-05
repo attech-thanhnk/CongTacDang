@@ -24,7 +24,8 @@ public static class EvidenceRules
         var periodOpen = periodStatus == PeriodStatus.Open || (periodStatus == PeriodStatus.Locked && recordUnlocked);
         if (!periodOpen || recordStatus == RecordStatus.Published)
             return EvidenceStage.Locked;
-        return recordStatus is RecordStatus.AwaitingRegistration or RecordStatus.AwaitingTaskApproval or RecordStatus.AwaitingSelfScore
+        return recordStatus is RecordStatus.AwaitingRegistration or RecordStatus.AwaitingUnitSubmit or RecordStatus.AwaitingTaskReview
+            or RecordStatus.AwaitingTaskApproval or RecordStatus.AwaitingSelfScore
             ? EvidenceStage.Open
             : EvidenceStage.AddOnly;
     }

@@ -67,6 +67,10 @@ public sealed class EvaluationRecordConfiguration : IEntityTypeConfiguration<Eva
         entity.Property(e => e.AppraisalExplanation).HasMaxLength(4000);
         entity.Property(e => e.SelfGradeExplanation).HasMaxLength(4000);
         entity.Property(e => e.DecisionExplanation).HasMaxLength(4000);
+        entity.Property(e => e.TasksForwardedByName).HasMaxLength(200);
+        entity.Property(e => e.TasksForwardComment).HasMaxLength(4000);
+        entity.Property(e => e.TasksReviewedByName).HasMaxLength(200);
+        entity.Property(e => e.TasksReviewComment).HasMaxLength(4000);
         entity.Property(e => e.TasksApprovedByName).HasMaxLength(200);
         entity.Property(e => e.TasksApprovalComment).HasMaxLength(4000);
         entity.Property(e => e.CellConfirmedByName).HasMaxLength(200);

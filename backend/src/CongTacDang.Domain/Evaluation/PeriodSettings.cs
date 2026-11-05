@@ -27,6 +27,8 @@ public enum StepMode
 public static class WorkflowPermissions
 {
     public const string Self = "evaluation.self";
+    public const string TasksForward = "evaluation.tasks.forward";
+    public const string TasksReview = "evaluation.tasks.review";
     public const string TasksApprove = "evaluation.tasks.approve";
     public const string CellConfirm = "evaluation.cell.confirm";
     public const string CollectiveRecord = "evaluation.collective.record";
@@ -41,6 +43,8 @@ public static class WorkflowPermissions
     public static string DefaultFor(WorkflowStep step) => step switch
     {
         WorkflowStep.B1_REGISTER or WorkflowStep.B2_SELF_SCORE => Self,
+        WorkflowStep.B1_UNIT_SUBMIT => TasksForward,
+        WorkflowStep.B1_HR_REVIEW => TasksReview,
         WorkflowStep.B1_APPROVE => TasksApprove,
         WorkflowStep.B2_CELL_CONFIRM => CellConfirm,
         WorkflowStep.B3A_COLLECTIVE => CollectiveRecord,
@@ -91,11 +95,15 @@ public sealed class WorkflowProfile
             ? setting.Mode
             : WorkflowGates.DefaultMode(gate, Mode(WorkflowStep.B4_DECISION));
 
-    /// <summary>Thiếu thì trả mặc định: nội bộ, quyền mặc định.</summary>
+    /// <summary>Thiếu thì trả mặc định: nội bộ, quyền mặc định (bước thêm sau: không áp dụng).</summary>
     public ProfileStepSetting Step(WorkflowStep step) =>
         Steps.TryGetValue(WorkflowSteps.Code(step), out var setting) && setting != null
             ? setting
-            : new ProfileStepSetting { Permission = WorkflowPermissions.DefaultFor(step) };
+            : MissingStep(step);
+
+    private static ProfileStepSetting MissingStep(WorkflowStep step) => WorkflowSteps.OffWhenMissing.Contains(step)
+        ? new ProfileStepSetting { Mode = StepMode.Off }
+        : new ProfileStepSetting { Permission = WorkflowPermissions.DefaultFor(step) };
 
     public StepMode Mode(WorkflowStep step) => Step(step).Mode;
 
@@ -169,7 +177,7 @@ public sealed class WorkflowProfile
         var steps = new Dictionary<string, ProfileStepSetting>(StringComparer.Ordinal);
         foreach (var step in WorkflowSteps.Ordered)
         {
-            var setting = known.TryGetValue(step, out var found) ? found : new ProfileStepSetting();
+            var setting = known.TryGetValue(step, out var found) ? found : MissingStep(step);
             if (setting.Mode != StepMode.Internal || WorkflowSteps.OwnerSteps.Contains(step))
                 setting.Permission = null;
             else
@@ -277,9 +285,9 @@ public sealed class PeriodSettings
         {
             Profiles = new List<WorkflowProfile>
             {
-                // Giám đốc duyệt danh mục của Trưởng, Phó phòng; Trưởng phòng chỉ ký Mẫu 01 của Phó phòng khi nộp.
+                // Bước 1 theo kế hoạch quý: cá nhân lập, Trưởng đơn vị gửi, Phòng TCCB-LĐ rà soát trình, Giám đốc duyệt.
                 WorkflowProfile.Create(ProfileBase, "Diện Đảng ủy cơ sở",
-                    "Giám đốc duyệt danh mục sản phẩm; tập thể lãnh đạo Phòng đề xuất, Phòng TCCB-LĐ thẩm định, Giám đốc nhận xét, "
+                    "Trưởng đơn vị gửi danh mục, Phòng TCCB-LĐ rà soát trình, Giám đốc duyệt; tập thể lãnh đạo Phòng đề xuất, Phòng TCCB-LĐ thẩm định, Giám đốc nhận xét, "
                     + "Đảng ủy cơ sở quyết định.",
                     permissions: new Dictionary<WorkflowStep, string>
                     {
@@ -291,13 +299,15 @@ public sealed class PeriodSettings
                     + "— hệ thống ghi nhận kết quả.",
                     new Dictionary<WorkflowStep, StepMode>
                     {
+                        [WorkflowStep.B1_UNIT_SUBMIT] = StepMode.Off,
+                        [WorkflowStep.B1_HR_REVIEW] = StepMode.Off,
                         [WorkflowStep.B1_APPROVE] = StepMode.External,
                         [WorkflowStep.B3B_APPRAISAL] = StepMode.External,
                         [WorkflowStep.B3C_DIRECTOR] = StepMode.External,
                         [WorkflowStep.B4_DECISION] = StepMode.External
                     }),
                 WorkflowProfile.Create(ProfileCellSecretaryStaff, "Bí thư/Phó bí thư Chi bộ là nhân viên",
-                    "Giám đốc duyệt danh mục sản phẩm; Chi bộ xác nhận; Trưởng bộ phận/đơn vị đề xuất mức trên cơ sở ý kiến các Phó "
+                    "Trưởng đơn vị gửi danh mục, Phòng TCCB-LĐ rà soát trình, Giám đốc duyệt; Chi bộ xác nhận; Trưởng bộ phận/đơn vị đề xuất mức trên cơ sở ý kiến các Phó "
                     + "(không họp bỏ phiếu), Phòng TCCB-LĐ thẩm định, Đảng ủy cơ sở quyết định; không có bước nhận xét của cấp trực tiếp sử dụng.",
                     modes: new Dictionary<WorkflowStep, StepMode>
                     {
@@ -311,10 +321,11 @@ public sealed class PeriodSettings
                 // Chủ tịch nhận xét (ngày 14) trước khi Ban TCĐU thẩm định (ngày 15), mà bước thẩm định luôn đứng trước
                 // bước nhận xét nên thẩm định được ghi nhận cùng quyết định của BTV.
                 WorkflowProfile.Create(ProfileDeputyDirector, "Phó Giám đốc",
-                    "Chủ tịch duyệt danh mục sản phẩm; tập thể lãnh đạo Công ty đề xuất, Chủ tịch nhận xét, đề xuất trong hệ thống; "
+                    "Phòng TCCB-LĐ rà soát trình, Chủ tịch duyệt danh mục sản phẩm; tập thể lãnh đạo Công ty đề xuất, Chủ tịch nhận xét, đề xuất trong hệ thống; "
                     + "thẩm định (Ban TCĐU) và quyết định (BTV Đảng ủy Tổng công ty) do cấp trên thực hiện — hệ thống ghi nhận kết quả.",
                     modes: new Dictionary<WorkflowStep, StepMode>
                     {
+                        [WorkflowStep.B1_UNIT_SUBMIT] = StepMode.Off,
                         [WorkflowStep.B3B_APPRAISAL] = StepMode.Off,
                         [WorkflowStep.B4_DECISION] = StepMode.External
                     },
@@ -334,12 +345,12 @@ public sealed class PeriodSettings
             // Hiệu chuẩn (Mẫu 20) bắt buộc theo Hướng dẫn 03 khi quyết định làm trong hệ thống; phiếu kiểm tra (Mẫu 19) chỉ ghi nhận.
             profile.Gates[WorkflowGates.Control] = new GateSetting { Mode = GateMode.Recorded };
 
-            // Kế hoạch đánh giá quý: diện cơ sở đăng ký (ngày làm việc cuối quý trước -5) và duyệt (-1) trước đầu quý;
-            // diện Phó Giám đốc và cấp trên đăng ký ngày làm việc thứ 1, duyệt ngày làm việc thứ 5 đầu quý.
+            // Kế hoạch đánh giá quý: diện cơ sở đăng ký (ngày làm việc cuối quý trước -5), Trưởng đơn vị gửi (-3), rà soát trình (-2),
+            // duyệt (-1); diện Phó Giám đốc và cấp trên đăng ký ngày làm việc thứ 1, rà soát thứ 4, duyệt thứ 5 đầu quý.
             var companyLevel = profile.Code is ProfileUpper or ProfileDeputyDirector;
             SetDefaultRules(profile, companyLevel
-                ? new DeadlineSet(Quarter(1), Quarter(5), 9, 14, 15, profile.Code == ProfileUpper ? 17 : 14, 18)
-                : new DeadlineSet(BeforeQuarter(6), BeforeQuarter(2), 9, 10, 11, 14, 14));
+                ? new DeadlineSet(Quarter(1), Quarter(3), Quarter(4), Quarter(5), 9, 14, 15, profile.Code == ProfileUpper ? 17 : 14, 18)
+                : new DeadlineSet(BeforeQuarter(6), BeforeQuarter(4), BeforeQuarter(3), BeforeQuarter(2), 9, 10, 11, 14, 14));
         }
         return settings;
     }
@@ -348,7 +359,7 @@ public sealed class PeriodSettings
 
     private static DeadlineRule Quarter(int workingDay) => new() { Kind = DeadlineRuleKind.WorkingDayOfQuarter, Value = workingDay };
 
-    private sealed record DeadlineSet(DeadlineRule Register, DeadlineRule Approve, int SelfScore, int Collective, int Appraisal, int Review, int Decision);
+    private sealed record DeadlineSet(DeadlineRule Register, DeadlineRule UnitSubmit, DeadlineRule TaskReview, DeadlineRule Approve, int SelfScore, int Collective, int Appraisal, int Review, int Decision);
 
     // Thời hạn mặc định theo kế hoạch đánh giá quý của Phòng TCCB-LĐ; chi bộ xác nhận cùng ngày tự chấm.
     private static void SetDefaultRules(WorkflowProfile profile, DeadlineSet set)
@@ -357,6 +368,8 @@ public sealed class PeriodSettings
         var rules = new Dictionary<WorkflowStep, DeadlineRule>
         {
             [WorkflowStep.B1_REGISTER] = set.Register,
+            [WorkflowStep.B1_UNIT_SUBMIT] = set.UnitSubmit,
+            [WorkflowStep.B1_HR_REVIEW] = set.TaskReview,
             [WorkflowStep.B1_APPROVE] = set.Approve,
             [WorkflowStep.B2_SELF_SCORE] = Day(set.SelfScore),
             [WorkflowStep.B2_CELL_CONFIRM] = Day(set.SelfScore),
@@ -528,8 +541,11 @@ public sealed class PeriodSettings
                 yield return $"Diện quyết định \"{label}\": chế độ của cổng \"{WorkflowGates.DisplayName(gate)}\" không hợp lệ.";
         }
 
-        if (profile.IsActive(WorkflowStep.B1_APPROVE) && !profile.IsActive(WorkflowStep.B1_REGISTER))
-            yield return $"Diện quyết định \"{label}\": không thể áp dụng bước duyệt danh mục sản phẩm khi bước đăng ký sản phẩm không áp dụng.";
+        if (!profile.IsActive(WorkflowStep.B1_REGISTER))
+        {
+            foreach (var step in new[] { WorkflowStep.B1_UNIT_SUBMIT, WorkflowStep.B1_HR_REVIEW, WorkflowStep.B1_APPROVE }.Where(profile.IsActive))
+                yield return $"Diện quyết định \"{label}\": không thể áp dụng bước \"{profile.StepDisplayName(step)}\" khi bước đăng ký sản phẩm không áp dụng.";
+        }
     }
 
     /// <summary>Kỳ đã mở chỉ được sửa thời hạn.</summary>
