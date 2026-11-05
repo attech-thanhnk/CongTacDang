@@ -234,8 +234,8 @@ Duyệt danh mục (`B1_APPROVE`) của diện `co-so`, `bi-thu-nhan-vien` dùng
   một việc) / `Carryover` (chuyển tiếp sang quý sau) / `Exclude` (loại trừ, bất khả kháng) — Mẫu 04; `Urgent` (việc đột xuất) — Mẫu 05.
   `TaskId?`, `Proposal` (jsonb — các trường mới của việc, hoặc toàn bộ việc đột xuất), `Weights` (jsonb — trọng số sau điều chỉnh của mọi
   việc còn hiệu lực), `WeightsBefore`, `TaskBefore` (jsonb nullable — nội dung việc đích lúc lập đề nghị điều chỉnh, để in cột "trước" Mẫu 04 sau khi duyệt đã ghi đè việc; chụp lúc lập vì khi đó việc chưa đổi và mỗi hồ sơ chỉ có một đề nghị chờ), `Reason`, `Status` = `Pending / Approved / Rejected`, người đề nghị / quyết định, thời điểm, ý kiến.
-- Áp dụng khi: kỳ **Đang mở**, hồ sơ ở `AwaitingSelfScore` (đã duyệt danh sách việc, chưa nộp tự chấm), kỳ đã có bộ tiêu chí. Mỗi hồ sơ tối đa **một** đề nghị chờ duyệt.
-- Quyền: Mẫu 04 — chủ hồ sơ (`evaluation.self`); Mẫu 05 — chủ hồ sơ hoặc người duyệt danh sách việc. Duyệt / không duyệt — quyền thực hiện
+- Áp dụng khi: kỳ **Đang mở**, hồ sơ ở `AwaitingSelfScore` (đã duyệt danh mục sản phẩm, chưa nộp tự chấm), kỳ đã có bộ tiêu chí. Mỗi hồ sơ tối đa **một** đề nghị chờ duyệt.
+- Quyền: Mẫu 04 — chủ hồ sơ (`evaluation.self`); Mẫu 05 — chủ hồ sơ hoặc người duyệt danh mục sản phẩm. Duyệt / không duyệt — quyền thực hiện
   `B1_APPROVE` theo diện quyết định của hồ sơ (`WorkflowActions.PermissionFor`; bước do cấp trên thực hiện → `evaluation.external.record`),
   `IAuthorizationGuard.Ensure` với `AccessTarget.ForRecord`; chủ hồ sơ không tự duyệt; không duyệt bắt buộc lý do.
 - Duyệt: kiểm lại trên danh mục hiện tại (`TaskChangeRules.Validate` → `EvaluationScoring.ValidateTaskRegistration`, **chỉ đếm việc còn

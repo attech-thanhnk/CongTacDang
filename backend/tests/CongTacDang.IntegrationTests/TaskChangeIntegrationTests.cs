@@ -23,7 +23,7 @@ public sealed class TaskChangeIntegrationTests
         var periodId = await OpenPeriodAsync(w);
         var recordId = await RecordOfAsync(w, periodId, w.Owner.Id);
 
-        // Chưa duyệt danh sách việc → chưa đề nghị được.
+        // Chưa duyệt danh mục sản phẩm → chưa đề nghị được.
         await Ok(await Post(w.OwnerC, recordId, "tasks/submit", Tasks(), await VersionAsync(w, recordId)));
         var early = await Data(w.OwnerC, $"/api/evaluations/records/{recordId}/task-changes");
         Assert.True(early.GetProperty("applicable").GetBoolean());

@@ -20,7 +20,7 @@ public interface ITaskChangeService
     /// <summary>Chủ hồ sơ hoặc <c>evaluation.read</c> trong phạm vi.</summary>
     Task<RecordTaskChangesDto> GetAsync(Guid recordId, CancellationToken ct = default);
 
-    /// <summary>Mẫu 04: chủ hồ sơ; Mẫu 05: chủ hồ sơ hoặc người duyệt danh sách việc của hồ sơ.</summary>
+    /// <summary>Mẫu 04: chủ hồ sơ; Mẫu 05: chủ hồ sơ hoặc người duyệt danh mục sản phẩm của hồ sơ.</summary>
     Task<RecordTaskChangesDto> CreateAsync(Guid recordId, CreateTaskChangeRequestDto request, CancellationToken ct = default);
 
     /// <summary>Áp vào danh mục việc của hồ sơ trong cùng một lần lưu.</summary>
@@ -38,7 +38,7 @@ public interface ITaskChangeWorkQueue
 }
 
 /// <summary>
-/// Chỉ khi kỳ đang mở, hồ sơ đã duyệt danh sách việc và chưa nộp tự chấm, chấm theo sản phẩm (09A) có bước đăng ký sản phẩm.
+/// Chỉ khi kỳ đang mở, hồ sơ đã duyệt danh mục sản phẩm và chưa nộp tự chấm, chấm theo sản phẩm (09A) có bước đăng ký sản phẩm.
 /// Mỗi hồ sơ tối đa một đề nghị đang chờ; chủ hồ sơ không tự duyệt.
 /// </summary>
 public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
@@ -372,11 +372,11 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
         if (record.Period.Status != PeriodStatus.Open)
             return "Chỉ điều chỉnh việc khi kỳ đánh giá đang mở.";
         if (record.Status != RecordStatus.AwaitingSelfScore)
-            return "Chỉ điều chỉnh việc sau khi danh sách việc đã được duyệt và trước khi nộp phiếu tự chấm.";
+            return "Chỉ điều chỉnh việc sau khi danh mục sản phẩm đã được duyệt và trước khi nộp phiếu tự chấm.";
         return null;
     }
 
-    /// <summary>Quyền thực hiện bước duyệt danh sách việc; bước do cấp trên thực hiện → quyền ghi nhận kết quả cấp trên.</summary>
+    /// <summary>Quyền thực hiện bước duyệt danh mục sản phẩm; bước do cấp trên thực hiện → quyền ghi nhận kết quả cấp trên.</summary>
     public static string ApproverPermission(WorkflowProfile profile) =>
         profile.Mode(WorkflowStep.B1_APPROVE) == StepMode.External
             ? PermissionCodes.EvaluationExternalRecord
