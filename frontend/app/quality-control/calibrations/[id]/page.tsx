@@ -17,6 +17,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { formatDate, formatDateTime } from "@/lib/dateFormat";
 import { GRADE_OPTIONS, gradeLabel } from "@/services/evaluationService";
 import { reportService } from "@/services/reportService";
+import { fmt } from "@/services/criteriaService";
 import {
   CALIBRATION_STATUS_TONES,
   CalibrationHistoryDto,
@@ -131,7 +132,8 @@ const toRequest = (d: Draft, version: number): UpdateCalibrationRequest => ({
   })),
 });
 
-const pct = (v?: number | null) => (v == null ? "—" : `${Math.round(v * 1000) / 10}%`);
+// Máy chủ trả phần trăm 0–100 (đã làm tròn một chữ số), không nhân thêm.
+const pct = (v?: number | null) => (v == null ? "—" : `${fmt(v, 1)}%`);
 const score = (v?: number | null) => (v == null ? "—" : String(v));
 const GRADES = GRADE_OPTIONS.filter((g) => g.value !== "ChuaXepLoai");
 
