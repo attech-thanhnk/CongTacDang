@@ -57,7 +57,7 @@ public sealed class EvaluationWorkflowTests
         var mine = await Data(w.Owner1C, $"/api/evaluations/my-record?periodId={periodId}");
         Assert.Equal(recordId, mine.GetProperty("id").GetGuid());
         Assert.Equal("AwaitingRegistration", mine.GetProperty("status").GetString());
-        Assert.Equal(9, mine.GetProperty("progress").GetArrayLength());
+        Assert.Equal(11, mine.GetProperty("progress").GetArrayLength());
 
         // 1. B1_REGISTER — chủ hồ sơ
         await AssertActionsAsync(w.Owner1C, recordId, "SubmitTasks");
@@ -86,7 +86,9 @@ public sealed class EvaluationWorkflowTests
         Assert.Equal(HttpStatusCode.BadRequest, unplanned.StatusCode);
         Assert.Contains("Dòng 1: loại việc khi đăng ký", await MessageAsync(unplanned));
 
-        var submitted = await StepAsync(w.Owner1C, recordId, "tasks/submit", Tasks(), "AwaitingTaskApproval");
+        var submitted = await StepAsync(w.Owner1C, recordId, "tasks/submit", Tasks(), "AwaitingUnitSubmit");
+
+        await ForwardAndReviewAsync(w, recordId);
         var firstTask = submitted.GetProperty("tasks")[0];
         Assert.Equal("TrongTam", firstTask.GetProperty("kind").GetString());
         Assert.Equal("ChuTri", firstTask.GetProperty("role").GetString());
@@ -140,7 +142,11 @@ public sealed class EvaluationWorkflowTests
 
         var history = await Data(w.Owner1C, $"/api/evaluations/records/{recordId}/history");
         var completes = history.EnumerateArray().Where(h => h.GetProperty("action").GetString() == "Complete").Select(h => h.GetProperty("step").GetString()).ToList();
-        Assert.Equal(new[] { "B1_REGISTER", "B1_APPROVE", "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3A_COLLECTIVE", "B3B_APPRAISAL", "B3C_DIRECTOR", "B4_DECISION", "B5_PUBLISH" }, completes);
+        Assert.Equal(new[]
+        {
+            "B1_REGISTER", "B1_UNIT_SUBMIT", "B1_HR_REVIEW", "B1_APPROVE", "B2_SELF_SCORE", "B2_CELL_CONFIRM",
+            "B3A_COLLECTIVE", "B3B_APPRAISAL", "B3C_DIRECTOR", "B4_DECISION", "B5_PUBLISH"
+        }, completes);
         Assert.Contains(history.EnumerateArray(), h => h.GetProperty("action").GetString() == "Create");
 
         // Kết quả kiểm phiếu chỉ có tổng hợp; audit bảng kiểm phiếu chỉ ghi người nhập (thư ký).
@@ -258,12 +264,15 @@ public sealed class EvaluationWorkflowTests
         await Data(await w.Appraiser.PutAsJsonAsync($"/api/evaluations/periods/{periodId}/participants/{id}/profile",
             new { version = participant.GetProperty("version").GetUInt32(), workflowProfileCode = "co-so", reason = "Kiểm thử trả lại ở bước thẩm định" }));
 
-        await StepAsync(w.Owner2C, id, "tasks/submit", Tasks(), "AwaitingTaskApproval");
+        await StepAsync(w.Owner2C, id, "tasks/submit", Tasks(), "AwaitingUnitSubmit");
+
+        await ForwardAndReviewAsync(w, id);
         // Trả lại bắt buộc lý do.
         Assert.Equal(HttpStatusCode.BadRequest, (await PostAsync(w.DirectorC, id, "tasks/return", new { reason = "" }, await VersionAsync(w, id))).StatusCode);
         var returned = await StepAsync(w.DirectorC, id, "tasks/return", new { reason = "Trọng số sản phẩm 1 chưa hợp lý" }, "AwaitingRegistration");
         Assert.Equal("Trọng số sản phẩm 1 chưa hợp lý", returned.GetProperty("returnReason").GetString());
-        await StepAsync(w.Owner2C, id, "tasks/submit", Tasks(35, 20, 15), "AwaitingTaskApproval");
+        await StepAsync(w.Owner2C, id, "tasks/submit", Tasks(35, 20, 15), "AwaitingUnitSubmit");
+        await ForwardAndReviewAsync(w, id);
         await StepAsync(w.DirectorC, id, "tasks/approve", new { }, "AwaitingSelfScore");
 
         await SelfScoreAsync(w, w.Owner2C, id);
@@ -636,7 +645,8 @@ public sealed class EvaluationWorkflowTests
         var w = await WorldAsync();
         var periodId = await OpenPeriodAsync(w, w.Owner1.Id);
         var id = await RecordOfAsync(w, periodId, w.Owner1.Id);
-        await StepAsync(w.Owner1C, id, "tasks/submit", Tasks(), "AwaitingTaskApproval");
+        await StepAsync(w.Owner1C, id, "tasks/submit", Tasks(), "AwaitingUnitSubmit");
+        await ForwardAndReviewAsync(w, id);
         await StepAsync(w.DirectorC, id, "tasks/approve", new { }, "AwaitingSelfScore");
         await SelfScoreAsync(w, w.Owner1C, id);
         await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
@@ -704,7 +714,8 @@ public sealed class EvaluationWorkflowTests
         var w = await WorldAsync();
         var periodId = await OpenPeriodAsync(w, w.Owner1.Id);
         var id = await RecordOfAsync(w, periodId, w.Owner1.Id);
-        await StepAsync(w.Owner1C, id, "tasks/submit", Tasks(), "AwaitingTaskApproval");
+        await StepAsync(w.Owner1C, id, "tasks/submit", Tasks(), "AwaitingUnitSubmit");
+        await ForwardAndReviewAsync(w, id);
         await StepAsync(w.DirectorC, id, "tasks/approve", new { }, "AwaitingSelfScore");
         await SelfScoreAsync(w, w.Owner1C, id);
         await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
@@ -926,7 +937,8 @@ public sealed class EvaluationWorkflowTests
     /// <summary>Chủ hồ sơ Owner1 đăng ký danh mục, Lãnh đạo Phòng duyệt; trả hồ sơ ở bước tự chấm.</summary>
     private async Task<JsonElement> RegisterAsync(World w, Guid recordId)
     {
-        await StepAsync(w.Owner1C, recordId, "tasks/submit", Tasks(), "AwaitingTaskApproval");
+        await StepAsync(w.Owner1C, recordId, "tasks/submit", Tasks(), "AwaitingUnitSubmit");
+        await ForwardAndReviewAsync(w, recordId);
         return await StepAsync(w.DirectorC, recordId, "tasks/approve", new { }, "AwaitingSelfScore");
     }
 
@@ -990,6 +1002,13 @@ public sealed class EvaluationWorkflowTests
         if (action == "appraisal")
             await AppraisalTestData.AddTaskLevelsAsync(client, recordId, json);
         return await client.PostAsJsonAsync($"/api/evaluations/records/{recordId}/{action}", json);
+    }
+
+    /// <summary>Trưởng đơn vị gửi, cơ quan tổ chức cán bộ rà soát trình: danh mục tới bước duyệt.</summary>
+    private async Task ForwardAndReviewAsync(World w, Guid recordId)
+    {
+        await StepAsync(w.DeptLeadC, recordId, "tasks/forward", new { comment = "Gửi danh mục" }, "AwaitingTaskReview");
+        await StepAsync(w.AppraiserC, recordId, "tasks/review", new { comment = "Đủ điều kiện trình" }, "AwaitingTaskApproval");
     }
 
     /// <summary>Thực hiện một bước với version hiện tại và kiểm tra trạng thái sau.</summary>

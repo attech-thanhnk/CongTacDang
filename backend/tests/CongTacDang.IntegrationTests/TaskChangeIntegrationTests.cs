@@ -28,6 +28,8 @@ public sealed class TaskChangeIntegrationTests
         var early = await Data(w.OwnerC, $"/api/evaluations/records/{recordId}/task-changes");
         Assert.True(early.GetProperty("applicable").GetBoolean());
         Assert.False(early.GetProperty("canRequestChange").GetBoolean());
+        await Ok(await Post(w.LeadC, recordId, "tasks/forward", new { comment = "" }, await VersionAsync(w, recordId)));
+        await Ok(await Post(w.ManagerC, recordId, "tasks/review", new { comment = "" }, await VersionAsync(w, recordId)));
         await Ok(await Post(w.LeadC, recordId, "tasks/approve", new { comment = "Đồng ý" }, await VersionAsync(w, recordId)));
 
         var block = await Data(w.OwnerC, $"/api/evaluations/records/{recordId}/task-changes");
@@ -198,6 +200,7 @@ public sealed class TaskChangeIntegrationTests
             var reader = await _factory.CreateUserAsync(null, null);
             await _factory.AssignAsync(w.Owner.Id, await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA"), RoleScopeType.Global, null);
             await _factory.AssignAsync(lead.Id, await _factory.GetRoleIdAsync("CAP_TRUC_TIEP_SU_DUNG"), RoleScopeType.Department, w.Dept);
+            await _factory.AssignAsync(lead.Id, await _factory.GetRoleIdAsync("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept);
             await _factory.AssignAsync(manager.Id, await _factory.GetRoleIdAsync("CO_QUAN_THAM_DINH"), RoleScopeType.Global, null);
             await _factory.AssignAsync(reader.Id, (await _factory.CreateRoleAsync("evaluation.read")).Id, RoleScopeType.Global, null);
 

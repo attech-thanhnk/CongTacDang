@@ -126,7 +126,7 @@ public sealed class GoLiveScenarioTests
             {
                 // "Người được đánh giá" có thêm xem kết quả, gửi kiến nghị; "Lãnh đạo đơn vị" có thêm lập kế hoạch 30-60-90 ngày.
                 "collective.manage", "evaluation.appeal.submit", "evaluation.cell.confirm", "evaluation.improvement.manage", "evaluation.opinion.record",
-                "evaluation.read", "evaluation.results.view", "evaluation.self", "evaluation.tasks.approve",
+                "evaluation.read", "evaluation.results.view", "evaluation.self", "evaluation.tasks.approve", "evaluation.tasks.forward",
                 "evaluation.unit.review", // Lãnh đạo đơn vị có thêm "Lãnh đạo đơn vị đề xuất"
                 "meeting.read", "report.export"
             },
@@ -181,11 +181,13 @@ public sealed class GoLiveScenarioTests
         var periodId = period.GetProperty("id").GetGuid();
         Assert.Equal("Draft", period.GetProperty("status").GetString());
 
-        // Đơn vị chưa phân công người duyệt danh mục, thư ký tập thể và cấp trực tiếp → tắt B1 duyệt, B3a, B3c ở mọi diện quyết định.
+        // Đơn vị chưa phân công người gửi, rà soát, duyệt danh mục, thư ký tập thể và cấp trực tiếp → tắt các bước đó ở mọi diện quyết định.
         var settings = JsonNode.Parse(period.GetProperty("settings").GetRawText())!.AsObject();
         foreach (var profile in settings["profiles"]!.AsArray())
         {
-            profile!["steps"]!["B1_APPROVE"]!["mode"] = "Off";
+            profile!["steps"]!["B1_UNIT_SUBMIT"]!["mode"] = "Off";
+            profile["steps"]!["B1_HR_REVIEW"]!["mode"] = "Off";
+            profile["steps"]!["B1_APPROVE"]!["mode"] = "Off";
             profile["steps"]!["B3A_COLLECTIVE"]!["mode"] = "Off";
             profile["steps"]!["B3C_DIRECTOR"]!["mode"] = "Off";
         }
@@ -263,7 +265,7 @@ public sealed class GoLiveScenarioTests
     }
 
     private static int StepOrder(string? step) => Array.IndexOf(
-        new[] { "B1_REGISTER", "B1_APPROVE", "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3A_COLLECTIVE", "B3B_APPRAISAL", "B3C_DIRECTOR", "B4_DECISION", "B5_PUBLISH" },
+        new[] { "B1_REGISTER", "B1_UNIT_SUBMIT", "B1_HR_REVIEW", "B1_APPROVE", "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3A_COLLECTIVE", "B3B_APPRAISAL", "B3C_DIRECTOR", "B4_DECISION", "B5_PUBLISH" },
         step);
 
     private async Task<Guid> RoleIdByCodeAsync(string code)

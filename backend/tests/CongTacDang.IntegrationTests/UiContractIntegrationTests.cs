@@ -944,7 +944,16 @@ public sealed class UiContractIntegrationTests
                 axisCode = "T1", productCode = (string?)null, kind = t.Item3, role = t.Item4,
                 exceedCriteria = "Vượt tiến độ", evidenceSource = "Biên bản nghiệm thu", confirmer = "Giám đốc"
             }).ToArray();
-            await StepAsync(Owner, "tasks/submit", new { tasks }, "AwaitingTaskApproval");
+            await StepAsync(Owner, "tasks/submit", new { tasks }, "AwaitingUnitSubmit");
+
+            // CommentForm "Gửi" của Trưởng đơn vị, "Trình duyệt" của cơ quan tổ chức cán bộ.
+            await AssertQueueAsync(_w.Lead, "B1_UNIT_SUBMIT");
+            var leadActions = await Data(_w.Lead, $"/api/evaluations/records/{RecordId}/actions");
+            Assert.Contains(leadActions.GetProperty("actions").EnumerateArray(), a => a.GetProperty("action").GetString() == "ForwardTasks");
+            Assert.Contains(leadActions.GetProperty("actions").EnumerateArray(), a => a.GetProperty("action").GetString() == "ReturnByUnit");
+            await StepAsync(_w.Lead, "tasks/forward", new { comment = "" }, "AwaitingTaskReview");
+            await AssertQueueAsync(_w.Manager, "B1_HR_REVIEW");
+            await StepAsync(_w.Manager, "tasks/review", new { comment = "Đủ điều kiện trình" }, "AwaitingTaskApproval");
         }
 
         public async Task ApproveAsync()

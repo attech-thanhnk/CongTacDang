@@ -122,7 +122,10 @@ public sealed class Quarter4ScenarioTests
             tasks = new[] { (Name: "Sản phẩm 1", Weight: 30.0, Kind: "TrongTam"), (Name: "Sản phẩm 2", Weight: 20.0, Kind: "TrongTam"), (Name: "Sản phẩm 3", Weight: 20.0, Kind: "ThuongXuyen") }
                 .Select(t => new { taskName = t.Name, targetOutput = $"Kết quả {t.Name}", weight = t.Weight, axisCode = "T1", kind = t.Kind, role = "ChuTri",
                     exceedCriteria = "Vượt tiến độ", evidenceSource = "Biên bản nghiệm thu", confirmer = "Chủ tịch" })
-        }, "AwaitingTaskApproval");
+        }, "AwaitingTaskReview");
+        // Không qua Trưởng đơn vị; Phòng TCCB-LĐ rà soát, trình Chủ tịch.
+        await AssertActions(w.Tccb, id[w.Pgd.Id], "ReviewTasks", "ReturnByReviewer", "MarkNotRated");
+        await Step(w.Tccb, id[w.Pgd.Id], "tasks/review", new { comment = "Đủ điều kiện trình" }, "AwaitingTaskApproval");
         await AssertActions(w.Gd.Client, id[w.Pgd.Id]);
         Assert.Equal(HttpStatusCode.Forbidden,
             (await Post(w.Gd.Client, id[w.Pgd.Id], "tasks/approve", new { comment = "Giám đốc duyệt" }, w.Tccb)).StatusCode);
@@ -267,7 +270,7 @@ public sealed class Quarter4ScenarioTests
         var steps = history.EnumerateArray().Where(h => h.GetProperty("step").ValueKind == JsonValueKind.String
                 && h.GetProperty("action").GetString() is "Complete" or "RecordExternal")
             .Select(h => h.GetProperty("step").GetString()).ToList();
-        Assert.Equal(new[] { "B1_REGISTER", "B1_APPROVE", "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3A_COLLECTIVE", "B3C_DIRECTOR", "B4_DECISION", "B5_PUBLISH" },
+        Assert.Equal(new[] { "B1_REGISTER", "B1_HR_REVIEW", "B1_APPROVE", "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3A_COLLECTIVE", "B3C_DIRECTOR", "B4_DECISION", "B5_PUBLISH" },
             steps.OrderBy(StepOrder).ToList());
 
         // Công khai kết quả: người được đánh giá xem được mức của kỳ.
@@ -461,7 +464,7 @@ public sealed class Quarter4ScenarioTests
     #region Hỗ trợ
 
     private static int StepOrder(string? step) => Array.IndexOf(
-        new[] { "B1_REGISTER", "B1_APPROVE", "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3A_COLLECTIVE", "B3B_APPRAISAL", "B3C_DIRECTOR", "B4_DECISION", "B5_PUBLISH" },
+        new[] { "B1_REGISTER", "B1_UNIT_SUBMIT", "B1_HR_REVIEW", "B1_APPROVE", "B2_SELF_SCORE", "B2_CELL_CONFIRM", "B3A_COLLECTIVE", "B3B_APPRAISAL", "B3C_DIRECTOR", "B4_DECISION", "B5_PUBLISH" },
         step);
 
     private static string Around(string text, int index)
@@ -632,6 +635,7 @@ public sealed class Quarter4ScenarioTests
             w.Pgd = await Cadre("Tạ Văn Phó", w.DeptBgd, w.CellVpId, ApprovalAuthority.CapTren, "Phó Giám đốc", w.DeptBgd, null);
 
             var tccb = await Account("Ngô Thị Thẩm", w.DeptTc, null);
+            var tpTc = await Account("Lê Văn Trưởng Tổ chức", w.DeptTc, null);
             var cellKtDeputy = await Account("Kiều Văn Phó Bí", w.DeptKt, w.CellKt);
             var cellVp = await Account("Phan Thị Chi Ủy", w.DeptTc, w.CellVpId);
             var secKt = await Account("Thư ký Phòng Kỹ thuật", w.DeptKt, null);
@@ -659,6 +663,7 @@ public sealed class Quarter4ScenarioTests
             await Assign(w.Gd.Id, "Cấp trực tiếp sử dụng", "Department", w.DeptTc);
             await Assign(w.Ct.Id, "Cấp trực tiếp sử dụng", "Department", w.DeptBgd);
             await Assign(w.Tp.Id, "Lãnh đạo đơn vị", "Department", w.DeptKt);
+            await Assign(tpTc.User.Id, "Lãnh đạo đơn vị", "Department", w.DeptTc);
             await Assign(w.Gd.Id, "Lãnh đạo đơn vị", "Department", w.DeptBgd);
             await Assign(office.User.Id, "Văn phòng Đảng ủy", "Global", null);
 
