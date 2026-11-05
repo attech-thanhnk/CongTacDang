@@ -28,7 +28,7 @@ Mỗi người đọc **hướng dẫn theo vai trò** của mình trước khi 
 
 | Đợt | Việc | Ai làm |
 |---|---|---|
-| Chuẩn bị (1–2 ngày) | Quản trị cấp mật khẩu tạm cho nhóm thử; Phòng TCCB-LĐ tạo kỳ thử, thêm người, mở kỳ; gửi hướng dẫn và phiếu góp ý | Quản trị, Phòng TCCB-LĐ |
+| Chuẩn bị (1–2 ngày) | Quản trị cấp mật khẩu tạm cho nhóm thử; Phòng TCCB-LĐ tạo kỳ thử, thêm người, mở kỳ (`powershell -File scripts/tao-ky-dung-thu.ps1 -NgayBatDau <ngày đầu tuần 1>`); gửi hướng dẫn và phiếu góp ý | Quản trị, Phòng TCCB-LĐ |
 | Tuần 1 | Đăng ký sản phẩm → duyệt danh mục → điều chỉnh việc (thử) → tự chấm, đính kèm minh chứng → Chi bộ xác nhận | Mọi người được đánh giá, lãnh đạo đơn vị, Chi bộ |
 | Tuần 2 | Tập thể đề xuất, Trưởng trung tâm đề xuất → thẩm định → nhận xét → họp thống nhất, phiếu kiểm tra → quyết định → công bố → kiến nghị, kế hoạch khắc phục | Thư ký, Phòng TCCB-LĐ, Giám đốc, Chủ tịch, Văn phòng |
 | Tổng kết (1 buổi) | Gom phiếu góp ý, thống nhất việc phải sửa trước khi mở kỳ thật | Phòng TCCB-LĐ, Văn phòng, CNTT |

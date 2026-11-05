@@ -74,6 +74,23 @@ powershell -File scripts/tao-du-lieu-thu.ps1 -LamSach
 
 Xóa toàn bộ kỳ, hồ sơ, biên bản, phiếu, nhật ký trên CSDL dev. Giữ nguyên tài khoản, danh mục, vai trò, bộ tiêu chí. Tải lại trang trên trình duyệt sau khi chạy.
 
+## Tạo kỳ dùng thử trên máy chủ
+
+Dùng cho [kế hoạch dùng thử](dung-thu/ke-hoach-dung-thu.md), sau khi máy chủ đã cập nhật bản mới. Chỉ gọi API bằng tài khoản người lập kỳ (mặc định `loan.ttp`, hỏi mật khẩu khi chạy):
+
+```
+powershell -File scripts/tao-ky-dung-thu.ps1 -NgayBatDau 2026-11-09 -KiemTra
+powershell -File scripts/tao-ky-dung-thu.ps1 -NgayBatDau 2026-11-09
+```
+
+- Tạo kỳ dự thảo "Kỳ dùng thử" (quý theo `-NgayBatDau`, đổi bằng `-Nam`, `-Quy`) với bộ tiêu chí đã xuất bản mới nhất.
+- Thêm người trong nhóm thử thuộc diện đánh giá (`-NguoiDuocDanhGia` để đổi danh sách); diện quyết định theo chức vụ.
+- Hạn các bước theo lịch 2 tuần, tính theo ngày làm việc từ `-NgayBatDau` (bảng `$LichBuoc` đầu script).
+- Kiểm tra kẹt luồng, chỉ mở kỳ khi không còn cảnh báo; mở dù còn cảnh báo: `-MoBatBuoc '<lý do>'`.
+- `-KiemTra`: chỉ in kế hoạch (và kiểm tra kẹt luồng nếu đã có kỳ dự thảo cùng tên), không tạo, không mở.
+- Chạy lại: kỳ cùng tên đã mở thì báo và dừng; còn dự thảo (lần trước kẹt luồng) thì dùng lại, thêm người còn thiếu rồi kiểm tra, mở.
+- Chạy trên máy dev: thêm `-ApiUrl http://localhost:5000 -MatKhau Thu12345a`.
+
 ## Kiểm thử tự động
 
 ```
