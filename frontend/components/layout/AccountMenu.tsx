@@ -113,7 +113,7 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
             <i className="bi bi-box-arrow-right" />
             Đăng xuất
           </button>
-          {version && <div className={styles.version} title={`Dựng lúc ${version.buildTime}`}>{versionLabel(version)}</div>}
+          {version && versionLabel(version) && <div className={styles.version} title={`Dựng lúc ${version.buildTime}`}>{versionLabel(version)}</div>}
         </div>
       )}
     </div>

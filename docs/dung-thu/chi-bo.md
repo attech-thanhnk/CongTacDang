@@ -20,7 +20,7 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 
 ![Việc chờ Chi bộ xác nhận](anh/chi-bo-01-viec-can-xu-ly.png)
 
-2. Xem phiếu ở khối **Phiếu tự chấm (Mẫu 09A)** ngay dưới: tiêu chí chung, kết quả nhiệm vụ, tổng điểm, mức tự đề xuất. Bấm **Kết quả thực hiện nhiệm vụ (Mẫu 9D)**, **Bản tự đánh giá (Mẫu 09C)** để mở chi tiết. Muốn xem bản in: khối **Biểu mẫu** bên phải → **Tải Word**, hoặc **Xem bản in**.
+2. Xem phiếu ở khối **Phiếu tự chấm (Mẫu 09A)** ngay dưới: tiêu chí chung, kết quả nhiệm vụ, tổng điểm, mức tự đề xuất. Bấm **Kết quả thực hiện nhiệm vụ (Mẫu 9D)**, **Bản tự đánh giá (Mẫu 09C)** để mở chi tiết. Muốn xem bản in: nút **Biểu mẫu** ở đầu trang hồ sơ → **Tải Word**, hoặc **Xem bản in**.
 3. Trong khung **Chi bộ xác nhận**, ghi **Ý kiến** (nếu có) → bấm **Xác nhận** → **Đồng ý**.
 
 ![Khung Chi bộ xác nhận](anh/chi-bo-03-xac-nhan-nhap.png)

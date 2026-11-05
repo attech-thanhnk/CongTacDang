@@ -113,4 +113,4 @@ Bản PDF: nút **⋯** cạnh nút tải. Phần **Báo cáo nội bộ** có *
 
 Người chưa có quyết định được tính theo mức đề xuất gần nhất.
 
-Phiếu của từng cán bộ (Mẫu 01, 02, 09A, 09C, 9D, 10…): mở hồ sơ → khối **Biểu mẫu** bên phải → **Tải Word**.
+Phiếu của từng cán bộ (Mẫu 01, 02, 09A, 09C, 9D, 10…): mở hồ sơ → nút **Biểu mẫu** ở đầu trang → **Tải Word**.

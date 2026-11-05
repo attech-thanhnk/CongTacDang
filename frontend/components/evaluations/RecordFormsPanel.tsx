@@ -6,6 +6,7 @@ import { RecordFormDto, evaluationService } from "@/services/evaluationService";
 import { ReportFileFormat, reportService } from "@/services/reportService";
 import { RowActions } from "@/components/common/RowActions";
 import styles from "./record.module.css";
+import { CollapsibleSection } from "./CollapsibleSection";
 import { errorMessage } from "@/components/admin/adminUtils";
 
 /** Tên tệp tải về (không dấu), ví dụ "Mau_09A_Nguyen_Van_A.docx". */
@@ -20,13 +21,15 @@ function fileName(code: string, fullName: string, format: ReportFileFormat): str
   return `Mau_${code}_${ascii || "CanBo"}.${format === "original" ? "docx" : format}`;
 }
 
-/** Biểu mẫu cá nhân áp dụng theo bộ tiêu chí của kỳ. */
+/** Biểu mẫu cá nhân áp dụng theo bộ tiêu chí của kỳ; khối thu gọn được, mở từ nút "Biểu mẫu" ở đầu hồ sơ. */
 export function RecordFormsPanel({
   recordId,
   fullName,
   forms,
   requestForms = [],
   onPreview,
+  anchorId,
+  defaultOpen = true,
 }: {
   recordId: string;
   fullName: string;
@@ -35,9 +38,12 @@ export function RecordFormsPanel({
   requestForms?: RecordFormDto[];
   /** Mở bản in (PDF) xem trước trong hộp thoại. */
   onPreview?: () => void;
+  anchorId?: string;
+  defaultOpen?: boolean;
 }) {
   const { toast } = useToast();
   const [busy, setBusy] = useState<string | null>(null);
+  const all = [...forms, ...requestForms];
 
   const download = async (code: string, format: ReportFileFormat, requestId?: string | null) => {
     setBusy(`${requestId ?? code}-${format}`);
@@ -54,51 +60,56 @@ export function RecordFormsPanel({
   };
 
   return (
-    <section className={styles.block}>
-      <div className={styles.blockH}>
-        <h2>Biểu mẫu</h2>
-        {forms.length > 0 && onPreview && (
-          <span className={styles.end}>
-            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onPreview}>
-              <i className="bi bi-printer me-1" />
-              Xem bản in
-            </button>
-          </span>
-        )}
-      </div>
-      {forms.length === 0 && requestForms.length === 0 ? (
+    <CollapsibleSection
+      title="Biểu mẫu"
+      anchorId={anchorId}
+      defaultOpen={defaultOpen}
+      flush
+      tag={all.length > 0 ? <span className={`tag ${styles.tNeutral} num`}>{all.length}</span> : undefined}
+    >
+      {all.length === 0 ? (
         <div className={`${styles.body} ${styles.small}`}>Kỳ đánh giá chưa có bộ tiêu chí.</div>
       ) : (
-        <ul className={styles.files}>
-          {[...forms, ...requestForms].map((form) => {
-            const key = form.requestId ?? form.code;
-            return (
-            <li key={key}>
-              <span>{form.name.replace(" — ", " · ")}</span>
-              <RowActions
-                itemLabel={form.name}
-                disabled={busy !== null}
-                primary={[
-                  {
-                    key: "word",
-                    label: busy === `${key}-original` ? "Đang tải..." : "Tải Word",
-                    icon: "bi-download",
-                    onClick: () => download(form.code, "original", form.requestId),
-                  },
-                ]}
-                menu={[
-                  { key: "pdf", label: "Tải PDF", icon: "bi-file-earmark-pdf", onClick: () => download(form.code, "pdf", form.requestId) },
-                  ...(form.hasExcel && !form.requestId
-                    ? [{ key: "xlsx", label: "Excel", icon: "bi-file-earmark-excel", onClick: () => download(form.code, "xlsx") }]
-                    : []),
-                ]}
-              />
-            </li>
-            );
-          })}
-        </ul>
+        <>
+          {forms.length > 0 && onPreview && (
+            <div className={styles.filesBar}>
+              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onPreview}>
+                <i className="bi bi-printer me-1" />
+                Xem bản in
+              </button>
+            </div>
+          )}
+          <ul className={styles.files}>
+            {all.map((form) => {
+              const key = form.requestId ?? form.code;
+              return (
+                <li key={key}>
+                  <span>{form.name.replace(" — ", " · ")}</span>
+                  <RowActions
+                    itemLabel={form.name}
+                    disabled={busy !== null}
+                    primary={[
+                      {
+                        key: "word",
+                        label: busy === `${key}-original` ? "Đang tải..." : "Tải Word",
+                        icon: "bi-download",
+                        onClick: () => download(form.code, "original", form.requestId),
+                      },
+                    ]}
+                    menu={[
+                      { key: "pdf", label: "Tải PDF", icon: "bi-file-earmark-pdf", onClick: () => download(form.code, "pdf", form.requestId) },
+                      ...(form.hasExcel && !form.requestId
+                        ? [{ key: "xlsx", label: "Excel", icon: "bi-file-earmark-excel", onClick: () => download(form.code, "xlsx") }]
+                        : []),
+                    ]}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
-    </section>
+    </CollapsibleSection>
   );
 }
 

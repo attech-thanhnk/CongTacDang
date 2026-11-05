@@ -28,7 +28,7 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 
 ## 2. Tổng quan và Việc cần xử lý
 
-Sau khi đăng nhập, bạn ở trang **Tổng quan**. Khối **Việc cần xử lý** liệt kê việc đang chờ bạn; dòng hồ sơ của bạn có nhãn **Hồ sơ của tôi**.
+Sau khi đăng nhập, bạn ở trang **Tổng quan**. Thẻ **Hồ sơ của tôi** ở đầu trang cho biết hồ sơ đang ở bước nào, ai làm, hạn khi nào. Khối **Việc cần xử lý** bên dưới liệt kê việc đang chờ bạn.
 
 ![Tổng quan](anh/can-bo-03-tong-quan.png)
 
@@ -41,7 +41,7 @@ Sau khi đăng nhập, bạn ở trang **Tổng quan**. Khối **Việc cần x�
 
 ## 3. Đăng ký sản phẩm (Mẫu 01)
 
-**Khi nào:** ngay khi kỳ mở; hạn ở thanh tiến trình, bước **Đăng ký sản phẩm, nhiệm vụ**.
+**Khi nào:** ngay khi kỳ mở; hạn ở thanh tiến trình, bước **Đăng ký sản phẩm**.
 
 1. Bấm **Việc cần xử lý** → dòng hồ sơ của bạn → bấm **Đăng ký**. Khung **Nộp danh mục sản phẩm** hiện ở đầu trang, có sẵn 3 dòng trống.
 
@@ -173,4 +173,4 @@ Sau khi Văn phòng Đảng ủy công bố:
 
 ## 11. Tải biểu mẫu
 
-Cột bên phải trang hồ sơ có khối **Biểu mẫu**: bấm **Tải Word** cạnh mẫu cần tải. Bản PDF ở nút **⋯** cạnh đó. **Xem bản in** mở bản xem trước trên màn hình.
+Bấm nút **Biểu mẫu** ở đầu trang hồ sơ (cạnh họ tên) để mở danh sách biểu mẫu, rồi bấm **Tải Word** cạnh mẫu cần tải. Bản PDF ở nút **⋯** cạnh đó. **Xem bản in** mở bản xem trước trên màn hình.

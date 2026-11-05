@@ -14,7 +14,9 @@ export function PeriodPicker() {
   // Người chỉ làm quản trị hệ thống không làm việc theo kỳ.
   const onlySystemWork =
     !!user && !user.permissions.some((code) => /^(evaluation|period|criteria)\./.test(code));
-  if (!user || user.mustChangePassword || pathname === "/change-password" || onlySystemWork) return null;
+  // Trang kỳ đánh giá tự chọn kỳ để xem (kể cả kỳ dự thảo): ô chọn kỳ chung dễ gây nhầm nên ẩn.
+  const periodPages = pathname === "/periods" || pathname?.startsWith("/periods/");
+  if (!user || user.mustChangePassword || pathname === "/change-password" || onlySystemWork || periodPages) return null;
 
   return (
     <div className="hdr-period">

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { evaluationService, EvaluationRecordDto, WorkQueueDto } from "@/services/evaluationService";
-import { organizationService } from "@/services/organizationService";
+import { roleService } from "@/services/roleService";
 import { userService } from "@/services/userService";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePeriod } from "@/contexts/PeriodContext";
@@ -12,8 +12,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { MyTasksSection } from "@/components/dashboard/MyTasksSection";
 import { MyRecordSection } from "@/components/dashboard/MyRecordSection";
 import { ScopeProgressSection } from "@/components/dashboard/ScopeProgressSection";
-import { AdminSection, AdminStats } from "@/components/dashboard/AdminSection";
-import { isWorkflowStep } from "@/components/dashboard/taskUtils";
+import { AdminSection, AdminShortcut } from "@/components/dashboard/AdminSection";
 
 /** Tổng quan theo quyền; việc chờ tôi lấy ở mọi kỳ đang mở, phần còn lại theo kỳ đang chọn. */
 export default function DashboardPage() {
@@ -23,33 +22,42 @@ export default function DashboardPage() {
   const [queueLoading, setQueueLoading] = useState(true);
   const [myRecord, setMyRecord] = useState<EvaluationRecordDto | null>(null);
   const [records, setRecords] = useState<EvaluationRecordDto[]>([]);
-  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
+  const [adminItems, setAdminItems] = useState<AdminShortcut[]>([]);
   const [loading, setLoading] = useState(true);
 
   const canSelf = hasPermission("evaluation.self");
   const canReadRecords = hasPermission("evaluation.read");
-  const canManageUsers = hasPermission("system.users.manage") || hasPermission("catalog.manage");
   const canReadUsers = hasPermission("system.users.read");
+  const canManageRoles = hasPermission("system.roles.manage");
+  const canAssign = hasPermission("system.assignments.manage");
+  const canImport = hasPermission("system.import");
   // Cùng điều kiện với mục menu "Việc cần xử lý": có thao tác nghiệp vụ đánh giá nào đó.
   const hasTasks = (user?.permissions ?? []).some((code) => code.startsWith("evaluation.") && code !== "evaluation.read");
 
+  // Lối tắt quản trị theo quyền, cùng điều kiện với các mục menu tương ứng.
   useEffect(() => {
-    if (!user || !canManageUsers) {
-      setAdminStats(null);
+    if (!user || !(canReadUsers || canManageRoles || canAssign || canImport)) {
+      setAdminItems([]);
       return;
     }
     let mounted = true;
     Promise.all([
       canReadUsers ? userService.search({ pageSize: 1 }).then((r) => r.totalCount).catch(() => null) : Promise.resolve(null),
-      organizationService.getDepartments().then((r) => r.length).catch(() => 0),
-      organizationService.getBranches().then((r) => r.length).catch(() => 0),
-    ]).then(([accounts, departments, cells]) => {
-      if (mounted) setAdminStats({ accounts, departments, cells });
+      canManageRoles ? roleService.listRoles().then((r) => r.length).catch(() => null) : Promise.resolve(null),
+    ]).then(([accounts, roles]) => {
+      if (!mounted) return;
+      const items: (AdminShortcut | false)[] = [
+        canReadUsers && { href: "/admin/users", label: "Tài khoản", icon: "bi-people", count: accounts },
+        canManageRoles && { href: "/admin/roles", label: "Vai trò", icon: "bi-shield-lock", count: roles },
+        canAssign && { href: "/admin/performers", label: "Người thực hiện", icon: "bi-person-check", count: null },
+        canImport && { href: "/admin/imports", label: "Nhập dữ liệu", icon: "bi-file-earmark-arrow-up", count: null },
+      ];
+      setAdminItems(items.filter((i): i is AdminShortcut => !!i));
     });
     return () => {
       mounted = false;
     };
-  }, [user, canManageUsers, canReadUsers]);
+  }, [user, canReadUsers, canManageRoles, canAssign, canImport]);
 
   // Việc cần xử lý: mọi kỳ đang mở (không lọc theo kỳ đang chọn để không giấu việc).
   useEffect(() => {
@@ -92,10 +100,8 @@ export default function DashboardPage() {
   }, [periodId, periodsLoading, user, canSelf, canReadRecords]);
 
   const noPeriod = !periodsLoading && periods.length === 0;
-  // Hồ sơ của tôi đang chờ tôi ở một bước luồng thì không hiện thêm khối riêng; việc sau công bố (kế hoạch) vẫn cần thấy kết quả.
-  const mineInQueue =
-    !!myRecord && !!queue?.groups.some((g) => isWorkflowStep(g.step) && g.items.some((i) => i.recordId === myRecord.id));
-  const showMine = canSelf && !loading && !queueLoading && !!myRecord && !mineInQueue;
+  // Thẻ hồ sơ của tôi luôn ở đầu trang, kể cả khi hồ sơ đang chờ chính tôi (việc cần xử lý ở dưới).
+  const showMine = canSelf && !loading && !!myRecord;
 
   return (
     <div className="page-wrapper">
@@ -122,7 +128,7 @@ export default function DashboardPage() {
             {canReadRecords && <ScopeProgressSection records={records} loading={loading} />}
           </>
         )}
-        {adminStats && <AdminSection stats={adminStats} />}
+        <AdminSection items={adminItems} />
       </div>
     </div>
   );

@@ -150,6 +150,6 @@ test.describe.serial('Kỳ đánh giá', () => {
 
     const canBo = await mo('trung.nb');
     await canBo.goto('/work-queue');
-    await expect(canBo.getByText('Đăng ký sản phẩm, nhiệm vụ').first()).toBeVisible();
+    await expect(canBo.getByText('Đăng ký sản phẩm').first()).toBeVisible();
   });
 });

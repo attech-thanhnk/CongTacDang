@@ -10,10 +10,10 @@ const SELF_STAGE = new Set(["AwaitingRegistration", "AwaitingUnitSubmit", "Await
 
 type Stage = "self" | "review" | "returned" | "published";
 
-/** Thứ tự, nhãn và màu giai đoạn — ô số liệu dùng làm chú giải cho thanh tiến độ; "đang đăng ký, tự chấm" là phần nền chưa tô. */
+/** Thứ tự, nhãn và màu giai đoạn; dùng chung cho dòng tóm tắt và thanh xếp chồng. */
 const STAGES: { key: Stage; label: string; color: string; href: string }[] = [
-  { key: "self", label: "Đang đăng ký, tự chấm", color: "var(--rule-strong)", href: "/evaluations" },
-  { key: "review", label: "Đang xét duyệt", color: "var(--wait)", href: "/evaluations" },
+  { key: "self", label: "Đăng ký, tự chấm", color: "var(--primary-line)", href: "/evaluations" },
+  { key: "review", label: "Xét duyệt", color: "var(--wait)", href: "/evaluations" },
   { key: "returned", label: "Bị trả lại", color: "var(--bad)", href: "/evaluations?status=__returned" },
   { key: "published", label: "Đã công bố", color: "var(--ok)", href: "/evaluations?status=Published" },
 ];
@@ -27,7 +27,7 @@ const emptyCounts = (): Counts => ({ self: 0, review: 0, returned: 0, published:
 /** Số dòng tổ chức Đảng hiện sẵn; còn lại mở bằng nút. */
 const VISIBLE_CELLS = 10;
 
-/** Hồ sơ trong phạm vi: số theo giai đoạn, và (khi phạm vi gồm nhiều tổ chức Đảng) thanh tiến độ từng tổ chức. */
+/** Hồ sơ trong phạm vi: một dòng tóm tắt các giai đoạn có hồ sơ, và thanh xếp chồng theo tổ chức Đảng. */
 export function ScopeProgressSection({ records, loading }: { records: EvaluationRecordDto[]; loading: boolean }) {
   const [showAll, setShowAll] = useState(false);
   const { totals, byCell } = useMemo(() => {
@@ -43,38 +43,39 @@ export function ScopeProgressSection({ records, loading }: { records: Evaluation
       entry.total++;
       map.set(key, entry);
     }
-    // Hồ sơ chưa gắn tổ chức Đảng xếp cuối.
-    const byCell = Array.from(map.entries()).sort(([a], [b]) => (!a ? 1 : !b ? -1 : a.localeCompare(b, "vi")));
+    // Còn hồ sơ bị trả lại lên đầu; hồ sơ chưa gắn tổ chức Đảng xếp cuối.
+    const byCell = Array.from(map.entries()).sort(
+      ([a, ca], [b, cb]) => cb.returned - ca.returned || (!a ? 1 : !b ? -1 : a.localeCompare(b, "vi")),
+    );
     return { totals, byCell };
   }, [records]);
+
+  const shown = STAGES.filter((s) => totals[s.key] > 0);
 
   return (
     <section className={styles.block}>
       <div className={styles.blockH}>
         <h2>Hồ sơ trong phạm vi</h2>
+        {!loading && totals.total > 0 && (
+          <div className={styles.scopeSummary}>
+            <span className="num">{totals.total} hồ sơ</span>
+            {shown.map((s) => (
+              <Link key={s.key} href={s.href} className={styles.scopeItem} style={{ "--c": s.color } as React.CSSProperties}>
+                {s.label} <b className="num">{totals[s.key]}</b>
+              </Link>
+            ))}
+          </div>
+        )}
         <Link href="/evaluations" className={styles.link}>
           Danh sách hồ sơ
         </Link>
       </div>
 
-      <div className={styles.stats}>
-        {STAGES.map((s) => (
-          <Link key={s.key} href={s.href} className={styles.stat} style={{ "--c": s.color } as React.CSSProperties}>
-            <div className={styles.statV}>{loading ? "…" : totals[s.key]}</div>
-            <div className={styles.statL}>{s.label}</div>
-          </Link>
-        ))}
-      </div>
-
-      {!loading && records.length === 0 && <div className={`${styles.empty} ${styles.topRule}`}>Chưa có hồ sơ trong phạm vi</div>}
+      {loading && <div className={styles.empty}>Đang tải...</div>}
+      {!loading && records.length === 0 && <div className={styles.empty}>Chưa có hồ sơ trong phạm vi</div>}
 
       {!loading && byCell.length > 1 && (
-        <div className={styles.cells}>
-          <div className={`${styles.cellRow} ${styles.cellHead}`} aria-hidden="true">
-            <span>Tổ chức Đảng</span>
-            <span className={styles.right}>Hồ sơ</span>
-            <span>Tiến độ</span>
-          </div>
+        <div className={styles.cellsTop}>
           {(showAll ? byCell : byCell.slice(0, VISIBLE_CELLS)).map(([name, c]) => {
             const summary = STAGES.filter((s) => c[s.key] > 0)
               .map((s) => `${s.label} ${c[s.key]}`)
@@ -90,7 +91,9 @@ export function ScopeProgressSection({ records, loading }: { records: Evaluation
                 <span className={`${styles.right} num`}>{c.total}</span>
                 <span className={styles.seg} role="img" aria-label={summary}>
                   {STAGES.map((s) =>
-                    s.key !== "self" && c[s.key] > 0 ? <i key={s.key} style={{ width: `${(c[s.key] / c.total) * 100}%`, background: s.color }} /> : null
+                    c[s.key] > 0 ? (
+                      <i key={s.key} title={`${s.label} ${c[s.key]}`} style={{ width: `${(c[s.key] / c.total) * 100}%`, background: s.color }} />
+                    ) : null,
                   )}
                 </span>
               </Link>

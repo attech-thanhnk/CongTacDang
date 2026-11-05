@@ -316,30 +316,55 @@ a.name:hover {
   }
 }
 
-/* Hồ sơ của tôi: một dòng gọn */
+/* Hồ sơ của tôi: thẻ gọn đầu Tổng quan */
 .mine {
   display: flex;
   align-items: center;
   gap: 12px 16px;
-  padding: 12px 20px;
+  padding: 16px 20px;
 }
 
 .mineMain {
   flex: 1;
   min-width: 0;
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mineHead {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 16px;
+  gap: 6px 12px;
 }
 
 .mineTitle {
   font-weight: 600;
+  font-size: 15.5px;
   color: var(--ink);
 }
 
+.mineFacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  margin: 0;
+}
+
+.mineFacts dt {
+  color: var(--ink-3);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.mineFacts dd {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 500;
+}
+
 .mineReason {
-  flex-basis: 100%;
   color: var(--bad);
   font-size: 13px;
 }
@@ -365,6 +390,96 @@ a.name:hover {
 
 .topRule {
   border-top: 1px solid var(--rule);
+}
+
+/* Lối tắt quản trị */
+.shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.shortcut {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-left: 1px solid var(--rule);
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.shortcut:first-child {
+  border-left: 0;
+}
+
+.shortcut:hover {
+  background: var(--tint);
+  color: var(--primary-ink);
+}
+
+.shortcut > .bi:first-child {
+  color: var(--primary);
+  font-size: 17px;
+}
+
+.shortcutGo {
+  margin-left: auto;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+@media (max-width: 767.98px) {
+  .shortcuts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .shortcut {
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+  }
+  .shortcut:first-child {
+    border-top: 0;
+  }
+}
+
+/* Dòng tóm tắt hồ sơ trong phạm vi: chỉ các giai đoạn có hồ sơ */
+.scopeSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+
+.scopeItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.scopeItem::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--c);
+}
+
+.scopeItem b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+a.scopeItem:hover {
+  color: var(--primary-ink);
+}
+
+/* Bảng theo tổ chức Đảng nằm ngay dưới tiêu đề khối */
+.cellsTop .cellRow:first-child {
+  border-top: 0;
 }
 
 /* Tiến độ theo tổ chức Đảng: tên | số hồ sơ | thanh nhiều đoạn theo giai đoạn */
@@ -555,6 +670,10 @@ a.cellRow:hover {
   .mine {
     flex-wrap: wrap;
     padding: 12px 16px;
+  }
+
+  .mineMain {
+    flex-basis: 100%;
   }
 
   .allDone {

@@ -1057,7 +1057,7 @@ export function gradeLabel(value?: string | null): string {
 }
 
 export const STEP_NAMES: Record<WorkflowStepCode, string> = {
-  B1_REGISTER: "Đăng ký sản phẩm, nhiệm vụ",
+  B1_REGISTER: "Đăng ký sản phẩm",
   B1_UNIT_SUBMIT: "Trưởng đơn vị gửi danh mục",
   B1_HR_REVIEW: "Rà soát, trình duyệt danh mục",
   B1_APPROVE: "Duyệt danh mục sản phẩm",

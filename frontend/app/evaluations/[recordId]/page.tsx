@@ -58,7 +58,7 @@ const REASON_TEXT: Partial<Record<WorkflowActionCode, { description: string; con
   UnmarkNotRated: { description: "Hồ sơ quay lại các bước đánh giá.", confirm: "Bỏ đánh dấu" },
 };
 
-/** Cột trái: tiến trình, khu thao tác (theo `actions`) và dữ liệu từng bước; cột phải: biểu mẫu, lịch sử, thông tin hồ sơ. */
+/** Một cột: khu thao tác (theo `actions`), dữ liệu từng bước; biểu mẫu, lịch sử, thông tin ở cuối trang. */
 export default function EvaluationRecordPage() {
   const params = useParams<{ recordId: string }>();
   const recordId = params?.recordId;
@@ -161,6 +161,9 @@ export default function EvaluationRecordPage() {
   // Hành động bị cổng khóa vẫn có trong danh sách: chỉ hiện lý do máy chủ trả về, không tự suy luật.
   const blockedActions = actions.filter((a) => !!a.blockedBy && !!a.blockedReason);
   const gateWarnings = Array.from(new Set(actions.flatMap((a) => a.warnings ?? [])));
+  // Đang có việc chính (không chỉ trả lại / mở lại): thu gọn khối Biểu mẫu ở cuối trang để không chen việc chính.
+  const working = actions.some((a) => !a.requiresReason) || appealPending || planPending;
+  const hasForms = forms.length + requestForms.length > 0;
 
   if (loading) {
     return <div className="page-wrapper"><div className="text-secondary p-4 loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải hồ sơ...</div></div>;
@@ -191,6 +194,11 @@ export default function EvaluationRecordPage() {
               <p className={styles.lede}>{[record.positionTitle, record.departmentName].filter(Boolean).join(" · ")}</p>
             )}
           </div>
+          {hasForms && (
+            <button type="button" className={`btn btn-outline-secondary btn-sm ${styles.headBtn}`} aria-label="Biểu mẫu" title="Biểu mẫu" onClick={() => revealSection(FORMS_ANCHOR)}>
+              <i className="bi bi-file-earmark-text" aria-hidden="true" /><span className={styles.hideNarrow}> Biểu mẫu</span>
+            </button>
+          )}
         </div>
 
         {conflict && (
@@ -258,6 +266,10 @@ export default function EvaluationRecordPage() {
           </div>
           <div className={`${styles.stack} ${styles.side}`}>
             <RecordFormsPanel
+              // Đổi chế độ thì dựng lại để áp trạng thái mở mặc định mới.
+              key={working ? "working" : "viewing"}
+              anchorId={FORMS_ANCHOR}
+              defaultOpen={!working}
               recordId={record.id}
               fullName={record.fullName}
               forms={forms}
@@ -291,7 +303,7 @@ export default function EvaluationRecordPage() {
   );
 }
 
-/** Sắp khối cột trái theo hạng (ổn định); key cố định để khối đổi chỗ không bị dựng lại. */
+/** Sắp khối chính theo hạng (ổn định); key cố định để khối đổi chỗ không bị dựng lại. */
 function orderBlocks(blocks: { key: string; rank: number; node: React.ReactNode }[]) {
   return blocks
     .map((b, i) => ({ ...b, i }))
@@ -320,6 +332,7 @@ const ACTION_CONFIRMATIONS: Partial<Record<WorkflowActionCode, string>> = {
 /** Id khu thao tác và khối nội dung của từng bước (cuộn tới từ dòng trạng thái / thanh tiến trình). */
 const ACTIONS_ANCHOR = "record-actions";
 const CONFLICT_ANCHOR = "record-conflict";
+const FORMS_ANCHOR = "record-forms";
 const STEP_SECTION: Record<WorkflowStepCode, string> = {
   B1_REGISTER: "step-b1",
   B1_UNIT_SUBMIT: "step-b1",
