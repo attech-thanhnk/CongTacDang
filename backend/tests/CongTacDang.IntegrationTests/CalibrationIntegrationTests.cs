@@ -173,8 +173,10 @@ public sealed class CalibrationIntegrationTests
         Assert.Equal("HoanThanh", (await Data(w.PreparerC, $"/api/evaluations/records/{w.RecordA}")).GetProperty("calibratedGrade").GetString());
 
         // Còn hồ sơ đã quyết định trong biên bản thì chưa chốt lại được; gỡ chúng ra rồi chốt.
-        Assert.Equal(HttpStatusCode.Conflict, (await w.ConcluderC.PostAsJsonAsync($"/api/calibrations/{id}/conclude",
-            new { version = reopened.GetProperty("version").GetUInt32() })).StatusCode);
+        var blocked = await w.ConcluderC.PostAsJsonAsync($"/api/calibrations/{id}/conclude",
+            new { version = reopened.GetProperty("version").GetUInt32() });
+        Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
+        Assert.Contains("gỡ hồ sơ này khỏi biên bản", JsonDocument.Parse(await blocked.Content.ReadAsStringAsync()).RootElement.GetProperty("message").GetString());
         var trimmed = await Data(await w.PreparerC.PutAsJsonAsync($"/api/calibrations/{id}",
             Save(reopened.GetProperty("version").GetUInt32(), new[] { w.RecordC }, Array.Empty<object>(), "Không có nhóm tương đồng")));
         Assert.Equal(1, trimmed.GetProperty("records").GetArrayLength());

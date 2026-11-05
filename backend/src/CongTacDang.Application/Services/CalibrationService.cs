@@ -473,9 +473,13 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
 
     private void EnsureStillEligible(EvaluationRecord record, string action)
     {
-        if (!CalibrationRules.IsEligibleStatus(record.Status))
-            throw new ConflictException($"{action} không thành công: hồ sơ của {NameOf(record)} đang ở bước \"{WorkflowSteps.StatusDisplayName(record.Status)}\". "
-                + "Chỉ đưa vào họp thống nhất hồ sơ đã thẩm định và chưa ghi nhận quyết định.");
+        if (CalibrationRules.IsEligibleStatus(record.Status))
+            return;
+        // Biên bản mở lại vì một hồ sơ (vd mở lại theo kiến nghị) còn hồ sơ khác đã có quyết định: chỉ cách gỡ ra.
+        var hint = record.Status is RecordStatus.AwaitingPublish or RecordStatus.Published
+            ? "Hồ sơ đã có quyết định: gỡ hồ sơ này khỏi biên bản rồi lưu và chốt lại."
+            : "Chỉ đưa vào họp thống nhất hồ sơ đã thẩm định và chưa ghi nhận quyết định.";
+        throw new ConflictException($"{action} không thành công: hồ sơ của {NameOf(record)} đang ở bước \"{WorkflowSteps.StatusDisplayName(record.Status)}\". {hint}");
     }
 
     #endregion
