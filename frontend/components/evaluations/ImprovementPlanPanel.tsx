@@ -264,12 +264,14 @@ function PlanView({
             <tr><th>Giai đoạn</th>{COLUMNS.map((c) => <th key={c.key}>{c.label}</th>)}<th>Kết quả sau mốc</th></tr>
           </thead>
           <tbody>
-            {plan.milestones.map((m) => (
+            {plan.milestones.map((m, i) => (
               <tr key={m.code}>
                 <td className="fw-semibold">{m.name}<div className="text-secondary fw-normal">Hạn: {formatDate(m.dueDate)}</div></td>
                 {COLUMNS.map((c) => <td key={c.key} style={{ whiteSpace: "pre-wrap" }}>{m[c.key] || "—"}</td>)}
                 <td>
-                  <MilestoneResultCell milestone={m} canRecord={canRecord} busy={busy} onRecord={onRecordResult} />
+                  {/* Ghi theo thứ tự mốc: chỉ mốc đã có kết quả hoặc mốc kế tiếp. */}
+                  <MilestoneResultCell milestone={m} canRecord={canRecord && plan.milestones.slice(0, i).every((x) => !!x.result)}
+                    busy={busy} onRecord={onRecordResult} />
                 </td>
               </tr>
             ))}
