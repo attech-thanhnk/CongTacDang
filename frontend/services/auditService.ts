@@ -19,6 +19,8 @@ export interface AuditLogFilters {
   entityType?: string;
   entityId?: string;
   action?: string;
+  /** Bỏ loại đối tượng này khi không lọc theo loại. */
+  excludeEntityType?: string;
   page?: number;
   pageSize?: number;
 }
@@ -67,6 +69,7 @@ export const auditService = {
     if (filters.entityType) params.set("entityType", filters.entityType);
     if (filters.entityId) params.set("entityId", filters.entityId);
     if (filters.action) params.set("action", filters.action);
+    if (filters.excludeEntityType) params.set("excludeEntityType", filters.excludeEntityType);
     params.set("page", String(filters.page || 1));
     params.set("pageSize", String(filters.pageSize || 20));
     return request<AuditLogPage>(`/admin/audit?${params.toString()}`);

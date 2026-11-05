@@ -77,7 +77,7 @@ public interface IAuditRepository
 }
 
 /// <summary>Trang đã chuẩn hóa.</summary>
-public sealed record AuditLogCriteria(int Page, int PageSize, string? EntityType = null, string? EntityId = null, string? Action = null);
+public sealed record AuditLogCriteria(int Page, int PageSize, string? EntityType = null, string? EntityId = null, string? Action = null, string? ExcludeEntityType = null);
 
 public sealed class AuditLogSearchResult
 {
