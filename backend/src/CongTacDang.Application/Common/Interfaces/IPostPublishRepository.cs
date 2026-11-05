@@ -19,7 +19,7 @@ public interface IPostPublishRepository
     /// <summary>Kèm kỳ, cán bộ, đơn vị, tổ chức Đảng; không theo dõi.</summary>
     Task<EvaluationRecord?> FindRecordAsync(Guid recordId, CancellationToken ct = default);
 
-    /// <summary>Hồ sơ đang có kiến nghị chưa trả lời.</summary>
+    /// <summary>Hồ sơ đang có kiến nghị chưa trả lời hoặc đã chấp nhận mà chưa mở lại.</summary>
     Task<HashSet<Guid>> GetRecordIdsWithOpenAppealsAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken ct = default);
 
     /// <summary>Mới nhất trước; không theo dõi.</summary>
@@ -30,6 +30,9 @@ public interface IPostPublishRepository
 
     /// <summary>Kiến nghị chưa trả lời kèm hồ sơ, kỳ, cán bộ, đơn vị; không theo dõi.</summary>
     Task<List<EvaluationAppeal>> ListOpenAppealsAsync(Guid? periodId, CancellationToken ct = default);
+
+    /// <summary>Kiến nghị đã chấp nhận, hồ sơ còn ở trạng thái đã công bố (chưa mở lại); cùng dữ liệu kèm như trên.</summary>
+    Task<List<EvaluationAppeal>> ListAppealsAwaitingReopenAsync(Guid? periodId, CancellationToken ct = default);
 
     void AddAppeal(EvaluationAppeal appeal);
 

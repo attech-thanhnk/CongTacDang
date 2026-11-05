@@ -70,6 +70,9 @@ public class EvaluationAppeal : IAuditableEntity, IVersioned
     /// <summary>Chưa trả lời.</summary>
     public bool IsOpen => Status is AppealStatus.Submitted or AppealStatus.UnderReview;
 
+    /// <summary>Đã chấp nhận nhưng hồ sơ chưa được mở lại: kết quả công bố vẫn đang chờ xem xét lại.</summary>
+    public bool AwaitingReopen => Status == AppealStatus.Accepted && ReopenedAt == null;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Guid? CreatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }

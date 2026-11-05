@@ -23,6 +23,9 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
 {
     public const string AppealsGroup = "APPEALS";
 
+    /// <summary>Trạng thái mục kiến nghị đã chấp nhận, chờ mở lại hồ sơ.</summary>
+    public const string AwaitingReopenStatus = "AcceptedAwaitingReopen";
+
     public const string ImprovementPlansGroup = "IMPROVEMENT_PLANS";
 
     public const string PlanAcknowledgementGroup = "IMPROVEMENT_PLAN_ACK";
@@ -34,18 +37,21 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
     private readonly IAuthorizationGuard _guard;
     private readonly ICurrentUserService _currentUser;
     private readonly AppealResolverCheck _resolverCheck;
+    private readonly IStepPerformers? _stepPerformers;
 
     public PostPublishWorkQueue(
         IPostPublishRepository repo,
         IAuthorizationGuard guard,
         ICurrentUserService currentUser,
         IEvaluationWorkflowRepository workflowRepo,
-        IPermissionResolver permissions)
+        IPermissionResolver permissions,
+        IStepPerformers? stepPerformers = null)
     {
         _repo = repo;
         _guard = guard;
         _currentUser = currentUser;
         _resolverCheck = new AppealResolverCheck(workflowRepo, permissions);
+        _stepPerformers = stepPerformers;
     }
 
     /// <inheritdoc />
@@ -56,16 +62,24 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
             return groups;
         var period = periodId.HasValue && periodId.Value != Guid.Empty ? periodId : null;
 
+        var appealItems = new List<WorkQueueItemDto>();
         if (_guard.HasAny(PermissionCodes.EvaluationAppealResolve))
         {
             // Loại chủ hồ sơ, người gửi và người có xung đột lợi ích của kiến nghị.
-            var appeals = (await _repo.ListOpenAppealsAsync(period, ct))
+            appealItems.AddRange((await _repo.ListOpenAppealsAsync(period, ct))
                 .Where(a => a.SubmittedById != userId && !a.ConflictedUserIds.Contains(userId))
                 .Where(a => _guard.Can(PermissionCodes.EvaluationAppealResolve, AccessTarget.ForRecord(a.Record)))
-                .ToList();
-            AddGroup(groups, AppealsGroup, "Kiến nghị chờ xử lý", appeals.Select(a => Item(a.Record, userId,
-                a.Status.ToString(), $"Kiến nghị: {AppealService.StatusName(a.Status)} (gửi {EvaluationMapping.Today(a.SubmittedAt).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)})")));
+                .Select(a => Item(a.Record, userId, a.Status.ToString(),
+                    $"Kiến nghị: {AppealService.StatusName(a.Status)} (gửi {EvaluationMapping.Today(a.SubmittedAt).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)})")));
         }
+        if (_guard.HasAny(PermissionCodes.EvaluationReopen))
+        {
+            // Chấp nhận mà chưa mở lại thì kết quả cũ vẫn công bố: còn là việc của người mở lại được.
+            appealItems.AddRange((await _repo.ListAppealsAwaitingReopenAsync(period, ct))
+                .Where(a => a.Record.MemberId != userId && _guard.Can(PermissionCodes.EvaluationReopen, AccessTarget.ForRecord(a.Record)))
+                .Select(a => Item(a.Record, userId, AwaitingReopenStatus, "Kiến nghị đã chấp nhận, chờ mở lại hồ sơ")));
+        }
+        AddGroup(groups, AppealsGroup, "Kiến nghị chờ xử lý", appealItems);
 
         if (_guard.HasAny(PermissionCodes.SystemAssignmentsManage))
         {
@@ -96,6 +110,13 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
                 .Where(x => x.Plan == null || !ImprovementPlanService.IsPreparer(x.Plan, userId))
                 .Where(x => _guard.Can(PermissionCodes.EvaluationImprovementManage, AccessTarget.ForRecord(x.Record)))
                 .ToList();
+            var assigned = new List<(EvaluationRecord Record, ImprovementPlan? Plan)>();
+            foreach (var x in needing)
+            {
+                if (await IsPlanAssigneeAsync(x.Record, x.Plan, userId, ct))
+                    assigned.Add(x);
+            }
+            needing = assigned;
             AddGroup(groups, ImprovementPlansGroup, "Kế hoạch 30-60-90 ngày", needing.Select(x => Item(x.Record, userId,
                 x.Plan == null ? "PlanMissing" : "PlanDraft",
                 x.Plan == null
@@ -108,6 +129,20 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
             p.Status.ToString(), $"Đã duyệt bởi {p.ApprovedByName} — hãy đọc và xác nhận cam kết khắc phục")));
 
         return groups;
+    }
+
+    /// <summary>
+    /// Giao cho người gần hồ sơ nhất như các bước của luồng; kế hoạch đang lập thì bỏ người lập, không còn ai gần hơn
+    /// thì mọi người khác có quyền đều được giao.
+    /// </summary>
+    private async Task<bool> IsPlanAssigneeAsync(EvaluationRecord record, ImprovementPlan? plan, Guid userId, CancellationToken ct)
+    {
+        if (_stepPerformers == null)
+            return true;
+        var nearest = (await _stepPerformers.ListAsync(PermissionCodes.EvaluationImprovementManage, AccessTarget.ForRecord(record), ct))
+            .Where(id => plan == null || !ImprovementPlanService.IsPreparer(plan, id))
+            .ToList();
+        return nearest.Count == 0 || nearest.Contains(userId);
     }
 
     private static void AddGroup(List<WorkQueueGroupDto> groups, string code, string name, IEnumerable<WorkQueueItemDto> items)

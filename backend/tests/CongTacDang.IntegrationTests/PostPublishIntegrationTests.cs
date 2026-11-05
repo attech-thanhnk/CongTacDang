@@ -71,6 +71,20 @@ public sealed class PostPublishIntegrationTests
         // Không có quyền xem kết quả → 403.
         Assert.Equal(HttpStatusCode.Forbidden, (await w.PlainC.GetAsync("/api/results")).StatusCode);
 
+        // Chưa xếp loại: chỉ chủ hồ sơ thấy dòng của mình, người khác không thấy.
+        var statusC = await SetRecordCAsync(w, RecordStatus.Published, EvaluationGrade.ChuaXepLoai);
+        try
+        {
+            var ownView = (await Data(w.OwnerCC, $"/api/results?periodId={w.PeriodId}")).GetProperty("items").EnumerateArray().ToList();
+            Assert.Contains(ownView, i => i.GetProperty("isOwn").GetBoolean() && i.GetProperty("finalGrade").GetString() == "ChuaXepLoai");
+            var othersView = (await Data(w.OwnerAC, $"/api/results?periodId={w.PeriodId}")).GetProperty("items").EnumerateArray().ToList();
+            Assert.DoesNotContain(othersView, i => i.GetProperty("finalGrade").GetString() == "ChuaXepLoai");
+        }
+        finally
+        {
+            await SetRecordCAsync(w, statusC, EvaluationGrade.ChuaXepLoai);
+        }
+
         // Bộ tiêu chí của kỳ bật công khai điểm → có điểm.
         await _factory.WithDbAsync(async db =>
         {
@@ -196,11 +210,16 @@ public sealed class PostPublishIntegrationTests
         Assert.False(resolved.GetProperty("canAttach").GetBoolean());
         Assert.Equal(HttpStatusCode.Conflict, (await w.OwnerAC.PostAsync("/api/attachments/upload", EvidenceForm("EvaluationAppeal", appealId))).StatusCode);
 
-        // Nhãn tắt sau khi trả lời; gửi kiến nghị mới được lại.
+        // Chấp nhận mà chưa mở lại: vẫn "đang xem xét", chưa gửi kiến nghị mới, người mở lại được còn thấy việc.
         var after = await Data(w.OwnerAC, $"/api/evaluations/records/{recordId}/appeals");
-        Assert.False(after.GetProperty("underReview").GetBoolean());
-        Assert.True(after.GetProperty("canSubmit").GetBoolean());
-        Assert.Equal(0, (await Data(w.ResolverC, "/api/notifications/summary")).GetProperty("appeals").GetInt32());
+        Assert.True(after.GetProperty("underReview").GetBoolean());
+        Assert.False(after.GetProperty("canSubmit").GetBoolean());
+        Assert.Contains("chờ mở lại", after.GetProperty("submitBlockedReason").GetString());
+        var acceptedResults = (await Data(w.OwnerAC, $"/api/results?periodId={w.PeriodAppealId}")).GetProperty("items").EnumerateArray();
+        Assert.True(acceptedResults.Single(i => i.GetProperty("recordId").ValueKind != JsonValueKind.Null && i.GetProperty("recordId").GetGuid() == recordId)
+            .GetProperty("underReview").GetBoolean());
+        Assert.Contains(await QueueRecordsAsync(w.ResolverC, "APPEALS"), id => id == recordId);
+        Assert.Equal(1, (await Data(w.ResolverC, "/api/notifications/summary")).GetProperty("appeals").GetInt32());
 
         // Chấp nhận → mở lại (không tự động) bằng thao tác "Mở lại" hiện có; lý do dẫn chiếu kiến nghị trong lịch sử hồ sơ.
         var record = await Data(w.ResolverC, $"/api/evaluations/records/{recordId}");
@@ -214,6 +233,8 @@ public sealed class PostPublishIntegrationTests
         Assert.NotEqual(JsonValueKind.Null, reopened.GetProperty("reopenedAt").ValueKind);
         Assert.False(reopened.GetProperty("canReopen").GetBoolean());
         Assert.Equal("AwaitingDecision", (await Data(w.ResolverC, $"/api/evaluations/records/{recordId}")).GetProperty("status").GetString());
+        Assert.DoesNotContain(await QueueRecordsAsync(w.ResolverC, "APPEALS"), id => id == recordId);
+        Assert.Equal(0, (await Data(w.ResolverC, "/api/notifications/summary")).GetProperty("appeals").GetInt32());
         var history = await Data(w.ResolverC, $"/api/evaluations/records/{recordId}/history");
         Assert.Contains(history.EnumerateArray(), h => h.GetProperty("action").GetString() == "Reopen"
             && h.GetProperty("reason").GetString()!.Contains("Theo kiến nghị") && h.GetProperty("reason").GetString()!.Contains(appealId.ToString()));
@@ -370,9 +391,13 @@ public sealed class PostPublishIntegrationTests
         // Hồ sơ Hoàn thành tốt → không bắt buộc.
         Assert.False((await Data(w.OwnerBC, $"/api/evaluations/records/{w.RecordB}/improvement-plan")).GetProperty("required").GetBoolean());
 
-        // Cảnh báo: hồ sơ bắt buộc chưa có kế hoạch nằm trong hàng đợi của thủ trưởng đơn vị (phạm vi Phòng 1), không của Phòng 2.
+        // Cảnh báo: hồ sơ bắt buộc chưa có kế hoạch nằm trong hàng đợi của thủ trưởng đơn vị (phạm vi Phòng 1), không của Phòng 2;
+        // người có quyền ở cấp xa hơn (Toàn công ty) không được giao nhưng vẫn mở hồ sơ làm được.
         Assert.Contains(await QueueRecordsAsync(w.ManagerC, "IMPROVEMENT_PLANS"), id => id == recordId);
+        Assert.Contains(await QueueRecordsAsync(w.Manager2C, "IMPROVEMENT_PLANS"), id => id == recordId);
         Assert.DoesNotContain(await QueueRecordsAsync(w.OutsideManagerC, "IMPROVEMENT_PLANS"), id => id == recordId);
+        Assert.DoesNotContain(await QueueRecordsAsync(w.UpperManagerC, "IMPROVEMENT_PLANS"), id => id == recordId);
+        Assert.True((await Data(w.UpperManagerC, $"/api/evaluations/records/{recordId}/improvement-plan")).GetProperty("canManage").GetBoolean());
         Assert.True((await Data(w.ManagerC, "/api/notifications/summary")).GetProperty("improvementPlans").GetInt32() >= 1);
 
         // Ngoài phạm vi → 403; tự lập kế hoạch cho hồ sơ của mình → 403 (xung đột lợi ích).
@@ -425,6 +450,7 @@ public sealed class PostPublishIntegrationTests
         Assert.True((await Data(w.Manager2C, $"/api/evaluations/records/{recordId}/improvement-plan")).GetProperty("canApprove").GetBoolean());
         Assert.DoesNotContain(await QueueRecordsAsync(w.ManagerC, "IMPROVEMENT_PLANS"), id => id == recordId);
         Assert.Contains(await QueueRecordsAsync(w.Manager2C, "IMPROVEMENT_PLANS"), id => id == recordId);
+        Assert.DoesNotContain(await QueueRecordsAsync(w.UpperManagerC, "IMPROVEMENT_PLANS"), id => id == recordId);
         var selfApprove = await w.ManagerC.PostAsJsonAsync($"/api/improvement-plans/{planId}/approve", new { version = plan.GetProperty("version").GetUInt32() });
         Assert.Equal(HttpStatusCode.Forbidden, selfApprove.StatusCode);
         Assert.Contains("người lập", await MessageAsync(selfApprove));
@@ -514,6 +540,22 @@ public sealed class PostPublishIntegrationTests
 
     #region Hỗ trợ
 
+    /// <summary>Trả trạng thái trước khi đặt.</summary>
+    private async Task<RecordStatus> SetRecordCAsync(World w, RecordStatus status, EvaluationGrade grade)
+    {
+        var before = status;
+        await _factory.WithDbAsync(async db =>
+        {
+            var record = await db.EvaluationRecords.FirstAsync(r => r.Id == w.RecordC);
+            before = record.Status;
+            record.Status = status;
+            record.FinalGrade = grade;
+            record.PublishedAt = status == RecordStatus.Published ? DateTime.UtcNow : null;
+            await db.SaveChangesAsync();
+        });
+        return before;
+    }
+
     private static Guid MemberOf(World w, JsonElement item) =>
         item.GetProperty("fullName").GetString() == w.OwnerAName ? w.OwnerA.Id
         : item.GetProperty("fullName").GetString() == w.OwnerBName ? w.OwnerB.Id
@@ -573,7 +615,7 @@ public sealed class PostPublishIntegrationTests
         public TestUser OwnerA = null!, OwnerB = null!, OwnerC = null!;
         public string OwnerAName = string.Empty, OwnerBName = string.Empty;
         public HttpClient OwnerAC = null!, OwnerBC = null!, OwnerCC = null!, DeptViewerC = null!, ResolverC = null!, ConflictedC = null!;
-        public HttpClient ManagerC = null!, Manager2C = null!, OutsideManagerC = null!, PlainC = null!, PeriodManagerC = null!;
+        public HttpClient ManagerC = null!, Manager2C = null!, OutsideManagerC = null!, PlainC = null!, PeriodManagerC = null!, UpperManagerC = null!;
         public Guid ConflictedId;
 
         public static async Task<World> CreateAsync(ApiFactory factory)
@@ -606,6 +648,7 @@ public sealed class PostPublishIntegrationTests
             var manager = await factory.CreateUserAsync(w.Dept1, null);
             var manager2 = await factory.CreateUserAsync(w.Dept1, null);
             var outsideManager = await factory.CreateUserAsync(w.Dept2, null);
+            var upperManager = await factory.CreateUserAsync();
             var plain = await factory.CreateUserAsync(w.Dept1, w.Cell1);
 
             foreach (var owner in new[] { w.OwnerA, w.OwnerB, w.OwnerC })
@@ -617,6 +660,7 @@ public sealed class PostPublishIntegrationTests
             await factory.AssignAsync(manager.Id, await Role("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept1);
             await factory.AssignAsync(manager2.Id, await Role("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept1);
             await factory.AssignAsync(outsideManager.Id, await Role("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept2);
+            await factory.AssignAsync(upperManager.Id, (await factory.CreateRoleAsync("evaluation.read", "evaluation.improvement.manage")).Id, RoleScopeType.Global, null);
             // Chủ hồ sơ B cũng có quyền lập kế hoạch toàn công ty — để kiểm tra không tự lập kế hoạch cho mình.
             await factory.AssignAsync(w.OwnerB.Id, (await factory.CreateRoleAsync("evaluation.read", "evaluation.improvement.manage")).Id, RoleScopeType.Global, null);
 
@@ -633,6 +677,7 @@ public sealed class PostPublishIntegrationTests
             w.ManagerC = await Login(manager);
             w.Manager2C = await Login(manager2);
             w.OutsideManagerC = await Login(outsideManager);
+            w.UpperManagerC = await Login(upperManager);
             w.PlainC = await Login(plain);
 
             w.PeriodId = await OpenPeriodAsync(periodManagerC, w.OwnerA.Id, w.OwnerB.Id, w.OwnerC.Id);
