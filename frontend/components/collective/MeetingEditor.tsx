@@ -186,6 +186,8 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
 
   const unitMissing = !editing && ((unit === "cell" && !partyCellId) || (unit === "department" && !departmentId));
   const presentTooMany = present > invited;
+  // Mẫu 13 cần số phiếu của ít nhất một hồ sơ (máy chủ cũng kiểm tra).
+  const votesMissing = !editing && formCode === "M13" && !records.some((record) => votes[record.id] && totalOf(votes[record.id]) > 0);
   const ballotsMismatch = ballots.collected != null && ballots.valid != null && ballots.invalid != null
     && ballots.valid + ballots.invalid !== ballots.collected;
 
@@ -207,7 +209,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
     event.preventDefault();
     setSubmitted(true);
     // Lỗi từng ô hiện ngay dưới ô.
-    if (unitMissing || presentTooMany || ballotsMismatch) return;
+    if (unitMissing || presentTooMany || ballotsMismatch || votesMissing) return;
     setSaving(true);
     const payload: SaveMeetingRecord = {
       version: editing?.version,
@@ -297,7 +299,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
           </div>
           {unit !== "company" && (
             <div className="col-md-6">
-              <label className="form-label" htmlFor="mt-org">{unit === "cell" ? "Tổ chức Đảng" : "Phòng / đơn vị"}</label>
+              <label className="form-label" htmlFor="mt-org">{unit === "cell" ? "Tổ chức Đảng" : "Phòng / đơn vị"}{!editing && <span className="text-danger"> *</span>}</label>
               {unit === "cell" ? (
                 <select id="mt-org" className={`form-select form-select-sm${submitted && unitMissing ? " is-invalid" : ""}`} value={partyCellId} disabled={!!editing} onChange={(e) => setPartyCellId(e.target.value)}>
                   <option value="">Chọn tổ chức Đảng</option>
@@ -430,7 +432,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
 
           {formCode === "M13" && !editing && (
             <div className="col-12">
-              <div className="form-label">Số phiếu theo từng hồ sơ</div>
+              <div className="form-label">Số phiếu theo từng hồ sơ <span className="text-danger">*</span></div>
               {records.length === 0 ? (
                 <div className="text-secondary small">Chọn đơn vị tổ chức hội nghị để hiện danh sách hồ sơ.</div>
               ) : (
@@ -455,6 +457,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
                   })}
                 </div>
               )}
+              {submitted && votesMissing && <div className="small text-danger mt-1">Hãy nhập số phiếu cho ít nhất một hồ sơ.</div>}
             </div>
           )}
         </div>

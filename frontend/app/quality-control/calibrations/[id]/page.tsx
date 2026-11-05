@@ -17,6 +17,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { formatDate, formatDateTime } from "@/lib/dateFormat";
 import { GRADE_OPTIONS, gradeLabel } from "@/services/evaluationService";
 import { reportService } from "@/services/reportService";
+import { fmt } from "@/services/criteriaService";
 import {
   CALIBRATION_STATUS_TONES,
   CalibrationHistoryDto,
@@ -131,7 +132,8 @@ const toRequest = (d: Draft, version: number): UpdateCalibrationRequest => ({
   })),
 });
 
-const pct = (v?: number | null) => (v == null ? "—" : `${Math.round(v * 1000) / 10}%`);
+// Máy chủ trả phần trăm 0–100 (đã làm tròn một chữ số), không nhân thêm.
+const pct = (v?: number | null) => (v == null ? "—" : `${fmt(v, 1)}%`);
 const score = (v?: number | null) => (v == null ? "—" : String(v));
 const GRADES = GRADE_OPTIONS.filter((g) => g.value !== "ChuaXepLoai");
 
@@ -374,11 +376,11 @@ export default function CalibrationDetailPage() {
           <div className="card-header"><h2 className="mb-0">Cuộc họp</h2></div>
           <div className="card-body row g-2">
             <div className="col-12 col-md-6">
-              <label className="form-label small mb-1" htmlFor="cal-group">Nhóm chức danh / công việc tương đồng</label>
+              <label className="form-label small mb-1" htmlFor="cal-group">Nhóm chức danh / công việc tương đồng <span className="text-danger">*</span></label>
               <input id="cal-group" className="form-control form-control-sm" maxLength={300} value={draft.groupName} disabled={ro} onChange={(e) => set({ groupName: e.target.value })} />
             </div>
             <div className="col-6 col-md-3">
-              <label className="form-label small mb-1" htmlFor="cal-held">Ngày họp</label>
+              <label className="form-label small mb-1" htmlFor="cal-held">Ngày họp <span className="text-danger">*</span></label>
               <DateField id="cal-held" value={draft.heldAt} disabled={ro} onChange={(v) => set({ heldAt: v })} />
             </div>
             <div className="col-6 col-md-3">
@@ -386,11 +388,11 @@ export default function CalibrationDetailPage() {
               <input id="cal-loc" className="form-control form-control-sm" maxLength={300} value={draft.location} disabled={ro} onChange={(e) => set({ location: e.target.value })} />
             </div>
             <div className="col-12 col-md-6">
-              <label className="form-label small mb-1" htmlFor="cal-chair">Chủ trì</label>
+              <label className="form-label small mb-1" htmlFor="cal-chair">Chủ trì <span className="text-danger">*</span></label>
               <input id="cal-chair" className="form-control form-control-sm" maxLength={200} value={draft.chairName} disabled={ro} onChange={(e) => set({ chairName: e.target.value })} />
             </div>
             <div className="col-12 col-md-6">
-              <label className="form-label small mb-1" htmlFor="cal-sec">Thư ký</label>
+              <label className="form-label small mb-1" htmlFor="cal-sec">Thư ký <span className="text-danger">*</span></label>
               <input id="cal-sec" className="form-control form-control-sm" maxLength={200} value={draft.secretaryName} disabled={ro} onChange={(e) => set({ secretaryName: e.target.value })} />
             </div>
             <div className="col-12">
@@ -466,7 +468,7 @@ export default function CalibrationDetailPage() {
 
         <section className="card">
           <div className="card-header d-flex justify-content-between align-items-center gap-2">
-            <h2 className="mb-0">Thành phần tham dự</h2>
+            <h2 className="mb-0">Thành phần tham dự <span className="text-danger">*</span></h2>
             {!ro && (
               <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy}
                 onClick={() => set({ attendees: [...draft.attendees, { fullName: "", memberId: null, capacity: "", dissentNote: "" }] })}>
@@ -479,7 +481,7 @@ export default function CalibrationDetailPage() {
             {draft.attendees.map((a, i) => (
               <div key={i} className="row g-2 align-items-end">
                 <div className="col-12 col-md-4">
-                  <label className="form-label small mb-1" htmlFor={`cal-att-${i}`}>Họ tên</label>
+                  <label className="form-label small mb-1" htmlFor={`cal-att-${i}`}>Họ tên <span className="text-danger">*</span></label>
                   <input id={`cal-att-${i}`} className="form-control form-control-sm" maxLength={200} value={a.fullName} disabled={ro}
                     onChange={(e) => setAtt(i, { fullName: e.target.value, memberId: null })} />
                 </div>
@@ -619,7 +621,7 @@ export default function CalibrationDetailPage() {
                   </div>
                   <div className="row g-2">
                     <div className="col-12">
-                      <label className="form-label small mb-1" htmlFor={`${key}-cl`}>Nội dung làm rõ</label>
+                      <label className="form-label small mb-1" htmlFor={`${key}-cl`}>Nội dung làm rõ <span className="text-danger">*</span></label>
                       <textarea id={`${key}-cl`} className="form-control form-control-sm" rows={2} maxLength={4000} value={c.clarification} disabled={ro}
                         onChange={(e) => setCase(c.recordId, { clarification: e.target.value })} />
                     </div>
@@ -636,12 +638,12 @@ export default function CalibrationDetailPage() {
                         onChange={(e) => setCase(c.recordId, { scoreAfter: e.target.value })} />
                     </div>
                     <div className="col-6 col-md-4">
-                      <label className="form-label small mb-1" htmlFor={`${key}-rp`}>Người chịu trách nhiệm</label>
+                      <label className="form-label small mb-1" htmlFor={`${key}-rp`}>Người chịu trách nhiệm{changed && <span className="text-danger"> *</span>}</label>
                       <input id={`${key}-rp`} className="form-control form-control-sm" maxLength={200} value={c.responsibleName} disabled={ro}
                         onChange={(e) => setCase(c.recordId, { responsibleName: e.target.value, responsibleMemberId: null })} />
                     </div>
                     <div className="col-12">
-                      <label className="form-label small mb-1" htmlFor={`${key}-ba`}>Căn cứ</label>
+                      <label className="form-label small mb-1" htmlFor={`${key}-ba`}>Căn cứ{changed && <span className="text-danger"> *</span>}</label>
                       <textarea id={`${key}-ba`} className="form-control form-control-sm" rows={2} maxLength={4000} value={c.basis} disabled={ro}
                         onChange={(e) => setCase(c.recordId, { basis: e.target.value })} />
                     </div>
@@ -653,7 +655,7 @@ export default function CalibrationDetailPage() {
         </section>
 
         <section className="card">
-          <div className="card-header"><h2 className="mb-0">Kết luận bổ sung</h2></div>
+          <div className="card-header"><h2 className="mb-0">Kết luận bổ sung{draft.records.length === 1 && <span className="text-danger"> *</span>}</h2></div>
           <div className="card-body">
             <label className="visually-hidden" htmlFor="cal-extra">Kết luận bổ sung</label>
             <textarea id="cal-extra" className="form-control form-control-sm" rows={3} maxLength={4000} value={draft.extraConclusion} disabled={ro}

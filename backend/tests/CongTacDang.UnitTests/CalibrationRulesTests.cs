@@ -115,6 +115,36 @@ public sealed class CalibrationRulesTests
     }
 
     [Fact]
+    public void Percent_IsOnHundredScale_TotalIsHundred()
+    {
+        // Giao diện và bản Word in thẳng số này kèm "%", không nhân 100 lần nữa.
+        Assert.Equal(100, CalibrationRules.Percent(3, 3));
+        Assert.Equal(50, CalibrationRules.Percent(1, 2));
+        Assert.Equal(33.3, CalibrationRules.Percent(1, 3));
+    }
+
+    [Fact]
+    public void ConclusionHint_ListsMissingFieldsByScreenLabel()
+    {
+        var session = new CalibrationSession { GroupName = "Nhóm A", HeldAt = DateTime.UtcNow };
+        session.Records.Add(new CalibrationRecord { RecordId = Guid.NewGuid() });
+        session.Records.Add(new CalibrationRecord { RecordId = Guid.NewGuid() });
+
+        Assert.Equal("Cần nhập Chủ trì, Thư ký, Thành phần tham dự.", CalibrationRules.ConclusionHint(session));
+
+        session.ChairName = "Chủ trì";
+        session.SecretaryName = "Thư ký";
+        session.Attendees.Add(new CalibrationAttendee { FullName = "Thành viên" });
+        session.Cases.Add(new CalibrationCase { Order = 1, RecordId = session.Records.First().RecordId, GradeBefore = EvaluationGrade.HoanThanhTot, GradeAfter = EvaluationGrade.HoanThanh });
+        Assert.Equal("Trường hợp 1: cần nhập nội dung làm rõ, căn cứ, người chịu trách nhiệm.", CalibrationRules.ConclusionHint(session));
+
+        session.Cases.Clear();
+        Assert.Null(CalibrationRules.ConclusionHint(session));
+        // Mỗi lỗi của hint cũng là lỗi khi chốt.
+        Assert.Empty(CalibrationRules.ConclusionProblems(session));
+    }
+
+    [Fact]
     public void IsStale_OnlyStepOrResultChangesAfterConclusion()
     {
         var concludedAt = DateTime.UtcNow;

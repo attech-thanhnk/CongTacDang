@@ -548,7 +548,7 @@ public class AttachmentService : IAttachmentService
         if (pending >= max)
         {
             throw new ValidationException(
-                $"Bạn đang có {pending} tệp đã tải lên nhưng chưa gắn vào nhiệm vụ hoặc kết quả nào (tối đa {max} tệp). "
+                $"Bạn đang có {pending} tệp đã tải lên nhưng chưa gắn vào sản phẩm hoặc kết quả nào (tối đa {max} tệp). "
                 + "Hãy lưu phiếu / kết quả để gắn các tệp đã tải lên, hoặc chọn lại tệp đã tải thay vì tải mới."
                 + (_options.CleanupEnabled && _options.CleanupRetentionHours > 0
                     ? $" Tệp chưa gắn quá {_options.CleanupRetentionHours} giờ sẽ được hệ thống tự xóa."

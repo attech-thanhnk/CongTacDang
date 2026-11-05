@@ -139,7 +139,7 @@ public class CalibrationSessionDto
     public bool CanConclude { get; set; }
     public bool CanReopen { get; set; }
     public bool CanVoid { get; set; }
-    /// <summary>Lý do chốt chưa được (thiếu nội dung, cùng người lập...), null nếu chốt được.</summary>
+    /// <summary>Lý do chưa chốt được: thiếu nội dung (mọi người xem bản nháp) hoặc người xem là người lập; null nếu chốt được.</summary>
     public string? ConcludeBlockedReason { get; set; }
 }
 

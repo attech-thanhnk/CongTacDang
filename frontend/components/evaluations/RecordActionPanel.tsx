@@ -434,8 +434,8 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
       {usesTasks && (
         <div className="col-12">
           <div className={styles.tw}><table className={styles.table}>
-            {/* Bảng cuộn ngang trên điện thoại: giữ độ rộng tối thiểu để tên nhiệm vụ không vỡ từng chữ. */}
-            <thead><tr><th>#</th><th style={{ minWidth: 180 }}>Nhiệm vụ</th><th>Loại</th><th>Tự chấm</th><th>Vượt chuẩn</th><th style={{ minWidth: 200 }}>Mức thẩm định</th><th style={{ minWidth: 160 }}>Nhận xét</th></tr></thead>
+            {/* Bảng cuộn ngang trên điện thoại: giữ độ rộng tối thiểu để tên sản phẩm không vỡ từng chữ. */}
+            <thead><tr><th>#</th><th style={{ minWidth: 180 }}>Sản phẩm</th><th>Loại</th><th>Tự chấm</th><th>Vượt chuẩn</th><th style={{ minWidth: 200 }}>Mức thẩm định</th><th style={{ minWidth: 160 }}>Nhận xét</th></tr></thead>
             <tbody>
               {scoredTasks.map((t) => (
                 <tr key={t.id}>
