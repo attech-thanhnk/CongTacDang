@@ -220,7 +220,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
     setSaving(true);
     try {
       setAuthority(await userService.setApprovalAuthority(userId, overrideForm.value, overrideForm.reason.trim() || undefined));
-      toast.success(overrideForm.value ? "Đã đổi cấp quyết định xếp loại." : "Cấp quyết định xếp loại theo chức vụ.");
+      toast.success(overrideForm.value ? "Đã đổi thẩm quyền." : "Thẩm quyền theo chức vụ.");
       setOverrideForm(null);
       onChanged?.();
     } catch (err) {
@@ -307,7 +307,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
       <Card>
         <div className="card-body d-flex flex-wrap align-items-center gap-4">
           <div>
-            <div className="small text-secondary">Cấp quyết định xếp loại</div>
+            <div className="small text-secondary">Thẩm quyền</div>
             <div className="fw-semibold">{authority ? APPROVAL_AUTHORITY_CODE_LABELS[authority.effective] : "—"}</div>
             {authority && (
               <div className="small text-secondary">
@@ -523,7 +523,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
       )}
 
       {overrideForm && (
-        <AdminModal title="Cấp quyết định xếp loại" onClose={() => setOverrideForm(null)} closeDisabled={saving} maxWidth={480}
+        <AdminModal title="Thẩm quyền" onClose={() => setOverrideForm(null)} closeDisabled={saving} maxWidth={480}
           footer={
             <>
             <button type="button" className="btn btn-outline-secondary" onClick={() => setOverrideForm(null)} disabled={saving}>
@@ -538,7 +538,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
         >
           <form id="member-authority-form" onSubmit={handleOverride}>
             <div className="mb-2">
-              <label className="form-label">Cấp quyết định xếp loại</label>
+              <label className="form-label">Thẩm quyền</label>
               <select
                 className="form-select form-select-sm"
                 value={overrideForm.value}

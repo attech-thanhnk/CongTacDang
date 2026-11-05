@@ -19,7 +19,7 @@ import { NoAccess } from "@/components/admin/NoAccess";
 import { TemporaryCredential, TemporaryPasswordModal } from "@/components/admin/TemporaryPasswordModal";
 import { errorMessage, errorTitle, formatDateOnly, formatDateTime } from "@/components/admin/adminUtils";
 import { useCatalogOptions } from "@/components/admin/useCatalogOptions";
-import { AccountListItem, APPROVAL_AUTHORITY_LABELS, UpdateAccountPayload, userService } from "@/services/userService";
+import { AccountListItem, UpdateAccountPayload, userService } from "@/services/userService";
 import {
   AdminRole,
   CreateAssignmentPayload,
@@ -368,13 +368,8 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       title: "Công tác",
       icon: "bi-briefcase",
       items: [
-        { label: "Chức danh", value: account.positionTitle },
         { label: "Đơn vị công tác chính", value: account.departmentName },
         { label: "Khung tỷ trọng mặc định", value: account.weightFrameCode || "Mặc định của bộ tiêu chí" },
-        {
-          label: "Cấp quyết định xếp loại",
-          value: `${APPROVAL_AUTHORITY_LABELS[account.approvalAuthority] ?? "—"} (${account.approvalAuthorityOverride ? "đặt riêng" : "theo chức vụ"})`,
-        },
       ],
     },
     {
