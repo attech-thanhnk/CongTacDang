@@ -6,8 +6,8 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { usePeriod } from "@/contexts/PeriodContext";
 import { useToast } from "@/contexts/ToastContext";
 import { PublishManyItemResultDto, WorkQueueDto, evaluationService } from "@/services/evaluationService";
-import { commonDeadline, normalizeText, queueGroups } from "@/components/dashboard/taskUtils";
-import { GroupDeadline, TaskTable } from "@/components/dashboard/TaskTable";
+import { commonDeadline, deadlineState, normalizeText, queueGroups, shortDate } from "@/components/dashboard/taskUtils";
+import { TaskTable } from "@/components/dashboard/TaskTable";
 import styles from "@/components/dashboard/dashboard.module.css";
 import { errorMessage } from "@/components/admin/adminUtils";
 
@@ -130,8 +130,8 @@ export default function WorkQueuePage() {
                 <div className={styles.blockH}>
                   <h2>
                     {group.stepName} <span className={styles.count}>{group.items.length}</span>
+                    {common && <HeadingDeadline deadline={common.deadline} overdue={common.overdue} />}
                   </h2>
-                  {common && <GroupDeadline deadline={common.deadline} overdue={common.overdue} />}
                   {index === 0 && (
                     <button type="button" className="btn btn-outline-secondary btn-sm ms-auto" onClick={() => load()} aria-label="Làm mới" title="Làm mới">
                       <i className="bi bi-arrow-clockwise" />
@@ -186,5 +186,18 @@ export default function WorkQueuePage() {
         )}
       </div>
     </div>
+  );
+}
+
+/** Hạn chung của nhóm đặt sát tên nhóm: "· hạn 06/11". */
+function HeadingDeadline({ deadline, overdue }: { deadline: string | null; overdue: boolean }) {
+  const date = shortDate(deadline);
+  if (!date) return null;
+  const state = deadlineState(deadline, overdue);
+  return (
+    <span className={`num fw-normal ms-1 ${state === "overdue" ? styles.late : state === "soon" ? styles.soon : styles.muted}`} style={{ fontSize: "0.85em" }}>
+      · hạn {date.slice(0, 5)}
+      {state === "overdue" && " · quá hạn"}
+    </span>
   );
 }
