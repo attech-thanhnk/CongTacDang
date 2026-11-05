@@ -65,11 +65,10 @@ Dùng để kiểm tra mỗi việc ở một đơn vị đã có người làm,
 
 1. Menu **Hệ thống** → **Người thực hiện**.
 2. Ô **Xem theo**: chọn **Đơn vị chính quyền** hoặc **Tổ chức Đảng**, rồi chọn đơn vị cần xem ở ô bên cạnh.
-3. Mỗi việc liệt kê người thực hiện:
+3. Danh sách việc tính theo các hồ sơ của kỳ đang chọn, gồm cả **Trưởng đơn vị gửi danh mục** và **Rà soát, trình duyệt danh mục**. Mỗi việc liệt kê người thực hiện:
    - người không có nhãn là người ở cấp gần nhất, việc hiện ở **Việc cần xử lý** của họ;
    - nhãn **Cấp trên**: người ở cấp trên, làm được khi người gần nhất vắng;
    - nhãn **Chưa có người**: việc chưa ai làm, cần thêm người;
-   - nhãn **Kỳ hiện tại không dùng**: kỳ đang chọn không có việc này.
 
 ![Người thực hiện](anh/quan-tri-05-nguoi-thuc-hien.png)
 

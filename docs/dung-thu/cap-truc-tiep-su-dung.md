@@ -30,6 +30,10 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 
 ![Duyệt danh mục](anh/cap-tren-04-duyet-danh-muc.png)
 
+Danh mục của Phó Giám đốc do Chủ tịch duyệt, cách làm như trên.
+
+![Chủ tịch duyệt danh mục Phó Giám đốc](anh/cap-tren-06-chu-tich-duyet.png)
+
 **Xong thì thấy:** thanh tiến trình chuyển sang **Tự chấm điểm, đề xuất mức**; dưới danh mục ghi **Duyệt:** tên bạn. Duyệt nhầm khi cán bộ chưa nộp phiếu tự chấm: khung **Thu hồi duyệt danh mục** → **Thu hồi duyệt**.
 
 **Danh mục chưa đạt:** bấm **Trả lại danh mục** → ghi **Lý do (bắt buộc)** → **Trả lại**.
@@ -77,7 +81,10 @@ Khi cán bộ gửi đề nghị điều chỉnh việc, việc hiện ở **Vi�
 
 **Khi nào:** trước khi Giám đốc duyệt danh mục, hoặc trước khi Giám đốc nhận xét. Ý kiến không chặn bước nào; người duyệt đọc ý kiến trên hồ sơ.
 
-1. **Việc cần xử lý** → nhóm **Ghi ý kiến** → bấm **Ghi ý kiến** ở dòng cán bộ (hoặc mở hồ sơ từ menu **Hồ sơ đánh giá**).
+1. **Việc cần xử lý** → nhóm **Ghi ý kiến** → bấm **Ghi ý kiến** ở dòng cán bộ (hoặc mở hồ sơ từ menu **Hồ sơ đánh giá**). Dòng ghi bước đang chờ, ví dụ "Chờ duyệt danh mục, bạn chưa ghi ý kiến".
+
+![Việc chờ ghi ý kiến](anh/cap-tren-19-viec-ghi-y-kien.png)
+
 2. Khối **Ý kiến trước phê duyệt** → bấm **Ghi ý kiến**.
 3. Loại ý kiến đã chọn sẵn theo bước của hồ sơ (**về danh mục** hoặc **về đề xuất mức**); đổi nếu cần.
 4. Ghi **Nội dung ý kiến** → bấm **Lưu**.

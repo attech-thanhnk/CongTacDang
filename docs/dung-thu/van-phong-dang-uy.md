@@ -22,7 +22,9 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 
 **Xong thì thấy:** biên bản ghi **Đã chốt** kèm tên bạn và thời gian.
 
-**Nút bị khóa:** dòng vàng ghi còn thiếu gì (chủ trì, thư ký, thành phần tham dự…). Báo người lập bổ sung.
+**Nút bị khóa:** dòng đầu trang ghi còn thiếu gì (chủ trì, thư ký, thành phần tham dự…). Báo người lập bổ sung.
+
+Hồ sơ trong biên bản đã có quyết định thì không áp lại mức; hồ sơ đó ghi **Đã có quyết định, giữ nguyên**.
 
 ## 2. Xác nhận phiếu kiểm tra (Mẫu 19)
 

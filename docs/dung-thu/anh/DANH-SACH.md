@@ -26,6 +26,7 @@ Cột "Giai đoạn": giai đoạn của `tao-du-lieu-thu.ps1` mà hồ sơ đan
 | can-bo-19-nop-phieu.png | Hộp Nộp phiếu tự chấm | `trung.nb` | tu-cham (tay) |
 | can-bo-21-ket-qua.png | Hồ sơ đã công bố, có mức chính thức | `trung.nb` | cong-bo, đã công bố (tay) |
 | can-bo-23-kien-nghi.png | Khối Kiến nghị đang nhập | `trung.nb` | đã công bố |
+| can-bo-24-chuong-tra-loi.png | Chuông và Việc cần xử lý có nhóm Kiến nghị đã được trả lời | `trung.nb` | kiến nghị đã được `hung.dt` trả lời (tay) |
 | can-bo-26-xac-nhan-ke-hoach.png | Kế hoạch 30-60-90 ngày chờ xác nhận | `trung.nb` | đã công bố mức Hoàn thành nhiệm vụ, kế hoạch đã duyệt (tay) |
 
 ## Lãnh đạo đơn vị — lanh-dao-don-vi.md
@@ -84,7 +85,9 @@ Cột "Giai đoạn": giai đoạn của `tao-du-lieu-thu.ps1` mà hồ sơ đan
 | cap-tren-03-viec-duyet-danh-muc.png | Việc cần xử lý, nhóm Duyệt danh mục sản phẩm | `giang.nh` | sau khi `loan.ttp` trình duyệt danh mục `trung.nb` (tay) |
 | cap-tren-04-duyet-danh-muc.png | Khung Duyệt danh mục, đã mở Tỷ lệ A-B-C-D | `giang.nh` | như trên |
 | cap-tren-05-duyet-dieu-chinh.png | Đề nghị điều chỉnh việc chờ duyệt, nút Duyệt / Không duyệt | `giang.nh` | sau khi `trung.nb` gửi đề nghị (tay) |
+| cap-tren-06-chu-tich-duyet.png | Chủ tịch duyệt danh mục Phó Giám đốc | `thinh.lt` | danh mục `thanh.nn` đã trình duyệt (tay) |
 | cap-tren-11-duyet-ke-hoach.png | Kế hoạch 30-60-90 ngày, nút Duyệt kế hoạch | `giang.nh` | kế hoạch `trung.nb` đã lập (tay) |
+| cap-tren-19-viec-ghi-y-kien.png | Việc cần xử lý, nhóm Ghi ý kiến | `thanh.nn` | danh mục `duy.lm` chờ Giám đốc duyệt (tay) |
 | cap-tren-20-ghi-y-kien.png | Khối Ý kiến trước phê duyệt đang ghi | `thanh.nn` | danh mục `duy.lm` chờ Giám đốc duyệt (tay) |
 
 ## Văn phòng Đảng ủy — van-phong-dang-uy.md
@@ -109,4 +112,4 @@ Cột "Giai đoạn": giai đoạn của `tao-du-lieu-thu.ps1` mà hồ sơ đan
 | quan-tri-02-mat-khau-tam.png | Hộp mật khẩu tạm sau Đặt lại mật khẩu (tài khoản thử) | `quantri` | bất kỳ |
 | quan-tri-03-mo-khoa.png | Trang tài khoản có nút Mở khóa đăng nhập (khóa một tài khoản trong CSDL thử) | `quantri` | bất kỳ |
 | quan-tri-04-phan-cong.png | Hộp Phân công vai trò | `quantri` | bất kỳ |
-| quan-tri-05-nguoi-thuc-hien.png | Người thực hiện, Phòng Kế hoạch - Kinh doanh (có nhãn Cấp trên) | `quantri` | kỳ đang mở |
+| quan-tri-05-nguoi-thuc-hien.png | Người thực hiện theo kỳ đang chọn, Phòng Kế hoạch - Kinh doanh (có nhãn Cấp trên) | `quantri` | kỳ đang mở |

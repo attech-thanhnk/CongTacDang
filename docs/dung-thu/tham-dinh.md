@@ -92,7 +92,7 @@ Hồ sơ đang thẩm định cũng đánh dấu được ngay trong khung thẩ
 
 ![Việc chờ thẩm định](anh/tham-dinh-10-viec-can-xu-ly.png)
 
-2. Bảng nhiệm vụ: với từng nhiệm vụ, chọn **Mức thẩm định** (Mức 1, Mức 2, Mức 3; bắt buộc đủ), ghi **Nhận xét** ngắn nếu cần. Cột **Tự chấm**, **Vượt chuẩn** cho biết cán bộ tự đánh giá thế nào.
+2. Bảng sản phẩm: dưới tên mỗi sản phẩm ghi loại (và **Vượt chuẩn** nếu có); cột **Tự chấm** là kết quả cán bộ tự đánh giá. Ở cột **Mức thẩm định, nhận xét**, chọn mức cho từng sản phẩm (Mức 1, Mức 2, Mức 3; bắt buộc đủ), ghi **Nhận xét** ngắn ở ô bên dưới nếu cần.
 3. **Chấm tiêu chí chung:** để **Theo nhóm** thì nhập 2 điểm **Tiêu chí chung** và **Kết quả nhiệm vụ** (đã điền sẵn điểm tự chấm, sửa nếu khác). Chọn **Từng tiêu chí** nếu muốn chấm lại từng tiêu chí con.
 4. Ô **Tổng** tự tính. Chọn **Mức đề xuất**; ghi **Ý kiến thẩm định**.
 5. Điểm chênh lệch nhiều so với tự chấm, hoặc đổi mức: ô **Giải trình** có dấu \* (bắt buộc). Ghi rõ căn cứ.
@@ -113,7 +113,7 @@ Hồ sơ đang thẩm định cũng đánh dấu được ngay trong khung thẩ
 **Khi nào:** sau thẩm định và nhận xét, trước khi Văn phòng Đảng ủy ghi quyết định. Mỗi biên bản gom các hồ sơ cùng nhóm chức danh (ví dụ Trưởng phòng và tương đương).
 
 1. Menu **Duyệt kết quả** → thẻ **Họp thống nhất** → bấm **Lập biên bản**.
-2. Hộp **Lập biên bản**: ghi **Nhóm chức danh / phạm vi**; lọc theo diện, đơn vị nếu cần; tích các hồ sơ (hoặc **Chọn tất cả**) → bấm **Lập biên bản**.
+2. Hộp **Lập biên bản**: ghi **Nhóm chức danh / phạm vi**; lọc theo diện, đơn vị nếu cần; tích các hồ sơ (hoặc **Chọn tất cả**) → bấm **Lập biên bản**. Hộp chỉ liệt kê hồ sơ đang chờ quyết định và thuộc diện phải họp thống nhất.
 
 ![Chọn hồ sơ vào biên bản](anh/tham-dinh-21-lap-bien-ban.png)
 
@@ -125,7 +125,7 @@ Hồ sơ đang thẩm định cũng đánh dấu được ngay trong khung thẩ
 
 ![Biên bản họp thống nhất](anh/tham-dinh-22-bien-ban.png)
 
-**Xong thì thấy:** biên bản ở trạng thái **Đang soạn**, chờ Văn phòng Đảng ủy bấm **Chốt biên bản**. Dòng vàng ở đầu trang ghi những gì còn thiếu (ngày họp, chủ trì, thư ký, thành phần tham dự; lý do khi chỉ có một hồ sơ); còn thiếu thì không chốt được: bổ sung rồi **Lưu** lại.
+**Xong thì thấy:** biên bản ở trạng thái **Đang soạn**, chờ Văn phòng Đảng ủy bấm **Chốt biên bản**. Dòng ở đầu trang ghi những gì còn thiếu (ngày họp, chủ trì, thư ký, thành phần tham dự; lý do khi chỉ có một hồ sơ), tính theo nội dung đang nhập; còn thiếu thì không chốt được. Đã đủ nhưng chưa lưu thì dòng ghi **Lưu biên bản trước khi chốt.**: bấm **Lưu**.
 
 ## Phần E. Phiếu kiểm tra (Mẫu 19)
 

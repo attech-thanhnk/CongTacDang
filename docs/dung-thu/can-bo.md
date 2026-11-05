@@ -155,7 +155,9 @@ Sau khi Văn phòng Đảng ủy công bố:
 
 ![Gửi kiến nghị](anh/can-bo-23-kien-nghi.png)
 
-**Xong thì thấy:** kiến nghị ghi "Đã gửi, chờ xem xét"; kết quả của bạn trong danh sách ghi "Đang xem xét kiến nghị". Mỗi lúc chỉ gửi được một kiến nghị; chờ trả lời rồi mới gửi kiến nghị khác. Câu trả lời hiện ngay trong khối **Kiến nghị**.
+**Xong thì thấy:** kiến nghị ghi "Đã gửi, chờ xem xét"; kết quả của bạn trong danh sách ghi "Đang xem xét kiến nghị". Mỗi lúc chỉ gửi được một kiến nghị; chờ trả lời rồi mới gửi kiến nghị khác. Khi có trả lời, chuông góc trên có nhóm **Kiến nghị đã trả lời**; **Việc cần xử lý** có nhóm **Kiến nghị đã được trả lời** → bấm **Xem trả lời**. Câu trả lời hiện trong khối **Kiến nghị**.
+
+![Kiến nghị đã được trả lời](anh/can-bo-24-chuong-tra-loi.png)
 
 ## 10. Kế hoạch khắc phục 30-60-90 ngày (Mẫu 17)
 
