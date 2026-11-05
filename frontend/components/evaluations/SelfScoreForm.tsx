@@ -188,11 +188,11 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   const toInput = (raw: string): ScoreInput => (raw === "" ? "" : Number(raw));
   const setRatio = (taskId: string, key: keyof TaskRatio, value: ScoreInput | boolean | string | null) =>
     setRatios({ ...ratios, [taskId]: { ...ratios[taskId], [key]: value } });
-  // Tệp tải lên chưa gắn; gắn vào nhiệm vụ khi lưu nháp hoặc nộp phiếu.
+  // Tệp tải lên chưa gắn; gắn vào sản phẩm khi lưu nháp hoặc nộp phiếu.
   const setEvidence = (taskId: string, file: { id: string; fileName: string } | null) =>
     setRatios((prev) => ({ ...prev, [taskId]: { ...prev[taskId], attachmentId: file?.id ?? null, attachmentName: file?.fileName ?? null } }));
   const uploadEvidence = async (taskId: string, taskName: string, file: File) =>
-    setEvidence(taskId, await attachmentService.uploadAttachment(file, "MAU02", `Minh chứng nhiệm vụ: ${taskName}`.slice(0, 500)));
+    setEvidence(taskId, await attachmentService.uploadAttachment(file, "MAU02", `Minh chứng sản phẩm: ${taskName}`.slice(0, 500)));
 
   const generalScore = useMemo(() => generalTotal(content, general), [content, general]);
   const taskScore = (weight: number, r: TaskRatio) => {
@@ -221,7 +221,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   const needsReason = (item: { maxScore: number }, s: GeneralItemScore) =>
     !!s.notApplicable || (p.deductionReasonMinPoints != null && item.maxScore - (Number(s.score) || 0) + 1e-6 >= p.deductionReasonMinPoints);
 
-  /** Nội dung gửi máy chủ. Lưu nháp: bỏ nhiệm vụ còn ô điểm trống (giữ trống khi mở lại, không ghi thành 0). */
+  /** Nội dung gửi máy chủ. Lưu nháp: bỏ sản phẩm còn ô điểm trống (giữ trống khi mở lại, không ghi thành 0). */
   const buildPayload = (draft: boolean): Record<string, unknown> => {
     const generalScores = Object.fromEntries(
       Object.entries(general).map(([code, s]) => [code, { score: s.notApplicable ? 0 : Number(s.score) || 0, notApplicable: !!s.notApplicable, reason: s.reason?.trim() || null }])
@@ -230,7 +230,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     if (uses09C) payload.selfAssessment = selfAssessment;
     if (uses09C || uses9D) payload.axisReports = axisReports;
     // Ô để trống gửi null (chưa nhập) — máy chủ từ chối nộp khi còn thiếu, không tự coi là 0% hay 100%.
-    // Lưu nháp vẫn gửi nhiệm vụ chưa đủ tỷ lệ để máy chủ gắn minh chứng đã chọn.
+    // Lưu nháp vẫn gửi sản phẩm chưa đủ tỷ lệ để máy chủ gắn minh chứng đã chọn.
     const ratioOf = (v: ScoreInput) => (v === "" ? null : (Number(v) || 0) / 100);
     payload.taskScores = activeTasks
       .map((t) => ({
@@ -255,9 +255,9 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       const now = new Date();
       setSavedAt(now);
       toast.success(`Đã lưu nháp lúc ${timeOf(now)}.`);
-      // Nhiệm vụ mới nhập một phần A-B-C-D không được lưu (giữ nội dung đã lưu trước đó).
+      // Sản phẩm mới nhập một phần A-B-C-D không được lưu (giữ nội dung đã lưu trước đó).
       const partial = activeTasks.filter((t) => !isComplete(ratios[t.id]) && ratioKeys.some((k) => ratios[t.id][k] !== ""));
-      if (partial.length) toast.warning(`Chưa lưu tỷ lệ của nhiệm vụ nhập chưa đủ A-B-C-D: ${taskNames(partial)}.`);
+      if (partial.length) toast.warning(`Chưa lưu tỷ lệ của sản phẩm nhập chưa đủ A-B-C-D: ${taskNames(partial)}.`);
     } catch (error: unknown) {
       if (!isConcurrencyConflict(error)) toast.error(errorMessage(error, "Lưu nháp không thành công."));
     } finally {
@@ -269,12 +269,12 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     e.preventDefault();
     const incomplete = activeTasks.filter((t) => !isComplete(ratios[t.id]));
     if (incomplete.length) {
-      toast.error(`Chưa nhập đủ tỷ lệ A-B-C-D cho nhiệm vụ: ${taskNames(incomplete)}.`);
+      toast.error(`Chưa nhập đủ tỷ lệ A-B-C-D cho sản phẩm: ${taskNames(incomplete)}.`);
       return;
     }
     const exceedNoEvidence = activeTasks.filter((t) => ratios[t.id].exceed && !ratios[t.id].attachmentId);
     if (exceedNoEvidence.length) {
-      toast.error(`Nhiệm vụ đánh dấu vượt chuẩn phải có minh chứng. Hãy đính kèm minh chứng cho: ${taskNames(exceedNoEvidence)}.`);
+      toast.error(`Sản phẩm đánh dấu vượt chuẩn phải có minh chứng. Hãy đính kèm minh chứng cho: ${taskNames(exceedNoEvidence)}.`);
       return;
     }
     const noEvidence = activeTasks.filter((t) => !ratios[t.id].attachmentId);
@@ -294,7 +294,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       title: "Nộp phiếu tự chấm",
       message: `Tổng điểm tự chấm ${fmt(total)}, mức tự đề xuất: ${gradeLabel}.`
         + (missing.length ? ` Chưa nhập ${missing.join(" và ")}.` : "")
-        + (noEvidence.length ? ` Nhiệm vụ chưa có minh chứng: ${taskNames(noEvidence)}.` : "")
+        + (noEvidence.length ? ` Sản phẩm chưa có minh chứng: ${taskNames(noEvidence)}.` : "")
         + " Sau khi nộp, bạn không sửa được trừ khi bị trả lại.",
       confirmText: "Nộp phiếu",
       isDanger: false,
