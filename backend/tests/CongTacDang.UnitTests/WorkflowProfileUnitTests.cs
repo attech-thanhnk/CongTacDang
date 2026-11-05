@@ -24,7 +24,7 @@ public sealed class WorkflowProfileUnitTests
         Assert.Equal(new[] { "co-so", "cap-tren", "bi-thu-nhan-vien", "pho-giam-doc" }, full.Profiles.Select(p => p.Code));
         Assert.Equal("co-so", full.DefaultProfileCode(ApprovalAuthority.CoSo));
         Assert.Equal("cap-tren", full.DefaultProfileCode(ApprovalAuthority.CapTren));
-
+        // Ví dụ 1: mọi bước nội bộ; Giám đốc duyệt danh mục (kiểm tra bên dưới).
         // Ví dụ 1: mọi bước nội bộ, quyền mặc định theo thiết kế.
         var baseProfile = Profile(full, "co-so");
         Assert.All(WorkflowSteps.Ordered, s => Assert.Equal(StepMode.Internal, baseProfile.Mode(s)));
@@ -57,6 +57,13 @@ public sealed class WorkflowProfileUnitTests
 
         // Chủ tịch, Giám đốc, Kiểm soát viên: HĐTV Tổng công ty duyệt danh mục sản phẩm (cấp trên thực hiện).
         Assert.Equal(StepMode.External, upper.Mode(WorkflowStep.B1_APPROVE));
+
+        // Trưởng, Phó phòng và tương đương, Bí thư/Phó bí thư Chi bộ là nhân viên: Giám đốc duyệt danh mục.
+        foreach (var p in new[] { baseProfile, staff })
+        {
+            Assert.Equal(StepMode.Internal, p.Mode(WorkflowStep.B1_APPROVE));
+            Assert.Equal(PermissionCodes.EvaluationDirectorReview, p.PermissionFor(WorkflowStep.B1_APPROVE));
+        }
 
         // Phó Giám đốc: Chủ tịch duyệt danh mục và nhận xét trong hệ thống; tập thể Công ty đề xuất; không có bước thẩm định riêng; BTV quyết định.
         var deputy = Profile(full, "pho-giam-doc");

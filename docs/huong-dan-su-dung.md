@@ -13,7 +13,7 @@ Chọn nhóm của bạn, đọc các mục được chỉ dẫn. Các mục cò
 | Bạn là | Việc thường làm | Đọc mục |
 |---|---|---|
 | **Cán bộ được đánh giá** | Đăng ký sản phẩm đầu kỳ, tự chấm điểm, xem kết quả, gửi kiến nghị | [2](#2-thao-tác-chung), [3](#3-cán-bộ-được-đánh-giá), [7](#7-sau-khi-công-bố-kiến-nghị-và-kế-hoạch-30-60-90-ngày) |
-| **Người duyệt** (Lãnh đạo đơn vị, Chi bộ, thư ký hội nghị, cấp trực tiếp sử dụng) | Duyệt danh mục, xác nhận phiếu tự chấm, ghi nhận đề xuất tập thể, nhận xét | [2.5](#25-việc-cần-xử-lý), [4.0 đến 4.2 và 4.4](#4-các-bước-xét-duyệt), [6](#6-đánh-giá-tập-thể-và-biên-bản-hội-nghị), [12](#12-vì-sao-nút-bị-khóa) |
+| **Người duyệt** (cấp trực tiếp sử dụng, Lãnh đạo đơn vị, Chi bộ, thư ký hội nghị) | Duyệt danh mục, xác nhận phiếu tự chấm, ghi nhận đề xuất tập thể, nhận xét | [2.5](#25-việc-cần-xử-lý), [4.0 đến 4.2 và 4.4](#4-các-bước-xét-duyệt), [6](#6-đánh-giá-tập-thể-và-biên-bản-hội-nghị), [12](#12-vì-sao-nút-bị-khóa) |
 | **Cơ quan thẩm định** | Thẩm định, yêu cầu xác nhận, lập biên bản họp thống nhất và phiếu kiểm tra, quản lý kỳ | [4.3](#43-thẩm-định), [5](#5-xác-nhận-số-liệu-và-duyệt-kết-quả), [8](#8-quản-lý-kỳ-đánh-giá), [12](#12-vì-sao-nút-bị-khóa) |
 | **Cơ quan chuyên môn** (phiếu số liệu, Mẫu 03): phòng, đơn vị chuyên môn của ATTECH, ví dụ Phòng Kỹ thuật - An toàn - Chất lượng | Lập phiếu xác nhận số liệu, xác nhận phiếu | [5.2](#52-phiếu-xác-nhận-số-liệu-mẫu-03) |
 | **Văn phòng Đảng ủy** | Chốt biên bản họp thống nhất, xác nhận phiếu kiểm tra, xác nhận phiếu số liệu của cơ quan ngoài hệ thống, ghi nhận quyết định, công bố, xử lý kiến nghị, xuất báo cáo | [4.5 đến 4.7](#45-quyết-định-mức-xếp-loại), [5.3](#53-biên-bản-họp-thống-nhất-mẫu-20), [5.4](#54-phiếu-kiểm-tra-mẫu-19), [7](#7-sau-khi-công-bố-kiến-nghị-và-kế-hoạch-30-60-90-ngày), [10](#10-báo-cáo) |
@@ -71,7 +71,7 @@ Một hồ sơ đi lần lượt qua các bước dưới đây. Tùy **diện q
 | # | Bước | Ai làm |
 |---|---|---|
 | 1 | Đăng ký sản phẩm, nhiệm vụ | Chính cán bộ |
-| 2 | Duyệt danh mục sản phẩm | Lãnh đạo có quyền duyệt (thường là Lãnh đạo đơn vị) |
+| 2 | Duyệt danh mục sản phẩm | Giám đốc (Phó Giám đốc: Chủ tịch) |
 | 3 | Tự chấm điểm, đề xuất mức | Chính cán bộ |
 | 4 | Chi bộ xác nhận phiếu tự chấm | Chi bộ |
 | 5 | Đề xuất của tập thể lãnh đạo | Thư ký hội nghị ghi nhận kết quả hội nghị (diện Bí thư/Phó bí thư Chi bộ là nhân viên: Trưởng đơn vị đề xuất) |
@@ -261,6 +261,7 @@ Nút **Trả lại …** (viền đỏ) nằm cùng chân khung. Bấm, nhập *
 
 ### 4.0 Duyệt danh mục sản phẩm
 
+- Giám đốc duyệt danh mục của Trưởng, Phó phòng và tương đương; Chủ tịch duyệt danh mục của Phó Giám đốc. Trưởng phòng chỉ ký Mẫu 01 của Phó phòng khi nộp.
 - Xem danh mục sản phẩm cán bộ đăng ký, nhập **Ý kiến** (nếu có) rồi bấm **Duyệt**.
 - **Tỷ lệ A-B-C-D** (khi bộ tiêu chí cho phép): mở khối này để xem tỷ lệ A-B-C-D của khung và sửa cho riêng hồ sơ, mỗi thành phần trong biên độ cho phép, tổng phải bằng 100%. Không sửa thì giữ nguyên. Bấm **Dùng tỷ lệ của khung** để quay về tỷ lệ gốc. Tỷ lệ đã sửa được dùng khi cán bộ tự chấm và hiện "(đã điều chỉnh)".
 - **Trả lại danh mục**: bấm nút trả lại ở chân khung, nhập lý do.

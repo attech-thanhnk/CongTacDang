@@ -19,7 +19,7 @@ public sealed class Mau01Data
     [TemplateField("FULL_NAME")] public string? FullName { get; init; }
     [TemplateField("POSITION")] public string? Position { get; init; }
 
-    /// <summary>Người duyệt danh mục trong hệ thống; cấp trên duyệt hoặc chưa duyệt → giữ dòng chấm để ký tay.</summary>
+    /// <summary>Người duyệt danh mục trong hệ thống, in ở ô "Cấp có thẩm quyền phê duyệt"; cấp trên duyệt hoặc chưa duyệt → giữ dòng chấm để ký tay.</summary>
     [TemplateField("SUPERVISOR_NAME")] public string? SupervisorName { get; init; }
 
     [TemplateCollection("TASKS")] public List<Mau01TaskRow> Tasks { get; init; } = new();

@@ -247,12 +247,12 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Equal(1, ready.GetProperty("checkedRecords").GetInt32());
         Assert.Equal(HttpStatusCode.Forbidden, (await w.StaffC.GetAsync($"/api/evaluations/periods/{periodId}/readiness")).StatusCode);
 
-        // Thu hồi bản gán Lãnh đạo Phòng 3 (người duy nhất duyệt danh mục, đề xuất của đơn vị) → hồ sơ kẹt ở B1 duyệt và B3a.
+        // Thu hồi bản gán Lãnh đạo Phòng 3 (người duy nhất đề xuất của đơn vị) → hồ sơ kẹt ở B3a; duyệt danh mục do Giám đốc nên không kẹt.
         Assert.Equal(HttpStatusCode.OK, (await w.AdminC.DeleteAsync($"/api/admin/assignments/{w.Lead3Assignment}")).StatusCode);
         var stuck = await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}/readiness");
         Assert.False(stuck.GetProperty("ready").GetBoolean());
         var issues = stuck.GetProperty("issues").EnumerateArray().ToList();
-        Assert.Equal(new[] { "B1_APPROVE", "B3A_COLLECTIVE" }, issues.Select(i => i.GetProperty("step").GetString()));
+        Assert.Equal(new[] { "B3A_COLLECTIVE" }, issues.Select(i => i.GetProperty("step").GetString()));
         var issue = issues.Single(i => i.GetProperty("step").GetString() == "B3A_COLLECTIVE");
         Assert.Equal("Trưởng đơn vị đề xuất", issue.GetProperty("stepName").GetString());
         Assert.Equal("evaluation.unit.review", issue.GetProperty("permission").GetString());
@@ -267,8 +267,8 @@ public sealed class WorkflowProfileIntegrationTests
         using (var json = JsonDocument.Parse(await blocked.Content.ReadAsStringAsync()))
         {
             Assert.Equal("PERIOD_NOT_READY", json.RootElement.GetProperty("code").GetString());
-            Assert.Equal(2, json.RootElement.GetProperty("data").GetProperty("issues").GetArrayLength());
-            Assert.Equal(2, json.RootElement.GetProperty("errors").GetArrayLength());
+            Assert.Equal(1, json.RootElement.GetProperty("data").GetProperty("issues").GetArrayLength());
+            Assert.Equal(1, json.RootElement.GetProperty("errors").GetArrayLength());
         }
         Assert.Equal("Draft", (await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}")).GetProperty("status").GetString());
         Assert.Equal(HttpStatusCode.BadRequest,

@@ -85,7 +85,7 @@ public static class DataSeeder
                 PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCalibrationManage, PermissionCodes.EvaluationControlPerform,
                 PermissionCodes.EvaluationOpinionRecord
             }),
-        new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng", "Giám đốc, Chủ tịch: nhận xét, đề xuất mức; lập kế hoạch 30-60-90 ngày (Mẫu 17).",
+        new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng", "Giám đốc, Chủ tịch: duyệt danh mục sản phẩm, nhận xét, đề xuất mức; lập kế hoạch 30-60-90 ngày (Mẫu 17).",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport, PermissionCodes.EvaluationImprovementManage }),
         new(RoleCodes.PartyCommitteeMember, "Cấp ủy viên", "Cấp ủy viên Đảng ủy: xem hồ sơ, biên bản, báo cáo.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.MeetingRead, PermissionCodes.ReportExport }),

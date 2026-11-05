@@ -193,11 +193,11 @@ public sealed class TaskChangeIntegrationTests
             });
 
             w.Owner = await _factory.CreateUserAsync(w.Dept, cell, ApprovalAuthority.CoSo, $"TC Chủ hồ sơ {suffix}");
-            var lead = await _factory.CreateUserAsync(w.Dept, null, ApprovalAuthority.CoSo, $"TC Lãnh đạo Phòng {suffix}");
+            var lead = await _factory.CreateUserAsync(w.Dept, null, ApprovalAuthority.CoSo, $"TC Giám đốc {suffix}");
             var manager = await _factory.CreateUserAsync(null, null);
             var reader = await _factory.CreateUserAsync(null, null);
             await _factory.AssignAsync(w.Owner.Id, await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA"), RoleScopeType.Global, null);
-            await _factory.AssignAsync(lead.Id, await _factory.GetRoleIdAsync("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept);
+            await _factory.AssignAsync(lead.Id, await _factory.GetRoleIdAsync("CAP_TRUC_TIEP_SU_DUNG"), RoleScopeType.Department, w.Dept);
             await _factory.AssignAsync(manager.Id, await _factory.GetRoleIdAsync("CO_QUAN_THAM_DINH"), RoleScopeType.Global, null);
             await _factory.AssignAsync(reader.Id, (await _factory.CreateRoleAsync("evaluation.read")).Id, RoleScopeType.Global, null);
 

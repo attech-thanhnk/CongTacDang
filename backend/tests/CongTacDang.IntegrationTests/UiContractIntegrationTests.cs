@@ -614,14 +614,14 @@ public sealed class UiContractIntegrationTests
             reason = "Đổi theo chỉ đạo"
         }));
         var request = adjust.GetProperty("requests")[0];
-        await s.AssertQueueAsync(w.Lead, "TASK_CHANGES");
+        await s.AssertQueueAsync(w.Director, "TASK_CHANGES");
         // Duyệt: thân yêu cầu chỉ có version khi không nhập ý kiến.
-        var approved = await Data(await PostRawAsync(w.Lead, $"{baseUrl}/{request.GetProperty("id").GetGuid()}/approve", new { version = request.GetProperty("version").GetUInt32() }));
+        var approved = await Data(await PostRawAsync(w.Director, $"{baseUrl}/{request.GetProperty("id").GetGuid()}/approve", new { version = request.GetProperty("version").GetUInt32() }));
         Assert.Equal("Approved", approved.GetProperty("requests")[0].GetProperty("status").GetString());
 
         // "Ghi nhận việc đột xuất": taskId null, trọng số từ ô nhập, các ô tùy chọn để trống; giảm các việc cũ để giữ tổng 70.
         record = await Data(s.Owner, $"/api/evaluations/records/{s.RecordId}");
-        var urgent = await Data(await PostRawAsync(w.Lead, baseUrl, new
+        var urgent = await Data(await PostRawAsync(w.Director, baseUrl, new
         {
             version = record.GetProperty("version").GetUInt32(),
             type = "Urgent",
@@ -631,7 +631,7 @@ public sealed class UiContractIntegrationTests
             reason = "Phát sinh theo chỉ đạo"
         }));
         var urgentRequest = urgent.GetProperty("requests").EnumerateArray().First(r => r.GetProperty("type").GetString() == "Urgent");
-        await Data(await PostRawAsync(w.Lead, $"{baseUrl}/{urgentRequest.GetProperty("id").GetGuid()}/approve", new { version = urgentRequest.GetProperty("version").GetUInt32() }));
+        await Data(await PostRawAsync(w.Director, $"{baseUrl}/{urgentRequest.GetProperty("id").GetGuid()}/approve", new { version = urgentRequest.GetProperty("version").GetUInt32() }));
 
         // "Loại trừ" việc 2: không gửi proposal; không duyệt thiếu lý do bị từ chối, có lý do thì ghi nhận.
         record = await Data(s.Owner, $"/api/evaluations/records/{s.RecordId}");
@@ -645,9 +645,9 @@ public sealed class UiContractIntegrationTests
             reason = "Dự án tạm dừng do nguyên nhân khách quan"
         }));
         var excludeRequest = exclude.GetProperty("requests").EnumerateArray().First(r => r.GetProperty("type").GetString() == "Exclude");
-        var noComment = await PostRawAsync(w.Lead, $"{baseUrl}/{excludeRequest.GetProperty("id").GetGuid()}/reject", new { version = excludeRequest.GetProperty("version").GetUInt32(), comment = "" });
+        var noComment = await PostRawAsync(w.Director, $"{baseUrl}/{excludeRequest.GetProperty("id").GetGuid()}/reject", new { version = excludeRequest.GetProperty("version").GetUInt32(), comment = "" });
         Assert.Equal(HttpStatusCode.BadRequest, noComment.StatusCode);
-        var rejected = await Data(await PostRawAsync(w.Lead, $"{baseUrl}/{excludeRequest.GetProperty("id").GetGuid()}/reject",
+        var rejected = await Data(await PostRawAsync(w.Director, $"{baseUrl}/{excludeRequest.GetProperty("id").GetGuid()}/reject",
             new { version = excludeRequest.GetProperty("version").GetUInt32(), comment = "Chưa có xác nhận của cấp thẩm quyền" }));
         Assert.Contains(rejected.GetProperty("requests").EnumerateArray(), r => r.GetProperty("status").GetString() == "Rejected");
 
@@ -949,10 +949,10 @@ public sealed class UiContractIntegrationTests
 
         public async Task ApproveAsync()
         {
-            await AssertQueueAsync(_w.Lead, "B1_APPROVE");
-            var actions = await Data(_w.Lead, $"/api/evaluations/records/{RecordId}/actions");
+            await AssertQueueAsync(_w.Director, "B1_APPROVE");
+            var actions = await Data(_w.Director, $"/api/evaluations/records/{RecordId}/actions");
             Assert.Contains(actions.GetProperty("actions").EnumerateArray(), a => a.GetProperty("action").GetString() == "ApproveTasks");
-            await StepAsync(_w.Lead, "tasks/approve", new { comment = "" }, "AwaitingSelfScore");
+            await StepAsync(_w.Director, "tasks/approve", new { comment = "" }, "AwaitingSelfScore");
         }
 
         /// <summary>SelfScoreForm: lưu nháp khi chưa nhập tỷ lệ (taskScores rỗng), rồi nộp với đủ bốn tỷ lệ.</summary>

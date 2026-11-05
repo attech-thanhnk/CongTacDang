@@ -402,10 +402,15 @@ public class DocumentTemplateTests
         Assert.DoesNotContain("Nhất trí…", mau10);
         Assert.DoesNotContain("(TC   /30đ)", mau10);
 
-        // Người quản lý trực tiếp: người duyệt danh mục trong hệ thống; cấp trên ghi nhận thì để ký tay.
+        // Người duyệt danh mục in ở ô cấp có thẩm quyền phê duyệt; người quản lý trực tiếp, người trực tiếp sử dụng ký tay.
         record.TasksApprovedById = Guid.NewGuid();
         record.TasksApprovedByName = "Nguyễn Văn Duyệt";
-        Assert.Contains("Nguyễn Văn Duyệt", Text(Mau01Data.TemplateFileName, Mau01Data.From(record)));
+        var mau01 = Text(Mau01Data.TemplateFileName, Mau01Data.From(record));
+        var approval = mau01.IndexOf("CẤP CÓ THẨM QUYỀN PHÊ DUYỆT", StringComparison.Ordinal);
+        var name = mau01.IndexOf("Nguyễn Văn Duyệt", StringComparison.Ordinal);
+        Assert.True(approval >= 0 && name > approval && name < mau01.IndexOf("CƠ QUAN TỔ CHỨC CÁN BỘ", StringComparison.Ordinal), mau01);
+        Assert.Equal(name, mau01.LastIndexOf("Nguyễn Văn Duyệt", StringComparison.Ordinal));
+        Assert.Contains("Người quản lý trực tiếp: ................................", mau01);
         record.TasksApprovedById = null;
         record.TasksApprovedByName = "Hội đồng thành viên Tổng công ty";
         Assert.Null(Mau01Data.From(record).SupervisorName);

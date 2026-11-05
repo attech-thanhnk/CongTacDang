@@ -66,7 +66,7 @@ Diện Bí thư/Phó Bí thư Chi bộ là nhân viên: như diện Đảng ủy
 | # | Ai | Vào đâu | Làm gì |
 |---|---|---|---|
 | 8 | Cán bộ | **Tổng quan → Mở hồ sơ** | Khung **Nộp danh mục sản phẩm**: nhập 3–7 sản phẩm, tổng trọng số 70 → **Nộp danh mục**. (HD 3.3) |
-| 9 | LĐĐV (Chủ tịch với Phó Giám đốc) | **Việc cần xử lý → Duyệt** | Xem danh mục → **Duyệt**, hoặc **Trả lại danh mục** kèm lý do. (HD 4.0) |
+| 9 | Cấp TTSD: Giám đốc (Chủ tịch với Phó Giám đốc) | **Việc cần xử lý → Duyệt** | Xem danh mục → **Duyệt**, hoặc **Trả lại danh mục** kèm lý do. Danh mục của Phó phòng: Trưởng phòng ký Mẫu 01 khi nộp, không duyệt trên hệ thống. (HD 4.0) |
 | 9a | VPĐU | **Việc cần xử lý → Ghi nhận duyệt** | Diện BTV cấp trên: ghi nhận kết quả duyệt của cấp trên. (HD 4.6) |
 
 ### B3. Trong quý

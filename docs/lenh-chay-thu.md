@@ -13,13 +13,13 @@ Chạy từ thư mục gốc repo (`D:\repos\CongTacDang`). Các bước làm tr
 | Cơ quan thẩm định (quản lý kỳ, thẩm định, lập Mẫu 20/19) | `loan.ttp`, `loan.ctp` |
 | Văn phòng Đảng ủy (chốt Mẫu 20, quyết định, công bố) | `long.nc`, `hung.dt`, `thao.nt` |
 | Chủ tịch (duyệt, nhận xét Phó Giám đốc) | `thinh.lt` |
-| Giám đốc (duyệt, nhận xét Trưởng phòng) | `giang.nh` |
+| Giám đốc (duyệt danh mục Trưởng, Phó phòng, Đội trưởng; nhận xét Trưởng, Phó phòng) | `giang.nh` |
 | Trưởng phòng KH-KD, Bí thư Chi bộ | `duy.lm` |
 | Phó phòng KH-KD, Phó Bí thư, thư ký phòng | `dao.nta` |
 | Phó phòng KH-KD | `trung.nb` |
 | Phó Giám đốc | `thanh.nn` |
 | Kiểm soát viên | `da.dc` |
-| Trưởng TT Bảo đảm kỹ thuật (duyệt, đề xuất cho Đội trưởng) | `tuan.nm` |
+| Trưởng TT Bảo đảm kỹ thuật (đề xuất cho Đội trưởng) | `tuan.nm` |
 | Đội trưởng, Bí thư chi bộ | `cuong.nt` |
 | Phó Bí thư chi bộ (xác nhận cho `cuong.nt`) | `hung.nx` |
 | Phó phòng KT-AT-CL (Chưa xếp loại) | `nghia.tv` |
@@ -42,8 +42,8 @@ Tạo kỳ Quý IV/2026 với 7 hồ sơ, đủ các trường hợp:
 | Người | Trường hợp (diện quyết định) | Luồng |
 |---|---|---|
 | Lê Mai Duy (`duy.lm`) | Trưởng phòng KH-KD — Đảng ủy cơ sở | Giám đốc duyệt danh mục, tập thể phòng đề xuất, thẩm định, Giám đốc nhận xét, Mẫu 20, Đảng ủy quyết định |
-| Nguyễn Thị Anh Đào (`dao.nta`), Nguyễn Bình Trung (`trung.nb`) | Phó phòng KH-KD — Đảng ủy cơ sở | Như trên, Trưởng phòng duyệt danh mục |
-| Nguyễn Tuấn Cường (`cuong.nt`) | Đội trưởng, Bí thư chi bộ là nhân viên | Trưởng trung tâm (`tuan.nm`) duyệt và đề xuất mức, thẩm định, Đảng ủy quyết định |
+| Nguyễn Thị Anh Đào (`dao.nta`), Nguyễn Bình Trung (`trung.nb`) | Phó phòng KH-KD — Đảng ủy cơ sở | Như trên (Trưởng phòng chỉ ký Mẫu 01 khi nộp) |
+| Nguyễn Tuấn Cường (`cuong.nt`) | Đội trưởng, Bí thư chi bộ là nhân viên | Giám đốc duyệt danh mục, Trưởng trung tâm (`tuan.nm`) đề xuất mức, thẩm định, Đảng ủy quyết định |
 | Nguyễn Như Thành (`thanh.nn`) | Phó Giám đốc | Chủ tịch duyệt, tập thể Công ty đề xuất, Chủ tịch nhận xét, cấp trên quyết định (Văn phòng ghi nhận) |
 | Đỗ Công Đà (`da.dc`) | Kiểm soát viên — BTV Đảng ủy Tổng công ty | Cấp trên duyệt, thẩm định, nhận xét, quyết định (Văn phòng ghi nhận); tập thể Công ty đề xuất |
 | Trịnh Văn Nghĩa (`nghia.tv`) | Chưa xếp loại | Đánh dấu ngay khi mở kỳ, chỉ còn chờ công bố |

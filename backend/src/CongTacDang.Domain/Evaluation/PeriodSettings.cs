@@ -277,8 +277,14 @@ public sealed class PeriodSettings
         {
             Profiles = new List<WorkflowProfile>
             {
+                // Giám đốc duyệt danh mục của Trưởng, Phó phòng; Trưởng phòng chỉ ký Mẫu 01 của Phó phòng khi nộp.
                 WorkflowProfile.Create(ProfileBase, "Diện Đảng ủy cơ sở",
-                    "Tập thể lãnh đạo Phòng đề xuất, Phòng TCCB-LĐ thẩm định, Giám đốc nhận xét, Đảng ủy cơ sở quyết định."),
+                    "Giám đốc duyệt danh mục sản phẩm; tập thể lãnh đạo Phòng đề xuất, Phòng TCCB-LĐ thẩm định, Giám đốc nhận xét, "
+                    + "Đảng ủy cơ sở quyết định.",
+                    permissions: new Dictionary<WorkflowStep, string>
+                    {
+                        [WorkflowStep.B1_APPROVE] = WorkflowPermissions.DirectorReview
+                    }),
                 WorkflowProfile.Create(ProfileUpper, "Diện BTV Đảng ủy Tổng công ty",
                     "Chủ tịch, Giám đốc, Kiểm soát viên: HĐTV Tổng công ty duyệt danh mục sản phẩm; tập thể lãnh đạo Công ty đề xuất "
                     + "trong hệ thống; thẩm định (Ban TCĐU), nhận xét (HĐTV), quyết định (BTV Đảng ủy Tổng công ty) do cấp trên thực hiện "
@@ -291,14 +297,15 @@ public sealed class PeriodSettings
                         [WorkflowStep.B4_DECISION] = StepMode.External
                     }),
                 WorkflowProfile.Create(ProfileCellSecretaryStaff, "Bí thư/Phó bí thư Chi bộ là nhân viên",
-                    "Chi bộ xác nhận; Trưởng bộ phận/đơn vị đề xuất mức trên cơ sở ý kiến các Phó (không họp bỏ phiếu), "
-                    + "Phòng TCCB-LĐ thẩm định, Đảng ủy cơ sở quyết định; không có bước nhận xét của cấp trực tiếp sử dụng.",
+                    "Giám đốc duyệt danh mục sản phẩm; Chi bộ xác nhận; Trưởng bộ phận/đơn vị đề xuất mức trên cơ sở ý kiến các Phó "
+                    + "(không họp bỏ phiếu), Phòng TCCB-LĐ thẩm định, Đảng ủy cơ sở quyết định; không có bước nhận xét của cấp trực tiếp sử dụng.",
                     modes: new Dictionary<WorkflowStep, StepMode>
                     {
                         [WorkflowStep.B3C_DIRECTOR] = StepMode.Off
                     },
                     permissions: new Dictionary<WorkflowStep, string>
                     {
+                        [WorkflowStep.B1_APPROVE] = WorkflowPermissions.DirectorReview,
                         [WorkflowStep.B3A_COLLECTIVE] = WorkflowPermissions.UnitReview
                     }),
                 // Chủ tịch nhận xét (ngày 14) trước khi Ban TCĐU thẩm định (ngày 15), mà bước thẩm định luôn đứng trước

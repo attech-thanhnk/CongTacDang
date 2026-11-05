@@ -15,7 +15,7 @@ param(
     [string]$GiaiDoan,
     [switch]$LamSach,
     [string]$ApiUrl = 'http://localhost:5000',
-    # Thử lần lượt, cấp gần nhất trước để đúng thực tế (Trưởng phòng duyệt cho Phó phòng, thư ký Văn phòng ghi đề xuất); tuan.nm: Trưởng trung tâm của cuong.nt; hung.nx: Chi bộ của cuong.nt; huyen.utt: Chi bộ của thanh.nn, da.dc
+    # Thử lần lượt, cấp gần nhất trước để đúng thực tế (thư ký Văn phòng ghi đề xuất); giang.nh: Giám đốc duyệt danh mục; tuan.nm: Trưởng trung tâm của cuong.nt; hung.nx: Chi bộ của cuong.nt; huyen.utt: Chi bộ của thanh.nn, da.dc
     [string[]]$TaiKhoan = @('duy.lm', 'dao.nta', 'trung.nb', 'tuan.nm', 'hung.nx', 'huyen.utt', 'long.nc', 'loan.ttp', 'loan.ctp', 'hung.dt', 'giang.nh', 'thinh.lt', 'thanh.nn'),
     # Mật khẩu thử chỉ dùng trên máy phát triển
     [string]$MatKhau = 'Thu12345a',

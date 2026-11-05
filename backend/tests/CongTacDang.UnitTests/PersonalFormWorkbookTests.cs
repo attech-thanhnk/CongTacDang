@@ -40,6 +40,16 @@ public class PersonalFormWorkbookTests
         Assert.Equal(first + 3, total);
         Assert.Equal(70, ws.Cell(total, 6).GetDouble());
         Assert.Contains("CÁ NHÂN ĐĂNG KÝ", Texts(ws));
+
+        // Người duyệt danh mục ký ở ô cấp có thẩm quyền phê duyệt; đầu phiếu để ghi tay người quản lý trực tiếp.
+        record.TasksApprovedById = Guid.NewGuid();
+        record.TasksApprovedByName = "Nguyễn Văn Duyệt";
+        using var approved = Open(PersonalFormWorkbooks.Mau01(Mau01Data.From(record), Org));
+        var sheet = approved.Worksheet(1);
+        var approval = Find(sheet, "CẤP CÓ THẨM QUYỀN PHÊ DUYỆT").Address;
+        Assert.Equal("Nguyễn Văn Duyệt", sheet.Cell(approval.RowNumber + 5, approval.ColumnNumber).GetString());
+        Assert.Equal("……", sheet.Cell(approval.RowNumber + 5, Find(sheet, "NGƯỜI TRỰC TIẾP SỬ DỤNG").Address.ColumnNumber).GetString());
+        Assert.Contains("Người quản lý trực tiếp: ……", Texts(sheet));
     }
 
     [Fact]

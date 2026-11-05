@@ -19,12 +19,21 @@ test.describe.serial('Luồng hồ sơ qua giao diện', () => {
       await moTuViecCanXuLy(page, ho.hoTen, 'Đăng ký');
       luuHoSo(ho.khoa, page);
       await nopDanhMuc(page, ho.khoa === 'trung' ? 'Trung' : 'Dao');
-      await expect(page.getByText(/Chờ: .*Lê Mai Duy/).first()).toBeVisible();
+      await expect(page.getByText(/Chờ: .*Nguyễn Hoàng Giang/).first()).toBeVisible();
     });
   }
 
-  test('B1 Lãnh đạo Phòng duyệt danh mục của hai hồ sơ', async ({ mo }) => {
+  test('B1 Trưởng phòng không có việc, không có nút duyệt danh mục của Phó phòng', async ({ mo }) => {
     const page = await mo('duy.lm');
+    await page.goto('/work-queue');
+    await expect(page.getByRole('row').filter({ hasText: TRUNG.hoTen })).toHaveCount(0);
+    await page.goto(duongDanHoSo(TRUNG.khoa));
+    await expect(page.getByText(/Chờ: .*Nguyễn Hoàng Giang/).first()).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Duyệt danh mục' })).toHaveCount(0);
+  });
+
+  test('B1 Giám đốc duyệt danh mục của hai hồ sơ', async ({ mo }) => {
+    const page = await mo('giang.nh');
     for (const ho of [TRUNG, DAO]) {
       await moTuViecCanXuLy(page, ho.hoTen, 'Duyệt');
       const vung = await chonVung(page, 'Duyệt danh mục');

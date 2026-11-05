@@ -30,7 +30,7 @@ public sealed class RecordProgressUnitTests
 
         Assert.Equal("Nguyễn Văn A", EvaluationMapping.StepActor(WorkflowStep.B1_REGISTER, profile, record));
         Assert.Equal("Nguyễn Văn A", EvaluationMapping.StepActor(WorkflowStep.B2_SELF_SCORE, profile, record));
-        Assert.Equal("Lãnh đạo Phòng Kỹ thuật", EvaluationMapping.StepActor(WorkflowStep.B1_APPROVE, profile, record));
+        Assert.Equal("Cấp trực tiếp sử dụng", EvaluationMapping.StepActor(WorkflowStep.B1_APPROVE, profile, record));
         Assert.Equal("Chi bộ Kỹ thuật", EvaluationMapping.StepActor(WorkflowStep.B2_CELL_CONFIRM, profile, record));
         Assert.Equal("Tập thể lãnh đạo Phòng Kỹ thuật", EvaluationMapping.StepActor(WorkflowStep.B3A_COLLECTIVE, profile, record));
         Assert.Equal("Cơ quan thẩm định", EvaluationMapping.StepActor(WorkflowStep.B3B_APPRAISAL, profile, record));
