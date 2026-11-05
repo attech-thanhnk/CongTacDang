@@ -34,9 +34,9 @@ export default function DashboardPage() {
   // Cùng điều kiện với mục menu "Việc cần xử lý": có thao tác nghiệp vụ đánh giá nào đó.
   const hasTasks = (user?.permissions ?? []).some((code) => code.startsWith("evaluation.") && code !== "evaluation.read");
 
-  // Lối tắt quản trị theo quyền, cùng điều kiện với các mục menu tương ứng.
+  // Lối tắt quản trị chỉ cho người quản trị hệ thống (vai trò, phân công, nhập dữ liệu); người chỉ xem tài khoản không cần.
   useEffect(() => {
-    if (!user || !(canReadUsers || canManageRoles || canAssign || canImport)) {
+    if (!user || !(canManageRoles || canAssign || canImport)) {
       setAdminItems([]);
       return;
     }
@@ -124,7 +124,7 @@ export default function DashboardPage() {
         ) : (
           <>
             {showMine && <MyRecordSection record={myRecord!} />}
-            {hasTasks && <MyTasksSection queue={queue} loading={queueLoading} periodId={periodId} />}
+            {hasTasks && <MyTasksSection queue={queue} loading={queueLoading} periodId={periodId} excludeRecordId={showMine ? myRecord!.id : undefined} />}
             {canReadRecords && <ScopeProgressSection records={records} loading={loading} />}
           </>
         )}
