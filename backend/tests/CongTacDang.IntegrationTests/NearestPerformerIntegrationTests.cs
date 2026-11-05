@@ -185,12 +185,18 @@ public sealed class NearestPerformerIntegrationTests
         Assert.True(await CanAsync(chairmanC, RecordOf(deputyDirector), "DirectorReview"));
         Assert.False(await CanAsync(directorC, RecordOf(deputyDirector), "DirectorReview"));
 
-        // Người thực hiện tại Phòng: Trưởng phòng được giao, Giám đốc ở cấp trên.
-        var performers = await Data(adminC, $"/api/admin/performers?departmentId={sales}");
-        var approve = performers.GetProperty("jobs").EnumerateArray().Single(j => j.GetProperty("permission").GetString() == PermissionCodes.EvaluationTasksApprove);
+        // Người thực hiện tại Phòng theo diện quyết định của kỳ: duyệt danh mục là việc của Giám đốc (quyền nhận xét), không phải Trưởng phòng.
+        var performers = await Data(adminC, $"/api/admin/performers?departmentId={sales}&periodId={periodId}");
+        var jobs = performers.GetProperty("jobs").EnumerateArray().ToList();
+        var approve = jobs.Single(j => j.GetProperty("step").GetString() == "B1_APPROVE");
+        Assert.Equal(PermissionCodes.EvaluationDirectorReview, approve.GetProperty("permission").GetString());
+        Assert.True(approve.GetProperty("inUse").GetBoolean());
         var people = approve.GetProperty("people").EnumerateArray().ToList();
-        Assert.True(people.Single(p => p.GetProperty("userId").GetGuid() == head.Id).GetProperty("isNearest").GetBoolean());
-        Assert.False(people.Single(p => p.GetProperty("userId").GetGuid() == director.Id).GetProperty("isNearest").GetBoolean());
+        Assert.True(people.Single(p => p.GetProperty("userId").GetGuid() == director.Id).GetProperty("isNearest").GetBoolean());
+        Assert.DoesNotContain(people, p => p.GetProperty("userId").GetGuid() == head.Id);
+        Assert.Contains(jobs, j => j.GetProperty("step").GetString() == "B1_UNIT_SUBMIT");
+        Assert.Contains(jobs, j => j.GetProperty("step").GetString() == "B1_HR_REVIEW");
+        Assert.DoesNotContain(jobs, j => j.GetProperty("permission").GetString() == PermissionCodes.EvaluationTasksApprove);
     }
 
     private static async Task<bool> CanAsync(HttpClient client, Guid recordId, string action)

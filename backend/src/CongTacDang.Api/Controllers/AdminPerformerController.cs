@@ -19,12 +19,12 @@ public class AdminPerformerController : ControllerBase
 
     public AdminPerformerController(IPerformerService performers) => _performers = performers;
 
-    /// <summary>Theo departmentId hoặc partyCellId; bỏ trống cả hai = Toàn công ty.</summary>
+    /// <summary>Theo departmentId hoặc partyCellId; bỏ trống cả hai = Toàn công ty. periodId: việc theo diện quyết định của kỳ đó.</summary>
     [HttpGet]
     [RequirePermission(PermissionCodes.SystemAssignmentsManage)]
-    public async Task<IActionResult> Get([FromQuery] Guid? departmentId, [FromQuery] Guid? partyCellId)
+    public async Task<IActionResult> Get([FromQuery] Guid? departmentId, [FromQuery] Guid? partyCellId, [FromQuery] Guid? periodId)
     {
-        var result = await _performers.GetAsync(departmentId, partyCellId, HttpContext.RequestAborted);
+        var result = await _performers.GetAsync(departmentId, partyCellId, periodId, HttpContext.RequestAborted);
         return Ok(ApiResponse<UnitPerformersDto>.Ok(result, "Lấy danh sách người thực hiện thành công."));
     }
 

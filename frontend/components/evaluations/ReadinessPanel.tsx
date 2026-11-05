@@ -5,11 +5,12 @@ import Link from "next/link";
 import { PeriodReadinessDto, ReadinessIssueDto, STEP_MODE_LABELS } from "@/services/evaluationService";
 
 /** Trang "Người thực hiện" mở sẵn đơn vị của hồ sơ (ưu tiên đơn vị chính quyền) và việc cần bổ sung người. */
-function performersHref(issue?: Pick<ReadinessIssueDto, "departmentId" | "partyCellId" | "permission">): string {
+function performersHref(issue?: Partial<Pick<ReadinessIssueDto, "departmentId" | "partyCellId" | "permission" | "step">>): string {
   const params = new URLSearchParams();
   if (issue?.departmentId) params.set("departmentId", issue.departmentId);
   else if (issue?.partyCellId) params.set("partyCellId", issue.partyCellId);
   if (issue?.permission) params.set("permission", issue.permission);
+  if (issue?.permission && issue.step) params.set("step", issue.step);
   const query = params.toString();
   return query ? `/admin/performers?${query}` : "/admin/performers";
 }

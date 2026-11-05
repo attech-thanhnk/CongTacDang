@@ -248,11 +248,16 @@ export interface PerformerRoleOption {
   description?: string | null;
 }
 
-/** Một việc trong quy trình đánh giá và người làm được việc đó. */
+/** Một bước của quy trình (theo quyền thực hiện trong diện quyết định của kỳ) và người làm được bước đó. */
 export interface PerformerJob {
+  /** null = ghi nhận kết quả của bước do cấp trên thực hiện. */
+  step: string | null;
+  stepName: string;
   permission: string;
   permissionName: string;
   inUse: boolean;
+  /** Diện quyết định dùng việc này; rỗng khi chưa có kỳ. */
+  profileNames: string[];
   people: Performer[];
   roles: PerformerRoleOption[];
 }

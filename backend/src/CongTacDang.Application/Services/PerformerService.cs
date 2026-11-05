@@ -15,8 +15,8 @@ namespace CongTacDang.Application.Services;
 /// <summary>Màn hình "Người thực hiện": ai làm được việc gì tại một đơn vị. Chỉ đọc; thêm/gỡ dùng API gán vai trò.</summary>
 public interface IPerformerService
 {
-    /// <summary>Cả hai đơn vị null = Toàn công ty.</summary>
-    Task<UnitPerformersDto> GetAsync(Guid? departmentId, Guid? partyCellId, CancellationToken ct = default);
+    /// <summary>Cả hai đơn vị null = Toàn công ty. Không chọn kỳ = các kỳ dự thảo, đang mở, khóa dữ liệu.</summary>
+    Task<UnitPerformersDto> GetAsync(Guid? departmentId, Guid? partyCellId, Guid? periodId = null, CancellationToken ct = default);
 
     /// <summary>
     /// Bản gán cần xem lại: gán không thời hạn tại đơn vị mà người được giao không giữ chức vụ cũng không thuộc đơn vị đó,
@@ -43,6 +43,42 @@ public sealed class PerformerService : IPerformerService
         WorkflowPermissions.Publish,
         WorkflowPermissions.ExternalRecord
     }.Where(WorkflowActions.IsAssignableStepPermission).ToList();
+
+    /// <summary>Một việc của màn hình: bước (null = ghi nhận kết quả cấp trên) và quyền thực hiện bước đó.</summary>
+    public sealed record JobSpec(WorkflowStep? Step, string StepName, string Permission, bool InUse, IReadOnlyList<string> ProfileNames);
+
+    /// <summary>
+    /// Việc theo bước, quyền lấy từ diện quyết định (bước làm trong hệ thống); bước không diện nào dùng thì hiện quyền mặc định, đánh dấu không dùng.
+    /// <paramref name="profiles"/> null = chưa có kỳ: theo cấu hình mặc định, coi mọi việc đều dùng.
+    /// </summary>
+    public static List<JobSpec> BuildJobs(IReadOnlyList<WorkflowProfile>? profiles)
+    {
+        var noPeriod = profiles == null;
+        var source = profiles ?? PeriodSettings.Default().Profiles;
+        IReadOnlyList<string> Names(IEnumerable<WorkflowProfile> list) =>
+            noPeriod ? Array.Empty<string>() : list.Select(p => p.Name).Distinct().ToList();
+
+        var jobs = new List<JobSpec>();
+        foreach (var step in WorkflowSteps.Ordered.Where(s => !WorkflowSteps.OwnerSteps.Contains(s)))
+        {
+            var groups = source
+                .Where(p => p.Mode(step) == StepMode.Internal && p.PermissionFor(step) is { } code && WorkflowActions.IsAssignableStepPermission(code))
+                .GroupBy(p => p.PermissionFor(step)!, StringComparer.Ordinal)
+                .ToList();
+            if (groups.Count == 0)
+            {
+                jobs.Add(new JobSpec(step, WorkflowSteps.DisplayName(step), WorkflowPermissions.DefaultFor(step), noPeriod, Array.Empty<string>()));
+                continue;
+            }
+            foreach (var group in groups)
+                jobs.Add(new JobSpec(step, group.First().StepDisplayName(step), group.Key, true, Names(group)));
+        }
+
+        var external = source.Where(p => WorkflowSteps.Ordered.Any(s => p.Mode(s) == StepMode.External)).ToList();
+        jobs.Add(new JobSpec(null, PermissionCodes.DisplayName(PermissionCodes.EvaluationExternalRecord), PermissionCodes.EvaluationExternalRecord,
+            noPeriod || external.Count > 0, Names(external)));
+        return jobs;
+    }
 
     private readonly IEvaluationWorkflowRepository _workflow;
     private readonly IRoleAssignmentRepository _assignments;
@@ -89,9 +125,10 @@ public sealed class PerformerService : IPerformerService
     }
 
     /// <inheritdoc />
-    public async Task<UnitPerformersDto> GetAsync(Guid? departmentId, Guid? partyCellId, CancellationToken ct = default)
+    public async Task<UnitPerformersDto> GetAsync(Guid? departmentId, Guid? partyCellId, Guid? periodId = null, CancellationToken ct = default)
     {
         EnsureCanManage();
+        var specs = BuildJobs(await CurrentProfilesAsync(periodId == Guid.Empty ? null : periodId, ct));
 
         if (departmentId == Guid.Empty)
             departmentId = null;
@@ -162,7 +199,8 @@ public sealed class PerformerService : IPerformerService
                 .ToList();
         }
 
-        var candidateIds = await _workflow.ListActiveUserIdsWithAnyPermissionAsync(JobPermissions, now, ct);
+        var candidateIds = await _workflow.ListActiveUserIdsWithAnyPermissionAsync(
+            JobPermissions.Concat(specs.Select(s => s.Permission)).Distinct().ToList(), now, ct);
         var effective = new List<EffectivePermissions>();
         foreach (var userId in candidateIds)
             effective.Add(await _resolver.GetAsync(userId, ct));
@@ -177,15 +215,18 @@ public sealed class PerformerService : IPerformerService
 
         var roles = await _roles.GetAllRolesWithPermissionsAsync();
         var orgPaths = await _positions.GetOrgPathsAsync(ct);
-        var used = await UsedPermissionsAsync(ct);
 
-        foreach (var code in JobPermissions)
+        foreach (var spec in specs)
         {
+            var code = spec.Permission;
             var job = new PerformerJobDto
             {
+                Step = spec.Step is { } step ? WorkflowSteps.Code(step) : null,
+                StepName = spec.StepName,
                 Permission = code,
                 PermissionName = PermissionCodes.DisplayName(code),
-                InUse = used == null || used.Contains(code)
+                InUse = spec.InUse,
+                ProfileNames = spec.ProfileNames.ToList()
             };
 
             // Việc giao cho người gần đơn vị nhất; người ở cấp trên vẫn làm được.
@@ -318,37 +359,30 @@ public sealed class PerformerService : IPerformerService
             .ToList();
     }
 
-    /// <summary>Quyền mà các kỳ dự thảo/mở/khóa cần đến; null khi không có kỳ nào (coi mọi việc đều dùng). Kỳ cấu hình lỗi bỏ qua.</summary>
-    private async Task<HashSet<string>?> UsedPermissionsAsync(CancellationToken ct)
+    /// <summary>Diện quyết định của kỳ được chọn, hoặc của các kỳ dự thảo/mở/khóa; null khi không có kỳ nào. Kỳ cấu hình lỗi bỏ qua.</summary>
+    private async Task<IReadOnlyList<WorkflowProfile>?> CurrentProfilesAsync(Guid? periodId, CancellationToken ct)
     {
-        var current = (await _workflow.ListPeriodsAsync(ct))
-            .Where(p => p.Status is PeriodStatus.Draft or PeriodStatus.Open or PeriodStatus.Locked)
-            .ToList();
+        var periods = await _workflow.ListPeriodsAsync(ct);
+        var current = periodId.HasValue
+            ? periods.Where(p => p.Id == periodId.Value).ToList()
+            : periods.Where(p => p.Status is PeriodStatus.Draft or PeriodStatus.Open or PeriodStatus.Locked).ToList();
+        if (periodId.HasValue && current.Count == 0)
+            throw new NotFoundException("Không tìm thấy kỳ đánh giá.");
         if (current.Count == 0)
             return null;
 
-        var used = new HashSet<string>(StringComparer.Ordinal);
+        var profiles = new List<WorkflowProfile>();
         foreach (var period in current)
         {
-            PeriodSettings settings;
             try
             {
-                settings = period.GetSettings();
+                profiles.AddRange(period.GetSettings().Profiles);
             }
             catch (FormatException)
             {
-                continue;
-            }
-            foreach (var profile in settings.Profiles)
-            {
-                foreach (var step in WorkflowSteps.Ordered)
-                {
-                    if (profile.PermissionFor(step) is { } permission)
-                        used.Add(permission);
-                }
             }
         }
-        return used;
+        return profiles;
     }
 
     private static ScopeType ParseScope(string value)

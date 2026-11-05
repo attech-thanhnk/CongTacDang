@@ -41,6 +41,50 @@ public sealed class PerformerServiceUnitTests
     }
 
     [Fact]
+    public void Jobs_FollowStepPermissionOfPeriodProfiles()
+    {
+        // Kỳ mặc định: duyệt danh mục dùng quyền nhận xét của cấp trực tiếp sử dụng nên không có việc theo quyền duyệt danh mục.
+        var jobs = PerformerService.BuildJobs(PeriodSettings.Default().Profiles);
+        var approve = Assert.Single(jobs, j => j.Step == WorkflowStep.B1_APPROVE);
+        Assert.Equal(PermissionCodes.EvaluationDirectorReview, approve.Permission);
+        Assert.True(approve.InUse);
+        Assert.Equal(WorkflowSteps.DisplayName(WorkflowStep.B1_APPROVE), approve.StepName);
+        Assert.DoesNotContain(jobs, j => j.Permission == PermissionCodes.EvaluationTasksApprove);
+
+        // Hai bước mới của bước 1 có trên màn hình, theo thứ tự quy trình.
+        var steps = jobs.Where(j => j.Step != null).Select(j => j.Step!.Value).Distinct().ToList();
+        Assert.Equal(new[] { WorkflowStep.B1_UNIT_SUBMIT, WorkflowStep.B1_HR_REVIEW, WorkflowStep.B1_APPROVE }, steps.Take(3));
+        Assert.Equal(PermissionCodes.EvaluationTasksForward, jobs.Single(j => j.Step == WorkflowStep.B1_UNIT_SUBMIT).Permission);
+        Assert.Equal(PermissionCodes.EvaluationTasksReview, jobs.Single(j => j.Step == WorkflowStep.B1_HR_REVIEW).Permission);
+
+        // Bước 3a: tập thể ghi nhận và Trưởng đơn vị đề xuất là hai việc riêng.
+        var collective = jobs.Where(j => j.Step == WorkflowStep.B3A_COLLECTIVE).ToList();
+        Assert.Contains(collective, j => j.Permission == PermissionCodes.EvaluationCollectiveRecord);
+        Assert.Contains(collective, j => j.Permission == PermissionCodes.EvaluationUnitReview && j.StepName == WorkflowProfile.UnitLeaderProposalName);
+        Assert.All(jobs.Where(j => j.Step != null), j => Assert.NotEmpty(j.ProfileNames));
+
+        var external = Assert.Single(jobs, j => j.Step == null);
+        Assert.Equal(PermissionCodes.EvaluationExternalRecord, external.Permission);
+        Assert.True(external.InUse);
+    }
+
+    [Fact]
+    public void Jobs_StepOffEverywhere_ShowsDefaultPermissionNotInUse()
+    {
+        var settings = PeriodSettings.Default();
+        foreach (var profile in settings.Profiles)
+            profile.Steps[WorkflowSteps.Code(WorkflowStep.B1_APPROVE)] = new ProfileStepSetting { Mode = StepMode.Off };
+        var approve = Assert.Single(PerformerService.BuildJobs(settings.Profiles), j => j.Step == WorkflowStep.B1_APPROVE);
+        Assert.Equal(PermissionCodes.EvaluationTasksApprove, approve.Permission);
+        Assert.False(approve.InUse);
+
+        // Chưa có kỳ: theo cấu hình mặc định, mọi việc đều dùng, không nêu diện.
+        var none = PerformerService.BuildJobs(null);
+        Assert.All(none, j => Assert.True(j.InUse));
+        Assert.All(none, j => Assert.Empty(j.ProfileNames));
+    }
+
+    [Fact]
     public void ParentGrant_CoversChildUnit_ButNotOtherTree()
     {
         // Luật dùng cho màn hình là luật của guard: gán ở đơn vị cha bao trùm đơn vị con, không bao trùm tổ chức Đảng.

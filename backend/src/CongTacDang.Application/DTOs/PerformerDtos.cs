@@ -60,15 +60,24 @@ public class PerformerReviewItemDto
     public string Reason { get; set; } = string.Empty;
 }
 
-/// <summary>Một việc (ứng với một mã quyền thực hiện bước) và những người làm được việc đó tại đơn vị.</summary>
+/// <summary>Một việc (bước của quy trình cùng quyền thực hiện bước đó theo diện quyết định của kỳ) và những người làm được việc đó tại đơn vị.</summary>
 public class PerformerJobDto
 {
+    /// <summary>Mã bước; null = ghi nhận kết quả của bước do cấp trên thực hiện.</summary>
+    public string? Step { get; set; }
+
+    /// <summary>Tên bước theo diện quyết định.</summary>
+    public string StepName { get; set; } = string.Empty;
+
     public string Permission { get; set; } = string.Empty;
 
     public string PermissionName { get; set; } = string.Empty;
 
-    /// <summary>Có kỳ dự thảo/mở/khóa dùng việc này; không có kỳ nào như vậy → true.</summary>
+    /// <summary>Có diện quyết định của kỳ dùng quyền này cho bước; không có kỳ nào → true.</summary>
     public bool InUse { get; set; } = true;
+
+    /// <summary>Diện quyết định dùng việc này; rỗng khi không có kỳ.</summary>
+    public List<string> ProfileNames { get; set; } = new();
 
     /// <summary>Mỗi dòng ứng với một bản gán cấp quyền.</summary>
     public List<PerformerDto> People { get; set; } = new();

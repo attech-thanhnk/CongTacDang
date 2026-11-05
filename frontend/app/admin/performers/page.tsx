@@ -60,6 +60,7 @@ function PerformersContent() {
   const departmentId = searchParams.get("departmentId") ?? "";
   const partyCellId = searchParams.get("partyCellId") ?? "";
   const focusPermission = searchParams.get("permission") ?? "";
+  const focusStep = searchParams.get("step") ?? "";
   const urlKind: UnitKind = departmentId ? "Department" : partyCellId ? "PartyCell" : "Global";
 
   const { departments, partyCells, error: catalogError } = useCatalogOptions();
@@ -114,10 +115,18 @@ function PerformersContent() {
     if (canAssign) loadReview();
   }, [canAssign, loadReview]);
 
+  // Việc được dẫn tới: đúng bước nếu có, không thì việc đầu tiên dùng quyền đó.
+  const focusKey = useMemo(() => {
+    if (!data || (!focusPermission && !focusStep)) return "";
+    const job =
+      data.jobs.find((j) => (!focusStep || j.step === focusStep) && (!focusPermission || j.permission === focusPermission)) ??
+      data.jobs.find((j) => j.permission === focusPermission);
+    return job ? jobKey(job) : "";
+  }, [data, focusPermission, focusStep]);
+
   useEffect(() => {
-    if (!data || !focusPermission) return;
-    document.getElementById(`job-${focusPermission}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [data, focusPermission]);
+    if (focusKey) document.getElementById(`job-${focusKey}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusKey]);
 
   const unitOptions = (kind === "Department" ? departments : kind === "PartyCell" ? partyCells : []).filter(
     (item) => item.isActive || item.id === departmentId || item.id === partyCellId
@@ -130,7 +139,7 @@ function PerformersContent() {
     confirm({
       title: "Gỡ người thực hiện",
       message:
-        `Gỡ ${person.fullName} khỏi việc "${job.permissionName}" tại ${person.scopeText}? ` +
+        `Gỡ ${person.fullName} khỏi việc "${job.stepName}" tại ${person.scopeText}? ` +
         `Phân công vai trò "${person.roleName}" sẽ kết thúc ngay, người này mất mọi việc khác của vai trò đó tại đơn vị này.`,
       confirmText: "Gỡ",
       isDanger: true,
@@ -274,9 +283,9 @@ function PerformersContent() {
             <div className="d-flex flex-column gap-2">
               {data.jobs.map((job) => (
                 <JobCard
-                  key={job.permission}
+                  key={jobKey(job)}
                   job={job}
-                  focused={job.permission === focusPermission}
+                  focused={jobKey(job) === focusKey}
                   canAdd={data.scopeActive}
                   canViewUsers={canViewUsers}
                   onAdd={() => setAdding(job)}
@@ -302,6 +311,11 @@ function PerformersContent() {
       )}
     </div>
   );
+}
+
+/** Một bước có thể dùng nhiều quyền theo diện quyết định nên khóa gồm cả hai. */
+function jobKey(job: PerformerJob): string {
+  return `${job.step ?? "EXTERNAL"}-${job.permission}`;
 }
 
 const EXPIRING_SOON_MS = 7 * 24 * 60 * 60 * 1000;
@@ -420,13 +434,19 @@ function JobCard({
   const empty = job.people.length === 0;
   const missing = empty && job.inUse;
   return (
-    <div id={`job-${job.permission}`} className={`card shadow-sm ${missing ? "border-danger" : "border-0"} ${job.inUse ? "" : "opacity-50"} ${focused ? "border-primary border-2" : ""}`}>
+    <div id={`job-${jobKey(job)}`} className={`card shadow-sm ${missing ? "border-danger" : "border-0"} ${job.inUse ? "" : "opacity-50"} ${focused ? "border-primary border-2" : ""}`}>
       <div className="card-body py-2">
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
-          <div className="fw-semibold">
-            {job.permissionName}
-            {missing && <span className="status-badge tone-danger ms-2">Chưa có người</span>}
-            {!job.inUse && <span className="status-badge tone-neutral ms-2">Kỳ hiện tại không dùng</span>}
+          <div>
+            <div className="fw-semibold">
+              {job.stepName}
+              {missing && <span className="status-badge tone-danger ms-2">Chưa có người</span>}
+              {!job.inUse && <span className="status-badge tone-neutral ms-2">Kỳ hiện tại không dùng</span>}
+            </div>
+            <div className="small text-secondary">
+              Quyền: {job.permissionName}
+              {job.profileNames.length > 0 && <> · {job.profileNames.join(", ")}</>}
+            </div>
           </div>
           <button type="button" className="btn btn-sm btn-outline-secondary" disabled={!canAdd} onClick={onAdd}>
             <i className="bi bi-plus-lg me-1" />
@@ -529,7 +549,7 @@ function AddPerformerModal({
       }
     >
       <div className="small mb-3 p-2 rounded border bg-light">
-        Việc <strong>{job.permissionName}</strong> tại <strong>{unitName}</strong>
+        Việc <strong>{job.stepName}</strong> (quyền {job.permissionName}) tại <strong>{unitName}</strong>
       </div>
       {job.roles.length === 0 ? (
         <div className="alert alert-warning small mb-0">

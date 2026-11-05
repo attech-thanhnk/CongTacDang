@@ -136,7 +136,7 @@ public sealed class PerformerApiTests
     }
 
     private static JsonElement Job(JsonElement unit, string permission) =>
-        unit.GetProperty("jobs").EnumerateArray().Single(j => j.GetProperty("permission").GetString() == permission);
+        unit.GetProperty("jobs").EnumerateArray().First(j => j.GetProperty("permission").GetString() == permission);
 
     private static async Task<JsonElement> Data(HttpResponseMessage response)
     {
