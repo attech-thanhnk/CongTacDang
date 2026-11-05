@@ -8,6 +8,8 @@ export interface MenuItem {
   permission?: string;
   /** Điều kiện tùy chỉnh (ưu tiên hơn `permission`). */
   check?: () => boolean;
+  /** Trang ngoài menu: nút quay lại về mục menu đầu tiên còn hiện trong danh sách này. */
+  backTo?: string[];
 }
 
 export interface MenuGroup {
@@ -130,12 +132,16 @@ export interface MenuTrail {
   item: MenuItem;
   /** Đang ở trang con (chi tiết) của mục menu. */
   isDetail: boolean;
+  /** Đích của nút quay lại khi khác `item`. */
+  back?: MenuItem;
 }
 
 // Trang không có trên menu nhưng vẫn cần đường dẫn.
 const EXTRA_PAGES: MenuItem[] = [
   { title: "Tài khoản", href: "/account", icon: "bi-person" },
   { title: "Hướng dẫn", href: "/help", icon: "bi-question-circle" },
+  // Không có quyền xem hồ sơ người khác thì hồ sơ mở được là hồ sơ của mình.
+  { title: "Hồ sơ của tôi", href: "/evaluations", icon: "bi-file-earmark-text", backTo: ["/work-queue", "/"] },
 ];
 
 /** Mục menu ứng với đường dẫn hiện tại — dùng cho đường dẫn trên thanh đầu trang. */
@@ -145,5 +151,8 @@ export function findMenuTrail(groups: MenuGroup[], pathname: string): MenuTrail 
     if (item) return { item, isDetail: pathname !== item.href };
   }
   const extra = EXTRA_PAGES.find((i) => isMenuItemActive(i, pathname));
-  return extra ? { item: extra, isDetail: pathname !== extra.href } : null;
+  if (!extra) return null;
+  const items = groups.flatMap((g) => g.items);
+  const back = extra.backTo?.map((href) => items.find((i) => i.href === href)).find((i): i is MenuItem => !!i);
+  return { item: extra, isDetail: pathname !== extra.href, back };
 }

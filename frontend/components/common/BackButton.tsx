@@ -13,17 +13,18 @@ export function BackButton() {
   const router = useRouter();
   const trail = user ? findMenuTrail(buildMenu(user, hasPermission), pathname) : null;
   if (!trail?.isDetail) return null;
+  const target = trail.back ?? trail.item;
 
   // Vừa từ danh sách cha sang thì quay lại bằng lịch sử để giữ bộ lọc và trang đang xem.
   const goBack = () => {
-    if (getPreviousPath() === trail.item.href) router.back();
-    else router.push(trail.item.href);
+    if (getPreviousPath() === target.href) router.back();
+    else router.push(target.href);
   };
 
   return (
-    <button type="button" className="back-btn" onClick={goBack} aria-label={`Quay lại ${trail.item.title}`}>
+    <button type="button" className="back-btn" onClick={goBack} aria-label={`Quay lại ${target.title}`}>
       <i className="bi bi-arrow-left" aria-hidden="true" />
-      <span>{trail.item.title}</span>
+      <span>{target.title}</span>
     </button>
   );
 }
