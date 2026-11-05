@@ -143,6 +143,6 @@ Trên trang hồ sơ cũng đánh dấu được: nút **⋯** cạnh nút **Bi�
 
 ## Phần F. Theo dõi, khóa và đóng kỳ
 
-- **Tiến độ:** trang kỳ → thẻ **Tiến độ**; tích **Chỉ quá hạn / sắp đến hạn** để thấy ai đang chậm.
+- **Tiến độ:** trang kỳ → thẻ **Tiến độ**; bấm nhãn **Quá hạn** hoặc **Sắp đến hạn** để thấy ai đang chậm. Dòng đầu thẻ cho biết bộ tiêu chí của kỳ và còn bước nào thiếu người thực hiện.
 - **Khóa dữ liệu:** khi mọi hồ sơ đã có biên bản họp thống nhất và phiếu kiểm tra: trang kỳ → **⋯** → **Khóa dữ liệu** → **Khóa dữ liệu**. Từ lúc này cán bộ không sửa hồ sơ được nữa; chỉ các bước từ thẩm định trở đi tiếp tục. Còn thiếu thì **⋯** → **Mở lại kỳ**, làm xong rồi khóa lại.
 - **Đóng kỳ:** khi mọi hồ sơ đã công bố: **⋯** → **Đóng kỳ** → **Đóng kỳ**.
