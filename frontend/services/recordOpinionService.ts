@@ -22,6 +22,8 @@ export interface RecordOpinionsDto {
   recordId: string;
   /** Người xem ghi được ý kiến trên hồ sơ này (máy chủ tính). */
   canRecord: boolean;
+  /** Loại ý kiến người xem chọn được, loại mặc định trước. */
+  kinds: { value: RecordOpinionKind; name: string }[];
   items: RecordOpinionDto[];
 }
 

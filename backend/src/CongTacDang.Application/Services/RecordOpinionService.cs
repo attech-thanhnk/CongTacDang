@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Application.Services;
 
@@ -21,23 +23,47 @@ public interface IRecordOpinionService
     Task<RecordOpinionsDto> CreateAsync(Guid recordId, CreateRecordOpinionDto request, CancellationToken ct = default);
 }
 
-public sealed class RecordOpinionService : IRecordOpinionService
+/// <summary>Việc "Ghi ý kiến" của Phó Giám đốc phụ trách: hồ sơ chờ duyệt danh mục hoặc chờ nhận xét, mình chưa ghi ý kiến.</summary>
+public interface IRecordOpinionWorkQueue
+{
+    /// <summary>Nhóm rỗng không trả về.</summary>
+    Task<List<WorkQueueGroupDto>> GetGroupsAsync(Guid? periodId, CancellationToken ct = default);
+}
+
+public sealed class RecordOpinionService : IRecordOpinionService, IRecordOpinionWorkQueue
 {
     public const int MaxContentLength = 4000;
+
+    public const string WorkQueueGroup = "RECORD_OPINIONS";
+
+    /// <summary>Quyền của Phòng TCCB-LĐ: rà soát danh mục, thẩm định.</summary>
+    private static readonly string[] HrCodes = { PermissionCodes.EvaluationTasksReview, PermissionCodes.EvaluationAppraise };
+
+    /// <summary>Quyền của lãnh đạo đơn vị, thư ký: người họp rà soát danh mục.</summary>
+    private static readonly string[] MeetingCodes =
+    {
+        PermissionCodes.EvaluationTasksForward, PermissionCodes.EvaluationTasksApprove, PermissionCodes.EvaluationCollectiveRecord,
+        PermissionCodes.EvaluationUnitReview
+    };
+
+    private static readonly string[] NonDeputyCodes = HrCodes.Concat(MeetingCodes).ToArray();
 
     private readonly IEvaluationWorkflowRepository _records;
     private readonly IRecordOpinionRepository _repo;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthorizationGuard _guard;
     private readonly ICurrentUserService _currentUser;
+    private readonly IStepPerformers? _stepPerformers;
 
     public RecordOpinionService(
         IEvaluationWorkflowRepository records,
         IRecordOpinionRepository repo,
         IUnitOfWork unitOfWork,
         IAuthorizationGuard guard,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IStepPerformers? stepPerformers = null)
     {
+        _stepPerformers = stepPerformers;
         _records = records;
         _repo = repo;
         _unitOfWork = unitOfWork;
@@ -52,6 +78,34 @@ public sealed class RecordOpinionService : IRecordOpinionService
         RecordOpinionKind.DeputyOnList => "Ý kiến Phó Giám đốc phụ trách về danh mục",
         RecordOpinionKind.DeputyOnReview => "Ý kiến Phó Giám đốc phụ trách về đề xuất mức",
         _ => kind.ToString()
+    };
+
+    /// <summary>
+    /// Loại ý kiến người ghi chọn được, loại mặc định trước, theo quyền của người ghi trên hồ sơ. Không có quyền của TCCB-LĐ hay lãnh đạo
+    /// đơn vị thì là Phó Giám đốc phụ trách, mặc định theo giai đoạn của hồ sơ.
+    /// </summary>
+    public static List<RecordOpinionKind> KindsFor(Func<string, bool> can, RecordStatus status)
+    {
+        ArgumentNullException.ThrowIfNull(can);
+        if (HrCodes.Any(can))
+            return new List<RecordOpinionKind> { RecordOpinionKind.ListMeeting, RecordOpinionKind.ListCheck };
+        if (MeetingCodes.Any(can))
+            return new List<RecordOpinionKind> { RecordOpinionKind.ListMeeting };
+        return IsListPhase(status)
+            ? new List<RecordOpinionKind> { RecordOpinionKind.DeputyOnList, RecordOpinionKind.DeputyOnReview }
+            : new List<RecordOpinionKind> { RecordOpinionKind.DeputyOnReview, RecordOpinionKind.DeputyOnList };
+    }
+
+    /// <summary>Hồ sơ còn ở bước 1 (danh mục sản phẩm).</summary>
+    public static bool IsListPhase(RecordStatus status) => status is RecordStatus.AwaitingRegistration or RecordStatus.AwaitingUnitSubmit
+        or RecordStatus.AwaitingTaskReview or RecordStatus.AwaitingTaskApproval;
+
+    /// <summary>Loại ý kiến Phó Giám đốc phụ trách cần ghi ở trạng thái này; null khi không chờ ý kiến.</summary>
+    public static RecordOpinionKind? DeputyKindAwaited(RecordStatus status) => status switch
+    {
+        RecordStatus.AwaitingTaskApproval => RecordOpinionKind.DeputyOnList,
+        RecordStatus.AwaitingDirectorReview => RecordOpinionKind.DeputyOnReview,
+        _ => null
     };
 
     /// <inheritdoc />
@@ -103,11 +157,15 @@ public sealed class RecordOpinionService : IRecordOpinionService
     private async Task<RecordOpinionsDto> BuildAsync(EvaluationRecord record, CancellationToken ct)
     {
         var items = await _repo.ListByRecordAsync(record.Id, ct);
+        var target = AccessTarget.ForRecord(record);
         return new RecordOpinionsDto
         {
             RecordId = record.Id,
             CanRecord = !IsOwner(record) && record.Status != RecordStatus.Published
-                && _guard.Can(PermissionCodes.EvaluationOpinionRecord, AccessTarget.ForRecord(record)),
+                && _guard.Can(PermissionCodes.EvaluationOpinionRecord, target),
+            Kinds = KindsFor(code => _guard.Can(code, target), record.Status)
+                .Select(k => new RecordOpinionKindDto { Value = k.ToString(), Name = KindName(k) })
+                .ToList(),
             Items = items.Select(o => new RecordOpinionDto
             {
                 Id = o.Id,
@@ -118,6 +176,61 @@ public sealed class RecordOpinionService : IRecordOpinionService
                 RecordedAt = o.RecordedAt
             }).ToList()
         };
+    }
+
+    /// <inheritdoc />
+    public async Task<List<WorkQueueGroupDto>> GetGroupsAsync(Guid? periodId, CancellationToken ct = default)
+    {
+        var none = new List<WorkQueueGroupDto>();
+        if (_currentUser.UserId is not { } userId || !_guard.HasAny(PermissionCodes.EvaluationOpinionRecord))
+            return none;
+        var periods = (await _records.ListPeriodsAsync(ct))
+            .Where(p => p.Status is PeriodStatus.Open or PeriodStatus.Locked && (periodId is null || periodId == Guid.Empty || p.Id == periodId))
+            .ToDictionary(p => p.Id);
+        if (periods.Count == 0)
+            return none;
+
+        var records = await _records.ListRecordsByStatusAsync(periods.Keys.ToList(),
+            new[] { RecordStatus.AwaitingTaskApproval, RecordStatus.AwaitingDirectorReview }, ct);
+        var candidates = new List<EvaluationRecord>();
+        foreach (var record in records.Where(r => r.MemberId != userId))
+        {
+            var target = AccessTarget.ForRecord(record);
+            if (!_guard.Can(PermissionCodes.EvaluationOpinionRecord, target) || NonDeputyCodes.Any(code => _guard.Can(code, target)))
+                continue;
+            // Giao người gần hồ sơ nhất trong số Phó Giám đốc phụ trách (bỏ người có quyền của TCCB-LĐ, lãnh đạo đơn vị).
+            if (_stepPerformers != null
+                && !(await _stepPerformers.ListAsync(PermissionCodes.EvaluationOpinionRecord, target, NonDeputyCodes, ct)).Contains(userId))
+                continue;
+            candidates.Add(record);
+        }
+        if (candidates.Count == 0)
+            return none;
+
+        var written = await _repo.ListKindsByAuthorAsync(userId, candidates.Select(r => r.Id).ToList(), ct);
+        var items = candidates
+            .Where(r => !written.Contains((r.Id, DeputyKindAwaited(r.Status)!.Value)))
+            .Select(r => new WorkQueueItemDto
+            {
+                RecordId = r.Id,
+                Version = r.Version,
+                PeriodId = r.PeriodId,
+                PeriodName = periods[r.PeriodId].Name,
+                MemberId = r.MemberId,
+                FullName = r.Member?.FullName ?? string.Empty,
+                DepartmentName = r.Department?.Name,
+                PartyCellName = r.PartyCell?.Name,
+                ApprovalAuthority = r.ApprovalAuthority.ToString(),
+                WorkflowProfileName = string.Empty,
+                Status = r.Status.ToString(),
+                StatusDisplayName = r.Status == RecordStatus.AwaitingTaskApproval ? "Chờ duyệt danh mục, bạn chưa ghi ý kiến" : "Chờ nhận xét, bạn chưa ghi ý kiến",
+                Mode = nameof(StepMode.Internal)
+            })
+            .OrderBy(i => i.PeriodName).ThenBy(i => i.FullName)
+            .ToList();
+        return items.Count == 0
+            ? none
+            : new List<WorkQueueGroupDto> { new() { Step = WorkQueueGroup, StepName = "Ghi ý kiến", Count = items.Count, Items = items } };
     }
 
     private bool IsOwner(EvaluationRecord record) => _currentUser.UserId is { } id && record.MemberId == id;

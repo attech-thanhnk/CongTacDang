@@ -19,7 +19,9 @@ public static class EvaluationExtensions
         services.AddScoped<ITaskChangeService>(sp => sp.GetRequiredService<TaskChangeService>());
         services.AddScoped<ITaskChangeWorkQueue>(sp => sp.GetRequiredService<TaskChangeService>());
         services.AddScoped<IRecordOpinionRepository, RecordOpinionRepository>();
-        services.AddScoped<IRecordOpinionService, RecordOpinionService>();
+        services.AddScoped<RecordOpinionService>();
+        services.AddScoped<IRecordOpinionService>(sp => sp.GetRequiredService<RecordOpinionService>());
+        services.AddScoped<IRecordOpinionWorkQueue>(sp => sp.GetRequiredService<RecordOpinionService>());
         services.AddScoped<IControlCheckRepository, ControlCheckRepository>();
         services.AddScoped<ControlCheckService>();
         services.AddScoped<IControlCheckService>(sp => sp.GetRequiredService<ControlCheckService>());

@@ -25,7 +25,17 @@ public sealed class RecordOpinionsDto
     /// <summary>Người xem được ghi ý kiến trên hồ sơ này.</summary>
     public bool CanRecord { get; set; }
 
+    /// <summary>Loại ý kiến người xem chọn được, loại mặc định trước.</summary>
+    public List<RecordOpinionKindDto> Kinds { get; set; } = new();
+
     public List<RecordOpinionDto> Items { get; set; } = new();
+}
+
+public sealed class RecordOpinionKindDto
+{
+    public string Value { get; set; } = string.Empty;
+
+    public string Name { get; set; } = string.Empty;
 }
 
 public sealed class CreateRecordOpinionDto

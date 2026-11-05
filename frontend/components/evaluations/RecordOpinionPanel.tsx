@@ -16,7 +16,7 @@ export function RecordOpinionPanel({ record }: { record: EvaluationRecordDto }) 
   const isOwner = !!user && user.id === record.memberId;
   const [data, setData] = useState<RecordOpinionsDto | null>(null);
   const [adding, setAdding] = useState(false);
-  const [kind, setKind] = useState<RecordOpinionKind>(RECORD_OPINION_KINDS[0].value);
+  const [kind, setKind] = useState<RecordOpinionKind | null>(null);
   const [content, setContent] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -35,10 +35,14 @@ export function RecordOpinionPanel({ record }: { record: EvaluationRecordDto }) 
 
   if (!data || (data.items.length === 0 && !data.canRecord)) return null;
 
+  // Loại theo quyền người ghi (máy chủ tính); chưa chọn thì dùng loại mặc định.
+  const kinds = data.kinds?.length ? data.kinds : RECORD_OPINION_KINDS.map((k) => ({ value: k.value, name: k.label }));
+  const selectedKind = kind && kinds.some((k) => k.value === kind) ? kind : kinds[0].value;
+
   const save = async () => {
     setBusy(true);
     try {
-      setData(await recordOpinionService.create(record.id, { kind, content }));
+      setData(await recordOpinionService.create(record.id, { kind: selectedKind, content }));
       toast.success("Đã ghi nhận ý kiến.");
       setAdding(false);
       setContent("");
@@ -62,10 +66,10 @@ export function RecordOpinionPanel({ record }: { record: EvaluationRecordDto }) 
       <div className="card-body d-flex flex-column gap-3">
         {adding && (
           <div className="d-flex flex-column gap-2">
-            <select className="form-select" aria-label="Loại ý kiến" value={kind} onChange={(e) => setKind(e.target.value as RecordOpinionKind)}>
-              {RECORD_OPINION_KINDS.map((k) => (
+            <select className="form-select" aria-label="Loại ý kiến" value={selectedKind} onChange={(e) => setKind(e.target.value as RecordOpinionKind)}>
+              {kinds.map((k) => (
                 <option key={k.value} value={k.value}>
-                  {k.label}
+                  {k.name}
                 </option>
               ))}
             </select>

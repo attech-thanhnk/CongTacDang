@@ -75,11 +75,11 @@ Khi cán bộ gửi đề nghị điều chỉnh việc, việc hiện ở **Vi�
 
 ## 4. Ghi ý kiến trước phê duyệt (Phó Giám đốc phụ trách)
 
-**Khi nào:** trước khi Giám đốc duyệt danh mục, hoặc trước khi quyết định mức. Ý kiến không chặn bước nào; người duyệt đọc ý kiến trên hồ sơ.
+**Khi nào:** trước khi Giám đốc duyệt danh mục, hoặc trước khi Giám đốc nhận xét. Ý kiến không chặn bước nào; người duyệt đọc ý kiến trên hồ sơ.
 
-1. Mở hồ sơ: menu **Hồ sơ đánh giá** → tìm cán bộ → bấm vào tên.
+1. **Việc cần xử lý** → nhóm **Ghi ý kiến** → bấm **Ghi ý kiến** ở dòng cán bộ (hoặc mở hồ sơ từ menu **Hồ sơ đánh giá**).
 2. Khối **Ý kiến trước phê duyệt** → bấm **Ghi ý kiến**.
-3. Chọn **Loại ý kiến**: **Ý kiến Phó Giám đốc phụ trách về danh mục** hoặc **Ý kiến Phó Giám đốc phụ trách về đề xuất mức**.
+3. Loại ý kiến đã chọn sẵn theo bước của hồ sơ (**về danh mục** hoặc **về đề xuất mức**); đổi nếu cần.
 4. Ghi **Nội dung ý kiến** → bấm **Lưu**.
 
 ![Ghi ý kiến trước phê duyệt](anh/cap-tren-20-ghi-y-kien.png)

@@ -84,6 +84,7 @@ const STEP_ACTIONS: Record<string, string> = {
   APPEALS_UNASSIGNED: "Gán vai trò",
   IMPROVEMENT_PLAN_ACK: "Xác nhận kế hoạch",
   APPEAL_ANSWERS: "Xem trả lời",
+  RECORD_OPINIONS: "Ghi ý kiến",
 };
 
 /** Việc với biên bản họp thống nhất theo trạng thái máy chủ trả về. */

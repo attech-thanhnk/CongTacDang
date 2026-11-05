@@ -235,6 +235,65 @@ public sealed class WorkflowProfileIntegrationTests
     }
 
     [SkippableFact]
+    public async Task G2c_Opinions_DefaultKindByWriter_DeputyQueueUntilOpinionRecorded()
+    {
+        var w = await WorldAsync();
+        var periodId = (await CreatePeriodAsync(w)).GetProperty("id").GetGuid();
+        await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { w.Staff.Id } });
+        await OpenAsync(w, periodId);
+        var id = await RecordOfAsync(w, periodId, w.Staff.Id);
+        var url = $"/api/evaluations/records/{id}/opinions";
+        Guid dept = Guid.Empty;
+        await _factory.WithDbAsync(async db => dept = (await db.PartyMemberProfiles.FirstAsync(m => m.Id == w.Staff.Id)).DepartmentId!.Value);
+
+        // Phó Giám đốc phụ trách Phòng (gần nhất) và Phó Giám đốc gán toàn công ty.
+        var deputyRole = await _factory.GetRoleIdAsync("PHO_GIAM_DOC_PHU_TRACH");
+        var deputy = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(deputy.Id, deputyRole, RoleScopeType.Department, dept);
+        var farDeputy = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(farDeputy.Id, deputyRole, RoleScopeType.Global, null);
+        var deputyC = await _factory.LoginAsAsync(deputy.Username, deputy.Password, distinctClientIp: true);
+        var farDeputyC = await _factory.LoginAsAsync(farDeputy.Username, farDeputy.Password, distinctClientIp: true);
+
+        async Task SetStatusAsync(RecordStatus status) => await _factory.WithDbAsync(async db =>
+        {
+            var record = await db.EvaluationRecords.FirstAsync(r => r.Id == id);
+            record.Status = status;
+            await db.SaveChangesAsync();
+        });
+        static List<string?> Kinds(JsonElement data) => data.GetProperty("kinds").EnumerateArray().Select(k => k.GetProperty("value").GetString()).ToList();
+        async Task<List<Guid>> QueueAsync(HttpClient client)
+        {
+            var queue = await Data(client, $"/api/evaluations/work-queue?periodId={periodId}");
+            return queue.GetProperty("groups").EnumerateArray()
+                .Where(g => g.GetProperty("step").GetString() == "RECORD_OPINIONS")
+                .SelectMany(g => g.GetProperty("items").EnumerateArray().Select(i => i.GetProperty("recordId").GetGuid()))
+                .ToList();
+        }
+
+        // Loại ý kiến chọn sẵn theo người ghi: TCCB-LĐ, lãnh đạo đơn vị, Phó Giám đốc (theo giai đoạn).
+        await SetStatusAsync(RecordStatus.AwaitingTaskApproval);
+        Assert.Equal(new[] { "ListMeeting", "ListCheck" }, Kinds(await Data(w.ManagerC, url)));
+        Assert.Equal(new[] { "ListMeeting" }, Kinds(await Data(w.Lead1C, url)));
+        Assert.Equal("DeputyOnList", Kinds(await Data(deputyC, url))[0]);
+
+        // Chờ duyệt danh mục: việc "Ghi ý kiến" của Phó Giám đốc gần nhất, hết khi đã ghi ý kiến về danh mục.
+        Assert.Contains(id, await QueueAsync(deputyC));
+        Assert.DoesNotContain(id, await QueueAsync(farDeputyC));
+        Assert.DoesNotContain(id, await QueueAsync(w.Lead1C));
+        Assert.DoesNotContain(id, await QueueAsync(w.ManagerC));
+        Assert.Equal(HttpStatusCode.OK, (await deputyC.PostAsJsonAsync(url, new { kind = "DeputyOnList", content = "Nhất trí danh mục" })).StatusCode);
+        Assert.DoesNotContain(id, await QueueAsync(deputyC));
+
+        // Chờ nhận xét: cần ý kiến về đề xuất mức.
+        await SetStatusAsync(RecordStatus.AwaitingDirectorReview);
+        Assert.Equal("DeputyOnReview", Kinds(await Data(deputyC, url))[0]);
+        Assert.Contains(id, await QueueAsync(deputyC));
+        Assert.Equal(HttpStatusCode.OK, (await deputyC.PostAsJsonAsync(url, new { kind = "DeputyOnReview", content = "Nhất trí đề xuất mức" })).StatusCode);
+        Assert.DoesNotContain(id, await QueueAsync(deputyC));
+    }
+
+    [SkippableFact]
     public async Task G3_Readiness_DetectsStuckRecord_OpenReturns409_ForceNeedsReason()
     {
         var w = await WorldAsync();

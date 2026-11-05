@@ -152,7 +152,7 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 
 Duyệt danh mục (`B1_APPROVE`) của diện `co-so`, `bi-thu-nhan-vien` dùng quyền nhận xét của cấp trực tiếp sử dụng: việc giao Giám đốc (phạm vi các đơn vị trực thuộc, bao trùm đơn vị con), Chủ tịch (phạm vi Công ty) vẫn làm được. Duyệt điều chỉnh việc trong quý theo cùng quyền của bước này.
 
-**Ý kiến trước phê duyệt.** Khối này nằm trong trang chi tiết hồ sơ, không phải là một bước. Nó ghi lại bốn loại ý kiến: kết quả họp rà soát danh mục, kết quả rà soát hợp lệ, ý kiến Phó Giám đốc phụ trách về danh mục, ý kiến Phó Giám đốc phụ trách về đề xuất mức. Nó không chặn bước nào. Cần quyền `evaluation.opinion.record`; chủ hồ sơ không ghi được trên hồ sơ của mình. Bảng `record_opinions`, API `/api/evaluations/records/{id}/opinions`.
+**Ý kiến trước phê duyệt.** Khối này nằm trong trang chi tiết hồ sơ, không phải là một bước. Nó ghi lại bốn loại ý kiến: kết quả họp rà soát danh mục, kết quả rà soát hợp lệ, ý kiến Phó Giám đốc phụ trách về danh mục, ý kiến Phó Giám đốc phụ trách về đề xuất mức. Nó không chặn bước nào. Cần quyền `evaluation.opinion.record`; chủ hồ sơ không ghi được trên hồ sơ của mình. Loại ý kiến người ghi chọn được suy ra từ quyền trên hồ sơ (`kinds`, mặc định trước). Việc "Ghi ý kiến" (`RECORD_OPINIONS`) giao Phó Giám đốc phụ trách gần hồ sơ nhất (người có `opinion.record` nhưng không có quyền của TCCB-LĐ, lãnh đạo đơn vị, thư ký) khi hồ sơ chờ duyệt danh mục hoặc chờ nhận xét và người đó chưa ghi loại ý kiến tương ứng. Bảng `record_opinions`, API `/api/evaluations/records/{id}/opinions`.
 
 
 ### 3.3 Danh sách người được đánh giá

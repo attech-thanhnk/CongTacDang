@@ -312,10 +312,10 @@ Chọn **Mức đề xuất** (điền sẵn theo mức thẩm định), nhập 
 Khối **Ý kiến trước phê duyệt** nằm ở trang chi tiết hồ sơ. Khối này không chặn bước nào. Người có quyền ghi ý kiến thấy nút **Ghi ý kiến**:
 
 1. Bấm **Ghi ý kiến**.
-2. Chọn loại ý kiến: *Kết quả họp rà soát danh mục*, *Kết quả rà soát hợp lệ*, *Ý kiến Phó Giám đốc phụ trách về danh mục* hoặc *Ý kiến Phó Giám đốc phụ trách về đề xuất mức*.
+2. Loại ý kiến chọn sẵn theo người ghi: Phòng TCCB-LĐ chọn *Kết quả họp rà soát danh mục* hoặc *Kết quả rà soát hợp lệ*; lãnh đạo đơn vị, thư ký ghi *Kết quả họp rà soát danh mục*; Phó Giám đốc phụ trách ghi *Ý kiến về danh mục* hoặc *về đề xuất mức* (chọn sẵn theo bước của hồ sơ).
 3. Nhập nội dung, bấm **Lưu**.
 
-Bạn không ghi ý kiến được trên hồ sơ của chính mình. Vai trò *Phó Giám đốc phụ trách* chỉ xem hồ sơ và ghi ý kiến.
+Bạn không ghi ý kiến trên hồ sơ của chính mình. Vai trò *Phó Giám đốc phụ trách* chỉ xem hồ sơ và ghi ý kiến; hồ sơ chờ Giám đốc duyệt danh mục hoặc nhận xét mà bạn chưa ghi ý kiến hiện ở *Việc cần xử lý*, nhóm "Ghi ý kiến".
 
 ### 4.5 Quyết định mức xếp loại
 

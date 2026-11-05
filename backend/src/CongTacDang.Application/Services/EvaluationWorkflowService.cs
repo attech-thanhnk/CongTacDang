@@ -88,6 +88,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     private readonly IControlCheckGate? _controlGate;
     private readonly IStepPerformers? _stepPerformers;
     private readonly ICalibrationWorkQueue? _calibrationQueue;
+    private readonly IRecordOpinionWorkQueue? _opinionQueue;
 
     public EvaluationWorkflowService(
         IEvaluationWorkflowRepository repo,
@@ -102,8 +103,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         ICalibrationGate? calibrationGate = null,
         IControlCheckGate? controlGate = null,
         IStepPerformers? stepPerformers = null,
-        ICalibrationWorkQueue? calibrationQueue = null)
+        ICalibrationWorkQueue? calibrationQueue = null,
+        IRecordOpinionWorkQueue? opinionQueue = null)
     {
+        _opinionQueue = opinionQueue;
         _calibrationQueue = calibrationQueue;
         _stepPerformers = stepPerformers;
         _taskChanges = taskChanges;
@@ -1186,6 +1189,12 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             var calibrations = await _calibrationQueue.GetGroupsAsync(periodId, ct);
             queue.Groups.AddRange(calibrations);
             queue.Total += calibrations.Sum(g => g.Count);
+        }
+        if (_opinionQueue != null)
+        {
+            var opinions = await _opinionQueue.GetGroupsAsync(periodId, ct);
+            queue.Groups.AddRange(opinions);
+            queue.Total += opinions.Sum(g => g.Count);
         }
         return queue;
     }

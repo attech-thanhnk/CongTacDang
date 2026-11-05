@@ -28,5 +28,16 @@ public sealed class RecordOpinionRepository : IRecordOpinionRepository
             .ToListAsync(ct);
 
     /// <inheritdoc />
+    public async Task<HashSet<(Guid RecordId, RecordOpinionKind Kind)>> ListKindsByAuthorAsync(Guid userId, IReadOnlyCollection<Guid> recordIds, CancellationToken ct = default)
+    {
+        var rows = await _db.Set<RecordOpinion>().AsNoTracking()
+            .Where(o => o.RecordedById == userId && recordIds.Contains(o.RecordId))
+            .Select(o => new { o.RecordId, o.Kind })
+            .Distinct()
+            .ToListAsync(ct);
+        return rows.Select(r => (r.RecordId, r.Kind)).ToHashSet();
+    }
+
+    /// <inheritdoc />
     public void Add(RecordOpinion opinion) => _db.Set<RecordOpinion>().Add(opinion);
 }

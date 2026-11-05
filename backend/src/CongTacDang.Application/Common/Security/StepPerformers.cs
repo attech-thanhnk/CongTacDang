@@ -17,6 +17,9 @@ public interface IStepPerformers
     /// <summary>Tập người được giao bước, đã áp quy tắc gần nhất; rỗng khi không ai làm được.</summary>
     Task<IReadOnlyList<Guid>> ListAsync(string permission, AccessTarget target, CancellationToken ct = default);
 
+    /// <summary>Như trên, bỏ trước người có một trong các quyền <paramref name="excludeHolders"/> trên hồ sơ.</summary>
+    Task<IReadOnlyList<Guid>> ListAsync(string permission, AccessTarget target, IReadOnlyCollection<string> excludeHolders, CancellationToken ct = default);
+
     /// <summary>Người dùng có thuộc tập người được giao bước không.</summary>
     Task<bool> IsPerformerAsync(Guid userId, string permission, AccessTarget target, CancellationToken ct = default);
 
@@ -142,6 +145,18 @@ public sealed class StepPerformers : IStepPerformers
         var result = StepPerformerRule.Nearest(effective, permission, target with { RequireAllUnits = false }, _paths);
         _results[key] = result;
         return result;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Guid>> ListAsync(string permission, AccessTarget target, IReadOnlyCollection<string> excludeHolders, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(excludeHolders);
+        var scoped = target with { RequireAllUnits = false };
+        var effective = (await CandidatesAsync(permission, ct))
+            .Where(p => !excludeHolders.Any(code => AuthorizationGuard.Evaluate(p, code, scoped)))
+            .ToList();
+        return StepPerformerRule.Nearest(effective, permission, scoped, _paths);
     }
 
     /// <inheritdoc />

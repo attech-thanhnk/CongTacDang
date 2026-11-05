@@ -12,5 +12,8 @@ public interface IRecordOpinionRepository
     /// <summary>Mới nhất trước; không theo dõi.</summary>
     Task<List<RecordOpinion>> ListByRecordAsync(Guid recordId, CancellationToken ct = default);
 
+    /// <summary>Cặp (hồ sơ, loại) mà người dùng đã ghi ý kiến, trong các hồ sơ cho trước.</summary>
+    Task<HashSet<(Guid RecordId, RecordOpinionKind Kind)>> ListKindsByAuthorAsync(Guid userId, IReadOnlyCollection<Guid> recordIds, CancellationToken ct = default);
+
     void Add(RecordOpinion opinion);
 }
