@@ -230,6 +230,12 @@ public static class EvaluationMapping
             NotRatedByName = r.NotRatedByName,
             Progress = Progress(r, profile, today),
 
+            TasksForwardedByName = r.TasksForwardedByName,
+            TasksForwardedAt = r.TasksForwardedAt,
+            TasksForwardComment = r.TasksForwardComment,
+            TasksReviewedByName = r.TasksReviewedByName,
+            TasksReviewedAt = r.TasksReviewedAt,
+            TasksReviewComment = r.TasksReviewComment,
             TasksApprovedByName = r.TasksApprovedByName,
             TasksApprovedAt = r.TasksApprovedAt,
             TasksApprovalComment = r.TasksApprovalComment,

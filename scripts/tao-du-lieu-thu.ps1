@@ -45,25 +45,25 @@ $NotRated = @{ 'nghia.tv' = 'Đi đào tạo dài hạn trong quý' }
 $Accounts = @(@($TaiKhoan) + @($Evaluated.Keys | Where-Object { -not $NotRated.ContainsKey($_) }) | Select-Object -Unique)
 $CalibrationPreparer = 'loan.ctp'
 $CalibrationConcluders = @('long.nc', 'hung.dt')
-$Steps = @('B1_REGISTER', 'B1_APPROVE', 'B2_SELF_SCORE', 'B2_CELL_CONFIRM', 'B3A_COLLECTIVE', 'B3B_APPRAISAL', 'B3C_DIRECTOR', 'B4_DECISION', 'B5_PUBLISH')
+$Steps = @('B1_REGISTER', 'B1_UNIT_SUBMIT', 'B1_HR_REVIEW', 'B1_APPROVE', 'B2_SELF_SCORE', 'B2_CELL_CONFIRM', 'B3A_COLLECTIVE', 'B3B_APPRAISAL', 'B3C_DIRECTOR', 'B4_DECISION', 'B5_PUBLISH')
 $StageStep = @{
     'dang-ky' = 'B1_REGISTER'; 'tu-cham' = 'B2_SELF_SCORE'; 'tap-the' = 'B3A_COLLECTIVE'; 'tham-dinh' = 'B3B_APPRAISAL'
     'nhan-xet' = 'B3C_DIRECTOR'; 'quyet-dinh' = 'B4_DECISION'; 'cong-bo' = 'B5_PUBLISH'
 }
 # Hành động trong hệ thống ứng với bước, và đường dẫn API của nó
 $StepAction = @{
-    'B1_REGISTER' = 'SubmitTasks'; 'B1_APPROVE' = 'ApproveTasks'; 'B2_SELF_SCORE' = 'SubmitSelfScore'; 'B2_CELL_CONFIRM' = 'ConfirmByCell'
+    'B1_REGISTER' = 'SubmitTasks'; 'B1_UNIT_SUBMIT' = 'ForwardTasks'; 'B1_HR_REVIEW' = 'ReviewTasks'; 'B1_APPROVE' = 'ApproveTasks'; 'B2_SELF_SCORE' = 'SubmitSelfScore'; 'B2_CELL_CONFIRM' = 'ConfirmByCell'
     'B3A_COLLECTIVE' = 'RecordCollectiveProposal'; 'B3B_APPRAISAL' = 'Appraise'; 'B3C_DIRECTOR' = 'DirectorReview'
     'B4_DECISION' = 'RecordDecision'; 'B5_PUBLISH' = 'Publish'
 }
 $ActionPath = @{
-    'SubmitTasks' = 'tasks/submit'; 'ApproveTasks' = 'tasks/approve'; 'SubmitSelfScore' = 'self-score/submit'; 'ConfirmByCell' = 'cell/confirm'
+    'SubmitTasks' = 'tasks/submit'; 'ForwardTasks' = 'tasks/forward'; 'ReviewTasks' = 'tasks/review'; 'ApproveTasks' = 'tasks/approve'; 'SubmitSelfScore' = 'self-score/submit'; 'ConfirmByCell' = 'cell/confirm'
     'RecordCollectiveProposal' = 'collective'; 'Appraise' = 'appraisal'; 'DirectorReview' = 'director-review'
     'RecordDecision' = 'decision'; 'Publish' = 'publish'
 }
 # Ngày làm việc kể từ hôm nay làm hạn tối thiểu của từng bước, để không bước nào quá hạn
 $DeadlineFloor = @{
-    'B1_REGISTER' = 2; 'B1_APPROVE' = 3; 'B2_SELF_SCORE' = 5; 'B2_CELL_CONFIRM' = 6; 'B3A_COLLECTIVE' = 7
+    'B1_REGISTER' = 2; 'B1_UNIT_SUBMIT' = 3; 'B1_HR_REVIEW' = 3; 'B1_APPROVE' = 4; 'B2_SELF_SCORE' = 5; 'B2_CELL_CONFIRM' = 6; 'B3A_COLLECTIVE' = 7
     'B3B_APPRAISAL' = 8; 'B3C_DIRECTOR' = 9; 'B4_DECISION' = 10
 }
 # Điểm tự chấm hơi khác nhau giữa các hồ sơ, đều trong khoảng Hoàn thành tốt
@@ -275,6 +275,8 @@ function New-StepBody([string]$step, [string]$action, $record, [string]$username
     }
     switch ($step) {
         'B1_REGISTER' { return New-TaskList $criteria $record.fullName }
+        'B1_UNIT_SUBMIT' { return @{ comment = 'Gửi danh mục sản phẩm của đơn vị' } }
+        'B1_HR_REVIEW' { return @{ comment = 'Đã rà soát, trình duyệt' } }
         'B1_APPROVE' { return @{ comment = 'Đồng ý danh mục sản phẩm đăng ký' } }
         'B2_SELF_SCORE' { return New-SelfScore $criteria $record $username }
         'B2_CELL_CONFIRM' { return @{ comment = 'Chi bộ xác nhận phiếu tự chấm' } }

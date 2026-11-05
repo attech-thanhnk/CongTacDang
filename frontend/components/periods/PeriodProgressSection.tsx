@@ -13,6 +13,8 @@ const DUE_SOON_DAYS = 3;
 
 const STATUS_ORDER = [
   "AwaitingRegistration",
+  "AwaitingUnitSubmit",
+  "AwaitingTaskReview",
   "AwaitingTaskApproval",
   "AwaitingSelfScore",
   "AwaitingCellConfirm",

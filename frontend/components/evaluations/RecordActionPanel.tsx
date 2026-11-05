@@ -142,6 +142,8 @@ export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }:
 /** Thao tác có biểu mẫu gọn, nút chính nằm ở chân khu thao tác (cùng nút trả lại). */
 const FOOTED_FORMS = new Set<WorkflowActionCode>([
   "RecordExternal",
+  "ForwardTasks",
+  "ReviewTasks",
   "ApproveTasks",
   "ConfirmByCell",
   "RecordCollectiveProposal",
@@ -181,6 +183,10 @@ function ActionForm({ record, criteria, action, step, busy, onSubmit, extra, onA
       return <TasksForm record={record} criteria={criteria} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "SubmitSelfScore":
       return <SelfScoreForm record={record} criteria={criteria} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
+    case "ForwardTasks":
+      return <CommentForm busy={busy} extra={extra} label="Ý kiến" submitText="Gửi" onSubmit={(payload) => onSubmit(action, payload)} />;
+    case "ReviewTasks":
+      return <CommentForm busy={busy} extra={extra} label="Ý kiến" submitText="Trình duyệt" onSubmit={(payload) => onSubmit(action, payload)} />;
     case "ApproveTasks":
       return <ApproveTasksForm record={record} busy={busy} extra={extra} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "RevokeTaskApproval":

@@ -19,17 +19,31 @@ test.describe.serial('Luồng hồ sơ qua giao diện', () => {
       await moTuViecCanXuLy(page, ho.hoTen, 'Đăng ký');
       luuHoSo(ho.khoa, page);
       await nopDanhMuc(page, ho.khoa === 'trung' ? 'Trung' : 'Dao');
-      await expect(page.getByText(/Chờ: .*Nguyễn Hoàng Giang/).first()).toBeVisible();
+      await expect(page.getByText(/Chờ: .*Lê Mai Duy/).first()).toBeVisible();
     });
   }
 
-  test('B1 Trưởng phòng không có việc, không có nút duyệt danh mục của Phó phòng', async ({ mo }) => {
+  test('B1 Trưởng phòng gửi danh mục của hai Phó phòng, không có nút duyệt', async ({ mo }) => {
     const page = await mo('duy.lm');
+    for (const ho of [TRUNG, DAO]) {
+      await moTuViecCanXuLy(page, ho.hoTen, 'Gửi');
+      await expect(page.getByRole('region', { name: 'Duyệt danh mục' })).toHaveCount(0);
+      const vung = await chonVung(page, 'Gửi danh mục');
+      await guiThaoTac(page, vung.getByRole('button', { name: 'Gửi', exact: true }));
+    }
     await page.goto('/work-queue');
     await expect(page.getByRole('row').filter({ hasText: TRUNG.hoTen })).toHaveCount(0);
+  });
+
+  test('B1 Phòng TCCB-LĐ rà soát, trình duyệt danh mục của hai hồ sơ', async ({ mo }) => {
+    const page = await mo('loan.ttp');
+    for (const ho of [TRUNG, DAO]) {
+      await moTuViecCanXuLy(page, ho.hoTen, 'Trình duyệt');
+      const vung = await chonVung(page, 'Trình duyệt danh mục');
+      await guiThaoTac(page, vung.getByRole('button', { name: 'Trình duyệt', exact: true }));
+    }
     await page.goto(duongDanHoSo(TRUNG.khoa));
     await expect(page.getByText(/Chờ: .*Nguyễn Hoàng Giang/).first()).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Duyệt danh mục' })).toHaveCount(0);
   });
 
   test('B1 Giám đốc duyệt danh mục của hai hồ sơ', async ({ mo }) => {

@@ -22,6 +22,8 @@ import { errorMessage } from "@/components/admin/adminUtils";
 /** Thứ tự trạng thái theo luồng (để sắp xếp và xếp nút lọc). */
 const STATUS_ORDER = [
   "AwaitingRegistration",
+  "AwaitingUnitSubmit",
+  "AwaitingTaskReview",
   "AwaitingTaskApproval",
   "AwaitingSelfScore",
   "AwaitingCellConfirm",

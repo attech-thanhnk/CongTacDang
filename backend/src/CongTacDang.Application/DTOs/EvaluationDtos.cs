@@ -147,6 +147,12 @@ public class EvaluationRecordDto
     public List<RecordStepProgressDto> Progress { get; set; } = new();
 
     // B1
+    public string? TasksForwardedByName { get; set; }
+    public DateTime? TasksForwardedAt { get; set; }
+    public string? TasksForwardComment { get; set; }
+    public string? TasksReviewedByName { get; set; }
+    public DateTime? TasksReviewedAt { get; set; }
+    public string? TasksReviewComment { get; set; }
     public string? TasksApprovedByName { get; set; }
     public DateTime? TasksApprovedAt { get; set; }
     public string? TasksApprovalComment { get; set; }

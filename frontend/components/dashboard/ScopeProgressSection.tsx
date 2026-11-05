@@ -6,7 +6,7 @@ import type { EvaluationRecordDto } from "@/services/evaluationService";
 import styles from "./dashboard.module.css";
 
 /** Trạng thái thuộc giai đoạn cá nhân đăng ký / tự chấm. */
-const SELF_STAGE = new Set(["AwaitingRegistration", "AwaitingTaskApproval", "AwaitingSelfScore"]);
+const SELF_STAGE = new Set(["AwaitingRegistration", "AwaitingUnitSubmit", "AwaitingTaskReview", "AwaitingTaskApproval", "AwaitingSelfScore"]);
 
 type Stage = "self" | "review" | "returned" | "published";
 
