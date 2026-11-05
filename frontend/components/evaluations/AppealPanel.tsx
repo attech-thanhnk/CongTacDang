@@ -196,6 +196,8 @@ export function AppealPanel({ record, onRecordChanged, onPendingChange }: Props)
         title="Mở lại hồ sơ theo kiến nghị"
         confirmText="Mở lại hồ sơ"
         targetSteps={reopenTargets}
+        // Quay về bước sớm nhất mà kiến nghị nêu (thứ tự luồng).
+        defaultTargetStep={reopenTargets?.find((s) => reopenAppeal?.concernedSteps.includes(s)) ?? null}
         unlock={reopenUnlock}
         busy={busy}
         onCancel={() => setReopenAppeal(null)}

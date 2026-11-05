@@ -17,6 +17,8 @@ interface Props {
   confirmText: string;
   /** Với mở lại hồ sơ: các bước được chọn để quay về (do máy chủ trả về trong `actions`). */
   targetSteps?: WorkflowStepCode[] | null;
+  /** Bước chọn sẵn nếu có trong `targetSteps`; mặc định bước đầu. */
+  defaultTargetStep?: WorkflowStepCode | null;
   /** Tên bước theo hồ sơ; mặc định tên chung của bước. */
   stepName?: (step: WorkflowStepCode) => string;
   /** Hạn mở riêng hồ sơ khi kỳ khóa dữ liệu (do máy chủ báo trong `actions`). */
@@ -48,7 +50,7 @@ function needsDeadline(unlock: UnlockDeadlineInfo | null | undefined, target: Wo
 }
 
 /** Hộp nhập lý do bắt buộc khi trả lại hoặc mở lại hồ sơ (kèm hạn mở riêng khi kỳ khóa dữ liệu). */
-export function ReasonDialog({ isOpen, title, description, confirmText, targetSteps, stepName, unlock, busy, onCancel, onConfirm }: Props) {
+export function ReasonDialog({ isOpen, title, description, confirmText, targetSteps, defaultTargetStep, stepName, unlock, busy, onCancel, onConfirm }: Props) {
   const titleId = useId();
   const [reason, setReason] = useState("");
   const [target, setTarget] = useState<WorkflowStepCode | "">("");
@@ -62,10 +64,12 @@ export function ReasonDialog({ isOpen, title, description, confirmText, targetSt
     if (isOpen) {
       setReason("");
       setTouched(false);
-      setTarget(targetSteps && targetSteps.length > 0 ? targetSteps[0] : "");
+      setTarget(targetSteps && targetSteps.length > 0
+        ? (defaultTargetStep && targetSteps.includes(defaultTargetStep) ? defaultTargetStep : targetSteps[0])
+        : "");
       setDeadline(defaultDeadline(defaultDays));
     }
-  }, [isOpen, targetSteps, defaultDays]);
+  }, [isOpen, targetSteps, defaultTargetStep, defaultDays]);
 
   if (!isOpen) return null;
   const missingReason = reason.trim().length === 0;
