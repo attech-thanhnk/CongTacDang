@@ -64,6 +64,9 @@ public sealed class UserImportRow
     /// <summary>Chức vụ đã đối chiếu (bỏ trùng).</summary>
     public List<PositionRef> Positions { get; } = new();
 
+    /// <summary>Chức vụ Đảng có cấp → tổ chức Đảng đúng loại gần nhất trong chuỗi tổ chức của cán bộ.</summary>
+    public Dictionary<Guid, Guid> PositionPartyCellIds { get; } = new();
+
     /// <summary>Chức vụ ghi dạng "Quyền …" / "Q. …" trong ô (giữ dạng quyền).</summary>
     public HashSet<Guid> ActingPositionIds { get; } = new();
 }
@@ -219,8 +222,14 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
             .GroupBy(u => u.Username, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.OrderBy(u => u.IsDeleted).First(), StringComparer.OrdinalIgnoreCase);
         var departments = ActiveByCode(await _lookup.GetDepartmentsAsync(ct));
-        var cells = ActiveByCode(await _lookup.GetPartyCellsAsync(ct));
+        var allCells = await _lookup.GetPartyCellsAsync(ct);
+        var cells = ActiveByCode(allCells);
+        var cellNodes = allCells.Where(c => !c.IsDeleted)
+            .ToDictionary(c => c.Id, c => new PartyUnitNode(c.Id, c.ParentId, c.UnitTypeId, c.IsActive));
         var positions = await _lookup.GetPositionsAsync(ct);
+        var unitTypeNames = positions.Any(p => p.PartyUnitTypeId.HasValue)
+            ? (await _lookup.GetUnitTypesAsync(ct)).ToDictionary(t => t.Id, t => t.Name)
+            : new Dictionary<Guid, string>();
         var layouts = rows.Any(r => r.Data.FormLayoutText.Length > 0) ? await _lookup.GetFormLayoutsAsync(ct) : Array.Empty<FormLayoutRef>();
 
         foreach (var row in rows)
@@ -246,6 +255,12 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
                 ?? (data.DepartmentCode.Length == 0 ? existing?.DepartmentId : null);
             data.PartyCellId = ResolveUnit(row, data.PartyCellCode, cells, "Mã tổ chức Đảng", "tổ chức Đảng")
                 ?? (data.PartyCellCode.Length == 0 ? existing?.PartyCellId : null);
+            // Chỉ kiểm tra khi tổ chức Đảng được chọn mới hoặc đổi.
+            if (data.PartyCellCode.Length > 0 && data.PartyCellId is { } cellId && cellId != existing?.PartyCellId
+                && PartyUnitRules.HasActiveChildren(cellNodes.Values, cellId))
+            {
+                row.Error($"Lưu tài khoản không thành công: {PartyUnitRules.MustBeCellReason[..^1]} (mã {data.PartyCellCode}).");
+            }
 
             foreach (var token in data.PositionTokens)
             {
@@ -259,6 +274,20 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
                     if (isActing)
                         data.ActingPositionIds.Add(position.Id);
                 }
+            }
+            foreach (var position in data.Positions)
+            {
+                if (position.Side != PositionSide.Party || position.PartyUnitTypeId is not { } typeId
+                    || existing?.HeldPositionIds.Contains(position.Id) == true)
+                    continue;
+                var holder = PartyUnitRules.FindNearestOfType(cellNodes, data.PartyCellId, typeId);
+                if (holder is { } holderId)
+                {
+                    data.PositionPartyCellIds[position.Id] = holderId;
+                    continue;
+                }
+                var typeName = unitTypeNames.GetValueOrDefault(typeId) ?? "đúng cấp";
+                row.Error($"Gán chức vụ không thành công: \"{position.Name}\" giữ tại tổ chức loại {typeName} nhưng không tìm thấy {typeName} từ tổ chức Đảng của cán bộ trở lên.");
             }
             ResolveFormLayout(row, layouts);
 
@@ -337,11 +366,16 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
         };
     }
 
-    /// <summary>Chức vụ Đảng giữ tại tổ chức Đảng của cán bộ, chức vụ chính quyền giữ tại đơn vị; chức vụ khác không gắn đơn vị.</summary>
+    /// <summary>
+    /// Chức vụ Đảng có cấp giữ tại tổ chức đúng loại gần nhất, chức vụ Đảng khác tại tổ chức Đảng của cán bộ;
+    /// chức vụ chính quyền giữ tại đơn vị; chức vụ khác không gắn đơn vị.
+    /// </summary>
     private static SaveMemberPositionDto PositionInput(PositionRef position, UserImportRow data, bool? isPrimary) => new()
     {
         PositionId = position.Id,
-        PartyCellId = position.Side == PositionSide.Party ? data.PartyCellId : null,
+        PartyCellId = position.Side == PositionSide.Party
+            ? data.PositionPartyCellIds.TryGetValue(position.Id, out var holder) ? holder : data.PartyCellId
+            : null,
         DepartmentId = position.Side == PositionSide.Administrative ? data.DepartmentId : null,
         IsPrimary = isPrimary,
         IsActing = data.ActingPositionIds.Contains(position.Id)

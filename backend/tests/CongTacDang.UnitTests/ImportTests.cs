@@ -4,6 +4,7 @@ using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.Imports;
 using CongTacDang.Application.Imports.Definitions;
+using CongTacDang.Application.Organization;
 using CongTacDang.Domain.Enums;
 using CongTacDang.Infrastructure.Imports;
 using Xunit;
@@ -285,6 +286,98 @@ public class ImportTests
 
         var keep = UserImportDefinition.BuildUpdate(new UserImportRow { Username = "a", FullName = "A" });
         Assert.Null(keep.PartyCardNumber);
+    }
+
+    /// <summary>Đảng ủy → Đảng bộ bộ phận → Chi bộ, thêm một chi bộ trực thuộc Đảng ủy; chức vụ có cấp theo từng loại.</summary>
+    private static (FakeLookup Lookup, Guid Du, Guid Dbbp, Guid Cb) PartyTreeLookup()
+    {
+        var (lookup, _, _) = UserLookup();
+        var dangUyType = Guid.NewGuid();
+        var dbbpType = Guid.NewGuid();
+        lookup.UnitTypes.Add(new UnitTypeRef(dangUyType, "Đảng ủy", OrgSide.Party, true));
+        lookup.UnitTypes.Add(new UnitTypeRef(dbbpType, "Đảng bộ bộ phận", OrgSide.Party, true));
+        var du = new OrgUnitRef(Guid.NewGuid(), "DU", "Đảng ủy Công ty", null, dangUyType, true, false);
+        var dbbp = new OrgUnitRef(Guid.NewGuid(), "DBBP", "Đảng bộ bộ phận", du.Id, dbbpType, true, false);
+        var cb = new OrgUnitRef(Guid.NewGuid(), "CB-1", "Chi bộ 1", dbbp.Id, ChiBoType, true, false);
+        lookup.PartyCells.AddRange(new[] { du, dbbp, cb });
+        lookup.PartyCells.Add(new OrgUnitRef(Guid.NewGuid(), "CB-2", "Chi bộ 2", du.Id, ChiBoType, true, false));
+        lookup.Positions.Add(new PositionRef(Guid.NewGuid(), "Đảng ủy viên", "M18", PositionSide.Party, true, dangUyType));
+        lookup.Positions.Add(new PositionRef(Guid.NewGuid(), "Ủy viên Ban Chấp hành Đảng bộ bộ phận", null, PositionSide.Party, true, dbbpType));
+        lookup.Positions.Add(new PositionRef(Guid.NewGuid(), "Chi ủy viên", null, PositionSide.Party, true, ChiBoType));
+        return (lookup, du.Id, dbbp.Id, cb.Id);
+    }
+
+    [Fact]
+    public async Task Users_PartyPositionWithLevel_HeldAtNearestUnitOfThatType()
+    {
+        var (lookup, du, dbbp, cb) = PartyTreeLookup();
+        var definition = new UserImportDefinition(lookup, new FakeGuard(), null!, null!, null!);
+        var analysis = await definition.AnalyzeAsync(new[]
+        {
+            User(2, "nguyen.van.a", "A", ("partyCellCode", "CB-1"),
+                ("positions", "Đảng ủy viên; Ủy viên Ban Chấp hành Đảng bộ bộ phận; Chi ủy viên; Bí thư chi bộ")),
+            User(3, "nguyen.van.b", "B", ("partyCellCode", "CB-2"), ("positions", "Ủy viên Ban Chấp hành Đảng bộ bộ phận")),
+            User(4, "nguyen.van.c", "C", ("positions", "Chi ủy viên"))
+        });
+
+        var rows = analysis.Rows.ToDictionary(r => r.RowNumber);
+        Assert.True(rows[2].IsValid, string.Join("; ", rows[2].Errors));
+        var parsed = ((List<ParsedImportRow<UserImportRow>>)analysis.Payload!).Single(r => r.RowNumber == 2).Data;
+        Guid HeldAt(string name) => parsed.PositionPartyCellIds[parsed.Positions.Single(p => p.Name == name).Id];
+        Assert.Equal(du, HeldAt("Đảng ủy viên"));
+        Assert.Equal(dbbp, HeldAt("Ủy viên Ban Chấp hành Đảng bộ bộ phận"));
+        Assert.Equal(cb, HeldAt("Chi ủy viên"));
+        // Chức vụ Đảng không có cấp: vẫn giữ tại tổ chức Đảng của cán bộ.
+        Assert.DoesNotContain(parsed.Positions.Single(p => p.Name == "Bí thư chi bộ").Id, parsed.PositionPartyCellIds.Keys);
+
+        // Chi bộ trực thuộc thẳng Đảng ủy: không có Đảng bộ bộ phận trong chuỗi.
+        Assert.Contains(rows[3].Errors, e => e.Contains("không thành công") && e.Contains("Đảng bộ bộ phận"));
+        // Không có tổ chức Đảng thì không tìm được Chi bộ.
+        Assert.Contains(rows[4].Errors, e => e.Contains("Chi ủy viên"));
+    }
+
+    [Fact]
+    public async Task Users_PartyCellWithChildren_RejectedOnlyWhenChosenOrChanged()
+    {
+        var (lookup, du, _, _) = PartyTreeLookup();
+        lookup.Users.Add(new UserRef(Guid.NewGuid(), "o.dang.bo", "Ở Đảng bộ", false, null, du, Array.Empty<Guid>()));
+        var definition = new UserImportDefinition(lookup, new FakeGuard(), null!, null!, null!);
+        var analysis = await definition.AnalyzeAsync(new[]
+        {
+            User(2, "moi.dang.uy", "Mới", ("partyCellCode", "DU")),
+            User(3, "moi.dbbp", "Mới", ("partyCellCode", "DBBP")),
+            User(4, "moi.chi.bo", "Mới", ("partyCellCode", "CB-1")),
+            User(5, "o.dang.bo", "Ở Đảng bộ (sửa họ tên)"),
+            User(6, "o.dang.bo.2", "Mới", ("partyCellCode", "CB-2")),
+            User(7, "da.co", "Đã có", ("partyCellCode", "DBBP"))
+        });
+
+        var rows = analysis.Rows.ToDictionary(r => r.RowNumber);
+        Assert.Contains(rows[2].Errors, e => e.Contains("sinh hoạt tại một chi bộ"));
+        Assert.Contains(rows[3].Errors, e => e.Contains("sinh hoạt tại một chi bộ"));
+        Assert.True(rows[4].IsValid, string.Join("; ", rows[4].Errors));
+        // Tài khoản cũ ở Đảng bộ, dòng không ghi tổ chức Đảng: vẫn cập nhật được.
+        Assert.True(rows[5].IsValid, string.Join("; ", rows[5].Errors));
+        Assert.True(rows[6].IsValid, string.Join("; ", rows[6].Errors));
+        Assert.Contains(rows[7].Errors, e => e.Contains("sinh hoạt tại một chi bộ"));
+    }
+
+    [Fact]
+    public void PartyUnitRules_NearestOfType_WalksUpAndSkipsInactive()
+    {
+        var typeA = Guid.NewGuid();
+        var typeB = Guid.NewGuid();
+        var root = new PartyUnitNode(Guid.NewGuid(), null, typeA, true);
+        var inactive = new PartyUnitNode(Guid.NewGuid(), root.Id, typeA, false);
+        var leaf = new PartyUnitNode(Guid.NewGuid(), inactive.Id, typeB, true);
+        var nodes = new[] { root, inactive, leaf }.ToDictionary(n => n.Id);
+
+        Assert.Equal(leaf.Id, PartyUnitRules.FindNearestOfType(nodes, leaf.Id, typeB));
+        Assert.Equal(root.Id, PartyUnitRules.FindNearestOfType(nodes, leaf.Id, typeA));
+        Assert.Null(PartyUnitRules.FindNearestOfType(nodes, root.Id, typeB));
+        Assert.Null(PartyUnitRules.FindNearestOfType(nodes, null, typeA));
+        Assert.False(PartyUnitRules.HasActiveChildren(nodes.Values, root.Id)); // con duy nhất đã ngừng hoạt động
+        Assert.True(PartyUnitRules.HasActiveChildren(nodes.Values, inactive.Id));
     }
 
     #endregion

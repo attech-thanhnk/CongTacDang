@@ -321,6 +321,7 @@ public sealed class AccountUnitTests
         public Task<bool> UsernameExistsAsync(string username, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> DepartmentIsActiveAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> PartyCellIsActiveAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<bool> PartyCellHasActiveChildrenAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<AccountState?> GetStateAsync(Guid userId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<PagedResult<PartyMemberProfile>> SearchAsync(AccountSearchCriteria criteria, CancellationToken ct = default) => throw new NotSupportedException();
         public Task AddAsync(PartyMemberProfile member, CancellationToken ct = default) => throw new NotSupportedException();

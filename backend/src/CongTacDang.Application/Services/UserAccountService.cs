@@ -9,6 +9,7 @@ using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Models;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
+using CongTacDang.Application.Organization;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 
@@ -398,6 +399,8 @@ public sealed class UserAccountService : IUserAccountService
         if (partyCellId.HasValue && !await Accounts.PartyCellIsActiveAsync(partyCellId.Value, ct))
             throw new ValidationException(
                 "Chi bộ đã chọn không tồn tại hoặc đã ngừng hoạt động. Hãy chọn Chi bộ khác trong danh mục.");
+        if (partyCellId.HasValue && await Accounts.PartyCellHasActiveChildrenAsync(partyCellId.Value, ct))
+            throw new ValidationException("Lưu tài khoản không thành công: " + PartyUnitRules.MustBeCellReason);
     }
 
     /// <summary>Bỏ qua khi không có người dùng đăng nhập (tác vụ hệ thống).</summary>

@@ -241,6 +241,56 @@ public sealed class ImportIntegrationTests
             Assert.False(await db.AdministrativeDepartments.IgnoreQueryFilters().AnyAsync(d => d.Code == okCode)));
     }
 
+    [SkippableFact]
+    public async Task Users_PartyPositionsHeldAtUnitOfTheirLevel_AndPartyCellMustBeLeaf()
+    {
+        SkipIfNoDatabase();
+        var (_, admin) = await ImportAdminAsync();
+        var suffix = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        var du = new PartyCell { Code = $"IMP-DU5-{suffix}", Name = $"Đảng ủy {suffix}" };
+        var dbbp = new PartyCell { Code = $"IMP-DB5-{suffix}", Name = $"Đảng bộ bộ phận {suffix}", ParentId = du.Id };
+        var cb = new PartyCell { Code = $"IMP-CB5-{suffix}", Name = $"Chi bộ {suffix}", ParentId = dbbp.Id };
+        await _factory.WithDbAsync(async db =>
+        {
+            var types = await db.OrgUnitTypes.Where(t => t.Side == Domain.Enums.OrgSide.Party).ToDictionaryAsync(t => t.Name, t => t.Id);
+            du.UnitTypeId = types["Đảng ủy"];
+            dbbp.UnitTypeId = types["Đảng bộ bộ phận"];
+            cb.UnitTypeId = types["Chi bộ"];
+            du.Path = $"/{du.Id:D}/";
+            dbbp.Path = $"{du.Path}{dbbp.Id:D}/";
+            cb.Path = $"{dbbp.Path}{cb.Id:D}/";
+            db.PartyCells.AddRange(du, dbbp, cb);
+            await db.SaveChangesAsync();
+        });
+        var headers = new[] { "Tên đăng nhập", "Họ và tên", "Mã tổ chức Đảng", "Chức vụ" };
+
+        // Sinh hoạt tại Đảng ủy/Đảng bộ bộ phận (có tổ chức con) → dòng lỗi.
+        var badPreview = await DataAsync(await UploadAsync(admin, "users", Workbook(headers,
+            new[] { $"imp5.du.{suffix.ToLowerInvariant()}", "Ở Đảng ủy", du.Code, "" },
+            new[] { $"imp5.db.{suffix.ToLowerInvariant()}", "Ở Đảng bộ bộ phận", dbbp.Code, "" })));
+        Assert.Equal(2, badPreview.GetProperty("summary").GetProperty("error").GetInt32());
+        Assert.All(badPreview.GetProperty("rows").EnumerateArray(), row => Assert.Contains(
+            row.GetProperty("errors").EnumerateArray(), e => e.GetString()!.Contains("sinh hoạt tại một chi bộ")));
+
+        // Chức vụ Đảng có cấp giữ tại tổ chức đúng loại gần nhất, không phải chi bộ của cán bộ.
+        var username = $"imp5.cb.{suffix.ToLowerInvariant()}";
+        var preview = await DataAsync(await UploadAsync(admin, "users", Workbook(headers,
+            new[] { username, "Ở chi bộ", cb.Code, "Chi ủy viên; Đảng ủy viên; Ủy viên Ban Chấp hành Đảng bộ bộ phận; Phó Chủ nhiệm Ủy ban Kiểm tra Đảng ủy" })));
+        Assert.Equal(0, preview.GetProperty("summary").GetProperty("error").GetInt32());
+        await DataAsync(await CommitAsync(admin, preview));
+        await _factory.WithDbAsync(async db =>
+        {
+            var member = await db.PartyMemberProfiles.SingleAsync(m => m.Username == username);
+            Assert.Equal(cb.Id, member.PartyCellId);
+            var held = await db.MemberPositions.Include(mp => mp.Position).Where(mp => mp.UserId == member.Id)
+                .ToDictionaryAsync(mp => mp.Position!.Name, mp => mp.PartyCellId);
+            Assert.Equal(cb.Id, held["Chi ủy viên"]);
+            Assert.Equal(du.Id, held["Đảng ủy viên"]);
+            Assert.Equal(dbbp.Id, held["Ủy viên Ban Chấp hành Đảng bộ bộ phận"]);
+            Assert.Equal(du.Id, held["Phó Chủ nhiệm Ủy ban Kiểm tra Đảng ủy"]);
+        });
+    }
+
     #region Hỗ trợ
 
     private static byte[] Workbook(string[] headers, params string[][] rows)

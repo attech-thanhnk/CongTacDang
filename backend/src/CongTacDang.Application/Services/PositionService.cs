@@ -98,6 +98,7 @@ public sealed class PositionService : IPositionService
             StatCode = ParseStatCode(input.StatCode),
             DefaultApprovalAuthority = ParseAuthority(input.DefaultApprovalAuthority),
             DefaultWorkflowProfileCode = ParseWorkflowProfileCode(input.DefaultWorkflowProfileCode),
+            PartyUnitTypeId = await ParsePartyUnitTypeAsync(input.PartyUnitTypeId, side, ct),
             IsLeadership = input.IsLeadership ?? false,
             IsHead = input.IsHead ?? false,
             FormLayoutId = await ParseFormLayoutAsync(input.FormLayoutId, ct),
@@ -131,6 +132,11 @@ public sealed class PositionService : IPositionService
                 throw new ValidationException("Bên của chức vụ không hợp lệ. Hãy chọn Đảng, Chính quyền, Đoàn thể hoặc Khác.");
             position.Side = side;
         }
+        if (input.PartyUnitTypeId != null)
+            position.PartyUnitTypeId = await ParsePartyUnitTypeAsync(input.PartyUnitTypeId, position.Side, ct);
+        // Đổi sang bên khác Đảng thì bỏ cấp tổ chức Đảng.
+        if (position.Side != PositionSide.Party)
+            position.PartyUnitTypeId = null;
 
         if (input.StatCode != null) position.StatCode = ParseStatCode(input.StatCode);
         var authorityChanged = false;
@@ -203,6 +209,7 @@ public sealed class PositionService : IPositionService
 
         var partyCellId = EmptyToNull(input.PartyCellId);
         var departmentId = EmptyToNull(input.DepartmentId);
+        partyCellId = await ResolvePartyCellAsync(position, member, partyCellId, departmentId, "Gán chức vụ không thành công", ct);
         await ValidateUnitAsync(position, partyCellId, departmentId, ct);
 
         var validFrom = ToUtc(input.ValidFrom) ?? Now;
@@ -248,7 +255,10 @@ public sealed class PositionService : IPositionService
         var partyCellId = input.PartyCellId.HasValue ? EmptyToNull(input.PartyCellId) : entity.PartyCellId;
         var departmentId = input.DepartmentId.HasValue ? EmptyToNull(input.DepartmentId) : entity.DepartmentId;
         if (partyCellId != entity.PartyCellId || departmentId != entity.DepartmentId)
+        {
+            partyCellId = await ResolvePartyCellAsync(entity.Position!, member, partyCellId, departmentId, "Lưu chức vụ không thành công", ct);
             await ValidateUnitAsync(entity.Position!, partyCellId, departmentId, ct);
+        }
 
         var validFrom = ToUtc(input.ValidFrom) ?? entity.ValidFrom;
         var validTo = input.ClearValidTo == true ? null : ToUtc(input.ValidTo) ?? entity.ValidTo;
@@ -441,6 +451,38 @@ public sealed class PositionService : IPositionService
             throw new ValidationException("Đơn vị đã chọn không tồn tại hoặc đã ngừng hoạt động. Hãy chọn đơn vị khác.");
     }
 
+    /// <summary>Chức vụ Đảng có cấp: không chọn tổ chức thì lấy tổ chức gần nhất đúng loại trong chuỗi của cán bộ; chọn thì phải đúng loại.</summary>
+    private async Task<Guid?> ResolvePartyCellAsync(Position position, PartyMemberProfile member, Guid? partyCellId, Guid? departmentId,
+        string action, CancellationToken ct)
+    {
+        if (position.Side != PositionSide.Party || position.PartyUnitTypeId is not { } typeId || departmentId.HasValue)
+            return partyCellId;
+        var typeName = (await _repo.FindUnitTypeAsync(typeId, ct))?.Name ?? "đúng cấp";
+        var nodes = (await _repo.ListPartyUnitsAsync(ct)).ToDictionary(n => n.Id);
+        if (partyCellId.HasValue)
+        {
+            if (nodes.TryGetValue(partyCellId.Value, out var node) && node.UnitTypeId != typeId)
+                throw new ValidationException($"{action}: \"{position.Name}\" là chức vụ cấp {typeName}, hãy chọn tổ chức Đảng loại {typeName}.");
+            return partyCellId;
+        }
+        return PartyUnitRules.FindNearestOfType(nodes, member.PartyCellId, typeId)
+            ?? throw new ValidationException(
+                $"{action}: không tìm thấy tổ chức loại {typeName} từ nơi sinh hoạt của cán bộ trở lên. Hãy chọn tổ chức Đảng nơi giữ chức vụ \"{position.Name}\".");
+    }
+
+    /// <summary>Rỗng → null; chỉ chức vụ Đảng, phải là loại tổ chức Đảng trong danh mục.</summary>
+    private async Task<Guid?> ParsePartyUnitTypeAsync(string? value, PositionSide side, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+        if (side != PositionSide.Party)
+            throw new ValidationException("Lưu chức vụ không thành công: cấp tổ chức Đảng chỉ đặt cho chức vụ bên Đảng.");
+        if (!Guid.TryParse(value.Trim(), out var id)
+            || await _repo.FindUnitTypeAsync(id, ct) is not { Side: OrgSide.Party })
+            throw new ValidationException("Lưu chức vụ không thành công: cấp tổ chức Đảng đã chọn không còn trong danh mục loại tổ chức Đảng. Hãy tải lại trang.");
+        return id;
+    }
+
     private static void ValidatePeriod(DateTime validFrom, DateTime? validTo)
     {
         if (validTo.HasValue && validTo.Value <= validFrom)
@@ -553,6 +595,7 @@ public sealed class PositionService : IPositionService
         StatCode = p.StatCode,
         DefaultApprovalAuthority = p.DefaultApprovalAuthority?.ToString(),
         DefaultWorkflowProfileCode = p.DefaultWorkflowProfileCode,
+        PartyUnitTypeId = p.PartyUnitTypeId,
         IsLeadership = p.IsLeadership,
         IsHead = p.IsHead,
         FormLayoutId = p.FormLayoutId,

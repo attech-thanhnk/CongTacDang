@@ -14,7 +14,8 @@ public sealed record OrgUnitRef(Guid Id, string Code, string Name, Guid? ParentI
 
 public sealed record UnitTypeRef(Guid Id, string Name, OrgSide Side, bool IsActive);
 
-public sealed record PositionRef(Guid Id, string Name, string? StatCode, PositionSide Side, bool IsActive);
+/// <param name="PartyUnitTypeId">Chức vụ Đảng: loại tổ chức Đảng nơi giữ chức vụ; null = không ràng buộc.</param>
+public sealed record PositionRef(Guid Id, string Name, string? StatCode, PositionSide Side, bool IsActive, Guid? PartyUnitTypeId = null);
 
 public sealed record FormLayoutRef(Guid Id, string Name);
 

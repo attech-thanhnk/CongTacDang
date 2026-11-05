@@ -89,6 +89,8 @@ export interface Position {
   defaultApprovalAuthority?: ApprovalAuthorityCode | null;
   /** Mã diện quyết định gợi ý khi thêm người giữ chức vụ vào kỳ; trống = theo thẩm quyền. */
   defaultWorkflowProfileCode?: string | null;
+  /** Chức vụ Đảng: loại tổ chức Đảng nơi giữ chức vụ; null = không ràng buộc. */
+  partyUnitTypeId?: string | null;
   isLeadership: boolean;
   /** Người đứng đầu — không tính vào trần tỷ lệ Hoàn thành xuất sắc. */
   isHead: boolean;
@@ -116,6 +118,8 @@ export interface SavePositionPayload {
   defaultApprovalAuthority?: string;
   /** Rỗng = theo thẩm quyền. */
   defaultWorkflowProfileCode?: string;
+  /** Rỗng = không ràng buộc cấp tổ chức Đảng. */
+  partyUnitTypeId?: string;
   isLeadership?: boolean;
   isHead?: boolean;
   sortOrder?: number;

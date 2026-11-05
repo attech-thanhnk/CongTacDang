@@ -8,6 +8,7 @@ import {
   APPROVAL_AUTHORITY_CODE_LABELS,
   ApprovalAuthorityCode,
   catalogService,
+  OrgUnitType,
   Position,
   POSITION_SIDE_LABELS,
   PositionSide,
@@ -25,6 +26,7 @@ interface FormState {
   statCode: string;
   defaultApprovalAuthority: "" | ApprovalAuthorityCode;
   defaultWorkflowProfileCode: string;
+  partyUnitTypeId: string;
   isLeadership: boolean;
   isHead: boolean;
   formLayoutId: string;
@@ -38,6 +40,7 @@ const EMPTY_FORM: FormState = {
   statCode: "",
   defaultApprovalAuthority: "",
   defaultWorkflowProfileCode: "",
+  partyUnitTypeId: "",
   isLeadership: false,
   isHead: false,
   formLayoutId: "",
@@ -51,6 +54,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
   const [positions, setPositions] = useState<Position[]>([]);
   const [layouts, setLayouts] = useState<FormLayout[]>([]);
   const [profiles, setProfiles] = useState<WorkflowProfileOption[]>([]);
+  const [partyTypes, setPartyTypes] = useState<OrgUnitType[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [sideFilter, setSideFilter] = useState<"" | PositionSide>("");
@@ -61,14 +65,16 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [items, layoutItems, profileItems] = await Promise.all([
+      const [items, layoutItems, profileItems, unitTypes] = await Promise.all([
         catalogService.listPositions(),
         formLayoutService.list(),
         catalogService.listWorkflowProfileOptions(),
+        catalogService.listUnitTypes(),
       ]);
       setPositions(items);
       setLayouts(layoutItems);
       setProfiles(profileItems);
+      setPartyTypes(unitTypes.filter((t) => t.side === "Party"));
     } catch (err) {
       toast.error(errorMessage(err, "Tải danh mục chức vụ không thành công."), errorTitle(err));
     } finally {
@@ -101,6 +107,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
       statCode: p.statCode ?? "",
       defaultApprovalAuthority: p.defaultApprovalAuthority ?? "",
       defaultWorkflowProfileCode: p.defaultWorkflowProfileCode ?? "",
+      partyUnitTypeId: p.partyUnitTypeId ?? "",
       isLeadership: p.isLeadership,
       isHead: p.isHead,
       formLayoutId: p.formLayoutId ?? "",
@@ -122,6 +129,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
       statCode: form.statCode.trim(),
       defaultApprovalAuthority: form.defaultApprovalAuthority,
       defaultWorkflowProfileCode: form.defaultWorkflowProfileCode,
+      partyUnitTypeId: form.side === "Party" ? form.partyUnitTypeId : "",
       isLeadership: form.isLeadership,
       isHead: form.isHead,
       formLayoutId: form.formLayoutId,
@@ -226,7 +234,12 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                       {p.isLeadership && <span className="status-badge tone-neutral ms-2">Lãnh đạo, quản lý</span>}
                       {p.isHead && <span className="status-badge tone-neutral ms-2">Người đứng đầu</span>}
                     </td>
-                    <td>{POSITION_SIDE_LABELS[p.side] ?? p.side}</td>
+                    <td>
+                      {POSITION_SIDE_LABELS[p.side] ?? p.side}
+                      {p.partyUnitTypeId && (
+                        <div className="small text-secondary">{partyTypes.find((t) => t.id === p.partyUnitTypeId)?.name}</div>
+                      )}
+                    </td>
                     <td>{p.statCode ? <code>{p.statCode}</code> : "—"}</td>
                     <td className="small">
                       {p.defaultApprovalAuthority ? APPROVAL_AUTHORITY_CODE_LABELS[p.defaultApprovalAuthority] : <span className="text-secondary">Không xác định</span>}
@@ -311,6 +324,24 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                   onChange={(e) => setForm({ ...form, statCode: e.target.value.toUpperCase() })}
                 />
               </div>
+              {form.side === "Party" && (
+                <div className="col-12">
+                  <label className="form-label" htmlFor="pos-party-unit-type">Cấp tổ chức Đảng</label>
+                  <select
+                    id="pos-party-unit-type"
+                    className="form-select form-select-sm"
+                    value={form.partyUnitTypeId}
+                    onChange={(e) => setForm({ ...form, partyUnitTypeId: e.target.value })}
+                  >
+                    <option value="">Không ràng buộc</option>
+                    {partyTypes.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="col-12">
                 <label className="form-label">Thẩm quyền quyết định xếp loại mặc định</label>
                 <select

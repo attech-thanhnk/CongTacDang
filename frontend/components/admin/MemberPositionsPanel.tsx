@@ -121,9 +121,15 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
   const editing = form?.id ? items.find((i) => i.id === form.id) : undefined;
   const side = (selectedPosition?.side ?? (editing?.side as PositionSide | undefined)) as PositionSide | undefined;
   const kinds = unitKinds(side);
+  // Chức vụ Đảng có cấp chỉ giữ tại tổ chức đúng loại.
+  const requiredCellType = side === "Party" ? selectedPosition?.partyUnitTypeId ?? null : null;
   const unitOptions = [
     ...(kinds.includes("department") ? departments.map((d) => ({ value: `d:${d.id}`, label: treeLabel(d), active: d.isActive })) : []),
-    ...(kinds.includes("cell") ? partyCells.map((c) => ({ value: `c:${c.id}`, label: treeLabel(c), active: c.isActive })) : []),
+    ...(kinds.includes("cell")
+      ? partyCells
+          .filter((c) => !requiredCellType || c.unitTypeId === requiredCellType || `c:${c.id}` === form?.unitId)
+          .map((c) => ({ value: `c:${c.id}`, label: treeLabel(c), active: c.isActive }))
+      : []),
   ].filter((o) => o.active || o.value === form?.unitId);
 
   const openCreate = () =>
@@ -430,7 +436,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
             <div className="mb-2">
               <label className="form-label">Nơi giữ chức vụ</label>
               <select className="form-select form-select-sm" value={form.unitId} onChange={(e) => setForm({ ...form, unitId: e.target.value })}>
-                <option value="">— Không ghi đơn vị —</option>
+                <option value="">{requiredCellType ? "— Theo nơi sinh hoạt —" : "— Không ghi đơn vị —"}</option>
                 {unitOptions.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}

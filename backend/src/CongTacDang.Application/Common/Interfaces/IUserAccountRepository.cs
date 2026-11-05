@@ -25,6 +25,9 @@ public interface IUserAccountRepository
 
     Task<bool> PartyCellIsActiveAsync(Guid id, CancellationToken ct = default);
 
+    /// <summary>Tổ chức Đảng có tổ chức con chưa xóa, đang hoạt động.</summary>
+    Task<bool> PartyCellHasActiveChildrenAsync(Guid id, CancellationToken ct = default);
+
     /// <summary>Kể cả tài khoản đã xóa; null nếu không tồn tại.</summary>
     Task<AccountState?> GetStateAsync(Guid userId, CancellationToken ct = default);
 

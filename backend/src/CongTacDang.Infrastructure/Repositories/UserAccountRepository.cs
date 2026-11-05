@@ -51,6 +51,10 @@ public sealed class UserAccountRepository : IUserAccountRepository
         _db.PartyCells.AnyAsync(c => c.Id == id && c.IsActive, ct);
 
     /// <inheritdoc />
+    public Task<bool> PartyCellHasActiveChildrenAsync(Guid id, CancellationToken ct = default) =>
+        _db.PartyCells.AnyAsync(c => c.ParentId == id && c.IsActive, ct);
+
+    /// <inheritdoc />
     public Task<AccountState?> GetStateAsync(Guid userId, CancellationToken ct = default) =>
         _db.PartyMemberProfiles
             .IgnoreQueryFilters()

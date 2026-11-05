@@ -127,7 +127,7 @@ public sealed class DynamicOrgIntegrationTests
         var deptId = await CreateUnitAsync(admin, "departments",
             new { code = $"PH-{s}", name = $"Phòng {s}", parentId = await RootAsync(admin, "departments"), unitTypeId = adminTypes["Phòng"] });
         var partyId = await CreateUnitAsync(admin, "branches",
-            new { code = $"DU-{s}", name = $"Đảng ủy {s}", parentId = await RootAsync(admin, "branches"), unitTypeId = partyTypes["Đảng bộ bộ phận"] });
+            new { code = $"DU-{s}", name = $"Đảng ủy {s}", parentId = await RootAsync(admin, "branches"), unitTypeId = partyTypes["Đảng ủy"] });
         var cellId = await CreateUnitAsync(admin, "branches", new { code = $"CB-{s}", name = $"Chi bộ {s}", parentId = partyId, unitTypeId = partyTypes["Chi bộ"] });
         var cell = (await DataAsync(await admin.GetAsync($"/api/organizations/branches/{cellId}")));
         Assert.Equal(partyId, cell.GetProperty("parentId").GetGuid());
@@ -216,7 +216,7 @@ public sealed class DynamicOrgIntegrationTests
         var deptId = await CreateUnitAsync(admin, "departments",
             new { code = $"PQ-{s}", name = $"Phòng quyền {s}", parentId = await RootAsync(admin, "departments"), unitTypeId = adminTypes["Phòng"] });
         var partyId = await CreateUnitAsync(admin, "branches",
-            new { code = $"DQ-{s}", name = $"Đảng ủy quyền {s}", parentId = await RootAsync(admin, "branches"), unitTypeId = partyTypes["Đảng bộ bộ phận"] });
+            new { code = $"DQ-{s}", name = $"Đảng ủy quyền {s}", parentId = await RootAsync(admin, "branches"), unitTypeId = partyTypes["Đảng ủy"] });
 
         var catalog = (await DataAsync(await admin.GetAsync("/api/positions"))).EnumerateArray()
             .ToDictionary(p => p.GetProperty("name").GetString()!, p => p);
@@ -333,6 +333,70 @@ public sealed class DynamicOrgIntegrationTests
         Assert.Equal("Phòng", renamed.GetProperty("unitTypeName").GetString());
         Assert.Equal(deptRoot, renamed.GetProperty("parentId").GetGuid());
         Assert.Equal(HttpStatusCode.OK, (await admin.DeleteAsync($"/api/organizations/departments/{child}")).StatusCode);
+    }
+
+    // ===================== O5: nơi sinh hoạt là chi bộ, chức vụ Đảng giữ đúng cấp =====================
+
+    [SkippableFact]
+    public async Task O5_PartyCellMustBeLeaf_AndLeveledPartyPositionsHeldAtNearestUnitOfType()
+    {
+        SkipIfNoDatabase();
+        var admin = await AdminAsync();
+        var s = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        var partyTypes = await UnitTypesAsync(admin, "Party");
+        var du = await CreateUnitAsync(admin, "branches",
+            new { code = $"DU5-{s}", name = $"Đảng ủy {s}", parentId = await RootAsync(admin, "branches"), unitTypeId = partyTypes["Đảng ủy"] });
+        var dbbp = await CreateUnitAsync(admin, "branches", new { code = $"DB5-{s}", name = $"Đảng bộ bộ phận {s}", parentId = du, unitTypeId = partyTypes["Đảng bộ bộ phận"] });
+        var cb = await CreateUnitAsync(admin, "branches", new { code = $"CB5-{s}", name = $"Chi bộ {s}", parentId = dbbp, unitTypeId = partyTypes["Chi bộ"] });
+
+        // Tạo/đổi nơi sinh hoạt sang tổ chức có tổ chức con → 400; chi bộ → được.
+        var atDu = await admin.PostAsJsonAsync("/api/users", new { username = $"o5.du.{s.ToLowerInvariant()}", fullName = "Ở Đảng ủy", partyCellId = du });
+        Assert.Equal(HttpStatusCode.BadRequest, atDu.StatusCode);
+        Assert.Equal("Lưu tài khoản không thành công: đảng viên phải sinh hoạt tại một chi bộ, không chọn Đảng bộ có chi bộ trực thuộc.",
+            await MessageAsync(atDu));
+        var created = await DataAsync(await admin.PostAsJsonAsync("/api/users",
+            new { username = $"o5.cb.{s.ToLowerInvariant()}", fullName = "Ở chi bộ", partyCellId = cb }));
+        var memberId = created.GetProperty("userId").GetGuid();
+        var moved = await admin.PutAsJsonAsync($"/api/users/{memberId}", new { partyCellId = dbbp });
+        Assert.Equal(HttpStatusCode.BadRequest, moved.StatusCode);
+        Assert.Contains("sinh hoạt tại một chi bộ", await MessageAsync(moved));
+
+        // Tài khoản cũ đang ở Đảng bộ: sửa trường khác vẫn lưu được.
+        var legacy = await _factory.CreateUserAsync(null, du, fullName: $"Cũ ở Đảng ủy {s}");
+        Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync($"/api/users/{legacy.Id}",
+            new { phoneNumber = "0912000000", partyCellId = du })).StatusCode);
+
+        // Chức vụ Đảng có cấp, không chọn tổ chức → tổ chức gần nhất đúng loại từ chi bộ của cán bộ trở lên.
+        var catalog = (await DataAsync(await admin.GetAsync("/api/positions"))).EnumerateArray()
+            .ToDictionary(p => p.GetProperty("name").GetString()!, p => p);
+        Assert.Equal(partyTypes["Đảng ủy"], catalog["Đảng ủy viên"].GetProperty("partyUnitTypeId").GetGuid());
+        Assert.Equal(partyTypes["Đảng bộ bộ phận"], catalog["Ủy viên Ban Chấp hành Đảng bộ bộ phận"].GetProperty("partyUnitTypeId").GetGuid());
+        Assert.Equal(JsonValueKind.Null, catalog["Bí thư Đảng ủy Tổng công ty"].GetProperty("partyUnitTypeId").ValueKind);
+        Guid PositionId(string name) => catalog[name].GetProperty("id").GetGuid();
+        foreach (var name in new[] { "Đảng ủy viên", "Ủy viên Ban Chấp hành Đảng bộ bộ phận", "Chi ủy viên" })
+            await AddPositionAsync(admin, memberId, new { positionId = PositionId(name), isPrimary = false });
+        var held = (await DataAsync(await admin.GetAsync($"/api/users/{memberId}/positions"))).EnumerateArray()
+            .ToDictionary(p => p.GetProperty("positionName").GetString()!, p => p.GetProperty("partyCellId").GetGuid());
+        Assert.Equal(du, held["Đảng ủy viên"]);
+        Assert.Equal(dbbp, held["Ủy viên Ban Chấp hành Đảng bộ bộ phận"]);
+        Assert.Equal(cb, held["Chi ủy viên"]);
+
+        // Tự chọn tổ chức sai loại → 400; cán bộ chưa có nơi sinh hoạt → không tìm được tổ chức → 400.
+        var wrongType = await admin.PostAsJsonAsync($"/api/users/{memberId}/positions",
+            new { positionId = PositionId("Phó Bí thư Đảng ủy"), partyCellId = cb });
+        Assert.Equal(HttpStatusCode.BadRequest, wrongType.StatusCode);
+        Assert.StartsWith("Gán chức vụ không thành công:", await MessageAsync(wrongType));
+        var noCell = await _factory.CreateUserAsync();
+        var notFound = await admin.PostAsJsonAsync($"/api/users/{noCell.Id}/positions", new { positionId = PositionId("Chi ủy viên") });
+        Assert.Equal(HttpStatusCode.BadRequest, notFound.StatusCode);
+        Assert.Contains("không tìm thấy", await MessageAsync(notFound));
+
+        // Cấp chỉ đặt cho chức vụ Đảng và phải là loại bên Đảng.
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync("/api/positions",
+            new { name = $"Sai bên {s}", side = "Administrative", partyUnitTypeId = partyTypes["Chi bộ"] })).StatusCode);
+        var adminTypes = await UnitTypesAsync(admin, "Administrative");
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync("/api/positions",
+            new { name = $"Sai loại {s}", side = "Party", partyUnitTypeId = adminTypes["Phòng"] })).StatusCode);
     }
 
     // ===================== Hỗ trợ =====================

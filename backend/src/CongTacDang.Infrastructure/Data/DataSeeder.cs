@@ -505,6 +505,28 @@ public static class DataSeeder
         new("Nhân viên", PositionSide.Administrative, null, null, false)
     };
 
+    /// <summary>Cấp tổ chức Đảng của chức vụ mặc định (cùng quy tắc với migration ThemCapToChucDangChoChucVu); null = không ràng buộc.</summary>
+    internal static string? PartyUnitTypeNameOf(string name, string? statCode, PositionSide side)
+    {
+        if (side != PositionSide.Party)
+            return null;
+        switch (statCode)
+        {
+            case "M8" or "M9" or "M17" or "M18" or "M19":
+                return "Đảng ủy";
+            case "M20" or "M21":
+                return "Đảng bộ bộ phận";
+            case "M22" or "M23" or "M24" or "M25":
+                return "Chi bộ";
+        }
+        return name switch
+        {
+            "Ủy viên Ban Chấp hành Đảng bộ bộ phận" => "Đảng bộ bộ phận",
+            "Chi ủy viên" or "Đảng viên" => "Chi bộ",
+            _ => null
+        };
+    }
+
     /// <summary>Mỗi danh mục chỉ seed khi trống (kể cả bản ghi đã xóa).</summary>
     private static async Task SeedOrganizationCatalogsAsync(CongTacDangDbContext context, ILogger? logger)
     {
@@ -517,6 +539,10 @@ public static class DataSeeder
 
         if (!await context.Positions.IgnoreQueryFilters().AnyAsync())
         {
+            var partyTypes = await context.OrgUnitTypes.Where(t => t.Side == OrgSide.Party).ToListAsync();
+            Guid? PartyTypeId(DefaultPosition p) => PartyUnitTypeNameOf(p.Name, p.StatCode, p.Side) is { } typeName
+                ? partyTypes.FirstOrDefault(t => t.Name == typeName)?.Id
+                : null;
             context.Positions.AddRange(DefaultPositions.Select((p, i) => new Position
             {
                 Name = p.Name,
@@ -526,6 +552,7 @@ public static class DataSeeder
                 IsLeadership = p.IsLeadership,
                 IsHead = p.IsHead,
                 DefaultWorkflowProfileCode = p.WorkflowProfile,
+                PartyUnitTypeId = PartyTypeId(p),
                 SortOrder = (i + 1) * 10
             }));
             await context.SaveChangesAsync();

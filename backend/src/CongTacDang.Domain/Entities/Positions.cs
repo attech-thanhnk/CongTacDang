@@ -23,6 +23,11 @@ public class Position : IAuditableEntity, ISoftDeletable
     /// Chỉ dùng khi kỳ có diện quyết định mã này.</summary>
     public string? DefaultWorkflowProfileCode { get; set; }
 
+    /// <summary>Chức vụ Đảng: loại tổ chức Đảng nơi giữ chức vụ (Đảng ủy, Đảng bộ bộ phận, Chi bộ); null = không ràng buộc.</summary>
+    public Guid? PartyUnitTypeId { get; set; }
+
+    public OrgUnitType? PartyUnitType { get; set; }
+
     public bool IsLeadership { get; set; }
 
     /// <summary>Người đứng đầu: không tính vào trần Xuất sắc của nhóm chức danh (cả số Xuất sắc và số Hoàn thành tốt).</summary>

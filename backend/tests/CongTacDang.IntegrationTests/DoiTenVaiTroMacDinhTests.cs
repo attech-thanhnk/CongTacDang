@@ -59,12 +59,14 @@ public sealed class DoiTenVaiTroMacDinhTests
                     ALTER TABLE organization_settings ADD COLUMN IF NOT EXISTS "GuideDocumentNumber" varchar(50), ADD COLUMN IF NOT EXISTS "GuideDocumentDate" date;
                     ALTER TABLE party_cells ADD COLUMN IF NOT EXISTS "ShortName" varchar(30);
                     ALTER TABLE administrative_departments ADD COLUMN IF NOT EXISTS "ShortName" varchar(30);
+                    ALTER TABLE positions ADD COLUMN IF NOT EXISTS "PartyUnitTypeId" uuid;
                     """);
                 await DataSeeder.SeedAsync(db);
                 await db.Database.ExecuteSqlRawAsync("""
                     ALTER TABLE organization_settings DROP COLUMN "GuideDocumentNumber", DROP COLUMN "GuideDocumentDate";
                     ALTER TABLE party_cells DROP COLUMN "ShortName";
                     ALTER TABLE administrative_departments DROP COLUMN "ShortName";
+                    ALTER TABLE positions DROP COLUMN "PartyUnitTypeId";
                     """);
                 // Mô phỏng CSDL đã vận hành với tên cũ.
                 await db.Database.ExecuteSqlRawAsync("""

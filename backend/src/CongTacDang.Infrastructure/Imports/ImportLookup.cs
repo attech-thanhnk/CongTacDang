@@ -49,7 +49,7 @@ public sealed class ImportLookup : IImportLookup, IImportAuditWriter
         => await _db.Positions.AsNoTracking()
             .Where(p => !p.IsDeleted)
             .OrderBy(p => p.SortOrder).ThenBy(p => p.Name)
-            .Select(p => new PositionRef(p.Id, p.Name, p.StatCode, p.Side, p.IsActive))
+            .Select(p => new PositionRef(p.Id, p.Name, p.StatCode, p.Side, p.IsActive, p.PartyUnitTypeId))
             .ToListAsync(ct);
 
     /// <inheritdoc />

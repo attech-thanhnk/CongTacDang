@@ -173,6 +173,9 @@ public interface IOrganizationRepository
     /// <summary>Số đơn vị chưa xóa (cả hai bên) theo từng loại.</summary>
     Task<Dictionary<Guid, int>> CountUnitsByTypeAsync();
 
+    /// <summary>Số chức vụ chưa xóa lấy loại này làm cấp tổ chức Đảng.</summary>
+    Task<int> CountPositionsByPartyUnitTypeAsync(Guid typeId);
+
     void AddUnitType(OrgUnitType type);
 
     /// <summary>Xóa mềm khi lưu.</summary>

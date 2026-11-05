@@ -54,6 +54,9 @@ public class PositionDto
     /// <summary>Mã diện quyết định gợi ý khi thêm người giữ chức vụ vào kỳ; null = theo thẩm quyền.</summary>
     public string? DefaultWorkflowProfileCode { get; set; }
 
+    /// <summary>Chức vụ Đảng: loại tổ chức Đảng nơi giữ chức vụ; null = không ràng buộc.</summary>
+    public Guid? PartyUnitTypeId { get; set; }
+
     public bool IsLeadership { get; set; }
 
     /// <summary>Không tính vào trần tỷ lệ Hoàn thành xuất sắc.</summary>
@@ -89,6 +92,9 @@ public class SavePositionDto
 
     /// <summary>Mã diện quyết định gợi ý; rỗng = bỏ (theo thẩm quyền).</summary>
     public string? DefaultWorkflowProfileCode { get; set; }
+
+    /// <summary>Loại tổ chức Đảng nơi giữ chức vụ (chỉ chức vụ Đảng); rỗng = bỏ ràng buộc.</summary>
+    public string? PartyUnitTypeId { get; set; }
 
     public bool? IsLeadership { get; set; }
 

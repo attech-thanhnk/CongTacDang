@@ -108,8 +108,12 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
   const partyCellIds = new Set(scope?.partyCellIds ?? []);
   const scopedDepartments = !scope || scope.isGlobal || departmentIds.size === 0
     ? departments : departments.filter((d) => departmentIds.has(d.id) || d.id === form.departmentId);
+  // Đảng viên sinh hoạt tại chi bộ: bỏ tổ chức có tổ chức con đang hoạt động (giữ giá trị đang có).
+  const livingCells = partyCells.filter(
+    (c) => c.id === form.partyCellId || !partyCells.some((x) => x.parentId === c.id && x.isActive)
+  );
   const scopedPartyCells = !scope || scope.isGlobal || partyCellIds.size === 0
-    ? partyCells : partyCells.filter((c) => partyCellIds.has(c.id) || c.id === form.partyCellId);
+    ? livingCells : livingCells.filter((c) => partyCellIds.has(c.id) || c.id === form.partyCellId);
   const outOfScope = !!scope && !scope.isGlobal
     && !(form.departmentId && departmentIds.has(form.departmentId))
     && !(form.partyCellId && partyCellIds.has(form.partyCellId));

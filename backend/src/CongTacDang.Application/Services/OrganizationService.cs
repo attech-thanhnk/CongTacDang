@@ -391,6 +391,10 @@ public class OrganizationService : IOrganizationService
         if (used > 0)
             throw new ConflictException(
                 $"Không thể xóa loại \"{type.Name}\" vì còn {used} đơn vị thuộc loại này. Hãy đổi loại của các đơn vị đó hoặc chuyển loại sang \"Ngừng dùng\".");
+        var positions = await _orgRepo.CountPositionsByPartyUnitTypeAsync(id);
+        if (positions > 0)
+            throw new ConflictException(
+                $"Không thể xóa loại \"{type.Name}\" vì còn {positions} chức vụ lấy loại này làm cấp tổ chức Đảng. Hãy đổi cấp của các chức vụ đó hoặc chuyển loại sang \"Ngừng dùng\".");
 
         _orgRepo.RemoveUnitType(type);
         await _unitOfWork.SaveChangesAsync();

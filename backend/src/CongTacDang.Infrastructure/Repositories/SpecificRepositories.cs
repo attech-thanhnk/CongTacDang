@@ -748,6 +748,9 @@ public class OrganizationRepository : IOrganizationRepository
             .ToDictionary(g => g.Key, g => g.Sum(r => r.Count));
     }
 
+    public Task<int> CountPositionsByPartyUnitTypeAsync(Guid typeId)
+        => _db.Positions.CountAsync(p => p.PartyUnitTypeId == typeId);
+
     public void AddUnitType(OrgUnitType type) => _db.OrgUnitTypes.Add(type);
 
     public void RemoveUnitType(OrgUnitType type) => _db.OrgUnitTypes.Remove(type);

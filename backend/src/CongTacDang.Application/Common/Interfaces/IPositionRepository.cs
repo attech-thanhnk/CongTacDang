@@ -57,6 +57,12 @@ public interface IPositionRepository
 
     Task<bool> PartyCellIsActiveAsync(Guid id, CancellationToken ct = default);
 
+    /// <summary>Mọi tổ chức Đảng chưa xóa, kể cả đã ngừng hoạt động.</summary>
+    Task<List<PartyUnitNode>> ListPartyUnitsAsync(CancellationToken ct = default);
+
+    /// <summary>Loại đơn vị chưa xóa; null = không có.</summary>
+    Task<OrgUnitType?> FindUnitTypeAsync(Guid id, CancellationToken ct = default);
+
     Task<bool> DepartmentIsActiveAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>Chức vụ hiệu lực tại <paramref name="at"/>; các bộ lọc null = không lọc, đơn vị so khớp đúng (không gồm con).</summary>

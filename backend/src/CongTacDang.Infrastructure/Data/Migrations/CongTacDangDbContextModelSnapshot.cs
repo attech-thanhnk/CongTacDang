@@ -2825,6 +2825,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<Guid?>("PartyUnitTypeId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Side")
                         .HasColumnType("integer");
 
@@ -2848,6 +2851,8 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.HasIndex("Name")
                         .IsUnique()
                         .HasFilter("\"IsDeleted\" = FALSE");
+
+                    b.HasIndex("PartyUnitTypeId");
 
                     b.ToTable("positions", (string)null);
                 });
@@ -3827,7 +3832,14 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasForeignKey("FormLayoutId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CongTacDang.Domain.Entities.OrgUnitType", "PartyUnitType")
+                        .WithMany()
+                        .HasForeignKey("PartyUnitTypeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("FormLayout");
+
+                    b.Navigation("PartyUnitType");
                 });
 
             modelBuilder.Entity("CongTacDang.Domain.Entities.RecordOpinion", b =>

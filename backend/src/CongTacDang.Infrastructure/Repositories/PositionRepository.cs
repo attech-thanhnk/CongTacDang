@@ -188,6 +188,16 @@ public sealed class PositionRepository : IPositionRepository
         => _db.PartyCells.AnyAsync(c => c.Id == id && c.IsActive, ct);
 
     /// <inheritdoc />
+    public Task<List<PartyUnitNode>> ListPartyUnitsAsync(CancellationToken ct = default)
+        => _db.PartyCells.AsNoTracking()
+            .Select(c => new PartyUnitNode(c.Id, c.ParentId, c.UnitTypeId, c.IsActive))
+            .ToListAsync(ct);
+
+    /// <inheritdoc />
+    public Task<OrgUnitType?> FindUnitTypeAsync(Guid id, CancellationToken ct = default)
+        => _db.OrgUnitTypes.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id, ct);
+
+    /// <inheritdoc />
     public Task<bool> DepartmentIsActiveAsync(Guid id, CancellationToken ct = default)
         => _db.AdministrativeDepartments.AnyAsync(d => d.Id == id && d.IsActive, ct);
 

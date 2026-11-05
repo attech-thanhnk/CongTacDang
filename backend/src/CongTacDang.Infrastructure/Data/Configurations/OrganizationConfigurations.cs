@@ -100,6 +100,11 @@ public sealed class PositionConfiguration : IEntityTypeConfiguration<Position>
             .WithMany()
             .HasForeignKey(e => e.FormLayoutId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        entity.HasOne(e => e.PartyUnitType)
+            .WithMany()
+            .HasForeignKey(e => e.PartyUnitTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 
