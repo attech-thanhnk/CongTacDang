@@ -8,7 +8,9 @@
 | Mã bước | Nội dung | Quyền thực hiện mặc định (khi nội bộ) | Mẫu | Ràng buộc chế độ |
 |---|---|---|---|---|
 | `B1_REGISTER` | Cá nhân đăng ký sản phẩm/nhiệm vụ | chủ hồ sơ (`evaluation.self`, cố định) | 01 | **chỉ Nội bộ** (luôn áp dụng) |
-| `B1_APPROVE` | Duyệt / trả lại danh mục sản phẩm | `evaluation.tasks.approve` | 01 | mọi chế độ |
+| `B1_UNIT_SUBMIT` | Trưởng đơn vị gửi / trả lại danh mục (ký ô "Người trực tiếp sử dụng") | `evaluation.tasks.forward` | 01 | mọi chế độ; tự bỏ qua khi chủ hồ sơ là Trưởng đơn vị |
+| `B1_HR_REVIEW` | Cơ quan tổ chức cán bộ rà soát, trình / trả lại danh mục (ký ô "Cơ quan tổ chức cán bộ") | `evaluation.tasks.review` | 01 | mọi chế độ |
+| `B1_APPROVE` | Duyệt / trả lại danh mục sản phẩm (ký ô "Cấp có thẩm quyền phê duyệt") | `evaluation.tasks.approve` | 01 | mọi chế độ |
 | `B2_SELF_SCORE` | Tự chấm điểm, đề xuất mức | chủ hồ sơ (`evaluation.self`, cố định) | 02, 09A, 09C, 9D | **chỉ Nội bộ** |
 | `B2_CELL_CONFIRM` | Chi bộ xác nhận / trả lại phiếu tự chấm | `evaluation.cell.confirm` | 9D "Xác nhận của Chi bộ" | mọi chế độ |
 | `B3A_COLLECTIVE` | Ghi nhận đề xuất của tập thể lãnh đạo (kết quả phiếu kín) | `evaluation.collective.record` | 11, 12, 13, 07, 08 | mọi chế độ |
@@ -20,7 +22,7 @@
 Mẫu cá nhân áp dụng cho hồ sơ (nút xuất trên trang hồ sơ, phần nhập 09C/9D ở `B2_SELF_SCORE`) theo **bộ tiêu chí của kỳ**
 (`requiredForms`, mục 3.5) — không cố định theo bước.
 
-Thứ tự cố định: `B1_REGISTER → B1_APPROVE → B2_SELF_SCORE → B2_CELL_CONFIRM → B3A_COLLECTIVE → B3B_APPRAISAL → B3C_DIRECTOR → B4_DECISION → B5_PUBLISH`.
+Thứ tự cố định: `B1_REGISTER → B1_UNIT_SUBMIT → B1_HR_REVIEW → B1_APPROVE → B2_SELF_SCORE → B2_CELL_CONFIRM → B3A_COLLECTIVE → B3B_APPRAISAL → B3C_DIRECTOR → B4_DECISION → B5_PUBLISH`.
 
 ### 1.1 Chế độ bước và diện quyết định (task 15)
 
@@ -45,6 +47,8 @@ Trạng thái = **bước đang chờ** (thay enum `RecordStatus` hiện tại):
 | Trạng thái | Nghĩa |
 |---|---|
 | `AwaitingRegistration` | Chờ cá nhân đăng ký sản phẩm |
+| `AwaitingUnitSubmit` | Chờ Trưởng đơn vị gửi |
+| `AwaitingTaskReview` | Chờ rà soát, trình duyệt |
 | `AwaitingTaskApproval` | Chờ duyệt danh mục |
 | `AwaitingSelfScore` | Chờ tự chấm |
 | `AwaitingCellConfirm` | Chờ Chi bộ xác nhận |
@@ -57,7 +61,7 @@ Trạng thái = **bước đang chờ** (thay enum `RecordStatus` hiện tại):
 
 Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit test):
 - **Hoàn thành bước** (làm trong hệ thống, hoặc ghi nhận kết quả của cấp trên) → trạng thái của bước áp dụng kế tiếp theo diện quyết định của hồ sơ.
-- **Trả lại** (chỉ từ `B1_APPROVE`, `B2_CELL_CONFIRM`, `B3B_APPRAISAL` khi bước ở chế độ Nội bộ) → về bước của chủ hồ sơ tương ứng (`AwaitingRegistration` hoặc `AwaitingSelfScore`); **bắt buộc lý do**.
+- **Trả lại** (chỉ từ `B1_UNIT_SUBMIT`, `B1_HR_REVIEW`, `B1_APPROVE`, `B2_CELL_CONFIRM`, `B3B_APPRAISAL` khi bước ở chế độ Nội bộ) → về bước của chủ hồ sơ tương ứng (`AwaitingRegistration` hoặc `AwaitingSelfScore`); **bắt buộc lý do**.
 - **Đổi diện quyết định** (`period.manage`, bắt buộc lý do, ghi lịch sử `ChangeProfile`): chỉ khi kỳ chưa đóng và hồ sơ **chưa qua** bước nào mà hai diện quyết định khác nhau (chế độ hoặc quyền thực hiện); bước đang chờ không còn áp dụng → chuyển tới bước áp dụng kế tiếp.
 - **Không đánh giá (Chưa xếp loại)** — người thuộc diện chưa xếp loại trong quý (đào tạo, nghỉ ốm, thai sản từ 02 tháng; mới bổ nhiệm dưới 01 tháng; đang bị kiểm tra dấu hiệu vi phạm) không đăng ký, không tự chấm, không đi các bước:
   - Đánh dấu: `POST /api/evaluations/records/{id}/not-rated` `{ version, reason }` — `period.manage` trên hồ sơ (`IAuthorizationGuard.Ensure`), không phải hồ sơ của chính mình, **bắt buộc lý do**. Chỉ khi kỳ `Draft`/`Open` và hồ sơ chưa có quyết định (`DecisionRecordedAt` trống, trạng thái không sau `AwaitingDecision`).
@@ -139,6 +143,12 @@ Chuyển trạng thái (máy trạng thái trong `Domain`, thuần, có unit tes
 | Diện BTV Đảng ủy Tổng công ty (`cap-tren`) — mặc định `CapTren` | PL III ví dụ 2; Chủ tịch, Giám đốc, Kiểm soát viên | Đăng ký nội bộ; **duyệt: Cấp trên** (HĐTV Tổng công ty) | Nội bộ | Nội bộ | Nội bộ (tập thể lãnh đạo Công ty) | **Cấp trên** (Ban TCĐU) | **Cấp trên** (HĐTV) | **Cấp trên** (BTV ĐUTCT) | Nội bộ |
 | Bí thư/Phó bí thư Chi bộ là nhân viên (`bi-thu-nhan-vien`) | PL III ví dụ 3; kế hoạch đánh giá quý | Nội bộ — duyệt: `evaluation.director.review` (Giám đốc) | Nội bộ | Nội bộ | Nội bộ — **`evaluation.unit.review`**: Trưởng bộ phận/đơn vị đề xuất mức trên cơ sở ý kiến các Phó, không họp bỏ phiếu, không gắn biên bản/kiểm phiếu (bước mang tên "Trưởng đơn vị đề xuất"; `WorkflowProfile.IsUnitLeaderProposal`) | Nội bộ (Phòng TCCB-LĐ) | **Không áp dụng** | Nội bộ — `evaluation.decide` | Nội bộ |
 | Phó Giám đốc (`pho-giam-doc`) | Kế hoạch đánh giá quý của Phòng TCCB-LĐ | Nội bộ — duyệt: `evaluation.director.review` (Chủ tịch) | Nội bộ | Nội bộ | Nội bộ (tập thể lãnh đạo Công ty) | **Không áp dụng** (Ban TCĐU thẩm định ở cấp trên sau bước nhận xét — ghi nhận cùng bước quyết định) | Nội bộ — Chủ tịch nhận xét, đề xuất (`evaluation.director.review`) | **Cấp trên** (BTV ĐUTCT) | Nội bộ |
+
+**Bước 1 gồm bốn bước.** Chủ hồ sơ nộp danh mục → Trưởng đơn vị gửi (`B1_UNIT_SUBMIT`, vai trò Lãnh đạo đơn vị) → Phòng TCCB-LĐ rà soát, trình (`B1_HR_REVIEW`, vai trò Cơ quan thẩm định; ý kiến Phó Giám đốc phụ trách ghi ở khối "Ý kiến trước phê duyệt" trong lúc này) → người có thẩm quyền duyệt (`B1_APPROVE`). Trả lại ở bước nào cũng về chủ hồ sơ, bắt buộc lý do, xóa tên người đã gửi, đã rà soát, đã duyệt. Mặc định: `co-so`, `bi-thu-nhan-vien` bật cả hai bước; `pho-giam-doc` tắt bước gửi, bật bước rà soát; `cap-tren` tắt cả hai. Hạn mặc định trước bước duyệt lần lượt 2 và 1 ngày làm việc.
+
+**Bỏ qua bước gửi.** Khi hồ sơ tới `B1_UNIT_SUBMIT` (Nội bộ) mà chủ hồ sơ có quyền của bước ở phạm vi gần hồ sơ hơn mọi người khác (`StepPerformerRule.OwnerIsNearest`: chủ hồ sơ là Trưởng đơn vị, hoặc là người duy nhất có quyền), bước tự hoàn thành, lịch sử ghi "Bỏ qua bước Trưởng đơn vị gửi: chủ hồ sơ là Trưởng đơn vị." với người thực hiện "Hệ thống"; Mẫu 01 để dòng chấm ở ô "Người trực tiếp sử dụng". Kiểm tra kẹt luồng coi bước này là có người.
+
+**Kỳ cũ.** Cấu hình kỳ lưu trước khi có hai bước mới (thiếu khóa `B1_UNIT_SUBMIT`, `B1_HR_REVIEW`) đọc hai bước là `Off` (`WorkflowSteps.OffWhenMissing`): hồ sơ nộp xong tới thẳng bước duyệt như trước. Thứ tự trạng thái so bằng `WorkflowSteps.IsBefore`, không so số của enum (hai trạng thái mới mang số 11, 12).
 
 Duyệt danh mục (`B1_APPROVE`) của diện `co-so`, `bi-thu-nhan-vien` dùng quyền nhận xét của cấp trực tiếp sử dụng: việc giao Giám đốc (phạm vi các đơn vị trực thuộc, bao trùm đơn vị con), Chủ tịch (phạm vi Công ty) vẫn làm được. Duyệt điều chỉnh việc trong quý theo cùng quyền của bước này.
 

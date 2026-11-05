@@ -71,6 +71,8 @@ Một hồ sơ đi lần lượt qua các bước dưới đây. Tùy **diện q
 | # | Bước | Ai làm |
 |---|---|---|
 | 1 | Đăng ký sản phẩm, nhiệm vụ | Chính cán bộ |
+| 1a | Trưởng đơn vị gửi danh mục | Trưởng đơn vị; bỏ qua khi chính Trưởng đơn vị đăng ký; Phó Giám đốc không có bước này |
+| 1b | Rà soát, trình duyệt danh mục | Phòng TCCB-LĐ |
 | 2 | Duyệt danh mục sản phẩm | Giám đốc (Phó Giám đốc: Chủ tịch) |
 | 3 | Tự chấm điểm, đề xuất mức | Chính cán bộ |
 | 4 | Chi bộ xác nhận phiếu tự chấm | Chi bộ |
@@ -261,7 +263,10 @@ Nút **Trả lại …** (viền đỏ) nằm cùng chân khung. Bấm, nhập *
 
 ### 4.0 Duyệt danh mục sản phẩm
 
-- Giám đốc duyệt danh mục của Trưởng, Phó phòng và tương đương; Chủ tịch duyệt danh mục của Phó Giám đốc. Trưởng phòng chỉ ký Mẫu 01 của Phó phòng khi nộp.
+- Danh mục cán bộ nộp đi qua Trưởng đơn vị (**Gửi**), Phòng TCCB-LĐ (**Trình duyệt**) rồi tới người duyệt. Trưởng đơn vị tự đăng ký thì hồ sơ tới thẳng Phòng TCCB-LĐ; danh mục của Phó Giám đốc không qua Trưởng đơn vị.
+- Ở bước gửi và bước trình duyệt: nhập **Ý kiến** (nếu có) rồi bấm **Gửi** / **Trình duyệt**, hoặc **Trả lại danh mục** kèm lý do — hồ sơ về cán bộ, đăng ký lại từ đầu.
+- Giám đốc duyệt danh mục của Trưởng, Phó phòng và tương đương; Chủ tịch duyệt danh mục của Phó Giám đốc.
+- Mẫu 01 in họ tên ở bốn ô ký: cá nhân đăng ký, người trực tiếp sử dụng (Trưởng đơn vị đã gửi), cơ quan tổ chức cán bộ (người đã trình), cấp có thẩm quyền phê duyệt (người đã duyệt). Ô của bước không áp dụng, bỏ qua hoặc do cấp trên thực hiện để dòng chấm, ký tay.
 - Xem danh mục sản phẩm cán bộ đăng ký, nhập **Ý kiến** (nếu có) rồi bấm **Duyệt**.
 - **Tỷ lệ A-B-C-D** (khi bộ tiêu chí cho phép): mở khối này để xem tỷ lệ A-B-C-D của khung và sửa cho riêng hồ sơ, mỗi thành phần trong biên độ cho phép, tổng phải bằng 100%. Không sửa thì giữ nguyên. Bấm **Dùng tỷ lệ của khung** để quay về tỷ lệ gốc. Tỷ lệ đã sửa được dùng khi cán bộ tự chấm và hiện "(đã điều chỉnh)".
 - **Trả lại danh mục**: bấm nút trả lại ở chân khung, nhập lý do.
