@@ -13,7 +13,7 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 ## 1. Mở tài khoản của một cán bộ
 
 1. Menu **Hệ thống** → **Tài khoản**.
-2. Gõ tên hoặc tên đăng nhập vào ô **Tìm kiếm** → bấm vào dòng cán bộ.
+2. Gõ tên hoặc tên đăng nhập vào ô **Tìm kiếm** → bấm **Lọc** → bấm tên cán bộ (hoặc **Chi tiết** cuối dòng).
 
 ![Danh sách tài khoản](anh/quan-tri-01-tai-khoan.png)
 
@@ -64,7 +64,7 @@ Người dùng không nhớ mật khẩu thì đặt lại mật khẩu (mục 2
 Dùng để kiểm tra mỗi việc ở một đơn vị đã có người làm, và ai đang được giao.
 
 1. Menu **Hệ thống** → **Người thực hiện**.
-2. Chọn **Đơn vị chính quyền** hoặc **Tổ chức Đảng**, rồi chọn đơn vị cần xem.
+2. Ô **Xem theo**: chọn **Đơn vị chính quyền** hoặc **Tổ chức Đảng**, rồi chọn đơn vị cần xem ở ô bên cạnh.
 3. Mỗi việc liệt kê người thực hiện:
    - người không có nhãn là người ở cấp gần nhất, việc hiện ở **Việc cần xử lý** của họ;
    - nhãn **Cấp trên**: người ở cấp trên, làm được khi người gần nhất vắng;

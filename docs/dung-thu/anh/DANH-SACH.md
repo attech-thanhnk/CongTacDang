@@ -1,6 +1,6 @@
-# Danh sách ảnh cần chụp
+# Danh sách ảnh
 
-Chụp một lần trên giao diện cuối cùng, môi trường thử riêng (CSDL `ctd_e2e`), khổ 1366×768, mỗi ảnh dưới 300 KB. Dữ liệu tạo bằng `scripts/tao-du-lieu-thu.ps1 -GiaiDoan <giai đoạn>` rồi làm tay phần ghi "(tay)". Tên tệp đúng như cột "Tệp ảnh" (đã dùng trong hướng dẫn).
+Chụp trên môi trường thử riêng (CSDL `ctd_e2e`), khổ 1366×768, mỗi ảnh dưới 300 KB. Dữ liệu tạo bằng `scripts/tao-du-lieu-thu.ps1 -GiaiDoan <giai đoạn>` rồi làm tay phần ghi "(tay)". Chụp lại khi giao diện đổi: giữ đúng tên tệp vì hướng dẫn đã dùng.
 
 Cột "Giai đoạn": giai đoạn của `tao-du-lieu-thu.ps1` mà hồ sơ đang dừng khi chụp.
 
@@ -9,9 +9,16 @@ Cột "Giai đoạn": giai đoạn của `tao-du-lieu-thu.ps1` mà hồ sơ đan
 | Tệp ảnh | Màn hình | Tài khoản | Giai đoạn |
 |---|---|---|---|
 | can-bo-01-dang-nhap.png | Trang đăng nhập, đã gõ tên đăng nhập | (chưa đăng nhập) | bất kỳ |
-| can-bo-02-doi-mat-khau.png | Trang Đổi mật khẩu sau lần đăng nhập đầu | một tài khoản đặt "phải đổi mật khẩu" trong CSDL thử, ví dụ `hien.lv` | bất kỳ |
+| can-bo-02-doi-mat-khau.png | Trang Đổi mật khẩu sau lần đăng nhập đầu | `hien.lv` (đặt "phải đổi mật khẩu" trong CSDL thử) | bất kỳ |
 | can-bo-03-tong-quan.png | Tổng quan, có dòng Hồ sơ của tôi | `trung.nb` | dang-ky |
 | can-bo-04-viec-can-xu-ly.png | Việc cần xử lý | `trung.nb` | dang-ky |
+| can-bo-05-dang-ky.png | Khung Nộp danh mục sản phẩm còn trống | `trung.nb` | dang-ky |
+| can-bo-06-dang-ky-nhap.png | Đang nhập sản phẩm, chân khung có Tổng trọng số | `trung.nb` | dang-ky (tay) |
+| can-bo-08-dang-ky-xac-nhan.png | Hộp xác nhận Nộp danh mục | `trung.nb` | dang-ky (tay) |
+| can-bo-09-dang-ky-xong.png | Sau khi nộp: thanh tiến trình ở Trưởng đơn vị gửi danh mục | `trung.nb` | dang-ky (tay) |
+| can-bo-11-dieu-chinh-nhap.png | Đề nghị điều chỉnh việc đang nhập | `trung.nb` | tu-cham, danh mục đã duyệt (tay) |
+| can-bo-12-dieu-chinh-trong-so.png | Bảng Trọng số sau điều chỉnh, Lý do, Gửi đề nghị | `trung.nb` | như trên |
+| can-bo-13-dieu-chinh-da-gui.png | Đề nghị đã gửi, nhãn Chờ duyệt | `trung.nb` | như trên |
 | can-bo-15-tu-cham-dau.png | Đầu khung Nộp phiếu tự chấm (tiêu chí chung) | `trung.nb` | tu-cham |
 | can-bo-16-tu-cham-san-pham.png | Bảng A-B-C-D đã nhập, một sản phẩm tích Vượt và có tệp minh chứng | `trung.nb` | tu-cham (tay) |
 | can-bo-17-tu-cham-nhiem-vu.png | Nhiệm vụ và kết quả theo trục, đã chọn Mức | `trung.nb` | tu-cham (tay) |
@@ -20,16 +27,16 @@ Cột "Giai đoạn": giai đoạn của `tao-du-lieu-thu.ps1` mà hồ sơ đan
 | can-bo-21-ket-qua.png | Hồ sơ đã công bố, có mức chính thức | `trung.nb` | cong-bo, đã công bố (tay) |
 | can-bo-23-kien-nghi.png | Khối Kiến nghị đang nhập | `trung.nb` | đã công bố |
 | can-bo-26-xac-nhan-ke-hoach.png | Kế hoạch 30-60-90 ngày chờ xác nhận | `trung.nb` | đã công bố mức Hoàn thành nhiệm vụ, kế hoạch đã duyệt (tay) |
-| (bước 1) | Đăng ký sản phẩm, điều chỉnh việc trong quý | `trung.nb` | dang-ky, tu-cham — chụp khi luồng duyệt danh mục mới xong |
 
 ## Lãnh đạo đơn vị — lanh-dao-don-vi.md
 
 | Tệp ảnh | Màn hình | Tài khoản | Giai đoạn |
 |---|---|---|---|
-| lanh-dao-01-viec-can-xu-ly.png | Việc cần xử lý có việc của Trưởng phòng | `duy.lm` | dang-ky sau khi Phó phòng nộp danh mục (luồng mới) |
+| lanh-dao-01-viec-can-xu-ly.png | Việc cần xử lý, nhóm Trưởng đơn vị gửi danh mục | `duy.lm` | dang-ky, `trung.nb` đã nộp danh mục (tay) |
+| lanh-dao-02-gui-danh-muc.png | Khung Gửi danh mục đã ghi ý kiến | `duy.lm` | như trên |
+| lanh-dao-03-tra-lai.png | Hộp Trả lại danh mục | `duy.lm` | như trên |
 | lanh-dao-09-truong-don-vi-de-xuat.png | Khung Trưởng đơn vị đề xuất đã nhập | `tuan.nm` | tap-the (hồ sơ `cuong.nt`) |
 | lanh-dao-12-lap-ke-hoach.png | Khối Kế hoạch 30-60-90 ngày đang lập | `duy.lm` | đã công bố `trung.nb` mức Hoàn thành nhiệm vụ |
-| (bước 1) | Gửi / Trả lại danh mục; duyệt điều chỉnh việc | `duy.lm` | luồng mới |
 
 ## Chi bộ — chi-bo.md
 
@@ -44,7 +51,7 @@ Cột "Giai đoạn": giai đoạn của `tao-du-lieu-thu.ps1` mà hồ sơ đan
 | Tệp ảnh | Màn hình | Tài khoản | Giai đoạn |
 |---|---|---|---|
 | thu-ky-01-viec-can-xu-ly.png | Việc cần xử lý, nhóm Đề xuất của tập thể lãnh đạo | `dao.nta` | tap-the |
-| thu-ky-02-danh-gia-tap-the.png | Đánh giá tập thể, thẻ Biên bản hội nghị | `dao.nta` | tap-the |
+| thu-ky-02-danh-gia-tap-the.png | Trang Đánh giá tập thể | `dao.nta` | tap-the |
 | thu-ky-04-lap-bien-ban.png | Biên bản hội nghị: phần Thông tin hội nghị đã điền | `dao.nta` | tap-the (tay) |
 | thu-ky-05-kiem-phieu.png | Biên bản hội nghị: phần Kiểm phiếu | `dao.nta` | tap-the (tay) |
 | thu-ky-08-de-xuat-nhap.png | Ghi nhận đề xuất của tập thể, đã gắn biên bản và nhập số phiếu | `dao.nta` | tap-the, đã lập biên bản (tay) |
@@ -56,26 +63,29 @@ Cột "Giai đoạn": giai đoạn của `tao-du-lieu-thu.ps1` mà hồ sơ đan
 | tham-dinh-02-tao-ky.png | Hộp Tạo kỳ đánh giá | `loan.ttp` | bất kỳ (tạo thêm một kỳ dự thảo) |
 | tham-dinh-03-ky-moi.png | Trang kỳ Dự thảo, khối Chuẩn bị mở kỳ | `loan.ttp` | kỳ dự thảo vừa tạo |
 | tham-dinh-04-them-nguoi.png | Thêm người được đánh giá, đã chọn đơn vị | `loan.ttp` | kỳ dự thảo |
-| tham-dinh-05-chua-xep-loai.png | Hộp Không đánh giá, ô Lý do | `loan.ttp` | kỳ dự thảo đã có người |
+| tham-dinh-05-chua-xep-loai.png | Hộp Không đánh giá, ô Lý do | `loan.ttp` | kỳ thử vừa mở |
 | tham-dinh-06-dien-quyet-dinh.png | Thẻ Diện quyết định, các hạn | `loan.ttp` | kỳ dự thảo |
 | tham-dinh-07-mo-ky.png | Chuẩn bị mở kỳ đã đủ, nút Mở kỳ | `loan.ttp` | kỳ dự thảo đủ điều kiện |
+| tham-dinh-08-viec-trinh-duyet.png | Việc cần xử lý, nhóm Rà soát, trình duyệt danh mục | `loan.ttp` | sau khi `duy.lm` gửi danh mục `trung.nb` (tay) |
+| tham-dinh-09-trinh-duyet.png | Khung Trình duyệt danh mục đã ghi ý kiến | `loan.ttp` | như trên |
 | tham-dinh-10-viec-can-xu-ly.png | Việc cần xử lý, nhóm Thẩm định | `loan.ttp` | tham-dinh |
 | tham-dinh-11-tham-dinh.png | Khung thẩm định: bảng mức từng nhiệm vụ | `loan.ttp` | tham-dinh |
 | tham-dinh-12-tham-dinh-diem.png | Khung thẩm định: điểm, Mức đề xuất, Giải trình | `loan.ttp` | tham-dinh (tay, chênh lệch để hiện Giải trình) |
-| tham-dinh-21-lap-bien-ban.png | Hộp Lập biên bản họp thống nhất, đã chọn hồ sơ | `loan.ttp` | nhan-xet xong, chờ quyết định |
+| tham-dinh-21-lap-bien-ban.png | Hộp Lập biên bản, đã chọn hồ sơ | `loan.ttp` | nhan-xet xong, chờ quyết định |
 | tham-dinh-22-bien-ban.png | Trang Biên bản họp thống nhất đã điền | `loan.ttp` | như trên |
 | tham-dinh-32-phieu.png | Phiếu kiểm tra, phần Nội dung kiểm tra | `loan.ttp` | sau khi chốt biên bản |
-| (bước 1) | Rà soát, Trình duyệt / Trả lại danh mục | `loan.ttp` | luồng mới |
 
 ## Giám đốc, Chủ tịch — cap-truc-tiep-su-dung.md
 
 | Tệp ảnh | Màn hình | Tài khoản | Giai đoạn |
 |---|---|---|---|
 | cap-tren-01-viec-can-xu-ly.png | Việc cần xử lý, nhóm Nhận xét của cấp trực tiếp sử dụng | `giang.nh` | nhan-xet |
-| cap-tren-02-nhan-xet.png | Khung Nhận xét, đề xuất | `giang.nh` | nhan-xet |
+| cap-tren-02-nhan-xet.png | Khung Nhận xét | `giang.nh` | nhan-xet |
+| cap-tren-03-viec-duyet-danh-muc.png | Việc cần xử lý, nhóm Duyệt danh mục sản phẩm | `giang.nh` | sau khi `loan.ttp` trình duyệt danh mục `trung.nb` (tay) |
+| cap-tren-04-duyet-danh-muc.png | Khung Duyệt danh mục, đã mở Tỷ lệ A-B-C-D | `giang.nh` | như trên |
+| cap-tren-05-duyet-dieu-chinh.png | Đề nghị điều chỉnh việc chờ duyệt, nút Duyệt / Không duyệt | `giang.nh` | sau khi `trung.nb` gửi đề nghị (tay) |
 | cap-tren-11-duyet-ke-hoach.png | Kế hoạch 30-60-90 ngày, nút Duyệt kế hoạch | `giang.nh` | kế hoạch `trung.nb` đã lập (tay) |
-| cap-tren-20-ghi-y-kien.png | Khối Ý kiến trước phê duyệt, hộp Ghi ý kiến | `thanh.nn` | hồ sơ một Trưởng phòng thuộc lĩnh vực phụ trách |
-| (bước 1) | Duyệt danh mục | `giang.nh`, `thinh.lt` | luồng mới |
+| cap-tren-20-ghi-y-kien.png | Khối Ý kiến trước phê duyệt đang ghi | `thanh.nn` | danh mục `duy.lm` chờ Giám đốc duyệt (tay) |
 
 ## Văn phòng Đảng ủy — van-phong-dang-uy.md
 

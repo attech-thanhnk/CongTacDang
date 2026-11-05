@@ -2,7 +2,7 @@
 
 Dành cho Trưởng phòng, Trưởng trung tâm và tương đương. Việc của bạn trên hồ sơ của cán bộ trong đơn vị:
 
-- gửi danh mục sản phẩm của cán bộ lên trên (mục 2);
+- gửi danh mục sản phẩm của cán bộ lên Phòng TCCB-LĐ (mục 2);
 - đề xuất mức cho người là Bí thư/Phó Bí thư chi bộ đồng thời là nhân viên đơn vị (mục 3);
 - lập kế hoạch khắc phục 30-60-90 ngày cho người xếp loại thấp (mục 4).
 
@@ -23,9 +23,23 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 
 ![Việc cần xử lý của lãnh đạo đơn vị](anh/lanh-dao-01-viec-can-xu-ly.png)
 
-## 2. Gửi danh mục sản phẩm, duyệt điều chỉnh việc
+## 2. Gửi danh mục sản phẩm
 
-(đang cập nhật)
+**Khi nào:** khi cán bộ trong đơn vị nộp danh mục sản phẩm; hạn ở bước **Trưởng đơn vị gửi danh mục**. Danh mục của chính bạn không qua bước này.
+
+1. **Việc cần xử lý** → nhóm **Trưởng đơn vị gửi danh mục** → dòng cán bộ → bấm **Gửi**.
+2. Xem danh mục ở khối **Danh mục sản phẩm (Mẫu 01)** bên dưới.
+3. Ở khung **Gửi danh mục**, ghi **Ý kiến** (nếu có) → bấm **Gửi** → **Đồng ý**.
+
+![Gửi danh mục](anh/lanh-dao-02-gui-danh-muc.png)
+
+**Xong thì thấy:** thanh tiến trình chuyển sang **Rà soát, trình duyệt danh mục** (Phòng TCCB-LĐ). Dưới danh mục ghi **Gửi:** tên bạn, thời gian và ý kiến.
+
+**Danh mục chưa đạt:** bấm **Trả lại danh mục** → ghi **Lý do (bắt buộc)** → **Trả lại**. Hồ sơ về lại cán bộ để sửa.
+
+![Trả lại danh mục](anh/lanh-dao-03-tra-lai.png)
+
+Đề nghị điều chỉnh việc trong quý của cán bộ do Giám đốc duyệt, không qua bạn.
 
 ## 3. Trưởng đơn vị đề xuất mức
 

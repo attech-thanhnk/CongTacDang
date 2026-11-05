@@ -87,7 +87,7 @@ Công bố từng hồ sơ: bấm **Công bố** ở cuối dòng.
 1. **Việc cần xử lý** → nhóm **Kiến nghị chờ xử lý** → bấm **Xử lý kiến nghị**.
 2. Trong khối **Kiến nghị** của hồ sơ: bấm **Nhận xem xét**.
 3. Xem xét xong: bấm **Trả lời kiến nghị** → chọn **Chấp nhận** hoặc **Không chấp nhận** → ghi **Nội dung trả lời** → **Gửi trả lời**.
-4. Chấp nhận và cần sửa kết quả: bấm **Mở lại hồ sơ theo kiến nghị**, chọn bước quay về, ghi lý do → **Mở lại hồ sơ**.
+4. Chấp nhận và cần sửa kết quả: bấm **Mở lại hồ sơ theo kiến nghị**. Ô **Quay về bước** đã chọn sẵn bước sớm nhất mà kiến nghị nêu, đổi nếu cần; ghi lý do → **Mở lại hồ sơ**.
 
 ![Trả lời kiến nghị](anh/van-phong-17-tra-loi-kien-nghi.png)
 

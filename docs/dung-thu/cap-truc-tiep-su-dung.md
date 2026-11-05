@@ -2,7 +2,7 @@
 
 Dành cho:
 
-- **Giám đốc**: duyệt danh mục sản phẩm và nhận xét hồ sơ Trưởng phòng, Phó phòng và tương đương;
+- **Giám đốc**: duyệt danh mục sản phẩm, duyệt điều chỉnh việc và nhận xét hồ sơ Trưởng phòng, Phó phòng và tương đương;
 - **Chủ tịch**: duyệt danh mục và nhận xét hồ sơ Phó Giám đốc;
 - **Phó Giám đốc phụ trách**: ghi ý kiến về danh mục, về mức đề xuất của cán bộ thuộc lĩnh vực mình phụ trách (mục 4).
 
@@ -18,7 +18,32 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 
 ## 1. Duyệt danh mục sản phẩm
 
-(đang cập nhật)
+**Khi nào:** sau khi Phòng TCCB-LĐ trình duyệt; hạn ở bước **Duyệt danh mục sản phẩm**.
+
+1. **Việc cần xử lý** → nhóm **Duyệt danh mục sản phẩm** → dòng cán bộ → bấm **Duyệt**.
+
+![Việc chờ duyệt danh mục](anh/cap-tren-03-viec-duyet-danh-muc.png)
+
+2. Xem khối **Danh mục sản phẩm (Mẫu 01)**; dưới danh mục ghi ai đã gửi, ai đã rà soát, trình và ý kiến của họ. Phó Giám đốc phụ trách đã ghi ý kiến thì đọc ở khối **Ý kiến trước phê duyệt** cuối trang.
+3. Ở khung **Duyệt danh mục**: dòng **Tỷ lệ A-B-C-D** là khung tỷ trọng của hồ sơ. Cần điều chỉnh thì bấm vào dòng đó, sửa các ô % (trong giới hạn ghi bên trên, tổng 100%); bấm **Dùng tỷ lệ của khung** để trả về như cũ.
+4. Ghi **Ý kiến** (nếu có) → bấm **Duyệt** → **Đồng ý**.
+
+![Duyệt danh mục](anh/cap-tren-04-duyet-danh-muc.png)
+
+**Xong thì thấy:** thanh tiến trình chuyển sang **Tự chấm điểm, đề xuất mức**; dưới danh mục ghi **Duyệt:** tên bạn. Duyệt nhầm khi cán bộ chưa nộp phiếu tự chấm: khung **Thu hồi duyệt danh mục** → **Thu hồi duyệt**.
+
+**Danh mục chưa đạt:** bấm **Trả lại danh mục** → ghi **Lý do (bắt buộc)** → **Trả lại**.
+
+### Duyệt điều chỉnh việc trong quý
+
+Khi cán bộ gửi đề nghị điều chỉnh việc, việc hiện ở **Việc cần xử lý**, nhóm **Duyệt điều chỉnh việc** → bấm **Duyệt điều chỉnh**.
+
+1. Ở khối **Điều chỉnh việc trong quý**, đọc đề nghị: nội dung mới, bảng **Trọng số trước** / **Sau**, **Lý do**.
+2. Đồng ý thì bấm **Duyệt**. Không đồng ý: bấm **Không duyệt**, ghi **Lý do không duyệt** → bấm **Không duyệt** lần nữa.
+
+![Duyệt điều chỉnh việc](anh/cap-tren-05-duyet-dieu-chinh.png)
+
+**Xong thì thấy:** đề nghị đổi nhãn **Đã duyệt**, danh mục của cán bộ cập nhật ngay.
 
 ## 2. Nhận xét của cấp trực tiếp sử dụng
 
@@ -29,7 +54,7 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 ![Việc chờ nhận xét](anh/cap-tren-01-viec-can-xu-ly.png)
 
 2. Xem các khối bên dưới: **Phiếu tự chấm (Mẫu 09A)**, **Xác nhận của Chi bộ**, **Đề xuất của tập thể lãnh đạo**, **Thẩm định**. Bấm tiêu đề khối để mở.
-3. Trong khung **Nhận xét, đề xuất**: ô **Mức đề xuất** đã điền sẵn mức thẩm định, đổi nếu bạn đề xuất khác; ghi **Nhận xét**.
+3. Trong khung **Nhận xét**: ô **Mức đề xuất** đã điền sẵn mức thẩm định, đổi nếu bạn đề xuất khác; ghi **Nhận xét**.
 4. Bấm **Ghi nhận nhận xét** → **Đồng ý**.
 
 ![Khung nhận xét](anh/cap-tren-02-nhan-xet.png)

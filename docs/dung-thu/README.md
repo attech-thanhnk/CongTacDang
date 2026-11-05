@@ -24,12 +24,12 @@ Tìm tên mình ở bảng dưới, đọc các tệp ở cột "Đọc". Ngư�
 
 | Tệp | Cho ai | Việc chính |
 |---|---|---|
-| [can-bo.md](can-bo.md) | Người được đánh giá | Đăng nhập, đổi mật khẩu, đăng ký sản phẩm, tự chấm, minh chứng, kết quả, kiến nghị, kế hoạch khắc phục |
+| [can-bo.md](can-bo.md) | Người được đánh giá | Đăng nhập, đổi mật khẩu, đăng ký sản phẩm, điều chỉnh việc, tự chấm, minh chứng, kết quả, kiến nghị, kế hoạch khắc phục |
 | [lanh-dao-don-vi.md](lanh-dao-don-vi.md) | Trưởng phòng, Trưởng trung tâm | Gửi danh mục, đề xuất mức cho Bí thư chi bộ là nhân viên, lập kế hoạch khắc phục |
 | [chi-bo.md](chi-bo.md) | Bí thư, Phó Bí thư chi bộ | Xác nhận hoặc trả lại phiếu tự chấm |
 | [thu-ky.md](thu-ky.md) | Thư ký hội nghị | Biên bản hội nghị, kiểm phiếu, ghi đề xuất tập thể |
 | [tham-dinh.md](tham-dinh.md) | Phòng TCCB-LĐ | Lập, mở kỳ; rà soát danh mục; thẩm định; biên bản họp thống nhất; phiếu kiểm tra; Chưa xếp loại |
-| [cap-truc-tiep-su-dung.md](cap-truc-tiep-su-dung.md) | Giám đốc, Chủ tịch, Phó Giám đốc phụ trách | Duyệt danh mục, nhận xét, duyệt kế hoạch khắc phục, ghi ý kiến |
+| [cap-truc-tiep-su-dung.md](cap-truc-tiep-su-dung.md) | Giám đốc, Chủ tịch, Phó Giám đốc phụ trách | Duyệt danh mục, duyệt điều chỉnh việc, nhận xét, duyệt kế hoạch khắc phục, ghi ý kiến |
 | [van-phong-dang-uy.md](van-phong-dang-uy.md) | Văn phòng Đảng ủy | Chốt biên bản, xác nhận phiếu kiểm tra, quyết định, ghi nhận kết quả cấp trên, công bố, kiến nghị, báo cáo |
 | [quan-tri.md](quan-tri.md) | Quản trị | Mật khẩu, mở khóa, vai trò và phạm vi, người thực hiện |
 

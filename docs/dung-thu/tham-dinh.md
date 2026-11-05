@@ -37,11 +37,27 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 
 Thêm nhầm: **⋯** ở dòng → **Bỏ khỏi kỳ**.
 
-### A3. Đánh dấu Chưa xếp loại
+### A3. Xem hạn các bước
 
-Người không đánh giá trong kỳ (nghỉ dài ngày, mới bổ nhiệm dưới 1 tháng…):
+1. Thẻ **Diện quyết định**: mỗi diện có hạn của từng bước, hệ thống tự điền khi tạo kỳ.
+2. Sửa hạn nếu lịch khác → bấm **Lưu**. Bấm **Tính lại thời hạn** để tính lại theo quy tắc.
 
-1. Thẻ **Người được đánh giá** → **⋯** ở dòng người đó → **Không đánh giá (Chưa xếp loại)**.
+![Thẻ Diện quyết định](anh/tham-dinh-06-dien-quyet-dinh.png)
+
+### A4. Kiểm tra và mở kỳ
+
+1. Khối **Chuẩn bị mở kỳ**: mọi dòng phải có dấu tích xanh, gồm cả **Mọi bước đều có người thực hiện**. Còn bước chưa có người thì nhờ Quản trị phân công.
+2. Bấm **Mở kỳ** ở đầu trang → hộp **Mở kỳ đánh giá** → **Mở kỳ**.
+
+![Chuẩn bị mở kỳ](anh/tham-dinh-07-mo-ky.png)
+
+**Xong thì thấy:** kỳ chuyển **Đang mở**; cán bộ thấy việc đăng ký ở **Việc cần xử lý**. Từ lúc này chỉ sửa được thời hạn các bước.
+
+### A5. Đánh dấu Chưa xếp loại
+
+Người không đánh giá trong kỳ (nghỉ dài ngày, mới bổ nhiệm dưới 1 tháng…). Làm sau khi mở kỳ:
+
+1. Trang kỳ → thẻ **Người được đánh giá** → **⋯** ở dòng người đó → **Không đánh giá (Chưa xếp loại)**.
 2. Ghi **Lý do (bắt buộc)** → bấm **Đánh dấu**.
 
 ![Đánh dấu Chưa xếp loại](anh/tham-dinh-05-chua-xep-loai.png)
@@ -50,26 +66,23 @@ Người không đánh giá trong kỳ (nghỉ dài ngày, mới bổ nhiệm d�
 
 Hồ sơ đang thẩm định cũng đánh dấu được ngay trong khung thẩm định: nút **Không đánh giá (Chưa xếp loại)**.
 
-### A4. Xem hạn các bước
-
-1. Thẻ **Diện quyết định**: mỗi diện có hạn của từng bước, hệ thống tự điền khi tạo kỳ.
-2. Sửa hạn nếu lịch khác → bấm **Lưu**. Bấm **Tính lại thời hạn** để tính lại theo quy tắc.
-
-![Thẻ Diện quyết định](anh/tham-dinh-06-dien-quyet-dinh.png)
-
-### A5. Kiểm tra và mở kỳ
-
-1. Khối **Chuẩn bị mở kỳ**: mọi mục phải xong (bộ tiêu chí, người được đánh giá, thời hạn).
-2. Thẻ **Người thực hiện các bước**: phải ghi **Mọi bước đều có người thực hiện.** Còn bước chưa có người thì nhờ Quản trị phân công.
-3. Bấm **Mở kỳ** ở đầu trang → **Mở kỳ**.
-
-![Chuẩn bị mở kỳ](anh/tham-dinh-07-mo-ky.png)
-
-**Xong thì thấy:** kỳ chuyển **Đang mở**; cán bộ thấy việc đăng ký ở **Việc cần xử lý**. Từ lúc này chỉ sửa được thời hạn các bước.
-
 ## Phần B. Rà soát danh mục sản phẩm
 
-(đang cập nhật)
+**Khi nào:** sau khi Trưởng đơn vị gửi danh mục (danh mục của Trưởng đơn vị thì ngay sau khi nộp); hạn ở bước **Rà soát, trình duyệt danh mục**.
+
+1. **Việc cần xử lý** → nhóm **Rà soát, trình duyệt danh mục** → dòng cán bộ → bấm **Trình duyệt**.
+
+![Việc chờ rà soát](anh/tham-dinh-08-viec-trinh-duyet.png)
+
+2. Xem khối **Danh mục sản phẩm (Mẫu 01)**: tên, loại việc, trục, trọng số, chuẩn đạt, khung tỷ trọng.
+3. Kết quả họp rà soát hoặc rà soát hợp lệ cần lưu lại: khối **Ý kiến trước phê duyệt** cuối trang → **Ghi ý kiến** → chọn loại (**Kết quả họp rà soát danh mục** hoặc **Kết quả rà soát hợp lệ**), ghi nội dung → **Lưu**.
+4. Ở khung **Trình duyệt danh mục**, ghi **Ý kiến** (nếu có) → bấm **Trình duyệt** → **Đồng ý**.
+
+![Trình duyệt danh mục](anh/tham-dinh-09-trinh-duyet.png)
+
+**Xong thì thấy:** thanh tiến trình chuyển sang **Duyệt danh mục sản phẩm**, chờ Giám đốc (danh mục của Phó Giám đốc: Chủ tịch). Dưới danh mục ghi **Rà soát, trình:** tên bạn và thời gian.
+
+**Danh mục chưa đạt:** bấm **Trả lại danh mục** → ghi **Lý do (bắt buộc)** → **Trả lại**. Hồ sơ về lại cán bộ để sửa.
 
 ## Phần C. Thẩm định
 
@@ -104,15 +117,15 @@ Hồ sơ đang thẩm định cũng đánh dấu được ngay trong khung thẩ
 
 ![Chọn hồ sơ vào biên bản](anh/tham-dinh-21-lap-bien-ban.png)
 
-3. Trang **Biên bản họp thống nhất**, phần **Cuộc họp**: **Ngày họp**, **Địa điểm**, **Chủ trì**, **Thư ký**, **Phạm vi, số lượng hồ sơ**.
+3. Trang **Biên bản họp thống nhất**, phần **Cuộc họp**: **Ngày họp**, **Địa điểm**, **Chủ trì**, **Thư ký**, **Phạm vi, số lượng hồ sơ**. Ô có dấu * là bắt buộc.
 4. **Hồ sơ trong biên bản**: cột **Sau họp thống nhất** ghi mức sau họp nếu cuộc họp thống nhất đổi mức. Thiếu người thì **Thêm hồ sơ**, thừa thì **Gỡ**.
-5. **Thành phần tham dự**: bấm **Thêm người**, ghi họ tên, chức vụ từng người dự.
+5. **Thành phần tham dự**: bấm **Thêm người**, ghi **Họ tên**, **Tư cách** từng người dự; **Ý kiến bảo lưu** nếu có.
 6. **Kết quả chung**: tự tổng hợp; ghi **Chênh lệch đáng chú ý**, **Kết luận sơ bộ** nếu có. **Trường hợp thảo luận**: thêm người được bàn riêng. **Kết luận bổ sung**: ghi kết luận khác. Biên bản chỉ có một hồ sơ thì ghi lý do ở đây.
 7. Đính kèm tệp (nếu có) → bấm **Lưu**.
 
 ![Biên bản họp thống nhất](anh/tham-dinh-22-bien-ban.png)
 
-**Xong thì thấy:** biên bản ở trạng thái **Đang soạn**. Văn phòng Đảng ủy bấm **Chốt biên bản**. Khi chưa đủ chủ trì, thư ký, thành phần tham dự, người chốt thấy dòng vàng ghi còn thiếu gì và nút chốt bị khóa: bổ sung rồi **Lưu** lại.
+**Xong thì thấy:** biên bản ở trạng thái **Đang soạn**, chờ Văn phòng Đảng ủy bấm **Chốt biên bản**. Dòng vàng ở đầu trang ghi những gì còn thiếu (ngày họp, chủ trì, thư ký, thành phần tham dự; lý do khi chỉ có một hồ sơ); còn thiếu thì không chốt được: bổ sung rồi **Lưu** lại.
 
 ## Phần E. Phiếu kiểm tra (Mẫu 19)
 

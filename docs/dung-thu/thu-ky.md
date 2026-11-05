@@ -34,7 +34,7 @@ Cách 2: menu **Đánh giá tập thể** → thẻ **Biên bản hội nghị**
 3. Phần **Thành phần**: **Triệu tập**, **Có mặt** (ô **Vắng mặt** tự tính), **Lý do vắng mặt**, **Chủ trì hội nghị**, **Thư ký hội nghị** kèm chức vụ; người dự khác thì thêm ở **Cán bộ, đảng viên khác được cử tham dự**.
 4. Phần **Nội dung**: **Diễn biến hội nghị**, **Kết quả hội nghị**.
 5. Phần **Kiểm phiếu**: thêm **Tổ kiểm phiếu** (người đầu tiên là Tổ trưởng); nhập **Phiếu phát ra**, **Phiếu thu về**, **Phiếu hợp lệ**, **Không hợp lệ**. Phiếu hợp lệ cộng không hợp lệ phải bằng phiếu thu về.
-6. Mẫu 13: phần **Số phiếu theo từng hồ sơ** hiện danh sách hồ sơ của đơn vị; nhập số phiếu cho từng người.
+6. Mẫu 13: phần **Số phiếu theo từng hồ sơ** (bắt buộc) hiện danh sách hồ sơ của đơn vị; nhập số phiếu cho từng người, ít nhất một hồ sơ.
 7. Bấm **Lưu**.
 
 ![Lập biên bản hội nghị](anh/thu-ky-04-lap-bien-ban.png)

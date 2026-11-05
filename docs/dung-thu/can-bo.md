@@ -41,11 +41,50 @@ Sau khi đăng nhập, bạn ở trang **Tổng quan**. Khối **Việc cần x�
 
 ## 3. Đăng ký sản phẩm (Mẫu 01)
 
-(đang cập nhật)
+**Khi nào:** ngay khi kỳ mở; hạn ở thanh tiến trình, bước **Đăng ký sản phẩm, nhiệm vụ**.
+
+1. Bấm **Việc cần xử lý** → dòng hồ sơ của bạn → bấm **Đăng ký**. Khung **Nộp danh mục sản phẩm** hiện ở đầu trang, có sẵn 3 dòng trống.
+
+![Khung đăng ký sản phẩm](anh/can-bo-05-dang-ky.png)
+
+2. Mỗi sản phẩm điền:
+   - **Tên sản phẩm, công việc**; **Mã sản phẩm (nếu có)**;
+   - **Loại việc** (Trọng tâm / Thường xuyên), **Vai trò** (Chủ trì / Phối hợp), **Trục kết quả**;
+   - **Trọng số (điểm)**, **Thời hạn / mốc quý**;
+   - **Chuẩn đạt**, **Tiêu chí vượt chuẩn**, **Nguồn dữ liệu / minh chứng**, **Thẩm quyền xác nhận**.
+3. Cần thêm sản phẩm: bấm **Thêm dòng**. Bỏ một dòng: bấm **Xóa** ở góc dòng đó.
+
+![Đang nhập sản phẩm](anh/can-bo-06-dang-ky-nhap.png)
+
+4. Xem dòng **Tổng trọng số** ở chân khung: phải bằng số tối đa (ví dụ **70 / 70**).
+5. Bấm **Nộp danh mục** → hộp **Xác nhận thao tác** → **Đồng ý**.
+
+![Xác nhận nộp danh mục](anh/can-bo-08-dang-ky-xac-nhan.png)
+
+**Xong thì thấy:** thanh tiến trình chuyển sang **Trưởng đơn vị gửi danh mục** (bạn là trưởng đơn vị thì sang thẳng **Rà soát, trình duyệt danh mục**). Danh mục đi tiếp: Trưởng đơn vị gửi → Phòng TCCB-LĐ rà soát, trình → Giám đốc duyệt (danh mục của Phó Giám đốc do Chủ tịch duyệt). Khi duyệt xong, thanh tiến trình sang **Tự chấm điểm, đề xuất mức**.
+
+![Đã nộp danh mục](anh/can-bo-09-dang-ky-xong.png)
+
+**Bị trả lại:** người ở bước nào cũng có thể **Trả lại danh mục** kèm lý do. Hồ sơ hiện lại ở **Việc cần xử lý** với nút **Đăng ký**; sửa theo lý do rồi **Nộp danh mục** lại.
 
 ## 4. Điều chỉnh việc trong quý
 
-(đang cập nhật)
+**Khi nào:** sau khi danh mục đã được duyệt và trước khi nộp phiếu tự chấm, khi việc được giao thay đổi. Mỗi lúc chỉ có một đề nghị chờ duyệt.
+
+1. Mở hồ sơ của bạn → khối **Điều chỉnh việc trong quý** → bấm **Đề nghị điều chỉnh** (việc đã đăng ký) hoặc **Ghi nhận việc đột xuất** (việc mới được giao).
+2. **Đề nghị điều chỉnh:** chọn **Việc** và **Loại đề nghị**: **Điều chỉnh việc**, **Chuyển tiếp sang quý sau** hoặc **Loại trừ việc**. Với **Điều chỉnh việc**, sửa nội dung cần đổi (tên việc, chuẩn đạt, trục, vai trò, thời hạn…).
+3. **Việc đột xuất:** điền tên việc, chuẩn đạt, trục, vai trò, thời hạn và trọng số của việc mới.
+
+![Đề nghị điều chỉnh](anh/can-bo-11-dieu-chinh-nhap.png)
+
+4. Bảng **Trọng số sau điều chỉnh**: nhập cột **Sau** cho từng việc; dòng **Tổng** phải bằng số tối đa.
+5. Ghi **Lý do / nguyên nhân** → bấm **Gửi đề nghị**.
+
+![Trọng số sau điều chỉnh](anh/can-bo-12-dieu-chinh-trong-so.png)
+
+**Xong thì thấy:** đề nghị hiện trong khối với nhãn **Chờ duyệt**. Giám đốc (Phó Giám đốc: Chủ tịch) duyệt; khi duyệt, danh mục của bạn cập nhật ngay và nhãn đổi thành **Đã duyệt**. Không duyệt thì nhãn **Không duyệt** kèm lý do.
+
+![Đề nghị đã gửi](anh/can-bo-13-dieu-chinh-da-gui.png)
 
 ## 5. Tự chấm điểm (Mẫu 02, 09A, 09C, 9D)
 
@@ -102,7 +141,7 @@ Chi bộ hoặc Phòng TCCB-LĐ có thể trả lại phiếu để bạn sửa.
 Sau khi Văn phòng Đảng ủy công bố:
 
 - Trang hồ sơ hiện mức xếp loại chính thức.
-- Menu **Kết quả đánh giá** liệt kê kết quả đã công bố bạn được xem; dòng của bạn có nhãn **Của tôi**.
+- Menu **Kết quả đánh giá** liệt kê kết quả đã công bố bạn được xem; dòng của bạn có nhãn **Của tôi**. Không đánh giá trong kỳ thì dòng của bạn ghi **Chưa xếp loại**.
 
 ![Hồ sơ đã công bố](anh/can-bo-21-ket-qua.png)
 
