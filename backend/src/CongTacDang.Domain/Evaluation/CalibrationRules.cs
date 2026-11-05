@@ -29,6 +29,10 @@ public static class CalibrationRules
     public static bool IsEligibleStatus(RecordStatus status) =>
         status is RecordStatus.AwaitingDirectorReview or RecordStatus.AwaitingDecision;
 
+    /// <summary>Hồ sơ đã ghi nhận quyết định hoặc đã công bố.</summary>
+    public static bool IsDecidedStatus(RecordStatus status) =>
+        status is RecordStatus.AwaitingPublish or RecordStatus.Published;
+
     /// <summary>Đã có kết quả thẩm định (điểm hoặc mức), kể cả do cấp trên ghi nhận.</summary>
     public static bool HasAppraisal(EvaluationRecord record) =>
         record.AppraisalScore.HasValue || record.AppraisalProposedGrade != EvaluationGrade.ChuaXepLoai;

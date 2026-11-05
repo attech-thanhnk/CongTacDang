@@ -64,6 +64,14 @@ public class PostPublishController : ControllerBase
         return Ok(ApiResponse<RecordAppealsDto>.Ok(appeals, "Lấy danh sách kiến nghị thành công."));
     }
 
+    /// <summary>Chủ hồ sơ đã xem trả lời kiến nghị.</summary>
+    [HttpPost("evaluations/records/{recordId:guid}/appeals/seen")]
+    public async Task<IActionResult> MarkAppealsSeen(Guid recordId, CancellationToken ct)
+    {
+        await _appeals.MarkSeenAsync(recordId, ct);
+        return Ok(ApiResponse.Ok("Đã ghi nhận xem trả lời kiến nghị."));
+    }
+
     /// <summary>Chủ hồ sơ gửi kiến nghị về kết quả đã công bố.</summary>
     [HttpPost("evaluations/records/{recordId:guid}/appeals")]
     [RequirePermission(PermissionCodes.EvaluationAppealSubmit)]

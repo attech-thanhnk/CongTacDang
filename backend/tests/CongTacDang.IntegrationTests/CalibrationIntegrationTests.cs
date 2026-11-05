@@ -172,16 +172,144 @@ public sealed class CalibrationIntegrationTests
         Assert.Equal("Draft", reopened.GetProperty("status").GetString());
         Assert.Equal("HoanThanh", (await Data(w.PreparerC, $"/api/evaluations/records/{w.RecordA}")).GetProperty("calibratedGrade").GetString());
 
-        // Còn hồ sơ đã quyết định trong biên bản thì chưa chốt lại được; gỡ chúng ra rồi chốt.
-        var blocked = await w.ConcluderC.PostAsJsonAsync($"/api/calibrations/{id}/conclude",
-            new { version = reopened.GetProperty("version").GetUInt32() });
-        Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
-        Assert.Contains("gỡ hồ sơ này khỏi biên bản", JsonDocument.Parse(await blocked.Content.ReadAsStringAsync()).RootElement.GetProperty("message").GetString());
-        var trimmed = await Data(await w.PreparerC.PutAsJsonAsync($"/api/calibrations/{id}",
-            Save(reopened.GetProperty("version").GetUInt32(), new[] { w.RecordC }, Array.Empty<object>(), "Không có nhóm tương đồng")));
-        Assert.Equal(1, trimmed.GetProperty("records").GetArrayLength());
-        await Data(await w.ConcluderC.PostAsJsonAsync($"/api/calibrations/{id}/conclude", new { version = trimmed.GetProperty("version").GetUInt32() }));
+        // Trước đây phải gỡ hồ sơ đã quyết định ra mới chốt lại được; người dùng chấp nhận đề xuất giữ nguyên dòng của họ,
+        // chỉ áp kết quả cho hồ sơ đang chờ.
+        var keptRows = reopened.GetProperty("records").EnumerateArray().ToList();
+        Assert.True(keptRows.Single(r => r.GetProperty("recordId").GetGuid() == w.RecordA).GetProperty("kept").GetBoolean());
+        Assert.False(keptRows.Single(r => r.GetProperty("recordId").GetGuid() == w.RecordC).GetProperty("kept").GetBoolean());
+
+        // Lưu lại dù danh sách thiếu hồ sơ đã quyết định và sửa trường hợp của họ: dòng, trường hợp vẫn giữ nguyên.
+        var changeAEdited = new
+        {
+            recordId = w.RecordA, clarification = "Sửa sau quyết định", gradeAfter = "HoanThanhTot", scoreAfter = (double?)90.0,
+            basis = "Căn cứ mới", responsibleName = "Người khác", responsibleMemberId = (Guid?)null
+        };
+        var resaved = await Data(await w.PreparerC.PutAsJsonAsync($"/api/calibrations/{id}",
+            Save(reopened.GetProperty("version").GetUInt32(), new[] { w.RecordC }, new object[] { changeAEdited }, null)));
+        Assert.Equal(3, resaved.GetProperty("records").GetArrayLength());
+        var keptCase = resaved.GetProperty("cases").EnumerateArray().Single(c => c.GetProperty("recordId").GetGuid() == w.RecordA);
+        Assert.Equal("HoanThanh", keptCase.GetProperty("gradeAfter").GetString());
+        Assert.Equal("Đã đối chiếu minh chứng", keptCase.GetProperty("clarification").GetString());
+
+        var calibrateBefore = (await Data(w.PreparerC, $"/api/evaluations/records/{w.RecordA}/history")).EnumerateArray()
+            .Count(h => h.GetProperty("action").GetString() == "Calibrate");
+        var reconcluded = await Data(await w.ConcluderC.PostAsJsonAsync($"/api/calibrations/{id}/conclude",
+            new { version = resaved.GetProperty("version").GetUInt32() }));
+        Assert.Equal("Concluded", reconcluded.GetProperty("status").GetString());
+        Assert.Equal(3, reconcluded.GetProperty("records").GetArrayLength());
+
+        // Hồ sơ đã quyết định không bị áp lại; hồ sơ đang chờ qua cổng.
+        var recordA = await Data(w.PreparerC, $"/api/evaluations/records/{w.RecordA}");
+        Assert.Equal("HoanThanh", recordA.GetProperty("calibratedGrade").GetString());
+        Assert.Equal("AwaitingPublish", recordA.GetProperty("status").GetString());
+        Assert.Equal(calibrateBefore, (await Data(w.PreparerC, $"/api/evaluations/records/{w.RecordA}/history")).EnumerateArray()
+            .Count(h => h.GetProperty("action").GetString() == "Calibrate"));
         Assert.Equal(CalibrationGateState.Satisfied, (await GateAsync(w.RecordC)).State);
+    }
+
+    [SkippableFact]
+    public async Task ReopenedRecord_GivesReconcludeTasks_ToManagerAndConcluder_NotToPreparerForConclusion()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var w = await SetupAsync(decisionReady: true);
+        var decider = await _factory.CreateUserWithPermissionsAsync(WorkflowPermissions.Decide, PermissionCodes.EvaluationRead);
+        var deciderC = await _factory.LoginAsAsync(decider.Username, decider.Password, distinctClientIp: true);
+
+        var created = await Data(await w.PreparerC.PostAsJsonAsync("/api/calibrations", Create(w, w.RecordA, w.RecordB, w.RecordC)));
+        var id = created.GetProperty("id").GetGuid();
+        var saved = await Data(await w.PreparerC.PutAsJsonAsync($"/api/calibrations/{id}", new
+        {
+            version = created.GetProperty("version").GetUInt32(), groupName = "Nhóm việc", heldAt = DateTime.UtcNow, location = "Phòng họp",
+            chairName = "Chủ trì họp", secretaryName = "Thư ký họp", recordIds = new[] { w.RecordA, w.RecordB, w.RecordC },
+            attendees = new[] { new { fullName = "Thành viên 1", capacity = "Ủy viên", dissentNote = (string?)null } },
+            summary = Array.Empty<object>(), cases = Array.Empty<object>()
+        }));
+        await Data(await w.ConcluderC.PostAsJsonAsync($"/api/calibrations/{id}/conclude", new { version = saved.GetProperty("version").GetUInt32() }));
+
+        // Chưa có hồ sơ nào mở lại: không ai có việc với biên bản.
+        Assert.Null(await TaskAsync(w.ConcluderC, id));
+        Assert.Null(await TaskAsync(w.PreparerC, id));
+
+        foreach (var (recordId, score, grade) in new[] { (w.RecordA, 85.0, "HoanThanhTot"), (w.RecordB, 72.0, "HoanThanh") })
+        {
+            var record = await Data(deciderC, $"/api/evaluations/records/{recordId}");
+            await Data(await deciderC.PostAsJsonAsync($"/api/evaluations/records/{recordId}/decision",
+                new { version = record.GetProperty("version").GetUInt32(), finalScore = score, finalGrade = grade, explanation = "Căn cứ" }));
+        }
+
+        // Hồ sơ C bị mở lại về thẩm định: còn đang làm lại thì chưa có việc.
+        await MoveAsync(w.RecordC, RecordStatus.AwaitingAppraisal, WorkflowAction.Reopen);
+        Assert.Null(await TaskAsync(w.ConcluderC, id));
+
+        // Thẩm định lại xong (điểm đổi): người chốt nhận việc mở lại biên bản.
+        await MoveAsync(w.RecordC, RecordStatus.AwaitingDecision, WorkflowAction.Complete, appraisalScore: 70, grade: EvaluationGrade.HoanThanh);
+        var reopenTask = await TaskAsync(w.ConcluderC, id);
+        Assert.NotNull(reopenTask);
+        Assert.Equal("ReopenNeeded", reopenTask!.Value.GetProperty("status").GetString());
+        Assert.Equal(w.RecordC, reopenTask.Value.GetProperty("recordId").GetGuid());
+        var bell = await Data(w.ConcluderC, "/api/notifications/summary");
+        Assert.Contains(bell.GetProperty("items").EnumerateArray(), i => i.GetProperty("link").GetString() == $"/quality-control/calibrations/{id}");
+
+        var current = await Data(w.ConcluderC, $"/api/calibrations/{id}");
+        await Data(await w.ConcluderC.PostAsJsonAsync($"/api/calibrations/{id}/reopen",
+            new { version = current.GetProperty("version").GetUInt32(), reason = "Hồ sơ mở lại theo kiến nghị" }));
+
+        // Mốc trước của C đã đổi: người có quyền lập nhận việc cập nhật biên bản, người chốt chưa có việc.
+        var updateTask = await TaskAsync(w.PreparerC, id);
+        Assert.Equal("UpdateNeeded", updateTask?.GetProperty("status").GetString());
+        Assert.Null(await TaskAsync(w.ConcluderC, id));
+
+        var draft = await Data(w.PreparerC, $"/api/calibrations/{id}");
+        await Data(await w.PreparerC.PutAsJsonAsync($"/api/calibrations/{id}", new
+        {
+            version = draft.GetProperty("version").GetUInt32(), groupName = "Nhóm việc", heldAt = DateTime.UtcNow, location = "Phòng họp",
+            chairName = "Chủ trì họp", secretaryName = "Thư ký họp", recordIds = new[] { w.RecordA, w.RecordB, w.RecordC },
+            attendees = new[] { new { fullName = "Thành viên 1", capacity = "Ủy viên", dissentNote = (string?)null } },
+            summary = Array.Empty<object>(), cases = Array.Empty<object>()
+        }));
+
+        // Đủ nội dung: người chốt nhận việc chốt lại; người lập (dù có quyền chốt) không nhận.
+        var concludeTask = await TaskAsync(w.ConcluderC, id);
+        Assert.Equal("ConcludeNeeded", concludeTask?.GetProperty("status").GetString());
+        Assert.Null(await TaskAsync(w.PreparerC, id));
+
+        var ready = await Data(w.ConcluderC, $"/api/calibrations/{id}");
+        await Data(await w.ConcluderC.PostAsJsonAsync($"/api/calibrations/{id}/conclude", new { version = ready.GetProperty("version").GetUInt32() }));
+        Assert.Null(await TaskAsync(w.ConcluderC, id));
+        Assert.Null(await TaskAsync(w.PreparerC, id));
+        Assert.Equal(CalibrationGateState.Satisfied, (await GateAsync(w.RecordC)).State);
+    }
+
+    /// <summary>Việc "Họp thống nhất" của biên bản trong hàng đợi người dùng; null nếu không có.</summary>
+    private static async Task<JsonElement?> TaskAsync(HttpClient client, Guid sessionId)
+    {
+        var queue = await Data(client, "/api/evaluations/work-queue");
+        foreach (var group in queue.GetProperty("groups").EnumerateArray().Where(g => g.GetProperty("step").GetString() == CalibrationService.WorkQueueGroup))
+            foreach (var item in group.GetProperty("items").EnumerateArray())
+                if (item.TryGetProperty("formId", out var formId) && formId.ValueKind == JsonValueKind.String && formId.GetGuid() == sessionId)
+                    return item;
+        return null;
+    }
+
+    /// <summary>Đưa hồ sơ sang trạng thái khác và ghi lịch sử như luồng thật.</summary>
+    private async Task MoveAsync(Guid recordId, RecordStatus to, WorkflowAction action, double? appraisalScore = null, EvaluationGrade? grade = null)
+    {
+        await _factory.WithDbAsync(async db =>
+        {
+            var record = db.Set<EvaluationRecord>().Single(r => r.Id == recordId);
+            var from = record.Status;
+            record.Status = to;
+            if (appraisalScore is { } score)
+                record.AppraisalScore = score;
+            if (grade is { } g)
+                record.AppraisalProposedGrade = g;
+            db.Set<EvaluationRecordHistory>().Add(new EvaluationRecordHistory
+            {
+                RecordId = record.Id, FromStatus = from, ToStatus = to, Step = WorkflowStep.B3B_APPRAISAL, Action = action,
+                Reason = "Kiểm thử", ActorName = "Kiểm thử", CreatedAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync();
+        });
     }
 
     [SkippableFact]

@@ -52,6 +52,9 @@ public class CalibrationRecordDto
 
     /// <summary>Mốc trước họp thống nhất trên hồ sơ đã khác ảnh chụp: lưu lại biên bản để cập nhật.</summary>
     public bool SnapshotOutdated { get; set; }
+
+    /// <summary>Hồ sơ đã có quyết định sau lần chốt trước: dòng và trường hợp giữ nguyên, chốt lại không áp lại.</summary>
+    public bool Kept { get; set; }
 }
 
 public class CalibrationAttendeeDto

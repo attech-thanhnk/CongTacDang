@@ -43,12 +43,21 @@ public interface ICalibrationService
     Task<List<CalibrationHistoryDto>> GetHistoryAsync(Guid id, CancellationToken ct = default);
 }
 
+/// <summary>Việc "Họp thống nhất": biên bản cần mở lại, cập nhật hoặc chốt lại sau khi hồ sơ trong biên bản được mở lại.</summary>
+public interface ICalibrationWorkQueue
+{
+    /// <summary>Nhóm rỗng không trả về.</summary>
+    Task<List<WorkQueueGroupDto>> GetGroupsAsync(Guid? periodId, CancellationToken ct = default);
+}
+
 /// <summary>
 /// Chỉ lập khi kỳ đang mở, hồ sơ đã thẩm định và chưa ghi nhận quyết định; mỗi hồ sơ thuộc tối đa một biên bản còn hiệu lực.
 /// Người lập khác người chốt; chủ hồ sơ không lập, chốt hay xem biên bản có hồ sơ của mình.
 /// </summary>
-public sealed class CalibrationService : ICalibrationService, ICalibrationGate
+public sealed class CalibrationService : ICalibrationService, ICalibrationGate, ICalibrationWorkQueue
 {
+    public const string WorkQueueGroup = "CALIBRATIONS";
+
     private const int MaxReasonLength = 2000;
 
     private readonly ICalibrationRepository _repo;
@@ -56,19 +65,22 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthorizationGuard _guard;
     private readonly ICurrentUserService _currentUser;
+    private readonly IStepPerformers? _stepPerformers;
 
     public CalibrationService(
         ICalibrationRepository repo,
         IEvaluationWorkflowRepository records,
         IUnitOfWork unitOfWork,
         IAuthorizationGuard guard,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IStepPerformers? stepPerformers = null)
     {
         _repo = repo;
         _records = records;
         _unitOfWork = unitOfWork;
         _guard = guard;
         _currentUser = currentUser;
+        _stepPerformers = stepPerformers;
     }
 
     #region Đọc
@@ -241,12 +253,17 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
         EnsureVersion(session, version);
         EnsureEditable(session);
 
-        var records = await ResolveRecordsAsync(session, session.Period, request.RecordIds, ct);
+        // Dòng của hồ sơ đã có quyết định sau lần chốt trước luôn giữ nguyên, kể cả khi danh sách gửi lên thiếu.
+        var existing = session.Records.ToDictionary(r => r.RecordId);
+        var kept = session.Records.Where(r => IsKept(session, r.Record)).ToDictionary(r => r.RecordId);
+        var requested = (request.RecordIds ?? new List<Guid>()).Where(i => !kept.ContainsKey(i)).ToList();
+        var records = requested.Count == 0 && kept.Count > 0
+            ? new List<EvaluationRecord>()
+            : await ResolveRecordsAsync(session, session.Period, requested, ct);
         var now = DateTime.UtcNow;
 
         // Hồ sơ: giữ dòng cũ (cập nhật mốc trước), thêm dòng mới, bỏ dòng không còn.
-        var existing = session.Records.ToDictionary(r => r.RecordId);
-        foreach (var gone in existing.Values.Where(r => records.All(x => x.Id != r.RecordId)))
+        foreach (var gone in existing.Values.Where(r => !kept.ContainsKey(r.RecordId) && records.All(x => x.Id != r.RecordId)))
             _repo.RemoveRecord(gone);
         foreach (var record in records)
         {
@@ -262,6 +279,8 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
             }
         }
         var snapshot = records.ToDictionary(r => r.Id, CalibrationRules.Before);
+        foreach (var row in kept.Values)
+            snapshot[row.RecordId] = (row.GradeBefore, row.ScoreBefore);
 
         session.GroupName = Required(request.GroupName, 300, "Tên nhóm chức danh/công việc tương đồng");
         session.HeldAt = request.HeldAt is { } held ? AsUtc(held) : null;
@@ -275,7 +294,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
 
         ReplaceAttendees(session, request.Attendees ?? new List<CalibrationAttendeeInputDto>());
         UpsertSummaryRows(session, request.Summary ?? new List<CalibrationSummaryRowInputDto>());
-        ReplaceCases(session, request.Cases ?? new List<CalibrationCaseInputDto>(), snapshot);
+        ReplaceCases(session, request.Cases ?? new List<CalibrationCaseInputDto>(), snapshot, kept.Keys.ToHashSet());
 
         session.UpdatedAt = now;
         _unitOfWork.SetOriginalVersion(session, version);
@@ -303,12 +322,16 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
 
         var records = await _repo.GetRecordsAsync(session.Records.Select(r => r.RecordId).ToList(), ct);
         var byId = records.ToDictionary(r => r.Id);
+        // Chốt lại: hồ sơ đã có quyết định giữ nguyên kết quả cũ, chỉ hồ sơ đang chờ được kiểm tra và áp kết quả.
+        var kept = records.Where(r => IsKept(session, r)).Select(r => r.Id).ToHashSet();
         foreach (var row in session.Records)
         {
             var record = byId[row.RecordId];
             if (IsOwn(record))
                 throw new ForbiddenException("Bạn không được chốt biên bản có hồ sơ của chính mình (xung đột lợi ích).");
             _guard.Ensure(PermissionCodes.EvaluationCalibrationConclude, AccessTarget.ForRecord(record).ForWrite());
+            if (kept.Contains(record.Id))
+                continue;
             EnsureStillEligible(record, "Chốt biên bản");
             var (grade, score) = CalibrationRules.Before(record);
             if (grade != row.GradeBefore || !CalibrationRules.SameScore(score, row.ScoreBefore))
@@ -321,7 +344,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
         var applied = 0;
         foreach (var item in session.Cases.OrderBy(c => c.Order))
         {
-            if (!CalibrationRules.IsChanged(item))
+            if (!CalibrationRules.IsChanged(item) || kept.Contains(item.RecordId))
                 continue;
             ApplyToRecord(session, item, byId[item.RecordId], actorName, now);
             applied++;
@@ -475,9 +498,9 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
     {
         if (CalibrationRules.IsEligibleStatus(record.Status))
             return;
-        // Biên bản mở lại vì một hồ sơ (vd mở lại theo kiến nghị) còn hồ sơ khác đã có quyết định: chỉ cách gỡ ra.
+        // Hồ sơ đã có quyết định trước lần chốt đầu thì chưa từng được hiệu chuẩn: chỉ còn cách gỡ ra.
         var hint = record.Status is RecordStatus.AwaitingPublish or RecordStatus.Published
-            ? "Hồ sơ đã có quyết định: gỡ hồ sơ này khỏi biên bản rồi lưu và chốt lại."
+            ? "Hồ sơ đã có quyết định: gỡ hồ sơ này khỏi biên bản rồi lưu và chốt."
             : "Chỉ đưa vào họp thống nhất hồ sơ đã thẩm định và chưa ghi nhận quyết định.";
         throw new ConflictException($"{action} không thành công: hồ sơ của {NameOf(record)} đang ở bước \"{WorkflowSteps.StatusDisplayName(record.Status)}\". {hint}");
     }
@@ -557,16 +580,24 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
         string.IsNullOrWhiteSpace(item.NotableDifference) && string.IsNullOrWhiteSpace(item.PreliminaryConclusion);
 
     private void ReplaceCases(CalibrationSession session, List<CalibrationCaseInputDto> input,
-        IReadOnlyDictionary<Guid, (EvaluationGrade Grade, double? Score)> snapshot)
+        IReadOnlyDictionary<Guid, (EvaluationGrade Grade, double? Score)> snapshot, IReadOnlySet<Guid> kept)
     {
         var seen = new HashSet<Guid>();
         var rows = new List<CalibrationCase>();
+        var keptCases = session.Cases.Where(c => kept.Contains(c.RecordId)).ToDictionary(c => c.RecordId);
         foreach (var (item, index) in input.Where(i => i != null).Select((i, n) => (i, n)))
         {
             if (!snapshot.TryGetValue(item.RecordId, out var before))
                 throw new ValidationException($"Trường hợp thảo luận thứ {index + 1} không thuộc hồ sơ nào trong biên bản.");
             if (!seen.Add(item.RecordId))
                 throw new ValidationException($"Trường hợp thảo luận thứ {index + 1} trùng hồ sơ với một trường hợp khác.");
+            // Hồ sơ đã có quyết định: giữ nguyên trường hợp cũ, bỏ qua nội dung gửi lên.
+            if (kept.Contains(item.RecordId))
+            {
+                if (keptCases.Remove(item.RecordId, out var old))
+                    rows.Add(CopyCase(old));
+                continue;
+            }
 
             EvaluationGrade? gradeAfter = null;
             if (!string.IsNullOrWhiteSpace(item.GradeAfter))
@@ -594,10 +625,28 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
                 ResponsibleMemberId = item.ResponsibleMemberId
             });
         }
+        rows.AddRange(keptCases.Values.OrderBy(c => c.Order).Select(CopyCase));
+        for (var i = 0; i < rows.Count; i++)
+            rows[i].Order = i + 1;
         _repo.RemoveChildren(Array.Empty<CalibrationAttendee>(), Array.Empty<CalibrationSummaryRow>(), session.Cases.ToList());
         foreach (var row in rows)
             _repo.AddCase(row);
     }
+
+    private static CalibrationCase CopyCase(CalibrationCase c) => new()
+    {
+        SessionId = c.SessionId,
+        Order = c.Order,
+        RecordId = c.RecordId,
+        GradeBefore = c.GradeBefore,
+        ScoreBefore = c.ScoreBefore,
+        Clarification = c.Clarification,
+        GradeAfter = c.GradeAfter,
+        ScoreAfter = c.ScoreAfter,
+        Basis = c.Basis,
+        ResponsibleName = c.ResponsibleName,
+        ResponsibleMemberId = c.ResponsibleMemberId
+    };
 
     #endregion
 
@@ -727,7 +776,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
             ConcludedAt = s.ConcludedAt,
             ReopenReason = s.ReopenReason,
             VoidReason = s.VoidReason,
-            Records = rows.Select(r => ToRecordDto(r)).ToList(),
+            Records = rows.Select(r => ToRecordDto(r, IsKept(s, r.Record))).ToList(),
             Attendees = s.Attendees.OrderBy(a => a.Order).Select(a => new CalibrationAttendeeDto
             {
                 Order = a.Order, FullName = a.FullName, MemberId = a.MemberId, Capacity = a.Capacity, DissentNote = a.DissentNote
@@ -758,7 +807,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
         };
     }
 
-    private static CalibrationRecordDto ToRecordDto(CalibrationRecord row)
+    private static CalibrationRecordDto ToRecordDto(CalibrationRecord row, bool kept)
     {
         var r = row.Record;
         var (grade, score) = CalibrationRules.Before(r);
@@ -780,7 +829,8 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
             AppraisalGrade = GradeOrEmpty(r.AppraisalProposedGrade),
             CalibratedScore = r.CalibratedScore,
             CalibratedGrade = r.CalibratedGrade is { } c ? EvaluationMapping.GradeCode(c) : string.Empty,
-            SnapshotOutdated = grade != row.GradeBefore || !CalibrationRules.SameScore(score, row.ScoreBefore)
+            Kept = kept,
+            SnapshotOutdated = !kept && (grade != row.GradeBefore || !CalibrationRules.SameScore(score, row.ScoreBefore))
         };
     }
 
@@ -839,9 +889,130 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
 
     #endregion
 
+    #region Việc cần xử lý
+
+    /// <inheritdoc />
+    public async Task<List<WorkQueueGroupDto>> GetGroupsAsync(Guid? periodId, CancellationToken ct = default)
+    {
+        var none = new List<WorkQueueGroupDto>();
+        if (_currentUser.UserId is not { } userId
+            || (!_guard.HasAny(PermissionCodes.EvaluationCalibrationManage) && !_guard.HasAny(PermissionCodes.EvaluationCalibrationConclude)))
+            return none;
+
+        var periodIds = (await _records.ListPeriodsAsync(ct))
+            .Where(p => p.Status == PeriodStatus.Open && (periodId is null || periodId == Guid.Empty || p.Id == periodId))
+            .Select(p => p.Id)
+            .ToList();
+        if (periodIds.Count == 0)
+            return none;
+
+        var sessions = (await _repo.ListForReconcludeAsync(periodIds, ct)).Where(s => !HasOwnRecord(s)).ToList();
+        var concludedPending = sessions.Where(s => s.Status == CalibrationStatus.Concluded)
+            .SelectMany(s => s.Records.Where(r => CalibrationRules.IsEligibleStatus(r.Record.Status)).Select(r => r.RecordId))
+            .ToList();
+        var gates = concludedPending.Count > 0
+            ? await EvaluateManyAsync(concludedPending, ct)
+            : new Dictionary<Guid, CalibrationGateResult>();
+
+        var items = new List<WorkQueueItemDto>();
+        foreach (var s in sessions)
+        {
+            // Còn hồ sơ đang làm lại các bước trước thẩm định thì chưa chốt lại được.
+            if (s.Records.Any(r => !CalibrationRules.IsEligibleStatus(r.Record.Status) && !CalibrationRules.IsDecidedStatus(r.Record.Status)))
+                continue;
+            var pending = s.Records.Where(r => CalibrationRules.IsEligibleStatus(r.Record.Status)).Select(r => (Row: r, r.Record)).ToList();
+            if (pending.Count == 0)
+                continue;
+
+            string permission, status, label;
+            EvaluationRecord focus;
+            if (s.Status == CalibrationStatus.Concluded)
+            {
+                var stale = pending.FirstOrDefault(p => gates.TryGetValue(p.Record.Id, out var g) && g.State == CalibrationGateState.Stale);
+                if (stale.Record == null)
+                    continue;
+                (permission, status, label, focus) = (PermissionCodes.EvaluationCalibrationConclude, "ReopenNeeded", "Cần mở lại biên bản để chốt lại", stale.Record);
+            }
+            else
+            {
+                var outdated = pending.FirstOrDefault(p => IsOutdated(p.Row));
+                if (outdated.Record != null || CalibrationRules.ConclusionProblems(s).Count > 0)
+                    (permission, status, label, focus) = (PermissionCodes.EvaluationCalibrationManage, "UpdateNeeded", "Cần lưu lại biên bản trước khi chốt",
+                        outdated.Record ?? pending[0].Record);
+                else
+                    (permission, status, label, focus) = (PermissionCodes.EvaluationCalibrationConclude, "ConcludeNeeded", "Chờ chốt lại biên bản", pending[0].Record);
+            }
+
+            // Người lập không chốt biên bản của mình.
+            var skipPreparer = status == "ConcludeNeeded";
+            if (skipPreparer && s.PreparedById == userId)
+                continue;
+            if (!_guard.Can(permission, UnitWriteTarget(s))
+                || pending.Any(p => !_guard.Can(permission, AccessTarget.ForRecord(p.Record).ForWrite()))
+                || !await IsAssigneeAsync(s, focus, permission, skipPreparer, userId, ct))
+                continue;
+
+            items.Add(new WorkQueueItemDto
+            {
+                RecordId = focus.Id,
+                FormId = s.Id,
+                Version = focus.Version,
+                PeriodId = s.PeriodId,
+                PeriodName = s.Period.Name,
+                MemberId = focus.MemberId,
+                FullName = NameOf(focus),
+                DepartmentName = s.Department?.Name ?? focus.Department?.Name,
+                PartyCellName = s.PartyCell?.Name ?? focus.PartyCell?.Name,
+                ApprovalAuthority = focus.ApprovalAuthority.ToString(),
+                WorkflowProfileName = focus.WorkflowProfileCode,
+                Status = status,
+                StatusDisplayName = $"{label} · {s.GroupName}",
+                Mode = StepMode.Internal.ToString()
+            });
+        }
+
+        if (items.Count == 0)
+            return none;
+        return new List<WorkQueueGroupDto>
+        {
+            new()
+            {
+                Step = WorkQueueGroup,
+                StepName = "Họp thống nhất",
+                Count = items.Count,
+                Items = items.OrderBy(i => i.PeriodName).ThenBy(i => i.FullName).ToList()
+            }
+        };
+    }
+
+    private static bool IsOutdated(CalibrationRecord row)
+    {
+        var (grade, score) = CalibrationRules.Before(row.Record);
+        return grade != row.GradeBefore || !CalibrationRules.SameScore(score, row.ScoreBefore);
+    }
+
+    /// <summary>Quy tắc giao việc như các bước: người gần hồ sơ nhất, bỏ chủ hồ sơ trong biên bản (và người lập khi chốt); không còn ai thì mọi người có quyền.</summary>
+    private async Task<bool> IsAssigneeAsync(CalibrationSession session, EvaluationRecord record, string permission, bool skipPreparer, Guid userId,
+        CancellationToken ct)
+    {
+        if (_stepPerformers == null)
+            return true;
+        var owners = session.Records.Select(r => r.Record.MemberId).ToHashSet();
+        var nearest = (await _stepPerformers.ListAsync(permission, AccessTarget.ForRecord(record), ct))
+            .Where(id => !owners.Contains(id) && !(skipPreparer && session.PreparedById == id))
+            .ToList();
+        return nearest.Count == 0 || nearest.Contains(userId);
+    }
+
+    #endregion
+
     #region Hỗ trợ
 
     private bool IsOwn(EvaluationRecord record) => _currentUser.UserId is { } id && record.MemberId == id;
+
+    /// <summary>Biên bản đã chốt ít nhất một lần và hồ sơ đã có quyết định: dòng giữ nguyên khi sửa, chốt lại.</summary>
+    private static bool IsKept(CalibrationSession session, EvaluationRecord record) =>
+        session.Revision > 1 && CalibrationRules.IsDecidedStatus(record.Status);
 
     private bool HasOwnRecord(CalibrationSession session) => session.Records.Any(r => IsOwn(r.Record));
 

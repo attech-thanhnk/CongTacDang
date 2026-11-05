@@ -208,13 +208,20 @@ Duyệt danh mục (`B1_APPROVE`) của diện `co-so`, `bi-thu-nhan-vien` dùng
   bắt buộc căn cứ. Chặn xung đột lợi ích: chủ hồ sơ/người gửi và người đã thực hiện bước mà kiến nghị liên quan tới. Chấp nhận →
   "Mở lại hồ sơ theo kiến nghị" dùng `Reopen` hiện có (quyền `evaluation.reopen`), lý do dẫn chiếu kiến nghị trong lịch sử. Đã chấp nhận
   mà chưa mở lại: kết quả vẫn ghi "đang xem xét", chưa gửi kiến nghị mới, việc nằm trong "Kiến nghị chờ xử lý" của người mở lại được.
+  Mở lại hồ sơ đang thuộc biên bản Mẫu 20 đã chốt: khi hồ sơ tới lại bước sau thẩm định, việc chốt lại biên bản hiện ở nhóm
+  "Họp thống nhất" (`docs/thiet-ke/mau-03-19-20.md` mục 3.4).
+- **Tin trả lời kiến nghị cho chủ hồ sơ** (nhóm `APPEAL_ANSWERS` "Kiến nghị đã được trả lời", chuông `kind = appealAnswered`, dẫn tới
+  trang hồ sơ): khi kiến nghị được chấp nhận, không chấp nhận, hoặc đã xử lý xong (chấp nhận, đã mở lại và hồ sơ được công bố lại sau lúc
+  mở lại). Mỗi hồ sơ chỉ báo kiến nghị mới nhất. Tin hết khi chủ hồ sơ mở khối kiến nghị trên trang hồ sơ
+  (`POST /api/evaluations/records/{id}/appeals/seen`, chỉ chủ hồ sơ, ghi `EvaluationAppeal.OwnerSeenAt`); tin mới hơn mốc này lại hiện.
 - **Kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17)** (`ImprovementPlan`, một kế hoạch/hồ sơ, `Draft → Approved → Acknowledged → Closed`):
   bắt buộc khi mức chính thức thuộc `improvementPlanRequiredGrades` của bộ tiêu chí; người có `evaluation.improvement.manage` (không
   trên hồ sơ của mình) lập, sửa khi đang lập, duyệt, ghi kết quả từng mốc; chủ hồ sơ xác nhận cam kết; mốc 90 ngày ghi kết quả → đóng.
   Xuất Word/PDF Mẫu 17 từ file mẫu dựng theo biểu mẫu gốc.
 - **Việc cần xử lý / chuông nhắc việc**: nhóm "Kiến nghị chờ xử lý", "Kế hoạch 30-60-90 ngày" (giao người gần nhất như các bước —
   `IStepPerformers`, khi chờ duyệt bỏ người lập; chỉ hồ sơ của kỳ đang
-  mở/khóa dữ liệu và kỳ đã đóng trong `improvementPlanAlertDays` ngày gần nhất, tính từ lúc đóng kỳ), "Kế hoạch chờ bạn xác nhận";
+  mở/khóa dữ liệu và kỳ đã đóng trong `improvementPlanAlertDays` ngày gần nhất, tính từ lúc đóng kỳ), "Kế hoạch chờ bạn xác nhận",
+  "Kiến nghị đã được trả lời";
   `GET /api/notifications/summary` đếm tổng việc, bước quá hạn, sắp tới hạn (`Notifications:DueSoonDays`, mặc định 2).
 
 ## 4c. Theo dõi hồ sơ tập thể (Mẫu 06, 07, 08)

@@ -83,6 +83,14 @@ const STEP_ACTIONS: Record<string, string> = {
   APPEALS: "Xử lý kiến nghị",
   APPEALS_UNASSIGNED: "Gán vai trò",
   IMPROVEMENT_PLAN_ACK: "Xác nhận kế hoạch",
+  APPEAL_ANSWERS: "Xem trả lời",
+};
+
+/** Việc với biên bản họp thống nhất theo trạng thái máy chủ trả về. */
+const CALIBRATION_ACTIONS: Record<string, string> = {
+  ReopenNeeded: "Mở lại biên bản",
+  UpdateNeeded: "Cập nhật biên bản",
+  ConcludeNeeded: "Chốt lại",
 };
 
 /** Bước do cấp trên thực hiện: nút ghi nhận kết quả của đúng bước đó. */
@@ -100,6 +108,7 @@ const EXTERNAL_ACTIONS: Record<string, string> = {
 export function taskActionLabel(task: { step: string; mode: string; status: string }): string {
   if (task.step === "CROSSCHECKS") return task.status === "Submitted" ? "Xác nhận" : "Lập phiếu";
   if (task.step === "IMPROVEMENT_PLANS") return task.status === "PlanMissing" ? "Lập kế hoạch" : "Duyệt kế hoạch";
+  if (task.step === "CALIBRATIONS") return CALIBRATION_ACTIONS[task.status] ?? "Mở biên bản";
   if (task.mode === "External" && EXTERNAL_ACTIONS[task.step]) return EXTERNAL_ACTIONS[task.step];
   return STEP_ACTIONS[task.step] ?? "Mở hồ sơ";
 }
@@ -107,6 +116,7 @@ export function taskActionLabel(task: { step: string; mode: string; status: stri
 /** Kiến nghị chưa có người xử lý: người gán vai trò có thể không xem được hồ sơ nên dẫn tới trang Người thực hiện (không cần quyền xem tài khoản). */
 export function taskHref(task: { step: string; recordId: string; formId?: string | null }): string {
   if (task.step === "CROSSCHECKS" && task.formId) return `/crosschecks/${task.formId}`;
+  if (task.step === "CALIBRATIONS" && task.formId) return `/quality-control/calibrations/${task.formId}`;
   return task.step === "APPEALS_UNASSIGNED" ? "/admin/performers?permission=evaluation.appeal.resolve" : `/evaluations/${task.recordId}`;
 }
 

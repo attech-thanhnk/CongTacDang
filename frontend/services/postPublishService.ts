@@ -93,6 +93,8 @@ export interface RecordAppealsDto {
   canSubmit: boolean;
   submitBlockedReason?: string | null;
   stepOptions: AppealStepOptionDto[];
+  /** Chủ hồ sơ có trả lời kiến nghị chưa xem. */
+  hasUnseenAnswer: boolean;
   appeals: AppealDto[];
 }
 
@@ -192,6 +194,7 @@ export interface NotificationSummaryDto {
   improvementPlans: number;
   plansToAcknowledge: number;
   unassignedAppeals: number;
+  appealAnswers: number;
   dueSoonDays: number;
   items: NotificationItemDto[];
 }
@@ -213,6 +216,11 @@ export const postPublishService = {
 
   getRecordAppeals(recordId: string): Promise<RecordAppealsDto> {
     return request<RecordAppealsDto>(`/evaluations/records/${recordId}/appeals`);
+  },
+
+  /** Chủ hồ sơ đã xem trả lời: tin trên chuông hết hiện. */
+  markAppealsSeen(recordId: string): Promise<unknown> {
+    return post<unknown>(`/evaluations/records/${recordId}/appeals/seen`, {});
   },
 
   submitAppeal(recordId: string, content: string, concernedSteps: string[]): Promise<AppealDto> {

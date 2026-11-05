@@ -41,8 +41,11 @@ export function AppealPanel({ record, onRecordChanged, onPendingChange }: Props)
 
   const load = useCallback(async () => {
     try {
-      setData(await postPublishService.getRecordAppeals(record.id));
+      const loaded = await postPublishService.getRecordAppeals(record.id);
+      setData(loaded);
       setError(null);
+      // Chủ hồ sơ đã thấy trả lời trên trang: bỏ tin khỏi chuông, lỗi không ảnh hưởng thao tác.
+      if (loaded.hasUnseenAnswer) postPublishService.markAppealsSeen(record.id).catch(() => undefined);
     } catch (err: unknown) {
       setError(errorMessage(err, "Tải kiến nghị không thành công."));
     }

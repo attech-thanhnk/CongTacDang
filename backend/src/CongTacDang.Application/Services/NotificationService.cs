@@ -44,7 +44,7 @@ public sealed class NotificationService : INotificationService
         var postPublishCodes = new HashSet<string>(StringComparer.Ordinal)
         {
             PostPublishWorkQueue.AppealsGroup, PostPublishWorkQueue.ImprovementPlansGroup, PostPublishWorkQueue.PlanAcknowledgementGroup,
-            PostPublishWorkQueue.UnassignedAppealsGroup
+            PostPublishWorkQueue.UnassignedAppealsGroup, PostPublishWorkQueue.AppealAnswersGroup
         };
 
         var stepGroups = queue.Groups.Where(g => !postPublishCodes.Contains(g.Step)).ToList();
@@ -64,10 +64,11 @@ public sealed class NotificationService : INotificationService
             ImprovementPlans = CountOf(PostPublishWorkQueue.ImprovementPlansGroup),
             PlansToAcknowledge = CountOf(PostPublishWorkQueue.PlanAcknowledgementGroup),
             UnassignedAppeals = CountOf(PostPublishWorkQueue.UnassignedAppealsGroup),
+            AppealAnswers = CountOf(PostPublishWorkQueue.AppealAnswersGroup),
             DueSoonDays = dueSoonDays
         };
 
-        // Thứ tự ưu tiên: quá hạn → sắp tới hạn → kiến nghị chưa có người xử lý → kiến nghị → kế hoạch → xác nhận → việc khác.
+        // Thứ tự ưu tiên: quá hạn → sắp tới hạn → kiến nghị chưa có người xử lý → kiến nghị → kế hoạch → xác nhận → trả lời kiến nghị → việc khác.
         var items = new List<NotificationItemDto>();
         items.AddRange(stepItems.Where(x => x.Item.Overdue).OrderBy(x => x.Item.Deadline)
             .Select(x => StepItem("overdue", x.Group, x.Item, $"Quá hạn {x.Group.StepName.ToLowerInvariant()}")));
@@ -94,6 +95,13 @@ public sealed class NotificationService : INotificationService
                 }));
             }
         }
+        var answers = queue.Groups.FirstOrDefault(g => g.Step == PostPublishWorkQueue.AppealAnswersGroup);
+        if (answers != null)
+            items.AddRange(answers.Items.Select(i => StepItem("appealAnswered", answers, i,
+                i.Status == PostPublishWorkQueue.AppealDoneStatus
+                    ? $"Kiến nghị về hồ sơ {i.PeriodName} đã xử lý xong"
+                    : $"Kiến nghị về hồ sơ {i.PeriodName} đã được trả lời",
+                i.StatusDisplayName)));
         items.AddRange(stepItems.Where(x => !x.Item.Overdue && !IsDueSoon(x.Item))
             .Select(x => StepItem("pending", x.Group, x.Item, x.Group.StepName)));
 
@@ -106,8 +114,15 @@ public sealed class NotificationService : INotificationService
         Kind = kind,
         Title = title,
         Detail = detail ?? $"{item.FullName}{(item.IsOwnRecord ? " (hồ sơ của bạn)" : string.Empty)} · {item.PeriodName}",
-        // Việc là phiếu (đối soát): người làm có thể không xem được hồ sơ nên dẫn thẳng tới phiếu.
-        Link = item.FormId is { } formId ? $"/crosschecks/{formId}" : $"/evaluations/{item.RecordId}",
+        Link = LinkOf(group, item),
         Deadline = item.Deadline
+    };
+
+    // Việc là phiếu, biên bản: người làm có thể không xem được hồ sơ nên dẫn thẳng tới phiếu, biên bản.
+    private static string LinkOf(WorkQueueGroupDto group, WorkQueueItemDto item) => item.FormId switch
+    {
+        { } formId when group.Step == CalibrationService.WorkQueueGroup => $"/quality-control/calibrations/{formId}",
+        { } formId => $"/crosschecks/{formId}",
+        _ => $"/evaluations/{item.RecordId}"
     };
 }

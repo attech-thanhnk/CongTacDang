@@ -50,6 +50,25 @@ public sealed class CalibrationRepository : ICalibrationRepository
             .ToListAsync(ct);
 
     /// <inheritdoc />
+    public Task<List<CalibrationSession>> ListForReconcludeAsync(IReadOnlyCollection<Guid> periodIds, CancellationToken ct = default)
+    {
+        var ids = periodIds.ToList();
+        return Sessions.AsNoTracking()
+            .Include(s => s.Period)
+            .Include(s => s.Department)
+            .Include(s => s.PartyCell)
+            .Include(s => s.Records).ThenInclude(r => r.Record).ThenInclude(x => x.Member)
+            .Include(s => s.Records).ThenInclude(r => r.Record).ThenInclude(x => x.Department)
+            .Include(s => s.Records).ThenInclude(r => r.Record).ThenInclude(x => x.PartyCell)
+            .Include(s => s.Attendees)
+            .Include(s => s.Cases)
+            .Where(s => ids.Contains(s.PeriodId)
+                && (s.Status == CalibrationStatus.Concluded || (s.Status == CalibrationStatus.Draft && s.Revision > 1)))
+            .AsSplitQuery()
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
     public async Task<Dictionary<Guid, Guid>> GetActiveSessionByRecordAsync(IReadOnlyCollection<Guid> recordIds, Guid? exceptSessionId,
         CancellationToken ct = default)
     {

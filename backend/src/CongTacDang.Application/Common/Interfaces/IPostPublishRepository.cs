@@ -34,6 +34,12 @@ public interface IPostPublishRepository
     /// <summary>Kiến nghị đã chấp nhận, hồ sơ còn ở trạng thái đã công bố (chưa mở lại); cùng dữ liệu kèm như trên.</summary>
     Task<List<EvaluationAppeal>> ListAppealsAwaitingReopenAsync(Guid? periodId, CancellationToken ct = default);
 
+    /// <summary>Kiến nghị đã trả lời trên hồ sơ của chủ hồ sơ; cùng dữ liệu kèm như trên.</summary>
+    Task<List<EvaluationAppeal>> ListAnsweredAppealsOfOwnerAsync(Guid ownerId, Guid? periodId, CancellationToken ct = default);
+
+    /// <summary>Kiến nghị của hồ sơ, được theo dõi.</summary>
+    Task<List<EvaluationAppeal>> ListAppealsForUpdateAsync(Guid recordId, CancellationToken ct = default);
+
     void AddAppeal(EvaluationAppeal appeal);
 
     /// <summary>Được theo dõi; null nếu chưa có.</summary>

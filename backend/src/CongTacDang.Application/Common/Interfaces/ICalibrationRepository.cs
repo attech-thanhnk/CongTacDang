@@ -15,6 +15,12 @@ public interface ICalibrationRepository
     /// <summary>Kèm kỳ, đơn vị và số hồ sơ; không theo dõi. Mới nhất trước.</summary>
     Task<List<CalibrationSession>> ListAsync(Guid? periodId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Biên bản có thể cần chốt lại trong các kỳ: đã chốt, hoặc đang soạn sau khi mở lại; kèm kỳ, đơn vị, hồ sơ (cán bộ, đơn vị),
+    /// thành phần, trường hợp; không theo dõi.
+    /// </summary>
+    Task<List<CalibrationSession>> ListForReconcludeAsync(IReadOnlyCollection<Guid> periodIds, CancellationToken ct = default);
+
     /// <summary>Hồ sơ đang thuộc biên bản còn hiệu lực (không hủy), khác <paramref name="exceptSessionId"/>: Id hồ sơ → Id biên bản.</summary>
     Task<Dictionary<Guid, Guid>> GetActiveSessionByRecordAsync(IReadOnlyCollection<Guid> recordIds, Guid? exceptSessionId, CancellationToken ct = default);
 
