@@ -25,6 +25,7 @@ import { attachmentService } from "@/services/attachmentService";
 import { useCriteria } from "@/components/evaluations/useCriteria";
 import { SelfScoreForm } from "@/components/evaluations/SelfScoreForm";
 import { DateField } from "@/components/evaluations/DateField";
+import { DecimalInput, decimalText, parseDecimal } from "@/components/evaluations/DecimalInput";
 import { AppraisalItemsTable, appraisalItemsPayload, initialAppraisalItems } from "@/components/evaluations/AppraisalItemsTable";
 import {
   CriteriaSnapshot,
@@ -372,8 +373,8 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
   // Việc đã loại trừ / chuyển tiếp không chấm.
   const scoredTasks = record.tasks.filter((t) => !t.changeStatus);
   const usesTasks = scoredTasks.length > 0;
-  const [general, setGeneral] = useState<string>(String(record.appraisalGeneralScore ?? record.generalCriteriaScore ?? ""));
-  const [tasksScore, setTasksScore] = useState<string>(String(record.appraisalTasksScore ?? record.tasksScore ?? ""));
+  const [general, setGeneral] = useState<string>(decimalText(record.appraisalGeneralScore ?? record.generalCriteriaScore));
+  const [tasksScore, setTasksScore] = useState<string>(decimalText(record.appraisalTasksScore ?? record.tasksScore));
   const [levels, setLevels] = useState<Record<string, number | null>>(() => Object.fromEntries(record.tasks.map((t) => [t.id, t.appraisalLevel ?? null])));
   const [taskComments, setTaskComments] = useState<Record<string, string>>(() => Object.fromEntries(record.tasks.map((t) => [t.id, t.appraisalComment ?? ""])));
   const [grade, setGrade] = useState(initialGrade(record.appraisalProposedGrade) || initialGrade(record.collectiveProposedGrade) || initialGrade(record.selfProposedGrade));
@@ -388,8 +389,8 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
     if (content) setItems((prev) => (Object.keys(prev).length ? prev : initialAppraisalItems(content, record.appraisalGeneralScores, record.generalScores)));
   }, [content, record.appraisalGeneralScores, record.generalScores]);
   const itemMode = byItems && !!content;
-  const generalValue = itemMode ? generalTotal(content, items) : general === "" ? null : Number(general);
-  const tasksValue = tasksScore === "" ? null : Number(tasksScore);
+  const generalValue = itemMode ? generalTotal(content, items) : parseDecimal(general);
+  const tasksValue = parseDecimal(tasksScore);
   const p = content?.parameters;
   // Tổng tạm tính theo cùng quy tắc làm tròn của máy chủ (chung + nhiệm vụ).
   const appraisal = generalValue == null || tasksValue == null
@@ -440,39 +441,46 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
       {usesTasks && (
         <div className="col-12">
           <div className={styles.tw}><table className={styles.table}>
-            {/* Bảng cuộn ngang trên điện thoại: giữ độ rộng tối thiểu để tên sản phẩm không vỡ từng chữ. */}
-            <thead><tr><th>#</th><th style={{ minWidth: 180 }}>Sản phẩm</th><th>Loại</th><th>Tự chấm</th><th>Vượt chuẩn</th><th style={{ minWidth: 200 }}>Mức thẩm định</th><th style={{ minWidth: 160 }}>Nhận xét</th></tr></thead>
+            {/* Loại, vượt chuẩn ghi dưới tên; mức và nhận xét chung một cột để vừa khung ở màn hình 1366px. */}
+            <thead><tr><th>#</th><th style={{ minWidth: 160 }}>Sản phẩm</th><th>Tự chấm</th><th style={{ width: "45%", minWidth: 220 }}>Mức thẩm định, nhận xét</th></tr></thead>
             <tbody>
-              {scoredTasks.map((t) => (
-                <tr key={t.id}>
-                  <td className="num">{t.taskOrder}</td>
-                  <td>{t.taskName}</td>
-                  <td>{t.kind ? TASK_KIND_LABELS[t.kind] : "—"}</td>
-                  <td className="num">{t.weight > 0 ? `${fmt((t.selfScore / t.weight) * 100, 1)}%` : "—"}</td>
-                  <td>{t.isExceedStandard ? "Có" : "—"}</td>
-                  <td>
-                    <select
-                      aria-label={`Mức thẩm định: ${t.taskName}`}
-                      className="form-select form-select-sm"
-                      required
-                      value={levels[t.id] ?? ""}
-                      onChange={(e) => setLevels((prev) => ({ ...prev, [t.id]: e.target.value === "" ? null : Number(e.target.value) }))}
-                    >
-                      <option value="">— Chọn —</option>
-                      {APPRAISAL_LEVELS.map((l) => <option key={l.value} value={l.value} title={l.hint}>{l.label} — {l.hint}</option>)}
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      aria-label={`Nhận xét: ${t.taskName}`}
-                      className="form-control form-control-sm"
-                      maxLength={1000}
-                      value={taskComments[t.id] ?? ""}
-                      onChange={(e) => setTaskComments((prev) => ({ ...prev, [t.id]: e.target.value }))}
-                    />
-                  </td>
-                </tr>
-              ))}
+              {scoredTasks.map((t) => {
+                const level = APPRAISAL_LEVELS.find((l) => l.value === levels[t.id]);
+                const tags = [t.kind ? TASK_KIND_LABELS[t.kind] : null, t.isExceedStandard ? "Vượt chuẩn" : null].filter(Boolean);
+                return (
+                  <tr key={t.id}>
+                    <td className="num">{t.taskOrder}</td>
+                    <td>
+                      {t.taskName}
+                      {tags.length > 0 && <div className="small text-secondary">{tags.join(" · ")}</div>}
+                    </td>
+                    <td className="num">{t.weight > 0 ? `${fmt((t.selfScore / t.weight) * 100, 1)}%` : "—"}</td>
+                    <td>
+                      <div className="d-flex flex-column gap-1">
+                        <select
+                          aria-label={`Mức thẩm định: ${t.taskName}`}
+                          className="form-select form-select-sm"
+                          required
+                          value={levels[t.id] ?? ""}
+                          onChange={(e) => setLevels((prev) => ({ ...prev, [t.id]: e.target.value === "" ? null : Number(e.target.value) }))}
+                        >
+                          <option value="">— Chọn —</option>
+                          {APPRAISAL_LEVELS.map((l) => <option key={l.value} value={l.value} title={l.hint}>{l.label}</option>)}
+                        </select>
+                        {level && <div className="small text-secondary">{level.hint}</div>}
+                        <input
+                          aria-label={`Nhận xét: ${t.taskName}`}
+                          className="form-control form-control-sm"
+                          placeholder="Nhận xét"
+                          maxLength={1000}
+                          value={taskComments[t.id] ?? ""}
+                          onChange={(e) => setTaskComments((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table></div>
         </div>
@@ -499,9 +507,9 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
         <label className="form-label small" htmlFor="ap-general">Tiêu chí chung</label>
         {itemMode
           ? <div id="ap-general" className="num fw-bold">{generalValue != null ? fmt(generalValue) : "—"}</div>
-          : <input id="ap-general" type="number" min={0} max={p?.generalMaxScore ?? 100} step={0.1} required className="form-control form-control-sm num" value={general} onChange={(e) => setGeneral(e.target.value)} />}
+          : <DecimalInput id="ap-general" min={0} max={p?.generalMaxScore ?? 100} required className="form-control form-control-sm num" value={general} onChange={setGeneral} />}
       </div>
-      <div className="col-md-3"><label className="form-label small" htmlFor="ap-tasks">Kết quả nhiệm vụ</label><input id="ap-tasks" type="number" min={0} max={p?.totalTaskWeight ?? 100} step={0.1} required className="form-control form-control-sm num" value={tasksScore} onChange={(e) => setTasksScore(e.target.value)} /></div>
+      <div className="col-md-3"><label className="form-label small" htmlFor="ap-tasks">Kết quả nhiệm vụ</label><DecimalInput id="ap-tasks" min={0} max={p?.totalTaskWeight ?? 100} required className="form-control form-control-sm num" value={tasksScore} onChange={setTasksScore} /></div>
       <div className="col-md-2"><span className="form-label small d-block">Tổng</span><b className="num">{appraisal != null ? fmt(appraisal) : "—"}</b></div>
       <div className="col-md-6"><label className="form-label small" htmlFor="ap-grade">Mức đề xuất</label><GradeSelect id="ap-grade" value={grade} onChange={setGrade} /></div>
       <GradeWarningList warnings={warnings} />
@@ -577,7 +585,7 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
   // Kiểm phiếu đã có: mức ghi nhận của tập thể phải là mức đạt quá nửa số có mặt (máy chủ kiểm lại).
   const voteResult = !isDecision && meetingId && withVotes ? votePassedGrade(votes, selectedMeeting?.presentCount ?? 0) : null;
   const voteMismatch = !!voteResult && voteResult.grade !== grade;
-  const scoreForCheck = isDecision ? (finalScore === "" ? record.reviewedScore ?? record.totalSelfScore : Number(finalScore)) : record.totalSelfScore;
+  const scoreForCheck = isDecision ? (parseDecimal(finalScore) ?? record.reviewedScore ?? record.totalSelfScore) : record.totalSelfScore;
   const check = proposalCheck(record, criteria, grade, scoreForCheck);
   const reason = isDecision ? explanation : comment;
 
@@ -608,7 +616,7 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
     if (isDecision) {
       Object.assign(payload, {
         finalGrade: grade,
-        finalScore: finalScore === "" ? null : Number(finalScore),
+        finalScore: parseDecimal(finalScore),
         documentNumber,
         documentDate: documentDate || null,
         authorityName,
@@ -630,7 +638,7 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
       <GradeWarningList warnings={[...(isDecision ? recordGradeWarnings(record, grade) : []), ...(check ? [check.message] : [])]} />
       {isDecision ? (
         <>
-          <div className="col-md-3"><label className="form-label small text-nowrap" htmlFor={`${stage}-score`}>Điểm chính thức</label><input id={`${stage}-score`} type="number" min={0} max={100} step={0.1} className="form-control form-control-sm num" value={finalScore} onChange={(e) => setFinalScore(e.target.value)} placeholder={(record.reviewedScore ?? record.appraisalScore) != null ? `Thẩm định: ${fmt((record.reviewedScore ?? record.appraisalScore) as number)}` : "Theo thẩm định"} /></div>
+          <div className="col-md-3"><label className="form-label small text-nowrap" htmlFor={`${stage}-score`}>Điểm chính thức</label><DecimalInput id={`${stage}-score`} min={0} max={100} className="form-control form-control-sm num" value={finalScore} onChange={setFinalScore} placeholder={(record.reviewedScore ?? record.appraisalScore) != null ? `Thẩm định: ${fmt((record.reviewedScore ?? record.appraisalScore) as number)}` : "Theo thẩm định"} /></div>
           <div className="col-md-4"><label className="form-label small" htmlFor={`${stage}-authority`}>Cơ quan quyết định</label><input id={`${stage}-authority`} className="form-control form-control-sm" value={authorityName} maxLength={300} onChange={(e) => setAuthorityName(e.target.value)} title={authorityName} /></div>
           <div className="col-md-5"><label className="form-label small" htmlFor={`${stage}-docno`}>Số văn bản</label><input id={`${stage}-docno`} className="form-control form-control-sm" value={documentNumber} maxLength={100} onChange={(e) => setDocumentNumber(e.target.value)} /></div>
           <div className="col-md-4"><label className="form-label small" htmlFor={`${stage}-docdate`}>Ngày văn bản</label><DateField id={`${stage}-docdate`} value={documentDate} onChange={setDocumentDate} /></div>
@@ -752,7 +760,7 @@ function ExternalResultForm({ record, step, busy, extra, onSubmit }: { record: E
       documentDate: documentDate || null,
       comment: comment || null,
       grade: graded ? grade : null,
-      score: withScore && score !== "" ? Number(score) : null,
+      score: withScore ? parseDecimal(score) : null,
       attachmentId: attachment?.id ?? null,
       cadreWorkProposal: step === "B4_DECISION" ? cadreWorkProposal.trim() || null : null,
     });
@@ -772,7 +780,7 @@ function ExternalResultForm({ record, step, busy, extra, onSubmit }: { record: E
       )}
       {withScore && (
         <div className="col-md-3"><label className="form-label small" htmlFor={`ext-${step}-score`}>Điểm (tùy chọn)</label>
-          <input id={`ext-${step}-score`} type="number" min={0} max={100} step={0.1} className="form-control form-control-sm" value={score} onChange={(e) => setScore(e.target.value)} />
+          <DecimalInput id={`ext-${step}-score`} min={0} max={100} className="form-control form-control-sm num" value={score} onChange={setScore} />
         </div>
       )}
       <div className="col-12"><label className="form-label small">Nhận xét / nội dung kết luận</label><textarea className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
