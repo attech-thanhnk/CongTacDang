@@ -113,6 +113,8 @@ Quyền hiển thị theo nhóm (phân hệ) và tên bên dưới; **mã quyề
 
 Quyền theo cặp lập và xác nhận: **Lập** phiếu/biên bản và **Xác nhận** (hoặc **Chốt**) là hai quyền riêng; người xác nhận phải khác người lập.
 
+Tên và mô tả quyền, mô tả vai trò không kèm số mẫu hay số bước; mã quyền chỉ hiện khi rê chuột lên tên quyền. Quyền `evaluation.director.review` dùng cho cả bước Duyệt danh mục sản phẩm lẫn Nhận xét của cấp trực tiếp sử dụng nên mang tên **Cấp trực tiếp sử dụng: duyệt danh mục, nhận xét**; nơi hiển thị theo bước dùng tên bước. Mô tả mặc định cũ của vai trò được rút gọn bằng migration `RutGonMoTaVaiTroMacDinh` (chỉ đổi mô tả còn đúng bản mặc định cũ).
+
 ## 6. Cổng trước quyết định
 
 Đặt theo diện quyết định; thứ tự kiểm tra: họp thống nhất, kiểm tra. Xác nhận số liệu chỉ chặn thẩm định khi còn phiếu đang mở.

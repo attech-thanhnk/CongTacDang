@@ -52,7 +52,7 @@ Trường bổ sung (task 07, sửa ở task 14):
 | `evaluation.cell.confirm` | Chi bộ xác nhận phiếu tự chấm (B2) | có | |
 | `evaluation.collective.record` | Ghi nhận đề xuất của tập thể lãnh đạo (B3a) | có | Ghi kết quả kiểm phiếu, không ghi phiếu từng người |
 | `evaluation.appraise` | Thẩm định (B3b) | có | |
-| `evaluation.director.review` | Nhận xét, đề xuất của cấp trực tiếp sử dụng (B3c) | có | Quyền mặc định của B3c |
+| `evaluation.director.review` | Cấp trực tiếp sử dụng: duyệt danh mục, nhận xét | có | Quyền mặc định của B3c và duyệt danh mục |
 | `evaluation.unit.review` | Lãnh đạo đơn vị đề xuất | có | Trưởng bộ phận/đơn vị đề xuất mức trên cơ sở ý kiến các Phó, không họp bỏ phiếu — đặt làm quyền thực hiện B3a trong diện quyết định được cấu hình (diện `bi-thu-nhan-vien`, PL III ví dụ 3); B3a có quyền này thì không nhận biên bản, kiểm phiếu |
 | `evaluation.decide` | Ghi nhận quyết định của Đảng ủy cơ sở (B4) | có | Quyền mặc định của B4 khi diện quyết định đặt B4 "Nội bộ" |
 | `evaluation.external.record` | Ghi nhận kết quả của cấp trên | có | Ghi nhận kết quả mọi bước diện quyết định đặt "Cấp trên thực hiện" (thẩm định, nhận xét, quyết định…): cơ quan, số/ngày văn bản, nhận xét, mức, điểm, văn bản đính kèm; sửa/thay văn bản đính kèm đó |
@@ -63,9 +63,9 @@ Trường bổ sung (task 07, sửa ở task 14):
 | `evaluation.appeal.resolve` | Xử lý kiến nghị về kết quả | có | Task 20: nhận xem xét, trả lời bắt buộc căn cứ; không xử lý kiến nghị của mình hoặc kiến nghị liên quan tới bước mình đã thực hiện trên hồ sơ |
 | `evaluation.improvement.manage` | Lập kế hoạch khắc phục 30-60-90 ngày | có | Lập, sửa khi đang lập, ghi kết quả mốc Mẫu 17 (người quản lý trực tiếp); không trên hồ sơ của mình |
 | `evaluation.improvement.approve` | Duyệt kế hoạch khắc phục 30-60-90 ngày | có | Duyệt Mẫu 17 (thủ trưởng đơn vị), khác người lập; không còn ai ngoài chủ hồ sơ có quyền lập thì lập thay; không trên hồ sơ của mình |
-| `evaluation.crosscheck.request` | Yêu cầu đối soát chuyên ngành (Mẫu 03) | có | Trên hồ sơ cần đối soát; yêu cầu, nhập dòng đối soát, hủy (có lý do); không trên hồ sơ của mình |
-| `evaluation.crosscheck.respond` | Lập phiếu đối soát chuyên ngành | có | Phạm vi kiểm tra = **đơn vị đối soát** của phiếu (không phải đơn vị của hồ sơ); không cần `evaluation.read` |
-| `evaluation.crosscheck.confirm` | Xác nhận phiếu đối soát chuyên ngành | có | Phạm vi = đơn vị đối soát; khác người lập. Phiếu cơ quan ngoài hệ thống (người yêu cầu nhập thay) kiểm tra trên đơn vị của hồ sơ, nên cần bản gán bao trùm đơn vị đó (mặc định Văn phòng Đảng ủy, Toàn công ty) |
+| `evaluation.crosscheck.request` | Yêu cầu xác nhận số liệu | có | Trên hồ sơ cần đối soát; yêu cầu, nhập dòng đối soát, hủy (có lý do); không trên hồ sơ của mình |
+| `evaluation.crosscheck.respond` | Lập phiếu xác nhận số liệu | có | Phạm vi kiểm tra = **đơn vị đối soát** của phiếu (không phải đơn vị của hồ sơ); không cần `evaluation.read` |
+| `evaluation.crosscheck.confirm` | Xác nhận phiếu xác nhận số liệu | có | Phạm vi = đơn vị đối soát; khác người lập. Phiếu cơ quan ngoài hệ thống (người yêu cầu nhập thay) kiểm tra trên đơn vị của hồ sơ, nên cần bản gán bao trùm đơn vị đó (mặc định Văn phòng Đảng ủy, Toàn công ty) |
 | `evaluation.calibration.manage` | Lập biên bản hiệu chuẩn (Mẫu 20) | có | Kiểm tra trên từng hồ sơ trong biên bản; không trên hồ sơ của mình |
 | `evaluation.calibration.conclude` | Chốt biên bản hiệu chuẩn | có | Chốt/mở lại (lý do bắt buộc khi mở lại); khác người lập |
 | `evaluation.control.perform` | Lập phiếu kiểm soát (Mẫu 19) | có | Kiểm tra trên từng hồ sơ trong phiếu; không trên hồ sơ của mình |

@@ -79,8 +79,7 @@ export function EffectivePermissionsPanel({ data, loading, error, moduleNames }:
                   {permissions.map((permission) => (
                     <tr key={permission.code}>
                       <td className="ps-3">
-                        <div className="fw-semibold text-dark">{permission.name}</div>
-                        <code className="small text-secondary">{permission.code}</code>
+                        <div className="fw-semibold text-dark" title={permission.code}>{permission.name}</div>
                       </td>
                       <td>
                         {permission.sources.map((source) => (
