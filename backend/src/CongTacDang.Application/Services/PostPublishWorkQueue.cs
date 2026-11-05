@@ -76,7 +76,8 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
         {
             // Chấp nhận mà chưa mở lại thì kết quả cũ vẫn công bố: còn là việc của người mở lại được.
             appealItems.AddRange((await _repo.ListAppealsAwaitingReopenAsync(period, ct))
-                .Where(a => a.Record.MemberId != userId && _guard.Can(PermissionCodes.EvaluationReopen, AccessTarget.ForRecord(a.Record)))
+                .Where(a => a.Record.MemberId != userId && a.SubmittedById != userId && !a.ConflictedUserIds.Contains(userId))
+                .Where(a => _guard.Can(PermissionCodes.EvaluationReopen, AccessTarget.ForRecord(a.Record)))
                 .Select(a => Item(a.Record, userId, AwaitingReopenStatus, "Kiến nghị đã chấp nhận, chờ mở lại hồ sơ")));
         }
         AddGroup(groups, AppealsGroup, "Kiến nghị chờ xử lý", appealItems);

@@ -221,6 +221,15 @@ public sealed class PostPublishIntegrationTests
         Assert.Contains(await QueueRecordsAsync(w.ResolverC, "APPEALS"), id => id == recordId);
         Assert.Equal(1, (await Data(w.ResolverC, "/api/notifications/summary")).GetProperty("appeals").GetInt32());
 
+        // Người đã thực hiện bước bị kiến nghị không mở lại hồ sơ theo kiến nghị.
+        var recordBefore = await Data(w.ResolverC, $"/api/evaluations/records/{recordId}");
+        var conflictedReopen = await w.ConflictedC.PostAsJsonAsync($"/api/appeals/{appealId}/reopen", new
+        {
+            recordVersion = recordBefore.GetProperty("version").GetUInt32(), targetStep = "B4_DECISION", reason = "Mở lại"
+        });
+        Assert.Equal(HttpStatusCode.Forbidden, conflictedReopen.StatusCode);
+        Assert.Contains("xung đột lợi ích", await MessageAsync(conflictedReopen));
+
         // Chấp nhận → mở lại (không tự động) bằng thao tác "Mở lại" hiện có; lý do dẫn chiếu kiến nghị trong lịch sử hồ sơ.
         var record = await Data(w.ResolverC, $"/api/evaluations/records/{recordId}");
         Assert.Equal("Published", record.GetProperty("status").GetString());
@@ -656,7 +665,7 @@ public sealed class PostPublishIntegrationTests
             await factory.AssignAsync(periodManager.Id, await Role("CO_QUAN_THAM_DINH"), RoleScopeType.Global, null);
             await factory.AssignAsync(deptViewer.Id, (await factory.CreateRoleAsync("evaluation.results.view")).Id, RoleScopeType.Department, w.Dept1);
             await factory.AssignAsync(resolver.Id, await Role("VAN_PHONG_DANG_UY"), RoleScopeType.Global, null);
-            await factory.AssignAsync(conflicted.Id, (await factory.CreateRoleAsync("evaluation.read", "evaluation.appeal.resolve")).Id, RoleScopeType.Global, null);
+            await factory.AssignAsync(conflicted.Id, (await factory.CreateRoleAsync("evaluation.read", "evaluation.appeal.resolve", "evaluation.reopen")).Id, RoleScopeType.Global, null);
             await factory.AssignAsync(manager.Id, await Role("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept1);
             await factory.AssignAsync(manager2.Id, await Role("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept1);
             await factory.AssignAsync(outsideManager.Id, await Role("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept2);

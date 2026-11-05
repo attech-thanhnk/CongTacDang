@@ -195,6 +195,8 @@ public sealed class AppealService : IAppealService
             throw new ConflictException("Chỉ mở lại hồ sơ theo kiến nghị đã được chấp nhận.");
         if (appeal.ReopenedAt != null)
             throw new ConflictException("Hồ sơ đã được mở lại theo kiến nghị này.");
+        if (IsConflicted(appeal))
+            throw new ForbiddenException("Bạn đã thực hiện bước bị kiến nghị nên không mở lại hồ sơ theo kiến nghị này (xung đột lợi ích).");
         var reason = request.Reason?.Trim();
         if (string.IsNullOrEmpty(reason))
             throw new ValidationException("Hãy nhập lý do mở lại hồ sơ (nội dung cần đính chính theo kiến nghị).");
@@ -258,6 +260,10 @@ public sealed class AppealService : IAppealService
         ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
 
     private bool IsOwner(EvaluationRecord record) => _currentUser.UserId is { } id && record.MemberId == id;
+
+    /// <summary>Người gửi hoặc người đã thực hiện bước bị kiến nghị.</summary>
+    private bool IsConflicted(EvaluationAppeal appeal) =>
+        _currentUser.UserId is { } id && (appeal.SubmittedById == id || appeal.ConflictedUserIds.Contains(id));
 
     /// <summary>Chủ hồ sơ, người xử lý kiến nghị hoặc người xem hồ sơ trong phạm vi.</summary>
     private void EnsureCanView(EvaluationRecord record)
@@ -374,6 +380,7 @@ public sealed class AppealService : IAppealService
             && appeal.ReopenedAt == null
             && record.Status == RecordStatus.Published
             && !IsOwner(record)
+            && !IsConflicted(appeal)
             && _guard.Can(PermissionCodes.EvaluationReopen, AccessTarget.ForRecord(record));
         return new AppealDto
         {
