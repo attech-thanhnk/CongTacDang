@@ -919,7 +919,35 @@ button.stepBtn:focus-visible {
   }
 }
 
-/* Minh chứng của từng nhiệm vụ trên phiếu tự chấm: dòng riêng dưới nhiệm vụ */
+/* Bảng % A-B-C-D của phiếu tự chấm: tên sản phẩm không ngắt từng chữ, ô % đọc đủ "100" */
+.ratioTable {
+  min-width: 520px;
+}
+
+.ratioTable > tbody > tr > td:first-child {
+  min-width: 180px;
+}
+
+.ratioCol {
+  width: 70px;
+}
+
+.ratioInput {
+  min-width: 56px;
+  padding-left: 6px;
+  padding-right: 6px;
+  text-align: right;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.ratioInput::-webkit-outer-spin-button,
+.ratioInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Minh chứng của từng sản phẩm trên phiếu tự chấm: dòng riêng dưới sản phẩm */
 .taskMain > td {
   border-bottom-width: 0;
 }

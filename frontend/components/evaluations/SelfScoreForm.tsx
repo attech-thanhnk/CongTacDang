@@ -398,21 +398,21 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
           : <span className="text-danger">Khung tỷ trọng "{record.weightFrameCode || "—"}" của hồ sơ không có trong bộ tiêu chí — liên hệ người quản lý kỳ.</span>}
       </div>
       <div className="table-responsive mb-2">
-        <table className="table table-sm align-middle">
+        {/* Trục, trọng số ghi dưới tên sản phẩm để cột tên đủ rộng; ô % đủ chỗ cho 100. */}
+        <table className={`table table-sm align-middle ${styles.ratioTable}`}>
           <thead>
             <tr className="small text-secondary">
-              <th>Sản phẩm</th><th style={{ width: 55 }}>Trục</th><th style={{ width: 65 }}>Trọng số</th><th style={{ width: 75 }}>A %</th><th style={{ width: 75 }}>B %</th><th style={{ width: 75 }}>C %</th><th style={{ width: 75 }}>D %</th><th style={{ width: 70 }}>Điểm</th><th style={{ width: 55 }}>Vượt</th>
+              <th>Sản phẩm</th><th className={styles.ratioCol}>A %</th><th className={styles.ratioCol}>B %</th><th className={styles.ratioCol}>C %</th><th className={styles.ratioCol}>D %</th><th style={{ width: 56 }}>Điểm</th><th style={{ width: 48 }}>Vượt</th>
             </tr>
           </thead>
           <tbody>
             {record.tasks.map((t) => {
               const r = ratios[t.id];
+              const meta = `Trục ${t.axisCode || "—"} · trọng số ${fmt(t.changeStatus ? 0 : t.weight)}`;
               if (t.changeStatus) {
                 return (
                   <tr key={t.id} className="text-secondary">
-                    <td><div className="small">{t.taskName}<TaskChangeMark task={t} /></div></td>
-                    <td className="small">{t.axisCode || "—"}</td>
-                    <td className="small">0</td>
+                    <td><div className="small">{t.taskName}<TaskChangeMark task={t} /></div><div className="small">{meta}</div></td>
                     <td colSpan={6} />
                   </tr>
                 );
@@ -420,12 +420,14 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
               return (
                 <React.Fragment key={t.id}>
                 <tr className={styles.taskMain}>
-                  <td><div className="small fw-semibold">{t.taskName}</div><div className="small text-secondary">{t.targetOutput}</div></td>
-                  <td className="small">{t.axisCode || "—"}</td>
-                  <td className="small">{t.weight}</td>
+                  <td>
+                    <div className="small fw-semibold">{t.taskName}</div>
+                    <div className="small text-secondary">{meta}</div>
+                    <div className="small text-secondary">{t.targetOutput}</div>
+                  </td>
                   {(["a", "b", "c", "d"] as const).map((k) => (
                     <td key={k}>
-                      <input type="number" min={0} max={100} step={1} className={`form-control form-control-sm${r[k] === "" ? " border-warning" : ""}`} value={r[k]} placeholder="%" title={r[k] === "" ? "Chưa nhập" : band(Number(r[k]) || 0)?.label}
+                      <input type="number" min={0} max={100} step={1} inputMode="numeric" className={`form-control form-control-sm ${styles.ratioInput}${r[k] === "" ? " border-warning" : ""}`} value={r[k]} placeholder="%" title={r[k] === "" ? "Chưa nhập" : band(Number(r[k]) || 0)?.label}
                         onChange={(e) => setRatio(t.id, k, toInput(e.target.value))} aria-label={`Thành phần ${k.toUpperCase()} — ${t.taskName}`} />
                     </td>
                   ))}
@@ -435,7 +437,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                   </td>
                 </tr>
                 <tr className={styles.taskEvidence}>
-                  <td colSpan={9}>
+                  <td colSpan={7}>
                     <div className={styles.taskEvidenceBody}>
                       <span className={styles.taskEvidenceLabel}>
                         Minh chứng{r.exceed && !r.attachmentId ? <span className="text-danger"> · cần cho việc vượt chuẩn</span> : null}
