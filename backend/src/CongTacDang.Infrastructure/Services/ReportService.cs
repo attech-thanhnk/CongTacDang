@@ -460,13 +460,13 @@ public partial class ReportService : IReportService
         return string.Join(" — ", new[] { names, unit }.Where(s => !string.IsNullOrWhiteSpace(s)));
     }
 
-    /// <summary>Cột 12 Mẫu 14: căn cứ, lý do khi đề xuất Hoàn thành xuất sắc hoặc Không hoàn thành nhiệm vụ.</summary>
+    /// <summary>Cột 12 Mẫu 14: căn cứ, lý do khi đề xuất Hoàn thành xuất sắc hoặc Không hoàn thành nhiệm vụ; lý do của cấp quyết định đứng đầu.</summary>
     private static string? Rationale(EvaluationRecord record)
     {
         var grade = ReportGrade(record);
         if (grade is not (EvaluationGrade.HoanThanhXuatSac or EvaluationGrade.KhongHoanThanh))
             return null;
-        var parts = new[] { record.AppraisalExplanation, record.AppraisalComment, record.DirectorComment, record.CollectiveComment }
+        var parts = new[] { record.DecisionExplanation, record.AppraisalExplanation, record.AppraisalComment, record.DirectorComment, record.CollectiveComment }
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .Select(s => s!.Trim())
             .Distinct()
