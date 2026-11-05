@@ -58,6 +58,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [sideFilter, setSideFilter] = useState<"" | PositionSide>("");
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "">("active");
   const [form, setForm] = useState<FormState | null>(null);
   const formDirty = useFormDirty(form);
   const [saving, setSaving] = useState(false);
@@ -92,10 +93,11 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
     return positions.filter(
       (p) =>
         (!sideFilter || p.side === sideFilter) &&
+        (!statusFilter || p.isActive === (statusFilter === "active")) &&
         (!term || p.name.toLowerCase().includes(term) || (p.statCode || "").toLowerCase().includes(term))
     );
-  }, [positions, search, sideFilter]);
-  const paging = usePagination(filtered, { storageKey: "catalog.positions", resetKeys: [search, sideFilter] });
+  }, [positions, search, sideFilter, statusFilter]);
+  const paging = usePagination(filtered, { storageKey: "catalog.positions", resetKeys: [search, sideFilter, statusFilter] });
 
   const profileName = (code: string) => profiles.find((x) => x.code === code)?.name ?? code;
 
@@ -191,6 +193,17 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
             </option>
           ))}
         </select>
+        <select
+          className="form-select form-select-sm"
+          style={{ maxWidth: 160 }}
+          aria-label="Trạng thái"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as "active" | "inactive" | "")}
+        >
+          <option value="active">Đang dùng</option>
+          <option value="inactive">Ngừng dùng</option>
+          <option value="">Mọi trạng thái</option>
+        </select>
         {canManage && (
           <button type="button" className="btn btn-sm btn-primary ms-auto" onClick={() => setForm({ ...EMPTY_FORM })}>
             <i className="bi bi-plus-lg me-1" />
@@ -202,8 +215,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
           <table className="table table-hover align-middle mb-0">
             <thead>
               <tr>
-                <th className="ps-3">Chức vụ</th>
-                <th style={{ width: 120 }}>Bên</th>
+                <th className="ps-3" style={{ minWidth: 300 }}>Chức vụ</th>
                 <th style={{ width: 90 }}>Mã</th>
                 <th style={{ width: 210 }}>Thẩm quyền mặc định</th>
                 <th style={{ width: 170 }}>Kiểu trình bày</th>
@@ -215,14 +227,14 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-4 text-secondary loading-delay">
+                  <td colSpan={7} className="text-center py-4 text-secondary loading-delay">
                     <span className="spinner-border spinner-border-sm me-2" />
                     Đang tải…
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-4 text-secondary">
+                  <td colSpan={7} className="text-center py-4 text-secondary">
                     Không có chức vụ phù hợp.
                   </td>
                 </tr>
@@ -233,12 +245,10 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                       <span className="fw-semibold text-dark">{p.name}</span>
                       {p.isLeadership && <span className="status-badge tone-neutral ms-2">Lãnh đạo, quản lý</span>}
                       {p.isHead && <span className="status-badge tone-neutral ms-2">Người đứng đầu</span>}
-                    </td>
-                    <td>
-                      {POSITION_SIDE_LABELS[p.side] ?? p.side}
-                      {p.partyUnitTypeId && (
-                        <div className="small text-secondary">{partyTypes.find((t) => t.id === p.partyUnitTypeId)?.name}</div>
-                      )}
+                      <div className="small text-secondary">
+                        {POSITION_SIDE_LABELS[p.side] ?? p.side}
+                        {p.partyUnitTypeId && <> · {partyTypes.find((t) => t.id === p.partyUnitTypeId)?.name}</>}
+                      </div>
                     </td>
                     <td>{p.statCode ? <code>{p.statCode}</code> : "—"}</td>
                     <td className="small">

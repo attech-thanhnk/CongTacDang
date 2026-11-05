@@ -150,7 +150,6 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
             <thead>
               <tr>
                 <th className="ps-3">Kiểu trình bày</th>
-                <th>Trình bày</th>
                 <th className="text-center" style={{ width: 80 }}>Thứ tự</th>
                 <th className="text-center" style={{ width: 130 }}>Áp dụng</th>
                 {canManage && <th className="pe-3 text-end" style={{ width: 130 }}>Thao tác</th>}
@@ -159,14 +158,14 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-4 text-secondary loading-delay">
+                  <td colSpan={4} className="text-center py-4 text-secondary loading-delay">
                     <span className="spinner-border spinner-border-sm me-2" />
                     Đang tải…
                   </td>
                 </tr>
               ) : layouts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-4 text-secondary">
+                  <td colSpan={4} className="text-center py-4 text-secondary">
                     Chưa có kiểu trình bày nào.
                   </td>
                 </tr>
@@ -176,12 +175,10 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
                     <td className="ps-3">
                       <span className="fw-semibold text-dark">{l.name}</span>
                       {l.isDefault && <span className="tag t-ok ms-2">Mặc định</span>}
-                      {l.description && <div className="small text-secondary">{l.description}</div>}
-                    </td>
-                    <td className="small">
-                      {summary(l).map((line) => (
-                        <div key={line}>{line}</div>
-                      ))}
+                      {/* Mô tả tự nhập thường lặp lại các tùy chọn nên chỉ hiện tóm tắt tùy chọn. */}
+                      <div className="small text-secondary">
+                        {summary(l).join(" · ")}
+                      </div>
                     </td>
                     <td className="text-center">{l.sortOrder}</td>
                     <td className="text-center small">
