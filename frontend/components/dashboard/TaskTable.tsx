@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Pagination } from "@/components/common/Pagination";
 import { usePagination } from "@/components/common/usePagination";
 import styles from "./dashboard.module.css";
-import { TaskRow, deadlineState, initialsOf, isWorkflowStep, shortDate, taskActionLabel, taskHref } from "./taskUtils";
+import { TaskRow, deadlineState, initialsOf, isWorkflowStep, shortDate, taskActionLabel, taskHref, unitText } from "./taskUtils";
 
 export type { TaskRow } from "./taskUtils";
 
@@ -91,7 +91,7 @@ export function TaskTable({
                         {task.isOwnRecord && <span className={styles.hint}>Hồ sơ của tôi</span>}
                         {periodId && task.periodId !== periodId && <span className={styles.hint}>{task.periodName}</span>}
                         <span className={styles.sub}>
-                          {[task.departmentName, task.partyCellName].filter(Boolean).join(" · ") || "—"}
+                          {unitText(task.departmentName, task.partyCellName) || "—"}
                         </span>
                         {detail && <span className={styles.sub}>{detail}</span>}
                         {task.returnReason && <span className={styles.reason}>Bị trả lại: {task.returnReason}</span>}

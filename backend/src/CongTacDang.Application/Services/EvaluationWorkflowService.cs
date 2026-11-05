@@ -166,7 +166,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             }).ToList();
             await _repo.ReplaceTasksAsync(ctx.Record.Id, newTasks, ct);
             ctx.Record.ReturnReason = null;
-            return "Nộp danh mục sản phẩm, nhiệm vụ.";
+            return "Nộp danh mục sản phẩm.";
         }, ct);
 
     /// <inheritdoc />

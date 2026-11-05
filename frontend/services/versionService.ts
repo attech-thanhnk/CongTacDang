@@ -28,7 +28,8 @@ export const versionService = {
 
 /** Dòng "Phiên bản <commit>"; thêm mã của giao diện khi hai phía lệch nhau (một trong hai chưa được dựng lại). */
 export function versionLabel(v: AppVersion | null): string {
-  if (!v) return "";
+  // Bản dựng không ghi mã commit: bỏ dòng phiên bản thay vì hiện "chưa rõ".
+  if (!v || v.commit === UNKNOWN) return "";
   const mismatch = FRONTEND_COMMIT !== UNKNOWN && v.commit !== UNKNOWN && FRONTEND_COMMIT !== v.commit;
   return mismatch ? `Phiên bản ${v.commit} (giao diện ${FRONTEND_COMMIT})` : `Phiên bản ${v.commit}`;
 }

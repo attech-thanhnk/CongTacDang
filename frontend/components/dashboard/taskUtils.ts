@@ -121,6 +121,12 @@ export function taskHref(task: { step: string; recordId: string; formId?: string
   return task.step === "APPEALS_UNASSIGNED" ? "/admin/performers?permission=evaluation.appeal.resolve" : `/evaluations/${task.recordId}`;
 }
 
+/** "Đơn vị · Chi bộ"; tên Chi bộ đã chứa tên đơn vị thì chỉ ghi đơn vị. */
+export function unitText(department?: string | null, partyCell?: string | null): string {
+  if (department && partyCell && normalizeText(partyCell).includes(normalizeText(department))) return department;
+  return [department, partyCell].filter(Boolean).join(" · ");
+}
+
 /** Chữ cái đầu của hai từ cuối trong họ tên. */
 export function initialsOf(fullName?: string | null): string {
   if (!fullName) return "?";

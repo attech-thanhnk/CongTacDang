@@ -26,6 +26,8 @@ test.describe('Tải Word từ giao diện', () => {
   test('xuất Mẫu 01 và Mẫu 02 từ trang hồ sơ', async ({ mo }) => {
     const page = await mo('loan.ctp');
     await page.goto(duongDanHoSo(TRUNG.khoa));
+    // Khi đang có thao tác trên hồ sơ, khối Biểu mẫu thu gọn ở cuối trang: mở bằng nút ở đầu hồ sơ.
+    await page.getByRole('button', { name: 'Biểu mẫu', exact: true }).click();
     for (const [ma, ...noiDung] of [['Mẫu 01', 'Trung sản phẩm 1'], ['Mẫu 02', 'Trung sản phẩm 1', 'minh-chung-sp1.pdf']]) {
       const dong = page.getByRole('listitem').filter({ hasText: new RegExp(`^${ma} ·`) });
       await expect(dong).toBeVisible();

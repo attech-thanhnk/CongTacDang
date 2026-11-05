@@ -67,7 +67,8 @@ function LoginForm() {
     if (e.animationName.includes("shake")) setShaking(false);
   };
 
-  const footer = org ? [org.companyName, org.parentCompanyName].filter(Boolean).join(" · ") : "";
+  // Mỗi tên một dòng để tên dài không bị ngắt giữa chừng.
+  const footer = org ? [org.companyName, org.parentCompanyName].filter(Boolean).map((name) => <div key={name}>{name}</div>) : [];
   const cardClass = [styles.card, entered ? "" : styles.enter, shaking ? styles.shake : "", succeeded ? styles.leave : ""]
     .filter(Boolean)
     .join(" ");
@@ -124,8 +125,8 @@ function LoginForm() {
         )}
       </form>
 
-      {footer && <div className={styles.foot}>{footer}</div>}
-      {version && <div className={styles.version} title={`Dựng lúc ${version.buildTime}`}>{versionLabel(version)}</div>}
+      {footer.length > 0 && <div className={styles.foot}>{footer}</div>}
+      {version && versionLabel(version) && <div className={styles.version} title={`Dựng lúc ${version.buildTime}`}>{versionLabel(version)}</div>}
     </div>
   );
 }

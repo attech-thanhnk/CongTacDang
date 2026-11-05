@@ -9,7 +9,7 @@ import { CollapsibleSection } from "./CollapsibleSection";
 
 const RECENT = 5;
 
-/** Lịch sử hồ sơ (thu gọn mặc định — việc chính của trang ở cột trái): mới nhất trước, 5 mục gần nhất. */
+/** Lịch sử hồ sơ (thu gọn mặc định, ở cuối trang): mới nhất trước, 5 mục gần nhất. */
 export function RecordHistory({ history }: { history: EvaluationRecordHistoryDto[] }) {
   const [showAll, setShowAll] = useState(false);
   const sorted = useMemo(

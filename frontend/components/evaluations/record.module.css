@@ -221,7 +221,8 @@
 
 .step {
   flex: 1 1 0;
-  min-width: 96px;
+  /* Đủ 11 bước trong khung 1366px, không phải cuộn ngang */
+  min-width: 86px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -458,18 +459,11 @@ button.stepBtn:focus-visible {
   }
 }
 
-/* Hai cột */
+/* Một cột: khu thao tác và dữ liệu các bước chiếm cả chiều rộng; biểu mẫu (cả hàng), lịch sử, thông tin ở cuối */
 .cols {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
+  display: flex;
+  flex-direction: column;
   gap: 24px;
-  align-items: start;
-}
-
-@media (max-width: 1040px) {
-  .cols {
-    grid-template-columns: 1fr;
-  }
 }
 
 .stack {
@@ -479,25 +473,59 @@ button.stepBtn:focus-visible {
   min-width: 0;
 }
 
-/* Chưa có việc hay dữ liệu bước nào để xem: bỏ cột trái trống, các khối phụ dàn ngang */
-.cols:has(> .stack:first-child:empty) {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .cols > .stack:first-child:empty {
   display: none;
 }
 
-.cols:has(> .stack:first-child:empty) > .side {
+.cols > .side {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
 }
 
+.cols > .side > :first-child {
+  grid-column: 1 / -1;
+}
+
+.side .files {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.side .files li:nth-child(odd) {
+  border-right: 1px solid var(--rule);
+}
+
+.side .files li:nth-last-child(2):nth-child(odd) {
+  border-bottom: 0;
+}
+
 @media (max-width: 767.98px) {
-  .cols:has(> .stack:first-child:empty) > .side {
+  .cols > .side,
+  .side .files {
     grid-template-columns: minmax(0, 1fr);
   }
+  .side .files li:nth-child(odd) {
+    border-right: 0;
+  }
+  .side .files li:nth-last-child(2):nth-child(odd) {
+    border-bottom: 1px solid var(--rule);
+  }
+}
+
+/* Nút "Biểu mẫu" ở đầu hồ sơ */
+.headBtn {
+  margin-left: auto;
+  flex: none;
+  align-self: center;
+}
+
+/* Thanh "Xem bản in" trên danh sách biểu mẫu */
+.filesBar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--rule);
 }
 
 /* Khu thao tác */

@@ -31,7 +31,7 @@ Một người **không** xét duyệt, lập hoặc xác nhận được trên 
 
 | Bước | Người thực hiện (vai trò mặc định) | Quyền cần có | Làm ở đâu | Kết quả |
 |---|---|---|---|---|
-| Đăng ký sản phẩm, nhiệm vụ | Chính cán bộ (Người được đánh giá) | Tham gia đánh giá (bản thân) | "Việc cần xử lý" hoặc "Tổng quan", mở hồ sơ, nút "Nộp danh mục" | Chờ duyệt danh mục |
+| Đăng ký sản phẩm | Chính cán bộ (Người được đánh giá) | Tham gia đánh giá (bản thân) | "Việc cần xử lý" hoặc "Tổng quan", mở hồ sơ, nút "Nộp danh mục" | Chờ duyệt danh mục |
 | Duyệt danh mục sản phẩm | Lãnh đạo đơn vị | Duyệt danh mục sản phẩm | Mở hồ sơ, nút "Duyệt" (hoặc "Trả lại danh mục") | Chờ tự chấm |
 | Tự chấm điểm, đề xuất mức | Chính cán bộ | Tham gia đánh giá (bản thân) | Mở hồ sơ, "Lưu nháp", "Nộp phiếu" | Chờ Chi bộ xác nhận |
 | Chi bộ xác nhận phiếu tự chấm | Chi bộ | Chi bộ xác nhận phiếu tự chấm | Mở hồ sơ, nút "Xác nhận" (hoặc "Trả lại phiếu tự chấm") | Chờ đề xuất tập thể |
