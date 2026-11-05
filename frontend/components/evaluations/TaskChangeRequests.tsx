@@ -274,6 +274,14 @@ function TaskChangeForm({
     tasks.reduce((s, t) => s + (removes && t.id === taskId ? 0 : Number(weights[t.id]) || 0), 0) +
     (type === "Urgent" ? Number(proposal.weight) || 0 : 0);
   const off = Math.abs(sum - total) > tolerance;
+  // Báo ngay khi chọn, khỏi đợi máy chủ từ chối lúc gửi.
+  const minTasks = criteria?.content.parameters.minTasks ?? 3;
+  const maxTasks = criteria?.content.parameters.maxTasks ?? 7;
+  const countError = removes && tasks.length <= minTasks
+    ? `Cần giữ tối thiểu ${minTasks} việc: chỉ chọn Điều chỉnh.`
+    : type === "Urgent" && tasks.length >= maxTasks
+      ? `Đã đủ tối đa ${maxTasks} việc.`
+      : null;
 
   const set = (key: keyof TaskChangeProposal, value: string) => setProposal((p) => ({ ...p, [key]: value }));
 
@@ -316,12 +324,15 @@ function TaskChangeForm({
           </div>
           <div className="col-12 col-md-6">
             <label className="form-label small mb-1" htmlFor="tc-type">Loại đề nghị</label>
-            <select id="tc-type" className="form-select form-select-sm" value={type} onChange={(e) => setType(e.target.value as TaskChangeType)}>
+            <select id="tc-type" className={`form-select form-select-sm${countError ? " is-invalid" : ""}`} value={type} onChange={(e) => setType(e.target.value as TaskChangeType)}
+              aria-describedby={countError ? "tc-count" : undefined}>
               {(["Adjust", "Carryover", "Exclude"] as TaskChangeType[]).map((t) => <option key={t} value={t}>{TASK_CHANGE_TYPE_LABELS[t]}</option>)}
             </select>
+            {countError && <div id="tc-count" className="invalid-feedback">{countError}</div>}
           </div>
         </div>
       )}
+      {mode === "urgent" && countError && <div className="small text-danger" role="alert">{countError}</div>}
 
       {(type === "Adjust" || type === "Urgent") && (
         <div className="row g-2">
@@ -401,7 +412,7 @@ function TaskChangeForm({
 
       <div className="d-flex gap-2 justify-content-end">
         <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy} onClick={onCancel}>Hủy</button>
-        <button type="button" className="btn btn-primary btn-sm" disabled={busy || off} onClick={submit}>Gửi đề nghị</button>
+        <button type="button" className="btn btn-primary btn-sm" disabled={busy || off || !!countError} onClick={submit}>Gửi đề nghị</button>
       </div>
     </div>
   );
