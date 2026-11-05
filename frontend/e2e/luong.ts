@@ -45,6 +45,8 @@ export async function nopDanhMuc(page: Page, tiento: string) {
     await page.locator(`#t${i}-axis`).selectOption({ index: 1 });
     await page.locator(`#t${i}-weight`).fill(String(trongSo[i]));
     await page.locator(`#t${i}-standard`).fill(`Hoàn thành đúng chuẩn ${i + 1}`);
+    // Bốn ô ít dùng nằm trong phần "Thêm chi tiết" gập sẵn.
+    if (!(await page.locator(`#t${i}-exceed`).isVisible())) await page.locator(`#t${i}-more`).click();
     await page.locator(`#t${i}-exceed`).fill(`Vượt chuẩn ${i + 1}`);
     await page.locator(`#t${i}-evidence`).fill('Báo cáo kết quả');
     await page.locator(`#t${i}-confirmer`).fill('Lãnh đạo Phòng');

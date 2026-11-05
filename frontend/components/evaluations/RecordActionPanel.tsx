@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useId, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   APPRAISAL_LEVELS,
   EvaluationMeetingDto,
@@ -818,10 +819,14 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
       }))
     : Array.from({ length: p?.minTasks ?? 3 }, blank);
   const [tasks, setTasks] = useState<TaskInputDto[]>(initial);
-  const total = useMemo(() => Math.round(tasks.reduce((sum, t) => sum + (Number(t.weight) || 0), 0) * 100) / 100, [tasks]);
+  // Phần "Thêm chi tiết" của từng sản phẩm: mở sẵn khi đã có dữ liệu.
+  const [moreOpen, setMoreOpen] = useState<boolean[]>(() => initial.map(hasTaskDetails));
+  const total =useMemo(() => Math.round(tasks.reduce((sum, t) => sum + (Number(t.weight) || 0), 0) * 100) / 100, [tasks]);
 
   const update = (index: number, key: keyof TaskInputDto, value: string) =>
     setTasks(tasks.map((t, i) => (i === index ? { ...t, [key]: key === "weight" ? Number(value) : value } : t)));
+
+  const setMore = (index: number, open: boolean) => setMoreOpen((list) => tasks.map((_, i) => (i === index ? open : !!list[i])));
 
   return (
     <form
@@ -829,24 +834,32 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
         e.preventDefault();
         onSubmit({ tasks: tasks.map((t) => ({ ...t, deadline: t.deadline || null, axisCode: t.axisCode || null, productCode: t.productCode || null })) });
       }}
+      // Ô bắt buộc nằm trong phần chi tiết đang gập: mở ra ngay để trình duyệt đưa con trỏ tới ô thiếu.
+      onInvalidCapture={(e) => {
+        const index = Number((e.target as HTMLElement).dataset.task);
+        if (Number.isInteger(index) && !moreOpen[index]) flushSync(() => setMore(index, true));
+      }}
     >
       <div className="d-flex flex-column gap-2 mb-2">
         {tasks.map((t, i) => (
           <fieldset key={i} className="border rounded-3 p-3">
             <div className="d-flex justify-content-between align-items-center mb-2">
               <legend className="h6 mb-0 float-none w-auto">Sản phẩm {i + 1}</legend>
-              <button type="button" className="btn btn-link btn-sm text-danger p-0" onClick={() => setTasks(tasks.filter((_, idx) => idx !== i))}>
+              <button
+                type="button"
+                className="btn btn-link btn-sm text-danger p-0"
+                onClick={() => {
+                  setTasks(tasks.filter((_, idx) => idx !== i));
+                  setMoreOpen(moreOpen.filter((_, idx) => idx !== i));
+                }}
+              >
                 <i className="bi bi-x-lg me-1" />Xóa
               </button>
             </div>
             <div className="row g-2">
-              <div className="col-md-8">
+              <div className="col-12">
                 <label className="form-label small mb-0" htmlFor={`t${i}-name`}>Tên sản phẩm, công việc</label>
                 <input id={`t${i}-name`} className="form-control form-control-sm" value={t.taskName} maxLength={500} required onChange={(e) => update(i, "taskName", e.target.value)} />
-              </div>
-              <div className="col-md-4">
-                <label className="form-label small mb-0" htmlFor={`t${i}-code`}>Mã sản phẩm (nếu có)</label>
-                <input id={`t${i}-code`} className="form-control form-control-sm" value={t.productCode || ""} maxLength={50} onChange={(e) => update(i, "productCode", e.target.value)} />
               </div>
               <div className="col-md-3">
                 <label className="form-label small mb-0" htmlFor={`t${i}-kind`}>Loại việc</label>
@@ -880,21 +893,34 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
                 <label className="form-label small mb-0" htmlFor={`t${i}-deadline`}>Thời hạn / mốc quý</label>
                 <DateField id={`t${i}-deadline`} value={t.deadline || ""} onChange={(v) => update(i, "deadline", v)} />
               </div>
-              <div className="col-md-6">
+              <div className="col-12">
                 <label className="form-label small mb-0" htmlFor={`t${i}-standard`}>Chuẩn đạt</label>
                 <textarea id={`t${i}-standard`} className="form-control form-control-sm" rows={2} maxLength={2000} required value={t.targetOutput} onChange={(e) => update(i, "targetOutput", e.target.value)} />
               </div>
+              <div className="col-12">
+                <button type="button" id={`t${i}-more`} className="btn btn-link btn-sm p-0" aria-expanded={!!moreOpen[i]} aria-controls={`t${i}-details`}
+                  onClick={() => setMore(i, !moreOpen[i])}>
+                  <i className={`bi ${moreOpen[i] ? "bi-chevron-down" : "bi-chevron-right"} me-1`} aria-hidden="true" />Thêm chi tiết
+                </button>
+              </div>
+            </div>
+            {/* Luôn dựng để kiểm tra ô bắt buộc khi nộp; chỉ ẩn khi gập. */}
+            <div id={`t${i}-details`} className="row g-2 mt-0" hidden={!moreOpen[i]}>
               <div className="col-md-6">
                 <label className="form-label small mb-0" htmlFor={`t${i}-exceed`}>Tiêu chí vượt chuẩn</label>
-                <textarea id={`t${i}-exceed`} className="form-control form-control-sm" rows={2} maxLength={2000} required value={t.exceedCriteria || ""} onChange={(e) => update(i, "exceedCriteria", e.target.value)} />
+                <textarea id={`t${i}-exceed`} data-task={i} className="form-control form-control-sm" rows={2} maxLength={2000} required value={t.exceedCriteria || ""} onChange={(e) => update(i, "exceedCriteria", e.target.value)} />
               </div>
               <div className="col-md-6">
                 <label className="form-label small mb-0" htmlFor={`t${i}-evidence`}>Nguồn dữ liệu / minh chứng</label>
-                <input id={`t${i}-evidence`} className="form-control form-control-sm" maxLength={1000} required value={t.evidenceSource || ""} onChange={(e) => update(i, "evidenceSource", e.target.value)} />
+                <input id={`t${i}-evidence`} data-task={i} className="form-control form-control-sm" maxLength={1000} required value={t.evidenceSource || ""} onChange={(e) => update(i, "evidenceSource", e.target.value)} />
               </div>
               <div className="col-md-6">
                 <label className="form-label small mb-0" htmlFor={`t${i}-confirmer`}>Thẩm quyền xác nhận</label>
-                <input id={`t${i}-confirmer`} className="form-control form-control-sm" maxLength={500} required value={t.confirmer || ""} onChange={(e) => update(i, "confirmer", e.target.value)} />
+                <input id={`t${i}-confirmer`} data-task={i} className="form-control form-control-sm" maxLength={500} required value={t.confirmer || ""} onChange={(e) => update(i, "confirmer", e.target.value)} />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small mb-0" htmlFor={`t${i}-code`}>Mã sản phẩm (nếu có)</label>
+                <input id={`t${i}-code`} data-task={i} className="form-control form-control-sm" value={t.productCode || ""} maxLength={50} onChange={(e) => update(i, "productCode", e.target.value)} />
               </div>
             </div>
           </fieldset>
@@ -902,22 +928,25 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
       </div>
       <div className={`d-flex flex-wrap gap-2 justify-content-between align-items-center border-top py-2 ${styles.stickyFoot}`}>
         <div className="d-flex gap-2 align-items-center">
-          <button type="button" className="btn btn-outline-secondary" onClick={() => setTasks([...tasks, blank()])}>
+          <button type="button" className="btn btn-outline-secondary" onClick={() => { setTasks([...tasks, blank()]); setMoreOpen([...moreOpen, false]); }}>
             <i className="bi bi-plus-lg me-1" />Thêm dòng
           </button>
           <span className="small text-secondary">
             Tổng trọng số: <strong className={p && Math.abs(total - p.totalTaskWeight) > p.taskWeightTolerance ? "text-danger" : ""}>{total}</strong>
             {p && <> / {fmt(p.totalTaskWeight)}</>}
           </span>
+          {p && <span className="small text-secondary">· {p.minTasks}–{p.maxTasks} sản phẩm</span>}
         </div>
         <button type="submit" className="btn btn-primary" disabled={busy}><i className="bi bi-send me-1" aria-hidden="true" />Nộp danh mục</button>
       </div>
-      {p && <div className="form-text">{`${p.minTasks}–${p.maxTasks} sản phẩm.`}</div>}
     </form>
   );
 }
 
 export default RecordActionPanel;
+
+/** Sản phẩm đã có dữ liệu ở phần "Thêm chi tiết". */
+const hasTaskDetails = (t: TaskInputDto) => !!(t.exceedCriteria || t.evidenceSource || t.confirmer || t.productCode);
 
 /** Cột 13 Mẫu 14 (tùy chọn, ghi ở bước quyết định). */
 function CadreProposalInput({ id, value, onChange }: { id: string; value: string; onChange: (value: string) => void }) {
